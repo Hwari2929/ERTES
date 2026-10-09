@@ -1,0 +1,15 @@
+{
+  "name": "errantes",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ERRANTEs — 증강 도파민 MAX 오토체스 (싱글 PvE 프로토타입)",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "sim": "node scripts/build.mjs --sim && node dist/sim.cjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10",
+    "typescript": "5.9.3"
+  }
+}

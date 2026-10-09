@@ -1,0 +1,172 @@
+// 16x16 도트 템플릿 + 팔레트 스왑. 문자: . 투명 / k 외곽선 / p 주색 / s 보조색 / f 피부 / v 바이저 / g 금속 / w 하이라이트
+const T: Record<string, string[]> = {
+  soldier: [
+    '................',
+    '.....kkkk.......',
+    '....kppppk......',
+    '....kpvvvk......',
+    '....kffffk......',
+    '.....kffk.......',
+    '...kkppppkk.....',
+    '..kppsppspkgggk.',
+    '..kpkppppkkgggk.',
+    '..kfkppppk.kkk..',
+    '..kkksssskk.....',
+    '....kpkkpk......',
+    '....kpk.kpk.....',
+    '....kpk.kpk.....',
+    '...kkk..kkk.....',
+    '................',
+  ],
+  knight: [
+    '................',
+    '.....kkkk.......',
+    '....kssssk......',
+    '....kpvvpk......',
+    '....kppppk...k..',
+    '.....kppk...kwk.',
+    '..kkkppppkk.kwk.',
+    '.kssksppspk.kwk.',
+    '.ksssppppppkkgk.',
+    '.ksssppppk.kfk..',
+    '.kssksssskk.k...',
+    '..kk.kpkkpk.....',
+    '....kpk.kpk.....',
+    '....kpk.kpk.....',
+    '...kkk..kkk.....',
+    '................',
+  ],
+  medic: [
+    '................',
+    '.....kkkk.......',
+    '....kwwwwk......',
+    '....kfvvfk......',
+    '....kffffk......',
+    '.....kffk.......',
+    '...kkwwwwkk.....',
+    '..kwwwsswwk.....',
+    '..kwkssssk.kk...',
+    '..kfkwwwwkkpvk..',
+    '..kkkppppkkppk..',
+    '....kpkkpk.kk...',
+    '....kpk.kpk.....',
+    '....kpk.kpk.....',
+    '...kkk..kkk.....',
+    '................',
+  ],
+  mech: [
+    '................',
+    '....kkkkkkk.....',
+    '...kpppppppk....',
+    '...kpvvvvvpk....',
+    '...kpppppppk....',
+    '.kkkkssssskkkk..',
+    'kpppkpppppkpppk.',
+    'kpgpkpwwwpkpgpk.',
+    'kpgpkpppppkpgpk.',
+    'kkkkkpppppkkkkk.',
+    '....ksssssk.....',
+    '...kppk.kppk....',
+    '...kppk.kppk....',
+    '..kggkk.kkggk...',
+    '..kkkkk.kkkkk...',
+    '................',
+  ],
+  drone: [
+    '................',
+    '................',
+    '..kkk......kkk..',
+    '..kwk......kwk..',
+    '...kkkkkkkkkk...',
+    '.....kppppk.....',
+    '....kppvvppk....',
+    '...kpsvwwvspk...',
+    '....kppvvppk....',
+    '.....kppppk.....',
+    '......kggk......',
+    '.......kk.......',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+  crawler: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '.....kkkkkk.....',
+    '...kkppppppkk...',
+    '..kppsppppsppk..',
+    '.kppppvppvppppk.',
+    '.kpppppppppppk..',
+    '..kkppppppppkk..',
+    '.kp.kkkkkkkk.pk.',
+    'kp..kp.kp.kp..pk',
+    'k...k..k..k...k.',
+    '................',
+    '................',
+    '................',
+  ],
+  phantom: [
+    '................',
+    '.....kkkkk......',
+    '....kpppppk.....',
+    '...kpvpppvpk....',
+    '...kpppppppk....',
+    '...kppkkkppk....',
+    '...kpppppppk....',
+    '..kpppsssppk....',
+    '..kppsssssppk...',
+    '..kpppsssppk....',
+    '...kpppppppk....',
+    '...kpppppppk....',
+    '...kpkpkpkpk....',
+    '....k.k.k.k.....',
+    '................',
+    '................',
+  ],
+  turret: [
+    '................',
+    '................',
+    '................',
+    '.......kk.......',
+    '......kggkkkkkk.',
+    '.....kpppkgggggk',
+    '....kpvvpppkkkkk',
+    '....kpppppk.....',
+    '.....kppppk.....',
+    '....kssssssk....',
+    '...kssssssssk...',
+    '..kkkkkkkkkkkk..',
+    '..kppppppppppk..',
+    '..kkkkkkkkkkkk..',
+    '................',
+    '................',
+  ],
+};
+const KEYS = 'kpsfvgw';
+const cache = new Map<string, string>();
+
+export function spriteURL(name: string, palette: string[]): string {
+  const key = name + palette.join('');
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const rows = T[name] || T.soldier;
+  if (typeof document === 'undefined') return '';
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 16;
+  const g = cv.getContext('2d')!;
+  rows.forEach((row, y) => {
+    for (let x = 0; x < 16; x++) {
+      const ch = row[x] || '.';
+      const i = KEYS.indexOf(ch);
+      if (i < 0) continue;
+      g.fillStyle = palette[i] || '#f0f';
+      g.fillRect(x, y, 1, 1);
+    }
+  });
+  const url = cv.toDataURL();
+  cache.set(key, url);
+  return url;
+}
