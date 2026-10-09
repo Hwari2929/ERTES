@@ -1,4 +1,4 @@
-import { SAVE_VERSION } from '../engine/run';
+import { migrate } from '../engine/run';
 import type { RunState } from '../types';
 
 const PREFIX = 'errantes.v1.';
@@ -41,8 +41,8 @@ export function listSaves(): SaveMeta[] {
 
 function validate(run: unknown): RunState | null {
   const r = run as RunState;
-  if (!r || typeof r !== 'object' || r.version !== SAVE_VERSION || !Array.isArray(r.units)) return null;
-  return r;
+  if (!r || typeof r !== 'object' || !(r.version >= 1) || !Array.isArray(r.units)) return null;
+  return migrate(r);
 }
 
 // 저장 코드: UTF-8 JSON → base64

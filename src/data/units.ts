@@ -1,41 +1,12 @@
-import type { Battle, CUnit, SkillDef } from '../engine/combat';
-import { type AugDef, type Effect, inc } from '../engine/effects';
-import type { Elem, FactionId, Keyword, Major, TraitId } from '../types';
+import type { Battle } from '../engine/combat';
+import { inc } from '../engine/effects';
 import { bleed, corrode, fear, lineTargets, poison, pct, shock, skillHit } from './kit';
+import { B, PAL, setSk, uaug, type UnitDef } from './unitkit';
+import { EXT_UNITS } from './units2';
 
-export interface UnitDef {
-  id: string;
-  name: string;
-  title: string;
-  faction: FactionId;
-  traits: TraitId[];
-  keywords: Keyword[];
-  atk: { type: 'shoot' | 'strike'; elem: Elem; interval: number };
-  range: number;
-  base: Record<Major, number>;
-  sprite: string;
-  palette: string[];
-  skill: SkillDef;
-  lore: string;
-  augs: AugDef[];
-}
+export type { UnitDef };
 
-const B = (vit: number, pow: number, mnd: number, def: number, agi: number) => ({ vit, pow, mnd, def, agi });
-
-function uaug(owner: string, id: string, name: string, desc: string, effect: Effect, extra: Partial<AugDef> = {}): AugDef {
-  return { id: `${owner}.${id}`, name, desc, pool: 'unit', owner, effect: () => effect, ...extra };
-}
-const setSk = (f: (sk: Record<string, number>, u: CUnit) => void): Effect => ({ setup: (u) => f(u.sk, u) });
-
-// 팔레트: [외곽선, 주색, 보조색, 피부, 바이저, 금속, 하이라이트]
-const PAL = {
-  UNI: ['#10131c', '#3b6fd8', '#c9d6f2', '#f0c8a0', '#7fe3ff', '#59606e', '#ffffff'],
-  KAL: ['#140c0c', '#a8283a', '#e0b040', '#e8c09a', '#ffd34d', '#6a5a50', '#fff3c0'],
-  HEL: ['#0b1614', '#2fa39a', '#e8eef0', '#d8b090', '#b07cff', '#4f6866', '#ffffff'],
-  PET: ['#141008', '#e07a1f', '#3a3a40', '#e6bc94', '#7dff8a', '#55555c', '#fff0d0'],
-};
-
-export const UNITS: UnitDef[] = [
+const BASE_UNITS: UnitDef[] = [
   // ───────────────────────── 성간 인류 연합
   {
     id: 'lea', name: '레아 바스케스', title: '연합 해병대 저격수', faction: 'UNI', traits: ['MARK'], keywords: ['bio'],
@@ -264,7 +235,7 @@ export const UNITS: UnitDef[] = [
     lore: '협상이 결렬되면, 상대의 생각을 대신 정리해 준다.',
     skill: {
       name: '정신 붕괴', cd: 8, needsRange: true,
-      params: { mult: 2.2, radius: 1, fearDur: 2.5, fearChance: 0.5, nightmare: 0, steal: 0, madness: 0 },
+      params: { mult: 2.5, radius: 1, fearDur: 2.5, fearChance: 0.5, nightmare: 0, steal: 0, madness: 0 },
       desc: (p) => `대상과 주변 ${p.radius}칸 적에게 기술 위력 ${pct(p.mult)} 정신 피해, ${pct(p.fearChance)} 확률로 ${p.fearDur}초 공포 (공격/기술 불가).`,
       cast(b, u) {
         const t = u.target;
@@ -399,5 +370,6 @@ export const UNITS: UnitDef[] = [
   },
 ];
 
+export const UNITS: UnitDef[] = [...BASE_UNITS, ...EXT_UNITS];
 export const UNIT_BY_ID: Record<string, UnitDef> = Object.fromEntries(UNITS.map((u) => [u.id, u]));
 export type { Battle };

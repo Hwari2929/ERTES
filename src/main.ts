@@ -1,9 +1,9 @@
-import { CFG } from './config';
+import { CFG, phaseHpMult } from './config';
 import { AUG_BY_ID, augDesc, augSource } from './data/augments';
 import { ENEMY_BY_ID } from './data/enemies';
-import { GLOBAL_BY_ID } from './data/globals';
+import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
 import { combine, itemInfo } from './data/items';
-import { rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf } from './data/synergies';
+import { rankTitle, staffTargetUid, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf } from './data/synergies';
 import { UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import {
   activeTiers, buildAlly, buildBattle, buildEnemy, deployed, layout, memberships, playerRows, synergyCounts, totalMajors, unitEffects,
@@ -16,7 +16,7 @@ import { BattleView, fmt } from './ui/battleview';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { spriteURL } from './ui/sprites';
 
-type Screen = 'title' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'over';
+type Screen = 'title' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'over';
 type Sel = { k: 'unit'; uid: string } | { k: 'item'; idx: number } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
 
 const app = {
@@ -49,7 +49,7 @@ function toast(msg: string) {
 function persist() { if (app.run && !app.run.over) saveRun(app.run, 'auto'); }
 
 // ───────────────────────── 공용 조각
-const NODE_ICON: Record<NodeType, string> = { battle: '⚔', adversity: '☠', shop: '¤', supply: '▣', recruit: '✚', boss: '♜' };
+const NODE_ICON: Record<NodeType, string> = { battle: '⚔', adversity: '☠', shop: '¤', supply: '▣', recruit: '✚', boss: '♜', pilgrim: '✟', news: '✪' };
 
 function chip(id: string) {
   const s = SYN_BY_ID[id as keyof typeof SYN_BY_ID];
@@ -83,6 +83,9 @@ function topbar() {
       <span class="pill hp">체력 <b>${r.hp}</b>/${r.maxHp}</span>
       <span class="pill cr">크레딧 <b>${r.credits}</b>${r.loan ? ` <small>(대출 ${r.loan})</small>` : ''}</span>
       ${r.streak >= 2 ? `<span class="pill">🔥 ${r.streak}연승</span>` : ''}
+      ${r.faith ? `<span class="pill faith">신앙 <b>${r.faith}</b></span>` : ''}
+      ${r.fame ? `<span class="pill fame">명성 <b>${r.fame}</b></span>` : ''}
+      ${r.blessing ? `<span class="pill faith" title="${esc(BLESSING_BY_ID[r.blessing].desc)}">축복: ${esc(BLESSING_BY_ID[r.blessing].name)}</span>` : ''}
       <span class="pill">출전 ${deployed(r).length}/${cap}</span>
     </div>
     ${app.screen === 'battle' ? '' : '<button class="btn ghost" data-a="menu">메뉴</button>'}
@@ -150,7 +153,7 @@ function newRunScreen() {
 // ───────────────────────── 화면: 맵
 function mapScreen(run: RunState) {
   const p = run.phase;
-  const scale = `적 체력 ×${fmt(Math.pow(CFG.phaseHp, p - 1))} · 방어도 ×${Math.pow(CFG.phaseArmor, p - 1).toFixed(2)} · 피해 ×${Math.pow(CFG.phaseAmp, p - 1).toFixed(2)}`;
+  const scale = `적 체력 ×${fmt(phaseHpMult(p))} (이번 페이즈 ×${p > 1 ? CFG.phaseHpFactor(p).toFixed(1) : '1'}) · 방어도 ×${Math.pow(CFG.phaseArmor, p - 1).toFixed(2)} · 피해 ×${Math.pow(CFG.phaseAmp, p - 1).toFixed(2)}`;
   const track = run.map.map((opts, i) => {
     const state = i < run.step ? 'done' : i === run.step ? 'cur' : 'next';
     const picked = run.picked[i];
@@ -189,6 +192,7 @@ function nodeHint(o: NodeType) {
   return ({
     battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 1.5배 + 재료`, shop: '장비 재료 · 고급 장비 구매',
     supply: '보급품 3종 중 택1', recruit: '새 동료 3명 중 택1', boss: '승리 시 페이즈 클리어 + 고급 장비',
+    pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환',
   } as Record<NodeType, string>)[o];
 }
 function rosterRow(u: UnitState) {
@@ -215,6 +219,7 @@ function prepScreen(run: RunState) {
       cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}" ${mine ? `data-drop="cell:${x}:${y}"` : ''}></div>`;
     }
   let units = '';
+  const staffed = tierOf('STAFF', synergyCounts(deployed(run)).STAFF || 0) ? staffTargetUid(run) : null;
   for (const u of deployed(run)) {
     const p = lay.get(u.uid);
     if (!p) continue;
@@ -222,7 +227,7 @@ function prepScreen(run: RunState) {
     const sel = app.sel?.k === 'unit' && app.sel.uid === u.uid;
     units += `<div class="u side0 placed ${sel ? 'sel' : ''}" style="left:${(p.x / n) * 100}%;top:${(p.y / n) * 100}%;width:${100 / n}%;height:${100 / n}%"
       data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}">
-      ${sprite(d, '')}<span class="ubadge">R${u.rank}</span><span class="uitems">${u.items.filter(Boolean).map(() => '<i></i>').join('')}</span></div>`;
+      ${sprite(d, '')}<span class="ubadge">R${u.rank}</span>${staffed === u.uid ? '<span class="ustaff">✎</span>' : ''}<span class="uitems">${u.items.filter(Boolean).map(() => '<i></i>').join('')}</span></div>`;
   }
   if (node?.enc) node.enc.enemies.forEach((s, i) => {
     const e = ENEMY_BY_ID[s.defId];
@@ -294,6 +299,14 @@ function previewAlly(run: RunState, u: UnitState) {
   return { b, c };
 }
 
+function staffLine(run: RunState, u: UnitState) {
+  if (!u.pos || UNIT_BY_ID[u.defId].traits.includes('STAFF')) return '';
+  if (!tierOf('STAFF', synergyCounts(deployed(run)).STAFF || 0)) return '';
+  return staffTargetUid(run) === u.uid
+    ? '<div class="small staff-on">✎ 참모단 지원 대상</div>'
+    : `<button class="btn small" data-a="staff-target" data-v="${u.uid}">✎ 참모단 지원 대상으로 지정</button>`;
+}
+
 function detailPanel(run: RunState) {
   const sel = app.sel;
   if (sel?.k === 'enemy' && run.node?.enc) {
@@ -323,6 +336,7 @@ function detailPanel(run: RunState) {
   return `<div class="detail">
     <div class="d-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="muted small">${esc(d.title)}</div>${memberships(u).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}</div>${rankPips(u.rank)}</div>
     <div class="chips">${memberships(u).map(chip).join('')}</div>
+    ${staffLine(run, u)}
     ${xpBar(u)}
     <button class="btn small" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''}>공명도 +${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)} (크레딧 ${cost})</button>
     <h3>메이저 스탯</h3>
@@ -366,10 +380,12 @@ function updateMeter() {
   if (t) t.textContent = `${v.b.t.toFixed(1)}초${v.b.t > CFG.overtimeStart ? ' · 연장전' : ''}`;
   const m = document.getElementById('meter');
   if (!m) return;
-  const allies = v.b.units.filter((u) => u.side === 0 && !u.isSummon).sort((a, b) => b.counters.dmg - a.counters.dmg);
-  const max = Math.max(1, ...allies.map((u) => u.counters.dmg));
+  // 소환물 피해량은 주인에게 합산
+  const dmgOf = (u: CUnit) => u.counters.dmg + v.b.units.filter((s) => s.owner === u).reduce((sum, s) => sum + s.counters.dmg, 0);
+  const allies = v.b.units.filter((u) => u.side === 0 && !u.isSummon).sort((a, b) => dmgOf(b) - dmgOf(a));
+  const max = Math.max(1, ...allies.map(dmgOf));
   m.innerHTML = allies.map((u) => `<div class="mrow ${u.alive ? '' : 'dead'}">${sprite(u)}<span class="mname">${esc(u.name)}</span>
-    <span class="mbar"><i style="width:${(u.counters.dmg / max) * 100}%"></i></span><b class="mono">${fmt(u.counters.dmg)}</b>
+    <span class="mbar"><i style="width:${(dmgOf(u) / max) * 100}%"></i></span><b class="mono">${fmt(dmgOf(u))}</b>
     ${u.counters.healed >= 1 ? `<small class="heal-t">+${fmt(u.counters.healed)}</small>` : ''}</div>`).join('');
 }
 
@@ -399,6 +415,19 @@ function shopScreen(run: RunState) {
     }).join('')}</div>
     ${inventoryPanel(run)}
     <div class="sticky-actions"><button class="btn" data-a="manage">편성 · 장비</button><button class="btn primary" data-a="leave-shop">떠나기</button></div>
+  </main>`;
+}
+
+function newsScreen(run: RunState) {
+  const offers = run.node?.news || [];
+  return `<main class="wrap">
+    <div class="screen-head"><h1>은하 속보</h1><p class="muted">보스전을 앞두고 언론이 몰려왔습니다. 쌓아 둔 명성 <b class="accent">${run.fame}</b>을 보상으로 바꾸세요.</p></div>
+    <div class="shop">${offers.map((o, i) => {
+      const d = R.NEWS_OFFERS[o.id];
+      return `<div class="shop-item ${o.sold ? 'sold' : ''}"><span class="item tA">✪</span><div><b>${esc(d.name)}</b><div class="small muted">${esc(d.desc)}</div></div>
+        <button class="btn small" data-a="buy-news" data-v="${i}" ${o.sold || run.fame < o.cost ? 'disabled' : ''}>${o.sold ? '교환함' : `명성 ${o.cost}`}</button></div>`;
+    }).join('')}</div>
+    <div class="sticky-actions"><button class="btn" data-a="manage">편성 · 장비</button><button class="btn primary" data-a="leave-shop">보스전으로</button></div>
   </main>`;
 }
 
@@ -433,7 +462,7 @@ function pendingModal(run: RunState): string {
       const tm = totalMajors(u, effects);
       const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? Math.round((v as number) * 100) + '%' : v}`).join(', ');
       body = `<h1>공명 등급 상승</h1>${head}
-        <p class="muted">메이저 스탯 포인트 <b class="accent">${p.points}</b>를 배분하세요. 1포인트마다 아래 마이너 스탯이 함께 오릅니다.</p>
+        <p class="muted">메이저 스탯 포인트 <b class="accent">${p.points}</b>를 배분하세요. 1포인트마다 아래 마이너 스탯이 함께 오릅니다.${p.rank > CFG.augmentMaxRank ? ' 공명 등급 10을 넘으면 증강 없이 스탯만 오릅니다.' : ''}</p>
         <div class="alloc">${MAJORS.map((m) => `<div class="alloc-row"><span class="a-name">${MAJOR_NAME[m]} <b>${tm[m]}</b>${app.alloc[m] ? `<b class="up"> +${app.alloc[m]}</b>` : ''}</span>
           <span class="small muted">${conv(m)}</span>
           <span class="a-btns"><button class="btn tiny" data-a="alloc-dec" data-v="${m}" ${app.alloc[m] ? '' : 'disabled'}>−</button><button class="btn tiny" data-a="alloc-inc" data-v="${m}" ${left ? '' : 'disabled'}>+</button></span></div>`).join('')}</div>
@@ -456,6 +485,9 @@ function pendingModal(run: RunState): string {
       <div class="ucard-grid">${p.options.map((id) => unitCard(UNIT_BY_ID[id], { action: 'pick-recruit', rank })).join('')}</div>`;
   } else if (p.t === 'supply') {
     body = `<h1>보급</h1><div class="cards">${p.options.map((o) => `<button class="card" data-a="pick-supply" data-v="${o}"><b>${esc(R.SUPPLY_TEXT[o])}</b></button>`).join('')}</div>`;
+  } else if (p.t === 'blessing') {
+    body = `<h1>순례 — 축복 선택</h1><p class="muted">신앙 ${run.faith}. 축복은 이번 페이즈가 끝날 때까지 유지됩니다.</p>
+      <div class="cards">${p.options.map((id) => { const d = BLESSING_BY_ID[id]; return `<button class="card" data-a="pick-blessing" data-v="${id}"><b>${esc(d.name)}</b><span>${esc(d.desc)}</span></button>`; }).join('')}</div>`;
   } else if (p.t === 'notice') {
     body = `<h1>${esc(p.title)}</h1><p>${esc(p.body)}</p><button class="btn primary" data-a="notice-ok">확인</button>`;
   }
@@ -513,6 +545,7 @@ function render() {
   else if (app.screen === 'prep') body = prepScreen(run);
   else if (app.screen === 'battle') body = battleScreen(run);
   else if (app.screen === 'shop') body = shopScreen(run);
+  else if (app.screen === 'news') body = newsScreen(run);
   else if (app.screen === 'over') body = overScreen(run);
   const showTop = run && app.screen !== 'title' && app.screen !== 'newrun';
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run ? pendingModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
@@ -548,6 +581,7 @@ function goPrepOrMap() {
   if (run.over) app.screen = 'over';
   else if (run.node?.enc) app.screen = 'prep';
   else if (run.node?.type === 'shop') app.screen = 'shop';
+  else if (run.node?.type === 'news') app.screen = 'news';
   else app.screen = 'map';
 }
 
@@ -611,7 +645,7 @@ function act(a: string, v: string) {
     }
     case 'resume': goPrepOrMap(); break;
     case 'manage': app.screen = 'prep'; app.sel = v ? { k: 'unit', uid: v } : null; break;
-    case 'to-map': app.screen = run?.node?.type === 'shop' ? 'shop' : 'map'; break;
+    case 'to-map': app.screen = run?.node?.type === 'shop' ? 'shop' : run?.node?.type === 'news' ? 'news' : 'map'; break;
     case 'fight':
       if (!run || !deployed(run).length) return;
       persist();
@@ -637,6 +671,9 @@ function act(a: string, v: string) {
     case 'unequip': if (run) { const [uid, s] = v.split(':'); const e = R.unequip(run, uid, +s); if (e) toast(e); persist(); } break;
     case 'buyxp': if (run) { if (!R.buyXp(run, v)) toast('크레딧이 부족합니다.'); persist(); } break;
     case 'buy': if (run) { const e = R.buyShop(run, +v); if (e) toast(e); persist(); } break;
+    case 'pick-blessing': if (run && run.pending[0]?.t === 'blessing') { R.pickBlessing(run, v); run.pending.shift(); persist(); } break;
+    case 'buy-news': if (run) { const e = R.buyNews(run, +v); if (e) toast(e); persist(); } break;
+    case 'staff-target': if (run) { run.staffTarget = v; toast('참모단 지원 대상으로 지정했습니다.'); persist(); } break;
     case 'leave-shop': if (run) { R.leaveShop(run); app.screen = 'map'; persist(); } break;
     case 'loan': if (run) { toast(R.takeLoan(run) ? '대출 실행: 크레딧 +25' : '대출할 수 없습니다.'); persist(); } break;
     // 대기 선택
@@ -649,6 +686,7 @@ function act(a: string, v: string) {
       R.applyRankAlloc(run, p.uid, app.alloc);
       app.alloc = { vit: 0, pow: 0, mnd: 0, def: 0, agi: 0 };
       p.allocDone = true;
+      if (p.rank > CFG.augmentMaxRank) run.pending.shift(); // 10등급 초과: 스탯만
       persist();
       break;
     }

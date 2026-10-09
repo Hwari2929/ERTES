@@ -1,7 +1,7 @@
 import { CFG } from '../config';
 import { AUG_BY_ID, COMMON_AUGS } from '../data/augments';
 import { BOSS_ROTATION, ENEMIES, ENEMY_BY_ID } from '../data/enemies';
-import { GLOBAL_BY_ID, GLOBALS } from '../data/globals';
+import { BLESSING_BY_ID, BLESSINGS, GLOBAL_BY_ID, GLOBALS } from '../data/globals';
 import { ALL_ADVANCED, ALL_COMPONENTS, combine, itemInfo } from '../data/items';
 import { SYN_BY_ID, tierOf } from '../data/synergies';
 import { UNIT_BY_ID, UNITS } from '../data/units';
@@ -13,7 +13,7 @@ import {
 import { deployed, memberships, playerRows, synergyCounts } from './build';
 import type { Battle } from './combat';
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export function rng<T>(run: RunState, f: (r: Rng) => T): T {
   const r = new Rng(run.rng);
@@ -30,11 +30,12 @@ export function newRun(seed: number, starters: string[]): RunState {
   const run: RunState = {
     version: SAVE_VERSION, seed, rng: seed, phase: 1, step: 0, map: phaseMap(), picked: [], node: null,
     hp: CFG.playerHp, maxHp: CFG.playerHp, credits: CFG.startCredits, streak: 0, units: [], inventory: [],
-    globals: [], pending: [], quests: [], questPhase: 0, loan: 0, nextUid: 1, log: [],
+    globals: [], pending: [], quests: [], questPhase: 0, loan: 0, faith: 0, fame: 0, blessing: null, staffTarget: null, nextUid: 1, log: [],
     stats: { wins: 0, losses: 0, kills: 0, bestHit: 0 }, over: false,
   };
   for (const id of starters) addUnit(run, id, 1);
   autoPlace(run);
+  if (tierNow(run, 'CLERIC')) run.map.unshift(['pilgrim']);
   run.pending.push({ t: 'global', options: rollGlobals(run) });
   log(run, '용병단 ERRANTEs, 출격.');
   return run;
@@ -76,6 +77,16 @@ export function currentOptions(run: RunState): NodeType[] { return run.map[run.s
 
 export function enterNode(run: RunState, type: NodeType) {
   run.picked[run.step] = type;
+  if (type !== 'battle' && type !== 'adversity' && type !== 'boss') run.fame += tierNow(run, 'STAR');
+  if (type === 'pilgrim') {
+    const t = tierNow(run, 'CLERIC');
+    run.faith += 2 + 2 * t;
+    run.pending.push({ t: 'blessing', options: rng(run, (r) => r.sample(BLESSINGS.map((b) => b.id), 3)) });
+    log(run, `순례: 신앙 +${2 + 2 * t}`);
+    advance(run);
+    return;
+  }
+  if (type === 'news') { run.node = { type, news: genNews(run) }; return; }
   if (type === 'battle' || type === 'adversity' || type === 'boss') {
     run.node = { type, enc: genEncounter(run, type) };
     syncQuests(run);
@@ -99,6 +110,8 @@ export function enterNode(run: RunState, type: NodeType) {
 
 export function leaveShop(run: RunState) { run.node = null; advance(run); }
 
+const tierNow = (run: RunState, id: 'CLERIC' | 'STAR') => tierOf(id, synergyCounts(deployed(run))[id] || 0);
+
 export function advance(run: RunState) {
   run.node = null;
   run.step++;
@@ -108,8 +121,15 @@ export function advance(run: RunState) {
     run.map = phaseMap();
     run.picked = [];
     autoPlace(run);
+    run.blessing = null;
     log(run, `페이즈 ${run.phase} 진입. 적이 강해집니다.`);
     if ((run.phase - 1) % CFG.globalAugEvery === 0) run.pending.push({ t: 'global', options: rollGlobals(run) });
+    // 성직자가 활성화된 채 페이즈를 시작하면 순례 노드가 맨 앞에 추가
+    if (tierNow(run, 'CLERIC')) run.map.unshift(['pilgrim']);
+  }
+  // 은하 대스타가 활성화되어 있으면 보스 직전에 속보 노드 추가
+  if (run.map[run.step]?.includes('boss') && run.map[run.step - 1]?.[0] !== 'news' && tierNow(run, 'STAR')) {
+    run.map.splice(run.step, 0, ['news']);
   }
 }
 
@@ -242,7 +262,16 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   distributeXp(run, pool);
   lines.push(`공명도 풀 ${pool} 분배`);
   if (uni) for (const u of dep) if (memberships(u).includes('UNI')) u.xp += uni;
-  for (const u of dep) for (const a of u.augments) AUG_BY_ID[a.id]?.after?.(run, u, won);
+  const killsOf = (u: UnitState) => b.units.find((c) => c.src === u)?.counters.kills || 0;
+  for (const u of dep) for (const a of u.augments) AUG_BY_ID[a.id]?.after?.(run, u, won, killsOf(u));
+  // 성직자: 승리 시 신앙 / 대스타: 승리 시 명성 + 대스타 처치 수
+  const cleric = tierOf('CLERIC', counts.CLERIC || 0), star = tierOf('STAR', counts.STAR || 0);
+  if (won && cleric) { run.faith += cleric; lines.push(`신앙 +${cleric} (현재 ${run.faith})`); }
+  if (star) {
+    const starKills = dep.filter((u) => memberships(u).includes('STAR')).reduce((sum, u) => sum + killsOf(u), 0);
+    const f = (won ? 2 * star : 0) + Math.floor(starKills / 3);
+    if (f) { run.fame += f; lines.push(`명성 +${f} (현재 ${run.fame})`); }
+  }
   for (const u of run.units) settleXp(run, u);
   const xp = run.units.map((u) => ({ uid: u.uid, amount: u.xp + totalXpOf(u) - xpBefore.get(u.uid)! }));
 
@@ -304,6 +333,7 @@ export const xpCost = (run: RunState) => CFG.buyXpCost - (hasGlobal(run, 'G.stud
 
 // ───────────────────────── 증강 선택
 export function augOptions(run: RunState, u: UnitState, rank: number): AugPick[] {
+  if (rank > CFG.augmentMaxRank) return [];
   const def = UNIT_BY_ID[u.defId];
   const owned = new Set(u.augments.map((a) => a.id));
   const avail = (a: { id: string; stack?: boolean }) => a.stack || !owned.has(a.id);
@@ -499,3 +529,46 @@ function questProgress(run: RunState, b: Battle, won: boolean, type: NodeType, l
 }
 
 export const MAJOR_LABEL = MAJOR_NAME;
+
+// ───────────────────────── 순례 / 속보
+export function pickBlessing(run: RunState, id: string) {
+  const d = BLESSING_BY_ID[id];
+  if (d.team) run.blessing = id;
+  d.onPick?.(run);
+}
+
+export const NEWS_OFFERS: Record<string, { name: string; desc: string; cost: number }> = {
+  interview: { name: '독점 인터뷰', desc: '에너지 크레딧 +15', cost: 5 },
+  sponsor: { name: '스폰서 계약', desc: '무작위 고급 장비 1개', cost: 8 },
+  fanmeet: { name: '팬미팅', desc: '공명도 풀(1.5배) 파티 전체 분배', cost: 6 },
+  cheer: { name: '응원 물결', desc: '플레이어 체력 +20', cost: 6 },
+  hall: { name: '명예의 전당', desc: '전설 장비 3개 중 1개 선택', cost: 25 },
+  headline: { name: '헤드라인 장식', desc: '전역 증강 3개 중 1개 선택', cost: 30 },
+};
+function genNews(run: RunState) {
+  return Object.keys(NEWS_OFFERS).map((id) => ({ id, cost: NEWS_OFFERS[id].cost, sold: false }));
+}
+export function buyNews(run: RunState, idx: number): string | null {
+  const o = run.node?.news?.[idx];
+  if (!o || o.sold) return '이미 교환함';
+  if (run.fame < o.cost) return '명성이 부족합니다';
+  run.fame -= o.cost;
+  o.sold = true;
+  if (o.id === 'interview') run.credits += 15;
+  if (o.id === 'sponsor') gainItem(run, rng(run, (r) => r.pick(ALL_ADVANCED)));
+  if (o.id === 'fanmeet') { distributeXp(run, Math.round(CFG.xpPool(run.phase) * 1.5)); run.units.forEach((u) => settleXp(run, u)); }
+  if (o.id === 'cheer') run.hp = Math.min(run.maxHp, run.hp + 20);
+  if (o.id === 'hall') run.pending.push({ t: 'itemPick', title: '명예의 전당 — 전설 장비 1개 선택', options: rng(run, (r) => r.sample(ALL_ADVANCED, 3)).map((x) => 'L_' + x.slice(2)) });
+  if (o.id === 'headline') run.pending.push({ t: 'global', options: rollGlobals(run) });
+  return null;
+}
+
+/** 이전 버전 저장 데이터 보정 */
+export function migrate(run: RunState): RunState {
+  run.faith ??= 0;
+  run.fame ??= 0;
+  run.blessing ??= null;
+  run.staffTarget ??= null;
+  run.version = SAVE_VERSION;
+  return run;
+}

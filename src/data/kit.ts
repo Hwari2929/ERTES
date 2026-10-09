@@ -53,3 +53,26 @@ export function lineTargets(b: Battle, u: CUnit, t: CUnit): CUnit[] {
   hit.add(t);
   return [...hit];
 }
+
+/** 해로운 상태이상 제거 */
+export function cleanse(u: CUnit) {
+  u.statuses = u.statuses.filter((s) => s.type === 'buff' && s.key !== 'corrode' && s.key !== 'slow' && !s.taken?.some((t) => t.kind === 'vuln'));
+}
+/** 대상 옆 빈 칸으로 순간이동 */
+export function blinkTo(b: Battle, u: CUnit, t: CUnit): boolean {
+  let best: { x: number; y: number } | null = null, bd = 1e9;
+  for (let dy = -1; dy <= 1; dy++)
+    for (let dx = -1; dx <= 1; dx++) {
+      const x = t.x + dx, y = t.y + dy;
+      if (!b.inBounds(x, y) || b.unitAt(x, y)) continue;
+      const d = Math.abs(x - u.x) + Math.abs(y - u.y);
+      if (d < bd) { bd = d; best = { x, y }; }
+    }
+  if (!best) return false;
+  u.x = u.px = best.x; u.y = u.py = best.y; u.moveT = 0;
+  u.target = t;
+  b.fx(u.x, u.y, 0, 'psy');
+  return true;
+}
+/** 주인의 살아 있는 소환물 */
+export const summonsOf = (b: Battle, u: CUnit) => b.units.filter((s) => s.owner === u && s.alive);

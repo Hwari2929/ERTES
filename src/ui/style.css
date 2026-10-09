@@ -11,6 +11,8 @@
   --good: #63d297;
   --bad: #ff6b5e;
   --info: #6cb6ff;
+  --fame: #ff9de2;
+  --staff: #c9b37a;
   --ally-hp: #63d297;
   --foe-hp: #ff6b5e;
   --shield: #e9e4d8;
@@ -65,6 +67,11 @@ button { font: inherit; color: inherit; }
 .pill b { color: var(--fg); }
 .pill.hp b { color: var(--bad); }
 .pill.cr b { color: var(--accent); }
+.pill.faith { border-color: var(--el-holy); color: var(--el-holy); }
+.pill.fame { border-color: var(--fame); color: var(--fame); }
+.pill.faith b, .pill.fame b { color: inherit; }
+.staff-on { color: var(--staff); margin-bottom: 4px; }
+.ustaff { position: absolute; left: 4%; top: 10%; font-size: 12px; color: var(--staff); text-shadow: 1px 1px 0 #000; }
 
 /* ── 공통 레이아웃 */
 .wrap { width: 100%; max-width: 1320px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 0; flex: 1; }

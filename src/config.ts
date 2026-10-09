@@ -23,14 +23,17 @@ export const CFG = {
   overtimeStart: 45, overtimeRamp: 0.1, timeLimit: 75,
 
   // ── 무한 모드 페이즈 스케일링 (확정, 복리)
-  phaseHp: 2, phaseArmor: 1.25, phaseAmp: 1.35,
+  phaseArmor: 1.25, phaseAmp: 1.35,
+  // 체력 배율: 5페이즈까지 ×2, 6페이즈부터 ×1.9, ×1.8 … (하한 ×1.1 [임시])
+  phaseHpFactor: (p: number) => (p <= 5 ? 2 : Math.max(1.1, 2 - 0.1 * (p - 5))),
   adversityMult: 1.6,
   enemyHpMul: 1.8, enemyPowMul: 1.6, // 적 기초 수치 전체 배율 (튜닝용)
 
   // ── 성장
-  maxRank: 10,
+  maxRank: 99, // 10 이상은 스탯만
+  augmentMaxRank: 10, // 이 등급까지만 증강 선택
   xpToNext: (rank: number) => 2 + 2 * rank, // 1→2: 4pt … 9→10: 20pt [임시]
-  rankPoints: (newRank: number) => (newRank === 5 || newRank === 10 ? 5 : 2),
+  rankPoints: (newRank: number) => (newRank % 5 === 0 ? 5 : 2), // 5의 배수 등급은 +5
   forcedUnitAugRanks: [3, 6, 9],
   xpPool: (phase: number) => 6 + 3 * phase, // 전투 1회 공명도 풀 [임시]
   buyXpCost: 4, buyXpAmount: 4, // [임시]
@@ -58,3 +61,10 @@ export const CFG = {
 
   globalAugEvery: 3, // 런 시작 + n 페이즈마다
 };
+
+/** p 페이즈 적 체력 누적 배율 */
+export function phaseHpMult(p: number): number {
+  let m = 1;
+  for (let k = 2; k <= p; k++) m *= CFG.phaseHpFactor(k);
+  return m;
+}

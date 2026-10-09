@@ -23,8 +23,15 @@ function resolvePending(run: RunState, bot: Rng) {
       R.ensureRankupOptions(run, p);
       if (p.options!.length) R.chooseAug(run, p.uid, bot.pick(p.options!));
     } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
-    else if (p.t === 'recruit') R.recruit(run, bot.pick(p.options));
+    else if (p.t === 'recruit') {
+      // 현재 파티와 시너지가 가장 많이 겹치는 기물을 영입
+      const have = new Map<string, number>();
+      for (const u of run.units) { const d = UNIT_BY_ID[u.defId]; for (const x of [d.faction, ...d.traits]) have.set(x, (have.get(x) || 0) + 1); }
+      const score = (id: string) => { const d = UNIT_BY_ID[id]; return [d.faction, ...d.traits].reduce((s2, x) => s2 + (have.get(x) || 0), 0) + bot.next(); };
+      R.recruit(run, p.options.slice().sort((x, y) => score(y) - score(x))[0]);
+    }
     else if (p.t === 'supply') R.takeSupply(run, p.options[0]);
+    else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
     run.pending.shift();
   }
 }
@@ -44,22 +51,23 @@ function manage(run: RunState) {
   R.autoPlace(run);
 }
 
-function playRun(seed: number) {
+function playRun(seed: number, force?: string) {
   const bot = new Rng(seed * 7 + 1);
-  const run = R.newRun(seed, bot.sample(UNITS.map((u) => u.id), 3));
+  const starters = force ? [force, ...bot.sample(UNITS.map((u) => u.id).filter((x) => x !== force), 2)] : bot.sample(UNITS.map((u) => u.id), 3);
+  const run = R.newRun(seed, starters);
   const phaseLog: Record<number, { w: number; l: number }> = {};
   let battles = 0;
-  while (!run.over && run.phase <= 15 && battles < 200) {
+  while (!run.over && run.phase <= 25 && battles < 300) {
     resolvePending(run, bot);
     manage(run);
     resolvePending(run, bot);
     if (!run.node) {
       const opts = R.currentOptions(run);
       R.enterNode(run, opts.includes('adversity') && run.hp > 60 && bot.chance(0.5) ? 'adversity' : opts[0]);
-      if (run.node && (run.node as { type: string }).type === 'shop') {
-        for (let i = 0; i < 6; i++) if (run.credits >= 35) R.buyShop(run, i);
-        R.leaveShop(run);
-      }
+      const t = (run.node as { type: string } | null)?.type;
+      if (t === 'shop') for (let i = 0; i < 6; i++) if (run.credits >= 35) R.buyShop(run, i);
+      if (t === 'news') for (let i = 0; i < 6; i++) R.buyNews(run, i);
+      if (t === 'shop' || t === 'news') R.leaveShop(run);
       continue;
     }
     const b = buildBattle(run, run.node.enc!, false);
@@ -74,6 +82,16 @@ function playRun(seed: number) {
 }
 
 const N = Number(process.argv[2] || 40);
+if (process.argv[3] === 'units') {
+  // 기물별: 해당 기물을 시작 기물에 넣은 런의 평균 도달 페이즈
+  const rows = UNITS.map((u) => {
+    let sum = 0;
+    for (let i = 1; i <= N; i++) sum += playRun(i * 7919, u.id).phase;
+    return [u.name, sum / N] as const;
+  }).sort((a, b) => b[1] - a[1]);
+  for (const [n, v] of rows) console.log(`${v.toFixed(2)}  ${n}`);
+  throw 0;
+}
 const reach: Record<number, number> = {};
 const wl: Record<number, { w: number; l: number }> = {};
 let rankSum = 0;

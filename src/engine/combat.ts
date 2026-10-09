@@ -114,6 +114,8 @@ export class Battle {
   winner: 0 | 1 | null = null;
   nextId = 1;
   counters = { crits: 0, statuses: 0, skills: 0, kills: 0, allyDeaths: 0, bestHit: 0 };
+  /** 전투 단위 공유 상태 (부활 횟수 등) */
+  mem: Record<string, number> = {};
 
   constructor(public n: number, public rng: Rng, public ctx: BattleCtx) {}
 

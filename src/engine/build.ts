@@ -1,12 +1,13 @@
-import { CFG } from '../config';
+import { CFG, phaseHpMult } from '../config';
 import { AUG_BY_ID } from '../data/augments';
 import { ENEMY_BY_ID, type EnemyDef, setSummonHook } from '../data/enemies';
-import { GLOBAL_BY_ID } from '../data/globals';
+import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
 import { itemEffect } from '../data/items';
 import { rankTitle, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { UNIT_BY_ID } from '../data/units';
+import type { SummonDef } from '../data/unitkit';
 import { Rng } from '../rng';
-import { type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
+import { FACTIONS, type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
 import { Battle, type CUnit } from './combat';
 import type { Effect, EffectCtx } from './effects';
 
@@ -34,6 +35,13 @@ export function synergyCounts(units: UnitState[]): Counts {
     if (seen.has(u.defId)) continue; // 같은 기물은 1회만 집계
     seen.add(u.defId);
     for (const s of memberships(u)) c[s] = (c[s] || 0) + 1;
+  }
+  // 범은하 공동체 4/6단계: 가장 큰 다른 세력의 인원 +1/+2
+  const pan = c.PAN || 0;
+  const bonus = pan >= 6 ? 2 : pan >= 4 ? 1 : 0;
+  if (bonus) {
+    const best = FACTIONS.filter((f) => f !== 'PAN' && (c[f] || 0) > 0).sort((a, b2) => (c[b2] || 0) - (c[a] || 0))[0];
+    if (best) c[best] = c[best]! + bonus;
   }
   return c;
 }
@@ -63,6 +71,7 @@ export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, 
       if (s.member && mine.has(s.id)) { const e = s.member(tier, ctx); if (e) out.push(e); }
     }
     for (const g of run?.globals || []) { const e = GLOBAL_BY_ID[g]?.team; if (e) out.push(e); }
+    if (run?.blessing) { const e = BLESSING_BY_ID[run.blessing]?.team; if (e) out.push(e); }
   }
   return out;
 }
@@ -137,13 +146,47 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
   for (const e of effects) e.setup?.(c, b, ctx);
   c.cdMax = Math.max(1, c.cdMax);
   c.cd = c.cdMax * 0.5;
+  const sd = d.summon;
+  if (sd) c.hooks.push({ onStart: (bb, self) => spawnSummons(bb, self, sd) });
   return c;
+}
+
+/** 최고의 친구: 주인 스탯 일부를 물려받는 소환물 */
+function spawnSummons(b: Battle, owner: CUnit, sd: SummonDef) {
+  const n = 1 + (owner.mem.extraSummon || 0);
+  const base = Math.min(1.5, (owner.mem.bond || 0.35) + (owner.mem.bondBonus || 0));
+  for (let i = 0; i < n; i++) {
+    const r = i === 0 ? base : base * 0.6;
+    const s = blankUnit(owner.side);
+    const o = owner.st;
+    const st = emptyStats();
+    st.maxHp = o.maxHp * r * (sd.hpMul || 1);
+    st.shoot = o.shoot * r; st.strike = o.strike * r; st.tech = o.tech * r;
+    st.armor = o.armor * r + (owner.mem.summonArmor || 0);
+    st.acc = o.acc; st.crit = o.crit; st.critDmg = o.critDmg; st.effHit = o.effHit; st.effRes = o.effRes; st.eva = o.eva;
+    st.moveSpd = 1.15; st.range = sd.range;
+    Object.assign(s, {
+      defId: 'summon', name: sd.name, sprite: sd.sprite, palette: sd.palette, st, atk: { ...sd.atk },
+      keywords: sd.sprite === 'drone' ? ['mech'] : ['bio'], isSummon: true, owner,
+      mods: owner.mem.bondAmp ? [{ kind: 'inc', tag: 'all', v: owner.mem.bondAmp }] : [],
+    });
+    s.hp = st.maxHp;
+    s.atkTimer = 0.3;
+    const treat = owner.mem.summonTreat;
+    if (treat) s.hooks.push({
+      onTick(bb, self, dt) {
+        self.mem.treat = (self.mem.treat || 0) + dt;
+        if (self.mem.treat >= 5 && owner.alive) { self.mem.treat = 0; bb.heal(self, owner, bb.S(owner, 'tech') * treat); }
+      },
+    });
+    b.spawn(s, owner);
+  }
 }
 
 export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number): CUnit {
   const c = blankUnit(1);
   const st = emptyStats();
-  st.maxHp = def.hp * CFG.enemyHpMul * Math.pow(CFG.phaseHp, phase - 1) * mult;
+  st.maxHp = def.hp * CFG.enemyHpMul * phaseHpMult(phase) * mult;
   st.shoot = st.strike = st.tech = def.power * CFG.enemyPowMul;
   st.armor = def.armor * Math.pow(CFG.phaseArmor, phase - 1);
   st.acc = def.acc || 0; st.eva = def.eva || 0; st.crit = def.crit ?? 0.05; st.critDmg = 1.5;

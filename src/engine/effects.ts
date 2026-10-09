@@ -1,3 +1,4 @@
+import { CFG } from '../config';
 import type { Major, Mod, RunState, Stats, SynergyId, TakenMod, UnitState } from '../types';
 import type { Battle, CUnit, Hooks } from './combat';
 
@@ -38,8 +39,8 @@ export interface AugDef {
   /** 제시될 때 무작위 파라미터 결정 */
   roll?: (pickFrom: <T>(a: readonly T[]) => T) => string;
   descParam?: (param: string) => string;
-  /** 전투 종료 후 런 단위 효과 */
-  after?: (run: RunState, u: UnitState, won: boolean) => void;
+  /** 전투 종료 후 런 단위 효과 (kills = 이 기물의 처치 수) */
+  after?: (run: RunState, u: UnitState, won: boolean, kills: number) => void;
 }
 
 export const inc = (tag: Mod['tag'], v: number): Mod => ({ kind: 'inc', tag, v });
@@ -64,4 +65,19 @@ export function scaleEffect(e: Effect, k: number): Effect {
     mods: e.mods?.map((m) => ({ ...m, v: m.v * k })),
     taken: e.taken?.map((m) => ({ ...m, v: m.v * k })),
   };
+}
+
+/** 이미 만들어진 전투 유닛에 효과를 즉시 적용 (자연주의자 임시 장비 등) */
+export function applyLive(u: CUnit, e: Effect, b: Battle, ctx: EffectCtx) {
+  if (e.majors) {
+    for (const [m, v] of Object.entries(e.majors)) {
+      for (const [k, per] of Object.entries(CFG.conv[m as Major])) u.st[k as keyof Stats] += (per as number) * (v as number);
+    }
+  }
+  if (e.stats) for (const [k, v] of Object.entries(e.stats)) u.st[k as keyof Stats] += v as number;
+  if (e.pct) for (const [k, v] of Object.entries(e.pct)) u.st[k as keyof Stats] *= 1 + (v as number);
+  if (e.mods) u.mods.push(...e.mods);
+  if (e.taken) u.taken.push(...e.taken);
+  if (e.hooks) u.hooks.push(e.hooks);
+  e.setup?.(u, b, ctx);
 }

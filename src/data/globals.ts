@@ -1,5 +1,6 @@
 import type { Effect } from '../engine/effects';
 import type { RunState } from '../types';
+import { skillHit } from './kit';
 
 /** 전역 증강: 런 시작 시 + n 페이즈마다 1개 선택 */
 export interface GlobalDef {
@@ -29,3 +30,18 @@ export const GLOBALS: GlobalDef[] = [
   { id: 'G.allin', name: '올인', desc: '모든 아군 피해 +20%, 최대 체력 -10%.', team: { mods: [{ kind: 'inc', tag: 'all', v: 0.2 }], pct: { maxHp: -0.1 } } },
 ];
 export const GLOBAL_BY_ID: Record<string, GlobalDef> = Object.fromEntries(GLOBALS.map((g) => [g.id, g]));
+
+/** 성직자 순례 노드 축복: 이번 페이즈 동안 모든 아군에게 */
+export interface BlessingDef { id: string; name: string; desc: string; team?: Effect; onPick?: (run: RunState) => void }
+export const BLESSINGS: BlessingDef[] = [
+  { id: 'B.martyr', name: '순교자의 가호', desc: '이번 페이즈 모든 아군 최대 체력 +20%.', team: { pct: { maxHp: 0.2 } } },
+  { id: 'B.flame', name: '성전의 불꽃', desc: '이번 페이즈 모든 아군 기본 공격에 기술 위력 25% 신성 추가 피해.',
+    team: { hooks: { onBasic(b, u, t, r) { if (!r.miss && t.alive) skillHit(b, u, t, 'tech', 0.25, 'holy', { tag: 'proc', noMiss: true }); } } } },
+  { id: 'B.sanctum', name: '성소의 빛', desc: '이번 페이즈 전투 시작 시 모든 아군 최대 체력 25% 보호막.',
+    team: { hooks: { onStart(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.25); } } } },
+  { id: 'B.zeal', name: '광신', desc: '이번 페이즈 모든 아군 공격 속도 +25%, 받는 피해 +10%.',
+    team: { stats: { atkSpd: 0.25 }, taken: [{ kind: 'vuln', tag: 'all', v: 0.1 }] } },
+  { id: 'B.prayer', name: '깊은 기도', desc: '즉시 신앙 +6.', onPick: (r) => { r.faith += 6; } },
+  { id: 'B.tithe', name: '헌금', desc: '즉시 에너지 크레딧 +15.', onPick: (r) => { r.credits += 15; } },
+];
+export const BLESSING_BY_ID: Record<string, BlessingDef> = Object.fromEntries(BLESSINGS.map((b) => [b.id, b]));
