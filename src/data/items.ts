@@ -57,7 +57,19 @@ export interface ItemInfo { id: string; tier: 'C' | 'A' | 'L'; name: string; ico
 
 const ADV_BY_ID = Object.fromEntries(ADV.map((a) => [a.id, a]));
 
+const UNIQUE: Record<string, { name: string; icon: string; desc: string; effect: Effect }> = {
+  U_shade: {
+    name: '[고유] 그늘', icon: '☂', desc: '아문센 전용 · 해제 불가. 기술 쿨다운 감소 속도 +150%, 모든 아군 회피 및 치명타 확률 +20%p.',
+    effect: {
+      stats: { cdr: 1.5 },
+      hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'item.shade', 999, { delta: { eva: 0.2, crit: 0.2 }, label: '그늘' }); } },
+    },
+  },
+};
+export const isLocked = (id: string | null) => !!id && id.startsWith('U_');
+
 export function itemInfo(id: string): ItemInfo {
+  if (UNIQUE[id]) return { id, tier: 'L', name: UNIQUE[id].name, icon: UNIQUE[id].icon, majors: {}, desc: UNIQUE[id].desc };
   const [tier, rest] = [id[0] as 'C' | 'A' | 'L', id.slice(2)];
   if (tier === 'C') {
     const c = COMPONENTS.find((x) => x.id === id)!;
@@ -76,6 +88,7 @@ export function itemInfo(id: string): ItemInfo {
 }
 
 export function itemEffect(id: string): Effect {
+  if (UNIQUE[id]) return UNIQUE[id].effect;
   const info = itemInfo(id);
   if (info.tier === 'C') return { majors: info.majors };
   const a = ADV_BY_ID[id.slice(2)];
@@ -85,6 +98,7 @@ export function itemEffect(id: string): Effect {
 }
 
 export function combine(x: string, y: string): string | null {
+  if (isLocked(x) || isLocked(y)) return null;
   if (x[0] === 'C' && y[0] === 'C') {
     const ma = x.slice(2), mb = y.slice(2);
     const order = ['vit', 'pow', 'mnd', 'def', 'agi'];

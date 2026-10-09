@@ -2,7 +2,7 @@ import { CFG } from '../config';
 import { AUG_BY_ID, COMMON_AUGS } from '../data/augments';
 import { BOSS_ROTATION, ENEMIES, ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, GLOBAL_BY_ID, GLOBALS } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, combine, itemInfo } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, combine, isLocked, itemInfo } from '../data/items';
 import { SYN_BY_ID, tierOf } from '../data/synergies';
 import { UNIT_BY_ID, UNITS } from '../data/units';
 import { Rng } from '../rng';
@@ -13,7 +13,7 @@ import {
 import { deployed, memberships, playerRows, synergyCounts } from './build';
 import type { Battle } from './combat';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export function rng<T>(run: RunState, f: (r: Rng) => T): T {
   const r = new Rng(run.rng);
@@ -30,7 +30,7 @@ export function newRun(seed: number, starters: string[]): RunState {
   const run: RunState = {
     version: SAVE_VERSION, seed, rng: seed, phase: 1, step: 0, map: phaseMap(), picked: [], node: null,
     hp: CFG.playerHp, maxHp: CFG.playerHp, credits: CFG.startCredits, streak: 0, units: [], inventory: [],
-    globals: [], pending: [], quests: [], questPhase: 0, loan: 0, faith: 0, fame: 0, blessing: null, staffTarget: null, nextUid: 1, log: [],
+    globals: [], pending: [], quests: [], questPhase: 0, loan: 0, faith: 0, fame: 0, blessing: null, staffTarget: null, aceTarget: null, nextUid: 1, log: [],
     stats: { wins: 0, losses: 0, kills: 0, bestHit: 0 }, over: false,
   };
   for (const id of starters) addUnit(run, id, 1);
@@ -49,12 +49,15 @@ export function phaseMap(): NodeType[][] {
 export function addUnit(run: RunState, defId: string, rank: number): UnitState {
   const u: UnitState = {
     uid: `u${run.nextUid++}`, defId, rank: 1, xp: 0, alloc: zeroMajors(), perm: zeroMajors(), augments: [],
-    items: [null, null, null], pos: null,
+    items: [UNIT_BY_ID[defId].item || null, null, null], pos: null,
   };
   run.units.push(u);
   for (let r = 2; r <= rank; r++) rankUp(run, u);
   return u;
 }
+
+/** 탐험가(아문센)는 정해진 페이즈 전에는 배치할 수 없다 */
+export const canDeploy = (run: RunState, u: UnitState) => !UNIT_BY_ID[u.defId].traits.includes('EXPLORER') || run.phase >= CFG.explorerPhase;
 
 export const deployCap = (run: RunState) => CFG.deployCap(run.phase) + (hasGlobal(run, 'G.squad') ? 1 : 0);
 
@@ -62,11 +65,11 @@ export function autoPlace(run: RunState) {
   const cap = deployCap(run);
   const used = new Set(run.units.filter((u) => u.pos).map((u) => `${u.pos!.c},${u.pos!.r}`));
   for (const u of run.units) {
-    if (u.pos || deployed(run).length >= cap) continue;
+    if (u.pos || deployed(run).length >= cap || !canDeploy(run, u)) continue;
     const def = UNIT_BY_ID[u.defId];
     const rowsPref = def.range <= 1 ? [2, 1, 0] : [0, 1, 2];
     outer: for (const r of rowsPref)
-      for (const c of [2, 3, 1, 4, 0, 5]) {
+      for (const c of [3, 2, 4, 1, 5, 0, 6]) {
         if (!used.has(`${c},${r}`)) { u.pos = { c, r }; used.add(`${c},${r}`); break outer; }
       }
   }
@@ -148,7 +151,7 @@ export function pickGlobal(run: RunState, id: string) {
 export function genEncounter(run: RunState, type: NodeType): Encounter {
   return rng(run, (r) => {
     const env = r.weighted(CFG.boardSizes, (x) => x.w);
-    const n = type === 'boss' ? 6 : env.n;
+    const n = type === 'boss' ? CFG.bossBoard : env.n;
     const rows = playerRows(n);
     const p = run.phase;
     const enemies: EnemySpawn[] = [];
@@ -396,7 +399,7 @@ export function buyShop(run: RunState, idx: number): string | null {
 }
 export function sellItem(run: RunState, invIdx: number) {
   const id = run.inventory[invIdx];
-  if (!id) return;
+  if (!id || isLocked(id)) return;
   run.credits += CFG.sell[id[0]];
   run.inventory.splice(invIdx, 1);
 }
@@ -432,6 +435,7 @@ export function equip(run: RunState, invIdx: number, uid: string): string | null
 export function unequip(run: RunState, uid: string, slot: number): string | null {
   const u = run.units.find((x) => x.uid === uid);
   if (!u || !u.items[slot]) return null;
+  if (isLocked(u.items[slot])) return '고유 장비는 해제할 수 없습니다';
   if (run.inventory.length >= CFG.inventoryMax) return '인벤토리 가득 참';
   run.inventory.push(u.items[slot]!);
   u.items[slot] = null;
@@ -569,6 +573,7 @@ export function migrate(run: RunState): RunState {
   run.fame ??= 0;
   run.blessing ??= null;
   run.staffTarget ??= null;
+  run.aceTarget ??= null;
   run.version = SAVE_VERSION;
   return run;
 }

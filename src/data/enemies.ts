@@ -79,7 +79,7 @@ export const ENEMIES: EnemyDef[] = [
       },
     } },
   { id: 'goliath', name: '강철 군주 골리앗', keywords: ['mech', 'struct'], sprite: 'mech', palette: ['#0c0e12', '#8a6a30', '#3a4048', '#c0c8d0', '#30d0ff', '#40464e', '#fff0c0'],
-    tier: 'boss', minPhase: 2, hp: 4200, power: 46, armor: 550, effRes: 0.3, interval: 1.4, range: 1, moveSpd: 0.7, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    tier: 'boss', minPhase: 2, hp: 3600, power: 44, armor: 380, effRes: 0.3, interval: 1.4, range: 1, moveSpd: 0.7, atk: { type: 'strike', elem: 'phys' }, melee: true,
     skill: {
       name: '지진 강타', cd: 7, params: {}, desc: () => '주변 2칸 전기 피해 + 기절',
       cast(b, u) {
@@ -91,7 +91,7 @@ export const ENEMIES: EnemyDef[] = [
     },
     onTick: (b, u, dt) => {
       u.mem.summon = (u.mem.summon || 0) + dt;
-      if (u.mem.summon >= 12) { u.mem.summon = 0; summonHook?.(b, u, 'drone', 2); }
+      if (u.mem.summon >= 15) { u.mem.summon = 0; summonHook?.(b, u, 'drone', 2); }
     } },
   { id: 'nyx', name: '공허의 여왕 닉스', keywords: ['phantom'], sprite: 'phantom', palette: ['#0a0612', '#2a0a4a', '#d050ff', '#ffb0ff', '#ffffff', '#30204a', '#ffe0ff'],
     tier: 'boss', minPhase: 3, hp: 3000, power: 48, armor: 150, eva: 0.2, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,

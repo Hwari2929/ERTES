@@ -26,8 +26,8 @@ function resolvePending(run: RunState, bot: Rng) {
     else if (p.t === 'recruit') {
       // 현재 파티와 시너지가 가장 많이 겹치는 기물을 영입
       const have = new Map<string, number>();
-      for (const u of run.units) { const d = UNIT_BY_ID[u.defId]; for (const x of [d.faction, ...d.traits]) have.set(x, (have.get(x) || 0) + 1); }
-      const score = (id: string) => { const d = UNIT_BY_ID[id]; return [d.faction, ...d.traits].reduce((s2, x) => s2 + (have.get(x) || 0), 0) + bot.next(); };
+      for (const u of run.units) { const d = UNIT_BY_ID[u.defId]; for (const x of [...d.factions, ...d.traits]) have.set(x, (have.get(x) || 0) + 1); }
+      const score = (id: string) => { const d = UNIT_BY_ID[id]; return [...d.factions, ...d.traits].reduce((s2, x) => s2 + (have.get(x) || 0), 0) + bot.next(); };
       R.recruit(run, p.options.slice().sort((x, y) => score(y) - score(x))[0]);
     }
     else if (p.t === 'supply') R.takeSupply(run, p.options[0]);
@@ -53,7 +53,7 @@ function manage(run: RunState) {
 
 function playRun(seed: number, force?: string) {
   const bot = new Rng(seed * 7 + 1);
-  const starters = force ? [force, ...bot.sample(UNITS.map((u) => u.id).filter((x) => x !== force), 2)] : bot.sample(UNITS.map((u) => u.id), 3);
+  const starters = force ? [force, ...bot.sample(STARTERS.filter((x) => x !== force), 2)] : bot.sample(STARTERS, 3);
   const run = R.newRun(seed, starters);
   const phaseLog: Record<number, { w: number; l: number }> = {};
   let battles = 0;
@@ -74,13 +74,15 @@ function playRun(seed: number, force?: string) {
     b.runToEnd();
     battles++;
     const ph = run.phase;
-    phaseLog[ph] = phaseLog[ph] || { w: 0, l: 0 };
-    if (b.winner === 0) phaseLog[ph].w++; else phaseLog[ph].l++;
+    const key = run.node.type === 'boss' ? -ph : ph; // 음수 = 보스전
+    phaseLog[key] = phaseLog[key] || { w: 0, l: 0 };
+    if (b.winner === 0) phaseLog[key].w++; else phaseLog[key].l++;
     R.resolveBattle(run, b);
   }
   return { phase: run.phase, phaseLog, units: run.units.length, avgRank: run.units.reduce((s, u) => s + u.rank, 0) / run.units.length };
 }
 
+const STARTERS = UNITS.filter((u) => !u.noStarter).map((u) => u.id);
 const N = Number(process.argv[2] || 40);
 if (process.argv[3] === 'units') {
   // 기물별: 해당 기물을 시작 기물에 넣은 런의 평균 도달 페이즈
@@ -106,10 +108,11 @@ for (let i = 1; i <= N; i++) {
 }
 console.log(`런 ${N}회 — 사망 시점 페이즈 분포:`);
 for (const p of Object.keys(reach).map(Number).sort((a, b) => a - b)) console.log(`  P${p}: ${'#'.repeat(reach[p])} ${reach[p]}`);
-console.log('페이즈별 전투 승률:');
-for (const p of Object.keys(wl).map(Number).sort((a, b) => a - b)) {
-  const v = wl[p];
-  console.log(`  P${p}: ${((v.w / (v.w + v.l)) * 100).toFixed(0)}% (${v.w}/${v.w + v.l})`);
+console.log('페이즈별 전투 승률 (일반 / 보스):');
+for (const p of Object.keys(wl).map(Number).filter((x) => x > 0).sort((a, b) => a - b)) {
+  const v = wl[p], bo = wl[-p];
+  const f = (x?: { w: number; l: number }) => (x ? `${((x.w / (x.w + x.l)) * 100).toFixed(0)}% (${x.w}/${x.w + x.l})` : '-');
+  console.log(`  P${p}: ${f(v)}  |  보스 ${f(bo)}`);
 }
 console.log(`사망 시 평균 공명 등급: ${(rankSum / N).toFixed(1)}`);
 void MAJORS;

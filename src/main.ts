@@ -2,8 +2,8 @@ import { CFG, phaseHpMult } from './config';
 import { AUG_BY_ID, augDesc, augSource } from './data/augments';
 import { ENEMY_BY_ID } from './data/enemies';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
-import { combine, itemInfo } from './data/items';
-import { rankTitle, staffTargetUid, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf } from './data/synergies';
+import { combine, isLocked, itemInfo } from './data/items';
+import { aceTargetUid, rankTitle, staffTargetUid, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf } from './data/synergies';
 import { UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import {
   activeTiers, buildAlly, buildBattle, buildEnemy, deployed, layout, memberships, playerRows, synergyCounts, totalMajors, unitEffects,
@@ -130,7 +130,7 @@ function titleScreen() {
 function unitCard(d: UnitDef, opts: { selected?: boolean; action?: string; rank?: number } = {}) {
   return `<button class="ucard ${opts.selected ? 'sel' : ''}" data-a="${opts.action || 'pick-starter'}" data-v="${d.id}">
     <div class="ucard-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="muted small">${esc(d.title)}</div></div></div>
-    <div class="chips">${chip(d.faction)}${d.traits.map(chip).join('')}</div>
+    <div class="chips">${d.factions.map(chip).join('')}${d.traits.map(chip).join('')}</div>
     <div class="small">${d.atk.type === 'shoot' ? '사격' : '타격'} · 사거리 ${d.range} · ${ELEM_NAME[d.atk.elem]} · ${d.keywords.map((k) => KEYWORD_NAME[k]).join('/')}</div>
     <div class="skill-line"><b>${esc(d.skill.name)}</b> <span class="muted">(${d.skill.cd}초)</span><br>${esc(d.skill.desc(d.skill.params))}</div>
     <div class="majors-mini">${MAJORS.map((m) => `<span>${MAJOR_NAME[m].slice(0, 2)} <b>${d.base[m]}</b></span>`).join('')}</div>
@@ -141,7 +141,7 @@ function newRunScreen() {
   const n = app.starters.length;
   return `<main class="wrap">
     <div class="screen-head"><h1>계약 기물 선택</h1><p class="muted">첫 출격에 데려갈 기물 ${CFG.startUnits}명을 고르세요. 나머지는 페이즈 중간 영입 노드에서 만날 수 있습니다.</p></div>
-    <div class="ucard-grid">${UNITS.map((d) => unitCard(d, { selected: app.starters.includes(d.id) })).join('')}</div>
+    <div class="ucard-grid">${UNITS.filter((d) => !d.noStarter).map((d) => unitCard(d, { selected: app.starters.includes(d.id) })).join('')}</div>
     <div class="sticky-actions">
       <button class="btn ghost" data-a="to-title">뒤로</button>
       <button class="btn ghost" data-a="random-starters">무작위</button>
@@ -207,7 +207,7 @@ function rosterRow(u: UnitState) {
 function prepScreen(run: RunState) {
   const node = run.node;
   const isBattle = !!node?.enc;
-  const n = node?.enc?.n || 6;
+  const n = node?.enc?.n || CFG.bossBoard;
   const rows = playerRows(n);
   const lay = layout(run, n);
   const cap = R.deployCap(run);
@@ -307,6 +307,16 @@ function staffLine(run: RunState, u: UnitState) {
     : `<button class="btn small" data-a="staff-target" data-v="${u.uid}">✎ 참모단 지원 대상으로 지정</button>`;
 }
 
+function aceLine(run: RunState, u: UnitState) {
+  const d = UNIT_BY_ID[u.defId];
+  if (!u.pos || !d.ace || !tierOf('NAV', synergyCounts(deployed(run)).NAV || 0)) return '';
+  const k = [1, 1, 1.6, 2.5][tierOf('NAV', synergyCounts(deployed(run)).NAV || 0)];
+  const info = `<div class="small muted">에이스 능력 · ${esc(d.ace.name)}: ${esc(d.ace.desc(k))}</div>`;
+  return aceTargetUid(run) === u.uid
+    ? `<div class="small staff-on">✈ 에이스 파일럿</div>${info}`
+    : `<button class="btn small" data-a="ace-target" data-v="${u.uid}">✈ 에이스 파일럿으로 지정</button>${info}`;
+}
+
 function detailPanel(run: RunState) {
   const sel = app.sel;
   if (sel?.k === 'enemy' && run.node?.enc) {
@@ -336,7 +346,7 @@ function detailPanel(run: RunState) {
   return `<div class="detail">
     <div class="d-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="muted small">${esc(d.title)}</div>${memberships(u).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}</div>${rankPips(u.rank)}</div>
     <div class="chips">${memberships(u).map(chip).join('')}</div>
-    ${staffLine(run, u)}
+    ${staffLine(run, u)}${aceLine(run, u)}
     ${xpBar(u)}
     <button class="btn small" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''}>공명도 +${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)} (크레딧 ${cost})</button>
     <h3>메이저 스탯</h3>
@@ -351,7 +361,7 @@ function detailPanel(run: RunState) {
     ${u.augments.length ? `<ul class="augs">${u.augments.map((a) => { const ad = AUG_BY_ID[a.id]; return `<li><b>${esc(ad?.name || a.id)}</b> <span class="src">${ad ? augSource(ad) : ''}</span><br><span class="muted">${esc(augDesc(a.id, a.param))}</span></li>`; }).join('')}</ul>` : '<p class="muted small">공명 등급이 오르면 증강을 고릅니다.</p>'}
     <h3>장비</h3>
     <div class="eq">${u.items.map((it, i) => it ? `<div class="eq-slot" data-drag="eq:${u.uid}:${i}">${itemIcon(it)}<span><b>${esc(itemInfo(it).name)}</b><br><span class="muted small">${esc(itemInfo(it).desc)}</span></span>
-      <button class="btn tiny" data-a="unequip" data-v="${u.uid}:${i}">해제</button></div>` : `<div class="eq-slot empty" data-drop="unit:${u.uid}">${itemIcon(null)}<span class="muted small">빈 슬롯</span></div>`).join('')}</div>
+      ${isLocked(it) ? '<span class="muted small">고정</span>' : `<button class="btn tiny" data-a="unequip" data-v="${u.uid}:${i}">해제</button>`}</div>` : `<div class="eq-slot empty" data-drop="unit:${u.uid}">${itemIcon(null)}<span class="muted small">빈 슬롯</span></div>`).join('')}</div>
     <h3>전투 스탯 ${u.pos ? '' : '<span class="muted">(시너지 미적용)</span>'}</h3>
     ${statLines(c, b)}
     <p class="lore">${esc(d.lore)}</p>
@@ -600,7 +610,7 @@ function act(a: string, v: string) {
       else toast(`${CFG.startUnits}명까지 고를 수 있습니다.`);
       break;
     }
-    case 'random-starters': app.starters = new Rng(Date.now() | 0).sample(UNITS.map((u) => u.id), CFG.startUnits); break;
+    case 'random-starters': app.starters = new Rng(Date.now() | 0).sample(UNITS.filter((u) => !u.noStarter).map((u) => u.id), CFG.startUnits); break;
     case 'start-run':
       if (app.starters.length !== CFG.startUnits) return;
       app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters);
@@ -673,6 +683,7 @@ function act(a: string, v: string) {
     case 'buy': if (run) { const e = R.buyShop(run, +v); if (e) toast(e); persist(); } break;
     case 'pick-blessing': if (run && run.pending[0]?.t === 'blessing') { R.pickBlessing(run, v); run.pending.shift(); persist(); } break;
     case 'buy-news': if (run) { const e = R.buyNews(run, +v); if (e) toast(e); persist(); } break;
+    case 'ace-target': if (run) { run.aceTarget = v; toast('에이스 파일럿으로 지정했습니다.'); persist(); } break;
     case 'staff-target': if (run) { run.staffTarget = v; toast('참모단 지원 대상으로 지정했습니다.'); persist(); } break;
     case 'leave-shop': if (run) { R.leaveShop(run); app.screen = 'map'; persist(); } break;
     case 'loan': if (run) { toast(R.takeLoan(run) ? '대출 실행: 크레딧 +25' : '대출할 수 없습니다.'); persist(); } break;
@@ -758,12 +769,16 @@ function onDrop(src: string, dst: string) {
   if (!run) return;
   const [sk, ...sv] = src.split(':');
   const [dk, ...dv] = dst.split(':');
-  const n = run.node?.enc?.n || 6;
+  const n = run.node?.enc?.n || CFG.bossBoard;
   if (sk === 'unit') {
     const u = run.units.find((x) => x.uid === sv[0]);
     if (!u) return;
     const lay = layout(run, n);
     const toPos = (x: number, y: number) => ({ c: x, r: n - 1 - y });
+    // 탐험가는 정해진 페이즈 전에는 보드에 올릴 수 없다
+    const other0 = dk === 'unit' ? run.units.find((x) => x.uid === dv[0]) : null;
+    const blocked = (dk === 'cell' && !R.canDeploy(run, u)) || (dk === 'unit' && other0 && ((other0.pos && !R.canDeploy(run, u)) || (u.pos && !R.canDeploy(run, other0))));
+    if (blocked) { toast(`아문센은 ${CFG.explorerPhase}페이즈부터 배치할 수 있습니다.`); render(); return; }
     if (dk === 'cell') {
       const x = +dv[0], y = +dv[1];
       const other = deployed(run).find((o) => { const p = lay.get(o.uid); return p && p.x === x && p.y === y; });

@@ -14,6 +14,7 @@ export const CFG = {
   // ── 전투 규칙 (확정)
   armorK: 2000,
   baseHit: 0.8,
+  minHit: 0.15, // 최저 명중률 (회피 과다 누적 방지) [임시]
   grazeBase: 0.3, grazeAccK: 0.5, grazeChanceMax: 0.8,
   grazeDmgBase: 0.2, grazeDmgAccK: 0.25, grazeDmgMax: 0.5,
   armorFactor: { phys: 1, chem: 0.5, elec: 0.5, psy: 0, holy: 0.5, true: 0 } as Record<string, number>,
@@ -27,7 +28,7 @@ export const CFG = {
   // 체력 배율: 5페이즈까지 ×2, 6페이즈부터 ×1.9, ×1.8 … (하한 ×1.1 [임시])
   phaseHpFactor: (p: number) => (p <= 5 ? 2 : Math.max(1.1, 2 - 0.1 * (p - 5))),
   adversityMult: 1.6,
-  enemyHpMul: 1.8, enemyPowMul: 1.6, // 적 기초 수치 전체 배율 (튜닝용)
+  enemyHpMul: 1.45, enemyPowMul: 1.45, // 적 기초 수치 전체 배율 (튜닝용)
 
   // ── 성장
   maxRank: 99, // 10 이상은 스탯만
@@ -42,7 +43,10 @@ export const CFG = {
   // ── 파티/보드
   startUnits: 3, maxParty: 10,
   deployCap: (phase: number) => Math.min(10, 3 + phase), // [임시]
-  boardSizes: [ { n: 6, w: 70, env: '표준 전장' }, { n: 5, w: 15, env: '협소한 통로' }, { n: 7, w: 15, env: '개활지' } ],
+  boardSizes: [ { n: 7, w: 70, env: '표준 전장' }, { n: 6, w: 15, env: '협소한 통로' }, { n: 8, w: 15, env: '개활지' } ],
+  bossBoard: 7,
+  explorerPhase: 8, // 탐험가(아문센) 배치 가능 페이즈
+  cookPower: [1, 1.3, 1.7, 2.4], // 셰프 단계별 요리 위력 배율 (0단계 = 미발동)
 
   // ── 경제 [임시]
   startCredits: 6,

@@ -3,7 +3,7 @@ import { AUG_BY_ID } from '../data/augments';
 import { ENEMY_BY_ID, type EnemyDef, setSummonHook } from '../data/enemies';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
 import { itemEffect } from '../data/items';
-import { rankTitle, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
+import { ENG_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { UNIT_BY_ID } from '../data/units';
 import type { SummonDef } from '../data/unitkit';
 import { Rng } from '../rng';
@@ -13,14 +13,14 @@ import type { Effect, EffectCtx } from './effects';
 
 export type Counts = Partial<Record<SynergyId, number>>;
 
-export const playerRows = (n: number) => (n <= 5 ? 2 : 3);
+export const playerRows = (n: number) => (n >= 8 ? 4 : 3);
 
 export function deployed(run: RunState) { return run.units.filter((u) => u.pos); }
 
 /** 기물이 소속된 시너지 (세력 + 특성 + 증강으로 얻은 추가 소속) */
 export function memberships(u: UnitState): SynergyId[] {
   const d = UNIT_BY_ID[u.defId];
-  const s = new Set<SynergyId>([d.faction, ...d.traits]);
+  const s = new Set<SynergyId>([...d.factions, ...d.traits]);
   for (const a of u.augments) {
     const e = AUG_BY_ID[a.id]?.effect(a.param);
     e?.extraSyn?.forEach((x) => s.add(x));
@@ -36,9 +36,9 @@ export function synergyCounts(units: UnitState[]): Counts {
     seen.add(u.defId);
     for (const s of memberships(u)) c[s] = (c[s] || 0) + 1;
   }
-  // 범은하 공동체 4/6단계: 가장 큰 다른 세력의 인원 +1/+2
+  // 범은하 공동체 5/7단계: 가장 큰 다른 세력의 인원 +1/+2
   const pan = c.PAN || 0;
-  const bonus = pan >= 6 ? 2 : pan >= 4 ? 1 : 0;
+  const bonus = pan >= 7 ? 2 : pan >= 5 ? 1 : 0;
   if (bonus) {
     const best = FACTIONS.filter((f) => f !== 'PAN' && (c[f] || 0) > 0).sort((a, b2) => (c[b2] || 0) - (c[a] || 0))[0];
     if (best) c[best] = c[best]! + bonus;
@@ -146,6 +146,7 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
   for (const e of effects) e.setup?.(c, b, ctx);
   c.cdMax = Math.max(1, c.cdMax);
   c.cd = c.cdMax * 0.5;
+  c.noAttack = d.traits.includes('CHEF');
   const sd = d.summon;
   if (sd) c.hooks.push({ onStart: (bb, self) => spawnSummons(bb, self, sd) });
   return c;
@@ -204,6 +205,43 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   void b;
   return c;
 }
+
+// 엔지니어 감시 포탑: 출전한 엔지니어 능력치 평균의 50%
+const TURRET_PAL = ['#0c0e12', '#7a8aa0', '#3a4458', '#c0c8d0', '#7fe3ff', '#4a5468', '#e8f0ff'];
+ENG_HOOK.spawn = (b, lead, engs, n) => {
+  const avg = (k: keyof Stats) => engs.reduce((s, e) => s + b.S(e, k), 0) / engs.length;
+  const hpBonus = engs.reduce((s, e) => s + (e.mem.turretHp || 0), 0);
+  const asBonus = engs.reduce((s, e) => s + (e.mem.turretAs || 0), 0);
+  for (let i = 0; i < n; i++) {
+    const t = blankUnit(lead.side);
+    const st = emptyStats();
+    st.maxHp = avg('maxHp') * 0.5 * (1 + hpBonus);
+    st.shoot = st.strike = st.tech = Math.max(avg('shoot'), avg('tech')) * 0.5;
+    st.armor = avg('armor') * 0.5 * (1 + hpBonus);
+    st.acc = avg('acc') * 0.5; st.crit = avg('crit') * 0.5; st.critDmg = 1.5; st.effRes = avg('effRes') * 0.5;
+    st.atkSpd = asBonus; st.range = 4; st.moveSpd = 1;
+    Object.assign(t, {
+      defId: 'turret', name: '감시 포탑', sprite: 'turret', palette: TURRET_PAL, st, atk: { type: 'shoot', elem: 'phys', interval: 1.0 },
+      keywords: ['mech', 'struct'], isSummon: true, immobile: true,
+    });
+    t.hp = st.maxHp;
+    t.atkTimer = 0.4;
+    // 아군 진영 안의 빈칸에만 설치
+    const rows = playerRows(b.n);
+    let cell: { x: number; y: number } | null = null;
+    for (let r = 1; r < b.n && !cell; r++)
+      for (let dy = -r; dy <= r && !cell; dy++)
+        for (let dx = -r; dx <= r && !cell; dx++) {
+          const x = lead.x + dx, y = lead.y + dy;
+          const mine = lead.side === 0 ? y >= b.n - rows : y < rows;
+          if (b.inBounds(x, y) && mine && !b.unitAt(x, y)) cell = { x, y };
+        }
+    if (!cell) return;
+    t.x = t.px = cell.x; t.y = t.py = cell.y;
+    b.add(t);
+    b.emit({ k: 'spawn', id: t.id });
+  }
+};
 
 setSummonHook((b, owner, defId, count) => {
   for (let i = 0; i < count; i++) {

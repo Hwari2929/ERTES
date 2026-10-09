@@ -86,6 +86,8 @@ export interface CUnit {
   target: CUnit | null;
   alive: boolean;
   isBoss: boolean; isSummon: boolean; immobile: boolean;
+  /** 셰프: 기본 공격을 하지 않고 제자리에서 기술만 쓴다 */
+  noAttack?: boolean;
   phaseAmp: number;
   counters: { dmg: number; taken: number; healed: number; kills: number; casts: number };
   mem: Record<string, number>;
@@ -256,7 +258,7 @@ export class Battle {
         }
       }
     }
-    if (!t2.alive) return;
+    if (!t2.alive || u.noAttack) return;
     if (d <= range) {
       if (!feared && u.atkTimer <= 0) {
         this.basicAttack(u, t2);
@@ -327,7 +329,7 @@ export class Battle {
     let dmg = base;
     if (o.canMiss) {
       const acc = this.S(src, 'acc');
-      const hit = Math.max(0.05, Math.min(1, CFG.baseHit + acc - this.S(tgt, 'eva')));
+      const hit = Math.max(CFG.minHit, Math.min(1, CFG.baseHit + acc - this.S(tgt, 'eva')));
       if (this.rng.next() >= hit) {
         res.miss = true;
         const gc = Math.min(CFG.grazeChanceMax, CFG.grazeBase + acc * CFG.grazeAccK);

@@ -7,9 +7,10 @@ export const ELEM_NAME: Record<Elem, string> = { phys: '물리', chem: '화학',
 export type Keyword = 'bio' | 'mech' | 'struct' | 'phantom';
 export const KEYWORD_NAME: Record<Keyword, string> = { bio: '생체', mech: '기계', struct: '건물', phantom: '환상' };
 
-export type FactionId = 'UNI' | 'KAL' | 'HEL' | 'PET' | 'SIR' | 'PAN';
-export const FACTIONS: FactionId[] = ['UNI', 'KAL', 'HEL', 'PET', 'SIR', 'PAN'];
-export type TraitId = 'MARK' | 'VAN' | 'SPEC' | 'MED' | 'STAFF' | 'BUDDY' | 'NATURE' | 'CLERIC' | 'STAR' | 'INFIL';
+export type FactionId = 'UNI' | 'KAL' | 'HEL' | 'PET' | 'SIR' | 'PAN' | 'FAM';
+export const FACTIONS: FactionId[] = ['UNI', 'KAL', 'HEL', 'PET', 'SIR', 'PAN', 'FAM'];
+export type TraitId = 'MARK' | 'VAN' | 'SPEC' | 'MED' | 'STAFF' | 'BUDDY' | 'NATURE' | 'CLERIC' | 'STAR' | 'INFIL'
+  | 'NAV' | 'CHEF' | 'ENG' | 'TIME' | 'EXPLORER' | 'RFRIEND';
 export type SynergyId = FactionId | TraitId;
 
 /** 마이너 스탯 (전투에 실제 적용되는 값). 확률/비율은 0~1 소수. */
@@ -96,6 +97,7 @@ export interface RunState {
   fame: number; // 은하 대스타: 명성
   blessing: string | null; // 순례 축복 (이번 페이즈)
   staffTarget: string | null; // 참모단 지원 대상 uid
+  aceTarget: string | null; // 항해자 에이스 파일럿 uid
   nextUid: number;
   log: string[];
   stats: { wins: number; losses: number; kills: number; bestHit: number };
