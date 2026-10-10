@@ -1,5 +1,5 @@
 // 시리우스 성도회 · 범은하 공동체 · 엘베스타드 일가
-import { inc } from '../engine/effects';
+import { inc, vuln } from '../engine/effects';
 import { blinkTo, bleed, fear, pct, skillHit, summonsOf } from './kit';
 import { cookPower, strike, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type UnitDef } from './unitkit';
@@ -9,38 +9,37 @@ const faithWin = { after: (run: { faith: number }, _u: unknown, won: boolean) =>
 const fameWin = { after: (run: { fame: number }, _u: unknown, won: boolean) => { if (won) run.fame += 1; } };
 const extraPet = { setup: (u: { mem: Record<string, number> }) => { u.mem.extraSummon = (u.mem.extraSummon || 0) + 1; } };
 const bond = (v: number) => ({ setup: (u: { mem: Record<string, number> }) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + v; } });
-const SQUIRREL = ['#140c08', '#c07a3a', '#f0d0a0', '#f0d0a8', '#40202a', '#7a4a2a', '#fff0d8'];
+const WOLF = ['#101014', '#7a7a80', '#d8d8d8', '#b0b0b0', '#ffcf40', '#4a4a50', '#ffffff'];
 const BEAR = ['#0c0806', '#4a3424', '#8a6a4a', '#c0a080', '#ffcf40', '#2a1a10', '#e0d0c0'];
 
 export const ROSTER_C: UnitDef[] = [
   // ───────── 시리우스 성도회
   {
-    id: 'romani', name: '로마니', title: '성도회 강하 순례자', factions: ['SIR'], traits: ['INFIL', 'NAV'], keywords: ['bio'],
-    atk: { type: 'strike', elem: 'holy', interval: 0.9 }, range: 1, base: B(6, 9, 7, 4, 6),
-    sprite: 'robe', palette: tint(PAL.SIR, '#3a3550', '#d4a83a', '#6fb8ff'), lore: '순례길이 궤도 위에 있을 때도 있다. 그럴 땐 뛰어내린다.',
-    ace: {
-      name: '기습 강하', desc: (k) => `전투 시작 시 가장 먼 적과 그 주변 1칸에 기술 위력 ${Math.round(150 * k)}% 신성 피해.`,
-      effect: (k) => ({
-        hooks: {
-          onStart(b, u) {
-            const t = b.farthest(u);
-            if (!t) return;
-            b.fx(t.x, t.y, 1, 'holy');
-            for (const e of b.around(t, 1, b.enemiesOf(u))) skillHit(b, u, e, 'tech', 1.5 * k, 'holy', { noMiss: true, tag: 'proc' });
-          },
-        },
-      }),
+    id: 'romani', name: '로마니', title: '켈레브림 가문 제3위계장', factions: ['SIR'], traits: ['INFIL'], keywords: ['bio'],
+    atk: { type: 'strike', elem: 'phys', interval: 1.0 }, range: 1, base: B(7, 9, 7, 5, 4),
+    sprite: 'knight', palette: tint(PAL.SIR, '#3a2a50', '#e8e8f0', '#b07cff'), lore: '"그 정도면 잘했어. 네 수준에서는."',
+    skill: {
+      name: '집행자 투척', cd: 7, params: { mult: 1.8, stun: 1, hits: 1, splash: 0 },
+      desc: (p) => `거대 도끼 집행자를 가장 먼 적에게 던져 타격 위력 ${pct(p.mult)} 물리 피해${p.hits > 1 ? ` ${p.hits}회` : ''}, 염동력으로 자기 앞까지 끌어당겨 ${p.stun}초 기절${p.splash ? `. 끌려온 자리 주변 1칸에 ${pct(p.splash)} 피해` : ''}.`,
+      cast(b, u) {
+        const t = b.farthest(u);
+        if (!t) return false;
+        const p = u.sk;
+        b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'phys', ranged: true });
+        for (let i = 0; i < p.hits && t.alive; i++) skillHit(b, u, t, 'strike', p.mult * (i ? 0.6 : 1), 'phys');
+        if (!t.alive) return true;
+        if (b.dist(u, t) > 1 && !t.immobile && !t.isBoss) { blinkTo(b, t, u); t.target = u; }
+        b.stun(u, t, p.stun);
+        if (p.splash) for (const e of b.around(t, 1, b.enemiesOf(u))) if (e !== t) skillHit(b, u, e, 'strike', p.splash, 'phys', { noMiss: true });
+        return true;
+      },
     },
-    skill: strike({
-      name: '천공 강하', cd: 7, pow: 'strike', elem: 'holy', mult: 2.2, target: 'backline', blink: true,
-      desc: (p) => `적 후방으로 강하해 타격 위력 ${pct(p.mult)} 신성 피해${p.radius ? ` (주변 ${p.radius}칸)` : ''}.`,
-    }),
     augs: [
-      uaug('romani', 'impact', '착지 충격', '강하가 주변 1칸 적에게도 피해.', setSk((s) => { s.radius = 1; })),
-      uaug('romani', 'zeal', '열성', '강하 피해 +50%p.', setSk((s) => { s.mult += 0.5; })),
-      uaug('romani', 'daze', '충격파', '강하에 맞은 적 0.8초 기절.', setSk((s) => { s.stun = 0.8; })),
-      uaug('romani', 'again', '재강하', '강하로 처치하면 쿨다운 50% 회복.', setSk((s) => { s.resetOnKill = 0.5; })),
-      uaug('romani', 'chute', '성스러운 낙하산', '강하 후 최대 체력 25% 보호막.', setSk((s) => { s.selfShield = 0.25; })),
+      uaug('romani', 'split', '양손 도끼 분리', '집행자 투척 2회 (두 번째 60%).', setSk((s) => { s.hits = 2; })),
+      uaug('romani', 'recall', '재가속', '투척 피해 +50%p.', setSk((s) => { s.mult += 0.5; })),
+      uaug('romani', 'shove', '염동 밀쳐내기', '끌려온 자리 주변 1칸 적에게 타격 위력 80% 피해.', setSk((s) => { s.splash = 0.8; })),
+      uaug('romani', 'counsel', '16년의 개종 상담', '효과 명중 +30%p, 기절 +0.5초.', { stats: { effHit: 0.3 }, setup: (u) => { u.sk.stun += 0.5; } }),
+      uaug('romani', 'uniform', '정복 관리 강박', '방어력 +4, 효과 저항 +20%p.', { majors: { def: 4 }, stats: { effRes: 0.2 } }),
     ],
   },
   {
@@ -148,22 +147,39 @@ export const ROSTER_C: UnitDef[] = [
     ],
   },
   {
-    id: 'vivian', name: '비비안', title: '공동체 꼬마 탐험가 · 다람쥐 도토리', factions: ['PAN'], traits: ['BUDDY', 'NATURE'], keywords: ['bio'],
-    atk: { type: 'shoot', elem: 'chem', interval: 1.0 }, range: 3, base: B(6, 7, 7, 5, 5),
-    sprite: 'medic', palette: tint(PAL.PAN, '#ffd84d', '#3fbfa8', '#ff8040'),
-    summon: { name: '도토리', sprite: 'beast', palette: SQUIRREL, atk: { type: 'strike', elem: 'phys', interval: 0.7 }, range: 1, hpMul: 0.8 },
-    lore: '도토리는 다람쥐가 아니라고 주장한다. 증거는 없다.',
-    skill: strike({
-      name: '도토리 폭탄', cd: 7, pow: 'tech', elem: 'chem', mult: 1.3, params: { radius: 1, poison: 0.2, noMiss: 1, petAs: 0.4 },
-      desc: (p) => `대상 주변 ${p.radius}칸에 기술 위력 ${pct(p.mult)} 화학 피해 + 중독. 도토리는 4초간 공격 속도 +${pct(p.petAs)}.`,
-      after: (b, u, _t, _d, p) => { for (const d of summonsOf(b, u)) b.buff(u, d, 'vivian.nut', 4, { delta: { atkSpd: p.petAs }, label: '신났다!' }); },
-    }),
+    id: 'vivian', name: '비비안', title: '생태계 분석관 · 군체 연구원', factions: ['PAN'], traits: ['BUDDY', 'NATURE'], keywords: ['bio'],
+    atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(6, 7, 8, 5, 5),
+    sprite: 'medic', palette: tint(PAL.PAN, '#f0d040', '#1a1a22', '#ff8080'),
+    summon: { name: '리키', sprite: 'beast', palette: WOLF, atk: { type: 'strike', elem: 'phys', interval: 0.8 }, range: 1, hpMul: 1.1 },
+    lore: '"흠흠- 만나서 반가워! 나는 정찰과 은하 생태학을 담당하는 비비안이야."',
+    skill: {
+      name: '동물 교감', cd: 7, params: { mult: 2.3, stun: 1, kazoo: 0, vuln: 0 },
+      desc: (p) => `리키에게 공격 지시를 내린다. 리키가 비비안의 대상에게 덮쳐 리키 타격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절. 리키가 없으면 비비안이 직접 사격 위력 150%로 쏜다.`,
+      cast(b, u) {
+        const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u));
+        if (!t) return false;
+        const p = u.sk;
+        const pets = summonsOf(b, u);
+        if (!pets.length) { b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'phys', ranged: true }); skillHit(b, u, t, 'shoot', 1.5, 'phys'); }
+        for (const pet of pets) {
+          if (b.dist(pet, t) > 1) blinkTo(b, pet, t);
+          pet.target = t;
+          skillHit(b, pet, t, 'strike', p.mult, 'phys');
+        }
+        if (t.alive) {
+          b.stun(u, t, p.stun);
+          if (p.vuln) b.applyStatus(u, t, { type: 'buff', key: 'vivian.record', dur: 4, taken: [vuln('all', p.vuln)], label: '관찰 기록' });
+        }
+        if (p.kazoo) for (const a of b.alliesOf(u)) b.buff(u, a, 'vivian.kazoo', 3, { delta: { atkSpd: p.kazoo }, label: '카주' });
+        return true;
+      },
+    },
     augs: [
-      uaug('vivian', 'big', '왕도토리', '폭탄 범위 +1칸.', setSk((s) => { s.radius += 1; })),
-      uaug('vivian', 'rotten', '썩은 도토리', '중독 피해 +20%p.', setSk((s) => { s.poison += 0.2; })),
-      uaug('vivian', 'snack', '간식 많이', '도토리 스탯 상속률 +30%p.', bond(0.3)),
-      uaug('vivian', 'friend', '새 친구', '다람쥐를 하나 더 데려온다 (상속률 60%).', extraPet),
-      uaug('vivian', 'tent', '어린이 텐트', '캠핑 러버 임시 장비 +1개, 기동력 +3.', { ...nat(1), majors: { agi: 3 } }),
+      uaug('vivian', 'trust', '깊은 신뢰', '리키 스탯 상속률 +30%p.', bond(0.3)),
+      uaug('vivian', 'pack', '야생 동료 호출', '동물 동료를 하나 더 부른다 (상속률 60%).', extraPet),
+      uaug('vivian', 'kazoo', '카주 연주', '교감할 때 모든 아군 공격 속도 3초간 +20%.', setSk((s) => { s.kazoo = 0.2; })),
+      uaug('vivian', 'record', '생태 기록 강박', '교감 대상은 4초간 받는 피해 +20%.', setSk((s) => { s.vuln = 0.2; })),
+      uaug('vivian', 'kit', '생존 키트와 신호기', '캠핑 러버 임시 장비 +1개, 기동력 +3.', { ...nat(1), majors: { agi: 3 } }),
     ],
   },
   {
