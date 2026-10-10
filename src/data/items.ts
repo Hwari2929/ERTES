@@ -1,7 +1,8 @@
 import type { Effect } from '../engine/effects';
 import { inc, red, scaleEffect } from '../engine/effects';
-import type { Major } from '../types';
+import type { Major, SynergyId } from '../types';
 import { MAJOR_NAME } from '../types';
+import { SYN_BY_ID } from './synergies';
 
 // 재료(일반) 2개 → 고급, 같은 고급 2개 → 전설(효과 3배)
 export const COMPONENTS: { id: string; major: Major; name: string; icon: string }[] = [
@@ -53,7 +54,7 @@ const ADV: AdvDef[] = [
 // stats/pct/mods/taken 기반 효과는 scaleEffect 로 배율 적용, 훅 기반은 k 를 직접 받는다
 const HOOK_SCALED = new Set(['vit_vit', 'vit_pow', 'vit_def', 'vit_agi', 'pow_def', 'mnd_def', 'def_agi', 'agi_agi']);
 
-export interface ItemInfo { id: string; tier: 'C' | 'A' | 'L'; name: string; icon: string; majors: Partial<Record<Major, number>>; desc: string; recipe?: [string, string] }
+export interface ItemInfo { id: string; tier: 'C' | 'A' | 'L' | 'M'; name: string; icon: string; majors: Partial<Record<Major, number>>; desc: string; recipe?: [string, string] }
 
 const ADV_BY_ID = Object.fromEntries(ADV.map((a) => [a.id, a]));
 
@@ -68,8 +69,17 @@ const UNIQUE: Record<string, { name: string; icon: string; desc: string; effect:
 };
 export const isLocked = (id: string | null) => !!id && id.startsWith('U_');
 
+// ── 개조부품: 장비 칸과 별도인 1칸. 문장 = 장착한 기물이 해당 시너지에 추가 소속
+export const isMod = (id: string | null) => !!id && id.startsWith('M_');
+export const emblemOf = (id: string) => id.slice(2) as SynergyId;
+export const emblemId = (syn: SynergyId) => `M_${syn}`;
+
 export function itemInfo(id: string): ItemInfo {
   if (UNIQUE[id]) return { id, tier: 'L', name: UNIQUE[id].name, icon: UNIQUE[id].icon, majors: {}, desc: UNIQUE[id].desc };
+  if (isMod(id)) {
+    const s = SYN_BY_ID[emblemOf(id)];
+    return { id, tier: 'M', name: `${s?.name || id} 문장`, icon: s?.icon || '◆', majors: {}, desc: `[개조부품] 장착한 기물이 ${s?.name || id} 시너지에 추가로 소속됩니다.` };
+  }
   const [tier, rest] = [id[0] as 'C' | 'A' | 'L', id.slice(2)];
   if (tier === 'C') {
     const c = COMPONENTS.find((x) => x.id === id)!;
@@ -89,6 +99,7 @@ export function itemInfo(id: string): ItemInfo {
 
 export function itemEffect(id: string): Effect {
   if (UNIQUE[id]) return UNIQUE[id].effect;
+  if (isMod(id)) return {};
   const info = itemInfo(id);
   if (info.tier === 'C') return { majors: info.majors };
   const a = ADV_BY_ID[id.slice(2)];

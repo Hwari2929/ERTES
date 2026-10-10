@@ -140,7 +140,15 @@ button { font: inherit; color: inherit; }
 .syn summary { display: flex; align-items: center; gap: 6px; cursor: pointer; list-style: none; }
 .syn summary::-webkit-details-marker { display: none; }
 .syn-ic { color: var(--c); width: 1.2em; text-align: center; }
-.syn-name { flex: 1; font-size: .85rem; }
+.syn-name { flex: 1; font-size: .85rem; display: flex; flex-direction: column; line-height: 1.15; }
+.syn-count { min-width: 1.6em; text-align: center; font: 700 .95rem var(--f-mono); color: var(--c); background: var(--panel-2); border-radius: 4px; padding: 1px 4px; }
+.syn.active .syn-count { color: var(--accent-ink); background: var(--c); }
+.syn-next { font-size: .68rem; color: var(--dim); }
+.syn.benchonly { opacity: .4; }
+.syn-members { display: flex; flex-wrap: wrap; gap: 3px; margin: 6px 0 2px; }
+.syn-members span { font-size: .72rem; padding: 1px 6px; border-radius: 3px; background: var(--panel-2); }
+.syn-members span.on { color: var(--fg); border: 1px solid var(--c); }
+.syn-members span.bench { color: var(--dim); border: 1px dashed var(--line); }
 .syn-steps { display: flex; gap: 2px; font: 600 .7rem var(--f-mono); }
 .syn-steps span { padding: 0 4px; border-radius: 3px; color: var(--dim); background: var(--panel-2); }
 .syn-steps span.on { color: var(--accent-ink); background: var(--c); }
@@ -221,6 +229,9 @@ button { font: inherit; color: inherit; }
 .item.empty { border-style: dashed; cursor: default; }
 .item.tA { border-color: var(--info); color: var(--info); }
 .item.tL { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.item.tM { border-color: #c38cff; color: #c38cff; }
+.item.tM:not(.empty) { border-radius: 50%; }
+.eq-slot.mod { border-color: #c38cff55; }
 .item.sel { outline: 2px solid var(--accent); }
 .rr-items .item { width: 18px; height: 18px; font-size: 10px; cursor: default; }
 .eq { display: grid; gap: 6px; }
@@ -298,3 +309,12 @@ textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--fg
   .alloc-row { grid-template-columns: 1fr auto; }
   .alloc-row .small { grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* 전장 */
+.pill.field { border-color: var(--c); color: var(--c); }
+.field-card { border: 1px solid var(--c); border-left: 4px solid var(--c); border-radius: 8px; padding: 10px 12px; background: var(--panel); display: grid; gap: 6px; margin: 8px 0; }
+.field-card.compact { padding: 8px 10px; }
+.fc-head { display: flex; gap: 10px; align-items: center; }
+.fc-ic { font-size: 1.5rem; color: var(--c); width: 1.4em; text-align: center; }
+.fc-rules { margin: 0; padding-left: 1.1em; font-size: .82rem; }
+.fc-rules li::marker { color: var(--c); }

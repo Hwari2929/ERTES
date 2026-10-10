@@ -106,7 +106,7 @@ export type BEvent =
   | { k: 'spawn'; id: number }
   | { k: 'fx'; x: number; y: number; r: number; elem: Elem };
 
-export interface BattleCtx { phase: number; credits: number }
+export interface BattleCtx { phase: number; credits: number; field?: string }
 
 export class Battle {
   t = 0;

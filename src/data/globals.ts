@@ -37,7 +37,7 @@ export const GLOBALS: GlobalDef[] = [
   { id: 'G.scout', name: '인재 스카우트', desc: '영입 노드 선택지 +1, 영입 기물이 공명 등급 +1로 합류.', unique: true },
   { id: 'G.allin', name: '올인', desc: '모든 아군 피해 +20%, 최대 체력 -10%.', team: { mods: [{ kind: 'inc', tag: 'all', v: 0.2 }], pct: { maxHp: -0.1 } } },
   // ── 시너지 관련
-  { id: 'G.emblem', name: '문장 수여', desc: '출전 중인 시너지 중 무작위 1개 +1pt (영구, 중첩 가능).' },
+  { id: 'G.emblem', name: '문장 수여', desc: '출전 중인 시너지 중 무작위 1개의 문장 개조부품 획득 (중첩 가능).' },
   { id: 'G.faction', name: '연합 협정', desc: '출전 인원이 가장 많은 세력 +1pt.', unique: true },
   { id: 'G.trait', name: '전술 교범', desc: '출전 인원이 가장 많은 특성 +1pt.', unique: true },
   { id: 'G.bond', name: '결속', desc: '활성화된 시너지 1개당 모든 아군 피해 +3%.', unique: true,
@@ -52,7 +52,7 @@ export const GLOBALS: GlobalDef[] = [
 /** 특권 증강: 런 시작 시 1개 (새로고침 가능) */
 export interface PrivilegeDef { id: string; name: (param?: string) => string; desc: (param?: string) => string; w: number }
 export const PRIVILEGES: PrivilegeDef[] = [
-  { id: 'P.emblem', w: 4, name: (p) => `${synName(p!)} 문장`, desc: (p) => `${synName(p!)} +1pt (해당 기물이 1명 이상 출전 중일 때).` },
+  { id: 'P.emblem', w: 4, name: (p) => `${synName(p!)} 문장`, desc: (p) => `[개조부품] ${synName(p!)} 문장 획득. 장착한 기물이 ${synName(p!)} 시너지에 추가로 소속됩니다.` },
   { id: 'P.recruit', w: 1, name: () => '추가 계약', desc: () => '기물 3명 중 1명을 즉시 영입.' },
   { id: 'P.legend', w: 1, name: () => '가보', desc: () => '전설 장비 3개 중 1개 선택.' },
   { id: 'P.rank', w: 1, name: () => '베테랑 편성', desc: () => '시작 기물 전원 공명 등급 +2.' },

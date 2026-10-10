@@ -53,7 +53,7 @@ export const CFG = {
   boardSizes: [ { n: 7, w: 70, env: '표준 전장' }, { n: 6, w: 15, env: '협소한 통로' }, { n: 8, w: 15, env: '개활지' } ],
   bossBoard: 7,
   explorerPhase: 8, // 탐험가(아문센) 배치 가능 페이즈
-  cookPower: [1, 1.3, 1.7, 2.4], // 셰프 단계별 요리 위력 배율 (0단계 = 미발동)
+  cookPower: [1, 1.4, 2.1, 3.5], // 셰프 단계별 요리 위력 배율 (0단계 = 미발동)
 
   // ── 경제 [임시]
   startCredits: 6,
@@ -62,7 +62,7 @@ export const CFG = {
   interestPer: 10, interestMax: 5,
   streakBonus: (streak: number) => (streak >= 6 ? 3 : streak >= 4 ? 2 : streak >= 2 ? 1 : 0),
   price: { C: 7, A: 22, L: 60 } as Record<string, number>,
-  sell: { C: 3, A: 8, L: 20 } as Record<string, number>,
+  sell: { C: 3, A: 8, L: 20, M: 6 } as Record<string, number>,
   // 장비 드랍 [임시]
   drop: { battle: 0.1, adversity: 0.5, bossAdvEvery: 3, bossPart: 0.5, shopParts: 1, shopAdv: 0.25, shopLegend: 0.05, shopLegendPhase: 6, supplyAdv: 0.12 },
   inventoryMax: 12,

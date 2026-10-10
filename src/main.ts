@@ -1,8 +1,9 @@
 import { CFG, phaseAmpMult, phaseHpMult } from './config';
 import { AUG_BY_ID, augDesc, augSource } from './data/augments';
 import { ENEMY_BY_ID } from './data/enemies';
+import { fieldOf } from './data/battlefields';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
-import { combine, isLocked, itemInfo } from './data/items';
+import { combine, isLocked, isMod, itemInfo } from './data/items';
 import { aceTargetUid, rankTitle, staffTargetUid, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf } from './data/synergies';
 import { UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import {
@@ -79,6 +80,7 @@ function topbar() {
   return `<header class="top">
     <div class="brand">ERRANTEs</div>
     <div class="stat-row">
+      <span class="pill field" style="--c:${fieldOf(r.field).color}" title="${esc(fieldOf(r.field).rules.join(' / '))}">${fieldOf(r.field).icon} ${esc(fieldOf(r.field).name)}</span>
       <span class="pill">페이즈 <b>${r.phase}</b> · 노드 ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>
       <span class="pill hp">체력 <b>${r.hp}</b>/${r.maxHp}</span>
       <span class="pill cr">크레딧 <b>${r.credits}</b>${r.loan ? ` <small>(대출 ${r.loan})</small>` : ''}</span>
@@ -95,14 +97,28 @@ function topbar() {
 function synergyPanel(run: RunState) {
   const counts = synergyCounts(deployed(run), run);
   const raw = synergyCounts(deployed(run));
-  const list = SYNERGIES.filter((s) => counts[s.id]).sort((a, b) => tierOf(b.id, counts[b.id]!) - tierOf(a.id, counts[a.id]!) || counts[b.id]! - counts[a.id]!);
+  // 시너지별 소속 기물: 출전 / 대기 (같은 기물은 1회)
+  const members = new Map<string, { dep: string[]; bench: string[] }>();
+  for (const u of run.units) for (const sid of memberships(u)) {
+    const m = members.get(sid) || { dep: [], bench: [] };
+    const name = UNIT_BY_ID[u.defId].name;
+    if (u.pos) { if (!m.dep.includes(name)) m.dep.push(name); } else if (!m.bench.includes(name)) m.bench.push(name);
+    members.set(sid, m);
+  }
+  const list = SYNERGIES.filter((s) => counts[s.id] || members.get(s.id)?.bench.length)
+    .sort((a, b) => tierOf(b.id, counts[b.id] || 0) - tierOf(a.id, counts[a.id] || 0) || (counts[b.id] || 0) - (counts[a.id] || 0));
   if (!list.length) return `<div class="muted small">출전한 기물이 없습니다.</div>`;
   return list.map((s) => {
-    const c = counts[s.id]!;
+    const c = counts[s.id] || 0;
     const t = tierOf(s.id, c);
+    const m = members.get(s.id) || { dep: [], bench: [] };
+    const next = s.tiers.find((need) => need > c);
     const steps = s.tiers.map((need, i) => `<span class="${c >= need ? 'on' : ''}${i === t - 1 ? ' cur' : ''}">${need}</span>`).join('');
-    return `<details class="syn ${t ? 'active' : ''}" style="--c:${s.color}">
-      <summary><span class="syn-ic">${s.icon}</span><span class="syn-name">${esc(s.name)}${c > (raw[s.id] || 0) ? ` <small class="accent">+${c - (raw[s.id] || 0)}</small>` : ''}</span><span class="syn-steps">${steps}</span></summary>
+    const bonus = c - (raw[s.id] || 0);
+    return `<details class="syn ${t ? 'active' : ''} ${c ? '' : 'benchonly'}" style="--c:${s.color}">
+      <summary><span class="syn-ic">${s.icon}</span><span class="syn-count">${c}</span><span class="syn-name">${esc(s.name)}${bonus > 0 ? ` <small class="accent">+${bonus}</small>` : ''}
+        <small class="syn-next">${next ? `다음 단계까지 ${next - c}명` : '최고 단계'}${m.bench.length ? ` · 대기 ${m.bench.length}` : ''}</small></span><span class="syn-steps">${steps}</span></summary>
+      <div class="syn-members">${m.dep.map((n) => `<span class="on">${esc(n)}</span>`).join('')}${m.bench.map((n) => `<span class="bench">${esc(n)} (대기)</span>`).join('')}</div>
       <p>${esc(s.desc)}</p>
       <ol>${s.tierDesc.map((d, i) => `<li class="${i === t - 1 ? 'cur' : ''}">(${s.tiers[i]}) ${esc(d)}</li>`).join('')}</ol>
     </details>`;
@@ -168,6 +184,7 @@ function mapScreen(run: RunState) {
   return `<main class="wrap map">
     <section class="map-main">
       <div class="screen-head"><h1>페이즈 ${p}</h1><p class="muted small">${scale}</p></div>
+      ${fieldCard(run, true)}
       <ol class="track">${track}</ol>
       <h2>다음 노드</h2>
       <div class="node-choices">${choices}</div>
@@ -201,7 +218,7 @@ function rosterRow(u: UnitState) {
   const d = UNIT_BY_ID[u.defId];
   return `<button class="roster-row ${u.pos ? '' : 'bench'}" data-a="manage" data-v="${u.uid}">
     ${sprite(d)}<span class="rr-main"><b>${esc(d.name)}</b>${xpBar(u)}</span>${rankPips(u.rank)}
-    <span class="rr-items">${u.items.map((i) => itemIcon(i)).join('')}</span>
+    <span class="rr-items">${u.items.map((i) => itemIcon(i)).join('')}${u.mod ? itemIcon(u.mod) : ''}</span>
   </button>`;
 }
 
@@ -364,6 +381,9 @@ function detailPanel(run: RunState) {
     <h3>장비</h3>
     <div class="eq">${u.items.map((it, i) => it ? `<div class="eq-slot" data-drag="eq:${u.uid}:${i}">${itemIcon(it)}<span><b>${esc(itemInfo(it).name)}</b><br><span class="muted small">${esc(itemInfo(it).desc)}</span></span>
       ${isLocked(it) ? '<span class="muted small">고정</span>' : `<button class="btn tiny" data-a="unequip" data-v="${u.uid}:${i}">해제</button>`}</div>` : `<div class="eq-slot empty" data-drop="unit:${u.uid}">${itemIcon(null)}<span class="muted small">빈 슬롯</span></div>`).join('')}</div>
+    <h3>개조부품 <span class="muted small">시너지 ${memberships(u).length}/5</span></h3>
+    <div class="eq">${u.mod ? `<div class="eq-slot mod" data-drag="eq:${u.uid}:-1">${itemIcon(u.mod)}<span><b>${esc(itemInfo(u.mod).name)}</b><br><span class="muted small">${esc(itemInfo(u.mod).desc)}</span></span>
+      <button class="btn tiny" data-a="unequip" data-v="${u.uid}:-1">해제</button></div>` : `<div class="eq-slot empty mod" data-drop="unit:${u.uid}"><span class="item empty tM"></span><span class="muted small">빈 개조부품 칸 · 문장을 끌어다 장착</span></div>`}</div>
     <h3>전투 스탯 ${u.pos ? '' : '<span class="muted">(시너지 미적용)</span>'}</h3>
     ${statLines(c, b)}
     <p class="lore">${esc(d.lore)}</p>
@@ -455,6 +475,20 @@ function overScreen(run: RunState) {
   </main>`;
 }
 
+/** 전장 정보: 이름 · 지역 · 조건 · 출현 적 · 보스 */
+function fieldCard(run: RunState, compact = false) {
+  const f = fieldOf(run.field);
+  const nm = (id: string) => esc(ENEMY_BY_ID[id]?.name || id);
+  const bossNow = f.bosses[(run.phase - 1) % f.bosses.length];
+  return `<div class="field-card ${compact ? 'compact' : ''}" style="--c:${f.color}">
+    <div class="fc-head"><span class="fc-ic">${f.icon}</span><div><b>${esc(f.name)}</b><div class="muted small">${esc(f.region)}</div></div></div>
+    ${compact ? '' : `<p class="small">${esc(f.desc)}</p>`}
+    <ul class="fc-rules">${f.rules.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+    <div class="small muted">출현: ${f.pool.map(nm).join(' · ')} · 정예 ${nm(f.elite)}</div>
+    <div class="small"><span class="accent">보스</span> ${f.bosses.map((id) => (id === bossNow ? `<b>${nm(id)}</b>` : nm(id))).join(' → ')} <span class="muted">(페이즈마다 순환)</span></div>
+  </div>`;
+}
+
 // ───────────────────────── 모달: 대기 중인 선택
 function pendingModal(run: RunState): string {
   const p = run.pending[0];
@@ -463,6 +497,10 @@ function pendingModal(run: RunState): string {
   if (p.t === 'global') {
     body = `<h1>전역 증강</h1><p class="muted">런 전체에 적용되는 증강을 하나 고르세요.</p>
       <div class="cards">${p.options.map((id) => { const g = GLOBAL_BY_ID[id]; return `<button class="card" data-a="pick-global" data-v="${id}"><b>${esc(g.name)}</b><span>${esc(g.desc)}</span></button>`; }).join('')}</div>`;
+  } else if (p.t === 'field') {
+    body = `<h1>전장 브리핑</h1><p class="muted">이번 런의 무대입니다. 전장에 따라 적 구성과 조건이 달라집니다.</p>
+      ${fieldCard(run)}
+      <div class="row-btns"><button class="btn primary" data-a="field-ok">출격 준비</button></div>`;
   } else if (p.t === 'privilege') {
     body = `<h1>특권 증강</h1><p class="muted">이번 런에만 적용되는 출격 특권을 하나 고르세요. 새로고침 ${p.rerolls}회 남음.</p>
       <div class="cards">${p.options.map((o, i) => `<button class="card aug-unit" data-a="pick-privilege" data-v="${i}"><b>${esc(R.privilegeName(o))}</b><span>${esc(R.privilegeDesc(o))}</span></button>`).join('')}</div>
@@ -695,6 +733,7 @@ function act(a: string, v: string) {
     case 'loan': if (run) { toast(R.takeLoan(run) ? '대출 실행: 크레딧 +25' : '대출할 수 없습니다.'); persist(); } break;
     // 대기 선택
     case 'pick-global': if (run) { R.pickGlobal(run, v); run.pending.shift(); persist(); } break;
+    case 'field-ok': run?.pending.shift(); persist(); break;
     case 'pick-privilege': if (run) { R.pickPrivilege(run, +v); persist(); } break;
     case 'reroll-privilege': if (run) { R.rerollPrivilege(run); persist(); } break;
     case 'alloc-pick': {

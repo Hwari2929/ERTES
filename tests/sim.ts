@@ -1,8 +1,9 @@
 // 헤드리스 밸런스 시뮬레이션: 단순 봇이 런을 끝까지 진행하고 도달 페이즈/승률을 집계한다.
 // 실행: npm run sim -- [런 수]
 import { CFG } from '../src/config';
+import { FIELDS } from '../src/data/battlefields';
 import { UNITS, UNIT_BY_ID } from '../src/data/units';
-import { buildBattle } from '../src/engine/build';
+import { buildBattle, memberships } from '../src/engine/build';
 import * as R from '../src/engine/run';
 import { Rng } from '../src/rng';
 import { MAJORS, type Major, type RunState } from '../src/types';
@@ -38,9 +39,17 @@ function resolvePending(run: RunState, bot: Rng) {
 function manage(run: RunState) {
   // 장비: 재료를 가장 공명 등급 높은 기물부터 장착
   const sorted = run.units.filter((u) => u.pos).sort((a, b) => b.rank - a.rank);
-  for (let guard = 0; guard < 20 && run.inventory.length; guard++) {
+  // 문장: 해당 시너지가 아닌 출전 기물 중 개조부품 칸이 빈 기물에게
+  for (let i = run.inventory.length - 1; i >= 0; i--) {
+    const id = run.inventory[i];
+    if (!id.startsWith('M_')) continue;
+    const t = sorted.find((u) => !u.mod && !memberships(u).includes(id.slice(2) as never));
+    if (t) R.equip(run, i, t.uid);
+  }
+  for (let guard = 0; guard < 20 && run.inventory.some((x) => !x.startsWith('M_')); guard++) {
     const target = sorted.find((u) => u.items.includes(null) || u.items.some((x) => x && x[0] === 'C'));
-    if (!target || R.equip(run, 0, target.uid)) break;
+    const idx = run.inventory.findIndex((x) => !x.startsWith('M_'));
+    if (!target || R.equip(run, idx, target.uid)) break;
   }
   // 남는 크레딧(이자 구간 30 유지)으로 공명도 구매
   while (run.credits >= 30 + R.xpCost(run)) {
@@ -50,10 +59,10 @@ function manage(run: RunState) {
   R.autoPlace(run);
 }
 
-function playRun(seed: number, force?: string) {
+function playRun(seed: number, force?: string, field?: string) {
   const bot = new Rng(seed * 7 + 1);
   const starters = force ? [force, ...bot.sample(STARTERS.filter((x) => x !== force), CFG.startUnits - 1)] : bot.sample(STARTERS, CFG.startUnits);
-  const run = R.newRun(seed, starters);
+  const run = R.newRun(seed, starters, field);
   const phaseLog: Record<number, { w: number; l: number }> = {};
   let battles = 0;
   while (!run.over && run.phase <= 25 && battles < 300) {
@@ -85,6 +94,21 @@ function playRun(seed: number, force?: string) {
 
 const STARTERS = UNITS.filter((u) => !u.noStarter).map((u) => u.id);
 const N = Number(process.argv[2] || 40);
+if (process.argv[3] === 'fields') {
+  // 전장별: 평균 도달 페이즈 · 페이즈별 승률
+  for (const f of FIELDS) {
+    let sum = 0;
+    const wl: Record<number, { w: number; l: number }> = {};
+    for (let i = 1; i <= N; i++) {
+      const r = playRun(i * 2027, undefined, f.id);
+      sum += r.phase;
+      for (const [p, v] of Object.entries(r.phaseLog)) { wl[+p] = wl[+p] || { w: 0, l: 0 }; wl[+p].w += v.w; wl[+p].l += v.l; }
+    }
+    const rate = (k: number) => (wl[k] ? `${Math.round((wl[k].w / (wl[k].w + wl[k].l)) * 100)}%` : '-');
+    console.log(`${f.name.padEnd(16)} 평균 ${(sum / N).toFixed(2)}  보스 P3 ${rate(-3)} P5 ${rate(-5)} P6 ${rate(-6)} P7 ${rate(-7)}  일반 P6 ${rate(6)} P7 ${rate(7)}`);
+  }
+  throw 0;
+}
 if (process.argv[3] === 'units') {
   // 기물별: 해당 기물을 시작 기물에 넣은 런의 평균 도달 페이즈
   const rows = UNITS.map((u) => {

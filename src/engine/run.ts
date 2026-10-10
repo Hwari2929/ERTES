@@ -1,8 +1,9 @@
 import { CFG } from '../config';
 import { AUG_BY_ID, COMMON_AUGS } from '../data/augments';
-import { BOSS_ROTATION, ENEMIES, ENEMY_BY_ID } from '../data/enemies';
+import { FIELDS, fieldOf } from '../data/battlefields';
+import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, combine, isLocked, itemInfo } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, combine, emblemId, emblemOf, isLocked, isMod, itemInfo } from '../data/items';
 import { SYN_BY_ID, tierOf } from '../data/synergies';
 import { UNIT_BY_ID, UNITS } from '../data/units';
 import { Rng } from '../rng';
@@ -26,16 +27,18 @@ const log = (run: RunState, s: string) => { run.log.unshift(s); if (run.log.leng
 export const hasGlobal = (run: RunState, id: string) => run.globals.includes(id);
 
 // ───────────────────────── 런 생성
-export function newRun(seed: number, starters: string[]): RunState {
+export function newRun(seed: number, starters: string[], field?: string): RunState {
   const run: RunState = {
     version: SAVE_VERSION, seed, rng: seed, phase: 1, step: 0, map: phaseMap(1), picked: [], node: null,
     hp: CFG.playerHp, maxHp: CFG.playerHp, credits: CFG.startCredits, streak: 0, units: [], inventory: [],
-    globals: [], pending: [], quests: [], questPhase: 0, loan: 0, faith: 0, fame: 0, blessing: null, staffTarget: null, aceTarget: null, privilege: null, synBonus: {}, nextUid: 1, log: [],
+    globals: [], pending: [], quests: [], questPhase: 0, loan: 0, faith: 0, fame: 0, blessing: null, staffTarget: null, aceTarget: null, privilege: null, field: field || 'waste', nextUid: 1, log: [],
     stats: { wins: 0, losses: 0, kills: 0, bestHit: 0 }, over: false,
   };
   for (const id of starters) addUnit(run, id, 1);
   autoPlace(run);
   if (tierNow(run, 'CLERIC')) run.map.unshift(['pilgrim']);
+  if (!field) run.field = rng(run, (r) => r.pick(FIELDS).id);
+  run.pending.push({ t: 'field' });
   run.pending.push({ t: 'privilege', options: rollPrivileges(run), rerolls: CFG.privilegeRerolls });
   run.pending.push({ t: 'global', options: rollGlobals(run) });
   log(run, '용병단 ERRANTEs, 출격.');
@@ -79,7 +82,7 @@ export function pickPrivilege(run: RunState, idx: number) {
   run.privilege = pick;
   const next: Pending[] = [];
   switch (pick.id) {
-    case 'P.emblem': run.synBonus[pick.param as SynergyId] = (run.synBonus[pick.param as SynergyId] || 0) + 1; break;
+    case 'P.emblem': gainItem(run, emblemId(pick.param as SynergyId)); break;
     case 'P.recruit': next.push({ t: 'recruit', options: recruitOptions(run, 3) }); break;
     case 'P.legend': next.push({ t: 'itemPick', title: '가보 — 전설 장비 1개 선택', options: rng(run, (r) => r.sample(ALL_ADVANCED, 3)).map((x) => 'L_' + x.slice(2)) }); break;
     case 'P.global': next.push({ t: 'global', options: rollGlobals(run) }); break;
@@ -116,7 +119,7 @@ function recruitOptions(run: RunState, k: number): string[] {
 export function addUnit(run: RunState, defId: string, rank: number): UnitState {
   const u: UnitState = {
     uid: `u${run.nextUid++}`, defId, rank: 1, xp: 0, alloc: zeroMajors(), perm: zeroMajors(), augments: [],
-    items: [UNIT_BY_ID[defId].item || null, null, null], pos: null,
+    items: [UNIT_BY_ID[defId].item || null, null, null], mod: null, pos: null,
   };
   run.units.push(u);
   for (let r = 2; r <= rank; r++) rankUp(run, u);
@@ -215,8 +218,8 @@ export function pickGlobal(run: RunState, id: string) {
   if (id === 'G.emblem') {
     const pool = [...new Set(deployed(run).flatMap((u) => memberships(u)))].filter((s) => EMBLEM_SYNS.includes(s));
     const s = rng(run, (r) => r.pick(pool.length ? pool : EMBLEM_SYNS));
-    run.synBonus[s] = (run.synBonus[s] || 0) + 1;
-    log(run, `문장 수여: ${synName(s)} +1`);
+    gainItem(run, emblemId(s));
+    log(run, `문장 수여: ${synName(s)} 문장 획득`);
   }
   autoPlace(run);
 }
@@ -228,19 +231,19 @@ export function genEncounter(run: RunState, type: NodeType): Encounter {
     const n = type === 'boss' ? CFG.bossBoard : env.n;
     const rows = playerRows(n);
     const p = run.phase;
+    const f = fieldOf(run.field);
     const enemies: EnemySpawn[] = [];
     const ids: string[] = [];
+    const pool = f.pool.filter((id) => ENEMY_BY_ID[id].minPhase <= p);
     if (type === 'boss') {
-      const boss = BOSS_ROTATION[(p - 1) % BOSS_ROTATION.length];
+      const boss = f.bosses[(p - 1) % f.bosses.length];
       ids.push(boss, ...(ENEMY_BY_ID[boss].escort || []));
       const extra = Math.max(0, Math.min(6, p - 1));
-      const pool = ENEMIES.filter((e) => e.tier === 'minion' && e.minPhase <= p).map((e) => e.id);
       for (let i = 0; i < extra; i++) ids.push(r.pick(pool));
     } else {
       const late = run.step >= 4 ? 1 : 0;
-      const count = Math.min(rows * n - 2, 2 + p + late);
-      const pool = ENEMIES.filter((e) => e.tier === 'minion' && e.minPhase <= p).map((e) => e.id);
-      if (type === 'adversity' || (p >= 3 && r.chance(0.3))) ids.push('warlord');
+      const count = Math.min(rows * n - 2, 2 + p + late + (f.extraEnemies || 0));
+      if (type === 'adversity' || (p >= 3 && r.chance(0.3))) ids.push(f.elite);
       while (ids.length < count) ids.push(r.pick(pool));
     }
     // 근접은 앞줄, 원거리는 뒷줄
@@ -302,10 +305,12 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     const sb = CFG.streakBonus(run.streak);
     if (sb) { income += sb; lines.push(`${run.streak}연승 보너스 +${sb}`); }
     if (pet >= 1) { income += 1; lines.push('페트라 실적 +1'); }
+    const fw = fieldOf(run.field).winCredits;
+    if (fw) { income += fw; lines.push(`전장 조건 · 계약 정산 +${fw}`); }
     if (type === 'adversity') {
-      if (rng(run, (r) => r.chance(CFG.drop.adversity))) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
+      if (rng(run, (r) => r.chance(CFG.drop.adversity * (fieldOf(run.field).dropMul || 1)))) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
     } else if (type === 'battle') {
-      if (rng(run, (r) => r.chance(CFG.drop.battle))) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
+      if (rng(run, (r) => r.chance(CFG.drop.battle * (fieldOf(run.field).dropMul || 1)))) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
     } else if (type === 'boss') {
       // 보스 전리품: n 페이즈마다 고급 장비, 그 외에는 확률로 재료 3개 중 1개
       if (p % CFG.drop.bossAdvEvery === 0) run.pending.push({ t: 'itemPick', title: '보스 전리품 — 고급 장비 1개 선택', options: rng(run, (r) => r.sample(ALL_ADVANCED, 3)) });
@@ -462,9 +467,10 @@ export function gainItem(run: RunState, id: string, lines?: string[]) {
 function genShop(run: RunState) {
   return rng(run, (r) => {
     const stock = [];
-    for (let i = 0; i < CFG.drop.shopParts; i++) { const id = r.pick(ALL_COMPONENTS); stock.push({ item: id, price: CFG.price.C, sold: false }); }
-    if (r.chance(CFG.drop.shopAdv)) stock.push({ item: r.pick(ALL_ADVANCED), price: CFG.price.A, sold: false });
-    if (run.phase >= CFG.drop.shopLegendPhase && r.chance(CFG.drop.shopLegend)) stock.push({ item: 'L_' + r.pick(ALL_ADVANCED).slice(2), price: CFG.price.L, sold: false });
+    const pr = (g: string) => Math.round(CFG.price[g] * (fieldOf(run.field).shopMul || 1));
+    for (let i = 0; i < CFG.drop.shopParts; i++) { const id = r.pick(ALL_COMPONENTS); stock.push({ item: id, price: pr('C'), sold: false }); }
+    if (r.chance(CFG.drop.shopAdv)) stock.push({ item: r.pick(ALL_ADVANCED), price: pr('A'), sold: false });
+    if (run.phase >= CFG.drop.shopLegendPhase && r.chance(CFG.drop.shopLegend)) stock.push({ item: 'L_' + r.pick(ALL_ADVANCED).slice(2), price: pr('L'), sold: false });
     return stock;
   });
 }
@@ -498,6 +504,14 @@ export function equip(run: RunState, invIdx: number, uid: string): string | null
   const u = run.units.find((x) => x.uid === uid);
   const id = run.inventory[invIdx];
   if (!u || !id) return '대상 없음';
+  // 개조부품은 전용 칸으로 (이미 있으면 맞교환)
+  if (isMod(id)) {
+    if (memberships(u).includes(emblemOf(id)) && u.mod !== id) return '이미 소속된 시너지의 문장입니다';
+    run.inventory.splice(invIdx, 1);
+    if (u.mod) run.inventory.push(u.mod);
+    u.mod = id;
+    return null;
+  }
   // 빈 슬롯이 없으면, 장착 중인 재료와 조합 가능한지 확인
   let slot = u.items.indexOf(null);
   if (slot < 0) {
@@ -514,8 +528,16 @@ export function equip(run: RunState, invIdx: number, uid: string): string | null
   run.inventory.splice(invIdx, 1);
   return null;
 }
+/** slot -1 = 개조부품 칸 */
 export function unequip(run: RunState, uid: string, slot: number): string | null {
   const u = run.units.find((x) => x.uid === uid);
+  if (u && slot === -1) {
+    if (!u.mod) return null;
+    if (run.inventory.length >= CFG.inventoryMax) return '인벤토리 가득 참';
+    run.inventory.push(u.mod);
+    u.mod = null;
+    return null;
+  }
   if (!u || !u.items[slot]) return null;
   if (isLocked(u.items[slot])) return '고유 장비는 해제할 수 없습니다';
   if (run.inventory.length >= CFG.inventoryMax) return '인벤토리 가득 참';
@@ -660,7 +682,8 @@ export function migrate(run: RunState): RunState {
   run.staffTarget ??= null;
   run.aceTarget ??= null;
   run.privilege ??= null;
-  run.synBonus ??= {};
+  for (const u of run.units) u.mod ??= null;
+  run.field ??= 'waste';
   run.version = SAVE_VERSION;
   return run;
 }

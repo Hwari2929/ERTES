@@ -1,8 +1,9 @@
 import { CFG, phaseAmpMult, phaseHpMult } from '../config';
 import { AUG_BY_ID } from '../data/augments';
 import { ENEMY_BY_ID, type EnemyDef, setSummonHook } from '../data/enemies';
+import { fieldOf } from '../data/battlefields';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
-import { itemEffect } from '../data/items';
+import { emblemOf, isMod, itemEffect } from '../data/items';
 import { ENG_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { UNIT_BY_ID } from '../data/units';
 import type { SummonDef } from '../data/unitkit';
@@ -25,6 +26,7 @@ export function memberships(u: UnitState): SynergyId[] {
     const e = AUG_BY_ID[a.id]?.effect(a.param);
     e?.extraSyn?.forEach((x) => s.add(x));
   }
+  if (u.mod && isMod(u.mod)) s.add(emblemOf(u.mod)); // 문장 개조부품
   return [...s];
 }
 
@@ -37,8 +39,6 @@ export function synergyCounts(units: UnitState[], run?: RunState | null): Counts
     for (const s of memberships(u)) c[s] = (c[s] || 0) + 1;
   }
   if (run) {
-    // 문장 (특권 · 문장 수여): 해당 시너지 기물이 1명 이상 출전 중일 때만
-    for (const [s, v] of Object.entries(run.synBonus || {})) if (c[s as SynergyId]) c[s as SynergyId]! += v!;
     // 연합 협정 / 전술 교범: 인원이 가장 많은 세력 / 특성 +1
     const top = (kind: 'faction' | 'trait') => SYNERGIES.filter((s) => s.kind === kind && s.tiers.length > 1 && (c[s.id] || 0) > 0)
       .sort((a, b2) => (c[b2.id] || 0) - (c[a.id] || 0))[0];
@@ -83,6 +83,8 @@ export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, 
     }
     for (const g of run?.globals || []) { const e = GLOBAL_BY_ID[g]?.team; if (e) out.push(e); }
     if (run?.blessing) { const e = BLESSING_BY_ID[run.blessing]?.team; if (e) out.push(e); }
+    const fa = run ? fieldOf(run.field).ally : undefined; // 전장 세력 보너스
+    if (fa && mine.has(fa.syn)) out.push(fa.effect);
   }
   return out;
 }
@@ -211,24 +213,27 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   });
   c.mem.mult = mult;
   c.cd = c.cdMax * 0.6;
+  if (b.ctx.field) fieldOf(b.ctx.field).enemyMod?.(c); // 전장 조건
   if (def.onBasic) c.hooks.push({ onBasic: def.onBasic });
   if (def.onTick) c.hooks.push({ onTick: def.onTick });
   void b;
   return c;
 }
 
-// 엔지니어 감시 포탑: 출전한 엔지니어 능력치 평균의 50%
+// 엔지니어 감시 포탑: 출전한 엔지니어 능력치 평균을 단계별 비율(60 / 80 / 120%)로 상속
 const TURRET_PAL = ['#0c0e12', '#7a8aa0', '#3a4458', '#c0c8d0', '#7fe3ff', '#4a5468', '#e8f0ff'];
 ENG_HOOK.spawn = (b, lead, engs, n) => {
   const avg = (k: keyof Stats) => engs.reduce((s, e) => s + b.S(e, k), 0) / engs.length;
   const hpBonus = engs.reduce((s, e) => s + (e.mem.turretHp || 0), 0);
-  const asBonus = engs.reduce((s, e) => s + (e.mem.turretAs || 0), 0);
+  const tier = lead.mem.eng || 1;
+  const inherit = [0.6, 0.8, 1.2][Math.min(3, tier) - 1]; // 엔지니어 단계별 상속률
+  const asBonus = engs.reduce((s, e) => s + (e.mem.turretAs || 0), 0) + (tier >= 3 ? 0.5 : 0);
   for (let i = 0; i < n; i++) {
     const t = blankUnit(lead.side);
     const st = emptyStats();
-    st.maxHp = avg('maxHp') * 0.5 * (1 + hpBonus);
-    st.shoot = st.strike = st.tech = Math.max(avg('shoot'), avg('tech')) * 0.5;
-    st.armor = avg('armor') * 0.5 * (1 + hpBonus);
+    st.maxHp = avg('maxHp') * inherit * (1 + hpBonus);
+    st.shoot = st.strike = st.tech = Math.max(avg('shoot'), avg('tech')) * inherit;
+    st.armor = avg('armor') * inherit * (1 + hpBonus);
     st.acc = avg('acc') * 0.5; st.crit = avg('crit') * 0.5; st.critDmg = 1.5; st.effRes = avg('effRes') * 0.5;
     st.atkSpd = asBonus; st.range = 4; st.moveSpd = 1;
     Object.assign(t, {
@@ -282,7 +287,7 @@ export function layout(run: RunState, n: number): Map<string, { x: number; y: nu
 }
 
 export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): Battle {
-  const b = new Battle(enc.n, new Rng(enc.seed), { phase: run.phase, credits: run.credits });
+  const b = new Battle(enc.n, new Rng(enc.seed), { phase: run.phase, credits: run.credits, field: run.field });
   b.keepEvents = keepEvents;
   const dep = deployed(run);
   const counts = synergyCounts(dep, run);

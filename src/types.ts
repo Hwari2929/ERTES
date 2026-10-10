@@ -48,6 +48,7 @@ export interface UnitState {
   perm: Record<Major, number>;
   augments: AugPick[];
   items: (string | null)[];
+  mod: string | null; // 개조부품 슬롯 (문장 등)
   pos: { c: number; r: number } | null; // r=0 이 아군 진영 가장 뒷줄
 }
 
@@ -67,6 +68,7 @@ export interface Quest { id: string; target: number; progress: number; done: boo
 
 export type Pending =
   | { t: 'global'; options: string[] }
+  | { t: 'field' }
   | { t: 'privilege'; options: AugPick[]; rerolls: number }
   | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean }
   | { t: 'itemPick'; options: string[]; title: string }
@@ -100,7 +102,7 @@ export interface RunState {
   staffTarget: string | null; // 참모단 지원 대상 uid
   aceTarget: string | null; // 항해자 에이스 파일럿 uid
   privilege: AugPick | null; // 런 시작 특권 증강
-  synBonus: Partial<Record<SynergyId, number>>; // 문장: 시너지 인원 보너스 (해당 기물 1명 이상 출전 시)
+  field: string; // 전장 (battlefields.ts)
   nextUid: number;
   log: string[];
   stats: { wins: number; losses: number; kills: number; bestHit: number };
