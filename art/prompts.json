@@ -1,0 +1,324 @@
+{
+  "yelena": {
+    "name": "예레나",
+    "subject": "1girl",
+    "tags": "mature female, slender, black hair, medium hair, blue eyes, grey suit, grey jacket, white shirt, grey pencil skirt, blue ribbon, blue bracelet, black pantyhose, high heels, holding pen, calm, light smile, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "머리 길이·하의 형태 미기재 → 미디엄 헤어·펜슬 스커트 임의. 펜은 유피토 제작 볼펜형 항밈 단말."
+  },
+  "mirinae": {
+    "name": "미리내",
+    "subject": "1girl",
+    "tags": "adult, toned female, black hair, short hair, bob cut, black eyes, blue teardrop facial mark, gem under eye, black suit jacket, open jacket, olive tank top, cargo pants, combat boots, holding handgun, oversized gun, energy weapon, expressionless, relaxed, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "정장을 자주 벗는 설정 → 정장 재킷+야외복 혼합. 눈 색 미기재(흑안 임의). 왼쪽 눈 아래 푸른 물방울 보석."
+  },
+  "gebek": {
+    "name": "게베크",
+    "subject": "1boy",
+    "tags": "mature male, middle-aged, very tall, giant, muscular, red hair, very short hair, wrinkles, tactical visor over one eye, cyborg, power armor, mechanical suit, dark grey armor, red trim, holding machine gun, heavy machine gun, relaxed smile, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "메카니컬 슈트 착용 상태(인게임 mech 스프라이트), 얼굴이 보이도록 헬멧 없음. 기관총 '헤비 버니'."
+  },
+  "donovan": {
+    "name": "도노반",
+    "subject": "1boy",
+    "tags": "adult male, slender, purple hair, messy hair, stubble, grey eyes, heterochromia, cross-shaped pupils, tired eyes, grey hoodie, hood down, black suit jacket, open jacket, black pants, combat boots, wrist computer, drone, floating drone, bored, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "눈 색 미기재 → 회색 임의, 십자 동공(자안의 사수)은 오른쪽 눈만. 해킹 드론 '까악이' 포함."
+  },
+  "chloe": {
+    "name": "클로에",
+    "subject": "1girl",
+    "tags": "adult, petite, black hair, long hair, twintails, pink eyes, very pale skin, white blouse, frilled collar, black high-waist skirt, pink ribbon, black pantyhose, mary janes, holding syringe, ojou-sama, smug, light smile, hand on own chest, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "고정 복장 없음(변장 전문) → 팔레트(흑·백·분홍) 맞춰 아가씨풍 블라우스+스커트 임의. 눈 색 미기재 → 분홍."
+  },
+  "west": {
+    "name": "웨스트",
+    "subject": "1boy",
+    "tags": "mature male, stocky, burly, ash blonde hair, short hair, green eyes, cigarette in mouth, black suit, high-visibility vest, yellow vest, tools in pockets, sleeves rolled up, holding wrench, black pants, work boots, grumpy, frown, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "58세지만 역노화로 30대 후반 외형 → mature male만 사용. 에란테스 정장은 검정으로 가정."
+  },
+  "lindiwe": {
+    "name": "린디웨",
+    "subject": "1girl",
+    "tags": "adult, athletic female, orange hair, wavy hair, medium hair, brown eyes, earrings, orange nails, beige blazer, orange blouse, black pants, fingerless gloves, energy shield, wrist device, bright smile, confident, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "머리색·네일·악세서리가 주 단위로 바뀜 → 페트라 팔레트(주황/크림) 임의. 눈·피부색 미기재. 실드 발생기를 손목 장치로 해석."
+  },
+  "orca": {
+    "name": "오르카",
+    "subject": "1boy",
+    "tags": "mature male, looks early 30s, tall, broad shoulders, burly, black hair, long hair, loose hair, grey eyes, pale skin, grey skin, black suit, white shirt, black necktie, earplugs, holding coin, coin between fingers, expressionless, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "범고래 환수지만 문서에 인간형의 동물 특징(꼬리 등) 기재 없음 → 동물 특징 미추가(원하면 'orca tail'). 눈 색 미기재(회색 임의)."
+  },
+  "franze": {
+    "name": "프란체",
+    "subject": "1boy",
+    "tags": "adult male, slender, black hair, slicked back hair, red eyes, glowing eyes, dark grey suit, white shirt, open collar, no necktie, belt, energy sword, lightsaber hilt at hip, sharp eyes, open mouth, pointing at viewer, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "정장 색 미기재 → 짙은 회색. '이의 있습니다' 포즈로 pointing 추가. 빛에 몸이 불붙는 설정은 미반영."
+  },
+  "grenholm": {
+    "name": "그렌홀름",
+    "subject": "1boy",
+    "tags": "mature male, tall, broad shoulders, muscular, handsome, wolfish face, high cheekbones, narrow eyes, black hair, short hair, slicked back hair, grey eyes, black suit, formal suit, orange brooch, black necktie, smirk, arms crossed, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "머리·눈 색 미기재 → 흑발·회안 임의. 브로치는 적황색(코발스키 초석색). 정장은 전쟁부 시제품 개조 정장."
+  },
+  "lars": {
+    "name": "라르스",
+    "subject": "1boy",
+    "tags": "mature male, middle-aged, average build, ash blonde hair, grey hair, slicked back hair, voluminous hair, yellow eyes, black suit, two-piece suit, white shirt, blue necktie, blue and gold brooch, awkward smile, hands together, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "금회색 머리 → ash blonde+grey hair 병용. 청금빛 브로치는 파랑+금. 소환 경호원은 제외."
+  },
+  "falcon": {
+    "name": "팔콘",
+    "subject": "1boy",
+    "tags": "adult male, short hair, brown hair, goggles on head, bandaid on cheek, soot on face, light grey bodysuit, padded armor, orange trim, cable, holding railgun, oversized gun, nervous smile, sweatdrop, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "문서 없음. 성별·외모 미정 → 남성 임의, 사고 보고서 1,203건 설정 반영해 반창고·그을음. 틀-페트라에선 팔콘=개척개발부장이라 동일인 여부 확인 필요."
+  },
+  "hiiro": {
+    "name": "히이로",
+    "subject": "1girl",
+    "tags": "young woman, beautiful, pink hair, long hair, fox ears, fox tail, large tail, fluffy tail, pink eyes, half-closed eyes, white kimono, pink obi, wide sleeves, holding ofuda, fortune teller, mysterious smile, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "본체는 분홍빛 구미호, 인간형+여우 귀·꼬리로 묘사(문서 '풍성한 꼬리' 1개). 눈 색·복장 미기재 → 팔레트(분홍/흰) 기모노풍 임의."
+  },
+  "nadir": {
+    "name": "나디르",
+    "subject": "1boy",
+    "tags": "young man, bishounen, toned, black hair, messy hair, brown eyes, fair skin, rosy cheeks, white shirt, dress shirt, sleeves rolled up, black pants, no jacket, holding crystal, glowing crystal, white crystal, grin, energetic, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "정장 바지+와이셔츠만 입는 습관 반영. 등의 글자 형상 흉터는 정면 구도라 생략."
+  },
+  "temur": {
+    "name": "테무르",
+    "subject": "1boy",
+    "tags": "young man, very tall, muscular, broad shoulders, tan, blonde hair, short hair, yellow eyes, handsome, sword in back, brown fur coat, layered coat, open coat, bare chest, pectorals, brown pants, holding rapier, blank stare, confident, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "저온에 약해 모피 코트 2겹 착용 버전. 등에 박힌 의식 검(자루 없음)은 정면 구도에서 애매 → 'sword in back' 제거 가능. 머리 길이 미기재."
+  },
+  "kairo": {
+    "name": "카이로",
+    "subject": "1boy",
+    "tags": "adult male, tall, muscular, brown hair, long hair, ponytail, brown eyes, gold earrings, gold necklace, half pendant, black suit, long coat, brown coat, gold trim, aristocrat, holding sniper rifle, rifle over shoulder, smug, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "포니테일=작업 모드로 선택. 롱코트 색 미기재 → 팔레트 갈색+금. 문서 내 키 181/186 불일치."
+  },
+  "zahara": {
+    "name": "자하라",
+    "subject": "1girl",
+    "tags": "adult, tall female, athletic, tan, black hair, tied hair, low ponytail, dark blue eyes, long eyelashes, black suit, navy collar, gold cufflinks, scimitar, holding sword, whip, whip on belt, calm, serious, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "올리브색 피부 → tan. 칼라·커프스는 계절마다 바뀜 → 팔레트 남색/금. 곡도+채찍."
+  },
+  "bianca": {
+    "name": "비앙카",
+    "subject": "1girl",
+    "tags": "mature female, slender, brown hair, shoulder-length hair, straight hair, brown eyes, expressionless, light blue earrings, teardrop earrings, white lab coat, silk blouse, cream blouse, black skirt, slime (creature), small dark red slime, calm smile, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "베헤모스(강아지 크기 검붉은 슬라임) 포함 — 빼도 무방. 하의 미기재."
+  },
+  "zephyro": {
+    "name": "제피로",
+    "subject": "1boy",
+    "tags": "adult male, very tall, large build, burly, tan, black hair, messy hair, swept back hair, aqua eyes, half-closed eyes, sleepy, white shirt, dress shirt, unbuttoned collar, sleeves rolled up, no jacket, black pants, slouching, hands in pockets, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "정장 대신 와이셔츠 차림 기본. 청녹빛 눈 → aqua eyes."
+  },
+  "phyllis": {
+    "name": "필리스",
+    "subject": "1girl",
+    "tags": "young woman, petite, grey hair, short hair, cat ears, extra ears, cat tail, yellow eyes, slit pupils, black suit, open jacket, sleeves rolled up, tools in pockets, holding wrench, mischievous, grin, fang, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "고양이 귀와 인간 귀 공존 → extra ears. 눈 색 미기재 → 팔레트 노랑. 에란테스 정장 검정 가정."
+  },
+  "eleni": {
+    "name": "엘레니",
+    "subject": "1girl",
+    "tags": "android, tall female, robot joints, mechanical parts, silver armor, synthetic skin, white hair, long hair, pale blue eyes, glowing eyes, black suit jacket, jacket on shoulders, white robe, armor under robe, greatsword on back, huge sword, light smile, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "여성형 기계지만 합성 피부의 인간형 → 1girl+android. 머리색 미기재 → 은백 장발 임의. 정장 상의를 망토처럼 걸침."
+  },
+  "iris": {
+    "name": "이리스",
+    "subject": "1girl",
+    "tags": "young woman, petite, tan, brown hair, curly hair, shoulder-length hair, low ponytail, hair tie, brown eyes, sparkling eyes, dimples, white robe, priest, gold trim, embroidery, caduceus, caduceus pendant, shy smile, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "사제복(흰+금, 카두케우스 자수) 버전 선택. 눈 바탕색 미기재 → 갈색+금빛 반짝임. 케리케이온은 목에 거는 레플리카로 해석."
+  },
+  "odysseus": {
+    "name": "오디세우스",
+    "subject": "1boy",
+    "tags": "mature male, handsome, brown hair, short hair, stubble, amber eyes, weathered, olive green cloak, hood down, leather armor, beige tunic, quiver, holding bow, arrow, cheerful smile, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "인물 문서 없음. 지역/이타카의 '38세 용병왕, 잘생기고 늘 웃는' 묘사를 참고, 인게임 '귀환 정찰병'·활에 맞춰 궁수 복장. 머리·눈 색 임의."
+  },
+  "argon": {
+    "name": "아르곤",
+    "subject": "1boy",
+    "tags": "mature male, middle-aged, veteran, grey hair, short hair, stubble, teal eyes, pilot suit, silver flight suit, teal trim, flight jacket, patches, gloves, holding helmet, helmet under arm, calm, stoic, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "인물 문서 없음. 지역 문서(이타카·크레타)의 아르곤은 과묵한 최고참 뱃사공/도선사라 인게임 '에이스 전투기 조종사'와 직업이 다름 → 인게임 기준, 최고참 설정만 반영해 중년."
+  },
+  "romani": {
+    "name": "로마니",
+    "subject": "1girl",
+    "tags": "young woman, dark skin, dark-skinned female, silver hair, very long hair, purple eyes, sharp eyes, dark purple uniform, white trim, cape, holding axe, double-bladed axe, huge axe, psychic aura, smug, condescending smile, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "장수종(켈레브림 족)이나 귀 형태 미기재 → 뾰족귀 미추가. 위계장 정복 색 미기재 → 팔레트 짙은 보라+흰."
+  },
+  "joshua": {
+    "name": "조슈아",
+    "subject": "1boy",
+    "tags": "adult male, looks late 20s, tall, slender, gaunt, green hair, curly hair, short hair, messy hair, aqua eyes, dark circles, black suit, loose necktie, unbuttoned collar, holding book, prayer book, old book, awkward smile, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "평상시 조슈아 모습. 체사레 전환(머리끝 붉게, 재킷 벗고 양손 도끼)은 별도 변형 프롬프트 필요."
+  },
+  "sarma": {
+    "name": "사르마",
+    "subject": "1girl",
+    "tags": "young woman, purple hair, long hair, purple eyes, futuristic, white coat, cream coat, purple bodysuit, glowing trim, holding cannon, oversized gun, black hole, polite smile, sweatdrop, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "문서 없음. 성별·외모 미기재 → 정중한 말투 고려 여성 임의, 팔레트 보라/크림. '포켓 블랙홀' 융합포."
+  },
+  "kyle": {
+    "name": "카일",
+    "subject": "1boy",
+    "tags": "adult male, tall, muscular, dark skin, dark-skinned male, silver hair, short hair, blue eyes, white armor, plate armor, gold trim, white tabard, cape, holding sword, holding shield, stern, serious, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "인물 문서 없음. 로마니 문서의 실종 가주 '카일 켈레브림'과 동일인으로 가정 → 켈레브림 족 특징(어두운 피부)+은발 차용. 갑옷은 성도회 팔레트(크림/금)."
+  },
+  "doros": {
+    "name": "도로스",
+    "subject": "1boy",
+    "tags": "mature male, middle-aged, chubby, plump, round face, brown hair, short hair, beard, brown robe, monk, white apron, rope belt, holding bread, basket, gentle smile, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "문서 없음. 수도사+요리사로 외모 임의."
+  },
+  "demiurgos": {
+    "name": "데미우르고스",
+    "subject": "1other",
+    "tags": "androgynous, ageless, white hair, long hair, pink eyes, white robe, hooded robe, hood down, pink trim, translucent, ghost, glowing, reaching towards viewer, gentle smile, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "문서 없음(성도회 '편집자 R'). 성별 불명 → 1other+androgynous. phantom 스프라이트라 반투명 처리."
+  },
+  "aiden": {
+    "name": "에이든",
+    "subject": "1boy",
+    "tags": "android, tall, slender, silver hair, slicked back hair, light blue eyes, bartender, white shirt, black vest, black bowtie, black pants, liquid metal, holding cocktail shaker, smirk, half-closed eyes, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "구인류 남성형 기계 — 바텐더 형태(191cm, 은발 올백) 사용 → 1boy+android. 주 변신형인 고양이는 제외. 눈 색 미기재(팔레트 하늘색)."
+  },
+  "vivian": {
+    "name": "비비안",
+    "subject": "1girl",
+    "tags": "young woman, petite, toned legs, blonde hair, long hair, high ponytail, green eyes, freckles, round face, blush, red nose, yellow sailor shirt, sailor collar, black shirt, clothes around waist, shorts, backpack, wolf, smile, open mouth, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "'크게 묶은 금발' → high ponytail. 눈 색·하의 미기재(녹안·반바지 임의). 늑대 리키 동반, 단독이면 'wolf' 제거."
+  },
+  "yupito": {
+    "name": "유피토",
+    "subject": "1girl",
+    "tags": "mature female, short, petite, dark blue hair, bob cut, blunt bangs, straight hair, aqua eyes, dirty hands, oil stain, navy jumpsuit, coveralls, patched clothes, tool belt, holding toolbox, confident smile, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "46세 → mature female. 민트색 눈 → aqua eyes. 손 안의 공구함 '콩이'."
+  },
+  "ingel": {
+    "name": "잉겔",
+    "subject": "1girl",
+    "tags": "mature female, slender, grey hair, blonde hair, long hair, heterochromia, yellow eyes, blue eyes, idol, white dress, gold trim, white and gold, bird hair ornament, long-tailed tit, earrings, holding microphone, bright smile, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "인물 문서 없음(지시 설정+스토리 반영). 금회색 머리 → grey+blonde. 오드아이 좌우 배치 미정. 상징새 오목눈이를 머리장식으로."
+  },
+  "amundsen": {
+    "name": "아문센",
+    "subject": "1boy",
+    "tags": "old man, mature male, white hair, short hair, hair strand, white beard, yellow eyes, half-closed eyes, black suit, tailored suit, gold trim, anchor badge, lapel pin, pocket watch, holding pocket watch, watch chain, gentleman, smirk, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "66세(신체 나이 30대 후반)지만 외형은 백발 노신사. 금색 회중시계 '그늘'."
+  },
+  "rachel": {
+    "name": "레이첼",
+    "subject": "1girl",
+    "tags": "young woman, tall female, black hair, very long hair, purple eyes, half-closed eyes, black suit, open jacket, unbuttoned shirt, loose necktie, black pants, hands in pockets, purple aura, psychic, bored, lazy, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "인물 문서 없음(지시 설정 반영). 눈 색 미기재 → 팔레트 보라(사이오닉 오라 색과 통일)."
+  },
+  "oliver": {
+    "name": "올리버",
+    "subject": "1boy",
+    "tags": "adult male, handsome, black hair, short hair, voluminous hair, yellow eyes, conductor, navy coat, long coat, gold buttons, peaked cap, anchor brooch, white gloves, black pants, grin, excited, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "팔각모 정확한 태그 없음 → peaked cap. 코트 색 미기재 → 팔레트 남색+금."
+  },
+  "rasmus": {
+    "name": "라스무스",
+    "subject": "1boy",
+    "tags": "old man, burly, grey hair, short hair, full beard, grey beard, weathered, blue eyes, green hunting jacket, olive coat, leather gloves, boots, rifle on back, brown bear, bear, calm, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "문서 없음. 40년 근속 → 노년 남성 임의. 곰 비요른 동반, 단독 구도면 'brown bear, bear' 제거."
+  },
+  "sigmund": {
+    "name": "시그문드",
+    "subject": "1boy",
+    "tags": "old man, tall, white hair, slicked back hair, white mustache, yellow eyes, wrinkles, navy long coat, silver embroidery, gold trim, high collar, cravat, holding cane, stern, frown, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "문서 없음. 틀-엘베스타드·라르스 문서에선 시그문드=본가 집사이고 가주는 라르스 → 인게임 타이틀(가주) 따름, 확인 필요. 가문 금안 적용."
+  },
+  "gunnir": {
+    "name": "구니르",
+    "subject": "1boy",
+    "tags": "old man, butler, grey hair, slicked back hair, grey mustache, monocle, black tailcoat, black vest, white shirt, white gloves, holding ladle, cooking pot, gentle smile, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "문서 없음. 틀에는 집사 시그문드·셰프 구닐라만 있어 구니르와 관계 불명 → 노년 남성 집사장 임의. 스튜 국자."
+  },
+  "mingki": {
+    "name": "밍키",
+    "subject": "1other",
+    "tags": "no humans, cat, fluffy, chubby, dark grey fur, white fur, tuxedo cat, white paws, long tail, whiskers, blue eyes, sparkle, animal focus, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "실제 고양이 → no humans. 털색 미기재 → CAT 팔레트(짙은 회보라+흰). 성운 섭취(?)는 미반영."
+  },
+  "onyx": {
+    "name": "오닉스 감응자",
+    "subject": "1girl",
+    "tags": "young woman, hooded robe, hood up, dark purple robe, navy robe, purple hair, glowing eyes, lavender eyes, choir, singing, open mouth, hands clasped, purple aura, psychic, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "문서 없음. 개인이 아닌 '감응자' 1인으로 성별·외모 임의(여성). 팔레트 남보라/라벤더."
+  },
+  "exile": {
+    "name": "망명 혈족 귀공자",
+    "subject": "1boy",
+    "tags": "young man, slender, pale skin, silver hair, medium hair, red eyes, glowing eyes, handsome, aristocrat, crimson coat, long coat, high collar, cape, black gloves, holding sword, red blade, calm smile, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "문서 없음. 크림슨 혈족 특징(어둠에서 빛나는 적안, 차광 의복)은 프란체·크림슨 문서 참고. 머리색 미기재 → 은발 임의."
+  },
+  "thermo": {
+    "name": "테르모필레",
+    "subject": "1other",
+    "tags": "robot, mecha, no humans, humanoid robot, bronze armor, gold armor, crested helmet, glowing eyes, orange eyes, red cape, torn cape, round shield, holding shield, holding spear, battle damage, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "문서 없음. 스파르타 메카 스파르탄(자율 AI) 호플리테형으로 묘사, 탈주 설정 반영해 손상."
+  },
+  "u404": {
+    "name": "U-404",
+    "subject": "1other",
+    "tags": "robot, no humans, industrial robot, boxy body, beige armor, grey metal, glowing eyes, green eyes, monitor head, mechanical arms, hydraulic press, caution stripes, rust, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "문서 없음. 유닉스 다용도 산업 로봇으로 묘사, 팔레트 베이지+녹색 표시등."
+  },
+  "rus": {
+    "name": "루스",
+    "subject": "1girl",
+    "tags": "adult, brown hair, long hair, ponytail, yellow eyes, scar on cheek, pirate, brown long coat, red scarf, belt, boots, dual wielding, holding two guns, handgun, smirk, full body, standing, looking at viewer",
+    "source": "temp",
+    "notes": "문서 없음. 성별 미기재 → 이름(Ruth) 고려 여성 임의. RAIDER 팔레트 갈색/적색."
+  }
+}
