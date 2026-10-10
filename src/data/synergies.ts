@@ -548,7 +548,7 @@ export const SYNERGIES: SynDef[] = [
     ],
   },
   {
-    id: 'FAM', name: '엘베스타드 일가', kind: 'faction', tiers: [2, 4, 6], color: '#b8c0d8', icon: '♞',
+    id: 'FAM', name: '엘베스타드 일가', kind: 'faction', tiers: [3, 5, 7], color: '#b8c0d8', icon: '♞',
     desc: '은하 귀족 엘베스타드 가문. 일가 기물이 주는 모든 피해가 증폭됩니다. 이 증폭은 다른 증폭과 겹치지 않는 별도 배율로 곱해집니다.',
     tierDesc: ['일가 기물 피해 증폭 +30%', '일가 기물 피해 증폭 +50%', '일가 기물 피해 증폭 +150%'],
     member: (t) => {

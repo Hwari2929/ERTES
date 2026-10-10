@@ -148,7 +148,7 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
   for (const e of effects) e.setup?.(c, b, ctx);
   c.cdMax = Math.max(1, c.cdMax);
   c.cd = c.cdMax * 0.5;
-  c.noAttack = d.traits.includes('CHEF');
+  c.noAttack = c.noAttack || d.traits.includes('CHEF');
   const sd = d.summon;
   if (sd) c.hooks.push({ onStart: (bb, self) => spawnSummons(bb, self, sd) });
   return c;

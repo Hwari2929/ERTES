@@ -1,7 +1,7 @@
 // 성간 인류 연합 · 주식회사 페트라
-import { inc, red } from '../engine/effects';
+import { inc, red, vuln } from '../engine/effects';
 import { lineTargets, pct, shock, skillHit, summonsOf } from './kit';
-import { cookPower, strike, support } from './tpl';
+import { cookPower, pickEnemy, strike, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type UnitDef } from './unitkit';
 
 const nat = (n: number) => ({ setup: (u: { mem: Record<string, number> }) => { u.mem.natureExtra = (u.mem.natureExtra || 0) + n; } });
@@ -166,49 +166,56 @@ export const ROSTER_A: UnitDef[] = [
     ],
   },
   {
-    id: 'grenholm', name: '그렌홀름', title: '페트라 광고 모델 겸 경호원', factions: ['PET'], traits: ['VAN', 'STAR'], keywords: ['bio'],
+    id: 'grenholm', name: '그렌홀름', title: '페트라 전쟁부장', factions: ['PET'], traits: ['VAN', 'STAR'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 1.2 }, range: 1, base: B(11, 6, 5, 8, 2),
-    sprite: 'mech', palette: tint(PAL.PET, '#f0a040', '#ffffff', '#ff60e0'), lore: '광고 계약서에 "얼굴은 맞지 않는다" 조항이 있다. 그래서 몸으로 막는다.',
+    sprite: 'knight', palette: tint(PAL.PET, '#24242e', '#e0602a', '#ff8a40'),
+    lore: '"이 병신같은 보고서 양식은 주주님의 좆같은 면상을 따와 그린 겁니까?" — 주주총회에서',
     skill: strike({
-      name: '쇼타임', cd: 8, pow: 'strike', elem: 'phys', mult: 1.0, aroundSelf: true, params: { radius: 1, stun: 1, selfShield: 0.3 },
-      desc: (p) => `주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절, 자신에게 최대 체력 ${pct(p.selfShield)} 보호막.`,
+      name: '군수품 시연', cd: 8, pow: 'strike', elem: 'phys', mult: 1.0, aroundSelf: true, params: { radius: 1, stun: 1, selfShield: 0.3 },
+      desc: (p) => `에너지 블레이드와 EMP로 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}. 7중 방호 슈트가 최대 체력 ${pct(p.selfShield)} 보호막을 전개한다.`,
     }),
     augs: [
-      uaug('grenholm', 'pose', '포토 타임', '보호막 +20%p.', setSk((s) => { s.selfShield += 0.2; })),
-      uaug('grenholm', 'flash', '플래시 세례', '기절 +0.5초.', setSk((s) => { s.stun += 0.5; })),
-      uaug('grenholm', 'stage', '대형 무대', '쇼타임 범위 +1칸.', setSk((s) => { s.radius += 1; })),
-      uaug('grenholm', 'face', '얼굴 보험', '체력 50% 이상일 때 받는 피해 -20%.', { hooks: { takenMult: (b, u) => (b.hpPct(u) >= 0.5 ? 0.8 : 1) } }),
-      uaug('grenholm', 'sponsor', '스폰서 노출', '전투 승리 시 명성 +1.', {}, { after: (run, _u, won) => { if (won) run.fame += 1; } }),
+      uaug('grenholm', 'deflect', '에너지 편향막', '보호막 +20%p.', setSk((s) => { s.selfShield += 0.2; })),
+      uaug('grenholm', 'rocket', '휴대용 로켓런처', '군수품 시연 범위 +1칸.', setSk((s) => { s.radius += 1; })),
+      uaug('grenholm', 'sevenfold', '7중 방호 체계', '체력 50% 이상일 때 받는 피해 -20%. 방호가 뚫리면 불이행 사건이다.', { hooks: { takenMult: (b, u) => (b.hpPct(u) >= 0.5 ? 0.8 : 1) } }),
+      uaug('grenholm', 'evidence', '자료 첨부', '모욕한 뒤 사실임을 증명한다. 맞은 적 4초간 받는 피해 +20%.', setSk((s) => { s.vuln = 0.2; })),
+      uaug('grenholm', 'loss', '기대손실 시리즈', 'SNS 연재. 전투 승리 시 명성 +1.', {}, { after: (run, _u, won) => { if (won) run.fame += 1; } }),
     ],
   },
   {
-    id: 'lars', name: '라르스', title: '엘베스타드가 막내 상속자', factions: ['PET', 'FAM'], traits: ['BUDDY'], keywords: ['bio'],
+    id: 'lars', name: '라르스', title: '엘베스타드가 가주 · 페트라 무역관세부장', factions: ['PET', 'FAM'], traits: ['BUDDY'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(6, 7, 7, 5, 5),
-    sprite: 'soldier', palette: tint(PAL.FAM, '#5a3a7a', '#e07a1f', '#9ad0ff'),
-    summon: { name: '경호 로봇 B-11', sprite: 'mech', palette: BOT, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.5 },
-    lore: '용돈으로 산 경호 로봇이 회사 하나 값이다. 본인은 모른다.',
+    sprite: 'soldier', palette: tint(PAL.FAM, '#16161c', '#3a5ab0', '#d4a83a'),
+    summon: { name: '페트라 경호원', sprite: 'soldier', palette: BOT, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.5 },
+    lore: '"좋습니다. 서로가 만족할 거래가 되었군요."',
+    // 비무장: 폭력은 경호팀에게 아웃소싱했다
+    passive: {
+      setup: (u) => { u.noAttack = true; u.mem.extraSummon = (u.mem.extraSummon || 0) + 1; },
+      hooks: { takenMult: (b, u) => (summonsOf(b, u).length ? 0.75 : 1) },
+    },
     skill: {
-      name: '경호 명령', cd: 8, params: { shield: 1.5, mult: 2.0 },
-      desc: (p) => `B-11에게 기술 위력 ${pct(p.shield)} 보호막을 주고 라르스의 대상을 타격 위력 ${pct(p.mult)}로 공격하게 한다. 로봇이 없으면 라르스가 사격 위력 150%로 쏜다.`,
+      name: '거래 제안', cd: 8, params: { shield: 1.5, mult: 2.0, weak: 0.2, dur: 4, vuln: 0 },
+      desc: (p) => `[비무장] 기본 공격을 하지 않는다. 경호원 2명을 데려오며, 경호원이 살아 있는 동안 받는 피해 -25%. 체력이 가장 높은 적에게 거래를 제안해 ${p.dur}초간 주는 피해 -${pct(p.weak)}${p.vuln ? `, 받는 피해 +${pct(p.vuln)}` : ''}. 경호원들에게 기술 위력 ${pct(p.shield)} 보호막을 주고 그 적을 타격 위력 ${pct(p.mult)}로 공격하게 한다.`,
       cast(b, u) {
-        const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u));
+        const t = pickEnemy(b, u, 'strongest');
         if (!t) return false;
-        const bots = summonsOf(b, u);
-        if (!bots.length) { b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'phys', ranged: true }); skillHit(b, u, t, 'shoot', 1.5, 'phys'); return true; }
-        for (const bot of bots) {
-          b.shield(bot, b.S(u, 'tech') * u.sk.shield);
+        const p = u.sk;
+        b.applyStatus(u, t, { type: 'buff', key: 'deal.lars', dur: p.dur, mods: [inc('all', -p.weak)], taken: p.vuln ? [vuln('all', p.vuln)] : undefined, label: '거래 조건' });
+        b.fx(t.x, t.y, 0, 'psy');
+        for (const bot of summonsOf(b, u)) {
+          b.shield(bot, b.S(u, 'tech') * p.shield);
           bot.target = t;
-          if (b.dist(bot, t) <= 1) skillHit(b, bot, t, 'strike', u.sk.mult, 'phys');
+          if (b.dist(bot, t) <= 1) skillHit(b, bot, t, 'strike', p.mult, 'phys');
         }
         return true;
       },
     },
     augs: [
-      uaug('lars', 'premium', '프리미엄 모델', 'B-11 스탯 상속률 +30%p.', { setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.3; } }),
-      uaug('lars', 'plating', '보강 장갑', 'B-11 보호막 +50%.', setSk((s) => { s.shield *= 1.5; })),
-      uaug('lars', 'spare', '예비기 B-12', '경호 로봇을 하나 더 데려온다 (상속률 60%).', { setup: (u) => { u.mem.extraSummon = (u.mem.extraSummon || 0) + 1; } }),
-      uaug('lars', 'allowance', '용돈', '전투 승리 시 크레딧 +2.', {}, { after: (run, _u, won) => { if (won) run.credits += 2; } }),
-      uaug('lars', 'strike', '공격 모드', 'B-11 공격 피해 +60%p.', setSk((s) => { s.mult += 0.6; })),
+      uaug('lars', 'guards', '경호 인력 증원', '경호원이 한 명 더 붙는다 (상속률 60%). 관심이 지독한 편이다.', { setup: (u) => { u.mem.extraSummon = (u.mem.extraSummon || 0) + 1; } }),
+      uaug('lars', 'elite', '정예 경호팀', '경호원 스탯 상속률 +30%p.', { setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.3; } }),
+      uaug('lars', 'downstream', '10%의 하류', '손실은 항상 그가 아닌 쪽에 떨어진다. 거래 대상이 받는 피해 +20%.', setSk((s) => { s.vuln = 0.2; })),
+      uaug('lars', 'terms', '상호 이익', '거래 조건 약화 +15%p, 지속 +2초.', setSk((s) => { s.weak += 0.15; s.dur += 2; })),
+      uaug('lars', 'resell', '손실 매각', '손실을 얼마에 되팔았는지부터 설명한다. 전투 승리 시 크레딧 +2.', {}, { after: (run, _u, won) => { if (won) run.credits += 2; } }),
     ],
   },
   {
