@@ -93,9 +93,9 @@
   "nadir": {
     "name": "나디르",
     "subject": "1boy",
-    "tags": "young man, bishounen, toned, slender, black hair, messy hair, brown eyes, fair skin, rosy cheeks, middle eastern clothes, arabian clothes, loose clothes, white kurta, billowing sleeves, wide sleeves, harem pants, baggy pants, sash, layered clothes, gold trim, sandals, holding crystal, glowing crystal, white crystal, grin, energetic, full body, standing, looking at viewer",
+    "tags": "young man, bishounen, toned, slender, black hair, messy hair, brown eyes, fair skin, rosy cheeks, middle eastern clothes, arabian clothes, dark clothes, black kurta, dark navy vest, long sleeves, fitted sleeves, dark sash, dark pants, gold trim, gold embroidery, boots, holding crystal, glowing crystal, white crystal, grin, energetic, full body, standing, looking at viewer",
     "source": "lore",
-    "notes": "중동풍 나풀거리는 복장(사용자 지정). 세피르 수정상 출신, 백수정 영사."
+    "notes": "중동풍이되 덜 나풀거리게, 어두운 톤(사용자 지정). 세피르 수정상 출신."
   },
   "temur": {
     "name": "테무르",
@@ -163,9 +163,9 @@
   "argon": {
     "name": "아르곤",
     "subject": "1boy",
-    "tags": "male, object head, skull head, skeleton head, no humans face, glowing eye sockets, teal glow, ancient greek clothes, greek sailor, chiton, himation, draped cloak, rope belt, leather sandals, holding oar, long oar, lantern, ferryman, tall, stoic, full body, standing, looking at viewer",
+    "tags": "male, tall, object head, skull head, skeleton head, glowing eye sockets, teal glow, ancient greek clothes, greek sailor, black clothes, all black, black robe, black himation, black hooded cloak, hood down, long sleeves, black gloves, covered body, no skin, floor-length robe, black boots, rope belt, holding oar, long oar, lantern, ferryman, stoic, full body, standing, looking at viewer",
     "source": "lore",
-    "notes": "오브젝트 헤드(해골 머리) 이타카 최고참 도선사/뱃사공(사용자 지정). 그리스풍 항해사 복장, 노·등불."
+    "notes": "해골 머리 외 피부 노출 없음, 전신 새까만 그리스풍 뱃사공 복장(사용자 지정)."
   },
   "romani": {
     "name": "로마니",
@@ -240,9 +240,9 @@
   "amundsen": {
     "name": "아문센",
     "subject": "1boy",
-    "tags": "mature male, handsome, white hair, short hair, neat hair, hair strand, short beard, white beard, yellow eyes, half-closed eyes, bored eyes, black suit, tailored suit, gold stitching, anchor badge, lapel pin, gold pocket watch, holding pocket watch, watch chain, gentleman, smirk, straight-on, full body, standing, looking at viewer",
+    "tags": "old man, elderly, wrinkles, handsome old man, fit body, white hair, neat hair, hair strand, white beard, short beard, yellow eyes, half-closed eyes, black suit, tailored suit, gold stitching, anchor badge, lapel pin, gold pocket watch, holding pocket watch, looking at pocket watch, watch chain, sitting, on couch, sofa, leather sofa, crossed legs, relaxed, gentleman, full body",
     "source": "lore",
-    "notes": "신체 나이 30대 후반 + 최근 갑자기 백발 → 'old man' 빼고 미남 노신사로. 검은 테일러드 정장·금색 스티치·닻 배지·회중시계 '그늘'."
+    "notes": "신체 나이는 30대지만 얼굴은 노년(사용자 지정). 소파에 앉아 회중시계 '그늘'을 보는 구도."
   },
   "rachel": {
     "name": "레이첼",
