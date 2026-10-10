@@ -53,7 +53,7 @@ export const ROSTER_A: UnitDef[] = [
     }),
     augs: [
       uaug('gebek', 'drum', '대용량 탄창', '연사 +3회.', setSk((s) => { s.hits += 3; })),
-      uaug('gebek', 'zirgon', '팀 지르곤 대전자포', '연사 발당 피해 +60%p.', setSk((s) => { s.mult += 0.6; })),
+      uaug('gebek', 'zirgon', '팀 지르곤 대전자포', '연사 발당 피해 +40%p.', setSk((s) => { s.mult += 0.4; })),
       uaug('gebek', 'nuke', '핵융합볶음면 탄두', '화망에 맞은 적 방어도 50% 감소 (5초).', setSk((s) => { s.corrode = 0.5; })),
       uaug('gebek', 'suit', '15년치 전투 데이터', '방어력 +10, 생명력 +5.', { majors: { def: 10, vit: 5 } }),
       uaug('gebek', 'spare', '예비 포탑', '엔지니어 포탑 +1기, 포탑 체력·방어도 +40%.', { setup: (u) => { u.mem.turretExtra = (u.mem.turretExtra || 0) + 1; u.mem.turretHp = (u.mem.turretHp || 0) + 0.4; } }),
