@@ -24,11 +24,11 @@ export const CFG = {
   overtimeStart: 45, overtimeRamp: 0.1, timeLimit: 75,
 
   // ── 무한 모드 페이즈 스케일링 (확정, 복리)
-  phaseArmor: 1.25, phaseAmp: 1.35,
-  // 체력 배율: 5페이즈까지 ×2, 6페이즈부터 ×1.9, ×1.8 … (하한 ×1.1 [임시])
+  phaseArmor: 1.25, phaseAmp: 1.4,
+  // 체력 배율: 5페이즈까지 ×2.05, 6페이즈부터 ×1.9, ×1.8 … (하한 ×1.1 [임시])
   // 고페이즈 보정 [임시]: lateFrom 페이즈부터 매 페이즈 체력 ×lateHp, 피해 ×lateAmp 추가 (8페이즈 누적 체력 -19%, 피해 +41%)
   lateFrom: 5, lateHp: 0.95, lateAmp: 1.09,
-  phaseHpFactor: (p: number) => (p <= 5 ? 2 : Math.max(1.1, 2 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
+  phaseHpFactor: (p: number) => (p <= 5 ? 2.05 : Math.max(1.1, 2 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
   adversityMult: 1.6,
   enemyHpMul: 1.65, enemyPowMul: 1.65, // 적 기초 수치 전체 배율 (튜닝용)
 
