@@ -1,6 +1,6 @@
 // 단일 HTML 빌드: dist/index.html 하나만 있으면 오프라인으로 실행된다.
 import { build } from 'esbuild';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, cpSync, existsSync } from 'node:fs';
 
 mkdirSync('dist', { recursive: true });
 
@@ -19,5 +19,7 @@ if (process.argv.includes('--sim')) {
   const full = '<!doctype html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' + html + '</html>\n';
   writeFileSync('dist/index.html', full);
   writeFileSync('dist/artifact.html', html);
+  // 스탠딩 일러스트: dist/art/<id>.webp (index.html 옆에 두면 오프라인에서도 보임, 없으면 도트로 대체)
+  if (existsSync('public/art')) cpSync('public/art', 'dist/art', { recursive: true });
   console.log(`dist/index.html ${(full.length / 1024).toFixed(1)} KB`);
 }

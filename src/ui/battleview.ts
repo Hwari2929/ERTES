@@ -1,7 +1,7 @@
 import { CFG } from '../config';
 import type { BEvent, Battle, CUnit } from '../engine/combat';
 import type { Elem } from '../types';
-import { spriteURL } from './sprites';
+import { hasPortrait, iconURL } from './portraits';
 
 export const ELEM_COLOR: Record<Elem, string> = {
   phys: 'var(--el-phys)', chem: 'var(--el-chem)', elec: 'var(--el-elec)', psy: 'var(--el-psy)', holy: 'var(--el-holy)', true: 'var(--el-true)',
@@ -80,7 +80,7 @@ export class BattleView {
     const el = document.createElement('div');
     el.className = `u side${u.side}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
     el.style.width = el.style.height = `${100 / this.b.n}%`;
-    el.innerHTML = `<div class="bars"><i class="hp"></i><i class="sh"></i></div><img alt="" src="${spriteURL(u.sprite, u.palette)}"><div class="cd"><i></i></div>`;
+    el.innerHTML = `<div class="bars"><i class="hp"></i><i class="sh"></i></div><img alt="" class="${hasPortrait(u) ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>`;
     this.board.appendChild(el);
     this.els.set(u.id, { el, hp: el.querySelector('.hp')!, sh: el.querySelector('.sh')!, cd: el.querySelector('.cd i')!, u, dead: false });
   }

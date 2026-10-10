@@ -365,3 +365,19 @@ textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--fg
 .codex-row:not(:has(.spr)) { grid-template-columns: minmax(0, 1fr) auto; }
 .codex-row.unknown { opacity: .6; }
 .codex-row.rare { border-color: var(--accent); }
+
+/* ── 초상화 · 스탠딩 */
+.spr.pt { image-rendering: auto; border-radius: 6px; background: var(--panel-2); object-fit: cover; }
+.u img.pt { image-rendering: auto; border-radius: 50%; width: 88%; height: 88%; background: var(--panel-2); box-shadow: 0 0 0 2px var(--accent), 0 2px 6px rgb(0 0 0 / .5); }
+.hero { position: relative; height: 240px; margin: -12px -12px 4px; border-radius: 8px 8px 0 0; overflow: hidden; cursor: zoom-in;
+  background: radial-gradient(120% 90% at 50% 20%, var(--panel-2), var(--panel) 70%); }
+.hero::after { content: ''; position: absolute; inset: auto 0 0; height: 40%; background: linear-gradient(transparent, var(--panel)); pointer-events: none; }
+.hero .stand { width: 100%; height: 100%; object-fit: cover; object-position: 50% 0; display: block; }
+.hero.sm { height: 130px; cursor: inherit; }
+.ucard > .hero.sm, .codex-card > .hero.sm { margin: -12px -12px 2px; }
+.codex-card > .hero.sm { margin: -10px -10px 2px; cursor: zoom-in; }
+.modal .hero.sm { margin: 0; border-radius: 8px; height: 220px; }
+.modal .hero .stand { width: auto; height: 220%; margin: 0 auto; object-fit: initial; }
+.stand-view { position: fixed; inset: 0; z-index: 80; background: rgb(8 10 14 / .92); display: grid; place-items: center; padding: 16px; cursor: zoom-out; }
+.stand-view .stand.full { max-height: calc(100dvh - 72px); max-width: 100%; object-fit: contain; }
+.stand-cap { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; }

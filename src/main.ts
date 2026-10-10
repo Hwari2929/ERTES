@@ -20,7 +20,7 @@ import { ELEM_NAME, KEYWORD_NAME, MAJOR_NAME, MAJORS, NODE_NAME, type Major, typ
 import { BattleView, fmt } from './ui/battleview';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
-import { spriteURL } from './ui/sprites';
+import { hasPortrait, iconURL, standImg } from './ui/portraits';
 
 type Screen = 'title' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'over' | 'codex';
 type Sel = { k: 'unit'; uid: string } | { k: 'item'; idx: number } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
@@ -67,8 +67,13 @@ function chip(id: string) {
   const s = SYN_BY_ID[id as keyof typeof SYN_BY_ID];
   return `<span class="chip" style="--c:${s.color}">${s.icon} ${esc(s.name)}</span>`;
 }
-function sprite(defOrUnit: { sprite: string; palette: string[] }, cls = 'spr') {
-  return `<img class="${cls}" alt="" src="${spriteURL(defOrUnit.sprite, defOrUnit.palette)}">`;
+function sprite(defOrUnit: Parameters<typeof iconURL>[0], cls = 'spr') {
+  return `<img class="${cls}${hasPortrait(defOrUnit) ? ' pt' : ''}" alt="" src="${iconURL(defOrUnit)}">`;
+}
+/** 스탠딩 상단 배너 (클릭하면 전신 보기) */
+function hero(id: string, cls = 'hero') {
+  const img = standImg(id);
+  return img ? `<div class="${cls}" data-stand="${id}">${img}</div>` : '';
 }
 function rankPips(rank: number) {
   return `<span class="rank" title="공명 등급 ${rank}">R${rank}</span>`;
@@ -159,7 +164,7 @@ function titleScreen() {
 // ───────────────────────── 화면: 시작 기물 선택
 function unitCard(d: UnitDef, opts: { selected?: boolean; action?: string; rank?: number } = {}) {
   return `<button class="ucard ${opts.selected ? 'sel' : ''}" data-a="${opts.action || 'pick-starter'}" data-v="${d.id}">
-    <div class="ucard-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="muted small">${esc(d.title)}</div></div></div>
+    ${hero(d.id, 'hero sm')}<div class="ucard-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="muted small">${esc(d.title)}</div></div></div>
     <div class="chips">${d.factions.map(chip).join('')}${d.traits.map(chip).join('')}</div>
     <div class="small">${d.atk.type === 'shoot' ? '사격' : '타격'} · 사거리 ${d.range} · ${ELEM_NAME[d.atk.elem]} · ${d.keywords.map((k) => KEYWORD_NAME[k]).join('/')}</div>
     <div class="skill-line"><b>${esc(d.skill.name)}</b> <span class="muted">(${d.skill.cd}초)</span><br>${esc(d.skill.desc(d.skill.params))}</div>
@@ -380,7 +385,7 @@ function detailPanel(run: RunState) {
   const title = rankTitle(u.rank) + effects.reduce((s, e) => s + (e.title || 0), 0);
   const cost = R.xpCost(run);
   return `<div class="detail">
-    <div class="d-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="muted small">${esc(d.title)}</div>${memberships(u).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}</div>${rankPips(u.rank)}</div>
+    ${hero(d.id)}<div class="d-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="muted small">${esc(d.title)}</div>${memberships(u).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}</div>${rankPips(u.rank)}</div>
     <div class="chips">${memberships(u).map(chip).join('')}</div>
     ${staffLine(run, u)}${aceLine(run, u)}
     ${xpBar(u)}
@@ -550,7 +555,7 @@ function pendingModal(run: RunState): string {
   } else if (p.t === 'rankup') {
     const u = run.units.find((x) => x.uid === p.uid)!;
     const d = UNIT_BY_ID[u.defId];
-    const head = `<div class="d-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="accent">${p.join ? `합류 · 공명 등급 ${p.rank}` : `공명 등급 ${p.rank - 1} → ${p.rank}`}</div></div></div>`;
+    const head = `${hero(d.id, 'hero sm')}<div class="d-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="accent">${p.join ? `합류 · 공명 등급 ${p.rank}` : `공명 등급 ${p.rank - 1} → ${p.rank}`}</div></div></div>`;
     if (!p.allocDone) {
       const left = CFG.rankPicks - app.picks.length;
       const effects = unitEffects(run, u, synergyCounts(deployed(run), run), !!u.pos);
@@ -760,7 +765,7 @@ function codexScreen() {
       const r = m.units[d.id];
       const known = !d.eventOnly || !!r;
       return `<div class="codex-card ${known ? '' : 'unknown'}">
-        <div class="ucard-head">${sprite(d, 'spr big')}<div><b>${known ? esc(d.name) : '???'}</b><div class="muted small">${known ? esc(d.title) : '사건으로만 만날 수 있는 기물'}</div></div></div>
+        ${known ? hero(d.id, 'hero sm') : ''}<div class="ucard-head">${sprite(d, 'spr big')}<div><b>${known ? esc(d.name) : '???'}</b><div class="muted small">${known ? esc(d.title) : '사건으로만 만날 수 있는 기물'}</div></div></div>
         ${known ? `<div class="chips">${[...d.factions, ...d.traits].map(chip).join('')}</div><p class="small">${esc(STORIES[d.id] || '')}</p>` : ''}
         <div class="codex-stats small">의뢰 <b>${r?.runs || 0}</b>회 · 누적 공명 등급 <b>${r?.ranks || 0}</b> · 최고 <b>${r?.best || 0}</b> · 성공 <b>${r?.clears || 0}</b></div>
       </div>`;
@@ -1047,6 +1052,20 @@ function onDrop(src: string, dst: string) {
   persist();
   render();
 }
+
+// 스탠딩 전신 보기 (카드 버튼 안의 배너는 카드 선택이 우선)
+document.addEventListener('click', (ev) => {
+  const t = ev.target as HTMLElement;
+  const open = document.querySelector('.stand-view');
+  if (open) { open.remove(); return; }
+  const h = t.closest('[data-stand]') as HTMLElement | null;
+  if (!h || h.closest('[data-a]')) return;
+  const d = UNIT_BY_ID[h.dataset.stand!];
+  const v = document.createElement('div');
+  v.className = 'stand-view';
+  v.innerHTML = `${standImg(d.id, 'stand full')}<div class="stand-cap"><b>${esc(d.name)}</b> <span class="muted">${esc(d.title)}</span></div>`;
+  document.body.appendChild(v);
+});
 
 root.addEventListener('click', (ev) => {
   if (suppressClick) return;
