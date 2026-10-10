@@ -18,7 +18,7 @@ export const GLOBALS: GlobalDef[] = [
   { id: 'G.funds', name: '전투 자금', desc: '즉시 에너지 크레딧 +25.', onPick: (r) => { r.credits += 25; } },
   { id: 'G.resonance', name: '고속 공명', desc: '전투 후 공명도 풀 +35%.', unique: true },
   { id: 'G.interest', name: '복리의 마법', desc: '이자 상한 +5.', unique: true },
-  { id: 'G.armory', name: '무기고 개방', desc: '즉시 무작위 장비 재료 3개 획득.' },
+  { id: 'G.armory', name: '무기고 개방', desc: '즉시 무작위 장비 재료 2개 획득.' },
   { id: 'G.squad', name: '대규모 편성', desc: '출전 인원 +1.', unique: true },
   { id: 'G.aim', name: '정밀 조준 프로토콜', desc: '모든 아군 명중 +10%p, 치명타 확률 +8%p.', team: { stats: { acc: 0.1, crit: 0.08 } } },
   { id: 'G.plate', name: '표준 강화 장갑', desc: '모든 아군 방어도 +200, 효과 저항 +10%p.', team: { stats: { armor: 200, effRes: 0.1 } } },

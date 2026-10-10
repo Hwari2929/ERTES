@@ -96,13 +96,14 @@ export function enterNode(run: RunState, type: NodeType) {
   } else if (type === 'shop') {
     run.node = { type, shop: genShop(run) };
   } else if (type === 'supply') {
-    run.pending.push({ t: 'supply', options: rng(run, (r) => r.sample(['parts', 'credits', 'xp', 'repair', r.chance(0.35) ? 'adv' : 'parts2'], 3)) });
+    run.pending.push({ t: 'supply', options: rng(run, (r) => r.sample(['parts', 'credits', 'xp', 'repair', r.chance(CFG.drop.supplyAdv) ? 'adv' : 'parts2'], 3)) });
     advance(run);
   } else if (type === 'recruit') {
     const pool = UNITS.filter((d) => !run.units.some((u) => u.defId === d.id)).map((d) => d.id);
     if (!pool.length || run.units.length >= CFG.maxParty) {
       run.credits += 10;
-      run.pending.push({ t: 'notice', title: '영입 불가', body: '영입할 수 있는 기물이 없어 크레딧 +10 으로 대체합니다.' });
+      const why = pool.length ? `보유 한도(${CFG.maxParty}명)에 도달해` : '영입할 수 있는 기물이 없어';
+      run.pending.push({ t: 'notice', title: '영입 불가', body: `${why} 크레딧 +10 으로 대체합니다.` });
     } else {
       const k = 3 + (hasGlobal(run, 'G.scout') ? 1 : 0);
       run.pending.push({ t: 'recruit', options: rng(run, (r) => r.sample(pool, k)) });
@@ -143,7 +144,7 @@ function rollGlobals(run: RunState): string[] {
 export function pickGlobal(run: RunState, id: string) {
   run.globals.push(id);
   GLOBAL_BY_ID[id].onPick?.(run);
-  if (id === 'G.armory') for (let i = 0; i < 3; i++) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)));
+  if (id === 'G.armory') for (let i = 0; i < 2; i++) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)));
   autoPlace(run);
 }
 
@@ -229,12 +230,13 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     if (sb) { income += sb; lines.push(`${run.streak}연승 보너스 +${sb}`); }
     if (pet >= 1) { income += 1; lines.push('페트라 실적 +1'); }
     if (type === 'adversity') {
-      gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
-      if (rng(run, (r) => r.chance(0.3))) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
+      if (rng(run, (r) => r.chance(CFG.drop.adversity))) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
     } else if (type === 'battle') {
-      if (rng(run, (r) => r.chance(0.35))) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
+      if (rng(run, (r) => r.chance(CFG.drop.battle))) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
     } else if (type === 'boss') {
-      run.pending.push({ t: 'itemPick', title: '보스 전리품 — 고급 장비 1개 선택', options: rng(run, (r) => r.sample(ALL_ADVANCED, 3)) });
+      // 보스 전리품: n 페이즈마다 고급 장비, 그 외에는 확률로 재료 3개 중 1개
+      if (p % CFG.drop.bossAdvEvery === 0) run.pending.push({ t: 'itemPick', title: '보스 전리품 — 고급 장비 1개 선택', options: rng(run, (r) => r.sample(ALL_ADVANCED, 3)) });
+      else if (rng(run, (r) => r.chance(CFG.drop.bossPart))) run.pending.push({ t: 'itemPick', title: '보스 전리품 — 장비 재료 1개 선택', options: rng(run, (r) => r.sample(ALL_COMPONENTS, 3)) });
       lines.push(`페이즈 ${p} 클리어!`);
     }
   } else {
@@ -296,15 +298,18 @@ function totalXpOf(u: UnitState) { let t = 0; for (let r = 1; r < u.rank; r++) t
 
 /** 공명도 풀을 파티 전체에 무작위 분배 (최소 1pt 보정) */
 export function distributeXp(run: RunState, pool: number) {
+  // 출전 기물은 최소 1 보장, 대기 기물은 가중치를 낮춰 나눠 받는다
   const us = run.units;
   if (!us.length) return;
   rng(run, (r) => {
-    const share = new Map(us.map((u) => [u.uid, 1]));
-    let rest = Math.max(0, pool - us.length);
-    const w = us.map(() => 0.15 + r.next());
+    const base = (u: UnitState) => (u.pos ? 1 : 0);
+    const share = new Map(us.map((u) => [u.uid, base(u)]));
+    const minSum = us.reduce((s, u) => s + base(u), 0);
+    let rest = Math.max(0, pool - minSum);
+    const w = us.map((u) => (0.15 + r.next()) * (u.pos ? 1 : CFG.benchXpWeight));
     const tw = w.reduce((a, b) => a + b, 0);
     us.forEach((u, i) => { const g = Math.floor((rest * w[i]) / tw); share.set(u.uid, share.get(u.uid)! + g); });
-    rest -= [...share.values()].reduce((a, b) => a + b, 0) - us.length;
+    rest -= [...share.values()].reduce((a, b) => a + b, 0) - minSum;
     while (rest-- > 0) { const u = r.weighted(us, (x) => w[us.indexOf(x)]); share.set(u.uid, share.get(u.uid)! + 1); }
     for (const u of us) u.xp += share.get(u.uid)!;
   });
@@ -380,9 +385,9 @@ export function gainItem(run: RunState, id: string, lines?: string[]) {
 function genShop(run: RunState) {
   return rng(run, (r) => {
     const stock = [];
-    for (let i = 0; i < 4; i++) { const id = r.pick(ALL_COMPONENTS); stock.push({ item: id, price: CFG.price.C, sold: false }); }
-    stock.push({ item: r.pick(ALL_ADVANCED), price: CFG.price.A, sold: false });
-    if (run.phase >= 4 && r.chance(0.25)) stock.push({ item: 'L_' + r.pick(ALL_ADVANCED).slice(2), price: CFG.price.L, sold: false });
+    for (let i = 0; i < CFG.drop.shopParts; i++) { const id = r.pick(ALL_COMPONENTS); stock.push({ item: id, price: CFG.price.C, sold: false }); }
+    if (r.chance(CFG.drop.shopAdv)) stock.push({ item: r.pick(ALL_ADVANCED), price: CFG.price.A, sold: false });
+    if (run.phase >= CFG.drop.shopLegendPhase && r.chance(CFG.drop.shopLegend)) stock.push({ item: 'L_' + r.pick(ALL_ADVANCED).slice(2), price: CFG.price.L, sold: false });
     return stock;
   });
 }
@@ -453,12 +458,12 @@ export function takeLoan(run: RunState): boolean {
 
 // ───────────────────────── 보급 / 영입
 export const SUPPLY_TEXT: Record<string, string> = {
-  parts: '장비 재료 1개 + 크레딧 +4', parts2: '장비 재료 2개', credits: '에너지 크레딧 +12', xp: '공명도 풀 즉시 분배',
+  parts: '장비 재료 1개 + 크레딧 +4', parts2: '장비 재료 1개 + 공명도 풀 절반 분배', credits: '에너지 크레딧 +12', xp: '공명도 풀 즉시 분배',
   repair: '플레이어 체력 +15', adv: '무작위 고급 장비 1개',
 };
 export function takeSupply(run: RunState, opt: string) {
   if (opt === 'parts') { gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS))); run.credits += 4; }
-  if (opt === 'parts2') for (let i = 0; i < 2; i++) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)));
+  if (opt === 'parts2') { gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS))); distributeXp(run, Math.round(CFG.xpPool(run.phase) / 2)); run.units.forEach((u) => settleXp(run, u)); }
   if (opt === 'credits') run.credits += 12 + run.phase;
   if (opt === 'xp') { distributeXp(run, CFG.xpPool(run.phase)); run.units.forEach((u) => settleXp(run, u)); }
   if (opt === 'repair') run.hp = Math.min(run.maxHp, run.hp + 15);
@@ -543,10 +548,10 @@ export function pickBlessing(run: RunState, id: string) {
 
 export const NEWS_OFFERS: Record<string, { name: string; desc: string; cost: number }> = {
   interview: { name: '독점 인터뷰', desc: '에너지 크레딧 +15', cost: 5 },
-  sponsor: { name: '스폰서 계약', desc: '무작위 고급 장비 1개', cost: 8 },
+  sponsor: { name: '스폰서 계약', desc: '무작위 고급 장비 1개', cost: 12 },
   fanmeet: { name: '팬미팅', desc: '공명도 풀(1.5배) 파티 전체 분배', cost: 6 },
   cheer: { name: '응원 물결', desc: '플레이어 체력 +20', cost: 6 },
-  hall: { name: '명예의 전당', desc: '전설 장비 3개 중 1개 선택', cost: 25 },
+  hall: { name: '명예의 전당', desc: '전설 장비 3개 중 1개 선택', cost: 45 },
   headline: { name: '헤드라인 장식', desc: '전역 증강 3개 중 1개 선택', cost: 30 },
 };
 function genNews(run: RunState) {

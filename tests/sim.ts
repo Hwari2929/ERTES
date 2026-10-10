@@ -79,7 +79,9 @@ function playRun(seed: number, force?: string) {
     if (b.winner === 0) phaseLog[key].w++; else phaseLog[key].l++;
     R.resolveBattle(run, b);
   }
-  return { phase: run.phase, phaseLog, units: run.units.length, avgRank: run.units.reduce((s, u) => s + u.rank, 0) / run.units.length };
+  const items = [...run.inventory, ...run.units.flatMap((u) => u.items.filter((x): x is string => !!x))];
+  const grade = (g: string) => items.filter((x) => x[0] === g).length;
+  return { phase: run.phase, phaseLog, units: run.units.length, avgRank: run.units.reduce((s, u) => s + u.rank, 0) / run.units.length, items: { C: grade('C'), A: grade('A'), L: grade('L') } };
 }
 
 const STARTERS = UNITS.filter((u) => !u.noStarter).map((u) => u.id);
@@ -96,11 +98,14 @@ if (process.argv[3] === 'units') {
 }
 const reach: Record<number, number> = {};
 const wl: Record<number, { w: number; l: number }> = {};
-let rankSum = 0;
+let rankSum = 0, unitSum = 0;
+const itemSum = { C: 0, A: 0, L: 0 };
 for (let i = 1; i <= N; i++) {
   const r = playRun(i * 1013);
   reach[r.phase] = (reach[r.phase] || 0) + 1;
   rankSum += r.avgRank;
+  unitSum += r.units;
+  for (const g of ['C', 'A', 'L'] as const) itemSum[g] += r.items[g];
   for (const [p, v] of Object.entries(r.phaseLog)) {
     wl[+p] = wl[+p] || { w: 0, l: 0 };
     wl[+p].w += v.w; wl[+p].l += v.l;
@@ -114,5 +119,6 @@ for (const p of Object.keys(wl).map(Number).filter((x) => x > 0).sort((a, b) => 
   const f = (x?: { w: number; l: number }) => (x ? `${((x.w / (x.w + x.l)) * 100).toFixed(0)}% (${x.w}/${x.w + x.l})` : '-');
   console.log(`  P${p}: ${f(v)}  |  보스 ${f(bo)}`);
 }
-console.log(`사망 시 평균 공명 등급: ${(rankSum / N).toFixed(1)}`);
+console.log(`사망 시 평균 공명 등급: ${(rankSum / N).toFixed(1)} · 보유 기물 ${(unitSum / N).toFixed(1)}명`);
+console.log(`사망 시 보유 장비 (재료 / 고급 / 전설): ${(itemSum.C / N).toFixed(1)} / ${(itemSum.A / N).toFixed(1)} / ${(itemSum.L / N).toFixed(2)}`);
 void MAJORS;

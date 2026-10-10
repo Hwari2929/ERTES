@@ -1,4 +1,4 @@
-import { CFG, phaseHpMult } from './config';
+import { CFG, phaseAmpMult, phaseHpMult } from './config';
 import { AUG_BY_ID, augDesc, augSource } from './data/augments';
 import { ENEMY_BY_ID } from './data/enemies';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
@@ -153,7 +153,7 @@ function newRunScreen() {
 // ───────────────────────── 화면: 맵
 function mapScreen(run: RunState) {
   const p = run.phase;
-  const scale = `적 체력 ×${fmt(phaseHpMult(p))} (이번 페이즈 ×${p > 1 ? CFG.phaseHpFactor(p).toFixed(1) : '1'}) · 방어도 ×${Math.pow(CFG.phaseArmor, p - 1).toFixed(2)} · 피해 ×${Math.pow(CFG.phaseAmp, p - 1).toFixed(2)}`;
+  const scale = `적 체력 ×${fmt(phaseHpMult(p))} (이번 페이즈 ×${p > 1 ? CFG.phaseHpFactor(p).toFixed(2) : '1'}) · 방어도 ×${Math.pow(CFG.phaseArmor, p - 1).toFixed(2)} · 피해 ×${phaseAmpMult(p).toFixed(2)}`;
   const track = run.map.map((opts, i) => {
     const state = i < run.step ? 'done' : i === run.step ? 'cur' : 'next';
     const picked = run.picked[i];
@@ -176,7 +176,7 @@ function mapScreen(run: RunState) {
       </div>
     </section>
     <aside class="side">
-      <h2>파티 <span class="muted small">${run.units.length}/${CFG.maxParty}</span></h2>
+      <h2>파티 <span class="muted small">출전 ${deployed(run).length}/${R.deployCap(run)} · 보유 ${run.units.length}/${CFG.maxParty}</span></h2>
       <div class="roster">${run.units.map((u) => rosterRow(u)).join('')}</div>
       <h2>시너지</h2>
       <div class="syn-list">${synergyPanel(run)}</div>
@@ -190,8 +190,8 @@ function mapScreen(run: RunState) {
 }
 function nodeHint(o: NodeType) {
   return ({
-    battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 1.5배 + 재료`, shop: '장비 재료 · 고급 장비 구매',
-    supply: '보급품 3종 중 택1', recruit: '새 동료 3명 중 택1', boss: '승리 시 페이즈 클리어 + 고급 장비',
+    battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 1.5배 + 재료 확률`, shop: '장비 재료 · 고급 장비 구매',
+    supply: '보급품 3종 중 택1', recruit: '새 동료 3명 중 택1', boss: `승리 시 페이즈 클리어 · ${CFG.drop.bossAdvEvery}페이즈마다 고급 장비`,
     pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환',
   } as Record<NodeType, string>)[o];
 }
@@ -491,7 +491,7 @@ function pendingModal(run: RunState): string {
     body = `<h1>${esc(p.title)}</h1><div class="cards">${p.options.map((id, i) => { const it = itemInfo(id); return `<button class="card" data-a="pick-item" data-v="${i}">${itemIcon(id)}<b>${esc(it.name)}</b><span>${esc(it.desc)}</span></button>`; }).join('')}</div>`;
   } else if (p.t === 'recruit') {
     const rank = Math.min(CFG.maxRank, Math.max(1, run.phase - 1) + (R.hasGlobal(run, 'G.scout') ? 1 : 0));
-    body = `<h1>기물 영입</h1><p class="muted">새 동료 한 명을 고르세요. 파티 ${run.units.length}/${CFG.maxParty}</p>
+    body = `<h1>기물 영입</h1><p class="muted">새 동료 한 명을 고르세요. 보유 ${run.units.length}/${CFG.maxParty} (출전은 최대 ${R.deployCap(run)}명, 나머지는 대기)</p>
       <div class="ucard-grid">${p.options.map((id) => unitCard(UNIT_BY_ID[id], { action: 'pick-recruit', rank })).join('')}</div>`;
   } else if (p.t === 'supply') {
     body = `<h1>보급</h1><div class="cards">${p.options.map((o) => `<button class="card" data-a="pick-supply" data-v="${o}"><b>${esc(R.SUPPLY_TEXT[o])}</b></button>`).join('')}</div>`;
