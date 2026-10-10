@@ -1,11 +1,13 @@
 import { CFG } from '../config';
-import { AUG_BY_ID, COMMON_AUGS } from '../data/augments';
+import { AUG_BY_ID } from '../data/augments';
 import { FIELDS, fieldOf } from '../data/battlefields';
+import { diffHas } from '../data/difficulty';
+import { EVENT_BY_ID, EVENTS, type EventApi } from '../data/events';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
 import { ALL_ADVANCED, ALL_COMPONENTS, combine, emblemId, emblemOf, isLocked, isMod, itemInfo } from '../data/items';
 import { SYN_BY_ID, tierOf } from '../data/synergies';
-import { UNIT_BY_ID, UNITS } from '../data/units';
+import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { Rng } from '../rng';
 import {
   type AugPick, type Encounter, type EnemySpawn, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
@@ -14,7 +16,7 @@ import {
 import { deployed, memberships, playerRows, synergyCounts } from './build';
 import type { Battle } from './combat';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 export function rng<T>(run: RunState, f: (r: Rng) => T): T {
   const r = new Rng(run.rng);
@@ -27,11 +29,12 @@ const log = (run: RunState, s: string) => { run.log.unshift(s); if (run.log.leng
 export const hasGlobal = (run: RunState, id: string) => run.globals.includes(id);
 
 // ───────────────────────── 런 생성
-export function newRun(seed: number, starters: string[], field?: string): RunState {
+export function newRun(seed: number, starters: string[], field?: string, diff = 0): RunState {
   const run: RunState = {
     version: SAVE_VERSION, seed, rng: seed, phase: 1, step: 0, map: phaseMap(1), picked: [], node: null,
-    hp: CFG.playerHp, maxHp: CFG.playerHp, credits: CFG.startCredits, streak: 0, units: [], inventory: [],
-    globals: [], pending: [], quests: [], questPhase: 0, loan: 0, faith: 0, fame: 0, blessing: null, staffTarget: null, aceTarget: null, privilege: null, field: field || 'waste', nextUid: 1, log: [],
+    hp: CFG.playerHp - (diffHas(diff, 6) ? 25 : 0), maxHp: CFG.playerHp - (diffHas(diff, 6) ? 25 : 0), credits: diffHas(diff, 3) ? 0 : CFG.startCredits, streak: 0, units: [], inventory: [],
+    globals: [], pending: [], quests: [], questPhase: 0, loan: 0, faith: 0, fame: 0, blessing: null, staffTarget: null, aceTarget: null, privilege: null, field: field || 'waste', diff, cleared: false, endless: false,
+    mods: { interestCap: 0, nodeIncome: 0 }, boons: [], phaseBoons: [], seenEvents: [], usedIds: [], rankLog: {}, nextUid: 1, log: [],
     stats: { wins: 0, losses: 0, kills: 0, bestHit: 0 }, over: false,
   };
   for (const id of starters) addUnit(run, id, 1);
@@ -45,9 +48,10 @@ export function newRun(seed: number, starters: string[], field?: string): RunSta
   return run;
 }
 
-/** 페이즈 노드 구성: 전투 4 + 보스 1, 상점/보급 선택 2. 2페이즈부터는 첫 노드가 영입 */
+/** 페이즈 노드 구성 (11칸): 영입 > 전투 > 사건 > 전투 > 보급 > 전투 > 사건 > 역경 > 보급 > 역경 > 보스.
+ *  보급 = 상점 / 보급 중 선택. 1페이즈는 시작 기물이 4명이라 영입 없이 시작 */
 export function phaseMap(phase: number): NodeType[][] {
-  const body: NodeType[][] = [['battle'], ['battle', 'adversity'], ['shop', 'supply'], ['battle', 'adversity'], ['battle'], ['shop', 'supply'], ['boss']];
+  const body: NodeType[][] = [['battle'], ['event'], ['battle'], ['shop', 'supply'], ['battle'], ['event'], ['adversity'], ['shop', 'supply'], ['adversity'], ['boss']];
   return phase <= 1 ? body : [['recruit'], ...body];
 }
 
@@ -103,7 +107,7 @@ export const privilegeDesc = (p: AugPick) => PRIVILEGES.find((d) => d.id === p.i
 
 /** 영입 선택지. 인맥(G.network)이 있으면 파티와 시너지가 겹치는 기물 가중 */
 function recruitOptions(run: RunState, k: number): string[] {
-  const pool = UNITS.filter((d) => !run.units.some((u) => u.defId === d.id)).map((d) => d.id);
+  const pool = RECRUITABLE.filter((d) => !run.units.some((u) => u.defId === d.id)).map((d) => d.id);
   if (!hasGlobal(run, 'G.network')) return rng(run, (r) => r.sample(pool, k));
   const have = new Set(run.units.flatMap((u) => memberships(u)));
   return rng(run, (r) => {
@@ -122,12 +126,14 @@ export function addUnit(run: RunState, defId: string, rank: number): UnitState {
     items: [UNIT_BY_ID[defId].item || null, null, null], mod: null, pos: null,
   };
   run.units.push(u);
+  if (!run.usedIds.includes(defId)) run.usedIds.push(defId);
+  run.rankLog[defId] = Math.max(run.rankLog[defId] || 0, 1);
   for (let r = 2; r <= rank; r++) rankUp(run, u);
   return u;
 }
 
 /** 탐험가(아문센)는 정해진 페이즈 전에는 배치할 수 없다 */
-export const canDeploy = (run: RunState, u: UnitState) => !UNIT_BY_ID[u.defId].traits.includes('EXPLORER') || run.phase >= CFG.explorerPhase;
+export const canDeploy = (run: RunState, u: UnitState) => u.lock !== run.phase && (!UNIT_BY_ID[u.defId].traits.includes('EXPLORER') || run.phase >= CFG.explorerPhase);
 
 export const deployCap = (run: RunState) => CFG.deployCap(run.phase) + (hasGlobal(run, 'G.squad') ? 1 : 0);
 
@@ -160,6 +166,13 @@ export function enterNode(run: RunState, type: NodeType) {
     return;
   }
   if (type === 'news') { run.node = { type, news: genNews(run) }; return; }
+  if (type === 'event') {
+    const id = pickEvent(run);
+    run.seenEvents.push(id);
+    run.pending.push({ t: 'event', id });
+    advance(run);
+    return;
+  }
   if (type === 'battle' || type === 'adversity' || type === 'boss') {
     run.node = { type, enc: genEncounter(run, type) };
     syncQuests(run);
@@ -169,7 +182,7 @@ export function enterNode(run: RunState, type: NodeType) {
     run.pending.push({ t: 'supply', options: rng(run, (r) => r.sample(['parts', 'credits', 'xp', 'repair', r.chance(CFG.drop.supplyAdv) ? 'adv' : 'parts2'], 3)) });
     advance(run);
   } else if (type === 'recruit') {
-    const pool = UNITS.filter((d) => !run.units.some((u) => u.defId === d.id)).map((d) => d.id);
+    const pool = RECRUITABLE.filter((d) => !run.units.some((u) => u.defId === d.id)).map((d) => d.id);
     if (!pool.length || run.units.length >= CFG.maxParty) {
       run.credits += 10;
       const why = pool.length ? `보유 한도(${CFG.maxParty}명)에 도달해` : '영입할 수 있는 기물이 없어';
@@ -189,6 +202,7 @@ const tierNow = (run: RunState, id: 'CLERIC' | 'STAR') => tierOf(id, synergyCoun
 export function advance(run: RunState) {
   run.node = null;
   run.step++;
+  if (run.mods.nodeIncome) run.credits += run.mods.nodeIncome; // 분할 정산 등
   if (run.step >= run.map.length) {
     run.phase++;
     run.step = 0;
@@ -196,6 +210,7 @@ export function advance(run: RunState) {
     run.picked = [];
     autoPlace(run);
     run.blessing = null;
+    run.phaseBoons = [];
     log(run, `페이즈 ${run.phase} 진입. 적이 강해집니다.`);
     if ((run.phase - 1) % CFG.globalAugEvery === 0) run.pending.push({ t: 'global', options: rollGlobals(run) });
     // 성직자가 활성화된 채 페이즈를 시작하면 순례 노드가 맨 앞에 추가
@@ -238,12 +253,12 @@ export function genEncounter(run: RunState, type: NodeType): Encounter {
     if (type === 'boss') {
       const boss = f.bosses[(p - 1) % f.bosses.length];
       ids.push(boss, ...(ENEMY_BY_ID[boss].escort || []));
-      const extra = Math.max(0, Math.min(6, p - 1));
-      for (let i = 0; i < extra; i++) ids.push(r.pick(pool));
+      const extra = Math.max(0, Math.min(4, p - 1)); // 보스 호위 추가 인원 (최대 4)
+      for (let i = 0; i < extra + (diffHas(run.diff, 4) ? 1 : 0); i++) ids.push(r.pick(pool));
     } else {
       const late = run.step >= 4 ? 1 : 0;
-      const count = Math.min(rows * n - 2, 2 + p + late + (f.extraEnemies || 0));
-      if (type === 'adversity' || (p >= 3 && r.chance(0.3))) ids.push(f.elite);
+      const count = Math.min(rows * n - 2, 2 + p + late + (f.extraEnemies || 0) + (type === 'adversity' && diffHas(run.diff, 5) ? 1 : 0));
+      if (type === 'adversity' || (p >= 3 && r.chance(diffHas(run.diff, 5) ? 0.6 : 0.3))) ids.push(f.elite);
       while (ids.length < count) ids.push(r.pick(pool));
     }
     // 근접은 앞줄, 원거리는 뒷줄
@@ -288,7 +303,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   const uni = tierOf('UNI', counts.UNI || 0);
 
   // 이자 (수입 전 보유량 기준)
-  const cap = CFG.interestMax + (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (hasGlobal(run, 'G.interest') ? 5 : 0);
+  const cap = Math.max(0, CFG.interestMax + run.mods.interestCap - (diffHas(run.diff, 3) ? 1 : 0)) + (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (hasGlobal(run, 'G.interest') ? 5 : 0);
   const interest = Math.min(cap, Math.floor(run.credits / CFG.interestPer));
   let income = interest;
   if (interest) lines.push(`이자 +${interest} (상한 ${cap})`);
@@ -316,6 +331,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
       if (p % CFG.drop.bossAdvEvery === 0) run.pending.push({ t: 'itemPick', title: '보스 전리품 — 고급 장비 1개 선택', options: rng(run, (r) => r.sample(ALL_ADVANCED, 3)) });
       else if (rng(run, (r) => r.chance(CFG.drop.bossPart))) run.pending.push({ t: 'itemPick', title: '보스 전리품 — 장비 재료 1개 선택', options: rng(run, (r) => r.sample(ALL_COMPONENTS, 3)) });
       lines.push(`페이즈 ${p} 클리어!`);
+      if (p >= CFG.victoryPhase && !run.cleared) { run.cleared = true; run.pending.push({ t: 'victory' }); }
     }
   } else {
     run.streak = 0;
@@ -403,8 +419,10 @@ export function settleXp(run: RunState, u: UnitState) {
 
 function rankUp(run: RunState, u: UnitState) {
   u.rank++;
+  run.rankLog[u.defId] = Math.max(run.rankLog[u.defId] || 0, u.rank);
   for (const k of MAJORS) u.alloc[k] += CFG.rankAll; // 모든 메이저 자동 상승
-  run.pending.push({ t: 'rankup', uid: u.uid, rank: u.rank, points: CFG.rankPoints(u.rank), options: null, rerolls: CFG.augmentRerolls, allocDone: false });
+  const pick = CFG.hasRankPick(u.rank), aug = CFG.hasRankAug(u.rank);
+  if (pick || aug) run.pending.push({ t: 'rankup', uid: u.uid, rank: u.rank, points: CFG.rankPoints, options: null, rerolls: CFG.augmentRerolls, allocDone: !pick });
 }
 
 export function buyXp(run: RunState, uid: string): boolean {
@@ -421,25 +439,12 @@ export const xpCost = (run: RunState) => CFG.buyXpCost - (hasGlobal(run, 'G.stud
 // ───────────────────────── 증강 선택
 export function augOptions(run: RunState, u: UnitState, rank: number): AugPick[] {
   if (!CFG.hasRankAug(rank)) return [];
-  const late = rank > CFG.augmentMaxRank; // 10등급 이후: 전용 증강 제외
   const def = UNIT_BY_ID[u.defId];
   const owned = new Set(u.augments.map((a) => a.id));
   const avail = (a: { id: string; stack?: boolean }) => a.stack || !owned.has(a.id);
   const unitPool = def.augs.filter(avail);
-  const synPool = memberships(u).flatMap((s) => SYN_BY_ID[s].augs).filter(avail);
-  const comPool = COMMON_AUGS.filter(avail);
   return rng(run, (r) => {
-    const out: string[] = [];
-    const forced = CFG.forcedUnitAugRanks.includes(rank) && unitPool.length > 0;
-    const pools = forced ? [{ w: 1, p: unitPool }]
-      : late ? [{ w: 0.55, p: synPool }, { w: 0.45, p: comPool }]
-      : [{ w: 0.3, p: unitPool }, { w: 0.4, p: synPool }, { w: 0.3, p: comPool }];
-    for (let tries = 0; out.length < CFG.augmentChoices && tries < 60; tries++) {
-      const live = pools.filter((x) => x.p.some((a) => !out.includes(a.id)));
-      if (!live.length) break;
-      const pool = r.weighted(live, (x) => x.w).p.filter((a) => !out.includes(a.id));
-      out.push(r.pick(pool).id);
-    }
+    const out = r.sample(unitPool.map((x) => x.id), CFG.augmentChoices);
     return out.map((id) => {
       const a = AUG_BY_ID[id];
       return a.roll ? { id, param: a.roll((arr) => r.pick(arr)) } : { id };
@@ -453,8 +458,8 @@ export function ensureRankupOptions(run: RunState, p: Extract<Pending, { t: 'ran
 }
 
 // ───────────────────────── 경제 / 아이템
-export function gainItem(run: RunState, id: string, lines?: string[]) {
-  if (run.inventory.length >= CFG.inventoryMax) {
+export function gainItem(run: RunState, id: string, lines?: string[], force = false) {
+  if (run.inventory.length >= CFG.inventoryMax && !force) {
     const v = CFG.sell[id[0]];
     run.credits += v;
     lines?.push(`인벤토리 가득 참 — ${itemInfo(id).name} 자동 판매 +${v}`);
@@ -634,7 +639,6 @@ function questProgress(run: RunState, b: Battle, won: boolean, type: NodeType, l
     for (const u of dep) {
       if (!memberships(u).includes('HEL')) continue;
       if (tier >= 3) rng(run, (r) => { for (let i = 0; i < 2; i++) u.perm[r.pick(MAJORS)]++; });
-      if (u.augments.some((a) => a.id === 'HEL.intel')) for (const k of MAJORS) u.perm[k]++;
     }
   }
 }
@@ -684,6 +688,107 @@ export function migrate(run: RunState): RunState {
   run.privilege ??= null;
   for (const u of run.units) u.mod ??= null;
   run.field ??= 'waste';
+  run.diff ??= 0;
+  run.cleared ??= false;
+  run.endless ??= false;
+  run.mods ??= { interestCap: 0, nodeIncome: 0 };
+  run.boons ??= [];
+  run.phaseBoons ??= [];
+  run.seenEvents ??= [];
+  run.usedIds ??= run.units.map((u) => u.defId);
+  run.rankLog ??= Object.fromEntries(run.units.map((u) => [u.defId, u.rank]));
   run.version = SAVE_VERSION;
   return run;
+}
+
+// ───────────────────────── 사건
+/** 전장 · 페이즈 · 이번 런에서 겪은 사건을 고려해 가중 무작위로 하나 */
+function pickEvent(run: RunState): string {
+  // 희귀 사건은 런당 1회. 일반 사건은 겪을수록 덜 나온다 (희귀 사건이 '남은 사건'이 되어 자주 뜨지 않도록)
+  const seen = (id: string) => run.seenEvents.filter((x) => x === id).length;
+  const list = EVENTS.filter((e) => (!e.fields || e.fields.includes(run.field)) && (e.minPhase || 1) <= run.phase && !(e.rare && seen(e.id)));
+  // 엘베스타드 일가가 있으면 밍키가 조금 더 자주
+  const w = (e: (typeof EVENTS)[number]) => e.weight * Math.pow(0.3, seen(e.id)) * (e.id === 'mingki' && run.units.some((u) => memberships(u).includes('FAM')) ? 2 : 1);
+  return rng(run, (r) => r.weighted(list, w).id);
+}
+
+function eventApi(run: RunState): EventApi {
+  const tierPool = (t: 'C' | 'A' | 'L') => (t === 'C' ? ALL_COMPONENTS : ALL_ADVANCED);
+  return {
+    rng: (f) => rng(run, f),
+    gain: (id, force) => gainItem(run, id, undefined, force),
+    recruitPick: (k) => { if (run.units.length < CFG.maxParty) run.pending.push({ t: 'recruit', options: recruitOptions(run, k) }); },
+    join: (defId) => {
+      if (run.units.length >= CFG.maxParty || run.units.some((u) => u.defId === defId)) return null;
+      const u = addUnit(run, defId, Math.min(CFG.maxRank, Math.max(1, run.phase - 1)));
+      autoPlace(run);
+      log(run, `${UNIT_BY_ID[defId].name} 합류 (사건)`);
+      return u;
+    },
+    rankUp: (u, n) => { for (let i = 0; i < n && u.rank < CFG.maxRank; i++) rankUp(run, u); },
+    xp: (amount) => { distributeXp(run, amount); run.units.forEach((u) => settleXp(run, u)); },
+    globalPick: () => { run.pending.push({ t: 'global', options: rollGlobals(run) }); },
+    allItems: () => [
+      ...run.inventory.map((id, slot) => ({ where: 'inv' as const, slot, id })),
+      ...run.units.flatMap((u) => u.items.map((id, slot) => ({ where: 'unit' as const, u, slot, id: id || '' }))),
+    ].filter((x) => /^[CAL]_/.test(x.id)),
+    setItem: (ref, id) => {
+      if (ref.where === 'unit' && ref.u) ref.u.items[ref.slot] = id;
+      else if (id) run.inventory[ref.slot] = id;
+      else run.inventory[ref.slot] = '';
+    },
+    randomItem: (t) => rng(run, (r) => { const a = r.pick(tierPool(t)); return t === 'L' ? 'L_' + a.slice(2) : a; }),
+    augNow: (u) => {
+      const opts = augOptions(run, u, CFG.augEvery);
+      if (!opts.length) return null;
+      u.augments.push(opts[0]);
+      return AUG_BY_ID[opts[0].id]?.name || null;
+    },
+    phaseBoon: (id) => { if (!run.phaseBoons.includes(id)) run.phaseBoons.push(id); },
+  };
+}
+
+/** 사건 선택지 실행: 결과 알림을 먼저, 후속 선택(영입 등)은 그 뒤에 */
+export function chooseEvent(run: RunState, idx: number): string | null {
+  const p = run.pending[0];
+  if (p?.t !== 'event') return null;
+  const ev = EVENT_BY_ID[p.id];
+  const c = ev?.choices[idx];
+  if (!c) return null;
+  const blocked = c.block?.(run);
+  if (blocked) return blocked;
+  run.pending.shift();
+  const before = run.pending.length;
+  const msg = c.apply(run, eventApi(run));
+  run.inventory = run.inventory.filter(Boolean); // 사건 중 비운 칸 정리
+  const follow = run.pending.splice(before);
+  run.pending.unshift({ t: 'notice', title: ev.title, body: `${c.label} — ${msg}` }, ...follow);
+  log(run, `사건: ${ev.title} — ${c.label}`);
+  return null;
+}
+
+// ───────────────────────── 기물 방출
+/** 방출 보상 미리보기: 쌓은 공명도의 60%를 남은 파티에, 크레딧 3 + 등급×2, 장비 · 개조부품 반환 */
+export function releaseValue(run: RunState, u: UnitState) {
+  let invested = u.xp;
+  for (let r = 1; r < u.rank; r++) invested += CFG.xpToNext(r);
+  const items = [...u.items.filter((x): x is string => !!x && !isLocked(x)), ...(u.mod ? [u.mod] : [])];
+  const lost = u.items.filter((x): x is string => !!x && isLocked(x));
+  return { xp: Math.round(invested * 0.6), credits: 3 + u.rank * 2, items, lost, invested };
+}
+export function releaseUnit(run: RunState, uid: string): string | null {
+  const u = run.units.find((x) => x.uid === uid);
+  if (!u) return '대상 없음';
+  if (run.units.length <= 1) return '마지막 남은 기물은 방출할 수 없습니다';
+  const v = releaseValue(run, u);
+  run.units = run.units.filter((x) => x !== u);
+  if (run.staffTarget === uid) run.staffTarget = null;
+  if (run.aceTarget === uid) run.aceTarget = null;
+  run.credits += v.credits;
+  for (const id of v.items) gainItem(run, id, undefined, true);
+  distributeXp(run, v.xp);
+  run.units.forEach((x) => settleXp(run, x));
+  autoPlace(run);
+  log(run, `${UNIT_BY_ID[u.defId].name} 방출: 크레딧 +${v.credits}, 공명도 ${v.xp} 분배`);
+  return null;
 }

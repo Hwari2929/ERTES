@@ -27,32 +27,31 @@ export const CFG = {
   phaseArmor: 1.25, phaseAmp: 1.4,
   // 체력 배율: 5페이즈까지 ×2.05, 6페이즈부터 ×1.9, ×1.8 … (하한 ×1.1 [임시])
   // 고페이즈 보정 [임시]: lateFrom 페이즈부터 매 페이즈 체력 ×lateHp, 피해 ×lateAmp 추가 (8페이즈 누적 체력 -19%, 피해 +41%)
-  lateFrom: 5, lateHp: 0.95, lateAmp: 1.09,
+  lateFrom: 5, lateHp: 0.9, lateAmp: 1.09,
   phaseHpFactor: (p: number) => (p <= 5 ? 2.05 : Math.max(1.1, 2 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
   adversityMult: 1.6,
-  enemyHpMul: 1.65, enemyPowMul: 1.65, // 적 기초 수치 전체 배율 (튜닝용)
+  enemyHpMul: 1.5, enemyPowMul: 1.5, // 적 기초 수치 전체 배율 (튜닝용)
 
   // ── 성장
   maxRank: 99, // 10 이상은 스탯만
-  augmentMaxRank: 10, // 이 등급까지는 매 등급 증강 선택
-  lateAugEvery: 5, // 그 이후에는 n등급마다 시너지 · 공용 증강 1개
-  hasRankAug: (rank: number) => rank <= CFG.augmentMaxRank || rank % CFG.lateAugEvery === 0,
+  augEvery: 5, // n등급마다 기물 전용 증강 1개
+  hasRankAug: (rank: number) => rank % CFG.augEvery === 0,
   xpToNext: (rank: number) => 2 + 2 * rank, // 1→2: 4pt … 9→10: 20pt [임시]
-  // 등급업: 모든 메이저 +rankAll, 서로 다른 메이저 rankPicks개를 골라 각각 +rankPoints
-  rankAll: 1, rankPicks: 2,
-  rankPoints: (newRank: number) => (newRank % 5 === 0 ? 5 : 1), // 5의 배수 등급은 +5
-  forcedUnitAugRanks: [3, 6, 9],
+  // 등급업: 모든 메이저 +rankAll. statEvery 등급마다 서로 다른 메이저 rankPicks개를 골라 각각 +rankPoints
+  rankAll: 1, rankPicks: 2, rankPoints: 3, statEvery: 3,
+  hasRankPick: (rank: number) => rank % CFG.statEvery === 0,
   xpPool: (phase: number) => 6 + 3 * phase, // 전투 1회 공명도 풀 [임시]
   buyXpCost: 4, buyXpAmount: 4, // [임시]
   augmentChoices: 3, augmentRerolls: 1,
 
   // ── 파티/보드
+  victoryPhase: 6, // 이 페이즈 보스를 이기면 의뢰 성공
   startUnits: 4, maxParty: 16, // 출전 최대 10 + 대기 6
   deployCap: (phase: number) => Math.min(10, 3 + phase), // [임시]
   benchXpWeight: 0.5, // 대기 기물의 공명도 분배 가중치 (출전 기물 대비)
   boardSizes: [ { n: 7, w: 70, env: '표준 전장' }, { n: 6, w: 15, env: '협소한 통로' }, { n: 8, w: 15, env: '개활지' } ],
   bossBoard: 7,
-  explorerPhase: 8, // 탐험가(아문센) 배치 가능 페이즈
+  explorerPhase: 5, // 탐험가(아문센) 배치 가능 페이즈 (의뢰 목표가 6페이즈라 8 → 5)
   cookPower: [1, 1.4, 2.1, 3.5], // 셰프 단계별 요리 위력 배율 (0단계 = 미발동)
 
   // ── 경제 [임시]

@@ -318,3 +318,50 @@ textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--fg
 .fc-ic { font-size: 1.5rem; color: var(--c); width: 1.4em; text-align: center; }
 .fc-rules { margin: 0; padding-left: 1.1em; font-size: .82rem; }
 .fc-rules li::marker { color: var(--c); }
+
+/* 난이도 */
+.diff-picker { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; display: grid; gap: 6px; }
+.diff-row { display: flex; flex-wrap: wrap; gap: 4px; }
+.diff-picker ul { margin: 0; padding-left: 1.1em; }
+/* 사건 */
+.event.rare h1 { color: var(--accent); text-shadow: 0 0 12px var(--accent); }
+.card[disabled] { opacity: .45; cursor: not-allowed; transform: none; }
+.tag { font-size: .68rem; padding: 0 5px; border-radius: 3px; border: 1px solid var(--accent); color: var(--accent); }
+/* 방출 */
+.release { margin-top: 12px; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 6px; }
+.release.confirm { border-color: #ff6a6a; }
+.release ul { margin: 4px 0 8px; padding-left: 1.1em; }
+.btn.danger { background: #b03030; border-color: #ff6a6a; color: #fff; }
+.down { color: #ff7a7a; }
+/* 전투 기록 */
+.meter-tabs { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 6px; }
+.mrow { cursor: pointer; }
+.mrow.sel { outline: 1px solid var(--accent); border-radius: 4px; }
+.mbar { position: relative; }
+.mbar .ebar { position: absolute; inset: 0; opacity: .25; }
+.mbar .fill { position: relative; }
+.ebar { display: flex; height: 8px; min-width: 60px; border-radius: 3px; overflow: hidden; background: var(--panel-2); }
+.ebar i { display: block; height: 100%; }
+.bunit { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.bunit h3 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: .9rem; }
+.bitems { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+.bitems li { display: flex; gap: 6px; align-items: flex-start; font-size: .8rem; }
+.btable-wrap { overflow-x: auto; max-width: 100%; }
+.btable { border-collapse: collapse; font-size: .78rem; width: 100%; }
+.btable th, .btable td { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.btable th:first-child, .btable td:first-child { text-align: left; }
+.btable td:first-child .spr { width: 18px; height: 18px; vertical-align: middle; }
+.btable tr.dead { opacity: .5; }
+.elegend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.elegend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 3px; }
+.modal.result { max-width: min(760px, 100%); }
+/* 도감 */
+.codex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin-top: 10px; }
+.codex-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: grid; gap: 6px; align-content: start; }
+.codex-card.unknown .spr, .codex-row.unknown .spr { filter: brightness(0); opacity: .6; }
+.codex-stats { color: var(--dim); border-top: 1px solid var(--line); padding-top: 4px; }
+.codex-list { display: grid; gap: 4px; margin-bottom: 12px; }
+.codex-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+.codex-row:not(:has(.spr)) { grid-template-columns: minmax(0, 1fr) auto; }
+.codex-row.unknown { opacity: .6; }
+.codex-row.rare { border-color: var(--accent); }

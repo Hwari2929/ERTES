@@ -33,7 +33,7 @@ export function listSaves(): SaveMeta[] {
       const raw = ls()?.getItem(PREFIX + slot);
       if (!raw) continue;
       const { time, run } = JSON.parse(raw);
-      if (!(run.version >= 3)) continue;
+      if (!(run.version >= 4)) continue;
       out.push({ slot, phase: run.phase, step: run.step, hp: run.hp, units: run.units.length, time });
     } catch { /* 손상된 슬롯 무시 */ }
   }
@@ -43,7 +43,7 @@ export function listSaves(): SaveMeta[] {
 function validate(run: unknown): RunState | null {
   const r = run as RunState;
   // v3 에서 기물 명단이 바뀌어 이전 저장은 불러올 수 없다
-  if (!r || typeof r !== 'object' || !(r.version >= 3) || !Array.isArray(r.units)) return null;
+  if (!r || typeof r !== 'object' || !(r.version >= 4) || !Array.isArray(r.units)) return null;
   return migrate(r);
 }
 

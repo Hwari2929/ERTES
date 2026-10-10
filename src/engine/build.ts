@@ -2,6 +2,8 @@ import { CFG, phaseAmpMult, phaseHpMult } from '../config';
 import { AUG_BY_ID } from '../data/augments';
 import { ENEMY_BY_ID, type EnemyDef, setSummonHook } from '../data/enemies';
 import { fieldOf } from '../data/battlefields';
+import { diffHas } from '../data/difficulty';
+import { BOONS } from '../data/events';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
 import { emblemOf, isMod, itemEffect } from '../data/items';
 import { ENG_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
@@ -83,6 +85,7 @@ export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, 
     }
     for (const g of run?.globals || []) { const e = GLOBAL_BY_ID[g]?.team; if (e) out.push(e); }
     if (run?.blessing) { const e = BLESSING_BY_ID[run.blessing]?.team; if (e) out.push(e); }
+    for (const id of [...(run?.boons || []), ...(run?.phaseBoons || [])]) { const e = BOONS[id]?.effect; if (e) out.push(e); } // 사건 효과
     const fa = run ? fieldOf(run.field).ally : undefined; // 전장 세력 보너스
     if (fa && mine.has(fa.syn)) out.push(fa.effect);
   }
@@ -133,7 +136,7 @@ function blankUnit(side: 0 | 1): CUnit {
     hp: 1, shield: 0, st: emptyStats(), atk: { type: 'strike', elem: 'phys', interval: 1 }, atkTimer: 0, cd: 0, cdMax: 0,
     skill: null, sk: {}, statuses: [], mods: [], taken: [], hooks: [], keywords: [], synergies: new Set(), target: null,
     alive: true, isBoss: false, isSummon: false, immobile: false, phaseAmp: 1,
-    counters: { dmg: 0, taken: 0, healed: 0, kills: 0, casts: 0 }, mem: {},
+    counters: { dmg: 0, taken: 0, healed: 0, kills: 0, casts: 0, shield: 0, elem: {} }, mem: {},
   };
 }
 
@@ -214,6 +217,13 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   c.mem.mult = mult;
   c.cd = c.cdMax * 0.6;
   if (b.ctx.field) fieldOf(b.ctx.field).enemyMod?.(c); // 전장 조건
+  // 난이도 단계
+  const d = b.ctx.diff || 0;
+  if (diffHas(d, 1)) st.maxHp *= 1.15;
+  if (diffHas(d, 2)) c.phaseAmp *= 1.15;
+  if (diffHas(d, 4) && def.tier === 'boss') st.maxHp *= 1.25;
+  if (diffHas(d, 7)) { st.armor *= 1.25; st.effRes += 0.15; }
+  if (diffHas(d, 8)) st.maxHp *= Math.pow(1.05, phase - 1);
   if (def.onBasic) c.hooks.push({ onBasic: def.onBasic });
   if (def.onTick) c.hooks.push({ onTick: def.onTick });
   void b;
@@ -287,7 +297,7 @@ export function layout(run: RunState, n: number): Map<string, { x: number; y: nu
 }
 
 export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): Battle {
-  const b = new Battle(enc.n, new Rng(enc.seed), { phase: run.phase, credits: run.credits, field: run.field });
+  const b = new Battle(enc.n, new Rng(enc.seed), { phase: run.phase, credits: run.credits, field: run.field, diff: run.diff });
   b.keepEvents = keepEvents;
   const dep = deployed(run);
   const counts = synergyCounts(dep, run);

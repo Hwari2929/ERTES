@@ -89,8 +89,10 @@ export interface CUnit {
   /** 셰프: 기본 공격을 하지 않고 제자리에서 기술만 쓴다 */
   noAttack?: boolean;
   phaseAmp: number;
-  counters: { dmg: number; taken: number; healed: number; kills: number; casts: number };
+  counters: { dmg: number; taken: number; healed: number; kills: number; casts: number; shield: number; elem: Partial<Record<Elem, number>> };
   mem: Record<string, number>;
+  /** 이번 전투에서만 가진 장비 (캠핑 러버 등) */
+  tempItems?: string[];
   src?: UnitState;
   owner?: CUnit;
 }
@@ -106,7 +108,7 @@ export type BEvent =
   | { k: 'spawn'; id: number }
   | { k: 'fx'; x: number; y: number; r: number; elem: Elem };
 
-export interface BattleCtx { phase: number; credits: number; field?: string }
+export interface BattleCtx { phase: number; credits: number; field?: string; diff?: number }
 
 export class Battle {
   t = 0;
@@ -180,9 +182,12 @@ export class Battle {
       u.hp = u.st.maxHp;
       u.atkTimer = u.atk.interval * (0.2 + this.rng.next() * 0.4);
     }
-    for (const u of this.units.slice()) for (const h of u.hooks) h.onStart?.(this, u);
+    for (const u of this.units.slice()) { this.actor = u; for (const h of u.hooks) h.onStart?.(this, u); }
+    this.actor = null;
     for (const u of this.units) u.hp = Math.min(u.hp, this.S(u, 'maxHp'));
   }
+  /** 지금 행동 중인 기물 (보호막 제공자 집계용) */
+  actor: CUnit | null = null;
 
   // ───────── 메인 루프
   step(dt: number) {
@@ -190,6 +195,7 @@ export class Battle {
     this.t += dt;
     for (const u of this.units) {
       if (!u.alive) continue;
+      this.actor = u;
       this.tickStatuses(u, dt);
       if (!u.alive) continue;
       for (const h of u.hooks) h.onTick?.(this, u, dt);
@@ -370,6 +376,7 @@ export class Battle {
       if (tgt.shield > 0) { const a = Math.min(tgt.shield, left); tgt.shield -= a; left -= a; }
       tgt.hp -= left;
       src.counters.dmg += dmg;
+      src.counters.elem[o.elem] = (src.counters.elem[o.elem] || 0) + dmg;
       tgt.counters.taken += dmg;
       if (src.side === 0 && dmg > this.counters.bestHit) this.counters.bestHit = dmg;
     }
@@ -425,7 +432,10 @@ export class Battle {
 
   shield(tgt: CUnit, amt: number) {
     if (!tgt.alive || amt <= 0) return;
+    const before = tgt.shield;
     tgt.shield = Math.min(this.S(tgt, 'maxHp'), tgt.shield + amt);
+    const giver = this.actor && this.actor.side === tgt.side ? this.actor : tgt;
+    giver.counters.shield += tgt.shield - before;
     this.emit({ k: 'shield', id: tgt.id, v: amt });
   }
 

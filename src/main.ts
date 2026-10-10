@@ -1,7 +1,11 @@
 import { CFG, phaseAmpMult, phaseHpMult } from './config';
 import { AUG_BY_ID, augDesc, augSource } from './data/augments';
-import { ENEMY_BY_ID } from './data/enemies';
-import { fieldOf } from './data/battlefields';
+import { ENEMIES, ENEMY_BY_ID } from './data/enemies';
+import { ENEMY_DESC } from './data/enemyText';
+import { DIFFS } from './data/difficulty';
+import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
+import { STORIES } from './data/stories';
+import { FIELDS, fieldOf } from './data/battlefields';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
 import { combine, isLocked, isMod, itemInfo } from './data/items';
 import { aceTargetUid, rankTitle, staffTargetUid, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf } from './data/synergies';
@@ -15,9 +19,10 @@ import { Rng } from './rng';
 import { ELEM_NAME, KEYWORD_NAME, MAJOR_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type UnitState } from './types';
 import { BattleView, fmt } from './ui/battleview';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
+import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
 import { spriteURL } from './ui/sprites';
 
-type Screen = 'title' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'over';
+type Screen = 'title' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'over' | 'codex';
 type Sel = { k: 'unit'; uid: string } | { k: 'item'; idx: number } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
 
 const app = {
@@ -34,6 +39,12 @@ const app = {
   toastT: 0 as ReturnType<typeof setTimeout> | 0,
   importErr: '',
   needMount: false,
+  diff: 0, // 새 런 난이도
+  codexTab: 'units' as 'units' | 'enemies' | 'events' | 'records',
+  meterTab: 'dmg' as 'dmg' | 'taken' | 'support' | 'kills',
+  battleSel: null as number | null, // 전투 중 선택한 아군 (장비 확인)
+  releaseConfirm: null as string | null,
+  lastBattle: null as Battle | null,
 };
 
 const root = document.getElementById('app')!;
@@ -50,7 +61,7 @@ function toast(msg: string) {
 function persist() { if (app.run && !app.run.over) saveRun(app.run, 'auto'); }
 
 // ───────────────────────── 공용 조각
-const NODE_ICON: Record<NodeType, string> = { battle: '⚔', adversity: '☠', shop: '¤', supply: '▣', recruit: '✚', boss: '♜', pilgrim: '✟', news: '✪' };
+const NODE_ICON: Record<NodeType, string> = { battle: '⚔', adversity: '☠', shop: '¤', supply: '▣', recruit: '✚', boss: '♜', pilgrim: '✟', news: '✪', event: '❖' };
 
 function chip(id: string) {
   const s = SYN_BY_ID[id as keyof typeof SYN_BY_ID];
@@ -135,8 +146,10 @@ function titleScreen() {
     <div class="title-actions">
       ${auto ? `<button class="btn primary" data-a="load" data-v="auto">이어하기 <small>페이즈 ${auto.phase} · 체력 ${auto.hp}</small></button>` : ''}
       <button class="btn ${auto ? '' : 'primary'}" data-a="newrun">새 계약</button>
+      <button class="btn" data-a="codex">도감 · 기록</button>
       <button class="btn" data-a="menu-import">저장 코드 불러오기</button>
     </div>
+    ${(() => { const m = loadMeta(); return m.runs ? `<p class="muted small">의뢰 ${m.runs}회 · 성공 ${m.clears}회 · 해금된 위험 등급 ${m.maxDiff}</p>` : ''; })()}
     ${saves.filter((s) => s.slot !== 'auto').length ? `<div class="slots">${saves.filter((s) => s.slot !== 'auto').map((s) =>
       `<button class="btn ghost" data-a="load" data-v="${s.slot}">${SLOT_NAME[s.slot]} · 페이즈 ${s.phase} · 기물 ${s.units}</button>`).join('')}</div>` : ''}
     <p class="muted small fine">싱글 PvE · 오프라인 플레이 · 진행은 이 브라우저에 자동 저장됩니다.</p>
@@ -158,6 +171,7 @@ function newRunScreen() {
   const n = app.starters.length;
   return `<main class="wrap">
     <div class="screen-head"><h1>계약 기물 선택</h1><p class="muted">첫 출격에 데려갈 기물 ${CFG.startUnits}명을 고르세요. 나머지는 2페이즈부터 매 페이즈 첫 노드(영입)에서 만날 수 있습니다.</p></div>
+    ${diffPicker()}
     <div class="ucard-grid">${UNITS.filter((d) => !d.noStarter).map((d) => unitCard(d, { selected: app.starters.includes(d.id) })).join('')}</div>
     <div class="sticky-actions">
       <button class="btn ghost" data-a="to-title">뒤로</button>
@@ -201,6 +215,7 @@ function mapScreen(run: RunState) {
       ${run.quests.length ? `<h2>헬레니우스 퀘스트</h2><ul class="quests">${run.quests.map((q) =>
         `<li class="${q.done ? 'done' : ''}">${esc(R.questText(q))} <span class="muted">${Math.min(q.progress, q.target)}/${q.target} · 보상 ${R.questRewardText(q)}</span></li>`).join('')}</ul>` : ''}
       ${run.privilege ? `<h2>특권</h2><ul class="globals"><li><b>${esc(R.privilegeName(run.privilege))}</b> <span class="muted">${esc(R.privilegeDesc(run.privilege))}</span></li></ul>` : ''}
+      ${run.boons.length || run.phaseBoons.length || run.mods.nodeIncome || run.mods.interestCap ? `<h2>사건 효과</h2><ul class="globals">${run.boons.map((id) => `<li><b>${esc(BOONS[id]?.name || id)}</b> <span class="muted">영구</span></li>`).join('')}${run.phaseBoons.map((id) => `<li><b>${esc(BOONS[id]?.name || id)}</b> <span class="muted">이번 페이즈</span></li>`).join('')}${run.mods.nodeIncome ? `<li><b>분할 정산</b> <span class="muted">노드마다 크레딧 +${run.mods.nodeIncome}, 이자 상한 ${run.mods.interestCap}</span></li>` : ''}</ul>` : ''}
       ${run.globals.length ? `<h2>전역 증강</h2><ul class="globals">${run.globals.map((g) => `<li><b>${esc(GLOBAL_BY_ID[g].name)}</b> <span class="muted">${esc(GLOBAL_BY_ID[g].desc)}</span></li>`).join('')}</ul>` : ''}
       <h2>기록</h2>
       <ul class="log">${run.log.slice(0, 8).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
@@ -211,13 +226,13 @@ function nodeHint(o: NodeType) {
   return ({
     battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 1.5배 + 재료 확률`, shop: '장비 재료 · 고급 장비 구매',
     supply: '보급품 3종 중 택1', recruit: '새 동료 3명 중 택1', boss: `승리 시 페이즈 클리어 · ${CFG.drop.bossAdvEvery}페이즈마다 고급 장비`,
-    pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환',
+    pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
   } as Record<NodeType, string>)[o];
 }
 function rosterRow(u: UnitState) {
   const d = UNIT_BY_ID[u.defId];
   return `<button class="roster-row ${u.pos ? '' : 'bench'}" data-a="manage" data-v="${u.uid}">
-    ${sprite(d)}<span class="rr-main"><b>${esc(d.name)}</b>${xpBar(u)}</span>${rankPips(u.rank)}
+    ${sprite(d)}<span class="rr-main"><b>${esc(d.name)}${app.run && u.lock === app.run.phase ? ' <small class="down">⛓ 이번 페이즈 출전 불가</small>' : ''}</b>${xpBar(u)}</span>${rankPips(u.rank)}
     <span class="rr-items">${u.items.map((i) => itemIcon(i)).join('')}${u.mod ? itemIcon(u.mod) : ''}</span>
   </button>`;
 }
@@ -252,7 +267,7 @@ function prepScreen(run: RunState) {
     const e = ENEMY_BY_ID[s.defId];
     const sel = app.sel?.k === 'enemy' && app.sel.i === i;
     units += `<div class="u side1 placed ${e.tier !== 'minion' ? 'big' : ''} ${sel ? 'sel' : ''}" style="left:${(Math.min(s.c, n - 1) / n) * 100}%;top:${(Math.min(s.row, n - 1) / n) * 100}%;width:${100 / n}%;height:${100 / n}%"
-      data-a="sel-enemy" data-v="${i}">${sprite(e, '')}</div>`;
+      data-a="sel-enemy" data-v="${i}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}">${sprite(e, '')}</div>`;
   });
   const bench = run.units.filter((u) => !u.pos);
   const env = node?.enc ? `${node.enc.env} ${n}×${n}${node.type === 'adversity' ? ' · 역경' : ''}${node.type === 'boss' ? ' · 보스전' : ''}` : '편성 관리';
@@ -347,7 +362,9 @@ function detailPanel(run: RunState) {
     return `<div class="detail">
       <div class="d-head">${sprite(e, 'spr big')}<div><b>${esc(e.name)}</b><div class="muted small">${e.tier === 'boss' ? '보스' : e.tier === 'elite' ? '엘리트' : '일반'} · ${e.keywords.map((k) => KEYWORD_NAME[k]).join('/')}</div></div></div>
       <div class="small">${e.atk.type === 'shoot' ? '사격' : '타격'} · ${ELEM_NAME[e.atk.elem]} · 사거리 ${e.range}${e.immobile ? ' · 고정' : ''}</div>
+      ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}
       ${e.skill ? `<div class="skill-line"><b>${esc(e.skill.name)}</b> <span class="muted">(${e.skill.cd}초)</span> ${esc(e.skill.desc({}))}</div>` : ''}
+      ${(() => { const k = loadMeta().enemies[e.id]; return k ? `<div class="small muted">도감: 조우 ${k.seen} · 처치 ${k.kills}</div>` : ''; })()}
       <div class="small accent">페이즈 피해 배율 ×${c.phaseAmp.toFixed(2)}</div>
       ${statLines(c, b)}
     </div>`;
@@ -387,6 +404,7 @@ function detailPanel(run: RunState) {
     <h3>전투 스탯 ${u.pos ? '' : '<span class="muted">(시너지 미적용)</span>'}</h3>
     ${statLines(c, b)}
     <p class="lore">${esc(d.lore)}</p>
+    ${releaseBlock(run, u)}
   </div>`;
 }
 
@@ -400,25 +418,39 @@ function battleScreen(run: RunState) {
         <button class="btn tiny" data-a="skip">결과로</button></span></div>
       <div class="board" id="bboard" style="--n:${enc.n}"><div class="cells">${'<div class="cell"></div>'.repeat(enc.n * enc.n)}</div></div>
     </section>
-    <aside class="side right"><h2>피해량</h2><div id="meter" class="meter"></div></aside>
+    <aside class="side right">
+      <div class="meter-tabs">${([['dmg', '준 피해'], ['taken', '받은 피해'], ['support', '회복 · 보호막'], ['kills', '결정타']] as const).map(([k, l]) => `<button class="btn tiny ${app.meterTab === k ? 'on' : ''}" data-a="meter-tab" data-v="${k}">${l}</button>`).join('')}</div>
+      <div id="meter" class="meter"></div>
+      <div id="bunit" class="bunit"></div>
+    </aside>
     ${app.summary ? summaryModal(run) : ''}
   </main>`;
 }
 
-function updateMeter() {
+let meterAt = 0;
+function updateMeter(force = false) {
   const v = app.view;
   if (!v) return;
+  // 매 프레임 다시 그리면 클릭이 씹히므로 0.25초 간격으로
+  const now = performance.now();
+  if (!force && now - meterAt < 250 && !v.b.over) return;
+  meterAt = now;
   const t = document.getElementById('btime');
   if (t) t.textContent = `${v.b.t.toFixed(1)}초${v.b.t > CFG.overtimeStart ? ' · 연장전' : ''}`;
   const m = document.getElementById('meter');
   if (!m) return;
-  // 소환물 피해량은 주인에게 합산
-  const dmgOf = (u: CUnit) => u.counters.dmg + v.b.units.filter((s) => s.owner === u).reduce((sum, s) => sum + s.counters.dmg, 0);
-  const allies = v.b.units.filter((u) => u.side === 0 && !u.isSummon).sort((a, b) => dmgOf(b) - dmgOf(a));
-  const max = Math.max(1, ...allies.map(dmgOf));
-  m.innerHTML = allies.map((u) => `<div class="mrow ${u.alive ? '' : 'dead'}">${sprite(u)}<span class="mname">${esc(u.name)}</span>
-    <span class="mbar"><i style="width:${(dmgOf(u) / max) * 100}%"></i></span><b class="mono">${fmt(dmgOf(u))}</b>
-    ${u.counters.healed >= 1 ? `<small class="heal-t">+${fmt(u.counters.healed)}</small>` : ''}</div>`).join('');
+  // 소환물 수치는 주인에게 합산. 탭: 준 피해(속성 비중) / 받은 피해 / 회복 · 보호막 / 결정타
+  const tab = app.meterTab;
+  const val = (a: Agg) => (tab === 'dmg' ? a.dmg : tab === 'taken' ? a.taken : tab === 'support' ? a.healed + a.shield : a.kills);
+  const rows = aggAllies(v.b).sort((x, y) => val(y) - val(x));
+  const max = Math.max(1, ...rows.map(val));
+  m.innerHTML = rows.map((a) => `<div class="mrow ${a.u.alive ? '' : 'dead'} ${app.battleSel === a.u.id ? 'sel' : ''}" data-a="bsel" data-v="${a.u.id}">${sprite(a.u)}<span class="mname">${esc(a.u.name)}</span>
+    ${tab === 'dmg' ? `<span class="mbar">${elemBar(a)}<i class="fill" style="width:${(a.dmg / max) * 100}%"></i></span>` : `<span class="mbar"><i style="width:${(val(a) / max) * 100}%"></i></span>`}
+    <b class="mono">${tab === 'kills' ? a.kills : fmt(val(a))}</b>
+    ${tab === 'support' ? `<small class="heal-t">회복 ${fmt(a.healed)} · 보호막 ${fmt(a.shield)}</small>` : ''}</div>`).join('');
+  const bu = document.getElementById('bunit');
+  const sel = v.b.units.find((x) => x.id === app.battleSel);
+  if (bu) bu.innerHTML = sel ? battleUnitInfo(v.b, sel) : '<p class="muted small">기물을 누르면 장비(캠핑 러버 임시 장비 포함)를 볼 수 있습니다.</p>';
 }
 
 function summaryModal(run: RunState) {
@@ -431,6 +463,7 @@ function summaryModal(run: RunState) {
     <h1>${s.gameOver ? '용병단 전멸' : s.won ? '승리' : '패배'}</h1>
     <ul class="lines">${s.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
     ${xp ? `<h3>공명도 획득</h3><ul class="xp-gain">${xp}</ul>` : ''}
+    ${app.lastBattle ? `<h3>전투 기록</h3>${battleTable(app.lastBattle)}` : ''}
     <button class="btn primary" data-a="after-battle">${s.gameOver ? '결과 보기' : '계속'}</button>
   </div></div>`;
 }
@@ -465,13 +498,13 @@ function newsScreen(run: RunState) {
 
 function overScreen(run: RunState) {
   return `<main class="wrap over">
-    <div class="screen-head"><h1>계약 종료</h1><p class="muted">ERRANTEs 는 페이즈 ${run.phase}에서 무너졌습니다.</p></div>
+    <div class="screen-head"><h1>${run.cleared ? '의뢰 성공' : '계약 종료'}</h1><p class="muted">${run.cleared ? `${esc(fieldOf(run.field).name)} 의뢰 완료${run.endless ? ` · 무한 모드 페이즈 ${run.phase}에서 귀환 불가` : ''}.` : `ERRANTEs 는 페이즈 ${run.phase}에서 무너졌습니다.`}${run.diff ? ` 위험 등급 ${run.diff}.` : ''}</p></div>
     <dl class="stats big">
       <dt>도달 페이즈</dt><dd>${run.phase}</dd><dt>전투</dt><dd>${run.stats.wins}승 ${run.stats.losses}패</dd>
       <dt>처치</dt><dd>${run.stats.kills}</dd><dt>최대 단일 피해</dt><dd>${fmt(run.stats.bestHit)}</dd>
     </dl>
     <div class="roster">${run.units.map(rosterRow).join('')}</div>
-    <div class="sticky-actions"><button class="btn primary" data-a="newrun">새 계약</button><button class="btn" data-a="to-title">타이틀</button></div>
+    <div class="sticky-actions"><button class="btn primary" data-a="newrun">새 계약</button><button class="btn" data-a="codex">도감</button><button class="btn" data-a="to-title">타이틀</button></div>
   </main>`;
 }
 
@@ -497,6 +530,15 @@ function pendingModal(run: RunState): string {
   if (p.t === 'global') {
     body = `<h1>전역 증강</h1><p class="muted">런 전체에 적용되는 증강을 하나 고르세요.</p>
       <div class="cards">${p.options.map((id) => { const g = GLOBAL_BY_ID[id]; return `<button class="card" data-a="pick-global" data-v="${id}"><b>${esc(g.name)}</b><span>${esc(g.desc)}</span></button>`; }).join('')}</div>`;
+  } else if (p.t === 'event') {
+    const ev = EVENT_BY_ID[p.id];
+    body = `<div class="event ${ev.rare ? 'rare' : ''}"><h1>${ev.rare ? '✦ ' : ''}${esc(ev.title)}</h1>${ev.rare ? '<p class="accent small">희귀 사건</p>' : ''}
+      <p>${esc(ev.text)}</p>
+      <div class="cards">${ev.choices.map((c, i) => { const why = c.block?.(run); return `<button class="card" data-a="event-choice" data-v="${i}" ${why ? 'disabled' : ''}><b>${esc(c.label)}</b><span>${esc(c.desc)}</span>${why ? `<span class="down small">${esc(why)}</span>` : ''}</button>`; }).join('')}</div></div>`;
+  } else if (p.t === 'victory') {
+    body = `<h1>의뢰 성공</h1><p>페이즈 ${run.phase} 보스를 격파했습니다. ${esc(fieldOf(run.field).name)} 의뢰가 완료되었습니다${run.diff ? ` (위험 등급 ${run.diff})` : ''}.</p>
+      <p class="muted small">귀환하면 런이 끝나고 기록이 남습니다. 계속하면 무한 모드로 이어지며, 적은 계속 강해집니다. 어느 쪽이든 다음 위험 등급이 해금됩니다.</p>
+      <div class="row-btns"><button class="btn primary" data-a="victory-end">귀환 (의뢰 완료)</button><button class="btn" data-a="victory-endless">무한 모드로 계속</button></div>`;
   } else if (p.t === 'field') {
     body = `<h1>전장 브리핑</h1><p class="muted">이번 런의 무대입니다. 전장에 따라 적 구성과 조건이 달라집니다.</p>
       ${fieldCard(run)}
@@ -515,16 +557,14 @@ function pendingModal(run: RunState): string {
       const tm = totalMajors(u, effects);
       const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? Math.round((v as number) * 100) + '%' : v}`).join(', ');
       body = `<h1>공명 등급 상승</h1>${head}
-        <p class="muted">모든 메이저 스탯이 <b class="accent">+${CFG.rankAll}</b> 올랐습니다 (반영됨). 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.rank % 5 === 0 ? ' (5의 배수 등급 보너스)' : ''} 올리세요.${p.rank > CFG.augmentMaxRank ? (CFG.hasRankAug(p.rank) ? ` ${CFG.lateAugEvery}등급마다 시너지 · 공용 증강을 하나 더 고릅니다.` : ` 공명 등급 ${CFG.augmentMaxRank}을 넘으면 ${CFG.lateAugEvery}등급마다만 증강을 고릅니다.`) : ''}</p>
+        <p class="muted">모든 메이저 스탯이 <b class="accent">+${CFG.rankAll}</b> 올랐습니다 (반영됨). 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b> 올리세요 (${CFG.statEvery}의 배수 등급).${CFG.hasRankAug(p.rank) ? ' 이어서 전용 증강을 고릅니다.' : ''}</p>
         <div class="alloc">${MAJORS.map((m) => { const on = app.picks.includes(m); return `<div class="alloc-row"><span class="a-name">${MAJOR_NAME[m]} <b>${tm[m]}</b>${on ? `<b class="up"> +${p.points}</b>` : ''}</span>
           <span class="small muted">${conv(m)}</span>
           <span class="a-btns"><button class="btn tiny ${on ? 'primary' : ''}" data-a="alloc-pick" data-v="${m}" ${on || left ? '' : 'disabled'}>${on ? '선택됨' : '선택'}</button></span></div>`; }).join('')}</div>
         <button class="btn primary" data-a="alloc-ok" ${left ? 'disabled' : ''}>${left ? `${left}개 더 고르세요` : '확정'}</button>`;
     } else {
       R.ensureRankupOptions(run, p);
-      const forced = CFG.forcedUnitAugRanks.includes(p.rank);
-      const late = p.rank > CFG.augmentMaxRank;
-      body = `<h1>증강 선택</h1>${head}${forced ? '<p class="accent small">공명 등급 3 · 6 · 9 — 전용 증강 확정</p>' : ''}${late ? `<p class="accent small">공명 등급 ${p.rank} — 시너지 · 공용 증강 추가 선택</p>` : ''}
+      body = `<h1>증강 선택</h1>${head}<p class="accent small">공명 등급 ${p.rank} — ${CFG.augEvery}등급마다 전용 증강 1개</p>
         <div class="cards">${(p.options || []).map((a, i) => {
           const ad = AUG_BY_ID[a.id];
           return `<button class="card aug-${ad.pool}" data-a="pick-aug" data-v="${i}"><span class="src">${augSource(ad)}</span><b>${esc(ad.name)}</b><span>${esc(augDesc(a.id, a.param))}</span></button>`;
@@ -593,7 +633,8 @@ function render() {
   if (app.screen !== 'battle' && app.view) { app.view.destroy(); app.view = null; }
   const run = app.run;
   let body = '';
-  if (app.screen === 'title' || !run) body = app.screen === 'newrun' ? newRunScreen() : titleScreen();
+  if (app.screen === 'codex') body = codexScreen();
+  else if (app.screen === 'title' || !run) body = app.screen === 'newrun' ? newRunScreen() : titleScreen();
   else if (app.screen === 'newrun') body = newRunScreen();
   else if (app.screen === 'map') body = mapScreen(run);
   else if (app.screen === 'prep') body = prepScreen(run);
@@ -601,8 +642,8 @@ function render() {
   else if (app.screen === 'shop') body = shopScreen(run);
   else if (app.screen === 'news') body = newsScreen(run);
   else if (app.screen === 'over') body = overScreen(run);
-  const showTop = run && app.screen !== 'title' && app.screen !== 'newrun';
-  root.innerHTML = `${showTop ? topbar() : ''}${body}${run ? pendingModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
+  const showTop = run && app.screen !== 'title' && app.screen !== 'newrun' && app.screen !== 'codex';
+  root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   if (app.screen === 'battle' && app.needMount) {
     app.needMount = false;
     mountBattleView(document.getElementById('bboard')!);
@@ -618,8 +659,11 @@ function render() {
 function mountBattleView(board: HTMLElement) {
   const run = app.run!;
   const b = buildBattle(run, run.node!.enc!);
+  app.lastBattle = b;
+  app.battleSel = null;
   app.view = new BattleView(board, b, updateMeter, () => {
     app.summary = R.resolveBattle(run, b);
+    metaBattle(b);
     persist();
     // 보드는 그대로 두고 상단 바와 결과 창만 갱신
     const top = root.querySelector('header.top');
@@ -632,18 +676,124 @@ function mountBattleView(board: HTMLElement) {
 
 function goPrepOrMap() {
   const run = app.run!;
-  if (run.over) app.screen = 'over';
+  if (run.over) { app.screen = 'over'; metaRunEnd(run); }
   else if (run.node?.enc) app.screen = 'prep';
   else if (run.node?.type === 'shop') app.screen = 'shop';
   else if (run.node?.type === 'news') app.screen = 'news';
   else app.screen = 'map';
 }
 
+
+// ───────────────────────── 난이도 선택
+function diffPicker() {
+  const max = loadMeta().maxDiff;
+  const d = Math.min(app.diff, max);
+  return `<div class="diff-picker"><b>위험 등급</b>
+    <div class="diff-row">${DIFFS.map((x) => `<button class="btn tiny ${x.lvl === d ? 'on' : ''}" data-a="diff" data-v="${x.lvl}" ${x.lvl > max ? 'disabled title="이전 등급을 클리어하면 해금"' : ''}>${x.lvl === 0 ? '표준' : x.lvl}</button>`).join('')}</div>
+    <ul class="small muted">${d === 0 ? '<li>추가 조건 없음.</li>' : DIFFS.filter((x) => x.lvl >= 1 && x.lvl <= d).map((x) => `<li>${esc(x.desc)}</li>`).join('')}</ul>
+    <p class="small muted">${CFG.victoryPhase}페이즈 보스를 이기면 의뢰 성공. 성공하면 다음 위험 등급이 해금됩니다.</p></div>`;
+}
+
+// ───────────────────────── 기물 방출
+function releaseBlock(run: RunState, u: UnitState) {
+  const v = R.releaseValue(run, u);
+  const name = UNIT_BY_ID[u.defId].name;
+  const lines = [
+    `에너지 크레딧 <b>+${v.credits}</b> (3 + 공명 등급 ${u.rank} × 2)`,
+    `공명도 <b>${v.xp}</b> — 이 기물에 쌓인 공명도 ${v.invested}의 60%를 남은 파티에 분배 (출전 기물 우선)`,
+    v.items.length ? `장비 · 개조부품 ${v.items.length}개는 보관함으로 (${v.items.map((x) => esc(itemInfo(x).name)).join(', ')})` : '장착한 장비 없음',
+    ...(v.lost.length ? [`<span class="down">고유 장비 ${v.lost.map((x) => esc(itemInfo(x).name)).join(', ')}는 함께 사라짐</span>`] : []),
+  ];
+  const confirm = app.releaseConfirm === u.uid;
+  return `<div class="release ${confirm ? 'confirm' : ''}">
+    <h3>방출</h3>
+    <ul class="small">${lines.map((l) => `<li>${l}</li>`).join('')}</ul>
+    ${confirm ? `<p class="small down">${esc(name)}을(를) 정말 방출할까요? 되돌릴 수 없습니다.</p>
+      <div class="row-btns"><button class="btn danger" data-a="release-confirm" data-v="${u.uid}">방출 확정</button><button class="btn" data-a="release-cancel">취소</button></div>`
+    : `<button class="btn small" data-a="release" data-v="${u.uid}" ${run.units.length <= 1 ? 'disabled' : ''}>방출하기</button>`}
+  </div>`;
+}
+
+// ───────────────────────── 전투 기록 (진행 중 미터 · 결과 표)
+const ELEM_COLOR: Record<string, string> = { phys: '#cfd3dc', chem: '#7fdc4a', elec: '#5ab8ff', psy: '#c07cff', holy: '#ffd866', true: '#ff6a6a' };
+type Agg = { u: CUnit; dmg: number; taken: number; healed: number; shield: number; kills: number; elem: Record<string, number> };
+/** 아군 기물별 집계 (소환물은 주인에게 합산) */
+function aggAllies(b: Battle): Agg[] {
+  return b.units.filter((u) => u.side === 0 && !u.isSummon).map((u) => {
+    const parts = [u, ...b.units.filter((s) => s.owner === u)];
+    const elem: Record<string, number> = {};
+    for (const p of parts) for (const [k, x] of Object.entries(p.counters.elem)) elem[k] = (elem[k] || 0) + (x || 0);
+    const sum = (k: 'dmg' | 'taken' | 'healed' | 'shield' | 'kills') => parts.reduce((s, p) => s + p.counters[k], 0);
+    return { u, dmg: sum('dmg'), taken: sum('taken'), healed: sum('healed'), shield: sum('shield'), kills: sum('kills'), elem };
+  });
+}
+function elemBar(a: Agg) {
+  const tot = Math.max(1, a.dmg);
+  return `<span class="ebar" title="${Object.entries(a.elem).filter(([, x]) => x > 0).map(([k, x]) => `${ELEM_NAME[k as keyof typeof ELEM_NAME]} ${Math.round((x / tot) * 100)}%`).join(' · ')}">${Object.entries(a.elem).filter(([, x]) => x > 0).map(([k, x]) => `<i style="width:${(x / tot) * 100}%;background:${ELEM_COLOR[k]}"></i>`).join('')}</span>`;
+}
+function battleTable(b: Battle) {
+  const rows = aggAllies(b).sort((x, y) => y.dmg - x.dmg);
+  return `<div class="btable-wrap"><table class="btable"><thead><tr><th>기물</th><th>준 피해</th><th>속성 비중</th><th>받은 피해</th><th>회복</th><th>보호막</th><th>결정타</th></tr></thead><tbody>
+    ${rows.map((a) => `<tr class="${a.u.alive ? '' : 'dead'}"><td>${sprite(a.u)} ${esc(a.u.name)}</td><td class="mono">${fmt(a.dmg)}</td><td>${elemBar(a)}</td><td class="mono">${fmt(a.taken)}</td><td class="mono">${fmt(a.healed)}</td><td class="mono">${fmt(a.shield)}</td><td class="mono">${a.kills}</td></tr>`).join('')}
+  </tbody></table></div>
+  <div class="elegend small muted">${Object.entries(ELEM_COLOR).map(([k, c]) => `<span><i style="background:${c}"></i>${ELEM_NAME[k as keyof typeof ELEM_NAME]}</span>`).join('')}</div>`;
+}
+/** 전투 중 선택한 아군: 체력 · 장비 (캠핑 러버 임시 장비 포함) · 개조부품 */
+function battleUnitInfo(b: Battle, u: CUnit) {
+  const items = (u.src?.items || []).filter((x): x is string => !!x);
+  const mod = u.src?.mod;
+  const temp = u.tempItems || [];
+  const row = (id: string, tag = '') => `<li>${itemIcon(id)} <span><b>${esc(itemInfo(id).name)}</b>${tag}<br><span class="muted small">${esc(itemInfo(id).desc)}</span></span></li>`;
+  return `<h3>${sprite(u)} ${esc(u.name)} <span class="muted small">체력 ${fmt(Math.max(0, u.hp))}/${fmt(b.S(u, 'maxHp'))}${u.shield > 0 ? ` · 보호막 ${fmt(u.shield)}` : ''}</span></h3>
+    <ul class="bitems">${items.map((x) => row(x)).join('')}${mod ? row(mod) : ''}${temp.map((x) => row(x, ' <span class="tag">임시 · 캠핑</span>')).join('')}${!items.length && !mod && !temp.length ? '<li class="muted small">장비 없음</li>' : ''}</ul>
+    ${u.statuses.filter((s) => s.label).length ? `<div class="small muted">상태: ${u.statuses.filter((s) => s.label).map((s) => esc(s.label!)).join(' · ')}</div>` : ''}`;
+}
+
+// ───────────────────────── 도감
+function codexScreen() {
+  const m = loadMeta();
+  const tabs = ([['units', '기물'], ['enemies', '적'], ['events', '사건'], ['records', '기록']] as const)
+    .map(([k, l]) => `<button class="btn small ${app.codexTab === k ? 'primary' : ''}" data-a="codex-tab" data-v="${k}">${l}</button>`).join('');
+  let body = '';
+  if (app.codexTab === 'units') {
+    body = `<div class="codex-grid">${UNITS.map((d) => {
+      const r = m.units[d.id];
+      const known = !d.eventOnly || !!r;
+      return `<div class="codex-card ${known ? '' : 'unknown'}">
+        <div class="ucard-head">${sprite(d, 'spr big')}<div><b>${known ? esc(d.name) : '???'}</b><div class="muted small">${known ? esc(d.title) : '사건으로만 만날 수 있는 기물'}</div></div></div>
+        ${known ? `<div class="chips">${[...d.factions, ...d.traits].map(chip).join('')}</div><p class="small">${esc(STORIES[d.id] || '')}</p>` : ''}
+        <div class="codex-stats small">의뢰 <b>${r?.runs || 0}</b>회 · 누적 공명 등급 <b>${r?.ranks || 0}</b> · 최고 <b>${r?.best || 0}</b> · 성공 <b>${r?.clears || 0}</b></div>
+      </div>`;
+    }).join('')}</div>`;
+  } else if (app.codexTab === 'enemies') {
+    body = FIELDS.map((f) => {
+      const ids = [...f.pool, f.elite, ...f.bosses];
+      return `<h2 style="color:${f.color}">${f.icon} ${esc(f.name)}</h2><div class="codex-list">${ids.map((id) => {
+        const e = ENEMY_BY_ID[id];
+        const r = m.enemies[id];
+        return `<div class="codex-row ${r ? '' : 'unknown'}">${sprite(e)}<div><b>${r ? esc(e.name) : '???'}</b> <span class="muted small">${e.tier === 'boss' ? '보스' : e.tier === 'elite' ? '정예' : '일반'}</span>
+          <div class="small">${r ? esc(ENEMY_DESC[id] || '') : '아직 만나지 못했습니다.'}</div></div><div class="small mono">조우 ${r?.seen || 0}<br>처치 ${r?.kills || 0}</div></div>`;
+      }).join('')}</div>`;
+    }).join('') + (() => { const extra = ENEMIES.filter((e) => !FIELDS.some((f) => [...f.pool, f.elite, ...f.bosses].includes(e.id)) && m.enemies[e.id]); return extra.length ? `<h2>기타</h2><div class="codex-list">${extra.map((e) => `<div class="codex-row">${sprite(e)}<div><b>${esc(e.name)}</b></div><div class="small mono">처치 ${m.enemies[e.id].kills}</div></div>`).join('')}</div>` : ''; })();
+  } else if (app.codexTab === 'events') {
+    const groups: [string, typeof EVENTS][] = [['공용', EVENTS.filter((e) => !e.fields)], ...FIELDS.map((f) => [f.name, EVENTS.filter((e) => e.fields?.includes(f.id))] as [string, typeof EVENTS])];
+    body = groups.map(([g, list]) => `<h2>${esc(g)}</h2><div class="codex-list">${list.map((e) => {
+      const n = m.events[e.id] || 0;
+      return `<div class="codex-row ${n ? '' : 'unknown'} ${e.rare ? 'rare' : ''}"><div><b>${n ? esc(e.title) : '???'}</b>${e.rare ? ' <span class="tag">희귀</span>' : ''}<div class="small">${n ? esc(e.text) : '아직 겪지 못한 사건입니다.'}</div></div><div class="small mono">${n}회</div></div>`;
+    }).join('')}</div>`).join('');
+  } else {
+    body = `<dl class="stats big"><dt>의뢰</dt><dd>${m.runs}</dd><dt>의뢰 성공</dt><dd>${m.clears}</dd><dt>최고 도달 페이즈</dt><dd>${m.bestPhase}</dd><dt>해금된 위험 등급</dt><dd>${m.maxDiff}</dd></dl>
+      <h2>전장별</h2><div class="codex-list">${FIELDS.map((f) => { const r = m.fields[f.id]; return `<div class="codex-row"><div><b style="color:${f.color}">${f.icon} ${esc(f.name)}</b><div class="small muted">${esc(f.region)}</div></div><div class="small mono">의뢰 ${r?.runs || 0} · 성공 ${r?.clears || 0}${r && r.bestDiff >= 0 ? ` · 최고 위험 ${r.bestDiff}` : ''}</div></div>`; }).join('')}</div>`;
+  }
+  return `<main class="wrap codex"><div class="screen-head"><h1>도감 · 기록</h1><p class="muted small">이 브라우저에 저장됩니다.</p></div>
+    <div class="row-btns">${tabs}<button class="btn ghost" data-a="codex-back">돌아가기</button></div>${body}</main>`;
+}
+
 // ───────────────────────── 액션
 function act(a: string, v: string) {
   const run = app.run;
   // 전투 중에는 속도 조절 / 결과 보기 / 계속만 받는다 (재렌더하면 전투 화면이 초기화됨)
-  if (app.screen === 'battle' && !['speed', 'skip', 'after-battle'].includes(a)) return;
+  if (app.screen === 'battle' && !['speed', 'skip', 'after-battle', 'meter-tab', 'bsel'].includes(a)) return;
   switch (a) {
     case 'newrun': app.starters = []; app.screen = 'newrun'; app.menu = null; break;
     case 'to-title': if (app.view) { app.view.destroy(); app.view = null; } app.screen = 'title'; app.menu = null; app.run = null; break;
@@ -657,7 +807,7 @@ function act(a: string, v: string) {
     case 'random-starters': app.starters = new Rng(Date.now() | 0).sample(UNITS.filter((u) => !u.noStarter).map((u) => u.id), CFG.startUnits); break;
     case 'start-run':
       if (app.starters.length !== CFG.startUnits) return;
-      app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters);
+      app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, undefined, Math.min(app.diff, loadMeta().maxDiff));
       app.screen = 'map'; app.sel = null; persist(); break;
     case 'load': {
       const r = loadRun(v);
@@ -734,6 +884,35 @@ function act(a: string, v: string) {
     // 대기 선택
     case 'pick-global': if (run) { R.pickGlobal(run, v); run.pending.shift(); persist(); } break;
     case 'field-ok': run?.pending.shift(); persist(); break;
+    case 'event-choice': {
+      const p = run?.pending[0];
+      if (!run || p?.t !== 'event') return;
+      const err = R.chooseEvent(run, +v);
+      if (err) { toast(err); return; }
+      metaEvent(p.id);
+      persist();
+      break;
+    }
+    case 'victory-end': if (run) { run.pending.shift(); metaClear(run); run.over = true; goPrepOrMap(); } break;
+    case 'victory-endless': if (run) { run.pending.shift(); metaClear(run); run.endless = true; toast('무한 모드: 적은 계속 강해집니다.'); persist(); } break;
+    case 'diff': app.diff = +v; break;
+    case 'codex': app.screen = 'codex'; app.menu = null; break;
+    case 'codex-tab': app.codexTab = v as typeof app.codexTab; break;
+    case 'codex-back': app.screen = app.run ? (app.run.over ? 'over' : 'map') : 'title'; if (app.run && !app.run.over) goPrepOrMap(); break;
+    case 'meter-tab': app.meterTab = v as typeof app.meterTab; document.querySelectorAll('.meter-tabs .btn').forEach((e) => e.classList.toggle('on', (e as HTMLElement).dataset.v === v)); updateMeter(true); return;
+    case 'bsel': app.battleSel = +v; updateMeter(true); return;
+    case 'release': app.releaseConfirm = v; break;
+    case 'release-cancel': app.releaseConfirm = null; break;
+    case 'release-confirm': {
+      if (!run) return;
+      const err = R.releaseUnit(run, v);
+      app.releaseConfirm = null;
+      if (err) { toast(err); return; }
+      app.sel = null;
+      toast('기물을 방출했습니다.');
+      persist();
+      break;
+    }
     case 'pick-privilege': if (run) { R.pickPrivilege(run, +v); persist(); } break;
     case 'reroll-privilege': if (run) { R.rerollPrivilege(run); persist(); } break;
     case 'alloc-pick': {

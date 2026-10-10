@@ -14,12 +14,21 @@ function resolvePending(run: RunState, bot: Rng) {
   while (run.pending.length) {
     const p = run.pending[0];
     if (p.t === 'privilege') { R.pickPrivilege(run, bot.int(0, p.options.length - 1)); continue; } // 대기열을 직접 정리함
+    if (p.t === 'event') {
+      // 가능한 선택지 중 무작위 (전부 막혀 있으면 건너뜀)
+      const order = bot.shuffle([0, 1, 2]);
+      let done = false;
+      for (const i of order) if (R.chooseEvent(run, i) === null && run.pending[0] !== p) { done = true; break; }
+      if (!done) run.pending.shift();
+      continue;
+    }
+    if (p.t === 'victory') { run.endless = true; } // 시뮬레이션은 무한 모드로 계속
     if (p.t === 'global') R.pickGlobal(run, bot.pick(p.options));
     else if (p.t === 'rankup') {
       const u = run.units.find((x) => x.uid === p.uid)!;
       const d = UNIT_BY_ID[u.defId];
       const pref: Major[] = d.range <= 1 ? ['vit', 'pow'] : ['pow', 'mnd'];
-      R.applyRankPicks(run, p.uid, pref, p.points);
+      if (!p.allocDone) R.applyRankPicks(run, p.uid, pref, p.points);
       R.ensureRankupOptions(run, p);
       if (p.options!.length) R.chooseAug(run, p.uid, bot.pick(p.options!));
     } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
@@ -89,7 +98,7 @@ function playRun(seed: number, force?: string, field?: string) {
   }
   const items = [...run.inventory, ...run.units.flatMap((u) => u.items.filter((x): x is string => !!x))];
   const grade = (g: string) => items.filter((x) => x[0] === g).length;
-  return { phase: run.phase, phaseLog, units: run.units.length, avgRank: run.units.reduce((s, u) => s + u.rank, 0) / run.units.length, items: { C: grade('C'), A: grade('A'), L: grade('L') } };
+  return { cleared: run.cleared, phase: run.phase, phaseLog, units: run.units.length, avgRank: run.units.reduce((s, u) => s + u.rank, 0) / run.units.length, items: { C: grade('C'), A: grade('A'), L: grade('L') } };
 }
 
 const STARTERS = UNITS.filter((u) => !u.noStarter).map((u) => u.id);
@@ -121,12 +130,13 @@ if (process.argv[3] === 'units') {
 }
 const reach: Record<number, number> = {};
 const wl: Record<number, { w: number; l: number }> = {};
-let rankSum = 0, unitSum = 0;
+let rankSum = 0, unitSum = 0, clears = 0;
 const itemSum = { C: 0, A: 0, L: 0 };
 for (let i = 1; i <= N; i++) {
   const r = playRun(i * 1013);
   reach[r.phase] = (reach[r.phase] || 0) + 1;
   rankSum += r.avgRank;
+  if (r.cleared) clears++;
   unitSum += r.units;
   for (const g of ['C', 'A', 'L'] as const) itemSum[g] += r.items[g];
   for (const [p, v] of Object.entries(r.phaseLog)) {
@@ -134,7 +144,8 @@ for (let i = 1; i <= N; i++) {
     wl[+p].w += v.w; wl[+p].l += v.l;
   }
 }
-console.log(`런 ${N}회 — 사망 시점 페이즈 분포:`);
+console.log(`런 ${N}회 — 의뢰 성공(${CFG.victoryPhase}페이즈 보스 격파) ${clears}회 (${Math.round((clears / N) * 100)}%)`);
+console.log('사망 시점 페이즈 분포:');
 for (const p of Object.keys(reach).map(Number).sort((a, b) => a - b)) console.log(`  P${p}: ${'#'.repeat(reach[p])} ${reach[p]}`);
 console.log('페이즈별 전투 승률 (일반 / 보스):');
 for (const p of Object.keys(wl).map(Number).filter((x) => x > 0).sort((a, b) => a - b)) {
