@@ -5,7 +5,7 @@ import { cookPower, pickEnemy, strike, strongestAlly, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type UnitDef } from './unitkit';
 
 const nat = (n: number) => ({ setup: (u: { mem: Record<string, number> }) => { u.mem.natureExtra = (u.mem.natureExtra || 0) + n; } });
-const faithWin = { after: (run: { faith: number }, _u: unknown, won: boolean) => { if (won) run.faith += 1; } };
+const faithWin = { after: (run: { faith: number }, _u: unknown, won: boolean) => { if (won) run.faith += 2; } };
 const BEHEMOTH = ['#140608', '#6a1020', '#b02030', '#d06060', '#ffcf40', '#3a0810', '#ff8080'];
 
 export const ROSTER_B: UnitDef[] = [
@@ -34,10 +34,10 @@ export const ROSTER_B: UnitDef[] = [
     },
     augs: [
       uaug('hiiro', 'second', '두 번째 점괘', '점괘 대상 +1명.', setSk((s) => { s.count += 1; })),
-      uaug('hiiro', 'daegil', '대길', '길이 나올 확률 +20%p.', setSk((s) => { s.luck = Math.min(1, s.luck + 0.2); })),
-      uaug('hiiro', 'linger', '긴 여운', '점괘 지속 +3초.', setSk((s) => { s.dur += 3; })),
-      uaug('hiiro', 'nine', '구미 본체', '정신력 +3, 회피 +15%p.', { majors: { mnd: 3 }, stats: { eva: 0.15 } }),
-      uaug('hiiro', 'sns', '야경 사진 한 장', '전투 승리 시 명성 +1.', {}, { after: (run, _u, won) => { if (won) run.fame += 1; } }),
+      uaug('hiiro', 'daegil', '대길', '길이 나올 확률 +30%p, 길의 피해 증가 +30%p.', setSk((s) => { s.luck = Math.min(1, s.luck + 0.3); s.dmg += 0.3; })),
+      uaug('hiiro', 'linger', '긴 여운', '점괘 지속 +3초, 피해 증가 +25%p, 공격 속도 +15%p.', setSk((s) => { s.dur += 3; s.dmg += 0.25; s.as += 0.15; })),
+      uaug('hiiro', 'nine', '구미 본체', '정신력 +9, 회피 +15%p.', { majors: { mnd: 9 }, stats: { eva: 0.15 } }),
+      uaug('hiiro', 'sns', '야경 사진 한 장', '전투 승리 시 명성 +2. 공포 확률 +20%p.', setSk((s) => { s.fearChance += 0.2; }), { after: (run, _u, won) => { if (won) run.fame += 2; } }),
     ],
   },
   {
@@ -46,15 +46,15 @@ export const ROSTER_B: UnitDef[] = [
     sprite: 'robe', palette: tint(PAL.KAL, '#e8e8f0', '#40c0c0', '#80e0ff'), lore: '"말만 해요! 깨끗한 기록부터 더러운 금서까지 - 다 제 손바닥 안이거든요."',
     skill: strike({
       name: '백수정 섬광', cd: 7, pow: 'tech', elem: 'psy', mult: 1.4, params: { radius: 1, noMiss: 1, blind: 0.3 },
-      desc: (p) => `빈 백수정을 터뜨려 대상 주변 ${p.radius}칸에 기술 위력 ${pct(p.mult)} 정신 피해, 3초간 명중 -${pct(p.blind)}p.`,
+      desc: (p) => `빈 백수정을 터뜨려 대상 주변 ${p.radius}칸에 기술 위력 ${pct(p.mult)} 정신 피해, 3초간 명중 -${pct(p.blind)}p${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}.`,
       after: (b, u, t, _d, p) => { for (const e of b.around(t, p.radius, b.enemiesOf(u))) b.applyStatus(u, e, { type: 'buff', key: 'nadir.blind', dur: 3, delta: { acc: -p.blind }, label: '섬광' }); },
     }),
     augs: [
-      uaug('nadir', 'flare', '광원 증폭', '섬광 범위 +1칸.', setSk((s) => { s.radius += 1; })),
-      uaug('nadir', 'focus', '한 점 집중', '섬광 피해 +60%p.', setSk((s) => { s.mult += 0.6; })),
-      uaug('nadir', 'glare', '눈부신 영사', '명중 감소 +20%p.', setSk((s) => { s.blind += 0.2; })),
-      uaug('nadir', 'camo', '영사 위장', '전투 시작 후 4초간 회피 +40%p.', { hooks: { onStart(b, u) { b.buff(u, u, 'nadir.camo', 4, { delta: { eva: 0.4 }, label: '위장' }); } } }),
-      uaug('nadir', 'pocket', '이차원 주머니', '정신력 +3, 전투력 +2.', { majors: { mnd: 3, pow: 2 } }),
+      uaug('nadir', 'flare', '광원 증폭', '섬광 범위 +1칸, 피해 +30%p.', setSk((s) => { s.radius += 1; s.mult += 0.3; })),
+      uaug('nadir', 'focus', '한 점 집중', '섬광 피해 +140%p.', setSk((s) => { s.mult += 1.4; })),
+      uaug('nadir', 'glare', '눈부신 영사', '명중 감소 +20%p, 맞은 적 4초간 받는 피해 +20%.', setSk((s) => { s.blind += 0.2; s.vuln = (s.vuln || 0) + 0.2; })),
+      uaug('nadir', 'camo', '영사 위장', '회피 +15%p, 전투 시작 후 6초간 회피 +40%p.', { stats: { eva: 0.15 }, hooks: { onStart(b, u) { b.buff(u, u, 'nadir.camo', 6, { delta: { eva: 0.4 }, label: '위장' }); } } }),
+      uaug('nadir', 'pocket', '이차원 주머니', '정신력 +10, 전투력 +5.', { majors: { mnd: 10, pow: 5 } }),
     ],
   },
   {
@@ -66,11 +66,11 @@ export const ROSTER_B: UnitDef[] = [
       desc: (p) => `압도적인 체급으로 주변 ${p.radius}칸 적을 베어 타격 위력 ${pct(p.mult)} 물리 피해 (방어도 관통 ${pct(p.pen)}) + ${p.stun}초 기절.`,
     }),
     augs: [
-      uaug('temur', 'rapier', '바위 가르는 레이피어', '피해 +30%p, 방어도 관통 +30%p.', setSk((s) => { s.mult += 0.3; s.pen += 0.3; })),
-      uaug('temur', 'ritual', '등에 박힌 의식 검', '경기장의 검 범위 +1칸.', setSk((s) => { s.radius += 1; })),
-      uaug('temur', 'lava', '용암 보행', '효과 저항 +30%p, 방어도 +150.', { stats: { effRes: 0.3, armor: 150 } }),
-      uaug('temur', 'meal', '두 배 식사', '생명력 +5.', { majors: { vit: 5 } }),
-      uaug('temur', 'fur', '모피 코트 두 겹', '캠핑 러버 임시 장비 +1개, 생명력 +2.', { ...nat(1), majors: { vit: 2 } }),
+      uaug('temur', 'rapier', '바위 가르는 레이피어', '피해 +100%p, 방어도 관통 +30%p.', setSk((s) => { s.mult += 1.0; s.pen += 0.3; })),
+      uaug('temur', 'ritual', '등에 박힌 의식 검', '경기장의 검 범위 +1칸, 피해 +30%p.', setSk((s) => { s.radius += 1; s.mult += 0.3; })),
+      uaug('temur', 'lava', '용암 보행', '효과 저항 +25%p, 방어도 +250.', { stats: { effRes: 0.25, armor: 250 } }),
+      uaug('temur', 'meal', '두 배 식사', '생명력 +10, 방어력 +5.', { majors: { vit: 10, def: 5 } }),
+      uaug('temur', 'fur', '모피 코트 두 겹', '캠핑 러버 임시 장비 +1개, 생명력 +5, 방어력 +3.', { ...nat(1), majors: { vit: 5, def: 3 } }),
     ],
   },
   {
@@ -103,11 +103,11 @@ export const ROSTER_B: UnitDef[] = [
       },
     },
     augs: [
-      uaug('kairo', 'patience', '5개월의 잠복', '저격에 필요한 스택 -1 (5스택).', setSk((s) => { s.need -= 1; })),
-      uaug('kairo', 'record', '11.8km 기록', '저격 피해 +300%p.', setSk((s) => { s.snipe += 3; })),
-      uaug('kairo', 'pendant', '반쪽짜리 펜던트', '저격 후 스택 2개가 남는다.', setSk((s) => { s.keep = 2; })),
-      uaug('kairo', 'andante', '안단테-7 정비', '저격 치명타 확률 +30%p, 치명타 피해 +50%p.', { stats: { critDmg: 0.5 }, setup: (u) => { u.sk.snipeCrit += 0.3; } }),
-      uaug('kairo', 'eden', '에덴 글라스', '칵테일 보호막 +50%p.', setSk((s) => { s.shield += 0.5; })),
+      uaug('kairo', 'patience', '5개월의 잠복', '저격에 필요한 스택 -2 (4스택).', setSk((s) => { s.need -= 2; })),
+      uaug('kairo', 'record', '11.8km 기록', '저격 피해 +800%p.', setSk((s) => { s.snipe += 8; })),
+      uaug('kairo', 'pendant', '반쪽짜리 펜던트', '저격 후 스택 2개가 남고, 저격 피해 +400%p.', setSk((s) => { s.keep = 2; s.snipe += 4; })),
+      uaug('kairo', 'andante', '안단테-7 정비', '저격 치명타 확률 +40%p, 치명타 피해 +60%p.', { stats: { critDmg: 0.6 }, setup: (u) => { u.sk.snipeCrit += 0.4; } }),
+      uaug('kairo', 'eden', '에덴 글라스', '칵테일 보호막 +120%p.', setSk((s) => { s.shield += 1.2; })),
     ],
   },
   {
@@ -116,14 +116,14 @@ export const ROSTER_B: UnitDef[] = [
     sprite: 'robe', palette: tint(PAL.KAL, '#2a3a6a', '#e0b040', '#4060c0'), lore: '"날과 감각은 항상 예리해야 해. 이왕이면 카메라 각도도."',
     skill: support({
       name: '사라진 레시피 재현', cd: 4.5, target: 'strongest', power: cookPower, params: { heal: 1.2, dmg: 0.45, dur: 5, count: 1 },
-      desc: (p) => `[요리] 소실 직전의 레시피로 가장 강한 아군 ${p.count}명을 기술 위력 ${pct(p.heal)} 회복하고 ${p.dur}초간 피해 +${pct(p.dmg)}.`,
+      desc: (p) => `[요리] 소실 직전의 레시피로 가장 강한 아군 ${p.count}명을 기술 위력 ${pct(p.heal)} 회복하고 ${p.dur}초간 피해 +${pct(p.dmg)}${p.as ? `, 공격 속도 +${pct(p.as)}` : ''}.`,
     }),
     augs: [
-      uaug('zahara', 'tteok', '딸기 떡과 아몬드', '피해 증가 +15%p.', setSk((s) => { s.dmg += 0.15; })),
-      uaug('zahara', 'spice', '알-카흐란 향신료', '회복량 +40%p.', setSk((s) => { s.heal += 0.4; })),
-      uaug('zahara', 'tea', '유랑령의 차', '요리받은 아군 공격 속도 +20%.', setSk((s) => { s.as = 0.2; })),
+      uaug('zahara', 'tteok', '딸기 떡과 아몬드', '피해 증가 +45%p.', setSk((s) => { s.dmg += 0.45; })),
+      uaug('zahara', 'spice', '알-카흐란 향신료', '회복량 +120%p.', setSk((s) => { s.heal += 1.2; })),
+      uaug('zahara', 'tea', '유랑령의 차', '요리받은 아군 공격 속도 +40%.', setSk((s) => { s.as += 0.4; })),
       uaug('zahara', 'market', '흑정상회 식자재', '요리 대상 +1명.', setSk((s) => { s.count += 1; })),
-      uaug('zahara', 'camera', '아카이지온 카메라', '전투 승리 시 명성 +1.', {}, { after: (run, _u, won) => { if (won) run.fame += 1; } }),
+      uaug('zahara', 'camera', '아카이지온 카메라', '전투 승리 시 명성 +2. 피해 증가 +25%p.', setSk((s) => { s.dmg += 0.25; }), { after: (run, _u, won) => { if (won) run.fame += 2; } }),
     ],
   },
   {
@@ -134,15 +134,15 @@ export const ROSTER_B: UnitDef[] = [
     lore: '"체온 관리는 중요해. 이상 체온은 베헤모스를 자극할 수 있어."',
     skill: support({
       name: '치유 탄환', cd: 7, target: 'lowest', params: { heal: 1.8, petDmg: 0.4 },
-      desc: (p) => `의료 드론이 체력 비율이 가장 낮은 아군에게 치유 탄환을 꽂아 기술 위력 ${pct(p.heal)} 회복. 베헤모스는 4초간 피해 +${pct(p.petDmg)}.`,
+      desc: (p) => `의료 드론이 체력 비율이 가장 낮은 아군에게 치유 탄환을 꽂아 기술 위력 ${pct(p.heal)} 회복${p.shield ? ` + ${pct(p.shield)} 보호막` : ''}${p.cleanse ? ', 해로운 상태이상 제거' : ''}${p.red ? `, 4초간 받는 피해 -${pct(p.red)}` : ''}. 베헤모스는 4초간 피해 +${pct(p.petDmg)}.`,
       after: (b, u, _ts, p) => { for (const d of summonsOf(b, u)) b.buff(u, d, 'bianca.behemoth', 4, { mods: [inc('all', p.petDmg)], label: '변이' }); },
     }),
     augs: [
-      uaug('bianca', 'hands', '신의 손', '회복량 +50%p.', setSk((s) => { s.heal += 0.5; })),
-      uaug('bianca', 'carapace', '갑각류형 프리셋', '베헤모스 스탯 상속률 +20%p, 방어도 +300.', { setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.2; u.mem.summonArmor = (u.mem.summonArmor || 0) + 300; } }),
-      uaug('bianca', 'pheromone', '식별 페로몬', '치유 탄환이 기술 위력 80% 보호막도 준다.', setSk((s) => { s.shield = 0.8; })),
-      uaug('bianca', 'scalpel', '투척 메스', '공격 속도 +20%, 치명타 확률 +15%p.', { stats: { atkSpd: 0.2, crit: 0.15 } }),
-      uaug('bianca', 'wash', '손 씻기 일곱 번', '치유 탄환 대상의 해로운 상태이상 제거.', setSk((s) => { s.cleanse = 1; })),
+      uaug('bianca', 'hands', '신의 손', '회복량 +180%p.', setSk((s) => { s.heal += 1.8; })),
+      uaug('bianca', 'carapace', '갑각류형 프리셋', '베헤모스 스탯 상속률 +25%p, 방어도 +250.', { setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.25; u.mem.summonArmor = (u.mem.summonArmor || 0) + 250; } }),
+      uaug('bianca', 'pheromone', '식별 페로몬', '치유 탄환이 기술 위력 180% 보호막도 준다.', setSk((s) => { s.shield += 1.8; })),
+      uaug('bianca', 'scalpel', '투척 메스', '공격 속도 +25%, 치명타 확률 +20%p, 치명타 피해 +35%p.', { stats: { atkSpd: 0.25, crit: 0.2, critDmg: 0.35 } }),
+      uaug('bianca', 'wash', '손 씻기 일곱 번', '치유 탄환 대상의 해로운 상태이상 제거, 4초간 받는 피해 -30%.', setSk((s) => { s.cleanse = 1; s.red += 0.3; })),
     ],
   },
   // ───────── 헬레니우스 동맹
@@ -159,10 +159,10 @@ export const ROSTER_B: UnitDef[] = [
       desc: (p) => `염동력으로 탄환의 작용점을 비튼다. 주변 ${p.radius}칸 아군 ${p.dur}초간 받는 피해 -${pct(p.red)}, 회피 +${pct(p.eva)}p.`,
     }),
     augs: [
-      uaug('zephyro', 'sail', '넓은 돛', '범위 +1칸.', setSk((s) => { s.radius += 1; })),
-      uaug('zephyro', 'athena', '아테나의 축복', '받는 피해 감소 +10%p.', setSk((s) => { s.red += 0.1; })),
-      uaug('zephyro', 'detour', '우회 항로', '회피 증가 +10%p.', setSk((s) => { s.eva += 0.1; })),
-      uaug('zephyro', 'nap', '느긋한 항해', '지속 +3초.', setSk((s) => { s.dur += 3; })),
+      uaug('zephyro', 'sail', '넓은 돛', '범위 +1칸, 받는 피해 감소 +6%p.', setSk((s) => { s.radius += 1; s.red += 0.06; })),
+      uaug('zephyro', 'athena', '아테나의 축복', '받는 피해 감소 +20%p.', setSk((s) => { s.red += 0.2; })),
+      uaug('zephyro', 'detour', '우회 항로', '회피 증가 +25%p.', setSk((s) => { s.eva += 0.25; })),
+      uaug('zephyro', 'nap', '느긋한 항해', '지속 +3초, 받는 피해 감소 +10%p, 회피 증가 +5%p.', setSk((s) => { s.dur += 3; s.red += 0.1; s.eva += 0.05; })),
       uaug('zephyro', 'pen', '투필', '사거리 +1, 공격 속도 +25%.', { stats: { range: 1, atkSpd: 0.25 } }),
     ],
   },
@@ -176,11 +176,11 @@ export const ROSTER_B: UnitDef[] = [
       after: (b, u, _t, _d, p) => { const a = b.lowestHpAlly(u); if (a) b.shield(a, b.S(u, 'tech') * p.supply); },
     }),
     augs: [
-      uaug('phyllis', 'rush', '균열 돌진', '균열 도약이 2회 공격 (두 번째 60%).', setSk((s) => { s.hits = 2; })),
-      uaug('phyllis', 'supply', '긴급 조달', '전송 보호막 +60%p.', setSk((s) => { s.supply += 0.6; })),
-      uaug('phyllis', 'slack', '농땡이', '처치하면 쿨다운 70% 회복.', setSk((s) => { s.resetOnKill = 0.7; })),
-      uaug('phyllis', 'tail', '꼬리 매달리기', '회피 +15%p, 방어력 +3.', { stats: { eva: 0.15 }, majors: { def: 3 } }),
-      uaug('phyllis', 'prayers', '1,364종 기도문', '전투 승리 시 신앙 +1.', {}, faithWin),
+      uaug('phyllis', 'rush', '균열 돌진', '균열 도약이 2회 공격 (두 번째 100%).', setSk((s) => { s.hits = 2; s.second = 1; })),
+      uaug('phyllis', 'supply', '긴급 조달', '전송 보호막 +80%p.', setSk((s) => { s.supply += 0.8; })),
+      uaug('phyllis', 'slack', '농땡이', '처치하면 쿨다운 100% 회복.', setSk((s) => { s.resetOnKill = 1; })),
+      uaug('phyllis', 'tail', '꼬리 매달리기', '회피 +15%p, 방어력 +9.', { stats: { eva: 0.15 }, majors: { def: 9 } }),
+      uaug('phyllis', 'prayers', '1,364종 기도문', '전투 승리 시 신앙 +2. 균열 도약 피해 +130%p.', setSk((s) => { s.mult += 1.3; }), faithWin),
     ],
   },
   {
@@ -199,11 +199,11 @@ export const ROSTER_B: UnitDef[] = [
       },
     }),
     augs: [
-      uaug('eleni', 'baklava', '바클라바 세 조각', '보호막 +50%p.', setSk((s) => { s.guard += 0.5; })),
-      uaug('eleni', 'harp', '하프 연주', '회복량 +40%p.', setSk((s) => { s.mend += 0.4; })),
-      uaug('eleni', 'lighthouse', '등대지기', '달빛 진혼 범위 +1칸.', setSk((s) => { s.radius += 1; })),
-      uaug('eleni', 'moon', '태양이 꺼져도 달은 뜬다', '달빛 진혼 대상 4초간 방어도 +250.', setSk((s) => { s.armor = 250; })),
-      uaug('eleni', 'blade', '위협용 대검', '대검 피해 +60%p.', setSk((s) => { s.mult += 0.6; })),
+      uaug('eleni', 'baklava', '바클라바 세 조각', '보호막 +100%p.', setSk((s) => { s.guard += 1.0; })),
+      uaug('eleni', 'harp', '하프 연주', '회복량 +50%p.', setSk((s) => { s.mend += 0.5; })),
+      uaug('eleni', 'lighthouse', '등대지기', '달빛 진혼 범위 +1칸, 피해 +30%p.', setSk((s) => { s.radius += 1; s.mult += 0.3; })),
+      uaug('eleni', 'moon', '태양이 꺼져도 달은 뜬다', '달빛 진혼 대상 4초간 방어도 +400.', setSk((s) => { s.armor += 400; })),
+      uaug('eleni', 'blade', '위협용 대검', '대검 피해 +120%p.', setSk((s) => { s.mult += 1.2; })),
     ],
   },
   {
@@ -222,10 +222,10 @@ export const ROSTER_B: UnitDef[] = [
     }),
     augs: [
       uaug('iris', 'kerykeion', '케리케이온 레플리카', '가속 대상 +1명.', setSk((s) => { s.count += 1; })),
-      uaug('iris', 'blessing', '헤르메스의 축복', '공격 속도 증가 +15%p.', setSk((s) => { s.as += 0.15; })),
-      uaug('iris', 'goods', '공식 굿즈 사업', '전투 승리 시 크레딧 +2.', {}, { after: (run, _u, won) => { if (won) run.credits += 2; } }),
-      uaug('iris', 'sparta', '스파르타 생존 무술', '회피 +15%p, 기동력 +2.', { stats: { eva: 0.15 }, majors: { agi: 2 } }),
-      uaug('iris', 'praise', '헤르메스님 찬양', '전투 승리 시 신앙 +1.', {}, faithWin),
+      uaug('iris', 'blessing', '헤르메스의 축복', '공격 속도 증가 +35%p.', setSk((s) => { s.as += 0.35; })),
+      uaug('iris', 'goods', '공식 굿즈 사업', '전투 승리 시 크레딧 +3. 교란 피해 +70%p.', setSk((s) => { s.jam += 0.7; }), { after: (run, _u, won) => { if (won) run.credits += 3; } }),
+      uaug('iris', 'sparta', '스파르타 생존 무술', '회피 +15%p, 기동력 +9.', { stats: { eva: 0.15 }, majors: { agi: 9 } }),
+      uaug('iris', 'praise', '헤르메스님 찬양', '전투 승리 시 신앙 +2. 공포 확률 +20%p.', setSk((s) => { s.fearChance += 0.2; }), faithWin),
     ],
   },
   {
@@ -234,14 +234,14 @@ export const ROSTER_B: UnitDef[] = [
     sprite: 'soldier', palette: tint(PAL.HEL, '#4a6a3a', '#d8c090', '#ffd34d'), lore: '20년 걸려 귀환했다. 집 비밀번호는 아직 기억난다.',
     skill: strike({
       name: '귀환의 화살', cd: 6, pow: 'shoot', elem: 'phys', mult: 2.6, target: 'lowest', params: { crit: 0.3 },
-      desc: (p) => `체력 비율이 가장 낮은 적에게 사격 위력 ${pct(p.mult)} 물리 피해 (치명타 확률 +${pct(p.crit)}p).`,
+      desc: (p) => `체력 비율이 가장 낮은 적에게 사격 위력 ${pct(p.mult)} 물리 피해${p.hits > 1 ? ` ${p.hits}회` : ''} (치명타 확률 +${pct(p.crit)}p)${p.bleed ? `, 4초간 초당 사격 위력 ${pct(p.bleed)} 출혈` : ''}.`,
     }),
     augs: [
-      uaug('odysseus', 'twin', '두 발의 화살', '귀환의 화살을 2회 쏜다 (두 번째 60%).', setSk((s) => { s.hits = 2; })),
-      uaug('odysseus', 'hunt', '사냥 귀환', '처치하면 쿨다운 70% 회복.', setSk((s) => { s.resetOnKill = 0.7; })),
-      uaug('odysseus', 'bow', '명궁', '치명타 확률 +20%p.', setSk((s) => { s.crit += 0.2; })),
-      uaug('odysseus', 'barb', '미늘 화살촉', '맞은 적 4초간 초당 사격 위력 30% 출혈.', setSk((s) => { s.bleed = 0.3; })),
-      uaug('odysseus', 'horse', '트로이 목마', '전투 시작 후 3초간 회피 +50%p.', { hooks: { onStart(b, u) { b.buff(u, u, 'ody.horse', 3, { delta: { eva: 0.5 }, label: '목마' }); } } }),
+      uaug('odysseus', 'twin', '두 발의 화살', '귀환의 화살을 2회 쏜다 (두 번째 100%).', setSk((s) => { s.hits = 2; s.second = 1; })),
+      uaug('odysseus', 'hunt', '사냥 귀환', '처치하면 쿨다운 100% 회복.', setSk((s) => { s.resetOnKill = 1; })),
+      uaug('odysseus', 'bow', '명궁', '귀환의 화살 치명타 확률 +30%p, 치명타 피해 +60%p.', { stats: { critDmg: 0.6 }, setup: (u) => { u.sk.crit += 0.3; } }),
+      uaug('odysseus', 'barb', '미늘 화살촉', '맞은 적 4초간 초당 사격 위력 50% 출혈.', setSk((s) => { s.bleed = (s.bleed || 0) + 0.5; })),
+      uaug('odysseus', 'horse', '트로이 목마', '회피 +15%p, 전투 시작 후 6초간 회피 +50%p.', { stats: { eva: 0.15 }, hooks: { onStart(b, u) { b.buff(u, u, 'ody.horse', 6, { delta: { eva: 0.5 }, label: '목마' }); } } }),
     ],
   },
   {
@@ -254,7 +254,7 @@ export const ROSTER_B: UnitDef[] = [
     },
     skill: {
       name: '기총 소사', cd: 7, params: { shots: 6, mult: 0.5, shock: 0, crit: 0 },
-      desc: (p) => `무작위 적에게 사격 위력 ${pct(p.mult)} 물리 사격 ${p.shots}회.`,
+      desc: (p) => `무작위 적에게 사격 위력 ${pct(p.mult)} 물리 사격 ${p.shots}회${p.crit ? ` (치명타 확률 +${pct(p.crit)}p)` : ''}${p.shock ? `, 발당 ${pct(p.shock)} 확률로 1.5초 감전` : ''}.`,
       cast(b, u) {
         if (!b.enemiesOf(u).length) return false;
         const p = u.sk;
@@ -271,10 +271,10 @@ export const ROSTER_B: UnitDef[] = [
     },
     augs: [
       uaug('argon', 'ammo', '탄띠 추가', '기총 소사 +3발.', setSk((s) => { s.shots += 3; })),
-      uaug('argon', 'caliber', '대구경 기관포', '기총 소사 발당 피해 +15%p.', setSk((s) => { s.mult += 0.15; })),
-      uaug('argon', 'tracer', '전기 예광탄', '발당 20% 확률로 1.5초 감전.', setSk((s) => { s.shock = 0.2; })),
-      uaug('argon', 'roll', '배럴 롤', '회피 +15%p, 기동력 +3.', { stats: { eva: 0.15 }, majors: { agi: 3 } }),
-      uaug('argon', 'gunsight', '조준 사격', '기총 소사 치명타 확률 +25%p.', setSk((s) => { s.crit = 0.25; })),
+      uaug('argon', 'caliber', '대구경 기관포', '기총 소사 발당 피해 +60%p.', setSk((s) => { s.mult += 0.6; })),
+      uaug('argon', 'tracer', '전기 예광탄', '발당 40% 확률로 1.5초 감전.', setSk((s) => { s.shock += 0.4; })),
+      uaug('argon', 'roll', '배럴 롤', '회피 +15%p, 기동력 +9.', { stats: { eva: 0.15 }, majors: { agi: 9 } }),
+      uaug('argon', 'gunsight', '조준 사격', '기총 소사 치명타 확률 +30%p, 치명타 피해 +60%p.', { stats: { critDmg: 0.6 }, setup: (u) => { u.sk.crit += 0.3; } }),
     ],
   },
 ];
