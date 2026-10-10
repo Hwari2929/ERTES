@@ -36,7 +36,9 @@ export const CFG = {
   maxRank: 99, // 10 이상은 스탯만
   augmentMaxRank: 10, // 이 등급까지만 증강 선택
   xpToNext: (rank: number) => 2 + 2 * rank, // 1→2: 4pt … 9→10: 20pt [임시]
-  rankPoints: (newRank: number) => (newRank % 5 === 0 ? 8 : 3), // 5의 배수 등급은 +8 [임시]
+  // 등급업: 모든 메이저 +rankAll, 서로 다른 메이저 rankPicks개를 골라 각각 +rankPoints
+  rankAll: 1, rankPicks: 2,
+  rankPoints: (newRank: number) => (newRank % 5 === 0 ? 5 : 1), // 5의 배수 등급은 +5
   forcedUnitAugRanks: [3, 6, 9],
   xpPool: (phase: number) => 6 + 3 * phase, // 전투 1회 공명도 풀 [임시]
   buyXpCost: 4, buyXpAmount: 4, // [임시]

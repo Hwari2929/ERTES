@@ -16,10 +16,8 @@ function resolvePending(run: RunState, bot: Rng) {
     else if (p.t === 'rankup') {
       const u = run.units.find((x) => x.uid === p.uid)!;
       const d = UNIT_BY_ID[u.defId];
-      const alloc: Record<Major, number> = { vit: 0, pow: 0, mnd: 0, def: 0, agi: 0 };
-      const pref: Major[] = d.range <= 1 ? ['vit', 'def', 'pow'] : ['pow', 'mnd', 'vit'];
-      for (let i = 0; i < p.points; i++) alloc[pref[i % pref.length]]++;
-      R.applyRankAlloc(run, p.uid, alloc);
+      const pref: Major[] = d.range <= 1 ? ['vit', 'pow'] : ['pow', 'mnd'];
+      R.applyRankPicks(run, p.uid, pref, p.points);
       R.ensureRankupOptions(run, p);
       if (p.options!.length) R.chooseAug(run, p.uid, bot.pick(p.options!));
     } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));

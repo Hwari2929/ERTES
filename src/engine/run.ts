@@ -325,6 +325,7 @@ export function settleXp(run: RunState, u: UnitState) {
 
 function rankUp(run: RunState, u: UnitState) {
   u.rank++;
+  for (const k of MAJORS) u.alloc[k] += CFG.rankAll; // 모든 메이저 자동 상승
   run.pending.push({ t: 'rankup', uid: u.uid, rank: u.rank, points: CFG.rankPoints(u.rank), options: null, rerolls: CFG.augmentRerolls, allocDone: false });
 }
 
@@ -476,9 +477,12 @@ export function recruit(run: RunState, defId: string) {
   log(run, `${UNIT_BY_ID[defId].name} 합류 (공명 ${rank})`);
 }
 
-export function applyRankAlloc(run: RunState, uid: string, alloc: Record<Major, number>) {
-  const u = run.units.find((x) => x.uid === uid)!;
-  for (const k of MAJORS) u.alloc[k] += alloc[k];
+/** 등급업 선택: 서로 다른 메이저 CFG.rankPicks개에 각각 points만큼 */
+export function applyRankPicks(run: RunState, uid: string, picks: Major[], points: number): boolean {
+  const u = run.units.find((x) => x.uid === uid);
+  if (!u || new Set(picks).size !== CFG.rankPicks || picks.length !== CFG.rankPicks) return false;
+  for (const k of picks) u.alloc[k] += points;
+  return true;
 }
 export function chooseAug(run: RunState, uid: string, pick: AugPick) {
   const u = run.units.find((x) => x.uid === uid)!;

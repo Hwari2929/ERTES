@@ -27,7 +27,7 @@ const app = {
   menu: null as null | 'menu' | 'export' | 'import',
   view: null as BattleView | null,
   summary: null as R.BattleSummary | null,
-  alloc: { vit: 0, pow: 0, mnd: 0, def: 0, agi: 0 } as Record<Major, number>,
+  picks: [] as Major[],
   speed: 1,
   toast: '',
   toastT: 0 as ReturnType<typeof setTimeout> | 0,
@@ -466,17 +466,16 @@ function pendingModal(run: RunState): string {
     const d = UNIT_BY_ID[u.defId];
     const head = `<div class="d-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="accent">공명 등급 ${p.rank - 1} → ${p.rank}</div></div></div>`;
     if (!p.allocDone) {
-      const used = MAJORS.reduce((s, m) => s + app.alloc[m], 0);
-      const left = p.points - used;
+      const left = CFG.rankPicks - app.picks.length;
       const effects = unitEffects(run, u, synergyCounts(deployed(run)), !!u.pos);
       const tm = totalMajors(u, effects);
       const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? Math.round((v as number) * 100) + '%' : v}`).join(', ');
       body = `<h1>공명 등급 상승</h1>${head}
-        <p class="muted">메이저 스탯 포인트 <b class="accent">${p.points}</b>를 배분하세요. 1포인트마다 아래 마이너 스탯이 함께 오릅니다.${p.rank > CFG.augmentMaxRank ? ' 공명 등급 10을 넘으면 증강 없이 스탯만 오릅니다.' : ''}</p>
-        <div class="alloc">${MAJORS.map((m) => `<div class="alloc-row"><span class="a-name">${MAJOR_NAME[m]} <b>${tm[m]}</b>${app.alloc[m] ? `<b class="up"> +${app.alloc[m]}</b>` : ''}</span>
+        <p class="muted">모든 메이저 스탯이 <b class="accent">+${CFG.rankAll}</b> 올랐습니다 (반영됨). 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.rank % 5 === 0 ? ' (5의 배수 등급 보너스)' : ''} 올리세요.${p.rank > CFG.augmentMaxRank ? ' 공명 등급 10을 넘으면 증강 없이 스탯만 오릅니다.' : ''}</p>
+        <div class="alloc">${MAJORS.map((m) => { const on = app.picks.includes(m); return `<div class="alloc-row"><span class="a-name">${MAJOR_NAME[m]} <b>${tm[m]}</b>${on ? `<b class="up"> +${p.points}</b>` : ''}</span>
           <span class="small muted">${conv(m)}</span>
-          <span class="a-btns"><button class="btn tiny" data-a="alloc-dec" data-v="${m}" ${app.alloc[m] ? '' : 'disabled'}>−</button><button class="btn tiny" data-a="alloc-inc" data-v="${m}" ${left ? '' : 'disabled'}>+</button></span></div>`).join('')}</div>
-        <button class="btn primary" data-a="alloc-ok" ${left ? 'disabled' : ''}>${left ? `${left}포인트 남음` : '확정'}</button>`;
+          <span class="a-btns"><button class="btn tiny ${on ? 'primary' : ''}" data-a="alloc-pick" data-v="${m}" ${on || left ? '' : 'disabled'}>${on ? '선택됨' : '선택'}</button></span></div>`; }).join('')}</div>
+        <button class="btn primary" data-a="alloc-ok" ${left ? 'disabled' : ''}>${left ? `${left}개 더 고르세요` : '확정'}</button>`;
     } else {
       R.ensureRankupOptions(run, p);
       const forced = CFG.forcedUnitAugRanks.includes(p.rank);
@@ -689,13 +688,17 @@ function act(a: string, v: string) {
     case 'loan': if (run) { toast(R.takeLoan(run) ? '대출 실행: 크레딧 +25' : '대출할 수 없습니다.'); persist(); } break;
     // 대기 선택
     case 'pick-global': if (run) { R.pickGlobal(run, v); run.pending.shift(); persist(); } break;
-    case 'alloc-inc': app.alloc[v as Major]++; break;
-    case 'alloc-dec': app.alloc[v as Major] = Math.max(0, app.alloc[v as Major] - 1); break;
+    case 'alloc-pick': {
+      const m = v as Major;
+      if (app.picks.includes(m)) app.picks = app.picks.filter((x) => x !== m);
+      else if (app.picks.length < CFG.rankPicks) app.picks.push(m);
+      break;
+    }
     case 'alloc-ok': {
       const p = run?.pending[0];
       if (!run || p?.t !== 'rankup') return;
-      R.applyRankAlloc(run, p.uid, app.alloc);
-      app.alloc = { vit: 0, pow: 0, mnd: 0, def: 0, agi: 0 };
+      if (!R.applyRankPicks(run, p.uid, app.picks, p.points)) return;
+      app.picks = [];
       p.allocDone = true;
       if (p.rank > CFG.augmentMaxRank) run.pending.shift(); // 10등급 초과: 스탯만
       persist();
