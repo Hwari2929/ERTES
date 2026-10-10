@@ -1,6 +1,6 @@
 // 시리우스 성도회 · 범은하 공동체 · 엘베스타드 일가
 import { inc, vuln } from '../engine/effects';
-import { blinkTo, bleed, fear, pct, skillHit, summonsOf } from './kit';
+import { blinkTo, bleed, cleanse, fear, pct, skillHit, summonsOf } from './kit';
 import { cookPower, strike, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type UnitDef } from './unitkit';
 
@@ -43,35 +43,70 @@ export const ROSTER_C: UnitDef[] = [
     ],
   },
   {
-    id: 'joshua', name: '조슈아', title: '성도회 순회 사제', factions: ['SIR'], traits: ['MED', 'CLERIC'], keywords: ['bio'],
-    atk: { type: 'shoot', elem: 'holy', interval: 1.1 }, range: 3, base: B(7, 6, 8, 5, 4),
-    sprite: 'robe', palette: PAL.SIR, lore: '"주님은 모든 것을 용서하십니다. 저는 아직 검토 중입니다."',
-    skill: support({
-      name: '축복의 빛', cd: 8, target: 'all', params: { heal: 0.7 },
-      desc: (p) => `모든 아군을 기술 위력 ${pct(p.heal)} 회복.`,
-    }),
+    id: 'joshua', name: '조슈아', title: '최초의 계약자 · 상담관 (체사레)', factions: ['SIR'], traits: ['MED', 'CLERIC'], keywords: ['bio'],
+    atk: { type: 'shoot', elem: 'holy', interval: 1.1 }, range: 3, base: B(8, 7, 7, 5, 4),
+    sprite: 'robe', palette: tint(PAL.SIR, '#2a5a4a', '#e8e2c8', '#40c0a0'), lore: '"항상 몸 조심해요"',
+    passive: {
+      hooks: {
+        onHurt(b, u) {
+          if (u.mem.cesare || b.hpPct(u) > u.sk.threshold) return;
+          // 체사레 강제 전환: 양손 도끼 순례자를 들고 전방으로
+          u.mem.cesare = 1;
+          u.st.range = 1;
+          u.atk = { type: 'strike', elem: 'phys', interval: 0.8 };
+          u.target = b.nearest(u, b.enemiesOf(u));
+          b.buff(u, u, 'joshua.cesare', 999, { mods: [inc('all', u.sk.rage)], label: '체사레' });
+          b.fx(u.x, u.y, 1, 'psy');
+          for (const e of b.around(u, 1, b.enemiesOf(u))) fear(b, u, e, 1.5, u.sk.fearChance);
+        },
+        onTick(b, u, dt) {
+          if (!u.mem.cesare) return;
+          u.mem.regenT = (u.mem.regenT || 0) + dt;
+          if (u.mem.regenT >= 1) { u.mem.regenT = 0; b.heal(u, u, b.S(u, 'maxHp') * u.sk.regen, true); }
+        },
+      },
+    },
+    skill: {
+      name: '재생 촉진', cd: 8, params: { heal: 0.7, cleanse: 0, threshold: 0.4, rage: 0.4, regen: 0.03, fearChance: 0.6 },
+      desc: (p) => `모든 아군의 자연 치유를 가속해 기술 위력 ${pct(p.heal)} 회복${p.cleanse ? ' + 해로운 상태이상 제거' : ''}. 체력이 처음 ${pct(p.threshold)} 이하가 되면 체사레로 전환: 근접 도끼 공격, 피해 +${pct(p.rage)}, 초당 최대 체력 ${pct(p.regen)} 재생, 주변 적 ${pct(p.fearChance)} 확률 공포. 체사레의 재생 촉진은 자신에게만 2배로 쓰인다.`,
+      cast(b, u) {
+        if (!b.enemiesOf(u).length) return false;
+        const p = u.sk;
+        if (u.mem.cesare) {
+          b.heal(u, u, b.S(u, 'tech') * p.heal * 2, true);
+          b.fx(u.x, u.y, 1, 'psy');
+          for (const e of b.around(u, 1, b.enemiesOf(u))) fear(b, u, e, 1.5, p.fearChance);
+          return true;
+        }
+        const allies = b.alliesOf(u);
+        if (allies.every((a) => b.hpPct(a) > 0.95) && !p.cleanse) return false;
+        b.fx(u.x, u.y, 0, 'holy');
+        for (const a of allies) { b.heal(u, a, b.S(u, 'tech') * p.heal); if (p.cleanse) cleanse(a); }
+        return true;
+      },
+    },
     augs: [
-      uaug('joshua', 'grace', '넘치는 은혜', '회복량 +30%p.', setSk((s) => { s.heal += 0.3; })),
-      uaug('joshua', 'aegis', '빛의 방패', '축복의 빛이 기술 위력 40% 보호막도 준다.', setSk((s) => { s.shield = 0.4; })),
-      uaug('joshua', 'purge', '정화', '모든 아군의 해로운 상태이상 제거.', setSk((s) => { s.cleanse = 1; })),
-      uaug('joshua', 'sanct', '성역', '4초간 모든 아군 받는 피해 -12%.', setSk((s) => { s.red = 0.12; })),
-      uaug('joshua', 'mass', '미사 집전', '전투 승리 시 신앙 +1.', {}, faithWin),
+      uaug('joshua', 'regen', '회복 속도의 극대화', '재생 촉진 회복량 +30%p.', setSk((s) => { s.heal += 0.3; })),
+      uaug('joshua', 'calm', '정신 안정', '재생 촉진이 해로운 상태이상도 제거한다.', setSk((s) => { s.cleanse = 1; })),
+      uaug('joshua', 'pilgrim', '순례자', '체사레의 피해 증가 +30%p.', setSk((s) => { s.rage += 0.3; })),
+      uaug('joshua', 'tips', '붉어지는 머리끝', '체력 60% 이하에서 체사레로 전환.', setSk((s) => { s.threshold = 0.6; })),
+      uaug('joshua', 'wave', '공포의 파동', '체사레 공포 확률 +30%p, 재생 +2%p.', setSk((s) => { s.fearChance += 0.3; s.regen += 0.02; })),
     ],
   },
   {
-    id: 'sarma', name: '사르마', title: '성도회 시간 저격수', factions: ['SIR'], traits: ['TIME', 'MARK'], keywords: ['bio'],
-    atk: { type: 'shoot', elem: 'phys', interval: 1.2 }, range: 5, base: B(5, 10, 8, 3, 5),
-    sprite: 'soldier', palette: tint(PAL.SIR, '#e8e2c8', '#3a3550', '#c0b0ff'), lore: '이미 맞은 총알을 이제 쏠 뿐이다.',
+    id: 'sarma', name: '사르마', title: '미래 은하에서 온 시간 여행자 · 차원 연구자', factions: ['SIR'], traits: ['TIME', 'MARK'], keywords: ['bio'],
+    atk: { type: 'shoot', elem: 'phys', interval: 1.2 }, range: 4, base: B(6, 10, 8, 3, 5),
+    sprite: 'soldier', palette: tint(PAL.SIR, '#6a5aa0', '#e8e2c8', '#c0b0ff'), lore: '"아, 실례했군요. 죄송해요. 제가 이번 은하는 처음이라."',
     skill: strike({
-      name: '정해진 미래', cd: 6, pow: 'shoot', elem: 'phys', mult: 2.6, params: { crit: 0.2, noMiss: 1 },
-      desc: (p) => `대상에게 반드시 명중하는 사격 위력 ${pct(p.mult)} 물리 피해 (치명타 확률 +${pct(p.crit)}p)${p.hits > 1 ? ` ${p.hits}회` : ''}.`,
+      name: '포켓 블랙홀', cd: 7, pow: 'shoot', elem: 'phys', mult: 2.0, params: { radius: 1, slow: 0.4 },
+      desc: (p) => `융합포로 대상 지점에 소형 블랙홀을 열어 주변 ${p.radius}칸 적에게 사격 위력 ${pct(p.mult)} 물리 피해 + 둔화${p.stun ? ` + ${p.stun}초 기절` : ''}.`,
     }),
     augs: [
-      uaug('sarma', 'fate', '확정된 결말', '정해진 미래 피해 +60%p.', setSk((s) => { s.mult += 0.6; })),
-      uaug('sarma', 'echo', '시간의 메아리', '2회 사격 (두 번째 60%).', setSk((s) => { s.hits = 2; })),
-      uaug('sarma', 'certain', '필연', '치명타 확률 +20%p.', setSk((s) => { s.crit += 0.2; })),
-      uaug('sarma', 'through', '시간 관통', '방어도 관통 40%.', setSk((s) => { s.pen = 0.4; })),
-      uaug('sarma', 'loop', '반복되는 오늘', '처치하면 쿨다운 60% 회복.', setSk((s) => { s.resetOnKill = 0.6; })),
+      uaug('sarma', 'singularity', '특이점 확장', '블랙홀 범위 +1칸.', setSk((s) => { s.radius += 1; })),
+      uaug('sarma', 'fusion', '융합 출력 증폭', '블랙홀 피해 +60%p.', setSk((s) => { s.mult += 0.6; })),
+      uaug('sarma', 'horizon', '사건의 지평선', '블랙홀에 맞은 적 0.8초 기절.', setSk((s) => { s.stun = 0.8; })),
+      uaug('sarma', 'thesis', '차원 이론 논문', '방어도 관통 40%.', setSk((s) => { s.pen = 0.4; })),
+      uaug('sarma', 'sorry', '이번 은하는 처음이라', '회피 +15%p, 효과 저항 +20%p.', { stats: { eva: 0.15, effRes: 0.2 } }),
     ],
   },
   {
@@ -183,20 +218,20 @@ export const ROSTER_C: UnitDef[] = [
     ],
   },
   {
-    id: 'yupito', name: '유피토', title: '공동체 고철 발명가', factions: ['PAN'], traits: ['SPEC', 'ENG'], keywords: ['bio'],
+    id: 'yupito', name: '유피토', title: '"강철의 마녀" 특수공학자', factions: ['PAN'], traits: ['SPEC', 'ENG'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'elec', interval: 1.0 }, range: 3, base: B(6, 7, 9, 5, 3),
-    sprite: 'medic', palette: tint(PAL.PAN, '#8a7a5a', '#9a5ad0', '#62d6ff'), lore: '버려진 건 없다. 아직 쓰임새를 못 찾았을 뿐.',
+    sprite: 'medic', palette: tint(PAL.PAN, '#2a3a6a', '#40e0c0', '#40e0c0'), lore: '"공학자는 언제나 상상력과 비장의 한 수가 있는 법이지"',
     skill: support({
-      name: '임시 방벽', cd: 7, target: 'lowest', params: { radius: 1, shield: 1.0, turretShield: 1.0 },
+      name: '임시 에너지 장벽', cd: 7, target: 'lowest', params: { radius: 1, shield: 1.0, turretShield: 1.0 },
       desc: (p) => `체력 비율이 가장 낮은 아군과 주변 ${p.radius}칸 아군에게 기술 위력 ${pct(p.shield)} 보호막. 모든 포탑에도 ${pct(p.turretShield)} 보호막.`,
       after: (b, u, _ts, p) => { for (const t of b.alliesOf(u)) if (t.defId === 'turret') b.shield(t, b.S(u, 'tech') * p.turretShield); },
     }),
     augs: [
-      uaug('yupito', 'scrap', '고철 보강', '보호막 +50%p.', setSk((s) => { s.shield += 0.5; })),
-      uaug('yupito', 'wide', '대형 방벽', '범위 +1칸.', setSk((s) => { s.radius += 1; })),
-      uaug('yupito', 'heavy', '고철 포탑', '엔지니어 포탑 체력·방어도 +60%.', { setup: (u) => { u.mem.turretHp = (u.mem.turretHp || 0) + 0.6; } }),
-      uaug('yupito', 'spare', '조립식 포탑', '엔지니어 포탑 +1기.', { setup: (u) => { u.mem.turretExtra = (u.mem.turretExtra || 0) + 1; } }),
-      uaug('yupito', 'plate', '철판 덧대기', '방벽 대상 4초간 방어도 +250.', setSk((s) => { s.armor = 250; })),
+      uaug('yupito', 'hull', '폐선 외벽', '보호막 +50%p.', setSk((s) => { s.shield += 0.5; })),
+      uaug('yupito', 'choke', '진입로 봉쇄', '범위 +1칸.', setSk((s) => { s.radius += 1; })),
+      uaug('yupito', 'spider', '거미집 포탑', '엔지니어 포탑 체력·방어도 +60%.', { setup: (u) => { u.mem.turretHp = (u.mem.turretHp || 0) + 0.6; } }),
+      uaug('yupito', 'kongi', '콩이에서 꺼낸 포탑', '엔지니어 포탑 +1기.', { setup: (u) => { u.mem.turretExtra = (u.mem.turretExtra || 0) + 1; } }),
+      uaug('yupito', 'trump', '비장의 한 수', '장벽 대상 4초간 방어도 +250.', setSk((s) => { s.armor = 250; })),
     ],
   },
   {

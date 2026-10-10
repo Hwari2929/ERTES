@@ -26,6 +26,8 @@ export interface UnitDef {
   item?: string;
   /** 시작 기물로 고를 수 없음 */
   noStarter?: boolean;
+  /** 기물 고유 패시브 (조슈아의 체사레 전환 등) */
+  passive?: Effect;
 }
 
 export interface SummonDef {

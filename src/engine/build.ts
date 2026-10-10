@@ -59,6 +59,8 @@ export function makeCtx(run: RunState | null, unit: UnitState | null, counts: Co
 /** 기물 하나에 적용되는 모든 효과 */
 export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, onBoard: boolean): Effect[] {
   const out: Effect[] = [];
+  const passive = UNIT_BY_ID[u.defId].passive;
+  if (passive) out.push(passive);
   for (const a of u.augments) { const d = AUG_BY_ID[a.id]; if (d) out.push(d.effect(a.param)); }
   for (const it of u.items) if (it) out.push(itemEffect(it));
   if (onBoard) {

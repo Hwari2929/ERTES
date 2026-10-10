@@ -6,7 +6,7 @@ import { B, PAL, setSk, tint, uaug, type UnitDef } from './unitkit';
 
 const nat = (n: number) => ({ setup: (u: { mem: Record<string, number> }) => { u.mem.natureExtra = (u.mem.natureExtra || 0) + n; } });
 const faithWin = { after: (run: { faith: number }, _u: unknown, won: boolean) => { if (won) run.faith += 1; } };
-const HOUND = ['#140808', '#8a2020', '#e0b040', '#d0a080', '#ffe040', '#4a2020', '#fff0c0'];
+const BEHEMOTH = ['#140608', '#6a1020', '#b02030', '#d06060', '#ffcf40', '#3a0810', '#ff8080'];
 
 export const ROSTER_B: UnitDef[] = [
   // ───────── 칼리토 제국
@@ -127,22 +127,22 @@ export const ROSTER_B: UnitDef[] = [
     ],
   },
   {
-    id: 'bianca', name: '비앙카', title: '제국 황녀 · 사냥개 루비', factions: ['KAL'], traits: ['BUDDY', 'MED'], keywords: ['bio'],
-    atk: { type: 'shoot', elem: 'phys', interval: 1.1 }, range: 3, base: B(7, 6, 8, 5, 4),
-    sprite: 'medic', palette: tint(PAL.KAL, '#f0e0ff', '#a8283a', '#ffd34d'),
-    summon: { name: '루비', sprite: 'beast', palette: HOUND, atk: { type: 'strike', elem: 'phys', interval: 0.8 }, range: 1, hpMul: 1.0 },
-    lore: '궁정 예법 수업보다 사냥개 훈련 시간이 길었다.',
+    id: 'bianca', name: '비앙카', title: '"냉혈한 성녀" 수석 군의관', factions: ['KAL'], traits: ['BUDDY', 'MED'], keywords: ['bio'],
+    atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(7, 6, 8, 5, 4),
+    sprite: 'medic', palette: tint(PAL.KAL, '#f0f0f0', '#5a3a2a', '#80c0ff'),
+    summon: { name: '베헤모스', sprite: 'crawler', palette: BEHEMOTH, atk: { type: 'strike', elem: 'phys', interval: 0.9 }, range: 1, hpMul: 1.4 },
+    lore: '"체온 관리는 중요해. 이상 체온은 베헤모스를 자극할 수 있어."',
     skill: support({
-      name: '호루라기', cd: 7, target: 'lowest', params: { heal: 1.8, petDmg: 0.4 },
-      desc: (p) => `체력 비율이 가장 낮은 아군을 기술 위력 ${pct(p.heal)} 회복. 루비는 4초간 피해 +${pct(p.petDmg)}.`,
-      after: (b, u, _ts, p) => { for (const d of summonsOf(b, u)) b.buff(u, d, 'bianca.whistle', 4, { mods: [inc('all', p.petDmg)], label: '물어!' }); },
+      name: '치유 탄환', cd: 7, target: 'lowest', params: { heal: 1.8, petDmg: 0.4 },
+      desc: (p) => `의료 드론이 체력 비율이 가장 낮은 아군에게 치유 탄환을 꽂아 기술 위력 ${pct(p.heal)} 회복. 베헤모스는 4초간 피해 +${pct(p.petDmg)}.`,
+      after: (b, u, _ts, p) => { for (const d of summonsOf(b, u)) b.buff(u, d, 'bianca.behemoth', 4, { mods: [inc('all', p.petDmg)], label: '변이' }); },
     }),
     augs: [
-      uaug('bianca', 'nurse', '황실 시의', '회복량 +50%p.', setSk((s) => { s.heal += 0.5; })),
-      uaug('bianca', 'ruby', '명견 혈통', '루비 스탯 상속률 +30%p.', { setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.3; } }),
-      uaug('bianca', 'guard', '호위', '호루라기가 기술 위력 80% 보호막도 준다.', setSk((s) => { s.shield = 0.8; })),
-      uaug('bianca', 'pack', '사냥개 무리', '사냥개를 하나 더 데려온다 (상속률 60%).', { setup: (u) => { u.mem.extraSummon = (u.mem.extraSummon || 0) + 1; } }),
-      uaug('bianca', 'royal', '황녀의 권위', '작위 +1, 생명력 +3.', { title: 1, majors: { vit: 3 } }),
+      uaug('bianca', 'hands', '신의 손', '회복량 +50%p.', setSk((s) => { s.heal += 0.5; })),
+      uaug('bianca', 'carapace', '갑각류형 프리셋', '베헤모스 스탯 상속률 +20%p, 방어도 +300.', { setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.2; u.mem.summonArmor = (u.mem.summonArmor || 0) + 300; } }),
+      uaug('bianca', 'pheromone', '식별 페로몬', '치유 탄환이 기술 위력 80% 보호막도 준다.', setSk((s) => { s.shield = 0.8; })),
+      uaug('bianca', 'scalpel', '투척 메스', '공격 속도 +20%, 치명타 확률 +15%p.', { stats: { atkSpd: 0.2, crit: 0.15 } }),
+      uaug('bianca', 'wash', '손 씻기 일곱 번', '치유 탄환 대상의 해로운 상태이상 제거.', setSk((s) => { s.cleanse = 1; })),
     ],
   },
   // ───────── 헬레니우스 동맹
