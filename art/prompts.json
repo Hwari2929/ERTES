@@ -23,9 +23,9 @@
   "donovan": {
     "name": "도노반",
     "subject": "1boy",
-    "tags": "adult male, slender, purple hair, messy hair, stubble, dark circles, grey eyes, heterochromia, cross-shaped pupils, hacker, grey hoodie, hood down, hoodie strings, black suit jacket over hoodie, black pants, combat boots, holographic screen, holographic interface, floating screens, code, wrist computer, cables, typing, small drone, tired, smirk, full body, standing, looking at viewer",
-    "source": "lore",
-    "notes": "해커 분위기 강화: 홀로그램 화면·코드·케이블. 드론 '까악이'는 작게 1대."
+    "tags": "adult male, slender, purple hair, messy hair, stubble, tired eyes, cross-shaped pupil, glowing eye, headphones, hacker, black hoodie, zipper, harness straps, cargo pants, khaki pants, thigh holster, knife sheath, multiple knives, fingerless gloves, wrist device, holding gun, hand on head, crow on shoulder, black crow, combat shoes, full body, standing, looking at viewer",
+    "source": "user",
+    "notes": "사용자 지정 최종본(art/picked/donovan.webp). 태그는 그 이미지 기준으로 역기술. 까마귀 = 해킹 드론 '까악이'."
   },
   "chloe": {
     "name": "클로에",
@@ -95,7 +95,11 @@
     "subject": "1boy",
     "tags": "young man, bishounen, toned, slender, black hair, messy hair, brown eyes, fair skin, rosy cheeks, middle eastern clothes, arabian clothes, dark clothes, black kurta, dark navy vest, long sleeves, fitted sleeves, dark sash, dark pants, gold trim, gold embroidery, boots, holding crystal, glowing crystal, white crystal, grin, energetic, full body, standing, looking at viewer",
     "source": "lore",
-    "notes": "중동풍이되 덜 나풀거리게, 어두운 톤(사용자 지정). 세피르 수정상 출신."
+    "notes": "중동풍이되 덜 나풀거리게, 어두운 톤(사용자 지정). 세피르 수정상 출신. | 시안 방향: alts 참조(나디르 smuggler/ops, 필리스 tinker/loot). 필리스 성 아스포델로스 → 아스포델 꽃 장식.",
+    "alts": {
+      "smuggler": "young man, toned, black hair, messy hair, brown eyes, fair skin, rosy cheeks, handsome, middle eastern, street clothes, dark clothes, black shemagh, scarf around neck, dark hooded short cape, fitted dark tunic, arm wraps, bandaged forearms, dark cargo pants, belt pouches, crystal vials, crystals in pouch, leather boots, holding crystal, glowing white crystal, holographic text, smirk, energetic, from front, full body, standing, looking at viewer",
+      "ops": "young man, toned, black hair, messy hair, brown eyes, fair skin, rosy cheeks, handsome, black suit, jacket off shoulder, white shirt, sleeves rolled up, open collar, red keffiyeh, patterned scarf, black gloves, black slacks, floating crystals, white crystal shards, glowing runes, psionic, magic circle, leaning back, playful, open mouth grin, dynamic pose, from front, full body, standing, looking at viewer"
+    }
   },
   "temur": {
     "name": "테무르",
@@ -137,7 +141,11 @@
     "subject": "1girl",
     "tags": "young woman, petite, short, grey hair, short hair, cat ears, cat tail, yellow eyes, slit pupils, long fingers, black suit, black jacket, sleeves rolled up, white shirt, tools in pockets, holding wrench, holding screwdriver, mischievous, grin, fang, full body, standing, looking at viewer",
     "source": "lore",
-    "notes": "재생성. 'extra ears'가 형태를 망가뜨릴 수 있어 제거. 에란테스 정장 소매 걷음 + 공구."
+    "notes": "재생성. 'extra ears'가 형태를 망가뜨릴 수 있어 제거. 에란테스 정장 소매 걷음 + 공구. | 시안 방향: alts 참조(나디르 smuggler/ops, 필리스 tinker/loot). 필리스 성 아스포델로스 → 아스포델 꽃 장식.",
+    "alts": {
+      "tinker": "young woman, slim, grey hair, short hair, messy hair, cat ears, cat tail, curled tail, yellow eyes, slit pupils, asphodel flower hair ornament, goggles on head, black vest, white shirt, sleeves rolled up, loose necktie, suit jacket tied around waist, black pants, tool belt, utility pouches, holding gadget, half-built device, screwdriver in mouth, sparks, focused, from front, straight-on, full body, standing, looking at viewer",
+      "loot": "young woman, slim, grey hair, short hair, cat ears, cat tail, raised tail, yellow eyes, slit pupils, asphodel flower hair ornament, oversized black suit jacket, sleeves rolled up, white shirt, black necktie, black pants, sneakers, duffel bag over shoulder, bag full of parts, hand in pocket, lollipop in mouth, one eye closed, wink, mischievous, fang, from front, straight-on, full body, standing, looking at viewer"
+    }
   },
   "eleni": {
     "name": "엘레니",
@@ -240,9 +248,9 @@
   "amundsen": {
     "name": "아문센",
     "subject": "1boy",
-    "tags": "old man, elderly, wrinkles, handsome old man, fit body, white hair, neat hair, hair strand, white beard, short beard, yellow eyes, half-closed eyes, black suit, tailored suit, gold stitching, anchor badge, lapel pin, gold pocket watch, holding pocket watch, looking at pocket watch, watch chain, sitting, on couch, sofa, leather sofa, crossed legs, relaxed, gentleman, full body",
-    "source": "lore",
-    "notes": "신체 나이는 30대지만 얼굴은 노년(사용자 지정). 소파에 앉아 회중시계 '그늘'을 보는 구도."
+    "tags": "old man, elderly, handsome old man, white hair, long hair, slicked back hair, white beard, mustache, yellow eyes, half-closed eyes, black suit, tailored suit, black necktie, pocket square, gold pocket watch, holding pocket watch, gold chain, chains, sitting, on couch, black sofa, chesterfield sofa, crossed legs, hand on own face, thinking, full body",
+    "source": "user",
+    "notes": "사용자 지정 최종본(art/picked/amundsen.webp). 소파 + 회중시계 '그늘' + 사방의 금사슬."
   },
   "rachel": {
     "name": "레이첼",
