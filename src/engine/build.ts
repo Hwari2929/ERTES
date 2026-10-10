@@ -173,7 +173,7 @@ function spawnSummons(b: Battle, owner: CUnit, sd: SummonDef) {
   const n = 1 + (owner.mem.extraSummon || 0);
   const base = Math.min(1.5, (owner.mem.bond || 0.35) + (owner.mem.bondBonus || 0));
   for (let i = 0; i < n; i++) {
-    const r = i === 0 ? base : base * 0.6;
+    const r = i === 0 ? base : base * 0.8; // 추가 소환물은 상속률 80%
     const s = blankUnit(owner.side);
     const o = owner.st;
     const st = emptyStats();

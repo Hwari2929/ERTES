@@ -30,7 +30,7 @@ export const CFG = {
   lateFrom: 5, lateHp: 0.9, lateAmp: 1.09,
   phaseHpFactor: (p: number) => (p <= 5 ? 2.05 : Math.max(1.1, 2 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
   adversityMult: 1.6,
-  enemyHpMul: 1.5, enemyPowMul: 1.5, // 적 기초 수치 전체 배율 (튜닝용)
+  enemyHpMul: 2.0, enemyPowMul: 2.0, // 적 기초 수치 전체 배율 (튜닝용)
 
   // ── 성장
   maxRank: 99, // 10 이상은 스탯만

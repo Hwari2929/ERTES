@@ -211,7 +211,7 @@ export const ROSTER_A: UnitDef[] = [
       },
     },
     augs: [
-      uaug('lars', 'guards', '경호 인력 증원', '경호원이 한 명 더 붙는다 (상속률 60%). 경호원 방어도 +240. 관심이 지독한 편이다.', { setup: (u) => { u.mem.extraSummon = (u.mem.extraSummon || 0) + 1; u.mem.summonArmor = (u.mem.summonArmor || 0) + 240; } }),
+      uaug('lars', 'guards', '경호 인력 증원', '경호원이 한 명 더 붙는다 (상속률 80%). 경호원 방어도 +240. 관심이 지독한 편이다.', { setup: (u) => { u.mem.extraSummon = (u.mem.extraSummon || 0) + 1; u.mem.summonArmor = (u.mem.summonArmor || 0) + 240; } }),
       uaug('lars', 'elite', '정예 경호팀', '경호원 스탯 상속률 +40%p.', { setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.4; } }),
       uaug('lars', 'downstream', '10%의 하류', '손실은 항상 그가 아닌 쪽에 떨어진다. 거래 대상이 받는 피해 +30%.', setSk((s) => { s.vuln = 0.3; })),
       uaug('lars', 'terms', '상호 이익', '거래 조건 약화 +10%p, 지속 +3초.', setSk((s) => { s.weak += 0.1; s.dur += 3; })),
