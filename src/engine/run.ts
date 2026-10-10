@@ -342,7 +342,8 @@ export const xpCost = (run: RunState) => CFG.buyXpCost - (hasGlobal(run, 'G.stud
 
 // ───────────────────────── 증강 선택
 export function augOptions(run: RunState, u: UnitState, rank: number): AugPick[] {
-  if (rank > CFG.augmentMaxRank) return [];
+  if (!CFG.hasRankAug(rank)) return [];
+  const late = rank > CFG.augmentMaxRank; // 10등급 이후: 전용 증강 제외
   const def = UNIT_BY_ID[u.defId];
   const owned = new Set(u.augments.map((a) => a.id));
   const avail = (a: { id: string; stack?: boolean }) => a.stack || !owned.has(a.id);
@@ -352,7 +353,9 @@ export function augOptions(run: RunState, u: UnitState, rank: number): AugPick[]
   return rng(run, (r) => {
     const out: string[] = [];
     const forced = CFG.forcedUnitAugRanks.includes(rank) && unitPool.length > 0;
-    const pools = forced ? [{ w: 1, p: unitPool }] : [{ w: 0.3, p: unitPool }, { w: 0.4, p: synPool }, { w: 0.3, p: comPool }];
+    const pools = forced ? [{ w: 1, p: unitPool }]
+      : late ? [{ w: 0.55, p: synPool }, { w: 0.45, p: comPool }]
+      : [{ w: 0.3, p: unitPool }, { w: 0.4, p: synPool }, { w: 0.3, p: comPool }];
     for (let tries = 0; out.length < CFG.augmentChoices && tries < 60; tries++) {
       const live = pools.filter((x) => x.p.some((a) => !out.includes(a.id)));
       if (!live.length) break;

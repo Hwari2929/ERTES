@@ -30,11 +30,13 @@ export const CFG = {
   lateFrom: 5, lateHp: 0.95, lateAmp: 1.09,
   phaseHpFactor: (p: number) => (p <= 5 ? 2 : Math.max(1.1, 2 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
   adversityMult: 1.6,
-  enemyHpMul: 1.45, enemyPowMul: 1.45, // 적 기초 수치 전체 배율 (튜닝용)
+  enemyHpMul: 1.65, enemyPowMul: 1.65, // 적 기초 수치 전체 배율 (튜닝용)
 
   // ── 성장
   maxRank: 99, // 10 이상은 스탯만
-  augmentMaxRank: 10, // 이 등급까지만 증강 선택
+  augmentMaxRank: 10, // 이 등급까지는 매 등급 증강 선택
+  lateAugEvery: 5, // 그 이후에는 n등급마다 시너지 · 공용 증강 1개
+  hasRankAug: (rank: number) => rank <= CFG.augmentMaxRank || rank % CFG.lateAugEvery === 0,
   xpToNext: (rank: number) => 2 + 2 * rank, // 1→2: 4pt … 9→10: 20pt [임시]
   // 등급업: 모든 메이저 +rankAll, 서로 다른 메이저 rankPicks개를 골라 각각 +rankPoints
   rankAll: 1, rankPicks: 2,

@@ -471,7 +471,7 @@ function pendingModal(run: RunState): string {
       const tm = totalMajors(u, effects);
       const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? Math.round((v as number) * 100) + '%' : v}`).join(', ');
       body = `<h1>공명 등급 상승</h1>${head}
-        <p class="muted">모든 메이저 스탯이 <b class="accent">+${CFG.rankAll}</b> 올랐습니다 (반영됨). 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.rank % 5 === 0 ? ' (5의 배수 등급 보너스)' : ''} 올리세요.${p.rank > CFG.augmentMaxRank ? ' 공명 등급 10을 넘으면 증강 없이 스탯만 오릅니다.' : ''}</p>
+        <p class="muted">모든 메이저 스탯이 <b class="accent">+${CFG.rankAll}</b> 올랐습니다 (반영됨). 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.rank % 5 === 0 ? ' (5의 배수 등급 보너스)' : ''} 올리세요.${p.rank > CFG.augmentMaxRank ? (CFG.hasRankAug(p.rank) ? ` ${CFG.lateAugEvery}등급마다 시너지 · 공용 증강을 하나 더 고릅니다.` : ` 공명 등급 ${CFG.augmentMaxRank}을 넘으면 ${CFG.lateAugEvery}등급마다만 증강을 고릅니다.`) : ''}</p>
         <div class="alloc">${MAJORS.map((m) => { const on = app.picks.includes(m); return `<div class="alloc-row"><span class="a-name">${MAJOR_NAME[m]} <b>${tm[m]}</b>${on ? `<b class="up"> +${p.points}</b>` : ''}</span>
           <span class="small muted">${conv(m)}</span>
           <span class="a-btns"><button class="btn tiny ${on ? 'primary' : ''}" data-a="alloc-pick" data-v="${m}" ${on || left ? '' : 'disabled'}>${on ? '선택됨' : '선택'}</button></span></div>`; }).join('')}</div>
@@ -479,7 +479,8 @@ function pendingModal(run: RunState): string {
     } else {
       R.ensureRankupOptions(run, p);
       const forced = CFG.forcedUnitAugRanks.includes(p.rank);
-      body = `<h1>증강 선택</h1>${head}${forced ? '<p class="accent small">공명 등급 3 · 6 · 9 — 전용 증강 확정</p>' : ''}
+      const late = p.rank > CFG.augmentMaxRank;
+      body = `<h1>증강 선택</h1>${head}${forced ? '<p class="accent small">공명 등급 3 · 6 · 9 — 전용 증강 확정</p>' : ''}${late ? `<p class="accent small">공명 등급 ${p.rank} — 시너지 · 공용 증강 추가 선택</p>` : ''}
         <div class="cards">${(p.options || []).map((a, i) => {
           const ad = AUG_BY_ID[a.id];
           return `<button class="card aug-${ad.pool}" data-a="pick-aug" data-v="${i}"><span class="src">${augSource(ad)}</span><b>${esc(ad.name)}</b><span>${esc(augDesc(a.id, a.param))}</span></button>`;
@@ -700,7 +701,7 @@ function act(a: string, v: string) {
       if (!R.applyRankPicks(run, p.uid, app.picks, p.points)) return;
       app.picks = [];
       p.allocDone = true;
-      if (p.rank > CFG.augmentMaxRank) run.pending.shift(); // 10등급 초과: 스탯만
+      if (!CFG.hasRankAug(p.rank)) run.pending.shift(); // 10등급 초과: 5등급마다만 증강
       persist();
       break;
     }
