@@ -41,7 +41,8 @@ export function newRun(seed: number, starters: string[], field?: string, diff = 
   autoPlace(run);
   if (tierNow(run, 'CLERIC')) run.map.unshift(['pilgrim']);
   if (!field) run.field = rng(run, (r) => r.pick(FIELDS).id);
-  run.pending.push({ t: 'field' });
+  const joins = run.pending.splice(0); // 시작 기물 합류 증강은 전장 브리핑 다음에
+  run.pending.push({ t: 'field' }, ...joins);
   run.pending.push({ t: 'privilege', options: rollPrivileges(run), rerolls: CFG.privilegeRerolls });
   run.pending.push({ t: 'global', options: rollGlobals(run) });
   log(run, '용병단 ERRANTEs, 출격.');
@@ -129,6 +130,8 @@ export function addUnit(run: RunState, defId: string, rank: number): UnitState {
   if (!run.usedIds.includes(defId)) run.usedIds.push(defId);
   run.rankLog[defId] = Math.max(run.rankLog[defId] || 0, 1);
   for (let r = 2; r <= rank; r++) rankUp(run, u);
+  // 합류 즉시 전용 증강 1개
+  run.pending.push({ t: 'rankup', uid: u.uid, rank: u.rank, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, join: true });
   return u;
 }
 
@@ -437,8 +440,8 @@ export function buyXp(run: RunState, uid: string): boolean {
 export const xpCost = (run: RunState) => CFG.buyXpCost - (hasGlobal(run, 'G.study') ? 1 : 0);
 
 // ───────────────────────── 증강 선택
-export function augOptions(run: RunState, u: UnitState, rank: number): AugPick[] {
-  if (!CFG.hasRankAug(rank)) return [];
+export function augOptions(run: RunState, u: UnitState, rank: number, force = false): AugPick[] {
+  if (!force && !CFG.hasRankAug(rank)) return [];
   const def = UNIT_BY_ID[u.defId];
   const owned = new Set(u.augments.map((a) => a.id));
   const avail = (a: { id: string; stack?: boolean }) => a.stack || !owned.has(a.id);
@@ -454,7 +457,7 @@ export function augOptions(run: RunState, u: UnitState, rank: number): AugPick[]
 
 export function ensureRankupOptions(run: RunState, p: Extract<Pending, { t: 'rankup' }>) {
   const u = run.units.find((x) => x.uid === p.uid);
-  if (u && !p.options) p.options = augOptions(run, u, p.rank);
+  if (u && !p.options) p.options = augOptions(run, u, p.rank, !!p.join);
 }
 
 // ───────────────────────── 경제 / 아이템
@@ -739,7 +742,7 @@ function eventApi(run: RunState): EventApi {
     },
     randomItem: (t) => rng(run, (r) => { const a = r.pick(tierPool(t)); return t === 'L' ? 'L_' + a.slice(2) : a; }),
     augNow: (u) => {
-      const opts = augOptions(run, u, CFG.augEvery);
+      const opts = augOptions(run, u, u.rank, true);
       if (!opts.length) return null;
       u.augments.push(opts[0]);
       return AUG_BY_ID[opts[0].id]?.name || null;

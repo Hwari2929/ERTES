@@ -73,7 +73,7 @@ export type Pending =
   | { t: 'victory' }
   | { t: 'event'; id: string }
   | { t: 'privilege'; options: AugPick[]; rerolls: number }
-  | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean }
+  | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean; join?: boolean }
   | { t: 'itemPick'; options: string[]; title: string }
   | { t: 'recruit'; options: string[] }
   | { t: 'supply'; options: string[] }

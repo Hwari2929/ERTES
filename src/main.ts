@@ -550,7 +550,7 @@ function pendingModal(run: RunState): string {
   } else if (p.t === 'rankup') {
     const u = run.units.find((x) => x.uid === p.uid)!;
     const d = UNIT_BY_ID[u.defId];
-    const head = `<div class="d-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="accent">공명 등급 ${p.rank - 1} → ${p.rank}</div></div></div>`;
+    const head = `<div class="d-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="accent">${p.join ? `합류 · 공명 등급 ${p.rank}` : `공명 등급 ${p.rank - 1} → ${p.rank}`}</div></div></div>`;
     if (!p.allocDone) {
       const left = CFG.rankPicks - app.picks.length;
       const effects = unitEffects(run, u, synergyCounts(deployed(run), run), !!u.pos);
@@ -564,7 +564,7 @@ function pendingModal(run: RunState): string {
         <button class="btn primary" data-a="alloc-ok" ${left ? 'disabled' : ''}>${left ? `${left}개 더 고르세요` : '확정'}</button>`;
     } else {
       R.ensureRankupOptions(run, p);
-      body = `<h1>증강 선택</h1>${head}<p class="accent small">공명 등급 ${p.rank} — ${CFG.augEvery}등급마다 전용 증강 1개</p>
+      body = `<h1>${p.join ? '합류 증강' : '증강 선택'}</h1>${head}<p class="accent small">${p.join ? '합류 즉시 전용 증강 1개' : `공명 등급 ${p.rank} — ${CFG.augEvery}등급마다 전용 증강 1개`}</p>
         <div class="cards">${(p.options || []).map((a, i) => {
           const ad = AUG_BY_ID[a.id];
           return `<button class="card aug-${ad.pool}" data-a="pick-aug" data-v="${i}"><span class="src">${augSource(ad)}</span><b>${esc(ad.name)}</b><span>${esc(augDesc(a.id, a.param))}</span></button>`;
