@@ -47,6 +47,11 @@ function promptFor(id) {
   if (!p) throw new Error(`prompts.json 에 ${id} 없음`);
   const tags = alt ? p.alts?.[alt] : p.tags;
   if (!tags) throw new Error(`${id}: alts.${alt} 없음`);
+  // V5 알파: 흰 배경 태그 대신 transparent background (공식 앱처럼 품질 태그 앞에 넣음)
+  if (cfg.transparent) {
+    const base = cfg.base.replace(/,\s*white background|,\s*simple background/g, '');
+    return `${p.subject}, transparent background, ${base}, ${tags}`;
+  }
   return `${p.subject}, ${cfg.base}, ${tags}`;
 }
 
@@ -57,6 +62,7 @@ async function generate(id, seed) {
     parameters: {
       params_version: 3, width: cfg.width, height: cfg.height, scale: cfg.scale, sampler: cfg.sampler, steps: cfg.steps,
       n_samples: 1, ucPreset: 0, qualityToggle: false, seed, noise_schedule: cfg.noise_schedule, negative_prompt: cfg.negative,
+      ...(cfg.transparent ? { straight_alpha: true, tag_hint_transparent_background: true } : {}),
       cfg_rescale: 0, sm: false, sm_dyn: false, dynamic_thresholding: false, legacy: false, add_original_image: true,
       v4_prompt: { caption: { base_caption: input, char_captions: [] }, use_coords: false, use_order: true },
       v4_negative_prompt: { caption: { base_caption: cfg.negative, char_captions: [] }, legacy_uc: false },
