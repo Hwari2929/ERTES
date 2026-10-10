@@ -5,8 +5,8 @@ import { cookPower, strike, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type UnitDef } from './unitkit';
 
 const nat = (n: number) => ({ setup: (u: { mem: Record<string, number> }) => { u.mem.natureExtra = (u.mem.natureExtra || 0) + n; } });
-const faithWin = { after: (run: { faith: number }, _u: unknown, won: boolean) => { if (won) run.faith += 1; } };
-const fameWin = { after: (run: { fame: number }, _u: unknown, won: boolean) => { if (won) run.fame += 1; } };
+const faithWin = { after: (run: { faith: number }, _u: unknown, won: boolean) => { if (won) run.faith += 2; } };
+const fameWin = { after: (run: { fame: number }, _u: unknown, won: boolean) => { if (won) run.fame += 2; } };
 const extraPet = { setup: (u: { mem: Record<string, number> }) => { u.mem.extraSummon = (u.mem.extraSummon || 0) + 1; } };
 const bond = (v: number) => ({ setup: (u: { mem: Record<string, number> }) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + v; } });
 const WOLF = ['#101014', '#7a7a80', '#d8d8d8', '#b0b0b0', '#ffcf40', '#4a4a50', '#ffffff'];
@@ -26,7 +26,7 @@ export const ROSTER_C: UnitDef[] = [
         if (!t) return false;
         const p = u.sk;
         b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'phys', ranged: true });
-        for (let i = 0; i < p.hits && t.alive; i++) skillHit(b, u, t, 'strike', p.mult * (i ? 0.6 : 1), 'phys');
+        for (let i = 0; i < p.hits && t.alive; i++) skillHit(b, u, t, 'strike', p.mult * (i ? p.second || 0.6 : 1), 'phys');
         if (!t.alive) return true;
         if (b.dist(u, t) > 1 && !t.immobile && !t.isBoss) { blinkTo(b, t, u); t.target = u; }
         b.stun(u, t, p.stun);
@@ -35,11 +35,11 @@ export const ROSTER_C: UnitDef[] = [
       },
     },
     augs: [
-      uaug('romani', 'split', '양손 도끼 분리', '집행자 투척 2회 (두 번째 60%).', setSk((s) => { s.hits = 2; })),
-      uaug('romani', 'recall', '재가속', '투척 피해 +50%p.', setSk((s) => { s.mult += 0.5; })),
-      uaug('romani', 'shove', '염동 밀쳐내기', '끌려온 자리 주변 1칸 적에게 타격 위력 80% 피해.', setSk((s) => { s.splash = 0.8; })),
-      uaug('romani', 'counsel', '16년의 개종 상담', '효과 명중 +30%p, 기절 +0.5초.', { stats: { effHit: 0.3 }, setup: (u) => { u.sk.stun += 0.5; } }),
-      uaug('romani', 'uniform', '정복 관리 강박', '방어력 +4, 효과 저항 +20%p.', { majors: { def: 4 }, stats: { effRes: 0.2 } }),
+      uaug('romani', 'split', '양손 도끼 분리', '집행자 투척 2회 (두 번째도 100%).', setSk((s) => { s.hits = 2; s.second = 1; })),
+      uaug('romani', 'recall', '재가속', '투척 피해 +180%p.', setSk((s) => { s.mult += 1.8; })),
+      uaug('romani', 'shove', '염동 밀쳐내기', '끌려온 자리 주변 1칸 적에게 타격 위력 180% 피해, 투척 피해 +30%p.', setSk((s) => { s.splash = 1.8; s.mult += 0.3; })),
+      uaug('romani', 'counsel', '16년의 개종 상담', '효과 명중 +25%p, 기절 +1초.', { stats: { effHit: 0.25 }, setup: (u) => { u.sk.stun += 1; } }),
+      uaug('romani', 'uniform', '정복 관리 강박', '방어력 +6, 생명력 +3, 효과 저항 +25%p.', { majors: { def: 6, vit: 3 }, stats: { effRes: 0.25 } }),
     ],
   },
   {
@@ -86,11 +86,11 @@ export const ROSTER_C: UnitDef[] = [
       },
     },
     augs: [
-      uaug('joshua', 'regen', '회복 속도의 극대화', '재생 촉진 회복량 +30%p.', setSk((s) => { s.heal += 0.3; })),
-      uaug('joshua', 'calm', '정신 안정', '재생 촉진이 해로운 상태이상도 제거한다.', setSk((s) => { s.cleanse = 1; })),
-      uaug('joshua', 'pilgrim', '순례자', '체사레의 피해 증가 +30%p.', setSk((s) => { s.rage += 0.3; })),
-      uaug('joshua', 'tips', '붉어지는 머리끝', '체력 60% 이하에서 체사레로 전환.', setSk((s) => { s.threshold = 0.6; })),
-      uaug('joshua', 'wave', '공포의 파동', '체사레 공포 확률 +30%p, 재생 +2%p.', setSk((s) => { s.fearChance += 0.3; s.regen += 0.02; })),
+      uaug('joshua', 'regen', '회복 속도의 극대화', '재생 촉진 회복량 +70%p.', setSk((s) => { s.heal += 0.7; })),
+      uaug('joshua', 'calm', '정신 안정', '재생 촉진이 해로운 상태이상도 제거한다. 쿨다운 감소 속도 +25%.', { stats: { cdr: 0.25 }, setup: (u) => { u.sk.cleanse = 1; } }),
+      uaug('joshua', 'pilgrim', '순례자', '체사레의 피해 증가 +60%p.', setSk((s) => { s.rage += 0.6; })),
+      uaug('joshua', 'tips', '붉어지는 머리끝', '체력 70% 이하에서 체사레로 전환. 방어도 +250.', { stats: { armor: 250 }, setup: (u) => { u.sk.threshold = 0.7; } }),
+      uaug('joshua', 'wave', '공포의 파동', '체사레 공포 확률 +30%p, 재생 +3%p.', setSk((s) => { s.fearChance += 0.3; s.regen += 0.03; })),
     ],
   },
   {
@@ -99,14 +99,14 @@ export const ROSTER_C: UnitDef[] = [
     sprite: 'soldier', palette: tint(PAL.SIR, '#6a5aa0', '#e8e2c8', '#c0b0ff'), lore: '"아, 실례했군요. 죄송해요. 제가 이번 은하는 처음이라."',
     skill: strike({
       name: '포켓 블랙홀', cd: 7, pow: 'shoot', elem: 'phys', mult: 2.0, params: { radius: 1, slow: 0.4 },
-      desc: (p) => `융합포로 대상 지점에 소형 블랙홀을 열어 주변 ${p.radius}칸 적에게 사격 위력 ${pct(p.mult)} 물리 피해 + 둔화${p.stun ? ` + ${p.stun}초 기절` : ''}.`,
+      desc: (p) => `융합포로 대상 지점에 소형 블랙홀을 열어 주변 ${p.radius}칸 적에게 사격 위력 ${pct(p.mult)} 물리 피해 + 둔화${p.stun ? ` + ${p.stun}초 기절` : ''}${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}${p.pen ? ` (방어도 관통 ${pct(p.pen)})` : ''}.`,
     }),
     augs: [
-      uaug('sarma', 'singularity', '특이점 확장', '블랙홀 범위 +1칸.', setSk((s) => { s.radius += 1; })),
-      uaug('sarma', 'fusion', '융합 출력 증폭', '블랙홀 피해 +60%p.', setSk((s) => { s.mult += 0.6; })),
-      uaug('sarma', 'horizon', '사건의 지평선', '블랙홀에 맞은 적 0.8초 기절.', setSk((s) => { s.stun = 0.8; })),
-      uaug('sarma', 'thesis', '차원 이론 논문', '방어도 관통 40%.', setSk((s) => { s.pen = 0.4; })),
-      uaug('sarma', 'sorry', '이번 은하는 처음이라', '회피 +15%p, 효과 저항 +20%p.', { stats: { eva: 0.15, effRes: 0.2 } }),
+      uaug('sarma', 'singularity', '특이점 확장', '블랙홀 범위 +1칸, 피해 +30%p.', setSk((s) => { s.radius += 1; s.mult += 0.3; })),
+      uaug('sarma', 'fusion', '융합 출력 증폭', '블랙홀 피해 +200%p.', setSk((s) => { s.mult += 2.0; })),
+      uaug('sarma', 'horizon', '사건의 지평선', '블랙홀에 맞은 적 1.2초 기절.', setSk((s) => { s.stun = 1.2; })),
+      uaug('sarma', 'thesis', '차원 이론 논문', '방어도 관통 50%, 맞은 적 4초간 받는 피해 +20%.', setSk((s) => { s.pen = 0.5; s.vuln = 0.2; })),
+      uaug('sarma', 'sorry', '이번 은하는 처음이라', '회피 +15%p, 효과 저항 +25%p.', { stats: { eva: 0.15, effRes: 0.25 } }),
     ],
   },
   {
@@ -115,14 +115,14 @@ export const ROSTER_C: UnitDef[] = [
     sprite: 'knight', palette: PAL.SIR, lore: '적진 한가운데가 그의 제단이다.',
     skill: strike({
       name: '성전 돌입', cd: 8, pow: 'strike', elem: 'holy', mult: 1.6, target: 'backline', blink: true, params: { radius: 1, selfShield: 0.25 },
-      desc: (p) => `적 후방으로 돌입해 주변 ${p.radius}칸에 타격 위력 ${pct(p.mult)} 신성 피해, 최대 체력 ${pct(p.selfShield)} 보호막.`,
+      desc: (p) => `적 후방으로 돌입해 주변 ${p.radius}칸에 타격 위력 ${pct(p.mult)} 신성 피해${p.stun ? ` + ${p.stun}초 기절` : ''}, 최대 체력 ${pct(p.selfShield)} 보호막${p.lifesteal ? `, 피해의 ${pct(p.lifesteal)} 회복` : ''}.`,
     }),
     augs: [
-      uaug('kyle', 'bulwark', '성벽', '보호막 +20%p.', setSk((s) => { s.selfShield += 0.2; })),
-      uaug('kyle', 'smite', '징벌', '돌입에 맞은 적 0.8초 기절.', setSk((s) => { s.stun = 0.8; })),
-      uaug('kyle', 'crusade', '대성전', '돌입 피해 +40%p.', setSk((s) => { s.mult += 0.4; })),
-      uaug('kyle', 'tithe', '피의 십일조', '돌입 피해의 30%만큼 회복.', setSk((s) => { s.lifesteal = 0.3; })),
-      uaug('kyle', 'oath', '기사 서약', '방어력 +4, 효과 저항 +20%p.', { majors: { def: 4 }, stats: { effRes: 0.2 } }),
+      uaug('kyle', 'bulwark', '성벽', '보호막 +25%p.', setSk((s) => { s.selfShield += 0.25; })),
+      uaug('kyle', 'smite', '징벌', '돌입에 맞은 적 1.2초 기절.', setSk((s) => { s.stun = 1.2; })),
+      uaug('kyle', 'crusade', '대성전', '돌입 피해 +160%p.', setSk((s) => { s.mult += 1.6; })),
+      uaug('kyle', 'tithe', '피의 십일조', '돌입 피해의 60%만큼 회복, 흡혈 15%.', { stats: { lifesteal: 0.15 }, setup: (u) => { u.sk.lifesteal = 0.6; } }),
+      uaug('kyle', 'oath', '기사 서약', '방어력 +6, 생명력 +3, 효과 저항 +25%p.', { majors: { def: 6, vit: 3 }, stats: { effRes: 0.25 } }),
     ],
   },
   {
@@ -131,14 +131,14 @@ export const ROSTER_C: UnitDef[] = [
     sprite: 'robe', palette: tint(PAL.SIR, '#c8a070', '#ffffff', '#ffd866'), lore: '빵을 굽는 동안 기도하고, 기도하는 동안 빵을 굽는다.',
     skill: support({
       name: '성찬', cd: 4.5, target: 'lowest', power: cookPower, params: { heal: 1.8, cleanse: 1, dmg: 0.3, dur: 5 },
-      desc: (p) => `[요리] 체력 비율이 가장 낮은 아군을 기술 위력 ${pct(p.heal)} 회복, 해로운 상태이상 제거, ${p.dur}초간 피해 +${pct(p.dmg)}.`,
+      desc: (p) => `[요리] 체력 비율이 가장 낮은 아군을 기술 위력 ${pct(p.heal)} 회복, 해로운 상태이상 제거, ${p.dur}초간 피해 +${pct(p.dmg)}${p.shield ? `, ${pct(p.shield)} 보호막` : ''}${p.splash ? '. 주변 1칸 아군에게 50% 효과' : ''}.`,
     }),
     augs: [
-      uaug('doros', 'loaf', '큰 빵', '회복량 +40%p.', setSk((s) => { s.heal += 0.4; })),
-      uaug('doros', 'wine', '성배', '피해 증가 +15%p.', setSk((s) => { s.dmg += 0.15; })),
-      uaug('doros', 'share', '나눔', '요리받은 아군 주변 1칸에도 50% 효과.', setSk((s) => { s.splash = 1; })),
-      uaug('doros', 'crust', '단단한 껍질', '기술 위력 50% 보호막도 준다.', setSk((s) => { s.shield = 0.5; })),
-      uaug('doros', 'grace', '식전 기도', '전투 승리 시 신앙 +1.', {}, faithWin),
+      uaug('doros', 'loaf', '큰 빵', '회복량 +180%p.', setSk((s) => { s.heal += 1.8; })),
+      uaug('doros', 'wine', '성배', '피해 증가 +30%p.', setSk((s) => { s.dmg += 0.3; })),
+      uaug('doros', 'share', '나눔', '요리받은 아군 주변 1칸에도 50% 효과, 회복량 +30%p.', setSk((s) => { s.splash = 1; s.heal += 0.3; })),
+      uaug('doros', 'crust', '단단한 껍질', '기술 위력 120% 보호막도 준다.', setSk((s) => { s.shield = 1.2; })),
+      uaug('doros', 'grace', '식전 기도', '쿨다운 감소 속도 +25%. 전투 승리 시 신앙 +2.', { stats: { cdr: 0.25 } }, faithWin),
     ],
   },
   {
@@ -150,11 +150,11 @@ export const ROSTER_C: UnitDef[] = [
       desc: (p) => `체력 비율이 가장 낮은 아군을 기술 위력 ${pct(p.heal)} 회복하고 ${p.dur}초간 받는 피해 -${pct(p.red)}${p.radius ? ` (주변 ${p.radius}칸 포함)` : ''}.`,
     }),
     augs: [
-      uaug('demiurgos', 'warm', '따뜻한 손', '회복량 +50%p.', setSk((s) => { s.heal += 0.5; })),
-      uaug('demiurgos', 'here', '곁에 있을게', '피해 감소 +10%p, 지속 +2초.', setSk((s) => { s.red += 0.1; s.dur += 2; })),
-      uaug('demiurgos', 'together', '다 같이', '친구의 손길이 대상 주변 1칸에도 닿는다.', setSk((s) => { s.radius = 1; })),
-      uaug('demiurgos', 'gift', '선물', '모든 메이저 +2.', { majors: { vit: 2, pow: 2, mnd: 2, def: 2, agi: 2 } }),
-      uaug('demiurgos', 'listen', '들어 줄게', '친구의 손길 쿨다운 -1.5초.', setSk((_s, u) => { u.cdMax -= 1.5; })),
+      uaug('demiurgos', 'warm', '따뜻한 손', '회복량 +200%p.', setSk((s) => { s.heal += 2.0; })),
+      uaug('demiurgos', 'here', '곁에 있을게', '피해 감소 +10%p, 지속 +3초.', setSk((s) => { s.red += 0.1; s.dur += 3; })),
+      uaug('demiurgos', 'together', '다 같이', '친구의 손길이 대상 주변 1칸에도 닿는다. 회복량 +30%p.', setSk((s) => { s.radius = 1; s.heal += 0.3; })),
+      uaug('demiurgos', 'gift', '선물', '모든 메이저 +4.', { majors: { vit: 4, pow: 4, mnd: 4, def: 4, agi: 4 } }),
+      uaug('demiurgos', 'listen', '들어 줄게', '친구의 손길 쿨다운 -2초.', setSk((_s, u) => { u.cdMax -= 2; })),
     ],
   },
   // ───────── 범은하 공동체
@@ -171,14 +171,14 @@ export const ROSTER_C: UnitDef[] = [
     },
     skill: strike({
       name: '액체 금속 변형', cd: 6, pow: 'strike', elem: 'phys', mult: 2.2, target: 'lowest', blink: true, params: { fear: 0.8, fearChance: 0.4 },
-      desc: (p) => `고양이로 변해 체력 비율이 가장 낮은 적에게 파고들어 타격 위력 ${pct(p.mult)} 물리 피해${p.hits > 1 ? ` ${p.hits}회` : ''}. 환술로 ${pct(p.fearChance)} 확률 ${p.fear}초 공포.`,
+      desc: (p) => `고양이로 변해 체력 비율이 가장 낮은 적에게 파고들어 타격 위력 ${pct(p.mult)} 물리 피해${p.hits > 1 ? ` ${p.hits}회` : ''}. 환술로 ${pct(p.fearChance)} 확률 ${p.fear}초 공포${p.resetOnKill ? `. 처치 시 쿨다운 ${pct(p.resetOnKill)} 초기화` : ''}.`,
     }),
     augs: [
-      uaug('aiden', 'claw', '고양이 발톱', '변형 공격 피해 +50%p.', setSk((s) => { s.mult += 0.5; })),
-      uaug('aiden', 'mirage', '환영 분신', '변형 공격이 2회 공격 (두 번째 60%).', setSk((s) => { s.hits = 2; })),
-      uaug('aiden', 'butcher', '도륙 프로토콜', '처치하면 쿨다운 60% 회복.', setSk((s) => { s.resetOnKill = 0.6; })),
-      uaug('aiden', 'illusion', '인지 교란', '공포 확률 +40%p.', setSk((s) => { s.fearChance += 0.4; })),
-      uaug('aiden', 'groom', '그루밍', '회피 +15%p.', { stats: { eva: 0.15 } }),
+      uaug('aiden', 'claw', '고양이 발톱', '변형 공격 피해 +220%p.', setSk((s) => { s.mult += 2.2; })),
+      uaug('aiden', 'mirage', '환영 분신', '변형 공격이 2회 공격 (두 번째도 100%).', setSk((s) => { s.hits = 2; s.second = 1; })),
+      uaug('aiden', 'butcher', '도륙 프로토콜', '처치하면 쿨다운 100% 초기화.', setSk((s) => { s.resetOnKill = 1; })),
+      uaug('aiden', 'illusion', '인지 교란', '공포 확률 +40%p, 공포 지속 +0.5초.', setSk((s) => { s.fearChance += 0.4; s.fear += 0.5; })),
+      uaug('aiden', 'groom', '그루밍', '회피 +25%p.', { stats: { eva: 0.25 } }),
     ],
   },
   {
@@ -189,7 +189,7 @@ export const ROSTER_C: UnitDef[] = [
     lore: '"흠흠- 만나서 반가워! 나는 정찰과 은하 생태학을 담당하는 비비안이야."',
     skill: {
       name: '동물 교감', cd: 7, params: { mult: 2.3, stun: 1, kazoo: 0, vuln: 0 },
-      desc: (p) => `리키에게 공격 지시를 내린다. 리키가 비비안의 대상에게 덮쳐 리키 타격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절. 리키가 없으면 비비안이 직접 사격 위력 150%로 쏜다.`,
+      desc: (p) => `리키에게 공격 지시를 내린다. 리키가 비비안의 대상에게 덮쳐 리키 타격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}${p.kazoo ? `. 모든 아군 3초간 공격 속도 +${pct(p.kazoo)}` : ''}. 리키가 없으면 비비안이 직접 사격 위력 150%로 쏜다.`,
       cast(b, u) {
         const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u));
         if (!t) return false;
@@ -210,11 +210,11 @@ export const ROSTER_C: UnitDef[] = [
       },
     },
     augs: [
-      uaug('vivian', 'trust', '깊은 신뢰', '리키 스탯 상속률 +30%p.', bond(0.3)),
-      uaug('vivian', 'pack', '야생 동료 호출', '동물 동료를 하나 더 부른다 (상속률 60%).', extraPet),
-      uaug('vivian', 'kazoo', '카주 연주', '교감할 때 모든 아군 공격 속도 3초간 +20%.', setSk((s) => { s.kazoo = 0.2; })),
-      uaug('vivian', 'record', '생태 기록 강박', '교감 대상은 4초간 받는 피해 +20%.', setSk((s) => { s.vuln = 0.2; })),
-      uaug('vivian', 'kit', '생존 키트와 신호기', '캠핑 러버 임시 장비 +1개, 기동력 +3.', { ...nat(1), majors: { agi: 3 } }),
+      uaug('vivian', 'trust', '깊은 신뢰', '리키 스탯 상속률 +40%p.', bond(0.4)),
+      uaug('vivian', 'pack', '야생 동료 호출', '동물 동료를 하나 더 부른다 (상속률 80%).', extraPet),
+      uaug('vivian', 'kazoo', '카주 연주', '교감할 때 모든 아군 공격 속도 3초간 +40%.', setSk((s) => { s.kazoo = 0.4; })),
+      uaug('vivian', 'record', '생태 기록 강박', '교감 대상은 4초간 받는 피해 +30%.', setSk((s) => { s.vuln = 0.3; })),
+      uaug('vivian', 'kit', '생존 키트와 신호기', '캠핑 러버 임시 장비 +1개, 정신력 +5, 기동력 +3.', { ...nat(1), majors: { mnd: 5, agi: 3 } }),
     ],
   },
   {
@@ -223,15 +223,15 @@ export const ROSTER_C: UnitDef[] = [
     sprite: 'medic', palette: tint(PAL.PAN, '#2a3a6a', '#40e0c0', '#40e0c0'), lore: '"공학자는 언제나 상상력과 비장의 한 수가 있는 법이지"',
     skill: support({
       name: '임시 에너지 장벽', cd: 7, target: 'lowest', params: { radius: 1, shield: 1.0, turretShield: 1.0 },
-      desc: (p) => `체력 비율이 가장 낮은 아군과 주변 ${p.radius}칸 아군에게 기술 위력 ${pct(p.shield)} 보호막. 모든 포탑에도 ${pct(p.turretShield)} 보호막.`,
+      desc: (p) => `체력 비율이 가장 낮은 아군과 주변 ${p.radius}칸 아군에게 기술 위력 ${pct(p.shield)} 보호막${p.armor ? `, ${p.dur}초간 방어도 +${p.armor}` : ''}. 모든 포탑에도 ${pct(p.turretShield)} 보호막.`,
       after: (b, u, _ts, p) => { for (const t of b.alliesOf(u)) if (t.defId === 'turret') b.shield(t, b.S(u, 'tech') * p.turretShield); },
     }),
     augs: [
-      uaug('yupito', 'hull', '폐선 외벽', '보호막 +50%p.', setSk((s) => { s.shield += 0.5; })),
-      uaug('yupito', 'choke', '진입로 봉쇄', '범위 +1칸.', setSk((s) => { s.radius += 1; })),
-      uaug('yupito', 'spider', '거미집 포탑', '엔지니어 포탑 체력·방어도 +60%.', { setup: (u) => { u.mem.turretHp = (u.mem.turretHp || 0) + 0.6; } }),
-      uaug('yupito', 'kongi', '콩이에서 꺼낸 포탑', '엔지니어 포탑 +1기.', { setup: (u) => { u.mem.turretExtra = (u.mem.turretExtra || 0) + 1; } }),
-      uaug('yupito', 'trump', '비장의 한 수', '장벽 대상 4초간 방어도 +250.', setSk((s) => { s.armor = 250; })),
+      uaug('yupito', 'hull', '폐선 외벽', '보호막 +100%p.', setSk((s) => { s.shield += 1.0; })),
+      uaug('yupito', 'choke', '진입로 봉쇄', '범위 +1칸, 보호막 +30%p.', setSk((s) => { s.radius += 1; s.shield += 0.3; })),
+      uaug('yupito', 'spider', '거미집 포탑', '엔지니어 포탑 체력·방어도 +60%, 공격 속도 +40%.', { setup: (u) => { u.mem.turretHp = (u.mem.turretHp || 0) + 0.6; u.mem.turretAs = (u.mem.turretAs || 0) + 0.4; } }),
+      uaug('yupito', 'kongi', '콩이에서 꺼낸 포탑', '엔지니어 포탑 +1기, 포탑 체력·방어도 +40%.', { setup: (u) => { u.mem.turretExtra = (u.mem.turretExtra || 0) + 1; u.mem.turretHp = (u.mem.turretHp || 0) + 0.4; } }),
+      uaug('yupito', 'trump', '비장의 한 수', '장벽 대상 4초간 방어도 +400.', setSk((s) => { s.armor = 400; })),
     ],
   },
   {
@@ -244,11 +244,11 @@ export const ROSTER_C: UnitDef[] = [
       desc: (p) => `대상 주변 ${p.radius}칸에 기술 위력 ${pct(p.mult)} 정신 피해, ${pct(p.fearChance)} 확률로 ${p.fear}초 공포${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}.`,
     }),
     augs: [
-      uaug('ingel', 'flight', 'Flight!', '무대 범위 +1칸.', setSk((s) => { s.radius += 1; })),
-      uaug('ingel', 'nordic', 'Nordic Monster', '공포 확률 +30%p.', setSk((s) => { s.fearChance += 0.3; })),
-      uaug('ingel', 'ubermensch', 'Übermensch', '무대 피해 +40%p.', setSk((s) => { s.mult += 0.4; })),
-      uaug('ingel', 'meursault', 'MEURSAULT', '맞은 적 4초간 받는 피해 +20%.', setSk((s) => { s.vuln = 0.2; })),
-      uaug('ingel', 'deer', '흰사슴의 채무자', '관심을 빚진 만큼 갚는다. 전투 승리 시 명성 +1.', {}, fameWin),
+      uaug('ingel', 'flight', 'Flight!', '무대 범위 +1칸, 피해 +30%p.', setSk((s) => { s.radius += 1; s.mult += 0.3; })),
+      uaug('ingel', 'nordic', 'Nordic Monster', '공포 확률 +35%p.', setSk((s) => { s.fearChance += 0.35; })),
+      uaug('ingel', 'ubermensch', 'Übermensch', '무대 피해 +170%p.', setSk((s) => { s.mult += 1.7; })),
+      uaug('ingel', 'meursault', 'MEURSAULT', '맞은 적 4초간 받는 피해 +30%.', setSk((s) => { s.vuln = 0.3; })),
+      uaug('ingel', 'deer', '흰사슴의 채무자', '관심을 빚진 만큼 갚는다. 쿨다운 감소 속도 +25%. 전투 승리 시 명성 +2.', { stats: { cdr: 0.25 } }, fameWin),
     ],
   },
   // ───────── 엘베스타드 일가
@@ -263,14 +263,14 @@ export const ROSTER_C: UnitDef[] = [
     },
     skill: strike({
       name: '에란테-7703 화력 지원', cd: 8, pow: 'shoot', elem: 'phys', mult: 2.8, target: 'farthest', params: { pen: 0.3, slow: 0.3 },
-      desc: (p) => `30년을 함께한 개조 기체가 가장 먼 적을 사격 위력 ${pct(p.mult)} 물리 피해로 포격 (방어도 관통 ${pct(p.pen)}) + 둔화${p.hits > 1 ? `, ${p.hits}회` : ''}${p.radius ? `, 주변 ${p.radius}칸` : ''}.`,
+      desc: (p) => `30년을 함께한 개조 기체가 가장 먼 적을 사격 위력 ${pct(p.mult)} 물리 피해로 포격 (방어도 관통 ${pct(p.pen)}${p.crit ? `, 치명타 확률 +${pct(p.crit)}` : ''}) + 둔화${p.hits > 1 ? `, ${p.hits}회` : ''}${p.radius ? `, 주변 ${p.radius}칸` : ''}.`,
     }),
     augs: [
-      uaug('amundsen', 'wander', '30년의 유랑', '화력 지원 피해 +80%p.', setSk((s) => { s.mult += 0.8; })),
-      uaug('amundsen', 'refit', '수십 번의 개조', '방어도 관통 +30%p.', setSk((s) => { s.pen += 0.3; })),
-      uaug('amundsen', 'twin', '2연사', '화력 지원 2회 (두 번째 60%).', setSk((s) => { s.hits = 2; })),
-      uaug('amundsen', 'carpet', '융단 사격', '화력 지원이 대상 주변 1칸에도 피해.', setSk((s) => { s.radius = 1; })),
-      uaug('amundsen', 'travelogue', '엘베스타드 유람기', '모든 메이저 +3.', { majors: { vit: 3, pow: 3, mnd: 3, def: 3, agi: 3 } }),
+      uaug('amundsen', 'wander', '30년의 유랑', '화력 지원 피해 +280%p.', setSk((s) => { s.mult += 2.8; })),
+      uaug('amundsen', 'refit', '수십 번의 개조', '방어도 관통 +40%p, 화력 지원 치명타 확률 +30%p.', setSk((s) => { s.pen += 0.4; s.crit += 0.3; })),
+      uaug('amundsen', 'twin', '2연사', '화력 지원 2회 (두 번째도 100%).', setSk((s) => { s.hits = 2; s.second = 1; })),
+      uaug('amundsen', 'carpet', '융단 사격', '화력 지원이 대상 주변 1칸에도 피해, 피해 +30%p.', setSk((s) => { s.radius = 1; s.mult += 0.3; })),
+      uaug('amundsen', 'travelogue', '엘베스타드 유람기', '모든 메이저 +4.', { majors: { vit: 4, pow: 4, mnd: 4, def: 4, agi: 4 } }),
     ],
   },
   {
@@ -280,14 +280,14 @@ export const ROSTER_C: UnitDef[] = [
     lore: '"…이거 꼭 지금 해야 돼요? 하면 잘하긴 하는데."',
     skill: strike({
       name: '염동 제압', cd: 7, pow: 'strike', elem: 'psy', mult: 2.0, params: { stun: 1.5 },
-      desc: (p) => `암흑물질 노심의 출력을 실어 대상에게 타격 위력 ${pct(p.mult)} 정신 피해 + ${p.stun}초 기절${p.radius ? ` (주변 ${p.radius}칸)` : ''}.`,
+      desc: (p) => `암흑물질 노심의 출력을 실어 대상에게 타격 위력 ${pct(p.mult)} 정신 피해 + ${p.stun}초 기절${p.radius ? ` (주변 ${p.radius}칸)` : ''}${p.selfShield ? `, 최대 체력 ${pct(p.selfShield)} 보호막` : ''}${p.lifesteal ? `, 피해의 ${pct(p.lifesteal)} 회복` : ''}.`,
     }),
     augs: [
-      uaug('rachel', 'core', '암흑물질 발전 심장', '제압 피해 +50%p.', setSk((s) => { s.mult += 0.5; })),
-      uaug('rachel', 'weapon', '전쟁 병기 아종', '기절 +0.5초.', setSk((s) => { s.stun += 0.5; })),
-      uaug('rachel', 'lazy', '프로 귀차니스트', '한 번에 끝낸다. 제압이 대상 주변 1칸에도 닿는다.', setSk((s) => { s.radius = 1; })),
-      uaug('rachel', 'unread', '읽히지 않는 정신', '제압 후 최대 체력 25% 보호막.', setSk((s) => { s.selfShield = 0.25; })),
-      uaug('rachel', 'meal', '네 배의 식사량', '제압 피해의 25%만큼 회복.', setSk((s) => { s.lifesteal = 0.25; })),
+      uaug('rachel', 'core', '암흑물질 발전 심장', '제압 피해 +200%p.', setSk((s) => { s.mult += 2.0; })),
+      uaug('rachel', 'weapon', '전쟁 병기 아종', '기절 +1.2초.', setSk((s) => { s.stun += 1.2; })),
+      uaug('rachel', 'lazy', '프로 귀차니스트', '한 번에 끝낸다. 제압이 대상 주변 1칸에도 닿는다. 피해 +30%p.', setSk((s) => { s.radius = 1; s.mult += 0.3; })),
+      uaug('rachel', 'unread', '읽히지 않는 정신', '제압 후 최대 체력 40% 보호막.', setSk((s) => { s.selfShield = 0.4; })),
+      uaug('rachel', 'meal', '네 배의 식사량', '제압 피해의 60%만큼 회복, 흡혈 15%.', { stats: { lifesteal: 0.15 }, setup: (u) => { u.sk.lifesteal = 0.6; } }),
     ],
   },
   {
@@ -304,11 +304,11 @@ export const ROSTER_C: UnitDef[] = [
       desc: (p) => `가장 뒤쪽 적에게 메트로처럼 들이받아 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절${p.resetOnKill ? `. 처치 시 쿨다운 ${pct(p.resetOnKill)} 초기화` : ''}.`,
     }),
     augs: [
-      uaug('oliver', 'bouquet', '추진기 꽃다발', '선의로 시작했다. 들이받기 피해 +60%p.', setSk((s) => { s.mult += 0.6; })),
-      uaug('oliver', 'gasoline', '휘발유 장난', '여덟 살 때 주차장을 날렸다. 범위 +1칸.', setSk((s) => { s.radius += 1; })),
-      uaug('oliver', 'done', '오운완', '들이받기로 적을 처치하면 쿨다운 50% 초기화.', setSk((s) => { s.resetOnKill = 0.5; })),
-      uaug('oliver', 'pilot', '조종 특기', '공격 속도 +20%, 회피 +10%p.', { stats: { atkSpd: 0.2, eva: 0.1 } }),
-      uaug('oliver', 'kitchen', '비공식 주방 루트', '몰래 만든 야식. 들이받기 피해의 25%만큼 회복.', setSk((s) => { s.lifesteal = 0.25; })),
+      uaug('oliver', 'bouquet', '추진기 꽃다발', '선의로 시작했다. 들이받기 피해 +160%p.', setSk((s) => { s.mult += 1.6; })),
+      uaug('oliver', 'gasoline', '휘발유 장난', '여덟 살 때 주차장을 날렸다. 범위 +1칸, 피해 +30%p.', setSk((s) => { s.radius += 1; s.mult += 0.3; })),
+      uaug('oliver', 'done', '오운완', '들이받기로 적을 처치하면 쿨다운 100% 초기화.', setSk((s) => { s.resetOnKill = 1; })),
+      uaug('oliver', 'pilot', '조종 특기', '공격 속도 +25%, 회피 +15%p.', { stats: { atkSpd: 0.25, eva: 0.15 } }),
+      uaug('oliver', 'kitchen', '비공식 주방 루트', '몰래 만든 야식. 흡혈 25%.', { stats: { lifesteal: 0.25 } }),
     ],
   },
   {
@@ -319,7 +319,7 @@ export const ROSTER_C: UnitDef[] = [
     lore: '가문의 사냥터를 40년 지켰다. 비요른은 그중 39년을 함께했다.',
     skill: {
       name: '사냥', cd: 7, params: { mult: 2.5, bleed: 0.3, roar: 0 },
-      desc: (p) => `비요른이 라스무스의 대상에게 덮쳐 비요른 타격 위력 ${pct(p.mult)} 물리 피해 + 출혈. 곰이 없으면 라스무스가 직접 150%.`,
+      desc: (p) => `비요른이 라스무스의 대상에게 덮쳐 비요른 타격 위력 ${pct(p.mult)} 물리 피해 + 초당 ${pct(p.bleed)} 출혈${p.roar ? `, 비요른 주변 적 ${pct(p.roar)} 확률 1.2초 공포` : ''}. 곰이 없으면 라스무스가 직접 150%.`,
       cast(b, u) {
         const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u));
         if (!t) return false;
@@ -331,17 +331,17 @@ export const ROSTER_C: UnitDef[] = [
           bear.target = t;
           skillHit(b, bear, t, 'strike', p.mult, 'phys');
           if (t.alive) bleed(b, bear, t, b.S(bear, 'strike') * p.bleed, 4);
-          if (p.roar) { b.fx(bear.x, bear.y, 1, 'psy'); for (const e of b.around(bear, 1, b.enemiesOf(u))) fear(b, u, e, 1.2, 0.5); }
+          if (p.roar) { b.fx(bear.x, bear.y, 1, 'psy'); for (const e of b.around(bear, 1, b.enemiesOf(u))) fear(b, u, e, 1.2, p.roar); }
         }
         return true;
       },
     },
     augs: [
-      uaug('rasmus', 'old', '오랜 짝', '비요른 스탯 상속률 +30%p.', bond(0.3)),
-      uaug('rasmus', 'maul', '할퀴기', '출혈 피해 +30%p.', setSk((s) => { s.bleed += 0.3; })),
-      uaug('rasmus', 'cub', '새끼 곰', '곰을 하나 더 데려온다 (상속률 60%).', extraPet),
-      uaug('rasmus', 'lodge', '사냥 오두막', '캠핑 러버 임시 장비 +1개, 생명력 +3.', { ...nat(1), majors: { vit: 3 } }),
-      uaug('rasmus', 'roar', '포효', '사냥 때 비요른 주변 적 50% 확률로 1.2초 공포.', setSk((s) => { s.roar = 1; })),
+      uaug('rasmus', 'old', '오랜 짝', '비요른 스탯 상속률 +40%p.', bond(0.4)),
+      uaug('rasmus', 'maul', '할퀴기', '출혈 초당 위력 +50%p.', setSk((s) => { s.bleed += 0.5; })),
+      uaug('rasmus', 'cub', '새끼 곰', '곰을 하나 더 데려온다 (상속률 80%).', extraPet),
+      uaug('rasmus', 'lodge', '사냥 오두막', '캠핑 러버 임시 장비 +1개, 생명력 +5, 방어력 +3.', { ...nat(1), majors: { vit: 5, def: 3 } }),
+      uaug('rasmus', 'roar', '포효', '사냥 때 비요른 주변 적 80% 확률로 1.2초 공포.', setSk((s) => { s.roar = 0.8; })),
     ],
   },
   {
@@ -350,15 +350,15 @@ export const ROSTER_C: UnitDef[] = [
     sprite: 'robe', palette: tint(PAL.FAM, '#1a1c2a', '#c8ccd8', '#ffd34d'), lore: '가문의 이름 앞에서 고개를 들 수 있는 자는 없다. 그의 자식들만 빼고.',
     skill: support({
       name: '가주의 명령', cd: 8, target: 'commanded', params: { count: 1, dmg: 0.35, as: 0.15, dur: 6, famShield: 0.5 },
-      desc: (p) => `가장 강한 아군 ${p.count}명에게 ${p.dur}초간 피해 +${pct(p.dmg)}, 공격 속도 +${pct(p.as)}. 엘베스타드 일가 아군 전원에게 기술 위력 ${pct(p.famShield)} 보호막.`,
+      desc: (p) => `가장 강한 아군 ${p.count}명에게 ${p.dur}초간 피해 +${pct(p.dmg)}, 공격 속도 +${pct(p.as)}${p.red ? `, 받는 피해 -${pct(p.red)}` : ''}. 엘베스타드 일가 아군 전원에게 기술 위력 ${pct(p.famShield)} 보호막.`,
       after: (b, u, _ts, p) => { for (const a of b.alliesOf(u)) if (a.synergies.has('FAM')) b.shield(a, b.S(u, 'tech') * p.famShield); },
     }),
     augs: [
       uaug('sigmund', 'council', '가문 회의', '명령 대상 +1명.', setSk((s) => { s.count += 1; })),
-      uaug('sigmund', 'iron', '철의 가주', '피해 증가 +20%p.', setSk((s) => { s.dmg += 0.2; })),
-      uaug('sigmund', 'crest', '가문의 문장', '일가 보호막 +50%p.', setSk((s) => { s.famShield += 0.5; })),
-      uaug('sigmund', 'reign', '긴 통치', '명령 지속 +3초.', setSk((s) => { s.dur += 3; })),
-      uaug('sigmund', 'shelter', '가문의 그늘', '명령 대상 받는 피해 -15%.', setSk((s) => { s.red = 0.15; })),
+      uaug('sigmund', 'iron', '철의 가주', '피해 증가 +35%p.', setSk((s) => { s.dmg += 0.35; })),
+      uaug('sigmund', 'crest', '가문의 문장', '일가 보호막 +50%p, 방어력 +5.', { majors: { def: 5 }, setup: (u) => { u.sk.famShield += 0.5; } }),
+      uaug('sigmund', 'reign', '긴 통치', '명령 지속 +3초, 피해 증가 +15%p, 공격 속도 +10%p.', setSk((s) => { s.dur += 3; s.dmg += 0.15; s.as += 0.1; })),
+      uaug('sigmund', 'shelter', '가문의 그늘', '명령 대상 받는 피해 -30%.', setSk((s) => { s.red = 0.3; })),
     ],
   },
   {
@@ -367,14 +367,14 @@ export const ROSTER_C: UnitDef[] = [
     sprite: 'robe', palette: tint(PAL.FAM, '#1a1a1a', '#ffffff', '#c8ccd8'), lore: '3대째 같은 스튜를 끓인다. 레시피는 가주도 모른다.',
     skill: support({
       name: '가문의 스튜', cd: 4.5, target: 'lowest', power: cookPower, params: { shield: 1.8, heal: 0.6, armor: 200, dur: 5 },
-      desc: (p) => `[요리] 체력 비율이 가장 낮은 아군에게 기술 위력 ${pct(p.shield)} 보호막 + ${pct(p.heal)} 회복, ${p.dur}초간 방어도 +${p.armor}.`,
+      desc: (p) => `[요리] 체력 비율이 가장 낮은 아군에게 기술 위력 ${pct(p.shield)} 보호막 + ${pct(p.heal)} 회복${p.cleanse ? ', 해로운 상태이상 제거' : ''}, ${p.dur}초간 방어도 +${p.armor}${p.splash ? '. 주변 1칸 아군에게 50% 효과' : ''}.`,
     }),
     augs: [
-      uaug('gunnir', 'broth', '진한 육수', '보호막 +50%p.', setSk((s) => { s.shield += 0.5; })),
-      uaug('gunnir', 'bone', '사골', '방어도 증가 +200.', setSk((s) => { s.armor += 200; })),
-      uaug('gunnir', 'pot', '큰 솥', '요리받은 아군 주변 1칸에도 50% 효과.', setSk((s) => { s.splash = 1; })),
-      uaug('gunnir', 'herb', '약초', '회복량 +40%p.', setSk((s) => { s.heal += 0.4; })),
-      uaug('gunnir', 'butler', '완벽한 집사', '요리 쿨다운 -1초.', setSk((_s, u) => { u.cdMax -= 1; })),
+      uaug('gunnir', 'broth', '진한 육수', '보호막 +180%p.', setSk((s) => { s.shield += 1.8; })),
+      uaug('gunnir', 'bone', '사골', '방어도 증가 +400.', setSk((s) => { s.armor += 400; })),
+      uaug('gunnir', 'pot', '큰 솥', '요리받은 아군 주변 1칸에도 50% 효과, 보호막 +30%p.', setSk((s) => { s.splash = 1; s.shield += 0.3; })),
+      uaug('gunnir', 'herb', '약초', '회복량 +60%p, 해로운 상태이상도 제거한다.', setSk((s) => { s.heal += 0.6; s.cleanse = 1; })),
+      uaug('gunnir', 'butler', '완벽한 집사', '쿨다운 감소 속도 +40%.', { stats: { cdr: 0.4 } }),
     ],
   },
 ];
