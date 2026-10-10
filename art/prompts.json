@@ -23,9 +23,9 @@
   "donovan": {
     "name": "도노반",
     "subject": "1boy",
-    "tags": "adult male, slender, purple hair, messy hair, stubble, grey eyes, heterochromia, cross-shaped pupils, tired eyes, grey hoodie, hood down, black suit jacket, open jacket, black pants, combat boots, wrist computer, drone, floating drone, bored, full body, standing, looking at viewer",
+    "tags": "adult male, slender, purple hair, messy hair, stubble, dark circles, grey eyes, heterochromia, cross-shaped pupils, hacker, grey hoodie, hood down, hoodie strings, black suit jacket over hoodie, black pants, combat boots, holographic screen, holographic interface, floating screens, code, wrist computer, cables, typing, small drone, tired, smirk, full body, standing, looking at viewer",
     "source": "lore",
-    "notes": "눈 색 미기재 → 회색 임의, 십자 동공(자안의 사수)은 오른쪽 눈만. 해킹 드론 '까악이' 포함."
+    "notes": "해커 분위기 강화: 홀로그램 화면·코드·케이블. 드론 '까악이'는 작게 1대."
   },
   "chloe": {
     "name": "클로에",
@@ -93,16 +93,16 @@
   "nadir": {
     "name": "나디르",
     "subject": "1boy",
-    "tags": "young man, bishounen, toned, black hair, messy hair, brown eyes, fair skin, rosy cheeks, white shirt, dress shirt, sleeves rolled up, black pants, no jacket, holding crystal, glowing crystal, white crystal, grin, energetic, full body, standing, looking at viewer",
+    "tags": "young man, bishounen, toned, slender, black hair, messy hair, brown eyes, fair skin, rosy cheeks, middle eastern clothes, arabian clothes, loose clothes, white kurta, billowing sleeves, wide sleeves, harem pants, baggy pants, sash, layered clothes, gold trim, sandals, holding crystal, glowing crystal, white crystal, grin, energetic, full body, standing, looking at viewer",
     "source": "lore",
-    "notes": "정장 바지+와이셔츠만 입는 습관 반영. 등의 글자 형상 흉터는 정면 구도라 생략."
+    "notes": "중동풍 나풀거리는 복장(사용자 지정). 세피르 수정상 출신, 백수정 영사."
   },
   "temur": {
     "name": "테무르",
     "subject": "1boy",
-    "tags": "young man, very tall, muscular, broad shoulders, tan, blonde hair, short hair, yellow eyes, handsome, sword in back, brown fur coat, layered coat, open coat, bare chest, pectorals, brown pants, holding rapier, blank stare, confident, full body, standing, looking at viewer",
+    "tags": "young man, very tall, muscular, broad shoulders, abs, pectorals, topless male, tan, blonde hair, short hair, yellow eyes, handsome, gladiator, shoulder armor, single pauldron, leather straps, chest strap, bracers, arm guards, gladiator belt, pteruges, leather skirt, sandals, holding sword, blank stare, confident, full body, standing, looking at viewer",
     "source": "lore",
-    "notes": "저온에 약해 모피 코트 2겹 착용 버전. 등에 박힌 의식 검(자루 없음)은 정면 구도에서 애매 → 'sword in back' 제거 가능. 머리 길이 미기재."
+    "notes": "상의 제거, 검투사 장식(견갑·가죽 스트랩·완갑·프테루게스)만 남김(사용자 지정)."
   },
   "kairo": {
     "name": "카이로",
@@ -128,16 +128,16 @@
   "zephyro": {
     "name": "제피로",
     "subject": "1boy",
-    "tags": "adult male, very tall, large build, burly, tan, black hair, messy hair, swept back hair, aqua eyes, half-closed eyes, sleepy, white shirt, dress shirt, unbuttoned collar, sleeves rolled up, no jacket, black pants, slouching, hands in pockets, full body, standing, looking at viewer",
+    "tags": "adult male, very tall, large build, burly, tan, black hair, messy hair, swept back hair, aqua eyes, half-closed eyes, sleepy, ancient greek clothes, greek sailor, white chiton, off-shoulder, one bare shoulder, himation, blue sash, rope belt, leather sandals, laurel brooch, slouching, holding oar, leaning on oar, full body, standing, looking at viewer",
     "source": "lore",
-    "notes": "정장 대신 와이셔츠 차림 기본. 청녹빛 눈 → aqua eyes."
+    "notes": "뱃사공 철학자. 그리스풍 항해사 복장(사용자 지정). 기대는 자세 → 노에 기댐."
   },
   "phyllis": {
     "name": "필리스",
     "subject": "1girl",
-    "tags": "young woman, petite, grey hair, short hair, cat ears, extra ears, cat tail, yellow eyes, slit pupils, black suit, open jacket, sleeves rolled up, tools in pockets, holding wrench, mischievous, grin, fang, full body, standing, looking at viewer",
+    "tags": "young woman, petite, short, grey hair, short hair, cat ears, cat tail, yellow eyes, slit pupils, long fingers, black suit, black jacket, sleeves rolled up, white shirt, tools in pockets, holding wrench, holding screwdriver, mischievous, grin, fang, full body, standing, looking at viewer",
     "source": "lore",
-    "notes": "고양이 귀와 인간 귀 공존 → extra ears. 눈 색 미기재 → 팔레트 노랑. 에란테스 정장 검정 가정."
+    "notes": "재생성. 'extra ears'가 형태를 망가뜨릴 수 있어 제거. 에란테스 정장 소매 걷음 + 공구."
   },
   "eleni": {
     "name": "엘레니",
@@ -163,9 +163,9 @@
   "argon": {
     "name": "아르곤",
     "subject": "1boy",
-    "tags": "mature male, middle-aged, veteran, grey hair, short hair, stubble, teal eyes, pilot suit, silver flight suit, teal trim, flight jacket, patches, gloves, holding helmet, helmet under arm, calm, stoic, full body, standing, looking at viewer",
-    "source": "temp",
-    "notes": "인물 문서 없음. 지역 문서(이타카·크레타)의 아르곤은 과묵한 최고참 뱃사공/도선사라 인게임 '에이스 전투기 조종사'와 직업이 다름 → 인게임 기준, 최고참 설정만 반영해 중년."
+    "tags": "male, object head, skull head, skeleton head, no humans face, glowing eye sockets, teal glow, ancient greek clothes, greek sailor, chiton, himation, draped cloak, rope belt, leather sandals, holding oar, long oar, lantern, ferryman, tall, stoic, full body, standing, looking at viewer",
+    "source": "lore",
+    "notes": "오브젝트 헤드(해골 머리) 이타카 최고참 도선사/뱃사공(사용자 지정). 그리스풍 항해사 복장, 노·등불."
   },
   "romani": {
     "name": "로마니",
@@ -240,9 +240,9 @@
   "amundsen": {
     "name": "아문센",
     "subject": "1boy",
-    "tags": "old man, mature male, white hair, short hair, hair strand, white beard, yellow eyes, half-closed eyes, black suit, tailored suit, gold trim, anchor badge, lapel pin, pocket watch, holding pocket watch, watch chain, gentleman, smirk, full body, standing, looking at viewer",
+    "tags": "mature male, handsome, white hair, short hair, neat hair, hair strand, short beard, white beard, yellow eyes, half-closed eyes, bored eyes, black suit, tailored suit, gold stitching, anchor badge, lapel pin, gold pocket watch, holding pocket watch, watch chain, gentleman, smirk, straight-on, full body, standing, looking at viewer",
     "source": "lore",
-    "notes": "66세(신체 나이 30대 후반)지만 외형은 백발 노신사. 금색 회중시계 '그늘'."
+    "notes": "신체 나이 30대 후반 + 최근 갑자기 백발 → 'old man' 빼고 미남 노신사로. 검은 테일러드 정장·금색 스티치·닻 배지·회중시계 '그늘'."
   },
   "rachel": {
     "name": "레이첼",
@@ -261,23 +261,23 @@
   "rasmus": {
     "name": "라스무스",
     "subject": "1boy",
-    "tags": "old man, burly, grey hair, short hair, full beard, grey beard, weathered, blue eyes, green hunting jacket, olive coat, leather gloves, boots, rifle on back, brown bear, bear, calm, full body, standing, looking at viewer",
+    "tags": "old man, burly, grey hair, short hair, full beard, grey beard, weathered, blue eyes, gardener, landscaper, straw hat, green apron, work apron, rolled sleeves, plaid shirt, work gloves, boots, holding shears, garden shears, hedge clippers, flower in pocket, gentle smile, full body, standing, looking at viewer",
     "source": "temp",
-    "notes": "문서 없음. 40년 근속 → 노년 남성 임의. 곰 비요른 동반, 단독 구도면 'brown bear, bear' 제거."
+    "notes": "틀-엘베스타드: 본가 조경사(정원사). 곰 비요른 제거(바이킹장 비외른과 혼동 방지)."
   },
   "sigmund": {
     "name": "시그문드",
     "subject": "1boy",
-    "tags": "old man, tall, white hair, slicked back hair, white mustache, yellow eyes, wrinkles, navy long coat, silver embroidery, gold trim, high collar, cravat, holding cane, stern, frown, full body, standing, looking at viewer",
+    "tags": "old man, tall, slender, white hair, slicked back hair, white mustache, yellow eyes, wrinkles, butler, black tailcoat, black vest, white shirt, white bowtie, white gloves, pocket square, monocle, hand on chest, bowing slightly, stern, composed, straight-on, full body, standing, looking at viewer",
     "source": "temp",
-    "notes": "문서 없음. 틀-엘베스타드·라르스 문서에선 시그문드=본가 집사이고 가주는 라르스 → 인게임 타이틀(가주) 따름, 확인 필요. 가문 금안 적용."
+    "notes": "틀-엘베스타드: 본가 집사. 인게임 타이틀(가주)은 아직 그대로 — 게임 데이터 수정은 별도."
   },
   "gunnir": {
-    "name": "구니르",
-    "subject": "1boy",
-    "tags": "old man, butler, grey hair, slicked back hair, grey mustache, monocle, black tailcoat, black vest, white shirt, white gloves, holding ladle, cooking pot, gentle smile, full body, standing, looking at viewer",
+    "name": "구닐라",
+    "subject": "1girl",
+    "tags": "mature female, middle-aged, plump, sturdy, blonde hair, braided hair, hair bun, blue eyes, rosy cheeks, chef, white chef uniform, double-breasted, chef hat, toque, white apron, rolled sleeves, holding ladle, holding pot, warm smile, confident, full body, standing, looking at viewer",
     "source": "temp",
-    "notes": "문서 없음. 틀에는 집사 시그문드·셰프 구닐라만 있어 구니르와 관계 불명 → 노년 남성 집사장 임의. 스튜 국자."
+    "notes": "틀-엘베스타드: 본가 셰프 '구닐라'(여성). 인게임 표기는 아직 '구니르' — 게임 데이터 개명은 별도."
   },
   "mingki": {
     "name": "밍키",
