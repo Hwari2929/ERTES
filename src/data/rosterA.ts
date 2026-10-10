@@ -16,15 +16,15 @@ export const ROSTER_A: UnitDef[] = [
     sprite: 'soldier', palette: tint(PAL.UNI, '#5a5e6a', '#2a6ad8', '#3a8aff'), lore: '"밀린 업무가 많아요. 까먹기 전에, 모두 해치우죠."',
     skill: strike({
       name: '항밈 소거', cd: 7, pow: 'tech', elem: 'psy', mult: 1.6, params: { forget: 3, fear: 1, fearChance: 0.4 },
-      desc: (p) => `대상${p.radius ? `과 주변 ${p.radius}칸` : ''}에게 기술 위력 ${pct(p.mult)} 정신 피해. 기억이 지워진 적은 기술 쿨다운 +${p.forget}초, ${pct(p.fearChance)} 확률로 ${p.fear}초 공포.`,
+      desc: (p) => `대상${p.radius ? `과 주변 ${p.radius}칸` : ''}에게 기술 위력 ${pct(p.mult)} 정신 피해. 기억이 지워진 적은 기술 쿨다운 +${p.forget}초, ${pct(p.fearChance)} 확률로 ${p.fear}초 공포${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}.`,
       after: (b, u, t, _d, p) => { for (const e of p.radius ? b.around(t, p.radius, b.enemiesOf(u)) : [t]) if (e.alive) e.cd += p.forget; },
     }),
     augs: [
-      uaug('yelena', 'wide', '광역 소거', '항밈 소거가 대상 주변 1칸에도 닿는다.', setSk((s) => { s.radius += 1; })),
-      uaug('yelena', 'deep', '깊은 망각', '쿨다운 증가 +2초, 공포 확률 +20%p.', setSk((s) => { s.forget += 2; s.fearChance += 0.2; })),
-      uaug('yelena', 'delta', '델타 등급 기밀', '소거당한 적은 4초간 받는 피해 +20%.', setSk((s) => { s.vuln = 0.2; })),
-      uaug('yelena', 'report', '보고서의 마지막 줄', '항밈 소거 피해 +60%p.', setSk((s) => { s.mult += 0.6; })),
-      uaug('yelena', 'hoodie', '라쿤 후드티', '캠핑 러버 임시 장비 +1개, 정신력 +3.', { ...nat(1), majors: { mnd: 3 } }),
+      uaug('yelena', 'wide', '광역 소거', '항밈 소거가 대상 주변 1칸에도 닿고, 피해 +30%p.', setSk((s) => { s.radius += 1; s.mult += 0.3; })),
+      uaug('yelena', 'deep', '깊은 망각', '쿨다운 증가 +3초, 공포 확률 +25%p.', setSk((s) => { s.forget += 3; s.fearChance += 0.25; })),
+      uaug('yelena', 'delta', '델타 등급 기밀', '소거당한 적은 4초간 받는 피해 +30%.', setSk((s) => { s.vuln = 0.3; })),
+      uaug('yelena', 'report', '보고서의 마지막 줄', '항밈 소거 피해 +160%p.', setSk((s) => { s.mult += 1.6; })),
+      uaug('yelena', 'hoodie', '라쿤 후드티', '캠핑 러버 임시 장비 +1개, 정신력 +5, 기동력 +3.', { ...nat(1), majors: { mnd: 5, agi: 3 } }),
     ],
   },
   {
@@ -33,14 +33,14 @@ export const ROSTER_A: UnitDef[] = [
     sprite: 'soldier', palette: tint(PAL.UNI, '#4a5a3a', '#1a1a22', '#3a8aff'), lore: '"연락은 자제해줘. 캠핑 중이니까 - "',
     skill: strike({
       name: '깜찍이', cd: 6, pow: 'shoot', elem: 'phys', mult: 2.8, params: { crit: 0.25 },
-      desc: (p) => `커스텀 에너지 핸드캐논으로 대상에게 사격 위력 ${pct(p.mult)} 물리 피해 (치명타 확률 +${pct(p.crit)}p)${p.hits > 1 ? `, ${p.hits}회` : ''}. 가능하면 한 발로 끝낸다.`,
+      desc: (p) => `커스텀 에너지 핸드캐논으로 대상에게 사격 위력 ${pct(p.mult)} 물리 피해 (치명타 확률 +${pct(p.crit)}p${p.pen ? `, 방어도 관통 ${pct(p.pen)}` : ''})${p.hits > 1 ? `, ${p.hits}회` : ''}. 가능하면 한 발로 끝낸다.`,
     }),
     augs: [
-      uaug('mirinae', 'double', '연발 모드', '깜찍이를 2회 쏜다 (두 번째 60%).', setSk((s) => { s.hits = 2; })),
-      uaug('mirinae', 'cell', '과충전 셀', '방어도 관통 50%.', setSk((s) => { s.pen = 0.5; })),
+      uaug('mirinae', 'double', '연발 모드', '깜찍이를 2회 쏜다 (두 번째도 100%).', setSk((s) => { s.hits = 2; s.second = 1; })),
+      uaug('mirinae', 'cell', '과충전 셀', '방어도 관통 50%, 깜찍이 피해 +170%p.', setSk((s) => { s.pen = 0.5; s.mult += 1.7; })),
       uaug('mirinae', 'vanish', '흔적 없이', '깜찍이로 처치하면 쿨다운 초기화.', setSk((s) => { s.resetOnKill = 1; })),
-      uaug('mirinae', 'gem', '푸른 물방울 보석', '치명타 확률 +20%p, 치명타 피해 +40%p.', { stats: { crit: 0.2, critDmg: 0.4 } }),
-      uaug('mirinae', 'onsen', '휴대용 온천 시스템', '캠핑 러버 임시 장비 +1개, 기동력 +3.', { ...nat(1), majors: { agi: 3 } }),
+      uaug('mirinae', 'gem', '푸른 물방울 보석', '치명타 확률 +30%p, 치명타 피해 +60%p.', { stats: { crit: 0.3, critDmg: 0.6 } }),
+      uaug('mirinae', 'onsen', '휴대용 온천 시스템', '캠핑 러버 임시 장비 +1개, 기동력 +5, 전투력 +3.', { ...nat(1), majors: { agi: 5, pow: 3 } }),
     ],
   },
   {
@@ -49,14 +49,14 @@ export const ROSTER_A: UnitDef[] = [
     sprite: 'mech', palette: tint(PAL.UNI, '#3a3f4a', '#c03a2a', '#ff6040'), lore: '"비결? 이 요망한 주둥아리지."',
     skill: strike({
       name: '헤비 버니 화망', cd: 8, pow: 'shoot', elem: 'phys', mult: 0.5, params: { radius: 1, hits: 5, second: 1 },
-      desc: (p) => `막내 유리가 이름 붙인 기관총으로 대상 주변 ${p.radius}칸에 사격 위력 ${pct(p.mult)} 물리 연사 ${p.hits}회.`,
+      desc: (p) => `막내 유리가 이름 붙인 기관총으로 대상 주변 ${p.radius}칸에 사격 위력 ${pct(p.mult)} 물리 연사 ${p.hits}회${p.corrode ? `. 맞은 적 5초간 방어도 -${pct(p.corrode)}` : ''}.`,
     }),
     augs: [
-      uaug('gebek', 'drum', '대용량 탄창', '연사 +2회.', setSk((s) => { s.hits += 2; })),
-      uaug('gebek', 'zirgon', '팀 지르곤 대전자포', '연사 발당 피해 +20%p.', setSk((s) => { s.mult += 0.2; })),
-      uaug('gebek', 'nuke', '핵융합볶음면 탄두', '화망에 맞은 적 방어도 25% 감소 (5초).', setSk((s) => { s.corrode = 0.25; })),
-      uaug('gebek', 'suit', '15년치 전투 데이터', '방어력 +4, 생명력 +2.', { majors: { def: 4, vit: 2 } }),
-      uaug('gebek', 'spare', '예비 포탑', '엔지니어 포탑 +1기.', { setup: (u) => { u.mem.turretExtra = (u.mem.turretExtra || 0) + 1; } }),
+      uaug('gebek', 'drum', '대용량 탄창', '연사 +3회.', setSk((s) => { s.hits += 3; })),
+      uaug('gebek', 'zirgon', '팀 지르곤 대전자포', '연사 발당 피해 +60%p.', setSk((s) => { s.mult += 0.6; })),
+      uaug('gebek', 'nuke', '핵융합볶음면 탄두', '화망에 맞은 적 방어도 50% 감소 (5초).', setSk((s) => { s.corrode = 0.5; })),
+      uaug('gebek', 'suit', '15년치 전투 데이터', '방어력 +10, 생명력 +5.', { majors: { def: 10, vit: 5 } }),
+      uaug('gebek', 'spare', '예비 포탑', '엔지니어 포탑 +1기, 포탑 체력·방어도 +40%.', { setup: (u) => { u.mem.turretExtra = (u.mem.turretExtra || 0) + 1; u.mem.turretHp = (u.mem.turretHp || 0) + 0.4; } }),
     ],
   },
   {
@@ -67,15 +67,15 @@ export const ROSTER_A: UnitDef[] = [
     lore: '"휴가 중. 기한 100년. 고양이 사료는 문 앞에."',
     skill: strike({
       name: '자안의 사수', cd: 7, pow: 'strike', elem: 'phys', mult: 2.0, target: 'lowest', blink: true, params: { crit: 0.4 },
-      desc: (p) => `급소가 붉게 보인다. 체력 비율이 가장 낮은 적에게 파고들어 단분자 와이어로 타격 위력 ${pct(p.mult)} 물리 피해 (치명타 확률 +${pct(p.crit)}p). 까악이는 4초간 공격 속도 +50%로 같은 적을 노린다.`,
+      desc: (p) => `급소가 붉게 보인다. 체력 비율이 가장 낮은 적에게 파고들어 단분자 와이어로 타격 위력 ${pct(p.mult)} 물리 피해 (치명타 확률 +${pct(p.crit)}p)${p.bleed ? `, 4초간 초당 ${pct(p.bleed)} 출혈` : ''}${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}${p.shock ? `, ${pct(p.shockChance || 0.7)} 확률로 ${p.shock}초 감전` : ''}. 까악이는 4초간 공격 속도 +50%로 같은 적을 노린다.`,
       after: (b, u, t) => { for (const d of summonsOf(b, u)) { d.target = t; b.buff(u, d, 'donovan.crow', 4, { delta: { atkSpd: 0.5 }, label: '해킹 지원' }); } },
     }),
     augs: [
-      uaug('donovan', 'wire', '단분자 와이어', '4초간 초당 타격 위력 30% 출혈.', setSk((s) => { s.bleed = 0.3; })),
-      uaug('donovan', 'marker', '붉은 마커', '자안의 사수에 맞은 적은 4초간 받는 피해 +20%.', setSk((s) => { s.vuln = 0.2; })),
-      uaug('donovan', 'livibold', '리비볼드 경', '까악이 스탯 상속률 +30%p.', { setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.3; } }),
-      uaug('donovan', 'deck', '팔목 해킹 덱', '자안의 사수가 70% 확률로 2초 감전을 건다.', setSk((s) => { s.shock = 2; s.shockChance = 0.7; })),
-      uaug('donovan', 'ice', '얼음 씹기', '회피 +15%p, 공격 속도 +15%.', { stats: { eva: 0.15, atkSpd: 0.15 } }),
+      uaug('donovan', 'wire', '단분자 와이어', '4초간 초당 타격 위력 50% 출혈.', setSk((s) => { s.bleed = 0.5; })),
+      uaug('donovan', 'marker', '붉은 마커', '자안의 사수에 맞은 적은 4초간 받는 피해 +30%.', setSk((s) => { s.vuln = 0.3; })),
+      uaug('donovan', 'livibold', '리비볼드 경', '까악이 스탯 상속률 +40%p.', { setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.4; } }),
+      uaug('donovan', 'deck', '팔목 해킹 덱', '자안의 사수가 100% 확률로 2초 감전을 건다.', setSk((s) => { s.shock = 2; s.shockChance = 1; })),
+      uaug('donovan', 'ice', '얼음 씹기', '회피 +15%p, 공격 속도 +25%.', { stats: { eva: 0.15, atkSpd: 0.25 } }),
     ],
   },
   {
@@ -88,11 +88,11 @@ export const ROSTER_A: UnitDef[] = [
       after: (b, u, _ts, p) => { const e = b.nearest(u, b.enemiesOf(u)); if (e) b.stun(u, e, p.sleep, p.sleepChance); },
     }),
     augs: [
-      uaug('chloe', 'seven', '나머지 7%', '회복량 +40%p.', setSk((s) => { s.heal += 0.4; })),
-      uaug('chloe', 'sedative', '마취약 투약 요령', '수면 확률 +30%p.', setSk((s) => { s.sleepChance += 0.3; })),
-      uaug('chloe', 'batch', '여러 사람 몫', '약물이 대상 주변 1칸 아군에게도 닿는다.', setSk((s) => { s.radius = 1; })),
-      uaug('chloe', 'lady', '숙녀의 통과', '회피 +20%p.', { stats: { eva: 0.2 } }),
-      uaug('chloe', 'photo', '머리만 뜬 사진', '전투 승리 시 명성 +1.', {}, { after: (run, _u, won) => { if (won) run.fame += 1; } }),
+      uaug('chloe', 'seven', '나머지 7%', '회복량 +120%p.', setSk((s) => { s.heal += 1.2; })),
+      uaug('chloe', 'sedative', '마취약 투약 요령', '수면 확률 +40%p, 수면 +1초.', setSk((s) => { s.sleepChance += 0.4; s.sleep += 1; })),
+      uaug('chloe', 'batch', '여러 사람 몫', '약물이 대상 주변 1칸 아군에게도 닿고, 회복량 +30%p.', setSk((s) => { s.radius = 1; s.heal += 0.3; })),
+      uaug('chloe', 'lady', '숙녀의 통과', '회피 +25%p.', { stats: { eva: 0.25 } }),
+      uaug('chloe', 'photo', '머리만 뜬 사진', '쿨다운 감소 속도 +25%. 전투 승리 시 명성 +2.', { stats: { cdr: 0.25 } }, { after: (run, _u, won) => { if (won) run.fame += 2; } }),
     ],
   },
   {
@@ -107,11 +107,11 @@ export const ROSTER_A: UnitDef[] = [
       },
     }),
     augs: [
-      uaug('west', 'spanner', '스패너 명사수', '스패너 피해 +60%p.', setSk((s) => { s.mult += 0.6; })),
-      uaug('west', 'cig', '일단 담배 한 대', '쿨다운 감소 속도 +20%.', { stats: { cdr: 0.2 } }),
-      uaug('west', 'nco', '원사의 짬', '명중 +20%p, 치명타 확률 +10%p.', { stats: { acc: 0.2, crit: 0.1 } }),
-      uaug('west', 'honey', '꿀 퍼먹기', '생명력 +4.', { majors: { vit: 4 } }),
-      uaug('west', 'standard', '은하 기술 표준', '엔지니어 포탑 체력·방어도 +60%.', { setup: (u) => { u.mem.turretHp = (u.mem.turretHp || 0) + 0.6; } }),
+      uaug('west', 'spanner', '스패너 명사수', '스패너 피해 +160%p.', setSk((s) => { s.mult += 1.6; })),
+      uaug('west', 'cig', '일단 담배 한 대', '쿨다운 감소 속도 +40%.', { stats: { cdr: 0.4 } }),
+      uaug('west', 'nco', '원사의 짬', '명중 +15%p, 치명타 확률 +20%p, 치명타 피해 +40%p.', { stats: { acc: 0.15, crit: 0.2, critDmg: 0.4 } }),
+      uaug('west', 'honey', '꿀 퍼먹기', '생명력 +10, 방어력 +5.', { majors: { vit: 10, def: 5 } }),
+      uaug('west', 'standard', '은하 기술 표준', '엔지니어 포탑 +1기, 포탑 체력·방어도 +40%.', { setup: (u) => { u.mem.turretExtra = (u.mem.turretExtra || 0) + 1; u.mem.turretHp = (u.mem.turretHp || 0) + 0.4; } }),
     ],
   },
   // ───────── 주식회사 페트라
@@ -121,15 +121,15 @@ export const ROSTER_A: UnitDef[] = [
     sprite: 'knight', palette: tint(PAL.PET, '#e07a1f', '#f0e0c0', '#7dff8a'), lore: '"행복은 잠깐이지만, 신용은 영원하죠"',
     skill: strike({
       name: '실드 제너레이터', cd: 8, pow: 'strike', elem: 'phys', mult: 1.2, aroundSelf: true, params: { radius: 1, selfShield: 0.3, counter: 0.3, dur: 4 },
-      desc: (p) => `팔목 방어막을 전개해 최대 체력 ${pct(p.selfShield)} 보호막을 얻고, 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해. ${p.dur}초간 받은 피해의 ${pct(p.counter)}를 카운터로 되돌려준다.`,
+      desc: (p) => `팔목 방어막을 전개해 최대 체력 ${pct(p.selfShield)} 보호막을 얻고, 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해${p.stun ? ` + ${p.stun}초 기절` : ''}. ${p.dur}초간 받은 피해의 ${pct(p.counter)}를 카운터로 되돌려준다.`,
       after: (b, u, _t, _d, p) => { b.buff(u, u, 'lindiwe.guard', p.dur, { reflect: p.counter, label: '카운터' }); },
     }),
     augs: [
-      uaug('lindiwe', 'onetwo', '원투 스트레이트', '실드 제너레이터 피해 +60%p.', setSk((s) => { s.mult += 0.6; })),
-      uaug('lindiwe', 'overload', '출력 과부하', '보호막 +20%p.', setSk((s) => { s.selfShield += 0.2; })),
-      uaug('lindiwe', 'weave', '위빙', '카운터 반사량 +20%p, 지속 +2초.', setSk((s) => { s.counter += 0.2; s.dur += 2; })),
-      uaug('lindiwe', 'dough', '반죽 치대기', '실드 제너레이터에 맞은 적 0.8초 기절.', setSk((s) => { s.stun = 0.8; })),
-      uaug('lindiwe', 'tenure', '10년 근속', '방어력 +5, 생명력 +2.', { majors: { def: 5, vit: 2 } }),
+      uaug('lindiwe', 'onetwo', '원투 스트레이트', '실드 제너레이터 피해 +120%p.', setSk((s) => { s.mult += 1.2; })),
+      uaug('lindiwe', 'overload', '출력 과부하', '보호막 +30%p.', setSk((s) => { s.selfShield += 0.3; })),
+      uaug('lindiwe', 'weave', '위빙', '카운터 반사량 +15%p, 지속 +3초.', setSk((s) => { s.counter += 0.15; s.dur += 3; })),
+      uaug('lindiwe', 'dough', '반죽 치대기', '실드 제너레이터에 맞은 적 1.2초 기절.', setSk((s) => { s.stun = 1.2; })),
+      uaug('lindiwe', 'tenure', '10년 근속', '방어력 +10, 생명력 +5.', { majors: { def: 10, vit: 5 } }),
     ],
   },
   {
@@ -138,14 +138,14 @@ export const ROSTER_A: UnitDef[] = [
     sprite: 'medic', palette: tint(PAL.PET, '#1a1a22', '#e8e8f0', '#e8e8f0'), lore: '"사기라뇨 - 그런 비겁한 행동은 선호하지 않아요."',
     skill: support({
       name: '바 당직 시그니처', cd: 4.5, target: 'lowest', power: cookPower, params: { heal: 1.8, as: 0.35, dur: 5 },
-      desc: (p) => `[요리] 체력 비율이 가장 낮은 아군을 기술 위력 ${pct(p.heal)} 회복하고 ${p.dur}초간 공격 속도 +${pct(p.as)}.`,
+      desc: (p) => `[요리] 체력 비율이 가장 낮은 아군을 기술 위력 ${pct(p.heal)} 회복${p.shield ? ` + ${pct(p.shield)} 보호막` : ''}${p.cleanse ? ' + 해로운 상태이상 제거' : ''}하고 ${p.dur}초간 공격 속도 +${pct(p.as)}${p.dmg ? `, 피해 +${pct(p.dmg)}` : ''}${p.red ? `, 받는 피해 -${pct(p.red)}` : ''}.`,
     }),
     augs: [
-      uaug('orca', 'herring', '긴 다리 청어 조림', '회복량 +40%p.', setSk((s) => { s.heal += 0.4; })),
-      uaug('orca', 'espresso', '에스프레소', '공격 속도 증가 +15%p.', setSk((s) => { s.as += 0.15; })),
-      uaug('orca', 'blanca', '블랑카 크림빵', '기술 위력 60% 보호막도 준다.', setSk((s) => { s.shield = 0.6; })),
-      uaug('orca', 'counsel', '상담 시간', '요리받은 아군의 해로운 상태이상 제거.', setSk((s) => { s.cleanse = 1; })),
-      uaug('orca', 'coin', '동전 마술', '요리받은 아군 피해 +15%.', setSk((s) => { s.dmg = 0.15; })),
+      uaug('orca', 'herring', '긴 다리 청어 조림', '회복량 +180%p.', setSk((s) => { s.heal += 1.8; })),
+      uaug('orca', 'espresso', '에스프레소', '공격 속도 증가 +35%p.', setSk((s) => { s.as += 0.35; })),
+      uaug('orca', 'blanca', '블랑카 크림빵', '기술 위력 120% 보호막도 준다.', setSk((s) => { s.shield = 1.2; })),
+      uaug('orca', 'counsel', '상담 시간', '요리받은 아군의 해로운 상태이상 제거, 지속 동안 받는 피해 -25%.', setSk((s) => { s.cleanse = 1; s.red = 0.25; })),
+      uaug('orca', 'coin', '동전 마술', '요리받은 아군 지속 동안 피해 +30%.', setSk((s) => { s.dmg = 0.3; })),
     ],
   },
   {
@@ -154,15 +154,15 @@ export const ROSTER_A: UnitDef[] = [
     sprite: 'knight', palette: tint(PAL.PET, '#2a2a34', '#c02030', '#ff3040'), lore: '"이의 있습니다. 방금 그 발언, 기록해도 되겠습니까?"',
     skill: strike({
       name: '이의 있습니다', cd: 7, pow: 'strike', elem: 'phys', mult: 1.8, params: { rewind: 0.25 },
-      desc: (p) => `에너지 블레이드로 대상에게 타격 위력 ${pct(p.mult)} 물리 피해. 이후 잃은 체력의 ${pct(p.rewind)}를 재생한다.`,
+      desc: (p) => `에너지 블레이드로 대상에게 타격 위력 ${pct(p.mult)} 물리 피해${p.stun ? ` + ${p.stun}초 기절` : ''}. 이후 잃은 체력의 ${pct(p.rewind)}를 재생한다.`,
       after: (b, u, _t, _d, p) => { b.heal(u, u, (b.S(u, 'maxHp') - u.hp) * p.rewind, true); },
     }),
     augs: [
-      uaug('franze', 'precedent', '판례 인용', '이의 있습니다 피해 +50%p.', setSk((s) => { s.mult += 0.5; })),
-      uaug('franze', 'deferred', '유예된 시한부', '잃은 체력 재생량 +15%p.', setSk((s) => { s.rewind += 0.15; })),
-      uaug('franze', 'oldform', '110년 전의 검술', '이의 있습니다가 0.8초 기절을 건다.', setSk((s) => { s.stun = 0.8; })),
-      uaug('franze', 'blood', '혈족 재생력', '이의 있습니다 피해의 30%만큼 회복.', setSk((s) => { s.lifesteal = 0.3; })),
-      uaug('franze', 'stocks', '취미 주식 계좌', '회피 +10%p. 전투 승리 시 크레딧 +1.', { stats: { eva: 0.1 } }, { after: (run, _u, won) => { if (won) run.credits += 1; } }),
+      uaug('franze', 'precedent', '판례 인용', '이의 있습니다 피해 +180%p.', setSk((s) => { s.mult += 1.8; })),
+      uaug('franze', 'deferred', '유예된 시한부', '잃은 체력 재생량 +25%p.', setSk((s) => { s.rewind += 0.25; })),
+      uaug('franze', 'oldform', '110년 전의 검술', '이의 있습니다가 1.2초 기절을 건다.', setSk((s) => { s.stun = 1.2; })),
+      uaug('franze', 'blood', '혈족 재생력', '흡혈 +25% (주는 모든 피해의 25%만큼 회복).', { stats: { lifesteal: 0.25 } }),
+      uaug('franze', 'stocks', '취미 주식 계좌', '회피 +15%p. 전투 승리 시 크레딧 +3.', { stats: { eva: 0.15 } }, { after: (run, _u, won) => { if (won) run.credits += 3; } }),
     ],
   },
   {
@@ -175,11 +175,11 @@ export const ROSTER_A: UnitDef[] = [
       desc: (p) => `에너지 블레이드와 EMP로 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}. 7중 방호 슈트가 최대 체력 ${pct(p.selfShield)} 보호막을 전개한다.`,
     }),
     augs: [
-      uaug('grenholm', 'deflect', '에너지 편향막', '보호막 +20%p.', setSk((s) => { s.selfShield += 0.2; })),
-      uaug('grenholm', 'rocket', '휴대용 로켓런처', '군수품 시연 범위 +1칸.', setSk((s) => { s.radius += 1; })),
-      uaug('grenholm', 'sevenfold', '7중 방호 체계', '체력 50% 이상일 때 받는 피해 -20%. 방호가 뚫리면 불이행 사건이다.', { hooks: { takenMult: (b, u) => (b.hpPct(u) >= 0.5 ? 0.8 : 1) } }),
-      uaug('grenholm', 'evidence', '자료 첨부', '모욕한 뒤 사실임을 증명한다. 맞은 적 4초간 받는 피해 +20%.', setSk((s) => { s.vuln = 0.2; })),
-      uaug('grenholm', 'loss', '기대손실 시리즈', 'SNS 연재. 전투 승리 시 명성 +1.', {}, { after: (run, _u, won) => { if (won) run.fame += 1; } }),
+      uaug('grenholm', 'deflect', '에너지 편향막', '보호막 +30%p.', setSk((s) => { s.selfShield += 0.3; })),
+      uaug('grenholm', 'rocket', '휴대용 로켓런처', '군수품 시연 범위 +1칸, 피해 +30%p.', setSk((s) => { s.radius += 1; s.mult += 0.3; })),
+      uaug('grenholm', 'sevenfold', '7중 방호 체계', '체력 50% 이상일 때 받는 피해 -45%. 방호가 뚫리면 불이행 사건이다.', { hooks: { takenMult: (b, u) => (b.hpPct(u) >= 0.5 ? 0.55 : 1) } }),
+      uaug('grenholm', 'evidence', '자료 첨부', '모욕한 뒤 사실임을 증명한다. 맞은 적 4초간 받는 피해 +30%.', setSk((s) => { s.vuln = 0.3; })),
+      uaug('grenholm', 'loss', '기대손실 시리즈', 'SNS 연재. 군수품 시연 피해 +60%p. 전투 승리 시 명성 +2.', setSk((s) => { s.mult += 0.6; }), { after: (run, _u, won) => { if (won) run.fame += 2; } }),
     ],
   },
   {
@@ -211,11 +211,11 @@ export const ROSTER_A: UnitDef[] = [
       },
     },
     augs: [
-      uaug('lars', 'guards', '경호 인력 증원', '경호원이 한 명 더 붙는다 (상속률 60%). 관심이 지독한 편이다.', { setup: (u) => { u.mem.extraSummon = (u.mem.extraSummon || 0) + 1; } }),
-      uaug('lars', 'elite', '정예 경호팀', '경호원 스탯 상속률 +30%p.', { setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.3; } }),
-      uaug('lars', 'downstream', '10%의 하류', '손실은 항상 그가 아닌 쪽에 떨어진다. 거래 대상이 받는 피해 +20%.', setSk((s) => { s.vuln = 0.2; })),
-      uaug('lars', 'terms', '상호 이익', '거래 조건 약화 +15%p, 지속 +2초.', setSk((s) => { s.weak += 0.15; s.dur += 2; })),
-      uaug('lars', 'resell', '손실 매각', '손실을 얼마에 되팔았는지부터 설명한다. 전투 승리 시 크레딧 +2.', {}, { after: (run, _u, won) => { if (won) run.credits += 2; } }),
+      uaug('lars', 'guards', '경호 인력 증원', '경호원이 한 명 더 붙는다 (상속률 60%). 경호원 방어도 +240. 관심이 지독한 편이다.', { setup: (u) => { u.mem.extraSummon = (u.mem.extraSummon || 0) + 1; u.mem.summonArmor = (u.mem.summonArmor || 0) + 240; } }),
+      uaug('lars', 'elite', '정예 경호팀', '경호원 스탯 상속률 +40%p.', { setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.4; } }),
+      uaug('lars', 'downstream', '10%의 하류', '손실은 항상 그가 아닌 쪽에 떨어진다. 거래 대상이 받는 피해 +30%.', setSk((s) => { s.vuln = 0.3; })),
+      uaug('lars', 'terms', '상호 이익', '거래 조건 약화 +10%p, 지속 +3초.', setSk((s) => { s.weak += 0.1; s.dur += 3; })),
+      uaug('lars', 'resell', '손실 매각', '손실을 얼마에 되팔았는지부터 설명한다. 경호원 보호막 +90%p. 전투 승리 시 크레딧 +3.', setSk((s) => { s.shield += 0.9; }), { after: (run, _u, won) => { if (won) run.credits += 3; } }),
     ],
   },
   {
@@ -224,7 +224,7 @@ export const ROSTER_A: UnitDef[] = [
     sprite: 'soldier', palette: tint(PAL.PET, '#d0d0d8', '#e07a1f', '#62d6ff'), lore: '시제품 레일건 시험 사격 1,204회. 사고 보고서 1,203건.',
     skill: {
       name: '레일건', cd: 8, needsRange: true, params: { mult: 2.8, pen: 0.4, crit: 0, shock: 0 },
-      desc: (p) => `대상 방향 직선 위 모든 적에게 사격 위력 ${pct(p.mult)} 물리 피해 (방어도 관통 ${pct(p.pen)}).`,
+      desc: (p) => `대상 방향 직선 위 모든 적에게 사격 위력 ${pct(p.mult)} 물리 피해 (방어도 관통 ${pct(p.pen)}${p.crit ? `, 치명타 확률 +${pct(p.crit)}p` : ''})${p.shock ? `. ${pct(p.shock)} 확률로 2초 감전` : ''}.`,
       cast(b, u) {
         const t = u.target;
         if (!t?.alive) return false;
@@ -238,11 +238,11 @@ export const ROSTER_A: UnitDef[] = [
       },
     },
     augs: [
-      uaug('falcon', 'charge', '완충 사격', '레일건 피해 +60%p.', setSk((s) => { s.mult += 0.6; })),
-      uaug('falcon', 'core', '텅스텐 탄심', '방어도 관통 +30%p.', setSk((s) => { s.pen += 0.3; })),
-      uaug('falcon', 'arc', '잔류 전하', '레일건에 맞은 적 60% 확률로 2초 감전.', setSk((s) => { s.shock = 0.6; })),
-      uaug('falcon', 'turret', '시제 포탑', '엔지니어 포탑 체력·방어도 +60%.', { setup: (u) => { u.mem.turretHp = (u.mem.turretHp || 0) + 0.6; } }),
-      uaug('falcon', 'scope', '열상 조준경', '레일건 치명타 확률 +30%p.', setSk((s) => { s.crit = 0.3; })),
+      uaug('falcon', 'charge', '완충 사격', '레일건 피해 +280%p.', setSk((s) => { s.mult += 2.8; })),
+      uaug('falcon', 'core', '텅스텐 탄심', '방어도 관통 +30%p, 레일건 피해 +170%p.', setSk((s) => { s.pen += 0.3; s.mult += 1.7; })),
+      uaug('falcon', 'arc', '잔류 전하', '레일건에 맞은 적 100% 확률로 2초 감전.', setSk((s) => { s.shock = 1; })),
+      uaug('falcon', 'turret', '시제 포탑', '엔지니어 포탑 +1기, 포탑 체력·방어도 +40%.', { setup: (u) => { u.mem.turretExtra = (u.mem.turretExtra || 0) + 1; u.mem.turretHp = (u.mem.turretHp || 0) + 0.4; } }),
+      uaug('falcon', 'scope', '열상 조준경', '레일건 치명타 확률 +30%p, 치명타 피해 +60%p.', { ...setSk((s) => { s.crit += 0.3; }), stats: { critDmg: 0.6 } }),
     ],
   },
 ];
