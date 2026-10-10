@@ -142,7 +142,6 @@ function titleScreen() {
   const auto = saves.find((s) => s.slot === 'auto');
   return `<main class="title-screen">
     <div class="logo">ERRANTEs</div>
-    <div class="title-seal" aria-hidden="true"><span class="seal"></span></div>
     <p class="tagline">은하 용병단 오토배틀러 · 증강 도파민 MAX</p>
     <div class="title-actions">
       ${auto ? `<button class="btn primary" data-a="load" data-v="auto">이어하기 <small>페이즈 ${auto.phase} · 체력 ${auto.hp}</small></button>` : ''}
@@ -472,7 +471,7 @@ function summaryModal(run: RunState) {
 // ───────────────────────── 화면: 상점
 function shopScreen(run: RunState) {
   const stock = run.node?.shop || [];
-  return `<main class="wrap shop-screen">
+  return `<main class="wrap">
     <div class="screen-head"><h1>암시장 상점</h1><p class="muted">재료 2개를 같은 기물에 장착하거나 보관함에서 겹치면 고급 장비가 됩니다. 같은 고급 장비 2개는 전설(효과 3배)이 됩니다.</p></div>
     <div class="shop">${stock.map((s, i) => {
       const it = itemInfo(s.item);
@@ -586,10 +585,7 @@ function pendingModal(run: RunState): string {
   } else if (p.t === 'notice') {
     body = `<h1>${esc(p.title)}</h1><p>${esc(p.body)}</p><button class="btn primary" data-a="notice-ok">확인</button>`;
   }
-  // 의뢰서 모양 (봉투 + 봉랍): 전장 브리핑 · 사건 · 특권 · 의뢰 성공
-  const letter = p.t === 'field' || p.t === 'event' || p.t === 'privilege' || p.t === 'victory';
-  const rare = p.t === 'event' && EVENT_BY_ID[p.id]?.rare;
-  return `<div class="modal-bg"><div class="modal ${letter ? 'letter' : ''} ${rare ? 'rare' : ''}">${body}${letter ? '<span class="seal" aria-hidden="true"></span>' : ''}</div></div>`;
+  return `<div class="modal-bg"><div class="modal">${body}</div></div>`;
 }
 const STAT_SHORT: Record<string, string> = {
   maxHp: '체력', healEff: '회복 효율', shoot: '사격', strike: '타격', tech: '기술', acc: '명중', crit: '치명', effHit: '효과 명중',
@@ -719,7 +715,7 @@ function releaseBlock(run: RunState, u: UnitState) {
 }
 
 // ───────────────────────── 전투 기록 (진행 중 미터 · 결과 표)
-const ELEM_COLOR: Record<string, string> = { phys: 'var(--el-phys)', chem: 'var(--el-chem)', elec: 'var(--el-elec)', psy: 'var(--el-psy)', holy: 'var(--el-holy)', true: 'var(--el-true)' };
+const ELEM_COLOR: Record<string, string> = { phys: '#cfd3dc', chem: '#7fdc4a', elec: '#5ab8ff', psy: '#c07cff', holy: '#ffd866', true: '#ff6a6a' };
 type Agg = { u: CUnit; dmg: number; taken: number; healed: number; shield: number; kills: number; elem: Record<string, number> };
 /** 아군 기물별 집계 (소환물은 주인에게 합산) */
 function aggAllies(b: Battle): Agg[] {
@@ -757,7 +753,7 @@ function battleUnitInfo(b: Battle, u: CUnit) {
 function codexScreen() {
   const m = loadMeta();
   const tabs = ([['units', '기물'], ['enemies', '적'], ['events', '사건'], ['records', '기록']] as const)
-    .map(([k, l]) => `<button class="btn small ${app.codexTab === k ? 'on' : ''}" data-a="codex-tab" data-v="${k}">${l}</button>`).join('');
+    .map(([k, l]) => `<button class="btn small ${app.codexTab === k ? 'primary' : ''}" data-a="codex-tab" data-v="${k}">${l}</button>`).join('');
   let body = '';
   if (app.codexTab === 'units') {
     body = `<div class="codex-grid">${UNITS.map((d) => {
@@ -786,11 +782,11 @@ function codexScreen() {
       return `<div class="codex-row ${n ? '' : 'unknown'} ${e.rare ? 'rare' : ''}"><div><b>${n ? esc(e.title) : '???'}</b>${e.rare ? ' <span class="tag">희귀</span>' : ''}<div class="small">${n ? esc(e.text) : '아직 겪지 못한 사건입니다.'}</div></div><div class="small mono">${n}회</div></div>`;
     }).join('')}</div>`).join('');
   } else {
-    body = `<dl class="stats big panel-box"><dt>의뢰</dt><dd>${m.runs}</dd><dt>의뢰 성공</dt><dd>${m.clears}</dd><dt>최고 도달 페이즈</dt><dd>${m.bestPhase}</dd><dt>해금된 위험 등급</dt><dd>${m.maxDiff}</dd></dl>
+    body = `<dl class="stats big"><dt>의뢰</dt><dd>${m.runs}</dd><dt>의뢰 성공</dt><dd>${m.clears}</dd><dt>최고 도달 페이즈</dt><dd>${m.bestPhase}</dd><dt>해금된 위험 등급</dt><dd>${m.maxDiff}</dd></dl>
       <h2>전장별</h2><div class="codex-list">${FIELDS.map((f) => { const r = m.fields[f.id]; return `<div class="codex-row"><div><b style="color:${f.color}">${f.icon} ${esc(f.name)}</b><div class="small muted">${esc(f.region)}</div></div><div class="small mono">의뢰 ${r?.runs || 0} · 성공 ${r?.clears || 0}${r && r.bestDiff >= 0 ? ` · 최고 위험 ${r.bestDiff}` : ''}</div></div>`; }).join('')}</div>`;
   }
   return `<main class="wrap codex"><div class="screen-head"><h1>도감 · 기록</h1><p class="muted small">이 브라우저에 저장됩니다.</p></div>
-    <div class="codex-bar"><div class="seg">${tabs}</div><button class="btn small" data-a="codex-back">돌아가기</button></div>${body}</main>`;
+    <div class="row-btns">${tabs}<button class="btn ghost" data-a="codex-back">돌아가기</button></div>${body}</main>`;
 }
 
 // ───────────────────────── 액션

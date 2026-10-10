@@ -11,8 +11,7 @@ if (process.argv.includes('--sim')) {
     entryPoints: ['src/main.ts'], bundle: true, format: 'iife', target: 'es2020', minify: true, write: false, logLevel: 'warning',
   });
   const js = res.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
-  // 폰트는 scripts/fonts.py 가 만든 data URI (오프라인 · 아티팩트 CSP 대응)
-  const css = readFileSync('src/ui/fonts.css', 'utf8') + readFileSync('src/ui/style.css', 'utf8');
+  const css = readFileSync('src/ui/style.css', 'utf8');
   const html = readFileSync('src/index.html', 'utf8')
     .replace('/*__CSS__*/', () => css)
     .replace('/*__JS__*/', () => js);
