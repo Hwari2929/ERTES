@@ -142,6 +142,7 @@ function titleScreen() {
   const auto = saves.find((s) => s.slot === 'auto');
   return `<main class="title-screen">
     <div class="logo">ERRANTEs</div>
+    <div class="title-seal" aria-hidden="true"><span class="seal"></span></div>
     <p class="tagline">은하 용병단 오토배틀러 · 증강 도파민 MAX</p>
     <div class="title-actions">
       ${auto ? `<button class="btn primary" data-a="load" data-v="auto">이어하기 <small>페이즈 ${auto.phase} · 체력 ${auto.hp}</small></button>` : ''}
@@ -585,7 +586,10 @@ function pendingModal(run: RunState): string {
   } else if (p.t === 'notice') {
     body = `<h1>${esc(p.title)}</h1><p>${esc(p.body)}</p><button class="btn primary" data-a="notice-ok">확인</button>`;
   }
-  return `<div class="modal-bg"><div class="modal">${body}</div></div>`;
+  // 의뢰서 모양 (봉투 + 봉랍): 전장 브리핑 · 사건 · 특권 · 의뢰 성공
+  const letter = p.t === 'field' || p.t === 'event' || p.t === 'privilege' || p.t === 'victory';
+  const rare = p.t === 'event' && EVENT_BY_ID[p.id]?.rare;
+  return `<div class="modal-bg"><div class="modal ${letter ? 'letter' : ''} ${rare ? 'rare' : ''}">${body}${letter ? '<span class="seal" aria-hidden="true"></span>' : ''}</div></div>`;
 }
 const STAT_SHORT: Record<string, string> = {
   maxHp: '체력', healEff: '회복 효율', shoot: '사격', strike: '타격', tech: '기술', acc: '명중', crit: '치명', effHit: '효과 명중',
@@ -715,7 +719,7 @@ function releaseBlock(run: RunState, u: UnitState) {
 }
 
 // ───────────────────────── 전투 기록 (진행 중 미터 · 결과 표)
-const ELEM_COLOR: Record<string, string> = { phys: '#cfd3dc', chem: '#7fdc4a', elec: '#5ab8ff', psy: '#c07cff', holy: '#ffd866', true: '#ff6a6a' };
+const ELEM_COLOR: Record<string, string> = { phys: 'var(--el-phys)', chem: 'var(--el-chem)', elec: 'var(--el-elec)', psy: 'var(--el-psy)', holy: 'var(--el-holy)', true: 'var(--el-true)' };
 type Agg = { u: CUnit; dmg: number; taken: number; healed: number; shield: number; kills: number; elem: Record<string, number> };
 /** 아군 기물별 집계 (소환물은 주인에게 합산) */
 function aggAllies(b: Battle): Agg[] {
