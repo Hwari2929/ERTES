@@ -1,6 +1,14 @@
-import type { Effect } from '../engine/effects';
-import type { RunState } from '../types';
+import type { Effect, EffectCtx } from '../engine/effects';
+import { inc, red } from '../engine/effects';
+import type { RunState, SynergyId } from '../types';
 import { skillHit } from './kit';
+import { SYN_BY_ID, SYNERGIES, tierOf } from './synergies';
+
+/** 문장 대상이 될 수 있는 시너지 (전용 독립 시너지 제외) */
+export const EMBLEM_SYNS = SYNERGIES.filter((s) => s.tiers.length > 1).map((s) => s.id);
+const active = (ctx: EffectCtx) => SYNERGIES.filter((s) => s.tiers.length > 1 && tierOf(s.id, ctx.counts[s.id] || 0) > 0);
+const maxed = (ctx: EffectCtx) => SYNERGIES.filter((s) => s.tiers.length > 1 && tierOf(s.id, ctx.counts[s.id] || 0) === s.tiers.length);
+export const synName = (id: string) => SYN_BY_ID[id as SynergyId]?.name || id;
 
 /** 전역 증강: 런 시작 시 + n 페이즈마다 1개 선택 */
 export interface GlobalDef {
@@ -28,7 +36,31 @@ export const GLOBALS: GlobalDef[] = [
   { id: 'G.study', name: '학습 곡선', desc: '공명도 구매 비용 -1, 구매량 +1.', unique: true },
   { id: 'G.scout', name: '인재 스카우트', desc: '영입 노드 선택지 +1, 영입 기물이 공명 등급 +1로 합류.', unique: true },
   { id: 'G.allin', name: '올인', desc: '모든 아군 피해 +20%, 최대 체력 -10%.', team: { mods: [{ kind: 'inc', tag: 'all', v: 0.2 }], pct: { maxHp: -0.1 } } },
+  // ── 시너지 관련
+  { id: 'G.emblem', name: '문장 수여', desc: '출전 중인 시너지 중 무작위 1개 +1pt (영구, 중첩 가능).' },
+  { id: 'G.faction', name: '연합 협정', desc: '출전 인원이 가장 많은 세력 +1pt.', unique: true },
+  { id: 'G.trait', name: '전술 교범', desc: '출전 인원이 가장 많은 특성 +1pt.', unique: true },
+  { id: 'G.bond', name: '결속', desc: '활성화된 시너지 1개당 모든 아군 피해 +3%.', unique: true,
+    team: { setup: (u, _b, ctx) => { u.mods.push(inc('all', 0.03 * active(ctx).length)); } } },
+  { id: 'G.apex', name: '정점', desc: '최고 단계에 도달한 시너지 1개당 모든 아군 피해 +10%, 받는 피해 -5%.', unique: true,
+    team: { setup: (u, _b, ctx) => { const n = maxed(ctx).length; if (n) { u.mods.push(inc('all', 0.1 * n)); u.taken.push(red('all', 0.05 * n)); } } } },
+  { id: 'G.diverse', name: '다국적 편성', desc: '활성화된 세력 시너지가 3개 이상이면 모든 아군 받는 피해 -12%, 공격 속도 +10%.', unique: true,
+    team: { setup: (u, _b, ctx) => { if (active(ctx).filter((s) => s.kind === 'faction').length >= 3) { u.taken.push(red('all', 0.12)); u.st.atkSpd += 0.1; } } } },
+  { id: 'G.network', name: '인맥', desc: '영입 선택지 +1, 현재 파티와 시너지가 겹치는 기물이 더 자주 나옴.', unique: true },
 ];
+
+/** 특권 증강: 런 시작 시 1개 (새로고침 가능) */
+export interface PrivilegeDef { id: string; name: (param?: string) => string; desc: (param?: string) => string; w: number }
+export const PRIVILEGES: PrivilegeDef[] = [
+  { id: 'P.emblem', w: 4, name: (p) => `${synName(p!)} 문장`, desc: (p) => `${synName(p!)} +1pt (해당 기물이 1명 이상 출전 중일 때).` },
+  { id: 'P.recruit', w: 1, name: () => '추가 계약', desc: () => '기물 3명 중 1명을 즉시 영입.' },
+  { id: 'P.legend', w: 1, name: () => '가보', desc: () => '전설 장비 3개 중 1개 선택.' },
+  { id: 'P.rank', w: 1, name: () => '베테랑 편성', desc: () => '시작 기물 전원 공명 등급 +2.' },
+  { id: 'P.global', w: 1, name: () => '작전 재량', desc: () => '전역 증강을 1개 더 선택.' },
+  { id: 'P.funds', w: 1, name: () => '후원금', desc: () => '즉시 에너지 크레딧 +40.' },
+  { id: 'P.hp', w: 1, name: () => '보험 가입', desc: () => '최대 플레이어 체력 +40 (즉시 회복).' },
+];
+export const PRIVILEGE_BY_ID: Record<string, PrivilegeDef> = Object.fromEntries(PRIVILEGES.map((p) => [p.id, p]));
 export const GLOBAL_BY_ID: Record<string, GlobalDef> = Object.fromEntries(GLOBALS.map((g) => [g.id, g]));
 
 /** 성직자 순례 노드 축복: 이번 페이즈 동안 모든 아군에게 */

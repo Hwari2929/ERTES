@@ -47,7 +47,7 @@ export const CFG = {
   augmentChoices: 3, augmentRerolls: 1,
 
   // ── 파티/보드
-  startUnits: 3, maxParty: 16, // 출전 최대 10 + 대기 6
+  startUnits: 4, maxParty: 16, // 출전 최대 10 + 대기 6
   deployCap: (phase: number) => Math.min(10, 3 + phase), // [임시]
   benchXpWeight: 0.5, // 대기 기물의 공명도 분배 가중치 (출전 기물 대비)
   boardSizes: [ { n: 7, w: 70, env: '표준 전장' }, { n: 6, w: 15, env: '협소한 통로' }, { n: 8, w: 15, env: '개활지' } ],
@@ -73,6 +73,7 @@ export const CFG = {
   bossLossDamage: (phase: number) => 10 + 3 * phase,
 
   globalAugEvery: 3, // 런 시작 + n 페이즈마다
+  privilegeRerolls: 3, // 런 시작 특권 증강 새로고침 횟수
 };
 
 /** p 페이즈 적 피해 누적 배율 */

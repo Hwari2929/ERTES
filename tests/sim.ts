@@ -12,6 +12,7 @@ declare const process: { argv: string[] };
 function resolvePending(run: RunState, bot: Rng) {
   while (run.pending.length) {
     const p = run.pending[0];
+    if (p.t === 'privilege') { R.pickPrivilege(run, bot.int(0, p.options.length - 1)); continue; } // 대기열을 직접 정리함
     if (p.t === 'global') R.pickGlobal(run, bot.pick(p.options));
     else if (p.t === 'rankup') {
       const u = run.units.find((x) => x.uid === p.uid)!;
@@ -51,7 +52,7 @@ function manage(run: RunState) {
 
 function playRun(seed: number, force?: string) {
   const bot = new Rng(seed * 7 + 1);
-  const starters = force ? [force, ...bot.sample(STARTERS.filter((x) => x !== force), 2)] : bot.sample(STARTERS, 3);
+  const starters = force ? [force, ...bot.sample(STARTERS.filter((x) => x !== force), CFG.startUnits - 1)] : bot.sample(STARTERS, CFG.startUnits);
   const run = R.newRun(seed, starters);
   const phaseLog: Record<number, { w: number; l: number }> = {};
   let battles = 0;

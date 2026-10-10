@@ -67,6 +67,7 @@ export interface Quest { id: string; target: number; progress: number; done: boo
 
 export type Pending =
   | { t: 'global'; options: string[] }
+  | { t: 'privilege'; options: AugPick[]; rerolls: number }
   | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean }
   | { t: 'itemPick'; options: string[]; title: string }
   | { t: 'recruit'; options: string[] }
@@ -98,6 +99,8 @@ export interface RunState {
   blessing: string | null; // 순례 축복 (이번 페이즈)
   staffTarget: string | null; // 참모단 지원 대상 uid
   aceTarget: string | null; // 항해자 에이스 파일럿 uid
+  privilege: AugPick | null; // 런 시작 특권 증강
+  synBonus: Partial<Record<SynergyId, number>>; // 문장: 시너지 인원 보너스 (해당 기물 1명 이상 출전 시)
   nextUid: number;
   log: string[];
   stats: { wins: number; losses: number; kills: number; bestHit: number };

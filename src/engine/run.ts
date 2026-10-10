@@ -1,14 +1,14 @@
 import { CFG } from '../config';
 import { AUG_BY_ID, COMMON_AUGS } from '../data/augments';
 import { BOSS_ROTATION, ENEMIES, ENEMY_BY_ID } from '../data/enemies';
-import { BLESSING_BY_ID, BLESSINGS, GLOBAL_BY_ID, GLOBALS } from '../data/globals';
+import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
 import { ALL_ADVANCED, ALL_COMPONENTS, combine, isLocked, itemInfo } from '../data/items';
 import { SYN_BY_ID, tierOf } from '../data/synergies';
 import { UNIT_BY_ID, UNITS } from '../data/units';
 import { Rng } from '../rng';
 import {
   type AugPick, type Encounter, type EnemySpawn, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
-  type Quest, type RunState, type UnitState,
+  type Quest, type RunState, type SynergyId, type UnitState,
 } from '../types';
 import { deployed, memberships, playerRows, synergyCounts } from './build';
 import type { Battle } from './combat';
@@ -28,22 +28,89 @@ export const hasGlobal = (run: RunState, id: string) => run.globals.includes(id)
 // ───────────────────────── 런 생성
 export function newRun(seed: number, starters: string[]): RunState {
   const run: RunState = {
-    version: SAVE_VERSION, seed, rng: seed, phase: 1, step: 0, map: phaseMap(), picked: [], node: null,
+    version: SAVE_VERSION, seed, rng: seed, phase: 1, step: 0, map: phaseMap(1), picked: [], node: null,
     hp: CFG.playerHp, maxHp: CFG.playerHp, credits: CFG.startCredits, streak: 0, units: [], inventory: [],
-    globals: [], pending: [], quests: [], questPhase: 0, loan: 0, faith: 0, fame: 0, blessing: null, staffTarget: null, aceTarget: null, nextUid: 1, log: [],
+    globals: [], pending: [], quests: [], questPhase: 0, loan: 0, faith: 0, fame: 0, blessing: null, staffTarget: null, aceTarget: null, privilege: null, synBonus: {}, nextUid: 1, log: [],
     stats: { wins: 0, losses: 0, kills: 0, bestHit: 0 }, over: false,
   };
   for (const id of starters) addUnit(run, id, 1);
   autoPlace(run);
   if (tierNow(run, 'CLERIC')) run.map.unshift(['pilgrim']);
+  run.pending.push({ t: 'privilege', options: rollPrivileges(run), rerolls: CFG.privilegeRerolls });
   run.pending.push({ t: 'global', options: rollGlobals(run) });
   log(run, '용병단 ERRANTEs, 출격.');
   return run;
 }
 
-/** 페이즈 노드 구성: 전투 4 + 보스 1, 중간 영입 1, 상점/보급 선택 2 */
-export function phaseMap(): NodeType[][] {
-  return [['battle'], ['battle', 'adversity'], ['recruit'], ['shop', 'supply'], ['battle', 'adversity'], ['battle'], ['shop', 'supply'], ['boss']];
+/** 페이즈 노드 구성: 전투 4 + 보스 1, 상점/보급 선택 2. 2페이즈부터는 첫 노드가 영입 */
+export function phaseMap(phase: number): NodeType[][] {
+  const body: NodeType[][] = [['battle'], ['battle', 'adversity'], ['shop', 'supply'], ['battle', 'adversity'], ['battle'], ['shop', 'supply'], ['boss']];
+  return phase <= 1 ? body : [['recruit'], ...body];
+}
+
+// ───────────────────────── 특권 증강 (런 시작)
+export function rollPrivileges(run: RunState): AugPick[] {
+  return rng(run, (r) => {
+    // 문장은 시작 기물의 시너지 위주로
+    const own = [...new Set(run.units.flatMap((u) => memberships(u)))].filter((s) => EMBLEM_SYNS.includes(s));
+    const out: AugPick[] = [];
+    for (let tries = 0; out.length < 3 && tries < 40; tries++) {
+      const d = r.weighted(PRIVILEGES, (p) => p.w);
+      if (d.id === 'P.emblem') {
+        const pool = (own.length && r.chance(0.7) ? own : EMBLEM_SYNS).filter((s) => !out.some((o) => o.param === s));
+        if (pool.length) out.push({ id: d.id, param: r.pick(pool) });
+      } else if (!out.some((o) => o.id === d.id)) out.push({ id: d.id });
+    }
+    return out;
+  });
+}
+export function rerollPrivilege(run: RunState) {
+  const p = run.pending[0];
+  if (p?.t !== 'privilege' || p.rerolls <= 0) return;
+  p.rerolls--;
+  p.options = rollPrivileges(run);
+}
+/** 특권 선택: 대기열 맨 앞(특권)을 빼고, 후속 선택은 바로 다음에 끼워 넣는다 */
+export function pickPrivilege(run: RunState, idx: number) {
+  const p = run.pending[0];
+  if (p?.t !== 'privilege' || !p.options[idx]) return;
+  const pick = p.options[idx];
+  run.pending.shift();
+  run.privilege = pick;
+  const next: Pending[] = [];
+  switch (pick.id) {
+    case 'P.emblem': run.synBonus[pick.param as SynergyId] = (run.synBonus[pick.param as SynergyId] || 0) + 1; break;
+    case 'P.recruit': next.push({ t: 'recruit', options: recruitOptions(run, 3) }); break;
+    case 'P.legend': next.push({ t: 'itemPick', title: '가보 — 전설 장비 1개 선택', options: rng(run, (r) => r.sample(ALL_ADVANCED, 3)).map((x) => 'L_' + x.slice(2)) }); break;
+    case 'P.global': next.push({ t: 'global', options: rollGlobals(run) }); break;
+    case 'P.funds': run.credits += 40; break;
+    case 'P.hp': run.maxHp += 40; run.hp += 40; break;
+    case 'P.rank': {
+      const before = run.pending.length;
+      for (const u of run.units) for (let i = 0; i < 2; i++) rankUp(run, u);
+      next.push(...run.pending.splice(before));
+      break;
+    }
+  }
+  run.pending.unshift(...next);
+  log(run, `특권: ${privilegeName(pick)}`);
+}
+export const privilegeName = (p: AugPick) => PRIVILEGES.find((d) => d.id === p.id)!.name(p.param);
+export const privilegeDesc = (p: AugPick) => PRIVILEGES.find((d) => d.id === p.id)!.desc(p.param);
+
+/** 영입 선택지. 인맥(G.network)이 있으면 파티와 시너지가 겹치는 기물 가중 */
+function recruitOptions(run: RunState, k: number): string[] {
+  const pool = UNITS.filter((d) => !run.units.some((u) => u.defId === d.id)).map((d) => d.id);
+  if (!hasGlobal(run, 'G.network')) return rng(run, (r) => r.sample(pool, k));
+  const have = new Set(run.units.flatMap((u) => memberships(u)));
+  return rng(run, (r) => {
+    const left = pool.slice(), out: string[] = [];
+    while (out.length < k && left.length) {
+      const id = r.weighted(left, (x) => 1 + 2 * [...UNIT_BY_ID[x].factions, ...UNIT_BY_ID[x].traits].filter((s) => have.has(s)).length);
+      out.push(id); left.splice(left.indexOf(id), 1);
+    }
+    return out;
+  });
 }
 
 export function addUnit(run: RunState, defId: string, rank: number): UnitState {
@@ -105,8 +172,8 @@ export function enterNode(run: RunState, type: NodeType) {
       const why = pool.length ? `보유 한도(${CFG.maxParty}명)에 도달해` : '영입할 수 있는 기물이 없어';
       run.pending.push({ t: 'notice', title: '영입 불가', body: `${why} 크레딧 +10 으로 대체합니다.` });
     } else {
-      const k = 3 + (hasGlobal(run, 'G.scout') ? 1 : 0);
-      run.pending.push({ t: 'recruit', options: rng(run, (r) => r.sample(pool, k)) });
+      const k = 3 + (hasGlobal(run, 'G.scout') ? 1 : 0) + (hasGlobal(run, 'G.network') ? 1 : 0);
+      run.pending.push({ t: 'recruit', options: recruitOptions(run, k) });
     }
     advance(run);
   }
@@ -114,7 +181,7 @@ export function enterNode(run: RunState, type: NodeType) {
 
 export function leaveShop(run: RunState) { run.node = null; advance(run); }
 
-const tierNow = (run: RunState, id: 'CLERIC' | 'STAR') => tierOf(id, synergyCounts(deployed(run))[id] || 0);
+const tierNow = (run: RunState, id: 'CLERIC' | 'STAR') => tierOf(id, synergyCounts(deployed(run), run)[id] || 0);
 
 export function advance(run: RunState) {
   run.node = null;
@@ -122,7 +189,7 @@ export function advance(run: RunState) {
   if (run.step >= run.map.length) {
     run.phase++;
     run.step = 0;
-    run.map = phaseMap();
+    run.map = phaseMap(run.phase);
     run.picked = [];
     autoPlace(run);
     run.blessing = null;
@@ -145,6 +212,12 @@ export function pickGlobal(run: RunState, id: string) {
   run.globals.push(id);
   GLOBAL_BY_ID[id].onPick?.(run);
   if (id === 'G.armory') for (let i = 0; i < 2; i++) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)));
+  if (id === 'G.emblem') {
+    const pool = [...new Set(deployed(run).flatMap((u) => memberships(u)))].filter((s) => EMBLEM_SYNS.includes(s));
+    const s = rng(run, (r) => r.pick(pool.length ? pool : EMBLEM_SYNS));
+    run.synBonus[s] = (run.synBonus[s] || 0) + 1;
+    log(run, `문장 수여: ${synName(s)} +1`);
+  }
   autoPlace(run);
 }
 
@@ -207,7 +280,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   const p = run.phase;
   const lines: string[] = [];
   const dep = deployed(run);
-  const counts = synergyCounts(dep);
+  const counts = synergyCounts(dep, run);
   const pet = tierOf('PET', counts.PET || 0);
   const uni = tierOf('UNI', counts.UNI || 0);
 
@@ -452,7 +525,7 @@ export function unequip(run: RunState, uid: string, slot: number): string | null
 }
 
 export function takeLoan(run: RunState): boolean {
-  const pet = tierOf('PET', synergyCounts(deployed(run)).PET || 0);
+  const pet = tierOf('PET', synergyCounts(deployed(run), run).PET || 0);
   if (pet < 2 || run.loan > 0) return false;
   run.credits += 25;
   run.loan = 30;
@@ -507,7 +580,7 @@ const REWARD_TEXT: Record<string, string> = { credits: '크레딧', part: '장�
 export const questRewardText = (q: Quest) => REWARD_TEXT[q.reward];
 
 export function syncQuests(run: RunState) {
-  const tier = tierOf('HEL', synergyCounts(deployed(run)).HEL || 0);
+  const tier = tierOf('HEL', synergyCounts(deployed(run), run).HEL || 0);
   if (run.questPhase !== run.phase) { run.quests = []; run.questPhase = run.phase; }
   rng(run, (r) => {
     while (run.quests.length < tier) {
@@ -520,7 +593,7 @@ export function syncQuests(run: RunState) {
 
 function questProgress(run: RunState, b: Battle, won: boolean, type: NodeType, lines: string[]) {
   const dep = deployed(run);
-  const tier = tierOf('HEL', synergyCounts(dep).HEL || 0);
+  const tier = tierOf('HEL', synergyCounts(dep, run).HEL || 0);
   for (const q of run.quests) {
     if (q.done) continue;
     if (q.id === 'kills') q.progress += b.counters.kills;
@@ -586,6 +659,8 @@ export function migrate(run: RunState): RunState {
   run.blessing ??= null;
   run.staffTarget ??= null;
   run.aceTarget ??= null;
+  run.privilege ??= null;
+  run.synBonus ??= {};
   run.version = SAVE_VERSION;
   return run;
 }

@@ -28,13 +28,22 @@ export function memberships(u: UnitState): SynergyId[] {
   return [...s];
 }
 
-export function synergyCounts(units: UnitState[]): Counts {
+export function synergyCounts(units: UnitState[], run?: RunState | null): Counts {
   const seen = new Set<string>();
   const c: Counts = {};
   for (const u of units) {
     if (seen.has(u.defId)) continue; // 같은 기물은 1회만 집계
     seen.add(u.defId);
     for (const s of memberships(u)) c[s] = (c[s] || 0) + 1;
+  }
+  if (run) {
+    // 문장 (특권 · 문장 수여): 해당 시너지 기물이 1명 이상 출전 중일 때만
+    for (const [s, v] of Object.entries(run.synBonus || {})) if (c[s as SynergyId]) c[s as SynergyId]! += v!;
+    // 연합 협정 / 전술 교범: 인원이 가장 많은 세력 / 특성 +1
+    const top = (kind: 'faction' | 'trait') => SYNERGIES.filter((s) => s.kind === kind && s.tiers.length > 1 && (c[s.id] || 0) > 0)
+      .sort((a, b2) => (c[b2.id] || 0) - (c[a.id] || 0))[0];
+    if (run.globals.includes('G.faction')) { const t = top('faction'); if (t) c[t.id]! += 1; }
+    if (run.globals.includes('G.trait')) { const t = top('trait'); if (t) c[t.id]! += 1; }
   }
   // 범은하 공동체 5/7단계: 가장 큰 다른 세력의 인원 +1/+2
   const pan = c.PAN || 0;
@@ -276,7 +285,7 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
   const b = new Battle(enc.n, new Rng(enc.seed), { phase: run.phase, credits: run.credits });
   b.keepEvents = keepEvents;
   const dep = deployed(run);
-  const counts = synergyCounts(dep);
+  const counts = synergyCounts(dep, run);
   const lay = layout(run, enc.n);
   for (const u of dep) {
     const p = lay.get(u.uid);

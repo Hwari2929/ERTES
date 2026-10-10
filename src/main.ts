@@ -93,7 +93,8 @@ function topbar() {
 }
 
 function synergyPanel(run: RunState) {
-  const counts = synergyCounts(deployed(run));
+  const counts = synergyCounts(deployed(run), run);
+  const raw = synergyCounts(deployed(run));
   const list = SYNERGIES.filter((s) => counts[s.id]).sort((a, b) => tierOf(b.id, counts[b.id]!) - tierOf(a.id, counts[a.id]!) || counts[b.id]! - counts[a.id]!);
   if (!list.length) return `<div class="muted small">출전한 기물이 없습니다.</div>`;
   return list.map((s) => {
@@ -101,7 +102,7 @@ function synergyPanel(run: RunState) {
     const t = tierOf(s.id, c);
     const steps = s.tiers.map((need, i) => `<span class="${c >= need ? 'on' : ''}${i === t - 1 ? ' cur' : ''}">${need}</span>`).join('');
     return `<details class="syn ${t ? 'active' : ''}" style="--c:${s.color}">
-      <summary><span class="syn-ic">${s.icon}</span><span class="syn-name">${esc(s.name)}</span><span class="syn-steps">${steps}</span></summary>
+      <summary><span class="syn-ic">${s.icon}</span><span class="syn-name">${esc(s.name)}${c > (raw[s.id] || 0) ? ` <small class="accent">+${c - (raw[s.id] || 0)}</small>` : ''}</span><span class="syn-steps">${steps}</span></summary>
       <p>${esc(s.desc)}</p>
       <ol>${s.tierDesc.map((d, i) => `<li class="${i === t - 1 ? 'cur' : ''}">(${s.tiers[i]}) ${esc(d)}</li>`).join('')}</ol>
     </details>`;
@@ -140,7 +141,7 @@ function unitCard(d: UnitDef, opts: { selected?: boolean; action?: string; rank?
 function newRunScreen() {
   const n = app.starters.length;
   return `<main class="wrap">
-    <div class="screen-head"><h1>계약 기물 선택</h1><p class="muted">첫 출격에 데려갈 기물 ${CFG.startUnits}명을 고르세요. 나머지는 페이즈 중간 영입 노드에서 만날 수 있습니다.</p></div>
+    <div class="screen-head"><h1>계약 기물 선택</h1><p class="muted">첫 출격에 데려갈 기물 ${CFG.startUnits}명을 고르세요. 나머지는 2페이즈부터 매 페이즈 첫 노드(영입)에서 만날 수 있습니다.</p></div>
     <div class="ucard-grid">${UNITS.filter((d) => !d.noStarter).map((d) => unitCard(d, { selected: app.starters.includes(d.id) })).join('')}</div>
     <div class="sticky-actions">
       <button class="btn ghost" data-a="to-title">뒤로</button>
@@ -163,7 +164,7 @@ function mapScreen(run: RunState) {
   const opts = R.currentOptions(run);
   const choices = run.node ? `<button class="node-btn n-${run.node.type}" data-a="resume"><span class="node-ic">${NODE_ICON[run.node.type]}</span><b>${NODE_NAME[run.node.type]} 진행 중</b><span class="small muted">돌아가서 계속하기</span></button>` : opts.map((o) => `<button class="node-btn n-${o}" data-a="enter" data-v="${o}">
       <span class="node-ic">${NODE_ICON[o]}</span><b>${NODE_NAME[o]}</b><span class="small muted">${nodeHint(o)}</span></button>`).join('');
-  const pet = tierOf('PET', synergyCounts(deployed(run)).PET || 0);
+  const pet = tierOf('PET', synergyCounts(deployed(run), run).PET || 0);
   return `<main class="wrap map">
     <section class="map-main">
       <div class="screen-head"><h1>페이즈 ${p}</h1><p class="muted small">${scale}</p></div>
@@ -182,6 +183,7 @@ function mapScreen(run: RunState) {
       <div class="syn-list">${synergyPanel(run)}</div>
       ${run.quests.length ? `<h2>헬레니우스 퀘스트</h2><ul class="quests">${run.quests.map((q) =>
         `<li class="${q.done ? 'done' : ''}">${esc(R.questText(q))} <span class="muted">${Math.min(q.progress, q.target)}/${q.target} · 보상 ${R.questRewardText(q)}</span></li>`).join('')}</ul>` : ''}
+      ${run.privilege ? `<h2>특권</h2><ul class="globals"><li><b>${esc(R.privilegeName(run.privilege))}</b> <span class="muted">${esc(R.privilegeDesc(run.privilege))}</span></li></ul>` : ''}
       ${run.globals.length ? `<h2>전역 증강</h2><ul class="globals">${run.globals.map((g) => `<li><b>${esc(GLOBAL_BY_ID[g].name)}</b> <span class="muted">${esc(GLOBAL_BY_ID[g].desc)}</span></li>`).join('')}</ul>` : ''}
       <h2>기록</h2>
       <ul class="log">${run.log.slice(0, 8).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
@@ -219,7 +221,7 @@ function prepScreen(run: RunState) {
       cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}" ${mine ? `data-drop="cell:${x}:${y}"` : ''}></div>`;
     }
   let units = '';
-  const staffed = tierOf('STAFF', synergyCounts(deployed(run)).STAFF || 0) ? staffTargetUid(run) : null;
+  const staffed = tierOf('STAFF', synergyCounts(deployed(run), run).STAFF || 0) ? staffTargetUid(run) : null;
   for (const u of deployed(run)) {
     const p = lay.get(u.uid);
     if (!p) continue;
@@ -293,7 +295,7 @@ function statLines(c: CUnit, b: Battle) {
 function previewAlly(run: RunState, u: UnitState) {
   const b = new Battle(6, new Rng(1), { phase: run.phase, credits: run.credits });
   b.keepEvents = false;
-  const counts = synergyCounts(deployed(run));
+  const counts = synergyCounts(deployed(run), run);
   const tmp = { ...u, pos: u.pos || { c: 0, r: 0 } };
   const c = u.pos ? buildAlly(b, run, tmp, counts) : buildAlly(b, null, tmp, {});
   return { b, c };
@@ -301,7 +303,7 @@ function previewAlly(run: RunState, u: UnitState) {
 
 function staffLine(run: RunState, u: UnitState) {
   if (!u.pos || UNIT_BY_ID[u.defId].traits.includes('STAFF')) return '';
-  if (!tierOf('STAFF', synergyCounts(deployed(run)).STAFF || 0)) return '';
+  if (!tierOf('STAFF', synergyCounts(deployed(run), run).STAFF || 0)) return '';
   return staffTargetUid(run) === u.uid
     ? '<div class="small staff-on">✎ 참모단 지원 대상</div>'
     : `<button class="btn small" data-a="staff-target" data-v="${u.uid}">✎ 참모단 지원 대상으로 지정</button>`;
@@ -309,8 +311,8 @@ function staffLine(run: RunState, u: UnitState) {
 
 function aceLine(run: RunState, u: UnitState) {
   const d = UNIT_BY_ID[u.defId];
-  if (!u.pos || !d.ace || !tierOf('NAV', synergyCounts(deployed(run)).NAV || 0)) return '';
-  const k = [1, 1, 1.6, 2.5][tierOf('NAV', synergyCounts(deployed(run)).NAV || 0)];
+  if (!u.pos || !d.ace || !tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0)) return '';
+  const k = [1, 1, 1.6, 2.5][tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0)];
   const info = `<div class="small muted">에이스 능력 · ${esc(d.ace.name)}: ${esc(d.ace.desc(k))}</div>`;
   return aceTargetUid(run) === u.uid
     ? `<div class="small staff-on">✈ 에이스 파일럿</div>${info}`
@@ -339,7 +341,7 @@ function detailPanel(run: RunState) {
   if (!u) return '';
   const d = UNIT_BY_ID[u.defId];
   const { b, c } = previewAlly(run, u);
-  const effects = unitEffects(run, u, synergyCounts(deployed(run)), !!u.pos);
+  const effects = unitEffects(run, u, synergyCounts(deployed(run), run), !!u.pos);
   const tm = totalMajors(u, effects);
   const title = rankTitle(u.rank) + effects.reduce((s, e) => s + (e.title || 0), 0);
   const cost = R.xpCost(run);
@@ -461,13 +463,17 @@ function pendingModal(run: RunState): string {
   if (p.t === 'global') {
     body = `<h1>전역 증강</h1><p class="muted">런 전체에 적용되는 증강을 하나 고르세요.</p>
       <div class="cards">${p.options.map((id) => { const g = GLOBAL_BY_ID[id]; return `<button class="card" data-a="pick-global" data-v="${id}"><b>${esc(g.name)}</b><span>${esc(g.desc)}</span></button>`; }).join('')}</div>`;
+  } else if (p.t === 'privilege') {
+    body = `<h1>특권 증강</h1><p class="muted">이번 런에만 적용되는 출격 특권을 하나 고르세요. 새로고침 ${p.rerolls}회 남음.</p>
+      <div class="cards">${p.options.map((o, i) => `<button class="card aug-unit" data-a="pick-privilege" data-v="${i}"><b>${esc(R.privilegeName(o))}</b><span>${esc(R.privilegeDesc(o))}</span></button>`).join('')}</div>
+      <div class="row-btns"><button class="btn" data-a="reroll-privilege" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div>`;
   } else if (p.t === 'rankup') {
     const u = run.units.find((x) => x.uid === p.uid)!;
     const d = UNIT_BY_ID[u.defId];
     const head = `<div class="d-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="accent">공명 등급 ${p.rank - 1} → ${p.rank}</div></div></div>`;
     if (!p.allocDone) {
       const left = CFG.rankPicks - app.picks.length;
-      const effects = unitEffects(run, u, synergyCounts(deployed(run)), !!u.pos);
+      const effects = unitEffects(run, u, synergyCounts(deployed(run), run), !!u.pos);
       const tm = totalMajors(u, effects);
       const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? Math.round((v as number) * 100) + '%' : v}`).join(', ');
       body = `<h1>공명 등급 상승</h1>${head}
@@ -689,6 +695,8 @@ function act(a: string, v: string) {
     case 'loan': if (run) { toast(R.takeLoan(run) ? '대출 실행: 크레딧 +25' : '대출할 수 없습니다.'); persist(); } break;
     // 대기 선택
     case 'pick-global': if (run) { R.pickGlobal(run, v); run.pending.shift(); persist(); } break;
+    case 'pick-privilege': if (run) { R.pickPrivilege(run, +v); persist(); } break;
+    case 'reroll-privilege': if (run) { R.rerollPrivilege(run); persist(); } break;
     case 'alloc-pick': {
       const m = v as Major;
       if (app.picks.includes(m)) app.picks = app.picks.filter((x) => x !== m);
