@@ -1,7 +1,7 @@
 // 칼리토 제국 · 헬레니우스 동맹
-import { inc } from '../engine/effects';
-import { pct, skillHit, summonsOf } from './kit';
-import { cookPower, pickEnemy, strike, support } from './tpl';
+import { inc, red } from '../engine/effects';
+import { fear, pct, skillHit, summonsOf } from './kit';
+import { cookPower, pickEnemy, strike, strongestAlly, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type UnitDef } from './unitkit';
 
 const nat = (n: number) => ({ setup: (u: { mem: Record<string, number> }) => { u.mem.natureExtra = (u.mem.natureExtra || 0) + n; } });
@@ -11,19 +11,33 @@ const HOUND = ['#140808', '#8a2020', '#e0b040', '#d0a080', '#ffe040', '#4a2020',
 export const ROSTER_B: UnitDef[] = [
   // ───────── 칼리토 제국
   {
-    id: 'hiiro', name: '히이로', title: '제국 황태자 겸 전략가', factions: ['KAL'], traits: ['STAFF', 'STAR'], keywords: ['bio'],
+    id: 'hiiro', name: '히이로', title: '여우 환수 점술사 · 작전고문', factions: ['KAL'], traits: ['STAFF', 'STAR'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'psy', interval: 1.2 }, range: 3, base: B(6, 7, 9, 4, 5),
-    sprite: 'robe', palette: tint(PAL.KAL, '#a8283a', '#ffd34d', '#ffffff'), lore: '황위 계승 서열 1위. 전쟁 계획 승인 서열도 1위.',
-    skill: support({
-      name: '황명', cd: 8, target: 'commanded', params: { count: 1, dmg: 0.4, as: 0.2, dur: 5 },
-      desc: (p) => `가장 강한 아군 ${p.count}명(참모단 지원 대상 우선)에게 ${p.dur}초간 피해 +${pct(p.dmg)}, 공격 속도 +${pct(p.as)}.`,
-    }),
+    sprite: 'robe', palette: tint(PAL.KAL, '#f0a0c8', '#ffffff', '#ff60c0'),
+    lore: '누군가는 3년 전부터 있었다고 하고, 누군가는 처음부터 있었던 것 같다고 한다.',
+    skill: {
+      name: '점괘', cd: 8, params: { count: 1, luck: 0.7, dmg: 0.5, as: 0.3, dur: 5, fearChance: 0.5 },
+      desc: (p) => `가장 강한 아군 ${p.count}명의 점괘를 본다. ${pct(p.luck)} 확률로 길(${p.dur}초간 피해 +${pct(p.dmg)}, 공격 속도 +${pct(p.as)}), 아니면 흉(피해 +${pct(p.dmg * 0.3)}). 가장 가까운 적은 환술에 ${pct(p.fearChance)} 확률로 2초 공포.`,
+      cast(b, u) {
+        const foe = b.nearest(u, b.enemiesOf(u));
+        if (!foe) return false;
+        const p = u.sk;
+        for (const a of strongestAlly(b, u, p.count)) {
+          const good = b.rng.chance(p.luck);
+          b.buff(u, a, 'hiiro.omen', p.dur, good
+            ? { delta: { atkSpd: p.as }, mods: [inc('all', p.dmg)], label: '대길' }
+            : { mods: [inc('all', p.dmg * 0.3)], label: '흉' });
+        }
+        fear(b, u, foe, 2, p.fearChance);
+        return true;
+      },
+    },
     augs: [
-      uaug('hiiro', 'decree', '칙령 공포', '황명 대상 +1명.', setSk((s) => { s.count += 1; })),
-      uaug('hiiro', 'glory', '영광의 이름으로', '피해 증가 +15%p.', setSk((s) => { s.dmg += 0.15; })),
-      uaug('hiiro', 'long', '장기 원정', '황명 지속 +3초.', setSk((s) => { s.dur += 3; })),
-      uaug('hiiro', 'crown', '왕관의 무게', '작위 +1, 정신력 +3.', { title: 1, majors: { mnd: 3 } }),
-      uaug('hiiro', 'press', '황실 대변인', '전투 승리 시 명성 +1.', {}, { after: (run, _u, won) => { if (won) run.fame += 1; } }),
+      uaug('hiiro', 'second', '두 번째 점괘', '점괘 대상 +1명.', setSk((s) => { s.count += 1; })),
+      uaug('hiiro', 'daegil', '대길', '길이 나올 확률 +20%p.', setSk((s) => { s.luck = Math.min(1, s.luck + 0.2); })),
+      uaug('hiiro', 'linger', '긴 여운', '점괘 지속 +3초.', setSk((s) => { s.dur += 3; })),
+      uaug('hiiro', 'nine', '구미 본체', '정신력 +3, 회피 +15%p.', { majors: { mnd: 3 }, stats: { eva: 0.15 } }),
+      uaug('hiiro', 'sns', '야경 사진 한 장', '전투 승리 시 명성 +1.', {}, { after: (run, _u, won) => { if (won) run.fame += 1; } }),
     ],
   },
   {
@@ -132,23 +146,23 @@ export const ROSTER_B: UnitDef[] = [
   },
   // ───────── 헬레니우스 동맹
   {
-    id: 'zephyro', name: '제피로', title: '동맹 함대 항해장', factions: ['HEL'], traits: ['STAFF', 'NAV'], keywords: ['bio'],
-    atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(6, 7, 8, 5, 5),
-    sprite: 'soldier', palette: tint(PAL.HEL, '#2f7aa3', '#e8eef0', '#ffd34d'), lore: '항로를 그리는 손이 떨린 적은 없다. 커피 잔을 들 때만 떨린다.',
+    id: 'zephyro', name: '제피로', title: '뱃사공 철학자 · 작전계획담당', factions: ['HEL'], traits: ['STAFF', 'NAV'], keywords: ['bio'],
+    atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(8, 7, 7, 5, 4),
+    sprite: 'soldier', palette: tint(PAL.HEL, '#e8eef0', '#2fa39a', '#40c0a0'), lore: '"역풍이 불 때에는 돛 방향을 틀 줄도 알아야지"',
     ace: {
-      name: '편대 지휘', desc: (k) => `전투 시작 시 모든 아군 공격 속도 +${Math.round(10 * k)}%.`,
-      effect: (k) => ({ hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'ace.zephyro', 999, { delta: { atkSpd: 0.1 * k }, label: '편대 지휘' }); } } }),
+      name: '강철깃털호 안전 항행', desc: (k) => `전투 시작 시 모든 아군 받는 피해 -${Math.round(8 * k)}%.`,
+      effect: (k) => ({ hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'ace.zephyro', 999, { taken: [red('all', 0.08 * k)], label: '안전 항행' }); } } }),
     },
     skill: support({
-      name: '항로 지정', cd: 8, target: 'commanded', params: { count: 2, as: 0.25, dur: 5 },
-      desc: (p) => `가장 강한 아군 ${p.count}명에게 ${p.dur}초간 공격 속도 +${pct(p.as)}.`,
+      name: '돛 방향 틀기', cd: 8, target: 'aroundSelf', params: { radius: 2, red: 0.2, eva: 0.1, dur: 4 },
+      desc: (p) => `염동력으로 탄환의 작용점을 비튼다. 주변 ${p.radius}칸 아군 ${p.dur}초간 받는 피해 -${pct(p.red)}, 회피 +${pct(p.eva)}p.`,
     }),
     augs: [
-      uaug('zephyro', 'fleet', '함대 기동', '항로 지정 대상 +1명.', setSk((s) => { s.count += 1; })),
-      uaug('zephyro', 'wind', '순풍', '공격 속도 증가 +15%p.', setSk((s) => { s.as += 0.15; })),
-      uaug('zephyro', 'escort', '호위 항로', '항로 지정 대상의 받는 피해 -15%.', setSk((s) => { s.red = 0.15; })),
-      uaug('zephyro', 'long', '장거리 항해', '항로 지정 지속 +3초.', setSk((s) => { s.dur += 3; })),
-      uaug('zephyro', 'attack', '공격 항로', '항로 지정 대상 피해 +15%.', setSk((s) => { s.dmg = 0.15; })),
+      uaug('zephyro', 'sail', '넓은 돛', '범위 +1칸.', setSk((s) => { s.radius += 1; })),
+      uaug('zephyro', 'athena', '아테나의 축복', '받는 피해 감소 +10%p.', setSk((s) => { s.red += 0.1; })),
+      uaug('zephyro', 'detour', '우회 항로', '회피 증가 +10%p.', setSk((s) => { s.eva += 0.1; })),
+      uaug('zephyro', 'nap', '느긋한 항해', '지속 +3초.', setSk((s) => { s.dur += 3; })),
+      uaug('zephyro', 'pen', '투필', '사거리 +1, 공격 속도 +25%.', { stats: { range: 1, atkSpd: 0.25 } }),
     ],
   },
   {

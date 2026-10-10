@@ -125,26 +125,26 @@ export const ROSTER_C: UnitDef[] = [
   },
   // ───────── 범은하 공동체
   {
-    id: 'aiden', name: '에이든', title: '공동체 곡예 비행사', factions: ['PAN'], traits: ['TIME', 'NAV'], keywords: ['bio'],
-    atk: { type: 'strike', elem: 'phys', interval: 0.85 }, range: 1, base: B(6, 8, 6, 4, 8),
-    sprite: 'soldier', palette: tint(PAL.PAN, '#3fbfa8', '#ffd84d', '#ff60e0'), lore: '비행기가 없어도 곡예는 한다. 시간 사이로.',
+    id: 'aiden', name: '에이든', title: '구인류 안드로이드 · 에란테스 바텐더', factions: ['PAN'], traits: ['TIME', 'NAV'], keywords: ['mech'],
+    atk: { type: 'strike', elem: 'phys', interval: 0.85 }, range: 1, base: B(6, 8, 7, 5, 7),
+    sprite: 'soldier', palette: tint(PAL.PAN, '#c8ccd8', '#1a1a22', '#7fe3ff'), lore: '"반갑습니다. 오늘도 - 늘 먹던 것으로 드리나요?"',
     ace: {
-      name: '곡예 비행', desc: (k) => `회피 +${Math.round(15 * k)}%p, 회피할 때마다 공격자에게 타격 위력 ${Math.round(80 * k)}% 반격.`,
+      name: '기체 조종', desc: (k) => `회피 +${Math.round(15 * k)}%p, 회피할 때마다 공격자에게 타격 위력 ${Math.round(80 * k)}% 반격.`,
       effect: (k) => ({
         stats: { eva: 0.15 * k },
         hooks: { onEvade(b, u, src) { if (src.alive) b.dealDamage(u, src, b.S(u, 'strike') * 0.8 * k, { elem: 'phys', tag: 'proc' }); } },
       }),
     },
     skill: strike({
-      name: '시간 도약', cd: 6, pow: 'strike', elem: 'phys', mult: 2.2, target: 'lowest', blink: true,
-      desc: (p) => `체력 비율이 가장 낮은 적 옆으로 도약해 타격 위력 ${pct(p.mult)} 물리 피해${p.hits > 1 ? ` ${p.hits}회` : ''}.`,
+      name: '액체 금속 변형', cd: 6, pow: 'strike', elem: 'phys', mult: 2.2, target: 'lowest', blink: true, params: { fear: 0.8, fearChance: 0.4 },
+      desc: (p) => `고양이로 변해 체력 비율이 가장 낮은 적에게 파고들어 타격 위력 ${pct(p.mult)} 물리 피해${p.hits > 1 ? ` ${p.hits}회` : ''}. 환술로 ${pct(p.fearChance)} 확률 ${p.fear}초 공포.`,
     }),
     augs: [
-      uaug('aiden', 'loop', '공중제비', '시간 도약 피해 +50%p.', setSk((s) => { s.mult += 0.5; })),
-      uaug('aiden', 'double', '잔상', '시간 도약이 2회 공격 (두 번째 60%).', setSk((s) => { s.hits = 2; })),
-      uaug('aiden', 'chain', '연속 도약', '처치하면 쿨다운 60% 회복.', setSk((s) => { s.resetOnKill = 0.6; })),
-      uaug('aiden', 'stall', '실속 기동', '시간 도약이 0.7초 기절.', setSk((s) => { s.stun = 0.7; })),
-      uaug('aiden', 'barrel', '배럴 롤', '회피 +15%p.', { stats: { eva: 0.15 } }),
+      uaug('aiden', 'claw', '고양이 발톱', '변형 공격 피해 +50%p.', setSk((s) => { s.mult += 0.5; })),
+      uaug('aiden', 'mirage', '환영 분신', '변형 공격이 2회 공격 (두 번째 60%).', setSk((s) => { s.hits = 2; })),
+      uaug('aiden', 'butcher', '도륙 프로토콜', '처치하면 쿨다운 60% 회복.', setSk((s) => { s.resetOnKill = 0.6; })),
+      uaug('aiden', 'illusion', '인지 교란', '공포 확률 +40%p.', setSk((s) => { s.fearChance += 0.4; })),
+      uaug('aiden', 'groom', '그루밍', '회피 +15%p.', { stats: { eva: 0.15 } }),
     ],
   },
   {
@@ -201,24 +201,24 @@ export const ROSTER_C: UnitDef[] = [
   },
   // ───────── 엘베스타드 일가
   {
-    id: 'amundsen', name: '아문센', title: '엘베스타드가의 전설적 탐험가', factions: ['FAM'], traits: ['EXPLORER', 'NAV'], keywords: ['bio'],
+    id: 'amundsen', name: '아문센', title: '에란테스 단장 · 전 연합군 에이스', factions: ['FAM'], traits: ['EXPLORER', 'NAV'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 4, base: B(8, 10, 9, 6, 6),
-    sprite: 'soldier', palette: tint(PAL.FAM, '#e8e8f0', '#2c2f44', '#9ad0ff'), item: 'U_shade', noStarter: true,
-    lore: '지도에 없는 곳에서 돌아올 때마다 지도가 한 장씩 늘었다.',
+    sprite: 'soldier', palette: tint(PAL.FAM, '#1a1a22', '#d4a83a', '#e0b040'), item: 'U_shade', noStarter: true,
+    lore: '"은하는 넓고 - 인지는 비좁아. 모든 신비가 이 괴리에서 온다네."',
     ace: {
-      name: '북극성 항법', desc: (k) => `전투 시작 시 모든 아군 쿨다운 감소 속도 +${Math.round(15 * k)}%.`,
-      effect: (k) => ({ hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'ace.amundsen', 999, { delta: { cdr: 0.15 * k }, label: '북극성' }); } } }),
+      name: '콜사인 Ace', desc: (k) => `전투 시작 시 모든 아군 쿨다운 감소 속도 +${Math.round(15 * k)}%.`,
+      effect: (k) => ({ hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'ace.amundsen', 999, { delta: { cdr: 0.15 * k }, label: 'Ace' }); } } }),
     },
     skill: strike({
-      name: '극지 돌파', cd: 8, pow: 'shoot', elem: 'phys', mult: 2.8, target: 'farthest', params: { pen: 0.3, slow: 0.3 },
-      desc: (p) => `가장 먼 적에게 사격 위력 ${pct(p.mult)} 물리 피해 (방어도 관통 ${pct(p.pen)}) + 둔화${p.hits > 1 ? `, ${p.hits}회` : ''}.`,
+      name: '에란테-7703 화력 지원', cd: 8, pow: 'shoot', elem: 'phys', mult: 2.8, target: 'farthest', params: { pen: 0.3, slow: 0.3 },
+      desc: (p) => `30년을 함께한 개조 기체가 가장 먼 적을 사격 위력 ${pct(p.mult)} 물리 피해로 포격 (방어도 관통 ${pct(p.pen)}) + 둔화${p.hits > 1 ? `, ${p.hits}회` : ''}${p.radius ? `, 주변 ${p.radius}칸` : ''}.`,
     }),
     augs: [
-      uaug('amundsen', 'expedition', '대원정', '극지 돌파 피해 +80%p.', setSk((s) => { s.mult += 0.8; })),
-      uaug('amundsen', 'ice', '빙하 관통', '방어도 관통 +30%p.', setSk((s) => { s.pen += 0.3; })),
-      uaug('amundsen', 'twin', '쌍극', '극지 돌파 2회 (두 번째 60%).', setSk((s) => { s.hits = 2; })),
-      uaug('amundsen', 'aurora', '오로라', '극지 돌파가 대상 주변 1칸에도 피해.', setSk((s) => { s.radius = 1; })),
-      uaug('amundsen', 'legend', '살아 있는 전설', '모든 메이저 +3.', { majors: { vit: 3, pow: 3, mnd: 3, def: 3, agi: 3 } }),
+      uaug('amundsen', 'wander', '30년의 유랑', '화력 지원 피해 +80%p.', setSk((s) => { s.mult += 0.8; })),
+      uaug('amundsen', 'refit', '수십 번의 개조', '방어도 관통 +30%p.', setSk((s) => { s.pen += 0.3; })),
+      uaug('amundsen', 'twin', '2연사', '화력 지원 2회 (두 번째 60%).', setSk((s) => { s.hits = 2; })),
+      uaug('amundsen', 'carpet', '융단 사격', '화력 지원이 대상 주변 1칸에도 피해.', setSk((s) => { s.radius = 1; })),
+      uaug('amundsen', 'travelogue', '엘베스타드 유람기', '모든 메이저 +3.', { majors: { vit: 3, pow: 3, mnd: 3, def: 3, agi: 3 } }),
     ],
   },
   {
