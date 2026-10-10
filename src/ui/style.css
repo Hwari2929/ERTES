@@ -65,6 +65,9 @@
     radial-gradient(closest-side, var(--hd-indigo) 0%, color-mix(in srgb, var(--hd-indigo) 70%, transparent) 45%, transparent 100%);
   --hd-sea-sizes: 95% 160%, 70% 130%, 75% 120%, 60% 110%, 85% 150%;
   --hd-sea-speed: 14s;
+
+  /* 모서리: 표식 3 · 조작 4 · 판 6 · 의뢰서 8 */
+  --r-xs: 3px; --r-sm: 4px; --r: 6px; --r-lg: 8px;
   color-scheme: dark;
 }
 html, body { height: 100%; }
@@ -535,3 +538,54 @@ h2 > span::before { content: "」"; margin-right: .5em; font-weight: 800; color:
 }
 .event { display: grid; gap: 14px; }
 .event > p { max-width: 62ch; justify-self: center; text-align: center; }
+
+/* ═══════════════ 일관성 정리 ═══════════════ */
+/* 모서리 */
+.btn, .pill, .item, .eq-slot, .skill-line, .alloc-row, .slot, .xp, .mbar, .ebar, .textarea { border-radius: var(--r-sm); }
+.chip, .tag, .src, .rank, .ubadge, .syn-count, .syn-steps span, .syn-members span, .cell { border-radius: var(--r-xs); }
+.ucard, .node-btn, .roster-row, .syn, .detail, .inv, .bench, .codex-card, .codex-row, .shop-item, .diff-picker, .track li, .card, .release, .lore, .bench-u, .panel-box { border-radius: var(--r); }
+.modal, .toast { border-radius: var(--r-lg); }
+
+/* 표식: 세력 · 특성 색은 테두리를 옅게, 글자는 그대로 */
+.chip { border-color: color-mix(in srgb, var(--c) 60%, transparent); background: color-mix(in srgb, var(--c) 8%, transparent); }
+
+/* 3단 제목 (패널 안 소제목): 리디바탕 + 기울인 마름모 (키트 H4) */
+h3, .inv-head > b, .diff-picker > b, .board-head > b {
+  display: flex; align-items: center; gap: .5em; font-family: var(--f-display); font-weight: 400; font-size: 1rem; color: var(--hd-ink); letter-spacing: 0;
+}
+h3::before, .inv-head > b::before, .diff-picker > b::before, .board-head > b::before {
+  content: ""; flex: none; width: .36em; height: .36em; transform: rotate(45deg);
+  background: var(--hd-stone-soft); border: 1px solid var(--hd-ornament);
+}
+.modal h3 { margin-top: 4px; }
+
+/* 목록 표지 */
+ul li::marker { color: var(--hd-ornament); }
+
+/* 묶음 조작 (탭 · 속도 · 위험 등급 · 전투 기록): 테두리 하나에 담고, 선택된 칸만 금 */
+.seg, .meter-tabs, .diff-row, .board-head .speed {
+  display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 2px; width: fit-content; max-width: 100%;
+  border: 1px solid color-mix(in srgb, var(--hd-ornament) 35%, transparent); border-radius: var(--r-sm);
+}
+.seg .btn, .meter-tabs .btn, .diff-row .btn, .board-head .speed .btn { border-color: transparent; border-radius: var(--r-xs); color: var(--dim); background: transparent; }
+.seg .btn:hover:not(:disabled), .meter-tabs .btn:hover:not(:disabled), .diff-row .btn:hover:not(:disabled), .board-head .speed .btn:hover:not(:disabled) { border-color: transparent; color: var(--hd-ink); }
+.seg .btn.on, .meter-tabs .btn.on, .diff-row .btn.on, .board-head .speed .btn.on { color: var(--hd-gold); background: color-mix(in srgb, var(--hd-gold) 14%, transparent); }
+.board-head .speed .btn[data-a=skip] { margin-left: 6px; border-color: color-mix(in srgb, var(--hd-ornament) 45%, transparent); color: var(--hd-ink); }
+.meter-tabs { margin-bottom: 8px; }
+
+/* 상단 바 표식: 버튼과 같은 모서리 */
+.pill { border-radius: var(--r-sm); }
+
+/* 도감 */
+.codex-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-block: 4px 16px; }
+.panel-box { background: var(--panel); border: 1px solid var(--line); padding: 12px 16px; max-width: 420px; }
+.codex h2 { margin-top: 20px; }
+
+/* 상점: 보관함은 목록 폭에 맞춘다 */
+.shop-screen .inv { width: 100%; margin-inline: 0; }
+.shop-item b { font-family: var(--f-display); font-weight: 400; font-size: 1.02rem; }
+
+/* 기물 카드 안쪽 기술 상자: 카드보다 한 단 밝은 판 */
+.skill-line { background: var(--panel-2); border: 1px solid color-mix(in srgb, var(--hd-ornament) 14%, transparent); }
+.seg .btn.on:hover:not(:disabled), .meter-tabs .btn.on:hover:not(:disabled), .diff-row .btn.on:hover:not(:disabled), .board-head .speed .btn.on:hover:not(:disabled) { color: var(--hd-gold); }
+.codex-row b, .roster-row b, .rr-main b { font-family: var(--f-display); font-weight: 400; font-size: .95rem; }
