@@ -1,0 +1,12 @@
+{
+  "_note": "NovelAI 생성 설정. width/height/steps/n_samples 를 바꾸면 Anlas 가 소모될 수 있어 스크립트가 막는다.",
+  "model": "nai-diffusion-5-full",
+  "width": 832,
+  "height": 1216,
+  "steps": 23,
+  "scale": 7,
+  "sampler": "k_euler_ancestral",
+  "noise_schedule": "karras",
+  "base": "standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, white background, simple background",
+  "negative": "lowres, artistic error, film grain, scan artifacts, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, dithering, halftone, screentone, multiple views, logo, too many watermarks, negative space, blank page, text, watermark, reference, signature, artist name, subtitles, captions, dated, chibi, aliasing, heavy film grain, digital dissolve, artist:xinzoruo, artist:milkpanda, artist:kurukurumagical, artist collaboration, one-hour drawing challenge, mutated, mutation, deformed, distorted, disfigured, bad anatomy, unnatural hair, bad face, mob face, cloned face, distorted face, poorly drawn face, ugly, bad eyes, empty eyes, extra eyes, lazy eye, asymmetrical eyes, cross-eyed, bad proportions, wrong body proportions, unrealistic proportions, distorted body, long neck, wrong head size, bad limbs, missing limbs, extra limbs, amputee, bad arm, bad hands, malformed hands, official style, reddish lips"
+}
