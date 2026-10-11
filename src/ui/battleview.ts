@@ -15,9 +15,6 @@ export function fmt(n: number): string {
   return String(Math.round(n));
 }
 
-/** 아군 토큰의 장비 줄 (main.ts 에서 주입) */
-export const TOKEN_HOOK: { items?: (u: CUnit) => string } = {};
-
 interface UEl { el: HTMLElement; hp: HTMLElement; sh: HTMLElement; cd: HTMLElement; gx: HTMLElement | null; u: CUnit; dead: boolean }
 
 /** 전투를 실시간으로 진행하며 보드 위 DOM 을 갱신한다 */
@@ -82,10 +79,10 @@ export class BattleView {
   private mount(u: CUnit) {
     const el = document.createElement('div');
     const card = u.side === 0 && !!u.src && hasPortrait(u);
-    el.className = `u side${u.side}${card ? ' tk' : ''}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
+    el.className = `u side${u.side}${card ? ' tkb' : ''}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
     el.style.width = el.style.height = `${100 / this.b.n}%`;
     const inner = `<div class="bars"><i class="hp"></i><i class="sh"></i></div><img alt="" class="${hasPortrait(u) ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && (u.reason !== null || u.div !== null) ? '<div class="gx"><i></i></div>' : ''}`;
-    el.innerHTML = card ? `<div class="tk-card">${inner}<span class="tk-items">${TOKEN_HOOK.items?.(u) || ''}</span></div>` : inner;
+    el.innerHTML = card ? `<div class="tk-card">${inner}</div>` : inner;
     this.board.appendChild(el);
     this.els.set(u.id, { el, hp: el.querySelector('.hp')!, sh: el.querySelector('.sh')!, cd: el.querySelector('.cd i')!, gx: el.querySelector<HTMLElement>('.gx i'), u, dead: false });
   }
@@ -108,8 +105,8 @@ export class BattleView {
       e.cd.style.width = u.cdMax ? `${Math.max(0, Math.min(100, (1 - u.cd / u.cdMax) * 100))}%` : '0';
       if (e.gx) {
         // 사이오닉 이성(보라, -100~100) / 디바인 신성력(금색, 0~100)
-        if (u.div !== null) { e.gx.style.width = `${u.divUsed ? 100 : u.div}%`; e.gx.className = u.divUsed ? 'div used' : 'div'; e.el.title = `신성력 ${Math.round(u.div)} (수집 ${Math.round(u.divGot)}/${u.divCap})`; }
-        else if (u.reason !== null) { e.gx.style.width = `${(u.reason + 100) / 2}%`; e.gx.className = u.reason <= -50 ? 'psi frenzy' : 'psi'; e.el.title = `이성 ${Math.round(u.reason)}`; }
+        if (u.div !== null) { e.gx.style.setProperty('--v', `${u.divUsed ? 100 : u.div}%`); e.gx.className = u.divUsed ? 'div used' : 'div'; e.el.title = `신성력 ${Math.round(u.div)} (수집 ${Math.round(u.divGot)}/${u.divCap})`; }
+        else if (u.reason !== null) { e.gx.style.setProperty('--v', `${(u.reason + 100) / 2}%`); e.gx.className = u.reason <= -50 ? 'psi frenzy' : 'psi'; e.el.title = `이성 ${Math.round(u.reason)}`; }
       }
       e.el.classList.toggle('reloading', u.alive && u.reloadT > 0);
       e.el.classList.toggle('stunned', u.alive && u.statuses.some((s) => s.type === 'stun'));

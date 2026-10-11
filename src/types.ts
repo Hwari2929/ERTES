@@ -140,6 +140,7 @@ export interface RunState {
   divCap: number; // 디바인: 전투당 신성력 수집 상한 보너스
   fame: number; // 은하 대스타: 명성
   fund?: number; // 호이슌 투자: 다음 페이즈에 돌려받을 크레딧
+  nodeUnits?: Record<number, string>; // 이번 페이즈 노드(칸 번호)에서 영입한 기물
   blessing: string | null; // 순례 축복 (이번 페이즈)
   staffTarget: string | null; // (구) 참모단 — 사용 안 함
   aceTarget: string | null; // 항해자 에이스 파일럿 uid

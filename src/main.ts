@@ -19,7 +19,7 @@ import { Battle, type CUnit } from './engine/combat';
 import * as R from './engine/run';
 import { Rng } from './rng';
 import { type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, KEYWORD_NAME, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type SynergyId, type UnitState } from './types';
-import { BattleView, fmt, TOKEN_HOOK } from './ui/battleview';
+import { BattleView, fmt } from './ui/battleview';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
 import { hasPortrait, iconURL, standImg } from './ui/portraits';
@@ -47,6 +47,7 @@ const app = {
   pool: [] as string[], // 시작 기물 후보 (무작위 8명)
   detail: !!loadPrefs().detail, // 상세 보기: 계수 · 메커니즘 표시
   recruitPick: null as string | null, // 영입 창에서 고른 기물 (확정 전)
+  nodePick: null as string | null, // 지도: 이번 칸에서 고른 노드 (진입 전)
   cardOpen: null as string | null, // 터치 화면: 설명을 펼친 시작 기물 카드
   subOpen: new Set<string>(), // 특성 하위 항목(전투 · 전술 유형, 신앙) 펼침 상태
   menu: null as null | 'menu' | 'export' | 'import',
@@ -155,7 +156,6 @@ function topbar() {
   return `<header class="top">
     <div class="brand">ERRANTEs</div>
     <div class="stat-row">
-      <span class="pill field" style="--c:${fieldOf(r.field).color}" title="${esc(fieldOf(r.field).rules.join(' / '))}">${fieldOf(r.field).icon} ${esc(fieldOf(r.field).name)}</span>
       <span class="pill">페이즈 <b>${r.phase}</b> · 노드 ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>
       <span class="pill hp">체력 <b>${r.hp}</b>/${r.maxHp}</span>
       <span class="pill cr">크레딧 <b>${r.credits}</b>${r.loan ? ` <small>(대출 ${r.loan})</small>` : ''}</span>
@@ -388,25 +388,34 @@ function newRunScreen() {
 function mapScreen(run: RunState) {
   const p = run.phase;
   const scale = `적 체력 ×${fmt(phaseHpMult(p))} (이번 페이즈 ×${p > 1 ? CFG.phaseHpFactor(p).toFixed(2) : '1'}) · 방어도 ×${Math.pow(CFG.phaseArmor, p - 1).toFixed(2)} · 피해 ×${phaseAmpMult(p).toFixed(2)}`;
-  const track = run.map.map((opts, i) => {
-    const state = i < run.step ? 'done' : i === run.step ? 'cur' : 'next';
-    const picked = run.picked[i];
-    const label = i < run.step && picked ? `${NODE_ICON[picked]} ${NODE_NAME[picked]}` : opts.map((o) => `${NODE_ICON[o]} ${NODE_NAME[o]}`).join(' / ');
-    return `<li class="${state}">${label}</li>`;
-  }).join('');
   const opts = R.currentOptions(run);
-  const choices = run.node ? `<button class="node-btn n-${run.node.type}" data-a="resume"><span class="node-ic">${NODE_ICON[run.node.type]}</span><b>${NODE_NAME[run.node.type]} 진행 중</b><span class="small muted">돌아가서 계속하기</span></button>` : opts.map((o, i) => `<button class="node-btn n-${o}" data-a="enter" data-v="${o}" title="단축키 ${i + 1}">
-      <span class="node-ic">${NODE_ICON[o]}</span><kbd class="node-key">${i + 1}</kbd><b>${NODE_NAME[o]}</b><span class="small muted">${nodeHint(o)}</span></button>`).join('');
+  const pick = run.node ? run.node.type : opts.includes(app.nodePick as NodeType) ? (app.nodePick as NodeType) : opts[0];
+  const nodeIc = (o: NodeType, i: number) => {
+    const uid = o === 'recruit' && i < run.step ? run.nodeUnits?.[i] : undefined;
+    return uid && UNIT_BY_ID[uid] ? sprite(UNIT_BY_ID[uid], 'spr tl-pt') : NODE_ICON[o];
+  };
+  const track = run.map.map((opts2, i) => {
+    const state = i < run.step ? 'done' : i === run.step ? 'cur' : 'next';
+    const shown = i < run.step && run.picked[i] ? [run.picked[i]!] : opts2;
+    const nodes = shown.map((o, k) => {
+      const nm = o === 'recruit' && i < run.step && run.nodeUnits?.[i] ? `${NODE_NAME[o]} · ${UNIT_BY_ID[run.nodeUnits[i]]?.name}` : NODE_NAME[o];
+      if (state === 'cur' && !run.node) return `<button class="tl-node n-${o}${o === pick ? ' on' : ''}" data-a="tl-pick" data-v="${o}" title="${esc(nm)} (단축키 ${k + 1})" aria-pressed="${o === pick}">${nodeIc(o, i)}</button>`;
+      return `<span class="tl-node n-${o}${state === 'cur' ? ' on' : ''}" title="${esc(nm)}">${nodeIc(o, i)}</span>`;
+    }).join('');
+    return `<li class="tl-step ${state}"><span class="tl-num">${i + 1}</span><div class="tl-nodes">${nodes}</div></li>`;
+  }).join('');
+  const enter = run.node
+    ? `<button class="btn primary tl-go" data-a="resume">${esc(NODE_NAME[run.node.type])} 계속하기</button>`
+    : `<button class="btn primary tl-go" data-a="enter" data-v="${pick}" title="단축키 Enter">${esc(NODE_NAME[pick])} 진입하기</button>`;
+  const f = fieldOf(run.field);
   const pet = tierOf('PET', synergyCounts(deployed(run), run).PET || 0);
   return `<main class="wrap map">
     <section class="map-main">
       <div class="screen-head"><h1>페이즈 ${p}</h1><p class="muted small">${scale}</p></div>
-      ${fieldCard(run, true)}
-      <ol class="track">${track}</ol>
-      <h2>다음 노드</h2>
-      <div class="node-choices">${choices}</div>
-      <div class="row-btns">
-        <button class="btn" data-a="manage">편성 · 장비 관리</button>
+      <button class="field-mini" data-a="field-info" style="--c:${f.color}" title="전장 브리핑 다시 보기"><span class="fc-ic">${f.icon}</span><b>${esc(f.name)}</b><span class="muted small">${esc(f.region)}</span><span class="fm-more" aria-hidden="true">›</span></button>
+      <div class="tl"><ol class="tl-track">${track}</ol></div>
+      <div class="tl-info"><b>${esc(NODE_NAME[pick])}</b><span class="muted small">${run.node ? '진행 중' : esc(nodeHint(pick))}</span></div>
+      <div class="row-btns">${enter}
         ${pet >= 2 ? `<button class="btn" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 (+25, 상환 30)</button>` : ''}
       </div>
     </section>
@@ -432,8 +441,6 @@ function nodeHint(o: NodeType) {
     pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', invest: '호이슌 투자 상품 · 크레딧으로 문장 · 증강 · 다음 페이즈 수익', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
   } as Record<NodeType, string>)[o];
 }
-// 전투 토큰: 아군 기물 아래 장비 줄
-TOKEN_HOOK.items = (u) => (u.src ? u.src.items.map((i) => itemIcon(i)).join('') : '');
 /** 공명 등급 표기: 별 아이콘 + 숫자 */
 const RANK_STAR = '<svg class="rstar" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 17.4l-6.1 3.5 1.5-6.8-5.2-4.6 6.9-.7z"/></svg>';
 const rankLabel = (rank: number) => `${RANK_STAR}${rank}`;
@@ -481,7 +488,10 @@ function prepScreen(run: RunState) {
     const sel = app.sel?.k === 'unit' && app.sel.uid === u.uid;
     units += `<div class="u side0 tk placed ${sel ? 'sel' : ''}" style="left:${(p.x / n) * 100}%;top:${(p.y / n) * 100}%;width:${100 / n}%;height:${100 / n}%"
       data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}">
-      <div class="tk-card">${sprite(d, '')}<span class="ubadge">${rankLabel(u.rank)}</span><span class="tk-items">${u.items.map((i) => itemIcon(i)).join('')}</span></div></div>`;
+      <div class="tk-card"><div class="tk-art">${sprite(d, '')}${u.mod ? `<span class="tk-mod" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : ''}
+        <span class="tk-type" aria-hidden="true"><i>${typeIcon(d.ttype)}</i><i>${typeIcon(d.ctype)}</i></span>
+        <span class="ubadge">${rankLabel(u.rank)}</span></div>
+        <span class="tk-items">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : itemIcon(null))).join('')}</span></div></div>`;
   }
   if (node?.enc) node.enc.enemies.forEach((s, i) => {
     const e = ENEMY_BY_ID[s.defId];
@@ -1228,10 +1238,14 @@ function act(a: string, v: string) {
       toast('불러왔습니다.');
       break;
     }
+    case 'tl-pick': app.nodePick = v; break;
+    case 'field-info': if (run) run.pending.unshift({ t: 'field' }); break;
+    case 'item-info': { const el = document.querySelector<HTMLElement>(`[data-a="item-info"][data-v="${v}"]`); if (el) itemTip(el, v); return; }
     case 'enter': {
       if (!run || run.pending.length) return;
       R.enterNode(run, v as NodeType);
       app.sel = null;
+      app.nodePick = null;
       goPrepOrMap();
       persist();
       break;
@@ -1355,23 +1369,46 @@ function equipSel(run: RunState, idx: number, uid: string): Sel {
   return { k: 'unit', uid };
 }
 
+/** 장비 설명 말풍선 (짧게 누르기). 다음 누르기에 닫힌다 */
+function itemTip(el: HTMLElement, key: string) {
+  document.querySelector('.item-tip')?.remove();
+  const [uid, slot] = key.split(':');
+  const u = app.run?.units.find((x) => x.uid === uid);
+  const id = u ? (+slot < 0 ? u.mod : u.items[+slot]) : null;
+  if (!id) return;
+  const it = itemInfo(id);
+  const tip = document.createElement('div');
+  tip.className = 'item-tip';
+  tip.innerHTML = `<b>${esc(it.name)}</b><span>${esc(it.desc)}</span><small>길게 눌러 다른 기물에게 옮기기</small>`;
+  document.body.appendChild(tip);
+  const r = el.getBoundingClientRect(), tr = tip.getBoundingClientRect();
+  const left = Math.max(8, Math.min(innerWidth - tr.width - 8, r.left + r.width / 2 - tr.width / 2));
+  const top = r.top - tr.height - 6 < 8 ? r.bottom + 6 : r.top - tr.height - 6;
+  tip.style.left = `${left + scrollX}px`; tip.style.top = `${top + scrollY}px`;
+  setTimeout(() => window.addEventListener('pointerdown', () => tip.remove(), { once: true }), 0);
+}
+
 // ───────────────────────── 드래그 앤 드롭 (마우스 + 터치 공용)
-let drag: { src: string; x: number; y: number; ghost: HTMLElement | null; el: HTMLElement } | null = null;
+/** data-hold 요소는 길게 눌러야(HOLD_MS) 끌기가 시작된다. 그 전에 움직이면 끌기 취소 */
+const HOLD_MS = 220;
+let drag: { src: string; x: number; y: number; ghost: HTMLElement | null; el: HTMLElement; t0: number; hold: boolean } | null = null;
 let suppressClick = false;
 
 root.addEventListener('pointerdown', (ev) => {
   const el = (ev.target as HTMLElement).closest('[data-drag]') as HTMLElement | null;
   if (!el || ev.button > 0) return;
-  drag = { src: el.dataset.drag!, x: ev.clientX, y: ev.clientY, ghost: null, el };
+  drag = { src: el.dataset.drag!, x: ev.clientX, y: ev.clientY, ghost: null, el, t0: performance.now(), hold: el.hasAttribute('data-hold') };
+  if (drag.hold) ev.stopPropagation();
 });
 window.addEventListener('pointermove', (ev) => {
   if (!drag) return;
   if (!drag.ghost) {
     if (Math.hypot(ev.clientX - drag.x, ev.clientY - drag.y) < 8) return;
+    if (drag.hold && performance.now() - drag.t0 < HOLD_MS) { drag = null; return; }
     const g = document.createElement('div');
     g.className = 'drag-ghost';
     const img = drag.el.querySelector('img');
-    g.innerHTML = img ? `<img alt="" src="${img.src}">` : drag.el.textContent || '';
+    g.innerHTML = img ? `<img alt="" src="${img.src}">` : drag.el.innerHTML;
     document.body.appendChild(g);
     drag.ghost = g;
     drag.el.classList.add('dragging');
@@ -1495,7 +1532,8 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (app.screen === 'map') {
-    if (digit) clickFirst(`.node-choices .node-btn:nth-child(${digit})`);
+    if (digit) clickFirst(`.tl-step.cur .tl-node:nth-child(${digit})`);
+    else if (k === 'Enter' || k === ' ') { if (clickFirst('.tl-go')) e.preventDefault(); }
     else if (k === 'm') act('manage', '');
   }
 });

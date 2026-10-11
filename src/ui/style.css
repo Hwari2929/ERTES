@@ -205,7 +205,7 @@ button { font: inherit; color: inherit; }
 .cd { position: absolute; left: 14%; right: 14%; bottom: 3%; height: 3px; background: rgba(0, 0, 0, .5); }
 .cd i { display: block; height: 100%; background: var(--info); }
 .gx { position: absolute; left: 14%; right: 14%; bottom: calc(3% + 4px); height: 3px; background: rgba(0, 0, 0, .5); }
-.gx i { display: block; height: 100%; background: #b07cff; }
+.gx i { display: block; height: 100%; width: var(--v, 0%); background: #b07cff; }
 .gx i.frenzy { background: #ff4060; }
 .gx i.div { background: #ffd34d; }
 .gx i.div.used { background: rgba(255, 211, 77, .35); }
@@ -672,16 +672,58 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 /* 공명 등급 별 아이콘 */
 .rstar { width: .9em; height: .9em; vertical-align: -.1em; margin-right: 1px; }
 .rt-rank, .ubadge, .rank { display: inline-flex; align-items: center; gap: 1px; }
-/* 아군 토큰: 세로로 긴 카드 (초상화 + 장비 줄) */
+/* 배치 화면 아군 토큰: 세로로 긴 카드 (초상화 + 장비 줄) */
 .u.tk { display: flex; align-items: center; justify-content: center; }
 .u.tk .tk-card { position: relative; height: calc(100% - 2px); width: 76%; overflow: hidden; display: flex; flex-direction: column; gap: 2px; padding: 2px; box-sizing: border-box; background: var(--panel); border: 1px solid rgb(240 242 246 / .35); border-radius: 3px; box-shadow: 0 2px 6px rgb(0 0 0 / .5); }
 .u.tk .tk-card img.pt { width: 100%; height: auto; aspect-ratio: 1; flex: none; min-height: 0; object-fit: cover; border-radius: 2px; box-shadow: none; }
 .u.tk .tk-items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; flex: 1; min-height: 0; }
-.u.tk .tk-items .item { width: 100%; height: 100%; font-size: 7px; border-radius: 2px; cursor: inherit; border-width: 1px; }
-.u.tk .tk-items .item .ii { width: 75%; height: 75%; }
-.u.tk .bars { top: 3px; left: 6%; right: 6%; height: 5px; }
-.u.tk .cd { top: calc(72% - 2px); bottom: auto; left: 8%; right: 8%; }
-.u.tk .gx { top: calc(72% - 6px); bottom: auto; left: 8%; right: 8%; }
-.u.tk .ubadge { right: 6%; bottom: auto; top: calc(72% - 18px); }
+.u.tk .tk-items > .item, .u.tk .tk-it .item { width: 100%; height: 100%; font-size: 7px; border-radius: 2px; cursor: inherit; border-width: 1px; }
+.u.tk .tk-it { display: block; min-width: 0; min-height: 0; cursor: pointer; touch-action: none; -webkit-touch-callout: none; user-select: none; }
+.u.tk .item .ii { width: 75%; height: 75%; }
+.u.tk .tk-art { position: relative; flex: none; }
+.u.tk .tk-art img.pt { display: block; }
+.u.tk .ubadge { left: 1px; right: auto; bottom: 1px; }
+.u.tk .tk-mod { position: absolute; left: 1px; top: 1px; width: 26%; aspect-ratio: 1; cursor: pointer; touch-action: none; -webkit-touch-callout: none; }
+.u.tk .tk-mod .item { width: 100%; height: 100%; font-size: 7px; background: rgb(10 12 18 / .75); border-width: 1px; }
+.u.tk .tk-type { position: absolute; right: 1px; top: 1px; display: grid; gap: 1px; pointer-events: none; }
+.u.tk .tk-type i { display: grid; place-items: center; width: 14px; height: 14px; border-radius: 3px; background: rgb(10 12 18 / .7); color: #f0f2f6; }
+.u.tk .tk-type .ti { width: 10px; height: 10px; }
 .u.tk.sel { outline: none; }
 .u.tk.sel .tk-card { border-color: var(--accent); }
+.bench-u .ubadge { left: 4px; right: auto; bottom: 4px; }
+/* 전투 화면 아군 토큰: 초상화만 (우하단은 버프 자리로 비워 둠) */
+.u.tkb { display: flex; align-items: center; justify-content: center; }
+.u.tkb .tk-card { position: relative; width: 80%; aspect-ratio: 1; border-radius: 3px; box-shadow: 0 0 0 1px rgb(240 242 246 / .35), 0 2px 6px rgb(0 0 0 / .5); }
+.u.tkb .tk-card img.pt { width: 100%; height: 100%; border-radius: 3px; box-shadow: none; }
+.u.tkb .bars { top: 2px; left: 4%; right: 4%; height: 5px; }
+.u.tkb .cd { left: 4%; right: 12%; bottom: 2px; }
+.u.tkb .gx { left: auto; right: 2px; top: 10px; bottom: 6px; width: 4px; height: auto; display: flex; align-items: flex-end; }
+.u.tkb .gx i { width: 100%; height: var(--v, 0%); }
+/* 장비 설명 말풍선 */
+.item-tip { position: absolute; z-index: 60; max-width: 240px; display: grid; gap: 2px; padding: 8px 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 18px rgb(0 0 0 / .5); font-size: .8rem; }
+.item-tip small { color: var(--dim); font-size: .7rem; }
+/* 지도: 전장 요약 · 노드 타임라인 */
+.field-mini { display: flex; align-items: center; gap: 8px; width: 100%; margin: 4px 0 12px; padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--c); border-radius: 6px; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.field-mini:hover { border-color: var(--c); }
+.field-mini .fm-more { margin-left: auto; color: var(--dim); font-size: 1.1rem; }
+.tl { overflow-x: auto; padding: 4px 0 10px; scrollbar-width: thin; }
+.tl-track { list-style: none; margin: 0; padding: 0 8px; display: flex; gap: 0; min-width: max-content; position: relative; }
+.tl-step { position: relative; display: grid; justify-items: center; align-content: start; gap: 6px; width: 72px; flex: none; }
+.tl-step::before { content: ''; position: absolute; top: 40px; left: 0; right: 0; height: 2px; background: var(--line); z-index: 0; }
+.tl-step:first-child::before { left: 50%; }
+.tl-step:last-child::before { right: 50%; }
+.tl-step.done::before { background: var(--dim); }
+.tl-num { font-family: var(--f-mono); font-size: .7rem; color: var(--dim); }
+.tl-step.cur .tl-num { color: var(--fg); font-weight: 700; }
+.tl-nodes { display: grid; gap: 6px; justify-items: center; position: relative; z-index: 1; }
+.tl-node { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--panel); border: 2px solid var(--line); color: var(--dim); padding: 0; overflow: hidden; font: inherit; }
+.tl-node .li { width: 20px; height: 20px; }
+.tl-node .tl-pt { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.tl-step.done .tl-node { border-color: var(--dim); color: var(--fg); opacity: .7; }
+.tl-step.next .tl-node { width: 32px; height: 32px; }
+.tl-step.next .tl-node .li { width: 16px; height: 16px; }
+.tl-step.cur .tl-node { color: var(--fg); cursor: pointer; }
+.tl-step.cur .tl-node.on { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.tl-step.cur span.tl-node { cursor: default; }
+.tl-info { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin: 4px 0 8px; }
+.tl-go { min-width: 180px; }

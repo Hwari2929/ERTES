@@ -226,6 +226,7 @@ export function advance(run: RunState) {
     run.step = 0;
     run.map = phaseMap(run.phase);
     run.picked = [];
+    run.nodeUnits = {};
     autoPlace(run);
     run.blessing = null;
     run.phaseBoons = [];
@@ -610,6 +611,7 @@ export function recruit(run: RunState, defId: string) {
   const rank = Math.max(1, run.phase - 1) + (hasGlobal(run, 'G.scout') ? 1 : 0);
   addUnit(run, defId, Math.min(CFG.maxRank, rank));
   autoPlace(run);
+  if (run.picked[run.step - 1] === 'recruit') (run.nodeUnits ??= {})[run.step - 1] = defId; // 타임라인 표시용
   log(run, `${UNIT_BY_ID[defId].name} 합류 (공명 ${rank})`);
 }
 
