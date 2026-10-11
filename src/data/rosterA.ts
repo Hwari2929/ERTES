@@ -149,7 +149,7 @@ export const ROSTER_A: BaseUnit[] = [
     ],
   },
   {
-    id: 'franze', name: '프란체', title: '크림슨 강화 혈족 · 은하법률고문', factions: ['PET'], traits: ['TIME'], keywords: ['bio'],
+    id: 'franze', name: '프란체', title: '크림슨 강화 혈족 · 은하법률고문', factions: ['PET'], traits: [], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 0.95 }, range: 1, base: B(8, 8, 5, 6, 5),
     sprite: 'knight', palette: tint(PAL.PET, '#2a2a34', '#c02030', '#ff3040'), lore: '"이의 있습니다. 방금 그 발언, 기록해도 되겠습니까?"',
     skill: strike({

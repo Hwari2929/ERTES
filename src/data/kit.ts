@@ -1,5 +1,5 @@
 // 스킬/증강 작성용 공용 헬퍼
-import type { Battle, CUnit, DmgResult } from '../engine/combat';
+import type { Battle, CUnit, DmgResult, Status } from '../engine/combat';
 import { vuln } from '../engine/effects';
 import type { Elem } from '../types';
 
@@ -35,8 +35,25 @@ export function corrode(b: Battle, u: CUnit, t: CUnit, mul: number, dur: number,
 export function slow(b: Battle, u: CUnit, t: CUnit, amt: number, dur: number, chance = 1) {
   return b.applyStatus(u, t, { type: 'buff', key: 'slow', dur, delta: { atkSpd: -amt, moveSpd: -amt } }, chance);
 }
+/** 버프 형식이지만 해로운 효과 */
+const HARMFUL_BUFF = new Set(['corrode', 'slow', 'suppress', 'decay', 'gloom', 'wound']);
+export const isHarmful = (s: Status) => s.key !== 'frenzy' && (s.type !== 'buff' || HARMFUL_BUFF.has(s.key) || !!s.taken?.some((t) => t.kind === 'vuln'));
+export const harmfulCount = (t: CUnit) => t.statuses.filter(isHarmful).length;
 export function isDebuffed(t: CUnit) {
-  return t.statuses.some((s) => s.type !== 'buff' || s.key === 'corrode' || s.key === 'slow');
+  return t.statuses.some(isHarmful);
+}
+/** 중첩형 해로운 효과 직접 부여 (onInflict 를 다시 부르지 않음). 반환: 중첩 후 상태 */
+export function addStacks(b: Battle, src: CUnit, t: CUnit, key: string, n: number, max: number, dur: number, make: (stacks: number) => Partial<Status>, label: string): Status | null {
+  if (!t.alive || n <= 0) return null;
+  let s = t.statuses.find((x) => x.key === key);
+  if (!s) { s = { type: 'buff', key, dur, stacks: 0, label, src }; t.statuses.push(s); }
+  const before = s.stacks || 0;
+  s.stacks = Math.min(max, before + n);
+  s.dur = Math.max(s.dur, dur);
+  s.src = src;
+  Object.assign(s, make(s.stacks));
+  if (s.stacks !== before && (s.stacks % 5 === 0 || before === 0)) b.emit({ k: 'status', id: t.id, name: `${label} ${s.stacks}` });
+  return s;
 }
 
 /** u 에서 t 방향으로 뻗는 직선 위의 적 (관통 공격) */
@@ -56,7 +73,7 @@ export function lineTargets(b: Battle, u: CUnit, t: CUnit): CUnit[] {
 
 /** 해로운 상태이상 제거 */
 export function cleanse(u: CUnit) {
-  u.statuses = u.statuses.filter((s) => s.type === 'buff' && s.key !== 'corrode' && s.key !== 'slow' && !s.taken?.some((t) => t.kind === 'vuln'));
+  u.statuses = u.statuses.filter((s) => !isHarmful(s));
 }
 /** 대상 옆 빈 칸으로 순간이동 */
 export function blinkTo(b: Battle, u: CUnit, t: CUnit): boolean {

@@ -11,7 +11,7 @@ import { UNIT_BY_ID } from '../data/units';
 import { enableDivine, ENEMY_PSI, sigmundTarget } from '../data/rework';
 import type { SummonDef } from '../data/unitkit';
 import { Rng } from '../rng';
-import { FACTIONS, type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
+import { type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
 import { Battle, type CUnit } from './combat';
 import type { Effect, EffectCtx } from './effects';
 
@@ -34,7 +34,8 @@ export function memberships(u: UnitState, run?: RunState | null): SynergyId[] {
   return [...s];
 }
 
-export function synergyCounts(units: UnitState[], run?: RunState | null): Counts {
+/** raw = 증표 규칙으로 묶기 전 인원 (표시용) */
+export function synergyCounts(units: UnitState[], run?: RunState | null, raw = false): Counts {
   const seen = new Set<string>();
   const c: Counts = {};
   for (const u of units) {
@@ -49,12 +50,11 @@ export function synergyCounts(units: UnitState[], run?: RunState | null): Counts
     if (run.globals.includes('G.faction')) { const t = top('faction'); if (t) c[t.id]! += 1; }
     if (run.globals.includes('G.trait')) { const t = top('trait'); if (t) c[t.id]! += 1; }
   }
-  // 범은하 공동체 5/7단계: 가장 큰 다른 세력의 인원 +1/+2
-  const pan = c.PAN || 0;
-  const bonus = pan >= 7 ? 2 : pan >= 5 ? 1 : 0;
-  if (bonus) {
-    const best = FACTIONS.filter((f) => f !== 'PAN' && (c[f] || 0) > 0).sort((a, b2) => (c[b2] || 0) - (c[a] || 0))[0];
-    if (best) c[best] = c[best]! + bonus;
+  // 최종 단계 증표 규칙: 증표(문장)를 단 출전 기물이 없으면 최종 단계 직전 인원으로 묶는다
+  if (!raw) for (const sd of SYNERGIES) {
+    if (!sd.lockFinal) continue;
+    const last = sd.tiers[sd.tiers.length - 1];
+    if ((c[sd.id] || 0) >= last && !units.some((u) => u.mod === `M_${sd.id}`)) c[sd.id] = last - 1;
   }
   return c;
 }
@@ -184,7 +184,7 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
 /** 최고의 친구: 주인 스탯 일부를 물려받는 소환물 */
 function spawnSummons(b: Battle, owner: CUnit, sd: SummonDef) {
   const n = 1 + (owner.mem.extraSummon || 0);
-  const base = Math.min(1.5, (owner.mem.bond || 0.35) + (owner.mem.bondBonus || 0));
+  const base = Math.min(2.5, (owner.mem.bond || 0.35) + (owner.mem.bondBonus || 0));
   for (let i = 0; i < n; i++) {
     const r = i === 0 ? base : base * 0.8; // 추가 소환물은 상속률 80%
     const s = blankUnit(owner.side);

@@ -4,7 +4,7 @@ import { type Battle, type CUnit, DIVINE_HOOK, type Hooks, type Status } from '.
 import { type AugDef, type Effect, applyLive, inc, red, vuln } from '../engine/effects';
 import { type CType, type Elem, type FaithId, FAITH_NAME, type Major, MAJORS, type RunState, type Weapon } from '../types';
 import { itemEffect } from './items';
-import { blinkTo, lineTargets, pct, skillHit, summonsOf } from './kit';
+import { blinkTo, isHarmful, lineTargets, pct, skillHit, summonsOf } from './kit';
 import { kairoSnipe } from './rosterB';
 import { type BaseUnit, type ReworkDef, setSk, uaug } from './unitkit';
 
@@ -20,7 +20,7 @@ const icd = (b: Battle, u: CUnit, key: string, sec: number) => {
   return true;
 };
 const cnt = (u: CUnit, key: string, max: number) => { if ((u.mem[key] || 0) < max) u.mem[key] = (u.mem[key] || 0) + 1; };
-const harmful = (s: Status) => (s.type !== 'buff' || s.key === 'corrode' || s.key === 'slow' || s.key === 'suppress' || !!s.taken?.some((t) => t.kind === 'vuln')) && s.key !== 'frenzy';
+const harmful = isHarmful;
 const aura = (b: Battle, u: CUnit, r: number, key: string, p: Partial<Status>) => {
   for (const a of b.around(u, r, b.alliesOf(u))) b.applyStatus(u, a, { type: 'buff', key, dur: 0.7, ...p });
 };
@@ -44,7 +44,7 @@ export const REWORK: Record<string, ReworkDef> = {
   // ───────────────────────── 성간 인류 연합
   yelena: {
     ctype: 'MARK', ttype: 'psionic', faith: 'human', weapon: G('델타-9 제식 권총', 'psy', 0.95, 3, 1.0, 12, 1.5),
-    factions: ['UNI'], traits: ['NATURE'],
+    factions: ['SEC'], traits: ['SCHEME', 'NATURE'],
     trait: {
       name: '항밈 요원', desc: '사격이 정신 피해가 된다 (사격 피해량 -25%p). 정신 피해를 받은 적은 기술 쿨다운 +1초 (대상당 1초에 1회).',
       effect: {
@@ -56,7 +56,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   mirinae: {
     ctype: 'MARK', ttype: 'major', faith: 'human', weapon: G('깜찍이', 'phys', 1.0, 5, 1.2, 4, 2.5),
-    factions: ['UNI'], traits: ['NATURE'],
+    factions: ['UNI', 'KAL'], traits: ['NATURE'],
     trait: {
       name: '물질주의 캠퍼', desc: '장착한 장비 · 개조부품 · 임시 장비 1개당 회피 · 치명타 확률 +5%p (최대 +30%p).',
       effect: { hooks: { onStart(_b, u) {
@@ -68,7 +68,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   gebek: {
     ctype: 'MARK', ttype: 'major', faith: 'human', weapon: G('헤비 버니', 'phys', 0.45, 4, 0.5, 40, 4.5),
-    factions: ['UNI'], traits: ['ENG'],
+    factions: ['UNI', 'STL'], traits: ['ENG'],
     trait: {
       name: '괴수', desc: '기본 공격이 맞으면 25% 확률로 [제압]: 대상의 다음 공격 피해가 1이 된다.',
       effect: { hooks: { onBasic(b, u, t, r) { if (r.amount > 0 && t.alive && b.rng.chance(0.25)) b.applyStatus(u, t, { type: 'buff', key: 'suppress', dur: 10, label: '제압' }); } } },
@@ -76,7 +76,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   donovan: {
     ctype: 'SPEC', ttype: 'special', faith: 'human', weapon: K('단분자 와이어', 'phys', 0.8, 1, 0.8, 4),
-    factions: ['UNI'], traits: ['INFIL', 'BUDDY'],
+    factions: ['UNI', 'SEC'], traits: ['BUDDY'],
     trait: { name: '자안의 사수', desc: '기술 피해도 치명타가 터진다. 체력 비율이 가장 낮은 적을 우선 노린다.', effect: { setup: (u) => { u.mem.techCrit = 1; u.mem.lowestFocus = 1; } } },
     specialAugs: [
       sp('donovan', 'eye', '자안 개방', '기술 피해가 치명타로 터지면 기술 쿨다운 -1초.', { hooks: { onDeal(_b, u, _t, r, o) { if (r.crit && o.kind === 'tech') u.cd -= 1; } } }),
@@ -89,7 +89,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   chloe: {
     ctype: 'SPEC', ttype: 'minor', faith: 'science', weapon: G('다트 권총', 'phys', 1.0, 3, 0.9, 6, 1.8),
-    factions: ['UNI'], traits: ['MED', 'STAR'],
+    factions: ['SEC'], traits: ['MED', 'DECOMP'],
     trait: {
       name: '항밈 처방', desc: '회복할 때 대상의 해로운 상태이상 1개를 제거한다.',
       effect: { hooks: { onHealDone(_b, u, t) {
@@ -125,7 +125,7 @@ export const REWORK: Record<string, ReworkDef> = {
   // ───────────────────────── 주식회사 페트라
   lindiwe: {
     ctype: 'VAN', ttype: 'major', faith: 'index', weapon: K('방어막 건틀릿', 'phys', 0.9, 1, 0.8, 3),
-    factions: ['PET'], traits: [],
+    factions: ['PET'], traits: ['SCHEME', 'GUARD'],
     trait: {
       name: '특별경호팀', desc: '자신과 주변 1칸 아군의 받는 피해 -30%p. 주변 아군이 받는 피해의 절반은 린디웨가 나눠 받는다.',
       effect: { hooks: { onTick(b, u, dt) {
@@ -153,7 +153,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   franze: {
     ctype: 'CMD', ttype: 'major', faith: 'index', weapon: K('에너지 블레이드', 'phys', 0.9, 1, 0.6, 4),
-    factions: ['PET'], traits: ['TIME'],
+    factions: ['PET', 'TIME'], traits: ['DECOMP'],
     trait: {
       name: '은하법 검사', desc: '흡혈 +10%p. 기본 공격이 맞은 적에게 5초간 [심판]: 그동안 아군이 준 피해의 20%를 기록하고, 끝날 때 기록의 100%를 고정 피해로 정산한다.',
       effect: {
@@ -168,7 +168,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   grenholm: {
     ctype: 'VAN', ttype: 'major', faith: 'index', weapon: K('7중 방호 블레이드', 'phys', 1.1, 1, 0.8, 3),
-    factions: ['PET'], traits: ['STAR'],
+    factions: ['PET'], traits: ['STAR', 'GUARD'],
     trait: {
       name: '7중 방호 슈트', desc: '기본 공격 · 기술을 쓸 때마다 최대 체력 5% 보호막 (최대 30%까지 쌓임).',
       effect: { hooks: {
@@ -212,7 +212,7 @@ export const REWORK: Record<string, ReworkDef> = {
   // ───────────────────────── 칼리토 제국
   hiiro: {
     ctype: 'CMD', ttype: 'psionic', faith: 'emperor', weapon: G('여우불 부적', 'psy', 1.1, 3, 0.6, 5, 2),
-    factions: ['KAL'], traits: ['STAR'],
+    factions: ['KAL', 'HOI'], traits: ['STAR'],
     trait: {
       name: '점괘', desc: '전투 시작 시 점괘를 본다. 길: 아군 전원 12초간 피해 +12%. 흉: 아군 전원 6초간 받는 피해 +8%. 이성이 높을수록 길이 잘 나온다.',
       effect: { hooks: { onStart(b, u) {
@@ -229,7 +229,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   nadir: {
     ctype: 'SPEC', ttype: 'psionic', faith: 'emperor', weapon: G('백수정 조각', 'psy', 0.9, 3, 0.9, 6, 1.5),
-    factions: ['KAL'], traits: [],
+    factions: ['KAL'], traits: ['COND', 'INFIL'],
     trait: {
       name: '사이오닉 영사', desc: '기본 공격이 맞으면 대상 주변 2칸의 다른 적에게 튕겨 기술 위력 50% 정신 피해.',
       effect: { hooks: { onBasic(b, u, t, r) {
@@ -242,7 +242,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   temur: {
     ctype: 'VAN', ttype: 'major', faith: 'emperor', weapon: K('검투사 대검', 'phys', 1.0, 1, 0.85, 3),
-    factions: ['KAL'], traits: ['NATURE'],
+    factions: ['KAL'], traits: ['NATURE', 'INFIL'],
     trait: {
       name: '투사', desc: '효과 저항 +100%p. 피해를 받을 때마다 타격 피해량 +2%p (전투 동안, 최대 +200%p).',
       effect: {
@@ -326,7 +326,7 @@ export const REWORK: Record<string, ReworkDef> = {
   // ───────────────────────── 헬레니우스 동맹
   zephyro: {
     ctype: 'CMD', ttype: 'psionic', faith: 'athena', weapon: G('깃펜', 'phys', 0.8, 4, 0.6, 2, 1),
-    factions: ['HEL'], traits: ['NAV'],
+    factions: ['HEL', 'PAN'], traits: ['NAV'],
     trait: {
       name: '뱃사공 철학', desc: '기본 공격이 대상 근처의 적 1명을 추가로 맞힌다. 아군 전원 치명타 확률 +20%p.',
       effect: { hooks: {
@@ -373,7 +373,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   eleni: {
     ctype: 'VAN', ttype: 'divine', faith: 'selene', weapon: K('진혼 대검', 'phys', 1.1, 1, 0.85, 3),
-    factions: ['HEL'], traits: ['MED'],
+    factions: ['HEL'], traits: ['MED', 'GUARD'],
     trait: {
       name: '등대기사', desc: '주변 2칸 아군이 초당 최대 체력 2% 회복.',
       effect: { hooks: { onTick(b, u, dt) {
@@ -386,7 +386,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   iris: {
     ctype: 'CMD', ttype: 'divine', faith: 'hermes', weapon: G('날개 단검 투척', 'holy', 0.9, 3, 0.6, 6, 1.5),
-    factions: ['HEL'], traits: [],
+    factions: ['HEL', 'STL'], traits: ['MED'],
     trait: {
       name: '헤르메스의 날개', desc: '아군 전원 이동 속도 · 공격 속도 +25%p.',
       effect: { hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'iris.wing', 999, { delta: { moveSpd: 0.25, atkSpd: 0.25 } }); } } },
@@ -394,19 +394,19 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   odysseus: {
     ctype: 'MARK', ttype: 'divine', faith: 'athena', weapon: G('장궁', 'phys', 0.75, 4, 1.0, 1, 0.8),
-    factions: ['HEL'], traits: ['INFIL'],
+    factions: ['HEL'], traits: ['INFIL', 'SCHEME'],
     trait: { name: '귀환자의 눈', desc: '체력 비율이 가장 낮은 적을 노린다. 치명타 확률 +50%p.', effect: { stats: { crit: 0.5 }, setup: (u) => { u.mem.lowestFocus = 1; } } },
   },
   argon: {
     ctype: 'MARK', ttype: 'major', faith: 'hades', weapon: G('선상 작살총', 'phys', 0.9, 4, 1.1, 2, 2.5),
-    factions: ['HEL'], traits: ['NAV'],
+    factions: ['HEL'], traits: ['NAV', 'DECOMP'],
     trait: { name: '망자의 뱃사공', desc: '다른 기물이 주는 이로운 버프를 받지 않는다. 효과 저항 +40%p.', effect: { stats: { effRes: 0.4 }, setup: (u) => { u.mem.noBless = 1; } } },
   },
 
   // ───────────────────────── 시리우스 성도회
   romani: {
     ctype: 'MARK', ttype: 'psionic', faith: 'sirius', weapon: K('중거리 채찍', 'phys', 0.9, 2, 0.7, 3),
-    factions: ['SIR'], traits: ['INFIL'],
+    factions: ['SIR'], traits: ['INFIL', 'SCHEME'],
     trait: {
       name: '염동 회수', desc: '기본 공격 · 기술이 맞으면 가장 먼 적을 바로 옆으로 끌어와 타격 위력 50% 추가 피해 (3초에 1회). 엘리트 · 보스는 끌려오지 않고 150% 추가 피해를 받는다.',
       effect: { hooks: {
@@ -418,7 +418,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   joshua: {
     ctype: 'SPEC', ttype: 'psionic', faith: 'sirius', weapon: G('진정제 다트 권총', 'holy', 1.0, 3, 0.9, 6, 2),
-    factions: ['SIR'], traits: ['MED'],
+    factions: ['SIR', 'PAN'], traits: ['MED'],
     trait: { name: '체사레', desc: '이성이 -50 이하로 떨어지면 체사레로 전환된다.' },
     psi: { desc: '아군(자신 포함)이 잃은 체력 비율만큼 이성 감소 (최대 체력 10%당 -3), 회복할 때마다 +3.', effect: { hooks: {
       onAllyHurt(b, u, ally, _s, r) { if (!ally.isSummon) b.addReason(u, -30 * r.amount / b.S(ally, 'maxHp')); },
@@ -428,7 +428,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   sarma: {
     ctype: 'MARK', ttype: 'major', faith: 'science', weapon: G('융합포', 'phys', 1.1, 4, 1.3, 2, 3),
-    factions: ['SIR'], traits: ['TIME'],
+    factions: ['SIR', 'TIME'], traits: ['NAV'],
     trait: {
       name: '차원 융합', desc: '기본 공격이 대상 주변 1칸 적에게 30% 피해로 번진다.',
       effect: { hooks: { onBasic(b, u, t) {
@@ -472,7 +472,7 @@ export const REWORK: Record<string, ReworkDef> = {
   // ───────────────────────── 범은하 공동체
   aiden: {
     ctype: 'VAN', ttype: 'special', faith: 'science', weapon: K('액체 금속 칼날', 'phys', 0.75, 1, 0.75, 5),
-    factions: ['PAN'], traits: ['TIME', 'NAV'],
+    factions: ['TIME'], traits: ['NAV'],
     trait: {
       name: '고양이 형태', desc: '전투 시작 5초 · 회피 시 2초 · 처치 시 5초 동안 고양이 형태: 회피 · 공격 속도 +30%p.',
       effect: { hooks: {
@@ -520,7 +520,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   ingel: {
     ctype: 'SPEC', ttype: 'minor', faith: 'selene', weapon: G('음파 마이크', 'psy', 0.9, 3, 0.9, 8, 2),
-    factions: ['FAM'], traits: ['STAR'],
+    factions: ['PAN'], traits: ['STAR', 'SCHEME'],
     trait: {
       name: '무대 위의 달', desc: '출전한 다른 아군 기물 1명당 피해 +10%p, 소환물 · 시설 1개당 +5%p.',
       effect: { hooks: { onTick(b, u) {
@@ -535,7 +535,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   onyx: {
     ctype: 'SPEC', ttype: 'psionic', faith: 'human', weapon: G('합창', 'psy', 1.0, 3, 0.9, 10, 2),
-    factions: ['PAN'], traits: [],
+    factions: ['PAN'], traits: ['COND'],
     trait: { name: '오닉스 합창', desc: '이성이 낮을수록 주는 정신 피해 증폭이 50% 더 커진다.', effect: { setup: (u) => { u.mem.abyss = (u.mem.abyss || 0) + 0.5; } } },
     psi: { desc: '초당 이성 -2 (합창이 이성을 깎는다).', effect: { hooks: { onTick(b, u, dt) { u.mem.ot = (u.mem.ot || 0) + dt; if (u.mem.ot >= 1) { u.mem.ot -= 1; b.addReason(u, -2); } } } } },
   },
@@ -563,7 +563,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   rachel: {
     ctype: 'VAN', ttype: 'psionic', faith: 'human', weapon: K('암흑물질 노심', 'psy', 0.9, 1, 0.85, 4),
-    factions: ['FAM'], traits: ['TIME'],
+    factions: ['FAM', 'TIME'], traits: ['COND'],
     trait: {
       name: '암흑물질 붕괴', desc: '피니쉬가 대상 주변 1칸 적에게 타격 위력 50% 고정 피해를 주고, 준 피해의 20%를 보호막으로 얻는다.',
       effect: { hooks: { onBasic(b, u, t) {
@@ -581,12 +581,12 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   oliver: {
     ctype: 'SPEC', ttype: 'major', faith: 'hermes', weapon: K('기관사 렌치', 'phys', 0.85, 1, 0.8, 3),
-    factions: ['FAM'], traits: ['NAV'],
+    factions: ['FAM', 'PAN'], traits: ['NAV'],
     trait: { name: '메트로 기관사', desc: '이동 속도가 100%를 넘는 만큼 기술 위력이 1.5배로 오른다.', effect: { hooks: { onStart(b, u) { u.st.tech *= 1 + 1.5 * Math.max(0, b.S(u, 'moveSpd') - 1); } } } },
   },
   rasmus: {
     ctype: 'VAN', ttype: 'minor', faith: 'human', weapon: K('전정가위', 'phys', 1.0, 1, 0.8, 4),
-    factions: ['FAM'], traits: ['NATURE', 'BUDDY'],
+    factions: ['FAM'], traits: ['DECOMP', 'BUDDY'],
     trait: {
       name: '가지치기', desc: '라스무스와 맥스의 공격이 [부상]을 쌓는다 (최대 5, 6초). 부상은 회복 · 보호막을 1회씩 대신 소모시킨다.',
       effect: { hooks: {
@@ -602,7 +602,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   sigmund: {
     ctype: 'CMD', ttype: 'minor', faith: 'index', weapon: G('은식기 투척', 'phys', 1.1, 3, 0.6, 6, 2),
-    factions: ['FAM'], traits: [],
+    factions: ['FAM'], traits: ['NATURE'],
     trait: {
       name: '집사의 예법', desc: '공명 등급이 가장 높은 아군을 모신다 (보좌 우선 대상). 그 기물이 엘베스타드가 아니면 엘베스타드 시너지에 합류시키고, 이미 엘베스타드면 모든 메이저 +5.',
       effect: { setup(u, _b, ctx) {

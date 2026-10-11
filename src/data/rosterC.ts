@@ -93,7 +93,7 @@ export const ROSTER_C: BaseUnit[] = [
     ],
   },
   {
-    id: 'sarma', name: '사르마', title: '미래 은하에서 온 시간 여행자 · 차원 연구자', factions: ['SIR'], traits: ['TIME'], keywords: ['bio'],
+    id: 'sarma', name: '사르마', title: '미래 은하에서 온 시간 여행자 · 차원 연구자', factions: ['SIR'], traits: [], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.2 }, range: 4, base: B(6, 10, 8, 3, 5),
     sprite: 'soldier', palette: tint(PAL.SIR, '#6a5aa0', '#e8e2c8', '#c0b0ff'), lore: '"아, 실례했군요. 죄송해요. 제가 이번 은하는 처음이라."',
     skill: strike({
@@ -158,7 +158,7 @@ export const ROSTER_C: BaseUnit[] = [
   },
   // ───────── 범은하 공동체
   {
-    id: 'aiden', name: '에이든', title: '구인류 안드로이드 · 에란테스 바텐더', factions: ['PAN'], traits: ['TIME', 'NAV'], keywords: ['mech'],
+    id: 'aiden', name: '에이든', title: '구인류 안드로이드 · 에란테스 바텐더', factions: ['PAN'], traits: ['NAV'], keywords: ['mech'],
     atk: { type: 'strike', elem: 'phys', interval: 0.85 }, range: 1, base: B(6, 8, 7, 5, 7),
     sprite: 'soldier', palette: tint(PAL.PAN, '#c8ccd8', '#1a1a22', '#7fe3ff'), lore: '"반갑습니다. 오늘도 - 늘 먹던 것으로 드리나요?"',
     ace: {
@@ -273,7 +273,7 @@ export const ROSTER_C: BaseUnit[] = [
     ],
   },
   {
-    id: 'rachel', name: '레이첼', title: '아문센의 양녀 · 구인류 최후의 생존자', factions: ['FAM'], traits: ['TIME'], keywords: ['bio'],
+    id: 'rachel', name: '레이첼', title: '아문센의 양녀 · 구인류 최후의 생존자', factions: ['FAM'], traits: [], keywords: ['bio'],
     atk: { type: 'strike', elem: 'psy', interval: 1.0 }, range: 1, base: B(10, 7, 5, 8, 3),
     sprite: 'soldier', palette: tint(PAL.FAM, '#121218', '#2a2a34', '#9a6aff'),
     lore: '"…이거 꼭 지금 해야 돼요? 하면 잘하긴 하는데."',

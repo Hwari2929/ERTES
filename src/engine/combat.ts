@@ -4,7 +4,7 @@ import type { CType, DmgTag, Elem, FaithId, Keyword, Mod, Stats, StatKey, Synerg
 
 export type StatusType = 'stun' | 'fear' | 'shock' | 'dot' | 'buff';
 export const STATUS_NAME: Record<string, string> = {
-  stun: '기절', fear: '공포', shock: '감전', poison: '중독', bleed: '출혈', corrode: '부식', slow: '둔화', frenzy: '광폭', wound: '부상', suppress: '제압',
+  stun: '기절', fear: '공포', shock: '감전', poison: '중독', bleed: '출혈', corrode: '침식', decay: '부식', gloom: '암운', slow: '둔화', frenzy: '광폭', wound: '부상', suppress: '제압',
 };
 
 export interface Status {
