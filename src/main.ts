@@ -84,6 +84,17 @@ function hero(id: string, cls = 'hero') {
   const img = standImg(id, 'stand', true);
   return img ? `<div class="${cls}" data-stand="${id}">${img}</div>` : '';
 }
+// 메이저 스탯 아이콘 (24×24 선 아이콘, 색은 CSS --c)
+const MAJOR_ICON: Record<Major, string> = {
+  vit: '<path d="M12 20s-7-4.4-9-8.6A4.9 4.9 0 0 1 12 6.3a4.9 4.9 0 0 1 9 5.1C19 15.6 12 20 12 20z"/>',
+  pow: '<path d="M14 4h6v6L9.5 20.5l-6-6z"/><path d="M5.5 12.5l6 6M3 21l3-3"/>',
+  mnd: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  def: '<path d="M12 3l8 3v6c0 4.6-3.3 7.8-8 9-4.7-1.2-8-4.4-8-9V6z"/>',
+  agi: '<path d="M13 2.5L4.5 13.5H11L10 21.5l8.5-11H12z"/>',
+};
+function majorIcon(m: Major, cls = 'mi') {
+  return `<svg class="${cls} mi-${m}" viewBox="0 0 24 24" aria-hidden="true">${MAJOR_ICON[m]}</svg>`;
+}
 function rankPips(rank: number) {
   return `<span class="rank" title="공명 등급 ${rank}">R${rank}</span>`;
 }
@@ -187,7 +198,7 @@ function unitCard(d: UnitDef, opts: { selected?: boolean; action?: string; rank?
     <div class="chips">${[...d.factions, ...d.traits].map(opts.action === 'pick-recruit' ? ownedChip(d.id) : chip).join('')}</div>
     <div class="small">${d.atk.type === 'shoot' ? '사격' : '타격'} · 사거리 ${d.range} · ${ELEM_NAME[d.atk.elem]} · ${d.keywords.map((k) => KEYWORD_NAME[k]).join('/')}</div>
     <div class="skill-line"><b>${esc(d.skill.name)}</b> <span class="muted">(${d.skill.cd}초)</span><br>${esc(d.skill.desc(d.skill.params))}</div>
-    <div class="majors-mini">${MAJORS.map((m) => `<span>${MAJOR_NAME[m].slice(0, 2)} <b>${d.base[m]}</b></span>`).join('')}</div>
+    <div class="majors-mini">${MAJORS.map((m) => `<span title="${MAJOR_NAME[m]}">${majorIcon(m)}<b>${d.base[m]}</b></span>`).join('')}</div>
     ${opts.rank ? `<div class="small accent">공명 등급 ${opts.rank}로 합류</div>` : ''}
   </button>`;
 }
@@ -415,7 +426,7 @@ function detailPanel(run: RunState) {
     <h3>메이저 스탯</h3>
     <div class="majors">${MAJORS.map((m) => {
       const base = d.base[m], add = tm[m] - base;
-      return `<div class="major"><span>${MAJOR_NAME[m]}</span><span class="mbar"><i style="width:${Math.min(100, tm[m] * 3)}%"></i></span><b>${tm[m]}</b>${add ? `<small class="${add > 0 ? 'up' : 'down'}">${add > 0 ? '+' : ''}${add}</small>` : ''}</div>`;
+      return `<div class="major"><span>${majorIcon(m)}${MAJOR_NAME[m]}</span><span class="mbar"><i style="width:${Math.min(100, tm[m] * 3)}%"></i></span><b>${tm[m]}</b>${add ? `<small class="${add > 0 ? 'up' : 'down'}">${add > 0 ? '+' : ''}${add}</small>` : ''}</div>`;
     }).join('')}</div>
     <h3>스킬 · ${esc(d.skill.name)} <span class="muted">${c.cdMax.toFixed(1)}초</span></h3>
     <p class="small">${esc(d.skill.desc(c.sk))}</p>
@@ -584,11 +595,16 @@ function pendingModal(run: RunState): string {
       const tm = totalMajors(u, effects);
       const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? Math.round((v as number) * 100) + '%' : v}`).join(', ');
       body = `<h1>공명 등급 상승</h1>${head}
-        <p class="muted">모든 메이저 스탯이 <b class="accent">+${CFG.rankAll}</b> 올랐습니다 (반영됨). 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b> 올리세요 (${CFG.statEvery}의 배수 등급).${CFG.hasRankAug(p.rank) ? ' 이어서 전용 증강을 고릅니다.' : ''}</p>
-        <div class="alloc">${MAJORS.map((m) => { const on = app.picks.includes(m); return `<div class="alloc-row"><span class="a-name">${MAJOR_NAME[m]} <b>${tm[m]}</b>${on ? `<b class="up"> +${p.points}</b>` : ''}</span>
-          <span class="small muted">${conv(m)}</span>
-          <span class="a-btns"><button class="btn tiny ${on ? 'primary' : ''}" data-a="alloc-pick" data-v="${m}" ${on || left ? '' : 'disabled'}>${on ? '선택됨' : '선택'}</button></span></div>`; }).join('')}</div>
-        <button class="btn primary" data-a="alloc-ok" ${left ? 'disabled' : ''}>${left ? `${left}개 더 고르세요` : '확정'}</button>`;
+        <p class="muted small">모든 스탯 <b class="accent">+${CFG.rankAll}</b> 반영됨 · 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${CFG.hasRankAug(p.rank) ? ' · 이어서 전용 증강' : ''}</p>
+        <div class="alloc-grid">${MAJORS.map((m) => {
+          const on = app.picks.includes(m);
+          return `<button class="stat-pick ${on ? 'on' : ''}" data-a="alloc-pick" data-v="${m}" aria-pressed="${on}" ${on || left ? '' : 'disabled'}>
+            ${majorIcon(m, 'mi big')}<span class="sp-name">${MAJOR_NAME[m]}</span>
+            <span class="sp-val"><b>${tm[m]}</b>${on ? `<em>+${p.points}</em>` : ''}</span>
+            <span class="tip" role="tooltip"><b>${MAJOR_NAME[m]}</b> 1pt당<br>${conv(m)}</span></button>`;
+        }).join('')}
+          <button class="btn primary alloc-ok" data-a="alloc-ok" ${left ? 'disabled' : ''}>${left ? `${left}개 더 고르세요` : '확정'}</button>
+        </div>`;
     } else {
       R.ensureRankupOptions(run, p);
       body = `<h1>${p.join ? '합류 증강' : '증강 선택'}</h1>${head}<p class="accent small">${p.join ? '합류 즉시 전용 증강 1개' : `공명 등급 ${p.rank} — ${CFG.augEvery}등급마다 전용 증강 1개`}</p>
@@ -663,6 +679,7 @@ function menuModal(run: RunState | null) {
 }
 
 // ───────────────────────── 렌더
+const lastView = { screen: '' as string, modal: '' };
 function render() {
   if (app.screen !== 'battle' && app.view) { app.view.destroy(); app.view = null; }
   const run = app.run;
@@ -677,7 +694,20 @@ function render() {
   else if (app.screen === 'news') body = newsScreen(run);
   else if (app.screen === 'over') body = overScreen(run);
   const showTop = run && app.screen !== 'title' && app.screen !== 'newrun' && app.screen !== 'codex';
+  // 다시 그려도 같은 화면 · 같은 창이면 스크롤 위치를 유지한다
+  const modalKey = run?.pending[0] ? JSON.stringify([run.pending[0].t, (run.pending[0] as { uid?: string }).uid, (run.pending[0] as { allocDone?: boolean }).allocDone]) : app.menu || '';
+  const sameView = lastView.screen === app.screen;
+  const keep = ['.side.left', '.side.right', 'aside.side', '.codex-grid'].map((sel) => [sel, root.querySelector(sel)?.scrollTop || 0] as const);
+  const modalTop = lastView.modal === modalKey ? root.querySelector('.modal')?.scrollTop || 0 : 0;
+  const winY = window.scrollY;
+  lastView.screen = app.screen; lastView.modal = modalKey;
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
+  if (sameView) {
+    for (const [sel, top] of keep) { const el = root.querySelector(sel); if (el && top) el.scrollTop = top; }
+    if (winY) window.scrollTo(0, winY);
+  }
+  const md = root.querySelector('.modal');
+  if (md && modalTop) md.scrollTop = modalTop;
   if (app.screen === 'battle' && app.needMount) {
     app.needMount = false;
     mountBattleView(document.getElementById('bboard')!);

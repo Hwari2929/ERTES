@@ -282,9 +282,6 @@ button { font: inherit; color: inherit; }
 .card span:not(.src) { font-size: .85rem; color: var(--dim); }
 .card .src { justify-self: start; }
 .card.aug-unit { border-color: var(--accent); }
-.alloc { display: grid; gap: 6px; }
-.alloc-row { display: grid; grid-template-columns: 8em minmax(0, 1fr) auto; gap: 10px; align-items: center; background: var(--panel-2); border-radius: 6px; padding: 6px 10px; }
-.a-btns { display: flex; gap: 4px; }
 textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; font: 12px var(--f-mono); }
 .slot-list { display: grid; gap: 6px; }
 .slot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--panel-2); border-radius: 6px; padding: 6px 10px; }
@@ -306,8 +303,6 @@ textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--fg
   .prep .side.right { order: 1; }
   .prep .board-col { order: 0; }
   h1 { font-size: 1.5rem; }
-  .alloc-row { grid-template-columns: 1fr auto; }
-  .alloc-row .small { grid-column: 1 / -1; grid-row: 2; }
 }
 
 /* 전장 */
@@ -391,3 +386,31 @@ textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--fg
 kbd { font-family: var(--f-mono); font-size: .75em; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; background: var(--panel-2); }
 .board-head .warn { color: var(--accent); font-weight: 700; }
 .chip .own { font-family: var(--f-mono); font-size: .72rem; margin-left: 2px; color: var(--fg); }
+
+/* ── 메이저 스탯 아이콘 · 능력치 고르기 (2×3, 확정 버튼 우하단, 상세는 툴팁) */
+.mi { width: 1em; height: 1em; fill: none; stroke: var(--c, currentColor); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -.15em; flex: none; }
+.mi-vit { --c: #ef6b6b; } .mi-pow { --c: #f0a23e; } .mi-mnd { --c: #b48cf2; } .mi-def { --c: #5fa8ef; } .mi-agi { --c: #5fd18b; }
+.majors-mini span { display: inline-flex; align-items: center; gap: 3px; }
+.major > span:first-child { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.major { grid-template-columns: 5.2em 1fr 2.2em 2.4em; }
+.alloc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.stat-pick { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 8px; align-items: center;
+  text-align: left; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; color: var(--fg); font: inherit; cursor: pointer; }
+.stat-pick:hover:not(:disabled) { border-color: var(--dim); }
+.stat-pick:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.stat-pick.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.stat-pick:disabled { opacity: .45; cursor: default; }
+.stat-pick .mi.big { grid-row: 1 / 3; width: 26px; height: 26px; }
+.stat-pick .sp-name { font-size: .82rem; color: var(--dim); }
+.stat-pick .sp-val { font-size: 1.2rem; font-variant-numeric: tabular-nums; display: flex; gap: 6px; align-items: baseline; }
+.stat-pick .sp-val em { font-style: normal; font-size: .9rem; color: var(--good, #5fd18b); font-weight: 700; }
+.stat-pick .tip { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); width: max-content; max-width: 220px; z-index: 5;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: .75rem; line-height: 1.45; color: var(--fg);
+  box-shadow: 0 4px 14px rgb(0 0 0 / .45); pointer-events: none; opacity: 0; visibility: hidden; transition: opacity .12s; }
+.stat-pick:hover .tip, .stat-pick:focus-visible .tip { opacity: 1; visibility: visible; }
+.alloc-grid .alloc-ok { align-self: stretch; min-height: 56px; }
+@media (max-width: 520px) { .stat-pick { padding: 8px; column-gap: 6px; } .stat-pick .mi.big { width: 20px; height: 20px; } .stat-pick .sp-val { font-size: 1.05rem; } }
+@media (prefers-reduced-motion: reduce) { .stat-pick .tip { transition: none; } }
+.alloc-grid .stat-pick:nth-child(3n+1) .tip { left: 0; transform: none; }
+.alloc-grid .stat-pick:nth-child(3n) .tip { left: auto; right: 0; transform: none; }
+@media (max-width: 520px) { .modal .hero.sm { height: 150px; } }
