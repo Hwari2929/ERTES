@@ -412,7 +412,7 @@ function mapScreen(run: RunState) {
     </section>
     <aside class="side">
       <h2>파티 <span class="muted small">출전 ${deployed(run).length}/${R.deployCap(run)} · 보유 ${run.units.length}/${CFG.maxParty}</span></h2>
-      <div class="roster">${run.units.map((u) => rosterRow(u)).join('')}</div>
+      <div class="party">${run.units.map(rosterTile).join('')}</div>
       <h2>시너지</h2>
       <div class="syn-list">${synergyPanel(run)}</div>
       ${run.quests.length ? `<h2>헬레니우스 퀘스트</h2><ul class="quests">${run.quests.map((q) =>
@@ -431,6 +431,20 @@ function nodeHint(o: NodeType) {
     supply: '보급품 3종 중 택1', recruit: '새 동료 3명 중 택1', boss: `승리 시 페이즈 클리어 · ${CFG.drop.bossAdvEvery}페이즈마다 고급 장비`,
     pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', invest: '호이슌 투자 상품 · 크레딧으로 문장 · 증강 · 다음 페이즈 수익', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
   } as Record<NodeType, string>)[o];
+}
+/** 파티 타일: 초상화(좌하단 공명 등급) · 장비 · 소속 시너지 */
+function rosterTile(u: UnitState) {
+  const d = UNIT_BY_ID[u.defId];
+  const run = app.run;
+  const locked = !!run && u.lock === run.phase;
+  const syns = memberships(u, run).map((id) => SYN_BY_ID[id]).filter(Boolean)
+    .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'faction' ? -1 : 1));
+  const tip = `${d.name} · 공명 등급 ${u.rank}${u.pos ? '' : ' · 대기'}${locked ? ' · 이번 페이즈 출전 불가' : ''}`;
+  return `<button class="rt${u.pos ? '' : ' rt-off'}" data-a="manage" data-v="${u.uid}" title="${esc(tip)}" aria-label="${esc(tip)}">
+    <span class="rt-art">${sprite(d)}<span class="rt-rank">${u.rank}</span>${locked ? '<span class="rt-lock" aria-hidden="true">⛓</span>' : ''}</span>
+    <span class="rt-items">${u.items.map((i) => itemIcon(i)).join('')}${u.mod ? itemIcon(u.mod) : ''}</span>
+    <span class="rt-syn">${syns.map((sd) => `<span class="rt-s" style="--c:${sd.color}" title="${esc(sd.name)}">${synIcon(sd.id)}</span>`).join('')}</span>
+  </button>`;
 }
 function rosterRow(u: UnitState) {
   const d = UNIT_BY_ID[u.defId];

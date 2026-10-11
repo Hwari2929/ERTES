@@ -126,6 +126,22 @@ button { font: inherit; color: inherit; }
 .roster { display: grid; gap: 6px; }
 .roster-row { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; cursor: pointer; text-align: left; }
 .roster-row.bench { opacity: .6; }
+/* 파티 타일: 패널 한 줄에 4명 */
+.party { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
+.rt { display: grid; gap: 4px; align-content: start; min-width: 0; padding: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; color: inherit; font: inherit; text-align: left; transition: border-color .15s; }
+.rt:hover { border-color: var(--dim); }
+.rt:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rt.rt-off { opacity: .55; }
+.rt-art { position: relative; display: block; aspect-ratio: 1; }
+.rt-art .spr { width: 100%; height: 100%; border-radius: 6px; }
+.rt-rank { position: absolute; left: 3px; bottom: 3px; min-width: 18px; padding: 0 4px; border-radius: 4px; background: var(--accent); color: var(--accent-ink); font-family: var(--f-mono); font-size: .72rem; font-weight: 700; line-height: 16px; text-align: center; box-shadow: 0 1px 4px rgb(0 0 0 / .6); }
+.rt-lock { position: absolute; right: 3px; top: 3px; font-size: .75rem; line-height: 1; filter: drop-shadow(0 1px 2px rgb(0 0 0 / .8)); }
+.rt-items { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; }
+.rt-items .item { width: 100%; height: auto; aspect-ratio: 1; font-size: 9px; cursor: inherit; border-radius: 4px; }
+.rt-items .item .ii { width: 70%; height: 70%; }
+.rt-syn { display: flex; flex-wrap: wrap; gap: 3px; }
+.rt-s { display: grid; place-items: center; width: 16px; height: 16px; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 60%, transparent); border-radius: 3px; background: color-mix(in srgb, var(--c) 12%, transparent); }
+.rt-s .si { width: 11px; height: 11px; }
 .rr-main { flex: 1; min-width: 0; }
 .rr-main b { font-size: .85rem; }
 .rr-items { display: flex; gap: 2px; }
