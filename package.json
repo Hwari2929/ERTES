@@ -6,7 +6,8 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
-    "sim": "node scripts/build.mjs --sim && node dist/sim.cjs"
+    "sim": "node scripts/build.mjs --sim && node dist/sim.cjs",
+    "events-doc": "node scripts/build.mjs --eventdoc && node dist/eventdoc.cjs > docs/EVENTS.md"
   },
   "devDependencies": {
     "esbuild": "0.25.10",

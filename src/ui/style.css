@@ -623,3 +623,8 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .rc-foot .btn { min-width: 120px; }
 .rc-rank { justify-self: start; }
 @media (max-width: 640px) { .modal.recruit { height: 94dvh; padding: 14px; } .rc-track { grid-auto-columns: min(280px, 78vw); justify-content: start; } }
+/* 상단 바 활성 시너지 */
+.top-syn { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-left: auto; margin-right: 8px; }
+.ts { display: inline-flex; align-items: center; gap: 2px; height: 24px; padding: 0 6px 0 5px; border-radius: 4px; border: 1px solid var(--c); color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); font-size: .78rem; cursor: help; }
+.ts .si { width: 14px; height: 14px; }
+.ts b { font-family: var(--f-mono); font-size: .72rem; }

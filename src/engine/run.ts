@@ -35,7 +35,7 @@ export function newRun(seed: number, starters: string[], field?: string, diff = 
     version: SAVE_VERSION, seed, rng: seed, phase: 1, step: 0, map: phaseMap(1), picked: [], node: null,
     hp: CFG.playerHp - (diffHas(diff, 6) ? 25 : 0), maxHp: CFG.playerHp - (diffHas(diff, 6) ? 25 : 0), credits: diffHas(diff, 3) ? 0 : CFG.startCredits, streak: 0, units: [], inventory: [],
     globals: [], pending: [], quests: [], questPhase: 0, loan: 0, faith: 0, power: 0, divCap: 0, fame: 0, blessing: null, staffTarget: null, aceTarget: null, privilege: null, field: field || 'waste', diff, cleared: false, endless: false,
-    mods: { interestCap: 0, nodeIncome: 0 }, boons: [], phaseBoons: [], seenEvents: [], usedIds: [], rankLog: {}, nextUid: 1, log: [],
+    mods: { interestCap: 0, nodeIncome: 0 }, boons: [], phaseBoons: [], seenEvents: [], flags: [], usedIds: [], rankLog: {}, nextUid: 1, log: [],
     stats: { wins: 0, losses: 0, kills: 0, bestHit: 0 }, over: false,
   };
   for (const id of starters) addUnit(run, id, 1);
@@ -725,6 +725,7 @@ export function migrate(run: RunState): RunState {
   run.boons ??= [];
   run.phaseBoons ??= [];
   run.seenEvents ??= [];
+  run.flags ??= [];
   run.usedIds ??= run.units.map((u) => u.defId);
   run.rankLog ??= Object.fromEntries(run.units.map((u) => [u.defId, u.rank]));
   run.version = SAVE_VERSION;
@@ -736,7 +737,8 @@ export function migrate(run: RunState): RunState {
 function pickEvent(run: RunState): string {
   // 희귀 사건은 런당 1회. 일반 사건은 겪을수록 덜 나온다 (희귀 사건이 '남은 사건'이 되어 자주 뜨지 않도록)
   const seen = (id: string) => run.seenEvents.filter((x) => x === id).length;
-  const list = EVENTS.filter((e) => (!e.fields || e.fields.includes(run.field)) && (e.minPhase || 1) <= run.phase && !(e.rare && seen(e.id)));
+  const list = EVENTS.filter((e) => (!e.fields || e.fields.includes(run.field)) && (e.minPhase || 1) <= run.phase && !((e.rare || e.once) && seen(e.id))
+    && (!e.req || run.flags.includes(e.req)) && (!e.noFlag || !run.flags.includes(e.noFlag)));
   // 엘베스타드 일가가 있으면 밍키가 조금 더 자주
   const w = (e: (typeof EVENTS)[number]) => e.weight * Math.pow(0.3, seen(e.id)) * (e.id === 'mingki' && run.units.some((u) => memberships(u).includes('FAM')) ? 2 : 1);
   return rng(run, (r) => r.weighted(list, w).id);
@@ -775,6 +777,9 @@ function eventApi(run: RunState): EventApi {
       return AUG_BY_ID[opts[0].id]?.name || null;
     },
     phaseBoon: (id) => { if (!run.phaseBoons.includes(id)) run.phaseBoons.push(id); },
+    boon: (id) => { if (!run.boons.includes(id)) run.boons.push(id); },
+    flag: (id) => { if (!run.flags.includes(id)) run.flags.push(id); },
+    chance: (p) => rng(run, (r) => r.chance(p)),
   };
 }
 

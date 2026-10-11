@@ -148,6 +148,7 @@ export interface RunState {
   boons: string[]; // 사건 팀 효과 (영구)
   phaseBoons: string[]; // 사건 팀 효과 (이번 페이즈)
   seenEvents: string[]; // 이번 런에서 겪은 사건
+  flags: string[]; // 연계 사건 표식
   usedIds: string[]; // 이번 런에 합류한 적 있는 기물 (도감 기록용)
   recorded?: boolean; // 도감에 런 결과를 기록했는지
   rankLog: Record<string, number>; // 기물별 이번 런 최고 공명 등급 (도감 기록용)

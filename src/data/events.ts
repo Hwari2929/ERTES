@@ -18,6 +18,9 @@ export interface EventApi {
   randomItem: (tier: 'C' | 'A' | 'L') => string;
   augNow: (u: UnitState) => string | null; // 전용 증강 하나 즉시 부여, 이름 반환
   phaseBoon: (id: string) => void; // 이번 페이즈 동안 팀 효과
+  boon: (id: string) => void; // 영구 팀 효과
+  flag: (id: string) => void; // 연계 사건 표식
+  chance: (p: number) => boolean; // 확률 판정 (런 시드 기반)
 }
 
 export interface EventChoice {
@@ -34,9 +37,20 @@ export interface EventDef {
   weight: number; // 1 = 보통, 0.05 = 매우 희귀
   minPhase?: number;
   rare?: boolean; // 도파민 사건 (연출 강조)
+  /** 연계 사건: 이 표식이 있어야 등장 */
+  req?: string;
+  /** 이 표식이 있으면 등장하지 않음 */
+  noFlag?: string;
+  /** 런당 1회 */
+  once?: boolean;
   text: string;
   choices: EventChoice[];
 }
+
+import { BOONS_A, STORY_A } from './storyA';
+import { BOONS_B, STORY_B } from './storyB';
+import { BOONS_C, STORY_C } from './storyC';
+import { BOONS_D, STORY_D } from './storyD';
 
 const FACTION_EMBLEMS = ['UNI', 'KAL', 'HEL', 'PET', 'SIR', 'PAN', 'FAM'];
 const owns = (run: RunState, id: string) => run.units.some((u) => u.defId === id);
@@ -267,6 +281,7 @@ export const EVENTS: EventDef[] = [
     ],
   },
 ];
+EVENTS.push(...STORY_A, ...STORY_B, ...STORY_C, ...STORY_D);
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
 
 /** 사건 효과로 생기는 팀 효과: boons(영구) / phaseBoons(이번 페이즈) */
@@ -275,4 +290,5 @@ export const BOONS: Record<string, { name: string; effect: Effect }> = {
   convoy: { name: '연합의 감사 (피해 +15%)', effect: { mods: [inc('all', 0.15)] } },
   purge: { name: '배양조 소각 (받는 피해 -10%)', effect: { taken: [red('all', 0.1)] } },
   ares: { name: '궤도 함포 지원 (피해 +30%)', effect: { mods: [inc('all', 0.3)] } },
+  ...BOONS_A, ...BOONS_B, ...BOONS_C, ...BOONS_D,
 };

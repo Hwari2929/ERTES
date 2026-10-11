@@ -138,6 +138,14 @@ function itemGlyph(id: string) {
   return lineIcon(`i.${id.slice(2)}`, 'ii');
 }
 
+/** 상단 바: 활성 시너지 아이콘 + 단계 */
+function topSynergies(r: RunState) {
+  const counts = synergyCounts(deployed(r), r);
+  const act = SYNERGIES.map((sd) => ({ sd, n: counts[sd.id] || 0, t: tierOf(sd.id, counts[sd.id] || 0) })).filter((x) => x.t > 0)
+    .sort((a, b) => (a.sd.kind === b.sd.kind ? b.t - a.t || b.n - a.n : a.sd.kind === 'faction' ? -1 : 1));
+  if (!act.length) return '';
+  return `<div class="top-syn" aria-label="활성 시너지">${act.map(({ sd, n, t }) => `<span class="ts" style="--c:${sd.color}" title="${esc(sd.name)} ${n}명 · ${t}단계">${synIcon(sd.id)}<b>${t}</b></span>`).join('')}</div>`;
+}
 function topbar() {
   const r = app.run;
   if (!r) return '';
@@ -155,6 +163,7 @@ function topbar() {
       ${r.blessing ? `<span class="pill faith" title="${esc(BLESSING_BY_ID[r.blessing].desc)}">축복: ${esc(BLESSING_BY_ID[r.blessing].name)}</span>` : ''}
       <span class="pill">출전 ${deployed(r).length}/${cap}</span>
     </div>
+    ${topSynergies(r)}
     ${app.screen === 'battle' ? '' : '<button class="btn ghost" data-a="menu">메뉴</button>'}
   </header>`;
 }
@@ -1107,8 +1116,11 @@ function codexScreen() {
       }).join('')}</div>`;
     }).join('') + (() => { const extra = ENEMIES.filter((e) => !FIELDS.some((f) => [...f.pool, f.elite, ...f.bosses].includes(e.id)) && m.enemies[e.id]); return extra.length ? `<h2>기타</h2><div class="codex-list">${extra.map((e) => `<div class="codex-row">${sprite(e)}<div><b>${esc(e.name)}</b></div><div class="small mono">처치 ${m.enemies[e.id].kills}</div></div>`).join('')}</div>` : ''; })();
   } else if (app.codexTab === 'events') {
-    const groups: [string, typeof EVENTS][] = [['공용', EVENTS.filter((e) => !e.fields)], ...FIELDS.map((f) => [f.name, EVENTS.filter((e) => e.fields?.includes(f.id))] as [string, typeof EVENTS])];
-    body = groups.map(([g, list]) => `<h2>${esc(g)}</h2><div class="codex-list">${list.map((e) => {
+    const story = (p: string) => EVENTS.filter((e) => e.id.startsWith(p));
+    const groups: [string, typeof EVENTS][] = [['공용', EVENTS.filter((e) => !e.fields && !/^s[a-d]_/.test(e.id))], ...FIELDS.map((f) => [f.name, EVENTS.filter((e) => e.fields?.includes(f.id))] as [string, typeof EVENTS]),
+      ['함선 생활 · 엘베스타드 일가', story('sa_')], ['세력 정치 · 의뢰', story('sb_')], ['우주 기담 · 사이오닉 · 신앙', story('sc_')], ['변경 생존 · 도박 · 인양', story('sd_')]];
+    const seenN = EVENTS.filter((e) => m.events[e.id]).length;
+    body = `<p class="muted small">겪은 사건 ${seenN} / ${EVENTS.length}종. 연계 사건은 앞선 사건의 선택에 따라 열립니다.</p>` + groups.filter(([, l]) => l.length).map(([g, list]) => `<h2>${esc(g)} <span class="muted small">${list.filter((e) => m.events[e.id]).length}/${list.length}</span></h2><div class="codex-list">${list.map((e) => {
       const n = m.events[e.id] || 0;
       return `<div class="codex-row ${n ? '' : 'unknown'} ${e.rare ? 'rare' : ''}"><div><b>${n ? esc(e.title) : '???'}</b>${e.rare ? ' <span class="tag">희귀</span>' : ''}<div class="small">${n ? esc(e.text) : '아직 겪지 못한 사건입니다.'}</div></div><div class="small mono">${n}회</div></div>`;
     }).join('')}</div>`).join('');

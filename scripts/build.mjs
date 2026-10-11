@@ -4,7 +4,9 @@ import { readFileSync, writeFileSync, mkdirSync, cpSync, existsSync } from 'node
 
 mkdirSync('dist', { recursive: true });
 
-if (process.argv.includes('--sim')) {
+if (process.argv.includes('--eventdoc')) {
+  await build({ entryPoints: ['tests/eventdoc.ts'], bundle: true, platform: 'node', format: 'cjs', outfile: 'dist/eventdoc.cjs', logLevel: 'warning', minify: false, keepNames: true });
+} else if (process.argv.includes('--sim')) {
   await build({ entryPoints: ['tests/sim.ts'], bundle: true, platform: 'node', format: 'cjs', outfile: 'dist/sim.cjs', logLevel: 'warning' });
 } else {
   const res = await build({
