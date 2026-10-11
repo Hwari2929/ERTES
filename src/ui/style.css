@@ -605,3 +605,8 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 /* 시너지 선 아이콘 */
 .si { width: 1.05em; height: 1.05em; vertical-align: -.18em; flex: none; }
 .chip .si { margin-right: 1px; }
+/* 유형 · 신앙 아이콘 (속 찬 아이콘) */
+.ti { width: 1em; height: 1em; vertical-align: -.14em; flex: none; }
+.ticons i .ti { width: 12px; height: 12px; }
+.sub-h i .ti { width: 13px; height: 13px; vertical-align: -2px; }
+.pc-role .ti { margin-right: 3px; }

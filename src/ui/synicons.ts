@@ -25,3 +25,24 @@ export function synIcon(id: string, cls = 'si'): string {
   const p = P[id];
   return p ? `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>` : '';
 }
+
+// 전투 유형 · 전술 유형 · 신앙: 속이 찬 아이콘 (같은 24×24 격자)
+const F: Record<string, string> = {
+  // 전투 유형
+  MARK: '<path fill-rule="evenodd" d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z"/><circle cx="12" cy="12" r="3"/><path d="M11 0h2v5h-2zM11 19h2v5h-2zM0 11h5v2H0zM19 11h5v2h-5z"/>',
+  VAN: '<path d="M21 3v5.5L11 18.5 5.5 13 15.5 3z"/><path d="M3.5 12.5l8 8-1.6 1.6-8-8z"/><path d="M5 18.2l.8.8-2.6 2.6a.6.6 0 0 1-.8-.8z"/>',
+  SPEC: '<path d="M9 2h6v2h-1v5.2l5.6 9.7A2 2 0 0 1 17.9 22H6.1a2 2 0 0 1-1.7-3.1L10 9.2V4H9z"/>',
+  CMD: '<path d="M3 3l9 5.5L21 3v4.5L12 13 3 7.5z"/><path d="M3 11l9 5.5 9-5.5v4.5L12 21l-9-5.5z"/>',
+  // 전술 유형
+  major: '<path d="M12 1.5 22.5 12 12 22.5 1.5 12z"/>',
+  minor: '<path d="M4 21c0-9.5 5.5-16 17-17-.5 11-6.8 16.5-15.2 17z"/><path d="M3 22.5 13 12l1 1L4 23.5z"/>',
+  special: '<path d="M12 1.5l3.1 6.6 7.2.9-5.3 5 1.4 7.1L12 17.6l-6.4 3.5L7 14l-5.3-5 7.2-.9z"/>',
+  psionic: '<path fill-rule="evenodd" d="M12 4.5c5.6 0 9.6 4.4 11 7.5-1.4 3.1-5.4 7.5-11 7.5S2.4 15.1 1 12c1.4-3.1 5.4-7.5 11-7.5zm0 3a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z"/><circle cx="12" cy="12" r="2"/>',
+  divine: '<path d="M10 1.5h4v6h6v4h-6v11h-4v-11H4v-4h6z"/>',
+  // 신앙
+  faith: '<circle cx="12" cy="12" r="5"/><path d="M11 0h2v4h-2zM11 20h2v4h-2zM0 11h4v2H0zM20 11h4v2h-4zM3.5 5l1.4-1.4 2.8 2.8-1.4 1.4zM16.3 17.6l1.4-1.4 2.8 2.8-1.4 1.4zM3.5 19l2.8-2.8 1.4 1.4-2.8 2.8zM16.3 6.4l2.8-2.8 1.4 1.4-2.8 2.8z"/>',
+};
+export function typeIcon(key: string, cls = 'ti'): string {
+  const p = F[key];
+  return p ? `<svg class="${cls}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${p}</svg>` : '';
+}

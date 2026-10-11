@@ -23,7 +23,7 @@ import { BattleView, fmt } from './ui/battleview';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
 import { hasPortrait, iconURL, standImg } from './ui/portraits';
-import { synIcon } from './ui/synicons';
+import { synIcon, typeIcon } from './ui/synicons';
 
 // 편의 설정 (이 브라우저에만 저장): 전투 속도, 진형 속도 등
 const PREF_KEY = 'errantes.prefs.v1';
@@ -220,12 +220,12 @@ function ownedChip(defId: string) {
     return n ? chip(id).replace('</span>', ` <b class="own" title="보유 중인 ${esc(SYN_BY_ID[id as keyof typeof SYN_BY_ID].name)} 기물 ${n}명">${n}→${after}</b></span>`) : chip(id);
   };
 }
-const CTYPE_ICON: Record<string, string> = { MARK: '⌖', VAN: '⚔', SPEC: '✦', CMD: '♜' };
-const TTYPE_ICON: Record<string, string> = { major: '◆', minor: '◇', special: '★', psionic: '◎', divine: '✟' };
+const CTYPE_ICON = (k: string) => typeIcon(k);
+const TTYPE_ICON = (k: string) => typeIcon(k);
 const WPOS = (r: number) => (r <= 1 ? '근거리' : r <= 3 ? '중거리' : '원거리');
 /** 이름 옆 유형 아이콘 (설명은 특성 아래) */
 function typeIcons(d: UnitDef) {
-  return `<span class="ticons"><i class="ct-${d.ctype}" title="전투 유형: ${CTYPE_NAME[d.ctype]}">${CTYPE_ICON[d.ctype]}</i><i class="tt-${d.ttype}" title="전술 유형: ${TTYPE_NAME[d.ttype]}">${TTYPE_ICON[d.ttype]}</i></span>`;
+  return `<span class="ticons"><i class="ct-${d.ctype}" title="전투 유형: ${CTYPE_NAME[d.ctype]}">${CTYPE_ICON(d.ctype)}</i><i class="tt-${d.ttype}" title="전술 유형: ${TTYPE_NAME[d.ttype]}">${TTYPE_ICON(d.ttype)}</i></span>`;
 }
 /** 이름 + 유형 아이콘, 그 아래 시너지 · 공명 등급 */
 function nameBlock(d: UnitDef, syns: string[], rank: number | undefined, chipFn: (id: string) => string = chip, extra = '') {
@@ -281,9 +281,9 @@ function traitGroup(d: UnitDef, u: UnitState | null, run: RunState | null) {
   const ct = CTYPE_DESC[d.ctype], tt = TTYPE_DESC[d.ttype];
   return `<div class="abil ab-trait"><div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div><p>${esc(traitText(d))}</p>
     <div class="subs">
-      ${sub(k('ct'), CTYPE_ICON[d.ctype], `ct-${d.ctype}`, CTYPE_NAME[d.ctype], '전투 유형', `<p>${esc(app.detail ? ct[1] : ct[0])}</p>`)}
-      ${sub(k('tt'), TTYPE_ICON[d.ttype], `tt-${d.ttype}`, TTYPE_NAME[d.ttype], '전술 유형', `<p>${esc(app.detail ? tt[1] : tt[0])}</p>${ttypeExtra(d, u, run)}`)}
-      ${sub(k('faith'), '☉', `faith-${d.ttype === 'divine' ? 'on' : 'off'}`, FAITH_NAME[f], '고유 신앙', faithBody(d, f, run))}
+      ${sub(k('ct'), CTYPE_ICON(d.ctype), `ct-${d.ctype}`, CTYPE_NAME[d.ctype], '전투 유형', `<p>${esc(app.detail ? ct[1] : ct[0])}</p>`)}
+      ${sub(k('tt'), TTYPE_ICON(d.ttype), `tt-${d.ttype}`, TTYPE_NAME[d.ttype], '전술 유형', `<p>${esc(app.detail ? tt[1] : tt[0])}</p>${ttypeExtra(d, u, run)}`)}
+      ${sub(k('faith'), typeIcon('faith'), `faith-${d.ttype === 'divine' ? 'on' : 'off'}`, FAITH_NAME[f], '고유 신앙', faithBody(d, f, run))}
     </div></div>`;
 }
 const AB_KIND = { weapon: '무기', trait: '특성', skill: '스킬', grow: '성장', psi: '이성', div: '신권' } as const;
@@ -324,7 +324,7 @@ function unitInfo(d: UnitDef) {
 }
 /** 역할: 전투 유형 · 전술 유형 (아이콘 + 이름) */
 function roleTag(d: UnitDef) {
-  return `<span class="pc-role"><span class="ct-${d.ctype}">${CTYPE_ICON[d.ctype]} ${CTYPE_NAME[d.ctype]}</span><span class="tt-${d.ttype}">${TTYPE_ICON[d.ttype]} ${TTYPE_NAME[d.ttype]}</span></span>`;
+  return `<span class="pc-role"><span class="ct-${d.ctype}">${CTYPE_ICON(d.ctype)} ${CTYPE_NAME[d.ctype]}</span><span class="tt-${d.ttype}">${TTYPE_ICON(d.ttype)} ${TTYPE_NAME[d.ttype]}</span></span>`;
 }
 /** 시작 기물 후보 카드: 스탠딩 + 이름 + 역할 + 시너지. 호버(터치는 탭)하면 카드 안에서 설명이 올라온다 */
 function pickCard(d: UnitDef, clone: boolean) {
