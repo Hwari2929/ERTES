@@ -43,8 +43,7 @@ const app = {
   starters: [] as string[],
   pool: [] as string[], // 시작 기물 후보 (무작위 8명)
   detail: !!loadPrefs().detail, // 상세 보기: 계수 · 메커니즘 표시
-  sheet: null as string | null, // 시작 기물 상세 시트 (기물 id)
-  sheetAnim: false,
+  cardOpen: null as string | null, // 터치 화면: 설명을 펼친 시작 기물 카드
   subOpen: new Set<string>(), // 특성 하위 항목(전투 · 전술 유형, 신앙) 펼침 상태
   menu: null as null | 'menu' | 'export' | 'import',
   view: null as BattleView | null,
@@ -326,46 +325,29 @@ function unitInfo(d: UnitDef) {
 function roleTag(d: UnitDef) {
   return `<span class="pc-role"><span class="ct-${d.ctype}">${CTYPE_ICON[d.ctype]} ${CTYPE_NAME[d.ctype]}</span><span class="tt-${d.ttype}">${TTYPE_ICON[d.ttype]} ${TTYPE_NAME[d.ttype]}</span></span>`;
 }
-/** 시작 기물 후보 카드: 스탠딩 + 이름 + 역할 + 시너지 */
+/** 시작 기물 후보 카드: 스탠딩 + 이름 + 역할 + 시너지. 호버(터치는 탭)하면 카드 안에서 설명이 올라온다 */
 function pickCard(d: UnitDef, clone: boolean) {
   const on = app.starters.includes(d.id);
-  return `<button class="pcard ${on ? 'sel' : ''}" data-a="open-sheet" data-v="${d.id}" ${clone ? 'aria-hidden="true" tabindex="-1"' : ''} aria-label="${esc(d.name)} 자세히 보기">
+  const full = !on && app.starters.length >= CFG.startUnits;
+  return `<div class="pcard ${on ? 'sel' : ''} ${app.cardOpen === d.id && !clone ? 'open' : ''}" data-a="card-tap" data-v="${d.id}" ${clone ? 'aria-hidden="true"' : 'tabindex="0" role="button"'} aria-label="${esc(d.name)}">
     <div class="pc-art">${standImg(d.id, 'stand') || sprite(d, 'spr big')}</div>
     ${on ? `<span class="pc-check">✓ ${app.starters.indexOf(d.id) + 1}</span>` : ''}
-    <div class="pc-info"><b class="pc-name">${esc(d.name)}</b>${roleTag(d)}
-      <div class="chips">${[...d.factions, ...d.traits].map(chip).join('')}</div></div>
-  </button>`;
-}
-/** 아래에서 올라오는 상세 시트 */
-function starterSheet(id: string) {
-  const d = UNIT_BY_ID[id];
-  const on = app.starters.includes(id);
-  const full = !on && app.starters.length >= CFG.startUnits;
-  const anim = app.sheetAnim ? 'anim' : '';
-  app.sheetAnim = false;
-  return `<div class="sheet-bg ${anim}" data-a="close-sheet"></div>
-  <section class="sheet ${anim}" role="dialog" aria-label="${esc(d.name)} 상세">
-    <button class="sheet-x" data-a="close-sheet" aria-label="닫기">✕</button>
-    <div class="sheet-body">
-      <div class="sheet-art" data-stand="${d.id}">${standImg(d.id, 'stand') || sprite(d, 'spr big')}</div>
-      <div class="sheet-info">
-        <div class="ucard-head">${sprite(d, 'spr big')}${nameBlock(d, [...d.factions, ...d.traits], undefined)}</div>
-        <div class="sheet-tools">${detailToggle()}<span class="muted small">← → 다른 후보 · Enter 선택</span></div>
-        ${unitInfo(d)}
-      </div>
+    <div class="pc-panel">
+      <div class="pc-top"><b class="pc-name">${esc(d.name)}</b>${roleTag(d)}
+        <div class="chips">${[...d.factions, ...d.traits].map(chip).join('')}</div></div>
+      <div class="pc-desc" data-a="noop">${unitInfo(d)}
+        <button class="btn ${on ? '' : 'primary'} pc-pick" data-a="pick-starter" data-v="${d.id}" ${full ? 'disabled' : ''} ${clone ? 'tabindex="-1"' : ''}>${on ? '선택 해제' : full ? `이미 ${CFG.startUnits}명 선택` : '선택'}</button></div>
     </div>
-    <div class="sheet-foot">
-      <button class="btn ghost" data-a="sheet-step" data-v="-1" aria-label="이전 후보">‹</button>
-      <button class="btn ghost" data-a="sheet-step" data-v="1" aria-label="다음 후보">›</button>
-      <button class="btn ${on ? '' : 'primary'} sheet-pick" data-a="sheet-pick" ${full ? 'disabled' : ''}>${on ? '선택 해제' : full ? `이미 ${CFG.startUnits}명 선택` : `선택 (${app.starters.length + 1}/${CFG.startUnits})`}</button>
-    </div>
-  </section>`;
+  </div>`;
 }
+const CAN_HOVER = typeof matchMedia !== 'undefined' && matchMedia('(hover: hover)').matches;
+
 function newRunScreen() {
   const n = app.starters.length;
   return `<main class="wrap nr">
     <div class="nr-head">
-      <div><h1>계약 기물 선택</h1><p class="muted small">이번 출격에 응한 ${app.pool.length}명 중 ${CFG.startUnits}명을 고르세요. 카드를 누르면 자세히 볼 수 있습니다.</p></div>
+      <div><h1>계약 기물 선택</h1><p class="muted small">이번 출격에 응한 ${app.pool.length}명 중 ${CFG.startUnits}명을 고르세요. ${CAN_HOVER ? '카드에 마우스를 올리면 설명이 나오고, 누르면 선택합니다.' : '카드를 누르면 설명이 나옵니다.'}</p></div>
+      ${detailToggle()}
       ${diffMini()}
     </div>
     <div class="carousel">
@@ -374,12 +356,12 @@ function newRunScreen() {
       <button class="car-btn next" data-a="car-next" aria-label="다음 기물">›</button>
     </div>
     <div class="nr-foot">
-      <div class="picked">${app.starters.map((id) => `<button class="picked-u" data-a="open-sheet" data-v="${id}" title="${esc(UNIT_BY_ID[id].name)}">${sprite(UNIT_BY_ID[id], 'spr')}</button>`).join('')}${'<span class="picked-u empty"></span>'.repeat(CFG.startUnits - n)}</div>
+      <div class="picked">${app.starters.map((id) => `<button class="picked-u" data-a="pick-starter" data-v="${id}" title="${esc(UNIT_BY_ID[id].name)} 빼기">${sprite(UNIT_BY_ID[id], 'spr')}</button>`).join('')}${'<span class="picked-u empty"></span>'.repeat(CFG.startUnits - n)}</div>
       <button class="btn ghost" data-a="to-title">뒤로</button>
       <button class="btn ghost" data-a="random-starters">무작위</button>
       <button class="btn primary" data-a="start-run" ${n === CFG.startUnits ? '' : 'disabled'}>출격 (${n}/${CFG.startUnits})</button>
     </div>
-  </main>${app.sheet ? starterSheet(app.sheet) : ''}`;
+  </main>`;
 }
 
 // ───────────────────────── 화면: 맵
@@ -884,7 +866,7 @@ function render() {
   // 다시 그려도 같은 화면 · 같은 창이면 스크롤 위치를 유지한다
   const modalKey = run?.pending[0] ? JSON.stringify([run.pending[0].t, (run.pending[0] as { uid?: string }).uid, (run.pending[0] as { allocDone?: boolean }).allocDone]) : app.menu || '';
   const sameView = lastView.screen === app.screen;
-  const keep = ['.side.left', '.side.right', 'aside.side', '.codex-grid', '.sheet-body', '.sheet-info'].map((sel) => [sel, root.querySelector(sel)?.scrollTop || 0] as const);
+  const keep = ['.side.left', '.side.right', 'aside.side', '.codex-grid'].map((sel) => [sel, root.querySelector(sel)?.scrollTop || 0] as const);
   const modalTop = lastView.modal === modalKey ? root.querySelector('.modal')?.scrollTop || 0 : 0;
   const winY = window.scrollY;
   lastView.screen = app.screen; lastView.modal = modalKey;
@@ -934,18 +916,14 @@ function setupCarousel() {
   let lock = 0;
   track.addEventListener('wheel', (e) => {
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // 가로 스크롤은 그대로
+    const desc = (e.target as HTMLElement).closest('.pc-desc') as HTMLElement | null;
+    if (desc && desc.scrollHeight > desc.clientHeight + 2) return; // 설명 스크롤 우선
     e.preventDefault();
     const now = Date.now();
     if (now - lock < 250) return;
     lock = now;
     carStep(e.deltaY > 0 ? 1 : -1);
   }, { passive: false });
-}
-/** 시트에서 이전 · 다음 후보로 */
-function sheetStep(dir: number) {
-  if (!app.sheet) return;
-  const i = app.pool.indexOf(app.sheet);
-  app.sheet = app.pool[(i + dir + app.pool.length) % app.pool.length];
 }
 function carStep(dir: number) {
   const track = root.querySelector<HTMLElement>('.car-track');
@@ -1104,20 +1082,15 @@ function act(a: string, v: string) {
   if (app.screen === 'battle' && !['speed', 'skip', 'after-battle', 'meter-tab', 'bsel'].includes(a)) return;
   switch (a) {
     case 'newrun':
-      app.starters = []; app.screen = 'newrun'; app.menu = null; carX = null; app.sheet = null;
+      app.starters = []; app.screen = 'newrun'; app.menu = null; carX = null; app.cardOpen = null;
       app.pool = new Rng((Date.now() ^ (Math.random() * 1e9)) | 0).sample(UNITS.filter((u) => !u.noStarter).map((u) => u.id), 8);
       break;
     case 'car-prev': case 'car-next': carStep(a === 'car-next' ? 1 : -1); return;
-    case 'open-sheet': app.sheet = v; app.sheetAnim = true; break;
-    case 'close-sheet': app.sheet = null; break;
-    case 'sheet-step': sheetStep(+v); break;
-    case 'sheet-pick': {
-      if (!app.sheet) return;
-      const i = app.starters.indexOf(app.sheet);
-      if (i >= 0) app.starters.splice(i, 1);
-      else if (app.starters.length < CFG.startUnits) { app.starters.push(app.sheet); app.sheet = null; }
+    case 'card-tap':
+      // 마우스: 카드 클릭 = 선택 / 터치: 탭하면 설명 열기 · 닫기 (선택은 설명 안의 버튼)
+      if (CAN_HOVER) return act('pick-starter', v);
+      app.cardOpen = app.cardOpen === v ? null : v;
       break;
-    }
     case 'toggle-detail': app.detail = !app.detail; savePref('detail', app.detail); break;
     case 'toggle-sub': if (app.subOpen.has(v)) app.subOpen.delete(v); else app.subOpen.add(v); break;
     case 'to-title': if (app.view) { app.view.destroy(); app.view = null; } app.screen = 'title'; app.menu = null; app.run = null; break;
@@ -1397,7 +1370,7 @@ document.addEventListener('keydown', (e) => {
   const sv = document.querySelector('.stand-view');
   if (k === 'Escape') {
     if (sv) sv.remove();
-    else if (app.sheet) act('close-sheet', '');
+    else if (app.cardOpen) { app.cardOpen = null; render(); }
     else if (app.menu) act('menu-close', '');
     else if (app.releaseConfirm) act('release-cancel', '');
     else if (app.sel && app.screen !== 'battle') { app.sel = null; render(); }
@@ -1405,11 +1378,6 @@ document.addEventListener('keydown', (e) => {
   }
   if (sv) return;
   if (k === 'd') { act('toggle-detail', ''); return; }
-  if (app.screen === 'newrun' && app.sheet) {
-    if (k === 'ArrowLeft' || k === 'ArrowRight') { act('sheet-step', k === 'ArrowRight' ? '1' : '-1'); e.preventDefault(); }
-    else if (k === 'Enter') { clickFirst('[data-a="sheet-pick"]'); e.preventDefault(); }
-    return;
-  }
   if (app.screen === 'newrun' && (k === 'ArrowLeft' || k === 'ArrowRight')) { carStep(k === 'ArrowRight' ? 1 : -1); e.preventDefault(); return; }
   const modal = document.querySelector('.modal-bg .modal');
   const digit = /^[1-9]$/.test(k) ? +k : 0;
