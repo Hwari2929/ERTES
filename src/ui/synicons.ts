@@ -46,3 +46,74 @@ export function typeIcon(key: string, cls = 'ti'): string {
   const p = F[key];
   return p ? `<svg class="${cls}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${p}</svg>` : '';
 }
+
+// 선 아이콘 공용 (노드 · 장비 · 증강)
+const L: Record<string, string> = {
+  // 노드
+  'n.battle': '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4M19 21l2-2"/><path d="M9.5 6.5 13 3h3v3l-3.5 3.5"/><path d="M5 14l4 4M7 17l-3 3M3 19l2 2"/>',
+  'n.adversity': '<path d="M12 3a8 8 0 0 0-5 14.2V20a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-2.8A8 8 0 0 0 12 3z"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><path d="M10 21v-2M14 21v-2"/>',
+  'n.shop': '<path d="M5 8h14l-1 13H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
+  'n.supply': '<path d="M12 2.5 21 7v10l-9 4.5L3 17V7z"/><path d="M3 7l9 4.5L21 7M12 11.5v10"/><path d="M7.5 4.8l9 4.5"/>',
+  'n.recruit': '<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M19 8v6M16 11h6"/>',
+  'n.boss': '<path d="M5 3l2 5 5-3 5 3 2-5"/><path d="M5 8a7 7 0 0 0 14 0"/><path d="M6 13c0 4 2.5 8 6 8s6-4 6-8"/><path d="M9.5 14.5h.01M14.5 14.5h.01"/><path d="M10 18h4"/>',
+  'n.pilgrim': '<path d="M12 2v6M9 4.5h6"/><path d="M5 21V12l7-4 7 4v9z"/><path d="M10 21v-4a2 2 0 0 1 4 0v4"/>',
+  'n.news': '<path d="M4 4h13v15a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v10a2 2 0 0 1-4 0"/><path d="M7.5 8h6M7.5 12h6M7.5 16h4"/>',
+  'n.event': '<path d="M8 3h10a2 2 0 0 1 2 2v12H8z"/><path d="M8 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12v-4"/><path d="M12 8l1 2 2 .3-1.5 1.4.4 2.1L12 12.8l-1.9 1 .4-2.1L9 10.3l2-.3z"/>',
+  // 장비 (고급 · 전설)
+  'i.vit_vit': '<path d="M12 20s-7.5-4.6-9.3-9A5 5 0 0 1 12 6.4 5 5 0 0 1 21.3 11c-1.8 4.4-9.3 9-9.3 9z"/><path d="M4 12h4l1.5-3 3 6 1.5-3h6"/>',
+  'i.vit_pow': '<path d="M12 22c4 0 7-2.8 7-7 0-4.5-4-6.5-4-11-3 2-4 4.5-4 7-1.2-1-2-2.5-2-4-2.5 2-4 5-4 8 0 4.2 3 7 7 7z"/>',
+  'i.vit_mnd': '<path d="M7 3c0 6 10 6 10 12s-10 3-10 6M17 3c0 6-10 6-10 12s10 3 10 6"/><path d="M8.5 7h7M8.5 17h7"/>',
+  'i.vit_def': '<path d="M12 3l8 3v6c0 4.6-3.3 7.8-8 9-4.7-1.2-8-4.4-8-9V6z"/><path d="M12 8.5v7M8.5 12h7"/>',
+  'i.vit_agi': '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M12 10.5v6M9 13.5h6"/>',
+  'i.pow_pow': '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4M19 21l2-2"/>',
+  'i.pow_mnd': '<circle cx="12" cy="12" r="8"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="1.5"/>',
+  'i.pow_def': '<path d="M14 4l6 6-3 3-6-6z"/><path d="M11.5 10.5 3 19l2 2 8.5-8.5"/>',
+  'i.pow_agi': '<path d="M4 5l7 7-7 7M12 5l7 7-7 7"/>',
+  'i.mnd_mnd': '<path d="M12 12h.01"/><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7"/><path d="M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/>',
+  'i.mnd_def': '<path d="M13 2.5 4.5 13.5H11L10 21.5l8.5-11H12z"/>',
+  'i.mnd_agi': '<rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
+  'i.def_def': '<path d="M12 3l8 3v6c0 4.6-3.3 7.8-8 9-4.7-1.2-8-4.4-8-9V6z"/><path d="M12 7v11"/>',
+  'i.def_agi': '<path d="M12 3l8 3v6c0 4.6-3.3 7.8-8 9-4.7-1.2-8-4.4-8-9V6z"/><path d="M15 9.5 10 9.5a2 2 0 0 0 0 4h4M12.5 7.5 15 9.5 12.5 11.5"/>',
+  'i.agi_agi': '<path d="M3 8h10a3 3 0 1 0-3-3"/><path d="M3 12h15a3 3 0 1 1-3 3"/><path d="M3 16h7"/>',
+  'i.U_shade': '<path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v7a2 2 0 0 1-4 0"/><path d="M12 3v.5"/>',
+  // 증강 상징
+  'a.shield': '<path d="M12 3l8 3v6c0 4.6-3.3 7.8-8 9-4.7-1.2-8-4.4-8-9V6z"/>',
+  'a.heal': '<path d="M12 20s-7.5-4.6-9.3-9A5 5 0 0 1 12 6.4 5 5 0 0 1 21.3 11c-1.8 4.4-9.3 9-9.3 9z"/><path d="M12 10v5M9.5 12.5h5"/>',
+  'a.crit': '<circle cx="12" cy="12" r="8"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="1.5"/>',
+  'a.speed': '<path d="M4 5l7 7-7 7M12 5l7 7-7 7"/>',
+  'a.cd': '<path d="M6 3h12M6 21h12"/><path d="M7.5 3v2.5a4.5 4.5 0 0 0 2 3.7L12 11l-2.5 1.8a4.5 4.5 0 0 0-2 3.7V21M16.5 3v2.5a4.5 4.5 0 0 1-2 3.7L12 11l2.5 1.8a4.5 4.5 0 0 1 2 3.7V21"/>',
+  'a.stun': '<path d="M12 2v5M12 17v5M4.9 4.9l3.5 3.5M15.6 15.6l3.5 3.5M2 12h5M17 12h5M4.9 19.1l3.5-3.5M15.6 8.4l3.5-3.5"/>',
+  'a.fear': '<path d="M6 21V11a6 6 0 0 1 12 0v10l-2-2-2 2-2-2-2 2-2-2z"/><path d="M10 11h.01M14 11h.01"/>',
+  'a.shock': '<path d="M13 2.5 4.5 13.5H11L10 21.5l8.5-11H12z"/>',
+  'a.bleed': '<path d="M12 2.5S5.5 10 5.5 14.5a6.5 6.5 0 0 0 13 0C18.5 10 12 2.5 12 2.5z"/>',
+  'a.summon': '<circle cx="5.5" cy="10" r="2"/><circle cx="9.5" cy="5.5" r="2"/><circle cx="14.5" cy="5.5" r="2"/><circle cx="18.5" cy="10" r="2"/><path d="M8 17.5c0-2.5 1.8-5 4-5s4 2.5 4 5a2.5 2.5 0 0 1-2.5 2.5h-3A2.5 2.5 0 0 1 8 17.5z"/>',
+  'a.credit': '<circle cx="12" cy="12" r="9"/><path d="M14.8 9.2A3 3 0 0 0 12 8c-1.7 0-3 .9-3 2s1.3 1.7 3 2 3 .9 3 2-1.3 2-3 2a3 3 0 0 1-2.8-1.2"/><path d="M12 6v2M12 16v2"/>',
+  'a.fame': '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21M8.5 21h7"/>',
+  'a.power': '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>',
+  'a.range': '<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>',
+  'a.reason': '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  'a.evade': '<path d="M3 8h10a3 3 0 1 0-3-3"/><path d="M3 12h15a3 3 0 1 1-3 3"/><path d="M3 16h7"/>',
+  'a.cook': '<path d="M6.5 14.5a4 4 0 0 1 .3-8A5.5 5.5 0 0 1 17.2 6.5a4 4 0 0 1 .3 8"/><path d="M6.5 14.5h11V20h-11z"/>',
+  'a.snipe': '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
+  'a.hp': '<path d="M12 20s-7.5-4.6-9.3-9A5 5 0 0 1 12 6.4 5 5 0 0 1 21.3 11c-1.8 4.4-9.3 9-9.3 9z"/>',
+  'a.reload': '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  'a.dmg': '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4M19 21l2-2"/>',
+};
+export function lineIcon(key: string, cls = 'li'): string {
+  const p = L[key];
+  return p ? `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>` : '';
+}
+/** 증강 상징: 이름 · 설명의 핵심어로 고른다 */
+const AUG_KEYS: [RegExp, string][] = [
+  [/보호막/, 'a.shield'], [/회복|재생|치유|치료/, 'a.heal'], [/저격/, 'a.snipe'], [/치명/, 'a.crit'],
+  [/공격 속도|연사|이동 속도/, 'a.speed'], [/쿨다운/, 'a.cd'], [/기절/, 'a.stun'], [/공포/, 'a.fear'],
+  [/감전|전기/, 'a.shock'], [/출혈|중독|지속 피해/, 'a.bleed'],
+  [/경호원|베헤모스|리키|까악이|맥스|소환|포탑|상속률/, 'a.summon'], [/크레딧/, 'a.credit'], [/명성/, 'a.fame'],
+  [/권능|신성/, 'a.power'], [/사거리|범위/, 'a.range'], [/이성|광폭|정신/, 'a.reason'], [/회피/, 'a.evade'],
+  [/요리|칵테일|스튜/, 'a.cook'], [/재장전|탄창/, 'a.reload'], [/최대 체력|생명력/, 'a.hp'],
+  [/방어|받는 피해|저항/, 'a.shield'],
+];
+export function augKey(text: string): string {
+  for (const [re, k] of AUG_KEYS) if (re.test(text)) return k;
+  return 'a.dmg';
+}

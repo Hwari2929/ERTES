@@ -443,10 +443,8 @@ kbd { font-family: var(--f-mono); font-size: .75em; border: 1px solid var(--line
 .aug-opt .ao-txt b { font-size: 1rem; }
 .aug-opt .ao-txt span { font-size: .85rem; color: var(--dim); line-height: 1.45; }
 .aug-opt kbd { align-self: start; color: var(--dim); }
-.aug-ic { width: 48px; height: 48px; flex: none; }
-.aug-ic .ai-bg { fill: hsl(var(--h) 38% 22%); stroke: hsl(var(--h) 55% 48%); stroke-width: 1.5; }
-.aug-ic .ai-glyph { fill: hsl(var(--h) 45% 32%); stroke: none; }
-.aug-ic .ai-tx { fill: hsl(var(--h) 80% 86%); font: 700 15px var(--f-body, sans-serif); }
+.aug-ic { width: 48px; height: 48px; flex: none; display: inline-grid; place-items: center; border-radius: 10px; background: hsl(var(--h) 38% 20%); border: 1.5px solid hsl(var(--h) 55% 48%); color: hsl(var(--h) 80% 82%); }
+.aug-ic .li { width: 58%; height: 58%; }
 .augs .aug-li { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 8px; align-items: start; }
 .augs .aug-li .aug-ic { width: 32px; height: 32px; }
 .stat-pick.rec { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
@@ -610,3 +608,18 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .ticons i .ti { width: 12px; height: 12px; }
 .sub-h i .ti { width: 13px; height: 13px; vertical-align: -2px; }
 .pc-role .ti { margin-right: 3px; }
+.li, .ii { width: 1em; height: 1em; flex: none; }
+.item .ii { width: 18px; height: 18px; }
+.rr-items .item .ii { width: 12px; height: 12px; }
+.node-ic .li { width: 1.15em; height: 1.15em; vertical-align: -.2em; }
+.track .li { width: 1em; height: 1em; vertical-align: -.15em; }
+/* 영입 창: 시작 기물과 같은 카드, 한 줄 */
+.modal.recruit { width: min(1280px, 100%); height: min(90dvh, 900px); max-height: none; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
+.rc-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+.rc-head p { margin: 2px 0 0; }
+.rc-track { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-template-rows: minmax(0, 1fr); grid-auto-columns: clamp(250px, 22vw, 300px); gap: 12px; overflow-x: auto; justify-content: safe center; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.rc-track > .pcard { scroll-snap-align: start; }
+.rc-foot { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+.rc-foot .btn { min-width: 120px; }
+.rc-rank { justify-self: start; }
+@media (max-width: 640px) { .modal.recruit { height: 94dvh; padding: 14px; } .rc-track { grid-auto-columns: min(280px, 78vw); justify-content: start; } }

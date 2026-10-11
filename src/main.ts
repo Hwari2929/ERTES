@@ -7,7 +7,7 @@ import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
 import { STORIES } from './data/stories';
 import { FIELDS, fieldOf } from './data/battlefields';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
-import { combine, isLocked, isMod, itemInfo } from './data/items';
+import { combine, emblemOf, isLocked, isMod, itemInfo } from './data/items';
 import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf } from './data/synergies';
 import { UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { DIVINE_ACT, FAITH_DEF, recMajors } from './data/rework';
@@ -23,7 +23,7 @@ import { BattleView, fmt } from './ui/battleview';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
 import { hasPortrait, iconURL, standImg } from './ui/portraits';
-import { synIcon, typeIcon } from './ui/synicons';
+import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 
 // 편의 설정 (이 브라우저에만 저장): 전투 속도, 진형 속도 등
 const PREF_KEY = 'errantes.prefs.v1';
@@ -44,6 +44,7 @@ const app = {
   starters: [] as string[],
   pool: [] as string[], // 시작 기물 후보 (무작위 8명)
   detail: !!loadPrefs().detail, // 상세 보기: 계수 · 메커니즘 표시
+  recruitPick: null as string | null, // 영입 창에서 고른 기물 (확정 전)
   cardOpen: null as string | null, // 터치 화면: 설명을 펼친 시작 기물 카드
   subOpen: new Set<string>(), // 특성 하위 항목(전투 · 전술 유형, 신앙) 펼침 상태
   menu: null as null | 'menu' | 'export' | 'import',
@@ -78,7 +79,7 @@ function toast(msg: string) {
 function persist() { if (app.run && !app.run.over) saveRun(app.run, 'auto'); }
 
 // ───────────────────────── 공용 조각
-const NODE_ICON: Record<NodeType, string> = { battle: '⚔', adversity: '☠', shop: '¤', supply: '▣', recruit: '✚', boss: '♜', pilgrim: '✟', news: '✪', event: '❖' };
+const NODE_ICON = new Proxy({} as Record<NodeType, string>, { get: (_t, k: string) => lineIcon(`n.${k}`) });
 
 function chip(id: string) {
   const s = SYN_BY_ID[id as keyof typeof SYN_BY_ID];
@@ -105,19 +106,12 @@ function majorIcon(m: Major, cls = 'mi') {
 }
 /** 증강 임시 아이콘: id 로 정해지는 색 · 무늬 + 이름 첫 글자 (정식 아이콘이 생기면 교체) */
 function augIcon(id: string, cls = 'aug-ic') {
+  const a = AUG_BY_ID[id];
   let h = 2166136261;
   for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619) >>> 0;
-  const hue = h % 360, shape = (h >>> 9) % 4;
-  const name = AUG_BY_ID[id]?.name || '?';
-  const glyph = [
-    '<circle cx="20" cy="20" r="11" />',
-    '<path d="M20 7l13 13-13 13L7 20z" />',
-    '<path d="M20 6l12 7v14l-12 7-12-7V13z" />',
-    '<path d="M20 7l3.6 8.4 9.1.8-6.9 6 2.1 8.9L20 26.4l-7.9 4.7 2.1-8.9-6.9-6 9.1-.8z" />',
-  ][shape];
-  return `<svg class="${cls}" viewBox="0 0 40 40" aria-hidden="true" style="--h:${hue}">
-    <rect x="1" y="1" width="38" height="38" rx="9" class="ai-bg"/><g class="ai-glyph">${glyph}</g>
-    <text x="20" y="25.5" text-anchor="middle" class="ai-tx">${esc(name.slice(0, 1))}</text></svg>`;
+  // 풀별 색: 스페셜 금 · 사이오닉 보라 · 메이저 회청 · 전용은 기물별
+  const hue = a?.pool === 'special' ? 42 : a?.pool === 'psionic' ? 275 : a?.pool === 'major' ? 210 : h % 360;
+  return `<span class="${cls}" style="--h:${hue}" aria-hidden="true">${lineIcon(augKey(`${a?.name || ''} ${a?.desc || ''}`))}</span>`;
 }
 
 /** 능력치 추천: 기본 스탯 성향 + 스킬이 쓰는 위력 + 사거리로 2개 */
@@ -134,7 +128,14 @@ function xpBar(u: UnitState) {
 function itemIcon(id: string | null, attrs = '') {
   if (!id) return `<span class="item empty" ${attrs}></span>`;
   const it = itemInfo(id);
-  return `<span class="item t${it.tier}" title="${esc(it.name + ' — ' + it.desc)}" ${attrs}>${it.icon}</span>`;
+  return `<span class="item t${it.tier}" title="${esc(it.name + ' — ' + it.desc)}" ${attrs}>${itemGlyph(id) || it.icon}</span>`;
+}
+/** 장비 아이콘: 재료 = 메이저 아이콘, 고급 · 전설 = 고유 아이콘, 문장 = 시너지 아이콘 */
+function itemGlyph(id: string) {
+  if (isMod(id)) return synIcon(emblemOf(id), 'ii');
+  if (id.startsWith('U_')) return lineIcon(`i.${id}`, 'ii');
+  if (id.startsWith('C_')) return majorIcon(id.slice(2) as Major, 'ii mi');
+  return lineIcon(`i.${id.slice(2)}`, 'ii');
 }
 
 function topbar() {
@@ -327,19 +328,19 @@ function roleTag(d: UnitDef) {
   return `<span class="pc-role"><span class="ct-${d.ctype}">${CTYPE_ICON(d.ctype)} ${CTYPE_NAME[d.ctype]}</span><span class="tt-${d.ttype}">${TTYPE_ICON(d.ttype)} ${TTYPE_NAME[d.ttype]}</span></span>`;
 }
 /** 시작 기물 후보 카드: 스탠딩 + 이름 + 역할 + 시너지. 호버(터치는 탭)하면 카드 안에서 설명이 올라온다 */
-function pickCard(d: UnitDef, clone: boolean) {
-  const on = app.starters.includes(d.id);
-  const full = !on && app.starters.length >= CFG.startUnits;
-  return `<div class="pcard ${on ? 'sel' : ''} ${app.cardOpen === d.id && !clone ? 'open' : ''}" data-a="card-tap" data-v="${d.id}" ${clone ? 'aria-hidden="true"' : 'tabindex="0" role="button"'} aria-label="${esc(d.name)}">
+interface PickOpts { clone?: boolean; on: boolean; badge?: string; tapAct: string; full?: boolean; fullLabel?: string; chipFn?: (id: string) => string; extra?: string }
+function pickCard(d: UnitDef, o: PickOpts) {
+  const { clone, on, full } = o;
+  return `<div class="pcard ${on ? 'sel' : ''} ${app.cardOpen === d.id && !clone ? 'open' : ''}" data-a="${o.tapAct}" data-v="${d.id}" ${clone ? 'aria-hidden="true"' : 'tabindex="0" role="button"'} aria-label="${esc(d.name)}">
     <div class="pc-art">${standImg(d.id, 'stand') || sprite(d, 'spr big')}</div>
-    ${on ? `<span class="pc-check">✓ ${app.starters.indexOf(d.id) + 1}</span>` : ''}
+    ${on ? `<span class="pc-check">✓${o.badge ? ` ${o.badge}` : ''}</span>` : ''}
     <div class="pc-syn">${[...d.factions, ...d.traits].map((id) => { const sd = SYN_BY_ID[id as SynergyId]; return `<span class="syn-b" style="--c:${sd.color}" data-a="syn-peek" aria-label="${esc(sd.name)}"><span class="syn-dia">${synIcon(id)}</span><span class="syn-label">${esc(sd.name)}</span></span>`; }).join('')}</div>
     <div class="pc-panel">
-      <div class="pc-top"><b class="pc-name">${esc(d.name)}</b>${roleTag(d)}
-        <div class="chips">${[...d.factions, ...d.traits].map(chip).join('')}</div>
+      <div class="pc-top"><b class="pc-name">${esc(d.name)}</b>${roleTag(d)}${o.extra || ''}
+        <div class="chips">${[...d.factions, ...d.traits].map(o.chipFn || chip).join('')}</div>
         <button class="pc-more" data-a="card-open" data-v="${d.id}" ${clone ? 'tabindex="-1"' : ''}>${app.cardOpen === d.id && !clone ? '접기 ▼' : '상세 보기 ▲'}</button></div>
       <div class="pc-desc" data-a="noop">${unitInfo(d)}
-        <button class="btn ${on ? '' : 'primary'} pc-pick" data-a="pick-starter" data-v="${d.id}" ${full ? 'disabled' : ''} ${clone ? 'tabindex="-1"' : ''}>${on ? '선택 해제' : full ? `이미 ${CFG.startUnits}명 선택` : '선택'}</button></div>
+        <button class="btn ${on ? '' : 'primary'} pc-pick" data-a="${o.tapAct}" data-v="${d.id}" ${full ? 'disabled' : ''} ${clone ? 'tabindex="-1"' : ''}>${on ? '선택 해제' : full ? o.fullLabel || '선택 불가' : '선택'}</button></div>
     </div>
   </div>`;
 }
@@ -355,7 +356,10 @@ function newRunScreen() {
     </div>
     <div class="carousel">
       <button class="car-btn prev" data-a="car-prev" aria-label="이전 기물">‹</button>
-      <div class="car-track" aria-label="후보 기물 (좌우로 넘겨 보기)">${[0, 1, 2].map((k) => app.pool.map((id) => pickCard(UNIT_BY_ID[id], k !== 1)).join('')).join('')}</div>
+      <div class="car-track" aria-label="후보 기물 (좌우로 넘겨 보기)">${[0, 1, 2].map((k) => app.pool.map((id) => {
+        const on = app.starters.includes(id);
+        return pickCard(UNIT_BY_ID[id], { clone: k !== 1, on, badge: on ? String(app.starters.indexOf(id) + 1) : '', tapAct: 'card-tap', full: !on && app.starters.length >= CFG.startUnits, fullLabel: `이미 ${CFG.startUnits}명 선택` });
+      }).join('')).join('')}</div>
       <button class="car-btn next" data-a="car-next" aria-label="다음 기물">›</button>
     </div>
     <div class="nr-foot">
@@ -775,8 +779,12 @@ function pendingModal(run: RunState): string {
     body = `<h1>${esc(p.title)}</h1><div class="cards">${p.options.map((id, i) => { const it = itemInfo(id); return `<button class="card" data-a="pick-item" data-v="${i}">${itemIcon(id)}<b>${esc(it.name)}</b><span>${esc(it.desc)}</span></button>`; }).join('')}</div>`;
   } else if (p.t === 'recruit') {
     const rank = Math.min(CFG.maxRank, Math.max(1, run.phase - 1) + (R.hasGlobal(run, 'G.scout') ? 1 : 0));
-    body = `<h1>기물 영입 ${detailToggle()}</h1><p class="muted">새 동료 한 명을 고르세요. 보유 ${run.units.length}/${CFG.maxParty} (출전은 최대 ${R.deployCap(run)}명, 나머지는 대기)</p>
-      <div class="ucard-grid">${p.options.map((id) => unitCard(UNIT_BY_ID[id], { action: 'pick-recruit', rank })).join('')}</div>`;
+    mcls = 'recruit';
+    const pick = app.recruitPick && p.options.includes(app.recruitPick) ? app.recruitPick : null;
+    body = `<div class="rc-head"><div><h1>기물 영입</h1><p class="muted small">새 동료 한 명을 고르세요. 공명 등급 ${rank}로 합류합니다. 보유 ${run.units.length}/${CFG.maxParty} (출전 최대 ${R.deployCap(run)}명)</p></div>${detailToggle()}</div>
+      <div class="rc-track">${p.options.map((id) => pickCard(UNIT_BY_ID[id], { on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), extra: `<span class="rank rc-rank">R${rank}</span>` })).join('')}</div>
+      <div class="rc-foot"><span class="muted small">${pick ? `${esc(UNIT_BY_ID[pick].name)} 선택됨` : CAN_HOVER ? '카드에 마우스를 올리면 설명, 누르면 선택' : '탭하면 선택 · 하단을 끌어올리면 설명'}</span>
+        <button class="btn primary" data-a="pick-recruit" data-v="${pick || ''}" ${pick ? '' : 'disabled'}>영입</button></div>`;
   } else if (p.t === 'supply') {
     body = `<h1>보급</h1><div class="cards">${p.options.map((o) => `<button class="card" data-a="pick-supply" data-v="${o}"><b>${esc(R.SUPPLY_TEXT[o])}</b></button>`).join('')}</div>`;
   } else if (p.t === 'pilgrim') {
@@ -881,6 +889,8 @@ function render() {
   const md = root.querySelector('.modal');
   if (md && modalTop) md.scrollTop = modalTop;
   if (app.screen === 'newrun') setupCarousel();
+  const rc = root.querySelector<HTMLElement>('.rc-track');
+  if (rc) bindCardDrag(rc);
   if (app.screen === 'battle' && app.needMount) {
     app.needMount = false;
     mountBattleView(document.getElementById('bboard')!);
@@ -910,7 +920,7 @@ function carWrap(track: HTMLElement) {
 }
 /** 다시 그리지 않고 펼침 상태만 바꾼다 (트랜지션 유지) */
 function syncCardOpen() {
-  root.querySelectorAll<HTMLElement>('.car-track > .pcard').forEach((c) => {
+  root.querySelectorAll<HTMLElement>('.pcard').forEach((c) => {
     const on = !c.hasAttribute('aria-hidden') && c.dataset.v === app.cardOpen;
     c.classList.toggle('open', on);
     const b = c.querySelector('.pc-more');
@@ -925,7 +935,21 @@ function setupCarousel() {
   track.style.scrollSnapType = '';
   let t: ReturnType<typeof setTimeout> | 0 = 0;
   track.addEventListener('scroll', () => { carX = track.scrollLeft; if (t) clearTimeout(t); t = setTimeout(() => carWrap(track), 120); }, { passive: true });
-  // 터치: 카드 하단(이름 · 시너지)을 위로 끌어올리면 설명 펼치기, 아래로 내리면 접기
+  bindCardDrag(track);
+  let lock = 0;
+  track.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // 가로 스크롤은 그대로
+    const desc = (e.target as HTMLElement).closest('.pc-desc') as HTMLElement | null;
+    if (desc && desc.scrollHeight > desc.clientHeight + 2) return; // 설명 스크롤 우선
+    e.preventDefault();
+    const now = Date.now();
+    if (now - lock < 250) return;
+    lock = now;
+    carStep(e.deltaY > 0 ? 1 : -1);
+  }, { passive: false });
+}
+/** 터치: 카드 하단(이름 · 시너지)을 위로 끌어올리면 설명 펼치기, 아래로 내리면 접기 */
+function bindCardDrag(track: HTMLElement) {
   let drag: { id: string; y: number; x: number } | null = null;
   track.addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'mouse') return;
@@ -945,17 +969,6 @@ function setupCarousel() {
   const end = () => { drag = null; };
   track.addEventListener('pointerup', end);
   track.addEventListener('pointercancel', end);
-  let lock = 0;
-  track.addEventListener('wheel', (e) => {
-    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // 가로 스크롤은 그대로
-    const desc = (e.target as HTMLElement).closest('.pc-desc') as HTMLElement | null;
-    if (desc && desc.scrollHeight > desc.clientHeight + 2) return; // 설명 스크롤 우선
-    e.preventDefault();
-    const now = Date.now();
-    if (now - lock < 250) return;
-    lock = now;
-    carStep(e.deltaY > 0 ? 1 : -1);
-  }, { passive: false });
 }
 function carStep(dir: number) {
   const track = root.querySelector<HTMLElement>('.car-track');
@@ -1277,7 +1290,8 @@ function act(a: string, v: string) {
     }
     case 'skip-aug': app.augPick = null; run?.pending.shift(); persist(); break;
     case 'pick-item': { const p = run?.pending[0]; if (run && p?.t === 'itemPick') { R.gainItem(run, p.options[+v]); run.pending.shift(); persist(); } break; }
-    case 'pick-recruit': if (run && run.pending[0]?.t === 'recruit') { R.recruit(run, v); run.pending.shift(); persist(); } break;
+    case 'rc-tap': app.recruitPick = app.recruitPick === v ? null : v; break;
+    case 'pick-recruit': if (run && v && run.pending[0]?.t === 'recruit') { R.recruit(run, v); run.pending.shift(); app.recruitPick = null; app.cardOpen = null; persist(); } break;
     case 'pick-supply': if (run && run.pending[0]?.t === 'supply') { run.pending.shift(); R.takeSupply(run, v); persist(); } break;
     case 'notice-ok': run?.pending.shift(); persist(); break;
     default: return;
@@ -1386,7 +1400,7 @@ function onDrop(src: string, dst: string) {
 }
 
 // ───────────────────────── 단축키
-const CONFIRM_ACTS = ['alloc-ok', 'pick-aug', 'after-battle', 'field-ok', 'notice-ok', 'skip-aug', 'menu-close'];
+const CONFIRM_ACTS = ['alloc-ok', 'pick-aug', 'after-battle', 'field-ok', 'notice-ok', 'skip-aug', 'menu-close', 'pick-recruit'];
 function clickFirst(sel: string) {
   const el = Array.from(document.querySelectorAll<HTMLButtonElement>(sel)).find((b) => !b.disabled);
   if (!el) return false;
