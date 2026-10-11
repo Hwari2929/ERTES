@@ -86,10 +86,10 @@ export interface UnitState {
   pos: { c: number; r: number } | null; // r=0 이 아군 진영 가장 뒷줄
 }
 
-export type NodeType = 'battle' | 'adversity' | 'shop' | 'supply' | 'recruit' | 'boss' | 'pilgrim' | 'news' | 'event';
+export type NodeType = 'battle' | 'adversity' | 'shop' | 'supply' | 'recruit' | 'boss' | 'pilgrim' | 'news' | 'event' | 'invest';
 export const NODE_NAME: Record<NodeType, string> = {
   battle: '일반 전투', adversity: '역경', shop: '상점', supply: '보급', recruit: '기물 영입', boss: '보스',
-  pilgrim: '순례', news: '속보', event: '사건',
+  pilgrim: '순례', news: '속보', event: '사건', invest: '투자',
 };
 
 export interface EnemySpawn { defId: string; c: number; row: number; elite?: boolean }
@@ -97,6 +97,8 @@ export interface Encounter { n: number; env: string; enemies: EnemySpawn[]; mult
 
 export interface ShopSlot { item: string; price: number; sold: boolean }
 export interface NewsOffer { id: string; cost: number; sold: boolean }
+/** 호이슌 [투자] 상품 (uid · aug = 고유 증강 구매 대상) */
+export interface InvestOffer { id: string; cost: number; sold: boolean; uid?: string; aug?: string }
 
 export interface Quest { id: string; target: number; progress: number; done: boolean; reward: string }
 
@@ -122,7 +124,7 @@ export interface RunState {
   step: number;
   map: NodeType[][];
   picked: (NodeType | null)[];
-  node: { type: NodeType; enc?: Encounter; shop?: ShopSlot[]; news?: NewsOffer[] } | null;
+  node: { type: NodeType; enc?: Encounter; shop?: ShopSlot[]; news?: NewsOffer[]; invest?: InvestOffer[] } | null;
   hp: number; maxHp: number;
   credits: number;
   streak: number;
@@ -137,6 +139,7 @@ export interface RunState {
   power: number; // 디바인: 권능 포인트
   divCap: number; // 디바인: 전투당 신성력 수집 상한 보너스
   fame: number; // 은하 대스타: 명성
+  fund?: number; // 호이슌 투자: 다음 페이즈에 돌려받을 크레딧
   blessing: string | null; // 순례 축복 (이번 페이즈)
   staffTarget: string | null; // (구) 참모단 — 사용 안 함
   aceTarget: string | null; // 항해자 에이스 파일럿 uid

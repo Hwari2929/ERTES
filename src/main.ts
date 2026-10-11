@@ -36,7 +36,7 @@ function savePref(k: string, v: unknown) {
   try { localStorage.setItem(PREF_KEY, JSON.stringify({ ...loadPrefs(), [k]: v })); } catch { /* 저장 불가 환경 */ }
 }
 
-type Screen = 'title' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'over' | 'codex';
+type Screen = 'title' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'invest' | 'over' | 'codex';
 type Sel = { k: 'unit'; uid: string } | { k: 'item'; idx: number } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
 
 const app = {
@@ -429,7 +429,7 @@ function nodeHint(o: NodeType) {
   return ({
     battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 1.5배 + 재료 확률`, shop: '장비 재료 · 고급 장비 구매',
     supply: '보급품 3종 중 택1', recruit: '새 동료 3명 중 택1', boss: `승리 시 페이즈 클리어 · ${CFG.drop.bossAdvEvery}페이즈마다 고급 장비`,
-    pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
+    pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', invest: '호이슌 투자 상품 · 크레딧으로 문장 · 증강 · 다음 페이즈 수익', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
   } as Record<NodeType, string>)[o];
 }
 function rosterRow(u: UnitState) {
@@ -695,6 +695,19 @@ function newsScreen(run: RunState) {
   </main>`;
 }
 
+function investScreen(run: RunState) {
+  const offers = run.node?.invest || [];
+  return `<main class="wrap">
+    <div class="screen-head"><h1>호이슌 투자 창구</h1><p class="muted">호이슌 홀딩스가 특별 상품을 내밀었습니다. 보유 크레딧 <b class="accent">${run.credits}</b>${run.fund ? ` · 다음 페이즈 정산 예정 <b>${run.fund}</b>` : ''}</p></div>
+    <div class="shop">${offers.map((o, i) => {
+      const d = R.INVEST_OFFERS[o.id];
+      return `<div class="shop-item ${o.sold ? 'sold' : ''}"><span class="item tA">${synIcon('HOI')}</span><div><b>${esc(d.name)}</b><div class="small muted">${esc(d.desc(run, o))}</div></div>
+        <button class="btn small" data-a="buy-invest" data-v="${i}" ${o.sold || run.credits < o.cost ? 'disabled' : ''}>${o.sold ? '계약함' : `${o.cost} 크레딧`}</button></div>`;
+    }).join('')}</div>
+    <div class="sticky-actions"><button class="btn" data-a="manage">편성 · 장비</button><button class="btn primary" data-a="leave-shop">떠나기</button></div>
+  </main>`;
+}
+
 function overScreen(run: RunState) {
   return `<main class="wrap over">
     <div class="screen-head"><h1>${run.cleared ? '의뢰 성공' : '계약 종료'}</h1><p class="muted">${run.cleared ? `${esc(fieldOf(run.field).name)} 의뢰 완료${run.endless ? ` · 무한 모드 페이즈 ${run.phase}에서 귀환 불가` : ''}.` : `ERRANTEs 는 페이즈 ${run.phase}에서 무너졌습니다.`}${run.diff ? ` 위험 등급 ${run.diff}.` : ''}</p></div>
@@ -885,6 +898,7 @@ function render() {
   else if (app.screen === 'battle') body = battleScreen(run);
   else if (app.screen === 'shop') body = shopScreen(run);
   else if (app.screen === 'news') body = newsScreen(run);
+  else if (app.screen === 'invest') body = investScreen(run);
   else if (app.screen === 'over') body = overScreen(run);
   const showTop = run && app.screen !== 'title' && app.screen !== 'newrun' && app.screen !== 'codex';
   // 다시 그려도 같은 화면 · 같은 창이면 스크롤 위치를 유지한다
@@ -1016,6 +1030,7 @@ function goPrepOrMap() {
   else if (run.node?.enc) app.screen = 'prep';
   else if (run.node?.type === 'shop') app.screen = 'shop';
   else if (run.node?.type === 'news') app.screen = 'news';
+  else if (run.node?.type === 'invest') app.screen = 'invest';
   else app.screen = 'map';
 }
 
@@ -1212,7 +1227,7 @@ function act(a: string, v: string) {
       break;
     }
     case 'manage': app.screen = 'prep'; app.sel = v ? { k: 'unit', uid: v } : null; break;
-    case 'to-map': app.screen = run?.node?.type === 'shop' ? 'shop' : run?.node?.type === 'news' ? 'news' : 'map'; break;
+    case 'to-map': app.screen = run?.node?.type === 'shop' ? 'shop' : run?.node?.type === 'news' ? 'news' : run?.node?.type === 'invest' ? 'invest' : 'map'; break;
     case 'fight':
       if (!run || !deployed(run).length) return;
       persist();
@@ -1240,6 +1255,7 @@ function act(a: string, v: string) {
     case 'buy': if (run) { const e = R.buyShop(run, +v); if (e) toast(e); persist(); } break;
     case 'pick-blessing': if (run && run.pending[0]?.t === 'blessing') { R.pickBlessing(run, v); run.pending.shift(); persist(); } break;
     case 'buy-news': if (run) { const e = R.buyNews(run, +v); if (e) toast(e); persist(); } break;
+    case 'buy-invest': if (run) { const e = R.buyInvest(run, +v); if (e) toast(e); persist(); } break;
     case 'ace-target': if (run) { run.aceTarget = v; toast('에이스 파일럿으로 지정했습니다.'); persist(); } break;
     case 'pilgrim': if (run) { const e = R.pilgrimAct(run, v as 'cap' | 'bless' | 'credits' | 'xp'); if (e) toast(e); persist(); } break;
     case 'pilgrim-done': if (run?.pending.some((x) => x.t === 'pilgrim')) { run.pending = run.pending.filter((x) => x.t !== 'pilgrim'); persist(); } break;

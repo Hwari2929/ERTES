@@ -99,7 +99,8 @@ function playRun(seed: number) {
       const t = (run.node as { type: string } | null)?.type;
       if (t === 'shop') for (let i = 0; i < 6; i++) if (run.credits >= 35) R.buyShop(run, i);
       if (t === 'news') for (let i = 0; i < 6; i++) R.buyNews(run, i);
-      if (t === 'shop' || t === 'news') R.leaveShop(run);
+      if (t === 'invest') for (let i = 0; i < 5; i++) if (run.credits >= 40) R.buyInvest(run, i);
+      if (t === 'shop' || t === 'news' || t === 'invest') R.leaveShop(run);
       continue;
     }
     const dep = deployed(run);

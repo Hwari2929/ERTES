@@ -11,7 +11,7 @@ import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, PSI_AUGS, recMajors } from '../data/rework';
 import { Rng } from '../rng';
 import {
-  type AugPick, type Encounter, type FaithId, type EnemySpawn, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
+  type AugPick, type Encounter, type InvestOffer, type FaithId, type EnemySpawn, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
   type Quest, type RunState, type SynergyId, type UnitState,
 } from '../types';
 import { deployed, memberships, playerRows, synergyCounts } from './build';
@@ -178,6 +178,7 @@ export function enterNode(run: RunState, type: NodeType) {
     return;
   }
   if (type === 'news') { run.node = { type, news: genNews(run) }; return; }
+  if (type === 'invest') { run.node = { type, invest: genInvest(run) }; return; }
   if (type === 'event') {
     // 디바인 기물이 있으면 이번 페이즈 첫 사건 노드 다음에 순례 노드 고정
     const first = !run.picked.slice(0, run.step).includes('event');
@@ -213,7 +214,7 @@ export function enterNode(run: RunState, type: NodeType) {
 export function leaveShop(run: RunState) { run.node = null; advance(run); }
 
 export const hasDivine = (run: RunState) => run.units.some((u) => UNIT_BY_ID[u.defId].ttype === 'divine');
-const tierNow = (run: RunState, id: 'STAR') => tierOf(id, synergyCounts(deployed(run), run)[id] || 0);
+const tierNow = (run: RunState, id: 'STAR' | 'HOI') => tierOf(id, synergyCounts(deployed(run), run)[id] || 0);
 
 export function advance(run: RunState) {
   run.node = null;
@@ -230,6 +231,11 @@ export function advance(run: RunState) {
     run.phaseBoons = [];
     log(run, `페이즈 ${run.phase} 진입. 적이 강해집니다.`);
     if ((run.phase - 1) % CFG.globalAugEvery === 0) run.pending.push({ t: 'global', options: rollGlobals(run) });
+    if (run.fund) { run.credits += run.fund; log(run, `호이슌 투자 수익 +${run.fund}`); run.pending.push({ t: 'notice', title: '투자 수익 정산', body: `지난 페이즈에 맡긴 자금이 불어나 크레딧 +${run.fund}을 돌려받았습니다.` }); run.fund = 0; }
+  }
+  // 호이슌 홀딩스가 활성화되어 있으면 페이즈 중간에 투자 노드 추가
+  if (run.step === Math.floor(run.map.length / 2) && !run.map.some((n) => n.includes('invest')) && tierNow(run, 'HOI')) {
+    run.map.splice(run.step, 0, ['invest']);
   }
   // 은하 대스타가 활성화되어 있으면 보스 직전에 속보 노드 추가
   if (run.map[run.step]?.includes('boss') && run.map[run.step - 1]?.[0] !== 'news' && tierNow(run, 'STAR')) {
@@ -702,6 +708,55 @@ export function buyNews(run: RunState, idx: number): string | null {
   if (o.id === 'cheer') run.hp = Math.min(run.maxHp, run.hp + 20);
   if (o.id === 'hall') run.pending.push({ t: 'itemPick', title: '명예의 전당 — 전설 장비 1개 선택', options: rng(run, (r) => r.sample(ALL_ADVANCED, 3)).map((x) => 'L_' + x.slice(2)) });
   if (o.id === 'headline') run.pending.push({ t: 'global', options: rollGlobals(run) });
+  return null;
+}
+
+// ───────────────────────── 호이슌 투자
+export const INVEST_OFFERS: Record<string, { name: string; desc: (run: RunState, o: InvestOffer) => string; cost: number }> = {
+  fund: { name: '호이슌 펀드', desc: () => '맡긴 크레딧을 다음 페이즈 시작에 불려서 돌려받습니다 (호이슌 단계에 따라 ×1.5 / ×1.8 / ×2.5).', cost: 20 },
+  emblem: { name: '문장 매입', desc: () => '문장(증표) 3개 중 1개 선택. 최종 단계를 여는 열쇠.', cost: 30 },
+  rally: { name: '전략 자금 집행', desc: () => '이번 페이즈 동안 호이슌 기물 피해 +35%, 쿨다운 감소 속도 +25%.', cost: 15 },
+  aug: { name: '인재 영입 패키지', desc: (run, o) => {
+    const u = run.units.find((x) => x.uid === o.uid);
+    const a = o.aug ? AUG_BY_ID[o.aug] : undefined;
+    return u && a ? `${UNIT_BY_ID[u.defId].name}의 고유 증강 [${a.name}] 즉시 획득: ${a.desc}` : '대상 없음';
+  }, cost: 25 },
+  bond: { name: '정크 본드', desc: () => '다음 페이즈 시작에 50% 확률로 ×4, 아니면 0.', cost: 12 },
+};
+const investRate = [1.5, 1.8, 2.5];
+const investPrice = [1, 0.85, 0.7];
+function genInvest(run: RunState): InvestOffer[] {
+  const t = Math.max(1, tierNow(run, 'HOI'));
+  const order = ['fund', 'emblem', 'rally', 'aug', 'bond'].slice(0, 2 + t);
+  return rng(run, (r) => order.map((id) => {
+    const o: InvestOffer = { id, cost: Math.round(INVEST_OFFERS[id].cost * investPrice[t - 1]), sold: false };
+    if (id === 'aug') {
+      const cands = run.units.flatMap((u) => UNIT_BY_ID[u.defId].augs.filter((a) => !a.roll && !u.augments.some((p) => p.id === a.id)).map((a) => ({ u, a })));
+      if (cands.length) { const c = r.pick(cands); o.uid = c.u.uid; o.aug = c.a.id; } else o.sold = true;
+    }
+    return o;
+  }));
+}
+export function buyInvest(run: RunState, idx: number): string | null {
+  const o = run.node?.invest?.[idx];
+  if (!o || o.sold) return '이미 계약함';
+  if (run.credits < o.cost) return '크레딧이 부족합니다';
+  const t = Math.max(1, tierNow(run, 'HOI'));
+  run.credits -= o.cost;
+  o.sold = true;
+  if (o.id === 'fund') run.fund = (run.fund || 0) + Math.round(o.cost * investRate[t - 1]);
+  if (o.id === 'bond') run.fund = (run.fund || 0) + (rng(run, (r) => r.chance(0.5)) ? o.cost * 4 : 0);
+  if (o.id === 'rally' && !run.phaseBoons.includes('hoi.rally')) run.phaseBoons.push('hoi.rally');
+  if (o.id === 'emblem') {
+    const own = [...new Set(run.units.flatMap((u) => memberships(u)))].filter((x) => EMBLEM_SYNS.includes(x));
+    const opts = rng(run, (r) => r.sample(own.length >= 3 ? own : EMBLEM_SYNS, 3)).map((x) => emblemId(x));
+    run.pending.push({ t: 'itemPick', title: '문장 매입 — 1개 선택', options: opts });
+  }
+  if (o.id === 'aug' && o.uid && o.aug) {
+    const u = run.units.find((x) => x.uid === o.uid);
+    if (u) u.augments.push({ id: o.aug });
+  }
+  log(run, `호이슌 투자: ${INVEST_OFFERS[o.id].name} (-${o.cost})`);
   return null;
 }
 

@@ -64,6 +64,7 @@ const L: Record<string, string> = {
   'n.recruit': '<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M19 8v6M16 11h6"/>',
   'n.boss': '<path d="M5 3l2 5 5-3 5 3 2-5"/><path d="M5 8a7 7 0 0 0 14 0"/><path d="M6 13c0 4 2.5 8 6 8s6-4 6-8"/><path d="M9.5 14.5h.01M14.5 14.5h.01"/><path d="M10 18h4"/>',
   'n.pilgrim': '<path d="M12 2v6M9 4.5h6"/><path d="M5 21V12l7-4 7 4v9z"/><path d="M10 21v-4a2 2 0 0 1 4 0v4"/>',
+  'n.invest': '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/><path d="M3 21h18"/>',
   'n.news': '<path d="M4 4h13v15a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v10a2 2 0 0 1-4 0"/><path d="M7.5 8h6M7.5 12h6M7.5 16h4"/>',
   'n.event': '<path d="M8 3h10a2 2 0 0 1 2 2v12H8z"/><path d="M8 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12v-4"/><path d="M12 8l1 2 2 .3-1.5 1.4.4 2.1L12 12.8l-1.9 1 .4-2.1L9 10.3l2-.3z"/>',
   // 장비 (고급 · 전설)

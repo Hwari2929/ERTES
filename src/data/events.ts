@@ -295,5 +295,6 @@ export const BOONS: Record<string, { name: string; effect: Effect }> = {
   convoy: { name: '연합의 감사 (피해 +15%)', effect: { mods: [inc('all', 0.15)] } },
   purge: { name: '배양조 소각 (받는 피해 -10%)', effect: { taken: [red('all', 0.1)] } },
   ares: { name: '궤도 함포 지원 (피해 +30%)', effect: { mods: [inc('all', 0.3)] } },
+  'hoi.rally': { name: '호이슌 전략 자금 (호이슌 기물 피해 +35%, 쿨다운 감소 속도 +25%)', effect: { setup: (u) => { if (!u.synergies.has('HOI')) return; u.mods.push(inc('all', 0.35)); u.st.cdr += 0.25; } } },
   ...BOONS_A, ...BOONS_B, ...BOONS_C, ...BOONS_D,
 };
