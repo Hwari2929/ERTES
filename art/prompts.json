@@ -332,9 +332,9 @@
  "bjorn": {
   "name": "비외른",
   "subject": "1boy",
-  "tags": "mature male, middle-aged man, 40s, huge man, tall, muscular, broad shoulders, bara, scar on face, scar across eye, scars, short hair, white hair, yellow eyes, golden eyes, short beard, viking, fur cloak, fur trim, rescue team leader, orange rescue vest over chainmail, reflective stripes, armband, holding large rescue axe, belt pouches, boots, calm expression, full body, standing, looking at viewer",
+  "tags": "mature male, middle-aged man, 40s, huge man, tall, muscular, broad shoulders, bara, scar on face, scar across eye, scars, short hair, white hair, yellow eyes, golden eyes, short beard, viking, viking medic, combat medic, fur cloak, fur trim, horned helmet held at hip, red cross armband, medical satchel, bandages wrapped on forearms, leather and fur armor, belt pouches, first aid kit, boots, gentle expression, full body, standing, looking at viewer",
   "source": "user",
-  "notes": "개큰 덩치 중년, 흉터, 금안 짧은 백발, 구호조장, 바이킹."
+  "notes": "개큰 덩치 중년, 흉터, 금안 짧은 백발, 바이킹 스타일 의료인(구조대장)."
  },
  "zina": {
   "name": "지나",
@@ -360,7 +360,7 @@
  "bill": {
   "name": "빌",
   "subject": "1boy",
-  "tags": "mature male, middle-aged man, 40s, ash blonde hair, grey hair, short hair, purple eyes, stubble, grin, laughing, cheerful, hawaiian shirt, open collar, khaki shorts, sandals, sunglasses on head, camera around neck, backpack, tourist, travel map in hand, full body, standing, looking at viewer",
+  "tags": "mature male, middle-aged man, 50s, old man, wrinkles, crow's feet, laugh lines, beer belly, chubby, ash blonde hair, grey hair, receding hairline, short hair, purple eyes, thick mustache, stubble, big grin, laughing, jovial, hawaiian shirt, open collar, khaki shorts, sandals, sunglasses on head, camera around neck, tourist, travel map in hand, full body, standing, looking at viewer",
   "source": "user",
   "notes": "금회색 머리, 자안, 호탕한 중년, 하와이안 셔츠에 여행객 복장."
  },
@@ -380,10 +380,10 @@
  },
  "eden": {
   "name": "이든",
-  "subject": "1girl",
-  "tags": "young woman, brown hair, ponytail, high ponytail, messy hair, dark brown eyes, sleepy, tired, track suit, baggy tracksuit, grey track jacket, unzipped, sweatpants, slippers, holding pistol, lazy, slouching, full body, standing, looking at viewer",
+  "subject": "1boy",
+  "tags": "young man, male focus, brown hair, ponytail, short ponytail, messy hair, dark brown eyes, sleepy, tired eyes, stubble, track suit, baggy tracksuit, grey track jacket, unzipped, sweatpants, slippers, holding revolver, lazy, slouching, full body, standing, looking at viewer",
   "source": "user",
-  "notes": "갈색 포니테일 + 고동색 눈, 후줄근한 트레이닝복."
+  "notes": "남캐. 갈색 포니테일 + 고동색 눈, 후줄근한 트레이닝복."
  },
  "reika": {
   "name": "레이카 0호",
