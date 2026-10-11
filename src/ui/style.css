@@ -714,14 +714,15 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .tip-foot { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin-top: 4px; }
 .item-tip .mi { width: 1.05em; height: 1.05em; }
 /* 상세 보기 장비 줄: 장비 3 + 개조부품 1 */
-.d-eqbox { display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; }
-.reco-btn { margin-left: auto; align-self: stretch; padding: 0 10px; border-radius: 6px; background: var(--panel); border: 1px solid var(--line); color: var(--fg); font: inherit; font-size: .8rem; cursor: pointer; }
+.d-eqbox { display: flex; align-items: stretch; gap: 8px; padding: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; }
+.reco-btn { flex: 1; min-width: 0; align-self: stretch; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 6px; white-space: nowrap; border-radius: 6px; background: var(--panel); border: 1px solid var(--line); color: var(--fg); font: inherit; font-size: .8rem; cursor: pointer; }
+.reco-btn .li { width: 16px; height: 16px; color: var(--accent); flex: none; }
 .reco-btn:hover { border-color: var(--accent); color: var(--accent); }
-.d-eq { display: flex; gap: 6px; }
-.d-eq > span { display: block; }
-.d-eq .item { width: 40px; height: 40px; font-size: 18px; cursor: pointer; }
+.d-eq { display: flex; gap: 8px; flex: none; }
+.d-eq > span { display: flex; line-height: 0; }
+.d-eq .item { display: grid; width: 40px; height: 40px; font-size: 18px; line-height: 1; cursor: pointer; }
 .d-eq .item.empty { cursor: default; }
-.d-eq .tk-it { display: block; touch-action: none; -webkit-touch-callout: none; user-select: none; }
+.d-eq .tk-it { display: flex; line-height: 0; touch-action: none; -webkit-touch-callout: none; user-select: none; }
 .d-eq .item .ii { width: 22px; height: 22px; }
 /* 지도: 전장 요약 · 노드 타임라인 */
 .field-mini { display: flex; align-items: center; gap: 8px; width: 100%; margin: 4px 0 12px; padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--c); border-radius: 6px; color: inherit; font: inherit; text-align: left; cursor: pointer; }
