@@ -739,6 +739,9 @@ function pickEvent(run: RunState): string {
   const seen = (id: string) => run.seenEvents.filter((x) => x === id).length;
   const list = EVENTS.filter((e) => (!e.fields || e.fields.includes(run.field)) && (e.minPhase || 1) <= run.phase && !((e.rare || e.once) && seen(e.id))
     && (!e.req || run.flags.includes(e.req)) && (!e.noFlag || !run.flags.includes(e.noFlag)));
+  // 연계 후속 사건: 표식이 생겼으면 다음 사건 노드에 고정 등장
+  const chain = list.find((e) => e.req && !seen(e.id));
+  if (chain) return chain.id;
   // 엘베스타드 일가가 있으면 밍키가 조금 더 자주
   const w = (e: (typeof EVENTS)[number]) => e.weight * Math.pow(0.3, seen(e.id)) * (e.id === 'mingki' && run.units.some((u) => memberships(u).includes('FAM')) ? 2 : 1);
   return rng(run, (r) => r.weighted(list, w).id);

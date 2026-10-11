@@ -266,7 +266,7 @@ export const ENEMIES: EnemyDef[] = [
       },
     } },
   { id: 'pt_unixline', name: '유닉스 생산 라인', keywords: ['mech', 'struct'], sprite: 'turret', palette: UNIX, tier: 'boss', minPhase: 1,
-    hp: 3400, power: 38, armor: 320, effRes: 0.3, interval: 1.2, range: 4, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false,
+    hp: 2900, power: 34, armor: 320, effRes: 0.3, interval: 1.2, range: 4, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false,
     escort: ['pt_guard', 'pt_drone'],
     // 1원칙: 매 분기 직전 대비 더 많이 생산한다
     onTick: (b, u, dt) => {
@@ -275,7 +275,7 @@ export const ENEMIES: EnemyDef[] = [
       u.mem.spawnT = 0;
       u.mem.quarter = (u.mem.quarter || 0) + 1;
       const alive = b.alliesOf(u).filter((a) => a.defId === 'pt_unix').length;
-      summonHook?.(b, u, 'pt_unix', Math.max(0, Math.min(1 + Math.floor(u.mem.quarter / 2), 5 - alive)));
+      summonHook?.(b, u, 'pt_unix', Math.max(0, Math.min(1 + Math.floor(u.mem.quarter / 2), 4 - alive)));
     } },
 ];
 export const ENEMY_BY_ID: Record<string, EnemyDef> = Object.fromEntries(ENEMIES.map((e) => [e.id, e]));

@@ -27,6 +27,8 @@ import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 
 // 편의 설정 (이 브라우저에만 저장): 전투 속도, 진형 속도 등
 const PREF_KEY = 'errantes.prefs.v1';
+/** 전투 배속 (단축키 1~5) */
+const SPEEDS = [0.5, 1, 2, 4, 8];
 function loadPrefs(): { speed?: number; detail?: boolean } {
   try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}; } catch { return {}; }
 }
@@ -52,7 +54,7 @@ const app = {
   summary: null as R.BattleSummary | null,
   picks: [] as Major[],
   augPick: null as number | null, // 증강 창에서 고른 칸 (확정 전)
-  speed: [1, 2, 4, 8].includes(loadPrefs().speed || 0) ? loadPrefs().speed! : 1,
+  speed: SPEEDS.includes(loadPrefs().speed || 0) ? loadPrefs().speed! : 1,
   toast: '',
   toastT: 0 as ReturnType<typeof setTimeout> | 0,
   importErr: '',
@@ -609,7 +611,7 @@ function battleScreen(run: RunState) {
   return `<main class="wrap battle">
     <section class="board-col">
       <div class="board-head"><b>${esc(enc.env)}</b><span id="btime" class="mono">0.0초</span>
-        <span class="speed">${[1, 2, 4, 8].map((s) => `<button class="btn tiny ${app.speed === s ? 'on' : ''}" data-a="speed" data-v="${s}">${s}×</button>`).join('')}
+        <span class="speed">${SPEEDS.map((s) => `<button class="btn tiny ${app.speed === s ? 'on' : ''}" data-a="speed" data-v="${s}">${s}×</button>`).join('')}
         <button class="btn tiny" data-a="skip">결과로</button></span></div>
       <div class="board" id="bboard" style="--n:${enc.n}"><div class="cells">${'<div class="cell"></div>'.repeat(enc.n * enc.n)}</div></div>
     </section>
@@ -1447,7 +1449,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (app.screen === 'battle') {
-    if (digit >= 1 && digit <= 4) act('speed', String([1, 2, 4, 8][digit - 1]));
+    if (digit >= 1 && digit <= SPEEDS.length) act('speed', String(SPEEDS[digit - 1]));
     else if (k === ' ' || k === 'Enter') { e.preventDefault(); if (!clickFirst('[data-a="after-battle"]')) act('skip', ''); }
     return;
   }

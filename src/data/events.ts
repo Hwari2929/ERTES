@@ -112,9 +112,14 @@ export const EVENTS: EventDef[] = [
     choices: [
       { label: '응급 처치', desc: '플레이어 체력 +20.', apply: (r) => { r.hp = Math.min(r.maxHp, r.hp + 20); return '체력 +20.'; } },
       {
-        label: '정밀 검진', desc: '크레딧 -10. 출전 기물 전원 모든 메이저 +2 (영구).',
+        label: '정밀 검진', desc: '크레딧 -10. 출전 기물 중 무작위 2명 모든 메이저 +2 (영구).',
         block: (r) => (r.credits < 10 ? '크레딧이 부족합니다' : null),
-        apply: (r) => { r.credits -= 10; for (const u of r.units.filter((x) => x.pos)) for (const k of ['vit', 'pow', 'mnd', 'def', 'agi'] as const) u.perm[k] += 2; return '출전 기물 전원 모든 메이저 +2.'; },
+        apply: (r, api) => {
+          r.credits -= 10;
+          const ts = api.rng((g) => g.sample(r.units.filter((x) => x.pos), 2));
+          for (const u of ts) for (const k of ['vit', 'pow', 'mnd', 'def', 'agi'] as const) u.perm[k] += 2;
+          return `${ts.length}명 모든 메이저 +2.`;
+        },
       },
     ],
   },
