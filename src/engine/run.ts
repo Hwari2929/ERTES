@@ -318,7 +318,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   const uni = tierOf('UNI', counts.UNI || 0);
 
   // 이자 (수입 전 보유량 기준)
-  const cap = Math.max(0, CFG.interestMax + run.mods.interestCap - (diffHas(run.diff, 3) ? 1 : 0)) + (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (hasGlobal(run, 'G.interest') ? 5 : 0)
+  const cap = Math.max(0, CFG.interestMax + run.mods.interestCap - (diffHas(run.diff, 3) ? 1 : 0)) + (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (pet >= 4 ? 4 : 0) + (hasGlobal(run, 'G.interest') ? 5 : 0)
     + (run.units.some((u) => u.defId === 'lars') ? 2 : 0); // 라르스: 이자 상한 +2
   const creditsBefore = run.credits;
   const interest = Math.min(cap, Math.floor(run.credits / CFG.interestPer));
@@ -336,7 +336,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     lines.push(`승리 보상 +${c}`);
     const sb = CFG.streakBonus(run.streak);
     if (sb) { income += sb; lines.push(`${run.streak}연승 보너스 +${sb}`); }
-    if (pet >= 1) { income += 1; lines.push('페트라 실적 +1'); }
+    if (pet >= 1) { const pb = pet >= 4 ? 3 : 1; income += pb; lines.push(`페트라 실적 +${pb}`); }
     const fw = fieldOf(run.field).winCredits;
     if (fw) { income += fw; lines.push(`전장 조건 · 계약 정산 +${fw}`); }
     if (type === 'adversity') {
@@ -377,7 +377,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   pool = Math.round(pool);
   distributeXp(run, pool);
   lines.push(`공명도 풀 ${pool} 분배`);
-  if (uni) for (const u of dep) if (memberships(u).includes('UNI')) u.xp += uni;
+  if (uni) for (const u of dep) if (memberships(u).includes('UNI')) u.xp += [0, 1, 2, 3, 5][uni];
   const killsOf = (u: UnitState) => b.units.find((c) => c.src === u)?.counters.kills || 0;
   for (const u of dep) for (const a of u.augments) AUG_BY_ID[a.id]?.after?.(run, u, won, killsOf(u));
   // 성직자: 승리 시 신앙 / 대스타: 승리 시 명성 + 대스타 처치 수
@@ -385,7 +385,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   settleGrowth(run, b, won, interest, lines);
   if (star) {
     const starKills = dep.filter((u) => memberships(u).includes('STAR')).reduce((sum, u) => sum + killsOf(u), 0);
-    const f = (won ? 2 * star : 0) + Math.floor(starKills / 3);
+    const f = (won ? 2 * [0, 1, 2, 3, 5][star] : 0) + Math.floor(starKills / 3);
     if (f) { run.fame += f; lines.push(`명성 +${f} (현재 ${run.fame})`); }
   }
   // 라르스: 함께한 뒤 번 크레딧 누적
@@ -658,14 +658,14 @@ function questProgress(run: RunState, b: Battle, won: boolean, type: NodeType, l
     if (q.id === 'adversity' && won && type === 'adversity') q.progress++;
     if (q.progress < q.target) continue;
     q.done = true;
-    const mult = tier >= 3 ? 2 : tier >= 2 ? 1.5 : 1;
+    const mult = tier >= 4 ? 3 : tier >= 3 ? 2 : tier >= 2 ? 1.5 : 1;
     if (q.reward === 'credits') run.credits += Math.round(8 * mult);
     if (q.reward === 'part') for (let i = 0; i < Math.round(1 * mult + 0.01); i++) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)));
     if (q.reward === 'xp') { distributeXp(run, Math.round(10 * mult)); run.units.forEach((u) => settleXp(run, u)); }
     lines.push(`헬레니우스 퀘스트 완료: ${questText(q)} → ${questRewardText(q)} 보상`);
     for (const u of dep) {
       if (!memberships(u).includes('HEL')) continue;
-      if (tier >= 3) rng(run, (r) => { for (let i = 0; i < 2; i++) u.perm[r.pick(MAJORS)]++; });
+      if (tier >= 3) rng(run, (r) => { for (let i = 0; i < (tier >= 4 ? 3 : 2); i++) u.perm[r.pick(MAJORS)]++; });
     }
   }
 }

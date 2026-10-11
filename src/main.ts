@@ -173,6 +173,7 @@ function topbar() {
 function synergyPanel(run: RunState) {
   const counts = synergyCounts(deployed(run), run);
   const raw = synergyCounts(deployed(run));
+  const uncapped = synergyCounts(deployed(run), run, true);
   // 시너지별 소속 기물: 출전 / 대기 (같은 기물은 1회)
   const members = new Map<string, { dep: string[]; bench: string[] }>();
   for (const u of run.units) for (const sid of memberships(u)) {
@@ -191,12 +192,13 @@ function synergyPanel(run: RunState) {
     const next = s.tiers.find((need) => need > c);
     const steps = s.tiers.map((need, i) => `<span class="${c >= need ? 'on' : ''}${i === t - 1 ? ' cur' : ''}">${need}</span>`).join('');
     const bonus = c - (raw[s.id] || 0);
+    const locked = s.lockFinal && (uncapped[s.id] || 0) > c;
     return `<details class="syn ${t ? 'active' : ''} ${c ? '' : 'benchonly'}" style="--c:${s.color}">
       <summary><span class="syn-ic">${synIcon(s.id) || s.icon}</span><span class="syn-count">${c}</span><span class="syn-name">${esc(s.name)}${bonus > 0 ? ` <small class="accent">+${bonus}</small>` : ''}
-        <small class="syn-next">${next ? `다음 단계까지 ${next - c}명` : '최고 단계'}${m.bench.length ? ` · 대기 ${m.bench.length}` : ''}</small></span><span class="syn-steps">${steps}</span></summary>
+        <small class="syn-next">${locked ? '🔒 최종 단계는 증표 필요' : next ? `다음 단계까지 ${next - c}명` : '최고 단계'}${m.bench.length ? ` · 대기 ${m.bench.length}` : ''}</small></span><span class="syn-steps">${steps}</span></summary>
       <div class="syn-members">${m.dep.map((n) => `<span class="on">${esc(n)}</span>`).join('')}${m.bench.map((n) => `<span class="bench">${esc(n)} (대기)</span>`).join('')}</div>
       <p>${esc(s.desc)}</p>
-      <ol>${s.tierDesc.map((d, i) => `<li class="${i === t - 1 ? 'cur' : ''}">(${s.tiers[i]}) ${esc(d)}</li>`).join('')}</ol>
+      <ol>${s.tierDesc.map((d, i) => `<li class="${i === t - 1 ? 'cur' : ''}">(${s.tiers[i]}${s.lockFinal && i === s.tiers.length - 1 ? ' · 증표' : ''}) ${esc(d)}</li>`).join('')}</ol>
     </details>`;
   }).join('');
 }
