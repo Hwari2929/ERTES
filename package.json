@@ -7,6 +7,7 @@
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "sim": "node scripts/build.mjs --sim && node dist/sim.cjs",
+    "syn-doc": "node scripts/build.mjs --syndoc && node dist/syndoc.cjs > docs/SYNERGY_TABLE.md",
     "events-doc": "node scripts/build.mjs --eventdoc && node dist/eventdoc.cjs > docs/EVENTS.md"
   },
   "devDependencies": {
