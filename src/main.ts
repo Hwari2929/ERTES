@@ -1,5 +1,5 @@
 import { CFG, phaseAmpMult, phaseHpMult } from './config';
-import { AUG_BY_ID, augDesc, augSource } from './data/augments';
+import { AUG_BY_ID, augDesc } from './data/augments';
 import { ENEMIES, ENEMY_BY_ID } from './data/enemies';
 import { ENEMY_DESC } from './data/enemyText';
 import { DIFFS } from './data/difficulty';
@@ -95,6 +95,33 @@ const MAJOR_ICON: Record<Major, string> = {
 function majorIcon(m: Major, cls = 'mi') {
   return `<svg class="${cls} mi-${m}" viewBox="0 0 24 24" aria-hidden="true">${MAJOR_ICON[m]}</svg>`;
 }
+/** 증강 임시 아이콘: id 로 정해지는 색 · 무늬 + 이름 첫 글자 (정식 아이콘이 생기면 교체) */
+function augIcon(id: string, cls = 'aug-ic') {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619) >>> 0;
+  const hue = h % 360, shape = (h >>> 9) % 4;
+  const name = AUG_BY_ID[id]?.name || '?';
+  const glyph = [
+    '<circle cx="20" cy="20" r="11" />',
+    '<path d="M20 7l13 13-13 13L7 20z" />',
+    '<path d="M20 6l12 7v14l-12 7-12-7V13z" />',
+    '<path d="M20 7l3.6 8.4 9.1.8-6.9 6 2.1 8.9L20 26.4l-7.9 4.7 2.1-8.9-6.9-6 9.1-.8z" />',
+  ][shape];
+  return `<svg class="${cls}" viewBox="0 0 40 40" aria-hidden="true" style="--h:${hue}">
+    <rect x="1" y="1" width="38" height="38" rx="9" class="ai-bg"/><g class="ai-glyph">${glyph}</g>
+    <text x="20" y="25.5" text-anchor="middle" class="ai-tx">${esc(name.slice(0, 1))}</text></svg>`;
+}
+
+/** 능력치 추천: 기본 스탯 성향 + 스킬이 쓰는 위력 + 사거리로 2개 */
+function recommendedMajors(d: UnitDef): Major[] {
+  const desc = d.skill.desc(d.skill.params);
+  const score: Record<Major, number> = { ...d.base };
+  if (desc.includes('기술 위력')) score.mnd += 3;
+  if (desc.includes('사격 위력') || desc.includes('타격 위력')) score.pow += 3;
+  if (d.range <= 1) { score.vit += 2; score.def += 1; } else score.agi += 0.5;
+  return [...MAJORS].sort((a, b) => score[b] - score[a]).slice(0, CFG.rankPicks);
+}
+
 function rankPips(rank: number) {
   return `<span class="rank" title="공명 등급 ${rank}">R${rank}</span>`;
 }
@@ -432,7 +459,7 @@ function detailPanel(run: RunState) {
     <p class="small">${esc(d.skill.desc(c.sk))}</p>
     <p class="small muted">기본 공격: ${d.atk.type === 'shoot' ? '사격' : '타격'} · ${ELEM_NAME[d.atk.elem]} · ${d.keywords.map((k) => KEYWORD_NAME[k]).join('/')}</p>
     <h3>증강 <span class="muted">${u.augments.length}</span></h3>
-    ${u.augments.length ? `<ul class="augs">${u.augments.map((a) => { const ad = AUG_BY_ID[a.id]; return `<li><b>${esc(ad?.name || a.id)}</b> <span class="src">${ad ? augSource(ad) : ''}</span><br><span class="muted">${esc(augDesc(a.id, a.param))}</span></li>`; }).join('')}</ul>` : '<p class="muted small">공명 등급이 오르면 증강을 고릅니다.</p>'}
+    ${u.augments.length ? `<ul class="augs">${u.augments.map((a) => { const ad = AUG_BY_ID[a.id]; return `<li class="aug-li">${augIcon(a.id)}<span><b>${esc(ad?.name || a.id)}</b><br><span class="muted">${esc(augDesc(a.id, a.param))}</span></span></li>`; }).join('')}</ul>` : '<p class="muted small">공명 등급이 오르면 증강을 고릅니다.</p>'}
     <h3>장비</h3>
     <div class="eq">${u.items.map((it, i) => it ? `<div class="eq-slot" data-drag="eq:${u.uid}:${i}">${itemIcon(it)}<span><b>${esc(itemInfo(it).name)}</b><br><span class="muted small">${esc(itemInfo(it).desc)}</span></span>
       ${isLocked(it) ? '<span class="muted small">고정</span>' : `<button class="btn tiny" data-a="unequip" data-v="${u.uid}:${i}">해제</button>`}</div>` : `<div class="eq-slot empty" data-drop="unit:${u.uid}">${itemIcon(null)}<span class="muted small">빈 슬롯</span></div>`).join('')}</div>
@@ -564,7 +591,7 @@ function fieldCard(run: RunState, compact = false) {
 function pendingModal(run: RunState): string {
   const p = run.pending[0];
   if (!p || app.screen === 'battle' || app.screen === 'over') return '';
-  let body = '';
+  let body = '', mcls = '';
   if (p.t === 'global') {
     body = `<h1>전역 증강</h1><p class="muted">런 전체에 적용되는 증강을 하나 고르세요.</p>
       <div class="cards">${p.options.map((id) => { const g = GLOBAL_BY_ID[id]; return `<button class="card" data-a="pick-global" data-v="${id}"><b>${esc(g.name)}</b><span>${esc(g.desc)}</span></button>`; }).join('')}</div>`;
@@ -588,31 +615,40 @@ function pendingModal(run: RunState): string {
   } else if (p.t === 'rankup') {
     const u = run.units.find((x) => x.uid === p.uid)!;
     const d = UNIT_BY_ID[u.defId];
-    const head = `${hero(d.id, 'hero sm')}<div class="d-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="accent">${p.join ? `합류 · 공명 등급 ${p.rank}` : `공명 등급 ${p.rank - 1} → ${p.rank}`}</div></div></div>`;
+    const art = standImg(d.id, 'stand full') + standImg(d.id, 'stand bust', true); // 넓은 화면은 전신, 좁은 화면은 얼굴 기준 상반신
+    const side = `<div class="ru-art" data-stand="${d.id}">${art || sprite(d, 'spr big')}</div>`;
+    const who = `<div class="ru-who">${sprite(d, 'spr')}<div><b>${esc(d.name)}</b><div class="accent small">${p.join ? `합류 · 공명 등급 ${p.rank}` : `공명 등급 ${p.rank - 1} → ${p.rank}`}</div></div></div>`;
+    mcls = 'rankup';
     if (!p.allocDone) {
       const left = CFG.rankPicks - app.picks.length;
       const effects = unitEffects(run, u, synergyCounts(deployed(run), run), !!u.pos);
       const tm = totalMajors(u, effects);
+      const rec = recommendedMajors(d);
       const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? Math.round((v as number) * 100) + '%' : v}`).join(', ');
-      body = `<h1>공명 등급 상승</h1>${head}
+      body = `${side}<div class="ru-main">
+        <div class="ru-head"><h1>공명 등급 상승</h1>${who}</div>
         <p class="muted small">모든 스탯 <b class="accent">+${CFG.rankAll}</b> 반영됨 · 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${CFG.hasRankAug(p.rank) ? ' · 이어서 전용 증강' : ''}</p>
         <div class="alloc-grid">${MAJORS.map((m) => {
           const on = app.picks.includes(m);
-          return `<button class="stat-pick ${on ? 'on' : ''}" data-a="alloc-pick" data-v="${m}" aria-pressed="${on}" ${on || left ? '' : 'disabled'}>
-            ${majorIcon(m, 'mi big')}<span class="sp-name">${MAJOR_NAME[m]}</span>
+          return `<button class="stat-pick ${on ? 'on' : ''} ${rec.includes(m) ? 'rec' : ''}" data-a="alloc-pick" data-v="${m}" aria-pressed="${on}" ${on || left ? '' : 'disabled'}>
+            ${majorIcon(m, 'mi big')}<span class="sp-name">${MAJOR_NAME[m]}${rec.includes(m) ? '<span class="rec-tag">추천</span>' : ''}</span>
             <span class="sp-val"><b>${tm[m]}</b>${on ? `<em>+${p.points}</em>` : ''}</span>
-            <span class="tip" role="tooltip"><b>${MAJOR_NAME[m]}</b> 1pt당<br>${conv(m)}</span></button>`;
+            <span class="tip" role="tooltip"><b>${MAJOR_NAME[m]}</b> 1pt당<br>${conv(m)}${rec.includes(m) ? '<br><span class="accent">이 기물의 공격 방식 · 기본 성향에 맞는 스탯</span>' : ''}</span></button>`;
         }).join('')}
           <button class="btn primary alloc-ok" data-a="alloc-ok" ${left ? 'disabled' : ''}>${left ? `${left}개 더 고르세요` : '확정'}</button>
-        </div>`;
+        </div></div>`;
     } else {
       R.ensureRankupOptions(run, p);
-      body = `<h1>${p.join ? '합류 증강' : '증강 선택'}</h1>${head}<p class="accent small">${p.join ? '합류 즉시 전용 증강 1개' : `공명 등급 ${p.rank} — ${CFG.augEvery}등급마다 전용 증강 1개`}</p>
-        <div class="cards">${(p.options || []).map((a, i) => {
+      const opts = p.options || [];
+      body = `${side}<div class="ru-main">
+        <div class="ru-head"><h1>${p.join ? '합류 증강' : '증강 선택'}</h1>${who}
+          ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
+        <div class="aug-list">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];
-          return `<button class="card aug-${ad.pool}" data-a="pick-aug" data-v="${i}"><span class="src">${augSource(ad)}</span><b>${esc(ad.name)}</b><span>${esc(augDesc(a.id, a.param))}</span></button>`;
+          return `<button class="aug-opt" data-a="pick-aug" data-v="${i}">${augIcon(a.id)}<span class="ao-txt"><b>${esc(ad.name)}</b><span>${esc(augDesc(a.id, a.param))}</span></span><kbd>${i + 1}</kbd></button>`;
         }).join('') || '<p class="muted">고를 수 있는 증강이 없습니다.</p>'}</div>
-        <div class="row-btns">${p.rerolls > 0 ? `<button class="btn" data-a="reroll">새로고침 (${p.rerolls}회)</button>` : ''}${(p.options || []).length ? '' : '<button class="btn primary" data-a="skip-aug">넘어가기</button>'}</div>`;
+        ${opts.length ? '' : '<div class="row-btns"><button class="btn primary" data-a="skip-aug">넘어가기</button></div>'}
+      </div>`;
     }
   } else if (p.t === 'itemPick') {
     body = `<h1>${esc(p.title)}</h1><div class="cards">${p.options.map((id, i) => { const it = itemInfo(id); return `<button class="card" data-a="pick-item" data-v="${i}">${itemIcon(id)}<b>${esc(it.name)}</b><span>${esc(it.desc)}</span></button>`; }).join('')}</div>`;
@@ -628,7 +664,7 @@ function pendingModal(run: RunState): string {
   } else if (p.t === 'notice') {
     body = `<h1>${esc(p.title)}</h1><p>${esc(p.body)}</p><button class="btn primary" data-a="notice-ok">확인</button>`;
   }
-  return `<div class="modal-bg"><div class="modal">${body}</div></div>`;
+  return `<div class="modal-bg"><div class="modal ${mcls}">${body}</div></div>`;
 }
 const STAT_SHORT: Record<string, string> = {
   maxHp: '체력', healEff: '회복 효율', shoot: '사격', strike: '타격', tech: '기술', acc: '명중', crit: '치명', effHit: '효과 명중',
