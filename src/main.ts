@@ -334,7 +334,8 @@ function pickCard(d: UnitDef, clone: boolean) {
     ${on ? `<span class="pc-check">✓ ${app.starters.indexOf(d.id) + 1}</span>` : ''}
     <div class="pc-panel">
       <div class="pc-top"><b class="pc-name">${esc(d.name)}</b>${roleTag(d)}
-        <div class="chips">${[...d.factions, ...d.traits].map(chip).join('')}</div></div>
+        <div class="chips">${[...d.factions, ...d.traits].map(chip).join('')}</div>
+        <button class="pc-more" data-a="card-open" data-v="${d.id}" ${clone ? 'tabindex="-1"' : ''}>${app.cardOpen === d.id && !clone ? '접기 ▼' : '상세 보기 ▲'}</button></div>
       <div class="pc-desc" data-a="noop">${unitInfo(d)}
         <button class="btn ${on ? '' : 'primary'} pc-pick" data-a="pick-starter" data-v="${d.id}" ${full ? 'disabled' : ''} ${clone ? 'tabindex="-1"' : ''}>${on ? '선택 해제' : full ? `이미 ${CFG.startUnits}명 선택` : '선택'}</button></div>
     </div>
@@ -346,7 +347,7 @@ function newRunScreen() {
   const n = app.starters.length;
   return `<main class="wrap nr">
     <div class="nr-head">
-      <div><h1>계약 기물 선택</h1><p class="muted small">이번 출격에 응한 ${app.pool.length}명 중 ${CFG.startUnits}명을 고르세요. ${CAN_HOVER ? '카드에 마우스를 올리면 설명이 나오고, 누르면 선택합니다.' : '카드를 누르면 설명이 나옵니다.'}</p></div>
+      <div><h1>계약 기물 선택</h1><p class="muted small">이번 출격에 응한 ${app.pool.length}명 중 ${CFG.startUnits}명을 고르세요. ${CAN_HOVER ? '카드에 마우스를 올리면 설명이 나오고, 누르면 선택합니다.' : '카드를 누르면 선택합니다. 하단을 위로 끌어올리거나 [상세 보기]를 누르면 설명이 나옵니다.'}</p></div>
       ${detailToggle()}
       ${diffMini()}
     </div>
@@ -913,6 +914,26 @@ function setupCarousel() {
   track.style.scrollSnapType = '';
   let t: ReturnType<typeof setTimeout> | 0 = 0;
   track.addEventListener('scroll', () => { carX = track.scrollLeft; if (t) clearTimeout(t); t = setTimeout(() => carWrap(track), 120); }, { passive: true });
+  // 터치: 카드 하단(이름 · 시너지)을 위로 끌어올리면 설명 펼치기, 아래로 내리면 접기
+  let drag: { id: string; y: number; x: number } | null = null;
+  track.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse') return;
+    const top = (e.target as HTMLElement).closest('.pc-top');
+    const card = top?.closest('.pcard') as HTMLElement | null;
+    if (card?.dataset.v) drag = { id: card.dataset.v, y: e.clientY, x: e.clientX };
+  });
+  track.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const dy = e.clientY - drag.y, dx = e.clientX - drag.x;
+    if (Math.abs(dy) < 36 || Math.abs(dy) < Math.abs(dx) * 1.5) return;
+    const open = dy < 0;
+    if ((app.cardOpen === drag.id) !== open) { app.cardOpen = open ? drag.id : null; render(); }
+    suppressClick = true; setTimeout(() => { suppressClick = false; }, 350);
+    drag = null;
+  });
+  const end = () => { drag = null; };
+  track.addEventListener('pointerup', end);
+  track.addEventListener('pointercancel', end);
   let lock = 0;
   track.addEventListener('wheel', (e) => {
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // 가로 스크롤은 그대로
@@ -1086,11 +1107,8 @@ function act(a: string, v: string) {
       app.pool = new Rng((Date.now() ^ (Math.random() * 1e9)) | 0).sample(UNITS.filter((u) => !u.noStarter).map((u) => u.id), 8);
       break;
     case 'car-prev': case 'car-next': carStep(a === 'car-next' ? 1 : -1); return;
-    case 'card-tap':
-      // 마우스: 카드 클릭 = 선택 / 터치: 탭하면 설명 열기 · 닫기 (선택은 설명 안의 버튼)
-      if (CAN_HOVER) return act('pick-starter', v);
-      app.cardOpen = app.cardOpen === v ? null : v;
-      break;
+    case 'card-tap': return act('pick-starter', v); // 카드를 누르면 선택 · 해제
+    case 'card-open': app.cardOpen = app.cardOpen === v ? null : v; break; // 터치: 설명 펼치기 · 접기
     case 'toggle-detail': app.detail = !app.detail; savePref('detail', app.detail); break;
     case 'toggle-sub': if (app.subOpen.has(v)) app.subOpen.delete(v); else app.subOpen.add(v); break;
     case 'to-title': if (app.view) { app.view.destroy(); app.view = null; } app.screen = 'title'; app.menu = null; app.run = null; break;
