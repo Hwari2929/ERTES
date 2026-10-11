@@ -441,8 +441,10 @@ function rosterTile(u: UnitState) {
     .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'faction' ? -1 : 1));
   const tip = `${d.name} · 공명 등급 ${u.rank}${u.pos ? '' : ' · 대기'}${locked ? ' · 이번 페이즈 출전 불가' : ''}`;
   return `<button class="rt${u.pos ? '' : ' rt-off'}" data-a="manage" data-v="${u.uid}" title="${esc(tip)}" aria-label="${esc(tip)}">
-    <span class="rt-art">${sprite(d)}<span class="rt-rank">${u.rank}</span>${locked ? '<span class="rt-lock" aria-hidden="true">⛓</span>' : ''}</span>
-    <span class="rt-items">${u.items.map((i) => itemIcon(i)).join('')}${u.mod ? itemIcon(u.mod) : ''}</span>
+    <span class="rt-art">${sprite(d)}${u.mod ? `<span class="rt-mod">${itemIcon(u.mod)}</span>` : ''}
+      <span class="rt-type" aria-hidden="true"><i title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i><i title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i></span>
+      <span class="rt-rank">${u.rank}</span>${locked ? '<span class="rt-lock" aria-hidden="true">⛓</span>' : ''}</span>
+    <span class="rt-items">${u.items.map((i) => itemIcon(i)).join('')}</span>
     <span class="rt-syn">${syns.map((sd) => `<span class="rt-s" style="--c:${sd.color}" title="${esc(sd.name)}">${synIcon(sd.id)}</span>`).join('')}</span>
   </button>`;
 }
