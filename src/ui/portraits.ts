@@ -24,8 +24,9 @@ export function standURL(id: string) {
   return ICONS[id] ? `art/${id}.webp` : null;
 }
 
-/** 스탠딩 일러스트 — 파일을 못 불러오면 조용히 빠진다 */
-export function standImg(id: string, cls = 'stand') {
+/** 스탠딩 일러스트 — bust: 머리 크기를 맞춘 상반신 배너, 아니면 전신. 파일을 못 불러오면 조용히 빠진다 */
+export function standImg(id: string, cls = 'stand', bust = false) {
   const url = standURL(id);
-  return url ? `<img class="${cls}" alt="" loading="lazy" decoding="async" src="${url}" onerror="this.remove()">` : '';
+  if (!url) return '';
+  return `<img class="${cls}" alt="" loading="lazy" decoding="async" src="${bust ? url.replace('.webp', '.bust.webp') : url}" onerror="this.remove()">`;
 }

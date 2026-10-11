@@ -72,7 +72,7 @@ function sprite(defOrUnit: Parameters<typeof iconURL>[0], cls = 'spr') {
 }
 /** 스탠딩 상단 배너 (클릭하면 전신 보기) */
 function hero(id: string, cls = 'hero') {
-  const img = standImg(id);
+  const img = standImg(id, 'stand', true);
   return img ? `<div class="${cls}" data-stand="${id}">${img}</div>` : '';
 }
 function rankPips(rank: number) {

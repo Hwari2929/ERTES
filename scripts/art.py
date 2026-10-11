@@ -1,9 +1,11 @@
 """스탠딩 · 초상화 에셋 파이프라인.
 
   python3 scripts/art.py pick     art/picks.json 의 선택본(art/raw) → art/picked/<id>.webp (보관용 원본, 깃에 넣음)
-  python3 scripts/art.py faces    얼굴 위치를 못 정한 기물만 자동 추정 → art/faces.json (손으로 고쳐도 됨)
-  python3 scripts/art.py build    art/picked + art/faces.json → public/art/<id>.webp (배경 제거 스탠딩)
-                                  + src/ui/portraits.gen.ts (머리 크롭 아이콘, 데이터 URI 내장)
+  python3 scripts/art.py faces    머리 위치를 못 정한 기물만 자동 추정 → art/faces.json [머리 중심 x, y, 머리 높이] (손으로 고쳐도 됨)
+  python3 scripts/art.py build    art/picked + art/faces.json → public/art/<id>.webp (전신)
+                                  + public/art/<id>.bust.webp (머리 크기를 맞춘 상반신 배너)
+                                  + src/ui/portraits.gen.ts (머리 크기를 맞춘 아이콘, 데이터 URI 내장)
+  NAI V5 투명 배경 원본(RGBA)은 그대로 쓰고, 흰 배경 원본만 배경을 깎는다.
   python3 scripts/art.py sheet OUT.png   아이콘 확인용 시트
   python3 scripts/art.py holes OUT.png   갇힌 배경 후보 표시 (art/cut.json 에 지울 점 기록)
 """
@@ -13,6 +15,8 @@ from PIL import Image, ImageDraw, ImageFilter
 
 PICKS, FACES, CUTS, PICKED, OUT = 'art/picks.json', 'art/faces.json', 'art/cut.json', 'art/picked', 'public/art'
 STAND_H, ICON = 960, 128
+# 머리 크기 정규화: 아이콘은 머리 높이의 ICON_K 배 정사각, 배너는 머리 높이를 BUST_HEAD px 로 맞춘 BUST_W×BUST_H
+ICON_K, BUST_W, BUST_H, BUST_HEAD, BUST_CY = 1.45, 480, 360, 120, 105
 
 
 def load_json(p, default):
@@ -30,7 +34,9 @@ def cmd_pick():
         src = f'art/raw/{i}/{f}'
         if f == 'user' or not os.path.exists(src):
             continue  # 사용자 제공본은 이미 art/picked 에 있음
-        Image.open(src).convert('RGB').save(f'{PICKED}/{i}.webp', 'WEBP', quality=92, method=6)
+        im = Image.open(src)
+        im = im.convert('RGBA') if 'A' in im.getbands() else im.convert('RGB')
+        im.save(f'{PICKED}/{i}.webp', 'WEBP', quality=92, alpha_quality=100, method=6)
         print('pick', i, f)
 
 
@@ -68,7 +74,10 @@ def cut_background(im, holes=()):
 
 
 def cut_of(i):
-    return cut_background(Image.open(f'{PICKED}/{i}.webp'), load_json(CUTS, {}).get(i, ()))
+    im = Image.open(f'{PICKED}/{i}.webp')
+    if 'A' in im.getbands() and im.getextrema()[3][0] < 8:
+        return im.convert('RGBA')  # 생성 단계에서 이미 투명
+    return cut_background(im, load_json(CUTS, {}).get(i, ()))
 
 
 def cmd_holes(out):
@@ -111,22 +120,25 @@ def cmd_holes(out):
 
 
 def guess_face(im):
-    """알파 기준: 위에서부터 꾸준히 이어지는 첫 덩어리를 머리로 보고 정사각 크롭 추정."""
+    """알파 기준 머리 추정: 몸통 중심 위의 첫 덩어리를 머리로, 목(가장 좁은 줄)까지를 머리 높이로. 앉은 자세·비인간은 손으로 고친다."""
     a = np.asarray(im.split()[-1]) > 128
     h, w = a.shape
-    rows = a.sum(axis=1)
-    top = 0
-    for y in range(h - 40):
-        if (rows[y:y + 40] > 25).all():
-            top = y
-            break
-    size = int(h * 0.19)
-    band = a[top:top + int(size * 0.7)]
-    xs = np.nonzero(band.any(axis=0))[0]
-    cols = band.sum(axis=0)
-    cx = int((np.arange(w) * cols).sum() / max(1, cols.sum())) if xs.size else w // 2
-    cy = top + int(size * 0.42)
-    return [cx, cy, size]
+    ys = np.nonzero(a.any(axis=1))[0]
+    top0, bot = int(ys[0]), int(ys[-1])
+    hf = bot - top0
+    torso = a[top0 + int(hf * 0.2): top0 + int(hf * 0.45)]
+    cols = torso.sum(axis=0)
+    bx = int((np.arange(w) * cols).sum() / max(1, cols.sum()))
+    win = slice(max(0, bx - int(w * 0.16)), min(w, bx + int(w * 0.16)))
+    rows = a[:, win].sum(axis=1)
+    top = next((y for y in range(top0, bot - 30) if (rows[y:y + 30] > 12).all()), top0)
+    lo, hi = top + int(hf * 0.08), top + int(hf * 0.22)
+    neck = lo + int(np.argmin(rows[lo:hi])) if hi > lo else top + hf // 7
+    head = neck - top if hf * 0.09 < neck - top < hf * 0.21 else hf // 7
+    band = a[top:top + head, win]
+    c = band.sum(axis=0)
+    cx = win.start + int((np.arange(c.size) * c).sum() / max(1, c.sum()))
+    return [cx, top + head // 2, int(head)]
 
 
 def cmd_faces():
@@ -140,12 +152,23 @@ def cmd_faces():
 
 
 def icon_of(cut, face):
-    cx, cy, s = face
+    cx, cy, hh = face
+    s = int(hh * ICON_K)
     box = (cx - s // 2, cy - s // 2, cx + s // 2, cy + s // 2)
     # 원본 밖으로 나가는 크롭도 허용 (투명으로 채움)
     canvas = Image.new('RGBA', (cut.width + 2 * s, cut.height + 2 * s), (0, 0, 0, 0))
     canvas.paste(cut, (s, s))
     return canvas.crop((box[0] + s, box[1] + s, box[2] + s, box[3] + s)).resize((ICON, ICON), Image.LANCZOS)
+
+
+def bust_of(cut, face):
+    """머리 높이를 BUST_HEAD px 로 맞추고 머리 중심을 (가운데, BUST_CY) 에 둔 상반신 배너"""
+    cx, cy, hh = face
+    k = BUST_HEAD / hh
+    big = cut.resize((max(1, round(cut.width * k)), max(1, round(cut.height * k))), Image.LANCZOS)
+    out = Image.new('RGBA', (BUST_W, BUST_H), (0, 0, 0, 0))
+    out.paste(big, (round(BUST_W / 2 - cx * k), round(BUST_CY - cy * k)), big)
+    return out
 
 
 def cmd_build():
@@ -164,6 +187,8 @@ def cmd_build():
         stand.save(f'{OUT}/{i}.webp', 'WEBP', quality=82, method=6)
         total += os.path.getsize(f'{OUT}/{i}.webp')
         if i in faces:
+            bust_of(cut, faces[i]).save(f'{OUT}/{i}.bust.webp', 'WEBP', quality=82, method=6)
+            total += os.path.getsize(f'{OUT}/{i}.bust.webp')
             buf = io.BytesIO()
             icon_of(cut, faces[i]).save(buf, 'WEBP', quality=82, method=6)
             icons[i] = 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode()
@@ -174,7 +199,7 @@ def cmd_build():
         for k, v in icons.items():
             f.write(f"  {k}: '{v}',\n")
         f.write('};\n')
-    print(f'stand {len(os.listdir(OUT))}장 {total / 1024 / 1024:.1f} MB, icon {len(icons)}개 {sum(map(len, icons.values())) / 1024:.0f} KB')
+    print(f'art {len(os.listdir(OUT))}개 {total / 1024 / 1024:.1f} MB, icon {len(icons)}개 {sum(map(len, icons.values())) / 1024:.0f} KB')
 
 
 def cmd_sheet(out):

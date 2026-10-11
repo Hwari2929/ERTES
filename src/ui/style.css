@@ -377,7 +377,7 @@ textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--fg
 .ucard > .hero.sm, .codex-card > .hero.sm { margin: -12px -12px 2px; }
 .codex-card > .hero.sm { margin: -10px -10px 2px; cursor: zoom-in; }
 .modal .hero.sm { margin: 0; border-radius: 8px; height: 220px; }
-.modal .hero .stand { width: auto; height: 220%; margin: 0 auto; object-fit: initial; }
+.modal .hero .stand { width: auto; height: 100%; margin: 0 auto; object-fit: initial; }
 .stand-view { position: fixed; inset: 0; z-index: 80; background: rgb(8 10 14 / .92); display: grid; place-items: center; padding: 16px; cursor: zoom-out; }
 .stand-view .stand.full { max-height: calc(100dvh - 72px); max-width: 100%; object-fit: contain; }
 .stand-cap { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; }
