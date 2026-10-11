@@ -315,10 +315,10 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, base: B(9, 7, 5, 7, 3),
     sprite: 'knight', palette: tint(PAL.FAM, '#4a5a3a', '#c8ccd8', '#ffcf40'),
     summon: { name: '맥스', sprite: 'beast', palette: BEAR, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.6 },
-    lore: '본가의 정원을 40년 가꿨다. 정원을 망치는 것은 무엇이든 맥스이 먼저 쫓아낸다.',
+    lore: '본가의 정원을 40년 가꿨다. 정원을 망치는 것은 무엇이든 맥스가 먼저 쫓아낸다.',
     skill: {
       name: '불청객 퇴치', cd: 7, params: { mult: 2.5, bleed: 0.3, roar: 0 },
-      desc: (p) => `맥스이 라스무스의 대상에게 달려들어 맥스 타격 위력 ${pct(p.mult)} 물리 피해 + 초당 ${pct(p.bleed)} 출혈${p.roar ? `, 맥스 주변 적 ${pct(p.roar)} 확률 1.2초 공포` : ''}. 맥스이 없으면 라스무스가 전정가위로 직접 150%.`,
+      desc: (p) => `맥스가 라스무스의 대상에게 달려들어 맥스 타격 위력 ${pct(p.mult)} 물리 피해 + 초당 ${pct(p.bleed)} 출혈${p.roar ? `, 맥스 주변 적 ${pct(p.roar)} 확률 1.2초 공포` : ''}. 맥스가 없으면 라스무스가 전정가위로 직접 150%.`,
       cast(b, u) {
         const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u));
         if (!t) return false;
@@ -338,7 +338,7 @@ export const ROSTER_C: BaseUnit[] = [
     augs: [
       uaug('rasmus', 'old', '오랜 짝', '맥스 스탯 상속률 +40%p.', bond(0.4)),
       uaug('rasmus', 'maul', '물어뜯기', '출혈 초당 위력 +50%p.', setSk((s) => { s.bleed += 0.5; })),
-      uaug('rasmus', 'cub', '강아지', '맥스을 하나 더 데려온다 (상속률 80%).', extraPet),
+      uaug('rasmus', 'cub', '강아지', '맥스를 하나 더 데려온다 (상속률 80%).', extraPet),
       uaug('rasmus', 'lodge', '정원 창고', '캠핑 러버 임시 장비 +1개, 생명력 +5, 방어력 +3.', { ...nat(1), majors: { vit: 5, def: 3 } }),
       uaug('rasmus', 'roar', '짖기', '불청객 퇴치 때 맥스 주변 적 80% 확률로 1.2초 공포.', setSk((s) => { s.roar = 0.8; })),
     ],

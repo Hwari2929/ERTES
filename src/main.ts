@@ -10,14 +10,15 @@ import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
 import { combine, isLocked, isMod, itemInfo } from './data/items';
 import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf } from './data/synergies';
 import { UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
-import { DIVINE_ACT, FAITH_DEF, recMajors, weaponLine } from './data/rework';
+import { DIVINE_ACT, FAITH_DEF, recMajors } from './data/rework';
+import { BRIEF, GROWTH_BRIEF, PSI_BRIEF } from './data/brief';
 import {
   activeTiers, buildAlly, buildBattle, buildEnemy, deployed, layout, memberships, playerRows, synergyCounts, totalMajors, unitEffects,
 } from './engine/build';
 import { Battle, type CUnit } from './engine/combat';
 import * as R from './engine/run';
 import { Rng } from './rng';
-import { CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, KEYWORD_NAME, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type SynergyId, type UnitState } from './types';
+import { type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, KEYWORD_NAME, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type SynergyId, type UnitState } from './types';
 import { BattleView, fmt } from './ui/battleview';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
@@ -25,7 +26,7 @@ import { hasPortrait, iconURL, standImg } from './ui/portraits';
 
 // 편의 설정 (이 브라우저에만 저장): 전투 속도, 진형 속도 등
 const PREF_KEY = 'errantes.prefs.v1';
-function loadPrefs(): { speed?: number } {
+function loadPrefs(): { speed?: number; detail?: boolean } {
   try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}; } catch { return {}; }
 }
 function savePref(k: string, v: unknown) {
@@ -40,6 +41,8 @@ const app = {
   run: null as RunState | null,
   sel: null as Sel,
   starters: [] as string[],
+  pool: [] as string[], // 시작 기물 후보 (무작위 8명)
+  detail: !!loadPrefs().detail, // 상세 보기: 계수 · 메커니즘 표시
   menu: null as null | 'menu' | 'export' | 'import',
   view: null as BattleView | null,
   summary: null as R.BattleSummary | null,
@@ -214,17 +217,48 @@ function ownedChip(defId: string) {
     return n ? chip(id).replace('</span>', ` <b class="own" title="보유 중인 ${esc(SYN_BY_ID[id as keyof typeof SYN_BY_ID].name)} 기물 ${n}명">${n}→${after}</b></span>`) : chip(id);
   };
 }
-function typeLine(d: UnitDef) {
-  return `<div class="types small"><span class="tt ct-${d.ctype}">${CTYPE_NAME[d.ctype]}</span><span class="tt tt-${d.ttype}">${TTYPE_NAME[d.ttype]}</span><span class="muted">${FAITH_NAME[d.faith]}</span> · ${d.keywords.map((k) => KEYWORD_NAME[k]).join('/')}</div>`;
+const CTYPE_ICON: Record<string, string> = { MARK: '⌖', VAN: '⚔', SPEC: '✦', CMD: '♜' };
+const WPOS = (r: number) => (r <= 1 ? '근거리' : r <= 3 ? '중거리' : '원거리');
+/** 클래스 표기: 전투 유형 · 전술 유형 (디바인은 신앙까지) */
+function roleLine(d: UnitDef, faith = d.faith) {
+  const showFaith = d.ttype === 'divine' || app.detail;
+  return `<div class="role" title="전투 유형 · 전술 유형"><span class="role-c ct-${d.ctype}">${CTYPE_ICON[d.ctype]} ${CTYPE_NAME[d.ctype]}</span><span class="role-t tt-${d.ttype}">${TTYPE_NAME[d.ttype]}</span>${showFaith ? `<span class="role-f">${FAITH_NAME[faith]}</span>` : ''}</div>`;
+}
+function synRow(d: UnitDef, ids: string[], chipFn: (id: string) => string = chip) {
+  void d;
+  return `<div class="syn-row"><span class="lbl">시너지</span><div class="chips">${ids.map(chipFn).join('')}</div></div>`;
+}
+const AB_KIND = { weapon: '무기', trait: '특성', skill: '스킬', grow: '성장', psi: '이성', div: '신권' } as const;
+/** 무기 · 특성 · 스킬 등을 같은 모양의 블록으로 */
+function abil(kind: keyof typeof AB_KIND, name: string, meta: string, desc: string) {
+  return `<div class="abil ab-${kind}"><div class="ab-head"><span class="ab-kind">${AB_KIND[kind]}</span><b>${esc(name)}</b>${meta ? `<span class="ab-meta">${meta}</span>` : ''}</div><p>${esc(desc)}</p></div>`;
+}
+function weaponAbil(w: Weapon, elem = w.elem) {
+  const el = elem !== 'phys' ? `${ELEM_NAME[elem]} 피해 · ` : '';
+  if (w.kind === 'none') return abil('weapon', w.name, '', '기본 공격을 하지 않는다.');
+  const brief = w.kind === 'mag' ? `${el}탄창 ${w.mag}발, 다 쓰면 재장전한다.` : `${el}${w.combo}번째 공격마다 강력한 피니쉬.`;
+  const pow = w.tactical ? '전술 위력' : w.type === 'shoot' ? '사격 위력' : '타격 위력';
+  const full = `${ELEM_NAME[elem]} · ${pow} ${Math.round(w.mult * 100)}% · ${w.kind === 'mag' ? `탄 ${w.mag} · 재장전 ${w.reload}초` : `콤보 ${w.combo} (피니쉬 ×${CFG.finishMult})`} · 공격 간격 ${w.interval}초`;
+  return abil('weapon', w.name, app.detail ? `${WPOS(w.range)} · 사거리 ${w.range}` : WPOS(w.range), app.detail ? full : brief);
+}
+/** 지휘관 스킬은 전술 위력으로 계산된다 */
+function skillText(d: UnitDef, sk = d.skill.params) {
+  if (!app.detail) return BRIEF[d.id]?.skill || d.skill.desc(sk);
+  const t = d.skill.desc(sk);
+  return d.ctype === 'CMD' ? t.replace(/기술 위력/g, '전술 위력') : t;
+}
+const traitText = (d: UnitDef) => (app.detail ? d.trait.desc : BRIEF[d.id]?.trait || d.trait.desc);
+function detailToggle() {
+  return `<button class="btn tiny dtoggle ${app.detail ? 'on' : ''}" data-a="toggle-detail" aria-pressed="${app.detail}" title="계수 · 세부 규칙 표시 (단축키 D)">상세 보기 ${app.detail ? 'ON' : 'OFF'}</button>`;
 }
 function unitCard(d: UnitDef, opts: { selected?: boolean; action?: string; rank?: number } = {}) {
   return `<button class="ucard ${opts.selected ? 'sel' : ''}" data-a="${opts.action || 'pick-starter'}" data-v="${d.id}">
     ${hero(d.id, 'hero sm')}<div class="ucard-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="muted small">${esc(d.title)}</div></div></div>
-    <div class="chips">${[...d.factions, ...d.traits].map(opts.action === 'pick-recruit' ? ownedChip(d.id) : chip).join('')}</div>
-    ${typeLine(d)}
-    <div class="small">${esc(weaponLine(d.weapon))} · ${ELEM_NAME[d.atk.elem]}</div>
-    <div class="skill-line"><b>${esc(d.trait.name)}</b> <span class="muted">특성</span><br>${esc(d.trait.desc)}</div>
-    <div class="skill-line"><b>${esc(d.skill.name)}</b> <span class="muted">(${d.skill.cd}초)</span><br>${esc(d.skill.desc(d.skill.params))}</div>
+    ${roleLine(d)}
+    ${synRow(d, [...d.factions, ...d.traits], opts.action === 'pick-recruit' ? ownedChip(d.id) : chip)}
+    ${weaponAbil(d.weapon)}
+    ${abil('trait', d.trait.name, '', traitText(d))}
+    ${abil('skill', d.skill.name, app.detail ? `${d.skill.cd}초` : '', skillText(d))}
     <div class="majors-mini">${MAJORS.map((m) => `<span title="${MAJOR_NAME[m]}">${majorIcon(m)}<b>${d.base[m]}</b></span>`).join('')}</div>
     ${opts.rank ? `<div class="small accent">공명 등급 ${opts.rank}로 합류</div>` : ''}
   </button>`;
@@ -232,9 +266,9 @@ function unitCard(d: UnitDef, opts: { selected?: boolean; action?: string; rank?
 function newRunScreen() {
   const n = app.starters.length;
   return `<main class="wrap">
-    <div class="screen-head"><h1>계약 기물 선택</h1><p class="muted">첫 출격에 데려갈 기물 ${CFG.startUnits}명을 고르세요. 나머지는 2페이즈부터 매 페이즈 첫 노드(영입)에서 만날 수 있습니다.</p></div>
+    <div class="screen-head"><h1>계약 기물 선택</h1><p class="muted">이번 출격에 응한 기물 ${app.pool.length}명 중 ${CFG.startUnits}명을 고르세요. 나머지는 2페이즈부터 매 페이즈 첫 노드(영입)에서 만날 수 있습니다.</p>${detailToggle()}</div>
     ${diffPicker()}
-    <div class="ucard-grid">${UNITS.filter((d) => !d.noStarter).map((d) => unitCard(d, { selected: app.starters.includes(d.id) })).join('')}</div>
+    <div class="ucard-grid">${app.pool.map((id) => unitCard(UNIT_BY_ID[id], { selected: app.starters.includes(id) })).join('')}</div>
     <div class="sticky-actions">
       <button class="btn ghost" data-a="to-title">뒤로</button>
       <button class="btn ghost" data-a="random-starters">무작위</button>
@@ -404,15 +438,21 @@ function ttypeInfo(run: RunState, u: UnitState) {
   const out: string[] = [];
   if (d.ttype === 'minor' && d.growth) {
     const prog = Object.entries(g).filter(([k]) => !k.startsWith('f_')).map(([k, v]) => `${k} ${v}`).join(', ');
-    out.push(`<div class="skill-line"><b>${esc(d.growth.name)}</b> <span class="muted">성장</span><br>${esc(d.growth.desc)}${prog ? `<br><span class="accent small">누적: ${esc(prog)}</span>` : ''}</div>`);
+    out.push(abil('grow', d.growth.name, '런 누적', (app.detail ? d.growth.desc : GROWTH_BRIEF[d.id] || d.growth.desc) + (app.detail && prog ? ` (누적: ${prog})` : '')));
   }
-  if (d.ttype === 'psionic' && d.psi) out.push(`<div class="skill-line"><b>이성</b> <span class="muted">시작 ${CFG.reasonStart} · 전투마다 초기화</span><br>${esc(d.psi.desc)} 이성이 높으면 받는 정신·신성 피해 감소 · 지원 효율 증가, 음수면 정신 피해 증폭 · 흡혈, -50 이하는 광폭.</div>`);
-  if (d.ttype === 'special') out.push(`<div class="small muted">스페셜: 등급이 오를 때마다 ${recMajors(d).map((m) => MAJOR_NAME[m]).join(' · ')} 중 하나가 자동으로 +${CFG.rankPoints}.</div>`);
+  if (d.ttype === 'psionic' && d.psi) {
+    out.push(abil('psi', '이성', app.detail ? `시작 ${CFG.reasonStart}` : '', app.detail
+      ? `${d.psi.desc} 이성이 높으면 받는 정신·신성 피해 감소 · 지원 효율 증가, 음수면 정신 피해 증폭 · 흡혈, -50 이하는 광폭 (피해 +30%, 초당 최대 체력 2% 손실). 전투마다 초기화.`
+      : `${PSI_BRIEF[d.id] || d.psi.desc} 이성이 높으면 단단해지고, 낮으면 정신 피해가 강해지며, 너무 낮으면 광폭한다.`));
+  }
+  if (d.ttype === 'special') out.push(`<div class="small muted">스페셜: 등급이 오를 때마다 ${recMajors(d).map((m) => MAJOR_NAME[m]).join(' · ')} 중 하나가 자동으로 오른다.</div>`);
   if (d.ttype === 'divine') {
     const f = u.faith || d.faith;
     const fd = FAITH_DEF[f], act = DIVINE_ACT[d.ctype];
-    out.push(`<div class="skill-line"><b>신권 대행 · ${esc(act.name)}</b> <span class="muted">${FAITH_NAME[f]}</span><br>${esc(act.desc)}. ${esc(fd.act)}.<br><span class="muted">신성력: ${esc(fd.gain)}, 초당 +2. 100이면 전투당 1회 발동 (수집 상한 ${CFG.divCap + run.divCap}).</span></div>`);
-  } else out.push(`<div class="small muted">고유 신앙: ${FAITH_NAME[u.faith || d.faith]} (디바인만 효과)</div>`);
+    out.push(abil('div', act.name, FAITH_NAME[f], app.detail
+      ? `${act.desc}. ${fd.act}. 신성력: ${fd.gain}, 초당 +2. 100이면 전투당 1회 발동 (수집 상한 ${CFG.divCap + run.divCap}).`
+      : `신성력이 가득 차면 전투당 한 번 발동한다. ${act.desc.split(',')[0]}, ${FAITH_NAME[f]}의 가호가 더해진다.`));
+  }
   return out.join('');
 }
 
@@ -455,9 +495,10 @@ function detailPanel(run: RunState) {
   const title = rankTitle(u.rank) + effects.reduce((s, e) => s + (e.title || 0), 0);
   const cost = R.xpCost(run);
   return `<div class="detail">
-    ${hero(d.id)}<div class="d-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="muted small">${esc(d.title)}</div>${memberships(u).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}</div>${rankPips(u.rank)}</div>
-    <div class="chips">${memberships(u).map(chip).join('')}</div>
-    ${typeLine(d)}${aceLine(run, u)}
+    ${hero(d.id)}<div class="d-tools">${detailToggle()}</div><div class="d-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="muted small">${esc(d.title)}</div>${memberships(u).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}</div>${rankPips(u.rank)}</div>
+    ${roleLine(d, u.faith || d.faith)}
+    <div class="syn-row"><span class="lbl">시너지</span><div class="chips">${memberships(u).map(chip).join('')}</div></div>
+    ${aceLine(run, u)}
     ${xpBar(u)}
     <button class="btn small" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''}>공명도 +${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)} (크레딧 ${cost})</button>
     <h3>메이저 스탯</h3>
@@ -465,13 +506,13 @@ function detailPanel(run: RunState) {
       const base = d.base[m], add = tm[m] - base;
       return `<div class="major"><span>${majorIcon(m)}${MAJOR_NAME[m]}</span><span class="mbar"><i style="width:${Math.min(100, tm[m] * 3)}%"></i></span><b>${tm[m]}</b>${add ? `<small class="${add > 0 ? 'up' : 'down'}">${add > 0 ? '+' : ''}${add}</small>` : ''}</div>`;
     }).join('')}</div>
-    <h3>무기</h3>
-    <p class="small">${esc(weaponLine(c.weapon || d.weapon))} · ${ELEM_NAME[c.atk.elem]}</p>
-    <h3>고유 특성 · ${esc(d.trait.name)}</h3>
-    <p class="small">${esc(d.trait.desc)}</p>
-    <h3>스킬 · ${esc(d.skill.name)} <span class="muted">${c.cdMax.toFixed(1)}초${d.ctype === 'CMD' ? ' · 전술 위력' : ''}</span></h3>
-    <p class="small">${esc(d.skill.desc(c.sk))}</p>
-    ${ttypeInfo(run, u)}
+    <h3>능력</h3>
+    <div class="abils">
+      ${weaponAbil(c.weapon || d.weapon, c.atk.elem)}
+      ${abil('trait', d.trait.name, '', traitText(d))}
+      ${abil('skill', d.skill.name, app.detail ? `${c.cdMax.toFixed(1)}초${d.ctype === 'CMD' ? ' · 전술 위력' : ''}` : '', skillText(d, c.sk))}
+      ${ttypeInfo(run, u)}
+    </div>
     <h3>증강 <span class="muted">${u.augments.length}</span></h3>
     ${u.augments.length ? `<ul class="augs">${u.augments.map((a) => { const ad = AUG_BY_ID[a.id]; return `<li class="aug-li">${augIcon(a.id)}<span><b>${esc(ad?.name || a.id)}</b><br><span class="muted">${esc(augDesc(a.id, a.param))}</span></span></li>`; }).join('')}</ul>` : '<p class="muted small">공명 등급이 오르면 증강을 고릅니다.</p>'}
     <h3>장비</h3>
@@ -672,7 +713,7 @@ function pendingModal(run: RunState): string {
     body = `<h1>${esc(p.title)}</h1><div class="cards">${p.options.map((id, i) => { const it = itemInfo(id); return `<button class="card" data-a="pick-item" data-v="${i}">${itemIcon(id)}<b>${esc(it.name)}</b><span>${esc(it.desc)}</span></button>`; }).join('')}</div>`;
   } else if (p.t === 'recruit') {
     const rank = Math.min(CFG.maxRank, Math.max(1, run.phase - 1) + (R.hasGlobal(run, 'G.scout') ? 1 : 0));
-    body = `<h1>기물 영입</h1><p class="muted">새 동료 한 명을 고르세요. 보유 ${run.units.length}/${CFG.maxParty} (출전은 최대 ${R.deployCap(run)}명, 나머지는 대기)</p>
+    body = `<h1>기물 영입 ${detailToggle()}</h1><p class="muted">새 동료 한 명을 고르세요. 보유 ${run.units.length}/${CFG.maxParty} (출전은 최대 ${R.deployCap(run)}명, 나머지는 대기)</p>
       <div class="ucard-grid">${p.options.map((id) => unitCard(UNIT_BY_ID[id], { action: 'pick-recruit', rank })).join('')}</div>`;
   } else if (p.t === 'supply') {
     body = `<h1>보급</h1><div class="cards">${p.options.map((o) => `<button class="card" data-a="pick-supply" data-v="${o}"><b>${esc(R.SUPPLY_TEXT[o])}</b></button>`).join('')}</div>`;
@@ -928,7 +969,11 @@ function act(a: string, v: string) {
   // 전투 중에는 속도 조절 / 결과 보기 / 계속만 받는다 (재렌더하면 전투 화면이 초기화됨)
   if (app.screen === 'battle' && !['speed', 'skip', 'after-battle', 'meter-tab', 'bsel'].includes(a)) return;
   switch (a) {
-    case 'newrun': app.starters = []; app.screen = 'newrun'; app.menu = null; break;
+    case 'newrun':
+      app.starters = []; app.screen = 'newrun'; app.menu = null;
+      app.pool = new Rng((Date.now() ^ (Math.random() * 1e9)) | 0).sample(UNITS.filter((u) => !u.noStarter).map((u) => u.id), 8);
+      break;
+    case 'toggle-detail': app.detail = !app.detail; savePref('detail', app.detail); break;
     case 'to-title': if (app.view) { app.view.destroy(); app.view = null; } app.screen = 'title'; app.menu = null; app.run = null; break;
     case 'pick-starter': {
       const i = app.starters.indexOf(v);
@@ -937,7 +982,7 @@ function act(a: string, v: string) {
       else toast(`${CFG.startUnits}명까지 고를 수 있습니다.`);
       break;
     }
-    case 'random-starters': app.starters = new Rng(Date.now() | 0).sample(UNITS.filter((u) => !u.noStarter).map((u) => u.id), CFG.startUnits); break;
+    case 'random-starters': app.starters = new Rng(Date.now() | 0).sample(app.pool, CFG.startUnits); break;
     case 'start-run':
       if (app.starters.length !== CFG.startUnits) return;
       app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, undefined, Math.min(app.diff, loadMeta().maxDiff));
@@ -1212,6 +1257,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (sv) return;
+  if (k === 'd') { act('toggle-detail', ''); return; }
   const modal = document.querySelector('.modal-bg .modal');
   const digit = /^[1-9]$/.test(k) ? +k : 0;
   if (modal && app.screen !== 'battle') {
