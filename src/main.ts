@@ -632,13 +632,13 @@ function pendingModal(run: RunState): string {
         <p class="muted small">공명 등급 ${CFG.statEvery}의 배수마다 받는 보상입니다. 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${CFG.hasRankAug(p.rank) ? ` · 이어서 ${p.rank}등급 증강` : ''}<br>(등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>
         <div class="alloc-grid">${MAJORS.map((m) => {
           const on = app.picks.includes(m);
-          return `<button class="stat-pick ${on ? 'on' : ''} ${rec.includes(m) ? 'rec' : ''}" data-a="alloc-pick" data-v="${m}" aria-pressed="${on}" aria-label="${MAJOR_NAME[m]} ${tm[m]}" ${on || left ? '' : 'disabled'}>
+          return `<button class="stat-pick ${on ? 'on' : ''} ${rec.includes(m) ? 'rec' : ''}" data-a="alloc-pick" data-v="${m}" aria-pressed="${on}" aria-label="${MAJOR_NAME[m]} ${on ? tm[m] + p.points : tm[m]}" ${on || left ? '' : 'disabled'}>
             ${majorIcon(m, 'mi big')}${rec.includes(m) ? '<span class="rec-tag">추천</span>' : ''}
-            <span class="sp-val"><b>${tm[m]}</b>${on ? `<em>+${p.points}</em>` : ''}</span>
+            <span class="sp-val"><b>${on ? tm[m] + p.points : tm[m]}</b></span>
             <span class="tip" role="tooltip"><b>${MAJOR_NAME[m]}</b> 1pt당<br>${conv(m)}${rec.includes(m) ? '<br><span class="accent">이 기물의 공격 방식 · 기본 성향에 맞는 스탯</span>' : ''}</span></button>`;
         }).join('')}
-          <button class="btn primary alloc-ok" data-a="alloc-ok" ${left ? 'disabled' : ''}>${left ? `${left}개 더 고르세요` : '확정'}</button>
-        </div></div>`;
+        </div>
+        <div class="ru-foot"><button class="btn primary alloc-ok" data-a="alloc-ok" ${left ? 'disabled' : ''}>${left ? `${left}개 더 고르세요` : '확정'}</button></div></div>`;
     } else {
       R.ensureRankupOptions(run, p);
       const opts = p.options || [];

@@ -467,3 +467,13 @@ kbd { font-family: var(--f-mono); font-size: .75em; border: 1px solid var(--line
 .stat-pick { grid-template-rows: auto; padding: 14px 12px; }
 .stat-pick .mi.big { grid-row: auto; }
 .stat-pick .sp-val { font-size: 1.45rem; }
+/* 능력치: 5개 한 줄, 아이콘 위 · 숫자 아래, 고른 스탯은 반영 후 값을 강조색으로 */
+.alloc-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.stat-pick { grid-template-columns: 1fr; justify-items: center; row-gap: 6px; padding: 14px 6px 12px; text-align: center; }
+.stat-pick .sp-val { font-size: 1.5rem; justify-content: center; }
+.stat-pick.on .sp-val b { color: var(--accent); }
+.ru-foot .alloc-ok { min-width: 160px; min-height: 44px; }
+.alloc-grid .stat-pick:nth-child(3n+1) .tip, .alloc-grid .stat-pick:nth-child(3n) .tip { left: 50%; right: auto; transform: translateX(-50%); }
+.alloc-grid .stat-pick:first-child .tip { left: 0; transform: none; }
+.alloc-grid .stat-pick:nth-child(5) .tip { left: auto; right: 0; transform: none; }
+@media (max-width: 520px) { .stat-pick { padding: 10px 2px 8px; } .stat-pick .sp-val { font-size: 1.2rem; } .alloc-grid { gap: 6px; } }
