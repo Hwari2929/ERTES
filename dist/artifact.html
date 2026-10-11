@@ -718,8 +718,11 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .tip-foot { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin-top: 4px; }
 .item-tip .mi { width: 1.05em; height: 1.05em; }
 /* 상세 보기 장비 줄: 장비 3 + 개조부품 1 */
-.d-eq { display: grid; grid-template-columns: repeat(4, 40px); gap: 6px; margin-top: 10px; }
-.d-eq .item { width: 40px; height: 40px; font-size: 18px; cursor: pointer; }
+.d-eqbox { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 6px 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; }
+.d-eq-l { flex: none; font-size: .78rem; font-weight: 700; color: var(--dim); writing-mode: horizontal-tb; }
+.d-eq { flex: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.d-eq > span { display: block; min-width: 0; }
+.d-eq .item { width: 100%; height: 40px; font-size: 18px; cursor: pointer; }
 .d-eq .item.empty { cursor: default; }
 .d-eq .tk-it { display: block; touch-action: none; -webkit-touch-callout: none; user-select: none; }
 .d-eq .item .ii { width: 22px; height: 22px; }
@@ -926,7 +929,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
     <div class="dh-rank"><span class="dh-r">${Nt(s.rank)}</span>${fr(s)}<button class="btn tiny dh-buy" data-a="buyxp" data-v="${s.uid}" ${s.rank>=A.maxRank||e.credits<f?"disabled":""} title="\uACF5\uBA85\uB3C4 +${A.buyXpAmount+(ne(e,"G.study")?1:0)} \uAD6C\uC785 (\uC5D0\uB108\uC9C0 \uD06C\uB808\uB527 ${f})">${qe("r.res","li res")}+${A.buyXpAmount+(ne(e,"G.study")?1:0)}<span class="dh-cost">${qe("r.cr","li cr")}${f}</span></button></div>
     <div class="chips nb-syn">${K(s,e).map(Ct).join("")}</div>
     ${K(s,e).includes("KAL")?`<div class="small accent">\uC791\uC704: ${Hn[Math.min(6,c)]}</div>`:""}
-    <div class="d-eq" aria-label="\uC7A5\uBE44 \xB7 \uAC1C\uC870\uBD80\uD488">${s.items.map((m,u)=>m?`<span class="tk-it" data-a="item-info" data-v="${s.uid}:${u}" data-drag="eq:${s.uid}:${u}" data-hold>${ce(m)}</span>`:`<span data-drop="unit:${s.uid}">${ce(null)}</span>`).join("")}${s.mod?`<span class="tk-it" data-a="item-info" data-v="${s.uid}:-1" data-drag="eq:${s.uid}:-1" data-hold>${ce(s.mod)}</span>`:`<span data-drop="unit:${s.uid}" title="\uAC1C\uC870\uBD80\uD488 \uCE78 \xB7 \uBB38\uC7A5\uC744 \uB04C\uC5B4\uB2E4 \uC7A5\uCC29"><span class="item empty tM"></span></span>`}</div>
+    <div class="d-eqbox"><span class="d-eq-l">\uC7A5\uBE44</span><div class="d-eq" aria-label="\uC7A5\uBE44 \xB7 \uAC1C\uC870\uBD80\uD488">${s.items.map((m,u)=>m?`<span class="tk-it" data-a="item-info" data-v="${s.uid}:${u}" data-drag="eq:${s.uid}:${u}" data-hold>${ce(m)}</span>`:`<span data-drop="unit:${s.uid}">${ce(null)}</span>`).join("")}${s.mod?`<span class="tk-it" data-a="item-info" data-v="${s.uid}:-1" data-drag="eq:${s.uid}:-1" data-hold>${ce(s.mod)}</span>`:`<span data-drop="unit:${s.uid}" title="\uAC1C\uC870\uBD80\uD488 \uCE78 \xB7 \uBB38\uC7A5\uC744 \uB04C\uC5B4\uB2E4 \uC7A5\uCC29"><span class="item empty tM"></span></span>`}</div></div>
     <h3>\uBA54\uC774\uC800 \uC2A4\uD0EF</h3>
     <div class="majors">${$.map(m=>{let u=a.base[m],b=o[m]-u;return`<div class="major"><span>${os(m)}${we[m]}</span><span class="mbar"><i style="width:${Math.min(100,o[m]*3)}%"></i></span><b>${o[m]}</b>${b?`<small class="${b>0?"up":"down"}">${b>0?"+":""}${b}</small>`:""}</div>`}).join("")}</div>
     <h3>\uB2A5\uB825</h3>
