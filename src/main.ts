@@ -43,6 +43,7 @@ const app = {
   starters: [] as string[],
   pool: [] as string[], // 시작 기물 후보 (무작위 8명)
   detail: !!loadPrefs().detail, // 상세 보기: 계수 · 메커니즘 표시
+  subOpen: new Set<string>(), // 특성 하위 항목(전투 · 전술 유형, 신앙) 펼침 상태
   menu: null as null | 'menu' | 'export' | 'import',
   view: null as BattleView | null,
   summary: null as R.BattleSummary | null,
@@ -218,15 +219,70 @@ function ownedChip(defId: string) {
   };
 }
 const CTYPE_ICON: Record<string, string> = { MARK: '⌖', VAN: '⚔', SPEC: '✦', CMD: '♜' };
+const TTYPE_ICON: Record<string, string> = { major: '◆', minor: '◇', special: '★', psionic: '◎', divine: '✟' };
 const WPOS = (r: number) => (r <= 1 ? '근거리' : r <= 3 ? '중거리' : '원거리');
-/** 클래스 표기: 전투 유형 · 전술 유형 (디바인은 신앙까지) */
-function roleLine(d: UnitDef, faith = d.faith) {
-  const showFaith = d.ttype === 'divine' || app.detail;
-  return `<div class="role" title="전투 유형 · 전술 유형"><span class="role-c ct-${d.ctype}">${CTYPE_ICON[d.ctype]} ${CTYPE_NAME[d.ctype]}</span><span class="role-t tt-${d.ttype}">${TTYPE_NAME[d.ttype]}</span>${showFaith ? `<span class="role-f">${FAITH_NAME[faith]}</span>` : ''}</div>`;
+/** 이름 옆 유형 아이콘 (설명은 특성 아래) */
+function typeIcons(d: UnitDef) {
+  return `<span class="ticons"><i class="ct-${d.ctype}" title="전투 유형: ${CTYPE_NAME[d.ctype]}">${CTYPE_ICON[d.ctype]}</i><i class="tt-${d.ttype}" title="전술 유형: ${TTYPE_NAME[d.ttype]}">${TTYPE_ICON[d.ttype]}</i></span>`;
 }
-function synRow(d: UnitDef, ids: string[], chipFn: (id: string) => string = chip) {
-  void d;
-  return `<div class="syn-row"><span class="lbl">시너지</span><div class="chips">${ids.map(chipFn).join('')}</div></div>`;
+/** 이름 + 유형 아이콘, 그 아래 시너지 · 공명 등급 */
+function nameBlock(d: UnitDef, syns: string[], rank: number, chipFn: (id: string) => string = chip, extra = '') {
+  return `<div class="nb"><div class="nb-name"><b>${esc(d.name)}</b>${typeIcons(d)}</div>
+    <div class="chips nb-syn">${rankPips(rank)}${syns.map(chipFn).join('')}</div>${extra}</div>`;
+}
+const CTYPE_DESC: Record<string, [string, string]> = {
+  MARK: ['사격으로 싸운다. 사격 위력 · 공격 속도 · 재장전 · 명중 · 치명타가 중요하다.', '주력: 사격 위력, 사격 속도, 재장전 속도, 명중, 치명 확률 · 피해. 탄창을 다 쓰면 재장전하는 동안 기본 공격을 못 한다 (스킬은 가능).'],
+  VAN: ['근접 타격으로 싸운다. 타격 위력 · 콤보와 피니쉬 · 치명타가 중요하다.', `주력: 타격 위력, 타격 속도, 명중, 콤보 · 피니쉬 피해량, 치명 확률 · 피해. 무기별 N번째 공격이 피니쉬 (×${CFG.finishMult}).`],
+  SPEC: ['기술로 싸운다. 기술 위력 · 효과 명중 · 쿨다운이 중요하다.', '주력: 기술 위력, 효과 명중, 쿨다운 감소 속도, 기술 범위. 기술 피해는 치명타가 없다 (일부 특성 예외).'],
+  CMD: ['아군이 함께 쓰는 전술 위력으로 스킬을 쓴다. 출전 인원이 적을수록, 지휘관이 많고 정신력이 높을수록 강하다.', `스킬은 전술 위력으로 계산한다. 전술 위력 = 20 − 출전 기물 수 × 2 + Σ(지휘관마다 2 + ⌊정신력 × 0.25⌋), 1당 위력 ${CFG.tacScale}.`],
+};
+const TTYPE_DESC: Record<string, [string, string]> = {
+  major: ['자주 증강을 고르며, 모두가 쓸 수 있는 메이저 증강도 나온다.', '3등급마다 능력치 2개 +3, 3등급마다 증강 (전용 + 메이저 공용 풀).'],
+  minor: ['런 동안 조금씩 쌓이는 성장 특성을 가진다.', '3등급마다 능력치 2개 +3, 5등급마다 증강. 성장 특성은 런 내내 누적된다.'],
+  special: ['합류할 때 스페셜 증강을 하나 더 고르고, 능력치는 알아서 자란다.', '매 등급 추천 능력치 2종 중 하나가 자동으로 +3 (선택 창 없음), 5등급마다 증강, 합류 시 스페셜 증강 1개 추가.'],
+  psionic: ['이성 수치에 따라 강해지거나 흔들린다.', `3등급마다 능력치 2개 +3, 5등급마다 증강, 4등급마다 사이오닉 증강. 이성은 ${CFG.reasonStart}에서 시작해 전투마다 초기화.`],
+  divine: ['신성력을 모아 전투당 한 번 신권 대행을 쓴다. 전투 후 권능 포인트를 얻는다.', `3등급마다 능력치 2개 +3, 5등급마다 증강. 신성력 0~100, 전투당 수집 상한 ${CFG.divCap}, 권능 = 모은 신성력 ÷ ${CFG.powerPerDiv} (최대 ${CFG.powerMax}).`],
+};
+/** 특성 하위 항목 (접힘) */
+function sub(key: string, icon: string, cls: string, name: string, kind: string, body: string) {
+  const open = app.subOpen.has(key);
+  return `<div class="sub ${open ? 'open' : ''}"><span class="sub-h" data-a="toggle-sub" data-v="${key}" aria-expanded="${open}"><i class="${cls}">${icon}</i><b>${esc(name)}</b><span class="muted">${kind}</span><span class="caret">${open ? '▾' : '▸'}</span></span>${open ? `<div class="sub-b">${body}</div>` : ''}</div>`;
+}
+/** 전술 유형별 고유 정보 (성장 특성 · 이성 · 신권 대행) */
+function ttypeExtra(d: UnitDef, u: UnitState | null, run: RunState | null) {
+  const out: string[] = [];
+  const g = u?.grow || {};
+  if (d.ttype === 'minor' && d.growth) {
+    const prog = Object.entries(g).filter(([k]) => !k.startsWith('f_')).map(([k, v]) => `${k} ${v}`).join(', ');
+    out.push(`<p><b>${esc(d.growth.name)}</b> · ${esc(app.detail ? d.growth.desc : GROWTH_BRIEF[d.id] || d.growth.desc)}${app.detail && prog ? ` <span class="accent">(누적: ${esc(prog)})</span>` : ''}</p>`);
+  }
+  if (d.ttype === 'psionic' && d.psi) out.push(`<p><b>이성</b> · ${esc(app.detail
+    ? `${d.psi.desc} 이성이 높으면 받는 정신·신성 피해 감소 · 지원 효율 증가, 음수면 정신 피해 증폭 · 흡혈, -50 이하는 광폭 (피해 +30%, 초당 최대 체력 2% 손실).`
+    : `${PSI_BRIEF[d.id] || d.psi.desc} 높으면 단단해지고, 낮으면 정신 피해가 강해지며, 너무 낮으면 광폭한다.`)}</p>`);
+  if (d.ttype === 'special') out.push(`<p class="muted">자동 성장: ${recMajors(d).map((m) => MAJOR_NAME[m]).join(' · ')}</p>`);
+  if (d.ttype === 'divine') {
+    const act = DIVINE_ACT[d.ctype];
+    out.push(`<p><b>신권 대행 · ${esc(act.name)}</b> · ${esc(app.detail ? `${act.desc}. 신앙 효과가 더해진다.` : act.desc.split(',')[0] + '.')}</p>`);
+  }
+  void run;
+  return out.join('');
+}
+function faithBody(d: UnitDef, f: FaithId, run: RunState | null) {
+  const fd = FAITH_DEF[f];
+  if (d.ttype !== 'divine') return `<p class="muted">디바인이 아니라 평소에는 효과가 없다. (도로스의 성찬을 받으면 그 전투 동안 깨어난다)</p>`;
+  return `<p>${esc(app.detail ? `신성력 획득: ${fd.gain}, 초당 +2. 신권 대행에 더해지는 효과: ${fd.act}. 수집 상한 ${CFG.divCap + (run?.divCap || 0)}.` : `신권 대행에 더해지는 가호: ${fd.act}.`)}</p>`;
+}
+/** 특성 블록: 고유 특성 + 전투 유형 · 전술 유형 · 고유 신앙 (접힘) */
+function traitGroup(d: UnitDef, u: UnitState | null, run: RunState | null) {
+  const f = u?.faith || d.faith;
+  const k = (x: string) => `${d.id}:${x}`;
+  const ct = CTYPE_DESC[d.ctype], tt = TTYPE_DESC[d.ttype];
+  return `<div class="abil ab-trait"><div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div><p>${esc(traitText(d))}</p>
+    <div class="subs">
+      ${sub(k('ct'), CTYPE_ICON[d.ctype], `ct-${d.ctype}`, CTYPE_NAME[d.ctype], '전투 유형', `<p>${esc(app.detail ? ct[1] : ct[0])}</p>`)}
+      ${sub(k('tt'), TTYPE_ICON[d.ttype], `tt-${d.ttype}`, TTYPE_NAME[d.ttype], '전술 유형', `<p>${esc(app.detail ? tt[1] : tt[0])}</p>${ttypeExtra(d, u, run)}`)}
+      ${sub(k('faith'), '☉', `faith-${d.ttype === 'divine' ? 'on' : 'off'}`, FAITH_NAME[f], '고유 신앙', faithBody(d, f, run))}
+    </div></div>`;
 }
 const AB_KIND = { weapon: '무기', trait: '특성', skill: '스킬', grow: '성장', psi: '이성', div: '신권' } as const;
 /** 무기 · 특성 · 스킬 등을 같은 모양의 블록으로 */
@@ -253,14 +309,11 @@ function detailToggle() {
 }
 function unitCard(d: UnitDef, opts: { selected?: boolean; action?: string; rank?: number } = {}) {
   return `<button class="ucard ${opts.selected ? 'sel' : ''}" data-a="${opts.action || 'pick-starter'}" data-v="${d.id}">
-    ${hero(d.id, 'hero sm')}<div class="ucard-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="muted small">${esc(d.title)}</div></div></div>
-    ${roleLine(d)}
-    ${synRow(d, [...d.factions, ...d.traits], opts.action === 'pick-recruit' ? ownedChip(d.id) : chip)}
+    ${hero(d.id, 'hero sm')}<div class="ucard-head">${sprite(d, 'spr big')}${nameBlock(d, [...d.factions, ...d.traits], opts.rank || 1, opts.action === 'pick-recruit' ? ownedChip(d.id) : chip)}</div>
     ${weaponAbil(d.weapon)}
-    ${abil('trait', d.trait.name, '', traitText(d))}
+    ${traitGroup(d, null, app.run)}
     ${abil('skill', d.skill.name, app.detail ? `${d.skill.cd}초` : '', skillText(d))}
     <div class="majors-mini">${MAJORS.map((m) => `<span title="${MAJOR_NAME[m]}">${majorIcon(m)}<b>${d.base[m]}</b></span>`).join('')}</div>
-    ${opts.rank ? `<div class="small accent">공명 등급 ${opts.rank}로 합류</div>` : ''}
   </button>`;
 }
 function newRunScreen() {
@@ -431,31 +484,6 @@ function previewAlly(run: RunState, u: UnitState) {
   return { b, c };
 }
 
-/** 전술 유형별 고유 정보 (성장 특성 · 이성 · 신앙) */
-function ttypeInfo(run: RunState, u: UnitState) {
-  const d = UNIT_BY_ID[u.defId];
-  const g = u.grow || {};
-  const out: string[] = [];
-  if (d.ttype === 'minor' && d.growth) {
-    const prog = Object.entries(g).filter(([k]) => !k.startsWith('f_')).map(([k, v]) => `${k} ${v}`).join(', ');
-    out.push(abil('grow', d.growth.name, '런 누적', (app.detail ? d.growth.desc : GROWTH_BRIEF[d.id] || d.growth.desc) + (app.detail && prog ? ` (누적: ${prog})` : '')));
-  }
-  if (d.ttype === 'psionic' && d.psi) {
-    out.push(abil('psi', '이성', app.detail ? `시작 ${CFG.reasonStart}` : '', app.detail
-      ? `${d.psi.desc} 이성이 높으면 받는 정신·신성 피해 감소 · 지원 효율 증가, 음수면 정신 피해 증폭 · 흡혈, -50 이하는 광폭 (피해 +30%, 초당 최대 체력 2% 손실). 전투마다 초기화.`
-      : `${PSI_BRIEF[d.id] || d.psi.desc} 이성이 높으면 단단해지고, 낮으면 정신 피해가 강해지며, 너무 낮으면 광폭한다.`));
-  }
-  if (d.ttype === 'special') out.push(`<div class="small muted">스페셜: 등급이 오를 때마다 ${recMajors(d).map((m) => MAJOR_NAME[m]).join(' · ')} 중 하나가 자동으로 오른다.</div>`);
-  if (d.ttype === 'divine') {
-    const f = u.faith || d.faith;
-    const fd = FAITH_DEF[f], act = DIVINE_ACT[d.ctype];
-    out.push(abil('div', act.name, FAITH_NAME[f], app.detail
-      ? `${act.desc}. ${fd.act}. 신성력: ${fd.gain}, 초당 +2. 100이면 전투당 1회 발동 (수집 상한 ${CFG.divCap + run.divCap}).`
-      : `신성력이 가득 차면 전투당 한 번 발동한다. ${act.desc.split(',')[0]}, ${FAITH_NAME[f]}의 가호가 더해진다.`));
-  }
-  return out.join('');
-}
-
 function aceLine(run: RunState, u: UnitState) {
   const d = UNIT_BY_ID[u.defId];
   if (!u.pos || !d.ace || !tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0)) return '';
@@ -495,9 +523,7 @@ function detailPanel(run: RunState) {
   const title = rankTitle(u.rank) + effects.reduce((s, e) => s + (e.title || 0), 0);
   const cost = R.xpCost(run);
   return `<div class="detail">
-    ${hero(d.id)}<div class="d-tools">${detailToggle()}</div><div class="d-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="muted small">${esc(d.title)}</div>${memberships(u).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}</div>${rankPips(u.rank)}</div>
-    ${roleLine(d, u.faith || d.faith)}
-    <div class="syn-row"><span class="lbl">시너지</span><div class="chips">${memberships(u).map(chip).join('')}</div></div>
+    ${hero(d.id)}<div class="d-tools">${detailToggle()}</div><div class="d-head">${sprite(d, 'spr big')}${nameBlock(d, memberships(u, run), u.rank, chip, memberships(u, run).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : '')}</div>
     ${aceLine(run, u)}
     ${xpBar(u)}
     <button class="btn small" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''}>공명도 +${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)} (크레딧 ${cost})</button>
@@ -509,9 +535,8 @@ function detailPanel(run: RunState) {
     <h3>능력</h3>
     <div class="abils">
       ${weaponAbil(c.weapon || d.weapon, c.atk.elem)}
-      ${abil('trait', d.trait.name, '', traitText(d))}
+      ${traitGroup(d, u, run)}
       ${abil('skill', d.skill.name, app.detail ? `${c.cdMax.toFixed(1)}초${d.ctype === 'CMD' ? ' · 전술 위력' : ''}` : '', skillText(d, c.sk))}
-      ${ttypeInfo(run, u)}
     </div>
     <h3>증강 <span class="muted">${u.augments.length}</span></h3>
     ${u.augments.length ? `<ul class="augs">${u.augments.map((a) => { const ad = AUG_BY_ID[a.id]; return `<li class="aug-li">${augIcon(a.id)}<span><b>${esc(ad?.name || a.id)}</b><br><span class="muted">${esc(augDesc(a.id, a.param))}</span></span></li>`; }).join('')}</ul>` : '<p class="muted small">공명 등급이 오르면 증강을 고릅니다.</p>'}
@@ -974,6 +999,7 @@ function act(a: string, v: string) {
       app.pool = new Rng((Date.now() ^ (Math.random() * 1e9)) | 0).sample(UNITS.filter((u) => !u.noStarter).map((u) => u.id), 8);
       break;
     case 'toggle-detail': app.detail = !app.detail; savePref('detail', app.detail); break;
+    case 'toggle-sub': if (app.subOpen.has(v)) app.subOpen.delete(v); else app.subOpen.add(v); break;
     case 'to-title': if (app.view) { app.view.destroy(); app.view = null; } app.screen = 'title'; app.menu = null; app.run = null; break;
     case 'pick-starter': {
       const i = app.starters.indexOf(v);
