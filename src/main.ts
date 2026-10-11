@@ -616,8 +616,9 @@ function pendingModal(run: RunState): string {
     const u = run.units.find((x) => x.uid === p.uid)!;
     const d = UNIT_BY_ID[u.defId];
     const art = standImg(d.id, 'stand full') + standImg(d.id, 'stand bust', true); // 넓은 화면은 전신, 좁은 화면은 얼굴 기준 상반신
-    const side = `<div class="ru-art" data-stand="${d.id}">${art || sprite(d, 'spr big')}</div>`;
-    const who = `<div class="ru-who">${sprite(d, 'spr')}<div><b>${esc(d.name)}</b><div class="accent small">${p.join ? `합류 · 공명 등급 ${p.rank}` : `공명 등급 ${p.rank - 1} → ${p.rank}`}</div></div></div>`;
+    // 이름 · 등급은 일러스트 위에 (넓은 화면 좌하단, 좁은 화면 우상단)
+    const side = `<div class="ru-art" data-stand="${d.id}">${art || sprite(d, 'spr big')}
+      <div class="ru-tag"><b>${esc(d.name)}</b><span>${p.join ? `공명 등급 ${p.rank}로 합류` : `공명 등급 <b>${p.rank}</b> 달성`}</span></div></div>`;
     mcls = 'rankup';
     if (!p.allocDone) {
       const left = CFG.rankPicks - app.picks.length;
@@ -626,8 +627,8 @@ function pendingModal(run: RunState): string {
       const rec = recommendedMajors(d);
       const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? Math.round((v as number) * 100) + '%' : v}`).join(', ');
       body = `${side}<div class="ru-main">
-        <div class="ru-head"><h1>공명 등급 상승</h1>${who}</div>
-        <p class="muted small">모든 스탯 <b class="accent">+${CFG.rankAll}</b> 반영됨 · 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${CFG.hasRankAug(p.rank) ? ' · 이어서 전용 증강' : ''}</p>
+        <div class="ru-head"><h1>${p.rank}등급 달성 보상 · 능력치</h1></div>
+        <p class="muted small">공명 등급 ${CFG.statEvery}의 배수마다 받는 보상입니다. 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${CFG.hasRankAug(p.rank) ? ` · 이어서 ${p.rank}등급 증강` : ''}<br>(등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>
         <div class="alloc-grid">${MAJORS.map((m) => {
           const on = app.picks.includes(m);
           return `<button class="stat-pick ${on ? 'on' : ''} ${rec.includes(m) ? 'rec' : ''}" data-a="alloc-pick" data-v="${m}" aria-pressed="${on}" ${on || left ? '' : 'disabled'}>
@@ -641,7 +642,8 @@ function pendingModal(run: RunState): string {
       R.ensureRankupOptions(run, p);
       const opts = p.options || [];
       body = `${side}<div class="ru-main">
-        <div class="ru-head"><h1>${p.join ? '합류 증강' : '증강 선택'}</h1>${who}
+        <div class="ru-head"><h1>${p.join ? '합류 보상 · 증강' : `${p.rank}등급 달성 보상 · 증강`}</h1>
+          <span class="muted small">${p.join ? '합류할 때 전용 증강 1개를 고릅니다.' : `공명 등급 ${CFG.augEvery}의 배수마다 전용 증강 1개를 고릅니다.`}</span>
           ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
         <div class="aug-list">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];

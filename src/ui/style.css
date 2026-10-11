@@ -451,3 +451,13 @@ kbd { font-family: var(--f-mono); font-size: .75em; border: 1px solid var(--line
   .ru-art .stand.full { display: none; }
   .ru-art .stand.bust { display: block; object-position: 50% 0; }
 }
+.ru-head h1 { font-size: 1.35rem; }
+.ru-tag { position: absolute; left: 14px; bottom: 12px; z-index: 1; display: grid; gap: 1px; text-shadow: 0 1px 6px rgb(0 0 0 / .8); pointer-events: none; }
+.ru-tag > b { font-size: 1.35rem; letter-spacing: .02em; }
+.ru-tag > span { font-size: .85rem; color: var(--accent); }
+.ru-tag > span b { font-size: 1.05rem; }
+@media (max-width: 680px) {
+  .ru-tag { left: auto; bottom: auto; right: 10px; top: 10px; text-align: right; background: rgb(15 18 25 / .72); border-radius: 6px; padding: 4px 8px; }
+  .ru-tag > b { font-size: 1.1rem; }
+  .ru-art::after { inset: 0 0 auto auto; width: 60%; height: 70px; background: linear-gradient(225deg, rgb(15 18 25 / .75), transparent 70%); }
+}
