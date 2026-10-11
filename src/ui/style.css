@@ -374,6 +374,8 @@ textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--fg
 .hero::after { content: ''; position: absolute; inset: auto 0 0; height: 40%; background: linear-gradient(transparent, var(--panel)); pointer-events: none; }
 .hero .stand { width: 100%; height: 100%; object-fit: cover; object-position: 50% 0; display: block; }
 .hero.sm { height: 130px; cursor: inherit; }
+.hero.sm .stand { object-position: 50% 20%; }
+.hero.sm::after { height: 28%; }
 .ucard > .hero.sm, .codex-card > .hero.sm { margin: -12px -12px 2px; }
 .codex-card > .hero.sm { margin: -10px -10px 2px; cursor: zoom-in; }
 .modal .hero.sm { margin: 0; border-radius: 8px; height: 220px; }
