@@ -743,6 +743,10 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .dh-rank { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .dh-r { font-family: var(--f-mono); font-weight: 700; font-size: 1rem; display: inline-flex; align-items: center; gap: 2px; flex: none; }
 .dh-rank .xp { flex: 1; }
-.dh-buy { flex: none; white-space: nowrap; }
+.dh-buy { flex: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-family: var(--f-mono); }
+.dh-buy .li { width: 14px; height: 14px; }
+.dh-buy .res { color: #9ad0ff; }
+.dh-cost { display: inline-flex; align-items: center; gap: 2px; margin-left: 4px; padding-left: 6px; border-left: 1px solid var(--line); }
+.dh-buy .cr { color: var(--accent); }
 .dh-rank + .chips { margin-top: 12px; }
 .ab-ace { --ab: #7ab8ff; } .ab-ace .btn { margin-top: 4px; } .ab-ace:not(.on) p { opacity: .7; }

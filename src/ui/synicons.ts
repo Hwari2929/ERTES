@@ -65,6 +65,9 @@ const L: Record<string, string> = {
   'n.boss': '<path d="M5 3l2 5 5-3 5 3 2-5"/><path d="M5 8a7 7 0 0 0 14 0"/><path d="M6 13c0 4 2.5 8 6 8s6-4 6-8"/><path d="M9.5 14.5h.01M14.5 14.5h.01"/><path d="M10 18h4"/>',
   'n.pilgrim': '<path d="M12 2v6M9 4.5h6"/><path d="M5 21V12l7-4 7 4v9z"/><path d="M10 21v-4a2 2 0 0 1 4 0v4"/>',
   'n.invest': '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/><path d="M3 21h18"/>',
+  // 자원
+  'r.res': '<circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/>',
+  'r.cr': '<path d="M12 2.5 20.2 7.2v9.6L12 21.5l-8.2-4.7V7.2z"/><path d="M13 7l-3.5 5.5h5L11 17"/>',
   'n.news': '<path d="M4 4h13v15a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v10a2 2 0 0 1-4 0"/><path d="M7.5 8h6M7.5 12h6M7.5 16h4"/>',
   'n.event': '<path d="M8 3h10a2 2 0 0 1 2 2v12H8z"/><path d="M8 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12v-4"/><path d="M12 8l1 2 2 .3-1.5 1.4.4 2.1L12 12.8l-1.9 1 .4-2.1L9 10.3l2-.3z"/>',
   // 장비 (고급 · 전설)
