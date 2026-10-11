@@ -3,3 +3,4 @@ dist/sim.cjs
 art/raw/
 dist/art/
 __pycache__/
+dist/crop/

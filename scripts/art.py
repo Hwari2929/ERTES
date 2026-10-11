@@ -6,6 +6,8 @@
                                   + public/art/<id>.bust.webp (머리 크기를 맞춘 상반신 배너)
                                   + src/ui/portraits.gen.ts (머리 크기를 맞춘 아이콘, 데이터 URI 내장)
   NAI V5 투명 배경 원본(RGBA)은 그대로 쓰고, 흰 배경 원본만 배경을 깎는다.
+  python3 scripts/art.py croptool       초상화 크롭 도구 → dist/crop/index.html + dist/crop/img/ (아티팩트로 게시)
+                                  도구에서 저장한 값은 art/crops.json [x, y, 한 변] 에 옮겨 두면 faces.json 보다 우선한다
   python3 scripts/art.py sheet OUT.png   아이콘 확인용 시트
   python3 scripts/art.py holes OUT.png   갇힌 배경 후보 표시 (art/cut.json 에 지울 점 기록)
 """
@@ -13,7 +15,7 @@ import base64, io, json, os, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
-PICKS, FACES, CUTS, PICKED, OUT = 'art/picks.json', 'art/faces.json', 'art/cut.json', 'art/picked', 'public/art'
+PICKS, FACES, CROPS, CUTS, PICKED, OUT = 'art/picks.json', 'art/faces.json', 'art/crops.json', 'art/cut.json', 'art/picked', 'public/art'
 STAND_H, ICON = 960, 128
 # 얼굴 크기 정규화 (눈썹~턱 = F)
 #  아이콘: F 가 한 변의 ICON_FACE 비율, 턱은 위에서 ICON_CHIN 지점 (턱은 안 잘리고 머리카락 윗부분은 잘려도 됨)
@@ -154,11 +156,26 @@ def cmd_faces():
     json.dump(faces, open(FACES, 'w'), indent=1)
 
 
-def icon_of(cut, face):
-    fx, brow, chin = face
+def crop_box(i, faces=None):
+    """초상화 정사각 [x, y, 한 변] — 직접 잡은 크롭(art/crops.json)이 있으면 그것, 없으면 얼굴 표시로 계산"""
+    crops = load_json(CROPS, {})
+    if i in crops:
+        return [int(v) for v in crops[i]]
+    fx, brow, chin = (faces or load_json(FACES, {}))[i]
     s = round((chin - brow) / ICON_FACE)
-    top = round(chin - s * ICON_CHIN)
-    box = (fx - s // 2, top, fx - s // 2 + s, top + s)
+    return [fx - s // 2, round(chin - s * ICON_CHIN), s]
+
+
+def face_of(i, faces=None):
+    """배너용 [얼굴 중심 x, 눈썹, 턱] — 직접 잡은 크롭이 있으면 거기서 거꾸로 계산해 두 결과를 맞춘다"""
+    x, y, s = crop_box(i, faces)
+    chin = y + s * ICON_CHIN
+    return [x + s / 2, chin - s * ICON_FACE, chin]
+
+
+def icon_of(cut, box):
+    x, y, s = box
+    box = (x, y, x + s, y + s)
     # 원본 밖으로 나가는 크롭도 허용 (투명으로 채움)
     canvas = Image.new('RGBA', (cut.width + 2 * s, cut.height + 2 * s), (0, 0, 0, 0))
     canvas.paste(cut, (s, s))
@@ -190,11 +207,11 @@ def cmd_build():
         stand = stand.resize((max(1, round(stand.width * scale)), max(1, round(stand.height * scale))), Image.LANCZOS)
         stand.save(f'{OUT}/{i}.webp', 'WEBP', quality=82, method=6)
         total += os.path.getsize(f'{OUT}/{i}.webp')
-        if i in faces:
-            bust_of(cut, faces[i]).save(f'{OUT}/{i}.bust.webp', 'WEBP', quality=82, method=6)
+        if i in faces or i in load_json(CROPS, {}):
+            bust_of(cut, face_of(i, faces)).save(f'{OUT}/{i}.bust.webp', 'WEBP', quality=82, method=6)
             total += os.path.getsize(f'{OUT}/{i}.bust.webp')
             buf = io.BytesIO()
-            icon_of(cut, faces[i]).save(buf, 'WEBP', quality=82, method=6)
+            icon_of(cut, crop_box(i, faces)).save(buf, 'WEBP', quality=82, method=6)
             icons[i] = 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode()
     with open('src/ui/portraits.gen.ts', 'w') as f:
         f.write('// 자동 생성: python3 scripts/art.py build — 직접 고치지 말 것\n')
@@ -214,7 +231,7 @@ def cmd_sheet(out):
     sheet = Image.new('RGB', (C * T, rows * (T + 16)), (23, 28, 38))
     d = ImageDraw.Draw(sheet)
     for n, i in enumerate(items):
-        ic = icon_of(cut_of(i), faces[i]).resize((T, T))
+        ic = icon_of(cut_of(i), crop_box(i, faces)).resize((T, T))
         x, y = (n % C) * T, (n // C) * (T + 16)
         sheet.paste(ic, (x, y), ic)
         d.text((x + 4, y + T + 2), i, fill='white')
@@ -222,6 +239,18 @@ def cmd_sheet(out):
     print(out)
 
 
+def cmd_croptool():
+    names = {k: v['name'] for k, v in json.load(open('art/prompts.json')).items()}
+    faces = load_json(FACES, {})
+    units = [{'id': i, 'name': names[i], 'crop': dict(zip('xys', crop_box(i, faces)))} for i in ids() if os.path.exists(f'{PICKED}/{i}.webp')]
+    html = open('tools/crop-tool.html').read().replace('/*__UNITS__*/[]', json.dumps(units, ensure_ascii=False))
+    os.makedirs('dist/crop/img', exist_ok=True)
+    for u in units:
+        Image.open(f"{PICKED}/{u['id']}.webp").save(f"dist/crop/img/{u['id']}.webp", 'WEBP', quality=88, alpha_quality=90, method=4)
+    open('dist/crop/index.html', 'w').write(html)
+    print('dist/crop/index.html', len(units))
+
+
 if __name__ == '__main__':
     cmd = sys.argv[1] if len(sys.argv) > 1 else ''
-    {'pick': cmd_pick, 'faces': cmd_faces, 'build': cmd_build}.get(cmd, lambda: cmd_sheet(sys.argv[2]) if cmd == 'sheet' else cmd_holes(sys.argv[2]) if cmd == 'holes' else print(__doc__))()
+    {'pick': cmd_pick, 'faces': cmd_faces, 'build': cmd_build, 'croptool': cmd_croptool}.get(cmd, lambda: cmd_sheet(sys.argv[2]) if cmd == 'sheet' else cmd_holes(sys.argv[2]) if cmd == 'holes' else print(__doc__))()
