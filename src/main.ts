@@ -619,7 +619,7 @@ function detailPanel(run: RunState) {
     <div class="dh-rank"><span class="dh-r">${rankLabel(u.rank)}</span>${xpBar(u)}<button class="btn tiny dh-buy" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''} title="공명도 +${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)} 구입 (에너지 크레딧 ${cost})">${lineIcon('r.res', 'li res')}+${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)}<span class="dh-cost">${lineIcon('r.cr', 'li cr')}${cost}</span></button></div>
     <div class="chips nb-syn">${memberships(u, run).map(chip).join('')}</div>
     ${memberships(u, run).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}
-    <div class="d-eqbox"><span class="d-eq-l">장비</span><div class="d-eq" aria-label="장비 · 개조부품">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : `<span data-drop="unit:${u.uid}">${itemIcon(null)}</span>`)).join('')}${u.mod ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : `<span data-drop="unit:${u.uid}" title="개조부품 칸 · 문장을 끌어다 장착"><span class="item empty tM"></span></span>`}</div></div>
+    <h3>장비</h3><div class="d-eqbox"><div class="d-eq" aria-label="장비 · 개조부품">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : `<span data-drop="unit:${u.uid}">${itemIcon(null)}</span>`)).join('')}${u.mod ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : `<span data-drop="unit:${u.uid}" title="개조부품 칸 · 문장을 끌어다 장착"><span class="item empty tM"></span></span>`}</div></div>
     <div class="mj-wrap">
     <div class="mj-head"><h3>메이저 스탯</h3><button class="mag-btn${app.statPop ? ' on' : ''}" data-a="stat-pop" title="상세 능력치" aria-label="상세 능력치 ${app.statPop ? '닫기' : '보기'}" aria-pressed="${app.statPop}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg></button></div>
     ${app.statPop ? `<div class="stat-pop"><div class="sp-head"><b>상세 능력치</b>${u.pos ? '' : '<span class="muted small">시너지 미적용</span>'}<button class="btn tiny" data-a="stat-pop">닫기</button></div>${statLines(c, b)}</div>` : ''}
@@ -921,6 +921,23 @@ function menuModal(run: RunState | null) {
 
 // ───────────────────────── 렌더
 const lastView = { screen: '' as string, modal: '' };
+/** 상단 바 높이 → 옆 패널 sticky 기준, 상세 능력치 창을 상세 보기 패널 왼쪽에 고정 */
+function layoutPanels() {
+  const top = root.querySelector<HTMLElement>('.top');
+  document.documentElement.style.setProperty('--top-h', `${(top?.offsetHeight || 0) + 10}px`);
+  const pop = root.querySelector<HTMLElement>('.stat-pop');
+  const det = root.querySelector<HTMLElement>('.detail');
+  if (!pop || !det) return;
+  if (innerWidth <= 1100) { pop.style.cssText = ''; return; }
+  const r = det.getBoundingClientRect();
+  pop.style.position = 'fixed';
+  pop.style.right = 'auto';
+  pop.style.left = `${Math.max(8, r.left - pop.offsetWidth - 16)}px`;
+  pop.style.top = `${Math.max(r.top, (top?.offsetHeight || 0) + 10)}px`;
+}
+window.addEventListener('resize', () => layoutPanels());
+window.addEventListener('scroll', () => { if (root.querySelector('.stat-pop')) layoutPanels(); }, { passive: true });
+
 function render() {
   if (app.screen !== 'battle' && app.view) { app.view.destroy(); app.view = null; }
   const run = app.run;
@@ -944,6 +961,7 @@ function render() {
   const winY = window.scrollY;
   lastView.screen = app.screen; lastView.modal = modalKey;
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
+  layoutPanels();
   if (sameView) {
     for (const [sel, top] of keep) { const el = root.querySelector(sel); if (el && top) el.scrollTop = top; }
     if (winY) window.scrollTo(0, winY);

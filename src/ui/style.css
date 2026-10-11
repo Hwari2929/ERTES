@@ -714,9 +714,8 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .tip-foot { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin-top: 4px; }
 .item-tip .mi { width: 1.05em; height: 1.05em; }
 /* 상세 보기 장비 줄: 장비 3 + 개조부품 1 */
-.d-eqbox { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 6px 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; }
-.d-eq-l { flex: 1; min-width: 0; font-family: var(--f-display); font-size: .95rem; font-weight: 400; letter-spacing: .01em; color: var(--fg); }
-.d-eq { flex: none; display: flex; gap: 6px; }
+.d-eqbox { padding: 6px 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; }
+.d-eq { display: flex; gap: 6px; }
 .d-eq > span { display: block; }
 .d-eq .item { width: 40px; height: 40px; font-size: 18px; cursor: pointer; }
 .d-eq .item.empty { cursor: default; }
@@ -791,4 +790,12 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .sp-head .btn { margin-left: auto; }
 @media (max-width: 1100px) {
   .stat-pop { position: static; width: auto; max-height: none; margin-bottom: 8px; box-shadow: none; }
+}
+
+/* 상세 보기 소제목 한 단계 크게 */
+.detail h3, .detail .mj-head h3 { font-size: 1.1rem; }
+/* 넓은 화면: 옆 패널은 화면에 고정되어 따로 스크롤 */
+@media (min-width: 1101px) {
+  .prep > .side, .map > .side { position: sticky; top: var(--top-h, 70px); max-height: calc(100vh - var(--top-h, 70px) - 12px); overflow-y: auto; scrollbar-width: thin; overscroll-behavior: contain; }
+  .prep > .board-col { position: sticky; top: var(--top-h, 70px); }
 }
