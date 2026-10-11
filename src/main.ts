@@ -47,6 +47,7 @@ const app = {
   pool: [] as string[], // 시작 기물 후보 (무작위 8명)
   detail: !!loadPrefs().detail, // 상세 보기: 계수 · 메커니즘 표시
   recruitPick: null as string | null, // 영입 창에서 고른 기물 (확정 전)
+  recoFor: null as string | null, // 추천 장비 창을 연 기물 uid
   nodePick: null as string | null, // 지도: 이번 칸에서 고른 노드 (진입 전)
   statPop: false, // 상세 보기: 전투 스탯 펼침 (패널 왼쪽)
   cardOpen: null as string | null, // 터치 화면: 설명을 펼친 시작 기물 카드
@@ -532,6 +533,7 @@ function prepScreen(run: RunState) {
       </div>
     </section>
     <aside class="side right">${detailPanel(run)}</aside>
+    ${statPopHtml(run)}
   </main>`;
 }
 
@@ -619,10 +621,9 @@ function detailPanel(run: RunState) {
     <div class="dh-rank"><span class="dh-r">${rankLabel(u.rank)}</span>${xpBar(u)}<button class="btn tiny dh-buy" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''} title="공명도 +${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)} 구입 (에너지 크레딧 ${cost})">${lineIcon('r.res', 'li res')}+${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)}<span class="dh-cost">${lineIcon('r.cr', 'li cr')}${cost}</span></button></div>
     <div class="chips nb-syn">${memberships(u, run).map(chip).join('')}</div>
     ${memberships(u, run).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}
-    <h3>장비</h3><div class="d-eqbox"><div class="d-eq" aria-label="장비 · 개조부품">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : `<span data-drop="unit:${u.uid}">${itemIcon(null)}</span>`)).join('')}${u.mod ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : `<span data-drop="unit:${u.uid}" title="개조부품 칸 · 문장을 끌어다 장착"><span class="item empty tM"></span></span>`}</div></div>
+    <h3>장비</h3><div class="d-eqbox"><div class="d-eq" aria-label="장비 · 개조부품">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : `<span data-drop="unit:${u.uid}">${itemIcon(null)}</span>`)).join('')}${u.mod ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : `<span data-drop="unit:${u.uid}" title="개조부품 칸 · 문장을 끌어다 장착"><span class="item empty tM"></span></span>`}</div><button class="reco-btn" data-a="reco" data-v="${u.uid}" title="추천 장비 · 보유 현황">추천 장비</button></div>
     <div class="mj-wrap">
     <div class="mj-head"><h3>메이저 스탯</h3><button class="mag-btn${app.statPop ? ' on' : ''}" data-a="stat-pop" title="상세 능력치" aria-label="상세 능력치 ${app.statPop ? '닫기' : '보기'}" aria-pressed="${app.statPop}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg></button></div>
-    ${app.statPop ? `<div class="stat-pop"><div class="sp-head"><b>상세 능력치</b>${u.pos ? '' : '<span class="muted small">시너지 미적용</span>'}<button class="btn tiny" data-a="stat-pop">닫기</button></div>${statLines(c, b)}</div>` : ''}
     <div class="majors">${MAJORS.map((m) => {
       const base = d.base[m], add = tm[m] - base;
       return `<div class="major"><span>${majorIcon(m)}${MAJOR_NAME[m]}</span><span class="mbar"><i style="width:${Math.min(100, tm[m] * 3)}%"></i></span><b>${tm[m]}</b>${add ? `<small class="${add > 0 ? 'up' : 'down'}">${add > 0 ? '+' : ''}${add}</small>` : ''}</div>`;
@@ -921,6 +922,54 @@ function menuModal(run: RunState | null) {
 
 // ───────────────────────── 렌더
 const lastView = { screen: '' as string, modal: '' };
+/** 상세 능력치 창 (상세 보기 패널 바깥, 위치는 layoutPanels 가 잡는다) */
+function statPopHtml(run: RunState) {
+  const sel = app.sel;
+  if (!app.statPop || sel?.k !== 'unit') return '';
+  const u = run.units.find((x) => x.uid === sel.uid);
+  if (!u) return '';
+  const { b, c } = previewAlly(run, u);
+  return `<div class="stat-pop"><div class="sp-head"><b>상세 능력치</b>${u.pos ? '' : '<span class="muted small">시너지 미적용</span>'}<button class="btn tiny" data-a="stat-pop">닫기</button></div>${statLines(c, b)}</div>`;
+}
+
+/** 전투 유형별 추천 고급 장비 (재료 조합 id) */
+const RECO: Record<string, string[]> = {
+  MARK: ['pow_agi', 'pow_mnd', 'pow_pow', 'agi_agi', 'mnd_agi'],
+  VAN: ['vit_pow', 'vit_def', 'pow_def', 'def_def', 'vit_vit'],
+  SPEC: ['mnd_mnd', 'mnd_agi', 'mnd_def', 'vit_mnd', 'pow_mnd'],
+  CMD: ['mnd_agi', 'mnd_mnd', 'def_def', 'vit_def', 'mnd_def'],
+};
+/** 추천 장비 창: 추천 목록 + 보관함 보유 · 아군 장착 현황 */
+function recoModal(run: RunState) {
+  const u = app.recoFor ? run.units.find((x) => x.uid === app.recoFor) : null;
+  if (!u) return '';
+  const d = UNIT_BY_ID[u.defId];
+  const name = (uid: string) => UNIT_BY_ID[run.units.find((x) => x.uid === uid)!.defId].name;
+  const rows = (RECO[d.ctype] || []).map((key) => {
+    const ids = [`A_${key}`, `L_${key}`];
+    const it = itemInfo(`A_${key}`);
+    const [ca, cb] = it.recipe || [];
+    const mine = u.items.filter((x) => x && ids.includes(x)).length;
+    const inv = run.inventory.filter((x) => ids.includes(x)).length;
+    const allies = run.units.filter((o) => o !== u && o.items.some((x) => x && ids.includes(x))).map((o) => name(o.uid));
+    const need: Record<string, number> = {};
+    const parts = [ca, cb].filter(Boolean).map((c) => {
+      need[c!] = (need[c!] || 0) + 1;
+      const have = run.inventory.filter((x) => x === c).length >= need[c!];
+      return `${itemIcon(c!)}${have ? '<b class="up small">보유</b>' : '<span class="muted small">없음</span>'}`;
+    }).join('');
+    const st = [mine ? '<span class="rc-tag on">장착 중</span>' : '', inv ? `<span class="rc-tag rc-inv">보관함 ${inv}</span>` : '', ...allies.map((n) => `<span class="rc-tag ally">${esc(n)} 장착</span>`)].join('');
+    return `<li class="rc-row">${itemIcon(`A_${key}`)}<div class="rc-main"><b>${esc(it.name)}</b><span class="small muted">${statIc(esc(it.desc))}</span>
+      <div class="rc-st">${st || '<span class="muted small">보유하지 않음</span>'}</div></div><div class="rc-parts" title="조합 재료">${parts}</div></li>`;
+  }).join('');
+  return `<div class="modal-bg" data-a="reco" data-v=""><div class="modal reco">
+    <h1>추천 장비 <span class="muted small">${esc(d.name)} · ${CTYPE_NAME[d.ctype]}</span></h1>
+    <p class="muted small">전투 유형에 맞는 고급 장비입니다. 재료 2개를 겹치면 만들 수 있습니다.</p>
+    <ul class="rc-list">${rows}</ul>
+    <div class="row-btns"><button class="btn primary" data-a="reco" data-v="">닫기</button></div>
+  </div></div>`;
+}
+
 /** 상단 바 높이 → 옆 패널 sticky 기준, 상세 능력치 창을 상세 보기 패널 왼쪽에 고정 */
 function layoutPanels() {
   const top = root.querySelector<HTMLElement>('.top');
@@ -928,7 +977,8 @@ function layoutPanels() {
   const pop = root.querySelector<HTMLElement>('.stat-pop');
   const det = root.querySelector<HTMLElement>('.detail');
   if (!pop || !det) return;
-  if (innerWidth <= 1100) { pop.style.cssText = ''; return; }
+  if (innerWidth <= 1100) { pop.style.cssText = ''; pop.classList.add('sheet'); return; }
+  pop.classList.remove('sheet');
   const r = det.getBoundingClientRect();
   pop.style.position = 'fixed';
   pop.style.right = 'auto';
@@ -960,7 +1010,7 @@ function render() {
   const modalTop = lastView.modal === modalKey ? root.querySelector('.modal')?.scrollTop || 0 : 0;
   const winY = window.scrollY;
   lastView.screen = app.screen; lastView.modal = modalKey;
-  root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
+  root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && app.screen === 'prep' ? recoModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   layoutPanels();
   if (sameView) {
     for (const [sel, top] of keep) { const el = root.querySelector(sel); if (el && top) el.scrollTop = top; }
@@ -1265,6 +1315,7 @@ function act(a: string, v: string) {
     }
     case 'tl-pick': app.nodePick = v; break;
     case 'stat-pop': app.statPop = !app.statPop; break;
+    case 'reco': app.recoFor = v || null; break;
     case 'field-info': if (run) run.pending.unshift({ t: 'field' }); break;
     case 'enter': {
       if (!run || run.pending.length) return;
@@ -1588,6 +1639,7 @@ root.addEventListener('click', (ev) => {
   if (suppressClick) return;
   const el = (ev.target as HTMLElement).closest('[data-a]') as HTMLElement | null;
   if (!el || (el as HTMLButtonElement).disabled) return;
+  if (el.classList.contains('modal-bg') && (ev.target as HTMLElement).closest('.modal')) return; // 창 안쪽을 눌러도 닫지 않음
   if (el.dataset.a === 'item-info') { itemTip(el, el.dataset.v || ''); return; }
   if (el.dataset.a === 'syn-peek') {
     const on = !el.classList.contains('peek');

@@ -714,7 +714,9 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .tip-foot { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin-top: 4px; }
 .item-tip .mi { width: 1.05em; height: 1.05em; }
 /* 상세 보기 장비 줄: 장비 3 + 개조부품 1 */
-.d-eqbox { padding: 6px 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; }
+.d-eqbox { display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; }
+.reco-btn { margin-left: auto; align-self: stretch; padding: 0 10px; border-radius: 6px; background: var(--panel); border: 1px solid var(--line); color: var(--fg); font: inherit; font-size: .8rem; cursor: pointer; }
+.reco-btn:hover { border-color: var(--accent); color: var(--accent); }
 .d-eq { display: flex; gap: 6px; }
 .d-eq > span { display: block; }
 .d-eq .item { width: 40px; height: 40px; font-size: 18px; cursor: pointer; }
@@ -785,12 +787,9 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .mag-btn { width: 24px; height: 24px; padding: 0; border-radius: 50%; display: grid; place-items: center; background: var(--panel-2); border: 1px solid var(--line); color: var(--dim); cursor: pointer; }
 .mag-btn svg { width: 14px; height: 14px; }
 .mag-btn:hover, .mag-btn.on { color: var(--accent); border-color: var(--accent); }
-.stat-pop { position: absolute; z-index: 20; top: 0; right: calc(100% + 24px); width: 280px; max-height: 70vh; overflow: auto; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 28px rgb(0 0 0 / .55); }
+.stat-pop { position: fixed; z-index: 30; top: 80px; left: 8px; width: 280px; max-height: 70vh; overflow: auto; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 28px rgb(0 0 0 / .55); }
 .sp-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .sp-head .btn { margin-left: auto; }
-@media (max-width: 1100px) {
-  .stat-pop { position: static; width: auto; max-height: none; margin-bottom: 8px; box-shadow: none; }
-}
 
 /* 상세 보기 소제목 한 단계 크게 */
 .detail h3, .detail .mj-head h3 { font-size: 1.1rem; }
@@ -799,3 +798,19 @@ body:has(.nr) { overflow: hidden; margin: 0; }
   .prep > .side, .map > .side { position: sticky; top: var(--top-h, 70px); max-height: calc(100vh - var(--top-h, 70px) - 12px); overflow-y: auto; scrollbar-width: thin; overscroll-behavior: contain; }
   .prep > .board-col { position: sticky; top: var(--top-h, 70px); }
 }
+
+.stat-pop.sheet { position: fixed; left: 8px; right: 8px; bottom: 8px; top: auto; width: auto; max-height: 60vh; z-index: 40; box-shadow: 0 -6px 24px rgb(0 0 0 / .6); }
+/* 추천 장비 창 */
+.modal.reco { width: min(620px, 100%); }
+.modal.reco h1 .muted { font-family: var(--f-body); font-size: .85rem; margin-left: 6px; }
+.rc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.rc-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; }
+.rc-row > .item { width: 40px; height: 40px; font-size: 18px; cursor: default; }
+.rc-main { display: grid; gap: 2px; min-width: 0; }
+.rc-st { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.rc-tag { font-size: .7rem; padding: 0 6px; border-radius: 4px; border: 1px solid var(--line); }
+.rc-tag.on { color: var(--good); border-color: var(--good); }
+.rc-tag.rc-inv { color: var(--accent); border-color: var(--accent); }
+.rc-tag.ally { color: var(--info); border-color: var(--info); }
+.rc-parts { display: grid; grid-template-columns: auto auto; gap: 2px 6px; align-items: center; justify-items: start; }
+.rc-parts .item { width: 24px; height: 24px; font-size: 11px; cursor: default; }
