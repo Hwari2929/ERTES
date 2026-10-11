@@ -312,14 +312,14 @@ export const ROSTER_C: UnitDef[] = [
     ],
   },
   {
-    id: 'rasmus', name: '라스무스', title: '엘베스타드가 사냥터지기 · 곰 비요른', factions: ['FAM'], traits: ['NATURE', 'BUDDY'], keywords: ['bio'],
+    id: 'rasmus', name: '라스무스', title: '엘베스타드가 조경사 · 정원견', factions: ['FAM'], traits: ['NATURE', 'BUDDY'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, base: B(9, 7, 5, 7, 3),
     sprite: 'knight', palette: tint(PAL.FAM, '#4a5a3a', '#c8ccd8', '#ffcf40'),
-    summon: { name: '비요른', sprite: 'beast', palette: BEAR, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.6 },
-    lore: '가문의 사냥터를 40년 지켰다. 비요른은 그중 39년을 함께했다.',
+    summon: { name: '정원견', sprite: 'beast', palette: BEAR, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.6 },
+    lore: '본가의 정원을 40년 가꿨다. 정원을 망치는 것은 무엇이든 정원견이 먼저 쫓아낸다.',
     skill: {
-      name: '사냥', cd: 7, params: { mult: 2.5, bleed: 0.3, roar: 0 },
-      desc: (p) => `비요른이 라스무스의 대상에게 덮쳐 비요른 타격 위력 ${pct(p.mult)} 물리 피해 + 초당 ${pct(p.bleed)} 출혈${p.roar ? `, 비요른 주변 적 ${pct(p.roar)} 확률 1.2초 공포` : ''}. 곰이 없으면 라스무스가 직접 150%.`,
+      name: '불청객 퇴치', cd: 7, params: { mult: 2.5, bleed: 0.3, roar: 0 },
+      desc: (p) => `정원견이 라스무스의 대상에게 달려들어 정원견 타격 위력 ${pct(p.mult)} 물리 피해 + 초당 ${pct(p.bleed)} 출혈${p.roar ? `, 정원견 주변 적 ${pct(p.roar)} 확률 1.2초 공포` : ''}. 정원견이 없으면 라스무스가 전정가위로 직접 150%.`,
       cast(b, u) {
         const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u));
         if (!t) return false;
@@ -337,32 +337,32 @@ export const ROSTER_C: UnitDef[] = [
       },
     },
     augs: [
-      uaug('rasmus', 'old', '오랜 짝', '비요른 스탯 상속률 +40%p.', bond(0.4)),
-      uaug('rasmus', 'maul', '할퀴기', '출혈 초당 위력 +50%p.', setSk((s) => { s.bleed += 0.5; })),
-      uaug('rasmus', 'cub', '새끼 곰', '곰을 하나 더 데려온다 (상속률 80%).', extraPet),
-      uaug('rasmus', 'lodge', '사냥 오두막', '캠핑 러버 임시 장비 +1개, 생명력 +5, 방어력 +3.', { ...nat(1), majors: { vit: 5, def: 3 } }),
-      uaug('rasmus', 'roar', '포효', '사냥 때 비요른 주변 적 80% 확률로 1.2초 공포.', setSk((s) => { s.roar = 0.8; })),
+      uaug('rasmus', 'old', '오랜 짝', '정원견 스탯 상속률 +40%p.', bond(0.4)),
+      uaug('rasmus', 'maul', '물어뜯기', '출혈 초당 위력 +50%p.', setSk((s) => { s.bleed += 0.5; })),
+      uaug('rasmus', 'cub', '강아지', '정원견을 하나 더 데려온다 (상속률 80%).', extraPet),
+      uaug('rasmus', 'lodge', '정원 창고', '캠핑 러버 임시 장비 +1개, 생명력 +5, 방어력 +3.', { ...nat(1), majors: { vit: 5, def: 3 } }),
+      uaug('rasmus', 'roar', '짖기', '불청객 퇴치 때 정원견 주변 적 80% 확률로 1.2초 공포.', setSk((s) => { s.roar = 0.8; })),
     ],
   },
   {
-    id: 'sigmund', name: '시그문드', title: '엘베스타드 가주', factions: ['FAM'], traits: ['STAFF'], keywords: ['bio'],
+    id: 'sigmund', name: '시그문드', title: '엘베스타드가 집사', factions: ['FAM'], traits: ['STAFF'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'psy', interval: 1.2 }, range: 3, base: B(7, 7, 9, 6, 3),
-    sprite: 'robe', palette: tint(PAL.FAM, '#1a1c2a', '#c8ccd8', '#ffd34d'), lore: '가문의 이름 앞에서 고개를 들 수 있는 자는 없다. 그의 자식들만 빼고.',
+    sprite: 'robe', palette: tint(PAL.FAM, '#1a1c2a', '#c8ccd8', '#ffd34d'), lore: '저택의 모든 문은 그의 허락으로 열리고, 모든 일정은 그의 수첩에서 시작된다.',
     skill: support({
-      name: '가주의 명령', cd: 8, target: 'commanded', params: { count: 1, dmg: 0.35, as: 0.15, dur: 6, famShield: 0.5 },
+      name: '집사의 보좌', cd: 8, target: 'commanded', params: { count: 1, dmg: 0.35, as: 0.15, dur: 6, famShield: 0.5 },
       desc: (p) => `가장 강한 아군 ${p.count}명에게 ${p.dur}초간 피해 +${pct(p.dmg)}, 공격 속도 +${pct(p.as)}${p.red ? `, 받는 피해 -${pct(p.red)}` : ''}. 엘베스타드 일가 아군 전원에게 기술 위력 ${pct(p.famShield)} 보호막.`,
       after: (b, u, _ts, p) => { for (const a of b.alliesOf(u)) if (a.synergies.has('FAM')) b.shield(a, b.S(u, 'tech') * p.famShield); },
     }),
     augs: [
-      uaug('sigmund', 'council', '가문 회의', '명령 대상 +1명.', setSk((s) => { s.count += 1; })),
-      uaug('sigmund', 'iron', '철의 가주', '피해 증가 +35%p.', setSk((s) => { s.dmg += 0.35; })),
+      uaug('sigmund', 'council', '시중 인원 확충', '보좌 대상 +1명.', setSk((s) => { s.count += 1; })),
+      uaug('sigmund', 'iron', '철두철미', '피해 증가 +35%p.', setSk((s) => { s.dmg += 0.35; })),
       uaug('sigmund', 'crest', '가문의 문장', '일가 보호막 +50%p, 방어력 +5.', { majors: { def: 5 }, setup: (u) => { u.sk.famShield += 0.5; } }),
-      uaug('sigmund', 'reign', '긴 통치', '명령 지속 +3초, 피해 증가 +15%p, 공격 속도 +10%p.', setSk((s) => { s.dur += 3; s.dmg += 0.15; s.as += 0.1; })),
-      uaug('sigmund', 'shelter', '가문의 그늘', '명령 대상 받는 피해 -30%.', setSk((s) => { s.red = 0.3; })),
+      uaug('sigmund', 'reign', '오랜 근속', '보좌 지속 +3초, 피해 증가 +15%p, 공격 속도 +10%p.', setSk((s) => { s.dur += 3; s.dmg += 0.15; s.as += 0.1; })),
+      uaug('sigmund', 'shelter', '가문의 그늘', '보좌 대상 받는 피해 -30%.', setSk((s) => { s.red = 0.3; })),
     ],
   },
   {
-    id: 'gunnir', name: '구니르', title: '엘베스타드가 집사장', factions: ['FAM'], traits: ['MED', 'CHEF'], keywords: ['bio'],
+    id: 'gunnir', name: '구닐라', title: '엘베스타드가 셰프', factions: ['FAM'], traits: ['MED', 'CHEF'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(8, 5, 8, 7, 3),
     sprite: 'robe', palette: tint(PAL.FAM, '#1a1a1a', '#ffffff', '#c8ccd8'), lore: '3대째 같은 스튜를 끓인다. 레시피는 가주도 모른다.',
     skill: support({
@@ -374,7 +374,7 @@ export const ROSTER_C: UnitDef[] = [
       uaug('gunnir', 'bone', '사골', '방어도 증가 +400.', setSk((s) => { s.armor += 400; })),
       uaug('gunnir', 'pot', '큰 솥', '요리받은 아군 주변 1칸에도 50% 효과, 보호막 +30%p.', setSk((s) => { s.splash = 1; s.shield += 0.3; })),
       uaug('gunnir', 'herb', '약초', '회복량 +60%p, 해로운 상태이상도 제거한다.', setSk((s) => { s.heal += 0.6; s.cleanse = 1; })),
-      uaug('gunnir', 'butler', '완벽한 집사', '쿨다운 감소 속도 +40%.', { stats: { cdr: 0.4 } }),
+      uaug('gunnir', 'butler', '주방장의 손놀림', '쿨다운 감소 속도 +40%.', { stats: { cdr: 0.4 } }),
     ],
   },
 ];

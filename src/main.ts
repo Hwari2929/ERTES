@@ -16,11 +16,20 @@ import {
 import { Battle, type CUnit } from './engine/combat';
 import * as R from './engine/run';
 import { Rng } from './rng';
-import { ELEM_NAME, KEYWORD_NAME, MAJOR_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type UnitState } from './types';
+import { ELEM_NAME, KEYWORD_NAME, MAJOR_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type SynergyId, type UnitState } from './types';
 import { BattleView, fmt } from './ui/battleview';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
 import { hasPortrait, iconURL, standImg } from './ui/portraits';
+
+// 편의 설정 (이 브라우저에만 저장): 전투 속도, 진형 속도 등
+const PREF_KEY = 'errantes.prefs.v1';
+function loadPrefs(): { speed?: number } {
+  try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}; } catch { return {}; }
+}
+function savePref(k: string, v: unknown) {
+  try { localStorage.setItem(PREF_KEY, JSON.stringify({ ...loadPrefs(), [k]: v })); } catch { /* 저장 불가 환경 */ }
+}
 
 type Screen = 'title' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'over' | 'codex';
 type Sel = { k: 'unit'; uid: string } | { k: 'item'; idx: number } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
@@ -34,7 +43,7 @@ const app = {
   view: null as BattleView | null,
   summary: null as R.BattleSummary | null,
   picks: [] as Major[],
-  speed: 1,
+  speed: [1, 2, 4, 8].includes(loadPrefs().speed || 0) ? loadPrefs().speed! : 1,
   toast: '',
   toastT: 0 as ReturnType<typeof setTimeout> | 0,
   importErr: '',
@@ -162,10 +171,20 @@ function titleScreen() {
 }
 
 // ───────────────────────── 화면: 시작 기물 선택
+/** 영입 카드용: 이 시너지를 가진 보유 기물 수 (출전 + 대기, 같은 기물은 1회) → 영입 후 */
+function ownedChip(defId: string) {
+  return (id: string) => {
+    const run = app.run;
+    if (!run) return chip(id);
+    const owners = new Set(run.units.filter((u) => memberships(u).includes(id as SynergyId)).map((u) => u.defId));
+    const n = owners.size, after = owners.has(defId) ? n : n + 1;
+    return n ? chip(id).replace('</span>', ` <b class="own" title="보유 중인 ${esc(SYN_BY_ID[id as keyof typeof SYN_BY_ID].name)} 기물 ${n}명">${n}→${after}</b></span>`) : chip(id);
+  };
+}
 function unitCard(d: UnitDef, opts: { selected?: boolean; action?: string; rank?: number } = {}) {
   return `<button class="ucard ${opts.selected ? 'sel' : ''}" data-a="${opts.action || 'pick-starter'}" data-v="${d.id}">
     ${hero(d.id, 'hero sm')}<div class="ucard-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="muted small">${esc(d.title)}</div></div></div>
-    <div class="chips">${d.factions.map(chip).join('')}${d.traits.map(chip).join('')}</div>
+    <div class="chips">${[...d.factions, ...d.traits].map(opts.action === 'pick-recruit' ? ownedChip(d.id) : chip).join('')}</div>
     <div class="small">${d.atk.type === 'shoot' ? '사격' : '타격'} · 사거리 ${d.range} · ${ELEM_NAME[d.atk.elem]} · ${d.keywords.map((k) => KEYWORD_NAME[k]).join('/')}</div>
     <div class="skill-line"><b>${esc(d.skill.name)}</b> <span class="muted">(${d.skill.cd}초)</span><br>${esc(d.skill.desc(d.skill.params))}</div>
     <div class="majors-mini">${MAJORS.map((m) => `<span>${MAJOR_NAME[m].slice(0, 2)} <b>${d.base[m]}</b></span>`).join('')}</div>
@@ -197,8 +216,8 @@ function mapScreen(run: RunState) {
     return `<li class="${state}">${label}</li>`;
   }).join('');
   const opts = R.currentOptions(run);
-  const choices = run.node ? `<button class="node-btn n-${run.node.type}" data-a="resume"><span class="node-ic">${NODE_ICON[run.node.type]}</span><b>${NODE_NAME[run.node.type]} 진행 중</b><span class="small muted">돌아가서 계속하기</span></button>` : opts.map((o) => `<button class="node-btn n-${o}" data-a="enter" data-v="${o}">
-      <span class="node-ic">${NODE_ICON[o]}</span><b>${NODE_NAME[o]}</b><span class="small muted">${nodeHint(o)}</span></button>`).join('');
+  const choices = run.node ? `<button class="node-btn n-${run.node.type}" data-a="resume"><span class="node-ic">${NODE_ICON[run.node.type]}</span><b>${NODE_NAME[run.node.type]} 진행 중</b><span class="small muted">돌아가서 계속하기</span></button>` : opts.map((o, i) => `<button class="node-btn n-${o}" data-a="enter" data-v="${o}" title="단축키 ${i + 1}">
+      <span class="node-ic">${NODE_ICON[o]}</span><kbd class="node-key">${i + 1}</kbd><b>${NODE_NAME[o]}</b><span class="small muted">${nodeHint(o)}</span></button>`).join('');
   const pet = tierOf('PET', synergyCounts(deployed(run), run).PET || 0);
   return `<main class="wrap map">
     <section class="map-main">
@@ -275,13 +294,16 @@ function prepScreen(run: RunState) {
       data-a="sel-enemy" data-v="${i}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}">${sprite(e, '')}</div>`;
   });
   const bench = run.units.filter((u) => !u.pos);
+  const free = cap - deployed(run).length;
+  const canFill = bench.some((u) => R.canDeploy(run, u));
   const env = node?.enc ? `${node.enc.env} ${n}×${n}${node.type === 'adversity' ? ' · 역경' : ''}${node.type === 'boss' ? ' · 보스전' : ''}` : '편성 관리';
   return `<main class="wrap prep">
     <aside class="side left">
       <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
     </aside>
     <section class="board-col">
-      <div class="board-head"><b>${esc(env)}</b><span class="muted small">출전 ${deployed(run).length}/${cap} · 아래 ${rows}줄에 배치</span></div>
+      <div class="board-head"><b>${esc(env)}</b><span class="muted small">출전 ${deployed(run).length}/${cap} · 아래 ${rows}줄에 배치</span>
+        ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}</div>
       <div class="board" style="--n:${n}"><div class="cells">${cells}</div>${units}</div>
       <div class="bench" data-drop="bench">
         <span class="bench-label">대기</span>
@@ -293,7 +315,7 @@ function prepScreen(run: RunState) {
       </div>
       ${inventoryPanel(run)}
       <div class="sticky-actions">
-        ${isBattle ? `<button class="btn ghost" data-a="to-map">맵으로</button><button class="btn primary" data-a="fight" ${deployed(run).length ? '' : 'disabled'}>전투 시작</button>`
+        ${isBattle ? `<button class="btn ghost" data-a="to-map">맵으로</button><button class="btn primary" data-a="fight" title="단축키 Space" ${deployed(run).length ? '' : 'disabled'}>전투 시작</button>`
           : `<button class="btn primary" data-a="to-map">완료</button>`}
       </div>
     </section>
@@ -629,6 +651,13 @@ function menuModal(run: RunState | null) {
       <button class="btn" data-a="to-title">타이틀로</button>
       <button class="btn primary" data-a="menu-close">닫기</button>
     </div>
+    <h3>단축키</h3>
+    <ul class="keys small">
+      <li><kbd>1</kbd>~<kbd>9</kbd> 선택지 고르기 (증강 · 영입 · 보급 · 사건 · 다음 노드)</li>
+      <li><kbd>Enter</kbd> 확인 · 계속 / <kbd>R</kbd> 새로고침 / <kbd>Esc</kbd> 닫기 · 선택 해제</li>
+      <li>편성: <kbd>Space</kbd> 전투 시작, <kbd>A</kbd> 자동 배치 / 맵: <kbd>M</kbd> 편성 관리</li>
+      <li>전투: <kbd>1</kbd>~<kbd>4</kbd> 속도 1·2·4·8배, <kbd>Space</kbd> 결과로 · 계속</li>
+    </ul>
     <p class="muted small">진행 상황은 노드를 지날 때마다 자동 저장됩니다. 전투 도중 불러오면 전투 직전 편성 화면으로 돌아갑니다.</p>
   </div></div>`;
 }
@@ -853,6 +882,13 @@ function act(a: string, v: string) {
       break;
     }
     case 'resume': goPrepOrMap(); break;
+    case 'autofill': {
+      if (!run) return;
+      const n = R.autoFill(run);
+      toast(n ? `${n}명을 배치했습니다.` : '배치할 수 있는 대기 기물이 없습니다.');
+      if (n) persist();
+      break;
+    }
     case 'manage': app.screen = 'prep'; app.sel = v ? { k: 'unit', uid: v } : null; break;
     case 'to-map': app.screen = run?.node?.type === 'shop' ? 'shop' : run?.node?.type === 'news' ? 'news' : 'map'; break;
     case 'fight':
@@ -862,7 +898,7 @@ function act(a: string, v: string) {
       app.screen = 'battle';
       app.needMount = true; // render() 가 보드를 그린 뒤 전투 뷰를 붙인다
       break;
-    case 'speed': app.speed = +v; if (app.view?.b) app.view.speed = app.speed; document.querySelectorAll('.speed .btn').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.v === v)); return;
+    case 'speed': app.speed = +v; savePref('speed', app.speed); if (app.view?.b) app.view.speed = app.speed; document.querySelectorAll('.speed .btn').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.v === v)); return;
     case 'skip': app.view?.skip?.(); return;
     case 'after-battle': app.summary = null; if (app.view) { app.view.destroy(); app.view = null; } goPrepOrMap(); break;
     case 'sel-unit': app.sel = app.sel?.k === 'item' && run ? equipSel(run, app.sel.idx, v) : { k: 'unit', uid: v }; break;
@@ -1052,6 +1088,54 @@ function onDrop(src: string, dst: string) {
   persist();
   render();
 }
+
+// ───────────────────────── 단축키
+const CONFIRM_ACTS = ['alloc-ok', 'after-battle', 'field-ok', 'notice-ok', 'skip-aug', 'menu-close'];
+function clickFirst(sel: string) {
+  const el = Array.from(document.querySelectorAll<HTMLButtonElement>(sel)).find((b) => !b.disabled);
+  if (!el) return false;
+  el.click();
+  return true;
+}
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  if ((e.target as HTMLElement).closest('input, textarea, select')) return;
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  const sv = document.querySelector('.stand-view');
+  if (k === 'Escape') {
+    if (sv) sv.remove();
+    else if (app.menu) act('menu-close', '');
+    else if (app.releaseConfirm) act('release-cancel', '');
+    else if (app.sel && app.screen !== 'battle') { app.sel = null; render(); }
+    return;
+  }
+  if (sv) return;
+  const modal = document.querySelector('.modal-bg .modal');
+  const digit = /^[1-9]$/.test(k) ? +k : 0;
+  if (modal && app.screen !== 'battle') {
+    if (digit) {
+      const opts = Array.from(modal.querySelectorAll<HTMLButtonElement>('[data-a^="pick-"], [data-a="event-choice"], [data-a="alloc-pick"]'));
+      const b = opts[digit - 1];
+      if (b && !b.disabled) { b.click(); e.preventDefault(); }
+    } else if (k === 'r') clickFirst('.modal [data-a="reroll"], .modal [data-a="reroll-privilege"]');
+    else if (k === 'Enter' || k === ' ') { if (clickFirst(CONFIRM_ACTS.map((a) => `.modal [data-a="${a}"]`).join(', '))) e.preventDefault(); }
+    return;
+  }
+  if (app.screen === 'battle') {
+    if (digit >= 1 && digit <= 4) act('speed', String([1, 2, 4, 8][digit - 1]));
+    else if (k === ' ' || k === 'Enter') { e.preventDefault(); if (!clickFirst('[data-a="after-battle"]')) act('skip', ''); }
+    return;
+  }
+  if (app.screen === 'prep') {
+    if (k === ' ' || k === 'Enter') { if (clickFirst('[data-a="fight"]')) e.preventDefault(); }
+    else if (k === 'a') act('autofill', '');
+    return;
+  }
+  if (app.screen === 'map') {
+    if (digit) clickFirst(`.node-choices .node-btn:nth-child(${digit})`);
+    else if (k === 'm') act('manage', '');
+  }
+});
 
 // 스탠딩 전신 보기 (카드 버튼 안의 배너는 카드 선택이 우선)
 document.addEventListener('click', (ev) => {

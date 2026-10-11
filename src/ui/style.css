@@ -383,3 +383,11 @@ textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--fg
 .stand-view { position: fixed; inset: 0; z-index: 80; background: rgb(8 10 14 / .92); display: grid; place-items: center; padding: 16px; cursor: zoom-out; }
 .stand-view .stand.full { max-height: calc(100dvh - 72px); max-width: 100%; object-fit: contain; }
 .stand-cap { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; }
+
+/* ── 편의: 단축키 표시 · 빈 자리 · 보유 시너지 */
+.node-btn { position: relative; }
+.node-key { position: absolute; top: 6px; right: 8px; font-family: var(--f-mono); font-size: .7rem; color: var(--dim); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+.keys { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+kbd { font-family: var(--f-mono); font-size: .75em; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; background: var(--panel-2); }
+.board-head .warn { color: var(--accent); font-weight: 700; }
+.chip .own { font-family: var(--f-mono); font-size: .72rem; margin-left: 2px; color: var(--fg); }

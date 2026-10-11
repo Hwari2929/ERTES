@@ -140,10 +140,10 @@ export const canDeploy = (run: RunState, u: UnitState) => u.lock !== run.phase &
 
 export const deployCap = (run: RunState) => CFG.deployCap(run.phase) + (hasGlobal(run, 'G.squad') ? 1 : 0);
 
-export function autoPlace(run: RunState) {
+export function autoPlace(run: RunState, order: UnitState[] = run.units) {
   const cap = deployCap(run);
   const used = new Set(run.units.filter((u) => u.pos).map((u) => `${u.pos!.c},${u.pos!.r}`));
-  for (const u of run.units) {
+  for (const u of order) {
     if (u.pos || deployed(run).length >= cap || !canDeploy(run, u)) continue;
     const def = UNIT_BY_ID[u.defId];
     const rowsPref = def.range <= 1 ? [2, 1, 0] : [0, 1, 2];
@@ -152,6 +152,14 @@ export function autoPlace(run: RunState) {
         if (!used.has(`${c},${r}`)) { u.pos = { c, r }; used.add(`${c},${r}`); break outer; }
       }
   }
+}
+
+/** 편의: 빈 출전 자리를 대기 기물 중 공명 등급이 높은 순으로 채운다 (근접은 앞줄, 원거리는 뒷줄) */
+export function autoFill(run: RunState) {
+  const before = deployed(run).length;
+  const bench = run.units.filter((u) => !u.pos && canDeploy(run, u)).sort((a, b) => b.rank - a.rank || b.xp - a.xp);
+  autoPlace(run, bench);
+  return deployed(run).length - before;
 }
 
 // ───────────────────────── 노드 진행
