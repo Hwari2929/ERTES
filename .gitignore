@@ -6,3 +6,4 @@ __pycache__/
 dist/crop/
 dist/eventdoc.cjs
 dist/analyze.cjs
+dist/*.cjs
