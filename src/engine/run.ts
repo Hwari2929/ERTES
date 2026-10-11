@@ -52,7 +52,7 @@ export function newRun(seed: number, starters: string[], field?: string, diff = 
 /** 페이즈 노드 구성 (11칸): 영입 > 전투 > 사건 > 전투 > 보급 > 전투 > 사건 > 역경 > 보급 > 역경 > 보스.
  *  보급 = 상점 / 보급 중 선택. 1페이즈는 시작 기물이 4명이라 영입 없이 시작 */
 export function phaseMap(phase: number): NodeType[][] {
-  const body: NodeType[][] = [['battle'], ['event'], ['battle'], ['shop', 'supply'], ['battle'], ['event'], ['adversity'], ['shop', 'supply'], ['adversity'], ['boss']];
+  const body: NodeType[][] = [['battle'], ['event'], ['battle'], ['shop'], ['battle'], ['event'], ['adversity'], ['shop'], ['adversity'], ['boss']];
   return phase <= 1 ? body : [['recruit'], ...body];
 }
 

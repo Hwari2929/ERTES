@@ -410,6 +410,9 @@ function mapScreen(run: RunState) {
   const f = fieldOf(run.field);
   const pet = tierOf('PET', synergyCounts(deployed(run), run).PET || 0);
   return `<main class="wrap map">
+    <aside class="side left">
+      <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
+    </aside>
     <section class="map-main">
       <div class="screen-head"><h1>페이즈 ${p}</h1><p class="muted small">${scale}</p></div>
       <button class="field-mini" data-a="field-info" style="--c:${f.color}" title="전장 브리핑 다시 보기"><span class="fc-ic">${f.icon}</span><b>${esc(f.name)}</b><span class="muted small">${esc(f.region)}</span><span class="fm-more" aria-hidden="true">›</span></button>
@@ -422,8 +425,6 @@ function mapScreen(run: RunState) {
     <aside class="side">
       <h2>파티 <span class="muted small">출전 ${deployed(run).length}/${R.deployCap(run)} · 보유 ${run.units.length}/${CFG.maxParty}</span></h2>
       <div class="party">${run.units.map(rosterTile).join('')}</div>
-      <h2>시너지</h2>
-      <div class="syn-list">${synergyPanel(run)}</div>
       ${run.quests.length ? `<h2>헬레니우스 퀘스트</h2><ul class="quests">${run.quests.map((q) =>
         `<li class="${q.done ? 'done' : ''}">${esc(R.questText(q))} <span class="muted">${Math.min(q.progress, q.target)}/${q.target} · 보상 ${R.questRewardText(q)}</span></li>`).join('')}</ul>` : ''}
       ${run.privilege ? `<h2>특권</h2><ul class="globals"><li><b>${esc(R.privilegeName(run.privilege))}</b> <span class="muted">${esc(R.privilegeDesc(run.privilege))}</span></li></ul>` : ''}
@@ -566,14 +567,16 @@ function previewAlly(run: RunState, u: UnitState) {
   return { b, c };
 }
 
-function aceLine(run: RunState, u: UnitState) {
+/** 항해자 에이스 파일럿: 능력 란에 표시하고 여기서 지정 */
+function aceAbil(run: RunState, u: UnitState) {
   const d = UNIT_BY_ID[u.defId];
-  if (!u.pos || !d.ace || !tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0)) return '';
-  const k = [1, 1, 1.6, 2.5][tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0)];
-  const info = `<div class="small muted">에이스 능력 · ${esc(d.ace.name)}: ${esc(d.ace.desc(k))}</div>`;
-  return aceTargetUid(run) === u.uid
-    ? `<div class="small staff-on">✈ 에이스 파일럿</div>${info}`
-    : `<button class="btn small" data-a="ace-target" data-v="${u.uid}">✈ 에이스 파일럿으로 지정</button>${info}`;
+  if (!d.ace) return '';
+  const nav = tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0);
+  const k = [1, 1, 1.6, 2.5][nav] ?? 1;
+  const on = nav > 0 && !!u.pos && aceTargetUid(run) === u.uid;
+  const ctl = !nav || !u.pos ? '<span class="muted small">항해자 시너지가 활성화된 출전 기물만 지정할 수 있습니다.</span>'
+    : on ? '<span class="small staff-on">✈ 지정됨</span>' : `<button class="btn tiny" data-a="ace-target" data-v="${u.uid}">✈ 에이스 파일럿으로 지정</button>`;
+  return `<div class="abil ab-ace${on ? ' on' : ''}"><div class="ab-head"><span class="ab-kind">에이스</span><b>${esc(d.ace.name)}</b><span class="ab-meta">${on ? '활성' : '비활성'}</span></div><p>${esc(d.ace.desc(k))}</p>${ctl}</div>`;
 }
 
 function detailPanel(run: RunState) {
@@ -605,9 +608,12 @@ function detailPanel(run: RunState) {
   const title = rankTitle(u.rank) + effects.reduce((s, e) => s + (e.title || 0), 0);
   const cost = R.xpCost(run);
   return `<div class="detail">
-    ${hero(d.id)}<div class="d-tools">${detailToggle()}</div><div class="d-head">${sprite(d, 'spr big')}${nameBlock(d, memberships(u, run), u.rank, chip, memberships(u, run).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : '')}</div>
-    ${aceLine(run, u)}
-    ${xpBar(u)}
+    <div class="d-tools">${detailToggle()}</div>
+    <div class="d-hero">${hero(d.id) || `<div class="hero none">${sprite(d, 'spr big')}</div>`}
+      <div class="dh-name"><b>${esc(d.name)}</b><span class="dh-types"><i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i></span></div></div>
+    <div class="dh-rank"><span class="dh-r">${rankLabel(u.rank)}</span>${xpBar(u)}</div>
+    <div class="chips nb-syn">${memberships(u, run).map(chip).join('')}</div>
+    ${memberships(u, run).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}
     <button class="btn small" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''}>공명도 +${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)} (크레딧 ${cost})</button>
     <h3>메이저 스탯</h3>
     <div class="majors">${MAJORS.map((m) => {
@@ -618,6 +624,7 @@ function detailPanel(run: RunState) {
     <div class="abils">
       ${weaponAbil(c.weapon || d.weapon, c.atk.elem)}
       ${traitGroup(d, u, run)}
+      ${aceAbil(run, u)}
       ${abil('skill', d.skill.name, app.detail ? `${c.cdMax.toFixed(1)}초${d.ctype === 'CMD' ? ' · 전술 위력' : ''}` : '', skillText(d, c.sk))}
     </div>
     <h3>증강 <span class="muted">${u.augments.length}</span></h3>

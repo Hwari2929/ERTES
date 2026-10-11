@@ -111,7 +111,7 @@ button { font: inherit; color: inherit; }
 .majors-mini b { color: var(--fg); }
 
 /* ── 맵 */
-.map { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; }
+.map { display: grid; grid-template-columns: 240px minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
 .track { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; counter-reset: n; }
 .track li { counter-increment: n; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font-size: .8rem; color: var(--dim); }
 .track li::before { content: counter(n) ' '; font-family: var(--f-mono); color: var(--line); }
@@ -319,6 +319,8 @@ textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--fg
 @media (max-width: 1100px) {
   .prep { grid-template-columns: minmax(0, 1fr) 300px; }
   .prep .side.left { grid-column: 1 / -1; order: 3; }
+  .map { grid-template-columns: minmax(0, 1fr) 320px; }
+  .map .side.left { grid-column: 1 / -1; order: 3; }
 }
 @media (max-width: 860px) {
   .top { position: static; gap: 6px 10px; padding-block: 8px; }
@@ -719,7 +721,8 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .tl-node { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--panel); border: 2px solid var(--line); color: var(--dim); padding: 0; overflow: hidden; font: inherit; }
 .tl-node .li { width: 20px; height: 20px; }
 .tl-node .tl-pt { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-.tl-step.done .tl-node { border-color: var(--dim); color: var(--fg); opacity: .7; }
+.tl-step.done .tl-node { border-color: #4a5468; color: #9aa3b5; background: #1a1f2a; }
+.tl-step.done .tl-node .tl-pt { filter: saturate(.6) brightness(.8); }
 .tl-step.next .tl-node { width: 32px; height: 32px; }
 .tl-step.next .tl-node .li { width: 16px; height: 16px; }
 .tl-step.cur .tl-node { color: var(--fg); cursor: pointer; }
@@ -727,3 +730,17 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .tl-step.cur span.tl-node { cursor: default; }
 .tl-info { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin: 4px 0 8px; }
 .tl-go { min-width: 180px; }
+
+/* 상세 보기 머리: 일러스트 좌하단에 이름 · 유형, 아래 공명 등급 · 경험치 · 시너지 */
+.d-hero { position: relative; }
+.d-hero .hero { margin-bottom: 0; }
+.d-hero .hero.none { height: 120px; display: grid; place-items: center; cursor: default; }
+.dh-name { position: absolute; left: 0; bottom: 6px; z-index: 1; display: grid; gap: 4px; pointer-events: none; text-shadow: 0 2px 6px rgb(0 0 0 / .9); }
+.dh-name b { font-family: var(--f-display); font-weight: 400; font-size: 1.7rem; line-height: 1.1; }
+.dh-types { display: flex; gap: 6px; flex-wrap: wrap; }
+.dh-types i { font-style: normal; display: inline-flex; align-items: center; gap: 4px; font-size: .78rem; font-weight: 600; color: #f0f2f6; background: rgb(10 12 18 / .7); border-radius: 4px; padding: 1px 7px 1px 5px; }
+.dh-types .ti { width: 13px; height: 13px; }
+.dh-rank { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.dh-r { font-family: var(--f-mono); font-weight: 700; font-size: 1rem; display: inline-flex; align-items: center; gap: 2px; flex: none; }
+.dh-rank .xp { flex: 1; }
+.ab-ace { --ab: #7ab8ff; } .ab-ace .btn { margin-top: 4px; } .ab-ace:not(.on) p { opacity: .7; }
