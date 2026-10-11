@@ -43,6 +43,7 @@ const app = {
   view: null as BattleView | null,
   summary: null as R.BattleSummary | null,
   picks: [] as Major[],
+  augPick: null as number | null, // 증강 창에서 고른 칸 (확정 전)
   speed: [1, 2, 4, 8].includes(loadPrefs().speed || 0) ? loadPrefs().speed! : 1,
   toast: '',
   toastT: 0 as ReturnType<typeof setTimeout> | 0,
@@ -631,8 +632,8 @@ function pendingModal(run: RunState): string {
         <p class="muted small">공명 등급 ${CFG.statEvery}의 배수마다 받는 보상입니다. 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${CFG.hasRankAug(p.rank) ? ` · 이어서 ${p.rank}등급 증강` : ''}<br>(등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>
         <div class="alloc-grid">${MAJORS.map((m) => {
           const on = app.picks.includes(m);
-          return `<button class="stat-pick ${on ? 'on' : ''} ${rec.includes(m) ? 'rec' : ''}" data-a="alloc-pick" data-v="${m}" aria-pressed="${on}" ${on || left ? '' : 'disabled'}>
-            ${majorIcon(m, 'mi big')}<span class="sp-name">${MAJOR_NAME[m]}${rec.includes(m) ? '<span class="rec-tag">추천</span>' : ''}</span>
+          return `<button class="stat-pick ${on ? 'on' : ''} ${rec.includes(m) ? 'rec' : ''}" data-a="alloc-pick" data-v="${m}" aria-pressed="${on}" aria-label="${MAJOR_NAME[m]} ${tm[m]}" ${on || left ? '' : 'disabled'}>
+            ${majorIcon(m, 'mi big')}${rec.includes(m) ? '<span class="rec-tag">추천</span>' : ''}
             <span class="sp-val"><b>${tm[m]}</b>${on ? `<em>+${p.points}</em>` : ''}</span>
             <span class="tip" role="tooltip"><b>${MAJOR_NAME[m]}</b> 1pt당<br>${conv(m)}${rec.includes(m) ? '<br><span class="accent">이 기물의 공격 방식 · 기본 성향에 맞는 스탯</span>' : ''}</span></button>`;
         }).join('')}
@@ -647,9 +648,11 @@ function pendingModal(run: RunState): string {
           ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
         <div class="aug-list">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];
-          return `<button class="aug-opt" data-a="pick-aug" data-v="${i}">${augIcon(a.id)}<span class="ao-txt"><b>${esc(ad.name)}</b><span>${esc(augDesc(a.id, a.param))}</span></span><kbd>${i + 1}</kbd></button>`;
+          return `<button class="aug-opt ${app.augPick === i ? 'on' : ''}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">${augIcon(a.id)}<span class="ao-txt"><b>${esc(ad.name)}</b><span>${esc(augDesc(a.id, a.param))}</span></span><kbd>${i + 1}</kbd></button>`;
         }).join('') || '<p class="muted">고를 수 있는 증강이 없습니다.</p>'}</div>
-        ${opts.length ? '' : '<div class="row-btns"><button class="btn primary" data-a="skip-aug">넘어가기</button></div>'}
+        <div class="ru-foot">${opts.length
+          ? `<button class="btn primary aug-ok" data-a="pick-aug" data-v="${app.augPick ?? ''}" ${app.augPick === null ? 'disabled' : ''}>${app.augPick === null ? '증강을 고르세요' : '확정'}</button>`
+          : '<button class="btn primary" data-a="skip-aug">넘어가기</button>'}</div>
       </div>`;
     }
   } else if (p.t === 'itemPick') {
@@ -1040,14 +1043,16 @@ function act(a: string, v: string) {
       persist();
       break;
     }
-    case 'reroll': { const p = run?.pending[0]; if (run && p?.t === 'rankup' && p.rerolls > 0) { p.rerolls--; p.options = null; } break; }
+    case 'reroll': { const p = run?.pending[0]; if (run && p?.t === 'rankup' && p.rerolls > 0) { p.rerolls--; p.options = null; app.augPick = null; } break; }
+    case 'pick-augsel': app.augPick = +v; break;
     case 'pick-aug': {
       const p = run?.pending[0];
-      if (!run || p?.t !== 'rankup' || !p.options) return;
+      if (!run || p?.t !== 'rankup' || !p.options || v === '' || !p.options[+v]) return;
       R.chooseAug(run, p.uid, p.options[+v]);
+      app.augPick = null;
       run.pending.shift(); persist(); break;
     }
-    case 'skip-aug': run?.pending.shift(); persist(); break;
+    case 'skip-aug': app.augPick = null; run?.pending.shift(); persist(); break;
     case 'pick-item': { const p = run?.pending[0]; if (run && p?.t === 'itemPick') { R.gainItem(run, p.options[+v]); run.pending.shift(); persist(); } break; }
     case 'pick-recruit': if (run && run.pending[0]?.t === 'recruit') { R.recruit(run, v); run.pending.shift(); persist(); } break;
     case 'pick-supply': if (run && run.pending[0]?.t === 'supply') { run.pending.shift(); R.takeSupply(run, v); persist(); } break;
@@ -1158,7 +1163,7 @@ function onDrop(src: string, dst: string) {
 }
 
 // ───────────────────────── 단축키
-const CONFIRM_ACTS = ['alloc-ok', 'after-battle', 'field-ok', 'notice-ok', 'skip-aug', 'menu-close'];
+const CONFIRM_ACTS = ['alloc-ok', 'pick-aug', 'after-battle', 'field-ok', 'notice-ok', 'skip-aug', 'menu-close'];
 function clickFirst(sel: string) {
   const el = Array.from(document.querySelectorAll<HTMLButtonElement>(sel)).find((b) => !b.disabled);
   if (!el) return false;
@@ -1182,7 +1187,7 @@ document.addEventListener('keydown', (e) => {
   const digit = /^[1-9]$/.test(k) ? +k : 0;
   if (modal && app.screen !== 'battle') {
     if (digit) {
-      const opts = Array.from(modal.querySelectorAll<HTMLButtonElement>('[data-a^="pick-"], [data-a="event-choice"], [data-a="alloc-pick"]'));
+      const opts = Array.from(modal.querySelectorAll<HTMLButtonElement>('[data-a^="pick-"]:not(.aug-ok), [data-a="event-choice"], [data-a="alloc-pick"]'));
       const b = opts[digit - 1];
       if (b && !b.disabled) { b.click(); e.preventDefault(); }
     } else if (k === 'r') clickFirst('.modal [data-a="reroll"], .modal [data-a="reroll-privilege"]');
