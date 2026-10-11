@@ -906,6 +906,15 @@ function carWrap(track: HTMLElement) {
   else if (track.scrollLeft > w * 1.5) track.scrollLeft -= w;
   carX = track.scrollLeft;
 }
+/** 다시 그리지 않고 펼침 상태만 바꾼다 (트랜지션 유지) */
+function syncCardOpen() {
+  root.querySelectorAll<HTMLElement>('.car-track > .pcard').forEach((c) => {
+    const on = !c.hasAttribute('aria-hidden') && c.dataset.v === app.cardOpen;
+    c.classList.toggle('open', on);
+    const b = c.querySelector('.pc-more');
+    if (b) b.textContent = on ? '접기 ▼' : '상세 보기 ▲';
+  });
+}
 function setupCarousel() {
   const track = root.querySelector<HTMLElement>('.car-track');
   if (!track) return;
@@ -927,7 +936,7 @@ function setupCarousel() {
     const dy = e.clientY - drag.y, dx = e.clientX - drag.x;
     if (Math.abs(dy) < 36 || Math.abs(dy) < Math.abs(dx) * 1.5) return;
     const open = dy < 0;
-    if ((app.cardOpen === drag.id) !== open) { app.cardOpen = open ? drag.id : null; render(); }
+    if ((app.cardOpen === drag.id) !== open) { app.cardOpen = open ? drag.id : null; syncCardOpen(); }
     suppressClick = true; setTimeout(() => { suppressClick = false; }, 350);
     drag = null;
   });
@@ -1108,7 +1117,7 @@ function act(a: string, v: string) {
       break;
     case 'car-prev': case 'car-next': carStep(a === 'car-next' ? 1 : -1); return;
     case 'card-tap': return act('pick-starter', v); // 카드를 누르면 선택 · 해제
-    case 'card-open': app.cardOpen = app.cardOpen === v ? null : v; break; // 터치: 설명 펼치기 · 접기
+    case 'card-open': app.cardOpen = app.cardOpen === v ? null : v; syncCardOpen(); return; // 터치: 설명 펼치기 · 접기
     case 'toggle-detail': app.detail = !app.detail; savePref('detail', app.detail); break;
     case 'toggle-sub': if (app.subOpen.has(v)) app.subOpen.delete(v); else app.subOpen.add(v); break;
     case 'to-title': if (app.view) { app.view.destroy(); app.view = null; } app.screen = 'title'; app.menu = null; app.run = null; break;
