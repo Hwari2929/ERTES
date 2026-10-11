@@ -15,6 +15,9 @@ export function fmt(n: number): string {
   return String(Math.round(n));
 }
 
+/** 아군 토큰의 장비 줄 (main.ts 에서 주입) */
+export const TOKEN_HOOK: { items?: (u: CUnit) => string } = {};
+
 interface UEl { el: HTMLElement; hp: HTMLElement; sh: HTMLElement; cd: HTMLElement; gx: HTMLElement | null; u: CUnit; dead: boolean }
 
 /** 전투를 실시간으로 진행하며 보드 위 DOM 을 갱신한다 */
@@ -78,9 +81,11 @@ export class BattleView {
 
   private mount(u: CUnit) {
     const el = document.createElement('div');
-    el.className = `u side${u.side}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
+    const card = u.side === 0 && !!u.src && hasPortrait(u);
+    el.className = `u side${u.side}${card ? ' tk' : ''}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
     el.style.width = el.style.height = `${100 / this.b.n}%`;
-    el.innerHTML = `<div class="bars"><i class="hp"></i><i class="sh"></i></div><img alt="" class="${hasPortrait(u) ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && (u.reason !== null || u.div !== null) ? '<div class="gx"><i></i></div>' : ''}`;
+    const inner = `<div class="bars"><i class="hp"></i><i class="sh"></i></div><img alt="" class="${hasPortrait(u) ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && (u.reason !== null || u.div !== null) ? '<div class="gx"><i></i></div>' : ''}`;
+    el.innerHTML = card ? `<div class="tk-card">${inner}<span class="tk-items">${TOKEN_HOOK.items?.(u) || ''}</span></div>` : inner;
     this.board.appendChild(el);
     this.els.set(u.id, { el, hp: el.querySelector('.hp')!, sh: el.querySelector('.sh')!, cd: el.querySelector('.cd i')!, gx: el.querySelector<HTMLElement>('.gx i'), u, dead: false });
   }

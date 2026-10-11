@@ -672,3 +672,16 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 /* 공명 등급 별 아이콘 */
 .rstar { width: .9em; height: .9em; vertical-align: -.1em; margin-right: 1px; }
 .rt-rank, .ubadge, .rank { display: inline-flex; align-items: center; gap: 1px; }
+/* 아군 토큰: 세로로 긴 카드 (초상화 + 장비 줄) */
+.u.tk { display: flex; align-items: center; justify-content: center; }
+.u.tk .tk-card { position: relative; height: calc(100% - 2px); width: 76%; overflow: hidden; display: flex; flex-direction: column; gap: 2px; padding: 2px; box-sizing: border-box; background: var(--panel); border: 1px solid rgb(240 242 246 / .35); border-radius: 3px; box-shadow: 0 2px 6px rgb(0 0 0 / .5); }
+.u.tk .tk-card img.pt { width: 100%; height: auto; aspect-ratio: 1; flex: none; min-height: 0; object-fit: cover; border-radius: 2px; box-shadow: none; }
+.u.tk .tk-items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; flex: 1; min-height: 0; }
+.u.tk .tk-items .item { width: 100%; height: 100%; font-size: 7px; border-radius: 2px; cursor: inherit; border-width: 1px; }
+.u.tk .tk-items .item .ii { width: 75%; height: 75%; }
+.u.tk .bars { top: 3px; left: 6%; right: 6%; height: 5px; }
+.u.tk .cd { top: calc(72% - 2px); bottom: auto; left: 8%; right: 8%; }
+.u.tk .gx { top: calc(72% - 6px); bottom: auto; left: 8%; right: 8%; }
+.u.tk .ubadge { right: 6%; bottom: auto; top: calc(72% - 18px); }
+.u.tk.sel { outline: none; }
+.u.tk.sel .tk-card { border-color: var(--accent); }

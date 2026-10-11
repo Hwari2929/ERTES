@@ -19,7 +19,7 @@ import { Battle, type CUnit } from './engine/combat';
 import * as R from './engine/run';
 import { Rng } from './rng';
 import { type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, KEYWORD_NAME, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type SynergyId, type UnitState } from './types';
-import { BattleView, fmt } from './ui/battleview';
+import { BattleView, fmt, TOKEN_HOOK } from './ui/battleview';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
 import { hasPortrait, iconURL, standImg } from './ui/portraits';
@@ -432,6 +432,8 @@ function nodeHint(o: NodeType) {
     pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', invest: '호이슌 투자 상품 · 크레딧으로 문장 · 증강 · 다음 페이즈 수익', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
   } as Record<NodeType, string>)[o];
 }
+// 전투 토큰: 아군 기물 아래 장비 줄
+TOKEN_HOOK.items = (u) => (u.src ? u.src.items.map((i) => itemIcon(i)).join('') : '');
 /** 공명 등급 표기: 별 아이콘 + 숫자 */
 const RANK_STAR = '<svg class="rstar" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 17.4l-6.1 3.5 1.5-6.8-5.2-4.6 6.9-.7z"/></svg>';
 const rankLabel = (rank: number) => `${RANK_STAR}${rank}`;
@@ -477,9 +479,9 @@ function prepScreen(run: RunState) {
     if (!p) continue;
     const d = UNIT_BY_ID[u.defId];
     const sel = app.sel?.k === 'unit' && app.sel.uid === u.uid;
-    units += `<div class="u side0 placed ${sel ? 'sel' : ''}" style="left:${(p.x / n) * 100}%;top:${(p.y / n) * 100}%;width:${100 / n}%;height:${100 / n}%"
+    units += `<div class="u side0 tk placed ${sel ? 'sel' : ''}" style="left:${(p.x / n) * 100}%;top:${(p.y / n) * 100}%;width:${100 / n}%;height:${100 / n}%"
       data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}">
-      ${sprite(d, '')}<span class="ubadge">${rankLabel(u.rank)}</span><span class="uitems">${u.items.filter(Boolean).map(() => '<i></i>').join('')}</span></div>`;
+      <div class="tk-card">${sprite(d, '')}<span class="ubadge">${rankLabel(u.rank)}</span><span class="tk-items">${u.items.map((i) => itemIcon(i)).join('')}</span></div></div>`;
   }
   if (node?.enc) node.enc.enemies.forEach((s, i) => {
     const e = ENEMY_BY_ID[s.defId];
