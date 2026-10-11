@@ -28,6 +28,7 @@ function playRun(seed: number) {
   const synMax: Record<string, number> = {};
   const unitDeploy: Record<string, number> = {};
   let deathBy: string | null = null;
+  let investN = 0, investBuy = 0;
 
   const resolvePending = () => {
     while (run.pending.length) {
@@ -99,7 +100,7 @@ function playRun(seed: number) {
       const t = (run.node as { type: string } | null)?.type;
       if (t === 'shop') for (let i = 0; i < 6; i++) if (run.credits >= 35) R.buyShop(run, i);
       if (t === 'news') for (let i = 0; i < 6; i++) R.buyNews(run, i);
-      if (t === 'invest') for (let i = 0; i < 5; i++) if (run.credits >= 40) R.buyInvest(run, i);
+      if (t === 'invest') { investN++; for (let i = 0; i < 5; i++) if (run.credits >= 30 && !R.buyInvest(run, i)) investBuy++; }
       if (t === 'shop' || t === 'news' || t === 'invest') R.leaveShop(run);
       continue;
     }
@@ -132,6 +133,7 @@ function playRun(seed: number) {
     seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, hp: run.hp, deathBy,
     used: run.usedIds, final: run.units.map((u) => ({ id: u.defId, rank: u.rank, dep: !!u.pos, augs: u.augments.map((a) => a.id) })),
     synMax, unitDeploy, events, battles, credits: run.credits, power: run.power, boons: run.boons, globals: run.globals,
+    invest: investN, investBuy,
   };
 }
 
