@@ -120,7 +120,7 @@ function augIcon(id: string, cls = 'aug-ic') {
 const recommendedMajors = (d: UnitDef): Major[] => recMajors(d);
 
 function rankPips(rank: number) {
-  return `<span class="rank" title="공명 등급 ${rank}">R${rank}</span>`;
+  return `<span class="rank" title="공명 등급 ${rank}">${rankLabel(rank)}</span>`;
 }
 function xpBar(u: UnitState) {
   if (u.rank >= CFG.maxRank) return `<div class="xp max"><i style="width:100%"></i><b>MAX</b></div>`;
@@ -432,20 +432,20 @@ function nodeHint(o: NodeType) {
     pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', invest: '호이슌 투자 상품 · 크레딧으로 문장 · 증강 · 다음 페이즈 수익', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
   } as Record<NodeType, string>)[o];
 }
-/** 파티 타일: 초상화(좌하단 공명 등급) · 장비 · 소속 시너지 */
+/** 공명 등급 표기: 별 아이콘 + 숫자 */
+const RANK_STAR = '<svg class="rstar" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 17.4l-6.1 3.5 1.5-6.8-5.2-4.6 6.9-.7z"/></svg>';
+const rankLabel = (rank: number) => `${RANK_STAR}${rank}`;
+/** 파티 타일: 초상화(좌상단 문장 · 우상단 유형 · 좌하단 공명 등급) · 장비 */
 function rosterTile(u: UnitState) {
   const d = UNIT_BY_ID[u.defId];
   const run = app.run;
   const locked = !!run && u.lock === run.phase;
-  const syns = memberships(u, run).map((id) => SYN_BY_ID[id]).filter(Boolean)
-    .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'faction' ? -1 : 1));
   const tip = `${d.name} · 공명 등급 ${u.rank}${u.pos ? '' : ' · 대기'}${locked ? ' · 이번 페이즈 출전 불가' : ''}`;
   return `<button class="rt${u.pos ? '' : ' rt-off'}" data-a="manage" data-v="${u.uid}" title="${esc(tip)}" aria-label="${esc(tip)}">
     <span class="rt-art">${sprite(d)}${u.mod ? `<span class="rt-mod">${itemIcon(u.mod)}</span>` : ''}
       <span class="rt-type" aria-hidden="true"><i title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i><i title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i></span>
-      <span class="rt-rank">${u.rank}</span>${locked ? '<span class="rt-lock" aria-hidden="true">⛓</span>' : ''}</span>
+      <span class="rt-rank">${rankLabel(u.rank)}</span>${locked ? '<span class="rt-lock" aria-hidden="true">⛓</span>' : ''}</span>
     <span class="rt-items">${u.items.map((i) => itemIcon(i)).join('')}</span>
-    <span class="rt-syn">${syns.map((sd) => `<span class="rt-s" style="--c:${sd.color}" title="${esc(sd.name)}">${synIcon(sd.id)}</span>`).join('')}</span>
   </button>`;
 }
 function rosterRow(u: UnitState) {
@@ -479,7 +479,7 @@ function prepScreen(run: RunState) {
     const sel = app.sel?.k === 'unit' && app.sel.uid === u.uid;
     units += `<div class="u side0 placed ${sel ? 'sel' : ''}" style="left:${(p.x / n) * 100}%;top:${(p.y / n) * 100}%;width:${100 / n}%;height:${100 / n}%"
       data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}">
-      ${sprite(d, '')}<span class="ubadge">R${u.rank}</span><span class="uitems">${u.items.filter(Boolean).map(() => '<i></i>').join('')}</span></div>`;
+      ${sprite(d, '')}<span class="ubadge">${rankLabel(u.rank)}</span><span class="uitems">${u.items.filter(Boolean).map(() => '<i></i>').join('')}</span></div>`;
   }
   if (node?.enc) node.enc.enemies.forEach((s, i) => {
     const e = ENEMY_BY_ID[s.defId];
@@ -504,7 +504,7 @@ function prepScreen(run: RunState) {
         ${bench.length ? bench.map((u) => {
           const d = UNIT_BY_ID[u.defId];
           const sel = app.sel?.k === 'unit' && app.sel.uid === u.uid;
-          return `<div class="bench-u ${sel ? 'sel' : ''}" data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}">${sprite(d, '')}<span class="ubadge">R${u.rank}</span></div>`;
+          return `<div class="bench-u ${sel ? 'sel' : ''}" data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}">${sprite(d, '')}<span class="ubadge">${rankLabel(u.rank)}</span></div>`;
         }).join('') : '<span class="muted small">기물을 여기로 끌어 출전에서 뺄 수 있습니다.</span>'}
       </div>
       ${inventoryPanel(run)}
@@ -824,7 +824,7 @@ function pendingModal(run: RunState): string {
     mcls = 'recruit';
     const pick = app.recruitPick && p.options.includes(app.recruitPick) ? app.recruitPick : null;
     body = `<div class="rc-head"><div><h1>기물 영입</h1><p class="muted small">새 동료 한 명을 고르세요. 공명 등급 ${rank}로 합류합니다. 보유 ${run.units.length}/${CFG.maxParty} (출전 최대 ${R.deployCap(run)}명)</p></div>${detailToggle()}</div>
-      <div class="rc-track">${p.options.map((id) => pickCard(UNIT_BY_ID[id], { on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), extra: `<span class="rank rc-rank">R${rank}</span>` })).join('')}</div>
+      <div class="rc-track">${p.options.map((id) => pickCard(UNIT_BY_ID[id], { on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), extra: `<span class="rank rc-rank">${rankLabel(rank)}</span>` })).join('')}</div>
       <div class="rc-foot"><span class="muted small">${pick ? `${esc(UNIT_BY_ID[pick].name)} 선택됨` : CAN_HOVER ? '카드에 마우스를 올리면 설명, 누르면 선택' : '탭하면 선택 · 하단을 끌어올리면 설명'}</span>
         <button class="btn primary" data-a="pick-recruit" data-v="${pick || ''}" ${pick ? '' : 'disabled'}>영입</button></div>`;
   } else if (p.t === 'supply') {
