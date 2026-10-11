@@ -8,15 +8,16 @@ import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEG
 import { ALL_ADVANCED, ALL_COMPONENTS, combine, emblemId, emblemOf, isLocked, isMod, itemInfo } from '../data/items';
 import { SYN_BY_ID, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
+import { MAJOR_AUGS, PSI_AUGS, recMajors } from '../data/rework';
 import { Rng } from '../rng';
 import {
-  type AugPick, type Encounter, type EnemySpawn, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
+  type AugPick, type Encounter, type FaithId, type EnemySpawn, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
   type Quest, type RunState, type SynergyId, type UnitState,
 } from '../types';
 import { deployed, memberships, playerRows, synergyCounts } from './build';
 import type { Battle } from './combat';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export function rng<T>(run: RunState, f: (r: Rng) => T): T {
   const r = new Rng(run.rng);
@@ -33,13 +34,12 @@ export function newRun(seed: number, starters: string[], field?: string, diff = 
   const run: RunState = {
     version: SAVE_VERSION, seed, rng: seed, phase: 1, step: 0, map: phaseMap(1), picked: [], node: null,
     hp: CFG.playerHp - (diffHas(diff, 6) ? 25 : 0), maxHp: CFG.playerHp - (diffHas(diff, 6) ? 25 : 0), credits: diffHas(diff, 3) ? 0 : CFG.startCredits, streak: 0, units: [], inventory: [],
-    globals: [], pending: [], quests: [], questPhase: 0, loan: 0, faith: 0, fame: 0, blessing: null, staffTarget: null, aceTarget: null, privilege: null, field: field || 'waste', diff, cleared: false, endless: false,
+    globals: [], pending: [], quests: [], questPhase: 0, loan: 0, faith: 0, power: 0, divCap: 0, fame: 0, blessing: null, staffTarget: null, aceTarget: null, privilege: null, field: field || 'waste', diff, cleared: false, endless: false,
     mods: { interestCap: 0, nodeIncome: 0 }, boons: [], phaseBoons: [], seenEvents: [], usedIds: [], rankLog: {}, nextUid: 1, log: [],
     stats: { wins: 0, losses: 0, kills: 0, bestHit: 0 }, over: false,
   };
   for (const id of starters) addUnit(run, id, 1);
   autoPlace(run);
-  if (tierNow(run, 'CLERIC')) run.map.unshift(['pilgrim']);
   if (!field) run.field = rng(run, (r) => r.pick(FIELDS).id);
   const joins = run.pending.splice(0); // 시작 기물 합류 증강은 전장 브리핑 다음에
   run.pending.push({ t: 'field' }, ...joins);
@@ -124,7 +124,7 @@ function recruitOptions(run: RunState, k: number): string[] {
 export function addUnit(run: RunState, defId: string, rank: number): UnitState {
   const u: UnitState = {
     uid: `u${run.nextUid++}`, defId, rank: 1, xp: 0, alloc: zeroMajors(), perm: zeroMajors(), augments: [],
-    items: [UNIT_BY_ID[defId].item || null, null, null], mod: null, pos: null,
+    items: [UNIT_BY_ID[defId].item || null, null, null], mod: null, pos: null, faith: UNIT_BY_ID[defId].faith, grow: {},
   };
   run.units.push(u);
   if (!run.usedIds.includes(defId)) run.usedIds.push(defId);
@@ -132,6 +132,8 @@ export function addUnit(run: RunState, defId: string, rank: number): UnitState {
   for (let r = 2; r <= rank; r++) rankUp(run, u);
   // 합류 즉시 전용 증강 1개
   run.pending.push({ t: 'rankup', uid: u.uid, rank: u.rank, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, join: true });
+  // 스페셜: 합류 증강에 더해 스페셜 증강 1개
+  if (UNIT_BY_ID[defId].ttype === 'special') run.pending.push({ t: 'rankup', uid: u.uid, rank: u.rank, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, join: true, kind: 'special' });
   return u;
 }
 
@@ -169,15 +171,17 @@ export function enterNode(run: RunState, type: NodeType) {
   run.picked[run.step] = type;
   if (type !== 'battle' && type !== 'adversity' && type !== 'boss') run.fame += tierNow(run, 'STAR');
   if (type === 'pilgrim') {
-    const t = tierNow(run, 'CLERIC');
-    run.faith += 2 + 2 * t;
-    run.pending.push({ t: 'blessing', options: rng(run, (r) => r.sample(BLESSINGS.map((b) => b.id), 3)) });
-    log(run, `순례: 신앙 +${2 + 2 * t}`);
+    run.power += 1;
+    run.pending.push({ t: 'pilgrim' });
+    log(run, '순례: 권능 포인트 +1');
     advance(run);
     return;
   }
   if (type === 'news') { run.node = { type, news: genNews(run) }; return; }
   if (type === 'event') {
+    // 디바인 기물이 있으면 이번 페이즈 첫 사건 노드 다음에 순례 노드 고정
+    const first = !run.picked.slice(0, run.step).includes('event');
+    if (first && hasDivine(run) && !run.map.some((n) => n.includes('pilgrim'))) run.map.splice(run.step + 1, 0, ['pilgrim']);
     const id = pickEvent(run);
     run.seenEvents.push(id);
     run.pending.push({ t: 'event', id });
@@ -208,11 +212,13 @@ export function enterNode(run: RunState, type: NodeType) {
 
 export function leaveShop(run: RunState) { run.node = null; advance(run); }
 
-const tierNow = (run: RunState, id: 'CLERIC' | 'STAR') => tierOf(id, synergyCounts(deployed(run), run)[id] || 0);
+export const hasDivine = (run: RunState) => run.units.some((u) => UNIT_BY_ID[u.defId].ttype === 'divine');
+const tierNow = (run: RunState, id: 'STAR') => tierOf(id, synergyCounts(deployed(run), run)[id] || 0);
 
 export function advance(run: RunState) {
   run.node = null;
   run.step++;
+  for (const u of run.units) if (u.defId === 'rasmus') { u.grow ??= {}; u.grow.nodes = (u.grow.nodes || 0) + 1; } // 정원 가꾸기
   if (run.mods.nodeIncome) run.credits += run.mods.nodeIncome; // 분할 정산 등
   if (run.step >= run.map.length) {
     run.phase++;
@@ -224,8 +230,6 @@ export function advance(run: RunState) {
     run.phaseBoons = [];
     log(run, `페이즈 ${run.phase} 진입. 적이 강해집니다.`);
     if ((run.phase - 1) % CFG.globalAugEvery === 0) run.pending.push({ t: 'global', options: rollGlobals(run) });
-    // 성직자가 활성화된 채 페이즈를 시작하면 순례 노드가 맨 앞에 추가
-    if (tierNow(run, 'CLERIC')) run.map.unshift(['pilgrim']);
   }
   // 은하 대스타가 활성화되어 있으면 보스 직전에 속보 노드 추가
   if (run.map[run.step]?.includes('boss') && run.map[run.step - 1]?.[0] !== 'news' && tierNow(run, 'STAR')) {
@@ -314,7 +318,9 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   const uni = tierOf('UNI', counts.UNI || 0);
 
   // 이자 (수입 전 보유량 기준)
-  const cap = Math.max(0, CFG.interestMax + run.mods.interestCap - (diffHas(run.diff, 3) ? 1 : 0)) + (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (hasGlobal(run, 'G.interest') ? 5 : 0);
+  const cap = Math.max(0, CFG.interestMax + run.mods.interestCap - (diffHas(run.diff, 3) ? 1 : 0)) + (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (hasGlobal(run, 'G.interest') ? 5 : 0)
+    + (run.units.some((u) => u.defId === 'lars') ? 2 : 0); // 라르스: 이자 상한 +2
+  const creditsBefore = run.credits;
   const interest = Math.min(cap, Math.floor(run.credits / CFG.interestPer));
   let income = interest;
   if (interest) lines.push(`이자 +${interest} (상한 ${cap})`);
@@ -375,13 +381,16 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   const killsOf = (u: UnitState) => b.units.find((c) => c.src === u)?.counters.kills || 0;
   for (const u of dep) for (const a of u.augments) AUG_BY_ID[a.id]?.after?.(run, u, won, killsOf(u));
   // 성직자: 승리 시 신앙 / 대스타: 승리 시 명성 + 대스타 처치 수
-  const cleric = tierOf('CLERIC', counts.CLERIC || 0), star = tierOf('STAR', counts.STAR || 0);
-  if (won && cleric) { run.faith += cleric; lines.push(`신앙 +${cleric} (현재 ${run.faith})`); }
+  const star = tierOf('STAR', counts.STAR || 0);
+  settleGrowth(run, b, won, interest, lines);
   if (star) {
     const starKills = dep.filter((u) => memberships(u).includes('STAR')).reduce((sum, u) => sum + killsOf(u), 0);
     const f = (won ? 2 * star : 0) + Math.floor(starKills / 3);
     if (f) { run.fame += f; lines.push(`명성 +${f} (현재 ${run.fame})`); }
   }
+  // 라르스: 함께한 뒤 번 크레딧 누적
+  const earned = Math.max(0, run.credits - creditsBefore);
+  for (const u of run.units) if (u.defId === 'lars') { u.grow ??= {}; u.grow.earn = (u.grow.earn || 0) + earned; }
   for (const u of run.units) settleXp(run, u);
   const xp = run.units.map((u) => ({ uid: u.uid, amount: u.xp + totalXpOf(u) - xpBefore.get(u.uid)! }));
 
@@ -432,8 +441,13 @@ function rankUp(run: RunState, u: UnitState) {
   u.rank++;
   run.rankLog[u.defId] = Math.max(run.rankLog[u.defId] || 0, u.rank);
   for (const k of MAJORS) u.alloc[k] += CFG.rankAll; // 모든 메이저 자동 상승
-  const pick = CFG.hasRankPick(u.rank), aug = CFG.hasRankAug(u.rank);
-  if (pick || aug) run.pending.push({ t: 'rankup', uid: u.uid, rank: u.rank, points: CFG.rankPoints, options: null, rerolls: CFG.augmentRerolls, allocDone: !pick });
+  const d = UNIT_BY_ID[u.defId];
+  const tt = d.ttype;
+  // 스페셜: 매 등급 추천 스탯 2종 중 무작위 1종 +3 (선택 창 없음)
+  if (tt === 'special') { const m = rng(run, (r) => r.pick(recMajors(d))); u.alloc[m] += CFG.rankPoints; }
+  const pick = CFG.growth.pick(tt, u.rank), aug = CFG.growth.aug(tt, u.rank);
+  if (pick || aug) run.pending.push({ t: 'rankup', uid: u.uid, rank: u.rank, points: CFG.rankPoints, options: aug ? null : [], rerolls: CFG.augmentRerolls, allocDone: !pick });
+  if (CFG.growth.psionic(tt, u.rank)) run.pending.push({ t: 'rankup', uid: u.uid, rank: u.rank, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, kind: 'psionic' });
 }
 
 export function buyXp(run: RunState, uid: string): boolean {
@@ -448,12 +462,14 @@ export function buyXp(run: RunState, uid: string): boolean {
 export const xpCost = (run: RunState) => CFG.buyXpCost - (hasGlobal(run, 'G.study') ? 1 : 0);
 
 // ───────────────────────── 증강 선택
-export function augOptions(run: RunState, u: UnitState, rank: number, force = false): AugPick[] {
-  if (!force && !CFG.hasRankAug(rank)) return [];
+export function augOptions(run: RunState, u: UnitState, kind: 'unit' | 'special' | 'psionic' = 'unit'): AugPick[] {
   const def = UNIT_BY_ID[u.defId];
   const owned = new Set(u.augments.map((a) => a.id));
   const avail = (a: { id: string; stack?: boolean }) => a.stack || !owned.has(a.id);
-  const unitPool = def.augs.filter(avail);
+  // 메이저: 전용 증강 + 메이저 공용 풀
+  const base = kind === 'special' ? def.specialAugs || [] : kind === 'psionic' ? PSI_AUGS : [...def.augs, ...(def.ttype === 'major' ? MAJOR_AUGS : [])];
+  let unitPool = base.filter(avail);
+  if (!unitPool.length && kind === 'unit') unitPool = MAJOR_AUGS.slice();
   return rng(run, (r) => {
     const out = r.sample(unitPool.map((x) => x.id), CFG.augmentChoices);
     return out.map((id) => {
@@ -465,7 +481,7 @@ export function augOptions(run: RunState, u: UnitState, rank: number, force = fa
 
 export function ensureRankupOptions(run: RunState, p: Extract<Pending, { t: 'rankup' }>) {
   const u = run.units.find((x) => x.uid === p.uid);
-  if (u && !p.options) p.options = augOptions(run, u, p.rank, !!p.join);
+  if (u && !p.options) p.options = augOptions(run, u, p.kind || 'unit');
 }
 
 // ───────────────────────── 경제 / 아이템
@@ -692,6 +708,9 @@ export function buyNews(run: RunState, idx: number): string | null {
 /** 이전 버전 저장 데이터 보정 */
 export function migrate(run: RunState): RunState {
   run.faith ??= 0;
+  run.power ??= 0;
+  run.divCap ??= 0;
+  for (const u of run.units) { u.grow ??= {}; u.faith ??= UNIT_BY_ID[u.defId]?.faith; }
   run.fame ??= 0;
   run.blessing ??= null;
   run.staffTarget ??= null;
@@ -750,7 +769,7 @@ function eventApi(run: RunState): EventApi {
     },
     randomItem: (t) => rng(run, (r) => { const a = r.pick(tierPool(t)); return t === 'L' ? 'L_' + a.slice(2) : a; }),
     augNow: (u) => {
-      const opts = augOptions(run, u, u.rank, true);
+      const opts = augOptions(run, u);
       if (!opts.length) return null;
       u.augments.push(opts[0]);
       return AUG_BY_ID[opts[0].id]?.name || null;
@@ -802,4 +821,41 @@ export function releaseUnit(run: RunState, uid: string): string | null {
   autoPlace(run);
   log(run, `${UNIT_BY_ID[u.defId].name} 방출: 크레딧 +${v.credits}, 공명도 ${v.xp} 분배`);
   return null;
+}
+
+// ───────────────────────── 디바인 · 순례
+export const PILGRIM_COST = { faith: 3, cap: 4, bless: 2, credits: 1, xp: 1 };
+/** 순례: 권능 포인트 사용. 실패 시 이유 문자열 */
+export function pilgrimAct(run: RunState, act: 'faith' | 'cap' | 'bless' | 'credits' | 'xp', uid?: string, faith?: FaithId): string | null {
+  const cost = PILGRIM_COST[act];
+  if (run.power < cost) return '권능 포인트가 부족합니다';
+  if (act === 'faith') {
+    const u = run.units.find((x) => x.uid === uid);
+    if (!u || !faith || u.faith === faith) return '대상을 고르세요';
+    u.faith = faith;
+  } else if (act === 'cap') run.divCap += 50;
+  else if (act === 'bless') run.pending.unshift({ t: 'blessing', options: rng(run, (r) => r.sample(BLESSINGS.map((b) => b.id), 3)) });
+  else if (act === 'credits') run.credits += 3;
+  else if (act === 'xp') { distributeXp(run, 4); run.units.forEach((u) => settleXp(run, u)); }
+  run.power -= cost;
+  return null;
+}
+
+/** 전투 후 런 누적 성장 정산: 전투 중 g_ 기록 → UnitState.grow, 권능 포인트, 마이너 성장, 루스 전리품 */
+function settleGrowth(run: RunState, b: Battle, won: boolean, interest: number, lines: string[]) {
+  let div = 0;
+  for (const c of b.units) {
+    if (c.side !== 0 || !c.src) continue;
+    const u = c.src;
+    u.grow ??= {};
+    for (const [k, v] of Object.entries(c.mem)) if (k.startsWith('g_') && v) u.grow[k.slice(2)] = (u.grow[k.slice(2)] || 0) + v;
+    if (c.mem.g_loot) { run.credits += c.mem.g_loot; lines.push(`루스 약탈 +${c.mem.g_loot}`); }
+    if (c.div !== null) div += c.divGot;
+    // U-404 분기 실적: 페이즈 비례 피해 목표
+    if (u.defId === 'u404' && c.counters.dmg >= 1500 * run.phase) { u.grow.quota = (u.grow.quota || 0) + 1; lines.push('U-404 분기 실적 달성'); }
+    if (u.defId === 'ingel' && won) u.grow.fan = (u.grow.fan || 0) + 1;
+  }
+  for (const u of run.units) if (u.defId === 'orca' && interest) { u.grow ??= {}; u.grow.fin = (u.grow.fin || 0) + interest; }
+  const pw = Math.min(CFG.powerMax, Math.floor(div / CFG.powerPerDiv));
+  if (pw) { run.power += pw; lines.push(`권능 포인트 +${pw} (현재 ${run.power})`); }
 }

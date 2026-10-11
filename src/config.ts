@@ -6,7 +6,19 @@ export const CFG = {
     pow: { shoot: 5, strike: 5, crit: 0.02 },
     mnd: { tech: 5, acc: 0.02, effHit: 0.03 },
     def: { armor: 60, effRes: 0.03 },
-    agi: { moveSpd: 0.04, eva: 0.02 },
+    agi: { moveSpd: 0.04, eva: 0.02, atkSpd: 0.01, reloadSpd: 0.01 },
+  },
+  // ── 리워크 [임시]
+  finishMult: 2.6, // 콤보 무기 피니쉬 배율 (콤보 타격은 무기 계수 그대로)
+  tacScale: 8, // 전술 위력 1당 기술 위력 환산
+  reasonStart: 50, // 사이오닉 이성 시작값
+  divCap: 200, // 디바인 전투당 신성력 수집 상한
+  powerPerDiv: 20, powerMax: 10, // 권능 포인트 = 모은 신성력 ÷ 20 (전투당 최대 10)
+  // 전술 유형별 성장 주기
+  growth: {
+    pick: (tt: string, rank: number) => tt !== 'special' && rank % 3 === 0,
+    aug: (tt: string, rank: number) => rank % (tt === 'major' ? 3 : 5) === 0,
+    psionic: (tt: string, rank: number) => tt === 'psionic' && rank % 4 === 0,
   },
   // 모든 기물 공통 기초 마이너 스탯 [임시]
   baseMinor: { maxHp: 300, shoot: 20, strike: 20, tech: 20, armor: 100, crit: 0.05, critDmg: 1.5 },
@@ -30,7 +42,7 @@ export const CFG = {
   lateFrom: 5, lateHp: 0.9, lateAmp: 1.09,
   phaseHpFactor: (p: number) => (p <= 5 ? 2.05 : Math.max(1.1, 2 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
   adversityMult: 1.6,
-  enemyHpMul: 2.0, enemyPowMul: 2.0, // 적 기초 수치 전체 배율 (튜닝용)
+  enemyHpMul: 2.4, enemyPowMul: 2.2, // 적 기초 수치 전체 배율 (튜닝용)
 
   // ── 성장
   maxRank: 99, // 10 이상은 스탯만

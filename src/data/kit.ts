@@ -12,8 +12,8 @@ export const POW_NAME: Record<PowKey, string> = { shoot: '사격 위력', strike
 /** 기술 피해 (명중 판정 있음) */
 export function skillHit(b: Battle, u: CUnit, t: CUnit, pow: PowKey, mult: number, elem: Elem,
   extra: { critBonus?: number; pen?: number; noMiss?: boolean; tag?: 'skill' | 'proc' } = {}): DmgResult {
-  return b.dealDamage(u, t, b.S(u, pow) * mult, {
-    elem, tag: extra.tag || 'skill', canMiss: !extra.noMiss, critBonus: extra.critBonus, pen: extra.pen,
+  return b.dealDamage(u, t, b.P(u, pow) * mult, {
+    elem, tag: extra.tag || 'skill', kind: pow, canMiss: !extra.noMiss, critBonus: extra.critBonus, pen: extra.pen,
   });
 }
 

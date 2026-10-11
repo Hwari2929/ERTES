@@ -9,8 +9,35 @@ export const KEYWORD_NAME: Record<Keyword, string> = { bio: '생체', mech: '기
 
 export type FactionId = 'UNI' | 'KAL' | 'HEL' | 'PET' | 'SIR' | 'PAN' | 'FAM';
 export const FACTIONS: FactionId[] = ['UNI', 'KAL', 'HEL', 'PET', 'SIR', 'PAN', 'FAM'];
-export type TraitId = 'MARK' | 'VAN' | 'SPEC' | 'MED' | 'STAFF' | 'BUDDY' | 'NATURE' | 'CLERIC' | 'STAR' | 'INFIL'
-  | 'NAV' | 'CHEF' | 'ENG' | 'TIME' | 'EXPLORER' | 'RFRIEND';
+export type TraitId = 'MED' | 'BUDDY' | 'NATURE' | 'STAR' | 'INFIL' | 'NAV' | 'CHEF' | 'ENG' | 'TIME' | 'EXPLORER' | 'RFRIEND';
+
+/** 전투 유형: 어떤 스탯이 주력인지 */
+export type CType = 'MARK' | 'VAN' | 'SPEC' | 'CMD';
+export const CTYPE_NAME: Record<CType, string> = { MARK: '명사수', VAN: '돌격가', SPEC: '전문가', CMD: '지휘관' };
+/** 전술 유형: 성장 방식과 특수 체계 */
+export type TType = 'major' | 'minor' | 'special' | 'psionic' | 'divine';
+export const TTYPE_NAME: Record<TType, string> = { major: '메이저', minor: '마이너', special: '스페셜', psionic: '사이오닉', divine: '디바인' };
+export type FaithId = 'emperor' | 'athena' | 'hermes' | 'ares' | 'hades' | 'zeus' | 'selene' | 'human' | 'index' | 'science' | 'sirius';
+export const FAITH_NAME: Record<FaithId, string> = {
+  emperor: '황제 숭배', athena: '아테나 신앙', hermes: '헤르메스 신앙', ares: '아레스 신앙', hades: '하데스 신앙', zeus: '제우스 신앙',
+  selene: '셀레네 신앙', human: '인간찬가', index: '지수추종', science: '과학지상주의', sirius: '시리우스 신학',
+};
+export const FAITHS = Object.keys(FAITH_NAME) as FaithId[];
+/** 무기: 탄창형(원거리) 또는 콤보형(근거리) */
+export interface Weapon {
+  name: string;
+  kind: 'mag' | 'combo' | 'none';
+  type: 'shoot' | 'strike';
+  elem: Elem;
+  interval: number;
+  range: number;
+  /** 기본 공격 계수 (위력 대비) */
+  mult: number;
+  mag?: number; reload?: number;
+  combo?: number;
+  /** 위력 대신 전술 위력을 쓴다 (아문센 등) */
+  tactical?: boolean;
+}
 export type SynergyId = FactionId | TraitId;
 
 /** 마이너 스탯 (전투에 실제 적용되는 값). 확률/비율은 0~1 소수. */
@@ -22,16 +49,17 @@ export interface Stats {
   moveSpd: number; eva: number;
   critDmg: number; armorPen: number; cdr: number; atkSpd: number;
   range: number; lifesteal: number;
+  reloadSpd: number; aoe: number;
 }
 export type StatKey = keyof Stats;
 
 export function emptyStats(): Stats {
   return { maxHp: 0, healEff: 0, shoot: 0, strike: 0, tech: 0, acc: 0, crit: 0, effHit: 0, armor: 0, effRes: 0,
-    moveSpd: 0, eva: 0, critDmg: 0, armorPen: 0, cdr: 0, atkSpd: 0, range: 0, lifesteal: 0 };
+    moveSpd: 0, eva: 0, critDmg: 0, armorPen: 0, cdr: 0, atkSpd: 0, range: 0, lifesteal: 0, reloadSpd: 0, aoe: 0 };
 }
 
-/** 피해 태그: 속성 + 전달 방식 */
-export type DmgTag = 'all' | Elem | 'basic' | 'skill' | 'dot' | 'proc';
+/** 피해 태그: 속성 + 전달 방식 + 피해 유형(사격·타격·기술) + 콤보/피니쉬. 'dot' = 지속 피해 */
+export type DmgTag = 'all' | Elem | 'basic' | 'skill' | 'dot' | 'proc' | 'shoot' | 'strike' | 'tech' | 'combo' | 'finish';
 /** 증가(inc, %p 합연산) / 증폭(amp, 최대값만) — 공격자 측 */
 export interface Mod { kind: 'inc' | 'amp'; tag: DmgTag; v: number }
 /** 받는 피해 증가(vuln, 합) / 경감(red, 합, 상한) — 방어자 측 */
@@ -50,6 +78,10 @@ export interface UnitState {
   items: (string | null)[];
   mod: string | null; // 개조부품 슬롯 (문장 등)
   lock?: number; // 이 페이즈 동안 출전 불가 (사건)
+  /** 고유 신앙 (순례에서 바꿀 수 있음, 디바인만 효과) */
+  faith?: FaithId;
+  /** 런 동안 누적되는 값 (마이너 성장 특성, 유전 물질 등) */
+  grow?: Record<string, number>;
   pos: { c: number; r: number } | null; // r=0 이 아군 진영 가장 뒷줄
 }
 
@@ -73,7 +105,8 @@ export type Pending =
   | { t: 'victory' }
   | { t: 'event'; id: string }
   | { t: 'privilege'; options: AugPick[]; rerolls: number }
-  | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean; join?: boolean }
+  | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean; join?: boolean; kind?: 'unit' | 'special' | 'psionic' }
+  | { t: 'pilgrim' }
   | { t: 'itemPick'; options: string[]; title: string }
   | { t: 'recruit'; options: string[] }
   | { t: 'supply'; options: string[] }
@@ -99,10 +132,12 @@ export interface RunState {
   quests: Quest[];
   questPhase: number;
   loan: number; // 남은 상환액
-  faith: number; // 성직자: 신앙
+  faith: number; // (구) 성직자 신앙 — 사용 안 함
+  power: number; // 디바인: 권능 포인트
+  divCap: number; // 디바인: 전투당 신성력 수집 상한 보너스
   fame: number; // 은하 대스타: 명성
   blessing: string | null; // 순례 축복 (이번 페이즈)
-  staffTarget: string | null; // 참모단 지원 대상 uid
+  staffTarget: string | null; // (구) 참모단 — 사용 안 함
   aceTarget: string | null; // 항해자 에이스 파일럿 uid
   privilege: AugPick | null; // 런 시작 특권 증강
   field: string; // 전장 (battlefields.ts)

@@ -1,8 +1,9 @@
 import type { CUnit, SkillDef } from '../engine/combat';
 import type { AugDef, Effect } from '../engine/effects';
-import type { Elem, FactionId, Keyword, Major, TraitId } from '../types';
+import type { CType, Elem, FactionId, FaithId, Keyword, Major, TraitId, TType, Weapon } from '../types';
 
-export interface UnitDef {
+/** 명단 파일에 적는 기본 정의 (리워크 정보는 rework.ts 에서 합쳐진다) */
+export interface BaseUnit {
   id: string;
   name: string;
   title: string;
@@ -31,6 +32,27 @@ export interface UnitDef {
   /** 기물 고유 패시브 (조슈아의 체사레 전환 등) */
   passive?: Effect;
 }
+
+/** 리워크 정보: 전투 유형 · 전술 유형 · 무기 · 고유 특성 · 신앙 */
+export interface ReworkDef {
+  ctype: CType;
+  ttype: TType;
+  weapon: Weapon;
+  faith: FaithId;
+  trait: { name: string; desc: string; effect?: Effect };
+  /** 마이너: 런 동안 쌓이는 성장 특성. g = UnitState.grow */
+  growth?: { name: string; desc: string; effect?: (g: Record<string, number>) => Effect };
+  /** 스페셜: 합류 시 고르는 스페셜 증강 */
+  specialAugs?: AugDef[];
+  /** 사이오닉: 이성 증감 규칙 */
+  psi?: { desc: string; effect: Effect };
+  /** 시너지 재배치 (세력 1 + 특성 1~2) */
+  factions?: FactionId[];
+  traits?: TraitId[];
+  title?: string;
+}
+
+export type UnitDef = BaseUnit & Omit<ReworkDef, 'factions' | 'traits' | 'title'>;
 
 export interface SummonDef {
   name: string;

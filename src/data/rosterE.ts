@@ -2,7 +2,7 @@
 import { inc, red } from '../engine/effects';
 import { fear, pct, skillHit } from './kit';
 import { strike, support } from './tpl';
-import { B, PAL, setSk, tint, uaug, type UnitDef } from './unitkit';
+import { B, PAL, setSk, tint, uaug, type BaseUnit } from './unitkit';
 
 const CAT = ['#0c0a10', '#3a3448', '#e8e0f0', '#c8b8d8', '#9ad0ff', '#2a2434', '#ffffff'];
 const CRIMSON = ['#100406', '#4a0a14', '#d0c0c0', '#e8c8b8', '#ff2030', '#2a0a10', '#fff0f0'];
@@ -10,7 +10,7 @@ const SPARTA = ['#0c0a06', '#b08a30', '#5a4a30', '#f0d080', '#ff6020', '#6a5a30'
 const UNIX = ['#0c0c0c', '#b0b0a0', '#6a6a60', '#e0e0d0', '#30ff60', '#4a4a40', '#ffffff'];
 const RAIDER = ['#1a0f0a', '#7a5a3a', '#c04a2a', '#d0a080', '#ffd040', '#55504a', '#f0d0a0'];
 
-export const ROSTER_E: UnitDef[] = [
+export const ROSTER_E: BaseUnit[] = [
   {
     id: 'mingki', name: '밍키', title: '엘베스타드 저택 고양이 · 성운을 먹는다(?)', factions: ['FAM'], traits: ['INFIL'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 0.7 }, range: 1, base: B(6, 8, 5, 4, 9),
@@ -42,7 +42,7 @@ export const ROSTER_E: UnitDef[] = [
     ],
   },
   {
-    id: 'onyx', name: '오닉스 감응자', title: '오닉스 합창단 · 사이오닉 감응 집단', factions: ['PAN'], traits: ['SPEC'], keywords: ['bio'],
+    id: 'onyx', name: '오닉스 감응자', title: '오닉스 합창단 · 사이오닉 감응 집단', factions: ['PAN'], traits: [], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'psy', interval: 1.1 }, range: 3, base: B(5, 5, 11, 3, 5),
     sprite: 'robe', palette: tint(PAL.PAN, '#1a1a2a', '#9a5ad0', '#d0b0ff'), eventOnly: true, noStarter: true,
     lore: '설계되지 않았는데 꾸어지는 꿈이 있다. 합창단은 그것을 "의뢰하지 않은 꿈"이라 부른다. [임시]',
@@ -67,7 +67,7 @@ export const ROSTER_E: UnitDef[] = [
       uaug('onyx', 'night', '깊은 밤', '공포 확률 +35%p.', setSk((s) => { s.fearChance += 0.35; })),
       uaug('onyx', 'echo', '메아리', '맞은 적 4초간 받는 피해 +30%.', setSk((s) => { s.vuln = 0.3; })),
       uaug('onyx', 'lullaby', '자장가', '기술을 쓸 때마다 모든 아군을 기술 위력 100%만큼 회복.', {
-        hooks: { onSkill(b, u) { for (const a of b.alliesOf(u)) b.heal(u, a, b.S(u, 'tech') * 1.0); } },
+        hooks: { onSkill(b, u) { for (const a of b.alliesOf(u)) b.heal(u, a, b.P(u, 'tech') * 1.0); } },
       }),
       uaug('onyx', 'swarmsong', '군체의 노래', '정신력 +10, 생명력 +5.', { majors: { mnd: 10, vit: 5 } }),
     ],
@@ -90,7 +90,7 @@ export const ROSTER_E: UnitDef[] = [
     ],
   },
   {
-    id: 'thermo', name: '테르모필레', title: '탈주한 호플리테 메카 · 스파르타 전쟁 궤도', factions: ['HEL'], traits: ['VAN'], keywords: ['mech'],
+    id: 'thermo', name: '테르모필레', title: '탈주한 호플리테 메카 · 스파르타 전쟁 궤도', factions: ['HEL'], traits: [], keywords: ['mech'],
     atk: { type: 'strike', elem: 'phys', interval: 1.2 }, range: 1, base: B(12, 6, 4, 10, 2),
     sprite: 'mech', palette: SPARTA, eventOnly: true, noStarter: true,
     lore: '"물러서라"는 명령을 끝까지 지킨 끝에, 궤도에서 가장 멀리 물러나 버린 메카. [임시]',
@@ -128,7 +128,7 @@ export const ROSTER_E: UnitDef[] = [
     ],
   },
   {
-    id: 'rus', name: '루스', title: '약탈 함장 바르가의 전 부관', factions: ['PAN'], traits: ['MARK'], keywords: ['bio'],
+    id: 'rus', name: '루스', title: '약탈 함장 바르가의 전 부관', factions: ['PAN'], traits: [], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 4, base: B(6, 10, 6, 4, 6),
     sprite: 'soldier', palette: RAIDER, eventOnly: true, noStarter: true,
     lore: '"바르가는 배를 잃었고, 나는 배를 챙겼지. 공평하잖아?" [임시]',

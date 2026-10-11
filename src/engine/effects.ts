@@ -32,7 +32,7 @@ export interface AugDef {
   id: string;
   name: string;
   desc: string;
-  pool: 'unit' | 'syn' | 'common';
+  pool: 'unit' | 'syn' | 'common' | 'major' | 'special' | 'psionic';
   owner?: string; // 기물 id 또는 시너지 id
   stack?: boolean;
   effect: (param?: string) => Effect;

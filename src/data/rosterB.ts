@@ -2,16 +2,29 @@
 import { inc, red } from '../engine/effects';
 import { fear, pct, skillHit, summonsOf } from './kit';
 import { cookPower, pickEnemy, strike, strongestAlly, support } from './tpl';
-import { B, PAL, setSk, tint, uaug, type UnitDef } from './unitkit';
+import { B, PAL, setSk, tint, uaug, type BaseUnit } from './unitkit';
 
 const nat = (n: number) => ({ setup: (u: { mem: Record<string, number> }) => { u.mem.natureExtra = (u.mem.natureExtra || 0) + n; } });
-const faithWin = { after: (run: { faith: number }, _u: unknown, won: boolean) => { if (won) run.faith += 2; } };
+const faithWin = { after: (run: { power: number }, _u: unknown, won: boolean) => { if (won) run.power += 1; } };
 const BEHEMOTH = ['#140608', '#6a1020', '#b02030', '#d06060', '#ffcf40', '#3a0810', '#ff8080'];
 
-export const ROSTER_B: UnitDef[] = [
+/** 카이로 [기다림의 미학]: 스택이 차면 안단테-7 저격 (요리 · 아군 공격 12회마다 스택) */
+export function kairoSnipe(b: import('../engine/combat').Battle, u: import('../engine/combat').CUnit) {
+  const p = u.sk;
+  if ((u.mem.wait ?? 0) < p.need) return;
+  const e = pickEnemy(b, u, 'strongest');
+  if (e) {
+    b.emit({ k: 'skill', id: u.id, name: '기다림의 미학' });
+    b.emit({ k: 'atk', from: u.id, to: e.id, elem: 'phys', ranged: true });
+    skillHit(b, u, e, 'shoot', p.snipe, 'phys', { critBonus: p.snipeCrit, noMiss: true });
+  }
+  u.mem.wait = p.keep;
+}
+
+export const ROSTER_B: BaseUnit[] = [
   // ───────── 칼리토 제국
   {
-    id: 'hiiro', name: '히이로', title: '여우 환수 점술사 · 작전고문', factions: ['KAL'], traits: ['STAFF', 'STAR'], keywords: ['bio'],
+    id: 'hiiro', name: '히이로', title: '여우 환수 점술사 · 작전고문', factions: ['KAL'], traits: ['STAR'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'psy', interval: 1.2 }, range: 3, base: B(6, 7, 9, 4, 5),
     sprite: 'robe', palette: tint(PAL.KAL, '#f0a0c8', '#ffffff', '#ff60c0'),
     lore: '누군가는 3년 전부터 있었다고 하고, 누군가는 처음부터 있었던 것 같다고 한다.',
@@ -23,7 +36,8 @@ export const ROSTER_B: UnitDef[] = [
         if (!foe) return false;
         const p = u.sk;
         for (const a of strongestAlly(b, u, p.count)) {
-          const good = b.rng.chance(p.luck);
+          const good = b.rng.chance(Math.min(1, p.luck + (u.reason ?? 50) / 400 - 0.125));
+          b.addReason(u, good ? 10 : -10);
           b.buff(u, a, 'hiiro.omen', p.dur, good
             ? { delta: { atkSpd: p.as }, mods: [inc('all', p.dmg)], label: '대길' }
             : { mods: [inc('all', p.dmg * 0.3)], label: '흉' });
@@ -41,7 +55,7 @@ export const ROSTER_B: UnitDef[] = [
     ],
   },
   {
-    id: 'nadir', name: '나디르', title: '흑정상회 출신 수정상', factions: ['KAL', 'PAN'], traits: ['SPEC'], keywords: ['bio'],
+    id: 'nadir', name: '나디르', title: '흑정상회 출신 수정상', factions: ['KAL', 'PAN'], traits: [], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'psy', interval: 1.1 }, range: 4, base: B(5, 8, 9, 3, 5),
     sprite: 'robe', palette: tint(PAL.KAL, '#e8e8f0', '#40c0c0', '#80e0ff'), lore: '"말만 해요! 깨끗한 기록부터 더러운 금서까지 - 다 제 손바닥 안이거든요."',
     skill: strike({
@@ -58,7 +72,7 @@ export const ROSTER_B: UnitDef[] = [
     ],
   },
   {
-    id: 'temur', name: '테무르', title: '아퀼리 경기장 출신 검투사', factions: ['KAL'], traits: ['VAN', 'NATURE'], keywords: ['bio'],
+    id: 'temur', name: '테무르', title: '아퀼리 경기장 출신 검투사', factions: ['KAL'], traits: ['NATURE'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 1.0 }, range: 1, base: B(9, 9, 4, 7, 4),
     sprite: 'knight', palette: tint(PAL.KAL, '#7a5a3a', '#e0b040', '#ffd34d'), lore: '"그래- \'주인님\'. 어디 짭잘한 일감 좀 물어왔나?"',
     skill: strike({
@@ -74,36 +88,28 @@ export const ROSTER_B: UnitDef[] = [
     ],
   },
   {
-    id: 'kairo', name: '카이로', title: '페르난데즈 백작가 차남 · 콜사인 킬로', factions: ['KAL'], traits: ['MARK', 'CHEF'], keywords: ['bio'],
+    id: 'kairo', name: '카이로', title: '페르난데즈 백작가 차남 · 콜사인 킬로', factions: ['KAL'], traits: ['CHEF'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 6, base: B(6, 9, 8, 4, 4),
     sprite: 'soldier', palette: tint(PAL.KAL, '#5a3a2a', '#e0b040', '#ff3040'), lore: '"사감은 없어. 예술을 추구할 뿐이네."',
     skill: {
-      name: '바텐더의 칵테일', cd: 4.5, params: { shield: 1.2, crit: 0.15, dur: 5, need: 6, snipe: 8, snipeCrit: 0.3, keep: 0, start: 2 },
-      desc: (p) => `[요리] 체력 비율이 가장 낮은 아군에게 칵테일을 내어 기술 위력 ${pct(p.shield)} 보호막 + ${p.dur}초간 치명타 +${pct(p.crit)}p. 한 잔마다 [기다림의 미학] 1스택, ${p.need}스택이면 안단테-7로 체력이 가장 높은 적에게 사격 위력 ${pct(p.snipe)} 물리 저격 (치명타 확률 +${pct(p.snipeCrit)}p). 전투 시작 시 ${p.start}스택.`,
+      name: '바텐더의 칵테일', cd: 4.5, params: { shield: 1.2, crit: 0.15, dur: 5, need: 8, snipe: 8, snipeCrit: 0.3, keep: 0, start: 2 },
+      desc: (p) => `[요리] 체력 비율이 가장 낮은 아군에게 칵테일을 내어 기술 위력 ${pct(p.shield)} 보호막 + ${p.dur}초간 치명타 +${pct(p.crit)}p. 한 잔마다 (또는 아군 기본 공격 12회마다) [기다림의 미학] 1스택, ${p.need}스택이면 안단테-7로 체력이 가장 높은 적에게 사격 위력 ${pct(p.snipe)} 물리 저격 (치명타 확률 +${pct(p.snipeCrit)}p). 전투 시작 시 ${p.start}스택.`,
       cast(b, u) {
         if (!b.enemiesOf(u).length) return false;
         const p = u.sk;
         const t = b.lowestHpAlly(u);
         if (t) {
-          b.shield(t, b.S(u, 'tech') * p.shield * cookPower(u));
+          b.shield(t, b.P(u, 'tech') * p.shield * cookPower(u));
           b.buff(u, t, 'kairo.cocktail', p.dur, { delta: { crit: p.crit * cookPower(u) }, label: '칵테일' });
         }
         u.mem.wait = (u.mem.wait ?? p.start) + 1;
         b.emit({ k: 'status', id: u.id, name: `기다림 ${u.mem.wait}/${p.need}` });
-        if (u.mem.wait >= p.need) {
-          const e = pickEnemy(b, u, 'strongest');
-          if (e) {
-            b.emit({ k: 'skill', id: u.id, name: '기다림의 미학' });
-            b.emit({ k: 'atk', from: u.id, to: e.id, elem: 'phys', ranged: true });
-            skillHit(b, u, e, 'shoot', p.snipe, 'phys', { critBonus: p.snipeCrit, noMiss: true });
-          }
-          u.mem.wait = p.keep;
-        }
+        kairoSnipe(b, u);
         return true;
       },
     },
     augs: [
-      uaug('kairo', 'patience', '5개월의 잠복', '저격에 필요한 스택 -2 (4스택).', setSk((s) => { s.need -= 2; })),
+      uaug('kairo', 'patience', '5개월의 잠복', '저격에 필요한 스택 -2 (6스택).', setSk((s) => { s.need -= 2; })),
       uaug('kairo', 'record', '11.8km 기록', '저격 피해 +800%p.', setSk((s) => { s.snipe += 8; })),
       uaug('kairo', 'pendant', '반쪽짜리 펜던트', '저격 후 스택 2개가 남고, 저격 피해 +400%p.', setSk((s) => { s.keep = 2; s.snipe += 4; })),
       uaug('kairo', 'andante', '안단테-7 정비', '저격 치명타 확률 +40%p, 치명타 피해 +60%p.', { stats: { critDmg: 0.6 }, setup: (u) => { u.sk.snipeCrit += 0.4; } }),
@@ -147,7 +153,7 @@ export const ROSTER_B: UnitDef[] = [
   },
   // ───────── 헬레니우스 동맹
   {
-    id: 'zephyro', name: '제피로', title: '뱃사공 철학자 · 작전계획담당', factions: ['HEL'], traits: ['STAFF', 'NAV'], keywords: ['bio'],
+    id: 'zephyro', name: '제피로', title: '뱃사공 철학자 · 작전계획담당', factions: ['HEL'], traits: ['NAV'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(8, 7, 7, 5, 4),
     sprite: 'soldier', palette: tint(PAL.HEL, '#e8eef0', '#2fa39a', '#40c0a0'), lore: '"역풍이 불 때에는 돛 방향을 틀 줄도 알아야지"',
     ace: {
@@ -167,24 +173,24 @@ export const ROSTER_B: UnitDef[] = [
     ],
   },
   {
-    id: 'phyllis', name: '필리스', title: '고양이 환수 · 전 하데스 사제단', factions: ['HEL'], traits: ['INFIL', 'CLERIC'], keywords: ['bio'],
+    id: 'phyllis', name: '필리스', title: '고양이 환수 · 전 하데스 사제단', factions: ['HEL'], traits: ['INFIL'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'holy', interval: 0.9 }, range: 1, base: B(5, 9, 7, 3, 8),
     sprite: 'robe', palette: tint(PAL.HEL, '#8a8a90', '#2a2a30', '#ffd040'), lore: '"일은 똑똑하게 해야지- 나 쉬러간다-!"',
     skill: strike({
-      name: '균열 도약', cd: 6, pow: 'strike', elem: 'holy', mult: 2.2, target: 'lowest', blink: true, params: { supply: 0.8 },
-      desc: (p) => `공간 균열로 체력 비율이 가장 낮은 적에게 파고들어 타격 위력 ${pct(p.mult)} 신성 피해${p.hits > 1 ? ` ${p.hits}회` : ''}. 긴급 조달한 물자를 체력이 가장 낮은 아군에게 전송해 기술 위력 ${pct(p.supply)} 보호막.`,
-      after: (b, u, _t, _d, p) => { const a = b.lowestHpAlly(u); if (a) b.shield(a, b.S(u, 'tech') * p.supply); },
+      name: '균열 도약', cd: 6, pow: 'tech', elem: 'holy', mult: 2.2, target: 'lowest', blink: true, params: { supply: 0.8 },
+      desc: (p) => `공간 균열로 체력 비율이 가장 낮은 적에게 파고들어 기술 위력 ${pct(p.mult)} 신성 피해${p.hits > 1 ? ` ${p.hits}회` : ''}. 긴급 조달한 물자를 체력이 가장 낮은 아군에게 전송해 기술 위력 ${pct(p.supply)} 보호막.`,
+      after: (b, u, _t, _d, p) => { const a = b.lowestHpAlly(u); if (a) b.shield(a, b.P(u, 'tech') * p.supply); },
     }),
     augs: [
       uaug('phyllis', 'rush', '균열 돌진', '균열 도약이 2회 공격 (두 번째 100%).', setSk((s) => { s.hits = 2; s.second = 1; })),
       uaug('phyllis', 'supply', '긴급 조달', '전송 보호막 +80%p.', setSk((s) => { s.supply += 0.8; })),
       uaug('phyllis', 'slack', '농땡이', '처치하면 쿨다운 100% 회복.', setSk((s) => { s.resetOnKill = 1; })),
       uaug('phyllis', 'tail', '꼬리 매달리기', '회피 +15%p, 방어력 +9.', { stats: { eva: 0.15 }, majors: { def: 9 } }),
-      uaug('phyllis', 'prayers', '1,364종 기도문', '전투 승리 시 신앙 +2. 균열 도약 피해 +130%p.', setSk((s) => { s.mult += 1.3; }), faithWin),
+      uaug('phyllis', 'prayers', '1,364종 기도문', '전투 승리 시 권능 포인트 +1. 균열 도약 피해 +130%p.', setSk((s) => { s.mult += 1.3; }), faithWin),
     ],
   },
   {
-    id: 'eleni', name: '엘레니', title: '로도스 생환 등대지기 · 영매기사', factions: ['HEL'], traits: ['VAN', 'MED'], keywords: ['mech'],
+    id: 'eleni', name: '엘레니', title: '로도스 생환 등대지기 · 영매기사', factions: ['HEL'], traits: ['MED'], keywords: ['mech'],
     atk: { type: 'strike', elem: 'phys', interval: 1.2 }, range: 1, base: B(10, 7, 5, 8, 1),
     sprite: 'knight', palette: tint(PAL.HEL, '#e8eef0', '#c0c8d0', '#a0e0ff'), lore: '"셀레네의 은총과 달빛이 우리 앞 길을 비추길-"',
     skill: strike({
@@ -192,8 +198,8 @@ export const ROSTER_B: UnitDef[] = [
       desc: (p) => `대검으로 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해. 자신과 주변 ${p.radius}칸 아군에게 기술 위력 ${pct(p.guard)} 보호막 + ${pct(p.mend)} 회복${p.armor ? `, 4초간 방어도 +${p.armor}` : ''}.`,
       after: (b, u, _t, _d, p) => {
         for (const a of b.around(u, p.radius, b.alliesOf(u))) {
-          b.shield(a, b.S(u, 'tech') * p.guard);
-          b.heal(u, a, b.S(u, 'tech') * p.mend);
+          b.shield(a, b.P(u, 'tech') * p.guard);
+          b.heal(u, a, b.P(u, 'tech') * p.mend);
           if (p.armor) b.buff(u, a, 'eleni.light', 4, { delta: { armor: p.armor }, label: '달빛' });
         }
       },
@@ -207,7 +213,7 @@ export const ROSTER_B: UnitDef[] = [
     ],
   },
   {
-    id: 'iris', name: '이리스', title: '이타카 헤르메스 사제', factions: ['HEL'], traits: ['CLERIC', 'SPEC'], keywords: ['bio'],
+    id: 'iris', name: '이리스', title: '이타카 헤르메스 사제', factions: ['HEL'], traits: [], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'holy', interval: 1.0 }, range: 3, base: B(6, 7, 9, 4, 5),
     sprite: 'medic', palette: tint(PAL.HEL, '#f0f0f0', '#d4a83a', '#ffd040'), lore: '"헤르메스 신도가 되는거 어떻게 생각하세요? 그- 일단 우리 헤르메스님이 엄청 잘생기셨거든요!"',
     skill: support({
@@ -225,11 +231,11 @@ export const ROSTER_B: UnitDef[] = [
       uaug('iris', 'blessing', '헤르메스의 축복', '공격 속도 증가 +35%p.', setSk((s) => { s.as += 0.35; })),
       uaug('iris', 'goods', '공식 굿즈 사업', '전투 승리 시 크레딧 +3. 교란 피해 +70%p.', setSk((s) => { s.jam += 0.7; }), { after: (run, _u, won) => { if (won) run.credits += 3; } }),
       uaug('iris', 'sparta', '스파르타 생존 무술', '회피 +15%p, 기동력 +9.', { stats: { eva: 0.15 }, majors: { agi: 9 } }),
-      uaug('iris', 'praise', '헤르메스님 찬양', '전투 승리 시 신앙 +2. 공포 확률 +20%p.', setSk((s) => { s.fearChance += 0.2; }), faithWin),
+      uaug('iris', 'praise', '헤르메스님 찬양', '전투 승리 시 권능 포인트 +1. 공포 확률 +20%p.', setSk((s) => { s.fearChance += 0.2; }), faithWin),
     ],
   },
   {
-    id: 'odysseus', name: '오디세우스', title: '동맹 귀환 정찰병', factions: ['HEL'], traits: ['MARK', 'INFIL'], keywords: ['bio'],
+    id: 'odysseus', name: '오디세우스', title: '동맹 귀환 정찰병', factions: ['HEL'], traits: ['INFIL'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 0.95 }, range: 3, base: B(5, 9, 8, 3, 7),
     sprite: 'soldier', palette: tint(PAL.HEL, '#4a6a3a', '#d8c090', '#ffd34d'), lore: '20년 걸려 귀환했다. 집 비밀번호는 아직 기억난다.',
     skill: strike({

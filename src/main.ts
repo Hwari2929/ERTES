@@ -8,15 +8,16 @@ import { STORIES } from './data/stories';
 import { FIELDS, fieldOf } from './data/battlefields';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
 import { combine, isLocked, isMod, itemInfo } from './data/items';
-import { aceTargetUid, rankTitle, staffTargetUid, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf } from './data/synergies';
+import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf } from './data/synergies';
 import { UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
+import { DIVINE_ACT, FAITH_DEF, recMajors, weaponLine } from './data/rework';
 import {
   activeTiers, buildAlly, buildBattle, buildEnemy, deployed, layout, memberships, playerRows, synergyCounts, totalMajors, unitEffects,
 } from './engine/build';
 import { Battle, type CUnit } from './engine/combat';
 import * as R from './engine/run';
 import { Rng } from './rng';
-import { ELEM_NAME, KEYWORD_NAME, MAJOR_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type SynergyId, type UnitState } from './types';
+import { CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, KEYWORD_NAME, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type SynergyId, type UnitState } from './types';
 import { BattleView, fmt } from './ui/battleview';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
@@ -114,14 +115,7 @@ function augIcon(id: string, cls = 'aug-ic') {
 }
 
 /** 능력치 추천: 기본 스탯 성향 + 스킬이 쓰는 위력 + 사거리로 2개 */
-function recommendedMajors(d: UnitDef): Major[] {
-  const desc = d.skill.desc(d.skill.params);
-  const score: Record<Major, number> = { ...d.base };
-  if (desc.includes('기술 위력')) score.mnd += 3;
-  if (desc.includes('사격 위력') || desc.includes('타격 위력')) score.pow += 3;
-  if (d.range <= 1) { score.vit += 2; score.def += 1; } else score.agi += 0.5;
-  return [...MAJORS].sort((a, b) => score[b] - score[a]).slice(0, CFG.rankPicks);
-}
+const recommendedMajors = (d: UnitDef): Major[] => recMajors(d);
 
 function rankPips(rank: number) {
   return `<span class="rank" title="공명 등급 ${rank}">R${rank}</span>`;
@@ -149,7 +143,7 @@ function topbar() {
       <span class="pill hp">체력 <b>${r.hp}</b>/${r.maxHp}</span>
       <span class="pill cr">크레딧 <b>${r.credits}</b>${r.loan ? ` <small>(대출 ${r.loan})</small>` : ''}</span>
       ${r.streak >= 2 ? `<span class="pill">🔥 ${r.streak}연승</span>` : ''}
-      ${r.faith ? `<span class="pill faith">신앙 <b>${r.faith}</b></span>` : ''}
+      ${r.power || R.hasDivine(r) ? `<span class="pill faith" title="권능 포인트: 디바인 기물이 전투에서 모은 신성력 ÷ ${CFG.powerPerDiv}. 순례 노드에서 사용">권능 <b>${r.power}</b></span>` : ''}
       ${r.fame ? `<span class="pill fame">명성 <b>${r.fame}</b></span>` : ''}
       ${r.blessing ? `<span class="pill faith" title="${esc(BLESSING_BY_ID[r.blessing].desc)}">축복: ${esc(BLESSING_BY_ID[r.blessing].name)}</span>` : ''}
       <span class="pill">출전 ${deployed(r).length}/${cap}</span>
@@ -220,11 +214,16 @@ function ownedChip(defId: string) {
     return n ? chip(id).replace('</span>', ` <b class="own" title="보유 중인 ${esc(SYN_BY_ID[id as keyof typeof SYN_BY_ID].name)} 기물 ${n}명">${n}→${after}</b></span>`) : chip(id);
   };
 }
+function typeLine(d: UnitDef) {
+  return `<div class="types small"><span class="tt ct-${d.ctype}">${CTYPE_NAME[d.ctype]}</span><span class="tt tt-${d.ttype}">${TTYPE_NAME[d.ttype]}</span><span class="muted">${FAITH_NAME[d.faith]}</span> · ${d.keywords.map((k) => KEYWORD_NAME[k]).join('/')}</div>`;
+}
 function unitCard(d: UnitDef, opts: { selected?: boolean; action?: string; rank?: number } = {}) {
   return `<button class="ucard ${opts.selected ? 'sel' : ''}" data-a="${opts.action || 'pick-starter'}" data-v="${d.id}">
     ${hero(d.id, 'hero sm')}<div class="ucard-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="muted small">${esc(d.title)}</div></div></div>
     <div class="chips">${[...d.factions, ...d.traits].map(opts.action === 'pick-recruit' ? ownedChip(d.id) : chip).join('')}</div>
-    <div class="small">${d.atk.type === 'shoot' ? '사격' : '타격'} · 사거리 ${d.range} · ${ELEM_NAME[d.atk.elem]} · ${d.keywords.map((k) => KEYWORD_NAME[k]).join('/')}</div>
+    ${typeLine(d)}
+    <div class="small">${esc(weaponLine(d.weapon))} · ${ELEM_NAME[d.atk.elem]}</div>
+    <div class="skill-line"><b>${esc(d.trait.name)}</b> <span class="muted">특성</span><br>${esc(d.trait.desc)}</div>
     <div class="skill-line"><b>${esc(d.skill.name)}</b> <span class="muted">(${d.skill.cd}초)</span><br>${esc(d.skill.desc(d.skill.params))}</div>
     <div class="majors-mini">${MAJORS.map((m) => `<span title="${MAJOR_NAME[m]}">${majorIcon(m)}<b>${d.base[m]}</b></span>`).join('')}</div>
     ${opts.rank ? `<div class="small accent">공명 등급 ${opts.rank}로 합류</div>` : ''}
@@ -316,7 +315,6 @@ function prepScreen(run: RunState) {
       cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}" ${mine ? `data-drop="cell:${x}:${y}"` : ''}></div>`;
     }
   let units = '';
-  const staffed = tierOf('STAFF', synergyCounts(deployed(run), run).STAFF || 0) ? staffTargetUid(run) : null;
   for (const u of deployed(run)) {
     const p = lay.get(u.uid);
     if (!p) continue;
@@ -324,7 +322,7 @@ function prepScreen(run: RunState) {
     const sel = app.sel?.k === 'unit' && app.sel.uid === u.uid;
     units += `<div class="u side0 placed ${sel ? 'sel' : ''}" style="left:${(p.x / n) * 100}%;top:${(p.y / n) * 100}%;width:${100 / n}%;height:${100 / n}%"
       data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}">
-      ${sprite(d, '')}<span class="ubadge">R${u.rank}</span>${staffed === u.uid ? '<span class="ustaff">✎</span>' : ''}<span class="uitems">${u.items.filter(Boolean).map(() => '<i></i>').join('')}</span></div>`;
+      ${sprite(d, '')}<span class="ubadge">R${u.rank}</span><span class="uitems">${u.items.filter(Boolean).map(() => '<i></i>').join('')}</span></div>`;
   }
   if (node?.enc) node.enc.enemies.forEach((s, i) => {
     const e = ENEMY_BY_ID[s.defId];
@@ -399,12 +397,23 @@ function previewAlly(run: RunState, u: UnitState) {
   return { b, c };
 }
 
-function staffLine(run: RunState, u: UnitState) {
-  if (!u.pos || UNIT_BY_ID[u.defId].traits.includes('STAFF')) return '';
-  if (!tierOf('STAFF', synergyCounts(deployed(run), run).STAFF || 0)) return '';
-  return staffTargetUid(run) === u.uid
-    ? '<div class="small staff-on">✎ 참모단 지원 대상</div>'
-    : `<button class="btn small" data-a="staff-target" data-v="${u.uid}">✎ 참모단 지원 대상으로 지정</button>`;
+/** 전술 유형별 고유 정보 (성장 특성 · 이성 · 신앙) */
+function ttypeInfo(run: RunState, u: UnitState) {
+  const d = UNIT_BY_ID[u.defId];
+  const g = u.grow || {};
+  const out: string[] = [];
+  if (d.ttype === 'minor' && d.growth) {
+    const prog = Object.entries(g).filter(([k]) => !k.startsWith('f_')).map(([k, v]) => `${k} ${v}`).join(', ');
+    out.push(`<div class="skill-line"><b>${esc(d.growth.name)}</b> <span class="muted">성장</span><br>${esc(d.growth.desc)}${prog ? `<br><span class="accent small">누적: ${esc(prog)}</span>` : ''}</div>`);
+  }
+  if (d.ttype === 'psionic' && d.psi) out.push(`<div class="skill-line"><b>이성</b> <span class="muted">시작 ${CFG.reasonStart} · 전투마다 초기화</span><br>${esc(d.psi.desc)} 이성이 높으면 받는 정신·신성 피해 감소 · 지원 효율 증가, 음수면 정신 피해 증폭 · 흡혈, -50 이하는 광폭.</div>`);
+  if (d.ttype === 'special') out.push(`<div class="small muted">스페셜: 등급이 오를 때마다 ${recMajors(d).map((m) => MAJOR_NAME[m]).join(' · ')} 중 하나가 자동으로 +${CFG.rankPoints}.</div>`);
+  if (d.ttype === 'divine') {
+    const f = u.faith || d.faith;
+    const fd = FAITH_DEF[f], act = DIVINE_ACT[d.ctype];
+    out.push(`<div class="skill-line"><b>신권 대행 · ${esc(act.name)}</b> <span class="muted">${FAITH_NAME[f]}</span><br>${esc(act.desc)}. ${esc(fd.act)}.<br><span class="muted">신성력: ${esc(fd.gain)}, 초당 +2. 100이면 전투당 1회 발동 (수집 상한 ${CFG.divCap + run.divCap}).</span></div>`);
+  } else out.push(`<div class="small muted">고유 신앙: ${FAITH_NAME[u.faith || d.faith]} (디바인만 효과)</div>`);
+  return out.join('');
 }
 
 function aceLine(run: RunState, u: UnitState) {
@@ -448,7 +457,7 @@ function detailPanel(run: RunState) {
   return `<div class="detail">
     ${hero(d.id)}<div class="d-head">${sprite(d, 'spr big')}<div><b>${esc(d.name)}</b><div class="muted small">${esc(d.title)}</div>${memberships(u).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}</div>${rankPips(u.rank)}</div>
     <div class="chips">${memberships(u).map(chip).join('')}</div>
-    ${staffLine(run, u)}${aceLine(run, u)}
+    ${typeLine(d)}${aceLine(run, u)}
     ${xpBar(u)}
     <button class="btn small" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''}>공명도 +${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)} (크레딧 ${cost})</button>
     <h3>메이저 스탯</h3>
@@ -456,9 +465,13 @@ function detailPanel(run: RunState) {
       const base = d.base[m], add = tm[m] - base;
       return `<div class="major"><span>${majorIcon(m)}${MAJOR_NAME[m]}</span><span class="mbar"><i style="width:${Math.min(100, tm[m] * 3)}%"></i></span><b>${tm[m]}</b>${add ? `<small class="${add > 0 ? 'up' : 'down'}">${add > 0 ? '+' : ''}${add}</small>` : ''}</div>`;
     }).join('')}</div>
-    <h3>스킬 · ${esc(d.skill.name)} <span class="muted">${c.cdMax.toFixed(1)}초</span></h3>
+    <h3>무기</h3>
+    <p class="small">${esc(weaponLine(c.weapon || d.weapon))} · ${ELEM_NAME[c.atk.elem]}</p>
+    <h3>고유 특성 · ${esc(d.trait.name)}</h3>
+    <p class="small">${esc(d.trait.desc)}</p>
+    <h3>스킬 · ${esc(d.skill.name)} <span class="muted">${c.cdMax.toFixed(1)}초${d.ctype === 'CMD' ? ' · 전술 위력' : ''}</span></h3>
     <p class="small">${esc(d.skill.desc(c.sk))}</p>
-    <p class="small muted">기본 공격: ${d.atk.type === 'shoot' ? '사격' : '타격'} · ${ELEM_NAME[d.atk.elem]} · ${d.keywords.map((k) => KEYWORD_NAME[k]).join('/')}</p>
+    ${ttypeInfo(run, u)}
     <h3>증강 <span class="muted">${u.augments.length}</span></h3>
     ${u.augments.length ? `<ul class="augs">${u.augments.map((a) => { const ad = AUG_BY_ID[a.id]; return `<li class="aug-li">${augIcon(a.id)}<span><b>${esc(ad?.name || a.id)}</b><br><span class="muted">${esc(augDesc(a.id, a.param))}</span></span></li>`; }).join('')}</ul>` : '<p class="muted small">공명 등급이 오르면 증강을 고릅니다.</p>'}
     <h3>장비</h3>
@@ -629,7 +642,7 @@ function pendingModal(run: RunState): string {
       const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? Math.round((v as number) * 100) + '%' : v}`).join(', ');
       body = `${side}<div class="ru-main">
         <div class="ru-head"><h1>${p.rank}등급 달성 보상 · 능력치</h1></div>
-        <p class="muted small">공명 등급 ${CFG.statEvery}의 배수마다 받는 보상입니다. 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${CFG.hasRankAug(p.rank) ? ` · 이어서 ${p.rank}등급 증강` : ''}<br>(등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>
+        <p class="muted small">공명 등급 3의 배수마다 받는 보상입니다. 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.options?.length === 0 ? '' : ` · 이어서 ${p.rank}등급 증강`}<br>(등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>
         <div class="alloc-grid">${MAJORS.map((m) => {
           const on = app.picks.includes(m);
           return `<button class="stat-pick ${on ? 'on' : ''} ${rec.includes(m) ? 'rec' : ''}" data-a="alloc-pick" data-v="${m}" aria-pressed="${on}" aria-label="${MAJOR_NAME[m]} ${on ? tm[m] + p.points : tm[m]}" ${on || left ? '' : 'disabled'}>
@@ -643,8 +656,8 @@ function pendingModal(run: RunState): string {
       R.ensureRankupOptions(run, p);
       const opts = p.options || [];
       body = `${side}<div class="ru-main">
-        <div class="ru-head"><h1>${p.join ? '합류 보상 · 증강' : `${p.rank}등급 달성 보상 · 증강`}</h1>
-          <span class="muted small">${p.join ? '합류할 때 전용 증강 1개를 고릅니다.' : `공명 등급 ${CFG.augEvery}의 배수마다 전용 증강 1개를 고릅니다.`}</span>
+        <div class="ru-head"><h1>${p.kind === 'special' ? '합류 보상 · 스페셜 증강' : p.kind === 'psionic' ? `${p.rank}등급 달성 보상 · 사이오닉 증강` : p.join ? '합류 보상 · 증강' : `${p.rank}등급 달성 보상 · 증강`}</h1>
+          <span class="muted small">${p.kind === 'special' ? '스페셜 기물은 합류할 때 스페셜 증강 1개를 추가로 고릅니다.' : p.kind === 'psionic' ? '사이오닉 기물은 공명 등급 4의 배수마다 사이오닉 증강을 고릅니다.' : p.join ? '합류할 때 전용 증강 1개를 고릅니다.' : d.ttype === 'major' ? '메이저 기물은 공명 등급 3의 배수마다 전용 · 메이저 공용 증강 중 1개를 고릅니다.' : '공명 등급 5의 배수마다 전용 증강 1개를 고릅니다.'}</span>
           ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
         <div class="aug-list">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];
@@ -663,8 +676,23 @@ function pendingModal(run: RunState): string {
       <div class="ucard-grid">${p.options.map((id) => unitCard(UNIT_BY_ID[id], { action: 'pick-recruit', rank })).join('')}</div>`;
   } else if (p.t === 'supply') {
     body = `<h1>보급</h1><div class="cards">${p.options.map((o) => `<button class="card" data-a="pick-supply" data-v="${o}"><b>${esc(R.SUPPLY_TEXT[o])}</b></button>`).join('')}</div>`;
+  } else if (p.t === 'pilgrim') {
+    const divs = run.units.filter((x) => UNIT_BY_ID[x.defId].ttype === 'divine');
+    const C = R.PILGRIM_COST;
+    const btn = (act: string, label: string, cost: number, extra = '') => `<button class="card" data-a="pilgrim" data-v="${act}" ${run.power < cost ? 'disabled' : ''}><b>${label}</b><span>${extra}</span><span class="accent small">권능 ${cost}</span></button>`;
+    body = `<h1>순례</h1><p class="muted">권능 포인트 <b class="accent">${run.power}</b> · 디바인 기물이 전투에서 모은 신성력으로 얻습니다.</p>
+      <div class="cards">
+        ${btn('cap', '신성력 수집 상한 +50', C.cap, `현재 전투당 ${CFG.divCap + run.divCap}`)}
+        ${btn('bless', '이번 페이즈 축복', C.bless, '축복 3개 중 1개')}
+        ${btn('credits', '헌금 환전', C.credits, '크레딧 +3')}
+        ${btn('xp', '수행', C.xp, '공명도 4 분배')}
+      </div>
+      <h3>신앙 변경 <span class="muted small">권능 ${C.faith}</span></h3>
+      ${divs.length ? divs.map((x) => `<div class="pil-row"><b>${esc(UNIT_BY_ID[x.defId].name)}</b> <select data-faith="${x.uid}" ${run.power < C.faith ? 'disabled' : ''}>${FAITHS.map((f) => `<option value="${f}" ${f === x.faith ? 'selected' : ''}>${FAITH_NAME[f]}</option>`).join('')}</select>
+        <span class="muted small">${esc(FAITH_DEF[x.faith || UNIT_BY_ID[x.defId].faith].act)}</span></div>`).join('') : '<p class="muted small">디바인 기물이 없습니다.</p>'}
+      <div class="row-btns"><button class="btn primary" data-a="pilgrim-done">순례 마치기</button></div>`;
   } else if (p.t === 'blessing') {
-    body = `<h1>순례 — 축복 선택</h1><p class="muted">신앙 ${run.faith}. 축복은 이번 페이즈가 끝날 때까지 유지됩니다.</p>
+    body = `<h1>순례 — 축복 선택</h1><p class="muted">축복은 이번 페이즈가 끝날 때까지 유지됩니다.</p>
       <div class="cards">${p.options.map((id) => { const d = BLESSING_BY_ID[id]; return `<button class="card" data-a="pick-blessing" data-v="${id}"><b>${esc(d.name)}</b><span>${esc(d.desc)}</span></button>`; }).join('')}</div>`;
   } else if (p.t === 'notice') {
     body = `<h1>${esc(p.title)}</h1><p>${esc(p.body)}</p><button class="btn primary" data-a="notice-ok">확인</button>`;
@@ -990,7 +1018,8 @@ function act(a: string, v: string) {
     case 'pick-blessing': if (run && run.pending[0]?.t === 'blessing') { R.pickBlessing(run, v); run.pending.shift(); persist(); } break;
     case 'buy-news': if (run) { const e = R.buyNews(run, +v); if (e) toast(e); persist(); } break;
     case 'ace-target': if (run) { run.aceTarget = v; toast('에이스 파일럿으로 지정했습니다.'); persist(); } break;
-    case 'staff-target': if (run) { run.staffTarget = v; toast('참모단 지원 대상으로 지정했습니다.'); persist(); } break;
+    case 'pilgrim': if (run) { const e = R.pilgrimAct(run, v as 'cap' | 'bless' | 'credits' | 'xp'); if (e) toast(e); persist(); } break;
+    case 'pilgrim-done': if (run?.pending.some((x) => x.t === 'pilgrim')) { run.pending = run.pending.filter((x) => x.t !== 'pilgrim'); persist(); } break;
     case 'leave-shop': if (run) { R.leaveShop(run); app.screen = 'map'; persist(); } break;
     case 'loan': if (run) { toast(R.takeLoan(run) ? '대출 실행: 크레딧 +25' : '대출할 수 없습니다.'); persist(); } break;
     // 대기 선택
@@ -1039,7 +1068,7 @@ function act(a: string, v: string) {
       if (!R.applyRankPicks(run, p.uid, app.picks, p.points)) return;
       app.picks = [];
       p.allocDone = true;
-      if (!CFG.hasRankAug(p.rank)) run.pending.shift(); // 10등급 초과: 5등급마다만 증강
+      if (p.options && !p.options.length) run.pending.shift(); // 이번 등급은 능력치만
       persist();
       break;
     }
@@ -1229,6 +1258,16 @@ root.addEventListener('click', (ev) => {
   const el = (ev.target as HTMLElement).closest('[data-a]') as HTMLElement | null;
   if (!el || (el as HTMLButtonElement).disabled) return;
   act(el.dataset.a!, el.dataset.v || '');
+});
+
+// 순례: 신앙 변경
+root.addEventListener('change', (ev) => {
+  const el = ev.target as HTMLSelectElement;
+  const uid = el.dataset?.faith;
+  if (!uid || !app.run) return;
+  const e = R.pilgrimAct(app.run, 'faith', uid, el.value as FaithId);
+  if (e) toast(e); else toast(`신앙 변경: ${FAITH_NAME[el.value as FaithId]}`);
+  persist(); render();
 });
 
 // 아티팩트 뷰어 업데이트 시 진행 상황 유지

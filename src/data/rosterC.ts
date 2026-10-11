@@ -2,17 +2,17 @@
 import { inc, vuln } from '../engine/effects';
 import { blinkTo, bleed, cleanse, fear, pct, skillHit, summonsOf } from './kit';
 import { cookPower, strike, support } from './tpl';
-import { B, PAL, setSk, tint, uaug, type UnitDef } from './unitkit';
+import { B, PAL, setSk, tint, uaug, type BaseUnit } from './unitkit';
 
 const nat = (n: number) => ({ setup: (u: { mem: Record<string, number> }) => { u.mem.natureExtra = (u.mem.natureExtra || 0) + n; } });
-const faithWin = { after: (run: { faith: number }, _u: unknown, won: boolean) => { if (won) run.faith += 2; } };
+const faithWin = { after: (run: { power: number }, _u: unknown, won: boolean) => { if (won) run.power += 1; } };
 const fameWin = { after: (run: { fame: number }, _u: unknown, won: boolean) => { if (won) run.fame += 2; } };
 const extraPet = { setup: (u: { mem: Record<string, number> }) => { u.mem.extraSummon = (u.mem.extraSummon || 0) + 1; } };
 const bond = (v: number) => ({ setup: (u: { mem: Record<string, number> }) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + v; } });
 const WOLF = ['#101014', '#7a7a80', '#d8d8d8', '#b0b0b0', '#ffcf40', '#4a4a50', '#ffffff'];
 const BEAR = ['#0c0806', '#4a3424', '#8a6a4a', '#c0a080', '#ffcf40', '#2a1a10', '#e0d0c0'];
 
-export const ROSTER_C: UnitDef[] = [
+export const ROSTER_C: BaseUnit[] = [
   // ───────── 시리우스 성도회
   {
     id: 'romani', name: '로마니', title: '켈레브림 가문 제3위계장', factions: ['SIR'], traits: ['INFIL'], keywords: ['bio'],
@@ -43,13 +43,13 @@ export const ROSTER_C: UnitDef[] = [
     ],
   },
   {
-    id: 'joshua', name: '조슈아', title: '최초의 계약자 · 상담관 (체사레)', factions: ['SIR'], traits: ['MED', 'CLERIC'], keywords: ['bio'],
+    id: 'joshua', name: '조슈아', title: '최초의 계약자 · 상담관 (체사레)', factions: ['SIR'], traits: ['MED'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'holy', interval: 1.1 }, range: 3, base: B(8, 7, 7, 5, 4),
     sprite: 'robe', palette: tint(PAL.SIR, '#2a5a4a', '#e8e2c8', '#40c0a0'), lore: '"항상 몸 조심해요"',
     passive: {
       hooks: {
-        onHurt(b, u) {
-          if (u.mem.cesare || b.hpPct(u) > u.sk.threshold) return;
+        onTick(b, u, dt) {
+          if (!u.mem.cesare && u.reason !== null && u.reason <= u.sk.threshold) {
           // 체사레 강제 전환: 양손 도끼 순례자를 들고 전방으로
           u.mem.cesare = 1;
           u.st.range = 1;
@@ -58,8 +58,7 @@ export const ROSTER_C: UnitDef[] = [
           b.buff(u, u, 'joshua.cesare', 999, { mods: [inc('all', u.sk.rage)], label: '체사레' });
           b.fx(u.x, u.y, 1, 'psy');
           for (const e of b.around(u, 1, b.enemiesOf(u))) fear(b, u, e, 1.5, u.sk.fearChance);
-        },
-        onTick(b, u, dt) {
+          }
           if (!u.mem.cesare) return;
           u.mem.regenT = (u.mem.regenT || 0) + dt;
           if (u.mem.regenT >= 1) { u.mem.regenT = 0; b.heal(u, u, b.S(u, 'maxHp') * u.sk.regen, true); }
@@ -67,13 +66,13 @@ export const ROSTER_C: UnitDef[] = [
       },
     },
     skill: {
-      name: '재생 촉진', cd: 8, params: { heal: 0.7, cleanse: 0, threshold: 0.4, rage: 0.4, regen: 0.03, fearChance: 0.6 },
-      desc: (p) => `모든 아군의 자연 치유를 가속해 기술 위력 ${pct(p.heal)} 회복${p.cleanse ? ' + 해로운 상태이상 제거' : ''}. 체력이 처음 ${pct(p.threshold)} 이하가 되면 체사레로 전환: 근접 도끼 공격, 피해 +${pct(p.rage)}, 초당 최대 체력 ${pct(p.regen)} 재생, 주변 적 ${pct(p.fearChance)} 확률 공포. 체사레의 재생 촉진은 자신에게만 2배로 쓰인다.`,
+      name: '재생 촉진', cd: 8, params: { heal: 0.7, cleanse: 0, threshold: -50, rage: 0.4, regen: 0.03, fearChance: 0.6 },
+      desc: (p) => `모든 아군의 자연 치유를 가속해 기술 위력 ${pct(p.heal)} 회복${p.cleanse ? ' + 해로운 상태이상 제거' : ''}. 이성이 ${p.threshold} 이하가 되면 체사레로 전환: 근접 도끼 공격, 피해 +${pct(p.rage)}, 초당 최대 체력 ${pct(p.regen)} 재생, 주변 적 ${pct(p.fearChance)} 확률 공포. 체사레의 재생 촉진은 자신에게만 2배로 쓰인다.`,
       cast(b, u) {
         if (!b.enemiesOf(u).length) return false;
         const p = u.sk;
         if (u.mem.cesare) {
-          b.heal(u, u, b.S(u, 'tech') * p.heal * 2, true);
+          b.heal(u, u, b.P(u, 'tech') * p.heal * 2, true);
           b.fx(u.x, u.y, 1, 'psy');
           for (const e of b.around(u, 1, b.enemiesOf(u))) fear(b, u, e, 1.5, p.fearChance);
           return true;
@@ -81,7 +80,7 @@ export const ROSTER_C: UnitDef[] = [
         const allies = b.alliesOf(u);
         if (allies.every((a) => b.hpPct(a) > 0.95) && !p.cleanse) return false;
         b.fx(u.x, u.y, 0, 'holy');
-        for (const a of allies) { b.heal(u, a, b.S(u, 'tech') * p.heal); if (p.cleanse) cleanse(a); }
+        for (const a of allies) { b.heal(u, a, b.P(u, 'tech') * p.heal); if (p.cleanse) cleanse(a); }
         return true;
       },
     },
@@ -89,12 +88,12 @@ export const ROSTER_C: UnitDef[] = [
       uaug('joshua', 'regen', '회복 속도의 극대화', '재생 촉진 회복량 +70%p.', setSk((s) => { s.heal += 0.7; })),
       uaug('joshua', 'calm', '정신 안정', '재생 촉진이 해로운 상태이상도 제거한다. 쿨다운 감소 속도 +25%.', { stats: { cdr: 0.25 }, setup: (u) => { u.sk.cleanse = 1; } }),
       uaug('joshua', 'pilgrim', '순례자', '체사레의 피해 증가 +60%p.', setSk((s) => { s.rage += 0.6; })),
-      uaug('joshua', 'tips', '붉어지는 머리끝', '체력 70% 이하에서 체사레로 전환. 방어도 +250.', { stats: { armor: 250 }, setup: (u) => { u.sk.threshold = 0.7; } }),
+      uaug('joshua', 'tips', '붉어지는 머리끝', '이성 -20 이하에서 체사레로 전환. 방어도 +250.', { stats: { armor: 250 }, setup: (u) => { u.sk.threshold = -20; } }),
       uaug('joshua', 'wave', '공포의 파동', '체사레 공포 확률 +30%p, 재생 +3%p.', setSk((s) => { s.fearChance += 0.3; s.regen += 0.03; })),
     ],
   },
   {
-    id: 'sarma', name: '사르마', title: '미래 은하에서 온 시간 여행자 · 차원 연구자', factions: ['SIR'], traits: ['TIME', 'MARK'], keywords: ['bio'],
+    id: 'sarma', name: '사르마', title: '미래 은하에서 온 시간 여행자 · 차원 연구자', factions: ['SIR'], traits: ['TIME'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.2 }, range: 4, base: B(6, 10, 8, 3, 5),
     sprite: 'soldier', palette: tint(PAL.SIR, '#6a5aa0', '#e8e2c8', '#c0b0ff'), lore: '"아, 실례했군요. 죄송해요. 제가 이번 은하는 처음이라."',
     skill: strike({
@@ -110,7 +109,7 @@ export const ROSTER_C: UnitDef[] = [
     ],
   },
   {
-    id: 'kyle', name: '카일', title: '성도회 성전 기사', factions: ['SIR'], traits: ['VAN', 'INFIL'], keywords: ['bio'],
+    id: 'kyle', name: '카일', title: '성도회 성전 기사', factions: ['SIR'], traits: ['INFIL'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'holy', interval: 1.1 }, range: 1, base: B(9, 7, 5, 8, 3),
     sprite: 'knight', palette: PAL.SIR, lore: '적진 한가운데가 그의 제단이다.',
     skill: strike({
@@ -126,7 +125,7 @@ export const ROSTER_C: UnitDef[] = [
     ],
   },
   {
-    id: 'doros', name: '도로스', title: '성도회 수도원 요리사', factions: ['SIR'], traits: ['CLERIC', 'CHEF'], keywords: ['bio'],
+    id: 'doros', name: '도로스', title: '성도회 수도원 요리사', factions: ['SIR'], traits: ['CHEF'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'holy', interval: 1.0 }, range: 3, base: B(8, 5, 8, 6, 3),
     sprite: 'robe', palette: tint(PAL.SIR, '#c8a070', '#ffffff', '#ffd866'), lore: '빵을 굽는 동안 기도하고, 기도하는 동안 빵을 굽는다.',
     skill: support({
@@ -138,7 +137,7 @@ export const ROSTER_C: UnitDef[] = [
       uaug('doros', 'wine', '성배', '피해 증가 +30%p.', setSk((s) => { s.dmg += 0.3; })),
       uaug('doros', 'share', '나눔', '요리받은 아군 주변 1칸에도 50% 효과, 회복량 +30%p.', setSk((s) => { s.splash = 1; s.heal += 0.3; })),
       uaug('doros', 'crust', '단단한 껍질', '기술 위력 120% 보호막도 준다.', setSk((s) => { s.shield = 1.2; })),
-      uaug('doros', 'grace', '식전 기도', '쿨다운 감소 속도 +25%. 전투 승리 시 신앙 +2.', { stats: { cdr: 0.25 } }, faithWin),
+      uaug('doros', 'grace', '식전 기도', '쿨다운 감소 속도 +25%. 전투 승리 시 권능 포인트 +1.', { stats: { cdr: 0.25 } }, faithWin),
     ],
   },
   {
@@ -166,7 +165,7 @@ export const ROSTER_C: UnitDef[] = [
       name: '기체 조종', desc: (k) => `회피 +${Math.round(15 * k)}%p, 회피할 때마다 공격자에게 타격 위력 ${Math.round(80 * k)}% 반격.`,
       effect: (k) => ({
         stats: { eva: 0.15 * k },
-        hooks: { onEvade(b, u, src) { if (src.alive) b.dealDamage(u, src, b.S(u, 'strike') * 0.8 * k, { elem: 'phys', tag: 'proc' }); } },
+        hooks: { onEvade(b, u, src) { if (src.alive) b.dealDamage(u, src, b.P(u, 'strike') * 0.8 * k, { elem: 'phys', tag: 'proc' }); } },
       }),
     },
     skill: strike({
@@ -218,13 +217,13 @@ export const ROSTER_C: UnitDef[] = [
     ],
   },
   {
-    id: 'yupito', name: '유피토', title: '"강철의 마녀" 특수공학자', factions: ['PAN'], traits: ['SPEC', 'ENG'], keywords: ['bio'],
+    id: 'yupito', name: '유피토', title: '"강철의 마녀" 특수공학자', factions: ['PAN'], traits: ['ENG'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'elec', interval: 1.0 }, range: 3, base: B(6, 7, 9, 5, 3),
     sprite: 'medic', palette: tint(PAL.PAN, '#2a3a6a', '#40e0c0', '#40e0c0'), lore: '"공학자는 언제나 상상력과 비장의 한 수가 있는 법이지"',
     skill: support({
       name: '임시 에너지 장벽', cd: 7, target: 'lowest', params: { radius: 1, shield: 1.0, turretShield: 1.0 },
       desc: (p) => `체력 비율이 가장 낮은 아군과 주변 ${p.radius}칸 아군에게 기술 위력 ${pct(p.shield)} 보호막${p.armor ? `, ${p.dur}초간 방어도 +${p.armor}` : ''}. 모든 포탑에도 ${pct(p.turretShield)} 보호막.`,
-      after: (b, u, _ts, p) => { for (const t of b.alliesOf(u)) if (t.defId === 'turret') b.shield(t, b.S(u, 'tech') * p.turretShield); },
+      after: (b, u, _ts, p) => { for (const t of b.alliesOf(u)) if (t.defId === 'turret') b.shield(t, b.P(u, 'tech') * p.turretShield); },
     }),
     augs: [
       uaug('yupito', 'hull', '폐선 외벽', '보호막 +100%p.', setSk((s) => { s.shield += 1.0; })),
@@ -274,7 +273,7 @@ export const ROSTER_C: UnitDef[] = [
     ],
   },
   {
-    id: 'rachel', name: '레이첼', title: '아문센의 양녀 · 구인류 최후의 생존자', factions: ['FAM'], traits: ['TIME', 'VAN'], keywords: ['bio'],
+    id: 'rachel', name: '레이첼', title: '아문센의 양녀 · 구인류 최후의 생존자', factions: ['FAM'], traits: ['TIME'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'psy', interval: 1.0 }, range: 1, base: B(10, 7, 5, 8, 3),
     sprite: 'soldier', palette: tint(PAL.FAM, '#121218', '#2a2a34', '#9a6aff'),
     lore: '"…이거 꼭 지금 해야 돼요? 하면 잘하긴 하는데."',
@@ -300,8 +299,8 @@ export const ROSTER_C: UnitDef[] = [
       effect: (k) => ({ hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'ace.oliver', 999, { delta: { atkSpd: 0.12 * k }, label: '오운완' }); } } }),
     },
     skill: strike({
-      name: '규정 속도 경계선', cd: 7, pow: 'strike', elem: 'phys', mult: 1.6, target: 'backline', blink: true, params: { radius: 1, stun: 0.5 },
-      desc: (p) => `가장 뒤쪽 적에게 메트로처럼 들이받아 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절${p.resetOnKill ? `. 처치 시 쿨다운 ${pct(p.resetOnKill)} 초기화` : ''}.`,
+      name: '규정 속도 경계선', cd: 7, pow: 'tech', elem: 'phys', mult: 1.6, target: 'backline', blink: true, params: { radius: 1, stun: 0.5 },
+      desc: (p) => `가장 뒤쪽 적에게 메트로처럼 들이받아 주변 ${p.radius}칸 적에게 기술 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절${p.resetOnKill ? `. 처치 시 쿨다운 ${pct(p.resetOnKill)} 초기화` : ''}.`,
     }),
     augs: [
       uaug('oliver', 'bouquet', '추진기 꽃다발', '선의로 시작했다. 들이받기 피해 +160%p.', setSk((s) => { s.mult += 1.6; })),
@@ -312,14 +311,14 @@ export const ROSTER_C: UnitDef[] = [
     ],
   },
   {
-    id: 'rasmus', name: '라스무스', title: '엘베스타드가 조경사 · 정원견', factions: ['FAM'], traits: ['NATURE', 'BUDDY'], keywords: ['bio'],
+    id: 'rasmus', name: '라스무스', title: '엘베스타드가 조경사 · 경비견 맥스', factions: ['FAM'], traits: ['NATURE', 'BUDDY'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, base: B(9, 7, 5, 7, 3),
     sprite: 'knight', palette: tint(PAL.FAM, '#4a5a3a', '#c8ccd8', '#ffcf40'),
-    summon: { name: '정원견', sprite: 'beast', palette: BEAR, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.6 },
-    lore: '본가의 정원을 40년 가꿨다. 정원을 망치는 것은 무엇이든 정원견이 먼저 쫓아낸다.',
+    summon: { name: '맥스', sprite: 'beast', palette: BEAR, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.6 },
+    lore: '본가의 정원을 40년 가꿨다. 정원을 망치는 것은 무엇이든 맥스이 먼저 쫓아낸다.',
     skill: {
       name: '불청객 퇴치', cd: 7, params: { mult: 2.5, bleed: 0.3, roar: 0 },
-      desc: (p) => `정원견이 라스무스의 대상에게 달려들어 정원견 타격 위력 ${pct(p.mult)} 물리 피해 + 초당 ${pct(p.bleed)} 출혈${p.roar ? `, 정원견 주변 적 ${pct(p.roar)} 확률 1.2초 공포` : ''}. 정원견이 없으면 라스무스가 전정가위로 직접 150%.`,
+      desc: (p) => `맥스이 라스무스의 대상에게 달려들어 맥스 타격 위력 ${pct(p.mult)} 물리 피해 + 초당 ${pct(p.bleed)} 출혈${p.roar ? `, 맥스 주변 적 ${pct(p.roar)} 확률 1.2초 공포` : ''}. 맥스이 없으면 라스무스가 전정가위로 직접 150%.`,
       cast(b, u) {
         const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u));
         if (!t) return false;
@@ -337,21 +336,21 @@ export const ROSTER_C: UnitDef[] = [
       },
     },
     augs: [
-      uaug('rasmus', 'old', '오랜 짝', '정원견 스탯 상속률 +40%p.', bond(0.4)),
+      uaug('rasmus', 'old', '오랜 짝', '맥스 스탯 상속률 +40%p.', bond(0.4)),
       uaug('rasmus', 'maul', '물어뜯기', '출혈 초당 위력 +50%p.', setSk((s) => { s.bleed += 0.5; })),
-      uaug('rasmus', 'cub', '강아지', '정원견을 하나 더 데려온다 (상속률 80%).', extraPet),
+      uaug('rasmus', 'cub', '강아지', '맥스을 하나 더 데려온다 (상속률 80%).', extraPet),
       uaug('rasmus', 'lodge', '정원 창고', '캠핑 러버 임시 장비 +1개, 생명력 +5, 방어력 +3.', { ...nat(1), majors: { vit: 5, def: 3 } }),
-      uaug('rasmus', 'roar', '짖기', '불청객 퇴치 때 정원견 주변 적 80% 확률로 1.2초 공포.', setSk((s) => { s.roar = 0.8; })),
+      uaug('rasmus', 'roar', '짖기', '불청객 퇴치 때 맥스 주변 적 80% 확률로 1.2초 공포.', setSk((s) => { s.roar = 0.8; })),
     ],
   },
   {
-    id: 'sigmund', name: '시그문드', title: '엘베스타드가 집사', factions: ['FAM'], traits: ['STAFF'], keywords: ['bio'],
+    id: 'sigmund', name: '시그문드', title: '엘베스타드가 집사', factions: ['FAM'], traits: [], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'psy', interval: 1.2 }, range: 3, base: B(7, 7, 9, 6, 3),
     sprite: 'robe', palette: tint(PAL.FAM, '#1a1c2a', '#c8ccd8', '#ffd34d'), lore: '저택의 모든 문은 그의 허락으로 열리고, 모든 일정은 그의 수첩에서 시작된다.',
     skill: support({
       name: '집사의 보좌', cd: 8, target: 'commanded', params: { count: 1, dmg: 0.35, as: 0.15, dur: 6, famShield: 0.5 },
       desc: (p) => `가장 강한 아군 ${p.count}명에게 ${p.dur}초간 피해 +${pct(p.dmg)}, 공격 속도 +${pct(p.as)}${p.red ? `, 받는 피해 -${pct(p.red)}` : ''}. 엘베스타드 일가 아군 전원에게 기술 위력 ${pct(p.famShield)} 보호막.`,
-      after: (b, u, _ts, p) => { for (const a of b.alliesOf(u)) if (a.synergies.has('FAM')) b.shield(a, b.S(u, 'tech') * p.famShield); },
+      after: (b, u, _ts, p) => { for (const a of b.alliesOf(u)) if (a.synergies.has('FAM')) b.shield(a, b.P(u, 'tech') * p.famShield); },
     }),
     augs: [
       uaug('sigmund', 'council', '시중 인원 확충', '보좌 대상 +1명.', setSk((s) => { s.count += 1; })),

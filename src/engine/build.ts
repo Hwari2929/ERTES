@@ -8,6 +8,7 @@ import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
 import { emblemOf, isMod, itemEffect } from '../data/items';
 import { ENG_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { UNIT_BY_ID } from '../data/units';
+import { enableDivine, ENEMY_PSI, sigmundTarget } from '../data/rework';
 import type { SummonDef } from '../data/unitkit';
 import { Rng } from '../rng';
 import { FACTIONS, type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
@@ -21,9 +22,10 @@ export const playerRows = (n: number) => (n >= 8 ? 4 : 3);
 export function deployed(run: RunState) { return run.units.filter((u) => u.pos); }
 
 /** 기물이 소속된 시너지 (세력 + 특성 + 증강으로 얻은 추가 소속) */
-export function memberships(u: UnitState): SynergyId[] {
+export function memberships(u: UnitState, run?: RunState | null): SynergyId[] {
   const d = UNIT_BY_ID[u.defId];
   const s = new Set<SynergyId>([...d.factions, ...d.traits]);
+  if (run && sigmundTarget(run) === u.uid) s.add('FAM'); // 시그문드가 모시는 기물
   for (const a of u.augments) {
     const e = AUG_BY_ID[a.id]?.effect(a.param);
     e?.extraSyn?.forEach((x) => s.add(x));
@@ -38,7 +40,7 @@ export function synergyCounts(units: UnitState[], run?: RunState | null): Counts
   for (const u of units) {
     if (seen.has(u.defId)) continue; // 같은 기물은 1회만 집계
     seen.add(u.defId);
-    for (const s of memberships(u)) c[s] = (c[s] || 0) + 1;
+    for (const s of memberships(u, run)) c[s] = (c[s] || 0) + 1;
   }
   if (run) {
     // 연합 협정 / 전술 교범: 인원이 가장 많은 세력 / 특성 +1
@@ -70,13 +72,19 @@ export function makeCtx(run: RunState | null, unit: UnitState | null, counts: Co
 /** 기물 하나에 적용되는 모든 효과 */
 export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, onBoard: boolean): Effect[] {
   const out: Effect[] = [];
-  const passive = UNIT_BY_ID[u.defId].passive;
-  if (passive) out.push(passive);
+  const d = UNIT_BY_ID[u.defId];
+  if (d.passive) out.push(d.passive);
+  if (d.trait.effect) out.push(d.trait.effect);
+  const g = u.grow || {};
+  if (d.ttype === 'minor' && d.growth?.effect) out.push(d.growth.effect(g));
+  if (d.ttype === 'psionic' && d.psi) out.push(d.psi.effect);
+  // 시그문드: 모시는 기물이 원래 엘베스타드면 모든 메이저 +5
+  if (run && sigmundTarget(run) === u.uid && d.factions.includes('FAM')) out.push({ majors: { vit: 5, pow: 5, mnd: 5, def: 5, agi: 5 } });
   for (const a of u.augments) { const d = AUG_BY_ID[a.id]; if (d) out.push(d.effect(a.param)); }
   for (const it of u.items) if (it) out.push(itemEffect(it));
   if (onBoard) {
     const ctx = makeCtx(run, u, counts);
-    const mine = new Set(memberships(u));
+    const mine = new Set(memberships(u, run));
     for (const s of SYNERGIES) {
       const tier = tierOf(s.id, counts[s.id] || 0);
       if (!tier) continue;
@@ -137,19 +145,23 @@ function blankUnit(side: 0 | 1): CUnit {
     skill: null, sk: {}, statuses: [], mods: [], taken: [], hooks: [], keywords: [], synergies: new Set(), target: null,
     alive: true, isBoss: false, isSummon: false, immobile: false, phaseAmp: 1,
     counters: { dmg: 0, taken: 0, healed: 0, kills: 0, casts: 0, shield: 0, elem: {} }, mem: {},
+    weapon: null, ammo: 0, reloadT: 0, combo: 0, reason: null, div: null, divGot: 0, divCap: 0, divUsed: false,
   };
 }
 
 export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts: Counts): CUnit {
   const d = UNIT_BY_ID[u.defId];
   const effects = unitEffects(run, u, counts, true);
-  const { st } = computeStats(u, effects);
+  const { st, majors } = computeStats(u, effects);
   const c = blankUnit(0);
   Object.assign(c, {
     defId: d.id, name: d.name, sprite: d.sprite, palette: d.palette, st, keywords: d.keywords.slice(),
     atk: { ...d.atk }, skill: d.skill, sk: { ...d.skill.params }, cdMax: d.skill.cd, src: u,
-    synergies: new Set(memberships(u)),
+    synergies: new Set(memberships(u, run)),
+    weapon: { ...d.weapon }, ctype: d.ctype, ttype: d.ttype, faith: u.faith || d.faith,
   });
+  c.mem.mnd = majors.mnd;
+  if (d.weapon.kind === 'none') c.noAttack = true;
   const p = boardPos(u.pos!, b.n);
   c.x = c.px = p.x; c.y = c.py = p.y;
   c.mem.title = rankTitle(u.rank) + effects.reduce((s, e) => s + (e.title || 0), 0);
@@ -162,7 +174,8 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
   for (const e of effects) e.setup?.(c, b, ctx);
   c.cdMax = Math.max(1, c.cdMax);
   c.cd = c.cdMax * 0.5;
-  c.noAttack = c.noAttack || d.traits.includes('CHEF');
+  if (d.ttype === 'psionic') c.reason = Math.min(100, CFG.reasonStart + (c.mem.reasonStart || 0));
+  if (d.ttype === 'divine') enableDivine(c, c.faith!, run?.divCap || 0);
   const sd = d.summon;
   if (sd) c.hooks.push({ onStart: (bb, self) => spawnSummons(bb, self, sd) });
   return c;
@@ -182,6 +195,10 @@ function spawnSummons(b: Battle, owner: CUnit, sd: SummonDef) {
     st.armor = o.armor * r + (owner.mem.summonArmor || 0);
     st.acc = o.acc; st.crit = o.crit; st.critDmg = o.critDmg; st.effHit = o.effHit; st.effRes = o.effRes; st.eva = o.eva;
     st.moveSpd = 1.15; st.range = sd.range;
+    st.maxHp *= 1 + (owner.mem.summonHpPct || 0);
+    // 라르스: 경호원 메이저 보너스
+    const gm = owner.mem.summonMaj || 0;
+    if (gm) for (const k of MAJORS) for (const [sk, per] of Object.entries(CFG.conv[k])) st[sk as keyof Stats] += (per as number) * gm;
     Object.assign(s, {
       defId: 'summon', name: sd.name, sprite: sd.sprite, palette: sd.palette, st, atk: { ...sd.atk },
       keywords: sd.sprite === 'drone' ? ['mech'] : ['bio'], isSummon: true, owner,
@@ -190,6 +207,7 @@ function spawnSummons(b: Battle, owner: CUnit, sd: SummonDef) {
     s.hp = st.maxHp;
     s.atkTimer = 0.3;
     const treat = owner.mem.summonTreat;
+    if (owner.mem.crowShock) s.hooks.push({ onBasic(bb, self, t, r2) { if (r2.amount > 0 && t.alive && bb.rng.chance(0.3)) bb.applyStatus(self, t, { type: 'shock', key: 'shock', dur: 1 }); } });
     if (treat) s.hooks.push({
       onTick(bb, self, dt) {
         self.mem.treat = (self.mem.treat || 0) + dt;
@@ -216,6 +234,12 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   });
   c.mem.mult = mult;
   c.cd = c.cdMax * 0.6;
+  // 리워크: 적도 무기 · 전투 유형 · 이성을 가진다
+  c.ctype = def.atk.type === 'shoot' ? 'MARK' : 'VAN';
+  c.weapon = { name: '', kind: def.atk.type === 'shoot' ? 'mag' : 'combo', type: def.atk.type, elem: def.atk.elem, interval: def.interval, range: def.range,
+    mult: def.atk.type === 'shoot' ? (8 * def.interval + 1.5) / (8 * def.interval) : 4 / (3 + CFG.finishMult), mag: 8, reload: 1.5, combo: 4 };
+  c.reason = CFG.reasonStart;
+  c.hooks.push(ENEMY_PSI);
   if (b.ctx.field) fieldOf(b.ctx.field).enemyMod?.(c); // 전장 조건
   // 난이도 단계
   const d = b.ctx.diff || 0;

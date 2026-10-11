@@ -41,6 +41,7 @@ function resolvePending(run: RunState, bot: Rng) {
     }
     else if (p.t === 'supply') R.takeSupply(run, p.options[0]);
     else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
+    else if (p.t === 'pilgrim') { run.pending.shift(); while (run.power >= R.PILGRIM_COST.cap && R.pilgrimAct(run, 'cap') === null); continue; }
     run.pending.shift();
   }
 }

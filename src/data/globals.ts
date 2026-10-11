@@ -73,7 +73,7 @@ export const BLESSINGS: BlessingDef[] = [
     team: { hooks: { onStart(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.25); } } } },
   { id: 'B.zeal', name: '광신', desc: '이번 페이즈 모든 아군 공격 속도 +25%, 받는 피해 +10%.',
     team: { stats: { atkSpd: 0.25 }, taken: [{ kind: 'vuln', tag: 'all', v: 0.1 }] } },
-  { id: 'B.prayer', name: '깊은 기도', desc: '즉시 신앙 +6.', onPick: (r) => { r.faith += 6; } },
+  { id: 'B.prayer', name: '깊은 기도', desc: '즉시 권능 포인트 +3.', onPick: (r) => { r.power += 3; } },
   { id: 'B.tithe', name: '헌금', desc: '즉시 에너지 크레딧 +15.', onPick: (r) => { r.credits += 15; } },
 ];
 export const BLESSING_BY_ID: Record<string, BlessingDef> = Object.fromEntries(BLESSINGS.map((b) => [b.id, b]));

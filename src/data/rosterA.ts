@@ -2,16 +2,16 @@
 import { inc, red, vuln } from '../engine/effects';
 import { lineTargets, pct, shock, skillHit, summonsOf } from './kit';
 import { cookPower, pickEnemy, strike, support } from './tpl';
-import { B, PAL, setSk, tint, uaug, type UnitDef } from './unitkit';
+import { B, PAL, setSk, tint, uaug, type BaseUnit } from './unitkit';
 
 const nat = (n: number) => ({ setup: (u: { mem: Record<string, number> }) => { u.mem.natureExtra = (u.mem.natureExtra || 0) + n; } });
 const DRONE = ['#0c0e12', '#5a7090', '#2a3040', '#9ab0c8', '#7fe3ff', '#40465a', '#e0f0ff'];
 const BOT = ['#0c0c12', '#3a3f58', '#c8ccd8', '#9aa0b0', '#ff5a5a', '#2a2e40', '#ffffff'];
 
-export const ROSTER_A: UnitDef[] = [
+export const ROSTER_A: BaseUnit[] = [
   // ───────── 성간 인류 연합
   {
-    id: 'yelena', name: '예레나', title: '전 보안위원회 델타 요원 · 대외협력담당', factions: ['UNI'], traits: ['SPEC', 'NATURE'], keywords: ['bio'],
+    id: 'yelena', name: '예레나', title: '전 보안위원회 델타 요원 · 대외협력담당', factions: ['UNI'], traits: ['NATURE'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.1 }, range: 4, base: B(5, 8, 9, 3, 5),
     sprite: 'soldier', palette: tint(PAL.UNI, '#5a5e6a', '#2a6ad8', '#3a8aff'), lore: '"밀린 업무가 많아요. 까먹기 전에, 모두 해치우죠."',
     skill: strike({
@@ -28,7 +28,7 @@ export const ROSTER_A: UnitDef[] = [
     ],
   },
   {
-    id: 'mirinae', name: '미리내', title: '"신기루" 추적·잠입 전문가', factions: ['UNI'], traits: ['MARK', 'NATURE'], keywords: ['bio'],
+    id: 'mirinae', name: '미리내', title: '"신기루" 추적·잠입 전문가', factions: ['UNI'], traits: ['NATURE'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.15 }, range: 5, base: B(5, 10, 8, 3, 5),
     sprite: 'soldier', palette: tint(PAL.UNI, '#4a5a3a', '#1a1a22', '#3a8aff'), lore: '"연락은 자제해줘. 캠핑 중이니까 - "',
     skill: strike({
@@ -44,7 +44,7 @@ export const ROSTER_A: UnitDef[] = [
     ],
   },
   {
-    id: 'gebek', name: '게베크', title: '"괴수" 중화기 전문가 · 창립 멤버', factions: ['UNI'], traits: ['MARK', 'ENG'], keywords: ['bio'],
+    id: 'gebek', name: '게베크', title: '"괴수" 중화기 전문가 · 창립 멤버', factions: ['UNI'], traits: ['ENG'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 4, base: B(8, 9, 7, 6, 3),
     sprite: 'mech', palette: tint(PAL.UNI, '#3a3f4a', '#c03a2a', '#ff6040'), lore: '"비결? 이 요망한 주둥아리지."',
     skill: strike({
@@ -66,8 +66,8 @@ export const ROSTER_A: UnitDef[] = [
     summon: { name: '까악이', sprite: 'drone', palette: DRONE, atk: { type: 'shoot', elem: 'elec', interval: 0.8 }, range: 3, hpMul: 1.2 },
     lore: '"휴가 중. 기한 100년. 고양이 사료는 문 앞에."',
     skill: strike({
-      name: '자안의 사수', cd: 7, pow: 'strike', elem: 'phys', mult: 2.0, target: 'lowest', blink: true, params: { crit: 0.4 },
-      desc: (p) => `급소가 붉게 보인다. 체력 비율이 가장 낮은 적에게 파고들어 단분자 와이어로 타격 위력 ${pct(p.mult)} 물리 피해 (치명타 확률 +${pct(p.crit)}p)${p.bleed ? `, 4초간 초당 ${pct(p.bleed)} 출혈` : ''}${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}${p.shock ? `, ${pct(p.shockChance || 0.7)} 확률로 ${p.shock}초 감전` : ''}. 까악이는 4초간 공격 속도 +50%로 같은 적을 노린다.`,
+      name: '자안의 사수', cd: 7, pow: 'tech', elem: 'phys', mult: 2.0, target: 'lowest', blink: true, params: { crit: 0.4 },
+      desc: (p) => `급소가 붉게 보인다. 체력 비율이 가장 낮은 적에게 파고들어 단분자 와이어로 기술 위력 ${pct(p.mult)} 물리 피해 (치명타 확률 +${pct(p.crit)}p)${p.bleed ? `, 4초간 초당 ${pct(p.bleed)} 출혈` : ''}${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}${p.shock ? `, ${pct(p.shockChance || 0.7)} 확률로 ${p.shock}초 감전` : ''}. 까악이는 4초간 공격 속도 +50%로 같은 적을 노린다.`,
       after: (b, u, t) => { for (const d of summonsOf(b, u)) { d.target = t; b.buff(u, d, 'donovan.crow', 4, { delta: { atkSpd: 0.5 }, label: '해킹 지원' }); } },
     }),
     augs: [
@@ -96,14 +96,14 @@ export const ROSTER_A: UnitDef[] = [
     ],
   },
   {
-    id: 'west', name: '웨스트', title: '연합군 원사 출신 · 시설담당', factions: ['UNI'], traits: ['SPEC', 'ENG'], keywords: ['bio'],
+    id: 'west', name: '웨스트', title: '연합군 원사 출신 · 시설담당', factions: ['UNI'], traits: ['ENG'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 4, base: B(7, 8, 8, 5, 3),
     sprite: 'soldier', palette: tint(PAL.UNI, '#e0c020', '#3a4a6a', '#7fe3ff'), lore: '"흠. 그래. 일단 담배 한 대 피고 얘기하지."',
     skill: strike({
       name: '스패너 던지기', cd: 7, pow: 'shoot', elem: 'phys', mult: 1.6, params: { stun: 1, fix: 1.0, overclock: 0.35 },
       desc: (p) => `대상에게 스패너를 던져 사격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절. 모든 포탑을 기술 위력 ${pct(p.fix)}만큼 수리하고 4초간 공격 속도 +${pct(p.overclock)}.`,
       after: (b, u, _t, _d, p) => {
-        for (const t of b.alliesOf(u)) if (t.defId === 'turret') { b.heal(u, t, b.S(u, 'tech') * p.fix); b.buff(u, t, 'west.oc', 4, { delta: { atkSpd: p.overclock }, label: '정비' }); }
+        for (const t of b.alliesOf(u)) if (t.defId === 'turret') { b.heal(u, t, b.P(u, 'tech') * p.fix); b.buff(u, t, 'west.oc', 4, { delta: { atkSpd: p.overclock }, label: '정비' }); }
       },
     }),
     augs: [
@@ -116,7 +116,7 @@ export const ROSTER_A: UnitDef[] = [
   },
   // ───────── 주식회사 페트라
   {
-    id: 'lindiwe', name: '린디웨', title: '페트라 특별경호팀 협력팀장', factions: ['PET'], traits: ['STAFF', 'VAN'], keywords: ['bio'],
+    id: 'lindiwe', name: '린디웨', title: '페트라 특별경호팀 협력팀장', factions: ['PET'], traits: [], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 0.9 }, range: 1, base: B(10, 7, 5, 8, 3),
     sprite: 'knight', palette: tint(PAL.PET, '#e07a1f', '#f0e0c0', '#7dff8a'), lore: '"행복은 잠깐이지만, 신용은 영원하죠"',
     skill: strike({
@@ -133,7 +133,7 @@ export const ROSTER_A: UnitDef[] = [
     ],
   },
   {
-    id: 'orca', name: '오르카', title: '범고래 환수 · 에란테스 재정담당', factions: ['PET'], traits: ['STAFF', 'CHEF'], keywords: ['bio'],
+    id: 'orca', name: '오르카', title: '범고래 환수 · 에란테스 재정담당', factions: ['PET'], traits: ['CHEF'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(7, 5, 8, 6, 3),
     sprite: 'medic', palette: tint(PAL.PET, '#1a1a22', '#e8e8f0', '#e8e8f0'), lore: '"사기라뇨 - 그런 비겁한 행동은 선호하지 않아요."',
     skill: support({
@@ -149,7 +149,7 @@ export const ROSTER_A: UnitDef[] = [
     ],
   },
   {
-    id: 'franze', name: '프란체', title: '크림슨 강화 혈족 · 은하법률고문', factions: ['PET'], traits: ['TIME', 'VAN'], keywords: ['bio'],
+    id: 'franze', name: '프란체', title: '크림슨 강화 혈족 · 은하법률고문', factions: ['PET'], traits: ['TIME'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 0.95 }, range: 1, base: B(8, 8, 5, 6, 5),
     sprite: 'knight', palette: tint(PAL.PET, '#2a2a34', '#c02030', '#ff3040'), lore: '"이의 있습니다. 방금 그 발언, 기록해도 되겠습니까?"',
     skill: strike({
@@ -166,7 +166,7 @@ export const ROSTER_A: UnitDef[] = [
     ],
   },
   {
-    id: 'grenholm', name: '그렌홀름', title: '페트라 전쟁부장', factions: ['PET'], traits: ['VAN', 'STAR'], keywords: ['bio'],
+    id: 'grenholm', name: '그렌홀름', title: '페트라 전쟁부장', factions: ['PET'], traits: ['STAR'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 1.2 }, range: 1, base: B(11, 6, 5, 8, 2),
     sprite: 'knight', palette: tint(PAL.PET, '#24242e', '#e0602a', '#ff8a40'),
     lore: '"이 병신같은 보고서 양식은 주주님의 좆같은 면상을 따와 그린 겁니까?" — 주주총회에서',
@@ -203,7 +203,7 @@ export const ROSTER_A: UnitDef[] = [
         b.applyStatus(u, t, { type: 'buff', key: 'deal.lars', dur: p.dur, mods: [inc('all', -p.weak)], taken: p.vuln ? [vuln('all', p.vuln)] : undefined, label: '거래 조건' });
         b.fx(t.x, t.y, 0, 'psy');
         for (const bot of summonsOf(b, u)) {
-          b.shield(bot, b.S(u, 'tech') * p.shield);
+          b.shield(bot, b.P(u, 'tech') * p.shield);
           bot.target = t;
           if (b.dist(bot, t) <= 1) skillHit(b, bot, t, 'strike', p.mult, 'phys');
         }
@@ -219,7 +219,7 @@ export const ROSTER_A: UnitDef[] = [
     ],
   },
   {
-    id: 'falcon', name: '팔콘', title: '페트라 레일건 시험 사수', factions: ['PET'], traits: ['MARK', 'ENG'], keywords: ['bio'],
+    id: 'falcon', name: '팔콘', title: '페트라 레일건 시험 사수', factions: ['PET'], traits: ['ENG'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.4 }, range: 6, base: B(4, 10, 8, 3, 5),
     sprite: 'soldier', palette: tint(PAL.PET, '#d0d0d8', '#e07a1f', '#62d6ff'), lore: '시제품 레일건 시험 사격 1,204회. 사고 보고서 1,203건.',
     skill: {

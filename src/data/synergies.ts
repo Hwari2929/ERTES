@@ -1,10 +1,10 @@
 import type { Battle, CUnit } from '../engine/combat';
 import type { Effect, EffectCtx } from '../engine/effects';
-import { amp, applyLive, inc, red, vuln } from '../engine/effects';
+import { amp, applyLive, inc, red } from '../engine/effects';
 import { CFG } from '../config';
 import { FACTIONS, type RunState, type SynergyId } from '../types';
-import { ALL_ADVANCED, ALL_COMPONENTS, itemEffect, itemInfo } from './items';
-import { blinkTo, isDebuffed, pct, poison, skillHit } from './kit';
+import { ALL_ADVANCED, itemEffect, itemInfo } from './items';
+import { blinkTo, isDebuffed, pct, skillHit } from './kit';
 import { UNIT_BY_ID } from './units';
 
 export interface SynDef {
@@ -30,33 +30,6 @@ const T = (tier: number, a: number[]) => a[Math.max(0, tier - 1)];
 export const SYNERGIES: SynDef[] = [
   // ─────────────── 특성
   {
-    id: 'MARK', name: '명사수', kind: 'trait', tiers: [2, 4, 6], color: '#e8b04a', icon: '◎',
-    desc: '명사수 기물의 치명타 확률과 치명타 피해가 증가합니다. (치명타는 물리 피해에만 적용)',
-    tierDesc: ['치명타 확률 +15%p, 치명타 피해 +25%p', '치명타 확률 +30%p, 치명타 피해 +60%p', '치명타 확률 +50%p, 치명타 피해 +130%p, 치명타가 대상 주변 1칸에 40% 폭발'],
-    member: (t) => ({
-      stats: { crit: T(t, [0.15, 0.3, 0.5]), critDmg: T(t, [0.25, 0.6, 1.3]) },
-      hooks: t >= 3 ? { onDeal(b, u, tg, r, o) { if (!r.crit || o.tag === 'proc' || o.tag === 'dot') return; for (const e of b.around(tg, 1, b.enemiesOf(u))) if (e !== tg) skillHit(b, u, e, 'shoot', 0.4, 'phys', { tag: 'proc', noMiss: true }); } } : undefined,
-    }),
-  },
-  {
-    id: 'VAN', name: '돌격가', kind: 'trait', tiers: [2, 4, 6], color: '#d0603a', icon: '⛨',
-    desc: '돌격가 기물의 타격 위력과 방어도가 증가합니다.',
-    tierDesc: ['타격 위력 +20%, 방어도 +200', '타격 위력 +45%, 방어도 +450', '타격 위력 +90%, 방어도 +900, 전투 시작 시 최대 체력 30% 보호막'],
-    member: (t) => ({
-      pct: { strike: T(t, [0.2, 0.45, 0.9]) }, stats: { armor: T(t, [200, 450, 900]) },
-      hooks: t >= 3 ? { onStart(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.3); } } : undefined,
-    }),
-  },
-  {
-    id: 'SPEC', name: '전문가', kind: 'trait', tiers: [2, 4, 6], color: '#5aa0ff', icon: '✦',
-    desc: '전문가 기물의 기술 위력과 쿨다운 감소 속도가 증가합니다.',
-    tierDesc: ['기술 위력 +25%, 쿨다운 감소 속도 +20%', '기술 위력 +55%, 쿨다운 감소 속도 +40%', '기술 위력 +110%, 쿨다운 감소 속도 +75%, 기술 사용 시 25% 확률로 즉시 재사용'],
-    member: (t) => ({
-      pct: { tech: T(t, [0.25, 0.55, 1.1]) }, stats: { cdr: T(t, [0.2, 0.4, 0.75]) },
-      hooks: t >= 3 ? { onSkill(b, u) { if (b.rng.chance(0.25)) { u.cd = 0.2; b.emit({ k: 'status', id: u.id, name: '연쇄 기술!' }); } } } : undefined,
-    }),
-  },
-  {
     id: 'MED', name: '의무관', kind: 'trait', tiers: [2, 4, 6], color: '#5ad08a', icon: '✚',
     desc: '모든 아군의 회복 효율이 증가하고, 의무관은 4초마다 체력 비율이 가장 낮은 아군을 치료합니다.',
     tierDesc: ['회복 효율 +20%, 치료 = 기술 위력 80%', '회복 효율 +40%, 치료 = 기술 위력 150%', '회복 효율 +75%, 치료 = 기술 위력 260%, 치료 대상에게 초과분까지 보호막'],
@@ -70,7 +43,7 @@ export const SYNERGIES: SynDef[] = [
             if (u.mem.medT >= 4) {
               u.mem.medT = 0;
               const l = b.lowestHpAlly(u);
-              if (l && b.hpPct(l) < 1) { const v = b.S(u, 'tech') * k; const miss = b.S(l, 'maxHp') - l.hp; b.heal(u, l, v); if (t >= 3 && v > miss) b.shield(l, v - miss); }
+              if (l && b.hpPct(l) < 1) { const v = b.P(u, 'tech') * k; const miss = b.S(l, 'maxHp') - l.hp; b.heal(u, l, v); if (t >= 3 && v > miss) b.shield(l, v - miss); }
             }
           },
         },
@@ -124,23 +97,6 @@ export const SYNERGIES: SynDef[] = [
 
   // ─────────────── 확장 특성
   {
-    id: 'STAFF', name: '참모단', kind: 'trait', tiers: [2, 4, 6], color: '#c9b37a', icon: '✎',
-    desc: '참모단이 아닌 아군 하나를 지원 대상으로 지정해 몰아서 강화합니다 (기물 정보 창에서 지정, 미지정 시 공명 등급이 가장 높은 기물). 참모단 기물은 쿨다운 감소 속도 +15%.',
-    tierDesc: ['대상 모든 메이저 +5, 피해 +30%', '대상 모든 메이저 +10, 피해 +75%, 쿨다운 감소 +25%', '대상 모든 메이저 +20, 피해 +160%, 쿨다운 감소 +50%, 받는 피해 -25%'],
-    member: () => ({ stats: { cdr: 0.15 } }),
-    team: (t, ctx) => {
-      if (!ctx.run || !ctx.unit || staffTargetUid(ctx.run) !== ctx.unit.uid) return null;
-      const m = T(t, [5, 10, 20]);
-      return {
-        majors: { vit: m, pow: m, mnd: m, def: m, agi: m },
-        mods: [inc('all', T(t, [0.3, 0.75, 1.6]))],
-        stats: { cdr: T(t, [0, 0.25, 0.5]) },
-        taken: t >= 3 ? [red('all', 0.25)] : [],
-        setup: (u) => { u.mem.staffed = 1; },
-      };
-    },
-  },
-  {
     id: 'BUDDY', name: '최고의 친구', kind: 'trait', tiers: [2, 4, 6], color: '#f08fb0', icon: '♥',
     desc: '최고의 친구 기물은 전투 시작 시 단짝 소환물을 부릅니다. 소환물은 칸을 차지하고 공명도가 없으며, 주인 스탯의 일부를 물려받습니다 (기본 35%). 주인이 쓰러지면 함께 사라집니다.',
     tierDesc: ['소환물 스탯 상속 55%, 소환물 피해 +15%', '소환물 스탯 상속 85%, 소환물 피해 +40%', '소환물 스탯 상속 120%, 소환물 피해 +100%, 소환물 +1'],
@@ -172,13 +128,6 @@ export const SYNERGIES: SynDef[] = [
         u.hooks.push({ onStart(bb, self) { bb.emit({ k: 'status', id: self.id, name: names.join(' · ') }); } });
       },
     }),
-  },
-  {
-    id: 'CLERIC', name: '성직자', kind: 'trait', tiers: [2, 4, 6], color: '#ffd866', icon: '✟',
-    desc: '신앙을 쌓아 신성 피해를 키웁니다. 성직자가 활성화된 채 페이즈를 시작하면 순례 노드가 추가되어 신앙과 축복을 얻습니다. 전투에서 이기면 신앙 +단계.',
-    tierDesc: ['성직자 신성 피해 +20% +신앙×4%', '성직자 신성 피해 +40% +신앙×7%, 모든 아군 피해 +신앙×1.5%', '성직자 신성 피해 +80% +신앙×12%, 모든 아군 피해 +신앙×2.5%'],
-    member: (t, ctx) => ({ mods: [inc('holy', T(t, [0.2, 0.4, 0.8]) + faithOf(ctx) * T(t, [0.04, 0.07, 0.12]))] }),
-    team: (t, ctx) => (t >= 2 ? { mods: [inc('all', faithOf(ctx) * T(t, [0, 0.015, 0.025]))] } : null),
   },
   {
     id: 'STAR', name: '은하 대스타', kind: 'trait', tiers: [2, 4, 6], color: '#ff9de2', icon: '✪',
@@ -258,7 +207,7 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'CHEF', name: '셰프', kind: 'trait', tiers: [2, 4, 6], color: '#ffb36b', icon: '♨',
-    desc: '셰프는 기본 공격을 하지 않고 제자리에서 전용 요리 기술만 씁니다. 요리는 아군 1명을 회복시키거나 보호막을 주고 특수 버프를 겁니다. 단계가 오르면 요리 위력이 커집니다.',
+    desc: '셰프의 전투 스킬은 요리입니다. 요리는 아군 1명을 회복시키거나 보호막을 주고 특수 버프를 겁니다. 단계가 오르면 요리 위력이 커집니다.',
     tierDesc: ['요리 위력 ×1.4', '요리 위력 ×2.1', '요리 위력 ×3.5, 모든 아군 최대 체력 +15%'],
     member: (t) => ({ setup: (u) => { u.mem.cook = CFG.cookPower[t]; } }),
     team: (t) => (t >= 3 ? { pct: { maxHp: 0.15 } } : null),
@@ -307,10 +256,10 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'RFRIEND', name: '당신의 친구, R', kind: 'trait', tiers: [1], color: '#ff7aa8', icon: 'R',
-    desc: '데미우르고스 전용. 출전한 시리우스 성도회 인원과 성직자 인원 1pt당 데미우르고스의 모든 메이저 능력치 +1.',
-    tierDesc: ['모든 메이저 +(성도회 인원 + 성직자 인원)'],
+    desc: '데미우르고스 전용. 출전한 시리우스 성도회 인원과 디바인 기물 1명당 데미우르고스의 모든 메이저 능력치 +1.',
+    tierDesc: ['모든 메이저 +(성도회 인원 + 디바인 인원)'],
     member: (_t, ctx) => {
-      const n = (ctx.counts.SIR || 0) + (ctx.counts.CLERIC || 0);
+      const n = (ctx.counts.SIR || 0) + (ctx.run?.units.filter((x) => x.pos && UNIT_BY_ID[x.defId].ttype === 'divine').length || 0);
       return { majors: { vit: n, pow: n, mnd: n, def: n, agi: n } };
     },
   },
@@ -327,15 +276,8 @@ export function tierOf(id: SynergyId, count: number): number {
 }
 export { pct };
 
-const faithOf = (ctx: EffectCtx) => Math.min(40, ctx.run?.faith || 0);
 const fameOf = (ctx: EffectCtx) => ctx.run?.fame || 0;
 
-/** 참모단 지원 대상: 지정한 기물이 출전 중이면 그 기물, 아니면 공명 등급이 가장 높은 비참모단 기물 */
-export function staffTargetUid(run: RunState): string | null {
-  const dep = run.units.filter((u) => u.pos && !UNIT_BY_ID[u.defId].traits.includes('STAFF'));
-  if (dep.some((u) => u.uid === run.staffTarget)) return run.staffTarget;
-  return dep.slice().sort((a, b) => b.rank - a.rank)[0]?.uid ?? null;
-}
 export type { Battle, CUnit };
 
 /** 항해자 에이스 파일럿: 지정한 항해자가 출전 중이면 그 기물, 아니면 공명 등급이 가장 높은 항해자 */

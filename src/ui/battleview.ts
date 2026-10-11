@@ -15,7 +15,7 @@ export function fmt(n: number): string {
   return String(Math.round(n));
 }
 
-interface UEl { el: HTMLElement; hp: HTMLElement; sh: HTMLElement; cd: HTMLElement; u: CUnit; dead: boolean }
+interface UEl { el: HTMLElement; hp: HTMLElement; sh: HTMLElement; cd: HTMLElement; gx: HTMLElement | null; u: CUnit; dead: boolean }
 
 /** 전투를 실시간으로 진행하며 보드 위 DOM 을 갱신한다 */
 export class BattleView {
@@ -80,9 +80,9 @@ export class BattleView {
     const el = document.createElement('div');
     el.className = `u side${u.side}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
     el.style.width = el.style.height = `${100 / this.b.n}%`;
-    el.innerHTML = `<div class="bars"><i class="hp"></i><i class="sh"></i></div><img alt="" class="${hasPortrait(u) ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>`;
+    el.innerHTML = `<div class="bars"><i class="hp"></i><i class="sh"></i></div><img alt="" class="${hasPortrait(u) ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && (u.reason !== null || u.div !== null) ? '<div class="gx"><i></i></div>' : ''}`;
     this.board.appendChild(el);
-    this.els.set(u.id, { el, hp: el.querySelector('.hp')!, sh: el.querySelector('.sh')!, cd: el.querySelector('.cd i')!, u, dead: false });
+    this.els.set(u.id, { el, hp: el.querySelector('.hp')!, sh: el.querySelector('.sh')!, cd: el.querySelector('.cd i')!, gx: el.querySelector<HTMLElement>('.gx i'), u, dead: false });
   }
 
   private sync() {
@@ -101,6 +101,12 @@ export class BattleView {
       e.hp.style.width = `${Math.max(0, (u.hp / max) * 100)}%`;
       e.sh.style.width = `${Math.min(100, (u.shield / max) * 100)}%`;
       e.cd.style.width = u.cdMax ? `${Math.max(0, Math.min(100, (1 - u.cd / u.cdMax) * 100))}%` : '0';
+      if (e.gx) {
+        // 사이오닉 이성(보라, -100~100) / 디바인 신성력(금색, 0~100)
+        if (u.div !== null) { e.gx.style.width = `${u.divUsed ? 100 : u.div}%`; e.gx.className = u.divUsed ? 'div used' : 'div'; e.el.title = `신성력 ${Math.round(u.div)} (수집 ${Math.round(u.divGot)}/${u.divCap})`; }
+        else if (u.reason !== null) { e.gx.style.width = `${(u.reason + 100) / 2}%`; e.gx.className = u.reason <= -50 ? 'psi frenzy' : 'psi'; e.el.title = `이성 ${Math.round(u.reason)}`; }
+      }
+      e.el.classList.toggle('reloading', u.alive && u.reloadT > 0);
       e.el.classList.toggle('stunned', u.alive && u.statuses.some((s) => s.type === 'stun'));
       e.el.classList.toggle('feared', u.alive && u.statuses.some((s) => s.type === 'fear'));
       e.el.classList.toggle('shocked', u.alive && u.statuses.some((s) => s.type === 'shock'));

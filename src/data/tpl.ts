@@ -43,8 +43,8 @@ function pickAllies(b: Battle, u: CUnit, mode: AllyPick, p: Record<string, numbe
 function applyRiders(b: Battle, u: CUnit, v: CUnit, p: Record<string, number>, pow: PowKey) {
   if (!v.alive) return;
   if (p.stun) b.stun(u, v, p.stun, p.stunChance || 1);
-  if (p.bleed) bleed(b, u, v, b.S(u, pow) * p.bleed, 4);
-  if (p.poison) poison(b, u, v, b.S(u, pow) * p.poison, 4, 0.9);
+  if (p.bleed) bleed(b, u, v, b.P(u, pow) * p.bleed, 4);
+  if (p.poison) poison(b, u, v, b.P(u, pow) * p.poison, 4, 0.9);
   if (p.shock) shock(b, u, v, p.shock, p.shockChance || 0.7);
   if (p.fear) fear(b, u, v, p.fear, p.fearChance || 0.5);
   if (p.slow) slow(b, u, v, p.slow, 3);
@@ -80,8 +80,8 @@ export function strike(o: StrikeOpts): SkillDef {
         for (const v of victims) {
           if (!v.alive) continue;
           if (!p.radius && !o.aroundSelf && o.pow === 'shoot') b.emit({ k: 'atk', from: u.id, to: v.id, elem: o.elem, ranged: true });
-          const r = b.dealDamage(u, v, b.S(u, o.pow) * p.mult * (h ? p.second : 1), {
-            elem: o.elem, tag: 'skill', canMiss: !p.noMiss, critBonus: p.crit, pen: p.pen,
+          const r = b.dealDamage(u, v, b.P(u, o.pow) * p.mult * (h ? p.second : 1), {
+            elem: o.elem, tag: 'skill', kind: o.pow, canMiss: !p.noMiss, critBonus: p.crit, pen: p.pen,
           });
           dealt += r.amount;
           results.push(r);
@@ -122,8 +122,8 @@ export function support(o: SupportOpts): SkillDef {
       const k = o.power?.(u) ?? 1;
       ts.forEach((a, i) => {
         const m = (i > 0 && p.splash && ts.length > 1 && o.target !== 'all' ? 0.5 : 1) * k;
-        if (p.heal) b.heal(u, a, b.S(u, 'tech') * p.heal * m);
-        if (p.shield) b.shield(a, b.S(u, 'tech') * p.shield * m);
+        if (p.heal) b.heal(u, a, b.P(u, 'tech') * p.heal * m);
+        if (p.shield) b.shield(a, b.P(u, 'tech') * p.shield * m);
         if (p.cleanse) cleanse(a);
         if (p.as || p.dmg || p.armor || p.eva || p.crit || p.red) {
           b.buff(u, a, `sup.${u.defId}`, p.dur, {
