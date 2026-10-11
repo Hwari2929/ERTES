@@ -704,6 +704,21 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 /* 장비 설명 말풍선 */
 .item-tip { position: absolute; z-index: 60; max-width: 240px; display: grid; gap: 2px; padding: 8px 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 18px rgb(0 0 0 / .5); font-size: .8rem; }
 .item-tip small { color: var(--dim); font-size: .7rem; }
+.item-tip { --c: var(--line); border-color: var(--c); border-left: 3px solid var(--c); }
+.item-tip b { color: var(--c); }
+.item-tip.tip-C { --c: #8a93a6; } .item-tip.tip-C b { color: var(--fg); }
+.item-tip.tip-A { --c: var(--info); }
+.item-tip.tip-L, .item-tip.tip-U { --c: var(--accent); box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 35%, transparent), 0 6px 18px rgb(0 0 0 / .5); }
+.item-tip.tip-M { --c: #c38cff; }
+.tip-tier { font-size: .66rem; font-weight: 700; color: var(--c); letter-spacing: .04em; }
+.tip-foot { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin-top: 4px; }
+.item-tip .mi { width: 1.05em; height: 1.05em; }
+/* 상세 보기 장비 줄: 장비 3 + 개조부품 1 */
+.d-eq { display: grid; grid-template-columns: repeat(4, 40px); gap: 6px; margin-top: 10px; }
+.d-eq .item { width: 40px; height: 40px; font-size: 18px; cursor: pointer; }
+.d-eq .item.empty { cursor: default; }
+.d-eq .tk-it { display: block; touch-action: none; -webkit-touch-callout: none; user-select: none; }
+.d-eq .item .ii { width: 22px; height: 22px; }
 /* 지도: 전장 요약 · 노드 타임라인 */
 .field-mini { display: flex; align-items: center; gap: 8px; width: 100%; margin: 4px 0 12px; padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--c); border-radius: 6px; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .field-mini:hover { border-color: var(--c); }
@@ -742,8 +757,8 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .dh-types .ti { width: 13px; height: 13px; }
 .dh-rank { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .dh-r { font-family: var(--f-mono); font-weight: 700; font-size: 1.25rem; display: inline-flex; align-items: center; gap: 2px; flex: none; }
-.dh-rank { align-items: stretch !important; }
-.dh-rank .dh-r { align-self: center; }
+.dh-rank { align-items: stretch !important; height: 26px; }
+.dh-rank .dh-r { align-self: center; line-height: 1; }
 .dh-rank .xp { flex: 1; height: auto; margin: 0; border-radius: 6px; display: grid; place-items: center; }
 .dh-rank .xp b { font-size: 11px; line-height: 1; }
 .dh-buy { flex: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-family: var(--f-mono); }

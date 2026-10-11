@@ -540,7 +540,7 @@ function inventoryPanel(run: RunState) {
   return `<div class="inv" data-drop="inv">
     <div class="inv-head"><b>장비 보관함</b><span class="muted small">${run.inventory.length}/${CFG.inventoryMax} · 기물에게 끌어다 장착, 재료끼리 겹치면 조합</span></div>
     <div class="inv-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`).replace('class="item', `class="item${i === selIdx ? ' sel' : ''}`)).join('') || '<span class="muted small">비어 있음</span>'}</div>
-    ${sel ? `<div class="inv-detail"><b>${esc(itemInfo(sel).name)}</b> <span class="muted">${esc(itemInfo(sel).desc)}</span>
+    ${sel ? `<div class="inv-detail"><b>${esc(itemInfo(sel).name)}</b> <span class="muted">${statIc(esc(itemInfo(sel).desc))}</span>
       <div class="row-btns"><button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${CFG.sell[sel[0]]}</button>
       ${run.inventory.some((x, j) => j !== selIdx && combine(sel, x)) ? `<span class="muted small">조합 가능한 장비를 클릭하면 조합합니다.</span>` : ''}</div></div>` : ''}
   </div>`;
@@ -618,6 +618,7 @@ function detailPanel(run: RunState) {
     <div class="dh-rank"><span class="dh-r">${rankLabel(u.rank)}</span>${xpBar(u)}<button class="btn tiny dh-buy" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''} title="공명도 +${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)} 구입 (에너지 크레딧 ${cost})">${lineIcon('r.res', 'li res')}+${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)}<span class="dh-cost">${lineIcon('r.cr', 'li cr')}${cost}</span></button></div>
     <div class="chips nb-syn">${memberships(u, run).map(chip).join('')}</div>
     ${memberships(u, run).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}
+    <div class="d-eq" aria-label="장비 · 개조부품">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : `<span data-drop="unit:${u.uid}">${itemIcon(null)}</span>`)).join('')}${u.mod ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : `<span data-drop="unit:${u.uid}" title="개조부품 칸 · 문장을 끌어다 장착"><span class="item empty tM"></span></span>`}</div>
     <h3>메이저 스탯</h3>
     <div class="majors">${MAJORS.map((m) => {
       const base = d.base[m], add = tm[m] - base;
@@ -632,12 +633,6 @@ function detailPanel(run: RunState) {
     </div>
     <h3>증강 <span class="muted">${u.augments.length}</span></h3>
     ${u.augments.length ? `<ul class="augs">${u.augments.map((a) => { const ad = AUG_BY_ID[a.id]; return `<li class="aug-li">${augIcon(a.id)}<span><b>${esc(ad?.name || a.id)}</b><br><span class="muted">${esc(augDesc(a.id, a.param))}</span></span></li>`; }).join('')}</ul>` : '<p class="muted small">공명 등급이 오르면 증강을 고릅니다.</p>'}
-    <h3>장비</h3>
-    <div class="eq">${u.items.map((it, i) => it ? `<div class="eq-slot" data-drag="eq:${u.uid}:${i}">${itemIcon(it)}<span><b>${esc(itemInfo(it).name)}</b><br><span class="muted small">${esc(itemInfo(it).desc)}</span></span>
-      ${isLocked(it) ? '<span class="muted small">고정</span>' : `<button class="btn tiny" data-a="unequip" data-v="${u.uid}:${i}">해제</button>`}</div>` : `<div class="eq-slot empty" data-drop="unit:${u.uid}">${itemIcon(null)}<span class="muted small">빈 슬롯</span></div>`).join('')}</div>
-    <h3>개조부품 <span class="muted small">시너지 ${memberships(u).length}/5</span></h3>
-    <div class="eq">${u.mod ? `<div class="eq-slot mod" data-drag="eq:${u.uid}:-1">${itemIcon(u.mod)}<span><b>${esc(itemInfo(u.mod).name)}</b><br><span class="muted small">${esc(itemInfo(u.mod).desc)}</span></span>
-      <button class="btn tiny" data-a="unequip" data-v="${u.uid}:-1">해제</button></div>` : `<div class="eq-slot empty mod" data-drop="unit:${u.uid}"><span class="item empty tM"></span><span class="muted small">빈 개조부품 칸 · 문장을 끌어다 장착</span></div>`}</div>
     <h3>전투 스탯 ${u.pos ? '' : '<span class="muted">(시너지 미적용)</span>'}</h3>
     ${statLines(c, b)}
     <p class="lore">${esc(d.lore)}</p>
@@ -712,7 +707,7 @@ function shopScreen(run: RunState) {
     <div class="screen-head"><h1>암시장 상점</h1><p class="muted">재료 2개를 같은 기물에 장착하거나 보관함에서 겹치면 고급 장비가 됩니다. 같은 고급 장비 2개는 전설(효과 3배)이 됩니다.</p></div>
     <div class="shop">${stock.map((s, i) => {
       const it = itemInfo(s.item);
-      return `<div class="shop-item t${it.tier} ${s.sold ? 'sold' : ''}">${itemIcon(s.item)}<div><b>${esc(it.name)}</b><div class="small muted">${esc(it.desc)}</div></div>
+      return `<div class="shop-item t${it.tier} ${s.sold ? 'sold' : ''}">${itemIcon(s.item)}<div><b>${esc(it.name)}</b><div class="small muted">${statIc(esc(it.desc))}</div></div>
         <button class="btn small" data-a="buy" data-v="${i}" ${s.sold || run.credits < s.price ? 'disabled' : ''}>${s.sold ? '판매됨' : `${CR}${s.price}`}</button></div>`;
     }).join('')}</div>
     ${inventoryPanel(run)}
@@ -840,7 +835,7 @@ function pendingModal(run: RunState): string {
       </div>`;
     }
   } else if (p.t === 'itemPick') {
-    body = `<h1>${esc(p.title)}</h1><div class="cards">${p.options.map((id, i) => { const it = itemInfo(id); return `<button class="card" data-a="pick-item" data-v="${i}">${itemIcon(id)}<b>${esc(it.name)}</b><span>${esc(it.desc)}</span></button>`; }).join('')}</div>`;
+    body = `<h1>${esc(p.title)}</h1><div class="cards">${p.options.map((id, i) => { const it = itemInfo(id); return `<button class="card" data-a="pick-item" data-v="${i}">${itemIcon(id)}<b>${esc(it.name)}</b><span>${statIc(esc(it.desc))}</span></button>`; }).join('')}</div>`;
   } else if (p.t === 'recruit') {
     const rank = Math.min(CFG.maxRank, Math.max(1, run.phase - 1) + (R.hasGlobal(run, 'G.scout') ? 1 : 0));
     mcls = 'recruit';
@@ -1140,7 +1135,7 @@ function battleUnitInfo(b: Battle, u: CUnit) {
   const items = (u.src?.items || []).filter((x): x is string => !!x);
   const mod = u.src?.mod;
   const temp = u.tempItems || [];
-  const row = (id: string, tag = '') => `<li>${itemIcon(id)} <span><b>${esc(itemInfo(id).name)}</b>${tag}<br><span class="muted small">${esc(itemInfo(id).desc)}</span></span></li>`;
+  const row = (id: string, tag = '') => `<li>${itemIcon(id)} <span><b>${esc(itemInfo(id).name)}</b>${tag}<br><span class="muted small">${statIc(esc(itemInfo(id).desc))}</span></span></li>`;
   return `<h3>${sprite(u)} ${esc(u.name)} <span class="muted small">체력 ${fmt(Math.max(0, u.hp))}/${fmt(b.S(u, 'maxHp'))}${u.shield > 0 ? ` · 보호막 ${fmt(u.shield)}` : ''}</span></h3>
     <ul class="bitems">${items.map((x) => row(x)).join('')}${mod ? row(mod) : ''}${temp.map((x) => row(x, ' <span class="tag">임시 · 캠핑</span>')).join('')}${!items.length && !mod && !temp.length ? '<li class="muted small">장비 없음</li>' : ''}</ul>
     ${u.statuses.filter((s) => s.label).length ? `<div class="small muted">상태: ${u.statuses.filter((s) => s.label).map((s) => esc(s.label!)).join(' · ')}</div>` : ''}`;
@@ -1250,7 +1245,6 @@ function act(a: string, v: string) {
     }
     case 'tl-pick': app.nodePick = v; break;
     case 'field-info': if (run) run.pending.unshift({ t: 'field' }); break;
-    case 'item-info': { const el = document.querySelector<HTMLElement>(`[data-a="item-info"][data-v="${v}"]`); if (el) itemTip(el, v); return; }
     case 'enter': {
       if (!run || run.pending.length) return;
       R.enterNode(run, v as NodeType);
@@ -1379,7 +1373,9 @@ function equipSel(run: RunState, idx: number, uid: string): Sel {
   return { k: 'unit', uid };
 }
 
-/** 장비 설명 말풍선 (짧게 누르기). 다음 누르기에 닫힌다 */
+/** 장비 설명의 메이저 능력치 이름을 아이콘으로 */
+const statIc = (html: string) => MAJORS.reduce((h, m) => h.split(MAJOR_NAME[m]).join(majorIcon(m)), html);
+/** 장비 설명 말풍선 (짧게 누르기). 다음 누르기에 닫힌다. 색은 장비 등급 */
 function itemTip(el: HTMLElement, key: string) {
   document.querySelector('.item-tip')?.remove();
   const [uid, slot] = key.split(':');
@@ -1387,9 +1383,14 @@ function itemTip(el: HTMLElement, key: string) {
   const id = u ? (+slot < 0 ? u.mod : u.items[+slot]) : null;
   if (!id) return;
   const it = itemInfo(id);
+  const tier = id.startsWith('U_') ? 'U' : it.tier;
+  const TIER_NAME: Record<string, string> = { C: '재료', A: '고급', L: '전설', M: '개조부품', U: '고유' };
   const tip = document.createElement('div');
-  tip.className = 'item-tip';
-  tip.innerHTML = `<b>${esc(it.name)}</b><span>${esc(it.desc)}</span><small>길게 눌러 다른 기물에게 옮기기</small>`;
+  tip.className = `item-tip tip-${tier}`;
+  tip.innerHTML = `<span class="tip-tier">${TIER_NAME[tier] || ''}</span><b>${esc(it.name)}</b><span>${statIc(esc(it.desc))}</span>
+    <div class="tip-foot"><small>길게 눌러 다른 기물에게 옮기기</small>${isLocked(id) ? '' : '<button class="btn tiny" type="button">해제</button>'}</div>`;
+  tip.querySelector('button')?.addEventListener('click', () => { tip.remove(); act('unequip', key); });
+  tip.addEventListener('pointerdown', (e) => e.stopPropagation());
   document.body.appendChild(tip);
   const r = el.getBoundingClientRect(), tr = tip.getBoundingClientRect();
   const left = Math.max(8, Math.min(innerWidth - tr.width - 8, r.left + r.width / 2 - tr.width / 2));
@@ -1566,6 +1567,7 @@ root.addEventListener('click', (ev) => {
   if (suppressClick) return;
   const el = (ev.target as HTMLElement).closest('[data-a]') as HTMLElement | null;
   if (!el || (el as HTMLButtonElement).disabled) return;
+  if (el.dataset.a === 'item-info') { itemTip(el, el.dataset.v || ''); return; }
   if (el.dataset.a === 'syn-peek') {
     const on = !el.classList.contains('peek');
     root.querySelectorAll('.syn-b.peek').forEach((x) => x.classList.remove('peek'));
