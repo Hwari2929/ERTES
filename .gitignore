@@ -4,3 +4,4 @@ art/raw/
 dist/art/
 __pycache__/
 dist/crop/
+dist/eventdoc.cjs
