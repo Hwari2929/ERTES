@@ -2571,5 +2571,365 @@
     "model": "nai-diffusion-5-full",
     "time": "2026-10-11T23:53:42.506Z",
     "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, assembly robot, crane arms, no humans"
+  },
+  {
+    "id": "en_pt_unix",
+    "alt": "v4",
+    "seed": 3931301215,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:53:47.220Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, unix robot, cute boxy robot, cold eyes, no humans"
+  },
+  {
+    "id": "en_pt_anomaly",
+    "alt": "v1",
+    "seed": 3955487803,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:53:51.946Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, escaped anomaly, eerie girl, containment suit torn, glitching body, black eyes, scp style, full body, standing"
+  },
+  {
+    "id": "en_pt_anomaly",
+    "alt": "v2",
+    "seed": 3818106716,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:53:57.409Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, anomalous entity, faceless figure, shadow, distortion, full body"
+  },
+  {
+    "id": "en_pt_anomaly",
+    "alt": "v3",
+    "seed": 3733171125,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:54:03.891Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, creepy doll-like anomaly, porcelain skin, cracks, full body"
+  },
+  {
+    "id": "en_pt_anomaly",
+    "alt": "v4",
+    "seed": 3277645,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:54:09.521Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, glitch creature, static noise body, full body"
+  },
+  {
+    "id": "en_pt_auditor",
+    "alt": "v1",
+    "seed": 3854690882,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:54:15.396Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, corporate auditor, woman in black suit, glasses, clipboard, cold expression, earpiece, full body, standing"
+  },
+  {
+    "id": "en_pt_auditor",
+    "alt": "v2",
+    "seed": 843201738,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:54:20.259Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, 1boy, information auditor, man in grey suit, tablet, sunglasses, full body, standing"
+  },
+  {
+    "id": "en_pt_auditor",
+    "alt": "v3",
+    "seed": 1937135642,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:54:25.172Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, auditor android, corporate uniform, barcode, full body"
+  },
+  {
+    "id": "en_pt_auditor",
+    "alt": "v4",
+    "seed": 2079774786,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:54:30.685Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, auditor, long coat, briefcase, stamp, full body, standing"
+  },
+  {
+    "id": "en_pt_contract",
+    "alt": "v1",
+    "seed": 502757563,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:54:35.739Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, eldritch horror made of paper contracts, floating documents, many eyes, ink tentacles, no humans"
+  },
+  {
+    "id": "en_pt_contract",
+    "alt": "v2",
+    "seed": 4045175400,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:54:41.660Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, abstract monster, signature ink, crawling text, cosmic horror, no humans"
+  },
+  {
+    "id": "en_pt_contract",
+    "alt": "v3",
+    "seed": 911529081,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:54:47.796Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, paper golem, contract pages, red seals, no humans"
+  },
+  {
+    "id": "en_pt_contract",
+    "alt": "v4",
+    "seed": 719072359,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:54:53.179Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, unknown entity, black silhouette with contract clauses, no humans"
+  },
+  {
+    "id": "en_pt_unixline",
+    "alt": "v1",
+    "seed": 2075501524,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:54:57.964Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, factory production line machine, conveyor belt, robotic arms, assembling robots, industrial, no humans"
+  },
+  {
+    "id": "en_pt_unixline",
+    "alt": "v2",
+    "seed": 1242207368,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:55:03.490Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, automated factory core, giant machine, glowing furnace, no humans"
+  },
+  {
+    "id": "en_pt_unixline",
+    "alt": "v3",
+    "seed": 2326462925,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:55:09.198Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, robot factory tower, smokestacks, no humans"
+  },
+  {
+    "id": "en_pt_unixline",
+    "alt": "v4",
+    "seed": 4151293878,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:55:14.842Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, assembly line boss machine, many arms, no humans"
+  },
+  {
+    "id": "sm_crow",
+    "alt": "v1",
+    "seed": 3783716637,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:55:19.565Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, robotic crow, mechanical bird, black feathers, glowing eye, hacker crow, no humans"
+  },
+  {
+    "id": "sm_crow",
+    "alt": "v2",
+    "seed": 3256574636,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:55:25.505Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, cyber raven, sleek, drone wings, no humans"
+  },
+  {
+    "id": "sm_crow",
+    "alt": "v3",
+    "seed": 4020162270,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:55:31.671Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, cute crow with headset, no humans"
+  },
+  {
+    "id": "sm_crow",
+    "alt": "v4",
+    "seed": 1457235078,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:55:36.787Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, black crow, cybernetic, perched, no humans"
+  },
+  {
+    "id": "sm_guard",
+    "alt": "v1",
+    "seed": 3928730437,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:55:42.110Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, corporate bodyguard, man in black suit, sunglasses, earpiece, petra orange tie, full body, standing"
+  },
+  {
+    "id": "sm_guard",
+    "alt": "v2",
+    "seed": 2949258538,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:55:46.735Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, bodyguard android, black suit, full body"
+  },
+  {
+    "id": "sm_guard",
+    "alt": "v3",
+    "seed": 1714854338,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:55:54.271Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, female bodyguard, black suit, sunglasses, full body"
+  },
+  {
+    "id": "sm_guard",
+    "alt": "v4",
+    "seed": 3469868968,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:55:59.386Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, heavy bodyguard, bulletproof vest over suit, full body"
+  },
+  {
+    "id": "sm_behemoth",
+    "alt": "v1",
+    "seed": 3593974257,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:56:05.178Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, behemoth, giant beast, horns, thick hide, monster, no humans"
+  },
+  {
+    "id": "sm_behemoth",
+    "alt": "v2",
+    "seed": 2554399448,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:56:10.875Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, cute small behemoth, chubby horned beast, no humans"
+  },
+  {
+    "id": "sm_behemoth",
+    "alt": "v3",
+    "seed": 3726207542,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:56:16.415Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, bio-engineered beast, armored hide, no humans"
+  },
+  {
+    "id": "sm_behemoth",
+    "alt": "v4",
+    "seed": 2326608530,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:56:21.292Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, horned beast, bear-like, no humans"
+  },
+  {
+    "id": "sm_ricky",
+    "alt": "v1",
+    "seed": 3494731900,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:56:26.505Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, wolf, grey wolf, scout wolf, harness, no humans"
+  },
+  {
+    "id": "sm_ricky",
+    "alt": "v2",
+    "seed": 1848974771,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:56:31.935Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, husky dog, loyal, harness, no humans"
+  },
+  {
+    "id": "sm_ricky",
+    "alt": "v3",
+    "seed": 2553255602,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:56:38.690Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, alien wolf creature, fluffy, no humans"
+  },
+  {
+    "id": "sm_ricky",
+    "alt": "v4",
+    "seed": 1869989281,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:56:43.504Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, wolf pup, cute, bandana, no humans"
+  },
+  {
+    "id": "sm_max",
+    "alt": "v1",
+    "seed": 4184936682,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:56:48.757Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, big dog, mastiff, scarred, spiked collar, no humans"
+  },
+  {
+    "id": "sm_max",
+    "alt": "v2",
+    "seed": 1463879379,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:56:54.352Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, rottweiler, loyal, no humans"
+  },
+  {
+    "id": "sm_max",
+    "alt": "v3",
+    "seed": 1509391940,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:56:59.044Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, garden dog, golden retriever, no humans"
+  },
+  {
+    "id": "sm_max",
+    "alt": "v4",
+    "seed": 3664329641,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:57:04.534Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, beast hound, rugged, no humans"
+  },
+  {
+    "id": "sm_slime",
+    "alt": "v1",
+    "seed": 119180292,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:57:11.544Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, green slime monster, gooey, cute face, translucent, no humans"
+  },
+  {
+    "id": "sm_slime",
+    "alt": "v2",
+    "seed": 601368975,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:57:16.780Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, acid slime, bubbling green, no humans"
+  },
+  {
+    "id": "sm_slime",
+    "alt": "v3",
+    "seed": 421406717,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:57:22.173Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, slime blob with bandage, no humans"
+  },
+  {
+    "id": "sm_slime",
+    "alt": "v4",
+    "seed": 963726283,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:57:27.796Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, green ooze creature, small, no humans"
+  },
+  {
+    "id": "sm_turret",
+    "alt": "v1",
+    "seed": 81268303,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:57:33.190Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, sentry turret, engineer turret, small gun on tripod, blue lights, no humans"
+  },
+  {
+    "id": "sm_turret",
+    "alt": "v2",
+    "seed": 195834786,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:57:39.162Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, compact turret, deployable, no humans"
+  },
+  {
+    "id": "sm_turret",
+    "alt": "v3",
+    "seed": 4067224658,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:57:44.867Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, sci-fi sentry, rotating gun, no humans"
+  },
+  {
+    "id": "sm_turret",
+    "alt": "v4",
+    "seed": 2348199597,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-11T23:57:49.957Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, auto turret, armor plates, no humans"
   }
 ]
