@@ -158,7 +158,7 @@ function topbar() {
     <div class="stat-row">
       <span class="pill">페이즈 <b>${r.phase}</b> · 노드 ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>
       <span class="pill hp">체력 <b>${r.hp}</b>/${r.maxHp}</span>
-      <span class="pill cr">크레딧 <b>${r.credits}</b>${r.loan ? ` <small>(대출 ${r.loan})</small>` : ''}</span>
+      <span class="pill cr" title="에너지 크레딧">${CR}<b>${r.credits}</b>${r.loan ? ` <small>(대출 ${r.loan})</small>` : ''}</span>
       ${r.streak >= 2 ? `<span class="pill">🔥 ${r.streak}연승</span>` : ''}
       ${r.power || R.hasDivine(r) ? `<span class="pill faith" title="권능 포인트: 디바인 기물이 전투에서 모은 신성력 ÷ ${CFG.powerPerDiv}. 순례 노드에서 사용">권능 <b>${r.power}</b></span>` : ''}
       ${r.fame ? `<span class="pill fame">명성 <b>${r.fame}</b></span>` : ''}
@@ -417,9 +417,9 @@ function mapScreen(run: RunState) {
       <div class="screen-head"><h1>페이즈 ${p}</h1><p class="muted small">${scale}</p></div>
       <button class="field-mini" data-a="field-info" style="--c:${f.color}" title="전장 브리핑 다시 보기"><span class="fc-ic">${f.icon}</span><b>${esc(f.name)}</b><span class="muted small">${esc(f.region)}</span><span class="fm-more" aria-hidden="true">›</span></button>
       <div class="tl"><ol class="tl-track">${track}</ol></div>
-      <div class="tl-info"><b>${esc(NODE_NAME[pick])}</b><span class="muted small">${run.node ? '진행 중' : esc(nodeHint(pick))}</span></div>
+      <div class="tl-info"><b>${esc(NODE_NAME[pick])}</b><span class="muted small">${run.node ? '진행 중' : ic(esc(nodeHint(pick)))}</span></div>
       <div class="row-btns">${enter}
-        ${pet >= 2 ? `<button class="btn" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 (+25, 상환 30)</button>` : ''}
+        ${pet >= 2 ? `<button class="btn" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 ${CR}+25 · 상환 30</button>` : ''}
       </div>
     </section>
     <aside class="side">
@@ -429,7 +429,7 @@ function mapScreen(run: RunState) {
         `<li class="${q.done ? 'done' : ''}">${esc(R.questText(q))} <span class="muted">${Math.min(q.progress, q.target)}/${q.target} · 보상 ${R.questRewardText(q)}</span></li>`).join('')}</ul>` : ''}
       ${run.privilege ? `<h2>특권</h2><ul class="globals"><li><b>${esc(R.privilegeName(run.privilege))}</b> <span class="muted">${esc(R.privilegeDesc(run.privilege))}</span></li></ul>` : ''}
       ${run.boons.length || run.phaseBoons.length || run.mods.nodeIncome || run.mods.interestCap ? `<h2>사건 효과</h2><ul class="globals">${run.boons.map((id) => `<li><b>${esc(BOONS[id]?.name || id)}</b> <span class="muted">영구</span></li>`).join('')}${run.phaseBoons.map((id) => `<li><b>${esc(BOONS[id]?.name || id)}</b> <span class="muted">이번 페이즈</span></li>`).join('')}${run.mods.nodeIncome ? `<li><b>분할 정산</b> <span class="muted">노드마다 크레딧 +${run.mods.nodeIncome}, 이자 상한 ${run.mods.interestCap}</span></li>` : ''}</ul>` : ''}
-      ${run.globals.length ? `<h2>전역 증강</h2><ul class="globals">${run.globals.map((g) => `<li><b>${esc(GLOBAL_BY_ID[g].name)}</b> <span class="muted">${esc(GLOBAL_BY_ID[g].desc)}</span></li>`).join('')}</ul>` : ''}
+      ${run.globals.length ? `<h2>전역 증강</h2><ul class="globals">${run.globals.map((g) => `<li><b>${esc(GLOBAL_BY_ID[g].name)}</b> <span class="muted">${ic(esc(GLOBAL_BY_ID[g].desc))}</span></li>`).join('')}</ul>` : ''}
       <h2>기록</h2>
       <ul class="log">${run.log.slice(0, 8).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
     </aside>
@@ -442,6 +442,10 @@ function nodeHint(o: NodeType) {
     pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', invest: '호이슌 투자 상품 · 크레딧으로 문장 · 증강 · 다음 페이즈 수익', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
   } as Record<NodeType, string>)[o];
 }
+/** 자원 아이콘: 에너지 크레딧 · 공명도 */
+const CR = lineIcon('r.cr', 'li cr'), RES = lineIcon('r.res', 'li res');
+/** 문장 속 '크레딧' · '공명도' 앞에 아이콘 (이미 escape 된 HTML 에만) */
+const ic = (html: string) => html.replace(/(에너지 크레딧|크레딧)/g, `${CR}$1`).replace(/공명도/g, `${RES}공명도`);
 /** 공명 등급 표기: 별 아이콘 + 숫자 */
 const RANK_STAR = '<svg class="rstar" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 17.4l-6.1 3.5 1.5-6.8-5.2-4.6 6.9-.7z"/></svg>';
 const rankLabel = (rank: number) => `${RANK_STAR}${rank}`;
@@ -694,8 +698,8 @@ function summaryModal(run: RunState) {
   }).join('');
   return `<div class="modal-bg"><div class="modal result ${s.won ? 'win' : 'lose'}">
     <h1>${s.gameOver ? '용병단 전멸' : s.won ? '승리' : '패배'}</h1>
-    <ul class="lines">${s.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
-    ${xp ? `<h3>공명도 획득</h3><ul class="xp-gain">${xp}</ul>` : ''}
+    <ul class="lines">${s.lines.map((l) => `<li>${ic(esc(l))}</li>`).join('')}</ul>
+    ${xp ? `<h3>${RES}공명도 획득</h3><ul class="xp-gain">${xp}</ul>` : ''}
     ${app.lastBattle ? `<h3>전투 기록</h3>${battleTable(app.lastBattle)}` : ''}
     <button class="btn primary" data-a="after-battle">${s.gameOver ? '결과 보기' : '계속'}</button>
   </div></div>`;
@@ -709,7 +713,7 @@ function shopScreen(run: RunState) {
     <div class="shop">${stock.map((s, i) => {
       const it = itemInfo(s.item);
       return `<div class="shop-item t${it.tier} ${s.sold ? 'sold' : ''}">${itemIcon(s.item)}<div><b>${esc(it.name)}</b><div class="small muted">${esc(it.desc)}</div></div>
-        <button class="btn small" data-a="buy" data-v="${i}" ${s.sold || run.credits < s.price ? 'disabled' : ''}>${s.sold ? '판매됨' : `${s.price} 크레딧`}</button></div>`;
+        <button class="btn small" data-a="buy" data-v="${i}" ${s.sold || run.credits < s.price ? 'disabled' : ''}>${s.sold ? '판매됨' : `${CR}${s.price}`}</button></div>`;
     }).join('')}</div>
     ${inventoryPanel(run)}
     <div class="sticky-actions"><button class="btn" data-a="manage">편성 · 장비</button><button class="btn primary" data-a="leave-shop">떠나기</button></div>
@@ -722,7 +726,7 @@ function newsScreen(run: RunState) {
     <div class="screen-head"><h1>은하 속보</h1><p class="muted">보스전을 앞두고 언론이 몰려왔습니다. 쌓아 둔 명성 <b class="accent">${run.fame}</b>을 보상으로 바꾸세요.</p></div>
     <div class="shop">${offers.map((o, i) => {
       const d = R.NEWS_OFFERS[o.id];
-      return `<div class="shop-item ${o.sold ? 'sold' : ''}"><span class="item tA">✪</span><div><b>${esc(d.name)}</b><div class="small muted">${esc(d.desc)}</div></div>
+      return `<div class="shop-item ${o.sold ? 'sold' : ''}"><span class="item tA">✪</span><div><b>${esc(d.name)}</b><div class="small muted">${ic(esc(d.desc))}</div></div>
         <button class="btn small" data-a="buy-news" data-v="${i}" ${o.sold || run.fame < o.cost ? 'disabled' : ''}>${o.sold ? '교환함' : `명성 ${o.cost}`}</button></div>`;
     }).join('')}</div>
     <div class="sticky-actions"><button class="btn" data-a="manage">편성 · 장비</button><button class="btn primary" data-a="leave-shop">보스전으로</button></div>
@@ -732,11 +736,11 @@ function newsScreen(run: RunState) {
 function investScreen(run: RunState) {
   const offers = run.node?.invest || [];
   return `<main class="wrap">
-    <div class="screen-head"><h1>호이슌 투자 창구</h1><p class="muted">호이슌 홀딩스가 특별 상품을 내밀었습니다. 보유 크레딧 <b class="accent">${run.credits}</b>${run.fund ? ` · 다음 페이즈 정산 예정 <b>${run.fund}</b>` : ''}</p></div>
+    <div class="screen-head"><h1>호이슌 투자 창구</h1><p class="muted">호이슌 홀딩스가 특별 상품을 내밀었습니다. 보유 ${CR}<b class="accent">${run.credits}</b>${run.fund ? ` · 다음 페이즈 정산 예정 <b>${run.fund}</b>` : ''}</p></div>
     <div class="shop">${offers.map((o, i) => {
       const d = R.INVEST_OFFERS[o.id];
-      return `<div class="shop-item ${o.sold ? 'sold' : ''}"><span class="item tA">${synIcon('HOI')}</span><div><b>${esc(d.name)}</b><div class="small muted">${esc(d.desc(run, o))}</div></div>
-        <button class="btn small" data-a="buy-invest" data-v="${i}" ${o.sold || run.credits < o.cost ? 'disabled' : ''}>${o.sold ? '계약함' : `${o.cost} 크레딧`}</button></div>`;
+      return `<div class="shop-item ${o.sold ? 'sold' : ''}"><span class="item tA">${synIcon('HOI')}</span><div><b>${esc(d.name)}</b><div class="small muted">${ic(esc(d.desc(run, o)))}</div></div>
+        <button class="btn small" data-a="buy-invest" data-v="${i}" ${o.sold || run.credits < o.cost ? 'disabled' : ''}>${o.sold ? '계약함' : `${CR}${o.cost}`}</button></div>`;
     }).join('')}</div>
     <div class="sticky-actions"><button class="btn" data-a="manage">편성 · 장비</button><button class="btn primary" data-a="leave-shop">떠나기</button></div>
   </main>`;
@@ -780,7 +784,7 @@ function pendingModal(run: RunState): string {
     const ev = EVENT_BY_ID[p.id];
     body = `<div class="event ${ev.rare ? 'rare' : ''}"><h1>${ev.rare ? '✦ ' : ''}${esc(ev.title)}</h1>${ev.rare ? '<p class="accent small">희귀 사건</p>' : ''}
       <p>${esc(ev.text)}</p>
-      <div class="cards">${ev.choices.map((c, i) => { const why = c.block?.(run); return `<button class="card" data-a="event-choice" data-v="${i}" ${why ? 'disabled' : ''}><b>${esc(c.label)}</b><span>${esc(c.desc)}</span>${why ? `<span class="down small">${esc(why)}</span>` : ''}</button>`; }).join('')}</div></div>`;
+      <div class="cards">${ev.choices.map((c, i) => { const why = c.block?.(run); return `<button class="card" data-a="event-choice" data-v="${i}" ${why ? 'disabled' : ''}><b>${esc(c.label)}</b><span>${ic(esc(c.desc))}</span>${why ? `<span class="down small">${esc(why)}</span>` : ''}</button>`; }).join('')}</div></div>`;
   } else if (p.t === 'victory') {
     body = `<h1>의뢰 성공</h1><p>페이즈 ${run.phase} 보스를 격파했습니다. ${esc(fieldOf(run.field).name)} 의뢰가 완료되었습니다${run.diff ? ` (위험 등급 ${run.diff})` : ''}.</p>
       <p class="muted small">귀환하면 런이 끝나고 기록이 남습니다. 계속하면 무한 모드로 이어지며, 적은 계속 강해집니다. 어느 쪽이든 다음 위험 등급이 해금됩니다.</p>
@@ -846,7 +850,7 @@ function pendingModal(run: RunState): string {
       <div class="rc-foot"><span class="muted small">${pick ? `${esc(UNIT_BY_ID[pick].name)} 선택됨` : CAN_HOVER ? '카드에 마우스를 올리면 설명, 누르면 선택' : '탭하면 선택 · 하단을 끌어올리면 설명'}</span>
         <button class="btn primary" data-a="pick-recruit" data-v="${pick || ''}" ${pick ? '' : 'disabled'}>영입</button></div>`;
   } else if (p.t === 'supply') {
-    body = `<h1>보급</h1><div class="cards">${p.options.map((o) => `<button class="card" data-a="pick-supply" data-v="${o}"><b>${esc(R.SUPPLY_TEXT[o])}</b></button>`).join('')}</div>`;
+    body = `<h1>보급</h1><div class="cards">${p.options.map((o) => `<button class="card" data-a="pick-supply" data-v="${o}"><b>${ic(esc(R.SUPPLY_TEXT[o]))}</b></button>`).join('')}</div>`;
   } else if (p.t === 'pilgrim') {
     const divs = run.units.filter((x) => UNIT_BY_ID[x.defId].ttype === 'divine');
     const C = R.PILGRIM_COST;
@@ -855,8 +859,8 @@ function pendingModal(run: RunState): string {
       <div class="cards">
         ${btn('cap', '신성력 수집 상한 +50', C.cap, `현재 전투당 ${CFG.divCap + run.divCap}`)}
         ${btn('bless', '이번 페이즈 축복', C.bless, '축복 3개 중 1개')}
-        ${btn('credits', '헌금 환전', C.credits, '크레딧 +3')}
-        ${btn('xp', '수행', C.xp, '공명도 4 분배')}
+        ${btn('credits', '헌금 환전', C.credits, `${CR}+3`)}
+        ${btn('xp', '수행', C.xp, `${RES}4 분배`)}
       </div>
       <h3>신앙 변경 <span class="muted small">권능 ${C.faith}</span></h3>
       ${divs.length ? divs.map((x) => `<div class="pil-row"><b>${esc(UNIT_BY_ID[x.defId].name)}</b> <select data-faith="${x.uid}" ${run.power < C.faith ? 'disabled' : ''}>${FAITHS.map((f) => `<option value="${f}" ${f === x.faith ? 'selected' : ''}>${FAITH_NAME[f]}</option>`).join('')}</select>
@@ -864,9 +868,9 @@ function pendingModal(run: RunState): string {
       <div class="row-btns"><button class="btn primary" data-a="pilgrim-done">순례 마치기</button></div>`;
   } else if (p.t === 'blessing') {
     body = `<h1>순례 — 축복 선택</h1><p class="muted">축복은 이번 페이즈가 끝날 때까지 유지됩니다.</p>
-      <div class="cards">${p.options.map((id) => { const d = BLESSING_BY_ID[id]; return `<button class="card" data-a="pick-blessing" data-v="${id}"><b>${esc(d.name)}</b><span>${esc(d.desc)}</span></button>`; }).join('')}</div>`;
+      <div class="cards">${p.options.map((id) => { const d = BLESSING_BY_ID[id]; return `<button class="card" data-a="pick-blessing" data-v="${id}"><b>${esc(d.name)}</b><span>${ic(esc(d.desc))}</span></button>`; }).join('')}</div>`;
   } else if (p.t === 'notice') {
-    body = `<h1>${esc(p.title)}</h1><p>${esc(p.body)}</p><button class="btn primary" data-a="notice-ok">확인</button>`;
+    body = `<h1>${esc(p.title)}</h1><p>${ic(esc(p.body))}</p><button class="btn primary" data-a="notice-ok">확인</button>`;
   }
   return `<div class="modal-bg"><div class="modal ${mcls}">${body}</div></div>`;
 }
@@ -1092,8 +1096,8 @@ function releaseBlock(run: RunState, u: UnitState) {
   const v = R.releaseValue(run, u);
   const name = UNIT_BY_ID[u.defId].name;
   const lines = [
-    `에너지 크레딧 <b>+${v.credits}</b> (3 + 공명 등급 ${u.rank} × 2)`,
-    `공명도 <b>${v.xp}</b> — 이 기물에 쌓인 공명도 ${v.invested}의 60%를 남은 파티에 분배 (출전 기물 우선)`,
+    `${CR}<b>+${v.credits}</b> (3 + 공명 등급 ${u.rank} × 2)`,
+    `${RES}<b>${v.xp}</b> — 이 기물에 쌓인 공명도 ${v.invested}의 60%를 남은 파티에 분배 (출전 기물 우선)`,
     v.items.length ? `장비 · 개조부품 ${v.items.length}개는 보관함으로 (${v.items.map((x) => esc(itemInfo(x).name)).join(', ')})` : '장착한 장비 없음',
     ...(v.lost.length ? [`<span class="down">고유 장비 ${v.lost.map((x) => esc(itemInfo(x).name)).join(', ')}는 함께 사라짐</span>`] : []),
   ];
