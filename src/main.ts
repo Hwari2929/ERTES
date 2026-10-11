@@ -332,6 +332,7 @@ function pickCard(d: UnitDef, clone: boolean) {
   return `<div class="pcard ${on ? 'sel' : ''} ${app.cardOpen === d.id && !clone ? 'open' : ''}" data-a="card-tap" data-v="${d.id}" ${clone ? 'aria-hidden="true"' : 'tabindex="0" role="button"'} aria-label="${esc(d.name)}">
     <div class="pc-art">${standImg(d.id, 'stand') || sprite(d, 'spr big')}</div>
     ${on ? `<span class="pc-check">✓ ${app.starters.indexOf(d.id) + 1}</span>` : ''}
+    <div class="pc-syn" aria-hidden="true">${[...d.factions, ...d.traits].map((id) => { const sd = SYN_BY_ID[id as SynergyId]; return `<span class="syn-dia" style="--c:${sd.color}" title="${esc(sd.name)}"><i>${sd.icon}</i></span>`; }).join('')}</div>
     <div class="pc-panel">
       <div class="pc-top"><b class="pc-name">${esc(d.name)}</b>${roleTag(d)}
         <div class="chips">${[...d.factions, ...d.traits].map(chip).join('')}</div>

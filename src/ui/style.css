@@ -574,6 +574,17 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .pc-top { touch-action: pan-x; }
 .pc-more { justify-self: center; margin-top: 2px; background: none; border: 1px solid var(--line); border-radius: 99px; color: var(--fg); font-size: .78rem; padding: 2px 14px; cursor: pointer; }
 .pcard.open .pc-more { border-color: var(--dim); color: var(--dim); }
+/* 카드 앞면 시너지: 좌상단 세로 마름모 아이콘 (세력 → 특성). 펼치면 사라지고 글자 칩으로 대체 */
+.pc-syn { position: absolute; top: 16px; left: 16px; z-index: 1; display: grid; gap: 14px; justify-items: center; transition: opacity .4s cubic-bezier(.45, 0, .55, 1); }
+.syn-dia { width: 30px; height: 30px; display: grid; place-items: center; transform: rotate(45deg); border: 1.5px solid var(--c); border-radius: 4px; background: rgb(10 12 18 / .6); box-shadow: 0 0 8px rgb(0 0 0 / .5); }
+.syn-dia i { transform: rotate(-45deg); font-style: normal; color: var(--c); font-size: .95rem; line-height: 1; }
+.pc-top .chips { max-height: 0; opacity: 0; overflow: hidden; transition: max-height .4s cubic-bezier(.45, 0, .55, 1), opacity .4s cubic-bezier(.45, 0, .55, 1); }
+.pcard.open .pc-syn { opacity: 0; }
+.pcard.open .pc-top .chips { max-height: 120px; opacity: 1; }
+@media (hover: hover) {
+  .pcard:hover .pc-syn { opacity: 0; }
+  .pcard:hover .pc-top .chips { max-height: 120px; opacity: 1; }
+}
 .pc-check { position: absolute; top: 10px; right: 10px; z-index: 2; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: .85rem; border-radius: 99px; padding: 1px 10px; }
 .nr-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
 .picked { display: flex; gap: 4px; margin-right: auto; }
