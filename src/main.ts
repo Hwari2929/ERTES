@@ -226,9 +226,9 @@ function typeIcons(d: UnitDef) {
   return `<span class="ticons"><i class="ct-${d.ctype}" title="전투 유형: ${CTYPE_NAME[d.ctype]}">${CTYPE_ICON[d.ctype]}</i><i class="tt-${d.ttype}" title="전술 유형: ${TTYPE_NAME[d.ttype]}">${TTYPE_ICON[d.ttype]}</i></span>`;
 }
 /** 이름 + 유형 아이콘, 그 아래 시너지 · 공명 등급 */
-function nameBlock(d: UnitDef, syns: string[], rank: number, chipFn: (id: string) => string = chip, extra = '') {
+function nameBlock(d: UnitDef, syns: string[], rank: number | undefined, chipFn: (id: string) => string = chip, extra = '') {
   return `<div class="nb"><div class="nb-name"><b>${esc(d.name)}</b>${typeIcons(d)}</div>
-    <div class="chips nb-syn">${rankPips(rank)}${syns.map(chipFn).join('')}</div>${extra}</div>`;
+    <div class="chips nb-syn">${rank ? rankPips(rank) : ''}${syns.map(chipFn).join('')}</div>${extra}</div>`;
 }
 const CTYPE_DESC: Record<string, [string, string]> = {
   MARK: ['사격으로 싸운다. 사격 위력 · 공격 속도 · 재장전 · 명중 · 치명타가 중요하다.', '주력: 사격 위력, 사격 속도, 재장전 속도, 명중, 치명 확률 · 피해. 탄창을 다 쓰면 재장전하는 동안 기본 공격을 못 한다 (스킬은 가능).'],
@@ -307,9 +307,9 @@ const traitText = (d: UnitDef) => (app.detail ? d.trait.desc : BRIEF[d.id]?.trai
 function detailToggle() {
   return `<button class="btn tiny dtoggle ${app.detail ? 'on' : ''}" data-a="toggle-detail" aria-pressed="${app.detail}" title="계수 · 세부 규칙 표시 (단축키 D)">상세 보기 ${app.detail ? 'ON' : 'OFF'}</button>`;
 }
-function unitCard(d: UnitDef, opts: { selected?: boolean; action?: string; rank?: number } = {}) {
-  return `<button class="ucard ${opts.selected ? 'sel' : ''}" data-a="${opts.action || 'pick-starter'}" data-v="${d.id}">
-    ${hero(d.id, 'hero sm')}<div class="ucard-head">${sprite(d, 'spr big')}${nameBlock(d, [...d.factions, ...d.traits], opts.rank || 1, opts.action === 'pick-recruit' ? ownedChip(d.id) : chip)}</div>
+function unitCard(d: UnitDef, opts: { selected?: boolean; action?: string; rank?: number; clone?: boolean } = {}) {
+  return `<button class="ucard ${opts.selected ? 'sel' : ''}" ${opts.clone ? 'aria-hidden="true" tabindex="-1"' : ''} data-a="${opts.action || 'pick-starter'}" data-v="${d.id}">
+    ${hero(d.id, 'hero sm')}<div class="ucard-head">${sprite(d, 'spr big')}${nameBlock(d, [...d.factions, ...d.traits], opts.rank, opts.action === 'pick-recruit' ? ownedChip(d.id) : chip)}</div>
     ${weaponAbil(d.weapon)}
     ${traitGroup(d, null, app.run)}
     ${abil('skill', d.skill.name, app.detail ? `${d.skill.cd}초` : '', skillText(d))}
@@ -321,8 +321,13 @@ function newRunScreen() {
   return `<main class="wrap">
     <div class="screen-head"><h1>계약 기물 선택</h1><p class="muted">이번 출격에 응한 기물 ${app.pool.length}명 중 ${CFG.startUnits}명을 고르세요. 나머지는 2페이즈부터 매 페이즈 첫 노드(영입)에서 만날 수 있습니다.</p>${detailToggle()}</div>
     ${diffPicker()}
-    <div class="ucard-grid">${app.pool.map((id) => unitCard(UNIT_BY_ID[id], { selected: app.starters.includes(id) })).join('')}</div>
+    <div class="carousel">
+      <button class="car-btn prev" data-a="car-prev" aria-label="이전 기물">‹</button>
+      <div class="car-track" tabindex="0" aria-label="후보 기물 (좌우로 넘겨 보기)">${[0, 1, 2].map((k) => app.pool.map((id) => unitCard(UNIT_BY_ID[id], { selected: app.starters.includes(id), clone: k !== 1 })).join('')).join('')}</div>
+      <button class="car-btn next" data-a="car-next" aria-label="다음 기물">›</button>
+    </div>
     <div class="sticky-actions">
+      <div class="picked">${app.starters.map((id) => `<button class="picked-u" data-a="pick-starter" data-v="${id}" title="${esc(UNIT_BY_ID[id].name)} 빼기">${sprite(UNIT_BY_ID[id], 'spr')}</button>`).join('')}${'<span class="picked-u empty"></span>'.repeat(CFG.startUnits - n)}</div>
       <button class="btn ghost" data-a="to-title">뒤로</button>
       <button class="btn ghost" data-a="random-starters">무작위</button>
       <button class="btn primary" data-a="start-run" ${n === CFG.startUnits ? '' : 'disabled'}>출격 (${n}/${CFG.startUnits})</button>
@@ -843,6 +848,7 @@ function render() {
   }
   const md = root.querySelector('.modal');
   if (md && modalTop) md.scrollTop = modalTop;
+  if (app.screen === 'newrun') setupCarousel();
   if (app.screen === 'battle' && app.needMount) {
     app.needMount = false;
     mountBattleView(document.getElementById('bboard')!);
@@ -853,6 +859,48 @@ function render() {
     if (!f) return;
     f.text().then((t) => { (document.getElementById('import-code') as HTMLTextAreaElement).value = t; });
   };
+}
+
+// ───────────────────────── 시작 기물 캐러셀 (무한 순환)
+let carX: number | null = null;
+function carSet(track: HTMLElement) {
+  const cards = track.querySelectorAll<HTMLElement>('.ucard');
+  const n = cards.length / 3;
+  return n ? cards[n].offsetLeft - cards[0].offsetLeft : 0;
+}
+/** 가운데 묶음 밖으로 나가면 같은 위치의 가운데 묶음으로 옮긴다 */
+function carWrap(track: HTMLElement) {
+  const w = carSet(track);
+  if (!w) return;
+  if (track.scrollLeft < w * 0.5) track.scrollLeft += w;
+  else if (track.scrollLeft > w * 1.5) track.scrollLeft -= w;
+  carX = track.scrollLeft;
+}
+function setupCarousel() {
+  const track = root.querySelector<HTMLElement>('.car-track');
+  if (!track) return;
+  track.style.scrollSnapType = 'none';
+  track.scrollLeft = carX ?? carSet(track);
+  track.style.scrollSnapType = '';
+  let t: ReturnType<typeof setTimeout> | 0 = 0;
+  track.addEventListener('scroll', () => { carX = track.scrollLeft; if (t) clearTimeout(t); t = setTimeout(() => carWrap(track), 120); }, { passive: true });
+  let lock = 0;
+  track.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // 가로 스크롤은 그대로
+    e.preventDefault();
+    const now = Date.now();
+    if (now - lock < 250) return;
+    lock = now;
+    carStep(e.deltaY > 0 ? 1 : -1);
+  }, { passive: false });
+}
+function carStep(dir: number) {
+  const track = root.querySelector<HTMLElement>('.car-track');
+  const card = track?.querySelector<HTMLElement>('.ucard');
+  if (!track || !card) return;
+  carWrap(track);
+  const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+  track.scrollBy({ left: dir * (card.offsetWidth + gap), behavior: 'smooth' });
 }
 
 function mountBattleView(board: HTMLElement) {
@@ -995,9 +1043,10 @@ function act(a: string, v: string) {
   if (app.screen === 'battle' && !['speed', 'skip', 'after-battle', 'meter-tab', 'bsel'].includes(a)) return;
   switch (a) {
     case 'newrun':
-      app.starters = []; app.screen = 'newrun'; app.menu = null;
+      app.starters = []; app.screen = 'newrun'; app.menu = null; carX = null;
       app.pool = new Rng((Date.now() ^ (Math.random() * 1e9)) | 0).sample(UNITS.filter((u) => !u.noStarter).map((u) => u.id), 8);
       break;
+    case 'car-prev': case 'car-next': carStep(a === 'car-next' ? 1 : -1); return;
     case 'toggle-detail': app.detail = !app.detail; savePref('detail', app.detail); break;
     case 'toggle-sub': if (app.subOpen.has(v)) app.subOpen.delete(v); else app.subOpen.add(v); break;
     case 'to-title': if (app.view) { app.view.destroy(); app.view = null; } app.screen = 'title'; app.menu = null; app.run = null; break;
@@ -1284,6 +1333,7 @@ document.addEventListener('keydown', (e) => {
   }
   if (sv) return;
   if (k === 'd') { act('toggle-detail', ''); return; }
+  if (app.screen === 'newrun' && (k === 'ArrowLeft' || k === 'ArrowRight')) { carStep(k === 'ArrowRight' ? 1 : -1); e.preventDefault(); return; }
   const modal = document.querySelector('.modal-bg .modal');
   const digit = /^[1-9]$/.test(k) ? +k : 0;
   if (modal && app.screen !== 'battle') {
