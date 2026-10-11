@@ -23,6 +23,7 @@ import { BattleView, fmt } from './ui/battleview';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
 import { hasPortrait, iconURL, standImg } from './ui/portraits';
+import { synIcon } from './ui/synicons';
 
 // 편의 설정 (이 브라우저에만 저장): 전투 속도, 진형 속도 등
 const PREF_KEY = 'errantes.prefs.v1';
@@ -81,7 +82,7 @@ const NODE_ICON: Record<NodeType, string> = { battle: '⚔', adversity: '☠', s
 
 function chip(id: string) {
   const s = SYN_BY_ID[id as keyof typeof SYN_BY_ID];
-  return `<span class="chip" style="--c:${s.color}">${s.icon} ${esc(s.name)}</span>`;
+  return `<span class="chip" style="--c:${s.color}">${synIcon(id) || s.icon} ${esc(s.name)}</span>`;
 }
 function sprite(defOrUnit: Parameters<typeof iconURL>[0], cls = 'spr') {
   return `<img class="${cls}${hasPortrait(defOrUnit) ? ' pt' : ''}" alt="" src="${iconURL(defOrUnit)}">`;
@@ -179,7 +180,7 @@ function synergyPanel(run: RunState) {
     const steps = s.tiers.map((need, i) => `<span class="${c >= need ? 'on' : ''}${i === t - 1 ? ' cur' : ''}">${need}</span>`).join('');
     const bonus = c - (raw[s.id] || 0);
     return `<details class="syn ${t ? 'active' : ''} ${c ? '' : 'benchonly'}" style="--c:${s.color}">
-      <summary><span class="syn-ic">${s.icon}</span><span class="syn-count">${c}</span><span class="syn-name">${esc(s.name)}${bonus > 0 ? ` <small class="accent">+${bonus}</small>` : ''}
+      <summary><span class="syn-ic">${synIcon(s.id) || s.icon}</span><span class="syn-count">${c}</span><span class="syn-name">${esc(s.name)}${bonus > 0 ? ` <small class="accent">+${bonus}</small>` : ''}
         <small class="syn-next">${next ? `다음 단계까지 ${next - c}명` : '최고 단계'}${m.bench.length ? ` · 대기 ${m.bench.length}` : ''}</small></span><span class="syn-steps">${steps}</span></summary>
       <div class="syn-members">${m.dep.map((n) => `<span class="on">${esc(n)}</span>`).join('')}${m.bench.map((n) => `<span class="bench">${esc(n)} (대기)</span>`).join('')}</div>
       <p>${esc(s.desc)}</p>
@@ -332,7 +333,7 @@ function pickCard(d: UnitDef, clone: boolean) {
   return `<div class="pcard ${on ? 'sel' : ''} ${app.cardOpen === d.id && !clone ? 'open' : ''}" data-a="card-tap" data-v="${d.id}" ${clone ? 'aria-hidden="true"' : 'tabindex="0" role="button"'} aria-label="${esc(d.name)}">
     <div class="pc-art">${standImg(d.id, 'stand') || sprite(d, 'spr big')}</div>
     ${on ? `<span class="pc-check">✓ ${app.starters.indexOf(d.id) + 1}</span>` : ''}
-    <div class="pc-syn" aria-hidden="true">${[...d.factions, ...d.traits].map((id) => { const sd = SYN_BY_ID[id as SynergyId]; return `<span class="syn-dia" style="--c:${sd.color}" title="${esc(sd.name)}"><i>${sd.icon}</i></span>`; }).join('')}</div>
+    <div class="pc-syn">${[...d.factions, ...d.traits].map((id) => { const sd = SYN_BY_ID[id as SynergyId]; return `<span class="syn-b" style="--c:${sd.color}" data-a="syn-peek" aria-label="${esc(sd.name)}"><span class="syn-dia">${synIcon(id)}</span><span class="syn-label">${esc(sd.name)}</span></span>`; }).join('')}</div>
     <div class="pc-panel">
       <div class="pc-top"><b class="pc-name">${esc(d.name)}</b>${roleTag(d)}
         <div class="chips">${[...d.factions, ...d.traits].map(chip).join('')}</div>
@@ -1117,6 +1118,7 @@ function act(a: string, v: string) {
       app.pool = new Rng((Date.now() ^ (Math.random() * 1e9)) | 0).sample(UNITS.filter((u) => !u.noStarter).map((u) => u.id), 8);
       break;
     case 'car-prev': case 'car-next': carStep(a === 'car-next' ? 1 : -1); return;
+    case 'syn-peek': return; // 시너지 아이콘 탭: 이름만 보여준다 (클릭 핸들러에서 처리)
     case 'card-tap': return act('pick-starter', v); // 카드를 누르면 선택 · 해제
     case 'card-open': app.cardOpen = app.cardOpen === v ? null : v; syncCardOpen(); return; // 터치: 설명 펼치기 · 접기
     case 'toggle-detail': app.detail = !app.detail; savePref('detail', app.detail); break;
@@ -1452,6 +1454,12 @@ root.addEventListener('click', (ev) => {
   if (suppressClick) return;
   const el = (ev.target as HTMLElement).closest('[data-a]') as HTMLElement | null;
   if (!el || (el as HTMLButtonElement).disabled) return;
+  if (el.dataset.a === 'syn-peek') {
+    const on = !el.classList.contains('peek');
+    root.querySelectorAll('.syn-b.peek').forEach((x) => x.classList.remove('peek'));
+    if (on) { el.classList.add('peek'); setTimeout(() => el.classList.remove('peek'), 1800); }
+    return;
+  }
   act(el.dataset.a!, el.dataset.v || '');
 });
 
