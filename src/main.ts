@@ -48,6 +48,7 @@ const app = {
   detail: !!loadPrefs().detail, // 상세 보기: 계수 · 메커니즘 표시
   recruitPick: null as string | null, // 영입 창에서 고른 기물 (확정 전)
   nodePick: null as string | null, // 지도: 이번 칸에서 고른 노드 (진입 전)
+  statPop: false, // 상세 보기: 전투 스탯 펼침 (패널 왼쪽)
   cardOpen: null as string | null, // 터치 화면: 설명을 펼친 시작 기물 카드
   subOpen: new Set<string>(), // 특성 하위 항목(전투 · 전술 유형, 신앙) 펼침 상태
   menu: null as null | 'menu' | 'export' | 'import',
@@ -619,11 +620,14 @@ function detailPanel(run: RunState) {
     <div class="chips nb-syn">${memberships(u, run).map(chip).join('')}</div>
     ${memberships(u, run).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}
     <div class="d-eqbox"><span class="d-eq-l">장비</span><div class="d-eq" aria-label="장비 · 개조부품">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : `<span data-drop="unit:${u.uid}">${itemIcon(null)}</span>`)).join('')}${u.mod ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : `<span data-drop="unit:${u.uid}" title="개조부품 칸 · 문장을 끌어다 장착"><span class="item empty tM"></span></span>`}</div></div>
-    <h3>메이저 스탯</h3>
+    <div class="mj-wrap">
+    <div class="mj-head"><h3>메이저 스탯</h3><button class="mag-btn${app.statPop ? ' on' : ''}" data-a="stat-pop" title="상세 능력치" aria-label="상세 능력치 ${app.statPop ? '닫기' : '보기'}" aria-pressed="${app.statPop}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg></button></div>
+    ${app.statPop ? `<div class="stat-pop"><div class="sp-head"><b>상세 능력치</b>${u.pos ? '' : '<span class="muted small">시너지 미적용</span>'}<button class="btn tiny" data-a="stat-pop">닫기</button></div>${statLines(c, b)}</div>` : ''}
     <div class="majors">${MAJORS.map((m) => {
       const base = d.base[m], add = tm[m] - base;
       return `<div class="major"><span>${majorIcon(m)}${MAJOR_NAME[m]}</span><span class="mbar"><i style="width:${Math.min(100, tm[m] * 3)}%"></i></span><b>${tm[m]}</b>${add ? `<small class="${add > 0 ? 'up' : 'down'}">${add > 0 ? '+' : ''}${add}</small>` : ''}</div>`;
     }).join('')}</div>
+    </div>
     <h3>능력</h3>
     <div class="abils">
       ${weaponAbil(c.weapon || d.weapon, c.atk.elem)}
@@ -633,8 +637,6 @@ function detailPanel(run: RunState) {
     </div>
     <h3>증강 <span class="muted">${u.augments.length}</span></h3>
     ${u.augments.length ? `<ul class="augs">${u.augments.map((a) => { const ad = AUG_BY_ID[a.id]; return `<li class="aug-li">${augIcon(a.id)}<span><b>${esc(ad?.name || a.id)}</b><br><span class="muted">${esc(augDesc(a.id, a.param))}</span></span></li>`; }).join('')}</ul>` : '<p class="muted small">공명 등급이 오르면 증강을 고릅니다.</p>'}
-    <h3>전투 스탯 ${u.pos ? '' : '<span class="muted">(시너지 미적용)</span>'}</h3>
-    ${statLines(c, b)}
     <p class="lore">${esc(d.lore)}</p>
     ${releaseBlock(run, u)}
   </div>`;
@@ -1244,6 +1246,7 @@ function act(a: string, v: string) {
       break;
     }
     case 'tl-pick': app.nodePick = v; break;
+    case 'stat-pop': app.statPop = !app.statPop; break;
     case 'field-info': if (run) run.pending.unshift({ t: 'field' }); break;
     case 'enter': {
       if (!run || run.pending.length) return;

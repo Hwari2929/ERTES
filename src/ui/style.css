@@ -777,3 +777,18 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .li.cr { color: var(--accent); }
 .li.res { color: #9ad0ff; }
 .pill.cr { display: inline-flex; align-items: center; gap: 4px; }
+
+/* 상세 보기: 메이저 스탯 제목 옆 돋보기 → 패널 왼쪽에 상세 능력치 */
+.detail { position: relative; }
+.mj-wrap { position: relative; }
+.mj-head { display: flex; align-items: center; gap: 8px; margin-block: 14px 6px; }
+.mj-head h3 { margin: 0; }
+.mag-btn { width: 24px; height: 24px; padding: 0; border-radius: 50%; display: grid; place-items: center; background: var(--panel-2); border: 1px solid var(--line); color: var(--dim); cursor: pointer; }
+.mag-btn svg { width: 14px; height: 14px; }
+.mag-btn:hover, .mag-btn.on { color: var(--accent); border-color: var(--accent); }
+.stat-pop { position: absolute; z-index: 20; top: 0; right: calc(100% + 24px); width: 280px; max-height: 70vh; overflow: auto; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 28px rgb(0 0 0 / .55); }
+.sp-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.sp-head .btn { margin-left: auto; }
+@media (max-width: 1100px) {
+  .stat-pop { position: static; width: auto; max-height: none; margin-bottom: 8px; box-shadow: none; }
+}
