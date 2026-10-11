@@ -245,16 +245,16 @@ export const ROSTER_B: UnitDef[] = [
     ],
   },
   {
-    id: 'argon', name: '아르곤', title: '동맹 에이스 전투기 조종사', factions: ['HEL'], traits: ['NAV'], keywords: ['bio'],
+    id: 'argon', name: '아르곤', title: '이타카 최고참 도선사 · 뱃사공', factions: ['HEL'], traits: ['NAV'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 0.85 }, range: 4, base: B(6, 9, 8, 4, 5),
-    sprite: 'soldier', palette: tint(PAL.HEL, '#c0c8d0', '#2fa39a', '#ff6040'), lore: '격추 마크를 기체에 다 그리지 못해 날개 아래까지 그렸다.',
+    sprite: 'soldier', palette: tint(PAL.HEL, '#c0c8d0', '#2fa39a', '#ff6040'), lore: '신좌의 축복 없이 항해한다. 그래서 배는 느리고, 느리기에 한 번도 잃어버린 적이 없다.',
     ace: {
-      name: '에이스의 귀환', desc: (k) => `자신의 피해 +${Math.round(25 * k)}%, 치명타 확률 +${Math.round(15 * k)}%p.`,
+      name: '최고참의 항로', desc: (k) => `자신의 피해 +${Math.round(25 * k)}%, 치명타 확률 +${Math.round(15 * k)}%p.`,
       effect: (k) => ({ mods: [inc('all', 0.25 * k)], stats: { crit: 0.15 * k } }),
     },
     skill: {
-      name: '기총 소사', cd: 7, params: { shots: 6, mult: 0.5, shock: 0, crit: 0 },
-      desc: (p) => `무작위 적에게 사격 위력 ${pct(p.mult)} 물리 사격 ${p.shots}회${p.crit ? ` (치명타 확률 +${pct(p.crit)}p)` : ''}${p.shock ? `, 발당 ${pct(p.shock)} 확률로 1.5초 감전` : ''}.`,
+      name: '망령권 작살', cd: 7, params: { shots: 6, mult: 0.5, shock: 0, crit: 0 },
+      desc: (p) => `등불로 항로를 밝히고 무작위 적에게 선상 작살총으로 사격 위력 ${pct(p.mult)} 물리 사격 ${p.shots}회${p.crit ? ` (치명타 확률 +${pct(p.crit)}p)` : ''}${p.shock ? `, 발당 ${pct(p.shock)} 확률로 1.5초 감전` : ''}.`,
       cast(b, u) {
         if (!b.enemiesOf(u).length) return false;
         const p = u.sk;
@@ -270,11 +270,11 @@ export const ROSTER_B: UnitDef[] = [
       },
     },
     augs: [
-      uaug('argon', 'ammo', '탄띠 추가', '기총 소사 +3발.', setSk((s) => { s.shots += 3; })),
-      uaug('argon', 'caliber', '대구경 기관포', '기총 소사 발당 피해 +60%p.', setSk((s) => { s.mult += 0.6; })),
-      uaug('argon', 'tracer', '전기 예광탄', '발당 40% 확률로 1.5초 감전.', setSk((s) => { s.shock += 0.4; })),
-      uaug('argon', 'roll', '배럴 롤', '회피 +15%p, 기동력 +9.', { stats: { eva: 0.15 }, majors: { agi: 9 } }),
-      uaug('argon', 'gunsight', '조준 사격', '기총 소사 치명타 확률 +30%p, 치명타 피해 +60%p.', { stats: { critDmg: 0.6 }, setup: (u) => { u.sk.crit += 0.3; } }),
+      uaug('argon', 'ammo', '여분의 작살', '망령권 작살 +3발.', setSk((s) => { s.shots += 3; })),
+      uaug('argon', 'caliber', '고래잡이 작살', '망령권 작살 발당 피해 +60%p.', setSk((s) => { s.mult += 0.6; })),
+      uaug('argon', 'tracer', '폭풍등', '발당 40% 확률로 1.5초 감전.', setSk((s) => { s.shock += 0.4; })),
+      uaug('argon', 'roll', '노련한 키잡이', '회피 +15%p, 기동력 +9.', { stats: { eva: 0.15 }, majors: { agi: 9 } }),
+      uaug('argon', 'gunsight', '물길 읽기', '망령권 작살 치명타 확률 +30%p, 치명타 피해 +60%p.', { stats: { critDmg: 0.6 }, setup: (u) => { u.sk.crit += 0.3; } }),
     ],
   },
 ];
