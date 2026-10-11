@@ -1,7 +1,7 @@
 """스탠딩 · 초상화 에셋 파이프라인.
 
   python3 scripts/art.py pick     art/picks.json 의 선택본(art/raw) → art/picked/<id>.webp (보관용 원본, 깃에 넣음)
-  python3 scripts/art.py faces    머리 위치를 못 정한 기물만 자동 추정 → art/faces.json [머리 중심 x, y, 머리 높이] (손으로 고쳐도 됨)
+  python3 scripts/art.py faces    얼굴 위치를 못 정한 기물만 자동 추정 → art/faces.json [얼굴 중심 x, 눈썹 y, 턱 y] (손으로 고치는 게 기본)
   python3 scripts/art.py build    art/picked + art/faces.json → public/art/<id>.webp (전신)
                                   + public/art/<id>.bust.webp (머리 크기를 맞춘 상반신 배너)
                                   + src/ui/portraits.gen.ts (머리 크기를 맞춘 아이콘, 데이터 URI 내장)
@@ -15,8 +15,11 @@ from PIL import Image, ImageDraw, ImageFilter
 
 PICKS, FACES, CUTS, PICKED, OUT = 'art/picks.json', 'art/faces.json', 'art/cut.json', 'art/picked', 'public/art'
 STAND_H, ICON = 960, 128
-# 머리 크기 정규화: 아이콘은 머리 높이의 ICON_K 배 정사각, 배너는 머리 높이를 BUST_HEAD px 로 맞춘 BUST_W×BUST_H
-ICON_K, BUST_W, BUST_H, BUST_HEAD, BUST_CY = 1.45, 480, 360, 120, 105
+# 얼굴 크기 정규화 (눈썹~턱 = F)
+#  아이콘: F 가 한 변의 ICON_FACE 비율, 턱은 위에서 ICON_CHIN 지점 (턱은 안 잘리고 머리카락 윗부분은 잘려도 됨)
+#  배너: F 를 BUST_FACE px 로 맞추고 턱을 BUST_CHIN 높이에 둔 BUST_W×BUST_H
+ICON_FACE, ICON_CHIN = 0.4, 0.9
+BUST_W, BUST_H, BUST_FACE, BUST_CHIN = 480, 360, 80, 165
 
 
 def load_json(p, default):
@@ -138,7 +141,7 @@ def guess_face(im):
     band = a[top:top + head, win]
     c = band.sum(axis=0)
     cx = win.start + int((np.arange(c.size) * c).sum() / max(1, c.sum()))
-    return [cx, top + head // 2, int(head)]
+    return [cx, top + int(head * 0.45), top + int(head * 0.95)]
 
 
 def cmd_faces():
@@ -152,9 +155,10 @@ def cmd_faces():
 
 
 def icon_of(cut, face):
-    cx, cy, hh = face
-    s = int(hh * ICON_K)
-    box = (cx - s // 2, cy - s // 2, cx + s // 2, cy + s // 2)
+    fx, brow, chin = face
+    s = round((chin - brow) / ICON_FACE)
+    top = round(chin - s * ICON_CHIN)
+    box = (fx - s // 2, top, fx - s // 2 + s, top + s)
     # 원본 밖으로 나가는 크롭도 허용 (투명으로 채움)
     canvas = Image.new('RGBA', (cut.width + 2 * s, cut.height + 2 * s), (0, 0, 0, 0))
     canvas.paste(cut, (s, s))
@@ -162,12 +166,12 @@ def icon_of(cut, face):
 
 
 def bust_of(cut, face):
-    """머리 높이를 BUST_HEAD px 로 맞추고 머리 중심을 (가운데, BUST_CY) 에 둔 상반신 배너"""
-    cx, cy, hh = face
-    k = BUST_HEAD / hh
+    """얼굴(눈썹~턱)을 BUST_FACE px 로 맞추고 턱을 (가운데, BUST_CHIN) 에 둔 상반신 배너"""
+    fx, brow, chin = face
+    k = BUST_FACE / (chin - brow)
     big = cut.resize((max(1, round(cut.width * k)), max(1, round(cut.height * k))), Image.LANCZOS)
     out = Image.new('RGBA', (BUST_W, BUST_H), (0, 0, 0, 0))
-    out.paste(big, (round(BUST_W / 2 - cx * k), round(BUST_CY - cy * k)), big)
+    out.paste(big, (round(BUST_W / 2 - fx * k), round(BUST_CHIN - chin * k)), big)
     return out
 
 
