@@ -860,6 +860,7 @@ export const TUNE: Record<string, { w?: number; s?: number }> = {
   gebek: { w: 1.1, s: 1.15 }, mirinae: { w: 1.05, s: 1.15 }, odysseus: { w: 1.15, s: 1.2 }, yupito: { w: 1.25, s: 1.35 },
   joshua: { w: 1.2, s: 1.35 }, iris: { w: 1.15, s: 1.2 }, phyllis: { w: 1.2, s: 1.25 }, eleni: { w: 1.1, s: 1.15 },
   kyle: { w: 1.1, s: 1.1 }, temur: { s: 1.1 }, vivian: { w: 1.1, s: 1.1 },
+  zina: { w: 0.85, s: 0.85 }, skadi: { w: 0.85, s: 0.85 }, // 화학 · 전기는 방어도를 절반만 받아 초반 가치가 높다
 };
 /** 스킬 계수 중 배율을 적용할 항목 */
 export const TUNE_KEYS = ['mult', 'heal', 'shield', 'snipe', 'supply'];

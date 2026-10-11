@@ -600,6 +600,8 @@ function detailPanel(run: RunState) {
       ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}
       ${e.skill ? `<div class="skill-line"><b>${esc(e.skill.name)}</b> <span class="muted">(${e.skill.cd}초)</span> ${esc(e.skill.desc({}))}</div>` : ''}
       ${(() => { const k = loadMeta().enemies[e.id]; return k ? `<div class="small muted">도감: 조우 ${k.seen} · 처치 ${k.kills}</div>` : ''; })()}
+      <h3>메이저 스탯 <span class="muted small">페이즈 ${run.phase}</span></h3>
+      <div class="majors">${MAJORS.map((m) => `<div class="major"><span>${majorIcon(m)}${MAJOR_NAME[m]}</span><span class="mbar"><i style="width:${Math.min(100, (c.mem[`M_${m}`] || 0) * 3)}%"></i></span><b>${c.mem[`M_${m}`] || 0}</b></div>`).join('')}</div>
       <div class="small accent">페이즈 피해 배율 ×${c.phaseAmp.toFixed(2)}</div>
       ${statLines(c, b)}
     </div>`;

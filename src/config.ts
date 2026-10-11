@@ -43,6 +43,7 @@ export const CFG = {
   phaseHpFactor: (p: number) => (p <= 5 ? 2.05 : Math.max(1.1, 2 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
   adversityMult: 1.6,
   enemyHpMul: 2.4, enemyPowMul: 2.2, // 적 기초 수치 전체 배율 (튜닝용)
+  enemyMajorConv: { acc: 0.3, eva: 0.25, crit: 0.25 }, // 적 메이저 → 명중 · 회피 · 치명타 환산 배율 [임시] (효과 명중 · 저항은 1)
 
   // ── 성장
   maxRank: 99, // 10 이상은 스탯만

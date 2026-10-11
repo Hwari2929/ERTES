@@ -382,11 +382,11 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'SCHEME', name: '모략가', kind: 'trait', tiers: [2, 4, 6, 8], color: '#8a5cc8', icon: '♠',
     desc: '판 뒤에서 실을 당기는 이들. 모략가가 적에게 해로운 효과를 걸면 기본 75% 확률로 [암운]을 쌓습니다. [암운]은 1중첩당 매초 대상 최대 체력 비례 고정 피해를 줍니다 (최대 99중첩, 6초간 새로 쌓이지 않으면 사라짐).',
-    tierDesc: ['효과 명중 +25%p, [암운] 1중첩당 초당 최대 체력 0.1%', '효과 명중 +50%p, 초당 0.25%, [암운]을 쌓을 때 50% 확률로 1중첩 추가',
-      '효과 명중 +75%p, 초당 0.5%, 25% 확률로 2중첩 더 추가, 모략가의 공격이 [암운] 1중첩당 최대 체력 0.2% 고정 피해 추가',
-      '[흑막 강림] 효과 명중 +100%p, 초당 1%, [암운] 쌓는 양 3배'],
+    tierDesc: ['효과 명중 +25%p, [암운] 1중첩당 초당 최대 체력 0.05%', '효과 명중 +50%p, 초당 0.125%, [암운]을 쌓을 때 50% 확률로 1중첩 추가',
+      '효과 명중 +75%p, 초당 0.25%, 25% 확률로 2중첩 더 추가, 모략가의 공격이 [암운] 1중첩당 최대 체력 0.1% 고정 피해 추가',
+      '[흑막 강림] 효과 명중 +100%p, 초당 0.5%, [암운] 쌓는 양 3배'],
     member: (t) => {
-      const per = T(t, [0.001, 0.0025, 0.005, 0.01]);
+      const per = T(t, [0.0005, 0.00125, 0.0025, 0.005]);
       return {
         stats: { effHit: T(t, [0.25, 0.5, 0.75, 1.0]) },
         hooks: {
@@ -402,7 +402,7 @@ export const SYNERGIES: SynDef[] = [
           onDeal: t >= 3 ? (b, u, tgt, r, o) => {
             if ((o.tag !== 'basic' && o.tag !== 'skill') || r.amount <= 0 || !tgt.alive) return;
             const g = tgt.statuses.find((x) => x.key === 'gloom')?.stacks || 0;
-            if (g) b.dealDamage(u, tgt, b.S(tgt, 'maxHp') * 0.002 * g, { elem: 'true', tag: 'proc' });
+            if (g) b.dealDamage(u, tgt, b.S(tgt, 'maxHp') * 0.001 * g, { elem: 'true', tag: 'proc' });
           } : undefined,
         },
       };

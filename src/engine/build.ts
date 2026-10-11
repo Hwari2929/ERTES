@@ -218,6 +218,21 @@ function spawnSummons(b: Battle, owner: CUnit, sd: SummonDef) {
   }
 }
 
+/**
+ * 적 메이저 스탯: 페이즈 · 등급 · 성향에 따라 정해지고, 아군과 같은 환산 규칙으로
+ * 명중 · 효과 명중 · 효과 저항 · 회피 · 치명타를 올린다 (체력 · 위력 · 방어도는 기존 적 수치 그대로).
+ */
+export function enemyMajors(def: EnemyDef, phase: number): Record<Major, number> {
+  const w: Record<Major, number> = { vit: 0.8, pow: 0.8, mnd: 0.6, def: 0.8, agi: 0.5 };
+  if (def.melee) { w.vit += 0.3; w.def += 0.2; } else { w.pow += 0.2; w.agi += 0.1; }
+  if (def.atk.elem === 'psy' || def.atk.elem === 'holy' || def.keywords.includes('phantom')) w.mnd += 0.6;
+  if (def.keywords.includes('mech')) { w.def += 0.2; w.mnd -= 0.3; }
+  if ((def.eva || 0) >= 0.15) w.agi += 0.3;
+  if (def.armor >= 300) w.def += 0.4;
+  const lv = (4 + 3 * (phase - 1)) * (def.tier === 'boss' ? 1.3 : def.tier === 'elite' ? 1.15 : 1);
+  return Object.fromEntries(MAJORS.map((m) => [m, Math.max(0, Math.round(lv * w[m]))])) as Record<Major, number>;
+}
+
 export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number): CUnit {
   const c = blankUnit(1);
   const st = emptyStats();
@@ -226,6 +241,11 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   st.armor = def.armor * Math.pow(CFG.phaseArmor, phase - 1);
   st.acc = def.acc || 0; st.eva = def.eva || 0; st.crit = def.crit ?? 0.05; st.critDmg = 1.5;
   st.effHit = def.effHit || 0; st.effRes = def.effRes || 0; st.moveSpd = def.moveSpd || 1; st.range = def.range;
+  const em = enemyMajors(def, phase);
+  // 효과 명중 · 효과 저항은 아군과 같은 환산, 명중 · 회피 · 치명타는 약하게 (전체 난이도 유지)
+  const K = CFG.enemyMajorConv;
+  st.effHit += em.mnd * CFG.conv.mnd.effHit; st.effRes += em.def * CFG.conv.def.effRes;
+  st.acc += em.mnd * CFG.conv.mnd.acc * K.acc; st.eva += em.agi * CFG.conv.agi.eva * K.eva; st.crit += em.pow * CFG.conv.pow.crit * K.crit;
   Object.assign(c, {
     defId: def.id, name: def.name, sprite: def.sprite, palette: def.palette, st, keywords: def.keywords.slice(),
     atk: { type: def.atk.type, elem: def.atk.elem, interval: def.interval }, skill: def.skill || null,
@@ -233,6 +253,7 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
     immobile: !!def.immobile, phaseAmp: phaseAmpMult(phase) * (1 + (mult - 1) / 2),
   });
   c.mem.mult = mult;
+  for (const m of MAJORS) c.mem[`M_${m}`] = em[m];
   c.cd = c.cdMax * 0.6;
   // 리워크: 적도 무기 · 전투 유형 · 이성을 가진다
   c.ctype = def.atk.type === 'shoot' ? 'MARK' : 'VAN';
