@@ -1014,3 +1014,5 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .syn-list .syn-lv { min-width: 18px; height: 18px; font-size: .74rem; }
 .syn-list .syn-tx b { font-size: .92rem; }
 .syn-list .syn-steps { font-size: .76rem; }
+/* 상세 보기: 시너지 토큰을 일러스트 좌상단에 (영입 카드와 같은 배열) */
+.d-hero .dh-syn { top: 8px; left: 8px; z-index: 3; }
