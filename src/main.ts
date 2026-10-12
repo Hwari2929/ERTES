@@ -12,7 +12,7 @@ import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf } fro
 import { UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { DIVINE_ACT, FAITH_DEF, recMajors } from './data/rework';
 import { BRIEF, GROWTH_BRIEF, PSI_BRIEF } from './data/brief';
-import { ABIL, augAbilText, ENEMY_ABIL } from './data/abiltext';
+import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
 import * as AB from './ui/abil';
 import {
   activeTiers, buildAlly, buildBattle, buildEnemy, deployed, layout, memberships, playerRows, synergyCounts, totalMajors, unitEffects,
@@ -611,36 +611,52 @@ function augText(id: string, param: string | undefined, b: Battle | null, c: CUn
   const t = augAbilText(id);
   return t ? statIc(AB.tok(t, actx(b, c), gl)) : esc(augDesc(id, param));
 }
+/** 메커니즘 한 줄 설명 */
+function weaponMech(w: Weapon, ctx: AB.AbilCtx) {
+  const tac = w.tactical ? ' 피해는 전술 위력으로 계산.' : '';
+  if (w.kind === 'none') return '기본 공격을 하지 않는다.';
+  if (w.kind === 'mag') {
+    const rs = ctx.b && ctx.c ? Math.max(0.2, 1 + ctx.b.S(ctx.c, 'reloadSpd')) : 1;
+    return `사거리 안의 대상을 사격. 탄창 ${w.mag}발을 모두 쓰면 ${((w.reload || 1.5) / rs).toFixed(1)}초 동안 재장전.${tac}`;
+  }
+  return `사거리 안의 대상을 타격. ${w.combo}번째 공격마다 피니쉬(×${CFG.finishMult})로 마무리.${tac}`;
+}
+function skillMech(range: 'unit' | number | null, cmd: boolean) {
+  const when = range === 'unit' ? '대상이 사거리 안에 있으면' : range === 0 ? '주변에 대상이 있으면' : '조건이 맞으면';
+  return `쿨다운이 차고 ${when} 자동으로 시전.${cmd ? ' 지휘관은 전술 위력으로 계산.' : ''}`;
+}
 /** 좌측 능력 상세 팝업 */
 function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null, aceK = 1) {
   const ctx = actx(b, c);
   const gl = new Set<string>();
-  let kind = '', name = '', body = '';
+  let kind = '', name = '', body = '', mech = '';
   if (key === 'weapon') {
     const w = c?.weapon || d.weapon;
     const range = b && c ? b.S(c, 'range') : w.range;
-    kind = '무기'; name = w.name;
+    kind = '무기'; name = w.name; mech = weaponMech(w, ctx);
     body = w.kind === 'none' ? '<p>기본 공격을 하지 않는다.</p>' : AB.popBody(range, { k: 'one' }, AB.weaponRows(w, ctx, c?.atk.elem || w.elem, gl));
   } else if (key === 'skill') {
     const p = c?.sk || d.skill.params;
     const info = ABIL[d.id]?.skill?.(p);
     const cd = c?.cdMax ?? d.skill.cd;
-    kind = '스킬'; name = d.skill.name;
+    kind = '스킬'; name = d.skill.name; mech = skillMech(info?.range ?? 'unit', d.ctype === 'CMD');
     body = info ? AB.skillBody(info, ctx, b && c ? b.S(c, 'range') : d.range, cd, gl) : `<p>${esc(d.skill.desc(p))}</p><p class="muted small">쿨다운 ${cd.toFixed(1)}초</p>`;
   } else if (key === 'trait') {
-    kind = '특성'; name = d.trait.name;
+    kind = '특성'; name = d.trait.name; mech = '전투 내내 적용되는 이 기물의 고유 효과.';
     const t = ABIL[d.id]?.trait;
     body = `<p>${t ? statIc(AB.tok(t, ctx, gl)) : esc(d.trait.desc)}</p>`;
   } else if (key === 'ace' && d.ace) {
-    kind = '에이스'; name = d.ace.name;
+    kind = '에이스'; name = d.ace.name; mech = '항해자 시너지 활성 시, 에이스 파일럿으로 지정한 출전 기물에게만 발동. 항해자 단계가 오를수록 강해짐.';
     const t = ABIL[d.id]?.ace?.(aceK);
     body = `<p>${t ? statIc(AB.tok(t, ctx, gl)) : esc(d.ace.desc(aceK))}</p>`;
   } else if (key.startsWith('aug:')) {
     const id = key.slice(4);
     kind = '증강'; name = AUG_BY_ID[id]?.name || id;
+    const pool = AUG_BY_ID[id]?.pool;
+    mech = pool === 'unit' ? '이 기물 전용 증강. 획득하면 영구 적용.' : pool === 'special' ? '스페셜 기물 합류 시 고르는 증강. 영구 적용.' : pool === 'psionic' ? '사이오닉 증강. 이성 규칙을 바꾼다. 영구 적용.' : '공용 증강. 영구 적용.';
     body = `<p>${augText(id, c?.src?.augments.find((a) => a.id === id)?.param, b, c, gl)}</p>`;
   } else return '';
-  return `<div class="stat-pop abil-pop"><div class="sp-head"><span class="ab-kind">${kind}</span><b>${esc(name)}</b><button class="btn tiny" data-a="abil-pop" data-v="">닫기</button></div>${body}${AB.glossHtml(gl)}</div>`;
+  return `<div class="stat-pop abil-pop"><div class="sp-head"><span class="ab-kind">${kind}</span><b>${esc(name)}</b><button class="btn tiny" data-a="abil-pop" data-v="">닫기</button></div>${mech ? `<p class="ap-mech">${mech}</p>` : ''}${body}</div>`;
 }
 
 /** 적 능력: 무기 · 특성 · 스킬 카드 */
@@ -657,18 +673,18 @@ function enemyAbilPop(key: string, e: EnemyDef, b: Battle, c: CUnit) {
   const ab = ENEMY_ABIL[e.id];
   const ctx = actx(b, c);
   const gl = new Set<string>();
-  let kind = '', name = '', body = '';
+  let kind = '', name = '', body = '', mech = '';
   if (key === 'weapon') {
-    kind = '무기'; name = '기본 공격';
+    kind = '무기'; name = '기본 공격'; mech = weaponMech(c.weapon!, ctx);
     body = AB.popBody(b.S(c, 'range'), { k: 'one' }, AB.weaponRows({ ...c.weapon!, name }, ctx, e.atk.elem, gl));
   } else if (key === 'skill' && e.skill) {
-    kind = '스킬'; name = e.skill.name;
+    kind = '스킬'; name = e.skill.name; mech = skillMech(ab?.skill?.range ?? 'unit', false);
     body = ab?.skill ? AB.skillBody(ab.skill, ctx, b.S(c, 'range'), e.skill.cd, gl) : `<p>${esc(e.skill.desc(c.sk))}</p>`;
   } else if (key === 'trait' && ab?.trait) {
-    kind = '특성'; name = '특성';
+    kind = '특성'; name = '특성'; mech = '전투 내내 적용되는 이 적의 고유 효과.';
     body = `<p>${statIc(AB.tok(ab.trait, ctx, gl))}</p>`;
   } else return '';
-  return `<div class="stat-pop abil-pop"><div class="sp-head"><span class="ab-kind">${kind}</span><b>${esc(name)}</b><button class="btn tiny" data-a="abil-pop" data-v="">닫기</button></div>${body}${AB.glossHtml(gl)}</div>`;
+  return `<div class="stat-pop abil-pop"><div class="sp-head"><span class="ab-kind">${kind}</span><b>${esc(name)}</b><button class="btn tiny" data-a="abil-pop" data-v="">닫기</button></div>${mech ? `<p class="ap-mech">${mech}</p>` : ''}${body}</div>`;
 }
 
 /** 항해자 에이스 파일럿: 능력 란에 표시하고 여기서 지정 */
@@ -1873,6 +1889,38 @@ function clickFirst(sel: string) {
   el.click();
   return true;
 }
+// ───────────────────────── 키워드 설명 팝업 (PC 호버 · 모바일 탭)
+let kwPinned: HTMLElement | null = null;
+function showKw(el: HTMLElement) {
+  const k = el.dataset.kw!;
+  const g = GLOSS[k];
+  if (!g) return;
+  let tip = document.querySelector<HTMLElement>('.kw-tip');
+  if (!tip) { tip = document.createElement('div'); tip.className = 'kw-tip'; tip.setAttribute('role', 'tooltip'); document.body.appendChild(tip); }
+  tip.innerHTML = `<b>${AB.kwIcon(k)}${esc(g.name)}</b><span>${esc(g.desc)}</span>`;
+  const r = el.getBoundingClientRect();
+  const w = Math.min(260, innerWidth - 16);
+  tip.style.width = `${w}px`;
+  tip.style.left = `${Math.max(8, Math.min(r.left, innerWidth - w - 8))}px`;
+  const below = r.bottom + 6;
+  tip.style.top = `${below + tip.offsetHeight > innerHeight - 8 ? Math.max(8, r.top - tip.offsetHeight - 6) : below}px`;
+}
+function hideKw() { document.querySelector('.kw-tip')?.remove(); kwPinned = null; }
+document.addEventListener('mouseover', (e) => {
+  if (!CAN_HOVER || kwPinned) return;
+  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-kw]');
+  if (el) showKw(el); else if (document.querySelector('.kw-tip')) hideKw();
+});
+// 탭 · 클릭: 고정 표시 (능력 카드 클릭으로 번지지 않게 캡처 단계에서 처리)
+document.addEventListener('click', (e) => {
+  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-kw]');
+  if (!el) { if (kwPinned && !(e.target as HTMLElement).closest('.kw-tip')) hideKw(); return; }
+  e.preventDefault(); e.stopPropagation();
+  if (kwPinned === el) { hideKw(); return; }
+  showKw(el); kwPinned = el;
+}, true);
+addEventListener('scroll', () => { if (document.querySelector('.kw-tip')) hideKw(); }, { passive: true, capture: true });
+
 document.addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
   if ((e.target as HTMLElement).closest('input, textarea, select')) return;

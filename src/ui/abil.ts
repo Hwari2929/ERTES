@@ -4,7 +4,7 @@ import { type Area, GLOSS, type SkillInfo } from '../data/abiltext';
 import type { Battle, CUnit } from '../engine/combat';
 import { type Elem, ELEM_NAME, type Weapon } from '../types';
 import { fmt } from './battleview';
-import { lineIcon } from './synicons';
+import { augKey, lineIcon } from './synicons';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const pct = (x: number) => `${Math.round(x * 1000) / 10}%`;
@@ -40,7 +40,19 @@ const healNum = (ctx: AbilCtx, mult: number, icon: string, plus = false, pow: Po
   return `<span class="pw pw-heal" title="${POW_KO[powKey(ctx, pow)]} × ${pct(mult)}">${lineIcon(icon, 'li')}<b>${plus ? '+' : ''}${v === null ? pct(mult) : fmt(v * mult)}</b></span>`;
 };
 export const elemChip = (e: Elem) => `<span class="elc el-${e}">${ELEM_NAME[e]}</span>`;
-const kw = (key: string, gl: Set<string>) => { gl.add(key); return `<b class="kw">${esc(GLOSS[key]?.name || key)}</b>`; };
+/** 키워드 아이콘: 지정값 우선, 없으면 이름 · 설명의 핵심어로 */
+const KW_ICON: Record<string, string> = {
+  stun: 'a.stun', fear: 'a.fear', shock: 'a.shock', slow: 'a.speed', corrode: 'e.chem', poison: 'e.chem', bleed: 'a.bleed', vuln: 'a.dmg',
+  suppress: 'a.stun', pen: 'a.snipe', tac: 'p.tac', combo: 'u.combo', finish: 'u.finish', mag: 'u.mag', psy: 'e.psy', crit: 'a.crit',
+  reason: 'a.reason', frenzy: 'a.reason', spawn: 'a.summon', turret: 'a.summon', camp: 'n.supply', red: 'a.shield', lifesteal: 'a.heal',
+  cleanse: 'a.heal', rewind: 'a.reload', immobile: 'u.range', forget: 'a.cd',
+};
+export function kwIcon(key: string) {
+  const g = GLOSS[key];
+  return lineIcon(KW_ICON[key] || augKey(`${g?.name || ''} ${g?.desc || ''}`), 'li');
+}
+/** 키워드: 아이콘 + 노란 글자, 호버 · 탭하면 설명 팝업 (main.ts) */
+const kw = (key: string, gl: Set<string>) => { gl.add(key); return `<span class="kw" data-kw="${esc(key)}" tabindex="0">${kwIcon(key)}${esc(GLOSS[key]?.name || key)}</span>`; };
 
 /** 숫자 인자: 그대로 또는 @스킬파라미터(*배율) */
 function num(x: string, ctx: AbilCtx): number {

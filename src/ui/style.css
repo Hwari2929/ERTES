@@ -884,7 +884,13 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .el-phys { background: var(--el-phys); } .el-chem { background: var(--el-chem); } .el-elec { background: var(--el-elec); }
 .el-psy { background: var(--el-psy); } .el-holy { background: var(--el-holy); } .el-true { background: var(--el-true); }
 .ab-chips > .elc { align-self: center; }
-.kw { color: var(--accent); font-weight: 700; }
+.kw { color: var(--accent); display: inline-flex; align-items: center; gap: 2px; cursor: help; text-decoration: underline dotted color-mix(in srgb, var(--accent) 50%, transparent); text-underline-offset: 3px; }
+.kw .li { width: 13px; height: 13px; flex: none; }
+.kw:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; border-radius: 2px; }
+.kw-tip { position: fixed; z-index: 120; display: grid; gap: 4px; padding: 8px 10px; background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; box-shadow: 0 8px 22px rgb(0 0 0 / .55); font-size: .8rem; line-height: 1.5; pointer-events: none; }
+.kw-tip b { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); }
+.kw-tip b .li { width: 14px; height: 14px; }
+.ap-mech { color: var(--dim); font-size: .78rem !important; margin: -2px 0 8px !important; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
 .tln { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; }
 .ab-ace-wrap { display: grid; gap: 4px; }
 .aug-li.ab-click { padding: 3px 4px; }
