@@ -464,7 +464,11 @@
    "v1": "acid crawler, giant insect monster, centipede, dripping green acid, chitin carapace, many legs, monster, no humans, full body",
    "v2": "acid slug monster, slimy, glowing green sacs, mandibles, alien creature, no humans",
    "v3": "spider-like alien bug, acid dripping fangs, purple carapace, green glow, monster, no humans",
-   "v4": "mutant tick creature, bloated acid abdomen, spiky legs, alien, no humans"
+   "v4": "mutant tick creature, bloated acid abdomen, spiky legs, alien, no humans",
+   "r1": "acid slug monster, slimy, glowing green sacs, mandibles, muted desaturated colors, dark olive and grey tones, grimy, alien creature, no humans",
+   "r2": "acid slug monster, slimy, glowing green sacs, mandibles, muted desaturated colors, dark olive and grey tones, grimy, alien creature, no humans",
+   "r3": "acid slug monster, slimy, glowing green sacs, mandibles, muted desaturated colors, dark olive and grey tones, grimy, alien creature, no humans",
+   "r4": "acid slug monster, slimy, glowing green sacs, mandibles, muted desaturated colors, dark olive and grey tones, grimy, alien creature, no humans"
   },
   "source": "enemy",
   "notes": ""
@@ -530,7 +534,11 @@
    "v1": "raider warlord, huge muscular man, spiked armor, fur cloak, horned helmet, giant axe, scars, menacing grin, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
    "v2": "pirate chieftain, eyepatch, red coat, gold chains, cybernetic arm, huge cleaver, full body, standing, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes",
    "v3": "warlord brute, skull pauldrons, war paint, chains, massive hammer, full body, standing, mob character, hair over eyes, covered eyes, no visible eyes",
-   "v4": "space pirate boss, long coat, captain hat, mechanical jaw, rifle, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
+   "v4": "space pirate boss, long coat, captain hat, mechanical jaw, rifle, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible",
+   "r1": "pirate warlord chieftain, red long coat, gold chains, cybernetic arm, huge cleaver, wearing horned bull skull mask covering face, skull helmet, no visible eyes, full body, standing",
+   "r2": "pirate warlord chieftain, red long coat, gold chains, cybernetic arm, huge cleaver, wearing horned bull skull mask covering face, skull helmet, no visible eyes, full body, standing",
+   "r3": "pirate warlord chieftain, red long coat, gold chains, cybernetic arm, huge cleaver, wearing horned bull skull mask covering face, skull helmet, no visible eyes, full body, standing",
+   "r4": "pirate warlord chieftain, red long coat, gold chains, cybernetic arm, huge cleaver, wearing horned bull skull mask covering face, skull helmet, no visible eyes, full body, standing"
   },
   "source": "enemy",
   "notes": "모브 페이스(눈 안 보이게)"
@@ -648,7 +656,11 @@
    "v1": "alien swarm queen, monster girl, insect wings, chitin armor, crown-like crest, glowing psionic eyes, regal, full body",
    "v2": "swarm queen, monstrous female, carapace dress, many arms, psionic aura, full body",
    "v3": "alien hive queen, giant insect, towering, crown crest, psionic glow, no humans",
-   "v4": "zerg-like queen, elegant monster woman, scythe arms, purple chitin, full body"
+   "v4": "zerg-like queen, elegant monster woman, scythe arms, purple chitin, full body",
+   "r1": "zerg-like swarm queen, elegant monster woman, scythe arms, purple skin, inhuman, purple chitin carapace, alien features, no human skin tone, full body, standing",
+   "r2": "zerg-like swarm queen, elegant monster woman, scythe arms, purple skin, inhuman, purple chitin carapace, alien features, no human skin tone, full body, standing",
+   "r3": "zerg-like swarm queen, elegant monster woman, scythe arms, purple skin, inhuman, purple chitin carapace, alien features, no human skin tone, full body, standing",
+   "r4": "zerg-like swarm queen, elegant monster woman, scythe arms, purple skin, inhuman, purple chitin carapace, alien features, no human skin tone, full body, standing"
   },
   "source": "enemy",
   "notes": ""
@@ -740,7 +752,11 @@
    "v1": "vampire count, aristocrat, long silver hair, red eyes, black and crimson coat, high collar cape, elegant, menacing smile, full body, standing",
    "v2": "vampire noble lord, crown, crimson robes, blood wine glass, full body",
    "v3": "vampire count, mature, slicked back hair, monocle, cane, cape, full body",
-   "v4": "vampire lord, bat wings, red armor, full body"
+   "v4": "vampire lord, bat wings, red armor, full body",
+   "r1": "vampire count, mature aristocrat, slicked back hair, monocle, cane, high collar crimson cape, mob character, eyes hidden in shadow, shadowed upper face, full body, standing",
+   "r2": "vampire count, mature aristocrat, slicked back hair, monocle, cane, high collar crimson cape, mob character, eyes hidden in shadow, shadowed upper face, full body, standing",
+   "r3": "vampire count, mature aristocrat, slicked back hair, monocle, cane, high collar crimson cape, mob character, eyes hidden in shadow, shadowed upper face, full body, standing",
+   "r4": "vampire count, mature aristocrat, slicked back hair, monocle, cane, high collar crimson cape, mob character, eyes hidden in shadow, shadowed upper face, full body, standing"
   },
   "source": "enemy",
   "notes": ""
@@ -805,7 +821,11 @@
    "v1": "flying tow drone, sleek winged aircraft, teal lights, bronze greek pattern plating, no humans",
    "v2": "orbital drone, flat triangular flying machine, glowing teal underside, no humans",
    "v3": "owl-shaped mechanical drone, bronze feathers, glowing eyes, flying, no humans",
-   "v4": "small hover drone, round body, laser emitter, greek meander pattern, no humans"
+   "v4": "small hover drone, round body, laser emitter, greek meander pattern, no humans",
+   "r1": "single mechanical owl drone, one robot owl, bronze metal feathers, glowing teal eyes, wings spread, flying, solo object, no humans",
+   "r2": "single mechanical owl drone, one robot owl, bronze metal feathers, glowing teal eyes, wings spread, flying, solo object, no humans",
+   "r3": "single mechanical owl drone, one robot owl, bronze metal feathers, glowing teal eyes, wings spread, flying, solo object, no humans",
+   "r4": "single mechanical owl drone, one robot owl, bronze metal feathers, glowing teal eyes, wings spread, flying, solo object, no humans"
   },
   "source": "enemy",
   "notes": "",
@@ -832,7 +852,11 @@
    "v1": "giant orbital laser cannon battery, fixed artillery platform, long spear-shaped barrel, greek temple columns, no humans",
    "v2": "colossal railgun tower, fortress emplacement, teal energy coils, no humans",
    "v3": "beam cannon firing teal light pillar, sci-fi artillery, no humans",
-   "v4": "artillery platform with huge spear cannon, bronze and white, no humans"
+   "v4": "artillery platform with huge spear cannon, bronze and white, no humans",
+   "r1": "single giant orbital spear cannon, one fixed artillery emplacement, long lance-shaped barrel pointing up, greek bronze and white plating, teal energy core, solo object, no humans",
+   "r2": "single giant orbital spear cannon, one fixed artillery emplacement, long lance-shaped barrel pointing up, greek bronze and white plating, teal energy core, solo object, no humans",
+   "r3": "single giant orbital spear cannon, one fixed artillery emplacement, long lance-shaped barrel pointing up, greek bronze and white plating, teal energy core, solo object, no humans",
+   "r4": "single giant orbital spear cannon, one fixed artillery emplacement, long lance-shaped barrel pointing up, greek bronze and white plating, teal energy core, solo object, no humans"
   },
   "source": "enemy",
   "notes": "",
@@ -953,7 +977,11 @@
    "v1": "robotic crow, mechanical bird, black metal feathers, glowing yellow eye, perched, no humans",
    "v2": "cyber raven, flying, drone wings, black and green circuits, no humans",
    "v3": "black crow with tiny headset, hacker bird, cute, no humans",
-   "v4": "mechanical crow, exposed gears, wings spread, no humans"
+   "v4": "mechanical crow, exposed gears, wings spread, no humans",
+   "r1": "robotic crow, mechanical bird, black metal feathers, glowing purple eye, purple eye glow, perched, solo object, no humans",
+   "r2": "robotic crow, mechanical bird, black metal feathers, glowing purple eye, purple eye glow, perched, solo object, no humans",
+   "r3": "robotic crow, mechanical bird, black metal feathers, glowing purple eye, purple eye glow, perched, solo object, no humans",
+   "r4": "robotic crow, mechanical bird, black metal feathers, glowing purple eye, purple eye glow, perched, solo object, no humans"
   },
   "source": "enemy",
   "notes": "",
@@ -980,10 +1008,15 @@
    "v1": "behemoth, giant beast, horns, thick hide, monster, no humans",
    "v2": "cute small behemoth, chubby horned beast, no humans",
    "v3": "bio-engineered beast, armored hide, no humans",
-   "v4": "horned beast, bear-like, no humans"
+   "v4": "horned beast, bear-like, no humans",
+   "r1": "dark crimson slime monster, blackish red gooey blob, glossy, menacing, small horns, solo object, no humans",
+   "r2": "dark crimson slime monster, blackish red gooey blob, glossy, menacing, small horns, solo object, no humans",
+   "r3": "dark crimson slime monster, blackish red gooey blob, glossy, menacing, small horns, solo object, no humans",
+   "r4": "dark crimson slime monster, blackish red gooey blob, glossy, menacing, small horns, solo object, no humans"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "",
+  "object": true
  },
  "sm_ricky": {
   "name": "리키",
@@ -993,10 +1026,15 @@
    "v1": "wolf, grey wolf, scout wolf, harness, no humans",
    "v2": "husky dog, loyal, harness, no humans",
    "v3": "alien wolf creature, fluffy, no humans",
-   "v4": "wolf pup, cute, bandana, no humans"
+   "v4": "wolf pup, cute, bandana, no humans",
+   "r1": "grey wolf, menacing scout wolf, muted desaturated colors, harness, bared fangs, sharp eyes, solo, no humans",
+   "r2": "grey wolf, menacing scout wolf, muted desaturated colors, harness, bared fangs, sharp eyes, solo, no humans",
+   "r3": "grey wolf, menacing scout wolf, muted desaturated colors, harness, bared fangs, sharp eyes, solo, no humans",
+   "r4": "grey wolf, menacing scout wolf, muted desaturated colors, harness, bared fangs, sharp eyes, solo, no humans"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "",
+  "object": true
  },
  "sm_max": {
   "name": "맥스",
@@ -1032,7 +1070,11 @@
    "v1": "compact deployable sentry turret, tripod legs, small gun barrel, blue lights, no humans",
    "v2": "small automated turret, rotating dome, blue visor sensor, no humans",
    "v3": "engineer sentry gun, folding legs, ammo drum, no humans",
-   "v4": "sci-fi auto turret, armor plates, twin barrels, blue glow, no humans"
+   "v4": "sci-fi auto turret, armor plates, twin barrels, blue glow, no humans",
+   "r1": "single compact sentry gun turret, heavy machine gun barrel on rotating mount, armored shield plate, tripod base, ammo box, blue sensor light, solo object, no humans",
+   "r2": "single compact sentry gun turret, heavy machine gun barrel on rotating mount, armored shield plate, tripod base, ammo box, blue sensor light, solo object, no humans",
+   "r3": "single compact sentry gun turret, heavy machine gun barrel on rotating mount, armored shield plate, tripod base, ammo box, blue sensor light, solo object, no humans",
+   "r4": "single compact sentry gun turret, heavy machine gun barrel on rotating mount, armored shield plate, tripod base, ammo box, blue sensor light, solo object, no humans"
   },
   "source": "enemy",
   "notes": "",
