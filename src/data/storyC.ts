@@ -54,7 +54,8 @@ export const STORY_C: EventDef[] = [
         label: '승선한다', desc: '항해일지를 회수한다 (연계). 60%: 희귀 장비 1개. 40%: 플레이어 체력 -15.',
         apply: (r, api) => {
           api.flag('c_argo');
-          if (api.chance(0.6)) { api.gain(api.randomItem('A')); return '텅 빈 선실에서 희귀 장비와 항해일지를 챙겼습니다.'; }
+          if (api.chance(0.6)) { api.gain(api.randomItem('A')); api.outcome('ok'); return '텅 빈 선실에서 희귀 장비와 항해일지를 챙겼습니다.'; }
+          api.outcome('hurt');
           hurt(r, 15);
           return '복도가 접히며 승무원들을 덮쳤습니다. 체력 -15. 항해일지만은 손에 남았습니다.';
         },
@@ -66,6 +67,7 @@ export const STORY_C: EventDef[] = [
           api.xp(14);
           const u = pickU(r, api);
           if (u) bench(r, u);
+          api.outcome('default', { victim: u ? nm(u) : '누군가' });
           return `시계가 맞춰지는 순간 모두가 무언가를 배웠습니다. ${u ? `${nm(u)}은(는) 열한 시간을 통째로 잃었습니다.` : ''}`;
         },
       },

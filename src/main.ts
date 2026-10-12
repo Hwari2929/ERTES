@@ -19,6 +19,7 @@ import {
 } from './engine/build';
 import { Battle, type CUnit, type Status, STATUS_NAME } from './engine/combat';
 import * as R from './engine/run';
+import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
 import { type CType, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, KEYWORD_NAME, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type SynergyId, type UnitState } from './types';
 import { BattleView, fmt } from './ui/battleview';
@@ -929,6 +930,27 @@ function fieldCard(run: RunState, compact = false) {
   </div>`;
 }
 
+// ───────────────────────── 사건 연출 (임시 표시: 미연시 UI 전까지 대본 형태로 이어 보여 준다)
+function speakerOf(id: string): { name: string; color: string } {
+  if (id === 'pc') return { name: PC_NAME, color: 'var(--accent)' };
+  const d = UNIT_BY_ID[id];
+  if (d) return { name: d.name, color: SYN_BY_ID[d.factions[0] || d.traits[0]]?.color || 'var(--accent)' };
+  const n = NPCS[id];
+  return { name: n?.name || id, color: n?.color || 'var(--dim)' };
+}
+function sceneHtml(beats: Beat[]): string {
+  let bg = '';
+  return `<div class="scene">${beats.map((b) => {
+    let pre = '';
+    if (b.bg && b.bg !== bg) { bg = b.bg; pre = `<div class="sc-bg">${esc((BGS[b.bg] || b.bg).split(' — ')[0])}</div>`; }
+    if (!b.who) return `${pre}<p class="sc-narr">${esc(b.text)}</p>`;
+    const sp = speakerOf(b.who);
+    const name = b.name || sp.name;
+    if (b.think) return `${pre}<p class="sc-think"><span class="sc-who" style="--c:${sp.color}">${esc(name)}</span>${esc(b.text)}</p>`;
+    return `${pre}<div class="sc-say"><span class="sc-who" style="--c:${sp.color}">${esc(name)}</span><p>${esc(b.text)}</p></div>`;
+  }).join('')}</div>`;
+}
+
 // ───────────────────────── 모달: 대기 중인 선택
 function pendingModal(run: RunState): string {
   const p = run.pending[0];
@@ -940,7 +962,7 @@ function pendingModal(run: RunState): string {
   } else if (p.t === 'event') {
     const ev = EVENT_BY_ID[p.id];
     body = `<div class="event ${ev.rare ? 'rare' : ''}"><h1>${ev.rare ? '✦ ' : ''}${esc(ev.title)}</h1>${ev.rare ? '<p class="accent small">희귀 사건</p>' : ''}
-      <p>${esc(ev.text)}</p>
+      ${sceneHtml(R.eventScene(p))}
       <div class="cards">${ev.choices.map((c, i) => { const why = c.block?.(run); return `<button class="card" data-a="event-choice" data-v="${i}" ${why ? 'disabled' : ''}><b>${esc(c.label)}</b><span>${ic(esc(c.desc))}</span>${why ? `<span class="down small">${esc(why)}</span>` : ''}</button>`; }).join('')}</div></div>`;
   } else if (p.t === 'victory') {
     body = `<h1>의뢰 성공</h1><p>페이즈 ${run.phase} 보스를 격파했습니다. ${esc(fieldOf(run.field).name)} 의뢰가 완료되었습니다${run.diff ? ` (위험 등급 ${run.diff})` : ''}.</p>
@@ -1040,7 +1062,7 @@ function pendingModal(run: RunState): string {
     body = `<h1>순례 — 축복 선택</h1><p class="muted">축복은 이번 페이즈가 끝날 때까지 유지됩니다.</p>
       <div class="cards">${p.options.map((id) => { const d = BLESSING_BY_ID[id]; return `<button class="card" data-a="pick-blessing" data-v="${id}"><b>${esc(d.name)}</b><span>${ic(esc(d.desc))}</span></button>`; }).join('')}</div>`;
   } else if (p.t === 'notice') {
-    body = `<h1>${esc(p.title)}</h1><p>${ic(esc(p.body))}</p><button class="btn primary" data-a="notice-ok">확인</button>`;
+    body = `<h1>${esc(p.title)}</h1>${p.scene?.length ? sceneHtml(p.scene) : ''}<p class="${p.scene?.length ? 'sc-result' : ''}">${ic(esc(p.body))}</p><button class="btn primary" data-a="notice-ok">확인</button>`;
   }
   return `<div class="modal-bg"><div class="modal ${mcls}">${body}</div></div>`;
 }

@@ -146,14 +146,15 @@ export const STORY_D: EventDef[] = [
         apply: (r, api) => {
           r.credits -= 15;
           const x = roll(api);
-          if (x < 0.25) { r.credits += 50; return '여섯 번째 달이 떴습니다! 크레딧 +50.'; }
-          if (x < 0.65) { r.credits += 20; return '본전에 조금 더 얹어 일어났습니다. 크레딧 +20.'; }
+          if (x < 0.25) { r.credits += 50; api.outcome('big'); return '여섯 번째 달이 떴습니다! 크레딧 +50.'; }
+          if (x < 0.65) { r.credits += 20; api.outcome('mid'); return '본전에 조금 더 얹어 일어났습니다. 크레딧 +20.'; }
+          api.outcome('lose');
           return '딜러가 미소를 지으며 판돈을 쓸어 갑니다.';
         },
       },
       {
         label: '작은 판에서 논다', desc: '크레딧 -5. 50%: 크레딧 +12 / 50%: 잃는다.', block: needCr(5),
-        apply: (r, api) => { r.credits -= 5; if (api.chance(0.5)) { r.credits += 12; return '소소하게 땄습니다. 크레딧 +12.'; } return '조용히 잃었습니다.'; },
+        apply: (r, api) => { r.credits -= 5; if (api.chance(0.5)) { r.credits += 12; api.outcome('win'); return '소소하게 땄습니다. 크레딧 +12.'; } api.outcome('lose'); return '조용히 잃었습니다.'; },
       },
       { label: '오르카에게 바를 맡긴다', desc: '크레딧 +7. 단원들이 한숨 돌린다: 플레이어 체력 +8.', apply: (r) => { r.credits += 7; heal(r, 8); return '오르카가 하룻밤 바를 봐 주고 팁을 챙겼습니다.'; } },
     ],

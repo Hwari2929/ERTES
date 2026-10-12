@@ -49,7 +49,8 @@ export const STORY_A: EventDef[] = [
         block: cost(6),
         apply: (r, api) => {
           r.credits -= 6;
-          if (api.chance(0.6)) { api.gain(api.randomItem('C')); return '맥스가 꼬리를 흔들며 나왔습니다. 입에 뭔가를 물고 있습니다. 재료 1개 획득.'; }
+          if (api.chance(0.6)) { api.gain(api.randomItem('C')); api.outcome('ok'); return '맥스가 꼬리를 흔들며 나왔습니다. 입에 뭔가를 물고 있습니다. 재료 1개 획득.'; }
+          api.outcome('fail');
           return '육포는 사라졌고, 맥스는 끝내 나오지 않았습니다.';
         },
       },

@@ -3,6 +3,8 @@ import { AUG_BY_ID } from '../data/augments';
 import { FIELDS, fieldOf } from '../data/battlefields';
 import { diffHas } from '../data/difficulty';
 import { EVENT_BY_ID, EVENTS, type EventApi } from '../data/events';
+import { PC_NAME, resolveScene, type Beat } from '../data/scene';
+import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, emblemId, emblemOf, isLocked, isMod, itemInfo } from '../data/items';
@@ -182,7 +184,7 @@ export function enterNode(run: RunState, type: NodeType) {
   if (type === 'event') {
     const id = pickEvent(run);
     run.seenEvents.push(id);
-    run.pending.push({ t: 'event', id });
+    run.pending.push({ t: 'event', id, sub: pickSub(run, id) });
     advance(run);
     return;
   }
@@ -853,6 +855,7 @@ function eventApi(run: RunState): EventApi {
     boon: (id) => { if (!run.boons.includes(id)) run.boons.push(id); },
     flag: (id) => { if (!run.flags.includes(id)) run.flags.push(id); },
     chance: (p) => rng(run, (r) => r.chance(p)),
+    outcome: () => {},
   };
 }
 
@@ -867,12 +870,37 @@ export function chooseEvent(run: RunState, idx: number): string | null {
   if (blocked) return blocked;
   run.pending.shift();
   const before = run.pending.length;
-  const msg = c.apply(run, eventApi(run));
+  let outKey = 'default';
+  const vars: Record<string, string> = {};
+  const api = { ...eventApi(run), outcome: (k: string, v?: Record<string, string>) => { outKey = k; Object.assign(vars, v || {}); } };
+  const msg = c.apply(run, api);
   run.inventory = run.inventory.filter(Boolean); // 사건 중 비운 칸 정리
   const follow = run.pending.splice(before);
-  run.pending.unshift({ t: 'notice', title: ev.title, body: `${c.label} — ${msg}` }, ...follow);
+  // 결과 장면: 연출의 after[선택지] (키별이면 outcome 키)
+  const aft = EVENT_SCENES[ev.id]?.after?.[idx];
+  const beats = !aft ? null : Array.isArray(aft) ? aft : aft[outKey] ?? aft.default ?? null;
+  const scene = beats ? resolveScene(beats, undefined, null, { ...sceneVars(p.sub), ...vars }) : undefined;
+  run.pending.unshift({ t: 'notice', title: ev.title, body: `${c.label} — ${msg}`, scene }, ...follow);
   log(run, `사건: ${ev.title} — ${c.label}`);
   return null;
+}
+
+// ───────────────────────── 사건 연출
+/** 동적 조연: 연출의 조연 후보 중 보유 기물 (출전 기물 우선) 한 명 */
+function pickSub(run: RunState, id: string): string | null {
+  const sc = EVENT_SCENES[id];
+  if (!sc?.subs) return null;
+  const cand = Object.keys(sc.subs).filter((x) => !sc.cast.includes(x) && run.units.some((u) => u.defId === x));
+  const front = cand.filter((x) => run.units.some((u) => u.defId === x && u.pos));
+  const pool = front.length ? front : cand;
+  return pool.length ? rng(run, (r) => r.pick(pool)) : null;
+}
+const sceneVars = (sub: string | null | undefined): Record<string, string> => ({ pc: PC_NAME, sub: sub ? UNIT_BY_ID[sub]?.name || sub : '' });
+/** 사건 본문 장면 (연출이 없으면 text 를 서술 한 줄로) */
+export function eventScene(p: { id: string; sub?: string | null }): Beat[] {
+  const sc = EVENT_SCENES[p.id];
+  if (!sc) return [{ text: EVENT_BY_ID[p.id]?.text || '' }];
+  return resolveScene(sc.scene, sc.subs, p.sub, sceneVars(p.sub));
 }
 
 // ───────────────────────── 기물 방출

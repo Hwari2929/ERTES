@@ -1,3 +1,4 @@
+import type { Beat } from './data/scene';
 export type Major = 'vit' | 'pow' | 'mnd' | 'def' | 'agi';
 export const MAJORS: Major[] = ['vit', 'pow', 'mnd', 'def', 'agi'];
 export const MAJOR_NAME: Record<Major, string> = { vit: '생명력', pow: '전투력', mnd: '정신력', def: '방어력', agi: '기동력' };
@@ -106,7 +107,7 @@ export type Pending =
   | { t: 'global'; options: string[] }
   | { t: 'field' }
   | { t: 'victory' }
-  | { t: 'event'; id: string }
+  | { t: 'event'; id: string; sub?: string | null } // sub: 이번 사건의 동적 조연 (기물 id)
   | { t: 'privilege'; options: AugPick[]; rerolls: number }
   | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean; join?: boolean; kind?: 'unit' | 'special' | 'psionic' }
   | { t: 'pilgrim' }
@@ -115,7 +116,7 @@ export type Pending =
   | { t: 'supply'; options: string[] }
   | { t: 'branch'; options: NodeType[] }
   | { t: 'blessing'; options: string[] }
-  | { t: 'notice'; title: string; body: string };
+  | { t: 'notice'; title: string; body: string; scene?: Beat[] };
 
 export interface RunState {
   version: number;

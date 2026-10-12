@@ -21,6 +21,8 @@ export interface EventApi {
   boon: (id: string) => void; // 영구 팀 효과
   flag: (id: string) => void; // 연계 사건 표식
   chance: (p: number) => boolean; // 확률 판정 (런 시드 기반)
+  /** 결과 장면 고르기: 연출의 after[선택지] 가 키별일 때 이 키를 쓴다. vars 는 장면 텍스트의 {이름} 치환 */
+  outcome: (key: string, vars?: Record<string, string>) => void;
 }
 
 export interface EventChoice {
