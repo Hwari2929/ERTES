@@ -865,3 +865,50 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .menu-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
 .pref { display: flex; gap: 10px; align-items: flex-start; padding: 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
 .pref input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--accent); }
+
+/* ── 능력 (통일 형식) */
+.ab-click { cursor: pointer; border-radius: 4px; }
+.ab-click:hover { outline: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); }
+.ab-click.on { outline: 1px solid var(--accent); }
+.abil .ab-click { margin: -2px -4px; padding: 2px 4px; }
+.ab-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.abc { display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; border-radius: 4px; background: var(--panel); border: 1px solid var(--line); font-size: .74rem; line-height: 1.5; white-space: nowrap; }
+.abc .li, .pw .li, .tln .li, .ap-rows .li { width: 13px; height: 13px; flex: none; }
+.abc.v { border-color: transparent; background: none; padding-inline: 2px; }
+.pw { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+.pw b { font-family: var(--f-mono); font-weight: 700; }
+.pw-shoot { color: #ffb15c; } .pw-strike { color: #ff7a6b; } .pw-tech { color: #8fd0ff; } .pw-tac { color: #e6c86a; }
+.ab-chips > .pw { padding: 1px 6px; border-radius: 4px; background: var(--panel); border: 1px solid var(--line); font-size: .74rem; }
+.hits { font-family: var(--f-mono); margin-left: 1px; }
+.elc { display: inline-block; padding: 0 5px; border-radius: 3px; font-size: .72rem; font-weight: 600; line-height: 1.5; color: #0d0f14; vertical-align: 1px; }
+.el-phys { background: var(--el-phys); } .el-chem { background: var(--el-chem); } .el-elec { background: var(--el-elec); }
+.el-psy { background: var(--el-psy); } .el-holy { background: var(--el-holy); } .el-true { background: var(--el-true); }
+.ab-chips > .elc { align-self: center; }
+.kw { color: var(--accent); font-weight: 700; }
+.tln { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; }
+.ab-ace-wrap { display: grid; gap: 4px; }
+.aug-li.ab-click { padding: 3px 4px; }
+/* 좌측 능력 팝업 */
+.abil-pop { width: 320px; }
+.abil-pop .sp-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.abil-pop .sp-head b { font-size: 1rem; }
+.abil-pop p { margin: 4px 0; font-size: .86rem; line-height: 1.55; }
+.ap-top { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; }
+.ap-meta, .ap-rows, .ap-gloss { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0; font-size: .82rem; }
+.ap-meta { font-size: .76rem; align-content: start; }
+.ap-meta dt, .ap-rows dt, .ap-gloss dt { color: var(--dim); white-space: nowrap; }
+.ap-meta dd, .ap-rows dd, .ap-gloss dd { margin: 0; }
+.ap-rows { padding: 6px 8px; background: var(--panel-2); border-radius: 6px; }
+.ap-rows dd { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.ap-hr { border: 0; border-top: 1px dashed var(--line); margin: 10px 0 8px; }
+.ap-gloss dt { color: var(--accent); font-weight: 700; }
+.ap-gloss dd { color: var(--fg); opacity: .85; }
+/* 미니 격자: 시전자 금색 · 사거리 파랑 · 대상 진한 빨강 · 피해 칸 빨강 */
+.mg { margin: 0; display: grid; justify-items: center; gap: 3px; flex: none; }
+.mg-g { display: grid; grid-template-columns: repeat(var(--n), 9px); gap: 1px; }
+.mg-g i { width: 9px; height: 9px; border-radius: 1.5px; background: color-mix(in srgb, var(--fg) 10%, transparent); }
+.mg-g i.in { background: color-mix(in srgb, var(--info) 55%, transparent); }
+.mg-g i.me { background: var(--accent); }
+.mg-g i.tg { background: var(--bad); }
+.mg-g i.hit { background: color-mix(in srgb, var(--bad) 50%, transparent); }
+.mg figcaption { font-size: .68rem; color: var(--dim); white-space: nowrap; }

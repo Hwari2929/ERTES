@@ -12,6 +12,8 @@ import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf } fro
 import { UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { DIVINE_ACT, FAITH_DEF, recMajors } from './data/rework';
 import { BRIEF, GROWTH_BRIEF, PSI_BRIEF } from './data/brief';
+import { ABIL, augAbilText } from './data/abiltext';
+import * as AB from './ui/abil';
 import {
   activeTiers, buildAlly, buildBattle, buildEnemy, deployed, layout, memberships, playerRows, synergyCounts, totalMajors, unitEffects,
 } from './engine/build';
@@ -50,6 +52,7 @@ const app = {
   recoFor: null as string | null, // 추천 장비 창을 연 기물 uid
   nodePick: null as string | null, // 지도: 이번 칸에서 고른 노드 (진입 전)
   statPop: false, // 상세 보기: 전투 스탯 펼침 (패널 왼쪽)
+  abilPop: null as string | null, // 능력 상세 팝업 (weapon · skill · trait · ace · aug:<id>)
   cardOpen: null as string | null, // 터치 화면: 설명을 펼친 시작 기물 카드
   subOpen: new Set<string>(), // 특성 하위 항목(전투 · 전술 유형, 신앙) 펼침 상태
   menu: null as null | 'menu' | 'settings' | 'export' | 'import',
@@ -293,11 +296,11 @@ function faithBody(d: UnitDef, f: FaithId, run: RunState | null) {
   return `<p>${esc(app.detail ? `신성력 획득: ${fd.gain}, 초당 +2. 신권 대행에 더해지는 효과: ${fd.act}. 수집 상한 ${CFG.divCap + (run?.divCap || 0)}.` : `신권 대행에 더해지는 가호: ${fd.act}.`)}</p>`;
 }
 /** 특성 블록: 고유 특성 + 전투 유형 · 전술 유형 · 고유 신앙 (접힘) */
-function traitGroup(d: UnitDef, u: UnitState | null, run: RunState | null) {
+function traitGroup(d: UnitDef, u: UnitState | null, run: RunState | null, b: Battle | null = null, c: CUnit | null = null) {
   const f = u?.faith || d.faith;
   const k = (x: string) => `${d.id}:${x}`;
   const ct = CTYPE_DESC[d.ctype], tt = TTYPE_DESC[d.ttype];
-  return `<div class="abil ab-trait"><div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div><p>${esc(traitText(d))}</p>
+  return `<div class="abil ab-trait"><div class="ab-click${abilOn('trait')}" data-a="abil-pop" data-v="trait" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, c)}</div>
     <div class="subs">
       ${sub(k('ct'), CTYPE_ICON(d.ctype), `ct-${d.ctype}`, CTYPE_NAME[d.ctype], '전투 유형', `<p>${esc(app.detail ? ct[1] : ct[0])}</p>`)}
       ${sub(k('tt'), TTYPE_ICON(d.ttype), `tt-${d.ttype}`, TTYPE_NAME[d.ttype], '전술 유형', `<p>${esc(app.detail ? tt[1] : tt[0])}</p>${ttypeExtra(d, u, run)}`)}
@@ -575,7 +578,70 @@ function previewAlly(run: RunState, u: UnitState) {
   const counts = synergyCounts(deployed(run), run);
   const tmp = { ...u, pos: u.pos || { c: 0, r: 0 } };
   const c = u.pos ? buildAlly(b, run, tmp, counts) : buildAlly(b, null, tmp, {});
+  // 전술 위력: 출전 아군 구성으로 계산
+  b.add(c);
+  for (const o of deployed(run)) if (o.uid !== u.uid) b.add(buildAlly(b, run, o, counts));
+  b.computeTac();
   return { b, c };
+}
+
+// ───────────────────────── 능력 (통일 형식 · 누르면 좌측 상세 팝업)
+const actx = (b: Battle | null, c: CUnit | null): AB.AbilCtx => ({ b, c, p: c?.sk || {} });
+const abilOn = (k: string) => (app.abilPop === k ? ' on' : '');
+function abilCard(key: string, kind: keyof typeof AB_KIND, name: string, meta: string, body: string, extra = '') {
+  return `<div class="abil ab-${kind} ab-click${abilOn(key)}" data-a="abil-pop" data-v="${esc(key)}" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">${AB_KIND[kind]}</span><b>${esc(name)}</b>${meta ? `<span class="ab-meta">${meta}</span>` : ''}</div>${body}${extra}</div>`;
+}
+function weaponCard(w: Weapon, b: Battle | null, c: CUnit | null, elem = w.elem) {
+  if (w.kind === 'none') return abilCard('weapon', 'weapon', w.name, '', '<p>기본 공격을 하지 않는다.</p>');
+  const range = b && c ? b.S(c, 'range') : w.range;
+  return abilCard('weapon', 'weapon', w.name, WPOS(range), `<div class="ab-chips">${AB.weaponChips(w, actx(b, c), range)}${AB.elemChip(elem)}</div>`);
+}
+function skillCard(d: UnitDef, b: Battle | null, c: CUnit | null) {
+  const p = c?.sk || d.skill.params;
+  const info = ABIL[d.id]?.skill?.(p);
+  const cd = c?.cdMax ?? d.skill.cd;
+  const range = b && c ? b.S(c, 'range') : d.range;
+  return abilCard('skill', 'skill', d.skill.name, info ? '' : `${cd.toFixed(1)}초`, info ? `<div class="ab-chips">${AB.skillChips(info, actx(b, c), range, cd)}</div>` : `<p>${esc(skillText(d, p))}</p>`);
+}
+const traitHtml = (d: UnitDef, b: Battle | null, c: CUnit | null) => {
+  const t = ABIL[d.id]?.trait;
+  return t ? `<p>${statIc(AB.tok(t, actx(b, c), new Set()))}</p>` : `<p>${esc(traitText(d))}</p>`;
+};
+function augText(id: string, param: string | undefined, b: Battle | null, c: CUnit | null, gl = new Set<string>()) {
+  const t = augAbilText(id);
+  return t ? statIc(AB.tok(t, actx(b, c), gl)) : esc(augDesc(id, param));
+}
+/** 좌측 능력 상세 팝업 */
+function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null, aceK = 1) {
+  const ctx = actx(b, c);
+  const gl = new Set<string>();
+  let kind = '', name = '', body = '';
+  if (key === 'weapon') {
+    const w = c?.weapon || d.weapon;
+    const range = b && c ? b.S(c, 'range') : w.range;
+    kind = '무기'; name = w.name;
+    body = w.kind === 'none' ? '<p>기본 공격을 하지 않는다.</p>' : `<div class="ap-top">${AB.rangeGrid(range)}${AB.areaGrid({ k: 'one' })}
+      <dl class="ap-meta"><dt>대상</dt><dd>현재 대상</dd><dt>사거리</dt><dd>${range}칸</dd><dt>범위</dt><dd>단일</dd></dl></div>${AB.rowsHtml(AB.weaponRows(w, ctx, c?.atk.elem || w.elem, gl))}`;
+  } else if (key === 'skill') {
+    const p = c?.sk || d.skill.params;
+    const info = ABIL[d.id]?.skill?.(p);
+    const cd = c?.cdMax ?? d.skill.cd;
+    kind = '스킬'; name = d.skill.name;
+    body = info ? AB.skillBody(info, ctx, b && c ? b.S(c, 'range') : d.range, cd, gl) : `<p>${esc(d.skill.desc(p))}</p><p class="muted small">쿨다운 ${cd.toFixed(1)}초</p>`;
+  } else if (key === 'trait') {
+    kind = '특성'; name = d.trait.name;
+    const t = ABIL[d.id]?.trait;
+    body = `<p>${t ? statIc(AB.tok(t, ctx, gl)) : esc(d.trait.desc)}</p>`;
+  } else if (key === 'ace' && d.ace) {
+    kind = '에이스'; name = d.ace.name;
+    const t = ABIL[d.id]?.ace?.(aceK);
+    body = `<p>${t ? statIc(AB.tok(t, ctx, gl)) : esc(d.ace.desc(aceK))}</p>`;
+  } else if (key.startsWith('aug:')) {
+    const id = key.slice(4);
+    kind = '증강'; name = AUG_BY_ID[id]?.name || id;
+    body = `<p>${augText(id, c?.src?.augments.find((a) => a.id === id)?.param, b, c, gl)}</p>`;
+  } else return '';
+  return `<div class="stat-pop abil-pop"><div class="sp-head"><span class="ab-kind">${kind}</span><b>${esc(name)}</b><button class="btn tiny" data-a="abil-pop" data-v="">닫기</button></div>${body}${AB.glossHtml(gl)}</div>`;
 }
 
 /** 항해자 에이스 파일럿: 능력 란에 표시하고 여기서 지정 */
@@ -587,7 +653,8 @@ function aceAbil(run: RunState, u: UnitState) {
   const on = nav > 0 && !!u.pos && aceTargetUid(run) === u.uid;
   const ctl = !nav || !u.pos ? '<span class="muted small">항해자 시너지가 활성화된 출전 기물만 지정할 수 있습니다.</span>'
     : on ? '<span class="small staff-on">✈ 지정됨</span>' : `<button class="btn tiny" data-a="ace-target" data-v="${u.uid}">✈ 에이스 파일럿으로 지정</button>`;
-  return `<div class="abil ab-ace${on ? ' on' : ''}"><div class="ab-head"><span class="ab-kind">에이스</span><b>${esc(d.ace.name)}</b><span class="ab-meta">${on ? '활성' : '비활성'}</span></div><p>${esc(d.ace.desc(k))}</p>${ctl}</div>`;
+  const t = ABIL[d.id]?.ace?.(k);
+  return `<div class="ab-ace-wrap${on ? ' on' : ''}">${abilCard('ace', 'skill', d.ace.name, on ? '활성' : '비활성', `<p>${t ? statIc(AB.tok(t, actx(null, null), new Set())) : esc(d.ace.desc(k))}</p>`).replace('ab-skill', 'ab-ace')}${ctl}</div>`;
 }
 
 function detailPanel(run: RunState) {
@@ -638,13 +705,13 @@ function detailPanel(run: RunState) {
     </div>
     <h3>능력</h3>
     <div class="abils">
-      ${weaponAbil(c.weapon || d.weapon, c.atk.elem)}
-      ${traitGroup(d, u, run)}
+      ${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem)}
+      ${traitGroup(d, u, run, b, c)}
       ${aceAbil(run, u)}
-      ${abil('skill', d.skill.name, app.detail ? `${c.cdMax.toFixed(1)}초${d.ctype === 'CMD' ? ' · 전술 위력' : ''}` : '', skillText(d, c.sk))}
+      ${skillCard(d, b, c)}
     </div>
     <h3>증강 <span class="muted">${u.augments.length}</span></h3>
-    ${u.augments.length ? `<ul class="augs">${u.augments.map((a) => { const ad = AUG_BY_ID[a.id]; return `<li class="aug-li">${augIcon(a.id)}<span><b>${esc(ad?.name || a.id)}</b><br><span class="muted">${esc(augDesc(a.id, a.param))}</span></span></li>`; }).join('')}</ul>` : '<p class="muted small">공명 등급이 오르면 증강을 고릅니다.</p>'}
+    ${u.augments.length ? `<ul class="augs">${u.augments.map((a) => { const ad = AUG_BY_ID[a.id]; return `<li class="aug-li ab-click${abilOn(`aug:${a.id}`)}" data-a="abil-pop" data-v="aug:${esc(a.id)}" role="button" tabindex="0">${augIcon(a.id)}<span><b>${esc(ad?.name || a.id)}</b><br><span class="muted">${augText(a.id, a.param, b, c)}</span></span></li>`; }).join('')}</ul>` : '<p class="muted small">공명 등급이 오르면 증강을 고릅니다.</p>'}
     <p class="lore">${esc(d.lore)}</p>
     ${releaseBlock(run, u)}
   </div>`;
@@ -839,13 +906,14 @@ function pendingModal(run: RunState): string {
     } else {
       R.ensureRankupOptions(run, p);
       const opts = p.options || [];
+      const pv = previewAlly(run, u);
       body = `${side}<div class="ru-main">
         <div class="ru-head"><h1>${p.kind === 'special' ? '합류 보상 · 스페셜 증강' : p.kind === 'psionic' ? `${p.rank}등급 달성 보상 · 사이오닉 증강` : p.join ? '합류 보상 · 증강' : `${p.rank}등급 달성 보상 · 증강`}</h1>
           <span class="muted small">${p.kind === 'special' ? '스페셜 기물은 합류할 때 스페셜 증강 1개를 추가로 고릅니다.' : p.kind === 'psionic' ? '사이오닉 기물은 공명 등급 4의 배수마다 사이오닉 증강을 고릅니다.' : p.join ? '합류할 때 전용 증강 1개를 고릅니다.' : d.ttype === 'major' ? '메이저 기물은 공명 등급 3의 배수마다 전용 · 메이저 공용 증강 중 1개를 고릅니다.' : '공명 등급 5의 배수마다 전용 증강 1개를 고릅니다.'}</span>
           ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
         <div class="aug-list">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];
-          return `<button class="aug-opt ${app.augPick === i ? 'on' : ''}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">${augIcon(a.id)}<span class="ao-txt"><b>${esc(ad.name)}</b><span>${esc(augDesc(a.id, a.param))}</span></span><kbd>${i + 1}</kbd></button>`;
+          return `<button class="aug-opt ${app.augPick === i ? 'on' : ''}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">${augIcon(a.id)}<span class="ao-txt"><b>${esc(ad.name)}</b><span>${augText(a.id, a.param, pv.b, pv.c)}</span></span><kbd>${i + 1}</kbd></button>`;
         }).join('') || '<p class="muted">고를 수 있는 증강이 없습니다.</p>'}</div>
         <div class="ru-foot">${opts.length
           ? `<button class="btn primary aug-ok" data-a="pick-aug" data-v="${app.augPick ?? ''}" ${app.augPick === null ? 'disabled' : ''}>${app.augPick === null ? '증강을 고르세요' : '확정'}</button>`
@@ -955,6 +1023,13 @@ const lastView = { screen: '' as string, modal: '' };
 /** 상세 능력치 창 (상세 보기 패널 바깥, 위치는 layoutPanels 가 잡는다) */
 function statPopHtml(run: RunState) {
   const sel = app.sel;
+  if (app.abilPop && sel?.k === 'unit') {
+    const u = run.units.find((x) => x.uid === sel.uid);
+    if (!u) return '';
+    const { b, c } = previewAlly(run, u);
+    const nav = tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0);
+    return abilPopHtml(app.abilPop, UNIT_BY_ID[u.defId], b, c, [1, 1, 1.6, 2.5][nav] ?? 1);
+  }
   if (!app.statPop) return '';
   if (sel?.k === 'enemy' && run.node?.enc) {
     const s = run.node.enc.enemies[sel.i];
@@ -1355,11 +1430,12 @@ function battleUnitStatic(b: Battle, u: CUnit) {
   const temp = u.tempItems || [];
   const ic2 = (id: string, tag = '') => `<button class="tk-it${app.bPick === `it:${id}` ? ' on' : ''}" data-a="bpick" data-v="it:${id}" title="${esc(itemInfo(id).name)}${tag}">${itemIcon(id)}</button>`;
   const eq = [...items.filter((x): x is string => !!x).map((x) => ic2(x)), ...(mod ? [ic2(mod)] : []), ...temp.map((x) => ic2(x, ' (임시 · 캠핑)'))];
-  let head = '', abils = '';
+  let head = '', abils = '', pop = '';
   if (u.side === 0 && !u.isSummon) {
     const d = UNIT_BY_ID[u.defId];
     head = heroHead(d.id, sprite(u, 'spr big'), d.name, d);
-    abils = `${weaponAbil(u.weapon || d.weapon, u.atk.elem)}${abil('skill', d.skill.name, `${u.cdMax.toFixed(1)}초`, skillText(d, u.sk))}`;
+    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem)}<div class="abil ab-trait ab-click${abilOn('trait')}" data-a="abil-pop" data-v="trait" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}`;
+    if (app.abilPop) pop = abilPopHtml(app.abilPop, d, b, u);
   } else if (u.side === 1 && ENEMY_BY_ID[u.defId]) {
     const e = ENEMY_BY_ID[u.defId];
     head = heroHead(`en_${e.id}`, sprite(u, 'spr big'), e.name, enemyTypes(e), `<i>${tierKo(e)}</i>`);
@@ -1374,7 +1450,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
     ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.join('')}</div></div>` : ''}
     ${ms ? `<div class="mj-wrap"><div class="mj-head"><h3>메이저 스탯</h3>${magBtn()}</div>${majorsHtml(ms)}</div>` : `<div class="mj-head"><h3>능력치</h3>${magBtn()}</div>`}
     ${app.statPop ? '<div class="bs-stats"></div>' : ''}
-    ${abils ? `<h3>능력</h3><div class="abils">${abils}</div>` : ''}`;
+    ${abils ? `<h3>능력</h3><div class="abils">${abils}</div>` : ''}${pop}`;
 }
 /** 변하는 부분: 체력 · 버프 · 선택 설명 · 상세 능력치 */
 function battleUnitDyn(b: Battle, u: CUnit) {
@@ -1388,8 +1464,8 @@ function renderBattleUnit(b: Battle, force: boolean) {
   if (!bu) return;
   const u = b.units.find((x) => x.id === app.battleSel);
   if (!u) { if (bunitFor !== 'none' || force) { bu.innerHTML = '<p class="muted small">보드 위 기물이나 왼쪽 목록을 누르면 상세 정보를 볼 수 있습니다.</p>'; bunitFor = 'none'; } return; }
-  const sig = `${u.id}:${app.statPop}:${app.bPick?.startsWith('it:') ? app.bPick : ''}`;
-  if (force || sig !== bunitFor) { bu.innerHTML = battleUnitStatic(b, u); bunitFor = sig; }
+  const sig = `${u.id}:${app.statPop}:${app.abilPop}:${app.bPick?.startsWith('it:') ? app.bPick : ''}`;
+  if (force || sig !== bunitFor) { bu.innerHTML = battleUnitStatic(b, u); bunitFor = sig; layoutPanels(); }
   const dyn = bu.querySelector('.bs-dyn');
   if (dyn) dyn.innerHTML = battleUnitDyn(b, u);
   const st = bu.querySelector('.bs-stats');
@@ -1443,7 +1519,7 @@ function codexScreen() {
 function act(a: string, v: string) {
   const run = app.run;
   // 전투 중에는 속도 조절 / 결과 보기 / 계속만 받는다 (재렌더하면 전투 화면이 초기화됨)
-  if (app.screen === 'battle' && !['speed', 'skip', 'after-battle', 'meter-tab', 'bsel', 'bdesel', 'bpick', 'stat-pop'].includes(a)) return;
+  if (app.screen === 'battle' && !['speed', 'skip', 'after-battle', 'meter-tab', 'bsel', 'bdesel', 'bpick', 'stat-pop', 'abil-pop'].includes(a)) return;
   switch (a) {
     case 'newrun':
       app.starters = []; app.screen = 'newrun'; app.menu = null; carX = null; app.cardOpen = null;
@@ -1501,7 +1577,8 @@ function act(a: string, v: string) {
       break;
     }
     case 'tl-pick': app.nodePick = v; break;
-    case 'stat-pop': app.statPop = !app.statPop; if (app.screen === 'battle') { updateMeter(true); return; } break;
+    case 'abil-pop': app.abilPop = !v || app.abilPop === v ? null : v; app.statPop = false; if (app.screen === 'battle') { updateMeter(true); return; } break;
+    case 'stat-pop': app.statPop = !app.statPop; app.abilPop = null; if (app.screen === 'battle') { updateMeter(true); return; } break;
     case 'reco': app.recoFor = v || null; break;
     case 'field-info': if (run) run.pending.unshift({ t: 'field' }); break;
     case 'enter': {
@@ -1533,7 +1610,7 @@ function act(a: string, v: string) {
     case 'speed': app.speed = +v; savePref('speed', app.speed); applySpeed(); document.querySelectorAll('.speed .btn').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.v === v)); return;
     case 'skip': app.view?.skip?.(); return;
     case 'after-battle': app.summary = null; if (app.view) { app.view.destroy(); app.view = null; } goPrepOrMap(); break;
-    case 'sel-unit': app.sel = app.sel?.k === 'item' && run ? equipSel(run, app.sel.idx, v) : { k: 'unit', uid: v }; break;
+    case 'sel-unit': app.abilPop = null; app.sel = app.sel?.k === 'item' && run ? equipSel(run, app.sel.idx, v) : { k: 'unit', uid: v }; break;
     case 'sel-enemy': app.sel = { k: 'enemy', i: +v }; break;
     case 'sel-item': {
       if (!run) return;
@@ -1575,7 +1652,7 @@ function act(a: string, v: string) {
     case 'codex-tab': app.codexTab = v as typeof app.codexTab; break;
     case 'codex-back': app.screen = app.run ? (app.run.over ? 'over' : 'map') : 'title'; if (app.run && !app.run.over) goPrepOrMap(); break;
     case 'meter-tab': app.meterTab = v as typeof app.meterTab; document.querySelectorAll('.meter-tabs .btn').forEach((e) => e.classList.toggle('on', (e as HTMLElement).dataset.v === v)); updateMeter(true); return;
-    case 'bsel': app.bPick = null; app.battleSel = app.battleSel === +v ? null : +v; applySpeed(); updateMeter(true); return;
+    case 'bsel': app.bPick = null; app.abilPop = null; app.battleSel = app.battleSel === +v ? null : +v; applySpeed(); updateMeter(true); return;
     case 'bdesel': if (app.battleSel !== null) { app.battleSel = null; app.bPick = null; applySpeed(); updateMeter(true); } return;
     case 'bpick': app.bPick = app.bPick === v ? null : v; updateMeter(true); return;
     case 'release': app.releaseConfirm = v; break;
