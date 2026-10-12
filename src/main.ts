@@ -391,12 +391,13 @@ function newRunScreen() {
       <button class="car-btn prev" data-a="car-prev" aria-label="이전 기물">‹</button>
       <div class="car-track" aria-label="후보 기물 (좌우로 넘겨 보기)">${[0, 1, 2].map((k) => app.pool.map((id) => {
         const on = app.starters.includes(id);
-        return pickCard(UNIT_BY_ID[id], { synCount: teamCount([...app.starters, id]), clone: k !== 1, on, badge: on ? String(app.starters.indexOf(id) + 1) : '', tapAct: 'card-tap', full: !on && app.starters.length >= CFG.startUnits, fullLabel: `이미 ${CFG.startUnits}명 선택` });
+        return pickCard(UNIT_BY_ID[id], { clone: k !== 1, on, badge: on ? String(app.starters.indexOf(id) + 1) : '', tapAct: 'card-tap', full: !on && app.starters.length >= CFG.startUnits, fullLabel: `이미 ${CFG.startUnits}명 선택` });
       }).join('')).join('')}</div>
       <button class="car-btn next" data-a="car-next" aria-label="다음 기물">›</button>
     </div>
     <div class="nr-foot">
       <div class="picked">${app.starters.map((id) => `<button class="picked-u" data-a="pick-starter" data-v="${id}" title="${esc(UNIT_BY_ID[id].name)} 빼기">${sprite(UNIT_BY_ID[id], 'spr')}</button>`).join('')}${'<span class="picked-u empty"></span>'.repeat(CFG.startUnits - n)}</div>
+      <div class="nr-syn syn-list">${(() => { const cnt = teamCount(app.starters); const ids = SYNERGIES.map((x) => x.id).filter((id) => cnt(id) > 0).sort((x, y) => cnt(y) - cnt(x)); return ids.map((id) => synToken(id, cnt(id))).join(''); })()}</div>
       <button class="btn ghost" data-a="to-title">뒤로</button>
       <button class="btn ghost" data-a="random-starters">무작위</button>
       <button class="btn primary" data-a="start-run" ${n === CFG.startUnits ? '' : 'disabled'}>출격 (${n}/${CFG.startUnits})</button>
@@ -995,7 +996,7 @@ function pendingModal(run: RunState): string {
     mcls = 'recruit';
     const pick = app.recruitPick && p.options.includes(app.recruitPick) ? app.recruitPick : null;
     body = `<div class="rc-head"><div><h1>기물 영입</h1><p class="muted small">새 동료 한 명을 고르세요. 공명 등급 ${rank}로 합류합니다. 보유 ${run.units.length}/${CFG.maxParty} (출전 최대 ${R.deployCap(run)}명)</p></div>${detailToggle()}</div>
-      <div class="rc-track">${p.options.map((id) => pickCard(UNIT_BY_ID[id], { synCount: teamCount([...run.units.map((u) => u.defId), id]), on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), extra: `<span class="rank rc-rank">${rankLabel(rank)}</span>` })).join('')}</div>
+      <div class="rc-track">${p.options.map((id) => pickCard(UNIT_BY_ID[id], { on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), extra: `<span class="rank rc-rank">${rankLabel(rank)}</span>` })).join('')}</div>
       <div class="rc-foot"><span class="muted small">${pick ? `${esc(UNIT_BY_ID[pick].name)} 선택됨` : CAN_HOVER ? '카드에 마우스를 올리면 설명, 누르면 선택' : '탭하면 선택 · 하단을 끌어올리면 설명'}</span>
         <button class="btn primary" data-a="pick-recruit" data-v="${pick || ''}" ${pick ? '' : 'disabled'}>영입</button></div>`;
   } else if (p.t === 'branch') {

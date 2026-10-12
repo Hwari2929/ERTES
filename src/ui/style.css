@@ -1020,3 +1020,11 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .pc-syn .syn-dia { opacity: 1; }
 .pc-syn .syn-tx { display: none; }
 .dh-syn .syn-lv { display: none; }
+/* 카드 안 마름모는 인원 원 없이, 계약 화면은 선택한 기물 옆에 시너지 토큰 */
+.pc-syn .syn-lv { display: none; }
+.picked { margin-right: 0; }
+.nr-syn { display: flex; flex-wrap: wrap; gap: 4px 14px; flex: 1 1 0; align-items: center; min-width: 0; }
+.nr-syn .syn-tk { padding: 0; }
+.nr-syn .syn-b { width: 34px; height: 34px; }
+.nr-syn .syn-dia { width: 26px; height: 26px; }
+.nr-syn .syn-tx b { font-size: .8rem; }
