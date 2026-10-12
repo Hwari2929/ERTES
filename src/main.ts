@@ -669,7 +669,7 @@ function battleScreen(run: RunState) {
       <div class="board-head"><b>${esc(enc.env)}</b><span id="btime" class="mono">0.0초</span><span id="bslow" class="bslow" hidden title="상세 정보를 보는 중 · 설정에서 끌 수 있습니다">상세 보기 ×0.25</span>
         <span class="speed">${SPEEDS.map((s) => `<button class="btn tiny ${app.speed === s ? 'on' : ''}" data-a="speed" data-v="${s}">${s}×</button>`).join('')}
         <button class="btn tiny" data-a="skip">결과로</button></span></div>
-      <div class="board" id="bboard" style="--n:${enc.n}"><div class="cells">${'<div class="cell"></div>'.repeat(enc.n * enc.n)}</div></div>
+      <div class="board" id="bboard" data-a="bdesel" style="--n:${enc.n}"><div class="cells">${'<div class="cell"></div>'.repeat(enc.n * enc.n)}</div></div>
     </section>
     <aside class="side right">
       <div id="bunit" class="bunit detail"></div>
@@ -924,7 +924,7 @@ function menuModal(run: RunState | null) {
     return `<div class="modal-bg"><div class="modal">
       ${tabs}
       <h3>전투</h3>
-      <label class="pref"><input type="checkbox" data-a="pref-slow" ${app.slowDetail ? 'checked' : ''}><span><b>상세 정보 볼 때 느리게</b><br><span class="muted small">전투 중 기물을 눌러 상세 정보를 보는 동안 진행 속도에 ×0.25 를 곱합니다. 같은 기물을 다시 누르거나 Esc 로 선택을 풀면 원래 속도로 돌아갑니다.</span></span></label>
+      <label class="pref"><input type="checkbox" data-a="pref-slow" ${app.slowDetail ? 'checked' : ''}><span><b>상세 정보 볼 때 느리게</b><br><span class="muted small">전투 중 기물을 눌러 상세 정보를 보는 동안 진행 속도에 ×0.25 를 곱합니다. 빈 보드를 누르거나 Esc 로 선택을 풀면 원래 속도로 돌아갑니다.</span></span></label>
       <div class="row-btns"><button class="btn primary" data-a="menu-close">닫기</button></div>
     </div></div>`;
   }
@@ -1443,7 +1443,7 @@ function codexScreen() {
 function act(a: string, v: string) {
   const run = app.run;
   // 전투 중에는 속도 조절 / 결과 보기 / 계속만 받는다 (재렌더하면 전투 화면이 초기화됨)
-  if (app.screen === 'battle' && !['speed', 'skip', 'after-battle', 'meter-tab', 'bsel', 'bpick', 'stat-pop'].includes(a)) return;
+  if (app.screen === 'battle' && !['speed', 'skip', 'after-battle', 'meter-tab', 'bsel', 'bdesel', 'bpick', 'stat-pop'].includes(a)) return;
   switch (a) {
     case 'newrun':
       app.starters = []; app.screen = 'newrun'; app.menu = null; carX = null; app.cardOpen = null;
@@ -1576,6 +1576,7 @@ function act(a: string, v: string) {
     case 'codex-back': app.screen = app.run ? (app.run.over ? 'over' : 'map') : 'title'; if (app.run && !app.run.over) goPrepOrMap(); break;
     case 'meter-tab': app.meterTab = v as typeof app.meterTab; document.querySelectorAll('.meter-tabs .btn').forEach((e) => e.classList.toggle('on', (e as HTMLElement).dataset.v === v)); updateMeter(true); return;
     case 'bsel': app.bPick = null; app.battleSel = app.battleSel === +v ? null : +v; applySpeed(); updateMeter(true); return;
+    case 'bdesel': if (app.battleSel !== null) { app.battleSel = null; app.bPick = null; applySpeed(); updateMeter(true); } return;
     case 'bpick': app.bPick = app.bPick === v ? null : v; updateMeter(true); return;
     case 'release': app.releaseConfirm = v; break;
     case 'release-cancel': app.releaseConfirm = null; break;
