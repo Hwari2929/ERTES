@@ -4051,5 +4051,37 @@
     "model": "nai-diffusion-5-full",
     "time": "2026-10-12T00:41:36.534Z",
     "prompt": "no humans, transparent background, concept art, single object, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, single compact sentry gun turret, heavy machine gun barrel on rotating mount, armored shield plate, tripod base, ammo box, blue sensor light, solo object, no humans"
+  },
+  {
+    "id": "sm_ricky",
+    "alt": "r5",
+    "seed": 3140914060,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:44:56.401Z",
+    "prompt": "no humans, transparent background, concept art, single object, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, grey wolf, full body, entire body visible, four legs, standing on all fours, side view, muted desaturated colors, harness, bared fangs, sharp eyes, solo, no humans"
+  },
+  {
+    "id": "sm_ricky",
+    "alt": "r6",
+    "seed": 195146210,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:45:01.341Z",
+    "prompt": "no humans, transparent background, concept art, single object, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, grey wolf, full body, entire body visible, four legs, standing on all fours, side view, muted desaturated colors, harness, bared fangs, sharp eyes, solo, no humans"
+  },
+  {
+    "id": "sm_ricky",
+    "alt": "r7",
+    "seed": 2316590488,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:45:07.128Z",
+    "prompt": "no humans, transparent background, concept art, single object, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, grey wolf, full body, entire body visible, four legs, standing on all fours, side view, muted desaturated colors, harness, bared fangs, sharp eyes, solo, no humans"
+  },
+  {
+    "id": "sm_ricky",
+    "alt": "r8",
+    "seed": 2108623393,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:45:12.908Z",
+    "prompt": "no humans, transparent background, concept art, single object, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, grey wolf, full body, entire body visible, four legs, standing on all fours, side view, muted desaturated colors, harness, bared fangs, sharp eyes, solo, no humans"
   }
 ]
