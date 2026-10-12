@@ -67,7 +67,8 @@ function playRun(seed: number) {
         R.recruit(run, p.options.slice().sort((x, y) => score(y) - score(x))[0]);
       } else if (p.t === 'supply') R.takeSupply(run, p.options[0]);
       else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
-      else if (p.t === 'pilgrim') { run.pending.shift(); while (run.power >= R.PILGRIM_COST.cap && R.pilgrimAct(run, 'cap') === null); continue; }
+      else if (p.t === 'branch') { R.pickBranch(run, (['invest', 'pilgrim', 'shop'] as const).find((o) => p.options.includes(o))!); continue; }
+    else if (p.t === 'pilgrim') { run.pending.shift(); while (run.power >= R.PILGRIM_COST.cap && R.pilgrimAct(run, 'cap') === null); continue; }
       run.pending.shift();
     }
   };
@@ -97,6 +98,7 @@ function playRun(seed: number) {
     if (!run.node) {
       const opts = R.currentOptions(run);
       R.enterNode(run, opts.includes('adversity') && run.hp > 60 && bot.chance(0.5) ? 'adversity' : opts[0]);
+      if (run.pending[0]?.t === 'branch') resolvePending();
       const t = (run.node as { type: string } | null)?.type;
       if (t === 'shop') for (let i = 0; i < 6; i++) if (run.credits >= 35) R.buyShop(run, i);
       if (t === 'news') for (let i = 0; i < 6; i++) R.buyNews(run, i);

@@ -51,10 +51,10 @@ export const STORY_C: EventDef[] = [
     text: '항로 한가운데 낡은 이민선 한 척이 떠 있다. 선체 번호는 아르고-7, 기록상 삼백 년 전에 실종된 배다. 그런데 선체에는 긁힌 자국 하나 없고, 함교의 시계는 지금보다 정확히 열한 시간 앞서 간다. 구조 신호가 끝없이 반복된다. "이 신호를 받았다면, 당신들은 이미 늦었습니다."',
     choices: [
       {
-        label: '승선한다', desc: '항해일지를 회수한다 (연계). 60%: 고급 장비 1개. 40%: 플레이어 체력 -15.',
+        label: '승선한다', desc: '항해일지를 회수한다 (연계). 60%: 희귀 장비 1개. 40%: 플레이어 체력 -15.',
         apply: (r, api) => {
           api.flag('c_argo');
-          if (api.chance(0.6)) { api.gain(api.randomItem('A')); return '텅 빈 선실에서 고급 장비와 항해일지를 챙겼습니다.'; }
+          if (api.chance(0.6)) { api.gain(api.randomItem('A')); return '텅 빈 선실에서 희귀 장비와 항해일지를 챙겼습니다.'; }
           hurt(r, 15);
           return '복도가 접히며 승무원들을 덮쳤습니다. 체력 -15. 항해일지만은 손에 남았습니다.';
         },
@@ -101,11 +101,11 @@ export const STORY_C: EventDef[] = [
     choices: [
       { label: '"그렇다"고 답한다', desc: '권능 포인트 +2. 신성력 수집 상한 +25.', apply: (r) => { r.power += 2; r.divCap += 25; return '승무원들이 웃으며 빛으로 흩어졌습니다. 권능 +2, 신성력 상한 +25.'; } },
       {
-        label: '배를 인수한다', desc: '고급 장비 1개 + 재료 1개. 30%: 승무원들이 분노해 플레이어 체력 -20.',
+        label: '배를 인수한다', desc: '희귀 장비 1개 + 재료 1개. 30%: 승무원들이 분노해 플레이어 체력 -20.',
         apply: (r, api) => {
           api.gain(api.randomItem('A')); api.gain(api.randomItem('C'));
           if (api.chance(0.3)) { hurt(r, 20); return '화물은 챙겼지만, 집을 빼앗긴 망자들이 함선을 할퀴었습니다. 체력 -20.'; }
-          return '승무원들은 말없이 배를 넘겨주었습니다. 고급 장비와 재료를 얻었습니다.';
+          return '승무원들은 말없이 배를 넘겨주었습니다. 희귀 장비와 재료를 얻었습니다.';
         },
       },
       {
@@ -201,11 +201,11 @@ export const STORY_C: EventDef[] = [
     choices: [
       { label: '금빛 상자', desc: '권능 포인트 +2. 신성력 수집 상한 +25.', apply: (r) => { r.power += 2; r.divCap += 25; return '상자 안에는 미래의 기도가 들어 있었습니다. 권능 +2, 신성력 상한 +25.'; } },
       {
-        label: '검은 상자', desc: '10%: 전설 장비 1개. 60%: 고급 장비 1개. 30%: 빈 상자, 플레이어 체력 -12.',
+        label: '검은 상자', desc: '10%: 전설 장비 1개. 60%: 희귀 장비 1개. 30%: 빈 상자, 플레이어 체력 -12.',
         apply: (r, api) => {
           const k = tri(api, 0.1, 0.6);
           if (k === 0) { api.gain(api.randomItem('L'), true); return '미래의 당신이 쓰던 전설 장비입니다. 흠집까지 똑같습니다.'; }
-          if (k === 1) { api.gain(api.randomItem('A')); return '고급 장비 하나가 들어 있었습니다.'; }
+          if (k === 1) { api.gain(api.randomItem('A')); return '희귀 장비 하나가 들어 있었습니다.'; }
           hurt(r, 12);
           return '상자는 비어 있었고, 뚜껑이 손가락을 물었습니다. 체력 -12.';
         },
@@ -264,7 +264,7 @@ export const STORY_C: EventDef[] = [
           return `"틀렸다. 정답은 '아직 태어나지 않은 자'다." 올빼미가 ${u ? nm(u) : '승무원'}을(를) 쪼고 날아갔습니다. 체력 -8.`;
         },
       },
-      { label: '올빼미를 포획한다', desc: '고급 장비 1개 (부품). 플레이어 체력 -10 (신전의 보복 사격).', apply: (r, api) => { api.gain(api.randomItem('A')); hurt(r, 10); return '쓸 만한 광학 부품을 얻었지만 신전 포대가 응사했습니다. 체력 -10.'; } },
+      { label: '올빼미를 포획한다', desc: '희귀 장비 1개 (부품). 플레이어 체력 -10 (신전의 보복 사격).', apply: (r, api) => { api.gain(api.randomItem('A')); hurt(r, 10); return '쓸 만한 광학 부품을 얻었지만 신전 포대가 응사했습니다. 체력 -10.'; } },
       {
         label: '경례하고 돌려보낸다', desc: '공명도 8 분배. 출전 기물 전원 방어력 +1 (영구).',
         apply: (r, api) => { api.xp(8); for (const u of r.units.filter((x) => x.pos)) u.perm.def += 1; return '올빼미가 날개를 펼쳐 답례했습니다. 출전 기물 방어력 +1.'; },
@@ -426,7 +426,7 @@ export const STORY_C: EventDef[] = [
     text: '궤도를 떠도는 성유물함 하나를 두고 세 척의 배가 대치하고 있다. 시리우스 성도회는 성자의 뼈라 하고, 과학지상주의 연구선은 미확인 동위원소라 하며, 인간찬가 이민선은 잃어버린 고향 행성의 흙이라 한다. 세 쪽 모두 에란테스에게 중재를 청했다. 사실 아무도 열어 본 적은 없다.',
     choices: [
       { label: '시리우스 성도회에 넘긴다', desc: '신성력 수집 상한 +50.', apply: (r) => { r.divCap += 50; return '성도회가 성가를 부르며 성유물함을 모셔 갔습니다. 신성력 상한 +50.'; } },
-      { label: '과학지상주의 연구선에 넘긴다', desc: '고급 장비 1개. 크레딧 +5.', apply: (r, api) => { api.gain(api.randomItem('A')); r.credits += 5; return '연구선이 측정 장비 하나와 연구 보조금을 건넸습니다.'; } },
+      { label: '과학지상주의 연구선에 넘긴다', desc: '희귀 장비 1개. 크레딧 +5.', apply: (r, api) => { api.gain(api.randomItem('A')); r.credits += 5; return '연구선이 측정 장비 하나와 연구 보조금을 건넸습니다.'; } },
       {
         label: '직접 열어 본다', desc: '30%: 성자의 뼈 — 권능 포인트 +3. 40%: 고향의 흙 — 출전 기물 전원 생명력 +1 (영구), 플레이어 체력 +10. 30%: 동위원소 — 플레이어 체력 -20, 무작위 기물 1명 생명력 -1 (영구).',
         apply: (r, api) => {

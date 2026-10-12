@@ -60,11 +60,11 @@ export const STORY_B: EventDef[] = [
         apply: (r, api) => { r.credits += 20; api.flag('b_defect_sold'); return '제국 기사들이 그녀를 끌고 갔습니다. 크레딧 +20.'; },
       },
       {
-        label: '장부만 사들인다', desc: '크레딧 -10. 60%: 고급 장비 1개 + 공명도 12 / 40%: 위조 장부, 공명도 6.',
+        label: '장부만 사들인다', desc: '크레딧 -10. 60%: 희귀 장비 1개 + 공명도 12 / 40%: 위조 장부, 공명도 6.',
         block: needCr(10),
         apply: (r, api) => {
           r.credits -= 10;
-          if (api.chance(0.6)) { api.gain(api.randomItem('A')); api.xp(12); return '장부 속 은닉 창고 좌표에서 고급 장비를 찾았습니다.'; }
+          if (api.chance(0.6)) { api.gain(api.randomItem('A')); api.xp(12); return '장부 속 은닉 창고 좌표에서 희귀 장비를 찾았습니다.'; }
           api.xp(6); return '절반은 위조였습니다. 그래도 제국 전술 기록 몇 장은 쓸모가 있었습니다.';
         },
       },
@@ -104,10 +104,10 @@ export const STORY_B: EventDef[] = [
         apply: (r, api) => { r.credits -= 18; api.gain('M_HEL', true); return '함장은 크레딧을 받고 동맹의 문장을 건넸습니다. "다음엔 저울을 잘 보시오."'; },
       },
       {
-        label: '봉쇄를 돌파한다', desc: '플레이어 체력 -12. 50%: 추격을 따돌리고 고급 장비 1개 / 50%: 추가로 체력 -10.',
+        label: '봉쇄를 돌파한다', desc: '플레이어 체력 -12. 50%: 추격을 따돌리고 희귀 장비 1개 / 50%: 추가로 체력 -10.',
         apply: (r, api) => {
           hurt(r, 12);
-          if (api.chance(0.5)) { api.gain(api.randomItem('A')); return '봉쇄를 뚫으며 떨어진 보급 캡슐을 건졌습니다. 고급 장비 1개.'; }
+          if (api.chance(0.5)) { api.gain(api.randomItem('A')); return '봉쇄를 뚫으며 떨어진 보급 캡슐을 건졌습니다. 희귀 장비 1개.'; }
           hurt(r, 10); return '삼단노선의 충각에 선체가 찢겼습니다. 체력 추가 -10.';
         },
       },
@@ -232,7 +232,7 @@ export const STORY_B: EventDef[] = [
         apply: (r, api) => { r.credits -= 12; api.boon('b_sir_vow'); return '속죄 헌금을 바치고 서약을 받았습니다. 모든 아군 최대 체력 +10%.'; },
       },
       {
-        label: '무력으로 쫓아낸다', desc: '45%: 시리우스 문장 1개 + 고급 장비 1개 / 55%: 플레이어 체력 -22.',
+        label: '무력으로 쫓아낸다', desc: '45%: 시리우스 문장 1개 + 희귀 장비 1개 / 55%: 플레이어 체력 -22.',
         apply: (r, api) => {
           if (api.chance(0.45)) { api.gain('M_SIR', true); api.gain(api.randomItem('A')); return '심문관들이 무기를 버리고 달아났습니다. 문장과 장비를 챙겼습니다.'; }
           hurt(r, 22); return '성도회 갑주는 소문보다 단단했습니다. 체력 -22.';
@@ -405,9 +405,9 @@ export const STORY_B: EventDef[] = [
     text: '주식회사 페트라의 인재 영입팀이 함선 휴게실에 명함을 돌린다. 그들의 목표는 에란테스의 에이스다. 계약금과 연봉, 스톡옵션이 빼곡한 제안서를 본 대원들이 웅성거린다. 헤드헌터는 "단기 임대도 가능합니다"라며 미소 짓는다.',
     choices: [
       {
-        label: '에이스를 임대한다', desc: '공명 등급이 가장 높은 기물이 이번 페이즈 동안 페트라에 파견된다 (출전 불가). 크레딧 +18, 고급 장비 1개.',
+        label: '에이스를 임대한다', desc: '공명 등급이 가장 높은 기물이 이번 페이즈 동안 페트라에 파견된다 (출전 불가). 크레딧 +18, 희귀 장비 1개.',
         block: noUnits,
-        apply: (r, api) => { const u = ace(r)!; bench(r, u); r.credits += 18; api.gain(api.randomItem('A')); return `${nm(u)}이(가) 페트라 경호 업무에 파견되었습니다. 크레딧 +18, 고급 장비 1개.`; },
+        apply: (r, api) => { const u = ace(r)!; bench(r, u); r.credits += 18; api.gain(api.randomItem('A')); return `${nm(u)}이(가) 페트라 경호 업무에 파견되었습니다. 크레딧 +18, 희귀 장비 1개.`; },
       },
       {
         label: '대항 제안을 낸다', desc: '크레딧 -12. 공명 등급이 가장 높은 기물 모든 메이저 +2 (영구).',

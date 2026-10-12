@@ -113,6 +113,7 @@ export type Pending =
   | { t: 'itemPick'; options: string[]; title: string }
   | { t: 'recruit'; options: string[] }
   | { t: 'supply'; options: string[] }
+  | { t: 'branch'; options: NodeType[] }
   | { t: 'blessing'; options: string[] }
   | { t: 'notice'; title: string; body: string };
 

@@ -5,7 +5,7 @@ import { diffHas } from '../data/difficulty';
 import { EVENT_BY_ID, EVENTS, type EventApi } from '../data/events';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, combine, emblemId, emblemOf, isLocked, isMod, itemInfo } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, emblemId, emblemOf, isLocked, isMod, itemInfo } from '../data/items';
 import { SYN_BY_ID, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, PSI_AUGS, recMajors } from '../data/rework';
@@ -180,9 +180,6 @@ export function enterNode(run: RunState, type: NodeType) {
   if (type === 'news') { run.node = { type, news: genNews(run) }; return; }
   if (type === 'invest') { run.node = { type, invest: genInvest(run) }; return; }
   if (type === 'event') {
-    // 디바인 기물이 있으면 이번 페이즈 첫 사건 노드 다음에 순례 노드 고정
-    const first = !run.picked.slice(0, run.step).includes('event');
-    if (first && hasDivine(run) && !run.map.some((n) => n.includes('pilgrim'))) run.map.splice(run.step + 1, 0, ['pilgrim']);
     const id = pickEvent(run);
     run.seenEvents.push(id);
     run.pending.push({ t: 'event', id });
@@ -193,7 +190,7 @@ export function enterNode(run: RunState, type: NodeType) {
     run.node = { type, enc: genEncounter(run, type) };
     syncQuests(run);
   } else if (type === 'shop') {
-    run.node = { type, shop: genShop(run) };
+    run.pending.push({ t: 'branch', options: branchOptions(run) });
   } else if (type === 'supply') {
     run.pending.push({ t: 'supply', options: rng(run, (r) => r.sample(['parts', 'credits', 'xp', 'repair', r.chance(CFG.drop.supplyAdv) ? 'adv' : 'parts2'], 3)) });
     advance(run);
@@ -212,6 +209,23 @@ export function enterNode(run: RunState, type: NodeType) {
 }
 
 export function leaveShop(run: RunState) { run.node = null; advance(run); }
+
+/** 분기점(상점 노드): 상점 · 보급 + 호이슌 투자 · 순례 (각각 페이즈당 1회) */
+export function branchOptions(run: RunState): NodeType[] {
+  const used = run.picked.slice(0, run.step);
+  const o: NodeType[] = ['shop', 'supply'];
+  if (tierNow(run, 'HOI') && !used.includes('invest')) o.push('invest');
+  if (hasDivine(run) && !used.includes('pilgrim')) o.push('pilgrim');
+  return o;
+}
+export function pickBranch(run: RunState, type: NodeType) {
+  const p = run.pending[0];
+  if (p?.t !== 'branch' || !p.options.includes(type)) return;
+  run.pending.shift();
+  if (type === 'shop') { run.node = { type, shop: genShop(run) }; return; }
+  run.fame -= tierNow(run, 'STAR'); // 분기점 진입 때 이미 받음
+  enterNode(run, type);
+}
 
 export const hasDivine = (run: RunState) => run.units.some((u) => UNIT_BY_ID[u.defId].ttype === 'divine');
 const tierNow = (run: RunState, id: 'STAR' | 'HOI') => tierOf(id, synergyCounts(deployed(run), run)[id] || 0);
@@ -233,10 +247,6 @@ export function advance(run: RunState) {
     log(run, `페이즈 ${run.phase} 진입. 적이 강해집니다.`);
     if ((run.phase - 1) % CFG.globalAugEvery === 0) run.pending.push({ t: 'global', options: rollGlobals(run) });
     if (run.fund) { run.credits += run.fund; log(run, `호이슌 투자 수익 +${run.fund}`); run.pending.push({ t: 'notice', title: '투자 수익 정산', body: `지난 페이즈에 맡긴 자금이 불어나 크레딧 +${run.fund}을 돌려받았습니다.` }); run.fund = 0; }
-  }
-  // 호이슌 홀딩스가 활성화되어 있으면 페이즈 중간에 투자 노드 추가
-  if (run.step === Math.floor(run.map.length / 2) && !run.map.some((n) => n.includes('invest')) && tierNow(run, 'HOI')) {
-    run.map.splice(run.step, 0, ['invest']);
   }
   // 은하 대스타가 활성화되어 있으면 보스 직전에 속보 노드 추가
   if (run.map[run.step]?.includes('boss') && run.map[run.step - 1]?.[0] !== 'news' && tierNow(run, 'STAR')) {
@@ -351,8 +361,8 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     } else if (type === 'battle') {
       if (rng(run, (r) => r.chance(CFG.drop.battle * (fieldOf(run.field).dropMul || 1)))) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
     } else if (type === 'boss') {
-      // 보스 전리품: n 페이즈마다 고급 장비, 그 외에는 확률로 재료 3개 중 1개
-      if (p % CFG.drop.bossAdvEvery === 0) run.pending.push({ t: 'itemPick', title: '보스 전리품 — 고급 장비 1개 선택', options: rng(run, (r) => r.sample(ALL_ADVANCED, 3)) });
+      // 보스 전리품: n 페이즈마다 희귀 장비, 그 외에는 확률로 재료 3개 중 1개
+      if (p % CFG.drop.bossAdvEvery === 0) run.pending.push({ t: 'itemPick', title: '보스 전리품 — 희귀 장비 1개 선택', options: rng(run, (r) => r.sample(ALL_ADVANCED, 3)) });
       else if (rng(run, (r) => r.chance(CFG.drop.bossPart))) run.pending.push({ t: 'itemPick', title: '보스 전리품 — 장비 재료 1개 선택', options: rng(run, (r) => r.sample(ALL_COMPONENTS, 3)) });
       lines.push(`페이즈 ${p} 클리어!`);
       if (p >= CFG.victoryPhase && !run.cleared) { run.cleared = true; run.pending.push({ t: 'victory' }); }
@@ -507,8 +517,11 @@ function genShop(run: RunState) {
   return rng(run, (r) => {
     const stock = [];
     const pr = (g: string) => Math.round(CFG.price[g] * (fieldOf(run.field).shopMul || 1));
+    // 재료 2개 확정 + 희귀(입고 행사면 2개) · 고급 · 후반 전설 확률
     for (let i = 0; i < CFG.drop.shopParts; i++) { const id = r.pick(ALL_COMPONENTS); stock.push({ item: id, price: pr('C'), sold: false }); }
-    if (r.chance(CFG.drop.shopAdv)) stock.push({ item: r.pick(ALL_ADVANCED), price: pr('A'), sold: false });
+    const rares = r.chance(CFG.drop.shopAdv2) ? 2 : r.chance(CFG.drop.shopAdv) ? 1 : 0;
+    for (const id of r.sample(ALL_ADVANCED, rares)) stock.push({ item: id, price: pr('A'), sold: false });
+    if (r.chance(CFG.drop.shopGraded)) stock.push({ item: r.pick(ALL_GRADED), price: pr('G'), sold: false });
     if (run.phase >= CFG.drop.shopLegendPhase && r.chance(CFG.drop.shopLegend)) stock.push({ item: 'L_' + r.pick(ALL_ADVANCED).slice(2), price: pr('L'), sold: false });
     return stock;
   });
@@ -597,7 +610,7 @@ export function takeLoan(run: RunState): boolean {
 // ───────────────────────── 보급 / 영입
 export const SUPPLY_TEXT: Record<string, string> = {
   parts: '장비 재료 1개 + 크레딧 +4', parts2: '장비 재료 1개 + 공명도 풀 절반 분배', credits: '에너지 크레딧 +12', xp: '공명도 풀 즉시 분배',
-  repair: '플레이어 체력 +15', adv: '무작위 고급 장비 1개',
+  repair: '플레이어 체력 +15', adv: '무작위 희귀 장비 1개',
 };
 export function takeSupply(run: RunState, opt: string) {
   if (opt === 'parts') { gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS))); run.credits += 4; }
@@ -689,7 +702,7 @@ export function pickBlessing(run: RunState, id: string) {
 
 export const NEWS_OFFERS: Record<string, { name: string; desc: string; cost: number }> = {
   interview: { name: '독점 인터뷰', desc: '에너지 크레딧 +15', cost: 5 },
-  sponsor: { name: '스폰서 계약', desc: '무작위 고급 장비 1개', cost: 12 },
+  sponsor: { name: '스폰서 계약', desc: '무작위 희귀 장비 1개', cost: 12 },
   fanmeet: { name: '팬미팅', desc: '공명도 풀(1.5배) 파티 전체 분배', cost: 6 },
   cheer: { name: '응원 물결', desc: '플레이어 체력 +20', cost: 6 },
   hall: { name: '명예의 전당', desc: '전설 장비 3개 중 1개 선택', cost: 45 },
@@ -805,7 +818,7 @@ function pickEvent(run: RunState): string {
 }
 
 function eventApi(run: RunState): EventApi {
-  const tierPool = (t: 'C' | 'A' | 'L') => (t === 'C' ? ALL_COMPONENTS : ALL_ADVANCED);
+  const tierPool = (t: 'C' | 'G' | 'A' | 'L') => (t === 'C' ? ALL_COMPONENTS : t === 'G' ? ALL_GRADED : ALL_ADVANCED);
   return {
     rng: (f) => rng(run, f),
     gain: (id, force) => gainItem(run, id, undefined, force),
@@ -823,7 +836,7 @@ function eventApi(run: RunState): EventApi {
     allItems: () => [
       ...run.inventory.map((id, slot) => ({ where: 'inv' as const, slot, id })),
       ...run.units.flatMap((u) => u.items.map((id, slot) => ({ where: 'unit' as const, u, slot, id: id || '' }))),
-    ].filter((x) => /^[CAL]_/.test(x.id)),
+    ].filter((x) => /^[CGAL]_/.test(x.id)),
     setItem: (ref, id) => {
       if (ref.where === 'unit' && ref.u) ref.u.items[ref.slot] = id;
       else if (id) run.inventory[ref.slot] = id;

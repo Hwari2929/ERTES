@@ -41,6 +41,7 @@ function resolvePending(run: RunState, bot: Rng) {
     }
     else if (p.t === 'supply') R.takeSupply(run, p.options[0]);
     else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
+    else if (p.t === 'branch') { R.pickBranch(run, (['invest', 'pilgrim', 'shop'] as const).find((o) => p.options.includes(o))!); continue; }
     else if (p.t === 'pilgrim') { run.pending.shift(); while (run.power >= R.PILGRIM_COST.cap && R.pilgrimAct(run, 'cap') === null); continue; }
     run.pending.shift();
   }
@@ -82,6 +83,7 @@ function playRun(seed: number, force?: string, field?: string) {
     if (!run.node) {
       const opts = R.currentOptions(run);
       R.enterNode(run, opts.includes('adversity') && run.hp > 60 && bot.chance(0.5) ? 'adversity' : opts[0]);
+      if (run.pending[0]?.t === 'branch') resolvePending(run, bot);
       const t = (run.node as { type: string } | null)?.type;
       if (t === 'shop') for (let i = 0; i < 6; i++) if (run.credits >= 35) R.buyShop(run, i);
       if (t === 'news') for (let i = 0; i < 6; i++) R.buyNews(run, i);

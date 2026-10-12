@@ -69,11 +69,11 @@ export const STORY_A: EventDef[] = [
         apply: (_r, api) => { api.xp(14); return '물건을 돌려받은 단원들이 한동안 맥스를 쓰다듬느라 바빴습니다.'; },
       },
       {
-        label: '쓸 만한 것만 챙긴다', desc: '고급 장비 1개. 50%: 물건 주인에게 들켜 크레딧 -8.',
+        label: '쓸 만한 것만 챙긴다', desc: '희귀 장비 1개. 50%: 물건 주인에게 들켜 크레딧 -8.',
         apply: (r, api) => {
           api.gain(api.randomItem('A'));
-          if (api.chance(0.5)) { r.credits = Math.max(0, r.credits - 8); return '고급 장비를 챙겼지만, 도노반이 프로펠러 값을 청구했습니다. 크레딧 -8.'; }
-          return '고급 장비를 챙겼습니다. 아무도 눈치채지 못했습니다.';
+          if (api.chance(0.5)) { r.credits = Math.max(0, r.credits - 8); return '희귀 장비를 챙겼지만, 도노반이 프로펠러 값을 청구했습니다. 크레딧 -8.'; }
+          return '희귀 장비를 챙겼습니다. 아무도 눈치채지 못했습니다.';
         },
       },
       {
@@ -412,10 +412,10 @@ export const STORY_A: EventDef[] = [
     text: '엘베스타드 본가에서 암호화된 통신이 들어왔다. 화면에는 집사 시그문드가 단정하게 서 있고, 그 뒤로 라스무스의 정원과 구닐라의 주방이 언뜻 보인다. 가문의 인장이 찍힌 화물이 다음 정박지로 발송되었다는 소식이다. 다만 배달은 메트로 기관사 올리버가 맡았다고 한다. 좋게 말하면 신속 배달, 나쁘게 말하면 난폭 운전이다.',
     choices: [
       {
-        label: '정박지에서 기다린다', desc: '50%: 고급 장비 1개 / 30%: 재료 1개 / 20%: 화물이 로켓 추진 꽃다발과 함께 폭발, 플레이어 체력 -10.',
+        label: '정박지에서 기다린다', desc: '50%: 희귀 장비 1개 / 30%: 재료 1개 / 20%: 화물이 로켓 추진 꽃다발과 함께 폭발, 플레이어 체력 -10.',
         apply: (r, api) => {
           const roll = api.rng((g) => g.int(1, 10));
-          if (roll <= 5) { api.gain(api.randomItem('A')); return '올리버가 오운완 사진을 찍으며 화물을 넘겼습니다. 고급 장비 1개.'; }
+          if (roll <= 5) { api.gain(api.randomItem('A')); return '올리버가 오운완 사진을 찍으며 화물을 넘겼습니다. 희귀 장비 1개.'; }
           if (roll <= 8) { api.gain(api.randomItem('C')); return '화물은 반쯤 찌그러졌지만 쓸 만한 재료가 남아 있었습니다.'; }
           hurt(r, 10); return '로켓 추진 꽃다발이 착륙장에서 폭발했습니다. 올리버는 "궁금해서"라고 해명했습니다. 체력 -10.';
         },

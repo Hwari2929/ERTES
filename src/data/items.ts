@@ -4,7 +4,7 @@ import type { Major, SynergyId } from '../types';
 import { MAJOR_NAME } from '../types';
 import { SYN_BY_ID } from './synergies';
 
-// 재료(일반) 2개 → 고급, 같은 고급 2개 → 전설(효과 3배)
+// 장비 등급: 재료(+3) · 고급(같은 재료 2개 조합, 능력치 +12, 효과 없음) · 희귀(능력치 낮음 + 특수 효과) · 전설(효과 3배, 조합 불가 · 이벤트 · 상점)
 export const COMPONENTS: { id: string; major: Major; name: string; icon: string }[] = [
   { id: 'C_vit', major: 'vit', name: '강화 섬유', icon: '❤' },
   { id: 'C_pow', major: 'pow', name: '출력 코어', icon: '⚔' },
@@ -13,6 +13,7 @@ export const COMPONENTS: { id: string; major: Major; name: string; icon: string 
   { id: 'C_agi', major: 'agi', name: '추진 모듈', icon: '➶' },
 ];
 const COMP_PTS = 3;
+const GRADE_PTS = 12; // 고급: 같은 재료 2개
 
 interface AdvDef { id: string; a: Major; b: Major; name: string; desc: (k: number) => string; effect: (k: number) => Effect }
 
@@ -54,7 +55,7 @@ const ADV: AdvDef[] = [
 // stats/pct/mods/taken 기반 효과는 scaleEffect 로 배율 적용, 훅 기반은 k 를 직접 받는다
 const HOOK_SCALED = new Set(['vit_vit', 'vit_pow', 'vit_def', 'vit_agi', 'pow_def', 'mnd_def', 'def_agi', 'agi_agi']);
 
-export interface ItemInfo { id: string; tier: 'C' | 'A' | 'L' | 'M'; name: string; icon: string; majors: Partial<Record<Major, number>>; desc: string; recipe?: [string, string] }
+export interface ItemInfo { id: string; tier: 'C' | 'G' | 'A' | 'L' | 'M'; name: string; icon: string; majors: Partial<Record<Major, number>>; desc: string; recipe?: [string, string] }
 
 const ADV_BY_ID = Object.fromEntries(ADV.map((a) => [a.id, a]));
 
@@ -80,10 +81,14 @@ export function itemInfo(id: string): ItemInfo {
     const s = SYN_BY_ID[emblemOf(id)];
     return { id, tier: 'M', name: `${s?.name || id} 문장`, icon: s?.icon || '◆', majors: {}, desc: `[개조부품] 장착한 기물이 ${s?.name || id} 시너지에 추가로 소속됩니다.` };
   }
-  const [tier, rest] = [id[0] as 'C' | 'A' | 'L', id.slice(2)];
+  const [tier, rest] = [id[0] as 'C' | 'G' | 'A' | 'L', id.slice(2)];
   if (tier === 'C') {
     const c = COMPONENTS.find((x) => x.id === id)!;
     return { id, tier, name: c.name, icon: c.icon, majors: { [c.major]: COMP_PTS }, desc: `${MAJOR_NAME[c.major]} +${COMP_PTS}` };
+  }
+  if (tier === 'G') {
+    const c = COMPONENTS.find((x) => x.major === rest)!;
+    return { id, tier, name: `고급 ${c.name}`, icon: c.icon, majors: { [c.major]: GRADE_PTS }, desc: `${MAJOR_NAME[c.major]} +${GRADE_PTS}`, recipe: [c.id, c.id] };
   }
   const a = ADV_BY_ID[rest];
   const k = tier === 'L' ? 3 : 1;
@@ -93,7 +98,7 @@ export function itemInfo(id: string): ItemInfo {
   const mtxt = Object.entries(majors).map(([m, v]) => `${MAJOR_NAME[m as Major]} +${v}`).join(', ');
   return {
     id, tier, name: (tier === 'L' ? '[전설] ' : '') + a.name, icon: COMPONENTS.find((c) => c.major === a.a)!.icon,
-    majors, desc: `${mtxt}. ${a.desc(k)}`, recipe: tier === 'A' ? [`C_${a.a}`, `C_${a.b}`] : undefined,
+    majors, desc: `${mtxt}. ${a.desc(k)}`,
   };
 }
 
@@ -101,7 +106,7 @@ export function itemEffect(id: string): Effect {
   if (UNIQUE[id]) return UNIQUE[id].effect;
   if (isMod(id)) return {};
   const info = itemInfo(id);
-  if (info.tier === 'C') return { majors: info.majors };
+  if (info.tier === 'C' || info.tier === 'G') return { majors: info.majors };
   const a = ADV_BY_ID[id.slice(2)];
   const k = info.tier === 'L' ? 3 : 1;
   const e = HOOK_SCALED.has(a.id) ? a.effect(k) : scaleEffect(a.effect(1), k);
@@ -110,15 +115,11 @@ export function itemEffect(id: string): Effect {
 
 export function combine(x: string, y: string): string | null {
   if (isLocked(x) || isLocked(y)) return null;
-  if (x[0] === 'C' && y[0] === 'C') {
-    const ma = x.slice(2), mb = y.slice(2);
-    const order = ['vit', 'pow', 'mnd', 'def', 'agi'];
-    const [p, q] = order.indexOf(ma) <= order.indexOf(mb) ? [ma, mb] : [mb, ma];
-    return `A_${p}_${q}`;
-  }
-  if (x[0] === 'A' && x === y) return `L_${x.slice(2)}`;
+  // 같은 재료 2개 → 고급. 희귀 · 전설은 조합 불가
+  if (x[0] === 'C' && x === y) return `G_${x.slice(2)}`;
   return null;
 }
 
 export const ALL_ADVANCED = ADV.map((a) => `A_${a.id}`);
 export const ALL_COMPONENTS = COMPONENTS.map((c) => c.id);
+export const ALL_GRADED = COMPONENTS.map((c) => `G_${c.major}`);

@@ -15,7 +15,7 @@ export interface EventApi {
   globalPick: () => void;
   allItems: () => { where: 'inv' | 'unit'; u?: UnitState; slot: number; id: string }[];
   setItem: (ref: { where: 'inv' | 'unit'; u?: UnitState; slot: number }, id: string | null) => void;
-  randomItem: (tier: 'C' | 'A' | 'L') => string;
+  randomItem: (tier: 'C' | 'G' | 'A' | 'L') => string;
   augNow: (u: UnitState) => string | null; // 전용 증강 하나 즉시 부여, 이름 반환
   phaseBoon: (id: string) => void; // 이번 페이즈 동안 팀 효과
   boon: (id: string) => void; // 영구 팀 효과
@@ -72,12 +72,12 @@ export const EVENTS: EventDef[] = [
     text: '"그거 하나 주면, 두 개 줄게. 뭐가 나올진 나도 몰라." 고물상이 진열대를 두드린다.',
     choices: [
       {
-        label: '장비를 맡긴다', desc: '무작위 보유 장비 1개를 같은 등급 무작위 장비 2개로 교체 (전설은 고급 2개 + 재료 1개).',
-        block: (r) => (r.inventory.some((x) => /^[CAL]_/.test(x)) || r.units.some((u) => u.items.some((x) => x && /^[CAL]_/.test(x))) ? null : '맡길 장비가 없습니다'),
+        label: '장비를 맡긴다', desc: '무작위 보유 장비 1개를 같은 등급 무작위 장비 2개로 교체 (전설은 희귀 2개 + 재료 1개).',
+        block: (r) => (r.inventory.some((x) => /^[CGAL]_/.test(x)) || r.units.some((u) => u.items.some((x) => x && /^[CGAL]_/.test(x))) ? null : '맡길 장비가 없습니다'),
         apply: (_r, api) => {
           const all = api.allItems();
           const it = api.rng((g) => g.pick(all));
-          const t = it.id[0] as 'C' | 'A' | 'L';
+          const t = it.id[0] as 'C' | 'G' | 'A' | 'L';
           api.setItem(it, null);
           const got = t === 'L' ? [api.randomItem('A'), api.randomItem('A'), api.randomItem('C')] : [api.randomItem(t), api.randomItem(t)];
           for (const g of got) api.gain(g, true);
@@ -168,7 +168,7 @@ export const EVENTS: EventDef[] = [
     id: 'spores', title: '오염 포자 지대', fields: ['swarm'], weight: 1,
     text: '사이오닉장이 끊긴 군체 살점이 기화하며 포자를 뿜는다. 그 아래로 끊긴 물류 컨테이너가 보인다.',
     choices: [
-      { label: '돌파한다', desc: '플레이어 체력 -10, 고급 장비 1개.', apply: (r, api) => { r.hp = Math.max(1, r.hp - 10); const id = api.randomItem('A'); api.gain(id); return '컨테이너에서 고급 장비를 찾았습니다.'; } },
+      { label: '돌파한다', desc: '플레이어 체력 -10, 희귀 장비 1개.', apply: (r, api) => { r.hp = Math.max(1, r.hp - 10); const id = api.randomItem('A'); api.gain(id); return '컨테이너에서 희귀 장비를 찾았습니다.'; } },
       { label: '우회한다', desc: '크레딧 +5.', apply: (r) => { r.credits += 5; return '안전하게 돌아갔습니다.'; } },
     ],
   },
@@ -235,7 +235,7 @@ export const EVENTS: EventDef[] = [
     text: '"물러서라"는 명령을 너무 충실히 지킨 호플리테 메카가 궤도 끝에 홀로 서 있다.',
     choices: [
       { label: '받아들인다', desc: '사건 전용 기물 [테르모필레] 합류.', block: (r) => (owns(r, 'thermo') ? '이미 함께하고 있습니다' : full(r)), apply: (_r, api) => { api.join('thermo'); return '테르모필레가 합류했습니다.'; } },
-      { label: '분해한다', desc: '고급 장비 1개.', apply: (_r, api) => { api.gain(api.randomItem('A')); return '쓸 만한 부품을 챙겼습니다.'; } },
+      { label: '분해한다', desc: '희귀 장비 1개.', apply: (_r, api) => { api.gain(api.randomItem('A')); return '쓸 만한 부품을 챙겼습니다.'; } },
     ],
   },
   {

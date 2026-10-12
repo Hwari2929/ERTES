@@ -253,6 +253,7 @@ button { font: inherit; color: inherit; }
 .inv-detail { margin-top: 8px; font-size: .85rem; }
 .item { width: 30px; height: 30px; display: inline-grid; place-items: center; border-radius: 5px; background: var(--panel-2); border: 1px solid var(--line); font-size: 15px; cursor: grab; touch-action: none; flex: none; }
 .item.empty { border-style: dashed; cursor: default; }
+.item.tG { border-color: var(--good); color: var(--good); }
 .item.tA { border-color: var(--info); color: var(--info); }
 .item.tL { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 8px var(--accent); }
 .item.tM { border-color: #c38cff; color: #c38cff; }
@@ -707,6 +708,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .item-tip { --c: var(--line); border-color: var(--c); border-left: 3px solid var(--c); }
 .item-tip b { color: var(--c); }
 .item-tip.tip-C { --c: #8a93a6; } .item-tip.tip-C b { color: var(--fg); }
+.item-tip.tip-G { --c: var(--good); }
 .item-tip.tip-A { --c: var(--info); }
 .item-tip.tip-L, .item-tip.tip-U { --c: var(--accent); box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 35%, transparent), 0 6px 18px rgb(0 0 0 / .5); }
 .item-tip.tip-M { --c: #c38cff; }
@@ -821,3 +823,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .u.side1.tk img.pt, .u.side1.tkb img.pt { transform: none; }
 .u.side1.tkb .bars .hp { background: var(--bad); }
 .u.tkb.big .tk-card, .u.tk.big .tk-card { outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 1px; }
+/* 분기점 */
+.br-card { align-items: center; text-align: center; }
+.br-card .br-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2); margin: 0 auto 4px; }
+.br-card .br-ic svg { width: 24px; height: 24px; }

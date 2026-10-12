@@ -135,11 +135,11 @@ function itemIcon(id: string | null, attrs = '') {
   const it = itemInfo(id);
   return `<span class="item t${it.tier}" title="${esc(it.name + ' — ' + it.desc)}" ${attrs}>${itemGlyph(id) || it.icon}</span>`;
 }
-/** 장비 아이콘: 재료 = 메이저 아이콘, 고급 · 전설 = 고유 아이콘, 문장 = 시너지 아이콘 */
+/** 장비 아이콘: 재료 · 고급 = 메이저 아이콘, 희귀 · 전설 = 고유 아이콘, 문장 = 시너지 아이콘 */
 function itemGlyph(id: string) {
   if (isMod(id)) return synIcon(emblemOf(id), 'ii');
   if (id.startsWith('U_')) return lineIcon(`i.${id}`, 'ii');
-  if (id.startsWith('C_')) return majorIcon(id.slice(2) as Major, 'ii mi');
+  if (id.startsWith('C_') || id.startsWith('G_')) return majorIcon(id.slice(2) as Major, 'ii mi');
   return lineIcon(`i.${id.slice(2)}`, 'ii');
 }
 
@@ -439,8 +439,8 @@ function mapScreen(run: RunState) {
 }
 function nodeHint(o: NodeType) {
   return ({
-    battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 1.5배 + 재료 확률`, shop: '장비 재료 · 고급 장비 구매',
-    supply: '보급품 3종 중 택1', recruit: '새 동료 3명 중 택1', boss: `승리 시 페이즈 클리어 · ${CFG.drop.bossAdvEvery}페이즈마다 고급 장비`,
+    battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 1.5배 + 재료 확률`, shop: '분기점 — 상점 / 보급 (+ 호이슌 투자 · 순례)',
+    supply: '보급품 3종 중 택1', recruit: '새 동료 3명 중 택1', boss: `승리 시 페이즈 클리어 · ${CFG.drop.bossAdvEvery}페이즈마다 희귀 장비`,
     pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', invest: '호이슌 투자 상품 · 크레딧으로 문장 · 증강 · 다음 페이즈 수익', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
   } as Record<NodeType, string>)[o];
 }
@@ -711,7 +711,7 @@ function summaryModal(run: RunState) {
 function shopScreen(run: RunState) {
   const stock = run.node?.shop || [];
   return `<main class="wrap">
-    <div class="screen-head"><h1>암시장 상점</h1><p class="muted">재료 2개를 같은 기물에 장착하거나 보관함에서 겹치면 고급 장비가 됩니다. 같은 고급 장비 2개는 전설(효과 3배)이 됩니다.</p></div>
+    <div class="screen-head"><h1>암시장 상점</h1><p class="muted">같은 재료 2개를 같은 기물에 장착하거나 보관함에서 겹치면 고급 장비(능력치 +12)가 됩니다. 희귀 장비는 능력치가 낮지만 고유 효과가 있고, 전설 장비는 합성할 수 없습니다.</p></div>
     <div class="shop">${stock.map((s, i) => {
       const it = itemInfo(s.item);
       return `<div class="shop-item t${it.tier} ${s.sold ? 'sold' : ''}">${itemIcon(s.item)}<div><b>${esc(it.name)}</b><div class="small muted">${statIc(esc(it.desc))}</div></div>
@@ -851,6 +851,12 @@ function pendingModal(run: RunState): string {
       <div class="rc-track">${p.options.map((id) => pickCard(UNIT_BY_ID[id], { on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), extra: `<span class="rank rc-rank">${rankLabel(rank)}</span>` })).join('')}</div>
       <div class="rc-foot"><span class="muted small">${pick ? `${esc(UNIT_BY_ID[pick].name)} 선택됨` : CAN_HOVER ? '카드에 마우스를 올리면 설명, 누르면 선택' : '탭하면 선택 · 하단을 끌어올리면 설명'}</span>
         <button class="btn primary" data-a="pick-recruit" data-v="${pick || ''}" ${pick ? '' : 'disabled'}>영입</button></div>`;
+  } else if (p.t === 'branch') {
+    const BR: Partial<Record<NodeType, string>> = {
+      shop: '재료 2개 확정 · 희귀 / 고급 장비 · 가끔 전설', supply: '보급품 3종 중 택1',
+      invest: '호이슌 투자 상품 (페이즈당 1회)', pilgrim: `권능 +1 후 순례 (페이즈당 1회) · 보유 권능 ${run.power}`,
+    };
+    body = `<h1>분기점</h1><p class="muted small">어디로 향할지 고르세요.</p><div class="cards">${p.options.map((o, i) => `<button class="card br-card n-${o}" data-a="pick-branch" data-v="${o}" title="단축키 ${i + 1}"><span class="br-ic">${NODE_ICON[o]}</span><b>${esc(NODE_NAME[o])}</b><span class="small muted">${ic(esc(BR[o] || ''))}</span></button>`).join('')}</div>`;
   } else if (p.t === 'supply') {
     body = `<h1>보급</h1><div class="cards">${p.options.map((o) => `<button class="card" data-a="pick-supply" data-v="${o}"><b>${ic(esc(R.SUPPLY_TEXT[o]))}</b></button>`).join('')}</div>`;
   } else if (p.t === 'pilgrim') {
@@ -936,7 +942,7 @@ function statPopHtml(run: RunState) {
   return `<div class="stat-pop"><div class="sp-head"><b>상세 능력치</b>${u.pos ? '' : '<span class="muted small">시너지 미적용</span>'}<button class="btn tiny" data-a="stat-pop">닫기</button></div>${statLines(c, b)}</div>`;
 }
 
-/** 전투 유형별 추천 고급 장비 (재료 조합 id) */
+/** 전투 유형별 추천 희귀 장비 (id 접미사) */
 const RECO: Record<string, string[]> = {
   MARK: ['pow_agi', 'pow_mnd', 'pow_pow', 'agi_agi', 'mnd_agi'],
   VAN: ['vit_pow', 'vit_def', 'pow_def', 'def_def', 'vit_vit'],
@@ -952,23 +958,16 @@ function recoModal(run: RunState) {
   const rows = (RECO[d.ctype] || []).map((key) => {
     const ids = [`A_${key}`, `L_${key}`];
     const it = itemInfo(`A_${key}`);
-    const [ca, cb] = it.recipe || [];
     const mine = u.items.filter((x) => x && ids.includes(x)).length;
     const inv = run.inventory.filter((x) => ids.includes(x)).length;
     const allies = run.units.filter((o) => o !== u && o.items.some((x) => x && ids.includes(x))).map((o) => name(o.uid));
-    const need: Record<string, number> = {};
-    const parts = [ca, cb].filter(Boolean).map((c) => {
-      need[c!] = (need[c!] || 0) + 1;
-      const have = run.inventory.filter((x) => x === c).length >= need[c!];
-      return `${itemIcon(c!)}${have ? '<b class="up small">보유</b>' : '<span class="muted small">없음</span>'}`;
-    }).join('');
     const st = [mine ? '<span class="rc-tag on">장착 중</span>' : '', inv ? `<span class="rc-tag rc-inv">보관함 ${inv}</span>` : '', ...allies.map((n) => `<span class="rc-tag ally">${esc(n)} 장착</span>`)].join('');
     return `<li class="rc-row">${itemIcon(`A_${key}`)}<div class="rc-main"><b>${esc(it.name)}</b><span class="small muted">${statIc(esc(it.desc))}</span>
-      <div class="rc-st">${st || '<span class="muted small">보유하지 않음</span>'}</div></div><div class="rc-parts" title="조합 재료">${parts}</div></li>`;
+      <div class="rc-st">${st || '<span class="muted small">보유하지 않음</span>'}</div></div></li>`;
   }).join('');
   return `<div class="modal-bg" data-a="reco" data-v=""><div class="modal reco">
     <h1>추천 장비 <span class="muted small">${esc(d.name)} · ${CTYPE_NAME[d.ctype]}</span></h1>
-    <p class="muted small">전투 유형에 맞는 고급 장비입니다. 재료 2개를 겹치면 만들 수 있습니다.</p>
+    <p class="muted small">전투 유형에 맞는 희귀 장비입니다. 합성할 수 없으며 상점 · 보급 · 사건에서 얻습니다.</p>
     <ul class="rc-list">${rows}</ul>
     <div class="row-btns"><button class="btn primary" data-a="reco" data-v="">닫기</button></div>
   </div></div>`;
@@ -1016,6 +1015,10 @@ function render() {
   lastView.screen = app.screen; lastView.modal = modalKey;
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && app.screen === 'prep' ? recoModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   layoutPanels();
+  // 노드 타임라인: 현재 단계를 가운데로 (다음 노드가 보이도록)
+  const tl = root.querySelector<HTMLElement>('.tl');
+  const cur = tl?.querySelector<HTMLElement>('.tl-step.cur');
+  if (tl && cur) tl.scrollLeft = Math.max(0, cur.offsetLeft - (tl.clientWidth - cur.offsetWidth) / 2);
   if (sameView) {
     for (const [sel, top] of keep) { const el = root.querySelector(sel); if (el && top) el.scrollTop = top; }
     if (winY) window.scrollTo(0, winY);
@@ -1436,6 +1439,7 @@ function act(a: string, v: string) {
     case 'pick-item': { const p = run?.pending[0]; if (run && p?.t === 'itemPick') { R.gainItem(run, p.options[+v]); run.pending.shift(); persist(); } break; }
     case 'rc-tap': app.recruitPick = app.recruitPick === v ? null : v; break;
     case 'pick-recruit': if (run && v && run.pending[0]?.t === 'recruit') { R.recruit(run, v); run.pending.shift(); app.recruitPick = null; app.cardOpen = null; persist(); } break;
+    case 'pick-branch': if (run && run.pending[0]?.t === 'branch') { R.pickBranch(run, v as NodeType); goPrepOrMap(); persist(); } break;
     case 'pick-supply': if (run && run.pending[0]?.t === 'supply') { run.pending.shift(); R.takeSupply(run, v); persist(); } break;
     case 'notice-ok': run?.pending.shift(); persist(); break;
     default: return;
@@ -1460,7 +1464,7 @@ function itemTip(el: HTMLElement, key: string) {
   if (!id) return;
   const it = itemInfo(id);
   const tier = id.startsWith('U_') ? 'U' : it.tier;
-  const TIER_NAME: Record<string, string> = { C: '재료', A: '고급', L: '전설', M: '개조부품', U: '고유' };
+  const TIER_NAME: Record<string, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '개조부품', U: '고유' };
   const tip = document.createElement('div');
   tip.className = `item-tip tip-${tier}`;
   tip.innerHTML = `<span class="tip-tier">${TIER_NAME[tier] || ''}</span><b>${esc(it.name)}</b><span>${statIc(esc(it.desc))}</span>

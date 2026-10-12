@@ -19,7 +19,7 @@ const owns = (r: RunState, id: string) => r.units.some((u) => u.defId === id);
 const top = (r: RunState): UnitState | undefined => r.units.slice().sort((a, b) => b.rank - a.rank)[0];
 const needCr = (n: number) => (r: RunState) => (r.credits < n ? '크레딧이 부족합니다' : null);
 const needHp = (n: number) => (r: RunState) => (r.hp <= n ? '체력이 부족합니다' : null);
-const isGear = (x: string | null) => !!x && /^[CAL]_/.test(x);
+const isGear = (x: string | null) => !!x && /^[CGAL]_/.test(x);
 const hasGear = (r: RunState) => r.inventory.some(isGear) || r.units.some((u) => u.items.some(isGear));
 const noGear = (r: RunState) => (hasGear(r) ? null : '내놓을 장비가 없습니다');
 const full = (r: RunState) => (r.units.length >= 16 ? '보유 한도(16명)에 도달했습니다' : null);
@@ -29,14 +29,14 @@ const pickDeployed = (r: RunState, api: EventApi): UnitState | undefined => {
   return src.length ? api.rng((g) => g.pick(src)) : undefined;
 };
 /** 무작위 장비 1개를 빼앗고 그 등급을 돌려준다 */
-const takeGear = (api: EventApi): 'C' | 'A' | 'L' | null => {
+const takeGear = (api: EventApi): 'C' | 'G' | 'A' | 'L' | null => {
   const all = api.allItems().filter((x) => isGear(x.id));
   if (!all.length) return null;
   const it = api.rng((g) => g.pick(all));
   api.setItem(it, null);
-  return it.id[0] as 'C' | 'A' | 'L';
+  return it.id[0] as 'C' | 'G' | 'A' | 'L';
 };
-const TIER_NAME = { C: '재료', A: '고급 장비', L: '전설 장비' } as const;
+const TIER_NAME = { C: '재료', G: '고급 장비', A: '희귀 장비', L: '전설 장비' } as const;
 
 export const STORY_D: EventDef[] = [
   // ───────── 1. 난파선 인양
@@ -45,10 +45,10 @@ export const STORY_D: EventDef[] = [
     text: '항로 표지도 없는 암흑 구역에 대형 화물선 한 척이 비스듬히 떠 있다. 선체에는 세 번 이상 약탈당한 흔적이 겹겹이 남아 있지만, 화물칸 깊숙한 곳의 격벽만은 아직 봉인되어 있다. 웨스트가 스캐너를 두드리며 중얼거린다. "안쪽에 뭔가 있긴 해. 다만 반응로도 살아 있고."',
     choices: [
       {
-        label: '봉인 격벽을 뜯는다', desc: '40%: 고급 장비 1개 / 35%: 크레딧 +12 / 25%: 반응로 폭주, 플레이어 체력 -18.',
+        label: '봉인 격벽을 뜯는다', desc: '40%: 희귀 장비 1개 / 35%: 크레딧 +12 / 25%: 반응로 폭주, 플레이어 체력 -18.',
         apply: (r, api) => {
           const x = roll(api);
-          if (x < 0.4) { api.gain(api.randomItem('A')); return '격벽 너머에서 멀쩡한 고급 장비를 건졌습니다.'; }
+          if (x < 0.4) { api.gain(api.randomItem('A')); return '격벽 너머에서 멀쩡한 희귀 장비를 건졌습니다.'; }
           if (x < 0.75) { r.credits += 12; return '값나가는 화물 몇 상자를 챙겼습니다. 크레딧 +12.'; }
           hurt(r, 18); return '격벽을 여는 순간 반응로가 폭주했습니다. 체력 -18.';
         },
@@ -82,7 +82,7 @@ export const STORY_D: EventDef[] = [
     text: '정거장 부두에서 낯익은 얼굴이 손을 흔든다. 그때 구해 준 조난선의 선장이다. 알고 보니 그는 변경에서 이름난 밀수꾼이었고, 그날은 세관선에 쫓기다 엔진이 터졌던 것이다. "에란테스한테는 빚이 있지. 원하는 걸로 갚겠네."',
     choices: [
       { label: '비밀 항로를 받는다', desc: '모든 아군 공격 속도 +10% (영구).', apply: (_r, api) => { api.boon('d_route'); return '밀수 항로를 손에 넣었습니다. 공격 속도 +10%.'; } },
-      { label: '화물칸 하나를 받는다', desc: '고급 장비 1개 + 크레딧 +8.', apply: (r, api) => { api.gain(api.randomItem('A')); r.credits += 8; return '선장이 화물칸 열쇠를 건넸습니다.'; } },
+      { label: '화물칸 하나를 받는다', desc: '희귀 장비 1개 + 크레딧 +8.', apply: (r, api) => { api.gain(api.randomItem('A')); r.credits += 8; return '선장이 화물칸 열쇠를 건넸습니다.'; } },
       { label: '쓸 만한 사람을 소개받는다', desc: '기물 3명 중 1명 영입.', block: full, apply: (_r, api) => { api.recruitPick(3); return '선장이 믿을 만한 떠돌이들을 데려왔습니다.'; } },
     ],
   },
@@ -109,7 +109,7 @@ export const STORY_D: EventDef[] = [
     choices: [
       { label: '습격 정보를 받는다', desc: '이번 페이즈 동안 모든 아군 피해 +20%.', apply: (_r, api) => { api.phaseBoon('d_intel'); return '적의 동선이 훤히 보입니다. 이번 페이즈 피해 +20%.'; } },
       { label: '해적 깃발을 빌린다', desc: '모든 아군 회피 +8% (영구). 대신 평판이 깎여 크레딧 -8.', block: needCr(8), apply: (r, api) => { r.credits -= 8; api.boon('d_colors'); return '약탈단 깃발을 달았습니다. 아무도 함부로 다가오지 않습니다.'; } },
-      { label: '장물 창고를 턴다', desc: '고급 장비 1개 + 재료 1개.', apply: (_r, api) => { api.gain(api.randomItem('A')); api.gain(api.randomItem('C')); return '두목이 알려 준 창고에서 장물을 챙겼습니다.'; } },
+      { label: '장물 창고를 턴다', desc: '희귀 장비 1개 + 재료 1개.', apply: (_r, api) => { api.gain(api.randomItem('A')); api.gain(api.randomItem('C')); return '두목이 알려 준 창고에서 장물을 챙겼습니다.'; } },
     ],
   },
   {
@@ -117,7 +117,7 @@ export const STORY_D: EventDef[] = [
     text: '항로 한가운데 같은 깃발을 단 함선이 버티고 서 있다. 이번에는 다섯 척이다. "내 형의 목값으로 술은 맛있었나, 에란테스?" 죽은 두목의 동생이 직접 함포를 겨누고 있다. 피할 길은 없어 보인다.',
     choices: [
       {
-        label: '정면으로 맞붙는다', desc: '50%: 압승, 고급 장비 1개 + 크레딧 +12 / 30%: 신승, 크레딧 +6 · 체력 -10 / 20%: 패퇴, 체력 -22.',
+        label: '정면으로 맞붙는다', desc: '50%: 압승, 희귀 장비 1개 + 크레딧 +12 / 30%: 신승, 크레딧 +6 · 체력 -10 / 20%: 패퇴, 체력 -22.',
         apply: (r, api) => {
           const x = roll(api);
           if (x < 0.5) { api.gain(api.randomItem('A')); r.credits += 12; return '동생의 기함까지 격침했습니다. 복수는 여기서 끝납니다.'; }
@@ -126,7 +126,7 @@ export const STORY_D: EventDef[] = [
         },
       },
       {
-        label: '웨스트의 기뢰 함정', desc: '크레딧 -10. 확실하게 함대를 무력화하고 잔해에서 고급 장비 1개.', block: needCr(10),
+        label: '웨스트의 기뢰 함정', desc: '크레딧 -10. 확실하게 함대를 무력화하고 잔해에서 희귀 장비 1개.', block: needCr(10),
         apply: (r, api) => { r.credits -= 10; api.gain(api.randomItem('A')); return '기뢰밭에 걸린 함대가 차례로 멈춰 섰습니다.'; },
       },
       {
@@ -201,18 +201,18 @@ export const STORY_D: EventDef[] = [
     text: '버려진 정거장의 화물칸에서 은밀한 경매가 열린다. 출품작은 모두 출처를 묻지 말아야 할 물건들이다. 라르스가 귀족 특유의 느긋한 손짓으로 번호판을 집어 든다. "이런 데서는 겉포장이 아니라 판매자의 눈을 보는 법이지."',
     choices: [
       {
-        label: '봉인 상자를 낙찰받는다', desc: '크레딧 -20. 10%: 전설 장비 / 55%: 고급 장비 / 35%: 재료 1개.', block: needCr(20),
+        label: '봉인 상자를 낙찰받는다', desc: '크레딧 -20. 10%: 전설 장비 / 55%: 희귀 장비 / 35%: 재료 1개.', block: needCr(20),
         apply: (r, api) => {
           r.credits -= 20;
           const x = roll(api);
           if (x < 0.1) { api.gain(api.randomItem('L'), true); return '상자 안에서 전설 장비가 빛납니다!'; }
-          if (x < 0.65) { api.gain(api.randomItem('A')); return '쓸 만한 고급 장비가 들어 있었습니다.'; }
+          if (x < 0.65) { api.gain(api.randomItem('A')); return '쓸 만한 희귀 장비가 들어 있었습니다.'; }
           api.gain(api.randomItem('C')); return '재료 하나뿐이었습니다. 라르스가 판매자를 노려봅니다.';
         },
       },
       {
-        label: '장비를 출품한다', desc: '무작위 보유 장비 1개를 판다. 재료 크레딧 +9 / 고급 +18 / 전설 +35.', block: noGear,
-        apply: (r, api) => { const t = takeGear(api); if (!t) return '팔 물건이 없었습니다.'; const p = t === 'L' ? 35 : t === 'A' ? 18 : 9; r.credits += p; return `${TIER_NAME[t]} 1개가 낙찰되었습니다. 크레딧 +${p}.`; },
+        label: '장비를 출품한다', desc: '무작위 보유 장비 1개를 판다. 재료 크레딧 +9 / 고급·희귀 +18 / 전설 +35.', block: noGear,
+        apply: (r, api) => { const t = takeGear(api); if (!t) return '팔 물건이 없었습니다.'; const p = t === 'L' ? 35 : t === 'A' || t === 'G' ? 18 : 9; r.credits += p; return `${TIER_NAME[t]} 1개가 낙찰되었습니다. 크레딧 +${p}.`; },
       },
       {
         label: '경매 장부를 훔쳐본다', desc: '50%: 정보를 되팔아 크레딧 +12 / 50%: 경비에게 붙잡혀 체력 -10.',
@@ -251,7 +251,7 @@ export const STORY_D: EventDef[] = [
     choices: [
       { label: '묻지 않고 싣는다', desc: '크레딧 +15. 다음 성계에 검문소가 있다는 소문이 있다.', apply: (r, api) => { r.credits += 15; api.flag('d_cargo'); return '선불 크레딧 +15. 컨테이너가 화물칸에 실렸습니다.'; } },
       {
-        label: '몰래 열어 본다', desc: '50%: 귀한 장비, 고급 장비 1개를 빼돌린다 / 50%: 봉인 장치가 터져 체력 -15.',
+        label: '몰래 열어 본다', desc: '50%: 귀한 장비, 희귀 장비 1개를 빼돌린다 / 50%: 봉인 장치가 터져 체력 -15.',
         apply: (r, api) => { if (api.chance(0.5)) { api.gain(api.randomItem('A')); return '안에는 밀수 장비가 가득했습니다. 하나쯤은 아무도 모를 겁니다.'; } hurt(r, 15); return '봉인 장치가 폭발했습니다. 체력 -15.'; },
       },
       { label: '페트라 세관에 신고한다', desc: '페트라 문장 1개. 의뢰인은 체포된다.', apply: (_r, api) => { api.gain('M_PET'); return '세관이 감사의 뜻으로 페트라 문장을 보냈습니다.'; } },
