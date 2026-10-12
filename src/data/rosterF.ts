@@ -136,7 +136,7 @@ export const ROSTER_F: BaseUnit[] = [
     id: 'issac', name: 'ISSAC', title: '연합 생체 실험체 · 흰 정장의 신사', factions: ['UNI'], traits: ['DECOMP', 'BUDDY'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'chem', interval: 0.85 }, range: 1, base: B(10, 8, 3, 8, 3),
     sprite: 'knight', palette: tint(SLIME, '#f0f0f0', '#4cc860', '#ffffff'),
-    summon: { name: '초록 점액', sprite: 'crawler', palette: SLIME, atk: { type: 'strike', elem: 'chem', interval: 1.0 }, range: 1, hpMul: 1.3 },
+    summon: { name: '초록 점액', art: 'sm_slime', sprite: 'crawler', palette: SLIME, atk: { type: 'strike', elem: 'chem', interval: 1.0 }, range: 1, hpMul: 1.3 },
     lore: '"놀라셨다면 죄송합니다. 붕대는… 예의상 감고 있는 것입니다."',
     skill: strike({
       name: '붕대 해제', cd: 7, pow: 'strike', elem: 'chem', mult: 1.8, aroundSelf: true, params: { radius: 1, poison: 0.3, selfShield: 0.15 },

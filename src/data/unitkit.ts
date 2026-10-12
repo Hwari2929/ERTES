@@ -61,6 +61,8 @@ export interface SummonDef {
   atk: { type: 'shoot' | 'strike'; elem: Elem; interval: number };
   range: number;
   hpMul?: number;
+  /** 일러스트 id (art/<art>.webp, 초상화 아이콘) */
+  art?: string;
 }
 
 export const B = (vit: number, pow: number, mnd: number, def: number, agi: number) => ({ vit, pow, mnd, def, agi });

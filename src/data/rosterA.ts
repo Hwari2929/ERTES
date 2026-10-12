@@ -63,7 +63,7 @@ export const ROSTER_A: BaseUnit[] = [
     id: 'donovan', name: '도노반', title: '전 보안위원회 특수요원 "밤까마귀"', factions: ['UNI'], traits: ['INFIL', 'BUDDY'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 0.9 }, range: 1, base: B(6, 9, 7, 4, 7),
     sprite: 'soldier', palette: tint(PAL.UNI, '#5a5a66', '#2a2a30', '#b07cff'),
-    summon: { name: '까악이', sprite: 'drone', palette: DRONE, atk: { type: 'shoot', elem: 'elec', interval: 0.8 }, range: 3, hpMul: 1.2 },
+    summon: { name: '까악이', art: 'sm_crow', sprite: 'drone', palette: DRONE, atk: { type: 'shoot', elem: 'elec', interval: 0.8 }, range: 3, hpMul: 1.2 },
     lore: '"휴가 중. 기한 100년. 고양이 사료는 문 앞에."',
     skill: strike({
       name: '자안의 사수', cd: 7, pow: 'tech', elem: 'phys', mult: 2.0, target: 'lowest', blink: true, params: { crit: 0.4 },
@@ -186,7 +186,7 @@ export const ROSTER_A: BaseUnit[] = [
     id: 'lars', name: '라르스', title: '엘베스타드가 가주 · 페트라 무역관세부장', factions: ['PET', 'FAM'], traits: ['BUDDY'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(6, 7, 7, 5, 5),
     sprite: 'soldier', palette: tint(PAL.FAM, '#16161c', '#3a5ab0', '#d4a83a'),
-    summon: { name: '페트라 경호원', sprite: 'soldier', palette: BOT, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.5 },
+    summon: { name: '페트라 경호원', art: 'sm_guard', sprite: 'soldier', palette: BOT, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.5 },
     lore: '"좋습니다. 서로가 만족할 거래가 되었군요."',
     // 비무장: 폭력은 경호팀에게 아웃소싱했다
     passive: {

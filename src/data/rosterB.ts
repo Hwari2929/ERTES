@@ -136,7 +136,7 @@ export const ROSTER_B: BaseUnit[] = [
     id: 'bianca', name: '비앙카', title: '"냉혈한 성녀" 수석 군의관', factions: ['KAL'], traits: ['BUDDY', 'MED'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(7, 6, 8, 5, 4),
     sprite: 'medic', palette: tint(PAL.KAL, '#f0f0f0', '#5a3a2a', '#80c0ff'),
-    summon: { name: '베헤모스', sprite: 'crawler', palette: BEHEMOTH, atk: { type: 'strike', elem: 'phys', interval: 0.9 }, range: 1, hpMul: 1.4 },
+    summon: { name: '베헤모스', art: 'sm_behemoth', sprite: 'crawler', palette: BEHEMOTH, atk: { type: 'strike', elem: 'phys', interval: 0.9 }, range: 1, hpMul: 1.4 },
     lore: '"체온 관리는 중요해. 이상 체온은 베헤모스를 자극할 수 있어."',
     skill: support({
       name: '치유 탄환', cd: 7, target: 'lowest', params: { heal: 1.8, petDmg: 0.4 },

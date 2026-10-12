@@ -13,7 +13,7 @@ import type { SummonDef } from '../data/unitkit';
 import { Rng } from '../rng';
 import { type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
 import { Battle, type CUnit } from './combat';
-import type { Effect, EffectCtx } from './effects';
+import { applyLive, type Effect, type EffectCtx } from './effects';
 
 export type Counts = Partial<Record<SynergyId, number>>;
 
@@ -200,7 +200,7 @@ function spawnSummons(b: Battle, owner: CUnit, sd: SummonDef) {
     const gm = owner.mem.summonMaj || 0;
     if (gm) for (const k of MAJORS) for (const [sk, per] of Object.entries(CFG.conv[k])) st[sk as keyof Stats] += (per as number) * gm;
     Object.assign(s, {
-      defId: 'summon', name: sd.name, sprite: sd.sprite, palette: sd.palette, st, atk: { ...sd.atk },
+      defId: 'summon', name: sd.name, sprite: sd.sprite, palette: sd.palette, art: sd.art, st, atk: { ...sd.atk },
       keywords: sd.sprite === 'drone' ? ['mech'] : ['bio'], isSummon: true, owner,
       mods: owner.mem.bondAmp ? [{ kind: 'inc', tag: 'all', v: owner.mem.bondAmp }] : [],
     });
@@ -269,6 +269,8 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   if (diffHas(d, 4) && def.tier === 'boss') st.maxHp *= 1.25;
   if (diffHas(d, 7)) { st.armor *= 1.25; st.effRes += 0.15; }
   if (diffHas(d, 8)) st.maxHp *= Math.pow(1.05, phase - 1);
+  // 적 장비 · 개조부품
+  for (const it of [...(def.items || []), def.mod || null]) if (it) applyLive(c, itemEffect(it), b, makeCtx(null, null, {}));
   if (def.onBasic) c.hooks.push({ onBasic: def.onBasic });
   if (def.onTick) c.hooks.push({ onTick: def.onTick });
   void b;
@@ -292,7 +294,7 @@ ENG_HOOK.spawn = (b, lead, engs, n) => {
     st.acc = avg('acc') * 0.5; st.crit = avg('crit') * 0.5; st.critDmg = 1.5; st.effRes = avg('effRes') * 0.5;
     st.atkSpd = asBonus; st.range = 4; st.moveSpd = 1;
     Object.assign(t, {
-      defId: 'turret', name: '감시 포탑', sprite: 'turret', palette: TURRET_PAL, st, atk: { type: 'shoot', elem: 'phys', interval: 1.0 },
+      defId: 'turret', name: '감시 포탑', sprite: 'turret', palette: TURRET_PAL, art: 'sm_turret', st, atk: { type: 'shoot', elem: 'phys', interval: 1.0 },
       keywords: ['mech', 'struct'], isSummon: true, immobile: true,
     });
     t.hp = st.maxHp;

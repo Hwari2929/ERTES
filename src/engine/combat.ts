@@ -136,6 +136,8 @@ export interface CUnit {
   faith?: FaithId;
   src?: UnitState;
   owner?: CUnit;
+  /** 일러스트 id (소환물 · 포탑) */
+  art?: string;
 }
 
 export type BEvent =

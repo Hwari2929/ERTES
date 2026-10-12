@@ -2,12 +2,18 @@
 import { ICONS } from './portraits.gen';
 import { spriteURL } from './sprites';
 
-type Spriteish = { sprite: string; palette: string[]; id?: string | number; defId?: string; side?: number };
+type Spriteish = { sprite: string; palette: string[]; id?: string | number; defId?: string; side?: number; art?: string; tier?: string };
 
 /** 기물 id (적 · 소환물 · 포탑은 null) */
 function unitKey(x: Spriteish): string | null {
-  if (x.defId !== undefined) return x.side === 0 && ICONS[x.defId] ? x.defId : null;
-  return typeof x.id === 'string' && ICONS[x.id] ? x.id : null;
+  if (x.art) return ICONS[x.art] ? x.art : null; // 소환물 · 포탑
+  if (x.defId !== undefined) {
+    if (x.side === 0) return ICONS[x.defId] ? x.defId : null;
+    return ICONS[`en_${x.defId}`] ? `en_${x.defId}` : null; // 적
+  }
+  if (typeof x.id !== 'string') return null;
+  if (x.tier) return ICONS[`en_${x.id}`] ? `en_${x.id}` : null; // 적 정의
+  return ICONS[x.id] ? x.id : null;
 }
 
 export function hasPortrait(x: Spriteish) {

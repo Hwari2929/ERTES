@@ -78,7 +78,7 @@ export class BattleView {
 
   private mount(u: CUnit) {
     const el = document.createElement('div');
-    const card = u.side === 0 && !!u.src && hasPortrait(u);
+    const card = hasPortrait(u);
     el.className = `u side${u.side}${card ? ' tkb' : ''}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
     el.style.width = el.style.height = `${100 / this.b.n}%`;
     const inner = `<div class="bars"><i class="hp"></i><i class="sh"></i></div><img alt="" class="${hasPortrait(u) ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && (u.reason !== null || u.div !== null) ? '<div class="gx"><i></i></div>' : ''}`;

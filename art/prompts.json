@@ -419,41 +419,42 @@
  "en_raider": {
   "name": "약탈자 척후병",
   "subject": "1boy",
-  "tags": "space pirate, raider, scavenger, ragged leather armor, scrap metal pauldron, goggles on head, bandana mask, holding machete, wasteland, full body, standing, menacing",
+  "tags": "space pirate, raider, scavenger, ragged leather armor, scrap metal pauldron, goggles on head, bandana mask, holding machete, wasteland, full body, standing, menacing, mob character, faceless, eyes not visible, face covered by mask",
   "alts": {
-   "v1": "space pirate, raider, scavenger, ragged leather armor, scrap metal pauldron, goggles on head, bandana mask, holding machete, wasteland, full body, standing, menacing",
-   "v2": "space bandit, mohawk, scarred face, spiked shoulder pads, makeshift armor, holding rusty cleaver, aggressive grin, full body, standing",
-   "v3": "masked raider, gas mask, hooded poncho, tattered cloak, holding crude spear, dusty, full body, standing",
-   "v4": "young thug, space raider, bomber jacket, chains, knuckle dusters, wild hair, sneer, full body, fighting stance"
+   "v1": "space pirate, raider, scavenger, ragged leather armor, scrap metal pauldron, goggles on head, bandana mask, holding machete, wasteland, full body, standing, menacing, mob character, faceless, eyes not visible, face covered by mask",
+   "v2": "space bandit, mohawk, scarred face, spiked shoulder pads, makeshift armor, holding rusty cleaver, aggressive grin, full body, standing, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes",
+   "v3": "masked raider, gas mask, hooded poncho, tattered cloak, holding crude spear, dusty, full body, standing, mob character, hair over eyes, covered eyes, no visible eyes",
+   "v4": "young thug, space raider, bomber jacket, chains, knuckle dusters, wild hair, sneer, full body, fighting stance, mob character, visor covering eyes, blindfold, eyes not visible"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "모브 페이스(눈 안 보이게)"
  },
  "en_gunner": {
   "name": "약탈자 사수",
   "subject": "1boy",
-  "tags": "space pirate gunner, holding scrap rifle, bandolier, leather duster coat, goggles, scarf over mouth, full body, standing",
+  "tags": "space pirate gunner, holding scrap rifle, bandolier, leather duster coat, goggles, scarf over mouth, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
   "alts": {
-   "v1": "space pirate gunner, holding scrap rifle, bandolier, leather duster coat, goggles, scarf over mouth, full body, standing",
-   "v2": "raider sniper, long rifle, hooded cloak, scope, crouching pose, wasteland gear, full body",
-   "v3": "space bandit gunslinger, twin pistols, cowboy hat, poncho, cigarette, smirk, full body, standing",
-   "v4": "raider machine gunner, heavy scrap machine gun, ammo belt, bulky armor, helmet, full body, standing"
+   "v1": "space pirate gunner, holding scrap rifle, bandolier, leather duster coat, goggles, scarf over mouth, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
+   "v2": "raider sniper, long rifle, hooded cloak, scope, crouching pose, wasteland gear, full body, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes",
+   "v3": "space bandit gunslinger, twin pistols, cowboy hat, poncho, cigarette, smirk, full body, standing, mob character, hair over eyes, covered eyes, no visible eyes",
+   "v4": "raider machine gunner, heavy scrap machine gun, ammo belt, bulky armor, helmet, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "모브 페이스(눈 안 보이게)"
  },
  "en_drone": {
   "name": "정찰 드론",
   "subject": "no humans",
-  "tags": "scout drone, small hovering robot, single red camera eye, quadcopter rotors, scrap metal, mechanical, no humans, full body",
+  "tags": "small quadcopter drone, four rotors, single red camera eye, scrap metal body, hovering, top-down three-quarter view, no humans",
   "alts": {
-   "v1": "scout drone, small hovering robot, single red camera eye, quadcopter rotors, scrap metal, mechanical, no humans, full body",
-   "v2": "recon drone, spherical robot, antenna, glowing blue lens, floating, mecha, no humans",
-   "v3": "insect-like drone, thin legs, propellers, camera head, rusty paint, robot, no humans",
-   "v4": "pirate drone, triangular hovering robot, graffiti paint, spotlight eye, gun barrel underside, no humans"
+   "v1": "small quadcopter drone, four rotors, single red camera eye, scrap metal body, hovering, top-down three-quarter view, no humans",
+   "v2": "spherical recon drone, floating metal ball, one glowing blue lens, small antenna, no humans",
+   "v3": "flying scout drone, flat disc body, propellers, rusty paint, spotlight, no humans",
+   "v4": "insect-like flying drone, dragonfly wings rotors, camera head, no humans"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "",
+  "object": true
  },
  "en_crawler": {
   "name": "산성 크롤러",
@@ -471,67 +472,68 @@
  "en_trooper": {
   "name": "강습 기갑병",
   "subject": "1boy",
-  "tags": "heavy assault trooper, power armor, bulky exoskeleton, full helmet, visor, hydraulic fists, scrap metal plating, full body, standing",
+  "tags": "heavy assault trooper, power armor, bulky exoskeleton, full helmet, visor, hydraulic fists, scrap metal plating, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
   "alts": {
-   "v1": "heavy assault trooper, power armor, bulky exoskeleton, full helmet, visor, hydraulic fists, scrap metal plating, full body, standing",
-   "v2": "armored brute, powered armor suit, riot shield arm, red visor, battle damage, full body, standing",
-   "v3": "exosuit soldier, massive armored gauntlets, rusted plates, glowing eye slit, full body, fighting stance",
-   "v4": "cyborg heavy, mechanical arms, armored torso, breathing mask, intimidating, full body, standing"
+   "v1": "heavy assault trooper, power armor, bulky exoskeleton, full helmet, visor, hydraulic fists, scrap metal plating, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
+   "v2": "armored brute, powered armor suit, riot shield arm, red visor, battle damage, full body, standing, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes",
+   "v3": "exosuit soldier, massive armored gauntlets, rusted plates, glowing eye slit, full body, fighting stance, mob character, hair over eyes, covered eyes, no visible eyes",
+   "v4": "cyborg heavy, mechanical arms, armored torso, breathing mask, intimidating, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "모브 페이스(눈 안 보이게)"
  },
  "en_turret": {
   "name": "방어 포탑",
   "subject": "no humans",
-  "tags": "defense turret, automated gun emplacement, twin cannons, armored base, sci-fi, mechanical, no humans, full body",
+  "tags": "automated gun turret on armored base, twin barrels, rotating mount, sandbags, no humans",
   "alts": {
-   "v1": "defense turret, automated gun emplacement, twin cannons, armored base, sci-fi, mechanical, no humans, full body",
-   "v2": "sentry gun, tripod turret, scrap metal, red laser sight, mechanical, no humans",
-   "v3": "heavy cannon turret, rotating dome, warning stripes, sci-fi weapon, no humans",
-   "v4": "missile turret, box launcher, radar dish, armored, mechanical, no humans"
+   "v1": "automated gun turret on armored base, twin barrels, rotating mount, sandbags, no humans",
+   "v2": "sentry gun on tripod legs, single barrel, red laser sight, ammo box, no humans",
+   "v3": "dome cannon emplacement, heavy armored dome, warning stripes, no humans",
+   "v4": "missile launcher turret, box launcher pod, radar dish, armored pedestal, no humans"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "",
+  "object": true
  },
  "en_wraith": {
   "name": "공허 환영",
   "subject": "1girl",
-  "tags": "void wraith, ghost woman, translucent body, flowing dark mist, glowing purple eyes, tattered veil, floating, ethereal, full body",
+  "tags": "void wraith, ghost woman, translucent body, flowing dark mist, glowing purple eyes, tattered veil, floating, ethereal, full body, mob character, faceless, eyes not visible, face covered by mask",
   "alts": {
-   "v1": "void wraith, ghost woman, translucent body, flowing dark mist, glowing purple eyes, tattered veil, floating, ethereal, full body",
-   "v2": "phantom specter, faceless, dark hood, wisps of shadow, cosmic void inside body, floating, no feet, full body",
-   "v3": "ghostly girl, long white hair floating, hollow eyes, void cracks on skin, purple aura, full body",
-   "v4": "void apparition, starry silhouette, galaxy pattern body, glowing outline, floating, full body"
+   "v1": "void wraith, ghost woman, translucent body, flowing dark mist, glowing purple eyes, tattered veil, floating, ethereal, full body, mob character, faceless, eyes not visible, face covered by mask",
+   "v2": "phantom specter, faceless, dark hood, wisps of shadow, cosmic void inside body, floating, no feet, full body, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes",
+   "v3": "ghostly girl, long white hair floating, hollow eyes, void cracks on skin, purple aura, full body, mob character, hair over eyes, covered eyes, no visible eyes",
+   "v4": "void apparition, starry silhouette, galaxy pattern body, glowing outline, floating, full body, mob character, visor covering eyes, blindfold, eyes not visible"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "모브 페이스(눈 안 보이게)"
  },
  "en_priest": {
   "name": "사이오닉 사제",
   "subject": "1boy",
-  "tags": "psionic priest, cultist, long dark robes, hood, glowing purple runes, third eye on forehead, staff, full body, standing",
+  "tags": "psionic priest, cultist, long dark robes, hood, glowing purple runes, third eye on forehead, staff, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
   "alts": {
-   "v1": "psionic priest, cultist, long dark robes, hood, glowing purple runes, third eye on forehead, staff, full body, standing",
-   "v2": "void cult priest, mask, ornate robes, floating psionic orbs, purple energy, full body, standing",
-   "v3": "old psychic monk, bald, tattoos, glowing eyes, chains, robes, levitating, full body",
-   "v4": "female psionic priestess, veil, dark robes, purple glow, hands raised, full body, standing"
+   "v1": "psionic priest, cultist, long dark robes, hood, glowing purple runes, third eye on forehead, staff, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
+   "v2": "void cult priest, mask, ornate robes, floating psionic orbs, purple energy, full body, standing, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes",
+   "v3": "old psychic monk, bald, tattoos, glowing eyes, chains, robes, levitating, full body, mob character, hair over eyes, covered eyes, no visible eyes",
+   "v4": "female psionic priestess, veil, dark robes, purple glow, hands raised, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "모브 페이스(눈 안 보이게)"
  },
  "en_warlord": {
   "name": "약탈자 두목",
   "subject": "1boy",
-  "tags": "raider warlord, huge muscular man, spiked armor, fur cloak, horned helmet, giant axe, scars, menacing grin, full body, standing",
+  "tags": "raider warlord, huge muscular man, spiked armor, fur cloak, horned helmet, giant axe, scars, menacing grin, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
   "alts": {
-   "v1": "raider warlord, huge muscular man, spiked armor, fur cloak, horned helmet, giant axe, scars, menacing grin, full body, standing",
-   "v2": "pirate chieftain, eyepatch, red coat, gold chains, cybernetic arm, huge cleaver, full body, standing",
-   "v3": "warlord brute, skull pauldrons, war paint, chains, massive hammer, full body, standing",
-   "v4": "space pirate boss, long coat, captain hat, mechanical jaw, rifle, full body, standing"
+   "v1": "raider warlord, huge muscular man, spiked armor, fur cloak, horned helmet, giant axe, scars, menacing grin, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
+   "v2": "pirate chieftain, eyepatch, red coat, gold chains, cybernetic arm, huge cleaver, full body, standing, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes",
+   "v3": "warlord brute, skull pauldrons, war paint, chains, massive hammer, full body, standing, mob character, hair over eyes, covered eyes, no visible eyes",
+   "v4": "space pirate boss, long coat, captain hat, mechanical jaw, rifle, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "모브 페이스(눈 안 보이게)"
  },
  "en_varga": {
   "name": "약탈 함장 바르가",
@@ -614,15 +616,16 @@
  "en_sw_carrier": {
   "name": "마부 개체",
   "subject": "no humans",
-  "tags": "alien carrier beast, huge armored swarm creature, carapace shell, many legs, transport organism, no humans",
+  "tags": "giant alien beetle beast, heavy armored carapace, many legs, quadruped, horns, monster, no humans",
   "alts": {
-   "v1": "alien carrier beast, huge armored swarm creature, carapace shell, many legs, transport organism, no humans",
-   "v2": "giant beetle beast, heavy armor plates, horns, alien, no humans",
-   "v3": "swarm behemoth, tusks, chitin armor, alien, no humans",
-   "v4": "armored alien crab beast, huge claws, no humans"
+   "v1": "giant alien beetle beast, heavy armored carapace, many legs, quadruped, horns, monster, no humans",
+   "v2": "huge alien crab beast, massive claws, chitin shell, monster, no humans",
+   "v3": "swarm behemoth creature, tusks, armored back plates, six legs, no humans",
+   "v4": "armored alien pack beast, saddle-like carapace, monster, no humans"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "",
+  "object": true
  },
  "en_sw_brood": {
   "name": "군체 산란체",
@@ -653,28 +656,29 @@
  "en_sw_harvester": {
   "name": "거대 마부 개체",
   "subject": "no humans",
-  "tags": "giant alien harvester beast, colossal swarm creature, gaping maw, armored, devouring, no humans",
+  "tags": "colossal alien devourer beast, gaping maw with teeth, armored segments, many legs, monster, no humans",
   "alts": {
-   "v1": "giant alien harvester beast, colossal swarm creature, gaping maw, armored, devouring, no humans",
-   "v2": "huge alien leviathan crawler, tusks, mouths, chitin, no humans",
-   "v3": "colossal swarm beast, spiked back, many legs, roaring, no humans",
-   "v4": "giant devourer worm beast, armored segments, no humans"
+   "v1": "colossal alien devourer beast, gaping maw with teeth, armored segments, many legs, monster, no humans",
+   "v2": "giant alien worm beast, huge round mouth, spikes, monster, no humans",
+   "v3": "huge alien leviathan crawler, tusks, multiple mouths, chitin, no humans",
+   "v4": "gigantic swarm beast, spiked back, roaring, quadruped, monster, no humans"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "",
+  "object": true
  },
  "en_cr_thrall": {
   "name": "혈족 종자",
   "subject": "1boy",
-  "tags": "vampire thrall, pale servant, tattered butler uniform, bloodshot eyes, iv tubes in arms, gaunt, full body, standing",
+  "tags": "vampire thrall, pale servant, tattered butler uniform, bloodshot eyes, iv tubes in arms, gaunt, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
   "alts": {
-   "v1": "vampire thrall, pale servant, tattered butler uniform, bloodshot eyes, iv tubes in arms, gaunt, full body, standing",
-   "v2": "bio-modified servant, crimson veins, ragged noble clothes, empty eyes, full body",
-   "v3": "vampire ghoul, hunched, blood stains, chains, full body",
-   "v4": "pale soldier thrall, crimson uniform, blood vials, full body, standing"
+   "v1": "vampire thrall, pale servant, tattered butler uniform, bloodshot eyes, iv tubes in arms, gaunt, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
+   "v2": "bio-modified servant, crimson veins, ragged noble clothes, empty eyes, full body, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes",
+   "v3": "vampire ghoul, hunched, blood stains, chains, full body, mob character, hair over eyes, covered eyes, no visible eyes",
+   "v4": "pale soldier thrall, crimson uniform, blood vials, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "모브 페이스(눈 안 보이게)"
  },
  "en_cr_hound": {
   "name": "배양 사냥개",
@@ -692,41 +696,41 @@
  "en_cr_musket": {
   "name": "정맥관 총사",
   "subject": "1boy",
-  "tags": "crimson musketeer, noble soldier, red military coat, tricorne, long musket, iv tubes connected to rifle, pale, full body, standing",
+  "tags": "crimson musketeer, noble soldier, red military coat, tricorne, long musket, iv tubes connected to rifle, pale, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
   "alts": {
-   "v1": "crimson musketeer, noble soldier, red military coat, tricorne, long musket, iv tubes connected to rifle, pale, full body, standing",
-   "v2": "vampire rifleman, gothic uniform, blood ammunition vials, full body",
-   "v3": "bio-punk sharpshooter, crimson cape, mask, rifle, full body",
-   "v4": "1girl, female crimson musketeer, red uniform, musket, full body, standing"
+   "v1": "crimson musketeer, noble soldier, red military coat, tricorne, long musket, iv tubes connected to rifle, pale, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
+   "v2": "vampire rifleman, gothic uniform, blood ammunition vials, full body, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes",
+   "v3": "bio-punk sharpshooter, crimson cape, mask, rifle, full body, mob character, hair over eyes, covered eyes, no visible eyes",
+   "v4": "1girl, female crimson musketeer, red uniform, musket, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "모브 페이스(눈 안 보이게)"
  },
  "en_cr_leech": {
   "name": "배양조 사제",
   "subject": "1girl",
-  "tags": "blood priestess, crimson robes, veil, blood vials, iv tubes, chalice, pale skin, full body, standing",
+  "tags": "blood priestess, crimson robes, veil, blood vials, iv tubes, chalice, pale skin, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
   "alts": {
-   "v1": "blood priestess, crimson robes, veil, blood vials, iv tubes, chalice, pale skin, full body, standing",
-   "v2": "vampire nun, red habit, blood tears, holding tube censer, full body",
-   "v3": "bio-punk priest, incubator tank on back, tubes, crimson robe, full body",
-   "v4": "crimson cult healer, bandages, blood magic, full body, standing"
+   "v1": "blood priestess, crimson robes, veil, blood vials, iv tubes, chalice, pale skin, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
+   "v2": "vampire nun, red habit, blood tears, holding tube censer, full body, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes",
+   "v3": "bio-punk priest, incubator tank on back, tubes, crimson robe, full body, mob character, hair over eyes, covered eyes, no visible eyes",
+   "v4": "crimson cult healer, bandages, blood magic, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "모브 페이스(눈 안 보이게)"
  },
  "en_cr_knight": {
   "name": "크림슨 혈기사",
   "subject": "1boy",
-  "tags": "crimson blood knight, ornate red armor, vampire, long sword, blood aura, cape, full body, standing",
+  "tags": "crimson blood knight, ornate red armor, vampire, long sword, blood aura, cape, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
   "alts": {
-   "v1": "crimson blood knight, ornate red armor, vampire, long sword, blood aura, cape, full body, standing",
-   "v2": "vampire knight, black and red plate armor, helmet with horns, greatsword, full body",
-   "v3": "female blood knight, crimson armor, rapier, pale, full body, standing",
-   "v4": "bio-armor knight, flesh-like armor, tubes, blood blade, full body"
+   "v1": "crimson blood knight, ornate red armor, vampire, long sword, blood aura, cape, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
+   "v2": "vampire knight, black and red plate armor, helmet with horns, greatsword, full body, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes",
+   "v3": "female blood knight, crimson armor, rapier, pale, full body, standing, mob character, hair over eyes, covered eyes, no visible eyes",
+   "v4": "bio-armor knight, flesh-like armor, tubes, blood blade, full body, mob character, visor covering eyes, blindfold, eyes not visible"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "모브 페이스(눈 안 보이게)"
  },
  "en_cr_count": {
   "name": "혈족 백작",
@@ -796,15 +800,16 @@
  "en_sp_drone": {
   "name": "예인 드론",
   "subject": "no humans",
-  "tags": "tow drone, flying robot, teal lights, greek pattern plating, mecha, no humans",
+  "tags": "flying tow drone, sleek winged aircraft, teal lights, bronze greek pattern plating, no humans",
   "alts": {
-   "v1": "tow drone, flying robot, teal lights, greek pattern plating, mecha, no humans",
-   "v2": "orbital drone, winged robot, sleek, no humans",
-   "v3": "owl-shaped drone, bronze, no humans",
-   "v4": "small hover drone, laser, no humans"
+   "v1": "flying tow drone, sleek winged aircraft, teal lights, bronze greek pattern plating, no humans",
+   "v2": "orbital drone, flat triangular flying machine, glowing teal underside, no humans",
+   "v3": "owl-shaped mechanical drone, bronze feathers, glowing eyes, flying, no humans",
+   "v4": "small hover drone, round body, laser emitter, greek meander pattern, no humans"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "",
+  "object": true
  },
  "en_sp_phalanx": {
   "name": "팔랑크스 지휘기",
@@ -822,15 +827,16 @@
  "en_sp_spear": {
   "name": "창구 절멸 포대",
   "subject": "no humans",
-  "tags": "orbital spear cannon, giant laser artillery, fixed emplacement, greek temple style, mecha, no humans",
+  "tags": "giant orbital laser cannon battery, fixed artillery platform, long spear-shaped barrel, greek temple columns, no humans",
   "alts": {
-   "v1": "orbital spear cannon, giant laser artillery, fixed emplacement, greek temple style, mecha, no humans",
-   "v2": "huge railgun battery, sci-fi fortress, no humans",
-   "v3": "beam cannon tower, teal energy, no humans",
-   "v4": "artillery platform, colossal spear shaped cannon, no humans"
+   "v1": "giant orbital laser cannon battery, fixed artillery platform, long spear-shaped barrel, greek temple columns, no humans",
+   "v2": "colossal railgun tower, fortress emplacement, teal energy coils, no humans",
+   "v3": "beam cannon firing teal light pillar, sci-fi artillery, no humans",
+   "v4": "artillery platform with huge spear cannon, bronze and white, no humans"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "",
+  "object": true
  },
  "en_sp_colossus": {
   "name": "전쟁 궤도 콜로서스",
@@ -861,54 +867,56 @@
  "en_pt_drone": {
   "name": "감시 드론",
   "subject": "no humans",
-  "tags": "surveillance drone, corporate camera drone, orange logo, hovering, no humans",
+  "tags": "surveillance drone, white corporate camera drone, orange stripe, hovering quadcopter, no humans",
   "alts": {
-   "v1": "surveillance drone, corporate camera drone, orange logo, hovering, no humans",
-   "v2": "security drone, spherical, red eye, no humans",
-   "v3": "quadcopter surveillance drone, stun emitter, no humans",
-   "v4": "eye-shaped drone, sleek white, no humans"
+   "v1": "surveillance drone, white corporate camera drone, orange stripe, hovering quadcopter, no humans",
+   "v2": "security eye drone, spherical, red lens, floating, no humans",
+   "v3": "flying stun drone, four rotors, taser prongs, orange logo, no humans",
+   "v4": "sleek white eye-shaped drone, floating, corporate design, no humans"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "",
+  "object": true
  },
  "en_pt_unix": {
   "name": "유닉스 생산 로봇",
   "subject": "no humans",
-  "tags": "factory worker robot, industrial android, yellow and black stripes, boxy, no humans, full body",
+  "tags": "small boxy factory robot on wheels, yellow and black hazard stripes, two claw arms, screen face, no humans",
   "alts": {
-   "v1": "factory worker robot, industrial android, yellow and black stripes, boxy, no humans, full body",
-   "v2": "production line robot, mass produced, faceless, no humans",
-   "v3": "assembly robot, crane arms, no humans",
-   "v4": "unix robot, cute boxy robot, cold eyes, no humans"
+   "v1": "small boxy factory robot on wheels, yellow and black hazard stripes, two claw arms, screen face, no humans",
+   "v2": "industrial assembly robot, single robotic arm on tracked base, yellow paint, no humans",
+   "v3": "cube-shaped worker robot, small legs, cute but cold, LED face, conveyor parts, no humans",
+   "v4": "mass produced utility robot, rounded box body, treads, barcode, no humans"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "",
+  "object": true
  },
  "en_pt_anomaly": {
   "name": "격리 이탈 개체",
   "subject": "1girl",
-  "tags": "escaped anomaly, eerie girl, containment suit torn, glitching body, black eyes, scp style, full body, standing",
+  "tags": "eerie girl, horror, torn containment suit, black hollow eyes, black liquid dripping from eyes, glitching body, scp anomaly, unsettling, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
   "alts": {
-   "v1": "escaped anomaly, eerie girl, containment suit torn, glitching body, black eyes, scp style, full body, standing",
-   "v2": "anomalous entity, faceless figure, shadow, distortion, full body",
-   "v3": "creepy doll-like anomaly, porcelain skin, cracks, full body",
-   "v4": "glitch creature, static noise body, full body"
+   "v1": "eerie girl, horror, torn containment suit, black hollow eyes, black liquid dripping from eyes, glitching body, scp anomaly, unsettling, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
+   "v2": "faceless humanoid anomaly, smooth blank face, too long arms, black suit, distortion, horror, full body, standing, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes",
+   "v3": "creepy porcelain doll girl, cracked skin, empty eyes, broken jaw, horror, full body, standing, mob character, hair over eyes, covered eyes, no visible eyes",
+   "v4": "static noise woman, body made of tv static, glitch, horror, floating hair, full body, mob character, visor covering eyes, blindfold, eyes not visible"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "모브 페이스(눈 안 보이게)"
  },
  "en_pt_auditor": {
   "name": "정보감사관",
   "subject": "1girl",
-  "tags": "corporate auditor, woman in black suit, glasses, clipboard, cold expression, earpiece, full body, standing",
+  "tags": "corporate auditor, woman in black suit, glasses, clipboard, cold expression, earpiece, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
   "alts": {
-   "v1": "corporate auditor, woman in black suit, glasses, clipboard, cold expression, earpiece, full body, standing",
-   "v2": "1boy, information auditor, man in grey suit, tablet, sunglasses, full body, standing",
-   "v3": "auditor android, corporate uniform, barcode, full body",
-   "v4": "auditor, long coat, briefcase, stamp, full body, standing"
+   "v1": "corporate auditor, woman in black suit, glasses, clipboard, cold expression, earpiece, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
+   "v2": "1boy, information auditor, man in grey suit, tablet, sunglasses, full body, standing, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes",
+   "v3": "auditor android, corporate uniform, barcode, full body, mob character, hair over eyes, covered eyes, no visible eyes",
+   "v4": "auditor, long coat, briefcase, stamp, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "모브 페이스(눈 안 보이게)"
  },
  "en_pt_contract": {
   "name": "계약서에 없던 것",
@@ -926,41 +934,43 @@
  "en_pt_unixline": {
   "name": "유닉스 생산 라인",
   "subject": "no humans",
-  "tags": "factory production line machine, conveyor belt, robotic arms, assembling robots, industrial, no humans",
+  "tags": "automated factory production line, conveyor belt, robotic arms assembling small robots, industrial machine, no humans",
   "alts": {
-   "v1": "factory production line machine, conveyor belt, robotic arms, assembling robots, industrial, no humans",
-   "v2": "automated factory core, giant machine, glowing furnace, no humans",
-   "v3": "robot factory tower, smokestacks, no humans",
-   "v4": "assembly line boss machine, many arms, no humans"
+   "v1": "automated factory production line, conveyor belt, robotic arms assembling small robots, industrial machine, no humans",
+   "v2": "giant factory core machine, glowing furnace, pipes, smokestacks, no humans",
+   "v3": "robot assembly tower, multiple robot arms, sparks, industrial, no humans",
+   "v4": "massive production machine, gears, conveyor, orange warning lights, no humans"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "",
+  "object": true
  },
  "sm_crow": {
   "name": "까악이",
   "subject": "no humans",
-  "tags": "robotic crow, mechanical bird, black feathers, glowing eye, hacker crow, no humans",
+  "tags": "robotic crow, mechanical bird, black metal feathers, glowing yellow eye, perched, no humans",
   "alts": {
-   "v1": "robotic crow, mechanical bird, black feathers, glowing eye, hacker crow, no humans",
-   "v2": "cyber raven, sleek, drone wings, no humans",
-   "v3": "cute crow with headset, no humans",
-   "v4": "black crow, cybernetic, perched, no humans"
+   "v1": "robotic crow, mechanical bird, black metal feathers, glowing yellow eye, perched, no humans",
+   "v2": "cyber raven, flying, drone wings, black and green circuits, no humans",
+   "v3": "black crow with tiny headset, hacker bird, cute, no humans",
+   "v4": "mechanical crow, exposed gears, wings spread, no humans"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "",
+  "object": true
  },
  "sm_guard": {
   "name": "페트라 경호원",
   "subject": "1boy",
-  "tags": "corporate bodyguard, man in black suit, sunglasses, earpiece, petra orange tie, full body, standing",
+  "tags": "corporate bodyguard, man in black suit, sunglasses, earpiece, petra orange tie, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
   "alts": {
-   "v1": "corporate bodyguard, man in black suit, sunglasses, earpiece, petra orange tie, full body, standing",
-   "v2": "bodyguard android, black suit, full body",
-   "v3": "female bodyguard, black suit, sunglasses, full body",
-   "v4": "heavy bodyguard, bulletproof vest over suit, full body"
+   "v1": "corporate bodyguard, man in black suit, sunglasses, earpiece, petra orange tie, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
+   "v2": "bodyguard android, black suit, full body, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes",
+   "v3": "female bodyguard, black suit, sunglasses, full body, mob character, hair over eyes, covered eyes, no visible eyes",
+   "v4": "heavy bodyguard, bulletproof vest over suit, full body, mob character, visor covering eyes, blindfold, eyes not visible"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "모브 페이스(눈 안 보이게)"
  },
  "sm_behemoth": {
   "name": "베헤모스",
@@ -1017,14 +1027,15 @@
  "sm_turret": {
   "name": "감시 포탑",
   "subject": "no humans",
-  "tags": "sentry turret, engineer turret, small gun on tripod, blue lights, no humans",
+  "tags": "compact deployable sentry turret, tripod legs, small gun barrel, blue lights, no humans",
   "alts": {
-   "v1": "sentry turret, engineer turret, small gun on tripod, blue lights, no humans",
-   "v2": "compact turret, deployable, no humans",
-   "v3": "sci-fi sentry, rotating gun, no humans",
-   "v4": "auto turret, armor plates, no humans"
+   "v1": "compact deployable sentry turret, tripod legs, small gun barrel, blue lights, no humans",
+   "v2": "small automated turret, rotating dome, blue visor sensor, no humans",
+   "v3": "engineer sentry gun, folding legs, ammo drum, no humans",
+   "v4": "sci-fi auto turret, armor plates, twin barrels, blue glow, no humans"
   },
   "source": "enemy",
-  "notes": ""
+  "notes": "",
+  "object": true
  }
 }

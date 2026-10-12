@@ -503,8 +503,10 @@ function prepScreen(run: RunState) {
   if (node?.enc) node.enc.enemies.forEach((s, i) => {
     const e = ENEMY_BY_ID[s.defId];
     const sel = app.sel?.k === 'enemy' && app.sel.i === i;
-    units += `<div class="u side1 placed ${e.tier !== 'minion' ? 'big' : ''} ${sel ? 'sel' : ''}" style="left:${(Math.min(s.c, n - 1) / n) * 100}%;top:${(Math.min(s.row, n - 1) / n) * 100}%;width:${100 / n}%;height:${100 / n}%"
-      data-a="sel-enemy" data-v="${i}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}">${sprite(e, '')}</div>`;
+    units += `<div class="u side1 placed${hasPortrait(e) ? ' tk' : ''} ${e.tier !== 'minion' && !hasPortrait(e) ? 'big' : ''} ${sel ? 'sel' : ''}" style="left:${(Math.min(s.c, n - 1) / n) * 100}%;top:${(Math.min(s.row, n - 1) / n) * 100}%;width:${100 / n}%;height:${100 / n}%"
+      data-a="sel-enemy" data-v="${i}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}">${hasPortrait(e)
+        ? `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${e.mod ? `<span class="tk-mod">${itemIcon(e.mod)}</span>` : ''}</div><span class="tk-items">${[0, 1, 2].map((k) => itemIcon(e.items?.[k] || null)).join('')}</span></div>`
+        : sprite(e, '')}</div>`;
   });
   const bench = run.units.filter((u) => !u.pos);
   const free = cap - deployed(run).length;

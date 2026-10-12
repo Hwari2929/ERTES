@@ -20,6 +20,9 @@ export interface EnemyDef {
   onBasic?: (b: Battle, u: CUnit, t: CUnit) => void;
   onTick?: (b: Battle, u: CUnit, dt: number) => void;
   escort?: string[];
+  /** 장비 3칸 · 개조부품 (적 전용 장비는 추후 설계) */
+  items?: (string | null)[];
+  mod?: string | null;
 }
 
 const RAIDER = ['#1a0f0a', '#7a5a3a', '#c04a2a', '#d0a080', '#ff5030', '#55504a', '#f0d0a0'];

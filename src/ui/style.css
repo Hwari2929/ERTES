@@ -815,3 +815,9 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .rc-tag.ally { color: var(--info); border-color: var(--info); }
 .rc-parts { display: grid; grid-template-columns: auto auto; gap: 2px 6px; align-items: center; justify-items: start; }
 .rc-parts .item { width: 24px; height: 24px; font-size: 11px; cursor: default; }
+/* 적 · 소환물 토큰: 아군과 같은 카드, 적은 빨간 테두리 */
+.u.side1.tk .tk-card { border-color: color-mix(in srgb, var(--bad) 80%, transparent); }
+.u.side1.tkb .tk-card { box-shadow: 0 0 0 1px color-mix(in srgb, var(--bad) 85%, transparent), 0 2px 6px rgb(0 0 0 / .5); }
+.u.side1.tk img.pt, .u.side1.tkb img.pt { transform: none; }
+.u.side1.tkb .bars .hp { background: var(--bad); }
+.u.tkb.big .tk-card, .u.tk.big .tk-card { outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 1px; }
