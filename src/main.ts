@@ -31,7 +31,7 @@ import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 const PREF_KEY = 'errantes.prefs.v1';
 /** 전투 배속 (단축키 1~5) */
 const SPEEDS = [0.5, 1, 2, 4, 8];
-function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean } {
+function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean } {
   try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}; } catch { return {}; }
 }
 function savePref(k: string, v: unknown) {
@@ -56,6 +56,7 @@ const app = {
   cardOpen: null as string | null, // 터치 화면: 설명을 펼친 시작 기물 카드
   subOpen: new Set<string>(), // 특성 하위 항목(전투 · 전술 유형, 신앙) 펼침 상태
   menu: null as null | 'menu' | 'settings' | 'export' | 'import',
+  zoomOut: !!loadPrefs().zoomOut, // 전투 화면: 테두리 포함 전장 전체를 축소해 보기
   slowDetail: loadPrefs().slowDetail !== false, // 전투 중 상세 정보를 보는 동안 속도 ×0.25
   view: null as BattleView | null,
   summary: null as R.BattleSummary | null,
@@ -805,7 +806,7 @@ function battleScreen(run: RunState) {
       <div class="board-head"><b>${esc(enc.env)}</b><span id="btime" class="mono">0.0초</span><span id="bslow" class="bslow" hidden title="상세 정보를 보는 중 · 설정에서 끌 수 있습니다">상세 보기 ×0.25</span>
         <span class="speed">${SPEEDS.map((s) => `<button class="btn tiny ${app.speed === s ? 'on' : ''}" data-a="speed" data-v="${s}">${s}×</button>`).join('')}
         <button class="btn tiny" data-a="skip">결과로</button></span></div>
-      <div class="board bview" data-a="bdesel" style="--w:${boardDims(enc.n).w - 2 * PAD};--h:${boardDims(enc.n).h - 2 * PAD};--fw:${boardDims(enc.n).w};--fh:${boardDims(enc.n).h}"><div class="board-in" id="bboard"><div class="cells">${battleCells(enc.n)}</div></div></div>
+      <div class="board bview${app.zoomOut ? ' full' : ''}" data-a="bdesel" style="--w:${boardDims(enc.n).w - (app.zoomOut ? 0 : 2 * PAD)};--h:${boardDims(enc.n).h - (app.zoomOut ? 0 : 2 * PAD)};--fw:${boardDims(enc.n).w};--fh:${boardDims(enc.n).h}"><div class="board-in" id="bboard"><div class="cells">${battleCells(enc.n)}</div></div></div>
     </section>
     <aside class="side right">
       <div id="bunit" class="bunit detail"></div>
@@ -1069,6 +1070,7 @@ function menuModal(run: RunState | null) {
       ${tabs}
       <h3>전투</h3>
       <label class="pref"><input type="checkbox" data-a="pref-slow" ${app.slowDetail ? 'checked' : ''}><span><b>상세 정보 볼 때 느리게</b><br><span class="muted small">전투 중 기물을 눌러 상세 정보를 보는 동안 진행 속도에 ×0.25 를 곱합니다. 빈 보드를 누르거나 Esc 로 선택을 풀면 원래 속도로 돌아갑니다.</span></span></label>
+      <label class="pref"><input type="checkbox" data-a="pref-zoom" ${app.zoomOut ? 'checked' : ''}><span><b>넓은 전장 전체 보기</b><br><span class="muted small">전투 화면을 축소해 바깥 테두리 칸까지 전장 전체를 한 번에 보여 줍니다. 끄면 배치 구역 크기로 보고, 카메라가 끝 기물을 따라갑니다.</span></span></label>
       <div class="row-btns"><button class="btn primary" data-a="menu-close">닫기</button></div>
     </div></div>`;
   }
@@ -1306,24 +1308,31 @@ function carStep(dir: number) {
 
 /** 전투 카메라: 가장 아래쪽 기물이 화면 맨 아래 줄에 오도록 세로 위치를 맞춘다 (사거리 최대 4칸이라 교전은 화면 안) */
 function followCamera(b: Battle) {
-  const inner = document.querySelector<HTMLElement>('.bview .board-in');
+  const inner = document.querySelector<HTMLElement>('.bview:not(.full) .board-in');
   if (!inner) return;
   const alive = b.units.filter((u) => u.alive);
   if (!alive.length) return;
-  const viewH = b.h - 2 * PAD;
+  const viewH = b.h - 2 * PAD, viewW = b.w - 2 * PAD;
   const maxY = Math.max(...alive.map((u) => u.y));
   const top = Math.max(0, Math.min(b.h - viewH, maxY - (viewH - 1)));
+  // 가로: 좌우 끝 기물을 따라가되, 양쪽에 다 있으면 더 많은 기물이 보이는 위치 (같으면 가운데)
+  let left = PAD, best = -1;
+  for (const c of [PAD, 0, b.w - viewW]) {
+    const seen = alive.filter((u) => u.x >= c && u.x < c + viewW).length;
+    if (seen > best) { best = seen; left = c; }
+  }
   inner.style.top = `calc(${-top} * 100% / var(--h))`;
+  inner.style.left = `calc(${-left} * 100% / var(--w))`;
 }
 /** 전투 보드 끌어서 보기: 배치 구역이 기본 화면, 놓으면 가운데로 돌아온다 */
 function initBoardPan(view: HTMLElement) {
   const inner = view.querySelector<HTMLElement>('.board-in');
-  if (!inner) return;
+  if (!inner || view.classList.contains('full')) return;
   let sx = 0, sy = 0, id = -1, moved = false;
   view.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     id = e.pointerId; sx = e.clientX; sy = e.clientY; moved = false;
-    inner.style.transition = 'top .6s cubic-bezier(.4, 0, .2, 1)';
+    inner.style.transition = 'top .6s cubic-bezier(.4, 0, .2, 1), left .6s cubic-bezier(.4, 0, .2, 1)';
   });
   view.addEventListener('pointermove', (e) => {
     if (e.pointerId !== id) return;
@@ -1338,7 +1347,7 @@ function initBoardPan(view: HTMLElement) {
   const end = (e: PointerEvent) => {
     if (e.pointerId !== id) return;
     id = -1;
-    inner.style.transition = 'transform .35s cubic-bezier(.2, .8, .3, 1), top .6s cubic-bezier(.4, 0, .2, 1)';
+    inner.style.transition = 'transform .35s cubic-bezier(.2, .8, .3, 1), top .6s cubic-bezier(.4, 0, .2, 1), left .6s cubic-bezier(.4, 0, .2, 1)';
     inner.style.transform = '';
     view.classList.remove('panning');
     if (moved) { suppressClick = true; setTimeout(() => { suppressClick = false; }, 60); }
@@ -1679,6 +1688,7 @@ function act(a: string, v: string) {
     case 'save': if (run) { toast(saveRun(run, v) ? `${SLOT_NAME[v]}에 저장했습니다.` : '이 브라우저에서는 저장소를 쓸 수 없습니다. 저장 코드를 이용하세요.'); } break;
     case 'menu': app.menu = 'menu'; break;
     case 'menu-tab': app.menu = v as 'menu' | 'settings'; break;
+    case 'pref-zoom': app.zoomOut = !app.zoomOut; savePref('zoomOut', app.zoomOut); break;
     case 'pref-slow': app.slowDetail = !app.slowDetail; savePref('slowDetail', app.slowDetail); applySpeed(); break;
     case 'menu-close': app.menu = null; app.importErr = ''; break;
     case 'menu-export': app.menu = 'export'; break;
