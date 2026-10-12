@@ -116,8 +116,10 @@ export function weaponRows(w: Weapon, ctx: AbilCtx, elem: Elem, gl: Set<string>)
   const tac = !!w.tactical;
   if (tac) gl.add('tac');
   const atkSpd = b && c ? Math.max(0.2, 1 + b.S(c, 'atkSpd')) : 1;
+  const aps = atkSpd / w.interval;
   const rows: [string, string][] = [['피해 유형', powType(ctx, pow, tac)], ['피해', powNum(ctx, pow, w.mult, false, tac, elem)],
-    ['공격 속도', `${(atkSpd / w.interval).toFixed(2)}회/초 <span class="muted">(${(w.interval / atkSpd).toFixed(2)}초)</span>`]];
+    ['공격 속도', `${aps.toFixed(2)}회/초 <span class="muted">(${(w.interval / atkSpd).toFixed(2)}초)</span>`]];
+  if (w.type === 'shoot') rows.push(['RPM', `${Math.round(aps * 60)}발/분`]);
   if (w.kind === 'mag') {
     const rs = b && c ? Math.max(0.2, 1 + b.S(c, 'reloadSpd')) : 1;
     gl.add('mag');
@@ -126,13 +128,33 @@ export function weaponRows(w: Weapon, ctx: AbilCtx, elem: Elem, gl: Set<string>)
     gl.add('combo'); gl.add('finish');
     rows.push(['콤보', `${lineIcon('u.combo', 'li')}${w.combo}단`], ['피니쉬', `<span class="coef">×${CFG.finishMult}</span>${powNum(ctx, pow, w.mult * CFG.finishMult, false, tac, elem)}`]);
   }
+  const dps = weaponDps(w, ctx);
+  if (dps !== null) rows.push(['예상 DPS', `<span class="pw el-t-${elem}" title="재장전 · 피니쉬 · 치명타 기대값 포함, 방어도 · 속성 보정 · 명중 제외">${lineIcon(`e.${elem}`, 'li')}<b>${fmt(dps)}</b></span><span class="muted small">/초</span>`]);
   return rows;
+}
+/** 예상 DPS: 탄창(재장전 포함) · 콤보(피니쉬 포함) 주기 평균 × 치명타 기대값 */
+export function weaponDps(w: Weapon, ctx: AbilCtx): number | null {
+  const b = ctx.b, c = ctx.c;
+  if (!b || !c || w.kind === 'none') return null;
+  const pow: Pow = w.type === 'shoot' ? 'shoot' : 'strike';
+  const base = (w.tactical ? b.tacPower(c) : b.S(c, pow)) * w.mult;
+  const ivl = w.interval / Math.max(0.2, 1 + b.S(c, 'atkSpd'));
+  const crit = 1 + Math.min(1, Math.max(0, b.S(c, 'crit'))) * Math.max(0, b.S(c, 'critDmg') - 1);
+  if (w.kind === 'mag') {
+    const n = w.mag || 1;
+    const reload = (w.reload || 1.5) / Math.max(0.2, 1 + b.S(c, 'reloadSpd'));
+    return (base * n * crit) / (n * ivl + reload);
+  }
+  const n = w.combo || 3;
+  return (base * (n - 1 + CFG.finishMult) * crit) / (n * ivl);
 }
 export function weaponChips(w: Weapon, ctx: AbilCtx, range: number, elem: Elem) {
   const pow: Pow = w.type === 'shoot' ? 'shoot' : 'strike';
   if (w.kind === 'none') return '';
+  const dps = weaponDps(w, ctx);
   return [chip('u.range', `${range}칸`, '사거리'), powNum(ctx, pow, w.mult, false, !!w.tactical, elem),
-    w.kind === 'mag' ? chip('u.mag', `${w.mag}발`, '탄창') : chip('u.combo', `${w.combo}단`, '콤보')].join('');
+    w.kind === 'mag' ? chip('u.mag', `${w.mag}발`, '탄창') : chip('u.combo', `${w.combo}단`, '콤보'),
+    dps !== null ? `<span class="abc" title="예상 DPS">DPS <b>${fmt(dps)}</b></span>` : ''].join('');
 }
 /** 팝업 본문: 왼쪽 사거리 · 범위 격자 (세로), 오른쪽 수치 */
 export function popBody(range: number | null, area: Area, rows: [string, string][]) {
