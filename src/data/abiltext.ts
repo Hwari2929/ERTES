@@ -43,7 +43,8 @@ export const GLOSS: Record<string, { name: string; desc: string }> = {
   poison: { name: '중독', desc: '초당 화학 피해.' },
   pen: { name: '방어도 관통', desc: '대상 방어도를 비율만큼 무시.' },
   forget: { name: '망각', desc: '대상 스킬 쿨다운 증가.' },
-  red: { name: '피해 감소', desc: '받는 피해 감소.' },
+  red: { name: '피해량 경감', desc: '받는 피해를 비율만큼 줄인다 (이로운 효과).' },
+  weak: { name: '피해량 감소', desc: '대상이 가하는 피해를 비율만큼 줄인다 (해로운 효과).' },
   camp: { name: '임시 장비', desc: '캠핑 러버: 전투마다 장비 칸을 쓰지 않는 무작위 장비를 받음.' },
   turret: { name: '포탑', desc: '엔지니어 시너지로 전투 시작 시 배치되는 포탑.' },
   tac: { name: '전술 위력', desc: '지휘관 전용 위력. 출전 아군 구성으로 정해짐. 지휘관의 스킬은 사격 · 타격 · 기술 위력 대신 이 값을 씀.' },
@@ -120,7 +121,7 @@ const ABIL_PILOT: Record<string, AbilText> = {
       tgt: '체력 비율이 가장 낮은 아군', range: null, area: p.splash ? { k: 'around', r: 1 } : { k: 'one' },
       rows: [
         ['회복', `[heal:${p.heal}]`],
-        ['피해 감소', `[g:red] -[p:${p.red}] ([s:${p.dur}])`],
+        ['피해량 경감', `[g:red] [p:${p.red}] ([s:${p.dur}])`],
         ...(p.splash ? [['주변', '대상 주변 [t:1] 아군에게 [p:0.5] 효과'] as [string, string]] : []),
       ],
     }),
@@ -189,12 +190,12 @@ Object.assign(AUG_TEXT, {
   'maj.dot': '지속 피해 [pp:0.3].',
   'psi.clarity': '전투 시작 [g:reason] +30.',
   'psi.abyss': '[g:reason]이 낮을 때 정신 피해 증폭 +[p:0.5].',
-  'psi.bulwark': '[g:reason]이 높을 때 받는 정신 · 신성 피해 감소 · 지원 효율 +[p:0.5].',
+  'psi.bulwark': '[g:reason]이 높을 때 받는 정신 · 신성 피해량 경감 · 지원 효율 +[p:0.5].',
   'psi.calm': '[g:frenzy] 상태의 초당 체력 손실 없음.',
   'psi.resonance': '[g:reason] 증감량 +[p:0.5].',
 } as Record<string, string>);
 Object.assign(GLOSS, {
-  reason: { name: '이성', desc: '사이오닉 게이지 (-100 ~ +100). 높으면 정신 · 신성 피해 감소 · 지원 효율 증가, 낮으면 정신 피해 증폭.' },
+  reason: { name: '이성', desc: '사이오닉 게이지 (-100 ~ +100). 높으면 정신 · 신성 피해량 경감 · 지원 효율 증가, 낮으면 정신 피해 증폭.' },
   frenzy: { name: '광폭', desc: '이성 -50 이하. 피해 +30%, 초당 최대 체력 2% 손실.' },
   spawn: { name: '증원', desc: '전장에 아군 개체를 추가로 불러냄.' },
   lifesteal: { name: '흡혈', desc: '준 피해의 일부만큼 회복.' },

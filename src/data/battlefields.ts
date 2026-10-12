@@ -53,7 +53,7 @@ export const FIELDS: FieldDef[] = [
   {
     id: 'petra', name: '페트라 본사 성역', region: '주식회사 페트라 · 특수기동격리팀 관할', icon: '¤', color: '#e07a1f',
     desc: '공급망을 타고 들어온, 계약서에 없던 것들. 그리고 분기마다 더 많이 만드는 유닉스의 침투.',
-    rules: ['계약 정산: 전투 승리 시 크레딧 +2', '보안 등급: 모든 적 효과 저항 +25%p', '페트라 기물 피해 +20%, 받는 피해 -10%'],
+    rules: ['계약 정산: 전투 승리 시 크레딧 +2', '보안 등급: 모든 적 효과 저항 +25%p', '페트라 기물 피해 +20%, 피해량 경감 10%'],
     pool: ['pt_guard', 'pt_drone', 'pt_unix', 'pt_anomaly'], elite: 'pt_auditor', bosses: ['pt_contract', 'pt_unixline'],
     enemyMod: (c) => { c.st.effRes += 0.25; },
     ally: { syn: 'PET', effect: { mods: [inc('all', 0.2)], taken: [red('all', 0.1)] } },

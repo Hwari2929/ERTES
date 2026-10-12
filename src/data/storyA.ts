@@ -6,7 +6,7 @@ import type { Major, RunState, UnitState } from '../types';
 
 export const BOONS_A: Record<string, { name: string; effect: Effect }> = {
   a_stew: { name: '구닐라의 보양식 (최대 체력 +10%)', effect: { pct: { maxHp: 0.1 } } },
-  a_watchdog: { name: '맥스의 순찰 (받는 피해 -6%)', effect: { taken: [red('all', 0.06)] } },
+  a_watchdog: { name: '맥스의 순찰 (피해량 경감 6%)', effect: { taken: [red('all', 0.06)] } },
   a_encore: { name: '흰사슴의 앙코르 (피해 +15%)', effect: { mods: [inc('all', 0.15)] } },
   a_catluck: { name: '함장석의 고양이 (치명타 확률 +8%)', effect: { stats: { crit: 0.08 } } },
 };
@@ -77,7 +77,7 @@ export const STORY_A: EventDef[] = [
         },
       },
       {
-        label: '소굴을 맥스에게 허락한다', desc: '모든 아군 받는 피해 -6% (영구). 크레딧 -10 (공조기 개조비).',
+        label: '소굴을 맥스에게 허락한다', desc: '모든 아군 피해량 경감 6% (영구). 크레딧 -10 (공조기 개조비).',
         block: cost(10),
         apply: (r, api) => { r.credits -= 10; api.boon('a_watchdog'); return '맥스는 이제 덕트 순찰견입니다. 함선 구석구석에서 수상한 소리가 나면 맥스가 먼저 짖습니다.'; },
       },

@@ -97,7 +97,7 @@ export const ABIL_B: Record<string, AbilText> = {
         ...(p.heal ? [['회복', `[heal:${p.heal}]`] as Row] : []),
         ...(p.shield ? [['보호막', `[shield:${p.shield}]`] as Row] : []),
         ...(p.cleanse ? [['정화', '[g:cleanse]'] as Row] : []),
-        ...(p.red ? [['피해 감소', `[g:red] -[p:${p.red}] ([s:${p.dur}])`] as Row] : []),
+        ...(p.red ? [['피해량 경감', `[g:red] [p:${p.red}] ([s:${p.dur}])`] as Row] : []),
         ['베헤모스', `[g:behemoth] [s:4] 동안 피해 +[p:${p.petDmg}]`],
         ...(p.splash ? [['주변', '대상 주변 [t:1] 아군에게 [p:0.5] 효과'] as Row] : []),
       ],
@@ -108,7 +108,7 @@ export const ABIL_B: Record<string, AbilText> = {
       carapace: '[g:behemoth] [g:bond] [pp:0.25], 방어도 +250.',
       pheromone: '치유 탄환: [shield:1.8] 추가.',
       scalpel: '공격 속도 [pp:0.25], 치명타 확률 [pp:0.2], 치명타 피해 [pp:0.35].',
-      wash: '치유 탄환 대상 [g:cleanse]. [g:red] -[p:0.3] ([s:4]).',
+      wash: '치유 탄환 대상 [g:cleanse]. [g:red] [p:0.3] ([s:4]).',
       'sp.unleash': '[g:behemoth] [g:bond] [pp:0.6], 피해 +[p:0.5]. 기본 공격을 하지 않음.',
       'sp.drone': '치유 탄환이 대상 주변 [t:1] 아군에게도 [p:0.5] 효과.',
       'sp.cold': '치유 탄환 회복이 보호막으로 바뀜 (양 ×1.5).',
@@ -118,12 +118,12 @@ export const ABIL_B: Record<string, AbilText> = {
     skill: (p) => ({
       tgt: '자신 주변 아군', range: 0, area: { k: 'self', r: p.radius || 1 },
       rows: [
-        ['피해 감소', `[g:red] -[p:${p.red}] ([s:${p.dur}])`],
+        ['피해량 경감', `[g:red] [p:${p.red}] ([s:${p.dur}])`],
         ['회피', `[pp:${p.eva}] ([s:${p.dur}])`],
       ],
     }),
     trait: '기본 공격 시 대상과 가장 가까운, 사거리 안의 다른 적 1명에게도 기본 공격 피해. 모든 아군 치명타 확률 [pp:0.2].',
-    ace: (k) => `전투 시작 시 모든 아군 [g:red] -[p:${0.08 * k}].`,
+    ace: (k) => `전투 시작 시 모든 아군 [g:red] [p:${0.08 * k}].`,
     augs: {
       sail: '돛 방향 틀기 범위 +[t:1]. [g:red] [pp:0.06].',
       athena: '돛 방향 틀기 [g:red] [pp:0.2].',

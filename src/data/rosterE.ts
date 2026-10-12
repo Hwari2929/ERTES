@@ -101,9 +101,9 @@ export const ROSTER_E: BaseUnit[] = [
     augs: [
       uaug('thermo', 'wide', '넓은 방진', '범위 +1칸, 보호막 +40%p.', setSk((s) => { s.radius += 1; s.shield += 0.4; })),
       uaug('thermo', 'bronze', '청동 방패', '보호막 +140%p.', setSk((s) => { s.shield += 1.4; })),
-      uaug('thermo', 'hold', '사수', '받는 피해 감소 +10%p, 지속 +3초.', setSk((s) => { s.red += 0.1; s.dur += 3; })),
+      uaug('thermo', 'hold', '사수', '피해량 경감 +10%p, 지속 +3초.', setSk((s) => { s.red += 0.1; s.dur += 3; })),
       uaug('thermo', 'core', '궤도 동력로', '방어력 +10, 생명력 +5.', { majors: { def: 10, vit: 5 } }),
-      uaug('thermo', 'last', '최후의 300', '체력 50% 이하일 때 받는 피해 -45%.', { hooks: { takenMult: (b, u) => (b.hpPct(u) <= 0.5 ? 0.55 : 1) } }),
+      uaug('thermo', 'last', '최후의 300', '체력 50% 이하일 때 피해량 경감 45%.', { hooks: { takenMult: (b, u) => (b.hpPct(u) <= 0.5 ? 0.55 : 1) } }),
     ],
   },
   {
@@ -123,7 +123,7 @@ export const ROSTER_E: BaseUnit[] = [
       uaug('u404', 'overtime', '초과 생산', '중첩당 피해 +20%p 추가.', setSk((s) => { s.growth += 0.2; })),
       uaug('u404', 'press', '프레스 공정', '기절 1.5초 추가.', setSk((s) => { s.stun = 1.5; })),
       uaug('u404', 'line', '생산 라인 확장', '범위 +1칸, 피해 +30%p.', setSk((s) => { s.radius += 1; s.mult += 0.3; })),
-      uaug('u404', 'catwheel', '버려진 캣휠', '받는 피해 -30%.', { taken: [red('all', 0.3)] }),
+      uaug('u404', 'catwheel', '버려진 캣휠', '피해량 경감 30%.', { taken: [red('all', 0.3)] }),
       uaug('u404', 'turret', '포탑 자가 생산', '엔지니어 포탑 +1기, 포탑 체력·방어도 +40%.', { setup: (u) => { u.mem.turretExtra = (u.mem.turretExtra || 0) + 1; u.mem.turretHp = (u.mem.turretHp || 0) + 0.4; } }),
     ],
   },

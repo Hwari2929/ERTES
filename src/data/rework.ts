@@ -127,7 +127,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'VAN', ttype: 'major', faith: 'index', weapon: K('방어막 건틀릿', 'phys', 0.9, 1, 0.8, 3),
     factions: ['PET'], traits: ['SCHEME', 'GUARD'],
     trait: {
-      name: '특별경호팀', desc: '자신과 주변 1칸 아군의 받는 피해 -30%p. 주변 아군이 받는 피해의 절반은 린디웨가 나눠 받는다.',
+      name: '특별경호팀', desc: '자신과 주변 1칸 아군의 피해량 경감 30%p. 주변 아군이 받는 피해의 절반은 린디웨가 나눠 받는다.',
       effect: { hooks: { onTick(b, u, dt) {
         u.mem.lindT = (u.mem.lindT || 0) - dt;
         if (u.mem.lindT > 0) return;
@@ -453,7 +453,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'SPEC', ttype: 'minor', faith: 'sirius', weapon: K('친구의 손', 'psy', 1.0, 2, 0.8, 3),
     factions: ['SIR'], traits: ['RFRIEND', 'MED'],
     trait: {
-      name: '친구의 손길', desc: '회복받은 아군은 3초간 받는 피해 -10%.',
+      name: '친구의 손길', desc: '회복받은 아군은 3초간 피해량 경감 10%.',
       effect: { hooks: { onHealDone(b, u, t, amt) {
         if (amt <= 0) return;
         b.buff(u, t, 'demi.friend', 3, { taken: [red('all', 0.1)] });
@@ -652,7 +652,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'VAN', ttype: 'divine', faith: 'ares', weapon: K('도리와 방패', 'phys', 1.1, 2, 0.85, 3),
     factions: ['HEL'], traits: [],
     trait: {
-      name: '팔랑크스', desc: '자신과 주변 1칸 아군의 받는 피해 -10%.',
+      name: '팔랑크스', desc: '자신과 주변 1칸 아군의 피해량 경감 10%.',
       effect: { hooks: { onTick(b, u, dt) {
         u.mem.phT = (u.mem.phT || 0) - dt;
         if (u.mem.phT > 0) return;
@@ -722,7 +722,7 @@ export const MAJOR_AUGS: AugDef[] = [
 export const PSI_AUGS: AugDef[] = [
   { id: 'psi.clarity', name: '명징', desc: '전투 시작 이성 +30.', pool: 'psionic', effect: () => ({ setup: (u) => { u.mem.reasonStart = (u.mem.reasonStart || 0) + 30; } }) },
   { id: 'psi.abyss', name: '심연 응시', desc: '이성이 낮을 때 주는 정신 피해 증폭 +50%.', pool: 'psionic', effect: () => ({ setup: (u) => { u.mem.abyss = (u.mem.abyss || 0) + 0.5; } }) },
-  { id: 'psi.bulwark', name: '이성의 방벽', desc: '이성이 높을 때 받는 정신 · 신성 피해 감소와 지원 효율 증가 +50%.', pool: 'psionic', effect: () => ({ setup: (u) => { u.mem.bulwark = (u.mem.bulwark || 0) + 0.5; } }) },
+  { id: 'psi.bulwark', name: '이성의 방벽', desc: '이성이 높을 때 받는 정신 · 신성 피해량 경감과 지원 효율 증가 +50%.', pool: 'psionic', effect: () => ({ setup: (u) => { u.mem.bulwark = (u.mem.bulwark || 0) + 0.5; } }) },
   { id: 'psi.calm', name: '광폭 제어', desc: '광폭 상태의 초당 지속 피해를 받지 않는다.', pool: 'psionic', effect: () => ({ setup: (u) => { u.mem.calmFrenzy = 1; } }) },
   { id: 'psi.resonance', name: '공명 증폭', desc: '이성 증감량 +50%.', pool: 'psionic', effect: () => ({ setup: (u) => { u.mem.reasonAmp = (u.mem.reasonAmp || 0) + 0.5; } }) },
 ];
@@ -734,7 +734,7 @@ export const FAITH_DEF: Record<FaithId, FaithDef> = {
   emperor: { gain: '결정타 +35', act: '아군 전원 8초간 피해 +15% (칙령)',
     hooks: { onKill: (b, u) => b.addDiv(u, 35) },
     mod: (b, u) => { for (const a of b.alliesOf(u)) b.buff(u, a, 'div.edict', 8, { mods: [inc('all', 0.15)], label: '칙령' }); } },
-  athena: { gain: '적에게 상태이상을 걸 때 +12', act: '8초간 자신이 받는 피해 -30%',
+  athena: { gain: '적에게 상태이상을 걸 때 +12', act: '8초간 자신이 피해량 경감 30%',
     hooks: { onInflict(b, u, t) { if (t.side !== u.side) dv(b, u, 12); } },
     mod: (b, u) => { b.buff(u, u, 'div.aegis', 8, { taken: [red('all', 0.3)], label: '아이기스' }); } },
   hermes: { gain: '이동 1칸 +6, 아군에게 버프를 걸 때 +8', act: '아군 전원 8초간 공격 속도 +30%',
@@ -764,7 +764,7 @@ export const FAITH_DEF: Record<FaithId, FaithDef> = {
   selene: { gain: '회복 · 보호막 부여 +6 (40초 이후 2배)', act: '아군 전원 최대 체력 20% 회복, 이성 +20',
     hooks: { onHealDone(b, u, _t, amt) { if (amt > 0) dv(b, u, b.t > 40 ? 12 : 6); } },
     mod: (b, u) => { for (const a of b.alliesOf(u)) { b.heal(u, a, b.S(a, 'maxHp') * 0.2); b.addReason(a, 20); } } },
-  human: { gain: '다른 아군과 같은 적을 공격할 때 +4', act: '아군 전원 6초간 피해 +20%, 받는 피해 -10% (연대)',
+  human: { gain: '다른 아군과 같은 적을 공격할 때 +4', act: '아군 전원 6초간 피해 +20%, 피해량 경감 10% (연대)',
     hooks: { onDeal(b, u, t, r) { if (r.amount > 0 && b.alliesOf(u, false).some((a) => a.target === t)) dv(b, u, 4); } },
     mod: (b, u) => { for (const a of b.alliesOf(u)) b.buff(u, a, 'div.human', 6, { mods: [inc('all', 0.2)], taken: [red('all', 0.1)], label: '연대' }); } },
   index: { gain: '피해를 줄 때 +3 (3초마다 바뀌는 상승장에서는 2배)', act: '보유 크레딧 1당 주력 위력 4% 고정 피해를 대상에게',

@@ -113,10 +113,10 @@ export const ABIL_C: Record<string, AbilText> = {
       tgt: '체력 비율이 가장 낮은 아군', range: null, area: aroundOr(p.radius),
       rows: [
         ['회복', `[heal:${p.heal}]`],
-        ['피해 감소', `[g:red] -[p:${p.red}] ([s:${p.dur}])`],
+        ['피해량 경감', `[g:red] [p:${p.red}] ([s:${p.dur}])`],
       ],
     }),
-    trait: '회복한 아군에게 [g:red] -[p:0.1] ([s:3]).',
+    trait: '회복한 아군에게 [g:red] [p:0.1] ([s:3]).',
     augs: {
       warm: '친구의 손길 회복 [heal+:2].',
       here: '[g:red] [pp:0.1]. 지속 +[s:3].',
@@ -270,7 +270,7 @@ export const ABIL_C: Record<string, AbilText> = {
       tgt: `모시는 아군 · 피해 기여가 가장 큰 아군 ${p.count}명`, range: null, area: { k: 'one' },
       rows: [
         ['버프', `피해 +[p:${p.dmg}], 공격 속도 +[p:${p.as}] ([s:${p.dur}])`],
-        ...opt(p.red, '피해 감소', `[g:red] -[p:${p.red}] ([s:${p.dur}])`),
+        ...opt(p.red, '피해량 경감', `[g:red] [p:${p.red}] ([s:${p.dur}])`),
         ['보호막', `엘베스타드 아군 전원에게 [shield:${p.famShield}]`],
       ],
     }),
@@ -280,7 +280,7 @@ export const ABIL_C: Record<string, AbilText> = {
       iron: '집사의 보좌 피해 증가 [pp:0.35].',
       crest: '엘베스타드 아군 보호막에 [shield:0.5] 추가. 방어력 +5.',
       reign: '집사의 보좌 지속 +[s:3]. 피해 증가 [pp:0.15], 공격 속도 [pp:0.1].',
-      shelter: '집사의 보좌 대상 [g:red] -[p:0.3].',
+      shelter: '집사의 보좌 대상 [g:red] [p:0.3].',
     },
   },
   gunnir: {

@@ -148,7 +148,7 @@ export const ROSTER_B: BaseUnit[] = [
       uaug('bianca', 'carapace', '갑각류형 프리셋', '베헤모스 스탯 상속률 +25%p, 방어도 +250.', { setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.25; u.mem.summonArmor = (u.mem.summonArmor || 0) + 250; } }),
       uaug('bianca', 'pheromone', '식별 페로몬', '치유 탄환이 기술 위력 180% 보호막도 준다.', setSk((s) => { s.shield += 1.8; })),
       uaug('bianca', 'scalpel', '투척 메스', '공격 속도 +25%, 치명타 확률 +20%p, 치명타 피해 +35%p.', { stats: { atkSpd: 0.25, crit: 0.2, critDmg: 0.35 } }),
-      uaug('bianca', 'wash', '손 씻기 일곱 번', '치유 탄환 대상의 해로운 상태이상 제거, 4초간 받는 피해 -30%.', setSk((s) => { s.cleanse = 1; s.red += 0.3; })),
+      uaug('bianca', 'wash', '손 씻기 일곱 번', '치유 탄환 대상의 해로운 상태이상 제거, 4초간 피해량 경감 30%.', setSk((s) => { s.cleanse = 1; s.red += 0.3; })),
     ],
   },
   // ───────── 헬레니우스 동맹
@@ -165,10 +165,10 @@ export const ROSTER_B: BaseUnit[] = [
       desc: (p) => `염동력으로 탄환의 작용점을 비튼다. 주변 ${p.radius}칸 아군 ${p.dur}초간 받는 피해 -${pct(p.red)}, 회피 +${pct(p.eva)}p.`,
     }),
     augs: [
-      uaug('zephyro', 'sail', '넓은 돛', '범위 +1칸, 받는 피해 감소 +6%p.', setSk((s) => { s.radius += 1; s.red += 0.06; })),
-      uaug('zephyro', 'athena', '아테나의 축복', '받는 피해 감소 +20%p.', setSk((s) => { s.red += 0.2; })),
+      uaug('zephyro', 'sail', '넓은 돛', '범위 +1칸, 피해량 경감 +6%p.', setSk((s) => { s.radius += 1; s.red += 0.06; })),
+      uaug('zephyro', 'athena', '아테나의 축복', '피해량 경감 +20%p.', setSk((s) => { s.red += 0.2; })),
       uaug('zephyro', 'detour', '우회 항로', '회피 증가 +25%p.', setSk((s) => { s.eva += 0.25; })),
-      uaug('zephyro', 'nap', '느긋한 항해', '지속 +3초, 받는 피해 감소 +10%p, 회피 증가 +5%p.', setSk((s) => { s.dur += 3; s.red += 0.1; s.eva += 0.05; })),
+      uaug('zephyro', 'nap', '느긋한 항해', '지속 +3초, 피해량 경감 +10%p, 회피 증가 +5%p.', setSk((s) => { s.dur += 3; s.red += 0.1; s.eva += 0.05; })),
       uaug('zephyro', 'pen', '투필', '사거리 +1, 공격 속도 +25%.', { stats: { range: 1, atkSpd: 0.25 } }),
     ],
   },

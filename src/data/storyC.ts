@@ -6,7 +6,7 @@ import type { FaithId, RunState, UnitState } from '../types';
 
 export const BOONS_C: Record<string, { name: string; effect: Effect }> = {
   c_hymn: { name: '오닉스 찬가 (정신 피해 +20%)', effect: { mods: [inc('psy', 0.2)] } },
-  c_moon: { name: '셀레네의 달빛 (받는 피해 -8%)', effect: { taken: [red('all', 0.08)] } },
+  c_moon: { name: '셀레네의 달빛 (피해량 경감 8%)', effect: { taken: [red('all', 0.08)] } },
   c_tears: { name: '황제의 성유 (신성 피해 +20%)', effect: { mods: [inc('holy', 0.2)] } },
   c_lucid: { name: '깨어 있는 꿈 (효과 저항 +15%)', effect: { stats: { effRes: 0.15 } } },
 };
@@ -303,7 +303,7 @@ export const STORY_C: EventDef[] = [
     id: 'sc_selene', title: '월식 순례선', weight: 0.8,
     text: '셀레네 순례선단이 월식을 따라 항해하고 있다. 일 년에 단 한 번, 달이 가려지는 동안에만 기도가 하늘에 닿는다고 그들은 믿는다. 늙은 사제가 에란테스에게도 자리를 내준다. 다만 월식 동안에는 모든 무기를 내려놓아야 한다고.',
     choices: [
-      { label: '기도에 합류한다', desc: '최대 플레이어 체력 -10. 셀레네의 달빛 — 모든 아군 받는 피해 -8% (영구).', apply: (r, api) => { r.maxHp -= 10; r.hp = Math.min(r.hp, r.maxHp); api.boon('c_moon'); return '무기를 내려놓은 밤, 달빛이 함선에 스며들었습니다. 받는 피해 -8% (영구).'; } },
+      { label: '기도에 합류한다', desc: '최대 플레이어 체력 -10. 셀레네의 달빛 — 모든 아군 피해량 경감 8% (영구).', apply: (r, api) => { r.maxHp -= 10; r.hp = Math.min(r.hp, r.maxHp); api.boon('c_moon'); return '무기를 내려놓은 밤, 달빛이 함선에 스며들었습니다. 피해량 경감 8% (영구).'; } },
       { label: '치유를 청한다', desc: '플레이어 체력 +22.', apply: (r) => { heal(r, 22); return '사제의 손끝에서 서늘한 빛이 흘러나왔습니다. 체력 +22.'; } },
       {
         label: '월식 중에 선단을 턴다', desc: '크레딧 +18. 50%: 달의 저주 — 플레이어 체력 -15.',

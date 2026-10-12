@@ -150,7 +150,7 @@ export const ROSTER_C: BaseUnit[] = [
     }),
     augs: [
       uaug('demiurgos', 'warm', '따뜻한 손', '회복량 +200%p.', setSk((s) => { s.heal += 2.0; })),
-      uaug('demiurgos', 'here', '곁에 있을게', '피해 감소 +10%p, 지속 +3초.', setSk((s) => { s.red += 0.1; s.dur += 3; })),
+      uaug('demiurgos', 'here', '곁에 있을게', '피해량 경감 +10%p, 지속 +3초.', setSk((s) => { s.red += 0.1; s.dur += 3; })),
       uaug('demiurgos', 'together', '다 같이', '친구의 손길이 대상 주변 1칸에도 닿는다. 회복량 +30%p.', setSk((s) => { s.radius = 1; s.heal += 0.3; })),
       uaug('demiurgos', 'gift', '선물', '모든 메이저 +4.', { majors: { vit: 4, pow: 4, mnd: 4, def: 4, agi: 4 } }),
       uaug('demiurgos', 'listen', '들어 줄게', '친구의 손길 쿨다운 -2초.', setSk((_s, u) => { u.cdMax -= 2; })),
@@ -357,7 +357,7 @@ export const ROSTER_C: BaseUnit[] = [
       uaug('sigmund', 'iron', '철두철미', '피해 증가 +35%p.', setSk((s) => { s.dmg += 0.35; })),
       uaug('sigmund', 'crest', '가문의 문장', '일가 보호막 +50%p, 방어력 +5.', { majors: { def: 5 }, setup: (u) => { u.sk.famShield += 0.5; } }),
       uaug('sigmund', 'reign', '오랜 근속', '보좌 지속 +3초, 피해 증가 +15%p, 공격 속도 +10%p.', setSk((s) => { s.dur += 3; s.dmg += 0.15; s.as += 0.1; })),
-      uaug('sigmund', 'shelter', '가문의 그늘', '보좌 대상 받는 피해 -30%.', setSk((s) => { s.red = 0.3; })),
+      uaug('sigmund', 'shelter', '가문의 그늘', '보좌 대상 피해량 경감 30%.', setSk((s) => { s.red = 0.3; })),
     ],
   },
   {

@@ -5,7 +5,7 @@ import type { EventApi, EventDef } from './events';
 import type { RunState, UnitState } from '../types';
 
 export const BOONS_B: Record<string, { name: string; effect: Effect }> = {
-  b_uni_contract: { name: '연합 군납 계약 (받는 피해 -8%)', effect: { taken: [red('all', 0.08)] } },
+  b_uni_contract: { name: '연합 군납 계약 (피해량 경감 8%)', effect: { taken: [red('all', 0.08)] } },
   b_ithaca: { name: '이타카 호위 함대 (피해 +12%)', effect: { mods: [inc('all', 0.12)] } },
   b_oracle: { name: '델포이 신탁 (효과 명중 +15%)', effect: { stats: { effHit: 0.15 } } },
   b_sir_vow: { name: '성도회의 서약 (최대 체력 +10%)', effect: { pct: { maxHp: 0.1 } } },
@@ -147,9 +147,9 @@ export const STORY_B: EventDef[] = [
     text: '연합 감찰국과 페트라 정보감사실이 동시에 같은 사건을 들여다보기 시작했다. 지연된 수송선단의 항적 기록 끝에 에란테스 함선의 신호가 찍혀 있다. 의뢰를 맡긴 이사는 이미 연락을 끊었다. 감사관은 정식 소명서를 요구하며, 기한은 다음 도약 전까지다.',
     choices: [
       {
-        label: '모든 걸 자백한다', desc: '크레딧 -15, 이자 상한 -1. 대신 연합 감찰국과 군납 계약: 모든 아군 받는 피해 -8% (영구).',
+        label: '모든 걸 자백한다', desc: '크레딧 -15, 이자 상한 -1. 대신 연합 감찰국과 군납 계약: 모든 아군 피해량 경감 8% (영구).',
         block: needCr(15),
-        apply: (r, api) => { r.credits -= 15; r.mods.interestCap -= 1; api.boon('b_uni_contract'); return '벌금을 낸 뒤 연합 군납 계약서에 서명했습니다. 받는 피해 -8% (영구).'; },
+        apply: (r, api) => { r.credits -= 15; r.mods.interestCap -= 1; api.boon('b_uni_contract'); return '벌금을 낸 뒤 연합 군납 계약서에 서명했습니다. 피해량 경감 8% (영구).'; },
       },
       {
         label: '장부를 조작한다', desc: '50%: 무혐의, 크레딧 +10 / 50%: 적발, 벌금 15 (모자라면 대출로 떠안음) + 플레이어 체력 -10.',

@@ -280,7 +280,7 @@ function ttypeExtra(d: UnitDef, u: UnitState | null, run: RunState | null) {
     out.push(`<p><b>${esc(d.growth.name)}</b> · ${esc(app.detail ? d.growth.desc : GROWTH_BRIEF[d.id] || d.growth.desc)}${app.detail && prog ? ` <span class="accent">(누적: ${esc(prog)})</span>` : ''}</p>`);
   }
   if (d.ttype === 'psionic' && d.psi) out.push(`<p><b>이성</b> · ${esc(app.detail
-    ? `${d.psi.desc} 이성이 높으면 받는 정신·신성 피해 감소 · 지원 효율 증가, 음수면 정신 피해 증폭 · 흡혈, -50 이하는 광폭 (피해 +30%, 초당 최대 체력 2% 손실).`
+    ? `${d.psi.desc} 이성이 높으면 받는 정신·신성 피해량 경감 · 지원 효율 증가, 음수면 정신 피해 증폭 · 흡혈, -50 이하는 광폭 (피해 +30%, 초당 최대 체력 2% 손실).`
     : `${PSI_BRIEF[d.id] || d.psi.desc} 높으면 단단해지고, 낮으면 정신 피해가 강해지며, 너무 낮으면 광폭한다.`)}</p>`);
   if (d.ttype === 'special') out.push(`<p class="muted">자동 성장: ${recMajors(d).map((m) => MAJOR_NAME[m]).join(' · ')}</p>`);
   if (d.ttype === 'divine') {
@@ -1394,8 +1394,10 @@ function statusParts(u: CUnit, s: Status) {
     mark(v);
   }
   if (s.armorMul !== undefined && s.armorMul !== 1) { out.push(`방어도 ×${s.armorMul.toFixed(2)}`); mark(s.armorMul - 1); }
-  for (const m of s.mods || []) { out.push(`${TAG_KO[m.tag]} 피해 ${m.kind === 'amp' ? '증폭 ' : ''}${sgn(m.v)}`); mark(m.v); }
-  for (const t of s.taken || []) { out.push(`받는 ${TAG_KO[t.tag]} 피해 ${t.kind === 'red' ? '-' : '+'}${pctTxt(Math.abs(t.v))}`); mark(t.kind === 'red' ? t.v : -t.v); }
+  // 용어: 이로운 피해량 경감 = 피해량 경감 / 해로운 주는 피해 감소 = 피해량 감소
+  const tg = (t: DmgTag) => (t === 'all' ? '' : `${TAG_KO[t]} `);
+  for (const m of s.mods || []) { out.push(m.v < 0 ? `${tg(m.tag)}피해량 감소 ${pctTxt(-m.v)}` : `${tg(m.tag)}피해 ${m.kind === 'amp' ? '증폭 ' : ''}${sgn(m.v)}`); mark(m.v); }
+  for (const t of s.taken || []) { out.push(t.kind === 'red' ? `${tg(t.tag)}피해량 경감 ${pctTxt(t.v)}` : `받는 ${tg(t.tag)}피해 +${pctTxt(t.v)}`); mark(t.kind === 'red' ? t.v : -t.v); }
   if (s.reflect) { out.push(`받은 피해 ${pctTxt(s.reflect)} 반사`); good++; }
   if (s.share && s.share !== u) { out.push(`받는 피해 일부를 ${s.share.name}이(가) 나눠 받음`); good++; }
   if (s.share === u) out.push('다른 기물의 피해를 나눠 받는 중');

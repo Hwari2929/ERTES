@@ -37,7 +37,7 @@ export const ROSTER_F: BaseUnit[] = [
       uaug('bjorn', 'rescue', '구조 매뉴얼', '보호막 +150%p.', setSk((s) => { s.rescue += 1.5; })),
       uaug('bjorn', 'storm', '폭풍 항해', '작살이 대상 주변 1칸 적에게도 맞는다.', setSk((s) => { s.radius = 1; })),
       uaug('bjorn', 'scar', '흉터 백 개', '생명력 +8, 방어력 +6.', { majors: { vit: 8, def: 6 } }),
-      uaug('bjorn', 'valhalla', '발할라는 아직', '전투당 1회, 쓰러질 피해를 받으면 체력 40%로 버티고 4초간 받는 피해 -50%.', {
+      uaug('bjorn', 'valhalla', '발할라는 아직', '전투당 1회, 쓰러질 피해를 받으면 체력 40%로 버티고 4초간 피해량 경감 50%.', {
         hooks: { onLethal(b, u) {
           if (u.mem.valhalla) return false;
           u.mem.valhalla = 1; u.hp = b.S(u, 'maxHp') * 0.4;
@@ -94,7 +94,7 @@ export const ROSTER_F: BaseUnit[] = [
       uaug('kaburaya', 'overtime', '철야', '야근 수당 청구 피해 +160%p.', setSk((s) => { s.mult += 1.6; })),
       uaug('kaburaya', 'memo', '결재 반려', '감전 확률 +20%p, 지속 +1초.', setSk((s) => { s.shockChance += 0.2; s.shock += 1; })),
       uaug('kaburaya', 'coffee', '네 번째 커피', '쿨다운 감소 속도 +35%.', { stats: { cdr: 0.35 } }),
-      uaug('kaburaya', 'hedge', '리스크 헤지', '받는 피해 -15%.', { taken: [red('all', 0.15)] }),
+      uaug('kaburaya', 'hedge', '리스크 헤지', '피해량 경감 15%.', { taken: [red('all', 0.15)] }),
       uaug('kaburaya', 'bored', '권태의 극치', '감전된 적에게 주는 피해 +25%p 추가 (총 +50%).', { setup: (u) => { u.mem.kabBored = 0.25; } }),
     ],
   },
@@ -127,7 +127,7 @@ export const ROSTER_F: BaseUnit[] = [
     augs: [
       uaug('winter', 'serum', '2상 혈청', '회복량 +180%p.', setSk((s) => { s.heal += 1.8; })),
       uaug('winter', 'cohort', '대조군 확대', '주변 1칸 아군에게도 50% 효과.', setSk((s) => { s.splash = 1; })),
-      uaug('winter', 'sterile', '무균실', '피해 감소 +15%p, 지속 +2초.', setSk((s) => { s.red += 0.15; s.dur += 2; })),
+      uaug('winter', 'sterile', '무균실', '피해량 경감 +15%p, 지속 +2초.', setSk((s) => { s.red += 0.15; s.dur += 2; })),
       uaug('winter', 'tenure', '정년 보장', '정신력 +8, 생명력 +4.', { majors: { mnd: 8, vit: 4 } }),
       uaug('winter', 'paper', '네이처 게재', '쿨다운 감소 속도 +35%.', { stats: { cdr: 0.35 } }),
     ],
@@ -240,7 +240,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
   bjorn: {
     ctype: 'MARK', ttype: 'special', faith: 'human', weapon: G('구조용 전기 작살포', 'elec', 1.1, 3, 1.0, 6, 2.0),
     trait: {
-      name: '바이킹의 피', desc: '받는 피해 -15%. 잃은 체력 1%당 주는 피해 +1%.',
+      name: '바이킹의 피', desc: '피해량 경감 15%. 잃은 체력 1%당 주는 피해 +1%.',
       effect: { taken: [red('all', 0.15)], hooks: { dmgMult: (b, u) => 1 + (1 - b.hpPct(u)) } },
     },
     specialAugs: [
@@ -320,7 +320,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
   issac: {
     ctype: 'VAN', ttype: 'major', faith: 'science', weapon: K('붕대 감은 주먹', 'chem', 0.85, 1, 1.0, 3),
     trait: {
-      name: '재생하는 괴물', desc: '초당 최대 체력 1% 재생. 받는 화학 피해 -30%.',
+      name: '재생하는 괴물', desc: '초당 최대 체력 1% 재생. 화학 피해량 경감 30%.',
       effect: { taken: [red('chem', 0.3)], hooks: { onTick(b, u, dt) { u.mem.issacT = (u.mem.issacT || 0) + dt; if (u.mem.issacT >= 1) { u.mem.issacT = 0; b.heal(u, u, b.S(u, 'maxHp') * 0.01, true); } } } },
     },
   },
@@ -359,7 +359,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
     },
     specialAugs: [
       sp('mao', 'bar', '펜트하우스 바', '요리를 2명에게 낸다 (가장 강한 아군 2명).', setSk((s) => { s.count = 2; })),
-      sp('mao', 'contract', '서명은 여기에', '요리받은 아군이 6초간 받는 피해 -20%.', setSk((s) => { s.red = 0.2; })),
+      sp('mao', 'contract', '서명은 여기에', '요리받은 아군이 6초간 피해량 경감 20%.', setSk((s) => { s.red = 0.2; })),
       sp('mao', 'yukata', '사이버 유카타', '전투 시작 시 모든 호이슌 · 스텔라레이서 아군 피해 +20% (전투 동안).', { hooks: { onStart(b, u) {
         for (const a of b.alliesOf(u)) if (a.synergies.has('HOI') || a.synergies.has('STL')) a.mods.push(inc('all', 0.2));
       } } }),
@@ -368,7 +368,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
   skadi: {
     ctype: 'VAN', ttype: 'divine', faith: 'index', weapon: K('결재 서류 가방', 'elec', 0.9, 1, 1.0, 3),
     trait: {
-      name: '인재 육성', desc: '전투 시작 시 공명 등급이 가장 낮은 다른 출전 아군에게 전투 동안 피해 +30%, 받는 피해 -15%.',
+      name: '인재 육성', desc: '전투 시작 시 공명 등급이 가장 낮은 다른 출전 아군에게 전투 동안 피해 +30%, 피해량 경감 15%.',
       effect: { hooks: { onStart(b, u) {
         const pool = b.alliesOf(u, false).filter((a) => a.src && !a.isSummon);
         if (!pool.length) return;

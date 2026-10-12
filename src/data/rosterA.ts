@@ -144,7 +144,7 @@ export const ROSTER_A: BaseUnit[] = [
       uaug('orca', 'herring', '긴 다리 청어 조림', '회복량 +180%p.', setSk((s) => { s.heal += 1.8; })),
       uaug('orca', 'espresso', '에스프레소', '공격 속도 증가 +35%p.', setSk((s) => { s.as += 0.35; })),
       uaug('orca', 'blanca', '블랑카 크림빵', '기술 위력 120% 보호막도 준다.', setSk((s) => { s.shield = 1.2; })),
-      uaug('orca', 'counsel', '상담 시간', '요리받은 아군의 해로운 상태이상 제거, 지속 동안 받는 피해 -25%.', setSk((s) => { s.cleanse = 1; s.red = 0.25; })),
+      uaug('orca', 'counsel', '상담 시간', '요리받은 아군의 해로운 상태이상 제거, 지속 동안 피해량 경감 25%.', setSk((s) => { s.cleanse = 1; s.red = 0.25; })),
       uaug('orca', 'coin', '동전 마술', '요리받은 아군 지속 동안 피해 +30%.', setSk((s) => { s.dmg = 0.3; })),
     ],
   },
@@ -177,7 +177,7 @@ export const ROSTER_A: BaseUnit[] = [
     augs: [
       uaug('grenholm', 'deflect', '에너지 편향막', '보호막 +30%p.', setSk((s) => { s.selfShield += 0.3; })),
       uaug('grenholm', 'rocket', '휴대용 로켓런처', '군수품 시연 범위 +1칸, 피해 +30%p.', setSk((s) => { s.radius += 1; s.mult += 0.3; })),
-      uaug('grenholm', 'sevenfold', '7중 방호 체계', '체력 50% 이상일 때 받는 피해 -45%. 방호가 뚫리면 불이행 사건이다.', { hooks: { takenMult: (b, u) => (b.hpPct(u) >= 0.5 ? 0.55 : 1) } }),
+      uaug('grenholm', 'sevenfold', '7중 방호 체계', '체력 50% 이상일 때 피해량 경감 45%. 방호가 뚫리면 불이행 사건이다.', { hooks: { takenMult: (b, u) => (b.hpPct(u) >= 0.5 ? 0.55 : 1) } }),
       uaug('grenholm', 'evidence', '자료 첨부', '모욕한 뒤 사실임을 증명한다. 맞은 적 4초간 받는 피해 +30%.', setSk((s) => { s.vuln = 0.3; })),
       uaug('grenholm', 'loss', '기대손실 시리즈', 'SNS 연재. 군수품 시연 피해 +60%p. 전투 승리 시 명성 +2.', setSk((s) => { s.mult += 0.6; }), { after: (run, _u, won) => { if (won) run.fame += 2; } }),
     ],
@@ -195,7 +195,7 @@ export const ROSTER_A: BaseUnit[] = [
     },
     skill: {
       name: '거래 제안', cd: 8, params: { shield: 1.5, mult: 2.0, weak: 0.2, dur: 4, vuln: 0 },
-      desc: (p) => `[비무장] 기본 공격을 하지 않는다. 경호원 2명을 데려오며, 경호원이 살아 있는 동안 받는 피해 -25%. 체력이 가장 높은 적에게 거래를 제안해 ${p.dur}초간 주는 피해 -${pct(p.weak)}${p.vuln ? `, 받는 피해 +${pct(p.vuln)}` : ''}. 경호원들에게 기술 위력 ${pct(p.shield)} 보호막을 주고 그 적을 타격 위력 ${pct(p.mult)}로 공격하게 한다.`,
+      desc: (p) => `[비무장] 기본 공격을 하지 않는다. 경호원 2명을 데려오며, 경호원이 살아 있는 동안 피해량 경감 25%. 체력이 가장 높은 적에게 거래를 제안해 ${p.dur}초간 주는 피해 -${pct(p.weak)}${p.vuln ? `, 받는 피해 +${pct(p.vuln)}` : ''}. 경호원들에게 기술 위력 ${pct(p.shield)} 보호막을 주고 그 적을 타격 위력 ${pct(p.mult)}로 공격하게 한다.`,
       cast(b, u) {
         const t = pickEnemy(b, u, 'strongest');
         if (!t) return false;

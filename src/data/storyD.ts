@@ -8,7 +8,7 @@ export const BOONS_D: Record<string, { name: string; effect: Effect }> = {
   d_route: { name: '밀수 항로 (공격 속도 +10%)', effect: { stats: { atkSpd: 0.1 } } },
   d_intel: { name: '약탈자의 정보망 (피해 +20%)', effect: { mods: [inc('all', 0.2)] } },
   d_colors: { name: '해적 깃발 위장 (회피 +8%)', effect: { stats: { eva: 0.08 } } },
-  d_plating: { name: '인양 장갑판 (받는 피해 -10%)', effect: { taken: [red('all', 0.1)] } },
+  d_plating: { name: '인양 장갑판 (피해량 경감 10%)', effect: { taken: [red('all', 0.1)] } },
 };
 
 // ───────── 공통 도우미
@@ -54,7 +54,7 @@ export const STORY_D: EventDef[] = [
         },
       },
       { label: '외곽만 벗겨 낸다', desc: '재료 1개 + 크레딧 +4. 위험 없음.', apply: (r, api) => { api.gain(api.randomItem('C')); r.credits += 4; return '외장재와 배선을 뜯어 재료를 챙겼습니다.'; } },
-      { label: '장갑판을 떼어 덧댄다', desc: '이번 페이즈 동안 모든 아군 받는 피해 -10%. 플레이어 체력 -8 (작업 사고).', block: needHp(8), apply: (r, api) => { hurt(r, 8); api.phaseBoon('d_plating'); return '화물선 장갑판을 덧댔습니다. 이번 페이즈 받는 피해 -10%.'; } },
+      { label: '장갑판을 떼어 덧댄다', desc: '이번 페이즈 동안 모든 아군 피해량 경감 10%. 플레이어 체력 -8 (작업 사고).', block: needHp(8), apply: (r, api) => { hurt(r, 8); api.phaseBoon('d_plating'); return '화물선 장갑판을 덧댔습니다. 이번 페이즈 피해량 경감 10%.'; } },
     ],
   },
 

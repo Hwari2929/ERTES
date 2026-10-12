@@ -115,7 +115,7 @@ export const ABIL_A: Record<string, AbilText> = {
         ...opt(p.shield, '보호막', `[shield:${p.shield}]`),
         ['버프', `공격 속도 +[p:${p.as}] ([s:${p.dur}])`],
         ...opt(p.dmg, '피해', `주는 피해 +[p:${p.dmg}] ([s:${p.dur}])`),
-        ...opt(p.red, '피해 감소', `[g:red] [p:${p.red}] ([s:${p.dur}])`),
+        ...opt(p.red, '피해량 경감', `[g:red] [p:${p.red}] ([s:${p.dur}])`),
         ...opt(p.cleanse, '정화', '[g:cleanse]'),
         ['요리', '[g:cook] 배율 적용'],
       ],
@@ -170,13 +170,13 @@ export const ABIL_A: Record<string, AbilText> = {
     skill: (p) => ({
       tgt: '최대 체력이 가장 높은 적', range: null, area: { k: 'one' },
       rows: [
-        ['약화', `주는 피해 -[p:${p.weak}] ([s:${p.dur}])`],
+        ['약화', `[g:weak] [p:${p.weak}] ([s:${p.dur}])`],
         ...opt(p.vuln, '취약', `[g:vuln] 받는 피해 +[p:${p.vuln}] ([s:${p.dur}])`),
         ['보호막', `모든 경호원에게 [shield:${p.shield}]`],
         ['피해', `경호원이 대상을 공격. 인접한 경호원은 즉시 경호원 타격 위력의 [p:${p.mult}] 물리 피해`],
       ],
     }),
-    trait: '기본 공격을 하지 않음. 경호원 +1명. 경호원이 살아 있으면 받는 피해 -[p:0.25]. 함께한 뒤 번 크레딧 10당 경호원 메이저 스탯 +1 (최대 +10). 이자 상한 +2. 전투 스킬은 [g:tac]으로 계산.',
+    trait: '기본 공격을 하지 않음. 경호원 +1명. 경호원이 살아 있으면 [g:red] [p:0.25]. 함께한 뒤 번 크레딧 10당 경호원 메이저 스탯 +1 (최대 +10). 이자 상한 +2. 전투 스킬은 [g:tac]으로 계산.',
     augs: {
       guards: '경호원 +1명. 경호원 방어도 +240.',
       elite: '경호원 스탯 상속률 [pp:0.4].',
