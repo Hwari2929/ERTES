@@ -41,7 +41,7 @@ function resolvePending(run: RunState, bot: Rng) {
     }
     else if (p.t === 'supply') R.takeSupply(run, p.options[0]);
     else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
-    else if (p.t === 'branch') { R.pickBranch(run, (['invest', 'pilgrim', 'shop'] as const).find((o) => p.options.includes(o))!); continue; }
+    else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? (['invest', 'pilgrim', 'shop'] as const).find((o) => p.options.includes(o))! : 'shop'); continue; }
     else if (p.t === 'pilgrim') { run.pending.shift(); while (run.power >= R.PILGRIM_COST.cap && R.pilgrimAct(run, 'cap') === null); continue; }
     run.pending.shift();
   }
@@ -58,8 +58,14 @@ function manage(run: RunState) {
     if (t) R.equip(run, i, t.uid);
   }
   for (let guard = 0; guard < 20 && run.inventory.some((x) => !x.startsWith('M_')); guard++) {
-    const target = sorted.find((u) => u.items.includes(null) || u.items.some((x) => x && x[0] === 'C'));
     const idx = run.inventory.findIndex((x) => !x.startsWith('M_'));
+    const it = run.inventory[idx];
+    // 빈 칸, 같은 재료(→ 고급) 순. 칸이 다 차면 서로 다른 재료 하나를 빼고 더 좋은 장비로 교체
+    let target = sorted.find((u) => it[0] === 'C' && u.items.includes(it)) || sorted.find((u) => u.items.includes(null));
+    if (!target && it[0] !== 'C') {
+      target = sorted.find((u) => u.items.some((x) => x && x[0] === 'C'));
+      if (target) { const k = target.items.findIndex((x) => x && x[0] === 'C'); R.unequip(run, target.uid, k); }
+    }
     if (!target || R.equip(run, idx, target.uid)) break;
   }
   // 남는 크레딧(이자 구간 30 유지)으로 공명도 구매
