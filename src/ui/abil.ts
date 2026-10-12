@@ -101,11 +101,11 @@ export function areaGrid(a: Area) {
     case 'around': { const n = 2 * a.r + 3, c = a.r + 1; return grid(n, (x, y) => (x === c && y === c ? 'tg' : cheb(x, y, c, c) <= a.r ? 'hit' : ''), `대상 주변 ${a.r}칸`); }
     case 'self': { const n = 2 * a.r + 3, c = a.r + 1; return grid(n, (x, y) => (x === c && y === c ? 'me' : cheb(x, y, c, c) <= a.r ? 'hit' : ''), `자신 주변 ${a.r}칸`); }
     case 'line': return grid(5, (x, y) => (x === 2 && y === 4 ? 'me' : x === 2 && y === 1 ? 'tg' : x === 2 && y < 4 ? 'hit' : ''), '직선 관통');
-    case 'all': return grid(5, () => 'hit', '적 전체');
+    case 'all': return grid(5, () => (a.ally ? 'in' : 'hit'), a.ally ? '아군 전체' : '적 전체');
   }
 }
 export function areaLabel(a: Area) {
-  return a.k === 'one' ? '단일' : a.k === 'around' ? `주변 ${a.r}칸` : a.k === 'self' ? `자신 주변 ${a.r}칸` : a.k === 'line' ? '직선' : '전체';
+  return a.k === 'one' ? '단일' : a.k === 'around' ? `주변 ${a.r}칸` : a.k === 'self' ? `자신 주변 ${a.r}칸` : a.k === 'line' ? '직선' : a.ally ? '아군 전체' : '적 전체';
 }
 const rangeLabel = (r: number | null) => (r === null ? '거리 무관' : r === 0 ? '자신' : `${r}칸`);
 const chip = (icon: string, txt: string, title = '') => `<span class="abc"${title ? ` title="${esc(title)}"` : ''}>${lineIcon(icon, 'li')}${txt}</span>`;
@@ -176,7 +176,8 @@ export function skillBody(info: SkillInfo, ctx: AbilCtx, range: number, cd: numb
   const healer = !pow && info.rows.some(([, v]) => /\[(heal|shield):/.test(v));
   const rows: [string, string][] = [['대상', esc(info.tgt)], ['쿨다운', `${lineIcon('a.cd', 'li')}${cd.toFixed(1)}초`],
     ...(pow ? [['피해 유형', powType(ctx, pow)] as [string, string]] : healer ? [['위력 기준', powType(ctx, 'tech')] as [string, string]] : []),
-    ...info.rows.map(([k, v]) => [k, tok(v, ctx, gl)] as [string, string])];
+    // 항목명이 회복 · 보호막이면 값 뒤 같은 말은 생략
+    ...info.rows.map(([k, v]) => [k, tok(v, ctx, gl).replace(k === '회복' || k === '보호막' ? new RegExp(`</span> ${k}`, 'g') : /$^/, '</span>')] as [string, string])];
   return popBody(r, info.area, rows);
 }
 export function rowsHtml(rows: [string, string][]) {
