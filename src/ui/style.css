@@ -1075,7 +1075,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 @keyframes drop-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 .top-syns { display: none; }
 @media (max-width: 860px) {
-  .top-syns { display: flex; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; gap: 28px; width: 100%; position: static; padding: 4px 8px 6px; scrollbar-width: none; -ms-overflow-style: none; }
+  .top-syns { display: flex; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; gap: 20px; width: 100%; position: static; padding: 4px 8px 6px; scrollbar-width: none; -ms-overflow-style: none; }
   .top-syns::-webkit-scrollbar { display: none; }
   .top-syns .syn-b { width: 38px; height: 38px; }
   .top-syns .syn-dia { width: 29px; height: 29px; }
@@ -1137,3 +1137,17 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .more-list li.streak b, .more-list li.streak .li { color: #ff8a3c; }
 .more-list .li { width: 13px; height: 13px; }
 .dep-pill b { color: var(--accent); }
+
+/* 리본: 메뉴는 아이콘 버튼, 모바일은 한 줄 */
+.menu-btn { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; }
+.menu-btn .li { width: 20px; height: 20px; }
+@media (max-width: 860px) {
+  .top { flex-wrap: wrap; }
+  .top .stat-row { flex-wrap: nowrap; min-width: 0; gap: 4px; }
+  .top .pill { flex: none; padding: 1px 7px; }
+  .pill.more summary { padding: 1px 7px; }
+  .pill.more .more-tx { display: none; }
+  .more-list { left: auto; right: 0; }
+  .menu-btn { width: 32px; height: 32px; margin-left: auto; }
+  .top-syns .syn-tk { flex: none; }
+}
