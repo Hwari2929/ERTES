@@ -17,7 +17,16 @@ import { applyLive, type Effect, type EffectCtx } from './effects';
 
 export type Counts = Partial<Record<SynergyId, number>>;
 
-export const playerRows = (n: number) => (n >= 8 ? 4 : 3);
+/** 전장 구조: 바깥 테두리 PAD · 적 진형 ZONE · 간격 GAP · 아군 진형 ZONE · 테두리 PAD (세로), 가로는 배치 폭 W + 테두리 */
+export const ZONE = 3, GAP = 1, PAD = 1;
+export const playerRows = (_n?: number) => ZONE;
+export const boardDims = (W: number) => ({ w: W + 2 * PAD, h: 2 * ZONE + GAP + 2 * PAD });
+/** 아군 진형 세로 범위 (전장 좌표) */
+export const ALLY_Y0 = PAD + ZONE + GAP, ALLY_Y1 = ALLY_Y0 + ZONE - 1;
+/** 적 배치(c, row) → 전장 좌표 */
+export const enemyCell = (c: number, row: number, W: number) => ({ x: PAD + Math.min(c, W - 1), y: PAD + Math.min(row, ZONE - 1) });
+/** 전장 좌표 → 저장 배치 (c, r): r=0 이 맨 뒷줄 */
+export const toPos = (x: number, y: number) => ({ c: x - PAD, r: ALLY_Y1 - y });
 
 export function deployed(run: RunState) { return run.units.filter((u) => u.pos); }
 
@@ -132,10 +141,9 @@ export function computeStats(u: UnitState, effects: Effect[]): { st: Stats; majo
   return { st, majors: m };
 }
 
-/** 저장된 배치(c, r)를 크기 n 보드의 실제 좌표로 */
-export function boardPos(pos: { c: number; r: number }, n: number) {
-  const rows = playerRows(n);
-  return { x: Math.min(pos.c, n - 1), y: n - 1 - Math.min(pos.r, rows - 1) };
+/** 저장된 배치(c, r)를 배치 폭 W 전장의 실제 좌표로 */
+export function boardPos(pos: { c: number; r: number }, W: number) {
+  return { x: PAD + Math.max(0, Math.min(pos.c, W - 1)), y: ALLY_Y1 - Math.max(0, Math.min(pos.r, ZONE - 1)) };
 }
 
 function blankUnit(side: 0 | 1): CUnit {
@@ -162,7 +170,7 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
   });
   c.mem.mnd = majors.mnd;
   if (d.weapon.kind === 'none') c.noAttack = true;
-  const p = boardPos(u.pos!, b.n);
+  const p = boardPos(u.pos!, b.w - 2 * PAD);
   c.x = c.px = p.x; c.y = c.py = p.y;
   c.mem.title = rankTitle(u.rank) + effects.reduce((s, e) => s + (e.title || 0), 0);
   const ctx = makeCtx(run, u, counts);
@@ -300,13 +308,12 @@ ENG_HOOK.spawn = (b, lead, engs, n) => {
     t.hp = st.maxHp;
     t.atkTimer = 0.4;
     // 아군 진영 안의 빈칸에만 설치
-    const rows = playerRows(b.n);
     let cell: { x: number; y: number } | null = null;
-    for (let r = 1; r < b.n && !cell; r++)
+    for (let r = 1; r < Math.max(b.w, b.h) && !cell; r++)
       for (let dy = -r; dy <= r && !cell; dy++)
         for (let dx = -r; dx <= r && !cell; dx++) {
           const x = lead.x + dx, y = lead.y + dy;
-          const mine = lead.side === 0 ? y >= b.n - rows : y < rows;
+          const mine = lead.side === 0 ? y >= ALLY_Y0 && y <= ALLY_Y1 : y >= PAD && y < PAD + ZONE;
           if (b.inBounds(x, y) && mine && !b.unitAt(x, y)) cell = { x, y };
         }
     if (!cell) return;
@@ -327,14 +334,13 @@ setSummonHook((b, owner, defId, count) => {
 
 /** 보드 크기 n 에서의 실제 아군 배치 (크기가 바뀌어 겹치면 빈 칸으로 밀어낸다) */
 export function layout(run: RunState, n: number): Map<string, { x: number; y: number }> {
-  const rows = playerRows(n);
   const used = new Set<string>();
   const out = new Map<string, { x: number; y: number }>();
   for (const u of deployed(run)) {
     let p: { x: number; y: number } | null = boardPos(u.pos!, n);
     if (used.has(`${p.x},${p.y}`)) {
       p = null;
-      for (let y = n - 1; y >= n - rows && !p; y--) for (let x = 0; x < n && !p; x++) if (!used.has(`${x},${y}`)) p = { x, y };
+      for (let y = ALLY_Y1; y >= ALLY_Y0 && !p; y--) for (let x = PAD; x < PAD + n && !p; x++) if (!used.has(`${x},${y}`)) p = { x, y };
     }
     if (!p) continue;
     used.add(`${p.x},${p.y}`);
@@ -344,7 +350,8 @@ export function layout(run: RunState, n: number): Map<string, { x: number; y: nu
 }
 
 export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): Battle {
-  const b = new Battle(enc.n, new Rng(enc.seed), { phase: run.phase, credits: run.credits, field: run.field, diff: run.diff });
+  const dim = boardDims(enc.n);
+  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: run.phase, credits: run.credits, field: run.field, diff: run.diff });
   b.keepEvents = keepEvents;
   const dep = deployed(run);
   const counts = synergyCounts(dep, run);
@@ -359,8 +366,9 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
   for (const s of enc.enemies) {
     const def = ENEMY_BY_ID[s.defId];
     const e = buildEnemy(b, def, run.phase, enc.mult);
-    e.x = e.px = Math.min(s.c, enc.n - 1);
-    e.y = e.py = Math.min(s.row, enc.n - 1);
+    const ec = enemyCell(s.c, s.row, enc.n);
+    e.x = e.px = ec.x;
+    e.y = e.py = ec.y;
     if (b.unitAt(e.x, e.y)) { const f = b.freeCellNear(e.x, e.y); if (!f) continue; e.x = e.px = f.x; e.y = e.py = f.y; }
     b.add(e);
   }

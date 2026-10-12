@@ -167,7 +167,8 @@ export class Battle {
   /** 진영별 전술 위력 (전투 시작 시 계산) */
   tac: [number, number] = [0, 0];
 
-  constructor(public n: number, public rng: Rng, public ctx: BattleCtx) {}
+  /** 전장 크기: 가로 w × 세로 h (배치 구역 + 바깥 테두리 1칸) */
+  constructor(public w: number, public h: number, public rng: Rng, public ctx: BattleCtx) {}
 
   /** 기술 위력 조회: 지휘관은 사격/타격/기술 대신 전술 위력 기반 */
   P(u: CUnit, k: 'shoot' | 'strike' | 'tech'): number {
@@ -223,7 +224,7 @@ export class Battle {
   alliesOf(u: CUnit, includeSelf = true) { return this.living(u.side).filter((a) => includeSelf || a !== u); }
   dist(a: { x: number; y: number }, b: { x: number; y: number }) { return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)); }
   unitAt(x: number, y: number) { return this.units.find((u) => u.alive && u.x === x && u.y === y) || null; }
-  inBounds(x: number, y: number) { return x >= 0 && y >= 0 && x < this.n && y < this.n; }
+  inBounds(x: number, y: number) { return x >= 0 && y >= 0 && x < this.w && y < this.h; }
   nearest(from: CUnit, pool: CUnit[]) {
     let best: CUnit | null = null, bd = 1e9;
     for (const e of pool) {
@@ -261,7 +262,7 @@ export class Battle {
     return u;
   }
   freeCellNear(x: number, y: number) {
-    for (let r = 1; r < this.n; r++)
+    for (let r = 1; r < Math.max(this.w, this.h); r++)
       for (let dy = -r; dy <= r; dy++)
         for (let dx = -r; dx <= r; dx++) {
           const nx = x + dx, ny = y + dy;
@@ -412,7 +413,7 @@ export class Battle {
 
   private moveToward(u: CUnit, tgt: CUnit, range: number) {
     // BFS: 대상이 사거리 안에 들어오는 가장 가까운 빈 칸으로
-    const n = this.n;
+    const n = this.w;
     const prev = new Map<number, number>();
     const start = u.y * n + u.x;
     const q = [start];

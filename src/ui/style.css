@@ -181,8 +181,11 @@ button { font: inherit; color: inherit; }
 .board-col { min-width: 0; }
 .board-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; }
 .board-head .speed { margin-left: auto; display: flex; gap: 4px; }
-.board { position: relative; width: min(100%, 560px); aspect-ratio: 1; margin: 0 auto; max-width: 100%; user-select: none; -webkit-user-select: none; }
-.cells { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(var(--n), 1fr); grid-template-rows: repeat(var(--n), 1fr); gap: 2px; }
+.board { position: relative; width: 100%; aspect-ratio: var(--w) / var(--h); margin: 0 auto; max-width: 100%; user-select: none; -webkit-user-select: none; }
+/* 좌우로 최대한 넓히되, 세로가 화면을 넘으면 높이에 맞춰 폭을 줄인다 */
+.board { width: min(100%, calc((100vh - var(--top-h, 70px) - 70px) * var(--w) / var(--h))); }
+.cells { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(var(--w), 1fr); grid-template-rows: repeat(var(--h), 1fr); gap: 2px; }
+.cell.pad { background: color-mix(in srgb, var(--cell-mid) 45%, transparent); }
 .cell { background: var(--cell-mid); border-radius: 3px; }
 .cell.mine { background: var(--cell-mine); }
 .cell.foe { background: var(--cell-foe); }

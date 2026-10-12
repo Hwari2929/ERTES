@@ -15,7 +15,7 @@ import { BRIEF, GROWTH_BRIEF, PSI_BRIEF } from './data/brief';
 import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
 import * as AB from './ui/abil';
 import {
-  activeTiers, buildAlly, buildBattle, buildEnemy, deployed, layout, memberships, playerRows, synergyCounts, totalMajors, unitEffects,
+  activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, unitEffects, ZONE,
 } from './engine/build';
 import { Battle, type CUnit, type Status, STATUS_NAME } from './engine/combat';
 import * as R from './engine/run';
@@ -148,14 +148,6 @@ function itemGlyph(id: string) {
   return lineIcon(`i.${id.slice(2)}`, 'ii');
 }
 
-/** 상단 바: 활성 시너지 아이콘 + 단계 */
-function topSynergies(r: RunState) {
-  const counts = synergyCounts(deployed(r), r);
-  const act = SYNERGIES.map((sd) => ({ sd, n: counts[sd.id] || 0, t: tierOf(sd.id, counts[sd.id] || 0) })).filter((x) => x.t > 0)
-    .sort((a, b) => (a.sd.kind === b.sd.kind ? b.t - a.t || b.n - a.n : a.sd.kind === 'faction' ? -1 : 1));
-  if (!act.length) return '';
-  return `<div class="top-syn" aria-label="활성 시너지">${act.map(({ sd, n, t }) => `<span class="ts" style="--c:${sd.color}" title="${esc(sd.name)} ${n}명 · ${t}단계">${synIcon(sd.id)}<b>${t}</b></span>`).join('')}</div>`;
-}
 function topbar() {
   const r = app.run;
   if (!r) return '';
@@ -172,7 +164,7 @@ function topbar() {
       ${r.blessing ? `<span class="pill faith" title="${esc(BLESSING_BY_ID[r.blessing].desc)}">축복: ${esc(BLESSING_BY_ID[r.blessing].name)}</span>` : ''}
       <span class="pill">출전 ${deployed(r).length}/${cap}</span>
     </div>
-    ${topSynergies(r)}
+    
     ${app.screen === 'battle' ? '' : '<button class="btn ghost" data-a="menu">메뉴</button>'}
   </header>`;
 }
@@ -183,7 +175,7 @@ function synToken(id: string, c: number, extra = '') {
   const t = tierOf(sd.id, c);
   const steps = sd.tiers.map((need, i) => `<span class="${c >= need ? 'on' : ''}${i === t - 1 ? ' cur' : ''}">${need}</span>`).join('');
   return `<div class="syn-tk${t ? ' active' : ''}${extra}" style="--c:${sd.color}">
-    <button class="syn-b" type="button" data-syn="${sd.id}" aria-label="${esc(sd.name)} 상세"><span class="syn-dia">${synIcon(sd.id) || sd.icon}</span><span class="syn-lv">${t}</span></button>
+    <button class="syn-b" type="button" data-syn="${sd.id}" aria-label="${esc(sd.name)} 상세"><span class="syn-dia">${synIcon(sd.id) || sd.icon}</span><span class="syn-lv" title="출전 ${c}명">${c}</span></button>
     <span class="syn-tx"><b>${esc(sd.name)}</b><span class="syn-steps">${steps}</span></span></div>`;
 }
 /** 시너지 상세 팝업 (마름모를 누르면) */
@@ -498,15 +490,17 @@ function prepScreen(run: RunState) {
   const node = run.node;
   const isBattle = !!node?.enc;
   const n = node?.enc?.n || CFG.bossBoard;
-  const rows = playerRows(n);
   const lay = layout(run, n);
   const cap = R.deployCap(run);
+  const { w: bw, h: bh } = boardDims(n);
+  const cellBox = (x: number, y: number) => `left:${(x / bw) * 100}%;top:${(y / bh) * 100}%;width:${100 / bw}%;height:${100 / bh}%`;
   let cells = '';
-  for (let y = 0; y < n; y++)
-    for (let x = 0; x < n; x++) {
-      const mine = y >= n - rows;
-      const enemyZone = y < rows;
-      cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}" ${mine ? `data-drop="cell:${x}:${y}"` : ''}></div>`;
+  for (let y = 0; y < bh; y++)
+    for (let x = 0; x < bw; x++) {
+      const pad = x < PAD || x >= bw - PAD || y < PAD || y >= bh - PAD;
+      const mine = !pad && y >= ALLY_Y0 && y <= ALLY_Y1;
+      const enemyZone = !pad && y >= PAD && y < PAD + ZONE;
+      cells += `<div class="cell ${pad ? 'pad' : mine ? 'mine' : enemyZone ? 'foe' : 'mid'}" ${mine ? `data-drop="cell:${x}:${y}"` : ''}></div>`;
     }
   let units = '';
   for (const u of deployed(run)) {
@@ -514,7 +508,7 @@ function prepScreen(run: RunState) {
     if (!p) continue;
     const d = UNIT_BY_ID[u.defId];
     const sel = app.sel?.k === 'unit' && app.sel.uid === u.uid;
-    units += `<div class="u side0 tk placed ${sel ? 'sel' : ''}" style="left:${(p.x / n) * 100}%;top:${(p.y / n) * 100}%;width:${100 / n}%;height:${100 / n}%"
+    units += `<div class="u side0 tk placed ${sel ? 'sel' : ''}" style="${cellBox(p.x, p.y)}"
       data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}">
       <div class="tk-card"><div class="tk-art">${sprite(d, '')}${u.mod ? `<span class="tk-mod" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : ''}</div>
         <span class="tk-side"><b class="tk-rank" title="공명 등급 ${u.rank}">${u.rank}</b><i class="tt-${d.ttype}" title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i><i class="ct-${d.ctype}" title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i></span>
@@ -523,23 +517,23 @@ function prepScreen(run: RunState) {
   if (node?.enc) node.enc.enemies.forEach((s, i) => {
     const e = ENEMY_BY_ID[s.defId];
     const sel = app.sel?.k === 'enemy' && app.sel.i === i;
-    units += `<div class="u side1 placed${hasPortrait(e) ? ' tk' : ''} ${e.tier !== 'minion' && !hasPortrait(e) ? 'big' : ''} ${sel ? 'sel' : ''}" style="left:${(Math.min(s.c, n - 1) / n) * 100}%;top:${(Math.min(s.row, n - 1) / n) * 100}%;width:${100 / n}%;height:${100 / n}%"
+    units += `<div class="u side1 placed${hasPortrait(e) ? ' tk' : ''} ${e.tier !== 'minion' && !hasPortrait(e) ? 'big' : ''} ${sel ? 'sel' : ''}" style="${(() => { const ec = enemyCell(s.c, s.row, n); return cellBox(ec.x, ec.y); })()}"
       data-a="sel-enemy" data-v="${i}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}">${hasPortrait(e)
-        ? `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${e.mod ? `<span class="tk-mod">${itemIcon(e.mod)}</span>` : ''}</div>${(() => { const et = enemyTypes(e); return `<span class="tk-side"><b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : e.tier === 'elite' ? 'E' : ''}</b><i title="${TTYPE_NAME[et.ttype]}">${typeIcon(et.ttype)}</i><i title="${CTYPE_NAME[et.ctype]}">${typeIcon(et.ctype)}</i></span>`; })()}<span class="tk-items">${[0, 1, 2].map((k) => itemIcon(e.items?.[k] || null)).join('')}</span></div>`
+        ? `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${e.mod ? `<span class="tk-mod">${itemIcon(e.mod)}</span>` : ''}</div>${(() => { const et = enemyTypes(e); return `<span class="tk-side">${e.tier === 'minion' ? '' : `<b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : 'E'}</b>`}<i title="${TTYPE_NAME[et.ttype]}">${typeIcon(et.ttype)}</i><i title="${CTYPE_NAME[et.ctype]}">${typeIcon(et.ctype)}</i></span>`; })()}<span class="tk-items">${[0, 1, 2].map((k) => itemIcon(e.items?.[k] || null)).join('')}</span></div>`
         : sprite(e, '')}</div>`;
   });
   const bench = run.units.filter((u) => !u.pos);
   const free = cap - deployed(run).length;
   const canFill = bench.some((u) => R.canDeploy(run, u));
-  const env = node?.enc ? `${node.enc.env} ${n}×${n}${node.type === 'adversity' ? ' · 역경' : ''}${node.type === 'boss' ? ' · 보스전' : ''}` : '편성 관리';
+  const env = node?.enc ? `${node.enc.env} · 폭 ${n}칸${node.type === 'adversity' ? ' · 역경' : ''}${node.type === 'boss' ? ' · 보스전' : ''}` : '편성 관리';
   return `<main class="wrap prep">
     <aside class="side left">
       <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
     </aside>
     <section class="board-col">
-      <div class="board-head"><b>${esc(env)}</b><span class="muted small">출전 ${deployed(run).length}/${cap} · 아래 ${rows}줄에 배치</span>
+      <div class="board-head"><b>${esc(env)}</b><span class="muted small">출전 ${deployed(run).length}/${cap} · 아래 ${ZONE}줄에 배치</span>
         ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}</div>
-      <div class="board" style="--n:${n}"><div class="cells">${cells}</div>${units}</div>
+      <div class="board" style="--w:${bw};--h:${bh}"><div class="cells">${cells}</div>${units}</div>
       <div class="bench" data-drop="bench">
         <span class="bench-label">대기</span>
         ${bench.length ? bench.map((u) => {
@@ -588,7 +582,7 @@ function statLines(c: CUnit, b: Battle) {
 }
 
 function previewAlly(run: RunState, u: UnitState) {
-  const b = new Battle(6, new Rng(1), { phase: run.phase, credits: run.credits });
+  const b = new Battle(9, 9, new Rng(1), { phase: run.phase, credits: run.credits });
   b.keepEvents = false;
   const counts = synergyCounts(deployed(run), run);
   const tmp = { ...u, pos: u.pos || { c: 0, r: 0 } };
@@ -721,7 +715,7 @@ function detailPanel(run: RunState) {
     const s = run.node.enc.enemies[sel.i];
     if (!s) return '';
     const e = ENEMY_BY_ID[s.defId];
-    const b = new Battle(6, new Rng(1), { phase: run.phase, credits: 0 });
+    const b = new Battle(9, 9, new Rng(1), { phase: run.phase, credits: 0 });
     const c = buildEnemy(b, e, run.phase, run.node.enc.mult);
     const ms = battleMajors(c)!;
     const eq = [...(e.items || []).filter((x): x is string => !!x), ...(e.mod ? [e.mod] : [])];
@@ -776,6 +770,16 @@ function detailPanel(run: RunState) {
 }
 
 // ───────────────────────── 화면: 전투
+/** 전투 보드 칸 (테두리 · 적 진형 · 간격 · 아군 진형 색 구분) */
+function battleCells(W: number) {
+  const { w, h } = boardDims(W);
+  let out = '';
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const pad = x < PAD || x >= w - PAD || y < PAD || y >= h - PAD;
+    out += `<div class="cell ${pad ? 'pad' : y >= ALLY_Y0 && y <= ALLY_Y1 ? 'mine' : y < PAD + ZONE ? 'foe' : 'mid'}"></div>`;
+  }
+  return out;
+}
 /** 실제 진행 속도: 상세 정보를 보는 중이면 ×0.25 (설정) */
 function applySpeed() {
   const slow = app.slowDetail && app.battleSel !== null && !app.view?.b.over;
@@ -794,7 +798,7 @@ function battleScreen(run: RunState) {
       <div class="board-head"><b>${esc(enc.env)}</b><span id="btime" class="mono">0.0초</span><span id="bslow" class="bslow" hidden title="상세 정보를 보는 중 · 설정에서 끌 수 있습니다">상세 보기 ×0.25</span>
         <span class="speed">${SPEEDS.map((s) => `<button class="btn tiny ${app.speed === s ? 'on' : ''}" data-a="speed" data-v="${s}">${s}×</button>`).join('')}
         <button class="btn tiny" data-a="skip">결과로</button></span></div>
-      <div class="board" id="bboard" data-a="bdesel" style="--n:${enc.n}"><div class="cells">${'<div class="cell"></div>'.repeat(enc.n * enc.n)}</div></div>
+      <div class="board" id="bboard" data-a="bdesel" style="--w:${boardDims(enc.n).w};--h:${boardDims(enc.n).h}"><div class="cells">${battleCells(enc.n)}</div></div>
     </section>
     <aside class="side right">
       <div id="bunit" class="bunit detail"></div>
@@ -1092,7 +1096,7 @@ function statPopHtml(run: RunState) {
   if (sel?.k === 'enemy' && run.node?.enc) {
     const s = run.node.enc.enemies[sel.i];
     if (!s) return '';
-    const b = new Battle(6, new Rng(1), { phase: run.phase, credits: 0 });
+    const b = new Battle(9, 9, new Rng(1), { phase: run.phase, credits: 0 });
     const c = buildEnemy(b, ENEMY_BY_ID[s.defId], run.phase, run.node.enc.mult);
     if (app.abilPop) return enemyAbilPop(app.abilPop, ENEMY_BY_ID[s.defId], b, c);
     return `<div class="stat-pop"><div class="sp-head"><b>상세 능력치</b><span class="muted small">${esc(c.name)}</span><button class="btn tiny" data-a="stat-pop">닫기</button></div>${statLines(c, b)}</div>`;
@@ -1854,7 +1858,6 @@ function onDrop(src: string, dst: string) {
     const u = run.units.find((x) => x.uid === sv[0]);
     if (!u) return;
     const lay = layout(run, n);
-    const toPos = (x: number, y: number) => ({ c: x, r: n - 1 - y });
     // 탐험가는 정해진 페이즈 전에는 보드에 올릴 수 없다
     const other0 = dk === 'unit' ? run.units.find((x) => x.uid === dv[0]) : null;
     const blocked = (dk === 'cell' && !R.canDeploy(run, u)) || (dk === 'unit' && other0 && ((other0.pos && !R.canDeploy(run, u)) || (u.pos && !R.canDeploy(run, other0))));

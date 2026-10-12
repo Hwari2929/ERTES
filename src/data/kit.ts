@@ -61,7 +61,7 @@ export function lineTargets(b: Battle, u: CUnit, t: CUnit): CUnit[] {
   const dx = t.x - u.x, dy = t.y - u.y;
   const len = Math.hypot(dx, dy) || 1;
   const hit = new Set<CUnit>();
-  for (let s = 0.5; s < b.n * 1.5; s += 0.25) {
+  for (let s = 0.5; s < Math.max(b.w, b.h) * 1.5; s += 0.25) {
     const x = Math.round(u.x + (dx / len) * s), y = Math.round(u.y + (dy / len) * s);
     if (!b.inBounds(x, y)) break;
     const e = b.unitAt(x, y);

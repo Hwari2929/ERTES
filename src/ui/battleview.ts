@@ -81,15 +81,15 @@ export class BattleView {
   }
 
   private pos(x: number, y: number) {
-    const n = this.b.n;
-    return { left: `${(x / n) * 100}%`, top: `${(y / n) * 100}%` };
+    return { left: `${(x / this.b.w) * 100}%`, top: `${(y / this.b.h) * 100}%` };
   }
 
   private mount(u: CUnit) {
     const el = document.createElement('div');
     const card = hasPortrait(u);
     el.className = `u side${u.side}${card ? ' tkb' : ''}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
-    el.style.width = el.style.height = `${100 / this.b.n}%`;
+    el.style.width = `${100 / this.b.w}%`;
+    el.style.height = `${100 / this.b.h}%`;
     el.dataset.a = 'bsel';
     el.dataset.v = String(u.id);
     const inner = `<div class="bars"><i class="hp"></i><i class="sh"></i></div><img alt="" class="${hasPortrait(u) ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && (u.reason !== null || u.div !== null) ? '<div class="gx"><i></i></div>' : ''}`;
@@ -127,7 +127,7 @@ export class BattleView {
     }
   }
 
-  private center(u: CUnit) { return { x: ((u.x + 0.5) / this.b.n) * 100, y: ((u.y + 0.5) / this.b.n) * 100 }; }
+  private center(u: CUnit) { return { x: ((u.x + 0.5) / this.b.w) * 100, y: ((u.y + 0.5) / this.b.h) * 100 }; }
 
   private float(u: CUnit, text: string, cls: string, color?: string) {
     if (this.fxLayer.childElementCount > 120) return;
@@ -189,13 +189,14 @@ export class BattleView {
       }
       case 'fx': {
         if (this.fxLayer.childElementCount > 120) return;
-        const n = this.b.n;
+        const { w, h } = this.b;
         const d = document.createElement('div');
         d.className = 'area';
-        const size = ((2 * e.r + 1) / n) * 100;
-        d.style.width = d.style.height = `${size}%`;
-        d.style.left = `${((e.x + 0.5) / n) * 100 - size / 2}%`;
-        d.style.top = `${((e.y + 0.5) / n) * 100 - size / 2}%`;
+        const sw = ((2 * e.r + 1) / w) * 100, sh = ((2 * e.r + 1) / h) * 100;
+        d.style.width = `${sw}%`;
+        d.style.height = `${sh}%`;
+        d.style.left = `${((e.x + 0.5) / w) * 100 - sw / 2}%`;
+        d.style.top = `${((e.y + 0.5) / h) * 100 - sh / 2}%`;
         d.style.borderColor = ELEM_COLOR[e.elem];
         this.fxLayer.appendChild(d);
         setTimeout(() => d.remove(), 600);
