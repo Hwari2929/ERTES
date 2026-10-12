@@ -263,16 +263,16 @@ export const STORY_A: EventDef[] = [
       {
         label: '오래된 상자 이야기를 청한다', desc: '아문센이 낡은 상자를 건넨다. 90%: 재료 1개 / 10%: 전설 장비 1개.',
         apply: (_r, api) => {
-          if (api.chance(0.1)) { api.gain(api.randomItem('L'), true); return '"이건 이제 내가 쓸 일이 없지." 상자 안에는 전설 장비가 들어 있었습니다!'; }
-          api.gain(api.randomItem('C')); return '상자 안에는 30년 묵은 부품이 들어 있었습니다. 아직 쓸 만합니다. 재료 1개.';
+          if (api.chance(0.1)) { api.gain(api.randomItem('L'), true); api.outcome('legend'); return '"이건 이제 내가 쓸 일이 없지." 상자 안에는 전설 장비가 들어 있었습니다!'; }
+          api.gain(api.randomItem('C')); api.outcome('parts'); return '상자 안에는 30년 묵은 부품이 들어 있었습니다. 아직 쓸 만합니다. 재료 1개.';
         },
       },
       {
         label: '술값 내기 카드를 친다', desc: '크레딧 10 필요. 45%: 크레딧 +15 / 55%: 크레딧 -10.',
         block: cost(10),
         apply: (r, api) => {
-          if (api.chance(0.45)) { r.credits += 15; return '단장의 블러핑을 읽었습니다. 크레딧 +15.'; }
-          r.credits -= 10; return '"대항해시대를 연 사람한테 블러핑으로 이기려고?" 크레딧 -10.';
+          if (api.chance(0.45)) { r.credits += 15; api.outcome('win'); return '단장의 블러핑을 읽었습니다. 크레딧 +15.'; }
+          r.credits -= 10; api.outcome('lose'); return '"대항해시대를 연 사람한테 블러핑으로 이기려고?" 크레딧 -10.';
         },
       },
     ],
@@ -293,8 +293,8 @@ export const STORY_A: EventDef[] = [
       {
         label: '레이첼에게 식량을 구해 오게 한다', desc: '60%: 소행성 정거장에서 재료 2개 / 40%: "꼭 지금 해야 해?" 레이첼이 잠든다, 플레이어 체력 -8.',
         apply: (r, api) => {
-          if (api.chance(0.6)) { api.gain(api.randomItem('C')); api.gain(api.randomItem('C')); return '레이첼은 식량과 함께 정거장 고철상의 부품까지 들고 왔습니다. 재료 2개.'; }
-          hurt(r, 8); return '레이첼은 셔틀 안에서 잠들었고, 아무도 깨우지 못했습니다. 체력 -8.';
+          if (api.chance(0.6)) { api.gain(api.randomItem('C')); api.gain(api.randomItem('C')); api.outcome('ok'); return '레이첼은 식량과 함께 정거장 고철상의 부품까지 들고 왔습니다. 재료 2개.'; }
+          hurt(r, 8); api.outcome('sleep'); return '레이첼은 셔틀 안에서 잠들었고, 아무도 깨우지 못했습니다. 체력 -8.';
         },
       },
     ],
@@ -306,8 +306,8 @@ export const STORY_A: EventDef[] = [
       {
         label: '직접 열어 본다', desc: '60%: 원인을 찾아 부품값을 아낀다, 크레딧 +10 / 40%: 냉각수가 터진다, 플레이어 체력 -15.',
         apply: (r, api) => {
-          if (api.chance(0.6)) { r.credits += 10; return '헐거워진 볼트 하나였습니다. 정비소에 줄 돈을 아꼈습니다. 크레딧 +10.'; }
-          hurt(r, 15); return '볼트를 푸는 순간 냉각수가 쏟아졌습니다. 체력 -15.';
+          if (api.chance(0.6)) { r.credits += 10; api.outcome('ok'); return '헐거워진 볼트 하나였습니다. 정비소에 줄 돈을 아꼈습니다. 크레딧 +10.'; }
+          hurt(r, 15); api.outcome('burst'); return '볼트를 푸는 순간 냉각수가 쏟아졌습니다. 체력 -15.';
         },
       },
       {
@@ -318,8 +318,8 @@ export const STORY_A: EventDef[] = [
       {
         label: '그냥 간다', desc: '70%: 소리가 저절로 멈춘다 / 30%: 기관 정지, 플레이어 체력 -20.',
         apply: (r, api) => {
-          if (api.chance(0.7)) return '소리는 다음 날 아침 멈췄습니다. 아무도 이유를 모릅니다.';
-          hurt(r, 20); return '항해 중에 기관이 멈췄습니다. 비상 수리에 꼬박 하루가 걸렸습니다. 체력 -20.';
+          if (api.chance(0.7)) { api.outcome('stop'); return '소리는 다음 날 아침 멈췄습니다. 아무도 이유를 모릅니다.'; }
+          hurt(r, 20); api.outcome('dead'); return '항해 중에 기관이 멈췄습니다. 비상 수리에 꼬박 하루가 걸렸습니다. 체력 -20.';
         },
       },
     ],
@@ -339,14 +339,15 @@ export const STORY_A: EventDef[] = [
         apply: (r, api) => {
           r.credits -= 15;
           const roll = api.rng((g) => g.int(1, 10));
-          if (roll <= 5) { r.credits += 30; return '라르스는 상대가 이겼다고 믿게 만들고 두 배를 챙겼습니다. 크레딧 +30.'; }
-          if (roll <= 8) { r.credits += 15; return '"원금 보장은 해 드렸습니다." 본전입니다.'; }
+          if (roll <= 5) { r.credits += 30; api.outcome('big'); return '라르스는 상대가 이겼다고 믿게 만들고 두 배를 챙겼습니다. 크레딧 +30.'; }
+          if (roll <= 8) { r.credits += 15; api.outcome('even'); return '"원금 보장은 해 드렸습니다." 본전입니다.'; }
+          api.outcome('zero');
           return '"시장이 비합리적이었습니다." 라르스는 17시에 정시 퇴근했습니다.';
         },
       },
       {
         label: '정시 퇴근을 돕는다', desc: '크레딧 +5. 라르스 보유 시 라르스 정신력 +2 (영구).',
-        apply: (r) => { r.credits += 5; const u = unit(r, 'lars'); buff(u, 'mnd', 2); return u ? '라르스는 고맙다며 상품권을 건넸습니다. 푹 쉰 라르스의 정신력 +2. 크레딧 +5.' : '휴게실 화이트보드에 상품권 한 장이 붙어 있었습니다. 크레딧 +5.'; },
+        apply: (r, api) => { r.credits += 5; const u = unit(r, 'lars'); buff(u, 'mnd', 2); if (u) api.outcome('lars'); else api.outcome('note'); return u ? '라르스는 고맙다며 상품권을 건넸습니다. 푹 쉰 라르스의 정신력 +2. 크레딧 +5.' : '휴게실 화이트보드에 상품권 한 장이 붙어 있었습니다. 크레딧 +5.'; },
       },
     ],
   },
@@ -362,8 +363,8 @@ export const STORY_A: EventDef[] = [
       {
         label: '수확물을 정거장에 판다', desc: '60%: 크레딧 +15 / 40%: 시세가 나빠 크레딧 +5.',
         apply: (r, api) => {
-          if (api.chance(0.6)) { r.credits += 15; return '우주 정거장에서 생토마토는 귀합니다. 크레딧 +15.'; }
-          r.credits += 5; return '하필 옆 정거장에 수경 농장이 생겼습니다. 크레딧 +5.';
+          if (api.chance(0.6)) { r.credits += 15; api.outcome('ok'); return '우주 정거장에서 생토마토는 귀합니다. 크레딧 +15.'; }
+          r.credits += 5; api.outcome('low'); return '하필 옆 정거장에 수경 농장이 생겼습니다. 크레딧 +5.';
         },
       },
       {
@@ -371,7 +372,8 @@ export const STORY_A: EventDef[] = [
         apply: (r, api) => {
           api.xp(12);
           const u = unit(r, 'rasmus');
-          if (u) { u.lock = r.phase; u.pos = null; return '훈련 공간이 돌아왔습니다. 라스무스는 화분을 안고 한동안 방에서 나오지 않습니다.'; }
+          if (u) { u.lock = r.phase; u.pos = null; api.outcome('sulk'); return '훈련 공간이 돌아왔습니다. 라스무스는 화분을 안고 한동안 방에서 나오지 않습니다.'; }
+          api.outcome('kitchen');
           return '화분은 구닐라가 주방으로 가져갔습니다. 훈련 공간이 돌아왔습니다.';
         },
       },
@@ -386,7 +388,8 @@ export const STORY_A: EventDef[] = [
         block: cost(10),
         apply: (r, api) => {
           r.credits -= 10;
-          if (api.chance(0.35)) { r.credits += 30; return '레이첼이 일곱 번째 그릇에서 "귀찮아"라며 수저를 놓았습니다! 크레딧 +30.'; }
+          if (api.chance(0.35)) { r.credits += 30; api.outcome('win'); return '레이첼이 일곱 번째 그릇에서 "귀찮아"라며 수저를 놓았습니다! 크레딧 +30.'; }
+          api.outcome('lose');
           return '테무르는 열두 그릇에서 쓰러졌고, 레이첼은 디저트를 주문했습니다.';
         },
       },
@@ -395,7 +398,8 @@ export const STORY_A: EventDef[] = [
         block: cost(10),
         apply: (r, api) => {
           r.credits -= 10;
-          if (api.chance(0.75)) { r.credits += 16; return '예상대로 레이첼이 이겼습니다. 배당은 짰지만 확실했습니다. 크레딧 +16.'; }
+          if (api.chance(0.75)) { r.credits += 16; api.outcome('win'); return '예상대로 레이첼이 이겼습니다. 배당은 짰지만 확실했습니다. 크레딧 +16.'; }
+          api.outcome('lose');
           return '레이첼이 중간에 잠들었습니다. 몰수패입니다.';
         },
       },
@@ -406,6 +410,8 @@ export const STORY_A: EventDef[] = [
           const a = anyUnit(r, api); const b = anyUnit(r, api);
           buff(a, 'vit', 1); if (b && b !== a) buff(b, 'vit', 1);
           api.xp(6);
+          const names = `${who(a)}${b && b !== a ? `와(과) ${who(b)}` : ''}`;
+          api.outcome('default', { names });
           return `냄비 열두 개를 씻었습니다. 남은 음식은 ${who(a)}${b && b !== a ? `와(과) ${who(b)}` : ''}의 몫이 되었습니다.`;
         },
       },
@@ -419,9 +425,9 @@ export const STORY_A: EventDef[] = [
         label: '정박지에서 기다린다', desc: '50%: 희귀 장비 1개 / 30%: 재료 1개 / 20%: 화물이 로켓 추진 꽃다발과 함께 폭발, 플레이어 체력 -10.',
         apply: (r, api) => {
           const roll = api.rng((g) => g.int(1, 10));
-          if (roll <= 5) { api.gain(api.randomItem('A')); return '올리버가 오운완 사진을 찍으며 화물을 넘겼습니다. 희귀 장비 1개.'; }
-          if (roll <= 8) { api.gain(api.randomItem('C')); return '화물은 반쯤 찌그러졌지만 쓸 만한 재료가 남아 있었습니다.'; }
-          hurt(r, 10); return '로켓 추진 꽃다발이 착륙장에서 폭발했습니다. 올리버는 "궁금해서"라고 해명했습니다. 체력 -10.';
+          if (roll <= 5) { api.gain(api.randomItem('A')); api.outcome('gear'); return '올리버가 오운완 사진을 찍으며 화물을 넘겼습니다. 희귀 장비 1개.'; }
+          if (roll <= 8) { api.gain(api.randomItem('C')); api.outcome('parts'); return '화물은 반쯤 찌그러졌지만 쓸 만한 재료가 남아 있었습니다.'; }
+          hurt(r, 10); api.outcome('boom'); return '로켓 추진 꽃다발이 착륙장에서 폭발했습니다. 올리버는 "궁금해서"라고 해명했습니다. 체력 -10.';
         },
       },
       {
@@ -434,7 +440,8 @@ export const STORY_A: EventDef[] = [
         apply: (r, api) => {
           api.xp(8);
           const fam = r.units.filter((u) => ['lars', 'ingel', 'amundsen', 'rachel', 'oliver', 'rasmus', 'sigmund', 'gunnir', 'mingki'].includes(u.defId));
-          if (fam.length) { const u = api.rng((g) => g.pick(fam)); api.rankUp(u, 1); return `오랜만에 집안 소식을 들은 ${who(u)}의 표정이 밝아졌습니다. 공명 등급 +1.`; }
+          if (fam.length) { const u = api.rng((g) => g.pick(fam)); api.rankUp(u, 1); api.outcome('fam', { name: who(u) }); return `오랜만에 집안 소식을 들은 ${who(u)}의 표정이 밝아졌습니다. 공명 등급 +1.`; }
+          api.outcome('none');
           return '시그문드는 "모두 무사하십니다"라는 말로 통신을 끝냈습니다.';
         },
       },
