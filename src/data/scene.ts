@@ -57,6 +57,14 @@ export interface EventScene {
   after?: (Beat[] | Record<string, Beat[]> | null)[];
 }
 
+/** 묶음별 추가 등록부 (scenes/index.ts 가 아래 공용 등록부에 합친다) */
+export interface SceneReg {
+  npcs?: Record<string, { name: string; color?: string; desc: string }>;
+  bgs?: Record<string, string>;
+  bgms?: Record<string, string>;
+  sfxs?: Record<string, string>;
+}
+
 // ───────── 등록부: 나중에 미연시 UI · 아트 작업이 참조한다
 export const NPCS: Record<string, { name: string; color?: string; desc: string }> = {
   scrapper: { name: '고물상', color: '#c9a06a', desc: '정거장 외곽 고물 시장의 상인. 출처는 묻지 않는 게 예의다.' },
