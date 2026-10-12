@@ -3355,5 +3355,381 @@
     "model": "nai-diffusion-5-full",
     "time": "2026-10-12T00:20:52.141Z",
     "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, space pirate gunner, holding scrap rifle, bandolier, leather duster coat, goggles, scarf over mouth, full body, standing, mob character, faceless, eyes not visible, face covered by mask"
+  },
+  {
+    "id": "en_gunner",
+    "alt": "v2",
+    "seed": 3478646888,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:20:58.119Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, raider sniper, long rifle, hooded cloak, scope, crouching pose, wasteland gear, full body, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes"
+  },
+  {
+    "id": "en_gunner",
+    "alt": "v3",
+    "seed": 1665709183,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:21:04.326Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, space bandit gunslinger, twin pistols, cowboy hat, poncho, cigarette, smirk, full body, standing, mob character, hair over eyes, covered eyes, no visible eyes"
+  },
+  {
+    "id": "en_gunner",
+    "alt": "v4",
+    "seed": 1738484390,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:21:09.738Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, raider machine gunner, heavy scrap machine gun, ammo belt, bulky armor, helmet, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
+  },
+  {
+    "id": "en_trooper",
+    "alt": "v1",
+    "seed": 3094742679,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:21:14.992Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, heavy assault trooper, power armor, bulky exoskeleton, full helmet, visor, hydraulic fists, scrap metal plating, full body, standing, mob character, faceless, eyes not visible, face covered by mask"
+  },
+  {
+    "id": "en_trooper",
+    "alt": "v2",
+    "seed": 2990876182,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:21:20.495Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, armored brute, powered armor suit, riot shield arm, red visor, battle damage, full body, standing, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes"
+  },
+  {
+    "id": "en_trooper",
+    "alt": "v3",
+    "seed": 1862581235,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:21:25.533Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, exosuit soldier, massive armored gauntlets, rusted plates, glowing eye slit, full body, fighting stance, mob character, hair over eyes, covered eyes, no visible eyes"
+  },
+  {
+    "id": "en_trooper",
+    "alt": "v4",
+    "seed": 1570704384,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:21:31.649Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, cyborg heavy, mechanical arms, armored torso, breathing mask, intimidating, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
+  },
+  {
+    "id": "en_wraith",
+    "alt": "v1",
+    "seed": 3482834749,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:21:38.941Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, void wraith, ghost woman, translucent body, flowing dark mist, glowing purple eyes, tattered veil, floating, ethereal, full body, mob character, faceless, eyes not visible, face covered by mask"
+  },
+  {
+    "id": "en_wraith",
+    "alt": "v2",
+    "seed": 3396706018,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:21:43.575Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, phantom specter, faceless, dark hood, wisps of shadow, cosmic void inside body, floating, no feet, full body, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes"
+  },
+  {
+    "id": "en_wraith",
+    "alt": "v3",
+    "seed": 3188626587,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:21:48.579Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, ghostly girl, long white hair floating, hollow eyes, void cracks on skin, purple aura, full body, mob character, hair over eyes, covered eyes, no visible eyes"
+  },
+  {
+    "id": "en_wraith",
+    "alt": "v4",
+    "seed": 1577415980,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:21:54.172Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, void apparition, starry silhouette, galaxy pattern body, glowing outline, floating, full body, mob character, visor covering eyes, blindfold, eyes not visible"
+  },
+  {
+    "id": "en_priest",
+    "alt": "v1",
+    "seed": 772709477,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:22:00.232Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, psionic priest, cultist, long dark robes, hood, glowing purple runes, third eye on forehead, staff, full body, standing, mob character, faceless, eyes not visible, face covered by mask"
+  },
+  {
+    "id": "en_priest",
+    "alt": "v2",
+    "seed": 1995393504,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:22:07.416Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, void cult priest, mask, ornate robes, floating psionic orbs, purple energy, full body, standing, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes"
+  },
+  {
+    "id": "en_priest",
+    "alt": "v3",
+    "seed": 4262047716,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:22:12.953Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, old psychic monk, bald, tattoos, glowing eyes, chains, robes, levitating, full body, mob character, hair over eyes, covered eyes, no visible eyes"
+  },
+  {
+    "id": "en_priest",
+    "alt": "v4",
+    "seed": 3487466443,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:22:18.851Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, female psionic priestess, veil, dark robes, purple glow, hands raised, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
+  },
+  {
+    "id": "en_warlord",
+    "alt": "v1",
+    "seed": 1829536413,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:22:24.048Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, raider warlord, huge muscular man, spiked armor, fur cloak, horned helmet, giant axe, scars, menacing grin, full body, standing, mob character, faceless, eyes not visible, face covered by mask"
+  },
+  {
+    "id": "en_warlord",
+    "alt": "v2",
+    "seed": 1820848021,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:22:30.574Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, pirate chieftain, eyepatch, red coat, gold chains, cybernetic arm, huge cleaver, full body, standing, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes"
+  },
+  {
+    "id": "en_warlord",
+    "alt": "v3",
+    "seed": 2478797921,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:22:35.629Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, warlord brute, skull pauldrons, war paint, chains, massive hammer, full body, standing, mob character, hair over eyes, covered eyes, no visible eyes"
+  },
+  {
+    "id": "en_warlord",
+    "alt": "v4",
+    "seed": 2684837850,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:22:41.654Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, space pirate boss, long coat, captain hat, mechanical jaw, rifle, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
+  },
+  {
+    "id": "en_cr_thrall",
+    "alt": "v1",
+    "seed": 3443718565,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:22:47.710Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, vampire thrall, pale servant, tattered butler uniform, bloodshot eyes, iv tubes in arms, gaunt, full body, standing, mob character, faceless, eyes not visible, face covered by mask"
+  },
+  {
+    "id": "en_cr_thrall",
+    "alt": "v2",
+    "seed": 1496318154,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:22:53.285Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, bio-modified servant, crimson veins, ragged noble clothes, empty eyes, full body, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes"
+  },
+  {
+    "id": "en_cr_thrall",
+    "alt": "v3",
+    "seed": 4158633983,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:22:59.500Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, vampire ghoul, hunched, blood stains, chains, full body, mob character, hair over eyes, covered eyes, no visible eyes"
+  },
+  {
+    "id": "en_cr_thrall",
+    "alt": "v4",
+    "seed": 1468015420,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:23:05.693Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, pale soldier thrall, crimson uniform, blood vials, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
+  },
+  {
+    "id": "en_cr_musket",
+    "alt": "v1",
+    "seed": 515933079,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:23:11.099Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, crimson musketeer, noble soldier, red military coat, tricorne, long musket, iv tubes connected to rifle, pale, full body, standing, mob character, faceless, eyes not visible, face covered by mask"
+  },
+  {
+    "id": "en_cr_musket",
+    "alt": "v2",
+    "seed": 203544300,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:23:16.428Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, vampire rifleman, gothic uniform, blood ammunition vials, full body, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes"
+  },
+  {
+    "id": "en_cr_musket",
+    "alt": "v3",
+    "seed": 2545818686,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:23:21.762Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, bio-punk sharpshooter, crimson cape, mask, rifle, full body, mob character, hair over eyes, covered eyes, no visible eyes"
+  },
+  {
+    "id": "en_cr_musket",
+    "alt": "v4",
+    "seed": 123369795,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:23:26.972Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, 1girl, female crimson musketeer, red uniform, musket, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
+  },
+  {
+    "id": "en_cr_leech",
+    "alt": "v1",
+    "seed": 841980975,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:23:32.067Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, blood priestess, crimson robes, veil, blood vials, iv tubes, chalice, pale skin, full body, standing, mob character, faceless, eyes not visible, face covered by mask"
+  },
+  {
+    "id": "en_cr_leech",
+    "alt": "v2",
+    "seed": 60829284,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:23:38.013Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, vampire nun, red habit, blood tears, holding tube censer, full body, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes"
+  },
+  {
+    "id": "en_cr_leech",
+    "alt": "v3",
+    "seed": 1978939213,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:23:44.585Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, bio-punk priest, incubator tank on back, tubes, crimson robe, full body, mob character, hair over eyes, covered eyes, no visible eyes"
+  },
+  {
+    "id": "en_cr_leech",
+    "alt": "v4",
+    "seed": 3317009365,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:23:50.260Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, crimson cult healer, bandages, blood magic, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
+  },
+  {
+    "id": "en_cr_knight",
+    "alt": "v1",
+    "seed": 2090489488,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:23:57.404Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, crimson blood knight, ornate red armor, vampire, long sword, blood aura, cape, full body, standing, mob character, faceless, eyes not visible, face covered by mask"
+  },
+  {
+    "id": "en_cr_knight",
+    "alt": "v2",
+    "seed": 3851827652,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:24:04.219Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, vampire knight, black and red plate armor, helmet with horns, greatsword, full body, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes"
+  },
+  {
+    "id": "en_cr_knight",
+    "alt": "v3",
+    "seed": 2055101909,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:24:10.036Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, female blood knight, crimson armor, rapier, pale, full body, standing, mob character, hair over eyes, covered eyes, no visible eyes"
+  },
+  {
+    "id": "en_cr_knight",
+    "alt": "v4",
+    "seed": 2349520771,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:24:15.359Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, bio-armor knight, flesh-like armor, tubes, blood blade, full body, mob character, visor covering eyes, blindfold, eyes not visible"
+  },
+  {
+    "id": "en_pt_anomaly",
+    "alt": "v1",
+    "seed": 255989651,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:24:19.976Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, eerie girl, horror, torn containment suit, black hollow eyes, black liquid dripping from eyes, glitching body, scp anomaly, unsettling, full body, standing, mob character, faceless, eyes not visible, face covered by mask"
+  },
+  {
+    "id": "en_pt_anomaly",
+    "alt": "v2",
+    "seed": 1452513926,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:24:26.585Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, faceless humanoid anomaly, smooth blank face, too long arms, black suit, distortion, horror, full body, standing, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes"
+  },
+  {
+    "id": "en_pt_anomaly",
+    "alt": "v3",
+    "seed": 539919335,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:24:31.215Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, creepy porcelain doll girl, cracked skin, empty eyes, broken jaw, horror, full body, standing, mob character, hair over eyes, covered eyes, no visible eyes"
+  },
+  {
+    "id": "en_pt_anomaly",
+    "alt": "v4",
+    "seed": 4151626623,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:24:36.527Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, static noise woman, body made of tv static, glitch, horror, floating hair, full body, mob character, visor covering eyes, blindfold, eyes not visible"
+  },
+  {
+    "id": "en_pt_auditor",
+    "alt": "v1",
+    "seed": 1340405581,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:24:41.506Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, corporate auditor, woman in black suit, glasses, clipboard, cold expression, earpiece, full body, standing, mob character, faceless, eyes not visible, face covered by mask"
+  },
+  {
+    "id": "en_pt_auditor",
+    "alt": "v2",
+    "seed": 809843375,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:24:47.234Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, 1boy, information auditor, man in grey suit, tablet, sunglasses, full body, standing, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes"
+  },
+  {
+    "id": "en_pt_auditor",
+    "alt": "v3",
+    "seed": 3618909411,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:24:53.777Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, auditor android, corporate uniform, barcode, full body, mob character, hair over eyes, covered eyes, no visible eyes"
+  },
+  {
+    "id": "en_pt_auditor",
+    "alt": "v4",
+    "seed": 1813178768,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:24:59.050Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, auditor, long coat, briefcase, stamp, full body, standing, mob character, visor covering eyes, blindfold, eyes not visible"
+  },
+  {
+    "id": "sm_guard",
+    "alt": "v1",
+    "seed": 3123992422,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:25:04.580Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, corporate bodyguard, man in black suit, sunglasses, earpiece, petra orange tie, full body, standing, mob character, faceless, eyes not visible, face covered by mask"
+  },
+  {
+    "id": "sm_guard",
+    "alt": "v2",
+    "seed": 3303823950,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:25:09.833Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, bodyguard android, black suit, full body, mob character, eyes hidden in shadow, shadowed face, hat brim over eyes"
+  },
+  {
+    "id": "sm_guard",
+    "alt": "v3",
+    "seed": 4228767870,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:25:16.350Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, female bodyguard, black suit, sunglasses, full body, mob character, hair over eyes, covered eyes, no visible eyes"
+  },
+  {
+    "id": "sm_guard",
+    "alt": "v4",
+    "seed": 457146881,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-12T00:25:21.005Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, heavy bodyguard, bulletproof vest over suit, full body, mob character, visor covering eyes, blindfold, eyes not visible"
   }
 ]
