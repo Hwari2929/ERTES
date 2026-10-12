@@ -1075,11 +1075,13 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 @keyframes drop-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 .top-syns { display: none; }
 @media (max-width: 860px) {
-  .top-syns { display: flex; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; gap: 2px; width: 100%; position: static; padding: 2px 0 0; scrollbar-width: none; }
+  .top-syns { display: flex; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; gap: 14px; width: 100%; position: static; padding: 2px 4px 4px; scrollbar-width: none; -ms-overflow-style: none; }
+  .top-syns::-webkit-scrollbar { display: none; }
   .top-syns .syn-b { width: 30px; height: 30px; }
   .top-syns .syn-dia { width: 22px; height: 22px; }
   .top-syns .syn-dia .si { width: 13px; height: 13px; }
-  .top-syns .syn-tx, .top-syns .syn-lv { display: none; }
+  .top-syns .syn-tx { display: none; }
+  .top-syns .syn-lv { display: grid !important; min-width: 14px; height: 14px; font-size: .6rem; right: -4px; bottom: -4px; }
   .top-syns .syn-tk:not(.active) .syn-dia { opacity: .45; }
   .brand { display: none; }
 }
