@@ -133,7 +133,7 @@ export const REWORK: Record<string, ReworkDef> = {
         if (u.mem.lindT > 0) return;
         u.mem.lindT = 0.5;
         for (const a of b.around(u, 1, b.alliesOf(u))) {
-          b.applyStatus(u, a, { type: 'buff', key: 'lindiwe.guard', dur: 0.7, taken: [red('all', 0.3)], share: a === u ? undefined : u, shareRate: 0.5 });
+          b.applyStatus(u, a, { type: 'buff', key: 'lindiwe.aura', dur: 0.7, taken: [red('all', 0.3)], share: a === u ? undefined : u, shareRate: 0.5 });
         }
       } } },
     },
