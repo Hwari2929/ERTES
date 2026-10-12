@@ -63,6 +63,15 @@ export class BattleView {
 
   destroy() { cancelAnimationFrame(this.raf); }
 
+  /** 상세 정보로 보고 있는 기물 표시 */
+  private selId: number | null = null;
+  select(id: number | null) {
+    if (id === this.selId) return;
+    if (this.selId !== null) this.els.get(this.selId)?.el.classList.remove('sel');
+    if (id !== null) this.els.get(id)?.el.classList.add('sel');
+    this.selId = id;
+  }
+
   private finish() {
     if (this.ended) return;
     this.ended = true;
@@ -81,6 +90,8 @@ export class BattleView {
     const card = hasPortrait(u);
     el.className = `u side${u.side}${card ? ' tkb' : ''}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
     el.style.width = el.style.height = `${100 / this.b.n}%`;
+    el.dataset.a = 'bsel';
+    el.dataset.v = String(u.id);
     const inner = `<div class="bars"><i class="hp"></i><i class="sh"></i></div><img alt="" class="${hasPortrait(u) ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && (u.reason !== null || u.div !== null) ? '<div class="gx"><i></i></div>' : ''}`;
     el.innerHTML = card ? `<div class="tk-card">${inner}</div>` : inner;
     this.board.appendChild(el);

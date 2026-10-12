@@ -1,5 +1,5 @@
 import type { Battle, CUnit, SkillDef } from '../engine/combat';
-import type { Elem, Keyword } from '../types';
+import type { CType, Elem, Keyword, TType } from '../types';
 import { bleed, corrode, fear, lineTargets, poison, skillHit } from './kit';
 
 export interface EnemyDef {
@@ -23,6 +23,16 @@ export interface EnemyDef {
   /** 장비 3칸 · 개조부품 (적 전용 장비는 추후 설계) */
   items?: (string | null)[];
   mod?: string | null;
+  /** 표시용 유형 (없으면 enemyTypes 가 추정) */
+  ctype?: CType; ttype?: TType;
+}
+
+/** 적 전투 유형 · 전술 유형: 지정값 우선, 없으면 공격 방식 · 키워드로 추정 */
+export function enemyTypes(e: EnemyDef): { ctype: CType; ttype: TType } {
+  const mystic = e.atk.elem === 'psy' || e.atk.elem === 'holy' || e.keywords.includes('phantom');
+  const ctype: CType = e.ctype ?? (e.escort?.length ? 'CMD' : e.melee ? 'VAN' : mystic || e.atk.elem === 'chem' ? 'SPEC' : 'MARK');
+  const ttype: TType = e.ttype ?? (e.atk.elem === 'holy' ? 'divine' : mystic ? 'psionic' : e.tier === 'boss' ? 'special' : e.tier === 'elite' ? 'major' : 'minor');
+  return { ctype, ttype };
 }
 
 const RAIDER = ['#1a0f0a', '#7a5a3a', '#c04a2a', '#d0a080', '#ff5030', '#55504a', '#f0d0a0'];

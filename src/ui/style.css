@@ -177,7 +177,7 @@ button { font: inherit; color: inherit; }
 
 /* ── 보드 */
 .prep { display: grid; grid-template-columns: 240px minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
-.battle { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; align-items: start; }
+.battle { display: grid; grid-template-columns: 250px minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
 .board-col { min-width: 0; }
 .board-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; }
 .board-head .speed { margin-left: auto; display: flex; gap: 4px; }
@@ -322,6 +322,8 @@ textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--fg
   .prep .side.left { grid-column: 1 / -1; order: 3; }
   .map { grid-template-columns: minmax(0, 1fr) 320px; }
   .map .side.left { grid-column: 1 / -1; order: 3; }
+  .battle { grid-template-columns: minmax(0, 1fr) 300px; }
+  .battle .side.left { grid-column: 1 / -1; order: 3; }
 }
 @media (max-width: 860px) {
   .top { position: static; gap: 6px 10px; padding-block: 8px; }
@@ -331,6 +333,8 @@ textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--fg
   .prep .side.left { order: 2; }
   .prep .side.right { order: 1; }
   .prep .board-col { order: 0; }
+  .battle .board-col { order: 0; }
+  .battle .side.right { order: 1; }
   h1 { font-size: 1.5rem; }
 }
 
@@ -798,7 +802,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .detail h3, .detail .mj-head h3 { font-size: 1.1rem; }
 /* 넓은 화면: 옆 패널은 화면에 고정되어 따로 스크롤 */
 @media (min-width: 1101px) {
-  .prep > .side, .map > .side { position: sticky; top: var(--top-h, 70px); max-height: calc(100vh - var(--top-h, 70px) - 12px); overflow-y: auto; scrollbar-width: thin; overscroll-behavior: contain; }
+  .prep > .side, .map > .side, .battle > .side { position: sticky; top: var(--top-h, 70px); max-height: calc(100vh - var(--top-h, 70px) - 12px); overflow-y: auto; scrollbar-width: thin; overscroll-behavior: contain; }
   .prep > .board-col { position: sticky; top: var(--top-h, 70px); }
 }
 
@@ -827,3 +831,31 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .br-card { align-items: center; text-align: center; }
 .br-card .br-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2); margin: 0 auto 4px; }
 .br-card .br-ic svg { width: 24px; height: 24px; }
+
+/* 전투 중 상세 정보 */
+.battle .board .u { cursor: pointer; }
+.battle .board .u.sel { z-index: 3; }
+.battle .board .u.sel::after { content: ''; position: absolute; inset: 6%; border-radius: 6px; box-shadow: 0 0 0 2px var(--fg), 0 0 10px rgb(240 242 246 / .6); pointer-events: none; }
+.battle .bunit { margin-top: 0; border-top: 0; padding-top: 0; }
+.bs-hp { display: grid; gap: 3px; margin: 8px 0 2px; }
+.bs-bar { position: relative; height: 8px; border-radius: 4px; background: var(--panel-2); overflow: hidden; }
+.bs-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--good); border-radius: 4px; }
+.bs-bar i.sh { background: rgb(240 242 246 / .75); height: 3px; top: auto; }
+.bs-stats { margin-top: 6px; }
+.bunit .d-eq .tk-it { padding: 0; border: 0; background: none; cursor: pointer; border-radius: 6px; }
+.bunit .d-eq .tk-it.on .item { box-shadow: 0 0 0 2px var(--fg); }
+/* 버프 · 디버프: 파랑 / 빨강 / 흰색, 한 줄 6개 */
+.bf-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
+.bf { --c: var(--fg); position: relative; aspect-ratio: 1; display: grid; place-items: center; padding: 0; border-radius: 6px; cursor: pointer;
+  border: 1.5px solid var(--c); color: var(--c); background: color-mix(in srgb, var(--c) 14%, var(--panel-2)); }
+.bf .li { width: 62%; height: 62%; }
+.bf b { position: absolute; right: 1px; bottom: 0; font-size: .62rem; line-height: 1; color: var(--fg); text-shadow: 0 1px 2px #000; }
+.bf.on { box-shadow: 0 0 0 2px var(--c); }
+.bf-buff { --c: var(--info); }
+.bf-debuff { --c: var(--bad); }
+.bf-odd { --c: #f0f2f6; }
+.bf-info { --c: var(--line); display: grid; gap: 2px; margin-top: 6px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--c); background: var(--panel-2); }
+.bf-info.bf-buff { --c: var(--info); } .bf-info.bf-debuff { --c: var(--bad); } .bf-info.bf-odd { --c: #f0f2f6; }
+.bf-ih { display: flex; align-items: baseline; gap: 8px; }
+.bf-ih .small { color: var(--c); margin-left: auto; }
+.bf-none { margin: 2px 0; }
