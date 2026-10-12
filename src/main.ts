@@ -492,15 +492,16 @@ function prepScreen(run: RunState) {
   const n = node?.enc?.n || CFG.bossBoard;
   const lay = layout(run, n);
   const cap = R.deployCap(run);
-  const { w: bw, h: bh } = boardDims(n);
-  const cellBox = (x: number, y: number) => `left:${(x / bw) * 100}%;top:${(y / bh) * 100}%;width:${100 / bw}%;height:${100 / bh}%`;
+  // 편성 화면은 배치 구역만 보여준다 (바깥 테두리 칸 제외). 좌표는 전장 좌표 그대로
+  const { w: fw, h: fh } = boardDims(n);
+  const bw = fw - 2 * PAD, bh = fh - 2 * PAD;
+  const cellBox = (x: number, y: number) => `left:${((x - PAD) / bw) * 100}%;top:${((y - PAD) / bh) * 100}%;width:${100 / bw}%;height:${100 / bh}%`;
   let cells = '';
-  for (let y = 0; y < bh; y++)
-    for (let x = 0; x < bw; x++) {
-      const pad = x < PAD || x >= bw - PAD || y < PAD || y >= bh - PAD;
-      const mine = !pad && y >= ALLY_Y0 && y <= ALLY_Y1;
-      const enemyZone = !pad && y >= PAD && y < PAD + ZONE;
-      cells += `<div class="cell ${pad ? 'pad' : mine ? 'mine' : enemyZone ? 'foe' : 'mid'}" ${mine ? `data-drop="cell:${x}:${y}"` : ''}></div>`;
+  for (let y = PAD; y < fh - PAD; y++)
+    for (let x = PAD; x < fw - PAD; x++) {
+      const mine = y >= ALLY_Y0 && y <= ALLY_Y1;
+      const enemyZone = y < PAD + ZONE;
+      cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}" ${mine ? `data-drop="cell:${x}:${y}"` : ''}></div>`;
     }
   let units = '';
   for (const u of deployed(run)) {
@@ -798,7 +799,7 @@ function battleScreen(run: RunState) {
       <div class="board-head"><b>${esc(enc.env)}</b><span id="btime" class="mono">0.0초</span><span id="bslow" class="bslow" hidden title="상세 정보를 보는 중 · 설정에서 끌 수 있습니다">상세 보기 ×0.25</span>
         <span class="speed">${SPEEDS.map((s) => `<button class="btn tiny ${app.speed === s ? 'on' : ''}" data-a="speed" data-v="${s}">${s}×</button>`).join('')}
         <button class="btn tiny" data-a="skip">결과로</button></span></div>
-      <div class="board" id="bboard" data-a="bdesel" style="--w:${boardDims(enc.n).w};--h:${boardDims(enc.n).h}"><div class="cells">${battleCells(enc.n)}</div></div>
+      <div class="board bview" data-a="bdesel" style="--w:${boardDims(enc.n).w - 2 * PAD};--h:${boardDims(enc.n).h - 2 * PAD};--fw:${boardDims(enc.n).w};--fh:${boardDims(enc.n).h}"><div class="board-in" id="bboard"><div class="cells">${battleCells(enc.n)}</div></div></div>
     </section>
     <aside class="side right">
       <div id="bunit" class="bunit detail"></div>
@@ -1204,6 +1205,7 @@ function render() {
   if (app.screen === 'battle' && app.needMount) {
     app.needMount = false;
     mountBattleView(document.getElementById('bboard')!);
+    initBoardPan(root.querySelector<HTMLElement>('.bview')!);
   }
   const fi = document.getElementById('import-file') as HTMLInputElement | null;
   if (fi) fi.onchange = () => {
@@ -1289,6 +1291,37 @@ function carStep(dir: number) {
   track.scrollBy({ left: dir * (card.offsetWidth + gap), behavior: 'smooth' });
 }
 
+/** 전투 보드 끌어서 보기: 배치 구역이 기본 화면, 놓으면 가운데로 돌아온다 */
+function initBoardPan(view: HTMLElement) {
+  const inner = view.querySelector<HTMLElement>('.board-in');
+  if (!inner) return;
+  let sx = 0, sy = 0, id = -1, moved = false;
+  view.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    id = e.pointerId; sx = e.clientX; sy = e.clientY; moved = false;
+    inner.style.transition = 'none';
+  });
+  view.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== id) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (!moved && Math.hypot(dx, dy) < 6) return;
+    if (!moved) { moved = true; view.setPointerCapture(id); view.classList.add('panning'); }
+    // 테두리 한 칸 + 조금 더까지만
+    const r = view.getBoundingClientRect();
+    const mx = (r.width / +getComputedStyle(view).getPropertyValue('--w')) * 1.3, my = (r.height / +getComputedStyle(view).getPropertyValue('--h')) * 1.3;
+    inner.style.transform = `translate(${Math.max(-mx, Math.min(mx, dx))}px, ${Math.max(-my, Math.min(my, dy))}px)`;
+  });
+  const end = (e: PointerEvent) => {
+    if (e.pointerId !== id) return;
+    id = -1;
+    inner.style.transition = 'transform .35s cubic-bezier(.2, .8, .3, 1)';
+    inner.style.transform = '';
+    view.classList.remove('panning');
+    if (moved) { suppressClick = true; setTimeout(() => { suppressClick = false; }, 60); }
+  };
+  view.addEventListener('pointerup', end);
+  view.addEventListener('pointercancel', end);
+}
 function mountBattleView(board: HTMLElement) {
   const run = app.run!;
   const b = buildBattle(run, run.node!.enc!);

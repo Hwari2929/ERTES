@@ -74,7 +74,7 @@ button { font: inherit; color: inherit; }
 .ustaff { position: absolute; left: 4%; top: 10%; font-size: 12px; color: var(--staff); text-shadow: 1px 1px 0 #000; }
 
 /* ── 공통 레이아웃 */
-.wrap { width: 100%; max-width: 1320px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 0; flex: 1; }
+.wrap { width: 100%; max-width: 1400px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 0; flex: 1; }
 .screen-head { display: grid; gap: 6px; margin-bottom: 16px; }
 .side { min-width: 0; }
 .sticky-actions { position: sticky; bottom: 0; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;
@@ -176,14 +176,15 @@ button { font: inherit; color: inherit; }
 .syn li.cur { color: var(--fg); }
 
 /* ── 보드 */
-.prep { display: grid; grid-template-columns: 240px minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
+.prep { display: grid; grid-template-columns: 200px minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
 .battle { display: grid; grid-template-columns: 250px minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
 .board-col { min-width: 0; }
 .board-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; }
 .board-head .speed { margin-left: auto; display: flex; gap: 4px; }
 .board { position: relative; width: 100%; aspect-ratio: var(--w) / var(--h); margin: 0 auto; max-width: 100%; user-select: none; -webkit-user-select: none; }
 /* 좌우로 최대한 넓히되, 세로가 화면을 넘으면 높이에 맞춰 폭을 줄인다 */
-.board { width: min(100%, calc((100vh - var(--top-h, 70px) - 70px) * var(--w) / var(--h))); }
+.board { width: min(100%, calc((100vh - var(--top-h, 70px) - 150px) * var(--w) / var(--h))); }
+.battle .board { width: min(100%, calc((100vh - var(--top-h, 70px) - 80px) * var(--w) / var(--h))); }
 .cells { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(var(--w), 1fr); grid-template-rows: repeat(var(--h), 1fr); gap: 2px; }
 .cell.pad { background: color-mix(in srgb, var(--cell-mid) 45%, transparent); }
 .cell { background: var(--cell-mid); border-radius: 3px; }
@@ -999,3 +1000,17 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .sp-legend .s2::before { border: 1px solid var(--line); background: #444; }
 .sp-tiers li.on b { background: var(--c); color: var(--accent-ink); }
 .sp-tiers li.cur { color: var(--fg); background: color-mix(in srgb, var(--c) 14%, transparent); border-radius: 4px; box-shadow: inset 2px 0 0 var(--c); }
+/* 전투 보드: 배치 구역만 보이는 창 + 전체 전장(테두리 포함)을 끌어서 보기 */
+.bview { overflow: hidden; border-radius: 6px; touch-action: none; cursor: grab; }
+.bview.panning { cursor: grabbing; }
+.board-in { position: absolute; width: calc(var(--fw) / var(--w) * 100%); height: calc(var(--fh) / var(--h) * 100%); left: calc(-100% / var(--w)); top: calc(-100% / var(--h)); will-change: transform; }
+.board-in .cells { grid-template-columns: repeat(var(--fw), 1fr); grid-template-rows: repeat(var(--fh), 1fr); }
+.bview .u { cursor: pointer; }
+/* 시너지 목록 한 단계 크게 */
+.syn-list .syn-tk { gap: 10px; }
+.syn-list .syn-b { width: 40px; height: 40px; }
+.syn-list .syn-dia { width: 30px; height: 30px; }
+.syn-list .syn-dia .si { width: 18px; height: 18px; }
+.syn-list .syn-lv { min-width: 18px; height: 18px; font-size: .74rem; }
+.syn-list .syn-tx b { font-size: .92rem; }
+.syn-list .syn-steps { font-size: .76rem; }
