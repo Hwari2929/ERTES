@@ -48,9 +48,9 @@ export const STORY_D: EventDef[] = [
         label: '봉인 격벽을 뜯는다', desc: '40%: 희귀 장비 1개 / 35%: 크레딧 +12 / 25%: 반응로 폭주, 플레이어 체력 -18.',
         apply: (r, api) => {
           const x = roll(api);
-          if (x < 0.4) { api.gain(api.randomItem('A')); return '격벽 너머에서 멀쩡한 희귀 장비를 건졌습니다.'; }
-          if (x < 0.75) { r.credits += 12; return '값나가는 화물 몇 상자를 챙겼습니다. 크레딧 +12.'; }
-          hurt(r, 18); return '격벽을 여는 순간 반응로가 폭주했습니다. 체력 -18.';
+          if (x < 0.4) { api.gain(api.randomItem('A')); api.outcome('relic'); return '격벽 너머에서 멀쩡한 희귀 장비를 건졌습니다.'; }
+          if (x < 0.75) { r.credits += 12; api.outcome('cargo'); return '값나가는 화물 몇 상자를 챙겼습니다. 크레딧 +12.'; }
+          hurt(r, 18); api.outcome('meltdown'); return '격벽을 여는 순간 반응로가 폭주했습니다. 체력 -18.';
         },
       },
       { label: '외곽만 벗겨 낸다', desc: '재료 1개 + 크레딧 +4. 위험 없음.', apply: (r, api) => { api.gain(api.randomItem('C')); r.credits += 4; return '외장재와 배선을 뜯어 재료를 챙겼습니다.'; } },
@@ -66,8 +66,8 @@ export const STORY_D: EventDef[] = [
       {
         label: '곧장 응답한다', desc: '60%: 진짜 조난선. 공명도 +10, 생존자들이 은혜를 기억한다 / 40%: 약탈자 매복. 체력 -15, 전리품 크레딧 +6.',
         apply: (r, api) => {
-          if (api.chance(0.6)) { api.xp(10); api.flag('d_rescued'); return '진짜 조난선이었습니다. 선장이 이 빚은 꼭 갚겠다고 약속합니다.'; }
-          hurt(r, 15); r.credits += 6; return '미끼였습니다. 매복을 뚫고 나왔지만 체력 -15. 전리품 크레딧 +6.';
+          if (api.chance(0.6)) { api.xp(10); api.flag('d_rescued'); api.outcome('real'); return '진짜 조난선이었습니다. 선장이 이 빚은 꼭 갚겠다고 약속합니다.'; }
+          hurt(r, 15); r.credits += 6; api.outcome('ambush'); return '미끼였습니다. 매복을 뚫고 나왔지만 체력 -15. 전리품 크레딧 +6.';
         },
       },
       {
@@ -120,9 +120,9 @@ export const STORY_D: EventDef[] = [
         label: '정면으로 맞붙는다', desc: '50%: 압승, 희귀 장비 1개 + 크레딧 +12 / 30%: 신승, 크레딧 +6 · 체력 -10 / 20%: 패퇴, 체력 -22.',
         apply: (r, api) => {
           const x = roll(api);
-          if (x < 0.5) { api.gain(api.randomItem('A')); r.credits += 12; return '동생의 기함까지 격침했습니다. 복수는 여기서 끝납니다.'; }
-          if (x < 0.8) { r.credits += 6; hurt(r, 10); return '간신히 물리쳤습니다. 체력 -10, 크레딧 +6.'; }
-          hurt(r, 22); return '포화를 견디지 못하고 퇴각했습니다. 체력 -22.';
+          if (x < 0.5) { api.gain(api.randomItem('A')); r.credits += 12; api.outcome('rout'); return '동생의 기함까지 격침했습니다. 복수는 여기서 끝납니다.'; }
+          if (x < 0.8) { r.credits += 6; hurt(r, 10); api.outcome('close'); return '간신히 물리쳤습니다. 체력 -10, 크레딧 +6.'; }
+          hurt(r, 22); api.outcome('retreat'); return '포화를 견디지 못하고 퇴각했습니다. 체력 -22.';
         },
       },
       {
@@ -169,7 +169,7 @@ export const STORY_D: EventDef[] = [
       { label: '생명 유지 장치를 줄인다', desc: '플레이어 체력 -14. 대신 버틴 단원들이 단단해진다: 공명도 +8.', block: needHp(14), apply: (r, api) => { hurt(r, 14); api.xp(8); return '추위와 산소 부족을 견뎌 냈습니다. 체력 -14.'; } },
       {
         label: '광산 연료고를 턴다', desc: '55%: 연료를 넉넉히 챙기고 남은 걸 판다, 크레딧 +10 / 45%: 경비 드론에 발각, 체력 -20.',
-        apply: (r, api) => { if (api.chance(0.55)) { r.credits += 10; return '연료를 가득 채우고 남은 걸 되팔았습니다. 크레딧 +10.'; } hurt(r, 20); return '경비 드론에게 들켰습니다. 체력 -20.'; },
+        apply: (r, api) => { if (api.chance(0.55)) { r.credits += 10; api.outcome('full'); return '연료를 가득 채우고 남은 걸 되팔았습니다. 크레딧 +10.'; } hurt(r, 20); api.outcome('caught'); return '경비 드론에게 들켰습니다. 체력 -20.'; },
       },
     ],
   },
@@ -184,14 +184,14 @@ export const STORY_D: EventDef[] = [
         apply: (r, api) => {
           const u = top(r);
           if (!u) return '나설 사람이 없었습니다.';
-          if (api.chance(0.6)) { api.rankUp(u, 2); return '단 한 발로 결투를 끝냈습니다. 에이스 등급 +2.'; }
-          hurt(r, 15); u.lock = r.phase; u.pos = null; return '결투에서 졌습니다. 에이스가 부상으로 이번 페이즈 동안 쉬어야 합니다.';
+          if (api.chance(0.6)) { api.rankUp(u, 2); api.outcome('win'); return '단 한 발로 결투를 끝냈습니다. 에이스 등급 +2.'; }
+          hurt(r, 15); u.lock = r.phase; u.pos = null; api.outcome('lose'); return '결투에서 졌습니다. 에이스가 부상으로 이번 페이즈 동안 쉬어야 합니다.';
         },
       },
       { label: '돈으로 수배서를 사들인다', desc: '크레딧 -15. 깔끔하게 끝난다.', block: needCr(15), apply: (r) => { r.credits -= 15; return '사냥꾼이 수배서를 찢어 버렸습니다.'; } },
       {
         label: '더 큰 사냥감을 같이 쫓자고 제안한다', desc: '50%: 공동 사냥 성공, 크레딧 +20 / 50%: 사냥감에게 역습당해 체력 -12.',
-        apply: (r, api) => { if (api.chance(0.5)) { r.credits += 20; return '함께 거물을 잡았습니다. 몫으로 크레딧 +20.'; } hurt(r, 12); return '사냥감이 한 수 위였습니다. 체력 -12.'; },
+        apply: (r, api) => { if (api.chance(0.5)) { r.credits += 20; api.outcome('ok'); return '함께 거물을 잡았습니다. 몫으로 크레딧 +20.'; } hurt(r, 12); api.outcome('fail'); return '사냥감이 한 수 위였습니다. 체력 -12.'; },
       },
     ],
   },
@@ -206,9 +206,9 @@ export const STORY_D: EventDef[] = [
         apply: (r, api) => {
           r.credits -= 20;
           const x = roll(api);
-          if (x < 0.1) { api.gain(api.randomItem('L'), true); return '상자 안에서 전설 장비가 빛납니다!'; }
-          if (x < 0.65) { api.gain(api.randomItem('A')); return '쓸 만한 희귀 장비가 들어 있었습니다.'; }
-          api.gain(api.randomItem('C')); return '재료 하나뿐이었습니다. 라르스가 판매자를 노려봅니다.';
+          if (x < 0.1) { api.gain(api.randomItem('L'), true); api.outcome('legend'); return '상자 안에서 전설 장비가 빛납니다!'; }
+          if (x < 0.65) { api.gain(api.randomItem('A')); api.outcome('rare'); return '쓸 만한 희귀 장비가 들어 있었습니다.'; }
+          api.gain(api.randomItem('C')); api.outcome('dud'); return '재료 하나뿐이었습니다. 라르스가 판매자를 노려봅니다.';
         },
       },
       {
@@ -217,7 +217,7 @@ export const STORY_D: EventDef[] = [
       },
       {
         label: '경매 장부를 훔쳐본다', desc: '50%: 정보를 되팔아 크레딧 +12 / 50%: 경비에게 붙잡혀 체력 -10.',
-        apply: (r, api) => { if (api.chance(0.5)) { r.credits += 12; return '낙찰자 명단을 다른 손님에게 팔았습니다. 크레딧 +12.'; } hurt(r, 10); return '경비에게 끌려 나갔습니다. 체력 -10.'; },
+        apply: (r, api) => { if (api.chance(0.5)) { r.credits += 12; api.outcome('sold'); return '낙찰자 명단을 다른 손님에게 팔았습니다. 크레딧 +12.'; } hurt(r, 10); api.outcome('caught'); return '경비에게 끌려 나갔습니다. 체력 -10.'; },
       },
     ],
   },
@@ -232,14 +232,15 @@ export const STORY_D: EventDef[] = [
         apply: (r, api) => {
           const u = owns(r, 'temur') ? r.units.find((x) => x.defId === 'temur') : pickDeployed(r, api);
           const x = roll(api);
-          if (x < 0.45) { r.credits += 22; if (u) api.rankUp(u, 1); return '챔피언이 모래 위에 쓰러졌습니다. 크레딧 +22, 도전자 등급 +1.'; }
-          if (x < 0.8) { r.credits += 10; return '치열한 접전 끝에 판정승을 거뒀습니다. 크레딧 +10.'; }
-          hurt(r, 18); return '챔피언은 소문 이상이었습니다. 체력 -18.';
+          const fighter = u?.defId === 'temur' ? '테무르' : '우리 쪽 도전자';
+          if (x < 0.45) { r.credits += 22; if (u) api.rankUp(u, 1); api.outcome('win', { fighter }); return '챔피언이 모래 위에 쓰러졌습니다. 크레딧 +22, 도전자 등급 +1.'; }
+          if (x < 0.8) { r.credits += 10; api.outcome('decision', { fighter }); return '치열한 접전 끝에 판정승을 거뒀습니다. 크레딧 +10.'; }
+          hurt(r, 18); api.outcome('lose', { fighter }); return '챔피언은 소문 이상이었습니다. 체력 -18.';
         },
       },
       {
         label: '챔피언에게 판돈을 건다', desc: '크레딧 -10. 55%: 크레딧 +20 / 45%: 잃는다.', block: needCr(10),
-        apply: (r, api) => { r.credits -= 10; if (api.chance(0.55)) { r.credits += 20; return '챔피언이 이겼습니다. 크레딧 +20.'; } return '이변이 일어났습니다. 판돈을 잃었습니다.'; },
+        apply: (r, api) => { r.credits -= 10; if (api.chance(0.55)) { r.credits += 20; api.outcome('champ'); return '챔피언이 이겼습니다. 크레딧 +20.'; } api.outcome('upset'); return '이변이 일어났습니다. 판돈을 잃었습니다.'; },
       },
       { label: '경기를 관전하며 배운다', desc: '공명도 +12.', apply: (_r, api) => { api.xp(12); return '단원들이 챔피언의 발놀림을 눈에 새겼습니다.'; } },
     ],
@@ -253,7 +254,7 @@ export const STORY_D: EventDef[] = [
       { label: '묻지 않고 싣는다', desc: '크레딧 +15. 다음 성계에 검문소가 있다는 소문이 있다.', apply: (r, api) => { r.credits += 15; api.flag('d_cargo'); return '선불 크레딧 +15. 컨테이너가 화물칸에 실렸습니다.'; } },
       {
         label: '몰래 열어 본다', desc: '50%: 귀한 장비, 희귀 장비 1개를 빼돌린다 / 50%: 봉인 장치가 터져 체력 -15.',
-        apply: (r, api) => { if (api.chance(0.5)) { api.gain(api.randomItem('A')); return '안에는 밀수 장비가 가득했습니다. 하나쯤은 아무도 모를 겁니다.'; } hurt(r, 15); return '봉인 장치가 폭발했습니다. 체력 -15.'; },
+        apply: (r, api) => { if (api.chance(0.5)) { api.gain(api.randomItem('A')); api.outcome('loot'); return '안에는 밀수 장비가 가득했습니다. 하나쯤은 아무도 모를 겁니다.'; } hurt(r, 15); api.outcome('boom'); return '봉인 장치가 폭발했습니다. 체력 -15.'; },
       },
       { label: '페트라 세관에 신고한다', desc: '페트라 문장 1개. 의뢰인은 체포된다.', apply: (_r, api) => { api.gain('M_PET'); return '세관이 감사의 뜻으로 페트라 문장을 보냈습니다.'; } },
     ],
@@ -265,7 +266,7 @@ export const STORY_D: EventDef[] = [
       { label: '검문관을 매수한다', desc: '크레딧 -12. 무사히 배달하고 잔금 크레딧 +10.', block: needCr(12), apply: (r) => { r.credits -= 2; return '검문관의 주머니가 두둑해졌고, 화물은 무사히 도착했습니다. 잔금 포함 크레딧 -2.'; } },
       {
         label: '순찰선을 뿌리치고 달린다', desc: '60%: 돌파 성공, 잔금 크레딧 +18 / 40%: 포격을 맞고 체력 -20, 잔금은 받는다 (크레딧 +10).',
-        apply: (r, api) => { if (api.chance(0.6)) { r.credits += 18; return '올리버가 순찰선 사이를 꿰뚫었습니다. 크레딧 +18.'; } hurt(r, 20); r.credits += 10; return '포격을 맞았지만 화물은 배달했습니다. 체력 -20, 크레딧 +10.'; },
+        apply: (r, api) => { if (api.chance(0.6)) { r.credits += 18; api.outcome('clean'); return '올리버가 순찰선 사이를 꿰뚫었습니다. 크레딧 +18.'; } hurt(r, 20); r.credits += 10; api.outcome('hit'); return '포격을 맞았지만 화물은 배달했습니다. 체력 -20, 크레딧 +10.'; },
       },
       { label: '화물을 넘기고 협조한다', desc: '선불은 압수, 크레딧 -15. 대신 세관의 신뢰를 얻어 노드를 지날 때마다 크레딧 +1 (영구).', block: needCr(15), apply: (r) => { r.credits -= 15; r.mods.nodeIncome += 1; return '세관 협력 업체로 등록되었습니다. 노드마다 크레딧 +1.'; } },
     ],
@@ -278,11 +279,11 @@ export const STORY_D: EventDef[] = [
     choices: [
       {
         label: '숨결을 건다', desc: '50%: 최대 플레이어 체력 +10 · 체력 +10 / 50%: 플레이어 체력 -20.', block: needHp(20),
-        apply: (r, api) => { if (api.chance(0.5)) { r.maxHp += 10; heal(r, 10); return '아르곤이 처음으로 카드를 내려놓았습니다. 최대 체력 +10.'; } hurt(r, 20); return '숨결 한 자락을 강물에 빼앗겼습니다. 체력 -20.'; },
+        apply: (r, api) => { if (api.chance(0.5)) { r.maxHp += 10; heal(r, 10); api.outcome('win'); return '아르곤이 처음으로 카드를 내려놓았습니다. 최대 체력 +10.'; } hurt(r, 20); api.outcome('lose'); return '숨결 한 자락을 강물에 빼앗겼습니다. 체력 -20.'; },
       },
       {
         label: '동전을 건다', desc: '크레딧 -10. 35%: 크레딧 +30 / 65%: 잃는다.', block: needCr(10),
-        apply: (r, api) => { r.credits -= 10; if (api.chance(0.35)) { r.credits += 30; return '별자리가 맞아떨어졌습니다. 크레딧 +30.'; } return '아르곤이 말없이 동전을 강물에 던집니다.'; },
+        apply: (r, api) => { r.credits -= 10; if (api.chance(0.35)) { r.credits += 30; api.outcome('win'); return '별자리가 맞아떨어졌습니다. 크레딧 +30.'; } api.outcome('lose'); return '아르곤이 말없이 동전을 강물에 던집니다.'; },
       },
       { label: '뱃노래 한 곡만 청한다', desc: '공명도 +10. 아무것도 걸지 않는다.', apply: (_r, api) => { api.xp(10); return '오래된 뱃노래가 단원들의 마음을 가라앉혔습니다.'; } },
     ],
@@ -296,11 +297,11 @@ export const STORY_D: EventDef[] = [
       { label: '급전을 빌린다', desc: '크레딧 +25. 상환액 +35.', apply: (r) => { r.credits += 25; r.loan += 35; return '두툼한 크레딧 칩을 받았습니다. 갚을 날이 오겠지요.'; } },
       {
         label: '오르카가 이자를 깎는다', desc: '상환액이 있을 때만. 50%: 상환액 -15 / 50%: 협상 결렬, 상환액 +5.', block: (r) => (r.loan <= 0 ? '갚을 빚이 없습니다' : null),
-        apply: (r, api) => { if (api.chance(0.5)) { r.loan = Math.max(0, r.loan - 15); return '오르카가 장부의 허점을 찔렀습니다. 상환액 -15.'; } r.loan += 5; return '사채업자가 얼굴을 붉히며 수수료를 얹었습니다. 상환액 +5.'; },
+        apply: (r, api) => { if (api.chance(0.5)) { r.loan = Math.max(0, r.loan - 15); api.outcome('cut'); return '오르카가 장부의 허점을 찔렀습니다. 상환액 -15.'; } r.loan += 5; api.outcome('fail'); return '사채업자가 얼굴을 붉히며 수수료를 얹었습니다. 상환액 +5.'; },
       },
       {
         label: '경호원째 내쫓는다', desc: '60%: 떨어뜨린 지갑을 챙긴다, 크레딧 +14 / 40%: 총격전, 체력 -15.',
-        apply: (r, api) => { if (api.chance(0.6)) { r.credits += 14; return '사채업자가 지갑을 떨어뜨리고 도망쳤습니다. 크레딧 +14.'; } hurt(r, 15); return '경호원들이 총을 뽑았습니다. 체력 -15.'; },
+        apply: (r, api) => { if (api.chance(0.6)) { r.credits += 14; api.outcome('flee'); return '사채업자가 지갑을 떨어뜨리고 도망쳤습니다. 크레딧 +14.'; } hurt(r, 15); api.outcome('gunfight'); return '경호원들이 총을 뽑았습니다. 체력 -15.'; },
       },
     ],
   },
@@ -314,14 +315,14 @@ export const STORY_D: EventDef[] = [
         label: '의료품을 털어 온다', desc: '45%: 고급 의료품, 체력 +20 / 35%: 체력 +10 / 20%: 오염, 체력 -14.',
         apply: (r, api) => {
           const x = roll(api);
-          if (x < 0.45) { heal(r, 20); return '봉인된 고급 의료품을 찾았습니다. 체력 +20.'; }
-          if (x < 0.8) { heal(r, 10); return '쓸 만한 약품 몇 개를 챙겼습니다. 체력 +10.'; }
-          hurt(r, 14); return '격리 구역 공기에 노출되었습니다. 체력 -14.';
+          if (x < 0.45) { heal(r, 20); api.outcome('best'); return '봉인된 고급 의료품을 찾았습니다. 체력 +20.'; }
+          if (x < 0.8) { heal(r, 10); api.outcome('some'); return '쓸 만한 약품 몇 개를 챙겼습니다. 체력 +10.'; }
+          hurt(r, 14); api.outcome('tainted'); return '격리 구역 공기에 노출되었습니다. 체력 -14.';
         },
       },
       {
         label: '미리내가 생존자를 치료한다', desc: '무작위 출전 기물 1명이 전용 증강 하나를 즉시 얻는다. 플레이어 체력 -10.', block: needHp(10),
-        apply: (r, api) => { hurt(r, 10); const u = pickDeployed(r, api); const n = u ? api.augNow(u) : null; return n ? `생존자를 살리며 [${n}]을(를) 깨달았습니다. 체력 -10.` : '생존자를 살렸지만 얻은 깨달음은 없었습니다. 체력 -10.'; },
+        apply: (r, api) => { hurt(r, 10); const u = pickDeployed(r, api); const n = u ? api.augNow(u) : null; if (n) api.outcome('aug', { aug: n }); else api.outcome('none'); return n ? `생존자를 살리며 [${n}]을(를) 깨달았습니다. 체력 -10.` : '생존자를 살렸지만 얻은 깨달음은 없었습니다. 체력 -10.'; },
       },
       { label: '의료선을 예인해 넘긴다', desc: '크레딧 +11.', apply: (r) => { r.credits += 11; return '보건 당국에 의료선을 넘기고 사례금을 받았습니다. 크레딧 +11.'; } },
     ],

@@ -73,7 +73,8 @@ export const STORY_A: EventDef[] = [
         label: '쓸 만한 것만 챙긴다', desc: '희귀 장비 1개. 50%: 물건 주인에게 들켜 크레딧 -8.',
         apply: (r, api) => {
           api.gain(api.randomItem('A'));
-          if (api.chance(0.5)) { r.credits = Math.max(0, r.credits - 8); return '희귀 장비를 챙겼지만, 도노반이 프로펠러 값을 청구했습니다. 크레딧 -8.'; }
+          if (api.chance(0.5)) { r.credits = Math.max(0, r.credits - 8); api.outcome('caught'); return '희귀 장비를 챙겼지만, 도노반이 프로펠러 값을 청구했습니다. 크레딧 -8.'; }
+          api.outcome('clean');
           return '희귀 장비를 챙겼습니다. 아무도 눈치채지 못했습니다.';
         },
       },
@@ -97,8 +98,8 @@ export const STORY_A: EventDef[] = [
       {
         label: '들어가서 조언한다', desc: '50%: 공명도 +12 분배 / 50%: 자존심이 상한 잉겔이 기타줄을 끊는다, 크레딧 -6.',
         apply: (r, api) => {
-          if (api.chance(0.5)) { api.xp(12); return '"…한 번만 더 보여 줘." 둘은 해가 뜰 때까지 연습했습니다.'; }
-          r.credits = Math.max(0, r.credits - 6); return '"누가 물어봤어?" 기타줄이 끊어졌고, 줄값은 당신이 냈습니다. 크레딧 -6.';
+          if (api.chance(0.5)) { api.xp(12); api.outcome('ok'); return '"…한 번만 더 보여 줘." 둘은 해가 뜰 때까지 연습했습니다.'; }
+          r.credits = Math.max(0, r.credits - 6); api.outcome('snap'); return '"누가 물어봤어?" 기타줄이 끊어졌고, 줄값은 당신이 냈습니다. 크레딧 -6.';
         },
       },
       {
@@ -115,8 +116,8 @@ export const STORY_A: EventDef[] = [
         label: '진심으로 사과한다', desc: '잉겔 보유 시 잉겔 공명 등급 +1, 아니면 공명도 +8 분배.',
         apply: (r, api) => {
           const u = unit(r, 'ingel');
-          if (u) { api.rankUp(u, 1); return '잉겔은 한참 노려보다가 "다음엔 제대로 친 걸로 녹음해"라고 말했습니다. 잉겔 공명 등급 +1.'; }
-          api.xp(8); return '사과문은 함내 공용 채널에 올라갔습니다. 단원들이 즐거워했습니다. 공명도 +8.';
+          if (u) { api.rankUp(u, 1); api.outcome('ingel'); return '잉겔은 한참 노려보다가 "다음엔 제대로 친 걸로 녹음해"라고 말했습니다. 잉겔 공명 등급 +1.'; }
+          api.xp(8); api.outcome('post'); return '사과문은 함내 공용 채널에 올라갔습니다. 단원들이 즐거워했습니다. 공명도 +8.';
         },
       },
       {
@@ -126,8 +127,8 @@ export const STORY_A: EventDef[] = [
       {
         label: '내가 한 게 아니라고 한다', desc: '60%: 의심이 도노반에게 향한다, 크레딧 +6 / 40%: 거짓말이 들켜 플레이어 체력 -12.',
         apply: (r, api) => {
-          if (api.chance(0.6)) { r.credits += 6; return '모두가 도노반을 쳐다봤습니다. 도노반은 호랑이 사료값을 걸고 결백을 주장했습니다. 크레딧 +6.'; }
-          hurt(r, 12); return '녹음 파일의 메타데이터에 당신의 단말기 번호가 찍혀 있었습니다. 체력 -12.';
+          if (api.chance(0.6)) { r.credits += 6; api.outcome('ok'); return '모두가 도노반을 쳐다봤습니다. 도노반은 호랑이 사료값을 걸고 결백을 주장했습니다. 크레딧 +6.'; }
+          hurt(r, 12); api.outcome('caught'); return '녹음 파일의 메타데이터에 당신의 단말기 번호가 찍혀 있었습니다. 체력 -12.';
         },
       },
     ],
@@ -147,8 +148,8 @@ export const STORY_A: EventDef[] = [
       {
         label: '함께 무대에 오른다', desc: '50%: 모든 아군 피해 +15% (영구) / 50%: 대참사, 플레이어 체력 -15, 명성 +1.',
         apply: (r, api) => {
-          if (api.chance(0.5)) { api.boon('a_encore'); return '당신의 탬버린은 의외로 박자가 맞았습니다. 이 공연은 에란테스의 전설이 되었습니다.'; }
-          hurt(r, 15); r.fame += 1; return '탬버린이 날아가 관리국 직원에게 맞았습니다. 체력 -15. 그래도 영상은 조회수가 꽤 나왔습니다.';
+          if (api.chance(0.5)) { api.boon('a_encore'); api.outcome('ok'); return '당신의 탬버린은 의외로 박자가 맞았습니다. 이 공연은 에란테스의 전설이 되었습니다.'; }
+          hurt(r, 15); r.fame += 1; api.outcome('fail'); return '탬버린이 날아가 관리국 직원에게 맞았습니다. 체력 -15. 그래도 영상은 조회수가 꽤 나왔습니다.';
         },
       },
     ],
@@ -164,7 +165,8 @@ export const STORY_A: EventDef[] = [
         block: cost(8),
         apply: (r, api) => {
           r.credits -= 8;
-          if (api.chance(0.6)) { r.credits += 16; return '밍키가 기지개를 켜고 내려왔습니다. 라르스는 이 승리를 기념해 상여금을 지급했습니다. 크레딧 +16.'; }
+          if (api.chance(0.6)) { r.credits += 16; api.outcome('ok'); return '밍키가 기지개를 켜고 내려왔습니다. 라르스는 이 승리를 기념해 상여금을 지급했습니다. 크레딧 +16.'; }
+          api.outcome('fail');
           return '밍키는 츄르를 다 먹고 다시 식빵 자세로 돌아갔습니다. 라르스: "…장기전으로 가지."';
         },
       },
@@ -190,15 +192,16 @@ export const STORY_A: EventDef[] = [
       {
         label: '항로 데이터를 판다', desc: '70%: 크레딧 +15 / 30%: 데이터가 고양이 낙서였다, 아무것도 없다.',
         apply: (r, api) => {
-          if (api.chance(0.7)) { r.credits += 15; return '정보상은 이 경로 데이터를 비싸게 사 갔습니다. 출처는 묻지 않았습니다. 크레딧 +15.'; }
+          if (api.chance(0.7)) { r.credits += 15; api.outcome('ok'); return '정보상은 이 경로 데이터를 비싸게 사 갔습니다. 출처는 묻지 않았습니다. 크레딧 +15.'; }
+          api.outcome('doodle');
           return '분석 결과, 데이터의 절반이 "ㅁㅁㅁㅁㅁㅁㅁ"였습니다.';
         },
       },
       {
         label: '밥그릇을 채우고 의자를 돌려받는다', desc: '플레이어 체력 +12. 30%: 내면의 괴물이 깨어나 체력이 회복되지 않고 -10.',
         apply: (r, api) => {
-          if (api.chance(0.3)) { hurt(r, 10); return '밥그릇 채우는 게 3분 늦었습니다. 밍키 내면의 괴물이 깨어났습니다. 체력 -10.'; }
-          heal(r, 12); return '밍키는 밥을 먹고 미련 없이 떠났습니다. 오랜만에 함장석에 앉아 쉬었습니다. 체력 +12.';
+          if (api.chance(0.3)) { hurt(r, 10); api.outcome('monster'); return '밥그릇 채우는 게 3분 늦었습니다. 밍키 내면의 괴물이 깨어났습니다. 체력 -10.'; }
+          heal(r, 12); api.outcome('ok'); return '밍키는 밥을 먹고 미련 없이 떠났습니다. 오랜만에 함장석에 앉아 쉬었습니다. 체력 +12.';
         },
       },
     ],
@@ -216,8 +219,8 @@ export const STORY_A: EventDef[] = [
       {
         label: '레시피를 슬쩍 묻는다', desc: '25%: 비밀 하나를 배운다, 무작위 기물 1명 생명력 +3 (영구) / 75%: 국자로 맞는다, 플레이어 체력 -8.',
         apply: (r, api) => {
-          if (api.chance(0.25)) { const u = anyUnit(r, api); buff(u, 'vit', 3); return `구닐라가 "월계수는 두 장"이라고 속삭였습니다. 그날 저녁을 먹은 ${who(u)}의 생명력 +3.`; }
-          hurt(r, 8); return '국자가 정확히 이마에 꽂혔습니다. 체력 -8.';
+          if (api.chance(0.25)) { const u = anyUnit(r, api); buff(u, 'vit', 3); api.outcome('secret', { name: who(u) }); return `구닐라가 "월계수는 두 장"이라고 속삭였습니다. 그날 저녁을 먹은 ${who(u)}의 생명력 +3.`; }
+          hurt(r, 8); api.outcome('ladle'); return '국자가 정확히 이마에 꽂혔습니다. 체력 -8.';
         },
       },
       {
@@ -238,14 +241,14 @@ export const STORY_A: EventDef[] = [
       {
         label: '잡동사니를 창고에 숨긴다', desc: '50%: 점검 통과, 숨긴 상자에서 재료 1개 / 50%: 발각, 크레딧 -10 (시그문드의 "수업료").',
         apply: (r, api) => {
-          if (api.chance(0.5)) { api.gain(api.randomItem('C')); return '점검을 통과했습니다. 숨겼던 상자에서 쓸 만한 재료가 나왔습니다.'; }
-          r.credits = Math.max(0, r.credits - 10); return '"창고 정리도 청소입니다." 시그문드가 수업료를 청구했습니다. 크레딧 -10.';
+          if (api.chance(0.5)) { api.gain(api.randomItem('C')); api.outcome('pass'); return '점검을 통과했습니다. 숨겼던 상자에서 쓸 만한 재료가 나왔습니다.'; }
+          r.credits = Math.max(0, r.credits - 10); api.outcome('caught'); return '"창고 정리도 청소입니다." 시그문드가 수업료를 청구했습니다. 크레딧 -10.';
         },
       },
       {
         label: '차를 대접한다', desc: '크레딧 -5. 무작위 기물 1명 정신력 +2 (영구), 공명도 +6 분배.',
         block: cost(5),
-        apply: (r, api) => { r.credits -= 5; const u = anyUnit(r, api); buff(u, 'mnd', 2); api.xp(6); return `시그문드는 찻잔을 내려놓고 예법에 대해 한 시간 강의했습니다. 끝까지 들은 ${who(u)}의 정신력 +2.`; },
+        apply: (r, api) => { r.credits -= 5; const u = anyUnit(r, api); buff(u, 'mnd', 2); api.xp(6); api.outcome('default', { name: who(u) }); return `시그문드는 찻잔을 내려놓고 예법에 대해 한 시간 강의했습니다. 끝까지 들은 ${who(u)}의 정신력 +2.`; },
       },
     ],
   },
