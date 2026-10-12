@@ -4,7 +4,7 @@ import { amp, applyLive, inc, red, vuln } from '../engine/effects';
 import { CFG } from '../config';
 import { type Major, MAJORS, type RunState, type Stats, type SynergyId } from '../types';
 import { ALL_ADVANCED, itemEffect, itemInfo } from './items';
-import { addStacks, blinkTo, harmfulCount, isDebuffed, isHarmful, pct } from './kit';
+import { addStacks, blinkTo, harmfulCount, isDebuffed, isHarmful, pct, slow } from './kit';
 import { UNIT_BY_ID } from './units';
 
 export interface SynDef {
@@ -183,14 +183,16 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'SEC', name: '보안위원회', kind: 'faction', tiers: [2, 4, 6], lockFinal: true, color: '#7d8aa3', icon: '⛨',
-    desc: '은하 보안을 책임지는 비밀 위원회. 위원회 기물은 피해에 강하고, 해로운 효과에 시달릴수록 오히려 기술을 빨리 꺼냅니다.',
-    tierDesc: ['피해량 경감 10%, 정신 피해 추가 -15%, 해로운 효과 1개당 쿨다운 감소 속도 +10%', '피해량 경감 20%, 정신 피해 추가 -20%, 해로운 효과 1개당 +20%',
-      '[비상 대권] 피해량 경감 30%, 정신 피해 추가 -30%, 해로운 효과 1개당 쿨다운 감소 속도 +50%'],
+    desc: '은하 보안을 책임지는 비밀 위원회. 위원회 기물은 피해에 강하고, 해로운 효과에 시달릴수록 오히려 기술을 빨리 꺼냅니다. 위원회 기물의 기본 공격은 확률로 적을 [둔화]시키고, 위원회 기물이 거는 해로운 효과는 더 오래 갑니다.',
+    tierDesc: ['피해량 경감 10%, 정신 피해 추가 -15%, 해로운 효과 1개당 쿨다운 감소 속도 +10%, 기본 공격 25% 확률 [둔화] 2초, 거는 해로운 효과 +1초', '피해량 경감 20%, 정신 피해 추가 -20%, 해로운 효과 1개당 +20%, [둔화] 35%, 해로운 효과 +2초',
+      '[비상 대권] 피해량 경감 30%, 정신 피해 추가 -30%, 해로운 효과 1개당 쿨다운 감소 속도 +50%, [둔화] 50%, 해로운 효과 +3초'],
     member: (t) => {
-      const k = T(t, [0.1, 0.2, 0.5]);
+      const k = T(t, [0.1, 0.2, 0.5]), ext = T(t, [1, 2, 3]), slowP = T(t, [0.25, 0.35, 0.5]);
       return {
         taken: [red('all', T(t, [0.1, 0.2, 0.3])), red('psy', T(t, [0.15, 0.2, 0.3]))],
         hooks: {
+          onInflict(_b, u, tgt, s) { if (tgt.side !== u.side && isHarmful(s)) s.dur += ext; },
+          onBasic(b, u, tgt, r) { if (!r.miss && tgt.alive) slow(b, u, tgt, 0.2, 2, slowP); },
           onTick(_b, u) {
             const v = harmfulCount(u) * k;
             u.st.cdr += v - (u.mem.secCdr || 0);
@@ -231,12 +233,12 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'TIME', name: '시간 여행자', kind: 'faction', tiers: [2, 3, 4, 5], color: '#c8a0ff', icon: '⌛',
     desc: '시간의 틈을 걷는 이들. 시간 여행자는 회피가 크게 오르고, 공격을 피할 때마다 (찰과상 포함) 체력을 회복하며 공격자에게 고정 피해로 반격합니다. 최저 명중률은 15%입니다.',
-    tierDesc: ['회피 +15%p, 회피 시 최대 체력 3% 회복, 반격 = 사격 · 타격 위력 중 높은 값 50%', '회피 +25%p, 4% 회복, 반격 100%', '회피 +40%p, 5% 회복, 반격 200%',
+    tierDesc: ['회피 +10%p, 회피 시 최대 체력 3% 회복, 반격 = 사격 · 타격 위력 중 높은 값 40%', '회피 +25%p, 4% 회복, 반격 100%', '회피 +40%p, 5% 회복, 반격 200%',
       '[시간 역행] 회피 +60%p, 6% 회복, 반격 500%'],
     member: (t) => {
-      const h = T(t, [0.03, 0.04, 0.05, 0.06]), k = T(t, [0.5, 1, 2, 5]);
+      const h = T(t, [0.03, 0.04, 0.05, 0.06]), k = T(t, [0.4, 1, 2, 5]);
       return {
-        stats: { eva: T(t, [0.15, 0.25, 0.4, 0.6]) },
+        stats: { eva: T(t, [0.1, 0.25, 0.4, 0.6]) },
         hooks: {
           onEvade(b, u, src) {
             b.heal(u, u, b.S(u, 'maxHp') * h);
@@ -365,8 +367,8 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'ENG', name: '엔지니어', kind: 'trait', tiers: [2, 3, 4], color: '#a0b4c8', icon: '⚙',
-    desc: '전투 시작 시 아군 진영에 감시 포탑을 설치합니다. 포탑은 움직이지 않고, 출전한 엔지니어 능력치 평균의 일부를 물려받습니다. 칸을 차지하며, 빈칸이 없으면 설치되지 않습니다.',
-    tierDesc: ['감시 포탑 1기 (상속 60%)', '감시 포탑 2기 (상속 80%)', '감시 포탑 3기 (상속 120%), 포탑 공격 속도 +50%'],
+    desc: '전투 시작 시 아군 진영 양옆 가장자리에 감시 포탑을 설치합니다. 포탑은 움직이지 않고, 출전한 엔지니어 능력치 평균의 일부를 물려받습니다. 칸을 차지하며, 빈칸이 없으면 설치되지 않습니다.',
+    tierDesc: ['감시 포탑 1기 (상속 60%, 공격 속도 +40%)', '감시 포탑 2기 (상속 80%)', '감시 포탑 3기 (상속 120%), 포탑 공격 속도 추가 +50%'],
     member: (t) => ({
       setup: (u) => { u.mem.eng = t; },
       hooks: {
@@ -381,12 +383,12 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'SCHEME', name: '모략가', kind: 'trait', tiers: [2, 4, 6, 8], color: '#8a5cc8', icon: '♠',
-    desc: '판 뒤에서 실을 당기는 이들. 모략가가 적에게 해로운 효과를 걸면 기본 75% 확률로 [암운]을 쌓습니다. [암운]은 1중첩당 매초 대상 최대 체력 비례 고정 피해를 줍니다 (최대 99중첩, 6초간 새로 쌓이지 않으면 사라짐).',
-    tierDesc: ['효과 명중 +25%p, [암운] 1중첩당 초당 최대 체력 0.05%', '효과 명중 +50%p, 초당 0.125%, [암운]을 쌓을 때 50% 확률로 1중첩 추가',
-      '효과 명중 +75%p, 초당 0.25%, 25% 확률로 2중첩 더 추가, 모략가의 공격이 [암운] 1중첩당 최대 체력 0.1% 고정 피해 추가',
+    desc: '판 뒤에서 실을 당기는 이들. 모략가가 적에게 해로운 효과를 걸면 기본 75% 확률로 [암운]을 쌓습니다. [암운]은 1중첩당 매초 아군 전술 위력 비례 고정 피해를 줍니다 (최대 99중첩, 6초간 새로 쌓이지 않으면 사라짐).',
+    tierDesc: ['효과 명중 +25%p, [암운] 1중첩당 초당 전술 위력 4%', '효과 명중 +50%p, 초당 전술 위력 8%, [암운]을 쌓을 때 50% 확률로 1중첩 추가',
+      '효과 명중 +75%p, 초당 전술 위력 15%, 25% 확률로 2중첩 더 추가, 모략가의 공격이 [암운] 1중첩당 전술 위력 10% 고정 피해 추가',
       '[흑막 강림] 효과 명중 +100%p, 초당 0.5%, [암운] 쌓는 양 3배'],
     member: (t) => {
-      const per = T(t, [0.0005, 0.00125, 0.0025, 0.005]);
+      const per = T(t, [0.04, 0.08, 0.15, 0.3]); // [암운] 1중첩 초당 피해 = 전술 위력 × per
       return {
         stats: { effHit: T(t, [0.25, 0.5, 0.75, 1.0]) },
         hooks: {
@@ -397,12 +399,12 @@ export const SYNERGIES: SynDef[] = [
             if (t >= 2 && b.rng.chance(0.5)) n += 1;
             if (t >= 3 && b.rng.chance(0.25)) n += 2;
             if (t >= 4) n *= 3;
-            addStacks(b, u, tgt, 'gloom', n, 99, 6, (k) => ({ type: 'dot', elem: 'true', dps: b.S(tgt, 'maxHp') * per * k }), '암운');
+            addStacks(b, u, tgt, 'gloom', n, 99, 6, (k) => ({ type: 'dot', elem: 'true', dps: b.tacPower(u) * per * k }), '암운');
           },
           onDeal: t >= 3 ? (b, u, tgt, r, o) => {
             if ((o.tag !== 'basic' && o.tag !== 'skill') || r.amount <= 0 || !tgt.alive) return;
             const g = tgt.statuses.find((x) => x.key === 'gloom')?.stacks || 0;
-            if (g) b.dealDamage(u, tgt, b.S(tgt, 'maxHp') * 0.001 * g, { elem: 'true', tag: 'proc' });
+            if (g) b.dealDamage(u, tgt, b.tacPower(u) * 0.1 * g, { elem: 'true', tag: 'proc' });
           } : undefined,
         },
       };
@@ -432,10 +434,10 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'COND', name: '전도체', kind: 'trait', tiers: [2, 4, 6, 8], color: '#4fc3ff', icon: 'ϟ',
     desc: '몸에 전류가 흐르는 이들. 전도체가 기본 공격 · 기술로 적을 맞히면 25% 고정 확률로 주변 적에게 튀는 연쇄 전기 피해를 일으킵니다. 연쇄 1회 피해 = 사격 · 타격 · 기술 위력 중 가장 높은 값의 일정 비율.',
-    tierDesc: ['전기 피해 +10%, 연쇄 1칸 · 최대 1회 · 계수 20%', '전기 피해 +25%, 연쇄 2칸 · 최대 2회, 명사수 · 지휘관 전도체 연쇄 +1회, 전문가 · 돌격가 전도체는 피격 시 50% 확률로 연쇄',
-      '전기 피해 +50%, 연쇄 3칸 · 최대 4회 · 계수 30%', '[천둥 폭풍] 전기 피해 +100%, 연쇄 3칸 · 최대 8회 · 계수 60%'],
+    tierDesc: ['전기 피해 +10%, 연쇄 1칸 · 최대 1회 · 계수 25%', '전기 피해 +25%, 연쇄 2칸 · 최대 2회, 명사수 · 지휘관 전도체 연쇄 +1회, 전문가 · 돌격가 전도체는 피격 시 50% 확률로 연쇄',
+      '전기 피해 +50%, 연쇄 3칸 · 최대 4회 · 계수 35%', '[천둥 폭풍] 전기 피해 +100%, 연쇄 3칸 · 최대 8회 · 계수 70%'],
     member: (t) => {
-      const radius = T(t, [1, 2, 3, 3]), k = T(t, [0.2, 0.2, 0.3, 0.6]);
+      const radius = T(t, [1, 2, 3, 3]), k = T(t, [0.25, 0.25, 0.35, 0.7]);
       const hopsOf = (u: CUnit) => T(t, [1, 2, 4, 8]) + (t >= 2 && (u.ctype === 'MARK' || u.ctype === 'CMD') ? 1 : 0);
       return {
         mods: [inc('elec', T(t, [0.1, 0.25, 0.5, 1.0]))],
@@ -455,8 +457,8 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'GUARD', name: '수호자', kind: 'trait', tiers: [2, 4], color: '#c9a86a', icon: '⛉',
     desc: '앞에 서서 모두를 지키는 이들. 출전한 수호자 1명마다 모든 아군의 방어도가 오르고, 수호자의 기본 공격에는 자신 방어도에 비례한 물리 피해가 더해집니다.',
-    tierDesc: ['수호자 1명당 모든 아군 방어도 +10%, 수호자 기본 공격 + 방어도 20% 물리 피해', '[철벽 방진] 수호자 1명당 모든 아군 방어도 +20%, 수호자 기본 공격 + 방어도 35% 물리 피해'],
-    team: (t, ctx) => ({ pct: { armor: (ctx.counts.GUARD || 0) * T(t, [0.1, 0.2]) } }),
+    tierDesc: ['수호자 1명당 모든 아군 방어도 +8%, 수호자 기본 공격 + 방어도 20% 물리 피해', '[철벽 방진] 수호자 1명당 모든 아군 방어도 +20%, 수호자 기본 공격 + 방어도 35% 물리 피해'],
+    team: (t, ctx) => ({ pct: { armor: (ctx.counts.GUARD || 0) * T(t, [0.08, 0.2]) } }),
     member: (t) => {
       const k = T(t, [0.2, 0.35]);
       return {

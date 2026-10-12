@@ -20,6 +20,8 @@ export interface Status {
   label?: string;
   /** 받은 피해의 일부를 공격자에게 반사 */
   reflect?: number;
+  /** 고정 피해 반사 (방어도 무시) */
+  reflectTrue?: number;
   /** 중첩 수 (부상 · 방어도 감소 등) */
   stacks?: number;
   /** 받은 피해의 일부를 이 기물이 나눠 받는다 (린디웨) */
@@ -183,8 +185,9 @@ export class Battle {
   computeTac() {
     for (const side of [0, 1] as const) {
       const us = this.units.filter((x) => x.side === side && !x.isSummon && x.alive);
-      let v = 20 - 2 * us.length;
-      for (const c of us) { if (c.ctype === 'CMD') v += 2 + Math.floor((c.mem.mnd || 0) * 0.25); v += c.mem.tacBonus || 0; }
+      // 아군: 기물 1명당 +2, 지휘관은 추가 +5 / 적: 기존 규칙 (20 - 2×인원, 지휘관 +2)
+      let v = side === 0 ? 2 * us.length : 20 - 2 * us.length;
+      for (const c of us) { if (c.ctype === 'CMD') v += (side === 0 ? 5 : 2) + Math.floor((c.mem.mnd || 0) * 0.25); v += c.mem.tacBonus || 0; }
       this.tac[side] = Math.max(1, v);
     }
   }
@@ -541,9 +544,10 @@ export class Battle {
       if (tgt.alive) for (const h of tgt.hooks) h.onHurt?.(this, tgt, src, res, o);
       if (src !== tgt) for (const a of this.alliesOf(tgt, false)) for (const h of a.hooks) h.onAllyHurt?.(this, a, tgt, src, res);
       if (o.tag !== 'proc' && src.alive && src !== tgt) {
-        let rf = 0;
-        for (const s of tgt.statuses) rf += s.reflect || 0;
+        let rf = 0, rt = 0;
+        for (const s of tgt.statuses) { rf += s.reflect || 0; rt += s.reflectTrue || 0; }
         if (rf > 0) this.dealDamage(tgt, src, dmg * rf, { elem: 'phys', tag: 'proc', noHooks: true });
+        if (rt > 0 && src.alive) this.dealDamage(tgt, src, dmg * rt, { elem: 'true', tag: 'proc', noHooks: true });
       }
     }
     if (tgt.alive && tgt.hp <= 0) {

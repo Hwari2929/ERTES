@@ -275,7 +275,8 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   if (diffHas(d, 1)) st.maxHp *= 1.15;
   if (diffHas(d, 2)) c.phaseAmp *= 1.15;
   if (diffHas(d, 4) && def.tier === 'boss') st.maxHp *= 1.25;
-  if (diffHas(d, 7)) { st.armor *= 1.25; st.effRes += 0.15; }
+  if (diffHas(d, 5)) st.eva += 0.1;
+  if (diffHas(d, 7)) { st.armor *= 1.25; st.effRes += 0.15; st.eva += 0.1; }
   if (diffHas(d, 8)) st.maxHp *= Math.pow(1.05, phase - 1);
   // 적 장비 · 개조부품
   for (const it of [...(def.items || []), def.mod || null]) if (it) applyLive(c, itemEffect(it), b, makeCtx(null, null, {}));
@@ -292,7 +293,7 @@ ENG_HOOK.spawn = (b, lead, engs, n) => {
   const hpBonus = engs.reduce((s, e) => s + (e.mem.turretHp || 0), 0);
   const tier = lead.mem.eng || 1;
   const inherit = [0.6, 0.8, 1.2][Math.min(3, tier) - 1]; // 엔지니어 단계별 상속률
-  const asBonus = engs.reduce((s, e) => s + (e.mem.turretAs || 0), 0) + (tier >= 3 ? 0.5 : 0);
+  const asBonus = 0.4 + engs.reduce((s, e) => s + (e.mem.turretAs || 0), 0) + (tier >= 3 ? 0.5 : 0); // 기본 공격 속도 +40%
   for (let i = 0; i < n; i++) {
     const t = blankUnit(lead.side);
     const st = emptyStats();
@@ -307,14 +308,17 @@ ENG_HOOK.spawn = (b, lead, engs, n) => {
     });
     t.hp = st.maxHp;
     t.atkTimer = 0.4;
-    // 아군 진영 안의 빈칸에만 설치
+    // 전장 양옆 가장자리(배치 구역 바깥 열)부터, 대표 엔지니어와 가까운 줄에 번갈아 설치. 자리가 없으면 진영 안 빈칸
+    const mine = (y: number) => (lead.side === 0 ? y >= ALLY_Y0 && y <= ALLY_Y1 : y >= PAD && y < PAD + ZONE);
+    const edges = (i % 2 === 0 ? [0, b.w - 1] : [b.w - 1, 0]);
+    const rowsBy = [...Array(b.h).keys()].filter(mine).sort((a, c) => Math.abs(a - lead.y) - Math.abs(c - lead.y));
     let cell: { x: number; y: number } | null = null;
+    for (const x of edges) { for (const y of rowsBy) if (b.inBounds(x, y) && !b.unitAt(x, y)) { cell = { x, y }; break; } if (cell) break; }
     for (let r = 1; r < Math.max(b.w, b.h) && !cell; r++)
       for (let dy = -r; dy <= r && !cell; dy++)
         for (let dx = -r; dx <= r && !cell; dx++) {
           const x = lead.x + dx, y = lead.y + dy;
-          const mine = lead.side === 0 ? y >= ALLY_Y0 && y <= ALLY_Y1 : y >= PAD && y < PAD + ZONE;
-          if (b.inBounds(x, y) && mine && !b.unitAt(x, y)) cell = { x, y };
+          if (b.inBounds(x, y) && mine(y) && !b.unitAt(x, y)) cell = { x, y };
         }
     if (!cell) return;
     t.x = t.px = cell.x; t.y = t.py = cell.y;
@@ -351,7 +355,7 @@ export function layout(run: RunState, n: number): Map<string, { x: number; y: nu
 
 export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): Battle {
   const dim = boardDims(enc.n);
-  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: run.phase, credits: run.credits, field: run.field, diff: run.diff });
+  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff });
   b.keepEvents = keepEvents;
   const dep = deployed(run);
   const counts = synergyCounts(dep, run);
@@ -365,7 +369,7 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
   }
   for (const s of enc.enemies) {
     const def = ENEMY_BY_ID[s.defId];
-    const e = buildEnemy(b, def, run.phase, enc.mult);
+    const e = buildEnemy(b, def, enc.phase ?? run.phase, enc.mult);
     const ec = enemyCell(s.c, s.row, enc.n);
     e.x = e.px = ec.x;
     e.y = e.py = ec.y;

@@ -41,7 +41,8 @@ function resolvePending(run: RunState, bot: Rng) {
     }
     else if (p.t === 'supply') R.takeSupply(run, p.options[0]);
     else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
-    else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? (['invest', 'pilgrim', 'shop'] as const).find((o) => p.options.includes(o))! : 'shop'); continue; }
+    else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? (run.units.length < 10 ? (['recruit', 'invest', 'pilgrim', 'shop'] as const) : (['invest', 'pilgrim', 'shop'] as const)).find((o) => p.options.includes(o))! : 'shop'); continue; }
+      else if (p.t === 'fork') { R.pickFork(run, run.hp > 60 && bot.chance(0.5) ? 'challenge' : 'rest'); continue; }
     else if (p.t === 'pilgrim') { run.pending.shift(); while (run.power >= R.PILGRIM_COST.cap && R.pilgrimAct(run, 'cap') === null); continue; }
     run.pending.shift();
   }

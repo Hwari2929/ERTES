@@ -853,7 +853,7 @@ void skillHit;
 
 // ───────────────────────── 밸런스 보정 (1000판 분석 반영)
 /** 명사수 기본 공격 계수 전반 상향 (지원형 오르카 제외) */
-export const MARK_BASIC = 1.25;
+export const MARK_BASIC = 1.35; // 명사수 기본 공격 계수 배율 (오르카 제외). 1.25 → 1.35 (+8%)
 /** 하위권 기물 보정: w = 기본 공격 계수 배율, s = 스킬 주 계수(피해 · 회복 · 보호막) 배율 */
 export const TUNE: Record<string, { w?: number; s?: number }> = {
   falcon: { w: 1.35, s: 1.3 }, west: { w: 1.3, s: 1.3 }, argon: { w: 1.3, s: 1.3 }, romani: { w: 1.1, s: 1.15 },

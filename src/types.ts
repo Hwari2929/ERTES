@@ -87,14 +87,14 @@ export interface UnitState {
   pos: { c: number; r: number } | null; // r=0 이 아군 진영 가장 뒷줄
 }
 
-export type NodeType = 'battle' | 'adversity' | 'shop' | 'supply' | 'recruit' | 'boss' | 'pilgrim' | 'news' | 'event' | 'invest';
+export type NodeType = 'battle' | 'adversity' | 'shop' | 'supply' | 'recruit' | 'boss' | 'pilgrim' | 'news' | 'event' | 'invest' | 'fork' | 'challenge';
 export const NODE_NAME: Record<NodeType, string> = {
   battle: '일반 전투', adversity: '역경', shop: '상점', supply: '보급', recruit: '기물 영입', boss: '보스',
-  pilgrim: '순례', news: '속보', event: '사건', invest: '투자',
+  pilgrim: '순례', news: '속보', event: '사건', invest: '투자', fork: '전환', challenge: '도전',
 };
 
 export interface EnemySpawn { defId: string; c: number; row: number; elite?: boolean }
-export interface Encounter { n: number; env: string; enemies: EnemySpawn[]; mult: number; seed: number }
+export interface Encounter { n: number; env: string; enemies: EnemySpawn[]; mult: number; seed: number; phase?: number } // phase: 적 강도 기준 페이즈 (도전 = 다음 페이즈)
 
 export interface ShopSlot { item: string; price: number; sold: boolean }
 export interface NewsOffer { id: string; cost: number; sold: boolean }
@@ -112,9 +112,10 @@ export type Pending =
   | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean; join?: boolean; kind?: 'unit' | 'special' | 'psionic' }
   | { t: 'pilgrim' }
   | { t: 'itemPick'; options: string[]; title: string }
-  | { t: 'recruit'; options: string[] }
+  | { t: 'recruit'; options: string[]; rerolls?: number } // rerolls 없음 = 1회
   | { t: 'supply'; options: string[] }
   | { t: 'branch'; options: NodeType[] }
+  | { t: 'fork' } // 전환: 휴식 / 도전
   | { t: 'blessing'; options: string[] }
   | { t: 'notice'; title: string; body: string; scene?: Beat[] };
 

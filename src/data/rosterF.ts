@@ -36,7 +36,7 @@ export const ROSTER_F: BaseUnit[] = [
       uaug('bjorn', 'harpoon', '고래잡이 작살', '구조 작살 피해 +200%p.', setSk((s) => { s.mult += 2; })),
       uaug('bjorn', 'rescue', '구조 매뉴얼', '보호막 +150%p.', setSk((s) => { s.rescue += 1.5; })),
       uaug('bjorn', 'storm', '폭풍 항해', '작살이 대상 주변 1칸 적에게도 맞는다.', setSk((s) => { s.radius = 1; })),
-      uaug('bjorn', 'scar', '흉터 백 개', '생명력 +8, 방어력 +6.', { majors: { vit: 8, def: 6 } }),
+      uaug('bjorn', 'scar', '흉터 백 개', '생명력 +9, 방어력 +6.', { majors: { vit: 9, def: 6 } }),
       uaug('bjorn', 'valhalla', '발할라는 아직', '전투당 1회, 쓰러질 피해를 받으면 체력 40%로 버티고 4초간 피해량 경감 50%.', {
         hooks: { onLethal(b, u) {
           if (u.mem.valhalla) return false;
@@ -60,7 +60,7 @@ export const ROSTER_F: BaseUnit[] = [
       uaug('zina', 'lily', '백합의 꽃말', '마지막 꽃다발 피해 +180%p.', setSk((s) => { s.mult += 1.8; })),
       uaug('zina', 'thorn', '가시', '중독 위력 +80%p.', setSk((s) => { s.poison += 0.8; })),
       uaug('zina', 'bouquet', '꽃다발 배달', '처치 시 쿨다운을 전부 돌려받는다.', setSk((s) => { s.resetOnKill = 1; })),
-      uaug('zina', 'apron', '앞치마 속 권총', '기동력 +6, 치명타 확률 +15%p.', { majors: { agi: 6 }, stats: { crit: 0.15 } }),
+      uaug('zina', 'apron', '앞치마 속 권총', '기동력 +9, 치명타 확률 +15%p.', { majors: { agi: 9 }, stats: { crit: 0.15 } }),
       uaug('zina', 'requiem', '성도회의 칼날', '중독된 적에게 주는 피해 +25%p 추가 (총 +50%).', { setup: (u) => { u.mem.zinaVenom = 0.25; } }),
     ],
   },
@@ -75,10 +75,10 @@ export const ROSTER_F: BaseUnit[] = [
     }),
     augs: [
       uaug('fotini', 'tour', '단체 관광', '범위 +1칸.', setSk((s) => { s.radius += 1; })),
-      uaug('fotini', 'flag', '형광 깃발', '관광 명소 소개 피해 +150%p.', setSk((s) => { s.mult += 1.5; })),
+      uaug('fotini', 'flag', '형광 깃발', '관광 명소 소개 피해 +170%p.', setSk((s) => { s.mult += 1.7; })),
       uaug('fotini', 'photo', '인증샷 타임', '받는 피해 증가 +20%p.', setSk((s) => { s.vuln += 0.2; })),
       uaug('fotini', 'smile', '^^', '전투 시작 시 모든 아군 보호막 (최대 체력 10%).', { hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.shield(a, b.S(a, 'maxHp') * 0.1); } } }),
-      uaug('fotini', 'souvenir', '기념품 가게', '정신력 +6, 전투력 +4.', { majors: { mnd: 6, pow: 4 } }),
+      uaug('fotini', 'souvenir', '기념품 가게', '정신력 +9, 전투력 +6.', { majors: { mnd: 9, pow: 6 } }),
     ],
   },
   {
@@ -111,7 +111,7 @@ export const ROSTER_F: BaseUnit[] = [
       uaug('bill', 'panorama', '파노라마 모드', '범위 +1칸.', setSk((s) => { s.radius += 1; })),
       uaug('bill', 'flash', '눈부신 플래시', '공포 확률 +30%p.', setSk((s) => { s.fearChance += 0.3; })),
       uaug('bill', 'lei', '꽃목걸이', '전투 시작 시 모든 아군 효과 명중 +10%p.', { hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) a.st.effHit += 0.1; } } }),
-      uaug('bill', 'cocktail', '선베드 칵테일', '생명력 +6, 정신력 +6.', { majors: { vit: 6, mnd: 6 } }),
+      uaug('bill', 'cocktail', '선베드 칵테일', '생명력 +8, 정신력 +7.', { majors: { vit: 8, mnd: 7 } }),
       uaug('bill', 'aloha', '알로하 정신', '기념사진 플래시 피해 +140%p.', setSk((s) => { s.mult += 1.4; })),
     ],
   },
@@ -128,7 +128,7 @@ export const ROSTER_F: BaseUnit[] = [
       uaug('winter', 'serum', '2상 혈청', '회복량 +180%p.', setSk((s) => { s.heal += 1.8; })),
       uaug('winter', 'cohort', '대조군 확대', '주변 1칸 아군에게도 50% 효과.', setSk((s) => { s.splash = 1; })),
       uaug('winter', 'sterile', '무균실', '피해량 경감 +15%p, 지속 +2초.', setSk((s) => { s.red += 0.15; s.dur += 2; })),
-      uaug('winter', 'tenure', '정년 보장', '정신력 +8, 생명력 +4.', { majors: { mnd: 8, vit: 4 } }),
+      uaug('winter', 'tenure', '정년 보장', '정신력 +10, 생명력 +5.', { majors: { mnd: 10, vit: 5 } }),
       uaug('winter', 'paper', '네이처 게재', '쿨다운 감소 속도 +35%.', { stats: { cdr: 0.35 } }),
     ],
   },
@@ -146,7 +146,7 @@ export const ROSTER_F: BaseUnit[] = [
       uaug('issac', 'unwrap', '완전 해방', '붕대 해제 피해 +160%p, 범위 +1칸.', setSk((s) => { s.mult += 1.6; s.radius += 1; })),
       uaug('issac', 'ooze', '점액 분비', '중독 위력 +60%p.', setSk((s) => { s.poison += 0.6; })),
       uaug('issac', 'suit', '맞춤 정장', '보호막 +25%p.', setSk((s) => { s.selfShield += 0.25; })),
-      uaug('issac', 'mass', '증식', '생명력 +10, 방어력 +4.', { majors: { vit: 10, def: 4 } }),
+      uaug('issac', 'mass', '증식', '생명력 +10, 방어력 +5.', { majors: { vit: 10, def: 5 } }),
       uaug('issac', 'manners', '신사의 품격', '점액 소환물 스탯 상속 +30%p.', { setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.3; } }),
     ],
   },
@@ -162,9 +162,9 @@ export const ROSTER_F: BaseUnit[] = [
     augs: [
       uaug('eden', 'dirty', '비겁한 한 방', '뒷골목 수법 피해 +170%p.', setSk((s) => { s.mult += 1.7; })),
       uaug('eden', 'knife', '숨긴 칼', '출혈 위력 +70%p.', setSk((s) => { s.bleed += 0.7; })),
-      uaug('eden', 'run', '튀어!', '기동력 +8.', { majors: { agi: 8 } }),
+      uaug('eden', 'run', '튀어!', '기동력 +12, 생명력 +3.', { majors: { agi: 12, vit: 3 } }),
       uaug('eden', 'grudge', '밑바닥의 원한', '받는 피해 증가 +20%p.', setSk((s) => { s.vuln += 0.2; })),
-      uaug('eden', 'luck', '하층민의 촉', '치명타 확률 +20%p.', { stats: { crit: 0.2 } }),
+      uaug('eden', 'luck', '하층민의 촉', '치명타 확률 +30%p, 치명타 피해 +60%p.', { stats: { crit: 0.3, critDmg: 0.6 } }),
     ],
   },
   {
@@ -212,7 +212,7 @@ export const ROSTER_F: BaseUnit[] = [
       uaug('mao', 'double', '더블 샷', '피해 증가 +35%p.', setSk((s) => { s.dmg += 0.35; })),
       uaug('mao', 'neon', '네온 시럽', '공격 속도 증가 +25%p, 지속 +2초.', setSk((s) => { s.as += 0.25; s.dur += 2; })),
       uaug('mao', 'mask', '고양이 가면', '회복량 +100%p.', setSk((s) => { s.heal += 1; })),
-      uaug('mao', 'board', '이사회 장악', '정신력 +8, 방어력 +4.', { majors: { mnd: 8, def: 4 } }),
+      uaug('mao', 'board', '이사회 장악', '정신력 +10, 방어력 +5.', { majors: { mnd: 10, def: 5 } }),
       uaug('mao', 'vip', 'VIP 라운지', '쿨다운 감소 속도 +40%.', { stats: { cdr: 0.4 } }),
     ],
   },
@@ -230,7 +230,7 @@ export const ROSTER_F: BaseUnit[] = [
       uaug('skadi', 'audit', '감사 대응', '기절 +0.7초, 범위 +1칸.', setSk((s) => { s.stun += 0.7; s.radius += 1; })),
       uaug('skadi', 'bonus', '성과급', '보호막 +25%p.', setSk((s) => { s.selfShield += 0.25; })),
       uaug('skadi', 'mentor', '멘토링', '인재 육성 대상의 피해 증가 +30%p 추가.', { setup: (u) => { u.mem.skadiMentor = 0.3; } }),
-      uaug('skadi', 'career', '커리어 우먼', '생명력 +6, 전투력 +6.', { majors: { vit: 6, pow: 6 } }),
+      uaug('skadi', 'career', '커리어 우먼', '생명력 +8, 전투력 +7.', { majors: { vit: 8, pow: 7 } }),
     ],
   },
 ];

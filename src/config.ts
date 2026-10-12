@@ -42,7 +42,7 @@ export const CFG = {
   lateFrom: 5, lateHp: 0.9, lateAmp: 1.09,
   phaseHpFactor: (p: number) => (p <= 5 ? 2.05 : Math.max(1.1, 2 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
   adversityMult: 1.6,
-  enemyHpMul: 2.4, enemyPowMul: 2.2, // 적 기초 수치 전체 배율 (튜닝용)
+  enemyHpMul: 2.8, enemyPowMul: 2.5, // 적 기초 수치 전체 배율 (튜닝용)
   enemyMajorConv: { acc: 0.3, eva: 0.25, crit: 0.25 }, // 적 메이저 → 명중 · 회피 · 치명타 환산 배율 [임시] (효과 명중 · 저항은 1)
 
   // ── 성장
@@ -59,6 +59,11 @@ export const CFG = {
 
   // ── 파티/보드
   victoryPhase: 6, // 이 페이즈 보스를 이기면 의뢰 성공
+  // 전환 노드 (짝수 페이즈): 휴식 = 체력 회복 + 공명도 소량 / 도전 = 다음 페이즈 역경급 전투, 승리 시 남은 노드 보상을 몰아 받고 다음 페이즈로
+  forkRestHp: 20, forkRestXp: 0.5, // 휴식: 체력 +n, 공명도 = 전투 1회 풀 × k
+  challengeXp: 4.5, // 도전 승리: 공명도 = 전투 1회 풀 × k
+  amundsenRecruitW: 0.08, // 영입 후보 가중치 (다른 기물 = 1)
+  joinRankRatio: 0.7, // 영입 · 합류 등급 = max(페이즈 - 1, 출전 기물 평균 등급 × k)
   startUnits: 4, maxParty: 16, // 출전 최대 10 + 대기 6
   deployCap: (phase: number) => Math.min(10, 3 + phase), // [임시]
   benchXpWeight: 0.5, // 대기 기물의 공명도 분배 가중치 (출전 기물 대비)

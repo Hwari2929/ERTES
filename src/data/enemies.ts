@@ -146,14 +146,20 @@ export const ENEMIES: EnemyDef[] = [
     hp: 280, power: 26, armor: 60, interval: 1.2, range: 3, atk: { type: 'shoot', elem: 'chem' }, melee: false,
     onBasic: (b, u, t) => { corrode(b, u, t, 0.85, 3, 0.3); } },
   { id: 'sw_carrier', name: '마부 개체', keywords: ['bio'], sprite: 'beast', palette: SWARM2, tier: 'minion', minPhase: 2,
-    hp: 900, power: 30, armor: 300, interval: 1.4, range: 1, moveSpd: 0.7, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hp: 900, power: 30, armor: 230, interval: 1.4, range: 1, moveSpd: 0.7, atk: { type: 'strike', elem: 'phys' }, melee: true,
     skill: {
       name: '짓밟기', cd: 10, needsRange: true, params: {}, desc: () => '주변 적 피해 + 기절',
       cast(b, u) { b.fx(u.x, u.y, 1, 'phys'); for (const e of b.around(u, 1, b.enemiesOf(u))) { skillHit(b, u, e, 'strike', 1.0, 'phys'); b.stun(u, e, 1, 0.6); } return true; },
     } },
   { id: 'sw_brood', name: '군체 산란체', keywords: ['bio'], sprite: 'crawler', palette: SWARM_ELITE, tier: 'elite', minPhase: 1,
     hp: 1200, power: 36, armor: 200, interval: 1.2, range: 1, moveSpd: 0.8, atk: { type: 'strike', elem: 'chem' }, melee: true,
-    onTick: (b, u, dt) => { u.mem.spawnT = (u.mem.spawnT || 0) + dt; if (u.mem.spawnT >= 10) { u.mem.spawnT = 0; summonHook?.(b, u, 'sw_spore', 2); } } },
+    onTick: (b, u, dt) => {
+      u.mem.spawnT = (u.mem.spawnT || 0) + dt;
+      if (u.mem.spawnT < 14) return;
+      u.mem.spawnT = 0;
+      const alive = b.units.filter((x) => x.alive && x.side === u.side && x.defId === 'sw_spore').length; // 포자 동시 생존 최대 6
+      if (alive < 6) summonHook?.(b, u, 'sw_spore', Math.min(2, 6 - alive));
+    } },
   { id: 'sw_queen', name: '군체 여왕', keywords: ['bio', 'phantom'], sprite: 'phantom', palette: SWARM_BOSS, tier: 'boss', minPhase: 1,
     hp: 3000, power: 46, armor: 180, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     escort: ['sw_hound', 'sw_spitter'],
