@@ -835,6 +835,7 @@ function updateMeter(force = false) {
     ${tab === 'dmg' ? `<span class="mbar">${elemBar(a)}<i class="fill" style="width:${(a.dmg / max) * 100}%"></i></span>` : `<span class="mbar"><i style="width:${(val(a) / max) * 100}%"></i></span>`}
     <b class="mono">${tab === 'kills' ? a.kills : fmt(val(a))}</b>
     ${tab === 'support' ? `<small class="heal-t">회복 ${fmt(a.healed)} · 보호막 ${fmt(a.shield)}</small>` : ''}</div>`).join('');
+  followCamera(v.b);
   renderBattleUnit(v.b, force);
   v.select(app.battleSel);
 }
@@ -1303,6 +1304,17 @@ function carStep(dir: number) {
   track.scrollBy({ left: dir * (card.offsetWidth + gap), behavior: 'smooth' });
 }
 
+/** 전투 카메라: 가장 아래쪽 기물이 화면 맨 아래 줄에 오도록 세로 위치를 맞춘다 (사거리 최대 4칸이라 교전은 화면 안) */
+function followCamera(b: Battle) {
+  const inner = document.querySelector<HTMLElement>('.bview .board-in');
+  if (!inner) return;
+  const alive = b.units.filter((u) => u.alive);
+  if (!alive.length) return;
+  const viewH = b.h - 2 * PAD;
+  const maxY = Math.max(...alive.map((u) => u.y));
+  const top = Math.max(0, Math.min(b.h - viewH, maxY - (viewH - 1)));
+  inner.style.top = `calc(${-top} * 100% / var(--h))`;
+}
 /** 전투 보드 끌어서 보기: 배치 구역이 기본 화면, 놓으면 가운데로 돌아온다 */
 function initBoardPan(view: HTMLElement) {
   const inner = view.querySelector<HTMLElement>('.board-in');
@@ -1311,7 +1323,7 @@ function initBoardPan(view: HTMLElement) {
   view.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     id = e.pointerId; sx = e.clientX; sy = e.clientY; moved = false;
-    inner.style.transition = 'none';
+    inner.style.transition = 'top .6s cubic-bezier(.4, 0, .2, 1)';
   });
   view.addEventListener('pointermove', (e) => {
     if (e.pointerId !== id) return;
@@ -1326,7 +1338,7 @@ function initBoardPan(view: HTMLElement) {
   const end = (e: PointerEvent) => {
     if (e.pointerId !== id) return;
     id = -1;
-    inner.style.transition = 'transform .35s cubic-bezier(.2, .8, .3, 1)';
+    inner.style.transition = 'transform .35s cubic-bezier(.2, .8, .3, 1), top .6s cubic-bezier(.4, 0, .2, 1)';
     inner.style.transform = '';
     view.classList.remove('panning');
     if (moved) { suppressClick = true; setTimeout(() => { suppressClick = false; }, 60); }

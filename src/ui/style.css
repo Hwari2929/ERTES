@@ -1050,3 +1050,4 @@ body:has(.nr) { overflow: hidden; margin: 0; }
   .rc-syn { flex: 1 1 100%; }
   .rc-syn .syn-tx { display: none; }
 }
+.board-in { transition: top .6s cubic-bezier(.4, 0, .2, 1); }
