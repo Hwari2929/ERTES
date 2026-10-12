@@ -997,7 +997,13 @@ function pendingModal(run: RunState): string {
     const pick = app.recruitPick && p.options.includes(app.recruitPick) ? app.recruitPick : null;
     body = `<div class="rc-head"><div><h1>기물 영입</h1><p class="muted small">새 동료 한 명을 고르세요. 공명 등급 ${rank}로 합류합니다. 보유 ${run.units.length}/${CFG.maxParty} (출전 최대 ${R.deployCap(run)}명)</p></div>${detailToggle()}</div>
       <div class="rc-track">${p.options.map((id) => pickCard(UNIT_BY_ID[id], { on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), extra: `<span class="rank rc-rank">${rankLabel(rank)}</span>` })).join('')}</div>
-      <div class="rc-foot"><span class="muted small">${pick ? `${esc(UNIT_BY_ID[pick].name)} 선택됨` : CAN_HOVER ? '카드에 마우스를 올리면 설명, 누르면 선택' : '탭하면 선택 · 하단을 끌어올리면 설명'}</span>
+      <div class="rc-foot">${pick ? (() => {
+        // 영입하면 바뀌는 시너지: 보유 기물 + 이 기물 기준 인원, 단계가 오르면 강조
+        const d = UNIT_BY_ID[pick];
+        const owned = run.units.map((x) => x.defId);
+        const before = teamCount(owned), after = teamCount([...owned, pick]);
+        return `<div class="rc-syn"><span class="small"><b>${esc(d.name)}</b> 영입 시</span><div class="nr-syn syn-list">${[...d.factions, ...d.traits].map((id) => synToken(id, after(id), tierOf(id as SynergyId, after(id)) > tierOf(id as SynergyId, before(id)) ? ' up' : '')).join('')}</div></div>`;
+      })() : ''}<span class="muted small">${pick ? `${esc(UNIT_BY_ID[pick].name)} 선택됨` : CAN_HOVER ? '카드에 마우스를 올리면 설명, 누르면 선택' : '탭하면 선택 · 하단을 끌어올리면 설명'}</span>
         <button class="btn primary" data-a="pick-recruit" data-v="${pick || ''}" ${pick ? '' : 'disabled'}>영입</button></div>`;
   } else if (p.t === 'branch') {
     const BR: Partial<Record<NodeType, string>> = {

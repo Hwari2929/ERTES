@@ -1028,3 +1028,11 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .nr-syn .syn-b { width: 34px; height: 34px; }
 .nr-syn .syn-dia { width: 26px; height: 26px; }
 .nr-syn .syn-tx b { font-size: .8rem; }
+/* 계약 화면: 마름모 + 인원만 */
+.nr-foot .nr-syn .syn-tx { display: none; }
+.nr-foot .nr-syn { gap: 6px 8px; }
+/* 영입 화면: 영입 시 바뀌는 시너지 */
+.rc-syn { display: flex; align-items: center; gap: 10px; margin-right: auto; min-width: 0; flex-wrap: wrap; }
+.rc-syn .nr-syn { flex: none; }
+.syn-tk.up .syn-dia { box-shadow: 0 0 0 2px var(--c), 0 0 12px var(--c); }
+.syn-tk.up .syn-tx b::after { content: ' ▲'; color: var(--c); font-size: .7em; }
