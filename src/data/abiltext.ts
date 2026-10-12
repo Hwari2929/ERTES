@@ -6,6 +6,11 @@
 //   [t:칸] [s:초] [p:비율] [pp:비율포인트]
 // 위력 종류: shoot · strike · tech (지휘관은 자동으로 전술 위력)
 
+import { ABIL_A } from './abil/a';
+import { ABIL_B } from './abil/b';
+import { ABIL_C } from './abil/c';
+import { ABIL_F } from './abil/f';
+
 /** 대상 범위: 단일 / 대상 주변 r칸 / 자신 주변 r칸 / 직선 / 전체 */
 export type Area = { k: 'one' } | { k: 'around'; r: number } | { k: 'self'; r: number } | { k: 'line' } | { k: 'all' };
 export interface SkillInfo {
@@ -55,7 +60,7 @@ export const GLOSS: Record<string, { name: string; desc: string }> = {
 const aroundOr = (r: number): Area => (r ? { k: 'around', r } : { k: 'one' });
 const hitsTxt = (n: number) => (n > 1 ? `:${n}` : '');
 
-export const ABIL: Record<string, AbilText> = {
+const ABIL_PILOT: Record<string, AbilText> = {
   yelena: {
     skill: (p) => ({
       tgt: '현재 대상', range: 'unit', area: aroundOr(p.radius),
@@ -156,8 +161,14 @@ export const ABIL: Record<string, AbilText> = {
   },
 };
 
+export const ABIL: Record<string, AbilText> = { ...ABIL_A, ...ABIL_B, ...ABIL_C, ...ABIL_F, ...ABIL_PILOT };
+
+/** 공용 증강 (메이저 · 사이오닉) */
+export const AUG_TEXT: Record<string, string> = {};
+
 /** 증강 id(owner.key) → 통일 문장 */
 export function augAbilText(id: string): string | null {
+  if (AUG_TEXT[id]) return AUG_TEXT[id];
   const i = id.indexOf('.');
   if (i < 0) return null;
   return ABIL[id.slice(0, i)]?.augs?.[id.slice(i + 1)] ?? null;
