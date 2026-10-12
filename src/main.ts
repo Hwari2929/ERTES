@@ -172,7 +172,7 @@ function topbar() {
       ${extra.length ? `<details class="pill more"><summary title="기타 자원">${lineIcon('r.more', 'li')}<span class="more-tx">기타</span></summary><ul class="more-list">${extra.join('')}</ul></details>` : ''}
     </div>
     ${app.screen === 'battle' ? '' : `<button class="btn ghost menu-btn" data-a="menu" title="메뉴" aria-label="메뉴">${lineIcon('r.menu', 'li')}</button>`}
-    ${syns.length && app.screen !== 'battle' ? `<div class="top-syns pc-syn">${syns.map((s) => synToken(s.id, counts[s.id] || 0)).join('')}</div>` : ''}
+    ${syns.length && app.screen !== 'battle' ? `<div class="top-syns-wrap"><div class="top-syns pc-syn">${syns.map((s) => synToken(s.id, counts[s.id] || 0)).join('')}</div><span class="ts-more" aria-hidden="true">›</span></div>` : ''}
   </header>`;
 }
 
@@ -1222,6 +1222,13 @@ function render() {
   lastView.screen = app.screen; lastView.modal = modalKey;
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && app.screen === 'prep' ? recoModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   layoutPanels();
+  // 리본 시너지 줄: 넘치면 오른쪽 끝에 '더 있음' 표시 (끝까지 밀면 사라짐)
+  const ts = root.querySelector<HTMLElement>('.top-syns');
+  if (ts) {
+    const upd = () => ts.parentElement!.classList.toggle('more', ts.scrollLeft + ts.clientWidth < ts.scrollWidth - 4);
+    upd();
+    ts.addEventListener('scroll', upd, { passive: true });
+  }
   // 노드 타임라인: 현재 단계를 가운데로 (다음 노드가 보이도록)
   const tl = root.querySelector<HTMLElement>('.tl');
   const cur = tl?.querySelector<HTMLElement>('.tl-step.cur');
