@@ -6,10 +6,10 @@
 //   [t:칸] [s:초] [p:비율] [pp:비율포인트]
 // 위력 종류: shoot · strike · tech (지휘관은 자동으로 전술 위력)
 
-import { ABIL_A } from './abil/a';
-import { ABIL_B } from './abil/b';
-import { ABIL_C } from './abil/c';
-import { ABIL_F } from './abil/f';
+import { ABIL_A, GLOSS_A } from './abil/a';
+import { ABIL_B, GLOSS_B } from './abil/b';
+import { ABIL_C, GLOSS_C } from './abil/c';
+import { ABIL_F, GLOSS_F } from './abil/f';
 
 /** 대상 범위: 단일 / 대상 주변 r칸 / 자신 주변 r칸 / 직선 / 전체 */
 export type Area = { k: 'one' } | { k: 'around'; r: number } | { k: 'self'; r: number } | { k: 'line' } | { k: 'all' };
@@ -160,6 +160,8 @@ const ABIL_PILOT: Record<string, AbilText> = {
     },
   },
 };
+
+for (const g of [GLOSS_A, GLOSS_B, GLOSS_C, GLOSS_F]) for (const [k, v] of Object.entries(g)) GLOSS[k] ??= v;
 
 export const ABIL: Record<string, AbilText> = { ...ABIL_A, ...ABIL_B, ...ABIL_C, ...ABIL_F, ...ABIL_PILOT };
 
