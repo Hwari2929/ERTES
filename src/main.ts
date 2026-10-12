@@ -153,20 +153,28 @@ function topbar() {
   const r = app.run;
   if (!r) return '';
   const cap = R.deployCap(r);
+  // 기타 자원: 권능 · 명성 · 축복 (눌러서 펼침)
+  const extra = [
+    r.power || R.hasDivine(r) ? `<li class="faith" title="권능 포인트: 디바인 기물이 전투에서 모은 신성력 ÷ ${CFG.powerPerDiv}. 순례에서 사용"><span>권능</span><b>${r.power}</b></li>` : '',
+    r.fame ? `<li class="fame"><span>명성</span><b>${r.fame}</b></li>` : '',
+    r.blessing ? `<li class="faith" title="${esc(BLESSING_BY_ID[r.blessing].desc)}"><span>축복</span><b>${esc(BLESSING_BY_ID[r.blessing].name)}</b></li>` : '',
+    r.loan ? `<li><span>대출 상환</span><b>${r.loan}</b></li>` : '',
+  ].filter(Boolean);
+  // 활성 시너지 아이콘 줄 (모바일 전용, 아이콘만)
+  const counts = synergyCounts(deployed(r), r);
+  const syns = SYNERGIES.filter((s) => (counts[s.id] || 0) > 0).sort((a, b) => tierOf(b.id, counts[b.id] || 0) - tierOf(a.id, counts[a.id] || 0) || (counts[b.id] || 0) - (counts[a.id] || 0));
   return `<header class="top">
     <div class="brand">ERRANTEs</div>
     <div class="stat-row">
-      <span class="pill">페이즈 <b>${r.phase}</b> · 노드 ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>
-      <span class="pill hp">체력 <b>${r.hp}</b>/${r.maxHp}</span>
-      <span class="pill cr" title="에너지 크레딧">${CR}<b>${r.credits}</b>${r.loan ? ` <small>(대출 ${r.loan})</small>` : ''}</span>
-      ${r.streak >= 2 ? `<span class="pill">🔥 ${r.streak}연승</span>` : ''}
-      ${r.power || R.hasDivine(r) ? `<span class="pill faith" title="권능 포인트: 디바인 기물이 전투에서 모은 신성력 ÷ ${CFG.powerPerDiv}. 순례 노드에서 사용">권능 <b>${r.power}</b></span>` : ''}
-      ${r.fame ? `<span class="pill fame">명성 <b>${r.fame}</b></span>` : ''}
-      ${r.blessing ? `<span class="pill faith" title="${esc(BLESSING_BY_ID[r.blessing].desc)}">축복: ${esc(BLESSING_BY_ID[r.blessing].name)}</span>` : ''}
-      <span class="pill">출전 ${deployed(r).length}/${cap}</span>
+      <span class="pill" title="페이즈 · 노드">P<b>${r.phase}</b> · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>
+      <span class="pill hp" title="체력">${lineIcon('r.hp', 'li')}<b>${r.hp}</b>/${r.maxHp}</span>
+      <span class="pill cr" title="에너지 크레딧">${CR}<b>${r.credits}</b></span>
+      ${r.streak >= 2 ? `<span class="pill streak" title="${r.streak}연승">${lineIcon('r.streak', 'li')}<b>${r.streak}</b></span>` : ''}
+      <span class="pill" title="출전 인원">출전 <b>${deployed(r).length}</b>/${cap}</span>
+      ${extra.length ? `<details class="pill more"><summary title="기타 자원">${lineIcon('r.more', 'li')}<span>기타</span></summary><ul class="more-list">${extra.join('')}</ul></details>` : ''}
     </div>
-    
     ${app.screen === 'battle' ? '' : '<button class="btn ghost" data-a="menu">메뉴</button>'}
+    ${syns.length && app.screen !== 'battle' ? `<div class="top-syns pc-syn">${syns.map((s) => synToken(s.id, counts[s.id] || 0)).join('')}</div>` : ''}
   </header>`;
 }
 
@@ -1098,6 +1106,17 @@ function menuModal(run: RunState | null) {
 
 // ───────────────────────── 렌더
 const lastView = { screen: '' as string, modal: '' };
+let lastPhase = 0;
+/** 화면 전환 연출: 전투 개시 · 보스전 · 페이즈 전환 */
+function banner(kind: 'battle' | 'boss' | 'phase' | 'adversity', title: string, sub = '') {
+  document.querySelector('.banner')?.remove();
+  const el = document.createElement('div');
+  el.className = `banner bn-${kind}`;
+  el.setAttribute('aria-live', 'polite');
+  el.innerHTML = `<div class="bn-band"><span class="bn-line"></span><b>${esc(title)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}<span class="bn-line"></span></div>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), kind === 'boss' ? 2300 : 1800);
+}
 /** 상세 능력치 창 (상세 보기 패널 바깥, 위치는 layoutPanels 가 잡는다) */
 function statPopHtml(run: RunState) {
   const sel = app.sel;
@@ -1198,6 +1217,7 @@ function render() {
   // 다시 그려도 같은 화면 · 같은 창이면 스크롤 위치를 유지한다
   const modalKey = run?.pending[0] ? JSON.stringify([run.pending[0].t, (run.pending[0] as { uid?: string }).uid, (run.pending[0] as { allocDone?: boolean }).allocDone]) : app.menu || '';
   const sameView = lastView.screen === app.screen;
+  const newModal = lastView.modal !== modalKey;
   const keep = ['.side.left', '.side.right', 'aside.side', '.codex-grid'].map((sel) => [sel, root.querySelector(sel)?.scrollTop || 0] as const);
   const modalTop = lastView.modal === modalKey ? root.querySelector('.modal')?.scrollTop || 0 : 0;
   const winY = window.scrollY;
@@ -1214,6 +1234,10 @@ function render() {
   }
   const md = root.querySelector('.modal');
   if (md && modalTop) md.scrollTop = modalTop;
+  if (md && newModal) md.classList.add('enter');
+  // 페이즈 전환 연출
+  if (run && run.phase !== lastPhase) { if (lastPhase && run.phase > lastPhase) banner('phase', `PHASE ${run.phase}`, `${fieldOf(run.field).name} · 적이 강해집니다`); lastPhase = run.phase; }
+  if (!run) lastPhase = 0;
   if (app.screen === 'newrun') setupCarousel();
   const rc = root.querySelector<HTMLElement>('.rc-track');
   if (rc) bindCardDrag(rc);
@@ -1357,6 +1381,10 @@ function initBoardPan(view: HTMLElement) {
 }
 function mountBattleView(board: HTMLElement) {
   const run = app.run!;
+  const nt = run.node?.type;
+  const enc = run.node!.enc!;
+  if (nt === 'boss') banner('boss', 'BOSS', ENEMY_BY_ID[enc.enemies.find((e) => ENEMY_BY_ID[e.defId].tier === 'boss')?.defId || '']?.name || '보스전');
+  else banner(nt === 'adversity' ? 'adversity' : 'battle', nt === 'adversity' ? '역경 전투' : '전투 개시', enc.env);
   const b = buildBattle(run, run.node!.enc!);
   app.lastBattle = b;
   app.battleSel = null;
@@ -1373,7 +1401,9 @@ function mountBattleView(board: HTMLElement) {
     root.querySelector('main.battle')?.insertAdjacentHTML('beforeend', summaryModal(run));
   });
   applySpeed();
-  app.view.start();
+  // 개시 연출이 지나간 뒤 전투 시작
+  const v = app.view;
+  setTimeout(() => { if (app.view === v) v.start(); }, nt === 'boss' ? 1300 : 800);
 }
 
 function goPrepOrMap() {
