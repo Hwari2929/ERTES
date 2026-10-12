@@ -35,9 +35,9 @@ export function powType(ctx: AbilCtx, pow: Pow, tactical = false) {
   const k = powKey(ctx, pow, tactical);
   return `<span class="pw pw-${k}">${lineIcon(`p.${k}`, 'li')}${POW_KO[k]}</span>`;
 }
-const healNum = (ctx: AbilCtx, mult: number, icon: string, plus = false) => {
-  const v = powVal(ctx, 'tech');
-  return `<span class="pw pw-heal" title="${POW_KO[powKey(ctx, 'tech')]} × ${pct(mult)}">${lineIcon(icon, 'li')}<b>${plus ? '+' : ''}${v === null ? pct(mult) : fmt(v * mult)}</b></span>`;
+const healNum = (ctx: AbilCtx, mult: number, icon: string, plus = false, pow: Pow = 'tech') => {
+  const v = powVal(ctx, pow);
+  return `<span class="pw pw-heal" title="${POW_KO[powKey(ctx, pow)]} × ${pct(mult)}">${lineIcon(icon, 'li')}<b>${plus ? '+' : ''}${v === null ? pct(mult) : fmt(v * mult)}</b></span>`;
 };
 export const elemChip = (e: Elem) => `<span class="elc el-${e}">${ELEM_NAME[e]}</span>`;
 const kw = (key: string, gl: Set<string>) => { gl.add(key); return `<b class="kw">${esc(GLOSS[key]?.name || key)}</b>`; };
@@ -61,9 +61,10 @@ export function tok(text: string, ctx: AbilCtx, gl: Set<string>): string {
         return `${powNum(ctx, a[0] as Pow, num(a[1], ctx), false, false, a[2] as Elem)}${hits > 1 ? `<b class="hits">×${hits}</b>` : ''}`;
       }
       case 'dmg+': return powNum(ctx, a[0] as Pow, num(a[1], ctx), true, false, a[2] as Elem | undefined);
-      case 'heal': return `${healNum(ctx, num(a[0], ctx), 'a.heal')} 회복`;
-      case 'heal+': return healNum(ctx, num(a[0], ctx), 'a.heal', true);
-      case 'shield': return `${healNum(ctx, num(a[0], ctx), 'a.shield')} 보호막`;
+      case 'heal': return `${healNum(ctx, num(a[0], ctx), 'a.heal', false, (a[1] as Pow) || 'tech')} 회복`;
+      case 'heal+': return healNum(ctx, num(a[0], ctx), 'a.heal', true, (a[1] as Pow) || 'tech');
+      case 'shield': return `${healNum(ctx, num(a[0], ctx), 'a.shield', false, (a[1] as Pow) || 'tech')} 보호막`;
+      case 'shield+': return healNum(ctx, num(a[0], ctx), 'a.shield', true, (a[1] as Pow) || 'tech');
       case 'st': {
         const ch = a[2] ? num(a[2], ctx) : 1;
         return `${ch < 1 ? `${pct(ch)} 확률로 ` : ''}${num(a[1], ctx)}초 ${kw(a[0], gl)}`;
