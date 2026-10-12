@@ -61,7 +61,7 @@ function manage(run: RunState) {
     const idx = run.inventory.findIndex((x) => !x.startsWith('M_'));
     const it = run.inventory[idx];
     // 빈 칸, 같은 재료(→ 고급) 순. 칸이 다 차면 서로 다른 재료 하나를 빼고 더 좋은 장비로 교체
-    let target = sorted.find((u) => it[0] === 'C' && u.items.includes(it)) || sorted.find((u) => u.items.includes(null));
+    let target = sorted.find((u) => it[0] === 'C' && u.items.some((x) => x && x[0] === 'C')) || sorted.find((u) => u.items.includes(null));
     if (!target && it[0] !== 'C') {
       target = sorted.find((u) => u.items.some((x) => x && x[0] === 'C'));
       if (target) { const k = target.items.findIndex((x) => x && x[0] === 'C'); R.unequip(run, target.uid, k); }

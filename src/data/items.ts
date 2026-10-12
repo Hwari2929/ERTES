@@ -4,7 +4,7 @@ import type { Major, SynergyId } from '../types';
 import { MAJOR_NAME } from '../types';
 import { SYN_BY_ID } from './synergies';
 
-// 장비 등급: 재료(+3) · 고급(같은 재료 2개 조합, 능력치 +12, 효과 없음) · 희귀(능력치 낮음 + 특수 효과) · 전설(효과 3배, 조합 불가 · 이벤트 · 상점)
+// 장비 등급: 재료(+3) → 고급(같은 재료 2개, 능력치 +12) / 희귀(서로 다른 재료 2개, 능력치 +6 + 특수 효과) · 전설(효과 3배, 조합 불가 · 이벤트 · 상점)
 export const COMPONENTS: { id: string; major: Major; name: string; icon: string }[] = [
   { id: 'C_vit', major: 'vit', name: '강화 섬유', icon: '❤' },
   { id: 'C_pow', major: 'pow', name: '출력 코어', icon: '⚔' },
@@ -98,7 +98,7 @@ export function itemInfo(id: string): ItemInfo {
   const mtxt = Object.entries(majors).map(([m, v]) => `${MAJOR_NAME[m as Major]} +${v}`).join(', ');
   return {
     id, tier, name: (tier === 'L' ? '[전설] ' : '') + a.name, icon: COMPONENTS.find((c) => c.major === a.a)!.icon,
-    majors, desc: `${mtxt}. ${a.desc(k)}`,
+    majors, desc: `${mtxt}. ${a.desc(k)}`, recipe: tier === 'A' && a.a !== a.b ? [`C_${a.a}`, `C_${a.b}`] : undefined,
   };
 }
 
@@ -115,8 +115,14 @@ export function itemEffect(id: string): Effect {
 
 export function combine(x: string, y: string): string | null {
   if (isLocked(x) || isLocked(y)) return null;
-  // 같은 재료 2개 → 고급. 희귀 · 전설은 조합 불가
-  if (x[0] === 'C' && x === y) return `G_${x.slice(2)}`;
+  // 같은 재료 2개 → 고급, 서로 다른 재료 2개 → 희귀. 전설은 조합 불가
+  if (x[0] === 'C' && y[0] === 'C') {
+    if (x === y) return `G_${x.slice(2)}`;
+    const ma = x.slice(2), mb = y.slice(2);
+    const order = ['vit', 'pow', 'mnd', 'def', 'agi'];
+    const [p, q] = order.indexOf(ma) <= order.indexOf(mb) ? [ma, mb] : [mb, ma];
+    return `A_${p}_${q}`;
+  }
   return null;
 }
 

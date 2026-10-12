@@ -83,7 +83,7 @@ function playRun(seed: number) {
     for (let guard = 0; guard < 20 && run.inventory.some((x) => !x.startsWith('M_')); guard++) {
       const idx = run.inventory.findIndex((x) => !x.startsWith('M_'));
       const it = run.inventory[idx];
-      let target = sorted.find((u) => it[0] === 'C' && u.items.includes(it)) || sorted.find((u) => u.items.includes(null));
+      let target = sorted.find((u) => it[0] === 'C' && u.items.some((x) => x && x[0] === 'C')) || sorted.find((u) => u.items.includes(null));
       if (!target && it[0] !== 'C') {
         target = sorted.find((u) => u.items.some((x) => x && x[0] === 'C'));
         if (target) { const k = target.items.findIndex((x) => x && x[0] === 'C'); R.unequip(run, target.uid, k); }

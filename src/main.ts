@@ -711,7 +711,7 @@ function summaryModal(run: RunState) {
 function shopScreen(run: RunState) {
   const stock = run.node?.shop || [];
   return `<main class="wrap">
-    <div class="screen-head"><h1>암시장 상점</h1><p class="muted">같은 재료 2개를 같은 기물에 장착하거나 보관함에서 겹치면 고급 장비(능력치 +12)가 됩니다. 희귀 장비는 능력치가 낮지만 고유 효과가 있고, 전설 장비는 합성할 수 없습니다.</p></div>
+    <div class="screen-head"><h1>암시장 상점</h1><p class="muted">재료 2개를 같은 기물에 장착하거나 보관함에서 겹치면 합성됩니다. 같은 재료 → 고급 장비(능력치 +12), 서로 다른 재료 → 희귀 장비(능력치 +6 + 고유 효과). 전설 장비는 합성할 수 없습니다.</p></div>
     <div class="shop">${stock.map((s, i) => {
       const it = itemInfo(s.item);
       return `<div class="shop-item t${it.tier} ${s.sold ? 'sold' : ''}">${itemIcon(s.item)}<div><b>${esc(it.name)}</b><div class="small muted">${statIc(esc(it.desc))}</div></div>
@@ -942,7 +942,7 @@ function statPopHtml(run: RunState) {
   return `<div class="stat-pop"><div class="sp-head"><b>상세 능력치</b>${u.pos ? '' : '<span class="muted small">시너지 미적용</span>'}<button class="btn tiny" data-a="stat-pop">닫기</button></div>${statLines(c, b)}</div>`;
 }
 
-/** 전투 유형별 추천 희귀 장비 (id 접미사) */
+/** 전투 유형별 추천 희귀 장비 (재료 조합 id) */
 const RECO: Record<string, string[]> = {
   MARK: ['pow_agi', 'pow_mnd', 'pow_pow', 'agi_agi', 'mnd_agi'],
   VAN: ['vit_pow', 'vit_def', 'pow_def', 'def_def', 'vit_vit'],
@@ -961,13 +961,20 @@ function recoModal(run: RunState) {
     const mine = u.items.filter((x) => x && ids.includes(x)).length;
     const inv = run.inventory.filter((x) => ids.includes(x)).length;
     const allies = run.units.filter((o) => o !== u && o.items.some((x) => x && ids.includes(x))).map((o) => name(o.uid));
+    const [ca, cb] = it.recipe || [];
+    const need: Record<string, number> = {};
+    const parts = [ca, cb].filter(Boolean).map((c) => {
+      need[c!] = (need[c!] || 0) + 1;
+      const have = run.inventory.filter((x) => x === c).length >= need[c!];
+      return `${itemIcon(c!)}${have ? '<b class="up small">보유</b>' : '<span class="muted small">없음</span>'}`;
+    }).join('');
     const st = [mine ? '<span class="rc-tag on">장착 중</span>' : '', inv ? `<span class="rc-tag rc-inv">보관함 ${inv}</span>` : '', ...allies.map((n) => `<span class="rc-tag ally">${esc(n)} 장착</span>`)].join('');
     return `<li class="rc-row">${itemIcon(`A_${key}`)}<div class="rc-main"><b>${esc(it.name)}</b><span class="small muted">${statIc(esc(it.desc))}</span>
-      <div class="rc-st">${st || '<span class="muted small">보유하지 않음</span>'}</div></div></li>`;
+      <div class="rc-st">${st || '<span class="muted small">보유하지 않음</span>'}</div></div><div class="rc-parts" title="조합 재료">${parts || '<span class="muted small">조합 불가</span>'}</div></li>`;
   }).join('');
   return `<div class="modal-bg" data-a="reco" data-v=""><div class="modal reco">
     <h1>추천 장비 <span class="muted small">${esc(d.name)} · ${CTYPE_NAME[d.ctype]}</span></h1>
-    <p class="muted small">전투 유형에 맞는 희귀 장비입니다. 합성할 수 없으며 상점 · 보급 · 사건에서 얻습니다.</p>
+    <p class="muted small">전투 유형에 맞는 희귀 장비입니다. 서로 다른 재료 2개를 겹치면 만들 수 있습니다 (같은 유형 조합은 상점 · 보급 · 사건에서만).</p>
     <ul class="rc-list">${rows}</ul>
     <div class="row-btns"><button class="btn primary" data-a="reco" data-v="">닫기</button></div>
   </div></div>`;

@@ -73,10 +73,10 @@ export const CFG = {
   lossCredits: 2,
   interestPer: 10, interestMax: 5,
   streakBonus: (streak: number) => (streak >= 6 ? 3 : streak >= 4 ? 2 : streak >= 2 ? 1 : 0),
-  price: { C: 7, G: 16, A: 18, L: 60 } as Record<string, number>,
-  sell: { C: 3, G: 7, A: 8, L: 20, M: 6 } as Record<string, number>,
+  price: { C: 7, G: 16, A: 16, L: 60 } as Record<string, number>,
+  sell: { C: 3, G: 7, A: 7, L: 20, M: 6 } as Record<string, number>,
   // 장비 드랍 [임시]
-  drop: { battle: 0.1, adversity: 0.5, bossAdvEvery: 3, bossPart: 0.5, shopParts: 2, shopAdv: 1, shopAdv2: 0.25, shopGraded: 0.3, shopLegend: 0.05, shopLegendPhase: 6, supplyAdv: 0.3 },
+  drop: { battle: 0.1, adversity: 0.5, bossAdvEvery: 3, bossPart: 0.5, shopParts: 2, shopAdv: 0.4, shopAdv2: 0.1, shopGraded: 0.15, shopLegend: 0.05, shopLegendPhase: 6, supplyAdv: 0.12 },
   inventoryMax: 12,
 
   // ── 플레이어 체력 [임시]
