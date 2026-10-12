@@ -21,13 +21,24 @@ export function powVal(ctx: AbilCtx, pow: Pow, tactical = false): number | null 
   if (!ctx.b || !ctx.c) return null;
   return tactical ? ctx.b.tacPower(ctx.c) : ctx.b.P(ctx.c, pow);
 }
-/** 위력 아이콘 + 기본 피해량 (치명타 · 속성 보정 제외) */
-export function powNum(ctx: AbilCtx, pow: Pow, mult: number, plus = false, tactical = false) {
+/** 기본 피해량 (치명타 · 속성 보정 제외). 아이콘 · 색은 속성, 위력 종류는 '피해 유형' 항목에 따로 */
+export function powNum(ctx: AbilCtx, pow: Pow, mult: number, plus = false, tactical = false, elem?: Elem) {
   const k = powKey(ctx, pow, tactical);
   const v = powVal(ctx, pow, tactical);
   const txt = v === null ? `${POW_KO[k]} ${pct(mult)}` : fmt(v * mult);
-  return `<span class="pw pw-${k}" title="${POW_KO[k]} × ${pct(mult)}">${lineIcon(`p.${k}`, 'li')}<b>${plus ? '+' : ''}${txt}</b></span>`;
+  const cls = elem ? `pw el-t-${elem}` : `pw pw-${k}`;
+  const icon = elem ? `e.${elem}` : `p.${k}`;
+  return `<span class="${cls}" title="${POW_KO[k]} × ${pct(mult)}${elem ? ` · ${ELEM_NAME[elem]}` : ''}">${lineIcon(icon, 'li')}<b>${plus ? '+' : ''}${txt}</b></span>`;
 }
+/** 피해 유형: 위력 아이콘 + 이름 */
+export function powType(ctx: AbilCtx, pow: Pow, tactical = false) {
+  const k = powKey(ctx, pow, tactical);
+  return `<span class="pw pw-${k}">${lineIcon(`p.${k}`, 'li')}${POW_KO[k]}</span>`;
+}
+const healNum = (ctx: AbilCtx, mult: number, icon: string, plus = false) => {
+  const v = powVal(ctx, 'tech');
+  return `<span class="pw pw-heal" title="${POW_KO[powKey(ctx, 'tech')]} × ${pct(mult)}">${lineIcon(icon, 'li')}<b>${plus ? '+' : ''}${v === null ? pct(mult) : fmt(v * mult)}</b></span>`;
+};
 export const elemChip = (e: Elem) => `<span class="elc el-${e}">${ELEM_NAME[e]}</span>`;
 const kw = (key: string, gl: Set<string>) => { gl.add(key); return `<b class="kw">${esc(GLOSS[key]?.name || key)}</b>`; };
 
@@ -47,12 +58,12 @@ export function tok(text: string, ctx: AbilCtx, gl: Set<string>): string {
     switch (k) {
       case 'dmg': {
         const hits = a[3] ? +a[3] : 1;
-        return `${powNum(ctx, a[0] as Pow, num(a[1], ctx))}${hits > 1 ? `<b class="hits">×${hits}</b>` : ''} ${elemChip(a[2] as Elem)}`;
+        return `${powNum(ctx, a[0] as Pow, num(a[1], ctx), false, false, a[2] as Elem)}${hits > 1 ? `<b class="hits">×${hits}</b>` : ''}`;
       }
-      case 'dmg+': return powNum(ctx, a[0] as Pow, num(a[1], ctx), true);
-      case 'heal': return `${powNum(ctx, 'tech', num(a[0], ctx))} 회복`;
-      case 'heal+': return powNum(ctx, 'tech', num(a[0], ctx), true);
-      case 'shield': return `${powNum(ctx, 'tech', num(a[0], ctx))} 보호막`;
+      case 'dmg+': return powNum(ctx, a[0] as Pow, num(a[1], ctx), true, false, a[2] as Elem | undefined);
+      case 'heal': return `${healNum(ctx, num(a[0], ctx), 'a.heal')} 회복`;
+      case 'heal+': return healNum(ctx, num(a[0], ctx), 'a.heal', true);
+      case 'shield': return `${healNum(ctx, num(a[0], ctx), 'a.shield')} 보호막`;
       case 'st': {
         const ch = a[2] ? num(a[2], ctx) : 1;
         return `${ch < 1 ? `${pct(ch)} 확률로 ` : ''}${num(a[1], ctx)}초 ${kw(a[0], gl)}`;
@@ -105,37 +116,45 @@ export function weaponRows(w: Weapon, ctx: AbilCtx, elem: Elem, gl: Set<string>)
   const tac = !!w.tactical;
   if (tac) gl.add('tac');
   const atkSpd = b && c ? Math.max(0.2, 1 + b.S(c, 'atkSpd')) : 1;
-  const rows: [string, string][] = [['피해', `${powNum(ctx, pow, w.mult, false, tac)} ${elemChip(elem)}`],
-    ['공격 속도', `${(atkSpd / w.interval).toFixed(2)}회/초 <span class="muted">(간격 ${(w.interval / atkSpd).toFixed(2)}초)</span>`]];
+  const rows: [string, string][] = [['피해 유형', powType(ctx, pow, tac)], ['피해', powNum(ctx, pow, w.mult, false, tac, elem)],
+    ['공격 속도', `${(atkSpd / w.interval).toFixed(2)}회/초 <span class="muted">(${(w.interval / atkSpd).toFixed(2)}초)</span>`]];
   if (w.kind === 'mag') {
     const rs = b && c ? Math.max(0.2, 1 + b.S(c, 'reloadSpd')) : 1;
     gl.add('mag');
     rows.push(['탄창', `${lineIcon('u.mag', 'li')}${w.mag}발`], ['재장전', `${((w.reload || 1.5) / rs).toFixed(2)}초`]);
   } else if (w.kind === 'combo') {
     gl.add('combo'); gl.add('finish');
-    rows.push(['콤보', `${lineIcon('u.combo', 'li')}${w.combo}단`], ['피니쉬', `${powNum(ctx, pow, w.mult * CFG.finishMult, false, tac)} ${elemChip(elem)}`]);
+    rows.push(['콤보', `${lineIcon('u.combo', 'li')}${w.combo}단`], ['피니쉬', `<span class="coef">×${CFG.finishMult}</span>${powNum(ctx, pow, w.mult * CFG.finishMult, false, tac, elem)}`]);
   }
   return rows;
 }
-export function weaponChips(w: Weapon, ctx: AbilCtx, range: number) {
+export function weaponChips(w: Weapon, ctx: AbilCtx, range: number, elem: Elem) {
   const pow: Pow = w.type === 'shoot' ? 'shoot' : 'strike';
   if (w.kind === 'none') return '';
-  return [chip('u.range', `${range}칸`, '사거리'), powNum(ctx, pow, w.mult, false, !!w.tactical),
+  return [chip('u.range', `${range}칸`, '사거리'), powNum(ctx, pow, w.mult, false, !!w.tactical, elem),
     w.kind === 'mag' ? chip('u.mag', `${w.mag}발`, '탄창') : chip('u.combo', `${w.combo}단`, '콤보')].join('');
+}
+/** 팝업 본문: 왼쪽 사거리 · 범위 격자 (세로), 오른쪽 수치 */
+export function popBody(range: number | null, area: Area, rows: [string, string][]) {
+  // 자신 대상이면 범위 격자에 시전자가 이미 보이므로 사거리 격자는 생략
+  return `<div class="ap-body"><div class="ap-grids">${range === 0 ? '' : rangeGrid(range)}${areaGrid(area)}</div>${rowsHtml(rows)}</div>`;
 }
 
 // ───────── 전투 기술
 export function skillChips(info: SkillInfo, ctx: AbilCtx, range: number, cd: number) {
   const r = info.range === 'unit' ? range : info.range;
   const gl = new Set<string>();
-  const first = info.rows[0] ? tok(info.rows[0][1], ctx, gl).replace(/<span class="elc[^]*?<\/span>/, '') : '';
+  const first = info.rows[0] ? tok(info.rows[0][1], ctx, gl) : '';
   return `${chip('u.range', rangeLabel(r), '사거리')}${chip('u.area', areaLabel(info.area), '범위')}${chip('a.cd', `${cd.toFixed(1)}초`, '쿨다운')}${first ? `<span class="abc v">${first}</span>` : ''}`;
 }
 export function skillBody(info: SkillInfo, ctx: AbilCtx, range: number, cd: number, gl: Set<string>) {
   const r = info.range === 'unit' ? range : info.range;
-  return `<div class="ap-top">${rangeGrid(r)}${areaGrid(info.area)}
-    <dl class="ap-meta"><dt>대상</dt><dd>${esc(info.tgt)}</dd><dt>사거리</dt><dd>${rangeLabel(r)}</dd><dt>범위</dt><dd>${areaLabel(info.area)}</dd><dt>쿨다운</dt><dd>${cd.toFixed(1)}초</dd></dl></div>
-    ${rowsHtml(info.rows.map(([k, v]) => [k, tok(v, ctx, gl)]))}`;
+  const pow = info.rows.map(([, v]) => /\[dmg:(\w+):/.exec(v)?.[1]).find(Boolean) as Pow | undefined;
+  const healer = !pow && info.rows.some(([, v]) => /\[(heal|shield):/.test(v));
+  const rows: [string, string][] = [['대상', esc(info.tgt)], ['쿨다운', `${lineIcon('a.cd', 'li')}${cd.toFixed(1)}초`],
+    ...(pow ? [['피해 유형', powType(ctx, pow)] as [string, string]] : healer ? [['위력 기준', powType(ctx, 'tech')] as [string, string]] : []),
+    ...info.rows.map(([k, v]) => [k, tok(v, ctx, gl)] as [string, string])];
+  return popBody(r, info.area, rows);
 }
 export function rowsHtml(rows: [string, string][]) {
   return `<dl class="ap-rows">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join('')}</dl>`;

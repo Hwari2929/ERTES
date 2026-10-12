@@ -119,7 +119,14 @@ const L: Record<string, string> = {
   'u.area': '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" stroke-dasharray="3 3"/>',
   'u.target': '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
   'u.mag': '<rect x="4" y="9" width="4" height="12" rx="1"/><rect x="10" y="9" width="4" height="12" rx="1"/><rect x="16" y="9" width="4" height="12" rx="1"/><path d="M4 9l2-5 2 5M10 9l2-5 2 5M16 9l2-5 2 5"/>',
-  'u.combo': '<path d="M9 7H6a5 5 0 0 0 0 10h3M15 7h3a5 5 0 0 1 0 10h-3M8 12h8"/>',
+  'u.combo': '<path d="M12 2.5l1.6 5.2 4.9-2.6-2.6 4.9 5.6 1.5-5.6 1.6 2.6 4.8-4.9-2.6L12 21.5l-1.6-6.2-4.9 2.6 2.6-4.8L2.5 11.5l5.6-1.5L5.5 5.1l4.9 2.6z"/><path d="M12 9.5v5M9.5 12h5"/>',
+  // 속성
+  'e.phys': '<path d="M5 19 19 5M4 13l7-7M11 20l7-7"/>',
+  'e.chem': '<path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7 15h10"/>',
+  'e.elec': '<path d="M13 2.5 4.5 13.5H11L10 21.5l8.5-11H12z"/>',
+  'e.psy': '<path d="M12 12a2 2 0 1 1 2-2 4 4 0 1 1-4-4 6 6 0 1 1-6 6 8 8 0 1 0 8-8"/>',
+  'e.holy': '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/>',
+  'e.true': '<path d="M12 2.5 21 12l-9 9.5L3 12z"/><path d="M12 7.5 16.5 12 12 16.5 7.5 12z"/>',
   'u.finish': '<path d="M12 2l2.4 6.6L21 9l-5 4.4L17.5 21 12 17l-5.5 4L8 13.4 3 9l6.6-.4z"/>',
 };
 export function lineIcon(key: string, cls = 'li'): string {

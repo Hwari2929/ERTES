@@ -594,7 +594,7 @@ function abilCard(key: string, kind: keyof typeof AB_KIND, name: string, meta: s
 function weaponCard(w: Weapon, b: Battle | null, c: CUnit | null, elem = w.elem) {
   if (w.kind === 'none') return abilCard('weapon', 'weapon', w.name, '', '<p>기본 공격을 하지 않는다.</p>');
   const range = b && c ? b.S(c, 'range') : w.range;
-  return abilCard('weapon', 'weapon', w.name, WPOS(range), `<div class="ab-chips">${AB.weaponChips(w, actx(b, c), range)}${AB.elemChip(elem)}</div>`);
+  return abilCard('weapon', 'weapon', w.name, WPOS(range), `<div class="ab-chips">${AB.weaponChips(w, actx(b, c), range, elem)}</div>`);
 }
 function skillCard(d: UnitDef, b: Battle | null, c: CUnit | null) {
   const p = c?.sk || d.skill.params;
@@ -620,8 +620,7 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     const w = c?.weapon || d.weapon;
     const range = b && c ? b.S(c, 'range') : w.range;
     kind = '무기'; name = w.name;
-    body = w.kind === 'none' ? '<p>기본 공격을 하지 않는다.</p>' : `<div class="ap-top">${AB.rangeGrid(range)}${AB.areaGrid({ k: 'one' })}
-      <dl class="ap-meta"><dt>대상</dt><dd>현재 대상</dd><dt>사거리</dt><dd>${range}칸</dd><dt>범위</dt><dd>단일</dd></dl></div>${AB.rowsHtml(AB.weaponRows(w, ctx, c?.atk.elem || w.elem, gl))}`;
+    body = w.kind === 'none' ? '<p>기본 공격을 하지 않는다.</p>' : AB.popBody(range, { k: 'one' }, AB.weaponRows(w, ctx, c?.atk.elem || w.elem, gl));
   } else if (key === 'skill') {
     const p = c?.sk || d.skill.params;
     const info = ABIL[d.id]?.skill?.(p);

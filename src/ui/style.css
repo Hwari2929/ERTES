@@ -912,3 +912,11 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .mg-g i.tg { background: var(--bad); }
 .mg-g i.hit { background: color-mix(in srgb, var(--bad) 50%, transparent); }
 .mg figcaption { font-size: .68rem; color: var(--dim); white-space: nowrap; }
+/* 팝업 본문: 격자(세로) | 수치 */
+.ap-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; }
+.ap-grids { display: grid; gap: 10px; justify-items: center; padding-top: 2px; }
+.ap-body .ap-rows { align-self: stretch; align-content: start; }
+.el-t-phys { color: var(--el-phys); } .el-t-chem { color: var(--el-chem); } .el-t-elec { color: var(--el-elec); }
+.el-t-psy { color: var(--el-psy); } .el-t-holy { color: var(--el-holy); } .el-t-true { color: var(--el-true); }
+.pw-heal { color: var(--good); }
+.coef { font-family: var(--f-mono); font-size: .78rem; color: var(--dim); margin-right: 4px; }
