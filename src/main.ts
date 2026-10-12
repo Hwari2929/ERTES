@@ -29,7 +29,7 @@ import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 const PREF_KEY = 'errantes.prefs.v1';
 /** 전투 배속 (단축키 1~5) */
 const SPEEDS = [0.5, 1, 2, 4, 8];
-function loadPrefs(): { speed?: number; detail?: boolean } {
+function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean } {
   try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}; } catch { return {}; }
 }
 function savePref(k: string, v: unknown) {
@@ -52,7 +52,8 @@ const app = {
   statPop: false, // 상세 보기: 전투 스탯 펼침 (패널 왼쪽)
   cardOpen: null as string | null, // 터치 화면: 설명을 펼친 시작 기물 카드
   subOpen: new Set<string>(), // 특성 하위 항목(전투 · 전술 유형, 신앙) 펼침 상태
-  menu: null as null | 'menu' | 'export' | 'import',
+  menu: null as null | 'menu' | 'settings' | 'export' | 'import',
+  slowDetail: loadPrefs().slowDetail !== false, // 전투 중 상세 정보를 보는 동안 속도 ×0.25
   view: null as BattleView | null,
   summary: null as R.BattleSummary | null,
   picks: [] as Major[],
@@ -650,6 +651,13 @@ function detailPanel(run: RunState) {
 }
 
 // ───────────────────────── 화면: 전투
+/** 실제 진행 속도: 상세 정보를 보는 중이면 ×0.25 (설정) */
+function applySpeed() {
+  const slow = app.slowDetail && app.battleSel !== null && !app.view?.b.over;
+  if (app.view) app.view.speed = app.speed * (slow ? 0.25 : 1);
+  const tag = document.getElementById('bslow');
+  if (tag) tag.hidden = !slow;
+}
 function battleScreen(run: RunState) {
   const enc = run.node!.enc!;
   return `<main class="wrap battle">
@@ -658,7 +666,7 @@ function battleScreen(run: RunState) {
       <div id="meter" class="meter"></div>
     </aside>
     <section class="board-col">
-      <div class="board-head"><b>${esc(enc.env)}</b><span id="btime" class="mono">0.0초</span>
+      <div class="board-head"><b>${esc(enc.env)}</b><span id="btime" class="mono">0.0초</span><span id="bslow" class="bslow" hidden title="상세 정보를 보는 중 · 설정에서 끌 수 있습니다">상세 보기 ×0.25</span>
         <span class="speed">${SPEEDS.map((s) => `<button class="btn tiny ${app.speed === s ? 'on' : ''}" data-a="speed" data-v="${s}">${s}×</button>`).join('')}
         <button class="btn tiny" data-a="skip">결과로</button></span></div>
       <div class="board" id="bboard" style="--n:${enc.n}"><div class="cells">${'<div class="cell"></div>'.repeat(enc.n * enc.n)}</div></div>
@@ -911,8 +919,17 @@ function menuModal(run: RunState | null) {
   }
   const saves = listSaves();
   const meta = (slot: string) => { const s = saves.find((x) => x.slot === slot); return s ? `페이즈 ${s.phase} · ${new Date(s.time).toLocaleString()}` : '비어 있음'; };
+  const tabs = `<div class="menu-tabs">${([['menu', '메뉴'], ['settings', '설정']] as const).map(([k, l]) => `<button class="btn small ${app.menu === k ? 'primary' : ''}" data-a="menu-tab" data-v="${k}">${l}</button>`).join('')}</div>`;
+  if (app.menu === 'settings') {
+    return `<div class="modal-bg"><div class="modal">
+      ${tabs}
+      <h3>전투</h3>
+      <label class="pref"><input type="checkbox" data-a="pref-slow" ${app.slowDetail ? 'checked' : ''}><span><b>상세 정보 볼 때 느리게</b><br><span class="muted small">전투 중 기물을 눌러 상세 정보를 보는 동안 진행 속도에 ×0.25 를 곱합니다. 같은 기물을 다시 누르거나 Esc 로 선택을 풀면 원래 속도로 돌아갑니다.</span></span></label>
+      <div class="row-btns"><button class="btn primary" data-a="menu-close">닫기</button></div>
+    </div></div>`;
+  }
   return `<div class="modal-bg"><div class="modal">
-    <h1>메뉴</h1>
+    ${tabs}
     ${run ? `<h3>저장</h3><div class="slot-list">${['slot1', 'slot2', 'slot3'].map((s) => `<div class="slot"><span><b>${SLOT_NAME[s]}</b> <span class="muted small">${meta(s)}</span></span>
       <span><button class="btn tiny" data-a="save" data-v="${s}">저장</button><button class="btn tiny" data-a="load" data-v="${s}" ${saves.some((x) => x.slot === s) ? '' : 'disabled'}>불러오기</button></span></div>`).join('')}
       <div class="slot"><span><b>자동 저장</b> <span class="muted small">${meta('auto')}</span></span><span><button class="btn tiny" data-a="load" data-v="auto" ${saves.some((x) => x.slot === 'auto') ? '' : 'disabled'}>불러오기</button></span></div></div>` : ''}
@@ -1151,7 +1168,7 @@ function mountBattleView(board: HTMLElement) {
     if (top) top.outerHTML = topbar();
     root.querySelector('main.battle')?.insertAdjacentHTML('beforeend', summaryModal(run));
   });
-  app.view.speed = app.speed;
+  applySpeed();
   app.view.start();
 }
 
@@ -1277,13 +1294,15 @@ function statusKind(u: CUnit, s: Status): 'buff' | 'debuff' | 'odd' {
 }
 const durTxt = (d: number) => (d > 900 ? '전투 내내' : `${d.toFixed(1)}초 남음`);
 function buffIcons(u: CUnit) {
-  const list = u.statuses.filter((s) => s.dur > 0);
-  if (!list.length) return '<p class="muted small bf-none">걸린 효과 없음</p>';
+  const all = u.statuses.filter((s) => s.dur > 0);
+  if (!all.length) return '<p class="muted small bf-none">걸린 효과 없음</p>';
+  // 한 줄 8개 · 최대 2줄 (넘치면 마지막 칸에 남은 개수)
+  const list = all.length > 16 ? all.slice(0, 15) : all;
   return `<div class="bf-grid">${list.map((s) => {
     const nm = statusName(s);
     const on = app.bPick === `st:${s.key}`;
     return `<button class="bf bf-${statusKind(u, s)}${on ? ' on' : ''}" data-a="bpick" data-v="st:${esc(s.key)}" title="${esc(nm)}" aria-label="${esc(nm)}">${lineIcon(augKey(`${nm} ${statusParts(u, s).out.join(' ')}`))}${s.stacks ? `<b>${s.stacks}</b>` : ''}</button>`;
-  }).join('')}</div>`;
+  }).join('')}${all.length > 16 ? `<span class="bf bf-more" title="${esc(all.slice(15).map(statusName).join(', '))}">+${all.length - 15}</span>` : ''}</div>`;
 }
 /** 선택한 버프 · 장비 설명 (지속 시간은 실시간) */
 function bpickInfo(u: CUnit) {
@@ -1460,6 +1479,8 @@ function act(a: string, v: string) {
     }
     case 'save': if (run) { toast(saveRun(run, v) ? `${SLOT_NAME[v]}에 저장했습니다.` : '이 브라우저에서는 저장소를 쓸 수 없습니다. 저장 코드를 이용하세요.'); } break;
     case 'menu': app.menu = 'menu'; break;
+    case 'menu-tab': app.menu = v as 'menu' | 'settings'; break;
+    case 'pref-slow': app.slowDetail = !app.slowDetail; savePref('slowDetail', app.slowDetail); applySpeed(); break;
     case 'menu-close': app.menu = null; app.importErr = ''; break;
     case 'menu-export': app.menu = 'export'; break;
     case 'menu-import': app.menu = 'import'; app.importErr = ''; break;
@@ -1509,7 +1530,7 @@ function act(a: string, v: string) {
       app.screen = 'battle';
       app.needMount = true; // render() 가 보드를 그린 뒤 전투 뷰를 붙인다
       break;
-    case 'speed': app.speed = +v; savePref('speed', app.speed); if (app.view?.b) app.view.speed = app.speed; document.querySelectorAll('.speed .btn').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.v === v)); return;
+    case 'speed': app.speed = +v; savePref('speed', app.speed); applySpeed(); document.querySelectorAll('.speed .btn').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.v === v)); return;
     case 'skip': app.view?.skip?.(); return;
     case 'after-battle': app.summary = null; if (app.view) { app.view.destroy(); app.view = null; } goPrepOrMap(); break;
     case 'sel-unit': app.sel = app.sel?.k === 'item' && run ? equipSel(run, app.sel.idx, v) : { k: 'unit', uid: v }; break;
@@ -1554,7 +1575,7 @@ function act(a: string, v: string) {
     case 'codex-tab': app.codexTab = v as typeof app.codexTab; break;
     case 'codex-back': app.screen = app.run ? (app.run.over ? 'over' : 'map') : 'title'; if (app.run && !app.run.over) goPrepOrMap(); break;
     case 'meter-tab': app.meterTab = v as typeof app.meterTab; document.querySelectorAll('.meter-tabs .btn').forEach((e) => e.classList.toggle('on', (e as HTMLElement).dataset.v === v)); updateMeter(true); return;
-    case 'bsel': if (app.battleSel !== +v) app.bPick = null; app.battleSel = +v; updateMeter(true); return;
+    case 'bsel': app.bPick = null; app.battleSel = app.battleSel === +v ? null : +v; applySpeed(); updateMeter(true); return;
     case 'bpick': app.bPick = app.bPick === v ? null : v; updateMeter(true); return;
     case 'release': app.releaseConfirm = v; break;
     case 'release-cancel': app.releaseConfirm = null; break;
@@ -1756,6 +1777,7 @@ document.addEventListener('keydown', (e) => {
     else if (app.menu) act('menu-close', '');
     else if (app.releaseConfirm) act('release-cancel', '');
     else if (app.sel && app.screen !== 'battle') { app.sel = null; render(); }
+    else if (app.screen === 'battle' && app.battleSel !== null) { app.battleSel = null; app.bPick = null; applySpeed(); updateMeter(true); }
     return;
   }
   if (sv) return;
