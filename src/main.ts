@@ -152,9 +152,9 @@ function itemGlyph(id: string) {
 function topbar() {
   const r = app.run;
   if (!r) return '';
-  const cap = R.deployCap(r);
   // 기타 자원: 권능 · 명성 · 축복 (눌러서 펼침)
   const extra = [
+    r.streak >= 2 ? `<li class="streak"><span>${lineIcon('r.streak', 'li')}연승</span><b>${r.streak}</b></li>` : '',
     r.power || R.hasDivine(r) ? `<li class="faith" title="권능 포인트: 디바인 기물이 전투에서 모은 신성력 ÷ ${CFG.powerPerDiv}. 순례에서 사용"><span>권능</span><b>${r.power}</b></li>` : '',
     r.fame ? `<li class="fame"><span>명성</span><b>${r.fame}</b></li>` : '',
     r.blessing ? `<li class="faith" title="${esc(BLESSING_BY_ID[r.blessing].desc)}"><span>축복</span><b>${esc(BLESSING_BY_ID[r.blessing].name)}</b></li>` : '',
@@ -169,8 +169,6 @@ function topbar() {
       <span class="pill" title="페이즈 · 노드">P<b>${r.phase}</b> · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>
       <span class="pill hp" title="체력">${lineIcon('r.hp', 'li')}<b>${r.hp}</b>/${r.maxHp}</span>
       <span class="pill cr" title="에너지 크레딧">${CR}<b>${r.credits}</b></span>
-      ${r.streak >= 2 ? `<span class="pill streak" title="${r.streak}연승">${lineIcon('r.streak', 'li')}<b>${r.streak}</b></span>` : ''}
-      <span class="pill" title="출전 인원">출전 <b>${deployed(r).length}</b>/${cap}</span>
       ${extra.length ? `<details class="pill more"><summary title="기타 자원">${lineIcon('r.more', 'li')}<span>기타</span></summary><ul class="more-list">${extra.join('')}</ul></details>` : ''}
     </div>
     ${app.screen === 'battle' ? '' : '<button class="btn ghost" data-a="menu">메뉴</button>'}
@@ -547,7 +545,7 @@ function prepScreen(run: RunState) {
       <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
     </aside>
     <section class="board-col">
-      <div class="board-head"><b>${esc(env)}</b><span class="muted small">출전 ${deployed(run).length}/${cap} · 아래 ${ZONE}줄에 배치</span>
+      <div class="board-head"><b>${esc(env)}</b><span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span><span class="muted small">아래 ${ZONE}줄에 배치</span>
         ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}</div>
       <div class="board" style="--w:${bw};--h:${bh}"><div class="cells">${cells}</div>${units}</div>
       <div class="bench" data-drop="bench">
