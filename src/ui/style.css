@@ -1036,3 +1036,17 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .rc-syn .nr-syn { flex: none; }
 .syn-tk.up .syn-dia { box-shadow: 0 0 0 2px var(--c), 0 0 12px var(--c); }
 .syn-tk.up .syn-tx b::after { content: ' ▲'; color: var(--c); font-size: .7em; }
+/* 시너지 줄은 늘어나도 한 줄 가로 스크롤 (카드 · 버튼을 밀어내지 않게) */
+.nr-syn { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; padding-block: 4px; }
+.nr-syn .syn-tk { flex: none; }
+.rc-syn { flex-wrap: nowrap; min-width: 0; flex: 1 1 0; }
+.rc-syn > .small { flex: none; }
+.rc-syn .nr-syn { flex: 1 1 0; min-width: 0; }
+@media (max-width: 860px) {
+  .nr-foot .picked { order: 0; flex: 1 1 100%; }
+  .nr-foot .nr-syn { order: 1; flex: 1 1 100%; }
+  .nr-foot .btn { order: 2; }
+  .rc-foot { flex-wrap: wrap; }
+  .rc-syn { flex: 1 1 100%; }
+  .rc-syn .syn-tx { display: none; }
+}
