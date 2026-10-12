@@ -177,37 +177,47 @@ function topbar() {
   </header>`;
 }
 
+/** 시너지 토큰: 마름모 아이콘(누르면 상세) + 활성 단계 원 + 이름 · 구성 단계 */
+function synToken(id: string, c: number, extra = '') {
+  const sd = SYN_BY_ID[id as SynergyId];
+  const t = tierOf(sd.id, c);
+  const steps = sd.tiers.map((need, i) => `<span class="${c >= need ? 'on' : ''}${i === t - 1 ? ' cur' : ''}">${need}</span>`).join('');
+  return `<div class="syn-tk${t ? ' active' : ''}${extra}" style="--c:${sd.color}">
+    <button class="syn-b" type="button" data-syn="${sd.id}" aria-label="${esc(sd.name)} 상세"><span class="syn-dia">${synIcon(sd.id) || sd.icon}</span><span class="syn-lv">${t}</span></button>
+    <span class="syn-tx"><b>${esc(sd.name)}</b><span class="syn-steps">${steps}</span></span></div>`;
+}
+/** 시너지 상세 팝업 (마름모를 누르면) */
+function synPopHtml(sid: string) {
+  const id = sid as SynergyId;
+  const sd = SYN_BY_ID[id];
+  const run = app.run;
+  let c = 0, head = '', mem = '';
+  if (run) {
+    const counts = synergyCounts(deployed(run), run);
+    const raw = synergyCounts(deployed(run));
+    const uncapped = synergyCounts(deployed(run), run, true);
+    c = counts[id] || 0;
+    const t = tierOf(id, c);
+    const next = sd.tiers.find((need) => need > c);
+    const bonus = c - (raw[id] || 0);
+    const locked = sd.lockFinal && (uncapped[id] || 0) > c;
+    head = `<span class="small">출전 <b>${c}</b>명${bonus > 0 ? ` <span class="accent">(문장 +${bonus})</span>` : ''} · ${t ? `${t}단계 활성` : '비활성'} · ${locked ? '🔒 최종 단계는 증표 필요' : next ? `다음 단계까지 ${next - c}명` : '최고 단계'}</span>`;
+    const dep: string[] = [], bench: string[] = [];
+    for (const u of run.units) if (memberships(u).includes(id)) { const n = UNIT_BY_ID[u.defId].name; (u.pos ? dep : bench).includes(n) || (u.pos ? dep : bench).push(n); }
+    if (dep.length || bench.length) mem = `<div class="syn-members">${dep.map((n) => `<span class="on">${esc(n)}</span>`).join('')}${bench.map((n) => `<span class="bench">${esc(n)} (대기)</span>`).join('')}</div>`;
+  }
+  const t = tierOf(id, c);
+  return `<b class="sp-t" style="--c:${sd.color}">${synIcon(id) || sd.icon}${esc(sd.name)}</b>${head}${mem}<p>${esc(sd.desc)}</p>
+    <ol class="sp-tiers">${sd.tierDesc.map((d, i) => `<li class="${i === t - 1 ? 'cur' : ''}${c >= sd.tiers[i] ? ' on' : ''}"><b>${sd.tiers[i]}${sd.lockFinal && i === sd.tiers.length - 1 ? ' · 증표' : ''}</b><span>${esc(d)}</span></li>`).join('')}</ol>`;
+}
 function synergyPanel(run: RunState) {
   const counts = synergyCounts(deployed(run), run);
-  const raw = synergyCounts(deployed(run));
-  const uncapped = synergyCounts(deployed(run), run, true);
-  // 시너지별 소속 기물: 출전 / 대기 (같은 기물은 1회)
-  const members = new Map<string, { dep: string[]; bench: string[] }>();
-  for (const u of run.units) for (const sid of memberships(u)) {
-    const m = members.get(sid) || { dep: [], bench: [] };
-    const name = UNIT_BY_ID[u.defId].name;
-    if (u.pos) { if (!m.dep.includes(name)) m.dep.push(name); } else if (!m.bench.includes(name)) m.bench.push(name);
-    members.set(sid, m);
-  }
-  const list = SYNERGIES.filter((s) => counts[s.id] || members.get(s.id)?.bench.length)
+  const benchHas = new Set<string>();
+  for (const u of run.units) if (!u.pos) for (const sid of memberships(u)) benchHas.add(sid);
+  const list = SYNERGIES.filter((s) => counts[s.id] || benchHas.has(s.id))
     .sort((a, b) => tierOf(b.id, counts[b.id] || 0) - tierOf(a.id, counts[a.id] || 0) || (counts[b.id] || 0) - (counts[a.id] || 0));
   if (!list.length) return `<div class="muted small">출전한 기물이 없습니다.</div>`;
-  return list.map((s) => {
-    const c = counts[s.id] || 0;
-    const t = tierOf(s.id, c);
-    const m = members.get(s.id) || { dep: [], bench: [] };
-    const next = s.tiers.find((need) => need > c);
-    const steps = s.tiers.map((need, i) => `<span class="${c >= need ? 'on' : ''}${i === t - 1 ? ' cur' : ''}">${need}</span>`).join('');
-    const bonus = c - (raw[s.id] || 0);
-    const locked = s.lockFinal && (uncapped[s.id] || 0) > c;
-    return `<details class="syn ${t ? 'active' : ''} ${c ? '' : 'benchonly'}" style="--c:${s.color}">
-      <summary><span class="syn-ic">${synIcon(s.id) || s.icon}</span><span class="syn-count">${c}</span><span class="syn-name">${esc(s.name)}${bonus > 0 ? ` <small class="accent">+${bonus}</small>` : ''}
-        <small class="syn-next">${locked ? '🔒 최종 단계는 증표 필요' : next ? `다음 단계까지 ${next - c}명` : '최고 단계'}${m.bench.length ? ` · 대기 ${m.bench.length}` : ''}</small></span><span class="syn-steps">${steps}</span></summary>
-      <div class="syn-members">${m.dep.map((n) => `<span class="on">${esc(n)}</span>`).join('')}${m.bench.map((n) => `<span class="bench">${esc(n)} (대기)</span>`).join('')}</div>
-      <p>${esc(s.desc)}</p>
-      <ol>${s.tierDesc.map((d, i) => `<li class="${i === t - 1 ? 'cur' : ''}">(${s.tiers[i]}${s.lockFinal && i === s.tiers.length - 1 ? ' · 증표' : ''}) ${esc(d)}</li>`).join('')}</ol>
-    </details>`;
-  }).join('');
+  return list.map((s) => synToken(s.id, counts[s.id] || 0, counts[s.id] ? '' : ' benchonly')).join('');
 }
 
 // ───────────────────────── 화면: 타이틀
@@ -354,7 +364,7 @@ function pickCard(d: UnitDef, o: PickOpts) {
   return `<div class="pcard ${on ? 'sel' : ''} ${app.cardOpen === d.id && !clone ? 'open' : ''}" data-a="${o.tapAct}" data-v="${d.id}" ${clone ? 'aria-hidden="true"' : 'tabindex="0" role="button"'} aria-label="${esc(d.name)}">
     <div class="pc-art">${standImg(d.id, 'stand') || sprite(d, 'spr big')}</div>
     ${on ? `<span class="pc-check">✓${o.badge ? ` ${o.badge}` : ''}</span>` : ''}
-    <div class="pc-syn">${[...d.factions, ...d.traits].map((id) => { const sd = SYN_BY_ID[id as SynergyId]; return `<span class="syn-b" style="--c:${sd.color}" data-a="syn-peek" aria-label="${esc(sd.name)}"><span class="syn-dia">${synIcon(id)}</span><span class="syn-label">${esc(sd.name)}</span></span>`; }).join('')}</div>
+    <div class="pc-syn">${(() => { const cnt = app.run ? synergyCounts(deployed(app.run), app.run) : {} as Record<string, number>; return [...d.factions, ...d.traits].map((id) => synToken(id, (cnt as Record<string, number>)[id] || 0)).join(''); })()}</div>
     <div class="pc-panel">
       <div class="pc-top"><b class="pc-name">${esc(d.name)}</b>${roleTag(d)}${o.extra || ''}
         <div class="chips">${[...d.factions, ...d.traits].map(o.chipFn || chip).join('')}</div>
@@ -1907,6 +1917,22 @@ function showKw(el: HTMLElement) {
   tip.style.top = `${below + tip.offsetHeight > innerHeight - 8 ? Math.max(8, r.top - tip.offsetHeight - 6) : below}px`;
 }
 function hideKw() { document.querySelector('.kw-tip')?.remove(); kwPinned = null; }
+/** 시너지 상세 팝업: 마름모 옆에 띄운다 */
+function showSyn(el: HTMLElement) {
+  hideKw();
+  const tip = document.createElement('div');
+  tip.className = 'kw-tip syn-pop';
+  tip.innerHTML = synPopHtml(el.dataset.syn!);
+  document.body.appendChild(tip);
+  const r = el.getBoundingClientRect();
+  const w = Math.min(300, innerWidth - 16);
+  tip.style.width = `${w}px`;
+  const right = r.right + 8 + w <= innerWidth - 8;
+  tip.style.left = `${right ? r.right + 8 : Math.max(8, Math.min(r.left, innerWidth - w - 8))}px`;
+  const top = right ? r.top - 4 : r.bottom + 6;
+  tip.style.top = `${Math.max(8, Math.min(top, innerHeight - tip.offsetHeight - 8))}px`;
+  kwPinned = el;
+}
 document.addEventListener('mouseover', (e) => {
   if (!CAN_HOVER || kwPinned) return;
   const el = (e.target as HTMLElement).closest<HTMLElement>('[data-kw]');
@@ -1914,6 +1940,8 @@ document.addEventListener('mouseover', (e) => {
 });
 // 탭 · 클릭: 고정 표시 (능력 카드 클릭으로 번지지 않게 캡처 단계에서 처리)
 document.addEventListener('click', (e) => {
+  const se = (e.target as HTMLElement).closest<HTMLElement>('[data-syn]');
+  if (se) { e.preventDefault(); e.stopPropagation(); if (kwPinned === se) hideKw(); else showSyn(se); return; }
   const el = (e.target as HTMLElement).closest<HTMLElement>('[data-kw]');
   if (!el) { if (kwPinned && !(e.target as HTMLElement).closest('.kw-tip')) hideKw(); return; }
   e.preventDefault(); e.stopPropagation();

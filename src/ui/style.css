@@ -942,3 +942,33 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .u.tk .tk-rank:not(.tier-boss):not(.tier-elite):empty, .u.tk .tk-rank.tier-minion { display: none; }
 .u.tk .tk-rank.tier-boss, .u.tk .tk-rank.tier-elite { background: var(--accent); }
 .u.tk .tk-rank.tier-boss::before, .u.tk .tk-rank.tier-elite::before { content: none; }
+/* 시너지 토큰: 마름모 + 활성 단계 원 + 이름 · 구성 단계 (편성 좌측 · 영입 카드 공용) */
+.syn-tk { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.syn-tk .syn-b { flex: none; border: 0; padding: 0; background: none; cursor: pointer; }
+.syn-tk .syn-dia { opacity: .55; }
+.syn-tk.active .syn-dia { opacity: 1; background: color-mix(in srgb, var(--c) 22%, rgb(10 12 18 / .85)); }
+.syn-lv { position: absolute; right: -3px; bottom: -3px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; display: grid; place-items: center;
+  font: 700 .66rem/1 var(--f-mono); background: var(--panel-2); color: var(--dim); border: 1.5px solid var(--bg); box-sizing: border-box; }
+.syn-tk.active .syn-lv { background: var(--c); color: var(--accent-ink); }
+.syn-tx { display: grid; gap: 2px; min-width: 0; }
+.syn-tx b { font-size: .82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.syn-tk:not(.active) .syn-tx b { color: var(--dim); }
+.syn-tk.benchonly { opacity: .5; }
+.syn-list .syn-tk { padding: 3px 4px; }
+.syn-b:focus-visible .syn-dia { outline: 2px solid var(--fg); outline-offset: 2px; }
+/* 영입 카드: 일러스트 위라 이름 칸에 반투명 바탕 */
+.pc-syn { justify-items: start; gap: 4px; }
+.pc-syn .syn-tx { background: rgb(10 12 18 / .72); padding: 2px 6px; border-radius: 4px; }
+.pc-syn .syn-tx b { font-size: .72rem; }
+.pc-syn .syn-steps { font-size: .62rem; }
+/* 시너지 상세 팝업 */
+.syn-pop { pointer-events: auto; border-color: var(--line); gap: 6px; max-height: 70vh; overflow-y: auto; }
+.syn-pop .sp-t { color: var(--c); font-size: .95rem; }
+.syn-pop .sp-t .si { width: 16px; height: 16px; }
+.syn-pop p { margin: 0; color: var(--fg); opacity: .85; }
+.sp-tiers { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.sp-tiers li { display: grid; grid-template-columns: minmax(2.2em, auto) 1fr; gap: 6px; color: var(--dim); }
+.sp-tiers li b { white-space: nowrap; padding: 0 4px; }
+.sp-tiers li b { font-family: var(--f-mono); text-align: center; border-radius: 3px; background: var(--panel-2); align-self: start; }
+.sp-tiers li.on b { background: var(--accent); color: var(--accent-ink); }
+.sp-tiers li.cur { color: var(--fg); }
