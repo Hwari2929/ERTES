@@ -1016,3 +1016,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .syn-list .syn-steps { font-size: .76rem; }
 /* 상세 보기: 시너지 토큰을 일러스트 좌상단에 (영입 카드와 같은 배열) */
 .d-hero .dh-syn { top: 8px; left: 8px; z-index: 3; }
+/* 영입 카드 · 상세 보기: 마름모만 (이름 · 단계는 눌러서), 아이콘 불투명 */
+.pc-syn .syn-dia { opacity: 1; }
+.pc-syn .syn-tx { display: none; }
+.dh-syn .syn-lv { display: none; }

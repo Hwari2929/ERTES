@@ -356,13 +356,18 @@ function roleTag(d: UnitDef) {
   return `<span class="pc-role"><span class="ct-${d.ctype}">${CTYPE_ICON(d.ctype)} ${CTYPE_NAME[d.ctype]}</span><span class="tt-${d.ttype}">${TTYPE_ICON(d.ttype)} ${TTYPE_NAME[d.ttype]}</span></span>`;
 }
 /** 시작 기물 후보 카드: 스탠딩 + 이름 + 역할 + 시너지. 호버(터치는 탭)하면 카드 안에서 설명이 올라온다 */
-interface PickOpts { clone?: boolean; on: boolean; badge?: string; tapAct: string; full?: boolean; fullLabel?: string; chipFn?: (id: string) => string; extra?: string }
+interface PickOpts { synCount?: (id: string) => number; clone?: boolean; on: boolean; badge?: string; tapAct: string; full?: boolean; fullLabel?: string; chipFn?: (id: string) => string; extra?: string }
+/** 이 기물이 합류했을 때 시너지별 기물 수 (같은 기물은 1회) */
+function teamCount(ids: string[]) {
+  const uniq = [...new Set(ids)];
+  return (sid: string) => uniq.filter((x) => { const d = UNIT_BY_ID[x]; return d && ([...d.factions, ...d.traits] as string[]).includes(sid); }).length;
+}
 function pickCard(d: UnitDef, o: PickOpts) {
   const { clone, on, full } = o;
   return `<div class="pcard ${on ? 'sel' : ''} ${app.cardOpen === d.id && !clone ? 'open' : ''}" data-a="${o.tapAct}" data-v="${d.id}" ${clone ? 'aria-hidden="true"' : 'tabindex="0" role="button"'} aria-label="${esc(d.name)}">
     <div class="pc-art">${standImg(d.id, 'stand') || sprite(d, 'spr big')}</div>
     ${on ? `<span class="pc-check">✓${o.badge ? ` ${o.badge}` : ''}</span>` : ''}
-    <div class="pc-syn">${(() => { const cnt = app.run ? synergyCounts(deployed(app.run), app.run) : {} as Record<string, number>; return [...d.factions, ...d.traits].map((id) => synToken(id, (cnt as Record<string, number>)[id] || 0)).join(''); })()}</div>
+    <div class="pc-syn">${[...d.factions, ...d.traits].map((id) => synToken(id, o.synCount ? o.synCount(id) : 0)).join('')}</div>
     <div class="pc-panel">
       <div class="pc-top"><b class="pc-name">${esc(d.name)}</b>${roleTag(d)}${o.extra || ''}
         <div class="chips">${[...d.factions, ...d.traits].map(o.chipFn || chip).join('')}</div>
@@ -386,7 +391,7 @@ function newRunScreen() {
       <button class="car-btn prev" data-a="car-prev" aria-label="이전 기물">‹</button>
       <div class="car-track" aria-label="후보 기물 (좌우로 넘겨 보기)">${[0, 1, 2].map((k) => app.pool.map((id) => {
         const on = app.starters.includes(id);
-        return pickCard(UNIT_BY_ID[id], { clone: k !== 1, on, badge: on ? String(app.starters.indexOf(id) + 1) : '', tapAct: 'card-tap', full: !on && app.starters.length >= CFG.startUnits, fullLabel: `이미 ${CFG.startUnits}명 선택` });
+        return pickCard(UNIT_BY_ID[id], { synCount: teamCount([...app.starters, id]), clone: k !== 1, on, badge: on ? String(app.starters.indexOf(id) + 1) : '', tapAct: 'card-tap', full: !on && app.starters.length >= CFG.startUnits, fullLabel: `이미 ${CFG.startUnits}명 선택` });
       }).join('')).join('')}</div>
       <button class="car-btn next" data-a="car-next" aria-label="다음 기물">›</button>
     </div>
@@ -990,7 +995,7 @@ function pendingModal(run: RunState): string {
     mcls = 'recruit';
     const pick = app.recruitPick && p.options.includes(app.recruitPick) ? app.recruitPick : null;
     body = `<div class="rc-head"><div><h1>기물 영입</h1><p class="muted small">새 동료 한 명을 고르세요. 공명 등급 ${rank}로 합류합니다. 보유 ${run.units.length}/${CFG.maxParty} (출전 최대 ${R.deployCap(run)}명)</p></div>${detailToggle()}</div>
-      <div class="rc-track">${p.options.map((id) => pickCard(UNIT_BY_ID[id], { on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), extra: `<span class="rank rc-rank">${rankLabel(rank)}</span>` })).join('')}</div>
+      <div class="rc-track">${p.options.map((id) => pickCard(UNIT_BY_ID[id], { synCount: teamCount([...run.units.map((u) => u.defId), id]), on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), extra: `<span class="rank rc-rank">${rankLabel(rank)}</span>` })).join('')}</div>
       <div class="rc-foot"><span class="muted small">${pick ? `${esc(UNIT_BY_ID[pick].name)} 선택됨` : CAN_HOVER ? '카드에 마우스를 올리면 설명, 누르면 선택' : '탭하면 선택 · 하단을 끌어올리면 설명'}</span>
         <button class="btn primary" data-a="pick-recruit" data-v="${pick || ''}" ${pick ? '' : 'disabled'}>영입</button></div>`;
   } else if (p.t === 'branch') {
