@@ -12,7 +12,7 @@ import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf } fro
 import { UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { DIVINE_ACT, FAITH_DEF, recMajors } from './data/rework';
 import { BRIEF, GROWTH_BRIEF, PSI_BRIEF } from './data/brief';
-import { ABIL, augAbilText } from './data/abiltext';
+import { ABIL, augAbilText, ENEMY_ABIL } from './data/abiltext';
 import * as AB from './ui/abil';
 import {
   activeTiers, buildAlly, buildBattle, buildEnemy, deployed, layout, memberships, playerRows, synergyCounts, totalMajors, unitEffects,
@@ -643,6 +643,34 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
   return `<div class="stat-pop abil-pop"><div class="sp-head"><span class="ab-kind">${kind}</span><b>${esc(name)}</b><button class="btn tiny" data-a="abil-pop" data-v="">닫기</button></div>${body}${AB.glossHtml(gl)}</div>`;
 }
 
+/** 적 능력: 무기 · 특성 · 스킬 카드 */
+function enemyAbilCards(e: EnemyDef, b: Battle, c: CUnit) {
+  const ab = ENEMY_ABIL[e.id];
+  const w = { ...c.weapon!, name: '기본 공격' };
+  const range = b.S(c, 'range');
+  const trait = ab?.trait ? abilCard('trait', 'trait', '특성', '', `<p>${statIc(AB.tok(ab.trait, actx(b, c), new Set()))}</p>`) : '';
+  const skill = e.skill ? abilCard('skill', 'skill', e.skill.name, ab?.skill ? '' : `${e.skill.cd}초`,
+    ab?.skill ? `<div class="ab-chips">${AB.skillChips(ab.skill, actx(b, c), range, e.skill.cd)}</div>` : `<p>${esc(e.skill.desc(c.sk))}</p>`) : '';
+  return `${weaponCard(w, b, c, e.atk.elem)}${trait}${skill}`;
+}
+function enemyAbilPop(key: string, e: EnemyDef, b: Battle, c: CUnit) {
+  const ab = ENEMY_ABIL[e.id];
+  const ctx = actx(b, c);
+  const gl = new Set<string>();
+  let kind = '', name = '', body = '';
+  if (key === 'weapon') {
+    kind = '무기'; name = '기본 공격';
+    body = AB.popBody(b.S(c, 'range'), { k: 'one' }, AB.weaponRows({ ...c.weapon!, name }, ctx, e.atk.elem, gl));
+  } else if (key === 'skill' && e.skill) {
+    kind = '스킬'; name = e.skill.name;
+    body = ab?.skill ? AB.skillBody(ab.skill, ctx, b.S(c, 'range'), e.skill.cd, gl) : `<p>${esc(e.skill.desc(c.sk))}</p>`;
+  } else if (key === 'trait' && ab?.trait) {
+    kind = '특성'; name = '특성';
+    body = `<p>${statIc(AB.tok(ab.trait, ctx, gl))}</p>`;
+  } else return '';
+  return `<div class="stat-pop abil-pop"><div class="sp-head"><span class="ab-kind">${kind}</span><b>${esc(name)}</b><button class="btn tiny" data-a="abil-pop" data-v="">닫기</button></div>${body}${AB.glossHtml(gl)}</div>`;
+}
+
 /** 항해자 에이스 파일럿: 능력 란에 표시하고 여기서 지정 */
 function aceAbil(run: RunState, u: UnitState) {
   const d = UNIT_BY_ID[u.defId];
@@ -674,7 +702,7 @@ function detailPanel(run: RunState) {
       ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.map((x) => `<span class="tk-it" title="${esc(itemInfo(x).name + ' — ' + itemInfo(x).desc)}">${itemIcon(x)}</span>`).join('')}</div></div>` : ''}
       <div class="mj-wrap"><div class="mj-head"><h3>메이저 스탯 <span class="muted small">페이즈 ${run.phase}</span></h3>${magBtn()}</div>${majorsHtml(ms)}</div>
       <div class="small accent">페이즈 피해 배율 ×${c.phaseAmp.toFixed(2)}</div>
-      <h3>능력</h3><div class="abils">${enemyWeapon(e)}${e.skill ? abil('skill', e.skill.name, `${e.skill.cd}초`, e.skill.desc(c.sk)) : ''}</div>
+      <h3>능력</h3><div class="abils">${enemyAbilCards(e, b, c)}</div>
     </div>`;
   }
   if (sel?.k !== 'unit') return `<div class="detail muted small">기물을 선택하면 스탯 · 스킬 · 증강 · 장비를 볼 수 있습니다.<br><br>
@@ -1029,12 +1057,13 @@ function statPopHtml(run: RunState) {
     const nav = tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0);
     return abilPopHtml(app.abilPop, UNIT_BY_ID[u.defId], b, c, [1, 1, 1.6, 2.5][nav] ?? 1);
   }
-  if (!app.statPop) return '';
+  if (!app.statPop && !app.abilPop) return '';
   if (sel?.k === 'enemy' && run.node?.enc) {
     const s = run.node.enc.enemies[sel.i];
     if (!s) return '';
     const b = new Battle(6, new Rng(1), { phase: run.phase, credits: 0 });
     const c = buildEnemy(b, ENEMY_BY_ID[s.defId], run.phase, run.node.enc.mult);
+    if (app.abilPop) return enemyAbilPop(app.abilPop, ENEMY_BY_ID[s.defId], b, c);
     return `<div class="stat-pop"><div class="sp-head"><b>상세 능력치</b><span class="muted small">${esc(c.name)}</span><button class="btn tiny" data-a="stat-pop">닫기</button></div>${statLines(c, b)}</div>`;
   }
   if (sel?.k !== 'unit') return '';
@@ -1438,7 +1467,8 @@ function battleUnitStatic(b: Battle, u: CUnit) {
   } else if (u.side === 1 && ENEMY_BY_ID[u.defId]) {
     const e = ENEMY_BY_ID[u.defId];
     head = heroHead(`en_${e.id}`, sprite(u, 'spr big'), e.name, enemyTypes(e), `<i>${tierKo(e)}</i>`);
-    abils = `${enemyWeapon(e, u.atk.interval)}${e.skill ? abil('skill', e.skill.name, `${e.skill.cd}초`, e.skill.desc(u.sk)) : ''}`;
+    abils = enemyAbilCards(e, b, u);
+    if (app.abilPop) pop = enemyAbilPop(app.abilPop, e, b, u);
   } else {
     head = heroHead(u.art || '', sprite(u, 'spr big'), u.name, null, `<i>${u.owner ? `${esc(u.owner.name)}의 소환물` : '소환물'}</i>`);
     if (u.skill) abils = abil('skill', u.skill.name, `${u.cdMax.toFixed(1)}초`, u.skill.desc(u.sk));
@@ -1610,7 +1640,7 @@ function act(a: string, v: string) {
     case 'skip': app.view?.skip?.(); return;
     case 'after-battle': app.summary = null; if (app.view) { app.view.destroy(); app.view = null; } goPrepOrMap(); break;
     case 'sel-unit': app.abilPop = null; app.sel = app.sel?.k === 'item' && run ? equipSel(run, app.sel.idx, v) : { k: 'unit', uid: v }; break;
-    case 'sel-enemy': app.sel = { k: 'enemy', i: +v }; break;
+    case 'sel-enemy': app.abilPop = null; app.sel = { k: 'enemy', i: +v }; break;
     case 'sel-item': {
       if (!run) return;
       if (app.sel?.k === 'item' && app.sel.idx !== +v) {

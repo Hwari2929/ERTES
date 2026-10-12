@@ -175,3 +175,69 @@ export function augAbilText(id: string): string | null {
   if (i < 0) return null;
   return ABIL[id.slice(0, i)]?.augs?.[id.slice(i + 1)] ?? null;
 }
+
+/** 공용 증강 문장 */
+Object.assign(AUG_TEXT, {
+  'maj.shoot': '사격 피해 [pp:0.2].',
+  'maj.strike': '타격 피해 [pp:0.2].',
+  'maj.tech': '기술 피해 [pp:0.2].',
+  'maj.crit': '[g:crit] 피해 [pp:0.3].',
+  'maj.hp': '최대 체력 +[p:0.15].',
+  'maj.reload': '재장전 속도 +[p:0.25].',
+  'maj.finish': '[g:finish] 피해 [pp:0.4].',
+  'maj.cdr': '쿨다운 감소 속도 [pp:0.2].',
+  'maj.dot': '지속 피해 [pp:0.3].',
+  'psi.clarity': '전투 시작 [g:reason] +30.',
+  'psi.abyss': '[g:reason]이 낮을 때 정신 피해 증폭 +[p:0.5].',
+  'psi.bulwark': '[g:reason]이 높을 때 받는 정신 · 신성 피해 감소 · 지원 효율 +[p:0.5].',
+  'psi.calm': '[g:frenzy] 상태의 초당 체력 손실 없음.',
+  'psi.resonance': '[g:reason] 증감량 +[p:0.5].',
+} as Record<string, string>);
+Object.assign(GLOSS, {
+  reason: { name: '이성', desc: '사이오닉 게이지 (-100 ~ +100). 높으면 정신 · 신성 피해 감소 · 지원 효율 증가, 낮으면 정신 피해 증폭.' },
+  frenzy: { name: '광폭', desc: '이성 -50 이하. 피해 +30%, 초당 최대 체력 2% 손실.' },
+  spawn: { name: '증원', desc: '전장에 아군 개체를 추가로 불러냄.' },
+  lifesteal: { name: '흡혈', desc: '준 피해의 일부만큼 회복.' },
+} as Record<string, { name: string; desc: string }>);
+
+/** 적 스킬 · 특성 */
+export const ENEMY_ABIL: Record<string, { skill?: SkillInfo; trait?: string }> = {
+  crawler: { trait: '기본 공격 적중 시 [p:0.5] 확률로 [st:poison:3]: 초당 [dmg:strike:0.25:chem].' },
+  sw_spore: { trait: '기본 공격 적중 시 [p:0.5] 확률로 [st:poison:3]: 초당 [dmg:strike:0.2:chem].' },
+  sw_spitter: { trait: '기본 공격 적중 시 [p:0.3] 확률로 [st:corrode:3]: 방어도 -[p:0.15].' },
+  cr_thrall: { trait: '기본 공격 시 [heal:0.6] (타격 위력 기준).' },
+  cr_hound: { trait: '기본 공격 적중 시 [p:0.4] 확률로 [st:bleed:3]: 초당 [dmg:strike:0.2:phys].' },
+  pt_anomaly: { trait: '기본 공격 적중 시 [p:0.15] 확률로 [st:fear:1].' },
+  sw_brood: { trait: '[s:10]마다 포자 살점 2기 [g:spawn].' },
+  pt_unixline: { trait: '[s:12]마다 유닉스 생산 로봇 [g:spawn]. 매번 수가 늘어남 (동시 최대 4기).' },
+  trooper: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 1 }, rows: [['피해', '[dmg:strike:1:phys]'], ['기절', '[st:stun:1:0.7]']] } },
+  sw_carrier: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 1 }, rows: [['피해', '[dmg:strike:1:phys]'], ['기절', '[st:stun:1:0.6]']] } },
+  priest: { skill: { tgt: '체력 비율이 가장 낮은 아군 (85% 이하)', range: null, area: { k: 'one' }, rows: [['회복', '[heal:3]']] } },
+  cr_leech: { skill: { tgt: '체력 비율이 가장 낮은 아군 (85% 이하)', range: null, area: { k: 'one' }, rows: [['회복', '[heal:3]']] } },
+  warlord: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 1 }, rows: [['피해', '[dmg:strike:1.5:phys]'], ['강화', '모든 아군 [s:4] 피해 +[p:0.2]']] } },
+  varga: { skill: { tgt: '현재 대상', range: 'unit', area: { k: 'one' }, rows: [['피해', '[dmg:strike:2.2:phys]'], ['광폭화', '모든 아군 [s:5] 공격 속도 +[p:0.3], 피해 +[p:0.3]']] } },
+  goliath: {
+    skill: { tgt: '자신', range: 0, area: { k: 'self', r: 2 }, rows: [['피해', '[dmg:tech:1.2:elec]'], ['기절', '[st:stun:1:0.5]']] },
+    trait: '[s:15]마다 정찰 드론 2기 [g:spawn].',
+  },
+  nyx: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 3 }, rows: [['피해', '[dmg:tech:1:psy]'], ['공포', '[st:fear:1.5:0.4]']] } },
+  sw_queen: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 3 }, rows: [['피해', '[dmg:tech:0.8:psy]'], ['공포', '[st:fear:1:0.3]'], ['강화', '모든 아군 [s:5] 공격 속도 +[p:0.3], 피해 +[p:0.25]']] } },
+  sw_harvester: {
+    skill: { tgt: '현재 대상', range: 'unit', area: { k: 'one' }, rows: [['피해', '[dmg:strike:2.5:phys]'], ['회복', '자신 최대 체력의 [p:0.08]']] },
+    trait: '[s:15]마다 포자 살점 2기 [g:spawn].',
+  },
+  cr_knight: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 1 }, rows: [['피해', '[dmg:strike:1.6:phys]'], ['회복', '자신 최대 체력의 [p:0.12]']] } },
+  cr_count: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 2 }, rows: [['피해', '[dmg:strike:1.4:phys]'], ['회복', '자신 최대 체력의 [p:0.12]'], ['강화', '모든 아군 [s:5] 피해 +[p:0.25]']] } },
+  cr_heart: {
+    skill: { tgt: '모든 적', range: null, area: { k: 'all' }, rows: [['피해', '[dmg:tech:0.5:chem]'], ['중독', '[p:0.5] 확률로 [st:poison:4]: 초당 [dmg:tech:0.1:chem]']] },
+    trait: '[s:15]마다 혈족 종자 1기 [g:spawn].',
+  },
+  sp_phalanx: { skill: { tgt: '모든 아군', range: null, area: { k: 'all' }, rows: [['보호막', '각자 최대 체력의 [p:0.15]'], ['방어도', '[s:4] 방어도 +200']] } },
+  sp_spear: { skill: { tgt: '현재 대상 (없으면 가장 먼 적)', range: null, area: { k: 'line' }, rows: [['피해', '[dmg:tech:2:elec]']] } },
+  sp_colossus: {
+    skill: { tgt: '자신', range: 0, area: { k: 'self', r: 2 }, rows: [['피해', '[dmg:tech:1.2:elec]'], ['기절', '[st:stun:1:0.5]']] },
+    trait: '[s:15]마다 예인 드론 2기 [g:spawn].',
+  },
+  pt_auditor: { skill: { tgt: '현재 대상', range: null, area: { k: 'one' }, rows: [['피해', '[dmg:shoot:1.5:phys]'], ['취약', '[st:vuln:8] 받는 피해 +[p:0.3]']] } },
+  pt_contract: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 3 }, rows: [['피해', '[dmg:tech:1:psy]'], ['취약', '[st:vuln:4] 받는 피해 +[p:0.2]']] } },
+};
