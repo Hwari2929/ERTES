@@ -202,12 +202,18 @@ function synPopHtml(sid: string) {
     const bonus = c - (raw[id] || 0);
     const locked = sd.lockFinal && (uncapped[id] || 0) > c;
     head = `<span class="small">출전 <b>${c}</b>명${bonus > 0 ? ` <span class="accent">(문장 +${bonus})</span>` : ''} · ${t ? `${t}단계 활성` : '비활성'} · ${locked ? '🔒 최종 단계는 증표 필요' : next ? `다음 단계까지 ${next - c}명` : '최고 단계'}</span>`;
-    const dep: string[] = [], bench: string[] = [];
-    for (const u of run.units) if (memberships(u).includes(id)) { const n = UNIT_BY_ID[u.defId].name; (u.pos ? dep : bench).includes(n) || (u.pos ? dep : bench).push(n); }
-    if (dep.length || bench.length) mem = `<div class="syn-members">${dep.map((n) => `<span class="on">${esc(n)}</span>`).join('')}${bench.map((n) => `<span class="bench">${esc(n)} (대기)</span>`).join('')}</div>`;
   }
+  // 소속 기물 초상화: 출전 · 대기 · 미보유 (문장으로 합류한 보유 기물 포함)
+  const own = new Map<string, boolean>();
+  for (const u of run?.units || []) if (memberships(u).includes(id)) own.set(u.defId, own.get(u.defId) || !!u.pos);
+  const pool = UNITS.filter((d) => own.has(d.id) || (([...d.factions, ...d.traits] as string[]).includes(id) && (!d.eventOnly || loadMeta().units[d.id])));
+  const st = (d: UnitDef) => (own.get(d.id) ? 0 : own.has(d.id) ? 1 : 2);
+  pool.sort((x, y) => st(x) - st(y));
+  const TAG = ['출전', '대기', '미보유'];
+  mem = `<div class="sp-units">${pool.map((d) => `<span class="sp-u s${st(d)}" title="${esc(d.name)} · ${TAG[st(d)]}">${sprite(d, 'spr')}<i>${esc(d.name)}</i></span>`).join('')}</div>
+    <div class="sp-legend small"><span class="s0">출전</span><span class="s1">대기</span><span class="s2">미보유</span></div>`;
   const t = tierOf(id, c);
-  return `<b class="sp-t" style="--c:${sd.color}">${synIcon(id) || sd.icon}${esc(sd.name)}</b>${head}${mem}<p>${esc(sd.desc)}</p>
+  return `<b class="sp-t">${synIcon(id) || sd.icon}${esc(sd.name)}<small>${sd.kind === 'faction' ? '세력' : '특성'}</small></b>${head}<p>${esc(sd.desc)}</p>${mem}
     <ol class="sp-tiers">${sd.tierDesc.map((d, i) => `<li class="${i === t - 1 ? 'cur' : ''}${c >= sd.tiers[i] ? ' on' : ''}"><b>${sd.tiers[i]}${sd.lockFinal && i === sd.tiers.length - 1 ? ' · 증표' : ''}</b><span>${esc(d)}</span></li>`).join('')}</ol>`;
 }
 function synergyPanel(run: RunState) {
@@ -1922,6 +1928,7 @@ function showSyn(el: HTMLElement) {
   hideKw();
   const tip = document.createElement('div');
   tip.className = 'kw-tip syn-pop';
+  tip.style.setProperty('--c', SYN_BY_ID[el.dataset.syn as SynergyId]?.color || 'var(--accent)');
   tip.innerHTML = synPopHtml(el.dataset.syn!);
   document.body.appendChild(tip);
   const r = el.getBoundingClientRect();
