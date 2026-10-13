@@ -366,7 +366,7 @@ function roleTag(d: UnitDef) {
   return `<span class="pc-role"><span class="ct-${d.ctype}">${CTYPE_ICON(d.ctype)} ${CTYPE_NAME[d.ctype]}</span><span class="tt-${d.ttype}">${TTYPE_ICON(d.ttype)} ${TTYPE_NAME[d.ttype]}</span></span>`;
 }
 /** 시작 기물 후보 카드: 스탠딩 + 이름 + 역할 + 시너지. 호버(터치는 탭)하면 카드 안에서 설명이 올라온다 */
-interface PickOpts { nameExtra?: string; synCount?: (id: string) => number; clone?: boolean; on: boolean; badge?: string; tapAct: string; full?: boolean; fullLabel?: string; chipFn?: (id: string) => string; extra?: string }
+interface PickOpts { nameExtra?: string; synCount?: (id: string) => number; clone?: boolean; on: boolean; badge?: string; tapAct: string; full?: boolean; fullLabel?: string; chipFn?: (id: string) => string; extra?: string; i?: number }
 /** 이 기물이 합류했을 때 시너지별 기물 수 (같은 기물은 1회) */
 function teamCount(ids: string[]) {
   const uniq = [...new Set(ids)];
@@ -374,7 +374,8 @@ function teamCount(ids: string[]) {
 }
 function pickCard(d: UnitDef, o: PickOpts) {
   const { clone, on, full } = o;
-  return `<div class="pcard ${on ? 'sel' : ''} ${app.cardOpen === d.id && !clone ? 'open' : ''}" data-a="${o.tapAct}" data-v="${d.id}" ${clone ? 'aria-hidden="true"' : 'tabindex="0" role="button"'} aria-label="${esc(d.name)}">
+  return `<div class="pcard ${on ? 'sel' : ''} ${app.cardOpen === d.id && !clone ? 'open' : ''}" style="--i:${Math.min(o.i ?? 0, 7)}" data-a="${o.tapAct}" data-v="${d.id}" ${clone ? 'aria-hidden="true"' : 'tabindex="0" role="button"'} aria-label="${esc(d.name)}">
+    <i class="cback" aria-hidden="true"></i>
     <div class="pc-art">${standImg(d.id, 'stand') || sprite(d, 'spr big')}</div>
     ${on ? `<span class="pc-check">✓${o.badge ? ` ${o.badge}` : ''}</span>` : ''}
     <div class="pc-syn">${[...d.factions, ...d.traits].map((id) => synToken(id, o.synCount ? o.synCount(id) : 0)).join('')}</div>
@@ -401,7 +402,7 @@ function newRunScreen() {
       <button class="car-btn prev" data-a="car-prev" aria-label="이전 기물">‹</button>
       <div class="car-track" aria-label="후보 기물 (좌우로 넘겨 보기)">${[0, 1, 2].map((k) => app.pool.map((id) => {
         const on = app.starters.includes(id);
-        return pickCard(UNIT_BY_ID[id], { clone: k !== 1, on, badge: on ? String(app.starters.indexOf(id) + 1) : '', tapAct: 'card-tap', full: !on && app.starters.length >= CFG.startUnits, fullLabel: `이미 ${CFG.startUnits}명 선택` });
+        return pickCard(UNIT_BY_ID[id], { i: app.pool.indexOf(id), clone: k !== 1, on, badge: on ? String(app.starters.indexOf(id) + 1) : '', tapAct: 'card-tap', full: !on && app.starters.length >= CFG.startUnits, fullLabel: `이미 ${CFG.startUnits}명 선택` });
       }).join('')).join('')}</div>
       <button class="car-btn next" data-a="car-next" aria-label="다음 기물">›</button>
     </div>
@@ -497,17 +498,19 @@ function shipPanel(run: RunState) {
 function musterModal(run: RunState) {
   const sel = app.musterSel;
   const pool = sel.length ? R.musterPool(run, sel) : [];
+  const ok = R.musterSyns();
   const owned = new Set(run.units.flatMap((u) => [...UNIT_BY_ID[u.defId].factions, ...UNIT_BY_ID[u.defId].traits]));
-  const group = (kind: string, title: string) => `<h3>${title}</h3><div class="ms-grid">${SYNERGIES.filter((s) => s.kind === kind && R.musterPool(run, [s.id]).length).map((s) => {
+  const group = (kind: string, title: string) => `<h3>${title}</h3><div class="ms-grid">${SYNERGIES.filter((s) => s.kind === kind && ok.includes(s.id) && R.musterPool(run, [s.id]).length).map((s) => {
     const on = sel.includes(s.id), n = R.musterPool(run, [s.id]).length;
-    return `<button class="ms-syn${on ? ' on' : ''}${owned.has(s.id) ? ' own' : ''}" style="--c:${s.color}" data-a="muster-tog" data-v="${s.id}" aria-pressed="${on}" ${!on && sel.length >= CFG.musterPicks ? 'disabled' : ''}>
-      <span class="syn-dia">${synIcon(s.id) || s.icon}</span><b>${esc(s.name)}</b><span class="small muted">${n}명</span></button>`;
+    return `<button class="ms-syn${on ? ' on' : ''}${owned.has(s.id) ? ' own' : ''}" style="--c:${s.color}" data-a="muster-tog" data-v="${s.id}" aria-pressed="${on}" title="${esc(s.name)}" aria-label="${esc(s.name)} ${n}명" ${!on && sel.length >= CFG.musterPicks ? 'disabled' : ''}>
+      <span class="syn-dia"><i>${synIcon(s.id) || s.icon}</i></span><span class="ms-n">${n}</span></button>`;
   }).join('')}</div>`;
-  return `<h1>지정 소집</h1><p class="muted small">세력 · 특성 시너지를 최대 ${CFG.musterPicks}개 고르면, 그중 하나라도 가진 기물만 후보로 나옵니다. 테두리가 밝은 시너지는 이미 보유한 시너지입니다.</p>
+  const full = sel.length === CFG.musterPicks;
+  return `<h1>지정 소집</h1><p class="muted small">세력 · 특성 시너지를 정확히 ${CFG.musterPicks}개 고르면, 그중 하나라도 가진 기물만 후보로 나옵니다. 숫자는 후보 수, 밝은 테두리는 보유 중인 시너지.</p>
     ${group('faction', '세력')}${group('trait', '특성')}
-    <div class="row-btns ms-foot"><span class="muted small">${sel.length}/${CFG.musterPicks} 선택 · 후보 풀 ${pool.length}명</span>
+    <div class="row-btns ms-foot"><span class="muted small">${sel.length}/${CFG.musterPicks} 선택${full ? ` · 후보 풀 ${pool.length}명` : ''}</span>
       <button class="btn" data-a="muster-cancel">취소</button>
-      <button class="btn primary" data-a="muster-ok" ${sel.length && pool.length ? '' : 'disabled'}>소집 ${CR}${R.musterCost(run)}</button></div>`;
+      <button class="btn primary" data-a="muster-ok" ${full && pool.length ? '' : 'disabled'}>소집 ${CR}${R.musterCost(run)}</button></div>`;
 }
 function nodeHint(o: NodeType) {
   return ({
@@ -1004,8 +1007,11 @@ function pendingModal(run: RunState): string {
   if (!p || app.screen === 'battle' || app.screen === 'over') return '';
   let body = '', mcls = '';
   if (p.t === 'global') {
-    body = `<h1>전역 증강</h1><p class="muted">런 전체에 적용되는 증강을 하나 고르세요.</p>
-      <div class="cards">${p.options.map((id) => { const g = GLOBAL_BY_ID[id]; return `<button class="card" data-a="pick-global" data-v="${id}"><b>${esc(g.name)}</b><span>${esc(g.desc)}</span></button>`; }).join('')}</div>`;
+    mcls = 'global';
+    body = `<h1>전역 증강</h1><p class="muted small">런 끝까지 함대 전체에 적용됩니다. 한 장을 고르세요.</p>
+      <div class="gc-row">${p.options.map((id, i) => { const g = GLOBAL_BY_ID[id]; const h = [...id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7); return `<button class="gcard" style="--i:${i};--h:${h}" data-a="pick-global" data-v="${id}">
+        <i class="cback" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">✦</span>
+        <span class="gc-kind">${g.unique ? '고유 · ' : ''}전역</span><b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button>`; }).join('')}</div>`;
   } else if (p.t === 'event') {
     const ev = EVENT_BY_ID[p.id];
     body = `<div class="event ${ev.rare ? 'rare' : ''}"><h1>${ev.rare ? '✦ ' : ''}${esc(ev.title)}</h1>${ev.rare ? '<p class="accent small">희귀 사건</p>' : ''}
@@ -1074,7 +1080,7 @@ function pendingModal(run: RunState): string {
     mcls = 'recruit';
     const pick = app.recruitPick && p.options.includes(app.recruitPick) ? app.recruitPick : null;
     body = `<div class="rc-head"><div><h1>${p.syns ? '지정 소집' : '기물 영입'}</h1><p class="muted small">${p.syns ? `${p.syns.map((s) => esc(SYN_BY_ID[s as SynergyId]?.name || s)).join(' · ')} 중에서 ` : ''}새 동료 한 명을 고르세요. 공명 등급 ${rank}로 합류합니다. 보유 ${run.units.length}/${CFG.maxParty} (출전 최대 ${R.deployCap(run)}명)</p></div>${detailToggle()}</div>
-      <div class="rc-track">${p.options.map((id) => pickCard(UNIT_BY_ID[id], { on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), nameExtra: `<span class="rc-rank" title="공명 등급 ${rank}">${rankLabel(rank)}</span>` })).join('')}</div>
+      <div class="rc-track">${p.options.map((id, i) => pickCard(UNIT_BY_ID[id], { i, on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), nameExtra: `<span class="rc-rank" title="공명 등급 ${rank}">${rankLabel(rank)}</span>` })).join('')}</div>
       <div class="rc-foot">${pick ? (() => {
         // 영입하면 바뀌는 시너지: 보유 기물 + 이 기물 기준 인원, 단계가 오르면 강조
         const d = UNIT_BY_ID[pick];
@@ -1293,7 +1299,7 @@ function render() {
   else if (app.screen === 'over') body = overScreen(run);
   const showTop = run && app.screen !== 'title' && app.screen !== 'newrun' && app.screen !== 'codex';
   // 다시 그려도 같은 화면 · 같은 창이면 스크롤 위치를 유지한다
-  const modalKey = run?.pending[0] ? JSON.stringify([run.pending[0].t, (run.pending[0] as { uid?: string }).uid, (run.pending[0] as { allocDone?: boolean }).allocDone]) : app.menu || '';
+  const modalKey = run?.pending[0] ? JSON.stringify([run.pending[0].t, (run.pending[0] as { uid?: string }).uid, (run.pending[0] as { allocDone?: boolean }).allocDone, (run.pending[0] as { options?: unknown }).options]) : app.menu || '';
   const sameView = lastView.screen === app.screen;
   const newModal = lastView.modal !== modalKey;
   const keep = ['.side.left', '.side.right', 'aside.side', '.codex-grid'].map((sel) => [sel, root.querySelector(sel)?.scrollTop || 0] as const);
@@ -1320,6 +1326,7 @@ function render() {
   const md = root.querySelector('.modal');
   if (md && modalTop) md.scrollTop = modalTop;
   if (md && newModal) md.classList.add('enter');
+  if (app.screen === 'newrun' && !sameView) root.querySelector('.nr')?.classList.add('deal');
   // 페이즈 전환 연출
   if (run && run.phase !== lastPhase) { if (lastPhase && run.phase > lastPhase) banner('phase', `PHASE ${run.phase}`, `${fieldOf(run.field).name} · 적이 강해집니다`); lastPhase = run.phase; }
   if (!run) lastPhase = 0;

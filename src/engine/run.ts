@@ -8,7 +8,7 @@ import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, emblemId, emblemOf, isLocked, isMod, itemInfo } from '../data/items';
-import { SYN_BY_ID, tierOf } from '../data/synergies';
+import { SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, PSI_AUGS, recMajors } from '../data/rework';
 import { Rng } from '../rng';
@@ -161,6 +161,8 @@ export function buyFleet(run: RunState): string | null {
 }
 export const musterCost = (run: RunState) => CFG.musterCost + CFG.musterStep * (run.musters || 0);
 /** 지정 소집 후보 풀: 고른 시너지 중 하나라도 가진, 아직 없는 기물 */
+/** 지정 소집에 고를 수 있는 시너지: 구성 기물이 2명 이상 (데미우르고스 · 아문센 같은 1인 독립 시너지 제외) */
+export const musterSyns = () => SYNERGIES.filter((s) => RECRUITABLE.filter((d) => ([...d.factions, ...d.traits] as string[]).includes(s.id)).length > 1).map((s) => s.id as string);
 export const musterPool = (run: RunState, syns: string[]) =>
   RECRUITABLE.filter((d) => d.id !== 'amundsen' && !run.units.some((u) => u.defId === d.id) && [...d.factions, ...d.traits].some((s) => syns.includes(s))).map((d) => d.id); // 아문센은 지정 소집으로 부를 수 없다 (일반 영입에서만 드물게)
 export function openMuster(run: RunState): string | null {
@@ -172,7 +174,7 @@ export function openMuster(run: RunState): string | null {
 }
 export function confirmMuster(run: RunState, syns: string[]): string | null {
   if (run.pending[0]?.t !== 'muster') return null;
-  if (syns.length < 1 || syns.length > CFG.musterPicks) return `시너지를 1~${CFG.musterPicks}개 고르세요`;
+  if (syns.length !== CFG.musterPicks || new Set(syns).size !== syns.length || syns.some((x) => !musterSyns().includes(x))) return `시너지를 ${CFG.musterPicks}개 고르세요`;
   const pool = musterPool(run, syns);
   if (!pool.length) return '조건에 맞는 기물이 없습니다';
   const c = musterCost(run);
@@ -339,7 +341,7 @@ export function advance(run: RunState) {
     run.phaseBoons = [];
     log(run, `페이즈 ${run.phase} 진입. 적이 강해집니다.`);
     offerRecruit(run); // 페이즈 시작 영입
-    if ((run.phase - 1) % CFG.globalAugEvery === 0) run.pending.push({ t: 'global', options: rollGlobals(run) });
+    run.pending.push({ t: 'global', options: rollGlobals(run) });
     if (run.fund) { run.credits += run.fund; log(run, `호이슌 투자 수익 +${run.fund}`); run.pending.push({ t: 'notice', title: '투자 수익 정산', body: `지난 페이즈에 맡긴 자금이 불어나 크레딧 +${run.fund}을 돌려받았습니다.` }); run.fund = 0; }
   }
   // 은하 대스타가 활성화되어 있으면 보스 직전에 속보 노드 추가

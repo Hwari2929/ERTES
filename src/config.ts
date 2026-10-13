@@ -91,7 +91,6 @@ export const CFG = {
   lossDamage: (phase: number, survivors: number) => 3 + 2 * phase + survivors,
   bossLossDamage: (phase: number) => 10 + 3 * phase,
 
-  globalAugEvery: 3, // 런 시작 + n 페이즈마다
   privilegeRerolls: 3, // 런 시작 특권 증강 새로고침 횟수
 };
 

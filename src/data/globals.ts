@@ -10,7 +10,7 @@ const active = (ctx: EffectCtx) => SYNERGIES.filter((s) => s.tiers.length > 1 &&
 const maxed = (ctx: EffectCtx) => SYNERGIES.filter((s) => s.tiers.length > 1 && tierOf(s.id, ctx.counts[s.id] || 0) === s.tiers.length);
 export const synName = (id: string) => SYN_BY_ID[id as SynergyId]?.name || id;
 
-/** 전역 증강: 런 시작 시 + n 페이즈마다 1개 선택 */
+/** 전역 증강: 런 시작 시 + 매 페이즈 시작마다 1개 선택 */
 export interface GlobalDef {
   id: string;
   name: string;
