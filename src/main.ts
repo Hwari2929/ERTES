@@ -954,18 +954,48 @@ function updateMeter(force = false) {
   v.select(app.battleSel);
 }
 
+/** MVP: 피해 · 지원(회복+보호막) · 받아낸 피해 · 결정타를 각각 아군 최고치 대비로 환산해 합산. 가장 큰 항목이 칭호가 된다 */
+function pickMvp(b: Battle) {
+  const rows = aggAllies(b);
+  if (!rows.length) return null;
+  const mx = (f: (a: Agg) => number) => Math.max(1, ...rows.map(f));
+  const md = mx((a) => a.dmg), ms = mx((a) => a.healed + a.shield), mt = mx((a) => a.taken), mk = mx((a) => a.kills);
+  const parts = (a: Agg) => [
+    ['최다 피해', (a.dmg / md) * 1.0], ['최고의 지원', ((a.healed + a.shield) / ms) * 0.9], ['최전선', (a.taken / mt) * 0.6], ['마무리 일격', (a.kills / mk) * 0.4],
+  ] as [string, number][];
+  const best = rows.map((a) => ({ a, p: parts(a), sc: parts(a).reduce((x, [, v]) => x + v, 0) + (a.u.alive ? 0.15 : 0) })).sort((x, y) => y.sc - x.sc)[0];
+  const title = best.p.slice().sort((x, y) => y[1] - x[1])[0][0];
+  return { a: best.a, title };
+}
 function summaryModal(run: RunState) {
   const s = app.summary!;
-  const xp = s.xp.filter((x) => x.amount > 0).map((x) => {
+  const b = app.lastBattle;
+  const mvp = b ? pickMvp(b) : null;
+  const d = mvp ? UNIT_BY_ID[mvp.a.u.defId] : null;
+  const quote = d ? d.lore.replace(/^["“]|["”]$/g, '') : '';
+  const xp = s.xp.filter((x) => x.amount > 0).map((x, i) => {
     const u = run.units.find((y) => y.uid === x.uid);
-    return u ? `<li>${sprite(UNIT_BY_ID[u.defId])} ${esc(UNIT_BY_ID[u.defId].name)} <b>+${x.amount}</b></li>` : '';
+    return u ? `<li style="--i:${i}">${sprite(UNIT_BY_ID[u.defId])}<span>${esc(UNIT_BY_ID[u.defId].name)}</span><b>+${x.amount}</b></li>` : '';
   }).join('');
-  return `<div class="modal-bg"><div class="modal result ${s.won ? 'win' : 'lose'}">
-    <h1>${s.gameOver ? '용병단 전멸' : s.won ? '승리' : '패배'}</h1>
-    <ul class="lines">${s.lines.map((l) => `<li>${ic(esc(l))}</li>`).join('')}</ul>
-    ${xp ? `<h3>${RES}공명도 획득</h3><ul class="xp-gain">${xp}</ul>` : ''}
-    ${app.lastBattle ? `<h3>전투 기록</h3>${battleTable(app.lastBattle)}` : ''}
-    <button class="btn primary" data-a="after-battle">${s.gameOver ? '결과 보기' : '계속'}</button>
+  const head = s.gameOver ? '용병단 전멸' : s.won ? '승리' : '패배';
+  const mvpStat = mvp ? [['준 피해', mvp.a.dmg], ['지원', mvp.a.healed + mvp.a.shield], ['받은 피해', mvp.a.taken], ['결정타', mvp.a.kills]].filter(([, v]) => (v as number) > 0).map(([k, v]) => `<span><small>${k}</small><b>${fmt(v as number)}</b></span>`).join('') : '';
+  return `<div class="modal-bg res-bg${s.won ? ' win' : ''}"><div class="modal result rs ${s.won ? 'win' : 'lose'}">
+    <div class="rs-banner"><span class="rs-rays" aria-hidden="true"></span><b>${head}</b><small>${s.won ? 'MISSION COMPLETE' : s.gameOver ? 'MISSION FAILED' : 'RETREAT'}</small></div>
+    <div class="rs-grid">
+      ${d && mvp ? `<section class="rs-mvp" aria-label="MVP">
+        <div class="rs-mvp-art">${standImg(d.id, 'stand', true) || sprite(d, 'spr big')}</div>
+        <div class="rs-mvp-tag"><span class="rs-crown">MVP</span><em>${mvp.title}</em></div>
+        <div class="rs-mvp-name"><b>${esc(d.name)}</b><small>${esc(d.title)}</small></div>
+        <blockquote class="rs-quote">${esc(quote)}</blockquote>
+        <div class="rs-mvp-stats">${mvpStat}</div>
+      </section>` : ''}
+      <section class="rs-reward"><h3>보상 일람</h3>
+        <ul class="rs-lines">${s.lines.map((l, i) => `<li style="--i:${i}">${ic(esc(l))}</li>`).join('')}</ul>
+        ${xp ? `<h4>${RES}공명도 획득</h4><ul class="rs-xp">${xp}</ul>` : ''}
+      </section>
+      <section class="rs-report"><h3>전투 보고서 <span class="muted small">${b ? `${b.t.toFixed(1)}초` : ''}</span></h3>${b ? battleTable(b) : ''}</section>
+    </div>
+    <div class="rs-foot"><button class="btn primary" data-a="after-battle">${s.gameOver ? '결과 보기' : '계속'}</button></div>
   </div></div>`;
 }
 
