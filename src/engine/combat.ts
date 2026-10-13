@@ -180,15 +180,19 @@ export class Battle {
   tacPower(u: CUnit): number {
     const side = u.side;
     const boost = this.has(u, 'buff', 'div.oracle') || (this.mem[`oracle${side}`] || 0) > this.t ? 2 : 1;
-    return Math.max(1, this.tac[side]) * CFG.tacScale * boost * (1 + (u.mem.tacPct || 0));
+    return Math.max(1, this.tac[side]) * boost * (1 + (u.mem.tacPct || 0));
   }
   computeTac() {
     for (const side of [0, 1] as const) {
       const us = this.units.filter((x) => x.side === side && !x.isSummon && x.alive);
-      // 아군: 기물 1명당 +2, 지휘관은 추가 +5 / 적: 기존 규칙 (20 - 2×인원, 지휘관 +2)
-      let v = side === 0 ? 2 * us.length : 20 - 2 * us.length;
-      for (const c of us) { if (c.ctype === 'CMD') v += (side === 0 ? 5 : 2) + Math.floor((c.mem.mnd || 0) * 0.25); v += c.mem.tacBonus || 0; }
-      this.tac[side] = Math.max(1, v);
+      // 아군 (위력 단위, 출전 4명 · 지휘관 1명 = 100): 출전 기물 1명당 +16, 지휘관 1명 추가당 +40, 지휘관 정신력 1당 +2
+      // 적: 기존 규칙을 위력 단위로 (8 × (20 - 2×인원 + 지휘관 2))
+      const cmds = us.filter((c) => c.ctype === 'CMD');
+      let v = side === 0
+        ? CFG.tacBase + CFG.tacPerUnit * (us.length - 4) + CFG.tacPerCmd * (cmds.length - 1) + cmds.reduce((s, c) => s + CFG.tacPerMnd * (c.mem.mnd || 0), 0)
+        : 8 * (20 - 2 * us.length + 2 * cmds.length);
+      for (const c of us) v += c.mem.tacBonus || 0;
+      this.tac[side] = Math.max(8, Math.round(v));
     }
   }
 

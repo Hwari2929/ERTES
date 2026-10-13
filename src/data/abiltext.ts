@@ -47,7 +47,7 @@ export const GLOSS: Record<string, { name: string; desc: string }> = {
   weak: { name: '피해량 감소', desc: '대상이 가하는 피해를 비율만큼 줄인다 (해로운 효과).' },
   camp: { name: '임시 장비', desc: '캠핑 러버: 전투마다 장비 칸을 쓰지 않는 무작위 장비를 받음.' },
   turret: { name: '포탑', desc: '엔지니어 시너지로 전투 시작 시 배치되는 포탑.' },
-  tac: { name: '전술 위력', desc: '지휘관 전용 위력. 출전 아군 구성으로 정해짐. 지휘관의 스킬은 사격 · 타격 · 기술 위력 대신 이 값을 씀.' },
+  tac: { name: '전술 위력', desc: '지휘관 전용 위력 (사격 · 타격 · 기술 위력과 같은 단위, 출전 4명 · 지휘관 1명 기준 100). 출전 기물 1명당 +16, 지휘관 1명 추가당 +40, 지휘관 정신력 1당 +2. 지휘관의 스킬은 사격 · 타격 · 기술 위력 대신 이 값을 씀.' },
   combo: { name: '콤보', desc: '정해진 횟수째 공격이 피니쉬로 강화됨.' },
   finish: { name: '피니쉬', desc: '콤보 마지막 공격. 기본 피해 ×2.6.' },
   mag: { name: '탄창', desc: '다 쓰면 재장전하는 동안 공격 불가.' },
@@ -157,7 +157,7 @@ const ABIL_PILOT: Record<string, AbilText> = {
       travelogue: '모든 메이저 스탯 +4.',
       'sp.shade': '[g:rewind].',
       'sp.mount': '[g:immobile]. 기본 공격 피해 ×1.6, 사거리 +[t:2].',
-      'sp.order': '기본 공격을 하지 않음. [g:tac] +6.',
+      'sp.order': '기본 공격을 하지 않음. [g:tac] +48.',
     },
   },
 };

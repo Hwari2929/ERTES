@@ -558,7 +558,7 @@ export const REWORK: Record<string, ReworkDef> = {
         return true;
       } } }),
       sp('amundsen', 'mount', '7703 탑승', '움직이지 않지만 포격 피해 ×1.6, 사거리 +2.', { stats: { range: 2 }, setup: (u) => { u.immobile = true; if (u.weapon) u.weapon = { ...u.weapon, mult: u.weapon.mult * 1.6 }; } }),
-      sp('amundsen', 'order', '단장의 명령', '기본 공격을 하지 않지만 전술 위력 +6.', { setup: (u) => { u.noAttack = true; u.mem.tacBonus = (u.mem.tacBonus || 0) + 6; } }),
+      sp('amundsen', 'order', '단장의 명령', '기본 공격을 하지 않지만 전술 위력 +48.', { setup: (u) => { u.noAttack = true; u.mem.tacBonus = (u.mem.tacBonus || 0) + 48; } }),
     ],
   },
   rachel: {

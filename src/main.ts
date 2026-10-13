@@ -276,7 +276,7 @@ const CTYPE_DESC: Record<string, [string, string]> = {
   MARK: ['사격으로 싸운다. 사격 위력 · 공격 속도 · 재장전 · 명중 · 치명타가 중요하다.', '주력: 사격 위력, 사격 속도, 재장전 속도, 명중, 치명 확률 · 피해. 탄창을 다 쓰면 재장전하는 동안 기본 공격을 못 한다 (스킬은 가능).'],
   VAN: ['근접 타격으로 싸운다. 타격 위력 · 콤보와 피니쉬 · 치명타가 중요하다.', `주력: 타격 위력, 타격 속도, 명중, 콤보 · 피니쉬 피해량, 치명 확률 · 피해. 무기별 N번째 공격이 피니쉬 (×${CFG.finishMult}).`],
   SPEC: ['기술로 싸운다. 기술 위력 · 효과 명중 · 쿨다운이 중요하다.', '주력: 기술 위력, 효과 명중, 쿨다운 감소 속도, 기술 범위. 기술 피해는 치명타가 없다 (일부 특성 예외).'],
-  CMD: ['아군이 함께 쓰는 전술 위력으로 스킬을 쓴다. 출전 인원이 많을수록, 지휘관이 많고 정신력이 높을수록 강하다.', `스킬은 전술 위력으로 계산한다. 전술 위력 = 출전 기물 수 × 2 + Σ(지휘관마다 5 + ⌊정신력 × 0.25⌋), 1당 위력 ${CFG.tacScale}.`],
+  CMD: ['아군이 함께 쓰는 전술 위력으로 스킬을 쓴다. 출전 인원이 많을수록, 지휘관이 많고 정신력이 높을수록 강하다.', `스킬은 전술 위력으로 계산한다. 전술 위력 = ${CFG.tacBase} (출전 4명 · 지휘관 1명 기준) + 출전 기물 1명당 ${CFG.tacPerUnit} + 지휘관 1명 추가당 ${CFG.tacPerCmd} + 지휘관 정신력 1당 ${CFG.tacPerMnd}.`],
 };
 const TTYPE_DESC: Record<string, [string, string]> = {
   major: ['자주 증강을 고르며, 모두가 쓸 수 있는 메이저 증강도 나온다.', '3등급마다 능력치 2개 +3, 3등급마다 증강 (전용 + 메이저 공용 풀).'],
@@ -566,20 +566,26 @@ function rosterRow(u: UnitState) {
 }
 
 // ───────────────────────── 화면: 편성 (전투 준비 / 관리)
-/** 전술 위력 아이콘 (체스 나이트) */
-const TAC_IC = '<svg class="tac-ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 21h11v-2.2H7z"/><path d="M8.2 18h9.3c.2-3.6-.5-6.4-2-8.7-1.6-2.4-3.8-4-6.3-4.8l-.7-1.6-1.3 2.2-1.9.9.4 1.4L4.3 11l.6 2.2 2.7-.2 2.6-1.5c.3 1.6-.5 3-1.6 4.3-.5.6-.6 1.4-.4 2.2zM8.3 8.4a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8z"/></svg>';
-/** 편성 표: 현재 출전 구성으로 계산한 아군 전술 위력과 내역 (기물당 +2, 지휘관마다 +5 + 정신력/4) */
+/** 편성 표: 전술 위력 알약 (지휘관 또는 전술 위력을 쓰는 시너지가 있을 때만). 숨어 있다가 나타나는 순간 튀어나오는 연출 */
+let tacShownPrev = false;
 function tacPill(run: RunState) {
   const dep = deployed(run);
-  if (!dep.length) return '';
-  const b = buildBattle(run, run.node?.enc ? { ...run.node.enc, enemies: [] } : { n: CFG.bossBoard, env: '', enemies: [], mult: 1, seed: 1 }, false);
-  const allies = b.units.filter((u) => u.side === 0 && !u.isSummon);
+  const scheme = tierOf('SCHEME', synergyCounts(dep, run).SCHEME || 0) > 0; // [암운] 피해가 전술 위력 비례
+  const b = dep.length ? buildBattle(run, run.node?.enc ? { ...run.node.enc, enemies: [] } : { n: CFG.bossBoard, env: '', enemies: [], mult: 1, seed: 1 }, false) : null;
+  const allies = b ? b.units.filter((u) => u.side === 0 && !u.isSummon) : [];
   const cmds = allies.filter((u) => u.ctype === 'CMD');
-  const lines = [`기물 ${allies.length}명 × 2 = +${2 * allies.length}`, ...cmds.map((c) => `지휘관 ${c.name}: +${5 + Math.floor((c.mem.mnd || 0) * 0.25)} (기본 5 + 정신력 ${c.mem.mnd || 0}/4)`)];
+  const show = !!b && (cmds.length > 0 || scheme || allies.some((u) => u.weapon?.tactical));
+  const pop = show && !tacShownPrev;
+  tacShownPrev = show;
+  if (!b || !show) return '';
+  const lines = [`기본 ${CFG.tacBase} (출전 4명 · 지휘관 1명 기준)`, `출전 ${allies.length}명: ${allies.length >= 4 ? '+' : ''}${CFG.tacPerUnit * (allies.length - 4)}`];
+  if (cmds.length !== 1) lines.push(`지휘관 ${cmds.length}명: ${cmds.length > 1 ? '+' : ''}${CFG.tacPerCmd * (cmds.length - 1)}`);
+  for (const c of cmds) lines.push(`${c.name} 정신력 ${c.mem.mnd || 0}: +${CFG.tacPerMnd * (c.mem.mnd || 0)}`);
   const extra = allies.reduce((sum, u) => sum + (u.mem.tacBonus || 0), 0);
   if (extra) lines.push(`기타 보정 +${extra}`);
-  const title = `전술 위력 ${b.tac[0]} — 지휘관 ${cmds.length}명\n${lines.join('\n')}\n지휘관의 스킬 · 전술 무기는 이 값을 위력으로 씁니다.`;
-  return `<span class="tac-wrap"><button class="pill tac-pill${cmds.length ? '' : ' off'}" data-a="tac-info" title="${esc(title)}" aria-expanded="${app.tacOpen}">${TAC_IC}전술 위력 <b>${b.tac[0]}</b><small>지휘관 ${cmds.length}</small></button>${app.tacOpen ? `<span class="tac-pop" role="note"><b>전술 위력 ${b.tac[0]}</b>${lines.map((l) => `<span>${esc(l)}</span>`).join('')}<span class="muted">지휘관의 스킬 · 전술 무기는 이 값을 위력으로 씁니다.</span></span>` : ''}</span>`;
+  const v = b.tac[0];
+  const title = `전술 위력 ${v}\n${lines.join('\n')}\n지휘관의 스킬 · 전술 무기 · [암운]은 이 값을 위력으로 씁니다.`;
+  return `<span class="tac-wrap"><button class="pill tac-pill${pop ? ' pop' : ''}" data-a="tac-info" title="${esc(title)}" aria-label="${esc(title)}" aria-expanded="${app.tacOpen}">${lineIcon('p.tac', 'li')}<b>${v}</b></button>${cmds.length ? `<span class="tac-cmd" title="출전 지휘관 수">지휘관 ${cmds.length}</span>` : ''}${app.tacOpen ? `<span class="tac-pop" role="note"><b>전술 위력 ${v}</b>${lines.map((l) => `<span>${esc(l)}</span>`).join('')}<span class="muted">지휘관의 스킬 · 전술 무기 · [암운]은 이 값을 위력으로 씁니다.</span></span>` : ''}</span>`;
 }
 function prepScreen(run: RunState) {
   const node = run.node;
@@ -805,6 +811,17 @@ function aceAbil(run: RunState, u: UnitState) {
   return `<div class="ab-ace-wrap${on ? ' on' : ''}">${abilCard('ace', 'skill', d.ace.name, on ? '활성' : '비활성', `<p>${t ? statIc(AB.tok(t, actx(null, null), new Set())) : esc(d.ace.desc(k))}</p>`).replace('ab-skill', 'ab-ace')}${ctl}</div>`;
 }
 
+/** 상세 보기: 전투 유형에 따른 주요 위력 (+ 무기가 다른 위력을 쓰면 함께). 전술 위력은 지금 출전 구성 기준 실시간 값 */
+const POW_NAME = { shoot: '사격 위력', strike: '타격 위력', tech: '기술 위력', tac: '전술 위력' } as const;
+function powRow(b: Battle, c: CUnit, d: UnitDef, deployedNow: boolean) {
+  type K = keyof typeof POW_NAME;
+  const main: K = d.ctype === 'CMD' ? 'tac' : d.ctype === 'MARK' ? 'shoot' : d.ctype === 'VAN' ? 'strike' : 'tech';
+  const keys: K[] = [main];
+  const w = c.weapon;
+  if (w && w.kind !== 'none') { const wk: K = w.tactical ? 'tac' : w.type === 'shoot' ? 'shoot' : 'strike'; if (!keys.includes(wk)) keys.push(wk); }
+  const val = (k: K) => Math.round(k === 'tac' ? b.tacPower(c) : b.S(c, k));
+  return `<div class="d-pows">${keys.map((k, i) => `<span class="d-pow pw-${k}${i ? ' sub' : ''}" title="${POW_NAME[k]}${k === 'tac' ? (deployedNow ? ' · 지금 출전 구성 기준' : ' · 이 기물이 출전했을 때 기준') : ''}">${lineIcon(`p.${k}`, 'li')}<span>${POW_NAME[k]}</span><b>${fmt(val(k))}</b></span>`).join('')}</div>`;
+}
 function detailPanel(run: RunState) {
   const sel = app.sel;
   if (sel?.k === 'enemy' && run.node?.enc) {
@@ -843,6 +860,7 @@ function detailPanel(run: RunState) {
       <div class="pc-syn dh-syn">${(() => { const cnt = synergyCounts(deployed(run), run) as Record<string, number>; return memberships(u, run).map((id) => synToken(id, cnt[id] || 0)).join(''); })()}</div>
       <div class="dh-name"><b>${esc(d.name)}</b><span class="dh-types"><i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i></span></div></div>
     <div class="dh-rank"><span class="dh-r">${rankLabel(u.rank)}</span>${xpBar(u)}<button class="btn tiny dh-buy" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''} title="공명도 +${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)} 구입 (에너지 크레딧 ${cost})">${lineIcon('r.res', 'li res')}+${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)}<span class="dh-cost">${lineIcon('r.cr', 'li cr')}${cost}</span></button></div>
+    ${powRow(b, c, d, !!u.pos)}
     ${memberships(u, run).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}
     <h3>장비</h3><div class="d-eqbox"><div class="d-eq" aria-label="장비 · 개조부품">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : `<span data-drop="unit:${u.uid}">${itemIcon(null)}</span>`)).join('')}${u.mod ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : `<span data-drop="unit:${u.uid}" title="개조부품 칸 · 문장을 끌어다 장착"><span class="item empty tM"></span></span>`}</div><button class="reco-btn" data-a="reco" data-v="${u.uid}" title="추천 장비 · 보유 현황">${lineIcon('r.reco', 'li')}추천 장비</button></div>
     <div class="mj-wrap">
@@ -1359,6 +1377,7 @@ function render() {
   const md = root.querySelector('.modal');
   if (md && modalTop) md.scrollTop = modalTop;
   if (md && newModal) md.classList.add('enter');
+  if (app.screen !== 'prep') tacShownPrev = false;
   const deal = (newModal && md?.querySelector<HTMLElement>('.rc-track, .gc-row')) || (app.screen === 'newrun' && !sameView && root.querySelector<HTMLElement>('.car-track'));
   if (deal) revealCards(deal);
   if (!artWarmed) { artWarmed = true; setTimeout(() => prefetchArt(RECRUITABLE.map((d) => d.id)), 1500); }
