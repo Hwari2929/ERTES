@@ -44,6 +44,7 @@ type Sel = { k: 'unit'; uid: string } | { k: 'item'; idx: number } | { k: 'enemy
 
 const app = {
   screen: 'title' as Screen,
+  tacOpen: false, // 편성 표: 전술 위력 내역 펼침
   mapTab: 0, // 메인 화면 우측 패널 탭: 0 파티 · 1 환경 · 2 기록
   musterSel: [] as string[], // 지정 소집에서 고른 시너지
   run: null as RunState | null,
@@ -565,6 +566,21 @@ function rosterRow(u: UnitState) {
 }
 
 // ───────────────────────── 화면: 편성 (전투 준비 / 관리)
+/** 전술 위력 아이콘 (체스 나이트) */
+const TAC_IC = '<svg class="tac-ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 21h11v-2.2H7z"/><path d="M8.2 18h9.3c.2-3.6-.5-6.4-2-8.7-1.6-2.4-3.8-4-6.3-4.8l-.7-1.6-1.3 2.2-1.9.9.4 1.4L4.3 11l.6 2.2 2.7-.2 2.6-1.5c.3 1.6-.5 3-1.6 4.3-.5.6-.6 1.4-.4 2.2zM8.3 8.4a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8z"/></svg>';
+/** 편성 표: 현재 출전 구성으로 계산한 아군 전술 위력과 내역 (기물당 +2, 지휘관마다 +5 + 정신력/4) */
+function tacPill(run: RunState) {
+  const dep = deployed(run);
+  if (!dep.length) return '';
+  const b = buildBattle(run, run.node?.enc ? { ...run.node.enc, enemies: [] } : { n: CFG.bossBoard, env: '', enemies: [], mult: 1, seed: 1 }, false);
+  const allies = b.units.filter((u) => u.side === 0 && !u.isSummon);
+  const cmds = allies.filter((u) => u.ctype === 'CMD');
+  const lines = [`기물 ${allies.length}명 × 2 = +${2 * allies.length}`, ...cmds.map((c) => `지휘관 ${c.name}: +${5 + Math.floor((c.mem.mnd || 0) * 0.25)} (기본 5 + 정신력 ${c.mem.mnd || 0}/4)`)];
+  const extra = allies.reduce((sum, u) => sum + (u.mem.tacBonus || 0), 0);
+  if (extra) lines.push(`기타 보정 +${extra}`);
+  const title = `전술 위력 ${b.tac[0]} — 지휘관 ${cmds.length}명\n${lines.join('\n')}\n지휘관의 스킬 · 전술 무기는 이 값을 위력으로 씁니다.`;
+  return `<span class="tac-wrap"><button class="pill tac-pill${cmds.length ? '' : ' off'}" data-a="tac-info" title="${esc(title)}" aria-expanded="${app.tacOpen}">${TAC_IC}전술 위력 <b>${b.tac[0]}</b><small>지휘관 ${cmds.length}</small></button>${app.tacOpen ? `<span class="tac-pop" role="note"><b>전술 위력 ${b.tac[0]}</b>${lines.map((l) => `<span>${esc(l)}</span>`).join('')}<span class="muted">지휘관의 스킬 · 전술 무기는 이 값을 위력으로 씁니다.</span></span>` : ''}</span>`;
+}
 function prepScreen(run: RunState) {
   const node = run.node;
   const isBattle = !!node?.enc;
@@ -611,7 +627,7 @@ function prepScreen(run: RunState) {
       <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
     </aside>
     <section class="board-col">
-      <div class="board-head"><b>${esc(env)}</b><span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span><span class="muted small">아래 ${ZONE}줄에 배치</span>
+      <div class="board-head"><b>${esc(env)}</b><span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${tacPill(run)}<span class="muted small">아래 ${ZONE}줄에 배치</span>
         ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}</div>
       <div class="board" style="--w:${bw};--h:${bh}"><div class="cells">${cells}</div>${units}</div>
       <div class="bench" data-drop="bench">
@@ -1058,7 +1074,7 @@ function pendingModal(run: RunState): string {
       const effects = unitEffects(run, u, synergyCounts(deployed(run), run), !!u.pos);
       const tm = totalMajors(u, effects);
       const rec = recommendedMajors(d);
-      const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? Math.round((v as number) * 100) + '%' : v}`).join(', ');
+      const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? +((v as number) * 100).toFixed(1) + '%' : v}`).join(', ');
       body = `${side}<div class="ru-main">
         <div class="ru-head"><h1>${p.rank}등급 달성 보상 · 능력치</h1></div>
         <p class="muted small">공명 등급 3의 배수마다 받는 보상입니다. 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.options?.length === 0 ? '' : ` · 이어서 ${p.rank}등급 증강`}<br>(등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>
@@ -1930,6 +1946,7 @@ function act(a: string, v: string) {
       if (n) persist();
       break;
     }
+    case 'tac-info': app.tacOpen = !app.tacOpen; break;
     case 'map-unit': app.sel = v && !(app.sel?.k === 'unit' && app.sel.uid === v) ? { k: 'unit', uid: v } : null; app.statPop = false; app.abilPop = null; break;
     case 'manage': app.screen = 'prep'; app.sel = v ? { k: 'unit', uid: v } : null; break;
     case 'to-map': app.screen = run?.node?.type === 'shop' ? 'shop' : run?.node?.type === 'news' ? 'news' : run?.node?.type === 'invest' ? 'invest' : 'map'; break;

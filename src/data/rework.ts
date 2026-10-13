@@ -58,10 +58,10 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'MARK', ttype: 'major', faith: 'human', weapon: G('깜찍이', 'phys', 1.0, 5, 1.2, 4, 2.5),
     factions: ['UNI', 'KAL'], traits: ['NATURE'],
     trait: {
-      name: '물질주의 캠퍼', desc: '장착한 장비 · 개조부품 · 임시 장비 1개당 회피 · 치명타 확률 +5%p (최대 +30%p).',
+      name: '물질주의 캠퍼', desc: '장착한 장비 · 개조부품 · 임시 장비 1개당 회피 · 치명타 확률 +3.5%p (최대 +21%p).',
       effect: { hooks: { onStart(_b, u) {
         const n = (u.src?.items.filter(Boolean).length || 0) + (u.src?.mod ? 1 : 0) + (u.tempItems?.length || 0);
-        const v = Math.min(0.3, 0.05 * n);
+        const v = Math.min(0.21, 0.035 * n);
         u.st.eva += v; u.st.crit += v;
       } } },
     },
@@ -328,13 +328,13 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'CMD', ttype: 'psionic', faith: 'athena', weapon: G('깃펜', 'phys', 0.8, 4, 0.6, 2, 1),
     factions: ['HEL', 'PAN'], traits: ['NAV'],
     trait: {
-      name: '뱃사공 철학', desc: '기본 공격이 대상 근처의 적 1명을 추가로 맞힌다. 아군 전원 치명타 확률 +20%p.',
+      name: '뱃사공 철학', desc: '기본 공격이 대상 근처의 적 1명을 추가로 맞힌다. 아군 전원 치명타 확률 +14%p.',
       effect: { hooks: {
         onBasic(b, u, t) {
           const e = b.nearest(t, b.enemiesOf(u).filter((x) => x !== t && b.dist(u, x) <= b.S(u, 'range')));
           if (e) b.dealDamage(u, e, b.S(u, 'shoot') * (u.weapon?.mult || 1), { elem: u.atk.elem, tag: 'basic', kind: 'shoot', canMiss: true });
         },
-        onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'zephyro.calm', 999, { delta: { crit: 0.2 } }); },
+        onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'zephyro.calm', 999, { delta: { crit: 0.14 } }); },
       } },
     },
     psi: { desc: '초당 이성 +1 (느긋함), 염동(전투 스킬) 사용 시 -6.', effect: { hooks: {
@@ -346,8 +346,8 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'SPEC', ttype: 'special', faith: 'hades', weapon: K('만능 렌치', 'holy', 0.8, 1, 0.8, 4),
     factions: ['HEL'], traits: ['INFIL'],
     trait: {
-      name: '균열 회피', desc: '회피 +10%p. 회피하면 공격자에게 타격 위력 100% 반격하고 무작위 적에게 순간이동한다 (0.5초에 1회).',
-      effect: { stats: { eva: 0.1 }, hooks: { onEvade(b, u, src) {
+      name: '균열 회피', desc: '회피 +7%p. 회피하면 공격자에게 타격 위력 100% 반격하고 무작위 적에게 순간이동한다 (0.5초에 1회).',
+      effect: { stats: { eva: 0.07 }, hooks: { onEvade(b, u, src) {
         if (!src.alive || !icd(b, u, 'phIcd', 0.5)) return;
         proc(b, u, src, b.S(u, 'strike'), 'holy', 'strike');
         const es = b.enemiesOf(u);
@@ -395,7 +395,7 @@ export const REWORK: Record<string, ReworkDef> = {
   odysseus: {
     ctype: 'MARK', ttype: 'divine', faith: 'athena', weapon: G('장궁', 'phys', 0.75, 4, 1.0, 1, 0.8),
     factions: ['HEL'], traits: ['INFIL', 'SCHEME'],
-    trait: { name: '귀환자의 눈', desc: '체력 비율이 가장 낮은 적을 노린다. 치명타 확률 +50%p.', effect: { stats: { crit: 0.5 }, setup: (u) => { u.mem.lowestFocus = 1; } } },
+    trait: { name: '귀환자의 눈', desc: '체력 비율이 가장 낮은 적을 노린다. 치명타 확률 +35%p.', effect: { stats: { crit: 0.35 }, setup: (u) => { u.mem.lowestFocus = 1; } } },
   },
   argon: {
     ctype: 'MARK', ttype: 'major', faith: 'hades', weapon: G('선상 작살총', 'phys', 0.9, 4, 1.1, 2, 2.5),
@@ -474,7 +474,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'VAN', ttype: 'special', faith: 'science', weapon: K('액체 금속 칼날', 'phys', 0.75, 1, 0.75, 5),
     factions: ['TIME'], traits: ['NAV'],
     trait: {
-      name: '고양이 형태', desc: '전투 시작 5초 · 회피 시 2초 · 처치 시 5초 동안 고양이 형태: 회피 · 공격 속도 +30%p.',
+      name: '고양이 형태', desc: '전투 시작 5초 · 회피 시 2초 · 처치 시 5초 동안 고양이 형태: 회피 +21%p, 공격 속도 +30%p.',
       effect: { hooks: {
         onStart(b, u) { cat(b, u, 5); },
         onEvade(b, u) { cat(b, u, 2); },
@@ -687,7 +687,7 @@ function romaniPull(b: Battle, u: CUnit) {
   proc(b, u, e, b.S(u, 'strike') * 0.5, 'phys', 'strike');
 }
 function cat(b: Battle, u: CUnit, dur: number) {
-  b.buff(u, u, 'aiden.cat', dur, { delta: { eva: 0.3, atkSpd: 0.3 }, label: '고양이' });
+  b.buff(u, u, 'aiden.cat', dur, { delta: { eva: 0.21, atkSpd: 0.3 }, label: '고양이' });
 }
 function shred(b: Battle, u: CUnit, t: CUnit) {
   stack(b, u, t, 'vivian.shred', 3, 5, (n) => ({ type: 'buff', armorMul: 1 - 0.1 * n, label: n === 1 ? '방어 분석' : undefined }));

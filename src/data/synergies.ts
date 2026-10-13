@@ -32,13 +32,13 @@ const T = (tier: number, a: number[]) => a[Math.max(0, tier - 1)];
 // ─────────────── 범은하 공동체: 기물마다 다른 선물
 type Gift = { name: string; text: string; stats?: Partial<Stats>; pct?: { armor?: number }; tag?: 'tech' | 'psy'; majors?: number };
 const PAN_GIFT: Record<string, Gift> = {
-  zephyro: { name: '제피로', text: '회피 +10%p', stats: { eva: 0.1 } },
+  zephyro: { name: '제피로', text: '회피 +7%p', stats: { eva: 0.07 } },
   joshua: { name: '조슈아', text: '받는 회복 +10%p', stats: { healEff: 0.1 } },
   vivian: { name: '비비안', text: '방어 관통 +10%p', stats: { armorPen: 0.1 } },
   yupito: { name: '유피토', text: '방어도 +10%', pct: { armor: 0.1 } },
   oliver: { name: '올리버', text: '공격 속도 +10%p', stats: { atkSpd: 0.1 } },
   ingel: { name: '잉겔', text: '기술 피해 +10%p', tag: 'tech' },
-  bjorn: { name: '비외른', text: '치명타 확률 +10%p', stats: { crit: 0.1 } },
+  bjorn: { name: '비외른', text: '치명타 확률 +7%p', stats: { crit: 0.07 } },
   onyx: { name: '오닉스', text: '정신 피해 +10%p', tag: 'psy' },
   rus: { name: '루스', text: '치명타 피해 +10%p', stats: { critDmg: 0.1 } },
 };
@@ -233,12 +233,12 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'TIME', name: '시간 여행자', kind: 'faction', tiers: [2, 3, 4, 5], color: '#c8a0ff', icon: '⌛',
     desc: '시간의 틈을 걷는 이들. 시간 여행자는 회피가 크게 오르고, 공격을 피할 때마다 (찰과상 포함) 체력을 회복하며 공격자에게 고정 피해로 반격합니다. 최저 명중률은 15%입니다.',
-    tierDesc: ['회피 +10%p, 회피 시 최대 체력 3% 회복, 반격 = 사격 · 타격 위력 중 높은 값 40%', '회피 +25%p, 4% 회복, 반격 100%', '회피 +40%p, 5% 회복, 반격 200%',
-      '[시간 역행] 회피 +60%p, 6% 회복, 반격 500%'],
+    tierDesc: ['회피 +7%p, 회피 시 최대 체력 3% 회복, 반격 = 사격 · 타격 위력 중 높은 값 40%', '회피 +18%p, 4% 회복, 반격 100%', '회피 +28%p, 5% 회복, 반격 200%',
+      '[시간 역행] 회피 +42%p, 6% 회복, 반격 500%'],
     member: (t) => {
       const h = T(t, [0.03, 0.04, 0.05, 0.06]), k = T(t, [0.4, 1, 2, 5]);
       return {
-        stats: { eva: T(t, [0.1, 0.25, 0.4, 0.6]) },
+        stats: { eva: T(t, [0.07, 0.18, 0.28, 0.42]) },
         hooks: {
           onEvade(b, u, src) {
             b.heal(u, u, b.S(u, 'maxHp') * h);
@@ -322,12 +322,12 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'INFIL', name: '침투자', kind: 'trait', tiers: [2, 4, 6, 8], color: '#9a8cff', icon: '☾',
     desc: '전투가 시작되면 적 후방으로 순간이동해 기습합니다. 회피와 치명타 확률이 오르고, 착지 직후 잠시 피해가 크게 증가합니다.',
-    tierDesc: ['회피 +15%p, 치명타 +15%p, 기습 3초 피해 +50%', '회피 +25%p, 치명타 +30%p, 기습 피해 +110%', '회피 +40%p, 치명타 +50%p, 기습 피해 +220%, 처치 시 기습 재발동',
-      '[그림자 숙청] 회피 +60%p, 치명타 +80%p, 기습 5초 피해 +500%, 처치 시 기습 재발동 + 최대 체력 30% 회복'],
+    tierDesc: ['회피 +11%p, 치명타 +11%p, 기습 3초 피해 +50%', '회피 +18%p, 치명타 +21%p, 기습 피해 +110%', '회피 +28%p, 치명타 +35%p, 기습 피해 +220%, 처치 시 기습 재발동',
+      '[그림자 숙청] 회피 +42%p, 치명타 +56%p, 기습 5초 피해 +500%, 처치 시 기습 재발동 + 최대 체력 30% 회복'],
     member: (t) => {
       const ambush = T(t, [0.5, 1.1, 2.2, 5.0]), dur = t >= 4 ? 5 : 3;
       return {
-        stats: { eva: T(t, [0.15, 0.25, 0.4, 0.6]), crit: T(t, [0.15, 0.3, 0.5, 0.8]) },
+        stats: { eva: T(t, [0.11, 0.18, 0.28, 0.42]), crit: T(t, [0.11, 0.21, 0.35, 0.56]) },
         hooks: {
           onStart(b, u) {
             const foes = b.enemiesOf(u);
@@ -474,7 +474,7 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'EXPLORER', name: '탐험가', kind: 'trait', tiers: [1], color: '#e6d27a', icon: '⚓',
     desc: `아문센 전용. ${CFG.explorerPhase}페이즈 전에는 배치할 수 없습니다. 고유 전설 장비 [그늘]을 장착한 채 합류합니다 (해제 불가).`,
-    tierDesc: ['[그늘]: 기술 쿨다운 감소 속도 +150%, 모든 아군 회피·치명타 확률 +20%p'],
+    tierDesc: ['[그늘]: 기술 쿨다운 감소 속도 +150%, 모든 아군 회피·치명타 확률 +14%p'],
   },
   {
     id: 'RFRIEND', name: '당신의 친구, R', kind: 'trait', tiers: [1], color: '#ff7aa8', icon: 'R',

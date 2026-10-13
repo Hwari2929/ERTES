@@ -37,7 +37,7 @@ export const ROSTER_E: BaseUnit[] = [
       uaug('mingki', 'nine', '아홉 목숨', '전투당 1회, 쓰러질 피해를 받으면 체력 50%로 버틴다.', {
         hooks: { onLethal(b, u) { if (u.mem.nine) return false; u.mem.nine = 1; u.hp = b.S(u, 'maxHp') * 0.5; b.emit({ k: 'status', id: u.id, name: '아홉 목숨' }); return true; } },
       }),
-      uaug('mingki', 'groom', '그루밍', '회피 +15%p, 효과 저항 +25%p.', { stats: { eva: 0.15, effRes: 0.25 } }),
+      uaug('mingki', 'groom', '그루밍', '회피 +11%p, 효과 저항 +25%p.', { stats: { eva: 0.11, effRes: 0.25 } }),
       uaug('mingki', 'double', '꾹꾹이 연타', '츄르 사냥 2회 (두 번째 100%).', setSk((s) => { s.hits = 2; s.second = 1; })),
     ],
   },
@@ -86,7 +86,7 @@ export const ROSTER_E: BaseUnit[] = [
       uaug('exile', 'thirst', '갈증', '혈검 흡혈 +25%p, 모든 피해의 15% 흡혈.', { ...setSk((s) => { s.lifesteal += 0.25; }), stats: { lifesteal: 0.15 } }),
       uaug('exile', 'waltz', '피의 왈츠', '혈검으로 처치하면 쿨다운 100% 초기화.', setSk((s) => { s.resetOnKill = 1; })),
       uaug('exile', 'title', '버린 작위', '작위 +3.', { title: 3 }),
-      uaug('exile', 'dusk', '어스름', '회피 +15%p, 치명타 확률 +20%p, 치명타 피해 +35%p.', { stats: { eva: 0.15, crit: 0.2, critDmg: 0.35 } }),
+      uaug('exile', 'dusk', '어스름', '회피 +11%p, 치명타 확률 +14%p, 치명타 피해 +35%p.', { stats: { eva: 0.11, crit: 0.14, critDmg: 0.35 } }),
     ],
   },
   {
@@ -141,7 +141,7 @@ export const ROSTER_E: BaseUnit[] = [
       uaug('rus', 'double', '쌍권총', '약탈 사격 2회 (두 번째 100%).', setSk((s) => { s.hits = 2; s.second = 1; })),
       uaug('rus', 'ap', '철갑탄', '방어도 관통 +30%p, 약탈 사격 피해 +140%p.', setSk((s) => { s.pen += 0.3; s.mult += 1.4; })),
       uaug('rus', 'ship', '챙겨 나온 배', '전투 시작 시 최대 체력 60% 보호막.', { hooks: { onStart(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.6); } } }),
-      uaug('rus', 'aim', '부관의 눈', '사거리 +1, 치명타 확률 +20%p, 치명타 피해 +35%p.', { stats: { range: 1, crit: 0.2, critDmg: 0.35 } }),
+      uaug('rus', 'aim', '부관의 눈', '사거리 +1, 치명타 확률 +14%p, 치명타 피해 +35%p.', { stats: { range: 1, crit: 0.14, critDmg: 0.35 } }),
     ],
   },
 ];

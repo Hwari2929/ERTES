@@ -8,7 +8,7 @@ export const BOONS_A: Record<string, { name: string; effect: Effect }> = {
   a_stew: { name: '구닐라의 보양식 (최대 체력 +10%)', effect: { pct: { maxHp: 0.1 } } },
   a_watchdog: { name: '맥스의 순찰 (피해량 경감 6%)', effect: { taken: [red('all', 0.06)] } },
   a_encore: { name: '흰사슴의 앙코르 (피해 +15%)', effect: { mods: [inc('all', 0.15)] } },
-  a_catluck: { name: '함장석의 고양이 (치명타 확률 +8%)', effect: { stats: { crit: 0.08 } } },
+  a_catluck: { name: '함장석의 고양이 (치명타 확률 +6%)', effect: { stats: { crit: 0.06 } } },
 };
 
 // ───────── 보조 함수
@@ -185,7 +185,7 @@ export const STORY_A: EventDef[] = [
     text: '밍키가 함장석을 차지한 지 사흘째. 이상하게도 항해가 순조롭다. 밍키가 꼬리로 콘솔을 툭 칠 때마다 경로가 미세하게 바뀌는데, 그때마다 해적 매복이나 유성우를 아슬아슬하게 비껴간다. 항법사들은 이걸 기록해야 할지 고민 중이다. 밍키의 밥그릇은 비어 있다.',
     choices: [
       {
-        label: '정식 항법관으로 임명한다', desc: '크레딧 -12 (최고급 사료 정기 구독). 모든 아군 치명타 확률 +8% (영구).',
+        label: '정식 항법관으로 임명한다', desc: '크레딧 -12 (최고급 사료 정기 구독). 모든 아군 치명타 확률 +6% (영구).',
         block: cost(12),
         apply: (r, api) => { r.credits -= 12; api.boon('a_catluck'); return '밍키 항법관 임명식이 열렸습니다. 밍키는 임명장 위에서 잠들었습니다.'; },
       },

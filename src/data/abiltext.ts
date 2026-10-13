@@ -151,7 +151,7 @@ const ABIL_PILOT: Record<string, AbilText> = {
     ace: (k) => `전투 시작 시 모든 아군 쿨다운 감소 속도 [pp:${0.15 * k}].`,
     augs: {
       wander: '화력 지원 피해 [dmg+:shoot:2.8:phys].',
-      refit: '[g:pen] [pp:0.4]. 화력 지원 [g:crit] 확률 [pp:0.3].',
+      refit: '[g:pen] [pp:0.4]. 화력 지원 [g:crit] 확률 [pp:0.21].',
       twin: '화력 지원 2회 (두 번째도 [p:1] 피해).',
       carpet: '화력 지원 범위: 대상 주변 [t:1]. 피해 [dmg+:shoot:0.3:phys].',
       travelogue: '모든 메이저 스탯 +4.',

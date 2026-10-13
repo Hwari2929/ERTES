@@ -60,7 +60,7 @@ export const ROSTER_F: BaseUnit[] = [
       uaug('zina', 'lily', '백합의 꽃말', '마지막 꽃다발 피해 +260%p.', setSk((s) => { s.mult += 2.6; })),
       uaug('zina', 'thorn', '가시', '중독 위력 +80%p.', setSk((s) => { s.poison += 0.8; })),
       uaug('zina', 'bouquet', '꽃다발 배달', '처치 시 쿨다운을 전부 돌려받는다.', setSk((s) => { s.resetOnKill = 1; })),
-      uaug('zina', 'apron', '앞치마 속 권총', '기동력 +9, 치명타 확률 +15%p.', { majors: { agi: 9 }, stats: { crit: 0.15 } }),
+      uaug('zina', 'apron', '앞치마 속 권총', '기동력 +9, 치명타 확률 +11%p.', { majors: { agi: 9 }, stats: { crit: 0.11 } }),
       uaug('zina', 'requiem', '성도회의 칼날', '중독된 적에게 주는 피해 +25%p 추가 (총 +50%).', { setup: (u) => { u.mem.zinaVenom = 0.25; } }),
     ],
   },
@@ -164,7 +164,7 @@ export const ROSTER_F: BaseUnit[] = [
       uaug('eden', 'knife', '숨긴 칼', '출혈 위력 +70%p.', setSk((s) => { s.bleed += 0.7; })),
       uaug('eden', 'run', '튀어!', '기동력 +12, 생명력 +3.', { majors: { agi: 12, vit: 3 } }),
       uaug('eden', 'grudge', '밑바닥의 원한', '받는 피해 증가 +30%p.', setSk((s) => { s.vuln += 0.3; })),
-      uaug('eden', 'luck', '하층민의 촉', '치명타 확률 +30%p, 치명타 피해 +60%p.', { stats: { crit: 0.3, critDmg: 0.6 } }),
+      uaug('eden', 'luck', '하층민의 촉', '치명타 확률 +21%p, 치명타 피해 +60%p.', { stats: { crit: 0.21, critDmg: 0.6 } }),
     ],
   },
   {
@@ -296,8 +296,8 @@ export const REWORK_F: Record<string, ReworkDef> = {
         onInflict(_b, u, t) { if (t.side !== u.side) rec(u, 'g_album', 5); },
       } },
     },
-    growth: { name: '여행 앨범', desc: '적에게 해로운 효과를 걸 때마다 사진 +1 (전투당 5장). 사진 1장당 효과 명중 +0.2%p · 치명타 +0.1%p (상한 +20%p / +10%p).',
-      effect: (g) => ({ stats: { effHit: Math.min(0.2, 0.002 * (g.album || 0)), crit: Math.min(0.1, 0.001 * (g.album || 0)) } }) },
+    growth: { name: '여행 앨범', desc: '적에게 해로운 효과를 걸 때마다 사진 +1 (전투당 5장). 사진 1장당 효과 명중 +0.2%p · 치명타 +0.07%p (상한 +20%p / +7%p).',
+      effect: (g) => ({ stats: { effHit: Math.min(0.2, 0.002 * (g.album || 0)), crit: Math.min(0.07, 0.0007 * (g.album || 0)) } }) },
   },
   winter: {
     ctype: 'SPEC', ttype: 'special', faith: 'science', weapon: G('주사기 권총', 'chem', 1.0, 3, 0.8, 6, 1.8),
@@ -327,10 +327,10 @@ export const REWORK_F: Record<string, ReworkDef> = {
   eden: {
     ctype: 'MARK', ttype: 'minor', faith: 'human', weapon: G('낡은 리볼버', 'phys', 1.0, 4, 1.1, 6, 2.0),
     trait: {
-      name: '밑바닥 생존자', desc: '체력이 50% 이하이면 회피 +20%p, 주는 피해 +20%.',
+      name: '밑바닥 생존자', desc: '체력이 50% 이하이면 회피 +14%p, 주는 피해 +20%.',
       effect: { hooks: {
         dmgMult: (b, u) => (b.hpPct(u) <= 0.5 ? 1.2 : 1),
-        onHurt(b, u) { if (!u.mem.edenLow && b.hpPct(u) <= 0.5) { u.mem.edenLow = 1; u.st.eva += 0.2; b.emit({ k: 'status', id: u.id, name: '생존 본능' }); } },
+        onHurt(b, u) { if (!u.mem.edenLow && b.hpPct(u) <= 0.5) { u.mem.edenLow = 1; u.st.eva += 0.14; b.emit({ k: 'status', id: u.id, name: '생존 본능' }); } },
         onStart(_b, u) { u.mem.g_surv = 1; },
       } },
     },

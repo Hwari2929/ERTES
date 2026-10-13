@@ -32,14 +32,14 @@ export const ROSTER_A: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.15 }, range: 5, base: B(5, 10, 8, 3, 5),
     sprite: 'soldier', palette: tint(PAL.UNI, '#4a5a3a', '#1a1a22', '#3a8aff'), lore: '"연락은 자제해줘. 캠핑 중이니까 - "',
     skill: strike({
-      name: '깜찍이', cd: 6, pow: 'shoot', elem: 'phys', mult: 2.8, params: { crit: 0.25 },
+      name: '깜찍이', cd: 6, pow: 'shoot', elem: 'phys', mult: 2.8, params: { crit: 0.18 },
       desc: (p) => `커스텀 에너지 핸드캐논으로 대상에게 사격 위력 ${pct(p.mult)} 물리 피해 (치명타 확률 +${pct(p.crit)}p${p.pen ? `, 방어도 관통 ${pct(p.pen)}` : ''})${p.hits > 1 ? `, ${p.hits}회` : ''}. 가능하면 한 발로 끝낸다.`,
     }),
     augs: [
       uaug('mirinae', 'double', '연발 모드', '깜찍이를 2회 쏜다 (두 번째도 100%).', setSk((s) => { s.hits = 2; s.second = 1; })),
       uaug('mirinae', 'cell', '과충전 셀', '방어도 관통 50%, 깜찍이 피해 +170%p.', setSk((s) => { s.pen = 0.5; s.mult += 1.7; })),
       uaug('mirinae', 'vanish', '흔적 없이', '깜찍이로 처치하면 쿨다운 초기화.', setSk((s) => { s.resetOnKill = 1; })),
-      uaug('mirinae', 'gem', '푸른 물방울 보석', '치명타 확률 +30%p, 치명타 피해 +60%p.', { stats: { crit: 0.3, critDmg: 0.6 } }),
+      uaug('mirinae', 'gem', '푸른 물방울 보석', '치명타 확률 +21%p, 치명타 피해 +60%p.', { stats: { crit: 0.21, critDmg: 0.6 } }),
       uaug('mirinae', 'onsen', '휴대용 온천 시스템', '캠핑 러버 임시 장비 +1개, 기동력 +5, 전투력 +3.', { ...nat(1), majors: { agi: 5, pow: 3 } }),
     ],
   },
@@ -66,7 +66,7 @@ export const ROSTER_A: BaseUnit[] = [
     summon: { name: '까악이', art: 'sm_crow', sprite: 'drone', palette: DRONE, atk: { type: 'shoot', elem: 'elec', interval: 0.8 }, range: 3, hpMul: 1.2 },
     lore: '"휴가 중. 기한 100년. 고양이 사료는 문 앞에."',
     skill: strike({
-      name: '자안의 사수', cd: 7, pow: 'tech', elem: 'phys', mult: 2.0, target: 'lowest', blink: true, params: { crit: 0.4 },
+      name: '자안의 사수', cd: 7, pow: 'tech', elem: 'phys', mult: 2.0, target: 'lowest', blink: true, params: { crit: 0.28 },
       desc: (p) => `급소가 붉게 보인다. 체력 비율이 가장 낮은 적에게 파고들어 단분자 와이어로 기술 위력 ${pct(p.mult)} 물리 피해 (치명타 확률 +${pct(p.crit)}p)${p.bleed ? `, 4초간 초당 ${pct(p.bleed)} 출혈` : ''}${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}${p.shock ? `, ${pct(p.shockChance || 0.7)} 확률로 ${p.shock}초 감전` : ''}. 까악이는 4초간 공격 속도 +50%로 같은 적을 노린다.`,
       after: (b, u, t) => { for (const d of summonsOf(b, u)) { d.target = t; b.buff(u, d, 'donovan.crow', 4, { delta: { atkSpd: 0.5 }, label: '해킹 지원' }); } },
     }),
@@ -75,7 +75,7 @@ export const ROSTER_A: BaseUnit[] = [
       uaug('donovan', 'marker', '붉은 마커', '자안의 사수에 맞은 적은 4초간 받는 피해 +30%.', setSk((s) => { s.vuln = 0.3; })),
       uaug('donovan', 'livibold', '리비볼드 경', '까악이 스탯 상속률 +40%p.', { setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.4; } }),
       uaug('donovan', 'deck', '팔목 해킹 덱', '자안의 사수가 100% 확률로 2초 감전을 건다.', setSk((s) => { s.shock = 2; s.shockChance = 1; })),
-      uaug('donovan', 'ice', '얼음 씹기', '회피 +15%p, 공격 속도 +25%.', { stats: { eva: 0.15, atkSpd: 0.25 } }),
+      uaug('donovan', 'ice', '얼음 씹기', '회피 +11%p, 공격 속도 +25%.', { stats: { eva: 0.11, atkSpd: 0.25 } }),
     ],
   },
   {
@@ -91,7 +91,7 @@ export const ROSTER_A: BaseUnit[] = [
       uaug('chloe', 'seven', '나머지 7%', '회복량 +120%p.', setSk((s) => { s.heal += 1.2; })),
       uaug('chloe', 'sedative', '마취약 투약 요령', '수면 확률 +40%p, 수면 +1초.', setSk((s) => { s.sleepChance += 0.4; s.sleep += 1; })),
       uaug('chloe', 'batch', '여러 사람 몫', '약물이 대상 주변 1칸 아군에게도 닿고, 회복량 +30%p.', setSk((s) => { s.radius = 1; s.heal += 0.3; })),
-      uaug('chloe', 'lady', '숙녀의 통과', '회피 +25%p.', { stats: { eva: 0.25 } }),
+      uaug('chloe', 'lady', '숙녀의 통과', '회피 +18%p.', { stats: { eva: 0.18 } }),
       uaug('chloe', 'photo', '머리만 뜬 사진', '쿨다운 감소 속도 +25%. 전투 승리 시 명성 +2.', { stats: { cdr: 0.25 } }, { after: (run, _u, won) => { if (won) run.fame += 2; } }),
     ],
   },
@@ -109,7 +109,7 @@ export const ROSTER_A: BaseUnit[] = [
     augs: [
       uaug('west', 'spanner', '스패너 명사수', '스패너 피해 +160%p.', setSk((s) => { s.mult += 1.6; })),
       uaug('west', 'cig', '일단 담배 한 대', '쿨다운 감소 속도 +40%.', { stats: { cdr: 0.4 } }),
-      uaug('west', 'nco', '원사의 짬', '명중 +15%p, 치명타 확률 +20%p, 치명타 피해 +40%p.', { stats: { acc: 0.15, crit: 0.2, critDmg: 0.4 } }),
+      uaug('west', 'nco', '원사의 짬', '명중 +15%p, 치명타 확률 +14%p, 치명타 피해 +40%p.', { stats: { acc: 0.15, crit: 0.14, critDmg: 0.4 } }),
       uaug('west', 'honey', '꿀 퍼먹기', '생명력 +10, 방어력 +5.', { majors: { vit: 10, def: 5 } }),
       uaug('west', 'standard', '은하 기술 표준', '엔지니어 포탑 +1기, 포탑 체력·방어도 +40%.', { setup: (u) => { u.mem.turretExtra = (u.mem.turretExtra || 0) + 1; u.mem.turretHp = (u.mem.turretHp || 0) + 0.4; } }),
     ],
@@ -162,7 +162,7 @@ export const ROSTER_A: BaseUnit[] = [
       uaug('franze', 'deferred', '유예된 시한부', '잃은 체력 재생량 +25%p.', setSk((s) => { s.rewind += 0.25; })),
       uaug('franze', 'oldform', '110년 전의 검술', '이의 있습니다가 1.2초 기절을 건다.', setSk((s) => { s.stun = 1.2; })),
       uaug('franze', 'blood', '혈족 재생력', '흡혈 +25% (주는 모든 피해의 25%만큼 회복).', { stats: { lifesteal: 0.25 } }),
-      uaug('franze', 'stocks', '취미 주식 계좌', '회피 +15%p. 전투 승리 시 크레딧 +3.', { stats: { eva: 0.15 } }, { after: (run, _u, won) => { if (won) run.credits += 3; } }),
+      uaug('franze', 'stocks', '취미 주식 계좌', '회피 +11%p. 전투 승리 시 크레딧 +3.', { stats: { eva: 0.11 } }, { after: (run, _u, won) => { if (won) run.credits += 3; } }),
     ],
   },
   {
@@ -242,7 +242,7 @@ export const ROSTER_A: BaseUnit[] = [
       uaug('falcon', 'core', '텅스텐 탄심', '방어도 관통 +30%p, 레일건 피해 +170%p.', setSk((s) => { s.pen += 0.3; s.mult += 1.7; })),
       uaug('falcon', 'arc', '잔류 전하', '레일건에 맞은 적 100% 확률로 2초 감전.', setSk((s) => { s.shock = 1; })),
       uaug('falcon', 'turret', '시제 포탑', '엔지니어 포탑 +1기, 포탑 체력·방어도 +40%.', { setup: (u) => { u.mem.turretExtra = (u.mem.turretExtra || 0) + 1; u.mem.turretHp = (u.mem.turretHp || 0) + 0.4; } }),
-      uaug('falcon', 'scope', '열상 조준경', '레일건 치명타 확률 +30%p, 치명타 피해 +60%p.', { ...setSk((s) => { s.crit += 0.3; }), stats: { critDmg: 0.6 } }),
+      uaug('falcon', 'scope', '열상 조준경', '레일건 치명타 확률 +21%p, 치명타 피해 +60%p.', { ...setSk((s) => { s.crit += 0.21; }), stats: { critDmg: 0.6 } }),
     ],
   },
 ];

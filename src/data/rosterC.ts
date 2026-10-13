@@ -105,7 +105,7 @@ export const ROSTER_C: BaseUnit[] = [
       uaug('sarma', 'fusion', '융합 출력 증폭', '블랙홀 피해 +200%p.', setSk((s) => { s.mult += 2.0; })),
       uaug('sarma', 'horizon', '사건의 지평선', '블랙홀에 맞은 적 1.2초 기절.', setSk((s) => { s.stun = 1.2; })),
       uaug('sarma', 'thesis', '차원 이론 논문', '방어도 관통 50%, 맞은 적 4초간 받는 피해 +20%.', setSk((s) => { s.pen = 0.5; s.vuln = 0.2; })),
-      uaug('sarma', 'sorry', '이번 은하는 처음이라', '회피 +15%p, 효과 저항 +25%p.', { stats: { eva: 0.15, effRes: 0.25 } }),
+      uaug('sarma', 'sorry', '이번 은하는 처음이라', '회피 +11%p, 효과 저항 +25%p.', { stats: { eva: 0.11, effRes: 0.25 } }),
     ],
   },
   {
@@ -162,9 +162,9 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'strike', elem: 'phys', interval: 0.85 }, range: 1, base: B(6, 8, 7, 5, 7),
     sprite: 'soldier', palette: tint(PAL.PAN, '#c8ccd8', '#1a1a22', '#7fe3ff'), lore: '"반갑습니다. 오늘도 - 늘 먹던 것으로 드리나요?"',
     ace: {
-      name: '기체 조종', desc: (k) => `회피 +${Math.round(15 * k)}%p, 회피할 때마다 공격자에게 타격 위력 ${Math.round(80 * k)}% 반격.`,
+      name: '기체 조종', desc: (k) => `회피 +${Math.round(11 * k)}%p, 회피할 때마다 공격자에게 타격 위력 ${Math.round(80 * k)}% 반격.`,
       effect: (k) => ({
-        stats: { eva: 0.15 * k },
+        stats: { eva: 0.11 * k },
         hooks: { onEvade(b, u, src) { if (src.alive) b.dealDamage(u, src, b.P(u, 'strike') * 0.8 * k, { elem: 'phys', tag: 'proc' }); } },
       }),
     },
@@ -177,7 +177,7 @@ export const ROSTER_C: BaseUnit[] = [
       uaug('aiden', 'mirage', '환영 분신', '변형 공격이 2회 공격 (두 번째도 100%).', setSk((s) => { s.hits = 2; s.second = 1; })),
       uaug('aiden', 'butcher', '도륙 프로토콜', '처치하면 쿨다운 100% 초기화.', setSk((s) => { s.resetOnKill = 1; })),
       uaug('aiden', 'illusion', '인지 교란', '공포 확률 +40%p, 공포 지속 +0.5초.', setSk((s) => { s.fearChance += 0.4; s.fear += 0.5; })),
-      uaug('aiden', 'groom', '그루밍', '회피 +25%p.', { stats: { eva: 0.25 } }),
+      uaug('aiden', 'groom', '그루밍', '회피 +18%p.', { stats: { eva: 0.18 } }),
     ],
   },
   {
@@ -266,7 +266,7 @@ export const ROSTER_C: BaseUnit[] = [
     }),
     augs: [
       uaug('amundsen', 'wander', '30년의 유랑', '화력 지원 피해 +280%p.', setSk((s) => { s.mult += 2.8; })),
-      uaug('amundsen', 'refit', '수십 번의 개조', '방어도 관통 +40%p, 화력 지원 치명타 확률 +30%p.', setSk((s) => { s.pen += 0.4; s.crit += 0.3; })),
+      uaug('amundsen', 'refit', '수십 번의 개조', '방어도 관통 +40%p, 화력 지원 치명타 확률 +21%p.', setSk((s) => { s.pen += 0.4; s.crit += 0.21; })),
       uaug('amundsen', 'twin', '2연사', '화력 지원 2회 (두 번째도 100%).', setSk((s) => { s.hits = 2; s.second = 1; })),
       uaug('amundsen', 'carpet', '융단 사격', '화력 지원이 대상 주변 1칸에도 피해, 피해 +30%p.', setSk((s) => { s.radius = 1; s.mult += 0.3; })),
       uaug('amundsen', 'travelogue', '엘베스타드 유람기', '모든 메이저 +4.', { majors: { vit: 4, pow: 4, mnd: 4, def: 4, agi: 4 } }),
@@ -306,7 +306,7 @@ export const ROSTER_C: BaseUnit[] = [
       uaug('oliver', 'bouquet', '추진기 꽃다발', '선의로 시작했다. 들이받기 피해 +160%p.', setSk((s) => { s.mult += 1.6; })),
       uaug('oliver', 'gasoline', '휘발유 장난', '여덟 살 때 주차장을 날렸다. 범위 +1칸, 피해 +30%p.', setSk((s) => { s.radius += 1; s.mult += 0.3; })),
       uaug('oliver', 'done', '오운완', '들이받기로 적을 처치하면 쿨다운 100% 초기화.', setSk((s) => { s.resetOnKill = 1; })),
-      uaug('oliver', 'pilot', '조종 특기', '공격 속도 +25%, 회피 +15%p.', { stats: { atkSpd: 0.25, eva: 0.15 } }),
+      uaug('oliver', 'pilot', '조종 특기', '공격 속도 +25%, 회피 +11%p.', { stats: { atkSpd: 0.25, eva: 0.11 } }),
       uaug('oliver', 'kitchen', '비공식 주방 루트', '몰래 만든 야식. 흡혈 25%.', { stats: { lifesteal: 0.25 } }),
     ],
   },

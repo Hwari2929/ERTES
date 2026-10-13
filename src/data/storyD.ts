@@ -7,7 +7,7 @@ import type { RunState, UnitState } from '../types';
 export const BOONS_D: Record<string, { name: string; effect: Effect }> = {
   d_route: { name: '밀수 항로 (공격 속도 +10%)', effect: { stats: { atkSpd: 0.1 } } },
   d_intel: { name: '약탈자의 정보망 (피해 +20%)', effect: { mods: [inc('all', 0.2)] } },
-  d_colors: { name: '해적 깃발 위장 (회피 +8%)', effect: { stats: { eva: 0.08 } } },
+  d_colors: { name: '해적 깃발 위장 (회피 +6%)', effect: { stats: { eva: 0.06 } } },
   d_plating: { name: '인양 장갑판 (피해량 경감 10%)', effect: { taken: [red('all', 0.1)] } },
 };
 
@@ -108,7 +108,7 @@ export const STORY_D: EventDef[] = [
     text: '변경 주점 구석 자리에서 그 흉터투성이 두목이 술잔을 밀어 온다. "목숨 빚은 처음 져 봐서, 어떻게 갚는지 모르겠더군." 그는 이 근방 약탈자들의 습격 경로와 은신처를 꿰고 있다. 카이로가 말없이 잔을 닦으며 귀를 기울인다.',
     choices: [
       { label: '습격 정보를 받는다', desc: '이번 페이즈 동안 모든 아군 피해 +20%.', apply: (_r, api) => { api.phaseBoon('d_intel'); return '적의 동선이 훤히 보입니다. 이번 페이즈 피해 +20%.'; } },
-      { label: '해적 깃발을 빌린다', desc: '모든 아군 회피 +8% (영구). 대신 평판이 깎여 크레딧 -8.', block: needCr(8), apply: (r, api) => { r.credits -= 8; api.boon('d_colors'); return '약탈단 깃발을 달았습니다. 아무도 함부로 다가오지 않습니다.'; } },
+      { label: '해적 깃발을 빌린다', desc: '모든 아군 회피 +6% (영구). 대신 평판이 깎여 크레딧 -8.', block: needCr(8), apply: (r, api) => { r.credits -= 8; api.boon('d_colors'); return '약탈단 깃발을 달았습니다. 아무도 함부로 다가오지 않습니다.'; } },
       { label: '장물 창고를 턴다', desc: '희귀 장비 1개 + 재료 1개.', apply: (_r, api) => { api.gain(api.randomItem('A')); api.gain(api.randomItem('C')); return '두목이 알려 준 창고에서 장물을 챙겼습니다.'; } },
     ],
   },

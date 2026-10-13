@@ -30,8 +30,8 @@ const ADV: AdvDef[] = [
     effect: (k) => ({ hooks: { onLethal(bt, u) { if ((u.mem.kit || 0) >= k) return false; u.mem.kit = (u.mem.kit || 0) + 1; u.hp = 1; bt.heal(u, u, bt.S(u, 'maxHp') * 0.3, true); return true; } } }) },
   { id: 'pow_pow', a: 'pow', b: 'pow', name: '과출력 무기', desc: (k) => `모든 피해 +${15 * k}%.`,
     effect: () => ({ mods: [inc('all', 0.15)] }) },
-  { id: 'pow_mnd', a: 'pow', b: 'mnd', name: '조준 보조 AI', desc: (k) => `치명타 확률 +${10 * k}%p, 치명타 피해 +${40 * k}%p.`,
-    effect: () => ({ stats: { crit: 0.1, critDmg: 0.4 } }) },
+  { id: 'pow_mnd', a: 'pow', b: 'mnd', name: '조준 보조 AI', desc: (k) => `치명타 확률 +${7 * k}%p, 치명타 피해 +${40 * k}%p.`,
+    effect: () => ({ stats: { crit: 0.07, critDmg: 0.4 } }) },
   { id: 'pow_def', a: 'pow', b: 'def', name: '중력 해머', desc: (k) => `기본 공격 시 ${Math.min(100, 20 * k)}% 확률로 대상 1초 기절.`,
     effect: (k) => ({ hooks: { onBasic(bt, u, t) { if (t.alive && bt.rng.chance(0.2 * k)) bt.stun(u, t, 1); } } }) },
   { id: 'pow_agi', a: 'pow', b: 'agi', name: '고속 연사 장치', desc: (k) => `공격 속도 +${30 * k}%.`,
@@ -46,9 +46,9 @@ const ADV: AdvDef[] = [
     effect: () => ({ taken: [red('all', 0.15)] }) },
   { id: 'def_agi', a: 'def', b: 'agi', name: '반응 장갑', desc: (k) => `받은 피해의 ${25 * k}%를 공격자에게 고정 피해로 반사.`,
     effect: (k) => ({ hooks: { onStart(bt, u) { bt.buff(u, u, 'item.reactive', 999, { reflectTrue: 0.25 * k, label: '' }); } } }) },
-  { id: 'agi_agi', a: 'agi', b: 'agi', name: '위상 이동기', desc: (k) => `회피 +${15 * k}%p. 회피할 때마다 공격 속도 +${5 * k}% (최대 10중첩).`,
+  { id: 'agi_agi', a: 'agi', b: 'agi', name: '위상 이동기', desc: (k) => `회피 +${11 * k}%p. 회피할 때마다 공격 속도 +${5 * k}% (최대 10중첩).`,
     effect: (k) => ({
-      stats: { eva: 0.15 },
+      stats: { eva: 0.11 },
       hooks: { onEvade(bt, u) { u.mem.phase = Math.min(10, (u.mem.phase || 0) + 1); const s = u.statuses.find((x) => x.key === 'item.phase'); const d = { atkSpd: 0.05 * k * u.mem.phase }; if (s) s.delta = d; else bt.buff(u, u, 'item.phase', 999, { delta: d, label: '' }); } },
     }) },
 ];
@@ -61,10 +61,10 @@ const ADV_BY_ID = Object.fromEntries(ADV.map((a) => [a.id, a]));
 
 const UNIQUE: Record<string, { name: string; icon: string; desc: string; effect: Effect }> = {
   U_shade: {
-    name: '[고유] 그늘', icon: '☂', desc: '아문센 전용 · 해제 불가. 기술 쿨다운 감소 속도 +150%, 모든 아군 회피 및 치명타 확률 +20%p.',
+    name: '[고유] 그늘', icon: '☂', desc: '아문센 전용 · 해제 불가. 기술 쿨다운 감소 속도 +150%, 모든 아군 회피 및 치명타 확률 +14%p.',
     effect: {
       stats: { cdr: 1.5 },
-      hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'item.shade', 999, { delta: { eva: 0.2, crit: 0.2 }, label: '그늘' }); } },
+      hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'item.shade', 999, { delta: { eva: 0.14, crit: 0.14 }, label: '그늘' }); } },
     },
   },
 };
