@@ -478,7 +478,21 @@ function mapScreen(run: RunState) {
       </section>
       </div></div>
     </aside>
+    ${mapDetail(run)}
   </main>`;
+}
+/** 메인 화면 상세 보기: 파티 아이콘을 누르면 화면 왼쪽에 기물 상세가 열린다 (편성 화면으로 넘어가지 않음) */
+let lastMapDetail: string | null = null;
+function mapDetail(run: RunState) {
+  const sel = app.sel;
+  const u = sel?.k === 'unit' ? run.units.find((x) => x.uid === sel.uid) : undefined;
+  if (!u) { lastMapDetail = null; return ''; }
+  const fresh = lastMapDetail !== u.uid;
+  lastMapDetail = u.uid;
+  return `<aside class="map-detail${fresh ? ' in' : ''}" aria-label="${esc(UNIT_BY_ID[u.defId].name)} 상세">
+    <div class="md-bar"><button class="btn tiny" data-a="manage" data-v="${u.uid}">편성 화면에서 보기</button><button class="btn tiny" data-a="map-unit" data-v="" aria-label="상세 닫기">닫기 ✕</button></div>
+    ${detailPanel(run)}${statPopHtml(run)}
+  </aside>`;
 }
 /** 함선 관리: 함대 확장 (출전 인원) · 지정 소집 (시너지 지정 영입) */
 function shipPanel(run: RunState) {
@@ -534,7 +548,8 @@ function rosterTile(u: UnitState) {
   const run = app.run;
   const locked = !!run && u.lock === run.phase;
   const tip = `${d.name} · 공명 등급 ${u.rank}${u.pos ? '' : ' · 대기'}${locked ? ' · 이번 페이즈 출전 불가' : ''}`;
-  return `<button class="rt${u.pos ? '' : ' rt-off'}" data-a="manage" data-v="${u.uid}" title="${esc(tip)}" aria-label="${esc(tip)}">
+  const on = app.screen === 'map' && app.sel?.k === 'unit' && app.sel.uid === u.uid;
+  return `<button class="rt${u.pos ? '' : ' rt-off'}${on ? ' on' : ''}" data-a="${app.screen === 'map' ? 'map-unit' : 'manage'}" data-v="${u.uid}" aria-pressed="${on}" title="${esc(tip)}" aria-label="${esc(tip)}">
     <span class="rt-art">${sprite(d)}${u.mod ? `<span class="rt-mod">${itemIcon(u.mod)}</span>` : ''}
       <span class="rt-type" aria-hidden="true"><i title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i><i title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i></span>
       <span class="rt-rank">${rankLabel(u.rank)}</span>${locked ? '<span class="rt-lock" aria-hidden="true">⛓</span>' : ''}</span>
@@ -1277,7 +1292,7 @@ function layoutPanels() {
   const r = det.getBoundingClientRect();
   pop.style.position = 'fixed';
   pop.style.right = 'auto';
-  pop.style.left = `${Math.max(8, r.left - pop.offsetWidth - 16)}px`;
+  pop.style.left = det.closest('.map-detail') ? `${r.right + 12}px` : `${Math.max(8, r.left - pop.offsetWidth - 16)}px`;
   pop.style.top = `${Math.max(r.top, (top?.offsetHeight || 0) + 10)}px`;
 }
 window.addEventListener('resize', () => layoutPanels());
@@ -1302,11 +1317,11 @@ function render() {
   const modalKey = run?.pending[0] ? JSON.stringify([run.pending[0].t, (run.pending[0] as { uid?: string }).uid, (run.pending[0] as { allocDone?: boolean }).allocDone, (run.pending[0] as { options?: unknown }).options]) : app.menu || '';
   const sameView = lastView.screen === app.screen;
   const newModal = lastView.modal !== modalKey;
-  const keep = ['.side.left', '.side.right', 'aside.side', '.codex-grid'].map((sel) => [sel, root.querySelector(sel)?.scrollTop || 0] as const);
+  const keep = ['.side.left', '.side.right', 'aside.side', '.codex-grid', '.map-detail'].map((sel) => [sel, root.querySelector(sel)?.scrollTop || 0] as const);
   const modalTop = lastView.modal === modalKey ? root.querySelector('.modal')?.scrollTop || 0 : 0;
   const winY = window.scrollY;
   lastView.screen = app.screen; lastView.modal = modalKey;
-  root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && app.screen === 'prep' ? recoModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
+  root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   layoutPanels();
   // 리본 시너지 줄: 넘치면 오른쪽 끝에 '더 있음' 표시 (끝까지 밀면 사라짐)
   const ts = root.querySelector<HTMLElement>('.top-syns');
@@ -1333,6 +1348,8 @@ function render() {
   if (run && run.phase !== lastPhase) { if (lastPhase && run.phase > lastPhase) banner('phase', `PHASE ${run.phase}`, `${fieldOf(run.field).name} · 적이 강해집니다`); lastPhase = run.phase; }
   if (!run) lastPhase = 0;
   if (app.screen === 'newrun') setupCarousel();
+  const stv = root.querySelector<HTMLElement>('.st-view');
+  if (stv) bindTabSwipe(stv);
   const rc = root.querySelector<HTMLElement>('.rc-track');
   if (rc) bindCardDrag(rc);
   if (app.screen === 'battle' && app.needMount) {
@@ -1371,6 +1388,46 @@ function syncCardOpen() {
     const b = c.querySelector('.pc-more');
     if (b) b.textContent = on ? '접기 ▼' : '상세 보기 ▲';
   });
+}
+/** 메인 화면 우측 탭: 좌우로 끌어 넘긴다 (손가락 · 마우스). 끄는 동안 트랙이 따라오고, 폭의 18% 이상 밀면 옆 탭으로 */
+function setMapTab(i: number) {
+  app.mapTab = Math.max(0, Math.min(2, i));
+  document.querySelectorAll<HTMLElement>('.st-track, .st-ink').forEach((el) => el.style.setProperty('--i', String(app.mapTab)));
+  document.querySelectorAll('.st-tab').forEach((el, k) => el.setAttribute('aria-selected', String(k === app.mapTab)));
+}
+function bindTabSwipe(view: HTMLElement) {
+  const track = view.querySelector<HTMLElement>('.st-track')!;
+  let g: { x: number; y: number; id: number; on: boolean } | null = null;
+  let moved = false;
+  view.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || (e.target as HTMLElement).closest('input, .log')) { g = null; return; }
+    g = { x: e.clientX, y: e.clientY, id: e.pointerId, on: false }; moved = false;
+  });
+  view.addEventListener('pointermove', (e) => {
+    if (!g || e.pointerId !== g.id) return;
+    const dx = e.clientX - g.x, dy = e.clientY - g.y;
+    if (!g.on) {
+      if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { g = null; return; } // 세로 스크롤은 그대로
+      if (Math.abs(dx) < 10) return;
+      g.on = true; moved = true;
+      view.setPointerCapture(e.pointerId);
+      track.style.transition = 'none';
+    }
+    const edge = (app.mapTab === 0 && dx > 0) || (app.mapTab === 2 && dx < 0) ? 0.3 : 1; // 끝 탭은 고무줄처럼
+    track.style.transform = `translateX(calc(${-app.mapTab * 100}% + ${dx * edge}px))`;
+  });
+  const end = (e: PointerEvent) => {
+    if (!g || e.pointerId !== g.id) return;
+    const dx = e.clientX - g.x, on = g.on;
+    g = null;
+    if (!on) return;
+    track.style.transition = ''; track.style.transform = '';
+    if (Math.abs(dx) > view.clientWidth * 0.18) setMapTab(app.mapTab + (dx < 0 ? 1 : -1));
+  };
+  view.addEventListener('pointerup', end);
+  view.addEventListener('pointercancel', end);
+  // 끌어 넘긴 직후의 클릭은 무시 (기물 아이콘이 눌리지 않게)
+  view.addEventListener('click', (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
 }
 let artWarmed = false;
 /** 카드 공개: 뒷면으로 깔고, 안의 일러스트가 다 받아질 때까지(최대 4초) 기다렸다가 한 장씩 뒤집는다 */
@@ -1789,9 +1846,7 @@ function act(a: string, v: string) {
   if (app.screen === 'battle' && !['speed', 'skip', 'after-battle', 'meter-tab', 'bsel', 'bdesel', 'bpick', 'stat-pop', 'abil-pop'].includes(a)) return;
   if (a === 'map-tab') {
     // 슬라이드 전환: 다시 그리지 않고 트랙만 옮긴다
-    app.mapTab = Math.max(0, Math.min(2, +v || 0));
-    document.querySelectorAll<HTMLElement>('.st-track, .st-ink').forEach((el) => el.style.setProperty('--i', String(app.mapTab)));
-    document.querySelectorAll('.st-tab').forEach((el, i) => el.setAttribute('aria-selected', String(i === app.mapTab)));
+    setMapTab(+v || 0);
     return;
   }
   switch (a) {
@@ -1873,6 +1928,7 @@ function act(a: string, v: string) {
       if (n) persist();
       break;
     }
+    case 'map-unit': app.sel = v && !(app.sel?.k === 'unit' && app.sel.uid === v) ? { k: 'unit', uid: v } : null; app.statPop = false; app.abilPop = null; break;
     case 'manage': app.screen = 'prep'; app.sel = v ? { k: 'unit', uid: v } : null; break;
     case 'to-map': app.screen = run?.node?.type === 'shop' ? 'shop' : run?.node?.type === 'news' ? 'news' : run?.node?.type === 'invest' ? 'invest' : 'map'; break;
     case 'fight':
