@@ -1516,3 +1516,33 @@ body:has(.nr) { overflow: hidden; margin: 0; }
   .side-tabs .st-pane::-webkit-scrollbar { display: none; }
   .side-tabs .log { max-height: none; overflow: visible; }
 }
+
+/* 결과 창: 보상 줄 아이콘 · 수치, 장비 아이콘, 공명도 막대 */
+.rs-lines li { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.rs-lines li .li { width: 16px; height: 16px; }
+.rs-lines .rl-t small { color: var(--muted); font-size: .75rem; }
+.rs-lines .rl-v { font-family: var(--f-mono); color: var(--accent); }
+.rs-lines .rl-v.neg { color: var(--bad); }
+.rs-lines li.streak { border-left-color: #ff7a3d; }
+.rs-lines li.streak .li { color: #ff7a3d; }
+.li.fame { color: var(--fame, #f3c969); } .li.faith { color: var(--el-holy); } .li.bad { color: var(--bad); }
+.rs-items { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.rs-items li { display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 6px; background: var(--panel-2); font-size: .82rem; }
+.it-n.it-C { color: var(--g-C); } .it-n.it-G { color: var(--g-G); } .it-n.it-A { color: var(--g-A); } .it-n.it-L { color: var(--g-L); }
+.rs.win .rs-items li { animation: rs-pop .4s cubic-bezier(.2, 1.6, .4, 1) both; animation-delay: calc(.6s + var(--i, 0) * .1s); }
+.rs-xp li { position: relative; grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: 'ic nm rk v' 'ic bar bar bar'; row-gap: 4px; padding: 6px 8px; }
+.rs-xp li > .spr, .rs-xp li > img { grid-area: ic; }
+.rs-xp .rx-n { grid-area: nm; }
+.rs-xp .rx-rank { grid-area: rk; font-family: var(--f-mono); font-size: .8rem; color: var(--muted); transition: color .2s; }
+.rs-xp li > b { grid-area: v; }
+.rx-bar { grid-area: bar; position: relative; height: 6px; border-radius: 3px; background: var(--panel); overflow: hidden; }
+.rx-bar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
+.rx-new { background: color-mix(in srgb, var(--info) 35%, #fff); box-shadow: 0 0 8px var(--info); } /* 이번에 얻은 몫 (밝게) */
+.rx-old { z-index: 1; background: var(--info); } /* 전투 전 공명도 */
+.rx-up { position: absolute; right: 8px; top: -8px; padding: 1px 7px; border-radius: 4px; background: var(--accent); color: var(--accent-ink); font-style: normal; font-size: .68rem; font-weight: 800; letter-spacing: .04em; opacity: 0; }
+.rs-xp li.ranked { box-shadow: inset 0 0 0 1px var(--accent); animation: rx-flash .7s ease-out; }
+.rs-xp li.ranked .rx-rank { color: var(--accent); font-weight: 700; animation: rs-pop .45s cubic-bezier(.2, 1.6, .4, 1); }
+.rs-xp li.ranked .rx-up { animation: rx-up 1.6s ease-out forwards; }
+@keyframes rx-flash { 0% { background: color-mix(in srgb, var(--accent) 45%, var(--panel-2)); } 100% { background: var(--panel-2); } }
+@keyframes rx-up { 0% { opacity: 0; transform: translateY(6px) scale(.6); } 20% { opacity: 1; transform: none; } 100% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .rs-xp li.ranked .rx-up { opacity: 1; } }

@@ -962,6 +962,38 @@ function updateMeter(force = false) {
   v.select(app.battleSel);
 }
 
+/** 보상 줄: 종류별 아이콘 + 내용 + 수치 */
+function resLine(l: string, i: number) {
+  const STREAK = lineIcon('r.streak', 'li streak');
+  const icon = /연승/.test(l) ? STREAK : /공명도/.test(l) ? RES : /명성/.test(l) ? lineIcon('a.fame', 'li fame') : /권능/.test(l) ? lineIcon('n.pilgrim', 'li faith')
+    : /승리 보상|이자|실적|정산|보험금|상환|판매|크레딧/.test(l) ? CR : /패배|체력/.test(l) ? lineIcon('r.hp', 'li bad') : lineIcon('r.more', 'li');
+  const m = l.match(/^(.*?)\s*([+-]\d+)(.*)$/);
+  const body = m ? `<span class="rl-t">${esc(m[1])}${m[3] ? ` <small>${esc(m[3].trim())}</small>` : ''}</span><b class="rl-v${m[2].startsWith('-') ? ' neg' : ''}">${esc(m[2])}</b>` : `<span class="rl-t">${esc(l)}</span>`;
+  return `<li style="--i:${i}" class="${/연승/.test(l) ? 'streak' : ''}">${icon}${body}</li>`;
+}
+/** 결과 창 공명도 막대: 전투 전 → 후. 등급이 오르면 가득 찬 뒤 번쩍이며 등급 표시가 바뀌고 새 등급에서 다시 차오른다 */
+function animateResult(scope: Element | Document) {
+  const rows = Array.from(scope.querySelectorAll<HTMLElement>('.rs-xp li[data-from]:not([data-done])'));
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  rows.forEach((li, i) => {
+    li.dataset.done = '1';
+    const from = +li.dataset.from!, to = +li.dataset.to!, up = +li.dataset.up!;
+    const bar = li.querySelector<HTMLElement>('.rx-new')!, old = li.querySelector<HTMLElement>('.rx-old')!, rank = li.querySelector<HTMLElement>('.rx-rank')!;
+    const finish = () => { if (up) { old.style.width = '0%'; rank.innerHTML = rankLabel(+li.dataset.r1!); li.classList.add('ranked'); } bar.style.width = `${to}%`; };
+    if (reduce) { finish(); return; }
+    const delay = 700 + i * 160;
+    if (!up) { setTimeout(() => { bar.style.transition = 'width .8s cubic-bezier(.2,.8,.3,1)'; bar.style.width = `${to}%`; }, delay); return; }
+    setTimeout(() => { bar.style.transition = 'width .45s ease-in'; bar.style.width = '100%'; }, delay);
+    setTimeout(() => {
+      li.classList.add('ranked');
+      rank.innerHTML = rankLabel(+li.dataset.r1!);
+      old.style.width = '0%';
+      bar.style.transition = 'none'; bar.style.width = '0%'; void bar.offsetWidth;
+      bar.style.transition = 'width .6s cubic-bezier(.2,.8,.3,1)'; bar.style.width = `${to}%`;
+    }, delay + 520);
+    void finish;
+  });
+}
 /** MVP: 피해 · 지원(회복+보호막) · 받아낸 피해 · 결정타를 각각 아군 최고치 대비로 환산해 합산. 가장 큰 항목이 칭호가 된다 */
 function pickMvp(b: Battle) {
   const rows = aggAllies(b);
@@ -981,9 +1013,18 @@ function summaryModal(run: RunState) {
   const mvp = b ? pickMvp(b) : null;
   const d = mvp ? UNIT_BY_ID[mvp.a.u.defId] : null;
   const quote = d ? d.lore.replace(/^["“]|["”]$/g, '') : '';
+  // 공명도: 전투 전 → 후 막대 (등급이 오르면 한 번 가득 찼다가 새 등급에서 다시 차오른다)
   const xp = s.xp.filter((x) => x.amount > 0).map((x, i) => {
     const u = run.units.find((y) => y.uid === x.uid);
-    return u ? `<li style="--i:${i}">${sprite(UNIT_BY_ID[u.defId])}<span>${esc(UNIT_BY_ID[u.defId].name)}</span><b>+${x.amount}</b></li>` : '';
+    if (!u) return '';
+    const r0 = x.rank0 ?? u.rank, x0 = x.xp0 ?? Math.max(0, u.xp - x.amount);
+    const max = u.rank >= CFG.maxRank;
+    const from = r0 >= CFG.maxRank ? 100 : Math.min(100, (x0 / CFG.xpToNext(r0)) * 100), to = max ? 100 : Math.min(100, (u.xp / CFG.xpToNext(u.rank)) * 100);
+    const up = u.rank - r0;
+    return `<li style="--i:${i}" class="${up ? 'up' : ''}" data-from="${from}" data-to="${to}" data-up="${up}" data-r0="${r0}" data-r1="${u.rank}">${sprite(UNIT_BY_ID[u.defId])}
+      <span class="rx-n">${esc(UNIT_BY_ID[u.defId].name)}</span><span class="rx-rank">${rankLabel(r0)}</span>
+      <span class="rx-bar"><i class="rx-old" style="width:${from}%"></i><i class="rx-new" style="width:${from}%"></i></span>
+      <b>+${x.amount}</b>${up ? `<em class="rx-up">등급 상승${up > 1 ? ` ×${up}` : ''}</em>` : ''}</li>`;
   }).join('');
   const head = s.gameOver ? '용병단 전멸' : s.won ? '승리' : '패배';
   const mvpStat = mvp ? [['준 피해', mvp.a.dmg], ['지원', mvp.a.healed + mvp.a.shield], ['받은 피해', mvp.a.taken], ['결정타', mvp.a.kills]].filter(([, v]) => (v as number) > 0).map(([k, v]) => `<span><small>${k}</small><b>${fmt(v as number)}</b></span>`).join('') : '';
@@ -998,7 +1039,8 @@ function summaryModal(run: RunState) {
         <div class="rs-mvp-stats">${mvpStat}</div>
       </section>` : ''}
       <section class="rs-reward"><h3>보상 일람</h3>
-        <ul class="rs-lines">${s.lines.map((l, i) => `<li style="--i:${i}">${ic(esc(l))}</li>`).join('')}</ul>
+        <ul class="rs-lines">${s.lines.filter((l) => !l.startsWith('장비 획득:')).map((l, i) => resLine(l, i)).join('')}</ul>
+        ${s.items?.length ? `<h4>장비 획득</h4><ul class="rs-items">${s.items.map((id, i) => `<li style="--i:${i}">${itemIcon(id)}<span class="it-n it-${itemInfo(id).tier}">${esc(itemInfo(id).name)}</span></li>`).join('')}</ul>` : ''}
         ${xp ? `<h4>${RES}공명도 획득</h4><ul class="rs-xp">${xp}</ul>` : ''}
       </section>
       <section class="rs-report"><h3>전투 보고서 <span class="muted small">${b ? `${b.t.toFixed(1)}초` : ''}</span></h3>${b ? battleTable(b) : ''}</section>
@@ -1429,6 +1471,7 @@ function render() {
   if (run && run.phase !== lastPhase) { if (lastPhase && run.phase > lastPhase) banner('phase', `PHASE ${run.phase}`, `${fieldOf(run.field).name} · 적이 강해집니다`); lastPhase = run.phase; }
   if (!run) lastPhase = 0;
   if (cxScroll) { cxScroll = false; const det = root.querySelector<HTMLElement>('.cx-detail'); if (det) { det.scrollTop = 0; if (innerWidth <= 860) det.scrollIntoView({ block: 'start' }); } }
+  animateResult(root);
   if (app.screen === 'newrun') setupCarousel();
   const stv = root.querySelector<HTMLElement>('.st-view');
   if (stv) bindTabSwipe(stv);
@@ -1646,6 +1689,7 @@ function mountBattleView(board: HTMLElement) {
     setTimeout(() => {
       if (!app.summary || app.screen !== 'battle' || root.querySelector('.modal.result')) return;
       root.querySelector('main.battle')?.insertAdjacentHTML('beforeend', summaryModal(run));
+      animateResult(root);
     }, CFG.resultDelay * 1000);
   });
   applySpeed();

@@ -416,12 +416,16 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
 export interface BattleSummary {
   won: boolean;
   lines: string[];
-  xp: { uid: string; amount: number }[];
+  /** 공명도: 획득량 + 전투 전 등급 · 등급 내 공명도 (결과 창 막대 연출용) */
+  xp: { uid: string; amount: number; rank0?: number; xp0?: number }[];
+  /** 이번 전투로 얻은 장비 */
+  items?: string[];
   hpLoss: number;
   gameOver: boolean;
 }
 
 export function resolveBattle(run: RunState, b: Battle): BattleSummary {
+  const inv0 = run.inventory.slice(); // 결과 창: 새로 얻은 장비 표시용
   const node = run.node!.type;
   const challenge = node === 'challenge';
   const type: NodeType = challenge ? 'adversity' : node; // 도전은 보상 · 피해를 역경 기준으로
@@ -489,6 +493,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
 
   // 공명도
   const xpBefore = new Map(run.units.map((u) => [u.uid, u.xp + totalXpOf(u)]));
+  const lvBefore = new Map(run.units.map((u) => [u.uid, { rank0: u.rank, xp0: u.xp }]));
   let pool = CFG.xpPool(p) * (won ? 1 : 0.5) * (type === 'adversity' ? 1.5 : 1) * (hasGlobal(run, 'G.resonance') ? 1.35 : 1);
   pool = Math.round(pool);
   distributeXp(run, pool);
@@ -508,7 +513,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   const earned = Math.max(0, run.credits - creditsBefore);
   for (const u of run.units) if (u.defId === 'lars') { u.grow ??= {}; u.grow.earn = (u.grow.earn || 0) + earned; }
   for (const u of run.units) settleXp(run, u);
-  const xp = run.units.map((u) => ({ uid: u.uid, amount: u.xp + totalXpOf(u) - xpBefore.get(u.uid)! }));
+  const xp = run.units.map((u) => ({ uid: u.uid, amount: u.xp + totalXpOf(u) - xpBefore.get(u.uid)!, ...lvBefore.get(u.uid) }));
 
   // 헬레니우스 퀘스트
   questProgress(run, b, won, type, lines);
@@ -536,7 +541,9 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   if (run.hp <= 0) { run.hp = 0; run.over = true; gameOver = true; }
   else if (won || type !== 'boss') advance(run);
   else run.node = { type: 'boss', enc: genEncounter(run, 'boss') };
-  return { won, lines, xp, hpLoss, gameOver };
+  const gained = run.inventory.slice();
+  for (const id of inv0) { const i = gained.indexOf(id); if (i >= 0) gained.splice(i, 1); }
+  return { won, lines, xp, hpLoss, gameOver, items: gained };
 }
 
 function totalXpOf(u: UnitState) { let t = 0; for (let r = 1; r < u.rank; r++) t += CFG.xpToNext(r); return t; }
