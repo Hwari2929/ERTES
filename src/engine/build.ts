@@ -305,6 +305,7 @@ ENG_HOOK.spawn = (b, lead, engs, n) => {
     st.armor = avg('armor') * inherit * (1 + hpBonus);
     st.acc = avg('acc') * 0.5; st.crit = avg('crit') * 0.5; st.critDmg = 1.5; st.effRes = avg('effRes') * 0.5;
     st.atkSpd = asBonus; st.range = 4; st.moveSpd = 1;
+    st.armorPen = lead.mem.engPen || 0; // 엔지니어 단계별 방어 관통
     Object.assign(t, {
       defId: 'turret', name: '감시 포탑', sprite: 'turret', palette: TURRET_PAL, art: 'sm_turret', st, atk: { type: 'shoot', elem: 'phys', interval: 1.0 },
       keywords: ['mech', 'struct'], isSummon: true, immobile: true,

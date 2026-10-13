@@ -403,9 +403,10 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'ENG', name: '엔지니어', kind: 'trait', tiers: [2, 4, 6, 8], color: '#a0b4c8', icon: '⚙',
     desc: '전투 시작 시 아군 진영 양옆 가장자리에 감시 포탑을 설치합니다. 포탑은 움직이지 않고, 출전한 엔지니어 능력치 평균의 일부를 물려받습니다. 칸을 차지하며, 빈칸이 없으면 설치되지 않습니다.',
-    tierDesc: ['감시 포탑 1기 (상속 100%, 공격 속도 +40%)', '감시 포탑 2기 (상속 150%)', '감시 포탑 3기 (상속 220%), 포탑 공격 속도 추가 +50%', '[자동화 요새] 감시 포탑 4기 (상속 320%), 포탑 공격 속도 추가 +50%'],
+    tierDesc: ['감시 포탑 1기 (상속 100%, 공격 속도 +40%), 엔지니어 · 포탑 방어 관통 +10%p', '감시 포탑 2기 (상속 150%), 방어 관통 +20%p', '감시 포탑 3기 (상속 220%), 포탑 공격 속도 추가 +50%, 방어 관통 +35%p', '[자동화 요새] 감시 포탑 4기 (상속 320%), 포탑 공격 속도 추가 +50%, 방어 관통 +35%p'],
     member: (t) => ({
-      setup: (u) => { u.mem.eng = t; },
+      stats: { armorPen: T(t, [0.1, 0.2, 0.35, 0.35]) },
+      setup: (u) => { u.mem.eng = t; u.mem.engPen = T(t, [0.1, 0.2, 0.35, 0.35]); },
       hooks: {
         onStart(b, u) {
           const engs = b.alliesOf(u).filter((a) => a.mem.eng);
@@ -419,8 +420,8 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'SCHEME', name: '모략가', kind: 'trait', tiers: [2, 4, 6, 8], color: '#8a5cc8', icon: '♠',
     desc: '판 뒤에서 실을 당기는 이들. 모략가가 적에게 해로운 효과를 걸면 기본 75% 확률로 [암운]을 쌓습니다. [암운]은 1중첩당 매초 아군 전술 위력 비례 고정 피해를 줍니다 (최대 99중첩, 6초간 새로 쌓이지 않으면 사라짐).',
-    tierDesc: ['효과 명중 +25%p, [암운] 1중첩당 초당 전술 위력 4%', '효과 명중 +50%p, 초당 전술 위력 8%, [암운]을 쌓을 때 50% 확률로 1중첩 추가',
-      '효과 명중 +75%p, 초당 전술 위력 15%, 25% 확률로 2중첩 더 추가, 모략가의 공격이 [암운] 1중첩당 전술 위력 10% 고정 피해 추가',
+    tierDesc: ['효과 명중 +25%p, [암운] 1중첩당 초당 전술 위력 4%', '효과 명중 +50%p, 초당 전술 위력 8%, 적에게 해로운 효과를 걸 때마다 고정 50% 확률로 [암운] 1중첩 추가 (기본 확률 판정과 별개)',
+      '효과 명중 +75%p, 초당 전술 위력 15%, 고정 25% 확률로 2중첩 더 추가, 모략가의 공격이 [암운] 1중첩당 전술 위력 10% 고정 피해 추가',
       '[흑막 강림] 효과 명중 +100%p, 초당 전술 위력 30%, [암운] 쌓는 양 3배'],
     member: (t) => {
       const per = T(t, [0.04, 0.08, 0.15, 0.3]); // [암운] 1중첩 초당 피해 = 전술 위력 × per
@@ -429,10 +430,11 @@ export const SYNERGIES: SynDef[] = [
         hooks: {
           onInflict(b, u, tgt, s) {
             if (tgt.side === u.side || !isHarmful(s) || s.key === 'gloom') return;
-            if (!b.rng.chance(Math.min(1, 0.75 * (1 + b.S(u, 'effHit') - b.S(tgt, 'effRes'))))) return;
-            let n = 1;
+            // 기본 1중첩은 효과 명중 · 저항 판정, 2 · 3단계 추가 중첩은 고정 확률 (기본 판정 실패와 무관)
+            let n = b.rng.chance(Math.min(1, 0.75 * (1 + b.S(u, 'effHit') - b.S(tgt, 'effRes')))) ? 1 : 0;
             if (t >= 2 && b.rng.chance(0.5)) n += 1;
             if (t >= 3 && b.rng.chance(0.25)) n += 2;
+            if (!n) return;
             if (t >= 4) n *= 3;
             addStacks(b, u, tgt, 'gloom', n, 99, 6, (k) => ({ type: 'dot', elem: 'true', dps: b.tacPower(u) * per * k, syn: 'SCHEME' }), '암운');
           },
@@ -508,10 +510,21 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'HUNTER', name: '사냥꾼', kind: 'trait', tiers: [2, 4, 6, 8], color: '#c98a4a', icon: '➶',
-    desc: '사냥감을 끝까지 쫓는 이들. 사냥꾼 기물은 공격 속도와 치명타 피해가 크게 오릅니다.',
-    tierDesc: ['공격 속도 +15%, 치명타 피해 +20%p', '공격 속도 +30%, 치명타 피해 +45%p', '공격 속도 +50%, 치명타 피해 +80%p',
-      '[최상위 포식자] 공격 속도 +85%, 치명타 피해 +140%p'],
-    member: (t) => ({ stats: { atkSpd: T(t, [0.15, 0.3, 0.5, 0.85]), critDmg: T(t, [0.2, 0.45, 0.8, 1.4]) } }),
+    desc: '사냥감을 끝까지 쫓는 이들. 사냥꾼 기물은 공격 속도와 치명타 피해가 크게 오르고, (4)부터는 기본 공격 · 기술이 대상 최대 체력 비례 고정 피해를 더합니다 (사격 위력 일정 비율이 상한).',
+    tierDesc: ['공격 속도 +15%, 치명타 피해 +20%p', '공격 속도 +30%, 치명타 피해 +45%p, 공격마다 대상 최대 체력 1% 고정 피해 (사격 위력 150% 상한)', '공격 속도 +50%, 치명타 피해 +80%p, 최대 체력 2% 고정 피해 (상한 300%)',
+      '[최상위 포식자] 공격 속도 +85%, 치명타 피해 +140%p, 최대 체력 5% 고정 피해 (상한 750%)'],
+    member: (t) => {
+      const hp = T(t, [0, 0.01, 0.02, 0.05]), cap = T(t, [0, 1.5, 3, 7.5]);
+      return {
+        stats: { atkSpd: T(t, [0.15, 0.3, 0.5, 0.85]), critDmg: T(t, [0.2, 0.45, 0.8, 1.4]) },
+        hooks: hp ? {
+          onDeal(b, u, tgt, r, o) {
+            if ((o.tag !== 'basic' && o.tag !== 'skill') || r.amount <= 0 || !tgt.alive) return;
+            b.dealDamage(u, tgt, Math.min(b.S(tgt, 'maxHp') * hp, b.S(u, 'shoot') * cap), { elem: 'true', tag: 'proc', syn: 'HUNTER' });
+          },
+        } : undefined,
+      };
+    },
   },
   {
     id: 'VOYAGE', name: '우리의 출항기!', kind: 'faction', tiers: [2, 3, 4, 5], color: '#4fc3c8', icon: '⛵',
