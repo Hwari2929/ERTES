@@ -28,7 +28,7 @@ p('| 시너지 | 종류 | 단계 | 인원 (영입+사건) | 소속 |');
 p('|---|---|---|---|---|');
 for (const s of SYNERGIES) {
   const m = UNITS.filter((u) => (u.factions as string[]).includes(s.id) || (u.traits as string[]).includes(s.id));
-  const tiers = s.tiers.join('/') + (s.lockFinal ? ' (최종 단계 증표 필요)' : '');
+  const tiers = s.tiers.join('/');
   p(`| ${s.name} | ${s.kind === 'faction' ? '세력' : '특성'} | ${tiers} | ${m.filter((u) => !u.eventOnly).length}+${m.filter((u) => u.eventOnly).length} | ${m.map((u) => u.name + (u.eventOnly ? '*' : '')).join(' · ')} |`);
 }
 p();
@@ -41,6 +41,6 @@ for (const s of SYNERGIES) {
   p();
   p(s.desc.replace(/\n/g, '  \n'));
   p();
-  s.tierDesc.forEach((d, i) => p(`- **(${s.tiers[i]}${s.lockFinal && i === s.tiers.length - 1 ? ' · 증표' : ''})** ${d}`));
+  s.tierDesc.forEach((d, i) => p(`- **(${s.tiers[i]})** ${d}`));
 }
 process.stdout.write(out.join('\n') + '\n');

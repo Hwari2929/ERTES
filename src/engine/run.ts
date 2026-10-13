@@ -7,7 +7,7 @@ import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, isConsumable, isEmblem, isLocked, isMod, itemInfo, occultModsOfTier } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, DROP_CONSUMABLES, XP_INJECT_AMOUNT, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, isConsumable, isEmblem, isLocked, isMod, itemInfo, occultModsOfTier } from '../data/items';
 import { SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, PSI_AUGS, recMajors } from '../data/rework';
@@ -343,6 +343,10 @@ export function useCheck(run: RunState, kIdx: number, tg: UseTarget): string | n
     if (!u) return '대상 없음';
     if (id === 'K_rank' && u.rank >= CFG.maxRank) return '이미 최고 공명 등급입니다';
     if (id === 'K_morph' && !morphPool(run).length) return '바뀔 수 있는 기물이 없습니다';
+    if (id === 'K_xp' && u.rank >= CFG.maxRank) return '이미 최고 공명 등급입니다';
+    const gear = u.items.filter((x) => x && !isLocked(x)).length;
+    if ((id === 'K_strip' || id === 'K_reroll') && !gear) return '해제 · 변경할 장비가 없습니다';
+    if (id === 'K_strip' && run.inventory.length - 1 + gear > CFG.inventoryMax) return '보관함 공간이 부족합니다';
     return null;
   }
   if (tg.k === 'unit') return '장비에 사용하는 소모품입니다';
@@ -363,6 +367,30 @@ export function useConsumable(run: RunState, kIdx: number, tg: UseTarget): { ok:
   const id = run.inventory[kIdx];
   const name = CONSUMABLES[id].name;
   let msg = '';
+  if (id === 'K_strip' || id === 'K_reroll' || id === 'K_xp') {
+    const u = run.units.find((x) => x.uid === (tg as { uid: string }).uid)!;
+    const nm = UNIT_BY_ID[u.defId].name;
+    run.inventory.splice(kIdx, 1);
+    if (id === 'K_xp') { const r0 = u.rank; u.xp += XP_INJECT_AMOUNT; settleXp(run, u); msg = `${nm} 공명도 +${XP_INJECT_AMOUNT}${u.rank > r0 ? ` (공명 등급 ${u.rank})` : ''}`; }
+    else if (id === 'K_strip') {
+      let n = 0;
+      u.items = u.items.map((x) => { if (!x || isLocked(x)) return x; run.inventory.push(x); n++; return null; });
+      msg = `${nm} 장비 ${n}개 해제`;
+    } else {
+      const pool = (x: string) => x[0] === 'C' ? ALL_COMPONENTS : x[0] === 'G' ? ALL_GRADED : x[0] === 'A' ? ALL_ADVANCED : ALL_ADVANCED.map((a) => 'L_' + a.slice(2));
+      const names: string[] = [];
+      u.items = u.items.map((x) => {
+        if (!x || isLocked(x)) return x;
+        const opts = pool(x).filter((y) => y !== x);
+        const y = rng(run, (r) => r.pick(opts.length ? opts : [x]));
+        names.push(itemInfo(y).name);
+        return y;
+      });
+      msg = `${nm} 장비 재구성: ${names.join(' · ')}`;
+    }
+    log(run, `${name}: ${msg}`);
+    return { ok: true, msg };
+  }
   if (id === 'K_rank' || id === 'K_morph') {
     const u = run.units.find((x) => x.uid === (tg as { uid: string }).uid)!;
     run.inventory.splice(kIdx, 1);
@@ -554,6 +582,9 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     if (pet >= 1) { const pb = pet >= 4 ? 3 : 1; income += pb; lines.push(`페트라 실적 +${pb}`); }
     const fw = fieldOf(run.field).winCredits;
     if (fw) { income += fw; lines.push(`전장 조건 · 계약 정산 +${fw}`); }
+    // 전투 보상 소모품: 분리 용제 · 재구성 회로 · 공명 주입기
+    const uc = CFG.drop.utility[type] || 0;
+    if (uc && rng(run, (r) => r.chance(uc))) gainItem(run, rng(run, (r) => r.pick(DROP_CONSUMABLES)), lines);
     if (type === 'adversity') {
       if (rng(run, (r) => r.chance(CFG.drop.adversity * (fieldOf(run.field).dropMul || 1)))) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
     } else if (type === 'battle') {
@@ -952,7 +983,7 @@ export function buyNews(run: RunState, idx: number): string | null {
 // ───────────────────────── 호이슌 투자
 export const INVEST_OFFERS: Record<string, { name: string; desc: (run: RunState, o: InvestOffer) => string; cost: number }> = {
   fund: { name: '호이슌 펀드', desc: () => '맡긴 크레딧을 다음 페이즈 시작에 불려서 돌려받습니다 (호이슌 단계에 따라 ×1.5 / ×1.8 / ×2.5).', cost: 20 },
-  emblem: { name: '문장 매입', desc: () => '문장(증표) 3개 중 1개 선택. 최종 단계를 여는 열쇠.', cost: 30 },
+  emblem: { name: '문장 매입', desc: () => '문장 3개 중 1개 선택. 장착한 기물이 그 시너지에 추가로 소속됩니다.', cost: 30 },
   rally: { name: '전략 자금 집행', desc: () => '이번 페이즈 동안 호이슌 기물 피해 +35%, 쿨다운 감소 속도 +25%.', cost: 15 },
   aug: { name: '인재 영입 패키지', desc: (run, o) => {
     const u = run.units.find((x) => x.uid === o.uid);

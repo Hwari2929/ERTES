@@ -43,7 +43,7 @@ export function memberships(u: UnitState, run?: RunState | null): SynergyId[] {
   return [...s];
 }
 
-/** raw = 증표 규칙으로 묶기 전 인원 (표시용) */
+/** raw: 예전 증표 규칙용 인자 (현재는 차이 없음) */
 export function synergyCounts(units: UnitState[], run?: RunState | null, raw = false): Counts {
   const seen = new Set<string>();
   const c: Counts = {};
@@ -59,12 +59,7 @@ export function synergyCounts(units: UnitState[], run?: RunState | null, raw = f
     if (run.globals.includes('G.faction')) { const t = top('faction'); if (t) c[t.id]! += 1; }
     if (run.globals.includes('G.trait')) { const t = top('trait'); if (t) c[t.id]! += 1; }
   }
-  // 최종 단계 증표 규칙: 증표(문장)를 단 출전 기물이 없으면 최종 단계 직전 인원으로 묶는다
-  if (!raw) for (const sd of SYNERGIES) {
-    if (!sd.lockFinal) continue;
-    const last = sd.tiers[sd.tiers.length - 1];
-    if ((c[sd.id] || 0) >= last && !units.some((u) => u.mod === `M_${sd.id}`)) c[sd.id] = last - 1;
-  }
+  void raw; // (구) 최종 단계 증표 규칙은 제거됨
   return c;
 }
 

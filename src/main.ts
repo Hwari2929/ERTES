@@ -151,14 +151,14 @@ function itemIcon(id: string | null, attrs = '') {
   if (!id) return `<span class="item empty" ${attrs}></span>`;
   const it = itemInfo(id);
   const sc = isEmblem(id) ? SYN_BY_ID[emblemOf(id)]?.color : isOccultMod(id) ? SYN_BY_ID.OCCULT.color : ''; // 문장: 시너지 색 · 신비 부품: 신비학자 색
-  const hx = isConsumable(id) ? ` hex" style="--hc:${SYN_BY_ID.OCCULT.color}` : ''; // 소모품: 육각형
+  const hx = isConsumable(id) ? ` hex" style="--hc:${CONSUMABLES[id]?.drop ? '#6fc3df' : SYN_BY_ID.OCCULT.color}` : ''; // 소모품: 육각형 (합성품 보라 · 전투 보상 청록)
   return `<span class="item t${it.tier}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc)}" ${attrs}>${itemGlyph(id) || it.icon}</span>`;
 }
 /** 신비 개조부품 · 소모품 아이콘 */
 const SPECIAL_GLYPH: Record<string, string> = {
   O_reach: 'a.range', O_feast: 'a.heal', O_ward_phys: 'e.phys', O_ward_psy: 'e.psy', O_ward_chem: 'e.chem', O_ward_elec: 'e.elec', O_ward_holy: 'e.holy',
   O_mirror: 'a.shield', O_echo: 'a.cd', O_soul: 'a.dmg', O_aegis: 'r.hp', O_void: 'a.crit',
-  K_rank: 'r.res', K_morph: 'a.summon', K_legend: 'a.power', K_copy: 'a.reload',
+  K_rank: 'r.res', K_morph: 'a.summon', K_legend: 'a.power', K_copy: 'a.reload', K_strip: 'u.area', K_reroll: 'a.cd', K_xp: 'a.heal',
 };
 /** 장비 아이콘: 재료 · 고급 = 메이저 아이콘, 희귀 · 전설 = 고유 아이콘, 문장 = 시너지 아이콘 */
 function itemGlyph(id: string) {
@@ -214,13 +214,11 @@ function synPopHtml(sid: string) {
   if (run) {
     const counts = synergyCounts(deployed(run), run);
     const raw = synergyCounts(deployed(run));
-    const uncapped = synergyCounts(deployed(run), run, true);
     c = counts[id] || 0;
     const t = tierOf(id, c);
     const next = sd.tiers.find((need) => need > c);
     const bonus = c - (raw[id] || 0);
-    const locked = sd.lockFinal && (uncapped[id] || 0) > c;
-    head = `<span class="small">출전 <b>${c}</b>명${bonus > 0 ? ` <span class="accent">(문장 +${bonus})</span>` : ''} · ${t ? `${t}단계 활성` : '비활성'} · ${locked ? '🔒 최종 단계는 증표 필요' : next ? `다음 단계까지 ${next - c}명` : '최고 단계'}</span>`;
+    head = `<span class="small">출전 <b>${c}</b>명${bonus > 0 ? ` <span class="accent">(문장 +${bonus})</span>` : ''} · ${t ? `${t}단계 활성` : '비활성'} · ${next ? `다음 단계까지 ${next - c}명` : '최고 단계'}</span>`;
   }
   // 소속 기물 초상화: 출전 · 대기 · 미보유 (문장으로 합류한 보유 기물 포함)
   const own = new Map<string, boolean>();
@@ -233,7 +231,7 @@ function synPopHtml(sid: string) {
     <div class="sp-legend small"><span class="s0">출전</span><span class="s1">대기</span><span class="s2">미보유</span></div>`;
   const t = tierOf(id, c);
   return `<b class="sp-t">${synIcon(id) || sd.icon}${esc(sd.name)}<small>${sd.kind === 'faction' ? '세력' : '특성'}</small></b>${head}<p>${esc(sd.desc)}</p>${mem}
-    <ol class="sp-tiers">${sd.tierDesc.map((d, i) => `<li class="${i === t - 1 ? 'cur' : ''}${c >= sd.tiers[i] ? ' on' : ''}"><b>${sd.tiers[i]}${sd.lockFinal && i === sd.tiers.length - 1 ? ' · 증표' : ''}</b><span>${esc(d)}</span></li>`).join('')}</ol>`;
+    <ol class="sp-tiers">${sd.tierDesc.map((d, i) => `<li class="${i === t - 1 ? 'cur' : ''}${c >= sd.tiers[i] ? ' on' : ''}"><b>${sd.tiers[i]}</b><span>${esc(d)}</span></li>`).join('')}</ol>`;
 }
 function synergyPanel(run: RunState) {
   const counts = synergyCounts(deployed(run), run);

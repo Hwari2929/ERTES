@@ -102,13 +102,22 @@ export const OCCULT_MODS: Record<string, { name: string; icon: string; tier: 1 |
 export const occultModsOfTier = (t: number) => Object.keys(OCCULT_MODS).filter((k) => OCCULT_MODS[k].tier === t);
 
 /** 신비학자 [합성] 전용 소모품: 보관함에서 기물 · 장비에 끌어다 사용 */
-export const CONSUMABLES: Record<string, { name: string; icon: string; target: 'unit' | 'item'; price: number; desc: string }> = {
+const XP_INJECT = 8;
+export const CONSUMABLES: Record<string, { name: string; icon: string; target: 'unit' | 'item'; price: number; desc: string; drop?: boolean }> = {
   K_rank: { name: '공명 촉매', icon: '▲', target: 'unit', price: 10, desc: '기물에 사용: 공명 등급 +1.' },
   K_morph: { name: '변성 촉매', icon: '⟳', target: 'unit', price: 14, desc: '기물에 사용: 보유하지 않은 무작위 기물로 바뀌고 공명 등급 +3. 장비 · 개조부품 · 배치는 그대로 이어받습니다.' },
   K_legend: { name: '전설 주조액', icon: '★', target: 'item', price: 24, desc: '장비에 사용: 전설 등급으로 바꿉니다 (재료 · 고급은 같은 계열의 전설로).' },
   K_copy: { name: '복제 배양조', icon: '⧉', target: 'item', price: 30, desc: '장비에 사용: 똑같은 장비 1개를 보관함에 만듭니다.' },
+  // 전투 보상 전용 (합성 공방에서는 팔지 않음)
+  K_strip: { name: '분리 용제', icon: '⇲', target: 'unit', price: 0, drop: true, desc: '기물에 사용: 장착한 장비를 모두 해제해 보관함으로 돌려보냅니다 (고유 장비 · 개조부품 제외).' },
+  K_reroll: { name: '재구성 회로', icon: '⟲', target: 'unit', price: 0, drop: true, desc: '기물에 사용: 장착한 장비를 모두 같은 등급의 다른 무작위 장비로 바꿉니다 (고유 장비 · 개조부품 제외).' },
+  K_xp: { name: '공명 주입기', icon: '✚', target: 'unit', price: 0, drop: true, desc: `기물에 사용: 공명도 +${XP_INJECT}.` },
 };
-export const ALL_CONSUMABLES = Object.keys(CONSUMABLES);
+/** 합성 공방 상품 */
+export const ALL_CONSUMABLES = Object.keys(CONSUMABLES).filter((k) => !CONSUMABLES[k].drop);
+/** 전투 종료 보상 소모품 */
+export const DROP_CONSUMABLES = Object.keys(CONSUMABLES).filter((k) => CONSUMABLES[k].drop);
+export const XP_INJECT_AMOUNT = XP_INJECT;
 export const emblemOf = (id: string) => id.slice(2) as SynergyId;
 export const emblemId = (syn: SynergyId) => `M_${syn}`;
 

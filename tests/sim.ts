@@ -55,7 +55,7 @@ function manage(run: RunState) {
   for (let i = run.inventory.length - 1; i >= 0; i--) {
     const id = run.inventory[i];
     if (id.startsWith('K_')) { // 소모품: 공명 촉매는 최고 등급 기물에게, 나머지는 판매
-      const r = id === 'K_rank' && sorted[0] ? R.useConsumable(run, i, { k: 'unit', uid: sorted[0].uid }) : null;
+      const r = (id === 'K_rank' || id === 'K_xp') && sorted[0] ? R.useConsumable(run, i, { k: 'unit', uid: sorted[0].uid }) : null;
       if (!r?.ok) R.sellItem(run, i);
       continue;
     }
