@@ -9,7 +9,7 @@ import { FIELDS, fieldOf } from './data/battlefields';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
 import { combine, emblemOf, isLocked, isMod, itemInfo } from './data/items';
 import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf } from './data/synergies';
-import { UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
+import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { DIVINE_ACT, FAITH_DEF, recMajors } from './data/rework';
 import { BRIEF, GROWTH_BRIEF, PSI_BRIEF } from './data/brief';
 import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
@@ -25,7 +25,7 @@ import { type CType, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_N
 import { BattleView, fmt } from './ui/battleview';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
-import { hasPortrait, iconURL, standImg } from './ui/portraits';
+import { hasPortrait, iconURL, loadArt, prefetchArt, standImg } from './ui/portraits';
 import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 
 // 편의 설정 (이 브라우저에만 저장): 전투 속도, 진형 속도 등
@@ -1326,7 +1326,9 @@ function render() {
   const md = root.querySelector('.modal');
   if (md && modalTop) md.scrollTop = modalTop;
   if (md && newModal) md.classList.add('enter');
-  if (app.screen === 'newrun' && !sameView) root.querySelector('.nr')?.classList.add('deal');
+  const deal = (newModal && md?.querySelector<HTMLElement>('.rc-track, .gc-row')) || (app.screen === 'newrun' && !sameView && root.querySelector<HTMLElement>('.car-track'));
+  if (deal) revealCards(deal);
+  if (!artWarmed) { artWarmed = true; setTimeout(() => prefetchArt(RECRUITABLE.map((d) => d.id)), 1500); }
   // 페이즈 전환 연출
   if (run && run.phase !== lastPhase) { if (lastPhase && run.phase > lastPhase) banner('phase', `PHASE ${run.phase}`, `${fieldOf(run.field).name} · 적이 강해집니다`); lastPhase = run.phase; }
   if (!run) lastPhase = 0;
@@ -1368,6 +1370,16 @@ function syncCardOpen() {
     c.classList.toggle('open', on);
     const b = c.querySelector('.pc-more');
     if (b) b.textContent = on ? '접기 ▼' : '상세 보기 ▲';
+  });
+}
+let artWarmed = false;
+/** 카드 공개: 뒷면으로 깔고, 안의 일러스트가 다 받아질 때까지(최대 4초) 기다렸다가 한 장씩 뒤집는다 */
+function revealCards(box: HTMLElement) {
+  box.classList.add('deal-box');
+  const urls = [...new Set(Array.from(box.querySelectorAll<HTMLImageElement>('img')).map((im) => im.getAttribute('src')!).filter(Boolean))];
+  const t0 = performance.now();
+  Promise.race([Promise.all(urls.map(loadArt)), new Promise((r) => setTimeout(r, 4000))]).then(() => {
+    setTimeout(() => box.classList.add('flip'), Math.max(0, 380 - (performance.now() - t0)));
   });
 }
 function setupCarousel() {

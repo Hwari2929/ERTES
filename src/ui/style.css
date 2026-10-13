@@ -1114,10 +1114,14 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .modal.enter { animation: modal-in .32s cubic-bezier(.2, .8, .3, 1) both; }
 @keyframes modal-in { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
 /* 영입: 카드가 차례로 뒤집혀 나타나고 빛이 지나간다, 고르면 맥동 */
-/* 카드 공개: 뒷면으로 깔렸다가 한 장씩 뒤집힌다 (영입 · 지정 소집 · 초기 기물 · 리롤 · 전역 증강) */
+/* 카드 공개: 뒷면으로 깔리고(deal-box) → 일러스트가 다 받아지면(flip) 한 장씩 뒤집힌다 (영입 · 지정 소집 · 초기 기물 · 리롤 · 전역 증강)
+   카드는 제 칸(슬롯)에 고정된 채 입체로 돈다: 이동 · 확대 없음. 원근으로 커지는 가장자리는 트랙 위아래 여백 안에 들어온다.
+   공개가 끝날 때까지 포인터를 막아 호버 효과가 켜졌다 꺼졌다 하며 흔들리지 않게 한다 */
 .cback { display: none; }
-.modal.enter .rc-track > .pslot > .pcard, .nr.deal .car-track > .pslot > .pcard, .modal.enter .gc-row > .gcard { animation: deal-flip 1s linear both; animation-delay: calc(var(--i, 0) * .13s); will-change: transform, opacity; }
-.modal.enter .rc-track > .pslot > .pcard > .cback, .nr.deal .car-track > .pslot > .pcard > .cback, .modal.enter .gc-row > .gcard > .cback { display: block; animation: back-hide 1s linear both; animation-delay: calc(var(--i, 0) * .13s); }
+.deal-box > .pslot > .pcard, .deal-box > .gcard { animation: deal-wait .32s ease-out both; animation-delay: calc(var(--i, 0) * .07s); pointer-events: none; will-change: transform, opacity; }
+.deal-box > .pslot > .pcard > .cback, .deal-box > .gcard > .cback { display: block; }
+.deal-box.flip > .pslot > .pcard, .deal-box.flip > .gcard { animation: deal-turn .75s linear both; animation-delay: calc(var(--i, 0) * .13s); }
+.deal-box.flip > .pslot > .pcard > .cback, .deal-box.flip > .gcard > .cback { animation: back-hide .75s linear both; animation-delay: calc(var(--i, 0) * .13s); }
 .cback { position: absolute; inset: 0; z-index: 6; pointer-events: none; border-radius: inherit; border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--line));
   background:
     radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent) 40%, transparent) 0 9%, transparent 10% 15%, color-mix(in srgb, var(--accent) 30%, transparent) 15.5% 16.5%, transparent 17%),
@@ -1125,19 +1129,20 @@ body:has(.nr) { overflow: hidden; margin: 0; }
     repeating-linear-gradient(-45deg, color-mix(in srgb, var(--accent) 14%, transparent) 0 2px, transparent 2px 14px),
     linear-gradient(160deg, var(--panel-2), var(--bg));
   box-shadow: inset 0 0 0 5px var(--panel), inset 0 0 0 6px color-mix(in srgb, var(--accent) 45%, transparent); }
-/* 카드는 제 칸(슬롯)에 고정된 채 입체로 뒤집힌다: 이동 · 확대 없음. 원근으로 커지는 가장자리는 트랙 위아래 여백 안에 들어온다.
-   뒤집히는 동안에는 포인터를 막아 호버 효과가 켜졌다 꺼졌다 하며 흔들리지 않게 한다 */
-@keyframes deal-flip {
-  0% { opacity: 0; transform: perspective(2400px) rotateY(180deg); pointer-events: none; }
-  22% { opacity: 1; transform: perspective(2400px) rotateY(180deg); animation-timing-function: cubic-bezier(.55, 0, .9, .45); pointer-events: none; }
-  64% { transform: perspective(2400px) rotateY(90deg); animation-timing-function: cubic-bezier(.1, .55, .45, 1); pointer-events: none; }
+/* 대기: 뒷면 상태로 나타나 일러스트를 기다린다. 로딩이 길면 뒷면 문양이 숨 쉬듯 깜빡인다 */
+@keyframes deal-wait { from { opacity: 0; transform: perspective(2400px) rotateY(180deg); } to { opacity: 1; transform: perspective(2400px) rotateY(180deg); } }
+.deal-box:not(.flip) > .pslot > .pcard > .cback, .deal-box:not(.flip) > .gcard > .cback { animation: back-wait 1.2s ease-in-out .6s infinite alternate; }
+@keyframes back-wait { to { filter: brightness(1.35); } }
+@keyframes deal-turn {
+  0% { opacity: 1; transform: perspective(2400px) rotateY(180deg); animation-timing-function: cubic-bezier(.55, 0, .9, .45); pointer-events: none; }
+  50% { transform: perspective(2400px) rotateY(90deg); animation-timing-function: cubic-bezier(.1, .55, .45, 1); pointer-events: none; }
   99.9% { transform: perspective(2400px) rotateY(0deg); pointer-events: none; }
   100% { opacity: 1; transform: perspective(2400px) rotateY(0deg); pointer-events: auto; }
 }
-@keyframes back-hide { 0%, 63.9% { opacity: 1; } 64%, 100% { opacity: 0; } }
-.modal.enter .rc-track > .pslot > .pcard::after, .nr.deal .car-track > .pslot > .pcard::after, .modal.enter .gc-row > .gcard::after { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none; border-radius: inherit;
+@keyframes back-hide { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
+.deal-box.flip > .pslot > .pcard::after, .deal-box.flip > .gcard::after { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none; border-radius: inherit;
   background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .38) 50%, transparent 65%) no-repeat; background-size: 250% 100%;
-  animation: card-shine 1s ease-out both; animation-delay: calc(var(--i, 0) * .13s + .72s); }
+  animation: card-shine 1s ease-out both; animation-delay: calc(var(--i, 0) * .13s + .45s); }
 @keyframes card-shine { from { background-position: 130% 0; } to { background-position: -30% 0; } }
 .modal.recruit .rc-track .pcard.sel { animation: card-pick .55s ease-out; }
 @keyframes card-pick { 0% { box-shadow: inset 0 0 0 2px var(--accent); } 40% { box-shadow: inset 0 0 0 4px var(--accent), inset 0 0 36px color-mix(in srgb, var(--accent) 55%, transparent); } 100% { box-shadow: inset 0 0 0 2px var(--accent); } }
@@ -1162,7 +1167,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 @keyframes bn-line { 0% { transform: scaleX(0); } 25% { transform: scaleX(1); } 100% { transform: scaleX(1); } }
 @keyframes bn-boss { 0% { opacity: 0; transform: scale(1.8); filter: blur(6px); } 18% { opacity: 1; transform: scale(1); filter: none; } 24% { transform: translateX(-4px); } 28% { transform: translateX(4px); } 32% { transform: none; } 82% { opacity: 1; } 100% { opacity: 0; transform: scale(.96); } }
 @media (prefers-reduced-motion: reduce) {
-  .banner, .bn-band, .bn-band b, .bn-band small, .bn-line, .modal.enter, .modal.enter .rc-track > .pslot > .pcard, .nr.deal .car-track > .pslot > .pcard, .modal.enter .gc-row > .gcard, .cback, .modal.recruit .rc-track .pcard.sel { animation-duration: .01s !important; animation-delay: 0s !important; }
+  .banner, .bn-band, .bn-band b, .bn-band small, .bn-line, .modal.enter, .deal-box > .pslot > .pcard, .deal-box > .gcard, .cback, .modal.recruit .rc-track .pcard.sel { animation-duration: .01s !important; animation-delay: 0s !important; }
 }
 
 .more-list li span { display: inline-flex; align-items: center; gap: 4px; }

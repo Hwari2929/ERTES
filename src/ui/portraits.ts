@@ -39,3 +39,24 @@ export function standImg(id: string, cls = 'stand', bust = false) {
   if (!url) return '';
   return `<img class="${cls}" alt="" loading="lazy" decoding="async" src="${bust ? artURL(`${id}.bust.webp`) : url}" onerror="this.remove()">`;
 }
+
+// ───────── 일러스트 미리 받기: 같은 주소는 한 번만, 브라우저 캐시에 올려 둔다
+const warm = new Map<string, Promise<void>>();
+/** 이 주소의 그림을 받아 디코딩까지 끝내면 풀린다 (실패해도 풀린다) */
+export function loadArt(url: string): Promise<void> {
+  let p = warm.get(url);
+  if (!p) {
+    const im = new Image();
+    im.decoding = 'async';
+    p = new Promise<void>((res) => { im.onload = () => { im.decode().catch(() => {}).finally(res); }; im.onerror = () => res(); });
+    im.src = url;
+    warm.set(url, p);
+  }
+  return p;
+}
+/** 기물 전신 · 상반신 일러스트를 뒤에서 천천히 미리 받는다 (동시 3개) */
+export function prefetchArt(ids: string[]) {
+  const q = ids.flatMap((id) => (ICONS[id] ? [artURL(`${id}.webp`), artURL(`${id}.bust.webp`)] : [])).filter((u) => !warm.has(u));
+  const next = (): void => { const u = q.shift(); if (u) loadArt(u).then(next); };
+  for (let i = 0; i < 3; i++) next();
+}
