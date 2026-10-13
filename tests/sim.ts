@@ -3,8 +3,9 @@
 import { CFG } from '../src/config';
 import { FIELDS } from '../src/data/battlefields';
 import { UNITS, UNIT_BY_ID } from '../src/data/units';
-import { buildBattle, memberships } from '../src/engine/build';
+import { buildBattle } from '../src/engine/build';
 import * as R from '../src/engine/run';
+import { forkChoice, manageItems, shopSynth } from './botlib';
 import { Rng } from '../src/rng';
 import { MAJORS, type Major, type RunState } from '../src/types';
 
@@ -42,38 +43,14 @@ function resolvePending(run: RunState, bot: Rng) {
     else if (p.t === 'supply') R.takeSupply(run, p.options[0]);
     else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
     else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? (run.units.length < 10 ? (['recruit', 'invest', 'pilgrim', 'shop'] as const) : (['invest', 'pilgrim', 'shop'] as const)).find((o) => p.options.includes(o))! : 'shop'); continue; }
-      else if (p.t === 'fork') { R.pickFork(run, R.occultTier(run) && run.credits >= 40 ? 'synth' : run.hp > 60 && bot.chance(0.5) ? 'challenge' : 'rest'); continue; }
+      else if (p.t === 'fork') { R.pickFork(run, forkChoice(run, () => bot.chance(0.5))); continue; }
     else if (p.t === 'pilgrim') { run.pending.shift(); while (run.power >= R.PILGRIM_COST.cap && R.pilgrimAct(run, 'cap') === null); continue; }
     run.pending.shift();
   }
 }
 
 function manage(run: RunState) {
-  // 장비: 재료를 가장 공명 등급 높은 기물부터 장착
-  const sorted = run.units.filter((u) => u.pos).sort((a, b) => b.rank - a.rank);
-  // 문장: 해당 시너지가 아닌 출전 기물 중 개조부품 칸이 빈 기물에게
-  for (let i = run.inventory.length - 1; i >= 0; i--) {
-    const id = run.inventory[i];
-    if (id.startsWith('K_')) { // 소모품: 공명 촉매는 최고 등급 기물에게, 나머지는 판매
-      const r = (id === 'K_rank' || id === 'K_xp') && sorted[0] ? R.useConsumable(run, i, { k: 'unit', uid: sorted[0].uid }) : null;
-      if (!r?.ok) R.sellItem(run, i);
-      continue;
-    }
-    if (!id.startsWith('M_') && !id.startsWith('O_')) continue;
-    const t = sorted.find((u) => !u.mod && (id.startsWith('O_') || !memberships(u).includes(id.slice(2) as never)));
-    if (t) R.equip(run, i, t.uid);
-  }
-  for (let guard = 0; guard < 20 && run.inventory.some((x) => /^[CGAL]_/.test(x)); guard++) {
-    const idx = run.inventory.findIndex((x) => /^[CGAL]_/.test(x));
-    const it = run.inventory[idx];
-    // 빈 칸, 같은 재료(→ 고급) 순. 칸이 다 차면 서로 다른 재료 하나를 빼고 더 좋은 장비로 교체
-    let target = sorted.find((u) => it[0] === 'C' && u.items.some((x) => x && x[0] === 'C')) || sorted.find((u) => u.items.includes(null));
-    if (!target && it[0] !== 'C') {
-      target = sorted.find((u) => u.items.some((x) => x && x[0] === 'C'));
-      if (target) { const k = target.items.findIndex((x) => x && x[0] === 'C'); R.unequip(run, target.uid, k); }
-    }
-    if (!target || R.equip(run, idx, target.uid)) break;
-  }
+  manageItems(run); // 장비 · 개조부품 · 소모품 (tests/botlib.ts)
   // 남는 크레딧(이자 구간 30 유지)으로 공명도 구매
   // 함대 확장: 출전 인원이 보유 기물보다 적으면 우선 구매 (예비 15 남김)
   for (let c = R.fleetCost(run); c !== null && run.units.length > R.deployCap(run) && run.credits >= c + 15; c = R.fleetCost(run)) R.buyFleet(run);
@@ -82,7 +59,6 @@ function manage(run: RunState) {
     if (!u || !R.buyXp(run, u.uid)) break;
   }
   R.autoPlace(run);
-  R.checkOccult(run);
 }
 
 function playRun(seed: number, force?: string, field?: string) {
@@ -95,7 +71,7 @@ function playRun(seed: number, force?: string, field?: string) {
     resolvePending(run, bot);
     manage(run);
     resolvePending(run, bot);
-    if (run.node?.synth) { for (let i = 0; i < 6; i++) if (run.credits >= 30) R.buyShop(run, i); R.leaveShop(run); continue; }
+    if (run.node?.synth) { shopSynth(run); continue; }
     if (!run.node) {
       const opts = R.currentOptions(run);
       R.enterNode(run, opts.includes('adversity') && run.hp > 60 && bot.chance(0.5) ? 'adversity' : opts[0]);

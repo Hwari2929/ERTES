@@ -8,6 +8,7 @@ import { SYNERGIES, tierOf } from '../src/data/synergies';
 import { boardDims, buildAlly, buildEnemy, deployed, enemyCell, layout, memberships, synergyCounts } from '../src/engine/build';
 import { Battle, type CUnit, type DmgOpts, type DmgResult } from '../src/engine/combat';
 import * as R from '../src/engine/run';
+import { forkChoice, manageItems, shopSynth, type Track } from './botlib';
 import { Rng } from '../src/rng';
 import type { Major, RunState, SynergyId } from '../src/types';
 
@@ -118,29 +119,14 @@ function playRun(seed: number) {
       } else if (p.t === 'supply') R.takeSupply(run, p.options[0]);
       else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
       else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? (run.units.length < 10 ? (['recruit', 'invest', 'pilgrim', 'shop'] as const) : (['invest', 'pilgrim', 'shop'] as const)).find((o) => p.options.includes(o))! : 'shop'); continue; }
-      else if (p.t === 'fork') { R.pickFork(run, run.hp > 60 && bot.chance(0.5) ? 'challenge' : 'rest'); continue; }
+      else if (p.t === 'fork') { R.pickFork(run, forkChoice(run, () => bot.chance(0.5))); continue; }
       else if (p.t === 'pilgrim') { run.pending.shift(); while (run.power >= R.PILGRIM_COST.cap && R.pilgrimAct(run, 'cap') === null); continue; }
       run.pending.shift();
     }
   };
+  const track: Track = (id, what) => add('cons', id, { [what]: 1 });
   const manage = () => {
-    const sorted = run.units.filter((u) => u.pos).sort((a, b) => b.rank - a.rank);
-    for (let i = run.inventory.length - 1; i >= 0; i--) {
-      const id = run.inventory[i];
-      if (!id.startsWith('M_')) continue;
-      const t = sorted.find((u) => !u.mod && !memberships(u).includes(id.slice(2) as never));
-      if (t) R.equip(run, i, t.uid);
-    }
-    for (let guard = 0; guard < 20 && run.inventory.some((x) => !x.startsWith('M_')); guard++) {
-      const idx = run.inventory.findIndex((x) => !x.startsWith('M_'));
-      const it = run.inventory[idx];
-      let target = sorted.find((u) => it[0] === 'C' && u.items.some((x) => x && x[0] === 'C')) || sorted.find((u) => u.items.includes(null));
-      if (!target && it[0] !== 'C') {
-        target = sorted.find((u) => u.items.some((x) => x && x[0] === 'C'));
-        if (target) { const k = target.items.findIndex((x) => x && x[0] === 'C'); R.unequip(run, target.uid, k); }
-      }
-      if (!target || R.equip(run, idx, target.uid)) break;
-    }
+    manageItems(run, track);
     // 함대 확장: 출전 인원이 보유 기물보다 적으면 우선 구매 (예비 15 남김)
     for (let c = R.fleetCost(run); c !== null && run.units.length > R.deployCap(run) && run.credits >= c + 15; c = R.fleetCost(run)) R.buyFleet(run);
     while (run.credits >= 30 + R.xpCost(run)) {
@@ -154,6 +140,7 @@ function playRun(seed: number) {
   const usedUnits = new Set<string>();
   while (!run.over && !run.cleared && n < 200) {
     resolvePending(); manage(); resolvePending();
+    if (run.node?.synth) { shopSynth(run, track); continue; }
     if (!run.node) {
       const opts = R.currentOptions(run);
       R.enterNode(run, opts.includes('adversity') && run.hp > 60 && bot.chance(0.5) ? 'adversity' : opts[0]);
@@ -251,6 +238,9 @@ function playRun(seed: number) {
   // 런 단위: 최종 장비 · 시너지 최고 단계 · 도달 페이즈
   const finalItems: Record<string, string[]> = {};
   for (const u of run.units) if (u.pos) finalItems[u.defId] = [...u.items.filter((x): x is string => !!x), ...(u.mod ? [u.mod] : [])];
+  for (const id of run.inventory) if (id.startsWith('K_')) add('cons', id, { left: 1 });
+  for (const u of run.units) if (u.mod?.startsWith('O_')) add('cons', u.mod, { equipped: 1 });
+  add('cons', '_occult', { tier: run.occultTier || 0, runs: 1 });
   runs.push({ seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems });
 }
 
