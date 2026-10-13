@@ -1132,12 +1132,12 @@ body:has(.nr) { overflow: hidden; margin: 0; }
     repeating-linear-gradient(-45deg, color-mix(in srgb, var(--accent) 14%, transparent) 0 2px, transparent 2px 14px),
     linear-gradient(160deg, var(--panel-2), var(--bg));
   box-shadow: inset 0 0 0 5px var(--panel), inset 0 0 0 6px color-mix(in srgb, var(--accent) 45%, transparent); }
+/* 카드는 제자리(슬롯)에서 크기 그대로 뒤집힌다: 이동 · 확대 · 원근 없이 가로 폭만 접혔다 펴져 슬롯 밖으로 나가거나 잘리지 않는다 */
 @keyframes deal-flip {
-  0% { opacity: 0; transform: perspective(1100px) translateY(70px) rotateZ(-4deg) rotateY(180deg) scale(.86); animation-timing-function: cubic-bezier(.2, .8, .3, 1); }
-  32% { opacity: 1; transform: perspective(1100px) translateY(0) rotateZ(0) rotateY(180deg) scale(1); animation-timing-function: ease-in; }
-  64% { transform: perspective(1100px) rotateY(90deg) scale(1.06); animation-timing-function: ease-out; }
-  84% { transform: perspective(1100px) rotateY(-8deg) scale(1.03); }
-  100% { opacity: 1; transform: none; }
+  0% { opacity: 0; transform: rotateY(180deg); }
+  25% { opacity: 1; transform: rotateY(180deg); animation-timing-function: ease-in; }
+  64% { transform: rotateY(90deg); animation-timing-function: ease-out; }
+  100% { opacity: 1; transform: rotateY(0deg); }
 }
 @keyframes back-hide { 0%, 63.9% { opacity: 1; } 64%, 100% { opacity: 0; } }
 .modal.enter .rc-track > .pcard::after, .nr.deal .car-track > .pcard::after, .modal.enter .gc-row > .gcard::after { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none; border-radius: inherit;
@@ -1145,7 +1145,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
   animation: card-shine 1s ease-out both; animation-delay: calc(var(--i, 0) * .13s + .72s); }
 @keyframes card-shine { from { background-position: 130% 0; } to { background-position: -30% 0; } }
 .modal.recruit .rc-track .pcard.sel { animation: card-pick .55s ease-out; }
-@keyframes card-pick { 0% { box-shadow: 0 0 0 0 var(--accent); } 40% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 30px var(--accent); } 100% { box-shadow: 0 0 0 0 transparent; } }
+@keyframes card-pick { 0% { box-shadow: inset 0 0 0 2px var(--accent); } 40% { box-shadow: inset 0 0 0 4px var(--accent), inset 0 0 36px color-mix(in srgb, var(--accent) 55%, transparent); } 100% { box-shadow: inset 0 0 0 2px var(--accent); } }
 /* ── 전환 연출 배너 */
 .banner { position: fixed; inset: 0; z-index: 150; pointer-events: none; display: grid; place-items: center; animation: bn-fade 1.8s ease both; }
 .banner.bn-boss { animation-duration: 2.3s; background: radial-gradient(circle at 50% 50%, rgb(120 0 20 / .35), transparent 70%); }
@@ -1308,8 +1308,8 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .gcard { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 250px; padding: 22px 16px 18px; text-align: center; color: var(--fg); cursor: pointer;
   border: 1px solid color-mix(in srgb, hsl(var(--h) 70% 60%) 45%, var(--line)); border-radius: 12px;
   background: radial-gradient(120% 70% at 50% 18%, color-mix(in srgb, hsl(var(--h) 70% 55%) 22%, var(--panel-2)), var(--panel) 70%);
-  transition: transform .18s, box-shadow .18s, border-color .18s; }
-.gcard:hover, .gcard:focus-visible { transform: translateY(-6px); border-color: hsl(var(--h) 70% 60%); box-shadow: 0 12px 28px -10px hsl(var(--h) 70% 50% / .55); }
+  transition: box-shadow .18s, border-color .18s; }
+.gcard:hover, .gcard:focus-visible { border-color: hsl(var(--h) 70% 60%); box-shadow: inset 0 0 0 1px hsl(var(--h) 70% 60%), inset 0 -40px 60px -30px hsl(var(--h) 70% 50% / .45); }
 .gc-sigil { display: grid; place-items: center; width: 74px; height: 74px; margin: 8px 0 6px; font-size: 2rem; color: hsl(var(--h) 75% 70%); border: 1.5px solid hsl(var(--h) 70% 60% / .7); border-radius: 12px; transform: rotate(45deg); background: hsl(var(--h) 70% 50% / .12); }
 .gc-kind { font-size: .72rem; letter-spacing: .12em; color: var(--muted); }
 .gcard b { font-size: 1.15rem; text-wrap: balance; }
