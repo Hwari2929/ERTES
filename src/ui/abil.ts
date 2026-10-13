@@ -10,16 +10,17 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const pct = (x: number) => `${Math.round(x * 1000) / 10}%`;
 
 /** 수치를 계산할 기물 (없으면 계수로 표시) */
-export interface AbilCtx { b: Battle | null; c: CUnit | null; p: Record<string, number> }
+/** skill: 스킬 문맥 (지휘관이면 전술 위력으로 계산) — 무기 · 특성 · 패시브는 적힌 위력 그대로 */
+export interface AbilCtx { b: Battle | null; c: CUnit | null; p: Record<string, number>; skill?: boolean }
 type Pow = 'shoot' | 'strike' | 'tech';
 const POW_KO: Record<Pow | 'tac', string> = { shoot: '사격 위력', strike: '타격 위력', tech: '기술 위력', tac: '전술 위력' };
 
 export function powKey(ctx: AbilCtx, pow: Pow, tactical = false): Pow | 'tac' {
-  return tactical || (ctx.c?.ctype === 'CMD' && !ctx.c.isSummon) ? 'tac' : pow;
+  return tactical || (ctx.skill && ctx.c?.ctype === 'CMD' && !ctx.c.isSummon) ? 'tac' : pow;
 }
 export function powVal(ctx: AbilCtx, pow: Pow, tactical = false): number | null {
   if (!ctx.b || !ctx.c) return null;
-  return tactical ? ctx.b.tacPower(ctx.c) : ctx.b.P(ctx.c, pow);
+  return powKey(ctx, pow, tactical) === 'tac' ? ctx.b.tacPower(ctx.c) : ctx.b.S(ctx.c, pow);
 }
 /** 기본 피해량 (치명타 · 속성 보정 제외). 아이콘 · 색은 속성, 위력 종류는 '피해 유형' 항목에 따로 */
 export function powNum(ctx: AbilCtx, pow: Pow, mult: number, plus = false, tactical = false, elem?: Elem) {

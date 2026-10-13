@@ -80,7 +80,7 @@ function shipCrash(b: Battle, u: CUnit, k: number) {
 
 /** 전도체: from 에서 시작해 주변 적에게 튀는 연쇄 전기 (skipFrom = from 을 이미 맞힌 대상으로 취급) */
 function chainBolt(b: Battle, u: CUnit, from: CUnit, hops: number, radius: number, k: number, skipFrom: boolean) {
-  const dmg = Math.max(b.P(u, 'shoot'), b.P(u, 'strike'), b.P(u, 'tech')) * k;
+  const dmg = Math.max(b.S(u, 'shoot'), b.S(u, 'strike'), b.S(u, 'tech')) * k; // 시너지 발동: 지휘관도 전술 위력이 아닌 실제 위력
   const hit = new Set<CUnit>(skipFrom ? [from] : []);
   let at: { x: number; y: number } = from;
   for (let i = 0; i < hops; i++) {
@@ -242,7 +242,7 @@ export const SYNERGIES: SynDef[] = [
         hooks: {
           onEvade(b, u, src) {
             b.heal(u, u, b.S(u, 'maxHp') * h);
-            if (src?.alive && src !== u) b.dealDamage(u, src, Math.max(b.P(u, 'shoot'), b.P(u, 'strike')) * k, { elem: 'true', tag: 'proc' });
+            if (src?.alive && src !== u) b.dealDamage(u, src, Math.max(b.S(u, 'shoot'), b.S(u, 'strike')) * k, { elem: 'true', tag: 'proc' });
           },
         },
       };
@@ -266,7 +266,7 @@ export const SYNERGIES: SynDef[] = [
               u.mem.medT = 0;
               const l = b.lowestHpAlly(u);
               if (l && (b.hpPct(l) < 1 || (t >= 4 && isDebuffed(l)))) {
-                const v = b.P(u, 'tech') * k; const miss = b.S(l, 'maxHp') - l.hp;
+                const v = b.S(u, 'tech') * k; const miss = b.S(l, 'maxHp') - l.hp;
                 b.heal(u, l, v);
                 if (t >= 3 && v > miss) b.shield(l, v - miss);
                 if (t >= 4) { const i = l.statuses.findIndex(isHarmful); if (i >= 0) l.statuses.splice(i, 1); }

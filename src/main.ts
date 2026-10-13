@@ -110,11 +110,12 @@ function hero(id: string, cls = 'hero') {
 }
 // 메이저 스탯 아이콘 (24×24 선 아이콘, 색은 CSS --c)
 const MAJOR_ICON: Record<Major, string> = {
-  vit: '<path d="M12 20s-7-4.4-9-8.6A4.9 4.9 0 0 1 12 6.3a4.9 4.9 0 0 1 9 5.1C19 15.6 12 20 12 20z"/>',
-  pow: '<path d="M14 4h6v6L9.5 20.5l-6-6z"/><path d="M5.5 12.5l6 6M3 21l3-3"/>',
-  mnd: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
-  def: '<path d="M12 3l8 3v6c0 4.6-3.3 7.8-8 9-4.7-1.2-8-4.4-8-9V6z"/>',
-  agi: '<path d="M13 2.5L4.5 13.5H11L10 21.5l8.5-11H12z"/>',
+  // 메이저 능력치: 흰색 면 아이콘 (마이너 능력치 · 위력은 선 아이콘)
+  vit: '<path d="M12 20.5s-7.6-4.6-9.6-9.2A5.2 5.2 0 0 1 12 6a5.2 5.2 0 0 1 9.6 5.3c-2 4.6-9.6 9.2-9.6 9.2z"/>',
+  pow: '<path d="M20.5 3.5l-.8 4.6-8.1 8.1-3.8-3.8 8.1-8.1z"/><path d="M4.6 12.4l1.4-1.4 7 7-1.4 1.4z"/><path d="M6.6 16.6l.8.8-3.1 3.1a1.1 1.1 0 0 1-1.6-1.6z"/>',
+  mnd: '<path fill-rule="evenodd" d="M12 5.2C5.9 5.2 2 12 2 12s3.9 6.8 10 6.8S22 12 22 12s-3.9-6.8-10-6.8zm0 2.6a4.2 4.2 0 1 0 0 8.4 4.2 4.2 0 0 0 0-8.4z"/><circle cx="12" cy="12" r="2"/>',
+  def: '<path d="M12 2.5l8.5 3.2v6.1c0 5-3.6 8.4-8.5 9.7-4.9-1.3-8.5-4.7-8.5-9.7V5.7z"/>',
+  agi: '<path d="M13.6 2L4 13.8h6.6L9.4 22l10-12.2h-6.7z"/>',
 };
 function majorIcon(m: Major, cls = 'mi') {
   return `<svg class="${cls} mi-${m}" viewBox="0 0 24 24" aria-hidden="true">${MAJOR_ICON[m]}</svg>`;
@@ -143,7 +144,8 @@ function xpBar(u: UnitState) {
 function itemIcon(id: string | null, attrs = '') {
   if (!id) return `<span class="item empty" ${attrs}></span>`;
   const it = itemInfo(id);
-  return `<span class="item t${it.tier}" title="${esc(it.name + ' — ' + it.desc)}" ${attrs}>${itemGlyph(id) || it.icon}</span>`;
+  const sc = isMod(id) ? SYN_BY_ID[emblemOf(id)]?.color : ''; // 문장: 시너지 색
+  return `<span class="item t${it.tier}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc)}" ${attrs}>${itemGlyph(id) || it.icon}</span>`;
 }
 /** 장비 아이콘: 재료 · 고급 = 메이저 아이콘, 희귀 · 전설 = 고유 아이콘, 문장 = 시너지 아이콘 */
 function itemGlyph(id: string) {
@@ -670,17 +672,19 @@ function inventoryPanel(run: RunState) {
 function statLines(c: CUnit, b: Battle) {
   const S = (k: keyof CUnit['st']) => b.S(c, k);
   const armor = S('armor');
-  const lines: [string, string][] = [
-    ['최대 체력', fmt(S('maxHp'))], ['회복 효율', '+' + pctTxt(S('healEff'))],
-    ['사격 위력', fmt(S('shoot'))], ['타격 위력', fmt(S('strike'))], ['기술 위력', fmt(S('tech'))],
-    ['명중', '+' + pctTxt(S('acc'))], ['치명타', pctTxt(S('crit'))], ['치명타 피해', pctTxt(S('critDmg'))], ['효과 명중', '+' + pctTxt(S('effHit'))],
-    ['방어도', `${fmt(armor)} (물리 -${pctTxt(armor / (armor + CFG.armorK))})`], ['효과 저항', '+' + pctTxt(S('effRes'))],
-    ['이동 속도', pctTxt(S('moveSpd'))], ['회피', pctTxt(S('eva'))],
-    ['공격 속도', `${(Math.max(0.2, 1 + S('atkSpd')) / c.atk.interval).toFixed(2)}/초`], ['쿨다운 감소', '+' + pctTxt(S('cdr'))], ['사거리', String(S('range'))],
+  // 마이너 능력치: 흰색 선 아이콘 + 이름 + 값
+  const lines: [string, string, string][] = [
+    ['r.hp', '최대 체력', fmt(S('maxHp'))], ['a.heal', '회복 효율', '+' + pctTxt(S('healEff'))],
+    ['p.shoot', '사격 위력', fmt(S('shoot'))], ['p.strike', '타격 위력', fmt(S('strike'))], ['p.tech', '기술 위력', fmt(S('tech'))],
+    ...(c.ctype === 'CMD' && !c.isSummon ? [['p.tac', '전술 위력', fmt(b.tacPower(c))] as [string, string, string]] : []),
+    ['u.target', '명중', '+' + pctTxt(S('acc'))], ['u.finish', '치명타', pctTxt(S('crit'))], ['a.power', '치명타 피해', pctTxt(S('critDmg'))], ['a.stun', '효과 명중', '+' + pctTxt(S('effHit'))],
+    ['a.shield', '방어도', `${fmt(armor)} (물리 -${pctTxt(armor / (armor + CFG.armorK))})`], ['a.reason', '효과 저항', '+' + pctTxt(S('effRes'))],
+    ['a.speed', '이동 속도', pctTxt(S('moveSpd'))], ['a.evade', '회피', pctTxt(S('eva'))],
+    ['u.combo', '공격 속도', `${(Math.max(0.2, 1 + S('atkSpd')) / c.atk.interval).toFixed(2)}/초`], ['a.cd', '쿨다운 감소', '+' + pctTxt(S('cdr'))], ['u.range', '사거리', String(S('range'))],
   ];
-  if (S('armorPen')) lines.push(['방어도 관통', pctTxt(S('armorPen'))]);
-  if (S('lifesteal')) lines.push(['흡혈', pctTxt(S('lifesteal'))]);
-  return `<dl class="stats">${lines.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+  if (S('armorPen')) lines.push(['a.snipe', '방어도 관통', pctTxt(S('armorPen'))]);
+  if (S('lifesteal')) lines.push(['a.heal', '흡혈', pctTxt(S('lifesteal'))]);
+  return `<dl class="stats">${lines.map(([ic, k, v]) => `<dt>${lineIcon(ic, 'li')}${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
 }
 
 function previewAlly(run: RunState, u: UnitState) {
@@ -697,7 +701,7 @@ function previewAlly(run: RunState, u: UnitState) {
 }
 
 // ───────────────────────── 능력 (통일 형식 · 누르면 좌측 상세 팝업)
-const actx = (b: Battle | null, c: CUnit | null): AB.AbilCtx => ({ b, c, p: c?.sk || {} });
+const actx = (b: Battle | null, c: CUnit | null, skill = false): AB.AbilCtx => ({ b, c, p: c?.sk || {}, skill });
 const abilOn = (k: string) => (app.abilPop === k ? ' on' : '');
 function abilCard(key: string, kind: keyof typeof AB_KIND, name: string, meta: string, body: string, extra = '') {
   return `<div class="abil ab-${kind} ab-click${abilOn(key)}" data-a="abil-pop" data-v="${esc(key)}" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">${AB_KIND[kind]}</span><b>${esc(name)}</b>${meta ? `<span class="ab-meta">${meta}</span>` : ''}</div>${body}${extra}</div>`;
@@ -712,7 +716,7 @@ function skillCard(d: UnitDef, b: Battle | null, c: CUnit | null) {
   const info = ABIL[d.id]?.skill?.(p);
   const cd = c?.cdMax ?? d.skill.cd;
   const range = b && c ? b.S(c, 'range') : d.range;
-  return abilCard('skill', 'skill', d.skill.name, info ? '' : `${cd.toFixed(1)}초`, info ? `<div class="ab-chips">${AB.skillChips(info, actx(b, c), range, cd)}</div>` : `<p>${esc(skillText(d, p))}</p>`);
+  return abilCard('skill', 'skill', d.skill.name, info ? '' : `${cd.toFixed(1)}초`, info ? `<div class="ab-chips">${AB.skillChips(info, actx(b, c, true), range, cd)}</div>` : `<p>${esc(skillText(d, p))}</p>`);
 }
 const traitHtml = (d: UnitDef, b: Battle | null, c: CUnit | null) => {
   const t = ABIL[d.id]?.trait;
@@ -720,7 +724,7 @@ const traitHtml = (d: UnitDef, b: Battle | null, c: CUnit | null) => {
 };
 function augText(id: string, param: string | undefined, b: Battle | null, c: CUnit | null, gl = new Set<string>()) {
   const t = augAbilText(id);
-  return t ? statIc(AB.tok(t, actx(b, c), gl)) : esc(augDesc(id, param));
+  return t ? statIc(AB.tok(t, actx(b, c, AUG_BY_ID[id]?.pool === 'unit'), gl)) : esc(augDesc(id, param)); // 기물 전용 증강은 대부분 스킬 강화
 }
 /** 메커니즘 한 줄 설명 */
 function weaponMech(w: Weapon, ctx: AB.AbilCtx) {
@@ -751,7 +755,7 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     const info = ABIL[d.id]?.skill?.(p);
     const cd = c?.cdMax ?? d.skill.cd;
     kind = '스킬'; name = d.skill.name; mech = skillMech(info?.range ?? 'unit', d.ctype === 'CMD');
-    body = info ? AB.skillBody(info, ctx, b && c ? b.S(c, 'range') : d.range, cd, gl) : `<p>${esc(d.skill.desc(p))}</p><p class="muted small">쿨다운 ${cd.toFixed(1)}초</p>`;
+    body = info ? AB.skillBody(info, actx(b, c, true), b && c ? b.S(c, 'range') : d.range, cd, gl) : `<p>${esc(d.skill.desc(p))}</p><p class="muted small">쿨다운 ${cd.toFixed(1)}초</p>`;
   } else if (key === 'trait') {
     kind = '특성'; name = d.trait.name; mech = '전투 내내 적용되는 이 기물의 고유 효과.';
     const t = ABIL[d.id]?.trait;

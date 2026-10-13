@@ -314,7 +314,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
     specialAugs: [
       sp('winter', 'vaccine', '광역 백신', '임상 시험 혈청이 모든 아군에게 40% 효과로 퍼진다.', { hooks: { onSkill(b, u) { for (const a of b.alliesOf(u)) b.heal(u, a, b.P(u, 'tech') * u.sk.heal * 0.4); } } }),
       sp('winter', 'antidote', '해독제', '치료할 때 해로운 효과를 모두 없앤다.', { hooks: { onHealDone(_b, _u, t) { t.statuses = t.statuses.filter((s) => !isHarmful(s)); } } }),
-      sp('winter', 'pathogen', '병원체 샘플', '기본 공격이 기술 위력 30% 화학 중독을 건다 (4초).', { hooks: { onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) poison(b, u, t, b.P(u, 'tech') * 0.3, 4, 1); } } }),
+      sp('winter', 'pathogen', '병원체 샘플', '기본 공격이 기술 위력 30% 화학 중독을 건다 (4초).', { hooks: { onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) poison(b, u, t, b.S(u, 'tech') * 0.3, 4, 1); } } }),
     ],
   },
   issac: {

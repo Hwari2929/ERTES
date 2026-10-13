@@ -165,7 +165,7 @@ export const ROSTER_C: BaseUnit[] = [
       name: '기체 조종', desc: (k) => `회피 +${Math.round(11 * k)}%p, 회피할 때마다 공격자에게 타격 위력 ${Math.round(80 * k)}% 반격.`,
       effect: (k) => ({
         stats: { eva: 0.11 * k },
-        hooks: { onEvade(b, u, src) { if (src.alive) b.dealDamage(u, src, b.P(u, 'strike') * 0.8 * k, { elem: 'phys', tag: 'proc' }); } },
+        hooks: { onEvade(b, u, src) { if (src.alive) b.dealDamage(u, src, b.S(u, 'strike') * 0.8 * k, { elem: 'phys', tag: 'proc' }); } },
       }),
     },
     skill: strike({

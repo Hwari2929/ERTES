@@ -235,7 +235,7 @@ export const REWORK: Record<string, ReworkDef> = {
       effect: { hooks: { onBasic(b, u, t, r) {
         if (r.amount <= 0) return;
         const e = b.nearest(t, b.around(t, 2, b.enemiesOf(u)).filter((x) => x !== t));
-        if (e) proc(b, u, e, b.P(u, 'tech') * 0.5, 'psy', 'tech');
+        if (e) proc(b, u, e, b.S(u, 'tech') * 0.5, 'psy', 'tech');
       } } },
     },
     psi: { desc: '전투 스킬 사용 시 이성 -10, 결정타 +6.', effect: { hooks: { onSkill: (b, u) => b.addReason(u, -10), onKill: (b, u) => b.addReason(u, 6) } } },
