@@ -560,7 +560,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .diff-mini b { font-size: .8rem; }
 .diff-mini [title] { cursor: help; }
 .carousel { position: relative; flex: 1; min-height: 0; }
-.car-track { position: absolute; inset: 0; display: grid; grid-auto-flow: column; grid-template-rows: minmax(0, 1fr); grid-auto-columns: clamp(225px, 18.5vw, 260px); gap: 11px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.car-track { position: absolute; inset: 0; display: grid; grid-auto-flow: column; grid-template-rows: minmax(0, 1fr); grid-auto-columns: clamp(225px, 18.5vw, 260px); gap: 11px; padding-block: 20px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
 .car-track::-webkit-scrollbar { display: none; }
 .car-track > * { scroll-snap-align: start; }
 .car-btn { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 40px; height: 64px; border-radius: 8px; border: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 80%, transparent); color: var(--fg); font-size: 1.8rem; line-height: 1; cursor: pointer; }
@@ -672,8 +672,10 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .modal.recruit { width: min(1280px, 100%); height: min(90dvh, 900px); max-height: none; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
 .rc-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
 .rc-head p { margin: 2px 0 0; }
-.rc-track { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-template-rows: minmax(0, 1fr); grid-auto-columns: clamp(215px, 18.5vw, 260px); gap: 11px; overflow-x: auto; justify-content: safe center; scroll-snap-type: x proximity; scrollbar-width: thin; }
-.rc-track > .pcard { scroll-snap-align: start; }
+.rc-track { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-template-rows: minmax(0, 1fr); grid-auto-columns: clamp(215px, 18.5vw, 260px); gap: 11px; padding-block: 20px; overflow-x: auto; justify-content: safe center; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.rc-track > .pslot { scroll-snap-align: start; }
+/* 카드 슬롯: 트랙 칸 크기 그대로 고정. 안쪽 카드가 뒤집혀도 슬롯(스크롤 스냅 기준)은 변하지 않는다 */
+.pslot { display: grid; grid-template-rows: minmax(0, 1fr); min-width: 0; min-height: 0; }
 .rc-foot { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
 .rc-foot .btn { min-width: 120px; }
 .rc-rank { justify-self: start; }
@@ -1118,8 +1120,8 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 /* 영입: 카드가 차례로 뒤집혀 나타나고 빛이 지나간다, 고르면 맥동 */
 /* 카드 공개: 뒷면으로 깔렸다가 한 장씩 뒤집힌다 (영입 · 지정 소집 · 초기 기물 · 리롤 · 전역 증강) */
 .cback { display: none; }
-.modal.enter .rc-track > .pcard, .nr.deal .car-track > .pcard, .modal.enter .gc-row > .gcard { animation: deal-flip 1s linear both; animation-delay: calc(var(--i, 0) * .13s); }
-.modal.enter .rc-track > .pcard > .cback, .nr.deal .car-track > .pcard > .cback, .modal.enter .gc-row > .gcard > .cback { display: block; animation: back-hide 1s linear both; animation-delay: calc(var(--i, 0) * .13s); }
+.modal.enter .rc-track > .pslot > .pcard, .nr.deal .car-track > .pslot > .pcard, .modal.enter .gc-row > .gcard { animation: deal-flip 1s linear both; animation-delay: calc(var(--i, 0) * .13s); will-change: transform, opacity; }
+.modal.enter .rc-track > .pslot > .pcard > .cback, .nr.deal .car-track > .pslot > .pcard > .cback, .modal.enter .gc-row > .gcard > .cback { display: block; animation: back-hide 1s linear both; animation-delay: calc(var(--i, 0) * .13s); }
 .cback { position: absolute; inset: 0; z-index: 6; pointer-events: none; border-radius: inherit; border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--line));
   background:
     radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent) 40%, transparent) 0 9%, transparent 10% 15%, color-mix(in srgb, var(--accent) 30%, transparent) 15.5% 16.5%, transparent 17%),
@@ -1127,15 +1129,17 @@ body:has(.nr) { overflow: hidden; margin: 0; }
     repeating-linear-gradient(-45deg, color-mix(in srgb, var(--accent) 14%, transparent) 0 2px, transparent 2px 14px),
     linear-gradient(160deg, var(--panel-2), var(--bg));
   box-shadow: inset 0 0 0 5px var(--panel), inset 0 0 0 6px color-mix(in srgb, var(--accent) 45%, transparent); }
-/* 카드는 제자리(슬롯)에서 크기 그대로 뒤집힌다: 이동 · 확대 · 원근 없이 가로 폭만 접혔다 펴져 슬롯 밖으로 나가거나 잘리지 않는다 */
+/* 카드는 제 칸(슬롯)에 고정된 채 입체로 뒤집힌다: 이동 · 확대 없음. 원근으로 커지는 가장자리는 트랙 위아래 여백 안에 들어온다.
+   뒤집히는 동안에는 포인터를 막아 호버 효과가 켜졌다 꺼졌다 하며 흔들리지 않게 한다 */
 @keyframes deal-flip {
-  0% { opacity: 0; transform: rotateY(180deg); }
-  25% { opacity: 1; transform: rotateY(180deg); animation-timing-function: ease-in; }
-  64% { transform: rotateY(90deg); animation-timing-function: ease-out; }
-  100% { opacity: 1; transform: rotateY(0deg); }
+  0% { opacity: 0; transform: perspective(2400px) rotateY(180deg); pointer-events: none; }
+  22% { opacity: 1; transform: perspective(2400px) rotateY(180deg); animation-timing-function: cubic-bezier(.55, 0, .9, .45); pointer-events: none; }
+  64% { transform: perspective(2400px) rotateY(90deg); animation-timing-function: cubic-bezier(.1, .55, .45, 1); pointer-events: none; }
+  99.9% { transform: perspective(2400px) rotateY(0deg); pointer-events: none; }
+  100% { opacity: 1; transform: perspective(2400px) rotateY(0deg); pointer-events: auto; }
 }
 @keyframes back-hide { 0%, 63.9% { opacity: 1; } 64%, 100% { opacity: 0; } }
-.modal.enter .rc-track > .pcard::after, .nr.deal .car-track > .pcard::after, .modal.enter .gc-row > .gcard::after { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none; border-radius: inherit;
+.modal.enter .rc-track > .pslot > .pcard::after, .nr.deal .car-track > .pslot > .pcard::after, .modal.enter .gc-row > .gcard::after { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none; border-radius: inherit;
   background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .38) 50%, transparent 65%) no-repeat; background-size: 250% 100%;
   animation: card-shine 1s ease-out both; animation-delay: calc(var(--i, 0) * .13s + .72s); }
 @keyframes card-shine { from { background-position: 130% 0; } to { background-position: -30% 0; } }
@@ -1162,7 +1166,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 @keyframes bn-line { 0% { transform: scaleX(0); } 25% { transform: scaleX(1); } 100% { transform: scaleX(1); } }
 @keyframes bn-boss { 0% { opacity: 0; transform: scale(1.8); filter: blur(6px); } 18% { opacity: 1; transform: scale(1); filter: none; } 24% { transform: translateX(-4px); } 28% { transform: translateX(4px); } 32% { transform: none; } 82% { opacity: 1; } 100% { opacity: 0; transform: scale(.96); } }
 @media (prefers-reduced-motion: reduce) {
-  .banner, .bn-band, .bn-band b, .bn-band small, .bn-line, .modal.enter, .modal.enter .rc-track > .pcard, .nr.deal .car-track > .pcard, .modal.enter .gc-row > .gcard, .cback, .modal.recruit .rc-track .pcard.sel { animation-duration: .01s !important; animation-delay: 0s !important; }
+  .banner, .bn-band, .bn-band b, .bn-band small, .bn-line, .modal.enter, .modal.enter .rc-track > .pslot > .pcard, .nr.deal .car-track > .pslot > .pcard, .modal.enter .gc-row > .gcard, .cback, .modal.recruit .rc-track .pcard.sel { animation-duration: .01s !important; animation-delay: 0s !important; }
 }
 
 .more-list li span { display: inline-flex; align-items: center; gap: 4px; }
@@ -1299,7 +1303,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 
 /* 전역 증강 카드 */
 .modal.global { width: min(980px, 100%); }
-.gc-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding-block: 6px; }
+.gc-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding-block: 12px; }
 .gcard { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 250px; padding: 22px 16px 18px; text-align: center; color: var(--fg); cursor: pointer;
   border: 1px solid color-mix(in srgb, hsl(var(--h) 70% 60%) 45%, var(--line)); border-radius: 12px;
   background: radial-gradient(120% 70% at 50% 18%, color-mix(in srgb, hsl(var(--h) 70% 55%) 22%, var(--panel-2)), var(--panel) 70%);
@@ -1355,7 +1359,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
     </div></div>`}var Ql={weapon:"\uBB34\uAE30",trait:"\uD2B9\uC131",skill:"\uC2A4\uD0AC",grow:"\uC131\uC7A5",psi:"\uC774\uC131",div:"\uC2E0\uAD8C"};function en(e,t,s,a){return`<div class="abil ab-${e}"><div class="ab-head"><span class="ab-kind">${Ql[e]}</span><b>${y(t)}</b>${s?`<span class="ab-meta">${s}</span>`:""}</div><p>${y(a)}</p></div>`}function df(e,t=e.elem){let s=t!=="phys"?`${ht[t]} \uD53C\uD574 \xB7 `:"";if(e.kind==="none")return en("weapon",e.name,"","\uAE30\uBCF8 \uACF5\uACA9\uC744 \uD558\uC9C0 \uC54A\uB294\uB2E4.");let a=e.kind==="mag"?`${s}\uD0C4\uCC3D ${e.mag}\uBC1C, \uB2E4 \uC4F0\uBA74 \uC7AC\uC7A5\uC804\uD55C\uB2E4.`:`${s}${e.combo}\uBC88\uC9F8 \uACF5\uACA9\uB9C8\uB2E4 \uAC15\uB825\uD55C \uD53C\uB2C8\uC26C.`,i=e.tactical?"\uC804\uC220 \uC704\uB825":e.type==="shoot"?"\uC0AC\uACA9 \uC704\uB825":"\uD0C0\uACA9 \uC704\uB825",r=`${ht[t]} \xB7 ${i} ${Math.round(e.mult*100)}% \xB7 ${e.kind==="mag"?`\uD0C4 ${e.mag} \xB7 \uC7AC\uC7A5\uC804 ${e.reload}\uCD08`:`\uCF64\uBCF4 ${e.combo} (\uD53C\uB2C8\uC26C \xD7${A.finishMult})`} \xB7 \uACF5\uACA9 \uAC04\uACA9 ${e.interval}\uCD08`;return en("weapon",e.name,d.detail?`${pi(e.range)} \xB7 \uC0AC\uAC70\uB9AC ${e.range}`:pi(e.range),d.detail?r:a)}function Ul(e,t=e.skill.params){if(!d.detail)return Rn[e.id]?.skill||e.skill.desc(t);let s=e.skill.desc(t);return e.ctype==="CMD"?s.replace(/기술 위력/g,"\uC804\uC220 \uC704\uB825"):s}var ff=e=>d.detail?e.trait.desc:Rn[e.id]?.trait||e.trait.desc;function yi(){return`<button class="btn tiny dtoggle ${d.detail?"on":""}" data-a="toggle-detail" aria-pressed="${d.detail}" title="\uACC4\uC218 \xB7 \uC138\uBD80 \uADDC\uCE59 \uD45C\uC2DC (\uB2E8\uCD95\uD0A4 D)">\uC0C1\uC138 \uBCF4\uAE30 ${d.detail?"ON":"OFF"}</button>`}function mf(e){return`${df(e.weapon)}
     ${Ll(e,null,d.run)}
     ${en("skill",e.skill.name,d.detail?`${e.skill.cd}\uCD08`:"",Ul(e))}
-    <div class="majors-mini">${se.map(t=>`<span title="${Ie[t]}">${Ms(t)}<b>${e.base[t]}</b></span>`).join("")}</div>`}function pf(e){return`<span class="pc-role"><span class="ct-${e.ctype}">${Bl(e.ctype)} ${rt[e.ctype]}</span><span class="tt-${e.ttype}">${zl(e.ttype)} ${bt[e.ttype]}</span></span>`}function ui(e){let t=[...new Set(e)];return s=>t.filter(a=>{let i=H[a];return i&&[...i.factions,...i.traits].includes(s)}).length}function Nl(e,t){let{clone:s,on:a,full:i}=t;return`<div class="pcard ${a?"sel":""} ${d.cardOpen===e.id&&!s?"open":""}" style="--i:${Math.min(t.i??0,7)}" data-a="${t.tapAct}" data-v="${e.id}" ${s?'aria-hidden="true"':'tabindex="0" role="button"'} aria-label="${y(e.name)}">
+    <div class="majors-mini">${se.map(t=>`<span title="${Ie[t]}">${Ms(t)}<b>${e.base[t]}</b></span>`).join("")}</div>`}function pf(e){return`<span class="pc-role"><span class="ct-${e.ctype}">${Bl(e.ctype)} ${rt[e.ctype]}</span><span class="tt-${e.ttype}">${zl(e.ttype)} ${bt[e.ttype]}</span></span>`}function ui(e){let t=[...new Set(e)];return s=>t.filter(a=>{let i=H[a];return i&&[...i.factions,...i.traits].includes(s)}).length}function Nl(e,t){let{clone:s,on:a,full:i}=t;return`<div class="pslot" style="--i:${Math.min(t.i??0,7)}"><div class="pcard ${a?"sel":""} ${d.cardOpen===e.id&&!s?"open":""}" data-a="${t.tapAct}" data-v="${e.id}" ${s?'aria-hidden="true"':'tabindex="0" role="button"'} aria-label="${y(e.name)}">
     <i class="cback" aria-hidden="true"></i>
     <div class="pc-art">${ms(e.id,"stand")||ee(e,"spr big")}</div>
     ${a?`<span class="pc-check">\u2713${t.badge?` ${t.badge}`:""}</span>`:""}
@@ -1367,7 +1371,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
       <div class="pc-desc" data-a="noop">${mf(e)}
         <button class="btn ${a?"":"primary"} pc-pick" data-a="${t.tapAct}" data-v="${e.id}" ${i?"disabled":""} ${s?'tabindex="-1"':""}>${a?"\uC120\uD0DD \uD574\uC81C":i?t.fullLabel||"\uC120\uD0DD \uBD88\uAC00":"\uC120\uD0DD"}</button></div>
     </div>
-  </div>`}var xi=typeof matchMedia<"u"&&matchMedia("(hover: hover)").matches;function Pl(){let e=d.starters.length;return`<main class="wrap nr">
+  </div></div>`}var xi=typeof matchMedia<"u"&&matchMedia("(hover: hover)").matches;function Pl(){let e=d.starters.length;return`<main class="wrap nr">
     <div class="nr-head">
       <div><h1>\uACC4\uC57D \uAE30\uBB3C \uC120\uD0DD</h1><p class="muted small">\uC774\uBC88 \uCD9C\uACA9\uC5D0 \uC751\uD55C ${d.pool.length}\uBA85 \uC911 ${A.startUnits}\uBA85\uC744 \uACE0\uB974\uC138\uC694. ${xi?"\uCE74\uB4DC\uC5D0 \uB9C8\uC6B0\uC2A4\uB97C \uC62C\uB9AC\uBA74 \uC124\uBA85\uC774 \uB098\uC624\uACE0, \uB204\uB974\uBA74 \uC120\uD0DD\uD569\uB2C8\uB2E4.":"\uCE74\uB4DC\uB97C \uB204\uB974\uBA74 \uC120\uD0DD\uD569\uB2C8\uB2E4. \uD558\uB2E8\uC744 \uC704\uB85C \uB04C\uC5B4\uC62C\uB9AC\uAC70\uB098 [\uC0C1\uC138 \uBCF4\uAE30]\uB97C \uB204\uB974\uBA74 \uC124\uBA85\uC774 \uB098\uC635\uB2C8\uB2E4."}</p></div>
       ${yi()}

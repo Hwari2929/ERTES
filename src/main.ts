@@ -374,7 +374,7 @@ function teamCount(ids: string[]) {
 }
 function pickCard(d: UnitDef, o: PickOpts) {
   const { clone, on, full } = o;
-  return `<div class="pcard ${on ? 'sel' : ''} ${app.cardOpen === d.id && !clone ? 'open' : ''}" style="--i:${Math.min(o.i ?? 0, 7)}" data-a="${o.tapAct}" data-v="${d.id}" ${clone ? 'aria-hidden="true"' : 'tabindex="0" role="button"'} aria-label="${esc(d.name)}">
+  return `<div class="pslot" style="--i:${Math.min(o.i ?? 0, 7)}"><div class="pcard ${on ? 'sel' : ''} ${app.cardOpen === d.id && !clone ? 'open' : ''}" data-a="${o.tapAct}" data-v="${d.id}" ${clone ? 'aria-hidden="true"' : 'tabindex="0" role="button"'} aria-label="${esc(d.name)}">
     <i class="cback" aria-hidden="true"></i>
     <div class="pc-art">${standImg(d.id, 'stand') || sprite(d, 'spr big')}</div>
     ${on ? `<span class="pc-check">✓${o.badge ? ` ${o.badge}` : ''}</span>` : ''}
@@ -386,7 +386,7 @@ function pickCard(d: UnitDef, o: PickOpts) {
       <div class="pc-desc" data-a="noop">${unitInfo(d)}
         <button class="btn ${on ? '' : 'primary'} pc-pick" data-a="${o.tapAct}" data-v="${d.id}" ${full ? 'disabled' : ''} ${clone ? 'tabindex="-1"' : ''}>${on ? '선택 해제' : full ? o.fullLabel || '선택 불가' : '선택'}</button></div>
     </div>
-  </div>`;
+  </div></div>`;
 }
 const CAN_HOVER = typeof matchMedia !== 'undefined' && matchMedia('(hover: hover)').matches;
 
