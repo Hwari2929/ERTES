@@ -73,6 +73,8 @@ const app = {
   needMount: false,
   diff: 0, // 새 런 난이도
   codexTab: 'units' as 'units' | 'enemies' | 'events' | 'records',
+  codexGroup: 'none' as 'none' | 'faction' | 'trait' | 'ctype' | 'ttype', // 도감 기물: 모아보기 기준
+  codexSel: null as string | null, // 도감 기물: 상세를 펼친 기물
   meterTab: 'dmg' as 'dmg' | 'taken' | 'support' | 'kills',
   battleSel: null as number | null, // 전투 중 선택한 기물 (아군 · 적)
   bPick: null as string | null, // 상세 정보에서 고른 효과 (st:key) · 장비 (it:id)
@@ -1357,7 +1359,7 @@ function render() {
   const modalKey = run?.pending[0] ? JSON.stringify([run.pending[0].t, (run.pending[0] as { uid?: string }).uid, (run.pending[0] as { allocDone?: boolean }).allocDone, (run.pending[0] as { options?: unknown }).options]) : app.menu || '';
   const sameView = lastView.screen === app.screen;
   const newModal = lastView.modal !== modalKey;
-  const keep = ['.side.left', '.side.right', 'aside.side', '.codex-grid', '.map-detail'].map((sel) => [sel, root.querySelector(sel)?.scrollTop || 0] as const);
+  const keep = ['.side.left', '.side.right', 'aside.side', '.codex-grid', '.map-detail', '.cx-detail', '.cx-list'].map((sel) => [sel, root.querySelector(sel)?.scrollTop || 0] as const);
   const modalTop = lastView.modal === modalKey ? root.querySelector('.modal')?.scrollTop || 0 : 0;
   const winY = window.scrollY;
   lastView.screen = app.screen; lastView.modal = modalKey;
@@ -1388,6 +1390,7 @@ function render() {
   // 페이즈 전환 연출
   if (run && run.phase !== lastPhase) { if (lastPhase && run.phase > lastPhase) banner('phase', `PHASE ${run.phase}`, `${fieldOf(run.field).name} · 적이 강해집니다`); lastPhase = run.phase; }
   if (!run) lastPhase = 0;
+  if (cxScroll) { cxScroll = false; const det = root.querySelector<HTMLElement>('.cx-detail'); if (det) { det.scrollTop = 0; if (innerWidth <= 860) det.scrollIntoView({ block: 'start' }); } }
   if (app.screen === 'newrun') setupCarousel();
   const stv = root.querySelector<HTMLElement>('.st-view');
   if (stv) bindTabSwipe(stv);
@@ -1838,21 +1841,67 @@ function renderBattleUnit(b: Battle, force: boolean) {
 }
 
 // ───────────────────────── 도감
+let cxScroll = false;
+/** 도감 · 기물: 세력 · 특성 · 전투 유형 · 전술 유형으로 모아보기 + 펼친 기물의 시너지 · 능력 · 역할 · 추천 장비 · 이야기 */
+function codexUnits(m: ReturnType<typeof loadMeta>) {
+  const known = (d: UnitDef) => !d.eventOnly || !!m.units[d.id];
+  const GROUPS = [['none', '전체'], ['faction', '세력'], ['trait', '특성'], ['ctype', '전투 유형'], ['ttype', '전술 유형']] as const;
+  const bar = `<div class="cx-bar" role="group" aria-label="모아보기">${GROUPS.map(([k, l]) => `<button class="btn tiny ${app.codexGroup === k ? 'on' : ''}" data-a="codex-group" data-v="${k}" aria-pressed="${app.codexGroup === k}">${l}</button>`).join('')}</div>`;
+  const byName = (x: UnitDef, y: UnitDef) => x.name.localeCompare(y.name, 'ko');
+  const tile = (d: UnitDef) => {
+    const k = known(d), on = app.codexSel === d.id;
+    return `<button class="cx-tile${on ? ' on' : ''}${k ? '' : ' unknown'}" data-a="codex-sel" data-v="${d.id}" aria-pressed="${on}" title="${k ? esc(d.name) : '???'}">
+      <span class="cx-face">${sprite(d, 'spr')}</span><span class="cx-nm">${k ? esc(d.name) : '???'}</span>
+      <span class="cx-role">${k ? `<i class="ct-${d.ctype}" title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i><i class="tt-${d.ttype}" title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i>` : ''}</span>
+      <span class="cx-syn">${k ? [...d.factions, ...d.traits].map((id) => `<i style="color:${SYN_BY_ID[id as SynergyId]?.color}" title="${esc(SYN_BY_ID[id as SynergyId]?.name || id)}">${synIcon(id) || SYN_BY_ID[id as SynergyId]?.icon || ''}</i>`).join('') : ''}</span></button>`;
+  };
+  const grid = (list: UnitDef[]) => `<div class="cx-grid">${list.sort(byName).map(tile).join('')}</div>`;
+  let groups: [string, string, UnitDef[]][];
+  const g = app.codexGroup;
+  if (g === 'faction' || g === 'trait') groups = SYNERGIES.filter((x) => x.kind === g).map((x) => [`<span style="color:${x.color}">${synIcon(x.id) || x.icon}</span> ${esc(x.name)}`, `${x.tiers.join(' / ')}`, UNITS.filter((d) => ([...d.factions, ...d.traits] as string[]).includes(x.id))] as [string, string, UnitDef[]]).filter(([, , l]) => l.length);
+  else if (g === 'ctype') groups = (Object.keys(CTYPE_NAME) as CType[]).map((k) => [`${CTYPE_ICON(k)} ${CTYPE_NAME[k]}`, '', UNITS.filter((d) => d.ctype === k)] as [string, string, UnitDef[]]).filter(([, , l]) => l.length);
+  else if (g === 'ttype') groups = (Object.keys(TTYPE_NAME) as TType[]).map((k) => [`${TTYPE_ICON(k)} ${TTYPE_NAME[k]}`, '', UNITS.filter((d) => d.ttype === k)] as [string, string, UnitDef[]]).filter(([, , l]) => l.length);
+  else groups = [['', '', UNITS.slice()]];
+  const list = groups.map(([h, sub, l]) => `${h ? `<h3 class="cx-h">${h} <span class="muted small">${l.length}명${sub ? ` · 단계 ${sub}` : ''}</span></h3>` : ''}${grid(l)}`).join('');
+  const d = app.codexSel ? UNIT_BY_ID[app.codexSel] : null;
+  const detail = d && known(d) ? codexDetail(d, m) : `<div class="cx-empty muted small">기물을 고르면 시너지 · 능력 · 역할군 · 추천 장비 · 이야기를 볼 수 있습니다.</div>`;
+  return `<div class="cx-wrap"><section class="cx-list">${bar}${list}</section><aside class="cx-detail">${detail}</aside></div>`;
+}
+function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
+  // 1등급 · 장비 없음 기준 미리보기 (시너지 미적용)
+  const zero = { vit: 0, pow: 0, mnd: 0, def: 0, agi: 0 };
+  const tmp: UnitState = { uid: 'codex', defId: d.id, rank: 1, xp: 0, alloc: { ...zero }, perm: { ...zero }, augments: [], items: [d.item || null, null, null], mod: null, pos: { c: 0, r: 0 }, faith: d.faith, grow: {} } as UnitState;
+  const b = new Battle(9, 9, new Rng(1), { phase: 1, credits: 0 });
+  b.keepEvents = false;
+  const c = buildAlly(b, null, tmp, {});
+  b.add(c); b.computeTac();
+  if (d.ctype === 'CMD') b.tac[0] = CFG.tacBase + CFG.tacPerMnd * (c.mem.mnd || 0); // 전술 위력: 출전 4명 · 지휘관 1명 기준
+  const r = m.units[d.id];
+  const syn = [...d.factions, ...d.traits].map((id) => { const x = SYN_BY_ID[id as SynergyId]; if (!x) return ''; return `<div class="cx-syn-row" style="--c:${x.color}"><span class="cx-syn-ic">${synIcon(x.id) || x.icon}</span><div><b>${esc(x.name)}</b> <span class="muted small">${x.kind === 'faction' ? '세력' : '특성'} · ${x.tiers.join(' / ')}</span><p class="small">${esc(x.desc)}</p></div></div>`; }).join('');
+  const augLi = (a: { id: string }, tag = '') => { const ad = AUG_BY_ID[a.id]; return `<li class="aug-li">${augIcon(a.id)}<span><b>${esc(ad?.name || a.id)}</b>${tag ? ` <span class="tag">${tag}</span>` : ''}<br><span class="muted">${augText(a.id, undefined, b, c)}</span></span></li>`; };
+  const reco = (RECO[d.ctype] || []).map((key) => { const it = itemInfo(`A_${key}`); const [ca, cb] = it.recipe || []; return `<li class="rc-row">${itemIcon(`A_${key}`)}<div class="rc-main"><b>${esc(it.name)}</b><span class="small muted">${statIc(esc(it.desc))}</span></div><div class="rc-parts" title="조합 재료">${[ca, cb].filter(Boolean).map((x) => itemIcon(x!)).join('')}</div></li>`; }).join('');
+  return `<div class="detail cx-d">
+    <div class="d-hero">${hero(d.id) || `<div class="hero none">${sprite(d, 'spr big')}</div>`}
+      <div class="dh-name"><b>${esc(d.name)}</b><span class="dh-types"><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i><i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i></span></div></div>
+    <p class="muted small">${esc(d.title)}</p>
+    ${powRow(b, c, d, false)}
+    <div class="majors-mini">${MAJORS.map((mm) => `<span title="${MAJOR_NAME[mm]} (기본)">${majorIcon(mm)}<b>${d.base[mm]}</b></span>`).join('')}</div>
+    <h3>시너지</h3><div class="cx-syns">${syn}</div>
+    <h3>역할군 · 능력 <span class="muted small">1등급 · 장비 없음 기준</span></h3>
+    <div class="abils">${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem)}${traitGroup(d, null, null, b, c)}${skillCard(d, b, c)}</div>
+    <h3>전용 증강 <span class="muted small">${CFG.augEvery}등급마다 1개</span></h3><ul class="augs">${d.augs.map((a) => augLi(a)).join('')}${(d.specialAugs || []).map((a) => augLi(a, '스페셜')).join('')}</ul>
+    <h3>추천 장비 <span class="muted small">${CTYPE_NAME[d.ctype]}</span></h3><ul class="rc-list">${reco}</ul>
+    <h3>이야기</h3>${STORIES[d.id] ? `<p class="small">${esc(STORIES[d.id])}</p>` : ''}<p class="lore">${esc(d.lore)}</p>
+    <div class="codex-stats small">의뢰 <b>${r?.runs || 0}</b>회 · 누적 공명 등급 <b>${r?.ranks || 0}</b> · 최고 <b>${r?.best || 0}</b> · 성공 <b>${r?.clears || 0}</b></div>
+  </div>`;
+}
 function codexScreen() {
   const m = loadMeta();
   const tabs = ([['units', '기물'], ['enemies', '적'], ['events', '사건'], ['records', '기록']] as const)
     .map(([k, l]) => `<button class="btn small ${app.codexTab === k ? 'primary' : ''}" data-a="codex-tab" data-v="${k}">${l}</button>`).join('');
   let body = '';
   if (app.codexTab === 'units') {
-    body = `<div class="codex-grid">${UNITS.map((d) => {
-      const r = m.units[d.id];
-      const known = !d.eventOnly || !!r;
-      return `<div class="codex-card ${known ? '' : 'unknown'}">
-        ${known ? hero(d.id, 'hero sm') : ''}<div class="ucard-head">${sprite(d, 'spr big')}<div><b>${known ? esc(d.name) : '???'}</b><div class="muted small">${known ? esc(d.title) : '사건으로만 만날 수 있는 기물'}</div></div></div>
-        ${known ? `<div class="chips">${[...d.factions, ...d.traits].map(chip).join('')}</div><p class="small">${esc(STORIES[d.id] || '')}</p>` : ''}
-        <div class="codex-stats small">의뢰 <b>${r?.runs || 0}</b>회 · 누적 공명 등급 <b>${r?.ranks || 0}</b> · 최고 <b>${r?.best || 0}</b> · 성공 <b>${r?.clears || 0}</b></div>
-      </div>`;
-    }).join('')}</div>`;
+    body = codexUnits(m);
   } else if (app.codexTab === 'enemies') {
     body = FIELDS.map((f) => {
       const ids = [...f.pool, f.elite, ...f.bosses];
@@ -2023,6 +2072,8 @@ function act(a: string, v: string) {
     case 'diff': app.diff = +v; break;
     case 'codex': app.screen = 'codex'; app.menu = null; break;
     case 'codex-tab': app.codexTab = v as typeof app.codexTab; break;
+    case 'codex-group': app.codexGroup = v as typeof app.codexGroup; break;
+    case 'codex-sel': app.codexSel = app.codexSel === v ? null : v; app.abilPop = null; cxScroll = !!app.codexSel; break;
     case 'codex-back': app.screen = app.run ? (app.run.over ? 'over' : 'map') : 'title'; if (app.run && !app.run.over) goPrepOrMap(); break;
     case 'meter-tab': app.meterTab = v as typeof app.meterTab; document.querySelectorAll('.meter-tabs .btn').forEach((e) => e.classList.toggle('on', (e as HTMLElement).dataset.v === v)); updateMeter(true); return;
     case 'bsel': app.bPick = null; app.abilPop = null; app.battleSel = app.battleSel === +v ? null : +v; applySpeed(); updateMeter(true); return;
