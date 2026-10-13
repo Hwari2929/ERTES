@@ -1612,3 +1612,8 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .d-bar .d-mag.on { border-color: var(--accent); color: var(--accent); }
 .d-bar .btn.tiny { height: 34px; }
 @media (max-width: 1100px) { .d-bar { top: calc(var(--top-h, 54px) - 10px); } }
+/* 보관함 선택 표시: 목록 가장자리에서 잘리지 않게 여백, 선택한 칸을 위로 */
+.ir-items, .inv-items { padding: 4px; margin: -4px; }
+.item.sel { position: relative; z-index: 3; outline-offset: 1px; }
+.item.tM.sel, .item.hex.sel { outline: none; filter: drop-shadow(0 0 1.5px var(--accent)) drop-shadow(0 0 4px var(--accent)); }
+.map .stat-pop { z-index: 60; }

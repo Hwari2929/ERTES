@@ -500,6 +500,7 @@ function mapScreen(run: RunState) {
       </section>
       </div></div>
     </aside>
+    ${app.sel?.k === 'unit' ? statPopHtml(run) : ''}
   </main>`;
 }
 /** 메인 화면 상세 보기: 파티 아이콘을 누르면 오른쪽 패널(파티 · 환경 · 기록 자리)에 기물 상세가 열린다 */
@@ -511,7 +512,7 @@ function mapDetail(run: RunState) {
   const fresh = lastMapDetail !== u.uid;
   lastMapDetail = u.uid;
   return `<aside class="map-detail${fresh ? ' in' : ''}" aria-label="${esc(UNIT_BY_ID[u.defId].name)} 상세">
-    ${detailPanel(run, `<button class="btn tiny" data-a="manage" data-v="${u.uid}">편성 화면에서 보기</button>`).replace('data-a="desel"', 'data-a="map-unit"')}${statPopHtml(run)}
+    ${detailPanel(run, `<button class="btn tiny" data-a="manage" data-v="${u.uid}">편성 화면에서 보기</button>`).replace('data-a="desel"', 'data-a="map-unit"')}
   </aside>`;
 }
 /** 함선 관리: 함대 확장 (출전 인원) · 지정 소집 (시너지 지정 영입) */

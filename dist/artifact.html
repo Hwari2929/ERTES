@@ -1616,6 +1616,11 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .d-bar .d-mag.on { border-color: var(--accent); color: var(--accent); }
 .d-bar .btn.tiny { height: 34px; }
 @media (max-width: 1100px) { .d-bar { top: calc(var(--top-h, 54px) - 10px); } }
+/* 보관함 선택 표시: 목록 가장자리에서 잘리지 않게 여백, 선택한 칸을 위로 */
+.ir-items, .inv-items { padding: 4px; margin: -4px; }
+.item.sel { position: relative; z-index: 3; outline-offset: 1px; }
+.item.tM.sel, .item.hex.sel { outline: none; filter: drop-shadow(0 0 1.5px var(--accent)) drop-shadow(0 0 4px var(--accent)); }
+.map .stat-pop { z-index: 60; }
 </style>
 <div id="app"></div>
 <!-- 결과 배너 · 페이즈 배너 글자를 미리 불러 둔다 (제목 글꼴은 글자 묶음 단위로 늦게 받아져 처음 뜰 때 대체 글꼴로 보일 수 있음) -->
@@ -1725,8 +1730,9 @@ ${wd}`,tierDesc:["\uC804\uD22C\uB825 +4, \uAE30\uC220 \uC0AC\uC6A9 \uD6C4 \uCD5C
       </section>
       </div></div>
     </aside>
+    ${d.sel?.k==="unit"?Rc(e):""}
   </main>`}var zi=null;function am(e){let t=d.sel,s=t?.k==="unit"?e.units.find(i=>i.uid===t.uid):void 0;if(!s)return zi=null,"";let a=zi!==s.uid;return zi=s.uid,`<aside class="map-detail${a?" in":""}" aria-label="${k(R[s.defId].name)} \uC0C1\uC138">
-    ${Sc(e,`<button class="btn tiny" data-a="manage" data-v="${s.uid}">\uD3B8\uC131 \uD654\uBA74\uC5D0\uC11C \uBCF4\uAE30</button>`).replace('data-a="desel"','data-a="map-unit"')}${Rc(e)}
+    ${Sc(e,`<button class="btn tiny" data-a="manage" data-v="${s.uid}">\uD3B8\uC131 \uD654\uBA74\uC5D0\uC11C \uBCF4\uAE30</button>`).replace('data-a="desel"','data-a="map-unit"')}
   </aside>`}function nm(e){let t=hi(e),s=Cs(e),a=!!e.node||e.pending.length>0,i=e.units.length>=A.maxParty;return`<section class="ship" aria-labelledby="ship-h"><h2 id="ship-h">\uD568\uC120 \uAD00\uB9AC</h2><div class="ship-grid">
     <button class="ship-btn" data-a="fleet" ${t===null||e.credits<t||a?"disabled":""}>
       <span class="sb-ic">${Ls.supply}</span><b>\uD568\uB300 \uD655\uC7A5</b>
