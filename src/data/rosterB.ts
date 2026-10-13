@@ -4,7 +4,6 @@ import { fear, pct, skillHit, summonsOf } from './kit';
 import { cookPower, pickEnemy, strike, strongestAlly, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type BaseUnit } from './unitkit';
 
-const nat = (n: number) => ({ setup: (u: { mem: Record<string, number> }) => { u.mem.natureExtra = (u.mem.natureExtra || 0) + n; } });
 const faithWin = { after: (run: { power: number }, _u: unknown, won: boolean) => { if (won) run.power += 1; } };
 const BEHEMOTH = ['#140608', '#6a1020', '#b02030', '#d06060', '#ffcf40', '#3a0810', '#ff8080'];
 
@@ -72,7 +71,7 @@ export const ROSTER_B: BaseUnit[] = [
     ],
   },
   {
-    id: 'temur', name: '테무르', title: '아퀼리 경기장 출신 검투사', factions: ['KAL'], traits: ['NATURE'], keywords: ['bio'],
+    id: 'temur', name: '테무르', title: '아퀼리 경기장 출신 검투사', factions: ['KAL'], traits: [], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 1.0 }, range: 1, base: B(9, 9, 4, 7, 4),
     sprite: 'knight', palette: tint(PAL.KAL, '#7a5a3a', '#e0b040', '#ffd34d'), lore: '"그래- \'주인님\'. 어디 짭잘한 일감 좀 물어왔나?"',
     skill: strike({
@@ -84,7 +83,7 @@ export const ROSTER_B: BaseUnit[] = [
       uaug('temur', 'ritual', '등에 박힌 의식 검', '경기장의 검 범위 +1칸, 피해 +30%p.', setSk((s) => { s.radius += 1; s.mult += 0.3; })),
       uaug('temur', 'lava', '용암 보행', '효과 저항 +25%p, 방어도 +250.', { stats: { effRes: 0.25, armor: 250 } }),
       uaug('temur', 'meal', '두 배 식사', '생명력 +10, 방어력 +5.', { majors: { vit: 10, def: 5 } }),
-      uaug('temur', 'fur', '모피 코트 두 겹', '캠핑 러버 임시 장비 +1개, 생명력 +5, 방어력 +3.', { ...nat(1), majors: { vit: 5, def: 3 } }),
+      uaug('temur', 'fur', '모피 코트 두 겹', '방어력 +9, 기동력 +6.', { majors: { def: 9, agi: 6 } }),
     ],
   },
   {

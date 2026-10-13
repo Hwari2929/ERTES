@@ -79,7 +79,7 @@ const ABIL_PILOT: Record<string, AbilText> = {
       deep: '[g:forget] +[s:3]. 공포 확률 [pp:0.25].',
       delta: '맞은 적에게 [st:vuln:4]: 받는 피해 +[p:0.3].',
       report: '항밈 소거 피해 [dmg+:tech:1.6:psy].',
-      hoodie: '[g:camp] +1. 정신력 +5, 기동력 +3.',
+      hoodie: '정신력 +9, 기동력 +6.',
     },
   },
   gebek: {
@@ -114,7 +114,7 @@ const ABIL_PILOT: Record<string, AbilText> = {
       ritual: '경기장의 검 범위 +[t:1]. 피해 [dmg+:strike:0.3:phys].',
       lava: '효과 저항 [pp:0.25], 방어도 +250.',
       meal: '생명력 +10, 방어력 +5.',
-      fur: '[g:camp] +1. 생명력 +5, 방어력 +3.',
+      fur: '방어력 +9, 기동력 +6.',
     },
   },
   winter: {

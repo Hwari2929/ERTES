@@ -166,7 +166,7 @@ export const ABIL_C: Record<string, AbilText> = {
       pack: '동물 동료 +1 (추가 동료 [g:bond]는 기본의 [p:0.8]).',
       kazoo: '동물 교감 시 모든 아군 공격 속도 +[p:0.4] ([s:3]).',
       record: '동물 교감 대상에게 [st:vuln:4]: 받는 피해 +[p:0.3].',
-      kit: '[g:camp] +1. 정신력 +5, 기동력 +3.',
+      kit: '정신력 +9, 기동력 +6.',
     },
   },
   yupito: {
@@ -261,7 +261,7 @@ export const ABIL_C: Record<string, AbilText> = {
       old: '맥스 [g:bond] [pp:0.4].',
       maul: '불청객 퇴치 [g:bleed] 초당 피해 [pp:0.5] (맥스 타격 위력 기준).',
       cub: '맥스 +1 (추가 맥스 [g:bond]는 기본의 [p:0.8]).',
-      lodge: '[g:camp] +1. 생명력 +5, 방어력 +3.',
+      lodge: '생명력 +9, 방어력 +6.',
       roar: '불청객 퇴치 시 맥스 주변 [t:1] 적에게 [st:fear:1.2:0.8].',
     },
   },

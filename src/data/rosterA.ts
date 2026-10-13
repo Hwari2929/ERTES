@@ -4,14 +4,13 @@ import { lineTargets, pct, shock, skillHit, summonsOf } from './kit';
 import { cookPower, pickEnemy, strike, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type BaseUnit } from './unitkit';
 
-const nat = (n: number) => ({ setup: (u: { mem: Record<string, number> }) => { u.mem.natureExtra = (u.mem.natureExtra || 0) + n; } });
 const DRONE = ['#0c0e12', '#5a7090', '#2a3040', '#9ab0c8', '#7fe3ff', '#40465a', '#e0f0ff'];
 const BOT = ['#0c0c12', '#3a3f58', '#c8ccd8', '#9aa0b0', '#ff5a5a', '#2a2e40', '#ffffff'];
 
 export const ROSTER_A: BaseUnit[] = [
   // ───────── 성간 인류 연합
   {
-    id: 'yelena', name: '예레나', title: '전 보안위원회 델타 요원 · 대외협력담당', factions: ['UNI'], traits: ['NATURE'], keywords: ['bio'],
+    id: 'yelena', name: '예레나', title: '전 보안위원회 델타 요원 · 대외협력담당', factions: ['UNI'], traits: [], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.1 }, range: 4, base: B(5, 8, 9, 3, 5),
     sprite: 'soldier', palette: tint(PAL.UNI, '#5a5e6a', '#2a6ad8', '#3a8aff'), lore: '"밀린 업무가 많아요. 까먹기 전에, 모두 해치우죠."',
     skill: strike({
@@ -29,11 +28,11 @@ export const ROSTER_A: BaseUnit[] = [
       uaug('yelena', 'deep', '깊은 망각', '쿨다운 증가 +3초, 공포 확률 +25%p.', setSk((s) => { s.forget += 3; s.fearChance += 0.25; })),
       uaug('yelena', 'delta', '델타 등급 기밀', '소거당한 적은 4초간 받는 피해 +30%.', setSk((s) => { s.vuln = 0.3; })),
       uaug('yelena', 'report', '보고서의 마지막 줄', '항밈 소거 피해 +160%p.', setSk((s) => { s.mult += 1.6; })),
-      uaug('yelena', 'hoodie', '라쿤 후드티', '캠핑 러버 임시 장비 +1개, 정신력 +5, 기동력 +3.', { ...nat(1), majors: { mnd: 5, agi: 3 } }),
+      uaug('yelena', 'hoodie', '라쿤 후드티', '정신력 +9, 기동력 +6.', { majors: { mnd: 9, agi: 6 } }),
     ],
   },
   {
-    id: 'mirinae', name: '미리내', title: '"신기루" 추적·잠입 전문가', factions: ['UNI'], traits: ['NATURE'], keywords: ['bio'],
+    id: 'mirinae', name: '미리내', title: '"신기루" 추적·잠입 전문가', factions: ['UNI'], traits: [], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.15 }, range: 5, base: B(5, 10, 8, 3, 5),
     sprite: 'soldier', palette: tint(PAL.UNI, '#4a5a3a', '#1a1a22', '#3a8aff'), lore: '"연락은 자제해줘. 캠핑 중이니까 - "',
     skill: strike({
@@ -45,7 +44,7 @@ export const ROSTER_A: BaseUnit[] = [
       uaug('mirinae', 'cell', '과충전 셀', '방어도 관통 50%, 깜찍이 피해 +170%p.', setSk((s) => { s.pen = 0.5; s.mult += 1.7; })),
       uaug('mirinae', 'vanish', '흔적 없이', '깜찍이로 처치하면 쿨다운 초기화.', setSk((s) => { s.resetOnKill = 1; })),
       uaug('mirinae', 'gem', '푸른 물방울 보석', '치명타 확률 +21%p, 치명타 피해 +60%p.', { stats: { crit: 0.21, critDmg: 0.6 } }),
-      uaug('mirinae', 'onsen', '휴대용 온천 시스템', '캠핑 러버 임시 장비 +1개, 기동력 +5, 전투력 +3.', { ...nat(1), majors: { agi: 5, pow: 3 } }),
+      uaug('mirinae', 'onsen', '휴대용 온천 시스템', '기동력 +9, 전투력 +6.', { majors: { agi: 9, pow: 6 } }),
     ],
   },
   {

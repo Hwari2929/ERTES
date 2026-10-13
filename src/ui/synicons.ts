@@ -15,7 +15,9 @@ const P: Record<string, string> = {
   // 특성
   MED: '<path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/>',
   BUDDY: '<path d="M12 20s-7.5-4.6-9.3-9A5 5 0 0 1 12 6.4 5 5 0 0 1 21.3 11c-1.8 4.4-9.3 9-9.3 9z"/>',
-  NATURE: '<path d="M2.5 20h19"/><path d="M12 4 3.5 20M12 4l8.5 16"/><path d="M12 13l-3 7M12 13l3 7"/>',
+  HUNTER: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5"/>',
+  VOYAGE: '<path d="M3 17.5h18l-2.5 3.5h-13z"/><path d="M12 3v13"/><path d="M12 4.5 19 14.5h-7z"/><path d="M12 7 6.5 14.5H12"/>',
+  OCCULT: '<circle cx="12" cy="12" r="9"/><path d="M12 3.5 14.4 9h5.6l-4.6 3.5 1.8 5.6L12 14.6l-5.2 3.5 1.8-5.6L4 9h5.6z"/>',
   STAR: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21M8.5 21h7"/>',
   INFIL: '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>',
   NAV: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5 13.5 13.5 8.5 15.5 10.5 10.5z"/>',

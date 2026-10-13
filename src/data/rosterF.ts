@@ -65,7 +65,7 @@ export const ROSTER_F: BaseUnit[] = [
     ],
   },
   {
-    id: 'fotini', name: '포티니 양', title: '헬레니우스 관광청 안내 로봇', factions: ['HEL'], traits: ['NATURE', 'STAR'], keywords: ['mech'],
+    id: 'fotini', name: '포티니 양', title: '헬레니우스 관광청 안내 로봇', factions: ['HEL'], traits: ['STAR'], keywords: ['mech'],
     atk: { type: 'shoot', elem: 'holy', interval: 1.0 }, range: 4, base: B(6, 7, 7, 5, 6),
     sprite: 'drone', palette: tint(PAL.HEL, '#f0f0f8', '#ff9de2', '#7fe3ff'),
     lore: '"여러분~ 이쪽입니다 ^^ 왼쪽에 보이시는 것이 바로 전장입니다 ^^"',
@@ -133,7 +133,7 @@ export const ROSTER_F: BaseUnit[] = [
     ],
   },
   {
-    id: 'issac', name: 'ISSAC', title: '연합 생체 실험체 · 흰 정장의 신사', factions: ['UNI'], traits: ['DECOMP', 'BUDDY'], keywords: ['bio'],
+    id: 'issac', name: 'ISSAC', title: '연합 생체 실험체 · 흰 정장의 신사', factions: ['UNI'], traits: ['DECOMP', 'HUNTER'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'chem', interval: 0.85 }, range: 1, base: B(10, 8, 3, 8, 3),
     sprite: 'knight', palette: tint(SLIME, '#f0f0f0', '#4cc860', '#ffffff'),
     summon: { name: '초록 점액', art: 'sm_slime', sprite: 'crawler', palette: SLIME, atk: { type: 'strike', elem: 'chem', interval: 1.0 }, range: 1, hpMul: 1.3 },
@@ -208,7 +208,7 @@ export const ROSTER_F: BaseUnit[] = [
     ],
   },
   {
-    id: 'mao', name: '마오', title: '호이슌 홀딩스 회장', factions: ['HOI', 'STL'], traits: ['CHEF'], keywords: ['bio'],
+    id: 'mao', name: '마오', title: '호이슌 홀딩스 회장', factions: ['HOI', 'STL'], traits: [], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'elec', interval: 1.1 }, range: 3, base: B(6, 4, 9, 5, 6),
     sprite: 'robe', palette: tint(HOI_PAL, '#1c1c24', '#ff4d9a', '#7fe3ff'),
     lore: '"한 잔 하실래요? 오늘 계약서에 서명하시면, 이 잔은 제가 사죠."',

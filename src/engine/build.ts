@@ -192,7 +192,7 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
 /** 최고의 친구: 주인 스탯 일부를 물려받는 소환물 */
 function spawnSummons(b: Battle, owner: CUnit, sd: SummonDef) {
   const n = 1 + (owner.mem.extraSummon || 0);
-  const base = Math.min(2.5, (owner.mem.bond || 0.35) + (owner.mem.bondBonus || 0));
+  const base = Math.min(6, (owner.mem.bond || 0.35) + (owner.mem.bondBonus || 0));
   for (let i = 0; i < n; i++) {
     const r = i === 0 ? base : base * 0.8; // 추가 소환물은 상속률 80%
     const s = blankUnit(owner.side);
@@ -298,7 +298,7 @@ ENG_HOOK.spawn = (b, lead, engs, n) => {
   const avg = (k: keyof Stats) => engs.reduce((s, e) => s + b.S(e, k), 0) / engs.length;
   const hpBonus = engs.reduce((s, e) => s + (e.mem.turretHp || 0), 0);
   const tier = lead.mem.eng || 1;
-  const inherit = [0.6, 0.8, 1.2][Math.min(3, tier) - 1]; // 엔지니어 단계별 상속률
+  const inherit = [1.0, 1.5, 2.2, 3.2][Math.min(4, tier) - 1]; // 엔지니어 단계별 상속률
   const asBonus = 0.4 + engs.reduce((s, e) => s + (e.mem.turretAs || 0), 0) + (tier >= 3 ? 0.5 : 0); // 기본 공격 속도 +40%
   for (let i = 0; i < n; i++) {
     const t = blankUnit(lead.side);

@@ -4,7 +4,6 @@ import { blinkTo, bleed, cleanse, fear, pct, skillHit, summonsOf } from './kit';
 import { cookPower, strike, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type BaseUnit } from './unitkit';
 
-const nat = (n: number) => ({ setup: (u: { mem: Record<string, number> }) => { u.mem.natureExtra = (u.mem.natureExtra || 0) + n; } });
 const faithWin = { after: (run: { power: number }, _u: unknown, won: boolean) => { if (won) run.power += 1; } };
 const fameWin = { after: (run: { fame: number }, _u: unknown, won: boolean) => { if (won) run.fame += 2; } };
 const extraPet = { setup: (u: { mem: Record<string, number> }) => { u.mem.extraSummon = (u.mem.extraSummon || 0) + 1; } };
@@ -181,7 +180,7 @@ export const ROSTER_C: BaseUnit[] = [
     ],
   },
   {
-    id: 'vivian', name: '비비안', title: '생태계 분석관 · 군체 연구원', factions: ['PAN'], traits: ['BUDDY', 'NATURE'], keywords: ['bio'],
+    id: 'vivian', name: '비비안', title: '생태계 분석관 · 군체 연구원', factions: ['PAN'], traits: ['BUDDY'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(6, 7, 8, 5, 5),
     sprite: 'medic', palette: tint(PAL.PAN, '#f0d040', '#1a1a22', '#ff8080'),
     summon: { name: '리키', art: 'sm_ricky', sprite: 'beast', palette: WOLF, atk: { type: 'strike', elem: 'phys', interval: 0.8 }, range: 1, hpMul: 1.1 },
@@ -213,7 +212,7 @@ export const ROSTER_C: BaseUnit[] = [
       uaug('vivian', 'pack', '야생 동료 호출', '동물 동료를 하나 더 부른다 (상속률 80%).', extraPet),
       uaug('vivian', 'kazoo', '카주 연주', '교감할 때 모든 아군 공격 속도 3초간 +40%.', setSk((s) => { s.kazoo = 0.4; })),
       uaug('vivian', 'record', '생태 기록 강박', '교감 대상은 4초간 받는 피해 +30%.', setSk((s) => { s.vuln = 0.3; })),
-      uaug('vivian', 'kit', '생존 키트와 신호기', '캠핑 러버 임시 장비 +1개, 정신력 +5, 기동력 +3.', { ...nat(1), majors: { mnd: 5, agi: 3 } }),
+      uaug('vivian', 'kit', '생존 키트와 신호기', '정신력 +9, 기동력 +6.', { majors: { mnd: 9, agi: 6 } }),
     ],
   },
   {
@@ -311,7 +310,7 @@ export const ROSTER_C: BaseUnit[] = [
     ],
   },
   {
-    id: 'rasmus', name: '라스무스', title: '엘베스타드가 조경사 · 경비견 맥스', factions: ['FAM'], traits: ['NATURE', 'BUDDY'], keywords: ['bio'],
+    id: 'rasmus', name: '라스무스', title: '엘베스타드가 조경사 · 경비견 맥스', factions: ['FAM'], traits: ['BUDDY'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, base: B(9, 7, 5, 7, 3),
     sprite: 'knight', palette: tint(PAL.FAM, '#4a5a3a', '#c8ccd8', '#ffcf40'),
     summon: { name: '맥스', art: 'sm_max', sprite: 'beast', palette: BEAR, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.6 },
@@ -339,7 +338,7 @@ export const ROSTER_C: BaseUnit[] = [
       uaug('rasmus', 'old', '오랜 짝', '맥스 스탯 상속률 +40%p.', bond(0.4)),
       uaug('rasmus', 'maul', '물어뜯기', '출혈 초당 위력 +50%p.', setSk((s) => { s.bleed += 0.5; })),
       uaug('rasmus', 'cub', '강아지', '맥스를 하나 더 데려온다 (상속률 80%).', extraPet),
-      uaug('rasmus', 'lodge', '정원 창고', '캠핑 러버 임시 장비 +1개, 생명력 +5, 방어력 +3.', { ...nat(1), majors: { vit: 5, def: 3 } }),
+      uaug('rasmus', 'lodge', '정원 창고', '생명력 +9, 방어력 +6.', { majors: { vit: 9, def: 6 } }),
       uaug('rasmus', 'roar', '짖기', '불청객 퇴치 때 맥스 주변 적 80% 확률로 1.2초 공포.', setSk((s) => { s.roar = 0.8; })),
     ],
   },

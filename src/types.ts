@@ -8,10 +8,10 @@ export const ELEM_NAME: Record<Elem, string> = { phys: '물리', chem: '화학',
 export type Keyword = 'bio' | 'mech' | 'struct' | 'phantom';
 export const KEYWORD_NAME: Record<Keyword, string> = { bio: '생체', mech: '기계', struct: '건물', phantom: '환상' };
 
-export type FactionId = 'UNI' | 'KAL' | 'HEL' | 'PET' | 'SIR' | 'PAN' | 'FAM' | 'SEC' | 'STL' | 'HOI' | 'TIME';
-export const FACTIONS: FactionId[] = ['UNI', 'KAL', 'HEL', 'PET', 'SIR', 'PAN', 'FAM', 'SEC', 'STL', 'HOI', 'TIME'];
-export type TraitId = 'MED' | 'BUDDY' | 'NATURE' | 'STAR' | 'INFIL' | 'NAV' | 'CHEF' | 'ENG' | 'EXPLORER' | 'RFRIEND'
-  | 'SCHEME' | 'DECOMP' | 'COND' | 'GUARD';
+export type FactionId = 'UNI' | 'KAL' | 'HEL' | 'PET' | 'SIR' | 'PAN' | 'FAM' | 'SEC' | 'STL' | 'HOI' | 'TIME' | 'VOYAGE';
+export const FACTIONS: FactionId[] = ['UNI', 'KAL', 'HEL', 'PET', 'SIR', 'PAN', 'FAM', 'SEC', 'STL', 'HOI', 'TIME', 'VOYAGE'];
+export type TraitId = 'MED' | 'BUDDY' | 'STAR' | 'INFIL' | 'NAV' | 'CHEF' | 'ENG' | 'EXPLORER' | 'RFRIEND'
+  | 'SCHEME' | 'DECOMP' | 'COND' | 'GUARD' | 'HUNTER' | 'OCCULT';
 
 /** 전투 유형: 어떤 스탯이 주력인지 */
 export type CType = 'MARK' | 'VAN' | 'SPEC' | 'CMD';

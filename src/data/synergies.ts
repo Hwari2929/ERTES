@@ -280,36 +280,13 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'BUDDY', name: '최고의 친구', kind: 'trait', tiers: [2, 4, 6, 8], color: '#f08fb0', icon: '♥',
     desc: '최고의 친구 기물은 전투 시작 시 단짝 소환물을 부릅니다. 소환물은 칸을 차지하고 공명도가 없으며, 주인 스탯의 일부를 물려받습니다 (기본 35%). 주인이 쓰러지면 함께 사라집니다.',
-    tierDesc: ['소환물 스탯 상속 55%, 소환물 피해 +15%', '소환물 스탯 상속 85%, 소환물 피해 +40%', '소환물 스탯 상속 120%, 소환물 피해 +100%, 소환물 +1',
-      '[우정 파워 MAX] 소환물 스탯 상속 200%, 소환물 피해 +250%, 소환물 +2'],
+    tierDesc: ['소환물 스탯 상속 55%, 소환물 피해 +15%', '소환물 스탯 상속 85%, 소환물 피해 +40%', '소환물 스탯 상속 220%, 소환물 피해 +100%',
+      '[우정 파워 MAX] 소환물 스탯 상속 520%, 소환물 피해 +250%'],
     member: (t) => ({ setup: (u) => {
-      u.mem.bond = Math.max(u.mem.bond || 0, T(t, [0.55, 0.85, 1.2, 2.0]));
+      // 6 · 8단계의 추가 소환 대신 그만큼 (추가 1기 = 80%) 상속률을 올린다
+      u.mem.bond = Math.max(u.mem.bond || 0, T(t, [0.55, 0.85, 2.2, 5.2]));
       u.mem.bondAmp = T(t, [0.15, 0.4, 1.0, 2.5]);
-      if (t >= 3) u.mem.extraSummon = (u.mem.extraSummon || 0) + (t >= 4 ? 2 : 1);
     } }),
-  },
-  {
-    id: 'NATURE', name: '캠핑 러버', kind: 'trait', tiers: [2, 4, 6, 8], color: '#8fc56a', icon: '❀',
-    desc: '어디서든 야영 장비를 챙겨 다닙니다. 매 전투 시작 시 이 전투에서만 유지되는 무작위 희귀 장비를 받습니다 (장비 칸을 차지하지 않음).',
-    tierDesc: ['임시 희귀 장비 1개', '임시 희귀 장비 2개, 그중 1개는 전설', '임시 장비 3개, 전부 전설', '[글램핑 풀옵션] 임시 장비 5개, 전부 전설'],
-    member: (t) => ({
-      setup: (u, b, ctx) => {
-        const n = T(t, [1, 2, 3, 5]) + (u.mem.natureExtra || 0);
-        const legends = T(t, [0, 1, 3, 5]);
-        const names: string[] = [];
-        const ids: string[] = [];
-        for (let i = 0; i < n; i++) {
-          let id = b.rng.pick(ALL_ADVANCED);
-          if (i < legends) id = 'L_' + id.slice(2);
-          ids.push(id);
-          applyLive(u, itemEffect(id), b, ctx);
-          names.push(itemInfo(id).name);
-        }
-        u.mem.gifts = n;
-        u.tempItems = [...(u.tempItems || []), ...ids];
-        u.hooks.push({ onStart(bb, self) { bb.emit({ k: 'status', id: self.id, name: names.join(' · ') }); } });
-      },
-    }),
   },
   {
     id: 'STAR', name: '은하 대스타', kind: 'trait', tiers: [2, 4, 6, 8], color: '#ff9de2', icon: '✪',
@@ -322,12 +299,12 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'INFIL', name: '침투자', kind: 'trait', tiers: [2, 4, 6, 8], color: '#9a8cff', icon: '☾',
     desc: '전투가 시작되면 적 후방으로 순간이동해 기습합니다. 회피와 치명타 확률이 오르고, 착지 직후 잠시 피해가 크게 증가합니다.',
-    tierDesc: ['회피 +11%p, 치명타 +11%p, 기습 3초 피해 +50%', '회피 +18%p, 치명타 +21%p, 기습 피해 +110%', '회피 +28%p, 치명타 +35%p, 기습 피해 +220%, 처치 시 기습 재발동',
-      '[그림자 숙청] 회피 +42%p, 치명타 +56%p, 기습 5초 피해 +500%, 처치 시 기습 재발동 + 최대 체력 30% 회복'],
+    tierDesc: ['회피 +18%p, 치명타 +6%p, 기습 3초 피해 +50%', '회피 +28%p, 치명타 +10%p, 기습 피해 +110%', '회피 +40%p, 치명타 +16%p, 기습 피해 +220%, 처치 시 기습 재발동',
+      '[그림자 숙청] 회피 +56%p, 치명타 +24%p, 기습 5초 피해 +500%, 처치 시 기습 재발동 + 최대 체력 30% 회복'],
     member: (t) => {
       const ambush = T(t, [0.5, 1.1, 2.2, 5.0]), dur = t >= 4 ? 5 : 3;
       return {
-        stats: { eva: T(t, [0.11, 0.18, 0.28, 0.42]), crit: T(t, [0.11, 0.21, 0.35, 0.56]) },
+        stats: { eva: T(t, [0.18, 0.28, 0.4, 0.56]), crit: T(t, [0.06, 0.1, 0.16, 0.24]) },
         hooks: {
           onStart(b, u) {
             const foes = b.enemiesOf(u);
@@ -345,15 +322,15 @@ export const SYNERGIES: SynDef[] = [
     },
   },
   {
-    id: 'NAV', name: '항해자', kind: 'trait', tiers: [2, 4, 6], color: '#7ab8ff', icon: '✈',
+    id: 'NAV', name: '항해자', kind: 'trait', tiers: [2, 4, 6, 8], color: '#7ab8ff', icon: '✈',
     desc: '항해자 1명을 [에이스 파일럿]으로 지정합니다 (기물 정보 창, 미지정 시 공명 등급이 가장 높은 항해자). 에이스는 기물마다 다른 추가 특성이 활성화되고, 단계가 오를수록 그 능력이 강해집니다.',
-    tierDesc: ['에이스 능력 ×1, 항해자 피해 +15%', '에이스 능력 ×1.8, 항해자 기동력 +5, 피해 +35%', '에이스 능력 ×3, 항해자 기동력 +10, 피해 +75%'],
+    tierDesc: ['에이스 능력 ×1, 항해자 피해 +15%', '에이스 능력 ×1.8, 항해자 기동력 +5, 피해 +35%', '에이스 능력 ×3, 항해자 기동력 +10, 피해 +75%', '[전설의 항로] 에이스 능력 ×4.5, 항해자 기동력 +16, 피해 +120%'],
     member: (t, ctx) => {
-      const agi = T(t, [0, 5, 10]);
-      const navDmg = [inc('all', T(t, [0.15, 0.35, 0.75]))];
+      const agi = T(t, [0, 5, 10, 16]);
+      const navDmg = [inc('all', T(t, [0.15, 0.35, 0.75, 1.2]))];
       const ace = ctx.run && ctx.unit && aceTargetUid(ctx.run) === ctx.unit.uid ? UNIT_BY_ID[ctx.unit.defId].ace : undefined;
       if (!ace) return { majors: { agi }, mods: navDmg };
-      const e = ace.effect(T(t, [1, 1.8, 3]));
+      const e = ace.effect(T(t, [1, 1.8, 3, 4.5]));
       const prev = e.setup;
       return { ...e, mods: [...(e.mods || []), ...navDmg], majors: { ...(e.majors || {}), agi: (e.majors?.agi || 0) + agi }, setup: (u, b, c) => { u.mem.ace = 1; prev?.(u, b, c); } };
     },
@@ -366,9 +343,9 @@ export const SYNERGIES: SynDef[] = [
     team: (t) => (t >= 3 ? { pct: { maxHp: 0.15 } } : null),
   },
   {
-    id: 'ENG', name: '엔지니어', kind: 'trait', tiers: [2, 3, 4], color: '#a0b4c8', icon: '⚙',
+    id: 'ENG', name: '엔지니어', kind: 'trait', tiers: [2, 4, 6, 8], color: '#a0b4c8', icon: '⚙',
     desc: '전투 시작 시 아군 진영 양옆 가장자리에 감시 포탑을 설치합니다. 포탑은 움직이지 않고, 출전한 엔지니어 능력치 평균의 일부를 물려받습니다. 칸을 차지하며, 빈칸이 없으면 설치되지 않습니다.',
-    tierDesc: ['감시 포탑 1기 (상속 60%, 공격 속도 +40%)', '감시 포탑 2기 (상속 80%)', '감시 포탑 3기 (상속 120%), 포탑 공격 속도 추가 +50%'],
+    tierDesc: ['감시 포탑 1기 (상속 100%, 공격 속도 +40%)', '감시 포탑 2기 (상속 150%)', '감시 포탑 3기 (상속 220%), 포탑 공격 속도 추가 +50%', '[자동화 요새] 감시 포탑 4기 (상속 320%), 포탑 공격 속도 추가 +50%'],
     member: (t) => ({
       setup: (u) => { u.mem.eng = t; },
       hooks: {
@@ -470,6 +447,22 @@ export const SYNERGIES: SynDef[] = [
         },
       };
     },
+  },
+  // ───────── 신설 (효과 준비 중)
+  {
+    id: 'HUNTER', name: '사냥꾼', kind: 'trait', tiers: [2, 4, 6, 8], color: '#c98a4a', icon: '➶',
+    desc: '효과 준비 중.',
+    tierDesc: ['효과 준비 중', '효과 준비 중', '효과 준비 중', '효과 준비 중'],
+  },
+  {
+    id: 'VOYAGE', name: '우리의 출항기!', kind: 'faction', tiers: [2, 3, 4, 5], color: '#4fc3c8', icon: '⛵',
+    desc: '효과 준비 중.',
+    tierDesc: ['효과 준비 중', '효과 준비 중', '효과 준비 중', '효과 준비 중'],
+  },
+  {
+    id: 'OCCULT', name: '신비학자', kind: 'trait', tiers: [2, 4, 6], color: '#b07cff', icon: '✶',
+    desc: '효과 준비 중.',
+    tierDesc: ['효과 준비 중', '효과 준비 중', '효과 준비 중'],
   },
   {
     id: 'EXPLORER', name: '탐험가', kind: 'trait', tiers: [1], color: '#e6d27a', icon: '⚓',

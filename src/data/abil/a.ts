@@ -24,7 +24,7 @@ export const ABIL_A: Record<string, AbilText> = {
       cell: '깜찍이 피해 [dmg+:shoot:1.7:phys]. [g:pen] [p:0.5].',
       vanish: '깜찍이로 처치 시 쿨다운 초기화.',
       gem: '[g:crit] 확률 [pp:0.21], 치명타 피해 [pp:0.6].',
-      onsen: '[g:camp] +1. 기동력 +5, 전투력 +3.',
+      onsen: '기동력 +9, 전투력 +6.',
     },
   },
   donovan: {
