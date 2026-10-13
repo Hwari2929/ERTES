@@ -141,6 +141,8 @@ function playRun(seed: number) {
       }
       if (!target || R.equip(run, idx, target.uid)) break;
     }
+    // 함대 확장: 출전 인원이 보유 기물보다 적으면 우선 구매 (예비 15 남김)
+    for (let c = R.fleetCost(run); c !== null && run.units.length > R.deployCap(run) && run.credits >= c + 15; c = R.fleetCost(run)) R.buyFleet(run);
     while (run.credits >= 30 + R.xpCost(run)) {
       const u = run.units.filter((x) => x.pos && x.rank < CFG.maxRank).sort((a, b) => a.rank - b.rank)[0];
       if (!u || !R.buyXp(run, u.uid)) break;

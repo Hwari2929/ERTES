@@ -1257,3 +1257,27 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .field-btn:hover .field-card, .field-btn:focus-visible .field-card { border-color: var(--c); }
 .side-tabs .log { max-height: 60vh; overflow-y: auto; }
 @media (prefers-reduced-motion: reduce) { .st-track, .st-ink { transition: none; } }
+
+/* 함선 관리 */
+.ship { margin-top: 18px; }
+.ship h2 { margin: 0 0 8px; }
+.ship-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; max-width: 640px; }
+.ship-btn { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; column-gap: 10px; align-items: center; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; color: var(--fg); }
+.ship-btn:not(:disabled):hover { border-color: var(--accent); }
+.ship-btn:disabled { opacity: .45; cursor: default; }
+.ship-btn .sb-ic { grid-row: 1 / 3; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; background: var(--panel-2); color: var(--accent); }
+.ship-btn .sb-ic svg { width: 20px; height: 20px; }
+.ship-btn b { grid-column: 2; }
+.ship-btn .small { grid-column: 2; grid-row: 2; }
+.ship-btn .sb-cost { grid-column: 3; grid-row: 1 / 3; font-weight: 800; color: var(--accent); white-space: nowrap; }
+/* 지정 소집 창 */
+.ms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.modal h3 { margin: 6px 0 2px; font-size: .95rem; color: var(--dim); }
+.ms-syn { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 6px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; text-align: left; color: var(--fg); }
+.ms-syn .syn-dia { width: 26px; height: 26px; display: grid; place-items: center; color: var(--c); }
+.ms-syn .syn-dia svg { width: 18px; height: 18px; }
+.ms-syn.own { border-color: color-mix(in srgb, var(--c) 45%, var(--line)); }
+.ms-syn.on { background: color-mix(in srgb, var(--c) 22%, var(--panel-2)); border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset; }
+.ms-syn:disabled { opacity: .4; cursor: default; }
+.ms-foot { align-items: center; }
+.ms-foot .muted { margin-right: auto; }

@@ -108,8 +108,8 @@ export const privilegeName = (p: AugPick) => PRIVILEGES.find((d) => d.id === p.i
 export const privilegeDesc = (p: AugPick) => PRIVILEGES.find((d) => d.id === p.id)!.desc(p.param);
 
 /** 영입 선택지. 인맥(G.network)이 있으면 파티와 시너지가 겹치는 기물 가중 */
-function recruitOptions(run: RunState, k: number): string[] {
-  const pool = RECRUITABLE.filter((d) => !run.units.some((u) => u.defId === d.id)).map((d) => d.id);
+function recruitOptions(run: RunState, k: number, only?: string[]): string[] {
+  const pool = only || RECRUITABLE.filter((d) => !run.units.some((u) => u.defId === d.id)).map((d) => d.id);
   const net = hasGlobal(run, 'G.network');
   const have = new Set(run.units.flatMap((u) => memberships(u)));
   const base = (x: string) => (x === 'amundsen' ? CFG.amundsenRecruitW : 1); // 아문센은 아주 드물게
@@ -142,7 +142,50 @@ export function addUnit(run: RunState, defId: string, rank: number): UnitState {
 /** 탐험가(아문센)는 정해진 페이즈 전에는 배치할 수 없다 */
 export const canDeploy = (run: RunState, u: UnitState) => u.lock !== run.phase && (!UNIT_BY_ID[u.defId].traits.includes('EXPLORER') || run.phase >= CFG.explorerPhase);
 
-export const deployCap = (run: RunState) => CFG.deployCap(run.phase) + (hasGlobal(run, 'G.squad') ? 1 : 0);
+/** 함대 확장 횟수 (구 세이브는 예전 페이즈 기준 출전 인원으로 환산) */
+const fleetOf = (run: RunState) => run.fleet ?? Math.max(0, Math.min(10, 3 + run.phase) - CFG.deployBase);
+export const deployCap = (run: RunState) => CFG.deployBase + fleetOf(run) + (hasGlobal(run, 'G.squad') ? 1 : 0);
+
+// ───────────────────────── 함선 관리: 함대 확장 · 지정 소집
+/** 다음 함대 확장 비용 (최대면 null) */
+export const fleetCost = (run: RunState): number | null => CFG.fleetCosts[fleetOf(run)] ?? null;
+export function buyFleet(run: RunState): string | null {
+  const c = fleetCost(run);
+  if (c === null) return '함대가 이미 최대 규모입니다';
+  if (run.credits < c) return `크레딧이 부족합니다 (${c} 필요)`;
+  run.credits -= c;
+  run.fleet = fleetOf(run) + 1;
+  autoPlace(run);
+  log(run, `함대 확장: 출전 인원 ${deployCap(run)}명 (크레딧 -${c})`);
+  return null;
+}
+export const musterCost = (run: RunState) => CFG.musterCost + CFG.musterStep * (run.musters || 0);
+/** 지정 소집 후보 풀: 고른 시너지 중 하나라도 가진, 아직 없는 기물 */
+export const musterPool = (run: RunState, syns: string[]) =>
+  RECRUITABLE.filter((d) => d.id !== 'amundsen' && !run.units.some((u) => u.defId === d.id) && [...d.factions, ...d.traits].some((s) => syns.includes(s))).map((d) => d.id); // 아문센은 지정 소집으로 부를 수 없다 (일반 영입에서만 드물게)
+export function openMuster(run: RunState): string | null {
+  if (run.pending.length || run.node) return '진행 중인 일을 먼저 끝내세요';
+  if (run.units.length >= CFG.maxParty) return `보유 한도(${CFG.maxParty}명)에 도달했습니다`;
+  if (run.credits < musterCost(run)) return `크레딧이 부족합니다 (${musterCost(run)} 필요)`;
+  run.pending.unshift({ t: 'muster' });
+  return null;
+}
+export function confirmMuster(run: RunState, syns: string[]): string | null {
+  if (run.pending[0]?.t !== 'muster') return null;
+  if (syns.length < 1 || syns.length > CFG.musterPicks) return `시너지를 1~${CFG.musterPicks}개 고르세요`;
+  const pool = musterPool(run, syns);
+  if (!pool.length) return '조건에 맞는 기물이 없습니다';
+  const c = musterCost(run);
+  if (run.credits < c) return `크레딧이 부족합니다 (${c} 필요)`;
+  run.credits -= c;
+  run.musters = (run.musters || 0) + 1;
+  run.pending.shift();
+  const k = 3 + (hasGlobal(run, 'G.scout') ? 1 : 0) + (hasGlobal(run, 'G.network') ? 1 : 0);
+  run.pending.unshift({ t: 'recruit', options: recruitOptions(run, k, pool), syns });
+  log(run, `지정 소집 (크레딧 -${c}): ${syns.map((s) => SYN_BY_ID[s as SynergyId]?.name || s).join(' · ')}`);
+  return null;
+}
+export function cancelMuster(run: RunState) { if (run.pending[0]?.t === 'muster') run.pending.shift(); }
 
 export function autoPlace(run: RunState, order: UnitState[] = run.units) {
   const cap = deployCap(run);
@@ -221,7 +264,7 @@ export function rerollRecruit(run: RunState) {
   const p = run.pending[0];
   if (p?.t !== 'recruit' || (p.rerolls ?? 1) <= 0) return;
   p.rerolls = (p.rerolls ?? 1) - 1;
-  p.options = recruitOptions(run, p.options.length);
+  p.options = recruitOptions(run, p.options.length, p.syns ? musterPool(run, p.syns) : undefined);
 }
 
 /** 전환: 휴식(체력 + 공명도) 또는 도전(다음 페이즈 역경급 전투) */

@@ -112,15 +112,20 @@ export type Pending =
   | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean; join?: boolean; kind?: 'unit' | 'special' | 'psionic' }
   | { t: 'pilgrim' }
   | { t: 'itemPick'; options: string[]; title: string }
-  | { t: 'recruit'; options: string[]; rerolls?: number } // rerolls 없음 = 1회
+  | { t: 'recruit'; options: string[]; rerolls?: number; syns?: string[] } // rerolls 없음 = 1회, syns = 지정 소집 조건
   | { t: 'supply'; options: string[] }
   | { t: 'branch'; options: NodeType[] }
   | { t: 'fork' } // 전환: 휴식 / 도전
+  | { t: 'muster' } // 지정 소집: 시너지 4개 선택 창
   | { t: 'blessing'; options: string[] }
   | { t: 'notice'; title: string; body: string; scene?: Beat[] };
 
 export interface RunState {
   version: number;
+  /** 함대 확장 횟수 (출전 인원 = 기본 + fleet). 없으면 구 세이브: 페이즈 기준으로 환산 */
+  fleet?: number;
+  /** 지정 소집 횟수 (가격 상승) */
+  musters?: number;
   seed: number;
   rng: number;
   phase: number;

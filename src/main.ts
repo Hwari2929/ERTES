@@ -45,6 +45,7 @@ type Sel = { k: 'unit'; uid: string } | { k: 'item'; idx: number } | { k: 'enemy
 const app = {
   screen: 'title' as Screen,
   mapTab: 0, // 메인 화면 우측 패널 탭: 0 파티 · 1 환경 · 2 기록
+  musterSel: [] as string[], // 지정 소집에서 고른 시너지
   run: null as RunState | null,
   sel: null as Sel,
   starters: [] as string[],
@@ -450,6 +451,7 @@ function mapScreen(run: RunState) {
       <div class="row-btns">${enter}
         ${pet >= 2 ? `<button class="btn" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 ${CR}+25 · 상환 30</button>` : ''}
       </div>
+      ${shipPanel(run)}
     </section>
     <aside class="side side-tabs">
       <div class="st-tabs" role="tablist">${['파티', '환경', '기록'].map((t, i) => `<button role="tab" class="st-tab" data-a="map-tab" data-v="${i}" aria-selected="${app.mapTab === i}">${t}</button>`).join('')}<span class="st-ink" style="--i:${app.mapTab}"></span></div>
@@ -476,6 +478,36 @@ function mapScreen(run: RunState) {
       </div></div>
     </aside>
   </main>`;
+}
+/** 함선 관리: 함대 확장 (출전 인원) · 지정 소집 (시너지 지정 영입) */
+function shipPanel(run: RunState) {
+  const fc = R.fleetCost(run), mc = R.musterCost(run), busy = !!run.node || run.pending.length > 0;
+  const full = run.units.length >= CFG.maxParty;
+  return `<section class="ship" aria-labelledby="ship-h"><h2 id="ship-h">함선 관리</h2><div class="ship-grid">
+    <button class="ship-btn" data-a="fleet" ${fc === null || run.credits < fc || busy ? 'disabled' : ''}>
+      <span class="sb-ic">${NODE_ICON.supply}</span><b>함대 확장</b>
+      <span class="small muted">출전 인원 ${R.deployCap(run)} → ${fc === null ? '최대' : R.deployCap(run) + 1}명</span>
+      <span class="sb-cost">${fc === null ? '최대 규모' : `${CR}${fc}`}</span></button>
+    <button class="ship-btn" data-a="muster-open" ${run.credits < mc || busy || full ? 'disabled' : ''}>
+      <span class="sb-ic">${NODE_ICON.recruit}</span><b>지정 소집</b>
+      <span class="small muted">${full ? `보유 한도 ${CFG.maxParty}명` : `시너지 ${CFG.musterPicks}개를 골라 그 안에서 영입`}</span>
+      <span class="sb-cost">${CR}${mc}</span></button>
+  </div></section>`;
+}
+function musterModal(run: RunState) {
+  const sel = app.musterSel;
+  const pool = sel.length ? R.musterPool(run, sel) : [];
+  const owned = new Set(run.units.flatMap((u) => [...UNIT_BY_ID[u.defId].factions, ...UNIT_BY_ID[u.defId].traits]));
+  const group = (kind: string, title: string) => `<h3>${title}</h3><div class="ms-grid">${SYNERGIES.filter((s) => s.kind === kind && R.musterPool(run, [s.id]).length).map((s) => {
+    const on = sel.includes(s.id), n = R.musterPool(run, [s.id]).length;
+    return `<button class="ms-syn${on ? ' on' : ''}${owned.has(s.id) ? ' own' : ''}" style="--c:${s.color}" data-a="muster-tog" data-v="${s.id}" aria-pressed="${on}" ${!on && sel.length >= CFG.musterPicks ? 'disabled' : ''}>
+      <span class="syn-dia">${synIcon(s.id) || s.icon}</span><b>${esc(s.name)}</b><span class="small muted">${n}명</span></button>`;
+  }).join('')}</div>`;
+  return `<h1>지정 소집</h1><p class="muted small">세력 · 특성 시너지를 최대 ${CFG.musterPicks}개 고르면, 그중 하나라도 가진 기물만 후보로 나옵니다. 테두리가 밝은 시너지는 이미 보유한 시너지입니다.</p>
+    ${group('faction', '세력')}${group('trait', '특성')}
+    <div class="row-btns ms-foot"><span class="muted small">${sel.length}/${CFG.musterPicks} 선택 · 후보 풀 ${pool.length}명</span>
+      <button class="btn" data-a="muster-cancel">취소</button>
+      <button class="btn primary" data-a="muster-ok" ${sel.length && pool.length ? '' : 'disabled'}>소집 ${CR}${R.musterCost(run)}</button></div>`;
 }
 function nodeHint(o: NodeType) {
   return ({
@@ -1041,7 +1073,7 @@ function pendingModal(run: RunState): string {
     const rr = p.rerolls ?? 1;
     mcls = 'recruit';
     const pick = app.recruitPick && p.options.includes(app.recruitPick) ? app.recruitPick : null;
-    body = `<div class="rc-head"><div><h1>기물 영입</h1><p class="muted small">새 동료 한 명을 고르세요. 공명 등급 ${rank}로 합류합니다. 보유 ${run.units.length}/${CFG.maxParty} (출전 최대 ${R.deployCap(run)}명)</p></div>${detailToggle()}</div>
+    body = `<div class="rc-head"><div><h1>${p.syns ? '지정 소집' : '기물 영입'}</h1><p class="muted small">${p.syns ? `${p.syns.map((s) => esc(SYN_BY_ID[s as SynergyId]?.name || s)).join(' · ')} 중에서 ` : ''}새 동료 한 명을 고르세요. 공명 등급 ${rank}로 합류합니다. 보유 ${run.units.length}/${CFG.maxParty} (출전 최대 ${R.deployCap(run)}명)</p></div>${detailToggle()}</div>
       <div class="rc-track">${p.options.map((id) => pickCard(UNIT_BY_ID[id], { on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), nameExtra: `<span class="rc-rank" title="공명 등급 ${rank}">${rankLabel(rank)}</span>` })).join('')}</div>
       <div class="rc-foot">${pick ? (() => {
         // 영입하면 바뀌는 시너지: 보유 기물 + 이 기물 기준 인원, 단계가 오르면 강조
@@ -1059,6 +1091,8 @@ function pendingModal(run: RunState): string {
       invest: '호이슌 투자 상품 (페이즈당 1회)', pilgrim: `권능 +1 후 순례 (페이즈당 1회) · 보유 권능 ${run.power}`,
     };
     body = `<h1>분기점</h1><p class="muted small">어디로 향할지 고르세요.</p><div class="cards">${p.options.map((o, i) => `<button class="card br-card n-${o}" data-a="pick-branch" data-v="${o}" title="단축키 ${i + 1}"><span class="br-ic">${NODE_ICON[o]}</span><b>${esc(NODE_NAME[o])}</b><span class="small muted">${ic(esc(BR[o] || ''))}</span></button>`).join('')}</div>`;
+  } else if (p.t === 'muster') {
+    body = musterModal(run);
   } else if (p.t === 'fork') {
     const xp = Math.round(CFG.xpPool(run.phase) * CFG.forkRestXp);
     body = `<h1>전환</h1><p class="muted small">페이즈의 갈림길입니다. 숨을 고를지, 한 걸음 앞서 나갈지 고르세요.</p><div class="cards">
@@ -1921,6 +1955,11 @@ function act(a: string, v: string) {
     case 'rc-tap': app.recruitPick = app.recruitPick === v ? null : v; break;
     case 'pick-recruit': if (run && v && run.pending[0]?.t === 'recruit') { R.recruit(run, v); run.pending.shift(); app.recruitPick = null; app.cardOpen = null; persist(); } break;
     case 'pick-branch': if (run && run.pending[0]?.t === 'branch') { R.pickBranch(run, v as NodeType); goPrepOrMap(); persist(); } break;
+    case 'fleet': if (run) { const err = R.buyFleet(run); toast(err || `함대 확장 — 출전 인원 ${R.deployCap(run)}명`); persist(); } break;
+    case 'muster-open': if (run) { const err = R.openMuster(run); if (err) toast(err); else app.musterSel = []; persist(); } break;
+    case 'muster-tog': if (v) { const i = app.musterSel.indexOf(v); if (i >= 0) app.musterSel.splice(i, 1); else if (app.musterSel.length < CFG.musterPicks) app.musterSel.push(v); } break;
+    case 'muster-ok': if (run) { const err = R.confirmMuster(run, app.musterSel); if (err) toast(err); else { app.musterSel = []; app.recruitPick = null; } persist(); } break;
+    case 'muster-cancel': if (run) { R.cancelMuster(run); app.musterSel = []; persist(); } break;
     case 'pick-fork': if (run && run.pending[0]?.t === 'fork') { R.pickFork(run, v as 'rest' | 'challenge'); goPrepOrMap(); persist(); } break;
     case 'reroll-recruit': if (run) { R.rerollRecruit(run); app.recruitPick = null; persist(); } break;
     case 'pick-supply': if (run && run.pending[0]?.t === 'supply') { run.pending.shift(); R.takeSupply(run, v); persist(); } break;

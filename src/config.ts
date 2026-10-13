@@ -65,7 +65,9 @@ export const CFG = {
   amundsenRecruitW: 0.08, // 영입 후보 가중치 (다른 기물 = 1)
   joinRankRatio: 0.7, // 영입 · 합류 등급 = max(페이즈 - 1, 출전 기물 평균 등급 × k)
   startUnits: 4, maxParty: 16, // 출전 최대 10 + 대기 6
-  deployCap: (phase: number) => Math.min(10, 3 + phase), // [임시]
+  deployBase: 4, // 기본 출전 인원. 함대 확장으로 늘린다
+  fleetCosts: [20, 40, 56, 72, 90, 108, 128, 160, 200, 256], // 함대 확장 n번째 비용 (출전 5 → 14명)
+  musterCost: 20, musterStep: 5, musterPicks: 4, // 지정 소집: 기본 가격, 회당 상승, 고르는 시너지 수
   benchXpWeight: 0.5, // 대기 기물의 공명도 분배 가중치 (출전 기물 대비)
   boardSizes: [ { n: 7, w: 70, env: '표준 전장' }, { n: 6, w: 15, env: '협소한 통로' }, { n: 8, w: 15, env: '개활지' } ],
   bossBoard: 7,
