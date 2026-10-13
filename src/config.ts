@@ -60,7 +60,7 @@ export const CFG = {
   // ── 파티/보드
   victoryPhase: 6, // 이 페이즈 보스를 이기면 의뢰 성공
   // 전환 노드 (짝수 페이즈): 휴식 = 체력 회복 + 공명도 소량 / 도전 = 다음 페이즈 역경급 전투, 승리 시 남은 노드 보상을 몰아 받고 다음 페이즈로
-  forkRestHp: 20, forkRestXp: 0.5, // 휴식: 체력 +n, 공명도 = 전투 1회 풀 × k
+  forkRestHp: 10, forkRestLost: 0.2, forkRestXp: 0.5, // 휴식: 체력 +n + 잃은 체력 × lost (내림), 공명도 = 전투 1회 풀 × k
   challengeXp: 4.5, // 도전 승리: 공명도 = 전투 1회 풀 × k
   amundsenRecruitW: 0.08, // 영입 후보 가중치 (다른 기물 = 1)
   joinRankRatio: 0.7, // 영입 · 합류 등급 = max(페이즈 - 1, 출전 기물 평균 등급 × k)
@@ -74,7 +74,7 @@ export const CFG = {
 
   // ── 경제 [임시]
   startCredits: 6,
-  winCredits: (phase: number) => 5 + Math.floor(phase / 2),
+  winCredits: (phase: number) => Math.floor(2.5 + phase / 2), // 노드가 늘어 이자가 쌓이므로 노드당 2~3 감소 (P1 3 · P3 4 · P6 5)
   lossCredits: 2,
   interestPer: 10, interestMax: 5,
   streakBonus: (streak: number) => (streak >= 6 ? 3 : streak >= 4 ? 2 : streak >= 2 ? 1 : 0),

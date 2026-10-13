@@ -229,7 +229,8 @@ export function pickFork(run: RunState, choice: 'rest' | 'challenge') {
   if (run.pending[0]?.t !== 'fork') return;
   run.pending.shift();
   if (choice === 'rest') {
-    const heal = Math.min(CFG.forkRestHp, run.maxHp - run.hp);
+    const lost = run.maxHp - run.hp;
+    const heal = Math.min(lost, CFG.forkRestHp + Math.floor(lost * CFG.forkRestLost));
     run.hp += heal;
     const xp = Math.round(CFG.xpPool(run.phase) * CFG.forkRestXp);
     distributeXp(run, xp);
