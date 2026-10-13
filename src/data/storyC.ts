@@ -87,10 +87,11 @@ export const STORY_C: EventDef[] = [
         label: '내일 자 일지를 읽는다', desc: '50%: 공명도 18 분배 (다가올 전투를 미리 본다). 50%: 무작위 사이오닉 기물(없으면 무작위 기물) 1명 정신력 -1 (영구).',
         block: noUnits,
         apply: (r, api) => {
-          if (api.chance(0.5)) { api.xp(18); return '내일의 전투가 한 줄 한 줄 적혀 있었습니다. 공명도 +18.'; }
+          if (api.chance(0.5)) { api.xp(18); api.outcome('see'); return '내일의 전투가 한 줄 한 줄 적혀 있었습니다. 공명도 +18.'; }
           const ps = psyOf(r);
           const u = pickU(r, api, ps.length ? ps : r.units);
           if (u) u.perm.mnd -= 1;
+          api.outcome('name', { who: u ? nm(u) : '누군가' });
           return `${u ? nm(u) : '누군가'}이(가) 자기 이름이 적힌 마지막 줄을 읽고 말았습니다. 정신력 -1.`;
         },
       },
@@ -106,7 +107,8 @@ export const STORY_C: EventDef[] = [
         label: '배를 인수한다', desc: '희귀 장비 1개 + 재료 1개. 30%: 승무원들이 분노해 플레이어 체력 -20.',
         apply: (r, api) => {
           api.gain(api.randomItem('A')); api.gain(api.randomItem('C'));
-          if (api.chance(0.3)) { hurt(r, 20); return '화물은 챙겼지만, 집을 빼앗긴 망자들이 함선을 할퀴었습니다. 체력 -20.'; }
+          if (api.chance(0.3)) { hurt(r, 20); api.outcome('angry'); return '화물은 챙겼지만, 집을 빼앗긴 망자들이 함선을 할퀴었습니다. 체력 -20.'; }
+          api.outcome('calm');
           return '승무원들은 말없이 배를 넘겨주었습니다. 희귀 장비와 재료를 얻었습니다.';
         },
       },
@@ -129,6 +131,7 @@ export const STORY_C: EventDef[] = [
         apply: (r, api) => {
           const u = pickU(r, api, psyOf(r))!;
           bench(r, u); api.rankUp(u, 2); api.flag('c_choir');
+          api.outcome('default', { who: nm(u) });
           return `${nm(u)}이(가) 합창단의 빈 자리를 채우러 떠났습니다. 공명 등급 +2.`;
         },
       },
@@ -141,7 +144,8 @@ export const STORY_C: EventDef[] = [
         label: '초대장을 되판다', desc: '크레딧 +8. 50%: 환청에 시달려 플레이어 체력 -8.',
         apply: (r, api) => {
           r.credits += 8;
-          if (api.chance(0.5)) { hurt(r, 8); return '크레딧 +8. 그런데 함선 어딘가에서 계속 노랫소리가 들립니다. 체력 -8.'; }
+          if (api.chance(0.5)) { hurt(r, 8); api.outcome('echo'); return '크레딧 +8. 그런데 함선 어딘가에서 계속 노랫소리가 들립니다. 체력 -8.'; }
+          api.outcome('quiet');
           return '수집가가 기꺼이 사 갔습니다. 크레딧 +8.';
         },
       },
@@ -154,8 +158,9 @@ export const STORY_C: EventDef[] = [
       {
         label: '노래를 끝까지 듣는다', desc: '50%: 오닉스 찬가 — 모든 아군 정신 피해 +20% (영구). 50%: 플레이어 체력 -20, 크레딧 -5.',
         apply: (r, api) => {
-          if (api.chance(0.5)) { api.boon('c_hymn'); return '마지막 소절이 함선의 일부가 되었습니다. 정신 피해 +20% (영구).'; }
+          if (api.chance(0.5)) { api.boon('c_hymn'); api.outcome('hymn'); return '마지막 소절이 함선의 일부가 되었습니다. 정신 피해 +20% (영구).'; }
           hurt(r, 20); r.credits = Math.max(0, r.credits - 5);
+          api.outcome('fall');
           return '노래가 끝났을 때 모두가 바닥에 쓰러져 있었습니다. 체력 -20, 크레딧 -5.';
         },
       },
@@ -188,9 +193,10 @@ export const STORY_C: EventDef[] = [
           if (api.chance(0.4)) {
             const u = pickU(r, api)!;
             const n = api.augNow(u);
-            if (n) return `${nm(u)}이(가) 꿈속에서 [${n}]을(를) 깨달았습니다.`;
+            if (n) { api.outcome('aug', { who: nm(u), aug: n }); return `${nm(u)}이(가) 꿈속에서 [${n}]을(를) 깨달았습니다.`; }
           }
           api.xp(10);
+          api.outcome('xp');
           return '해석은 애매했지만 모두가 조금 성장했습니다. 공명도 +10.';
         },
       },
@@ -206,9 +212,10 @@ export const STORY_C: EventDef[] = [
         label: '검은 상자', desc: '10%: 전설 장비 1개. 60%: 희귀 장비 1개. 30%: 빈 상자, 플레이어 체력 -12.',
         apply: (r, api) => {
           const k = tri(api, 0.1, 0.6);
-          if (k === 0) { api.gain(api.randomItem('L'), true); return '미래의 당신이 쓰던 전설 장비입니다. 흠집까지 똑같습니다.'; }
-          if (k === 1) { api.gain(api.randomItem('A')); return '희귀 장비 하나가 들어 있었습니다.'; }
+          if (k === 0) { api.gain(api.randomItem('L'), true); api.outcome('legend'); return '미래의 당신이 쓰던 전설 장비입니다. 흠집까지 똑같습니다.'; }
+          if (k === 1) { api.gain(api.randomItem('A')); api.outcome('rare'); return '희귀 장비 하나가 들어 있었습니다.'; }
           hurt(r, 12);
+          api.outcome('empty');
           return '상자는 비어 있었고, 뚜껑이 손가락을 물었습니다. 체력 -12.';
         },
       },
@@ -225,9 +232,10 @@ export const STORY_C: EventDef[] = [
         label: '편지를 뜯어본다', desc: '40%: 동봉된 송금 — 크레딧 +15. 35%: 소포 — 재료 1개. 25%: 저주 편지 — 플레이어 체력 -12.',
         apply: (r, api) => {
           const k = tri(api, 0.4, 0.35);
-          if (k === 0) { r.credits += 15; return '삼대째 부치지 못한 송금이 들어 있었습니다. 크레딧 +15.'; }
-          if (k === 1) { api.gain(api.randomItem('C')); return '작은 소포에서 쓸 만한 재료가 나왔습니다.'; }
+          if (k === 0) { r.credits += 15; api.outcome('money'); return '삼대째 부치지 못한 송금이 들어 있었습니다. 크레딧 +15.'; }
+          if (k === 1) { api.gain(api.randomItem('C')); api.outcome('parcel'); return '작은 소포에서 쓸 만한 재료가 나왔습니다.'; }
           hurt(r, 12);
+          api.outcome('curse');
           return '"이 편지를 연 자에게 일곱 번의 불운을." 체력 -12.';
         },
       },
@@ -237,6 +245,7 @@ export const STORY_C: EventDef[] = [
         apply: (r, api) => {
           const u = pickU(r, api)!;
           bench(r, u); r.power += 2; r.credits += 6;
+          api.outcome('default', { who: nm(u) });
           return `${nm(u)}이(가) 우편낭을 메고 떠났습니다. 권능 +2, 크레딧 +6 (배달 수당).`;
         },
       },
@@ -247,6 +256,7 @@ export const STORY_C: EventDef[] = [
           const d = divOf(r);
           const u = pickU(r, api, d.length ? d : r.units)!;
           setFaith(u, 'hermes'); u.perm.agi += 2;
+          api.outcome('default', { who: nm(u) });
           return `${nm(u)}의 발걸음이 가벼워졌습니다. 헤르메스 신앙, 기동력 +2.`;
         },
       },

@@ -310,8 +310,8 @@ export const STORY_B: EventDef[] = [
         block: noUnits,
         apply: (r, api) => {
           const u = ace(r)!;
-          if (api.chance(0.5)) { api.rankUp(u, 2); r.credits += 12; return `${nm(u)}이(가) 우승했습니다! 공명 등급 +2, 하사금 +12.`; }
-          api.rankUp(u, 1); hurt(r, 15); return `${nm(u)}은(는) 결승에서 아깝게 졌습니다. 공명 등급 +1, 체력 -15.`;
+          if (api.chance(0.5)) { api.rankUp(u, 2); r.credits += 12; api.outcome('win', { name: nm(u) }); return `${nm(u)}이(가) 우승했습니다! 공명 등급 +2, 하사금 +12.`; }
+          api.rankUp(u, 1); hurt(r, 15); api.outcome('lose', { name: nm(u) }); return `${nm(u)}은(는) 결승에서 아깝게 졌습니다. 공명 등급 +1, 체력 -15.`;
         },
       },
       {
@@ -319,7 +319,7 @@ export const STORY_B: EventDef[] = [
         block: (r) => (ofFac(r, 'KAL').length ? null : '칼리토 제국 기물이 없습니다'),
         apply: (r, api) => {
           const u = ofFac(r, 'KAL').sort((a, b) => b.rank - a.rank)[0];
-          api.rankUp(u, 1); u.perm.pow += 3; r.credits += 8;
+          api.rankUp(u, 1); u.perm.pow += 3; r.credits += 8; api.outcome('default', { name: nm(u) });
           return `제국 관중이 ${nm(u)}의 이름을 연호합니다. 공명 등급 +1, 전투력 +3.`;
         },
       },
@@ -328,8 +328,8 @@ export const STORY_B: EventDef[] = [
         block: needCr(10),
         apply: (r, api) => {
           r.credits -= 10;
-          if (api.chance(0.45)) { r.credits += 25; return '이변이 일어났습니다! 크레딧 +25.'; }
-          return '귀족들이 웃으며 판돈을 쓸어 갔습니다.';
+          if (api.chance(0.45)) { r.credits += 25; api.outcome('win'); return '이변이 일어났습니다! 크레딧 +25.'; }
+          api.outcome('lose'); return '귀족들이 웃으며 판돈을 쓸어 갔습니다.';
         },
       },
     ],
@@ -343,8 +343,8 @@ export const STORY_B: EventDef[] = [
         block: needCr(8),
         apply: (r, api) => {
           r.credits -= 8;
-          if (api.chance(0.75)) { api.xp(10); return '도장이 찍혔습니다. 남는 시간에 훈련했습니다.'; }
-          spend(r, 8); return '하필 감찰관이 지켜보고 있었습니다. 크레딧 추가 -8.';
+          if (api.chance(0.75)) { api.xp(10); api.outcome('ok'); return '도장이 찍혔습니다. 남는 시간에 훈련했습니다.'; }
+          spend(r, 8); api.outcome('caught'); return '하필 감찰관이 지켜보고 있었습니다. 크레딧 추가 -8.';
         },
       },
       {
@@ -372,8 +372,8 @@ export const STORY_B: EventDef[] = [
       {
         label: '양쪽 선금을 다 챙긴다', desc: '50%: 크레딧 +25, 장비 재료 1개 / 50%: 양쪽에 들통나 플레이어 체력 -20, 크레딧 -5.',
         apply: (r, api) => {
-          if (api.chance(0.5)) { r.credits += 25; api.gain(api.randomItem('C')); return '양쪽이 서로를 탓하는 사이 조용히 빠져나왔습니다.'; }
-          hurt(r, 20); spend(r, 5); return '동맹 함대와 페트라 경호팀이 동시에 포문을 열었습니다. 체력 -20.';
+          if (api.chance(0.5)) { r.credits += 25; api.gain(api.randomItem('C')); api.outcome('ok'); return '양쪽이 서로를 탓하는 사이 조용히 빠져나왔습니다.'; }
+          hurt(r, 20); spend(r, 5); api.outcome('caught'); return '동맹 함대와 페트라 경호팀이 동시에 포문을 열었습니다. 체력 -20.';
         },
       },
     ],
@@ -390,15 +390,15 @@ export const STORY_B: EventDef[] = [
         label: '발전기를 끈다', desc: '크레딧 +25. 30%: 정체가 드러나 양측 함대에 쫓기며 플레이어 체력 -20.',
         apply: (r, api) => {
           r.credits += 25;
-          if (api.chance(0.3)) { hurt(r, 20); return '회담장이 불타는 사이 정체가 드러났습니다. 크레딧 +25, 체력 -20.'; }
-          return '회담은 결렬되었고, 아무도 이유를 모릅니다. 크레딧 +25.';
+          if (api.chance(0.3)) { hurt(r, 20); api.outcome('exposed'); return '회담장이 불타는 사이 정체가 드러났습니다. 크레딧 +25, 체력 -20.'; }
+          api.outcome('clean'); return '회담은 결렬되었고, 아무도 이유를 모릅니다. 크레딧 +25.';
         },
       },
       {
         label: '사내를 붙잡아 넘긴다', desc: '60%: 양측의 사례로 연합 또는 칼리토 문장 1개 (무작위) / 40%: 사내가 자폭해 플레이어 체력 -14.',
         apply: (r, api) => {
-          if (api.chance(0.6)) { const m = api.rng((g) => g.pick(['M_UNI', 'M_KAL'])); api.gain(m, true); return `공작원을 넘겼습니다. ${m === 'M_UNI' ? '연합' : '제국'}이 문장을 보내왔습니다.`; }
-          hurt(r, 14); return '사내가 품속의 기폭 장치를 눌렀습니다. 체력 -14.';
+          if (api.chance(0.6)) { const m = api.rng((g) => g.pick(['M_UNI', 'M_KAL'])); api.gain(m, true); api.outcome('ok', { side: m === 'M_UNI' ? '연합' : '제국' }); return `공작원을 넘겼습니다. ${m === 'M_UNI' ? '연합' : '제국'}이 문장을 보내왔습니다.`; }
+          hurt(r, 14); api.outcome('boom'); return '사내가 품속의 기폭 장치를 눌렀습니다. 체력 -14.';
         },
       },
     ],
@@ -410,19 +410,19 @@ export const STORY_B: EventDef[] = [
       {
         label: '에이스를 임대한다', desc: '공명 등급이 가장 높은 기물이 이번 페이즈 동안 페트라에 파견된다 (출전 불가). 크레딧 +18, 희귀 장비 1개.',
         block: noUnits,
-        apply: (r, api) => { const u = ace(r)!; bench(r, u); r.credits += 18; api.gain(api.randomItem('A')); return `${nm(u)}이(가) 페트라 경호 업무에 파견되었습니다. 크레딧 +18, 희귀 장비 1개.`; },
+        apply: (r, api) => { const u = ace(r)!; bench(r, u); r.credits += 18; api.gain(api.randomItem('A')); api.outcome('default', { name: nm(u) }); return `${nm(u)}이(가) 페트라 경호 업무에 파견되었습니다. 크레딧 +18, 희귀 장비 1개.`; },
       },
       {
         label: '대항 제안을 낸다', desc: '크레딧 -12. 공명 등급이 가장 높은 기물 모든 메이저 +2 (영구).',
         block: (r) => needCr(12)(r) ?? noUnits(r),
-        apply: (r) => { r.credits -= 12; const u = ace(r)!; allMaj(u, 2); return `${nm(u)}의 처우를 올렸습니다. 모든 메이저 +2.`; },
+        apply: (r, api) => { r.credits -= 12; const u = ace(r)!; allMaj(u, 2); api.outcome('default', { name: nm(u) }); return `${nm(u)}의 처우를 올렸습니다. 모든 메이저 +2.`; },
       },
       {
         label: '역으로 스카우트한다', desc: '50%: 헤드헌터의 인맥으로 기물 3명 중 1명 영입 / 50%: 접대비만 날린다, 크레딧 -6.',
         block: (r) => (r.units.length >= 16 ? '보유 한도(16명)에 도달했습니다' : null),
         apply: (r, api) => {
-          if (api.chance(0.5)) { api.recruitPick(3); return '헤드헌터가 명함첩을 통째로 넘겼습니다. 면접을 진행합니다.'; }
-          spend(r, 6); return '헤드헌터는 비싼 술만 마시고 돌아갔습니다. 크레딧 -6.';
+          if (api.chance(0.5)) { api.recruitPick(3); api.outcome('ok'); return '헤드헌터가 명함첩을 통째로 넘겼습니다. 면접을 진행합니다.'; }
+          spend(r, 6); api.outcome('fail'); return '헤드헌터는 비싼 술만 마시고 돌아갔습니다. 크레딧 -6.';
         },
       },
     ],
@@ -434,8 +434,8 @@ export const STORY_B: EventDef[] = [
       {
         label: '활쏘기 내기에 나선다', desc: '55%: 헬레니우스 문장 1개 + 크레딧 +8 / 45%: 크레딧 -8.',
         apply: (r, api) => {
-          if (api.chance(0.55)) { api.gain('M_HEL', true); r.credits += 8; return '화살이 열두 개의 도끼 구멍을 꿰뚫었습니다! 함장들이 문장을 내렸습니다.'; }
-          spend(r, 8); return '화살이 과녁을 비껴갔습니다. 크레딧 -8.';
+          if (api.chance(0.55)) { api.gain('M_HEL', true); r.credits += 8; api.outcome('win'); return '화살이 열두 개의 도끼 구멍을 꿰뚫었습니다! 함장들이 문장을 내렸습니다.'; }
+          spend(r, 8); api.outcome('lose'); return '화살이 과녁을 비껴갔습니다. 크레딧 -8.';
         },
       },
       {
