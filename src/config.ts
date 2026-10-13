@@ -11,6 +11,7 @@ export const CFG = {
   // ── 리워크 [임시]
   finishMult: 2.6, // 콤보 무기 피니쉬 배율 (콤보 타격은 무기 계수 그대로)
   // 전술 위력 (사격 · 타격 · 기술 위력과 같은 단위): 출전 4명 · 지휘관 1명 기준 100
+  resultDelay: 1.1, // 전투가 끝나고 결과 창이 뜨기까지 (초)
   tacBase: 100, tacPerUnit: 16, tacPerCmd: 40, tacPerMnd: 2,
   reasonStart: 50, // 사이오닉 이성 시작값
   divCap: 200, // 디바인 전투당 신성력 수집 상한

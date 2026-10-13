@@ -72,9 +72,9 @@ function panGift(t: number, ctx: EffectCtx): Effect | null {
 /** 스텔라레이서: 비행선 추락 */
 function shipCrash(b: Battle, u: CUnit, k: number) {
   b.emit({ k: 'status', id: u.id, name: '비행선 추락!' });
+  b.emit({ k: 'crash', side: u.side as 0 | 1 }); // 연출: 비행선이 적진으로 내리꽂힌다
   for (const e of b.enemiesOf(u)) {
-    b.fx(e.x, e.y, 1, 'phys');
-    b.dealDamage(u, e, b.S(e, 'maxHp') * k, { elem: 'true', tag: 'proc' });
+    b.dealDamage(u, e, b.S(e, 'maxHp') * k, { elem: 'true', tag: 'proc', syn: 'STL' });
   }
 }
 
@@ -89,7 +89,7 @@ function chainBolt(b: Battle, u: CUnit, from: CUnit, hops: number, radius: numbe
     if (!next) break;
     hit.add(next);
     b.fx(next.x, next.y, 0, 'elec');
-    b.dealDamage(u, next, dmg, { elem: 'elec', tag: 'proc', kind: 'tech' });
+    b.dealDamage(u, next, dmg, { elem: 'elec', tag: 'proc', kind: 'tech', syn: 'COND' });
     at = next;
   }
 }
@@ -120,7 +120,7 @@ export const SYNERGIES: SynDef[] = [
         if (title >= 3) u.st.critDmg += 0.25;
         const gift = t >= 4 ? 0.25 : 0.1;
         if (title >= 4 && t >= 2) u.hooks.push({
-          onStart(bb, self) { for (const a of bb.alliesOf(self)) bb.shield(a, bb.S(a, 'maxHp') * gift); },
+          onStart(bb, self) { for (const a of bb.alliesOf(self)) bb.shield(a, bb.S(a, 'maxHp') * gift, 'KAL'); },
         });
       },
     }),
@@ -241,8 +241,8 @@ export const SYNERGIES: SynDef[] = [
         stats: { eva: T(t, [0.07, 0.18, 0.28, 0.42]) },
         hooks: {
           onEvade(b, u, src) {
-            b.heal(u, u, b.S(u, 'maxHp') * h);
-            if (src?.alive && src !== u) b.dealDamage(u, src, Math.max(b.S(u, 'shoot'), b.S(u, 'strike')) * k, { elem: 'true', tag: 'proc' });
+            b.heal(u, u, b.S(u, 'maxHp') * h, false, 'TIME');
+            if (src?.alive && src !== u) b.dealDamage(u, src, Math.max(b.S(u, 'shoot'), b.S(u, 'strike')) * k, { elem: 'true', tag: 'proc', syn: 'TIME' });
           },
         },
       };
@@ -267,8 +267,8 @@ export const SYNERGIES: SynDef[] = [
               const l = b.lowestHpAlly(u);
               if (l && (b.hpPct(l) < 1 || (t >= 4 && isDebuffed(l)))) {
                 const v = b.S(u, 'tech') * k; const miss = b.S(l, 'maxHp') - l.hp;
-                b.heal(u, l, v);
-                if (t >= 3 && v > miss) b.shield(l, v - miss);
+                b.heal(u, l, v, false, 'MED');
+                if (t >= 3 && v > miss) b.shield(l, v - miss, 'MED');
                 if (t >= 4) { const i = l.statuses.findIndex(isHarmful); if (i >= 0) l.statuses.splice(i, 1); }
               }
             }
@@ -338,7 +338,7 @@ export const SYNERGIES: SynDef[] = [
           },
           onKill: t >= 3 ? (b, u) => {
             b.buff(u, u, 'infil.ambush', dur, { mods: [inc('all', ambush)], label: '기습' });
-            if (t >= 4) b.heal(u, u, b.S(u, 'maxHp') * 0.3, true);
+            if (t >= 4) b.heal(u, u, b.S(u, 'maxHp') * 0.3, true, 'INFIL');
           } : undefined,
         },
       };
@@ -399,12 +399,12 @@ export const SYNERGIES: SynDef[] = [
             if (t >= 2 && b.rng.chance(0.5)) n += 1;
             if (t >= 3 && b.rng.chance(0.25)) n += 2;
             if (t >= 4) n *= 3;
-            addStacks(b, u, tgt, 'gloom', n, 99, 6, (k) => ({ type: 'dot', elem: 'true', dps: b.tacPower(u) * per * k }), '암운');
+            addStacks(b, u, tgt, 'gloom', n, 99, 6, (k) => ({ type: 'dot', elem: 'true', dps: b.tacPower(u) * per * k, syn: 'SCHEME' }), '암운');
           },
           onDeal: t >= 3 ? (b, u, tgt, r, o) => {
             if ((o.tag !== 'basic' && o.tag !== 'skill') || r.amount <= 0 || !tgt.alive) return;
             const g = tgt.statuses.find((x) => x.key === 'gloom')?.stacks || 0;
-            if (g) b.dealDamage(u, tgt, b.tacPower(u) * 0.1 * g, { elem: 'true', tag: 'proc' });
+            if (g) b.dealDamage(u, tgt, b.tacPower(u) * 0.1 * g, { elem: 'true', tag: 'proc', syn: 'SCHEME' });
           } : undefined,
         },
       };
@@ -422,9 +422,9 @@ export const SYNERGIES: SynDef[] = [
         hooks: {
           onDeal(b, u, tgt, r, o) {
             if (r.amount <= 0 || o.tag === 'dot') return;
-            if (t >= 2 && tgt.statuses.some((x) => x.key === 'decay')) b.heal(u, u, r.amount * 0.2, true);
+            if (t >= 2 && tgt.statuses.some((x) => x.key === 'decay')) b.heal(u, u, r.amount * 0.2, true, 'DECOMP');
             if ((o.tag !== 'basic' && o.tag !== 'skill') || !tgt.alive) return;
-            b.dealDamage(u, tgt, b.S(u, 'maxHp') * extra, { elem: 'chem', tag: 'proc' });
+            b.dealDamage(u, tgt, b.S(u, 'maxHp') * extra, { elem: 'chem', tag: 'proc', syn: 'DECOMP' });
             if (tgt.alive) addStacks(b, u, tgt, 'decay', 1, max, 8, (k) => ({ taken: [vuln('chem', 0.1 * k)] }), '부식');
           },
         },
@@ -465,7 +465,7 @@ export const SYNERGIES: SynDef[] = [
         hooks: {
           onBasic(b, u, tgt, r) {
             if (r.miss || !tgt.alive) return;
-            b.dealDamage(u, tgt, b.S(u, 'armor') * k, { elem: 'phys', tag: 'proc', kind: 'strike' });
+            b.dealDamage(u, tgt, b.S(u, 'armor') * k, { elem: 'phys', tag: 'proc', kind: 'strike', syn: 'GUARD' });
           },
         },
       };

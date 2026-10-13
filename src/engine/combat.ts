@@ -13,6 +13,8 @@ export interface Status {
   dur: number;
   src?: CUnit;
   dps?: number; elem?: Elem; tickAcc?: number;
+  /** 지속 피해가 시너지 몫이면 그 시너지 id */
+  syn?: string;
   delta?: Partial<Stats>;
   armorMul?: number;
   mods?: Mod[];
@@ -34,6 +36,8 @@ export interface Status {
 
 export interface DmgOpts {
   elem: Elem;
+  /** 시너지 자체 효과: 기물이 아닌 시너지 몫으로 집계 */
+  syn?: string;
   tag: 'basic' | 'skill' | 'dot' | 'proc';
   /** 피해 유형: 사격 · 타격 · 기술 (지속 피해는 tag 'dot') */
   kind?: 'shoot' | 'strike' | 'tech';
@@ -151,7 +155,8 @@ export type BEvent =
   | { k: 'status'; id: number; name: string }
   | { k: 'die'; id: number }
   | { k: 'spawn'; id: number }
-  | { k: 'fx'; x: number; y: number; r: number; elem: Elem };
+  | { k: 'fx'; x: number; y: number; r: number; elem: Elem }
+  | { k: 'crash'; side: 0 | 1 };
 
 export interface BattleCtx { phase: number; credits: number; field?: string; diff?: number }
 
@@ -168,6 +173,12 @@ export class Battle {
 
   /** 진영별 전술 위력 (전투 시작 시 계산) */
   tac: [number, number] = [0, 0];
+  /** 시너지 자체 효과의 피해 · 회복 · 보호막 (진영별) */
+  synStats: Record<string, { side: 0 | 1; dmg: number; healed: number; shield: number; elem: Partial<Record<Elem, number>> }> = {};
+  synStat(id: string, side: 0 | 1) {
+    const k = `${side}:${id}`;
+    return (this.synStats[k] ??= { side, dmg: 0, healed: 0, shield: 0, elem: {} });
+  }
 
   /** 전장 크기: 가로 w × 세로 h (배치 구역 + 바깥 테두리 1칸) */
   constructor(public w: number, public h: number, public rng: Rng, public ctx: BattleCtx) {}
@@ -322,7 +333,7 @@ export class Battle {
         if (s.tickAcc >= 0.5 || s.dur <= 0) {
           const amt = s.dps * s.tickAcc;
           s.tickAcc = 0;
-          this.dealDamage(s.src, u, amt, { elem: s.elem || 'phys', tag: 'dot' });
+          this.dealDamage(s.src, u, amt, { elem: s.elem || 'phys', tag: 'dot', syn: s.syn });
           if (!u.alive) return;
         }
       }
@@ -535,8 +546,9 @@ export class Battle {
       let left = dmg;
       if (tgt.shield > 0) { const a = Math.min(tgt.shield, left); tgt.shield -= a; left -= a; }
       tgt.hp -= left;
-      src.counters.dmg += dmg;
-      src.counters.elem[o.elem] = (src.counters.elem[o.elem] || 0) + dmg;
+      const cs = o.syn ? this.synStat(o.syn, src.side) : src.counters;
+      cs.dmg += dmg;
+      cs.elem[o.elem] = (cs.elem[o.elem] || 0) + dmg;
       tgt.counters.taken += dmg;
       if (src.side === 0 && dmg > this.counters.bestHit) this.counters.bestHit = dmg;
     }
@@ -577,7 +589,7 @@ export class Battle {
     else if (!this.living(1).length) this.winner = 0;
   }
 
-  heal(src: CUnit, tgt: CUnit, amt: number, raw = false) {
+  heal(src: CUnit, tgt: CUnit, amt: number, raw = false, syn?: string) {
     if (!tgt.alive || amt <= 0) return 0;
     if (this.consumeWound(tgt)) return 0;
     let a = amt;
@@ -589,7 +601,7 @@ export class Battle {
     const max = this.S(tgt, 'maxHp');
     const real = Math.min(a, max - tgt.hp);
     tgt.hp += real;
-    src.counters.healed += real;
+    (syn ? this.synStat(syn, src.side) : src.counters).healed += real;
     if (real >= 1) this.emit({ k: 'heal', id: tgt.id, v: real });
     if (!raw) for (const h of src.hooks) h.onHealDone?.(this, src, tgt, real, a - real);
     return real;
@@ -611,7 +623,7 @@ export class Battle {
     return true;
   }
 
-  shield(tgt: CUnit, amt: number) {
+  shield(tgt: CUnit, amt: number, syn?: string) {
     if (!tgt.alive || amt <= 0) return;
     if (this.consumeWound(tgt)) return;
     const giver0 = this.actor && this.actor.side === tgt.side ? this.actor : tgt;
@@ -619,7 +631,7 @@ export class Battle {
     const before = tgt.shield;
     tgt.shield = Math.min(this.S(tgt, 'maxHp'), tgt.shield + amt);
     const giver = giver0;
-    giver.counters.shield += tgt.shield - before;
+    (syn ? this.synStat(syn, tgt.side) : giver.counters).shield += tgt.shield - before;
     this.emit({ k: 'shield', id: tgt.id, v: amt });
   }
 

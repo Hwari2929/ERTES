@@ -1485,3 +1485,24 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .rs *, .res-bg.win::before { animation: none !important; } .res-bg.win::before { display: none; } }
 @media (max-width: 980px) { .rs-mvp > :not(.rs-mvp-art):not(.rs-mvp-stats) { grid-column: 2; } }
+
+/* 시너지 자체 효과 집계 줄 */
+.syn-src { display: inline-grid; place-items: center; width: 18px; height: 18px; flex: none; vertical-align: middle; }
+.syn-src svg { width: 16px; height: 16px; }
+.mrow-h { margin: 8px 0 2px; font-size: .7rem; letter-spacing: .08em; color: var(--muted); border-top: 1px solid var(--line); padding-top: 6px; }
+.mrow.syn { cursor: default; }
+.btable tr.bt-sep td { padding-top: 8px; font-size: .72rem; letter-spacing: .08em; color: var(--muted); border-top: 1px solid var(--line); }
+.btable tr.syn td:first-child { white-space: nowrap; }
+
+/* 스텔라레이서 비행선 추락 연출 */
+.crash-ship { position: absolute; z-index: 8; width: 110px; height: 18px; margin: -9px 0 0 -100px; transform-origin: 100px 50%; transform: rotate(var(--a)); pointer-events: none;
+  border-radius: 6px 50% 50% 6px; background: linear-gradient(90deg, transparent, rgba(255, 106, 61, .25) 25%, #ff6a3d 70%, #ffe7c2 92%, #fff);
+  box-shadow: 0 0 12px #ff6a3d, 0 0 26px rgba(255, 106, 61, .6); }
+.crash-boom { position: absolute; z-index: 7; width: 70%; aspect-ratio: 1.6; translate: -50% -50%; pointer-events: none; border-radius: 50%;
+  background: radial-gradient(closest-side, #fff 0 8%, #ffd2a0 18%, rgba(255, 106, 61, .75) 38%, rgba(255, 106, 61, .25) 62%, transparent 72%);
+  animation: crash-boom .85s ease-out forwards; }
+.crash-boom::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 3px solid #ff6a3d; animation: crash-ring .7s ease-out forwards; }
+@keyframes crash-boom { 0% { transform: scale(.2); opacity: 1; } 35% { opacity: 1; } 100% { transform: scale(1.15); opacity: 0; } }
+@keyframes crash-ring { from { transform: scale(.3); opacity: .9; } to { transform: scale(1.4); opacity: 0; } }
+.crash-shake { animation: crash-shake .42s cubic-bezier(.36, .07, .19, .97); }
+@keyframes crash-shake { 10%, 90% { translate: -1px 1px; } 20%, 80% { translate: 3px -2px; } 30%, 50%, 70% { translate: -5px 3px; } 40%, 60% { translate: 5px -2px; } }

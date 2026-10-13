@@ -202,7 +202,35 @@ export class BattleView {
         setTimeout(() => d.remove(), 600);
         break;
       }
+      case 'crash': this.crash(e.side); break;
       default: break;
     }
+  }
+
+  /** 스텔라레이서: 경기장 밖 비행선이 대각선으로 적진 한가운데에 내리꽂힌 뒤 섬광 · 충격파 · 화면 흔들림 */
+  private crash(side: 0 | 1, late = false) {
+    if (this.reduced) return;
+    if (!late && this.b.t < 0.3) { setTimeout(() => this.crash(side, true), 750); return; } // 전투 개시 배너가 걷힌 뒤에 보이도록
+    const foes = this.b.units.filter((u) => u.alive && u.side !== side);
+    if (!foes.length) return;
+    const cx = foes.reduce((s, u) => s + this.center(u).x, 0) / foes.length, cy = foes.reduce((s, u) => s + this.center(u).y, 0) / foes.length;
+    const sx = cx < 50 ? cx + 70 : cx - 70, sy = side === 0 ? -25 : 125;
+    const ang = (Math.atan2(cy - sy, cx - sx) * 180) / Math.PI;
+    const fly = 520 / Math.min(this.speed, 4);
+    const ship = document.createElement('div');
+    ship.className = 'crash-ship';
+    ship.style.setProperty('--a', `${ang}deg`);
+    this.fxLayer.appendChild(ship);
+    ship.animate([{ left: `${sx}%`, top: `${sy}%`, opacity: 0.4 }, { left: `${cx}%`, top: `${cy}%`, opacity: 1 }], { duration: fly, easing: 'cubic-bezier(.5, 0, .9, .6)', fill: 'forwards' });
+    setTimeout(() => {
+      ship.remove();
+      const boom = document.createElement('div');
+      boom.className = 'crash-boom';
+      boom.style.left = `${cx}%`; boom.style.top = `${cy}%`;
+      this.fxLayer.appendChild(boom);
+      setTimeout(() => boom.remove(), 900);
+      const view = this.board.parentElement;
+      if (view) { view.classList.remove('crash-shake'); void view.offsetWidth; view.classList.add('crash-shake'); setTimeout(() => view.classList.remove('crash-shake'), 450); }
+    }, fly);
   }
 }
