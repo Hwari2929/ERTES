@@ -950,8 +950,8 @@ function updateMeter(force = false) {
     <b class="mono">${tab === 'kills' ? a.kills : fmt(val(a))}</b>
     ${tab === 'support' ? `<small class="heal-t">회복 ${fmt(a.healed)} · 보호막 ${fmt(a.shield)}</small>` : ''}</div>`).join('')
     + (() => {
-      if (tab === 'kills' || tab === 'taken') return '';
-      const sv = (x: SynAgg) => (tab === 'dmg' ? x.dmg : x.healed + x.shield);
+      if (tab === 'kills') return '';
+      const sv = (x: SynAgg) => (tab === 'dmg' ? x.dmg : tab === 'taken' ? x.taken : x.healed + x.shield);
       const ss = aggSyn(v.b).filter((x) => sv(x) >= 1).sort((x, y) => sv(y) - sv(x));
       return ss.length ? `<div class="mrow-h">시너지 효과</div>${ss.map((x) => `<div class="mrow syn">${synBadge(x)}<span class="mname">${esc(x.name)}</span>
         ${tab === 'dmg' ? `<span class="mbar">${elemBar(x as unknown as Agg)}<i class="fill" style="width:${(x.dmg / max) * 100}%"></i></span>` : `<span class="mbar"><i style="width:${(sv(x) / max) * 100}%"></i></span>`}
@@ -1708,12 +1708,24 @@ const ELEM_COLOR: Record<string, string> = { phys: '#cfd3dc', chem: '#7fdc4a', e
 type Agg = { u: CUnit; dmg: number; taken: number; healed: number; shield: number; kills: number; elem: Record<string, number> };
 /** 아군 기물별 집계 (소환물은 주인에게 합산) */
 /** 시너지 자체 효과 집계 (아군 진영): 기물 몫과 따로 */
-type SynAgg = { id: string; name: string; color: string; icon: string; dmg: number; healed: number; shield: number; elem: Record<string, number> };
+type SynAgg = { id: string; name: string; color: string; icon: string; dmg: number; taken: number; healed: number; shield: number; elem: Record<string, number> };
 function aggSyn(b: Battle): SynAgg[] {
-  return Object.entries(b.synStats).filter(([, x]) => x.side === 0 && x.dmg + x.healed + x.shield >= 1).map(([k, x]) => {
-    const id = k.slice(2), sd = SYN_BY_ID[id as SynergyId];
-    return { id, name: sd?.name || id, color: sd?.color || 'var(--fg)', icon: synIcon(id) || sd?.icon || '◆', dmg: x.dmg, healed: x.healed, shield: x.shield, elem: x.elem as Record<string, number> };
-  });
+  const mk = (id: string): SynAgg => { const sd = SYN_BY_ID[id as SynergyId]; return { id, name: sd?.name || id, color: sd?.color || 'var(--fg)', icon: synIcon(id) || sd?.icon || '◆', dmg: 0, taken: 0, healed: 0, shield: 0, elem: {} }; };
+  const out = new Map<string, SynAgg>();
+  for (const [k, x] of Object.entries(b.synStats)) {
+    if (x.side !== 0) continue;
+    const a = mk(k.slice(2));
+    a.dmg = x.dmg; a.healed = x.healed; a.shield = x.shield; a.elem = { ...(x.elem as Record<string, number>) };
+    out.set(a.id, a);
+  }
+  // 엔지니어 감시 포탑: 포탑이 준 · 받은 피해는 엔지니어 시너지 몫
+  for (const t of b.units.filter((u) => u.side === 0 && u.defId === 'turret')) {
+    const a = out.get('ENG') || mk('ENG');
+    a.dmg += t.counters.dmg; a.taken += t.counters.taken; a.healed += t.counters.healed; a.shield += t.counters.shield;
+    for (const [e, v] of Object.entries(t.counters.elem)) a.elem[e] = (a.elem[e] || 0) + (v || 0);
+    out.set('ENG', a);
+  }
+  return [...out.values()].filter((x) => x.dmg + x.taken + x.healed + x.shield >= 1);
 }
 const synBadge = (x: SynAgg) => `<span class="syn-src" style="color:${x.color}" title="시너지 효과">${x.icon}</span>`;
 function aggAllies(b: Battle): Agg[] {
@@ -1733,7 +1745,7 @@ function battleTable(b: Battle) {
   const rows = aggAllies(b).sort((x, y) => y.dmg - x.dmg);
   return `<div class="btable-wrap"><table class="btable"><thead><tr><th>기물</th><th>준 피해</th><th>속성 비중</th><th>받은 피해</th><th>회복</th><th>보호막</th><th>결정타</th></tr></thead><tbody>
     ${rows.map((a) => `<tr class="${a.u.alive ? '' : 'dead'}"><td>${sprite(a.u)} ${esc(a.u.name)}</td><td class="mono">${fmt(a.dmg)}</td><td>${elemBar(a)}</td><td class="mono">${fmt(a.taken)}</td><td class="mono">${fmt(a.healed)}</td><td class="mono">${fmt(a.shield)}</td><td class="mono">${a.kills}</td></tr>`).join('')}
-    ${(() => { const ss = aggSyn(b).sort((x, y) => y.dmg + y.healed + y.shield - (x.dmg + x.healed + x.shield)); return ss.length ? `<tr class="bt-sep"><td colspan="7">시너지 효과</td></tr>${ss.map((x) => `<tr class="syn"><td>${synBadge(x)} ${esc(x.name)}</td><td class="mono">${fmt(x.dmg)}</td><td>${x.dmg >= 1 ? elemBar(x as unknown as Agg) : ''}</td><td class="mono muted">-</td><td class="mono">${fmt(x.healed)}</td><td class="mono">${fmt(x.shield)}</td><td class="mono muted">-</td></tr>`).join('')}` : ''; })()}
+    ${(() => { const ss = aggSyn(b).sort((x, y) => y.dmg + y.taken + y.healed + y.shield - (x.dmg + x.taken + x.healed + x.shield)); return ss.length ? `<tr class="bt-sep"><td colspan="7">시너지 효과</td></tr>${ss.map((x) => `<tr class="syn"><td>${synBadge(x)} ${esc(x.name)}</td><td class="mono">${fmt(x.dmg)}</td><td>${x.dmg >= 1 ? elemBar(x as unknown as Agg) : ''}</td><td class="mono${x.taken >= 1 ? '' : ' muted'}">${x.taken >= 1 ? fmt(x.taken) : '-'}</td><td class="mono">${fmt(x.healed)}</td><td class="mono">${fmt(x.shield)}</td><td class="mono muted">-</td></tr>`).join('')}` : ''; })()}
   </tbody></table></div>
   <div class="elegend small muted">${Object.entries(ELEM_COLOR).map(([k, c]) => `<span><i style="background:${c}"></i>${ELEM_NAME[k as keyof typeof ELEM_NAME]}</span>`).join('')}</div>`;
 }

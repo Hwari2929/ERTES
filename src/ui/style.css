@@ -1506,3 +1506,13 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 @keyframes crash-ring { from { transform: scale(.3); opacity: .9; } to { transform: scale(1.4); opacity: 0; } }
 .crash-shake { animation: crash-shake .42s cubic-bezier(.36, .07, .19, .97); }
 @keyframes crash-shake { 10%, 90% { translate: -1px 1px; } 20%, 80% { translate: 3px -2px; } 30%, 50%, 70% { translate: -5px 3px; } 40%, 60% { translate: 5px -2px; } }
+
+/* 메인 화면 우측 탭 (넓은 화면): 화면 높이를 꽉 채우고, 탭마다 따로 세로 스크롤 (스크롤바 숨김) */
+@media (min-width: 1101px) {
+  .map > .side.side-tabs { height: calc(100vh - var(--top-h, 70px) - 12px); max-height: none; overflow: hidden; }
+  .side-tabs .st-view { flex: 1; min-height: 0; }
+  .side-tabs .st-track { height: 100%; align-items: stretch; }
+  .side-tabs .st-pane { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding-bottom: 12px; }
+  .side-tabs .st-pane::-webkit-scrollbar { display: none; }
+  .side-tabs .log { max-height: none; overflow: visible; }
+}
