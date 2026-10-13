@@ -639,7 +639,7 @@ function prepScreen(run: RunState) {
     <section class="board-col">
       <div class="board-head"><b>${esc(env)}</b><span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${tacPill(run)}<span class="muted small">아래 ${ZONE}줄에 배치</span>
         ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}</div>
-      <div class="board" style="--w:${bw};--h:${bh}"><div class="cells">${cells}</div>${units}</div>
+      <div class="board-row"><div class="board" style="--w:${bw};--h:${bh}"><div class="cells">${cells}</div>${units}</div>${invRail(run)}</div>
       <div class="bench" data-drop="bench">
         <span class="bench-label">대기</span>
         ${bench.length ? bench.map((u) => {
@@ -648,7 +648,7 @@ function prepScreen(run: RunState) {
           return `<div class="bench-u ${sel ? 'sel' : ''}" data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}">${sprite(d, '')}<span class="ubadge">${rankLabel(u.rank)}</span></div>`;
         }).join('') : '<span class="muted small">기물을 여기로 끌어 출전에서 뺄 수 있습니다.</span>'}
       </div>
-      ${inventoryPanel(run)}
+      ${invDetail(run)}
       <div class="sticky-actions">
         ${isBattle ? `<button class="btn ghost" data-a="to-map">맵으로</button><button class="btn primary" data-a="fight" title="단축키 Space" ${deployed(run).length ? '' : 'disabled'}>전투 시작</button>`
           : `<button class="btn primary" data-a="to-map">완료</button>`}
@@ -659,16 +659,28 @@ function prepScreen(run: RunState) {
   </main>`;
 }
 
+/** 편성 표 오른쪽 세로 보관 칸 (장비 · 이후 소모품). 기물에게 끌어다 장착, 재료끼리 겹치면 조합 */
+function invRail(run: RunState) {
+  const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
+  return `<div class="inv-rail" data-drop="inv" title="기물에게 끌어다 장착 · 재료끼리 겹치면 조합">
+    <span class="ir-count">${run.inventory.length}/${CFG.inventoryMax}</span>
+    <div class="ir-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`).replace('class="item', `class="item${i === selIdx ? ' sel' : ''}`)).join('')}${'<span class="item empty"></span>'.repeat(Math.max(0, Math.min(4, CFG.inventoryMax - run.inventory.length)))}</div>
+  </div>`;
+}
+/** 상점 등: 가로 보관 칸 */
 function inventoryPanel(run: RunState) {
   const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
+  return `<div class="inv" data-drop="inv" title="재료끼리 겹치면 조합"><span class="ir-count">${run.inventory.length}/${CFG.inventoryMax}</span>
+    <div class="inv-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`).replace('class="item', `class="item${i === selIdx ? ' sel' : ''}`)).join('') || '<span class="muted small">비어 있음</span>'}</div></div>${invDetail(run)}`;
+}
+/** 고른 보관 물품: 설명 · 판매 */
+function invDetail(run: RunState) {
+  const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
   const sel = selIdx >= 0 ? run.inventory[selIdx] : null;
-  return `<div class="inv" data-drop="inv">
-    <div class="inv-head"><b>장비 보관함</b><span class="muted small">${run.inventory.length}/${CFG.inventoryMax} · 기물에게 끌어다 장착, 재료끼리 겹치면 조합</span></div>
-    <div class="inv-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`).replace('class="item', `class="item${i === selIdx ? ' sel' : ''}`)).join('') || '<span class="muted small">비어 있음</span>'}</div>
-    ${sel ? `<div class="inv-detail"><b>${esc(itemInfo(sel).name)}</b> <span class="muted">${statIc(esc(itemInfo(sel).desc))}</span>
-      <div class="row-btns"><button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${CFG.sell[sel[0]]}</button>
-      ${run.inventory.some((x, j) => j !== selIdx && combine(sel, x)) ? `<span class="muted small">조합 가능한 장비를 클릭하면 조합합니다.</span>` : ''}</div></div>` : ''}
-  </div>`;
+  if (!sel) return '';
+  return `<div class="inv-detail">${itemIcon(sel)}<div><b>${esc(itemInfo(sel).name)}</b> <span class="muted">${statIc(esc(itemInfo(sel).desc))}</span>
+    <div class="row-btns"><button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${CFG.sell[sel[0]]}</button>
+    ${run.inventory.some((x, j) => j !== selIdx && combine(sel, x)) ? '<span class="muted small">조합 가능한 장비를 누르면 조합합니다.</span>' : ''}</div></div></div>`;
 }
 
 function statLines(c: CUnit, b: Battle) {
