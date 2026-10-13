@@ -64,8 +64,8 @@ export const STORY_B: EventDef[] = [
         block: needCr(10),
         apply: (r, api) => {
           r.credits -= 10;
-          if (api.chance(0.6)) { api.gain(api.randomItem('A')); api.xp(12); return '장부 속 은닉 창고 좌표에서 희귀 장비를 찾았습니다.'; }
-          api.xp(6); return '절반은 위조였습니다. 그래도 제국 전술 기록 몇 장은 쓸모가 있었습니다.';
+          if (api.chance(0.6)) { api.gain(api.randomItem('A')); api.xp(12); api.outcome('real'); return '장부 속 은닉 창고 좌표에서 희귀 장비를 찾았습니다.'; }
+          api.xp(6); api.outcome('fake'); return '절반은 위조였습니다. 그래도 제국 전술 기록 몇 장은 쓸모가 있었습니다.';
         },
       },
     ],
@@ -84,8 +84,9 @@ export const STORY_B: EventDef[] = [
         block: noUnits,
         apply: (r, api) => {
           const u = ace(r)!;
-          if (api.chance(0.55)) { api.rankUp(u, 2); r.credits += 10; return `${nm(u)}이(가) 추심관의 검을 부러뜨렸습니다. 공명 등급 +2, 크레딧 +10.`; }
-          hurt(r, 20); bench(r, u); return `${nm(u)}이(가) 쓰러졌습니다. 체력 -20, 이번 페이즈 동안 회복에 전념합니다.`;
+          const name = nm(u);
+          if (api.chance(0.55)) { api.rankUp(u, 2); r.credits += 10; api.outcome('win', { name }); return `${nm(u)}이(가) 추심관의 검을 부러뜨렸습니다. 공명 등급 +2, 크레딧 +10.`; }
+          hurt(r, 20); bench(r, u); api.outcome('lose', { name }); return `${nm(u)}이(가) 쓰러졌습니다. 체력 -20, 이번 페이즈 동안 회복에 전념합니다.`;
         },
       },
       {
@@ -107,8 +108,8 @@ export const STORY_B: EventDef[] = [
         label: '봉쇄를 돌파한다', desc: '플레이어 체력 -12. 50%: 추격을 따돌리고 희귀 장비 1개 / 50%: 추가로 체력 -10.',
         apply: (r, api) => {
           hurt(r, 12);
-          if (api.chance(0.5)) { api.gain(api.randomItem('A')); return '봉쇄를 뚫으며 떨어진 보급 캡슐을 건졌습니다. 희귀 장비 1개.'; }
-          hurt(r, 10); return '삼단노선의 충각에 선체가 찢겼습니다. 체력 추가 -10.';
+          if (api.chance(0.5)) { api.gain(api.randomItem('A')); api.outcome('ok'); return '봉쇄를 뚫으며 떨어진 보급 캡슐을 건졌습니다. 희귀 장비 1개.'; }
+          hurt(r, 10); api.outcome('hurt'); return '삼단노선의 충각에 선체가 찢겼습니다. 체력 추가 -10.';
         },
       },
       {
@@ -117,6 +118,8 @@ export const STORY_B: EventDef[] = [
         apply: (r, api) => {
           const u = pickOne(api, deployed(r))!;
           bench(r, u); allMaj(u, 2); api.xp(12);
+          const name = nm(u);
+          api.outcome('default', { name });
           return `${nm(u)}이(가) 제국 투기장으로 잠입했습니다. 돌아올 때는 한층 단단해져 있을 겁니다.`;
         },
       },

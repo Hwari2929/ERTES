@@ -181,7 +181,7 @@ export const EVENTS: EventDef[] = [
       { label: '합류시킨다', desc: '사건 전용 기물 [오닉스 감응자] 합류.', block: (r) => (owns(r, 'onyx') ? '이미 함께하고 있습니다' : full(r)), apply: (_r, api) => { api.join('onyx'); return '오닉스 감응자가 합류했습니다.'; } },
       {
         label: '꿈을 해석받는다', desc: '무작위 출전 기물 1명이 전용 증강 하나를 즉시 얻는다.',
-        apply: (r, api) => { const pool = r.units.filter((u) => u.pos); const u = api.rng((g) => g.pick(pool.length ? pool : r.units)); const n = api.augNow(u); return n ? `꿈에서 [${n}]을(를) 깨달았습니다.` : '아무것도 깨닫지 못했습니다.'; },
+        apply: (r, api) => { const pool = r.units.filter((u) => u.pos); const u = api.rng((g) => g.pick(pool.length ? pool : r.units)); const n = api.augNow(u); if (n) api.outcome('learn', { aug: n }); else api.outcome('none'); return n ? `꿈에서 [${n}]을(를) 깨달았습니다.` : '아무것도 깨닫지 못했습니다.'; },
       },
     ],
   },
@@ -274,7 +274,7 @@ export const EVENTS: EventDef[] = [
     choices: [
       {
         label: '탐색한다', desc: '50%: 전설 장비 1개. 50%: 플레이어 체력 -20.',
-        apply: (r, api) => (api.rng((g) => g.chance(0.5)) ? (api.gain(api.randomItem('L'), true), '전설 장비를 찾았습니다!') : ((r.hp = Math.max(1, r.hp - 20)), '함정이었습니다. 체력 -20.')),
+        apply: (r, api) => (api.rng((g) => g.chance(0.5)) ? (api.gain(api.randomItem('L'), true), api.outcome('legend'), '전설 장비를 찾았습니다!') : ((r.hp = Math.max(1, r.hp - 20)), api.outcome('trap'), '함정이었습니다. 체력 -20.')),
       },
       { label: '무시한다', desc: '아무 일도 없다.', apply: () => '불빛은 곧 꺼졌습니다.' },
     ],

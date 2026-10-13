@@ -44,6 +44,7 @@ type Sel = { k: 'unit'; uid: string } | { k: 'item'; idx: number } | { k: 'enemy
 
 const app = {
   screen: 'title' as Screen,
+  mapTab: 0, // 메인 화면 우측 패널 탭: 0 파티 · 1 환경 · 2 기록
   run: null as RunState | null,
   sel: null as Sel,
   starters: [] as string[],
@@ -444,23 +445,35 @@ function mapScreen(run: RunState) {
     </aside>
     <section class="map-main">
       <div class="screen-head"><h1>페이즈 ${p}</h1><p class="muted small">${scale}</p></div>
-      <button class="field-mini" data-a="field-info" style="--c:${f.color}" title="전장 브리핑 다시 보기"><span class="fc-ic">${f.icon}</span><b>${esc(f.name)}</b><span class="muted small">${esc(f.region)}</span><span class="fm-more" aria-hidden="true">›</span></button>
       <div class="tl"><ol class="tl-track">${track}</ol></div>
       <div class="tl-info"><b>${esc(NODE_NAME[pick])}</b><span class="muted small">${run.node ? '진행 중' : ic(esc(nodeHint(pick)))}</span></div>
       <div class="row-btns">${enter}
         ${pet >= 2 ? `<button class="btn" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 ${CR}+25 · 상환 30</button>` : ''}
       </div>
     </section>
-    <aside class="side">
+    <aside class="side side-tabs">
+      <div class="st-tabs" role="tablist">${['파티', '환경', '기록'].map((t, i) => `<button role="tab" class="st-tab" data-a="map-tab" data-v="${i}" aria-selected="${app.mapTab === i}">${t}</button>`).join('')}<span class="st-ink" style="--i:${app.mapTab}"></span></div>
+      <div class="st-view"><div class="st-track" style="--i:${app.mapTab}">
+      <section class="st-pane" role="tabpanel" aria-label="파티">
       <h2>파티 <span class="muted small">출전 ${deployed(run).length}/${R.deployCap(run)} · 보유 ${run.units.length}/${CFG.maxParty}</span></h2>
       <div class="party">${run.units.map(rosterTile).join('')}</div>
+      <h2>보관함 <span class="muted small">${run.inventory.length}개</span></h2>
+      ${run.inventory.length ? `<div class="inv-strip">${run.inventory.map((id) => itemIcon(id)).join('')}</div>` : '<p class="muted small">보관 중인 장비가 없습니다.</p>'}
+      </section>
+      <section class="st-pane" role="tabpanel" aria-label="환경">
+      <h2>전장</h2>
+      <button class="field-btn" data-a="field-info" title="전장 브리핑 다시 보기">${fieldCard(run, true)}</button>
       ${run.quests.length ? `<h2>헬레니우스 퀘스트</h2><ul class="quests">${run.quests.map((q) =>
         `<li class="${q.done ? 'done' : ''}">${esc(R.questText(q))} <span class="muted">${Math.min(q.progress, q.target)}/${q.target} · 보상 ${R.questRewardText(q)}</span></li>`).join('')}</ul>` : ''}
       ${run.privilege ? `<h2>특권</h2><ul class="globals"><li><b>${esc(R.privilegeName(run.privilege))}</b> <span class="muted">${esc(R.privilegeDesc(run.privilege))}</span></li></ul>` : ''}
       ${run.boons.length || run.phaseBoons.length || run.mods.nodeIncome || run.mods.interestCap ? `<h2>사건 효과</h2><ul class="globals">${run.boons.map((id) => `<li><b>${esc(BOONS[id]?.name || id)}</b> <span class="muted">영구</span></li>`).join('')}${run.phaseBoons.map((id) => `<li><b>${esc(BOONS[id]?.name || id)}</b> <span class="muted">이번 페이즈</span></li>`).join('')}${run.mods.nodeIncome ? `<li><b>분할 정산</b> <span class="muted">노드마다 크레딧 +${run.mods.nodeIncome}, 이자 상한 ${run.mods.interestCap}</span></li>` : ''}</ul>` : ''}
       ${run.globals.length ? `<h2>전역 증강</h2><ul class="globals">${run.globals.map((g) => `<li><b>${esc(GLOBAL_BY_ID[g].name)}</b> <span class="muted">${ic(esc(GLOBAL_BY_ID[g].desc))}</span></li>`).join('')}</ul>` : ''}
+      </section>
+      <section class="st-pane" role="tabpanel" aria-label="기록">
       <h2>기록</h2>
-      <ul class="log">${run.log.slice(0, 8).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
+      <ul class="log">${run.log.slice(0, 40).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
+      </section>
+      </div></div>
     </aside>
   </main>`;
 }
@@ -1719,6 +1732,13 @@ function act(a: string, v: string) {
   const run = app.run;
   // 전투 중에는 속도 조절 / 결과 보기 / 계속만 받는다 (재렌더하면 전투 화면이 초기화됨)
   if (app.screen === 'battle' && !['speed', 'skip', 'after-battle', 'meter-tab', 'bsel', 'bdesel', 'bpick', 'stat-pop', 'abil-pop'].includes(a)) return;
+  if (a === 'map-tab') {
+    // 슬라이드 전환: 다시 그리지 않고 트랙만 옮긴다
+    app.mapTab = Math.max(0, Math.min(2, +v || 0));
+    document.querySelectorAll<HTMLElement>('.st-track, .st-ink').forEach((el) => el.style.setProperty('--i', String(app.mapTab)));
+    document.querySelectorAll('.st-tab').forEach((el, i) => el.setAttribute('aria-selected', String(i === app.mapTab)));
+    return;
+  }
   switch (a) {
     case 'newrun':
       app.starters = []; app.screen = 'newrun'; app.menu = null; carX = null; app.cardOpen = null;

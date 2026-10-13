@@ -1239,3 +1239,21 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .pc-nm { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .pc-nm .pc-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rc-rank { flex: none; display: inline-flex; align-items: center; padding: 1px 6px; border-radius: 4px; background: rgb(240 242 246 / .92); color: #12151c; font: 700 .72rem/1.3 var(--f-mono); }
+
+/* 메인 화면 우측: 파티 · 환경 · 기록 슬라이드 탭 */
+.side-tabs { display: flex; flex-direction: column; min-width: 0; }
+.st-tabs { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+.st-tab { background: none; border: 0; color: var(--dim); font: inherit; font-weight: 700; padding: 8px 4px 10px; cursor: pointer; }
+.st-tab[aria-selected="true"] { color: var(--accent); }
+.st-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.st-ink { position: absolute; bottom: -1px; left: 0; width: calc(100% / 3); height: 2px; background: var(--accent); transform: translateX(calc(var(--i) * 100%)); transition: transform .28s ease; }
+.st-view { overflow: hidden; min-width: 0; }
+.st-track { display: flex; width: 100%; transform: translateX(calc(var(--i) * -100%)); transition: transform .32s cubic-bezier(.3,.7,.2,1); }
+.st-pane { flex: 0 0 100%; min-width: 0; display: grid; align-content: start; gap: 6px; }
+.st-pane > h2 { margin-block: 10px 4px; }
+.st-pane > h2:first-child { margin-top: 0; }
+.inv-strip { display: flex; flex-wrap: wrap; gap: 4px; }
+.field-btn { all: unset; display: block; cursor: pointer; border-radius: 8px; }
+.field-btn:hover .field-card, .field-btn:focus-visible .field-card { border-color: var(--c); }
+.side-tabs .log { max-height: 60vh; overflow-y: auto; }
+@media (prefers-reduced-motion: reduce) { .st-track, .st-ink { transition: none; } }
