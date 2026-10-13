@@ -795,8 +795,9 @@ function detailPanel(run: RunState) {
     const s = run.node.enc.enemies[sel.i];
     if (!s) return '';
     const e = ENEMY_BY_ID[s.defId];
-    const b = new Battle(9, 9, new Rng(1), { phase: run.phase, credits: 0 });
-    const c = buildEnemy(b, e, run.phase, run.node.enc.mult);
+    const ph = run.node.enc.phase ?? run.phase; // 도전은 다음 페이즈 적
+    const b = new Battle(9, 9, new Rng(1), { phase: ph, credits: 0 });
+    const c = buildEnemy(b, e, ph, run.node.enc.mult);
     const ms = battleMajors(c)!;
     const eq = [...(e.items || []).filter((x): x is string => !!x), ...(e.mod ? [e.mod] : [])];
     const known = loadMeta().enemies[e.id];
@@ -805,7 +806,7 @@ function detailPanel(run: RunState) {
       <div class="small muted">${e.keywords.map((k) => KEYWORD_NAME[k]).join(' · ')} · 체력 ${fmt(b.S(c, 'maxHp'))}${known ? ` · 도감: 조우 ${known.seen} · 처치 ${known.kills}` : ''}</div>
       ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}
       ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.map((x) => `<span class="tk-it" title="${esc(itemInfo(x).name + ' — ' + itemInfo(x).desc)}">${itemIcon(x)}</span>`).join('')}</div></div>` : ''}
-      <div class="mj-wrap"><div class="mj-head"><h3>메이저 스탯 <span class="muted small">페이즈 ${run.phase}</span></h3>${magBtn()}</div>${majorsHtml(ms)}</div>
+      <div class="mj-wrap"><div class="mj-head"><h3>메이저 스탯 <span class="muted small">페이즈 ${ph}</span></h3>${magBtn()}</div>${majorsHtml(ms)}</div>
       <div class="small accent">페이즈 피해 배율 ×${c.phaseAmp.toFixed(2)}</div>
       <h3>능력</h3><div class="abils">${enemyAbilCards(e, b, c)}</div>
     </div>`;
@@ -1230,8 +1231,9 @@ function statPopHtml(run: RunState) {
   if (sel?.k === 'enemy' && run.node?.enc) {
     const s = run.node.enc.enemies[sel.i];
     if (!s) return '';
-    const b = new Battle(9, 9, new Rng(1), { phase: run.phase, credits: 0 });
-    const c = buildEnemy(b, ENEMY_BY_ID[s.defId], run.phase, run.node.enc.mult);
+    const ph = run.node.enc.phase ?? run.phase;
+    const b = new Battle(9, 9, new Rng(1), { phase: ph, credits: 0 });
+    const c = buildEnemy(b, ENEMY_BY_ID[s.defId], ph, run.node.enc.mult);
     if (app.abilPop) return enemyAbilPop(app.abilPop, ENEMY_BY_ID[s.defId], b, c);
     return `<div class="stat-pop"><div class="sp-head"><b>상세 능력치</b><span class="muted small">${esc(c.name)}</span><button class="btn tiny" data-a="stat-pop">닫기</button></div>${statLines(c, b)}</div>`;
   }

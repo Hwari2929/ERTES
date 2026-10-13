@@ -57,7 +57,7 @@ Battle.prototype.dealDamage = function (this: Battle, src: CUnit, tgt: CUnit, ba
 /** buildBattle 과 같되 시너지 인원을 덮어쓸 수 있다 (반사실 실험용) */
 function makeBattle(run: RunState, enc: NonNullable<NonNullable<RunState['node']>['enc']>, counts: Record<string, number>) {
   const dim = boardDims(enc.n);
-  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: run.phase, credits: run.credits, field: run.field, diff: run.diff });
+  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff });
   b.keepEvents = false;
   const lay = layout(run, enc.n);
   for (const u of deployed(run)) {
@@ -68,7 +68,7 @@ function makeBattle(run: RunState, enc: NonNullable<NonNullable<RunState['node']
     b.add(c);
   }
   for (const s of enc.enemies) {
-    const e = buildEnemy(b, ENEMY_BY_ID[s.defId], run.phase, enc.mult);
+    const e = buildEnemy(b, ENEMY_BY_ID[s.defId], enc.phase ?? run.phase, enc.mult);
     const ec = enemyCell(s.c, s.row, enc.n);
     e.x = e.px = ec.x; e.y = e.py = ec.y;
     if (b.unitAt(e.x, e.y)) { const f = b.freeCellNear(e.x, e.y); if (!f) continue; e.x = e.px = f.x; e.y = e.py = f.y; }
