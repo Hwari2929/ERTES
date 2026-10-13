@@ -430,16 +430,20 @@ export class Battle {
   }
 
   private moveToward(u: CUnit, tgt: CUnit, range: number) {
-    // BFS: 대상이 사거리 안에 들어오는 가장 가까운 빈 칸으로.
-    // 아군 기물은 지나갈 수 있는 칸으로 본다 (아군이 길을 막아 멈춰 서는 일이 없도록). 단, 첫 걸음과 도착 칸은 비어 있어야 한다
-    const n = this.w;
-    const prev = new Map<number, number>();
+    // 최단 경로 (다익스트라): 대상이 사거리 안에 들어오는 가장 가까운 빈 칸으로.
+    // 아군 칸은 지나갈 수 있지만 비용이 크다 (빈 길이 있으면 그쪽으로 돌아간다). 첫 걸음 · 도착 칸은 비어 있어야 하고 적은 항상 막는다.
+    // 맴돌기 방지: 방금 떠나온 칸으로는 바로 되돌아가지 않고, 아군을 지나야 하는 길인데 첫 걸음이 대상에게 가까워지지 않으면 제자리에서 기다린다
+    const n = this.w, N = n * this.h;
     const start = u.y * n + u.x;
-    const q = [start];
-    prev.set(start, -1);
+    const cost = new Float64Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), via = new Uint8Array(N), done = new Uint8Array(N);
+    cost[start] = 0;
+    const back = u.mem.lastCell ?? -1;
     let goal = -1;
-    while (q.length) {
-      const cur = q.shift()!;
+    for (;;) {
+      let cur = -1, bc = Infinity;
+      for (let i = 0; i < N; i++) if (!done[i] && cost[i] < bc) { bc = cost[i]; cur = i; }
+      if (cur < 0) break;
+      done[cur] = 1;
       const cx = cur % n, cy = (cur / n) | 0;
       if (cur !== start && !this.unitAt(cx, cy) && this.dist({ x: cx, y: cy }, tgt) <= range) { goal = cur; break; }
       for (let dy = -1; dy <= 1; dy++)
@@ -448,18 +452,21 @@ export class Battle {
           const nx = cx + dx, ny = cy + dy;
           if (!this.inBounds(nx, ny)) continue;
           const id = ny * n + nx;
-          if (prev.has(id)) continue;
+          if (done[id]) continue;
           const occ = this.unitAt(nx, ny);
-          if (occ && (cur === start || occ.side !== u.side)) continue; // 적은 항상 막고, 아군은 첫 걸음에서만 막는다
-          prev.set(id, cur);
-          q.push(id);
+          if (occ && (cur === start || occ.side !== u.side)) continue;
+          if (cur === start && id === back) continue; // 방금 떠나온 칸
+          const c = bc + (occ ? 4 : 1) + (dx && dy ? 0.01 : 0); // 아군 칸은 비싸게, 대각선은 아주 조금 비싸게 (직선 우선)
+          if (c < cost[id]) { cost[id] = c; prev[id] = cur; via[id] = via[cur] | (occ ? 1 : 0); }
         }
     }
     let next = -1;
     if (goal >= 0) {
       let c = goal;
-      while (prev.get(c) !== start) c = prev.get(c)!;
+      while (prev[c] !== start) c = prev[c];
       next = c;
+      // 아군 사이로 비집어야 하는 길: 첫 걸음이 대상에게 가까워지지 않으면 비켜 줄 때까지 기다린다
+      if (via[goal] && this.dist({ x: next % n, y: (next / n) | 0 }, tgt) >= this.dist(u, tgt)) next = -1;
     } else {
       // 경로가 막힘: 거리를 줄이는 아무 빈 칸
       let best = this.dist(u, tgt);
@@ -471,7 +478,8 @@ export class Battle {
           if (dd < best) { best = dd; next = ny * n + nx; }
         }
     }
-    if (next < 0) return;
+    if (next < 0) { u.mem.lastCell = -1; return; } // 기다렸으면 다음엔 되돌아가는 길도 허용
+    u.mem.lastCell = start;
     u.px = u.x; u.py = u.y;
     u.x = next % n; u.y = (next / n) | 0;
     u.moveDur = u.moveT = CFG.moveTime / this.S(u, 'moveSpd');
