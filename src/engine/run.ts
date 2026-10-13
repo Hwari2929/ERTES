@@ -7,7 +7,7 @@ import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, emblemId, emblemOf, isLocked, isMod, itemInfo } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, isConsumable, isEmblem, isLocked, isMod, itemInfo, occultModsOfTier } from '../data/items';
 import { SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, PSI_AUGS, recMajors } from '../data/rework';
@@ -270,9 +270,16 @@ export function rerollRecruit(run: RunState) {
 }
 
 /** 전환: 휴식(체력 + 공명도) 또는 도전(다음 페이즈 역경급 전투) */
-export function pickFork(run: RunState, choice: 'rest' | 'challenge') {
+export function pickFork(run: RunState, choice: 'rest' | 'challenge' | 'synth') {
   if (run.pending[0]?.t !== 'fork') return;
+  if (choice === 'synth' && !occultTier(run)) return;
   run.pending.shift();
+  if (choice === 'synth') {
+    run.picked[run.step] = 'shop';
+    run.node = { type: 'shop', shop: genSynth(run), synth: true };
+    log(run, '전환: 합성');
+    return;
+  }
   if (choice === 'rest') {
     const lost = run.maxHp - run.hp;
     const heal = Math.min(lost, CFG.forkRestHp + Math.floor(lost * CFG.forkRestLost));
@@ -303,6 +310,94 @@ function challengeReward(run: RunState, lines: string[]) {
   else run.pending.push({ t: 'itemPick', title: '보스 전리품 — 장비 재료 1개 선택', options: rng(run, (r) => r.sample(ALL_COMPONENTS, 3)) });
 }
 
+// ───────────────────────── 신비학자: 전용 개조부품 · [합성] 소모품
+export const occultTier = (run: RunState) => tierNow(run, 'OCCULT');
+/** 처음 도달한 신비학자 단계마다 그 단계 전용 개조부품 1개 선택 */
+export function checkOccult(run: RunState): boolean {
+  const t = occultTier(run), had = run.occultTier || 0;
+  if (t <= had) return false;
+  for (let k = had + 1; k <= t; k++) {
+    run.pending.push({ t: 'itemPick', title: `신비학자 ${k}단계 도달 — 전용 개조부품 1개 선택`, options: rng(run, (r) => r.sample(occultModsOfTier(k), 3)) });
+  }
+  run.occultTier = t;
+  return true;
+}
+function genSynth(run: RunState): NonNullable<NonNullable<RunState['node']>['shop']> {
+  const t = occultTier(run);
+  const n = 2 + t, mul = t >= 3 ? 0.7 : 1;
+  return rng(run, (r) => {
+    const ids = r.sample(ALL_CONSUMABLES, Math.min(n, ALL_CONSUMABLES.length)); // 서로 다른 종류 먼저, 남는 칸은 무작위
+    while (ids.length < n) ids.push(r.pick(ALL_CONSUMABLES));
+    return ids.map((id) => ({ item: id, price: Math.round(CONSUMABLES[id].price * mul), sold: false }));
+  });
+}
+export type UseTarget = { k: 'unit'; uid: string } | { k: 'inv'; i: number } | { k: 'eq'; uid: string; slot: number };
+/** 소모품 사용 대상이 맞는지 (null = 사용 가능) */
+export function useCheck(run: RunState, kIdx: number, tg: UseTarget): string | null {
+  const id = run.inventory[kIdx];
+  const c = id ? CONSUMABLES[id] : undefined;
+  if (!c) return '소모품이 아닙니다';
+  if (c.target === 'unit') {
+    if (tg.k === 'inv') return '기물에게 사용하는 소모품입니다';
+    const u = run.units.find((x) => x.uid === tg.uid);
+    if (!u) return '대상 없음';
+    if (id === 'K_rank' && u.rank >= CFG.maxRank) return '이미 최고 공명 등급입니다';
+    if (id === 'K_morph' && !morphPool(run).length) return '바뀔 수 있는 기물이 없습니다';
+    return null;
+  }
+  if (tg.k === 'unit') return '장비에 사용하는 소모품입니다';
+  const it = useItemId(run, tg);
+  if (!it) return '대상 장비 없음';
+  if (isLocked(it) || isConsumable(it)) return '이 장비에는 쓸 수 없습니다';
+  if (id === 'K_legend' && (it[0] === 'L' || isMod(it))) return '전설로 바꿀 수 없는 장비입니다';
+  if (id === 'K_copy' && run.inventory.length - 1 >= CFG.inventoryMax) return '보관함이 가득 찼습니다';
+  return null;
+}
+const useItemId = (run: RunState, tg: UseTarget) => tg.k === 'inv' ? run.inventory[tg.i] : tg.k === 'eq' ? (tg.slot === -1 ? run.units.find((x) => x.uid === tg.uid)?.mod : run.units.find((x) => x.uid === tg.uid)?.items[tg.slot]) ?? null : null;
+const morphPool = (run: RunState) => RECRUITABLE.filter((d) => !d.traits.includes('EXPLORER') && !run.units.some((u) => u.defId === d.id)).map((d) => d.id);
+const toLegend = (it: string) => it[0] === 'A' ? `L_${it.slice(2)}` : `L_${it.slice(2)}_${it.slice(2)}`;
+/** 소모품 사용. 결과 문구 또는 오류 */
+export function useConsumable(run: RunState, kIdx: number, tg: UseTarget): { ok: boolean; msg: string } {
+  const err = useCheck(run, kIdx, tg);
+  if (err) return { ok: false, msg: err };
+  const id = run.inventory[kIdx];
+  const name = CONSUMABLES[id].name;
+  let msg = '';
+  if (id === 'K_rank' || id === 'K_morph') {
+    const u = run.units.find((x) => x.uid === (tg as { uid: string }).uid)!;
+    run.inventory.splice(kIdx, 1);
+    if (id === 'K_rank') { rankUp(run, u); msg = `${UNIT_BY_ID[u.defId].name} 공명 등급 ${u.rank}`; }
+    else {
+      const to = rng(run, (r) => r.pick(morphPool(run)));
+      const nu = addUnit(run, to, Math.min(CFG.maxRank, u.rank + 3));
+      nu.pos = u.pos; nu.xp = 0;
+      for (const it of u.items) {
+        if (!it || isLocked(it)) continue;
+        const k = nu.items.indexOf(null);
+        if (k >= 0) nu.items[k] = it; else gainItem(run, it, undefined, true);
+      }
+      nu.mod = u.mod;
+      run.units = run.units.filter((x) => x !== u);
+      run.pending = run.pending.filter((p) => !('uid' in p) || p.uid !== u.uid);
+      if (run.aceTarget === u.uid) run.aceTarget = null;
+      msg = `${UNIT_BY_ID[u.defId].name} → ${UNIT_BY_ID[to].name} (공명 등급 ${nu.rank})`;
+    }
+    log(run, `${name}: ${msg}`);
+    return { ok: true, msg };
+  }
+  const it = useItemId(run, tg)!;
+  const out = id === 'K_legend' ? toLegend(it) : it;
+  if (id === 'K_legend') {
+    if (tg.k === 'inv') run.inventory[tg.i] = out;
+    else if (tg.k === 'eq') { const u = run.units.find((x) => x.uid === tg.uid)!; u.items[tg.slot] = out; }
+    msg = `${itemInfo(it).name} → ${itemInfo(out).name}`;
+  }
+  run.inventory.splice(kIdx, 1);
+  if (id === 'K_copy') { run.inventory.push(it); msg = `${itemInfo(it).name} 복제`; }
+  log(run, `${name}: ${msg}`);
+  return { ok: true, msg };
+}
+
 export function leaveShop(run: RunState) { run.node = null; advance(run); }
 
 /** 분기점(상점 노드): 상점 · 보급 + 호이슌 투자 · 순례 (각각 페이즈당 1회) */
@@ -323,7 +418,7 @@ export function pickBranch(run: RunState, type: NodeType) {
 }
 
 export const hasDivine = (run: RunState) => run.units.some((u) => UNIT_BY_ID[u.defId].ttype === 'divine');
-const tierNow = (run: RunState, id: 'STAR' | 'HOI') => tierOf(id, synergyCounts(deployed(run), run)[id] || 0);
+const tierNow = (run: RunState, id: 'STAR' | 'HOI' | 'OCCULT') => tierOf(id, synergyCounts(deployed(run), run)[id] || 0);
 
 export function advance(run: RunState) {
   run.node = null;
@@ -677,9 +772,10 @@ export function equip(run: RunState, invIdx: number, uid: string): string | null
   const u = run.units.find((x) => x.uid === uid);
   const id = run.inventory[invIdx];
   if (!u || !id) return '대상 없음';
+  if (isConsumable(id)) return '소모품은 장착할 수 없습니다';
   // 개조부품은 전용 칸으로 (이미 있으면 맞교환)
   if (isMod(id)) {
-    if (memberships(u).includes(emblemOf(id)) && u.mod !== id) return '이미 소속된 시너지의 문장입니다';
+    if (isEmblem(id) && memberships(u).includes(emblemOf(id)) && u.mod !== id) return '이미 소속된 시너지의 문장입니다';
     run.inventory.splice(invIdx, 1);
     if (u.mod) run.inventory.push(u.mod);
     u.mod = id;

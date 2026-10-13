@@ -42,7 +42,7 @@ function resolvePending(run: RunState, bot: Rng) {
     else if (p.t === 'supply') R.takeSupply(run, p.options[0]);
     else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
     else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? (run.units.length < 10 ? (['recruit', 'invest', 'pilgrim', 'shop'] as const) : (['invest', 'pilgrim', 'shop'] as const)).find((o) => p.options.includes(o))! : 'shop'); continue; }
-      else if (p.t === 'fork') { R.pickFork(run, run.hp > 60 && bot.chance(0.5) ? 'challenge' : 'rest'); continue; }
+      else if (p.t === 'fork') { R.pickFork(run, R.occultTier(run) && run.credits >= 40 ? 'synth' : run.hp > 60 && bot.chance(0.5) ? 'challenge' : 'rest'); continue; }
     else if (p.t === 'pilgrim') { run.pending.shift(); while (run.power >= R.PILGRIM_COST.cap && R.pilgrimAct(run, 'cap') === null); continue; }
     run.pending.shift();
   }
@@ -54,12 +54,17 @@ function manage(run: RunState) {
   // 문장: 해당 시너지가 아닌 출전 기물 중 개조부품 칸이 빈 기물에게
   for (let i = run.inventory.length - 1; i >= 0; i--) {
     const id = run.inventory[i];
-    if (!id.startsWith('M_')) continue;
-    const t = sorted.find((u) => !u.mod && !memberships(u).includes(id.slice(2) as never));
+    if (id.startsWith('K_')) { // 소모품: 공명 촉매는 최고 등급 기물에게, 나머지는 판매
+      const r = id === 'K_rank' && sorted[0] ? R.useConsumable(run, i, { k: 'unit', uid: sorted[0].uid }) : null;
+      if (!r?.ok) R.sellItem(run, i);
+      continue;
+    }
+    if (!id.startsWith('M_') && !id.startsWith('O_')) continue;
+    const t = sorted.find((u) => !u.mod && (id.startsWith('O_') || !memberships(u).includes(id.slice(2) as never)));
     if (t) R.equip(run, i, t.uid);
   }
-  for (let guard = 0; guard < 20 && run.inventory.some((x) => !x.startsWith('M_')); guard++) {
-    const idx = run.inventory.findIndex((x) => !x.startsWith('M_'));
+  for (let guard = 0; guard < 20 && run.inventory.some((x) => /^[CGAL]_/.test(x)); guard++) {
+    const idx = run.inventory.findIndex((x) => /^[CGAL]_/.test(x));
     const it = run.inventory[idx];
     // 빈 칸, 같은 재료(→ 고급) 순. 칸이 다 차면 서로 다른 재료 하나를 빼고 더 좋은 장비로 교체
     let target = sorted.find((u) => it[0] === 'C' && u.items.some((x) => x && x[0] === 'C')) || sorted.find((u) => u.items.includes(null));
@@ -77,6 +82,7 @@ function manage(run: RunState) {
     if (!u || !R.buyXp(run, u.uid)) break;
   }
   R.autoPlace(run);
+  R.checkOccult(run);
 }
 
 function playRun(seed: number, force?: string, field?: string) {
@@ -89,6 +95,7 @@ function playRun(seed: number, force?: string, field?: string) {
     resolvePending(run, bot);
     manage(run);
     resolvePending(run, bot);
+    if (run.node?.synth) { for (let i = 0; i < 6; i++) if (run.credits >= 30) R.buyShop(run, i); R.leaveShop(run); continue; }
     if (!run.node) {
       const opts = R.currentOptions(run);
       R.enterNode(run, opts.includes('adversity') && run.hp > 60 && bot.chance(0.5) ? 'adversity' : opts[0]);

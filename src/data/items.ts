@@ -1,7 +1,7 @@
 import type { Effect } from '../engine/effects';
 import { inc, red, scaleEffect } from '../engine/effects';
 import type { Major, SynergyId } from '../types';
-import { MAJOR_NAME } from '../types';
+import { ELEM_NAME, MAJOR_NAME } from '../types';
 import { SYN_BY_ID } from './synergies';
 
 // 장비 등급: 재료(+3) → 고급(같은 재료 2개, 능력치 +12) / 희귀(서로 다른 재료 2개, 능력치 +6 + 특수 효과) · 전설(효과 3배, 조합 불가 · 이벤트 · 상점)
@@ -55,7 +55,7 @@ const ADV: AdvDef[] = [
 // stats/pct/mods/taken 기반 효과는 scaleEffect 로 배율 적용, 훅 기반은 k 를 직접 받는다
 const HOOK_SCALED = new Set(['vit_vit', 'vit_pow', 'vit_def', 'vit_agi', 'pow_def', 'mnd_def', 'def_agi', 'agi_agi']);
 
-export interface ItemInfo { id: string; tier: 'C' | 'G' | 'A' | 'L' | 'M'; name: string; icon: string; majors: Partial<Record<Major, number>>; desc: string; recipe?: [string, string] }
+export interface ItemInfo { id: string; tier: 'C' | 'G' | 'A' | 'L' | 'M' | 'K'; name: string; icon: string; majors: Partial<Record<Major, number>>; desc: string; recipe?: [string, string] }
 
 const ADV_BY_ID = Object.fromEntries(ADV.map((a) => [a.id, a]));
 
@@ -70,12 +70,51 @@ const UNIQUE: Record<string, { name: string; icon: string; desc: string; effect:
 };
 export const isLocked = (id: string | null) => !!id && id.startsWith('U_');
 
-// ── 개조부품: 장비 칸과 별도인 1칸. 문장 = 장착한 기물이 해당 시너지에 추가 소속
-export const isMod = (id: string | null) => !!id && id.startsWith('M_');
+// ── 개조부품: 장비 칸과 별도인 1칸. 문장 = 장착한 기물이 해당 시너지에 추가 소속, 신비 부품(O_) = 신비학자 전용 특수 효과
+export const isEmblem = (id: string | null) => !!id && id.startsWith('M_');
+export const isOccultMod = (id: string | null) => !!id && id.startsWith('O_');
+export const isMod = (id: string | null) => isEmblem(id) || isOccultMod(id);
+export const isConsumable = (id: string | null) => !!id && id.startsWith('K_');
+
+const WARD = (elem: 'phys' | 'chem' | 'elec' | 'psy' | 'holy', name: string, icon: string) =>
+  ({ name: `${name} 결계`, icon, tier: 1 as const, desc: `받는 ${ELEM_NAME[elem]} 피해 -45%. 그 피해의 30%를 공격자에게 고정 피해로 되돌려줍니다.`,
+    effect: { taken: [red(elem, 0.45)], hooks: { onHurt(b, u, src, r, o) { if (o.elem === elem && o.tag !== 'proc' && r.amount > 0 && src.alive && src !== u) b.dealDamage(u, src, r.amount * 0.3, { elem: 'true', tag: 'proc', noHooks: true }); } } } as Effect });
+/** 신비학자 전용 개조부품. tier = 해금되는 신비학자 단계 */
+export const OCCULT_MODS: Record<string, { name: string; icon: string; tier: 1 | 2 | 3; desc: string; effect: Effect }> = {
+  O_reach: { name: '천리안 렌즈', icon: '◎', tier: 1, desc: '기본 공격 사거리 +1, 명중 +10%p.', effect: { stats: { range: 1, acc: 0.1 } } },
+  O_feast: { name: '포식의 인장', icon: '✺', tier: 1, desc: '결정타를 날리면 최대 체력 20% 회복, 3초간 피해 +30%.',
+    effect: { hooks: { onKill(b, u) { b.heal(u, u, b.S(u, 'maxHp') * 0.2, true); b.buff(u, u, 'oc.feast', 3, { mods: [inc('all', 0.3)], label: '포식' }); } } } },
+  O_ward_phys: WARD('phys', '강철', '⛊'),
+  O_ward_psy: WARD('psy', '정신', '◈'),
+  O_ward_chem: { ...WARD('chem', '정화', '☣'), tier: 2 },
+  O_ward_elec: { ...WARD('elec', '절연', 'ϟ'), tier: 2 },
+  O_ward_holy: { ...WARD('holy', '모독', '✧'), tier: 2 },
+  O_mirror: { name: '초반사 거울', icon: '◇', tier: 2, desc: '받은 피해의 80%를 공격자에게 고정 피해로 반사합니다. 받는 피해 -10%.',
+    effect: { taken: [red('all', 0.1)], hooks: { onStart(b, u) { b.buff(u, u, 'oc.mirror', 999, { reflectTrue: 0.8, label: '' }); } } } },
+  O_echo: { name: '메아리 회로', icon: '↻', tier: 2, desc: '전투 기술을 쓰면 40% 확률로 쿨다운이 절반만 돌아옵니다. 쿨다운 감소 속도 +20%.',
+    effect: { stats: { cdr: 0.2 }, hooks: { onSkill(b, u) { if (b.rng.chance(0.4)) u.cd *= 0.5; } } } },
+  O_soul: { name: '영혼 수확기', icon: '☠', tier: 3, desc: '전장에서 누구든 쓰러질 때마다 이 전투 동안 피해 +12% (최대 10중첩).',
+    effect: { hooks: { onAnyDeath(b, u) { if (!u.alive) return; u.mem.soul = Math.min(10, (u.mem.soul || 0) + 1); }, dmgMult: (_b, u) => 1 + 0.12 * (u.mem.soul || 0) } } },
+  O_aegis: { name: '불멸의 부적', icon: '☥', tier: 3, desc: '전투당 1회, 치명적인 피해를 받으면 쓰러지지 않고 체력 60% 회복 + 3초 무적.',
+    effect: { hooks: { onLethal(b, u) { if (u.mem.aegis) return false; u.mem.aegis = 1; u.hp = 1; b.heal(u, u, b.S(u, 'maxHp') * 0.6, true); u.mem.invulnUntil = b.t + 3; b.emit({ k: 'status', id: u.id, name: '불멸' }); return true; } } } },
+  O_void: { name: '공허 렌즈', icon: '◉', tier: 3, desc: '방어 관통 +40%p, 치명타 피해 +40%p.', effect: { stats: { armorPen: 0.4, critDmg: 0.4 } } },
+};
+export const occultModsOfTier = (t: number) => Object.keys(OCCULT_MODS).filter((k) => OCCULT_MODS[k].tier === t);
+
+/** 신비학자 [합성] 전용 소모품: 보관함에서 기물 · 장비에 끌어다 사용 */
+export const CONSUMABLES: Record<string, { name: string; icon: string; target: 'unit' | 'item'; price: number; desc: string }> = {
+  K_rank: { name: '공명 촉매', icon: '▲', target: 'unit', price: 10, desc: '기물에 사용: 공명 등급 +1.' },
+  K_morph: { name: '변성 촉매', icon: '⟳', target: 'unit', price: 14, desc: '기물에 사용: 보유하지 않은 무작위 기물로 바뀌고 공명 등급 +3. 장비 · 개조부품 · 배치는 그대로 이어받습니다.' },
+  K_legend: { name: '전설 주조액', icon: '★', target: 'item', price: 22, desc: '장비에 사용: 전설 등급으로 바꿉니다 (재료 · 고급은 같은 계열의 전설로).' },
+  K_copy: { name: '복제 배양조', icon: '⧉', target: 'item', price: 18, desc: '장비에 사용: 똑같은 장비 1개를 보관함에 만듭니다.' },
+};
+export const ALL_CONSUMABLES = Object.keys(CONSUMABLES);
 export const emblemOf = (id: string) => id.slice(2) as SynergyId;
 export const emblemId = (syn: SynergyId) => `M_${syn}`;
 
 export function itemInfo(id: string): ItemInfo {
+  if (CONSUMABLES[id]) { const c = CONSUMABLES[id]; return { id, tier: 'K', name: c.name, icon: c.icon, majors: {}, desc: `[소모품] ${c.desc}` }; }
+  if (OCCULT_MODS[id]) { const o = OCCULT_MODS[id]; return { id, tier: 'M', name: o.name, icon: o.icon, majors: {}, desc: `[신비 개조부품] ${o.desc}` }; }
   if (UNIQUE[id]) return { id, tier: 'L', name: UNIQUE[id].name, icon: UNIQUE[id].icon, majors: {}, desc: UNIQUE[id].desc };
   if (isMod(id)) {
     const s = SYN_BY_ID[emblemOf(id)];
@@ -104,7 +143,8 @@ export function itemInfo(id: string): ItemInfo {
 
 export function itemEffect(id: string): Effect {
   if (UNIQUE[id]) return UNIQUE[id].effect;
-  if (isMod(id)) return {};
+  if (OCCULT_MODS[id]) return OCCULT_MODS[id].effect;
+  if (isMod(id) || isConsumable(id)) return {};
   const info = itemInfo(id);
   if (info.tier === 'C' || info.tier === 'G') return { majors: info.majors };
   const a = ADV_BY_ID[id.slice(2)];
@@ -114,7 +154,7 @@ export function itemEffect(id: string): Effect {
 }
 
 export function combine(x: string, y: string): string | null {
-  if (isLocked(x) || isLocked(y)) return null;
+  if (isLocked(x) || isLocked(y) || isMod(x) || isMod(y) || isConsumable(x) || isConsumable(y)) return null;
   // 같은 재료 2개 → 고급, 서로 다른 재료 2개 → 희귀. 전설은 조합 불가
   if (x[0] === 'C' && y[0] === 'C') {
     if (x === y) return `G_${x.slice(2)}`;

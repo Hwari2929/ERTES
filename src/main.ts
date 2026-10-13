@@ -7,8 +7,8 @@ import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
 import { STORIES } from './data/stories';
 import { FIELDS, fieldOf } from './data/battlefields';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
-import { combine, emblemOf, isLocked, isMod, itemInfo } from './data/items';
-import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf } from './data/synergies';
+import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isLocked, isMod, isOccultMod, itemInfo } from './data/items';
+import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { DIVINE_ACT, FAITH_DEF, recMajors } from './data/rework';
 import { BRIEF, GROWTH_BRIEF, PSI_BRIEF } from './data/brief';
@@ -54,6 +54,7 @@ const app = {
   detail: !!loadPrefs().detail, // 상세 보기: 계수 · 메커니즘 표시
   recruitPick: null as string | null, // 영입 창에서 고른 기물 (확정 전)
   recoFor: null as string | null, // 추천 장비 창을 연 기물 uid
+  useK: null as null | { i: number; tg: R.UseTarget }, // 소모품 사용 확인 창
   nodePick: null as string | null, // 지도: 이번 칸에서 고른 노드 (진입 전)
   statPop: false, // 상세 보기: 전투 스탯 펼침 (패널 왼쪽)
   abilPop: null as string | null, // 능력 상세 팝업 (weapon · skill · trait · ace · aug:<id>)
@@ -93,7 +94,10 @@ function toast(msg: string) {
   const t = document.getElementById('toast');
   if (t) { t.textContent = msg; t.hidden = false; }
 }
-function persist() { if (app.run && !app.run.over) saveRun(app.run, 'auto'); }
+function persist() {
+  if (app.run && !app.run.over && app.screen !== 'battle') R.checkOccult(app.run); // 신비학자 새 단계 → 전용 개조부품 선택
+  if (app.run && !app.run.over) saveRun(app.run, 'auto');
+}
 
 // ───────────────────────── 공용 조각
 const NODE_ICON = new Proxy({} as Record<NodeType, string>, { get: (_t, k: string) => lineIcon(`n.${k}`) });
@@ -146,12 +150,20 @@ function xpBar(u: UnitState) {
 function itemIcon(id: string | null, attrs = '') {
   if (!id) return `<span class="item empty" ${attrs}></span>`;
   const it = itemInfo(id);
-  const sc = isMod(id) ? SYN_BY_ID[emblemOf(id)]?.color : ''; // 문장: 시너지 색
-  return `<span class="item t${it.tier}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc)}" ${attrs}>${itemGlyph(id) || it.icon}</span>`;
+  const sc = isEmblem(id) ? SYN_BY_ID[emblemOf(id)]?.color : isOccultMod(id) ? SYN_BY_ID.OCCULT.color : ''; // 문장: 시너지 색 · 신비 부품: 신비학자 색
+  const hx = isConsumable(id) ? ` hex" style="--hc:${SYN_BY_ID.OCCULT.color}` : ''; // 소모품: 육각형
+  return `<span class="item t${it.tier}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc)}" ${attrs}>${itemGlyph(id) || it.icon}</span>`;
 }
+/** 신비 개조부품 · 소모품 아이콘 */
+const SPECIAL_GLYPH: Record<string, string> = {
+  O_reach: 'a.range', O_feast: 'a.heal', O_ward_phys: 'e.phys', O_ward_psy: 'e.psy', O_ward_chem: 'e.chem', O_ward_elec: 'e.elec', O_ward_holy: 'e.holy',
+  O_mirror: 'a.shield', O_echo: 'a.cd', O_soul: 'a.dmg', O_aegis: 'r.hp', O_void: 'a.crit',
+  K_rank: 'r.res', K_morph: 'a.summon', K_legend: 'a.power', K_copy: 'a.reload',
+};
 /** 장비 아이콘: 재료 · 고급 = 메이저 아이콘, 희귀 · 전설 = 고유 아이콘, 문장 = 시너지 아이콘 */
 function itemGlyph(id: string) {
-  if (isMod(id)) return synIcon(emblemOf(id), 'ii');
+  if (isEmblem(id)) return synIcon(emblemOf(id), 'ii');
+  if (isMod(id) || isConsumable(id)) return lineIcon(SPECIAL_GLYPH[id] || 'a.power', 'ii');
   if (id.startsWith('U_')) return lineIcon(`i.${id}`, 'ii');
   if (id.startsWith('C_') || id.startsWith('G_')) return majorIcon(id.slice(2) as Major, 'ii mi');
   return lineIcon(`i.${id.slice(2)}`, 'ii');
@@ -616,9 +628,9 @@ function prepScreen(run: RunState) {
     const sel = app.sel?.k === 'unit' && app.sel.uid === u.uid;
     units += `<div class="u side0 tk placed ${sel ? 'sel' : ''}" style="${cellBox(p.x, p.y)}"
       data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}">
-      <div class="tk-card"><div class="tk-art">${sprite(d, '')}${u.mod ? `<span class="tk-mod" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : ''}</div>
+      <div class="tk-card"><div class="tk-art">${sprite(d, '')}${u.mod ? `<span class="tk-mod" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-drop="eqitem:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : ''}</div>
         <span class="tk-side"><b class="tk-rank" title="공명 등급 ${u.rank}">${u.rank}</b><i class="tt-${d.ttype}" title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i><i class="ct-${d.ctype}" title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i></span>
-        <span class="tk-items">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : itemIcon(null))).join('')}</span></div></div>`;
+        <span class="tk-items">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-drop="eqitem:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : itemIcon(null))).join('')}</span></div></div>`;
   }
   if (node?.enc) node.enc.enemies.forEach((s, i) => {
     const e = ENEMY_BY_ID[s.defId];
@@ -680,7 +692,7 @@ function invDetail(run: RunState) {
   if (!sel) return '';
   return `<div class="inv-detail">${itemIcon(sel)}<div><b>${esc(itemInfo(sel).name)}</b> <span class="muted">${statIc(esc(itemInfo(sel).desc))}</span>
     <div class="row-btns"><button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${CFG.sell[sel[0]]}</button>
-    ${run.inventory.some((x, j) => j !== selIdx && combine(sel, x)) ? '<span class="muted small">조합 가능한 장비를 누르면 조합합니다.</span>' : ''}</div></div></div>`;
+    ${isConsumable(sel) ? `<span class="muted small">${CONSUMABLES[sel].target === 'unit' ? '기물' : '장비'}에 끌어다 놓거나, 선택한 채로 ${CONSUMABLES[sel].target === 'unit' ? '기물' : '보관함의 장비'}을 누르면 사용합니다.</span>` : run.inventory.some((x, j) => j !== selIdx && combine(sel, x)) ? '<span class="muted small">조합 가능한 장비를 누르면 조합합니다.</span>' : ''}</div></div></div>`;
 }
 
 function statLines(c: CUnit, b: Battle) {
@@ -778,6 +790,10 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     kind = '에이스'; name = d.ace.name; mech = '항해자 시너지 활성 시, 에이스 파일럿으로 지정한 출전 기물에게만 발동. 항해자 단계가 오를수록 강해짐.';
     const t = ABIL[d.id]?.ace?.(aceK);
     body = `<p>${t ? statIc(AB.tok(t, ctx, gl)) : esc(d.ace.desc(aceK))}</p>`;
+  } else if (key === 'voy' && VOYAGE_SPECIAL[d.id]) {
+    const v = VOYAGE_SPECIAL[d.id];
+    kind = '출항'; name = v.name; mech = '우리의 출항기! 구성원이 정확히 1명 또는 5명 출전하면, 출전한 구성원 전원에게 발동.';
+    body = `<p>${statIc(esc(v.text))}</p>`;
   } else if (key.startsWith('aug:')) {
     const id = key.slice(4);
     kind = '증강'; name = AUG_BY_ID[id]?.name || id;
@@ -814,6 +830,16 @@ function enemyAbilPop(key: string, e: EnemyDef, b: Battle, c: CUnit) {
     body = `<p>${statIc(AB.tok(ab.trait, ctx, gl))}</p>`;
   } else return '';
   return `<div class="stat-pop abil-pop"><div class="sp-head"><span class="ab-kind">${kind}</span><b>${esc(name)}</b><button class="btn tiny" data-a="abil-pop" data-v="">닫기</button></div>${mech ? `<p class="ap-mech">${mech}</p>` : ''}${body}</div>`;
+}
+
+/** 우리의 출항기! 고유 능력: 구성원이 정확히 1명 또는 5명 출전하면 발동 */
+function voyAbil(d: UnitDef, run: RunState | null, u: UnitState | null) {
+  const v = VOYAGE_SPECIAL[d.id];
+  if (!v) return '';
+  const n = run ? synergyCounts(deployed(run), run).VOYAGE || 0 : 0;
+  const on = !!(run && u?.pos && (n === 1 || n >= 5));
+  const st = run ? (on ? '활성' : `비활성 · 출전 ${n}명`) : '1명 · 5명 출전 시';
+  return `<div class="ab-ace-wrap${on ? ' on' : ''}">${abilCard('voy', 'skill', v.name, st, `<p>${statIc(esc(v.text))}</p>`).replace('ab-skill', 'ab-ace')}</div>`;
 }
 
 /** 항해자 에이스 파일럿: 능력 란에 표시하고 여기서 지정 */
@@ -880,7 +906,7 @@ function detailPanel(run: RunState) {
     <div class="dh-rank"><span class="dh-r">${rankLabel(u.rank)}</span>${xpBar(u)}<button class="btn tiny dh-buy" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''} title="공명도 +${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)} 구입 (에너지 크레딧 ${cost})">${lineIcon('r.res', 'li res')}+${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)}<span class="dh-cost">${lineIcon('r.cr', 'li cr')}${cost}</span></button></div>
     ${powRow(b, c, d, !!u.pos)}
     ${memberships(u, run).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}
-    <h3>장비</h3><div class="d-eqbox"><div class="d-eq" aria-label="장비 · 개조부품">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : `<span data-drop="unit:${u.uid}">${itemIcon(null)}</span>`)).join('')}${u.mod ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : `<span data-drop="unit:${u.uid}" title="개조부품 칸 · 문장을 끌어다 장착"><span class="item empty tM"></span></span>`}</div><button class="reco-btn" data-a="reco" data-v="${u.uid}" title="추천 장비 · 보유 현황">${lineIcon('r.reco', 'li')}추천 장비</button></div>
+    <h3>장비</h3><div class="d-eqbox"><div class="d-eq" aria-label="장비 · 개조부품">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-drop="eqitem:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : `<span data-drop="unit:${u.uid}">${itemIcon(null)}</span>`)).join('')}${u.mod ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-drop="eqitem:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : `<span data-drop="unit:${u.uid}" title="개조부품 칸 · 문장을 끌어다 장착"><span class="item empty tM"></span></span>`}</div><button class="reco-btn" data-a="reco" data-v="${u.uid}" title="추천 장비 · 보유 현황">${lineIcon('r.reco', 'li')}추천 장비</button></div>
     <div class="mj-wrap">
     <div class="mj-head"><h3>메이저 스탯</h3><button class="mag-btn${app.statPop ? ' on' : ''}" data-a="stat-pop" title="상세 능력치" aria-label="상세 능력치 ${app.statPop ? '닫기' : '보기'}" aria-pressed="${app.statPop}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg></button></div>
     <div class="majors">${MAJORS.map((m) => {
@@ -892,7 +918,7 @@ function detailPanel(run: RunState) {
     <div class="abils">
       ${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem)}
       ${traitGroup(d, u, run, b, c)}
-      ${aceAbil(run, u)}
+      ${aceAbil(run, u)}${voyAbil(d, run, u)}
       ${skillCard(d, b, c)}
     </div>
     <h3>증강 <span class="muted">${u.augments.length}</span></h3>
@@ -1068,7 +1094,7 @@ function summaryModal(run: RunState) {
 function shopScreen(run: RunState) {
   const stock = run.node?.shop || [];
   return `<main class="wrap">
-    <div class="screen-head"><h1>암시장 상점</h1><p class="muted">재료 2개를 같은 기물에 장착하거나 보관함에서 겹치면 합성됩니다. 같은 재료 → 고급 장비(능력치 +12), 서로 다른 재료 → 희귀 장비(능력치 +6 + 고유 효과). 전설 장비는 합성할 수 없습니다.</p></div>
+    <div class="screen-head">${run.node?.synth ? `<h1>합성 공방</h1><p class="muted">신비학자의 비밀 공방입니다. 소모품은 보관함에 들어가며, 보관함에서 기물이나 장비에 끌어다 놓아 사용합니다.</p>` : `<h1>암시장 상점</h1><p class="muted">재료 2개를 같은 기물에 장착하거나 보관함에서 겹치면 합성됩니다. 같은 재료 → 고급 장비(능력치 +12), 서로 다른 재료 → 희귀 장비(능력치 +6 + 고유 효과). 전설 장비는 합성할 수 없습니다.</p>`}</div>
     <div class="shop">${stock.map((s, i) => {
       const it = itemInfo(s.item);
       return `<div class="shop-item t${it.tier} ${s.sold ? 'sold' : ''}">${itemIcon(s.item)}<div><b>${esc(it.name)}</b><div class="small muted">${statIc(esc(it.desc))}</div></div>
@@ -1255,6 +1281,7 @@ function pendingModal(run: RunState): string {
     body = `<h1>전환</h1><p class="muted small">페이즈의 갈림길입니다. 숨을 고를지, 한 걸음 앞서 나갈지 고르세요.</p><div class="cards">
       <button class="card br-card n-supply" data-a="pick-fork" data-v="rest"><span class="br-ic">${NODE_ICON.supply}</span><b>휴식</b><span class="small muted">${ic(`체력 +${CFG.forkRestHp + Math.floor((run.maxHp - run.hp) * CFG.forkRestLost)} (기본 ${CFG.forkRestHp} + 잃은 체력 ${Math.round(CFG.forkRestLost * 100)}%) · 공명도 풀 ${xp} 분배`)}</span></button>
       <button class="card br-card n-adversity" data-a="pick-fork" data-v="challenge"><span class="br-ic">${NODE_ICON.challenge}</span><b>도전</b><span class="small muted">${ic(`다음 페이즈(${run.phase + 1}) 역경 수준의 전투. 승리하면 대량의 공명도와 남은 역경 · 사건 · 보급 · 보스 보상을 한꺼번에 받고 ${run.phase >= CFG.victoryPhase ? '곧바로 보스로 향합니다' : '바로 다음 페이즈로 넘어갑니다'}. 패배하면 역경 패배와 같은 체력 피해.`)}</span></button>
+      ${R.occultTier(run) ? `<button class="card br-card n-shop" data-a="pick-fork" data-v="synth" style="--c:${SYN_BY_ID.OCCULT.color}"><span class="br-ic">${synIcon('OCCULT') || '✶'}</span><b>합성</b><span class="small muted">신비학자의 비밀 공방. 공명 촉매 · 변성 촉매 · 전설 주조액 · 복제 배양조 같은 전용 소모품을 크레딧으로 삽니다 (상품 ${2 + R.occultTier(run)}개${R.occultTier(run) >= 3 ? ', 가격 -30%' : ''}).</span></button>` : ''}
     </div>`;
   } else if (p.t === 'supply') {
     body = `<h1>보급</h1><div class="cards">${p.options.map((o) => `<button class="card" data-a="pick-supply" data-v="${o}"><b>${ic(esc(R.SUPPLY_TEXT[o]))}</b></button>`).join('')}</div>`;
@@ -1417,6 +1444,25 @@ function recoModal(run: RunState) {
   </div></div>`;
 }
 
+/** 소모품 사용 확인 */
+function useModal(run: RunState) {
+  const u = app.useK;
+  if (!u) return '';
+  const id = run.inventory[u.i];
+  if (!id || !isConsumable(id)) return '';
+  const c = CONSUMABLES[id];
+  const tg = u.tg;
+  const tgt = tg.k === 'unit' ? UNIT_BY_ID[run.units.find((x) => x.uid === tg.uid)?.defId || '']?.name || '?'
+    : (() => { const it = tg.k === 'inv' ? run.inventory[tg.i] : tg.k === 'eq' ? (tg.slot < 0 ? run.units.find((x) => x.uid === tg.uid)?.mod : run.units.find((x) => x.uid === tg.uid)?.items[tg.slot]) : null; return it ? itemInfo(it).name : '?'; })();
+  const err = R.useCheck(run, u.i, tg);
+  return `<div class="modal-bg" data-a="use-k" data-v="no"><div class="modal use-k">
+    <h1>${itemIcon(id)} ${esc(c.name)}</h1>
+    <p><b>${esc(tgt)}</b>에게 사용합니다.</p><p class="muted small">${esc(c.desc)}</p>
+    ${err ? `<p class="down small">${esc(err)}</p>` : ''}
+    <div class="row-btns"><button class="btn" data-a="use-k" data-v="no">취소</button><button class="btn primary" data-a="use-k" data-v="ok" ${err ? 'disabled' : ''}>사용</button></div>
+  </div></div>`;
+}
+
 /** 상단 바 높이 → 옆 패널 sticky 기준, 상세 능력치 창을 상세 보기 패널 왼쪽에 고정 */
 function layoutPanels() {
   const top = root.querySelector<HTMLElement>('.top');
@@ -1458,7 +1504,7 @@ function render() {
   const modalTop = lastView.modal === modalKey ? root.querySelector('.modal')?.scrollTop || 0 : 0;
   const winY = window.scrollY;
   lastView.screen = app.screen; lastView.modal = modalKey;
-  root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
+  root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   layoutPanels();
   // 리본 시너지 줄: 넘치면 오른쪽 끝에 '더 있음' 표시 (끝까지 밀면 사라짐)
   const ts = root.querySelector<HTMLElement>('.top-syns');
@@ -2011,7 +2057,7 @@ function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
     <div class="majors-mini">${MAJORS.map((mm) => `<span title="${MAJOR_NAME[mm]} (기본)">${majorIcon(mm)}<b>${d.base[mm]}</b></span>`).join('')}</div>
     <h3>시너지</h3><div class="cx-syns">${syn}</div>
     <h3>역할군 · 능력 <span class="muted small">1등급 · 장비 없음 기준</span></h3>
-    <div class="abils">${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem)}${traitGroup(d, null, null, b, c)}${skillCard(d, b, c)}</div>
+    <div class="abils">${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem)}${traitGroup(d, null, null, b, c)}${skillCard(d, b, c)}${voyAbil(d, null, null)}</div>
     <h3>전용 증강 <span class="muted small">${CFG.augEvery}등급마다 1개</span></h3><ul class="augs">${d.augs.map((a) => augLi(a)).join('')}${(d.specialAugs || []).map((a) => augLi(a, '스페셜')).join('')}</ul>
     <h3>추천 장비 <span class="muted small">${CTYPE_NAME[d.ctype]}</span></h3><ul class="rc-list">${reco}</ul>
     <h3>이야기</h3>${STORIES[d.id] ? `<p class="small">${esc(STORIES[d.id])}</p>` : ''}<p class="lore">${esc(d.lore)}</p>
@@ -2123,6 +2169,12 @@ function act(a: string, v: string) {
     case 'abil-pop': app.abilPop = !v || app.abilPop === v ? null : v; app.statPop = false; if (app.screen === 'battle') { updateMeter(true); return; } break;
     case 'stat-pop': app.statPop = !app.statPop; app.abilPop = null; if (app.screen === 'battle') { updateMeter(true); return; } break;
     case 'reco': app.recoFor = v || null; break;
+    case 'use-k': {
+      const u = app.useK;
+      app.useK = null;
+      if (run && u && v === 'ok') { const r = R.useConsumable(run, u.i, u.tg); toast(r.msg); app.sel = null; persist(); }
+      break;
+    }
     case 'field-info': if (run) run.pending.unshift({ t: 'field' }); break;
     case 'enter': {
       if (!run || run.pending.length) return;
@@ -2155,10 +2207,14 @@ function act(a: string, v: string) {
     case 'speed': app.speed = +v; savePref('speed', app.speed); applySpeed(); document.querySelectorAll('.speed .btn').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.v === v)); return;
     case 'skip': app.view?.skip?.(); return;
     case 'after-battle': app.summary = null; if (app.view) { app.view.destroy(); app.view = null; } goPrepOrMap(); break;
-    case 'sel-unit': app.abilPop = null; app.sel = app.sel?.k === 'item' && run ? equipSel(run, app.sel.idx, v) : { k: 'unit', uid: v }; break;
+    case 'sel-unit':
+      app.abilPop = null;
+      if (app.sel?.k === 'item' && run && isConsumable(run.inventory[app.sel.idx])) { app.useK = { i: app.sel.idx, tg: { k: 'unit', uid: v } }; break; } // 탭: 소모품 → 기물
+      app.sel = app.sel?.k === 'item' && run ? equipSel(run, app.sel.idx, v) : { k: 'unit', uid: v }; break;
     case 'sel-enemy': app.abilPop = null; app.sel = { k: 'enemy', i: +v }; break;
     case 'sel-item': {
       if (!run) return;
+      if (app.sel?.k === 'item' && app.sel.idx !== +v && isConsumable(run.inventory[app.sel.idx])) { app.useK = { i: app.sel.idx, tg: { k: 'inv', i: +v } }; break; } // 탭: 소모품 → 장비
       if (app.sel?.k === 'item' && app.sel.idx !== +v) {
         const res = R.combineInv(run, app.sel.idx, +v);
         if (res) { toast(`조합 완료: ${itemInfo(res).name}`); app.sel = null; persist(); break; }
@@ -2251,7 +2307,7 @@ function act(a: string, v: string) {
     case 'muster-tog': if (v) { const i = app.musterSel.indexOf(v); if (i >= 0) app.musterSel.splice(i, 1); else if (app.musterSel.length < CFG.musterPicks) app.musterSel.push(v); } break;
     case 'muster-ok': if (run) { const err = R.confirmMuster(run, app.musterSel); if (err) toast(err); else { app.musterSel = []; app.recruitPick = null; } persist(); } break;
     case 'muster-cancel': if (run) { R.cancelMuster(run); app.musterSel = []; persist(); } break;
-    case 'pick-fork': if (run && run.pending[0]?.t === 'fork') { R.pickFork(run, v as 'rest' | 'challenge'); goPrepOrMap(); persist(); } break;
+    case 'pick-fork': if (run && run.pending[0]?.t === 'fork') { R.pickFork(run, v as 'rest' | 'challenge' | 'synth'); if (run.node?.synth) app.screen = 'shop'; else goPrepOrMap(); persist(); } break;
     case 'reroll-recruit': if (run) { R.rerollRecruit(run); app.recruitPick = null; persist(); } break;
     case 'pick-supply': if (run && run.pending[0]?.t === 'supply') { run.pending.shift(); R.takeSupply(run, v); persist(); } break;
     case 'notice-ok': run?.pending.shift(); persist(); break;
@@ -2369,9 +2425,16 @@ function onDrop(src: string, dst: string) {
       o.pos = pu ? toPos(pu.x, pu.y) : null;
     }
     app.sel = { k: 'unit', uid: u.uid };
+  } else if (sk === 'item' && isConsumable(run.inventory[+sv[0]])) {
+    // 소모품: 기물 · 장비에 끌어다 놓으면 확인 창
+    const i = +sv[0];
+    const tg: R.UseTarget | null = dk === 'unit' ? { k: 'unit', uid: dv[0] } : dk === 'invitem' && +dv[0] !== i ? { k: 'inv', i: +dv[0] }
+      : dk === 'eqitem' ? (CONSUMABLES[run.inventory[i]].target === 'unit' ? { k: 'unit', uid: dv[0] } : { k: 'eq', uid: dv[0], slot: +dv[1] }) : null;
+    if (tg) app.useK = { i, tg };
   } else if (sk === 'item') {
     const idx = +sv[0];
-    if (dk === 'unit') app.sel = equipSel(run, idx, dv[0]);
+    if (dk === 'eqitem') app.sel = equipSel(run, idx, dv[0]);
+    else if (dk === 'unit') app.sel = equipSel(run, idx, dv[0]);
     else if (dk === 'invitem') {
       const res = R.combineInv(run, idx, +dv[0]);
       if (res) toast(`조합 완료: ${itemInfo(res).name}`); else if (idx !== +dv[0]) toast('조합할 수 없는 장비입니다.');
@@ -2380,7 +2443,7 @@ function onDrop(src: string, dst: string) {
   } else if (sk === 'eq') {
     const [uid, slot] = sv;
     if (dk === 'inv' || dk === 'invitem') { const e = R.unequip(run, uid, +slot); if (e) toast(e); }
-    else if (dk === 'unit' && dv[0] !== uid) {
+    else if ((dk === 'unit' || dk === 'eqitem') && dv[0] !== uid) {
       const e = R.unequip(run, uid, +slot);
       if (e) toast(e); else app.sel = equipSel(run, run.inventory.length - 1, dv[0]);
     }

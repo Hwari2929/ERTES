@@ -56,7 +56,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   mirinae: {
     ctype: 'MARK', ttype: 'major', faith: 'human', weapon: G('깜찍이', 'phys', 1.0, 5, 1.2, 4, 2.5),
-    factions: ['UNI', 'KAL'], traits: [],
+    factions: ['UNI', 'KAL'], traits: ['HUNTER'],
     trait: {
       name: '물질주의 캠퍼', desc: '장착한 장비 · 개조부품 · 임시 장비 1개당 회피 · 치명타 확률 +3.5%p (최대 +21%p).',
       effect: { hooks: { onStart(_b, u) {
@@ -231,7 +231,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   nadir: {
     ctype: 'SPEC', ttype: 'psionic', faith: 'emperor', weapon: G('백수정 조각', 'psy', 0.9, 3, 0.9, 6, 1.5),
-    factions: ['KAL', 'VOYAGE'], traits: [],
+    factions: ['KAL', 'VOYAGE'], traits: ['OCCULT'],
     trait: {
       name: '사이오닉 영사', desc: '기본 공격이 맞으면 대상 주변 2칸의 다른 적에게 튕겨 기술 위력 50% 정신 피해.',
       effect: { hooks: { onBasic(b, u, t, r) {
@@ -692,7 +692,9 @@ function cat(b: Battle, u: CUnit, dur: number) {
   b.buff(u, u, 'aiden.cat', dur, { delta: { eva: 0.21, atkSpd: 0.3 }, label: '고양이' });
 }
 function shred(b: Battle, u: CUnit, t: CUnit) {
-  stack(b, u, t, 'vivian.shred', 3, 5, (n) => ({ type: 'buff', armorMul: 1 - 0.1 * n, label: n === 1 ? '방어 분석' : undefined }));
+  // 우리의 출항기! [정밀 분석]: 최대 5중첩, 중첩당 받는 모든 피해 +15%
+  const voy = (u.owner || u).mem.voyViv;
+  stack(b, u, t, 'vivian.shred', voy ? 5 : 3, 5, (n) => ({ type: 'buff', armorMul: 1 - 0.1 * n, label: n === 1 ? '방어 분석' : undefined, ...(voy ? { taken: [vuln('all', 0.15 * n)] } : {}) }));
 }
 function wound(b: Battle, u: CUnit, t: CUnit) {
   stack(b, u, t, 'wound', 5, 6, () => ({}));

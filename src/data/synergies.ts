@@ -22,6 +22,8 @@ export interface SynDef {
   member?: (tier: number, ctx: EffectCtx) => Effect | null;
   /** 모든 출전 아군에게 */
   team?: (tier: number, ctx: EffectCtx) => Effect | null;
+  /** 단계와 무관하게 인원수로 발동하는 소속 기물 효과 (우리의 출항기! 단독 출항 · 완전체) */
+  special?: (count: number, ctx: EffectCtx) => Effect | null;
 }
 
 export const TITLE_NAME = ['평민', '기사', '남작', '백작', '공작', '대공', '황족'];
@@ -93,6 +95,64 @@ function chainBolt(b: Battle, u: CUnit, from: CUnit, hops: number, radius: numbe
     at = next;
   }
 }
+
+// ─────────────── 우리의 출항기!: 1명 또는 5명 출전 시 구성원 고유 능력
+const NO_CTX: EffectCtx = { run: null, unit: null, counts: {}, phase: 1, credits: 0 };
+/** 나디르: 대상에서 주변 적에게 3회 튕기는 물리 피해 (기본 공격 계수의 절반) */
+function nadirBounce(b: Battle, u: CUnit, from: CUnit) {
+  const dmg = b.S(u, 'shoot') * (u.weapon?.mult || 1) * 0.5;
+  const hit = new Set<CUnit>([from]);
+  let at: CUnit = from;
+  for (let i = 0; i < 3; i++) {
+    const next = b.nearest(at, b.around(at, 3, b.enemiesOf(u)).filter((e) => !hit.has(e)));
+    if (!next) break;
+    hit.add(next);
+    b.emit({ k: 'atk', from: at.id, to: next.id, elem: 'phys', ranged: true });
+    b.dealDamage(u, next, dmg, { elem: 'phys', tag: 'proc', kind: 'shoot' });
+    at = next;
+  }
+}
+/** 레이첼: 적이 가장 많이 모인 곳에 파괴 광선 */
+function rachelBeam(b: Battle, u: CUnit) {
+  const foes = b.enemiesOf(u);
+  if (!foes.length) return;
+  const c = foes.slice().sort((a, z) => b.around(z, 1.5, foes).length - b.around(a, 1.5, foes).length)[0];
+  b.emit({ k: 'status', id: u.id, name: '파괴 광선!' });
+  b.emit({ k: 'atk', from: u.id, to: c.id, elem: 'psy', ranged: true });
+  b.fx(c.x, c.y, 2, 'psy');
+  for (const e of b.around(c, 2, foes)) b.dealDamage(u, e, b.S(u, 'strike') * 4.5, { elem: 'psy', tag: 'skill', kind: 'strike', canMiss: false });
+}
+const TEMUR_KEYS: (keyof Stats)[] = ['maxHp', 'shoot', 'strike', 'tech', 'armor', 'acc', 'crit', 'effHit', 'effRes', 'eva', 'critDmg', 'armorPen', 'atkSpd', 'cdr', 'healEff', 'moveSpd', 'lifesteal'];
+export const VOYAGE_SPECIAL: Record<string, { who: string; name: string; text: string; effect: Effect }> = {
+  rachel: { who: '레이첼', name: '파괴 광선!', text: '4초 후부터 12초마다 적이 가장 많이 모인 곳에 광선을 쏴 주변 2칸 모든 적에게 타격 위력 450% 정신 피해 (빗나가지 않음).',
+    effect: { hooks: { onTick(b, u, dt) {
+      u.mem.beamT = (u.mem.beamT ?? 8) + dt;
+      if (u.mem.beamT >= 12) { u.mem.beamT = 0; rachelBeam(b, u); }
+    } } } },
+  nadir: { who: '나디르', name: '연쇄 영사', text: '기본 공격 · 전투 기술이 맞은 적에게서 주변 적에게 3회 튕겨 각각 사격 위력 × 기본 공격 계수의 50% 물리 피해.',
+    effect: { hooks: {
+      onBasic(b, u, t, r) { if (r.amount > 0) nadirBounce(b, u, t); },
+      onSkill(b, u) { const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u)); if (t) nadirBounce(b, u, t); },
+    } } },
+  phyllis: { who: '필리스', name: '배달 사고', text: '전투 기술을 쓸 때마다 무작위 아군 1명에게 이 전투 동안 유지되는 무작위 희귀 장비를 줍니다.',
+    effect: { hooks: { onSkill(b, u) {
+      const pool = b.alliesOf(u).filter((a) => !a.isSummon);
+      if (!pool.length) return;
+      const a = b.rng.pick(pool), id = b.rng.pick(ALL_ADVANCED), e = itemEffect(id);
+      applyLive(a, e, b, NO_CTX);
+      e.hooks?.onStart?.(b, a);
+      a.tempItems = [...(a.tempItems || []), id];
+      b.emit({ k: 'status', id: a.id, name: itemInfo(id).name });
+    } } } },
+  temur: { who: '테무르', name: '선장의 위엄', text: '모든 능력치 +50%.',
+    effect: { hooks: { onStart(b, u) {
+      for (const k of TEMUR_KEYS) u.st[k] *= 1.5;
+      u.hp = b.S(u, 'maxHp');
+    } } } },
+  vivian: { who: '비비안', name: '정밀 분석', text: '[방어 분석]이 최대 5중첩까지 쌓이고, 1중첩마다 대상이 받는 모든 피해 +15%.',
+    effect: { setup: (u) => { u.mem.voyViv = 1; } } },
+};
+const VOYAGE_TEXT = Object.entries(VOYAGE_SPECIAL).map(([, v]) => `${v.who} [${v.name}] ${v.text}`).join('\n');
 
 export const SYNERGIES: SynDef[] = [
   // ═══════════════ 세력
@@ -448,21 +508,36 @@ export const SYNERGIES: SynDef[] = [
       };
     },
   },
-  // ───────── 신설 (효과 준비 중)
   {
     id: 'HUNTER', name: '사냥꾼', kind: 'trait', tiers: [2, 4, 6, 8], color: '#c98a4a', icon: '➶',
-    desc: '효과 준비 중.',
-    tierDesc: ['효과 준비 중', '효과 준비 중', '효과 준비 중', '효과 준비 중'],
+    desc: '사냥감을 끝까지 쫓는 이들. 사냥꾼 기물은 공격 속도와 치명타 피해가 크게 오릅니다.',
+    tierDesc: ['공격 속도 +15%, 치명타 피해 +20%p', '공격 속도 +30%, 치명타 피해 +45%p', '공격 속도 +50%, 치명타 피해 +80%p',
+      '[최상위 포식자] 공격 속도 +85%, 치명타 피해 +140%p'],
+    member: (t) => ({ stats: { atkSpd: T(t, [0.15, 0.3, 0.5, 0.85]), critDmg: T(t, [0.2, 0.45, 0.8, 1.4]) } }),
   },
   {
     id: 'VOYAGE', name: '우리의 출항기!', kind: 'faction', tiers: [2, 3, 4, 5], color: '#4fc3c8', icon: '⛵',
-    desc: '효과 준비 중.',
-    tierDesc: ['효과 준비 중', '효과 준비 중', '효과 준비 중', '효과 준비 중'],
+    desc: `한 배를 탄 다섯 동료. 구성원의 전투력이 오르고, 전투 기술을 쓰면 체력을 회복합니다. 연장전에 들어서면 구성원의 모든 피해 증폭이 크게 늘어납니다.\n[단독 출항 · 완전체] 구성원이 정확히 1명 또는 5명 출전하면 출전한 구성원 전원이 고유 능력을 얻습니다 (1명일 때는 단계 효과 없이 고유 능력만).\n${VOYAGE_TEXT}`,
+    tierDesc: ['전투력 +4, 기술 사용 후 최대 체력 5% 회복, 연장전 피해 증폭 +60%', '전투력 +8, 회복 8%, 연장전 피해 증폭 +100%', '전투력 +13, 회복 12%, 연장전 피해 증폭 +160%',
+      '[우리의 출항기!] 전투력 +20, 회복 18%, 연장전 피해 증폭 +250%, 구성원 전원 고유 능력'],
+    member: (t) => {
+      const heal = T(t, [0.05, 0.08, 0.12, 0.18]), ot = 1 + T(t, [0.6, 1.0, 1.6, 2.5]);
+      return {
+        majors: { pow: T(t, [4, 8, 13, 20]) },
+        hooks: {
+          onSkill(b, u) { b.heal(u, u, b.S(u, 'maxHp') * heal, false, 'VOYAGE'); },
+          dmgMult: (b) => (b.t > CFG.overtimeStart ? ot : 1),
+        },
+      };
+    },
+    special: (n, ctx) => (n === 1 || n >= 5) && ctx.unit ? VOYAGE_SPECIAL[ctx.unit.defId]?.effect || null : null,
   },
   {
     id: 'OCCULT', name: '신비학자', kind: 'trait', tiers: [2, 4, 6], color: '#b07cff', icon: '✶',
-    desc: '효과 준비 중.',
-    tierDesc: ['효과 준비 중', '효과 준비 중', '효과 준비 중'],
+    desc: '금지된 지식을 다루는 이들. 처음 도달한 단계마다 신비학자 전용 개조부품 1개를 골라 받고 (단계마다 더 강력한 부품이 해금), 활성화되어 있으면 [전환] 갈림길에 [합성]이 열려 전용 소모품을 살 수 있습니다. 신비학자 기물은 효과 명중이 오릅니다.',
+    tierDesc: ['효과 명중 +15%p, 1단계 부품 해금 (천리안 렌즈 · 포식의 인장 · 강철 결계 · 정신 결계), [합성] 해금', '효과 명중 +30%p, 2단계 부품 해금 (초반사 거울 · 메아리 회로 · 정화/절연/모독 결계), [합성] 상품 +1',
+      '[금지된 의식] 효과 명중 +50%p, 3단계 부품 해금 (영혼 수확기 · 불멸의 부적 · 공허 렌즈), [합성] 상품 +2 · 가격 -30%'],
+    member: (t) => ({ stats: { effHit: T(t, [0.15, 0.3, 0.5]) } }),
   },
   {
     id: 'EXPLORER', name: '탐험가', kind: 'trait', tiers: [1], color: '#e6d27a', icon: '⚓',

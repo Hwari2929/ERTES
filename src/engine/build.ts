@@ -5,7 +5,7 @@ import { fieldOf } from '../data/battlefields';
 import { diffHas } from '../data/difficulty';
 import { BOONS } from '../data/events';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
-import { emblemOf, isMod, itemEffect } from '../data/items';
+import { emblemOf, isEmblem, itemEffect } from '../data/items';
 import { ENG_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { UNIT_BY_ID } from '../data/units';
 import { enableDivine, ENEMY_PSI, sigmundTarget } from '../data/rework';
@@ -39,7 +39,7 @@ export function memberships(u: UnitState, run?: RunState | null): SynergyId[] {
     const e = AUG_BY_ID[a.id]?.effect(a.param);
     e?.extraSyn?.forEach((x) => s.add(x));
   }
-  if (u.mod && isMod(u.mod)) s.add(emblemOf(u.mod)); // 문장 개조부품
+  if (u.mod && isEmblem(u.mod)) s.add(emblemOf(u.mod)); // 문장 개조부품
   return [...s];
 }
 
@@ -91,10 +91,12 @@ export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, 
   if (run && sigmundTarget(run) === u.uid && d.factions.includes('FAM')) out.push({ majors: { vit: 5, pow: 5, mnd: 5, def: 5, agi: 5 } });
   for (const a of u.augments) { const d = AUG_BY_ID[a.id]; if (d) out.push(d.effect(a.param)); }
   for (const it of u.items) if (it) out.push(itemEffect(it));
+  if (u.mod) out.push(itemEffect(u.mod)); // 신비 개조부품 (문장은 빈 효과)
   if (onBoard) {
     const ctx = makeCtx(run, u, counts);
     const mine = new Set(memberships(u, run));
     for (const s of SYNERGIES) {
+      if (s.special && mine.has(s.id)) { const e = s.special(counts[s.id] || 0, ctx); if (e) out.push(e); }
       const tier = tierOf(s.id, counts[s.id] || 0);
       if (!tier) continue;
       if (s.team) { const e = s.team(tier, ctx); if (e) out.push(e); }
