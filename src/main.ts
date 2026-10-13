@@ -664,7 +664,7 @@ function invRail(run: RunState) {
   const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
   return `<div class="inv-rail" data-drop="inv" title="기물에게 끌어다 장착 · 재료끼리 겹치면 조합">
     <span class="ir-count">${run.inventory.length}/${CFG.inventoryMax}</span>
-    <div class="ir-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`).replace('class="item', `class="item${i === selIdx ? ' sel' : ''}`)).join('')}${'<span class="item empty"></span>'.repeat(Math.max(0, Math.min(4, CFG.inventoryMax - run.inventory.length)))}</div>
+    <div class="ir-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`).replace('class="item', `class="item${i === selIdx ? ' sel' : ''}`)).join('')}${run.inventory.length ? '' : '<span class="ir-empty muted">비어 있음</span>'}</div>
   </div>`;
 }
 /** 상점 등: 가로 보관 칸 */
