@@ -105,8 +105,8 @@ export const occultModsOfTier = (t: number) => Object.keys(OCCULT_MODS).filter((
 export const CONSUMABLES: Record<string, { name: string; icon: string; target: 'unit' | 'item'; price: number; desc: string }> = {
   K_rank: { name: '공명 촉매', icon: '▲', target: 'unit', price: 10, desc: '기물에 사용: 공명 등급 +1.' },
   K_morph: { name: '변성 촉매', icon: '⟳', target: 'unit', price: 14, desc: '기물에 사용: 보유하지 않은 무작위 기물로 바뀌고 공명 등급 +3. 장비 · 개조부품 · 배치는 그대로 이어받습니다.' },
-  K_legend: { name: '전설 주조액', icon: '★', target: 'item', price: 22, desc: '장비에 사용: 전설 등급으로 바꿉니다 (재료 · 고급은 같은 계열의 전설로).' },
-  K_copy: { name: '복제 배양조', icon: '⧉', target: 'item', price: 18, desc: '장비에 사용: 똑같은 장비 1개를 보관함에 만듭니다.' },
+  K_legend: { name: '전설 주조액', icon: '★', target: 'item', price: 24, desc: '장비에 사용: 전설 등급으로 바꿉니다 (재료 · 고급은 같은 계열의 전설로).' },
+  K_copy: { name: '복제 배양조', icon: '⧉', target: 'item', price: 30, desc: '장비에 사용: 똑같은 장비 1개를 보관함에 만듭니다.' },
 };
 export const ALL_CONSUMABLES = Object.keys(CONSUMABLES);
 export const emblemOf = (id: string) => id.slice(2) as SynergyId;

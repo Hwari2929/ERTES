@@ -471,7 +471,7 @@ function mapScreen(run: RunState) {
       </div>
       ${shipPanel(run)}
     </section>
-    <aside class="side side-tabs">
+    <aside class="side side-tabs${app.sel?.k === 'unit' ? ' has-detail' : ''}">${mapDetail(run)}
       <div class="st-tabs" role="tablist">${['파티', '환경', '기록'].map((t, i) => `<button role="tab" class="st-tab" data-a="map-tab" data-v="${i}" aria-selected="${app.mapTab === i}">${t}</button>`).join('')}<span class="st-ink" style="--i:${app.mapTab}"></span></div>
       <div class="st-view"><div class="st-track" style="--i:${app.mapTab}">
       <section class="st-pane" role="tabpanel" aria-label="파티">
@@ -495,10 +495,9 @@ function mapScreen(run: RunState) {
       </section>
       </div></div>
     </aside>
-    ${mapDetail(run)}
   </main>`;
 }
-/** 메인 화면 상세 보기: 파티 아이콘을 누르면 화면 왼쪽에 기물 상세가 열린다 (편성 화면으로 넘어가지 않음) */
+/** 메인 화면 상세 보기: 파티 아이콘을 누르면 오른쪽 패널(파티 · 환경 · 기록 자리)에 기물 상세가 열린다 */
 let lastMapDetail: string | null = null;
 function mapDetail(run: RunState) {
   const sel = app.sel;
@@ -507,7 +506,7 @@ function mapDetail(run: RunState) {
   const fresh = lastMapDetail !== u.uid;
   lastMapDetail = u.uid;
   return `<aside class="map-detail${fresh ? ' in' : ''}" aria-label="${esc(UNIT_BY_ID[u.defId].name)} 상세">
-    <div class="md-bar"><button class="btn tiny" data-a="manage" data-v="${u.uid}">편성 화면에서 보기</button><button class="btn tiny" data-a="map-unit" data-v="" aria-label="상세 닫기">닫기 ✕</button></div>
+    <div class="md-bar"><button class="btn tiny" data-a="map-unit" data-v="" aria-label="상세 닫기">← 파티로</button><button class="btn tiny" data-a="manage" data-v="${u.uid}">편성 화면에서 보기</button></div>
     ${detailPanel(run)}${statPopHtml(run)}
   </aside>`;
 }
@@ -1475,7 +1474,7 @@ function layoutPanels() {
   const r = det.getBoundingClientRect();
   pop.style.position = 'fixed';
   pop.style.right = 'auto';
-  pop.style.left = det.closest('.map-detail') ? `${r.right + 12}px` : `${Math.max(8, r.left - pop.offsetWidth - 16)}px`;
+  pop.style.left = `${Math.max(8, r.left - pop.offsetWidth - 16)}px`;
   pop.style.top = `${Math.max(r.top, (top?.offsetHeight || 0) + 10)}px`;
 }
 window.addEventListener('resize', () => layoutPanels());
@@ -2206,7 +2205,8 @@ function act(a: string, v: string) {
       break;
     case 'speed': app.speed = +v; savePref('speed', app.speed); applySpeed(); document.querySelectorAll('.speed .btn').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.v === v)); return;
     case 'skip': app.view?.skip?.(); return;
-    case 'after-battle': app.summary = null; if (app.view) { app.view.destroy(); app.view = null; } goPrepOrMap(); break;
+    case 'after-battle': app.summary = null; app.sel = null; app.abilPop = null; app.statPop = false; // 전투 전 선택이 상세 창으로 남지 않게
+      if (app.view) { app.view.destroy(); app.view = null; } goPrepOrMap(); break;
     case 'sel-unit':
       app.abilPop = null;
       if (app.sel?.k === 'item' && run && isConsumable(run.inventory[app.sel.idx])) { app.useK = { i: app.sel.idx, tg: { k: 'unit', uid: v } }; break; } // 탭: 소모품 → 기물
@@ -2485,6 +2485,10 @@ function showSyn(el: HTMLElement) {
   tip.style.setProperty('--c', SYN_BY_ID[el.dataset.syn as SynergyId]?.color || 'var(--accent)');
   tip.innerHTML = synPopHtml(el.dataset.syn!);
   document.body.appendChild(tip);
+  placeSyn(tip, el);
+  kwPinned = el;
+}
+function placeSyn(tip: HTMLElement, el: HTMLElement) {
   const r = el.getBoundingClientRect();
   const w = Math.min(300, innerWidth - 16);
   tip.style.width = `${w}px`;
@@ -2492,7 +2496,6 @@ function showSyn(el: HTMLElement) {
   tip.style.left = `${right ? r.right + 8 : Math.max(8, Math.min(r.left, innerWidth - w - 8))}px`;
   const top = right ? r.top - 4 : r.bottom + 6;
   tip.style.top = `${Math.max(8, Math.min(top, innerHeight - tip.offsetHeight - 8))}px`;
-  kwPinned = el;
 }
 document.addEventListener('mouseover', (e) => {
   if (!CAN_HOVER || kwPinned) return;
@@ -2509,7 +2512,17 @@ document.addEventListener('click', (e) => {
   if (kwPinned === el) { hideKw(); return; }
   showKw(el); kwPinned = el;
 }, true);
-addEventListener('scroll', () => { if (document.querySelector('.kw-tip')) hideKw(); }, { passive: true, capture: true });
+addEventListener('scroll', (e) => {
+  const tip = document.querySelector<HTMLElement>('.kw-tip');
+  if (!tip) return;
+  if (e.target instanceof Node && tip.contains(e.target)) return; // 팝업 안쪽 스크롤
+  // 시너지 팝업: 목록을 스크롤해도 닫지 않고 마름모를 따라간다 (화면 밖으로 나가면 닫음)
+  if (tip.classList.contains('syn-pop') && kwPinned?.isConnected) {
+    const r = kwPinned.getBoundingClientRect();
+    if (r.bottom > 0 && r.top < innerHeight) { placeSyn(tip, kwPinned); return; }
+  }
+  hideKw();
+}, { passive: true, capture: true });
 
 document.addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
