@@ -260,7 +260,7 @@ export const ROSTER_B: BaseUnit[] = [
     },
     skill: {
       name: '망령권 작살', cd: 7, params: { shots: 6, mult: 0.5, shock: 0, crit: 0 },
-      desc: (p) => `등불로 항로를 밝히고 무작위 적에게 선상 작살총으로 사격 위력 ${pct(p.mult)} 물리 사격 ${p.shots}회${p.crit ? ` (치명타 확률 +${pct(p.crit)}p)` : ''}${p.shock ? `, 발당 ${pct(p.shock)} 확률로 1.5초 감전` : ''}.`,
+      desc: (p) => `등불로 항로를 밝히고 무작위 적에게 선상 작살총으로 사격 위력 ${pct(p.mult)} 화학 사격 ${p.shots}회${p.crit ? ` (치명타 확률 +${pct(p.crit)}p)` : ''}${p.shock ? `, 발당 ${pct(p.shock)} 확률로 1.5초 감전` : ''}.`,
       cast(b, u) {
         if (!b.enemiesOf(u).length) return false;
         const p = u.sk;
@@ -268,8 +268,8 @@ export const ROSTER_B: BaseUnit[] = [
           const es = b.enemiesOf(u);
           if (!es.length) break;
           const t = b.rng.pick(es);
-          b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'phys', ranged: true });
-          const r = skillHit(b, u, t, 'shoot', p.mult, 'phys', { critBonus: p.crit });
+          b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'chem', ranged: true });
+          const r = skillHit(b, u, t, 'shoot', p.mult, 'chem', { critBonus: p.crit });
           if (p.shock && !r.miss && t.alive) b.applyStatus(u, t, { type: 'shock', key: 'shock', dur: 1.5 }, p.shock);
         }
         return true;

@@ -60,7 +60,7 @@ export const ABIL_A: Record<string, AbilText> = {
         ['기절', `가장 가까운 적에게 [st:stun:${p.sleep}:${p.sleepChance}]`],
       ],
     }),
-    trait: '회복 시 대상의 해로운 효과 1개 제거.',
+    trait: '기본 공격 적중 시 [st:poison:4]: 초당 [dmg:tech:0.25:chem]. 회복 시 대상의 해로운 효과 1개 제거.',
     augs: {
       seven: '업계 비밀 배합 회복 [heal+:1.2].',
       sedative: '기절 확률 [pp:0.4], 지속 +[s:1].',

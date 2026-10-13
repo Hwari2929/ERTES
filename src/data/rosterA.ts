@@ -15,9 +15,14 @@ export const ROSTER_A: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.1 }, range: 4, base: B(5, 8, 9, 3, 5),
     sprite: 'soldier', palette: tint(PAL.UNI, '#5a5e6a', '#2a6ad8', '#3a8aff'), lore: '"밀린 업무가 많아요. 까먹기 전에, 모두 해치우죠."',
     skill: strike({
-      name: '항밈 소거', cd: 7, pow: 'tech', elem: 'psy', mult: 1.6, params: { forget: 3, fear: 1, fearChance: 0.4 },
-      desc: (p) => `대상${p.radius ? `과 주변 ${p.radius}칸` : ''}에게 기술 위력 ${pct(p.mult)} 정신 피해. 기억이 지워진 적은 기술 쿨다운 +${p.forget}초, ${pct(p.fearChance)} 확률로 ${p.fear}초 공포${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}.`,
-      after: (b, u, t, _d, p) => { for (const e of p.radius ? b.around(t, p.radius, b.enemiesOf(u)) : [t]) if (e.alive) e.cd += p.forget; },
+      name: '항밈 소거', cd: 7, pow: 'tech', elem: 'psy', mult: 1.6, params: { forget: 3, fear: 1, fearChance: 0.4, weak: 0.2, weakDur: 4 },
+      desc: (p) => `대상${p.radius ? `과 주변 ${p.radius}칸` : ''}에게 기술 위력 ${pct(p.mult)} 정신 피해. 기억이 지워진 적은 기술 쿨다운 +${p.forget}초, ${p.weakDur}초간 주는 피해 -${pct(p.weak)}, ${pct(p.fearChance)} 확률로 ${p.fear}초 공포${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}.`,
+      after: (b, u, t, _d, p) => {
+        for (const e of p.radius ? b.around(t, p.radius, b.enemiesOf(u)) : [t]) if (e.alive) {
+          e.cd += p.forget;
+          b.applyStatus(u, e, { type: 'buff', key: 'yelena.weak', dur: p.weakDur, mods: [inc('all', -p.weak)], label: '항밈 약화' });
+        }
+      },
     }),
     augs: [
       uaug('yelena', 'wide', '광역 소거', '항밈 소거가 대상 주변 1칸에도 닿고, 피해 +30%p.', setSk((s) => { s.radius += 1; s.mult += 0.3; })),

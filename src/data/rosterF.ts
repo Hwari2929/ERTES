@@ -99,7 +99,7 @@ export const ROSTER_F: BaseUnit[] = [
     ],
   },
   {
-    id: 'bill', name: '빌', title: '보안위원회 위원 · 영원한 휴가객', factions: ['SEC'], traits: ['SCHEME', 'NATURE'], keywords: ['bio'],
+    id: 'bill', name: '빌', title: '보안위원회 위원 · 영원한 휴가객', factions: ['SEC', 'STL'], traits: ['SCHEME'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'chem', interval: 0.9 }, range: 3, base: B(7, 5, 7, 5, 6),
     sprite: 'soldier', palette: tint(SEC_PAL, '#ff8a3d', '#5ad08a', '#b07cff'),
     lore: '"하하! 일은 무슨, 난 휴가 중이라네. …아, 그 친구? 방금 처리했지. 하하!"',
@@ -151,17 +151,25 @@ export const ROSTER_F: BaseUnit[] = [
     ],
   },
   {
-    id: 'eden', name: '이든', title: '연합 하층 출신 · 보안위원회 비정규 요원', factions: ['UNI', 'SEC'], traits: ['SCHEME'], keywords: ['bio'],
+    id: 'eden', name: '이든', title: '연합 하층 출신 · 보안위원회 비정규 요원', factions: ['UNI', 'SEC'], traits: ['DECOMP'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 4, base: B(6, 8, 5, 4, 7),
     sprite: 'soldier', palette: tint(PAL.UNI, '#3a3a44', '#8a6a4a', '#ffd040'),
     lore: '"트레이닝복이 어때서. 도망칠 땐 이게 제일 편해."',
     skill: strike({
-      name: '뒷골목 수법', cd: 6, pow: 'shoot', elem: 'phys', mult: 2.0, params: { bleed: 0.4, vuln: 0.15 },
-      desc: (p) => `대상에게 사격 위력 ${pct(p.mult)} 물리 피해 + 출혈 (초당 ${pct(p.bleed)}), 4초간 받는 피해 +${pct(p.vuln)}.`,
+      name: '뒷골목 수법', cd: 6, pow: 'shoot', elem: 'chem', mult: 1.4, params: { radius: 1, strip: 0.5, stripN: 1, vuln: 0 },
+      desc: (p) => `대상과 주변 ${p.radius}칸에 독한 약품을 뿌려 전술 위력 ${pct(p.mult)} 화학 피해. 맞은 적마다 ${pct(p.strip)} 확률로 이로운 효과 ${p.stripN}종 제거${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}.`,
+      after: (b, u, t, _d, p) => {
+        for (const e of b.around(t, p.radius, b.enemiesOf(u))) {
+          if (!e.alive || !b.rng.chance(p.strip)) continue;
+          let n = 0;
+          e.statuses = e.statuses.filter((s) => (n < p.stripN && !isHarmful(s) && s.type === 'buff' ? (n++, false) : true));
+          if (n) b.emit({ k: 'status', id: e.id, name: '강화 해제' });
+        }
+      },
     }),
     augs: [
-      uaug('eden', 'dirty', '비겁한 한 방', '뒷골목 수법 피해 +200%p.', setSk((s) => { s.mult += 2; })),
-      uaug('eden', 'knife', '숨긴 칼', '출혈 위력 +70%p.', setSk((s) => { s.bleed += 0.7; })),
+      uaug('eden', 'dirty', '비겁한 한 방', '뒷골목 수법 피해 +140%p.', setSk((s) => { s.mult += 1.4; })),
+      uaug('eden', 'knife', '주머니 속 시약', '이로운 효과 제거 확률 +35%p, 한 번에 2종까지 제거.', setSk((s) => { s.strip += 0.35; s.stripN = 2; })),
       uaug('eden', 'run', '튀어!', '기동력 +12, 생명력 +3.', { majors: { agi: 12, vit: 3 } }),
       uaug('eden', 'grudge', '밑바닥의 원한', '받는 피해 증가 +30%p.', setSk((s) => { s.vuln += 0.3; })),
       uaug('eden', 'luck', '하층민의 촉', '치명타 확률 +21%p, 치명타 피해 +60%p.', { stats: { crit: 0.21, critDmg: 0.6 } }),
@@ -325,7 +333,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
     },
   },
   eden: {
-    ctype: 'MARK', ttype: 'minor', faith: 'human', weapon: G('낡은 리볼버', 'phys', 1.0, 4, 1.1, 6, 2.0),
+    ctype: 'CMD', ttype: 'minor', faith: 'human', weapon: G('낡은 리볼버', 'phys', 1.0, 4, 1.1, 6, 2.0),
     trait: {
       name: '밑바닥 생존자', desc: '체력이 50% 이하이면 회피 +14%p, 주는 피해 +20%.',
       effect: { hooks: {

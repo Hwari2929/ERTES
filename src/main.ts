@@ -1878,7 +1878,7 @@ function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
   if (d.ctype === 'CMD') b.tac[0] = CFG.tacBase + CFG.tacPerMnd * (c.mem.mnd || 0); // 전술 위력: 출전 4명 · 지휘관 1명 기준
   const r = m.units[d.id];
   const syn = [...d.factions, ...d.traits].map((id) => { const x = SYN_BY_ID[id as SynergyId]; if (!x) return ''; return `<div class="cx-syn-row" style="--c:${x.color}"><span class="cx-syn-ic">${synIcon(x.id) || x.icon}</span><div><b>${esc(x.name)}</b> <span class="muted small">${x.kind === 'faction' ? '세력' : '특성'} · ${x.tiers.join(' / ')}</span><p class="small">${esc(x.desc)}</p></div></div>`; }).join('');
-  const augLi = (a: { id: string }, tag = '') => { const ad = AUG_BY_ID[a.id]; return `<li class="aug-li">${augIcon(a.id)}<span><b>${esc(ad?.name || a.id)}</b>${tag ? ` <span class="tag">${tag}</span>` : ''}<br><span class="muted">${augText(a.id, undefined, b, c)}</span></span></li>`; };
+  const augLi = (a: { id: string }, tag = '') => { const ad = AUG_BY_ID[a.id]; return `<li class="aug-li ab-click${abilOn(`aug:${a.id}`)}" data-a="abil-pop" data-v="aug:${esc(a.id)}" role="button" tabindex="0">${augIcon(a.id)}<span><b>${esc(ad?.name || a.id)}</b>${tag ? ` <span class="tag">${tag}</span>` : ''}<br><span class="muted">${augText(a.id, undefined, b, c)}</span></span></li>`; };
   const reco = (RECO[d.ctype] || []).map((key) => { const it = itemInfo(`A_${key}`); const [ca, cb] = it.recipe || []; return `<li class="rc-row">${itemIcon(`A_${key}`)}<div class="rc-main"><b>${esc(it.name)}</b><span class="small muted">${statIc(esc(it.desc))}</span></div><div class="rc-parts" title="조합 재료">${[ca, cb].filter(Boolean).map((x) => itemIcon(x!)).join('')}</div></li>`; }).join('');
   return `<div class="detail cx-d">
     <div class="d-hero">${hero(d.id) || `<div class="hero none">${sprite(d, 'spr big')}</div>`}
@@ -1893,7 +1893,7 @@ function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
     <h3>추천 장비 <span class="muted small">${CTYPE_NAME[d.ctype]}</span></h3><ul class="rc-list">${reco}</ul>
     <h3>이야기</h3>${STORIES[d.id] ? `<p class="small">${esc(STORIES[d.id])}</p>` : ''}<p class="lore">${esc(d.lore)}</p>
     <div class="codex-stats small">의뢰 <b>${r?.runs || 0}</b>회 · 누적 공명 등급 <b>${r?.ranks || 0}</b> · 최고 <b>${r?.best || 0}</b> · 성공 <b>${r?.clears || 0}</b></div>
-  </div>`;
+  </div>${app.abilPop ? abilPopHtml(app.abilPop, d, b, c) : ''}`;
 }
 function codexScreen() {
   const m = loadMeta();

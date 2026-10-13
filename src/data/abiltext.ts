@@ -68,6 +68,7 @@ const ABIL_PILOT: Record<string, AbilText> = {
       rows: [
         ['피해', `[dmg:tech:${p.mult}:psy]`],
         ['망각', `[g:forget] 쿨다운 +[s:${p.forget}]`],
+        ['약화', `[g:weak] [p:${p.weak}] ([s:${p.weakDur}])`],
         ['공포', `[st:fear:${p.fear}:${p.fearChance}]`],
         ...(p.vuln ? [['취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`] as [string, string]] : []),
       ],

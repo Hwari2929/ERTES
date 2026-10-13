@@ -214,7 +214,7 @@ export const ABIL_B: Record<string, AbilText> = {
     skill: (p) => ({
       tgt: '무작위 적 (발마다)', range: null, area: { k: 'one' },
       rows: [
-        ['피해', `[dmg:shoot:${p.mult}:phys${hitsTxt(p.shots)}]`],
+        ['피해', `[dmg:shoot:${p.mult}:chem${hitsTxt(p.shots)}]`],
         ...(p.crit ? [['치명타', `[g:crit] 확률 [pp:${p.crit}]`] as Row] : []),
         ...(p.shock ? [['감전', `적중 시 [st:shock:1.5:${p.shock}]`] as Row] : []),
       ],
@@ -223,7 +223,7 @@ export const ABIL_B: Record<string, AbilText> = {
     ace: (k) => `피해 +[p:${0.25 * k}], 치명타 확률 [pp:${0.11 * k}].`,
     augs: {
       ammo: '망령권 작살 +3발.',
-      caliber: '망령권 작살 발당 피해 [dmg+:shoot:0.6:phys].',
+      caliber: '망령권 작살 발당 피해 [dmg+:shoot:0.6:chem].',
       tracer: '망령권 작살 적중 시 [st:shock:1.5:0.4].',
       roll: '회피 [pp:0.11]. 기동력 +9.',
       gunsight: '망령권 작살 [g:crit] 확률 [pp:0.21]. 치명타 피해 [pp:0.6].',

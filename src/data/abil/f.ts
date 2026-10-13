@@ -121,15 +121,15 @@ export const ABIL_F: Record<string, AbilText> = {
     skill: (p) => ({
       tgt: '현재 대상', range: 'unit', area: aroundOr(p.radius),
       rows: [
-        ['피해', `[dmg:shoot:${p.mult}:phys${hitsTxt(p.hits)}]`],
-        ['출혈', `[st:bleed:4] 초당 [dmg:shoot:${p.bleed}:phys]`],
+        ['피해', `[dmg:shoot:${p.mult}:chem${hitsTxt(p.hits)}]`],
+        ['강화 해제', `맞은 적마다 [p:${p.strip}] 확률로 이로운 효과 ${p.stripN}종 제거`],
         ...when(p.vuln, ['취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`]),
       ],
     }),
     trait: '체력 [p:0.5] 이하일 때 주는 피해 +[p:0.2]. 처음 체력 [p:0.5] 이하가 되면 회피 [pp:0.14] (전투 동안).',
     augs: {
-      dirty: '뒷골목 수법 피해 [dmg+:shoot:2:phys].',
-      knife: '뒷골목 수법 출혈 초당 피해 [dmg+:shoot:0.7:phys].',
+      dirty: '뒷골목 수법 피해 [dmg+:shoot:1.4:chem].',
+      knife: '이로운 효과 제거 확률 [pp:0.35], 한 번에 2종까지 제거.',
       run: '기동력 +12, 생명력 +3.',
       grudge: '[st:vuln:4] 받는 피해 [pp:0.3].',
       luck: '[g:crit] 확률 [pp:0.21], 치명타 피해 [pp:0.6].',

@@ -203,15 +203,15 @@ export const SYNERGIES: SynDef[] = [
     },
   },
   {
-    id: 'STL', name: '스텔라레이서', kind: 'faction', tiers: [2, 4, 6], lockFinal: true, color: '#ff6a3d', icon: '➹',
+    id: 'STL', name: '스텔라레이서', kind: 'faction', tiers: [2, 4, 6, 8], lockFinal: true, color: '#ff6a3d', icon: '➹',
     desc: '성간 경기장의 레이서들. 레이서 기물은 빠르고, 전투가 시작되면 경기장에서 이탈한 비행선이 적진에 추락해 모든 적에게 최대 체력 비례 고정 피해를 줍니다.',
     tierDesc: ['기동력 +5, 전투 시작 비행선 추락: 모든 적 최대 체력 4% 고정 피해', '기동력 +11, 추락 6%, 20초마다 다시 추락',
-      '[그랑프리 대참사] 기동력 +24, 추락 10%, 10초마다 다시 추락'],
+      '기동력 +18, 추락 8%, 14초마다 다시 추락', '[그랑프리 대참사] 기동력 +30, 추락 12%, 8초마다 다시 추락'],
     member: (t) => {
-      const dmg = T(t, [0.04, 0.06, 0.1]), every = T(t, [0, 20, 10]);
+      const dmg = T(t, [0.04, 0.06, 0.08, 0.12]), every = T(t, [0, 20, 14, 8]);
       const lead = (b: Battle, u: CUnit) => b.alliesOf(u).find((a) => a.mem.stl) === u;
       return {
-        majors: { agi: T(t, [5, 11, 24]) },
+        majors: { agi: T(t, [5, 11, 18, 30]) },
         setup: (u) => { u.mem.stl = 1; },
         hooks: {
           onStart(b, u) { if (lead(b, u)) shipCrash(b, u, dmg); },
@@ -455,12 +455,12 @@ export const SYNERGIES: SynDef[] = [
     },
   },
   {
-    id: 'GUARD', name: '수호자', kind: 'trait', tiers: [2, 4], color: '#c9a86a', icon: '⛉',
+    id: 'GUARD', name: '수호자', kind: 'trait', tiers: [2, 4, 6], color: '#c9a86a', icon: '⛉',
     desc: '앞에 서서 모두를 지키는 이들. 출전한 수호자 1명마다 모든 아군의 방어도가 오르고, 수호자의 기본 공격에는 자신 방어도에 비례한 물리 피해가 더해집니다.',
-    tierDesc: ['수호자 1명당 모든 아군 방어도 +8%, 수호자 기본 공격 + 방어도 20% 물리 피해', '[철벽 방진] 수호자 1명당 모든 아군 방어도 +20%, 수호자 기본 공격 + 방어도 35% 물리 피해'],
-    team: (t, ctx) => ({ pct: { armor: (ctx.counts.GUARD || 0) * T(t, [0.08, 0.2]) } }),
+    tierDesc: ['수호자 1명당 모든 아군 방어도 +8%, 수호자 기본 공격 + 방어도 20% 물리 피해', '수호자 1명당 모든 아군 방어도 +16%, 수호자 기본 공격 + 방어도 35% 물리 피해', '[철벽 방진] 수호자 1명당 모든 아군 방어도 +30%, 수호자 기본 공격 + 방어도 50% 물리 피해'],
+    team: (t, ctx) => ({ pct: { armor: (ctx.counts.GUARD || 0) * T(t, [0.08, 0.16, 0.3]) } }),
     member: (t) => {
-      const k = T(t, [0.2, 0.35]);
+      const k = T(t, [0.2, 0.35, 0.5]);
       return {
         hooks: {
           onBasic(b, u, tgt, r) {

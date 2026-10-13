@@ -43,7 +43,7 @@ const sp = (owner: string, id: string, name: string, desc: string, effect: Effec
 export const REWORK: Record<string, ReworkDef> = {
   // ───────────────────────── 성간 인류 연합
   yelena: {
-    ctype: 'MARK', ttype: 'psionic', faith: 'human', weapon: G('델타-9 제식 권총', 'psy', 0.95, 3, 1.0, 12, 1.5),
+    ctype: 'SPEC', ttype: 'psionic', faith: 'human', weapon: G('델타-9 제식 권총', 'psy', 0.95, 3, 1.0, 12, 1.5),
     factions: ['SEC'], traits: ['SCHEME', 'NATURE'],
     trait: {
       name: '항밈 요원', desc: '사격이 정신 피해가 된다 (사격 피해량 -25%p). 정신 피해를 받은 적은 기술 쿨다운 +1초 (대상당 1초에 1회).',
@@ -88,11 +88,13 @@ export const REWORK: Record<string, ReworkDef> = {
     ],
   },
   chloe: {
-    ctype: 'SPEC', ttype: 'minor', faith: 'science', weapon: G('다트 권총', 'phys', 1.0, 3, 0.9, 6, 1.8),
+    ctype: 'SPEC', ttype: 'minor', faith: 'science', weapon: G('다트 권총', 'chem', 1.0, 3, 0.9, 6, 1.8),
     factions: ['SEC'], traits: ['MED', 'DECOMP'],
     trait: {
-      name: '항밈 처방', desc: '회복할 때 대상의 해로운 상태이상 1개를 제거한다.',
-      effect: { hooks: { onHealDone(_b, u, t) {
+      name: '항밈 처방', desc: '기본 공격이 대상에게 [중독]을 건다 (4초간 초당 기술 위력 25% 화학 피해). 회복할 때 대상의 해로운 상태이상 1개를 제거한다.',
+      effect: { hooks: { onBasic(b, u, t, r) {
+        if (r.amount > 0 && t.alive) b.applyStatus(u, t, { type: 'dot', key: 'poison', dur: 4, dps: b.S(u, 'tech') * 0.25, elem: 'chem' }, 1);
+      }, onHealDone(_b, u, t) {
         const i = t.statuses.findIndex(harmful);
         if (i < 0) return;
         t.statuses.splice(i, 1);
@@ -153,7 +155,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   franze: {
     ctype: 'CMD', ttype: 'major', faith: 'index', weapon: K('에너지 블레이드', 'phys', 0.9, 1, 0.6, 4),
-    factions: ['PET', 'TIME'], traits: ['DECOMP'],
+    factions: ['PET', 'TIME'], traits: [],
     trait: {
       name: '은하법 검사', desc: '흡혈 +10%p. 기본 공격이 맞은 적에게 5초간 [심판]: 그동안 아군이 준 피해의 20%를 기록하고, 끝날 때 기록의 100%를 고정 피해로 정산한다.',
       effect: {
@@ -168,7 +170,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   grenholm: {
     ctype: 'VAN', ttype: 'major', faith: 'index', weapon: K('7중 방호 블레이드', 'phys', 1.1, 1, 0.8, 3),
-    factions: ['PET'], traits: ['STAR', 'GUARD'],
+    factions: ['PET'], traits: ['STAR', 'INFIL'],
     trait: {
       name: '7중 방호 슈트', desc: '기본 공격 · 기술을 쓸 때마다 최대 체력 5% 보호막 (최대 30%까지 쌓임).',
       effect: { hooks: {
@@ -386,7 +388,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   iris: {
     ctype: 'CMD', ttype: 'divine', faith: 'hermes', weapon: G('날개 단검 투척', 'holy', 0.9, 3, 0.6, 6, 1.5),
-    factions: ['HEL', 'STL'], traits: ['MED'],
+    factions: ['HEL', 'STL'], traits: [],
     trait: {
       name: '헤르메스의 날개', desc: '아군 전원 이동 속도 · 공격 속도 +25%p.',
       effect: { hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'iris.wing', 999, { delta: { moveSpd: 0.25, atkSpd: 0.25 } }); } } },
@@ -398,7 +400,7 @@ export const REWORK: Record<string, ReworkDef> = {
     trait: { name: '귀환자의 눈', desc: '체력 비율이 가장 낮은 적을 노린다. 치명타 확률 +35%p.', effect: { stats: { crit: 0.35 }, setup: (u) => { u.mem.lowestFocus = 1; } } },
   },
   argon: {
-    ctype: 'MARK', ttype: 'major', faith: 'hades', weapon: G('선상 작살총', 'phys', 0.9, 4, 1.1, 2, 2.5),
+    ctype: 'MARK', ttype: 'major', faith: 'hades', weapon: G('선상 작살총', 'chem', 0.9, 4, 1.1, 2, 2.5),
     factions: ['HEL'], traits: ['NAV', 'DECOMP'],
     trait: { name: '망자의 뱃사공', desc: '다른 기물이 주는 이로운 버프를 받지 않는다. 효과 저항 +40%p.', effect: { stats: { effRes: 0.4 }, setup: (u) => { u.mem.noBless = 1; } } },
   },
@@ -438,7 +440,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   kyle: {
     ctype: 'VAN', ttype: 'divine', faith: 'sirius', weapon: K('성전 장검', 'holy', 1.0, 1, 0.8, 4),
-    factions: ['SIR'], traits: ['INFIL'],
+    factions: ['SIR'], traits: ['GUARD'],
     trait: { name: '성전 기사', desc: '신성 피해량 +20%. 전투 스킬을 쓸 때 최대 체력 15% 보호막.', effect: { mods: [inc('holy', 0.2)], hooks: { onSkill(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.15); } } } },
   },
   doros: {
@@ -472,7 +474,7 @@ export const REWORK: Record<string, ReworkDef> = {
   // ───────────────────────── 범은하 공동체
   aiden: {
     ctype: 'VAN', ttype: 'special', faith: 'science', weapon: K('액체 금속 칼날', 'phys', 0.75, 1, 0.75, 5),
-    factions: ['TIME'], traits: ['NAV'],
+    factions: ['TIME'], traits: ['NAV', 'GUARD'],
     trait: {
       name: '고양이 형태', desc: '전투 시작 5초 · 회피 시 2초 · 처치 시 5초 동안 고양이 형태: 회피 +21%p, 공격 속도 +30%p.',
       effect: { hooks: {
@@ -602,7 +604,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   sigmund: {
     ctype: 'CMD', ttype: 'minor', faith: 'index', weapon: G('은식기 투척', 'phys', 1.1, 3, 0.6, 6, 2),
-    factions: ['FAM'], traits: ['NATURE'],
+    factions: ['FAM'], traits: ['NATURE', 'GUARD'],
     trait: {
       name: '집사의 예법', desc: '공명 등급이 가장 높은 아군을 모신다 (보좌 우선 대상). 그 기물이 엘베스타드가 아니면 엘베스타드 시너지에 합류시키고, 이미 엘베스타드면 모든 메이저 +5.',
       effect: { setup(u, _b, ctx) {
