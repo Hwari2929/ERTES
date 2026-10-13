@@ -1104,7 +1104,7 @@ function pendingModal(run: RunState): string {
         const before = teamCount(owned), after = teamCount([...owned, pick]);
         return `<div class="rc-syn"><span class="small"><b>${esc(d.name)}</b> 영입 시</span><div class="nr-syn syn-list">${[...d.factions, ...d.traits].map((id) => synToken(id, after(id), tierOf(id as SynergyId, after(id)) > tierOf(id as SynergyId, before(id)) ? ' up' : '')).join('')}</div></div>`;
       })() : ''}<span class="muted small">${pick ? `${esc(UNIT_BY_ID[pick].name)} 선택됨` : CAN_HOVER ? '카드에 마우스를 올리면 설명, 누르면 선택' : '탭하면 선택 · 하단을 끌어올리면 설명'}</span>
-        <button class="btn" data-a="reroll-recruit" ${rr > 0 ? '' : 'disabled'}>새로고침 (${rr}회)</button>
+        ${p.syns ? '' : `<button class="btn" data-a="reroll-recruit" ${rr > 0 ? '' : 'disabled'}>새로고침 (${rr}회)</button>`}
         <button class="btn primary" data-a="pick-recruit" data-v="${pick || ''}" ${pick ? '' : 'disabled'}>영입</button></div>`;
   } else if (p.t === 'branch') {
     const BR: Partial<Record<NodeType, string>> = {

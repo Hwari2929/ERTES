@@ -143,7 +143,7 @@ export function addUnit(run: RunState, defId: string, rank: number): UnitState {
 export const canDeploy = (run: RunState, u: UnitState) => u.lock !== run.phase && (!UNIT_BY_ID[u.defId].traits.includes('EXPLORER') || run.phase >= CFG.explorerPhase);
 
 /** 함대 확장 횟수 (구 세이브는 예전 페이즈 기준 출전 인원으로 환산) */
-const fleetOf = (run: RunState) => run.fleet ?? Math.max(0, Math.min(10, 3 + run.phase) - CFG.deployBase);
+const fleetOf = (run: RunState) => run.fleet ?? 0; // 함대 확장 구입 횟수 (구입 전에는 기본 인원 그대로)
 export const deployCap = (run: RunState) => CFG.deployBase + fleetOf(run) + (hasGlobal(run, 'G.squad') ? 1 : 0);
 
 // ───────────────────────── 함선 관리: 함대 확장 · 지정 소집
@@ -182,8 +182,8 @@ export function confirmMuster(run: RunState, syns: string[]): string | null {
   run.credits -= c;
   run.musters = (run.musters || 0) + 1;
   run.pending.shift();
-  const k = 3 + (hasGlobal(run, 'G.scout') ? 1 : 0) + (hasGlobal(run, 'G.network') ? 1 : 0);
-  run.pending.unshift({ t: 'recruit', options: recruitOptions(run, k, pool), syns });
+  const k = 4 + (hasGlobal(run, 'G.scout') ? 1 : 0) + (hasGlobal(run, 'G.network') ? 1 : 0); // 지정 소집: 선택지 +1, 리롤 없음
+  run.pending.unshift({ t: 'recruit', options: recruitOptions(run, k, pool), syns, rerolls: 0 });
   log(run, `지정 소집 (크레딧 -${c}): ${syns.map((s) => SYN_BY_ID[s as SynergyId]?.name || s).join(' · ')}`);
   return null;
 }

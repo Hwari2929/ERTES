@@ -252,13 +252,19 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   const em = enemyMajors(def, phase);
   // 효과 명중 · 효과 저항은 아군과 같은 환산, 명중 · 회피 · 치명타는 약하게 (전체 난이도 유지)
   const K = CFG.enemyMajorConv;
-  st.effHit += em.mnd * CFG.conv.mnd.effHit; st.effRes += em.def * CFG.conv.def.effRes;
-  st.acc += em.mnd * CFG.conv.mnd.acc * K.acc; st.eva += em.agi * CFG.conv.agi.eva * K.eva; st.crit += em.pow * CFG.conv.pow.crit * K.crit;
+  st.effHit += em.mnd * CFG.conv.mnd.effHit; st.effRes += em.def * CFG.conv.def.effRes * K.effRes;
+  st.acc += em.mnd * CFG.conv.mnd.acc * K.acc;
+  const O = CFG.enemyOldConv;
+  const eva0 = st.eva + em.agi * CFG.conv.agi.eva * O.eva, crit0 = st.crit + em.pow * CFG.conv.pow.crit * O.crit; // 예전 환산 (보정 기준)
+  st.eva = Math.min(CFG.enemyEvaCap, st.eva + em.agi * CFG.conv.agi.eva * K.eva);
+  st.crit = Math.min(CFG.enemyCritCap, st.crit + em.pow * CFG.conv.pow.crit * K.crit);
+  st.maxHp *= (1 - st.eva) / (1 - Math.min(0.9, eva0)); // 회피가 늘어난 만큼 체력을 줄여 유효 체력 유지
+  const critTax = 1 / (1 + 2 * Math.max(0, st.crit - crit0)); // 치명타 1%p = 피해 2%
   Object.assign(c, {
     defId: def.id, name: def.name, sprite: def.sprite, palette: def.palette, st, keywords: def.keywords.slice(),
     atk: { type: def.atk.type, elem: def.atk.elem, interval: def.interval }, skill: def.skill || null,
     sk: { ...(def.skill?.params || {}) }, cdMax: def.skill?.cd || 0, isBoss: def.tier === 'boss', big: def.tier !== 'minion',
-    immobile: !!def.immobile, phaseAmp: phaseAmpMult(phase) * (1 + (mult - 1) / 2),
+    immobile: !!def.immobile, phaseAmp: phaseAmpMult(phase) * (1 + (mult - 1) / 2) * critTax,
   });
   c.mem.mult = mult;
   for (const m of MAJORS) c.mem[`M_${m}`] = em[m];

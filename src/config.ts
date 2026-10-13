@@ -43,7 +43,11 @@ export const CFG = {
   phaseHpFactor: (p: number) => (p <= 5 ? 2.05 : Math.max(1.1, 2 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
   adversityMult: 1.6,
   enemyHpMul: 2.8, enemyPowMul: 2.5, // 적 기초 수치 전체 배율 (튜닝용)
-  enemyMajorConv: { acc: 0.3, eva: 0.25, crit: 0.25 }, // 적 메이저 → 명중 · 회피 · 치명타 환산 배율 [임시] (효과 명중 · 저항은 1)
+  // 적 메이저 → 명중 · 회피 · 치명타 · 효과 저항 환산 배율 (아군 환산 × 배율). 페이즈 6 일반 적 기준 회피 ~30% · 치명타 ~35% · 효과 저항 ~30%
+  enemyMajorConv: { acc: 0.3, eva: 1.25, crit: 0.9, effRes: 0.4 },
+  enemyEvaCap: 0.6, enemyCritCap: 0.75,
+  // 늘어난 회피 · 치명타만큼 체력 · 피해를 깎아 총 난이도를 맞춘다: 치명타 1%p = 피해 2%, 회피는 유효 체력 1/(1-회피) 기준
+  enemyOldConv: { eva: 0.25, crit: 0.25 },
 
   // ── 성장
   maxRank: 99, // 10 이상은 스탯만
@@ -67,7 +71,7 @@ export const CFG = {
   startUnits: 4, maxParty: 16, // 출전 최대 10 + 대기 6
   deployBase: 4, // 기본 출전 인원. 함대 확장으로 늘린다
   fleetCosts: [20, 40, 56, 72, 90, 108, 128, 160, 200, 256], // 함대 확장 n번째 비용 (출전 5 → 14명)
-  musterCost: 20, musterStep: 5, musterPicks: 4, // 지정 소집: 기본 가격, 회당 상승, 고르는 시너지 수
+  musterCost: 16, musterStep: 8, musterPicks: 3, // 지정 소집: 기본 가격, 회당 상승, 고르는 시너지 수
   benchXpWeight: 0.5, // 대기 기물의 공명도 분배 가중치 (출전 기물 대비)
   boardSizes: [ { n: 7, w: 70, env: '표준 전장' }, { n: 6, w: 15, env: '협소한 통로' }, { n: 8, w: 15, env: '개활지' } ],
   bossBoard: 7,
