@@ -4,11 +4,14 @@ import { COMMON_REG, COMMON_SCENES } from './common';
 import { PILOT_SCENES } from './pilot';
 import { STORY_A_REG, STORY_A_SCENES } from './story_a';
 import { STORY_B_REG, STORY_B_SCENES } from './story_b';
+import { STORY_B2_REG, STORY_B2_SCENES } from './story_b2';
+import { STORY_B3_REG, STORY_B3_SCENES } from './story_b3';
 import { STORY_C_REG, STORY_C_SCENES } from './story_c';
+import { STORY_C2_REG, STORY_C2_SCENES } from './story_c2';
 import { STORY_D_REG, STORY_D_SCENES } from './story_d';
 
 // 묶음별 등록부(NPC · 배경 · 배경음 · 효과음)를 공용 등록부에 합친다
-for (const r of [COMMON_REG, STORY_A_REG, STORY_B_REG, STORY_C_REG, STORY_D_REG] as SceneReg[]) {
+for (const r of [COMMON_REG, STORY_A_REG, STORY_B_REG, STORY_B2_REG, STORY_B3_REG, STORY_C_REG, STORY_C2_REG, STORY_D_REG] as SceneReg[]) {
   Object.assign(NPCS, r.npcs || {});
   Object.assign(BGS, r.bgs || {});
   Object.assign(BGMS, r.bgms || {});
@@ -16,5 +19,5 @@ for (const r of [COMMON_REG, STORY_A_REG, STORY_B_REG, STORY_C_REG, STORY_D_REG]
 }
 
 export const EVENT_SCENES: Record<string, EventScene> = {
-  ...PILOT_SCENES, ...COMMON_SCENES, ...STORY_A_SCENES, ...STORY_B_SCENES, ...STORY_C_SCENES, ...STORY_D_SCENES,
+  ...PILOT_SCENES, ...COMMON_SCENES, ...STORY_A_SCENES, ...STORY_B_SCENES, ...STORY_B2_SCENES, ...STORY_B3_SCENES, ...STORY_C_SCENES, ...STORY_C2_SCENES, ...STORY_D_SCENES,
 };
