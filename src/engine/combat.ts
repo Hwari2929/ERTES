@@ -430,7 +430,8 @@ export class Battle {
   }
 
   private moveToward(u: CUnit, tgt: CUnit, range: number) {
-    // BFS: 대상이 사거리 안에 들어오는 가장 가까운 빈 칸으로
+    // BFS: 대상이 사거리 안에 들어오는 가장 가까운 빈 칸으로.
+    // 아군 기물은 지나갈 수 있는 칸으로 본다 (아군이 길을 막아 멈춰 서는 일이 없도록). 단, 첫 걸음과 도착 칸은 비어 있어야 한다
     const n = this.w;
     const prev = new Map<number, number>();
     const start = u.y * n + u.x;
@@ -440,14 +441,16 @@ export class Battle {
     while (q.length) {
       const cur = q.shift()!;
       const cx = cur % n, cy = (cur / n) | 0;
-      if (cur !== start && this.dist({ x: cx, y: cy }, tgt) <= range) { goal = cur; break; }
+      if (cur !== start && !this.unitAt(cx, cy) && this.dist({ x: cx, y: cy }, tgt) <= range) { goal = cur; break; }
       for (let dy = -1; dy <= 1; dy++)
         for (let dx = -1; dx <= 1; dx++) {
           if (!dx && !dy) continue;
           const nx = cx + dx, ny = cy + dy;
           if (!this.inBounds(nx, ny)) continue;
           const id = ny * n + nx;
-          if (prev.has(id) || this.unitAt(nx, ny)) continue;
+          if (prev.has(id)) continue;
+          const occ = this.unitAt(nx, ny);
+          if (occ && (cur === start || occ.side !== u.side)) continue; // 적은 항상 막고, 아군은 첫 걸음에서만 막는다
           prev.set(id, cur);
           q.push(id);
         }

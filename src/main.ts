@@ -1033,12 +1033,15 @@ function summaryModal(run: RunState) {
     <div class="rs-grid">
       ${d && mvp ? `<section class="rs-mvp" aria-label="MVP">
         <div class="rs-mvp-art">${standImg(d.id, 'stand', true) || sprite(d, 'spr big')}</div>
-        <div class="rs-mvp-tag"><span class="rs-crown">MVP</span><em>${mvp.title}</em></div>
+        <div class="rs-mvp-tag"><span class="rs-crown">${s.won ? 'MVP' : '분투'}</span><em>${mvp.title}</em></div>
         <div class="rs-mvp-name"><b>${esc(d.name)}</b><small>${esc(d.title)}</small></div>
         <blockquote class="rs-quote">${esc(quote)}</blockquote>
         <div class="rs-mvp-stats">${mvpStat}</div>
       </section>` : ''}
-      <section class="rs-reward"><h3>보상 일람</h3>
+      <section class="rs-reward"><h3>${s.won ? '보상 일람' : '피해 보고 · 정산'}</h3>
+        ${!s.won && s.hpLoss > 0 ? (() => { const after = Math.max(0, run.hp), before = Math.min(run.maxHp, after + s.hpLoss); return `<div class="rs-hp" data-before="${(before / run.maxHp) * 100}" data-after="${(after / run.maxHp) * 100}">
+          <div class="rs-hp-top">${lineIcon('r.hp', 'li')}<span>함대 체력</span><b>${before} → ${after}</b><em>-${s.hpLoss}</em></div>
+          <div class="rs-hp-bar"><i class="loss" style="left:${(after / run.maxHp) * 100}%;width:${(s.hpLoss / run.maxHp) * 100}%"></i><i class="left" style="width:${(after / run.maxHp) * 100}%"></i></div></div>`; })() : ''}
         <ul class="rs-lines">${s.lines.filter((l) => !l.startsWith('장비 획득:')).map((l, i) => resLine(l, i)).join('')}</ul>
         ${s.items?.length ? `<h4>장비 획득</h4><ul class="rs-items">${s.items.map((id, i) => `<li style="--i:${i}">${itemIcon(id)}<span class="it-n it-${itemInfo(id).tier}">${esc(itemInfo(id).name)}</span></li>`).join('')}</ul>` : ''}
         ${xp ? `<h4>${RES}공명도 획득</h4><ul class="rs-xp">${xp}</ul>` : ''}
