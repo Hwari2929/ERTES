@@ -362,6 +362,11 @@ function skillText(d: UnitDef, sk = d.skill.params) {
   return d.ctype === 'CMD' ? t.replace(/기술 위력/g, '전술 위력') : t;
 }
 const traitText = (d: UnitDef) => (app.detail ? d.trait.desc : BRIEF[d.id]?.trait || d.trait.desc);
+/** 상세 창 상단 고정 바: 닫기(←) · [추가 버튼] · 상세 보기(돋보기) */
+function dBar(back: string, extra = '') {
+  return `<div class="d-bar"><button class="btn d-back" data-a="${back}" data-v="" aria-label="상세 닫기" title="닫기 (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <span class="d-bar-r">${extra}<button class="btn d-mag${app.detail ? ' on' : ''}" data-a="toggle-detail" aria-pressed="${app.detail}" aria-label="상세 보기 ${app.detail ? '끄기' : '켜기'}" title="상세 보기: 계수 · 세부 규칙 표시 (단축키 D) · ${app.detail ? 'ON' : 'OFF'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M10.5 8v5M8 10.5h5"/></svg></button></span></div>`;
+}
 function detailToggle() {
   return `<button class="btn tiny dtoggle ${app.detail ? 'on' : ''}" data-a="toggle-detail" aria-pressed="${app.detail}" title="계수 · 세부 규칙 표시 (단축키 D)">상세 보기 ${app.detail ? 'ON' : 'OFF'}</button>`;
 }
@@ -506,8 +511,7 @@ function mapDetail(run: RunState) {
   const fresh = lastMapDetail !== u.uid;
   lastMapDetail = u.uid;
   return `<aside class="map-detail${fresh ? ' in' : ''}" aria-label="${esc(UNIT_BY_ID[u.defId].name)} 상세">
-    <div class="md-bar"><button class="btn tiny" data-a="map-unit" data-v="" aria-label="상세 닫기">← 파티로</button><button class="btn tiny" data-a="manage" data-v="${u.uid}">편성 화면에서 보기</button></div>
-    ${detailPanel(run)}${statPopHtml(run)}
+    ${detailPanel(run, `<button class="btn tiny" data-a="manage" data-v="${u.uid}">편성 화면에서 보기</button>`).replace('data-a="desel"', 'data-a="map-unit"')}${statPopHtml(run)}
   </aside>`;
 }
 /** 함선 관리: 함대 확장 (출전 인원) · 지정 소집 (시너지 지정 영입) */
@@ -865,8 +869,9 @@ function powRow(b: Battle, c: CUnit, d: UnitDef, deployedNow: boolean) {
   const val = (k: K) => Math.round(k === 'tac' ? b.tacPower(c) : b.S(c, k));
   return `<div class="d-pows">${keys.map((k, i) => `<span class="d-pow pw-${k}${i ? ' sub' : ''}" title="${POW_NAME[k]}${k === 'tac' ? (deployedNow ? ' · 지금 출전 구성 기준' : ' · 이 기물이 출전했을 때 기준') : ''}">${lineIcon(`p.${k}`, 'li')}<span>${POW_NAME[k]}</span><b>${fmt(val(k))}</b></span>`).join('')}</div>`;
 }
-function detailPanel(run: RunState) {
+function detailPanel(run: RunState, extra = '') {
   const sel = app.sel;
+  const bar = dBar('desel', extra);
   if (sel?.k === 'enemy' && run.node?.enc) {
     const s = run.node.enc.enemies[sel.i];
     if (!s) return '';
@@ -877,7 +882,7 @@ function detailPanel(run: RunState) {
     const ms = battleMajors(c)!;
     const eq = [...(e.items || []).filter((x): x is string => !!x), ...(e.mod ? [e.mod] : [])];
     const known = loadMeta().enemies[e.id];
-    return `<div class="detail">
+    return `<div class="detail">${bar}
       ${heroHead(`en_${e.id}`, sprite(e, 'spr big'), e.name, enemyTypes(e), `<i>${tierKo(e)}</i>`)}
       <div class="small muted">${e.keywords.map((k) => KEYWORD_NAME[k]).join(' · ')} · 체력 ${fmt(b.S(c, 'maxHp'))}${known ? ` · 도감: 조우 ${known.seen} · 처치 ${known.kills}` : ''}</div>
       ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}
@@ -897,8 +902,7 @@ function detailPanel(run: RunState) {
   const tm = totalMajors(u, effects);
   const title = rankTitle(u.rank) + effects.reduce((s, e) => s + (e.title || 0), 0);
   const cost = R.xpCost(run);
-  return `<div class="detail">
-    <div class="d-tools">${detailToggle()}</div>
+  return `<div class="detail">${bar}
     <div class="d-hero">${hero(d.id) || `<div class="hero none">${sprite(d, 'spr big')}</div>`}
       <div class="pc-syn dh-syn">${(() => { const cnt = synergyCounts(deployed(run), run) as Record<string, number>; return memberships(u, run).map((id) => synToken(id, cnt[id] || 0)).join(''); })()}</div>
       <div class="dh-name"><b>${esc(d.name)}</b><span class="dh-types"><i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i></span></div></div>
@@ -1981,7 +1985,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
     if (u.skill) abils = abil('skill', u.skill.name, `${u.cdMax.toFixed(1)}초`, u.skill.desc(u.sk));
   }
   const ms = battleMajors(u);
-  return `${head}
+  return `${dBar('bdesel')}${head}
     <div class="bs-dyn"></div>
     ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.join('')}</div></div>` : ''}
     ${ms ? `<div class="mj-wrap"><div class="mj-head"><h3>메이저 스탯</h3>${magBtn()}</div>${majorsHtml(ms)}</div>` : `<div class="mj-head"><h3>능력치</h3>${magBtn()}</div>`}
@@ -2101,7 +2105,7 @@ function codexScreen() {
 function act(a: string, v: string) {
   const run = app.run;
   // 전투 중에는 속도 조절 / 결과 보기 / 계속만 받는다 (재렌더하면 전투 화면이 초기화됨)
-  if (app.screen === 'battle' && !['speed', 'skip', 'after-battle', 'meter-tab', 'bsel', 'bdesel', 'bpick', 'stat-pop', 'abil-pop'].includes(a)) return;
+  if (app.screen === 'battle' && !['speed', 'skip', 'after-battle', 'meter-tab', 'bsel', 'bdesel', 'bpick', 'stat-pop', 'abil-pop', 'toggle-detail'].includes(a)) return;
   if (a === 'map-tab') {
     // 슬라이드 전환: 다시 그리지 않고 트랙만 옮긴다
     setMapTab(+v || 0);
@@ -2116,7 +2120,7 @@ function act(a: string, v: string) {
     case 'syn-peek': return; // 시너지 아이콘 탭: 이름만 보여준다 (클릭 핸들러에서 처리)
     case 'card-tap': return act('pick-starter', v); // 카드를 누르면 선택 · 해제
     case 'card-open': app.cardOpen = app.cardOpen === v ? null : v; syncCardOpen(); return; // 터치: 설명 펼치기 · 접기
-    case 'toggle-detail': app.detail = !app.detail; savePref('detail', app.detail); break;
+    case 'toggle-detail': app.detail = !app.detail; savePref('detail', app.detail); if (app.screen === 'battle') { updateMeter(true); return; } break;
     case 'toggle-sub': if (app.subOpen.has(v)) app.subOpen.delete(v); else app.subOpen.add(v); break;
     case 'to-title': if (app.view) { app.view.destroy(); app.view = null; } app.screen = 'title'; app.menu = null; app.run = null; break;
     case 'pick-starter': {
@@ -2168,6 +2172,7 @@ function act(a: string, v: string) {
     case 'abil-pop': app.abilPop = !v || app.abilPop === v ? null : v; app.statPop = false; if (app.screen === 'battle') { updateMeter(true); return; } break;
     case 'stat-pop': app.statPop = !app.statPop; app.abilPop = null; if (app.screen === 'battle') { updateMeter(true); return; } break;
     case 'reco': app.recoFor = v || null; break;
+    case 'desel': app.sel = null; app.abilPop = null; app.statPop = false; break;
     case 'use-k': {
       const u = app.useK;
       app.useK = null;
@@ -2256,7 +2261,7 @@ function act(a: string, v: string) {
     case 'codex-back': app.screen = app.run ? (app.run.over ? 'over' : 'map') : 'title'; if (app.run && !app.run.over) goPrepOrMap(); break;
     case 'meter-tab': app.meterTab = v as typeof app.meterTab; document.querySelectorAll('.meter-tabs .btn').forEach((e) => e.classList.toggle('on', (e as HTMLElement).dataset.v === v)); updateMeter(true); return;
     case 'bsel': app.bPick = null; app.abilPop = null; app.battleSel = app.battleSel === +v ? null : +v; applySpeed(); updateMeter(true); return;
-    case 'bdesel': if (app.battleSel !== null) { app.battleSel = null; app.bPick = null; applySpeed(); updateMeter(true); } return;
+    case 'bdesel': if (app.battleSel !== null) { app.battleSel = null; app.bPick = null; app.abilPop = null; app.statPop = false; applySpeed(); updateMeter(true); } return;
     case 'bpick': app.bPick = app.bPick === v ? null : v; updateMeter(true); return;
     case 'release': app.releaseConfirm = v; break;
     case 'release-cancel': app.releaseConfirm = null; break;
