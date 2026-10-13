@@ -119,7 +119,7 @@ const L: Record<string, string> = {
   'p.shoot': '<circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/><circle cx="12" cy="12" r="1.2"/>',
   'p.strike': '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4"/>',
   'p.tech': '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
-  'p.tac': '<path d="M6 21h12"/><path d="M8 21c-.4-2.6.6-4.4 2.4-6.2.9-.9 1.3-2 1-3.2L8.6 13 6.4 11.6 9 7.4l1.6-.8.9-2.6 1.4 2c3.3.9 5.6 4 5.3 8.6l-.2 6.4"/><circle cx="10.6" cy="9.4" r=".6"/>',
+  'p.tac': '<rect x="5" y="19.6" width="14" height="2.2" rx="1" fill="currentColor" stroke="none"/><path fill="currentColor" stroke="none" fill-rule="evenodd" d="M7.6 18.8c-.1-2.7 1.2-4.6 3.2-6.2l-3.5 1.1c-.9.3-1.8 0-2.3-.7l-.5-.7c-.4-.6-.4-1.4.1-2l4.4-4.9.9-2.9 2.3 2.1c4.1.7 6.6 4.3 6.4 8.8l-.4 5.4zM10.6 7.6a1 1 0 1 0 .01 0z"/>',
   // 능력 수치
   'u.range': '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
   'u.area': '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" stroke-dasharray="3 3"/>',

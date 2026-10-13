@@ -1342,7 +1342,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .tac-wrap { position: relative; display: inline-flex; align-items: center; gap: 6px; }
 .tac-pill { position: relative; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; font: inherit; color: var(--fg);
   border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); background: color-mix(in srgb, var(--accent) 12%, var(--panel-2)); }
-.tac-pill .li { width: 15px; height: 15px; color: var(--accent); flex: none; }
+.tac-pill .li { width: 16px; height: 16px; color: var(--accent); flex: none; }
 .tac-pill b { color: var(--accent); font-variant-numeric: tabular-nums; }
 .tac-cmd { font-size: .78rem; color: var(--muted); white-space: nowrap; }
 /* 나타날 때: 톡 튀어나오고 고리가 퍼지며 작은 불꽃 네 갈래 */
@@ -1366,3 +1366,10 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .d-pow.pw-tac { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
 .d-pow.pw-tac .li, .d-pow.pw-tac b { color: var(--accent); }
 .d-pow.sub { opacity: .8; }
+
+/* 전술 위력 알약 · 상세 위력: 아이콘과 숫자 세로 가운데 정렬 */
+.tac-pill, .d-pow { line-height: 1; }
+.tac-pill .li, .d-pow .li { display: block; vertical-align: 0; margin: 0; }
+.tac-pill b, .d-pow b, .d-pow span { display: block; line-height: 1; }
+.board-head { align-items: center; }
+.board-head .pill { box-sizing: border-box; min-height: 26px; }
