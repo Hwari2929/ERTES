@@ -58,10 +58,10 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'MARK', ttype: 'major', faith: 'human', weapon: G('깜찍이', 'phys', 1.0, 5, 1.2, 4, 2.5),
     factions: ['UNI', 'KAL'], traits: ['HUNTER'],
     trait: {
-      name: '물질주의 캠퍼', desc: '장착한 장비 · 개조부품 · 임시 장비 1개당 회피 · 치명타 확률 +3.5%p (최대 +21%p).',
+      name: '물질주의 캠퍼', desc: '장착한 장비 · 개조부품 · 임시 장비 1개당 회피 · 치명타 확률 +2.5%p (최대 +15%p).',
       effect: { hooks: { onStart(_b, u) {
         const n = (u.src?.items.filter(Boolean).length || 0) + (u.src?.mod ? 1 : 0) + (u.tempItems?.length || 0);
-        const v = Math.min(0.21, 0.035 * n);
+        const v = Math.min(0.15, 0.025 * n);
         u.st.eva += v; u.st.crit += v;
       } } },
     },
@@ -330,13 +330,13 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'CMD', ttype: 'psionic', faith: 'athena', weapon: G('깃펜', 'phys', 0.8, 4, 0.6, 2, 1),
     factions: ['HEL', 'PAN'], traits: ['NAV'],
     trait: {
-      name: '뱃사공 철학', desc: '기본 공격이 대상 근처의 적 1명을 추가로 맞힌다. 아군 전원 치명타 확률 +14%p.',
+      name: '뱃사공 철학', desc: '기본 공격이 대상 근처의 적 1명을 추가로 맞힌다. 아군 전원 치명타 확률 +10%p.',
       effect: { hooks: {
         onBasic(b, u, t) {
           const e = b.nearest(t, b.enemiesOf(u).filter((x) => x !== t && b.dist(u, x) <= b.S(u, 'range')));
           if (e) b.dealDamage(u, e, b.S(u, 'shoot') * (u.weapon?.mult || 1), { elem: u.atk.elem, tag: 'basic', kind: 'shoot', canMiss: true });
         },
-        onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'zephyro.calm', 999, { delta: { crit: 0.14 } }); },
+        onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'zephyro.calm', 999, { delta: { crit: 0.1 } }); },
       } },
     },
     psi: { desc: '초당 이성 +1 (느긋함), 염동(전투 스킬) 사용 시 -6.', effect: { hooks: {
@@ -348,8 +348,8 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'SPEC', ttype: 'special', faith: 'hades', weapon: K('만능 렌치', 'holy', 0.8, 1, 0.8, 4),
     factions: ['HEL', 'VOYAGE'], traits: ['INFIL'],
     trait: {
-      name: '균열 회피', desc: '회피 +7%p. 회피하면 공격자에게 타격 위력 100% 반격하고 무작위 적에게 순간이동한다 (0.5초에 1회).',
-      effect: { stats: { eva: 0.07 }, hooks: { onEvade(b, u, src) {
+      name: '균열 회피', desc: '회피 +5%p. 회피하면 공격자에게 타격 위력 100% 반격하고 무작위 적에게 순간이동한다 (0.5초에 1회).',
+      effect: { stats: { eva: 0.05 }, hooks: { onEvade(b, u, src) {
         if (!src.alive || !icd(b, u, 'phIcd', 0.5)) return;
         proc(b, u, src, b.S(u, 'strike'), 'holy', 'strike');
         const es = b.enemiesOf(u);
@@ -377,12 +377,12 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'VAN', ttype: 'divine', faith: 'selene', weapon: K('진혼 대검', 'phys', 1.1, 1, 0.85, 3),
     factions: ['HEL'], traits: ['MED', 'GUARD'],
     trait: {
-      name: '등대기사', desc: '주변 2칸 아군이 초당 최대 체력 2% 회복.',
+      name: '등대기사', desc: '주변 2칸 아군이 초당 최대 체력 1% 회복.',
       effect: { hooks: { onTick(b, u, dt) {
         u.mem.lightT = (u.mem.lightT || 0) + dt;
         if (u.mem.lightT < 1) return;
         u.mem.lightT -= 1;
-        for (const a of b.around(u, 2, b.alliesOf(u))) b.heal(u, a, b.S(a, 'maxHp') * 0.02);
+        for (const a of b.around(u, 2, b.alliesOf(u))) b.heal(u, a, b.S(a, 'maxHp') * 0.01);
       } } },
     },
   },
@@ -397,7 +397,7 @@ export const REWORK: Record<string, ReworkDef> = {
   odysseus: {
     ctype: 'MARK', ttype: 'divine', faith: 'athena', weapon: G('장궁', 'phys', 0.75, 4, 1.0, 1, 0.8),
     factions: ['HEL'], traits: ['SCHEME'],
-    trait: { name: '귀환자의 눈', desc: '체력 비율이 가장 낮은 적을 노린다. 치명타 확률 +35%p.', effect: { stats: { crit: 0.35 }, setup: (u) => { u.mem.lowestFocus = 1; } } },
+    trait: { name: '귀환자의 눈', desc: '체력 비율이 가장 낮은 적을 노린다. 치명타 확률 +25%p.', effect: { stats: { crit: 0.25 }, setup: (u) => { u.mem.lowestFocus = 1; } } },
   },
   argon: {
     ctype: 'MARK', ttype: 'major', faith: 'hades', weapon: G('선상 작살총', 'chem', 0.9, 4, 1.1, 2, 2.5),
@@ -476,7 +476,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'VAN', ttype: 'special', faith: 'science', weapon: K('액체 금속 칼날', 'phys', 0.75, 1, 0.75, 5),
     factions: ['TIME'], traits: ['OCCULT'],
     trait: {
-      name: '고양이 형태', desc: '전투 시작 5초 · 회피 시 2초 · 처치 시 5초 동안 고양이 형태: 회피 +21%p, 공격 속도 +30%p.',
+      name: '고양이 형태', desc: '전투 시작 5초 · 회피 시 2초 · 처치 시 5초 동안 고양이 형태: 회피 +15%p, 공격 속도 +30%p.',
       effect: { hooks: {
         onStart(b, u) { cat(b, u, 5); },
         onEvade(b, u) { cat(b, u, 2); },
@@ -486,7 +486,7 @@ export const REWORK: Record<string, ReworkDef> = {
     specialAugs: [
       sp('aiden', 'cat', '고양이 상시', '고양이 형태가 계속 유지되고 이동 속도 +40%, 최대 체력 -30%.', { pct: { maxHp: -0.3 }, stats: { moveSpd: 0.4 }, hooks: { onStart(b, u) { cat(b, u, 999); } } }),
       sp('aiden', 'bar', '바텐더 근무', '전투 스킬을 쓸 때 체력 비율이 가장 낮은 아군을 기술 위력 120% 회복.', { hooks: { onSkill(b, u) { const a = b.lowestHpAlly(u); if (a) b.heal(u, a, b.P(u, 'tech') * 1.2); } } }),
-      sp('aiden', 'crystal', '수정 섭취', '처치하면 최대 체력 15% 회복, 콤보 +2.', { hooks: { onKill(b, u) { b.heal(u, u, b.S(u, 'maxHp') * 0.15); u.combo += 2; } } }),
+      sp('aiden', 'crystal', '수정 섭취', '처치하면 최대 체력 7.5% 회복, 콤보 +2.', { hooks: { onKill(b, u) { b.heal(u, u, b.S(u, 'maxHp') * 0.075); u.combo += 2; } } }),
     ],
   },
   vivian: {
@@ -640,7 +640,7 @@ export const REWORK: Record<string, ReworkDef> = {
         onTick(b, u, dt) { u.mem.mt = (u.mem.mt || 0) + dt; if (u.mem.mt >= 1) { u.mem.mt -= 1; if (b.hpPct(u) > 0.1) b.dealDamage(u, u, b.S(u, 'maxHp') * 0.02, { elem: 'true', tag: 'dot', noHooks: true }); } },
       } }),
       sp('mingki', 'master', '저택의 주인', '엘베스타드 아군 전원 피해 +10%.', { hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) if (a.synergies.has('FAM')) b.buff(u, a, 'mingki.master', 999, { mods: [inc('all', 0.1)] }); } } }),
-      sp('mingki', 'full', '배부른 고양이', '츄르 사냥 쿨다운 -2초, 회복 +15%p.', { setup: (u) => { u.cdMax = Math.max(1, u.cdMax - 2); u.sk.heal += 0.15; } }),
+      sp('mingki', 'full', '배부른 고양이', '츄르 사냥 쿨다운 -2초, 회복 +7.5%p.', { setup: (u) => { u.cdMax = Math.max(1, u.cdMax - 2); u.sk.heal += 0.075; } }),
     ],
   },
 
@@ -689,7 +689,7 @@ function romaniPull(b: Battle, u: CUnit) {
   proc(b, u, e, b.S(u, 'strike') * 0.5, 'phys', 'strike');
 }
 function cat(b: Battle, u: CUnit, dur: number) {
-  b.buff(u, u, 'aiden.cat', dur, { delta: { eva: 0.21, atkSpd: 0.3 }, label: '고양이' });
+  b.buff(u, u, 'aiden.cat', dur, { delta: { eva: 0.15, atkSpd: 0.3 }, label: '고양이' });
 }
 function shred(b: Battle, u: CUnit, t: CUnit) {
   // 우리의 출항기! [정밀 분석]: 최대 5중첩, 중첩당 받는 모든 피해 +15%
@@ -765,9 +765,9 @@ export const FAITH_DEF: Record<FaithId, FaithDef> = {
       const es = b.enemiesOf(u).slice().sort(() => b.rng.next() - 0.5).slice(0, 3);
       for (const e of es) { b.fx(e.x, e.y, 0, 'elec'); b.dealDamage(u, e, mainPow(b, u) * 2, { elem: 'elec', tag: 'skill', kind: 'tech' }); }
     } },
-  selene: { gain: '회복 · 보호막 부여 +6 (40초 이후 2배)', act: '아군 전원 최대 체력 20% 회복, 이성 +20',
+  selene: { gain: '회복 · 보호막 부여 +6 (40초 이후 2배)', act: '아군 전원 최대 체력 10% 회복, 이성 +20',
     hooks: { onHealDone(b, u, _t, amt) { if (amt > 0) dv(b, u, b.t > 40 ? 12 : 6); } },
-    mod: (b, u) => { for (const a of b.alliesOf(u)) { b.heal(u, a, b.S(a, 'maxHp') * 0.2); b.addReason(a, 20); } } },
+    mod: (b, u) => { for (const a of b.alliesOf(u)) { b.heal(u, a, b.S(a, 'maxHp') * 0.1); b.addReason(a, 20); } } },
   human: { gain: '다른 아군과 같은 적을 공격할 때 +4', act: '아군 전원 6초간 피해 +20%, 피해량 경감 10% (연대)',
     hooks: { onDeal(b, u, t, r) { if (r.amount > 0 && b.alliesOf(u, false).some((a) => a.target === t)) dv(b, u, 4); } },
     mod: (b, u) => { for (const a of b.alliesOf(u)) b.buff(u, a, 'div.human', 6, { mods: [inc('all', 0.2)], taken: [red('all', 0.1)], label: '연대' }); } },

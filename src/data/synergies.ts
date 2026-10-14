@@ -32,13 +32,13 @@ const T = (tier: number, a: number[]) => a[Math.max(0, tier - 1)];
 // ─────────────── 범은하 공동체: 기물마다 다른 선물
 type Gift = { name: string; text: string; stats?: Partial<Stats>; pct?: { armor?: number }; tag?: 'tech' | 'psy'; majors?: number };
 const PAN_GIFT: Record<string, Gift> = {
-  zephyro: { name: '제피로', text: '회피 +7%p', stats: { eva: 0.07 } },
+  zephyro: { name: '제피로', text: '회피 +5%p', stats: { eva: 0.05 } },
   joshua: { name: '조슈아', text: '받는 회복 +10%p', stats: { healEff: 0.1 } },
   vivian: { name: '비비안', text: '방어 관통 +10%p', stats: { armorPen: 0.1 } },
   yupito: { name: '유피토', text: '방어도 +10%', pct: { armor: 0.1 } },
   oliver: { name: '올리버', text: '공격 속도 +10%p', stats: { atkSpd: 0.1 } },
   ingel: { name: '잉겔', text: '기술 피해 +10%p', tag: 'tech' },
-  bjorn: { name: '비외른', text: '치명타 확률 +7%p', stats: { crit: 0.07 } },
+  bjorn: { name: '비외른', text: '치명타 확률 +5%p', stats: { crit: 0.05 } },
   onyx: { name: '오닉스', text: '정신 피해 +10%p', tag: 'psy' },
   rus: { name: '루스', text: '치명타 피해 +10%p', stats: { critDmg: 0.1 } },
 };
@@ -291,12 +291,12 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'TIME', name: '시간 여행자', kind: 'faction', tiers: [2, 3, 4, 5], color: '#c8a0ff', icon: '⌛',
     desc: '시간의 틈을 걷는 이들. 시간 여행자는 회피가 크게 오르고, 공격을 피할 때마다 (찰과상 포함) 체력을 회복하며 공격자에게 고정 피해로 반격합니다. 최저 명중률은 15%입니다.',
-    tierDesc: ['회피 +7%p, 회피 시 최대 체력 3% 회복, 반격 = 사격 · 타격 위력 중 높은 값 40%', '회피 +18%p, 4% 회복, 반격 100%', '회피 +28%p, 5% 회복, 반격 200%',
-      '[시간 역행] 회피 +42%p, 6% 회복, 반격 500%'],
+    tierDesc: ['회피 +5%p, 회피 시 최대 체력 1.5% 회복, 반격 = 사격 · 타격 위력 중 높은 값 40%', '회피 +12.5%p, 2% 회복, 반격 100%', '회피 +20%p, 2.5% 회복, 반격 200%',
+      '[시간 역행] 회피 +30%p, 3% 회복, 반격 500%'],
     member: (t) => {
-      const h = T(t, [0.03, 0.04, 0.05, 0.06]), k = T(t, [0.4, 1, 2, 5]);
+      const h = T(t, [0.015, 0.02, 0.025, 0.03]), k = T(t, [0.4, 1, 2, 5]);
       return {
-        stats: { eva: T(t, [0.07, 0.18, 0.28, 0.42]) },
+        stats: { eva: T(t, [0.05, 0.125, 0.2, 0.3]) },
         hooks: {
           onEvade(b, u, src) {
             b.heal(u, u, b.S(u, 'maxHp') * h, false, 'TIME');
@@ -356,14 +356,21 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'INFIL', name: '침투자', kind: 'trait', tiers: [2, 4, 6, 8], color: '#9a8cff', icon: '☾',
-    desc: '전투가 시작되면 적 후방으로 순간이동해 기습합니다. 회피와 치명타 확률이 오르고, 착지 직후 잠시 피해가 크게 증가합니다.',
-    tierDesc: ['회피 +18%p, 치명타 +6%p, 기습 3초 피해 +50%', '회피 +28%p, 치명타 +10%p, 기습 피해 +110%', '회피 +40%p, 치명타 +16%p, 기습 피해 +220%, 처치 시 기습 재발동',
-      '[그림자 숙청] 회피 +56%p, 치명타 +24%p, 기습 5초 피해 +500%, 처치 시 기습 재발동 + 최대 체력 30% 회복'],
+    desc: '전투가 시작되면 적 후방으로 순간이동해 기습합니다. 회피가 오르고, 착지 직후 잠시 피해가 크게 증가합니다. 침투자에게 맞은 적은 남은 체력이 일정 비율 이하면 [처형]됩니다 (즉사). 보스는 처형되지 않는 대신, 침투자가 주는 피해가 처형 비율의 4배만큼 별도 증폭됩니다.',
+    tierDesc: ['회피 +13%p, 기습 3초 피해 +50%, [처형] 체력 5% 이하 (보스 피해 +20%)', '회피 +20%p, 기습 피해 +110%, [처형] 12% (보스 피해 +48%)', '회피 +29%p, 기습 피해 +220%, 처치 시 기습 재발동, [처형] 20% (보스 피해 +80%)',
+      '[그림자 숙청] 회피 +40%p, 기습 5초 피해 +500%, 처치 시 기습 재발동 + 최대 체력 15% 회복, [처형] 40% (보스 피해 +160%)'],
     member: (t) => {
       const ambush = T(t, [0.5, 1.1, 2.2, 5.0]), dur = t >= 4 ? 5 : 3;
+      const exec = T(t, [0.05, 0.12, 0.2, 0.4]);
       return {
-        stats: { eva: T(t, [0.18, 0.28, 0.4, 0.56]), crit: T(t, [0.06, 0.1, 0.16, 0.24]) },
+        stats: { eva: T(t, [0.13, 0.2, 0.29, 0.4]) },
         hooks: {
+          // [처형]: 맞은 적의 남은 체력이 기준 이하면 즉사. 보스는 처형 대신 피해 별도 증폭 (처형 비율 × 4)
+          onDeal(b, u, tgt, r, o) {
+            if (o.tag === 'dot' || r.amount <= 0 || !tgt.alive || tgt.isBoss || tgt.side === u.side) return;
+            if (b.hpPct(tgt) <= exec) { b.emit({ k: 'status', id: tgt.id, name: '처형' }); b.kill(tgt, u); }
+          },
+          dmgMult: (_b, _u, tgt) => (tgt.isBoss ? 1 + 4 * exec : 1),
           onStart(b, u) {
             const foes = b.enemiesOf(u);
             if (!foes.length) return;
@@ -373,7 +380,7 @@ export const SYNERGIES: SynDef[] = [
           },
           onKill: t >= 3 ? (b, u) => {
             b.buff(u, u, 'infil.ambush', dur, { mods: [inc('all', ambush)], label: '기습' });
-            if (t >= 4) b.heal(u, u, b.S(u, 'maxHp') * 0.3, true, 'INFIL');
+            if (t >= 4) b.heal(u, u, b.S(u, 'maxHp') * 0.15, true, 'INFIL');
           } : undefined,
         },
       };
@@ -494,12 +501,13 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'GUARD', name: '수호자', kind: 'trait', tiers: [2, 4, 6], color: '#c9a86a', icon: '⛉',
-    desc: '앞에 서서 모두를 지키는 이들. 출전한 수호자 1명마다 모든 아군의 방어도가 오르고, 수호자의 기본 공격에는 자신 방어도에 비례한 물리 피해가 더해집니다.',
-    tierDesc: ['수호자 1명당 모든 아군 방어도 +8%, 수호자 기본 공격 + 방어도 20% 물리 피해', '수호자 1명당 모든 아군 방어도 +16%, 수호자 기본 공격 + 방어도 35% 물리 피해', '[철벽 방진] 수호자 1명당 모든 아군 방어도 +30%, 수호자 기본 공격 + 방어도 50% 물리 피해'],
-    team: (t, ctx) => ({ pct: { armor: (ctx.counts.GUARD || 0) * T(t, [0.08, 0.16, 0.3]) } }),
-    member: (t) => {
+    desc: '앞에 서서 모두를 지키는 이들. 출전한 수호자 1명마다 모든 아군의 방어도가 오르고 (수호자 자신은 2배), 수호자의 기본 공격에는 자신 방어도에 비례한 물리 피해가 더해집니다.',
+    tierDesc: ['수호자 1명당 모든 아군 방어도 +4% (수호자 +8%), 수호자 기본 공격 + 방어도 20% 물리 피해', '수호자 1명당 모든 아군 방어도 +8% (수호자 +16%), 수호자 기본 공격 + 방어도 35% 물리 피해', '[철벽 방진] 수호자 1명당 모든 아군 방어도 +16% (수호자 +32%), 수호자 기본 공격 + 방어도 50% 물리 피해'],
+    team: (t, ctx) => ({ pct: { armor: (ctx.counts.GUARD || 0) * T(t, [0.04, 0.08, 0.16]) } }),
+    member: (t, ctx) => {
       const k = T(t, [0.2, 0.35, 0.5]);
       return {
+        pct: { armor: (ctx.counts.GUARD || 0) * T(t, [0.04, 0.08, 0.16]) }, // 수호자 기물은 팀 효과를 한 번 더 받아 2배
         hooks: {
           onBasic(b, u, tgt, r) {
             if (r.miss || !tgt.alive) return;
@@ -530,10 +538,10 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'VOYAGE', name: '우리의 출항기!', kind: 'faction', tiers: [2, 3, 4, 5], color: '#4fc3c8', icon: '⛵',
     desc: `한 배를 탄 다섯 동료. 구성원의 전투력이 오르고, 전투 기술을 쓰면 체력을 회복합니다. 연장전에 들어서면 구성원의 모든 피해 증폭이 크게 늘어납니다.\n[단독 출항 · 완전체] 구성원이 정확히 1명 또는 5명 출전하면 출전한 구성원 전원이 고유 능력을 얻습니다 (1명일 때는 단계 효과 없이 고유 능력만).\n${VOYAGE_TEXT}`,
-    tierDesc: ['전투력 +4, 기술 사용 후 최대 체력 5% 회복, 연장전 피해 증폭 +60%', '전투력 +8, 회복 8%, 연장전 피해 증폭 +100%', '전투력 +13, 회복 12%, 연장전 피해 증폭 +160%',
-      '[우리의 출항기!] 전투력 +20, 회복 18%, 연장전 피해 증폭 +250%, 구성원 전원 고유 능력'],
+    tierDesc: ['전투력 +4, 기술 사용 후 최대 체력 2.5% 회복, 연장전 피해 증폭 +60%', '전투력 +8, 회복 4%, 연장전 피해 증폭 +100%', '전투력 +13, 회복 6%, 연장전 피해 증폭 +160%',
+      '[우리의 출항기!] 전투력 +20, 회복 9%, 연장전 피해 증폭 +250%, 구성원 전원 고유 능력'],
     member: (t) => {
-      const heal = T(t, [0.05, 0.08, 0.12, 0.18]), ot = 1 + T(t, [0.6, 1.0, 1.6, 2.5]);
+      const heal = T(t, [0.025, 0.04, 0.06, 0.09]), ot = 1 + T(t, [0.6, 1.0, 1.6, 2.5]);
       return {
         majors: { pow: T(t, [4, 8, 13, 20]) },
         hooks: {
@@ -554,7 +562,7 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'EXPLORER', name: '탐험가', kind: 'trait', tiers: [1], color: '#e6d27a', icon: '⚓',
     desc: `아문센 전용. ${CFG.explorerPhase}페이즈 전에는 배치할 수 없습니다. 고유 전설 장비 [그늘]을 장착한 채 합류합니다 (해제 불가).`,
-    tierDesc: ['[그늘]: 기술 쿨다운 감소 속도 +150%, 모든 아군 회피·치명타 확률 +14%p'],
+    tierDesc: ['[그늘]: 기술 쿨다운 감소 속도 +150%, 모든 아군 회피·치명타 확률 +10%p'],
   },
   {
     id: 'RFRIEND', name: '당신의 친구, R', kind: 'trait', tiers: [1], color: '#ff7aa8', icon: 'R',

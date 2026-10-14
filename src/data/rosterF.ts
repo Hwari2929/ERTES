@@ -60,7 +60,7 @@ export const ROSTER_F: BaseUnit[] = [
       uaug('zina', 'lily', '백합의 꽃말', '마지막 꽃다발 피해 +260%p.', setSk((s) => { s.mult += 2.6; })),
       uaug('zina', 'thorn', '가시', '중독 위력 +80%p.', setSk((s) => { s.poison += 0.8; })),
       uaug('zina', 'bouquet', '꽃다발 배달', '처치 시 쿨다운을 전부 돌려받는다.', setSk((s) => { s.resetOnKill = 1; })),
-      uaug('zina', 'apron', '앞치마 속 권총', '기동력 +9, 치명타 확률 +11%p.', { majors: { agi: 9 }, stats: { crit: 0.11 } }),
+      uaug('zina', 'apron', '앞치마 속 권총', '기동력 +9, 치명타 확률 +7.5%p.', { majors: { agi: 9 }, stats: { crit: 0.075 } }),
       uaug('zina', 'requiem', '성도회의 칼날', '중독된 적에게 주는 피해 +25%p 추가 (총 +50%).', { setup: (u) => { u.mem.zinaVenom = 0.25; } }),
     ],
   },
@@ -172,7 +172,7 @@ export const ROSTER_F: BaseUnit[] = [
       uaug('eden', 'knife', '주머니 속 시약', '이로운 효과 제거 확률 +35%p, 한 번에 2종까지 제거.', setSk((s) => { s.strip += 0.35; s.stripN = 2; })),
       uaug('eden', 'run', '튀어!', '기동력 +12, 생명력 +3.', { majors: { agi: 12, vit: 3 } }),
       uaug('eden', 'grudge', '밑바닥의 원한', '받는 피해 증가 +30%p.', setSk((s) => { s.vuln += 0.3; })),
-      uaug('eden', 'luck', '하층민의 촉', '치명타 확률 +21%p, 치명타 피해 +60%p.', { stats: { crit: 0.21, critDmg: 0.6 } }),
+      uaug('eden', 'luck', '하층민의 촉', '치명타 확률 +15%p, 치명타 피해 +60%p.', { stats: { crit: 0.15, critDmg: 0.6 } }),
     ],
   },
   {
@@ -304,8 +304,8 @@ export const REWORK_F: Record<string, ReworkDef> = {
         onInflict(_b, u, t) { if (t.side !== u.side) rec(u, 'g_album', 5); },
       } },
     },
-    growth: { name: '여행 앨범', desc: '적에게 해로운 효과를 걸 때마다 사진 +1 (전투당 5장). 사진 1장당 효과 명중 +0.2%p · 치명타 +0.07%p (상한 +20%p / +7%p).',
-      effect: (g) => ({ stats: { effHit: Math.min(0.2, 0.002 * (g.album || 0)), crit: Math.min(0.07, 0.0007 * (g.album || 0)) } }) },
+    growth: { name: '여행 앨범', desc: '적에게 해로운 효과를 걸 때마다 사진 +1 (전투당 5장). 사진 1장당 효과 명중 +0.2%p · 치명타 +0.05%p (상한 +20%p / +5%p).',
+      effect: (g) => ({ stats: { effHit: Math.min(0.2, 0.002 * (g.album || 0)), crit: Math.min(0.05, 0.0005 * (g.album || 0)) } }) },
   },
   winter: {
     ctype: 'SPEC', ttype: 'special', faith: 'science', weapon: G('주사기 권총', 'chem', 1.0, 3, 0.8, 6, 1.8),
@@ -328,17 +328,17 @@ export const REWORK_F: Record<string, ReworkDef> = {
   issac: {
     ctype: 'VAN', ttype: 'major', faith: 'science', weapon: K('붕대 감은 주먹', 'chem', 0.85, 1, 1.0, 3),
     trait: {
-      name: '재생하는 괴물', desc: '초당 최대 체력 1% 재생. 화학 피해량 경감 30%.',
-      effect: { taken: [red('chem', 0.3)], hooks: { onTick(b, u, dt) { u.mem.issacT = (u.mem.issacT || 0) + dt; if (u.mem.issacT >= 1) { u.mem.issacT = 0; b.heal(u, u, b.S(u, 'maxHp') * 0.01, true); } } } },
+      name: '재생하는 괴물', desc: '초당 최대 체력 0.5% 재생. 화학 피해량 경감 30%.',
+      effect: { taken: [red('chem', 0.3)], hooks: { onTick(b, u, dt) { u.mem.issacT = (u.mem.issacT || 0) + dt; if (u.mem.issacT >= 1) { u.mem.issacT = 0; b.heal(u, u, b.S(u, 'maxHp') * 0.005, true); } } } },
     },
   },
   eden: {
     ctype: 'CMD', ttype: 'minor', faith: 'human', weapon: G('낡은 리볼버', 'phys', 1.0, 4, 1.1, 6, 2.0),
     trait: {
-      name: '밑바닥 생존자', desc: '체력이 50% 이하이면 회피 +14%p, 주는 피해 +20%.',
+      name: '밑바닥 생존자', desc: '체력이 50% 이하이면 회피 +10%p, 주는 피해 +20%.',
       effect: { hooks: {
         dmgMult: (b, u) => (b.hpPct(u) <= 0.5 ? 1.2 : 1),
-        onHurt(b, u) { if (!u.mem.edenLow && b.hpPct(u) <= 0.5) { u.mem.edenLow = 1; u.st.eva += 0.14; b.emit({ k: 'status', id: u.id, name: '생존 본능' }); } },
+        onHurt(b, u) { if (!u.mem.edenLow && b.hpPct(u) <= 0.5) { u.mem.edenLow = 1; u.st.eva += 0.1; b.emit({ k: 'status', id: u.id, name: '생존 본능' }); } },
         onStart(_b, u) { u.mem.g_surv = 1; },
       } },
     },

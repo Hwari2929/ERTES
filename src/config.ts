@@ -2,11 +2,11 @@
 export const CFG = {
   // ── 메이저 → 마이너 환산 [임시]
   conv: {
-    vit: { maxHp: 60, healEff: 0.02 },
-    pow: { shoot: 5, strike: 5, crit: 0.014 },
+    vit: { maxHp: 120, healEff: 0.02 },
+    pow: { shoot: 5, strike: 5, crit: 0.01 },
     mnd: { tech: 5, acc: 0.02, effHit: 0.03 },
     def: { armor: 60, effRes: 0.03 },
-    agi: { moveSpd: 0.04, eva: 0.014, atkSpd: 0.01, reloadSpd: 0.01 },
+    agi: { moveSpd: 0.04, eva: 0.01, atkSpd: 0.01, reloadSpd: 0.01 },
   },
   // ── 리워크 [임시]
   finishMult: 2.6, // 콤보 무기 피니쉬 배율 (콤보 타격은 무기 계수 그대로)
@@ -23,7 +23,7 @@ export const CFG = {
     psionic: (tt: string, rank: number) => tt === 'psionic' && rank % 4 === 0,
   },
   // 모든 기물 공통 기초 마이너 스탯 [임시]
-  baseMinor: { maxHp: 300, shoot: 20, strike: 20, tech: 20, armor: 100, crit: 0.05, critDmg: 1.5 },
+  baseMinor: { maxHp: 600, shoot: 20, strike: 20, tech: 20, armor: 100, crit: 0.05, critDmg: 1.5 },
 
   // ── 전투 규칙 (확정)
   armorK: 2000,
@@ -44,13 +44,13 @@ export const CFG = {
   lateFrom: 5, lateHp: 0.9, lateAmp: 1.09,
   phaseHpFactor: (p: number) => (p <= 5 ? 2.05 : Math.max(1.1, 2 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
   adversityMult: 1.6,
-  enemyHpMul: 2.8, enemyPowMul: 2.5, // 적 기초 수치 전체 배율 (튜닝용)
-  // 아군 치명타 · 회피 환산은 0.014 (예전 0.02 의 0.7배). 적은 아래 배율로 예전 값을 유지한다
+  enemyHpMul: 5.6, enemyPowMul: 2.5, // 적 기초 수치 전체 배율 (튜닝용)
+  // 아군 치명타 · 회피 환산은 0.01 (예전 0.02 의 0.5배). 적은 아래 배율로 예전 값을 유지한다
   // 적 메이저 → 명중 · 회피 · 치명타 · 효과 저항 환산 배율 (아군 환산 × 배율). 페이즈 6 일반 적 기준 회피 ~30% · 치명타 ~35% · 효과 저항 ~30%
-  enemyMajorConv: { acc: 0.3, eva: 1.786, crit: 1.286, effRes: 0.4 },
+  enemyMajorConv: { acc: 0.3, eva: 2.5, crit: 1.8, effRes: 0.4 },
   enemyEvaCap: 0.6, enemyCritCap: 0.75,
   // 늘어난 회피 · 치명타만큼 체력 · 피해를 깎아 총 난이도를 맞춘다: 치명타 1%p = 피해 2%, 회피는 유효 체력 1/(1-회피) 기준
-  enemyOldConv: { eva: 0.357, crit: 0.357 },
+  enemyOldConv: { eva: 0.5, crit: 0.5 },
 
   // ── 성장
   maxRank: 99, // 10 이상은 스탯만

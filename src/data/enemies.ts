@@ -177,7 +177,7 @@ export const ENEMIES: EnemyDef[] = [
     escort: ['sw_spore', 'sw_spore'],
     skill: {
       name: '포식', cd: 8, needsRange: true, params: {}, desc: () => '대상 강타 + 자가 회복',
-      cast(b, u) { const t = u.target; if (!t?.alive) return false; b.fx(t.x, t.y, 0, 'chem'); skillHit(b, u, t, 'strike', 2.5, 'phys'); b.heal(u, u, b.S(u, 'maxHp') * 0.08); return true; },
+      cast(b, u) { const t = u.target; if (!t?.alive) return false; b.fx(t.x, t.y, 0, 'chem'); skillHit(b, u, t, 'strike', 2.5, 'phys'); b.heal(u, u, b.S(u, 'maxHp') * 0.04); return true; },
     },
     onTick: (b, u, dt) => { u.mem.spawnT = (u.mem.spawnT || 0) + dt; if (u.mem.spawnT >= 15) { u.mem.spawnT = 0; summonHook?.(b, u, 'sw_spore', 2); } } },
 
@@ -200,7 +200,7 @@ export const ENEMIES: EnemyDef[] = [
     hp: 1200, power: 44, armor: 300, acc: 0.1, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     skill: {
       name: '피의 일섬', cd: 8, needsRange: true, params: {}, desc: () => '주변 베기 + 흡혈',
-      cast(b, u) { b.fx(u.x, u.y, 1, 'phys'); for (const e of b.around(u, 1, b.enemiesOf(u))) skillHit(b, u, e, 'strike', 1.6, 'phys'); b.heal(u, u, b.S(u, 'maxHp') * 0.12); return true; },
+      cast(b, u) { b.fx(u.x, u.y, 1, 'phys'); for (const e of b.around(u, 1, b.enemiesOf(u))) skillHit(b, u, e, 'strike', 1.6, 'phys'); b.heal(u, u, b.S(u, 'maxHp') * 0.06); return true; },
     } },
   { id: 'cr_count', name: '혈족 백작', keywords: ['bio'], sprite: 'knight', palette: CRIMSON_BOSS, tier: 'boss', minPhase: 1,
     hp: 3300, power: 50, armor: 280, acc: 0.15, effRes: 0.3, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
@@ -211,7 +211,7 @@ export const ENEMIES: EnemyDef[] = [
         const es = b.around(u, 2, b.enemiesOf(u)); if (!es.length) return false;
         b.fx(u.x, u.y, 2, 'phys');
         for (const e of es) skillHit(b, u, e, 'strike', 1.4, 'phys');
-        b.heal(u, u, b.S(u, 'maxHp') * 0.12);
+        b.heal(u, u, b.S(u, 'maxHp') * 0.06);
         for (const a of b.alliesOf(u)) b.buff(u, a, 'crimson.feast', 5, { mods: [{ kind: 'inc', tag: 'all', v: 0.25 }], label: '혈연 축제' });
         return true;
       },

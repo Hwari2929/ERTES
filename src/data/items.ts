@@ -18,20 +18,20 @@ const GRADE_PTS = 12; // 고급: 같은 재료 2개
 interface AdvDef { id: string; a: Major; b: Major; name: string; desc: (k: number) => string; effect: (k: number) => Effect }
 
 const ADV: AdvDef[] = [
-  { id: 'vit_vit', a: 'vit', b: 'vit', name: '재생 외골격', desc: (k) => `초당 최대 체력 ${2 * k}% 회복.`,
-    effect: (k) => ({ hooks: { onTick(bt, u, dt) { u.mem.exo = (u.mem.exo || 0) + dt; if (u.mem.exo >= 1) { u.mem.exo = 0; bt.heal(u, u, bt.S(u, 'maxHp') * 0.02 * k); } } } }) },
+  { id: 'vit_vit', a: 'vit', b: 'vit', name: '재생 외골격', desc: (k) => `초당 최대 체력 ${k}% 회복.`,
+    effect: (k) => ({ hooks: { onTick(bt, u, dt) { u.mem.exo = (u.mem.exo || 0) + dt; if (u.mem.exo >= 1) { u.mem.exo = 0; bt.heal(u, u, bt.S(u, 'maxHp') * 0.01 * k); } } } }) },
   { id: 'vit_pow', a: 'vit', b: 'pow', name: '광전사 갑주', desc: (k) => `체력 50% 이하일 때 피해 +${30 * k}%.`,
     effect: (k) => ({ hooks: { dmgMult: (bt, u) => (bt.hpPct(u) <= 0.5 ? 1 + 0.3 * k : 1) } }) },
   { id: 'vit_mnd', a: 'vit', b: 'mnd', name: '생체 동기화기', desc: (k) => `회복 효율 +${30 * k}%, 효과 저항 +${15 * k}%p.`,
     effect: () => ({ stats: { healEff: 0.3, effRes: 0.15 } }) },
   { id: 'vit_def', a: 'vit', b: 'def', name: '수호자 판금', desc: (k) => `전투 시작 시 최대 체력 ${20 * k}% 보호막.`,
     effect: (k) => ({ hooks: { onStart(bt, u) { bt.shield(u, bt.S(u, 'maxHp') * 0.2 * k); } } }) },
-  { id: 'vit_agi', a: 'vit', b: 'agi', name: '생존 키트', desc: (k) => `치명적인 피해를 받으면 전투당 ${k}회 버티고 체력 30% 회복.`,
-    effect: (k) => ({ hooks: { onLethal(bt, u) { if ((u.mem.kit || 0) >= k) return false; u.mem.kit = (u.mem.kit || 0) + 1; u.hp = 1; bt.heal(u, u, bt.S(u, 'maxHp') * 0.3, true); return true; } } }) },
+  { id: 'vit_agi', a: 'vit', b: 'agi', name: '생존 키트', desc: (k) => `치명적인 피해를 받으면 전투당 ${k}회 버티고 체력 15% 회복.`,
+    effect: (k) => ({ hooks: { onLethal(bt, u) { if ((u.mem.kit || 0) >= k) return false; u.mem.kit = (u.mem.kit || 0) + 1; u.hp = 1; bt.heal(u, u, bt.S(u, 'maxHp') * 0.15, true); return true; } } }) },
   { id: 'pow_pow', a: 'pow', b: 'pow', name: '과출력 무기', desc: (k) => `모든 피해 +${15 * k}%.`,
     effect: () => ({ mods: [inc('all', 0.15)] }) },
-  { id: 'pow_mnd', a: 'pow', b: 'mnd', name: '조준 보조 AI', desc: (k) => `치명타 확률 +${7 * k}%p, 치명타 피해 +${40 * k}%p.`,
-    effect: () => ({ stats: { crit: 0.07, critDmg: 0.4 } }) },
+  { id: 'pow_mnd', a: 'pow', b: 'mnd', name: '조준 보조 AI', desc: (k) => `치명타 확률 +${5 * k}%p, 치명타 피해 +${40 * k}%p.`,
+    effect: () => ({ stats: { crit: 0.05, critDmg: 0.4 } }) },
   { id: 'pow_def', a: 'pow', b: 'def', name: '중력 해머', desc: (k) => `기본 공격 시 ${Math.min(100, 20 * k)}% 확률로 대상 1초 기절.`,
     effect: (k) => ({ hooks: { onBasic(bt, u, t) { if (t.alive && bt.rng.chance(0.2 * k)) bt.stun(u, t, 1); } } }) },
   { id: 'pow_agi', a: 'pow', b: 'agi', name: '고속 연사 장치', desc: (k) => `공격 속도 +${30 * k}%.`,
@@ -46,9 +46,9 @@ const ADV: AdvDef[] = [
     effect: () => ({ taken: [red('all', 0.15)] }) },
   { id: 'def_agi', a: 'def', b: 'agi', name: '반응 장갑', desc: (k) => `받은 피해의 ${25 * k}%를 공격자에게 고정 피해로 반사.`,
     effect: (k) => ({ hooks: { onStart(bt, u) { bt.buff(u, u, 'item.reactive', 999, { reflectTrue: 0.25 * k, label: '' }); } } }) },
-  { id: 'agi_agi', a: 'agi', b: 'agi', name: '위상 이동기', desc: (k) => `회피 +${11 * k}%p. 회피할 때마다 공격 속도 +${5 * k}% (최대 10중첩).`,
+  { id: 'agi_agi', a: 'agi', b: 'agi', name: '위상 이동기', desc: (k) => `회피 +${7.5 * k}%p. 회피할 때마다 공격 속도 +${5 * k}% (최대 10중첩).`,
     effect: (k) => ({
-      stats: { eva: 0.11 },
+      stats: { eva: 0.075 },
       hooks: { onEvade(bt, u) { u.mem.phase = Math.min(10, (u.mem.phase || 0) + 1); const s = u.statuses.find((x) => x.key === 'item.phase'); const d = { atkSpd: 0.05 * k * u.mem.phase }; if (s) s.delta = d; else bt.buff(u, u, 'item.phase', 999, { delta: d, label: '' }); } },
     }) },
 ];
@@ -61,10 +61,10 @@ const ADV_BY_ID = Object.fromEntries(ADV.map((a) => [a.id, a]));
 
 const UNIQUE: Record<string, { name: string; icon: string; desc: string; effect: Effect }> = {
   U_shade: {
-    name: '[고유] 그늘', icon: '☂', desc: '아문센 전용 · 해제 불가. 기술 쿨다운 감소 속도 +150%, 모든 아군 회피 및 치명타 확률 +14%p.',
+    name: '[고유] 그늘', icon: '☂', desc: '아문센 전용 · 해제 불가. 기술 쿨다운 감소 속도 +150%, 모든 아군 회피 및 치명타 확률 +10%p.',
     effect: {
       stats: { cdr: 1.5 },
-      hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'item.shade', 999, { delta: { eva: 0.14, crit: 0.14 }, label: '그늘' }); } },
+      hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'item.shade', 999, { delta: { eva: 0.1, crit: 0.1 }, label: '그늘' }); } },
     },
   },
 };
@@ -82,8 +82,8 @@ const WARD = (elem: 'phys' | 'chem' | 'elec' | 'psy' | 'holy', name: string, ico
 /** 신비학자 전용 개조부품. tier = 해금되는 신비학자 단계 */
 export const OCCULT_MODS: Record<string, { name: string; icon: string; tier: 1 | 2 | 3; desc: string; effect: Effect }> = {
   O_reach: { name: '천리안 렌즈', icon: '◎', tier: 1, desc: '기본 공격 사거리 +1, 명중 +10%p.', effect: { stats: { range: 1, acc: 0.1 } } },
-  O_feast: { name: '포식의 인장', icon: '✺', tier: 1, desc: '결정타를 날리면 최대 체력 20% 회복, 3초간 피해 +30%.',
-    effect: { hooks: { onKill(b, u) { b.heal(u, u, b.S(u, 'maxHp') * 0.2, true); b.buff(u, u, 'oc.feast', 3, { mods: [inc('all', 0.3)], label: '포식' }); } } } },
+  O_feast: { name: '포식의 인장', icon: '✺', tier: 1, desc: '결정타를 날리면 최대 체력 10% 회복, 3초간 피해 +30%.',
+    effect: { hooks: { onKill(b, u) { b.heal(u, u, b.S(u, 'maxHp') * 0.1, true); b.buff(u, u, 'oc.feast', 3, { mods: [inc('all', 0.3)], label: '포식' }); } } } },
   O_ward_phys: WARD('phys', '강철', '⛊'),
   O_ward_psy: WARD('psy', '정신', '◈'),
   O_ward_chem: { ...WARD('chem', '정화', '☣'), tier: 2 },
@@ -95,8 +95,8 @@ export const OCCULT_MODS: Record<string, { name: string; icon: string; tier: 1 |
     effect: { stats: { cdr: 0.2 }, hooks: { onSkill(b, u) { if (b.rng.chance(0.4)) u.cd *= 0.5; } } } },
   O_soul: { name: '영혼 수확기', icon: '☠', tier: 3, desc: '전장에서 누구든 쓰러질 때마다 이 전투 동안 피해 +12% (최대 10중첩).',
     effect: { hooks: { onAnyDeath(b, u) { if (!u.alive) return; u.mem.soul = Math.min(10, (u.mem.soul || 0) + 1); }, dmgMult: (_b, u) => 1 + 0.12 * (u.mem.soul || 0) } } },
-  O_aegis: { name: '불멸의 부적', icon: '☥', tier: 3, desc: '전투당 1회, 치명적인 피해를 받으면 쓰러지지 않고 체력 60% 회복 + 3초 무적.',
-    effect: { hooks: { onLethal(b, u) { if (u.mem.aegis) return false; u.mem.aegis = 1; u.hp = 1; b.heal(u, u, b.S(u, 'maxHp') * 0.6, true); u.mem.invulnUntil = b.t + 3; b.emit({ k: 'status', id: u.id, name: '불멸' }); return true; } } } },
+  O_aegis: { name: '불멸의 부적', icon: '☥', tier: 3, desc: '전투당 1회, 치명적인 피해를 받으면 쓰러지지 않고 체력 30% 회복 + 3초 무적.',
+    effect: { hooks: { onLethal(b, u) { if (u.mem.aegis) return false; u.mem.aegis = 1; u.hp = 1; b.heal(u, u, b.S(u, 'maxHp') * 0.3, true); u.mem.invulnUntil = b.t + 3; b.emit({ k: 'status', id: u.id, name: '불멸' }); return true; } } } },
   O_void: { name: '공허 렌즈', icon: '◉', tier: 3, desc: '방어 관통 +40%p, 치명타 피해 +40%p.', effect: { stats: { armorPen: 0.4, critDmg: 0.4 } } },
 };
 export const occultModsOfTier = (t: number) => Object.keys(OCCULT_MODS).filter((k) => OCCULT_MODS[k].tier === t);

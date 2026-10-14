@@ -152,7 +152,7 @@ const ABIL_PILOT: Record<string, AbilText> = {
     ace: (k) => `전투 시작 시 모든 아군 쿨다운 감소 속도 [pp:${0.15 * k}].`,
     augs: {
       wander: '화력 지원 피해 [dmg+:shoot:2.8:phys].',
-      refit: '[g:pen] [pp:0.4]. 화력 지원 [g:crit] 확률 [pp:0.21].',
+      refit: '[g:pen] [pp:0.4]. 화력 지원 [g:crit] 확률 [pp:0.15].',
       twin: '화력 지원 2회 (두 번째도 [p:1] 피해).',
       carpet: '화력 지원 범위: 대상 주변 [t:1]. 피해 [dmg+:shoot:0.3:phys].',
       travelogue: '모든 메이저 스탯 +4.',
@@ -225,11 +225,11 @@ export const ENEMY_ABIL: Record<string, { skill?: SkillInfo; trait?: string }> =
   nyx: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 3 }, rows: [['피해', '[dmg:tech:1:psy]'], ['공포', '[st:fear:1.5:0.4]']] } },
   sw_queen: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 3 }, rows: [['피해', '[dmg:tech:0.8:psy]'], ['공포', '[st:fear:1:0.3]'], ['강화', '모든 아군 [s:5] 공격 속도 +[p:0.3], 피해 +[p:0.25]']] } },
   sw_harvester: {
-    skill: { tgt: '현재 대상', range: 'unit', area: { k: 'one' }, rows: [['피해', '[dmg:strike:2.5:phys]'], ['회복', '자신 최대 체력의 [p:0.08]']] },
+    skill: { tgt: '현재 대상', range: 'unit', area: { k: 'one' }, rows: [['피해', '[dmg:strike:2.5:phys]'], ['회복', '자신 최대 체력의 [p:0.04]']] },
     trait: '[s:15]마다 포자 살점 2기 [g:spawn].',
   },
-  cr_knight: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 1 }, rows: [['피해', '[dmg:strike:1.6:phys]'], ['회복', '자신 최대 체력의 [p:0.12]']] } },
-  cr_count: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 2 }, rows: [['피해', '[dmg:strike:1.4:phys]'], ['회복', '자신 최대 체력의 [p:0.12]'], ['강화', '모든 아군 [s:5] 피해 +[p:0.25]']] } },
+  cr_knight: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 1 }, rows: [['피해', '[dmg:strike:1.6:phys]'], ['회복', '자신 최대 체력의 [p:0.06]']] } },
+  cr_count: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 2 }, rows: [['피해', '[dmg:strike:1.4:phys]'], ['회복', '자신 최대 체력의 [p:0.06]'], ['강화', '모든 아군 [s:5] 피해 +[p:0.25]']] } },
   cr_heart: {
     skill: { tgt: '모든 적', range: null, area: { k: 'all' }, rows: [['피해', '[dmg:tech:0.5:chem]'], ['중독', '[p:0.5] 확률로 [st:poison:4]: 초당 [dmg:tech:0.1:chem]']] },
     trait: '[s:15]마다 혈족 종자 1기 [g:spawn].',
