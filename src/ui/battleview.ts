@@ -40,6 +40,21 @@ const EASE_IN = 'cubic-bezier(.5, 0, .9, .5)';
 const EASE_SHOT = 'cubic-bezier(.3, .7, .6, 1)';
 const easeOut = (t: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 3);
 
+/** 연출 설정 (설정 메뉴에서 바꿈): 이펙트 · 숫자 지속 ms, 스킬 연출 ms, 모션 속도 */
+export type MotionPreset = 'fast' | 'mid' | 'slow';
+export const FX = { fxMs: 1200, skillMs: 1800, motion: 'mid' as MotionPreset };
+export const FX_DEFAULT = { fxMs: 1200, skillMs: 1800, motion: 'mid' as MotionPreset };
+/** 모션 프리셋: 날렵 · 보통 (날렵 6 : 느긋 4) · 느긋 */
+const MOTION: Record<MotionPreset, { mul: number; ein: string; eout: string; peak: (p: number) => number; cell: (t: number) => number }> = {
+  fast: { mul: 1, ein: EASE_IN, eout: EASE_OUT, peak: (p) => p, cell: easeOut },
+  mid: { mul: 1.3, ein: 'cubic-bezier(.4, 0, .7, .6)', eout: 'cubic-bezier(.2, .64, .28, 1)', peak: (p) => p * 0.6 + 0.4 * 0.4, cell: (t) => 0.6 * easeOut(t) + 0.4 * Math.max(0, Math.min(1, t)) },
+  slow: { mul: 1.7, ein: 'ease-in-out', eout: 'ease-out', peak: () => 0.4, cell: (t) => { const x = Math.max(0, Math.min(1, t)); return x * x * (3 - 2 * x); } },
+};
+const motion = () => MOTION[FX.motion] || MOTION.mid;
+/** 이펙트 지속 배율 (기본 900ms = 1) */
+const fxK = () => Math.max(0.2, FX.fxMs / 900);
+const skK = () => Math.max(0.2, FX.skillMs / 1500);
+
 /** 표시 우선순위: 0 일반 숫자 · 1 스킬 피해 · 범위 · 2 스킬명 · 부활 · 상태이상 (생략하지 않음) */
 type Prio = 0 | 1 | 2;
 
@@ -204,7 +219,7 @@ export class BattleView {
       const u = e.u;
       let x = u.x, y = u.y;
       if (u.moveT > 0 && u.moveDur > 0) {
-        const t = easeOut(1 - u.moveT / u.moveDur);
+        const t = motion().cell(1 - u.moveT / u.moveDur);
         x = u.px + (u.x - u.px) * t;
         y = u.py + (u.y - u.py) * t;
       }
@@ -283,7 +298,7 @@ export class BattleView {
   /** 화면상 현재 위치 (이동 보간) */
   private centerAt(u: CUnit) {
     let x = u.x, y = u.y;
-    if (u.moveT > 0 && u.moveDur > 0) { const t = easeOut(1 - u.moveT / u.moveDur); x = u.px + (u.x - u.px) * t; y = u.py + (u.y - u.py) * t; }
+    if (u.moveT > 0 && u.moveDur > 0) { const t = motion().cell(1 - u.moveT / u.moveDur); x = u.px + (u.x - u.px) * t; y = u.py + (u.y - u.py) * t; }
     return { x: ((x + 0.5) / this.b.w) * 100, y: ((y + 0.5) / this.b.h) * 100 };
   }
   private dir(a: CUnit, t: CUnit) {
@@ -309,7 +324,9 @@ export class BattleView {
     d.style.left = `${x}%`; d.style.top = `${y}%`;
     if (html) d.innerHTML = html;
     this.fxLayer.appendChild(d);
-    const a = this.play(d, kf, ms, { fill: 'both', ...opt }, text);
+    // 탄환 · 표식처럼 도착 시각에 맞춘 것은 그대로, 나머지 이펙트는 설정 배율 적용
+    const timed = (opt as { timed?: boolean }).timed;
+    const a = this.play(d, kf, timed || text ? ms : ms * fxK(), { fill: 'both', ...opt }, text);
     if (a) { const rm = () => d.remove(); a.finished.then(rm, rm); } else d.remove();
     return d;
   }
@@ -336,7 +353,7 @@ export class BattleView {
     const sel = this.selId !== null;
     const d = this.spawnFx(`ft ${cls}${rel ? ' focus' : sel ? ' dimf' : ''}`, c.x + dx, c.y - 100 / this.b.h * 0.3 - lane * 1.8,
       [{ transform: 'translate(-50%, 20%) scale(1.25)', opacity: 0, easing: EASE_OUT }, { transform: 'translate(-50%, -70%) scale(1)', opacity: 1, offset: 0.2, easing: 'linear' }, { transform: 'translate(-50%, -110%)', opacity: 1, offset: 0.7, easing: 'ease-in' }, { transform: 'translate(-50%, -140%)', opacity: 0 }],
-      cls.includes('skb') ? 1500 : 900, { easing: EASE_OUT }, '', true);
+      FX.fxMs, { easing: EASE_OUT }, '', true);
     d.textContent = text;
     if (o.color) d.style.color = o.color;
     if (o.merge && o.v !== undefined) this.merges.set(o.merge, { el: d, v: o.v, until: this.vt + 0.35, fmt: o.fmt || ((v) => fmt(v)) });
@@ -358,7 +375,8 @@ export class BattleView {
       if (cur.prio === prio && this.vt - cur.t < 0.15) return; // 같은 동작 연타는 하나로
       cur.a.cancel();
     }
-    const a = this.play(e.el, [{ transform: 'none', opacity: 1, easing: EASE_IN }, { ...peak, offset: peakAt, easing: EASE_OUT }, { transform: 'none', opacity: 1 }], ms);
+    const m = motion();
+    const a = this.play(e.el, [{ transform: 'none', opacity: 1, easing: m.ein }, { ...peak, offset: m.peak(peakAt), easing: m.eout }, { transform: 'none', opacity: 1 }], ms * m.mul);
     if (a) this.motion.set(id, { a, prio, t: this.vt });
   }
   /** 회복 · 보호막 테두리: 양에 비례한 굵기 · 진하기 (작아도 희미하게는 보인다) */
@@ -382,7 +400,7 @@ export class BattleView {
         { outline: `${w}px solid ${on}`, outlineOffset: '0px', offset: 0.35 },
         { outline: `${w}px solid ${on}`, outlineOffset: '0px', offset: 0.7 },
         { outline: `${w}px solid ${off}`, outlineOffset: '0px' },
-      ], 560);
+      ], 560 * fxK());
     } else {
       const w = (1 + 1.5 * k).toFixed(1), on = `rgb(99 210 151 / ${alpha})`, off = 'rgb(99 210 151 / 0)';
       a = this.play(e.face, [
@@ -391,7 +409,7 @@ export class BattleView {
         { outline: `${w}px solid ${off}`, outlineOffset: '1px', offset: 0.5 },
         { outline: `${w}px solid ${on}`, outlineOffset: '1px', offset: 0.7 },
         { outline: `${w}px solid ${off}`, outlineOffset: '1px' },
-      ], 520);
+      ], 520 * fxK());
     }
     if (a) this.rims.set(id, { a, t: this.vt, kind });
   }
@@ -400,7 +418,7 @@ export class BattleView {
     const e = this.els.get(id);
     if (!e || this.reduced) return;
     this.flashes.get(id)?.cancel();
-    const a = this.play(e.face, [{ filter: 'none', easing: EASE_IN }, { filter, offset: 0.15, easing: EASE_OUT }, { filter: 'none' }], ms);
+    const a = this.play(e.face, [{ filter: 'none', easing: EASE_IN }, { filter, offset: 0.15, easing: EASE_OUT }, { filter: 'none' }], ms * fxK());
     if (a) this.flashes.set(id, a);
   }
   /** 곡선으로 날아가는 표식 (회복 · 보호막 · 장비) */
@@ -412,7 +430,7 @@ export class BattleView {
       { left: `${p0.x}%`, top: `${p0.y}%`, opacity: 0.2, transform: 'translate(-50%, -50%) scale(.6)' },
       { left: `${mx}%`, top: `${my}%`, opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.5 },
       { left: `${p1.x}%`, top: `${p1.y}%`, opacity: 1, transform: 'translate(-50%, -50%) scale(.8)' },
-    ], dur * 1000, { delay: Math.max(0, startIn) * 1000, easing: EASE_OUT, fill: 'forwards' }, html);
+    ], dur * 1000, { delay: Math.max(0, startIn) * 1000, easing: EASE_OUT, fill: 'forwards', timed: true } as KeyframeAnimationOptions, html);
   }
 
   // ───────── 최근 행동
@@ -488,7 +506,7 @@ export class BattleView {
     const ang = (Math.atan2((p1.y - p0.y) * this.b.h, (p1.x - p0.x) * this.b.w) * 180) / Math.PI;
     const d = this.spawnFx(`proj2${this.rel(e.from, e.to) ? ' focus' : ''}`, p0.x, p0.y, [
       { left: `${p0.x}%`, top: `${p0.y}%`, opacity: 1 }, { left: `${p1.x}%`, top: `${p1.y}%`, opacity: 1 },
-    ], fl * 1000, { delay: (start - this.vt) * 1000, easing: EASE_SHOT, fill: 'both' });
+    ], fl * 1000, { delay: (start - this.vt) * 1000, easing: EASE_SHOT, fill: 'both', timed: true } as KeyframeAnimationOptions);
     d.style.setProperty('--c', sideColor(a.side));
     d.style.setProperty('--a', `${ang}deg`);
   }
@@ -612,7 +630,7 @@ export class BattleView {
     this.skillCtx = { id: e.id, land: this.vt + T_SKILL };
     const ee = this.els.get(e.id);
     if (ee && !this.reduced) {
-      this.play(ee.face, [{ boxShadow: '0 0 0 0 var(--accent)' }, { boxShadow: '0 0 0 3px var(--accent), 0 0 16px var(--accent)', offset: 0.3 }, { boxShadow: '0 0 0 0 transparent' }], 420);
+      this.play(ee.face, [{ boxShadow: '0 0 0 0 var(--accent)' }, { boxShadow: '0 0 0 3px var(--accent), 0 0 16px var(--accent)', offset: 0.3 }, { boxShadow: '0 0 0 0 transparent' }], 420 * skK());
       this.move(e.id, { transform: 'translate(0,-10%) scale(1.07)' }, 380, 4, 0.25);
     }
     // 설명은 처음 발동했을 때와 선택한 기물에만
@@ -624,7 +642,7 @@ export class BattleView {
     const c = this.centerAt(u);
     const d = this.spawnFx(`skb${this.rel(e.id) ? ' focus' : this.selId !== null ? ' dimf' : ''}`, c.x, c.y - 100 / this.b.h * 0.55,
       [{ transform: 'translate(-50%, -30%)', opacity: 0 }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.15 }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.75 }, { transform: 'translate(-50%, -150%)', opacity: 0 }],
-      1500, { easing: EASE_OUT }, `<b></b>${showTag ? '<small></small>' : ''}`, true);
+      FX.skillMs, { easing: EASE_OUT }, `<b></b>${showTag ? '<small></small>' : ''}`, true);
     d.querySelector('b')!.textContent = e.name;
     if (showTag) d.querySelector('small')!.textContent = e.tag!;
   }

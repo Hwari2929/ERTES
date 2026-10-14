@@ -22,7 +22,7 @@ import * as R from './engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
 import { type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, KEYWORD_NAME, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type SynergyId, type UnitState } from './types';
-import { BattleView, fmt } from './ui/battleview';
+import { BattleView, fmt, FX, FX_DEFAULT, type MotionPreset } from './ui/battleview';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
 import { bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg } from './ui/portraits';
@@ -32,8 +32,16 @@ import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 const PREF_KEY = 'errantes.prefs.v1';
 /** 전투 배속 (단축키 1~6, Space 정지) */
 const SPEEDS = [0.25, 0.5, 1, 2, 4, 8];
-function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean } {
+function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean; fxMs?: number; skillMs?: number; motion?: MotionPreset } {
   try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}; } catch { return {}; }
+}
+/** 연출 설정을 전투 화면에 반영 */
+function applyFxPrefs() {
+  const p = loadPrefs();
+  const ms = (v: unknown, d: number) => (typeof v === 'number' && v >= 200 && v <= 5000 ? v : d);
+  FX.fxMs = ms(p.fxMs, FX_DEFAULT.fxMs);
+  FX.skillMs = ms(p.skillMs, FX_DEFAULT.skillMs);
+  FX.motion = p.motion === 'fast' || p.motion === 'slow' || p.motion === 'mid' ? p.motion : FX_DEFAULT.motion;
 }
 function savePref(k: string, v: unknown) {
   try { localStorage.setItem(PREF_KEY, JSON.stringify({ ...loadPrefs(), [k]: v })); } catch { /* 저장 불가 환경 */ }
@@ -1465,7 +1473,12 @@ function menuModal(run: RunState | null) {
       <h3>전투</h3>
       <label class="pref"><input type="checkbox" data-a="pref-slow" ${app.slowDetail ? 'checked' : ''}><span><b>상세 정보 볼 때 느리게</b><br><span class="muted small">전투 중 기물을 눌러 상세 정보를 보는 동안 진행 속도에 ×0.25 를 곱합니다. 빈 보드를 누르거나 Esc 로 선택을 풀면 원래 속도로 돌아갑니다.</span></span></label>
       <label class="pref"><input type="checkbox" data-a="pref-zoom" ${app.zoomOut ? 'checked' : ''}><span><b>넓은 전장 전체 보기</b><br><span class="muted small">전투 화면을 축소해 바깥 테두리 칸까지 전장 전체를 한 번에 보여 줍니다. 끄면 배치 구역 크기로 보고, 카메라가 끝 기물을 따라갑니다.</span></span></label>
-      <div class="row-btns"><button class="btn primary" data-a="menu-close">닫기</button></div>
+      <h3>전투 연출</h3>
+      <label class="pref pref-num"><span><b>이펙트 · 숫자 지속 시간</b><br><span class="muted small">피해 · 회복 숫자, 상태 표시, 적중 · 범위 · 테두리 이펙트가 화면에 머무는 시간 (1배속 기준, 기본 ${FX_DEFAULT.fxMs}ms)</span></span><span class="pn"><input type="number" min="300" max="4000" step="100" data-pref="fxMs" value="${FX.fxMs}"> ms</span></label>
+      <label class="pref pref-num"><span><b>스킬 사용 연출 시간</b><br><span class="muted small">스킬명 배너와 시전 테두리가 머무는 시간 (기본 ${FX_DEFAULT.skillMs}ms)</span></span><span class="pn"><input type="number" min="500" max="5000" step="100" data-pref="skillMs" value="${FX.skillMs}"> ms</span></label>
+      <div class="pref"><span><b>모션 속도</b><br><span class="muted small">공격 · 피격 · 회피 · 이동 동작의 빠르기</span></span>
+        <span class="seg">${([['fast', '날렵'], ['mid', '보통'], ['slow', '느긋']] as const).map(([k, l]) => `<button class="btn tiny ${FX.motion === k ? 'on' : ''}" data-a="pref-motion" data-v="${k}" aria-pressed="${FX.motion === k}">${l}</button>`).join('')}</span></div>
+      <div class="row-btns"><button class="btn ghost" data-a="pref-fx-reset">연출 기본값</button><button class="btn primary" data-a="menu-close">닫기</button></div>
     </div></div>`;
   }
   return `<div class="modal-bg"><div class="modal">
@@ -2303,6 +2316,8 @@ function act(a: string, v: string) {
     case 'menu': app.menu = 'menu'; break;
     case 'menu-tab': app.menu = v as 'menu' | 'settings'; break;
     case 'pref-zoom': app.zoomOut = !app.zoomOut; savePref('zoomOut', app.zoomOut); break;
+    case 'pref-motion': savePref('motion', v); applyFxPrefs(); break;
+    case 'pref-fx-reset': savePref('fxMs', FX_DEFAULT.fxMs); savePref('skillMs', FX_DEFAULT.skillMs); savePref('motion', FX_DEFAULT.motion); applyFxPrefs(); break;
     case 'pref-slow': app.slowDetail = !app.slowDetail; savePref('slowDetail', app.slowDetail); applySpeed(); break;
     case 'menu-close': app.menu = null; app.importErr = ''; break;
     case 'menu-export': app.menu = 'export'; break;
@@ -2770,12 +2785,21 @@ root.addEventListener('click', (ev) => {
 // 순례: 신앙 변경
 root.addEventListener('change', (ev) => {
   const el = ev.target as HTMLSelectElement;
+  const pk = (el as HTMLElement).dataset?.pref;
+  if (pk === 'fxMs' || pk === 'skillMs') {
+    const v = Math.round(Math.max(pk === 'fxMs' ? 300 : 500, Math.min(pk === 'fxMs' ? 4000 : 5000, +el.value || FX_DEFAULT[pk])));
+    el.value = String(v);
+    savePref(pk, v); applyFxPrefs();
+    return;
+  }
   const uid = el.dataset?.faith;
   if (!uid || !app.run) return;
   const e = R.pilgrimAct(app.run, 'faith', uid, el.value as FaithId);
   if (e) toast(e); else toast(`신앙 변경: ${FAITH_NAME[el.value as FaithId]}`);
   persist(); render();
 });
+
+applyFxPrefs();
 
 // 아티팩트 뷰어 업데이트 시 진행 상황 유지
 type Hot = { snapshot?: (f: () => unknown) => void; ready?: (f: (d: unknown) => void) => void; data?: unknown };

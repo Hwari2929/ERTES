@@ -965,6 +965,10 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .menu-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
 .pref { display: flex; gap: 10px; align-items: flex-start; padding: 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
 .pref input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--accent); }
+.pref-num, div.pref { justify-content: space-between; align-items: center; cursor: default; }
+.pref .pn { display: flex; align-items: center; gap: 4px; font-size: 12px; white-space: nowrap; }
+.pref .pn input { width: 76px; height: auto; margin: 0; padding: 4px 6px; font: 600 13px var(--f-mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; text-align: right; }
+.pref .seg { display: flex; gap: 4px; flex: none; }
 
 /* ── 능력 (통일 형식) */
 .ab-click { cursor: pointer; border-radius: 4px; }
