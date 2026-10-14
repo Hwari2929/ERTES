@@ -28,7 +28,7 @@ export const ROSTER_B: BaseUnit[] = [
     sprite: 'robe', palette: tint(PAL.KAL, '#f0a0c8', '#ffffff', '#ff60c0'),
     lore: '누군가는 3년 전부터 있었다고 하고, 누군가는 처음부터 있었던 것 같다고 한다.',
     skill: {
-      name: '점괘', cd: 8, params: { count: 1, luck: 0.7, dmg: 0.5, as: 0.3, dur: 5, fearChance: 0.5 },
+      name: '점괘', tag: () => '아군 강화 · 적 공포', cd: 8, params: { count: 1, luck: 0.7, dmg: 0.5, as: 0.3, dur: 5, fearChance: 0.5 },
       desc: (p) => `가장 강한 아군 ${p.count}명의 점괘를 본다. ${pct(p.luck)} 확률로 길(${p.dur}초간 피해 +${pct(p.dmg)}, 공격 속도 +${pct(p.as)}), 아니면 흉(피해 +${pct(p.dmg * 0.3)}). 가장 가까운 적은 환술에 ${pct(p.fearChance)} 확률로 2초 공포.`,
       cast(b, u) {
         const foe = b.nearest(u, b.enemiesOf(u));
@@ -91,7 +91,7 @@ export const ROSTER_B: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 6, base: B(6, 9, 8, 4, 4),
     sprite: 'soldier', palette: tint(PAL.KAL, '#5a3a2a', '#e0b040', '#ff3040'), lore: '"사감은 없어. 예술을 추구할 뿐이네."',
     skill: {
-      name: '바텐더의 칵테일', cd: 4.5, params: { shield: 1.2, crit: 0.075, dur: 5, need: 8, snipe: 8, snipeCrit: 0.15, keep: 0, start: 2 },
+      name: '바텐더의 칵테일', tag: () => '약한 아군 보호막 · 치명 강화', cd: 4.5, params: { shield: 1.2, crit: 0.075, dur: 5, need: 8, snipe: 8, snipeCrit: 0.15, keep: 0, start: 2 },
       desc: (p) => `[요리] 체력 비율이 가장 낮은 아군에게 칵테일을 내어 기술 위력 ${pct(p.shield)} 보호막 + ${p.dur}초간 치명타 +${pct(p.crit)}p. 한 잔마다 (또는 아군 기본 공격 12회마다) [기다림의 미학] 1스택, ${p.need}스택이면 안단테-7로 체력이 가장 높은 적에게 사격 위력 ${pct(p.snipe)} 물리 저격 (치명타 확률 +${pct(p.snipeCrit)}p). 전투 시작 시 ${p.start}스택.`,
       cast(b, u) {
         if (!b.enemiesOf(u).length) return false;
@@ -258,7 +258,7 @@ export const ROSTER_B: BaseUnit[] = [
       effect: (k) => ({ mods: [inc('all', 0.25 * k)], stats: { crit: 0.075 * k } }),
     },
     skill: {
-      name: '망령권 작살', cd: 7, params: { shots: 6, mult: 0.5, shock: 0, crit: 0 },
+      name: '망령권 작살', tag: () => '무작위 화학 6연사', cd: 7, params: { shots: 6, mult: 0.5, shock: 0, crit: 0 },
       desc: (p) => `등불로 항로를 밝히고 무작위 적에게 선상 작살총으로 사격 위력 ${pct(p.mult)} 화학 사격 ${p.shots}회${p.crit ? ` (치명타 확률 +${pct(p.crit)}p)` : ''}${p.shock ? `, 발당 ${pct(p.shock)} 확률로 1.5초 감전` : ''}.`,
       cast(b, u) {
         if (!b.enemiesOf(u).length) return false;

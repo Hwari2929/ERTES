@@ -52,11 +52,33 @@ function applyRiders(b: Battle, u: CUnit, v: CUnit, p: Record<string, number>, p
   if (p.vuln) b.applyStatus(u, v, { type: 'buff', key: `vuln.${u.defId}`, dur: 4, taken: [vuln('all', p.vuln)], label: '취약' });
 }
 
+const EL: Record<Elem, string> = { phys: '물리', chem: '화학', elec: '전기', psy: '정신', holy: '신성', true: '고정' };
+const RIDER: [string, string][] = [['stun', '기절'], ['fear', '공포'], ['shock', '감전'], ['poison', '중독'], ['bleed', '출혈'], ['slow', '둔화'], ['corrode', '부식'], ['vuln', '취약']];
+const PICK_WORD: Record<EnemyPick, string> = { current: '', farthest: '먼 적', lowest: '약한 적', random: '무작위', strongest: '강적', backline: '후열' };
+/** 공격형 기술의 짧은 설명: 범위 · 대상 · 속성 + 대표 부가 효과 1개 */
+function strikeTag(o: StrikeOpts, p: Record<string, number>) {
+  const e = EL[o.elem];
+  let t = o.aroundSelf ? `주변 광역 ${e} 공격` : p.radius ? `광역 ${e} 공격` : p.hits > 1 ? `${p.hits}연타 ${e} 공격` : `${PICK_WORD[o.target || 'current'] ? PICK_WORD[o.target || 'current'] + ' ' : ''}${e} 공격`;
+  if (o.blink) t = '돌진 · ' + t;
+  const r = RIDER.find(([k]) => p[k]);
+  if (r) t += ` + ${r[1]}`;
+  else if (p.selfShield) t += ' + 보호막';
+  else if (p.lifesteal) t += ' + 흡혈';
+  return t;
+}
+const ALLY_WORD: Record<AllyPick, string> = { self: '자신', all: '아군 전체', aroundSelf: '주변 아군', lowest: '약한 아군', strongest: '핵심 아군', commanded: '핵심 아군' };
+function supportTag(o: SupportOpts, p: Record<string, number>) {
+  const fx = [p.heal && '회복', p.shield && '보호막', (p.as || p.dmg || p.armor || p.eva || p.crit || p.red) && '강화', p.cleanse && '정화'].filter(Boolean);
+  return `${ALLY_WORD[o.target]} ${fx.slice(0, 2).join(' · ') || '지원'}`;
+}
+
 export interface StrikeOpts {
   name: string; cd: number; pow: PowKey; elem: Elem; mult: number;
   target?: EnemyPick; blink?: boolean; aroundSelf?: boolean; needsRange?: boolean;
   params?: Record<string, number>;
   desc: (p: Record<string, number>) => string;
+  /** 짧은 설명을 직접 지정 (없으면 파라미터로 생성) */
+  tag?: string;
   after?: (b: Battle, u: CUnit, t: CUnit, dealt: number, p: Record<string, number>, results: DmgResult[]) => void;
 }
 
@@ -66,6 +88,7 @@ export function strike(o: StrikeOpts): SkillDef {
     name: o.name, cd: o.cd, needsRange: o.needsRange ?? (!o.blink && !o.aroundSelf && (o.target || 'current') === 'current'),
     params: { mult: o.mult, radius: 0, hits: 1, second: 0.6, pen: 0, crit: 0, selfShield: 0, lifesteal: 0, resetOnKill: 0, ...o.params },
     desc: o.desc,
+    tag: (p) => o.tag || strikeTag(o, p),
     cast(b, u) {
       const p = u.sk;
       const t = o.aroundSelf ? u : pickEnemy(b, u, o.target || 'current');
@@ -101,6 +124,7 @@ export interface SupportOpts {
   name: string; cd: number; target: AllyPick;
   params?: Record<string, number>;
   desc: (p: Record<string, number>) => string;
+  tag?: string;
   /** 회복/보호막 위력에 곱할 추가 배율 (셰프 요리 등) */
   power?: (u: CUnit) => number;
   after?: (b: Battle, u: CUnit, targets: CUnit[], p: Record<string, number>) => void;
@@ -112,6 +136,7 @@ export function support(o: SupportOpts): SkillDef {
     name: o.name, cd: o.cd,
     params: { heal: 0, shield: 0, dur: 4, as: 0, dmg: 0, armor: 0, eva: 0, crit: 0, red: 0, cleanse: 0, radius: 0, count: 1, splash: 0, ...o.params },
     desc: o.desc,
+    tag: (p) => o.tag || supportTag(o, p),
     cast(b, u) {
       if (!b.enemiesOf(u).length) return false;
       const p = u.sk;
@@ -133,7 +158,7 @@ export function support(o: SupportOpts): SkillDef {
         }
       });
       const c = ts[0];
-      b.fx(c.x, c.y, o.target === 'all' ? 0 : p.radius, 'holy');
+      b.fx(c.x, c.y, o.target === 'all' ? 0 : p.radius, 'holy', p.heal || p.shield ? 'heal' : 'buff');
       o.after?.(b, u, ts, p);
       return true;
     },

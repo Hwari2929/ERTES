@@ -94,6 +94,8 @@ export interface SkillDef {
   needsRange?: boolean;
   reach?: number;
   desc: (p: Record<string, number>) => string;
+  /** 발동 순간 스킬명 옆에 붙는 짧은 설명 (예: 아군 회복, 광역 화학 공격) */
+  tag?: (p: Record<string, number>) => string;
   cast: (b: Battle, u: CUnit) => boolean;
 }
 
@@ -148,15 +150,23 @@ export interface CUnit {
 
 export type BEvent =
   | { k: 'atk'; from: number; to: number; elem: Elem; ranged: boolean }
-  | { k: 'dmg'; id: number; v: number; crit: boolean; miss: boolean; graze: boolean; elem: Elem }
-  | { k: 'heal'; id: number; v: number }
-  | { k: 'shield'; id: number; v: number }
-  | { k: 'skill'; id: number; name: string }
-  | { k: 'status'; id: number; name: string }
-  | { k: 'die'; id: number }
+  /** dhp · dsh: 실제 체력 · 보호막 변화 (연출이 표시 시점을 늦출 때 되돌려 보여 주는 데 쓴다) */
+  | { k: 'dmg'; id: number; src?: number; v: number; crit: boolean; miss: boolean; graze: boolean; elem: Elem; tag?: string; syn?: string; dhp?: number; dsh?: number }
+  | { k: 'heal'; id: number; src?: number; v: number; dhp?: number }
+  | { k: 'shield'; id: number; src?: number; v: number; dsh?: number }
+  /** tag: 효과를 설명하는 짧은 말 (예: 광역 정신 공격) */
+  | { k: 'skill'; id: number; name: string; tag?: string }
+  /** 스킬 효과 처리가 끝난 지점 (사이의 이벤트는 이 스킬의 결과) */
+  | { k: 'skillEnd'; id: number }
+  | { k: 'status'; id: number; name: string; src?: number; harm?: boolean; stype?: string }
+  | { k: 'die'; id: number; by?: number }
   | { k: 'spawn'; id: number }
-  | { k: 'fx'; x: number; y: number; r: number; elem: Elem }
-  | { k: 'crash'; side: 0 | 1 };
+  | { k: 'fx'; x: number; y: number; r: number; elem: Elem; kind?: 'atk' | 'heal' | 'buff' }
+  | { k: 'crash'; side: 0 | 1 }
+  /** 고유 표식: 부활 · 시간 역행 · 처형 · 불사 */
+  | { k: 'mark'; id: number; name: string; style: 'revive' | 'rewind' | 'execute' | 'immortal' }
+  /** 장비 지급 (필리스 배달 사고 등) */
+  | { k: 'gift'; from: number; to: number; item: string };
 
 export interface BattleCtx { phase: number; credits: number; field?: string; diff?: number }
 
@@ -379,11 +389,13 @@ export class Battle {
         // 시전 전에 쿨다운을 채워 두어, 시전 중 처치 등으로 쿨다운을 돌려받을 수 있게 한다
         const prevCd = u.cd;
         u.cd = u.cdMax;
-        if (!sk.cast(this, u)) u.cd = prevCd;
+        const at = this.events.length;
+        if (!sk.cast(this, u)) { u.cd = prevCd; this.events.length = Math.min(this.events.length, at); }
         else {
           u.counters.casts++;
           if (u.side === 0) this.counters.skills++;
-          this.emit({ k: 'skill', id: u.id, name: sk.name });
+          // 연출 순서: 스킬명 → 효과. 시전 앞자리에 끼워 넣는다
+          if (this.keepEvents) { this.events.splice(at, 0, { k: 'skill', id: u.id, name: sk.name, tag: sk.tag?.(u.sk) }); this.emit({ k: 'skillEnd', id: u.id }); }
           for (const h of u.hooks) h.onSkill?.(this, u);
           for (const a of this.alliesOf(u, false)) for (const h of a.hooks) h.onAllySkill?.(this, a, u);
           if (this.over) return;
@@ -554,9 +566,11 @@ export class Battle {
     res.amount = dmg;
     // 심판 기록 (프란체): 아군이 준 피해의 일부를 쌓는다
     if (dmg > 0 && src.side !== tgt.side) for (const s of tgt.statuses) if (s.rec !== undefined && s.src && s.src.side === src.side) s.rec += dmg * 0.2;
+    let dsh = 0, dhp = 0;
     if (dmg > 0) {
       let left = dmg;
-      if (tgt.shield > 0) { const a = Math.min(tgt.shield, left); tgt.shield -= a; left -= a; }
+      if (tgt.shield > 0) { const a = Math.min(tgt.shield, left); tgt.shield -= a; left -= a; dsh = -a; }
+      dhp = -Math.min(left, Math.max(0, tgt.hp));
       tgt.hp -= left;
       const cs = o.syn ? this.synStat(o.syn, src.side) : src.counters;
       cs.dmg += dmg;
@@ -564,7 +578,7 @@ export class Battle {
       tgt.counters.taken += dmg;
       if (src.side === 0 && dmg > this.counters.bestHit) this.counters.bestHit = dmg;
     }
-    this.emit({ k: 'dmg', id: tgt.id, v: dmg, crit: res.crit, miss: res.miss, graze: res.graze, elem: o.elem });
+    this.emit({ k: 'dmg', id: tgt.id, src: src.id, v: dmg, crit: res.crit, miss: res.miss, graze: res.graze, elem: o.elem, tag: o.tag, syn: o.syn, dhp, dsh });
     if (dmg > 0 && !o.noHooks) {
       const ls = this.S(src, 'lifesteal') + (src.reason !== null && src.reason < 0 ? 0.2 * (-src.reason / 100) : 0);
       if (ls > 0 && src.alive) this.heal(src, src, dmg * ls, true);
@@ -589,7 +603,7 @@ export class Battle {
     if (!u.alive) return;
     u.alive = false;
     u.hp = 0;
-    this.emit({ k: 'die', id: u.id });
+    this.emit({ k: 'die', id: u.id, by: by?.id });
     if (u.side === 1 && by) this.counters.kills++;
     if (u.side === 0 && !u.isSummon) this.counters.allyDeaths++;
     if (by && by.alive) { by.counters.kills++; for (const h of by.hooks) h.onKill?.(this, by, u); }
@@ -614,7 +628,7 @@ export class Battle {
     const real = Math.min(a, max - tgt.hp);
     tgt.hp += real;
     (syn ? this.synStat(syn, src.side) : src.counters).healed += real;
-    if (real >= 1) this.emit({ k: 'heal', id: tgt.id, v: real });
+    if (real >= 1) this.emit({ k: 'heal', id: tgt.id, src: src.id, v: real, dhp: real });
     if (!raw) for (const h of src.hooks) h.onHealDone?.(this, src, tgt, real, a - real);
     return real;
   }
@@ -644,7 +658,7 @@ export class Battle {
     tgt.shield = Math.min(this.S(tgt, 'maxHp'), tgt.shield + amt);
     const giver = giver0;
     (syn ? this.synStat(syn, tgt.side) : giver.counters).shield += tgt.shield - before;
-    this.emit({ k: 'shield', id: tgt.id, v: amt });
+    this.emit({ k: 'shield', id: tgt.id, src: giver.id, v: amt, dsh: tgt.shield - before });
   }
 
   /** 상태이상 부여. 확률 = 기본 × (1 + 효과명중 − 효과저항) */
@@ -668,7 +682,7 @@ export class Battle {
       if (s.dps && (!ex.dps || s.dps > ex.dps)) { ex.dps = s.dps; ex.src = src; }
     } else tgt.statuses.push(s);
     const label = s.label || STATUS_NAME[s.key];
-    if (label) this.emit({ k: 'status', id: tgt.id, name: label });
+    if (label) this.emit({ k: 'status', id: tgt.id, name: label, src: src.id, harm: hostile, stype: s.type });
     return true;
   }
 
@@ -677,7 +691,7 @@ export class Battle {
   buff(src: CUnit, tgt: CUnit, key: string, dur: number, p: Partial<Status>) {
     return this.applyStatus(src, tgt, { type: 'buff', key, dur, ...p });
   }
-  fx(x: number, y: number, r: number, elem: Elem) { this.emit({ k: 'fx', x, y, r, elem }); }
+  fx(x: number, y: number, r: number, elem: Elem, kind?: 'atk' | 'heal' | 'buff') { this.emit({ k: 'fx', x, y, r, elem, kind }); }
   lowestHpAlly(u: CUnit) {
     let best: CUnit | null = null, bp = 2;
     for (const a of this.alliesOf(u)) { const p = this.hpPct(a); if (p < bp) { bp = p; best = a; } }

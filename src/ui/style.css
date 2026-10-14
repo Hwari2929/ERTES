@@ -204,6 +204,7 @@ button { font: inherit; color: inherit; }
 .uitems i { width: 5px; height: 5px; background: var(--info); border-radius: 1px; }
 .bars { position: absolute; left: 8%; right: 8%; top: 2%; height: 6px; background: rgba(0, 0, 0, .55); border-radius: 2px; overflow: hidden; }
 .bars .hp { position: absolute; inset: 0 auto 0 0; background: var(--ally-hp); }
+.bars .loss { position: absolute; inset: 0 auto 0 0; background: #fff; opacity: .75; } /* 큰 피해 뒤 잠깐 남는 손실 구간 */
 .side1 .bars .hp { background: var(--foe-hp); }
 .bars .sh { position: absolute; inset: 0 auto 0 0; background: var(--shield); opacity: .75; }
 .cd { position: absolute; left: 14%; right: 14%; bottom: 3%; height: 3px; background: rgba(0, 0, 0, .5); }
@@ -214,8 +215,7 @@ button { font: inherit; color: inherit; }
 .gx i.div { background: #ffd34d; }
 .gx i.div.used { background: rgba(255, 211, 77, .35); }
 /* 피격 · 상태이상 시 초상화의 filter/transform 이 쌓임 맥락을 만들어도 게이지 · 배지는 항상 위 */
-.u .bars, .u .cd, .u .gx, .u .ubadge, .u .uitems { z-index: 2; }
-.u.reloading .cd { outline: 1px dashed rgba(255, 255, 255, .45); }
+.u .bars, .u .cd, .u .gx, .u .ubadge, .u .uitems, .u .sti, .u .stk, .u .rl { z-index: 2; }
 .u.hit img { animation: hit .18s; }
 .u.lunge img { animation: lunge .2s; }
 .side1.lunge img { animation: lunge-f .2s; }
@@ -228,7 +228,7 @@ button { font: inherit; color: inherit; }
 @keyframes lunge-f { 50% { transform: scaleX(-1) translateY(14%); } }
 @keyframes blink { 50% { opacity: .2; } }
 .fx-layer { position: absolute; inset: 0; pointer-events: none; z-index: 4; overflow: visible; }
-.ft { position: absolute; transform: translate(-50%, 0); font: 700 13px var(--f-mono); text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; white-space: nowrap; animation: float .9s ease-out forwards; }
+.ft { position: absolute; transform: translate(-50%, 0); font: 700 13px var(--f-mono); text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; white-space: nowrap; pointer-events: none; }
 .ft.crit { font-size: 18px; }
 .ft.graze { font-size: 11px; opacity: .8; }
 .ft.miss { color: var(--dim); font-size: 11px; }
@@ -241,6 +241,71 @@ button { font: inherit; color: inherit; }
 .area { position: absolute; border: 2px solid; border-radius: 14%; animation: area .6s ease-out forwards; }
 @keyframes area { from { transform: scale(.6); opacity: .9; } to { transform: scale(1.05); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .ft, .area { animation-duration: .01s; } }
+
+/* ── 전투 연출: 시전자 → 전달 → 대상 반응 */
+.focus-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; overflow: visible; }
+.focus-lines .fl-tgt { stroke-width: .5; stroke-dasharray: 1.4 1; vector-effect: non-scaling-stroke; stroke-width: 2px; opacity: .85; }
+.focus-lines .fl-tgt.side0 { stroke: var(--accent); } .focus-lines .fl-tgt.side1 { stroke: var(--bad); }
+.focus-lines .fl-ring { fill: none; vector-effect: non-scaling-stroke; stroke-width: 2px; }
+.focus-lines .fl-ring.side0 { stroke: var(--accent); } .focus-lines .fl-ring.side1 { stroke: var(--bad); }
+.focus-lines .fl-dest { fill: none; stroke: var(--fg); stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; stroke-width: 1.5px; opacity: .7; }
+.proj2 { position: absolute; width: 18px; height: 3px; border-radius: 2px; transform: translate(-50%, -50%) rotate(var(--a)); background: linear-gradient(90deg, transparent, var(--c) 70%, #fff); box-shadow: 0 0 6px var(--c); pointer-events: none; }
+.proj2.focus { height: 4px; width: 24px; }
+.impact { position: absolute; width: 4.5%; aspect-ratio: 1; border-radius: 50%; border: 2px solid var(--c); box-shadow: 0 0 8px var(--c); pointer-events: none; }
+.slash { position: absolute; width: 7%; height: 3px; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--c), #fff, var(--c), transparent); pointer-events: none; transform-origin: center; }
+.orb { position: absolute; width: 10px; height: 10px; border-radius: 50%; pointer-events: none; }
+.orb.heal { background: radial-gradient(circle, #fff 0 25%, var(--good) 55%, transparent 72%); box-shadow: 0 0 8px var(--good); }
+.orb.shield { background: transparent; border: 2px solid var(--shield); transform: rotate(45deg); border-radius: 2px; box-shadow: 0 0 6px var(--shield); }
+.cic { position: absolute; font: 700 12px var(--f-mono); width: 16px; height: 16px; display: grid; place-items: center; border-radius: 50%; pointer-events: none; z-index: 2; }
+.cic.heal { background: var(--good); color: #0c1a12; } .cic.shield { background: var(--shield); color: #1b1a17; }
+.rise { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: var(--good); box-shadow: 0 0 5px var(--good); pointer-events: none; }
+.shring { position: absolute; width: 8.5%; aspect-ratio: 1; border-radius: 10px; border: 2px solid var(--shield); box-shadow: 0 0 10px var(--shield), inset 0 0 8px color-mix(in srgb, var(--shield) 50%, transparent); pointer-events: none; }
+.shring.gold { border-color: var(--el-holy); box-shadow: 0 0 14px var(--el-holy); }
+.shbreak { position: absolute; width: 8.5%; aspect-ratio: 1; border-radius: 10px; border: 2px dashed var(--shield); pointer-events: none; }
+.buffland { position: absolute; color: var(--accent); font: 700 12px var(--f-mono); text-shadow: 0 0 4px #000; pointer-events: none; }
+.skb { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 2px 7px 3px; border-radius: 4px; white-space: nowrap; pointer-events: none; z-index: 5;
+  background: rgb(14 16 22 / .82); border: 1px solid color-mix(in srgb, var(--accent) 70%, transparent); box-shadow: 0 2px 8px rgb(0 0 0 / .5); }
+.skb b { font: 400 13px var(--f-display); color: var(--accent); letter-spacing: .02em; }
+.skb small { font: 600 10px var(--f-body); color: #d8dbe4; }
+.skb.dimf, .ft.dimf { opacity: .45 !important; }
+.ft.focus { font-size: 15px; z-index: 6; }
+.ft.dmg.sm { font-size: 10.5px; font-weight: 600; }
+.ft.dot { font-size: 10px; opacity: .9; }
+.ft.status.harm { color: #d6a3ff; }
+.ft.status.gift { color: var(--el-holy); }
+.ft.mark { font: 400 15px var(--f-display); letter-spacing: .03em; }
+.ft.mark.revive, .ft.mark.immortal { color: var(--el-holy); } .ft.mark.rewind { color: #8fd3ff; } .ft.mark.execute { color: var(--bad); font-size: 17px; }
+.ft.mark-sh { color: var(--shield); font: 600 10px var(--f-body); }
+.area2 { position: absolute; pointer-events: none; border-radius: 14%; }
+.area2.atk { border: 2px solid var(--c); background: radial-gradient(circle, color-mix(in srgb, var(--c) 35%, transparent), transparent 70%); }
+.area2.heal { border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--good) 40%, transparent), transparent 70%); }
+.area2.buff { border: 2px dashed var(--accent); border-radius: 50%; }
+.rewind { position: absolute; width: 10%; aspect-ratio: 1; border-radius: 50%; pointer-events: none; border: 3px solid transparent; border-top-color: #8fd3ff; border-left-color: #8fd3ff; box-shadow: 0 0 12px #8fd3ff; }
+.pillar { position: absolute; width: 5%; height: 26%; pointer-events: none; transform-origin: bottom; background: linear-gradient(to top, color-mix(in srgb, var(--el-holy) 85%, transparent), transparent); filter: blur(1px); }
+.exec { position: absolute; font: 700 34px var(--f-mono); color: var(--bad); text-shadow: 0 0 10px var(--bad), 0 0 2px #000; pointer-events: none; }
+.tool { position: absolute; font-size: 20px; color: var(--accent); text-shadow: 0 0 6px #000; pointer-events: none; }
+.gift-fly { position: absolute; pointer-events: none; z-index: 5; } .gift-fly .item { transform: scale(.8); box-shadow: 0 0 10px var(--el-holy); }
+/* 행동을 막는 상태 · 중첩 · 재장전 */
+.sti { position: absolute; top: -14%; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; pointer-events: none; }
+.sti i { font: 700 11px var(--f-mono); font-style: normal; width: 14px; height: 14px; display: grid; place-items: center; border-radius: 50%; background: #14161d; border: 1px solid; box-shadow: 0 1px 3px #000; }
+.sti .sti-stun { color: #ffd34d; animation: sti-spin 1.2s linear infinite; } .sti .sti-fear { color: #d6a3ff; } .sti .sti-shock { color: var(--el-elec); }
+@keyframes sti-spin { to { transform: rotate(360deg); } }
+.u.stunned img { filter: grayscale(.7) brightness(.65); }
+.stk { position: absolute; left: 6%; right: 6%; bottom: -10%; display: flex; justify-content: center; gap: 3px; pointer-events: none; }
+.stk-seg { display: flex; gap: 1px; } .stk-seg i { width: 5px; height: 4px; background: rgb(0 0 0 / .6); border: 1px solid #e0a050; } .stk-seg i.on { background: #ffb347; }
+.stk-gloom { font: 700 9px var(--f-mono); color: #e4d2ff; background: #3a2458; border-radius: 6px; padding: 0 3px; line-height: 12px; box-shadow: 0 0 4px #8a5cc8; }
+.rl { position: absolute; right: 2%; bottom: 8%; width: 15px; height: 15px; border-radius: 50%; pointer-events: none;
+  background: conic-gradient(var(--info) var(--p, 0%), rgb(0 0 0 / .65) 0); box-shadow: 0 0 0 1px rgb(255 255 255 / .5); }
+.rl::after { content: ''; position: absolute; inset: 3px 5px; border-radius: 1px; background: #14161d; border-top: 2px solid var(--info); }
+.board-in.paused .cells { filter: saturate(.6); }
+.speed .pause { min-width: 28px; }
+/* 상세: 행동 상태 */
+.act-state { display: grid; gap: 4px; margin: 6px 0; }
+.as-why { margin: 0; font-size: 12px; font-weight: 600; color: var(--accent); } .as-why.bad { color: var(--bad); }
+.as-row { display: grid; grid-template-columns: 5.2em 1fr 3.4em; gap: 6px; align-items: center; font-size: 11px; }
+.as-bar { height: 5px; border-radius: 3px; background: var(--panel-2); overflow: hidden; } .as-bar i { display: block; height: 100%; }
+.as-row.sk .as-bar i { background: var(--info); } .as-row.rl .as-bar i, .as-row.ammo .as-bar i { background: #e0a050; } .as-row.atk .as-bar i { background: var(--fg); opacity: .7; }
+.as-log { margin: 2px 0 6px; padding-left: 1.3em; font-size: 12px; display: grid; gap: 2px; } .as-log li:first-child { color: var(--accent); }
 
 .bench { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 64px; margin: 10px auto 0; width: min(100%, 560px);
   background: var(--panel); border: 1px dashed var(--line); border-radius: 8px; padding: 6px 10px; }

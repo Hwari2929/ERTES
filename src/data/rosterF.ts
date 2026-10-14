@@ -180,7 +180,7 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'robe', palette: tint(HOI_PAL, '#ff4d9a', '#7fe3ff', '#ffe14d'),
     lore: '"안녕안녕~ 레이카 0호야! 오늘도 은하 끝까지 방송 켜 둘게~☆"',
     skill: {
-      name: '라이브 피날레', cd: 8, params: { mult: 0.9, shockChance: 0.4, shock: 1.2, encore: 0 },
+      name: '라이브 피날레', tag: () => '적 전체 전기 공격 + 감전', cd: 8, params: { mult: 0.9, shockChance: 0.4, shock: 1.2, encore: 0 },
       desc: (p) => `모든 적에게 기술 위력 ${pct(p.mult)} 전기 피해, ${pct(p.shockChance)} 확률로 ${p.shock}초 감전${p.encore ? `. 앙코르: 같은 공연을 ${pct(p.encore)} 위력으로 한 번 더` : ''}.`,
       cast(b, u) {
         const es = b.enemiesOf(u);

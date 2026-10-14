@@ -115,7 +115,7 @@ function rachelBeam(b: Battle, u: CUnit) {
   const foes = b.enemiesOf(u);
   if (!foes.length) return;
   const c = foes.slice().sort((a, z) => b.around(z, 1.5, foes).length - b.around(a, 1.5, foes).length)[0];
-  b.emit({ k: 'status', id: u.id, name: '파괴 광선!' });
+  b.emit({ k: 'skill', id: u.id, name: '파괴 광선!', tag: '광역 정신 공격' });
   b.emit({ k: 'atk', from: u.id, to: c.id, elem: 'psy', ranged: true });
   b.fx(c.x, c.y, 2, 'psy');
   for (const e of b.around(c, 2, foes)) b.dealDamage(u, e, b.S(u, 'strike') * 4.5, { elem: 'psy', tag: 'skill', kind: 'strike', canMiss: false });
@@ -140,7 +140,7 @@ export const VOYAGE_SPECIAL: Record<string, { who: string; name: string; text: s
       applyLive(a, e, b, NO_CTX);
       e.hooks?.onStart?.(b, a);
       a.tempItems = [...(a.tempItems || []), id];
-      b.emit({ k: 'status', id: a.id, name: itemInfo(id).name });
+      b.emit({ k: 'gift', from: u.id, to: a.id, item: id });
     } } } },
   temur: { who: '테무르', name: '선장의 위엄', text: '모든 능력치 +50%.',
     effect: { hooks: { onStart(b, u) {
@@ -228,7 +228,7 @@ export const SYNERGIES: SynDef[] = [
           u.hp = b.S(u, 'maxHp') * T(t, [0, 0.4, 0.7, 1.0]);
           u.statuses = u.statuses.filter((s) => s.type === 'buff' && !isHarmful(s));
           if (t >= 4) { u.mem.invulnUntil = b.t + 2; b.buff(u, u, 'sir.reborn', 10, { mods: [inc('all', 0.5)], label: '강림' }); }
-          b.emit({ k: 'status', id: u.id, name: '부활의 기적' });
+          b.emit({ k: 'mark', id: u.id, name: '부활의 기적', style: 'revive' });
           b.fx(u.x, u.y, 0, 'holy');
           return true;
         },
@@ -313,7 +313,7 @@ export const SYNERGIES: SynDef[] = [
           if ((u.mem.timeRev || 0) >= allowed) return false;
           u.mem.timeRev = (u.mem.timeRev || 0) + 1;
           u.hp = b.S(u, 'maxHp') * 0.5;
-          b.emit({ k: 'status', id: u.id, name: '시간 역행' });
+          b.emit({ k: 'mark', id: u.id, name: '시간 역행', style: 'rewind' });
           b.fx(u.x, u.y, 0, 'psy');
           return true;
         },
@@ -382,7 +382,7 @@ export const SYNERGIES: SynDef[] = [
           // [처형]: 맞은 적의 남은 체력이 기준 이하면 즉사. 보스는 처형 대신 피해 별도 증폭 (처형 비율 × 4)
           onDeal(b, u, tgt, r, o) {
             if (o.tag === 'dot' || r.amount <= 0 || !tgt.alive || tgt.isBoss || tgt.side === u.side) return;
-            if (b.hpPct(tgt) <= exec) { b.emit({ k: 'status', id: tgt.id, name: '처형' }); b.kill(tgt, u); }
+            if (b.hpPct(tgt) <= exec) { b.emit({ k: 'mark', id: tgt.id, name: '처형', style: 'execute' }); b.kill(tgt, u); }
           },
           dmgMult: (_b, _u, tgt) => (tgt.isBoss ? 1 + 4 * exec : 1),
           onStart(b, u) {

@@ -18,7 +18,7 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'strike', elem: 'phys', interval: 1.0 }, range: 1, base: B(7, 9, 7, 5, 4),
     sprite: 'knight', palette: tint(PAL.SIR, '#3a2a50', '#e8e8f0', '#b07cff'), lore: '"그 정도면 잘했어. 네 수준에서는."',
     skill: {
-      name: '집행자 투척', cd: 7, params: { mult: 1.8, stun: 1, hits: 1, splash: 0 },
+      name: '집행자 투척', tag: () => '먼 적 끌어오기 + 기절', cd: 7, params: { mult: 1.8, stun: 1, hits: 1, splash: 0 },
       desc: (p) => `거대 도끼 집행자를 가장 먼 적에게 던져 타격 위력 ${pct(p.mult)} 물리 피해${p.hits > 1 ? ` ${p.hits}회` : ''}, 염동력으로 자기 앞까지 끌어당겨 ${p.stun}초 기절${p.splash ? `. 끌려온 자리 주변 1칸에 ${pct(p.splash)} 피해` : ''}.`,
       cast(b, u) {
         const t = b.farthest(u);
@@ -65,7 +65,7 @@ export const ROSTER_C: BaseUnit[] = [
       },
     },
     skill: {
-      name: '재생 촉진', cd: 8, params: { heal: 0.7, cleanse: 0, threshold: -50, rage: 0.4, regen: 0.015, fearChance: 0.6 },
+      name: '재생 촉진', tag: () => '아군 전체 회복', cd: 8, params: { heal: 0.7, cleanse: 0, threshold: -50, rage: 0.4, regen: 0.015, fearChance: 0.6 },
       desc: (p) => `모든 아군의 자연 치유를 가속해 기술 위력 ${pct(p.heal)} 회복${p.cleanse ? ' + 해로운 상태이상 제거' : ''}. 이성이 ${p.threshold} 이하가 되면 체사레로 전환: 근접 도끼 공격, 피해 +${pct(p.rage)}, 초당 최대 체력 ${pct(p.regen)} 재생, 주변 적 ${pct(p.fearChance)} 확률 공포. 체사레의 재생 촉진은 자신에게만 2배로 쓰인다.`,
       cast(b, u) {
         if (!b.enemiesOf(u).length) return false;
@@ -186,7 +186,7 @@ export const ROSTER_C: BaseUnit[] = [
     summon: { name: '리키', art: 'sm_ricky', sprite: 'beast', palette: WOLF, atk: { type: 'strike', elem: 'phys', interval: 0.8 }, range: 1, hpMul: 1.1 },
     lore: '"흠흠- 만나서 반가워! 나는 정찰과 은하 생태학을 담당하는 비비안이야."',
     skill: {
-      name: '동물 교감', cd: 7, params: { mult: 2.3, stun: 1, kazoo: 0, vuln: 0 },
+      name: '동물 교감', tag: () => '리키 돌격 + 기절', cd: 7, params: { mult: 2.3, stun: 1, kazoo: 0, vuln: 0 },
       desc: (p) => `리키에게 공격 지시를 내린다. 리키가 비비안의 대상에게 덮쳐 리키 타격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}${p.kazoo ? `. 모든 아군 3초간 공격 속도 +${pct(p.kazoo)}` : ''}. 리키가 없으면 비비안이 직접 사격 위력 150%로 쏜다.`,
       cast(b, u) {
         const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u));
@@ -316,7 +316,7 @@ export const ROSTER_C: BaseUnit[] = [
     summon: { name: '맥스', art: 'sm_max', sprite: 'beast', palette: BEAR, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.6 },
     lore: '본가의 정원을 40년 가꿨다. 정원을 망치는 것은 무엇이든 맥스가 먼저 쫓아낸다.',
     skill: {
-      name: '불청객 퇴치', cd: 7, params: { mult: 2.5, bleed: 0.3, roar: 0 },
+      name: '불청객 퇴치', tag: () => '맥스 돌격 + 출혈', cd: 7, params: { mult: 2.5, bleed: 0.3, roar: 0 },
       desc: (p) => `맥스가 라스무스의 대상에게 달려들어 맥스 타격 위력 ${pct(p.mult)} 물리 피해 + 초당 ${pct(p.bleed)} 출혈${p.roar ? `, 맥스 주변 적 ${pct(p.roar)} 확률 1.2초 공포` : ''}. 맥스가 없으면 라스무스가 전정가위로 직접 150%.`,
       cast(b, u) {
         const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u));

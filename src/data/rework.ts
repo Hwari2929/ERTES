@@ -757,7 +757,7 @@ export const FAITH_DEF: Record<FaithId, FaithDef> = {
       const c = d && b.freeCellNear(u.x, u.y);
       if (!d || !c) return;
       d.alive = true; d.hp = b.S(d, 'maxHp') * 0.3; d.statuses = []; d.x = d.px = c.x; d.y = d.py = c.y; d.moveT = 0;
-      b.emit({ k: 'spawn', id: d.id }); b.emit({ k: 'status', id: d.id, name: '명부 귀환' });
+      b.emit({ k: 'spawn', id: d.id }); b.emit({ k: 'mark', id: d.id, name: '명부 귀환', style: 'revive' });
     } },
   zeus: { gain: '치명타 +10', act: '낙뢰가 무작위 적 3명에게 주력 위력 200% 전기 피해',
     hooks: { onDeal(b, u, _t, r) { if (r.crit) dv(b, u, 10, 'zIcd', 0.2); } },

@@ -30,8 +30,8 @@ import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 
 // 편의 설정 (이 브라우저에만 저장): 전투 속도, 진형 속도 등
 const PREF_KEY = 'errantes.prefs.v1';
-/** 전투 배속 (단축키 1~5) */
-const SPEEDS = [0.5, 1, 2, 4, 8];
+/** 전투 배속 (단축키 1~6, Space 정지) */
+const SPEEDS = [0.25, 0.5, 1, 2, 4, 8];
 function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean } {
   try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}; } catch { return {}; }
 }
@@ -64,6 +64,7 @@ const app = {
   zoomOut: !!loadPrefs().zoomOut, // 전투 화면: 테두리 포함 전장 전체를 축소해 보기
   slowDetail: loadPrefs().slowDetail !== false, // 전투 중 상세 정보를 보는 동안 속도 ×0.25
   view: null as BattleView | null,
+  paused: false, // 전투 일시 정지
   summary: null as R.BattleSummary | null,
   picks: [] as Major[],
   augPick: null as number | null, // 증강 창에서 고른 칸 (확정 전)
@@ -1054,7 +1055,10 @@ function battleCells(W: number) {
 /** 실제 진행 속도: 상세 정보를 보는 중이면 ×0.25 (설정) */
 function applySpeed() {
   const slow = app.slowDetail && app.battleSel !== null && !app.view?.b.over;
-  if (app.view) app.view.speed = app.speed * (slow ? 0.25 : 1);
+  if (app.view) app.view.speed = app.paused ? 0 : app.speed * (slow ? 0.25 : 1);
+  const pb = document.querySelector<HTMLElement>('.speed .pause');
+  if (pb) { pb.classList.toggle('on', app.paused); pb.textContent = app.paused ? '▶' : '❚❚'; pb.title = app.paused ? '계속 (Space)' : '일시 정지 (Space)'; }
+  document.getElementById('bboard')?.classList.toggle('paused', app.paused);
   const tag = document.getElementById('bslow');
   if (tag) tag.hidden = !slow;
 }
@@ -1067,7 +1071,7 @@ function battleScreen(run: RunState) {
     </aside>
     <section class="board-col">
       <div class="board-head"><b>${esc(enc.env)}</b><span id="btime" class="mono">0.0초</span><span id="bslow" class="bslow" hidden title="상세 정보를 보는 중 · 설정에서 끌 수 있습니다">상세 보기 ×0.25</span>
-        <span class="speed">${SPEEDS.map((s) => `<button class="btn tiny ${app.speed === s ? 'on' : ''}" data-a="speed" data-v="${s}">${s}×</button>`).join('')}
+        <span class="speed"><button class="btn tiny pause${app.paused ? ' on' : ''}" data-a="pause" title="일시 정지 (Space)" aria-label="일시 정지">${app.paused ? '▶' : '❚❚'}</button>${SPEEDS.map((s) => `<button class="btn tiny ${app.speed === s ? 'on' : ''}" data-a="speed" data-v="${s}">${s}×</button>`).join('')}
         <button class="btn tiny" data-a="skip">결과로</button></span></div>
       <div class="board bview${app.zoomOut ? ' full' : ''}" data-a="bdesel" style="--w:${boardDims(enc.n).w - (app.zoomOut ? 0 : 2 * PAD)};--h:${boardDims(enc.n).h - (app.zoomOut ? 0 : 2 * PAD)};--fw:${boardDims(enc.n).w};--fh:${boardDims(enc.n).h}"><div class="board-in" id="bboard"><div class="cells">${battleCells(enc.n)}</div></div></div>
     </section>
@@ -1480,7 +1484,7 @@ function menuModal(run: RunState | null) {
       <li><kbd>1</kbd>~<kbd>9</kbd> 선택지 고르기 (증강 · 영입 · 보급 · 사건 · 다음 노드)</li>
       <li><kbd>Enter</kbd> 확인 · 계속 / <kbd>R</kbd> 새로고침 / <kbd>Esc</kbd> 닫기 · 선택 해제</li>
       <li>편성: <kbd>Space</kbd> 전투 시작, <kbd>A</kbd> 자동 배치 / 맵: <kbd>M</kbd> 편성 관리</li>
-      <li>전투: <kbd>1</kbd>~<kbd>4</kbd> 속도 1·2·4·8배, <kbd>Space</kbd> 결과로 · 계속</li>
+      <li>전투: <kbd>1</kbd>~<kbd>6</kbd> 속도 0.25·0.5·1·2·4·8배, <kbd>Space</kbd> 일시 정지 · 계속, <kbd>Enter</kbd> 결과로</li>
     </ul>
     <p class="muted small">진행 상황은 노드를 지날 때마다 자동 저장됩니다. 전투 도중 불러오면 전투 직전 편성 화면으로 돌아갑니다.</p>
   </div></div>`;
@@ -1862,6 +1866,7 @@ function mountBattleView(board: HTMLElement) {
   app.bPick = null;
   majorCache.clear();
   bunitFor = '';
+  app.paused = false;
   app.view = new BattleView(board, b, updateMeter, () => {
     app.summary = R.resolveBattle(run, b);
     metaBattle(b);
@@ -1876,6 +1881,7 @@ function mountBattleView(board: HTMLElement) {
       animateResult(root);
     }, CFG.resultDelay * 1000);
   });
+  app.view.itemHtml = (id) => itemIcon(id);
   applySpeed();
   // 개시 연출이 지나간 뒤 전투 시작
   const v = app.view;
@@ -2116,7 +2122,24 @@ function battleUnitStatic(b: Battle, u: CUnit) {
 function battleUnitDyn(b: Battle, u: CUnit) {
   const max = b.S(u, 'maxHp');
   return `<div class="bs-hp"><span class="bs-bar"><i style="width:${Math.max(0, (u.hp / max) * 100)}%"></i>${u.shield > 0 ? `<i class="sh" style="width:${Math.min(100, (u.shield / max) * 100)}%"></i>` : ''}</span><span class="mono small">${u.alive ? `${fmt(Math.max(0, u.hp))} / ${fmt(max)}${u.shield > 0 ? ` · 보호막 ${fmt(u.shield)}` : ''}` : '전투 불능'}</span></div>
+    ${actState(b, u)}
     <h3>효과 <span class="muted small">${u.statuses.filter((s) => s.dur > 0).length}</span></h3>${buffIcons(u)}${bpickInfo(u)}`;
+}
+/** 행동 상태: 왜 지금 멈췄는지 + 기술 준비 · 재장전 · 다음 공격 진행도 + 최근 행동 3개 */
+function actState(b: Battle, u: CUnit) {
+  if (!u.alive) return '';
+  const bar = (label: string, f: number, cls: string, note = '') => `<div class="as-row ${cls}"><span>${label}</span><span class="as-bar"><i style="width:${Math.round(Math.max(0, Math.min(1, f)) * 100)}%"></i></span><span class="mono small">${note}</span></div>`;
+  const why = b.has(u, 'stun') ? '기절 — 행동 불가' : b.has(u, 'fear') ? '공포 — 공격 · 기술 불가' : u.moveT > 0 ? '이동 중' : u.reloadT > 0 ? '재장전 중' : u.target && u.target.alive && b.dist(u, u.target) > b.S(u, 'range') ? '사거리 밖 — 접근 중' : '';
+  const rows: string[] = [];
+  if (u.skill) rows.push(bar('기술 준비', u.cdMax ? 1 - u.cd / u.cdMax : 1, 'sk', u.cd <= 0 ? '준비됨' : `${Math.max(0, u.cd).toFixed(1)}초`));
+  if (u.weapon?.kind === 'mag') {
+    const mag = u.weapon.mag || 1, rl = u.weapon.reload || 1.5;
+    rows.push(u.reloadT > 0 ? bar('재장전', 1 - u.reloadT / rl, 'rl', `${u.reloadT.toFixed(1)}초`) : bar('탄창', u.ammo / mag, 'ammo', `${u.ammo}/${mag}`));
+  }
+  if (!u.noAttack) rows.push(bar('다음 공격', 1 - Math.max(0, u.atkTimer) / Math.max(0.01, u.atk.interval), 'atk', u.atkTimer <= 0 ? '대기' : ''));
+  const rec = app.view?.recent(u.id) || [];
+  return `<div class="act-state">${why ? `<p class="as-why${/기절|공포/.test(why) ? ' bad' : ''}">${why}</p>` : ''}${rows.join('')}</div>
+    ${rec.length ? `<h3>최근 행동</h3><ol class="as-log">${rec.map((r) => `<li>${esc(r.text)}</li>`).join('')}</ol>` : ''}`;
 }
 let bunitFor = '';
 function renderBattleUnit(b: Battle, force: boolean) {
@@ -2225,7 +2248,7 @@ function codexScreen() {
 function act(a: string, v: string) {
   const run = app.run;
   // 전투 중에는 속도 조절 / 결과 보기 / 계속만 받는다 (재렌더하면 전투 화면이 초기화됨)
-  if (app.screen === 'battle' && !['speed', 'skip', 'after-battle', 'meter-tab', 'bsel', 'bdesel', 'bpick', 'stat-pop', 'abil-pop', 'toggle-detail'].includes(a)) return;
+  if (app.screen === 'battle' && !['speed', 'pause', 'skip', 'after-battle', 'meter-tab', 'bsel', 'bdesel', 'bpick', 'stat-pop', 'abil-pop', 'toggle-detail'].includes(a)) return;
   if (a === 'map-tab') {
     // 슬라이드 전환: 다시 그리지 않고 트랙만 옮긴다
     setMapTab(+v || 0);
@@ -2340,7 +2363,8 @@ function act(a: string, v: string) {
       app.screen = 'battle';
       app.needMount = true; // render() 가 보드를 그린 뒤 전투 뷰를 붙인다
       break;
-    case 'speed': app.speed = +v; savePref('speed', app.speed); applySpeed(); document.querySelectorAll('.speed .btn').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.v === v)); return;
+    case 'pause': app.paused = !app.paused; applySpeed(); return;
+    case 'speed': app.paused = false; app.speed = +v; savePref('speed', app.speed); applySpeed(); document.querySelectorAll('.speed .btn').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.v === v)); return;
     case 'skip': app.view?.skip?.(); return;
     case 'after-battle': app.summary = null; app.sel = null; app.abilPop = null; app.statPop = false; // 전투 전 선택이 상세 창으로 남지 않게
       if (app.view) { app.view.destroy(); app.view = null; } goPrepOrMap(); break;
@@ -2698,7 +2722,8 @@ document.addEventListener('keydown', (e) => {
   }
   if (app.screen === 'battle') {
     if (digit >= 1 && digit <= SPEEDS.length) act('speed', String(SPEEDS[digit - 1]));
-    else if (k === ' ' || k === 'Enter') { e.preventDefault(); if (!clickFirst('[data-a="after-battle"]')) act('skip', ''); }
+    else if (k === ' ' || k === 'p' || k === 'P') { e.preventDefault(); if (!clickFirst('[data-a="after-battle"]')) act('pause', ''); }
+    else if (k === 'Enter') { e.preventDefault(); if (!clickFirst('[data-a="after-battle"]')) act('skip', ''); }
     return;
   }
   if (app.screen === 'prep') {
