@@ -469,6 +469,8 @@ function foeModal(id: string) {
 }
 /** 출격 연출 동안 전장 · 난이도 배경을 미리 받아 둔다 */
 let bgWarm = false;
+/** 특권 커튼 연출을 이미 보여 준 런 (시드) */
+let pvPlayed: number | null = null;
 function preloadBgs() {
   if (bgWarm) return;
   bgWarm = true;
@@ -1419,8 +1421,12 @@ function pendingModal(run: RunState): string {
     body = `<h1>${esc(p.title)}</h1>${p.scene?.length ? sceneHtml(p.scene) : ''}<p class="${p.scene?.length ? 'sc-result' : ''}">${ic(esc(p.body))}</p><button class="btn primary" data-a="notice-ok">확인</button>`;
   }
   // 특권: 화면 전체를 덮는 막 (모달 바깥에 두어야 화면 기준으로 깔린다)
-  const curtain = mcls === 'privilege' ? '<div class="pv-curtain" aria-hidden="true"><span class="pv-fringe"></span></div>' : '';
-  return `<div class="modal-bg${mcls === 'privilege' ? ' pv-bg' : ''}">${curtain}<div class="modal ${mcls}">${body}</div></div>`;
+  // 별무리 커튼이 좌우에서 닫힌다. 런마다 한 번만 (새로고침으로 다시 그려도 커튼은 내려온 상태로)
+  let pvCls = '';
+  if (mcls === 'privilege') { pvCls = pvPlayed === run.seed ? ' pv-bg played' : ' pv-bg'; pvPlayed = run.seed; }
+  const curtain = mcls === 'privilege' ? `<div class="pv-curtain" aria-hidden="true"><i class="pv-half l"></i><i class="pv-half r"></i><span class="pv-seam"></span>
+    <span class="pv-stars">${Array.from({ length: 36 }, (_, i) => `<i style="--x:${(i * 41) % 100}%;--d:${(i % 6) * 0.5}s;--s:${3 + (i % 5)}s"></i>`).join('')}</span></div>` : '';
+  return `<div class="modal-bg${pvCls}">${curtain}<div class="modal ${mcls}">${body}</div></div>`;
 }
 const STAT_SHORT: Record<string, string> = {
   maxHp: '체력', healEff: '회복 효율', shoot: '사격', strike: '타격', tech: '기술', acc: '명중', crit: '치명', effHit: '효과 명중',
