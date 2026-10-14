@@ -33,6 +33,33 @@ const T_SKILL = 0.12; // 스킬명 → 효과
 const T_SUPPORT = 0.22; // 회복 · 보호막 표식 이동
 /** 효과 색: 아군이 준 피해 흰색 · 적이 준 피해 빨강 (속성색은 숫자에만) */
 const sideColor = (side: 0 | 1 | undefined) => (side === 1 ? 'var(--bad)' : '#f2f4f8');
+/** 상태 아이콘 (SVG, 상자 크기에 맞춰 늘어남) */
+const svg = (d: string, vb = '0 0 24 24') => `<svg viewBox="${vb}" aria-hidden="true"><path d="${d}"/></svg>`;
+const ICON_STUN = svg('M12 1.5l2.6 6.3 6.8.5-5.2 4.4 1.6 6.6L12 15.7l-5.8 3.6 1.6-6.6-5.2-4.4 6.8-.5Z');
+const ICON_FEAR = svg('M10 3h4l-.8 12h-2.4Zm2 14.5a2.3 2.3 0 1 1 0 4.6 2.3 2.3 0 0 1 0-4.6Z');
+const DROP = 'M12 2.5C9 7 6 10.4 6 14a6 6 0 0 0 12 0c0-3.6-3-7-6-11.5Z';
+const TOP_ICON: Record<string, { t: string; svg: string }> = {
+  shock: { t: '감전: 기술 쿨다운 정지', svg: svg('M13.5 2 5 13.5h5.5L9 22l9-12h-5.6Z') },
+  bleed: { t: '출혈: 지속 물리 피해', svg: svg(DROP) },
+  poison: { t: '중독: 지속 화학 피해', svg: svg(DROP) },
+  dot: { t: '지속 피해', svg: svg(DROP) },
+  judge: { t: '심판: 받은 피해 기록', svg: svg('M11 3h2v2.2l6 1.6-.5 1.9-.6-.2L21 14a3.5 3.5 0 0 1-7 0l2.9-5.6L13 7.3V19h4v2H7v-2h4V7.3L7.1 8.4 10 14a3.5 3.5 0 0 1-7 0l3.1-5.5-.6.2L5 6.8l6-1.6Zm-5 7.7L4.5 14h3Zm12 0L16.5 14h3Z') },
+  corrode: { t: '침식 · 부식: 방어도 감소', svg: svg('M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5Zm1 4-2 5h3l-3 7 1-5H9Z') },
+  slow: { t: '둔화: 공격 · 이동 속도 감소', svg: svg('M6 2h12v4l-4 6 4 6v4H6v-4l4-6-4-6Zm3 2v1.4L12 10l3-4.6V4Z') },
+  wound: { t: '부상: 회복 · 보호막 차단', svg: svg('M9 2h6v7h7v6h-7v7H9v-7H2V9h7Z') },
+  vuln: { t: '취약: 받는 피해 증가', svg: svg('M12 2 2 21h20Zm-1 7h2v6h-2Zm0 8h2v2h-2Z') },
+  suppress: { t: '제압: 다음 공격 피해 1', svg: svg('M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-6.3 5.1 11.2 11.2A8 8 0 0 1 5.7 7.1Zm12.6 9.8L7.1 5.7A8 8 0 0 1 18.3 16.9Z') },
+};
+/** 위쪽 아이콘 줄에 올릴 상태 (기절 · 공포는 중앙, 암운 · 분석은 아래 중첩 표식) */
+function topIconKey(st: { key: string; type: string; taken?: { kind: string }[]; elem?: string }): string | null {
+  if (st.key === 'shock' || st.key === 'bleed' || st.key === 'poison' || st.key === 'slow' || st.key === 'wound' || st.key === 'suppress') return st.key;
+  if (st.key === 'franze.judge') return 'judge';
+  if (st.key === 'corrode' || st.key === 'decay') return 'corrode';
+  if (st.key === 'gloom' || st.key === 'vivian.shred' || st.key === 'stun' || st.key === 'fear') return null;
+  if (st.type === 'dot') return 'dot';
+  if (st.taken?.some((t) => t.kind === 'vuln')) return 'vuln';
+  return null;
+}
 const SHAKE: Keyframe[] = [{ translate: '0 0' }, { translate: '-6px 3px' }, { translate: '5px -4px' }, { translate: '-4px -2px' }, { translate: '3px 3px' }, { translate: '-1px 1px' }, { translate: '0 0' }];
 const SKULL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.5 2 3 5.6 3 10.2c0 2.7 1.3 4.6 3 5.8V19a1 1 0 0 0 1 1h1.5v-2h1.5v2h4v-2h1.5v2H17a1 1 0 0 0 1-1v-3c1.7-1.2 3-3.1 3-5.8C21 5.6 17.5 2 12 2Zm-3.5 11.2a2.2 2.2 0 1 1 0-4.4 2.2 2.2 0 0 1 0 4.4Zm7 0a2.2 2.2 0 1 1 0-4.4 2.2 2.2 0 0 1 0 4.4ZM12 13.6l1.3 2.2h-2.6Z"/></svg>';
 const flightOf = (d: number) => Math.min(0.26, 0.07 + 0.035 * d);
@@ -267,18 +294,24 @@ export class BattleView {
         e.rl.style.setProperty('--p', `${Math.round((1 - u.reloadT / Math.max(0.01, e.rlMax)) * 100)}%`);
       } else if (!e.rl.hidden) e.rl.hidden = true;
       // 행동을 막는 상태: 머리 위 아이콘
-      const blk = !alive ? '' : [this.b.has(u, 'stun') && 'stun', this.b.has(u, 'fear') && 'fear', this.b.has(u, 'shock') && 'shock'].filter(Boolean).join(',');
-      if (blk !== e.stiSig) {
-        e.stiSig = blk;
-        // 행동 불가류(기절 · 공포)는 초상화 중앙에 크게, 감전은 위쪽 작은 아이콘
-        const big = blk.includes('stun') ? 'stun' : blk.includes('fear') ? 'fear' : '';
-        e.stc.innerHTML = big ? `<i class="stc-${big}" title="${big === 'stun' ? '기절: 행동 불가' : '공포: 공격 · 기술 불가'}"><b>${big === 'stun' ? '✦' : '!'}</b><span>${big === 'stun' ? '기절' : '공포'}</span></i>` : '';
-        e.sti.innerHTML = blk.includes('shock') ? '<i class="sti-shock" title="감전: 기술 쿨다운 정지">ϟ</i>' : '';
-        if (big && !this.reduced) this.play(e.stc, [{ transform: 'scale(1.6)', opacity: 0, easing: EASE_OUT }, { transform: 'scale(1)', opacity: 1 }], 260);
+      // 행동 불가류(기절 · 공포)는 초상화 중앙에 아이콘만 크게, 지속 피해 · 디버프는 위쪽 작은 아이콘 줄
+      const big = !alive ? '' : this.b.has(u, 'stun') ? 'stun' : this.b.has(u, 'fear') ? 'fear' : '';
+      const top: string[] = [];
+      if (alive) for (const st of u.statuses) {
+        const k = topIconKey(st);
+        if (k && !top.includes(k)) top.push(k);
       }
-      e.el.classList.toggle('stunned', !!alive && blk.includes('stun'));
-      e.el.classList.toggle('feared', !!alive && blk.includes('fear'));
-      e.el.classList.toggle('shocked', !!alive && blk.includes('shock'));
+      const blk = `${big}|${top.slice(0, 5).join(',')}`;
+      if (blk !== e.stiSig) {
+        const prevBig = e.stiSig.split('|')[0];
+        e.stiSig = blk;
+        e.stc.innerHTML = big ? `<i class="stc-${big}" title="${big === 'stun' ? '기절: 행동 불가' : '공포: 공격 · 기술 불가'}">${big === 'stun' ? ICON_STUN : ICON_FEAR}</i>` : '';
+        e.sti.innerHTML = top.slice(0, 5).map((k) => `<i class="sti-${k.replace('.', '-')}" title="${TOP_ICON[k].t}">${TOP_ICON[k].svg}</i>`).join('');
+        if (big && big !== prevBig && !this.reduced) this.play(e.stc, [{ transform: 'scale(1.6)', opacity: 0, easing: EASE_OUT }, { transform: 'scale(1)', opacity: 1 }], 260);
+      }
+      e.el.classList.toggle('stunned', big === 'stun');
+      e.el.classList.toggle('feared', big === 'fear');
+      e.el.classList.toggle('shocked', top.includes('shock'));
       // 중첩 표식: 분석 (분절) · 암운 (개수)
       let stk = '';
       if (alive) for (const s of u.statuses) {

@@ -287,17 +287,19 @@ button { font: inherit; color: inherit; }
 .tool { position: absolute; font-size: 20px; color: var(--accent); text-shadow: 0 0 6px #000; pointer-events: none; }
 .gift-fly { position: absolute; pointer-events: none; z-index: 5; } .gift-fly .item { transform: scale(.8); box-shadow: 0 0 10px var(--el-holy); }
 /* 행동을 막는 상태 · 중첩 · 재장전 */
-.sti { position: absolute; top: -14%; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; pointer-events: none; }
-.sti i { font: 700 11px var(--f-mono); font-style: normal; width: 14px; height: 14px; display: grid; place-items: center; border-radius: 50%; background: #14161d; border: 1px solid; box-shadow: 0 1px 3px #000; }
-.sti .sti-stun { color: #ffd34d; animation: sti-spin 1.2s linear infinite; } .sti .sti-fear { color: #d6a3ff; } .sti .sti-shock { color: var(--el-elec); }
+.sti { position: absolute; top: -12%; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; pointer-events: none; }
+.sti i { width: clamp(11px, 24cqw, 16px); aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; background: #14161d; border: 1px solid currentColor; box-shadow: 0 1px 3px #000; color: #d6a3ff; }
+.sti i svg { width: 70%; height: 70%; fill: currentColor; }
+.sti .sti-shock { color: var(--el-elec); } .sti .sti-bleed { color: #ff5a5a; } .sti .sti-poison { color: var(--el-chem); } .sti .sti-dot { color: #ff9a5a; }
+.sti .sti-judge { color: var(--el-holy); } .sti .sti-corrode { color: #e0a050; } .sti .sti-slow { color: #7fb6ff; } .sti .sti-wound { color: #ff7a8a; }
+.sti .sti-vuln { color: #ffb0b0; } .sti .sti-suppress { color: #c9ccd4; }
 @keyframes sti-spin { to { transform: rotate(360deg); } }
 .u.stunned img { filter: grayscale(.7) brightness(.65); }
 /* 행동 불가 상태: 초상화 중앙 큰 표식 */
 .stc { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
-.stc i { font-style: normal; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; width: 66%; aspect-ratio: 1; border-radius: 50%; background: rgb(10 12 18 / .72); border: 2px solid; box-shadow: 0 0 12px currentColor, 0 2px 6px #000; }
-.stc i b { font: 700 24px/1 var(--f-mono); }
-.stc i span { font: 700 10px/1 var(--f-body); letter-spacing: .04em; color: #fff; }
-.stc .stc-stun { color: #ffd34d; } .stc .stc-stun b { animation: sti-spin 1.4s linear infinite; }
+.stc i { display: grid; place-items: center; width: 58%; aspect-ratio: 1; border-radius: 50%; background: rgb(10 12 18 / .72); border: 2px solid currentColor; box-shadow: 0 0 12px currentColor, 0 2px 6px #000; }
+.stc i svg { width: 62%; height: 62%; fill: currentColor; }
+.stc .stc-stun { color: #ffd34d; } .stc .stc-stun svg { animation: sti-spin 1.6s linear infinite; }
 .stc .stc-fear { color: #d6a3ff; }
 .stk { position: absolute; left: 6%; right: 6%; bottom: -10%; display: flex; justify-content: center; gap: 3px; pointer-events: none; }
 .stk-seg { display: flex; gap: 1px; } .stk-seg i { width: 5px; height: 4px; background: rgb(0 0 0 / .6); border: 1px solid #e0a050; } .stk-seg i.on { background: #ffb347; }
@@ -1850,3 +1852,4 @@ body:has(.nr) { overflow: hidden; margin: 0; }
   background: linear-gradient(90deg, transparent, rgb(8 10 14 / .85) 18%, rgb(8 10 14 / .85) 82%, transparent); white-space: nowrap; }
 .finale b { font: 400 40px var(--f-display); letter-spacing: .18em; }
 .finale b { color: #fff; text-shadow: 0 0 18px rgb(255 255 255 / .55); }
+.bview .u, #bboard > .u { container-type: inline-size; }
