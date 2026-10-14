@@ -628,6 +628,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     run.stats.wins++;
     let c = CFG.winCredits(p);
     if (type === 'adversity') c = Math.round(c * 1.5);
+    c = Math.round(c * CFG.diffWinMul(run.diff || 0)); // 위험 3 ×1.25 · 위험 6 ×1.5
     if (type === 'boss') c += 5;
     income += c;
     lines.push(`승리 보상 +${c}`);

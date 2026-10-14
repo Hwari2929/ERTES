@@ -26,7 +26,9 @@ export const CFG = {
   baseMinor: { maxHp: 600, shoot: 20, strike: 20, tech: 20, armor: 100, crit: 0.05, critDmg: 1.5 },
 
   // ── 전투 규칙 (확정)
-  armorK: 2000,
+  armorK: 3200,
+  /** 난이도별 승리 크레딧 배율 (위험 3 · 6 단계) */
+  diffWinMul: (d: number) => (d >= 6 ? 1.5 : d >= 3 ? 1.25 : 1),
   baseHit: 0.8,
   minHit: 0.15, // 최저 명중률 (회피 과다 누적 방지) [임시]
   grazeBase: 0.3, grazeAccK: 0.5, grazeChanceMax: 0.8,

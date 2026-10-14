@@ -503,8 +503,8 @@ function introAnim() {
 }
 const DIFF_PICKS = [
   { lvl: 0, name: '쉬움', sub: '표준 의뢰', bg: 'diff_easy', line: '처음 출격하는 용병단을 위한 안정적인 항로.' },
-  { lvl: 3, name: '모험', sub: '위험 등급 3', bg: 'diff_adventure', line: '적이 강해지고 장비를 챙겨 나옵니다. 보상은 그만큼 짭짤하게.' },
-  { lvl: 6, name: '도전', sub: '위험 등급 6', bg: 'diff_challenge', line: '함대 체력이 줄고 적은 끝없이 몰려옵니다. 베테랑 전용.' },
+  { lvl: 3, name: '모험', sub: '위험 등급 3', bg: 'diff_adventure', line: '적이 강해지고 장비를 챙겨 나옵니다. 대신 승리 크레딧 ×1.25.' },
+  { lvl: 6, name: '도전', sub: '위험 등급 6', bg: 'diff_challenge', line: '함대 체력이 줄고 적은 끝없이 몰려옵니다. 승리 크레딧 ×1.5, 베테랑 전용.' },
 ];
 function diffScreen() {
   return `<main class="diffsel"><h1 class="ds-title">난이도 설정</h1>

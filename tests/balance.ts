@@ -17,6 +17,8 @@ declare const process: { argv: string[]; stdout: { write(s: string): void }; std
 const START = +process.argv[2] || 1;
 const COUNT = +process.argv[3] || 10;
 const CF_RATE = process.argv[4] !== undefined ? +process.argv[4] : 0.06;
+/** 위험 등급 (기본 0). 2 이상이면 적 장비 · 개조부품이 실제 게임처럼 붙는다 */
+const DIFF = +process.argv[5] || 0;
 
 // ───────── 집계 저장소 (합으로만 누적 → 워커끼리 더하면 된다)
 type Acc = Record<string, number>;
@@ -69,7 +71,7 @@ function makeBattle(run: RunState, enc: NonNullable<NonNullable<RunState['node']
     b.add(c);
   }
   for (const s of enc.enemies) {
-    const e = buildEnemy(b, ENEMY_BY_ID[s.defId], enc.phase ?? run.phase, enc.mult);
+    const e = buildEnemy(b, ENEMY_BY_ID[s.defId], enc.phase ?? run.phase, enc.mult, s); // 난이도 장비 · 개조부품 포함
     const ec = enemyCell(s.c, s.row, enc.n);
     e.x = e.px = ec.x; e.y = e.py = ec.y;
     if (b.unitAt(e.x, e.y)) { const f = b.freeCellNear(e.x, e.y); if (!f) continue; e.x = e.px = f.x; e.y = e.py = f.y; }
@@ -78,7 +80,9 @@ function makeBattle(run: RunState, enc: NonNullable<NonNullable<RunState['node']
   b.start();
   return b;
 }
-const allyDamage = (b: Battle) => b.units.filter((u) => u.side === 0).reduce((s, u) => s + u.counters.dmg, 0);
+/** 아군 총 피해: 기물(소환물 포함) + 시너지 자체 효과 (사냥꾼 고정 피해 · 시린 신성 추가타 등) */
+const allyDamage = (b: Battle) => b.units.filter((u) => u.side === 0).reduce((s, u) => s + u.counters.dmg, 0)
+  + Object.values(b.synStats).reduce((s, x) => s + (x.side === 0 ? x.dmg : 0), 0);
 
 const STARTERS = UNITS.filter((u) => !u.noStarter).map((u) => u.id);
 const runs: unknown[] = [];
@@ -86,7 +90,7 @@ const runs: unknown[] = [];
 function playRun(seed: number) {
   const bot = new Rng(seed * 7 + 1);
   const starters = bot.sample(STARTERS, CFG.startUnits);
-  const run = R.newRun(seed, starters);
+  const run = R.newRun(seed, starters, undefined, DIFF);
   const synMax: Record<string, number> = {};
 
   const resolvePending = () => {
