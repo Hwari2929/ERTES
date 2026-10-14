@@ -161,7 +161,8 @@ export type BEvent =
   | { k: 'status'; id: number; name: string; src?: number; harm?: boolean; stype?: string }
   | { k: 'die'; id: number; by?: number }
   | { k: 'spawn'; id: number }
-  | { k: 'fx'; x: number; y: number; r: number; elem: Elem; kind?: 'atk' | 'heal' | 'buff' }
+  /** side: 효과를 낸 쪽 (색: 아군 피해 흰색 · 적 피해 빨강 · 회복 초록 · 버프 흰색) */
+  | { k: 'fx'; x: number; y: number; r: number; elem: Elem; kind?: 'atk' | 'heal' | 'buff' | 'aura'; side?: 0 | 1 }
   | { k: 'crash'; side: 0 | 1 }
   /** 고유 표식: 부활 · 시간 역행 · 처형 · 불사 */
   | { k: 'mark'; id: number; name: string; style: 'revive' | 'rewind' | 'execute' | 'immortal' }
@@ -691,7 +692,7 @@ export class Battle {
   buff(src: CUnit, tgt: CUnit, key: string, dur: number, p: Partial<Status>) {
     return this.applyStatus(src, tgt, { type: 'buff', key, dur, ...p });
   }
-  fx(x: number, y: number, r: number, elem: Elem, kind?: 'atk' | 'heal' | 'buff') { this.emit({ k: 'fx', x, y, r, elem, kind }); }
+  fx(x: number, y: number, r: number, elem: Elem, kind?: 'atk' | 'heal' | 'buff' | 'aura') { this.emit({ k: 'fx', x, y, r, elem, kind, side: this.actor?.side }); }
   lowestHpAlly(u: CUnit) {
     let best: CUnit | null = null, bp = 2;
     for (const a of this.alliesOf(u)) { const p = this.hpPct(a); if (p < bp) { bp = p; best = a; } }

@@ -215,7 +215,7 @@ button { font: inherit; color: inherit; }
 .gx i.div { background: #ffd34d; }
 .gx i.div.used { background: rgba(255, 211, 77, .35); }
 /* 피격 · 상태이상 시 초상화의 filter/transform 이 쌓임 맥락을 만들어도 게이지 · 배지는 항상 위 */
-.u .bars, .u .cd, .u .gx, .u .ubadge, .u .uitems, .u .sti, .u .stk, .u .rl { z-index: 2; }
+.u .bars, .u .cd, .u .gx, .u .ubadge, .u .uitems, .u .sti, .u .stc, .u .stk, .u .rl { z-index: 2; }
 .u.hit img { animation: hit .18s; }
 .u.lunge img { animation: lunge .2s; }
 .side1.lunge img { animation: lunge-f .2s; }
@@ -277,9 +277,10 @@ button { font: inherit; color: inherit; }
 .ft.mark.revive, .ft.mark.immortal { color: var(--el-holy); } .ft.mark.rewind { color: #8fd3ff; } .ft.mark.execute { color: var(--bad); font-size: 17px; }
 .ft.mark-sh { color: var(--shield); font: 600 10px var(--f-body); }
 .area2 { position: absolute; pointer-events: none; border-radius: 14%; }
-.area2.atk { border: 2px solid var(--c); background: radial-gradient(circle, color-mix(in srgb, var(--c) 35%, transparent), transparent 70%); }
+.area2.atk { border: 2px solid var(--c); background: radial-gradient(circle, color-mix(in srgb, var(--c) 30%, transparent), transparent 70%); }
 .area2.heal { border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--good) 40%, transparent), transparent 70%); }
-.area2.buff { border: 2px dashed var(--accent); border-radius: 50%; }
+.area2.aura { border-radius: 14%; border: 1px solid color-mix(in srgb, var(--good) 45%, transparent); background: color-mix(in srgb, var(--good) 14%, transparent); }
+.area2.buff { border: 2px dashed #f2f4f8; border-radius: 50%; }
 .rewind { position: absolute; width: 10%; aspect-ratio: 1; border-radius: 50%; pointer-events: none; border: 3px solid transparent; border-top-color: #8fd3ff; border-left-color: #8fd3ff; box-shadow: 0 0 12px #8fd3ff; }
 .pillar { position: absolute; width: 5%; height: 26%; pointer-events: none; transform-origin: bottom; background: linear-gradient(to top, color-mix(in srgb, var(--el-holy) 85%, transparent), transparent); filter: blur(1px); }
 .exec { position: absolute; font: 700 34px var(--f-mono); color: var(--bad); text-shadow: 0 0 10px var(--bad), 0 0 2px #000; pointer-events: none; }
@@ -291,6 +292,13 @@ button { font: inherit; color: inherit; }
 .sti .sti-stun { color: #ffd34d; animation: sti-spin 1.2s linear infinite; } .sti .sti-fear { color: #d6a3ff; } .sti .sti-shock { color: var(--el-elec); }
 @keyframes sti-spin { to { transform: rotate(360deg); } }
 .u.stunned img { filter: grayscale(.7) brightness(.65); }
+/* 행동 불가 상태: 초상화 중앙 큰 표식 */
+.stc { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.stc i { font-style: normal; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; width: 66%; aspect-ratio: 1; border-radius: 50%; background: rgb(10 12 18 / .72); border: 2px solid; box-shadow: 0 0 12px currentColor, 0 2px 6px #000; }
+.stc i b { font: 700 24px/1 var(--f-mono); }
+.stc i span { font: 700 10px/1 var(--f-body); letter-spacing: .04em; color: #fff; }
+.stc .stc-stun { color: #ffd34d; } .stc .stc-stun b { animation: sti-spin 1.4s linear infinite; }
+.stc .stc-fear { color: #d6a3ff; }
 .stk { position: absolute; left: 6%; right: 6%; bottom: -10%; display: flex; justify-content: center; gap: 3px; pointer-events: none; }
 .stk-seg { display: flex; gap: 1px; } .stk-seg i { width: 5px; height: 4px; background: rgb(0 0 0 / .6); border: 1px solid #e0a050; } .stk-seg i.on { background: #ffb347; }
 .stk-gloom { font: 700 9px var(--f-mono); color: #e4d2ff; background: #3a2458; border-radius: 6px; padding: 0 3px; line-height: 12px; box-shadow: 0 0 4px #8a5cc8; }
@@ -299,7 +307,7 @@ button { font: inherit; color: inherit; }
 /* 굵은 원형 진행선 + 가운데 탄약 아이콘 */
 .rl .rl-ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#ffb347 var(--p, 0%), rgb(255 255 255 / .16) 0);
   -webkit-mask: radial-gradient(circle, transparent 54%, #000 56%); mask: radial-gradient(circle, transparent 54%, #000 56%); }
-.rl svg { position: relative; width: 7px; height: 11px; fill: #ffb347; }
+.rl svg { position: relative; width: 7px; height: 11px; fill: #ffb347; transform: rotate(45deg); }
 .rl[hidden] { display: none; }
 .board-in.paused .cells { filter: saturate(.6); }
 .speed .pause { min-width: 28px; }

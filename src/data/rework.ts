@@ -382,6 +382,7 @@ export const REWORK: Record<string, ReworkDef> = {
         u.mem.lightT = (u.mem.lightT || 0) + dt;
         if (u.mem.lightT < 1) return;
         u.mem.lightT -= 1;
+        b.fx(u.x, u.y, 2, 'holy', 'aura'); // 연출: 희미하게 점멸하는 회복 장판
         for (const a of b.around(u, 2, b.alliesOf(u))) b.heal(u, a, b.S(a, 'maxHp') * 0.01);
       } } },
     },

@@ -18,7 +18,7 @@ export function fmt(n: number): string {
 
 interface UEl {
   el: HTMLElement; face: HTMLElement; hp: HTMLElement; loss: HTMLElement; sh: HTMLElement; cd: HTMLElement; gx: HTMLElement | null;
-  sti: HTMLElement; stk: HTMLElement; rl: HTMLElement;
+  sti: HTMLElement; stc: HTMLElement; stk: HTMLElement; rl: HTMLElement;
   u: CUnit; dead: boolean;
   /** 체력 바 손실 구간 (큰 피해 뒤 잠깐 남는 흰 띠) */
   trail: number; trailHold: number;
@@ -31,6 +31,8 @@ export interface ActLine { t: number; key: string; text: string; v?: number; ids
 const T_MELEE = 0.08; // 근접: 기울기 정점에서 적중
 const T_SKILL = 0.12; // 스킬명 → 효과
 const T_SUPPORT = 0.22; // 회복 · 보호막 표식 이동
+/** 효과 색: 아군이 준 피해 흰색 · 적이 준 피해 빨강 (속성색은 숫자에만) */
+const sideColor = (side: 0 | 1 | undefined) => (side === 1 ? 'var(--bad)' : '#f2f4f8');
 const flightOf = (d: number) => Math.min(0.26, 0.07 + 0.035 * d);
 // 곡선: 급하게 출발해 감속 (선형 대신)
 const EASE_OUT = 'cubic-bezier(.16, 1, .3, 1)';
@@ -168,13 +170,13 @@ export class BattleView {
     el.style.height = `${100 / this.b.h}%`;
     el.dataset.a = 'bsel';
     el.dataset.v = String(u.id);
-    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div><img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && (u.reason !== null || u.div !== null) ? '<div class="gx"><i></i></div>' : ''}<div class="sti"></div><div class="stk"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
+    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div><img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && (u.reason !== null || u.div !== null) ? '<div class="gx"><i></i></div>' : ''}<div class="sti"></div><div class="stc"></div><div class="stk"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
     el.innerHTML = card ? `<div class="tk-card">${inner}</div>` : inner;
     this.board.appendChild(el);
     const q = <T extends HTMLElement>(s: string) => el.querySelector<T>(s)!;
     this.els.set(u.id, {
       el, face: (el.querySelector<HTMLElement>('.tk-card') || q('img')), hp: q('.hp'), loss: q('.loss'), sh: q('.sh'), cd: q('.cd i'), gx: el.querySelector<HTMLElement>('.gx i'),
-      sti: q('.sti'), stk: q('.stk'), rl: q('.rl'), u, dead: false, trail: 1, trailHold: 0, stiSig: '', stkSig: '', rlMax: 1,
+      sti: q('.sti'), stc: q('.stc'), stk: q('.stk'), rl: q('.rl'), u, dead: false, trail: 1, trailHold: 0, stiSig: '', stkSig: '', rlMax: 1,
     });
   }
 
@@ -235,7 +237,11 @@ export class BattleView {
       const blk = !alive ? '' : [this.b.has(u, 'stun') && 'stun', this.b.has(u, 'fear') && 'fear', this.b.has(u, 'shock') && 'shock'].filter(Boolean).join(',');
       if (blk !== e.stiSig) {
         e.stiSig = blk;
-        e.sti.innerHTML = blk ? blk.split(',').map((k) => `<i class="sti-${k}" title="${k === 'stun' ? '기절: 행동 불가' : k === 'fear' ? '공포: 공격 · 기술 불가' : '감전: 기술 쿨다운 정지'}">${k === 'stun' ? '✦' : k === 'fear' ? '!' : 'ϟ'}</i>`).join('') : '';
+        // 행동 불가류(기절 · 공포)는 초상화 중앙에 크게, 감전은 위쪽 작은 아이콘
+        const big = blk.includes('stun') ? 'stun' : blk.includes('fear') ? 'fear' : '';
+        e.stc.innerHTML = big ? `<i class="stc-${big}" title="${big === 'stun' ? '기절: 행동 불가' : '공포: 공격 · 기술 불가'}"><b>${big === 'stun' ? '✦' : '!'}</b><span>${big === 'stun' ? '기절' : '공포'}</span></i>` : '';
+        e.sti.innerHTML = blk.includes('shock') ? '<i class="sti-shock" title="감전: 기술 쿨다운 정지">ϟ</i>' : '';
+        if (big && !this.reduced) this.play(e.stc, [{ transform: 'scale(1.6)', opacity: 0, easing: EASE_OUT }, { transform: 'scale(1)', opacity: 1 }], 260);
       }
       e.el.classList.toggle('stunned', !!alive && blk.includes('stun'));
       e.el.classList.toggle('feared', !!alive && blk.includes('fear'));
@@ -449,7 +455,7 @@ export class BattleView {
     const d = this.spawnFx(`proj2${this.rel(e.from, e.to) ? ' focus' : ''}`, p0.x, p0.y, [
       { left: `${p0.x}%`, top: `${p0.y}%`, opacity: 1 }, { left: `${p1.x}%`, top: `${p1.y}%`, opacity: 1 },
     ], fl * 1000, { delay: (start - this.vt) * 1000, easing: EASE_SHOT, fill: 'both' });
-    d.style.setProperty('--c', ELEM_COLOR[e.elem]);
+    d.style.setProperty('--c', sideColor(a.side));
     d.style.setProperty('--a', `${ang}deg`);
   }
 
@@ -476,8 +482,8 @@ export class BattleView {
         this.move(e.id, { transform: `translate(${v.x * 8}%, ${v.y * 8}%) scale(${e.graze ? '.96, .94' : '.9, .84'})` }, 240, 1, 0.12);
         if (!e.graze) this.flash(e.id, 'brightness(1.6)', 180);
         if (!this.crowd(0, rel)) {
-          if (ranged || e.tag === 'skill') this.spawnFx('impact', c.x, c.y, [{ transform: 'translate(-50%,-50%) scale(.3)', opacity: 1 }, { transform: 'translate(-50%,-50%) scale(1.25)', opacity: 0 }], 240).style.setProperty('--c', ELEM_COLOR[e.elem]);
-          else if (src) { const ang = (Math.atan2(v.y, v.x) * 180) / Math.PI + 90; const d = this.spawnFx('slash', c.x, c.y, [{ transform: `translate(-50%,-50%) rotate(${ang}deg) scaleX(0)`, opacity: 1 }, { transform: `translate(-50%,-50%) rotate(${ang}deg) scaleX(1)`, opacity: 1, offset: 0.45 }, { transform: `translate(-50%,-50%) rotate(${ang}deg) scaleX(1.1)`, opacity: 0 }], 220); d.style.setProperty('--c', ELEM_COLOR[e.elem]); }
+          if (ranged || e.tag === 'skill') this.spawnFx('impact', c.x, c.y, [{ transform: 'translate(-50%,-50%) scale(.3)', opacity: 1 }, { transform: 'translate(-50%,-50%) scale(1.25)', opacity: 0 }], 240).style.setProperty('--c', sideColor(src?.side));
+          else if (src) { const ang = (Math.atan2(v.y, v.x) * 180) / Math.PI + 90; const d = this.spawnFx('slash', c.x, c.y, [{ transform: `translate(-50%,-50%) rotate(${ang}deg) scaleX(0)`, opacity: 1 }, { transform: `translate(-50%,-50%) rotate(${ang}deg) scaleX(1)`, opacity: 1, offset: 0.45 }, { transform: `translate(-50%,-50%) rotate(${ang}deg) scaleX(1.1)`, opacity: 0 }], 220); d.style.setProperty('--c', sideColor(src.side)); }
         }
       } else if (e.syn === 'SCHEME') {
         // 암운 맥동
@@ -507,13 +513,14 @@ export class BattleView {
     let land = this.vt;
     if (other) {
       const start = this.skillCtx && this.skillCtx.id === src!.id ? T_SKILL * 0.5 : 0;
-      land = this.vt + start + T_SUPPORT;
+      land = this.vt + start + (heal ? 0 : T_SUPPORT);
       // 같은 제공자 → 대상 표식은 짧은 간격으로 한 번만
       const k = `${heal ? 'h' : 's'}:${src!.id}>${e.id}`;
       if ((this.statusSeen.get(k) ?? -9) < this.vt - 0.5 && !this.crowd(1, rel)) {
         this.statusSeen.set(k, this.vt);
-        this.casterIcon(src!, heal ? '+' : '◇', heal ? 'heal' : 'shield');
-        this.arc(src!, u, `orb ${heal ? 'heal' : 'shield'}`, start, T_SUPPORT);
+        // 회복은 날아가는 표식 없이 대상 반응만 (기술 회복일 때만 제공자 아이콘), 보호막은 부여 표식
+        if (!heal) { this.casterIcon(src!, '◇', 'shield'); this.arc(src!, u, 'orb shield', start, T_SUPPORT); }
+        else if (this.skillCtx?.id === src!.id) this.casterIcon(src!, '+', 'heal');
       }
       if (src!.side === u.side) {
         // 제공자 쪽: 여러 대상은 한 줄로 묶는다 (아군 3명 회복 +120)
@@ -532,7 +539,7 @@ export class BattleView {
       const c = this.center(u);
       if (heal) {
         if (other || e.v >= this.b.S(u, 'maxHp') * 0.05) this.flash(e.id, 'brightness(1.35) drop-shadow(0 0 6px var(--good))', 320);
-        if (other && !this.crowd(1, rel)) for (let i = 0; i < 2; i++) this.spawnFx('rise', c.x + (i ? 1.6 : -1.6), c.y, [{ transform: 'translate(-50%,-50%)', opacity: 1 }, { transform: 'translate(-50%,-260%)', opacity: 0 }], 520, { delay: i * 90 });
+        if (other && e.v >= this.b.S(u, 'maxHp') * 0.05 && !this.crowd(1, rel)) for (let i = 0; i < 2; i++) this.spawnFx('rise', c.x + (i ? 1.6 : -1.6), c.y, [{ transform: 'translate(-50%,-50%)', opacity: 1 }, { transform: 'translate(-50%,-260%)', opacity: 0 }], 520, { delay: i * 90 });
         this.float(u, '+' + fmt(e.v), 'heal', { side: 'r', rel, prio: other ? 1 : 0, merge: `heal:${e.id}`, v: e.v, fmt: (v) => '+' + fmt(v) });
       } else {
         this.spawnFx('shring', c.x, c.y, [{ transform: 'translate(-50%,-50%) scale(1.45)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: 0.6 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 0 }], 420);
@@ -591,16 +598,17 @@ export class BattleView {
     if (this.reduced) return;
     const at = this.skillCtx ? this.skillCtx.land : this.vt;
     this.later(at, () => {
-      if (this.crowd(1, false)) return;
+      if (this.crowd(e.kind === 'aura' ? 0 : 1, false)) return;
       const { w, h } = this.b;
       const kind = e.kind || 'atk';
       const sw = ((2 * e.r + 1) / w) * 100, sh = ((2 * e.r + 1) / h) * 100;
       const d = this.spawnFx(`area2 ${kind}`, ((e.x + 0.5) / w) * 100, ((e.y + 0.5) / h) * 100,
-        kind === 'buff' ? [{ transform: 'translate(-50%,-50%) scale(1.3) rotate(-30deg)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1) rotate(0)', opacity: 1, offset: 0.5 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 0 }]
+        kind === 'aura' ? [{ transform: 'translate(-50%,-50%)', opacity: 0 }, { transform: 'translate(-50%,-50%)', opacity: 0.55, offset: 0.25 }, { transform: 'translate(-50%,-50%)', opacity: 0 }]
+        : kind === 'buff' ? [{ transform: 'translate(-50%,-50%) scale(1.3) rotate(-30deg)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1) rotate(0)', opacity: 1, offset: 0.5 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 0 }]
           : kind === 'heal' ? [{ transform: 'translate(-50%,-50%) scale(.7)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 0.9, offset: 0.4 }, { transform: 'translate(-50%,-50%) scale(1.05)', opacity: 0 }]
-            : [{ transform: 'translate(-50%,-50%) scale(.5)', opacity: 1 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 0.9, offset: 0.35 }, { transform: 'translate(-50%,-50%) scale(1.08)', opacity: 0 }], 520);
+            : [{ transform: 'translate(-50%,-50%) scale(.5)', opacity: 1 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 0.9, offset: 0.35 }, { transform: 'translate(-50%,-50%) scale(1.08)', opacity: 0 }], kind === 'aura' ? 800 : 520);
       d.style.width = `${sw}%`; d.style.height = `${sh}%`;
-      d.style.setProperty('--c', ELEM_COLOR[e.elem]);
+      d.style.setProperty('--c', kind === 'atk' ? sideColor(e.side) : kind === 'buff' ? '#f2f4f8' : 'var(--good)');
     });
   }
 
