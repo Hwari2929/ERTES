@@ -408,7 +408,7 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
   const owned = u?.augments || [];
   const body: string[] = [];
   if (tt === 'major') {
-    if (live && c) body.push(`<div class="tt-row"><span class="tt-k">궁극기 게이지</span><b class="tt-big">${Math.round((c.ultG || 0) * 100)}%</b></div>`);
+    if (live && c) body.push(`<div class="tt-row"><span class="tt-k">${lineIcon('a.battery', 'li')} 궁극기 게이지</span><b class="tt-big">${Math.round((c.ultG || 0) * 100)}%</b></div>`);
     const mine = owned.filter((a) => MAJOR_AUGS.some((m) => m.id === a.id));
     body.push(`<div class="tt-row"><span class="tt-k">메이저 증강</span><b>${mine.length}</b>${nx ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
     body.push(mine.length ? `<div class="tt-icons">${mine.map((a) => `<button class="tt-ic ab-click${abilOn(`aug:${a.id}`)}" data-a="abil-pop" data-v="aug:${esc(a.id)}" title="${esc(AUG_BY_ID[a.id]?.name || a.id)}">${augIcon(a.id)}</button>`).join('')}</div>`
@@ -436,7 +436,9 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
     const rel = rid ? RELIC_BY_ID[rid] : null;
     const k = (live ? c?.mem.enh : u?.enh ? 3 : 1) || 1;
     if (live && c && c.div !== null) body.push(`<div class="tt-row"><span class="tt-k">신성력</span><b class="tt-big">${c.divUsed ? '발동함' : Math.round(c.div)}</b><span class="muted small">수집 ${Math.round(c.divGot)} / ${c.divCap}</span></div>`);
-    void rel; void k;
+    void k;
+    if (u && run && !live) body.push(`<div class="tt-row tt-relic"><span class="tt-k">성유물</span>${relicTok(u.relic, `data-a="relic-pick" data-v="${u.uid}"`, app.relicPick === u.uid)}<b>${esc(rel?.name || '없음')}</b><span class="muted small">눌러서 교체</span></div>${app.relicPick === u.uid ? relicPicker(run, u) : ''}`);
+    else if (rel) body.push(`<div class="tt-row tt-relic"><span class="tt-k">성유물</span>${relicTok(rel.id)}<b>${esc(rel.name)}</b></div>`);
     if (run && u && !live && u.relic) body.push(`<div class="tt-row"><span class="tt-k">신권 대행 강화</span>${u.enh ? '<b class="tt-big">다음 전투 ×3</b>' : `<button class="btn tiny" data-a="relic-enh" data-v="${u.uid}" ${run.power < RELIC_BY_ID[u.relic].enh ? 'disabled' : ''}>강화 · 권능 ${RELIC_BY_ID[u.relic].enh}</button>`}</div>`);
     if (run) body.push(`<div class="tt-row"><span class="tt-k">권능 포인트</span><b>${run.power}</b><span class="muted small">전투 후 디바인이 모은 신성력 ÷ ${CFG.powerPerDiv}</span></div>`);
   }
@@ -971,7 +973,7 @@ function ultCard(d: UnitDef, b: Battle | null, c: CUnit | null, live = false) {
   if (!ul || d.ttype !== 'major') return '';
   const eff = c && b ? b.S(c, 'ultCharge') : 0;
   const sec = CFG.ultTime / (ul.charge * Math.max(0.1, 1 + eff));
-  const chips = `<div class="ab-chips"><span class="abc" title="자연 충전 주기">${lineIcon('a.cd', 'li')}${sec.toFixed(0)}초</span><span class="abc" title="전투 시작 게이지">${lineIcon('a.ult', 'li')}시작 ${Math.round((CFG.ultStart + (c?.mem.ultStart || 0)) * 100)}%</span>${live && c ? `<span class="abc v">${Math.round((c.ultG || 0) * 100)}%</span>` : ''}</div>`;
+  const chips = `<div class="ab-chips"><span class="abc" title="자연 충전 주기">${lineIcon('a.cd', 'li')}${sec.toFixed(0)}초</span><span class="abc" title="전투 시작 게이지">${lineIcon('a.battery', 'li')}시작 ${Math.round((CFG.ultStart + (c?.mem.ultStart || 0)) * 100)}%</span>${live && c ? `<span class="abc v">${Math.round((c.ultG || 0) * 100)}%</span>` : ''}</div>`;
   return abilCard('ult', 'ult', `${lineIcon('a.ult', 'li ab-ic')}${ul.name}`, `약 ${sec.toFixed(0)}초`, `${chips}<p>${statIc(esc(ul.desc))}</p>`);
 }
 /** 디바인 신권 대행 카드: 장착한 성유물 */
@@ -1163,8 +1165,8 @@ function detailPanel(run: RunState, extra = '') {
     <div class="dh-rank"><span class="dh-r">${rankLabel(u.rank)}</span>${xpBar(u)}<button class="btn tiny dh-buy" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''} title="공명도 +${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)} 구입 (에너지 크레딧 ${cost})">${lineIcon('r.res', 'li res')}+${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)}<span class="dh-cost">${lineIcon('r.cr', 'li cr')}${cost}</span></button></div>
     ${powRow(b, c, d, !!u.pos)}
     ${memberships(u, run).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}
-    <h3>장비</h3><div class="d-eqbox"><div class="d-eq" aria-label="장비 · 개조부품">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-drop="eqitem:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : `<span data-drop="unit:${u.uid}">${itemIcon(null)}</span>`)).join('')}${u.mod ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-drop="eqitem:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : `<span data-drop="unit:${u.uid}" title="개조부품 칸 · 문장을 끌어다 장착"><span class="item empty tM"></span></span>`}</div>${d.ttype === 'divine' ? relicTok(u.relic, `data-a="relic-pick" data-v="${u.uid}"`, app.relicPick === u.uid) : ''}<button class="reco-btn" data-a="reco" data-v="${u.uid}" title="추천 장비 · 보유 현황">${lineIcon('r.reco', 'li')}추천 장비</button></div>
-    ${d.ttype === 'divine' && app.relicPick === u.uid ? relicPicker(run, u) : ''}
+    <h3>장비</h3><div class="d-eqbox"><div class="d-eq" aria-label="장비 · 개조부품">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-drop="eqitem:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : `<span data-drop="unit:${u.uid}">${itemIcon(null)}</span>`)).join('')}${u.mod ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-drop="eqitem:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : `<span data-drop="unit:${u.uid}" title="개조부품 칸 · 문장을 끌어다 장착"><span class="item empty tM"></span></span>`}</div><button class="reco-btn" data-a="reco" data-v="${u.uid}" title="추천 장비 · 보유 현황">${lineIcon('r.reco', 'li')}추천 장비</button></div>
+
     <div class="mj-wrap">
     <div class="mj-head"><h3>메이저 스탯</h3><button class="mag-btn${app.statPop ? ' on' : ''}" data-a="stat-pop" title="상세 능력치" aria-label="상세 능력치 ${app.statPop ? '닫기' : '보기'}" aria-pressed="${app.statPop}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg></button></div>
     <div class="majors">${MAJORS.map((m) => {
@@ -2239,7 +2241,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
   const mod = u.side === 0 ? u.src?.mod : ENEMY_BY_ID[u.defId]?.mod;
   const temp = u.tempItems || [];
   const ic2 = (id: string, tag = '') => `<button class="tk-it${app.bPick === `it:${id}` ? ' on' : ''}" data-a="bpick" data-v="it:${id}" title="${esc(itemInfo(id).name)}${tag}">${itemIcon(id)}</button>`;
-  const eq = [...items.filter((x): x is string => !!x).map((x) => ic2(x)), ...(mod ? [ic2(mod)] : []), ...temp.map((x) => ic2(x, u.side === 1 ? '' : ' (임시)')), ...(u.relic ? [relicTok(u.relic)] : [])];
+  const eq = [...items.filter((x): x is string => !!x).map((x) => ic2(x)), ...(mod ? [ic2(mod)] : []), ...temp.map((x) => ic2(x, u.side === 1 ? '' : ' (임시)'))];
   let head = '', abils = '', pop = '';
   if (u.side === 0 && !u.isSummon) {
     const d = UNIT_BY_ID[u.defId];

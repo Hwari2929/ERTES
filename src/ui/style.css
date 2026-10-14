@@ -1942,3 +1942,5 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .ci-pat-halo .ci-band { background-image: repeating-conic-gradient(from 0deg at 76% 50%, color-mix(in srgb, var(--c1) 45%, transparent) 0 4deg, transparent 4deg 14deg), radial-gradient(circle at 76% 50%, color-mix(in srgb, var(--c1) 80%, transparent) 0 7%, transparent 30%); }
 .skb.div { border-color: #ffd34d; } .skb.div small { color: #ffd34d; }
 .ci-pat-bounty .ci-band { background-color: #4a3018; background-image: repeating-linear-gradient(45deg, color-mix(in srgb, var(--c1) 35%, transparent) 0 2px, transparent 2px 10px); }
+.relic-tok:not(.empty) { border-style: solid !important; outline: none; }
+.tt-relic { align-items: center; } .tt-relic .relic-tok { width: 30px; height: 30px; }
