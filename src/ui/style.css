@@ -2060,3 +2060,28 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .so-pass { display: flex; flex-wrap: wrap; gap: 3px; } .so-pass .pill { font-size: 10.5px; }
 .u.frozen > img, .u.frozen .tk-card { filter: saturate(.4) brightness(1.15) hue-rotate(170deg); }
 .u.charmed .tk-card, .u.charmed > img { box-shadow: 0 0 0 2px #ff7ab8, 0 0 10px #ff7ab8; }
+/* 이성 막대: 아래부터 채움 (불티 · 독방울은 채움 끝에서) */
+.u.tkb .gx.sc { width: 5px; }
+.gx.sc-pyro.lo::after, .gx.sc-seed.lo::after { left: var(--w); }
+.u.tkb .gx.sc-pyro.lo::after, .u.tkb .gx.sc-seed.lo::after { left: 50%; translate: -50% 0; bottom: calc(var(--w) - 3px); }
+/* 소마법 준비 고리 (카드 왼쪽 아래, 재장전 고리와 대칭) */
+.cpi { position: absolute; left: 0; bottom: 6%; width: 18px; height: 18px; display: grid; place-items: center; pointer-events: none; z-index: 3; color: var(--sc); }
+.cpi .cpi-ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(var(--sc) var(--p, 0%), rgb(255 255 255 / .14) 0); -webkit-mask: radial-gradient(circle, transparent 54%, #000 56%); mask: radial-gradient(circle, transparent 54%, #000 56%); }
+.cpi::before { content: ''; position: absolute; inset: 2px; border-radius: 50%; background: rgb(10 12 18 / .78); }
+.cpi .li { position: relative; width: 10px; height: 10px; }
+.cpi.ready { filter: drop-shadow(0 0 4px var(--sc)); }
+.cpi.ready .li { color: #fff; }
+.cpi.off { opacity: .35; filter: grayscale(1); }
+.cpi[hidden] { display: none; }
+/* 소마법 이름표 · 광선 */
+.cpb { position: absolute; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 5px; border-radius: 999px; white-space: nowrap; pointer-events: none; z-index: 6;
+  font: 800 clamp(10px, 1.6vw, 13px)/1.2 var(--f-body, inherit); letter-spacing: .03em; color: #fff;
+  background: color-mix(in srgb, var(--sc) 30%, rgb(10 12 18 / .88)); border: 1.5px solid var(--sc); box-shadow: 0 0 10px color-mix(in srgb, var(--sc) 55%, transparent), 0 2px 6px #000; }
+.cpb .li { width: 13px; height: 13px; color: var(--sc); }
+.cpb.dimf { opacity: .45; }
+.cbeam { position: absolute; height: 3px; margin-top: -1.5px; transform-origin: 0 50%; pointer-events: none; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--sc) 30%, #fff 92%, var(--sc)); box-shadow: 0 0 6px var(--sc), 0 0 12px var(--sc); }
+.cbeam.cb-volt { background: repeating-linear-gradient(90deg, var(--sc) 0 6px, #fff 6px 8px); }
+.cbeam.cb-wave { height: 5px; margin-top: -2.5px; background: repeating-linear-gradient(90deg, var(--sc) 0 3px, transparent 3px 6px); }
+.cbeam.cb-trans { background: linear-gradient(90deg, transparent, #ff6bd0 20%, var(--sc) 60%, #fff); }
+.cring { width: 11%; border-width: 2.5px; }
