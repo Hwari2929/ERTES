@@ -70,7 +70,7 @@ export const CFG = {
   // 전환 노드 (짝수 페이즈): 휴식 = 체력 회복 + 공명도 소량 / 도전 = 다음 페이즈 역경급 전투, 승리 시 남은 노드 보상을 몰아 받고 다음 페이즈로
   forkRestHp: 10, forkRestLost: 0.2, forkRestXp: 0.5, // 휴식: 체력 +n + 잃은 체력 × lost (내림), 공명도 = 전투 1회 풀 × k
   challengeXp: 4.5, // 도전 승리: 공명도 = 전투 1회 풀 × k
-  amundsenRecruitW: 0.08, // 영입 후보 가중치 (다른 기물 = 1)
+  amundsenRecruitW: 0.08, // 아문센 · 데미우르고스 영입 후보 가중치 (다른 기물 = 1)
   joinRankRatio: 0.7, // 영입 · 합류 등급 = max(페이즈 - 1, 출전 기물 평균 등급 × k)
   startUnits: 4, maxParty: 16, // 출전 최대 10 + 대기 6
   deployBase: 4, // 기본 출전 인원. 함대 확장으로 늘린다
@@ -79,7 +79,7 @@ export const CFG = {
   benchXpWeight: 0.5, // 대기 기물의 공명도 분배 가중치 (출전 기물 대비)
   boardSizes: [ { n: 7, w: 70, env: '표준 전장' }, { n: 6, w: 15, env: '협소한 통로' }, { n: 8, w: 15, env: '개활지' } ],
   bossBoard: 7,
-  explorerPhase: 5, // 탐험가(아문센) 배치 가능 페이즈 (의뢰 목표가 6페이즈라 8 → 5)
+  rarePhase: 3, // 아문센 · 데미우르고스가 영입 후보에 나오는 페이즈 (배치 제한은 없음)
   cookPower: [1, 1.4, 2.1, 3.5], // 셰프 단계별 요리 위력 배율 (0단계 = 미발동)
 
   // ── 경제 [임시]

@@ -538,6 +538,7 @@ export class Battle {
       if (this.t > CFG.overtimeStart) dmg *= 1 + (this.t - CFG.overtimeStart) * CFG.overtimeRamp;
     }
     dmg = Math.max(0, dmg);
+    if (tgt.mem.hitCap && dmg > 0) dmg = Math.min(dmg, this.S(tgt, 'maxHp') * tgt.mem.hitCap); // 올림푸스 성물: 1회 피해 상한
     if ((tgt.mem.invulnUntil || 0) > this.t) dmg = 0; // 성전 돌입 무적
     // 피해 분담 (린디웨 특별경호팀)
     const sh = dmg > 0 && o.tag !== 'dot' ? tgt.statuses.find((s) => s.share && s.share !== tgt && s.share.alive) : undefined;

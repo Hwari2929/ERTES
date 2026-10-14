@@ -136,7 +136,8 @@ export function computeStats(u: UnitState, effects: Effect[]): { st: Stats; majo
   for (const [k, v] of Object.entries(pct)) st[k as keyof Stats] *= Math.max(0.1, 1 + v!);
   st.range = Math.max(1, Math.round(st.range));
   // 공명 등급 독립 성장: 사격 · 타격 · 기술 위력 등급당 ×1.025 (곱연산)
-  const grow = Math.pow(CFG.rankPowGrowth, Math.max(0, u.rank - 1));
+  const rb = effects.reduce((s, e) => s + (e.rankBonus || 0), 0);
+  const grow = Math.pow(CFG.rankPowGrowth, Math.max(0, u.rank + rb - 1));
   st.shoot *= grow; st.strike *= grow; st.tech *= grow;
   return { st, majors: m };
 }
@@ -172,7 +173,7 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
   if (d.weapon.kind === 'none') c.noAttack = true;
   const p = boardPos(u.pos!, b.w - 2 * PAD);
   c.x = c.px = p.x; c.y = c.py = p.y;
-  c.mem.title = rankTitle(u.rank) + effects.reduce((s, e) => s + (e.title || 0), 0);
+  c.mem.title = rankTitle(u.rank + effects.reduce((s, e) => s + (e.rankBonus || 0), 0)) + effects.reduce((s, e) => s + (e.title || 0), 0);
   const ctx = makeCtx(run, u, counts);
   for (const e of effects) {
     if (e.mods) c.mods.push(...e.mods);

@@ -152,7 +152,8 @@ export interface RunState {
   blessing: string | null; // 순례 축복 (이번 페이즈)
   staffTarget: string | null; // (구) 참모단 — 사용 안 함
   aceTarget: string | null; // 항해자 에이스 파일럿 uid
-  occultTier?: number; // 신비학자: 지금까지 도달한 최고 단계 (전용 개조부품 지급 기록)
+  occultTier?: number;
+  helTier?: number; // 헬레니우스: 지금까지 도달한 최고 단계 (전용 장비 지급 기록) // 신비학자: 지금까지 도달한 최고 단계 (전용 개조부품 지급 기록)
   privilege: AugPick | null; // 런 시작 특권 증강
   field: string; // 전장 (battlefields.ts)
   diff: number; // 난이도 단계 (difficulty.ts)

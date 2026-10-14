@@ -121,7 +121,23 @@ export const XP_INJECT_AMOUNT = XP_INJECT;
 export const emblemOf = (id: string) => id.slice(2) as SynergyId;
 export const emblemId = (syn: SynergyId) => `M_${syn}`;
 
+// ── 헬레니우스 동맹 전용 장비: 희귀(A_) 1배 · 전설(L_) 2배 (4단계 도달 시 승격)
+const HEL_ITEMS: Record<string, { name: string; icon: string; major: Major; desc: (k: number) => string; effect: (k: number) => Effect }> = {
+  helanchor: { name: '성운 정박기', icon: '⚓', major: 'mnd', desc: (k) => `해로운 효과를 걸 때 지속 시간 +${2 * k}초.`,
+    effect: (k) => ({ hooks: { onInflict(_b, u, tgt, s) { if (tgt.side !== u.side) s.dur += 2 * k; } } }) },
+  hellight: { name: '달빛 등대', icon: '☾', major: 'agi', desc: (k) => `회피하면 최대 체력 ${3 * k}% 회복.`,
+    effect: (k) => ({ hooks: { onEvade(b, u) { b.heal(u, u, b.S(u, 'maxHp') * 0.03 * k, true); } } }) },
+  helrelic: { name: '올림푸스 성물', icon: '⚱', major: 'def', desc: (k) => `한 번에 최대 체력 ${35 / k}%를 넘는 피해를 받지 않음.`,
+    effect: (k) => ({ setup: (u) => { u.mem.hitCap = Math.min(u.mem.hitCap || 1, 0.35 / k); } }) },
+};
+export const HEL_ITEM_IDS = ['A_helanchor', 'A_hellight', 'A_helrelic'];
+export const isHelItem = (id: string | null) => !!id && !!HEL_ITEMS[id.slice(2)];
+
 export function itemInfo(id: string): ItemInfo {
+  if (isHelItem(id)) {
+    const h = HEL_ITEMS[id.slice(2)], k = id[0] === 'L' ? 2 : 1;
+    return { id, tier: id[0] === 'L' ? 'L' : 'A', name: (k === 2 ? '[전설] ' : '') + h.name, icon: h.icon, majors: { [h.major]: 6 * k }, desc: `[동맹 전용] ${MAJOR_NAME[h.major]} +${6 * k}. ${h.desc(k)}` };
+  }
   if (CONSUMABLES[id]) { const c = CONSUMABLES[id]; return { id, tier: 'K', name: c.name, icon: c.icon, majors: {}, desc: `[소모품] ${c.desc}` }; }
   if (OCCULT_MODS[id]) { const o = OCCULT_MODS[id]; return { id, tier: 'M', name: o.name, icon: o.icon, majors: {}, desc: `[신비 개조부품] ${o.desc}` }; }
   if (UNIQUE[id]) return { id, tier: 'L', name: UNIQUE[id].name, icon: UNIQUE[id].icon, majors: {}, desc: UNIQUE[id].desc };
@@ -151,6 +167,7 @@ export function itemInfo(id: string): ItemInfo {
 }
 
 export function itemEffect(id: string): Effect {
+  if (isHelItem(id)) { const h = HEL_ITEMS[id.slice(2)], k = id[0] === 'L' ? 2 : 1; return { ...h.effect(k), majors: { [h.major]: 6 * k } }; }
   if (UNIQUE[id]) return UNIQUE[id].effect;
   if (OCCULT_MODS[id]) return OCCULT_MODS[id].effect;
   if (isMod(id) || isConsumable(id)) return {};

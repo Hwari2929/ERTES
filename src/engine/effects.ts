@@ -26,6 +26,8 @@ export interface Effect {
   extraSyn?: SynergyId[];
   /** 칼리토 작위 보정 */
   title?: number;
+  /** 공명 등급 보정 (연합 7 · 9단계): 위력 성장 · 작위 계산에 더한다 */
+  rankBonus?: number;
 }
 
 export interface AugDef {

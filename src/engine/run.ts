@@ -7,7 +7,7 @@ import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, DROP_CONSUMABLES, XP_INJECT_AMOUNT, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, isConsumable, isEmblem, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, DROP_CONSUMABLES, XP_INJECT_AMOUNT, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, isConsumable, isEmblem, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem } from '../data/items';
 import { SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, PSI_AUGS, recMajors } from '../data/rework';
@@ -109,10 +109,11 @@ export const privilegeDesc = (p: AugPick) => PRIVILEGES.find((d) => d.id === p.i
 
 /** 영입 선택지. 인맥(G.network)이 있으면 파티와 시너지가 겹치는 기물 가중 */
 function recruitOptions(run: RunState, k: number, only?: string[]): string[] {
-  const pool = only || RECRUITABLE.filter((d) => !run.units.some((u) => u.defId === d.id)).map((d) => d.id);
+  const rare = (x: string) => x === 'amundsen' || x === 'demiurgos';
+  const pool = (only || RECRUITABLE.filter((d) => !run.units.some((u) => u.defId === d.id)).map((d) => d.id)).filter((x) => !rare(x) || run.phase >= CFG.rarePhase); // 아문센 · 데미우르고스는 3페이즈부터
   const net = hasGlobal(run, 'G.network');
   const have = new Set(run.units.flatMap((u) => memberships(u)));
-  const base = (x: string) => (x === 'amundsen' ? CFG.amundsenRecruitW : 1); // 아문센은 아주 드물게
+  const base = (x: string) => (rare(x) ? CFG.amundsenRecruitW : 1); // 아주 드물게
   return rng(run, (r) => {
     const left = pool.slice(), out: string[] = [];
     while (out.length < k && left.length) {
@@ -140,7 +141,7 @@ export function addUnit(run: RunState, defId: string, rank: number): UnitState {
 }
 
 /** 탐험가(아문센)는 정해진 페이즈 전에는 배치할 수 없다 */
-export const canDeploy = (run: RunState, u: UnitState) => u.lock !== run.phase && (!UNIT_BY_ID[u.defId].traits.includes('EXPLORER') || run.phase >= CFG.explorerPhase);
+export const canDeploy = (run: RunState, u: UnitState) => u.lock !== run.phase;
 
 /** 함대 확장 횟수 (구 세이브는 예전 페이즈 기준 출전 인원으로 환산) */
 const fleetOf = (run: RunState) => run.fleet ?? 0; // 함대 확장 구입 횟수 (구입 전에는 기본 인원 그대로)
@@ -313,7 +314,25 @@ function challengeReward(run: RunState, lines: string[]) {
 // ───────────────────────── 신비학자: 전용 개조부품 · [합성] 소모품
 export const occultTier = (run: RunState) => tierNow(run, 'OCCULT');
 /** 처음 도달한 신비학자 단계마다 그 단계 전용 개조부품 1개 선택 */
+/** 헬레니우스 동맹: 1 · 2 · 3단계 첫 도달 시 전용 장비, 4단계 첫 도달 시 보유한 동맹 장비를 전설로 */
+function checkHel(run: RunState) {
+  const t = tierNow(run, 'HEL'), had = run.helTier || 0;
+  if (t <= had) return;
+  for (let k = had + 1; k <= Math.min(3, t); k++) {
+    const id = HEL_ITEM_IDS[k - 1];
+    gainItem(run, t >= 4 ? 'L_' + id.slice(2) : id, undefined, true);
+  }
+  if (t >= 4 && had < 4) {
+    const up = (x: string | null) => (x && isHelItem(x) && x[0] === 'A' ? 'L_' + x.slice(2) : x);
+    run.inventory = run.inventory.map((x) => up(x)!);
+    for (const u of run.units) u.items = u.items.map(up);
+  }
+  run.helTier = t;
+  run.pending.push({ t: 'notice', title: '헬레니우스 동맹', body: t >= 4 && had < 4 ? '동맹 대함대가 집결했습니다. 동맹 전용 장비가 전설 등급으로 승격됩니다.' : '동맹이 전용 장비를 보내왔습니다. 보관함을 확인하세요.' });
+}
+
 export function checkOccult(run: RunState): boolean {
+  checkHel(run);
   const t = occultTier(run), had = run.occultTier || 0;
   if (t <= had) return false;
   for (let k = had + 1; k <= t; k++) {
@@ -446,7 +465,7 @@ export function pickBranch(run: RunState, type: NodeType) {
 }
 
 export const hasDivine = (run: RunState) => run.units.some((u) => UNIT_BY_ID[u.defId].ttype === 'divine');
-const tierNow = (run: RunState, id: 'STAR' | 'HOI' | 'OCCULT') => tierOf(id, synergyCounts(deployed(run), run)[id] || 0);
+const tierNow = (run: RunState, id: 'STAR' | 'HOI' | 'OCCULT' | 'HEL') => tierOf(id, synergyCounts(deployed(run), run)[id] || 0);
 
 export function advance(run: RunState) {
   run.node = null;
@@ -650,7 +669,6 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   pool = Math.round(pool);
   distributeXp(run, pool);
   lines.push(`공명도 풀 ${pool} 분배`);
-  if (uni) for (const u of dep) if (memberships(u).includes('UNI')) u.xp += [0, 1, 2, 3, 5][uni];
   const killsOf = (u: UnitState) => b.units.find((c) => c.src === u)?.counters.kills || 0;
   for (const u of dep) for (const a of u.augments) AUG_BY_ID[a.id]?.after?.(run, u, won, killsOf(u));
   // 성직자: 승리 시 신앙 / 대스타: 승리 시 명성 + 대스타 처치 수
@@ -938,7 +956,7 @@ export function syncQuests(run: RunState) {
   const tier = tierOf('HEL', synergyCounts(deployed(run), run).HEL || 0);
   if (run.questPhase !== run.phase) { run.quests = []; run.questPhase = run.phase; }
   rng(run, (r) => {
-    while (run.quests.length < tier) {
+    while (tier && run.quests.length < tier + 1) { // 퀘스트 2 / 3 / 4 / 5개
       const free = Object.keys(QUESTS).filter((k) => !run.quests.some((q) => q.id === k));
       const id = r.pick(free);
       run.quests.push({ id, target: QUESTS[id].target(run.phase), progress: 0, done: false, reward: r.pick(['credits', 'part', 'xp']) });

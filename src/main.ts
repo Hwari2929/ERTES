@@ -899,7 +899,7 @@ function detailPanel(run: RunState, extra = '') {
   const { b, c } = previewAlly(run, u);
   const effects = unitEffects(run, u, synergyCounts(deployed(run), run), !!u.pos);
   const tm = totalMajors(u, effects);
-  const title = rankTitle(u.rank) + effects.reduce((s, e) => s + (e.title || 0), 0);
+  const title = rankTitle(u.rank + effects.reduce((s, e) => s + (e.rankBonus || 0), 0)) + effects.reduce((s, e) => s + (e.title || 0), 0);
   const cost = R.xpCost(run);
   return `<div class="detail">${bar}
     <div class="d-hero">${hero(d.id) || `<div class="hero none">${sprite(d, 'spr big')}</div>`}
@@ -2409,7 +2409,7 @@ function onDrop(src: string, dst: string) {
     // 탐험가는 정해진 페이즈 전에는 보드에 올릴 수 없다
     const other0 = dk === 'unit' ? run.units.find((x) => x.uid === dv[0]) : null;
     const blocked = (dk === 'cell' && !R.canDeploy(run, u)) || (dk === 'unit' && other0 && ((other0.pos && !R.canDeploy(run, u)) || (u.pos && !R.canDeploy(run, other0))));
-    if (blocked) { toast(`아문센은 ${CFG.explorerPhase}페이즈부터 배치할 수 있습니다.`); render(); return; }
+    if (blocked) { toast('이번 페이즈에는 배치할 수 없는 기물입니다.'); render(); return; }
     if (dk === 'cell') {
       const x = +dv[0], y = +dv[1];
       const other = deployed(run).find((o) => { const p = lay.get(o.uid); return p && p.x === x && p.y === y; });
