@@ -432,14 +432,7 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
     body.push(`<div class="tt-row"><span class="tt-k">사이오닉 증강</span><b>${mine.length}<small>/4</small></b>${nx && mine.length < 4 ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
     if (mine.length) body.push(`<ul class="augs">${mine.map((a) => augRow(a.id, a.param, b, c)).join('')}</ul>`);
   } else {
-    const rid = u?.relic || (c?.relic) || DEFAULT_RELIC[d.id];
-    const rel = rid ? RELIC_BY_ID[rid] : null;
-    const k = (live ? c?.mem.enh : u?.enh ? 3 : 1) || 1;
     if (live && c && c.div !== null) body.push(`<div class="tt-row"><span class="tt-k">신성력</span><b class="tt-big">${c.divUsed ? '발동함' : Math.round(c.div)}</b><span class="muted small">수집 ${Math.round(c.divGot)} / ${c.divCap}</span></div>`);
-    void k;
-    if (u && run && !live) body.push(`<div class="tt-row tt-relic"><span class="tt-k">성유물</span>${relicTok(u.relic, `data-a="relic-pick" data-v="${u.uid}"`, app.relicPick === u.uid)}<b>${esc(rel?.name || '없음')}</b><span class="muted small">눌러서 교체</span></div>${app.relicPick === u.uid ? relicPicker(run, u) : ''}`);
-    else if (rel) body.push(`<div class="tt-row tt-relic"><span class="tt-k">성유물</span>${relicTok(rel.id)}<b>${esc(rel.name)}</b></div>`);
-    if (run && u && !live && u.relic) body.push(`<div class="tt-row"><span class="tt-k">신권 대행 강화</span>${u.enh ? '<b class="tt-big">다음 전투 ×3</b>' : `<button class="btn tiny" data-a="relic-enh" data-v="${u.uid}" ${run.power < RELIC_BY_ID[u.relic].enh ? 'disabled' : ''}>강화 · 권능 ${RELIC_BY_ID[u.relic].enh}</button>`}</div>`);
     if (run) body.push(`<div class="tt-row"><span class="tt-k">권능 포인트</span><b>${run.power}</b><span class="muted small">전투 후 디바인이 모은 신성력 ÷ ${CFG.powerPerDiv}</span></div>`);
   }
   void f;
@@ -977,14 +970,22 @@ function ultCard(d: UnitDef, b: Battle | null, c: CUnit | null, live = false) {
   return abilCard('ult', 'ult', `${lineIcon('a.ult', 'li ab-ic')}${ul.name}`, `약 ${sec.toFixed(0)}초`, `${chips}<p>${statIc(esc(ul.desc))}</p>`);
 }
 /** 디바인 신권 대행 카드: 장착한 성유물 */
-function actCard(d: UnitDef, u: UnitState | null, c: CUnit | null, live = false) {
+/** 성유물 섹션: 장착 슬롯 + 종속 하위 능력(신권 대행) */
+function relicSection(d: UnitDef, u: UnitState | null, run: RunState | null, c: CUnit | null, live = false) {
   if (d.ttype !== 'divine') return '';
   const rid = u?.relic || c?.relic || DEFAULT_RELIC[d.id];
   const rel = rid ? RELIC_BY_ID[rid] : null;
-  if (!rel) return '';
-  const k = (live ? c?.mem.enh : u?.enh ? 3 : 1) || 1;
-  const chips = `<div class="ab-chips"><span class="abc" title="신성력이 가득 차면 발동">${lineIcon('a.divact', 'li')}신성력 100</span><span class="abc">${lineIcon('k.relic', 'li')}${esc(rel.name)}</span>${k > 1 ? '<span class="abc v">강화 ×3</span>' : ''}${live && c && c.div !== null ? `<span class="abc v">${c.divUsed ? '발동함' : Math.round(c.div)}</span>` : ''}</div>`;
-  return abilCard('divact', 'act', `${lineIcon('a.divact', 'li ab-ic')}${rel.name}`, '전투당 1회', `${chips}<p>${statIc(esc(rel.desc(k)))}</p>`);
+  const edit = !!(u && run && !live);
+  const head = `<div class="ab-head"><span class="ab-kind">성유물</span><b>${esc(rel?.name || '없음')}</b>${edit ? '<span class="ab-meta">토큰을 눌러 교체</span>' : ''}</div>`;
+  const slot = `<div class="rl-slot">${relicTok(rel?.id || '', edit ? `data-a="relic-pick" data-v="${u!.uid}"` : '', edit && app.relicPick === u!.uid)}<p class="small muted">${rel ? '장착한 성유물이 신권 대행의 효과를 정한다.' : '성유물이 없으면 신권 대행을 쓸 수 없다.'}</p></div>${edit && app.relicPick === u!.uid ? relicPicker(run!, u!) : ''}`;
+  let act = '';
+  if (rel) {
+    const k = (live ? c?.mem.enh : u?.enh ? 3 : 1) || 1;
+    const chips = `<div class="ab-chips"><span class="abc" title="신성력이 가득 차면 발동">${lineIcon('a.divact', 'li')}신성력 100</span><span class="abc">전투당 1회</span>${k > 1 ? '<span class="abc v">강화 ×3</span>' : ''}${live && c && c.div !== null ? `<span class="abc v">${c.divUsed ? '발동함' : Math.round(c.div)}</span>` : ''}</div>`;
+    const enh = edit && u!.relic ? `<div class="tt-row"><span class="tt-k">강화</span>${u!.enh ? '<b class="tt-big">다음 전투 ×3</b>' : `<button class="btn tiny" data-a="relic-enh" data-v="${u!.uid}" ${run!.power < rel.enh ? 'disabled' : ''}>강화 · 권능 ${rel.enh}</button>`}</div>` : '';
+    act = `<div class="rl-act ab-click${abilOn('divact')}" data-a="abil-pop" data-v="divact" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">신권 대행</span><b>${lineIcon('a.divact', 'li ab-ic')}${esc(rel.name)}</b></div>${chips}<p>${statIc(esc(rel.desc(k)))}</p></div>${enh}`;
+  }
+  return `<section class="abil ab-relic">${head}${slot}${act ? `<hr class="rl-sep">${act}` : ''}</section>`;
 }
 function skillCard(d: UnitDef, b: Battle | null, c: CUnit | null) {
   const p = c?.sk || d.skill.params;
@@ -1180,9 +1181,9 @@ function detailPanel(run: RunState, extra = '') {
       ${traitGroup(d, u, run, b, c)}
       ${aceAbil(run, u)}${voyAbil(d, run, u)}
       ${skillCard(d, b, c)}
-      ${ultCard(d, b, c)}${actCard(d, u, c)}
+      ${ultCard(d, b, c)}
       ${faithAbil(d, u, run)}
-      ${ttSection(d, u, run, b, c)}
+      ${ttSection(d, u, run, b, c)}${relicSection(d, u, run, c)}
     </div>
     <p class="lore">${esc(d.lore)}</p>
     ${releaseBlock(run, u)}
@@ -2246,7 +2247,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
   if (u.side === 0 && !u.isSummon) {
     const d = UNIT_BY_ID[u.defId];
     head = heroHead(d.id, sprite(u, 'spr big'), d.name, allyTags(d));
-    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem)}<div class="abil ab-trait ab-click${abilOn('trait')}" data-a="abil-pop" data-v="trait" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${ultCard(d, b, u, true)}${actCard(d, u.src || null, u, true)}${faithAbil(d, u.src || null, app.run)}${ttSection(d, u.src || null, app.run, b, u, true)}`;
+    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem)}<div class="abil ab-trait ab-click${abilOn('trait')}" data-a="abil-pop" data-v="trait" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${ultCard(d, b, u, true)}${faithAbil(d, u.src || null, app.run)}${ttSection(d, u.src || null, app.run, b, u, true)}${relicSection(d, u.src || null, app.run, u, true)}`;
     if (app.abilPop) pop = abilPopHtml(app.abilPop, d, b, u);
   } else if (u.side === 1 && ENEMY_BY_ID[u.defId]) {
     const e = ENEMY_BY_ID[u.defId];
@@ -2351,7 +2352,7 @@ function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
     <h3>시너지</h3><div class="cx-syns">${syn}</div>
     <h3>역할군 · 능력 <span class="muted small">1등급 · 장비 없음 기준</span></h3>
     <div class="abils">${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem)}${traitGroup(d, null, null, b, c)}${skillCard(d, b, c)}${voyAbil(d, null, null)}</div>
-    <div class="abils">${ultCard(d, b, c)}${actCard(d, null, c)}${faithAbil(d, null, null)}${ttSection(d, null, null, b, c)}</div>
+    <div class="abils">${ultCard(d, b, c)}${faithAbil(d, null, null)}${ttSection(d, null, null, b, c)}${relicSection(d, null, null, c)}</div>
     <h3>추천 장비 <span class="muted small">${CTYPE_NAME[d.ctype]}</span></h3><ul class="rc-list">${reco}</ul>
     <h3>이야기</h3>${STORIES[d.id] ? `<p class="small">${esc(STORIES[d.id])}</p>` : ''}<p class="lore">${esc(d.lore)}</p>
     <div class="codex-stats small">의뢰 <b>${r?.runs || 0}</b>회 · 누적 공명 등급 <b>${r?.ranks || 0}</b> · 최고 <b>${r?.best || 0}</b> · 성공 <b>${r?.clears || 0}</b></div>

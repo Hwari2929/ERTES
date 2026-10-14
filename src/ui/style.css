@@ -1943,4 +1943,10 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .skb.div { border-color: #ffd34d; } .skb.div small { color: #ffd34d; }
 .ci-pat-bounty .ci-band { background-color: #4a3018; background-image: repeating-linear-gradient(45deg, color-mix(in srgb, var(--c1) 35%, transparent) 0 2px, transparent 2px 10px); }
 .relic-tok:not(.empty) { border-style: solid !important; outline: none; }
-.tt-relic { align-items: center; } .tt-relic .relic-tok { width: 30px; height: 30px; }
+/* 성유물 섹션: 슬롯 · 희미한 구분선 · 종속 하위 능력(신권 대행) */
+.ab-relic { --ab: #ffd34d; display: grid; gap: 6px; } .ab-relic > .ab-head .ab-kind { background: rgb(255 211 77 / .2); color: #ffd34d; }
+.rl-slot { display: flex; align-items: center; gap: 10px; } .rl-slot p { margin: 0; }
+.rl-sep { border: 0; border-top: 1px solid rgb(255 211 77 / .18); margin: 2px 0; }
+.rl-act { display: grid; gap: 4px; padding: 2px 0 2px 12px; border-left: 2px solid rgb(255 211 77 / .35); cursor: pointer; }
+.rl-act .ab-kind { background: rgb(255 211 77 / .12); color: #ffd34d; font-size: 10px; } .rl-act p { margin: 0; }
+.rl-act.on { border-left-color: #ffd34d; }
