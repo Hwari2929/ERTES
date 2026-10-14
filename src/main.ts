@@ -2342,7 +2342,13 @@ function act(a: string, v: string) {
     }
     case 'victory-end': if (run) { run.pending.shift(); metaClear(run); run.over = true; goPrepOrMap(); } break;
     case 'victory-endless': if (run) { run.pending.shift(); metaClear(run); run.endless = true; toast('무한 모드: 적은 계속 강해집니다.'); persist(); } break;
-    case 'diff': app.diff = +v; break;
+    case 'diff':
+      app.diff = +v;
+      if (app.screen === 'diffsel') { // 다시 그리지 않고 클래스만 바꿔 폭 변화가 부드럽게 이어지게
+        root.querySelectorAll<HTMLElement>('.ds-card').forEach((c) => { const on = +(c.dataset.v || 0) === app.diff; c.classList.toggle('on', on); c.setAttribute('aria-pressed', String(on)); });
+        return;
+      }
+      break;
     case 'codex': app.screen = 'codex'; app.menu = null; break;
     case 'codex-tab': app.codexTab = v as typeof app.codexTab; break;
     case 'codex-group': app.codexGroup = v as typeof app.codexGroup; break;
