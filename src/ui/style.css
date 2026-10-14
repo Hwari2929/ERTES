@@ -1870,7 +1870,20 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .tt-list li { display: flex; align-items: center; gap: 6px; } .tt-list .li { width: 14px; height: 14px; color: var(--tc); flex: none; }
 .tt-act { display: grid; gap: 2px; padding: 6px 8px; border-radius: 4px; background: rgb(0 0 0 / .18); } .tt-act b { color: var(--tc); } .tt-act p { margin: 0; }
 .tt-sec .augs { margin: 0; }
-.ab-faith.off { opacity: .55; } .ab-faith.off .ab-meta { color: var(--dim); } .ab-faith:not(.off) .ab-meta { color: #ffd34d; }
+.ab-faith.off { opacity: .55; } .ab-faith.off .ab-meta { color: var(--dim); }
+.ab-faith:not(.off) { --ab: #ffd34d; } .ab-faith:not(.off) .ab-meta, .ab-faith:not(.off) b { color: #ffd34d; }
+.ab-ult { --ab: #4aa8ff; } .ab-act { --ab: #ffd34d; }
+.ab-head b .ab-ic { width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; color: var(--ab); }
+/* 성유물: 원형 장비 토큰 */
+.relic-tok { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; flex: none; cursor: pointer;
+  background: radial-gradient(circle at 35% 30%, #4a3a10, #1a1406); border: 2px solid #ffd34d; color: #ffd34d; box-shadow: 0 0 8px rgb(255 211 77 / .35); }
+.relic-tok .li { width: 18px; height: 18px; }
+.relic-tok.empty { border-style: dashed; border-color: var(--line); color: var(--dim); background: var(--panel); box-shadow: none; }
+.relic-tok.on { box-shadow: 0 0 0 2px var(--accent), 0 0 12px #ffd34d; }
+.relic-pick { display: grid; gap: 6px; padding: 8px; margin-top: 6px; border: 1px solid #ffd34d55; border-radius: 6px; background: var(--panel-2); }
+.rp-list { display: grid; gap: 4px; }
+.rp-item { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 8px; align-items: center; text-align: left; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: inherit; cursor: pointer; }
+.rp-item:hover { border-color: #ffd34d; }
 .rp-lite, .rp-swap { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 /* 순례 */
 .pil-flavor { font-style: italic; }
