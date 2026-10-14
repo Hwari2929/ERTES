@@ -1279,6 +1279,7 @@ function settleGrowth(run: RunState, b: Battle, won: boolean, interest: number, 
     u.grow ??= {};
     for (const [k, v] of Object.entries(c.mem)) if (k.startsWith('g_') && v) u.grow[k.slice(2)] = (u.grow[k.slice(2)] || 0) + v;
     if (c.mem.g_loot) { run.credits += c.mem.g_loot; lines.push(`루스 약탈 +${c.mem.g_loot}`); }
+    if (c.mem.g_ultLoot) { run.credits += c.mem.g_ultLoot; lines.push(`루스 약탈 개시 +${c.mem.g_ultLoot}`); }
     if (c.div !== null) div += c.divGot;
   }
   const pw = Math.min(CFG.powerMax, Math.floor(div / CFG.powerPerDiv));

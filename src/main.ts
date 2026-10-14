@@ -22,7 +22,8 @@ import * as R from './engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
 import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type SynergyId, type UnitState } from './types';
-import { BattleView, fmt, FX, FX_DEFAULT, type DeathStyle, type MotionPreset } from './ui/battleview';
+import { BattleView, fmt, FX, FX_DEFAULT, type DeathStyle, type MotionPreset, type UltCut } from './ui/battleview';
+import { ULTS } from './data/ults';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
 import { bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg } from './ui/portraits';
@@ -32,7 +33,7 @@ import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 const PREF_KEY = 'errantes.prefs.v1';
 /** 전투 배속 (단축키 1~6, Space 정지) */
 const SPEEDS = [0.25, 0.5, 1, 2, 4, 8];
-function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean; fxMs?: number; skillMs?: number; motion?: MotionPreset; death?: DeathStyle } {
+function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean; fxMs?: number; skillMs?: number; motion?: MotionPreset; death?: DeathStyle; ultCut?: UltCut } {
   try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}; } catch { return {}; }
 }
 /** 연출 설정을 전투 화면에 반영 */
@@ -43,6 +44,7 @@ function applyFxPrefs() {
   FX.skillMs = ms(p.skillMs, FX_DEFAULT.skillMs);
   FX.motion = p.motion === 'fast' || p.motion === 'slow' || p.motion === 'mid' ? p.motion : FX_DEFAULT.motion;
   FX.death = p.death === 'spin' || p.death === 'fade' ? p.death : FX_DEFAULT.death;
+  FX.ultCut = p.ultCut === 'full' || p.ultCut === 'short' || p.ultCut === 'off' ? p.ultCut : FX_DEFAULT.ultCut;
 }
 function savePref(k: string, v: unknown) {
   try { localStorage.setItem(PREF_KEY, JSON.stringify({ ...loadPrefs(), [k]: v })); } catch { /* 저장 불가 환경 */ }
@@ -308,7 +310,7 @@ const CTYPE_DESC: Record<string, [string, string]> = {
 };
 /** 전술 유형 공통 규칙: 공명 등급마다 모든 능력치 +1, 이정표 보상은 유형별 */
 const TTYPE_RULE: Record<TType, string> = {
-  major: '공명 등급마다 모든 능력치 +1. 5등급마다 메이저 증강 1개.',
+  major: `공명 등급마다 모든 능력치 +1. 5등급마다 메이저 증강 1개. 고유 궁극기는 시간이 지나면 저절로 차오르며 (기본 약 ${CFG.ultTime}초, 전투 시작 ${Math.round(CFG.ultStart * 100)}%) 한 전투에 여러 번 쓸 수 있다.`,
   minor: '공명 등급마다 모든 능력치 +1. 3등급마다 능력치 2종 +3. 기술 계수와 특성 수치가 등급에 따라 자란다 (10등급 ×2, 20등급 ×3).',
   special: '공명 등급마다 모든 능력치 +1. 합류 · 7 · 14 · 21등급에 전용 증강 (최대 4개).',
   psionic: '공명 등급마다 모든 능력치 +1. 5등급마다 사이오닉 증강 (최대 4개, 20등급에 완성).',
@@ -350,6 +352,14 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
   const owned = u?.augments || [];
   const body: string[] = [];
   if (tt === 'major') {
+    const ul = ULTS[d.id];
+    if (ul) {
+      const eff = c && b ? b.S(c, 'ultCharge') : 0;
+      const sec = CFG.ultTime / (ul.charge * Math.max(0.1, 1 + eff));
+      body.push(`<div class="tt-act tt-ult"><span class="tt-k">궁극기</span><b>${esc(ul.name)}</b><p class="small">${esc(ul.desc)}</p>
+        <div class="tt-row small"><span class="tt-k">충전</span><span>${live && c ? `<b class="tt-big">${Math.round((c.ultG || 0) * 100)}%</b> · ` : ''}약 ${sec.toFixed(0)}초마다 (충전 계수 ×${ul.charge.toFixed(2)}${eff ? ` · 충전 효율 +${Math.round(eff * 100)}%` : ''})</span></div>
+        <p class="small muted ci-quote">“${esc(ul.line)}”</p></div>`);
+    }
     const mine = owned.filter((a) => MAJOR_AUGS.some((m) => m.id === a.id));
     body.push(`<div class="tt-row"><span class="tt-k">메이저 증강</span><b>${mine.length}</b>${nx ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
     body.push(mine.length ? `<div class="tt-icons">${mine.map((a) => `<button class="tt-ic ab-click${abilOn(`aug:${a.id}`)}" data-a="abil-pop" data-v="aug:${esc(a.id)}" title="${esc(AUG_BY_ID[a.id]?.name || a.id)}">${augIcon(a.id)}</button>`).join('')}</div>`
@@ -1525,6 +1535,8 @@ function menuModal(run: RunState | null) {
         <span class="seg">${([['fast', '날렵'], ['mid', '보통'], ['slow', '느긋']] as const).map(([k, l]) => `<button class="btn tiny ${FX.motion === k ? 'on' : ''}" data-a="pref-motion" data-v="${k}" aria-pressed="${FX.motion === k}">${l}</button>`).join('')}</span></div>
       <div class="pref"><span><b>사망 연출</b><br><span class="muted small">휘리릭: 맞은 반대쪽으로 낮은 포물선을 그리며 떨어져 나감 · 스르륵: 흰 X 후 흐려짐 (처형은 항상 갈라짐 + 해골)</span></span>
         <span class="seg">${([['spin', '휘리릭'], ['fade', '스르륵']] as const).map(([k, l]) => `<button class="btn tiny ${FX.death === k ? 'on' : ''}" data-a="pref-death" data-v="${k}" aria-pressed="${FX.death === k}">${l}</button>`).join('')}</span></div>
+      <div class="pref"><span><b>궁극기 컷인</b><br><span class="muted small">메이저 궁극기 발동 시 스탠딩 · 스킬명 · 대사 컷인과 감속. 짧게: 대사 없이 0.7초, 끄기: 스킬명 배너만</span></span>
+        <span class="seg">${([['full', '전체'], ['short', '짧게'], ['off', '끄기']] as const).map(([k, l]) => `<button class="btn tiny ${FX.ultCut === k ? 'on' : ''}" data-a="pref-ultcut" data-v="${k}" aria-pressed="${FX.ultCut === k}">${l}</button>`).join('')}</span></div>
       <div class="row-btns"><button class="btn ghost" data-a="pref-fx-reset">연출 기본값</button><button class="btn primary" data-a="menu-close">닫기</button></div>
     </div></div>`;
   }
@@ -2047,7 +2059,7 @@ function battleTable(b: Battle) {
 const STAT_KO: Record<StatKey, string> = {
   maxHp: '최대 체력', healEff: '회복 효율', shoot: '사격 위력', strike: '타격 위력', tech: '기술 위력', acc: '명중', crit: '치명타', effHit: '효과 명중',
   armor: '방어도', effRes: '효과 저항', moveSpd: '이동 속도', eva: '회피', critDmg: '치명타 피해', armorPen: '방어도 관통', cdr: '쿨다운 감소',
-  atkSpd: '공격 속도', range: '사거리', lifesteal: '흡혈', reloadSpd: '재장전 속도', aoe: '범위',
+  atkSpd: '공격 속도', range: '사거리', lifesteal: '흡혈', reloadSpd: '재장전 속도', aoe: '범위', ultCharge: '궁극기 충전 효율',
 };
 const FLAT_STAT = new Set<StatKey>(['maxHp', 'shoot', 'strike', 'tech', 'armor', 'range']);
 const TAG_KO: Record<DmgTag, string> = {
@@ -2368,7 +2380,8 @@ function act(a: string, v: string) {
     case 'pref-zoom': app.zoomOut = !app.zoomOut; savePref('zoomOut', app.zoomOut); break;
     case 'pref-motion': savePref('motion', v); applyFxPrefs(); break;
     case 'pref-death': savePref('death', v); applyFxPrefs(); break;
-    case 'pref-fx-reset': savePref('fxMs', FX_DEFAULT.fxMs); savePref('skillMs', FX_DEFAULT.skillMs); savePref('motion', FX_DEFAULT.motion); savePref('death', FX_DEFAULT.death); applyFxPrefs(); break;
+    case 'pref-ultcut': savePref('ultCut', v); applyFxPrefs(); break;
+    case 'pref-fx-reset': savePref('fxMs', FX_DEFAULT.fxMs); savePref('skillMs', FX_DEFAULT.skillMs); savePref('motion', FX_DEFAULT.motion); savePref('death', FX_DEFAULT.death); savePref('ultCut', FX_DEFAULT.ultCut); applyFxPrefs(); break;
     case 'pref-slow': app.slowDetail = !app.slowDetail; savePref('slowDetail', app.slowDetail); applySpeed(); break;
     case 'menu-close': app.menu = null; app.importErr = ''; break;
     case 'menu-export': app.menu = 'export'; break;

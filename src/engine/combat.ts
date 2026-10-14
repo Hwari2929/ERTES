@@ -45,6 +45,8 @@ export interface Status {
   share?: CUnit; shareRate?: number;
   /** 기록값 (프란체 심판) */
   rec?: number;
+  /** 기록 비율 (기본 0.2) */
+  recRate?: number;
   /** 지속이 끝날 때 */
   onExpire?(b: Battle, u: CUnit, s: Status): void;
 }
@@ -101,6 +103,22 @@ export interface Hooks {
 /** 디바인 신권 대행 (rework.ts 에서 주입: 순환 import 방지) */
 export const DIVINE_HOOK: { act?: (b: Battle, u: CUnit) => void } = {};
 
+/** 메이저 궁극기: 시간에 따라 자연 충전, 가득 차면 발동 (전투 중 여러 번) */
+export interface UltDef {
+  id: string;
+  name: string;
+  /** 충전 계수 (1.0 = 기준 시간에 한 번) */
+  charge: number;
+  /** 컷인 대사 */
+  line: string;
+  /** 효과 설명 (상세 창) */
+  desc: string;
+  /** 컷인 디자인: 배경 패턴 · 주색 · 보조색 · 글자 연출 */
+  theme: { pat: string; c1: string; c2: string; txt: string };
+  /** 성공하면 true (대상이 없으면 false → 게이지 유지) */
+  cast: (b: Battle, u: CUnit) => boolean;
+}
+
 export interface SkillDef {
   name: string;
   cd: number;
@@ -131,6 +149,8 @@ export interface CUnit {
   cd: number; cdMax: number;
   skill: SkillDef | null;
   sk: Record<string, number>;
+  /** 메이저 궁극기와 게이지 (0~1) */
+  ult?: UltDef | null; ultG?: number;
   statuses: Status[];
   mods: Mod[];
   taken: TakenMod[];
@@ -176,6 +196,8 @@ export type BEvent =
   | { k: 'skill'; id: number; name: string; tag?: string }
   /** 스킬 효과 처리가 끝난 지점 (사이의 이벤트는 이 스킬의 결과) */
   | { k: 'skillEnd'; id: number }
+  /** 메이저 궁극기 발동 (컷인) */
+  | { k: 'ult'; id: number; ult: string }
   | { k: 'status'; id: number; name: string; src?: number; harm?: boolean; stype?: string }
   | { k: 'die'; id: number; by?: number }
   | { k: 'spawn'; id: number }
@@ -341,6 +363,7 @@ export class Battle {
       this.actor = u;
       this.tickStatuses(u, dt);
       if (!u.alive) continue;
+      if (u.ult && (u.ultG || 0) < 1) u.ultG = Math.min(1, (u.ultG || 0) + (dt / CFG.ultTime) * u.ult.charge * Math.max(0.1, 1 + this.S(u, 'ultCharge')));
       for (const h of u.hooks) h.onTick?.(this, u, dt);
       if (!u.alive || this.over) continue;
       this.act(u, dt);
@@ -401,6 +424,17 @@ export class Battle {
     const t2 = u.target!;
     const d = this.dist(u, t2);
     const feared = this.has(u, 'fear');
+
+    // 메이저 궁극기: 게이지가 가득 차면 기술보다 먼저
+    if (!feared && u.ult && (u.ultG || 0) >= 1) {
+      const at = this.events.length;
+      if (u.ult.cast(this, u)) {
+        u.ultG = 0;
+        if (u.side === 0) this.counters.skills++;
+        if (this.keepEvents) { this.events.splice(at, 0, { k: 'ult', id: u.id, ult: u.ult.id }); this.emit({ k: 'skillEnd', id: u.id }); }
+        if (this.over) return;
+      } else this.events.length = Math.min(this.events.length, at);
+    }
 
     if (!feared && u.skill && u.cd <= 0) {
       const sk = u.skill;
@@ -577,12 +611,12 @@ export class Battle {
       const g = sh.share!;
       let l2 = part;
       if (g.shield > 0) { const a = Math.min(g.shield, l2); g.shield -= a; l2 -= a; }
-      g.hp -= l2; g.counters.taken += part;
+      g.hp -= l2; g.counters.taken += part; g.mem.shareTaken = (g.mem.shareTaken || 0) + part;
       if (g.hp <= 0) this.kill(g, src);
     }
     res.amount = dmg;
     // 심판 기록 (프란체): 아군이 준 피해의 일부를 쌓는다
-    if (dmg > 0 && src.side !== tgt.side) for (const s of tgt.statuses) if (s.rec !== undefined && s.src && s.src.side === src.side) s.rec += dmg * 0.2;
+    if (dmg > 0 && src.side !== tgt.side) for (const s of tgt.statuses) if (s.rec !== undefined && s.src && s.src.side === src.side) s.rec += dmg * (s.recRate ?? 0.2);
     let dsh = 0, dhp = 0;
     if (dmg > 0) {
       let left = dmg;
@@ -681,7 +715,8 @@ export class Battle {
   /** 상태이상 부여. 확률 = 기본 × (1 + 효과명중 − 효과저항) */
   applyStatus(src: CUnit, tgt: CUnit, s: Status, baseChance = 1): boolean {
     if (!tgt.alive) return false;
-    if (categoryImmune(tgt.category, s)) return false; // 분류 면역 (기계: 출혈 · 중독, 구조물: 기절 · 공포 · 빙결, 영혼: 매혹)
+    if (categoryImmune(tgt.category, s)) return false;
+    if ((s.type === 'stun' || s.type === 'fear') && (tgt.mem.ccImmuneUntil || 0) > this.t && src.side !== tgt.side) return false; // 궁극기 등 일시 면역 // 분류 면역 (기계: 출혈 · 중독, 구조물: 기절 · 공포 · 빙결, 영혼: 매혹)
     const hostile = src.side !== tgt.side;
     if (hostile && tgt.category === 'bio' && s.dps && (s.key === 'bleed' || s.key === 'poison')) s.dps *= 1.25; // 생체: 출혈 · 중독 강화
     if (hostile) {

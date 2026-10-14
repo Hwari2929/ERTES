@@ -28,6 +28,8 @@ export const CFG = {
     /** 사이오닉: 5등급마다 전공 증강 (최대 4, 20등급에 완성) */
     psionic: (tt: string, rank: number) => tt === 'psionic' && rank % 5 === 0 && rank <= 20,
   },
+  /** 메이저 궁극기: 자연 충전 기준 시간(초, 충전 계수 1.0) · 전투 시작 게이지 */
+  ultTime: 35, ultStart: 0.2,
   /** 마이너 성장 배율: 10등급 ×2, 20등급 ×3 (선형) */
   minorGrow: (rank: number) => (rank <= 10 ? 1 + (Math.max(1, rank) - 1) / 9 : 2 + (rank - 10) / 10),
   // 모든 기물 공통 기초 마이너 스탯 [임시]

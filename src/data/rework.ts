@@ -262,7 +262,7 @@ export const REWORK: Record<string, ReworkDef> = {
       effect: {
         stats: { effRes: 1 },
         hooks: {
-          onHurt(_b, u, _s, r) { if (r.amount > 0) u.mem.fighter = Math.min(100, (u.mem.fighter || 0) + 1); },
+          onHurt(b, u, _s, r) { if (r.amount > 0) u.mem.fighter = Math.min(100, (u.mem.fighter || 0) + ((u.mem.kingUntil || 0) > b.t ? 2 : 1)); }, // 경기장의 왕: 2배
           dmgMult: (_b, u, _t, o) => (o.kind === 'strike' ? 1 + 0.02 * (u.mem.fighter || 0) : 1),
         },
       },
@@ -714,6 +714,8 @@ export const MAJOR_AUGS: AugDef[] = [
   { id: 'maj.finish', name: '마무리 일격', desc: '피니쉬 피해량 +40%.', pool: 'major', stack: true, effect: () => ({ mods: [inc('finish', 0.4)] }) },
   { id: 'maj.cdr', name: '전술 숙련', desc: '쿨다운 감소 속도 +20%.', pool: 'major', stack: true, effect: () => ({ stats: { cdr: 0.2 } }) },
   { id: 'maj.dot', name: '지속 피해 연구', desc: '지속 피해량 +30%.', pool: 'major', stack: true, effect: () => ({ mods: [inc('dot', 0.3)] }) },
+  { id: 'maj.ultc', name: '충전 회로', desc: '궁극기 충전 효율 +25%.', pool: 'major', stack: true, effect: () => ({ stats: { ultCharge: 0.25 } }) },
+  { id: 'maj.ults', name: '선제 장전', desc: '전투 시작 시 궁극기 게이지 +30%.', pool: 'major', effect: () => ({ setup: (u) => { u.mem.ultStart = (u.mem.ultStart || 0) + 0.3; } }) },
 ];
 /** [임시] 사이오닉 증강: 사용자 명세를 받아 교체 예정 */
 export const PSI_AUGS: AugDef[] = [

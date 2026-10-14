@@ -2,7 +2,8 @@ import { CFG } from '../config';
 import { itemInfo } from '../data/items';
 import type { BEvent, Battle, CUnit } from '../engine/combat';
 import type { Elem } from '../types';
-import { hasPortrait, iconURL } from './portraits';
+import { hasPortrait, iconURL, standURL } from './portraits';
+import { ULTS } from '../data/ults';
 
 export const ELEM_COLOR: Record<Elem, string> = {
   phys: 'var(--el-phys)', chem: 'var(--el-chem)', elec: 'var(--el-elec)', psy: 'var(--el-psy)', holy: 'var(--el-holy)', true: 'var(--el-true)',
@@ -18,6 +19,8 @@ export function fmt(n: number): string {
 
 interface UEl {
   el: HTMLElement; face: HTMLElement; hp: HTMLElement; loss: HTMLElement; sh: HTMLElement; cd: HTMLElement; gx: HTMLElement | null;
+  /** 궁극기(파랑) · 신성력(노랑) 테두리 게이지 */
+  ug: HTMLElement | null; ugSig: string;
   sti: HTMLElement; stc: HTMLElement; stk: HTMLElement; rl: HTMLElement;
   u: CUnit; dead: boolean;
   /** 체력 바 손실 구간 (큰 피해 뒤 잠깐 남는 흰 띠) */
@@ -73,8 +76,10 @@ const easeOut = (t: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 3);
 export type MotionPreset = 'fast' | 'mid' | 'slow';
 /** 사망 연출: 휘리릭 (포물선을 그리며 전장 밖으로) · 스르륵 (흰 X 후 흐려짐) */
 export type DeathStyle = 'spin' | 'fade';
-export const FX = { fxMs: 1200, skillMs: 1800, motion: 'mid' as MotionPreset, death: 'fade' as DeathStyle };
-export const FX_DEFAULT = { fxMs: 1200, skillMs: 1800, motion: 'mid' as MotionPreset, death: 'fade' as DeathStyle };
+/** 궁극기 컷인: 전체 · 짧게 · 끄기 */
+export type UltCut = 'full' | 'short' | 'off';
+export const FX = { fxMs: 1200, skillMs: 1800, motion: 'mid' as MotionPreset, death: 'fade' as DeathStyle, ultCut: 'full' as UltCut };
+export const FX_DEFAULT = { fxMs: 1200, skillMs: 1800, motion: 'mid' as MotionPreset, death: 'fade' as DeathStyle, ultCut: 'full' as UltCut };
 /** 모션 프리셋: 날렵 · 보통 (날렵 6 : 느긋 4) · 느긋 */
 const MOTION: Record<MotionPreset, { mul: number; ein: string; eout: string; peak: (p: number) => number; cell: (t: number) => number }> = {
   fast: { mul: 1, ein: EASE_IN, eout: EASE_OUT, peak: (p) => p, cell: easeOut },
@@ -117,6 +122,11 @@ export class BattleView {
   private castSeen = new Set<number>();
   /** 종료 연출: 시간 배율 · 마지막 쓰러진 기물 */
   private slowMul = 1;
+  /** 궁극기 컷인 감속 · 대기열 */
+  private cutMul = 1;
+  private cutQ: { u: CUnit; id: string }[] = [];
+  private cutEnd = -1;
+  private cutEl: HTMLElement | null = null;
   private finaleHit = -1;
   private rt = 0;
   private syncVt = 0;
@@ -149,10 +159,11 @@ export class BattleView {
     for (const a of this.anims) this.rateOf(a);
   }
   private rateOf(a: Animation) {
-    const text = (a as Animation & { text?: boolean }).text;
+    const text = (a as Animation & { text?: boolean | 'ui' }).text;
     if (this._speed === 0) { a.pause(); return; }
-    const sp = this._speed * this.slowMul;
-    a.playbackRate = text ? Math.max(0.3, Math.min(2, sp)) : sp;
+    const sp = this._speed * this.slowMul * this.cutMul;
+    // ui: 컷인처럼 배속과 무관하게 실시간 (정지만 따름)
+    a.playbackRate = text === 'ui' ? 1 : text ? Math.max(0.3, Math.min(2, sp)) : sp;
     if (a.playState === 'paused') a.play();
   }
 
@@ -161,8 +172,9 @@ export class BattleView {
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - this.last) / 1000);
       this.last = now;
-      const adv = dt * this._speed * this.slowMul;
+      const adv = dt * this._speed * this.slowMul * this.cutMul;
       if (this._speed > 0) this.rt += dt; // 정지 중에는 멈추는 실시간 시계 (종료 연출용)
+      if (this.cutEnd >= 0 && this.rt >= this.cutEnd) { this.endCut(); this.nextCut(); }
       this.acc += adv;
       this.vt += adv;
       let steps = 0;
@@ -172,7 +184,7 @@ export class BattleView {
       this.sync();
       this.onTick();
       if (this.b.over) {
-        if (this.overAt < 0) { this.overAt = this.vt; this.finaleStart(); }
+        if (this.overAt < 0) { this.overAt = this.vt; this.cutQ.length = 0; this.endCut(); this.finaleStart(); }
         // 마지막 탄환 · 표식이 닿으면 흔들림 + 종료 배너, 잠시 뒤 보고서로
         if (this.finaleHit < 0 && (!this.q.length || this.vt - this.overAt > 1.2)) { this.flush(true); this.sync(); this.finaleImpact(); }
         if (this.finaleHit >= 0 && this.slowMul < 1 && this.rt - this.finaleHit > 0.9) { this.slowMul = 1; for (const a of this.anims) this.rateOf(a); } // 배너가 뜬 뒤 감속 해제
@@ -184,6 +196,7 @@ export class BattleView {
   }
 
   skip() {
+    this.cutQ.length = 0; this.endCut();
     this.b.keepEvents = false;
     this.b.events.length = 0;
     this.b.runToEnd();
@@ -228,14 +241,22 @@ export class BattleView {
     el.style.height = `${100 / this.b.h}%`;
     el.dataset.a = 'bsel';
     el.dataset.v = String(u.id);
-    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div><img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && (u.reason !== null || u.div !== null) ? '<div class="gx"><i></i></div>' : ''}<div class="sti"></div><div class="stc"></div><div class="stk"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
+    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div><img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && u.reason !== null ? '<div class="gx"><i></i></div>' : ''}<div class="sti"></div><div class="stc"></div><div class="stk"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
     el.innerHTML = card ? `<div class="tk-card">${inner}</div>` : inner;
     this.board.appendChild(el);
     const q = <T extends HTMLElement>(s: string) => el.querySelector<T>(s)!;
     this.els.set(u.id, {
+      ug: null, ugSig: '',
       el, face: (el.querySelector<HTMLElement>('.tk-card') || q('img')), hp: q('.hp'), loss: q('.loss'), sh: q('.sh'), cd: q('.cd i'), gx: el.querySelector<HTMLElement>('.gx i'),
       sti: q('.sti'), stc: q('.stc'), stk: q('.stk'), rl: q('.rl'), u, dead: false, trail: 1, trailHold: 0, stiSig: '', stkSig: '', rlMax: 1,
     });
+    if (u.ult || u.div !== null) {
+      // 테두리 게이지: 12시에서 반시계 방향으로 차오르고, 찰수록 선명해진다
+      const ring = document.createElement('div');
+      ring.className = `ug ${u.ult ? 'ult' : 'div'}`;
+      (el.querySelector<HTMLElement>('.tk-card') || el).appendChild(ring);
+      this.els.get(u.id)!.ug = ring;
+    }
   }
 
   // ───────── 표시 시계
@@ -284,10 +305,23 @@ export class BattleView {
       e.cd.style.width = u.cdMax ? `${Math.max(0, Math.min(100, (1 - u.cd / u.cdMax) * 100))}%` : '0';
       if (e.gx) {
         // 사이오닉 이성(보라, -100~100) / 디바인 신성력(금색, 0~100)
-        if (u.div !== null) { e.gx.style.setProperty('--v', `${u.divUsed ? 100 : u.div}%`); e.gx.className = u.divUsed ? 'div used' : 'div'; e.el.title = `신성력 ${Math.round(u.div)} (수집 ${Math.round(u.divGot)}/${u.divCap})`; }
-        else if (u.reason !== null) { e.gx.style.setProperty('--v', `${(u.reason + 100) / 2}%`); e.gx.className = u.reason <= -50 ? 'psi frenzy' : 'psi'; e.el.title = `이성 ${Math.round(u.reason)}`; }
+        if (u.reason !== null) { e.gx.style.setProperty('--v', `${(u.reason + 100) / 2}%`); e.gx.className = u.reason <= -50 ? 'psi frenzy' : 'psi'; e.el.title = `이성 ${Math.round(u.reason)}`; }
       }
       const alive = u.alive || (this.pendN.get(id) || 0) > 0;
+      if (e.ug) {
+        const f = u.ult ? (u.ultG || 0) : u.div !== null ? (u.divUsed ? 1 : u.div / 100) : 0;
+        const st = u.ult ? (f >= 1 ? 'full' : '') : u.divUsed ? 'used' : f >= 1 ? 'full' : '';
+        const sig = `${Math.round(f * 200)}|${st}|${alive ? 1 : 0}`;
+        if (sig !== e.ugSig) {
+          e.ugSig = sig;
+          e.ug.style.setProperty('--p', `${(f * 100).toFixed(1)}%`);
+          e.ug.style.setProperty('--o', (0.25 + 0.75 * f).toFixed(2));
+          e.ug.classList.toggle('full', st === 'full');
+          e.ug.classList.toggle('used', st === 'used');
+          e.ug.hidden = !alive;
+          if (u.div !== null) e.el.title = `신성력 ${Math.round(u.div)} (수집 ${Math.round(u.divGot)}/${u.divCap})`;
+        }
+      }
       // 재장전: 탄창 표식 + 진행 고리
       if (alive && u.reloadT > 0) {
         if (e.rl.hidden) { e.rl.hidden = false; e.rlMax = u.reloadT; }
@@ -358,9 +392,9 @@ export class BattleView {
   }
 
   // ───────── 애니메이션 도우미
-  private play(el: Element, kf: Keyframe[], ms: number, opt: KeyframeAnimationOptions = {}, text = false): Animation | null {
+  private play(el: Element, kf: Keyframe[], ms: number, opt: KeyframeAnimationOptions = {}, text: boolean | 'ui' = false): Animation | null {
     if (!el.animate) return null;
-    const a = el.animate(kf, { duration: ms, ...opt }) as Animation & { text?: boolean };
+    const a = el.animate(kf, { duration: ms, ...opt }) as Animation & { text?: boolean | 'ui' };
     a.text = text;
     this.anims.add(a);
     this.rateOf(a);
@@ -404,7 +438,7 @@ export class BattleView {
     const sel = this.selId !== null;
     const d = this.spawnFx(`ft ${cls}${rel ? ' focus' : sel ? ' dimf' : ''}`, c.x + dx, c.y - 100 / this.b.h * 0.3 - lane * 1.8,
       [{ transform: 'translate(-50%, 20%) scale(1.25)', opacity: 0, easing: EASE_OUT }, { transform: 'translate(-50%, -70%) scale(1)', opacity: 1, offset: 0.2, easing: 'linear' }, { transform: 'translate(-50%, -110%)', opacity: 1, offset: 0.7, easing: 'ease-in' }, { transform: 'translate(-50%, -140%)', opacity: 0 }],
-      FX.fxMs, { easing: EASE_OUT }, '', true);
+      FX.fxMs, {}, '', true);
     d.textContent = text;
     if (o.color) d.style.color = o.color;
     if (o.merge && o.v !== undefined) this.merges.set(o.merge, { el: d, v: o.v, until: this.vt + 0.35, fmt: o.fmt || ((v) => fmt(v)) });
@@ -520,6 +554,7 @@ export class BattleView {
       case 'heal': case 'shield': return this.onSupport(e);
       case 'status': return this.onStatus(e);
       case 'skill': return this.onSkill(e);
+      case 'ult': return this.onUlt(e);
       case 'skillEnd': if (this.skillCtx?.id === e.id) this.skillCtx = null; return;
       case 'fx': return this.onArea(e);
       case 'mark': return this.onMark(e);
@@ -695,8 +730,8 @@ export class BattleView {
     if (this.crowd(2, false)) return;
     const c = this.centerAt(u);
     const d = this.spawnFx(`skb${this.rel(e.id) ? ' focus' : this.selId !== null ? ' dimf' : ''}`, c.x, c.y - 100 / this.b.h * 0.55,
-      [{ transform: 'translate(-50%, -30%)', opacity: 0 }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.15 }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.75 }, { transform: 'translate(-50%, -150%)', opacity: 0 }],
-      FX.skillMs, { easing: EASE_OUT }, `<b></b>${showTag ? '<small></small>' : ''}`, true);
+      [{ transform: 'translate(-50%, -30%)', opacity: 0, easing: EASE_OUT }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.15 }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.75, easing: 'ease-in' }, { transform: 'translate(-50%, -150%)', opacity: 0 }],
+      FX.skillMs, {}, `<b></b>${showTag ? '<small></small>' : ''}`, true);
     d.querySelector('b')!.textContent = e.name;
     if (showTag) d.querySelector('small')!.textContent = e.tag!;
   }
@@ -771,6 +806,95 @@ export class BattleView {
       const c = this.center(u);
       this.spawnFx('tool', c.x, c.y, [{ transform: 'translate(-50%,-50%) rotate(-90deg) scale(.5)', opacity: 0 }, { transform: 'translate(-50%,-50%) rotate(0) scale(1.2)', opacity: 1, offset: 0.5 }, { transform: 'translate(-50%,-80%) rotate(30deg) scale(1)', opacity: 0 }], 650, {}, '⚙');
     } else this.play(ee.el, [{ transform: 'scale(.4)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], 300);
+  }
+
+  // ───────── 메이저 궁극기: 컷인 (좌측 스탠딩 · 스킬명 · 대사) + 클로즈업 + 감속
+  private onUlt(e: Extract<BEvent, { k: 'ult' }>) {
+    const u = this.unit(e.id), ult = ULTS[e.ult];
+    if (!u || !ult) return;
+    const off = FX.ultCut === 'off' || this.reduced || !this.b.keepEvents;
+    // 효과는 컷인 직후에 닿도록 (감속 중이라 게임 시간으로는 짧다)
+    this.skillCtx = { id: e.id, land: this.vt + (off ? T_SKILL : 0.18) };
+    this.castSeen.add(e.id);
+    this.log(e.id, `ult:${ult.id}`, `궁극기 · ${ult.name}`, 1, (n) => `궁극기 · ${ult.name}${n > 1 ? ` ×${n}` : ''}`);
+    const ee = this.els.get(e.id);
+    if (ee && !this.reduced) this.play(ee.face, [{ boxShadow: '0 0 0 0 #4aa8ff' }, { boxShadow: '0 0 0 4px #4aa8ff, 0 0 22px #4aa8ff', offset: 0.3 }, { boxShadow: '0 0 0 0 transparent' }], 600);
+    if (off) {
+      const c = this.centerAt(u);
+      const d = this.spawnFx('skb ult', c.x, c.y - 100 / this.b.h * 0.55, [{ transform: 'translate(-50%, -30%)', opacity: 0, easing: EASE_OUT }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.15 }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.75, easing: 'ease-in' }, { transform: 'translate(-50%, -150%)', opacity: 0 }], FX.skillMs, {}, '<b></b><small>궁극기</small>', true);
+      d.querySelector('b')!.textContent = ult.name;
+      return;
+    }
+    this.cutQ.push({ u, id: ult.id });
+    this.nextCut();
+  }
+  private nextCut() {
+    if (this.cutEnd >= 0 || !this.cutQ.length || this.b.over) return;
+    const { u, id } = this.cutQ.shift()!;
+    const ult = ULTS[id];
+    const view = this.board.parentElement;
+    if (!view || !ult) return;
+    const short = FX.ultCut === 'short' || this.cutQ.length > 0; // 줄이 밀리면 짧게
+    const dur = short ? 0.7 : 1.25;
+    this.cutEnd = this.rt + dur;
+    this.cutMul = 0.15;
+    for (const a of this.anims) this.rateOf(a);
+    // 클로즈업
+    const c = this.center(u);
+    this.board.style.transformOrigin = `${c.x}% ${c.y}%`;
+    this.play(this.board, [{ scale: '1', easing: EASE_OUT }, { scale: '1.12', offset: 0.25 }, { scale: '1.12', offset: 0.8, easing: 'ease-in-out' }, { scale: '1' }], dur * 1000, {}, 'ui');
+    const th = ult.theme;
+    const el = document.createElement('div');
+    el.className = `cutin ci-pat-${th.pat}${short ? ' short' : ''}`;
+    el.style.setProperty('--c1', th.c1); el.style.setProperty('--c2', th.c2);
+    const art = standURL(u.defId);
+    const chars = [...ult.name].map((ch) => `<span>${ch === ' ' ? '&nbsp;' : ch}</span>`).join('');
+    el.innerHTML = `<div class="ci-band"></div>${art ? `<div class="ci-art"><img alt="" src="${art}"></div>` : ''}
+      <div class="ci-text"><small class="ci-who"></small><b class="ci-name">${chars}</b>${short ? '' : '<span class="ci-line"></span>'}</div>`;
+    el.querySelector('.ci-who')!.textContent = `${u.name} · 궁극기`;
+    const ln = el.querySelector('.ci-line');
+    if (ln) ln.textContent = `“${ult.line}”`;
+    view.appendChild(el);
+    this.cutEl = el;
+    const ms = dur * 1000;
+    this.play(el.querySelector('.ci-band')!, [{ transform: 'skewY(-6deg) translateX(-105%)', opacity: 1, easing: EASE_OUT }, { transform: 'skewY(-6deg) translateX(0)', opacity: 1, offset: 0.18 }, { transform: 'skewY(-6deg) translateX(0)', opacity: 1, offset: 0.85, easing: 'ease-in' }, { transform: 'skewY(-6deg) translateX(8%)', opacity: 0 }], ms, { fill: 'both' }, 'ui');
+    const ai = el.querySelector('.ci-art');
+    if (ai) this.play(ai, [{ transform: 'translateX(-40%)', opacity: 0, easing: EASE_OUT }, { transform: 'translateX(0)', opacity: 1, offset: 0.22 }, { transform: 'translateX(2%)', opacity: 1, offset: 0.85, easing: 'ease-in' }, { transform: 'translateX(4%)', opacity: 0 }], ms, { fill: 'both' }, 'ui');
+    const tx = el.querySelector('.ci-text')!;
+    this.play(tx, [{ opacity: 1 }, { opacity: 1, offset: 0.85 }, { opacity: 0 }], ms, { fill: 'both' }, 'ui');
+    this.textFx(th.txt, el.querySelector('.ci-name')!, short ? 0.6 : 1);
+    if (ln) this.play(ln, [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 0, offset: 0.25 }, { opacity: 1, transform: 'translateY(0)', offset: 0.4 }, { opacity: 1 }], ms, { fill: 'both' }, 'ui');
+  }
+  private endCut() {
+    if (this.cutEnd < 0) return;
+    this.cutEnd = -1;
+    this.cutMul = 1;
+    for (const a of this.anims) this.rateOf(a);
+    const el = this.cutEl;
+    this.cutEl = null;
+    el?.remove();
+  }
+  /** 스킬명 글자 연출 (기물마다 다름) */
+  private textFx(kind: string, name: Element, k: number) {
+    const chars = Array.from(name.querySelectorAll('span'));
+    const each = (gap: number, kf: (i: number) => Keyframe[], ms: number, rev = false) => chars.forEach((ch, i) => this.play(ch, kf(i), ms * k, { delay: (rev ? chars.length - 1 - i : i) * gap * k, fill: 'both', easing: EASE_OUT }, 'ui'));
+    const whole = (kf: Keyframe[], ms: number) => this.play(name, kf, ms * k, { fill: 'both', easing: EASE_OUT, delay: 90 * k }, 'ui');
+    switch (kind) {
+      case 'heat': whole([{ filter: 'blur(6px)', transform: 'skewX(-14deg) translateY(8px)', opacity: 0 }, { filter: 'blur(1px)', transform: 'skewX(6deg)', opacity: 1, offset: 0.6 }, { filter: 'blur(0)', transform: 'skewX(0)', opacity: 1 }], 520); break;
+      case 'shake': whole([{ transform: 'translate(0,0)', opacity: 0 }, { transform: 'translate(-7px,3px)', opacity: 1, offset: 0.2 }, { transform: 'translate(6px,-3px)', offset: 0.4 }, { transform: 'translate(-4px,2px)', offset: 0.6 }, { transform: 'translate(2px,-1px)', offset: 0.8 }, { transform: 'translate(0,0)', opacity: 1 }], 480); break;
+      case 'stamp': whole([{ transform: 'scale(2.4) rotate(-8deg)', opacity: 0 }, { transform: 'scale(.92) rotate(-3deg)', opacity: 1, offset: 0.55 }, { transform: 'scale(1) rotate(-3deg)', opacity: 1 }], 380); break;
+      case 'glitch': whole([{ transform: 'translateX(-24px)', opacity: 0, filter: 'hue-rotate(120deg)' }, { transform: 'translateX(8px)', opacity: 1, offset: 0.3 }, { transform: 'translateX(-4px)', filter: 'hue-rotate(40deg)', offset: 0.55 }, { transform: 'translateX(2px)', offset: 0.75 }, { transform: 'none', filter: 'none', opacity: 1 }], 460); break;
+      case 'roar': whole([{ transform: 'scale(.3)', opacity: 0 }, { transform: 'scale(1.3)', opacity: 1, offset: 0.5 }, { transform: 'scale(1)', opacity: 1 }], 440); break;
+      case 'mist': whole([{ filter: 'blur(12px)', opacity: 0, letterSpacing: '.5em' }, { filter: 'blur(0)', opacity: 1, letterSpacing: '.06em' }], 760); break;
+      case 'slide': whole([{ transform: 'translateX(-120%)', opacity: 0 }, { transform: 'translateX(5%)', opacity: 1, offset: 0.6 }, { transform: 'translateX(0)', opacity: 1 }], 380); break;
+      case 'unwrap': whole([{ clipPath: 'inset(0 50% 0 50%)' }, { clipPath: 'inset(0 0 0 0)' }], 520); break;
+      case 'smear': whole([{ filter: 'blur(8px)', transform: 'scaleX(1.7)', opacity: 0 }, { filter: 'blur(0)', transform: 'scaleX(1)', opacity: 1 }], 480); break;
+      case 'type': each(45, () => [{ opacity: 0 }, { opacity: 1 }], 60); break;
+      case 'bored': each(85, () => [{ opacity: 0 }, { opacity: 1 }], 80); break;
+      case 'reverse': each(55, () => [{ opacity: 0, transform: 'translateX(12px)' }, { opacity: 1, transform: 'none' }], 220, true); break;
+      case 'spark': each(50, () => [{ opacity: 0, textShadow: '0 0 18px #fff, 0 0 30px var(--c2)' }, { opacity: 1, textShadow: '0 0 12px var(--c1), 0 2px 0 #000' }], 320); break;
+      default: whole([{ opacity: 0 }, { opacity: 1 }], 300);
+    }
   }
 
   // ───────── 사망 · 종료 연출

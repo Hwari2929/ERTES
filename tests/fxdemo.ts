@@ -14,7 +14,7 @@ R.autoPlace(run);
 for (const u of run.units) if (!u.pos) { R.autoPlace(run); }
 const enc = run.node!.enc!;
 const d = boardDims(enc.n);
-document.body.innerHTML = `<main class="wrap battle"><section class="board-col"><div class="board bview" style="--w:${d.w - 2};--h:${d.h - 2};--fw:${d.w};--fh:${d.h}"><div class="board-in" id="bboard"><div class="cells"></div></div></div></section></main>`;
+document.body.innerHTML = `<main class="wrap battle"><section class="board-col"><div class="board bview" style="width:min(660px,96vw);--w:${d.w - 2};--h:${d.h - 2};--fw:${d.w};--fh:${d.h}"><div class="board-in" id="bboard"><div class="cells"></div></div></div></section></main>`;
 const b = buildBattle(run, enc);
 const v = new BattleView(document.getElementById('bboard')!, b, () => {}, () => {});
 v.speed = +(q.get('speed') || 0.5);

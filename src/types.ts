@@ -68,12 +68,14 @@ export interface Stats {
   critDmg: number; armorPen: number; cdr: number; atkSpd: number;
   range: number; lifesteal: number;
   reloadSpd: number; aoe: number;
+  /** 궁극기 충전 효율 (+0.2 = 20% 빠르게) */
+  ultCharge: number;
 }
 export type StatKey = keyof Stats;
 
 export function emptyStats(): Stats {
   return { maxHp: 0, healEff: 0, shoot: 0, strike: 0, tech: 0, acc: 0, crit: 0, effHit: 0, armor: 0, effRes: 0,
-    moveSpd: 0, eva: 0, critDmg: 0, armorPen: 0, cdr: 0, atkSpd: 0, range: 0, lifesteal: 0, reloadSpd: 0, aoe: 0 };
+    moveSpd: 0, eva: 0, critDmg: 0, armorPen: 0, cdr: 0, atkSpd: 0, range: 0, lifesteal: 0, reloadSpd: 0, aoe: 0, ultCharge: 0 };
 }
 
 /** 피해 태그: 속성 + 전달 방식 + 피해 유형(사격·타격·기술) + 콤보/피니쉬. 'dot' = 지속 피해 */

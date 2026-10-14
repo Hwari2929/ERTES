@@ -9,6 +9,7 @@ import { emblemOf, isEmblem, itemEffect } from '../data/items';
 import { ENG_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { UNIT_BY_ID } from '../data/units';
 import { enableDivine, ENEMY_PSI, sigmundTarget } from '../data/rework';
+import { ULTS } from '../data/ults';
 import type { SummonDef } from '../data/unitkit';
 import { Rng } from '../rng';
 import { categoryOf, type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
@@ -203,6 +204,7 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
   c.cd = c.cdMax * 0.5;
   if (d.ttype === 'psionic') c.reason = Math.min(100, CFG.reasonStart + (c.mem.reasonStart || 0));
   if (d.ttype === 'divine') enableDivine(c, c.faith!, run?.divCap || 0);
+  if (d.ttype === 'major' && ULTS[d.id]) { c.ult = ULTS[d.id]; c.ultG = Math.min(1, CFG.ultStart + (c.mem.ultStart || 0)); } // 메이저 궁극기
   const sd = d.summon;
   if (sd) c.hooks.push({ onStart: (bb, self) => spawnSummons(bb, self, sd) });
   return c;
