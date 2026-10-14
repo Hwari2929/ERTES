@@ -5,6 +5,7 @@ import type { Elem } from '../types';
 import { hasPortrait, iconURL, standURL } from './portraits';
 import { ULTS } from '../data/ults';
 import { RELIC_BY_ID } from '../data/relics';
+import { SCHOOL_BY_ID, type SchoolId } from '../data/schools';
 
 export const ELEM_COLOR: Record<Elem, string> = {
   phys: 'var(--el-phys)', chem: 'var(--el-chem)', elec: 'var(--el-elec)', psy: 'var(--el-psy)', holy: 'var(--el-holy)', true: 'var(--el-true)',
@@ -53,13 +54,28 @@ const TOP_ICON: Record<string, { t: string; svg: string }> = {
   wound: { t: '부상: 회복 · 보호막 차단', svg: svg('M9 2h6v7h7v6h-7v7H9v-7H2V9h7Z') },
   vuln: { t: '취약: 받는 피해 증가', svg: svg('M12 2 2 21h20Zm-1 7h2v6h-2Zm0 8h2v2h-2Z') },
   suppress: { t: '제압: 다음 공격 피해 1', svg: svg('M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-6.3 5.1 11.2 11.2A8 8 0 0 1 5.7 7.1Zm12.6 9.8L7.1 5.7A8 8 0 0 1 18.3 16.9Z') },
+  // 사이오닉 학파 상태이상
+  burn: { t: '연소: 지속 물리 피해 (중첩)', svg: svg('M12 2c1 3.6 5.5 5.6 5.5 11a5.5 5.5 0 0 1-11 0c0-2.8 1.6-4.3 2.7-5.6.3 2.2 1.3 3.3 2.4 3.6C11.2 8.2 11 5 12 2Z') },
+  conduct: { t: '전도: 행동할 때마다 주변 적에게 전기 피해', svg: svg('M12.5 2 7 11h4l-1.5 7 6.5-9.5h-4L14 2ZM2 20a2 2 0 1 0 4 0 2 2 0 1 0-4 0ZM18 20a2 2 0 1 0 4 0 2 2 0 1 0-4 0Z') },
+  chill: { t: '오한: 공격 · 이동 속도 감소 (중첩, 빙결 확률)', svg: svg('M11 2h2v20h-2ZM2 11h20v2H2ZM4.2 5.6 5.6 4.2 19.8 18.4 18.4 19.8ZM18.4 4.2 19.8 5.6 5.6 19.8 4.2 18.4Z') },
+  regen: { t: '지속 회복', svg: svg('M20 3C10 3 4 8 4 15c0 2 .6 3.6 1.4 5L7 18.5C8 13 12 9 16 7c-3.5 3-6 6.5-7 11.5 1 .4 2 .5 3 .5 6 0 9-6 8-16Z') },
+  bond: { t: '결속: 받는 피해 증가 · 피해 공유', svg: svg('M3.5 9.5a4 4 0 0 1 5.7-5.7l3 3-1.4 1.4-3-3a2 2 0 0 0-2.9 2.9l3 3-1.4 1.4ZM20.5 14.5a4 4 0 0 1-5.7 5.7l-3-3 1.4-1.4 3 3a2 2 0 0 0 2.9-2.9l-3-3 1.4-1.4ZM8.5 7.1l8.4 8.4-1.4 1.4-8.4-8.4Z') },
+  resonance: { t: '공진: 피격될 때마다 주변 적에게 피해', svg: svg('M12 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM7.05 7.05l1.41 1.41a5 5 0 0 0 0 7.08l-1.41 1.41a7 7 0 0 1 0-9.9ZM16.95 7.05a7 7 0 0 1 0 9.9l-1.41-1.41a5 5 0 0 0 0-7.08ZM4.22 4.22l1.42 1.42a9 9 0 0 0 0 12.72l-1.42 1.42a11 11 0 0 1 0-15.56ZM19.78 4.22a11 11 0 0 1 0 15.56l-1.42-1.42a9 9 0 0 0 0-12.72Z') },
 };
+const ICON_FREEZE = svg('M12 1.5 21 6.75v10.5L12 22.5 3 17.25V6.75Zm0 4L7 8.4v7.2l5 2.9 5-2.9V8.4Z');
+const ICON_CHARM = svg('M12 21s-8.5-5.3-8.5-11.2A4.8 4.8 0 0 1 12 6.6a4.8 4.8 0 0 1 8.5 3.2C20.5 15.7 12 21 12 21Z');
+const BIG_ICON: Record<string, [string, string]> = { stun: [ICON_STUN, '기절: 행동 불가'], fear: [ICON_FEAR, '공포: 공격 · 기술 불가'], freeze: [ICON_FREEZE, '빙결: 행동 불가'], charm: [ICON_CHARM, '매혹: 잠시 상대 편으로 싸움'] };
+/** 사이오닉 학파 (엔진 필드가 없을 때도 안전하게) */
+const schoolOfC = (u: CUnit): string | null => (u as { school?: string | null }).school ?? null;
+const hasKey = (u: CUnit, k: string) => u.statuses.some((s) => s.key === k && s.dur > 0);
+const inFrenzy = (u: CUnit) => !!u.mem.frenzy || u.statuses.some((s) => s.key === 'frenzy');
+const PSI_TOP: Record<string, 1> = { burn: 1, conduct: 1, chill: 1, regen: 1, bond: 1, resonance: 1 };
 /** 위쪽 아이콘 줄에 올릴 상태 (기절 · 공포는 중앙, 암운 · 분석은 아래 중첩 표식) */
 function topIconKey(st: { key: string; type: string; taken?: { kind: string }[]; elem?: string }): string | null {
-  if (st.key === 'shock' || st.key === 'bleed' || st.key === 'poison' || st.key === 'slow' || st.key === 'wound' || st.key === 'suppress') return st.key;
+  if (st.key === 'shock' || st.key === 'bleed' || st.key === 'poison' || st.key === 'slow' || st.key === 'wound' || st.key === 'suppress' || st.key in PSI_TOP) return st.key;
   if (st.key === 'franze.judge') return 'judge';
   if (st.key === 'corrode' || st.key === 'decay') return 'corrode';
-  if (st.key === 'gloom' || st.key === 'vivian.shred' || st.key === 'stun' || st.key === 'fear') return null;
+  if (st.key === 'gloom' || st.key === 'vivian.shred' || st.key === 'stun' || st.key === 'fear' || st.key === 'freeze' || st.key === 'charm') return null;
   if (st.type === 'dot') return 'dot';
   if (st.taken?.some((t) => t.kind === 'vuln')) return 'vuln';
   return null;
@@ -248,7 +264,7 @@ export class BattleView {
     el.style.height = `${100 / this.b.h}%`;
     el.dataset.a = 'bsel';
     el.dataset.v = String(u.id);
-    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div><img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && u.reason !== null ? '<div class="gx"><i></i></div>' : ''}<div class="sti"></div><div class="stc"></div><div class="stk"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
+    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div><img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && u.reason !== null ? `<div class="gx${schoolOfC(u) ? ` sc sc-${schoolOfC(u)}` : ''}"><i></i></div>` : ''}<div class="sti"></div><div class="stc"></div><div class="stk"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
     el.innerHTML = card ? `<div class="tk-card">${inner}</div>` : inner;
     this.board.appendChild(el);
     const q = <T extends HTMLElement>(s: string) => el.querySelector<T>(s)!;
@@ -312,7 +328,19 @@ export class BattleView {
       e.cd.style.width = u.cdMax ? `${Math.max(0, Math.min(100, (1 - u.cd / u.cdMax) * 100))}%` : '0';
       if (e.gx) {
         // 사이오닉 이성(보라, -100~100) / 디바인 신성력(금색, 0~100)
-        if (u.reason !== null) { e.gx.style.setProperty('--v', `${(u.reason + 100) / 2}%`); e.gx.className = u.reason <= -50 ? 'psi frenzy' : 'psi'; e.el.title = `이성 ${Math.round(u.reason)}`; }
+        if (u.reason !== null) {
+          const sc = schoolOfC(u), fz = inFrenzy(u);
+          if (sc) {
+            // 학파 막대: 가운데가 0, 고이성은 위(오른쪽) · 저이성은 아래(왼쪽)로 채움
+            const r = Math.max(-1, Math.min(1, u.reason / 100)), g = e.gx.parentElement!;
+            g.style.setProperty('--a', `${50 + Math.min(0, r) * 50}%`);
+            g.style.setProperty('--w', `${Math.abs(r) * 50}%`);
+            g.style.setProperty('--k', Math.abs(r).toFixed(2));
+            const mode = fz ? 'frz' : r > 0.15 ? 'hi' : r < -0.15 ? 'lo' : 'mid';
+            if (g.dataset.m !== mode) { g.dataset.m = mode; g.className = `gx sc sc-${sc} ${mode}`; e.el.classList.toggle('psi-lo', mode === 'lo' || mode === 'frz'); e.el.dataset.sc = sc; }
+          } else { e.gx.style.setProperty('--v', `${(u.reason + 100) / 2}%`); e.gx.className = fz ? 'psi frenzy' : 'psi'; }
+          e.el.title = `이성 ${Math.round(u.reason)}${fz ? ' · 광폭' : ''}`;
+        }
       }
       const alive = u.alive || (this.pendN.get(id) || 0) > 0;
       if (e.ug) {
@@ -336,7 +364,7 @@ export class BattleView {
       } else if (!e.rl.hidden) e.rl.hidden = true;
       // 행동을 막는 상태: 머리 위 아이콘
       // 행동 불가류(기절 · 공포)는 초상화 중앙에 아이콘만 크게, 지속 피해 · 디버프는 위쪽 작은 아이콘 줄
-      const big = !alive ? '' : this.b.has(u, 'stun') ? 'stun' : this.b.has(u, 'fear') ? 'fear' : '';
+      const big = !alive ? '' : hasKey(u, 'freeze') ? 'freeze' : this.b.has(u, 'stun') ? 'stun' : hasKey(u, 'charm') ? 'charm' : this.b.has(u, 'fear') ? 'fear' : '';
       const top: string[] = [];
       if (alive) for (const st of u.statuses) {
         const k = topIconKey(st);
@@ -346,11 +374,13 @@ export class BattleView {
       if (blk !== e.stiSig) {
         const prevBig = e.stiSig.split('|')[0];
         e.stiSig = blk;
-        e.stc.innerHTML = big ? `<i class="stc-${big}" title="${big === 'stun' ? '기절: 행동 불가' : '공포: 공격 · 기술 불가'}">${big === 'stun' ? ICON_STUN : ICON_FEAR}</i>` : '';
+        e.stc.innerHTML = big ? `<i class="stc-${big}" title="${BIG_ICON[big][1]}">${BIG_ICON[big][0]}</i>` : '';
         e.sti.innerHTML = top.slice(0, 5).map((k) => `<i class="sti-${k.replace('.', '-')}" title="${TOP_ICON[k].t}">${TOP_ICON[k].svg}</i>`).join('');
         if (big && big !== prevBig && !this.reduced) this.play(e.stc, [{ transform: 'scale(1.6)', opacity: 0, easing: EASE_OUT }, { transform: 'scale(1)', opacity: 1 }], 260);
       }
       e.el.classList.toggle('stunned', big === 'stun');
+      e.el.classList.toggle('frozen', big === 'freeze');
+      e.el.classList.toggle('charmed', big === 'charm');
       e.el.classList.toggle('feared', big === 'fear');
       e.el.classList.toggle('shocked', top.includes('shock'));
       // 중첩 표식: 분석 (분절) · 암운 (개수)
@@ -358,6 +388,7 @@ export class BattleView {
       if (alive) for (const s of u.statuses) {
         if (s.key === 'vivian.shred' && s.stacks) { const m = s.stacks > 3 ? 5 : 3; stk += `<span class="stk-seg" title="방어 분석 ${s.stacks}/${m}">${'<i class="on"></i>'.repeat(s.stacks)}${'<i></i>'.repeat(Math.max(0, m - s.stacks))}</span>`; }
         if (s.key === 'gloom' && s.stacks) stk += `<span class="stk-gloom" title="암운 ${s.stacks}중첩">☁${s.stacks}</span>`;
+        if ((s.key === 'burn' || s.key === 'chill' || s.key === 'poison') && (s.stacks || 0) > 1) stk += `<span class="stk-n stk-${s.key}" title="${s.label || s.key} ${s.stacks}중첩">${s.stacks}</span>`;
       }
       if (stk !== e.stkSig) { e.stkSig = stk; e.stk.innerHTML = stk; }
       if (!alive && !e.dead) { e.dead = true; this.dieFx(e); }
@@ -555,6 +586,7 @@ export class BattleView {
   private unit(id: number | undefined) { return id === undefined ? undefined : this.els.get(id)?.u || this.b.units.find((x) => x.id === id); }
 
   private handle(e: BEvent) {
+    if ((e as { k: string }).k === 'cantrip') return this.onCantrip(e as unknown as { id: number; school: string; to?: number; name: string });
     switch (e.k) {
       case 'atk': return this.onAtk(e);
       case 'dmg': return this.onDmg(e);
@@ -764,6 +796,17 @@ export class BattleView {
   }
 
   /** 부활 · 시간 역행 · 처형 · 불사: 숫자보다 고유 표식 */
+  /** 사이오닉 소마법: 시전자 위에 학파 색 이름 + 대상에 학파 고리 */
+  private onCantrip(e: { id: number; school: string; to?: number; name: string }) {
+    const u = this.unit(e.id); if (!u) return;
+    const t = this.unit(e.to);
+    const color = SCHOOL_BY_ID[e.school as SchoolId]?.color || '#b07cff';
+    this.float(u, e.name, 'cantrip', { color, prio: 1, rel: this.rel(e.id) });
+    if (this.reduced) return;
+    const c = this.center(t || u);
+    const fx = this.spawnFx(`cring cr-${e.school}`, c.x, c.y, [{ transform: 'translate(-50%,-50%) scale(.4)', opacity: 0.95 }, { transform: 'translate(-50%,-50%) scale(1.25)', opacity: 0 }], 520);
+    fx?.style.setProperty('--sc', color);
+  }
   private onMark(e: Extract<BEvent, { k: 'mark' }>) {
     const u = this.unit(e.id); if (!u) return;
     const c = this.center(u);

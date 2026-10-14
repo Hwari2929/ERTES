@@ -10,7 +10,9 @@ import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEG
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, DROP_CONSUMABLES, XP_INJECT_AMOUNT, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, isConsumable, isEmblem, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem } from '../data/items';
 import { SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
-import { MAJOR_AUGS, PSI_AUGS, recMajors } from '../data/rework';
+import { MAJOR_AUGS, recMajors } from '../data/rework';
+import { SCHOOL_AUGS, schoolPassives } from '../data/psionic';
+import { SCHOOLS, schoolAugId, schoolOf } from '../data/schools';
 import { DEFAULT_RELIC, RELIC_BY_ID, RELICS } from '../data/relics';
 import { Rng } from '../rng';
 import { FAITHS,
@@ -130,8 +132,9 @@ export function addUnit(run: RunState, defId: string, rank: number): UnitState {
   run.units.push(u);
   if (!run.usedIds.includes(defId)) run.usedIds.push(defId);
   run.rankLog[defId] = Math.max(run.rankLog[defId] || 0, 1);
-  // 스페셜: 합류할 때 전용 증강 1개 (다른 유형은 합류 선택 없음)
+  // 스페셜: 합류할 때 전용 증강 1개 · 사이오닉: 합류할 때 학파 1개 (다른 유형은 합류 선택 없음)
   if (UNIT_BY_ID[defId].ttype === 'special') run.pending.push({ t: 'rankup', uid: u.uid, rank: 1, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, join: true, kind: 'special' });
+  if (UNIT_BY_ID[defId].ttype === 'psionic') run.pending.push({ t: 'rankup', uid: u.uid, rank: 1, points: 0, options: null, rerolls: 0, allocDone: true, join: true, kind: 'school' });
   if (UNIT_BY_ID[defId].ttype === 'divine') u.relic = DEFAULT_RELIC[defId]; // 기본 성유물
   for (let r = 2; r <= rank; r++) rankUp(run, u); // 건너뛴 이정표도 모두 지급
   return u;
@@ -779,16 +782,20 @@ export function buyXp(run: RunState, uid: string): boolean {
 export const xpCost = (run: RunState) => CFG.buyXpCost - (hasGlobal(run, 'G.study') ? 1 : 0);
 
 // ───────────────────────── 증강 선택
-export type AugKind = 'major' | 'special' | 'psionic';
+export type AugKind = 'major' | 'special' | 'psionic' | 'school';
 /** 기물 유형이 받는 증강 종류 (마이너 · 디바인은 없음) */
 export function typeAugKind(u: UnitState): AugKind | null {
   const tt = UNIT_BY_ID[u.defId].ttype;
   return tt === 'major' || tt === 'special' || tt === 'psionic' ? tt : null;
 }
-/** 이 유형 증강을 더 받을 수 있는지 (스페셜 · 사이오닉은 최대 4개) */
+/** 사이오닉: 보유 학파의 전공 증강 (학파가 없으면 빈 목록) */
+export const psiPool = (u: UnitState) => schoolPassives(schoolOf(u));
+/** 이 유형 증강을 더 받을 수 있는지 (스페셜 · 사이오닉은 최대 4개, 학파는 1개) */
 export function augRoom(u: UnitState, kind: AugKind) {
   if (kind === 'major') return true;
-  const list = kind === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : PSI_AUGS;
+  if (kind === 'school') return UNIT_BY_ID[u.defId].ttype === 'psionic' && !schoolOf(u);
+  if (kind === 'psionic' && !schoolOf(u)) return u.augments.filter((a) => a.id.startsWith('psi.')).length < 4; // 학파 선택 대기 중: 이정표는 남겨 둔다
+  const list = kind === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : psiPool(u);
   const pool = new Set(list.map((a) => a.id));
   if (u.augments.filter((a) => pool.has(a.id)).length >= 4) return false;
   return list.some((a) => !u.augments.some((p) => p.id === a.id) && !augClash(u, a.id)); // 고를 수 있는 증강이 남았는지
@@ -806,7 +813,9 @@ export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major')
   const owned = new Set(u.augments.map((a) => a.id));
   const avail = (a: { id: string; stack?: boolean }) => a.stack || !owned.has(a.id);
   if (!augRoom(u, kind)) return [];
-  const base = kind === 'special' ? def.specialAugs || [] : kind === 'psionic' ? PSI_AUGS : MAJOR_AUGS;
+  // 학파: 레이첼은 7개 전부, 나머지는 무작위 2개
+  if (kind === 'school') return def.id === 'rachel' ? SCHOOL_AUGS.map((a) => ({ id: a.id })) : rng(run, (r) => r.sample(SCHOOL_AUGS.map((a) => a.id), 2)).map((id) => ({ id }));
+  const base = kind === 'special' ? def.specialAugs || [] : kind === 'psionic' ? psiPool(u) : MAJOR_AUGS;
   const unitPool = base.filter((a) => avail(a) && !augClash(u, a.id));
   return rng(run, (r) => {
     let out: string[];
@@ -970,6 +979,7 @@ export function applyRankPicks(run: RunState, uid: string, picks: Major[], point
 }
 export function chooseAug(run: RunState, uid: string, pick: AugPick) {
   const u = run.units.find((x) => x.uid === uid)!;
+  if (pick.id.startsWith('school.') && schoolOf(u)) return; // 학파는 1개만
   u.augments.push(pick);
   if (u.pos === null) autoPlace(run);
 }
@@ -1083,7 +1093,7 @@ function genInvest(run: RunState): InvestOffer[] {
       const cands = run.units.flatMap((u) => {
         const k = typeAugKind(u);
         if (!k || !augRoom(u, k)) return [];
-        const pool = k === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : k === 'psionic' ? PSI_AUGS : MAJOR_AUGS;
+        const pool = k === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : k === 'psionic' ? psiPool(u) : MAJOR_AUGS;
         return pool.filter((a) => !a.roll && !u.augments.some((p) => p.id === a.id) && !augClash(u, a.id)).map((a) => ({ u, a }));
       });
       if (cands.length) { const c = r.pick(cands); o.uid = c.u.uid; o.aug = c.a.id; } else o.sold = true;
@@ -1128,7 +1138,15 @@ export function migrate(run: RunState): RunState {
   run.aceTarget ??= null;
   run.privilege ??= null;
   for (const u of run.units) u.mod ??= null;
-  for (const u of run.units) u.augments = u.augments.filter((a) => AUG_BY_ID[a.id]); // 없어진 증강 (라르스 장부 정리 등) 정리
+  for (const u of run.units) u.augments = u.augments.filter((a) => AUG_BY_ID[a.id]); // 없어진 증강 (라르스 장부 정리 · 임시 사이오닉 증강 psi.clarity 등) 정리
+  // 5단계 학파: 학파가 없는 사이오닉 기물은 무작위 학파 (합류 학파 선택이 대기 중이면 그대로 둔다)
+  for (const u of run.units) {
+    if (UNIT_BY_ID[u.defId]?.ttype !== 'psionic' || schoolOf(u)) continue;
+    if (run.pending.some((p) => p.t === 'rankup' && p.uid === u.uid && p.kind === 'school')) continue;
+    u.augments.unshift({ id: schoolAugId(rng(run, (r) => r.pick(SCHOOLS)).id) });
+  }
+  // 없어진 증강이 든 증강 선택지는 다시 뽑는다
+  for (const p of run.pending) if (p.t === 'rankup' && p.options?.some((o) => !AUG_BY_ID[o.id])) p.options = null;
   run.field ??= 'waste';
   run.diff ??= 0;
   run.cleared ??= false;

@@ -3,9 +3,15 @@ import { CFG } from '../src/config';
 import { CONSUMABLES, isConsumable, isEmblem, isLocked, isOccultMod } from '../src/data/items';
 import { memberships } from '../src/engine/build';
 import * as R from '../src/engine/run';
-import type { RunState, UnitState } from '../src/types';
+import type { AugPick, RunState, UnitState } from '../src/types';
 
 export type Track = (id: string, what: 'used' | 'sold' | 'bought') => void;
+/** 증강 선택: 사이오닉 학파(kind 'school')는 첫 번째, 나머지는 pick (무작위) */
+export function augChoice(p: { kind?: string; options: AugPick[] | null }, pick: (a: AugPick[]) => AugPick): AugPick | null {
+  const o = p.options || [];
+  if (!o.length) return null;
+  return p.kind === 'school' ? o[0] : pick(o);
+}
 const GRADE: Record<string, number> = { C: 1, G: 2, A: 3, L: 4 };
 const grade = (id: string | null) => (id ? GRADE[id[0]] || 0 : 0);
 const gear = (u: UnitState) => u.items.filter((x): x is string => !!x && !isLocked(x));

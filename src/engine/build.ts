@@ -169,6 +169,7 @@ function blankUnit(side: 0 | 1): CUnit {
     alive: true, isBoss: false, isSummon: false, immobile: false, phaseAmp: 1,
     counters: { dmg: 0, taken: 0, healed: 0, kills: 0, casts: 0, shield: 0, elem: {} }, mem: {},
     weapon: null, ammo: 0, reloadT: 0, combo: 0, reason: null, div: null, divGot: 0, divCap: 0, divUsed: false,
+    school: null, cantrip: null, cantripCd: 0, cantripMax: 0,
   };
 }
 
@@ -300,6 +301,7 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
     immobile: !!def.immobile, phaseAmp: phaseAmpMult(phase) * (1 + (mult - 1) / 2) * critTax,
   });
   c.mem.mult = mult;
+  c.elite = def.tier === 'elite';
   applyCategory(c);
   for (const m of MAJORS) c.mem[`M_${m}`] = em[m];
   c.cd = c.cdMax * 0.6;

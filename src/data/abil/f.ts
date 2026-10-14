@@ -238,7 +238,7 @@ export const ABIL_F: Record<string, AbilText> = {
         ...when(p.vuln, ['취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`]),
       ],
     }),
-    trait: '[g:reason]이 0 미만일 때 주는 [g:psy] 증폭량 +[p:0.5].',
+    trait: '[g:reason]이 낮을수록 주는 [g:psy] 증가 ([g:reason] -100에서 최대 +[p:0.3]).',
     augs: {
       chorus: '의뢰하지 않은 꿈 피해 [dmg+:tech:0.9:psy].',
       night: '공포 확률 [pp:0.35].',

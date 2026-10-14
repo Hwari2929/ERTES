@@ -6,7 +6,7 @@ import { UNITS, UNIT_BY_ID } from '../src/data/units';
 import { ENG_HOOK, SYN_BY_ID, SYNERGIES, tierOf } from '../src/data/synergies';
 import { buildBattle, deployed, memberships, synergyCounts } from '../src/engine/build';
 import * as R from '../src/engine/run';
-import { pilgrimBot } from './botlib';
+import { augChoice, pilgrimBot } from './botlib';
 import { Rng } from '../src/rng';
 import type { Major, RunState } from '../src/types';
 
@@ -59,7 +59,7 @@ function playRun(seed: number) {
         const pref: Major[] = d.range <= 1 ? ['vit', 'pow'] : ['pow', 'mnd'];
         if (!p.allocDone) R.applyRankPicks(run, p.uid, pref, p.points);
         R.ensureRankupOptions(run, p);
-        if (p.options!.length) R.chooseAug(run, p.uid, bot.pick(p.options!));
+        { const a = augChoice(p, (o) => bot.pick(o)); if (a) R.chooseAug(run, p.uid, a); }
       } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
       else if (p.t === 'recruit') {
         const have = new Map<string, number>();

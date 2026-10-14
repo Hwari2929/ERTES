@@ -1964,3 +1964,99 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .ip-stats { display: flex; flex-wrap: wrap; gap: 4px 10px; } .ip-stats span { display: inline-flex; align-items: center; gap: 4px; } .ip-stats .li, .ip-stats .mi { width: 14px; height: 14px; }
 .ip-eff { margin: 0; line-height: 1.5; }
 .ip-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* ───────── 사이오닉 학파 이성 막대 (가운데 0 · 고이성 위/오른쪽 · 저이성 아래/왼쪽)
+   --a: 채움 시작, --w: 채움 길이, --k: |이성|/100 (연출 세기) */
+.gx.sc { --sc: #b07cff; --dir: 90deg; --fill: var(--sc); --glow: var(--sc); overflow: visible; }
+.u.tkb .gx.sc { --dir: 0deg; display: block; }
+.gx.sc::before { content: ''; position: absolute; left: 50%; top: -1px; bottom: -1px; width: 1px; background: rgb(255 255 255 / .6); z-index: 1; }
+.u.tkb .gx.sc::before { left: -1px; right: -1px; top: 50%; bottom: auto; width: auto; height: 1px; }
+.gx.sc i { position: absolute; top: 0; bottom: 0; left: var(--a, 50%); width: var(--w, 0%); height: auto; background: var(--fill); }
+.u.tkb .gx.sc i { left: 0; right: 0; top: auto; bottom: var(--a, 50%); width: auto; height: var(--w, 0%); }
+.gx.sc.hi i { box-shadow: 0 0 calc(2px + var(--k) * 6px) var(--glow); }
+/* 홍염: 잉걸 → 고이성 흰 금빛 불꽃 · 저이성 붉게 깜빡이며 불티 */
+.gx.sc-pyro { --sc: #ff7a3d; --fill: linear-gradient(var(--dir), #c2410c, #ff9a3d); --glow: #ffe2a0; }
+.gx.sc-pyro.hi { --fill: linear-gradient(var(--dir), #ff8a3d, #fff1c2); }
+.gx.sc-pyro.lo { --fill: linear-gradient(var(--dir), #ff2d2d, #ff7a3d); }
+.gx.sc-pyro.lo i { animation: gxFlick calc(.9s - var(--k) * .5s) steps(3) infinite; }
+.gx.sc-pyro.lo::after { content: ''; position: absolute; left: var(--a); bottom: -2px; width: 2px; height: 2px; border-radius: 50%; background: #ffb347; box-shadow: 0 0 3px #ff5a1f; animation: gxSpark calc(1.1s - var(--k) * .5s) ease-in infinite; }
+.u.tkb .gx.sc-pyro.lo::after { left: 50%; bottom: calc(50% - var(--w)); }
+/* 뇌전: 회로 눈금 → 고이성 매끄러운 푸른 빛 · 저이성 아크가 튐 */
+.gx.sc-volt { --sc: #4fd1ff; --fill: repeating-linear-gradient(var(--dir), #4fd1ff 0 3px, rgb(79 209 255 / .35) 3px 4px); --glow: #8fe6ff; }
+.gx.sc-volt.lo { --fill: repeating-linear-gradient(var(--dir), #c9a8ff 0 3px, rgb(255 255 255 / .5) 3px 4px); }
+.gx.sc-volt.lo i { animation: gxZap calc(1.4s - var(--k) * .8s) steps(1) infinite; }
+/* 파종: 마디 덩굴 → 고이성 연두 싹 · 저이성 누런 보라 독방울 */
+.gx.sc-seed { --sc: #8fd14f; --fill: radial-gradient(circle, #e6ffc8 .8px, transparent 1.3px) 0 0 / 4px 4px, linear-gradient(var(--dir), #3f8f2a, #a8e063); --glow: #c8ff8a; }
+.gx.sc-seed.lo { --fill: radial-gradient(circle, #e0b0ff .8px, transparent 1.3px) 0 0 / 4px 4px, linear-gradient(var(--dir), #8a6d1f, #8e44ad); }
+.gx.sc-seed.lo::after { content: ''; position: absolute; left: var(--a); bottom: -1px; width: 2px; height: 3px; border-radius: 0 0 2px 2px; background: #b46ee0; animation: gxDrip calc(1.6s - var(--k) * .8s) ease-in infinite; }
+.u.tkb .gx.sc-seed.lo::after { left: 50%; bottom: calc(50% - var(--w)); }
+/* 시공: 시계 눈금 서리 → 고이성 또렷한 서리선 · 저이성 금 가고 어긋남 */
+.gx.sc-chrono { --sc: #a9dcff; --fill: repeating-linear-gradient(var(--dir), #f2fbff 0 1px, #a9dcff 1px 4px); --glow: #ffffff; }
+.gx.sc-chrono.lo { --fill: repeating-linear-gradient(var(--dir), #a9dcff 0 2px, transparent 2px 3px, #5d8fb8 3px 5px); }
+.gx.sc-chrono.lo i { animation: gxGlitch calc(1.2s - var(--k) * .7s) steps(1) infinite; }
+/* 초월: 별무리 → 고이성 후광 · 저이성 공허 맥동 · 색 반전 */
+.gx.sc-trans { --sc: #b07cff; --fill: radial-gradient(circle, #fff .6px, transparent 1px) 0 0 / 3px 5px, linear-gradient(var(--dir), #5a2fc0, #c9a2ff); --glow: #ecdcff; }
+.gx.sc-trans i { animation: gxStars 3s linear infinite; }
+.gx.sc-trans.hi i { box-shadow: 0 0 calc(3px + var(--k) * 7px) #ecdcff, 0 0 0 1px rgb(255 255 255 / .35); }
+.gx.sc-trans.lo i { box-shadow: -1px 0 #ff3d7f, 1px 0 #3dd6ff; animation: gxStars 3s linear infinite, gxVoid calc(1.6s - var(--k) * .8s) ease-in-out infinite; }
+/* 파장: 사인파 → 고이성 낮고 고른 파형 · 저이성 진폭이 커지고 카드가 흔들림 */
+.gx.sc-wave { --sc: #7ff0d8; --fill: repeating-linear-gradient(var(--dir), #c9fff2 0 1px, #7ff0d8 1px 3px, #2aa58c 3px 5px); --glow: #c9fff2; }
+.gx.sc-wave i { background-size: 100% 10px; animation: gxScroll 1.6s linear infinite; }
+.gx.sc-wave.lo i { animation: gxScroll calc(.8s - var(--k) * .5s) linear infinite, gxAmp calc(.5s - var(--k) * .25s) ease-in-out infinite; }
+.u.psi-lo[data-sc="wave"] > img, .u.psi-lo[data-sc="wave"] .tk-card { animation: wvShake .16s steps(2) infinite; }
+/* 보화: 금화 시세 → 고이성 초록 상승 · 저이성 붉은 급락 · 양 끝으로 갈수록 반짝임 */
+.gx.sc-gold { --sc: #ffc94d; --fill: linear-gradient(var(--dir), #a87b1c, #ffe08a); --glow: #fff1b0; }
+.gx.sc-gold.hi { --fill: linear-gradient(var(--dir), #c99a2e, #9be37a); }
+.gx.sc-gold.lo { --fill: linear-gradient(var(--dir), #ff5a5a, #ffc94d); }
+.gx.sc-gold.hi i, .gx.sc-gold.lo i { animation: gxGlint calc(1.8s - var(--k) * 1.2s) ease-in-out infinite; }
+.gx.sc-gold.lo i { box-shadow: 0 0 calc(2px + var(--k) * 6px) #ff8a5a; }
+/* 광폭 (-100): 붉은 맥동 */
+.gx.sc.frz i { background: #ff2d55; box-shadow: 0 0 8px #ff2d55; animation: gxFrz .45s ease-in-out infinite alternate; }
+.u.psi-lo[data-sc] .gx.sc.frz::before { background: #ff2d55; }
+@keyframes gxFlick { 0%, 100% { opacity: 1 } 40% { opacity: .5 } 70% { opacity: .85 } }
+@keyframes gxSpark { from { transform: translateY(0); opacity: 1 } to { transform: translateY(7px); opacity: 0 } }
+@keyframes gxDrip { 0% { transform: translateY(0) scaleY(.5); opacity: 0 } 30% { opacity: 1 } 100% { transform: translateY(8px) scaleY(1.2); opacity: 0 } }
+@keyframes gxZap { 0%, 100% { filter: none } 8% { filter: brightness(2.2) } 11% { filter: none } 52% { filter: brightness(1.8) hue-rotate(40deg) } 55% { filter: none } }
+@keyframes gxGlitch { 0%, 100% { translate: 0 0 } 20% { translate: 1px 0 } 45% { translate: -1px 1px } 60% { translate: 0 -1px } }
+@keyframes gxStars { from { background-position: 0 0, 0 0 } to { background-position: 0 -10px, 0 0 } }
+@keyframes gxVoid { 0%, 100% { filter: none } 50% { filter: invert(.8) hue-rotate(160deg) } }
+@keyframes gxScroll { from { background-position: 0 0 } to { background-position: 0 -10px } }
+@keyframes gxAmp { 0%, 100% { scale: 1 1 } 50% { scale: calc(1 + var(--k) * 1.2) calc(1 + var(--k) * 1.2) } }
+@keyframes wvShake { 0%, 100% { translate: 0 0 } 50% { translate: .6px -.6px } }
+@keyframes gxGlint { 0%, 100% { filter: brightness(1) } 50% { filter: brightness(1.7) } }
+@keyframes gxFrz { from { opacity: .65 } to { opacity: 1 } }
+/* 소마법 고리 · 이름 */
+.cring { position: absolute; width: 9%; aspect-ratio: 1; border-radius: 50%; border: 2px solid var(--sc, #b07cff); box-shadow: 0 0 12px var(--sc, #b07cff), inset 0 0 8px var(--sc, #b07cff); pointer-events: none; }
+.cring.cr-volt, .cring.cr-wave { border-style: dashed; }
+.cring.cr-chrono { border-radius: 30%; }
+.fl.cantrip, .float.cantrip { font-weight: 800; letter-spacing: .04em; }
+/* 새 상태이상 아이콘 색 · 중첩 숫자 */
+.sti .sti-burn { color: #ff7a3d; } .sti .sti-conduct { color: #4fd1ff; } .sti .sti-chill { color: #a9dcff; }
+.sti .sti-regen { color: #8fd14f; } .sti .sti-bond { color: #b07cff; } .sti .sti-resonance { color: #7ff0d8; }
+.stc .stc-freeze { color: #a9dcff; } .stc .stc-charm { color: #ff7ab8; }
+.stk-n { font: 700 9px/1 var(--f-mono); padding: 1px 3px; border-radius: 3px; background: #14161d; border: 1px solid currentColor; }
+.stk-n.stk-burn { color: #ff7a3d; } .stk-n.stk-chill { color: #a9dcff; } .stk-n.stk-poison { color: var(--el-chem); }
+@media (prefers-reduced-motion: reduce) { .gx.sc i, .gx.sc::after, .u.psi-lo > img, .u.psi-lo .tk-card { animation: none !important; } }
+/* 사이오닉 학파: 섹션 · 선택 카드 */
+.aug-ic.sch { background: color-mix(in srgb, var(--sc) 18%, #12141a); border-color: color-mix(in srgb, var(--sc) 70%, transparent); color: var(--sc); }
+.tt-school { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; } .tt-school .li { width: 18px; height: 18px; color: var(--sc); } .tt-school b { color: var(--sc); }
+.tt-cantrip .ab-kind { background: color-mix(in srgb, var(--sc) 18%, transparent); color: var(--sc); }
+.psi-scale { display: grid; gap: 3px; font-size: 12px; }
+.ps-row span { display: inline-block; min-width: 3.6em; font-size: 10.5px; font-weight: 700; padding: 0 4px; margin-right: 4px; border-radius: 3px; }
+.ps-row.hi span { background: color-mix(in srgb, var(--sc) 25%, transparent); color: var(--sc); }
+.ps-row.lo span { background: rgb(255 70 90 / .18); color: #ff8a9a; }
+.ps-meter { position: relative; height: 4px; margin-top: 3px; border-radius: 2px; background: linear-gradient(90deg, #ff4a5e, #3a3d48 50%, var(--sc)); }
+.ps-meter i { position: absolute; top: -3px; width: 2px; height: 10px; background: #fff; translate: -50% 0; }
+.ps-rest { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.sch-pill { display: inline-flex; align-items: center; gap: 4px; border-color: color-mix(in srgb, var(--sc) 55%, transparent); color: var(--sc); } .sch-pill .li { width: 12px; height: 12px; }
+.sch-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
+.aug-opt.sch-opt { grid-template-columns: minmax(0, 1fr); align-items: start; gap: 6px; align-content: start; text-align: left; border-color: color-mix(in srgb, var(--sc) 45%, var(--line)); }
+.aug-opt.sch-opt.on { border-color: var(--sc); box-shadow: 0 0 0 1px var(--sc), 0 0 16px color-mix(in srgb, var(--sc) 35%, transparent); }
+.so-head { display: flex; align-items: center; gap: 10px; } .so-head > span { display: grid; } .so-head b { color: var(--sc); font-size: 15px; } .so-head kbd { margin-left: auto; }
+.so-head .aug-ic { width: 40px; height: 40px; }
+.so-cant { font-size: 12.5px; line-height: 1.5; } .so-cant b { color: var(--sc); }
+.so-rs { font-size: 12px; } .so-rs .hi, .so-rs .lo { font-size: 10.5px; font-weight: 700; padding: 0 4px; border-radius: 3px; }
+.so-rs .hi { background: color-mix(in srgb, var(--sc) 25%, transparent); color: var(--sc); } .so-rs .lo { background: rgb(255 70 90 / .18); color: #ff8a9a; }
+.so-pass { display: flex; flex-wrap: wrap; gap: 3px; } .so-pass .pill { font-size: 10.5px; }
+.u.frozen > img, .u.frozen .tk-card { filter: saturate(.4) brightness(1.15) hue-rotate(170deg); }
+.u.charmed .tk-card, .u.charmed > img { box-shadow: 0 0 0 2px #ff7ab8, 0 0 10px #ff7ab8; }

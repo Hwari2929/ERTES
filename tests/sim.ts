@@ -5,7 +5,7 @@ import { FIELDS } from '../src/data/battlefields';
 import { UNITS, UNIT_BY_ID } from '../src/data/units';
 import { buildBattle } from '../src/engine/build';
 import * as R from '../src/engine/run';
-import { forkChoice, manageItems, shopSynth, pilgrimBot } from './botlib';
+import { augChoice, forkChoice, manageItems, shopSynth, pilgrimBot } from './botlib';
 import { Rng } from '../src/rng';
 import { MAJORS, type Major, type RunState } from '../src/types';
 
@@ -31,7 +31,7 @@ function resolvePending(run: RunState, bot: Rng) {
       const pref: Major[] = d.range <= 1 ? ['vit', 'pow'] : ['pow', 'mnd'];
       if (!p.allocDone) R.applyRankPicks(run, p.uid, pref, p.points);
       R.ensureRankupOptions(run, p);
-      if (p.options!.length) R.chooseAug(run, p.uid, bot.pick(p.options!));
+      { const a = augChoice(p, (o) => bot.pick(o)); if (a) R.chooseAug(run, p.uid, a); }
     } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
     else if (p.t === 'recruit') {
       // 현재 파티와 시너지가 가장 많이 겹치는 기물을 영입

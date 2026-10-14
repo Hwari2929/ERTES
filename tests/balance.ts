@@ -8,7 +8,7 @@ import { SYNERGIES, tierOf } from '../src/data/synergies';
 import { boardDims, buildAlly, buildEnemy, deployed, enemyCell, layout, memberships, synergyCounts } from '../src/engine/build';
 import { Battle, type CUnit, type DmgOpts, type DmgResult } from '../src/engine/combat';
 import * as R from '../src/engine/run';
-import { forkChoice, manageItems, shopSynth, type Track, pilgrimBot } from './botlib';
+import { augChoice, forkChoice, manageItems, shopSynth, type Track, pilgrimBot } from './botlib';
 import { Rng } from '../src/rng';
 import type { Major, RunState, SynergyId } from '../src/types';
 
@@ -110,7 +110,7 @@ function playRun(seed: number) {
         const pref: Major[] = UNIT_BY_ID[u.defId].range <= 1 ? ['vit', 'pow'] : ['pow', 'mnd'];
         if (!p.allocDone) R.applyRankPicks(run, p.uid, pref, p.points);
         R.ensureRankupOptions(run, p);
-        if (p.options!.length) R.chooseAug(run, p.uid, bot.pick(p.options!));
+        { const a = augChoice(p, (o) => bot.pick(o)); if (a) R.chooseAug(run, p.uid, a); }
       } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
       else if (p.t === 'recruit') {
         // 영입: 보유 기물과 시너지가 가장 많이 겹치는 기물 (+약간의 무작위)

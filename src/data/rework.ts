@@ -683,7 +683,9 @@ export const REWORK: Record<string, ReworkDef> = {
   onyx: {
     ctype: 'SPEC', ttype: 'psionic', faith: 'human', weapon: G('합창', 'psy', 1.0, 3, 0.9, 10, 2),
     factions: ['PAN'], traits: ['COND'],
-    trait: { name: '오닉스 합창', desc: '이성이 낮을수록 주는 정신 피해 증폭이 50% 더 커진다.', effect: { setup: (u) => { u.mem.abyss = (u.mem.abyss || 0) + 0.5; } } },
+    trait: { name: '오닉스 합창', desc: '이성이 낮을수록 주는 정신 피해 증가 (이성 -100에서 최대 +30%).', effect: { hooks: {
+      dmgMult: (_b, u, t, o) => (o.elem === 'psy' && t !== u && u.reason !== null && u.reason < 0 ? 1 + 0.3 * (-u.reason / 100) : 1),
+    } } },
     psi: { desc: '초당 이성 -2 (합창이 이성을 깎는다).', effect: { hooks: { onTick(b, u, dt) { u.mem.ot = (u.mem.ot || 0) + dt; if (u.mem.ot >= 1) { u.mem.ot -= 1; b.addReason(u, -2); } } } } },
   },
   rus: {
@@ -909,14 +911,8 @@ export const MAJOR_AUGS: AugDef[] = [
   { id: 'maj.ultc', name: '충전 회로', desc: '궁극기 충전 효율 +25%.', pool: 'major', stack: true, effect: () => ({ stats: { ultCharge: 0.25 } }) },
   { id: 'maj.ults', name: '선제 장전', desc: '전투 시작 시 궁극기 게이지 +30%.', pool: 'major', effect: () => ({ setup: (u) => { u.mem.ultStart = (u.mem.ultStart || 0) + 0.3; } }) },
 ];
-/** [임시] 사이오닉 증강: 사용자 명세를 받아 교체 예정 */
-export const PSI_AUGS: AugDef[] = [
-  { id: 'psi.clarity', name: '명징', desc: '전투 시작 이성 +30.', pool: 'psionic', effect: () => ({ setup: (u) => { u.mem.reasonStart = (u.mem.reasonStart || 0) + 30; } }) },
-  { id: 'psi.abyss', name: '심연 응시', desc: '이성이 낮을 때 주는 정신 피해 증폭 +50%.', pool: 'psionic', effect: () => ({ setup: (u) => { u.mem.abyss = (u.mem.abyss || 0) + 0.5; } }) },
-  { id: 'psi.bulwark', name: '이성의 방벽', desc: '이성이 높을 때 받는 정신 · 신성 피해량 경감과 지원 효율 증가 +50%.', pool: 'psionic', effect: () => ({ setup: (u) => { u.mem.bulwark = (u.mem.bulwark || 0) + 0.5; } }) },
-  { id: 'psi.calm', name: '광폭 제어', desc: '광폭 상태의 초당 지속 피해를 받지 않는다.', pool: 'psionic', effect: () => ({ setup: (u) => { u.mem.calmFrenzy = 1; } }) },
-  { id: 'psi.resonance', name: '공명 증폭', desc: '이성 증감량 +50%.', pool: 'psionic', effect: () => ({ setup: (u) => { u.mem.reasonAmp = (u.mem.reasonAmp || 0) + 0.5; } }) },
-];
+/** 사이오닉 전공 증강 (학파별 지속 능력 42종): psionic.ts */
+export { PSI_AUGS } from './psionic';
 
 // ───────────────────────── 신앙 · 신권 대행
 /** 고유 신앙 (디바인만 활성): 신성력 획득 조건 · 상시 버프 */

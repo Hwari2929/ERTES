@@ -1,5 +1,6 @@
 import { CFG } from '../config';
 import { Rng } from '../rng';
+import { PSI_STATUS, type SchoolId } from '../data/schools';
 import type { Category, CType, DmgTag, Elem, FaithId, Keyword, Mod, Stats, StatKey, SynergyId, TakenMod, TType, UnitState, Weapon } from '../types';
 
 export type StatusType = 'stun' | 'fear' | 'shock' | 'dot' | 'buff';
@@ -20,6 +21,8 @@ export function categoryImmune(c: Category, s: { type: string; key: string }): b
 }
 export const STATUS_NAME: Record<string, string> = {
   stun: '기절', fear: '공포', shock: '감전', root: '속박', stealth: '은신', poison: '중독', bleed: '출혈', corrode: '침식', decay: '부식', gloom: '암운', slow: '둔화', frenzy: '광폭', wound: '부상', suppress: '제압',
+  // 사이오닉 학파 상태이상 (연소 · 전도 · 지속 회복 · 오한 · 빙결 · 매혹 · 결속 · 공진)
+  ...Object.fromEntries(Object.entries(PSI_STATUS).map(([k, v]) => [k, v.name])),
 };
 
 export interface Status {
@@ -51,6 +54,29 @@ export interface Status {
   critVuln?: number;
   /** 지속이 끝날 때 */
   onExpire?(b: Battle, u: CUnit, s: Status): void;
+  // ── 학파 상태이상 (5단계)
+  /** 중첩 상한: 있으면 다시 걸 때 stacks 만큼 중첩이 더해진다 (연소 · 오한 · 독성 농축 중독) */
+  maxStacks?: number;
+  /** 중첩당 초당 피해 (dps = perDps × stacks) */
+  perDps?: number;
+  /** 중첩당 능력치 변화 (delta = perDelta × stacks) */
+  perDelta?: Partial<Stats>;
+  /** 초당 회복 (지속 회복) */
+  hps?: number;
+  /** 받는 회복량 배율 (부패) */
+  healMul?: number;
+  /** 효과 수치 스냅샷 (전도 · 공진 피해, 결속 공유 비율) */
+  val?: number;
+  /** 묶음 번호 (같은 계시로 걸린 결속) */
+  grp?: number;
+  /** 중첩이 바뀐 뒤 (백열 방어도 감소 등) */
+  onStack?(s: Status): void;
+  /** 이 상태의 기물이 기본 공격 · 전투 스킬을 쓸 때 (전도) */
+  onAct?(b: Battle, u: CUnit, s: Status): void;
+  /** 이 상태의 기물이 피해를 받은 뒤 (공진) */
+  onHit?(b: Battle, u: CUnit, src: CUnit, r: DmgResult, o: DmgOpts, s: Status): void;
+  /** 이 기물에게 다른 상태이상이 걸렸을 때 (정상파) */
+  onOther?(b: Battle, u: CUnit, s: Status, added: Status): void;
 }
 
 export interface DmgOpts {
@@ -66,6 +92,8 @@ export interface DmgOpts {
   critBonus?: number;
   pen?: number;
   noHooks?: boolean;
+  /** 지속 피해를 낸 상태이상 키 (연소 등). 'reason' = 저이성 정신 피해 (공격자 쪽 배율 없음) */
+  key?: string;
 }
 export interface DmgResult { amount: number; crit: boolean; miss: boolean; graze: boolean; killed: boolean }
 
@@ -98,8 +126,22 @@ export interface Hooks {
   onMove?(b: Battle, self: CUnit): void;
   /** 신권 대행 발동 직후 */
   onDivine?(b: Battle, self: CUnit): void;
-  /** 이성이 -50 이하로 떨어져 광폭에 들어갈 때 */
+  /** 이성이 -100 에 닿아 광폭에 들어갈 때 */
   onFrenzy?(b: Battle, self: CUnit): void;
+  /** 소마법을 쓴 직후 */
+  onCantrip?(b: Battle, self: CUnit): void;
+  /** 받을 피해가 정해진 뒤, 일부를 다른 대상에게 넘긴다 (반환: 남은 피해) */
+  redirect?(b: Battle, self: CUnit, src: CUnit, dmg: number, o: DmgOpts): number;
+}
+
+/** 사이오닉 소마법 (학파 증강이 붙인다). cast: 대상이 없으면 false */
+export interface Cantrip {
+  name: string;
+  cast(b: Battle, u: CUnit): false | { to?: CUnit };
+  /** 이번 시전 뒤 쿨다운 (초) */
+  cd(b: Battle, u: CUnit): number;
+  /** 이번 시전의 이성 소모 */
+  cost(b: Battle, u: CUnit): number;
 }
 
 /** 디바인 신권 대행 (rework.ts 에서 주입: 순환 import 방지) */
@@ -177,6 +219,13 @@ export interface CUnit {
   ctype?: CType; ttype?: TType;
   /** 사이오닉 이성 (-100 ~ +100), 없으면 null */
   reason: number | null;
+  /** 사이오닉 학파 · 소마법 (없으면 null / 0) */
+  school: SchoolId | null;
+  cantrip?: Cantrip | null;
+  /** 소마법 남은 쿨다운 · 이번 쿨다운 전체 (초) */
+  cantripCd: number; cantripMax: number;
+  /** 적 정예 (매혹 · 빙결 지속 시간 절반) */
+  elite?: boolean;
   /** 디바인 신성력 게이지 (0~100), 없으면 null */
   div: number | null;
   divGot: number; divCap: number; divUsed: boolean;
@@ -213,7 +262,9 @@ export type BEvent =
   /** 고유 표식: 부활 · 시간 역행 · 처형 · 불사 */
   | { k: 'mark'; id: number; name: string; style: 'revive' | 'rewind' | 'execute' | 'immortal' }
   /** 장비 지급 (필리스 배달 사고 등) */
-  | { k: 'gift'; from: number; to: number; item: string };
+  | { k: 'gift'; from: number; to: number; item: string }
+  /** 사이오닉 소마법 시전 (to: 주 대상) */
+  | { k: 'cantrip'; id: number; school: SchoolId; to?: number; name: string };
 
 export interface BattleCtx { phase: number; credits: number; field?: string; diff?: number }
 
@@ -267,14 +318,23 @@ export class Battle {
   // ───────── 이성 (사이오닉)
   addReason(u: CUnit, d: number) {
     if (u.reason === null || !u.alive || !d) return;
-    const before = u.reason;
-    u.reason = Math.max(-100, Math.min(100, before + d * (1 + (u.mem.reasonAmp || 0))));
-    if (before > -50 && u.reason <= -50) {
-      this.applyStatus(u, u, { type: 'buff', key: 'frenzy', dur: 999, mods: [{ kind: 'inc', tag: 'all', v: 0.3 }], label: '광폭' });
+    u.reason = Math.max(-100, Math.min(100, u.reason + d * (1 + (u.mem.reasonAmp || 0))));
+    this.checkFrenzy(u);
+  }
+  /** 광폭: 이성 -100 에서 시작 (피아 구분 없이 가장 가까운 대상 공격 · 소마법 불가 · 피해 +30%), -60 을 넘으면 해제 */
+  frenzied(u: CUnit) { return u.statuses.some((s) => s.key === 'frenzy'); }
+  private checkFrenzy(u: CUnit) {
+    if (u.reason === null || !u.alive) return;
+    const on = this.frenzied(u);
+    if (!on && u.reason <= -100) {
+      this.applyStatus(u, u, { type: 'buff', key: 'frenzy', dur: 9999, mods: [{ kind: 'inc', tag: 'all', v: 0.3 }], label: '광폭' });
+      u.target = null;
       this.emit({ k: 'status', id: u.id, name: '광폭!' });
       for (const h of u.hooks) h.onFrenzy?.(this, u);
-    } else if (before <= -50 && u.reason > -50) {
+    } else if (on && u.reason > -60) {
       u.statuses = u.statuses.filter((s) => s.key !== 'frenzy');
+      u.target = null;
+      this.emit({ k: 'status', id: u.id, name: '광폭 해제' });
     }
   }
   // ───────── 신성력 (디바인)
@@ -296,8 +356,11 @@ export class Battle {
   // ───────── 조회
   get over() { return this.winner !== null; }
   living(side?: 0 | 1) { return this.units.filter((u) => u.alive && (side === undefined || u.side === side)); }
-  enemiesOf(u: CUnit) { return this.living(u.side === 0 ? 1 : 0); }
-  alliesOf(u: CUnit, includeSelf = true) { return this.living(u.side).filter((a) => includeSelf || a !== u); }
+  /** 실제로 싸우는 편 (매혹된 기물은 시전자 편) */
+  sideOf(u: CUnit): 0 | 1 { return u.mem.charmTo ? ((u.mem.charmTo - 1) as 0 | 1) : u.side; }
+  enemiesOf(u: CUnit) { const s = this.sideOf(u); return this.units.filter((x) => x.alive && this.sideOf(x) !== s); }
+  /** 같은 편 (매혹된 기물은 원래 편과도, 시전자 편과도 아군이 아니다) */
+  alliesOf(u: CUnit, includeSelf = true) { const s = this.sideOf(u); return this.units.filter((a) => a.alive && a.side === u.side && this.sideOf(a) === s && (includeSelf || a !== u)); }
   dist(a: { x: number; y: number }, b: { x: number; y: number }) { return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)); }
   unitAt(x: number, y: number) { return this.units.find((u) => u.alive && u.x === x && u.y === y) || null; }
   inBounds(x: number, y: number) { return x >= 0 && y >= 0 && x < this.w && y < this.h; }
@@ -396,26 +459,51 @@ export class Battle {
         if (s.tickAcc >= 0.5 || s.dur <= 0) {
           const amt = s.dps * s.tickAcc;
           s.tickAcc = 0;
-          this.dealDamage(s.src, u, amt, { elem: s.elem || 'phys', tag: 'dot', syn: s.syn });
+          this.dealDamage(s.src, u, amt, { elem: s.elem || 'phys', tag: 'dot', syn: s.syn, key: s.key });
           if (!u.alive) return;
         }
+      } else if (s.hps && s.src) {
+        // 지속 회복: 1초마다
+        s.tickAcc = (s.tickAcc || 0) + dt;
+        if (s.tickAcc >= 1 || s.dur <= 0) { const amt = s.hps * s.tickAcc; s.tickAcc = 0; this.heal(s.src, u, amt); }
       }
     }
-    // 광폭: 초당 최대 체력 2% 지속 피해 (광폭 제어 증강이면 없음)
-    if (u.reason !== null && u.reason <= -50 && !u.mem.calmFrenzy) {
-      u.mem.frenzyT = (u.mem.frenzyT || 0) + dt;
-      if (u.mem.frenzyT >= 1) { u.mem.frenzyT = 0; this.dealDamage(u, u, this.S(u, 'maxHp') * 0.02, { elem: 'true', tag: 'dot', noHooks: true }); if (!u.alive) return; }
+    if (u.reason !== null) {
+      // 저이성: 초당 최대 체력 × 1% × (-이성/100) 정신 피해, -50 이하 2배
+      if (u.reason < 0) {
+        u.mem.lowT = (u.mem.lowT || 0) + dt;
+        if (u.mem.lowT >= 1) {
+          u.mem.lowT -= 1;
+          const k = (-u.reason / 100) * (u.reason <= -50 ? 2 : 1);
+          this.dealDamage(u, u, this.S(u, 'maxHp') * 0.01 * k, { elem: 'psy', tag: 'dot', noHooks: true, key: 'reason' });
+          if (!u.alive) return;
+        }
+      } else u.mem.lowT = 0;
+      // 광폭 중 초당 이성 +5 (-60 을 넘으면 해제)
+      if (this.frenzied(u)) this.addReason(u, 5 * dt);
+      else this.checkFrenzy(u);
     }
     const gone = u.statuses.filter((s) => s.dur <= 0 && s.onExpire);
     u.statuses = u.statuses.filter((s) => s.dur > 0);
     for (const s of gone) s.onExpire!(this, u, s);
+    // 매혹이 끝나거나 지워지면 원래 편으로
+    if (u.mem.charmTo && !u.statuses.some((s) => s.key === 'charm')) this.uncharm(u);
+  }
+  private uncharm(u: CUnit) {
+    u.mem.charmTo = 0;
+    u.target = null;
+    for (const x of this.units) if (x.target === u) x.target = null;
   }
 
   private act(u: CUnit, dt: number) {
-    const stunned = this.has(u, 'stun');
+    const stunned = this.has(u, 'stun'); // 빙결도 type 'stun'
     if (u.moveT > 0) { u.moveT -= dt; if (u.moveT <= 0) { u.px = u.x; u.py = u.y; } }
     if (stunned) return;
-    if (!this.has(u, 'shock')) u.cd -= dt * (1 + this.S(u, 'cdr'));
+    if (!this.has(u, 'shock')) {
+      const cdr = 1 + this.S(u, 'cdr');
+      u.cd -= dt * cdr;
+      if (u.cantrip) u.cantripCd = Math.max(0, u.cantripCd - dt * cdr);
+    }
     u.atkTimer -= dt * Math.max(0.2, 1 + this.S(u, 'atkSpd'));
     if (u.reloadT > 0) {
       u.reloadT -= dt * Math.max(0.2, 1 + this.S(u, 'reloadSpd'));
@@ -423,13 +511,16 @@ export class Battle {
     }
     if (u.moveT > 0) return;
 
-    if (!u.target || !u.target.alive || this.hidden(u.target)) u.target = this.nearest(u, this.targetable(u));
+    // 광폭: 피아 구분 없이 가장 가까운 대상
+    const frenzy = this.frenzied(u);
+    const pool = () => (frenzy ? this.units.filter((x) => x.alive && x !== u && !this.hidden(x)) : this.targetable(u));
+    if (!u.target || !u.target.alive || this.hidden(u.target) || u.target === u || (!frenzy && this.sideOf(u.target) === this.sideOf(u))) u.target = this.nearest(u, pool());
     const tgt = u.target;
     if (!tgt) return;
     const range = this.S(u, 'range');
     // 사거리 밖의 더 가까운 적이 생기면 재조준 (외길 추적: 대상이 쓰러질 때까지 바꾸지 않음)
-    if (this.dist(u, tgt) > range && !u.mem.lockTarget) {
-      const near = this.nearest(u, this.targetable(u));
+    if (this.dist(u, tgt) > range && (!u.mem.lockTarget || frenzy)) {
+      const near = this.nearest(u, pool());
       if (near && this.dist(u, near) < this.dist(u, tgt)) u.target = near;
     }
     const t2 = u.target!;
@@ -462,12 +553,20 @@ export class Battle {
           if (this.keepEvents) { this.events.splice(at, 0, { k: 'skill', id: u.id, name: sk.name, tag: sk.tag?.(u.sk) }); this.emit({ k: 'skillEnd', id: u.id }); }
           for (const h of u.hooks) h.onSkill?.(this, u);
           for (const a of this.alliesOf(u, false)) for (const h of a.hooks) h.onAllySkill?.(this, a, u);
+          this.statusAct(u);
           if (this.over) return;
         }
       }
     }
-    if (!t2.alive || u.noAttack) return;
-    if (d <= range) {
+    // 사이오닉 소마법: 전투 스킬과 별개, 준비되면 자동 시전 (공포 · 매혹 · 광폭 중에는 불가)
+    let d2 = d;
+    if (u.cantrip && u.cantripCd <= 0 && !feared && !frenzy && !u.mem.charmTo && u.alive) {
+      this.castCantrip(u);
+      if (this.over) return;
+      d2 = this.dist(u, t2); // 밀쳐내기 등으로 대상 위치가 바뀌었을 수 있다
+    }
+    if (!t2.alive || u.noAttack || !u.alive) return;
+    if (d2 <= range) {
       if (!feared && u.atkTimer <= 0 && u.reloadT <= 0) {
         const tgt2 = u.mem.lowestFocus ? this.lowestEnemy(u) || t2 : t2;
         this.basicAttack(u, tgt2);
@@ -477,6 +576,25 @@ export class Battle {
     } else if (!u.immobile && !u.statuses.some((s) => s.key === 'root')) {
       this.moveToward(u, t2, range);
     }
+  }
+
+  /** 소마법 시전: 시전 전 이성으로 쿨다운 · 소모를 정하고, 성공하면 이성 감소 */
+  private castCantrip(u: CUnit) {
+    const c = u.cantrip!;
+    const cd = c.cd(this, u), cost = c.cost(this, u);
+    const at = this.events.length;
+    const res = c.cast(this, u);
+    if (!res) { this.events.length = Math.min(this.events.length, at); return; }
+    if (this.keepEvents && u.school) this.events.splice(at, 0, { k: 'cantrip', id: u.id, school: u.school, to: res.to?.id, name: c.name });
+    u.cantripMax = Math.max(0.5, cd);
+    u.cantripCd = u.cantripMax;
+    u.mem.cantrips = (u.mem.cantrips || 0) + 1;
+    this.addReason(u, -cost);
+    for (const h of u.hooks) h.onCantrip?.(this, u);
+  }
+  /** 행동(기본 공격 · 전투 스킬)에 반응하는 상태이상 (전도) */
+  private statusAct(u: CUnit) {
+    for (const s of u.statuses.slice()) if (s.onAct && s.dur > 0) s.onAct(this, u, s);
   }
 
   basicAttack(u: CUnit, tgt: CUnit, coef = 1) {
@@ -498,6 +616,7 @@ export class Battle {
     const r = this.dealDamage(u, tgt, pow * m, { elem, tag: 'basic', kind, canMiss: true, extra, pen: holy ? 1 : 0 });
     for (const h of u.hooks) h.onBasic?.(this, u, tgt, r);
     for (const a of this.alliesOf(u, false)) for (const h of a.hooks) h.onAllyBasic?.(this, a, u);
+    if (u.alive) this.statusAct(u);
     return r;
   }
   lowestEnemy(u: CUnit) {
@@ -602,18 +721,17 @@ export class Battle {
       }
       dmg *= categoryMult(tgt.category, o.elem);
       const tags: DmgTag[] = ['all', o.elem, o.tag, ...(o.kind && o.tag !== 'dot' ? [o.kind] : []), ...(o.extra || [])];
-      dmg *= modMult(allMods(src), tags) * src.phaseAmp;
-      // 이성: 낮을수록 주는 정신 피해 증폭, 높을수록 받는 정신 · 신성 피해 감소
-      if (src.reason !== null && src.reason < 0 && o.elem === 'psy') dmg *= 1 + 0.6 * (-src.reason / 100) * (1 + (src.mem.abyss || 0));
-      if (tgt.reason !== null && tgt.reason > 0 && (o.elem === 'psy' || o.elem === 'holy')) dmg *= 1 - 0.3 * (tgt.reason / 100) * (1 + (tgt.mem.bulwark || 0));
+      const selfPsy = o.key === 'reason'; // 저이성 정신 피해: 공격자 쪽 배율 없음
+      if (!selfPsy) dmg *= modMult(allMods(src), tags) * src.phaseAmp;
       dmg *= takenMult(allTaken(tgt), tags, isTrue);
-      for (const h of src.hooks) if (h.dmgMult) dmg *= h.dmgMult(this, src, tgt, o);
+      if (!selfPsy) for (const h of src.hooks) if (h.dmgMult) dmg *= h.dmgMult(this, src, tgt, o);
       for (const h of tgt.hooks) if (h.takenMult) dmg *= h.takenMult(this, tgt, src, o);
       if (this.t > CFG.overtimeStart) dmg *= 1 + (this.t - CFG.overtimeStart) * CFG.overtimeRamp;
     }
     dmg = Math.max(0, dmg);
     if (tgt.mem.hitCap && dmg > 0) dmg = Math.min(dmg, this.S(tgt, 'maxHp') * tgt.mem.hitCap); // 올림푸스 성물: 1회 피해 상한
     if ((tgt.mem.invulnUntil || 0) > this.t) dmg = 0; // 성전 돌입 무적
+    if (dmg > 0 && src !== tgt) for (const h of tgt.hooks) if (h.redirect) dmg = Math.max(0, h.redirect(this, tgt, src, dmg, o)); // 자아 분리
     // 피해 분담 (린디웨 특별경호팀)
     const sh = dmg > 0 && o.tag !== 'dot' ? tgt.statuses.find((s) => s.share && s.share !== tgt && s.share.alive) : undefined;
     if (sh) {
@@ -642,7 +760,7 @@ export class Battle {
     }
     this.emit({ k: 'dmg', id: tgt.id, src: src.id, v: dmg, crit: res.crit, miss: res.miss, graze: res.graze, elem: o.elem, tag: o.tag, syn: o.syn, dhp, dsh });
     if (dmg > 0 && !o.noHooks) {
-      const ls = this.S(src, 'lifesteal') + (src.reason !== null && src.reason < 0 ? 0.2 * (-src.reason / 100) : 0);
+      const ls = this.S(src, 'lifesteal');
       if (ls > 0 && src.alive) this.heal(src, src, dmg * ls, true);
       for (const h of src.hooks) h.onDeal?.(this, src, tgt, res, o);
       if (tgt.alive) for (const h of tgt.hooks) h.onHurt?.(this, tgt, src, res, o);
@@ -654,6 +772,16 @@ export class Battle {
         if (rt > 0 && src.alive) this.dealDamage(tgt, src, dmg * rt, { elem: 'true', tag: 'proc', noHooks: true });
       }
     }
+    if (dmg > 0 && src !== tgt && !o.noHooks) {
+      // 결속: 받은 피해의 일부를 다른 결속 대상이 나눠 받는다
+      const bd = tgt.statuses.find((s) => s.key === 'bond' && s.val);
+      if (bd) {
+        const others = this.units.filter((x) => x.alive && x !== tgt && x.statuses.some((s) => s.key === 'bond' && s.grp === bd.grp));
+        for (const x of others) this.rawHit(bd.src || src, x, (dmg * bd.val!) / others.length, o.elem);
+      }
+      // 공진 등: 피격 반응
+      if (tgt.alive) for (const s of tgt.statuses.slice()) if (s.onHit && s.dur > 0) s.onHit(this, tgt, src, res, o, s);
+    }
     if (tgt.alive && tgt.hp <= 0) {
       for (const h of tgt.hooks) if (h.onLethal && h.onLethal(this, tgt)) break;
       if (tgt.hp <= 0) { res.killed = true; this.kill(tgt, src); }
@@ -661,14 +789,53 @@ export class Battle {
     return res;
   }
 
+  /** 이미 경감까지 계산된 피해를 그대로 준다 (결속 공유 · 자아 분리). 훅 없음 */
+  rawHit(src: CUnit, tgt: CUnit, amt: number, elem: Elem) {
+    if (!tgt.alive || amt <= 0) return 0;
+    if ((tgt.mem.invulnUntil || 0) > this.t) return 0;
+    let left = amt, dsh = 0;
+    if (tgt.shield > 0) { const a = Math.min(tgt.shield, left); tgt.shield -= a; left -= a; dsh = -a; }
+    const dhp = -Math.min(left, Math.max(0, tgt.hp));
+    tgt.hp -= left;
+    src.counters.dmg += amt;
+    src.counters.elem[elem] = (src.counters.elem[elem] || 0) + amt;
+    tgt.counters.taken += amt;
+    this.emit({ k: 'dmg', id: tgt.id, src: src.id, v: amt, crit: false, miss: false, graze: false, elem, tag: 'proc', dhp, dsh });
+    if (tgt.hp <= 0) {
+      for (const h of tgt.hooks) if (h.onLethal && h.onLethal(this, tgt)) break;
+      if (tgt.hp <= 0) this.kill(tgt, src);
+    }
+    return amt;
+  }
+
+  /** 밀쳐내기: 시전자 반대 방향으로 1칸 (보스 · 고정 기물 면역). blocker = 부딪힌 기물 */
+  knockback(src: CUnit, tgt: CUnit): { moved: boolean; blocker?: CUnit } {
+    if (!tgt.alive || tgt.isBoss || tgt.immobile) return { moved: false };
+    const dx = Math.sign(tgt.x - src.x), dy = Math.sign(tgt.y - src.y);
+    if (!dx && !dy) return { moved: false };
+    const nx = tgt.x + dx, ny = tgt.y + dy;
+    if (!this.inBounds(nx, ny)) return { moved: false };
+    const occ = this.unitAt(nx, ny);
+    if (occ) return { moved: false, blocker: occ };
+    tgt.px = tgt.x; tgt.py = tgt.y;
+    tgt.x = nx; tgt.y = ny;
+    tgt.moveDur = tgt.moveT = 0.2;
+    tgt.mem.lastCell = -1;
+    this.emit({ k: 'status', id: tgt.id, name: '밀쳐내기', src: src.id, harm: true, stype: 'knock' });
+    return { moved: true };
+  }
+
   kill(u: CUnit, by: CUnit | null) {
     if (!u.alive) return;
     u.alive = false;
     u.hp = 0;
+    if (u.mem.charmTo) u.mem.charmTo = 0; // 매혹 중 쓰러지면 원래 편으로 집계
     this.emit({ k: 'die', id: u.id, by: by?.id });
+    // 광폭으로 같은 편을 쓰러뜨린 것은 그 기물의 처치로 치지 않는다 (아군 사망은 그대로 패배 피해에 포함)
+    const foe = !!by && this.sideOf(by) !== u.side;
     if (u.side === 1 && by) this.counters.kills++;
     if (u.side === 0 && !u.isSummon) this.counters.allyDeaths++;
-    if (by && by.alive) { by.counters.kills++; for (const h of by.hooks) h.onKill?.(this, by, u); }
+    if (by && by.alive && foe) { by.counters.kills++; for (const h of by.hooks) h.onKill?.(this, by, u); }
     for (const a of this.alliesOf(u)) for (const h of a.hooks) h.onAllyDeath?.(this, a, u);
     for (const a of this.living()) for (const h of a.hooks) h.onAnyDeath?.(this, a, u, by);
     // 소환자가 죽으면 소환물도 소멸
@@ -684,8 +851,8 @@ export class Battle {
     if (!raw) {
       a *= 1 + this.S(tgt, 'healEff');
       for (const h of src.hooks) if (h.healMult) a *= h.healMult(this, src, tgt);
-      a *= this.supportMult(src, tgt);
     }
+    for (const s of tgt.statuses) if (s.healMul !== undefined) a *= s.healMul; // 부패
     const max = this.S(tgt, 'maxHp');
     const real = Math.min(a, max - tgt.hp);
     tgt.hp += real;
@@ -695,13 +862,6 @@ export class Battle {
     return real;
   }
 
-  /** 이성: 지원(회복·보호막) 효율 — 주는 쪽 이성이 높을수록 +, 받는 쪽 이성이 음수면 - */
-  supportMult(src: CUnit, tgt: CUnit) {
-    let m = 1;
-    if (src !== tgt && src.reason !== null && src.reason > 0) m *= 1 + 0.3 * (src.reason / 100) * (1 + (src.mem.bulwark || 0));
-    if (src !== tgt && tgt.reason !== null && tgt.reason < 0) m *= 1 - 0.5 * (-tgt.reason / 100);
-    return m;
-  }
   /** 부상 중첩이 있으면 회복 · 보호막 1회를 대신 소모한다 */
   consumeWound(tgt: CUnit) {
     const w = tgt.statuses.find((s) => s.key === 'wound' && (s.stacks || 0) > 0);
@@ -715,7 +875,6 @@ export class Battle {
     if (!tgt.alive || amt <= 0) return;
     if (this.consumeWound(tgt)) return;
     const giver0 = this.actor && this.actor.side === tgt.side ? this.actor : tgt;
-    amt *= this.supportMult(giver0, tgt);
     const before = tgt.shield;
     tgt.shield = Math.min(this.S(tgt, 'maxHp'), tgt.shield + amt);
     const giver = giver0;
@@ -728,12 +887,15 @@ export class Battle {
     if (!tgt.alive) return false;
     if (categoryImmune(tgt.category, s)) return false;
     if ((s.type === 'stun' || s.type === 'fear') && (tgt.mem.ccImmuneUntil || 0) > this.t && src.side !== tgt.side) return false; // 궁극기 등 일시 면역 // 분류 면역 (기계: 출혈 · 중독, 구조물: 기절 · 공포 · 빙결, 영혼: 매혹)
-    const hostile = src.side !== tgt.side;
-    if (hostile && tgt.category === 'bio' && s.dps && (s.key === 'bleed' || s.key === 'poison')) s.dps *= 1.25; // 생체: 출혈 · 중독 강화
+    const cc = s.key === 'freeze' || s.key === 'charm';
+    if (cc && tgt.isBoss) return false; // 보스: 빙결 · 매혹 면역
+    const hostile = this.sideOf(src) !== this.sideOf(tgt);
+    if (hostile && tgt.category === 'bio' && s.dps && (s.key === 'bleed' || s.key === 'poison')) { s.dps *= 1.25; if (s.perDps) s.perDps *= 1.25; } // 생체: 출혈 · 중독 강화
     if (hostile) {
       const p = baseChance * (1 + this.S(src, 'effHit') - this.S(tgt, 'effRes'));
       if (this.rng.next() >= p) return false;
       if (tgt.isBoss && (s.type === 'stun' || s.type === 'fear')) s.dur *= 0.5;
+      if (cc && tgt.elite) s.dur *= 0.5; // 정예: 빙결 · 매혹 지속 절반
       s.dur *= 1 + (src.mem.statusDur || 0);
       if (src.side === 0) this.counters.statuses++;
     }
@@ -742,13 +904,53 @@ export class Battle {
     s.src = src;
     for (const h of src.hooks) h.onInflict?.(this, src, tgt, s);
     const ex = tgt.statuses.find((x) => x.key === s.key);
-    if (ex) {
-      ex.dur = Math.max(ex.dur, s.dur);
-      if (s.dps && (!ex.dps || s.dps > ex.dps)) { ex.dps = s.dps; ex.src = src; }
-    } else tgt.statuses.push(s);
+    if (ex) this.mergeStatus(ex, s, src);
+    else {
+      if (s.maxStacks) { s.stacks = Math.min(s.maxStacks, s.stacks ?? 1); this.restack(s); }
+      else s.onStack?.(s);
+      tgt.statuses.push(s);
+      if (s.key === 'charm') { tgt.mem.charmTo = this.sideOf(src) + 1; tgt.target = null; for (const x of this.units) if (x.target === tgt) x.target = null; }
+    }
+    const cur = ex || s;
+    for (const x of tgt.statuses.slice()) if (x !== cur && x.onOther) x.onOther(this, tgt, x, cur);
     const label = s.label || STATUS_NAME[s.key];
     if (label) this.emit({ k: 'status', id: tgt.id, name: label, src: src.id, harm: hostile, stype: s.type });
     return true;
+  }
+  /** 같은 키 상태이상을 다시 걸 때: 지속 갱신, 중첩형이면 중첩 추가 */
+  private mergeStatus(ex: Status, s: Status, src: CUnit) {
+    ex.dur = Math.max(ex.dur, s.dur);
+    if (s.maxStacks) {
+      const n0 = ex.stacks ?? 1, per0 = ex.perDps ?? (ex.dps || 0) / n0;
+      ex.maxStacks = Math.max(ex.maxStacks || 0, s.maxStacks);
+      ex.stacks = Math.min(ex.maxStacks, n0 + (s.stacks ?? 1));
+      if (s.perDps !== undefined) ex.perDps = Math.max(per0, s.perDps);
+      if (s.perDelta) ex.perDelta = s.perDelta;
+      if (s.elem) ex.elem = s.elem;
+      ex.src = src;
+    } else if (s.dps && (!ex.dps || s.dps > ex.dps)) {
+      ex.dps = s.dps; ex.src = src;
+      if (ex.perDps !== undefined) ex.perDps = s.dps / (ex.stacks || 1);
+    }
+    if (s.key in PSI_STATUS) {
+      // 학파 상태이상: 새로 건 쪽의 수치 · 반응을 이어받는다
+      if (s.val !== undefined && s.val >= (ex.val ?? -Infinity)) { ex.val = s.val; ex.src = src; }
+      if (s.hps !== undefined && s.hps >= (ex.hps ?? 0)) { ex.hps = s.hps; ex.src = src; }
+      if (s.grp !== undefined) ex.grp = s.grp;
+      if (s.taken && !ex.taken) ex.taken = s.taken;
+      if (s.mods && !ex.mods) ex.mods = s.mods;
+      for (const k of ['onAct', 'onHit', 'onOther', 'onStack'] as const) if (s[k]) (ex as unknown as Record<string, unknown>)[k] = s[k];
+    }
+    if (s.healMul !== undefined) ex.healMul = Math.min(ex.healMul ?? 1, s.healMul);
+    this.restack(ex);
+  }
+  private restack(s: Status) {
+    if (s.maxStacks) {
+      const n = s.stacks ?? 1;
+      if (s.perDps !== undefined) s.dps = s.perDps * n;
+      if (s.perDelta) s.delta = Object.fromEntries(Object.entries(s.perDelta).map(([k, v]) => [k, (v as number) * n])) as Partial<Stats>;
+    }
+    s.onStack?.(s);
   }
 
   // ───────── 스킬 헬퍼

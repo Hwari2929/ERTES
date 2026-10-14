@@ -34,7 +34,8 @@ export interface AugDef {
   id: string;
   name: string;
   desc: string;
-  pool: 'unit' | 'syn' | 'common' | 'major' | 'special' | 'psionic';
+  /** school = 사이오닉 학파 (합류 시 1개), psionic = 학파 전공 */
+  pool: 'unit' | 'syn' | 'common' | 'major' | 'special' | 'psionic' | 'school';
   owner?: string; // 기물 id 또는 시너지 id
   stack?: boolean;
   effect: (param?: string) => Effect;
