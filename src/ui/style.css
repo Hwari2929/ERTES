@@ -1679,25 +1679,69 @@ body:has(.nr) { overflow: hidden; margin: 0; }
   .ds-card.on { min-height: 260px; transform: none; }
 }
 
-/* ───────── 특권 증강: 커튼이 내려온 뒤 카드 세 장 */
-.modal.privilege { width: min(980px, 100%); position: relative; overflow: hidden; padding-top: 28px; }
-.pv-curtain { position: absolute; inset: 0 0 auto; height: 100%; z-index: 0; pointer-events: none;
-  background: repeating-linear-gradient(90deg, #3a0f17 0 22px, #4b1520 22px 30px, #2c0a11 30px 44px); box-shadow: inset 0 -30px 40px rgb(0 0 0 / .6);
-  transform-origin: top; animation: pv-drop .8s cubic-bezier(.6, 0, .25, 1) both, pv-dim .6s ease .8s both; }
-.pv-fringe { position: absolute; left: 0; right: 0; bottom: 0; height: 14px; background: repeating-linear-gradient(90deg, var(--accent) 0 6px, transparent 6px 12px); opacity: .8; }
-@keyframes pv-drop { from { transform: translateY(-100%); } }
-@keyframes pv-dim { to { opacity: .22; } }
-.pv-body { position: relative; z-index: 1; display: grid; gap: 10px; }
-.pv-body h1 { margin: 0; }
-.pv-kicker { font-size: .74rem; letter-spacing: .3em; color: var(--accent); }
-.pv-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.pv-card { display: grid; align-content: start; gap: 8px; min-height: 200px; padding: 18px 16px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--accent) 50%, var(--line)); text-align: left; color: var(--fg); cursor: pointer;
-  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 14%, var(--panel)), var(--panel) 60%); box-shadow: 0 10px 26px rgb(0 0 0 / .45);
-  animation: pv-card .5s cubic-bezier(.2, .9, .3, 1.2) both; animation-delay: calc(.95s + var(--i) * .12s); transition: transform .2s, box-shadow .2s; }
-.pv-card:hover { transform: translateY(-4px); box-shadow: 0 0 0 1px var(--accent), 0 16px 32px rgb(0 0 0 / .55); }
-.pv-card b { font-size: 1.1rem; }
-.pv-sigil { font-size: 1.6rem; color: var(--accent); }
-.pv-desc { font-size: .86rem; color: var(--dim); }
-@keyframes pv-card { from { opacity: 0; transform: translateY(26px) rotateX(35deg); } }
+/* ───────── 특권 증강: 화면 전체를 덮는 막이 내려온 뒤 카드 세 장 */
+.modal-bg.pv-bg { background: transparent; }
+.modal.privilege { position: relative; z-index: 1; background: none; border: 0; box-shadow: none; width: min(1040px, 100%); overflow: visible; max-height: none; padding: 0; }
+.pv-curtain { position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(60% 50% at 50% 42%, rgb(242 169 59 / .22), transparent 70%),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / .28) 0 3px, transparent 3px 46px, rgb(255 255 255 / .05) 46px 52px, transparent 52px 96px),
+    linear-gradient(180deg, #2a0a12, #4a1220 45%, #1c060b);
+  box-shadow: inset 0 -80px 120px rgb(0 0 0 / .7), inset 0 60px 80px rgb(0 0 0 / .5);
+  animation: pv-drop 1s cubic-bezier(.65, 0, .25, 1) both; }
+.pv-curtain::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 64px; background: linear-gradient(#170408, #3a0d18); box-shadow: 0 6px 18px rgb(0 0 0 / .6);
+  -webkit-mask: radial-gradient(28px 18px at 50% 100%, transparent 98%, #000) 0 0 / 56px 100% repeat-x; mask: radial-gradient(28px 18px at 50% 100%, transparent 98%, #000) 0 0 / 56px 100% repeat-x; }
+.pv-fringe { position: absolute; left: 0; right: 0; bottom: 0; height: 22px; background: repeating-linear-gradient(90deg, var(--accent) 0 4px, #8a5a14 4px 8px); -webkit-mask: linear-gradient(#000, #0000); mask: linear-gradient(#000, #0000); opacity: .85; }
+.pv-curtain::after { content: ''; position: absolute; inset: 0; background: radial-gradient(40% 30% at 50% 0%, rgb(255 230 180 / .35), transparent); opacity: 0; animation: pv-spot .8s ease .9s forwards; }
+@keyframes pv-drop { from { transform: translateY(-102%); } }
+@keyframes pv-spot { to { opacity: 1; } }
+.pv-body { position: relative; z-index: 1; display: grid; gap: 12px; justify-items: center; text-align: center; animation: pv-in .5s ease .85s both; }
+@keyframes pv-in { from { opacity: 0; } }
+.pv-body h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.6rem); text-shadow: 0 0 22px rgb(242 169 59 / .5); }
+.pv-body > p { margin: 0; }
+.pv-kicker { font-size: .78rem; letter-spacing: .4em; color: var(--accent); }
+.pv-row { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 6px; }
+.pv-card { display: grid; align-content: start; gap: 8px; min-height: 230px; padding: 20px 16px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent); text-align: left; color: var(--fg); cursor: pointer;
+  background: linear-gradient(170deg, rgb(40 24 12 / .92), rgb(14 12 18 / .95) 60%); box-shadow: 0 14px 34px rgb(0 0 0 / .6), inset 0 1px 0 rgb(255 220 160 / .15);
+  animation: pv-card .55s cubic-bezier(.2, .9, .3, 1.2) both; animation-delay: calc(1.05s + var(--i) * .13s); transition: transform .2s, box-shadow .2s; }
+.pv-card:hover { transform: translateY(-6px); box-shadow: 0 0 0 1px var(--accent), 0 20px 40px rgb(0 0 0 / .7); }
+.pv-card b { font-size: 1.15rem; }
+.pv-sigil { font-size: 1.7rem; color: var(--accent); }
+.pv-desc { font-size: .88rem; color: #cfc6b4; }
+@keyframes pv-card { from { opacity: 0; transform: translateY(40px) rotateX(40deg); } }
 @media (max-width: 700px) { .pv-row { grid-template-columns: 1fr; } .pv-card { min-height: 0; } }
-@media (prefers-reduced-motion: reduce) { .pv-curtain, .pv-card { animation: none; } .pv-curtain { opacity: .22; } }
+@media (prefers-reduced-motion: reduce) { .pv-curtain, .pv-card, .pv-body { animation: none; } }
+
+/* 난이도 카드: 제목 높이를 맞추고 세부 조건은 i 버튼으로 */
+.ds-body { height: 150px; align-content: start; box-sizing: border-box; }
+.ds-info-btn { position: absolute; top: 12px; right: 12px; z-index: 3; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font: italic 700 15px Georgia, serif; color: var(--fg); background: rgb(8 10 16 / .65); border: 1px solid rgb(255 255 255 / .35); cursor: pointer; }
+.ds-info-btn:hover, .ds-card.info .ds-info-btn { background: var(--accent); color: #1a1206; border-color: var(--accent); }
+.ds-pop { position: absolute; top: 48px; right: 12px; left: 12px; z-index: 3; display: grid; gap: 6px; padding: 12px 14px; border-radius: 10px; background: rgb(8 10 16 / .9); border: 1px solid var(--line); font-size: .8rem; color: var(--dim);
+  opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity .25s, transform .25s; }
+.ds-pop b { color: var(--fg); font-size: .85rem; }
+.ds-pop ul { margin: 0; padding-left: 16px; display: grid; gap: 3px; }
+.ds-card.info .ds-pop { opacity: 1; transform: none; }
+.ds-conds { display: none; }
+@media (max-width: 700px) { .ds-body { height: auto; } }
+
+/* 전장 브리핑: 적 초상화 */
+.fb-foes { display: flex; flex-wrap: wrap; gap: 6px; }
+.fb-foe-ic { position: relative; width: 58px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: rgb(255 255 255 / .04); color: var(--fg); cursor: pointer; display: grid; justify-items: center; overflow: hidden; }
+.fb-foe-ic img, .fb-foe-ic canvas, .fb-foe-ic .spr { width: 56px; height: 56px; object-fit: cover; image-rendering: auto; display: block; }
+.fb-foe-ic i { font-style: normal; font-size: .62rem; line-height: 1.2; padding: 2px 3px 4px; width: 100%; box-sizing: border-box; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fb-foe-ic em { position: absolute; top: 2px; left: 2px; font-style: normal; font-size: .58rem; font-weight: 700; padding: 0 4px; border-radius: 3px; background: var(--bad); color: #fff; }
+.fb-foe-ic.tier-elite em { background: #b07cff; }
+.fb-foe-ic.tier-boss { border-color: color-mix(in srgb, var(--bad) 60%, var(--line)); }
+.fb-foe-ic:hover { border-color: var(--c, var(--accent)); }
+.modal.foe-modal { width: min(560px, 100%); }
+
+/* 메인 화면 환경 탭: 현재 전장 배경 */
+.env-hero { position: relative; min-height: 150px; border-radius: 10px; overflow: hidden; background-size: cover; background-position: center; display: grid; align-content: end; gap: 2px; padding: 14px; margin-bottom: 6px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent); isolation: isolate; animation: env-pan 24s ease-in-out infinite alternate; }
+.env-hero::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(transparent 20%, rgb(8 10 16 / .9)), radial-gradient(120% 80% at 50% 0%, transparent, rgb(8 10 16 / .35)); }
+.env-hero b { font: 400 1.3rem var(--display, 'Black Han Sans', sans-serif); text-shadow: 0 0 16px var(--c); }
+.env-hero span { font-size: .78rem; color: var(--c); }
+.env-kicker { letter-spacing: .25em; color: var(--dim) !important; font-size: .68rem !important; }
+@keyframes env-pan { from { background-position: 30% center; } to { background-position: 70% center; } }
+@media (prefers-reduced-motion: reduce) { .env-hero { animation: none; } }
+.ds-pop { max-height: calc(100% - 60px); overflow-y: auto; box-sizing: border-box; }
+@media (max-width: 700px) { .ds-card.info { min-height: 340px; } }

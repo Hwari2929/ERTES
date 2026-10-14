@@ -43,8 +43,8 @@ export function newRun(seed: number, starters: string[], field?: string, diff = 
   for (const id of starters) addUnit(run, id, 1);
   autoPlace(run);
   if (!field) run.field = rng(run, (r) => r.pick(FIELDS).id);
-  // 전장 · 난이도는 출격 전 화면에서 이미 보여 줬다. 시작 기물 합류 증강 → 특권 증강 순
-  run.pending.push({ t: 'privilege', options: rollPrivileges(run), rerolls: CFG.privilegeRerolls });
+  // 전장 · 난이도는 출격 전 화면에서 이미 보여 줬다. 특권 증강이 시작 기물 합류 증강보다 먼저
+  run.pending.unshift({ t: 'privilege', options: rollPrivileges(run), rerolls: CFG.privilegeRerolls });
   log(run, '용병단 ERRANTEs, 출격.');
   return run;
 }
@@ -537,6 +537,8 @@ function gearEnemies(run: RunState, r: Rng, enemies: EnemySpawn[], type: NodeTyp
       if (!r.chance(p)) continue;
       items.push(big && r.chance(0.5) ? r.pick(ALL_GRADED) : r.pick(ALL_COMPONENTS));
     }
+    // (6) 도전: 1페이즈부터 모든 적이 기본 장비를 최소 1개
+    if (!items.length && diffHas(run.diff, 6)) items.push(big && r.chance(0.5) ? r.pick(ALL_GRADED) : r.pick(ALL_COMPONENTS));
     if (items.length) s.items = items;
     if (diffHas(run.diff, 5) && r.chance(tier === 'boss' ? 0.6 : tier === 'elite' ? 0.3 : 0.1)) s.mod = r.pick(mods);
   }

@@ -75,6 +75,8 @@ const app = {
   diff: 0, // 새 런 난이도 (쉬움 0 · 모험 3 · 도전 6)
   introField: null as string | null, // 출격 연출: 이번 런 전장
   introDone: false, // 출격 연출을 끝까지 봤는지 (다시 그릴 때 연출 생략)
+  introFoe: null as string | null, // 전장 브리핑에서 연 적 상세
+  dsInfo: null as number | null, // 난이도 카드에서 펼친 세부 조건
   codexTab: 'units' as 'units' | 'enemies' | 'events' | 'records',
   codexGroup: 'none' as 'none' | 'faction' | 'trait' | 'ctype' | 'ttype', // 도감 기물: 모아보기 기준
   codexSel: null as string | null, // 도감 기물: 상세를 펼친 기물
@@ -427,7 +429,12 @@ function fieldBrief(fid: string) {
     <div class="fb-cell"><span class="fb-k">우세 시너지</span><span class="fb-v">${syn ? `<i style="--c:${syn.color}">${synIcon(syn.id) || syn.icon}${esc(syn.name)}</i>` : '<i>없음</i>'}</span></div>
   </div>
   <ul class="fb-rules">${f.rules.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
-  <div class="fb-foe small"><span class="accent">보스</span> ${f.bosses.map((id) => esc(ENEMY_BY_ID[id]?.name || id)).join(' → ')} · <span class="muted">정예</span> ${esc(ENEMY_BY_ID[f.elite]?.name || f.elite)}</div>`;
+  <div class="fb-foes">${[...f.bosses, f.elite, ...f.pool].map((id) => {
+    const e = ENEMY_BY_ID[id];
+    if (!e) return '';
+    const tag = e.tier === 'boss' ? '보스' : e.tier === 'elite' ? '정예' : '';
+    return `<button class="fb-foe-ic tier-${e.tier}" data-a="intro-foe" data-v="${id}" title="${esc(e.name)}">${sprite(e, '')}${tag ? `<em>${tag}</em>` : ''}<i>${esc(e.name)}</i></button>`;
+  }).join('')}</div>`;
 }
 function introScreen() {
   const f = fieldOf(app.introField);
@@ -442,7 +449,30 @@ function introScreen() {
       ${fieldBrief(f.id)}
       <div class="in-act"><button class="btn ghost" data-a="to-title">돌아가기</button><button class="btn primary" data-a="intro-ok">확인</button></div>
     </section>
+    ${app.introFoe ? foeModal(app.introFoe) : ''}
   </main>`;
+}
+/** 전장 브리핑: 적 초상화를 누르면 1페이즈 기준 상세 (능력 카드 · 설명) */
+function foeModal(id: string) {
+  const e = ENEMY_BY_ID[id];
+  if (!e) return '';
+  const b = new Battle(9, 9, new Rng(1), { phase: 1, credits: 0 });
+  const c = buildEnemy(b, e, 1, 1);
+  return `<div class="modal-bg" data-a="intro-foe" data-v=""><div class="modal foe-modal">
+    <div class="detail">${heroHead(`en_${e.id}`, sprite(e, 'spr big'), e.name, enemyTypes(e), `<i>${tierKo(e)}</i>`)}
+      <div class="small muted">${e.keywords.map((k) => KEYWORD_NAME[k]).join(' · ')}</div>
+      ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}
+      <h3>능력 <span class="muted small">1페이즈 기준</span></h3><div class="abils">${enemyAbilCards(e, b, c)}</div></div>
+    ${app.abilPop ? enemyAbilPop(app.abilPop, e, b, c) : ''}
+    <div class="row-btns"><button class="btn primary" data-a="intro-foe" data-v="">닫기</button></div>
+  </div></div>`;
+}
+/** 출격 연출 동안 전장 · 난이도 배경을 미리 받아 둔다 */
+let bgWarm = false;
+function preloadBgs() {
+  if (bgWarm) return;
+  bgWarm = true;
+  for (const k of [...FIELDS.map((f) => `field_${f.id}`), 'diff_easy', 'diff_adventure', 'diff_challenge']) { const im = new Image(); im.decoding = 'async'; im.src = bgURL(k); }
 }
 /** 별 무리 → 커튼 갈라짐 → 슬롯 회전 → 착지 (DOM 만 조작하고 끝나면 introDone) */
 let introTimer = 0;
@@ -479,10 +509,11 @@ function diffScreen() {
     <div class="ds-row">${DIFF_PICKS.map((d) => {
       const on = app.diff === d.lvl;
       const conds = DIFFS.filter((x) => x.lvl >= 1 && x.lvl <= d.lvl).map((x) => x.desc);
-      return `<button class="ds-card${on ? ' on' : ''}" data-a="diff" data-v="${d.lvl}" aria-pressed="${on}">
+return `<button class="ds-card${on ? ' on' : ''}${app.dsInfo === d.lvl ? ' info' : ''}" data-a="diff" data-v="${d.lvl}" aria-pressed="${on}">
         <span class="ds-bg" style="background-image:url('${bgURL(d.bg)}')"></span><span class="ds-shade"></span>
-        <span class="ds-body"><span class="ds-sub">${d.sub}</span><b class="ds-name">${d.name}</b><span class="ds-line">${d.line}</span>
-          ${conds.length ? `<ul class="ds-conds">${conds.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : '<span class="ds-line muted">추가 조건 없음</span>'}</span></button>`;
+        <span class="ds-info-btn" data-a="ds-info" data-v="${d.lvl}" role="button" aria-label="${d.name} 세부 조건" title="세부 조건">i</span>
+        <span class="ds-pop">${conds.length ? `<b>세부 조건</b><ul>${conds.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : '<b>세부 조건</b><span>추가 조건 없음</span>'}</span>
+        <span class="ds-body"><span class="ds-sub">${d.sub}</span><b class="ds-name">${d.name}</b><span class="ds-line">${d.line}</span></span></button>`;
     }).join('')}</div>
     <div class="ds-act"><button class="btn ghost" data-a="intro-back">전장 다시 보기</button><button class="btn primary" data-a="diff-ok">출격 준비</button></div>
   </main>`;
@@ -561,7 +592,7 @@ function mapScreen(run: RunState) {
       ${run.inventory.length ? `<div class="inv-strip">${run.inventory.map((id) => itemIcon(id)).join('')}</div>` : '<p class="muted small">보관 중인 장비가 없습니다.</p>'}
       </section>
       <section class="st-pane" role="tabpanel" aria-label="환경">
-      <h2>전장</h2>
+      <div class="env-hero" style="--c:${fieldOf(run.field).color};background-image:url('${bgURL(`field_${fieldOf(run.field).id}`)}')"><span class="env-kicker">현재 전장</span><b>${esc(fieldOf(run.field).name)}</b><span>${esc(fieldOf(run.field).region)}</span></div>
       <button class="field-btn" data-a="field-info" title="전장 브리핑 다시 보기">${fieldCard(run, true)}</button>
       ${run.quests.length ? `<h2>헬레니우스 퀘스트</h2><ul class="quests">${run.quests.map((q) =>
         `<li class="${q.done ? 'done' : ''}">${esc(R.questText(q))} <span class="muted">${Math.min(q.progress, q.target)}/${q.target} · 보상 ${R.questRewardText(q)}</span></li>`).join('')}</ul>` : ''}
@@ -1284,8 +1315,7 @@ function pendingModal(run: RunState): string {
       <div class="row-btns"><button class="btn primary" data-a="field-ok">출격 준비</button></div>`;
   } else if (p.t === 'privilege') {
     mcls = 'privilege';
-    body = `<div class="pv-curtain" aria-hidden="true"><span class="pv-fringe"></span></div>
-      <div class="pv-body"><span class="pv-kicker">출격 특권</span><h1>특권 증강</h1><p class="muted small">이번 런에만 적용되는 특권을 한 장 고르세요.</p>
+    body = `<div class="pv-body"><span class="pv-kicker">출격 특권</span><h1>특권 증강</h1><p class="muted small">이번 런에만 적용되는 특권을 한 장 고르세요.</p>
       <div class="pv-row">${p.options.map((o, i) => `<button class="pv-card" style="--i:${i}" data-a="pick-privilege" data-v="${i}"><span class="pv-sigil" aria-hidden="true">♜</span><b>${esc(R.privilegeName(o))}</b><span class="pv-desc">${ic(esc(R.privilegeDesc(o)))}</span></button>`).join('')}</div>
       <div class="row-btns"><button class="btn" data-a="reroll-privilege" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div></div>`;
   } else if (p.t === 'rankup') {
@@ -1388,7 +1418,9 @@ function pendingModal(run: RunState): string {
   } else if (p.t === 'notice') {
     body = `<h1>${esc(p.title)}</h1>${p.scene?.length ? sceneHtml(p.scene) : ''}<p class="${p.scene?.length ? 'sc-result' : ''}">${ic(esc(p.body))}</p><button class="btn primary" data-a="notice-ok">확인</button>`;
   }
-  return `<div class="modal-bg"><div class="modal ${mcls}">${body}</div></div>`;
+  // 특권: 화면 전체를 덮는 막 (모달 바깥에 두어야 화면 기준으로 깔린다)
+  const curtain = mcls === 'privilege' ? '<div class="pv-curtain" aria-hidden="true"><span class="pv-fringe"></span></div>' : '';
+  return `<div class="modal-bg${mcls === 'privilege' ? ' pv-bg' : ''}">${curtain}<div class="modal ${mcls}">${body}</div></div>`;
 }
 const STAT_SHORT: Record<string, string> = {
   maxHp: '체력', healEff: '회복 효율', shoot: '사격', strike: '타격', tech: '기술', acc: '명중', crit: '치명', effHit: '효과 명중',
@@ -2195,10 +2227,16 @@ function act(a: string, v: string) {
   }
   switch (a) {
     case 'newrun': // 출격: 전장 추첨 연출부터
-      app.screen = 'intro'; app.menu = null; app.introDone = false;
+      app.screen = 'intro'; app.menu = null; app.introDone = false; app.introFoe = null; app.abilPop = null; preloadBgs();
       app.introField = FIELDS[Math.floor(Math.random() * FIELDS.length)].id;
       break;
     case 'intro-back': app.screen = 'intro'; app.introDone = true; break;
+    case 'intro-foe': app.introFoe = v || null; app.abilPop = null; break;
+    case 'ds-info': { // 난이도 세부 조건: 다시 그리지 않고 펼침만
+      app.dsInfo = app.dsInfo === +v ? null : +v;
+      root.querySelectorAll<HTMLElement>('.ds-card').forEach((c) => c.classList.toggle('info', +(c.dataset.v || 0) === app.dsInfo));
+      return;
+    }
     case 'intro-ok': app.screen = 'diffsel'; if (![0, 3, 6].includes(app.diff)) app.diff = 0; break;
     case 'diff-ok':
       app.starters = []; app.screen = 'newrun'; app.menu = null; carX = null; app.cardOpen = null;

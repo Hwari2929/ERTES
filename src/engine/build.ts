@@ -280,7 +280,7 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   // 난이도 단계
   const d = b.ctx.diff || 0;
   if (diffHas(d, 1)) st.maxHp *= 1.15;
-  if (diffHas(d, 2)) c.phaseAmp *= 1.15;
+  if (diffHas(d, 2)) c.phaseAmp *= diffHas(d, 6) ? 1.5 : diffHas(d, 3) ? 1.25 : 1.15; // 위험 2 ×1.15 · 모험(3) ×1.25 · 도전(6) ×1.5
   if (diffHas(d, 4) && def.tier === 'boss') st.maxHp *= 1.25;
   if (diffHas(d, 5)) st.eva += 0.1;
   if (diffHas(d, 7)) { st.armor *= 1.25; st.effRes += 0.15; st.eva += 0.1; }
