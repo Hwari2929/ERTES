@@ -213,6 +213,8 @@ button { font: inherit; color: inherit; }
 .gx i.frenzy { background: #ff4060; }
 .gx i.div { background: #ffd34d; }
 .gx i.div.used { background: rgba(255, 211, 77, .35); }
+/* 피격 · 상태이상 시 초상화의 filter/transform 이 쌓임 맥락을 만들어도 게이지 · 배지는 항상 위 */
+.u .bars, .u .cd, .u .gx, .u .ubadge, .u .uitems { z-index: 2; }
 .u.reloading .cd { outline: 1px dashed rgba(255, 255, 255, .45); }
 .u.hit img { animation: hit .18s; }
 .u.lunge img { animation: lunge .2s; }
