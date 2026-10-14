@@ -10,6 +10,14 @@
     "field_waste": "desert wasteland planet, rusted crashed starships half buried in sand, raider camp with makeshift towers, dust storm, two suns low on the horizon, ochre and brown palette, faint ghostly lights in the sky",
     "diff_easy": "calm starry sky over a quiet spaceport at dawn, soft blue and pale gold light, gentle nebula, peaceful, serene clouds",
     "diff_adventure": "small starship sailing through a vivid nebula toward unknown planets, light rays, orange and teal palette, sense of adventure, dynamic composition",
-    "diff_challenge": "ominous black hole with red lightning, enemy warfleet emerging from darkness, dramatic storm of debris, crimson and black palette, menacing"
+    "diff_challenge": "ominous black hole with red lightning, enemy warfleet emerging from darkness, dramatic storm of debris, crimson and black palette, menacing",
+    "field_sp1": "endless line of bronze shield-wall space stations forming a blockade across the sky above a planet, tiny glowing defense lights, vast scale, calm before battle, teal and bronze",
+    "field_sp2": "ruined greek temple floating on an asteroid in orbit, broken marble columns, burning wreckage drifting past, sunset light over a teal planet horizon",
+    "field_sp3": "orbital battlefield seen from a planet surface, sky full of falling burning debris and streaking warships, bronze statue of a spartan warrior on a cliff in the foreground silhouette",
+    "field_sp4": "inside a massive bronze hangar of a war station, rows of identical mecha soldiers standing in formation, red banners, dramatic light from a huge open bay showing a planet",
+    "field_sp5": "space graveyard of thousands of destroyed mecha and spears frozen in orbit, eerie silence, cold blue light, distant fleet lights, melancholic",
+    "field_sp6": "giant ring-shaped orbital fortress shaped like a round hoplite shield circling a planet, spear towers pointing outward, epic wide view, golden sunlight",
+    "field_sp7": "stormy red nebula behind a narrow orbital pass between two moons, massive bronze gates closing the pass, defensive turrets glowing, last stand atmosphere",
+    "field_sp8": "thermopylae in space: a narrow corridor of asteroids lit by laser fire, a small bronze fleet holding the line against an overwhelming dark armada, dramatic perspective"
   }
 }
