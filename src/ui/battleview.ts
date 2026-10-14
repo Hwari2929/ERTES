@@ -361,6 +361,40 @@ export class BattleView {
     const a = this.play(e.el, [{ transform: 'none', opacity: 1, easing: EASE_IN }, { ...peak, offset: peakAt, easing: EASE_OUT }, { transform: 'none', opacity: 1 }], ms);
     if (a) this.motion.set(id, { a, prio, t: this.vt });
   }
+  /** 회복 · 보호막 테두리: 양에 비례한 굵기 · 진하기 (작아도 희미하게는 보인다) */
+  private rims = new Map<number, { a: Animation; t: number; kind: 'heal' | 'shield' }>();
+  private rim(id: number, kind: 'heal' | 'shield', ratio: number) {
+    const e = this.els.get(id);
+    if (!e || this.reduced) return;
+    const k = Math.max(0, Math.min(1, ratio));
+    const cur = this.rims.get(id);
+    if (cur && cur.a.playState === 'running') {
+      if (cur.kind === 'shield' && kind === 'heal') return; // 보호막 장착 연출을 회복 점멸이 끊지 않는다
+      if (cur.kind === kind && this.vt - cur.t < 0.3 && k < 0.5) return; // 짤힐 · 짤보호막 연타는 한 번만
+    }
+    cur?.a.cancel();
+    const alpha = (0.3 + 0.7 * Math.sqrt(k)).toFixed(2);
+    let a: Animation | null;
+    if (kind === 'shield') {
+      const w = (1 + 3 * k).toFixed(1), on = `rgb(255 255 255 / ${alpha})`, off = 'rgb(255 255 255 / 0)';
+      a = this.play(e.face, [
+        { outline: `${w}px solid ${off}`, outlineOffset: `${(4 + 8 * k).toFixed(1)}px`, easing: EASE_OUT },
+        { outline: `${w}px solid ${on}`, outlineOffset: '0px', offset: 0.35 },
+        { outline: `${w}px solid ${on}`, outlineOffset: '0px', offset: 0.7 },
+        { outline: `${w}px solid ${off}`, outlineOffset: '0px' },
+      ], 560);
+    } else {
+      const w = (1 + 1.5 * k).toFixed(1), on = `rgb(99 210 151 / ${alpha})`, off = 'rgb(99 210 151 / 0)';
+      a = this.play(e.face, [
+        { outline: `${w}px solid ${off}`, outlineOffset: '1px', easing: EASE_OUT },
+        { outline: `${w}px solid ${on}`, outlineOffset: '1px', offset: 0.2 },
+        { outline: `${w}px solid ${off}`, outlineOffset: '1px', offset: 0.5 },
+        { outline: `${w}px solid ${on}`, outlineOffset: '1px', offset: 0.7 },
+        { outline: `${w}px solid ${off}`, outlineOffset: '1px' },
+      ], 520);
+    }
+    if (a) this.rims.set(id, { a, t: this.vt, kind });
+  }
   private flashes = new Map<number, Animation>();
   private flash(id: number, filter: string, ms: number) {
     const e = this.els.get(id);
@@ -538,21 +572,13 @@ export class BattleView {
     this.delta(e.id, heal ? (e.dhp ?? e.v) : 0, heal ? 0 : (e.dsh ?? e.v), land, () => {
       const c = this.center(u);
       if (heal) {
-        if (other || e.v >= this.b.S(u, 'maxHp') * 0.05) this.flash(e.id, 'brightness(1.35) drop-shadow(0 0 6px var(--good))', 320);
+        // 회복: 얇은 초록 테두리 점멸 (최대 체력 30% 이상 회복에서 가장 진하게)
+        this.rim(e.id, 'heal', e.v / (this.b.S(u, 'maxHp') * 0.3));
         if (other && e.v >= this.b.S(u, 'maxHp') * 0.05 && !this.crowd(1, rel)) for (let i = 0; i < 2; i++) this.spawnFx('rise', c.x + (i ? 1.6 : -1.6), c.y, [{ transform: 'translate(-50%,-50%)', opacity: 1 }, { transform: 'translate(-50%,-260%)', opacity: 0 }], 520, { delay: i * 90 });
         this.float(u, '+' + fmt(e.v), 'heal', { side: 'r', rel, prio: other ? 1 : 0, merge: `heal:${e.id}`, v: e.v, fmt: (v) => '+' + fmt(v) });
       } else {
-        // 보호막: 굵은 흰 테두리가 바깥에서 조여 들어와 장착된 뒤 사라진다
-        const ee = this.els.get(e.id);
-        if (ee && !this.reduced) {
-          const off = 'rgb(255 255 255 / 0)', on = '#fff';
-          this.play(ee.face, [
-            { outline: `4px solid ${off}`, outlineOffset: '12px', easing: EASE_OUT },
-            { outline: `4px solid ${on}`, outlineOffset: '0px', offset: 0.35 },
-            { outline: `3px solid ${on}`, outlineOffset: '0px', offset: 0.7 },
-            { outline: `3px solid ${off}`, outlineOffset: '0px' },
-          ], 560);
-        }
+        // 보호막: 흰 테두리가 바깥에서 조여 들어와 장착된 뒤 사라진다 (최대 체력 50% 이상에서 가장 굵게)
+        this.rim(e.id, 'shield', e.v / (this.b.S(u, 'maxHp') * 0.5));
         this.float(u, '◇' + fmt(e.v), 'shield', { side: 'l', rel, prio: other ? 1 : 0, merge: `sh:${e.id}`, v: e.v, fmt: (v) => '◇' + fmt(v) });
       }
     });
