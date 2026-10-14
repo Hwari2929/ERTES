@@ -52,7 +52,7 @@ function savePref(k: string, v: unknown) {
 }
 
 type Screen = 'title' | 'intro' | 'diffsel' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'invest' | 'over' | 'codex';
-type Sel = { k: 'unit'; uid: string } | { k: 'item'; idx: number } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
+type Sel = { k: 'unit'; uid: string } | { k: 'item'; idx: number } | { k: 'relic'; id: string } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
 
 const app = {
   screen: 'title' as Screen,
@@ -899,17 +899,29 @@ function invRail(run: RunState) {
   const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
   return `<div class="inv-rail" data-drop="inv" title="기물에게 끌어다 장착 · 재료끼리 겹치면 조합">
     <span class="ir-count">${run.inventory.length}/${CFG.inventoryMax}</span>
-    <div class="ir-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`).replace('class="item', `class="item${i === selIdx ? ' sel' : ''}`)).join('')}${run.inventory.length ? '' : '<span class="ir-empty muted">비어 있음</span>'}</div>
+    <div class="ir-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`).replace('class="item', `class="item${i === selIdx ? ' sel' : ''}`)).join('')}${run.inventory.length ? '' : '<span class="ir-empty muted">비어 있음</span>'}${relicInv(run)}</div>
   </div>`;
 }
 /** 상점 등: 가로 보관 칸 */
 function inventoryPanel(run: RunState) {
   const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
   return `<div class="inv" data-drop="inv" title="재료끼리 겹치면 조합"><span class="ir-count">${run.inventory.length}/${CFG.inventoryMax}</span>
-    <div class="inv-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`).replace('class="item', `class="item${i === selIdx ? ' sel' : ''}`)).join('') || '<span class="muted small">비어 있음</span>'}</div></div>${invDetail(run)}`;
+    <div class="inv-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`).replace('class="item', `class="item${i === selIdx ? ' sel' : ''}`)).join('') || '<span class="muted small">비어 있음</span>'}${relicInv(run)}</div></div>${invDetail(run)}`;
+}
+/** 보관 중인 성유물: 소모품처럼 보관 칸에 항상 표시. 디바인에게 끌어다 놓거나 선택 후 디바인을 누르면 장착 */
+function relicInv(run: RunState) {
+  const rs = run.relics || [];
+  if (!rs.length) return '';
+  const sel = app.sel?.k === 'relic' ? app.sel.id : null;
+  return `<span class="ir-sep" title="성유물"></span>${rs.map((id) => relicTok(id, `data-drag="relic:${id}" data-a="sel-relic" data-v="${id}"`, id === sel)).join('')}`;
 }
 /** 고른 보관 물품: 설명 · 판매 */
 function invDetail(run: RunState) {
+  if (app.sel?.k === 'relic') {
+    const r = RELIC_BY_ID[app.sel.id];
+    if (r) return `<div class="inv-detail">${relicTok(r.id)}<div><b>${esc(r.name)}</b> <span class="muted">성유물 · ${statIc(esc(r.desc(1)))}</span>
+    <div class="row-btns"><span class="muted small">디바인 기물에 끌어다 놓거나, 선택한 채로 디바인 기물을 누르면 장착합니다. 끼고 있던 성유물은 보관 칸으로 돌아옵니다.</span></div></div></div>`;
+  }
   const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
   const sel = selIdx >= 0 ? run.inventory[selIdx] : null;
   if (!sel) return '';
@@ -2521,8 +2533,10 @@ function act(a: string, v: string) {
       if (app.view) { app.view.destroy(); app.view = null; } goPrepOrMap(); break;
     case 'sel-unit':
       app.abilPop = null;
+      if (app.sel?.k === 'relic' && run) { const e = R.equipRelic(run, v, app.sel.id); if (e) toast(e); else toast(`성유물 장착: ${RELIC_BY_ID[app.sel.id].name}`); app.sel = { k: 'unit', uid: v }; persist(); break; }
       if (app.sel?.k === 'item' && run && isConsumable(run.inventory[app.sel.idx])) { app.useK = { i: app.sel.idx, tg: { k: 'unit', uid: v } }; break; } // 탭: 소모품 → 기물
       app.sel = app.sel?.k === 'item' && run ? equipSel(run, app.sel.idx, v) : { k: 'unit', uid: v }; break;
+    case 'sel-relic': app.sel = app.sel?.k === 'relic' && app.sel.id === v ? null : { k: 'relic', id: v }; break;
     case 'sel-enemy': app.abilPop = null; app.sel = { k: 'enemy', i: +v }; break;
     case 'sel-item': {
       if (!run) return;
@@ -2748,6 +2762,8 @@ function onDrop(src: string, dst: string) {
       o.pos = pu ? toPos(pu.x, pu.y) : null;
     }
     app.sel = { k: 'unit', uid: u.uid };
+  } else if (sk === 'relic') {
+    if (dk === 'unit' || dk === 'eqitem') { const e = R.equipRelic(run, dv[0], sv[0]); if (e) toast(e); else { toast(`성유물 장착: ${RELIC_BY_ID[sv[0]].name}`); app.sel = { k: 'unit', uid: dv[0] }; } }
   } else if (sk === 'item' && isConsumable(run.inventory[+sv[0]])) {
     // 소모품: 기물 · 장비에 끌어다 놓으면 확인 창
     const i = +sv[0];

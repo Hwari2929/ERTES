@@ -1248,6 +1248,7 @@ export function releaseUnit(run: RunState, uid: string): string | null {
   if (run.aceTarget === uid) run.aceTarget = null;
   run.credits += v.credits;
   for (const id of v.items) gainItem(run, id, undefined, true);
+  if (u.relic && u.relic !== DEFAULT_RELIC[u.defId]) (run.relics ??= []).push(u.relic); // 성유물은 보관 칸으로 (기본 성유물은 기물과 함께 떠남)
   distributeXp(run, v.xp);
   run.units.forEach((x) => settleXp(run, x));
   autoPlace(run);

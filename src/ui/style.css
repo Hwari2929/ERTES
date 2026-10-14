@@ -1950,3 +1950,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .rl-act { display: grid; gap: 4px; cursor: pointer; }
 .rl-act .ab-kind { background: rgb(255 211 77 / .12); color: #ffd34d; font-size: 10px; } .rl-act p { margin: 0; }
 .ab-relic > .ab-head { align-items: center; } .rl-bless { margin-left: auto; border-color: rgb(255 211 77 / .6); color: #ffd34d; } .rl-bless.done { opacity: .7; }
+
+.ir-sep { display: block; width: 70%; height: 1px; margin: 4px auto; background: rgb(255 211 77 / .3); flex: none; }
+.inv-items .ir-sep { width: 1px; height: 28px; margin: 0 4px; }
+.relic-tok.on { box-shadow: 0 0 0 2px var(--accent); }
