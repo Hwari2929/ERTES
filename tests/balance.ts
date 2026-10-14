@@ -203,6 +203,9 @@ function playRun(seed: number) {
       add('ct', d.ctype, row); add('ct_ph', `${d.ctype}|${ph}`, row);
       add('tt', d.ttype, row); add('tt_ph', `${d.ttype}|${ph}`, row);
       add('cttt', `${d.ctype}|${d.ttype}`, row);
+      // 사이오닉 학파 · 전공, 디바인 성유물 · 신권 대행 발동 (증강 위주 조정용)
+      for (const g of r.u.src!.augments) if (g.id.startsWith('school.') || g.id.startsWith('psi.')) add('psiaug', `${g.id}|${ph}`, row);
+      if (d.ttype === 'divine') add('relic', `${r.u.src!.relic || '-'}|${ph}`, { ...row, used: r.u.divUsed ? 1 : 0 });
       // 장비: 장착한 기물의 전투 승패 · 피해 점유
       const items = [...r.u.src!.items.filter((x): x is string => !!x), ...(r.u.src!.mod ? [r.u.src!.mod] : [])];
       for (const it of items) {

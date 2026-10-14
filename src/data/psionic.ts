@@ -45,7 +45,7 @@ function cantripTarget(b: Battle, u: CUnit): CUnit | null {
 const noCtx = (b: Battle): EffectCtx => ({ run: null, unit: null, counts: {}, phase: b.ctx.phase, credits: b.ctx.credits });
 
 // ───────────────────────── 홍염학파: 연소
-const burnArmor = (s: Status) => { s.armorMul = s.src && P(s.src, 'pyro.white') ? Math.max(0.2, 1 - 0.04 * (s.stacks || 0)) : undefined; };
+const burnArmor = (s: Status) => { s.armorMul = s.src && P(s.src, 'pyro.white') ? Math.max(0.2, 1 - 0.06 * (s.stacks || 0)) : undefined; };
 export function addBurn(b: Battle, u: CUnit, t: CUnit, n: number) {
   return b.applyStatus(u, t, {
     type: 'dot', key: 'burn', dur: 6, elem: 'phys', stacks: n, maxStacks: P(u, 'pyro.boil') ? 8 : 5,
@@ -95,7 +95,7 @@ function discharge(b: Battle, u: CUnit) {
   b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'elec', ranged: true });
   skillHit(b, u, t, 'tech', 0.9 * CFG.psiPower, 'elec', { noMiss: true });
   if (t.alive) b.applyStatus(u, t, conductStatus(b, u));
-  if (t.alive && P(u, 'volt.short') && b.rng.chance(0.3)) b.applyStatus(u, t, { type: 'shock', key: 'shock', dur: 1 });
+  if (t.alive && P(u, 'volt.short') && b.rng.chance(0.45)) b.applyStatus(u, t, { type: 'shock', key: 'shock', dur: 1.5 });
   if (P(u, 'volt.chain')) {
     // 연쇄 번개: 대상에서 가장 가까운 다른 적 2명에게 50%
     const others = b.targetable(u).filter((e) => e !== t).sort((a, c) => b.dist(a, t) - b.dist(c, t)).slice(0, 2);
@@ -119,11 +119,11 @@ function poisonStatus(u: CUnit, dps: number, stacks = 1, dur = 5): Status {
 function spore(b: Battle, u: CUnit) {
   const t = cantripTarget(b, u);
   if (!t) return false;
-  b.applyStatus(u, t, poisonStatus(u, tp(b, u) * 0.15));
+  b.applyStatus(u, t, poisonStatus(u, tp(b, u) * 0.2));
   b.fx(t.x, t.y, 0, 'chem');
   const allies = b.alliesOf(u).sort((a, c) => b.hpPct(a) - b.hpPct(c)).slice(0, P(u, 'seed.symb') ? 2 : 1);
   for (const a of allies) {
-    b.applyStatus(u, a, { type: 'buff', key: 'regen', dur: 5, hps: tp(b, u) * 0.1, label: LB('regen') });
+    b.applyStatus(u, a, { type: 'buff', key: 'regen', dur: 5, hps: tp(b, u) * (P(u, 'seed.symb') ? 0.18 : 0.14), label: LB('regen') });
     if (P(u, 'seed.anti')) { const i = a.statuses.findIndex(isHarmful); if (i >= 0) a.statuses.splice(i, 1); } // 항체
     b.fx(a.x, a.y, 0, 'chem', 'heal');
   }
@@ -199,7 +199,7 @@ function revelation(b: Battle, u: CUnit) {
   // 매혹: 일반 적만 (승천: 정예도, 지속 +1초 · 정예는 절반)
   const asc = P(u, 'trans.ascend');
   if (t.alive && !t.isBoss && (!t.elite || asc)) {
-    b.applyStatus(u, t, { type: 'buff', key: 'charm', dur: 1.5 + (asc ? 1 : 0), label: LB('charm'), mods: P(u, 'trans.dominate') ? [inc('all', 0.5)] : undefined });
+    b.applyStatus(u, t, { type: 'buff', key: 'charm', dur: 1.5 + (asc ? 1 : 0), label: LB('charm'), mods: P(u, 'trans.dominate') ? [inc('all', 1)] : undefined });
   }
   return { to: t };
 }
@@ -207,7 +207,7 @@ function revelation(b: Battle, u: CUnit) {
 // ───────────────────────── 파장학파: 밀쳐내기 · 공진
 function resonanceStatus(b: Battle, u: CUnit): Status {
   return {
-    type: 'buff', key: 'resonance', dur: 5, val: tp(b, u) * (P(u, 'wave.freq') ? 0.25 : 0.15), label: LB('resonance'),
+    type: 'buff', key: 'resonance', dur: 5, val: tp(b, u) * ((P(u, 'wave.freq') ? 0.25 : 0.15) + (P(u, 'wave.standing') ? 0.05 : 0)), label: LB('resonance'),
     onHit(bb, v, _src, _r, _o, s) {
       const c = s.src;
       if (!c || !icd(bb, v, 'resIcd', 0.5)) return;
@@ -233,7 +233,7 @@ function shockwave(b: Battle, u: CUnit) {
     }
     if (v.alive) b.applyStatus(u, v, resonanceStatus(b, u));
   }
-  if (t.alive && P(u, 'wave.seismic') && b.rng.chance(0.25)) b.stun(u, t, 0.8);
+  if (t.alive && P(u, 'wave.seismic') && b.rng.chance(0.35)) b.stun(u, t, 1.2);
   return { to: t };
 }
 
@@ -251,7 +251,7 @@ export function giveTempItem(b: Battle, u: CUnit) {
 function market(b: Battle, u: CUnit) {
   if (!b.enemiesOf(u).length) return false;
   const t = cantripTarget(b, u);
-  const p = 0.3 + 0.5 * Math.abs(reasonOf(u)) / 100 + (P(u, 'gold.insider') ? 0.2 : 0);
+  const p = 0.4 + 0.5 * Math.abs(reasonOf(u)) / 100 + (P(u, 'gold.insider') ? 0.3 : 0);
   // 성공하면 임시 장비 (이미 3개면 실패와 같이 보호막), 실패하면 체력이 가장 낮은 아군에게 보호막
   if (!(b.rng.chance(p) && giveTempItem(b, u))) {
     const a = b.lowestHpAlly(u);
@@ -316,8 +316,8 @@ const SCHOOL_FX: Record<SchoolId, SchoolFx> = {
   gold: {
     // 안정 투자: 크레딧 10당 피해량 경감 +1% (최대 15%) × 고이성 · 투기: 크레딧 10당 피해 +1.5% (최대 25%) × 저이성
     hooks: {
-      dmgMult: (b, u, t) => (t === u ? 1 : 1 + Math.min(0.25, 0.015 * credit10(b)) * reasonHL(u)[1]),
-      takenMult: (b, u) => 1 - Math.min(0.15, 0.01 * credit10(b)) * reasonHL(u)[0],
+      dmgMult: (b, u, t) => (t === u ? 1 : 1 + Math.min(0.3, 0.02 * credit10(b)) * reasonHL(u)[1]),
+      takenMult: (b, u) => 1 - Math.min(0.2, 0.015 * credit10(b)) * reasonHL(u)[0],
     },
   },
 };
@@ -363,15 +363,15 @@ const PASSIVE_FX: Record<string, Effect> = {
   'volt.oc': { hooks: { onCantrip(b, u) { b.buff(u, u, 'psi.oc', 3, { delta: { atkSpd: 0.3 }, label: '오버클럭' }); } } },
   // 광합성: 이성 50 이상이면 초당 최대 체력 1% 회복
   'seed.photo': { hooks: { onTick(b, u, dt) {
-    if (reasonOf(u) < 50) { u.mem.photoT = 0; return; }
+    if (reasonOf(u) < 30) { u.mem.photoT = 0; return; }
     u.mem.photoT = (u.mem.photoT || 0) + dt;
-    if (u.mem.photoT >= 1) { u.mem.photoT -= 1; b.heal(u, u, b.S(u, 'maxHp') * 0.01); }
+    if (u.mem.photoT >= 1) { u.mem.photoT -= 1; b.heal(u, u, b.S(u, 'maxHp') * 0.015); }
   } } },
   // 포자 폭발: 중독된 적이 쓰러지면 주변 1칸 적에게 중독을 옮긴다
   'seed.burst': { hooks: { onAnyDeath(b, u, dead) {
     if (!u.alive || dead.side === u.side) return;
     const s = dead.statuses.find((x) => x.key === 'poison' && x.src === u);
-    if (s) for (const e of b.around(dead, 1, b.enemiesOf(u))) b.applyStatus(u, e, poisonStatus(u, s.perDps ?? s.dps ?? 0, s.stacks ?? 1, Math.max(1, s.dur)));
+    if (s) for (const e of b.around(dead, 1, b.enemiesOf(u))) { b.applyStatus(u, e, poisonStatus(u, s.perDps ?? s.dps ?? 0, s.stacks ?? 1, 5)); b.dealDamage(u, e, tp(b, u) * 0.6, { elem: 'chem', tag: 'proc', kind: 'tech' }); }
   } } },
   'chrono.rewind': { hooks: rewindHooks() },
   // 초월자의 시선: 결속된 적에게 주는 정신 피해 +25%
@@ -388,7 +388,7 @@ const PASSIVE_FX: Record<string, Effect> = {
   // 역장: 이성 50 이상이면 피해량 경감 15%
   'wave.field': { hooks: { takenMult: (_b, u) => (reasonOf(u) >= 50 ? 0.85 : 1) } },
   // 선물 거래: 전투 시작 시 임시 장비 1개
-  'gold.futures': { hooks: { onStart(b, u) { if (u.school === 'gold') giveTempItem(b, u); } } },
+  'gold.futures': { hooks: { onStart(b, u) { if (u.school === 'gold') { giveTempItem(b, u); giveTempItem(b, u); } } } },
   // 상승장: 이성 0 이상이면 임시 장비 1개당 피해 +6%
   'gold.bull': { hooks: { dmgMult: (_b, u, t) => (t !== u && reasonOf(u) >= 0 ? 1 + 0.06 * (u.mem.goldItems || 0) : 1) } },
   // 변동성: 이성 증감량 ×1.5 (쿨다운 -2초는 소마법 쪽)

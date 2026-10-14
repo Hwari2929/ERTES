@@ -21,16 +21,16 @@ const mainPow = (b: Battle, u: CUnit) => (u.ctype === 'MARK' ? b.S(u, 'shoot') :
 
 export const RELICS: RelicDef[] = [
   { id: 'lantern', name: '달무리 등불', owner: 'eleni', price: 20, enh: 25,
-    desc: (k) => `아군 전원 최대 체력 ${pct(0.25 * k)} 회복. 전투 끝까지 주변 2칸 아군이 초당 최대 체력 ${pct(0.01 * k)} 회복.`,
+    desc: (k) => `아군 전원 최대 체력 ${pct(0.2 * k)} 회복. 전투 끝까지 주변 2칸 아군이 초당 최대 체력 ${pct(0.008 * k)} 회복.`,
     act(b, u, k) {
-      for (const a of b.alliesOf(u)) b.heal(u, a, b.S(a, 'maxHp') * 0.25 * k);
+      for (const a of b.alliesOf(u)) b.heal(u, a, b.S(a, 'maxHp') * 0.2 * k);
       b.fx(u.x, u.y, 2, 'holy', 'heal');
       u.hooks.push({ onTick(bb, self, dt) {
         self.mem.lanternT = (self.mem.lanternT || 0) + dt;
         if (self.mem.lanternT < 1) return;
         self.mem.lanternT -= 1;
         bb.fx(self.x, self.y, 2, 'holy', 'aura');
-        for (const a of bb.around(self, 2, bb.alliesOf(self))) bb.heal(self, a, bb.S(a, 'maxHp') * 0.01 * k);
+        for (const a of bb.around(self, 2, bb.alliesOf(self))) bb.heal(self, a, bb.S(a, 'maxHp') * 0.008 * k);
       } });
     } },
   { id: 'sandals', name: '헤르메스의 날개 신', owner: 'iris', price: 20, enh: 25,
@@ -40,11 +40,11 @@ export const RELICS: RelicDef[] = [
       b.fx(u.x, u.y, 0, 'holy', 'buff');
     } },
   { id: 'bow', name: '귀환의 활', owner: 'odysseus', price: 25, enh: 30,
-    desc: (k) => `체력 비율이 가장 낮은 적 3명에게 사격 위력 ${pct(5 * k)} 신성 관통 화살. 전투 끝까지 자신의 치명타 확률 +${pct(0.15 * k)}p.`,
+    desc: (k) => `체력 비율이 가장 낮은 적 3명에게 사격 위력 (지휘관이면 전술 위력 중 높은 쪽) ${pct(6 * k)} 신성 관통 화살. 전투 끝까지 자신의 치명타 확률 +${pct(0.15 * k)}p.`,
     act(b, u, k) {
       for (const e of b.enemiesOf(u).sort((a, z) => b.hpPct(a) - b.hpPct(z)).slice(0, 3)) {
         b.emit({ k: 'atk', from: u.id, to: e.id, elem: 'holy', ranged: true });
-        b.dealDamage(u, e, b.S(u, 'shoot') * 5 * k, { elem: 'holy', tag: 'skill', kind: 'shoot', canMiss: false, pen: 1 });
+        b.dealDamage(u, e, Math.max(b.S(u, 'shoot'), b.P(u, 'shoot')) * 6 * k, { elem: 'holy', tag: 'skill', kind: 'shoot', canMiss: false, pen: 1 });
       }
       b.buff(u, u, 'rel.bow', FOREVER, { delta: { crit: 0.15 * k }, label: '귀환자의 시선' });
     } },

@@ -82,7 +82,7 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.2 }, range: 4, base: B(6, 10, 8, 3, 5),
     sprite: 'soldier', palette: tint(PAL.SIR, '#6a5aa0', '#e8e2c8', '#c0b0ff'), lore: '"아, 실례했군요. 죄송해요. 제가 이번 은하는 처음이라."',
     skill: strike({
-      name: '포켓 블랙홀', cd: 7, pow: 'shoot', elem: 'phys', mult: 2.0, params: { radius: 1, slow: 0.4 },
+      name: '포켓 블랙홀', cd: 7, pow: 'shoot', elem: 'phys', mult: 2.2, params: { radius: 1, slow: 0.4 },
       desc: (p) => `융합포로 대상 지점에 소형 블랙홀을 열어 주변 ${p.radius}칸 적에게 사격 위력 ${pct(p.mult)} 물리 피해 + 둔화${p.stun ? ` + ${p.stun}초 기절` : ''}${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}${p.pen ? ` (방어도 관통 ${pct(p.pen)})` : ''}.`,
     }),
   },

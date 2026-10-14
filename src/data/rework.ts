@@ -84,7 +84,7 @@ export const REWORK: Record<string, ReworkDef> = {
     psi: { desc: '항밈 소거 사용 시 이성 -8, 아군이 전투 스킬을 쓸 때 +2.', effect: { hooks: { onSkill: (b, u) => b.addReason(u, -8), onAllySkill: (b, u) => b.addReason(u, 2) } } },
   },
   mirinae: {
-    ctype: 'MARK', ttype: 'major', faith: 'human', weapon: G('깜찍이', 'phys', 1.0, 5, 1.2, 4, 2.5),
+    ctype: 'MARK', ttype: 'major', faith: 'human', weapon: G('깜찍이', 'phys', 1.0, 5, 1.4, 4, 2.5),
     factions: ['UNI'], traits: ['HUNTER'],
     trait: {
       name: '물질주의 캠퍼', desc: '장착한 장비 · 개조부품 · 임시 장비 1개당 회피 · 치명타 확률 +2.5%p (최대 +15%p).',
@@ -529,7 +529,7 @@ export const REWORK: Record<string, ReworkDef> = {
     },
   },
   odysseus: {
-    ctype: 'MARK', ttype: 'divine', faith: 'athena', weapon: G('장궁', 'phys', 0.75, 4, 1.0, 1, 0.8),
+    ctype: 'CMD', ttype: 'divine', faith: 'athena', weapon: G('장궁', 'phys', 0.75, 4, 1.0, 1, 0.8),
     factions: ['HEL'], traits: ['SCHEME'],
     trait: { name: '귀환자의 눈', desc: '체력 비율이 가장 낮은 적을 노린다. 치명타 확률 +25%p.', effect: { stats: { crit: 0.25 }, setup: (u) => { u.mem.lowestFocus = 1; } } },
   },
@@ -541,7 +541,7 @@ export const REWORK: Record<string, ReworkDef> = {
 
   // ───────────────────────── 시리우스 성도회
   romani: {
-    ctype: 'MARK', ttype: 'psionic', faith: 'sirius', weapon: K('중거리 채찍', 'phys', 0.9, 2, 0.7, 3),
+    ctype: 'VAN', ttype: 'psionic', faith: 'sirius', weapon: K('중거리 채찍', 'phys', 0.9, 2, 0.7, 3),
     factions: ['SIR'], traits: ['INFIL', 'SCHEME'],
     trait: {
       name: '염동 회수', desc: '기본 공격 · 기술이 맞으면 가장 먼 적을 바로 옆으로 끌어와 타격 위력 50% 추가 피해 (3초에 1회). 엘리트 · 보스는 끌려오지 않고 150% 추가 피해를 받는다.',
@@ -922,11 +922,11 @@ export const FAITH_DEF: Record<FaithId, FaithDef> = {
   emperor: { gain: '결정타 +35', buff: '주는 피해 +10%',
     hooks: { onKill: (b, u) => b.addDiv(u, 35) },
     passive: { mods: [inc('all', 0.1)] } },
-  athena: { gain: '적에게 상태이상을 걸 때 +12', buff: '효과 명중 +25%p',
-    hooks: { onInflict(b, u, t) { if (t.side !== u.side) dv(b, u, 12); } },
+  athena: { gain: '적에게 상태이상을 걸 때 +20, 치명타 +5', buff: '효과 명중 +25%p',
+    hooks: { onInflict(b, u, t) { if (t.side !== u.side) dv(b, u, 20); }, onDeal(b, u, _t, r) { if (r.crit) dv(b, u, 5, 'atIcd', 0.3); } },
     passive: { stats: { effHit: 0.25 } } },
-  hermes: { gain: '이동 1칸 +6, 아군에게 버프를 걸 때 +8', buff: '이동 속도 +20%, 공격 속도 +10%',
-    hooks: { onMove: (b, u) => b.addDiv(u, 6), onInflict(b, u, t) { if (t.side === u.side && t !== u) dv(b, u, 8); } },
+  hermes: { gain: '이동 1칸 +8, 아군에게 버프를 걸 때 +12, 기본 공격 +2', buff: '이동 속도 +20%, 공격 속도 +10%',
+    hooks: { onMove: (b, u) => b.addDiv(u, 8), onInflict(b, u, t) { if (t.side === u.side && t !== u) dv(b, u, 12); }, onBasic(b, u) { dv(b, u, 2, 'hmIcd', 0.4); } },
     passive: { stats: { moveSpd: 0.2, atkSpd: 0.1 } } },
   ares: { gain: '피해를 받을 때 +4, 근접한 적이 있으면 초당 +3', buff: '주변 1칸 적 1명당 피해 +5% (최대 +20%)',
     hooks: {

@@ -29,7 +29,7 @@ export const ROSTER_A: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.15 }, range: 5, base: B(5, 10, 8, 3, 5),
     sprite: 'soldier', palette: tint(PAL.UNI, '#4a5a3a', '#1a1a22', '#3a8aff'), lore: '"연락은 자제해줘. 캠핑 중이니까 - "',
     skill: strike({
-      name: '깜찍이', cd: 6, pow: 'shoot', elem: 'phys', mult: 2.8, params: { crit: 0.125 },
+      name: '깜찍이', cd: 6, pow: 'shoot', elem: 'phys', mult: 3.8, params: { crit: 0.125 },
       desc: (p) => `커스텀 에너지 핸드캐논으로 대상에게 사격 위력 ${pct(p.mult)} 물리 피해 (치명타 확률 +${pct(p.crit)}p${p.pen ? `, 방어도 관통 ${pct(p.pen)}` : ''})${p.hits > 1 ? `, ${p.hits}회` : ''}. 가능하면 한 발로 끝낸다.`,
     }),
   },
@@ -59,7 +59,7 @@ export const ROSTER_A: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.1 }, range: 3, base: B(6, 6, 9, 4, 5),
     sprite: 'medic', palette: tint(PAL.UNI, '#1a1a22', '#f0f0f0', '#ff80c0'), lore: '"어머, 이 숙녀가 여기 있으면 안 될 이유라도 있으신가요?"',
     skill: support({
-      name: '업계 비밀 배합', cd: 7, target: 'lowest', params: { heal: 1.2, cleanse: 1, sleep: 2, sleepChance: 0.5 },
+      name: '업계 비밀 배합', cd: 7, target: 'lowest', params: { heal: 1.1, cleanse: 1, sleep: 2, sleepChance: 0.5 },
       desc: (p) => `체력 비율이 가장 낮은 아군${p.radius ? `과 주변 ${p.radius}칸` : ''}에게 약물을 투여해 기술 위력 ${pct(p.heal)} 회복 + 해로운 상태이상 제거. 가장 가까운 적에게는 항밈 수면제를 써서 ${pct(p.sleepChance)} 확률로 ${p.sleep}초 기절.`,
       after: (b, u, _ts, p) => { const e = b.nearest(u, b.enemiesOf(u)); if (e) b.stun(u, e, p.sleep, p.sleepChance); },
     }),
@@ -112,7 +112,7 @@ export const ROSTER_A: BaseUnit[] = [
     sprite: 'knight', palette: tint(PAL.PET, '#24242e', '#e0602a', '#ff8a40'),
     lore: '"이 병신같은 보고서 양식은 주주님의 좆같은 면상을 따와 그린 겁니까?" — 주주총회에서',
     skill: strike({
-      name: '군수품 시연', cd: 8, pow: 'strike', elem: 'phys', mult: 1.0, aroundSelf: true, params: { radius: 1, stun: 1, selfShield: 0.3 },
+      name: '군수품 시연', cd: 8, pow: 'strike', elem: 'phys', mult: 1.0, aroundSelf: true, params: { radius: 1, stun: 1, selfShield: 0.25 },
       desc: (p) => `에너지 블레이드와 EMP로 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}. 7중 방호 슈트가 최대 체력 ${pct(p.selfShield)} 보호막을 전개한다.`,
     }),
   },
@@ -160,7 +160,7 @@ export const ROSTER_A: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.4 }, range: 6, base: B(4, 10, 8, 3, 5),
     sprite: 'soldier', palette: tint(PAL.PET, '#d0d0d8', '#e07a1f', '#62d6ff'), lore: '시제품 레일건 시험 사격 1,204회. 사고 보고서 1,203건.',
     skill: {
-      name: '레일건', tag: () => '직선 관통 사격', cd: 8, needsRange: true, params: { mult: 2.8, pen: 0.4, crit: 0, shock: 0 },
+      name: '레일건', tag: () => '직선 관통 사격', cd: 8, needsRange: true, params: { mult: 3.1, pen: 0.4, crit: 0, shock: 0 },
       desc: (p) => `대상 방향 직선 위 모든 적에게 사격 위력 ${pct(p.mult)} 물리 피해 (방어도 관통 ${pct(p.pen)}${p.crit ? `, 치명타 확률 +${pct(p.crit)}p` : ''})${p.shock ? `. ${pct(p.shock)} 확률로 2초 감전` : ''}.`,
       cast(b, u) {
         const t = u.target;

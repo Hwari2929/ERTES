@@ -67,7 +67,7 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'soldier', palette: tint(HOI_PAL, '#1c1c24', '#8a8a96', '#4fc3ff'),
     lore: '"…아, 네. 리스크요. 다 처리했습니다. 이제 퇴근해도 됩니까."',
     skill: strike({
-      name: '야근 수당 청구', cd: 7, pow: 'tech', elem: 'elec', mult: 1.9, params: { radius: 1, shock: 1.5, shockChance: 0.8 },
+      name: '야근 수당 청구', cd: 7, pow: 'tech', elem: 'elec', mult: 2.8, params: { radius: 1, shock: 1.5, shockChance: 0.8 },
       desc: (p) => `대상 주변 ${p.radius}칸에 기술 위력 ${pct(p.mult)} 전기 피해, ${pct(p.shockChance)} 확률로 ${p.shock}초 감전.`,
     }),
   },
@@ -150,7 +150,7 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'robe', palette: tint(HOI_PAL, '#1c1c24', '#ff4d9a', '#7fe3ff'),
     lore: '"한 잔 하실래요? 오늘 계약서에 서명하시면, 이 잔은 제가 사죠."',
     skill: support({
-      name: '네온 칵테일', cd: 5.5, target: 'strongest', power: cookPower, params: { heal: 0.8, dmg: 0.35, as: 0.25, dur: 6 },
+      name: '네온 칵테일', cd: 5.5, target: 'strongest', power: cookPower, params: { heal: 1.1, dmg: 0.45, as: 0.3, dur: 6 },
       desc: (p) => `[요리] 가장 강한 아군에게 기술 위력 ${pct(p.heal)} 회복, ${p.dur}초간 피해 +${pct(p.dmg)} · 공격 속도 +${pct(p.as)}.`,
     }),
   },
@@ -215,7 +215,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
     },
   },
   kaburaya: {
-    ctype: 'CMD', ttype: 'major', faith: 'index', weapon: G('지루한 스턴건', 'elec', 1.2, 3, 0.9, 4, 2.0),
+    ctype: 'CMD', ttype: 'major', faith: 'index', weapon: G('지루한 스턴건', 'elec', 1.2, 3, 1.1, 4, 2.0),
     trait: {
       name: '권태', desc: '기본 공격이 30% 확률로 1초 감전을 건다. 감전된 적에게 주는 피해 +25%.',
       effect: { hooks: {
@@ -303,7 +303,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
     },
   },
   mao: {
-    ctype: 'CMD', ttype: 'special', faith: 'index', weapon: G('칵테일 셰이커 블래스터', 'elec', 1.1, 3, 0.8, 6, 2.0),
+    ctype: 'CMD', ttype: 'special', faith: 'index', weapon: G('칵테일 셰이커 블래스터', 'elec', 1.1, 3, 1.0, 6, 2.0),
     trait: {
       name: '회장님의 접대', desc: '요리받은 아군의 기술 쿨다운 -2초.',
       effect: { hooks: { onInflict(_b, _u, t, s) { if (s.key === 'sup.mao' && t.skill) t.cd -= 2; } } },
