@@ -136,7 +136,6 @@ export const ROSTER_F: BaseUnit[] = [
     id: 'issac', name: 'ISSAC', title: '연합 생체 실험체 · 흰 정장의 신사', factions: ['UNI'], traits: ['DECOMP', 'HUNTER'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'chem', interval: 0.85 }, range: 1, base: B(10, 8, 3, 8, 3),
     sprite: 'knight', palette: tint(SLIME, '#f0f0f0', '#4cc860', '#ffffff'),
-    summon: { name: '초록 점액', art: 'sm_slime', sprite: 'crawler', palette: SLIME, atk: { type: 'strike', elem: 'chem', interval: 1.0 }, range: 1, hpMul: 1.3 },
     lore: '"놀라셨다면 죄송합니다. 붕대는… 예의상 감고 있는 것입니다."',
     skill: strike({
       name: '붕대 해제', cd: 7, pow: 'strike', elem: 'chem', mult: 1.8, aroundSelf: true, params: { radius: 1, poison: 0.3, selfShield: 0.15 },
@@ -147,7 +146,7 @@ export const ROSTER_F: BaseUnit[] = [
       uaug('issac', 'ooze', '점액 분비', '중독 위력 +60%p.', setSk((s) => { s.poison += 0.6; })),
       uaug('issac', 'suit', '맞춤 정장', '보호막 +30%p.', setSk((s) => { s.selfShield += 0.3; })),
       uaug('issac', 'mass', '증식', '생명력 +10, 방어력 +5.', { majors: { vit: 10, def: 5 } }),
-      uaug('issac', 'manners', '신사의 품격', '점액 소환물 스탯 상속 +40%p.', { setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.4; } }),
+      uaug('issac', 'manners', '신사의 품격', '효과 저항 +25%p, 받는 피해 -8%.', { stats: { effRes: 0.25 }, taken: [red('all', 0.08)] }),
     ],
   },
   {

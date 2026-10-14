@@ -114,7 +114,7 @@ export const ABIL_F: Record<string, AbilText> = {
       ooze: '붕대 해제 중독 초당 피해 [dmg+:strike:0.6:chem].',
       suit: '붕대 해제 보호막 최대 체력 [pp:0.3].',
       mass: '생명력 +10, 방어력 +5.',
-      manners: '[g:buddy] 스탯 상속 [pp:0.4].',
+      manners: '효과 저항 [pp:0.25], [g:red] [p:0.08].',
     },
   },
   eden: {

@@ -669,6 +669,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   pool = Math.round(pool);
   distributeXp(run, pool);
   lines.push(`공명도 풀 ${pool} 분배`);
+  if (uni) for (const u of dep) if (memberships(u).includes('UNI')) u.xp += [0, 1, 2, 3, 5][uni]; // 연합: 전투 후 추가 공명도
   const killsOf = (u: UnitState) => b.units.find((c) => c.src === u)?.counters.kills || 0;
   for (const u of dep) for (const a of u.augments) AUG_BY_ID[a.id]?.after?.(run, u, won, killsOf(u));
   // 성직자: 승리 시 신앙 / 대스타: 승리 시 명성 + 대스타 처치 수

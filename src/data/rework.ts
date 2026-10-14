@@ -56,7 +56,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   mirinae: {
     ctype: 'MARK', ttype: 'major', faith: 'human', weapon: G('깜찍이', 'phys', 1.0, 5, 1.2, 4, 2.5),
-    factions: ['UNI', 'KAL'], traits: ['HUNTER'],
+    factions: ['UNI'], traits: ['HUNTER'],
     trait: {
       name: '물질주의 캠퍼', desc: '장착한 장비 · 개조부품 · 임시 장비 1개당 회피 · 치명타 확률 +2.5%p (최대 +15%p).',
       effect: { hooks: { onStart(_b, u) {
@@ -155,7 +155,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   franze: {
     ctype: 'CMD', ttype: 'major', faith: 'index', weapon: K('에너지 블레이드', 'phys', 0.9, 1, 0.6, 4),
-    factions: ['PET', 'TIME'], traits: [],
+    factions: ['PET', 'TIME', 'KAL'], traits: [],
     trait: {
       name: '은하법 검사', desc: '흡혈 +10%p. 기본 공격이 맞은 적에게 5초간 [심판]: 그동안 아군이 준 피해의 20%를 기록하고, 끝날 때 기록의 100%를 고정 피해로 정산한다.',
       effect: {
