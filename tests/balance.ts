@@ -96,7 +96,7 @@ function playRun(seed: number) {
   const starters = bot.sample(STARTERS, CFG.startUnits);
   const run = R.newRun(seed, starters, undefined, DIFF);
   const synMax: Record<string, number> = {};
-  const det: Record<string, [number, number]> = {}; // detail 모드: `키|페이즈` → [전투, 승리]
+  const det: Record<string, [number, number]> = {}; // detail 모드: `키|페이즈:노드` → [전투, 승리]
   const relicSet = new Set<string>();
 
   const resolvePending = () => {
@@ -216,7 +216,7 @@ function playRun(seed: number) {
         const src = r.u.src!;
         const keys = [`u:${id}`, ...src.augments.filter((g) => !g.id.startsWith('ev.')).flatMap((g) => [`ua:${id}|${g.id}`, `a:${g.id}`])];
         if (d.ttype === 'divine') keys.push(`r:${src.relic || '-'}`, `ur:${id}|${src.relic || '-'}`);
-        for (const key of keys) { const v = (det[`${key}|${ph}`] ??= [0, 0]); v[0]++; if (won) v[1]++; }
+        for (const key of keys) { const v = (det[`${key}|${ph}:${ntype}`] ??= [0, 0]); v[0]++; if (won) v[1]++; }
       }
       if (d.ttype === 'divine') add('relic', `${r.u.src!.relic || '-'}|${ph}`, { ...row, used: r.u.divUsed ? 1 : 0 });
       // 장비: 장착한 기물의 전투 승패 · 피해 점유
