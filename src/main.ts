@@ -22,7 +22,7 @@ import * as R from './engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
 import { type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, KEYWORD_NAME, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type SynergyId, type UnitState } from './types';
-import { BattleView, fmt, FX, FX_DEFAULT, type MotionPreset } from './ui/battleview';
+import { BattleView, fmt, FX, FX_DEFAULT, type DeathStyle, type MotionPreset } from './ui/battleview';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
 import { bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg } from './ui/portraits';
@@ -32,7 +32,7 @@ import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 const PREF_KEY = 'errantes.prefs.v1';
 /** 전투 배속 (단축키 1~6, Space 정지) */
 const SPEEDS = [0.25, 0.5, 1, 2, 4, 8];
-function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean; fxMs?: number; skillMs?: number; motion?: MotionPreset } {
+function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean; fxMs?: number; skillMs?: number; motion?: MotionPreset; death?: DeathStyle } {
   try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}; } catch { return {}; }
 }
 /** 연출 설정을 전투 화면에 반영 */
@@ -42,6 +42,7 @@ function applyFxPrefs() {
   FX.fxMs = ms(p.fxMs, FX_DEFAULT.fxMs);
   FX.skillMs = ms(p.skillMs, FX_DEFAULT.skillMs);
   FX.motion = p.motion === 'fast' || p.motion === 'slow' || p.motion === 'mid' ? p.motion : FX_DEFAULT.motion;
+  FX.death = p.death === 'spin' || p.death === 'grave' || p.death === 'fade' ? p.death : FX_DEFAULT.death;
 }
 function savePref(k: string, v: unknown) {
   try { localStorage.setItem(PREF_KEY, JSON.stringify({ ...loadPrefs(), [k]: v })); } catch { /* 저장 불가 환경 */ }
@@ -1478,6 +1479,8 @@ function menuModal(run: RunState | null) {
       <label class="pref pref-num"><span><b>스킬 사용 연출 시간</b><br><span class="muted small">스킬명 배너와 시전 테두리가 머무는 시간 (기본 ${FX_DEFAULT.skillMs}ms)</span></span><span class="pn"><input type="number" min="500" max="5000" step="100" data-pref="skillMs" value="${FX.skillMs}"> ms</span></label>
       <div class="pref"><span><b>모션 속도</b><br><span class="muted small">공격 · 피격 · 회피 · 이동 동작의 빠르기</span></span>
         <span class="seg">${([['fast', '날렵'], ['mid', '보통'], ['slow', '느긋']] as const).map(([k, l]) => `<button class="btn tiny ${FX.motion === k ? 'on' : ''}" data-a="pref-motion" data-v="${k}" aria-pressed="${FX.motion === k}">${l}</button>`).join('')}</span></div>
+      <div class="pref"><span><b>사망 연출</b><br><span class="muted small">휘리릭: 맞은 반대쪽으로 돌며 전장 밖으로 · 호떡: 위에서 무덤이 날아와 꽂힘 · 스르륵: 흰 X 후 흐려짐 (처형은 항상 갈라짐 + 해골)</span></span>
+        <span class="seg">${([['spin', '휘리릭'], ['grave', '호떡'], ['fade', '스르륵']] as const).map(([k, l]) => `<button class="btn tiny ${FX.death === k ? 'on' : ''}" data-a="pref-death" data-v="${k}" aria-pressed="${FX.death === k}">${l}</button>`).join('')}</span></div>
       <div class="row-btns"><button class="btn ghost" data-a="pref-fx-reset">연출 기본값</button><button class="btn primary" data-a="menu-close">닫기</button></div>
     </div></div>`;
   }
@@ -2317,7 +2320,8 @@ function act(a: string, v: string) {
     case 'menu-tab': app.menu = v as 'menu' | 'settings'; break;
     case 'pref-zoom': app.zoomOut = !app.zoomOut; savePref('zoomOut', app.zoomOut); break;
     case 'pref-motion': savePref('motion', v); applyFxPrefs(); break;
-    case 'pref-fx-reset': savePref('fxMs', FX_DEFAULT.fxMs); savePref('skillMs', FX_DEFAULT.skillMs); savePref('motion', FX_DEFAULT.motion); applyFxPrefs(); break;
+    case 'pref-death': savePref('death', v); applyFxPrefs(); break;
+    case 'pref-fx-reset': savePref('fxMs', FX_DEFAULT.fxMs); savePref('skillMs', FX_DEFAULT.skillMs); savePref('motion', FX_DEFAULT.motion); savePref('death', FX_DEFAULT.death); applyFxPrefs(); break;
     case 'pref-slow': app.slowDetail = !app.slowDetail; savePref('slowDetail', app.slowDetail); applySpeed(); break;
     case 'menu-close': app.menu = null; app.importErr = ''; break;
     case 'menu-export': app.menu = 'export'; break;

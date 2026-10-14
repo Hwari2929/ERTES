@@ -33,6 +33,7 @@ const T_SKILL = 0.12; // 스킬명 → 효과
 const T_SUPPORT = 0.22; // 회복 · 보호막 표식 이동
 /** 효과 색: 아군이 준 피해 흰색 · 적이 준 피해 빨강 (속성색은 숫자에만) */
 const sideColor = (side: 0 | 1 | undefined) => (side === 1 ? 'var(--bad)' : '#f2f4f8');
+const SKULL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.5 2 3 5.6 3 10.2c0 2.7 1.3 4.6 3 5.8V19a1 1 0 0 0 1 1h1.5v-2h1.5v2h4v-2h1.5v2H17a1 1 0 0 0 1-1v-3c1.7-1.2 3-3.1 3-5.8C21 5.6 17.5 2 12 2Zm-3.5 11.2a2.2 2.2 0 1 1 0-4.4 2.2 2.2 0 0 1 0 4.4Zm7 0a2.2 2.2 0 1 1 0-4.4 2.2 2.2 0 0 1 0 4.4ZM12 13.6l1.3 2.2h-2.6Z"/></svg>';
 const flightOf = (d: number) => Math.min(0.26, 0.07 + 0.035 * d);
 // 곡선: 급하게 출발해 감속 (선형 대신)
 const EASE_OUT = 'cubic-bezier(.16, 1, .3, 1)';
@@ -42,8 +43,10 @@ const easeOut = (t: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 3);
 
 /** 연출 설정 (설정 메뉴에서 바꿈): 이펙트 · 숫자 지속 ms, 스킬 연출 ms, 모션 속도 */
 export type MotionPreset = 'fast' | 'mid' | 'slow';
-export const FX = { fxMs: 1200, skillMs: 1800, motion: 'mid' as MotionPreset };
-export const FX_DEFAULT = { fxMs: 1200, skillMs: 1800, motion: 'mid' as MotionPreset };
+/** 사망 연출: 휘리릭 (전장 밖으로) · 호떡 (무덤이 꽂힘) · 스르륵 (흰 X 후 흐려짐) */
+export type DeathStyle = 'spin' | 'grave' | 'fade';
+export const FX = { fxMs: 1200, skillMs: 1800, motion: 'mid' as MotionPreset, death: 'fade' as DeathStyle };
+export const FX_DEFAULT = { fxMs: 1200, skillMs: 1800, motion: 'mid' as MotionPreset, death: 'fade' as DeathStyle };
 /** 모션 프리셋: 날렵 · 보통 (날렵 6 : 느긋 4) · 느긋 */
 const MOTION: Record<MotionPreset, { mul: number; ein: string; eout: string; peak: (p: number) => number; cell: (t: number) => number }> = {
   fast: { mul: 1, ein: EASE_IN, eout: EASE_OUT, peak: (p) => p, cell: easeOut },
@@ -84,6 +87,12 @@ export class BattleView {
   private anims = new Set<Animation>();
   private merges = new Map<string, { el: HTMLElement; v: number; until: number; fmt: (v: number) => string }>();
   private castSeen = new Set<number>();
+  /** 종료 연출: 시간 배율 · 마지막 쓰러진 기물 */
+  private slowMul = 1;
+  private finaleHit = -1;
+  private lastDown: number | null = null;
+  private executed = new Set<number>();
+  private lastHitFrom = new Map<number, number>();
   private lanes = new Map<number, number>();
   private statusSeen = new Map<string, number>();
   private logs = new Map<number, ActLine[]>();
@@ -112,7 +121,8 @@ export class BattleView {
   private rateOf(a: Animation) {
     const text = (a as Animation & { text?: boolean }).text;
     if (this._speed === 0) { a.pause(); return; }
-    a.playbackRate = text ? Math.max(0.6, Math.min(2, this._speed)) : this._speed;
+    const sp = this._speed * this.slowMul;
+    a.playbackRate = text ? Math.max(0.3, Math.min(2, sp)) : sp;
     if (a.playState === 'paused') a.play();
   }
 
@@ -121,7 +131,7 @@ export class BattleView {
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - this.last) / 1000);
       this.last = now;
-      const adv = dt * this._speed;
+      const adv = dt * this._speed * this.slowMul;
       this.acc += adv;
       this.vt += adv;
       let steps = 0;
@@ -131,9 +141,10 @@ export class BattleView {
       this.sync();
       this.onTick();
       if (this.b.over) {
-        if (this.overAt < 0) this.overAt = this.vt;
-        // 마지막 탄환 · 표식이 닿을 때까지 기다린다
-        if (!this.q.length || this.vt - this.overAt > 1.2) { this.flush(true); this.sync(); this.finish(); return; }
+        if (this.overAt < 0) { this.overAt = this.vt; this.finaleStart(); }
+        // 마지막 탄환 · 표식이 닿으면 흔들림 + 종료 배너, 잠시 뒤 보고서로
+        if (this.finaleHit < 0 && (!this.q.length || this.vt - this.overAt > 1.2)) { this.flush(true); this.sync(); this.finaleImpact(now); }
+        if (this.finaleHit >= 0 && now - this.finaleHit > (this.b.keepEvents && !this.reduced ? 1700 : 0)) { this.finish(); return; }
       }
       this.raf = requestAnimationFrame(loop);
     };
@@ -170,7 +181,7 @@ export class BattleView {
     this.ended = true;
     cancelAnimationFrame(this.raf);
     this.onTick();
-    setTimeout(() => this.onEnd(), this.b.keepEvents ? 500 : 0);
+    setTimeout(() => this.onEnd(), 0);
   }
 
   private pos(x: number, y: number) {
@@ -268,7 +279,7 @@ export class BattleView {
         if (s.key === 'gloom' && s.stacks) stk += `<span class="stk-gloom" title="암운 ${s.stacks}중첩">☁${s.stacks}</span>`;
       }
       if (stk !== e.stkSig) { e.stkSig = stk; e.stk.innerHTML = stk; }
-      if (!alive && !e.dead) { e.dead = true; e.el.classList.add('dead'); }
+      if (!alive && !e.dead) { e.dead = true; this.dieFx(e); }
       else if (alive && e.dead && u.alive) { e.dead = false; e.el.classList.remove('dead'); }
     }
     this.drawFocus();
@@ -476,6 +487,7 @@ export class BattleView {
       case 'spawn': return this.onSpawn(e.id);
       case 'die': {
         const u = this.unit(e.id), by = this.unit(e.by);
+        if (u && (!u.isSummon || this.lastDown === null)) this.lastDown = e.id;
         if (u && by && by.side !== u.side) this.log(by.id, `kill`, `${u.name} 처치`, 1, (n) => n > 1 ? `적 ${n}명 처치` : `${u.name} 처치`);
         return;
       }
@@ -521,6 +533,7 @@ export class BattleView {
     const rel = this.rel(e.id, e.src);
     const dot = e.tag === 'dot';
     this.delta(e.id, e.dhp || 0, e.dsh || 0, land, () => {
+      if (src && src !== u && e.v > 0) this.lastHitFrom.set(e.id, src.id);
       const v = src && src !== u ? this.dir(src, u) : { x: 0, y: -1, d: 0 };
       if (e.miss && !e.graze) {
         // 완전 회피: 비켜서는 동작만 (피격 섬광 없음)
@@ -670,6 +683,7 @@ export class BattleView {
   private onMark(e: Extract<BEvent, { k: 'mark' }>) {
     const u = this.unit(e.id); if (!u) return;
     const c = this.center(u);
+    if (e.style === 'execute') this.executed.add(e.id);
     const at = Math.max(this.vt, this.projLand.get(e.id) ?? 0);
     if (e.style !== 'execute') this.log(e.id, `mk:${e.name}`, `${e.name}${e.style === 'immortal' ? '로 버팀' : '으로 부활'}`);
     this.later(at, () => {
@@ -682,7 +696,7 @@ export class BattleView {
         const ee = this.els.get(e.id);
         if (ee) this.play(ee.face, [{ opacity: 0.2, transform: 'scale(.6)' }, { opacity: 1, transform: 'scale(1.08)', offset: 0.6 }, { opacity: 1, transform: 'scale(1)' }], 600, { composite: 'add' } as KeyframeAnimationOptions);
       } else if (e.style === 'execute') {
-        this.spawnFx('exec', c.x, c.y, [{ transform: 'translate(-50%,-50%) scale(1.8)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: 0.25 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 0 }], 700, {}, '✕');
+        this.executed.add(e.id); // 사망 연출에서 반으로 갈라짐 + 해골
       } else {
         this.spawnFx('shring gold', c.x, c.y, [{ transform: 'translate(-50%,-50%) scale(.6)', opacity: 1 }, { transform: 'translate(-50%,-50%) scale(1.5)', opacity: 0 }], 600);
       }
@@ -708,7 +722,7 @@ export class BattleView {
   private onSpawn(id: number) {
     const u = this.unit(id); if (!u) return;
     const ee = this.els.get(id);
-    if (ee?.dead && u.alive) { ee.dead = false; ee.el.classList.remove('dead'); }
+    if (ee?.dead && u.alive) { ee.dead = false; ee.el.classList.remove('dead'); for (const a of ee.el.getAnimations()) a.cancel(); }
     if (!ee || this.reduced) return;
     if (u.defId === 'turret') {
       // 포탑 설치: 내려앉으며 공구 문양
@@ -716,6 +730,99 @@ export class BattleView {
       const c = this.center(u);
       this.spawnFx('tool', c.x, c.y, [{ transform: 'translate(-50%,-50%) rotate(-90deg) scale(.5)', opacity: 0 }, { transform: 'translate(-50%,-50%) rotate(0) scale(1.2)', opacity: 1, offset: 0.5 }, { transform: 'translate(-50%,-80%) rotate(30deg) scale(1)', opacity: 0 }], 650, {}, '⚙');
     } else this.play(ee.el, [{ transform: 'scale(.4)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], 300);
+  }
+
+  // ───────── 사망 · 종료 연출
+  private dieFx(e: UEl) {
+    const u = e.u;
+    const hide = () => { if (!e.u.alive) e.el.classList.add('dead'); };
+    this.motion.get(u.id)?.a.cancel();
+    if (this.reduced || !this.b.keepEvents) { hide(); return; }
+    const c = this.center(u);
+    const cw = 100 / this.b.w, ch = 100 / this.b.h;
+    if (this.executed.has(u.id)) {
+      // 처형: 초상화가 사선으로 갈라져 양쪽으로 미끄러지고 해골이 떠오른다
+      e.el.classList.add('dead', 'instant');
+      const src = iconURL(u);
+      for (const side of ['l', 'r'] as const) {
+        const d = this.spawnFx(`half ${side}`, c.x, c.y, [
+          { transform: 'translate(-50%,-50%)', opacity: 1, easing: EASE_OUT },
+          { transform: `translate(${side === 'l' ? -78 : -22}%, ${side === 'l' ? -38 : -62}%) rotate(${side === 'l' ? -14 : 12}deg)`, opacity: 1, offset: 0.55 },
+          { transform: `translate(${side === 'l' ? -85 : -15}%, ${side === 'l' ? -20 : -70}%) rotate(${side === 'l' ? -18 : 16}deg)`, opacity: 0 },
+        ], 1000, {}, `<img alt="" src="${src}">`);
+        d.style.width = `${cw * 0.8}%`; d.style.height = `${ch * 0.8}%`;
+      }
+      const sl = this.spawnFx('cutline', c.x, c.y, [{ transform: 'translate(-50%,-50%) rotate(-62deg) scaleX(0)', opacity: 1, easing: EASE_OUT }, { transform: 'translate(-50%,-50%) rotate(-62deg) scaleX(1)', opacity: 1, offset: 0.3 }, { transform: 'translate(-50%,-50%) rotate(-62deg) scaleX(1.1)', opacity: 0 }], 500);
+      sl.style.width = `${cw * 1.3}%`;
+      this.spawnFx('skull', c.x, c.y, [{ transform: 'translate(-50%,-30%) scale(.4)', opacity: 0, easing: EASE_OUT }, { transform: 'translate(-50%,-70%) scale(1.15)', opacity: 1, offset: 0.3 }, { transform: 'translate(-50%,-90%) scale(1)', opacity: 1, offset: 0.75 }, { transform: 'translate(-50%,-120%) scale(1)', opacity: 0 }], 1200, {}, SKULL);
+      return;
+    }
+    const finish = (a: Animation | null) => { if (a) { const f = () => hide(); a.finished.then(f, f); } else hide(); };
+    if (FX.death === 'spin') {
+      // 휘리릭: 맞은 방향 반대로 회전하며 전장 밖으로
+      const from = this.unit(this.lastHitFrom.get(u.id));
+      const v = from ? this.dir(from, u) : { x: u.side === 0 ? 0.3 : -0.3, y: u.side === 0 ? 1 : -1, d: 1 };
+      finish(this.play(e.el, [
+        { transform: 'translate(0,0) rotate(0) scale(1)', opacity: 1, easing: 'cubic-bezier(.3, .1, .7, 1)' },
+        { transform: `translate(${v.x * 900}%, ${v.y * 900 - 250}%) rotate(${v.x >= 0 ? 1080 : -1080}deg) scale(.55)`, opacity: 0.9 },
+      ], 900 * fxK(), { fill: 'forwards' }));
+    } else if (FX.death === 'grave') {
+      // 호떡: 위에서 무덤이 떨어져 쿵 꽂히고, 기물은 그 밑으로 사라진다
+      const g = this.spawnFx('grave', c.x, c.y, [
+        { transform: 'translate(-50%,-420%)', opacity: 0, easing: 'cubic-bezier(.55, 0, 1, .45)' },
+        { transform: 'translate(-50%,-50%)', opacity: 1, offset: 0.32, easing: EASE_OUT },
+        { transform: 'translate(-50%,-62%) scaleY(1.04)', opacity: 1, offset: 0.4, easing: 'ease-in' },
+        { transform: 'translate(-50%,-50%)', opacity: 1, offset: 0.48 },
+        { transform: 'translate(-50%,-50%)', opacity: 1, offset: 0.85 },
+        { transform: 'translate(-50%,-50%)', opacity: 0 },
+      ], 1500, {}, '<b>RIP</b>');
+      g.style.width = `${cw * 0.62}%`; g.style.height = `${ch * 0.72}%`;
+      this.later(this.vt + 0.45 * fxK(), () => {
+        const dust = this.spawnFx('dust', c.x, c.y + ch * 0.3, [{ transform: 'translate(-50%,-50%) scale(.4)', opacity: 0.9 }, { transform: 'translate(-50%,-50%) scale(1.4)', opacity: 0 }], 420);
+        dust.style.width = `${cw}%`;
+      });
+      finish(this.play(e.el, [{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(1)', opacity: 1, offset: 0.3 }, { transform: 'scale(.82, .55) translateY(30%)', opacity: 0 }], 520 * fxK(), { fill: 'forwards' }));
+    } else {
+      // 스르륵: 크고 흰 X 가 그어지고 흐려지며 사라진다
+      for (const [i, deg] of [[0, 45], [1, -45]] as const) {
+        const d = this.spawnFx('xmark', c.x, c.y, [
+          { transform: `translate(-50%,-50%) rotate(${deg}deg) scaleX(0)`, opacity: 1, easing: EASE_OUT },
+          { transform: `translate(-50%,-50%) rotate(${deg}deg) scaleX(1)`, opacity: 1, offset: 0.3 },
+          { transform: `translate(-50%,-50%) rotate(${deg}deg) scaleX(1)`, opacity: 1, offset: 0.7 },
+          { transform: `translate(-50%,-50%) rotate(${deg}deg) scaleX(1)`, opacity: 0 },
+        ], 900, { delay: i * 110 * fxK() });
+        d.style.width = `${cw * 1.05}%`;
+      }
+      finish(this.play(e.el, [{ filter: 'blur(0)', opacity: 1 }, { filter: 'blur(0)', opacity: 1, offset: 0.35 }, { filter: 'blur(3px) grayscale(1)', opacity: 0 }], 900 * fxK(), { fill: 'forwards' }));
+    }
+  }
+
+  /** 승패가 갈린 순간: 마지막으로 쓰러진 기물로 확대 + 감속 */
+  private finaleStart() {
+    if (!this.b.keepEvents || this.reduced) return;
+    this.slowMul = 0.3;
+    for (const a of this.anims) this.rateOf(a);
+    const u = this.unit(this.lastDown ?? undefined);
+    if (!u) return;
+    const c = this.center(u);
+    this.board.style.transformOrigin = `${c.x}% ${c.y}%`;
+    this.board.animate([{ scale: '1' }, { scale: '1.55' }], { duration: 700, easing: EASE_OUT, fill: 'forwards' });
+  }
+  /** 마지막 일격이 닿음: 화면 흔들림 + 전투 종료 배너 */
+  private finaleImpact(now: number) {
+    this.finaleHit = now;
+    if (!this.b.keepEvents || this.reduced) return;
+    const view = this.board.parentElement;
+    if (!view) return;
+    view.animate([{ translate: '0 0' }, { translate: '-6px 3px' }, { translate: '5px -4px' }, { translate: '-4px -2px' }, { translate: '3px 3px' }, { translate: '-1px 1px' }, { translate: '0 0' }], { duration: 480, easing: 'ease-out' });
+    const won = this.b.winner === 0;
+    const bn = document.createElement('div');
+    bn.className = `finale ${won ? 'win' : 'lose'}`;
+    bn.innerHTML = `<small>전투 종료</small><b>${won ? '승리' : '패배'}</b>`;
+    view.appendChild(bn);
+    bn.animate([{ opacity: 0, transform: 'translate(-50%,-50%) scale(1.5)', letterSpacing: '.6em' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1)', letterSpacing: '.18em', offset: 0.35 }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1)', letterSpacing: '.22em' }], { duration: 1500, easing: EASE_OUT, fill: 'forwards' });
+    // 감속은 배너가 뜬 뒤 천천히 풀린다
+    setTimeout(() => { this.slowMul = 1; for (const a of this.anims) this.rateOf(a); }, 900);
   }
 
   /** 스텔라레이서: 경기장 밖 비행선이 대각선으로 적진 한가운데에 내리꽂힌 뒤 섬광 · 충격파 · 화면 흔들림 */

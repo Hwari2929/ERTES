@@ -1,8 +1,9 @@
 // 전투 연출 확인용 데모 (빌드 산출물 아님): 지정 기물로 첫 전투를 바로 띄운다
 import { boardDims, buildBattle } from '../src/engine/build';
 import * as R from '../src/engine/run';
-import { BattleView } from '../src/ui/battleview';
+import { BattleView, FX, type DeathStyle } from '../src/ui/battleview';
 const q = new URLSearchParams(location.search);
+if (q.get('death')) FX.death = q.get('death') as DeathStyle;
 const ids = (q.get('u') || 'joshua,vivian,falcon,yupito,phyllis').split(',');
 const run = R.newRun(+(q.get('seed') || 3), ids.slice(0, 3));
 for (const id of ids.slice(3)) R.recruit(run, id);
