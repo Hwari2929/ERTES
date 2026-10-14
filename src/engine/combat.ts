@@ -469,13 +469,13 @@ export class Battle {
       }
     }
     if (u.reason !== null) {
-      // 저이성: 초당 최대 체력 × 1% × (-이성/100) 정신 피해, -50 이하 2배
+      // 저이성: 초당 최대 체력 × CFG.reasonDot × (-이성/100) 정신 피해, -50 이하 2배
       if (u.reason < 0) {
         u.mem.lowT = (u.mem.lowT || 0) + dt;
         if (u.mem.lowT >= 1) {
           u.mem.lowT -= 1;
           const k = (-u.reason / 100) * (u.reason <= -50 ? 2 : 1);
-          this.dealDamage(u, u, this.S(u, 'maxHp') * 0.01 * k, { elem: 'psy', tag: 'dot', noHooks: true, key: 'reason' });
+          this.dealDamage(u, u, this.S(u, 'maxHp') * CFG.reasonDot * k, { elem: 'psy', tag: 'dot', noHooks: true, key: 'reason' });
           if (!u.alive) return;
         }
       } else u.mem.lowT = 0;

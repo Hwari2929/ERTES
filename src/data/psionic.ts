@@ -6,10 +6,12 @@ import { type AugDef, type Effect, type EffectCtx, applyLive, inc, red, vuln } f
 import type { StatKey } from '../types';
 import { ALL_COMPONENTS, itemEffect } from './items';
 import { isHarmful, skillHit } from './kit';
+import { CFG } from '../config';
 import { PSI_STATUS, SCHOOLS, SCHOOL_BY_ID, SCHOOL_PASSIVES, psiAugId, schoolAugId, type SchoolId } from './schools';
 
 const LB = (k: string) => PSI_STATUS[k].name;
-const tp = (b: Battle, u: CUnit) => b.P(u, 'tech');
+/** 소마법 · 전공 계수 기준: 기술 위력 (지휘관은 전술 위력) × 학파 위력 배율 */
+const tp = (b: Battle, u: CUnit) => b.P(u, 'tech') * CFG.psiPower;
 /** 전공 보유 여부 (id = '학파.키') */
 const P = (u: CUnit, id: string) => !!u.mem[`ps.${id}`];
 const statusOf = (u: CUnit, k: string) => u.statuses.find((s) => s.key === k);
@@ -91,7 +93,7 @@ function discharge(b: Battle, u: CUnit) {
   const t = cantripTarget(b, u);
   if (!t) return false;
   b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'elec', ranged: true });
-  skillHit(b, u, t, 'tech', 0.9, 'elec', { noMiss: true });
+  skillHit(b, u, t, 'tech', 0.9 * CFG.psiPower, 'elec', { noMiss: true });
   if (t.alive) b.applyStatus(u, t, conductStatus(b, u));
   if (t.alive && P(u, 'volt.short') && b.rng.chance(0.3)) b.applyStatus(u, t, { type: 'shock', key: 'shock', dur: 1 });
   if (P(u, 'volt.chain')) {
@@ -100,7 +102,7 @@ function discharge(b: Battle, u: CUnit) {
     let prev = t;
     for (const e of others) {
       b.emit({ k: 'atk', from: prev.id, to: e.id, elem: 'elec', ranged: true, chain: true });
-      skillHit(b, u, e, 'tech', 0.45, 'elec', { noMiss: true });
+      skillHit(b, u, e, 'tech', 0.45 * CFG.psiPower, 'elec', { noMiss: true });
       prev = e;
     }
   }
@@ -219,7 +221,7 @@ function shockwave(b: Battle, u: CUnit) {
   const t = cantripTarget(b, u);
   if (!t) return false;
   const victims = P(u, 'wave.amp') ? [t, ...b.around(t, 1, b.enemiesOf(u)).filter((e) => e !== t)] : [t];
-  skillHit(b, u, t, 'tech', 0.7, 'phys', { noMiss: true });
+  skillHit(b, u, t, 'tech', 0.7 * CFG.psiPower, 'phys', { noMiss: true });
   b.fx(t.x, t.y, victims.length > 1 ? 1 : 0, 'phys');
   for (const v of victims) {
     if (!v.alive) continue;
@@ -255,7 +257,7 @@ function market(b: Battle, u: CUnit) {
     const a = b.lowestHpAlly(u);
     if (a) { b.shield(a, tp(b, u) * 0.8); b.fx(a.x, a.y, 0, 'holy', 'heal'); }
   }
-  if (t && t.alive && P(u, 'gold.short') && reasonOf(u) < 0) skillHit(b, u, t, 'tech', 1.5 + 0.2 * (u.mem.goldItems || 0), 'phys', { noMiss: true });
+  if (t && t.alive && P(u, 'gold.short') && reasonOf(u) < 0) skillHit(b, u, t, 'tech', (1.5 + 0.2 * (u.mem.goldItems || 0)) * CFG.psiPower, 'phys', { noMiss: true });
   return { to: t || undefined };
 }
 const credit10 = (b: Battle) => Math.floor(Math.max(0, b.ctx.credits) / 10);

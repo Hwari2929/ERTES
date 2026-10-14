@@ -14,6 +14,8 @@ export const CFG = {
   resultDelay: 1.1, // 전투가 끝나고 결과 창이 뜨기까지 (초)
   tacBase: 100, tacPerUnit: 16, tacPerCmd: 40, tacPerMnd: 2,
   reasonStart: 50, // 사이오닉 이성 시작값
+  reasonDot: 0.006, // 저이성 정신 피해: 초당 최대 체력 × 이 값 × (-이성/100), -50 이하 2배
+  psiPower: 1.25, // 소마법 · 학파 전공 계수 배율 (밸런스)
   divCap: 200, // 디바인 전투당 신성력 수집 상한
   powerPerDiv: 25, powerMax: 12, // 권능 포인트 = 디바인 1명당 모은 신성력 ÷ 25 + 신권 대행 1 (전투당 최대 12)
   // 전술 유형별 성장 주기
@@ -50,13 +52,13 @@ export const CFG = {
   overtimeStart: 45, overtimeRamp: 0.1, timeLimit: 75,
 
   // ── 무한 모드 페이즈 스케일링 (확정, 복리)
-  phaseArmor: 1.25, phaseAmp: 1.4,
+  phaseArmor: 1.25, phaseAmp: 1.28,
   // 체력 배율: 5페이즈까지 ×2.05, 6페이즈부터 ×1.9, ×1.8 … (하한 ×1.1 [임시])
   // 고페이즈 보정 [임시]: lateFrom 페이즈부터 매 페이즈 체력 ×lateHp, 피해 ×lateAmp 추가 (8페이즈 누적 체력 -19%, 피해 +41%)
-  lateFrom: 5, lateHp: 0.9, lateAmp: 1.09,
-  phaseHpFactor: (p: number) => (p <= 5 ? 2.05 : Math.max(1.1, 2 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
-  adversityMult: 1.6,
-  enemyHpMul: 5.6, enemyPowMul: 2.5, // 적 기초 수치 전체 배율 (튜닝용)
+  lateFrom: 5, lateHp: 0.9, lateAmp: 1.05,
+  phaseHpFactor: (p: number) => (p <= 5 ? 1.85 : Math.max(1.1, 1.85 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
+  adversityMult: 1.5,
+  enemyHpMul: 4.6, enemyPowMul: 2.25, // 적 기초 수치 전체 배율 (튜닝용)
   // 아군 치명타 · 회피 환산은 0.01 (예전 0.02 의 0.5배). 적은 아래 배율로 예전 값을 유지한다
   // 적 메이저 → 명중 · 회피 · 치명타 · 효과 저항 환산 배율 (아군 환산 × 배율). 페이즈 6 일반 적 기준 회피 ~30% · 치명타 ~35% · 효과 저항 ~30%
   enemyMajorConv: { acc: 0.3, eva: 2.5, crit: 1.8, effRes: 0.4 },
