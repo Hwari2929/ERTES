@@ -294,9 +294,13 @@ button { font: inherit; color: inherit; }
 .stk { position: absolute; left: 6%; right: 6%; bottom: -10%; display: flex; justify-content: center; gap: 3px; pointer-events: none; }
 .stk-seg { display: flex; gap: 1px; } .stk-seg i { width: 5px; height: 4px; background: rgb(0 0 0 / .6); border: 1px solid #e0a050; } .stk-seg i.on { background: #ffb347; }
 .stk-gloom { font: 700 9px var(--f-mono); color: #e4d2ff; background: #3a2458; border-radius: 6px; padding: 0 3px; line-height: 12px; box-shadow: 0 0 4px #8a5cc8; }
-.rl { position: absolute; right: 2%; bottom: 8%; width: 15px; height: 15px; border-radius: 50%; pointer-events: none;
-  background: conic-gradient(var(--info) var(--p, 0%), rgb(0 0 0 / .65) 0); box-shadow: 0 0 0 1px rgb(255 255 255 / .5); }
-.rl::after { content: ''; position: absolute; inset: 3px 5px; border-radius: 1px; background: #14161d; border-top: 2px solid var(--info); }
+.rl { position: absolute; right: 0; bottom: 6%; width: 20px; height: 20px; pointer-events: none; display: grid; place-items: center;
+  border-radius: 50%; background: rgb(14 16 22 / .85); box-shadow: 0 1px 4px rgb(0 0 0 / .7); }
+/* 굵은 원형 진행선 + 가운데 탄약 아이콘 */
+.rl .rl-ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#ffb347 var(--p, 0%), rgb(255 255 255 / .16) 0);
+  -webkit-mask: radial-gradient(circle, transparent 54%, #000 56%); mask: radial-gradient(circle, transparent 54%, #000 56%); }
+.rl svg { position: relative; width: 7px; height: 11px; fill: #ffb347; }
+.rl[hidden] { display: none; }
 .board-in.paused .cells { filter: saturate(.6); }
 .speed .pause { min-width: 28px; }
 /* 상세: 행동 상태 */

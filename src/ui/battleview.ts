@@ -32,6 +32,11 @@ const T_MELEE = 0.08; // 근접: 기울기 정점에서 적중
 const T_SKILL = 0.12; // 스킬명 → 효과
 const T_SUPPORT = 0.22; // 회복 · 보호막 표식 이동
 const flightOf = (d: number) => Math.min(0.26, 0.07 + 0.035 * d);
+// 곡선: 급하게 출발해 감속 (선형 대신)
+const EASE_OUT = 'cubic-bezier(.16, 1, .3, 1)';
+const EASE_IN = 'cubic-bezier(.5, 0, .9, .5)';
+const EASE_SHOT = 'cubic-bezier(.3, .7, .6, 1)';
+const easeOut = (t: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 3);
 
 /** 표시 우선순위: 0 일반 숫자 · 1 스킬 피해 · 범위 · 2 스킬명 · 부활 · 상태이상 (생략하지 않음) */
 type Prio = 0 | 1 | 2;
@@ -163,7 +168,7 @@ export class BattleView {
     el.style.height = `${100 / this.b.h}%`;
     el.dataset.a = 'bsel';
     el.dataset.v = String(u.id);
-    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div><img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && (u.reason !== null || u.div !== null) ? '<div class="gx"><i></i></div>' : ''}<div class="sti"></div><div class="stk"></div><div class="rl" hidden title="재장전 중"></div>`;
+    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div><img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && (u.reason !== null || u.div !== null) ? '<div class="gx"><i></i></div>' : ''}<div class="sti"></div><div class="stk"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
     el.innerHTML = card ? `<div class="tk-card">${inner}</div>` : inner;
     this.board.appendChild(el);
     const q = <T extends HTMLElement>(s: string) => el.querySelector<T>(s)!;
@@ -197,7 +202,7 @@ export class BattleView {
       const u = e.u;
       let x = u.x, y = u.y;
       if (u.moveT > 0 && u.moveDur > 0) {
-        const t = 1 - u.moveT / u.moveDur;
+        const t = easeOut(1 - u.moveT / u.moveDur);
         x = u.px + (u.x - u.px) * t;
         y = u.py + (u.y - u.py) * t;
       }
@@ -272,7 +277,7 @@ export class BattleView {
   /** 화면상 현재 위치 (이동 보간) */
   private centerAt(u: CUnit) {
     let x = u.x, y = u.y;
-    if (u.moveT > 0 && u.moveDur > 0) { const t = 1 - u.moveT / u.moveDur; x = u.px + (u.x - u.px) * t; y = u.py + (u.y - u.py) * t; }
+    if (u.moveT > 0 && u.moveDur > 0) { const t = easeOut(1 - u.moveT / u.moveDur); x = u.px + (u.x - u.px) * t; y = u.py + (u.y - u.py) * t; }
     return { x: ((x + 0.5) / this.b.w) * 100, y: ((y + 0.5) / this.b.h) * 100 };
   }
   private dir(a: CUnit, t: CUnit) {
@@ -324,8 +329,8 @@ export class BattleView {
     const dx = o.side === 'r' ? 3.2 : o.side === 'l' ? -3.2 : (lane - 1) * 2.2;
     const sel = this.selId !== null;
     const d = this.spawnFx(`ft ${cls}${rel ? ' focus' : sel ? ' dimf' : ''}`, c.x + dx, c.y - 100 / this.b.h * 0.3 - lane * 1.8,
-      [{ transform: 'translate(-50%, 0)', opacity: 1 }, { transform: 'translate(-50%, -60%)', opacity: 1, offset: 0.55 }, { transform: 'translate(-50%, -150%)', opacity: 0 }],
-      cls.includes('skb') ? 1500 : 900, { easing: 'ease-out' }, '', true);
+      [{ transform: 'translate(-50%, 20%) scale(1.25)', opacity: 0, easing: EASE_OUT }, { transform: 'translate(-50%, -70%) scale(1)', opacity: 1, offset: 0.2, easing: 'linear' }, { transform: 'translate(-50%, -110%)', opacity: 1, offset: 0.7, easing: 'ease-in' }, { transform: 'translate(-50%, -140%)', opacity: 0 }],
+      cls.includes('skb') ? 1500 : 900, { easing: EASE_OUT }, '', true);
     d.textContent = text;
     if (o.color) d.style.color = o.color;
     if (o.merge && o.v !== undefined) this.merges.set(o.merge, { el: d, v: o.v, until: this.vt + 0.35, fmt: o.fmt || ((v) => fmt(v)) });
@@ -335,16 +340,28 @@ export class BattleView {
     const c = this.centerAt(u);
     this.spawnFx(`cic ${cls}`, c.x, c.y - 100 / this.b.h * 0.42, [{ transform: 'translate(-50%, -50%) scale(.4)', opacity: 0 }, { transform: 'translate(-50%, -50%) scale(1.15)', opacity: 1, offset: 0.3 }, { transform: 'translate(-50%, -80%) scale(1)', opacity: 0 }], 520, {}, glyph);
   }
-  /** 토큰 동작 (카드 전체) */
-  private move(id: number, kf: Keyframe[], ms: number) {
+  /** 토큰 동작: 기물마다 한 번에 하나만. 우선순위가 낮은 동작은 진행 중인 높은 동작을 끊지 않는다
+   *  (시전 4 > 근접 공격 3 > 회피 · 반동 2 > 피격 1). 빠르게 정점에 닿은 뒤 감속하며 돌아온다 */
+  private motion = new Map<number, { a: Animation; prio: number; t: number }>();
+  private move(id: number, peak: Keyframe, ms: number, prio: number, peakAt = 0.22) {
     const e = this.els.get(id);
     if (!e || this.reduced) return;
-    this.play(e.el, kf, ms, { composite: 'add' } as KeyframeAnimationOptions);
+    const cur = this.motion.get(id);
+    if (cur && cur.a.playState === 'running') {
+      if (cur.prio > prio) return;
+      if (cur.prio === prio && this.vt - cur.t < 0.15) return; // 같은 동작 연타는 하나로
+      cur.a.cancel();
+    }
+    const a = this.play(e.el, [{ transform: 'none', opacity: 1, easing: EASE_IN }, { ...peak, offset: peakAt, easing: EASE_OUT }, { transform: 'none', opacity: 1 }], ms);
+    if (a) this.motion.set(id, { a, prio, t: this.vt });
   }
+  private flashes = new Map<number, Animation>();
   private flash(id: number, filter: string, ms: number) {
     const e = this.els.get(id);
     if (!e || this.reduced) return;
-    this.play(e.face, [{ filter: 'none' }, { filter, offset: 0.25 }, { filter: 'none' }], ms);
+    this.flashes.get(id)?.cancel();
+    const a = this.play(e.face, [{ filter: 'none', easing: EASE_IN }, { filter, offset: 0.15, easing: EASE_OUT }, { filter: 'none' }], ms);
+    if (a) this.flashes.set(id, a);
   }
   /** 곡선으로 날아가는 표식 (회복 · 보호막 · 장비) */
   private arc(from: CUnit, to: CUnit, cls: string, startIn: number, dur: number, html = '') {
@@ -355,7 +372,7 @@ export class BattleView {
       { left: `${p0.x}%`, top: `${p0.y}%`, opacity: 0.2, transform: 'translate(-50%, -50%) scale(.6)' },
       { left: `${mx}%`, top: `${my}%`, opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.5 },
       { left: `${p1.x}%`, top: `${p1.y}%`, opacity: 1, transform: 'translate(-50%, -50%) scale(.8)' },
-    ], dur * 1000, { delay: Math.max(0, startIn) * 1000, easing: 'ease-in-out', fill: 'forwards' }, html);
+    ], dur * 1000, { delay: Math.max(0, startIn) * 1000, easing: EASE_OUT, fill: 'forwards' }, html);
   }
 
   // ───────── 최근 행동
@@ -415,7 +432,7 @@ export class BattleView {
     const v = this.dir(a, t);
     if (!e.ranged) {
       this.atkCtx = { from: e.from, to: e.to, land: this.vt + T_MELEE, ranged: false };
-      this.move(e.from, [{ transform: 'translate(0,0)' }, { transform: `translate(${v.x * 30}%, ${v.y * 30}%) rotate(${v.x * 7}deg)`, offset: 0.4 }, { transform: 'translate(0,0)' }], 240);
+      this.move(e.from, { transform: `translate(${v.x * 30}%, ${v.y * 30}%) rotate(${v.x * 7}deg)` }, 280, 3, 0.3);
       return;
     }
     // 연쇄 탄환: 이 기물에게 날아오는 탄환이 닿은 뒤에 출발
@@ -424,14 +441,14 @@ export class BattleView {
     const land = start + fl;
     this.atkCtx = { from: e.from, to: e.to, land, ranged: true };
     this.projLand.set(e.to, land);
-    if (start <= this.vt) this.move(e.from, [{ transform: 'translate(0,0)' }, { transform: `translate(${-v.x * 9}%, ${-v.y * 9}%)`, offset: 0.25 }, { transform: 'translate(0,0)' }], 160);
+    if (start <= this.vt) this.move(e.from, { transform: `translate(${-v.x * 9}%, ${-v.y * 9}%)` }, 200, 2, 0.15);
     if (this.reduced || this._speed > 4) return;
     if (this.crowd(0, this.rel(e.from, e.to))) return;
     const p0 = start > this.vt ? this.center(a) : this.centerAt(a), p1 = this.center(t);
     const ang = (Math.atan2((p1.y - p0.y) * this.b.h, (p1.x - p0.x) * this.b.w) * 180) / Math.PI;
     const d = this.spawnFx(`proj2${this.rel(e.from, e.to) ? ' focus' : ''}`, p0.x, p0.y, [
       { left: `${p0.x}%`, top: `${p0.y}%`, opacity: 1 }, { left: `${p1.x}%`, top: `${p1.y}%`, opacity: 1 },
-    ], fl * 1000, { delay: (start - this.vt) * 1000, easing: 'linear', fill: 'both' });
+    ], fl * 1000, { delay: (start - this.vt) * 1000, easing: EASE_SHOT, fill: 'both' });
     d.style.setProperty('--c', ELEM_COLOR[e.elem]);
     d.style.setProperty('--a', `${ang}deg`);
   }
@@ -449,14 +466,14 @@ export class BattleView {
       const v = src && src !== u ? this.dir(src, u) : { x: 0, y: -1, d: 0 };
       if (e.miss && !e.graze) {
         // 완전 회피: 비켜서는 동작만 (피격 섬광 없음)
-        this.move(e.id, [{ transform: 'translate(0,0)', opacity: 1 }, { transform: `translate(${-v.y * 24}%, ${v.x * 24}%)`, opacity: 0.55, offset: 0.4 }, { transform: 'translate(0,0)', opacity: 1 }], 280);
+        this.move(e.id, { transform: `translate(${-v.y * 24}%, ${v.x * 24}%)`, opacity: 0.55 }, 320, 2, 0.2);
         this.float(u, '회피', 'miss', { rel });
         return;
       }
       if (e.v < 1) return;
       const c = this.center(u);
       if (!dot) {
-        this.move(e.id, [{ transform: 'translate(0,0) scale(1)' }, { transform: `translate(${v.x * 8}%, ${v.y * 8}%) scale(${e.graze ? '.96, .94' : '.9, .84'})`, offset: 0.3 }, { transform: 'translate(0,0) scale(1)' }], 200);
+        this.move(e.id, { transform: `translate(${v.x * 8}%, ${v.y * 8}%) scale(${e.graze ? '.96, .94' : '.9, .84'})` }, 240, 1, 0.12);
         if (!e.graze) this.flash(e.id, 'brightness(1.6)', 180);
         if (!this.crowd(0, rel)) {
           if (ranged || e.tag === 'skill') this.spawnFx('impact', c.x, c.y, [{ transform: 'translate(-50%,-50%) scale(.3)', opacity: 1 }, { transform: 'translate(-50%,-50%) scale(1.25)', opacity: 0 }], 240).style.setProperty('--c', ELEM_COLOR[e.elem]);
@@ -553,7 +570,7 @@ export class BattleView {
     const ee = this.els.get(e.id);
     if (ee && !this.reduced) {
       this.play(ee.face, [{ boxShadow: '0 0 0 0 var(--accent)' }, { boxShadow: '0 0 0 3px var(--accent), 0 0 16px var(--accent)', offset: 0.3 }, { boxShadow: '0 0 0 0 transparent' }], 420);
-      this.move(e.id, [{ transform: 'translate(0,0) scale(1)' }, { transform: 'translate(0,-10%) scale(1.07)', offset: 0.35 }, { transform: 'translate(0,0) scale(1)' }], 320);
+      this.move(e.id, { transform: 'translate(0,-10%) scale(1.07)' }, 380, 4, 0.25);
     }
     // 설명은 처음 발동했을 때와 선택한 기물에만
     const first = !this.castSeen.has(e.id);
@@ -564,7 +581,7 @@ export class BattleView {
     const c = this.centerAt(u);
     const d = this.spawnFx(`skb${this.rel(e.id) ? ' focus' : this.selId !== null ? ' dimf' : ''}`, c.x, c.y - 100 / this.b.h * 0.55,
       [{ transform: 'translate(-50%, -30%)', opacity: 0 }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.15 }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.75 }, { transform: 'translate(-50%, -150%)', opacity: 0 }],
-      1500, { easing: 'ease-out' }, `<b></b>${showTag ? '<small></small>' : ''}`, true);
+      1500, { easing: EASE_OUT }, `<b></b>${showTag ? '<small></small>' : ''}`, true);
     d.querySelector('b')!.textContent = e.name;
     if (showTag) d.querySelector('small')!.textContent = e.tag!;
   }
