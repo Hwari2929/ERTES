@@ -4,7 +4,7 @@ import { type Battle, type CUnit, DIVINE_HOOK, type Hooks, type Status } from '.
 import { type AugDef, type Effect, applyLive, inc, red, vuln } from '../engine/effects';
 import { type CType, type Elem, type FaithId, FAITH_NAME, type Major, MAJORS, type RunState, type Weapon } from '../types';
 import { itemEffect } from './items';
-import { blinkTo, isHarmful, lineTargets, pct, skillHit, summonsOf } from './kit';
+import { blinkTo, gw, isHarmful, lineTargets, pct, skillHit, summonsOf } from './kit';
 import { kairoSnipe } from './rosterB';
 import { type BaseUnit, type ReworkDef, setSk, uaug } from './unitkit';
 
@@ -31,6 +31,23 @@ const stack = (b: Battle, u: CUnit, t: CUnit, key: string, max: number, dur: num
   const ex = t.statuses.find((s) => s.key === key);
   if (ex) { ex.stacks = Math.min(max, (ex.stacks || 1) + 1); ex.dur = dur; Object.assign(ex, make(ex.stacks)); return; }
   b.applyStatus(u, t, { type: 'dot', key, dur, stacks: 1, ...make(1) });
+};
+
+/** 마이너: 성장 배율 g 에 따른 특성 주요 수치 (상세 창 표시용, 특성 코드의 gw(u) 와 같은 식) */
+export const MINOR_TRAIT_GROW: Record<string, (g: number) => string> = {
+  chloe: (g) => `[항밈 처방] 중독 초당 기술 위력 ${pct(0.25 * g)}`,
+  west: (g) => `[현장 반장] 포탑 추가 고정 피해 사격 위력 ${pct(0.15 * g)}`,
+  orca: (g) => `[깜짝 마술] 기절 확률 ${pct(Math.min(0.6, 0.2 * g))}`,
+  zahara: (g) => `[복수자] 반격 타격 위력 ${pct(1.5 * g)}`,
+  demiurgos: (g) => `[친구의 손길] 피해량 경감 ${pct(Math.min(0.3, 0.1 * g))}`,
+  vivian: (g) => `[생태 분석] 중첩당 방어도 -${pct(Math.min(0.2, 0.1 * g))}`,
+  ingel: (g) => `[무대 위의 달] 아군 1명당 피해 +${pct(0.1 * g)} · 소환물당 +${pct(0.05 * g)}`,
+  rasmus: (g) => `[가지치기] 부상 최대 ${Math.round(5 * g)}중첩`,
+  sigmund: (g) => `[집사의 예법] 모시는 엘베스타드 모든 메이저 +${Math.round(5 * g)}`,
+  gunnir: (g) => `[저택의 실세] 기술 후 아군 전원 회복 기술 위력 ${pct(0.25 * g)}`,
+  bill: (g) => `[호쾌한 관광객] 해로운 효과 대상 피해 +${pct(0.1 * g)}`,
+  eden: (g) => `[밑바닥 생존자] 체력 50% 이하 피해 +${pct(0.2 * g)}`,
+  u404: (g) => `[1원칙] 기술마다 피해 +${pct(0.1 * g)} 중첩`,
 };
 
 // ───────── 성장 수치 조회
@@ -93,15 +110,13 @@ export const REWORK: Record<string, ReworkDef> = {
     trait: {
       name: '항밈 처방', desc: '기본 공격이 대상에게 [중독]을 건다 (4초간 초당 기술 위력 25% 화학 피해). 회복할 때 대상의 해로운 상태이상 1개를 제거한다.',
       effect: { hooks: { onBasic(b, u, t, r) {
-        if (r.amount > 0 && t.alive) b.applyStatus(u, t, { type: 'dot', key: 'poison', dur: 4, dps: b.S(u, 'tech') * 0.25, elem: 'chem' }, 1);
+        if (r.amount > 0 && t.alive) b.applyStatus(u, t, { type: 'dot', key: 'poison', dur: 4, dps: b.S(u, 'tech') * 0.25 * gw(u), elem: 'chem' }, 1);
       }, onHealDone(_b, u, t) {
         const i = t.statuses.findIndex(harmful);
         if (i < 0) return;
         t.statuses.splice(i, 1);
-        cnt(u, 'g_clin', 3);
       } } },
     },
-    growth: { name: '임상 기록', desc: '상태이상을 제거할 때마다 효과 명중 +0.2%p (전투당 3회, 상한 +20%p).', effect: (g) => ({ stats: { effHit: Math.min(0.2, 0.002 * gv(g, 'clin')) } }) },
   },
   west: {
     ctype: 'MARK', ttype: 'minor', faith: 'human', weapon: G('리벳건', 'phys', 0.6, 3, 0.6, 20, 3),
@@ -115,13 +130,11 @@ export const REWORK: Record<string, ReworkDef> = {
           if (tur.defId !== 'turret' || tur.side !== u.side) continue;
           tur.st.atkSpd += u.mem.westAs || 0;
           tur.hooks.push({
-            onBasic(bb, self, tgt, r) { if (r.amount > 0 && tgt.alive) bb.dealDamage(self, tgt, bb.S(u, 'shoot') * 0.15, { elem: 'true', tag: 'proc', noHooks: true }); },
-            onKill() { u.mem.g_wlog = (u.mem.g_wlog || 0) + 1; },
+            onBasic(bb, self, tgt, r) { if (r.amount > 0 && tgt.alive) bb.dealDamage(self, tgt, bb.S(u, 'shoot') * 0.15 * gw(u), { elem: 'true', tag: 'proc', noHooks: true }); },
           });
         }
       } } },
     },
-    growth: { name: '정비 일지', desc: '포탑이 처치할 때마다 포탑 공격 속도 +0.3% (상한 +30%).', effect: (g) => ({ setup: (u) => { u.mem.westAs = Math.min(0.3, 0.003 * gv(g, 'wlog')); } }) },
   },
 
   // ───────────────────────── 주식회사 페트라
@@ -146,12 +159,11 @@ export const REWORK: Record<string, ReworkDef> = {
     trait: {
       name: '깜짝 마술', desc: '공격 · 기술이 맞으면 20% 확률로 무작위 적 하나를 0.6초 기절시킨다 (1초에 1회).',
       effect: { hooks: { onDeal(b, u, _t, r, o) {
-        if (r.amount <= 0 || (o.tag !== 'basic' && o.tag !== 'skill') || !b.rng.chance(0.2) || !icd(b, u, 'orcaIcd', 1)) return;
+        if (r.amount <= 0 || (o.tag !== 'basic' && o.tag !== 'skill') || !b.rng.chance(Math.min(0.6, 0.2 * gw(u))) || !icd(b, u, 'orcaIcd', 1)) return;
         const es = b.enemiesOf(u);
         if (es.length) b.stun(u, es[Math.floor(b.rng.next() * es.length)], 0.6);
       } } },
     },
-    growth: { name: '재정 건전성', desc: '전투 후 이자로 받은 크레딧 1당 기술 위력 +0.5 (상한 +40).', effect: (g) => ({ stats: { tech: Math.min(40, 0.5 * gv(g, 'fin')) } }) },
   },
   franze: {
     ctype: 'CMD', ttype: 'major', faith: 'index', weapon: K('에너지 블레이드', 'phys', 0.9, 1, 0.6, 4),
@@ -288,17 +300,13 @@ export const REWORK: Record<string, ReworkDef> = {
     trait: {
       name: '복수자', desc: '피해를 받으면 공격자에게 타격 위력 150% 반격. 주변 1칸 아군이 맞았을 때도 50% 확률로 반격 (0.4초에 1회).',
       effect: { hooks: {
-        onHurt(b, u, src, r, o) { if (src.side !== u.side && src.alive && r.amount > 0 && o.tag !== 'dot' && icd(b, u, 'zIcd', 0.4)) proc(b, u, src, b.S(u, 'strike') * 1.5, 'phys', 'strike'); },
+        onHurt(b, u, src, r, o) { if (src.side !== u.side && src.alive && r.amount > 0 && o.tag !== 'dot' && icd(b, u, 'zIcd', 0.4)) proc(b, u, src, b.S(u, 'strike') * 1.5 * gw(u), 'phys', 'strike'); },
         onAllyHurt(b, u, ally, src, r) {
           if (src.side === u.side || !src.alive || r.amount <= 0 || b.dist(u, ally) > 1 || !b.rng.chance(0.5) || !icd(b, u, 'zIcd', 0.4)) return;
-          proc(b, u, src, b.S(u, 'strike') * 1.5, 'phys', 'strike');
-        },
-        onAnyDeath(_b, u, dead, killer) {
-          if (killer && dead.side !== u.side && killer.statuses.some((s) => s.key === 'sup.zahara')) cnt(u, 'g_recipe', 2);
+          proc(b, u, src, b.S(u, 'strike') * 1.5 * gw(u), 'phys', 'strike');
         },
       } },
     },
-    growth: { name: '레시피 복원', desc: '요리받은 아군이 적을 처치할 때마다 [요리] 피해 증가 +1%p (전투당 2회).', effect: (g) => setSk((s) => { s.dmg += 0.01 * gv(g, 'recipe'); }) },
   },
   bianca: {
     ctype: 'SPEC', ttype: 'special', faith: 'science', weapon: G('치유탄 권총', 'phys', 0.9, 3, 0.9, 8, 2),
@@ -459,16 +467,8 @@ export const REWORK: Record<string, ReworkDef> = {
       name: '친구의 손길', desc: '회복받은 아군은 3초간 피해량 경감 10%.',
       effect: { hooks: { onHealDone(b, u, t, amt) {
         if (amt <= 0) return;
-        b.buff(u, t, 'demi.friend', 3, { taken: [red('all', 0.1)] });
-        if (!t.isSummon && t !== u) u.mem[`g_f_${t.defId}`] = 1;
+        b.buff(u, t, 'demi.friend', 3, { taken: [red('all', Math.min(0.3, 0.1 * gw(u)))] });
       } } },
-    },
-    growth: {
-      name: '친구 목록', desc: '회복시킨 서로 다른 아군 1명당 회복량 +2% (런 누적).',
-      effect: (g) => {
-        const n = Object.keys(g).filter((k) => k.startsWith('f_')).length;
-        return { hooks: { healMult: () => 1 + 0.02 * n } };
-      },
     },
   },
 
@@ -502,10 +502,8 @@ export const REWORK: Record<string, ReworkDef> = {
           u.mem.vivInit = 1;
           for (const pet of summonsOf(b, u)) pet.hooks.push({ onBasic(bb, self, t, r) { if (r.amount > 0) shred(bb, self, t); } });
         },
-        onInflict(b, u, _t, s) { if (s.type === 'stun' && summonsOf(b, u).length) cnt(u, 'g_bond', 3); },
       } },
     },
-    growth: { name: '교감', desc: '리키가 적을 기절시킬 때마다 리키 스탯 상속률 +0.5%p (전투당 3회, 상한 +40%p).', effect: (g) => ({ setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + Math.min(0.4, 0.005 * gv(g, 'bond')); } }) },
   },
   yupito: {
     ctype: 'SPEC', ttype: 'major', faith: 'science', weapon: G('용접 아크건', 'elec', 0.8, 3, 0.8, 10, 2.5),
@@ -530,11 +528,10 @@ export const REWORK: Record<string, ReworkDef> = {
         if (u.mem.ingInit) return;
         u.mem.ingInit = 1;
         const as = b.alliesOf(u, false);
-        const v = 0.1 * as.filter((a) => !a.isSummon).length + 0.05 * as.filter((a) => a.isSummon).length;
+        const v = (0.1 * as.filter((a) => !a.isSummon).length + 0.05 * as.filter((a) => a.isSummon).length) * gw(u);
         u.mods.push(inc('all', v));
       } } },
     },
-    growth: { name: '팬덤', desc: '출전해 승리한 전투 1회당 스킬 피해 +1% (상한 +40%).', effect: (g) => ({ mods: [inc('skill', Math.min(0.4, 0.01 * gv(g, 'fan')))] }) },
   },
   onyx: {
     ctype: 'SPEC', ttype: 'psionic', faith: 'human', weapon: G('합창', 'psy', 1.0, 3, 0.9, 10, 2),
@@ -601,7 +598,6 @@ export const REWORK: Record<string, ReworkDef> = {
         },
       } },
     },
-    growth: { name: '정원 가꾸기', desc: '노드 10개를 지날 때마다 맥스 최대 체력 +2% (대기실에 있어도 쌓임).', effect: (g) => ({ setup: (u) => { u.mem.summonHpPct = (u.mem.summonHpPct || 0) + 0.02 * Math.floor(gv(g, 'nodes') / 10); } }) },
   },
   sigmund: {
     ctype: 'CMD', ttype: 'minor', faith: 'index', weapon: G('은식기 투척', 'phys', 1.1, 3, 0.6, 6, 2),
@@ -615,9 +611,8 @@ export const REWORK: Record<string, ReworkDef> = {
           const a = b.alliesOf(self).find((x) => x.src?.uid === uid);
           if (a) { a.mem.staffed = 1; self.mem.serveId = a.id; }
         } });
-      }, hooks: { onAnyDeath(_b, u, dead, killer) { if (killer && killer.id === u.mem.serveId && dead.side !== u.side) cnt(u, 'g_serve', 2); } } },
+      }},
     },
-    growth: { name: '근속', desc: '모시는 기물이 처치할 때마다 보좌 피해 증가 +0.5%p (전투당 2회, 상한 +30%p).', effect: (g) => setSk((s) => { s.dmg += Math.min(0.3, 0.005 * gv(g, 'serve')); }) },
   },
   gunnir: {
     ctype: 'SPEC', ttype: 'minor', faith: 'index', weapon: G('주방 칼 투척', 'phys', 1.0, 3, 0.8, 5, 2),
@@ -625,11 +620,9 @@ export const REWORK: Record<string, ReworkDef> = {
     trait: {
       name: '저택의 실세', desc: '전투 스킬을 쓴 뒤 아군 전원을 기술 위력 25% 회복.',
       effect: { hooks: { onSkill(b, u) {
-        for (const a of b.alliesOf(u)) b.heal(u, a, b.P(u, 'tech') * 0.25);
-        u.mem.g_cook = (u.mem.g_cook || 0) + 1;
+        for (const a of b.alliesOf(u)) b.heal(u, a, b.P(u, 'tech') * 0.25 * gw(u));
       } } },
     },
-    growth: { name: '육수', desc: '요리 5회마다 [요리] 보호막 +1%p (상한 +60%p).', effect: (g) => setSk((s) => { s.shield += Math.min(0.6, 0.01 * Math.floor(gv(g, 'cook') / 5)); }) },
   },
   mingki: {
     ctype: 'VAN', ttype: 'special', faith: 'index', weapon: K('발톱', 'phys', 0.65, 1, 0.7, 6),
@@ -668,7 +661,6 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'VAN', ttype: 'minor', faith: 'index', weapon: K('유압 프레스 팔', 'phys', 1.0, 1, 0.85, 3),
     factions: ['PET'], traits: ['ENG'],
     trait: { name: '1원칙', desc: '전투 스킬을 쓸 때마다 피해가 오른다 (전투 동안 중첩).' },
-    growth: { name: '분기 실적', desc: '전투 피해 목표(페이즈 비례)를 달성할 때마다 타격 위력 +1% (상한 +30%).', effect: (g) => ({ pct: { strike: Math.min(0.3, 0.01 * gv(g, 'quota')) } }) },
   },
 };
 
@@ -695,10 +687,10 @@ function cat(b: Battle, u: CUnit, dur: number) {
 function shred(b: Battle, u: CUnit, t: CUnit) {
   // 우리의 출항기! [정밀 분석]: 최대 5중첩, 중첩당 받는 모든 피해 +15%
   const voy = (u.owner || u).mem.voyViv;
-  stack(b, u, t, 'vivian.shred', voy ? 5 : 3, 5, (n) => ({ type: 'buff', armorMul: 1 - 0.1 * n, label: n === 1 ? '방어 분석' : undefined, ...(voy ? { taken: [vuln('all', 0.15 * n)] } : {}) }));
+  stack(b, u, t, 'vivian.shred', voy ? 5 : 3, 5, (n) => ({ type: 'buff', armorMul: Math.max(0.1, 1 - Math.min(0.2, 0.1 * gw(u)) * n), label: n === 1 ? '방어 분석' : undefined, ...(voy ? { taken: [vuln('all', 0.15 * n)] } : {}) }));
 }
 function wound(b: Battle, u: CUnit, t: CUnit) {
-  stack(b, u, t, 'wound', 5, 6, () => ({}));
+  stack(b, u, t, 'wound', Math.round(5 * gw(u)), 6, () => ({}));
 }
 
 /** 시그문드가 모시는 기물: 출전한 다른 기물 중 공명 등급이 가장 높은 기물 */

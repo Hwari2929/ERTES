@@ -7,6 +7,22 @@ export type Elem = 'phys' | 'chem' | 'elec' | 'psy' | 'holy' | 'true';
 export const ELEM_NAME: Record<Elem, string> = { phys: '물리', chem: '화학', elec: '전기', psy: '정신', holy: '신성', true: '고정' };
 export type Keyword = 'bio' | 'mech' | 'struct' | 'phantom';
 export const KEYWORD_NAME: Record<Keyword, string> = { bio: '생체', mech: '기계', struct: '건물', phantom: '환상' };
+/** 분류: 아군 · 적 공통 상성 규칙 (기물 하나에 하나) */
+export type Category = 'bio' | 'mech' | 'soul' | 'struct';
+export const CATEGORY_NAME: Record<Category, string> = { bio: '생체', mech: '기계', soul: '영혼', struct: '구조물' };
+export const CATEGORY_RULE: Record<Category, string> = {
+  bio: '받는 화학 피해 ×1.5. 출혈 · 중독 피해 +25%.',
+  mech: '받는 전기 피해 ×1.5, 정신 피해 ×0.25. 출혈 · 중독 면역.',
+  soul: '받는 물리 피해 ×0.6, 신성 피해 ×1.5. 회피 +10%p. 매혹 면역.',
+  struct: '이동하지 않음. 방어도 ×1.3. 기절 · 공포 · 빙결 면역.',
+};
+/** 키워드 → 분류: 이동하지 않으면 구조물, 기계 > 영혼(환상) > 생체 */
+export function categoryOf(keywords: readonly string[], immobile = false): Category {
+  if (immobile) return 'struct';
+  if (keywords.includes('mech')) return 'mech';
+  if (keywords.includes('phantom')) return 'soul';
+  return 'bio';
+}
 
 export type FactionId = 'UNI' | 'KAL' | 'HEL' | 'PET' | 'SIR' | 'PAN' | 'FAM' | 'SEC' | 'STL' | 'HOI' | 'TIME' | 'VOYAGE';
 export const FACTIONS: FactionId[] = ['UNI', 'KAL', 'HEL', 'PET', 'SIR', 'PAN', 'FAM', 'SEC', 'STL', 'HOI', 'TIME', 'VOYAGE'];
@@ -109,7 +125,7 @@ export type Pending =
   | { t: 'victory' }
   | { t: 'event'; id: string; sub?: string | null } // sub: 이번 사건의 동적 조연 (기물 id)
   | { t: 'privilege'; options: AugPick[]; rerolls: number }
-  | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean; join?: boolean; kind?: 'unit' | 'special' | 'psionic' }
+  | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean; join?: boolean; kind?: 'major' | 'special' | 'psionic' }
   | { t: 'pilgrim' }
   | { t: 'itemPick'; options: string[]; title: string }
   | { t: 'recruit'; options: string[]; rerolls?: number; syns?: string[] } // rerolls 없음 = 1회, syns = 지정 소집 조건

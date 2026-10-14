@@ -19,7 +19,7 @@ import {
 import { deployed, memberships, playerRows, synergyCounts } from './build';
 import type { Battle } from './combat';
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6; // 6: 전술 유형 개편 (개별 증강 폐지)
 
 export function rng<T>(run: RunState, f: (r: Rng) => T): T {
   const r = new Rng(run.rng);
@@ -129,11 +129,9 @@ export function addUnit(run: RunState, defId: string, rank: number): UnitState {
   run.units.push(u);
   if (!run.usedIds.includes(defId)) run.usedIds.push(defId);
   run.rankLog[defId] = Math.max(run.rankLog[defId] || 0, 1);
-  for (let r = 2; r <= rank; r++) rankUp(run, u);
-  // 합류 즉시 전용 증강 1개
-  run.pending.push({ t: 'rankup', uid: u.uid, rank: u.rank, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, join: true });
-  // 스페셜: 합류 증강에 더해 스페셜 증강 1개
-  if (UNIT_BY_ID[defId].ttype === 'special') run.pending.push({ t: 'rankup', uid: u.uid, rank: u.rank, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, join: true, kind: 'special' });
+  // 스페셜: 합류할 때 전용 증강 1개 (다른 유형은 합류 선택 없음)
+  if (UNIT_BY_ID[defId].ttype === 'special') run.pending.push({ t: 'rankup', uid: u.uid, rank: 1, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, join: true, kind: 'special' });
+  for (let r = 2; r <= rank; r++) rankUp(run, u); // 건너뛴 이정표도 모두 지급
   return u;
 }
 
@@ -472,7 +470,6 @@ const tierNow = (run: RunState, id: 'STAR' | 'HOI' | 'OCCULT' | 'HEL') => tierOf
 export function advance(run: RunState) {
   run.node = null;
   run.step++;
-  for (const u of run.units) if (u.defId === 'rasmus') { u.grow ??= {}; u.grow.nodes = (u.grow.nodes || 0) + 1; } // 정원 가꾸기
   if (run.mods.nodeIncome) run.credits += run.mods.nodeIncome; // 분할 정산 등
   if (run.step >= run.map.length) {
     run.phase++;
@@ -760,13 +757,13 @@ function rankUp(run: RunState, u: UnitState) {
   u.rank++;
   run.rankLog[u.defId] = Math.max(run.rankLog[u.defId] || 0, u.rank);
   for (const k of MAJORS) u.alloc[k] += CFG.rankAll; // 모든 메이저 자동 상승
-  const d = UNIT_BY_ID[u.defId];
-  const tt = d.ttype;
-  // 스페셜: 매 등급 추천 스탯 2종 중 무작위 1종 +3 (선택 창 없음)
-  if (tt === 'special') { const m = rng(run, (r) => r.pick(recMajors(d))); u.alloc[m] += CFG.rankPoints; }
-  const pick = CFG.growth.pick(tt, u.rank), aug = CFG.growth.aug(tt, u.rank);
-  if (pick || aug) run.pending.push({ t: 'rankup', uid: u.uid, rank: u.rank, points: CFG.rankPoints, options: aug ? null : [], rerolls: CFG.augmentRerolls, allocDone: !pick });
-  if (CFG.growth.psionic(tt, u.rank)) run.pending.push({ t: 'rankup', uid: u.uid, rank: u.rank, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, kind: 'psionic' });
+  const tt = UNIT_BY_ID[u.defId].ttype;
+  const R = u.rank;
+  // 마이너: 능력치 2종 +3 · 메이저: 메이저 증강 · 스페셜: 전용 증강 · 사이오닉: 전공 증강 (디바인은 스탯만)
+  if (CFG.growth.pick(tt, R)) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: CFG.rankPoints, options: [], rerolls: 0, allocDone: false });
+  if (CFG.growth.major(tt, R)) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, kind: 'major' });
+  if (CFG.growth.special(tt, R) && augRoom(u, 'special')) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, kind: 'special' });
+  if (CFG.growth.psionic(tt, R) && augRoom(u, 'psionic')) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, kind: 'psionic' });
 }
 
 export function buyXp(run: RunState, uid: string): boolean {
@@ -781,14 +778,25 @@ export function buyXp(run: RunState, uid: string): boolean {
 export const xpCost = (run: RunState) => CFG.buyXpCost - (hasGlobal(run, 'G.study') ? 1 : 0);
 
 // ───────────────────────── 증강 선택
-export function augOptions(run: RunState, u: UnitState, kind: 'unit' | 'special' | 'psionic' = 'unit'): AugPick[] {
+export type AugKind = 'major' | 'special' | 'psionic';
+/** 기물 유형이 받는 증강 종류 (마이너 · 디바인은 없음) */
+export function typeAugKind(u: UnitState): AugKind | null {
+  const tt = UNIT_BY_ID[u.defId].ttype;
+  return tt === 'major' || tt === 'special' || tt === 'psionic' ? tt : null;
+}
+/** 이 유형 증강을 더 받을 수 있는지 (스페셜 · 사이오닉은 최대 4개) */
+export function augRoom(u: UnitState, kind: AugKind) {
+  if (kind === 'major') return true;
+  const pool = new Set((kind === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : PSI_AUGS).map((a) => a.id));
+  return u.augments.filter((a) => pool.has(a.id)).length < 4;
+}
+export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major'): AugPick[] {
   const def = UNIT_BY_ID[u.defId];
   const owned = new Set(u.augments.map((a) => a.id));
   const avail = (a: { id: string; stack?: boolean }) => a.stack || !owned.has(a.id);
-  // 메이저: 전용 증강 + 메이저 공용 풀
-  const base = kind === 'special' ? def.specialAugs || [] : kind === 'psionic' ? PSI_AUGS : [...def.augs, ...(def.ttype === 'major' ? MAJOR_AUGS : [])];
-  let unitPool = base.filter(avail);
-  if (!unitPool.length && kind === 'unit') unitPool = MAJOR_AUGS.slice();
+  if (!augRoom(u, kind)) return [];
+  const base = kind === 'special' ? def.specialAugs || [] : kind === 'psionic' ? PSI_AUGS : MAJOR_AUGS;
+  const unitPool = base.filter(avail);
   return rng(run, (r) => {
     const out = r.sample(unitPool.map((x) => x.id), CFG.augmentChoices);
     return out.map((id) => {
@@ -800,7 +808,7 @@ export function augOptions(run: RunState, u: UnitState, kind: 'unit' | 'special'
 
 export function ensureRankupOptions(run: RunState, p: Extract<Pending, { t: 'rankup' }>) {
   const u = run.units.find((x) => x.uid === p.uid);
-  if (u && !p.options) p.options = augOptions(run, u, p.kind || 'unit');
+  if (u && !p.options) p.options = augOptions(run, u, (p.kind as AugKind) || 'major');
 }
 
 // ───────────────────────── 경제 / 아이템
@@ -1055,7 +1063,13 @@ function genInvest(run: RunState): InvestOffer[] {
   return rng(run, (r) => order.map((id) => {
     const o: InvestOffer = { id, cost: Math.round(INVEST_OFFERS[id].cost * investPrice[t - 1]), sold: false };
     if (id === 'aug') {
-      const cands = run.units.flatMap((u) => UNIT_BY_ID[u.defId].augs.filter((a) => !a.roll && !u.augments.some((p) => p.id === a.id)).map((a) => ({ u, a })));
+      // 유형별 증강 계약: 메이저 증강 · 스페셜 전용 증강 · 사이오닉 전공 (마이너 · 디바인은 대상 아님)
+      const cands = run.units.flatMap((u) => {
+        const k = typeAugKind(u);
+        if (!k || !augRoom(u, k)) return [];
+        const pool = k === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : k === 'psionic' ? PSI_AUGS : MAJOR_AUGS;
+        return pool.filter((a) => !a.roll && !u.augments.some((p) => p.id === a.id)).map((a) => ({ u, a }));
+      });
       if (cands.length) { const c = r.pick(cands); o.uid = c.u.uid; o.aug = c.a.id; } else o.sold = true;
     }
     return o;
@@ -1153,8 +1167,10 @@ function eventApi(run: RunState): EventApi {
     },
     randomItem: (t) => rng(run, (r) => { const a = r.pick(tierPool(t)); return t === 'L' ? 'L_' + a.slice(2) : a; }),
     augNow: (u) => {
-      const opts = augOptions(run, u);
-      if (!opts.length) return null;
+      const k = typeAugKind(u);
+      const opts = k ? augOptions(run, u, k) : [];
+      // 증강이 없는 유형(마이너 · 디바인)이나 더 받을 수 없으면 공명 등급 +1
+      if (!opts.length) { if (u.rank >= CFG.maxRank) return null; rankUp(run, u); return '공명 각성 (등급 +1)'; }
       u.augments.push(opts[0]);
       return AUG_BY_ID[opts[0].id]?.name || null;
     },
@@ -1264,11 +1280,7 @@ function settleGrowth(run: RunState, b: Battle, won: boolean, interest: number, 
     for (const [k, v] of Object.entries(c.mem)) if (k.startsWith('g_') && v) u.grow[k.slice(2)] = (u.grow[k.slice(2)] || 0) + v;
     if (c.mem.g_loot) { run.credits += c.mem.g_loot; lines.push(`루스 약탈 +${c.mem.g_loot}`); }
     if (c.div !== null) div += c.divGot;
-    // U-404 분기 실적: 페이즈 비례 피해 목표
-    if (u.defId === 'u404' && c.counters.dmg >= 1500 * run.phase) { u.grow.quota = (u.grow.quota || 0) + 1; lines.push('U-404 분기 실적 달성'); }
-    if (u.defId === 'ingel' && won) u.grow.fan = (u.grow.fan || 0) + 1;
   }
-  for (const u of run.units) if (u.defId === 'orca' && interest) { u.grow ??= {}; u.grow.fin = (u.grow.fin || 0) + interest; }
   const pw = Math.min(CFG.powerMax, Math.floor(div / CFG.powerPerDiv));
   if (pw) { run.power += pw; lines.push(`권능 포인트 +${pw} (현재 ${run.power})`); }
 }

@@ -18,7 +18,6 @@ export interface BaseUnit {
   palette: string[];
   skill: SkillDef;
   lore: string;
-  augs: AugDef[];
   /** 최고의 친구: 전투 시작 시 소환하는 단짝 */
   summon?: SummonDef;
   /** 항해자: [에이스 파일럿]으로 지정되면 활성화되는 추가 특성 (k = 항해자 단계 배율) */

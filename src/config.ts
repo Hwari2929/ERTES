@@ -17,11 +17,19 @@ export const CFG = {
   divCap: 200, // 디바인 전투당 신성력 수집 상한
   powerPerDiv: 20, powerMax: 10, // 권능 포인트 = 모은 신성력 ÷ 20 (전투당 최대 10)
   // 전술 유형별 성장 주기
+  // 전술 유형별 성장 (공명 등급이 오르면 모두 메이저 +1, 그 밖의 보상은 유형별 이정표)
   growth: {
-    pick: (tt: string, rank: number) => tt !== 'special' && rank % 3 === 0,
-    aug: (tt: string, rank: number) => rank % (tt === 'major' ? 3 : 5) === 0,
-    psionic: (tt: string, rank: number) => tt === 'psionic' && rank % 4 === 0,
+    /** 마이너: 3등급마다 능력치 2종 +3 */
+    pick: (tt: string, rank: number) => tt === 'minor' && rank % 3 === 0,
+    /** 메이저: 5등급마다 메이저 증강 */
+    major: (tt: string, rank: number) => tt === 'major' && rank % 5 === 0,
+    /** 스페셜: 합류 + 7 · 14 · 21등급에 전용 증강 (최대 4) */
+    special: (tt: string, rank: number) => tt === 'special' && (rank === 7 || rank === 14 || rank === 21),
+    /** 사이오닉: 5등급마다 전공 증강 (최대 4, 20등급에 완성) */
+    psionic: (tt: string, rank: number) => tt === 'psionic' && rank % 5 === 0 && rank <= 20,
   },
+  /** 마이너 성장 배율: 10등급 ×2, 20등급 ×3 (선형) */
+  minorGrow: (rank: number) => (rank <= 10 ? 1 + (Math.max(1, rank) - 1) / 9 : 2 + (rank - 10) / 10),
   // 모든 기물 공통 기초 마이너 스탯 [임시]
   baseMinor: { maxHp: 600, shoot: 20, strike: 20, tech: 20, armor: 100, crit: 0.05, critDmg: 1.5 },
 

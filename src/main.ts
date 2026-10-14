@@ -1,6 +1,6 @@
 import { CFG, phaseAmpMult, phaseHpMult } from './config';
 import { AUG_BY_ID, augDesc } from './data/augments';
-import { ENEMIES, ENEMY_BY_ID, enemyTypes, type EnemyDef } from './data/enemies';
+import { ENEMIES, ENEMY_BY_ID, type EnemyDef } from './data/enemies';
 import { ENEMY_DESC } from './data/enemyText';
 import { DIFFS, MAX_DIFF } from './data/difficulty';
 import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
@@ -10,8 +10,8 @@ import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
 import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isLocked, isMod, isOccultMod, itemInfo } from './data/items';
 import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
-import { DIVINE_ACT, FAITH_DEF, recMajors } from './data/rework';
-import { BRIEF, GROWTH_BRIEF, PSI_BRIEF } from './data/brief';
+import { DIVINE_ACT, FAITH_DEF, MAJOR_AUGS, MINOR_TRAIT_GROW, PSI_AUGS, recMajors } from './data/rework';
+import { BRIEF, PSI_BRIEF } from './data/brief';
 import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
 import * as AB from './ui/abil';
 import {
@@ -21,7 +21,7 @@ import { Battle, type CUnit, type Status, STATUS_NAME } from './engine/combat';
 import * as R from './engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
-import { type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, KEYWORD_NAME, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type SynergyId, type UnitState } from './types';
+import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type SynergyId, type UnitState } from './types';
 import { BattleView, fmt, FX, FX_DEFAULT, type DeathStyle, type MotionPreset } from './ui/battleview';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
@@ -306,52 +306,97 @@ const CTYPE_DESC: Record<string, [string, string]> = {
   SPEC: ['기술로 싸운다. 기술 위력 · 효과 명중 · 쿨다운이 중요하다.', '주력: 기술 위력, 효과 명중, 쿨다운 감소 속도, 기술 범위. 기술 피해는 치명타가 없다 (일부 특성 예외).'],
   CMD: ['아군이 함께 쓰는 전술 위력으로 스킬을 쓴다. 출전 인원이 많을수록, 지휘관이 많고 정신력이 높을수록 강하다.', `스킬은 전술 위력으로 계산한다. 전술 위력 = ${CFG.tacBase} (출전 4명 · 지휘관 1명 기준) + 출전 기물 1명당 ${CFG.tacPerUnit} + 지휘관 1명 추가당 ${CFG.tacPerCmd} + 지휘관 정신력 1당 ${CFG.tacPerMnd}.`],
 };
-const TTYPE_DESC: Record<string, [string, string]> = {
-  major: ['자주 증강을 고르며, 모두가 쓸 수 있는 메이저 증강도 나온다.', '3등급마다 능력치 2개 +3, 3등급마다 증강 (전용 + 메이저 공용 풀).'],
-  minor: ['런 동안 조금씩 쌓이는 성장 특성을 가진다.', '3등급마다 능력치 2개 +3, 5등급마다 증강. 성장 특성은 런 내내 누적된다.'],
-  special: ['합류할 때 스페셜 증강을 하나 더 고르고, 능력치는 알아서 자란다.', '매 등급 추천 능력치 2종 중 하나가 자동으로 +3 (선택 창 없음), 5등급마다 증강, 합류 시 스페셜 증강 1개 추가.'],
-  psionic: ['이성 수치에 따라 강해지거나 흔들린다.', `3등급마다 능력치 2개 +3, 5등급마다 증강, 4등급마다 사이오닉 증강. 이성은 ${CFG.reasonStart}에서 시작해 전투마다 초기화.`],
-  divine: ['신성력을 모아 전투당 한 번 신권 대행을 쓴다. 전투 후 권능 포인트를 얻는다.', `3등급마다 능력치 2개 +3, 5등급마다 증강. 신성력 0~100, 전투당 수집 상한 ${CFG.divCap}, 권능 = 모은 신성력 ÷ ${CFG.powerPerDiv} (최대 ${CFG.powerMax}).`],
+/** 전술 유형 공통 규칙: 공명 등급마다 모든 능력치 +1, 이정표 보상은 유형별 */
+const TTYPE_RULE: Record<TType, string> = {
+  major: '공명 등급마다 모든 능력치 +1. 5등급마다 메이저 증강 1개.',
+  minor: '공명 등급마다 모든 능력치 +1. 3등급마다 능력치 2종 +3. 기술 계수와 특성 수치가 등급에 따라 자란다 (10등급 ×2, 20등급 ×3).',
+  special: '공명 등급마다 모든 능력치 +1. 합류 · 7 · 14 · 21등급에 전용 증강 (최대 4개).',
+  psionic: '공명 등급마다 모든 능력치 +1. 5등급마다 사이오닉 증강 (최대 4개, 20등급에 완성).',
+  divine: '공명 등급마다 모든 능력치 +1. 고유 신앙이 깨어 있어 신성력을 모으고, 가득 차면 전투당 한 번 신권 대행.',
 };
 /** 특성 하위 항목 (접힘) */
 function sub(key: string, icon: string, cls: string, name: string, kind: string, body: string) {
   const open = app.subOpen.has(key);
   return `<div class="sub ${open ? 'open' : ''}"><span class="sub-h" data-a="toggle-sub" data-v="${key}" aria-expanded="${open}"><i class="${cls}">${icon}</i><b>${esc(name)}</b><span class="muted">${kind}</span><span class="caret">${open ? '▾' : '▸'}</span></span>${open ? `<div class="sub-b">${body}</div>` : ''}</div>`;
 }
-/** 전술 유형별 고유 정보 (성장 특성 · 이성 · 신권 대행) */
-function ttypeExtra(d: UnitDef, u: UnitState | null, run: RunState | null) {
-  const out: string[] = [];
-  const g = u?.grow || {};
-  if (d.ttype === 'minor' && d.growth) {
-    const prog = Object.entries(g).filter(([k]) => !k.startsWith('f_')).map(([k, v]) => `${k} ${v}`).join(', ');
-    out.push(`<p><b>${esc(d.growth.name)}</b> · ${esc(app.detail ? d.growth.desc : GROWTH_BRIEF[d.id] || d.growth.desc)}${app.detail && prog ? ` <span class="accent">(누적: ${esc(prog)})</span>` : ''}</p>`);
-  }
-  if (d.ttype === 'psionic' && d.psi) out.push(`<p><b>이성</b> · ${esc(app.detail
-    ? `${d.psi.desc} 이성이 높으면 받는 정신·신성 피해량 경감 · 지원 효율 증가, 음수면 정신 피해 증폭 · 흡혈, -50 이하는 광폭 (피해 +30%, 초당 최대 체력 2% 손실).`
-    : `${PSI_BRIEF[d.id] || d.psi.desc} 높으면 단단해지고, 낮으면 정신 피해가 강해지며, 너무 낮으면 광폭한다.`)}</p>`);
-  if (d.ttype === 'special') out.push(`<p class="muted">자동 성장: ${recMajors(d).map((m) => MAJOR_NAME[m]).join(' · ')}</p>`);
-  if (d.ttype === 'divine') {
-    const act = DIVINE_ACT[d.ctype];
-    out.push(`<p><b>신권 대행 · ${esc(act.name)}</b> · ${esc(app.detail ? `${act.desc}. 신앙 효과가 더해진다.` : act.desc.split(',')[0] + '.')}</p>`);
-  }
-  void run;
-  return out.join('');
+/** 증강 한 줄 (이름 · 설명) */
+function augRow(id: string, param?: string, b: Battle | null = null, c: CUnit | null = null, tag = '') {
+  const ad = AUG_BY_ID[id];
+  return `<li class="aug-li ab-click${abilOn(`aug:${id}`)}" data-a="abil-pop" data-v="aug:${esc(id)}" role="button" tabindex="0">${augIcon(id)}<span><b>${esc(ad?.name || id)}</b>${tag ? ` <span class="tag">${tag}</span>` : ''}<br><span class="muted">${b && c ? augText(id, param, b, c) : esc(augDesc(id, param))}</span></span></li>`;
 }
-function faithBody(d: UnitDef, f: FaithId, run: RunState | null) {
+/** 다음 이정표 등급 */
+function nextMilestone(tt: TType, rank: number): number | null {
+  for (let r = rank + 1; r <= Math.min(CFG.maxRank, rank + 30); r++) {
+    if (tt === 'major' && CFG.growth.major(tt, r)) return r;
+    if (tt === 'minor' && CFG.growth.pick(tt, r)) return r;
+    if (tt === 'special' && CFG.growth.special(tt, r)) return r;
+    if (tt === 'psionic' && CFG.growth.psionic(tt, r)) return r;
+  }
+  return null;
+}
+/** 고유 신앙 한 줄: 디바인만 활성 */
+function faithLine(d: UnitDef, f: FaithId, run: RunState | null) {
   const fd = FAITH_DEF[f];
-  if (d.ttype !== 'divine') return `<p class="muted">디바인이 아니라 평소에는 효과가 없다. (도로스의 성찬을 받으면 그 전투 동안 깨어난다)</p>`;
-  return `<p>${esc(app.detail ? `신성력 획득: ${fd.gain}, 초당 +2. 신권 대행에 더해지는 효과: ${fd.act}. 수집 상한 ${CFG.divCap + (run?.divCap || 0)}.` : `신권 대행에 더해지는 가호: ${fd.act}.`)}</p>`;
+  if (d.ttype !== 'divine') return `<div class="tt-faith off" title="디바인만 신앙의 힘을 쓴다">${typeIcon('faith')}<b>${FAITH_NAME[f]}</b><span class="tt-tag">비활성</span></div>`;
+  return `<div class="tt-faith on">${typeIcon('faith')}<b>${FAITH_NAME[f]}</b><span class="tt-tag on">활성</span></div>
+    <p class="small">신성력 획득: ${esc(fd.gain)}${app.detail ? `, 초당 +2. 수집 상한 ${CFG.divCap + (run?.divCap || 0)}` : ''}.</p>`;
 }
+/** 능력 란의 전술 유형 섹션: 유형마다 구성이 다르다 (u 없으면 도감 미리보기, c 있으면 전투 중 실시간 값) */
+function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Battle | null = null, c: CUnit | null = null, live = false) {
+  const tt = d.ttype;
+  const rank = u?.rank || 1;
+  const nx = u ? nextMilestone(tt, rank) : null;
+  const f = u?.faith || d.faith;
+  const owned = u?.augments || [];
+  const body: string[] = [];
+  if (tt === 'major') {
+    const mine = owned.filter((a) => MAJOR_AUGS.some((m) => m.id === a.id));
+    body.push(`<div class="tt-row"><span class="tt-k">메이저 증강</span><b>${mine.length}</b>${nx ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
+    body.push(mine.length ? `<div class="tt-icons">${mine.map((a) => `<button class="tt-ic ab-click${abilOn(`aug:${a.id}`)}" data-a="abil-pop" data-v="aug:${esc(a.id)}" title="${esc(AUG_BY_ID[a.id]?.name || a.id)}">${augIcon(a.id)}</button>`).join('')}</div>`
+      : `<p class="muted small">${u ? '5등급에 첫 메이저 증강을 고릅니다.' : `공용 풀 ${MAJOR_AUGS.length}종: 능력치 · 세부 능력치 상승.`}</p>`);
+  } else if (tt === 'minor') {
+    const g = CFG.minorGrow(rank);
+    const tl = MINOR_TRAIT_GROW[d.id];
+    body.push(`<div class="tt-row"><span class="tt-k">성장 배율</span><b class="tt-big">×${g.toFixed(2)}</b><span class="muted small">${u ? `${rank}등급` : '1등급'} · 10등급 ×2 · 20등급 ×3</span></div>`);
+    body.push(`<ul class="tt-list"><li>${lineIcon('p.tech', 'li')}기술 계수 ×${g.toFixed(2)}</li>${tl ? `<li>${lineIcon('a.power', 'li')}${esc(tl(g))}</li>` : ''}</ul>`);
+    if (nx) body.push(`<p class="muted small">다음 능력치 선택: ${nx}등급</p>`);
+  } else if (tt === 'special') {
+    const pool = d.specialAugs || [];
+    const mine = owned.filter((a) => pool.some((p) => p.id === a.id));
+    body.push(`<div class="tt-row"><span class="tt-k">전용 증강</span><b class="tt-big">${mine.length}<small>/4</small></b>${nx && mine.length < 4 ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
+    if (mine.length) body.push(`<ul class="augs">${mine.map((a) => augRow(a.id, a.param, b, c)).join('')}</ul>`);
+    if (!u) body.push(`<ul class="augs">${pool.map((a) => augRow(a.id, undefined, b, c)).join('')}</ul>`);
+  } else if (tt === 'psionic') {
+    const mine = owned.filter((a) => PSI_AUGS.some((p) => p.id === a.id));
+    if (live && c && c.reason !== null) body.push(`<div class="tt-row"><span class="tt-k">이성</span><b class="tt-big">${Math.round(c.reason)}</b><span class="muted small">-100 ~ 100</span></div>`);
+    if (d.psi) body.push(`<p class="small">${esc(app.detail ? `${d.psi.desc} 이성이 높으면 받는 정신 · 신성 피해 경감과 지원 효율이 오르고, 음수면 정신 피해가 강해지며 흡혈을 얻는다. -50 이하는 광폭.` : PSI_BRIEF[d.id] || d.psi.desc)}</p>`);
+    body.push(`<div class="tt-row"><span class="tt-k">사이오닉 증강</span><b>${mine.length}<small>/4</small></b>${nx && mine.length < 4 ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
+    if (mine.length) body.push(`<ul class="augs">${mine.map((a) => augRow(a.id, a.param, b, c)).join('')}</ul>`);
+  } else {
+    const act = DIVINE_ACT[d.ctype];
+    body.push(faithLine(d, f, run));
+    if (live && c && c.div !== null) body.push(`<div class="tt-row"><span class="tt-k">신성력</span><b class="tt-big">${c.divUsed ? '발동함' : Math.round(c.div)}</b><span class="muted small">수집 ${Math.round(c.divGot)} / ${c.divCap}</span></div>`);
+    body.push(`<div class="tt-act"><span class="tt-k">신권 대행</span><b>${esc(act.name)}</b><p class="small">${esc(act.desc)}. 신앙 가호: ${esc(FAITH_DEF[f].act)}.</p></div>`);
+    if (run) body.push(`<div class="tt-row"><span class="tt-k">권능 포인트</span><b>${run.power}</b><span class="muted small">전투 후 모은 신성력에서 전환</span></div>`);
+  }
+  if (tt !== 'divine') body.push(faithLine(d, f, run));
+  return `<section class="tt-sec tt-${tt}"><div class="tt-head"><i class="tt-${tt}">${TTYPE_ICON(tt)}</i><b>${TTYPE_NAME[tt]}</b><span class="tt-sub">전술 유형</span></div>
+    <p class="tt-rule small muted">${esc(TTYPE_RULE[tt])}</p>${body.join('')}</section>`;
+}
+/** 분류 표시 (아군 · 적 공통) */
+function categoryTag(cat: Category) {
+  return `<i class="cat cat-${cat}" title="${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}">${lineIcon(`k.${cat}`, 'li')}${CATEGORY_NAME[cat]}</i>`;
+}
+const unitCategory = (d: UnitDef) => categoryOf(d.keywords);
+const enemyCategory = (e: EnemyDef) => categoryOf(e.keywords, !!e.immobile);
 /** 특성 블록: 고유 특성 + 전투 유형 · 전술 유형 · 고유 신앙 (접힘) */
 function traitGroup(d: UnitDef, u: UnitState | null, run: RunState | null, b: Battle | null = null, c: CUnit | null = null) {
-  const f = u?.faith || d.faith;
   const k = (x: string) => `${d.id}:${x}`;
-  const ct = CTYPE_DESC[d.ctype], tt = TTYPE_DESC[d.ttype];
+  const ct = CTYPE_DESC[d.ctype];
+  void u; void run;
   return `<div class="abil ab-trait"><div class="ab-click${abilOn('trait')}" data-a="abil-pop" data-v="trait" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, c)}</div>
     <div class="subs">
       ${sub(k('ct'), CTYPE_ICON(d.ctype), `ct-${d.ctype}`, CTYPE_NAME[d.ctype], '전투 유형', `<p>${esc(app.detail ? ct[1] : ct[0])}</p>`)}
-      ${sub(k('tt'), TTYPE_ICON(d.ttype), `tt-${d.ttype}`, TTYPE_NAME[d.ttype], '전술 유형', `<p>${esc(app.detail ? tt[1] : tt[0])}</p>${ttypeExtra(d, u, run)}`)}
-      ${sub(k('faith'), typeIcon('faith'), `faith-${d.ttype === 'divine' ? 'on' : 'off'}`, FAITH_NAME[f], '고유 신앙', faithBody(d, f, run))}
     </div></div>`;
 }
 const AB_KIND = { weapon: '무기', trait: '특성', skill: '스킬', grow: '성장', psi: '이성', div: '신권' } as const;
@@ -430,11 +475,11 @@ function fieldBrief(fid: string) {
   const f = fieldOf(fid);
   const roster = [...f.pool.map((id) => [id, 1] as const), [f.elite, 2] as const, ...f.bosses.map((id) => [id, 3] as const)];
   const ct: Record<string, number> = {}, el: Record<string, number> = {};
-  for (const [id, w] of roster) { const e = ENEMY_BY_ID[id]; if (!e) continue; const t = enemyTypes(e).ctype; ct[t] = (ct[t] || 0) + w; el[e.atk.elem] = (el[e.atk.elem] || 0) + w; }
+  for (const [id, w] of roster) { const e = ENEMY_BY_ID[id]; if (!e) continue; const t = enemyCategory(e); ct[t] = (ct[t] || 0) + w; el[e.atk.elem] = (el[e.atk.elem] || 0) + w; }
   const top = (o: Record<string, number>, n: number) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n).map((x) => x[0]);
   const syn = f.ally ? SYN_BY_ID[f.ally.syn] : null;
   return `<div class="fb-grid">
-    <div class="fb-cell"><span class="fb-k">적 유형</span><span class="fb-v">${top(ct, 2).map((c) => `<i>${typeIcon(c as CType)}${CTYPE_NAME[c as CType]}</i>`).join('')}</span></div>
+    <div class="fb-cell"><span class="fb-k">적 분류</span><span class="fb-v">${top(ct, 2).map((c) => `<i class="cat-${c}" title="${CATEGORY_RULE[c as Category]}">${lineIcon(`k.${c}`, 'li')}${CATEGORY_NAME[c as Category]}</i>`).join('')}</span></div>
     <div class="fb-cell"><span class="fb-k">우세 속성</span><span class="fb-v">${top(el, 2).map((e) => `<i>${lineIcon(`e.${e}`, 'li')}${ELEM_NAME[e as Elem]}</i>`).join('')}</span></div>
     <div class="fb-cell"><span class="fb-k">우세 시너지</span><span class="fb-v">${syn ? `<i style="--c:${syn.color}">${synIcon(syn.id) || syn.icon}${esc(syn.name)}</i>` : '<i>없음</i>'}</span></div>
   </div>
@@ -469,8 +514,8 @@ function foeModal(id: string) {
   const b = new Battle(9, 9, new Rng(1), { phase: 1, credits: 0 });
   const c = buildEnemy(b, e, 1, 1);
   return `<div class="modal-bg" data-a="intro-foe" data-v=""><div class="modal foe-modal">
-    <div class="detail">${heroHead(`en_${e.id}`, sprite(e, 'spr big'), e.name, enemyTypes(e), `<i>${tierKo(e)}</i>`)}
-      <div class="small muted">${e.keywords.map((k) => KEYWORD_NAME[k]).join(' · ')}</div>
+    <div class="detail">${heroHead(`en_${e.id}`, sprite(e, 'spr big'), e.name, enemyTags(e))}
+      <div class="small muted">${CATEGORY_RULE[enemyCategory(e)]}</div>
       ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}
       <h3>능력 <span class="muted small">1페이즈 기준</span></h3><div class="abils">${enemyAbilCards(e, b, c)}</div></div>
     ${app.abilPop ? enemyAbilPop(app.abilPop, e, b, c) : ''}
@@ -759,7 +804,7 @@ function prepScreen(run: RunState) {
     const sel = app.sel?.k === 'enemy' && app.sel.i === i;
     units += `<div class="u side1 placed${hasPortrait(e) ? ' tk' : ''} ${e.tier !== 'minion' && !hasPortrait(e) ? 'big' : ''} ${sel ? 'sel' : ''}" style="${(() => { const ec = enemyCell(s.c, s.row, n); return cellBox(ec.x, ec.y); })()}"
       data-a="sel-enemy" data-v="${i}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}">${hasPortrait(e)
-        ? `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${e.mod ? `<span class="tk-mod">${itemIcon(e.mod)}</span>` : ''}</div>${(() => { const et = enemyTypes(e); return `<span class="tk-side">${e.tier === 'minion' ? '' : `<b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : 'E'}</b>`}<i title="${TTYPE_NAME[et.ttype]}">${typeIcon(et.ttype)}</i><i title="${CTYPE_NAME[et.ctype]}">${typeIcon(et.ctype)}</i></span>`; })()}<span class="tk-items">${[0, 1, 2].map((k) => itemIcon(e.items?.[k] || null)).join('')}</span></div>`
+        ? `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${e.mod ? `<span class="tk-mod">${itemIcon(e.mod)}</span>` : ''}</div>${(() => { const cat = enemyCategory(e); return `<span class="tk-side">${e.tier === 'minion' ? '' : `<b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : 'E'}</b>`}<i class="cat-${cat}" title="${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}">${lineIcon(`k.${cat}`, 'li')}</i></span>`; })()}<span class="tk-items">${[0, 1, 2].map((k) => itemIcon(e.items?.[k] || null)).join('')}</span></div>`
         : sprite(e, '')}</div>`;
   });
   const bench = run.units.filter((u) => !u.pos);
@@ -1002,8 +1047,8 @@ function detailPanel(run: RunState, extra = '') {
     const eq = [...(e.items || []).filter((x): x is string => !!x), ...(e.mod ? [e.mod] : []), ...(s.items || []), ...(s.mod ? [s.mod] : [])];
     const known = loadMeta().enemies[e.id];
     return `<div class="detail">${bar}
-      ${heroHead(`en_${e.id}`, sprite(e, 'spr big'), e.name, enemyTypes(e), `<i>${tierKo(e)}</i>`)}
-      <div class="small muted">${e.keywords.map((k) => KEYWORD_NAME[k]).join(' · ')} · 체력 ${fmt(b.S(c, 'maxHp'))}${known ? ` · 도감: 조우 ${known.seen} · 처치 ${known.kills}` : ''}</div>
+      ${heroHead(`en_${e.id}`, sprite(e, 'spr big'), e.name, enemyTags(e))}
+      <div class="small muted">${CATEGORY_RULE[enemyCategory(e)]} · 체력 ${fmt(b.S(c, 'maxHp'))}${known ? ` · 도감: 조우 ${known.seen} · 처치 ${known.kills}` : ''}</div>
       ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}
       ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.map((x) => `<span class="tk-it" title="${esc(itemInfo(x).name + ' — ' + itemInfo(x).desc)}">${itemIcon(x)}</span>`).join('')}</div></div>` : ''}
       <div class="mj-wrap"><div class="mj-head"><h3>메이저 스탯 <span class="muted small">페이즈 ${ph}</span></h3>${magBtn()}</div>${majorsHtml(ms)}</div>
@@ -1042,9 +1087,8 @@ function detailPanel(run: RunState, extra = '') {
       ${traitGroup(d, u, run, b, c)}
       ${aceAbil(run, u)}${voyAbil(d, run, u)}
       ${skillCard(d, b, c)}
+      ${ttSection(d, u, run, b, c)}
     </div>
-    <h3>증강 <span class="muted">${u.augments.length}</span></h3>
-    ${u.augments.length ? `<ul class="augs">${u.augments.map((a) => { const ad = AUG_BY_ID[a.id]; return `<li class="aug-li ab-click${abilOn(`aug:${a.id}`)}" data-a="abil-pop" data-v="aug:${esc(a.id)}" role="button" tabindex="0">${augIcon(a.id)}<span><b>${esc(ad?.name || a.id)}</b><br><span class="muted">${augText(a.id, a.param, b, c)}</span></span></li>`; }).join('')}</ul>` : '<p class="muted small">공명 등급이 오르면 증강을 고릅니다.</p>'}
     <p class="lore">${esc(d.lore)}</p>
     ${releaseBlock(run, u)}
   </div>`;
@@ -1349,7 +1393,7 @@ function pendingModal(run: RunState): string {
       const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? +((v as number) * 100).toFixed(1) + '%' : v}`).join(', ');
       body = `${side}<div class="ru-main">
         <div class="ru-head"><h1>${p.rank}등급 달성 보상 · 능력치</h1></div>
-        <p class="muted small">공명 등급 3의 배수마다 받는 보상입니다. 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.options?.length === 0 ? '' : ` · 이어서 ${p.rank}등급 증강`}<br>(등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>
+        <p class="muted small">마이너 기물이 공명 등급 3의 배수마다 받는 보상입니다. 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.options?.length === 0 ? '' : ` · 이어서 ${p.rank}등급 증강`}<br>(등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>
         <div class="alloc-grid">${MAJORS.map((m) => {
           const on = app.picks.includes(m);
           return `<button class="stat-pick ${on ? 'on' : ''} ${rec.includes(m) ? 'rec' : ''}" data-a="alloc-pick" data-v="${m}" aria-pressed="${on}" aria-label="${MAJOR_NAME[m]} ${on ? tm[m] + p.points : tm[m]}" ${on || left ? '' : 'disabled'}>
@@ -1364,8 +1408,8 @@ function pendingModal(run: RunState): string {
       const opts = p.options || [];
       const pv = previewAlly(run, u);
       body = `${side}<div class="ru-main">
-        <div class="ru-head"><h1>${p.kind === 'special' ? '합류 보상 · 스페셜 증강' : p.kind === 'psionic' ? `${p.rank}등급 달성 보상 · 사이오닉 증강` : p.join ? '합류 보상 · 증강' : `${p.rank}등급 달성 보상 · 증강`}</h1>
-          <span class="muted small">${p.kind === 'special' ? '스페셜 기물은 합류할 때 스페셜 증강 1개를 추가로 고릅니다.' : p.kind === 'psionic' ? '사이오닉 기물은 공명 등급 4의 배수마다 사이오닉 증강을 고릅니다.' : p.join ? '합류할 때 전용 증강 1개를 고릅니다.' : d.ttype === 'major' ? '메이저 기물은 공명 등급 3의 배수마다 전용 · 메이저 공용 증강 중 1개를 고릅니다.' : '공명 등급 5의 배수마다 전용 증강 1개를 고릅니다.'}</span>
+        <div class="ru-head"><h1>${p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 사이오닉 증강` : `${p.rank}등급 달성 · 메이저 증강`}</h1>
+          <span class="muted small">${p.kind === 'special' ? '스페셜 기물은 합류할 때와 7 · 14 · 21등급에 전용 증강을 고릅니다 (최대 4개).' : p.kind === 'psionic' ? '사이오닉 기물은 5등급마다 사이오닉 증강을 고릅니다 (최대 4개).' : '메이저 기물은 5등급마다 메이저 증강을 고릅니다.'}</span>
           ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
         <div class="aug-list">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];
@@ -2084,8 +2128,11 @@ const magBtn = () => `<button class="mag-btn${app.statPop ? ' on' : ''}" data-a=
 function majorsHtml(ms: Record<Major, number>) {
   return `<div class="majors">${MAJORS.map((m) => `<div class="major"><span>${majorIcon(m)}${MAJOR_NAME[m]}</span><span class="mbar"><i style="width:${Math.min(100, ms[m] * 3)}%"></i></span><b>${ms[m]}</b></div>`).join('')}</div>`;
 }
-function heroHead(artId: string, fallback: string, name: string, types: { ctype: CType; ttype: TType } | null, extra = '') {
-  const t = types ? `<span class="dh-types"><i>${typeIcon(types.ttype)}${TTYPE_NAME[types.ttype]}</i><i>${typeIcon(types.ctype)}${CTYPE_NAME[types.ctype]}</i>${extra}</span>` : extra ? `<span class="dh-types">${extra}</span>` : '';
+/** 아군: 전술 유형 · 전투 유형 · 분류, 적: 분류 · 등급 */
+function allyTags(d: UnitDef) { return `<i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i>${categoryTag(unitCategory(d))}`; }
+function enemyTags(e: EnemyDef) { return `${categoryTag(enemyCategory(e))}<i>${tierKo(e)}</i>`; }
+function heroHead(artId: string, fallback: string, name: string, tags: string) {
+  const t = tags ? `<span class="dh-types">${tags}</span>` : '';
   return `<div class="d-hero">${hero(artId) || `<div class="hero none">${fallback}</div>`}<div class="dh-name"><b>${esc(name)}</b>${t}</div></div>`;
 }
 function enemyWeapon(e: EnemyDef, interval = e.interval) {
@@ -2114,16 +2161,16 @@ function battleUnitStatic(b: Battle, u: CUnit) {
   let head = '', abils = '', pop = '';
   if (u.side === 0 && !u.isSummon) {
     const d = UNIT_BY_ID[u.defId];
-    head = heroHead(d.id, sprite(u, 'spr big'), d.name, d);
-    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem)}<div class="abil ab-trait ab-click${abilOn('trait')}" data-a="abil-pop" data-v="trait" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}`;
+    head = heroHead(d.id, sprite(u, 'spr big'), d.name, allyTags(d));
+    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem)}<div class="abil ab-trait ab-click${abilOn('trait')}" data-a="abil-pop" data-v="trait" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${ttSection(d, u.src || null, app.run, b, u, true)}`;
     if (app.abilPop) pop = abilPopHtml(app.abilPop, d, b, u);
   } else if (u.side === 1 && ENEMY_BY_ID[u.defId]) {
     const e = ENEMY_BY_ID[u.defId];
-    head = heroHead(`en_${e.id}`, sprite(u, 'spr big'), e.name, enemyTypes(e), `<i>${tierKo(e)}</i>`);
+    head = heroHead(`en_${e.id}`, sprite(u, 'spr big'), e.name, enemyTags(e));
     abils = enemyAbilCards(e, b, u);
     if (app.abilPop) pop = enemyAbilPop(app.abilPop, e, b, u);
   } else {
-    head = heroHead(u.art || '', sprite(u, 'spr big'), u.name, null, `<i>${u.owner ? `${esc(u.owner.name)}의 소환물` : '소환물'}</i>`);
+    head = heroHead(u.art || '', sprite(u, 'spr big'), u.name, `${categoryTag(u.category)}<i>${u.owner ? `${esc(u.owner.name)}의 소환물` : '소환물'}</i>`);
     if (u.skill) abils = abil('skill', u.skill.name, `${u.cdMax.toFixed(1)}초`, u.skill.desc(u.sk));
   }
   const ms = battleMajors(u);
@@ -2220,7 +2267,7 @@ function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
     <h3>시너지</h3><div class="cx-syns">${syn}</div>
     <h3>역할군 · 능력 <span class="muted small">1등급 · 장비 없음 기준</span></h3>
     <div class="abils">${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem)}${traitGroup(d, null, null, b, c)}${skillCard(d, b, c)}${voyAbil(d, null, null)}</div>
-    <h3>전용 증강 <span class="muted small">${CFG.augEvery}등급마다 1개</span></h3><ul class="augs">${d.augs.map((a) => augLi(a)).join('')}${(d.specialAugs || []).map((a) => augLi(a, '스페셜')).join('')}</ul>
+    ${ttSection(d, null, null, b, c)}
     <h3>추천 장비 <span class="muted small">${CTYPE_NAME[d.ctype]}</span></h3><ul class="rc-list">${reco}</ul>
     <h3>이야기</h3>${STORIES[d.id] ? `<p class="small">${esc(STORIES[d.id])}</p>` : ''}<p class="lore">${esc(d.lore)}</p>
     <div class="codex-stats small">의뢰 <b>${r?.runs || 0}</b>회 · 누적 공명 등급 <b>${r?.ranks || 0}</b> · 최고 <b>${r?.best || 0}</b> · 성공 <b>${r?.clears || 0}</b></div>

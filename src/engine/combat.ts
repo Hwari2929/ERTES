@@ -1,8 +1,23 @@
 import { CFG } from '../config';
 import { Rng } from '../rng';
-import type { CType, DmgTag, Elem, FaithId, Keyword, Mod, Stats, StatKey, SynergyId, TakenMod, TType, UnitState, Weapon } from '../types';
+import type { Category, CType, DmgTag, Elem, FaithId, Keyword, Mod, Stats, StatKey, SynergyId, TakenMod, TType, UnitState, Weapon } from '../types';
 
 export type StatusType = 'stun' | 'fear' | 'shock' | 'dot' | 'buff';
+
+/** 분류별 받는 피해 배율 (아군 · 적 공통) */
+export function categoryMult(c: Category, elem: Elem): number {
+  if (c === 'bio') return elem === 'chem' ? 1.5 : 1;
+  if (c === 'mech') return elem === 'elec' ? 1.5 : elem === 'psy' ? 0.25 : 1;
+  if (c === 'soul') return elem === 'phys' ? 0.6 : elem === 'holy' ? 1.5 : 1;
+  return 1;
+}
+/** 분류별 상태이상 면역 */
+export function categoryImmune(c: Category, s: { type: string; key: string }): boolean {
+  if (c === 'mech') return s.key === 'bleed' || s.key === 'poison';
+  if (c === 'struct') return s.type === 'stun' || s.type === 'fear' || s.key === 'freeze';
+  if (c === 'soul') return s.key === 'charm';
+  return false;
+}
 export const STATUS_NAME: Record<string, string> = {
   stun: '기절', fear: '공포', shock: '감전', poison: '중독', bleed: '출혈', corrode: '침식', decay: '부식', gloom: '암운', slow: '둔화', frenzy: '광폭', wound: '부상', suppress: '제압',
 };
@@ -121,6 +136,8 @@ export interface CUnit {
   taken: TakenMod[];
   hooks: Hooks[];
   keywords: Keyword[];
+  /** 분류: 생체 · 기계 · 영혼 · 구조물 (아군 · 적 공통 상성) */
+  category: Category;
   synergies: Set<SynergyId>;
   target: CUnit | null;
   alive: boolean;
@@ -538,9 +555,7 @@ export class Battle {
         const armor = this.S(tgt, 'armor') * CFG.armorFactor[o.elem] * (1 - Math.min(1, this.S(src, 'armorPen') + (o.pen || 0)));
         dmg *= 1 - armor / (armor + CFG.armorK);
       }
-      if (o.elem === 'chem' && tgt.keywords.includes('bio')) dmg *= 1.5;
-      if (o.elem === 'elec' && tgt.keywords.includes('mech')) dmg *= 1.5;
-      if (o.elem === 'psy' && tgt.keywords.includes('mech')) dmg *= 0.25;
+      dmg *= categoryMult(tgt.category, o.elem);
       const tags: DmgTag[] = ['all', o.elem, o.tag, ...(o.kind && o.tag !== 'dot' ? [o.kind] : []), ...(o.extra || [])];
       dmg *= modMult(allMods(src), tags) * src.phaseAmp;
       // 이성: 낮을수록 주는 정신 피해 증폭, 높을수록 받는 정신 · 신성 피해 감소
@@ -666,7 +681,9 @@ export class Battle {
   /** 상태이상 부여. 확률 = 기본 × (1 + 효과명중 − 효과저항) */
   applyStatus(src: CUnit, tgt: CUnit, s: Status, baseChance = 1): boolean {
     if (!tgt.alive) return false;
+    if (categoryImmune(tgt.category, s)) return false; // 분류 면역 (기계: 출혈 · 중독, 구조물: 기절 · 공포 · 빙결, 영혼: 매혹)
     const hostile = src.side !== tgt.side;
+    if (hostile && tgt.category === 'bio' && s.dps && (s.key === 'bleed' || s.key === 'poison')) s.dps *= 1.25; // 생체: 출혈 · 중독 강화
     if (hostile) {
       const p = baseChance * (1 + this.S(src, 'effHit') - this.S(tgt, 'effRes'));
       if (this.rng.next() >= p) return false;

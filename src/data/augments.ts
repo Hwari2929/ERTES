@@ -4,8 +4,8 @@ import { SYN_BY_ID } from './synergies';
 import { MAJOR_AUGS, PSI_AUGS } from './rework';
 import { UNITS } from './units';
 
-// 증강은 기물 전용 증강만 (공용 · 시너지 증강 풀은 제거됨)
-export const ALL_AUGS: AugDef[] = [...UNITS.flatMap((u) => [...u.augs, ...(u.specialAugs || [])]), ...MAJOR_AUGS, ...PSI_AUGS];
+// 증강: 메이저 공용 · 스페셜 전용 · 사이오닉 전공 (기물 개별 증강은 폐지)
+export const ALL_AUGS: AugDef[] = [...UNITS.flatMap((u) => u.specialAugs || []), ...MAJOR_AUGS, ...PSI_AUGS];
 export const AUG_BY_ID: Record<string, AugDef> = Object.fromEntries(ALL_AUGS.map((a) => [a.id, a]));
 
 export function augDesc(id: string, param?: string) {

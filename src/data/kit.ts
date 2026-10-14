@@ -37,6 +37,8 @@ export function slow(b: Battle, u: CUnit, t: CUnit, amt: number, dur: number, ch
   return b.applyStatus(u, t, { type: 'buff', key: 'slow', dur, delta: { atkSpd: -amt, moveSpd: -amt } }, chance);
 }
 /** 버프 형식이지만 해로운 효과 */
+/** 마이너 성장 배율 (소환물은 주인 기준): 10등급 ×2, 20등급 ×3 */
+export const gw = (u: CUnit) => (u.owner || u).mem.grow || 1;
 const HARMFUL_BUFF = new Set(['corrode', 'slow', 'suppress', 'decay', 'gloom', 'wound']);
 export const isHarmful = (s: Status) => s.key !== 'frenzy' && (s.type !== 'buff' || HARMFUL_BUFF.has(s.key) || !!s.taken?.some((t) => t.kind === 'vuln'));
 export const harmfulCount = (t: CUnit) => t.statuses.filter(isHarmful).length;

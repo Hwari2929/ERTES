@@ -1,4 +1,4 @@
-import { migrate } from '../engine/run';
+import { migrate, SAVE_VERSION } from '../engine/run';
 import type { RunState } from '../types';
 
 const PREFIX = 'errantes.v1.';
@@ -33,7 +33,7 @@ export function listSaves(): SaveMeta[] {
       const raw = ls()?.getItem(PREFIX + slot);
       if (!raw) continue;
       const { time, run } = JSON.parse(raw);
-      if (!(run.version >= 5)) continue;
+      if (!(run.version >= SAVE_VERSION)) continue;
       out.push({ slot, phase: run.phase, step: run.step, hp: run.hp, units: run.units.length, time });
     } catch { /* 손상된 슬롯 무시 */ }
   }
@@ -42,8 +42,8 @@ export function listSaves(): SaveMeta[] {
 
 function validate(run: unknown): RunState | null {
   const r = run as RunState;
-  // v5 시스템 리워크로 이전 저장은 불러올 수 없다
-  if (!r || typeof r !== 'object' || !(r.version >= 5) || !Array.isArray(r.units)) return null;
+  // v6 전술 유형 개편으로 이전 저장은 불러올 수 없다
+  if (!r || typeof r !== 'object' || !(r.version >= SAVE_VERSION) || !Array.isArray(r.units)) return null;
   return migrate(r);
 }
 

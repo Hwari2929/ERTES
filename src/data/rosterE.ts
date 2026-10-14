@@ -31,15 +31,6 @@ export const ROSTER_E: BaseUnit[] = [
       desc: (p) => `[내면의 괴물] 체력이 처음 ${pct(p.monsterAt)} 이하가 되면 피해 +80%, 공격 속도 +50%. 기술: 체력 비율이 가장 낮은 적에게 뛰어들어 타격 위력 ${pct(p.mult)} 물리 피해${p.hits > 1 ? ` ${p.hits}회` : ''}, 최대 체력 ${pct(p.heal)} 회복.`,
       after: (b, u, _t, _d, p) => { b.heal(u, u, b.S(u, 'maxHp') * p.heal); },
     }),
-    augs: [
-      uaug('mingki', 'nebula', '성운 흡입', '츄르 사냥 피해 +180%p.', setSk((s) => { s.mult += 1.8; })),
-      uaug('mingki', 'hungry', '배고픈 괴물', '내면의 괴물이 첫 피해를 받는 즉시 깨어난다.', setSk((s) => { s.monsterAt = 1; })),
-      uaug('mingki', 'nine', '아홉 목숨', '전투당 1회, 쓰러질 피해를 받으면 체력 50%로 버틴다.', {
-        hooks: { onLethal(b, u) { if (u.mem.nine) return false; u.mem.nine = 1; u.hp = b.S(u, 'maxHp') * 0.5; b.emit({ k: 'mark', id: u.id, name: '아홉 목숨', style: 'immortal' }); return true; } },
-      }),
-      uaug('mingki', 'groom', '그루밍', '회피 +7.5%p, 효과 저항 +25%p.', { stats: { eva: 0.075, effRes: 0.25 } }),
-      uaug('mingki', 'double', '꾹꾹이 연타', '츄르 사냥 2회 (두 번째 100%).', setSk((s) => { s.hits = 2; s.second = 1; })),
-    ],
   },
   {
     id: 'onyx', name: '오닉스 감응자', title: '오닉스 합창단 · 사이오닉 감응 집단', factions: ['PAN'], traits: [], keywords: ['bio'],
@@ -62,15 +53,6 @@ export const ROSTER_E: BaseUnit[] = [
         return true;
       },
     },
-    augs: [
-      uaug('onyx', 'chorus', '대합창', '꿈 피해 +90%p.', setSk((s) => { s.mult += 0.9; })),
-      uaug('onyx', 'night', '깊은 밤', '공포 확률 +35%p.', setSk((s) => { s.fearChance += 0.35; })),
-      uaug('onyx', 'echo', '메아리', '맞은 적 4초간 받는 피해 +30%.', setSk((s) => { s.vuln = 0.3; })),
-      uaug('onyx', 'lullaby', '자장가', '기술을 쓸 때마다 모든 아군을 기술 위력 100%만큼 회복.', {
-        hooks: { onSkill(b, u) { for (const a of b.alliesOf(u)) b.heal(u, a, b.P(u, 'tech') * 1.0); } },
-      }),
-      uaug('onyx', 'swarmsong', '군체의 노래', '정신력 +10, 생명력 +5.', { majors: { mnd: 10, vit: 5 } }),
-    ],
   },
   {
     id: 'exile', name: '망명 혈족 귀공자', title: '크림슨 대공령 출신 · 이름을 버린 혈족', factions: ['KAL'], traits: ['INFIL'], keywords: ['bio'],
@@ -81,13 +63,6 @@ export const ROSTER_E: BaseUnit[] = [
       name: '혈검', cd: 6, pow: 'strike', elem: 'phys', mult: 2.2, target: 'lowest', blink: true, params: { lifesteal: 0.4, bleed: 0.3 },
       desc: (p) => `체력 비율이 가장 낮은 적에게 파고들어 타격 위력 ${pct(p.mult)} 물리 피해 + 출혈, 준 피해의 ${pct(p.lifesteal)} 회복${p.resetOnKill ? `. 처치 시 쿨다운 ${pct(p.resetOnKill)} 초기화` : ''}.`,
     }),
-    augs: [
-      uaug('exile', 'vein', '정맥 절개', '혈검 피해 +220%p.', setSk((s) => { s.mult += 2.2; })),
-      uaug('exile', 'thirst', '갈증', '혈검 흡혈 +25%p, 모든 피해의 15% 흡혈.', { ...setSk((s) => { s.lifesteal += 0.25; }), stats: { lifesteal: 0.15 } }),
-      uaug('exile', 'waltz', '피의 왈츠', '혈검으로 처치하면 쿨다운 100% 초기화.', setSk((s) => { s.resetOnKill = 1; })),
-      uaug('exile', 'title', '버린 작위', '작위 +3.', { title: 3 }),
-      uaug('exile', 'dusk', '어스름', '회피 +7.5%p, 치명타 확률 +10%p, 치명타 피해 +35%p.', { stats: { eva: 0.075, crit: 0.1, critDmg: 0.35 } }),
-    ],
   },
   {
     id: 'thermo', name: '테르모필레', title: '탈주한 호플리테 메카 · 스파르타 전쟁 궤도', factions: ['HEL'], traits: [], keywords: ['mech'],
@@ -98,13 +73,6 @@ export const ROSTER_E: BaseUnit[] = [
       name: '팔랑크스', cd: 8, target: 'aroundSelf', params: { radius: 1, shield: 1.4, red: 0.2, dur: 4 },
       desc: (p) => `주변 ${p.radius}칸 아군에게 기술 위력 ${pct(p.shield)} 보호막, ${p.dur}초간 받는 피해 -${pct(p.red)}.`,
     }),
-    augs: [
-      uaug('thermo', 'wide', '넓은 방진', '범위 +1칸, 보호막 +40%p.', setSk((s) => { s.radius += 1; s.shield += 0.4; })),
-      uaug('thermo', 'bronze', '청동 방패', '보호막 +140%p.', setSk((s) => { s.shield += 1.4; })),
-      uaug('thermo', 'hold', '사수', '피해량 경감 +10%p, 지속 +3초.', setSk((s) => { s.red += 0.1; s.dur += 3; })),
-      uaug('thermo', 'core', '궤도 동력로', '방어력 +10, 생명력 +5.', { majors: { def: 10, vit: 5 } }),
-      uaug('thermo', 'last', '최후의 300', '체력 50% 이하일 때 피해량 경감 45%.', { hooks: { takenMult: (b, u) => (b.hpPct(u) <= 0.5 ? 0.55 : 1) } }),
-    ],
   },
   {
     id: 'u404', name: 'U-404', title: '규격 외 유닉스 로봇 · 생산 목표 미확인', factions: ['PET'], traits: ['ENG'], keywords: ['mech'],
@@ -119,13 +87,6 @@ export const ROSTER_E: BaseUnit[] = [
       name: '분기 실적 달성', cd: 7, pow: 'strike', elem: 'phys', mult: 1.3, aroundSelf: true, params: { radius: 1, growth: 0.1, stun: 0 },
       desc: (p) => `[1원칙] 기술을 쓸 때마다 피해 +${pct(p.growth)} (전투 동안 중첩). 기술: 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해${p.stun ? ` + ${p.stun}초 기절` : ''}.`,
     }),
-    augs: [
-      uaug('u404', 'overtime', '초과 생산', '중첩당 피해 +20%p 추가.', setSk((s) => { s.growth += 0.2; })),
-      uaug('u404', 'press', '프레스 공정', '기절 1.5초 추가.', setSk((s) => { s.stun = 1.5; })),
-      uaug('u404', 'line', '생산 라인 확장', '범위 +1칸, 피해 +30%p.', setSk((s) => { s.radius += 1; s.mult += 0.3; })),
-      uaug('u404', 'catwheel', '버려진 캣휠', '피해량 경감 30%.', { taken: [red('all', 0.3)] }),
-      uaug('u404', 'turret', '포탑 자가 생산', '엔지니어 포탑 +1기, 포탑 체력·방어도 +40%.', { setup: (u) => { u.mem.turretExtra = (u.mem.turretExtra || 0) + 1; u.mem.turretHp = (u.mem.turretHp || 0) + 0.4; } }),
-    ],
   },
   {
     id: 'rus', name: '루스', title: '약탈 함장 바르가의 전 부관', factions: ['PAN'], traits: [], keywords: ['bio'],
@@ -136,12 +97,5 @@ export const ROSTER_E: BaseUnit[] = [
       name: '약탈 사격', cd: 7, pow: 'shoot', elem: 'phys', mult: 2.4, target: 'farthest', params: { pen: 0.2, hits: 1 },
       desc: (p) => `가장 먼 적에게 사격 위력 ${pct(p.mult)} 물리 피해 (방어도 관통 ${pct(p.pen)})${p.hits > 1 ? ` ${p.hits}회` : ''}.`,
     }),
-    augs: [
-      uaug('rus', 'loot', '전리품 우선권', '공격 속도 +25%. 전투 승리 시 크레딧 +3.', { stats: { atkSpd: 0.25 } }, { after: (run, _u, won) => { if (won) run.credits += 3; } }),
-      uaug('rus', 'double', '쌍권총', '약탈 사격 2회 (두 번째 100%).', setSk((s) => { s.hits = 2; s.second = 1; })),
-      uaug('rus', 'ap', '철갑탄', '방어도 관통 +30%p, 약탈 사격 피해 +140%p.', setSk((s) => { s.pen += 0.3; s.mult += 1.4; })),
-      uaug('rus', 'ship', '챙겨 나온 배', '전투 시작 시 최대 체력 60% 보호막.', { hooks: { onStart(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.6); } } }),
-      uaug('rus', 'aim', '부관의 눈', '사거리 +1, 치명타 확률 +10%p, 치명타 피해 +35%p.', { stats: { range: 1, crit: 0.1, critDmg: 0.35 } }),
-    ],
   },
 ];

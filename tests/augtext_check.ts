@@ -18,7 +18,7 @@ const nums = (s: string, tok: boolean) => {
   return out.sort((a, b) => a - b);
 };
 let bad = 0;
-for (const u of UNITS) for (const a of [...u.augs, ...((u as any).specialAugs || [])]) {
+for (const u of UNITS) for (const a of (u as any).specialAugs || []) {
   const t = augAbilText(a.id);
   if (!t) continue;
   const d = nums(a.desc, false), x = nums(t, true);

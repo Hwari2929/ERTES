@@ -11,11 +11,13 @@ import { UNIT_BY_ID } from '../data/units';
 import { enableDivine, ENEMY_PSI, sigmundTarget } from '../data/rework';
 import type { SummonDef } from '../data/unitkit';
 import { Rng } from '../rng';
-import { type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
+import { categoryOf, type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
 import { Battle, type CUnit } from './combat';
 import { applyLive, type Effect, type EffectCtx } from './effects';
 
 export type Counts = Partial<Record<SynergyId, number>>;
+/** 마이너 성장으로 커지는 기술 계수 (위력 · 회복 · 보호막 · 출혈 · 1원칙 중첩) */
+export const MINOR_SKILL_KEYS = ['mult', 'heal', 'shield', 'famShield', 'bleed', 'growth'];
 
 /** 전장 구조: 바깥 테두리 PAD · 적 진형 ZONE · 간격 GAP · 아군 진형 ZONE · 테두리 PAD (세로), 가로는 배치 폭 W + 테두리 */
 export const ZONE = 3, GAP = 1, PAD = 1;
@@ -79,11 +81,13 @@ export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, 
   const d = UNIT_BY_ID[u.defId];
   if (d.passive) out.push(d.passive);
   if (d.trait.effect) out.push(d.trait.effect);
-  const g = u.grow || {};
-  if (d.ttype === 'minor' && d.growth?.effect) out.push(d.growth.effect(g));
   if (d.ttype === 'psionic' && d.psi) out.push(d.psi.effect);
   // 시그문드: 모시는 기물이 원래 엘베스타드면 모든 메이저 +5
-  if (run && sigmundTarget(run) === u.uid && d.factions.includes('FAM')) out.push({ majors: { vit: 5, pow: 5, mnd: 5, def: 5, agi: 5 } });
+  if (run && sigmundTarget(run) === u.uid && d.factions.includes('FAM')) {
+    const sg = run.units.find((x) => x.defId === 'sigmund');
+    const m = Math.round(5 * CFG.minorGrow(sg?.rank || 1)); // 시그문드 성장 반영
+    out.push({ majors: { vit: m, pow: m, mnd: m, def: m, agi: m } });
+  }
   for (const a of u.augments) { const d = AUG_BY_ID[a.id]; if (d) out.push(d.effect(a.param)); }
   for (const it of u.items) if (it) out.push(itemEffect(it));
   if (u.mod) out.push(itemEffect(u.mod)); // 신비 개조부품 (문장은 빈 효과)
@@ -147,11 +151,18 @@ export function boardPos(pos: { c: number; r: number }, W: number) {
   return { x: PAD + Math.max(0, Math.min(pos.c, W - 1)), y: ALLY_Y1 - Math.max(0, Math.min(pos.r, ZONE - 1)) };
 }
 
+/** 분류 확정 + 분류 기본 보정 (영혼 회피 +10%p, 구조물 방어도 ×1.3) */
+export function applyCategory(c: CUnit) {
+  c.category = categoryOf(c.keywords, c.immobile);
+  if (c.category === 'soul') c.st.eva += 0.1;
+  if (c.category === 'struct') { c.st.armor *= 1.3; c.immobile = true; }
+}
+
 function blankUnit(side: 0 | 1): CUnit {
   return {
     id: 0, side, defId: '', name: '', sprite: 'soldier', palette: [], x: 0, y: 0, px: 0, py: 0, moveT: 0, moveDur: 0,
     hp: 1, shield: 0, st: emptyStats(), atk: { type: 'strike', elem: 'phys', interval: 1 }, atkTimer: 0, cd: 0, cdMax: 0,
-    skill: null, sk: {}, statuses: [], mods: [], taken: [], hooks: [], keywords: [], synergies: new Set(), target: null,
+    skill: null, sk: {}, statuses: [], mods: [], taken: [], hooks: [], keywords: [], category: 'bio', synergies: new Set(), target: null,
     alive: true, isBoss: false, isSummon: false, immobile: false, phaseAmp: 1,
     counters: { dmg: 0, taken: 0, healed: 0, kills: 0, casts: 0, shield: 0, elem: {} }, mem: {},
     weapon: null, ammo: 0, reloadT: 0, combo: 0, reason: null, div: null, divGot: 0, divCap: 0, divUsed: false,
@@ -170,10 +181,17 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
     weapon: { ...d.weapon }, ctype: d.ctype, ttype: d.ttype, faith: u.faith || d.faith,
   });
   c.mem.mnd = majors.mnd;
+  applyCategory(c);
   if (d.weapon.kind === 'none') c.noAttack = true;
   const p = boardPos(u.pos!, b.w - 2 * PAD);
   c.x = c.px = p.x; c.y = c.py = p.y;
   c.mem.title = rankTitle(u.rank + effects.reduce((s, e) => s + (e.rankBonus || 0), 0)) + effects.reduce((s, e) => s + (e.title || 0), 0);
+  // 마이너: 공명 등급에 따라 기술 계수 · 특성 수치 성장 (특성은 gw(u) 로 참조)
+  if (d.ttype === 'minor') {
+    const g = CFG.minorGrow(u.rank);
+    c.mem.grow = g;
+    for (const k of MINOR_SKILL_KEYS) if (typeof c.sk[k] === 'number') c.sk[k] *= g;
+  }
   const ctx = makeCtx(run, u, counts);
   for (const e of effects) {
     if (e.mods) c.mods.push(...e.mods);
@@ -213,6 +231,7 @@ function spawnSummons(b: Battle, owner: CUnit, sd: SummonDef) {
       keywords: sd.sprite === 'drone' ? ['mech'] : ['bio'], isSummon: true, owner,
       mods: owner.mem.bondAmp ? [{ kind: 'inc', tag: 'all', v: owner.mem.bondAmp }] : [],
     });
+    applyCategory(s);
     s.hp = st.maxHp;
     s.atkTimer = 0.3;
     const treat = owner.mem.summonTreat;
@@ -268,6 +287,7 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
     immobile: !!def.immobile, phaseAmp: phaseAmpMult(phase) * (1 + (mult - 1) / 2) * critTax,
   });
   c.mem.mult = mult;
+  applyCategory(c);
   for (const m of MAJORS) c.mem[`M_${m}`] = em[m];
   c.cd = c.cdMax * 0.6;
   // 리워크: 적도 무기 · 전투 유형 · 이성을 가진다
@@ -315,6 +335,7 @@ ENG_HOOK.spawn = (b, lead, engs, n) => {
       defId: 'turret', name: '감시 포탑', sprite: 'turret', palette: TURRET_PAL, art: 'sm_turret', st, atk: { type: 'shoot', elem: 'phys', interval: 1.0 },
       keywords: ['mech', 'struct'], isSummon: true, immobile: true,
     });
+    applyCategory(t);
     t.hp = st.maxHp;
     t.atkTimer = 0.4;
     // 전장 양옆 가장자리(배치 구역 바깥 열)부터, 대표 엔지니어와 가까운 줄에 번갈아 설치. 자리가 없으면 진영 안 빈칸
