@@ -279,7 +279,7 @@ button { font: inherit; color: inherit; }
 .area2 { position: absolute; pointer-events: none; border-radius: 14%; }
 .area2.atk { border: 2px solid var(--c); background: radial-gradient(circle, color-mix(in srgb, var(--c) 30%, transparent), transparent 70%); }
 .area2.heal { border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--good) 40%, transparent), transparent 70%); }
-.area2.aura { border-radius: 14%; border: 1px solid color-mix(in srgb, var(--good) 45%, transparent); background: color-mix(in srgb, var(--good) 14%, transparent); }
+.area2.aura { border-radius: 3px; border: 1px solid color-mix(in srgb, var(--good) 30%, transparent); background: color-mix(in srgb, var(--good) 9%, transparent); }
 .area2.buff { border: 2px dashed #f2f4f8; border-radius: 50%; }
 .rewind { position: absolute; width: 10%; aspect-ratio: 1; border-radius: 50%; pointer-events: none; border: 3px solid transparent; border-top-color: #8fd3ff; border-left-color: #8fd3ff; box-shadow: 0 0 12px #8fd3ff; }
 .pillar { position: absolute; width: 5%; height: 26%; pointer-events: none; transform-origin: bottom; background: linear-gradient(to top, color-mix(in srgb, var(--el-holy) 85%, transparent), transparent); filter: blur(1px); }

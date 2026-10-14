@@ -542,7 +542,17 @@ export class BattleView {
         if (other && e.v >= this.b.S(u, 'maxHp') * 0.05 && !this.crowd(1, rel)) for (let i = 0; i < 2; i++) this.spawnFx('rise', c.x + (i ? 1.6 : -1.6), c.y, [{ transform: 'translate(-50%,-50%)', opacity: 1 }, { transform: 'translate(-50%,-260%)', opacity: 0 }], 520, { delay: i * 90 });
         this.float(u, '+' + fmt(e.v), 'heal', { side: 'r', rel, prio: other ? 1 : 0, merge: `heal:${e.id}`, v: e.v, fmt: (v) => '+' + fmt(v) });
       } else {
-        this.spawnFx('shring', c.x, c.y, [{ transform: 'translate(-50%,-50%) scale(1.45)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: 0.6 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 0 }], 420);
+        // 보호막: 굵은 흰 테두리가 바깥에서 조여 들어와 장착된 뒤 사라진다
+        const ee = this.els.get(e.id);
+        if (ee && !this.reduced) {
+          const off = 'rgb(255 255 255 / 0)', on = '#fff';
+          this.play(ee.face, [
+            { outline: `4px solid ${off}`, outlineOffset: '12px', easing: EASE_OUT },
+            { outline: `4px solid ${on}`, outlineOffset: '0px', offset: 0.35 },
+            { outline: `3px solid ${on}`, outlineOffset: '0px', offset: 0.7 },
+            { outline: `3px solid ${off}`, outlineOffset: '0px' },
+          ], 560);
+        }
         this.float(u, '◇' + fmt(e.v), 'shield', { side: 'l', rel, prio: other ? 1 : 0, merge: `sh:${e.id}`, v: e.v, fmt: (v) => '◇' + fmt(v) });
       }
     });
@@ -603,7 +613,7 @@ export class BattleView {
       const kind = e.kind || 'atk';
       const sw = ((2 * e.r + 1) / w) * 100, sh = ((2 * e.r + 1) / h) * 100;
       const d = this.spawnFx(`area2 ${kind}`, ((e.x + 0.5) / w) * 100, ((e.y + 0.5) / h) * 100,
-        kind === 'aura' ? [{ transform: 'translate(-50%,-50%)', opacity: 0 }, { transform: 'translate(-50%,-50%)', opacity: 0.55, offset: 0.25 }, { transform: 'translate(-50%,-50%)', opacity: 0 }]
+        kind === 'aura' ? [{ transform: 'translate(-50%,-50%)', opacity: 0 }, { transform: 'translate(-50%,-50%)', opacity: 0.35, offset: 0.25 }, { transform: 'translate(-50%,-50%)', opacity: 0 }]
         : kind === 'buff' ? [{ transform: 'translate(-50%,-50%) scale(1.3) rotate(-30deg)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1) rotate(0)', opacity: 1, offset: 0.5 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 0 }]
           : kind === 'heal' ? [{ transform: 'translate(-50%,-50%) scale(.7)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 0.9, offset: 0.4 }, { transform: 'translate(-50%,-50%) scale(1.05)', opacity: 0 }]
             : [{ transform: 'translate(-50%,-50%) scale(.5)', opacity: 1 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 0.9, offset: 0.35 }, { transform: 'translate(-50%,-50%) scale(1.08)', opacity: 0 }], kind === 'aura' ? 800 : 520);
