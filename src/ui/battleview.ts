@@ -43,8 +43,8 @@ const easeOut = (t: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 3);
 
 /** 연출 설정 (설정 메뉴에서 바꿈): 이펙트 · 숫자 지속 ms, 스킬 연출 ms, 모션 속도 */
 export type MotionPreset = 'fast' | 'mid' | 'slow';
-/** 사망 연출: 휘리릭 (전장 밖으로) · 호떡 (무덤이 꽂힘) · 스르륵 (흰 X 후 흐려짐) */
-export type DeathStyle = 'spin' | 'grave' | 'fade';
+/** 사망 연출: 휘리릭 (포물선을 그리며 전장 밖으로) · 스르륵 (흰 X 후 흐려짐) */
+export type DeathStyle = 'spin' | 'fade';
 export const FX = { fxMs: 1200, skillMs: 1800, motion: 'mid' as MotionPreset, death: 'fade' as DeathStyle };
 export const FX_DEFAULT = { fxMs: 1200, skillMs: 1800, motion: 'mid' as MotionPreset, death: 'fade' as DeathStyle };
 /** 모션 프리셋: 날렵 · 보통 (날렵 6 : 느긋 4) · 느긋 */
@@ -759,29 +759,18 @@ export class BattleView {
     }
     const finish = (a: Animation | null) => { if (a) { const f = () => hide(); a.finished.then(f, f); } else hide(); };
     if (FX.death === 'spin') {
-      // 휘리릭: 맞은 방향 반대로 회전하며 전장 밖으로
+      // 휘리릭: 맞은 반대쪽으로 낮게 튀어 올랐다가 아래로 떨어지며 화면 밖으로 (회전)
       const from = this.unit(this.lastHitFrom.get(u.id));
-      const v = from ? this.dir(from, u) : { x: u.side === 0 ? 0.3 : -0.3, y: u.side === 0 ? 1 : -1, d: 1 };
-      finish(this.play(e.el, [
-        { transform: 'translate(0,0) rotate(0) scale(1)', opacity: 1, easing: 'cubic-bezier(.3, .1, .7, 1)' },
-        { transform: `translate(${v.x * 900}%, ${v.y * 900 - 250}%) rotate(${v.x >= 0 ? 1080 : -1080}deg) scale(.55)`, opacity: 0.9 },
-      ], 900 * fxK(), { fill: 'forwards' }));
-    } else if (FX.death === 'grave') {
-      // 호떡: 위에서 무덤이 떨어져 쿵 꽂히고, 기물은 그 밑으로 사라진다
-      const g = this.spawnFx('grave', c.x, c.y, [
-        { transform: 'translate(-50%,-420%)', opacity: 0, easing: 'cubic-bezier(.55, 0, 1, .45)' },
-        { transform: 'translate(-50%,-50%)', opacity: 1, offset: 0.32, easing: EASE_OUT },
-        { transform: 'translate(-50%,-62%) scaleY(1.04)', opacity: 1, offset: 0.4, easing: 'ease-in' },
-        { transform: 'translate(-50%,-50%)', opacity: 1, offset: 0.48 },
-        { transform: 'translate(-50%,-50%)', opacity: 1, offset: 0.85 },
-        { transform: 'translate(-50%,-50%)', opacity: 0 },
-      ], 1500, {}, '<b>RIP</b>');
-      g.style.width = `${cw * 0.62}%`; g.style.height = `${ch * 0.72}%`;
-      this.later(this.vt + 0.45 * fxK(), () => {
-        const dust = this.spawnFx('dust', c.x, c.y + ch * 0.3, [{ transform: 'translate(-50%,-50%) scale(.4)', opacity: 0.9 }, { transform: 'translate(-50%,-50%) scale(1.4)', opacity: 0 }], 420);
-        dust.style.width = `${cw}%`;
-      });
-      finish(this.play(e.el, [{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(1)', opacity: 1, offset: 0.3 }, { transform: 'scale(.82, .55) translateY(30%)', opacity: 0 }], 520 * fxK(), { fill: 'forwards' }));
+      const sx = from ? Math.sign(u.x - from.x) || (u.side === 0 ? -1 : 1) : (u.side === 0 ? -1 : 1);
+      const rot = sx * 900;
+      // 포물선: x 는 등속, y = A·t² + B·t (t=0.22 에서 최고점 -95%, 끝에서 +1100%)
+      const t0 = 0.22, A = 95 / (t0 * t0), B = -2 * A * t0;
+      const kf: Keyframe[] = [];
+      for (let i = 0; i <= 12; i++) {
+        const t = i / 12;
+        kf.push({ transform: `translate(${(sx * 420 * t).toFixed(1)}%, ${(A * t * t + B * t).toFixed(1)}%) rotate(${(rot * t).toFixed(0)}deg) scale(${(1 - 0.2 * t).toFixed(2)})`, opacity: 1, offset: t });
+      }
+      finish(this.play(e.el, kf, 1000 * fxK(), { fill: 'forwards', easing: 'linear' }));
     } else {
       // 스르륵: 크고 흰 X 가 그어지고 흐려지며 사라진다
       for (const [i, deg] of [[0, 45], [1, -45]] as const) {
@@ -818,7 +807,7 @@ export class BattleView {
     const won = this.b.winner === 0;
     const bn = document.createElement('div');
     bn.className = `finale ${won ? 'win' : 'lose'}`;
-    bn.innerHTML = `<small>전투 종료</small><b>${won ? '승리' : '패배'}</b>`;
+    bn.innerHTML = '<b>전투 종료</b>'; // 승패는 보고서에서
     view.appendChild(bn);
     bn.animate([{ opacity: 0, transform: 'translate(-50%,-50%) scale(1.5)', letterSpacing: '.6em' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1)', letterSpacing: '.18em', offset: 0.35 }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1)', letterSpacing: '.22em' }], { duration: 1500, easing: EASE_OUT, fill: 'forwards' });
     // 감속은 배너가 뜬 뒤 천천히 풀린다

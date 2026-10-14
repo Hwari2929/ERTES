@@ -42,7 +42,7 @@ function applyFxPrefs() {
   FX.fxMs = ms(p.fxMs, FX_DEFAULT.fxMs);
   FX.skillMs = ms(p.skillMs, FX_DEFAULT.skillMs);
   FX.motion = p.motion === 'fast' || p.motion === 'slow' || p.motion === 'mid' ? p.motion : FX_DEFAULT.motion;
-  FX.death = p.death === 'spin' || p.death === 'grave' || p.death === 'fade' ? p.death : FX_DEFAULT.death;
+  FX.death = p.death === 'spin' || p.death === 'fade' ? p.death : FX_DEFAULT.death;
 }
 function savePref(k: string, v: unknown) {
   try { localStorage.setItem(PREF_KEY, JSON.stringify({ ...loadPrefs(), [k]: v })); } catch { /* 저장 불가 환경 */ }
@@ -1479,8 +1479,8 @@ function menuModal(run: RunState | null) {
       <label class="pref pref-num"><span><b>스킬 사용 연출 시간</b><br><span class="muted small">스킬명 배너와 시전 테두리가 머무는 시간 (기본 ${FX_DEFAULT.skillMs}ms)</span></span><span class="pn"><input type="number" min="500" max="5000" step="100" data-pref="skillMs" value="${FX.skillMs}"> ms</span></label>
       <div class="pref"><span><b>모션 속도</b><br><span class="muted small">공격 · 피격 · 회피 · 이동 동작의 빠르기</span></span>
         <span class="seg">${([['fast', '날렵'], ['mid', '보통'], ['slow', '느긋']] as const).map(([k, l]) => `<button class="btn tiny ${FX.motion === k ? 'on' : ''}" data-a="pref-motion" data-v="${k}" aria-pressed="${FX.motion === k}">${l}</button>`).join('')}</span></div>
-      <div class="pref"><span><b>사망 연출</b><br><span class="muted small">휘리릭: 맞은 반대쪽으로 돌며 전장 밖으로 · 호떡: 위에서 무덤이 날아와 꽂힘 · 스르륵: 흰 X 후 흐려짐 (처형은 항상 갈라짐 + 해골)</span></span>
-        <span class="seg">${([['spin', '휘리릭'], ['grave', '호떡'], ['fade', '스르륵']] as const).map(([k, l]) => `<button class="btn tiny ${FX.death === k ? 'on' : ''}" data-a="pref-death" data-v="${k}" aria-pressed="${FX.death === k}">${l}</button>`).join('')}</span></div>
+      <div class="pref"><span><b>사망 연출</b><br><span class="muted small">휘리릭: 맞은 반대쪽으로 낮은 포물선을 그리며 떨어져 나감 · 스르륵: 흰 X 후 흐려짐 (처형은 항상 갈라짐 + 해골)</span></span>
+        <span class="seg">${([['spin', '휘리릭'], ['fade', '스르륵']] as const).map(([k, l]) => `<button class="btn tiny ${FX.death === k ? 'on' : ''}" data-a="pref-death" data-v="${k}" aria-pressed="${FX.death === k}">${l}</button>`).join('')}</span></div>
       <div class="row-btns"><button class="btn ghost" data-a="pref-fx-reset">연출 기본값</button><button class="btn primary" data-a="menu-close">닫기</button></div>
     </div></div>`;
   }

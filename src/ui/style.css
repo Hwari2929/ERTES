@@ -1843,13 +1843,8 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .cutline { position: absolute; height: 3px; border-radius: 2px; pointer-events: none; z-index: 5; background: linear-gradient(90deg, transparent, #fff 20%, #fff 80%, transparent); box-shadow: 0 0 10px #fff, 0 0 18px var(--bad); }
 .skull { position: absolute; width: 4.2%; min-width: 30px; aspect-ratio: 1; pointer-events: none; z-index: 6; filter: drop-shadow(0 0 8px var(--bad)) drop-shadow(0 2px 3px #000); }
 .skull svg { width: 100%; height: 100%; fill: #f4f1ea; }
-.grave { position: absolute; pointer-events: none; z-index: 5; display: grid; place-items: center; border-radius: 45% 45% 6px 6px / 38% 38% 6px 6px;
-  background: linear-gradient(#8e94a2, #5b6170); border: 2px solid #2b2f39; box-shadow: inset 0 3px 0 rgb(255 255 255 / .25), 0 4px 6px rgb(0 0 0 / .6); }
-.grave b { font: 700 11px var(--f-mono); color: #2b2f39; letter-spacing: .08em; }
-.dust { position: absolute; aspect-ratio: 3 / 1; border-radius: 50%; pointer-events: none; background: radial-gradient(ellipse, rgb(200 200 210 / .55), transparent 70%); }
 .xmark { position: absolute; height: 5px; border-radius: 3px; pointer-events: none; z-index: 5; background: #fff; box-shadow: 0 0 8px rgb(255 255 255 / .8), 0 1px 3px #000; }
 .finale { position: absolute; left: 50%; top: 50%; z-index: 20; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 90px 14px;
   background: linear-gradient(90deg, transparent, rgb(8 10 14 / .85) 18%, rgb(8 10 14 / .85) 82%, transparent); white-space: nowrap; }
-.finale small { font: 600 12px var(--f-body); letter-spacing: .3em; color: #c9ccd4; }
 .finale b { font: 400 40px var(--f-display); letter-spacing: .18em; }
-.finale.win b { color: #fff; text-shadow: 0 0 18px var(--accent); } .finale.lose b { color: var(--bad); text-shadow: 0 0 16px var(--bad); }
+.finale b { color: #fff; text-shadow: 0 0 18px rgb(255 255 255 / .55); }
