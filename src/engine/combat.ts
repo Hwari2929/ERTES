@@ -179,6 +179,8 @@ export interface CUnit {
   div: number | null;
   divGot: number; divCap: number; divUsed: boolean;
   faith?: FaithId;
+  /** 디바인: 성유물 (신권 대행) */
+  relic?: string;
   src?: UnitState;
   owner?: CUnit;
   /** 일러스트 id (소환물 · 포탑) */
@@ -198,6 +200,8 @@ export type BEvent =
   | { k: 'skillEnd'; id: number }
   /** 메이저 궁극기 발동 (컷인) */
   | { k: 'ult'; id: number; ult: string }
+  /** 디바인 신권 대행 발동 (컷인) */
+  | { k: 'divact'; id: number }
   | { k: 'status'; id: number; name: string; src?: number; harm?: boolean; stype?: string }
   | { k: 'die'; id: number; by?: number }
   | { k: 'spawn'; id: number }
@@ -280,8 +284,9 @@ export class Battle {
     if (u.div >= 100 && !u.divUsed) {
       u.divUsed = true;
       u.div = 0;
-      this.emit({ k: 'skill', id: u.id, name: '신권 대행' });
+      this.emit({ k: 'divact', id: u.id });
       DIVINE_HOOK.act?.(this, u);
+      this.emit({ k: 'skillEnd', id: u.id });
       for (const h of u.hooks) h.onDivine?.(this, u);
     }
   }

@@ -135,3 +135,16 @@ export function shopSynth(run: RunState, track?: Track) {
   R.leaveShop(run);
 }
 export { CONSUMABLES };
+
+/** 순례: 강화(가장 싼 성유물) → 순례자의 기도 · 성배 · 성인 기념일 · 성유 순으로 살 수 있는 만큼 */
+export function pilgrimBot(run: RunState) {
+  const p = run.pending.find((x) => x.t === 'pilgrim');
+  if (!p || p.t !== 'pilgrim') return;
+  const dv = R.divines(run).sort((a, b) => b.rank - a.rank);
+  const order = ['prayer', 'saintday', 'grail', 'chrism', 'indulgence', 'bless:B.sanctum', 'bless:B.martyr', 'bless:B.flame', 'bless:B.zeal'];
+  for (const id of order) {
+    const i = (p.cards || []).findIndex((c) => c.id === id && !c.sold);
+    if (i >= 0 && run.power >= p.cards![i].cost) R.pilgrimCard(run, i, dv[0]?.uid);
+  }
+  if (dv[0] && !dv[0].enh) R.enhanceRelic(run, dv[0].uid);
+}

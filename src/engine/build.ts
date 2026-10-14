@@ -8,7 +8,8 @@ import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
 import { emblemOf, isEmblem, itemEffect } from '../data/items';
 import { ENG_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { UNIT_BY_ID } from '../data/units';
-import { enableDivine, ENEMY_PSI, sigmundTarget } from '../data/rework';
+import { enableDivine, ENEMY_PSI, FAITH_DEF, sigmundTarget } from '../data/rework';
+import { DEFAULT_RELIC } from '../data/relics';
 import { ULTS } from '../data/ults';
 import type { SummonDef } from '../data/unitkit';
 import { Rng } from '../rng';
@@ -83,6 +84,7 @@ export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, 
   if (d.passive) out.push(d.passive);
   if (d.trait.effect) out.push(d.trait.effect);
   if (d.ttype === 'psionic' && d.psi) out.push(d.psi.effect);
+  if (d.ttype === 'divine') out.push(FAITH_DEF[u.faith || d.faith].passive); // 고유 신앙 상시 버프
   // 시그문드: 모시는 기물이 원래 엘베스타드면 모든 메이저 +5
   if (run && sigmundTarget(run) === u.uid && d.factions.includes('FAM')) {
     const sg = run.units.find((x) => x.defId === 'sigmund');
@@ -203,7 +205,13 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
   c.cdMax = Math.max(1, c.cdMax);
   c.cd = c.cdMax * 0.5;
   if (d.ttype === 'psionic') c.reason = Math.min(100, CFG.reasonStart + (c.mem.reasonStart || 0));
-  if (d.ttype === 'divine') enableDivine(c, c.faith!, run?.divCap || 0);
+  if (d.ttype === 'divine') {
+    enableDivine(c, c.faith!, run?.divCap || 0);
+    c.relic = u.relic || DEFAULT_RELIC[d.id];
+    if (u.enh) c.mem.enh = 3; // 신권 대행 강화 (다음 전투 한정)
+    c.div = Math.min(100, (c.div || 0) + (run?.mods.divStart || 0)); // 순례자의 기도
+    if (run?.mods.divGain) c.mem.divBoost = (c.mem.divBoost || 0) + run.mods.divGain; // 성인 기념일
+  }
   if (d.ttype === 'major' && ULTS[d.id]) { c.ult = ULTS[d.id]; c.ultG = Math.min(1, CFG.ultStart + (c.mem.ultStart || 0)); } // 메이저 궁극기
   const sd = d.summon;
   if (sd) c.hooks.push({ onStart: (bb, self) => spawnSummons(bb, self, sd) });

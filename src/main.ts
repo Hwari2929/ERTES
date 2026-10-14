@@ -21,9 +21,10 @@ import { Battle, type CUnit, type Status, STATUS_NAME } from './engine/combat';
 import * as R from './engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
-import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type SynergyId, type UnitState } from './types';
+import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SynergyId, type UnitState } from './types';
 import { BattleView, fmt, FX, FX_DEFAULT, type DeathStyle, type MotionPreset, type UltCut } from './ui/battleview';
 import { ULTS } from './data/ults';
+import { DEFAULT_RELIC, RELIC_BY_ID } from './data/relics';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
 import { bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg } from './ui/portraits';
@@ -314,7 +315,7 @@ const TTYPE_RULE: Record<TType, string> = {
   minor: '공명 등급마다 모든 능력치 +1. 3등급마다 능력치 2종 +3. 기술 계수와 특성 수치가 등급에 따라 자란다 (10등급 ×2, 20등급 ×3).',
   special: '공명 등급마다 모든 능력치 +1. 합류 · 7 · 14 · 21등급에 전용 증강 (최대 4개).',
   psionic: '공명 등급마다 모든 능력치 +1. 5등급마다 사이오닉 증강 (최대 4개, 20등급에 완성).',
-  divine: '공명 등급마다 모든 능력치 +1. 고유 신앙이 깨어 있어 신성력을 모으고, 가득 차면 전투당 한 번 신권 대행.',
+  divine: '공명 등급마다 모든 능력치 +1. 고유 신앙이 깨어 있어 신성력을 모으고, 가득 차면 장착한 성유물의 신권 대행을 전투당 한 번 쓴다. 모은 신성력은 전투 후 권능 포인트가 된다.',
 };
 /** 특성 하위 항목 (접힘) */
 function sub(key: string, icon: string, cls: string, name: string, kind: string, body: string) {
@@ -336,12 +337,54 @@ function nextMilestone(tt: TType, rank: number): number | null {
   }
   return null;
 }
+const PILGRIM_FLAVOR = ['향 연기가 낮게 깔린 성소. 순례자들이 조용히 무릎을 꿇는다.', '닳은 돌계단 끝에 작은 제단이 있다. 누군가 두고 간 등불이 아직 따뜻하다.', '성가대의 노래가 끊겼다 이어진다. 사제가 권능의 값을 매긴다.'];
+/** 순례: 참배 카드 3장 + 성유물 2종 + 디바인 성유물 관리 */
+function pilgrimHtml(run: RunState, p: Extract<Pending, { t: 'pilgrim' }>) {
+  const dv = R.divines(run);
+  const card = (c: NonNullable<typeof p.cards>[number], i: number) => {
+    const d = R.PILGRIM_CARDS[c.id];
+    const poor = run.power < c.cost;
+    const head = `<b>${esc(d.name)}${c.faith ? ` · ${FAITH_NAME[c.faith]}` : ''}</b><span class="small">${esc(c.faith ? `디바인 1명의 신앙을 ${FAITH_NAME[c.faith]}(으)로 바꾼다.` : d.desc)}</span><span class="accent small">권능 ${c.cost}</span>`;
+    if (c.sold) return `<div class="card pil-card sold">${head}<span class="tag">받음</span></div>`;
+    if (!d.target) return `<button class="card pil-card" data-a="pil-card" data-v="${i}" ${poor ? 'disabled' : ''}>${head}</button>`;
+    return `<div class="card pil-card">${head}<div class="pil-who">${dv.map((u) => `<button class="btn tiny" data-a="pil-card" data-v="${i}:${u.uid}" ${poor ? 'disabled' : ''}>${esc(UNIT_BY_ID[u.defId].name)}</button>`).join('')}</div></div>`;
+  };
+  const relic = (o: NonNullable<typeof p.relics>[number], i: number) => {
+    const r = RELIC_BY_ID[o.id];
+    const head = `<b>${lineIcon('a.power', 'li')} ${esc(r.name)}</b><span class="small">${esc(r.desc(1))}</span><span class="accent small">권능 ${o.cost} · 강화 ${r.enh}</span>`;
+    return o.sold ? `<div class="card pil-card sold">${head}<span class="tag">구매함</span></div>` : `<button class="card pil-card relic" data-a="pil-relic" data-v="${i}" ${run.power < o.cost ? 'disabled' : ''}>${head}</button>`;
+  };
+  return `<h1>순례</h1><p class="pil-flavor muted">${esc(PILGRIM_FLAVOR[(run.phase + run.step) % PILGRIM_FLAVOR.length])}</p>
+    <p>권능 포인트 <b class="accent">${run.power}</b> <span class="muted small">· 디바인이 전투에서 모은 신성력으로 얻습니다</span></p>
+    <h3>참배</h3><div class="cards">${(p.cards || []).map(card).join('')}</div>
+    <h3>성유물 <span class="muted small">디바인 전용 장비 · 장착한 성유물이 신권 대행이 된다</span></h3><div class="cards">${(p.relics || []).map(relic).join('') || '<p class="muted small">남은 성유물이 없습니다.</p>'}</div>
+    ${dv.length ? `<h3>디바인</h3>${dv.map((u) => relicPanel(run, u)).join('')}` : ''}
+    <div class="row-btns"><button class="btn primary" data-a="pilgrim-done">순례 마치기</button></div>`;
+}
+/** 상세 창용: 강화 버튼 + 보관함 성유물 교체 */
+function relicPanelLite(run: RunState, u: UnitState) {
+  const r = u.relic ? RELIC_BY_ID[u.relic] : null;
+  const spare = run.relics || [];
+  return `<div class="rp-lite">${r ? `<button class="btn tiny${u.enh ? ' on' : ''}" data-a="relic-enh" data-v="${u.uid}" ${u.enh || run.power < r.enh ? 'disabled' : ''} title="다음 전투 한정 신권 대행 계수 ×3">${u.enh ? '다음 전투 강화됨' : `강화 (권능 ${r.enh})`}</button>` : ''}
+    ${spare.map((id) => `<button class="btn tiny" data-a="relic-equip" data-v="${u.uid}:${id}" title="${esc(RELIC_BY_ID[id].desc(1))}">${esc(RELIC_BY_ID[id].name)} 장착</button>`).join('')}</div>`;
+}
+/** 디바인 성유물 관리: 장착 · 교체 · 강화 */
+function relicPanel(run: RunState, u: UnitState) {
+  const r = u.relic ? RELIC_BY_ID[u.relic] : null;
+  const spare = run.relics || [];
+  return `<div class="relic-panel"><div class="rp-head"><b>${esc(UNIT_BY_ID[u.defId].name)}</b>${r ? `<span>${lineIcon('a.power', 'li')} ${esc(r.name)}</span>` : '<span class="muted">성유물 없음</span>'}
+    ${r ? `<button class="btn tiny${u.enh ? ' on' : ''}" data-a="relic-enh" data-v="${u.uid}" ${u.enh || run.power < r.enh ? 'disabled' : ''} title="다음 전투 한정 신권 대행 계수 ×3">${u.enh ? '강화됨' : `강화 · 권능 ${r.enh}`}</button>` : ''}</div>
+    ${r ? `<p class="small">${esc(r.desc(u.enh ? 3 : 1))}</p>` : ''}
+    ${spare.length ? `<div class="rp-swap"><span class="muted small">교체:</span>${spare.map((id) => `<button class="btn tiny" data-a="relic-equip" data-v="${u.uid}:${id}" title="${esc(RELIC_BY_ID[id].desc(1))}">${esc(RELIC_BY_ID[id].name)}</button>`).join('')}</div>` : ''}</div>`;
+}
 /** 고유 신앙 한 줄: 디바인만 활성 */
-function faithLine(d: UnitDef, f: FaithId, run: RunState | null) {
+/** 능력 블록: 고유 신앙 (디바인만 활성, 그 외는 비활성 표시) */
+function faithAbil(d: UnitDef, u: UnitState | null, run: RunState | null) {
+  const f = u?.faith || d.faith;
   const fd = FAITH_DEF[f];
-  if (d.ttype !== 'divine') return `<div class="tt-faith off" title="디바인만 신앙의 힘을 쓴다">${typeIcon('faith')}<b>${FAITH_NAME[f]}</b><span class="tt-tag">비활성</span></div>`;
-  return `<div class="tt-faith on">${typeIcon('faith')}<b>${FAITH_NAME[f]}</b><span class="tt-tag on">활성</span></div>
-    <p class="small">신성력 획득: ${esc(fd.gain)}${app.detail ? `, 초당 +2. 수집 상한 ${CFG.divCap + (run?.divCap || 0)}` : ''}.</p>`;
+  const on = d.ttype === 'divine';
+  return `<div class="abil ab-faith${on ? '' : ' off'}"><div class="ab-head"><span class="ab-kind">신앙</span><b>${FAITH_NAME[f]}</b><span class="ab-meta">${on ? '활성' : '비활성'}</span></div>
+    <p>${on ? `${esc(fd.buff)}. 신성력: ${esc(fd.gain)}${app.detail ? `, 초당 +2 (수집 상한 ${CFG.divCap + (run?.divCap || 0)})` : ''}.` : '디바인만 신앙의 힘을 쓴다.'}</p></div>`;
 }
 /** 능력 란의 전술 유형 섹션: 유형마다 구성이 다르다 (u 없으면 도감 미리보기, c 있으면 전투 중 실시간 값) */
 function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Battle | null = null, c: CUnit | null = null, live = false) {
@@ -383,14 +426,16 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
     body.push(`<div class="tt-row"><span class="tt-k">사이오닉 증강</span><b>${mine.length}<small>/4</small></b>${nx && mine.length < 4 ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
     if (mine.length) body.push(`<ul class="augs">${mine.map((a) => augRow(a.id, a.param, b, c)).join('')}</ul>`);
   } else {
-    const act = DIVINE_ACT[d.ctype];
-    body.push(faithLine(d, f, run));
+    const rid = u?.relic || (c?.relic) || DEFAULT_RELIC[d.id];
+    const rel = rid ? RELIC_BY_ID[rid] : null;
+    const k = (live ? c?.mem.enh : u?.enh ? 3 : 1) || 1;
     if (live && c && c.div !== null) body.push(`<div class="tt-row"><span class="tt-k">신성력</span><b class="tt-big">${c.divUsed ? '발동함' : Math.round(c.div)}</b><span class="muted small">수집 ${Math.round(c.divGot)} / ${c.divCap}</span></div>`);
-    body.push(`<div class="tt-act"><span class="tt-k">신권 대행</span><b>${esc(act.name)}</b><p class="small">${esc(act.desc)}. 신앙 가호: ${esc(FAITH_DEF[f].act)}.</p></div>`);
-    if (run) body.push(`<div class="tt-row"><span class="tt-k">권능 포인트</span><b>${run.power}</b><span class="muted small">전투 후 모은 신성력에서 전환</span></div>`);
+    if (rel) body.push(`<div class="tt-act"><span class="tt-k">신권 대행 · 성유물</span><b>${esc(rel.name)}${k > 1 ? ' <span class="tag">강화 ×3</span>' : ''}</b><p class="small">${esc(rel.desc(k))} 지속 효과는 발동 후 전투가 끝날 때까지 유지된다.</p></div>`);
+    if (run && u && !live) body.push(relicPanelLite(run, u));
+    if (run) body.push(`<div class="tt-row"><span class="tt-k">권능 포인트</span><b>${run.power}</b><span class="muted small">전투 후 디바인이 모은 신성력 ÷ ${CFG.powerPerDiv}</span></div>`);
   }
-  if (tt !== 'divine') body.push(faithLine(d, f, run));
-  return `<section class="tt-sec tt-${tt}"><div class="tt-head"><i class="tt-${tt}">${TTYPE_ICON(tt)}</i><b>${TTYPE_NAME[tt]}</b><span class="tt-sub">전술 유형</span></div>
+  void f;
+  return `<section class="abil tt-sec tt-${tt}"><div class="ab-head"><span class="ab-kind">전술 유형</span><b class="tt-name"><i class="tt-${tt}">${TTYPE_ICON(tt)}</i>${TTYPE_NAME[tt]}</b></div>
     <p class="tt-rule small muted">${esc(TTYPE_RULE[tt])}</p>${body.join('')}</section>`;
 }
 /** 분류 표시 (아군 · 적 공통) */
@@ -1097,6 +1142,7 @@ function detailPanel(run: RunState, extra = '') {
       ${traitGroup(d, u, run, b, c)}
       ${aceAbil(run, u)}${voyAbil(d, run, u)}
       ${skillCard(d, b, c)}
+      ${faithAbil(d, u, run)}
       ${ttSection(d, u, run, b, c)}
     </div>
     <p class="lore">${esc(d.lore)}</p>
@@ -1467,20 +1513,7 @@ function pendingModal(run: RunState): string {
   } else if (p.t === 'supply') {
     body = `<h1>보급</h1><div class="cards">${p.options.map((o) => `<button class="card" data-a="pick-supply" data-v="${o}"><b>${ic(esc(R.SUPPLY_TEXT[o]))}</b></button>`).join('')}</div>`;
   } else if (p.t === 'pilgrim') {
-    const divs = run.units.filter((x) => UNIT_BY_ID[x.defId].ttype === 'divine');
-    const C = R.PILGRIM_COST;
-    const btn = (act: string, label: string, cost: number, extra = '') => `<button class="card" data-a="pilgrim" data-v="${act}" ${run.power < cost ? 'disabled' : ''}><b>${label}</b><span>${extra}</span><span class="accent small">권능 ${cost}</span></button>`;
-    body = `<h1>순례</h1><p class="muted">권능 포인트 <b class="accent">${run.power}</b> · 디바인 기물이 전투에서 모은 신성력으로 얻습니다.</p>
-      <div class="cards">
-        ${btn('cap', '신성력 수집 상한 +50', C.cap, `현재 전투당 ${CFG.divCap + run.divCap}`)}
-        ${btn('bless', '이번 페이즈 축복', C.bless, '축복 3개 중 1개')}
-        ${btn('credits', '헌금 환전', C.credits, `${CR}+3`)}
-        ${btn('xp', '수행', C.xp, `${RES}4 분배`)}
-      </div>
-      <h3>신앙 변경 <span class="muted small">권능 ${C.faith}</span></h3>
-      ${divs.length ? divs.map((x) => `<div class="pil-row"><b>${esc(UNIT_BY_ID[x.defId].name)}</b> <select data-faith="${x.uid}" ${run.power < C.faith ? 'disabled' : ''}>${FAITHS.map((f) => `<option value="${f}" ${f === x.faith ? 'selected' : ''}>${FAITH_NAME[f]}</option>`).join('')}</select>
-        <span class="muted small">${esc(FAITH_DEF[x.faith || UNIT_BY_ID[x.defId].faith].act)}</span></div>`).join('') : '<p class="muted small">디바인 기물이 없습니다.</p>'}
-      <div class="row-btns"><button class="btn primary" data-a="pilgrim-done">순례 마치기</button></div>`;
+    body = pilgrimHtml(run, p);
   } else if (p.t === 'blessing') {
     body = `<h1>순례 — 축복 선택</h1><p class="muted">축복은 이번 페이즈가 끝날 때까지 유지됩니다.</p>
       <div class="cards">${p.options.map((id) => { const d = BLESSING_BY_ID[id]; return `<button class="card" data-a="pick-blessing" data-v="${id}"><b>${esc(d.name)}</b><span>${ic(esc(d.desc))}</span></button>`; }).join('')}</div>`;
@@ -2174,7 +2207,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
   if (u.side === 0 && !u.isSummon) {
     const d = UNIT_BY_ID[u.defId];
     head = heroHead(d.id, sprite(u, 'spr big'), d.name, allyTags(d));
-    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem)}<div class="abil ab-trait ab-click${abilOn('trait')}" data-a="abil-pop" data-v="trait" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${ttSection(d, u.src || null, app.run, b, u, true)}`;
+    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem)}<div class="abil ab-trait ab-click${abilOn('trait')}" data-a="abil-pop" data-v="trait" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${faithAbil(d, u.src || null, app.run)}${ttSection(d, u.src || null, app.run, b, u, true)}`;
     if (app.abilPop) pop = abilPopHtml(app.abilPop, d, b, u);
   } else if (u.side === 1 && ENEMY_BY_ID[u.defId]) {
     const e = ENEMY_BY_ID[u.defId];
@@ -2279,7 +2312,7 @@ function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
     <h3>시너지</h3><div class="cx-syns">${syn}</div>
     <h3>역할군 · 능력 <span class="muted small">1등급 · 장비 없음 기준</span></h3>
     <div class="abils">${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem)}${traitGroup(d, null, null, b, c)}${skillCard(d, b, c)}${voyAbil(d, null, null)}</div>
-    ${ttSection(d, null, null, b, c)}
+    <div class="abils">${faithAbil(d, null, null)}${ttSection(d, null, null, b, c)}</div>
     <h3>추천 장비 <span class="muted small">${CTYPE_NAME[d.ctype]}</span></h3><ul class="rc-list">${reco}</ul>
     <h3>이야기</h3>${STORIES[d.id] ? `<p class="small">${esc(STORIES[d.id])}</p>` : ''}<p class="lore">${esc(d.lore)}</p>
     <div class="codex-stats small">의뢰 <b>${r?.runs || 0}</b>회 · 누적 공명 등급 <b>${r?.ranks || 0}</b> · 최고 <b>${r?.best || 0}</b> · 성공 <b>${r?.clears || 0}</b></div>
@@ -2470,7 +2503,10 @@ function act(a: string, v: string) {
     case 'buy-news': if (run) { const e = R.buyNews(run, +v); if (e) toast(e); persist(); } break;
     case 'buy-invest': if (run) { const e = R.buyInvest(run, +v); if (e) toast(e); persist(); } break;
     case 'ace-target': if (run) { run.aceTarget = v; toast('에이스 파일럿으로 지정했습니다.'); persist(); } break;
-    case 'pilgrim': if (run) { const e = R.pilgrimAct(run, v as 'cap' | 'bless' | 'credits' | 'xp'); if (e) toast(e); persist(); } break;
+    case 'pil-card': if (run) { const [i, uid] = v.split(':'); const e = R.pilgrimCard(run, +i, uid); if (e) toast(e); persist(); } break;
+    case 'pil-relic': if (run) { const e = R.pilgrimRelic(run, +v); if (e) toast(e); else toast('성유물을 보관함에 넣었습니다'); persist(); } break;
+    case 'relic-equip': if (run) { const [uid, id] = v.split(':'); const e = R.equipRelic(run, uid, id); if (e) toast(e); persist(); } break;
+    case 'relic-enh': if (run) { const e = R.enhanceRelic(run, v); if (e) toast(e); else toast('다음 전투의 신권 대행이 강화됩니다 (계수 ×3)'); persist(); } break;
     case 'pilgrim-done': if (run?.pending.some((x) => x.t === 'pilgrim')) { run.pending = run.pending.filter((x) => x.t !== 'pilgrim'); persist(); } break;
     case 'leave-shop': if (run) { R.leaveShop(run); app.screen = 'map'; persist(); } break;
     case 'loan': if (run) { toast(R.takeLoan(run) ? '대출 실행: 크레딧 +25' : '대출할 수 없습니다.'); persist(); } break;
@@ -2856,11 +2892,6 @@ root.addEventListener('change', (ev) => {
     savePref(pk, v); applyFxPrefs();
     return;
   }
-  const uid = el.dataset?.faith;
-  if (!uid || !app.run) return;
-  const e = R.pilgrimAct(app.run, 'faith', uid, el.value as FaithId);
-  if (e) toast(e); else toast(`신앙 변경: ${FAITH_NAME[el.value as FaithId]}`);
-  persist(); render();
 });
 
 applyFxPrefs();

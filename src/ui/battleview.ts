@@ -4,6 +4,7 @@ import type { BEvent, Battle, CUnit } from '../engine/combat';
 import type { Elem } from '../types';
 import { hasPortrait, iconURL, standURL } from './portraits';
 import { ULTS } from '../data/ults';
+import { RELIC_BY_ID } from '../data/relics';
 
 export const ELEM_COLOR: Record<Elem, string> = {
   phys: 'var(--el-phys)', chem: 'var(--el-chem)', elec: 'var(--el-elec)', psy: 'var(--el-psy)', holy: 'var(--el-holy)', true: 'var(--el-true)',
@@ -63,6 +64,12 @@ function topIconKey(st: { key: string; type: string; taken?: { kind: string }[];
   if (st.taken?.some((t) => t.kind === 'vuln')) return 'vuln';
   return null;
 }
+/** 디바인 신권 대행 컷인 대사 */
+const DIV_LINE: Record<string, string> = {
+  eleni: '셀레네시여, 이 길을 비춰 주소서.', iris: '헤르메스님, 지금이에요! 날개를!', odysseus: '돌아왔다. 이번에도.',
+  kyle: '적진이 곧 나의 제단이다.', doros: '기도는 짧게. 다 같이, 드시죠.', fotini: '여러분~ 지금부터가 하이라이트입니다 ^^',
+  reika: '다들 봐 줘~ 이게 진짜 피날레야☆', skadi: '배당금은 지금 지급합니다.', thermo: '물러서지 않는다.',
+};
 const SHAKE: Keyframe[] = [{ translate: '0 0' }, { translate: '-6px 3px' }, { translate: '5px -4px' }, { translate: '-4px -2px' }, { translate: '3px 3px' }, { translate: '-1px 1px' }, { translate: '0 0' }];
 const SKULL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.5 2 3 5.6 3 10.2c0 2.7 1.3 4.6 3 5.8V19a1 1 0 0 0 1 1h1.5v-2h1.5v2h4v-2h1.5v2H17a1 1 0 0 0 1-1v-3c1.7-1.2 3-3.1 3-5.8C21 5.6 17.5 2 12 2Zm-3.5 11.2a2.2 2.2 0 1 1 0-4.4 2.2 2.2 0 0 1 0 4.4Zm7 0a2.2 2.2 0 1 1 0-4.4 2.2 2.2 0 0 1 0 4.4ZM12 13.6l1.3 2.2h-2.6Z"/></svg>';
 const flightOf = (d: number) => Math.min(0.26, 0.07 + 0.035 * d);
@@ -124,7 +131,7 @@ export class BattleView {
   private slowMul = 1;
   /** 궁극기 컷인 감속 · 대기열 */
   private cutMul = 1;
-  private cutQ: { u: CUnit; id: string }[] = [];
+  private cutQ: { u: CUnit; name: string; line: string; theme: { pat: string; c1: string; c2: string; txt: string }; label: string }[] = [];
   private cutEnd = -1;
   private cutEl: HTMLElement | null = null;
   private finaleHit = -1;
@@ -555,6 +562,7 @@ export class BattleView {
       case 'status': return this.onStatus(e);
       case 'skill': return this.onSkill(e);
       case 'ult': return this.onUlt(e);
+      case 'divact': return this.onDivAct(e.id);
       case 'skillEnd': if (this.skillCtx?.id === e.id) this.skillCtx = null; return;
       case 'fx': return this.onArea(e);
       case 'mark': return this.onMark(e);
@@ -825,15 +833,35 @@ export class BattleView {
       d.querySelector('b')!.textContent = ult.name;
       return;
     }
-    this.cutQ.push({ u, id: ult.id });
+    this.cutQ.push({ u, name: ult.name, line: ult.line, theme: ult.theme, label: '궁극기' });
+    this.nextCut();
+  }
+  /** 디바인 신권 대행: 궁극기와 같은 틀에 금빛 신성 테마 (강화되면 더 밝게) */
+  private onDivAct(id: number) {
+    const u = this.unit(id);
+    if (!u) return;
+    const rel = u.relic ? RELIC_BY_ID[u.relic] : null;
+    const name = rel?.name || '신권 대행';
+    const enh = (u.mem.enh || 1) > 1;
+    this.skillCtx = { id, land: this.vt + 0.18 };
+    this.log(id, 'divact', `신권 대행 · ${name}${enh ? ' (강화)' : ''}`);
+    const ee = this.els.get(id);
+    if (ee && !this.reduced) this.play(ee.face, [{ boxShadow: '0 0 0 0 #ffd34d' }, { boxShadow: '0 0 0 4px #ffd34d, 0 0 24px #ffd34d', offset: 0.3 }, { boxShadow: '0 0 0 0 transparent' }], 700);
+    if (FX.ultCut === 'off' || this.reduced || !this.b.keepEvents) {
+      const c = this.centerAt(u);
+      const d = this.spawnFx('skb div', c.x, c.y - 100 / this.b.h * 0.55, [{ transform: 'translate(-50%, -30%)', opacity: 0, easing: EASE_OUT }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.15 }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.75, easing: 'ease-in' }, { transform: 'translate(-50%, -150%)', opacity: 0 }], FX.skillMs, {}, '<b></b><small>신권 대행</small>', true);
+      d.querySelector('b')!.textContent = name;
+      return;
+    }
+    this.cutQ.push({ u, name, line: DIV_LINE[u.defId] || '신이시여, 지금 이 손에 권능을.', theme: { pat: 'halo', c1: enh ? '#fff6c8' : '#ffd34d', c2: enh ? '#5a4410' : '#2a2008', txt: enh ? 'spark' : 'mist' }, label: enh ? '신권 대행 · 강화' : '신권 대행' });
     this.nextCut();
   }
   private nextCut() {
     if (this.cutEnd >= 0 || !this.cutQ.length || this.b.over) return;
-    const { u, id } = this.cutQ.shift()!;
-    const ult = ULTS[id];
+    const ult = this.cutQ.shift()!;
+    const u = ult.u;
     const view = this.board.parentElement;
-    if (!view || !ult) return;
+    if (!view) return;
     const short = FX.ultCut === 'short' || this.cutQ.length > 0; // 줄이 밀리면 짧게
     const dur = short ? 0.7 : 1.25;
     this.cutEnd = this.rt + dur;
@@ -851,7 +879,7 @@ export class BattleView {
     const chars = [...ult.name].map((ch) => `<span>${ch === ' ' ? '&nbsp;' : ch}</span>`).join('');
     el.innerHTML = `<div class="ci-band"></div>${art ? `<div class="ci-art"><img alt="" src="${art}"></div>` : ''}
       <div class="ci-text"><small class="ci-who"></small><b class="ci-name">${chars}</b>${short ? '' : '<span class="ci-line"></span>'}</div>`;
-    el.querySelector('.ci-who')!.textContent = `${u.name} · 궁극기`;
+    el.querySelector('.ci-who')!.textContent = `${u.name} · ${ult.label}`;
     const ln = el.querySelector('.ci-line');
     if (ln) ln.textContent = `“${ult.line}”`;
     view.appendChild(el);

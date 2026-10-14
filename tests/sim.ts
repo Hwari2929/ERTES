@@ -5,7 +5,7 @@ import { FIELDS } from '../src/data/battlefields';
 import { UNITS, UNIT_BY_ID } from '../src/data/units';
 import { buildBattle } from '../src/engine/build';
 import * as R from '../src/engine/run';
-import { forkChoice, manageItems, shopSynth } from './botlib';
+import { forkChoice, manageItems, shopSynth, pilgrimBot } from './botlib';
 import { Rng } from '../src/rng';
 import { MAJORS, type Major, type RunState } from '../src/types';
 
@@ -44,7 +44,7 @@ function resolvePending(run: RunState, bot: Rng) {
     else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
     else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? (run.units.length < 10 ? (['recruit', 'invest', 'pilgrim', 'shop'] as const) : (['invest', 'pilgrim', 'shop'] as const)).find((o) => p.options.includes(o))! : 'shop'); continue; }
       else if (p.t === 'fork') { R.pickFork(run, forkChoice(run, () => bot.chance(0.5))); continue; }
-    else if (p.t === 'pilgrim') { run.pending.shift(); while (run.power >= R.PILGRIM_COST.cap && R.pilgrimAct(run, 'cap') === null); continue; }
+    else if (p.t === 'pilgrim') { pilgrimBot(run); run.pending.shift(); continue; }
     run.pending.shift();
   }
 }

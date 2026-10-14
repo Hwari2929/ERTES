@@ -11,8 +11,9 @@ import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, DROP_CONSUMABLES, XP_INJ
 import { SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, PSI_AUGS, recMajors } from '../data/rework';
+import { DEFAULT_RELIC, RELIC_BY_ID, RELICS } from '../data/relics';
 import { Rng } from '../rng';
-import {
+import { FAITHS,
   type AugPick, type Encounter, type InvestOffer, type FaithId, type EnemySpawn, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
   type Quest, type RunState, type SynergyId, type UnitState,
 } from '../types';
@@ -131,6 +132,7 @@ export function addUnit(run: RunState, defId: string, rank: number): UnitState {
   run.rankLog[defId] = Math.max(run.rankLog[defId] || 0, 1);
   // 스페셜: 합류할 때 전용 증강 1개 (다른 유형은 합류 선택 없음)
   if (UNIT_BY_ID[defId].ttype === 'special') run.pending.push({ t: 'rankup', uid: u.uid, rank: 1, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, join: true, kind: 'special' });
+  if (UNIT_BY_ID[defId].ttype === 'divine') u.relic = DEFAULT_RELIC[defId]; // 기본 성유물
   for (let r = 2; r <= rank; r++) rankUp(run, u); // 건너뛴 이정표도 모두 지급
   return u;
 }
@@ -214,9 +216,7 @@ export function enterNode(run: RunState, type: NodeType) {
   run.picked[run.step] = type;
   if (type !== 'battle' && type !== 'adversity' && type !== 'boss') run.fame += tierNow(run, 'STAR');
   if (type === 'pilgrim') {
-    run.power += 1;
-    run.pending.push({ t: 'pilgrim' });
-    log(run, '순례: 권능 포인트 +1');
+    run.pending.push(genPilgrim(run));
     advance(run);
     return;
   }
@@ -473,6 +473,7 @@ export function advance(run: RunState) {
   if (run.mods.nodeIncome) run.credits += run.mods.nodeIncome; // 분할 정산 등
   if (run.step >= run.map.length) {
     run.phase++;
+    run.mods.divGain = 0; // 성인 기념일은 이번 페이즈만
     run.step = 0;
     run.map = phaseMap(run.phase);
     run.picked = [];
@@ -1102,6 +1103,8 @@ export function buyInvest(run: RunState, idx: number): string | null {
 export function migrate(run: RunState): RunState {
   run.faith ??= 0;
   run.power ??= 0;
+  run.relics ??= [];
+  for (const u of run.units) if (UNIT_BY_ID[u.defId]?.ttype === 'divine' && !u.relic) u.relic = DEFAULT_RELIC[u.defId];
   run.divCap ??= 0;
   for (const u of run.units) { u.grow ??= {}; u.faith ??= UNIT_BY_ID[u.defId]?.faith; }
   run.fame ??= 0;
@@ -1253,26 +1256,93 @@ export function releaseUnit(run: RunState, uid: string): string | null {
 }
 
 // ───────────────────────── 디바인 · 순례
-export const PILGRIM_COST = { faith: 3, cap: 4, bless: 2, credits: 1, xp: 1 };
-/** 순례: 권능 포인트 사용. 실패 시 이유 문자열 */
-export function pilgrimAct(run: RunState, act: 'faith' | 'cap' | 'bless' | 'credits' | 'xp', uid?: string, faith?: FaithId): string | null {
-  const cost = PILGRIM_COST[act];
-  if (run.power < cost) return '권능 포인트가 부족합니다';
-  if (act === 'faith') {
-    const u = run.units.find((x) => x.uid === uid);
-    if (!u || !faith || u.faith === faith) return '대상을 고르세요';
-    u.faith = faith;
-  } else if (act === 'cap') run.divCap += 50;
-  else if (act === 'bless') run.pending.unshift({ t: 'blessing', options: rng(run, (r) => r.sample(BLESSINGS.map((b) => b.id), 3)) });
-  else if (act === 'credits') run.credits += 3;
-  else if (act === 'xp') { distributeXp(run, 4); run.units.forEach((u) => settleXp(run, u)); }
-  run.power -= cost;
+/** 순례 참배 카드 (권능 10~30). 축복은 이번 페이즈, 순례자의 기도는 다음 전투, 성인 기념일은 이번 페이즈 */
+export const PILGRIM_CARDS: Record<string, { name: string; desc: string; cost: number; target?: boolean }> = {
+  'bless:B.martyr': { name: '순교자의 가호', desc: '이번 페이즈 모든 아군 최대 체력 +20%.', cost: 15 },
+  'bless:B.flame': { name: '성전의 불꽃', desc: '이번 페이즈 모든 아군 기본 공격에 기술 위력 25% 신성 추가 피해.', cost: 15 },
+  'bless:B.sanctum': { name: '성소의 빛', desc: '이번 페이즈 전투 시작 시 모든 아군 최대 체력 25% 보호막.', cost: 15 },
+  'bless:B.zeal': { name: '광신', desc: '이번 페이즈 모든 아군 공격 속도 +25%, 받는 피해 +10%.', cost: 15 },
+  grail: { name: '성배', desc: '신성력 수집 상한 +50 (영구).', cost: 15 },
+  prayer: { name: '순례자의 기도', desc: '다음 전투에서 모든 디바인이 신성력 40으로 시작.', cost: 10 },
+  saintday: { name: '성인 기념일', desc: '이번 페이즈 디바인 신성력 획득 +50%.', cost: 20 },
+  chrism: { name: '성유', desc: '디바인 1명 공명 등급 +1.', cost: 25, target: true },
+  indulgence: { name: '면죄부', desc: '함대 체력 +15.', cost: 20 },
+  convert: { name: '개종', desc: '디바인 1명의 신앙을 바꾼다.', cost: 20, target: true },
+};
+function genPilgrim(run: RunState): Extract<Pending, { t: 'pilgrim' }> {
+  return rng(run, (r) => {
+    const pool = Object.keys(PILGRIM_CARDS).filter((k) => k !== 'convert');
+    const cards: NonNullable<Extract<Pending, { t: 'pilgrim' }>['cards']> = r.sample(pool, 3).map((id) => ({ id, cost: PILGRIM_CARDS[id].cost, sold: false }));
+    if (r.chance(0.2)) cards[2] = { id: 'convert', cost: PILGRIM_CARDS.convert.cost, sold: false, faith: r.pick(FAITHS) };
+    const owned = new Set([...(run.relics || []), ...run.units.map((u) => u.relic).filter((x): x is string => !!x)]);
+    const rel = r.sample(RELICS.filter((x) => !owned.has(x.id)).map((x) => x.id), 2).map((id) => ({ id, cost: RELIC_BY_ID[id].price, sold: false }));
+    return { t: 'pilgrim' as const, cards, relics: rel };
+  });
+}
+/** 보유한 디바인 */
+export const divines = (run: RunState) => run.units.filter((u) => UNIT_BY_ID[u.defId].ttype === 'divine');
+const pilgrimOf = (run: RunState) => run.pending.find((x): x is Extract<Pending, { t: 'pilgrim' }> => x.t === 'pilgrim');
+/** 참배 카드 구매. 대상이 필요한 카드는 uid (디바인) */
+export function pilgrimCard(run: RunState, idx: number, uid?: string): string | null {
+  const p = pilgrimOf(run);
+  const c = p?.cards?.[idx];
+  if (!p || !c || c.sold) return '이미 받았습니다';
+  if (run.power < c.cost) return '권능 포인트가 부족합니다';
+  const def = PILGRIM_CARDS[c.id];
+  const u = uid ? run.units.find((x) => x.uid === uid) : undefined;
+  if (def.target && (!u || UNIT_BY_ID[u.defId].ttype !== 'divine')) return '디바인 기물을 고르세요';
+  if (c.id === 'chrism' && u!.rank >= CFG.maxRank) return '더 오를 수 없습니다';
+  if (c.id === 'convert' && (!c.faith || u!.faith === c.faith)) return '이미 그 신앙입니다';
+  if (c.id.startsWith('bless:')) pickBlessing(run, c.id.slice(6));
+  else if (c.id === 'grail') run.divCap += 50;
+  else if (c.id === 'prayer') run.mods.divStart = 40;
+  else if (c.id === 'saintday') run.mods.divGain = 0.5;
+  else if (c.id === 'chrism') rankUp(run, u!);
+  else if (c.id === 'indulgence') run.hp = Math.min(run.maxHp, run.hp + 15);
+  else if (c.id === 'convert') u!.faith = c.faith;
+  run.power -= c.cost;
+  c.sold = true;
+  return null;
+}
+/** 성유물 구매 (보관함으로) */
+export function pilgrimRelic(run: RunState, idx: number): string | null {
+  const o = pilgrimOf(run)?.relics?.[idx];
+  if (!o || o.sold) return '이미 구매했습니다';
+  if (run.power < o.cost) return '권능 포인트가 부족합니다';
+  run.power -= o.cost;
+  o.sold = true;
+  (run.relics ??= []).push(o.id);
+  return null;
+}
+/** 성유물 장착 (디바인만, 쓰던 것은 보관함으로) */
+export function equipRelic(run: RunState, uid: string, id: string): string | null {
+  const u = run.units.find((x) => x.uid === uid);
+  if (!u || UNIT_BY_ID[u.defId].ttype !== 'divine') return '디바인만 성유물을 장착합니다';
+  const list = (run.relics ??= []);
+  const i = list.indexOf(id);
+  if (i < 0) return '보유하지 않은 성유물입니다';
+  list.splice(i, 1);
+  if (u.relic) list.push(u.relic);
+  u.relic = id;
+  u.enh = false;
+  return null;
+}
+/** 신권 대행 강화: 다음 전투 한정 계수 ×3 */
+export function enhanceRelic(run: RunState, uid: string): string | null {
+  const u = run.units.find((x) => x.uid === uid);
+  const rel = u?.relic ? RELIC_BY_ID[u.relic] : null;
+  if (!u || !rel) return '성유물이 없습니다';
+  if (u.enh) return '이미 강화했습니다';
+  if (run.power < rel.enh) return '권능 포인트가 부족합니다';
+  run.power -= rel.enh;
+  u.enh = true;
   return null;
 }
 
 /** 전투 후 런 누적 성장 정산: 전투 중 g_ 기록 → UnitState.grow, 권능 포인트, 마이너 성장, 루스 전리품 */
 function settleGrowth(run: RunState, b: Battle, won: boolean, interest: number, lines: string[]) {
-  let div = 0;
+  void won; void interest;
+  let pw = 0;
   for (const c of b.units) {
     if (c.side !== 0 || !c.src) continue;
     const u = c.src;
@@ -1280,8 +1350,13 @@ function settleGrowth(run: RunState, b: Battle, won: boolean, interest: number, 
     for (const [k, v] of Object.entries(c.mem)) if (k.startsWith('g_') && v) u.grow[k.slice(2)] = (u.grow[k.slice(2)] || 0) + v;
     if (c.mem.g_loot) { run.credits += c.mem.g_loot; lines.push(`루스 약탈 +${c.mem.g_loot}`); }
     if (c.mem.g_ultLoot) { run.credits += c.mem.g_ultLoot; lines.push(`루스 약탈 개시 +${c.mem.g_ultLoot}`); }
-    if (c.div !== null) div += c.divGot;
+    if (c.mem.g_divCredit) { run.credits += c.mem.g_divCredit; lines.push(`배당 결의서 +${c.mem.g_divCredit}`); }
+    // 권능: 디바인 1명당 모은 신성력 ÷ 25, 신권 대행을 쓰면 +1
+    if (c.div !== null && UNIT_BY_ID[u.defId]?.ttype === 'divine') pw += Math.floor(c.divGot / CFG.powerPerDiv) + (c.divUsed ? 1 : 0);
   }
-  const pw = Math.min(CFG.powerMax, Math.floor(div / CFG.powerPerDiv));
+  // 강화 · 다음 전투 한정 효과는 이번 전투로 끝
+  for (const u of run.units) if (u.enh) u.enh = false;
+  run.mods.divStart = 0;
+  pw = Math.min(CFG.powerMax, pw);
   if (pw) { run.power += pw; lines.push(`권능 포인트 +${pw} (현재 ${run.power})`); }
 }

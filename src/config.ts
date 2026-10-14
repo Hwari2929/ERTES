@@ -15,7 +15,7 @@ export const CFG = {
   tacBase: 100, tacPerUnit: 16, tacPerCmd: 40, tacPerMnd: 2,
   reasonStart: 50, // 사이오닉 이성 시작값
   divCap: 200, // 디바인 전투당 신성력 수집 상한
-  powerPerDiv: 20, powerMax: 10, // 권능 포인트 = 모은 신성력 ÷ 20 (전투당 최대 10)
+  powerPerDiv: 25, powerMax: 12, // 권능 포인트 = 디바인 1명당 모은 신성력 ÷ 25 + 신권 대행 1 (전투당 최대 12)
   // 전술 유형별 성장 주기
   // 전술 유형별 성장 (공명 등급이 오르면 모두 메이저 +1, 그 밖의 보상은 유형별 이정표)
   growth: {

@@ -6,6 +6,7 @@ import { UNITS, UNIT_BY_ID } from '../src/data/units';
 import { ENG_HOOK, SYN_BY_ID, SYNERGIES, tierOf } from '../src/data/synergies';
 import { buildBattle, deployed, memberships, synergyCounts } from '../src/engine/build';
 import * as R from '../src/engine/run';
+import { pilgrimBot } from './botlib';
 import { Rng } from '../src/rng';
 import type { Major, RunState } from '../src/types';
 
@@ -69,7 +70,7 @@ function playRun(seed: number) {
       else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
       else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? (run.units.length < 10 ? (['recruit', 'invest', 'pilgrim', 'shop'] as const) : (['invest', 'pilgrim', 'shop'] as const)).find((o) => p.options.includes(o))! : 'shop'); continue; }
       else if (p.t === 'fork') { R.pickFork(run, run.hp > 60 && bot.chance(0.5) ? 'challenge' : 'rest'); continue; }
-    else if (p.t === 'pilgrim') { run.pending.shift(); while (run.power >= R.PILGRIM_COST.cap && R.pilgrimAct(run, 'cap') === null); continue; }
+    else if (p.t === 'pilgrim') { pilgrimBot(run); run.pending.shift(); continue; }
       run.pending.shift();
     }
   };

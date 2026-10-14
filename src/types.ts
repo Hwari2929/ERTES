@@ -102,6 +102,8 @@ export interface UnitState {
   faith?: FaithId;
   /** 런 동안 누적되는 값 (마이너 성장 특성, 유전 물질 등) */
   grow?: Record<string, number>;
+  /** 디바인: 장착한 성유물 (= 신권 대행) · 다음 전투 강화 여부 */
+  relic?: string; enh?: boolean;
   pos: { c: number; r: number } | null; // r=0 이 아군 진영 가장 뒷줄
 }
 
@@ -128,7 +130,7 @@ export type Pending =
   | { t: 'event'; id: string; sub?: string | null } // sub: 이번 사건의 동적 조연 (기물 id)
   | { t: 'privilege'; options: AugPick[]; rerolls: number }
   | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean; join?: boolean; kind?: 'major' | 'special' | 'psionic' }
-  | { t: 'pilgrim' }
+  | { t: 'pilgrim'; cards?: { id: string; cost: number; sold: boolean; faith?: FaithId }[]; relics?: { id: string; cost: number; sold: boolean }[] }
   | { t: 'itemPick'; options: string[]; title: string }
   | { t: 'recruit'; options: string[]; rerolls?: number; syns?: string[] } // rerolls 없음 = 1회, syns = 지정 소집 조건
   | { t: 'supply'; options: string[] }
@@ -163,6 +165,8 @@ export interface RunState {
   loan: number; // 남은 상환액
   faith: number; // (구) 성직자 신앙 — 사용 안 함
   power: number; // 디바인: 권능 포인트
+  /** 보유했지만 장착하지 않은 성유물 */
+  relics?: string[];
   divCap: number; // 디바인: 전투당 신성력 수집 상한 보너스
   fame: number; // 은하 대스타: 명성
   fund?: number; // 호이슌 투자: 다음 페이즈에 돌려받을 크레딧
@@ -177,7 +181,7 @@ export interface RunState {
   diff: number; // 난이도 단계 (difficulty.ts)
   cleared: boolean; // 목표 페이즈 보스 격파 (의뢰 성공)
   endless: boolean; // 의뢰 성공 후 무한 모드 진행 중
-  mods: { interestCap: number; nodeIncome: number }; // 사건으로 바뀐 경제 규칙
+  mods: { interestCap: number; nodeIncome: number; divStart?: number; divGain?: number }; // 사건으로 바뀐 경제 규칙 · 순례 효과 (다음 전투 신성력 · 이번 페이즈 신성력 획득)
   boons: string[]; // 사건 팀 효과 (영구)
   phaseBoons: string[]; // 사건 팀 효과 (이번 페이즈)
   seenEvents: string[]; // 이번 런에서 겪은 사건

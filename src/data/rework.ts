@@ -4,6 +4,7 @@ import { type Battle, type CUnit, DIVINE_HOOK, type Hooks, type Status } from '.
 import { type AugDef, type Effect, applyLive, inc, red, vuln } from '../engine/effects';
 import { type CType, type Elem, type FaithId, FAITH_NAME, type Major, MAJORS, type RunState, type Weapon } from '../types';
 import { itemEffect } from './items';
+import { RELIC_BY_ID } from './relics';
 import { blinkTo, gw, isHarmful, lineTargets, pct, skillHit, summonsOf } from './kit';
 import { kairoSnipe } from './rosterB';
 import { type BaseUnit, type ReworkDef, setSk, uaug } from './unitkit';
@@ -727,57 +728,53 @@ export const PSI_AUGS: AugDef[] = [
 ];
 
 // ───────────────────────── 신앙 · 신권 대행
-interface FaithDef { gain: string; act: string; hooks: Hooks; mod(b: Battle, u: CUnit): void }
+/** 고유 신앙 (디바인만 활성): 신성력 획득 조건 · 상시 버프 */
+interface FaithDef { gain: string; buff: string; hooks: Hooks; passive: Effect }
 const dv = (b: Battle, u: CUnit, v: number, key = 'fIcd', sec = 0.3) => { if (icd(b, u, key, sec)) b.addDiv(u, v); };
 export const FAITH_DEF: Record<FaithId, FaithDef> = {
-  emperor: { gain: '결정타 +35', act: '아군 전원 8초간 피해 +15% (칙령)',
+  emperor: { gain: '결정타 +35', buff: '주는 피해 +10%',
     hooks: { onKill: (b, u) => b.addDiv(u, 35) },
-    mod: (b, u) => { for (const a of b.alliesOf(u)) b.buff(u, a, 'div.edict', 8, { mods: [inc('all', 0.15)], label: '칙령' }); } },
-  athena: { gain: '적에게 상태이상을 걸 때 +12', act: '8초간 자신이 피해량 경감 30%',
+    passive: { mods: [inc('all', 0.1)] } },
+  athena: { gain: '적에게 상태이상을 걸 때 +12', buff: '효과 명중 +25%p',
     hooks: { onInflict(b, u, t) { if (t.side !== u.side) dv(b, u, 12); } },
-    mod: (b, u) => { b.buff(u, u, 'div.aegis', 8, { taken: [red('all', 0.3)], label: '아이기스' }); } },
-  hermes: { gain: '이동 1칸 +6, 아군에게 버프를 걸 때 +8', act: '아군 전원 8초간 공격 속도 +30%',
+    passive: { stats: { effHit: 0.25 } } },
+  hermes: { gain: '이동 1칸 +6, 아군에게 버프를 걸 때 +8', buff: '이동 속도 +20%, 공격 속도 +10%',
     hooks: { onMove: (b, u) => b.addDiv(u, 6), onInflict(b, u, t) { if (t.side === u.side && t !== u) dv(b, u, 8); } },
-    mod: (b, u) => { for (const a of b.alliesOf(u)) b.buff(u, a, 'div.hermes', 8, { delta: { atkSpd: 0.3 }, label: '전령의 발' }); } },
-  ares: { gain: '피해를 받을 때 +4, 근접한 적이 있으면 초당 +3', act: '8초간 자신의 피해 +50%, 받는 피해 +20%',
+    passive: { stats: { moveSpd: 0.2, atkSpd: 0.1 } } },
+  ares: { gain: '피해를 받을 때 +4, 근접한 적이 있으면 초당 +3', buff: '주변 1칸 적 1명당 피해 +5% (최대 +20%)',
     hooks: {
       onHurt(b, u, _s, r) { if (r.amount > 0) dv(b, u, 4, 'aIcd', 0.2); },
       onTick(b, u, dt) { u.mem.areT = (u.mem.areT || 0) + dt; if (u.mem.areT >= 1) { u.mem.areT -= 1; if (b.around(u, 1, b.enemiesOf(u)).length) b.addDiv(u, 3); } },
     },
-    mod: (b, u) => { b.buff(u, u, 'div.ares', 8, { mods: [inc('all', 0.5)], taken: [vuln('all', 0.2)], label: '전쟁광' }); } },
-  hades: { gain: '누구든 쓰러질 때 +25', act: '쓰러진 아군 1명을 체력 30%로 부활',
+    passive: { hooks: { dmgMult: (b, u) => 1 + Math.min(0.2, 0.05 * b.around(u, 1, b.enemiesOf(u)).length) } } },
+  hades: { gain: '누구든 쓰러질 때 +25', buff: '쓰러진 아군 1명당 피해 +8%',
     hooks: { onAnyDeath: (b, u) => b.addDiv(u, 25) },
-    mod: (b, u) => {
-      const d = b.units.find((x) => !x.alive && x.side === u.side && !x.isSummon);
-      const c = d && b.freeCellNear(u.x, u.y);
-      if (!d || !c) return;
-      d.alive = true; d.hp = b.S(d, 'maxHp') * 0.3; d.statuses = []; d.x = d.px = c.x; d.y = d.py = c.y; d.moveT = 0;
-      b.emit({ k: 'spawn', id: d.id }); b.emit({ k: 'mark', id: d.id, name: '명부 귀환', style: 'revive' });
-    } },
-  zeus: { gain: '치명타 +10', act: '낙뢰가 무작위 적 3명에게 주력 위력 200% 전기 피해',
+    passive: { hooks: { dmgMult: (b, u) => 1 + 0.08 * b.units.filter((x) => !x.alive && x.side === u.side && !x.isSummon).length } } },
+  zeus: { gain: '치명타 +10', buff: '치명타 확률 +10%p',
     hooks: { onDeal(b, u, _t, r) { if (r.crit) dv(b, u, 10, 'zIcd', 0.2); } },
-    mod: (b, u) => {
-      const es = b.enemiesOf(u).slice().sort(() => b.rng.next() - 0.5).slice(0, 3);
-      for (const e of es) { b.fx(e.x, e.y, 0, 'elec'); b.dealDamage(u, e, mainPow(b, u) * 2, { elem: 'elec', tag: 'skill', kind: 'tech' }); }
-    } },
-  selene: { gain: '회복 · 보호막 부여 +6 (40초 이후 2배)', act: '아군 전원 최대 체력 10% 회복, 이성 +20',
+    passive: { stats: { crit: 0.1 } } },
+  selene: { gain: '회복 · 보호막 부여 +6 (40초 이후 2배)', buff: '주는 회복량 +20%',
     hooks: { onHealDone(b, u, _t, amt) { if (amt > 0) dv(b, u, b.t > 40 ? 12 : 6); } },
-    mod: (b, u) => { for (const a of b.alliesOf(u)) { b.heal(u, a, b.S(a, 'maxHp') * 0.1); b.addReason(a, 20); } } },
-  human: { gain: '다른 아군과 같은 적을 공격할 때 +4', act: '아군 전원 6초간 피해 +20%, 피해량 경감 10% (연대)',
+    passive: { hooks: { healMult: () => 1.2 } } },
+  human: { gain: '다른 아군과 같은 적을 공격할 때 +4', buff: '다른 아군과 같은 적을 공격하면 피해 +10%',
     hooks: { onDeal(b, u, t, r) { if (r.amount > 0 && b.alliesOf(u, false).some((a) => a.target === t)) dv(b, u, 4); } },
-    mod: (b, u) => { for (const a of b.alliesOf(u)) b.buff(u, a, 'div.human', 6, { mods: [inc('all', 0.2)], taken: [red('all', 0.1)], label: '연대' }); } },
-  index: { gain: '피해를 줄 때 +3 (3초마다 바뀌는 상승장에서는 2배)', act: '보유 크레딧 1당 주력 위력 4% 고정 피해를 대상에게',
+    passive: { hooks: { dmgMult: (b, u, t) => (b.alliesOf(u, false).some((a) => a.target === t) ? 1.1 : 1) } } },
+  index: { gain: '피해를 줄 때 +3 (3초마다 바뀌는 상승장에서는 2배)', buff: '보유 크레딧 50당 피해 +3% (최대 +15%)',
     hooks: { onDeal(b, u, _t, r) { if (r.amount > 0) dv(b, u, Math.floor(b.t / 3) % 2 ? 6 : 3, 'iIcd', 0.4); } },
-    mod: (b, u) => { const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u)); if (t) b.dealDamage(u, t, mainPow(b, u) * 0.04 * Math.min(100, b.ctx.credits), { elem: 'true', tag: 'skill' }); } },
-  science: { gain: '아군 소환물 · 포탑이 공격할 때 +4', act: '모든 아군 소환물 · 포탑 8초간 공격 속도 +100% (과부하)',
+    passive: { hooks: { dmgMult: (b) => 1 + Math.min(0.15, 0.03 * Math.floor(b.ctx.credits / 50)) } } },
+  science: { gain: '아군 소환물 · 포탑이 공격할 때 +4', buff: '아군 소환물 · 포탑 피해 +20%',
     hooks: { onAllyBasic(b, u, a) { if (a.isSummon) dv(b, u, 4, 'sIcd', 0.2); } },
-    mod: (b, u) => { for (const a of b.alliesOf(u)) if (a.isSummon) b.buff(u, a, 'div.overload', 8, { delta: { atkSpd: 1 }, label: '과부하' }); } },
-  sirius: { gain: '신성 피해를 줄 때 +4, 아군을 회복 · 보호할 때 +6', act: '주변 2칸 아군 2초간 피해 무효 (성역)',
+    passive: { hooks: { onTick(b, u) {
+      if ((u.mem.sciT || 0) > 0 || b.t < 0.5) return;
+      u.mem.sciT = 1;
+      for (const a of b.alliesOf(u)) if (a.isSummon && !a.mem.sciAmp) { a.mem.sciAmp = 1; a.mods.push(inc('all', 0.2)); }
+    } } } },
+  sirius: { gain: '신성 피해를 줄 때 +4, 아군을 회복 · 보호할 때 +6', buff: '주는 신성 피해 +20%, 받는 신성 피해 -20%',
     hooks: {
       onDeal(b, u, _t, r, o) { if (r.amount > 0 && o.elem === 'holy') dv(b, u, 4); },
       onHealDone(b, u, t, amt) { if (amt > 0 && t !== u) dv(b, u, 6, 'hIcd', 0.3); },
     },
-    mod: (b, u) => { for (const a of b.around(u, 2, b.alliesOf(u))) a.mem.invulnUntil = b.t + 2; b.fx(u.x, u.y, 2, 'holy'); } },
+    passive: { mods: [inc('holy', 0.2)], taken: [red('holy', 0.2)] } },
 };
 /** 신권 대행 기본형 (전투 유형별) */
 export const DIVINE_ACT: Record<CType, { name: string; desc: string }> = {
@@ -789,6 +786,9 @@ export const DIVINE_ACT: Record<CType, { name: string; desc: string }> = {
 const mainPow = (b: Battle, u: CUnit) => (u.ctype === 'MARK' ? b.S(u, 'shoot') : u.ctype === 'VAN' ? b.S(u, 'strike') : b.P(u, 'tech'));
 
 DIVINE_HOOK.act = (b, u) => {
+  // 장착한 성유물이 신권 대행 (강화하면 다음 전투 한정 ×3). 성유물이 없으면 (성찬으로 깨어난 기물) 전투 유형 기본형
+  const rel = u.relic ? RELIC_BY_ID[u.relic] : null;
+  if (rel) { rel.act(b, u, u.mem.enh || 1); return; }
   switch (u.ctype) {
     case 'MARK':
       u.reloadT = 0; u.ammo = u.weapon?.mag || 1;
@@ -809,7 +809,6 @@ DIVINE_HOOK.act = (b, u) => {
       b.mem[`oracle${u.side}`] = b.t + 6;
       break;
   }
-  if (u.faith) FAITH_DEF[u.faith].mod(b, u);
 };
 
 /** 디바인 체계 활성화 (디바인 기물 · 도로스의 성찬) */
