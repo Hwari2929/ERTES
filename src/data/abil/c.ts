@@ -147,6 +147,11 @@ export const ABIL_C: Record<string, AbilText> = {
       'sp.cat': '[g:catform] 상시 유지. 이동 속도 [pp:0.4], 최대 체력 -[p:0.3].',
       'sp.bar': '전투 스킬 사용 시 체력 비율이 가장 낮은 아군 [heal:1.2].',
       'sp.crystal': '처치 시 자신 최대 체력 [p:0.075] 회복. [g:combo] +2.',
+      'sp.nine': '전투당 1회, 쓰러질 피해를 받으면 체력 1로 버티고 [g:catform]으로 [s:3] 동안 모든 피해 회피.',
+      'sp.tail': '[g:catform]일 때 기본 공격이 대상 주변 [t:1] 적에게 [p:0.5] 피해.',
+      'sp.illusion': '액체 금속 변형 공포 확률 [p:0.7], 지속 [s:1.5].',
+      'sp.gap': '[g:catform]이 될 때 주변 [t:2] 아군 [s:2] 동안 공격 속도 +[p:0.3].',
+      'sp.human': '[g:catform]이 되지 않음. 최대 체력 +[p:0.4], 방어도 +30, 스킬 피해 +[p:0.5].',
     },
   },
   vivian: {

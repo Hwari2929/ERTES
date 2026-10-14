@@ -136,6 +136,11 @@ const ABIL_PILOT: Record<string, AbilText> = {
       'sp.vaccine': '임상 시험 혈청 사용 시 모든 아군 [heal:0.88] (기본 회복의 [p:0.4]).',
       'sp.antidote': '치료한 아군에게 [g:cleanse].',
       'sp.pathogen': '기본 공격 적중 시 [st:poison:4]: 초당 [dmg:tech:0.3:chem].',
+      'sp.tenure': '생명과학 교수 대상당 상한 5회 → 10회.',
+      'sp.phase2': '혈청 받는 피해 감소 -[p:0.25], 지속 [s:6].',
+      'sp.overheal': '넘친 회복량의 [p:0.5]를 보호막으로.',
+      'sp.trial': '혈청을 적에게: [dmg:tech:2.2:chem] + [st:vuln:4] 받는 피해 +[p:0.15] (임상 2상 수치 적용).',
+      'sp.lab': '전투 시작 시 보안위원회 · 의무관 아군 1명당 기술 위력 +8.',
     },
   },
   amundsen: {
@@ -159,6 +164,11 @@ const ABIL_PILOT: Record<string, AbilText> = {
       'sp.shade': '[g:rewind].',
       'sp.mount': '[g:immobile]. 기본 공격 피해 ×1.6, 사거리 +[t:2].',
       'sp.order': '기본 공격을 하지 않음. [g:tac] +48.',
+      'sp.volley': '스킬 포격이 대상 주변 [t:1] 적에게도 [p:0.6] 피해.',
+      'sp.journal': '이번 런에서 방문한 사건 노드 1개당 자신의 [g:tac] +[p:0.01] (최대 +[p:0.3]).',
+      'sp.motto': '전투 시작 시 엘베스타드 아군 [g:red] [p:0.1], 최대 체력 +[p:0.1].',
+      'sp.cover': '체력이 처음 [p:0.5] 이하가 되면 모든 아군 [s:3] 동안 [g:red] [p:0.6].',
+      'sp.maint': '화력 지원 쿨다운 -[s:2], [g:pen] [p:0.3] → [p:0.6].',
     },
   },
 };

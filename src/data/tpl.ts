@@ -8,11 +8,13 @@ export type EnemyPick = 'current' | 'farthest' | 'lowest' | 'random' | 'stronges
 export type AllyPick = 'lowest' | 'all' | 'self' | 'aroundSelf' | 'strongest' | 'commanded';
 
 export function pickEnemy(b: Battle, u: CUnit, mode: EnemyPick): CUnit | null {
-  const es = b.enemiesOf(u);
+  // 외길 추적 (도노반): 지금 대상이 살아 있으면 스킬도 그 대상에게
+  if (u.mem.lockTarget && u.target?.alive && !b.hidden(u.target)) return u.target;
+  const es = b.targetable(u);
   if (!es.length) return null;
   switch (mode) {
     case 'current': return u.target?.alive ? u.target : b.nearest(u, es);
-    case 'farthest': return b.farthest(u);
+    case 'farthest': return es.reduce((a, c) => (b.dist(u, c) > b.dist(u, a) ? c : a));
     case 'lowest': return es.reduce((a, c) => (b.hpPct(c) < b.hpPct(a) ? c : a));
     case 'random': return b.rng.pick(es);
     case 'strongest': return es.reduce((a, c) => (b.S(c, 'maxHp') > b.S(a, 'maxHp') ? c : a));

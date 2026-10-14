@@ -220,7 +220,7 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
 
 /** 최고의 친구: 주인 스탯 일부를 물려받는 소환물 */
 function spawnSummons(b: Battle, owner: CUnit, sd: SummonDef) {
-  const n = 1 + (owner.mem.extraSummon || 0);
+  const n = owner.mem.noSummon ? 0 : 1 + (owner.mem.extraSummon || 0);
   const base = Math.min(6, (owner.mem.bond || 0.35) + (owner.mem.bondBonus || 0));
   for (let i = 0; i < n; i++) {
     const r = i === 0 ? base : base * 0.8; // 추가 소환물은 상속률 80%
@@ -232,14 +232,17 @@ function spawnSummons(b: Battle, owner: CUnit, sd: SummonDef) {
     st.armor = o.armor * r + (owner.mem.summonArmor || 0);
     st.acc = o.acc; st.crit = o.crit; st.critDmg = o.critDmg; st.effHit = o.effHit; st.effRes = o.effRes; st.eva = o.eva;
     st.moveSpd = 1.15; st.range = sd.range;
-    st.maxHp *= 1 + (owner.mem.summonHpPct || 0);
+    st.maxHp *= (1 + (owner.mem.summonHpPct || 0)) * (owner.mem.summonHpMul || 1);
     // 라르스: 경호원 메이저 보너스
     const gm = owner.mem.summonMaj || 0;
     if (gm) for (const k of MAJORS) for (const [sk, per] of Object.entries(CFG.conv[k])) st[sk as keyof Stats] += (per as number) * gm;
     Object.assign(s, {
       defId: 'summon', name: sd.name, sprite: sd.sprite, palette: sd.palette, art: sd.art, st, atk: { ...sd.atk },
       keywords: sd.sprite === 'drone' ? ['mech'] : ['bio'], isSummon: true, owner,
-      mods: owner.mem.bondAmp ? [{ kind: 'inc', tag: 'all', v: owner.mem.bondAmp }] : [],
+      mods: [
+        ...(owner.mem.bondAmp ? [{ kind: 'inc' as const, tag: 'all' as const, v: owner.mem.bondAmp }] : []),
+        ...(owner.mem.summonDmg ? [{ kind: 'inc' as const, tag: 'all' as const, v: owner.mem.summonDmg }] : []), // 라르스 변호인단
+      ],
     });
     applyCategory(s);
     s.hp = st.maxHp;

@@ -19,7 +19,7 @@ export function categoryImmune(c: Category, s: { type: string; key: string }): b
   return false;
 }
 export const STATUS_NAME: Record<string, string> = {
-  stun: '기절', fear: '공포', shock: '감전', poison: '중독', bleed: '출혈', corrode: '침식', decay: '부식', gloom: '암운', slow: '둔화', frenzy: '광폭', wound: '부상', suppress: '제압',
+  stun: '기절', fear: '공포', shock: '감전', root: '속박', stealth: '은신', poison: '중독', bleed: '출혈', corrode: '침식', decay: '부식', gloom: '암운', slow: '둔화', frenzy: '광폭', wound: '부상', suppress: '제압',
 };
 
 export interface Status {
@@ -47,6 +47,8 @@ export interface Status {
   rec?: number;
   /** 기록 비율 (기본 0.2) */
   recRate?: number;
+  /** 이 기물이 받는 치명타의 피해 배율 가산 (도노반 전 보안위원회 표식) */
+  critVuln?: number;
   /** 지속이 끝날 때 */
   onExpire?(b: Battle, u: CUnit, s: Status): void;
 }
@@ -308,6 +310,10 @@ export class Battle {
     return best;
   }
   around(c: { x: number; y: number }, r: number, pool: CUnit[]) { return pool.filter((u) => this.dist(u, c) <= r); }
+  /** 은신 중이라 대상으로 지정할 수 없는지 */
+  hidden(u: CUnit) { return u.statuses.some((s) => s.key === 'stealth'); }
+  /** 대상으로 지정할 수 있는 적 (은신 제외) */
+  targetable(u: CUnit) { return this.enemiesOf(u).filter((e) => !this.hidden(e)); }
 
   S(u: CUnit, k: StatKey): number {
     let v = u.st[k];
@@ -417,13 +423,13 @@ export class Battle {
     }
     if (u.moveT > 0) return;
 
-    if (!u.target || !u.target.alive) u.target = this.nearest(u, this.enemiesOf(u));
+    if (!u.target || !u.target.alive || this.hidden(u.target)) u.target = this.nearest(u, this.targetable(u));
     const tgt = u.target;
     if (!tgt) return;
     const range = this.S(u, 'range');
-    // 사거리 밖의 더 가까운 적이 생기면 재조준
-    if (this.dist(u, tgt) > range) {
-      const near = this.nearest(u, this.enemiesOf(u));
+    // 사거리 밖의 더 가까운 적이 생기면 재조준 (외길 추적: 대상이 쓰러질 때까지 바꾸지 않음)
+    if (this.dist(u, tgt) > range && !u.mem.lockTarget) {
+      const near = this.nearest(u, this.targetable(u));
       if (near && this.dist(u, near) < this.dist(u, tgt)) u.target = near;
     }
     const t2 = u.target!;
@@ -468,7 +474,7 @@ export class Battle {
         u.atkTimer = u.atk.interval;
         if (u.weapon?.kind === 'mag' && --u.ammo <= 0) u.reloadT = u.weapon.reload || 1.5;
       }
-    } else if (!u.immobile) {
+    } else if (!u.immobile && !u.statuses.some((s) => s.key === 'root')) {
       this.moveToward(u, t2, range);
     }
   }
@@ -584,7 +590,7 @@ export class Battle {
     if (dmg > 0 && canCrit && !res.miss) {
       if (this.rng.next() < this.S(src, 'crit') + (o.critBonus || 0)) {
         res.crit = true;
-        dmg *= this.S(src, 'critDmg');
+        dmg *= this.S(src, 'critDmg') + tgt.statuses.reduce((a, s) => a + (s.critVuln || 0), 0);
         if (src.side === 0) this.counters.crits++;
       }
     }

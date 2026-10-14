@@ -1,6 +1,6 @@
 // 칼리토 제국 · 헬레니우스 동맹
 import { inc, red } from '../engine/effects';
-import { fear, pct, skillHit, summonsOf } from './kit';
+import { fear, isHarmful, pct, skillHit, summonsOf } from './kit';
 import { cookPower, pickEnemy, strike, strongestAlly, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type BaseUnit } from './unitkit';
 
@@ -15,7 +15,14 @@ export function kairoSnipe(b: import('../engine/combat').Battle, u: import('../e
   if (e) {
     b.emit({ k: 'skill', id: u.id, name: '기다림의 미학' });
     b.emit({ k: 'atk', from: u.id, to: e.id, elem: 'phys', ranged: true });
-    skillHit(b, u, e, 'shoot', p.snipe, 'phys', { critBonus: p.snipeCrit, noMiss: true });
+    skillHit(b, u, e, 'shoot', p.snipe, 'phys', { critBonus: p.snipeCrit, noMiss: true, pen: p.snipePen || 0 });
+    // 라스트 오더: 체력 25% 이하로 남으면 처형
+    if (p.lastOrder && e.alive && b.hpPct(e) <= p.lastOrder) { b.emit({ k: 'mark', id: e.id, name: '처형', style: 'execute' }); b.kill(e, u); }
+    // 더블 샷: 두 번째로 체력이 높은 적에게도
+    if (p.double) {
+      const e2 = b.targetable(u).filter((x) => x !== e).sort((a, c) => b.S(c, 'maxHp') - b.S(a, 'maxHp'))[0];
+      if (e2) { b.emit({ k: 'atk', from: u.id, to: e2.id, elem: 'phys', ranged: true }); skillHit(b, u, e2, 'shoot', p.snipe * p.double, 'phys', { critBonus: p.snipeCrit, noMiss: true, pen: p.snipePen || 0 }); }
+    }
   }
   u.mem.wait = p.keep;
 }
@@ -78,6 +85,7 @@ export const ROSTER_B: BaseUnit[] = [
         const t = b.lowestHpAlly(u);
         if (t) {
           b.shield(t, b.P(u, 'tech') * p.shield * cookPower(u));
+          if (p.sigCd && t.skill) t.cd -= p.sigCd; // 시그니처
           b.buff(u, t, 'kairo.cocktail', p.dur, { delta: { crit: p.crit * cookPower(u) }, label: '칵테일' });
         }
         u.mem.wait = (u.mem.wait ?? p.start) + 1;
@@ -105,7 +113,11 @@ export const ROSTER_B: BaseUnit[] = [
     skill: support({
       name: '치유 탄환', cd: 7, target: 'lowest', params: { heal: 1.8, petDmg: 0.4 },
       desc: (p) => `의료 드론이 체력 비율이 가장 낮은 아군에게 치유 탄환을 꽂아 기술 위력 ${pct(p.heal)} 회복${p.shield ? ` + ${pct(p.shield)} 보호막` : ''}${p.cleanse ? ', 해로운 상태이상 제거' : ''}${p.red ? `, 4초간 받는 피해 -${pct(p.red)}` : ''}. 베헤모스는 4초간 피해 +${pct(p.petDmg)}.`,
-      after: (b, u, _ts, p) => { for (const d of summonsOf(b, u)) b.buff(u, d, 'bianca.behemoth', 4, { mods: [inc('all', p.petDmg)], label: '변이' }); },
+      after: (b, u, ts, p) => {
+        for (const d of summonsOf(b, u)) b.buff(u, d, 'bianca.behemoth', 4, { mods: [inc('all', p.petDmg)], label: '변이' });
+        // 표본 회수: 베헤모스 대신 치유 대상이 변이 (유전 물질 단계 피해 포함)
+        if (u.mem.sample && ts[0]) b.buff(u, ts[0], 'bianca.sample', 4, { mods: [inc('all', p.petDmg + (u.mem.bondAmp || 0))], label: '변이' });
+      },
     }),
   },
   // ───────── 헬레니우스 동맹
@@ -129,7 +141,12 @@ export const ROSTER_B: BaseUnit[] = [
     skill: strike({
       name: '균열 도약', cd: 6, pow: 'tech', elem: 'holy', mult: 2.2, target: 'lowest', blink: true, params: { supply: 0.8 },
       desc: (p) => `공간 균열로 체력 비율이 가장 낮은 적에게 파고들어 기술 위력 ${pct(p.mult)} 신성 피해${p.hits > 1 ? ` ${p.hits}회` : ''}. 긴급 조달한 물자를 체력이 가장 낮은 아군에게 전송해 기술 위력 ${pct(p.supply)} 보호막.`,
-      after: (b, u, _t, _d, p) => { const a = b.lowestHpAlly(u); if (a) b.shield(a, b.P(u, 'tech') * p.supply); },
+      after: (b, u, _t, _d, p) => {
+        const a = b.lowestHpAlly(u);
+        if (!a) return;
+        b.shield(a, b.P(u, 'tech') * p.supply);
+        if (p.supplyCleanse) { const i = a.statuses.findIndex(isHarmful); if (i >= 0) a.statuses.splice(i, 1); } // 하데스 택배
+      },
     }),
   },
   {

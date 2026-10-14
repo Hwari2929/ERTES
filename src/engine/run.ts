@@ -788,8 +788,18 @@ export function typeAugKind(u: UnitState): AugKind | null {
 /** 이 유형 증강을 더 받을 수 있는지 (스페셜 · 사이오닉은 최대 4개) */
 export function augRoom(u: UnitState, kind: AugKind) {
   if (kind === 'major') return true;
-  const pool = new Set((kind === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : PSI_AUGS).map((a) => a.id));
-  return u.augments.filter((a) => pool.has(a.id)).length < 4;
+  const list = kind === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : PSI_AUGS;
+  const pool = new Set(list.map((a) => a.id));
+  if (u.augments.filter((a) => pool.has(a.id)).length >= 4) return false;
+  return list.some((a) => !u.augments.some((p) => p.id === a.id) && !augClash(u, a.id)); // 고를 수 있는 증강이 남았는지
+}
+/** 두 증강이 서로 충돌하는 변형인지 (어느 쪽이든 excl 에 적혀 있으면) */
+export function augsClash(a: string, b: string) {
+  return !!(AUG_BY_ID[a]?.excl?.includes(b) || AUG_BY_ID[b]?.excl?.includes(a));
+}
+/** 이미 가진 증강과 충돌하는지 */
+export function augClash(u: UnitState, id: string) {
+  return u.augments.some((p) => augsClash(p.id, id));
 }
 export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major'): AugPick[] {
   const def = UNIT_BY_ID[u.defId];
@@ -797,9 +807,14 @@ export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major')
   const avail = (a: { id: string; stack?: boolean }) => a.stack || !owned.has(a.id);
   if (!augRoom(u, kind)) return [];
   const base = kind === 'special' ? def.specialAugs || [] : kind === 'psionic' ? PSI_AUGS : MAJOR_AUGS;
-  const unitPool = base.filter(avail);
+  const unitPool = base.filter((a) => avail(a) && !augClash(u, a.id));
   return rng(run, (r) => {
-    const out = r.sample(unitPool.map((x) => x.id), CFG.augmentChoices);
+    let out: string[];
+    if (unitPool.some((a) => a.excl?.length)) {
+      // 서로 충돌하는 변형은 함께 제시하지 않는다
+      out = [];
+      for (const id of r.sample(unitPool.map((x) => x.id), unitPool.length)) if (out.length < CFG.augmentChoices && !out.some((o) => augsClash(o, id))) out.push(id);
+    } else out = r.sample(unitPool.map((x) => x.id), CFG.augmentChoices);
     return out.map((id) => {
       const a = AUG_BY_ID[id];
       return a.roll ? { id, param: a.roll((arr) => r.pick(arr)) } : { id };
@@ -1069,7 +1084,7 @@ function genInvest(run: RunState): InvestOffer[] {
         const k = typeAugKind(u);
         if (!k || !augRoom(u, k)) return [];
         const pool = k === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : k === 'psionic' ? PSI_AUGS : MAJOR_AUGS;
-        return pool.filter((a) => !a.roll && !u.augments.some((p) => p.id === a.id)).map((a) => ({ u, a }));
+        return pool.filter((a) => !a.roll && !u.augments.some((p) => p.id === a.id) && !augClash(u, a.id)).map((a) => ({ u, a }));
       });
       if (cands.length) { const c = r.pick(cands); o.uid = c.u.uid; o.aug = c.a.id; } else o.sold = true;
     }
@@ -1113,6 +1128,7 @@ export function migrate(run: RunState): RunState {
   run.aceTarget ??= null;
   run.privilege ??= null;
   for (const u of run.units) u.mod ??= null;
+  for (const u of run.units) u.augments = u.augments.filter((a) => AUG_BY_ID[a.id]); // 없어진 증강 (라르스 장부 정리 등) 정리
   run.field ??= 'waste';
   run.diff ??= 0;
   run.cleared ??= false;

@@ -41,6 +41,8 @@ export interface AugDef {
   /** 제시될 때 무작위 파라미터 결정 */
   roll?: (pickFrom: <T>(a: readonly T[]) => T) => string;
   descParam?: (param: string) => string;
+  /** 함께 제시 · 보유할 수 없는 증강 id (서로 충돌하는 변형) */
+  excl?: string[];
   /** 전투 종료 후 런 단위 효과 (kills = 이 기물의 처치 수) */
   after?: (run: RunState, u: UnitState, won: boolean, kills: number) => void;
 }

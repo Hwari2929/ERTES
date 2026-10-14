@@ -134,8 +134,18 @@ export const ROSTER_A: BaseUnit[] = [
         const t = pickEnemy(b, u, 'strongest');
         if (!t) return false;
         const p = u.sk;
-        b.applyStatus(u, t, { type: 'buff', key: 'deal.lars', dur: p.dur, mods: [inc('all', -p.weak)], taken: p.vuln ? [vuln('all', p.vuln)] : undefined, label: '거래 조건' });
+        u.mem.dealId = t.id;
+        // 분할 상환: 같은 적과 거래할수록 약화 10%p씩 누적 (최대 60%), 전투 동안 유지
+        const n = (t.mem[`deal${u.id}`] = (t.mem[`deal${u.id}`] || 0) + 1);
+        const weak = p.installment ? Math.min(0.6, p.weak + 0.1 * (n - 1)) : p.weak;
+        if (p.installment) t.statuses = t.statuses.filter((s) => s.key !== 'deal.lars');
+        b.applyStatus(u, t, { type: 'buff', key: 'deal.lars', dur: p.installment ? 999 : p.dur, mods: [inc('all', -weak)], taken: p.vuln ? [vuln('all', p.vuln)] : undefined, label: '거래 조건' });
         b.fx(t.x, t.y, 0, 'psy');
+        // 하청: 경호원 대신 무작위 아군 2명에게 거래 보호막
+        if (p.subcon) {
+          const pool = b.alliesOf(u, false).filter((a) => !a.isSummon);
+          for (const a of (pool.length ? b.rng.sample(pool, 2) : [u])) b.shield(a, b.P(u, 'tech') * p.shield);
+        }
         for (const bot of summonsOf(b, u)) {
           b.shield(bot, b.P(u, 'tech') * p.shield);
           bot.target = t;
