@@ -10,6 +10,7 @@ import { Battle, type CUnit, type DmgOpts, type DmgResult } from '../src/engine/
 import * as R from '../src/engine/run';
 import { augChoice, forkChoice, manageItems, shopSynth, type Track, pilgrimBot } from './botlib';
 import { Rng } from '../src/rng';
+import { RELICS } from '../src/data/relics';
 import type { Major, RunState, SynergyId } from '../src/types';
 
 declare const process: { argv: string[]; stdout: { write(s: string): void }; stderr: { write(s: string): void } };
@@ -19,6 +20,9 @@ const COUNT = +process.argv[3] || 10;
 const CF_RATE = process.argv[4] !== undefined ? +process.argv[4] : 0.06;
 /** 위험 등급 (기본 0). 2 이상이면 적 장비 · 개조부품이 실제 게임처럼 붙는다 */
 const DIFF = +process.argv[5] || 0;
+/** detail: 런마다 기물 · 증강 · 성유물별 [전투 수, 승리] 기록 (군집 신뢰구간용). randrelic: 디바인 성유물을 무작위로 장착 (성유물 효과 분리 실험) */
+const DETAIL = process.argv.includes('detail');
+const RANDREL = process.argv.includes('randrelic');
 
 // ───────── 집계 저장소 (합으로만 누적 → 워커끼리 더하면 된다)
 type Acc = Record<string, number>;
@@ -92,6 +96,8 @@ function playRun(seed: number) {
   const starters = bot.sample(STARTERS, CFG.startUnits);
   const run = R.newRun(seed, starters, undefined, DIFF);
   const synMax: Record<string, number> = {};
+  const det: Record<string, [number, number]> = {}; // detail 모드: `키|페이즈` → [전투, 승리]
+  const relicSet = new Set<string>();
 
   const resolvePending = () => {
     while (run.pending.length) {
@@ -163,6 +169,7 @@ function playRun(seed: number) {
     const counts = synergyCounts(dep, run) as Record<string, number>;
     for (const s of SYNERGIES) { const t = tierOf(s.id, counts[s.id] || 0); if (t > (synMax[s.id] || 0)) synMax[s.id] = t; }
 
+    if (RANDREL) for (const u of run.units) if (UNIT_BY_ID[u.defId].ttype === 'divine' && !relicSet.has(u.uid)) { relicSet.add(u.uid); u.relic = RELICS[Math.floor(bot.next() * RELICS.length)].id; }
     tap = { pair: {}, evaded: new Map() };
     const b = makeBattle(run, enc, counts);
     b.runToEnd();
@@ -205,6 +212,12 @@ function playRun(seed: number) {
       add('cttt', `${d.ctype}|${d.ttype}`, row);
       // 사이오닉 학파 · 전공, 디바인 성유물 · 신권 대행 발동 (증강 위주 조정용)
       for (const g of r.u.src!.augments) if (g.id.startsWith('school.') || g.id.startsWith('psi.')) add('psiaug', `${g.id}|${ph}`, row);
+      if (DETAIL) {
+        const src = r.u.src!;
+        const keys = [`u:${id}`, ...src.augments.filter((g) => !g.id.startsWith('ev.')).flatMap((g) => [`ua:${id}|${g.id}`, `a:${g.id}`])];
+        if (d.ttype === 'divine') keys.push(`r:${src.relic || '-'}`, `ur:${id}|${src.relic || '-'}`);
+        for (const key of keys) { const v = (det[`${key}|${ph}`] ??= [0, 0]); v[0]++; if (won) v[1]++; }
+      }
       if (d.ttype === 'divine') add('relic', `${r.u.src!.relic || '-'}|${ph}`, { ...row, used: r.u.divUsed ? 1 : 0 });
       // 장비: 장착한 기물의 전투 승패 · 피해 점유
       const items = [...r.u.src!.items.filter((x): x is string => !!x), ...(r.u.src!.mod ? [r.u.src!.mod] : [])];
@@ -248,7 +261,7 @@ function playRun(seed: number) {
   for (const id of run.inventory) if (id.startsWith('K_')) add('cons', id, { left: 1 });
   for (const u of run.units) if (u.mod?.startsWith('O_')) add('cons', u.mod, { equipped: 1 });
   add('cons', '_occult', { tier: run.occultTier || 0, runs: 1 });
-  runs.push({ seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems });
+  runs.push({ seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems, ...(DETAIL ? { det } : {}) });
 }
 
 for (let i = 0; i < COUNT; i++) {
