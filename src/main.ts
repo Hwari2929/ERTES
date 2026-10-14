@@ -365,7 +365,7 @@ function pilgrimHtml(run: RunState, p: Extract<Pending, { t: 'pilgrim' }>) {
 /** 성유물 토큰 (원형) */
 function relicTok(id: string | undefined, attrs = '', on = false) {
   const r = id ? RELIC_BY_ID[id] : null;
-  return `<span class="relic-tok${r ? '' : ' empty'}${on ? ' on' : ''}" role="button" tabindex="0" ${attrs} title="${r ? esc(`성유물 · ${r.name} — ${r.desc(1)}`) : '성유물 칸'}">${lineIcon('k.relic', 'li')}</span>`;
+  return `<span class="relic-tok${r ? '' : ' empty'}${on ? ' on' : ''}" role="button" tabindex="0" ${attrs} title="${r ? esc(`성유물 · ${r.name} — ${r.desc(1)}`) : '성유물 칸'}">${lineIcon(r ? `r.${r.id}` : 'k.relic', 'li')}</span>`;
 }
 /** 성유물 교체: 보관함의 성유물 토큰을 눌러 장착 */
 function relicPicker(run: RunState, u: UnitState) {
@@ -976,14 +976,13 @@ function relicSection(d: UnitDef, u: UnitState | null, run: RunState | null, c: 
   const rid = u?.relic || c?.relic || DEFAULT_RELIC[d.id];
   const rel = rid ? RELIC_BY_ID[rid] : null;
   const edit = !!(u && run && !live);
-  const head = `<div class="ab-head"><span class="ab-kind">성유물</span><b>${esc(rel?.name || '없음')}</b>${edit ? '<span class="ab-meta">토큰을 눌러 교체</span>' : ''}</div>`;
+  const head = `<div class="ab-head"><span class="ab-kind">성유물</span><b>${esc(rel?.name || '없음')}</b>${u && run && rel ? `<button class="btn tiny rl-bless${u.enh ? ' done' : ''}" data-a="relic-enh" data-v="${u.uid}" title="권능 ${rel.enh}을 써서 다음 전투의 신권 대행 계수를 ×3으로" ${live || u.enh || run.power < rel.enh ? 'disabled' : ''}>${u.enh ? '축성됨' : `축성 · 권능 ${rel.enh}`}</button>` : ''}</div>`;
   const slot = `<div class="rl-slot">${relicTok(rel?.id || '', edit ? `data-a="relic-pick" data-v="${u!.uid}"` : '', edit && app.relicPick === u!.uid)}<p class="small muted">${rel ? '장착한 성유물이 신권 대행의 효과를 정한다.' : '성유물이 없으면 신권 대행을 쓸 수 없다.'}</p></div>${edit && app.relicPick === u!.uid ? relicPicker(run!, u!) : ''}`;
   let act = '';
   if (rel) {
     const k = (live ? c?.mem.enh : u?.enh ? 3 : 1) || 1;
     const chips = `<div class="ab-chips"><span class="abc" title="신성력이 가득 차면 발동">${lineIcon('a.divact', 'li')}신성력 100</span><span class="abc">전투당 1회</span>${k > 1 ? '<span class="abc v">강화 ×3</span>' : ''}${live && c && c.div !== null ? `<span class="abc v">${c.divUsed ? '발동함' : Math.round(c.div)}</span>` : ''}</div>`;
-    const enh = edit && u!.relic ? `<div class="tt-row"><span class="tt-k">강화</span>${u!.enh ? '<b class="tt-big">다음 전투 ×3</b>' : `<button class="btn tiny" data-a="relic-enh" data-v="${u!.uid}" ${run!.power < rel.enh ? 'disabled' : ''}>강화 · 권능 ${rel.enh}</button>`}</div>` : '';
-    act = `<div class="rl-act ab-click${abilOn('divact')}" data-a="abil-pop" data-v="divact" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">신권 대행</span><b>${lineIcon('a.divact', 'li ab-ic')}${esc(rel.name)}</b></div>${chips}<p>${statIc(esc(rel.desc(k)))}</p></div>${enh}`;
+    act = `<div class="rl-act ab-click${abilOn('divact')}" data-a="abil-pop" data-v="divact" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">신권 대행</span><b>${lineIcon('a.divact', 'li ab-ic')}${esc(rel.name)}</b></div>${chips}<p>${statIc(esc(rel.desc(k)))}</p></div>`;
   }
   return `<section class="abil ab-relic">${head}${slot}${act ? `<hr class="rl-sep">${act}` : ''}</section>`;
 }
