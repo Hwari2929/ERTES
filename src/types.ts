@@ -93,7 +93,7 @@ export const NODE_NAME: Record<NodeType, string> = {
   pilgrim: '순례', news: '속보', event: '사건', invest: '투자', fork: '전환', challenge: '도전',
 };
 
-export interface EnemySpawn { defId: string; c: number; row: number; elite?: boolean }
+export interface EnemySpawn { defId: string; c: number; row: number; elite?: boolean; items?: string[]; mod?: string } // items · mod: 위험 등급 장비
 export interface Encounter { n: number; env: string; enemies: EnemySpawn[]; mult: number; seed: number; phase?: number } // phase: 적 강도 기준 페이즈 (도전 = 다음 페이즈)
 
 export interface ShopSlot { item: string; price: number; sold: boolean }

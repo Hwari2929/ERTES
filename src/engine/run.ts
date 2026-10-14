@@ -7,7 +7,7 @@ import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, DROP_CONSUMABLES, XP_INJECT_AMOUNT, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, isConsumable, isEmblem, isLocked, isMod, itemInfo, occultModsOfTier } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, DROP_CONSUMABLES, XP_INJECT_AMOUNT, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, isConsumable, isEmblem, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS } from '../data/items';
 import { SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, PSI_AUGS, recMajors } from '../data/rework';
@@ -491,6 +491,31 @@ export function pickGlobal(run: RunState, id: string) {
 }
 
 // ───────────────────────── 조우 생성
+/**
+ * 위험 등급 장비: (2)부터 적이 낮은 확률로 재료를 달고, 역경 · 보스전에서는 고급 장비도 단다 (희귀 · 전설처럼 추가 효과가 있는 장비는 없음).
+ * (5)부터 개조부품(문장 제외)을 달 수 있고, 보스는 거의 항상 전설 장비(재생 외골격 제외)를 단다.
+ * 장비 칸 수 = 2페이즈마다 1칸 (최대 3). 칸마다 따로 굴리고, 장비는 왼쪽부터 채운다.
+ */
+function gearEnemies(run: RunState, r: Rng, enemies: EnemySpawn[], type: NodeType, phase: number) {
+  if (!diffHas(run.diff, 2)) return;
+  const slots = Math.min(3, 1 + Math.floor((phase - 1) / 2));
+  const big = type === 'adversity' || type === 'boss';
+  const legends = ALL_ADVANCED.filter((x) => x !== 'A_vit_vit').map((x) => 'L_' + x.slice(2));
+  const mods = Object.keys(OCCULT_MODS);
+  for (const s of enemies) {
+    const tier = ENEMY_BY_ID[s.defId].tier;
+    const items: string[] = [];
+    if (tier === 'boss' && diffHas(run.diff, 5) && r.chance(0.95)) items.push(r.pick(legends));
+    const p = (big ? 0.25 : 0.08) * (tier === 'elite' ? 1.5 : tier === 'boss' ? 2 : 1); // 칸당 장착 확률
+    for (let i = items.length; i < slots; i++) {
+      if (!r.chance(p)) continue;
+      items.push(big && r.chance(0.5) ? r.pick(ALL_GRADED) : r.pick(ALL_COMPONENTS));
+    }
+    if (items.length) s.items = items;
+    if (diffHas(run.diff, 5) && r.chance(tier === 'boss' ? 0.6 : tier === 'elite' ? 0.3 : 0.1)) s.mod = r.pick(mods);
+  }
+}
+
 export function genEncounter(run: RunState, type: NodeType, phase = run.phase): Encounter {
   return rng(run, (r) => {
     const env = r.weighted(CFG.boardSizes, (x) => x.w);
@@ -526,6 +551,7 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
         if (placed) break;
       }
     }
+    gearEnemies(run, r, enemies, type, p);
     return {
       n, env: type === 'boss' ? '보스 아레나' : env.env, enemies,
       mult: type === 'adversity' ? CFG.adversityMult : 1 + 0.04 * run.step,

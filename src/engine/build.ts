@@ -135,6 +135,9 @@ export function computeStats(u: UnitState, effects: Effect[]): { st: Stats; majo
   }
   for (const [k, v] of Object.entries(pct)) st[k as keyof Stats] *= Math.max(0.1, 1 + v!);
   st.range = Math.max(1, Math.round(st.range));
+  // 공명 등급 독립 성장: 사격 · 타격 · 기술 위력 등급당 ×1.025 (곱연산)
+  const grow = Math.pow(CFG.rankPowGrowth, Math.max(0, u.rank - 1));
+  st.shoot *= grow; st.strike *= grow; st.tech *= grow;
   return { st, majors: m };
 }
 
@@ -238,7 +241,7 @@ export function enemyMajors(def: EnemyDef, phase: number): Record<Major, number>
   return Object.fromEntries(MAJORS.map((m) => [m, Math.max(0, Math.round(lv * w[m]))])) as Record<Major, number>;
 }
 
-export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number): CUnit {
+export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number, gear?: { items?: string[]; mod?: string }): CUnit {
   const c = blankUnit(1);
   const st = emptyStats();
   st.maxHp = def.hp * CFG.enemyHpMul * phaseHpMult(phase) * mult;
@@ -282,7 +285,8 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   if (diffHas(d, 7)) { st.armor *= 1.25; st.effRes += 0.15; st.eva += 0.1; }
   if (diffHas(d, 8)) st.maxHp *= Math.pow(1.05, phase - 1);
   // 적 장비 · 개조부품
-  for (const it of [...(def.items || []), def.mod || null]) if (it) applyLive(c, itemEffect(it), b, makeCtx(null, null, {}));
+  for (const it of [...(def.items || []), def.mod || null, ...(gear?.items || []), gear?.mod || null]) if (it) applyLive(c, itemEffect(it), b, makeCtx(null, null, {}));
+  if (gear?.items?.length || gear?.mod) { c.tempItems = [...(gear.items || []), ...(gear.mod ? [gear.mod] : [])]; c.mem.gear = 1; } // 위험 등급 장비 (표시용)
   if (def.onBasic) c.hooks.push({ onBasic: def.onBasic });
   if (def.onTick) c.hooks.push({ onTick: def.onTick });
   void b;
@@ -373,7 +377,7 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
   }
   for (const s of enc.enemies) {
     const def = ENEMY_BY_ID[s.defId];
-    const e = buildEnemy(b, def, enc.phase ?? run.phase, enc.mult);
+    const e = buildEnemy(b, def, enc.phase ?? run.phase, enc.mult, s);
     const ec = enemyCell(s.c, s.row, enc.n);
     e.x = e.px = ec.x;
     e.y = e.py = ec.y;

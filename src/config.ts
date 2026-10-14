@@ -54,6 +54,7 @@ export const CFG = {
 
   // ── 성장
   maxRank: 99, // 10 이상은 스탯만
+  rankPowGrowth: 1.025, // 공명 등급당 사격 · 타격 · 기술 위력 독립 배율
   augEvery: 5, // n등급마다 기물 전용 증강 1개
   hasRankAug: (rank: number) => rank % CFG.augEvery === 0,
   xpToNext: (rank: number) => 2 + 2 * rank, // 1→2: 4pt … 9→10: 20pt [임시]

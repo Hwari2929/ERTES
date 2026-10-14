@@ -2,7 +2,7 @@ import { CFG, phaseAmpMult, phaseHpMult } from './config';
 import { AUG_BY_ID, augDesc } from './data/augments';
 import { ENEMIES, ENEMY_BY_ID, enemyTypes, type EnemyDef } from './data/enemies';
 import { ENEMY_DESC } from './data/enemyText';
-import { DIFFS } from './data/difficulty';
+import { DIFFS, MAX_DIFF } from './data/difficulty';
 import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
 import { STORIES } from './data/stories';
 import { FIELDS, fieldOf } from './data/battlefields';
@@ -877,9 +877,9 @@ function detailPanel(run: RunState, extra = '') {
     const e = ENEMY_BY_ID[s.defId];
     const ph = run.node.enc.phase ?? run.phase; // 도전은 다음 페이즈 적
     const b = new Battle(9, 9, new Rng(1), { phase: ph, credits: 0 });
-    const c = buildEnemy(b, e, ph, run.node.enc.mult);
+    const c = buildEnemy(b, e, ph, run.node.enc.mult, s);
     const ms = battleMajors(c)!;
-    const eq = [...(e.items || []).filter((x): x is string => !!x), ...(e.mod ? [e.mod] : [])];
+    const eq = [...(e.items || []).filter((x): x is string => !!x), ...(e.mod ? [e.mod] : []), ...(s.items || []), ...(s.mod ? [s.mod] : [])];
     const known = loadMeta().enemies[e.id];
     return `<div class="detail">${bar}
       ${heroHead(`en_${e.id}`, sprite(e, 'spr big'), e.name, enemyTypes(e), `<i>${tierKo(e)}</i>`)}
@@ -1397,7 +1397,7 @@ function statPopHtml(run: RunState) {
     if (!s) return '';
     const ph = run.node.enc.phase ?? run.phase;
     const b = new Battle(9, 9, new Rng(1), { phase: ph, credits: 0 });
-    const c = buildEnemy(b, ENEMY_BY_ID[s.defId], ph, run.node.enc.mult);
+    const c = buildEnemy(b, ENEMY_BY_ID[s.defId], ph, run.node.enc.mult, s);
     if (app.abilPop) return enemyAbilPop(app.abilPop, ENEMY_BY_ID[s.defId], b, c);
     return `<div class="stat-pop"><div class="sp-head"><b>상세 능력치</b><span class="muted small">${esc(c.name)}</span><button class="btn tiny" data-a="stat-pop">닫기</button></div>${statLines(c, b)}</div>`;
   }
@@ -1775,17 +1775,17 @@ function goPrepOrMap() {
 // ───────────────────────── 난이도 선택
 /** 한 줄 위험 등급 선택 (조건은 툴팁) */
 function diffMini() {
-  const max = loadMeta().maxDiff;
+  const max = MAX_DIFF; // 모든 위험 등급을 처음부터 고를 수 있다
   const d = Math.min(app.diff, max);
   const conds = DIFFS.filter((x) => x.lvl >= 1 && x.lvl <= d).map((x) => x.desc);
-  return `<div class="diff-mini"><b>위험 등급</b><div class="diff-row">${DIFFS.map((x) => `<button class="btn tiny ${x.lvl === d ? 'on' : ''}" data-a="diff" data-v="${x.lvl}" ${x.lvl > max ? 'disabled title="이전 등급을 클리어하면 해금"' : ''}>${x.lvl === 0 ? '표준' : x.lvl}</button>`).join('')}</div>
+  return `<div class="diff-mini"><b>위험 등급</b><div class="diff-row">${DIFFS.map((x) => `<button class="btn tiny ${x.lvl === d ? 'on' : ''}" data-a="diff" data-v="${x.lvl}" ${x.lvl > max ? 'disabled' : ''}>${x.lvl === 0 ? '표준' : x.lvl}</button>`).join('')}</div>
     <span class="small muted" title="${esc(conds.join('\n') || '추가 조건 없음')}">${d ? `추가 조건 ${conds.length}개 ⓘ` : `${CFG.victoryPhase}페이즈 보스 격파 시 의뢰 성공`}</span></div>`;
 }
 function diffPicker() {
-  const max = loadMeta().maxDiff;
+  const max = MAX_DIFF; // 모든 위험 등급을 처음부터 고를 수 있다
   const d = Math.min(app.diff, max);
   return `<div class="diff-picker"><b>위험 등급</b>
-    <div class="diff-row">${DIFFS.map((x) => `<button class="btn tiny ${x.lvl === d ? 'on' : ''}" data-a="diff" data-v="${x.lvl}" ${x.lvl > max ? 'disabled title="이전 등급을 클리어하면 해금"' : ''}>${x.lvl === 0 ? '표준' : x.lvl}</button>`).join('')}</div>
+    <div class="diff-row">${DIFFS.map((x) => `<button class="btn tiny ${x.lvl === d ? 'on' : ''}" data-a="diff" data-v="${x.lvl}" ${x.lvl > max ? 'disabled' : ''}>${x.lvl === 0 ? '표준' : x.lvl}</button>`).join('')}</div>
     <ul class="small muted">${d === 0 ? '<li>추가 조건 없음.</li>' : DIFFS.filter((x) => x.lvl >= 1 && x.lvl <= d).map((x) => `<li>${esc(x.desc)}</li>`).join('')}</ul>
     <p class="small muted">${CFG.victoryPhase}페이즈 보스를 이기면 의뢰 성공. 성공하면 다음 위험 등급이 해금됩니다.</p></div>`;
 }
@@ -1967,7 +1967,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
   const mod = u.side === 0 ? u.src?.mod : ENEMY_BY_ID[u.defId]?.mod;
   const temp = u.tempItems || [];
   const ic2 = (id: string, tag = '') => `<button class="tk-it${app.bPick === `it:${id}` ? ' on' : ''}" data-a="bpick" data-v="it:${id}" title="${esc(itemInfo(id).name)}${tag}">${itemIcon(id)}</button>`;
-  const eq = [...items.filter((x): x is string => !!x).map((x) => ic2(x)), ...(mod ? [ic2(mod)] : []), ...temp.map((x) => ic2(x, ' (임시 · 캠핑)'))];
+  const eq = [...items.filter((x): x is string => !!x).map((x) => ic2(x)), ...(mod ? [ic2(mod)] : []), ...temp.map((x) => ic2(x, u.side === 1 ? '' : ' (임시)'))];
   let head = '', abils = '', pop = '';
   if (u.side === 0 && !u.isSummon) {
     const d = UNIT_BY_ID[u.defId];
@@ -2132,7 +2132,7 @@ function act(a: string, v: string) {
     case 'random-starters': app.starters = new Rng(Date.now() | 0).sample(app.pool, CFG.startUnits); break;
     case 'start-run':
       if (app.starters.length !== CFG.startUnits) return;
-      app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, undefined, Math.min(app.diff, loadMeta().maxDiff));
+      app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, undefined, Math.min(app.diff, MAX_DIFF));
       app.screen = 'map'; app.sel = null; persist(); break;
     case 'load': {
       const r = loadRun(v);
