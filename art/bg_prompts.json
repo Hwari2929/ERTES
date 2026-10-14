@@ -1,0 +1,15 @@
+{
+  "_note": "배경 일러스트 (가로 1216x832). 인물 없는 풍경 · 분위기 위주. scripts/nai_bg.mjs",
+  "base": "no humans, scenery, background art, wide shot, landscape, detailed background, science fiction, space opera, atmospheric perspective, cinematic lighting, volumetric light, depth of field, best quality, masterpiece, highres, year2026, ::1.2::painterly::, ::1.1::flat color::",
+  "negative": "1girl, 1boy, person, people, character, human, face, hands, crowd, text, watermark, signature, logo, letters, ui, frame, border, multiple views, split screen, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts",
+  "bgs": {
+    "field_swarm": "alien hive biomass engulfing a huge orbital logistics hub, organic tendrils and pulsing sacs over cargo containers and docking arms, purple psionic mist, glowing bioluminescent spores drifting, ruined blue and white federation spaceport, infested planet below",
+    "field_crimson": "gothic biopunk fortress city at night, crimson sky, blood red moon, pulsating bio vats and vein-like pipes running up cathedral spires, tattered imperial banners, dark red and black palette, low fog",
+    "field_sparta": "orbital war zone above a planet, giant broken bronze shields and spears floating in space, warship wreckage, distant ranks of mecha silhouettes in phalanx formation, greek temple space station, teal and bronze palette, starfield",
+    "field_petra": "pristine corporate megastructure sanctum, white and orange headquarters tower, endless clean server halls, quarantine barriers and hazard lights, black glitching geometric anomaly spreading through the corridor, cold fluorescent light",
+    "field_waste": "desert wasteland planet, rusted crashed starships half buried in sand, raider camp with makeshift towers, dust storm, two suns low on the horizon, ochre and brown palette, faint ghostly lights in the sky",
+    "diff_easy": "calm starry sky over a quiet spaceport at dawn, soft blue and pale gold light, gentle nebula, peaceful, serene clouds",
+    "diff_adventure": "small starship sailing through a vivid nebula toward unknown planets, light rays, orange and teal palette, sense of adventure, dynamic composition",
+    "diff_challenge": "ominous black hole with red lightning, enemy warfleet emerging from darkness, dramatic storm of debris, crimson and black palette, menacing"
+  }
+}

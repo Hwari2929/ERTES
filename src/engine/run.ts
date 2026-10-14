@@ -43,18 +43,16 @@ export function newRun(seed: number, starters: string[], field?: string, diff = 
   for (const id of starters) addUnit(run, id, 1);
   autoPlace(run);
   if (!field) run.field = rng(run, (r) => r.pick(FIELDS).id);
-  const joins = run.pending.splice(0); // 시작 기물 합류 증강은 전장 브리핑 다음에
-  run.pending.push({ t: 'field' }, ...joins);
+  // 전장 · 난이도는 출격 전 화면에서 이미 보여 줬다. 시작 기물 합류 증강 → 특권 증강 순
   run.pending.push({ t: 'privilege', options: rollPrivileges(run), rerolls: CFG.privilegeRerolls });
-  run.pending.push({ t: 'global', options: rollGlobals(run) });
   log(run, '용병단 ERRANTEs, 출격.');
   return run;
 }
 
-/** 페이즈 노드 구성 (11칸): 전투 > 전투 > 사건 > 전투 > 보급 > 전투(짝수 페이즈는 전환) > 역경 > 사건 > 역경 > 보급 > 보스.
+/** 페이즈 노드 구성 (12칸): 전투 > 전투 > 항로 회의(전역 증강) > 사건 > 전투 > 보급 > 전투(짝수 페이즈는 전환) > 역경 > 사건 > 역경 > 보급 > 보스.
  *  보급 = 상점 / 보급 / 속보 / 모집 (+ 투자 · 순례) 중 선택. 2페이즈부터는 페이즈 시작 때 영입 기회가 열린다 */
 export function phaseMap(phase: number): NodeType[][] {
-  return [['battle'], ['battle'], ['event'], ['battle'], ['shop'], [phase % 2 === 0 ? 'fork' : 'battle'], ['adversity'], ['event'], ['adversity'], ['shop'], ['boss']];
+  return [['battle'], ['battle'], ['council'], ['event'], ['battle'], ['shop'], [phase % 2 === 0 ? 'fork' : 'battle'], ['adversity'], ['event'], ['adversity'], ['shop'], ['boss']];
 }
 
 // ───────────────────────── 특권 증강 (런 시작)
@@ -90,7 +88,6 @@ export function pickPrivilege(run: RunState, idx: number) {
   switch (pick.id) {
     case 'P.emblem': gainItem(run, emblemId(pick.param as SynergyId)); break;
     case 'P.recruit': next.push({ t: 'recruit', options: recruitOptions(run, 3) }); break;
-    case 'P.legend': next.push({ t: 'itemPick', title: '가보 — 전설 장비 1개 선택', options: rng(run, (r) => r.sample(ALL_ADVANCED, 3)).map((x) => 'L_' + x.slice(2)) }); break;
     case 'P.global': next.push({ t: 'global', options: rollGlobals(run) }); break;
     case 'P.funds': run.credits += 40; break;
     case 'P.hp': run.maxHp += 40; run.hp += 40; break;
@@ -226,6 +223,11 @@ export function enterNode(run: RunState, type: NodeType) {
     return;
   }
   if (type === 'news') { run.node = { type, news: genNews(run) }; return; }
+  if (type === 'council') { // 항로 회의: 전역 증강 선택 (새로고침 1회)
+    run.pending.push({ t: 'global', options: rollGlobals(run), rerolls: CFG.globalRerolls });
+    advance(run);
+    return;
+  }
   if (type === 'invest') { run.node = { type, invest: genInvest(run) }; return; }
   if (type === 'event') {
     const id = pickEvent(run);
@@ -483,7 +485,6 @@ export function advance(run: RunState) {
     run.phaseBoons = [];
     log(run, `페이즈 ${run.phase} 진입. 적이 강해집니다.`);
     offerRecruit(run); // 페이즈 시작 영입
-    run.pending.push({ t: 'global', options: rollGlobals(run) });
     if (run.fund) { run.credits += run.fund; log(run, `호이슌 투자 수익 +${run.fund}`); run.pending.push({ t: 'notice', title: '투자 수익 정산', body: `지난 페이즈에 맡긴 자금이 불어나 크레딧 +${run.fund}을 돌려받았습니다.` }); run.fund = 0; }
   }
   // 은하 대스타가 활성화되어 있으면 보스 직전에 속보 노드 추가
@@ -495,6 +496,12 @@ export function advance(run: RunState) {
 function rollGlobals(run: RunState): string[] {
   const pool = GLOBALS.filter((g) => !(g.unique && run.globals.includes(g.id))).map((g) => g.id);
   return rng(run, (r) => r.sample(pool, 3));
+}
+export function rerollGlobal(run: RunState) {
+  const p = run.pending[0];
+  if (p?.t !== 'global' || !p.rerolls) return;
+  p.rerolls--;
+  p.options = rollGlobals(run);
 }
 export function pickGlobal(run: RunState, id: string) {
   run.globals.push(id);
@@ -551,7 +558,7 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
       const extra = Math.max(0, Math.min(4, p - 1)); // 보스 호위 추가 인원 (최대 4)
       for (let i = 0; i < extra + (diffHas(run.diff, 4) ? 1 : 0); i++) ids.push(r.pick(pool));
     } else {
-      const late = run.step >= 4 ? 1 : 0;
+      const late = run.step >= 5 ? 1 : 0; // 페이즈 후반 (항로 회의 이후 두 번째 전투부터)
       const count = Math.min(rows * n - 2, 2 + p + late + (f.extraEnemies || 0) + (type === 'adversity' && diffHas(run.diff, 5) ? 1 : 0));
       if (type === 'adversity' || (p >= 2 && r.chance(diffHas(run.diff, 5) ? 0.6 : 0.3))) ids.push(f.elite);
       while (ids.length < count) ids.push(r.pick(pool));

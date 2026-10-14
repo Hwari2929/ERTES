@@ -100,6 +100,7 @@ export const CFG = {
   bossLossDamage: (phase: number) => 10 + 3 * phase,
 
   privilegeRerolls: 3, // 런 시작 특권 증강 새로고침 횟수
+  globalRerolls: 1, // 항로 회의 전역 증강 새로고침 횟수
 };
 
 /** p 페이즈 적 피해 누적 배율 */

@@ -87,10 +87,10 @@ export interface UnitState {
   pos: { c: number; r: number } | null; // r=0 이 아군 진영 가장 뒷줄
 }
 
-export type NodeType = 'battle' | 'adversity' | 'shop' | 'supply' | 'recruit' | 'boss' | 'pilgrim' | 'news' | 'event' | 'invest' | 'fork' | 'challenge';
+export type NodeType = 'battle' | 'adversity' | 'shop' | 'supply' | 'recruit' | 'boss' | 'pilgrim' | 'news' | 'event' | 'invest' | 'fork' | 'challenge' | 'council';
 export const NODE_NAME: Record<NodeType, string> = {
   battle: '일반 전투', adversity: '역경', shop: '상점', supply: '보급', recruit: '기물 영입', boss: '보스',
-  pilgrim: '순례', news: '속보', event: '사건', invest: '투자', fork: '전환', challenge: '도전',
+  pilgrim: '순례', news: '속보', event: '사건', invest: '투자', fork: '전환', challenge: '도전', council: '항로 회의',
 };
 
 export interface EnemySpawn { defId: string; c: number; row: number; elite?: boolean; items?: string[]; mod?: string } // items · mod: 위험 등급 장비
@@ -104,7 +104,7 @@ export interface InvestOffer { id: string; cost: number; sold: boolean; uid?: st
 export interface Quest { id: string; target: number; progress: number; done: boolean; reward: string }
 
 export type Pending =
-  | { t: 'global'; options: string[] }
+  | { t: 'global'; options: string[]; rerolls?: number } // rerolls: 항로 회의 전역 증강 새로고침
   | { t: 'field' }
   | { t: 'victory' }
   | { t: 'event'; id: string; sub?: string | null } // sub: 이번 사건의 동적 조연 (기물 id)

@@ -21,11 +21,11 @@ import { Battle, type CUnit, type Status, STATUS_NAME } from './engine/combat';
 import * as R from './engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
-import { type CType, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, KEYWORD_NAME, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type SynergyId, type UnitState } from './types';
+import { type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, KEYWORD_NAME, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type RunState, type SynergyId, type UnitState } from './types';
 import { BattleView, fmt } from './ui/battleview';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
-import { hasPortrait, iconURL, loadArt, prefetchArt, standImg } from './ui/portraits';
+import { bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg } from './ui/portraits';
 import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 
 // 편의 설정 (이 브라우저에만 저장): 전투 속도, 진형 속도 등
@@ -39,7 +39,7 @@ function savePref(k: string, v: unknown) {
   try { localStorage.setItem(PREF_KEY, JSON.stringify({ ...loadPrefs(), [k]: v })); } catch { /* 저장 불가 환경 */ }
 }
 
-type Screen = 'title' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'invest' | 'over' | 'codex';
+type Screen = 'title' | 'intro' | 'diffsel' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'invest' | 'over' | 'codex';
 type Sel = { k: 'unit'; uid: string } | { k: 'item'; idx: number } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
 
 const app = {
@@ -72,7 +72,9 @@ const app = {
   toastT: 0 as ReturnType<typeof setTimeout> | 0,
   importErr: '',
   needMount: false,
-  diff: 0, // 새 런 난이도
+  diff: 0, // 새 런 난이도 (쉬움 0 · 모험 3 · 도전 6)
+  introField: null as string | null, // 출격 연출: 이번 런 전장
+  introDone: false, // 출격 연출을 끝까지 봤는지 (다시 그릴 때 연출 생략)
   codexTab: 'units' as 'units' | 'enemies' | 'events' | 'records',
   codexGroup: 'none' as 'none' | 'faction' | 'trait' | 'ctype' | 'ttype', // 도감 기물: 모아보기 기준
   codexSel: null as string | null, // 도감 기물: 상세를 펼친 기물
@@ -410,13 +412,88 @@ function pickCard(d: UnitDef, o: PickOpts) {
 }
 const CAN_HOVER = typeof matchMedia !== 'undefined' && matchMedia('(hover: hover)').matches;
 
+// ───────────────────────── 출격 연출: 전장 추첨 → 난이도 → 계약 기물
+/** 전장 정보: 적 유형 · 우세 속성 · 우세 시너지 */
+function fieldBrief(fid: string) {
+  const f = fieldOf(fid);
+  const roster = [...f.pool.map((id) => [id, 1] as const), [f.elite, 2] as const, ...f.bosses.map((id) => [id, 3] as const)];
+  const ct: Record<string, number> = {}, el: Record<string, number> = {};
+  for (const [id, w] of roster) { const e = ENEMY_BY_ID[id]; if (!e) continue; const t = enemyTypes(e).ctype; ct[t] = (ct[t] || 0) + w; el[e.atk.elem] = (el[e.atk.elem] || 0) + w; }
+  const top = (o: Record<string, number>, n: number) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n).map((x) => x[0]);
+  const syn = f.ally ? SYN_BY_ID[f.ally.syn] : null;
+  return `<div class="fb-grid">
+    <div class="fb-cell"><span class="fb-k">적 유형</span><span class="fb-v">${top(ct, 2).map((c) => `<i>${typeIcon(c as CType)}${CTYPE_NAME[c as CType]}</i>`).join('')}</span></div>
+    <div class="fb-cell"><span class="fb-k">우세 속성</span><span class="fb-v">${top(el, 2).map((e) => `<i>${lineIcon(`e.${e}`, 'li')}${ELEM_NAME[e as Elem]}</i>`).join('')}</span></div>
+    <div class="fb-cell"><span class="fb-k">우세 시너지</span><span class="fb-v">${syn ? `<i style="--c:${syn.color}">${synIcon(syn.id) || syn.icon}${esc(syn.name)}</i>` : '<i>없음</i>'}</span></div>
+  </div>
+  <ul class="fb-rules">${f.rules.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+  <div class="fb-foe small"><span class="accent">보스</span> ${f.bosses.map((id) => esc(ENEMY_BY_ID[id]?.name || id)).join(' → ')} · <span class="muted">정예</span> ${esc(ENEMY_BY_ID[f.elite]?.name || f.elite)}</div>`;
+}
+function introScreen() {
+  const f = fieldOf(app.introField);
+  const done = app.introDone ? ' landed opened' : '';
+  return `<main class="intro${done}" style="--c:${f.color}">
+    <div class="in-bg" style="background-image:url('${bgURL(`field_${f.id}`)}')"></div><div class="in-shade"></div>
+    <div class="in-stars" aria-hidden="true">${Array.from({ length: 40 }, (_, i) => `<i style="--x:${(i * 37) % 100}%;--d:${(i % 7) * 0.6}s;--s:${3 + (i % 5)}s"></i>`).join('')}</div>
+    <div class="in-curtain l" aria-hidden="true"></div><div class="in-curtain r" aria-hidden="true"></div>
+    <div class="in-slot"><span class="in-kicker">이번 의뢰의 전장</span><b class="in-name">${app.introDone ? esc(f.name) : '???'}</b><span class="in-region">${esc(f.region)}</span></div>
+    <section class="in-info" aria-live="polite">
+      <p class="in-desc">${esc(f.desc)}</p>
+      ${fieldBrief(f.id)}
+      <div class="in-act"><button class="btn ghost" data-a="to-title">돌아가기</button><button class="btn primary" data-a="intro-ok">확인</button></div>
+    </section>
+  </main>`;
+}
+/** 별 무리 → 커튼 갈라짐 → 슬롯 회전 → 착지 (DOM 만 조작하고 끝나면 introDone) */
+let introTimer = 0;
+function introAnim() {
+  const el = root.querySelector<HTMLElement>('.intro');
+  const name = el?.querySelector<HTMLElement>('.in-name'), region = el?.querySelector<HTMLElement>('.in-region');
+  if (!el || !name || !region) return;
+  clearTimeout(introTimer);
+  const target = fieldOf(app.introField);
+  const names = FIELDS.map((f) => f);
+  let i = 0, delay = 60, elapsed = 0;
+  const spin = () => {
+    const f = names[i++ % names.length];
+    name.textContent = f.name; region.textContent = f.region;
+    el.style.setProperty('--c', f.color);
+    elapsed += delay;
+    if (elapsed > 1900 && f.id === target.id) {
+      el.classList.add('landed');
+      app.introDone = true;
+      return;
+    }
+    if (elapsed > 1100) delay = Math.min(320, delay * 1.18);
+    introTimer = window.setTimeout(spin, delay);
+  };
+  introTimer = window.setTimeout(() => { el.classList.add('opened'); introTimer = window.setTimeout(spin, 650); }, 900);
+}
+const DIFF_PICKS = [
+  { lvl: 0, name: '쉬움', sub: '표준 의뢰', bg: 'diff_easy', line: '처음 출격하는 용병단을 위한 안정적인 항로.' },
+  { lvl: 3, name: '모험', sub: '위험 등급 3', bg: 'diff_adventure', line: '적이 강해지고 장비를 챙겨 나옵니다. 보상은 그만큼 짭짤하게.' },
+  { lvl: 6, name: '도전', sub: '위험 등급 6', bg: 'diff_challenge', line: '함대 체력이 줄고 적은 끝없이 몰려옵니다. 베테랑 전용.' },
+];
+function diffScreen() {
+  return `<main class="diffsel"><h1 class="ds-title">난이도 설정</h1>
+    <div class="ds-row">${DIFF_PICKS.map((d) => {
+      const on = app.diff === d.lvl;
+      const conds = DIFFS.filter((x) => x.lvl >= 1 && x.lvl <= d.lvl).map((x) => x.desc);
+      return `<button class="ds-card${on ? ' on' : ''}" data-a="diff" data-v="${d.lvl}" aria-pressed="${on}">
+        <span class="ds-bg" style="background-image:url('${bgURL(d.bg)}')"></span><span class="ds-shade"></span>
+        <span class="ds-body"><span class="ds-sub">${d.sub}</span><b class="ds-name">${d.name}</b><span class="ds-line">${d.line}</span>
+          ${conds.length ? `<ul class="ds-conds">${conds.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : '<span class="ds-line muted">추가 조건 없음</span>'}</span></button>`;
+    }).join('')}</div>
+    <div class="ds-act"><button class="btn ghost" data-a="intro-back">전장 다시 보기</button><button class="btn primary" data-a="diff-ok">출격 준비</button></div>
+  </main>`;
+}
+
 function newRunScreen() {
   const n = app.starters.length;
   return `<main class="wrap nr">
     <div class="nr-head">
       <div><h1>계약 기물 선택</h1><p class="muted small">이번 출격에 응한 ${app.pool.length}명 중 ${CFG.startUnits}명을 고르세요. ${CAN_HOVER ? '카드에 마우스를 올리면 설명이 나오고, 누르면 선택합니다.' : '카드를 누르면 선택합니다. 하단을 위로 끌어올리거나 [상세 보기]를 누르면 설명이 나옵니다.'}</p></div>
       ${detailToggle()}
-      ${diffMini()}
     </div>
     <div class="carousel">
       <button class="car-btn prev" data-a="car-prev" aria-label="이전 기물">‹</button>
@@ -1187,10 +1264,11 @@ function pendingModal(run: RunState): string {
   let body = '', mcls = '';
   if (p.t === 'global') {
     mcls = 'global';
-    body = `<h1>전역 증강</h1><p class="muted small">런 끝까지 함대 전체에 적용됩니다. 한 장을 고르세요.</p>
+    body = `<h1>${p.rerolls !== undefined ? '항로 회의 — ' : ''}전역 증강</h1><p class="muted small">런 끝까지 함대 전체에 적용됩니다. 한 장을 고르세요.</p>
       <div class="gc-row">${p.options.map((id, i) => { const g = GLOBAL_BY_ID[id]; const h = [...id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7); return `<button class="gcard" style="--i:${i};--h:${h}" data-a="pick-global" data-v="${id}">
         <i class="cback" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">✦</span>
-        <span class="gc-kind">${g.unique ? '고유 · ' : ''}전역</span><b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button>`; }).join('')}</div>`;
+        <span class="gc-kind">${g.unique ? '고유 · ' : ''}전역</span><b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button>`; }).join('')}</div>
+      ${p.rerolls !== undefined ? `<div class="row-btns"><button class="btn" data-a="reroll-global" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div>` : ''}`;
   } else if (p.t === 'event') {
     const ev = EVENT_BY_ID[p.id];
     body = `<div class="event ${ev.rare ? 'rare' : ''}"><h1>${ev.rare ? '✦ ' : ''}${esc(ev.title)}</h1>${ev.rare ? '<p class="accent small">희귀 사건</p>' : ''}
@@ -1205,9 +1283,11 @@ function pendingModal(run: RunState): string {
       ${fieldCard(run)}
       <div class="row-btns"><button class="btn primary" data-a="field-ok">출격 준비</button></div>`;
   } else if (p.t === 'privilege') {
-    body = `<h1>특권 증강</h1><p class="muted">이번 런에만 적용되는 출격 특권을 하나 고르세요. 새로고침 ${p.rerolls}회 남음.</p>
-      <div class="cards">${p.options.map((o, i) => `<button class="card aug-unit" data-a="pick-privilege" data-v="${i}"><b>${esc(R.privilegeName(o))}</b><span>${esc(R.privilegeDesc(o))}</span></button>`).join('')}</div>
-      <div class="row-btns"><button class="btn" data-a="reroll-privilege" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div>`;
+    mcls = 'privilege';
+    body = `<div class="pv-curtain" aria-hidden="true"><span class="pv-fringe"></span></div>
+      <div class="pv-body"><span class="pv-kicker">출격 특권</span><h1>특권 증강</h1><p class="muted small">이번 런에만 적용되는 특권을 한 장 고르세요.</p>
+      <div class="pv-row">${p.options.map((o, i) => `<button class="pv-card" style="--i:${i}" data-a="pick-privilege" data-v="${i}"><span class="pv-sigil" aria-hidden="true">♜</span><b>${esc(R.privilegeName(o))}</b><span class="pv-desc">${ic(esc(R.privilegeDesc(o)))}</span></button>`).join('')}</div>
+      <div class="row-btns"><button class="btn" data-a="reroll-privilege" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div></div>`;
   } else if (p.t === 'rankup') {
     const u = run.units.find((x) => x.uid === p.uid)!;
     const d = UNIT_BY_ID[u.defId];
@@ -1488,6 +1568,8 @@ function render() {
   const run = app.run;
   let body = '';
   if (app.screen === 'codex') body = codexScreen();
+  else if (app.screen === 'intro') body = introScreen();
+  else if (app.screen === 'diffsel') body = diffScreen();
   else if (app.screen === 'title' || !run) body = app.screen === 'newrun' ? newRunScreen() : titleScreen();
   else if (app.screen === 'newrun') body = newRunScreen();
   else if (app.screen === 'map') body = mapScreen(run);
@@ -1508,6 +1590,7 @@ function render() {
   lastView.screen = app.screen; lastView.modal = modalKey;
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   layoutPanels();
+  if (app.screen === 'intro' && !app.introDone) introAnim();
   // 리본 시너지 줄: 넘치면 오른쪽 끝에 '더 있음' 표시 (끝까지 밀면 사라짐)
   const ts = root.querySelector<HTMLElement>('.top-syns');
   if (ts) {
@@ -2111,7 +2194,13 @@ function act(a: string, v: string) {
     return;
   }
   switch (a) {
-    case 'newrun':
+    case 'newrun': // 출격: 전장 추첨 연출부터
+      app.screen = 'intro'; app.menu = null; app.introDone = false;
+      app.introField = FIELDS[Math.floor(Math.random() * FIELDS.length)].id;
+      break;
+    case 'intro-back': app.screen = 'intro'; app.introDone = true; break;
+    case 'intro-ok': app.screen = 'diffsel'; if (![0, 3, 6].includes(app.diff)) app.diff = 0; break;
+    case 'diff-ok':
       app.starters = []; app.screen = 'newrun'; app.menu = null; carX = null; app.cardOpen = null;
       app.pool = new Rng((Date.now() ^ (Math.random() * 1e9)) | 0).sample(UNITS.filter((u) => !u.noStarter).map((u) => u.id), 8);
       break;
@@ -2132,7 +2221,7 @@ function act(a: string, v: string) {
     case 'random-starters': app.starters = new Rng(Date.now() | 0).sample(app.pool, CFG.startUnits); break;
     case 'start-run':
       if (app.starters.length !== CFG.startUnits) return;
-      app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, undefined, Math.min(app.diff, MAX_DIFF));
+      app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, app.introField || undefined, Math.min(app.diff, MAX_DIFF));
       app.screen = 'map'; app.sel = null; persist(); break;
     case 'load': {
       const r = loadRun(v);
@@ -2239,6 +2328,7 @@ function act(a: string, v: string) {
     case 'leave-shop': if (run) { R.leaveShop(run); app.screen = 'map'; persist(); } break;
     case 'loan': if (run) { toast(R.takeLoan(run) ? '대출 실행: 크레딧 +25' : '대출할 수 없습니다.'); persist(); } break;
     // 대기 선택
+    case 'reroll-global': if (run) { R.rerollGlobal(run); persist(); } break;
     case 'pick-global': if (run) { R.pickGlobal(run, v); run.pending.shift(); persist(); } break;
     case 'field-ok': run?.pending.shift(); persist(); break;
     case 'event-choice': {
