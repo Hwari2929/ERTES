@@ -33,6 +33,7 @@ const T_SKILL = 0.12; // 스킬명 → 효과
 const T_SUPPORT = 0.22; // 회복 · 보호막 표식 이동
 /** 효과 색: 아군이 준 피해 흰색 · 적이 준 피해 빨강 (속성색은 숫자에만) */
 const sideColor = (side: 0 | 1 | undefined) => (side === 1 ? 'var(--bad)' : '#f2f4f8');
+const SHAKE: Keyframe[] = [{ translate: '0 0' }, { translate: '-6px 3px' }, { translate: '5px -4px' }, { translate: '-4px -2px' }, { translate: '3px 3px' }, { translate: '-1px 1px' }, { translate: '0 0' }];
 const SKULL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.5 2 3 5.6 3 10.2c0 2.7 1.3 4.6 3 5.8V19a1 1 0 0 0 1 1h1.5v-2h1.5v2h4v-2h1.5v2H17a1 1 0 0 0 1-1v-3c1.7-1.2 3-3.1 3-5.8C21 5.6 17.5 2 12 2Zm-3.5 11.2a2.2 2.2 0 1 1 0-4.4 2.2 2.2 0 0 1 0 4.4Zm7 0a2.2 2.2 0 1 1 0-4.4 2.2 2.2 0 0 1 0 4.4ZM12 13.6l1.3 2.2h-2.6Z"/></svg>';
 const flightOf = (d: number) => Math.min(0.26, 0.07 + 0.035 * d);
 // 곡선: 급하게 출발해 감속 (선형 대신)
@@ -90,6 +91,8 @@ export class BattleView {
   /** 종료 연출: 시간 배율 · 마지막 쓰러진 기물 */
   private slowMul = 1;
   private finaleHit = -1;
+  private rt = 0;
+  private syncVt = 0;
   private lastDown: number | null = null;
   private executed = new Set<number>();
   private lastHitFrom = new Map<number, number>();
@@ -132,6 +135,7 @@ export class BattleView {
       const dt = Math.min(0.1, (now - this.last) / 1000);
       this.last = now;
       const adv = dt * this._speed * this.slowMul;
+      if (this._speed > 0) this.rt += dt; // 정지 중에는 멈추는 실시간 시계 (종료 연출용)
       this.acc += adv;
       this.vt += adv;
       let steps = 0;
@@ -143,8 +147,9 @@ export class BattleView {
       if (this.b.over) {
         if (this.overAt < 0) { this.overAt = this.vt; this.finaleStart(); }
         // 마지막 탄환 · 표식이 닿으면 흔들림 + 종료 배너, 잠시 뒤 보고서로
-        if (this.finaleHit < 0 && (!this.q.length || this.vt - this.overAt > 1.2)) { this.flush(true); this.sync(); this.finaleImpact(now); }
-        if (this.finaleHit >= 0 && now - this.finaleHit > (this.b.keepEvents && !this.reduced ? 1700 : 0)) { this.finish(); return; }
+        if (this.finaleHit < 0 && (!this.q.length || this.vt - this.overAt > 1.2)) { this.flush(true); this.sync(); this.finaleImpact(); }
+        if (this.finaleHit >= 0 && this.slowMul < 1 && this.rt - this.finaleHit > 0.9) { this.slowMul = 1; for (const a of this.anims) this.rateOf(a); } // 배너가 뜬 뒤 감속 해제
+        if (this.finaleHit >= 0 && this.rt - this.finaleHit > (this.b.keepEvents && !this.reduced ? 1.7 : 0)) { this.finish(); return; }
       }
       this.raf = requestAnimationFrame(loop);
     };
@@ -226,6 +231,8 @@ export class BattleView {
 
   private sync() {
     const now = this.vt;
+    const dvt = Math.max(0, now - this.syncVt); // 표시 시간 변화량 (정지 중 0, 주사율과 무관)
+    this.syncVt = now;
     for (const [id, e] of this.els) {
       const u = e.u;
       let x = u.x, y = u.y;
@@ -242,7 +249,7 @@ export class BattleView {
       const sh = Math.max(0, u.shield - (this.lagSh.get(id) || 0));
       const f = hp / max;
       // 손실 구간: 잠깐 머문 뒤 줄어든다
-      if (f < e.trail) { if (e.trailHold <= 0) e.trailHold = now + 0.35; if (now >= e.trailHold) e.trail = Math.max(f, e.trail - 0.02 * Math.max(1, this._speed)); }
+      if (f < e.trail) { if (e.trailHold <= 0) e.trailHold = now + 0.35; if (now >= e.trailHold) e.trail = Math.max(f, e.trail - 1.2 * dvt); }
       else { e.trail = f; e.trailHold = 0; }
       e.hp.style.width = `${f * 100}%`;
       e.loss.style.width = `${e.trail * 100}%`;
@@ -506,7 +513,8 @@ export class BattleView {
       return;
     }
     // 연쇄 탄환: 이 기물에게 날아오는 탄환이 닿은 뒤에 출발
-    const start = Math.max(this.vt, this.projLand.get(e.from) ?? 0);
+    // 연쇄 탄환만 앞 탄환이 닿은 뒤 출발 (독립적인 기본 공격 · 반격은 기다리지 않음)
+    const start = e.chain ? Math.max(this.vt, this.projLand.get(e.from) ?? 0) : this.vt;
     const fl = flightOf(v.d);
     const land = start + fl;
     this.atkCtx = { from: e.from, to: e.to, land, ranged: true };
@@ -795,49 +803,40 @@ export class BattleView {
     if (!u) return;
     const c = this.center(u);
     this.board.style.transformOrigin = `${c.x}% ${c.y}%`;
-    this.board.animate([{ scale: '1' }, { scale: '1.55' }], { duration: 700, easing: EASE_OUT, fill: 'forwards' });
+    this.play(this.board, [{ scale: '1' }, { scale: '1.55' }], 700, { easing: EASE_OUT, fill: 'forwards' }, true);
   }
   /** 마지막 일격이 닿음: 화면 흔들림 + 전투 종료 배너 */
-  private finaleImpact(now: number) {
-    this.finaleHit = now;
+  private finaleImpact() {
+    this.finaleHit = this.rt;
     if (!this.b.keepEvents || this.reduced) return;
     const view = this.board.parentElement;
     if (!view) return;
-    view.animate([{ translate: '0 0' }, { translate: '-6px 3px' }, { translate: '5px -4px' }, { translate: '-4px -2px' }, { translate: '3px 3px' }, { translate: '-1px 1px' }, { translate: '0 0' }], { duration: 480, easing: 'ease-out' });
+    this.play(view, SHAKE, 480, { easing: 'ease-out' }, true);
     const won = this.b.winner === 0;
     const bn = document.createElement('div');
     bn.className = `finale ${won ? 'win' : 'lose'}`;
     bn.innerHTML = '<b>전투 종료</b>'; // 승패는 보고서에서
     view.appendChild(bn);
-    bn.animate([{ opacity: 0, transform: 'translate(-50%,-50%) scale(1.5)', letterSpacing: '.6em' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1)', letterSpacing: '.18em', offset: 0.35 }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1)', letterSpacing: '.22em' }], { duration: 1500, easing: EASE_OUT, fill: 'forwards' });
-    // 감속은 배너가 뜬 뒤 천천히 풀린다
-    setTimeout(() => { this.slowMul = 1; for (const a of this.anims) this.rateOf(a); }, 900);
+    this.play(bn, [{ opacity: 0, transform: 'translate(-50%,-50%) scale(1.5)', letterSpacing: '.6em' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1)', letterSpacing: '.18em', offset: 0.35 }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1)', letterSpacing: '.22em' }], 1500, { easing: EASE_OUT, fill: 'forwards' }, true);
   }
 
   /** 스텔라레이서: 경기장 밖 비행선이 대각선으로 적진 한가운데에 내리꽂힌 뒤 섬광 · 충격파 · 화면 흔들림 */
   private crash(side: 0 | 1, late = false) {
     if (this.reduced) return;
-    if (!late && this.b.t < 0.3) { setTimeout(() => this.crash(side, true), 750); return; } // 전투 개시 배너가 걷힌 뒤에 보이도록
+    if (!late && this.b.t < 0.3) { this.later(this.vt + 0.75, () => this.crash(side, true)); return; } // 전투 개시 배너가 걷힌 뒤에 보이도록
     const foes = this.b.units.filter((u) => u.alive && u.side !== side);
     if (!foes.length) return;
     const cx = foes.reduce((s, u) => s + this.center(u).x, 0) / foes.length, cy = foes.reduce((s, u) => s + this.center(u).y, 0) / foes.length;
     const sx = cx < 50 ? cx + 70 : cx - 70, sy = side === 0 ? -25 : 125;
     const ang = (Math.atan2(cy - sy, cx - sx) * 180) / Math.PI;
-    const fly = 520 / Math.min(Math.max(this._speed, 0.25), 4);
-    const ship = document.createElement('div');
-    ship.className = 'crash-ship';
+    // 비행 · 폭발 · 흔들림 모두 표시 시계를 따른다 (정지하면 멈춤)
+    const ship = this.spawnFx('crash-ship', sx, sy, [{ left: `${sx}%`, top: `${sy}%`, opacity: 0.4 }, { left: `${cx}%`, top: `${cy}%`, opacity: 1 }], 520, { easing: 'cubic-bezier(.5, 0, .9, .6)', fill: 'forwards', timed: true } as KeyframeAnimationOptions);
     ship.style.setProperty('--a', `${ang}deg`);
-    this.fxLayer.appendChild(ship);
-    ship.animate([{ left: `${sx}%`, top: `${sy}%`, opacity: 0.4 }, { left: `${cx}%`, top: `${cy}%`, opacity: 1 }], { duration: fly, easing: 'cubic-bezier(.5, 0, .9, .6)', fill: 'forwards' });
-    setTimeout(() => {
+    this.later(this.vt + 0.52, () => {
       ship.remove();
-      const boom = document.createElement('div');
-      boom.className = 'crash-boom';
-      boom.style.left = `${cx}%`; boom.style.top = `${cy}%`;
-      this.fxLayer.appendChild(boom);
-      setTimeout(() => boom.remove(), 900);
+      this.spawnFx('crash-boom', cx, cy, [{ opacity: 1 }, { opacity: 1 }], 900, { timed: true } as KeyframeAnimationOptions);
       const view = this.board.parentElement;
-      if (view) { view.classList.remove('crash-shake'); void view.offsetWidth; view.classList.add('crash-shake'); setTimeout(() => view.classList.remove('crash-shake'), 450); }
-    }, fly);
+      if (view) this.play(view, SHAKE, 450, { easing: 'cubic-bezier(.36, .07, .19, .97)' });
+    });
   }
 }

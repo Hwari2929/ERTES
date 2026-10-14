@@ -105,7 +105,7 @@ function nadirBounce(b: Battle, u: CUnit, from: CUnit) {
     const next = b.nearest(at, b.around(at, 3, b.enemiesOf(u)).filter((e) => !hit.has(e)));
     if (!next) break;
     hit.add(next);
-    b.emit({ k: 'atk', from: at.id, to: next.id, elem: 'phys', ranged: true });
+    b.emit({ k: 'atk', from: at.id, to: next.id, elem: 'phys', ranged: true, chain: true });
     b.dealDamage(u, next, dmg, { elem: 'phys', tag: 'proc', kind: 'shoot' });
     at = next;
   }

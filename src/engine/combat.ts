@@ -149,7 +149,8 @@ export interface CUnit {
 }
 
 export type BEvent =
-  | { k: 'atk'; from: number; to: number; elem: Elem; ranged: boolean }
+  /** chain: 연쇄 탄환 (앞 탄환이 닿은 지점에서 이어서 출발) */
+  | { k: 'atk'; from: number; to: number; elem: Elem; ranged: boolean; chain?: boolean }
   /** dhp · dsh: 실제 체력 · 보호막 변화 (연출이 표시 시점을 늦출 때 되돌려 보여 주는 데 쓴다) */
   | { k: 'dmg'; id: number; src?: number; v: number; crit: boolean; miss: boolean; graze: boolean; elem: Elem; tag?: string; syn?: string; dhp?: number; dsh?: number }
   | { k: 'heal'; id: number; src?: number; v: number; dhp?: number }

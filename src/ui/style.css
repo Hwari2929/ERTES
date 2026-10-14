@@ -310,6 +310,8 @@ button { font: inherit; color: inherit; }
 .rl svg { position: relative; width: 7px; height: 11px; fill: #fff; transform: rotate(45deg); }
 .rl[hidden] { display: none; }
 .board-in.paused .cells { filter: saturate(.6); }
+/* 정지: CSS 애니메이션(기절 회전 · 감전 점멸 · 폭발 등)도 함께 멈춘다 */
+.board-in.paused, .board-in.paused * { animation-play-state: paused !important; }
 .speed .pause { min-width: 28px; }
 /* 상세: 행동 상태 */
 .act-state { display: grid; gap: 4px; margin: 6px 0; }
