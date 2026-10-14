@@ -1954,3 +1954,13 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .ir-sep { display: block; width: 70%; height: 1px; margin: 4px auto; background: rgb(255 211 77 / .3); flex: none; }
 .inv-items .ir-sep { width: 1px; height: 28px; margin: 0 4px; }
 .relic-tok.on { box-shadow: 0 0 0 2px var(--accent); }
+
+/* 보관 물품 정보 팝업 (스킬 상세처럼: 아이콘 · 능력치 · 효과) */
+.inv-pop { position: fixed; z-index: 40; width: 260px; display: grid; gap: 8px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgb(0 0 0 / .45); font-size: 12.5px; }
+.inv-pop.sheet { left: 8px !important; right: 8px; bottom: 8px; top: auto !important; width: auto; }
+.ip-head { display: flex; align-items: center; gap: 10px; } .ip-head > div { display: grid; min-width: 0; } .ip-head b { font-size: 14px; }
+.ip-kind { font-size: 10.5px; color: var(--dim); letter-spacing: .04em; }
+.ip-x { margin-left: auto; padding: 0 7px; }
+.ip-stats { display: flex; flex-wrap: wrap; gap: 4px 10px; } .ip-stats span { display: inline-flex; align-items: center; gap: 4px; } .ip-stats .li, .ip-stats .mi { width: 14px; height: 14px; }
+.ip-eff { margin: 0; line-height: 1.5; }
+.ip-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }

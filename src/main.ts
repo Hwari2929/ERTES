@@ -917,17 +917,25 @@ function relicInv(run: RunState) {
 }
 /** 고른 보관 물품: 설명 · 판매 */
 function invDetail(run: RunState) {
+  const pop = (icon: string, kind: string, name: string, stats: string, eff: string, foot: string) =>
+    `<div class="inv-pop" role="dialog" aria-label="${esc(name)}"><div class="ip-head">${icon}<div><span class="ip-kind">${kind}</span><b>${esc(name)}</b></div><button class="btn tiny ip-x" data-a="sel-clear" aria-label="닫기">×</button></div>${stats}${eff ? `<p class="ip-eff">${eff}</p>` : ''}${foot ? `<div class="ip-foot">${foot}</div>` : ''}</div>`;
   if (app.sel?.k === 'relic') {
     const r = RELIC_BY_ID[app.sel.id];
-    if (r) return `<div class="inv-detail">${relicTok(r.id)}<div><b>${esc(r.name)}</b> <span class="muted">성유물 · ${statIc(esc(r.desc(1)))}</span>
-    <div class="row-btns"><span class="muted small">디바인 기물에 끌어다 놓거나, 선택한 채로 디바인 기물을 누르면 장착합니다. 끼고 있던 성유물은 보관 칸으로 돌아옵니다.</span></div></div></div>`;
+    if (!r) return '';
+    return pop(relicTok(r.id), '성유물', r.name, `<div class="ip-stats"><span>${lineIcon('a.divact', 'li')}신권 대행 · 강화 권능 ${r.enh}</span></div>`, statIc(esc(r.desc(1))),
+      '<span class="muted small">디바인 기물에 끌어다 놓거나, 선택한 채로 디바인을 누르면 장착합니다.</span>');
   }
   const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
   const sel = selIdx >= 0 ? run.inventory[selIdx] : null;
   if (!sel) return '';
-  return `<div class="inv-detail">${itemIcon(sel)}<div><b>${esc(itemInfo(sel).name)}</b> <span class="muted">${statIc(esc(itemInfo(sel).desc))}</span>
-    <div class="row-btns"><button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${CFG.sell[sel[0]]}</button>
-    ${isConsumable(sel) ? `<span class="muted small">${CONSUMABLES[sel].target === 'unit' ? '기물' : '장비'}에 끌어다 놓거나, 선택한 채로 ${CONSUMABLES[sel].target === 'unit' ? '기물' : '보관함의 장비'}을 누르면 사용합니다.</span>` : run.inventory.some((x, j) => j !== selIdx && combine(sel, x)) ? '<span class="muted small">조합 가능한 장비를 누르면 조합합니다.</span>' : ''}</div></div></div>`;
+  const it = itemInfo(sel);
+  const TIER: Record<string, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '개조부품', K: '소모품', U: '고유' };
+  const ms = Object.entries(it.majors || {}) as [Major, number][];
+  const stats = ms.length ? `<div class="ip-stats">${ms.map(([m, v]) => `<span>${majorIcon(m)}${MAJOR_NAME[m]} <b>+${v}</b></span>`).join('')}</div>` : '';
+  const eff = it.desc.replace(/^\[[^\]]+\]\s*/, '').replace(/^([^.,]+ \+\d+(, )?)+\.?\s*/, '');
+  const hint = isConsumable(sel) ? `<span class="muted small">${CONSUMABLES[sel].target === 'unit' ? '기물' : '장비'}에 끌어다 놓거나, 선택한 채로 ${CONSUMABLES[sel].target === 'unit' ? '기물' : '보관함의 장비'}을 누르면 사용</span>`
+    : run.inventory.some((x, j) => j !== selIdx && combine(sel, x)) ? '<span class="muted small">조합 가능한 장비를 누르면 조합</span>' : '';
+  return pop(itemIcon(sel), TIER[sel.startsWith('U_') ? 'U' : it.tier] || '', it.name, stats, eff ? statIc(esc(eff)) : '', `<button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${CFG.sell[sel[0]]}</button>${hint}`);
 }
 
 function statLines(c: CUnit, b: Battle) {
@@ -1744,9 +1752,21 @@ function useModal(run: RunState) {
 }
 
 /** 상단 바 높이 → 옆 패널 sticky 기준, 상세 능력치 창을 상세 보기 패널 왼쪽에 고정 */
+/** 보관 물품 정보 팝업: 고른 물품의 왼쪽에 붙인다 (좁은 화면은 아래 시트) */
+function placeInvPop() {
+  const p = root.querySelector<HTMLElement>('.inv-pop');
+  if (!p) return;
+  const a = root.querySelector<HTMLElement>('.inv-rail .item.sel, .inv-rail .relic-tok.on, .inv .item.sel, .inv .relic-tok.on');
+  if (!a || innerWidth <= 700) { p.classList.add('sheet'); p.style.cssText = ''; return; }
+  p.classList.remove('sheet');
+  const r = a.getBoundingClientRect();
+  p.style.left = `${Math.max(8, r.left - p.offsetWidth - 10)}px`;
+  p.style.top = `${Math.min(innerHeight - p.offsetHeight - 8, Math.max(8, r.top))}px`;
+}
 function layoutPanels() {
   const top = root.querySelector<HTMLElement>('.top');
   document.documentElement.style.setProperty('--top-h', `${(top?.offsetHeight || 0) + 10}px`);
+  placeInvPop();
   const pop = root.querySelector<HTMLElement>('.stat-pop');
   const det = root.querySelector<HTMLElement>('.detail');
   if (!pop || !det) return;
@@ -2536,6 +2556,7 @@ function act(a: string, v: string) {
       if (app.sel?.k === 'relic' && run) { const e = R.equipRelic(run, v, app.sel.id); if (e) toast(e); else toast(`성유물 장착: ${RELIC_BY_ID[app.sel.id].name}`); app.sel = { k: 'unit', uid: v }; persist(); break; }
       if (app.sel?.k === 'item' && run && isConsumable(run.inventory[app.sel.idx])) { app.useK = { i: app.sel.idx, tg: { k: 'unit', uid: v } }; break; } // 탭: 소모품 → 기물
       app.sel = app.sel?.k === 'item' && run ? equipSel(run, app.sel.idx, v) : { k: 'unit', uid: v }; break;
+    case 'sel-clear': app.sel = null; break;
     case 'sel-relic': app.sel = app.sel?.k === 'relic' && app.sel.id === v ? null : { k: 'relic', id: v }; break;
     case 'sel-enemy': app.abilPop = null; app.sel = { k: 'enemy', i: +v }; break;
     case 'sel-item': {
