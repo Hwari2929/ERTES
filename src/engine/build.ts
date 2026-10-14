@@ -295,7 +295,7 @@ ENG_HOOK.spawn = (b, lead, engs, n) => {
   const avg = (k: keyof Stats) => engs.reduce((s, e) => s + b.S(e, k), 0) / engs.length;
   const hpBonus = engs.reduce((s, e) => s + (e.mem.turretHp || 0), 0);
   const tier = lead.mem.eng || 1;
-  const inherit = [1.0, 1.5, 2.2, 3.2][Math.min(4, tier) - 1]; // 엔지니어 단계별 상속률
+  const inherit = [1.25, 1.875, 2.75, 4.0][Math.min(4, tier) - 1]; // 엔지니어 단계별 상속률
   const asBonus = 0.4 + engs.reduce((s, e) => s + (e.mem.turretAs || 0), 0) + (tier >= 3 ? 0.5 : 0); // 기본 공격 속도 +40%
   for (let i = 0; i < n; i++) {
     const t = blankUnit(lead.side);
