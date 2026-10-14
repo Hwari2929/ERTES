@@ -630,7 +630,7 @@ export class BattleView {
     this.skillCtx = { id: e.id, land: this.vt + T_SKILL };
     const ee = this.els.get(e.id);
     if (ee && !this.reduced) {
-      this.play(ee.face, [{ boxShadow: '0 0 0 0 var(--accent)' }, { boxShadow: '0 0 0 3px var(--accent), 0 0 16px var(--accent)', offset: 0.3 }, { boxShadow: '0 0 0 0 transparent' }], 420 * skK());
+      this.play(ee.face, [{ boxShadow: '0 0 0 0 #fff' }, { boxShadow: '0 0 0 3px #fff, 0 0 16px rgb(255 255 255 / .8)', offset: 0.3 }, { boxShadow: '0 0 0 0 transparent' }], 420 * skK());
       this.move(e.id, { transform: 'translate(0,-10%) scale(1.07)' }, 380, 4, 0.25);
     }
     // 설명은 처음 발동했을 때와 선택한 기물에만
