@@ -35,7 +35,7 @@ export const ABIL_B: Record<string, AbilText> = {
         ...(p.vuln ? [['취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`] as Row] : []),
       ],
     }),
-    trait: '기본 공격 적중 시 대상 주변 [t:2]의 가장 가까운 다른 적 1명에게 [dmg:tech:0.5:psy].',
+    trait: '기본 공격 적중 시 [dmg:tech:0.5:psy]가 [t:2] 내의 적에게 최대 1회 [g:bounce]된다.',
     augs: {
       flare: '백수정 섬광 범위 +[t:1]. 피해 [dmg+:tech:0.3:psy].',
       focus: '백수정 섬광 피해 [dmg+:tech:1.4:psy].',

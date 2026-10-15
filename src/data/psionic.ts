@@ -237,7 +237,7 @@ function discharge(b: Battle, u: CUnit) {
     zap(b, u, t, 3, 'elec');
   } else if (t.alive) b.applyStatus(u, t, conductStatus(b, u, 2, false));
   if (P(u, 'volt.chain')) {
-    // 연쇄 번개: 대상에서 가장 가까운 다른 적 3명에게 60%
+    // 바운스 번개: 대상에서 가장 가까운 다른 적 3명에게 차례로 60%
     const others = b.targetable(u).filter((e) => e !== t).sort((a, c) => b.dist(a, t) - b.dist(c, t)).slice(0, 3);
     let prev = t;
     for (const e of others) {

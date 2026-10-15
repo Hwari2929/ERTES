@@ -166,7 +166,7 @@ export const TURRET_GEAR: Record<string, TurretGear> = {
       return false;
     } } } },
   T_rapid: { name: '과급 급탄기', icon: '≫', grade: 'adv', desc: '포탑 공격 속도 +100%p.', effect: { stats: { atkSpd: 1.0 } } },
-  T_tesla: { name: '테슬라 코일', icon: 'ϟ', grade: 'adv', desc: '기본 공격이 전기 피해로 바뀌고, 맞힌 적에서 주변 2칸 다른 적에게 2번 연쇄합니다 (사격 위력 50% 전기 피해, 연쇄 대상이 없으면 멈춤).',
+  T_tesla: { name: '테슬라 코일', icon: 'ϟ', grade: 'adv', desc: '기본 공격이 전기 피해로 바뀌고, 맞히면 사격 위력 50% 계수의 전기 속성 피해가 2칸 내의 적에게 최대 2회 바운스된다.',
     effect: {
       setup: (u) => { u.atk = { ...u.atk, elem: 'elec' }; },
       hooks: { onBasic(b, u, t, r) {

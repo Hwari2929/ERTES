@@ -438,13 +438,19 @@ function relicPanel(run: RunState, u: UnitState) {
 }
 /** 고유 신앙 한 줄: 디바인만 활성 */
 /** 능력 블록: 고유 신앙 (디바인만 활성, 그 외는 비활성 표시) */
-function faithAbil(d: UnitDef, u: UnitState | null, run: RunState | null) {
-  const f = u?.faith || d.faith;
+/** 성찬(도로스)으로 신앙이 깨어난 디바인 아닌 기물인지 (전투 중) */
+const awakened = (d: UnitDef, c: CUnit | null) => d.ttype !== 'divine' && !!c && c.div !== null;
+/** 도로스가 출전 중이라 성찬으로 깨어날 수 있는지 (편성) */
+const dorosReady = (d: UnitDef, run: RunState | null) => d.ttype !== 'divine' && d.id !== 'doros' && !!run?.units.some((x) => x.defId === 'doros' && x.pos);
+function faithAbil(d: UnitDef, u: UnitState | null, run: RunState | null, c: CUnit | null = null) {
+  const f = c?.faith || u?.faith || d.faith;
   const fd = FAITH_DEF[f];
-  const on = d.ttype === 'divine';
+  const woke = awakened(d, c);
+  const on = d.ttype === 'divine' || woke;
   const tok = abTok(`faith.${f}`);
-  return `<div class="abil ab-faith${on ? '' : ' off'}${tok ? ' has-tok' : ''}">${tok}<div class="ab-head"><span class="ab-kind">신앙</span><b>${FAITH_NAME[f]}</b><span class="ab-meta">${on ? '활성' : '비활성'}</span></div>
-    <p>${on ? `${esc(fd.buff)}. 신성력: ${esc(fd.gain)}${app.detail ? `, 초당 +2 (수집 상한 ${CFG.divCap + (run?.divCap || 0)})` : ''}.` : '디바인만 신앙의 힘을 쓴다.'}</p></div>`;
+  const off = dorosReady(d, run) ? '디바인만 신앙의 힘을 쓴다. 도로스의 [성찬] 요리를 받으면 이번 전투 동안 깨어난다.' : '디바인만 신앙의 힘을 쓴다.';
+  return `<div class="abil ab-faith${on ? '' : ' off'}${tok ? ' has-tok' : ''}">${tok}<div class="ab-head"><span class="ab-kind">신앙</span><b>${FAITH_NAME[f]}</b><span class="ab-meta">${woke ? '성찬 각성' : on ? '활성' : '비활성'}</span></div>
+    <p>${on ? `${esc(fd.buff)}. 신성력: ${esc(fd.gain)}${app.detail ? `, 초당 +2 (수집 상한 ${CFG.divCap + (run?.divCap || 0)})` : ''}.${woke ? ' 도로스의 [성찬]으로 이번 전투 동안 깨어났다.' : ''}` : off}</p></div>`;
 }
 /** 능력 란의 전술 유형 섹션: 유형마다 구성이 다르다 (u 없으면 도감 미리보기, c 있으면 전투 중 실시간 값) */
 /** 전공 선택 카드: 학파 · 비술 · 지속 능력 · 고이성 · 저이성 · 전공 증강 7종 */
@@ -1135,12 +1141,19 @@ function ultCard(d: UnitDef, b: Battle | null, c: CUnit | null, live = false) {
 /** 디바인 신권 대행 카드: 장착한 성유물 */
 /** 성유물 섹션: 장착 슬롯 + 종속 하위 능력(신권 대행) */
 function relicSection(d: UnitDef, u: UnitState | null, run: RunState | null, c: CUnit | null, live = false) {
-  if (d.ttype !== 'divine') return '';
+  if (d.ttype !== 'divine') {
+    // 성찬(도로스)으로 깨어난 기물: 성유물이 없으므로 전투 유형 기본형 신권 대행 (전투 중) · 깨어날 수 있으면 미리보기 (편성)
+    const woke = live && awakened(d, c);
+    if (!woke && !dorosReady(d, run)) return '';
+    const da = DIVINE_ACT[d.ctype];
+    const chips = `<div class="ab-chips"><span class="abc" title="신성력이 가득 차면 발동">${lineIcon('a.divact', 'li')}신성력 100</span><span class="abc">전투당 1회</span>${woke && c ? `<span class="abc v">${c.divUsed ? '발동함' : Math.round(c.div || 0)}</span>` : '<span class="abc">성찬을 받으면</span>'}</div>`;
+    return `<section class="abil ab-relic"><div class="rl-act ab-click${abilOn('divact')}" data-a="abil-pop" data-v="divact" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">신권 대행 · 성찬</span><b>${lineIcon('a.divact', 'li ab-ic')}${esc(da.name)}</b></div>${chips}<p>${esc(da.desc)}. 성유물이 없어 ${esc(CTYPE_NAME[d.ctype])} 기본형을 쓴다.</p></div></section>`;
+  }
   const rid = u?.relic || c?.relic || DEFAULT_RELIC[d.id];
   const rel = rid ? RELIC_BY_ID[rid] : null;
   const edit = !!(u && run && !live);
   const head = `<div class="ab-head"><span class="ab-kind">성유물</span><b>${esc(rel?.name || '없음')}</b>${u && run && rel ? `<button class="btn tiny rl-bless${u.enh ? ' done' : ''}" data-a="relic-enh" data-v="${u.uid}" title="권능 ${rel.enh}을 써서 다음 전투의 신권 대행 계수를 ×3으로" ${live || u.enh || run.power < rel.enh ? 'disabled' : ''}>${u.enh ? '축성됨' : `축성 · 권능 ${rel.enh}`}</button>` : ''}</div>`;
-  const slot = `<div class="rl-slot">${relicTok(rel?.id || '', edit ? `data-a="relic-pick" data-v="${u!.uid}"` : '', edit && app.relicPick === u!.uid)}<p class="small muted">${rel ? '장착한 성유물이 신권 대행의 효과를 정한다.' : '성유물이 없으면 신권 대행을 쓸 수 없다.'}</p></div>${edit && app.relicPick === u!.uid ? relicPicker(run!, u!) : ''}`;
+  const slot = `<div class="rl-slot">${relicTok(rel?.id || '', edit ? `data-a="relic-pick" data-v="${u!.uid}"` : '', edit && app.relicPick === u!.uid)}<p class="small muted">${rel ? '장착한 성유물이 신권 대행의 효과를 정한다.' : `성유물이 없으면 ${esc(CTYPE_NAME[d.ctype])} 기본형 신권 대행 [${esc(DIVINE_ACT[d.ctype].name)}]을 쓴다.`}</p></div>${edit && app.relicPick === u!.uid ? relicPicker(run!, u!) : ''}`;
   let act = '';
   if (rel) {
     const k = (live ? c?.mem.enh : u?.enh ? 3 : 1) || 1;
@@ -1235,8 +1248,10 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
   } else if (key === 'divact') {
     const rid = c?.relic || app.run?.units.find((x) => x.defId === d.id)?.relic || DEFAULT_RELIC[d.id];
     const rel = rid ? RELIC_BY_ID[rid] : null;
-    kind = '신권 대행'; name = rel?.name || '신권 대행'; mech = '고유 신앙에 맞는 행동으로 신성력을 모아 100이 되면 전투당 한 번 발동. 장착한 성유물에 따라 효과가 바뀌고, 지속 효과는 전투가 끝날 때까지 유지된다. 권능으로 강화하면 다음 전투 한정 계수 ×3.';
-    body = rel ? `<p>${statIc(esc(rel.desc(c?.mem.enh || 1)))}</p><p class="muted small">강화 비용 권능 ${rel.enh}</p>` : '';
+    const da = DIVINE_ACT[d.ctype];
+    kind = '신권 대행'; name = rel?.name || da.name; mech = rel ? '고유 신앙에 맞는 행동으로 신성력을 모아 100이 되면 전투당 한 번 발동. 장착한 성유물에 따라 효과가 바뀌고, 지속 효과는 전투가 끝날 때까지 유지된다. 권능으로 강화하면 다음 전투 한정 계수 ×3.'
+      : `고유 신앙에 맞는 행동으로 신성력을 모아 100이 되면 전투당 한 번 발동. 성유물이 없으면 (도로스의 [성찬]으로 깨어난 기물 등) ${CTYPE_NAME[d.ctype]} 기본형을 쓴다.`;
+    body = rel ? `<p>${statIc(esc(rel.desc(c?.mem.enh || 1)))}</p><p class="muted small">강화 비용 권능 ${rel.enh}</p>` : `<p>${esc(da.desc)}.</p>`;
   } else if (key === 'trait') {
     kind = '특성'; name = d.trait.name; mech = '전투 내내 적용되는 이 기물의 고유 효과.';
     const t = ABIL[d.id]?.trait;
@@ -2648,7 +2663,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
   if (u.side === 0 && !u.isSummon) {
     const d = UNIT_BY_ID[u.defId];
     head = heroHead(d.id, sprite(u, 'spr big'), d.name, allyTags(d));
-    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem, d.id)}<div class="abil ab-trait ab-click${abilOn('trait')} has-tok" data-a="abil-pop" data-v="trait" role="button" tabindex="0">${abTok(`trait.${d.id}`)}<div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${ultCard(d, b, u, true)}${faithAbil(d, u.src || null, app.run)}${ttSection(d, u.src || null, app.run, b, u, true)}${relicSection(d, u.src || null, app.run, u, true)}`;
+    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem, d.id)}<div class="abil ab-trait ab-click${abilOn('trait')} has-tok" data-a="abil-pop" data-v="trait" role="button" tabindex="0">${abTok(`trait.${d.id}`)}<div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${ultCard(d, b, u, true)}${faithAbil(d, u.src || null, app.run, u)}${ttSection(d, u.src || null, app.run, b, u, true)}${relicSection(d, u.src || null, app.run, u, true)}`;
     if (app.abilPop) pop = abilPopHtml(app.abilPop, d, b, u);
   } else if (u.side === 1 && ENEMY_BY_ID[u.defId]) {
     const e = ENEMY_BY_ID[u.defId];

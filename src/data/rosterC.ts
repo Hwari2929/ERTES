@@ -252,9 +252,25 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'psy', interval: 1.2 }, range: 3, base: B(7, 7, 9, 6, 3),
     sprite: 'robe', palette: tint(PAL.FAM, '#1a1c2a', '#c8ccd8', '#ffd34d'), lore: '저택의 모든 문은 그의 허락으로 열리고, 모든 일정은 그의 수첩에서 시작된다.',
     skill: support({
-      name: '집사의 보좌', cd: 8, target: 'commanded', params: { count: 1, dmg: 0.35, as: 0.15, dur: 6, famShield: 0.5 },
-      desc: (p) => `가장 강한 아군 ${p.count}명에게 ${p.dur}초간 피해 +${pct(p.dmg)}, 공격 속도 +${pct(p.as)}${p.red ? `, 받는 피해 -${pct(p.red)}` : ''}. 엘베스타드 일가 아군 전원에게 기술 위력 ${pct(p.famShield)} 보호막.`,
-      after: (b, u, _ts, p) => { for (const a of b.alliesOf(u)) if (a.synergies.has('FAM')) b.shield(a, b.P(u, 'tech') * p.famShield); },
+      name: '집사의 보좌', cd: 8, target: 'commanded', params: { count: 1, dmg: 0.35, as: 0.15, dur: 6, famShield: 0.5, mainUp: 0.4 },
+      desc: (p) => `가장 강한 아군 ${p.count}명에게 ${p.dur}초간 피해 +${pct(p.dmg)}, 공격 속도 +${pct(p.as)}, 주요 위력 + 시그문드 전술 위력 ${pct(p.mainUp)}${p.red ? `, 받는 피해 -${pct(p.red)}` : ''}. 엘베스타드 일가 아군 전원에게 기술 위력 ${pct(p.famShield)} 보호막.`,
+      after: (b, u, ts, p) => {
+        for (const a of b.alliesOf(u)) if (a.synergies.has('FAM')) b.shield(a, b.P(u, 'tech') * p.famShield);
+        // 집사의 예법: 보좌 대상의 주요 위력 + 시그문드 전술 위력 × mainUp (명사수 사격 · 돌격가 타격 · 전문가 기술 · 지휘관 전술 위력)
+        const add = b.tacPower(u) * p.mainUp;
+        for (const t of ts) {
+          if (t.ctype === 'CMD' && !t.isSummon) {
+            const k = add / Math.max(1, b.tac[t.side]); // 지휘관: 전술 위력 배율로 (다시 걸면 갱신)
+            t.mem.tacPct = (t.mem.tacPct || 0) - (t.mem.sigTac || 0) + k;
+            t.mem.sigTac = k;
+            const until = (t.mem.sigTacUntil = b.t + p.dur);
+            b.later(p.dur, () => { if (t.mem.sigTacUntil === until) { t.mem.tacPct = (t.mem.tacPct || 0) - (t.mem.sigTac || 0); t.mem.sigTac = 0; } });
+          } else {
+            const key = t.ctype === 'MARK' ? 'shoot' : t.ctype === 'VAN' ? 'strike' : t.ctype === 'SPEC' ? 'tech' : t.atk.type;
+            b.buff(u, t, 'sig.etiquette', p.dur, { delta: { [key]: add }, label: '집사의 예법' });
+          }
+        }
+      },
     }),
   },
   {

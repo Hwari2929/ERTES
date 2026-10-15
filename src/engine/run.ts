@@ -453,7 +453,9 @@ export function leaveShop(run: RunState) { run.node = null; advance(run); }
 /** 분기점(상점 노드): 상점 · 보급 + 호이슌 투자 · 순례 (각각 페이즈당 1회) */
 export function branchOptions(run: RunState): NodeType[] {
   const used = run.picked.slice(0, run.step);
-  const o: NodeType[] = ['shop', 'supply', 'news', 'recruit'];
+  // 은하 대스타: 보스 직전 분기점이면 곧 속보 노드가 자동으로 붙으므로 분기점의 속보는 빼서 중복을 막는다
+  const preBoss = !!run.map[run.step + 1]?.includes('boss') && tierNow(run, 'STAR') > 0;
+  const o: NodeType[] = preBoss ? ['shop', 'supply', 'recruit'] : ['shop', 'supply', 'news', 'recruit'];
   if (tierNow(run, 'HOI') && !used.includes('invest')) o.push('invest');
   if (hasDivine(run) && !used.includes('pilgrim')) o.push('pilgrim');
   if (tierNow(run, 'ENG')) o.push('maint'); // 엔지니어 출전 중: 정비 (포탑 전용 장비)
@@ -492,7 +494,8 @@ export function advance(run: RunState) {
     if (run.fund) { run.credits += run.fund; log(run, `호이슌 투자 수익 +${run.fund}`); run.pending.push({ t: 'notice', title: '투자 수익 정산', body: `지난 페이즈에 맡긴 자금이 불어나 크레딧 +${run.fund}을 돌려받았습니다.` }); run.fund = 0; }
   }
   // 은하 대스타가 활성화되어 있으면 보스 직전에 속보 노드 추가
-  if (run.map[run.step]?.includes('boss') && run.map[run.step - 1]?.[0] !== 'news' && tierNow(run, 'STAR')) {
+  // (분기점에서 이미 속보를 골랐으면 붙이지 않는다: picked 는 실제로 간 노드)
+  if (run.map[run.step]?.includes('boss') && run.map[run.step - 1]?.[0] !== 'news' && run.picked[run.step - 1] !== 'news' && tierNow(run, 'STAR')) {
     run.map.splice(run.step, 0, ['news']);
   }
 }

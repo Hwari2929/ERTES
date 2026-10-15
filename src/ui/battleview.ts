@@ -6,6 +6,7 @@ import { hasPortrait, iconURL, standURL } from './portraits';
 import { ULTS } from '../data/ults';
 import { VOICE, voicePick } from '../data/voicelines';
 import { RELIC_BY_ID } from '../data/relics';
+import { DIVINE_ACT } from '../data/rework';
 import { SCHOOL_BY_ID, type SchoolId } from '../data/schools';
 import { lineIcon } from './synicons';
 
@@ -356,6 +357,12 @@ export class BattleView {
         e.cpi.hidden = !u.alive;
       }
       const alive = u.alive || (this.pendN.get(id) || 0) > 0;
+      if (!e.ug && u.div !== null && !u.ult) { // 성찬(도로스)으로 전투 중에 신앙이 깨어난 기물: 신성력 게이지를 새로 단다
+        const ring = document.createElement('div');
+        ring.className = 'ug div';
+        (e.el.querySelector<HTMLElement>('.tk-card') || e.el).appendChild(ring);
+        e.ug = ring;
+      }
       if (e.ug) {
         const f = u.ult ? (u.ultG || 0) : u.div !== null ? (u.divUsed ? 1 : u.div / 100) : 0;
         const st = u.ult ? (f >= 1 ? 'full' : '') : u.divUsed ? 'used' : f >= 1 ? 'full' : '';
@@ -923,7 +930,7 @@ export class BattleView {
     const u = this.unit(id);
     if (!u) return;
     const rel = u.relic ? RELIC_BY_ID[u.relic] : null;
-    const name = rel?.name || '신권 대행';
+    const name = rel?.name || (u.ctype ? DIVINE_ACT[u.ctype].name : '신권 대행'); // 성유물이 없으면 (성찬으로 깨어난 기물) 전투 유형 기본형
     const enh = (u.mem.enh || 1) > 1;
     this.skillCtx = { id, land: this.vt + 0.18 };
     this.log(id, 'divact', `신권 대행 · ${name}${enh ? ' (강화)' : ''}`);

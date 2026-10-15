@@ -266,6 +266,7 @@ export const ABIL_C: Record<string, AbilText> = {
       rows: [
         ['버프', `피해 +[p:${p.dmg}], 공격 속도 +[p:${p.as}] ([s:${p.dur}])`],
         ...opt(p.red, '피해량 경감', `[g:red] [p:${p.red}] ([s:${p.dur}])`),
+        ['주요 위력', `보좌 대상의 주요 위력 + 시그문드 [g:tac] [p:${p.mainUp}] ([s:${p.dur}])`],
         ['보호막', `엘베스타드 아군 전원에게 [shield:${p.famShield}]`],
       ],
     }),

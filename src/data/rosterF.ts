@@ -149,7 +149,7 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'robe', palette: tint(HOI_PAL, '#1c1c24', '#ff4d9a', '#7fe3ff'),
     lore: '"한 잔 하실래요? 오늘 계약서에 서명하시면, 이 잔은 제가 사죠."',
     skill: support({
-      name: '네온 칵테일', cd: 5.5, target: 'strongest', power: cookPower, params: { heal: 1.1, dmg: 0.45, as: 0.3, dur: 6 },
+      name: '네온 칵테일', cd: 4.5, target: 'strongest', power: cookPower, params: { heal: 1.4, dmg: 0.6, as: 0.4, dur: 6 },
       desc: (p) => `[요리] 가장 강한 아군에게 기술 위력 ${pct(p.heal)} 회복, ${p.dur}초간 피해 +${pct(p.dmg)} · 공격 속도 +${pct(p.as)}.`,
     }),
   },
@@ -217,8 +217,14 @@ export const REWORK_F: Record<string, ReworkDef> = {
   fotini: {
     ctype: 'MARK', ttype: 'divine', faith: 'hermes', weapon: G('안내 깃발 레이저', 'holy', 1.0, 4, 0.9, 8, 1.8),
     trait: {
-      name: '여러분 이쪽입니다 ^^', desc: '전투 시작 시 모든 아군 이동 속도 +20%, 6초간 피해 +15%.',
-      effect: { hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) { a.st.moveSpd += 0.2; b.buff(u, a, 'fotini.tour', 6, { mods: [inc('all', 0.15)], label: '관광 시작' }); } } } },
+      name: '여러분 이쪽입니다 ^^', desc: '전투 시작 시 모든 아군 이동 속도 +20%, 6초간 피해 +15%. 자신은 4초간 공격 속도 +50%, 결정타를 날리면 다시 4초로 갱신.',
+      effect: { hooks: {
+        onStart(b, u) {
+          for (const a of b.alliesOf(u)) { a.st.moveSpd += 0.2; b.buff(u, a, 'fotini.tour', 6, { mods: [inc('all', 0.15)], label: '관광 시작' }); }
+          b.buff(u, u, 'fotini.rush', 4, { delta: { atkSpd: 0.5 }, label: '안내 가속' });
+        },
+        onKill(b, u) { b.buff(u, u, 'fotini.rush', 4, { delta: { atkSpd: 0.5 }, label: '안내 가속' }); },
+      } },
     },
   },
   kaburaya: {
@@ -313,7 +319,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
     },
   },
   mao: {
-    ctype: 'CMD', ttype: 'special', faith: 'index', weapon: G('칵테일 셰이커 블래스터', 'elec', 1.1, 3, 1.0, 6, 2.0),
+    ctype: 'CMD', ttype: 'special', faith: 'index', weapon: G('칵테일 셰이커 블래스터', 'elec', 1.1, 3, 1.25, 6, 2.0),
     trait: {
       name: '회장님의 접대', desc: '요리받은 아군의 기술 쿨다운 -2초.',
       effect: { hooks: { onInflict(_b, _u, t, s) { if (s.key === 'sup.mao' && t.skill) t.cd -= 2; } } },

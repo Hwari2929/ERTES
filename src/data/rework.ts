@@ -117,7 +117,7 @@ export const REWORK: Record<string, ReworkDef> = {
     specialAugs: [
       sp('donovan', 'eye', '자안 개방', '기술 피해가 치명타로 터지면 기술 쿨다운 -1초.', { hooks: { onDeal(_b, u, _t, r, o) { if (r.crit && o.kind === 'tech') u.cd -= 1; } } }),
       sp('donovan', 'crow', '까악이 해킹', '까악이의 공격이 30% 확률로 1초 감전을 건다.', { hooks: { onStart(_b, u) { u.mem.crowShock = 1; } } }),
-      sp('donovan', 'shadow', '그림자 와이어', '피니쉬가 대상 주변 1칸 적에게 타격 위력 80% 연쇄 피해를 준다.', { hooks: { onBasic(b, u, t) {
+      sp('donovan', 'shadow', '그림자 와이어', '피니쉬가 대상 주변 1칸 다른 적 모두에게 타격 위력 80% 물리 피해를 준다.', { hooks: { onBasic(b, u, t) {
         if (!u.mem.finished) return;
         for (const e of b.around(t, 1, b.enemiesOf(u))) if (e !== t) proc(b, u, e, b.S(u, 'strike') * 0.8, 'phys', 'strike');
       } } }),
@@ -330,7 +330,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'SPEC', ttype: 'psionic', faith: 'emperor', weapon: G('백수정 조각', 'psy', 0.9, 3, 0.9, 6, 1.5),
     factions: ['KAL', 'VOYAGE'], traits: ['OCCULT'],
     trait: {
-      name: '사이오닉 영사', desc: '기본 공격이 맞으면 대상 주변 2칸의 다른 적에게 튕겨 기술 위력 50% 정신 피해.',
+      name: '사이오닉 영사', desc: '기본 공격이 맞으면 기술 위력 50% 계수의 정신 속성 피해가 2칸 내의 적에게 최대 1회 바운스된다.',
       effect: { hooks: { onBasic(b, u, t, r) {
         if (r.amount <= 0) return;
         const e = b.nearest(t, b.around(t, 2, b.enemiesOf(u)).filter((x) => x !== t));

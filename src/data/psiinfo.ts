@@ -62,7 +62,7 @@ export const PASSIVE_BRIEF: Record<SchoolId, string> = {
 export const SCHOOL_LINE: Record<SchoolId, string> = {
   pyro: '연소를 쌓아 두었다가 비술로 한꺼번에 터뜨린다.',
   chrono: '오한을 쌓아 적을 느리게 하고, 끝내 얼려 버린다.',
-  volt: '전도된 적이 움직일 때마다 주변 적에게 번개가 튄다.',
+  volt: '전도된 적이 행동할 때마다 주변 적에게 전기 피해가 바운스된다.',
   wave: '충격파로 밀쳐내고, 맞을수록 퍼지는 공진을 건다.',
   seed: '중독을 쌓아 적을 천천히 갉아먹는다.',
   mind: '적을 서로 묶고 홀려서 혼란에 빠뜨린다.',

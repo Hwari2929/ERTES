@@ -48,7 +48,7 @@ export const ABIL_A: Record<string, AbilText> = {
       ice: '회피 [pp:0.075], 공격 속도 [pp:0.25].',
       'sp.eye': '기술 피해가 [g:crit]로 적중 시 쿨다운 -[s:1].',
       'sp.crow': '까악이 기본 공격 적중 시 [st:shock:1:0.3].',
-      'sp.shadow': '[g:finish] 적중 시 대상 주변 [t:1] 적에게 [dmg:strike:0.8:phys].',
+      'sp.shadow': '[g:finish] 적중 시 대상 주변 [t:1] 다른 적 모두에게 [dmg:strike:0.8:phys].',
       'sp.execute': '스킬 대상의 체력이 [p:0.3] 이하이면 스킬 피해 ×1.8.',
       'sp.night': '전투 시작 후 [s:4] 동안 은신 (대상으로 지정되지 않음). 은신 중 첫 스킬은 반드시 [g:crit].',
       'sp.weak': '[g:crit] 피해 [pp:0.4]. 기술 피해가 [g:crit]로 적중하면 대상 [st:corrode:4]: 방어도 -[p:0.3].',

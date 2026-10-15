@@ -61,7 +61,7 @@ export const ABIL_F: Record<string, AbilText> = {
         ...when(p.vuln, ['취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`]),
       ],
     }),
-    trait: '전투 시작 시 모든 아군 이동 속도 +[p:0.2] (전투 동안), [s:6] 동안 피해 +[p:0.15].',
+    trait: '전투 시작 시 모든 아군 이동 속도 +[p:0.2] (전투 동안), [s:6] 동안 피해 +[p:0.15]. 자신은 [s:4] 동안 공격 속도 +[p:0.5], 결정타 시 [s:4]로 갱신.',
     augs: {
       tour: '관광 명소 소개 범위 +[t:1]. 피해 [dmg+:shoot:0.3:holy].',
       flag: '관광 명소 소개 피해 [dmg+:shoot:1.6:holy].',
