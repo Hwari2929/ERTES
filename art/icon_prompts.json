@@ -12,7 +12,7 @@
   "color": "steel and crimson"
  },
  "cantrip.pyro": {
-  "subject": "fireball exploding with embers and flames",
+  "subject": "roaring fireball incinerating and consuming burning embers, flame vortex",
   "color": "orange and red"
  },
  "skill.yelena": {
@@ -759,5 +759,65 @@
  "weapon.rus": {
   "subject": "twin pistols crossed",
   "color": "steel and crimson"
+ },
+ "passive.pyro": {
+  "subject": "smoldering ember flame stacking on a burning mark, ignite",
+  "color": "orange and red"
+ },
+ "cantrip.chrono": {
+  "subject": "three sharp ice shards flying past a frozen cracked clock face",
+  "color": "icy blue and white"
+ },
+ "passive.chrono": {
+  "subject": "frost crystals creeping over a surface, snowflake chill",
+  "color": "icy blue and white"
+ },
+ "cantrip.volt": {
+  "subject": "forked lightning bolt striking down with crackling electric arcs",
+  "color": "cyan and electric blue"
+ },
+ "passive.volt": {
+  "subject": "electric arcs chaining between three glowing nodes, conduction",
+  "color": "cyan and electric blue"
+ },
+ "cantrip.wave": {
+  "subject": "expanding shockwave rings pushing outward from a pulse core, force blast",
+  "color": "teal and aquamarine"
+ },
+ "passive.wave": {
+  "subject": "crystal bell vibrating and emitting concentric resonance waves",
+  "color": "teal and aquamarine"
+ },
+ "cantrip.seed": {
+  "subject": "toxic spore pod bursting open releasing glowing spores and sprouting vines",
+  "color": "toxic green"
+ },
+ "passive.seed": {
+  "subject": "dripping poison droplet with toxic bubbles",
+  "color": "toxic green"
+ },
+ "cantrip.mind": {
+  "subject": "glowing chain links binding together around a pink heart, psychic bond",
+  "color": "pink and violet"
+ },
+ "passive.mind": {
+  "subject": "swirling hypnotic spiral eye, dizzy confusion stars",
+  "color": "pink and violet"
+ },
+ "cantrip.gold": {
+  "subject": "alchemical transmutation circle turning metal gears into gold coins",
+  "color": "gold and amber"
+ },
+ "passive.gold": {
+  "subject": "floating golden armor pieces and gear orbiting, temporary equipment",
+  "color": "gold and amber"
+ },
+ "cantrip.illusion": {
+  "subject": "shimmering mirror shards reflecting a phantom mask, illusion decoy",
+  "color": "lavender and prismatic"
+ },
+ "passive.illusion": {
+  "subject": "swirling perfume mist and fragrant petals, alluring scent",
+  "color": "lavender and prismatic"
  }
 }
