@@ -60,7 +60,11 @@
   "subject": "1boy",
   "tags": "adult male, slender, black hair, slicked back hair, red eyes, glowing eyes, dark grey suit, white shirt, open collar, no necktie, belt, energy sword, lightsaber hilt at hip, sharp eyes, open mouth, pointing at viewer, full body, standing, looking at viewer",
   "source": "lore",
-  "notes": "정장 색 미기재 → 짙은 회색. '이의 있습니다' 포즈로 pointing 추가. 빛에 몸이 불붙는 설정은 미반영."
+  "notes": "정장 색 미기재 → 짙은 회색. '이의 있습니다' 포즈로 pointing 추가. 빛에 몸이 불붙는 설정은 미반영.",
+  "alts": {
+   "calm": "mature male, 40s, tall, slender, pale skin, very pale, deathly pale skin, slight dark circles under eyes, black hair, slicked back hair, a few loose strands, red eyes, calm expression, composed, dignified, closed mouth, slight smile, dark charcoal three-piece suit, waistcoat, white shirt, dark red necktie, black leather gloves, holding closed leather folder, lightsaber hilt at hip, hand on chest, full body, standing, looking at viewer",
+   "calm2": "mature male, 40s, tall, slender, pale skin, very pale, deathly pale skin, slight dark circles under eyes, black hair, slicked back hair, a few loose strands, red eyes, calm expression, composed, dignified, closed mouth, faint smile, gentle eyes, dark charcoal three-piece suit, waistcoat, white shirt, dark red necktie, black leather gloves, holding closed leather folder, silver cylindrical sword hilt at hip, no blade, ::-1.5::glowstick, light stick, neon::, hand on chest, full body, standing, looking at viewer"
+  }
  },
  "grenholm": {
   "name": "그렌홀름",
