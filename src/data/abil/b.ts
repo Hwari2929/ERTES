@@ -187,7 +187,7 @@ export const ABIL_B: Record<string, AbilText> = {
         ['버프', `[s:${p.dur}] 동안 공격 속도 +[p:${p.as}]`],
       ],
     }),
-    trait: '모든 아군 이동 속도 · 공격 속도 [pp:0.25]. 날개 단검 6번째 적중마다 인지 교란: 대상에게 [dmg:tech:1.2:holy] (회피 불가) + [st:fear:1.5:0.5].',
+    trait: '모든 아군 이동 속도 · 공격 속도 [pp:0.25]. 날개 단검 5번째 적중마다 인지 교란: 대상에게 [dmg:tech:1.2:holy] (회피 불가) + [st:fear:1.5:0.5].',
     augs: {
       kerykeion: '헤르메스의 가속 대상 +1명.',
       blessing: '헤르메스의 가속 공격 속도 증가 [pp:0.35].',

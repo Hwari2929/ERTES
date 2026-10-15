@@ -559,9 +559,9 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'CMD', ttype: 'divine', faith: 'hermes', weapon: G('날개 단검 투척', 'holy', 0.9, 3, 0.6, 6, 1.5),
     factions: ['HEL', 'STL'], traits: [],
     trait: {
-      name: '헤르메스의 날개', desc: '아군 전원 이동 속도 · 공격 속도 +25%p. 날개 단검이 6번 맞을 때마다 대상의 인지를 교란해 기술 위력 120% 신성 피해 + 50% 확률로 1.5초 공포.',
+      name: '헤르메스의 날개', desc: '아군 전원 이동 속도 · 공격 속도 +25%p. 날개 단검이 5번 맞을 때마다 대상의 인지를 교란해 기술 위력 120% 신성 피해 + 50% 확률로 1.5초 공포.',
       effect: { hooks: { onBasic(b, u, t, r) {
-        if (r.amount <= 0 || !t.alive || !nth(u, 'irisN', 6)) return;
+        if (r.amount <= 0 || !t.alive || !nth(u, 'irisN', 5)) return;
         skillHit(b, u, t, 'tech', u.sk.jam ?? 1.2, 'holy', { noMiss: true });
         if (t.alive) fear(b, u, t, 1.5, u.sk.fearChance ?? 0.5);
       }, onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'iris.wing', 999, { delta: { moveSpd: 0.25, atkSpd: 0.25 } }); } } },
@@ -1116,7 +1116,7 @@ export const TUNE: Record<string, { w?: number; s?: number }> = {
   falcon: { w: 1.35, s: 1.3 }, west: { w: 1.3, s: 1.3 }, argon: { w: 1.3, s: 1.3 }, romani: { w: 1.1, s: 1.15 },
   gebek: { w: 1.1, s: 1.15 }, mirinae: { w: 1.05, s: 1.15 }, odysseus: { w: 1.15, s: 1.2 }, yupito: { w: 1.25, s: 1.35 },
   joshua: { w: 1.2, s: 1.35 }, iris: { w: 1.15, s: 1.2 }, phyllis: { w: 1.2, s: 1.25 }, eleni: { w: 1.1, s: 1.15 },
-  kyle: { w: 1.1, s: 1.1 }, temur: { s: 1.1 }, vivian: { w: 1.1, s: 1.1 },
+  kyle: { w: 1.1, s: 1.2 }, temur: { s: 1.1 }, vivian: { w: 1.1, s: 1.1 },
   zina: { w: 0.85, s: 0.85 }, skadi: { w: 0.85, s: 0.85 }, // 화학 · 전기는 방어도를 절반만 받아 초반 가치가 높다
 };
 /** 스킬 계수 중 배율을 적용할 항목 */
