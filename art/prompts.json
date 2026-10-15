@@ -1205,7 +1205,7 @@
  "en_rd_sub": {
   "name": "구독 치안 드론",
   "subject": "no humans",
-  "tags": "single small hovering police drone, quadcopter, chrome body, neon pink siren light bar, stun gun underneath, cyberpunk, no humans",
+  "tags": "solo, one drone only, single compact police quadcopter drone, centered, full view, chrome round body, four rotors, neon pink siren light, small stun gun underneath, cyberpunk, simple, no humans",
   "source": "enemy",
   "notes": "시안(미채택)",
   "object": true
@@ -1435,7 +1435,7 @@
  "en_bs_herring": {
   "name": "긴다리 청어 떼",
   "subject": "no humans",
-  "tags": "school of long-legged fish creatures, pale fish walking on spindly legs, alien mimic, creepy, no humans",
+  "tags": "solo, one creature only, single pale herring fish monster standing on long spindly insect-like legs, centered, full body, side view, alien mimic, eerie, no humans",
   "source": "enemy",
   "notes": "시안(미채택)",
   "object": true
