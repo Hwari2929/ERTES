@@ -2281,3 +2281,22 @@ body.coaching .kw-tip, body.coaching .item-tip, body.coaching .drag-ghost { z-in
 @media (max-width: 700px) { .has-tok { grid-template-columns: 38px minmax(0, 1fr); } .ab-tok { width: 38px; height: 38px; } }
 .abil-pop .sp-head .ap-tok { grid-row: auto; width: 40px; height: 40px; border-color: var(--accent); }
 @media (max-width: 700px) { .um-grid { align-content: start; grid-auto-rows: auto; } .um-col { min-height: auto; } }
+
+/* 전체 상세 3단: 좌(개요) · 중앙(전투 유형 · 무기 · 특성 · 스킬) · 우(신앙 · 전술 유형). 열마다 따로 스크롤 */
+.um-grid { grid-template-columns: minmax(260px, 320px) minmax(0, 1fr) minmax(0, 1fr); }
+.um-main { display: contents; }
+.um-r { border-left: 1px solid var(--line); }
+.um-c .abils, .um-r .abils { grid-template-columns: minmax(0, 1fr); max-width: none; }
+.um-c .um-types, .um-r .um-types { max-width: none; }
+@media (max-width: 1100px) {
+  .um-grid { grid-template-columns: minmax(240px, 280px) minmax(0, 1fr); }
+  .um-main { display: block; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+  .um-main > .um-col { overflow: visible; min-height: auto; }
+  .um-r { border-left: 0; border-top: 1px solid var(--line); }
+}
+@media (max-width: 700px) {
+  .um-grid { grid-template-columns: minmax(0, 1fr); }
+  .um-main { overflow: visible; }
+}
+.um-r .tt-rule { display: none; }
+.um-c .ab-trait .subs { display: none; }

@@ -1309,22 +1309,32 @@ function unitModal(run: RunState) {
         ${powRow(b, c, d, !!u.pos)}
         <h3>상세 스탯</h3>${statLines(c, b)}
       </div>
-      <div class="um-col um-c">
-        <h3>유형 특성</h3>
-        <dl class="um-types">
-          <dt>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</dt><dd>${esc(CTYPE_DESC[d.ctype]?.[app.detail ? 1 : 0] || '')}</dd>
-          <dt>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</dt><dd>${esc(TTYPE_RULE[d.ttype])}</dd>
-          <dt>${CATEGORY_NAME[cat]}</dt><dd>${esc(CATEGORY_RULE[cat])}</dd>
-        </dl>
-        <h3>능력</h3>
-        <div class="abils">
-          ${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem, d.id)}
-          ${traitGroup(d, u, run, b, c)}
-          ${aceAbil(run, u)}${voyAbil(d, run, u)}
-          ${skillCard(d, b, c)}
-          ${ultCard(d, b, c)}
-          ${faithAbil(d, u, run)}
-          ${ttSection(d, u, run, b, c)}${relicSection(d, u, run, c)}
+      <div class="um-main">
+        <div class="um-col um-c">
+          <h3>전투 유형</h3>
+          <dl class="um-types">
+            <dt>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</dt><dd>${esc(CTYPE_DESC[d.ctype]?.[app.detail ? 1 : 0] || '')}</dd>
+            <dt>${CATEGORY_NAME[cat]}</dt><dd>${esc(CATEGORY_RULE[cat])}</dd>
+          </dl>
+          <h3>전투 능력</h3>
+          <div class="abils">
+            ${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem, d.id)}
+            ${traitGroup(d, u, run, b, c)}
+            ${skillCard(d, b, c)}
+            ${aceAbil(run, u)}${voyAbil(d, run, u)}
+          </div>
+        </div>
+        <div class="um-col um-r">
+          <h3>신앙</h3>
+          <div class="abils">${faithAbil(d, u, run)}</div>
+          <h3>전술 유형</h3>
+          <dl class="um-types">
+            <dt>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</dt><dd>${esc(TTYPE_RULE[d.ttype])}</dd>
+          </dl>
+          <div class="abils">
+            ${ultCard(d, b, c)}
+            ${ttSection(d, u, run, b, c)}${relicSection(d, u, run, c)}
+          </div>
         </div>
       </div>
     </div>${pop}
@@ -2034,7 +2044,7 @@ function render() {
   const winY = window.scrollY;
   lastView.screen = app.screen; lastView.modal = modalKey;
   // 다시 그려도 스크롤 위치 유지 (상세 패널 · 전체 상세 팝업)
-  const KEEP = ['.um-grid', '.um-a', '.um-c', '.side.right', '.map-detail', '.detail'];
+  const KEEP = ['.um-grid', '.um-a', '.um-c', '.um-r', '.um-main', '.side.right', '.map-detail', '.detail'];
   const kept = KEEP.map((q) => root.querySelector<HTMLElement>(q)?.scrollTop ?? 0);
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
