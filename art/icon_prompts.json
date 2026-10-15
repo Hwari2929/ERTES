@@ -1,7 +1,7 @@
 {
  "skill.iris": {
-  "subject": "winged sandal dashing forward with golden speed streaks and holy light burst",
-  "color": "gold and amber"
+  "subject": "caduceus emitting swift wind currents and speed lines, blessing of speed",
+  "color": "white and pale gold"
  },
  "trait.romani": {
   "subject": "heavy iron chain with large barbed hook lashing forward and yanking back",
@@ -107,7 +107,7 @@
   "color": "teal"
  },
  "skill.lars": {
-  "subject": "open briefcase full of gold coins and a signed contract scroll",
+  "subject": "fountain pen signing a contract that turns into chains, binding deal",
   "color": "white, silver and light gray with subtle crimson accents",
   "light": true
  },
@@ -190,7 +190,7 @@
   "color": "gold and amber"
  },
  "skill.eleni": {
-  "subject": "crescent moon sword slash with protective moonlight halo",
+  "subject": "moonlit lighthouse lantern casting a protective glow, healing sparkles",
   "color": "white and pale teal"
  },
  "trait.eleni": {
