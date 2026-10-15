@@ -1088,5 +1088,386 @@
   "source": "enemy",
   "notes": "",
   "object": true
+ },
+ "en_cf_neighbor": {
+  "name": "완벽한 이웃",
+  "subject": "1boy",
+  "tags": "too-perfect suburban neighbor, retro 1950s suburban dad, neat cardigan and slacks, hiding garden shears behind back, stiff perfect posture, unsettling, sepia tones, full body, standing, mob character, faceless, eyes not visible, face covered by mask, smiling mask",
+  "source": "enemy",
+  "notes": "모브 페이스(눈 안 보이게) · 시안(미채택)"
+ },
+ "en_cf_dog": {
+  "name": "이웃집 개",
+  "subject": "no humans",
+  "tags": "uncanny suburban dog, golden retriever mimic, too many teeth, alien flesh showing through fur, sepia tones, creepy, monster, full body, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_cf_purifier": {
+  "name": "정화사",
+  "subject": "1boy",
+  "tags": "religious zealot soldier, purification squad, white and gold hooded robe over armor, holding holy rifle, censer on belt, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
+  "source": "enemy",
+  "notes": "모브 페이스(눈 안 보이게) · 시안(미채택)"
+ },
+ "en_cf_drone": {
+  "name": "성광 드론",
+  "subject": "no humans",
+  "tags": "holy light drone, white and gold, floating halo ring, single glowing lens, religious ornament, small, hovering, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_cf_chair": {
+  "name": "반상회장",
+  "subject": "1girl",
+  "tags": "neighborhood association president, middle-aged housewife, retro 1950s dress, pearl necklace, cardigan, holding clipboard, prim posture, sinister, sepia tones, full body, standing, mob character, eyes hidden in shadow, face hidden by wide-brim hat",
+  "source": "enemy",
+  "notes": "모브 페이스(눈 안 보이게) · 시안(미채택)"
+ },
+ "en_cf_model": {
+  "name": "모범 시민",
+  "subject": "1boy",
+  "tags": "perfect citizen, handsome suburban man in neat suit, mimic monster, body splitting open revealing alien flesh and chitin, acid dripping, half-transformed, body horror, sepia tones, full body, standing, eyes hidden in shadow",
+  "source": "enemy",
+  "notes": "시안(미채택)"
+ },
+ "en_cf_inquisitor": {
+  "name": "정화관",
+  "subject": "1girl",
+  "tags": "holy inquisitor, tall zealot in ornate white and gold armor and robes, long holy lance, halo, veil covering face, faceless, radiant light, full body, standing",
+  "source": "enemy",
+  "notes": "시안(미채택)"
+ },
+ "en_lv_floater": {
+  "name": "부유체",
+  "subject": "no humans",
+  "tags": "floating gas bladder creature, translucent purple balloon organism, dangling tentacles, toxic gas, bioluminescent spots, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_lv_spores": {
+  "name": "부유 포자 무리",
+  "subject": "no humans",
+  "tags": "swarm of small floating spore pods, cluster of purple puffballs, tiny tentacles, toxic mist, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_lv_raptor": {
+  "name": "랩터급 프리버드",
+  "subject": "no humans",
+  "tags": "feathered raptor dinosaur, colorful bird plumage, bird-like dinosaur, sharp claws, running pose, full body, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_lv_alpha": {
+  "name": "무리 우두머리 프리버드",
+  "subject": "no humans",
+  "tags": "large feathered raptor pack leader, big crest, battle scars, bright plumage, roaring, menacing, full body, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_lv_mother": {
+  "name": "부유체 모체",
+  "subject": "no humans",
+  "tags": "giant floating gas sac mother creature, huge translucent purple balloon organism, many small spore pods clinging, long tentacles, ominous, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_lv_king": {
+  "name": "목초지의 왕",
+  "subject": "no humans",
+  "tags": "giant feathered tyrannosaurus, king of the pasture, magnificent plumage crest, roaring, massive jaws, full body, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_rd_laborer": {
+  "name": "노동 등급 폭주자",
+  "subject": "1boy",
+  "tags": "cyberpunk laborer, heavy industrial tool prosthetic arm, hydraulic drill hand, work overalls, neon pink glitch, berserk, full body, standing, mob character, faceless, eyes not visible, face covered by visor",
+  "source": "enemy",
+  "notes": "모브 페이스(눈 안 보이게) · 시안(미채택)"
+ },
+ "en_rd_combat": {
+  "name": "전투 등급 폭주자",
+  "subject": "1boy",
+  "tags": "combat cyborg, subdermal armor plating, reaction boosters, chrome body, blade arms, neon pink glitch, berserk, full body, fighting stance, mob character, faceless, eyes not visible, face covered by visor",
+  "source": "enemy",
+  "notes": "모브 페이스(눈 안 보이게) · 시안(미채택)"
+ },
+ "en_rd_sub": {
+  "name": "구독 치안 드론",
+  "subject": "no humans",
+  "tags": "single small hovering police drone, quadcopter, chrome body, neon pink siren light bar, stun gun underneath, cyberpunk, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_rd_stream": {
+  "name": "데스 스트리밍 드론",
+  "subject": "no humans",
+  "tags": "single small flying camera drone, quadcopter rotors, cluster of camera lenses, small holographic screen panel, red recording light, cyberpunk, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_rd_critical": {
+  "name": "'임계' 과개조자",
+  "subject": "1girl",
+  "tags": "overclocked cyborg woman, heavily augmented, glowing red cracks, exposed cybernetics, steam venting, mantis blades, neon pink, berserk, full body, mob character, faceless, eyes not visible, face covered by visor",
+  "source": "enemy",
+  "notes": "모브 페이스(눈 안 보이게) · 시안(미채택)"
+ },
+ "en_rd_tower": {
+  "name": "결함 펌웨어 송출탑",
+  "subject": "no humans",
+  "tags": "faulty firmware broadcast tower, neon antenna mast, glitching holograms, tangled cables, torii-shaped frame, cyberpunk structure, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_rd_repo": {
+  "name": "구독 해지 집행반장",
+  "subject": "1boy",
+  "tags": "cyberpunk repo man, debt collector enforcer, long black coat, chrome cyborg arm, holding remote lock device and heavy pistol, neon pink accents, full body, standing, visor covering eyes",
+  "source": "enemy",
+  "notes": "시안(미채택)"
+ },
+ "en_kr_nameless": {
+  "name": "무명 망령",
+  "subject": "1boy",
+  "tags": "ghost soldier, translucent pale spectral warrior, tattered ancient greek armor, broken sword, no face, ghostly white mist, full body, standing, mob character, faceless",
+  "source": "enemy",
+  "notes": "모브 페이스(눈 안 보이게) · 시안(미채택)"
+ },
+ "en_kr_archer": {
+  "name": "대열 궁수 망령",
+  "subject": "1boy",
+  "tags": "ghost archer, translucent pale spectral greek archer, longbow, tattered cloak, no face, ghostly white mist, full body, standing, mob character, faceless",
+  "source": "enemy",
+  "notes": "모브 페이스(눈 안 보이게) · 시안(미채택)"
+ },
+ "en_kr_builder": {
+  "name": "미완의 건축가 망령",
+  "subject": "1boy",
+  "tags": "ghost architect, translucent pale spectral old mason, robe, carrying tombstone and chisel, no face, ghostly white mist, full body, standing, mob character, faceless",
+  "source": "enemy",
+  "notes": "모브 페이스(눈 안 보이게) · 시안(미채택)"
+ },
+ "en_kr_ferryman": {
+  "name": "은퇴 못 한 이송관",
+  "subject": "1boy",
+  "tags": "ghost ferryman, translucent pale spectral figure, hooded robe, long pole staff, hanging lantern, no face, ghostly white mist, full body, standing, mob character, faceless",
+  "source": "enemy",
+  "notes": "모브 페이스(눈 안 보이게) · 시안(미채택)"
+ },
+ "en_kr_bearer": {
+  "name": "기수 망령",
+  "subject": "1boy",
+  "tags": "ghost standard bearer, translucent pale spectral greek hoplite, holding tall tattered war banner, no face, glowing, ghostly white mist, full body, standing, mob character, faceless",
+  "source": "enemy",
+  "notes": "모브 페이스(눈 안 보이게) · 시안(미채택)"
+ },
+ "en_kr_general": {
+  "name": "장군의 망령",
+  "subject": "1boy",
+  "tags": "ghost general, imposing translucent pale blue spectral greek general, crested helmet, cloak, ornate worn armor, raised sword, ghostly aura, face hidden by helmet, full body, standing",
+  "source": "enemy",
+  "notes": "시안(미채택)"
+ },
+ "en_kr_choir": {
+  "name": "무명의 합창",
+  "subject": "1other",
+  "tags": "ghost choir, towering spectral giant made of many pale faceless ghost figures fused together, singing, open mouths, tattered white robes, translucent, ghostly white mist, eerie, horror, full body",
+  "source": "enemy",
+  "notes": "시안(미채택)"
+ },
+ "en_kr_echo": {
+  "name": "서사의 망령",
+  "subject": "1other",
+  "tags": "infected ghost echo, translucent pale blue spectral copy of a fallen mercenary, glitching outline, no face, ghostly mist, full body, standing, mob character, faceless",
+  "source": "enemy",
+  "notes": "모브 페이스(눈 안 보이게) · 시안(미채택)"
+ },
+ "en_ol_battery": {
+  "name": "자동 포격 포대",
+  "subject": "no humans",
+  "tags": "automated artillery battery, greek column style emplacement, white marble and gold, long cannon barrel, electric coils, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_ol_tender": {
+  "name": "축전 정비 드론",
+  "subject": "no humans",
+  "tags": "single small hovering maintenance drone, round capacitor body, small tesla coil on top, little electric sparks, white and gold plating, two manipulator arms, propellers, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_ol_patrol": {
+  "name": "링 순찰기",
+  "subject": "no humans",
+  "tags": "four-legged armored patrol walker robot, heavy white and gold plating, shield front, electric prod, sturdy, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_ol_manager": {
+  "name": "축전 구획 관리기",
+  "subject": "no humans",
+  "tags": "capacitor management pylon, large electrical substation tower, greek temple pillar design, crackling electricity, black and gold, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_ol_cloud": {
+  "name": "흑운",
+  "subject": "no humans",
+  "tags": "giant war colossus, black storm cloud titan robot, dark armored mecha, overcharged lightning, thunderclouds swirling around, greek helmet design, mecha, full body, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)"
+ },
+ "en_ol_conduit": {
+  "name": "극지 도관",
+  "subject": "no humans",
+  "tags": "polar energy conduit, massive cable pylon structure, giant insulators, electricity arcing, space station ring machinery, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_cw_reclaim": {
+  "name": "회수 집행 유닉스",
+  "subject": "no humans",
+  "tags": "corporate reclamation robot, retrieval unit, large grabber claws, net launcher, grey and white plating, hazard stripes, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_cw_maid": {
+  "name": "전투 메이드 유닉스",
+  "subject": "1girl",
+  "tags": "android combat maid, maid outfit with armor plates, mechanical joints, holding blade, robot girl, grey and white, full body, standing, mob character, faceless, eyes not visible, face covered by visor",
+  "source": "enemy",
+  "notes": "모브 페이스(눈 안 보이게) · 시안(미채택)"
+ },
+ "en_cw_dropper": {
+  "name": "투하 드론",
+  "subject": "no humans",
+  "tags": "cargo drop drone, quadcopter carrying a large rock in claws, grey plating, hovering, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_cw_sub": {
+  "name": "서브루틴",
+  "subject": "1other",
+  "tags": "command android, subroutine, sleek grey and white hooded robe, floating holographic panels, monitor head, robot, faceless, full body, standing",
+  "source": "enemy",
+  "notes": "시안(미채택)"
+ },
+ "en_cw_ship": {
+  "name": "회수함 '루틴 7'",
+  "subject": "no humans",
+  "tags": "corporate reclamation spaceship, grey hull, tractor beam, giant claw underneath, hovering, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_cw_kernel": {
+  "name": "커널 응답체",
+  "subject": "1other",
+  "tags": "kernel response entity, tall featureless android, flowing white robe, glowing geometric halo, cold, smooth blank face, faceless, robot, full body, standing",
+  "source": "enemy",
+  "notes": "시안(미채택)"
+ },
+ "en_hy_teller": {
+  "name": "창구 은행원",
+  "subject": "1girl",
+  "tags": "bank teller, formal suit vest and tie, gold accents, carrying a borrowed rifle, full body, standing, mob character, faceless, eyes not visible, face covered by mask",
+  "source": "enemy",
+  "notes": "모브 페이스(눈 안 보이게) · 시안(미채택)"
+ },
+ "en_hy_cashier": {
+  "name": "출납 드론",
+  "subject": "no humans",
+  "tags": "single small flying drone, quadcopter propellers, gold-plated round body, coin slot on top, small gold coins falling, sleek, hovering, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_hy_exchange": {
+  "name": "환전 집행관",
+  "subject": "1boy",
+  "tags": "money changer enforcer, burly man in pinstripe suit, brass knuckles, gold coins, briefcase, full body, standing, mob character, eyes not visible, sunglasses",
+  "source": "enemy",
+  "notes": "모브 페이스(눈 안 보이게) · 시안(미채택)"
+ },
+ "en_hy_appraiser": {
+  "name": "감정 은행원",
+  "subject": "1girl",
+  "tags": "jewel appraiser banker, monocle, white gloves, formal suit, jeweler loupe, holding scanner gun, gold accents, full body, standing, mob character, eyes hidden in shadow, shadowed face",
+  "source": "enemy",
+  "notes": "모브 페이스(눈 안 보이게) · 시안(미채택)"
+ },
+ "en_hy_door": {
+  "name": "13번째 금고문",
+  "subject": "no humans",
+  "tags": "giant circular vault door, concentric gold steel rings, massive bolts, layered energy shields, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_hy_zodiac": {
+  "name": "금고장 조디악",
+  "subject": "1boy",
+  "tags": "vault master, elegant banker in gold and black three-piece suit, long coat draped over shoulders, many borrowed weapons, zodiac emblems, gold coins floating, confident, full body, standing, eyes hidden in shadow",
+  "source": "enemy",
+  "notes": "성별 미정 — 1boy 로 시안 · 시안(미채택)"
+ },
+ "en_bs_herring": {
+  "name": "긴다리 청어 떼",
+  "subject": "no humans",
+  "tags": "school of long-legged fish creatures, pale fish walking on spindly legs, alien mimic, creepy, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_bs_vapor": {
+  "name": "기화 살점",
+  "subject": "no humans",
+  "tags": "pale fleshy blob creature, evaporating flesh, steam, spore fog, swarm creature, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_bs_knight": {
+  "name": "해안 기사 개체",
+  "subject": "no humans",
+  "tags": "bone armored knight creature, swarm knight, pale bone carapace plating, alien humanoid monster, blade arm, full body, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)"
+ },
+ "en_bs_tomb": {
+  "name": "묘비 개체",
+  "subject": "no humans",
+  "tags": "giant pulsing flesh pillar, tombstone-shaped organism embedded in salt ground, pale flesh, veins, spore fog, monolith, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)",
+  "object": true
+ },
+ "en_bs_signal": {
+  "name": "신호를 보내는 것",
+  "subject": "no humans",
+  "tags": "eerie pale phantom creature, tall thin mimic figure, antenna growths, glowing beacon light, half transparent, wispy, horror, full body, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택)"
  }
 }
