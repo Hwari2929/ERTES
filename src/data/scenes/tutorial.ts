@@ -9,11 +9,10 @@ export const TUTORIAL_REG: SceneReg = {
     tu_varga: { name: '약탈 함장 바르가', color: '#a03a28', desc: '황무지 성계 약탈단의 함장. 기함을 잃은 뒤 소행성 정박지에 컨테이너 성채를 쌓고 눌러앉았다. 녹슨 닻을 어깨에 걸고 다니며, 아문센을 영감이라 부른다.' },
   },
   bgs: {
-    tu_bar_night: '에란테스 바 — 새벽 두 시. 땅 위 거리에 면한 평범한 술집. 홀 조명은 꺼지고 카운터 위 스탠드 하나만 노랗게 켜져 있다. 거리 쪽 창 너머로 가로등 불빛. 반쯤 닦인 술잔, 체리 그릇, 벽시계',
+    erantes_bar: '에란테스 바 — 지상에 있는 엄청나게 거대한 실내 바. 여러 층의 발코니와 길게 휘어진 카운터, 끝없이 늘어선 술병 진열장',
     tu_comms: '현장 통신 — 바 카운터 위에 띄운 홀로그램 창. 모래바람 부는 소행성 정박지, 녹슨 컨테이너 사이로 튀는 총구 불빛',
     tu_bridge: '에란테스 함교 — 조명을 반쯤 낮춘 함교. 작전 탁자 위에 항로도가 떠 있고, 칸칸이 이어진 점선 끝에 붉은 보스 표식이 깜빡인다',
     tu_field_dock: '황무지 소행성 정박지 — 모래바람, 녹슨 크레인, 컨테이너를 쌓아 만든 성채. 꼭대기에 약탈단 깃발이 펄럭인다',
-    tu_bar_dawn: '에란테스 바 — 아침 여섯 시. 거리 쪽 창의 블라인드 틈으로 아침 햇빛이 비스듬히 든다. 카운터를 따라 줄지어 앉은 단원들, 김 나는 그릇들',
   },
   bgms: {
     tu_jazz: '심야 바 · 느린 피아노',
@@ -36,7 +35,7 @@ export const TUTORIAL_SCENES: Record<string, { title: string; beats: Beat[] }> =
   prologue: {
     title: '서장 — 당직 근무',
     beats: [
-      N('새벽 두 시. 에란테스 바의 홀 조명은 꺼져 있고, 카운터 위 스탠드 하나만 노랗게 켜져 있다.', { bg: 'tu_bar_night', bgm: 'tu_jazz' }),
+      N('새벽 두 시. 에란테스 바의 홀 조명은 꺼져 있고, 카운터 위 스탠드 하나만 노랗게 켜져 있다.', { bg: 'erantes_bar', bgm: 'tu_jazz' }),
       N('손님은 없다. 술잔 닦는 소리와 벽시계 초침 소리가 번갈아 울린다.', { sfx: 'tick' }),
       T('rachel', '야간 당직. 바를 지키는 일. …정확히는 아무도 안 오는 바를 지키는 일.', { at: 'L', face: 'base' }),
       T('rachel', '당직은 카운터 안쪽 재료를 점검할 수 있다. 점검은 맛을 봐야 끝난다. 이건 규칙이다. (내가 만들었다.)'),
@@ -168,7 +167,7 @@ export const TUTORIAL_SCENES: Record<string, { title: string; beats: Beat[] }> =
   ch2_intro: {
     title: '2장 — 신용은 영원하죠',
     beats: [
-      N('새벽 세 시. 바 문이 열리고, 하이힐 소리가 또각또각 카운터까지 곧장 걸어온다.', { bg: 'tu_bar_night', bgm: 'comic', sfx: 'a_door', stage: [R0, A0] }),
+      N('새벽 세 시. 바 문이 열리고, 하이힐 소리가 또각또각 카운터까지 곧장 걸어온다.', { bg: 'erantes_bar', bgm: 'comic', sfx: 'a_door', stage: [R0, A0] }),
       S('lindiwe', '축하해요, 지휘관님! 취임 축하 선물이에요.', { at: 'R', face: 'smile' }),
       N('린디웨가 카운터에 두툼한 장부 태블릿을 내려놓는다. 쿵. 술잔들이 일제히 떤다.', { sfx: 'clank' }),
       S('rachel', '…선물이 왜 무거워.', { face: 'worried' }),
@@ -202,7 +201,7 @@ export const TUTORIAL_SCENES: Record<string, { title: string; beats: Beat[] }> =
   ch3_intro: {
     title: '3장 — 밀린 업무',
     beats: [
-      N('새벽 네 시. 바 문이 소리 없이 열린다. 구김 하나 없는 회색 정장에 파란 리본. 예레나다.', { bg: 'tu_bar_night', bgm: 'tu_brief', stage: [R0, A0] }),
+      N('새벽 네 시. 바 문이 소리 없이 열린다. 구김 하나 없는 회색 정장에 파란 리본. 예레나다.', { bg: 'erantes_bar', bgm: 'tu_brief', stage: [R0, A0] }),
       S('yelena', '지휘관님. 인수인계 세 번째, 예레나예요. 밀린 업무가 많으니까 바로 시작하죠.', { at: 'R', face: 'base' }),
       S('rachel', '…인사 없이?'),
       S('yelena', '인사는 업무 끝나고. 한 잔이랑 같이.', { face: 'smile' }),
@@ -235,7 +234,7 @@ export const TUTORIAL_SCENES: Record<string, { title: string; beats: Beat[] }> =
   ch3_recruit: {
     title: '3장 — 균열 배송',
     beats: [
-      N('갈라진 틈에서 잿빛 고양이 귀가 먼저, 그다음에 손이 나온다. 손은 곧장 체리 그릇으로 향한다.', { bg: 'tu_bar_night', bgm: 'comic', stage: [R0, { id: 'yelena', at: 'R', face: 'base' }] }),
+      N('갈라진 틈에서 잿빛 고양이 귀가 먼저, 그다음에 손이 나온다. 손은 곧장 체리 그릇으로 향한다.', { bg: 'erantes_bar', bgm: 'comic', stage: [R0, { id: 'yelena', at: 'R', face: 'base' }] }),
       S('phyllis', '안녕- 부르셨어? 아, 이건 배송비.', { at: 'C', face: 'smile' }),
       S('rachel', '그거 내 체리야.', { face: 'angry' }),
       S('phyllis', '이제 우리 거지. 지휘관 바뀌면 재산도 공유하는 거 아니었어?'),
@@ -320,7 +319,7 @@ export const TUTORIAL_SCENES: Record<string, { title: string; beats: Beat[] }> =
   epilogue: {
     title: '종장 — 늘 먹던 걸로',
     beats: [
-      N('아침 여섯 시. 거리 쪽 창의 블라인드 틈으로 아침 햇빛이 비스듬히 들어온다. 프란체가 말없이 그늘진 자리로 옮겨 앉는다.', { bg: 'tu_bar_dawn', bgm: 'calm', stage: [R0] }),
+      N('아침 여섯 시. 거리 쪽 창의 블라인드 틈으로 아침 햇빛이 비스듬히 들어온다. 프란체가 말없이 그늘진 자리로 옮겨 앉는다.', { bg: 'erantes_bar', bgm: 'calm', stage: [R0] }),
       N('바가 오랜만에 시끄럽다. 현장 넷은 균열로 막 돌아왔고, 참모진은 퇴근을 미룬 채 카운터에 줄지어 앉았다.'),
       S('temur', '밥! 뜨거운 걸로! 제일 뜨거운 걸로!', { at: 'R', face: 'smile' }),
       S('aiden', '베이컨 수프 곱빼기, 얼음 뺀 물. 주문 기록대로입니다.', { at: 'C', face: 'smile', sfx: 'a_glass' }),
