@@ -1,8 +1,470 @@
 {
-  "skill.iris": { "subject": "winged sandal dashing forward with golden speed streaks and holy light burst", "color": "gold and amber" },
-  "trait.romani": { "subject": "chain hook lashing and yanking forward, curved chain trail", "color": "crimson red" },
-  "weapon.romani": { "subject": "coiled whip cracking with sharp metal tip, shockwave arc", "color": "dark red" },
-  "cantrip.pyro": { "subject": "fireball exploding with embers and flames", "color": "orange and red" },
-  "skill.yelena": { "subject": "glowing eye shattering into glitch fragments, erasing", "color": "cyan and blue" },
-  "ult.grenholm": { "subject": "layered hexagonal energy shield wall rising, barrier panels", "color": "teal" }
+ "skill.iris": {
+  "subject": "winged sandal dashing forward with golden speed streaks and holy light burst",
+  "color": "gold and amber"
+ },
+ "trait.romani": {
+  "subject": "heavy iron chain with large barbed hook lashing forward and yanking back",
+  "color": "crimson red"
+ },
+ "weapon.romani": {
+  "subject": "coiled whip cracking with sharp metal tip, shockwave arc",
+  "color": "dark red"
+ },
+ "cantrip.pyro": {
+  "subject": "fireball exploding with embers and flames",
+  "color": "orange and red"
+ },
+ "skill.yelena": {
+  "subject": "glowing eye shattering into glitch fragments, erasing",
+  "color": "violet and purple"
+ },
+ "ult.grenholm": {
+  "subject": "layered hexagonal energy shield wall rising, barrier panels",
+  "color": "teal"
+ },
+ "trait.yelena": {
+  "subject": "psychic bullet wrapped in swirling aura piercing a cracked hourglass",
+  "color": "violet and purple"
+ },
+ "skill.mirinae": {
+  "subject": "cute decorated sniper rifle firing a single piercing critical bullet with star flash",
+  "color": "crimson and orange"
+ },
+ "trait.mirinae": {
+  "subject": "overstuffed camping backpack with gear and gadgets dangling, sparkles",
+  "color": "white and pale teal"
+ },
+ "skill.gebek": {
+  "subject": "heavy rotary machine gun spraying a wide fan of bullets",
+  "color": "orange and red"
+ },
+ "trait.gebek": {
+  "subject": "massive monster claw slamming down and pinning a broken blade",
+  "color": "deep purple and black"
+ },
+ "skill.donovan": {
+  "subject": "black crow diving through a crosshair with bullet trail",
+  "color": "crimson and orange"
+ },
+ "trait.donovan": {
+  "subject": "glowing-eyed raven perched on a revolver, sharp critical spark",
+  "color": "orange and red"
+ },
+ "skill.chloe": {
+  "subject": "bubbling alchemy flask pouring glowing healing droplets",
+  "color": "white and pale teal"
+ },
+ "trait.chloe": {
+  "subject": "poison dart flying with dripping venom trail",
+  "color": "toxic green"
+ },
+ "skill.west": {
+  "subject": "large steel wrench spinning in mid-air with clanging impact sparks",
+  "color": "orange and red"
+ },
+ "trait.west": {
+  "subject": "armored gun turret on a tripod firing, with a wrench and repair sparks",
+  "color": "crimson and orange"
+ },
+ "skill.lindiwe": {
+  "subject": "hexagonal shield generator projecting a pulsing dome barrier",
+  "color": "teal"
+ },
+ "trait.lindiwe": {
+  "subject": "tall riot shield standing guard with linked smaller shields behind",
+  "color": "white and pale teal"
+ },
+ "skill.orca": {
+  "subject": "cocktail shaker pouring a glowing signature drink into a glass",
+  "color": "white and pale teal"
+ },
+ "trait.orca": {
+  "subject": "magician top hat with playing cards bursting out in a flash",
+  "color": "deep purple and black"
+ },
+ "skill.franze": {
+  "subject": "judge gavel slamming down with a heavy shockwave",
+  "color": "crimson and orange"
+ },
+ "trait.franze": {
+  "subject": "scales of justice with a starry galaxy pan, verdict seal",
+  "color": "deep purple and black"
+ },
+ "skill.grenholm": {
+  "subject": "armored gauntlet fist slamming the ground with a shockwave",
+  "color": "crimson and orange"
+ },
+ "trait.grenholm": {
+  "subject": "seven layered armor plates stacking into a power armor chestpiece",
+  "color": "teal"
+ },
+ "skill.lars": {
+  "subject": "open briefcase full of gold coins and a signed contract scroll",
+  "color": "crimson and orange"
+ },
+ "trait.lars": {
+  "subject": "stack of credit coins forming a guardian shield emblem",
+  "color": "teal"
+ },
+ "skill.falcon": {
+  "subject": "railgun firing a straight blazing slug beam",
+  "color": "orange and red"
+ },
+ "trait.falcon": {
+  "subject": "single bullet piercing straight through three metal plates in a line",
+  "color": "crimson and orange"
+ },
+ "skill.hiiro": {
+  "subject": "bamboo fortune stick cylinder spilling glowing omen sticks",
+  "color": "violet and purple"
+ },
+ "trait.hiiro": {
+  "subject": "fox fire wisps swirling around a paper talisman",
+  "color": "violet and purple"
+ },
+ "skill.nadir": {
+  "subject": "white crystal shard exploding in a blinding psychic flash",
+  "color": "violet and purple"
+ },
+ "trait.nadir": {
+  "subject": "psychic orb projectile ricocheting between points with bouncing arcs",
+  "color": "violet and purple"
+ },
+ "skill.temur": {
+  "subject": "gladiator sword spinning in a whirlwind slash",
+  "color": "crimson and orange"
+ },
+ "trait.temur": {
+  "subject": "battered gladiator helmet with glowing cracks and rising fury",
+  "color": "orange and red"
+ },
+ "skill.kairo": {
+  "subject": "elegant martini glass inside a shimmering protective bubble",
+  "color": "teal"
+ },
+ "trait.kairo": {
+  "subject": "long sniper rifle with scope glint firing a single tracer bullet",
+  "color": "crimson and orange"
+ },
+ "skill.zahara": {
+  "subject": "ancient open recipe book with a steaming bowl of stew",
+  "color": "white and pale teal"
+ },
+ "trait.zahara": {
+  "subject": "two crossed daggers striking back with a counter slash arc",
+  "color": "crimson and orange"
+ },
+ "skill.bianca": {
+  "subject": "large glowing bullet cartridge marked with a healing cross, light trail",
+  "color": "white and pale teal"
+ },
+ "trait.bianca": {
+  "subject": "monstrous beating heart sealed in a glass specimen jar",
+  "color": "crimson and orange"
+ },
+ "skill.zephyro": {
+  "subject": "billowing ship sail turning in wind with protective gust swirl",
+  "color": "white and pale teal"
+ },
+ "trait.zephyro": {
+  "subject": "ship steering wheel with an oar slash cleaving two ways",
+  "color": "crimson and orange"
+ },
+ "skill.phyllis": {
+  "subject": "glowing sword leaping out of a jagged dimensional rift crack",
+  "color": "gold and amber"
+ },
+ "trait.phyllis": {
+  "subject": "glowing rift portal with dodge afterimage streaks",
+  "color": "gold and amber"
+ },
+ "skill.eleni": {
+  "subject": "crescent moon sword slash with protective moonlight halo",
+  "color": "white and pale teal"
+ },
+ "trait.eleni": {
+  "subject": "tall stone lighthouse tower casting a wide warm beam of light",
+  "color": "white and pale teal"
+ },
+ "trait.iris": {
+  "subject": "pair of feathered wings around a flying winged dagger",
+  "color": "gold and amber"
+ },
+ "skill.odysseus": {
+  "subject": "single arrow flying on a returning arc into a bullseye",
+  "color": "crimson and orange"
+ },
+ "trait.odysseus": {
+  "subject": "piercing hawk eye with crosshair reflection",
+  "color": "orange and red"
+ },
+ "skill.argon": {
+  "subject": "volley of spectral harpoons raining down with ghostly trails",
+  "color": "toxic green"
+ },
+ "trait.argon": {
+  "subject": "ferryman lantern hanging from a boat oar in ghostly mist",
+  "color": "deep purple and black"
+ },
+ "skill.romani": {
+  "subject": "executioner axe thrown spinning with a chain pulling back",
+  "color": "crimson and orange"
+ },
+ "skill.joshua": {
+  "subject": "glowing halo ring radiating healing light with floating petals",
+  "color": "white and pale teal"
+ },
+ "trait.joshua": {
+  "subject": "cracked holy halo turning into a dark thorned crown",
+  "color": "deep purple and black"
+ },
+ "skill.sarma": {
+  "subject": "small swirling pocket black hole sucking in debris",
+  "color": "orange and red"
+ },
+ "trait.sarma": {
+  "subject": "bullet impact splashing ripples across warped space",
+  "color": "crimson and orange"
+ },
+ "skill.kyle": {
+  "subject": "radiant holy knight lance plunging downward, golden crater impact",
+  "color": "gold and amber"
+ },
+ "trait.kyle": {
+  "subject": "crusader shield with radiant cross sigil",
+  "color": "gold and amber"
+ },
+ "skill.doros": {
+  "subject": "sacred chalice with bread and glowing holy wine",
+  "color": "white and pale teal"
+ },
+ "trait.doros": {
+  "subject": "holy flame awakening above an altar plate",
+  "color": "gold and amber"
+ },
+ "skill.demiurgos": {
+  "subject": "glowing heart cradled in soft light feathers",
+  "color": "white and pale teal"
+ },
+ "trait.demiurgos": {
+  "subject": "small heart-shaped shield glowing with gentle aura",
+  "color": "teal"
+ },
+ "skill.aiden": {
+  "subject": "liquid metal blade morphing into silver spikes with droplets",
+  "color": "crimson and orange"
+ },
+ "trait.aiden": {
+  "subject": "sleek black cat leaping with speed afterimages",
+  "color": "white and pale teal"
+ },
+ "skill.vivian": {
+  "subject": "wild beast pouncing with a claw slash",
+  "color": "crimson and orange"
+ },
+ "trait.vivian": {
+  "subject": "magnifying glass over cracked armor scales",
+  "color": "deep purple and black"
+ },
+ "skill.yupito": {
+  "subject": "crackling energy barrier panel deployed from a hovering drone",
+  "color": "teal"
+ },
+ "trait.yupito": {
+  "subject": "steel witch hat with mechanical gears and a glowing gift crate",
+  "color": "cyan and electric blue"
+ },
+ "skill.ingel": {
+  "subject": "stage spotlight burst with a psychic star shockwave",
+  "color": "violet and purple"
+ },
+ "trait.ingel": {
+  "subject": "crescent moon hanging over theater stage curtains",
+  "color": "violet and purple"
+ },
+ "skill.amundsen": {
+  "subject": "three large artillery shells falling diagonally from the sky with fiery trails",
+  "color": "crimson and orange"
+ },
+ "trait.amundsen": {
+  "subject": "antique explorer compass and ice axe in a dark cloak shadow",
+  "color": "orange and red"
+ },
+ "skill.rachel": {
+  "subject": "telekinetic force sphere crushing and pinning down rubble",
+  "color": "violet and purple"
+ },
+ "trait.rachel": {
+  "subject": "dark matter orb collapsing inward with a shockwave",
+  "color": "deep purple and black"
+ },
+ "skill.oliver": {
+  "subject": "metro train front with bright headlights bursting through a striped barrier",
+  "color": "crimson and orange"
+ },
+ "trait.oliver": {
+  "subject": "train headlight beam with speed streaks over rail tracks",
+  "color": "orange and red"
+ },
+ "skill.rasmus": {
+  "subject": "guard dog lunging with bared fangs and a bleeding slash",
+  "color": "crimson and orange"
+ },
+ "trait.rasmus": {
+  "subject": "garden pruning shears snipping a thorny branch",
+  "color": "deep purple and black"
+ },
+ "skill.sigmund": {
+  "subject": "silver butler serving tray with a glowing teacup",
+  "color": "white and pale teal"
+ },
+ "trait.sigmund": {
+  "subject": "noble family crest with bow tie and pocket watch",
+  "color": "white and pale teal"
+ },
+ "skill.gunnir": {
+  "subject": "iron cauldron of hearty stew with steam forming a shield",
+  "color": "teal"
+ },
+ "trait.gunnir": {
+  "subject": "large ornate mansion key ring glowing",
+  "color": "white and pale teal"
+ },
+ "skill.bjorn": {
+  "subject": "electrified harpoon launching with a crackling lightning rope",
+  "color": "cyan and electric blue"
+ },
+ "trait.bjorn": {
+  "subject": "viking horned helmet with blood drops and fury",
+  "color": "crimson and orange"
+ },
+ "skill.zina": {
+  "subject": "poisonous flower bouquet exploding in toxic petals",
+  "color": "toxic green"
+ },
+ "trait.zina": {
+  "subject": "dripping venom rose with thorns",
+  "color": "toxic green"
+ },
+ "skill.fotini": {
+  "subject": "tour guide pennant flag waving with radiant holy burst",
+  "color": "gold and amber"
+ },
+ "trait.fotini": {
+  "subject": "winged travel suitcase speeding forward",
+  "color": "white and pale teal"
+ },
+ "skill.kaburaya": {
+  "subject": "electrified briefcase erupting with a lightning strike",
+  "color": "cyan and electric blue"
+ },
+ "trait.kaburaya": {
+  "subject": "drooping coffee mug sparking with static electricity",
+  "color": "cyan and electric blue"
+ },
+ "skill.bill": {
+  "subject": "vintage camera flash bursting with blinding electric light",
+  "color": "cyan and electric blue"
+ },
+ "trait.bill": {
+  "subject": "slingshot pellet splattering sticky slowing goo",
+  "color": "toxic green"
+ },
+ "skill.winter": {
+  "subject": "glowing serum syringe with healing droplets",
+  "color": "white and pale teal"
+ },
+ "trait.winter": {
+  "subject": "DNA double helix growing with vitality sparkles",
+  "color": "white and pale teal"
+ },
+ "skill.issac": {
+  "subject": "unraveling bandages releasing toxic miasma",
+  "color": "toxic green"
+ },
+ "trait.issac": {
+  "subject": "pulsing regenerating monster heart with flesh tendrils",
+  "color": "toxic green"
+ },
+ "skill.eden": {
+  "subject": "acid-filled glass bottle shattering and splashing",
+  "color": "toxic green"
+ },
+ "trait.eden": {
+  "subject": "rusty switchblade knife with survival glint",
+  "color": "crimson and orange"
+ },
+ "skill.reika": {
+  "subject": "microphone blasting an electric soundwave shockwave",
+  "color": "cyan and electric blue"
+ },
+ "trait.reika": {
+  "subject": "stream of glowing hearts flying from a loudspeaker",
+  "color": "cyan and electric blue"
+ },
+ "skill.mao": {
+  "subject": "highball glass with swirling neon cocktail and sparkles",
+  "color": "white and pale teal"
+ },
+ "trait.mao": {
+  "subject": "spinning hourglass with sand rushing fast",
+  "color": "white and pale teal"
+ },
+ "skill.skadi": {
+  "subject": "thick upward arrow made of lightning smashing down onto the ground",
+  "color": "cyan and electric blue"
+ },
+ "trait.skadi": {
+  "subject": "small sapling sprout glowing under a protective lamp",
+  "color": "white and pale teal"
+ },
+ "skill.mingki": {
+  "subject": "giant cat paw with sharp claws swiping three slash marks",
+  "color": "crimson and orange"
+ },
+ "trait.mingki": {
+  "subject": "cat shadow growing into a giant monster silhouette with glowing eyes",
+  "color": "crimson and orange"
+ },
+ "skill.onyx": {
+  "subject": "nightmarish dream eye opening in swirling mist",
+  "color": "violet and purple"
+ },
+ "trait.onyx": {
+  "subject": "black onyx crystals resonating with psychic sound waves",
+  "color": "violet and purple"
+ },
+ "skill.exile": {
+  "subject": "ornate blood-red longsword slashing with a thick arc of blood droplets",
+  "color": "crimson and orange"
+ },
+ "trait.exile": {
+  "subject": "goblet overflowing with blood beside vampire fangs",
+  "color": "crimson and orange"
+ },
+ "skill.thermo": {
+  "subject": "wall of interlocked round bronze spartan shields side by side, front view",
+  "color": "teal"
+ },
+ "trait.thermo": {
+  "subject": "spartan crested helmet over a bronze round shield",
+  "color": "teal"
+ },
+ "skill.u404": {
+  "subject": "robotic fist punching upward with stacking power rings",
+  "color": "crimson and orange"
+ },
+ "trait.u404": {
+  "subject": "glowing robot core gear ascending a staircase",
+  "color": "orange and red"
+ },
+ "skill.rus": {
+  "subject": "pirate flintlock pistol firing a long piercing shot",
+  "color": "crimson and orange"
+ },
+ "trait.rus": {
+  "subject": "sack of stolen gold coins spilling out",
+  "color": "crimson and orange"
+ }
 }
