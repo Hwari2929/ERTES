@@ -37,6 +37,7 @@ import { ABIL_ICONS } from './ui/abilicons.gen';
 import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 import { closeCoach, coachKey, startCoach, type CoachStep } from './ui/coach';
 import { TUTORIAL_FLOW, TUTORIAL_SCENES, TUTORIAL_TIPS } from './data/scenes/tutorial';
+import { fieldIntroPending } from './data/scenes/fields';
 import { GLOSSARY, GLOSSARY_COUNT } from './data/glossary';
 import * as TUT from './engine/tutorial';
 
@@ -3085,6 +3086,7 @@ function act(a: string, v: string) {
     case 'start-run':
       if (app.starters.length !== CFG.startUnits) return;
       app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, app.introField || undefined, Math.min(app.diff, MAX_DIFF));
+      { const fi = fieldIntroPending(app.run); if (fi) app.run.pending.unshift(fi); } // 전장 도입 이야기 → 특권 증강
       app.screen = 'map'; app.sel = null; persist(); break;
     case 'load': {
       const r = loadRun(v);
