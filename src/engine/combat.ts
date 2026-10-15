@@ -20,7 +20,7 @@ export function categoryImmune(c: Category, s: { type: string; key: string }): b
   return false;
 }
 export const STATUS_NAME: Record<string, string> = {
-  stun: '기절', fear: '공포', shock: '감전', root: '속박', stealth: '은신', poison: '중독', bleed: '출혈', corrode: '침식', decay: '부식', gloom: '암운', slow: '둔화', frenzy: '광폭', wound: '부상', suppress: '제압',
+  stun: '기절', fear: '공포', rampage: '광폭', shock: '감전', root: '속박', stealth: '은신', poison: '중독', bleed: '출혈', corrode: '침식', decay: '부식', gloom: '암운', slow: '둔화', frenzy: '광폭', wound: '부상', suppress: '제압',
   // 사이오닉 상태이상 (연소 · 전도 · 지속 회복 · 오한 · 빙결 · 매혹 · 결속 · 공진 · 중독 · 혼란 · 향취)
   ...Object.fromEntries(Object.entries(PSI_STATUS).map(([k, v]) => [k, v.name])),
 };
@@ -268,6 +268,21 @@ export type BEvent =
 
 export interface BattleCtx { phase: number; credits: number; field?: string; diff?: number }
 
+/** 전장 조건 훅: 전장(id)마다 하나. battlefields.ts 가 FIELD_RULES 에 등록하고, 전투 시작 때 ctx.field 로 붙는다 */
+export interface FieldRules {
+  /** 모든 기물 onStart 직후 */
+  onStart?(b: Battle): void;
+  /** 매 틱 (기물 행동 전) */
+  onTick?(b: Battle, dt: number): void;
+  /** 누구든 쓰러졌을 때 (by: 처치자, 없으면 null) */
+  onDeath?(b: Battle, dead: CUnit, by: CUnit | null): void;
+  /** 피해가 정해진 직후 (지속 피해 포함): 반환값으로 피해를 바꾼다 (보호막 겹 등) */
+  absorb?(b: Battle, src: CUnit, tgt: CUnit, dmg: number, o: DmgOpts): number;
+  /** 피해를 준 뒤 (훅 없는 피해 · 반사 포함, 0 피해 제외) */
+  afterHit?(b: Battle, src: CUnit, tgt: CUnit, r: DmgResult, o: DmgOpts): void;
+}
+export const FIELD_RULES: Record<string, FieldRules> = {};
+
 export class Battle {
   t = 0;
   units: CUnit[] = [];
@@ -278,6 +293,22 @@ export class Battle {
   counters = { crits: 0, statuses: 0, skills: 0, kills: 0, allyDeaths: 0, bestHit: 0 };
   /** 전투 단위 공유 상태 (부활 횟수 등) */
   mem: Record<string, number> = {};
+  /** 전장 조건 (start 에서 ctx.field 로 붙는다) */
+  fr: FieldRules | null = null;
+  /** 지연 실행 (hold: 그 편이 전멸해도 이 예약이 끝날 때까지 승패를 미룬다 — 부활 · 망령 대기) */
+  timers: { t: number; fn: () => void; hold?: 0 | 1 }[] = [];
+  holds: [number, number] = [0, 0];
+  later(delay: number, fn: () => void, hold?: 0 | 1) {
+    this.timers.push({ t: this.t + delay, fn, hold });
+    if (hold !== undefined) this.holds[hold]++;
+  }
+  /** 승패 판정에 세는 기물 (전장 장애물 inert 제외) */
+  fighters(side: 0 | 1) { return this.units.filter((u) => u.alive && u.side === side && !u.mem.inert); }
+  checkEnd() {
+    if (this.over) return;
+    if (!this.fighters(0).length && !this.holds[0]) this.winner = 1;
+    else if (!this.fighters(1).length && !this.holds[1]) this.winner = 0;
+  }
 
   /** 진영별 전술 위력 (전투 시작 시 계산) */
   tac: [number, number] = [0, 0];
@@ -322,7 +353,7 @@ export class Battle {
     this.checkFrenzy(u);
   }
   /** 광폭: 이성 -100 에서 시작 (피아 구분 없이 가장 가까운 대상 공격 · 비술 불가 · 피해 +30%, 같은 편에게는 50%), -60 을 넘으면 해제 */
-  frenzied(u: CUnit) { return u.statuses.some((s) => s.key === 'frenzy'); }
+  frenzied(u: CUnit) { return u.statuses.some((s) => s.key === 'frenzy' || s.key === 'rampage'); }
   /** 혼란: 가까운 아무나 공격 (같은 편 포함), 스킬 · 비술 · 궁극기 사용 불가 */
   confused(u: CUnit) { return u.statuses.some((s) => s.key === 'confuse'); }
   /** 도발 (환영): 주변 1칸 안의 도발 기물을 우선 공격 */
@@ -337,7 +368,7 @@ export class Battle {
   }
   private checkFrenzy(u: CUnit) {
     if (u.reason === null || !u.alive) return;
-    const on = this.frenzied(u);
+    const on = u.statuses.some((s) => s.key === 'frenzy'); // 전장 광폭(rampage)은 이성과 무관
     if (!on && u.reason <= -100) {
       this.applyStatus(u, u, { type: 'buff', key: 'frenzy', dur: 9999, mods: [{ kind: 'inc', tag: 'all', v: 0.3 }], label: '광폭' });
       u.target = null;
@@ -388,7 +419,7 @@ export class Battle {
   /** 은신 중이라 대상으로 지정할 수 없는지 */
   hidden(u: CUnit) { return u.statuses.some((s) => s.key === 'stealth'); }
   /** 대상으로 지정할 수 있는 적 (은신 제외) */
-  targetable(u: CUnit) { return this.enemiesOf(u).filter((e) => !this.hidden(e)); }
+  targetable(u: CUnit) { return this.enemiesOf(u).filter((e) => (!this.hidden(e) || u.mem.seeStealth) && !e.mem.inert); }
 
   S(u: CUnit, k: StatKey): number {
     let v = u.st[k];
@@ -435,6 +466,8 @@ export class Battle {
     this.computeTac();
     for (const u of this.units.slice()) { this.actor = u; for (const h of u.hooks) h.onStart?.(this, u); }
     this.actor = null;
+    this.fr = this.ctx.field ? FIELD_RULES[this.ctx.field] || null : null;
+    this.fr?.onStart?.(this);
     for (const u of this.units) u.hp = Math.min(u.hp, this.S(u, 'maxHp'));
   }
   /** 지금 행동 중인 기물 (보호막 제공자 집계용) */
@@ -444,6 +477,17 @@ export class Battle {
   step(dt: number) {
     if (this.over) return;
     this.t += dt;
+    if (this.timers.length) {
+      const due = this.timers.filter((x) => x.t <= this.t);
+      if (due.length) {
+        this.timers = this.timers.filter((x) => x.t > this.t);
+        this.actor = null;
+        for (const x of due) { if (x.hold !== undefined) this.holds[x.hold]--; if (!this.over) x.fn(); }
+        this.checkEnd();
+        if (this.over) return;
+      }
+    }
+    if (this.fr?.onTick) { this.actor = null; this.fr.onTick(this, dt); if (this.over) return; }
     for (const u of this.units) {
       if (!u.alive) continue;
       this.actor = u;
@@ -527,8 +571,8 @@ export class Battle {
     const frenzy = this.frenzied(u);
     const confused = this.confused(u);
     const ff = (frenzy && CFG.frenzyFriendly) || confused; // 광폭이 아군도 노리는지 (기본 true) · 혼란은 항상
-    const pool = () => (ff ? this.units.filter((x) => x.alive && x !== u && !this.hidden(x)) : this.targetable(u));
-    if (!u.target || !u.target.alive || this.hidden(u.target) || u.target === u || (!ff && this.sideOf(u.target) === this.sideOf(u))) u.target = this.nearest(u, pool());
+    const pool = () => (ff ? this.units.filter((x) => x.alive && x !== u && !this.hidden(x) && !x.mem.inert) : this.targetable(u));
+    if (!u.target || !u.target.alive || (this.hidden(u.target) && !u.mem.seeStealth) || u.target === u || (!ff && this.sideOf(u.target) === this.sideOf(u))) u.target = this.nearest(u, pool());
     // 명사수 기본 메커니즘: 1초마다 사거리 안에서 체력 비율이 가장 낮은 적으로 대상을 바꾼다 (아군 명사수, 외길 추적 · 광폭 · 매혹 제외)
     if (u.ctype === 'MARK' && u.side === 0 && !u.isSummon && !frenzy && !confused && !u.mem.lockTarget && !u.mem.charmTo) {
       u.mem.mkScan = (u.mem.mkScan || 0) - dt;
@@ -761,6 +805,7 @@ export class Battle {
     dmg = Math.max(0, dmg);
     if (tgt.mem.hitCap && dmg > 0) dmg = Math.min(dmg, this.S(tgt, 'maxHp') * tgt.mem.hitCap); // 올림푸스 성물: 1회 피해 상한
     if ((tgt.mem.invulnUntil || 0) > this.t) dmg = 0; // 성전 돌입 무적
+    if (dmg > 0 && this.fr?.absorb) dmg = Math.max(0, this.fr.absorb(this, src, tgt, dmg, o)); // 전장 조건 (보호막 겹 등)
     if (dmg > 0 && src !== tgt) for (const h of tgt.hooks) if (h.redirect) dmg = Math.max(0, h.redirect(this, tgt, src, dmg, o)); // 자아 분리
     // 피해 분담 (린디웨 특별경호팀)
     const sh = dmg > 0 && o.tag !== 'dot' ? tgt.statuses.find((s) => s.share && s.share !== tgt && s.share.alive) : undefined;
@@ -789,6 +834,7 @@ export class Battle {
       if (src.side === 0 && dmg > this.counters.bestHit) this.counters.bestHit = dmg;
     }
     this.emit({ k: 'dmg', id: tgt.id, src: src.id, v: dmg, crit: res.crit, miss: res.miss, graze: res.graze, elem: o.elem, tag: o.tag, syn: o.syn, dhp, dsh });
+    if (dmg > 0) { tgt.mem.lastChem = o.elem === 'chem' ? 1 : 0; this.fr?.afterHit?.(this, src, tgt, res, o); }
     if (dmg > 0 && !o.noHooks) {
       const ls = this.S(src, 'lifesteal');
       if (ls > 0 && src.alive) this.heal(src, src, dmg * ls, true);
@@ -831,6 +877,7 @@ export class Battle {
     src.counters.elem[elem] = (src.counters.elem[elem] || 0) + amt;
     tgt.counters.taken += amt;
     this.emit({ k: 'dmg', id: tgt.id, src: src.id, v: amt, crit: false, miss: false, graze: false, elem, tag: 'proc', dhp, dsh });
+    tgt.mem.lastChem = elem === 'chem' ? 1 : 0;
     if (tgt.hp <= 0) {
       for (const h of tgt.hooks) if (h.onLethal && h.onLethal(this, tgt)) break;
       if (tgt.hp <= 0) this.kill(tgt, src);
@@ -889,8 +936,8 @@ export class Battle {
     for (const a of this.living()) for (const h of a.hooks) h.onAnyDeath?.(this, a, u, by);
     // 소환자가 죽으면 소환물도 소멸
     for (const s of this.units) if (s.owner === u && s.alive) { s.alive = false; this.emit({ k: 'die', id: s.id }); }
-    if (!this.living(0).length) this.winner = 1;
-    else if (!this.living(1).length) this.winner = 0;
+    this.fr?.onDeath?.(this, u, by);
+    this.checkEnd();
   }
 
   heal(src: CUnit, tgt: CUnit, amt: number, raw = false, syn?: string) {

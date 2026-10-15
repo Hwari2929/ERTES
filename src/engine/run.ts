@@ -657,7 +657,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     run.streak = 0;
     run.stats.losses++;
     income += CFG.lossCredits;
-    const survivors = b.living(1).length;
+    const survivors = b.fighters(1).length;
     hpLoss = type === 'boss' ? CFG.bossLossDamage(p) : CFG.lossDamage(p, survivors) * (type === 'adversity' ? 1.5 : 1);
     if (pet >= 2) { hpLoss *= 0.5; income += 6; lines.push('페트라 보험금 +6, 체력 피해 50% 감소'); }
     if (hasGlobal(run, 'G.survival')) hpLoss *= 0.7;
