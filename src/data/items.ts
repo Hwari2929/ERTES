@@ -69,6 +69,8 @@ const UNIQUE: Record<string, { name: string; icon: string; desc: string; effect:
   },
 };
 export const isLocked = (id: string | null) => !!id && id.startsWith('U_');
+/** 고유 장비 id 목록 (도감) */
+export const UNIQUE_IDS = Object.keys(UNIQUE);
 
 // ── 개조부품: 장비 칸과 별도인 1칸. 문장 = 장착한 기물이 해당 시너지에 추가 소속, 신비 부품(O_) = 신비학자 전용 특수 효과
 export const isEmblem = (id: string | null) => !!id && id.startsWith('M_');

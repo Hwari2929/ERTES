@@ -9,7 +9,8 @@
     "sim": "node scripts/build.mjs --sim && node dist/sim.cjs",
     "offline": "node scripts/build.mjs --offline",
     "syn-doc": "node scripts/build.mjs --syndoc && node dist/syndoc.cjs > docs/SYNERGY_TABLE.md",
-    "events-doc": "node scripts/build.mjs --eventdoc && node dist/eventdoc.cjs > docs/EVENTS.md"
+    "events-doc": "node scripts/build.mjs --eventdoc && node dist/eventdoc.cjs > docs/EVENTS.md",
+    "check": "npx esbuild tests/codex_check.ts --bundle --platform=node --log-level=error --outfile=dist/codex_check.cjs && node dist/codex_check.cjs"
   },
   "devDependencies": {
     "esbuild": "0.25.10",

@@ -16,6 +16,7 @@ import { GROUPS, SCHOOL_BY_ID, SCHOOL_PASSIVES, UNIT_GROUP, isTransformAug, psiA
 import { BRIEF, PSI_BRIEF } from './data/brief';
 import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
 import * as AB from './ui/abil';
+import * as CX2 from './ui/codex2';
 import {
   activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, unitEffects, ZONE,
 } from './engine/build';
@@ -100,7 +101,7 @@ const app = {
   introDone: false, // 출격 연출을 끝까지 봤는지 (다시 그릴 때 연출 생략)
   introFoe: null as string | null, // 전장 브리핑에서 연 적 상세
   dsInfo: null as number | null, // 난이도 카드에서 펼친 세부 조건
-  codexTab: 'units' as 'units' | 'enemies' | 'events' | 'manual' | 'records',
+  codexTab: 'units' as 'units' | CX2.Cx2Tab | 'enemies' | 'events' | 'manual' | 'records',
   tutAsk: false, // 첫 실행: 새 계약을 누르면 튜토리얼부터 볼지 묻는다
   codexGroup: 'none' as 'none' | 'faction' | 'trait' | 'ctype' | 'ttype', // 도감 기물: 모아보기 기준
   codexSel: null as string | null, // 도감 기물: 상세를 펼친 기물
@@ -2675,7 +2676,7 @@ function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
 }
 function codexScreen() {
   const m = loadMeta();
-  const tabs = ([['units', '기물'], ['enemies', '적'], ['events', '사건'], ['manual', '교범'], ['records', '기록']] as const)
+  const tabs = ([['units', '기물'], ...CX2.CX2_TABS, ['enemies', '적'], ['events', '사건'], ['manual', '교범'], ['records', '기록']] as const)
     .map(([k, l]) => `<button class="btn small ${app.codexTab === k ? 'primary' : ''}" data-a="codex-tab" data-v="${k}">${l}</button>`).join('');
   let body = '';
   if (app.codexTab === 'units') {
@@ -2699,6 +2700,8 @@ function codexScreen() {
       const n = m.events[e.id] || 0;
       return `<div class="codex-row ${n ? '' : 'unknown'} ${e.rare ? 'rare' : ''}"><div><b>${n ? esc(e.title) : '???'}</b>${e.rare ? ' <span class="tag">희귀</span>' : ''}<div class="small">${n ? esc(e.text) : '아직 겪지 못한 사건입니다.'}</div></div><div class="small mono">${n}회</div></div>`;
     }).join('')}</div>`).join('');
+  } else if (CX2.isCx2Tab(app.codexTab)) { // 장비 · 시너지 · 증강 · 사이오닉 (src/ui/codex2.ts)
+    body = CX2.codex2Body(app.codexTab, { itemIcon, augIcon, sprite: (d) => sprite(d), abTok, statIc, relicTok: (id) => relicTok(id), majorIcon: (m) => majorIcon(m) });
   } else if (app.codexTab === 'manual') {
     body = codexManual();
   } else {
@@ -3223,6 +3226,7 @@ function act(a: string, v: string) {
       break;
     case 'codex': app.screen = 'codex'; app.menu = null; break;
     case 'codex-tab': app.codexTab = v as typeof app.codexTab; break;
+    case 'cx2': { const r = CX2.codex2Act(v); if (r.tab) app.codexTab = r.tab as typeof app.codexTab; if (r.unit) app.codexSel = r.unit; app.abilPop = null; cxScroll = r.scroll; if (r.tab) window.scrollTo(0, 0); break; }
     case 'codex-group': app.codexGroup = v as typeof app.codexGroup; break;
     case 'codex-sel': app.codexSel = app.codexSel === v ? null : v; app.abilPop = null; cxScroll = !!app.codexSel; break;
     case 'codex-back': app.screen = app.run ? (app.run.over ? 'over' : 'map') : 'title'; if (app.run && !app.run.over) goPrepOrMap(); break;
