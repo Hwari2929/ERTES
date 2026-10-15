@@ -1,8 +1,8 @@
 {
-  "skill.iris": { "subject": "winged sandal with motion streaks, speed aura, caduceus", "color": "gold and white" },
-  "trait.romani": { "subject": "chain whip hooking and pulling, curved hook", "color": "crimson and black" },
-  "weapon.romani": { "subject": "coiled leather whip with metal tip", "color": "dark red and steel" },
-  "cantrip.pyro": { "subject": "fireball exploding, flames", "color": "orange and red" },
-  "skill.yelena": { "subject": "eye symbol being erased, glitch, anti-meme", "color": "blue and cyan" },
-  "ult.grenholm": { "subject": "hexagonal energy shield wall, layered barrier", "color": "teal and silver" }
+  "skill.iris": { "subject": "winged sandal dashing forward with golden speed streaks and holy light burst", "color": "gold and amber" },
+  "trait.romani": { "subject": "chain hook lashing and yanking forward, curved chain trail", "color": "crimson red" },
+  "weapon.romani": { "subject": "coiled whip cracking with sharp metal tip, shockwave arc", "color": "dark red" },
+  "cantrip.pyro": { "subject": "fireball exploding with embers and flames", "color": "orange and red" },
+  "skill.yelena": { "subject": "glowing eye shattering into glitch fragments, erasing", "color": "cyan and blue" },
+  "ult.grenholm": { "subject": "layered hexagonal energy shield wall rising, barrier panels", "color": "teal" }
 }

@@ -11,7 +11,7 @@ const flag = (f) => args.includes(f);
 const opt = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : undefined; };
 const valued = ['--seed', '--style', '--out'];
 const ids = flag('--all') ? Object.keys(P).filter((k) => !k.startsWith('_')) : args.filter((a, i) => !a.startsWith('--') && !valued.includes(args[i - 1]));
-const style = opt('--style') || 'A';
+const style = opt('--style') || 'E';
 const out = opt('--out') || 'art/icons/raw';
 const W = 832, H = 832, STEPS = 23; // 무료 범위 (1MP 이하 · 28스텝 이하)
 const token = process.env.NOVELAI_TOKEN;
@@ -21,12 +21,14 @@ const STYLES = {
   // 게임 스킬 아이콘: 중앙 상징 하나, 어두운 바탕, 강한 대비
   A: 'game skill icon, ability icon, square icon, single centered symbol, no humans, dark background, radial glow, high contrast, bold silhouette, clean shapes, vibrant colors, digital painting, best quality, masterpiece, highres, ::1.2::flat color::',
   // 평면 문장: 단순한 실루엣 위주
+  // 참고 시안: 꽉 찬 화면의 이펙트 페인팅, 원소별 단색 계열, 강한 발광 · 대각 구도, 틀 없음
+  E: 'game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres',
   // B 보강: 평면 문장 + 풍성한 바탕 (원형 문양 · 그라데이션 · 테두리 광)
   C: 'emblem, game skill icon, flat design, single centered symbol, no humans, ornate circular sigil background, dark gradient background with subtle radial light rays, faint magic circle pattern, soft rim glow, gold accents, bold silhouette, clean vector shapes, high contrast, vibrant, best quality, highres, ::1.3::flat color::',
   D: 'emblem, game skill icon, flat design, single centered symbol, no humans, dark textured background, geometric diamond frame behind symbol, layered color gradient, sparkles, light particles, bold silhouette, clean vector shapes, high contrast, vibrant, best quality, highres, ::1.3::flat color::',
   B: 'emblem, icon, flat design, single centered symbol, no humans, dark navy background, minimalist, bold silhouette, two-tone, clean vector shapes, high contrast, best quality, highres, ::1.4::flat color::',
 };
-const NEG = 'text, letters, words, watermark, signature, logo, frame border text, multiple views, collage, grid, ui, lowres, worst quality, bad quality, jpeg artifacts, blurry, noisy, cluttered, busy background, photo, realistic, 3d render, human face, person, character, hands, ' + 'chromatic aberration, film grain';
+const NEG = 'ui elements, badges, small icons, buttons, health bar, text, letters, words, watermark, signature, logo, frame border text, multiple views, collage, grid, ui, lowres, worst quality, bad quality, jpeg artifacts, blurry, noisy, cluttered, busy background, photo, realistic, 3d render, human face, person, character, hands, ' + 'chromatic aberration, film grain';
 
 function unzipFirst(buf) {
   let eocd = buf.length - 22;
@@ -39,7 +41,9 @@ function unzipFirst(buf) {
 }
 async function gen(id, seed) {
   const p = P[id];
-  const input = `${p.subject}, ${p.color} color scheme, ${STYLES[style]}`;
+  // 무기: 이펙트보다 무기 자체가 먼저 보이게 (단일 물체 · 전체 형태 · 대각 배치)
+  const weapon = id.startsWith('weapon.') ? ', ::1.4::single weapon object, entire weapon visible, weapon in focus, detailed weapon design::, subtle effect behind' : '';
+  const input = `::1.6::${p.subject}::, ${p.color} color scheme${weapon}, ${STYLES[style]}`;
   if (flag('--dry')) { console.log(id, '\n', input); return; }
   const body = { input, model: cfg.model, action: 'generate', parameters: {
     params_version: 3, width: W, height: H, scale: 6, sampler: cfg.sampler, steps: STEPS, n_samples: 1, ucPreset: 0, qualityToggle: false, seed,
