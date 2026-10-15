@@ -1469,5 +1469,223 @@
   "tags": "eerie pale phantom creature, tall thin mimic figure, antenna growths, glowing beacon light, half transparent, wispy, horror, full body, no humans",
   "source": "enemy",
   "notes": "시안(미채택)"
+ },
+ "d_captain": {
+  "name": "조난선 선장",
+  "subject": "1boy",
+  "tags": "mature male, old man, 50s, smuggler, ship captain, sturdy build, tanned weathered skin, salt-and-pepper hair, swept back hair, short grey beard, crow's feet, hearty laugh, open mouth grin, neat dark brown long coat, brass buttons, white shirt, red scarf, polished leather boots, holding liquor bottle, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_d.ts d_captain · 성별 근거 약함(하게체 \"자네\"·중년~노년 밀수꾼, VOICES 추정) → 남성. 말끔한 코트·반들반들한 장화(story_d)."
+ },
+ "d_scar": {
+  "name": "흉터 두목",
+  "subject": "1boy",
+  "tags": "mature male, 40s, space pirate boss, raider chief, many scars, scarred face, scar across nose, scar on cheek, buzz cut, black hair, stubble, sharp eyes, menacing grin, heavy black coat, tattered black cape, armored vest, bite mark emblem patch, tooth mark insignia, muscular, crossed arms, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_d.ts d_scar · 남성: 동생(d_brother)이 \"형\"이라 부름. 흉터 없는 데를 찾는 게 빠른 얼굴, 이빨 자국 문양, 검은 돛. 바르가(en_varga: 붉은 코트·삼각모·안대)와 구별."
+ },
+ "d_hunter": {
+  "name": "현상금 사냥꾼",
+  "subject": "1boy",
+  "tags": "mature male, 30s, bounty hunter, rugged, stubble, messy brown hair, tired eyes, calm expression, long armored trench coat, bullet holes in coat, dented armor plates, leather gloves, gun holster, revolver, holding folded wanted poster, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_d.ts d_hunter · 남성: \"장갑 외투를 걸친 사내\". 외투에 탄흔이 줄지어 박힘."
+ },
+ "c_medic": {
+  "name": "진료소 의사",
+  "subject": "1girl",
+  "tags": "adult female, 30s, unlicensed doctor, back-alley medic, tired eyes, dark circles under eyes, deadpan, messy dark hair, low ponytail, stained white coat, rolled up sleeves, black tank top, surgical gloves, stethoscope around neck, holding forceps, cargo pants, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 common.ts c_medic · 성별 근거 없음 → 여성으로 정함. 무면허 · 피곤한 반말 · 천막 진료소(선불)."
+ },
+ "scrapper": {
+  "name": "고물상",
+  "subject": "1boy",
+  "tags": "mature male, 40s, junk dealer, street merchant, sly grin, bandana, welding goggles on head, stubble, grease stains, patched work vest, many pockets, tool belt, fingerless gloves, holding scrap machine part, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 pilot.ts scrapper · 성별 근거 없음(VOICES: 중년 추정) → 남성으로 정함. 고물 시장 호객꾼."
+ },
+ "b_headhunter": {
+  "name": "헤드헌터",
+  "subject": "1girl",
+  "tags": "adult female, late 20s, corporate headhunter, recruiter, bright cheerful smile, wavy brown hair, shoulder-length hair, stylish grey pantsuit, orange scarf, orange accents, holding fan of business cards, business card case, high heels, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_b3.ts b_headhunter · 성별 근거 약함(\"어머\", 낯선 향수 냄새) → 여성. 페트라 인재 영입팀(페트라 = 주황 포인트)."
+ },
+ "b_ithacan": {
+  "name": "이타카 함장",
+  "subject": "1boy",
+  "tags": "mature male, 40s, sea captain, ithacan captain, jovial, big laugh, open mouth, curly dark hair, thick curly beard, tanned skin, greek style tunic, blue sash, sailor cloak, bronze arm bands, sandals, raising wine cup, kylix, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_b.ts · story_b3.ts b_ithacan · 성별 근거 없음(VOICES: 중년 추정, \"~구먼\") → 남성. 헬레니우스 동맹(고대 그리스풍) 연회형 함장."
+ },
+ "c_sales": {
+  "name": "페트라 영업직원",
+  "subject": "1boy",
+  "tags": "young male, 20s, corporate salesman, nervous smile, sweating, neat short black hair, black suit, white shirt, orange necktie, petra employee badge, holding contract folder, stiff posture, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 common.ts c_sales · 남성: \"페트라 정장 차림의 남자\". 서류 모서리를 맞추는 성격."
+ },
+ "b_collector": {
+  "name": "제국 추심관",
+  "subject": "1boy",
+  "tags": "mature male, 40s, imperial debt collector, knight, stern, short grey hair, neat mustache, ornate dark armor, long red cape, red mantle, holding sword in left hand, holding ledger book in right hand, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_b.ts b_collector · 남성: \"통신 화면 속 사내\". 붉은 망토 기사단, 왼손 검 · 오른손 장부."
+ },
+ "b_trierarch": {
+  "name": "삼단노선 함장",
+  "subject": "1boy",
+  "tags": "mature male, 50s, greek trireme captain, naval commander, stern, short white beard, short grey hair, bronze breastplate, blue cloak, crested helmet under arm, leather bracers, tapping fingers, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_b.ts b_trierarch · 남성: \"그가 ... 동맹 문장을 건넨다\". 헬레니우스 동맹 삼단노선 기함 함장."
+ },
+ "c_merc": {
+  "name": "떠돌이 용병",
+  "subject": "1boy",
+  "tags": "adult male, 30s, wandering mercenary, thin, hungry, scruffy stubble, messy hair, worn-out patched armor, faded insignia, old rifle slung on back, holding data pad, awkward polite smile, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 common.ts c_merc · 성별 근거 없음(용병 무리의 대표) → 남성으로 정함. 낡은 장비, 굶주린 공손함."
+ },
+ "c_blood": {
+  "name": "혈족 중개인",
+  "subject": "1girl",
+  "tags": "adult female, vampire, blood broker, pale skin, red eyes, long black hair, arrogant smile, black and crimson gothic dress, high collar, holding silver goblet, red liquid in goblet, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 common.ts c_blood · 성별 근거 없음 → 여성으로 정함. 크림슨 대공령 혈맹 중개인, 은잔, 촛불 응접실."
+ },
+ "d_shark": {
+  "name": "사채업자",
+  "subject": "1boy",
+  "tags": "mature male, 40s, loan shark, grinning, gold teeth, slicked back hair, flashy purple suit, gold chains, gold rings, holding thick ledger, cunning eyes, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_d.ts d_shark · 남성: \"앞장선 사내\", \"그는 장부를 펴고\". 앞니 두 개가 금니."
+ },
+ "b_baroness": {
+  "name": "남작 부인",
+  "subject": "1girl",
+  "tags": "mature female, 30s, imperial baroness, noblewoman, elegant, blonde hair, messy updo, loose strands, worried but determined expression, ornate imperial ball gown, torn sleeve, hugging thick leather-bound ledger to chest, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_b.ts b_baroness · 여성: \"화면 가득 여자 얼굴\", 남작 부인. 제국풍 드레스, 소매 한쪽 찢김, 장부를 끌어안음."
+ },
+ "c_auditor": {
+  "name": "정보감사관",
+  "subject": "1girl",
+  "tags": "adult female, corporate auditor, expressionless, blank stare, neat black bob hair, glasses, black suit, white shirt, orange necktie, earpiece, holding tablet, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 common.ts c_auditor · 성별: 같은 직함의 적 en_pt_auditor(정보감사관) 일러스트가 여성이라 맞춤. 대사가 있어 얼굴은 보이게. 표정 없음."
+ },
+ "a_supply": {
+  "name": "보급 담당",
+  "subject": "1girl",
+  "tags": "young female, 20s, spaceship crew, supply officer, short brown hair, pencil behind ear, stressed expression, grey work jumpsuit, rolled sleeves, holding clipboard, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_a.ts a_supply · 성별 근거 없음 → 여성으로 정함. 에란테스 함선 보급 담당, 클립보드."
+ },
+ "c_argo_captain": {
+  "name": "아르고 선장",
+  "subject": "1boy",
+  "tags": "mature male, 40s, colony ship captain, gentle innocent smile, kind eyes, neat brown hair, retro white captain uniform, captain hat, gold epaulettes, faint ethereal glow, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_c.ts c_argo_captain · 성별 근거 없음 → 남성으로 정함. 삼백 년 전 이민선 선장(유령, 빛이 되어 흩어짐)."
+ },
+ "b_clerk": {
+  "name": "검문소 관료",
+  "subject": "1girl",
+  "tags": "adult female, 30s, bureaucrat, checkpoint clerk, exhausted, dark circles under eyes, sighing, messy bun, blue uniform shirt, grey cardigan, lanyard id card, holding rubber stamp, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_b3.ts b_clerk · 성별 근거 없음 → 여성으로 정함. 성간 인류 연합 검문소, 사흘째 퇴근 못 함."
+ },
+ "tu_cob": {
+  "name": "탈영 약탈자 코브",
+  "subject": "1boy",
+  "tags": "young male, late teens, skinny, scruffy, deserter pirate, scared expression, nervous sweat, messy dark hair, ragged patched clothes, rusty anchor tattoo on forearm, hands up, surrendering, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 tutorial.ts tu_cob · 남성: \"바짝 마른 청년\". 팔뚝에 녹슨 닻 문신."
+ },
+ "c_faceless": {
+  "name": "얼굴 없는 중개인",
+  "subject": "1other",
+  "tags": "mysterious broker, black formal suit, white gloves, hands folded, no face, faceless, face obscured by glitch, distorted head, unknowable, eerie, full body, standing",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 common.ts c_faceless · 성별 미상으로 둠(1other): \"얼굴이 있어야 할 자리에서 시선이 미끄러진다\", 장갑 안이 비어 있음."
+ },
+ "d_caller": {
+  "name": "호객꾼",
+  "subject": "1boy",
+  "tags": "adult male, 30s, arena barker, announcer, showman, shouting, open mouth, flat cap, dusty vest, suspenders, rolled sleeves, holding megaphone, raising fist, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_d.ts d_caller · 성별 근거 없음 → 남성으로 정함. 광산 도시 모래 우리 진행자."
+ },
+ "c_convoy": {
+  "name": "수송단 함대장",
+  "subject": "1girl",
+  "tags": "mature female, 40s, military officer, convoy commander, stern tired expression, short grey-streaked hair, navy blue uniform, officer cap, headset, holding radio handset, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 common.ts c_convoy · 성별 근거 없음 → 여성으로 정함. 연합 제7 보급 수송단, 베르타 행정청, 무전 교범체."
+ },
+ "barkeep": {
+  "name": "바텐더 (여섯 번째 달)",
+  "subject": "1girl",
+  "tags": "mature female, 40s, bartender, casual, easygoing grin, dark hair, ponytail, bandana, rolled sleeves, apron, wiping glass, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 pilot.ts barkeep · 성별 근거 없음(VOICES: 중년 추정) → 여성으로 정함. 폐광 지하 도박장 바텐더(에이든과 별개)."
+ },
+ "b_masked": {
+  "name": "얼굴 가린 사내",
+  "subject": "1boy",
+  "tags": "adult male, mysterious man, cloth mask covering lower face, face covered by cloth, eyes visible, dark hood, dark coat, imperial heeled boots, holding credit chip, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_b3.ts b_masked · 남성: \"얼굴을 천으로 가린 사내\". 말투는 연합식, 신발 굽은 제국식."
+ },
+ "d_auctioneer": {
+  "name": "경매인",
+  "subject": "1girl",
+  "tags": "adult female, auctioneer, polite smile, slicked back hair, monocle, black tailcoat, bow tie, white gloves, holding gavel, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_d.ts d_auctioneer · 성별 근거 없음 → 여성으로 정함. 버려진 정거장 암시장 경매 진행자."
+ },
+ "d_client": {
+  "name": "후드 쓴 의뢰인",
+  "subject": "1boy",
+  "tags": "hooded man, deep hood, face hidden in shadow, shadowed face, eyes not visible, long dark cloak, gloves, full body, standing",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_d.ts d_client · 성별 근거 없음(하오체) → 남성으로 정함. 얼굴을 끝까지 보이지 않음."
+ },
+ "a_official": {
+  "name": "관리국 직원",
+  "subject": "1boy",
+  "tags": "adult male, 30s, government official, port authority clerk, angry, pointing, glasses, grey uniform, lanyard id card, holding three permits fanned out, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 story_a.ts a_official · 성별 근거 없음 → 남성으로 정함. 허가증 세 장을 부채처럼 듦."
+ },
+ "dealer": {
+  "name": "딜러 (여섯 번째 달)",
+  "subject": "1girl",
+  "tags": "adult female, casino dealer, fixed smile, slicked back hair, white shirt, black vest, bow tie, sleeve garters, holding dice, playing cards between fingers, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 pilot.ts dealer · 성별 근거 없음 → 여성으로 정함. 손이 빠른 딜러."
+ },
+ "fi_minos": {
+  "name": "미노스",
+  "subject": "1boy",
+  "tags": "mature male, 50s, high bureaucrat, dry expression, tired eyes, dark circles under eyes, neat grey hair, black official robe, long black coat, holding thick folder, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 fields.ts fi_minos · lore/지역/동맹/크레타.md · 성별 근거 약함(이름 미노스, 54세, 성별 명시 없음) → 남성. \"검은 관복\", 눈 밑 그늘이 굳음."
+ },
+ "fi_lucrezia": {
+  "name": "루크레치아",
+  "subject": "1girl",
+  "tags": "mature female, tall, vampire, silver hair, short hair, bob cut, red eyes, black veil, sunshade veil over eyes, hat with veil, crimson and black military coat, high collar, elegant, standing at attention, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "시안(미채택) · 근거 fields.ts fi_lucrezia · lore/지역/제국/크림슨.md · 여성(lore): 은백색 단발, 차광 베일, 장신. 카르밀라가 가주, 무광 전선 총사령관."
+ },
+ "en_cw_rock": {
+  "name": "반려 돌",
+  "subject": "no humans",
+  "tags": "pet rock, one cute round grey stone, smooth pebble, tiny painted dot eyes, small smile, single object, centered, only one rock, no humans",
+  "source": "enemy",
+  "notes": "시안(미채택) · 캣휠 장애물(cw_rock). 귀여운 돌 하나만 중앙",
+  "object": true
  }
 }
