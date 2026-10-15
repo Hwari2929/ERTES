@@ -21,6 +21,22 @@ FACE_TAGS = {
   'grin': 'grin, toothy smile, confident',
   'blank': 'expressionless, blank stare, empty eyes, closed mouth',
 }
+# 표정 변화를 작게 (--subtle)
+SUBTLE = {
+  'smile': 'light smile, closed mouth smile',
+  'serious': 'serious, closed mouth, slight frown',
+  'angry': 'annoyed, slight frown, closed mouth, furrowed brow',
+  'surprise': 'slightly surprised, raised eyebrows, small open mouth',
+  'worried': 'worried, raised inner eyebrows, closed mouth, sweatdrop',
+}
+# 기물별 고정 특징 (표정이 바뀌어도 유지)
+KEEP = {
+  'yelena': '::1.3::heterochromia, white eye, blue eye, left eye white, right eye blue::',
+  'franze': '::1.3::red eyes, glowing red eyes, pale skin::',
+  'temur': '::1.3::dark skin, tan skin::',
+  'franze': '::1.3::red eyes, glowing red eyes, pale skin::',
+  'temur': '::1.3::dark skin, tan skin::',
+}
 args = sys.argv[1:]
 def opt(k, d=None):
   return args[args.index(k) + 1] if k in args else d
@@ -42,22 +58,23 @@ W, H = src.size
 flat = Image.new('RGB', (W, H), (255, 255, 255)); flat.paste(src, mask=src.split()[3])
 h = chin - brow
 # 얼굴 주변만 잘라 1024 로 키워서 다시 그린다 (전신 크기 그대로면 얼굴이 작아 뭉개진다)
-side = int(h * 3.0)
+side = int(h * 3.4)
 cy = (brow + chin) / 2
-crop = (int(cx - side / 2), int(cy - side * 0.45), int(cx + side / 2), int(cy + side * 0.55))
+crop = (int(cx - side / 2), int(cy - side * 0.5), int(cx + side / 2), int(cy + side * 0.5))
 S = 1024
 flatc = flat.crop(crop).resize((S, S), Image.LANCZOS)
 k = S / side
 fx, fy = (cx - crop[0]) * k, (brow - crop[1]) * k
 hh = h * k
 mask = Image.new('L', (S, S), 0)
-ImageDraw.Draw(mask).ellipse((int(fx - hh * 0.62), int(fy - hh * 0.18), int(fx + hh * 0.62), int(fy + hh * 1.06)), fill=255)
+ImageDraw.Draw(mask).ellipse((int(fx - hh * 1.05), int(fy - hh * 0.95), int(fx + hh * 1.05), int(fy + hh * 1.55)), fill=255)
 def b64(im):
   bio = io.BytesIO(); im.save(bio, 'PNG'); return base64.b64encode(bio.getvalue()).decode()
 NEG = cfg['negative'] + ', glasses, eyewear, goggles, mask, blindfold, bandage, face paint, censor bar'
 ctx = ssl.create_default_context(cafile=os.environ.get('SSL_CERT_FILE', '/root/.ccr/ca-bundle.crt'))
 for face in faces:
-  tags = FACE_TAGS[face]
+  tags = (SUBTLE if '--subtle' in args else FACE_TAGS)[face]
+  if uid in KEEP: tags = f'{tags}, {KEEP[uid]}'
   prompt = base_prompt.replace('transparent background, ', 'white background, ').replace('full body, ', 'portrait, upper body, face focus, ').replace('standing illustration, ', '').replace('calm smile, ', '').replace('smile, ', '')
   prompt = f'::1.5::{tags}::, {prompt}'
   seed = int(opt('--seed') or random.randrange(2**32))
@@ -77,7 +94,7 @@ for face in faces:
       print(face, 'HTTP', e.code, e.read()[:300]); data = None; break
   if not data: continue
   z = zipfile.ZipFile(io.BytesIO(data)); gen = Image.open(io.BytesIO(z.read(z.namelist()[0]))).convert('RGB')
-  soft = mask.filter(ImageFilter.GaussianBlur(hh * 0.05))
+  soft = mask.filter(ImageFilter.GaussianBlur(hh * 0.18))
   patch = Image.composite(gen, flatc, soft).resize((crop[2] - crop[0], crop[3] - crop[1]), Image.LANCZOS)
   pm = soft.resize(patch.size, Image.LANCZOS)
   res = src.copy()
