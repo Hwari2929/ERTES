@@ -1001,7 +1001,9 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .abc { display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; border-radius: 4px; background: var(--panel); border: 1px solid var(--line); font-size: .74rem; line-height: 1.5; white-space: nowrap; }
 .abc .li, .pw .li, .tln .li, .ap-rows .li { width: 13px; height: 13px; flex: none; }
 .abc.v { border-color: transparent; background: none; padding-inline: 2px; }
-@media (max-width: 860px) { .abc.v { white-space: normal; } } /* 긴 기술 요약 줄이 좁은 화면을 가로로 넘치지 않게 (넘치면 모바일 화면 기준 폭이 넓어져 고정 요소가 화면 밖으로 밀린다) */
+/* 기술 요약 줄: 칸 폭을 넘으면 단어 단위로 줄바꿈 (가로 스크롤 · 모바일 폭 넘침 방지) */
+.abc.v { display: inline-block; max-width: 100%; min-width: 0; white-space: normal; word-break: keep-all; overflow-wrap: break-word; }
+.ab-chips { min-width: 0; max-width: 100%; }
 .pw { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
 .pw b { font-family: var(--f-mono); font-weight: 700; }
 .pw-shoot, .pw-strike, .pw-tech, .pw-tac { color: var(--fg); } /* 위력 = 마이너 능력치: 흰색 (피해 수치는 속성 색) */
@@ -2423,3 +2425,25 @@ button.cx2-row { cursor: pointer; } button.cx2-row:hover { border-color: var(--d
 .u.turret-tk { cursor: grab; }
 .u.turret-tk .tk-card { border-color: #a0b4c8; }
 .u.turret-tk .tk-tag { position: absolute; left: 2px; bottom: 2px; font-size: 10px; line-height: 1; padding: 2px 3px; border-radius: 4px; background: rgb(0 0 0 / .65); color: #cfe0f0; }
+/* 포탑 전용 장비 (T_): 강철색 사각 + 모서리 절단 */
+:root { --g-T: #9fd0e8; }
+.item.tT { border-color: var(--g-T); color: var(--g-T); border-style: double; border-width: 3px; border-radius: 2px; }
+.u.tk .tk-items > .item.tT, .u.tk .tk-it .item.tT { border-width: 2px; }
+.shop-item.tT b { color: var(--g-T); }
+.u.turret-tk .tk-tag { display: inline-flex; align-items: center; gap: 1px; white-space: nowrap; color: #8fc8ff; }
+.u.turret-tk .tk-tag .li { width: 10px; height: 10px; }
+.u.turret-tk .tk-side .li { width: 72%; height: 72%; }
+.u.turret-tk.sel .tk-card { outline: 2px solid var(--accent); }
+.tag.cat-mech { display: inline-flex; align-items: center; gap: 2px; }
+.tag.cat-mech .li { width: 12px; height: 12px; }
+.t-gear { display: grid; gap: 6px; margin: 4px 0 8px; }
+.t-slot { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px; border: 1px solid var(--line); border-radius: 6px; background: color-mix(in srgb, var(--g-T) 6%, transparent); }
+.t-slot.empty { grid-template-columns: auto minmax(0, 1fr); border-style: dashed; }
+.maint-tur { margin: 10px 0; padding: 8px 10px; border: 1px solid color-mix(in srgb, #a0b4c8 45%, var(--line)); border-radius: 8px; }
+.maint-tur h3 { margin: 0 0 6px; }
+.mt-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.mt-row { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; background: color-mix(in srgb, #a0b4c8 10%, transparent); }
+.mt-row .spr { width: 32px; height: 32px; }
+.mt-slots { display: flex; gap: 4px; }
+.cx2-knight { display: flex; gap: 10px; align-items: flex-start; }
+.cx2-knight .spr { width: 48px; height: 48px; image-rendering: pixelated; }
