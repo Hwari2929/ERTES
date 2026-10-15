@@ -18,6 +18,7 @@ export const ABIL_C: Record<string, AbilText> = {
         ['피해', `[dmg:strike:${p.mult}:phys${hitsTxt(p.hits)}]`],
         ['끌어오기', '대상을 자신 앞으로 끌어옴 (보스 · 고정 대상 제외)'],
         ['기절', `[st:stun:${p.stun}]`],
+        ['약화', `[g:weak] [p:${p.weak}] ([s:${p.weakDur}])`],
         ...opt(p.splash, '주변', `끌려온 대상 주변 [t:1] 적에게 [dmg:strike:${p.splash}:phys]`),
       ],
     }),
@@ -132,7 +133,7 @@ export const ABIL_C: Record<string, AbilText> = {
         ...opt(p.resetOnKill, '처치 시', `쿨다운 [p:${p.resetOnKill}] 초기화`),
       ],
     }),
-    trait: '전투 시작 시 [s:5] · 회피 시 [s:2] · 처치 시 [s:5] 동안 [g:catform].',
+    trait: '전투 시작 시 [s:5] · 회피 시 [s:2] · 처치 시 [s:5] 동안 [g:catform]. 체력이 [p:0.35] 아래로 떨어지면 자기 진영 뒷줄로 물러남 ([s:10]에 1회).',
     ace: (k) => `회피 [pp:${n(0.075 * k)}]. 회피할 때마다 공격자에게 [dmg:strike:${n(0.8 * k)}:phys].`,
     augs: {
       claw: '액체 금속 변형 피해 [dmg+:strike:2.2:phys].',
@@ -215,7 +216,7 @@ export const ABIL_C: Record<string, AbilText> = {
         ['기절', `[st:stun:${p.stun}]`],
       ],
     }),
-    trait: '[g:finish] 시 대상 주변 [t:1] 적에게 [dmg:strike:0.5:true]. 이 피해의 [p:0.2]만큼 보호막.',
+    trait: '준 정신 피해의 [p:0.15]만큼 회복. 기본 공격 적중 시 대상에게 [dmg:strike:0.2:true] 추가. [g:finish] 시 대상과 주변 [t:1] 적에게 피니쉬 피해의 [p:0.35]만큼 고정 피해.',
     augs: {
       core: '염동 제압 피해 [dmg+:strike:2:psy].',
       weapon: '[g:stun] +[s:1.2].',
@@ -291,7 +292,7 @@ export const ABIL_C: Record<string, AbilText> = {
         ['요리', '[g:cook] 배율 적용'],
       ],
     }),
-    trait: '전투 스킬 사용 후 모든 아군 [heal:0.25].',
+    trait: '전투 스킬 사용 후 모든 아군 [heal:0.2].',
     augs: {
       broth: '가문의 스튜에 [shield:1.8] 추가.',
       bone: '가문의 스튜 방어도 +400.',

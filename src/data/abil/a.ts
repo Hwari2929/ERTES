@@ -156,7 +156,7 @@ export const ABIL_A: Record<string, AbilText> = {
         ...opt(p.vuln, '취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`),
       ],
     }),
-    trait: '기본 공격 · 스킬 사용 시 최대 체력 [p:0.05] 보호막 (최대 [p:0.2]). 전투 스킬 사용 시 최대 체력 [p:0.15] 보호막 추가.',
+    trait: '기본 공격 · 스킬 사용 시 최대 체력 [p:0.04] 보호막 (최대 [p:0.2]). 전투 스킬 사용 시 최대 체력 [p:0.12] 보호막 추가.',
     augs: {
       deflect: '군수품 시연 보호막 최대 체력 [pp:0.3].',
       rocket: '군수품 시연 범위 +[t:1]. 피해 [dmg+:strike:0.3:phys].',

@@ -18,8 +18,8 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'strike', elem: 'phys', interval: 1.0 }, range: 1, base: B(7, 9, 7, 5, 4),
     sprite: 'knight', palette: tint(PAL.SIR, '#3a2a50', '#e8e8f0', '#b07cff'), lore: '"그 정도면 잘했어. 네 수준에서는."',
     skill: {
-      name: '집행자 투척', tag: () => '먼 적 끌어오기 + 기절', cd: 7, params: { mult: 1.8, stun: 1, hits: 1, splash: 0 },
-      desc: (p) => `거대 도끼 집행자를 가장 먼 적에게 던져 타격 위력 ${pct(p.mult)} 물리 피해${p.hits > 1 ? ` ${p.hits}회` : ''}, 염동력으로 자기 앞까지 끌어당겨 ${p.stun}초 기절${p.splash ? `. 끌려온 자리 주변 1칸에 ${pct(p.splash)} 피해` : ''}.`,
+      name: '집행자 투척', tag: () => '먼 적 끌어오기 + 기절 · 약화', cd: 7, params: { mult: 1.8, stun: 1, hits: 1, splash: 0, weak: 0.25, weakDur: 4 },
+      desc: (p) => `거대 도끼 집행자를 가장 먼 적에게 던져 타격 위력 ${pct(p.mult)} 물리 피해${p.hits > 1 ? ` ${p.hits}회` : ''}, 염동력으로 자기 앞까지 끌어당겨 ${p.stun}초 기절, ${p.weakDur}초간 대상이 주는 피해 -${pct(p.weak)}${p.splash ? `. 끌려온 자리 주변 1칸에 ${pct(p.splash)} 피해` : ''}.`,
       cast(b, u) {
         const t = b.farthest(u);
         if (!t) return false;
@@ -29,6 +29,7 @@ export const ROSTER_C: BaseUnit[] = [
         if (!t.alive) return true;
         if (b.dist(u, t) > 1 && !t.immobile && !t.isBoss) { blinkTo(b, t, u); t.target = u; }
         b.stun(u, t, p.stun);
+        if (t.alive) b.applyStatus(u, t, { type: 'buff', key: 'romani.weak', dur: p.weakDur, mods: [inc('all', -p.weak)], label: '집행 약화' }); // 대상이 주는 피해 감소
         if (p.splash) for (const e of b.around(t, 1, b.enemiesOf(u))) if (e !== t) skillHit(b, u, e, 'strike', p.splash, 'phys', { noMiss: true });
         return true;
       },
@@ -104,7 +105,7 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'holy', interval: 1.0 }, range: 3, base: B(8, 5, 8, 6, 3),
     sprite: 'robe', palette: tint(PAL.SIR, '#c8a070', '#ffffff', '#ffd866'), lore: '빵을 굽는 동안 기도하고, 기도하는 동안 빵을 굽는다.',
     skill: support({
-      name: '성찬', cd: 4.5, target: 'lowest', power: cookPower, params: { heal: 1.8, cleanse: 1, dmg: 0.3, dur: 5 },
+      name: '성찬', cd: 6, target: 'lowest', power: cookPower, params: { heal: 1.8, cleanse: 1, dmg: 0.3, dur: 5 },
       desc: (p) => `[요리] 체력 비율이 가장 낮은 아군을 기술 위력 ${pct(p.heal)} 회복, 해로운 상태이상 제거, ${p.dur}초간 피해 +${pct(p.dmg)}${p.shield ? `, ${pct(p.shield)} 보호막` : ''}${p.splash ? '. 주변 1칸 아군에게 50% 효과' : ''}.`,
     }),
   },

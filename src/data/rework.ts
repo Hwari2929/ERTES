@@ -9,6 +9,10 @@ import { blinkTo, corrode, every, fear, gw, isHarmful, lineTargets, nth, pct, sk
 import { kairoSnipe } from './rosterB';
 import { pickEnemy } from './tpl';
 import { type BaseUnit, type ReworkDef, setSk, uaug } from './unitkit';
+/** 레이첼 [암흑물질 붕괴]: 정신 피해 흡혈 · 기본 공격 추가 고정 피해 (타격 위력 대비) · 피니쉬 주변 고정 피해 (피니쉬 피해 대비) */
+const RACHEL = { heal: 0.15, extra: 0.2, finish: 0.35 };
+/** 에이든: 체력 비율 기준 · 재발동 대기 (초) */
+const AIDEN_RETREAT = { hp: 0.35, icd: 10 };
 
 // ───────── 무기 헬퍼: G = 탄창형(사격), K = 콤보형(타격)
 const G = (name: string, elem: Elem, interval: number, range: number, mult: number, mag: number, reload: number, x: Partial<Weapon> = {}): Weapon =>
@@ -75,9 +79,8 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'SPEC', ttype: 'psionic', faith: 'human', weapon: G('델타-9 제식 권총', 'psy', 0.95, 3, 1.0, 12, 1.5),
     factions: ['SEC'], traits: ['SCHEME'],
     trait: {
-      name: '항밈 요원', desc: '사격이 정신 피해가 된다 (사격 피해량 -25%p). 정신 피해를 받은 적은 기술 쿨다운 +1초 (대상당 1초에 1회).',
+      name: '항밈 요원', desc: '사격이 정신 피해가 된다. 정신 피해를 받은 적은 기술 쿨다운 +1초 (대상당 1초에 1회).',
       effect: {
-        mods: [inc('shoot', -0.25)],
         hooks: { onDeal(b, _u, t, r, o) { if (o.elem === 'psy' && r.amount > 0 && t.skill && icd(b, t, 'yelIcd', 1)) t.cd += 1; } },
       },
     },
@@ -230,10 +233,10 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'VAN', ttype: 'major', faith: 'index', weapon: K('7중 방호 블레이드', 'phys', 1.1, 1, 0.8, 3),
     factions: ['PET'], traits: ['STAR', 'INFIL'],
     trait: {
-      name: '7중 방호 슈트', desc: '기본 공격 · 기술을 쓸 때마다 최대 체력 5% 보호막 (최대 20%까지 쌓임). 전투 스킬을 쓸 때는 최대 체력 15% 보호막을 추가로 전개한다.',
+      name: '7중 방호 슈트', desc: '기본 공격 · 기술을 쓸 때마다 최대 체력 4% 보호막 (최대 20%까지 쌓임). 전투 스킬을 쓸 때는 최대 체력 12% 보호막을 추가로 전개한다.',
       effect: { hooks: {
         onBasic(b, u) { grenShield(b, u); },
-        onSkill(b, u) { grenShield(b, u); b.shield(u, b.S(u, 'maxHp') * 0.15); },
+        onSkill(b, u) { grenShield(b, u); b.shield(u, b.S(u, 'maxHp') * 0.12); },
       } },
     },
   },
@@ -296,7 +299,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ],
   },
   falcon: {
-    ctype: 'MARK', ttype: 'major', faith: 'science', weapon: G('레일건', 'phys', 1.2, 6, 1.3, 3, 3.5),
+    ctype: 'MARK', ttype: 'major', faith: 'science', weapon: G('레일건', 'phys', 1.2, 6, 1.6, 3, 3.5),
     factions: ['PET'], traits: ['ENG', 'HUNTER'],
     trait: {
       name: '관통 시험', desc: '기본 공격이 직선 위의 다른 적도 관통해 50% 피해를 준다.',
@@ -602,7 +605,7 @@ export const REWORK: Record<string, ReworkDef> = {
     } } },
   },
   sarma: {
-    ctype: 'MARK', ttype: 'major', faith: 'science', weapon: G('융합포', 'phys', 1.1, 4, 1.3, 2, 3),
+    ctype: 'MARK', ttype: 'major', faith: 'science', weapon: G('융합포', 'phys', 1.1, 4, 1.4, 4, 3),
     factions: ['SIR', 'TIME'], traits: ['OCCULT'],
     trait: {
       name: '차원 융합', desc: '기본 공격이 대상 주변 1칸 적에게 30% 피해로 번진다.',
@@ -641,8 +644,9 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'VAN', ttype: 'special', faith: 'science', weapon: K('액체 금속 칼날', 'phys', 0.75, 1, 0.75, 5),
     factions: ['TIME'], traits: ['OCCULT'],
     trait: {
-      name: '고양이 형태', desc: '전투 시작 5초 · 회피 시 2초 · 처치 시 5초 동안 고양이 형태: 회피 +15%p, 공격 속도 +30%p.',
+      name: '고양이 형태', desc: `전투 시작 5초 · 회피 시 2초 · 처치 시 5초 동안 고양이 형태: 회피 +15%p, 공격 속도 +30%p. 체력이 ${AIDEN_RETREAT.hp * 100}% 아래로 떨어지면 후방으로 물러난다 (${AIDEN_RETREAT.icd}초에 1회).`,
       effect: { hooks: {
+        onHurt(b, u) { if (b.hpPct(u) < AIDEN_RETREAT.hp && icd(b, u, 'aidenRet', AIDEN_RETREAT.icd)) retreat(b, u); },
         onStart(b, u) { cat(b, u, 5); },
         onEvade(b, u) { cat(b, u, 2); },
         onKill(b, u) { cat(b, u, 5); },
@@ -786,14 +790,17 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'VAN', ttype: 'psionic', faith: 'human', weapon: K('암흑물질 노심', 'psy', 0.9, 1, 0.85, 4),
     factions: ['FAM', 'TIME', 'VOYAGE'], traits: [],
     trait: {
-      name: '암흑물질 붕괴', desc: '피니쉬가 대상 주변 1칸 적에게 타격 위력 50% 고정 피해를 주고, 준 피해의 20%를 보호막으로 얻는다.',
-      effect: { hooks: { onBasic(b, u, t) {
-        if (!u.mem.finished) return;
-        let sum = 0;
-        for (const e of b.around(t, 1, b.enemiesOf(u))) sum += b.dealDamage(u, e, b.S(u, 'strike') * 0.5, { elem: 'true', tag: 'proc' }).amount;
-        b.fx(t.x, t.y, 1, 'psy');
-        if (sum > 0) b.shield(u, sum * 0.2);
-      } } },
+      name: '암흑물질 붕괴', desc: `자신이 준 정신 피해의 ${RACHEL.heal * 100}%만큼 회복한다. 기본 공격이 맞으면 대상에게 타격 위력 ${RACHEL.extra * 100}% 고정 피해를 더하고, 피니쉬는 대상과 주변 1칸 적에게 피니쉬 피해의 ${RACHEL.finish * 100}%만큼 고정 피해를 더 준다.`,
+      effect: { hooks: {
+        onDeal(b, u, t, r, o) { if (o.elem === 'psy' && r.amount > 0 && t !== u && o.key !== 'reason') b.heal(u, u, r.amount * RACHEL.heal, true); },
+        onBasic(b, u, t, r) {
+          if (r.amount <= 0) return;
+          if (t.alive) b.dealDamage(u, t, b.S(u, 'strike') * RACHEL.extra, { elem: 'true', tag: 'proc' });
+          if (!u.mem.finished) return;
+          for (const e of b.around(t, 1, b.enemiesOf(u))) b.dealDamage(u, e, r.amount * RACHEL.finish, { elem: 'true', tag: 'proc' });
+          b.fx(t.x, t.y, 1, 'psy');
+        },
+      } },
     },
     psi: { desc: '피니쉬마다 이성 -5, 주변 1칸 아군이 맞을 때 +4 (1초에 1회).', effect: { hooks: {
       onBasic(b, u) { if (u.mem.finished) b.addReason(u, -5); },
@@ -839,9 +846,9 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'SPEC', ttype: 'minor', faith: 'index', weapon: G('주방 칼 투척', 'phys', 1.0, 3, 0.8, 5, 2),
     factions: ['FAM'], traits: ['MED', 'CHEF'],
     trait: {
-      name: '저택의 실세', desc: '전투 스킬을 쓴 뒤 아군 전원을 기술 위력 25% 회복.',
+      name: '저택의 실세', desc: '전투 스킬을 쓴 뒤 아군 전원을 기술 위력 20% 회복.',
       effect: { hooks: { onSkill(b, u) {
-        for (const a of b.alliesOf(u)) b.heal(u, a, b.P(u, 'tech') * 0.25 * gw(u));
+        for (const a of b.alliesOf(u)) b.heal(u, a, b.P(u, 'tech') * 0.2 * gw(u));
       } } },
     },
   },
@@ -933,7 +940,7 @@ export const REWORK: Record<string, ReworkDef> = {
 function grenShield(b: Battle, u: CUnit) {
   const max = b.S(u, 'maxHp');
   const cap = max * 0.2;
-  if (u.shield < cap) b.shield(u, Math.min(max * 0.05, cap - u.shield));
+  if (u.shield < cap) b.shield(u, Math.min(max * 0.04, cap - u.shield));
 }
 function romaniPull(b: Battle, u: CUnit) {
   if (!icd(b, u, 'pullIcd', 3)) return;
@@ -945,6 +952,20 @@ function romaniPull(b: Battle, u: CUnit) {
     if (c && b.dist(u, c) <= 1) { e.x = e.px = c.x; e.y = e.py = c.y; e.moveT = 0; b.fx(c.x, c.y, 0, 'psy'); }
   }
   proc(b, u, e, b.S(u, 'strike') * 0.5, 'phys', 'strike');
+}
+/** 자기 진영 맨 뒷줄 빈칸으로 물러난다 (없으면 한 줄 앞) */
+function retreat(b: Battle, u: CUnit) {
+  const rows = u.side === 0 ? [b.h - 2, b.h - 3, b.h - 4] : [1, 2, 3];
+  for (const y of rows) {
+    const xs = [...Array(b.w).keys()].filter((x) => b.inBounds(x, y) && !b.unitAt(x, y)).sort((a, c) => Math.abs(a - u.x) - Math.abs(c - u.x));
+    if (!xs.length) continue;
+    if (u.side === 0 ? y <= u.y : y >= u.y) return; // 이미 그보다 뒤에 있다
+    u.px = u.x; u.py = u.y; u.x = xs[0]; u.y = y;
+    u.moveDur = u.moveT = 0.3; u.mem.lastCell = -1;
+    b.fx(u.x, u.y, 0, 'phys', 'buff');
+    b.emit({ k: 'status', id: u.id, name: '후퇴' });
+    return;
+  }
 }
 function cat(b: Battle, u: CUnit, dur: number) {
   if (u.mem.noCat) return; // 인간 형태

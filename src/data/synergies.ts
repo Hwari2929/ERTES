@@ -177,8 +177,9 @@ const timeEvade = (k: number) => (b: Battle, u: CUnit) => {
 };
 
 /** 보안위원회 (6) [합동 격리]: 주기 · 기본 계수 · 해로운 효과 1개당 계수 · 셀 수 있는 해로운 효과 상한 (전술 위력 대비) */
-export const SEC_QUAR = { first: 5, every: 8, base: 4, per: 2, cap: 6 };
-function secQuarantine(b: Battle, u: CUnit) {
+/** base · per: 단계별 [-, 4명, 6명] */
+export const SEC_QUAR = { first: 5, every: 8, base: [0, 2.5, 4], per: [0, 1.25, 2], cap: 6 };
+function secQuarantine(b: Battle, u: CUnit, t: number) {
   const foes = b.enemiesOf(u);
   if (!foes.length) return;
   b.emit({ k: 'skill', id: u.id, name: '합동 격리!', tag: '적 전체 고정 피해' });
@@ -186,7 +187,7 @@ function secQuarantine(b: Battle, u: CUnit) {
   for (const e of foes) {
     const n = Math.min(SEC_QUAR.cap, harmfulCount(e));
     b.fx(e.x, e.y, 0, 'true');
-    b.dealDamage(u, e, tac * (SEC_QUAR.base + SEC_QUAR.per * n), { elem: 'true', tag: 'proc', syn: 'SEC' });
+    b.dealDamage(u, e, tac * (SEC_QUAR.base[t - 1] + SEC_QUAR.per[t - 1] * n), { elem: 'true', tag: 'proc', syn: 'SEC' });
   }
   b.emit({ k: 'skillEnd', id: u.id });
 }
@@ -311,19 +312,19 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'SEC', name: '보안위원회', kind: 'faction', tiers: [2, 4, 6], color: '#7d8aa3', icon: '⛨',
-    desc: `은하 보안을 책임지는 비밀 위원회.\n· 위원회 기물은 받는 피해와 정신 피해가 줄어듭니다.\n· 위원회 기물이 거는 해로운 효과는 더 오래 갑니다.\n· (6): ${SEC_QUAR.every}초마다 [합동 격리] — 모든 적에게 전술 위력 비례 고정 피해. 대상이 가진 해로운 효과 1개당 계수가 늘어납니다.`,
-    tierDesc: ['받는 피해 -10%, 정신 피해 추가 -15%, 거는 해로운 효과 +1초', '받는 피해 -20%, 정신 피해 추가 -20%, 거는 해로운 효과 +2초',
-      `[비상 대권] 받는 피해 -30%, 정신 피해 추가 -30%, 거는 해로운 효과 +3초, ${SEC_QUAR.first}초 후부터 ${SEC_QUAR.every}초마다 [합동 격리]: 모든 적에게 전술 위력 ${pct(SEC_QUAR.base)} + 대상의 해로운 효과 1개당 ${pct(SEC_QUAR.per)} 고정 피해 (최대 ${SEC_QUAR.cap}개)`],
+    desc: `은하 보안을 책임지는 비밀 위원회.\n· 위원회 기물은 받는 피해와 정신 피해가 줄어듭니다.\n· 위원회 기물이 거는 해로운 효과는 더 오래 갑니다.\n· (4) 이상: ${SEC_QUAR.every}초마다 [합동 격리] — 모든 적에게 전술 위력 비례 고정 피해. 대상이 가진 해로운 효과 1개당 계수가 늘어납니다.`,
+    tierDesc: ['받는 피해 -10%, 정신 피해 추가 -15%, 거는 해로운 효과 +1초', `받는 피해 -20%, 정신 피해 추가 -20%, 거는 해로운 효과 +2초, ${SEC_QUAR.first}초 후부터 ${SEC_QUAR.every}초마다 [합동 격리]: 모든 적에게 전술 위력 ${pct(SEC_QUAR.base[1])} + 대상의 해로운 효과 1개당 ${pct(SEC_QUAR.per[1])} 고정 피해 (최대 ${SEC_QUAR.cap}개)`,
+      `[비상 대권] 받는 피해 -30%, 정신 피해 추가 -30%, 거는 해로운 효과 +3초, ${SEC_QUAR.first}초 후부터 ${SEC_QUAR.every}초마다 [합동 격리]: 모든 적에게 전술 위력 ${pct(SEC_QUAR.base[2])} + 대상의 해로운 효과 1개당 ${pct(SEC_QUAR.per[2])} 고정 피해 (최대 ${SEC_QUAR.cap}개)`],
     member: (t) => {
       const ext = T(t, [1, 2, 3]);
       return {
         taken: [red('all', T(t, [0.1, 0.2, 0.3])), red('psy', T(t, [0.15, 0.2, 0.3]))],
         hooks: {
           onInflict(_b, u, tgt, s) { if (tgt.side !== u.side && isHarmful(s)) s.dur += ext; },
-          onTick: t >= 3 ? (b, u, dt) => {
+          onTick: t >= 2 ? (b, u, dt) => {
             if (b.alliesOf(u).find((a) => a.synergies.has('SEC') && !a.isSummon) !== u) return; // 대표 위원회 기물 1명
             u.mem.secT = (u.mem.secT ?? SEC_QUAR.every - SEC_QUAR.first) + dt;
-            if (u.mem.secT >= SEC_QUAR.every) { u.mem.secT = 0; secQuarantine(b, u); }
+            if (u.mem.secT >= SEC_QUAR.every) { u.mem.secT = 0; secQuarantine(b, u, t); }
           } : undefined,
         },
       };
@@ -360,10 +361,10 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'TIME', name: '시간 여행자', kind: 'faction', tiers: [2, 3, 4, 5], color: '#c8a0ff', icon: '⌛',
     desc: `시간의 틈을 걷는 이들.\n· 기술 쿨다운이 빨리 돌아오고 공격을 잘 피합니다.\n· (3) 이상: 회피할 때마다 주요 위력(명사수 사격 · 돌격가 타격 · 전문가 기술 · 지휘관 전술 위력)에 비례해 체력을 회복합니다 (${TIME_ICD}초에 1번).\n· (4) 이상: 쓰러져도 시간을 되감아 다시 일어섭니다.`,
-    tierDesc: ['쿨다운 감소 속도 +40%, 회피 +5%p', `쿨다운 감소 속도 +75%, 회피 +10%p, 전투 기술 피해 +20%, 회피하면 주요 위력 ${pct(TIME_HEAL[1])} 회복`, `쿨다운 감소 속도 +120%, 회피 +15%p, 전투 기술 피해 +35%, 회피하면 주요 위력 ${pct(TIME_HEAL[2])} 회복, 처음 쓰러질 때 최대 체력 70%로 부활`,
-      `[시간 역행] 쿨다운 감소 속도 +220%, 회피 +25%p, 전투 기술 피해 +50%, 회피하면 주요 위력 ${pct(TIME_HEAL[3])} 회복, 처음 쓰러질 때 부활 (체력 70%) + 전투 기술을 4번 쓸 때마다 부활 기회 1회 추가 (전투당 최대 3번 부활)`],
+    tierDesc: ['쿨다운 감소 속도 +40%, 회피 +8%p', `쿨다운 감소 속도 +75%, 회피 +13%p, 전투 기술 피해 +20%, 회피하면 주요 위력 ${pct(TIME_HEAL[1])} 회복`, `쿨다운 감소 속도 +120%, 회피 +18%p, 전투 기술 피해 +35%, 회피하면 주요 위력 ${pct(TIME_HEAL[2])} 회복, 처음 쓰러질 때 최대 체력 70%로 부활`,
+      `[시간 역행] 쿨다운 감소 속도 +220%, 회피 +28%p, 전투 기술 피해 +50%, 회피하면 주요 위력 ${pct(TIME_HEAL[3])} 회복, 처음 쓰러질 때 부활 (체력 70%) + 전투 기술을 4번 쓸 때마다 부활 기회 1회 추가 (전투당 최대 3번 부활)`],
     member: (t) => ({
-      stats: { cdr: T(t, [0.4, 0.75, 1.2, 2.2]), eva: T(t, [0.05, 0.1, 0.15, 0.25]) },
+      stats: { cdr: T(t, [0.4, 0.75, 1.2, 2.2]), eva: T(t, [0.08, 0.13, 0.18, 0.28]) },
       mods: t >= 2 ? [inc('skill', T(t, [0, 0.2, 0.35, 0.5]))] : undefined,
       hooks: t === 2 ? { onEvade: timeEvade(TIME_HEAL[1]) } : t >= 3 ? {
         onEvade: timeEvade(T(t, TIME_HEAL)),
@@ -413,12 +414,13 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'BUDDY', name: '최고의 친구', kind: 'trait', tiers: [2, 4, 6, 8], color: '#f08fb0', icon: '♥',
     desc: '최고의 친구 기물은 전투 시작 시 단짝 소환물을 부릅니다. 소환물은 칸을 차지하고 공명도가 없으며, 주인 스탯의 일부를 물려받습니다 (기본 35%). 주인이 쓰러지면 함께 사라집니다.',
-    tierDesc: ['소환물 스탯 상속 55%, 소환물 피해 +15%', '소환물 스탯 상속 85%, 소환물 피해 +40%', '소환물 스탯 상속 220%, 소환물 피해 +100%',
-      '[우정 파워 MAX] 소환물 스탯 상속 520%, 소환물 피해 +250%'],
+    tierDesc: ['소환물 스탯 상속 55%, 소환물 피해 +15%', '소환물 스탯 상속 85%, 소환물 피해 +40%, 소환물 모든 메이저 +10', '소환물 스탯 상속 220%, 소환물 피해 +100%, 소환물 모든 메이저 +20',
+      '[우정 파워 MAX] 소환물 스탯 상속 520%, 소환물 피해 +250%, 소환물 모든 메이저 +40'],
     member: (t) => ({ setup: (u) => {
       // 6 · 8단계의 추가 소환 대신 그만큼 (추가 1기 = 80%) 상속률을 올린다
       u.mem.bond = Math.max(u.mem.bond || 0, T(t, [0.55, 0.85, 2.2, 5.2]));
       u.mem.bondAmp = T(t, [0.15, 0.4, 1.0, 2.5]);
+      u.mem.summonMaj = (u.mem.summonMaj || 0) + T(t, [0, 10, 20, 40]); // 4 · 6 · 8명: 소환물 모든 메이저 +10 / 20 / 40 (라르스 경호원 보너스와 합산)
     } }),
   },
   {
@@ -535,16 +537,16 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'DECOMP', name: '분해자', kind: 'trait', tiers: [2, 4, 6, 8], color: '#9bd13a', icon: '☣',
     desc: '무엇이든 녹여 버리는 이들. 분해자가 기본 공격 · 기술로 적을 맞히면 자신 최대 체력 비례 화학 피해를 더하고, 반드시 [부식]을 쌓습니다. [부식] 1중첩당 대상이 받는 화학 피해 +10%p (8초).',
-    tierDesc: ['화학 피해 +10%, 추가 화학 피해 = 최대 체력 5%, [부식] 최대 5중첩', '화학 피해 +25%, [부식] 최대 7중첩, [부식] 걸린 적을 공격하면 피해의 20% 회복',
-      '화학 피해 +50%, 추가 화학 피해 10%, [부식] 최대 9중첩', '[완전 분해] 화학 피해 +100%, 추가 화학 피해 15%, [부식] 최대 13중첩'],
+    tierDesc: ['화학 피해 +10%, 추가 화학 피해 = 최대 체력 4%, [부식] 최대 5중첩', '화학 피해 +25%, [부식] 최대 7중첩, [부식] 걸린 적을 공격하면 피해의 10% 회복',
+      '화학 피해 +50%, 추가 화학 피해 8%, [부식] 최대 9중첩', '[완전 분해] 화학 피해 +100%, 추가 화학 피해 12%, [부식] 최대 13중첩'],
     member: (t) => {
-      const extra = T(t, [0.05, 0.05, 0.1, 0.15]), max = T(t, [5, 7, 9, 13]);
+      const extra = T(t, [0.04, 0.04, 0.08, 0.12]), max = T(t, [5, 7, 9, 13]);
       return {
         mods: [inc('chem', T(t, [0.1, 0.25, 0.5, 1.0]))],
         hooks: {
           onDeal(b, u, tgt, r, o) {
             if (r.amount <= 0 || o.tag === 'dot') return;
-            if (t >= 2 && tgt.statuses.some((x) => x.key === 'decay')) b.heal(u, u, r.amount * 0.2, true, 'DECOMP');
+            if (t >= 2 && tgt.statuses.some((x) => x.key === 'decay')) b.heal(u, u, r.amount * 0.1, true, 'DECOMP');
             if ((o.tag !== 'basic' && o.tag !== 'skill') || !tgt.alive) return;
             b.dealDamage(u, tgt, b.S(u, 'maxHp') * extra, { elem: 'chem', tag: 'proc', syn: 'DECOMP' });
             if (tgt.alive) addStacks(b, u, tgt, 'decay', 1, max + (u.mem.decayMax || 0), 8, (k) => ({ taken: [vuln('chem', 0.1 * k)] }), '부식');
@@ -579,10 +581,10 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'GUARD', name: '수호자', kind: 'trait', tiers: [2, 4, 6], color: '#c9a86a', icon: '⛉',
     desc: '앞에 서서 모두를 지키는 이들. 출전한 수호자 1명마다 모든 아군의 방어도가 오르고 (수호자 자신은 2배), 수호자의 기본 공격에는 자신 방어도에 비례한 물리 피해가 더해집니다.',
-    tierDesc: ['수호자 1명당 모든 아군 방어도 +4% (수호자 +8%), 수호자 기본 공격 + 방어도 20% 물리 피해', '수호자 1명당 모든 아군 방어도 +8% (수호자 +16%), 수호자 기본 공격 + 방어도 35% 물리 피해', '[철벽 방진] 수호자 1명당 모든 아군 방어도 +16% (수호자 +32%), 수호자 기본 공격 + 방어도 50% 물리 피해'],
+    tierDesc: ['수호자 1명당 모든 아군 방어도 +4% (수호자 +8%), 수호자 기본 공격 + 방어도 10% 물리 피해', '수호자 1명당 모든 아군 방어도 +8% (수호자 +16%), 수호자 기본 공격 + 방어도 17.5% 물리 피해', '[철벽 방진] 수호자 1명당 모든 아군 방어도 +16% (수호자 +32%), 수호자 기본 공격 + 방어도 25% 물리 피해'],
     team: (t, ctx) => ({ pct: { armor: (ctx.counts.GUARD || 0) * T(t, [0.04, 0.08, 0.16]) } }),
     member: (t, ctx) => {
-      const k = T(t, [0.2, 0.35, 0.5]);
+      const k = T(t, [0.1, 0.175, 0.25]);
       return {
         pct: { armor: (ctx.counts.GUARD || 0) * T(t, [0.04, 0.08, 0.16]) }, // 수호자 기물은 팀 효과를 한 번 더 받아 2배
         hooks: {
