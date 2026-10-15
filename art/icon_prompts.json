@@ -202,7 +202,7 @@
   "color": "gold and amber"
  },
  "skill.odysseus": {
-  "subject": "single arrow flying on a returning arc into a bullseye",
+  "subject": "longbow drawn with an arrow curving back toward a target, motion trail",
   "color": "white, silver and light gray with subtle crimson accents",
   "light": true
  },
@@ -809,7 +809,7 @@
   "light": true
  },
  "weapon.rus": {
-  "subject": "twin pistols crossed",
+  "subject": "two flintlock pistols side by side, barrels pointing outward",
   "color": "white, silver and light gray with subtle crimson accents",
   "light": true
  },
