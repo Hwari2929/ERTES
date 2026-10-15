@@ -97,9 +97,19 @@ export const SFXS: Record<string, string> = {
 // ───────── 도우미
 const isSlot = (l: ScriptLine): l is { slot: 'sub' } => 'slot' in l;
 
-/** 텍스트 치환: {pc} {sub} {변수} */
+/** 받침 있으면 첫째, 없으면 둘째 (으로/로: ㄹ 받침은 '로') */
+const JOSA: Record<string, [string, string]> = { 을: ['을', '를'], 를: ['을', '를'], 이: ['이', '가'], 가: ['이', '가'], 은: ['은', '는'], 는: ['은', '는'], 과: ['과', '와'], 와: ['과', '와'], 아: ['아', '야'], 야: ['아', '야'], 으로: ['으로', '로'], 로: ['으로', '로'] };
+function josa(word: string, j: string) {
+  const c = word.charCodeAt(word.length - 1);
+  if (c < 0xac00 || c > 0xd7a3) return j; // 한글이 아니면 그대로
+  const jong = (c - 0xac00) % 28;
+  const pair = JOSA[j];
+  if (j === '으로' || j === '로') return jong && jong !== 8 ? pair[0] : pair[1];
+  return jong ? pair[0] : pair[1];
+}
+/** 텍스트 치환: {pc} {sub} {변수}. 바로 뒤의 조사(을/를 · 이/가 · 은/는 · 과/와 · 아/야 · 으로/로)는 치환된 말에 맞춘다 */
 export function fillText(s: string, vars: Record<string, string>): string {
-  return s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+  return s.replace(/\{(\w+)\}(?:(으로|을|를|이|가|은|는|과|와|아|야|로)(?![가-힣]))?/g, (m, k, j) => (k in vars ? vars[k] + (j ? josa(vars[k], j) : '') : m));
 }
 
 /** 조연 슬롯을 펼치고 치환까지 끝낸 대사 배열 */
