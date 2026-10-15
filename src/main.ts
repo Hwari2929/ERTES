@@ -1911,10 +1911,26 @@ function placeInvPop() {
   p.style.left = `${Math.max(8, r.left - p.offsetWidth - 10)}px`;
   p.style.top = `${Math.min(innerHeight - p.offsetHeight - 8, Math.max(8, r.top))}px`;
 }
+/** 전체 상세 팝업 안의 능력 상세: 누른 카드의 왼쪽에 (자리가 없으면 오른쪽) */
+function placeUmPop() {
+  const pop = root.querySelector<HTMLElement>('.um-pop');
+  const um = root.querySelector<HTMLElement>('.um');
+  const card = root.querySelector<HTMLElement>('.um .ab-click.on, .um .tt-ic.ab-click.on');
+  if (!pop || !um) return;
+  if (!card || innerWidth <= 700) { pop.classList.add('sheet'); return; }
+  pop.classList.remove('sheet');
+  const R0 = um.getBoundingClientRect(), r = card.getBoundingClientRect();
+  const w = pop.offsetWidth;
+  let left = r.left - R0.left - w - 10;
+  if (left < 8) left = Math.min(R0.width - w - 8, r.right - R0.left + 10);
+  const top = Math.max(56, Math.min(r.top - R0.top, R0.height - pop.offsetHeight - 8));
+  pop.style.left = `${Math.max(8, left)}px`; pop.style.top = `${top}px`; pop.style.right = 'auto';
+}
 function layoutPanels() {
   const top = root.querySelector<HTMLElement>('.top');
   document.documentElement.style.setProperty('--top-h', `${(top?.offsetHeight || 0) + 10}px`);
   placeInvPop();
+  placeUmPop();
   const pop = root.querySelector<HTMLElement>('.stat-pop');
   const det = root.querySelector<HTMLElement>('.detail');
   if (!pop || !det) return;
@@ -1955,7 +1971,11 @@ function render() {
   const modalTop = lastView.modal === modalKey ? root.querySelector('.modal')?.scrollTop || 0 : 0;
   const winY = window.scrollY;
   lastView.screen = app.screen; lastView.modal = modalKey;
+  // 다시 그려도 스크롤 위치 유지 (상세 패널 · 전체 상세 팝업)
+  const KEEP = ['.um-grid', '.side.right', '.map-detail', '.detail'];
+  const kept = KEEP.map((q) => root.querySelector<HTMLElement>(q)?.scrollTop ?? 0);
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
+  KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
   layoutPanels();
   if (app.screen === 'intro' && !app.introDone) introAnim();
   // 리본 시너지 줄: 넘치면 오른쪽 끝에 '더 있음' 표시 (끝까지 밀면 사라짐)

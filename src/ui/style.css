@@ -2141,3 +2141,4 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 @media (max-width: 1100px) { .um-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .um-c { grid-column: 1 / -1; } }
 @media (max-width: 700px) { .um { inset: 8px; } .um-grid { grid-template-columns: minmax(0, 1fr); } }
 .um .pc-syn { position: static; display: flex; flex-direction: row; flex-wrap: wrap; gap: 4px; transform: none; inset: auto; }
+.um-pop.sheet { left: 8px !important; right: 8px !important; top: auto !important; bottom: 8px; width: auto; }
