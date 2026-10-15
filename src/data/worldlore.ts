@@ -187,7 +187,7 @@ export const LORE: LoreEntry[] = [
     rel: { units: ['amundsen', 'lindiwe', 'lars'], syn: ['FAM', 'STL'], lore: ['elvestad'] },
   },
   {
-    id: 'livin', group: 'region', bloc: 'union', name: '리빈', mark: 'UNI',
+    id: 'livin', group: 'region', bloc: 'union', name: '리빈', mark: 'UNI', art: 'lore_livin',
     tag: '목가적인 낙농 지구. 고대 구체의 안쪽 벽에서 소를 친다.',
     bullets: [
       '리빈-1 \'낙원동\'은 구인류가 남긴 속 빈 구체다. 사람들은 안쪽 벽에 살고, 한가운데에 인공 태양이 뜬다.',
@@ -197,7 +197,7 @@ export const LORE: LoreEntry[] = [
     rel: { units: ['west'], fields: ['livin'] },
   },
   {
-    id: 'sannodis', group: 'region', bloc: 'union', name: '산-노디스', mark: 'UNI',
+    id: 'sannodis', group: 'region', bloc: 'union', name: '산-노디스', mark: 'UNI', art: 'lore_sannodis',
     tag: '8년마다 도시를 불태우는 연합의 유행 1번지.',
     bullets: [
       '곁의 펄서가 8년마다 거대한 전자기 펄스를 뿜는다. 그래서 무너지도록 지은 도시를 세우고, 때가 오면 통째로 태운다.',
@@ -297,7 +297,7 @@ export const LORE: LoreEntry[] = [
 
   // ═══════════════ 지역 · 동맹 도시국가
   {
-    id: 'sparta', group: 'region', bloc: 'alliance', name: '스파르타', mark: 'HEL',
+    id: 'sparta', group: 'region', bloc: 'alliance', name: '스파르타', mark: 'HEL', art: 'lore_sparta',
     tag: '행성이 아니라 거대한 전쟁 궤도. 동맹의 최전선.',
     bullets: [
       '신좌 아레스가 직접 모는 1,200km짜리 전쟁 궤도와, 그것이 끌고 다니는 소행성대를 통틀어 부른다.',
@@ -317,7 +317,7 @@ export const LORE: LoreEntry[] = [
     rel: { units: ['zephyro'] },
   },
   {
-    id: 'delphi', group: 'region', bloc: 'alliance', name: '델포이', mark: 'HEL',
+    id: 'delphi', group: 'region', bloc: 'alliance', name: '델포이', mark: 'HEL', art: 'lore_delphi',
     tag: '해가 셋 뜨는 사막의 태양 신전.',
     bullets: [
       '신좌 아폴론의 신탁과 차원 분광기가 이곳에서 나온다. 답은 분명한데, 무엇에 대한 답인지는 늘 헷갈린다.',
