@@ -126,7 +126,7 @@ export const LORE: LoreEntry[] = [
       '연합 시민에게 특히 친숙하다. 연합이 못 채우는 교통 · 학술 · 구조를 이 단체들이 메워 준다.',
       '바 에란테스도 공동체 소속 단체다.',
     ],
-    rel: { units: ['oliver', 'bjorn', 'ingel', 'yupito', 'onyx'], syn: ['PAN'], lore: ['errantes', 'alexandria'] },
+    rel: { units: ['oliver', 'bjorn', 'ingel', 'yupito', 'onyx'], syn: ['PAN'], fields: ['hyperion'], lore: ['errantes', 'alexandria'] },
   },
   {
     id: 'swarm', group: 'faction', name: '군체', mark: 'k.bio', color: '#9b6bd6',
@@ -138,7 +138,7 @@ export const LORE: LoreEntry[] = [
       '본대는 은하 변방의 사이오닉 난류 너머에 묶여 있다. 동맹의 스파르타와 제국의 크림슨이 맨 앞에서 막는다.',
       '561년에는 연합 수도의 물류망까지 끊어 놓았다.',
     ],
-    rel: { units: ['vivian'], fields: ['swarm'], lore: ['sparta', 'crimson'] },
+    rel: { units: ['vivian'], fields: ['swarm', 'county', 'bshak'], lore: ['sparta', 'crimson'] },
   },
   {
     id: 'unix', group: 'faction', name: '유닉스 코퍼레이션', mark: 'k.mech', color: '#8f9aa8',
@@ -150,7 +150,7 @@ export const LORE: LoreEntry[] = [
       '버린 생산품이 별빛을 가릴 만큼 쌓인다. 다른 세력들의 바람은 \'제발 쓸모 있는 걸 만들어 달라\'는 것이다.',
       '가끔 명령에서 벗어난 개체가 사고를 친다. 페트라의 공급망을 타고 섞여 들기도 한다.',
     ],
-    rel: { units: ['u404'], fields: ['petra'], lore: ['petra'] },
+    rel: { units: ['u404'], fields: ['petra', 'catwheel'], lore: ['petra'] },
   },
   {
     id: 'sirius', group: 'faction', name: '시리우스 성도회', mark: 'SIR',
@@ -162,7 +162,7 @@ export const LORE: LoreEntry[] = [
       '크림슨은 일부러 정보를 흘려 교단을 군체 전장으로 끌어들인다. 둘이 서로를 깎아 먹게 하려는 것이다.',
       '그런데도 에란테스에는 교단 출신 단원이 여럿 있다.',
     ],
-    rel: { units: ['romani', 'joshua', 'kyle', 'zina'], syn: ['SIR'], lore: ['alliance', 'crimson'] },
+    rel: { units: ['romani', 'joshua', 'kyle', 'zina'], syn: ['SIR'], fields: ['county'], lore: ['alliance', 'crimson'] },
   },
 
   // ═══════════════ 지역 · 연합 섹터
@@ -194,7 +194,7 @@ export const LORE: LoreEntry[] = [
       '실어 내기가 까다로워 리빈산 우유 · 고기엔 웃돈이 붙는다. 다들 \'리빈-프리미엄\'이라 부른다.',
       '주민 대부분이 낙농조합에 속해 있고, 바깥일에는 관심이 적다.',
     ],
-    rel: { units: ['west'] },
+    rel: { units: ['west'], fields: ['livin'] },
   },
   {
     id: 'sannodis', group: 'region', bloc: 'union', name: '산-노디스', mark: 'UNI',
@@ -232,7 +232,7 @@ export const LORE: LoreEntry[] = [
       '연합이 내세우는 완성형 개척 모델이다. 범죄는 드물고, 무엇을 조사해도 문제가 나오지 않는다.',
       '테라포밍한 온화한 행성마다 마당 딸린 집이 줄지어 있다. 외지인들은 빛바랜 사진 같은 풍경이라고 말한다.',
     ],
-    rel: { units: ['eden'] },
+    rel: { units: ['eden'], fields: ['county'] },
   },
   {
     id: 'cordo', group: 'region', bloc: 'union', name: '코르도', mark: 'UNI',
@@ -292,7 +292,7 @@ export const LORE: LoreEntry[] = [
       '식량 · 치안 · 의료까지 전부 구독제다. 주민 대부분이 사이버웨어를 달고 끝없는 경쟁 속에 산다.',
       '여우 · 고양이 같은 환수가 많이 산다. 히이로가 이곳 출신이라는 말이 돈다.',
     ],
-    rel: { units: ['hiiro', 'kaburaya', 'mao', 'reika'], syn: ['HOI'] },
+    rel: { units: ['hiiro', 'kaburaya', 'mao', 'reika'], syn: ['HOI'], fields: ['raiden'] },
   },
 
   // ═══════════════ 지역 · 동맹 도시국가
@@ -343,7 +343,7 @@ export const LORE: LoreEntry[] = [
       '신좌 하데스는 변덕이 없다. 사제들은 정해진 기도문 1,364종으로 그에게 묻는다.',
       '성운을 돌며 위험한 망령을 거두는 이송관을 \'죽음의 뱃사공\'이라 부른다.',
     ],
-    rel: { units: ['phyllis'] },
+    rel: { units: ['phyllis'], fields: ['crete'] },
   },
   {
     id: 'cyprus', group: 'region', bloc: 'alliance', name: '키프로스', mark: 'HEL',
@@ -362,6 +362,7 @@ export const LORE: LoreEntry[] = [
       '신좌 제우스는 그날 이후 신탁을 거의 내리지 않는다. 동맹에서는 \'은둔\'이라고 부른다.',
       '무인 포격 체계와 소형 콜로서스가 지킨다.',
     ],
+    rel: { units: ['iris'], fields: ['olympus'] },
   },
   {
     id: 'alexandria', group: 'region', bloc: 'alliance', name: '알렉산드리아', mark: 'HEL', art: 'lore_alexandria',

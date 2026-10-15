@@ -484,7 +484,7 @@ export const SYNERGIES: SynDef[] = [
             if (t >= 2 && tgt.statuses.some((x) => x.key === 'decay')) b.heal(u, u, r.amount * 0.2, true, 'DECOMP');
             if ((o.tag !== 'basic' && o.tag !== 'skill') || !tgt.alive) return;
             b.dealDamage(u, tgt, b.S(u, 'maxHp') * extra, { elem: 'chem', tag: 'proc', syn: 'DECOMP' });
-            if (tgt.alive) addStacks(b, u, tgt, 'decay', 1, max, 8, (k) => ({ taken: [vuln('chem', 0.1 * k)] }), '부식');
+            if (tgt.alive) addStacks(b, u, tgt, 'decay', 1, max + (u.mem.decayMax || 0), 8, (k) => ({ taken: [vuln('chem', 0.1 * k)] }), '부식');
           },
         },
       };

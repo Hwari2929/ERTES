@@ -1,6 +1,6 @@
 import { CFG, phaseAmpMult, phaseHpMult } from '../config';
 import { AUG_BY_ID } from '../data/augments';
-import { ENEMY_BY_ID, type EnemyDef, setSummonHook } from '../data/enemies';
+import { ENEMY_BY_ID, ENEMY_RT, type EnemyDef, setSummonHook } from '../data/enemies';
 import { fieldOf } from '../data/battlefields';
 import { diffHas } from '../data/difficulty';
 import { BOONS } from '../data/events';
@@ -109,6 +109,8 @@ export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, 
     for (const id of [...(run?.boons || []), ...(run?.phaseBoons || [])]) { const e = BOONS[id]?.effect; if (e) out.push(e); } // 사건 효과
     const fa = run ? fieldOf(run.field).ally : undefined; // 전장 세력 보너스
     if (fa && mine.has(fa.syn)) out.push(fa.effect);
+    const fall = run ? fieldOf(run.field).allyAll : undefined; // 전장: 모든 아군
+    if (fall) out.push(fall);
   }
   return out;
 }
@@ -325,6 +327,9 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   if (gear?.items?.length || gear?.mod) { c.tempItems = [...(gear.items || []), ...(gear.mod ? [gear.mod] : [])]; c.mem.gear = 1; } // 위험 등급 장비 (표시용)
   if (def.onBasic) c.hooks.push({ onBasic: def.onBasic });
   if (def.onTick) c.hooks.push({ onTick: def.onTick });
+  if (def.hooks) c.hooks.push(def.hooks);
+  if (def.noAttack) c.noAttack = true;
+  if (def.inert) c.mem.inert = 1;
   void b;
   return c;
 }
@@ -380,6 +385,56 @@ setSummonHook((b, owner, defId, count) => {
     b.spawn(e, owner);
   }
 });
+
+// 전장 조건용 적 생성 (부활 · 장애물 · 재집결): exact 면 그 칸, 아니면 가까운 빈칸
+ENEMY_RT.spawn = (b, defId, at, o = {}) => {
+  const def = ENEMY_BY_ID[defId];
+  if (!def) return null;
+  const free = b.inBounds(at.x, at.y) && !b.unitAt(at.x, at.y);
+  const cell = free ? { x: at.x, y: at.y } : o.exact ? null : b.freeCellNear(at.x, at.y);
+  if (!cell) return null;
+  const e = buildEnemy(b, def, b.ctx.phase, o.mult || 1);
+  e.isSummon = !!o.summon;
+  e.hp = e.st.maxHp * (o.hpPct ?? 1);
+  e.atkTimer = e.atk.interval * 0.5;
+  if (e.weapon?.kind === 'mag') e.ammo = e.weapon.mag || 1;
+  e.x = e.px = cell.x; e.y = e.py = cell.y;
+  b.add(e);
+  for (const h of e.hooks) h.onStart?.(b, e);
+  b.emit({ k: 'spawn', id: e.id });
+  return e;
+};
+// 크레타 서사의 전염: 쓰러진 아군의 망령 (최대 체력 40% · 위력 60%, 기본 공격만, 영혼)
+const GHOST_PAL = ['#0a0c12', '#8aa0b8', '#c8d8e8', '#eef6ff', '#80e0ff', '#4a5a6a', '#ffffff'];
+ENEMY_RT.ghost = (b, from) => {
+  const at = { x: from.x, y: from.y };
+  const e = ENEMY_RT.spawn!(b, 'kr_echo', at, {});
+  if (!e) return null;
+  const f = from.st, st = e.st;
+  st.maxHp = f.maxHp * 0.4; st.shoot = f.shoot * 0.6; st.strike = f.strike * 0.6; st.tech = f.tech * 0.6;
+  st.armor = f.armor; st.acc = f.acc; st.crit = f.crit; st.critDmg = f.critDmg; st.eva = Math.min(0.6, f.eva + 0.1);
+  st.range = Math.max(1, f.range); st.moveSpd = 1;
+  e.hp = st.maxHp;
+  e.phaseAmp = 1;
+  e.name = `${from.name}의 망령`;
+  e.sprite = from.sprite; e.palette = GHOST_PAL;
+  e.atk = { type: from.atk.type, elem: from.atk.elem, interval: from.atk.interval || 1 };
+  e.weapon = null; e.skill = null; e.cdMax = 0;
+  e.mem.echoOf = from.id;
+  return e;
+};
+// 히페리온 은행원: 아군 장비를 '빌려' 쓴다 (효과만 복제)
+ENEMY_RT.borrow = (b, u, n) => {
+  const pool = b.units.filter((x) => x.side === 0 && x.src).flatMap((x) => x.src!.items.filter((it): it is string => !!it));
+  const got: string[] = [];
+  for (let i = 0; i < n && pool.length; i++) {
+    const it = pool.splice(b.rng.int(0, pool.length - 1), 1)[0];
+    applyLive(u, itemEffect(it), b, makeCtx(null, null, {}));
+    got.push(it);
+  }
+  if (got.length) u.tempItems = [...(u.tempItems || []), ...got];
+  return got;
+};
 
 /** 보드 크기 n 에서의 실제 아군 배치 (크기가 바뀌어 겹치면 빈 칸으로 밀어낸다) */
 export function layout(run: RunState, n: number): Map<string, { x: number; y: number }> {

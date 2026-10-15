@@ -1,6 +1,6 @@
-import type { Battle, CUnit, SkillDef } from '../engine/combat';
+import type { Battle, CUnit, Hooks, SkillDef } from '../engine/combat';
 import type { CType, Elem, Keyword, TType } from '../types';
-import { bleed, corrode, fear, lineTargets, poison, skillHit } from './kit';
+import { bleed, blinkTo, corrode, fear, lineTargets, poison, skillHit } from './kit';
 
 /** 지휘 · 강화 패시브: period 초마다 (첫 발동 first 초), 전투 스킬과 따로 돈다 (스킬 한쪽 원칙).
  *  교전 중이 아니거나 (reach 칸 안에 적이 없으면) 기절 · 공포 중이면 미뤄 두었다가 조건이 되면 발동 — 예전 스킬 시전 조건과 같게 */
@@ -34,6 +34,12 @@ export interface EnemyDef {
   mod?: string | null;
   /** 표시용 유형 (없으면 enemyTypes 가 추정) */
   ctype?: CType; ttype?: TType;
+  /** 기본 공격을 하지 않는다 (지원 드론 · 장애물) */
+  noAttack?: boolean;
+  /** 전장 장애물: 대상 지정 · 승패 판정에서 빠진다 (반려 돌 · 묘석) */
+  inert?: boolean;
+  /** 그 밖의 전투 훅 (받는 피해 · 주는 피해 배율 등) */
+  hooks?: Hooks;
 }
 
 /** 적 전투 유형 · 전술 유형: 지정값 우선, 없으면 공격 방식 · 키워드로 추정 */
@@ -65,6 +71,41 @@ const PETRA_ELITE = ['#0c0c10', '#24242e', '#3a5ab0', '#d0d4e0', '#d4a83a', '#1a
 const UNIX = ['#0c0c0c', '#b0b0a0', '#6a6a60', '#e0e0d0', '#30ff60', '#4a4a40', '#ffffff'];
 const ANOMALY = ['#06060a', '#2a2a3a', '#6060a0', '#a0a0ff', '#ffffff', '#1a1a2a', '#e0e0ff'];
 const ANOMALY_BOSS = ['#040408', '#1a1a2a', '#4040ff', '#c0c0ff', '#ff3040', '#0a0a1a', '#ffffff'];
+// 신규 전장
+const SEPIA = ['#140e08', '#8a6a48', '#c8a070', '#e8d0a8', '#ff7040', '#4a3a28', '#fff0d8'];
+const SEPIA_ELITE = ['#140e08', '#6a4a30', '#e0b060', '#f0e0c0', '#ff4020', '#3a2a18', '#fff8e8'];
+const SEPIA_BOSS = ['#0c0804', '#a07040', '#f0c080', '#fff0d0', '#40ff80', '#5a3a20', '#ffffff'];
+const SIRIUS = ['#0c0c14', '#b8b090', '#f0e8c0', '#ffffff', '#ffd040', '#6a6450', '#fffff0'];
+const SIRIUS_BOSS = ['#08080e', '#d0b060', '#fff0b0', '#ffffff', '#ff6040', '#7a6430', '#ffffff'];
+const FLOAT = ['#0e0812', '#6a3a8a', '#b070d0', '#e0c0f0', '#a0ff60', '#3a2048', '#f8e8ff'];
+const FLOAT_BOSS = ['#0a040e', '#7a2a9a', '#d080ff', '#f0d0ff', '#e0ff40', '#40105a', '#ffffff'];
+const BIRD = ['#0e0c06', '#5a6a2a', '#a0b050', '#d8e0a0', '#ff6020', '#2a3418', '#f0f8d0'];
+const BIRD_ELITE = ['#0e0a04', '#7a5a1a', '#c09030', '#e8d090', '#ff3010', '#3a2a10', '#fff0c0'];
+const BIRD_BOSS = ['#0a0604', '#6a3a10', '#b06020', '#f0c080', '#ffe040', '#3a1a08', '#fff0d0'];
+const NEON = ['#08060e', '#3a2a5a', '#e040a0', '#a0e0ff', '#40ffe0', '#1a1430', '#f0e0ff'];
+const NEON_ELITE = ['#0a040a', '#5a1a4a', '#ff3080', '#ffb0d0', '#ffff40', '#2a0a24', '#ffe0f0'];
+const NEON_BOSS = ['#06040c', '#2a1a5a', '#a040ff', '#d0b0ff', '#40ffe0', '#140a30', '#ffffff'];
+const CHROME = ['#0a0c10', '#8090a8', '#40485a', '#d0e0f0', '#ff3080', '#2a3040', '#ffffff'];
+const CHROME_BOSS = ['#080a0e', '#a0b0c8', '#30384a', '#e8f0ff', '#ff2060', '#20283a', '#ffffff'];
+const GHOST = ['#0a0c12', '#a0b0c0', '#d8e0e8', '#f0f8ff', '#80e0ff', '#5a6a7a', '#ffffff'];
+const GHOST_ELITE = ['#0a0c10', '#8a9aa0', '#c0d0c8', '#f0fff8', '#ffe080', '#4a5a5a', '#ffffff'];
+const GHOST_BOSS = ['#06080c', '#c0c8a0', '#f0f0d0', '#ffffff', '#ffd060', '#6a6a50', '#ffffff'];
+const STONE = ['#0e0e0e', '#8a8a86', '#5a5a58', '#c8c8c0', '#a0a098', '#3a3a38', '#e8e8e0'];
+const RING = ['#0a0a0c', '#7a7060', '#3a3a3a', '#d0c8a8', '#60c0ff', '#2a2a2a', '#fff8e0'];
+const BLACKCLOUD = ['#06060a', '#1a1a24', '#3a3a50', '#c0b080', '#ffd040', '#10101a', '#f0e8c0'];
+const BLACKCLOUD_BOSS = ['#040406', '#14141c', '#2a2a3c', '#e0c070', '#60e0ff', '#0a0a12', '#fff4d0'];
+const MAID = ['#0c0c0c', '#202020', '#e0e0e0', '#ffffff', '#ff5080', '#404040', '#ffffff'];
+const ASH = ['#0e0e10', '#6a6a70', '#9a9aa0', '#d0d0d4', '#ff9040', '#3a3a40', '#f0f0f0'];
+const UNIX_ELITE = ['#0c0c0c', '#c0c0a0', '#4a6a50', '#e0f0d0', '#30ffa0', '#3a4a3a', '#ffffff'];
+const UNIX_BOSS = ['#080808', '#d0d0c0', '#505048', '#f0f0e8', '#30ff60', '#30302a', '#ffffff'];
+const BANK = ['#0c0a06', '#2a2418', '#c8a040', '#f0e0b0', '#ffe060', '#4a3a20', '#fff8e0'];
+const BANK_ELITE = ['#0c0a06', '#1a2a3a', '#d0a840', '#f0e8c8', '#40e0ff', '#2a3040', '#ffffff'];
+const VAULT = ['#080604', '#5a4a20', '#e0c060', '#fff0c0', '#ffffff', '#3a2a10', '#fffbe8'];
+const PALE = ['#0e0c0c', '#8a8078', '#c8c0b0', '#e8e0d8', '#ff6060', '#4a4440', '#fff8f0'];
+const TOMB = ['#0a0606', '#6a3a3a', '#c06a6a', '#f0c0b0', '#ffe0a0', '#3a1a1a', '#fff0e8'];
+const TOMB_BOSS = ['#080404', '#7a2020', '#e05050', '#ffc0b0', '#e0ff80', '#3a0a0a', '#fff0e0'];
+/** 카운티폴 광대 (반상회장이 은신시키는 대상) */
+const CLOWNS = new Set(['cf_neighbor', 'cf_dog', 'sw_spitter', 'cf_model']);
 
 export const ENEMIES: EnemyDef[] = [
   { id: 'raider', name: '약탈자 척후병', keywords: ['bio'], sprite: 'knight', palette: RAIDER, tier: 'minion', minPhase: 1,
@@ -326,9 +367,456 @@ export const ENEMIES: EnemyDef[] = [
       const alive = b.alliesOf(u).filter((a) => a.defId === 'pt_unix').length;
       summonHook?.(b, u, 'pt_unix', Math.max(0, Math.min(1 + Math.floor(u.mem.quarter / 2), 4 - alive)));
     } },
+
+  // ═════════ 신규 전장 (docs/FIELDS_DRAFT.md 1 · 3 · 8 · 9 · 10 · 12 · 14 · 15)
+  // ── 카운티폴 세피아 교외 (연합 · 광대 × 성도회 정화조)
+  { id: 'cf_neighbor', name: '완벽한 이웃', keywords: ['bio'], sprite: 'knight', palette: SEPIA, tier: 'minion', minPhase: 1,
+    hp: 430, power: 30, armor: 120, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
+  { id: 'cf_dog', name: '이웃집 개', keywords: ['bio'], sprite: 'beast', palette: SEPIA, tier: 'minion', minPhase: 1,
+    hp: 320, power: 26, armor: 70, eva: 0.1, interval: 0.7, range: 1, moveSpd: 1.5, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    onBasic: (b, u, t) => { bleed(b, u, t, b.S(u, 'strike') * 0.2, 3, 0.4); } },
+  { id: 'cf_purifier', name: '정화사', keywords: ['bio'], sprite: 'robe', palette: SIRIUS, tier: 'minion', minPhase: 1,
+    hp: 300, power: 28, armor: 70, interval: 1.2, range: 3, atk: { type: 'shoot', elem: 'holy' }, melee: false,
+    onBasic: (b, u, t) => { antiheal(b, u, t, 0.3, 4); } },
+  { id: 'cf_drone', name: '성광 드론', keywords: ['mech'], sprite: 'drone', palette: SIRIUS, tier: 'minion', minPhase: 2,
+    hp: 240, power: 22, armor: 70, eva: 0.15, interval: 0.7, range: 2, moveSpd: 1.4, atk: { type: 'shoot', elem: 'elec' }, melee: false },
+  { id: 'cf_chair', name: '반상회장', keywords: ['bio'], sprite: 'soldier', palette: SEPIA_ELITE, tier: 'elite', minPhase: 1,
+    hp: 1100, power: 40, armor: 220, acc: 0.1, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false,
+    // 반상회 소집: 8초마다 광대 1기 은신 + 피해 증가
+    onTick: (b, u, dt) => {
+      if (!command(b, u, 'cmdT', dt, 8, 4)) return;
+      const cl = b.alliesOf(u, false).filter((a) => CLOWNS.has(a.defId) && !b.hidden(a));
+      const t = cl.length ? cl[b.rng.int(0, cl.length - 1)] : null;
+      if (!t) return;
+      b.emit({ k: 'status', id: u.id, name: '반상회 소집' });
+      b.buff(u, t, 'stealth', 3, { label: '은신' });
+      b.buff(u, t, 'cf.chair', 3, { mods: [{ kind: 'inc', tag: 'all', v: 0.5 }], label: '기습 준비' });
+    } },
+  { id: 'cf_model', name: '모범 시민', keywords: ['bio'], sprite: 'knight', palette: SEPIA_BOSS, tier: 'boss', minPhase: 1,
+    hp: 3300, power: 48, armor: 260, acc: 0.1, effRes: 0.3, interval: 1.1, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    escort: ['cf_neighbor', 'cf_dog'],
+    skill: {
+      name: '산성 분사', cd: 7, needsRange: true, params: {}, desc: () => '주변 1칸 화학 피해 + 침식',
+      cast(b, u) {
+        const es = b.around(u, 1, b.enemiesOf(u)); if (!es.length) return false;
+        b.fx(u.x, u.y, 1, 'chem');
+        for (const e of es) { skillHit(b, u, e, 'tech', u.mem.unmask ? 1.5 : 1.0, 'chem', { noMiss: true }); corrode(b, u, e, 0.85, 3, 0.5); }
+        return true;
+      },
+    },
+    hooks: { takenMult: (b, u) => (u.mem.unmask ? 1 : 0.7) },
+    // 의태 해제: 체력 50% 아래로 떨어지면 거대화 (공격 속도 +40%, 산성 분사 강화)
+    onTick: (b, u) => {
+      if (u.mem.unmask || b.hpPct(u) > 0.5) return;
+      u.mem.unmask = 1;
+      b.emit({ k: 'status', id: u.id, name: '의태 해제!' });
+      b.buff(u, u, 'cf.unmask', 9999, { delta: { atkSpd: 0.4 }, label: '거대화' });
+      u.cd = Math.min(u.cd, 1);
+    } },
+  { id: 'cf_inquisitor', name: '정화관', keywords: ['bio'], sprite: 'robe', palette: SIRIUS_BOSS, tier: 'boss', minPhase: 1,
+    hp: 3000, power: 48, armor: 180, effRes: 0.3, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'holy' }, melee: false,
+    escort: ['cf_purifier', 'cf_neighbor'],
+    skill: {
+      name: '정화의 창', cd: 9, params: {}, desc: () => '직선 관통 신성 피해 + 회복 감소',
+      cast(b, u) {
+        const t = u.target?.alive ? u.target : b.farthest(u); if (!t) return false;
+        for (const e of lineTargets(b, u, t)) { b.fx(e.x, e.y, 0, 'holy'); skillHit(b, u, e, 'tech', 1.5, 'holy', { noMiss: true }); antiheal(b, u, e, 0.5, 6); }
+        return true;
+      },
+    } },
+
+  // ── 리빈 낙원동 방역 시즌 (연합 · 부유체 · 프리버드)
+  { id: 'lv_floater', name: '부유체', keywords: ['bio'], sprite: 'phantom', palette: FLOAT, tier: 'minion', minPhase: 1,
+    hp: 460, power: 26, armor: 60, interval: 1.3, range: 2, moveSpd: 0.6, atk: { type: 'shoot', elem: 'chem' }, melee: false,
+    onBasic: (b, u, t) => { poison(b, u, t, b.S(u, 'shoot') * 0.2, 3, 0.3); } },
+  { id: 'lv_spores', name: '부유 포자 무리', keywords: ['bio'], sprite: 'crawler', palette: FLOAT, tier: 'minion', minPhase: 1,
+    hp: 200, power: 18, armor: 30, interval: 0.9, range: 1, moveSpd: 1.3, atk: { type: 'strike', elem: 'chem' }, melee: true },
+  { id: 'lv_raptor', name: '랩터급 프리버드', keywords: ['bio'], sprite: 'beast', palette: BIRD, tier: 'minion', minPhase: 1,
+    hp: 340, power: 28, armor: 70, eva: 0.2, interval: 0.7, range: 1, moveSpd: 1.6, atk: { type: 'strike', elem: 'phys' }, melee: true },
+  { id: 'lv_alpha', name: '무리 우두머리 프리버드', keywords: ['bio'], sprite: 'beast', palette: BIRD_ELITE, tier: 'elite', minPhase: 1,
+    hp: 1200, power: 42, armor: 220, interval: 1.0, range: 1, moveSpd: 1.2, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    // 포식: 6초마다 가장 가까운 부유체를 삼켜 회복, 3초 뒤 체내 폭발
+    onTick: (b, u, dt) => {
+      u.mem.eatT = (u.mem.eatT ?? 3) - dt;
+      if (u.mem.eatT > 0) return;
+      u.mem.eatT = 6;
+      const f = b.nearest(u, b.alliesOf(u, false).filter((a) => (a.defId === 'lv_floater' || a.defId === 'lv_spores') && b.dist(u, a) <= 3));
+      if (!f) return;
+      b.emit({ k: 'status', id: u.id, name: '부유체 포식' });
+      f.mem.swallowed = 1;
+      b.kill(f, null);
+      b.heal(u, u, b.S(u, 'maxHp') * 0.15);
+      b.later(3, () => { if (u.alive) gasBlast(b, u, u.x, u.y, 1, 0.1); });
+    } },
+  { id: 'lv_mother', name: '부유체 모체', keywords: ['bio'], sprite: 'phantom', palette: FLOAT_BOSS, tier: 'boss', minPhase: 1,
+    hp: 3000, power: 42, armor: 160, effRes: 0.3, interval: 1.3, range: 3, moveSpd: 0.5, atk: { type: 'shoot', elem: 'chem' }, melee: false,
+    escort: ['lv_floater', 'lv_raptor'],
+    onTick: (b, u, dt) => { u.mem.spawnT = (u.mem.spawnT || 0) + dt; if (u.mem.spawnT >= 14) { u.mem.spawnT = 0; b.emit({ k: 'status', id: u.id, name: '포자 방출' }); summonHook?.(b, u, 'lv_spores', 2); } } },
+  { id: 'lv_king', name: '목초지의 왕', keywords: ['bio'], sprite: 'beast', palette: BIRD_BOSS, tier: 'boss', minPhase: 1,
+    hp: 4000, power: 54, armor: 300, effRes: 0.3, interval: 1.2, range: 1, moveSpd: 0.9, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    escort: ['lv_raptor', 'lv_floater'],
+    skill: {
+      name: '포식자의 도약', cd: 8, params: {}, desc: () => '가장 먼 적에게 도약 + 주변 1칸 피해 + 기절',
+      cast(b, u) {
+        const t = b.farthest(u); if (!t) return false;
+        blinkTo(b, u, t);
+        b.fx(u.x, u.y, 1, 'phys');
+        for (const e of b.around(u, 1, b.enemiesOf(u))) { skillHit(b, u, e, 'strike', 1.8, 'phys'); b.stun(u, e, 1, 1); }
+        return true;
+      },
+    } },
+
+  // ── 라이덴 제34블록 봉쇄선 (제국 호이슌 · 폭주한 과개조자)
+  { id: 'rd_laborer', name: '노동 등급 폭주자', keywords: ['bio'], sprite: 'knight', palette: NEON, tier: 'minion', minPhase: 1,
+    hp: 460, power: 30, armor: 130, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
+  { id: 'rd_combat', name: '전투 등급 폭주자', keywords: ['mech'], sprite: 'knight', palette: CHROME, tier: 'minion', minPhase: 1,
+    hp: 500, power: 32, armor: 250, interval: 0.8, range: 1, moveSpd: 1.2, atk: { type: 'strike', elem: 'phys' }, melee: true },
+  { id: 'rd_sub', name: '구독 치안 드론', keywords: ['mech'], sprite: 'drone', palette: CHROME, tier: 'minion', minPhase: 1,
+    hp: 260, power: 24, armor: 90, eva: 0.1, interval: 0.8, range: 3, moveSpd: 1.3, atk: { type: 'shoot', elem: 'elec' }, melee: false,
+    onBasic: (b, u, t) => { b.applyStatus(u, t, { type: 'buff', key: 'rd.unpaid', dur: 4, taken: [{ kind: 'vuln', tag: 'all', v: 0.15 }], label: '미납' }); } },
+  { id: 'rd_stream', name: '데스 스트리밍 드론', keywords: ['mech'], sprite: 'drone', palette: NEON, tier: 'minion', minPhase: 2,
+    hp: 240, power: 10, armor: 80, eva: 0.2, interval: 1.0, range: 4, moveSpd: 1.2, atk: { type: 'shoot', elem: 'phys' }, melee: false, noAttack: true,
+    // 생중계: 2초마다 가장 가까운 적 하나를 찍는다 (받는 피해 +15%)
+    onTick: (b, u, dt) => {
+      u.mem.camT = (u.mem.camT ?? 0.5) - dt;
+      if (u.mem.camT > 0) return;
+      u.mem.camT = 2;
+      const t = b.nearest(u, b.targetable(u).filter((e) => b.dist(u, e) <= 4));
+      if (t) b.applyStatus(u, t, { type: 'buff', key: 'rd.stream', dur: 2.5, taken: [{ kind: 'vuln', tag: 'all', v: 0.15 }], label: '생중계' });
+    } },
+  { id: 'rd_critical', name: '\'임계\' 과개조자', keywords: ['mech'], sprite: 'knight', palette: NEON_ELITE, tier: 'elite', minPhase: 1,
+    hp: 1200, power: 44, armor: 280, interval: 0.9, range: 1, moveSpd: 1.1, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    // 임계 돌파: 체력 50% 이하에서 한 번, 8초 광폭 + 받는 피해 -30%
+    onTick: (b, u) => {
+      if (u.mem.crit || b.hpPct(u) > 0.5) return;
+      u.mem.crit = 1;
+      rampage(b, u, 8);
+      b.buff(u, u, 'rd.crit', 8, { taken: [{ kind: 'red', tag: 'all', v: 0.3 }], label: '임계 돌파' });
+    } },
+  { id: 'rd_tower', name: '결함 펌웨어 송출탑', keywords: ['mech', 'struct'], sprite: 'turret', palette: NEON_BOSS, tier: 'boss', minPhase: 1,
+    hp: 3000, power: 40, armor: 300, effRes: 0.3, interval: 1.3, range: 5, immobile: true, atk: { type: 'shoot', elem: 'elec' }, melee: false,
+    escort: ['rd_laborer', 'rd_combat', 'rd_sub'],
+    // 펌웨어 송출: 10초마다 같은 편 2기 광폭 + 적 기계 기물 2초 감전
+    onTick: (b, u, dt) => {
+      u.mem.txT = (u.mem.txT ?? 5) - dt;
+      if (u.mem.txT > 0) return;
+      u.mem.txT = 10;
+      b.emit({ k: 'status', id: u.id, name: '펌웨어 송출' });
+      const al = b.rng.shuffle(b.alliesOf(u, false).filter((a) => !a.mem.inert && !a.immobile)).slice(0, 2);
+      for (const a of al) rampage(b, a, 4);
+      for (const e of b.enemiesOf(u)) if (e.category === 'mech') b.applyStatus(u, e, { type: 'shock', key: 'shock', dur: 2 });
+    } },
+  { id: 'rd_repo', name: '구독 해지 집행반장', keywords: ['mech'], sprite: 'soldier', palette: CHROME_BOSS, tier: 'boss', minPhase: 1,
+    hp: 3200, power: 48, armor: 260, acc: 0.1, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false,
+    escort: ['rd_sub', 'rd_combat'],
+    skill: {
+      name: '원격 잠금', cd: 9, params: {}, desc: () => '장비가 가장 많은 적 6초 약화',
+      cast(b, u) {
+        const es = b.targetable(u); if (!es.length) return false;
+        const t = es.reduce((a, c) => (gearCount(c) > gearCount(a) ? c : a));
+        b.fx(t.x, t.y, 0, 'elec');
+        skillHit(b, u, t, 'shoot', 1.2, 'phys');
+        b.applyStatus(u, t, { type: 'buff', key: 'rd.lock', dur: 6, mods: [{ kind: 'inc', tag: 'all', v: -0.25 }], delta: { atkSpd: -0.2 }, label: '원격 잠금' });
+        return true;
+      },
+    } },
+
+  // ── 크레타 백원 (동맹 · 장군의 망령)
+  { id: 'kr_nameless', name: '무명 망령', keywords: ['phantom'], sprite: 'knight', palette: GHOST, tier: 'minion', minPhase: 1,
+    hp: 380, power: 28, armor: 60, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
+  { id: 'kr_archer', name: '대열 궁수 망령', keywords: ['phantom'], sprite: 'soldier', palette: GHOST, tier: 'minion', minPhase: 1,
+    hp: 280, power: 28, armor: 40, acc: 0.05, interval: 1.2, range: 4, atk: { type: 'shoot', elem: 'phys' }, melee: false },
+  { id: 'kr_builder', name: '미완의 건축가 망령', keywords: ['phantom'], sprite: 'robe', palette: GHOST, tier: 'minion', minPhase: 2,
+    hp: 320, power: 22, armor: 60, interval: 1.2, range: 2, atk: { type: 'shoot', elem: 'psy' }, melee: false,
+    // 묘석 축조: 10초마다 적 쪽 빈칸에 묘석
+    onTick: (b, u, dt) => {
+      u.mem.buildT = (u.mem.buildT ?? 5) - dt;
+      if (u.mem.buildT > 0) return;
+      u.mem.buildT = 10;
+      const t = b.nearest(u, b.targetable(u)); if (!t) return;
+      const dy = Math.sign(t.y - u.y);
+      const cell = [[0, dy], [-1, dy], [1, dy], [-1, 0], [1, 0]].map(([dx, d]) => ({ x: u.x + dx, y: u.y + d })).find((c) => b.inBounds(c.x, c.y) && !b.unitAt(c.x, c.y));
+      if (cell && dropObstacle(b, 'kr_stone', cell, 20)) b.emit({ k: 'status', id: u.id, name: '묘석 축조' });
+    } },
+  { id: 'kr_ferryman', name: '은퇴 못 한 이송관', keywords: ['phantom'], sprite: 'robe', palette: GHOST_ELITE, tier: 'minion', minPhase: 1,
+    hp: 420, power: 28, armor: 100, interval: 1.2, range: 2, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    onBasic: (b, u, t) => { b.applyStatus(u, t, { type: 'buff', key: 'root', dur: 1.5 }, 0.5); } },
+  { id: 'kr_bearer', name: '기수 망령', keywords: ['phantom'], sprite: 'knight', palette: GHOST_ELITE, tier: 'elite', minPhase: 1,
+    hp: 1100, power: 40, armor: 180, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
+  { id: 'kr_general', name: '장군의 망령', keywords: ['phantom'], sprite: 'knight', palette: GHOST_BOSS, tier: 'boss', minPhase: 1,
+    hp: 3300, power: 50, armor: 220, acc: 0.1, effRes: 0.3, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    escort: ['kr_nameless', 'kr_archer'],
+    // 재집결: 9초마다 쓰러진 망령 2기를 체력 50%로 다시 세운다. 서사의 망령 피해 +30%
+    onTick: (b, u, dt) => {
+      u.mem.aura = (u.mem.aura || 0) - dt;
+      if (u.mem.aura <= 0) { u.mem.aura = 1; for (const a of b.alliesOf(u, false)) if (a.defId === 'kr_echo') b.buff(u, a, 'kr.general', 1.5, { mods: [{ kind: 'inc', tag: 'all', v: 0.3 }], label: '' }); }
+      u.mem.rallyT = (u.mem.rallyT ?? 6) - dt;
+      if (u.mem.rallyT > 0) return;
+      u.mem.rallyT = 9;
+      const dead = b.units.filter((x) => !x.alive && x.side === 1 && x.category === 'soul' && !x.isBoss && !x.mem.raised && x.defId !== 'kr_echo' && !x.mem.inert).slice(-2);
+      if (!dead.length) return;
+      b.emit({ k: 'status', id: u.id, name: '재집결' });
+      for (const d of dead) { d.mem.raised = 1; const n = ENEMY_RT.spawn?.(b, d.defId, d, { hpPct: 0.5, mult: d.mem.mult, summon: true }); if (n) n.mem.raised = 1; }
+    } },
+  { id: 'kr_choir', name: '무명의 합창', keywords: ['phantom'], sprite: 'phantom', palette: GHOST_BOSS, tier: 'boss', minPhase: 1,
+    hp: 3000, power: 46, armor: 120, effRes: 0.3, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
+    escort: ['kr_nameless', 'kr_ferryman'],
+    skill: {
+      name: '합창', cd: 12, params: {}, desc: () => '모든 적 정신 피해 + 공포',
+      cast(b, u) {
+        const es = b.enemiesOf(u); if (!es.length) return false;
+        b.fx(u.x, u.y, 4, 'psy');
+        for (const e of es) { skillHit(b, u, e, 'tech', 0.7, 'psy', { noMiss: true }); fear(b, u, e, 1, 0.6); }
+        return true;
+      },
+    },
+    hooks: { onAllyDeath: (b, u, dead) => { if (dead !== u && dead.category === 'soul') b.heal(u, u, b.S(u, 'maxHp') * 0.03); } } },
+  // 전장 전용 (풀 밖): 서사의 망령 · 묘석
+  { id: 'kr_echo', name: '서사의 망령', keywords: ['phantom'], sprite: 'phantom', palette: GHOST, tier: 'minion', minPhase: 99,
+    hp: 300, power: 20, armor: 40, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
+  { id: 'kr_stone', name: '묘석', keywords: ['struct'], sprite: 'turret', palette: STONE, tier: 'minion', minPhase: 99,
+    hp: 420, power: 0, armor: 200, interval: 9, range: 0, immobile: true, atk: { type: 'strike', elem: 'phys' }, melee: false, noAttack: true, inert: true },
+
+  // ── 올림푸스 성관 축전 구획 (동맹 · 흑운)
+  { id: 'ol_battery', name: '자동 포격 포대', keywords: ['mech', 'struct'], sprite: 'turret', palette: RING, tier: 'minion', minPhase: 1,
+    hp: 520, power: 30, armor: 260, acc: 0.1, interval: 1.4, range: 5, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false },
+  { id: 'ol_tender', name: '축전 정비 드론', keywords: ['mech'], sprite: 'drone', palette: RING, tier: 'minion', minPhase: 1,
+    hp: 260, power: 20, armor: 80, eva: 0.1, interval: 0.8, range: 2, moveSpd: 1.3, atk: { type: 'shoot', elem: 'elec' }, melee: false,
+    // 축전 정비: 8초마다 주변 2칸 아군에게 충전 비례 보호막
+    onTick: (b, u, dt) => {
+      u.mem.fixT = (u.mem.fixT ?? 4) - dt;
+      if (u.mem.fixT > 0) return;
+      u.mem.fixT = 8;
+      b.fx(u.x, u.y, 2, 'elec', 'buff');
+      for (const a of b.around(u, 2, b.alliesOf(u))) b.shield(a, b.S(a, 'maxHp') * (0.03 + 0.015 * (a.mem.charge || 0)));
+    } },
+  { id: 'ol_patrol', name: '링 순찰기', keywords: ['mech'], sprite: 'mech', palette: RING, tier: 'minion', minPhase: 1,
+    hp: 560, power: 30, armor: 280, interval: 1.1, range: 1, moveSpd: 0.9, atk: { type: 'strike', elem: 'phys' }, melee: true },
+  { id: 'ol_manager', name: '축전 구획 관리기', keywords: ['mech', 'struct'], sprite: 'turret', palette: BLACKCLOUD, tier: 'elite', minPhase: 1,
+    hp: 1300, power: 40, armor: 320, interval: 1.2, range: 3, immobile: true, atk: { type: 'shoot', elem: 'elec' }, melee: false,
+    // 축전 배분: 8초마다 주변 2칸 아군 충전 +3 (자신은 방전 피해 면역)
+    onTick: (b, u, dt) => {
+      u.mem.dischargeImmune = 1;
+      u.mem.chgT = (u.mem.chgT ?? 4) - dt;
+      if (u.mem.chgT > 0) return;
+      u.mem.chgT = 8;
+      b.emit({ k: 'status', id: u.id, name: '축전 배분' });
+      for (const a of b.around(u, 2, b.alliesOf(u, false))) ENEMY_RT.charge?.(b, a, 3, u);
+    } },
+  { id: 'ol_cloud', name: '흑운', keywords: ['mech'], sprite: 'mech', palette: BLACKCLOUD_BOSS, tier: 'boss', minPhase: 1,
+    hp: 3800, power: 50, armor: 380, effRes: 0.3, interval: 1.4, range: 1, moveSpd: 0.7, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    escort: ['ol_patrol', 'ol_tender'],
+    skill: {
+      name: '방전 강타', cd: 7, params: {}, desc: () => '주변 2칸 전기 피해 + 기절',
+      cast(b, u) {
+        const es = b.around(u, 2, b.enemiesOf(u)); if (!es.length) return false;
+        b.fx(u.x, u.y, 2, 'elec');
+        for (const e of es) { skillHit(b, u, e, 'tech', 1.1, 'elec', { noMiss: true }); b.stun(u, e, 1, 0.5); }
+        return true;
+      },
+    } },
+  { id: 'ol_conduit', name: '극지 도관', keywords: ['mech', 'struct'], sprite: 'turret', palette: BLACKCLOUD_BOSS, tier: 'boss', minPhase: 1,
+    hp: 2800, power: 38, armor: 300, effRes: 0.3, interval: 1.3, range: 5, immobile: true, atk: { type: 'shoot', elem: 'elec' }, melee: false,
+    escort: ['ol_patrol', 'ol_tender'],
+    // 살아 있는 동안 모든 아군 공격 속도 +20%, 4초마다 충전이 가장 높은 아군 +2
+    onTick: (b, u, dt) => {
+      u.mem.aura = (u.mem.aura || 0) - dt;
+      if (u.mem.aura <= 0) { u.mem.aura = 1; for (const a of b.alliesOf(u)) b.buff(u, a, 'ol.conduit', 1.5, { delta: { atkSpd: 0.2 }, label: '' }); }
+      u.mem.feedT = (u.mem.feedT ?? 4) - dt;
+      if (u.mem.feedT > 0) return;
+      u.mem.feedT = 4;
+      const cs = b.alliesOf(u, false).filter((a) => a.category === 'mech' || a.category === 'struct');
+      if (cs.length) ENEMY_RT.charge?.(b, cs.reduce((a, c) => ((c.mem.charge || 0) > (a.mem.charge || 0) ? c : a)), 2, u);
+    } },
+
+  // ── 캣휠 그늘 성계 (유닉스 · 일탈 개체 회수)
+  { id: 'cw_reclaim', name: '회수 집행 유닉스', keywords: ['mech'], sprite: 'mech', palette: UNIX, tier: 'minion', minPhase: 1,
+    hp: 540, power: 28, armor: 250, interval: 1.1, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    onBasic: (b, u, t) => { b.applyStatus(u, t, { type: 'buff', key: 'root', dur: 1 }, 0.5); },
+    // 회수 우선순위: 기계 기물 먼저
+    onTick: (b, u) => {
+      if (u.target?.category === 'mech' || b.frenzied(u)) return;
+      const m = b.targetable(u).filter((e) => e.category === 'mech');
+      if (m.length) u.target = b.nearest(u, m);
+    } },
+  { id: 'cw_maid', name: '전투 메이드 유닉스', keywords: ['mech'], sprite: 'knight', palette: MAID, tier: 'minion', minPhase: 1,
+    hp: 380, power: 30, armor: 140, eva: 0.1, interval: 0.7, range: 1, moveSpd: 1.5, atk: { type: 'strike', elem: 'phys' }, melee: true },
+  { id: 'cw_dropper', name: '투하 드론', keywords: ['mech'], sprite: 'drone', palette: ASH, tier: 'minion', minPhase: 2,
+    hp: 260, power: 10, armor: 80, eva: 0.15, interval: 1.0, range: 4, moveSpd: 1.2, atk: { type: 'shoot', elem: 'phys' }, melee: false, noAttack: true,
+    onTick: (b, u, dt) => {
+      u.mem.dropT = (u.mem.dropT ?? 3) - dt;
+      if (u.mem.dropT > 0) return;
+      u.mem.dropT = 6;
+      const t = b.nearest(u, b.targetable(u)); if (!t) return;
+      const cell = b.freeCellNear(t.x, t.y);
+      if (cell) petRock(b, cell);
+    } },
+  { id: 'cw_sub', name: '서브루틴', keywords: ['mech'], sprite: 'robe', palette: UNIX_ELITE, tier: 'elite', minPhase: 1,
+    hp: 1100, power: 40, armor: 220, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'elec' }, melee: false,
+    onTick: (b, u, dt) => {
+      if (!command(b, u, 'cmdT', dt, 8, 4)) return;
+      b.emit({ k: 'status', id: u.id, name: '작업 할당' });
+      for (const a of b.alliesOf(u)) if (a.category === 'mech' && !a.mem.inert) b.buff(u, a, 'cw.sub', 4, { delta: { atkSpd: 0.3 }, label: '작업 가속' });
+    } },
+  { id: 'cw_ship', name: '회수함 \'루틴 7\'', keywords: ['mech', 'struct'], sprite: 'turret', palette: UNIX_BOSS, tier: 'boss', minPhase: 1,
+    hp: 3600, power: 44, armor: 340, effRes: 0.3, interval: 1.3, range: 6, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false,
+    escort: ['cw_reclaim', 'cw_maid', 'pt_unix'],
+    skill: {
+      name: '회수 빔', cd: 10, params: {}, desc: () => '기계 기물(없으면 체력 최저)을 끌어와 속박 + 취약',
+      cast(b, u) {
+        const es = b.targetable(u); if (!es.length) return false;
+        const m = es.filter((e) => e.category === 'mech');
+        const t = m.length ? b.nearest(u, m)! : es.reduce((a, c) => (b.hpPct(c) < b.hpPct(a) ? c : a));
+        b.fx(t.x, t.y, 0, 'elec');
+        b.pull(u, t);
+        b.applyStatus(u, t, { type: 'buff', key: 'root', dur: 3 });
+        b.applyStatus(u, t, { type: 'buff', key: 'cw.reclaim', dur: 3, taken: [{ kind: 'vuln', tag: 'all', v: 0.3 }], label: '회수 대상' });
+        return true;
+      },
+    } },
+  { id: 'cw_kernel', name: '커널 응답체', keywords: ['mech'], sprite: 'robe', palette: UNIX_BOSS, tier: 'boss', minPhase: 1,
+    hp: 3200, power: 46, armor: 260, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'elec' }, melee: false,
+    escort: ['cw_maid', 'cw_reclaim'],
+    // 권한 거부: 체력 25% 구간마다 4초 무적 + 반려 돌 4개
+    onTick: (b, u) => {
+      const step = Math.floor((1 - b.hpPct(u)) / 0.25);
+      if (step <= (u.mem.deny || 0) || step >= 4) return;
+      u.mem.deny = step;
+      u.mem.invulnUntil = b.t + 4;
+      b.emit({ k: 'status', id: u.id, name: 'Root 권한이 없습니다' });
+      for (let i = 0; i < 4; i++) { const c = b.freeCellNear(u.x, u.y + (u.y < b.h / 2 ? 2 : -2)); if (c) petRock(b, c); }
+    } },
+  { id: 'cw_rock', name: '반려 돌', keywords: ['struct'], sprite: 'turret', palette: STONE, tier: 'minion', minPhase: 99,
+    hp: 480, power: 0, armor: 250, interval: 9, range: 0, immobile: true, atk: { type: 'strike', elem: 'phys' }, melee: false, noAttack: true, inert: true },
+
+  // ── 금고선 히페리온호 (범은하 · 금고장 조디악)
+  { id: 'hy_teller', name: '창구 은행원', keywords: ['bio'], sprite: 'soldier', palette: BANK, tier: 'minion', minPhase: 1,
+    hp: 320, power: 28, armor: 90, acc: 0.1, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false },
+  { id: 'hy_cashier', name: '출납 드론', keywords: ['mech'], sprite: 'drone', palette: BANK, tier: 'minion', minPhase: 1,
+    hp: 220, power: 20, armor: 60, eva: 0.15, interval: 0.6, range: 2, moveSpd: 1.6, atk: { type: 'shoot', elem: 'elec' }, melee: false },
+  { id: 'hy_exchange', name: '환전 집행관', keywords: ['bio'], sprite: 'knight', palette: BANK, tier: 'minion', minPhase: 1,
+    hp: 460, power: 30, armor: 160, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: { dmgMult: (b) => 1 + 0.02 * Math.floor((b.ctx.credits || 0) / 10) } },
+  { id: 'hy_appraiser', name: '감정 은행원', keywords: ['bio'], sprite: 'soldier', palette: BANK_ELITE, tier: 'elite', minPhase: 1,
+    hp: 1000, power: 40, armor: 200, acc: 0.15, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false,
+    skill: {
+      name: '감정 중', cd: 7, params: {}, desc: () => '장비가 가장 많은 적 사격 + 4초 약화',
+      cast(b, u) {
+        const es = b.targetable(u); if (!es.length) return false;
+        const t = es.reduce((a, c) => (gearCount(c) > gearCount(a) ? c : a));
+        b.fx(t.x, t.y, 0, 'phys');
+        skillHit(b, u, t, 'shoot', 1.2, 'phys');
+        b.applyStatus(u, t, { type: 'buff', key: 'hy.appraise', dur: 4, mods: [{ kind: 'inc', tag: 'all', v: -0.3 }], delta: { atkSpd: -0.3 }, label: '감정 중' });
+        return true;
+      },
+    } },
+  { id: 'hy_door', name: '13번째 금고문', keywords: ['struct'], sprite: 'turret', palette: VAULT, tier: 'boss', minPhase: 1,
+    hp: 2600, power: 38, armor: 360, effRes: 0.3, interval: 1.3, range: 5, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false,
+    escort: ['hy_teller', 'hy_exchange', 'turret'],
+    // 금고 재봉인: 5초마다 자기 보호막 +1겹, 12초마다 모든 아군 +2겹 (처음 겹 수까지)
+    onTick: (b, u, dt) => {
+      u.mem.sealT = (u.mem.sealT || 0) + dt;
+      u.mem.sealAll = (u.mem.sealAll || 0) + dt;
+      if (u.mem.sealT >= 5) { u.mem.sealT = 0; addLayers(b, u, 1); }
+      if (u.mem.sealAll >= 12) { u.mem.sealAll = 0; b.emit({ k: 'status', id: u.id, name: '금고 재봉인' }); for (const a of b.alliesOf(u, false)) addLayers(b, a, 2); }
+    } },
+  { id: 'hy_zodiac', name: '금고장 조디악', keywords: ['bio'], sprite: 'soldier', palette: VAULT, tier: 'boss', minPhase: 1,
+    hp: 3000, power: 46, armor: 220, acc: 0.15, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false,
+    escort: ['hy_teller', 'hy_cashier'],
+    hooks: { dmgMult: (_b, u) => Math.pow(1.06, u.mem.interest || 0) },
+    onTick: (b, u, dt) => {
+      u.mem.intT = (u.mem.intT || 0) + dt;
+      if (u.mem.intT < 5) return;
+      u.mem.intT = 0;
+      u.mem.interest = (u.mem.interest || 0) + 1;
+      b.emit({ k: 'status', id: u.id, name: `이자 ×${Math.pow(1.06, u.mem.interest).toFixed(2)}` });
+    } },
+
+  // ── 브샤크 묘비 해안 (황무지 · 군체 휴면 군집)
+  { id: 'bs_herring', name: '긴다리 청어 떼', keywords: ['bio'], sprite: 'beast', palette: PALE, tier: 'minion', minPhase: 1,
+    hp: 260, power: 24, armor: 50, eva: 0.2, interval: 0.6, range: 1, moveSpd: 1.7, atk: { type: 'strike', elem: 'phys' }, melee: true },
+  { id: 'bs_vapor', name: '기화 살점', keywords: ['bio'], sprite: 'crawler', palette: PALE, tier: 'minion', minPhase: 1,
+    hp: 360, power: 24, armor: 80, interval: 0.9, range: 1, moveSpd: 1.1, atk: { type: 'strike', elem: 'chem' }, melee: true,
+    hooks: { onLethal: (b, u) => { for (const e of b.around(u, 1, b.enemiesOf(u))) antiheal(b, u, e, 0.5, 3); return false; } } },
+  { id: 'bs_knight', name: '해안 기사 개체', keywords: ['bio'], sprite: 'knight', palette: TOMB, tier: 'elite', minPhase: 1,
+    hp: 1200, power: 42, armor: 260, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: { takenMult: (_b, _u, _s, o) => (o.elem === 'chem' ? 1 : 0.7) } },
+  { id: 'bs_tomb', name: '묘비 개체', keywords: ['bio', 'struct'], sprite: 'turret', palette: TOMB_BOSS, tier: 'boss', minPhase: 1,
+    hp: 2800, power: 38, armor: 260, effRes: 0.3, interval: 1.3, range: 4, immobile: true, atk: { type: 'shoot', elem: 'chem' }, melee: false,
+    escort: ['sw_spore'],
+    onTick: (b, u, dt) => { u.mem.spawnT = (u.mem.spawnT || 0) + dt; if (u.mem.spawnT >= 15) { u.mem.spawnT = 0; summonHook?.(b, u, 'sw_spore', 2); } } },
+  { id: 'bs_signal', name: '신호를 보내는 것', keywords: ['bio', 'phantom'], sprite: 'phantom', palette: TOMB_BOSS, tier: 'boss', minPhase: 1,
+    hp: 3300, power: 52, armor: 160, eva: 0.1, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
+    escort: ['bs_herring', 'sw_hound', 'bs_vapor'],
+    skill: {
+      name: '아는 목소리', cd: 7, params: {}, desc: () => '무작위 적 정신 피해 + 공포',
+      cast(b, u) {
+        const es = b.targetable(u); if (!es.length) return false;
+        const t = es[b.rng.int(0, es.length - 1)];
+        b.fx(t.x, t.y, 0, 'psy');
+        skillHit(b, u, t, 'tech', 1.0, 'psy', { noMiss: true });
+        fear(b, u, t, 2, 1);
+        return true;
+      },
+    },
+    onTick: (b, u) => {
+      if (u.mem.hid || b.hpPct(u) > 0.5) return;
+      u.mem.hid = 1;
+      b.buff(u, u, 'stealth', 4, { label: '은신' });
+    } },
 ];
 export const ENEMY_BY_ID: Record<string, EnemyDef> = Object.fromEntries(ENEMIES.map((e) => [e.id, e]));
 export const BOSS_ROTATION = ['varga', 'goliath', 'nyx'];
+
+// ───────── 신규 전장 공용 헬퍼 (적 능력 · 전장 조건이 함께 쓴다)
+/** build.ts 에서 주입: 적 생성 · 망령 · 장비 빌려 쓰기 · 충전 (battlefields.ts 가 충전을 채운다) */
+export const ENEMY_RT: {
+  spawn?: (b: Battle, defId: string, at: { x: number; y: number }, o?: { hpPct?: number; mult?: number; summon?: boolean; exact?: boolean }) => CUnit | null;
+  ghost?: (b: Battle, from: CUnit) => CUnit | null;
+  borrow?: (b: Battle, u: CUnit, n: number) => string[];
+  charge?: (b: Battle, u: CUnit, n: number, src: CUnit) => void;
+} = {};
+/** 회복 감소 (받는 회복 × (1 - amt)) */
+export function antiheal(b: Battle, u: CUnit, t: CUnit, amt: number, dur: number) {
+  return b.applyStatus(u, t, { type: 'buff', key: 'antiheal', dur, healMul: 1 - amt, label: '회복 감소' });
+}
+/** 전장 광폭: 피해 +30%, 같은 편 포함 가장 가까운 대상 공격 (같은 편에겐 50%). 이성과 무관 */
+export function rampage(b: Battle, u: CUnit, dur: number) {
+  if (!u.alive || u.mem.inert) return;
+  b.applyStatus(u, u, { type: 'buff', key: 'rampage', dur, mods: [{ kind: 'inc', tag: 'all', v: 0.3 }], label: '광폭' });
+  u.target = null;
+}
+/** 프리버드: 산패 폭발 피해 2배 */
+export const FREEBIRDS = new Set(['lv_raptor', 'lv_alpha', 'lv_king']);
+/** 산패 폭발: 주변 r칸 모든 유닛(양쪽)에게 각자 최대 체력 pct 화학 피해 */
+export function gasBlast(b: Battle, src: CUnit, x: number, y: number, r: number, pct: number) {
+  b.emit({ k: 'fx', x, y, r, elem: 'chem' });
+  for (const t of b.units.filter((v) => v.alive && !v.mem.inert && b.dist(v, { x, y }) <= r)) b.rawHit(src, t, b.S(t, 'maxHp') * pct * (FREEBIRDS.has(t.defId) ? 2 : 1), 'chem');
+}
+/** 아군 기물의 장비 수 (감정 · 원격 잠금 대상 고르기) */
+export const gearCount = (c: CUnit) => (c.src?.items.filter(Boolean).length || 0) + (c.tempItems?.length || 0);
+/** 전장 장애물 (반려 돌 · 묘석): 칸을 막고 life 초 뒤 사라진다. 동시에 최대 10개 */
+export function dropObstacle(b: Battle, defId: string, cell: { x: number; y: number }, life: number) {
+  if (b.units.filter((v) => v.alive && v.mem.inert).length >= 10) return null;
+  const o = ENEMY_RT.spawn?.(b, defId, cell, { exact: true, summon: true });
+  if (!o) return null;
+  b.later(life, () => { if (o.alive) { o.alive = false; b.emit({ k: 'die', id: o.id }); } });
+  return o;
+}
+/** 답례 투하: 반려 돌 + 낙하 칸 주변 1칸 아군(플레이어 쪽) 최대 체력 6% 물리 피해 */
+export function petRock(b: Battle, cell: { x: number; y: number }) {
+  const o = dropObstacle(b, 'cw_rock', cell, 20);
+  if (!o) return null;
+  b.emit({ k: 'fx', x: cell.x, y: cell.y, r: 1, elem: 'phys' });
+  for (const t of b.around(cell, 1, b.living(0))) b.rawHit(o, t, b.S(t, 'maxHp') * 0.06, 'phys');
+  return o;
+}
+/** 히페리온 보호막 겹 더하기 (처음 겹 수까지) */
+export function addLayers(b: Battle, u: CUnit, n: number) {
+  if (!u.alive || !u.mem.layersMax) return;
+  const v = Math.min(u.mem.layersMax, (u.mem.layers || 0) + n);
+  if (v > (u.mem.layers || 0)) { u.mem.layers = v; b.emit({ k: 'status', id: u.id, name: `보호막 ${v}겹` }); }
+}
 
 // build.ts 에서 주입 (순환 import 방지)
 export let summonHook: ((b: Battle, owner: CUnit, defId: string, count: number) => void) | null = null;

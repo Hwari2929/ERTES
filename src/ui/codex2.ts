@@ -451,7 +451,7 @@ function fieldCard(fid: string) {
   const f = FIELD_BY_ID[fid];
   if (!f) return '';
   const syn = f.ally ? f.ally.syn : null;
-  return `<div class="cx2-fld" style="--c:${f.color}" data-field="${esc(f.id)}"><div class="cx2-fld-bg" style="background-image:url('${bgURL(`field_${f.id}`)}')" aria-hidden="true"></div>
+  return `<div class="cx2-fld" style="--c:${f.color}" data-field="${esc(f.id)}"><div class="cx2-fld-bg" style="background-image:url('${bgURL(`field_${f.id}`)}'), linear-gradient(165deg, color-mix(in srgb, ${f.color} 40%, #0b0d14), #0b0d14 75%)" aria-hidden="true"></div>
     <div class="cx2-fld-tx"><b>${esc(f.icon)} ${esc(f.name)}</b><small>${esc(f.region)}</small><p>${esc(f.desc)}</p>
     <ul class="cx2-src">${f.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
     <div class="cx2-mem">${syn ? synChip(syn) : ''}<button class="btn tiny" ${go(`tab:enemies:${f.id}`)}>이 전장의 적 보기</button></div></div></div>`;

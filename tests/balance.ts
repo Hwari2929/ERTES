@@ -23,6 +23,8 @@ const DIFF = +process.argv[5] || 0;
 /** detail: 런마다 기물 · 증강 · 성유물별 [전투 수, 승리] 기록 (군집 신뢰구간용). randrelic: 디바인 성유물을 무작위로 장착 (성유물 효과 분리 실험) */
 const DETAIL = process.argv.includes('detail');
 const RANDREL = process.argv.includes('randrelic');
+/** field=<id>: 전장 고정 (전장별 클리어율 비교) */
+const FORCE_FIELD = process.argv.find((a) => a.startsWith('field='))?.slice(6);
 
 // ───────── 집계 저장소 (합으로만 누적 → 워커끼리 더하면 된다)
 type Acc = Record<string, number>;
@@ -94,7 +96,7 @@ const runs: unknown[] = [];
 function playRun(seed: number) {
   const bot = new Rng(seed * 7 + 1);
   const starters = bot.sample(STARTERS, CFG.startUnits);
-  const run = R.newRun(seed, starters, undefined, DIFF);
+  const run = R.newRun(seed, starters, FORCE_FIELD, DIFF);
   const synMax: Record<string, number> = {};
   const det: Record<string, [number, number]> = {}; // detail 모드: `키|페이즈:노드` → [전투, 승리]
   const relicSet = new Set<string>();
