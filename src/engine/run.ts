@@ -1325,7 +1325,7 @@ export function releaseUnit(run: RunState, uid: string): string | null {
 export const PILGRIM_CARDS: Record<string, { name: string; desc: string; cost: number; target?: boolean }> = {
   'bless:B.martyr': { name: '순교자의 가호', desc: '이번 페이즈 모든 아군 최대 체력 +20%.', cost: 15 },
   'bless:B.flame': { name: '성전의 불꽃', desc: '이번 페이즈 모든 아군 기본 공격에 기술 위력 25% 신성 추가 피해.', cost: 15 },
-  'bless:B.sanctum': { name: '성소의 빛', desc: '이번 페이즈 전투 시작 시 모든 아군 최대 체력 25% 보호막.', cost: 15 },
+  'bless:B.sanctum': { name: '성소의 빛', desc: '이번 페이즈 전투 시작 시 모든 아군 최대 체력 15% 보호막.', cost: 15 },
   'bless:B.zeal': { name: '광신', desc: '이번 페이즈 모든 아군 공격 속도 +25%, 받는 피해 +10%.', cost: 15 },
   grail: { name: '성배', desc: '신성력 수집 상한 +50 (영구).', cost: 15 },
   prayer: { name: '순례자의 기도', desc: '다음 전투에서 모든 디바인이 신성력 40으로 시작.', cost: 10 },

@@ -1056,7 +1056,8 @@ function previewAlly(run: RunState, u: UnitState) {
 }
 
 // ───────────────────────── 능력 (통일 형식 · 누르면 좌측 상세 팝업)
-const actx = (b: Battle | null, c: CUnit | null, skill = false): AB.AbilCtx => ({ b, c, p: c?.sk || {}, skill });
+/** 능력 문장 계산 맥락. 전투 밖(도감 · 상세)에서는 기물 기본 스킬 파라미터로 @파라미터를 채운다 */
+const actx = (b: Battle | null, c: CUnit | null, skill = false, d?: UnitDef | null): AB.AbilCtx => ({ b, c, p: c?.sk || d?.skill.params || {}, skill });
 const abilOn = (k: string) => (app.abilPop === k ? ' on' : '');
 /** 능력 아이콘 토큰 (없으면 빈 문자열). 키: skill.<기물> · trait.<기물> · ult.<기물> · weapon.<기물> · cantrip/passive.<전공> · faith.<신앙> */
 function abTok(ic?: string) {
@@ -1108,7 +1109,7 @@ function skillCard(d: UnitDef, b: Battle | null, c: CUnit | null) {
 }
 const traitHtml = (d: UnitDef, b: Battle | null, c: CUnit | null) => {
   const t = ABIL[d.id]?.trait;
-  return t ? `<p>${statIc(AB.tok(t, actx(b, c), new Set()))}</p>` : `<p>${esc(traitText(d))}</p>`;
+  return t ? `<p>${statIc(AB.tok(t, actx(b, c, false, d), new Set()))}</p>` : `<p>${esc(traitText(d))}</p>`;
 };
 function augText(id: string, param: string | undefined, b: Battle | null, c: CUnit | null, gl = new Set<string>()) {
   const t = augAbilText(id);
