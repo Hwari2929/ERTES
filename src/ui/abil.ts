@@ -33,9 +33,11 @@ export function powVal(ctx: AbilCtx, pow: Pow, tactical = false): number | null 
   return pow === 'main' ? v * CFG.psiPower : v;
 }
 /** 기본 피해량 (치명타 · 속성 보정 제외). 아이콘 · 색은 속성, 위력 종류는 '피해 유형' 항목에 따로 */
+/** 상세 보기: 예상 수치 대신 계수 (위력 × %) 로 표시 */
+export const ABOPT = { coef: false };
 export function powNum(ctx: AbilCtx, pow: Pow, mult: number, plus = false, tactical = false, elem?: Elem) {
   const k = powKey(ctx, pow, tactical);
-  const v = powVal(ctx, pow, tactical);
+  const v = ABOPT.coef ? null : powVal(ctx, pow, tactical);
   const txt = v === null ? `${POW_KO[k]} ${pct(mult)}` : fmt(v * mult);
   const cls = elem ? `pw el-t-${elem}` : `pw pw-${k}`;
   const icon = elem ? `e.${elem}` : `p.${k}`;
@@ -47,8 +49,8 @@ export function powType(ctx: AbilCtx, pow: Pow, tactical = false) {
   return `<span class="pw pw-${k}">${lineIcon(`p.${k}`, 'li')}${POW_KO[k]}</span>`;
 }
 const healNum = (ctx: AbilCtx, mult: number, icon: string, plus = false, pow: Pow = 'tech') => {
-  const v = powVal(ctx, pow);
-  return `<span class="pw pw-heal" title="${POW_KO[powKey(ctx, pow)]} × ${pct(mult)}">${lineIcon(icon, 'li')}<b>${plus ? '+' : ''}${v === null ? pct(mult) : fmt(v * mult)}</b></span>`;
+  const v = ABOPT.coef ? null : powVal(ctx, pow);
+  return `<span class="pw pw-heal" title="${POW_KO[powKey(ctx, pow)]} × ${pct(mult)}">${lineIcon(icon, 'li')}<b>${plus ? '+' : ''}${v === null ? `${ABOPT.coef ? POW_KO[powKey(ctx, pow)] + ' ' : ''}${pct(mult)}` : fmt(v * mult)}</b></span>`;
 };
 export const elemChip = (e: Elem) => `<span class="elc el-${e}">${ELEM_NAME[e]}</span>`;
 /** 키워드 아이콘: 지정값 우선, 없으면 이름 · 설명의 핵심어로 */

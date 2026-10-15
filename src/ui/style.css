@@ -2115,3 +2115,29 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .pr-fz { position: absolute; right: 6px; top: 4px; font-size: 10px; font-weight: 800; color: #ff2d55; }
 .ps-slot { width: 32px; height: 32px; display: inline-grid; place-items: center; border-radius: 8px; border: 1.5px dashed var(--line); color: var(--dim); font: 700 10px var(--f-mono); }
 .ps-augs .tt-ic .aug-ic { width: 32px; height: 32px; }
+/* ───────── 기물 전체 상세 팝업 (대기실 · 편성 확대) */
+.um-back { position: fixed; inset: 0; z-index: 60; background: rgb(6 8 12 / .62); backdrop-filter: blur(2px); }
+.um { position: fixed; z-index: 61; inset: max(16px, 3vh) max(16px, 3vw); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 20px 60px rgb(0 0 0 / .6); overflow: hidden; }
+.um-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+.um-id { display: grid; } .um-id b { font-size: 20px; }
+.um-rank { display: inline-flex; align-items: center; gap: 8px; } .um-rank .xpbar, .um-rank .xp { min-width: 90px; }
+.um-tools { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; }
+.um-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(220px, 280px) minmax(240px, 300px) minmax(0, 1fr); gap: 14px; padding: 12px 14px; overflow: auto; }
+.um-col { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.um-col h3 { margin: 4px 0 0; font-size: 13px; color: var(--dim); letter-spacing: .04em; }
+.um-c { overflow: visible; }
+.um-c .abils { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 8px; align-items: start; }
+.um-c .abils .tt-sec, .um-c .abils .ab-relic { grid-column: 1 / -1; }
+.um-art { border-radius: 10px; overflow: hidden; background: var(--panel-2); max-height: 300px; display: grid; place-items: center; }
+.um-art img, .um-art .hero { max-height: 300px; width: auto; max-width: 100%; }
+.um-relic { display: flex; gap: 8px; align-items: center; }
+.um-types { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; margin: 0; font-size: 12px; }
+.um-types dt { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; white-space: nowrap; } .um-types dd { margin: 0; color: var(--dim); }
+.um-types dt svg, .um-types dt .li { width: 14px; height: 14px; }
+.um-pop { position: absolute; z-index: 2; right: 18px; top: 64px; width: min(440px, calc(100% - 36px)); max-height: calc(100% - 84px); overflow: auto; }
+.um-pop > * { position: static !important; width: auto !important; }
+.max-btn { margin-left: auto; }
+.max-btn + .mag-btn { margin-left: 4px; }
+@media (max-width: 1100px) { .um-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .um-c { grid-column: 1 / -1; } }
+@media (max-width: 700px) { .um { inset: 8px; } .um-grid { grid-template-columns: minmax(0, 1fr); } }
+.um .pc-syn { position: static; display: flex; flex-direction: row; flex-wrap: wrap; gap: 4px; transform: none; inset: auto; }
