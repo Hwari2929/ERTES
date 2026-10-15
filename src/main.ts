@@ -11,7 +11,7 @@ import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isLocked, isMod
 import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { DIVINE_ACT, FAITH_DEF, MAJOR_AUGS, MINOR_TRAIT_GROW, recMajors } from './data/rework';
-import { CANTRIP_INFO, PASSIVE_BRIEF, PASSIVE_INFO } from './data/psiinfo';
+import { CANTRIP_INFO, PASSIVE_BRIEF, PASSIVE_INFO, SCHOOL_LINE } from './data/psiinfo';
 import { GROUPS, SCHOOL_BY_ID, SCHOOL_PASSIVES, UNIT_GROUP, isTransformAug, psiAugId, schoolOf, type SchoolId } from './data/schools';
 import { BRIEF, PSI_BRIEF } from './data/brief';
 import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
@@ -442,12 +442,13 @@ function faithAbil(d: UnitDef, u: UnitState | null, run: RunState | null) {
 function schoolOpt(id: string, i: number) {
   const sc = SCHOOL_BY_ID[id.split('.')[1] as SchoolId];
   if (!sc) return '';
-  return `<button class="aug-opt sch-opt ${app.augPick === i ? 'on' : ''}" style="--sc:${sc.color}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">
-    <span class="so-head">${augIcon(id)}<span><span class="muted small">${GROUPS[sc.group].name}</span><b>${sc.name}</b><span class="muted small">${sc.study}</span></span><kbd>${i + 1}</kbd></span>
-    <span class="so-cant"><b>비술 · ${esc(sc.cantrip.name)}</b> <span class="muted small">${sc.cantrip.cd}초 · 이성 -${sc.cantrip.cost}</span><br>${statIc(esc(sc.cantrip.desc))}</span>
-    <span class="so-cant"><b>지속 · ${esc(sc.passive.name)}</b><br>${statIc(esc(sc.passive.desc))}</span>
-    <span class="so-rs"><span class="hi">고이성</span> ${esc(sc.high)}</span><span class="so-rs"><span class="lo">저이성</span> ${esc(sc.low)}</span>
-    <span class="so-pass">${SCHOOL_PASSIVES[sc.id].map(([, n, dsc]) => `<span class="pill" title="${esc(dsc)}">${esc(n)}</span>`).join('')}</span></button>`;
+  // 이름 · 핵심 한 줄 · 비술 / 지속 아이콘만. 기믹은 아이콘을 눌러 상세에서 본다
+  const ic = (key: string, tok: string, kind: string, name: string) =>
+    `<span class="so-ic ab-click${abilOn(key)}" data-a="abil-pop" data-v="${key}" role="button" tabindex="0" title="눌러서 자세히">${abTok(tok)}<span><small>${kind}</small><b>${esc(name)}</b></span></span>`;
+  return `<div class="aug-opt sch-opt ${app.augPick === i ? 'on' : ''}" style="--sc:${sc.color}" data-a="pick-augsel" data-v="${i}" role="button" tabindex="0" aria-pressed="${app.augPick === i}">
+    <span class="so-head">${augIcon(id)}<span><span class="muted small">${GROUPS[sc.group].name}</span><b>${sc.name}</b></span><kbd>${i + 1}</kbd></span>
+    <p class="so-line">${esc(SCHOOL_LINE[sc.id])}</p>
+    <span class="so-ics">${ic(`cantrip:${sc.id}`, `cantrip.${sc.id}`, '비술', sc.cantrip.name)}${ic(`psipass:${sc.id}`, `passive.${sc.id}`, '지속', sc.passive.name)}</span></div>`;
 }
 /** 전투 기물의 학파 (엔진 필드) */
 const cSchool = (c: CUnit | null): SchoolId | null => ((c as { school?: SchoolId | null } | null)?.school ?? null);
@@ -1131,6 +1132,9 @@ function skillMech(range: 'unit' | number | null, cmd: boolean) {
 }
 /** 좌측 능력 상세 팝업 */
 function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null, aceK = 1) {
+  // 'cantrip:<전공>' · 'psipass:<전공>': 아직 고르지 않은 전공 미리보기 (전공 선택 창)
+  let forcedSchool: SchoolId | null = null;
+  if (/^(cantrip|psipass):/.test(key)) { forcedSchool = key.split(':')[1] as SchoolId; key = key.split(':')[0]; }
   const ctx = actx(b, c);
   const gl = new Set<string>();
   let kind = '', name = '', body = '', mech = '';
@@ -1152,7 +1156,7 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     body = `<p>${statIc(esc(ul.desc))}</p><p class="muted small">“${esc(ul.line)}”</p>`;
   } else if (key === 'cantrip') {
     const ru = app.run?.units.find((x) => x.defId === d.id);
-    const sid = cSchool(c) || (ru ? schoolOf(ru) : null);
+    const sid = forcedSchool || cSchool(c) || (ru ? schoolOf(ru) : null);
     const sc = sid ? SCHOOL_BY_ID[sid] : null;
     kind = '비술'; name = sc?.cantrip.name || '비술';
     mech = `${sc ? `${GROUPS[sc.group].name} ${sc.name}` : '전공'}의 비술. 전투 스킬과 별개로 쿨다운마다 자동으로 시전하고, 쓸 때마다 이성이 줄어든다. 광폭 중에는 쓰지 않는다.`;
@@ -1163,7 +1167,7 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     }
   } else if (key === 'psipass') {
     const ru = app.run?.units.find((x) => x.defId === d.id);
-    const sid = cSchool(c) || (ru ? schoolOf(ru) : null);
+    const sid = forcedSchool || cSchool(c) || (ru ? schoolOf(ru) : null);
     const sc = sid ? SCHOOL_BY_ID[sid] : null;
     kind = '지속 능력'; name = sc?.passive.name || '지속 능력';
     mech = '전투 내내 적용된다. 확률 발동은 평타 · 전투 스킬 · 비술이 적중할 때만 판정하고, 지속 피해 · 소환물 공격은 판정하지 않는다.';
@@ -1205,7 +1209,7 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     body = `<p>${augText(id, c?.src?.augments.find((a) => a.id === id)?.param, b, c, gl)}</p>`;
   } else return '';
   // 머리에 능력 아이콘 (아군 기물의 무기 · 특성 · 스킬 · 궁극기 · 비술 · 지속 · 신앙)
-  const sc = c ? cSchool(c) : (app.run?.units.find((x) => x.defId === d.id) as { school?: SchoolId } | undefined)?.school ?? null;
+  const sc = forcedSchool || (c ? cSchool(c) : (app.run?.units.find((x) => x.defId === d.id) as { school?: SchoolId } | undefined)?.school ?? null);
   const icKey = key === 'cantrip' && sc ? `cantrip.${sc}` : key === 'psipass' && sc ? `passive.${sc}` : ['weapon', 'trait', 'skill', 'ult'].includes(key) ? `${key}.${d.id}` : '';
   const tok = icKey && UNIT_BY_ID[d.id] ? abTok(icKey).replace('ab-tok', 'ab-tok ap-tok') : '';
   return `<div class="stat-pop abil-pop"><div class="sp-head">${tok}<span class="ab-kind">${kind}</span><b>${esc(name)}</b><button class="btn tiny" data-a="abil-pop" data-v="">닫기</button></div>${mech ? `<p class="ap-mech">${mech}</p>` : ''}${body}</div>`;
@@ -1749,6 +1753,7 @@ function pendingModal(run: RunState): string {
           if (p.kind === 'school') return schoolOpt(a.id, i);
           return `<button class="aug-opt ${app.augPick === i ? 'on' : ''}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">${augIcon(a.id)}<span class="ao-txt"><b>${isTransformAug(a.id) ? '◆ ' : ''}${esc(ad.name)}</b><span>${augText(a.id, a.param, pv.b, pv.c)}</span></span><kbd>${i + 1}</kbd></button>`;
         }).join('') || '<p class="muted">고를 수 있는 증강이 없습니다.</p>'}</div>
+        ${p.kind === 'school' && app.abilPop && /^(cantrip|psipass):/.test(app.abilPop) ? `<div class="ru-pop">${abilPopHtml(app.abilPop, d, pv.b, pv.c)}</div>` : ''}
         <div class="ru-foot">${opts.length
           ? `<button class="btn primary aug-ok" data-a="pick-aug" data-v="${app.augPick ?? ''}" ${app.augPick === null ? 'disabled' : ''}>${app.augPick === null ? '증강을 고르세요' : '확정'}</button>`
           : '<button class="btn primary" data-a="skip-aug">넘어가기</button>'}</div>
@@ -3260,6 +3265,7 @@ function act(a: string, v: string) {
     case 'pick-aug': {
       const p = run?.pending[0];
       if (!run || p?.t !== 'rankup' || !p.options || v === '' || !p.options[+v]) return;
+      app.abilPop = null;
       R.chooseAug(run, p.uid, p.options[+v]);
       app.augPick = null;
       run.pending.shift(); persist(); break;

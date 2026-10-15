@@ -58,3 +58,14 @@ export const PASSIVE_BRIEF: Record<SchoolId, string> = {
   pyro: '적중 시 25% 연소', chrono: '적중 시 30% 오한', volt: '적중 시 25% 전도', wave: '적중 시 20% 공진',
   seed: '적중 시 25% 중독', mind: '적중 시 15% 혼란', gold: '임시 장비당 피해 +5% · 경감 +3%', illusion: '적중 시 20% 향취',
 };
+/** 전공 핵심 한 줄 (전공 선택 카드용) */
+export const SCHOOL_LINE: Record<SchoolId, string> = {
+  pyro: '연소를 쌓아 두었다가 비술로 한꺼번에 터뜨린다.',
+  chrono: '오한을 쌓아 적을 느리게 하고, 끝내 얼려 버린다.',
+  volt: '전도된 적이 움직일 때마다 주변 적에게 번개가 튄다.',
+  wave: '충격파로 밀쳐내고, 맞을수록 퍼지는 공진을 건다.',
+  seed: '중독을 쌓아 적을 천천히 갉아먹는다.',
+  mind: '적을 서로 묶고 홀려서 혼란에 빠뜨린다.',
+  gold: '임시 장비를 연성해 쌓을수록 강해진다.',
+  illusion: '환영으로 적의 공격을 끌어내고 향취로 약하게 만든다.',
+};

@@ -2300,3 +2300,13 @@ body.coaching .kw-tip, body.coaching .item-tip, body.coaching .drag-ghost { z-in
 }
 .um-r .tt-rule { display: none; }
 .um-c .ab-trait .subs { display: none; }
+/* 전공 선택 카드 (간소화): 이름 · 핵심 한 줄 · 비술 / 지속 아이콘 (눌러서 상세) */
+.sch-opt { display: grid; gap: 8px; align-content: start; cursor: pointer; }
+.so-line { margin: 0; font-size: 13px; line-height: 1.5; color: var(--fg); }
+.so-ics { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.so-ic { display: flex; align-items: center; gap: 8px; padding: 5px; border-radius: 8px; background: rgb(255 255 255 / .03); border: 1px solid var(--line); min-width: 0; }
+.so-ic .ab-tok { grid-row: auto; width: 40px; height: 40px; flex: none; border-color: var(--sc); }
+.so-ic > span { display: grid; min-width: 0; } .so-ic small { font-size: 10.5px; color: var(--sc); font-weight: 700; } .so-ic b { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.so-ic:hover, .so-ic.on { border-color: var(--sc); background: color-mix(in srgb, var(--sc) 10%, transparent); }
+.ru-pop { position: fixed; z-index: 75; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(420px, calc(100vw - 24px)); max-height: min(80vh, 640px); overflow: auto; }
+.ru-pop > * { position: static !important; width: auto !important; }
