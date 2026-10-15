@@ -21,10 +21,11 @@ export interface AdvOpts {
 }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-/** 표정 차분: art/<id>.<face>.webp (없으면 기본 스탠딩으로) */
+/** 표정 차분이 있는 인물 → 표정 목록 (art/<id>.<face>.webp). 지금은 모두 기본 스탠딩을 쓴다 (차분은 직접 받아서 추가) */
+export const FACE_VARIANTS: Record<string, Face[]> = {};
 const faceURL = (stand: string, face?: Face) => {
   const base = standURL(stand);
-  if (!base || !face || face === 'base') return base;
+  if (!base || !face || face === 'base' || !FACE_VARIANTS[stand]?.includes(face)) return base;
   return base.replace(/\.webp$/, `.${face}.webp`);
 };
 
