@@ -1,9 +1,10 @@
-// 도감 추가 탭: 장비 · 시너지 · 사이오닉 · 증강.
-// 모든 이름 · 수치 · 설명은 그릴 때마다 데이터 표(items · synergies · schools · psiinfo · augments · relics · globals · run 상품표)에서 읽는다.
+// 도감 추가 탭: 장비 · 시너지 · 사이오닉 · 증강 · 세계관.
+// 모든 이름 · 수치 · 설명은 그릴 때마다 데이터 표(items · synergies · schools · psiinfo · augments · relics · globals · run 상품표 · worldlore · battlefields)에서 읽는다.
 // 목록은 표를 순회해서 만들므로, 데이터에 항목을 더하거나 고치면 도감에도 그대로 반영된다 (검사: npm run check).
 // main.ts 에만 있는 그림 조각(장비 · 증강 아이콘, 초상화 등)은 CxH 로 받는다.
 import { CFG } from '../config';
 import { augAbilText } from '../data/abiltext';
+import { FIELD_BY_ID } from '../data/battlefields';
 import { ALL_AUGS, augDesc, augSource } from '../data/augments';
 import { BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES } from '../data/globals';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, itemInfo, OCCULT_MODS, UNIQUE_IDS } from '../data/items';
@@ -13,10 +14,12 @@ import { RELIC_BY_ID, RELICS } from '../data/relics';
 import { GROUPS, type GroupId, isTransformAug, SCHOOL_BY_ID, SCHOOLS, type SchoolId, UNIT_GROUP } from '../data/schools';
 import { SYN_BY_ID, SYNERGIES, VOYAGE_SPECIAL } from '../data/synergies';
 import { UNIT_BY_ID, UNITS, type UnitDef } from '../data/units';
+import { LORE, LORE_BY_ID, LORE_GROUP_NAME, LORE_SECTIONS, type LoreEntry, type LoreGroup, loreRegionsOf } from '../data/worldlore';
 import { INVEST_OFFERS, NEWS_OFFERS, PILGRIM_CARDS } from '../engine/run';
 import type { AugDef } from '../engine/effects';
 import { CTYPE_NAME, MAJOR_NAME, type Major, type RunState, type SynergyId, TTYPE_NAME } from '../types';
 import * as AB from './abil';
+import { artURL, bgURL } from './portraits';
 import { lineIcon, synIcon } from './synicons';
 
 /** main.ts 의 그림 조각 */
@@ -30,15 +33,15 @@ export interface CxH {
   majorIcon(m: Major): string;
 }
 
-export type Cx2Tab = 'items' | 'syn' | 'psi' | 'augs';
-export const CX2_TABS: [Cx2Tab, string][] = [['syn', '시너지'], ['items', '장비'], ['augs', '증강'], ['psi', '사이오닉']];
+export type Cx2Tab = 'items' | 'syn' | 'psi' | 'augs' | 'lore';
+export const CX2_TABS: [Cx2Tab, string][] = [['syn', '시너지'], ['items', '장비'], ['augs', '증강'], ['psi', '사이오닉'], ['lore', '세계관']];
 export const isCx2Tab = (t: string): t is Cx2Tab => CX2_TABS.some(([k]) => k === t);
 
 /** 탭별 선택 · 분류 · 검색어 (이 브라우저 세션 동안 유지) */
 export const CX2 = {
-  sel: { items: null, syn: null, psi: null, augs: null } as Record<Cx2Tab, string | null>,
-  filt: { items: 'all', syn: 'all', psi: 'all', augs: 'all' } as Record<Cx2Tab, string>,
-  q: { items: '', syn: '', psi: '', augs: '' } as Record<Cx2Tab, string>,
+  sel: { items: null, syn: null, psi: null, augs: null, lore: null } as Record<Cx2Tab, string | null>,
+  filt: { items: 'all', syn: 'all', psi: 'all', augs: 'all', lore: 'all' } as Record<Cx2Tab, string>,
+  q: { items: '', syn: '', psi: '', augs: '', lore: '' } as Record<Cx2Tab, string>,
 };
 
 const esc = (s: string) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
@@ -291,6 +294,8 @@ function synDetail(H: CxH, sid: SynergyId): string {
     const aces = UNITS.filter((d) => d.ace);
     parts.push(`<h3>에이스 파일럿 능력 <span class="muted small">능력 ×1 기준</span></h3><ul class="cx2-rows">${aces.map((d) => `<li class="cx2-row">${H.sprite(d)}<span><b>${esc(d.name)} · ${esc(d.ace!.name)}</b><p class="muted">${H.statIc(esc(d.ace!.desc(1)))}</p></span></li>`).join('')}</ul>`);
   }
+  const lore = LORE.filter((e) => e.rel?.syn?.includes(sid));
+  if (lore.length) parts.push(`<h3>세계관</h3><div class="cx2-mem">${lore.map((e) => loreChip(e.id)).join('')}</div>`);
   return `<div class="detail cx-d cx2-d"><div class="cx2-hd" style="--c:${s.color}"><span class="cx2-synf big">${synIcon(s.id) || esc(s.icon)}</span><div><b>${esc(s.name)}</b><small>${KIND_NAME[s.kind]} · 단계 ${s.tiers.join(' / ')}${EMBLEM_SYNS.includes(sid) ? ' · 문장 있음' : ' · 전용'}</small></div></div>${parts.join('')}</div>`;
 }
 function synTab(H: CxH) {
@@ -426,11 +431,80 @@ function augsTab(H: CxH) {
   return `<div class="cx2 cx2-augsTab"><div class="cx2-tools">${searchBox('augs', '증강 이름 · 효과 · 기물 검색')}</div>${bar}${body}${noneMsg('augs', body)}</div>`;
 }
 
+// ═══════════════════════ 세계관 (src/data/worldlore.ts · 전장은 battlefields.ts 에서 읽음)
+const loreColor = (e: LoreEntry) => SYN_BY_ID[e.mark as SynergyId]?.color || e.color || 'var(--accent)';
+const loreIcon = (e: LoreEntry) => synIcon(e.mark) || lineIcon(e.mark, 'li');
+/** 목록 · 머리의 짧은 분류 (연합 섹터 · 전장 등) */
+function loreSub(e: LoreEntry) {
+  const s = LORE_SECTIONS.find((x) => x.group === e.group && (!x.bloc || x.bloc === e.bloc));
+  const base = s?.short || LORE_GROUP_NAME[e.group];
+  return e.rel?.fields?.length ? `${base} · 전장` : base;
+}
+/** 세계관 항목 단추 (누르면 세계관 탭에서 펼침) */
+function loreChip(id: string) {
+  const e = LORE_BY_ID[id];
+  if (!e) return '';
+  return `<button class="cx2-sc" style="--c:${loreColor(e)}" ${go(`go:lore:${e.id}`)} title="세계관 도감에서 보기"><span class="cx2-si">${loreIcon(e)}</span>${esc(e.name)}</button>`;
+}
+/** 전장 브리핑 카드: 이름 · 지역 · 설명 · 조건은 전장 표에서 */
+function fieldCard(fid: string) {
+  const f = FIELD_BY_ID[fid];
+  if (!f) return '';
+  const syn = f.ally ? f.ally.syn : null;
+  return `<div class="cx2-fld" style="--c:${f.color}" data-field="${esc(f.id)}"><div class="cx2-fld-bg" style="background-image:url('${bgURL(`field_${f.id}`)}')" aria-hidden="true"></div>
+    <div class="cx2-fld-tx"><b>${esc(f.icon)} ${esc(f.name)}</b><small>${esc(f.region)}</small><p>${esc(f.desc)}</p>
+    <ul class="cx2-src">${f.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
+    <div class="cx2-mem">${syn ? synChip(syn) : ''}<button class="btn tiny" ${go(`tab:enemies:${f.id}`)}>이 전장의 적 보기</button></div></div></div>`;
+}
+function loreTile(e: LoreEntry) {
+  const on = CX2.sel.lore === e.id;
+  const r = e.rel || {};
+  const names = [...(r.units || []).map((u) => UNIT_BY_ID[u]?.name || ''), ...(r.syn || []).map((s) => SYN_BY_ID[s]?.name || ''), ...(r.fields || []).map((x) => FIELD_BY_ID[x]?.name || '')].join(' ');
+  return `<button class="cx-tile cx2-tile${on ? ' on' : ''}" ${go(`sel:lore:${e.id}`)} aria-pressed="${on}" style="--c:${loreColor(e)}"${qAttr('lore', `${e.name} ${e.tag} ${e.bullets.join(' ')} ${names}`)}>
+    <span class="cx-face cx2-synf">${loreIcon(e)}</span><span class="cx-nm">${esc(e.name)}</span><span class="cx2-sub">${esc(loreSub(e))}</span></button>`;
+}
+const LORE_EMPTY = '항목을 고르면 짧은 소개와 관련 시너지 · 전장 · 기물을 볼 수 있습니다.';
+function loreDetail(H: CxH, id: string): string {
+  const e = LORE_BY_ID[id];
+  if (!e) return empty(LORE_EMPTY);
+  const r = e.rel || {};
+  const parts: string[] = [`<p class="cx2-lt">${esc(e.tag)}</p>`, `<ul class="cx2-lb">${e.bullets.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>`];
+  if (e.bloc) parts.push(`<h3>소속 세력</h3><div class="cx2-mem">${loreChip(e.bloc)}</div>`);
+  const kids = loreRegionsOf(e.id);
+  if (kids.length) parts.push(`<h3>주요 지역 <span class="muted small">${kids.length}곳</span></h3><div class="cx2-mem">${kids.map((x) => loreChip(x.id)).join('')}</div>`);
+  if (r.syn?.length) parts.push(`<h3>시너지</h3><div class="cx2-mem">${r.syn.map(synChip).join('')}</div>`);
+  if (r.fields?.length) parts.push(`<h3>무대가 되는 전장</h3>${r.fields.map(fieldCard).join('')}`);
+  const units = (r.units || []).map((u) => UNIT_BY_ID[u]).filter((d): d is UnitDef => !!d);
+  if (units.length) parts.push(`<h3>관련 기물 <span class="muted small">${units.length}명</span></h3><div class="cx2-mem">${units.map((d) => unitChip(H, d, esc(d.title))).join('')}</div>`);
+  if (r.lore?.length) parts.push(`<h3>함께 보기</h3><div class="cx2-mem">${r.lore.map(loreChip).join('')}</div>`);
+  const art = e.art ? `<img class="cx2-lart" src="${artURL(`${e.art}.webp`)}" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : '';
+  return `<div class="detail cx-d cx2-d cx2-ld" style="--c:${loreColor(e)}">${art}<div class="cx2-hd"><span class="cx2-synf big">${loreIcon(e)}</span><div><b>${esc(e.name)}</b><small>${esc(loreSub(e))}</small></div></div>${parts.join('')}</div>`;
+}
+function loreTab(H: CxH) {
+  const f = CX2.filt.lore;
+  const groups: LoreGroup[] = ['errantes', 'faction', 'region'];
+  const bar = filterBar('lore', [['all', '전체', LORE.length], ...groups.map((g) => [g, LORE_GROUP_NAME[g], LORE.filter((e) => e.group === g).length] as [string, string, number])]);
+  const list = LORE_SECTIONS.filter((s) => f === 'all' || f === s.group).map((s) => {
+    const l = LORE.filter((e) => e.group === s.group && (!s.bloc || e.bloc === s.bloc));
+    return grp('lore', '', `<h3 class="cx-h">${esc(s.name)} <span class="muted small">${l.length}</span></h3><div class="cx-grid">${l.map(loreTile).join('')}</div>`);
+  }).join('');
+  const intro = '<p class="muted small">은하력 562년 기준의 짧은 안내입니다. 항목을 고르면 관련 시너지 · 전장 · 기물로 이어집니다.</p>';
+  const sel = CX2.sel.lore;
+  return wrap('lore', `${intro}<div class="cx2-tools">${searchBox('lore', '세력 · 지역 · 기물 이름 검색')}</div>${bar}${list}${noneMsg('lore', list)}`,
+    sel ? loreDetail(H, sel) : empty(LORE_EMPTY));
+}
+/** 기물 도감 상세에 붙는 세계관 링크 (그 기물이 관련 기물로 들어간 항목) */
+export function loreLinks(uid: string): string {
+  const l = LORE.filter((e) => e.rel?.units?.includes(uid));
+  return l.length ? `<h3>세계관</h3><div class="cx2-mem">${l.map((e) => loreChip(e.id)).join('')}</div>` : '';
+}
+
 // ═══════════════════════ 진입점
 export function codex2Body(tab: Cx2Tab, H: CxH): string {
   if (tab === 'items') return itemsTab(H);
   if (tab === 'syn') return synTab(H);
   if (tab === 'psi') return psiTab(H);
+  if (tab === 'lore') return loreTab(H);
   return augsTab(H);
 }
 /** 상세 패널만 (검사 · 다른 화면에서 재사용) */
@@ -438,16 +512,22 @@ export function codex2Detail(tab: Cx2Tab, id: string, H: CxH): string {
   if (tab === 'items') return itemDetail(H, id);
   if (tab === 'syn') return synDetail(H, id as SynergyId);
   if (tab === 'psi') return psiDetail(H, id as SchoolId);
+  if (tab === 'lore') return loreDetail(H, id);
   return '';
 }
 /**
- * 도감 추가 탭 동작. v = sel:<탭>:<id> (상세 펼침 · 접기) | filt:<탭>:<분류> | go:<탭>:<id> (그 탭으로 가서 펼침) | unit:<기물>
+ * 도감 추가 탭 동작. v = sel:<탭>:<id> (상세 펼침 · 접기) | filt:<탭>:<분류> | go:<탭>:<id> (그 탭으로 가서 펼침) | unit:<기물> | tab:<main.ts 도감 탭> (적 · 사건 등으로 이동)
  * 돌려주는 tab · unit 은 main.ts 가 app.codexTab · app.codexSel 에 넣는다.
  */
 export function codex2Act(v: string): { tab?: string; unit?: string; scroll: boolean } {
   const [cmd, tab, ...rest] = v.split(':');
   const id = rest.join(':');
   if (cmd === 'unit') return { tab: 'units', unit: [tab, ...rest].join(':'), scroll: true };
+  if (cmd === 'tab') { // 다른 도감 탭으로. tab:enemies:<전장> 이면 그 전장 묶음까지 내려간다 (main.ts 가 다시 그린 뒤)
+    const name = FIELD_BY_ID[id]?.name;
+    if (name && typeof requestAnimationFrame !== 'undefined') requestAnimationFrame(() => Array.from(document.querySelectorAll<HTMLElement>('main.codex h2')).find((h) => h.textContent?.includes(name))?.scrollIntoView({ block: 'start' }));
+    return { tab, scroll: false };
+  }
   if (!isCx2Tab(tab)) return { scroll: false };
   if (cmd === 'sel') { CX2.sel[tab] = CX2.sel[tab] === id ? null : id; return { scroll: !!CX2.sel[tab] }; }
   if (cmd === 'filt') { CX2.filt[tab] = id || 'all'; return { scroll: false }; }

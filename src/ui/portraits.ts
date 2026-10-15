@@ -28,7 +28,7 @@ export function iconURL(x: Spriteish) {
 
 /** 단독 오프라인 빌드는 일러스트를 데이터 URI 로 내장한다 (window.__ART__) */
 const EMBED = (globalThis as { __ART__?: Record<string, string> }).__ART__;
-const artURL = (file: string) => EMBED?.[file] ?? `art/${file}`;
+export const artURL = (file: string) => EMBED?.[file] ?? `art/${file}`;
 /** 배경 일러스트 (전장 · 난이도) */
 export const bgURL = (key: string) => artURL(`bg_${key}.webp`);
 export function standURL(id: string) {

@@ -1,7 +1,8 @@
-// 도감 범위 검사: 데이터 표의 모든 항목이 도감(장비 · 시너지 · 증강 · 사이오닉) 탭에 나오고, 깨진 글자 없이 그려지는지.
+// 도감 범위 검사: 데이터 표의 모든 항목이 도감(장비 · 시너지 · 증강 · 사이오닉 · 세계관) 탭에 나오고, 깨진 글자 없이 그려지는지.
 // 표를 직접 순회해서 확인하므로, 데이터에 항목을 더했는데 도감에 안 나오면 여기서 걸린다.
 // 실행: npm run check   (실패하면 종료 코드 1)
 import { ALL_AUGS } from '../src/data/augments';
+import { FIELD_BY_ID, FIELDS } from '../src/data/battlefields';
 import { BLESSINGS, EMBLEM_SYNS, GLOBALS, PRIVILEGES } from '../src/data/globals';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, CONSUMABLES, emblemId, HEL_ITEM_IDS, itemInfo, OCCULT_MODS, UNIQUE_IDS } from '../src/data/items';
 import { CANTRIP_INFO, PASSIVE_INFO } from '../src/data/psiinfo';
@@ -9,9 +10,11 @@ import { RELICS } from '../src/data/relics';
 import { GROUPS, SCHOOLS } from '../src/data/schools';
 import { SYNERGIES } from '../src/data/synergies';
 import { UNIT_BY_ID, UNITS } from '../src/data/units';
-import { codex2Body, codex2Detail, CX2, CX2_TABS, type Cx2Tab, type CxH } from '../src/ui/codex2';
+import { LORE, LORE_BY_ID, loreWords } from '../src/data/worldlore';
+import { codex2Body, codex2Detail, CX2, CX2_TABS, type Cx2Tab, type CxH, loreLinks } from '../src/ui/codex2';
 
 declare const process: { exit(code: number): never };
+declare function require(m: 'node:fs'): { existsSync(p: string): boolean };
 
 const esc = (s: string) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 // main.ts 의 그림 조각 대역 (이름은 넣지 않는다: 이름이 상세 본문에 실제로 나오는지 보려고)
@@ -112,11 +115,60 @@ for (const g of GLOBALS) { named(`전역 ${g.id}`, g.name); if (!augRow(g.id)) f
 for (const p of PRIVILEGES) { named(`특권 ${p.id}`, p.name('X')); if (!augRow(p.id)) fail(`특권 ${p.id}: 증강 탭에 없음`); }
 for (const b of BLESSINGS) { named(`축복 ${b.id}`, b.name); if (!augRow(b.id)) fail(`축복 ${b.id} (${b.name}): 증강 탭에 없음`); }
 
+// ───── 세계관: 모든 항목이 목록에 나오고, 연결한 기물 · 시너지 · 전장 · 항목이 실제로 있고 양쪽에서 이어지는지 + 분량 규칙
+const loreSeen = new Set<string>();
+for (const e of LORE) {
+  if (loreSeen.has(e.id)) fail(`세계관 ${e.id}: id 중복`);
+  loreSeen.add(e.id);
+  named(`세계관 ${e.id}`, e.name);
+  if (!listed('lore', e.id)) { fail(`세계관 ${e.id} (${e.name}): 세계관 탭 목록에 없음`); continue; }
+  const d = codex2Detail('lore', e.id, H);
+  clean(`세계관 ${e.id} 상세`, d);
+  for (const t of [e.name, e.tag, ...e.bullets]) if (!d.includes(esc(t))) fail(`세계관 ${e.id}: '${t.slice(0, 24)}…' 가 상세에 없음`);
+  if (!d.includes('<svg')) fail(`세계관 ${e.id}: 아이콘 '${e.mark}' 없음 (시너지 id 또는 선 아이콘 키)`);
+  const [lo, hi] = e.group === 'region' ? [2, 3] : [3, 5];
+  if (e.bullets.length < lo || e.bullets.length > hi) fail(`세계관 ${e.id}: 사실 ${e.bullets.length}줄 (${lo}–${hi}줄)`);
+  const w = loreWords(e);
+  if (w > 120) fail(`세계관 ${e.id}: ${w}어절 (120어절 이하)`);
+  if (e.group === 'region') {
+    const b = LORE_BY_ID[e.bloc || ''];
+    if (!b || b.group !== 'faction') fail(`세계관 ${e.id}: 소속 세력 '${e.bloc}' 이 세력 항목이 아님`);
+    else if (!codex2Detail('lore', b.id, H).includes(`go:lore:${e.id}"`)) fail(`세계관 ${e.id}: ${b.name} 상세의 주요 지역에 없음`);
+  } else if (e.bloc) fail(`세계관 ${e.id}: 지역이 아닌데 소속 세력이 있음`);
+  const r = e.rel || {};
+  for (const u of r.units || []) {
+    if (!UNIT_BY_ID[u]) fail(`세계관 ${e.id}: 없는 기물 ${u}`);
+    else if (!d.includes(`data-v="unit:${u}"`)) fail(`세계관 ${e.id}: 관련 기물 ${u} 가 상세에 없음`);
+    else if (!loreLinks(u).includes(`go:lore:${e.id}"`)) fail(`기물 ${u}: 상세의 세계관 링크에 ${e.id} 없음`);
+  }
+  for (const sid of r.syn || []) {
+    if (!SYNERGIES.some((x) => x.id === sid)) fail(`세계관 ${e.id}: 없는 시너지 ${sid}`);
+    else if (!d.includes(`go:syn:${sid}"`)) fail(`세계관 ${e.id}: 시너지 ${sid} 가 상세에 없음`);
+    else if (!codex2Detail('syn', sid, H).includes(`go:lore:${e.id}"`)) fail(`시너지 ${sid}: 상세의 세계관 링크에 ${e.id} 없음`);
+  }
+  for (const f of r.fields || []) {
+    if (!FIELD_BY_ID[f]) fail(`세계관 ${e.id}: 없는 전장 ${f}`);
+    else if (!d.includes(`data-field="${f}"`) || !d.includes(esc(FIELD_BY_ID[f].desc))) fail(`세계관 ${e.id}: 전장 ${f} 브리핑이 상세에 없음`);
+  }
+  for (const l of r.lore || []) {
+    if (!LORE_BY_ID[l]) fail(`세계관 ${e.id}: 없는 항목 ${l}`);
+    else if (l === e.id) fail(`세계관 ${e.id}: 자기 자신을 함께 보기에 넣음`);
+    else if (!d.includes(`go:lore:${l}"`)) fail(`세계관 ${e.id}: 함께 보기 ${l} 가 상세에 없음`);
+  }
+  if (e.art) {
+    if (!/^lore_[a-z0-9_]+$/.test(e.art)) fail(`세계관 ${e.id}: 일러스트 이름 '${e.art}' 은 lore_<id> 형식`);
+    else if (!require('node:fs').existsSync(`public/art/${e.art}.webp`)) fail(`세계관 ${e.id}: public/art/${e.art}.webp 없음`);
+    else if (!d.includes(`${e.art}.webp`)) fail(`세계관 ${e.id}: 일러스트가 상세에 없음`);
+  }
+}
+for (const f of FIELDS) if (!LORE.some((e) => e.rel?.fields?.includes(f.id))) warns.push(`전장 ${f.id} (${f.name}): 어느 세계관 항목에도 연결되지 않음`);
+for (const [t, html] of Object.entries(lists)) for (const m of html.matchAll(/go:lore:([^"]+)"/g)) if (!LORE_BY_ID[m[1]]) fail(`${t}: 없는 세계관 항목 ${m[1]} 로 연결`);
+
 // ───── 기물 참조: 도감 링크가 가리키는 기물이 실제로 있는지
 for (const [t, html] of Object.entries(lists)) for (const m of html.matchAll(/data-v="unit:([^"]+)"/g)) if (!UNIT_BY_ID[m[1]]) fail(`${t}: 없는 기물 ${m[1]} 로 연결`);
 
-const n = { items: nItems, syn: SYNERGIES.length, schools: SCHOOLS.length, augs: ALL_AUGS.length + GLOBALS.length + PRIVILEGES.length + BLESSINGS.length };
-console.log(`도감 검사: 장비 ${n.items} · 시너지 ${n.syn} · 전공 ${n.schools} · 증강 ${n.augs}`);
+const n = { items: nItems, syn: SYNERGIES.length, schools: SCHOOLS.length, augs: ALL_AUGS.length + GLOBALS.length + PRIVILEGES.length + BLESSINGS.length, lore: LORE.length };
+console.log(`도감 검사: 장비 ${n.items} · 시너지 ${n.syn} · 전공 ${n.schools} · 증강 ${n.augs} · 세계관 ${n.lore}`);
 for (const w of warns) console.log(`  경고 ${w}`);
 if (fails.length) {
   for (const f of fails) console.log(`  실패 ${f}`);

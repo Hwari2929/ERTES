@@ -2380,3 +2380,18 @@ button.cx2-row { cursor: pointer; } button.cx2-row:hover { border-color: var(--d
 .cx2-uh { margin: 10px 0 6px; }
 @media (max-width: 860px) { .cx2-tiers li { grid-template-columns: 32px minmax(0, 1fr); font-size: .8rem; } .cx2-mix { grid-template-columns: auto auto auto auto minmax(0, 1fr); gap: 4px; } }
 @media (max-width: 480px) { .cx2-ab .ap-body { grid-template-columns: minmax(0, 1fr); } .cx2-ab .ap-grids { display: flex; justify-content: flex-start; } }
+
+/* 도감 · 세계관 탭 (src/ui/codex2.ts loreTab · src/data/worldlore.ts) */
+.cx2-lore .cx-nm, .cx2-lore .cx2-sub { white-space: normal; word-break: keep-all; line-height: 1.25; }
+.cx2-ld .cx2-lt { margin: 4px 0 6px; padding: 7px 10px; border-left: 3px solid var(--c); border-radius: 0 6px 6px 0; background: color-mix(in srgb, var(--c) 10%, transparent); font-size: .9rem; font-weight: 600; line-height: 1.55; }
+.cx2-lb { margin: 4px 0 6px; padding-left: 18px; font-size: .86rem; line-height: 1.6; }
+.cx2-lb li { margin: 3px 0; }
+.cx2-lb li::marker { color: var(--c); }
+.cx2-lart { display: block; width: 100%; aspect-ratio: 16 / 7; object-fit: cover; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--line); }
+.cx2-fld { overflow: hidden; margin: 6px 0; border: 1px solid color-mix(in srgb, var(--c) 55%, var(--line)); border-radius: 8px; background: var(--panel-2); }
+.cx2-fld-bg { height: 84px; background-size: cover; background-position: center; border-bottom: 2px solid var(--c); }
+.cx2-fld-tx { display: grid; gap: 4px; padding: 8px 10px; min-width: 0; }
+.cx2-fld-tx > b { color: var(--c); font-size: .95rem; }
+.cx2-fld-tx > small { color: var(--dim); font-size: .74rem; }
+.cx2-fld-tx > p { margin: 2px 0; font-size: .82rem; line-height: 1.5; }
+.cx2-fld .cx2-mem { align-items: center; }
