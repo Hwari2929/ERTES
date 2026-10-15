@@ -21,9 +21,9 @@ const mainPow = (b: Battle, u: CUnit) => (u.ctype === 'MARK' ? b.S(u, 'shoot') :
 
 export const RELICS: RelicDef[] = [
   { id: 'lantern', name: '달무리 등불', owner: 'eleni', price: 20, enh: 25,
-    desc: (k) => `아군 전원 최대 체력 ${pct(0.2 * k)} 회복. 전투 끝까지 주변 2칸 아군이 초당 최대 체력 ${pct(0.008 * k)} 회복.`,
+    desc: (k) => `아군 전원 최대 체력 ${pct(0.12 * k)} 회복. 전투 끝까지 주변 2칸 아군이 초당 최대 체력 ${pct(0.008 * k)} 회복.`,
     act(b, u, k) {
-      for (const a of b.alliesOf(u)) b.heal(u, a, b.S(a, 'maxHp') * 0.2 * k);
+      for (const a of b.alliesOf(u)) b.heal(u, a, b.S(a, 'maxHp') * 0.12 * k);
       b.fx(u.x, u.y, 2, 'holy', 'heal');
       u.hooks.push({ onTick(bb, self, dt) {
         self.mem.lanternT = (self.mem.lanternT || 0) + dt;
@@ -60,20 +60,20 @@ export const RELICS: RelicDef[] = [
       b.buff(u, u, 'rel.spear', FOREVER, { taken: [red('all', Math.min(0.6, 0.15 * k))], label: '성전의 가호' });
     } },
   { id: 'platter', name: '최후의 만찬 접시', owner: 'doros', price: 20, enh: 25,
-    desc: (k) => `아군 전원 최대 체력 ${pct(0.25 * k)} 회복 + 해로운 효과 제거. 전투 끝까지 아군 전원 피해 +${pct(0.1 * k)}.`,
+    desc: (k) => `아군 전원 최대 체력 ${pct(0.15 * k)} 회복 + 해로운 효과 제거. 전투 끝까지 아군 전원 피해 +${pct(0.1 * k)}.`,
     act(b, u, k) {
       for (const a of b.alliesOf(u)) {
-        b.heal(u, a, b.S(a, 'maxHp') * 0.25 * k);
+        b.heal(u, a, b.S(a, 'maxHp') * 0.15 * k);
         a.statuses = a.statuses.filter((s) => s.type === 'buff' && !s.taken?.some((t) => t.kind === 'vuln'));
         b.buff(u, a, 'rel.platter', FOREVER, { mods: [inc('all', 0.1 * k)], label: '만찬' });
       }
       b.fx(u.x, u.y, 0, 'holy', 'heal');
     } },
   { id: 'flag', name: '관광 명소 깃발', owner: 'fotini', price: 25, enh: 30,
-    desc: (k) => `전투 끝까지 모든 적이 받는 피해 +${pct(0.12 * k)}, 아군 전원 피해 +${pct(0.06 * k)}.`,
+    // 스킬 한쪽 원칙: 적 취약만 (아군 피해 증가 제거, 취약 12 → 15%)
+    desc: (k) => `전투 끝까지 모든 적이 받는 피해 +${pct(0.15 * k)}.`,
     act(b, u, k) {
-      for (const e of b.enemiesOf(u)) b.applyStatus(u, e, { type: 'buff', key: 'rel.flag', dur: FOREVER, taken: [vuln('all', 0.12 * k)], label: '관광객의 시선' });
-      for (const a of b.alliesOf(u)) b.buff(u, a, 'rel.flag2', FOREVER, { mods: [inc('all', 0.06 * k)], label: '단체 관광' });
+      for (const e of b.enemiesOf(u)) b.applyStatus(u, e, { type: 'buff', key: 'rel.flag', dur: FOREVER, taken: [vuln('all', 0.15 * k)], label: '관광객의 시선' });
     } },
   { id: 'mic', name: '골든 마이크', owner: 'reika', price: 30, enh: 35,
     desc: (k) => `모든 적에게 주력 위력 ${pct(3.5 * k)} 전기 피해 + 2초 감전. 전투 끝까지 [시청자] 상한 +${10 * k}, 즉시 시청자 +${10 * k}.`,
@@ -100,14 +100,14 @@ export const RELICS: RelicDef[] = [
     } },
   // ── 순례 전용
   { id: 'key', name: '하데스의 열쇠', price: 30, enh: 40,
-    desc: (k) => `쓰러진 아군 1명을 체력 ${pct(Math.min(1, 0.5 * k))}로 부활 (없으면 아군 전원 최대 체력 ${pct(0.3 * k)} 보호막). 전투 끝까지 아군 전원 흡혈 +${pct(0.05 * k)}.`,
+    desc: (k) => `쓰러진 아군 1명을 체력 ${pct(Math.min(1, 0.5 * k))}로 부활 (없으면 아군 전원 최대 체력 ${pct(0.18 * k)} 보호막). 전투 끝까지 아군 전원 흡혈 +${pct(0.05 * k)}.`,
     act(b, u, k) {
       const d = b.units.find((x) => !x.alive && x.side === u.side && !x.isSummon);
       const c = d && b.freeCellNear(u.x, u.y);
       if (d && c) {
         d.alive = true; d.hp = b.S(d, 'maxHp') * Math.min(1, 0.5 * k); d.statuses = []; d.x = d.px = c.x; d.y = d.py = c.y; d.moveT = 0;
         b.emit({ k: 'spawn', id: d.id }); b.emit({ k: 'mark', id: d.id, name: '명부 귀환', style: 'revive' });
-      } else for (const a of b.alliesOf(u)) b.shield(a, b.S(a, 'maxHp') * 0.3 * k);
+      } else for (const a of b.alliesOf(u)) b.shield(a, b.S(a, 'maxHp') * 0.18 * k);
       for (const a of b.alliesOf(u)) b.buff(u, a, 'rel.key', FOREVER, { delta: { lifesteal: 0.05 * k }, label: '명부의 계약' });
     } },
   { id: 'bolt', name: '제우스의 번개창', price: 30, enh: 35,

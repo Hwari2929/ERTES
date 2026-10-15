@@ -24,8 +24,8 @@ const ADV: AdvDef[] = [
     effect: (k) => ({ hooks: { dmgMult: (bt, u) => (bt.hpPct(u) <= 0.5 ? 1 + 0.3 * k : 1) } }) },
   { id: 'vit_mnd', a: 'vit', b: 'mnd', name: '생체 동기화기', desc: (k) => `회복 효율 +${30 * k}%, 효과 저항 +${15 * k}%p.`,
     effect: () => ({ stats: { healEff: 0.3, effRes: 0.15 } }) },
-  { id: 'vit_def', a: 'vit', b: 'def', name: '수호자 판금', desc: (k) => `전투 시작 시 최대 체력 ${20 * k}% 보호막.`,
-    effect: (k) => ({ hooks: { onStart(bt, u) { bt.shield(u, bt.S(u, 'maxHp') * 0.2 * k); } } }) },
+  { id: 'vit_def', a: 'vit', b: 'def', name: '수호자 판금', desc: (k) => `전투 시작 시 최대 체력 ${12 * k}% 보호막.`,
+    effect: (k) => ({ hooks: { onStart(bt, u) { bt.shield(u, bt.S(u, 'maxHp') * 0.12 * k); } } }) },
   { id: 'vit_agi', a: 'vit', b: 'agi', name: '생존 키트', desc: (k) => `치명적인 피해를 받으면 전투당 ${k}회 버티고 체력 15% 회복.`,
     effect: (k) => ({ hooks: { onLethal(bt, u) { if ((u.mem.kit || 0) >= k) return false; u.mem.kit = (u.mem.kit || 0) + 1; u.hp = 1; bt.heal(u, u, bt.S(u, 'maxHp') * 0.15, true); return true; } } }) },
   { id: 'pow_pow', a: 'pow', b: 'pow', name: '과출력 무기', desc: (k) => `모든 피해 +${15 * k}%.`,
@@ -95,8 +95,8 @@ export const OCCULT_MODS: Record<string, { name: string; icon: string; tier: 1 |
     effect: { stats: { cdr: 0.2 }, hooks: { onSkill(b, u) { if (b.rng.chance(0.4)) u.cd *= 0.5; } } } },
   O_soul: { name: '영혼 수확기', icon: '☠', tier: 3, desc: '전장에서 누구든 쓰러질 때마다 이 전투 동안 피해 +12% (최대 10중첩).',
     effect: { hooks: { onAnyDeath(b, u) { if (!u.alive) return; u.mem.soul = Math.min(10, (u.mem.soul || 0) + 1); }, dmgMult: (_b, u) => 1 + 0.12 * (u.mem.soul || 0) } } },
-  O_aegis: { name: '불멸의 부적', icon: '☥', tier: 3, desc: '전투당 1회, 치명적인 피해를 받으면 쓰러지지 않고 체력 30% 회복 + 3초 무적.',
-    effect: { hooks: { onLethal(b, u) { if (u.mem.aegis) return false; u.mem.aegis = 1; u.hp = 1; b.heal(u, u, b.S(u, 'maxHp') * 0.3, true); u.mem.invulnUntil = b.t + 3; b.emit({ k: 'mark', id: u.id, name: '불멸', style: 'immortal' }); return true; } } } },
+  O_aegis: { name: '불멸의 부적', icon: '☥', tier: 3, desc: '전투당 1회, 치명적인 피해를 받으면 쓰러지지 않고 체력 18% 회복 + 3초 무적.',
+    effect: { hooks: { onLethal(b, u) { if (u.mem.aegis) return false; u.mem.aegis = 1; u.hp = 1; b.heal(u, u, b.S(u, 'maxHp') * 0.18, true); u.mem.invulnUntil = b.t + 3; b.emit({ k: 'mark', id: u.id, name: '불멸', style: 'immortal' }); return true; } } } },
   O_void: { name: '공허 렌즈', icon: '◉', tier: 3, desc: '방어 관통 +40%p, 치명타 피해 +40%p.', effect: { stats: { armorPen: 0.4, critDmg: 0.4 } } },
 };
 export const occultModsOfTier = (t: number) => Object.keys(OCCULT_MODS).filter((k) => OCCULT_MODS[k].tier === t);

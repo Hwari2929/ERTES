@@ -2,6 +2,15 @@ import type { Battle, CUnit, SkillDef } from '../engine/combat';
 import type { CType, Elem, Keyword, TType } from '../types';
 import { bleed, corrode, fear, lineTargets, poison, skillHit } from './kit';
 
+/** 지휘 · 강화 패시브: period 초마다 (첫 발동 first 초), 전투 스킬과 따로 돈다 (스킬 한쪽 원칙).
+ *  적이 없거나 기절 · 공포 중이면 미뤄 두었다가 풀리면 발동 */
+function command(b: Battle, u: CUnit, key: string, dt: number, period: number, first: number) {
+  u.mem[key] = (u.mem[key] ?? first) - dt;
+  if (u.mem[key] > 0 || !b.enemiesOf(u).length || b.has(u, 'stun') || b.has(u, 'fear')) return false;
+  u.mem[key] = period;
+  return true;
+}
+
 export interface EnemyDef {
   id: string;
   name: string;
@@ -86,27 +95,37 @@ export const ENEMIES: EnemyDef[] = [
   { id: 'warlord', name: '약탈자 두목', keywords: ['bio'], sprite: 'knight', palette: ['#1a0a0a', '#a02020', '#e0a020', '#d0a080', '#ffe040', '#55504a', '#fff0a0'],
     tier: 'elite', minPhase: 1, hp: 1100, power: 42, armor: 250, acc: 0.1, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     skill: {
-      name: '약탈 명령', cd: 8, needsRange: true, params: {}, desc: () => '광역 베기 + 아군 강화',
+      name: '두목의 일격', cd: 8, needsRange: true, params: {}, desc: () => '주변 광역 베기',
       cast(b, u) {
         b.fx(u.x, u.y, 1, 'phys');
         for (const e of b.around(u, 1, b.enemiesOf(u))) skillHit(b, u, e, 'strike', 1.5, 'phys');
-        for (const a of b.alliesOf(u)) b.buff(u, a, 'warlord', 4, { mods: [{ kind: 'inc', tag: 'all', v: 0.2 }], label: '약탈 명령' });
         return true;
       },
+    },
+    // 약탈 명령: 8초마다 아군 강화 (스킬과 별도)
+    onTick: (b, u, dt) => {
+      if (!command(b, u, 'cmdT', dt, 8, 4)) return;
+      b.emit({ k: 'status', id: u.id, name: '약탈 명령' });
+      for (const a of b.alliesOf(u)) b.buff(u, a, 'warlord', 4, { mods: [{ kind: 'inc', tag: 'all', v: 0.2 }], label: '약탈 명령' });
     } },
   // ───────── 보스
   { id: 'varga', name: '약탈 함장 바르가', keywords: ['bio'], sprite: 'knight', palette: ['#1a0a0a', '#601818', '#e0a020', '#d0a080', '#ff3020', '#55504a', '#fff0a0'],
     tier: 'boss', minPhase: 1, hp: 3200, power: 50, armor: 300, acc: 0.15, effRes: 0.3, interval: 1.1, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     escort: ['raider', 'gunner'],
     skill: {
-      name: '함장의 호령', cd: 9, needsRange: true, params: {}, desc: () => '대상 강타 + 아군 광폭화',
+      name: '함장의 강타', cd: 9, needsRange: true, params: {}, desc: () => '대상 강타',
       cast(b, u) {
         const t = u.target; if (!t?.alive) return false;
         b.fx(t.x, t.y, 0, 'phys');
         skillHit(b, u, t, 'strike', 2.2, 'phys');
-        for (const a of b.alliesOf(u)) b.buff(u, a, 'varga', 5, { delta: { atkSpd: 0.3 }, mods: [{ kind: 'inc', tag: 'all', v: 0.3 }], label: '광폭화' });
         return true;
       },
+    },
+    // 함장의 호령: 9초마다 아군 광폭화 (스킬과 별도)
+    onTick: (b, u, dt) => {
+      if (!command(b, u, 'cmdT', dt, 9, 4.5)) return;
+      b.emit({ k: 'status', id: u.id, name: '함장의 호령' });
+      for (const a of b.alliesOf(u)) b.buff(u, a, 'varga', 5, { delta: { atkSpd: 0.3 }, mods: [{ kind: 'inc', tag: 'all', v: 0.3 }], label: '광폭화' });
     } },
   { id: 'goliath', name: '강철 군주 골리앗', keywords: ['mech', 'struct'], sprite: 'mech', palette: ['#0c0e12', '#8a6a30', '#3a4048', '#c0c8d0', '#30d0ff', '#40464e', '#fff0c0'],
     tier: 'boss', minPhase: 2, hp: 3600, power: 44, armor: 380, effRes: 0.3, interval: 1.4, range: 1, moveSpd: 0.7, atk: { type: 'strike', elem: 'phys' }, melee: true,
@@ -164,13 +183,19 @@ export const ENEMIES: EnemyDef[] = [
     hp: 3000, power: 46, armor: 180, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     escort: ['sw_hound', 'sw_spitter'],
     skill: {
-      name: '사이오닉 지배', cd: 8, params: {}, desc: () => '군체 광폭화 + 3칸 정신 피해',
+      name: '사이오닉 파동', cd: 8, params: {}, desc: () => '3칸 정신 피해 + 공포',
       cast(b, u) {
+        const es = b.around(u, 3, b.enemiesOf(u)); if (!es.length) return false;
         b.fx(u.x, u.y, 3, 'psy');
-        for (const a of b.alliesOf(u)) b.buff(u, a, 'swarm.dom', 5, { delta: { atkSpd: 0.3 }, mods: [{ kind: 'inc', tag: 'all', v: 0.25 }], label: '사이오닉장' });
-        for (const e of b.around(u, 3, b.enemiesOf(u))) { skillHit(b, u, e, 'tech', 0.8, 'psy', { noMiss: true }); fear(b, u, e, 1, 0.3); }
+        for (const e of es) { skillHit(b, u, e, 'tech', 0.8, 'psy', { noMiss: true }); fear(b, u, e, 1, 0.3); }
         return true;
       },
+    },
+    // 사이오닉 지배: 8초마다 군체 광폭화 (스킬과 별도)
+    onTick: (b, u, dt) => {
+      if (!command(b, u, 'cmdT', dt, 8, 4)) return;
+      b.emit({ k: 'status', id: u.id, name: '사이오닉 지배' });
+      for (const a of b.alliesOf(u)) b.buff(u, a, 'swarm.dom', 5, { delta: { atkSpd: 0.3 }, mods: [{ kind: 'inc', tag: 'all', v: 0.25 }], label: '사이오닉장' });
     } },
   { id: 'sw_harvester', name: '거대 마부 개체', keywords: ['bio'], sprite: 'beast', palette: SWARM_BOSS, tier: 'boss', minPhase: 1,
     hp: 3500, power: 44, armor: 320, effRes: 0.3, interval: 1.3, range: 1, moveSpd: 0.7, atk: { type: 'strike', elem: 'phys' }, melee: true,
@@ -206,15 +231,20 @@ export const ENEMIES: EnemyDef[] = [
     hp: 3300, power: 50, armor: 280, acc: 0.15, effRes: 0.3, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     escort: ['cr_thrall', 'cr_musket'],
     skill: {
-      name: '혈연 축제', cd: 9, params: {}, desc: () => '2칸 피해 + 흡혈 + 아군 강화',
+      name: '혈족의 검무', cd: 9, params: {}, desc: () => '2칸 피해',
       cast(b, u) {
         const es = b.around(u, 2, b.enemiesOf(u)); if (!es.length) return false;
         b.fx(u.x, u.y, 2, 'phys');
         for (const e of es) skillHit(b, u, e, 'strike', 1.4, 'phys');
-        b.heal(u, u, b.S(u, 'maxHp') * 0.06);
-        for (const a of b.alliesOf(u)) b.buff(u, a, 'crimson.feast', 5, { mods: [{ kind: 'inc', tag: 'all', v: 0.25 }], label: '혈연 축제' });
         return true;
       },
+    },
+    // 혈연 축제: 9초마다 자가 회복 + 아군 강화 (스킬과 별도)
+    onTick: (b, u, dt) => {
+      if (!command(b, u, 'cmdT', dt, 9, 4.5)) return;
+      b.emit({ k: 'status', id: u.id, name: '혈연 축제' });
+      b.heal(u, u, b.S(u, 'maxHp') * 0.06);
+      for (const a of b.alliesOf(u)) b.buff(u, a, 'crimson.feast', 5, { mods: [{ kind: 'inc', tag: 'all', v: 0.25 }], label: '혈연 축제' });
     } },
   { id: 'cr_heart', name: '그라나툼 심핵 수호체', keywords: ['bio', 'struct'], sprite: 'mech', palette: CRIMSON_BOSS, tier: 'boss', minPhase: 1,
     hp: 3400, power: 40, armor: 280, effRes: 0.3, interval: 1.3, range: 5, immobile: true, atk: { type: 'shoot', elem: 'chem' }, melee: false,

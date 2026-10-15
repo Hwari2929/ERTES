@@ -217,16 +217,25 @@ function addConduct(b: Battle, u: CUnit, t: CUnit, n: number, chance = 1) {
 function discharge(b: Battle, u: CUnit) {
   const t = cantripTarget(b, u);
   if (!t) return false;
+  if (P(u, 'volt.reverse')) {
+    // 역전류 (◆ 변형, 스킬 한쪽 원칙): 적을 치지 않고 대상과 가장 가까운 아군에게 전도 3중첩을 충전한다
+    const al = b.alliesOf(u).filter((a) => !a.noAttack || a === u);
+    const a = al.length ? b.nearest(t, al) : null;
+    if (!a) return false;
+    b.fx(a.x, a.y, 0, 'elec', 'buff');
+    b.applyStatus(u, a, conductStatus(b, u, 3, true));
+    return { to: a };
+  }
   b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'elec', ranged: true });
   const cs = statusOf(t, 'conduct');
   zap(b, u, t, 0.9, 'elec');
-  if (t.alive && cs && (cs.stacks || 0) >= 3 && P(u, 'volt.overload') && !P(u, 'volt.reverse')) {
+  if (t.alive && cs && (cs.stacks || 0) >= 3 && P(u, 'volt.overload')) {
     // 과부하: 전도 3중첩 소모 → 주요 위력 300% 전기 폭발
     t.statuses = t.statuses.filter((s) => s !== cs);
     b.fx(t.x, t.y, 1, 'elec');
     b.emit({ k: 'status', id: t.id, name: '과부하', src: u.id, harm: true });
     zap(b, u, t, 3, 'elec');
-  } else if (t.alive) addConduct(b, u, t, 2);
+  } else if (t.alive) b.applyStatus(u, t, conductStatus(b, u, 2, false));
   if (P(u, 'volt.chain')) {
     // 연쇄 번개: 대상에서 가장 가까운 다른 적 3명에게 60%
     const others = b.targetable(u).filter((e) => e !== t).sort((a, c) => b.dist(a, t) - b.dist(c, t)).slice(0, 3);
@@ -360,10 +369,6 @@ function market(b: Battle, u: CUnit) {
       const a = b.lowestHpAlly(u);
       if (a) { b.shield(a, mp(b, u) * 0.8); b.fx(a.x, a.y, 0, 'holy', 'heal'); }
     }
-  }
-  if (t && t.alive && u.alive && P(u, 'gold.short') && reasonOf(u) < 0) {
-    b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'phys', ranged: true });
-    zap(b, u, t, 1.5 + 0.2 * goldN(u), 'phys');
   }
   return { to: t || undefined };
 }
@@ -641,6 +646,11 @@ const PASSIVE_FX: Record<string, Effect> = {
     b.rawHit(u, e, dmg * 0.3, o.elem);
     return dmg * 0.7;
   } } },
+  // 공매도: 이성 0 미만이면 기본 공격 적중 시 주요 위력 20% (+임시 장비 1개당 5%) 추가 피해 (시장 개입과 별도)
+  'gold.short': { hooks: { onBasic(b, u, t, r) {
+    if (r.amount <= 0 || !t.alive || !u.alive || reasonOf(u) >= 0) return;
+    zap(b, u, t, 0.2 + 0.05 * goldN(u), 'phys', 'proc');
+  } } },
   // 선물 거래: 전투 시작 시 임시 장비 2개
   'gold.futures': { hooks: { onStart(b, u) { if (u.school === 'gold') { giveTempItem(b, u); giveTempItem(b, u); } } } },
   // 변동성: 이성 증감량 ×1.5 (쿨다운 -2초는 비술 쪽)
@@ -671,7 +681,7 @@ export const SCHOOL_AUGS: AugDef[] = SCHOOLS.map((s) => ({
 /** 서로 함께 가질 수 없는 조합 (◆ 변형이 무의미하게 만드는 증강) */
 const EXCL: Record<string, string[]> = {
   'chrono.haste': ['chrono.storm'],
-  'volt.reverse': ['volt.short', 'volt.overload'],
+  'volt.reverse': ['volt.short', 'volt.overload', 'volt.chain'],
   'mind.hypno': ['mind.ascend', 'mind.dominate'],
   'gold.dividend': ['gold.folio'],
 };

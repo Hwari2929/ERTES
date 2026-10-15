@@ -64,23 +64,14 @@ export const ULTS: Record<string, UltDef> = {
   },
   lindiwe: {
     id: 'lindiwe', name: '신용 보증', charge: 1.0, line: '보증 서드리죠. 이자는 나중에.',
-    desc: '아군 전원에게 최대 체력 25% 보호막. 6초간 다른 아군이 받는 피해의 절반을 대신 받고 (자신의 피해량 경감 50%), 끝나면 대신 받은 피해와 받은 피해의 50%를 주변 1칸 적에게 되돌린다.',
+    // 스킬 한쪽 원칙: 아군 보호 전용 (예전의 '끝날 때 적에게 되돌리기'는 제거, 대신 아군 전원 피해량 경감)
+    desc: '아군 전원에게 각자 최대 체력 15% 보호막. 6초간 다른 아군이 받는 피해의 절반을 대신 받고 (자신의 피해량 경감 50%), 그동안 아군 전원 피해량 경감 15%.',
     theme: { pat: 'hex', c1: '#5ad8c8', c2: '#c8a040', txt: 'stamp' },
     cast(b, u) {
       if (!b.enemiesOf(u).length) return false;
-      for (const a of b.alliesOf(u)) b.shield(a, b.S(a, 'maxHp') * 0.25);
-      for (const a of b.alliesOf(u, false)) b.buff(u, a, 'lind.ult', 6, { share: u, shareRate: 0.5, label: '신용 보증' });
+      for (const a of b.alliesOf(u)) b.shield(a, b.S(a, 'maxHp') * 0.15);
+      for (const a of b.alliesOf(u, false)) b.buff(u, a, 'lind.ult', 6, { share: u, shareRate: 0.5, taken: [red('all', 0.15)], label: '신용 보증' });
       b.buff(u, u, 'lind.vault', 6, { taken: [red('all', 0.5)], label: '보증 금고' });
-      u.mem.shareTaken = 0; u.mem.vaultT = 0;
-      const h: Hooks = { onHurt(_b, self, _s, r) { if (h.onHurt) self.mem.vaultT = (self.mem.vaultT || 0) + r.amount; } };
-      u.hooks.push(h);
-      channel(u, 6, 6, () => {}, (bb) => {
-        h.onHurt = undefined;
-        const v = ((u.mem.shareTaken || 0) + (u.mem.vaultT || 0)) * 0.5;
-        if (!u.alive || v <= 0) return;
-        bb.fx(u.x, u.y, 1, 'phys');
-        for (const e of bb.around(u, 1, bb.enemiesOf(u))) bb.dealDamage(u, e, v, { elem: 'phys', tag: 'proc', noHooks: true });
-      });
       return true;
     },
   },
@@ -98,13 +89,14 @@ export const ULTS: Record<string, UltDef> = {
   },
   grenholm: {
     id: 'grenholm', name: '7중 방호 전면 전개', charge: 0.9, line: '이 양식 다시 써 와. 살아서.',
-    desc: '자신에게 최대 체력 80% 보호막, 주변 2칸 적에게 타격 위력 300% 물리 피해 + 2초 기절. 6초간 아군 전원 방어도 +300.',
+    // 스킬 한쪽 원칙: 방호 전용 (주변 적 피해 · 기절 제거, 대신 아군 전원 보호막)
+    desc: '자신에게 최대 체력 50% 보호막, 다른 아군 전원에게 각자 최대 체력 15% 보호막. 6초간 아군 전원 방어도 +300.',
     theme: { pat: 'form', c1: '#c8ccd4', c2: '#d03838', txt: 'stamp' },
     cast(b, u) {
       if (!b.enemiesOf(u).length) return false;
-      b.shield(u, b.S(u, 'maxHp') * 0.8);
-      b.fx(u.x, u.y, 2, 'phys');
-      for (const e of b.around(u, 2, b.enemiesOf(u))) { slash(b, u, e, 3); if (e.alive) b.stun(u, e, 2); }
+      b.shield(u, b.S(u, 'maxHp') * 0.5);
+      b.fx(u.x, u.y, 2, 'phys', 'buff');
+      for (const a of b.alliesOf(u, false)) b.shield(a, b.S(a, 'maxHp') * 0.15);
       for (const a of b.alliesOf(u)) b.buff(u, a, 'gren.wall', 6, { delta: { armor: 300 }, label: '방호 전개' });
       return true;
     },
@@ -187,7 +179,7 @@ export const ULTS: Record<string, UltDef> = {
   },
   oliver: {
     id: 'oliver', name: '막차 급행', charge: 1.05, line: '다음 역은— 종점입니다~!',
-    desc: '가장 뒤쪽 적까지 3줄 폭으로 돌진해 경로의 모든 적에게 기술 위력 350% 물리 피해 + 1초 기절, 1칸 밀쳐낸다. 이후 4초간 이동 속도 +100%.',
+    desc: '가장 뒤쪽 적까지 3줄 폭으로 돌진해 경로의 모든 적에게 기술 위력 350% 물리 피해 + 1초 기절, 1칸 밀쳐낸다.',
     theme: { pat: 'metro', c1: '#ffd23a', c2: '#141414', txt: 'slide' },
     cast(b, u) {
       const es = b.enemiesOf(u);
@@ -207,23 +199,21 @@ export const ULTS: Record<string, UltDef> = {
         const nx = e.x + Math.sign(dx), ny = e.y + Math.sign(dy);
         if (!e.immobile && !e.isBoss && b.inBounds(nx, ny) && !b.unitAt(nx, ny)) { e.px = e.x; e.py = e.y; e.x = nx; e.y = ny; e.moveT = e.moveDur = 0.2; }
       }
-      b.buff(u, u, 'oliver.express', 4, { delta: { moveSpd: 1 }, label: '급행' });
       return true;
     },
   },
   kaburaya: {
     id: 'kaburaya', name: '정시 퇴근', charge: 1.0, line: '18시입니다. 퇴근하겠습니다.',
-    desc: '모든 적에게 전술 위력 250% 전기 피해 + 2초 감전. 감전된 적 1명당 아군 전원 기술 쿨다운 -0.5초.',
+    // 스킬 한쪽 원칙: 적 전용 (아군 쿨다운 감소 제거, 피해 250 → 300%)
+    desc: '모든 적에게 전술 위력 300% 전기 피해 + 2초 감전.',
     theme: { pat: 'office', c1: '#e8e05a', c2: '#2a2c30', txt: 'bored' },
     cast(b, u) {
       const es = b.enemiesOf(u);
       if (!es.length) return false;
-      let n = 0;
       for (const e of es) {
-        b.dealDamage(u, e, b.P(u, 'tech') * 2.5, { elem: 'elec', tag: 'skill', kind: 'tech', canMiss: false });
-        if (e.alive && shock(b, u, e, 2, 1)) n++;
+        b.dealDamage(u, e, b.P(u, 'tech') * 3, { elem: 'elec', tag: 'skill', kind: 'tech', canMiss: false });
+        if (e.alive) shock(b, u, e, 2, 1);
       }
-      for (const a of b.alliesOf(u)) a.cd = Math.max(0, a.cd - 0.5 * n);
       return true;
     },
   },
@@ -250,19 +240,17 @@ export const ULTS: Record<string, UltDef> = {
   },
   exile: {
     id: 'exile', name: '혈월', charge: 1.0, line: '피는 덜 흘리겠다 했지. 내 피 말이네.',
-    desc: '체력 비율이 가장 낮은 적 3명에게 차례로 순간이동해 타격 위력 300% 물리 피해 + 출혈. 준 피해의 60%를 회복.',
+    desc: '체력 비율이 가장 낮은 적 3명에게 차례로 순간이동해 타격 위력 300% 물리 피해 + 출혈. (회복은 특성 [혈족의 갈증]: 준 피해의 35%)',
     theme: { pat: 'moon', c1: '#e02040', c2: '#120408', txt: 'smear' },
     cast(b, u) {
       const es = b.enemiesOf(u).slice().sort((a, z) => b.hpPct(a) - b.hpPct(z)).slice(0, 3);
       if (!es.length) return false;
-      let dealt = 0;
       for (const e of es) {
         if (!e.alive) continue;
         blinkTo(b, u, e);
-        dealt += slash(b, u, e, 3).amount;
+        slash(b, u, e, 3);
         if (e.alive) bleed(b, u, e, b.S(u, 'strike') * 0.3, 4);
       }
-      if (dealt > 0) b.heal(u, u, dealt * 0.6, true);
       return true;
     },
   },
