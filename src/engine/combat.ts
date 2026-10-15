@@ -516,6 +516,15 @@ export class Battle {
     const ff = frenzy && CFG.frenzyFriendly; // 광폭이 아군도 노리는지 (기본 true)
     const pool = () => (ff ? this.units.filter((x) => x.alive && x !== u && !this.hidden(x)) : this.targetable(u));
     if (!u.target || !u.target.alive || this.hidden(u.target) || u.target === u || (!ff && this.sideOf(u.target) === this.sideOf(u))) u.target = this.nearest(u, pool());
+    // 명사수 기본 메커니즘: 1초마다 사거리 안에서 체력 비율이 가장 낮은 적으로 대상을 바꾼다 (아군 명사수, 외길 추적 · 광폭 · 매혹 제외)
+    if (u.ctype === 'MARK' && u.side === 0 && !u.isSummon && !frenzy && !u.mem.lockTarget && !u.mem.charmTo) {
+      u.mem.mkScan = (u.mem.mkScan || 0) - dt;
+      if (u.mem.mkScan <= 0) {
+        u.mem.mkScan = 1;
+        const low = this.lowestEnemy(u);
+        if (low) u.target = low;
+      }
+    }
     const tgt = u.target;
     if (!tgt) return;
     const range = this.S(u, 'range');
@@ -621,7 +630,7 @@ export class Battle {
     return r;
   }
   lowestEnemy(u: CUnit) {
-    const es = this.enemiesOf(u).filter((e) => this.dist(u, e) <= this.S(u, 'range'));
+    const es = this.enemiesOf(u).filter((e) => this.dist(u, e) <= this.S(u, 'range') && !this.hidden(e));
     return es.length ? es.reduce((a, c) => (this.hpPct(c) < this.hpPct(a) ? c : a)) : null;
   }
 
