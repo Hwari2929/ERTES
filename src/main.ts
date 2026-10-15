@@ -29,7 +29,8 @@ import { ULTS } from './data/ults';
 import { DEFAULT_RELIC, RELIC_BY_ID } from './data/relics';
 import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
-import { bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg } from './ui/portraits';
+import { bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg, standURL } from './ui/portraits';
+import { advKey, closeAdv, playAdv } from './ui/adv';
 import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 
 // 편의 설정 (이 브라우저에만 저장): 전투 속도, 진형 속도 등
@@ -1606,6 +1607,27 @@ function sceneHtml(beats: Beat[]): string {
   }).join('')}</div>`;
 }
 
+/** 미연시 화자: 기물 · NPC · 주인공(레이첼 스탠딩) */
+function advSpeaker(id: string) {
+  const sp = speakerOf(id);
+  const stand = id === 'pc' ? 'rachel' : UNIT_BY_ID[id] ? id : null;
+  return { ...sp, stand: stand && standURL(stand) ? stand : null };
+}
+/** 사건 · 결과 장면은 전체 화면 미연시로 */
+function advSync(run: RunState | null) {
+  const p = run?.pending[0];
+  const live = run && p && app.screen !== 'battle' && app.screen !== 'over';
+  if (live && p.t === 'event') {
+    const ev = EVENT_BY_ID[p.id];
+    playAdv(`ev:${p.id}:${run.pending.length}`, R.eventScene(p), {
+      title: ev.title, speaker: advSpeaker, fmt: (x) => ic(esc(x)),
+      choices: ev.choices.map((c) => ({ label: c.label, desc: c.desc, why: c.block?.(run) || undefined })),
+      onDone: (k) => act('event-choice', String(k)),
+    });
+  } else if (live && p.t === 'notice' && p.scene?.length) {
+    playAdv(`nt:${p.title}:${run.pending.length}`, p.scene, { title: p.title, result: p.body, speaker: advSpeaker, fmt: (x) => ic(esc(x)), onDone: () => act('notice-ok', '') });
+  } else if (advKey()) closeAdv();
+}
 // ───────────────────────── 모달: 대기 중인 선택
 function pendingModal(run: RunState): string {
   const p = run.pending[0];
@@ -1618,11 +1640,8 @@ function pendingModal(run: RunState): string {
         <i class="cback" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">✦</span>
         <span class="gc-kind">${g.unique ? '고유 · ' : ''}전역</span><b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button>`; }).join('')}</div>
       ${p.rerolls !== undefined ? `<div class="row-btns"><button class="btn" data-a="reroll-global" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div>` : ''}`;
-  } else if (p.t === 'event') {
-    const ev = EVENT_BY_ID[p.id];
-    body = `<div class="event ${ev.rare ? 'rare' : ''}"><h1>${ev.rare ? '✦ ' : ''}${esc(ev.title)}</h1>${ev.rare ? '<p class="accent small">희귀 사건</p>' : ''}
-      ${sceneHtml(R.eventScene(p))}
-      <div class="cards">${ev.choices.map((c, i) => { const why = c.block?.(run); return `<button class="card" data-a="event-choice" data-v="${i}" ${why ? 'disabled' : ''}><b>${esc(c.label)}</b><span>${ic(esc(c.desc))}</span>${why ? `<span class="down small">${esc(why)}</span>` : ''}</button>`; }).join('')}</div></div>`;
+  } else if (p.t === 'event' || (p.t === 'notice' && p.scene?.length)) {
+    return ''; // 미연시 화면 (advSync)
   } else if (p.t === 'victory') {
     body = `<h1>의뢰 성공</h1><p>페이즈 ${run.phase} 보스를 격파했습니다. ${esc(fieldOf(run.field).name)} 의뢰가 완료되었습니다${run.diff ? ` (위험 등급 ${run.diff})` : ''}.</p>
       <p class="muted small">귀환하면 런이 끝나고 기록이 남습니다. 계속하면 무한 모드로 이어지며, 적은 계속 강해집니다. 어느 쪽이든 다음 위험 등급이 해금됩니다.</p>
@@ -1976,6 +1995,7 @@ function render() {
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
   restoredAt = performance.now();
   layoutPanels();
+  advSync(run ?? null);
   if (app.screen === 'intro' && !app.introDone) introAnim();
   // 리본 시너지 줄: 넘치면 오른쪽 끝에 '더 있음' 표시 (끝까지 밀면 사라짐)
   const ts = root.querySelector<HTMLElement>('.top-syns');
@@ -3055,6 +3075,7 @@ addEventListener('scroll', (e) => {
 }, { passive: true, capture: true });
 
 document.addEventListener('keydown', (e) => {
+  if (document.querySelector('.adv')) return; // 미연시 화면은 자체 처리
   if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
   if ((e.target as HTMLElement).closest('input, textarea, select')) return;
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
