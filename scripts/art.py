@@ -221,7 +221,7 @@ def cmd_build():
             bust_of(cut, face_of(i, faces)).save(f'{OUT}/{i}.bust.webp', 'WEBP', quality=82, method=6)
             total += os.path.getsize(f'{OUT}/{i}.bust.webp')
             buf = io.BytesIO()
-            icon_of(cut, crop_box(i, faces)).save(buf, 'WEBP', quality=82, method=6)
+            icon_of(cut, crop_box(i, faces)).save(buf, 'WEBP', quality=70, alpha_quality=80, method=6)
             icons[i] = 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode()
     with open('src/ui/portraits.gen.ts', 'w') as f:
         f.write('// 자동 생성: python3 scripts/art.py build — 직접 고치지 말 것\n')
