@@ -147,12 +147,44 @@ function tick() {
     c.entered = c.i;
     st.enter?.();
     tg = resolve(st.target);
-    tg[0]?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    reveal(tg[0]);
     fill(c, st, tg.length > 0);
     if (c.shown) c.o.onShow?.(c.i);
-  }
+  } else if (!c.shown) reveal(tg[0]); // 메뉴 · 창을 닫고 다시 보일 때: 그사이 굴러간 화면을 대상 쪽으로
   if (!c.shown) { c.shown = true; c.el.hidden = false; document.body.classList.add('coaching'); c.o.onShow?.(c.i); fill(c, st, tg.length > 0); }
   place(c, tg);
+}
+
+/** 대상을 화면 안으로 굴린다. 가까운 쪽으로 굴렸는데도 화면 밖이거나 고정 · 끈끈한 층(상단 바 등)에 덮여 있으면 가운데로.
+ *  (좁은 화면은 한 줄로 길어져, 상단 바 밑에 숨은 대상을 '보인다'고 여기면 구멍 자리에 메뉴 버튼이 걸린다)
+ *  사용자가 굴릴 수 없는 overflow: hidden 조상(탭 트랙 등)은 scrollIntoView 가 굴린 만큼 되돌린다 */
+function reveal(t: Element | undefined) {
+  if (!t?.scrollIntoView) return;
+  const keep: [Element, number | null, number | null][] = [];
+  for (let p = t.parentElement; p && p !== document.body; p = p.parentElement) {
+    const s = getComputedStyle(p);
+    if (s.overflowX === 'hidden' || s.overflowY === 'hidden') keep.push([p, s.overflowX === 'hidden' ? p.scrollLeft : null, s.overflowY === 'hidden' ? p.scrollTop : null]);
+  }
+  t.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  if (obscured(t)) t.scrollIntoView({ block: 'center', inline: 'nearest' });
+  for (const [p, x, y] of keep) { if (x !== null) p.scrollLeft = x; if (y !== null) p.scrollTop = y; }
+}
+/** 대상이 화면 밖이거나, 보이는 부분 가운데를 고정 · 끈끈한 층(대상을 품지 않은)이 덮고 있는지 */
+function obscured(t: Element) {
+  const r = t.getBoundingClientRect();
+  const l = Math.max(0, r.left), tp = Math.max(0, r.top), rr = Math.min(innerWidth, r.right), b = Math.min(innerHeight, r.bottom);
+  if (rr - l < 4 || b - tp < 4) return true;
+  for (const e of document.elementsFromPoint((l + rr) / 2, (tp + b) / 2)) {
+    if (cur?.el.contains(e)) continue; // 안내 자신 (어두운 막 · 말풍선)
+    if (e === t || t.contains(e)) return false;
+    for (let p: Element | null = e; p && p !== document.body; p = p.parentElement) {
+      if (p.contains(t)) return false;
+      const pos = getComputedStyle(p).position;
+      if (pos === 'fixed' || pos === 'sticky') return true;
+    }
+    return false;
+  }
+  return false;
 }
 
 function fill(c: NonNullable<typeof cur>, st: CoachStep, hasTarget: boolean) {

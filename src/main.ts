@@ -1860,7 +1860,7 @@ function menuModal(run: RunState | null) {
   return `<div class="modal-bg"><div class="modal">
     ${tabs}
     ${run?.tutorial ? `<h3>튜토리얼</h3><p class="muted small">튜토리얼 진행은 따로 저장되어, 타이틀의 [튜토리얼] 버튼으로 이어서 할 수 있습니다. 끝내면 교범이 모두 열립니다.</p>
-      <div class="row-btns"><button class="btn" data-a="tut-quit">튜토리얼 끝내기 (건너뛰기)</button></div>` : run ? `<h3>저장</h3><div class="slot-list">${['slot1', 'slot2', 'slot3'].map((s) => `<div class="slot"><span><b>${SLOT_NAME[s]}</b> <span class="muted small">${meta(s)}</span></span>
+      <div class="row-btns"><button class="btn primary" data-a="menu-close">튜토리얼 계속하기</button><button class="btn" data-a="tut-quit">튜토리얼 끝내기 (건너뛰기)</button></div>` : run ? `<h3>저장</h3><div class="slot-list">${['slot1', 'slot2', 'slot3'].map((s) => `<div class="slot"><span><b>${SLOT_NAME[s]}</b> <span class="muted small">${meta(s)}</span></span>
       <span><button class="btn tiny" data-a="save" data-v="${s}">저장</button><button class="btn tiny" data-a="load" data-v="${s}" ${saves.some((x) => x.slot === s) ? '' : 'disabled'}>불러오기</button></span></div>`).join('')}
       <div class="slot"><span><b>자동 저장</b> <span class="muted small">${meta('auto')}</span></span><span><button class="btn tiny" data-a="load" data-v="auto" ${saves.some((x) => x.slot === 'auto') ? '' : 'disabled'}>불러오기</button></span></div></div>` : ''}
     <div class="row-btns">

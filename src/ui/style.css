@@ -1001,6 +1001,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .abc { display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; border-radius: 4px; background: var(--panel); border: 1px solid var(--line); font-size: .74rem; line-height: 1.5; white-space: nowrap; }
 .abc .li, .pw .li, .tln .li, .ap-rows .li { width: 13px; height: 13px; flex: none; }
 .abc.v { border-color: transparent; background: none; padding-inline: 2px; }
+@media (max-width: 860px) { .abc.v { white-space: normal; } } /* 긴 기술 요약 줄이 좁은 화면을 가로로 넘치지 않게 (넘치면 모바일 화면 기준 폭이 넓어져 고정 요소가 화면 밖으로 밀린다) */
 .pw { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
 .pw b { font-family: var(--f-mono); font-weight: 700; }
 .pw-shoot, .pw-strike, .pw-tech, .pw-tac { color: var(--fg); } /* 위력 = 마이너 능력치: 흰색 (피해 수치는 속성 색) */
@@ -1692,7 +1693,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 
 /* 편성 표: 보드 + 오른쪽 세로 보관 칸 */
 .board-row { display: flex; justify-content: center; align-items: flex-start; gap: 10px; }
-.board-row > .board { margin: 0; flex: none; }
+.board-row > .board { margin: 0; flex: 0 1 auto; min-width: 0; } /* 보관 칸 자리가 모자라면 보드가 줄어든다 (태블릿 세로: 가로 넘침 방지) */
 .inv-rail { flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 84px; max-height: calc(100vh - var(--top-h, 70px) - 150px); padding: 8px 6px; box-sizing: border-box;
   background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
 .ir-count { font-size: .72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
