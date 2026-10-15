@@ -9,7 +9,8 @@
  },
  "weapon.romani": {
   "subject": "long leather whip with metal tip coiled",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "cantrip.pyro": {
   "subject": "roaring fireball incinerating and consuming burning embers, flame vortex",
@@ -29,7 +30,8 @@
  },
  "skill.mirinae": {
   "subject": "cute decorated sniper rifle firing a single piercing critical bullet with star flash",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.mirinae": {
   "subject": "overstuffed camping backpack with gear and gadgets dangling, sparkles",
@@ -37,7 +39,8 @@
  },
  "skill.gebek": {
   "subject": "heavy rotary machine gun spraying a wide fan of bullets",
-  "color": "orange and red"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.gebek": {
   "subject": "massive monster claw slamming down and pinning a broken blade",
@@ -45,7 +48,8 @@
  },
  "skill.donovan": {
   "subject": "black crow diving through a crosshair with bullet trail",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.donovan": {
   "subject": "glowing-eyed raven perched on a revolver, sharp critical spark",
@@ -61,7 +65,8 @@
  },
  "skill.west": {
   "subject": "large steel wrench spinning in mid-air with clanging impact sparks",
-  "color": "orange and red"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.west": {
   "subject": "armored gun turret on a tripod firing, with a wrench and repair sparks",
@@ -85,7 +90,8 @@
  },
  "skill.franze": {
   "subject": "judge gavel slamming down with a heavy shockwave",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.franze": {
   "subject": "scales of justice with a starry galaxy pan, verdict seal",
@@ -93,7 +99,8 @@
  },
  "skill.grenholm": {
   "subject": "armored gauntlet fist slamming the ground with a shockwave",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.grenholm": {
   "subject": "seven layered armor plates stacking into a power armor chestpiece",
@@ -101,7 +108,8 @@
  },
  "skill.lars": {
   "subject": "open briefcase full of gold coins and a signed contract scroll",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.lars": {
   "subject": "stack of credit coins forming a guardian shield emblem",
@@ -109,7 +117,8 @@
  },
  "skill.falcon": {
   "subject": "railgun firing a straight blazing slug beam",
-  "color": "orange and red"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.falcon": {
   "subject": "single bullet piercing straight through three metal plates in a line",
@@ -133,7 +142,8 @@
  },
  "skill.temur": {
   "subject": "gladiator sword spinning in a whirlwind slash",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.temur": {
   "subject": "battered gladiator helmet with glowing cracks and rising fury",
@@ -193,7 +203,8 @@
  },
  "skill.odysseus": {
   "subject": "single arrow flying on a returning arc into a bullseye",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.odysseus": {
   "subject": "piercing hawk eye with crosshair reflection",
@@ -209,7 +220,8 @@
  },
  "skill.romani": {
   "subject": "executioner axe thrown spinning with a chain pulling back",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "skill.joshua": {
   "subject": "glowing halo ring radiating healing light with floating petals",
@@ -221,7 +233,8 @@
  },
  "skill.sarma": {
   "subject": "small swirling pocket black hole sucking in debris",
-  "color": "orange and red"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.sarma": {
   "subject": "bullet impact splashing ripples across warped space",
@@ -253,7 +266,8 @@
  },
  "skill.aiden": {
   "subject": "liquid metal blade morphing into silver spikes with droplets",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.aiden": {
   "subject": "sleek black cat leaping with speed afterimages",
@@ -261,7 +275,8 @@
  },
  "skill.vivian": {
   "subject": "wild beast pouncing with a claw slash",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.vivian": {
   "subject": "magnifying glass over cracked armor scales",
@@ -285,7 +300,8 @@
  },
  "skill.amundsen": {
   "subject": "three large artillery shells falling diagonally from the sky with fiery trails",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.amundsen": {
   "subject": "antique explorer compass and ice axe in a dark cloak shadow",
@@ -301,7 +317,8 @@
  },
  "skill.oliver": {
   "subject": "metro train front with bright headlights bursting through a striped barrier",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.oliver": {
   "subject": "train headlight beam with speed streaks over rail tracks",
@@ -309,7 +326,8 @@
  },
  "skill.rasmus": {
   "subject": "guard dog lunging with bared fangs and a bleeding slash",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.rasmus": {
   "subject": "garden pruning shears snipping a thorny branch",
@@ -421,7 +439,8 @@
  },
  "skill.mingki": {
   "subject": "giant cat paw with sharp claws swiping three slash marks",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.mingki": {
   "subject": "cat shadow growing into a giant monster silhouette with glowing eyes",
@@ -437,7 +456,8 @@
  },
  "skill.exile": {
   "subject": "ornate blood-red longsword slashing with a thick arc of blood droplets",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.exile": {
   "subject": "goblet overflowing with blood beside vampire fangs",
@@ -453,7 +473,8 @@
  },
  "skill.u404": {
   "subject": "robotic fist punching upward with stacking power rings",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.u404": {
   "subject": "glowing robot core gear ascending a staircase",
@@ -461,7 +482,8 @@
  },
  "skill.rus": {
   "subject": "pirate flintlock pistol firing a long piercing shot",
-  "color": "crimson and orange"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "trait.rus": {
   "subject": "sack of stolen gold coins spilling out",
@@ -529,16 +551,19 @@
  },
  "weapon.mirinae": {
   "subject": "long sniper rifle with cute pink charm and scope",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.gebek": {
   "subject": "heavy rotary machine gun with bunny ear decals",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.donovan": {
   "subject": "thin glowing monomolecular wire stretched taut between two metal grips, cutting line",
-  "color": "steel and crimson",
-  "prop": true
+  "color": "white, silver and light gray with subtle crimson accents",
+  "prop": true,
+  "light": true
  },
  "weapon.chloe": {
   "subject": "compact dart pistol loaded with a toxic green dart",
@@ -546,32 +571,39 @@
  },
  "weapon.west": {
   "subject": "industrial rivet gun with hose and rivets",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.lindiwe": {
   "subject": "armored shield gauntlet projecting a hexagonal barrier",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.orca": {
   "subject": "harpoon gun with barbed harpoon and rope",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.franze": {
   "subject": "energy blade sword with glowing red edge and ornate hilt",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.grenholm": {
   "subject": "heavy armored blade with layered shield plates",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.lars": {
   "subject": "gentleman leather gloves offering a business card, unarmed negotiator",
-  "color": "steel and crimson",
-  "prop": true
+  "color": "white, silver and light gray with subtle crimson accents",
+  "prop": true,
+  "light": true
  },
  "weapon.falcon": {
   "subject": "long railgun with magnetic coils and glowing rails",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.hiiro": {
   "subject": "paper talisman charm burning with blue fox fire",
@@ -583,23 +615,28 @@
  },
  "weapon.temur": {
   "subject": "huge gladiator greatsword with leather grip",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.kairo": {
   "subject": "elegant bolt action sniper rifle with long scope",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.zahara": {
   "subject": "twin curved scimitars crossed",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.bianca": {
   "subject": "pistol with glowing healing ammo cartridges",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.zephyro": {
   "subject": "ornate feather quill pen with ink trail",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.phyllis": {
   "subject": "large multi-purpose wrench glowing with holy light",
@@ -607,7 +644,8 @@
  },
  "weapon.eleni": {
   "subject": "massive requiem greatsword with moon engraving",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.iris": {
   "subject": "winged throwing daggers with feather motifs",
@@ -615,7 +653,8 @@
  },
  "weapon.odysseus": {
   "subject": "tall wooden longbow with nocked arrow",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.argon": {
   "subject": "ship harpoon launcher dripping toxic liquid",
@@ -627,7 +666,8 @@
  },
  "weapon.sarma": {
   "subject": "bulky fusion cannon with glowing core",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.kyle": {
   "subject": "holy crusader longsword with cross guard",
@@ -645,11 +685,13 @@
  },
  "weapon.aiden": {
   "subject": "liquid metal blade morphing from a silver hand",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.vivian": {
   "subject": "dart rifle with animal tracking darts",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.yupito": {
   "subject": "welding arc gun crackling with electric sparks",
@@ -662,7 +704,8 @@
  },
  "weapon.amundsen": {
   "subject": "orbital artillery shell falling with targeting reticle",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.rachel": {
   "subject": "floating dark matter sphere core with swirling black void and orbiting rings",
@@ -671,21 +714,25 @@
  },
  "weapon.oliver": {
   "subject": "train engineer wrench, heavy and worn",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.rasmus": {
   "subject": "pair of garden pruning shears snipping, leaves falling",
-  "color": "steel and crimson",
-  "prop": true
+  "color": "white, silver and light gray with subtle crimson accents",
+  "prop": true,
+  "light": true
  },
  "weapon.sigmund": {
   "subject": "fan of silver dinner knives forks and spoons thrown through the air",
-  "color": "steel and crimson",
-  "prop": true
+  "color": "white, silver and light gray with subtle crimson accents",
+  "prop": true,
+  "light": true
  },
  "weapon.gunnir": {
   "subject": "kitchen chef knives thrown in a fan",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.bjorn": {
   "subject": "rescue electric harpoon launcher with coiled cable",
@@ -718,7 +765,8 @@
  },
  "weapon.eden": {
   "subject": "old worn revolver with engraved cylinder",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.reika": {
   "subject": "glowing light stick beam saber",
@@ -735,8 +783,9 @@
  },
  "weapon.mingki": {
   "subject": "three sharp cat claw slash marks tearing through the air, paw",
-  "color": "steel and crimson",
-  "prop": true
+  "color": "white, silver and light gray with subtle crimson accents",
+  "prop": true,
+  "light": true
  },
  "weapon.onyx": {
   "subject": "floating glowing music notes swirling in a chorus, harmony waves",
@@ -745,20 +794,24 @@
  },
  "weapon.exile": {
   "subject": "crimson blood sword dripping",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.thermo": {
   "subject": "spartan spear and round bronze shield",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "weapon.u404": {
   "subject": "giant hydraulic press robotic arm with pistons slamming down",
-  "color": "steel and crimson",
-  "prop": true
+  "color": "white, silver and light gray with subtle crimson accents",
+  "prop": true,
+  "light": true
  },
  "weapon.rus": {
   "subject": "twin pistols crossed",
-  "color": "steel and crimson"
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true
  },
  "passive.pyro": {
   "subject": "blazing fire sigil brand glowing on dark ground, flames spreading outward from it, three ember sparks stacked above",

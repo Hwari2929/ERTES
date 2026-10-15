@@ -28,7 +28,7 @@ const STYLES = {
   D: 'emblem, game skill icon, flat design, single centered symbol, no humans, dark textured background, geometric diamond frame behind symbol, layered color gradient, sparkles, light particles, bold silhouette, clean vector shapes, high contrast, vibrant, best quality, highres, ::1.3::flat color::',
   B: 'emblem, icon, flat design, single centered symbol, no humans, dark navy background, minimalist, bold silhouette, two-tone, clean vector shapes, high contrast, best quality, highres, ::1.4::flat color::',
 };
-const NEG = 'ui elements, badges, small icons, buttons, health bar, text, letters, words, watermark, signature, logo, frame border text, multiple views, collage, grid, ui, lowres, worst quality, bad quality, jpeg artifacts, blurry, noisy, cluttered, busy background, photo, realistic, 3d render, human face, person, character, hands, ' + 'chromatic aberration, film grain';
+const NEG = (p) => (p?.light ? 'dark background, black background, ' : '') + 'ui elements, badges, small icons, buttons, health bar, text, letters, words, watermark, signature, logo, frame border text, multiple views, collage, grid, ui, lowres, worst quality, bad quality, jpeg artifacts, blurry, noisy, cluttered, busy background, photo, realistic, 3d render, human face, person, character, hands, ' + 'chromatic aberration, film grain';
 
 function unzipFirst(buf) {
   let eocd = buf.length - 22;
@@ -43,13 +43,15 @@ async function gen(id, seed) {
   const p = P[id];
   // 무기: 이펙트보다 무기 자체가 먼저 보이게 (단일 물체 · 전체 형태 · 대각 배치)
   const weapon = id.startsWith('weapon.') && !p.prop ? ', ::1.4::single weapon object, entire weapon visible, weapon in focus, detailed weapon design::, subtle effect behind' : '';
-  const input = `::1.6::${p.subject}::, ${p.color} color scheme${weapon}, ${STYLES[style]}`;
+  // 물리 계열 (light): 흰 배경 · 은빛 톤
+  const st = p.light ? STYLES[style].replace('dark vignette edges', 'bright white background, soft pale gray vignette, high key lighting') : STYLES[style];
+  const input = `::1.6::${p.subject}::, ${p.color} color scheme${weapon}, ${st}`;
   if (flag('--dry')) { console.log(id, '\n', input); return; }
   const body = { input, model: cfg.model, action: 'generate', parameters: {
     params_version: 3, width: W, height: H, scale: 6, sampler: cfg.sampler, steps: STEPS, n_samples: 1, ucPreset: 0, qualityToggle: false, seed,
-    noise_schedule: cfg.noise_schedule, negative_prompt: NEG, cfg_rescale: 0, sm: false, sm_dyn: false, dynamic_thresholding: false, legacy: false, add_original_image: true,
+    noise_schedule: cfg.noise_schedule, negative_prompt: NEG(p), cfg_rescale: 0, sm: false, sm_dyn: false, dynamic_thresholding: false, legacy: false, add_original_image: true,
     v4_prompt: { caption: { base_caption: input, char_captions: [] }, use_coords: false, use_order: true },
-    v4_negative_prompt: { caption: { base_caption: NEG, char_captions: [] }, legacy_uc: false } } };
+    v4_negative_prompt: { caption: { base_caption: NEG(p), char_captions: [] }, legacy_uc: false } } };
   for (let a = 0; a < 5; a++) {
     const res = await fetch('https://image.novelai.net/ai/generate-image', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (res.status === 429) { await new Promise((r) => setTimeout(r, 8000 * (a + 1))); continue; }
