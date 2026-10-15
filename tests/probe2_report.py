@@ -360,6 +360,26 @@ for s, v in sorted(aggB['e4s'].items(), key=lambda x: -x[1]['n']):
     rows.append([aname('school.' + s) if s != '-' else '(학파 없음)', n, pc(v['died'] / n), pc(v['reason'] / d), pc(v['ally'] / d), pc(v['negT'] / max(1, v['alive'])), pc(v['frenzyT'] / max(1, v['alive'])), pc(v['frenzied'] / n)])
 tbl(['학파', '전투', '사망률', '원인 저이성', '아군', '저이성 시간', '광폭 시간', '광폭 발생 전투'], rows)
 RES['exp4'] = r4
+pcf = os.path.join(ROOT, 'psicf.json')
+if os.path.exists(pcf):
+    pr = json.load(open(pcf))['runs']
+    P('\n### 4e. 보조: 전투 단위 대응 반사실 (시드 1..%d, 사이오닉이 출전한 모든 전투를 같은 시드로 B · C 조건만 바꿔 재실행)\n' % pr[-1]['seed'])
+    rows = []
+    for lab, f in [('사이오닉 출전 전투 전체', lambda x: True), ('이성 < 0 이 있었던 전투', lambda x: x[8]), ('광폭이 일어난 전투', lambda x: x[7])]:
+        bys = collections.defaultdict(list)
+        for r in pr:
+            for x in r.get('cf', []):
+                if f(x): bys[r['seed']].append(x)
+        sel = [x for v in bys.values() for x in v]; n = len(sel)
+        if not n: continue
+        row = [lab, n, pc(sum(x[1] for x in sel) / n)]
+        for wi, di in [(3, 4), (5, 6)]:
+            e = ratio_cluster([(sum(x[wi] - x[1] for x in v), len(v)) for v in bys.values()])
+            row += [f"{pp(e['est'])}{sig(e)} {ci(e)} (↑{sum(x[wi] > x[1] for x in sel)} ↓{sum(x[wi] < x[1] for x in sel)})", f"{sum(x[di] for x in sel) / n:.2f}"]
+        row.append(f"{sum(x[2] for x in sel) / n:.2f}")
+        rows.append(row)
+    tbl(['전투', '수', '기준 승률', 'B 저이성 피해 0: 승률 차', 'B 아군 사망', 'C 광폭 아군 공격 없음: 승률 차', 'C 아군 사망', '기준 아군 사망'], rows)
+    P('\n해석 (가설): B 의 손해는 광폭 전투에서 가장 크다. 저이성 정신 피해가 광폭한 사이오닉의 체력을 깎아 아군을 공격하는 시간을 줄이는 제동 역할을 하는 것으로 보인다 (직접 검증은 안 함).')
 
 # ═════════ 5. 홍염 · 시공
 P('\n## 5. 홍염 · 시공 메커니즘 계측 (기준 팔, 학파 사이오닉 기물-전투 기준)\n')
