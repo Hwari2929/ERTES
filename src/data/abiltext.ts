@@ -306,11 +306,11 @@ export const ENEMY_ABIL: Record<string, { skill?: SkillInfo; trait?: string }> =
   cr_leech: { skill: { tgt: '체력 비율이 가장 낮은 아군 (85% 이하)', range: null, area: { k: 'one' }, rows: [['회복', '[heal:3]']] } },
   warlord: {
     skill: { tgt: '자신', range: 0, area: { k: 'self', r: 1 }, rows: [['피해', '[dmg:strike:1.5:phys]']] },
-    trait: '약탈 명령: [s:8]마다 모든 아군 [s:4] 동안 피해 +[p:0.2] (전투 스킬과 별도, 기절 · 공포 중에는 미룸).',
+    trait: '약탈 명령: 근접한 적이 있으면 [s:8]마다 모든 아군 [s:4] 동안 피해 +[p:0.2] (전투 스킬과 별도, 기절 · 공포 중에는 미룸).',
   },
   varga: {
     skill: { tgt: '현재 대상', range: 'unit', area: { k: 'one' }, rows: [['피해', '[dmg:strike:2.2:phys]']] },
-    trait: '함장의 호령: [s:9]마다 모든 아군 [s:5] 동안 공격 속도 +[p:0.3], 피해 +[p:0.3] (전투 스킬과 별도, 기절 · 공포 중에는 미룸).',
+    trait: '함장의 호령: 근접한 적이 있으면 [s:9]마다 모든 아군 [s:5] 동안 공격 속도 +[p:0.3], 피해 +[p:0.3] (전투 스킬과 별도, 기절 · 공포 중에는 미룸).',
   },
   goliath: {
     skill: { tgt: '자신', range: 0, area: { k: 'self', r: 2 }, rows: [['피해', '[dmg:tech:1.2:elec]'], ['기절', '[st:stun:1:0.5]']] },
@@ -328,7 +328,7 @@ export const ENEMY_ABIL: Record<string, { skill?: SkillInfo; trait?: string }> =
   cr_knight: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 1 }, rows: [['피해', '[dmg:strike:1.6:phys]'], ['회복', '자신 최대 체력의 [p:0.06]']] } },
   cr_count: {
     skill: { tgt: '자신', range: 0, area: { k: 'self', r: 2 }, rows: [['피해', '[dmg:strike:1.4:phys]']] },
-    trait: '혈연 축제: [s:9]마다 자신 최대 체력 [p:0.06] 회복 + 모든 아군 [s:5] 동안 피해 +[p:0.25] (전투 스킬과 별도, 기절 · 공포 중에는 미룸).',
+    trait: '혈연 축제: 주변 [t:2]에 적이 있으면 [s:9]마다 자신 최대 체력 [p:0.06] 회복 + 모든 아군 [s:5] 동안 피해 +[p:0.25] (전투 스킬과 별도, 기절 · 공포 중에는 미룸).',
   },
   cr_heart: {
     skill: { tgt: '모든 적', range: null, area: { k: 'all' }, rows: [['피해', '[dmg:tech:0.5:chem]'], ['중독', '[p:0.5] 확률로 [st:poison:4]: 초당 [dmg:tech:0.1:chem]']] },

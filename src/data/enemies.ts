@@ -3,10 +3,10 @@ import type { CType, Elem, Keyword, TType } from '../types';
 import { bleed, corrode, fear, lineTargets, poison, skillHit } from './kit';
 
 /** 지휘 · 강화 패시브: period 초마다 (첫 발동 first 초), 전투 스킬과 따로 돈다 (스킬 한쪽 원칙).
- *  적이 없거나 기절 · 공포 중이면 미뤄 두었다가 풀리면 발동 */
-function command(b: Battle, u: CUnit, key: string, dt: number, period: number, first: number) {
+ *  교전 중이 아니거나 (reach 칸 안에 적이 없으면) 기절 · 공포 중이면 미뤄 두었다가 조건이 되면 발동 — 예전 스킬 시전 조건과 같게 */
+function command(b: Battle, u: CUnit, key: string, dt: number, period: number, first: number, reach = 99) {
   u.mem[key] = (u.mem[key] ?? first) - dt;
-  if (u.mem[key] > 0 || !b.enemiesOf(u).length || b.has(u, 'stun') || b.has(u, 'fear')) return false;
+  if (u.mem[key] > 0 || !b.around(u, reach, b.enemiesOf(u)).length || b.has(u, 'stun') || b.has(u, 'fear')) return false;
   u.mem[key] = period;
   return true;
 }
@@ -104,7 +104,7 @@ export const ENEMIES: EnemyDef[] = [
     },
     // 약탈 명령: 8초마다 아군 강화 (스킬과 별도)
     onTick: (b, u, dt) => {
-      if (!command(b, u, 'cmdT', dt, 8, 4)) return;
+      if (!command(b, u, 'cmdT', dt, 8, 4, 1)) return;
       b.emit({ k: 'status', id: u.id, name: '약탈 명령' });
       for (const a of b.alliesOf(u)) b.buff(u, a, 'warlord', 4, { mods: [{ kind: 'inc', tag: 'all', v: 0.2 }], label: '약탈 명령' });
     } },
@@ -123,7 +123,7 @@ export const ENEMIES: EnemyDef[] = [
     },
     // 함장의 호령: 9초마다 아군 광폭화 (스킬과 별도)
     onTick: (b, u, dt) => {
-      if (!command(b, u, 'cmdT', dt, 9, 4.5)) return;
+      if (!command(b, u, 'cmdT', dt, 9, 4.5, 1)) return;
       b.emit({ k: 'status', id: u.id, name: '함장의 호령' });
       for (const a of b.alliesOf(u)) b.buff(u, a, 'varga', 5, { delta: { atkSpd: 0.3 }, mods: [{ kind: 'inc', tag: 'all', v: 0.3 }], label: '광폭화' });
     } },
@@ -241,7 +241,7 @@ export const ENEMIES: EnemyDef[] = [
     },
     // 혈연 축제: 9초마다 자가 회복 + 아군 강화 (스킬과 별도)
     onTick: (b, u, dt) => {
-      if (!command(b, u, 'cmdT', dt, 9, 4.5)) return;
+      if (!command(b, u, 'cmdT', dt, 9, 4.5, 2)) return;
       b.emit({ k: 'status', id: u.id, name: '혈연 축제' });
       b.heal(u, u, b.S(u, 'maxHp') * 0.06);
       for (const a of b.alliesOf(u)) b.buff(u, a, 'crimson.feast', 5, { mods: [{ kind: 'inc', tag: 'all', v: 0.25 }], label: '혈연 축제' });
