@@ -8,3 +8,5 @@ dist/eventdoc.cjs
 dist/analyze.cjs
 dist/*.cjs
 dist/ERRANTEs-offline.html
+art/icons/raw/
+art/faces_raw/
