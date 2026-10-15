@@ -20,8 +20,8 @@
   "color": "violet and purple"
  },
  "ult.grenholm": {
-  "subject": "layered hexagonal energy shield wall rising, barrier panels",
-  "color": "teal"
+  "subject": "seven layered hexagonal shield walls deploying around a heavy armored suit, shockwave ring",
+  "color": "teal and silver"
  },
  "trait.yelena": {
   "subject": "psychic bullet wrapped in swirling aura piercing a cracked hourglass",
@@ -466,5 +466,61 @@
  "trait.rus": {
   "subject": "sack of stolen gold coins spilling out",
   "color": "crimson and orange"
+ },
+ "ult.mirinae": {
+  "subject": "sniper rifle scope crosshair locked on a target from behind, single piercing bullet streak, mirage shimmer",
+  "color": "crimson and orange"
+ },
+ "ult.gebek": {
+  "subject": "heavy machine gun barrel spewing a storm of bullets, muzzle flash, rabbit ear motif on the gun",
+  "color": "orange and red"
+ },
+ "ult.lindiwe": {
+  "subject": "large protective energy dome shield over a group, glowing credit coin seal in the center",
+  "color": "teal and gold"
+ },
+ "ult.franze": {
+  "subject": "judge gavel striking down, glowing courtroom scales of justice, verdict seal",
+  "color": "deep crimson and gold"
+ },
+ "ult.falcon": {
+  "subject": "long railgun cannon firing a straight piercing energy beam across the frame, overheating glowing barrel",
+  "color": "orange and white"
+ },
+ "ult.temur": {
+  "subject": "gladiator sword raised in a spinning arena whirlwind, colosseum laurel crown above",
+  "color": "crimson and gold"
+ },
+ "ult.argon": {
+  "subject": "ghost ship harpoons raining down, chained harpoon heads dripping toxic liquid",
+  "color": "toxic green"
+ },
+ "ult.sarma": {
+  "subject": "swirling black hole event horizon pulling debris inward, accretion disk",
+  "color": "deep purple and orange"
+ },
+ "ult.yupito": {
+  "subject": "engineer wrench crossed with a deployed sentry turret, energy shield sparks, blueprint lines",
+  "color": "cyan and orange"
+ },
+ "ult.oliver": {
+  "subject": "speeding train locomotive charging forward with rail tracks and shockwave, ticket stamp",
+  "color": "orange and red"
+ },
+ "ult.kaburaya": {
+  "subject": "round analog wall clock with hands pointing at six, bursting with electric lightning arcs, no digits",
+  "color": "cyan and electric blue"
+ },
+ "ult.issac": {
+  "subject": "broken restraint shackles and a test tube shattering, toxic mutation burst, glowing veins",
+  "color": "toxic green and purple"
+ },
+ "ult.exile": {
+  "subject": "blood red full moon with crescent blade slashes, crimson droplets",
+  "color": "blood red"
+ },
+ "ult.rus": {
+  "subject": "twin pistols firing in a spray, gold coins flying, pirate bandana",
+  "color": "gold and orange"
  }
 }
