@@ -68,6 +68,8 @@ const ICON_CHARM = svg('M12 21s-8.5-5.3-8.5-11.2A4.8 4.8 0 0 1 12 6.6a4.8 4.8 0 
 const BIG_ICON: Record<string, [string, string]> = { stun: [ICON_STUN, '기절: 행동 불가'], fear: [ICON_FEAR, '공포: 공격 · 기술 불가'], freeze: [ICON_FREEZE, '빙결: 행동 불가'], charm: [ICON_CHARM, '매혹: 잠시 상대 편으로 싸움'] };
 /** 사이오닉 학파 (엔진 필드가 없을 때도 안전하게) */
 const schoolOfC = (u: CUnit): string | null => (u as { school?: string | null }).school ?? null;
+/** 이성 막대 디자인: 정신은 기존 초월 막대를 쓴다 */
+const barOf = (sc: string) => (sc === 'mind' ? 'trans' : sc);
 const hasKey = (u: CUnit, k: string) => u.statuses.some((s) => s.key === k && s.dur > 0);
 const inFrenzy = (u: CUnit) => !!u.mem.frenzy || u.statuses.some((s) => s.key === 'frenzy');
 const PSI_TOP: Record<string, 1> = { burn: 1, conduct: 1, chill: 1, regen: 1, bond: 1, resonance: 1 };
@@ -265,7 +267,7 @@ export class BattleView {
     el.style.height = `${100 / this.b.h}%`;
     el.dataset.a = 'bsel';
     el.dataset.v = String(u.id);
-    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div><img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && u.reason !== null ? `<div class="gx${schoolOfC(u) ? ` sc sc-${schoolOfC(u)}` : ''}"><i></i></div>` : ''}${schoolOfC(u) ? `<div class="cpi" style="--sc:${SCHOOL_BY_ID[schoolOfC(u) as SchoolId]?.color || '#b07cff'}" title="소마법 준비"><i class="cpi-ring"></i>${lineIcon(`s.${schoolOfC(u)}`, 'li')}</div>` : ''}<div class="sti"></div><div class="stc"></div><div class="stk"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
+    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div><img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && u.reason !== null ? `<div class="gx${schoolOfC(u) ? ` sc sc-${barOf(schoolOfC(u)!)}` : ''}"><i></i></div>` : ''}${schoolOfC(u) ? `<div class="cpi" style="--sc:${SCHOOL_BY_ID[schoolOfC(u) as SchoolId]?.color || '#b07cff'}" title="비술 준비"><i class="cpi-ring"></i>${lineIcon(`s.${schoolOfC(u)}`, 'li')}</div>` : ''}<div class="sti"></div><div class="stc"></div><div class="stk"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
     el.innerHTML = card ? `<div class="tk-card">${inner}</div>` : inner;
     this.board.appendChild(el);
     const q = <T extends HTMLElement>(s: string) => el.querySelector<T>(s)!;
@@ -338,7 +340,7 @@ export class BattleView {
             g.style.setProperty('--w', `${(r + 1) * 50}%`);
             g.style.setProperty('--k', Math.abs(r).toFixed(2));
             const mode = fz ? 'frz' : r > 0.15 ? 'hi' : r < -0.15 ? 'lo' : 'mid';
-            if (g.dataset.m !== mode) { g.dataset.m = mode; g.className = `gx sc sc-${sc} ${mode}`; e.el.classList.toggle('psi-lo', mode === 'lo' || mode === 'frz'); e.el.dataset.sc = sc; }
+            if (g.dataset.m !== mode) { g.dataset.m = mode; g.className = `gx sc sc-${barOf(sc)} ${mode}`; e.el.classList.toggle('psi-lo', mode === 'lo' || mode === 'frz'); e.el.dataset.sc = sc; }
           } else { e.gx.style.setProperty('--v', `${(u.reason + 100) / 2}%`); e.gx.className = fz ? 'psi frenzy' : 'psi'; }
           e.el.title = `이성 ${Math.round(u.reason)}${fz ? ' · 광폭' : ''}`;
         }
@@ -804,12 +806,12 @@ export class BattleView {
   }
 
   /** 부활 · 시간 역행 · 처형 · 불사: 숫자보다 고유 표식 */
-  /** 사이오닉 소마법: 시전자 학파 색 테두리 + 학파 이름표 + 대상까지 광선 + 대상 이중 고리 */
+  /** 사이오닉 비술: 시전자 학파 색 테두리 + 학파 이름표 + 대상까지 광선 + 대상 이중 고리 */
   private onCantrip(e: { id: number; school: string; to?: number; name: string }) {
     const u = this.unit(e.id); if (!u) return;
     const t = this.unit(e.to);
     const color = SCHOOL_BY_ID[e.school as SchoolId]?.color || '#b07cff';
-    this.log(e.id, `cp:${e.name}`, `소마법 ${e.name}`, 1, (n) => `소마법 ${e.name}${n > 1 ? ` ×${n}` : ''}`);
+    this.log(e.id, `cp:${e.name}`, `비술 ${e.name}`, 1, (n) => `비술 ${e.name}${n > 1 ? ` ×${n}` : ''}`);
     const ee = this.els.get(e.id);
     if (ee && !this.reduced) {
       this.play(ee.face, [{ boxShadow: `0 0 0 0 ${color}` }, { boxShadow: `0 0 0 3px ${color}, 0 0 14px ${color}`, offset: 0.3 }, { boxShadow: '0 0 0 0 transparent' }], 420);

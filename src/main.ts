@@ -11,7 +11,7 @@ import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isLocked, isMod
 import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { DIVINE_ACT, FAITH_DEF, MAJOR_AUGS, MINOR_TRAIT_GROW, recMajors } from './data/rework';
-import { SCHOOLS, SCHOOL_BY_ID, SCHOOL_PASSIVES, psiAugId, schoolOf, type SchoolId } from './data/schools';
+import { GROUPS, SCHOOL_BY_ID, SCHOOL_PASSIVES, UNIT_GROUP, psiAugId, schoolOf, type SchoolId } from './data/schools';
 import { BRIEF, PSI_BRIEF } from './data/brief';
 import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
 import * as AB from './ui/abil';
@@ -319,7 +319,7 @@ const TTYPE_RULE: Record<TType, string> = {
   major: `공명 등급마다 모든 능력치 +1. 5등급마다 메이저 증강 1개. 고유 궁극기는 시간이 지나면 저절로 차오르며 (기본 약 ${CFG.ultTime}초, 전투 시작 ${Math.round(CFG.ultStart * 100)}%) 한 전투에 여러 번 쓸 수 있다.`,
   minor: '공명 등급마다 모든 능력치 +1. 3등급마다 능력치 2종 +3. 기술 계수와 특성 수치가 등급에 따라 자란다 (10등급 ×2, 20등급 ×3).',
   special: '공명 등급마다 모든 능력치 +1. 합류 · 7 · 14 · 21등급에 전용 증강 (최대 4개).',
-  psionic: '공명 등급마다 모든 능력치 +1. 합류할 때 학파를 고르고 (소마법), 5등급마다 학파 전공 (최대 4개, 20등급에 완성).',
+  psionic: '공명 등급마다 모든 능력치 +1. 기물마다 학파가 정해져 있고, 합류할 때 그 학파의 전공을 고른다 (비술 + 지속 능력). 5등급마다 전공 증강 (최대 4개, 20등급에 완성).',
   divine: '공명 등급마다 모든 능력치 +1. 고유 신앙이 깨어 있어 신성력을 모으고, 가득 차면 장착한 성유물의 신권 대행을 전투당 한 번 쓴다. 모은 신성력은 전투 후 권능 포인트가 된다.',
 };
 /** 특성 하위 항목 (접힘) */
@@ -404,13 +404,14 @@ function faithAbil(d: UnitDef, u: UnitState | null, run: RunState | null) {
     <p>${on ? `${esc(fd.buff)}. 신성력: ${esc(fd.gain)}${app.detail ? `, 초당 +2 (수집 상한 ${CFG.divCap + (run?.divCap || 0)})` : ''}.` : '디바인만 신앙의 힘을 쓴다.'}</p></div>`;
 }
 /** 능력 란의 전술 유형 섹션: 유형마다 구성이 다르다 (u 없으면 도감 미리보기, c 있으면 전투 중 실시간 값) */
-/** 학파 선택 카드: 소마법 · 고이성 · 저이성 · 전공 6종 */
+/** 전공 선택 카드: 학파 · 비술 · 지속 능력 · 고이성 · 저이성 · 전공 증강 7종 */
 function schoolOpt(id: string, i: number) {
   const sc = SCHOOL_BY_ID[id.split('.')[1] as SchoolId];
   if (!sc) return '';
   return `<button class="aug-opt sch-opt ${app.augPick === i ? 'on' : ''}" style="--sc:${sc.color}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">
-    <span class="so-head">${augIcon(id)}<span><b>${sc.name}</b><span class="muted small">${sc.study}</span></span><kbd>${i + 1}</kbd></span>
-    <span class="so-cant"><b>소마법 · ${esc(sc.cantrip.name)}</b> <span class="muted small">${sc.cantrip.cd}초 · 이성 -${sc.cantrip.cost}</span><br>${statIc(esc(sc.cantrip.desc))}</span>
+    <span class="so-head">${augIcon(id)}<span><span class="muted small">${GROUPS[sc.group].name}</span><b>${sc.name}</b><span class="muted small">${sc.study}</span></span><kbd>${i + 1}</kbd></span>
+    <span class="so-cant"><b>비술 · ${esc(sc.cantrip.name)}</b> <span class="muted small">${sc.cantrip.cd}초 · 이성 -${sc.cantrip.cost}</span><br>${statIc(esc(sc.cantrip.desc))}</span>
+    <span class="so-cant"><b>지속 · ${esc(sc.passive.name)}</b><br>${statIc(esc(sc.passive.desc))}</span>
     <span class="so-rs"><span class="hi">고이성</span> ${esc(sc.high)}</span><span class="so-rs"><span class="lo">저이성</span> ${esc(sc.low)}</span>
     <span class="so-pass">${SCHOOL_PASSIVES[sc.id].map(([, n, dsc]) => `<span class="pill" title="${esc(dsc)}">${esc(n)}</span>`).join('')}</span></button>`;
 }
@@ -447,20 +448,23 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
     const mine = owned.filter((a) => a.id.startsWith('psi.'));
     if (live && c && c.reason !== null) body.push(`<div class="tt-row"><span class="tt-k">이성</span><b class="tt-big">${Math.round(c.reason)}</b><span class="muted small">-100 ~ 100${c.mem.frenzy || c.statuses.some((x) => x.key === 'frenzy') ? ' · <b class="warn">광폭</b>' : ''}</span></div>`);
     if (sc) {
-      body.push(`<div class="tt-school" style="--sc:${sc.color}">${lineIcon(`s.${sc.id}`, 'li')}<b>${sc.name}</b><span class="muted small">${sc.study}</span></div>`);
-      body.push(`<div class="rl-act tt-cantrip ab-click${abilOn('cantrip')}" data-a="abil-pop" data-v="cantrip" role="button" tabindex="0" style="--sc:${sc.color}"><div class="ab-head"><span class="ab-kind">소마법</span><b>${esc(sc.cantrip.name)}</b><span class="ab-meta">${sc.cantrip.cd}초 · 이성 -${sc.cantrip.cost}</span></div><p>${statIc(esc(sc.cantrip.desc))}</p></div>`);
+      body.push(`<div class="tt-school" style="--sc:${sc.color}">${lineIcon(`s.${sc.id}`, 'li')}<span class="muted small">${GROUPS[sc.group].name}</span><b>${sc.name}</b><span class="muted small">${sc.study}</span></div>`);
+      body.push(`<div class="rl-act tt-cantrip ab-click${abilOn('cantrip')}" data-a="abil-pop" data-v="cantrip" role="button" tabindex="0" style="--sc:${sc.color}"><div class="ab-head"><span class="ab-kind">비술</span><b>${esc(sc.cantrip.name)}</b><span class="ab-meta">${sc.cantrip.cd}초 · 이성 -${sc.cantrip.cost}</span></div><p>${statIc(esc(sc.cantrip.desc))}</p></div>`);
+      body.push(`<div class="tt-row tt-pass" style="--sc:${sc.color}"><span class="tt-k">지속 능력</span><b>${esc(sc.passive.name)}</b><span class="small">${statIc(esc(sc.passive.desc))}</span></div>`);
       const r = live && c && c.reason !== null ? c.reason : u ? null : null;
       body.push(`<div class="psi-scale" style="--sc:${sc.color}"><div class="ps-row hi"><span>고이성</span>${esc(sc.high)}</div><div class="ps-row lo"><span>저이성</span>${esc(sc.low)}</div>${r !== null ? `<div class="ps-meter"><i style="left:${(r + 100) / 2}%"></i></div>` : ''}</div>`);
-      body.push(`<div class="tt-row"><span class="tt-k">전공</span><b>${mine.length}<small>/4</small></b>${nx && mine.length < 4 ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
+      body.push(`<div class="tt-row"><span class="tt-k">전공 증강</span><b>${mine.length}<small>/4</small></b>${nx && mine.length < 4 ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
       if (mine.length) body.push(`<ul class="augs">${mine.map((a) => augRow(a.id, a.param, b, c)).join('')}</ul>`);
       const rest = SCHOOL_PASSIVES[sc.id].filter(([k]) => !mine.some((m) => m.id === psiAugId(sc.id, k)));
-      if (rest.length && (!u || app.detail)) body.push(`<div class="ps-rest"><span class="tt-k">남은 전공</span>${rest.map(([, n, dsc]) => `<span class="pill" title="${esc(dsc)}">${esc(n)}</span>`).join('')}</div>`);
+      if (rest.length && (!u || app.detail)) body.push(`<div class="ps-rest"><span class="tt-k">남은 증강</span>${rest.map(([, n, dsc]) => `<span class="pill" title="${esc(dsc)}">${esc(n)}</span>`).join('')}</div>`);
     } else {
-      body.push(`<p class="small muted">${u ? '아직 학파를 고르지 않았습니다.' : '합류할 때 7개 학파 중 무작위 2개(레이첼은 7개 전부)에서 하나를 고릅니다. 학파의 소마법이 바로 붙고, 5 · 10 · 15 · 20등급에 그 학파의 전공을 고릅니다.'}</p>`);
-      if (!u) body.push(`<div class="ps-rest">${SCHOOLS.map((x) => `<span class="pill sch-pill" style="--sc:${x.color}" title="${esc(`${x.cantrip.name}: ${x.cantrip.desc}`)}">${lineIcon(`s.${x.id}`, 'li')}${x.name}</span>`).join('')}</div>`);
+      const gid = UNIT_GROUP[d.id];
+      const majors = gid ? GROUPS[gid].majors : (Object.keys(SCHOOL_BY_ID) as SchoolId[]);
+      body.push(`<p class="small muted">${u ? '아직 전공을 고르지 않았습니다.' : `${gid ? `${GROUPS[gid].name} 소속. ` : '모든 학파의 전공 중에서 고를 수 있다. '}합류할 때 전공을 하나 고르면 그 전공의 비술과 지속 능력이 붙고, 5 · 10 · 15 · 20등급에 전공 증강을 고른다.`}</p>`);
+      if (!u) body.push(`<div class="ps-rest">${majors.map((m) => SCHOOL_BY_ID[m]).map((x) => `<span class="pill sch-pill" style="--sc:${x.color}" title="${esc(`${x.cantrip.name}: ${x.cantrip.desc}`)}">${lineIcon(`s.${x.id}`, 'li')}${x.name}</span>`).join('')}</div>`);
     }
     if (d.psi) body.push(`<p class="small"><span class="tt-k">이성 변화</span> ${esc(app.detail ? d.psi.desc : PSI_BRIEF[d.id] || d.psi.desc)}</p>`);
-    body.push('<p class="small muted">이성이 0 미만이면 초당 정신 피해를 받고, -100이 되면 광폭: 피아 구분 없이 공격하며 소마법을 쓰지 못한다 (-60 위로 회복하면 해제).</p>');
+    body.push('<p class="small muted">이성이 0 미만이면 초당 정신 피해를 받고, -100이 되면 광폭: 피아 구분 없이 공격하고 (아군에게는 피해 50%) 비술을 쓰지 못한다 (-60 위로 회복하면 해제).</p>');
   } else {
     if (live && c && c.div !== null) body.push(`<div class="tt-row"><span class="tt-k">신성력</span><b class="tt-big">${c.divUsed ? '발동함' : Math.round(c.div)}</b><span class="muted small">수집 ${Math.round(c.divGot)} / ${c.divCap}</span></div>`);
     if (run) body.push(`<div class="tt-row"><span class="tt-k">권능 포인트</span><b>${run.power}</b><span class="muted small">전투 후 디바인이 모은 신성력 ÷ ${CFG.powerPerDiv}</span></div>`);
@@ -1090,8 +1094,8 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     const ru = app.run?.units.find((x) => x.defId === d.id);
     const sid = cSchool(c) || (ru ? schoolOf(ru) : null);
     const sc = sid ? SCHOOL_BY_ID[sid] : null;
-    kind = '소마법'; name = sc?.cantrip.name || '소마법';
-    mech = `${sc?.name || '학파'}의 소마법. 전투 스킬과 별개로 쿨다운마다 자동으로 시전하고, 쓸 때마다 이성이 줄어든다. 광폭 중에는 쓰지 않는다.`;
+    kind = '비술'; name = sc?.cantrip.name || '비술';
+    mech = `${sc ? `${GROUPS[sc.group].name} ${sc.name}` : '전공'}의 비술. 전투 스킬과 별개로 쿨다운마다 자동으로 시전하고, 쓸 때마다 이성이 줄어든다. 광폭 중에는 쓰지 않는다.`;
     body = sc ? `<p>${statIc(esc(sc.cantrip.desc))}</p><p class="muted small">쿨다운 ${sc.cantrip.cd}초 · 이성 -${sc.cantrip.cost}</p><p class="small">고이성: ${esc(sc.high)}<br>저이성: ${esc(sc.low)}</p>` : '';
   } else if (key === 'divact') {
     const rid = c?.relic || app.run?.units.find((x) => x.defId === d.id)?.relic || DEFAULT_RELIC[d.id];
@@ -1560,8 +1564,8 @@ function pendingModal(run: RunState): string {
       const opts = p.options || [];
       const pv = previewAlly(run, u);
       body = `${side}<div class="ru-main">
-        <div class="ru-head"><h1>${p.kind === 'school' ? '합류 · 사이오닉 학파' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 학파 전공` : `${p.rank}등급 달성 · 메이저 증강`}</h1>
-          <span class="muted small">${p.kind === 'school' ? `학파를 하나 고르세요. 소마법이 바로 붙고, 5 · 10 · 15 · 20등급에 그 학파의 전공을 고릅니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파를 고를 수 있습니다.' : ''}` : p.kind === 'special' ? '스페셜 기물은 합류할 때와 7 · 14 · 21등급에 전용 증강을 고릅니다 (최대 4개).' : p.kind === 'psionic' ? '사이오닉 기물은 5등급마다 학파 전공을 고릅니다 (최대 4개).' : '메이저 기물은 5등급마다 메이저 증강을 고릅니다.'}</span>
+        <div class="ru-head"><h1>${p.kind === 'school' ? '합류 · 사이오닉 전공' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 전공 증강` : `${p.rank}등급 달성 · 메이저 증강`}</h1>
+          <span class="muted small">${p.kind === 'school' ? `${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙고, 5 · 10 · 15 · 20등급에 전공 증강을 고릅니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}` : p.kind === 'special' ? '스페셜 기물은 합류할 때와 7 · 14 · 21등급에 전용 증강을 고릅니다 (최대 4개).' : p.kind === 'psionic' ? '사이오닉 기물은 5등급마다 전공 증강을 고릅니다 (최대 4개).' : '메이저 기물은 5등급마다 메이저 증강을 고릅니다.'}</span>
           ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];

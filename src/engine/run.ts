@@ -12,7 +12,7 @@ import { SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, recMajors } from '../data/rework';
 import { SCHOOL_AUGS, schoolPassives } from '../data/psionic';
-import { SCHOOLS, schoolAugId, schoolOf } from '../data/schools';
+import { majorsOf, schoolAugId, schoolOf, type SchoolId } from '../data/schools';
 import { DEFAULT_RELIC, RELIC_BY_ID, RELICS } from '../data/relics';
 import { Rng } from '../rng';
 import { FAITHS,
@@ -813,8 +813,8 @@ export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major')
   const owned = new Set(u.augments.map((a) => a.id));
   const avail = (a: { id: string; stack?: boolean }) => a.stack || !owned.has(a.id);
   if (!augRoom(u, kind)) return [];
-  // 학파: 레이첼은 7개 전부, 나머지는 무작위 2개
-  if (kind === 'school') return def.id === 'rachel' ? SCHOOL_AUGS.map((a) => ({ id: a.id })) : rng(run, (r) => r.sample(SCHOOL_AUGS.map((a) => a.id), 2)).map((id) => ({ id }));
+  // 전공: 기물 학파의 전공 2개 (학파가 없는 레이첼은 8개 전부)
+  if (kind === 'school') { const ok = majorsOf(def.id); return SCHOOL_AUGS.filter((a) => ok.includes(a.owner as SchoolId)).map((a) => ({ id: a.id })); }
   const base = kind === 'special' ? def.specialAugs || [] : kind === 'psionic' ? psiPool(u) : MAJOR_AUGS;
   const unitPool = base.filter((a) => avail(a) && !augClash(u, a.id));
   return rng(run, (r) => {
@@ -979,7 +979,7 @@ export function applyRankPicks(run: RunState, uid: string, picks: Major[], point
 }
 export function chooseAug(run: RunState, uid: string, pick: AugPick) {
   const u = run.units.find((x) => x.uid === uid)!;
-  if (pick.id.startsWith('school.') && schoolOf(u)) return; // 학파는 1개만
+  if (pick.id.startsWith('school.') && schoolOf(u)) return; // 전공은 1개만
   u.augments.push(pick);
   if (u.pos === null) autoPlace(run);
 }
@@ -1138,15 +1138,31 @@ export function migrate(run: RunState): RunState {
   run.aceTarget ??= null;
   run.privilege ??= null;
   for (const u of run.units) u.mod ??= null;
-  for (const u of run.units) u.augments = u.augments.filter((a) => AUG_BY_ID[a.id]); // 없어진 증강 (라르스 장부 정리 · 임시 사이오닉 증강 psi.clarity 등) 정리
-  // 5단계 학파: 학파가 없는 사이오닉 기물은 무작위 학파 (합류 학파 선택이 대기 중이면 그대로 둔다)
+  for (const u of run.units) u.augments = u.augments.filter((a) => AUG_BY_ID[a.id]); // 없어진 증강 (라르스 장부 정리 · 옛 학파 school.trans · psi.* 등) 정리
+  // 4학파 · 8전공: 학파에 맞지 않는 전공(옛 7학파)은 지우고, 전공이 없는 사이오닉 기물은 학파 전공 중 무작위 (합류 전공 선택이 대기 중이면 그대로 둔다)
   for (const u of run.units) {
-    if (UNIT_BY_ID[u.defId]?.ttype !== 'psionic' || schoolOf(u)) continue;
-    if (run.pending.some((p) => p.t === 'rankup' && p.uid === u.uid && p.kind === 'school')) continue;
-    u.augments.unshift({ id: schoolAugId(rng(run, (r) => r.pick(SCHOOLS)).id) });
+    if (UNIT_BY_ID[u.defId]?.ttype !== 'psionic') continue;
+    const ok = majorsOf(u.defId);
+    const cur = schoolOf(u);
+    if (cur && !ok.includes(cur)) u.augments = u.augments.filter((a) => !a.id.startsWith('school.') && !a.id.startsWith('psi.'));
+    if (!schoolOf(u) && !run.pending.some((p) => p.t === 'rankup' && p.uid === u.uid && p.kind === 'school')) u.augments.unshift({ id: schoolAugId(rng(run, (r) => r.pick(ok))) });
+    // 다른 전공의 전공 증강 · 중복 전공 정리 (전공 증강 최대 4개)
+    const sc = schoolOf(u);
+    let seenSchool = false, nPsi = 0;
+    u.augments = u.augments.filter((a) => {
+      if (a.id.startsWith('school.')) { const keep = !seenSchool && a.id === `school.${sc}`; seenSchool ||= keep; return keep; }
+      if (a.id.startsWith('psi.')) return !!sc && AUG_BY_ID[a.id]?.owner === sc && ++nPsi <= 4;
+      return true;
+    });
   }
-  // 없어진 증강이 든 증강 선택지는 다시 뽑는다
-  for (const p of run.pending) if (p.t === 'rankup' && p.options?.some((o) => !AUG_BY_ID[o.id])) p.options = null;
+  // 없어진 증강이 든 증강 선택지 · 전공과 맞지 않는 선택지는 다시 뽑는다
+  for (const p of run.pending) {
+    if (p.t !== 'rankup' || !p.options) continue;
+    const u = run.units.find((x) => x.uid === p.uid);
+    if (p.options.some((o) => !AUG_BY_ID[o.id])) p.options = null;
+    else if (u && p.kind === 'school' && p.options.some((o) => !majorsOf(u.defId).includes(o.id.slice(7) as SchoolId))) p.options = null;
+    else if (u && p.kind === 'psionic' && p.options.some((o) => AUG_BY_ID[o.id]?.owner !== schoolOf(u))) p.options = null;
+  }
   run.field ??= 'waste';
   run.diff ??= 0;
   run.cleared ??= false;

@@ -2085,3 +2085,12 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .cbeam.cb-wave { height: 5px; margin-top: -2.5px; background: repeating-linear-gradient(90deg, var(--sc) 0 3px, transparent 3px 6px); }
 .cbeam.cb-trans { background: linear-gradient(90deg, transparent, #ff6bd0 20%, var(--sc) 60%, #fff); }
 .cring { width: 11%; border-width: 2.5px; }
+/* 환조: 보라 · 분홍 안개 → 고이성 향 연기가 곧게 오름 · 저이성 연기가 흩어지며 끝이 흐려짐 */
+.gx.sc-illusion { --sc: #e08bd8; --fill: linear-gradient(var(--dir), #6b3a8f, #e08bd8); --glow: #ffd6f6; }
+.gx.sc-illusion i { background-image: radial-gradient(ellipse at 50% 30%, rgb(255 255 255 / .55) 0 1px, transparent 2px), var(--fill); background-size: 4px 9px, 100% 100%; animation: gxRise 2.4s linear infinite; }
+.gx.sc-illusion.lo i { filter: blur(calc(var(--k) * 1.2px)); animation: gxRise calc(1.4s - var(--k) * .6s) linear infinite, gxHaze calc(1.6s - var(--k) * .6s) ease-in-out infinite; }
+@keyframes gxRise { from { background-position: 0 0, 0 0 } to { background-position: 0 -18px, 0 0 } }
+@keyframes gxHaze { 0%, 100% { opacity: 1 } 50% { opacity: .55 } }
+.cbeam.cb-illusion { background: linear-gradient(90deg, transparent, #b07cff 30%, var(--sc)); filter: blur(.6px); }
+.tt-pass { align-items: baseline; } .tt-pass b { color: var(--sc); }
+.tt-school .muted { margin-right: 2px; }

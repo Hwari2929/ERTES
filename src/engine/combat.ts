@@ -21,7 +21,7 @@ export function categoryImmune(c: Category, s: { type: string; key: string }): b
 }
 export const STATUS_NAME: Record<string, string> = {
   stun: '기절', fear: '공포', shock: '감전', root: '속박', stealth: '은신', poison: '중독', bleed: '출혈', corrode: '침식', decay: '부식', gloom: '암운', slow: '둔화', frenzy: '광폭', wound: '부상', suppress: '제압',
-  // 사이오닉 학파 상태이상 (연소 · 전도 · 지속 회복 · 오한 · 빙결 · 매혹 · 결속 · 공진)
+  // 사이오닉 상태이상 (연소 · 전도 · 지속 회복 · 오한 · 빙결 · 매혹 · 결속 · 공진 · 중독 · 혼란 · 향취)
   ...Object.fromEntries(Object.entries(PSI_STATUS).map(([k, v]) => [k, v.name])),
 };
 
@@ -219,12 +219,12 @@ export interface CUnit {
   ctype?: CType; ttype?: TType;
   /** 사이오닉 이성 (-100 ~ +100), 없으면 null */
   reason: number | null;
-  /** 사이오닉 학파 · 소마법 (없으면 null / 0) */
+  /** 사이오닉 전공 · 비술 (없으면 null / 0) */
   school: SchoolId | null;
   cantrip?: Cantrip | null;
   /** 소마법 남은 쿨다운 · 이번 쿨다운 전체 (초) */
   cantripCd: number; cantripMax: number;
-  /** 적 정예 (매혹 · 빙결 지속 시간 절반) */
+  /** 적 정예 (매혹 · 빙결 · 혼란 지속 시간 절반) */
   elite?: boolean;
   /** 디바인 신성력 게이지 (0~100), 없으면 null */
   div: number | null;
@@ -321,8 +321,20 @@ export class Battle {
     u.reason = Math.max(-100, Math.min(100, u.reason + d * (1 + (u.mem.reasonAmp || 0))));
     this.checkFrenzy(u);
   }
-  /** 광폭: 이성 -100 에서 시작 (피아 구분 없이 가장 가까운 대상 공격 · 소마법 불가 · 피해 +30%), -60 을 넘으면 해제 */
+  /** 광폭: 이성 -100 에서 시작 (피아 구분 없이 가장 가까운 대상 공격 · 비술 불가 · 피해 +30%, 같은 편에게는 50%), -60 을 넘으면 해제 */
   frenzied(u: CUnit) { return u.statuses.some((s) => s.key === 'frenzy'); }
+  /** 혼란: 가까운 아무나 공격 (같은 편 포함), 스킬 · 비술 · 궁극기 사용 불가 */
+  confused(u: CUnit) { return u.statuses.some((s) => s.key === 'confuse'); }
+  /** 도발 (환영): 주변 1칸 안의 도발 기물을 우선 공격 */
+  taunter(u: CUnit): CUnit | null {
+    let best: CUnit | null = null, bd = 2;
+    for (const e of this.units) {
+      if (!e.alive || !e.mem.taunt || this.sideOf(e) === this.sideOf(u) || this.hidden(e)) continue;
+      const d = this.dist(u, e);
+      if (d <= 1 && d < bd) { bd = d; best = e; }
+    }
+    return best;
+  }
   private checkFrenzy(u: CUnit) {
     if (u.reason === null || !u.alive) return;
     const on = this.frenzied(u);
@@ -513,11 +525,12 @@ export class Battle {
 
     // 광폭: 피아 구분 없이 가장 가까운 대상
     const frenzy = this.frenzied(u);
-    const ff = frenzy && CFG.frenzyFriendly; // 광폭이 아군도 노리는지 (기본 true)
+    const confused = this.confused(u);
+    const ff = (frenzy && CFG.frenzyFriendly) || confused; // 광폭이 아군도 노리는지 (기본 true) · 혼란은 항상
     const pool = () => (ff ? this.units.filter((x) => x.alive && x !== u && !this.hidden(x)) : this.targetable(u));
     if (!u.target || !u.target.alive || this.hidden(u.target) || u.target === u || (!ff && this.sideOf(u.target) === this.sideOf(u))) u.target = this.nearest(u, pool());
     // 명사수 기본 메커니즘: 1초마다 사거리 안에서 체력 비율이 가장 낮은 적으로 대상을 바꾼다 (아군 명사수, 외길 추적 · 광폭 · 매혹 제외)
-    if (u.ctype === 'MARK' && u.side === 0 && !u.isSummon && !frenzy && !u.mem.lockTarget && !u.mem.charmTo) {
+    if (u.ctype === 'MARK' && u.side === 0 && !u.isSummon && !frenzy && !confused && !u.mem.lockTarget && !u.mem.charmTo) {
       u.mem.mkScan = (u.mem.mkScan || 0) - dt;
       if (u.mem.mkScan <= 0) {
         u.mem.mkScan = 1;
@@ -525,17 +538,20 @@ export class Battle {
         if (low) u.target = low;
       }
     }
+    // 도발: 주변 1칸에 도발 기물(환영)이 있으면 그쪽을 노린다 (광폭 · 혼란 제외)
+    if (!ff) { const tz = this.taunter(u); if (tz) u.target = tz; }
     const tgt = u.target;
     if (!tgt) return;
     const range = this.S(u, 'range');
     // 사거리 밖의 더 가까운 적이 생기면 재조준 (외길 추적: 대상이 쓰러질 때까지 바꾸지 않음)
-    if (this.dist(u, tgt) > range && (!u.mem.lockTarget || frenzy)) {
+    if (this.dist(u, tgt) > range && (!u.mem.lockTarget || ff) && !tgt.mem.taunt) {
       const near = this.nearest(u, pool());
       if (near && this.dist(u, near) < this.dist(u, tgt)) u.target = near;
     }
     const t2 = u.target!;
     const d = this.dist(u, t2);
-    const feared = this.has(u, 'fear');
+    const feared = this.has(u, 'fear') || confused; // 혼란: 스킬 · 비술 · 궁극기 불가 (기본 공격만)
+    const fearOnly = this.has(u, 'fear');
 
     // 메이저 궁극기: 게이지가 가득 차면 기술보다 먼저
     if (!feared && u.ult && (u.ultG || 0) >= 1) {
@@ -568,7 +584,7 @@ export class Battle {
         }
       }
     }
-    // 사이오닉 소마법: 전투 스킬과 별개, 준비되면 자동 시전 (공포 · 매혹 · 광폭 중에는 불가)
+    // 사이오닉 비술: 전투 스킬과 별개, 준비되면 자동 시전 (공포 · 매혹 · 광폭 · 혼란 중에는 불가)
     let d2 = d;
     if (u.cantrip && u.cantripCd <= 0 && !feared && !frenzy && !u.mem.charmTo && u.alive) {
       this.castCantrip(u);
@@ -577,7 +593,7 @@ export class Battle {
     }
     if (!t2.alive || u.noAttack || !u.alive) return;
     if (d2 <= range) {
-      if (!feared && u.atkTimer <= 0 && u.reloadT <= 0) {
+      if (!fearOnly && u.atkTimer <= 0 && u.reloadT <= 0) {
         const tgt2 = u.mem.lowestFocus ? this.lowestEnemy(u) || t2 : t2;
         this.basicAttack(u, tgt2);
         u.atkTimer = u.atk.interval;
@@ -719,7 +735,9 @@ export class Battle {
     if (dmg > 0 && canCrit && !res.miss) {
       if (this.rng.next() < this.S(src, 'crit') + (o.critBonus || 0)) {
         res.crit = true;
-        dmg *= this.S(src, 'critDmg') + tgt.statuses.reduce((a, s) => a + (s.critVuln || 0), 0);
+        let cm = this.S(src, 'critDmg') + tgt.statuses.reduce((a, s) => a + (s.critVuln || 0), 0);
+        if (tgt.mem.critRed) cm = Math.max(1, cm * (1 - tgt.mem.critRed)); // 인과학파 고이성: 받는 치명타 피해 감소
+        dmg *= cm;
         if (src.side === 0) this.counters.crits++;
       }
     }
@@ -737,6 +755,8 @@ export class Battle {
       if (!selfPsy) for (const h of src.hooks) if (h.dmgMult) dmg *= h.dmgMult(this, src, tgt, o);
       for (const h of tgt.hooks) if (h.takenMult) dmg *= h.takenMult(this, tgt, src, o);
       if (this.t > CFG.overtimeStart) dmg *= 1 + (this.t - CFG.overtimeStart) * CFG.overtimeRamp;
+      // 광폭: 같은 편에게 주는 피해 50%
+      if (src !== tgt && o.tag !== 'dot' && this.sideOf(src) === this.sideOf(tgt) && this.frenzied(src)) dmg *= 0.5;
     }
     dmg = Math.max(0, dmg);
     if (tgt.mem.hitCap && dmg > 0) dmg = Math.min(dmg, this.S(tgt, 'maxHp') * tgt.mem.hitCap); // 올림푸스 성물: 1회 피해 상한
@@ -818,9 +838,28 @@ export class Battle {
     return amt;
   }
 
+  /** 밀쳐내기 · 끌어당기기 면역 (보스 · 고정 기물 · 역장) */
+  unmovable(u: CUnit) { return !u.alive || u.isBoss || u.immobile || !!u.mem.noKnock; }
+  /** 끌어당기기: 대상을 시전자 바로 앞 칸(대상 쪽)으로. 그 칸이 막혀 있으면 blocker */
+  pull(src: CUnit, tgt: CUnit): { moved: boolean; blocker?: CUnit } {
+    if (this.unmovable(tgt)) return { moved: false };
+    const dx = Math.sign(tgt.x - src.x), dy = Math.sign(tgt.y - src.y);
+    if (!dx && !dy) return { moved: false };
+    const nx = src.x + dx, ny = src.y + dy;
+    if (nx === tgt.x && ny === tgt.y) return { moved: false };
+    if (!this.inBounds(nx, ny)) return { moved: false };
+    const occ = this.unitAt(nx, ny);
+    if (occ) return { moved: false, blocker: occ };
+    tgt.px = tgt.x; tgt.py = tgt.y;
+    tgt.x = nx; tgt.y = ny;
+    tgt.moveDur = tgt.moveT = 0.25;
+    tgt.mem.lastCell = -1;
+    this.emit({ k: 'status', id: tgt.id, name: '끌어당기기', src: src.id, harm: true, stype: 'knock' });
+    return { moved: true };
+  }
   /** 밀쳐내기: 시전자 반대 방향으로 1칸 (보스 · 고정 기물 면역). blocker = 부딪힌 기물 */
   knockback(src: CUnit, tgt: CUnit): { moved: boolean; blocker?: CUnit } {
-    if (!tgt.alive || tgt.isBoss || tgt.immobile) return { moved: false };
+    if (this.unmovable(tgt)) return { moved: false };
     const dx = Math.sign(tgt.x - src.x), dy = Math.sign(tgt.y - src.y);
     if (!dx && !dy) return { moved: false };
     const nx = tgt.x + dx, ny = tgt.y + dy;
@@ -897,15 +936,15 @@ export class Battle {
     if (!tgt.alive) return false;
     if (categoryImmune(tgt.category, s)) return false;
     if ((s.type === 'stun' || s.type === 'fear') && (tgt.mem.ccImmuneUntil || 0) > this.t && src.side !== tgt.side) return false; // 궁극기 등 일시 면역 // 분류 면역 (기계: 출혈 · 중독, 구조물: 기절 · 공포 · 빙결, 영혼: 매혹)
-    const cc = s.key === 'freeze' || s.key === 'charm';
-    if (cc && tgt.isBoss) return false; // 보스: 빙결 · 매혹 면역
+    const cc = s.key === 'freeze' || s.key === 'charm' || s.key === 'confuse';
+    if (cc && tgt.isBoss) return false; // 보스: 빙결 · 매혹 · 혼란 면역
     const hostile = this.sideOf(src) !== this.sideOf(tgt);
     if (hostile && tgt.category === 'bio' && s.dps && (s.key === 'bleed' || s.key === 'poison')) { s.dps *= 1.25; if (s.perDps) s.perDps *= 1.25; } // 생체: 출혈 · 중독 강화
     if (hostile) {
       const p = baseChance * (1 + this.S(src, 'effHit') - this.S(tgt, 'effRes'));
       if (this.rng.next() >= p) return false;
       if (tgt.isBoss && (s.type === 'stun' || s.type === 'fear')) s.dur *= 0.5;
-      if (cc && tgt.elite) s.dur *= 0.5; // 정예: 빙결 · 매혹 지속 절반
+      if (cc && tgt.elite) s.dur *= 0.5; // 정예: 빙결 · 매혹 · 혼란 지속 절반
       s.dur *= 1 + (src.mem.statusDur || 0);
       if (src.side === 0) this.counters.statuses++;
     }
@@ -920,6 +959,7 @@ export class Battle {
       else s.onStack?.(s);
       tgt.statuses.push(s);
       if (s.key === 'charm') { tgt.mem.charmTo = this.sideOf(src) + 1; tgt.target = null; for (const x of this.units) if (x.target === tgt) x.target = null; }
+      if (s.key === 'confuse') tgt.target = null;
     }
     const cur = ex || s;
     for (const x of tgt.statuses.slice()) if (x !== cur && x.onOther) x.onOther(this, tgt, x, cur);

@@ -10,7 +10,7 @@ const run = R.newRun(+(q.get('seed') || 3), ids.slice(0, 3));
 for (const id of ids.slice(3)) R.recruit(run, id);
 run.pending = [];
 // 사이오닉: school=pyro,volt,... 순서대로 학파 지정 (없으면 순서대로 돌림)
-const schools = (q.get('school') || 'pyro,volt,seed,chrono,trans,wave,gold').split(',');
+const schools = (q.get('school') || 'pyro,chrono,volt,wave,seed,mind,gold,illusion').split(',');
 let si = 0;
 for (const u of run.units) if (UNIT_BY_ID[u.defId].ttype === 'psionic' && !u.augments.some((a) => a.id.startsWith('school.'))) u.augments.push({ id: `school.${schools[si++ % schools.length]}` });
 const r0 = +(q.get('reason') || NaN);
