@@ -11,6 +11,7 @@ import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isLocked, isMod
 import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { DIVINE_ACT, FAITH_DEF, MAJOR_AUGS, MINOR_TRAIT_GROW, recMajors } from './data/rework';
+import { CANTRIP_INFO, PASSIVE_BRIEF, PASSIVE_INFO } from './data/psiinfo';
 import { GROUPS, SCHOOL_BY_ID, SCHOOL_PASSIVES, UNIT_GROUP, isTransformAug, psiAugId, schoolOf, type SchoolId } from './data/schools';
 import { BRIEF, PSI_BRIEF } from './data/brief';
 import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
@@ -446,32 +447,48 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
     const sid = (u ? schoolOf(u) : null) || cSchool(c);
     const sc = sid ? SCHOOL_BY_ID[sid] : null;
     const mine = owned.filter((a) => a.id.startsWith('psi.'));
-    if (live && c && c.reason !== null) body.push(`<div class="tt-row"><span class="tt-k">이성</span><b class="tt-big">${Math.round(c.reason)}</b><span class="muted small">-100 ~ 100${c.mem.frenzy || c.statuses.some((x) => x.key === 'frenzy') ? ' · <b class="warn">광폭</b>' : ''}</span></div>`);
     if (sc) {
-      body.push(`<div class="tt-school" style="--sc:${sc.color}">${lineIcon(`s.${sc.id}`, 'li')}<span class="muted small">${GROUPS[sc.group].name}</span><b>${sc.name}</b><span class="muted small">${sc.study}</span></div>`);
-      body.push(`<div class="rl-act tt-cantrip ab-click${abilOn('cantrip')}" data-a="abil-pop" data-v="cantrip" role="button" tabindex="0" style="--sc:${sc.color}"><div class="ab-head"><span class="ab-kind">비술</span><b>${esc(sc.cantrip.name)}</b><span class="ab-meta">${sc.cantrip.cd}초 · 이성 -${sc.cantrip.cost}</span></div><p>${statIc(esc(sc.cantrip.desc))}</p></div>`);
-      body.push(`<div class="tt-row tt-pass" style="--sc:${sc.color}"><span class="tt-k">지속 능력</span><b>${esc(sc.passive.name)}</b><span class="small">${statIc(esc(sc.passive.desc))}</span></div>`);
-      const r = live && c && c.reason !== null ? c.reason : u ? null : null;
-      body.push(`<div class="psi-scale" style="--sc:${sc.color}"><div class="ps-row hi"><span>고이성</span>${esc(sc.high)}</div><div class="ps-row lo"><span>저이성</span>${esc(sc.low)}</div>${r !== null ? `<div class="ps-meter"><i style="left:${(r + 100) / 2}%"></i></div>` : ''}</div>`);
-      body.push(`<div class="tt-row"><span class="tt-k">전공 증강</span><b>${mine.length}<small>/4</small></b>${nx && mine.length < 4 ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
-      if (mine.length) body.push(`<ul class="augs">${mine.map((a) => augRow(a.id, a.param, b, c)).join('')}</ul>`);
-      const rest = SCHOOL_PASSIVES[sc.id].filter(([k]) => !mine.some((m) => m.id === psiAugId(sc.id, k)));
-      if (rest.length && (!u || app.detail)) body.push(`<div class="ps-rest"><span class="tt-k">남은 증강</span>${rest.map(([, n, dsc]) => `<span class="pill" title="${esc(dsc)}">${esc(n)}</span>`).join('')}</div>`);
+      const g = GROUPS[sc.group];
+      // 머리: 학파 · 전공 칩
+      body.push(`<div class="ps-head" style="--sc:${sc.color}">${lineIcon(`s.${sc.id}`, 'li')}<span class="ps-grp">${g.name}</span><b>${sc.name}</b><span class="muted small">${sc.study}</span></div>`);
+      // 비술 · 지속 능력: 두 장의 작은 카드 (누르면 상세)
+      const cd = c?.cantripMax || sc.cantrip.cd;
+      const chips = AB.skillChips(CANTRIP_INFO[sc.id], actx(b, c, true), b && c ? b.S(c, 'range') : d.range, cd) + AB.chip('a.reason', `-${sc.cantrip.cost}`, '이성 소모');
+      body.push(`<div class="ps-cards" style="--sc:${sc.color}">
+        <div class="ps-card ab-click${abilOn('cantrip')}" data-a="abil-pop" data-v="cantrip" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">비술</span><b>${esc(sc.cantrip.name)}</b></div><div class="ab-chips">${chips}</div></div>
+        <div class="ps-card ab-click${abilOn('psipass')}" data-a="abil-pop" data-v="psipass" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">지속</span><b>${esc(sc.passive.name)}</b></div><span class="small">${esc(PASSIVE_BRIEF[sc.id])}</span></div>
+      </div>`);
+      // 이성: 양 끝에 효과, 가운데 0 (누르면 규칙 상세)
+      const r = live && c && c.reason !== null ? c.reason : null;
+      const fz = !!(c && (c.mem.frenzy || c.statuses.some((x) => x.key === 'frenzy')));
+      body.push(`<div class="ps-reason ab-click${abilOn('reason')}" data-a="abil-pop" data-v="reason" role="button" tabindex="0" style="--sc:${sc.color}">
+        <div class="pr-bar">${r !== null ? `<i style="left:${(r + 100) / 2}%"></i><b style="left:${(r + 100) / 2}%">${Math.round(r)}</b>` : ''}</div>
+        <div class="pr-ends"><span class="lo">${lineIcon('a.power', 'li')}${esc(sc.low)}</span><span class="hi">${esc(sc.high)}${lineIcon('a.shield', 'li')}</span></div>
+        ${fz ? '<span class="pr-fz">광폭</span>' : ''}</div>`);
+      // 전공 증강: 4칸 슬롯
+      const slots = [0, 1, 2, 3].map((i) => {
+        const a = mine[i];
+        if (a) return `<button class="tt-ic ab-click${abilOn(`aug:${a.id}`)}" data-a="abil-pop" data-v="aug:${esc(a.id)}" title="${esc(AUG_BY_ID[a.id]?.name || a.id)}">${augIcon(a.id)}</button>`;
+        return `<span class="ps-slot" title="${[5, 10, 15, 20][i]}등급">${[5, 10, 15, 20][i]}</span>`;
+      }).join('');
+      body.push(`<div class="tt-row ps-augs"><span class="tt-k">전공 증강</span><div class="tt-icons">${slots}</div></div>`);
+      if (!u || app.detail) {
+        const rest = SCHOOL_PASSIVES[sc.id].filter(([k]) => !mine.some((m) => m.id === psiAugId(sc.id, k)));
+        if (rest.length) body.push(`<div class="ps-rest">${rest.map(([k, n, dsc]) => `<span class="pill" title="${esc(dsc)}">${isTransformAug(psiAugId(sc.id, k)) ? '◆ ' : ''}${esc(n)}</span>`).join('')}</div>`);
+      }
     } else {
       const gid = UNIT_GROUP[d.id];
       const majors = gid ? GROUPS[gid].majors : (Object.keys(SCHOOL_BY_ID) as SchoolId[]);
-      body.push(`<p class="small muted">${u ? '아직 전공을 고르지 않았습니다.' : `${gid ? `${GROUPS[gid].name} 소속. ` : '모든 학파의 전공 중에서 고를 수 있다. '}합류할 때 전공을 하나 고르면 그 전공의 비술과 지속 능력이 붙고, 5 · 10 · 15 · 20등급에 전공 증강을 고른다.`}</p>`);
-      if (!u) body.push(`<div class="ps-rest">${majors.map((m) => SCHOOL_BY_ID[m]).map((x) => `<span class="pill sch-pill" style="--sc:${x.color}" title="${esc(`${x.cantrip.name}: ${x.cantrip.desc}`)}">${lineIcon(`s.${x.id}`, 'li')}${x.name}</span>`).join('')}</div>`);
+      body.push(`<p class="small muted">${u ? '아직 전공을 고르지 않았습니다.' : `${gid ? `${GROUPS[gid].name} · ` : '모든 학파 · '}합류할 때 전공 하나를 고른다.`}</p>`);
+      body.push(`<div class="ps-rest">${majors.map((m) => SCHOOL_BY_ID[m]).map((x) => `<span class="pill sch-pill" style="--sc:${x.color}" title="${esc(`${x.cantrip.name}: ${x.cantrip.desc}`)}">${lineIcon(`s.${x.id}`, 'li')}${x.name}</span>`).join('')}</div>`);
     }
-    if (d.psi) body.push(`<p class="small"><span class="tt-k">이성 변화</span> ${esc(app.detail ? d.psi.desc : PSI_BRIEF[d.id] || d.psi.desc)}</p>`);
-    body.push('<p class="small muted">이성이 0 미만이면 초당 정신 피해를 받고, -100이 되면 광폭: 피아 구분 없이 공격하고 (아군에게는 피해 50%) 비술을 쓰지 못한다 (-60 위로 회복하면 해제).</p>');
   } else {
     if (live && c && c.div !== null) body.push(`<div class="tt-row"><span class="tt-k">신성력</span><b class="tt-big">${c.divUsed ? '발동함' : Math.round(c.div)}</b><span class="muted small">수집 ${Math.round(c.divGot)} / ${c.divCap}</span></div>`);
     if (run) body.push(`<div class="tt-row"><span class="tt-k">권능 포인트</span><b>${run.power}</b><span class="muted small">전투 후 디바인이 모은 신성력 ÷ ${CFG.powerPerDiv}</span></div>`);
   }
   void f;
   return `<section class="abil tt-sec tt-${tt}"><div class="ab-head"><span class="ab-kind">전술 유형</span><b class="tt-name"><i class="tt-${tt}">${TTYPE_ICON(tt)}</i>${TTYPE_NAME[tt]}</b></div>
-    <p class="tt-rule small muted">${esc(TTYPE_RULE[tt])}</p>${body.join('')}</section>`;
+    ${tt !== 'psionic' || app.detail ? `<p class="tt-rule small muted">${esc(TTYPE_RULE[tt])}</p>` : ''}${body.join('')}</section>`;
 }
 /** 분류 표시 (아군 · 적 공통) */
 function categoryTag(cat: Category) {
@@ -1096,7 +1113,30 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     const sc = sid ? SCHOOL_BY_ID[sid] : null;
     kind = '비술'; name = sc?.cantrip.name || '비술';
     mech = `${sc ? `${GROUPS[sc.group].name} ${sc.name}` : '전공'}의 비술. 전투 스킬과 별개로 쿨다운마다 자동으로 시전하고, 쓸 때마다 이성이 줄어든다. 광폭 중에는 쓰지 않는다.`;
-    body = sc ? `<p>${statIc(esc(sc.cantrip.desc))}</p><p class="muted small">쿨다운 ${sc.cantrip.cd}초 · 이성 -${sc.cantrip.cost}</p><p class="small">고이성: ${esc(sc.high)}<br>저이성: ${esc(sc.low)}</p>` : '';
+    if (sc) {
+      const info = CANTRIP_INFO[sc.id];
+      const cd = c?.cantripMax || sc.cantrip.cd;
+      body = AB.skillBody(info, ctx, b && c ? b.S(c, 'range') : d.range, cd, gl) + AB.rowsHtml([['이성 소모', `${lineIcon('a.reason', 'li')}-${sc.cantrip.cost}`]]);
+    }
+  } else if (key === 'psipass') {
+    const ru = app.run?.units.find((x) => x.defId === d.id);
+    const sid = cSchool(c) || (ru ? schoolOf(ru) : null);
+    const sc = sid ? SCHOOL_BY_ID[sid] : null;
+    kind = '지속 능력'; name = sc?.passive.name || '지속 능력';
+    mech = '전투 내내 적용된다. 확률 발동은 평타 · 전투 스킬 · 비술이 적중할 때만 판정하고, 지속 피해 · 소환물 공격은 판정하지 않는다.';
+    body = sc ? AB.rowsHtml(PASSIVE_INFO[sc.id].map(([k, v]) => [k, statIc(AB.tok(v, ctx, gl))] as [string, string])) : '';
+  } else if (key === 'reason') {
+    const ru = app.run?.units.find((x) => x.defId === d.id);
+    const sid = cSchool(c) || (ru ? schoolOf(ru) : null);
+    const sc = sid ? SCHOOL_BY_ID[sid] : null;
+    kind = '이성'; name = sc ? GROUPS[sc.group].name : '이성';
+    mech = '-100 ~ 100. 비술을 쓰면 줄고, 기물마다 정해진 행동으로 오르내린다. 효과는 이성 값에 비례한다.';
+    body = AB.rowsHtml([
+      ...(sc ? [['고이성', esc(sc.high)], ['저이성', esc(sc.low)]] as [string, string][] : []),
+      ...(d.psi ? [['이성 변화', esc(d.psi.desc)]] as [string, string][] : []),
+      ['이성 0 미만', '초당 정신 피해 (이성에 비례, -50 이하 2배)'],
+      ['광폭 (-100)', '피아 구분 없이 공격 (아군에게는 피해 50%), 비술 사용 불가. -60 위로 회복하면 해제'],
+    ]);
   } else if (key === 'divact') {
     const rid = c?.relic || app.run?.units.find((x) => x.defId === d.id)?.relic || DEFAULT_RELIC[d.id];
     const rel = rid ? RELIC_BY_ID[rid] : null;

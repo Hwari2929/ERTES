@@ -131,7 +131,7 @@ export function areaLabel(a: Area) {
   return a.k === 'one' ? '단일' : a.k === 'around' ? `주변 ${a.r}칸` : a.k === 'self' ? `자신 주변 ${a.r}칸` : a.k === 'line' ? '직선' : a.ally ? '아군 전체' : '적 전체';
 }
 const rangeLabel = (r: number | null) => (r === null ? '거리 무관' : r === 0 ? '자신' : `${r}칸`);
-const chip = (icon: string, txt: string, title = '') => `<span class="abc"${title ? ` title="${esc(title)}"` : ''}>${lineIcon(icon, 'li')}${txt}</span>`;
+export const chip = (icon: string, txt: string, title = '') => `<span class="abc"${title ? ` title="${esc(title)}"` : ''}>${lineIcon(icon, 'li')}${txt}</span>`;
 
 // ───────── 무기
 export function weaponRows(w: Weapon, ctx: AbilCtx, elem: Elem, gl: Set<string>) {
