@@ -513,8 +513,9 @@ export class Battle {
 
     // 광폭: 피아 구분 없이 가장 가까운 대상
     const frenzy = this.frenzied(u);
-    const pool = () => (frenzy ? this.units.filter((x) => x.alive && x !== u && !this.hidden(x)) : this.targetable(u));
-    if (!u.target || !u.target.alive || this.hidden(u.target) || u.target === u || (!frenzy && this.sideOf(u.target) === this.sideOf(u))) u.target = this.nearest(u, pool());
+    const ff = frenzy && CFG.frenzyFriendly; // 광폭이 아군도 노리는지 (기본 true)
+    const pool = () => (ff ? this.units.filter((x) => x.alive && x !== u && !this.hidden(x)) : this.targetable(u));
+    if (!u.target || !u.target.alive || this.hidden(u.target) || u.target === u || (!ff && this.sideOf(u.target) === this.sideOf(u))) u.target = this.nearest(u, pool());
     const tgt = u.target;
     if (!tgt) return;
     const range = this.S(u, 'range');

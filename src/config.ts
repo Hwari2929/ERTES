@@ -15,6 +15,7 @@ export const CFG = {
   tacBase: 100, tacPerUnit: 16, tacPerCmd: 40, tacPerMnd: 2,
   reasonStart: 50, // 사이오닉 이성 시작값
   reasonDot: 0.005, // 저이성 정신 피해: 초당 최대 체력 × 이 값 × (-이성/100), -50 이하 2배
+  frenzyFriendly: true, // 광폭이 아군도 공격하는지 (실험용 토글, 기본 true = 현행)
   psiPower: 1.45, // 소마법 · 학파 전공 계수 배율 (밸런스)
   divCap: 200, // 디바인 전투당 신성력 수집 상한
   powerPerDiv: 25, powerMax: 12, // 권능 포인트 = 디바인 1명당 모은 신성력 ÷ 25 + 신권 대행 1 (전투당 최대 12)
