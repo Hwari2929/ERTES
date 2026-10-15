@@ -268,4 +268,17 @@ export const ULTS: Record<string, UltDef> = {
       return true;
     },
   },
+  // 칼리토 제국 (5 · 7 · 9) 소환물 [근위기사] 전용 (기물 궁극기와 같은 틀)
+  kal_guard: {
+    id: 'kal_guard', name: '제국의 검', charge: 0.8, line: '황제 폐하의 이름으로!',
+    desc: '대상과 주변 1칸 적에게 타격 위력 300% 물리 피해 + 1초 기절.',
+    theme: { pat: 'shells', c1: '#e0b040', c2: '#5a1018', txt: 'shake' },
+    cast(b, u) {
+      const t = u.target?.alive && b.dist(u, u.target) <= 2 ? u.target : null;
+      if (!t) return false;
+      b.fx(t.x, t.y, 1, 'phys');
+      for (const e of b.around(t, 1, b.enemiesOf(u))) { slash(b, u, e, 3); if (e.alive) b.stun(u, e, 1); }
+      return true;
+    },
+  },
 };

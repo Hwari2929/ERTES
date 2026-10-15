@@ -7,12 +7,13 @@ import { augAbilText } from '../data/abiltext';
 import { FIELD_BY_ID } from '../data/battlefields';
 import { ALL_AUGS, augDesc, augSource } from '../data/augments';
 import { BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, itemInfo, OCCULT_MODS, UNIQUE_IDS } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_PRICE, UNIQUE_IDS } from '../data/items';
 import { PSI_BRIEF } from '../data/brief';
 import { CANTRIP_INFO, PASSIVE_INFO, SCHOOL_LINE } from '../data/psiinfo';
 import { RELIC_BY_ID, RELICS } from '../data/relics';
 import { GROUPS, type GroupId, isTransformAug, SCHOOL_BY_ID, SCHOOLS, type SchoolId, UNIT_GROUP } from '../data/schools';
-import { SYN_BY_ID, SYNERGIES, VOYAGE_SPECIAL } from '../data/synergies';
+import { KAL_GUARD_TEXT, KAL_GUARDS, SYN_BY_ID, SYNERGIES, VOYAGE_SPECIAL } from '../data/synergies';
+import { KNIGHT_PAL } from '../engine/build';
 import { UNIT_BY_ID, UNITS, type UnitDef } from '../data/units';
 import { LORE, LORE_BY_ID, LORE_GROUP_NAME, LORE_SECTIONS, type LoreEntry, type LoreGroup, loreRegionsOf } from '../data/worldlore';
 import { INVEST_OFFERS, NEWS_OFFERS, PILGRIM_CARDS } from '../engine/run';
@@ -107,8 +108,8 @@ function synChip(sid: string) {
 }
 
 // ═══════════════════════ 장비
-type IGrp = 'C' | 'G' | 'A' | 'L' | 'M' | 'X' | 'K' | 'R';
-const IGRP_NAME: Record<IGrp, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '문장', X: '시너지 · 기물 전용', K: '소모품', R: '성유물' };
+type IGrp = 'C' | 'G' | 'A' | 'L' | 'M' | 'X' | 'T' | 'K' | 'R';
+const IGRP_NAME: Record<IGrp, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '문장', X: '시너지 · 기물 전용', T: '포탑 전용', K: '소모품', R: '성유물' };
 const RELIC_KEY = 'R:';
 const legendOf = (aId: string) => 'L_' + aId.slice(2);
 /** 장비 표 전체: 데이터의 목록 상수를 순회 (재료 · 고급 · 희귀 · 전설 · 문장 · 전용 · 소모품 · 성유물) */
@@ -120,6 +121,7 @@ export function itemCatalog(): [IGrp, string[]][] {
     ['L', ALL_ADVANCED.map(legendOf)],
     ['M', EMBLEM_SYNS.map(emblemId)],
     ['X', [...HEL_ITEM_IDS.flatMap((x) => [x, legendOf(x)]), ...Object.keys(OCCULT_MODS), ...UNIQUE_IDS]],
+    ['T', TURRET_GEAR_IDS.slice()],
     ['K', Object.keys(CONSUMABLES)],
     ['R', RELICS.map((r) => RELIC_KEY + r.id)],
   ];
@@ -127,6 +129,7 @@ export function itemCatalog(): [IGrp, string[]][] {
 /** 전용 장비가 속한 시너지 (문장 제외) */
 function gearSyn(id: string): SynergyId | null {
   if (isHelItem(id)) return 'HEL';
+  if (isTurretGear(id)) return 'ENG';
   if (isOccultMod(id) || (CONSUMABLES[id] && !CONSUMABLES[id].drop)) return 'OCCULT';
   const owner = UNITS.find((d) => d.item === id);
   return (owner && ([...owner.traits, ...owner.factions] as SynergyId[]).find((s) => SYN_BY_ID[s]?.tiers.length === 1)) || null;
@@ -138,7 +141,7 @@ function synGear(sid: SynergyId): string[] {
 function itemName(id: string) { return id.startsWith(RELIC_KEY) ? RELIC_BY_ID[id.slice(2)]?.name || id : itemInfo(id).name; }
 function itemDescText(id: string) { return id.startsWith(RELIC_KEY) ? RELIC_BY_ID[id.slice(2)]?.desc(1) || '' : itemInfo(id).desc; }
 function itemIc(H: CxH, id: string) { return id.startsWith(RELIC_KEY) ? H.relicTok(id.slice(2)) : H.itemIcon(id); }
-const tierLabel = (g: IGrp, id: string) => (g === 'X' ? (isHelItem(id) ? (id[0] === 'L' ? '동맹 전용 · 전설' : '동맹 전용 · 희귀') : isOccultMod(id) ? `신비 부품 ${OCCULT_MODS[id].tier}단계` : '고유') : g === 'K' ? (CONSUMABLES[id]?.drop ? '소모품 · 전투 보상' : '소모품 · 합성') : IGRP_NAME[g]);
+const tierLabel = (g: IGrp, id: string) => (g === 'T' ? `포탑 전용 · ${TURRET_GEAR[id]?.grade === 'adv' ? '고급형' : '보급형'}` : g === 'X' ? (isHelItem(id) ? (id[0] === 'L' ? '동맹 전용 · 전설' : '동맹 전용 · 희귀') : isOccultMod(id) ? `신비 부품 ${OCCULT_MODS[id].tier}단계` : '고유') : g === 'K' ? (CONSUMABLES[id]?.drop ? '소모품 · 전투 보상' : '소모품 · 합성') : IGRP_NAME[g]);
 
 /** 얻는 곳 (가격 · 확률 · 단계는 설정 · 데이터에서) */
 function sources(id: string): string[] {
@@ -157,6 +160,12 @@ function sources(id: string): string[] {
     const k = HEL_ITEM_IDS.indexOf('A_' + id.slice(2)) + 1;
     if (t === 'A') out.push(`${hel.name} ${k}단계 (${hel.tiers[k - 1]}명) 첫 도달 시 지급`);
     else out.push(`${hel.name} ${hel.tiers.length}단계 (${hel.tiers[hel.tiers.length - 1]}명) 도달 시 보유한 동맹 장비가 전설로 승격 (효과 2배)`);
+    return out;
+  }
+  if (isTurretGear(id)) {
+    const g = TURRET_GEAR[id], s = SYN_BY_ID.ENG;
+    out.push(`${s.name} 출전 중 분기점의 [정비] · ${TURRET_PRICE[g.grade]} 크레딧${g.grade === 'basic' ? ' (보급형 1개는 무료)' : ''}`);
+    out.push('감시 포탑의 장비 칸에만 장착 (일반 기물 장착 불가 · 일반 상점 · 전리품 · 재구성에 나오지 않음)');
     return out;
   }
   if (isOccultMod(id)) {
@@ -286,7 +295,12 @@ function synDetail(H: CxH, sid: SynergyId): string {
   parts.push(`<h3>소속 기물 <span class="muted small">${mem.length}명</span></h3><div class="cx2-mem">${mem.map((d) => unitChip(H, d, `${esc(CTYPE_NAME[d.ctype])} · ${esc(TTYPE_NAME[d.ttype])}${d.eventOnly ? ' · 사건' : ''}`)).join('')}</div>`);
   if (EMBLEM_SYNS.includes(sid)) parts.push(`<h3>문장</h3><ul class="cx2-rows"><li>${itemRow(H, emblemId(sid))}</li></ul>`);
   const gear = synGear(sid);
-  if (gear.length) parts.push(`<h3>전용 장비 · 상품 <span class="muted small">${gear.length}종</span></h3><ul class="cx2-rows">${gear.map((id) => `<li>${itemRow(H, id, isHelItem(id) ? (id[0] === 'L' ? '전설' : '희귀') : isOccultMod(id) ? `${OCCULT_MODS[id].tier}단계` : CONSUMABLES[id] ? `합성 · ${CONSUMABLES[id].price}` : '')}</li>`).join('')}</ul>`);
+  if (gear.length) parts.push(`<h3>${sid === 'ENG' ? '포탑 전용 장비' : '전용 장비 · 상품'} <span class="muted small">${gear.length}종</span></h3><ul class="cx2-rows">${gear.map((id) => `<li>${itemRow(H, id, isHelItem(id) ? (id[0] === 'L' ? '전설' : '희귀') : isOccultMod(id) ? `${OCCULT_MODS[id].tier}단계` : CONSUMABLES[id] ? `합성 · ${CONSUMABLES[id].price}` : isTurretGear(id) ? `${TURRET_GEAR[id].grade === 'adv' ? '고급형' : '보급형'} · ${TURRET_PRICE[TURRET_GEAR[id].grade]}` : '')}</li>`).join('')}</ul>`);
+  if (sid === 'KAL') {
+    const k = KAL_GUARD_TEXT;
+    const counts = s.tiers.map((need, i) => (KAL_GUARDS[i] ? `(${need}) ${KAL_GUARDS[i]}기` : '')).filter(Boolean).join(' · ');
+    parts.push(`<h3>소환물 · ${esc(k.name)} <span class="muted small">${esc(counts)}</span></h3><div class="cx2-row cx2-knight">${H.sprite({ id: 'kal_guard', name: k.name, sprite: 'knight', palette: KNIGHT_PAL } as unknown as UnitDef)}<span><b>${esc(k.name)}</b> <span class="tag">${esc(CTYPE_NAME.VAN)} · ${esc(TTYPE_NAME.major)} · 소환물</span><p class="muted">${esc(k.desc)}</p><p class="muted">${esc(k.weapon)}<br>${esc(k.skill)}<br>${esc(k.ult)}</p></span></div>`);
+  }
   if (sid === 'HOI') parts.push(offerList('[투자] 상품', '크레딧', investOffers()));
   if (sid === 'STAR') parts.push(offerList('[속보] 명성 교환', '명성', Object.values(NEWS_OFFERS)));
   if (sid === 'VOYAGE') parts.push(`<h3>단독 출항 · 완전체 고유 능력</h3><ul class="cx2-rows">${Object.entries(VOYAGE_SPECIAL).map(([uid, v]) => `<li class="cx2-row">${UNIT_BY_ID[uid] ? H.sprite(UNIT_BY_ID[uid]) : ''}<span><b>${esc(v.who)} · ${esc(v.name)}</b><p class="muted">${esc(v.text)}</p></span></li>`).join('')}</ul>`);

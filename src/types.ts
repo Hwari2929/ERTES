@@ -107,10 +107,10 @@ export interface UnitState {
   pos: { c: number; r: number } | null; // r=0 이 아군 진영 가장 뒷줄
 }
 
-export type NodeType = 'battle' | 'adversity' | 'shop' | 'supply' | 'recruit' | 'boss' | 'pilgrim' | 'news' | 'event' | 'invest' | 'fork' | 'challenge' | 'council';
+export type NodeType = 'battle' | 'adversity' | 'shop' | 'supply' | 'recruit' | 'boss' | 'pilgrim' | 'news' | 'event' | 'invest' | 'fork' | 'challenge' | 'council' | 'maint';
 export const NODE_NAME: Record<NodeType, string> = {
   battle: '일반 전투', adversity: '역경', shop: '상점', supply: '보급', recruit: '기물 영입', boss: '보스',
-  pilgrim: '순례', news: '속보', event: '사건', invest: '투자', fork: '전환', challenge: '도전', council: '항로 회의',
+  pilgrim: '순례', news: '속보', event: '사건', invest: '투자', fork: '전환', challenge: '도전', council: '항로 회의', maint: '정비',
 };
 
 export interface EnemySpawn { defId: string; c: number; row: number; elite?: boolean; items?: string[]; mod?: string } // items · mod: 위험 등급 장비
@@ -148,6 +148,8 @@ export interface RunState {
   musters?: number;
   /** 엔지니어 감시 포탑 배치 (편성 화면에서 끌어 옮긴 자리, 순서대로). c = -1 / 99 는 양옆 가장자리 열 */
   turretPos?: { c: number; r: number }[];
+  /** 엔지니어 감시 포탑 장비 (포탑 순서대로, 포탑마다 1~2칸). 포탑 전용 장비(T_)만 */
+  turretGear?: (string | null)[][];
   /** 튜토리얼 런: 진행 순서(TUTORIAL_FLOW) 위치. 있으면 고정 항로 · 고정 조우 · 지는 일 없음 */
   tutorial?: { i: number };
   seed: number;
@@ -156,7 +158,7 @@ export interface RunState {
   step: number;
   map: NodeType[][];
   picked: (NodeType | null)[];
-  node: { type: NodeType; enc?: Encounter; shop?: ShopSlot[]; synth?: boolean; news?: NewsOffer[]; invest?: InvestOffer[] } | null;
+  node: { type: NodeType; enc?: Encounter; shop?: ShopSlot[]; synth?: boolean; maint?: boolean; news?: NewsOffer[]; invest?: InvestOffer[] } | null;
   hp: number; maxHp: number;
   credits: number;
   streak: number;

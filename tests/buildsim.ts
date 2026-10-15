@@ -184,7 +184,7 @@ function calibRun(seed: number, out: Record<string, Record<string, number>>) {
 }
 
 // ═════════ comps: 고정 조합 전투
-interface Comp { id: string; units: string[]; items?: Record<string, string[]>; pos?: Record<string, [number, number]> }
+interface Comp { id: string; units: string[]; items?: Record<string, string[]>; pos?: Record<string, [number, number]>; turretGear?: (string | null)[][] }
 /** 기본 장비: 근접 탱커 = 수호자 판금 + 요새 장갑, 원거리 사격 = 조준 보조 AI + 고속 연사, 기술 = 사이오닉 증폭기 + 예지 회로, 근접 딜러 = 광전사 + 과출력 */
 function defaultItems(id: string): string[] {
   const d = UNIT_BY_ID[id];
@@ -216,6 +216,7 @@ function buildRun(comp: Comp, field: string, phase: number, rank: number, seed: 
   const hel = run.units.filter((u) => UNIT_BY_ID[u.defId].factions.includes('HEL'));
   const helItems = ['A_helanchor', 'A_hellight', 'A_helrelic'].slice(0, hel.length >= 7 ? 3 : hel.length >= 5 ? 2 : hel.length >= 3 ? 1 : 0);
   for (const it of helItems) { const t = hel.find((u) => u.items.includes(null)); if (t) t.items[t.items.indexOf(null)] = it; }
+  if (comp.turretGear) run.turretGear = comp.turretGear.map((g) => g.slice()); // 포탑 전용 장비 (포탑 순서대로)
   // 배치: 근접 = 앞줄(r=2), 원거리 = 뒷줄(r=0), 지정 좌표 우선
   const used = new Set<string>();
   const ord = run.units.slice().sort((a, b) => UNIT_BY_ID[a.defId].range - UNIT_BY_ID[b.defId].range);

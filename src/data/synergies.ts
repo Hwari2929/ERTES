@@ -44,7 +44,7 @@ const PAN_GIFT: Record<string, Gift> = {
 };
 const PAN_EMBLEM: Gift = { name: '증표', text: '모든 메이저 +2 (내림)', majors: 2 };
 const PAN_MULT = [1, 1.25, 1.5, 1.75, 2, 2.5, 3];
-const PAN_GIFT_TEXT = [...Object.values(PAN_GIFT), PAN_EMBLEM].map((g) => `${g.name} ${g.text}`).join(' · ');
+const PAN_GIFT_TEXT = [...Object.values(PAN_GIFT), PAN_EMBLEM].map((g) => `· ${g.name}: ${g.text}`).join('\n');
 const isPan = (defId: string, mod: string | null) => UNIT_BY_ID[defId]?.factions.includes('PAN') || mod === 'M_PAN';
 /** 출전한 범은하 기물의 선물을 모아 하나의 효과로 */
 function panGift(t: number, ctx: EffectCtx): Effect | null {
@@ -88,19 +88,23 @@ function medBoost(b: Battle, u: CUnit, l: CUnit) {
   l.hooks.push({ onBasic(bb, self) { const i = self.statuses.findIndex((x) => x.key === 'med.boost'); if (i >= 0) self.statuses.splice(i, 1); void bb; } });
 }
 
-/** 전도체: from 에서 시작해 주변 적에게 튀는 연쇄 전기 (skipFrom = from 을 이미 맞힌 대상으로 취급) */
+/** 전도체: from 에서 시작해 주변 적에게 튀는 연쇄 전기 (skipFrom = from 을 이미 맞힌 대상으로 취급).
+ *  아직 맞지 않은 적을 먼저 노리고, 없으면 (적이 2명 이상일 때) 바로 직전 대상만 빼고 다시 튄다 (적 사이를 왕복) */
 function chainBolt(b: Battle, u: CUnit, from: CUnit, hops: number, radius: number, k: number, skipFrom: boolean) {
   const dmg = Math.max(b.S(u, 'shoot'), b.S(u, 'strike'), b.S(u, 'tech')) * k; // 시너지 발동: 지휘관도 전술 위력이 아닌 실제 위력
   const hit = new Set<CUnit>(skipFrom ? [from] : []);
   let at: { x: number; y: number } = from;
+  let last: CUnit | null = skipFrom ? from : null;
   for (let i = 0; i < hops; i++) {
-    const pool = b.around(at, radius, b.enemiesOf(u)).filter((e) => !hit.has(e));
-    const next = b.nearest(at as CUnit, pool);
+    const near = b.around(at, radius, b.enemiesOf(u)).filter((e) => e !== last);
+    const fresh = near.filter((e) => !hit.has(e));
+    const next = b.nearest(at as CUnit, fresh.length ? fresh : near);
     if (!next) break;
     hit.add(next);
+    b.emit({ k: 'atk', from: (last || u).id, to: next.id, elem: 'elec', ranged: true, chain: true });
     b.fx(next.x, next.y, 0, 'elec');
     b.dealDamage(u, next, dmg, { elem: 'elec', tag: 'proc', kind: 'tech', syn: 'COND' });
-    at = next;
+    at = next; last = next;
   }
 }
 
@@ -128,11 +132,11 @@ function rachelBeam(b: Battle, u: CUnit) {
   b.emit({ k: 'skill', id: u.id, name: '파괴 광선!', tag: '광역 정신 공격' });
   b.emit({ k: 'atk', from: u.id, to: c.id, elem: 'psy', ranged: true });
   b.fx(c.x, c.y, 2, 'psy');
-  for (const e of b.around(c, 2, foes)) b.dealDamage(u, e, b.S(u, 'strike') * 4.5, { elem: 'psy', tag: 'skill', kind: 'strike', canMiss: false });
+  for (const e of b.around(c, 2, foes)) b.dealDamage(u, e, b.S(u, 'strike') * 3.0, { elem: 'psy', tag: 'skill', kind: 'strike', canMiss: false });
 }
 const TEMUR_KEYS: (keyof Stats)[] = ['maxHp', 'shoot', 'strike', 'tech', 'armor', 'acc', 'crit', 'effHit', 'effRes', 'eva', 'critDmg', 'armorPen', 'atkSpd', 'cdr', 'healEff', 'moveSpd', 'lifesteal'];
 export const VOYAGE_SPECIAL: Record<string, { who: string; name: string; text: string; effect: Effect }> = {
-  rachel: { who: '레이첼', name: '파괴 광선!', text: '4초 후부터 12초마다 적이 가장 많이 모인 곳에 광선을 쏴 주변 2칸 모든 적에게 타격 위력 450% 정신 피해 (빗나가지 않음).',
+  rachel: { who: '레이첼', name: '파괴 광선!', text: '4초 후부터 12초마다 적이 가장 많이 모인 곳에 광선을 쏴 주변 2칸 모든 적에게 타격 위력 300% 정신 피해 (빗나가지 않음).',
     effect: { hooks: { onTick(b, u, dt) {
       u.mem.beamT = (u.mem.beamT ?? 8) + dt;
       if (u.mem.beamT >= 12) { u.mem.beamT = 0; rachelBeam(b, u); }
@@ -152,21 +156,43 @@ export const VOYAGE_SPECIAL: Record<string, { who: string; name: string; text: s
       a.tempItems = [...(a.tempItems || []), id];
       b.emit({ k: 'gift', from: u.id, to: a.id, item: id });
     } } } },
-  temur: { who: '테무르', name: '선장의 위엄', text: '모든 능력치 +50%.',
+  temur: { who: '테무르', name: '선장의 위엄', text: '모든 능력치 +35%.',
     effect: { hooks: { onStart(b, u) {
-      for (const k of TEMUR_KEYS) u.st[k] *= 1.5;
+      for (const k of TEMUR_KEYS) u.st[k] *= 1.35;
       u.hp = b.S(u, 'maxHp');
     } } } },
   vivian: { who: '비비안', name: '정밀 분석', text: '[방어 분석]이 최대 5중첩까지 쌓이고, 1중첩마다 대상이 받는 모든 피해 +15%.',
     effect: { setup: (u) => { u.mem.voyViv = 1; } } },
 };
-const VOYAGE_TEXT = Object.entries(VOYAGE_SPECIAL).map(([, v]) => `${v.who} [${v.name}] ${v.text}`).join('\n');
+
+/** 시간 여행자 (3) 이상: 회피 회복 계수 (주요 위력 대비, 단계별 [-, 3명, 4명 ×2, 5명 ×4]) · 내부 재사용 대기 */
+const TIME_HEAL = [0, 0.2, 0.4, 0.8];
+const TIME_ICD = 0.3;
+/** 주요 위력: 명사수 사격 · 돌격가 타격 · 전문가 기술 · 지휘관 전술 위력 */
+export const mainPower = (b: Battle, u: CUnit) => (u.ctype === 'MARK' ? b.S(u, 'shoot') : u.ctype === 'VAN' ? b.S(u, 'strike') : b.P(u, 'tech'));
+const timeEvade = (k: number) => (b: Battle, u: CUnit) => {
+  if ((u.mem.timeIcd || 0) > b.t) return;
+  u.mem.timeIcd = b.t + TIME_ICD;
+  b.heal(u, u, mainPower(b, u) * k, false, 'TIME');
+};
+
+/** 칼리토 제국 (5 · 7 · 9): 전투 시작 시 [근위기사] 소환 수 · 공명 등급 비율 */
+export const KAL_GUARDS = [0, 1, 2, 3];
+export const KAL_GUARD_RANK = 0.65;
+/** 근위기사 소개 (도감 · 시너지 설명) */
+export const KAL_GUARD_TEXT = {
+  name: '근위기사',
+  desc: `칼리토 황실 근위대의 돌격가(메이저) 소환물. 공명 등급 = 출전 아군 중 가장 높은 공명 등급 × ${Math.round(KAL_GUARD_RANK * 100)}% (올림), 그 등급의 돌격가와 같은 방식으로 능력치를 받고, 작위 1당 피해 +10%. 시너지 인원에 세지 않고 판매할 수 없습니다.`,
+  weapon: '근위 장검: 근접 타격 콤보 (3타째 피니쉬).',
+  skill: '근위 방패 (쿨다운 8초): 자신에게 최대 체력 30% 보호막, 4초간 도발 (주변 1칸 적이 자신을 노림).',
+  ult: '제국의 검 (궁극기): 대상과 주변 1칸 적에게 타격 위력 300% 물리 피해 + 1초 기절.',
+};
 
 export const SYNERGIES: SynDef[] = [
   // ═══════════════ 세력
   {
     id: 'UNI', name: '성간 인류 연합', kind: 'faction', tiers: [3, 5, 7, 9], color: '#3b6fd8', icon: '★',
-    desc: '꾸준한 공명도 상승과 안정적인 전투력 증대. 전투가 끝날 때마다 연합 기물이 추가 공명도를 얻고, 모든 메이저가 크게 오르며, (7) 이상에서는 출전한 연합 기물이 공명 등급이 더 높은 것처럼 싸웁니다 (등급당 모든 메이저 +1, 위력 ×1.025, 작위).',
+    desc: '꾸준한 공명도 상승과 안정적인 전투력 증대.\n· 전투가 끝날 때마다 연합 기물이 추가 공명도를 얻습니다.\n· 연합 기물의 모든 메이저가 크게 오릅니다.\n· (7) 이상: 출전한 연합 기물이 공명 등급이 더 높은 것처럼 싸웁니다 (등급당 모든 메이저 +1, 위력 ×1.025, 작위).',
     tierDesc: ['모든 메이저 +4, 전투 후 공명도 +1', '모든 메이저 +8, 전투 후 공명도 +2, 피해 +15%', '모든 메이저 +12, 전투 후 공명도 +3, 피해 +30%, 공명 등급 +2 취급',
       '[연합 총동원령] 모든 메이저 +30, 전투 후 공명도 +5, 피해 +80%, 공명 등급 +5 취급, 모든 아군 모든 메이저 +6'],
     member: (t) => {
@@ -178,10 +204,17 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'KAL', name: '칼리토 제국', kind: 'faction', tiers: [3, 5, 7, 9], color: '#c0303a', icon: '♛',
-    desc: '제국 기물은 공명 등급에 따라 작위(기사 → 3등급 남작 → 6등급 백작 → 9등급 공작 → 20등급 대공 → 30등급 황제)를 받고, 작위만큼 강해집니다. 남작 이상은 치명타 피해 +25%p.',
-    tierDesc: ['방어력 +5, 작위 1당 피해 +10%', '방어력 +11, 작위 1당 피해 +18%, 제국 기물 받는 피해 -10%', '방어력 +18, 작위 1당 피해 +30%, 모든 제국 기물 작위 +1, 제국 기물 받는 피해 -20%',
-      '[황제 친정] 방어력 +30, 작위 1당 피해 +45%, 작위 +2, 제국 기물 받는 피해 -25%, 모든 아군 치명타 피해 +50%p'],
+    desc: '제국 기물은 공명 등급에 따라 작위를 받고, 작위만큼 강해집니다.\n· 작위: 기사 → 3등급 남작 → 6등급 백작 → 9등급 공작 → 20등급 대공 → 30등급 황제\n· 남작 이상은 치명타 피해 +25%p.\n· (5) 이상: 전투 시작 시 [근위기사]를 소환합니다 (공명 등급 = 아군 최고 공명 등급 × 65%, 올림).',
+    tierDesc: ['방어력 +5, 작위 1당 피해 +10%', '방어력 +11, 작위 1당 피해 +18%, 제국 기물 받는 피해 -10%, 전투 시작 시 [근위기사] 1기 소환', '방어력 +18, 작위 1당 피해 +30%, 모든 제국 기물 작위 +1, 제국 기물 받는 피해 -20%, [근위기사] 2기 소환',
+      '[황제 친정] 방어력 +30, 작위 1당 피해 +45%, 작위 +2, 제국 기물 받는 피해 -25%, 모든 아군 치명타 피해 +50%p, [근위기사] 3기 소환'],
     member: (t) => ({
+      hooks: t >= 2 ? {
+        onStart(b, u) {
+          const kals = b.alliesOf(u).filter((a) => !a.isSummon && a.synergies.has('KAL'));
+          if (kals[0] !== u) return; // 대표 제국 기물 1명만 소환
+          KAL_HOOK.spawn?.(b, u, KAL_GUARDS[t - 1]);
+        },
+      } : undefined,
       majors: { def: T(t, [5, 11, 18, 30]) }, taken: t >= 2 ? [red('all', T(t, [0, 0.1, 0.2, 0.25]))] : undefined,
       setup: (u) => {
         const title = (u.mem.title || 1) + (t >= 4 ? 2 : t >= 3 ? 1 : 0);
@@ -193,7 +226,7 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'HEL', name: '헬레니우스 동맹', kind: 'faction', tiers: [3, 5, 7, 9], color: '#2fa39a', icon: '⚑',
-    desc: '시너지 단계에 따라 매 페이즈 퀘스트가 주어지고, 완료하면 보상을 받습니다. 동맹 기물은 전투력이 오릅니다. 1 · 2 · 3단계에 처음 도달하면 동맹 전용 희귀 장비를 하나씩 받고, 4단계에 도달하면 그 장비들이 전설로 바뀌어 효과가 2배가 됩니다.\n성운 정박기: 정신력 +6, 해로운 효과를 걸 때 지속 +2초 · 달빛 등대: 기동력 +6, 회피하면 최대 체력 3% 회복 · 올림푸스 성물: 방어력 +6, 한 번에 최대 체력 35%를 넘는 피해를 받지 않음',
+    desc: '시너지 단계에 따라 매 페이즈 퀘스트가 주어지고, 완료하면 보상을 받습니다.\n· 동맹 기물은 전투력이 오릅니다.\n· 1 · 2 · 3단계에 처음 도달하면 동맹 전용 희귀 장비를 하나씩 받습니다.\n· 4단계에 도달하면 그 장비들이 전설로 바뀌어 효과가 2배가 됩니다.\n\n[동맹 전용 장비]\n· 성운 정박기: 정신력 +6, 해로운 효과를 걸 때 지속 +2초\n· 달빛 등대: 기동력 +6, 회피하면 최대 체력 3% 회복\n· 올림푸스 성물: 방어력 +6, 한 번에 최대 체력 35%를 넘는 피해를 받지 않음',
     tierDesc: ['전투력 +5, 피해 +15%, 페이즈마다 퀘스트 2개, [성운 정박기] 지급', '전투력 +11, 피해 +55%, 상태이상 걸린 적에게 피해 +30%, 퀘스트 3개, 보상 1.5배, [달빛 등대] 지급', '전투력 +18, 피해 +80%, 상태이상 걸린 적에게 피해 +50%, 퀘스트 4개, 보상 2배, 완료 시 동맹 기물 영구 메이저 +2, [올림푸스 성물] 지급',
       '[동맹 대함대] 전투력 +30, 피해 +150%, 상태이상 걸린 적에게 피해 +60%, 퀘스트 5개, 보상 3배, 완료 시 영구 메이저 +3, 동맹 장비 전설 승격 (효과 2배)'],
     member: (t) => ({
@@ -247,8 +280,8 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'PAN', name: '범은하 공동체', kind: 'faction', tiers: [1, 2, 3, 4, 5, 6, 7], color: '#5fd3c0', icon: '◍',
-    desc: `온갖 종족이 섞인 자유 공동체. 출전한 공동체 기물마다 모든 아군에게 저마다 다른 선물을 줍니다. 공동체 기물은 선물 효과를 2배로 받습니다. 단계가 오를수록 모든 선물이 커집니다.\n선물: ${PAN_GIFT_TEXT}`,
-    tierDesc: ['선물 ×1', '선물 ×1.25', '선물 ×1.5', '선물 ×1.75', '선물 ×2', '선물 ×2.5', '선물 ×3'],
+    desc: `온갖 종족이 섞인 자유 공동체.\n· 출전한 공동체 기물마다 모든 아군에게 선물 1개를 줍니다 (기물마다 선물이 다르고, 같은 기물은 1번만).\n· 공동체 기물 자신은 선물을 2배로 받습니다.\n· 공동체 문장을 단 기물은 [증표]를 줍니다.\n· 인원 단계가 오를수록 모든 선물이 커집니다.\n\n[선물 목록 (×1 기준)]\n${PAN_GIFT_TEXT}`,
+    tierDesc: PAN_MULT.map((m) => `모든 선물 ×${m} (공동체 기물 ×${m * 2})`),
     team: (t, ctx) => panGift(t, ctx),
   },
   {
@@ -311,13 +344,14 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'TIME', name: '시간 여행자', kind: 'faction', tiers: [2, 3, 4, 5], color: '#c8a0ff', icon: '⌛',
-    desc: '시간의 틈을 걷는 이들. 시간 여행자는 기술 쿨다운이 빨리 돌아오고 공격을 잘 피하며, (4)부터는 쓰러져도 시간을 되감아 다시 일어섭니다.',
-    tierDesc: ['쿨다운 감소 속도 +40%, 회피 +5%p', '쿨다운 감소 속도 +75%, 회피 +10%p, 전투 기술 피해 +20%', '쿨다운 감소 속도 +120%, 회피 +15%p, 전투 기술 피해 +35%, 처음 쓰러질 때 최대 체력 70%로 부활',
-      '[시간 역행] 쿨다운 감소 속도 +220%, 회피 +25%p, 전투 기술 피해 +50%, 처음 쓰러질 때 부활 (체력 70%) + 전투 기술을 4번 쓸 때마다 부활 기회 1회 추가 (전투당 최대 3번 부활)'],
+    desc: `시간의 틈을 걷는 이들.\n· 기술 쿨다운이 빨리 돌아오고 공격을 잘 피합니다.\n· (3) 이상: 회피할 때마다 주요 위력(명사수 사격 · 돌격가 타격 · 전문가 기술 · 지휘관 전술 위력)에 비례해 체력을 회복합니다 (${TIME_ICD}초에 1번).\n· (4) 이상: 쓰러져도 시간을 되감아 다시 일어섭니다.`,
+    tierDesc: ['쿨다운 감소 속도 +40%, 회피 +5%p', `쿨다운 감소 속도 +75%, 회피 +10%p, 전투 기술 피해 +20%, 회피하면 주요 위력 ${pct(TIME_HEAL[1])} 회복`, `쿨다운 감소 속도 +120%, 회피 +15%p, 전투 기술 피해 +35%, 회피하면 주요 위력 ${pct(TIME_HEAL[2])} 회복, 처음 쓰러질 때 최대 체력 70%로 부활`,
+      `[시간 역행] 쿨다운 감소 속도 +220%, 회피 +25%p, 전투 기술 피해 +50%, 회피하면 주요 위력 ${pct(TIME_HEAL[3])} 회복, 처음 쓰러질 때 부활 (체력 70%) + 전투 기술을 4번 쓸 때마다 부활 기회 1회 추가 (전투당 최대 3번 부활)`],
     member: (t) => ({
       stats: { cdr: T(t, [0.4, 0.75, 1.2, 2.2]), eva: T(t, [0.05, 0.1, 0.15, 0.25]) },
       mods: t >= 2 ? [inc('skill', T(t, [0, 0.2, 0.35, 0.5]))] : undefined,
-      hooks: t >= 3 ? {
+      hooks: t === 2 ? { onEvade: timeEvade(TIME_HEAL[1]) } : t >= 3 ? {
+        onEvade: timeEvade(T(t, TIME_HEAL)),
         onSkill(_b, u) { u.mem.timeSk = (u.mem.timeSk || 0) + 1; },
         onLethal(b, u) {
           const allowed = t >= 4 ? Math.min(3, 1 + Math.floor((u.mem.timeSk || 0) / 4)) : 1;
@@ -435,9 +469,9 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'ENG', name: '엔지니어', kind: 'trait', tiers: [2, 4, 6, 8], color: '#a0b4c8', icon: '⚙',
-    desc: '감시 포탑을 아군 진영에 설치합니다. 포탑은 편성 화면에서 끌어 옮길 수 있고 (판매 · 대기석 · 장비 불가), 배치는 다음 전투에도 유지됩니다. 포탑은 움직이지 않고, 출전한 엔지니어 능력치 평균의 일부를 물려받으며, 엔지니어 전술 위력의 일부가 사격 위력에 더해집니다. 엔지니어는 1명마다 아군 전술 위력을 올립니다.',
-    tierDesc: ['감시 포탑 1기 (상속 125%, 공격 속도 +40%, 사격 위력 + 전술 위력 60%), 엔지니어 1명당 전술 위력 +4, 방어 관통 +10%p', '감시 포탑 2기 (상속 188%, 사격 위력 + 전술 위력 100%), 엔지니어 1명당 전술 위력 +8, 방어 관통 +20%p',
-      '감시 포탑 3기 (상속 275%, 사격 위력 + 전술 위력 150%), 포탑 공격 속도 추가 +80%, 엔지니어 1명당 전술 위력 +12, 방어 관통 +35%p', '[자동화 요새] 감시 포탑 4기 (상속 400%, 사격 위력 + 전술 위력 220%), 포탑 공격 속도 추가 +80%, 엔지니어 1명당 전술 위력 +18, 방어 관통 +35%p'],
+    desc: '감시 포탑(기계 · 구조물)을 아군 진영에 설치합니다.\n· 포탑은 움직이지 않고, 출전한 엔지니어 능력치 평균의 일부를 물려받으며, 엔지니어 전술 위력의 일부가 사격 위력에 더해집니다.\n· 편성 화면에서 끌어 옮길 수 있고 (판매 · 대기석 불가), 배치와 장비는 다음 전투에도 유지됩니다.\n· 엔지니어는 1명마다 아군 전술 위력을 올립니다.\n\n[포탑 장비]\n· 포탑마다 장비 칸 1칸 (3단계부터 2칸), 포탑 전용 장비만 장착 (일반 기물 장착 불가).\n· 엔지니어가 출전한 동안 분기점에 [정비]가 나와 포탑 전용 장비를 삽니다 (보급형 1개 무료).\n· 엔지니어 시너지가 꺼지면 포탑이 회수되고, 장착한 장비는 보관함으로 돌아옵니다.',
+    tierDesc: ['감시 포탑 1기 (장비 1칸, 상속 150%, 공격 속도 +40%, 사격 위력 + 전술 위력 80%), 엔지니어 1명당 전술 위력 +4, 방어 관통 +10%p', '감시 포탑 2기 (장비 1칸, 상속 650%, 사격 위력 + 전술 위력 300%), 엔지니어 1명당 전술 위력 +8, 방어 관통 +20%p',
+      '감시 포탑 3기 (장비 2칸, 상속 950%, 사격 위력 + 전술 위력 450%), 포탑 공격 속도 추가 +80%, 엔지니어 1명당 전술 위력 +12, 방어 관통 +35%p', '[자동화 요새] 감시 포탑 4기 (장비 2칸, 상속 1400%, 사격 위력 + 전술 위력 650%), 포탑 공격 속도 추가 +80%, 엔지니어 1명당 전술 위력 +18, 방어 관통 +35%p'],
     member: (t) => ({
       stats: { armorPen: T(t, [0.1, 0.2, 0.35, 0.35]) },
       setup: (u) => { u.mem.eng = t; u.mem.engPen = T(t, [0.1, 0.2, 0.35, 0.35]); u.mem.tacBonus = (u.mem.tacBonus || 0) + T(t, [4, 8, 12, 18]); },
@@ -506,12 +540,12 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'COND', name: '전도체', kind: 'trait', tiers: [2, 4, 6, 8], color: '#4fc3ff', icon: 'ϟ',
-    desc: '몸에 전류가 흐르는 이들. 전도체가 기본 공격 · 기술로 적을 맞히면 30% 고정 확률로 주변 적에게 튀는 연쇄 전기 피해를 일으킵니다. 연쇄 1회 피해 = 사격 · 타격 · 기술 위력 중 가장 높은 값의 일정 비율.',
-    tierDesc: ['전기 피해 +15%, 연쇄 1칸 · 최대 1회 · 계수 25%', '전기 피해 +35%, 연쇄 2칸 · 최대 2회 · 계수 50%, 명사수 · 지휘관 전도체 연쇄 +1회, 전문가 · 돌격가 전도체는 피격 시 50% 확률로 연쇄',
-      '전기 피해 +60%, 연쇄 3칸 · 최대 4회 · 계수 75%', '[천둥 폭풍] 전기 피해 +100%, 연쇄 3칸 · 최대 8회 · 계수 100%'],
+    desc: '몸에 전류가 흐르는 이들.\n· 전도체가 기본 공격 · 기술로 적을 맞히면 30% 고정 확률로 주변 적에게 튀는 연쇄 전기 피해를 일으킵니다.\n· 연쇄 1회 피해 = 사격 · 타격 · 기술 위력 중 가장 높은 값 × 계수.\n· 연쇄는 아직 맞지 않은 적을 먼저 노리고, 새 대상이 없으면 바로 직전 대상만 빼고 적 사이를 왕복합니다 (적이 2명 이상일 때).',
+    tierDesc: ['전기 피해 +15%, 연쇄 1칸 · 최대 1회 · 계수 25%', '전기 피해 +35%, 연쇄 2칸 · 최대 3회 · 계수 50%, 명사수 · 지휘관 전도체 연쇄 +1회, 전문가 · 돌격가 전도체는 피격 시 50% 확률로 연쇄',
+      '전기 피해 +60%, 연쇄 3칸 · 최대 6회 · 계수 75%', '[천둥 폭풍] 전기 피해 +100%, 연쇄 3칸 · 최대 10회 · 계수 100%'],
     member: (t) => {
       const radius = T(t, [1, 2, 3, 3]), k = T(t, [0.25, 0.5, 0.75, 1.0]);
-      const hopsOf = (u: CUnit) => T(t, [1, 2, 4, 8]) + (t >= 2 && (u.ctype === 'MARK' || u.ctype === 'CMD') ? 1 : 0);
+      const hopsOf = (u: CUnit) => T(t, [1, 3, 6, 10]) + (t >= 2 && (u.ctype === 'MARK' || u.ctype === 'CMD') ? 1 : 0);
       return {
         mods: [inc('elec', T(t, [0.15, 0.35, 0.6, 1.0]))],
         hooks: {
@@ -565,14 +599,14 @@ export const SYNERGIES: SynDef[] = [
     },
   },
   {
-    id: 'VOYAGE', name: '우리의 출항기!', kind: 'faction', tiers: [2, 3, 4, 5], color: '#4fc3c8', icon: '⛵',
-    desc: `한 배를 탄 다섯 동료. 구성원의 전투력이 오르고, 전투 기술을 쓰면 체력을 회복합니다. 연장전에 들어서면 구성원의 모든 피해 증폭이 크게 늘어납니다.\n[단독 출항 · 완전체] 구성원이 정확히 1명 또는 5명 출전하면 출전한 구성원 전원이 고유 능력을 얻습니다 (1명일 때는 단계 효과 없이 고유 능력만).\n${VOYAGE_TEXT}`,
-    tierDesc: ['전투력 +4, 기술 사용 후 최대 체력 2.5% 회복, 연장전 피해 증폭 +60%', '전투력 +8, 회복 4%, 연장전 피해 증폭 +100%', '전투력 +13, 회복 6%, 연장전 피해 증폭 +160%',
-      '[우리의 출항기!] 전투력 +20, 회복 9%, 연장전 피해 증폭 +250%, 구성원 전원 고유 능력'],
+    id: 'VOYAGE', name: '우리의 출항기!', kind: 'faction', tiers: [1, 5], color: '#4fc3c8', icon: '⛵',
+    desc: '한 배를 탄 다섯 동료. 혼자 나가거나 다섯이 다 모였을 때만 힘을 냅니다.\n· 단독 출항 (정확히 1명): 출전한 구성원이 고유 능력을 얻습니다.\n· 완전체 (5명): 구성원 전원이 고유 능력을 얻고, 전투력이 오르며, 전투 기술을 쓰면 체력을 회복하고, 연장전에 피해 증폭이 크게 늘어납니다.\n· 2~4명일 때는 효과가 없습니다.\n고유 능력은 기물마다 다릅니다 (기물 상세 · 도감에서 확인).',
+    tierDesc: ['[단독 출항] 정확히 1명 출전 시 고유 능력 (2~4명이면 효과 없음)', '[완전체] 구성원 전원 고유 능력, 전투력 +20, 기술 사용 후 최대 체력 9% 회복, 연장전 피해 증폭 +250%'],
     member: (t) => {
-      const heal = T(t, [0.025, 0.04, 0.06, 0.09]), ot = 1 + T(t, [0.6, 1.0, 1.6, 2.5]);
+      if (t < 2) return null; // 1단계(단독 출항)는 고유 능력만 (special)
+      const heal = 0.09, ot = 1 + 2.5;
       return {
-        majors: { pow: T(t, [4, 8, 13, 20]) },
+        majors: { pow: 20 },
         hooks: {
           onSkill(b, u) { b.heal(u, u, b.S(u, 'maxHp') * heal, false, 'VOYAGE'); },
           dmgMult: (b) => (b.t > CFG.overtimeStart ? ot : 1),
@@ -628,3 +662,5 @@ export function aceTargetUid(run: RunState): string | null {
 
 /** 엔지니어 포탑 생성 (build.ts 에서 주입: 순환 import 방지) */
 export const ENG_HOOK: { spawn?: (b: Battle, lead: CUnit, engs: CUnit[], n: number) => void } = {};
+/** 칼리토 근위기사 생성 (build.ts 에서 주입) */
+export const KAL_HOOK: { spawn?: (b: Battle, lead: CUnit, n: number) => void } = {};

@@ -5,13 +5,14 @@ import { fieldOf } from '../data/battlefields';
 import { diffHas } from '../data/difficulty';
 import { BOONS } from '../data/events';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
-import { emblemOf, isEmblem, itemEffect } from '../data/items';
-import { ENG_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
+import { emblemOf, isEmblem, isTurretGear, itemEffect, turretSlots } from '../data/items';
+import { ENG_HOOK, KAL_GUARD_RANK, KAL_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { UNIT_BY_ID } from '../data/units';
 import { enableDivine, ENEMY_PSI, FAITH_DEF, sigmundTarget } from '../data/rework';
 import { DEFAULT_RELIC } from '../data/relics';
 import { ULTS } from '../data/ults';
 import type { SummonDef } from '../data/unitkit';
+import type { SkillDef } from './combat';
 import { Rng } from '../rng';
 import { categoryOf, type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
 import { Battle, type CUnit } from './combat';
@@ -363,13 +364,19 @@ export function turretCells(run: RunState, W: number, count = turretCount(run)):
 }
 /** 전투별 포탑 설치 칸 (buildBattle 이 편성 위치를 넘긴다) */
 const TURRET_AT = new WeakMap<Battle, { x: number; y: number }[]>();
+/** 전투별 포탑 장비 (포탑 순서대로) */
+const TURRET_GEAR_AT = new WeakMap<Battle, (string | null)[][]>();
+/** 엔지니어 단계별 포탑 상속률 · 사격 위력에 더하는 엔지니어 전술 위력 비율 (2차 조정: 상향) */
+export const TURRET_INHERIT = [1.5, 6.5, 9.5, 14.0];
+export const TURRET_TAC = [0.8, 3.0, 4.5, 6.5];
 ENG_HOOK.spawn = (b, lead, engs, n) => {
   const avg = (k: keyof Stats) => engs.reduce((s, e) => s + b.S(e, k), 0) / engs.length;
   const hpBonus = engs.reduce((s, e) => s + (e.mem.turretHp || 0), 0);
   const tier = lead.mem.eng || 1;
-  const inherit = [1.25, 1.875, 2.75, 4.0][Math.min(4, tier) - 1]; // 엔지니어 단계별 상속률
+  const inherit = TURRET_INHERIT[Math.min(4, tier) - 1]; // 엔지니어 단계별 상속률
   const asBonus = 0.4 + engs.reduce((s, e) => s + (e.mem.turretAs || 0), 0) + (tier >= 3 ? 0.8 : 0); // 기본 공격 속도 +40%
-  const tacAdd = (engs.reduce((s, e) => s + b.tacPower(e), 0) / engs.length) * [0.6, 1.0, 1.5, 2.2][Math.min(4, tier) - 1]; // 엔지니어 전술 위력 일부
+  const tacAdd = (engs.reduce((s, e) => s + b.tacPower(e), 0) / engs.length) * TURRET_TAC[Math.min(4, tier) - 1]; // 엔지니어 전술 위력 일부
+  const gearAll = lead.side === 0 ? TURRET_GEAR_AT.get(b) : undefined;
   for (let i = 0; i < n; i++) {
     const t = blankUnit(lead.side);
     const st = emptyStats();
@@ -384,7 +391,16 @@ ENG_HOOK.spawn = (b, lead, engs, n) => {
       keywords: ['mech', 'struct'], isSummon: true, immobile: true,
     });
     applyCategory(t);
-    t.hp = st.maxHp;
+    // 포탑 전용 장비 (편성 화면에서 장착, 포탑 순서대로)
+    const gear = (gearAll?.[i] || []).slice(0, turretSlots(tier)).filter((x): x is string => isTurretGear(x));
+    if (gear.length) {
+      const ctx = makeCtx(null, null, {});
+      for (const id of gear) applyLive(t, itemEffect(id), b, ctx);
+      if (t.mem.tFlame) t.st.range = Math.max(1, t.st.range - 2); // 화염 방사기: 사거리 -2
+      t.tempItems = gear;
+    }
+    t.mem.turretIdx = i;
+    t.hp = t.st.maxHp;
     t.atkTimer = 0.4;
     // 전장 양옆 가장자리(배치 구역 바깥 열)부터, 대표 엔지니어와 가까운 줄에 번갈아 설치. 자리가 없으면 진영 안 빈칸
     const mine = (y: number) => (lead.side === 0 ? y >= ALLY_Y0 && y <= ALLY_Y1 : y >= PAD && y < PAD + ZONE);
@@ -404,6 +420,72 @@ ENG_HOOK.spawn = (b, lead, engs, n) => {
     t.x = t.px = cell.x; t.y = t.py = cell.y;
     b.add(t);
     b.emit({ k: 'spawn', id: t.id });
+    for (const h of t.hooks) h.onStart?.(b, t); // 전투 시작 처리 뒤에 생기므로 장비의 시작 효과를 직접 부른다
+  }
+};
+
+// 칼리토 제국 (5 · 7 · 9): 근위기사 — 돌격가 메이저 소환물. 공명 등급 = 아군 최고 공명 등급 × 65% (올림)
+export const KNIGHT_PAL = ['#140c0c', '#c0303a', '#e0b040', '#e8c09a', '#ffd34d', '#8a6a3a', '#fff3c0'];
+/** 근위기사 기본 메이저 (돌격가 평균) · 등급당 성장: 모든 메이저 +1, 3등급마다 생명력 · 전투력 · 방어력 +2 (능력치 선택 몫) */
+const KNIGHT_BASE: Record<Major, number> = { vit: 10, pow: 9, mnd: 3, def: 9, agi: 4 };
+export function knightMajors(rank: number): Record<Major, number> {
+  const pick = Math.floor(rank / CFG.statEvery) * 2;
+  return { vit: KNIGHT_BASE.vit + (rank - 1) * CFG.rankAll + pick, pow: KNIGHT_BASE.pow + (rank - 1) * CFG.rankAll + pick,
+    mnd: KNIGHT_BASE.mnd + (rank - 1) * CFG.rankAll, def: KNIGHT_BASE.def + (rank - 1) * CFG.rankAll + pick, agi: KNIGHT_BASE.agi + (rank - 1) * CFG.rankAll };
+}
+const KNIGHT_SKILL: SkillDef = {
+  name: '근위 방패', cd: 8, params: { shield: 0.3, taunt: 4 },
+  desc: (p) => `자신에게 최대 체력 ${Math.round(p.shield * 100)}% 보호막, ${p.taunt}초간 도발.`,
+  tag: () => '보호막 · 도발',
+  cast(b, u) {
+    b.shield(u, b.S(u, 'maxHp') * u.sk.shield);
+    u.mem.taunt = 1;
+    const until = b.t + u.sk.taunt;
+    u.mem.tauntUntil = until;
+    b.later(u.sk.taunt, () => { if (u.mem.tauntUntil === until) u.mem.taunt = 0; });
+    b.emit({ k: 'status', id: u.id, name: '도발' });
+    return true;
+  },
+};
+export function buildKnight(b: Battle, side: 0 | 1, rank: number): CUnit {
+  const m = knightMajors(rank);
+  const st = emptyStats();
+  Object.assign(st, CFG.baseMinor);
+  st.moveSpd = 1; st.range = 1;
+  for (const k of MAJORS) for (const [sk, per] of Object.entries(CFG.conv[k])) st[sk as keyof Stats] += (per as number) * m[k];
+  const grow = Math.pow(CFG.rankPowGrowth, Math.max(0, rank - 1));
+  st.shoot *= grow; st.strike *= grow; st.tech *= grow;
+  const c = blankUnit(side);
+  Object.assign(c, {
+    defId: 'kal_guard', name: '근위기사', sprite: 'knight', palette: KNIGHT_PAL, st, keywords: ['bio'],
+    atk: { type: 'strike', elem: 'phys', interval: 1.0 }, skill: KNIGHT_SKILL, sk: { ...KNIGHT_SKILL.params }, cdMax: KNIGHT_SKILL.cd,
+    weapon: { name: '근위 장검', kind: 'combo', type: 'strike', elem: 'phys', interval: 1.0, range: 1, mult: 0.9, combo: 3 },
+    ctype: 'VAN', ttype: 'major', isSummon: true,
+  });
+  const title = rankTitle(rank);
+  c.mem.title = title; c.mem.rank = rank;
+  c.mods.push({ kind: 'inc', tag: 'all', v: 0.1 * title }); // 작위 1당 피해 +10%
+  applyCategory(c);
+  c.cd = c.cdMax * 0.5;
+  c.ult = ULTS.kal_guard; c.ultG = CFG.ultStart;
+  c.hp = st.maxHp;
+  c.atkTimer = 0.3;
+  return c;
+}
+KAL_HOOK.spawn = (b, lead, n) => {
+  const top = Math.max(1, ...b.units.filter((u) => u.side === lead.side && u.src).map((u) => u.src!.rank));
+  const rank = Math.ceil(top * KAL_GUARD_RANK);
+  for (let i = 0; i < n; i++) {
+    const k = buildKnight(b, lead.side, rank);
+    // 대표 제국 기물 앞쪽(적 방향) 빈칸부터
+    const fwd = lead.side === 0 ? -1 : 1;
+    const want = { x: lead.x + (i % 2 ? 1 : -1) * Math.ceil(i / 2), y: lead.y + fwd };
+    const cell = b.inBounds(want.x, want.y) && !b.unitAt(want.x, want.y) ? want : b.freeCellNear(lead.x, lead.y);
+    if (!cell) return;
+    k.x = k.px = cell.x; k.y = k.py = cell.y;
+    b.add(k);
+    for (const h of k.hooks) h.onStart?.(b, k);
+    b.emit({ k: 'spawn', id: k.id });
   }
 };
 
@@ -498,6 +580,7 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
     b.add(c);
   }
   TURRET_AT.set(b, turretCells(run, enc.n, 8));
+  TURRET_GEAR_AT.set(b, (run.turretGear || []).map((g) => g.slice()));
   for (const s of enc.enemies) {
     const def = ENEMY_BY_ID[s.defId];
     const e = buildEnemy(b, def, enc.phase ?? run.phase, enc.mult, s);

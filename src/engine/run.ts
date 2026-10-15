@@ -7,7 +7,7 @@ import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, DROP_CONSUMABLES, XP_INJECT_AMOUNT, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, isConsumable, isEmblem, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, DROP_CONSUMABLES, XP_INJECT_AMOUNT, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, isConsumable, isEmblem, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_ADV, TURRET_BASIC, TURRET_PRICE, turretSlots } from '../data/items';
 import { SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, recMajors } from '../data/rework';
@@ -19,7 +19,7 @@ import { FAITHS,
   type AugPick, type Encounter, type InvestOffer, type FaithId, type EnemySpawn, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
   type Quest, type RunState, type SynergyId, type UnitState,
 } from '../types';
-import { deployed, memberships, playerRows, synergyCounts } from './build';
+import { deployed, memberships, playerRows, synergyCounts, turretCount } from './build';
 import type { Battle } from './combat';
 
 export const SAVE_VERSION = 6; // 6: 전술 유형 개편 (개별 증강 폐지)
@@ -375,7 +375,7 @@ export function useCheck(run: RunState, kIdx: number, tg: UseTarget): string | n
   const it = useItemId(run, tg);
   if (!it) return '대상 장비 없음';
   if (isLocked(it) || isConsumable(it)) return '이 장비에는 쓸 수 없습니다';
-  if (id === 'K_legend' && (it[0] === 'L' || isMod(it))) return '전설로 바꿀 수 없는 장비입니다';
+  if (id === 'K_legend' && (it[0] === 'L' || isMod(it) || isTurretGear(it))) return '전설로 바꿀 수 없는 장비입니다';
   if (id === 'K_copy' && run.inventory.length - 1 >= CFG.inventoryMax) return '보관함이 가득 찼습니다';
   return null;
 }
@@ -456,6 +456,7 @@ export function branchOptions(run: RunState): NodeType[] {
   const o: NodeType[] = ['shop', 'supply', 'news', 'recruit'];
   if (tierNow(run, 'HOI') && !used.includes('invest')) o.push('invest');
   if (hasDivine(run) && !used.includes('pilgrim')) o.push('pilgrim');
+  if (tierNow(run, 'ENG')) o.push('maint'); // 엔지니어 출전 중: 정비 (포탑 전용 장비)
   return o;
 }
 export function pickBranch(run: RunState, type: NodeType) {
@@ -463,12 +464,13 @@ export function pickBranch(run: RunState, type: NodeType) {
   if (p?.t !== 'branch' || !p.options.includes(type)) return;
   run.pending.shift();
   if (type === 'shop') { run.node = { type, shop: genShop(run) }; return; }
+  if (type === 'maint') { run.picked[run.step] = 'maint'; run.node = { type: 'shop', shop: genMaint(run), maint: true }; log(run, '분기점: 정비'); return; }
   run.fame -= tierNow(run, 'STAR'); // 분기점 진입 때 이미 받음
   enterNode(run, type);
 }
 
 export const hasDivine = (run: RunState) => run.units.some((u) => UNIT_BY_ID[u.defId].ttype === 'divine');
-const tierNow = (run: RunState, id: 'STAR' | 'HOI' | 'OCCULT' | 'HEL') => tierOf(id, synergyCounts(deployed(run), run)[id] || 0);
+const tierNow = (run: RunState, id: 'STAR' | 'HOI' | 'OCCULT' | 'HEL' | 'ENG') => tierOf(id, synergyCounts(deployed(run), run)[id] || 0);
 
 export function advance(run: RunState) {
   run.node = null;
@@ -875,6 +877,68 @@ function genShop(run: RunState) {
   });
 }
 
+/** 정비 (엔지니어): 포탑 전용 장비. 보급형 1개 무료 + 보급형 2 · 고급형 2 (가격은 상점 등급 기준) */
+function genMaint(run: RunState) {
+  return rng(run, (r) => {
+    const mul = fieldOf(run.field).shopMul || 1;
+    const basic = r.sample(TURRET_BASIC, 3), adv = r.sample(TURRET_ADV, 2);
+    return [
+      { item: basic[0], price: 0, sold: false },
+      ...basic.slice(1).map((id) => ({ item: id, price: Math.round(TURRET_PRICE.basic * mul), sold: false })),
+      ...adv.map((id) => ({ item: id, price: Math.round(TURRET_PRICE.adv * mul), sold: false })),
+    ];
+  });
+}
+
+/** 포탑 장비 칸 상태를 엔지니어 단계에 맞춘다: 포탑 수 · 칸 수가 줄면 남는 장비는 보관함으로, 엔지니어가 꺼지면 포탑 회수 */
+export function syncTurrets(run: RunState): string[] {
+  const n = turretCount(run);
+  const slots = turretSlots(n);
+  const back: string[] = [];
+  const g = (run.turretGear ||= []);
+  for (let i = 0; i < g.length; i++) {
+    const keep = i < n ? slots : 0;
+    for (let k = keep; k < g[i].length; k++) if (g[i][k]) back.push(g[i][k]!);
+    g[i] = g[i].slice(0, keep);
+  }
+  g.length = Math.min(g.length, n);
+  for (let i = 0; i < n; i++) { g[i] ||= []; while (g[i].length < slots) g[i].push(null); }
+  if (!n && run.turretPos?.length) run.turretPos = []; // 엔지니어 비활성: 설치한 포탑 회수
+  for (const id of back) run.inventory.push(id); // 보관함이 가득 차도 돌려준다
+  if (back.length) log(run, `포탑 회수: 장비 ${back.length}개 보관함으로`);
+  return back;
+}
+/** 보관함의 포탑 장비를 포탑 ti 의 칸에 (slot 생략 = 빈 칸, 없으면 첫 칸과 맞교환) */
+export function equipTurret(run: RunState, invIdx: number, ti: number, slot?: number): string | null {
+  const id = run.inventory[invIdx];
+  if (!id) return '대상 없음';
+  if (!isTurretGear(id)) return '포탑에는 포탑 전용 장비만 장착할 수 있습니다';
+  syncTurrets(run);
+  const g = run.turretGear![ti];
+  if (!g) return '포탑이 없습니다';
+  let k = slot !== undefined && slot >= 0 && slot < g.length ? slot : g.indexOf(null);
+  if (k < 0) k = 0;
+  run.inventory.splice(invIdx, 1);
+  if (g[k]) run.inventory.push(g[k]!);
+  g[k] = id;
+  return null;
+}
+export function unequipTurret(run: RunState, ti: number, slot: number): string | null {
+  const g = run.turretGear?.[ti];
+  if (!g?.[slot]) return null;
+  if (run.inventory.length >= CFG.inventoryMax) return '인벤토리 가득 참';
+  run.inventory.push(g[slot]!);
+  g[slot] = null;
+  return null;
+}
+/** 포탑 장비를 다른 포탑 칸으로 (그 칸 장비와 맞교환) */
+export function moveTurretGear(run: RunState, from: [number, number], to: [number, number]) {
+  const g = run.turretGear || [];
+  const a = g[from[0]], b = g[to[0]];
+  if (!a || !b || to[1] >= b.length || from[1] >= a.length) return;
+  [a[from[1]], b[to[1]]] = [b[to[1]], a[from[1]]];
+}
+
 export function buyShop(run: RunState, idx: number): string | null {
   const s = run.node?.shop?.[idx];
   if (!s || s.sold) return '이미 판매됨';
@@ -905,6 +969,7 @@ export function equip(run: RunState, invIdx: number, uid: string): string | null
   const id = run.inventory[invIdx];
   if (!u || !id) return '대상 없음';
   if (isConsumable(id)) return '소모품은 장착할 수 없습니다';
+  if (isTurretGear(id)) return '포탑 전용 장비는 감시 포탑에만 장착할 수 있습니다';
   // 개조부품은 전용 칸으로 (이미 있으면 맞교환)
   if (isMod(id)) {
     if (isEmblem(id) && memberships(u).includes(emblemOf(id)) && u.mod !== id) return '이미 소속된 시너지의 문장입니다';
