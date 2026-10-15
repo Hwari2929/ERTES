@@ -272,19 +272,25 @@ function synergyPanel(run: RunState) {
 function titleScreen() {
   const saves = listSaves();
   const auto = saves.find((s) => s.slot === 'auto');
+  const m = loadMeta();
+  const slots = saves.filter((s) => s.slot !== 'auto');
   return `<main class="title-screen">
-    <div class="logo">ERRANTEs</div>
-    <p class="tagline">은하 용병단 오토배틀러 · 증강 도파민 MAX</p>
-    <div class="title-actions">
-      ${auto ? `<button class="btn primary" data-a="load" data-v="auto">이어하기 <small>페이즈 ${auto.phase} · 체력 ${auto.hp}</small></button>` : ''}
-      <button class="btn ${auto ? '' : 'primary'}" data-a="newrun">새 계약</button>
-      <button class="btn" data-a="codex">도감 · 기록</button>
-      <button class="btn" data-a="menu-import">저장 코드 불러오기</button>
+    <div class="ts-bg" style="background-image:url('${bgURL('title')}')"></div><div class="ts-shade"></div>
+    <div class="ts-stars" aria-hidden="true">${Array.from({ length: 36 }, (_, i) => `<i style="--x:${(i * 37) % 100}%;--y:${(i * 53) % 100}%;--d:${(i % 9) * 0.5}s;--s:${2.5 + (i % 5)}s"></i>`).join('')}</div>
+    <div class="ts-mid">
+      <span class="ts-kicker">에란테스 용병단 · 은하 순회 의뢰</span>
+      <div class="logo">ERRANTEs</div>
+      <p class="tagline">은하 용병단 오토배틀러 · 증강 도파민 MAX</p>
+      <nav class="title-actions" aria-label="메뉴">
+        ${auto ? `<button class="btn primary ts-btn" data-a="load" data-v="auto"><b>이어하기</b><small>페이즈 ${auto.phase} · 체력 ${auto.hp}</small></button>` : ''}
+        <button class="btn ${auto ? '' : 'primary'} ts-btn" data-a="newrun"><b>새 계약</b>${auto ? '<small>진행 중인 의뢰는 덮어씁니다</small>' : ''}</button>
+        <button class="btn ts-btn" data-a="codex"><b>도감 · 기록</b></button>
+        <button class="btn ghost ts-btn" data-a="menu-import"><b>저장 코드 불러오기</b></button>
+      </nav>
+      ${slots.length ? `<div class="slots">${slots.map((s) => `<button class="btn ghost" data-a="load" data-v="${s.slot}">${SLOT_NAME[s.slot]} · 페이즈 ${s.phase} · 기물 ${s.units}</button>`).join('')}</div>` : ''}
+      ${m.runs ? `<p class="ts-meta"><span>의뢰 <b>${m.runs}</b></span><span>성공 <b>${m.clears}</b></span><span>위험 등급 <b>${m.maxDiff}</b></span></p>` : ''}
     </div>
-    ${(() => { const m = loadMeta(); return m.runs ? `<p class="muted small">의뢰 ${m.runs}회 · 성공 ${m.clears}회 · 해금된 위험 등급 ${m.maxDiff}</p>` : ''; })()}
-    ${saves.filter((s) => s.slot !== 'auto').length ? `<div class="slots">${saves.filter((s) => s.slot !== 'auto').map((s) =>
-      `<button class="btn ghost" data-a="load" data-v="${s.slot}">${SLOT_NAME[s.slot]} · 페이즈 ${s.phase} · 기물 ${s.units}</button>`).join('')}</div>` : ''}
-    <p class="muted small fine">싱글 PvE · 오프라인 플레이 · 진행은 이 브라우저에 자동 저장됩니다.</p>
+    <p class="ts-foot">싱글 PvE · 오프라인 플레이 · 진행은 이 브라우저에 자동 저장됩니다.</p>
   </main>`;
 }
 

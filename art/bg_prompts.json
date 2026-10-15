@@ -1,15 +1,19 @@
 {
-  "_note": "배경 일러스트 (가로 1216x832). 인물 없는 풍경 · 분위기 위주. scripts/nai_bg.mjs",
-  "base": "no humans, scenery, background art, wide shot, landscape, detailed background, science fiction, space opera, atmospheric perspective, cinematic lighting, volumetric light, depth of field, best quality, masterpiece, highres, year2026, ::1.2::painterly::, ::1.1::flat color::",
-  "negative": "1girl, 1boy, person, people, character, human, face, hands, crowd, text, watermark, signature, logo, letters, ui, frame, border, multiple views, split screen, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts",
-  "bgs": {
-    "field_swarm": "alien hive biomass engulfing a huge orbital logistics hub, organic tendrils and pulsing sacs over cargo containers and docking arms, purple psionic mist, glowing bioluminescent spores drifting, ruined blue and white federation spaceport, infested planet below",
-    "field_crimson": "gothic biopunk fortress city at night, crimson sky, blood red moon, pulsating bio vats and vein-like pipes running up cathedral spires, tattered imperial banners, dark red and black palette, low fog",
-    "field_sparta": "orbital battlefield seen from a planet surface at dusk, sky full of falling burning debris and streaking warships, white marble greek temple with tall columns on a cliff in the foreground, strong backlight, rim light, temple silhouette against the blazing horizon, bronze statue of a spartan warrior beside the temple, god rays through the columns",
-    "field_petra": "pristine corporate megastructure sanctum, white and orange headquarters tower, endless clean server halls, quarantine barriers and hazard lights, black glitching geometric anomaly spreading through the corridor, cold fluorescent light",
-    "field_waste": "desert wasteland planet, rusted crashed starships half buried in sand, raider camp with makeshift towers, dust storm, two suns low on the horizon, ochre and brown palette, faint ghostly lights in the sky",
-    "diff_easy": "calm starry sky over a quiet spaceport at dawn, soft blue and pale gold light, gentle nebula, peaceful, serene clouds",
-    "diff_adventure": "small starship sailing through a vivid nebula toward unknown planets, light rays, orange and teal palette, sense of adventure, dynamic composition",
-    "diff_challenge": "ominous black hole with red lightning, enemy warfleet emerging from darkness, dramatic storm of debris, crimson and black palette, menacing"
-  }
+ "_note": "배경 일러스트 (가로 1216x832). 인물 없는 풍경 · 분위기 위주. scripts/nai_bg.mjs",
+ "base": "no humans, scenery, background art, wide shot, landscape, detailed background, science fiction, space opera, atmospheric perspective, cinematic lighting, volumetric light, depth of field, best quality, masterpiece, highres, year2026, ::1.2::painterly::, ::1.1::flat color::",
+ "negative": "1girl, 1boy, person, people, character, human, face, hands, crowd, text, watermark, signature, logo, letters, ui, frame, border, multiple views, split screen, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts",
+ "bgs": {
+  "field_swarm": "alien hive biomass engulfing a huge orbital logistics hub, organic tendrils and pulsing sacs over cargo containers and docking arms, purple psionic mist, glowing bioluminescent spores drifting, ruined blue and white federation spaceport, infested planet below",
+  "field_crimson": "gothic biopunk fortress city at night, crimson sky, blood red moon, pulsating bio vats and vein-like pipes running up cathedral spires, tattered imperial banners, dark red and black palette, low fog",
+  "field_sparta": "orbital battlefield seen from a planet surface at dusk, sky full of falling burning debris and streaking warships, white marble greek temple with tall columns on a cliff in the foreground, strong backlight, rim light, temple silhouette against the blazing horizon, bronze statue of a spartan warrior beside the temple, god rays through the columns",
+  "field_petra": "pristine corporate megastructure sanctum, white and orange headquarters tower, endless clean server halls, quarantine barriers and hazard lights, black glitching geometric anomaly spreading through the corridor, cold fluorescent light",
+  "field_waste": "desert wasteland planet, rusted crashed starships half buried in sand, raider camp with makeshift towers, dust storm, two suns low on the horizon, ochre and brown palette, faint ghostly lights in the sky",
+  "diff_easy": "calm starry sky over a quiet spaceport at dawn, soft blue and pale gold light, gentle nebula, peaceful, serene clouds",
+  "diff_adventure": "small starship sailing through a vivid nebula toward unknown planets, light rays, orange and teal palette, sense of adventure, dynamic composition",
+  "diff_challenge": "ominous black hole with red lightning, enemy warfleet emerging from darkness, dramatic storm of debris, crimson and black palette, menacing",
+  "title": "a lone battered mercenary starship drifting past a vast nebula, warm amber running lights, distant galaxy spiral, scattered stars, faint asteroid belt, silhouette of the ship against glowing gas clouds, calm and grand, dark negative space at center for a logo",
+  "erantes_bar": "interior of a small cozy starship bar at night, dim warm amber lights, polished wooden counter with stools, rows of bottles on glowing shelves, large porthole window showing stars and nebula, old navigation charts and trophies on the walls, empty, quiet late night shift",
+  "erantes_bridge": "interior of a mercenary starship bridge, holographic star route map glowing on a central table, branching route lines and nodes, captain chair, consoles with amber and cyan screens, large front viewport with stars, dim lighting",
+  "field_comms": "cockpit communication screen showing a distant battlefield on a rocky alien planet surface, static lines, tactical overlay markers, smoke and explosions in the distance, dusk sky with two moons"
+ }
 }

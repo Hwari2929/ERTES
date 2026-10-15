@@ -2,7 +2,7 @@
 
   python3 scripts/art.py pick     art/picks.json 의 선택본(art/raw) → art/picked/<id>.webp (보관용 원본, 깃에 넣음)
   python3 scripts/art.py faces    얼굴 위치를 못 정한 기물만 자동 추정 → art/faces.json [얼굴 중심 x, 눈썹 y, 턱 y] (손으로 고치는 게 기본)
-  python3 scripts/art.py build    art/picked + art/faces.json → public/art/<id>.webp (전신)
+  python3 scripts/art.py build    art/picked + art/faces.json → public/art/<id>.webp (전신) · <id>.<표정>.webp (표정 차분)
                                   + public/art/<id>.bust.webp (머리 크기를 맞춘 상반신 배너)
                                   + src/ui/portraits.gen.ts (머리 크기를 맞춘 아이콘, 데이터 URI 내장)
   NAI V5 투명 배경 원본(RGBA)은 그대로 쓰고, 흰 배경 원본만 배경을 깎는다.
@@ -207,6 +207,16 @@ def cmd_build():
         stand = stand.resize((max(1, round(stand.width * scale)), max(1, round(stand.height * scale))), Image.LANCZOS)
         stand.save(f'{OUT}/{i}.webp', 'WEBP', quality=82, method=6)
         total += os.path.getsize(f'{OUT}/{i}.webp')
+        # 표정 차분 (art/picked/<id>.<표정>.webp): 기본 스탠딩과 같은 틀로 잘라 바꿔 끼워도 위치가 맞게
+        for fn in sorted(os.listdir(PICKED)):
+            parts = fn.split('.')
+            if len(parts) != 3 or parts[0] != i or parts[2] != 'webp':
+                continue
+            v = Image.open(f'{PICKED}/{fn}').convert('RGBA').resize(cut.size)
+            v = v.crop(bbox) if bbox else v
+            v = v.resize(stand.size, Image.LANCZOS)
+            v.save(f'{OUT}/{fn}', 'WEBP', quality=82, method=6)
+            total += os.path.getsize(f'{OUT}/{fn}')
         if i in faces or i in load_json(CROPS, {}):
             bust_of(cut, face_of(i, faces)).save(f'{OUT}/{i}.bust.webp', 'WEBP', quality=82, method=6)
             total += os.path.getsize(f'{OUT}/{i}.bust.webp')

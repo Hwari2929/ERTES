@@ -81,7 +81,25 @@ button { font: inherit; color: inherit; }
   padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(transparent, var(--bg) 30%); margin-top: 12px; z-index: 5; }
 
 /* ── 타이틀 */
-.title-screen { flex: 1; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 48px 16px; text-align: center; }
+.title-screen { position: relative; flex: 1; min-height: 100vh; display: grid; grid-template-rows: 1fr auto; justify-items: center; padding: 40px 16px 20px; text-align: center; overflow: hidden; background: #05060b; isolation: isolate; }
+.ts-bg { position: fixed; inset: -4%; z-index: -3; background: center 45% / cover no-repeat; opacity: 1; animation: ts-drift 60s ease-in-out infinite alternate; }
+@keyframes ts-drift { from { transform: scale(1.04) translate(-1%, 0); } to { transform: scale(1.1) translate(1.5%, -1%); } }
+.ts-shade { position: fixed; inset: 0; z-index: -2; background: radial-gradient(70% 60% at 50% 45%, rgb(5 6 11 / .12), rgb(5 6 11 / .7) 78%), linear-gradient(180deg, rgb(5 6 11 / .2), transparent 30%, rgb(5 6 11 / .85)); }
+.ts-stars { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+.ts-stars i { position: absolute; left: var(--x); top: var(--y); width: 2px; height: 2px; border-radius: 50%; background: #fff; opacity: 0; animation: ts-twinkle var(--s) var(--d) ease-in-out infinite; }
+@keyframes ts-twinkle { 50% { opacity: .8; } }
+.ts-mid { align-self: center; display: grid; justify-items: center; gap: 12px; width: 100%; animation: ts-in .9s ease-out both; }
+@keyframes ts-in { from { opacity: 0; transform: translateY(12px); } }
+.ts-kicker { font-size: 12px; letter-spacing: .32em; color: color-mix(in srgb, var(--accent) 75%, #fff); text-transform: uppercase; opacity: .85; }
+.title-screen .logo { filter: drop-shadow(0 0 28px rgb(240 170 60 / .28)); }
+.title-screen .tagline { color: #c9cbd3; text-shadow: 0 1px 6px #000; }
+.title-actions .ts-btn { display: grid; gap: 2px; padding: 12px 16px; backdrop-filter: blur(6px); }
+.title-actions .ts-btn:not(.primary) { background: rgb(18 22 32 / .72); }
+.title-actions .ts-btn b { font-size: 15px; }
+.ts-meta { display: flex; gap: 14px; margin: 6px 0 0; font-size: 12px; color: #aeb3c0; }
+.ts-meta b { color: var(--accent); font-variant-numeric: tabular-nums; }
+.ts-foot { margin: 0; font-size: 11.5px; color: #8a8f9c; text-shadow: 0 1px 4px #000; }
+@media (prefers-reduced-motion: reduce) { .ts-bg, .ts-stars i, .ts-mid { animation: none; } }
 .logo { font-family: var(--f-display); font-size: clamp(3rem, 12vw, 6.5rem); line-height: 1; color: var(--accent); letter-spacing: .02em;
   text-shadow: 4px 4px 0 var(--accent-ink), 6px 6px 0 var(--line); }
 .tagline { color: var(--dim); letter-spacing: .12em; font-size: .9rem; }
