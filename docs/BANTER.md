@@ -1,6 +1,6 @@
 # 상호작용 대사 (BANTER)
 
-기물끼리 주고받는 짧은 만담 모음. **아직 게임에 연결하지 않았다** (연결 시 출전 조합 · 상황 태그로 고른다).
+기물끼리 주고받는 짧은 만담 모음 (667편, 57기 전원 13회 이상 등장). **아직 게임에 연결하지 않았다** (연결 시 출전 조합 · 상황 태그로 고른다).
 
 - 말투는 `docs/VOICES.md`, 연출 원칙은 `docs/SCENES.md` 3차 지침을 따른다. 코미디 우선, 2~4줄, 경구 · 로어 낭독 금지.
 - 지휘관 = 레이첼. 에란테스 바는 **지상의 진짜 바**이고, 함대 · 함선은 따로다 (함선 안 술자리는 식당 · 휴게실).
@@ -32,3 +32,6 @@
 | [banter/16_days.md](banter/16_days.md) | 정장의 날 · 검진 · 생일 · 연말 · 휴무 |
 | [banter/17_missions.md](banter/17_missions.md) | 의뢰 현장 (호위 · 잠입 · 구조 · 협상 · 회수 · 수송) |
 | [banter/18_firstmeet.md](banter/18_firstmeet.md) | 첫 만남 (영입 직후) |
+| [banter/19_latenight.md](banter/19_latenight.md) | 심야 · 술자리 |
+| [banter/20_rivals.md](banter/20_rivals.md) | 티격태격 연작 (반복 개그) |
+| [banter/21_shopquick.md](banter/21_shopquick.md) | 상점 한마디 (영입 · 새로고침 · 판매) |
