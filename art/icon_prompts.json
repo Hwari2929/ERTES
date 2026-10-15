@@ -536,8 +536,9 @@
   "color": "steel and crimson"
  },
  "weapon.donovan": {
-  "subject": "glowing monomolecular wire coiled between two handles",
-  "color": "steel and crimson"
+  "subject": "thin glowing monomolecular wire stretched taut between two metal grips, cutting line",
+  "color": "steel and crimson",
+  "prop": true
  },
  "weapon.chloe": {
   "subject": "compact dart pistol loaded with a toxic green dart",
@@ -564,8 +565,9 @@
   "color": "steel and crimson"
  },
  "weapon.lars": {
-  "subject": "open empty gloved hands with business card, unarmed",
-  "color": "steel and crimson"
+  "subject": "gentleman leather gloves offering a business card, unarmed negotiator",
+  "color": "steel and crimson",
+  "prop": true
  },
  "weapon.falcon": {
   "subject": "long railgun with magnetic coils and glowing rails",
@@ -632,12 +634,14 @@
   "color": "gold and amber"
  },
  "weapon.doros": {
-  "subject": "freshly baked bread loaves flying, golden glow",
-  "color": "gold and amber"
+  "subject": "warm freshly baked bread loaves flying through the air, crumbs and golden glow",
+  "color": "gold and amber",
+  "prop": true
  },
  "weapon.demiurgos": {
-  "subject": "giant ghostly friendly hand reaching out",
-  "color": "violet and purple"
+  "subject": "giant translucent ghostly hand reaching out gently, open palm, glowing fingers",
+  "color": "violet and purple",
+  "prop": true
  },
  "weapon.aiden": {
   "subject": "liquid metal blade morphing from a silver hand",
@@ -652,28 +656,32 @@
   "color": "cyan and electric blue"
  },
  "weapon.ingel": {
-  "subject": "retro stage microphone emitting sound waves",
-  "color": "violet and purple"
+  "subject": "retro silver stage microphone emitting colorful sound wave rings",
+  "color": "violet and purple",
+  "prop": true
  },
  "weapon.amundsen": {
   "subject": "orbital artillery shell falling with targeting reticle",
   "color": "steel and crimson"
  },
  "weapon.rachel": {
-  "subject": "floating dark matter core orb with swirling void",
-  "color": "violet and purple"
+  "subject": "floating dark matter sphere core with swirling black void and orbiting rings",
+  "color": "violet and purple",
+  "prop": true
  },
  "weapon.oliver": {
   "subject": "train engineer wrench, heavy and worn",
   "color": "steel and crimson"
  },
  "weapon.rasmus": {
-  "subject": "garden pruning shears",
-  "color": "steel and crimson"
+  "subject": "pair of garden pruning shears snipping, leaves falling",
+  "color": "steel and crimson",
+  "prop": true
  },
  "weapon.sigmund": {
-  "subject": "silver cutlery knives and forks thrown in a fan",
-  "color": "steel and crimson"
+  "subject": "fan of silver dinner knives forks and spoons thrown through the air",
+  "color": "steel and crimson",
+  "prop": true
  },
  "weapon.gunnir": {
   "subject": "kitchen chef knives thrown in a fan",
@@ -704,8 +712,9 @@
   "color": "toxic green"
  },
  "weapon.issac": {
-  "subject": "bandaged fist punching",
-  "color": "toxic green"
+  "subject": "clenched fist wrapped in white bandages punching forward with toxic splash",
+  "color": "toxic green",
+  "prop": true
  },
  "weapon.eden": {
   "subject": "old worn revolver with engraved cylinder",
@@ -716,20 +725,23 @@
   "color": "cyan and electric blue"
  },
  "weapon.mao": {
-  "subject": "cocktail shaker blaster with electric fizz",
-  "color": "cyan and electric blue"
+  "subject": "chrome cocktail shaker with nozzle firing an electric fizzing blast",
+  "color": "cyan and electric blue",
+  "prop": true
  },
  "weapon.skadi": {
   "subject": "leather briefcase full of documents crackling with electricity",
   "color": "cyan and electric blue"
  },
  "weapon.mingki": {
-  "subject": "sharp cat claws slashing",
-  "color": "steel and crimson"
+  "subject": "three sharp cat claw slash marks tearing through the air, paw",
+  "color": "steel and crimson",
+  "prop": true
  },
  "weapon.onyx": {
-  "subject": "choir of floating glowing music notes and singing mouths",
-  "color": "violet and purple"
+  "subject": "floating glowing music notes swirling in a chorus, harmony waves",
+  "color": "violet and purple",
+  "prop": true
  },
  "weapon.exile": {
   "subject": "crimson blood sword dripping",
@@ -740,8 +752,9 @@
   "color": "steel and crimson"
  },
  "weapon.u404": {
-  "subject": "hydraulic press robotic arm with pistons",
-  "color": "steel and crimson"
+  "subject": "giant hydraulic press robotic arm with pistons slamming down",
+  "color": "steel and crimson",
+  "prop": true
  },
  "weapon.rus": {
   "subject": "twin pistols crossed",

@@ -42,7 +42,7 @@ function unzipFirst(buf) {
 async function gen(id, seed) {
   const p = P[id];
   // 무기: 이펙트보다 무기 자체가 먼저 보이게 (단일 물체 · 전체 형태 · 대각 배치)
-  const weapon = id.startsWith('weapon.') ? ', ::1.4::single weapon object, entire weapon visible, weapon in focus, detailed weapon design::, subtle effect behind' : '';
+  const weapon = id.startsWith('weapon.') && !p.prop ? ', ::1.4::single weapon object, entire weapon visible, weapon in focus, detailed weapon design::, subtle effect behind' : '';
   const input = `::1.6::${p.subject}::, ${p.color} color scheme${weapon}, ${STYLES[style]}`;
   if (flag('--dry')) { console.log(id, '\n', input); return; }
   const body = { input, model: cfg.model, action: 'generate', parameters: {
