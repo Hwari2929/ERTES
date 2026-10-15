@@ -20,3 +20,7 @@
 | [banter/04_bar.md](banter/04_bar.md) | 에란테스 바 당직 |
 | [banter/05_travel.md](banter/05_travel.md) | 이동 중 (함선 · 셔틀) |
 | [banter/06_chat.md](banter/06_chat.md) | 잡담 |
+| [banter/07_elvestad.md](banter/07_elvestad.md) | 엘베스타드 일가 |
+| [banter/08_staff.md](banter/08_staff.md) | 참모진 · 작전반 · 의무실 |
+| [banter/09_factions.md](banter/09_factions.md) | 세력별 (페트라 · 호이슌 · 연합 · 성도회 · 동맹) |
+| [banter/10_oddcouple.md](banter/10_oddcouple.md) | 이상한 조합 |
