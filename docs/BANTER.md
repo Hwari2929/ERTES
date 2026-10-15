@@ -28,3 +28,7 @@
 | [banter/12_inbattle.md](banter/12_inbattle.md) | 전투 중 한마디 (2줄) |
 | [banter/13_shiplife.md](banter/13_shiplife.md) | 함선 생활 |
 | [banter/14_groups.md](banter/14_groups.md) | 셋 이상 (단체) |
+| [banter/15_fields.md](banter/15_fields.md) | 전장 환경 (설원 · 사막 · 해양 · 폐광 · 도시 · 우주 · 정글) |
+| [banter/16_days.md](banter/16_days.md) | 정장의 날 · 검진 · 생일 · 연말 · 휴무 |
+| [banter/17_missions.md](banter/17_missions.md) | 의뢰 현장 (호위 · 잠입 · 구조 · 협상 · 회수 · 수송) |
+| [banter/18_firstmeet.md](banter/18_firstmeet.md) | 첫 만남 (영입 직후) |
