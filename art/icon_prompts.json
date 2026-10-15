@@ -819,5 +819,65 @@
  "passive.illusion": {
   "subject": "swirling perfume mist and fragrant petals, alluring scent",
   "color": "lavender and prismatic"
+ },
+ "faith.emperor": {
+  "subject": "imperial crown above a crossed scepter and sword, executioner verdict",
+  "color": "gold and amber, golden holy light"
+ },
+ "faith.athena": {
+  "subject": "owl perched on a crested greek helmet with a spear, wisdom",
+  "color": "gold and amber, golden holy light"
+ },
+ "faith.hermes": {
+  "subject": "winged sandal and caduceus staff with speed trails",
+  "color": "gold and amber, golden holy light"
+ },
+ "faith.ares": {
+  "subject": "battle-worn spartan helmet with crossed spears and a round shield",
+  "color": "gold and amber, golden holy light"
+ },
+ "faith.hades": {
+  "subject": "bident spear and a skull crown with souls rising, underworld key",
+  "color": "gold and amber, golden holy light"
+ },
+ "faith.zeus": {
+  "subject": "thunderbolt clutched by an eagle talon, lightning crack",
+  "color": "gold and amber, golden holy light"
+ },
+ "faith.selene": {
+  "subject": "crescent moon with a gentle healing glow and falling light petals",
+  "color": "gold and amber, golden holy light"
+ },
+ "faith.human": {
+  "subject": "two hands clasped together in solidarity, linked fingers",
+  "color": "gold and amber, golden holy light"
+ },
+ "faith.index": {
+  "subject": "rising stock chart arrow made of gold coins, market candle bars",
+  "color": "gold and amber, golden holy light"
+ },
+ "faith.science": {
+  "subject": "atom orbit symbol over a gear and a small turret drone",
+  "color": "gold and amber, golden holy light"
+ },
+ "faith.sirius": {
+  "subject": "brilliant eight pointed star radiating holy light, dog star",
+  "color": "gold and amber, golden holy light"
+ },
+ "divine.MARK": {
+  "subject": "holy piercing bullet glowing with radiant light, magazine reloading",
+  "color": "gold and amber, golden holy light"
+ },
+ "divine.VAN": {
+  "subject": "radiant knight charging through a holy shockwave, shield flare",
+  "color": "gold and amber, golden holy light"
+ },
+ "divine.SPEC": {
+  "subject": "two glowing miracle sparks bursting twice, double cast",
+  "color": "gold and amber, golden holy light"
+ },
+ "divine.CMD": {
+  "subject": "oracle eye within a halo issuing a command beam",
+  "color": "gold and amber, golden holy light"
  }
 }
