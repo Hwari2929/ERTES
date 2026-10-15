@@ -274,7 +274,7 @@
   "color": "white and pale teal"
  },
  "skill.vivian": {
-  "subject": "wild beast pouncing with a claw slash",
+  "subject": "wolf paw print glowing with an impact shockwave and dizzy stun stars",
   "color": "white, silver and light gray with subtle crimson accents",
   "light": true
  },
@@ -325,7 +325,7 @@
   "color": "orange and red"
  },
  "skill.rasmus": {
-  "subject": "guard dog lunging with bared fangs and a bleeding slash",
+  "subject": "spiked dog collar with a broken chain and three deep bleeding claw gashes",
   "color": "white, silver and light gray with subtle crimson accents",
   "light": true
  },
@@ -689,7 +689,7 @@
   "light": true
  },
  "weapon.vivian": {
-  "subject": "dart rifle with animal tracking darts",
+  "subject": "bolt action tranquilizer dart rifle with a scope, feathered darts",
   "color": "white, silver and light gray with subtle crimson accents",
   "light": true
  },
@@ -718,7 +718,7 @@
   "light": true
  },
  "weapon.rasmus": {
-  "subject": "pair of garden pruning shears snipping, leaves falling",
+  "subject": "pair of heavy steel garden pruning shears, open blades",
   "color": "white, silver and light gray with subtle crimson accents",
   "prop": true,
   "light": true
