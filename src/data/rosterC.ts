@@ -14,7 +14,7 @@ const BEAR = ['#0c0806', '#4a3424', '#8a6a4a', '#c0a080', '#ffcf40', '#2a1a10', 
 export const ROSTER_C: BaseUnit[] = [
   // ───────── 시리우스 성도회
   {
-    id: 'romani', name: '로마니', title: '켈레브림 가문 제3위계장', factions: ['SIR'], traits: ['INFIL'], keywords: ['bio'],
+    id: 'romani', name: '로마니', title: '성도회 제3위계장 (켈레브림 가문)', factions: ['SIR'], traits: ['INFIL'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 1.0 }, range: 1, base: B(7, 9, 7, 5, 4),
     sprite: 'knight', palette: tint(PAL.SIR, '#3a2a50', '#e8e8f0', '#b07cff'), lore: '"그 정도면 잘했어. 네 수준에서는."',
     skill: {
@@ -91,7 +91,7 @@ export const ROSTER_C: BaseUnit[] = [
     }),
   },
   {
-    id: 'kyle', name: '카일', title: '성도회 성전 기사', factions: ['SIR'], traits: ['INFIL'], keywords: ['bio'],
+    id: 'kyle', name: '카일', title: '켈레브림 가주 · 망각의 용사', factions: ['SIR'], traits: ['INFIL'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'holy', interval: 1.1 }, range: 1, base: B(9, 7, 5, 8, 3),
     sprite: 'knight', palette: PAL.SIR, lore: '적진 한가운데가 그의 제단이다.',
     skill: strike({
@@ -100,7 +100,7 @@ export const ROSTER_C: BaseUnit[] = [
     }),
   },
   {
-    id: 'doros', name: '도로스', title: '성도회 수도원 요리사', factions: ['SIR'], traits: ['CHEF'], keywords: ['bio'],
+    id: 'doros', name: '도로스', title: '성도회 집행관 · 차원 봉합자', factions: ['SIR'], traits: ['CHEF'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'holy', interval: 1.0 }, range: 3, base: B(8, 5, 8, 6, 3),
     sprite: 'robe', palette: tint(PAL.SIR, '#c8a070', '#ffffff', '#ffd866'), lore: '빵을 굽는 동안 기도하고, 기도하는 동안 빵을 굽는다.',
     skill: support({
