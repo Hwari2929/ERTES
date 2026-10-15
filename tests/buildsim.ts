@@ -184,7 +184,7 @@ function calibRun(seed: number, out: Record<string, Record<string, number>>) {
 }
 
 // ═════════ comps: 고정 조합 전투
-interface Comp { id: string; units: string[]; items?: Record<string, string[]>; pos?: Record<string, [number, number]>; turretGear?: (string | null)[][] }
+interface Comp { id: string; units: string[]; items?: Record<string, string[]>; pos?: Record<string, [number, number]>; turretGear?: (string | null)[][]; mods?: Record<string, string> }
 /** 기본 장비: 근접 탱커 = 수호자 판금 + 요새 장갑, 원거리 사격 = 조준 보조 AI + 고속 연사, 기술 = 사이오닉 증폭기 + 예지 회로, 근접 딜러 = 광전사 + 과출력 */
 function defaultItems(id: string): string[] {
   const d = UNIT_BY_ID[id];
@@ -204,6 +204,7 @@ function buildRun(comp: Comp, field: string, phase: number, rank: number, seed: 
     resolve(run, bot); // 학파 · 합류 증강
     u.items = [...(u.items[0] ? [u.items[0]] : []), ...(comp.items?.[id] || defaultItems(id))].slice(0, 3) as (string | null)[];
     while (u.items.length < 3) u.items.push(null);
+    if (comp.mods?.[id]) u.mod = comp.mods[id]; // 개조부품 (문장 등)
   }
   // 등급: addUnit 의 rankUp 경로 대신 settleXp 로 올린다 (이정표 보상 동일)
   for (const u of run.units) {

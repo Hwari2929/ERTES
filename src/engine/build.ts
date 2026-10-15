@@ -447,8 +447,9 @@ const KNIGHT_SKILL: SkillDef = {
     return true;
   },
 };
-export function buildKnight(b: Battle, side: 0 | 1, rank: number): CUnit {
+export function buildKnight(b: Battle, side: 0 | 1, rank: number, bonus = 0): CUnit {
   const m = knightMajors(rank);
+  for (const k of MAJORS) m[k] += bonus; // 아군 제국 기물 최고 작위 1단계당 모든 메이저 +1
   const st = emptyStats();
   Object.assign(st, CFG.baseMinor);
   st.moveSpd = 1; st.range = 1;
@@ -475,8 +476,10 @@ export function buildKnight(b: Battle, side: 0 | 1, rank: number): CUnit {
 KAL_HOOK.spawn = (b, lead, n) => {
   const top = Math.max(1, ...b.units.filter((u) => u.side === lead.side && u.src).map((u) => u.src!.rank));
   const rank = Math.ceil(top * KAL_GUARD_RANK);
+  const titles = Math.max(0, ...b.units.filter((u) => u.side === lead.side && u.src && u.mem.kalTitle).map((u) => u.mem.kalTitle));
   for (let i = 0; i < n; i++) {
-    const k = buildKnight(b, lead.side, rank);
+    const k = buildKnight(b, lead.side, rank, titles);
+    k.mem.kalBonus = titles;
     // 대표 제국 기물 앞쪽(적 방향) 빈칸부터
     const fwd = lead.side === 0 ? -1 : 1;
     const want = { x: lead.x + (i % 2 ? 1 : -1) * Math.ceil(i / 2), y: lead.y + fwd };

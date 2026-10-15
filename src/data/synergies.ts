@@ -4,7 +4,7 @@ import { amp, applyLive, inc, red, vuln } from '../engine/effects';
 import { CFG } from '../config';
 import { type Major, MAJORS, type RunState, type Stats, type SynergyId } from '../types';
 import { ALL_ADVANCED, itemEffect, itemInfo } from './items';
-import { addStacks, blinkTo, harmfulCount, isDebuffed, isHarmful, pct, slow } from './kit';
+import { addStacks, blinkTo, harmfulCount, isDebuffed, isHarmful, pct } from './kit';
 import { UNIT_BY_ID } from './units';
 
 export interface SynDef {
@@ -165,8 +165,8 @@ export const VOYAGE_SPECIAL: Record<string, { who: string; name: string; text: s
     effect: { setup: (u) => { u.mem.voyViv = 1; } } },
 };
 
-/** 시간 여행자 (3) 이상: 회피 회복 계수 (주요 위력 대비, 단계별 [-, 3명, 4명 ×2, 5명 ×4]) · 내부 재사용 대기 */
-const TIME_HEAL = [0, 0.2, 0.4, 0.8];
+/** 시간 여행자 (3) 이상: 회피 회복 계수 (주요 위력 대비, 단계별 [-, 3명, 4명, 5명]) · 내부 재사용 대기 */
+const TIME_HEAL = [0, 0.3, 0.6, 1.0];
 const TIME_ICD = 0.3;
 /** 주요 위력: 명사수 사격 · 돌격가 타격 · 전문가 기술 · 지휘관 전술 위력 */
 export const mainPower = (b: Battle, u: CUnit) => (u.ctype === 'MARK' ? b.S(u, 'shoot') : u.ctype === 'VAN' ? b.S(u, 'strike') : b.P(u, 'tech'));
@@ -176,13 +176,28 @@ const timeEvade = (k: number) => (b: Battle, u: CUnit) => {
   b.heal(u, u, mainPower(b, u) * k, false, 'TIME');
 };
 
+/** 보안위원회 (6) [합동 격리]: 주기 · 기본 계수 · 해로운 효과 1개당 계수 · 셀 수 있는 해로운 효과 상한 (전술 위력 대비) */
+export const SEC_QUAR = { first: 5, every: 8, base: 4, per: 2, cap: 6 };
+function secQuarantine(b: Battle, u: CUnit) {
+  const foes = b.enemiesOf(u);
+  if (!foes.length) return;
+  b.emit({ k: 'skill', id: u.id, name: '합동 격리!', tag: '적 전체 고정 피해' });
+  const tac = b.tacPower(u);
+  for (const e of foes) {
+    const n = Math.min(SEC_QUAR.cap, harmfulCount(e));
+    b.fx(e.x, e.y, 0, 'true');
+    b.dealDamage(u, e, tac * (SEC_QUAR.base + SEC_QUAR.per * n), { elem: 'true', tag: 'proc', syn: 'SEC' });
+  }
+  b.emit({ k: 'skillEnd', id: u.id });
+}
+
 /** 칼리토 제국 (5 · 7 · 9): 전투 시작 시 [근위기사] 소환 수 · 공명 등급 비율 */
 export const KAL_GUARDS = [0, 1, 2, 3];
 export const KAL_GUARD_RANK = 0.65;
 /** 근위기사 소개 (도감 · 시너지 설명) */
 export const KAL_GUARD_TEXT = {
   name: '근위기사',
-  desc: `칼리토 황실 근위대의 돌격가(메이저) 소환물. 공명 등급 = 출전 아군 중 가장 높은 공명 등급 × ${Math.round(KAL_GUARD_RANK * 100)}% (올림), 그 등급의 돌격가와 같은 방식으로 능력치를 받고, 작위 1당 피해 +10%. 시너지 인원에 세지 않고 판매할 수 없습니다.`,
+  desc: `칼리토 황실 근위대의 돌격가(메이저) 소환물. 공명 등급 = 출전 아군 중 가장 높은 공명 등급 × ${Math.round(KAL_GUARD_RANK * 100)}% (올림), 그 등급의 돌격가와 같은 방식으로 능력치를 받고, 출전한 제국 기물 중 가장 높은 작위 1단계당 모든 메이저 +1 (시너지 작위 보정 포함), 자기 작위 1당 피해 +10%. 시너지 인원에 세지 않고 판매할 수 없습니다.`,
   weapon: '근위 장검: 근접 타격 콤보 (3타째 피니쉬).',
   skill: '근위 방패 (쿨다운 8초): 자신에게 최대 체력 30% 보호막, 4초간 도발 (주변 1칸 적이 자신을 노림).',
   ult: '제국의 검 (궁극기): 대상과 주변 1칸 적에게 타격 위력 300% 물리 피해 + 1초 기절.',
@@ -204,7 +219,7 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'KAL', name: '칼리토 제국', kind: 'faction', tiers: [3, 5, 7, 9], color: '#c0303a', icon: '♛',
-    desc: '제국 기물은 공명 등급에 따라 작위를 받고, 작위만큼 강해집니다.\n· 작위: 기사 → 3등급 남작 → 6등급 백작 → 9등급 공작 → 20등급 대공 → 30등급 황제\n· 남작 이상은 치명타 피해 +25%p.\n· (5) 이상: 전투 시작 시 [근위기사]를 소환합니다 (공명 등급 = 아군 최고 공명 등급 × 65%, 올림).',
+    desc: '제국 기물은 공명 등급에 따라 작위를 받고, 작위만큼 강해집니다.\n· 작위: 기사 → 3등급 남작 → 6등급 백작 → 9등급 공작 → 20등급 대공 → 30등급 황제\n· 남작 이상은 치명타 피해 +25%p.\n· (5) 이상: 전투 시작 시 [근위기사]를 소환합니다 (공명 등급 = 아군 최고 공명 등급 × 65%, 올림).\n· 근위기사는 출전한 제국 기물 중 가장 높은 작위 1단계당 모든 메이저 +1 (기사 1 · 남작 2 · 백작 3 · 공작 4 · 대공 5 · 황제 6, 시너지 작위 보정 포함).',
     tierDesc: ['방어력 +5, 작위 1당 피해 +10%', '방어력 +11, 작위 1당 피해 +18%, 제국 기물 받는 피해 -10%, 전투 시작 시 [근위기사] 1기 소환', '방어력 +18, 작위 1당 피해 +30%, 모든 제국 기물 작위 +1, 제국 기물 받는 피해 -20%, [근위기사] 2기 소환',
       '[황제 친정] 방어력 +30, 작위 1당 피해 +45%, 작위 +2, 제국 기물 받는 피해 -25%, 모든 아군 치명타 피해 +50%p, [근위기사] 3기 소환'],
     member: (t) => ({
@@ -218,6 +233,7 @@ export const SYNERGIES: SynDef[] = [
       majors: { def: T(t, [5, 11, 18, 30]) }, taken: t >= 2 ? [red('all', T(t, [0, 0.1, 0.2, 0.25]))] : undefined,
       setup: (u) => {
         const title = (u.mem.title || 1) + (t >= 4 ? 2 : t >= 3 ? 1 : 0);
+        u.mem.kalTitle = title; // 근위기사 강화용 (시너지 보정 포함 작위)
         u.mods.push(inc('all', T(t, [0.1, 0.18, 0.3, 0.45]) * title));
         if (title >= 2) u.st.critDmg += 0.25;
       },
@@ -295,21 +311,20 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'SEC', name: '보안위원회', kind: 'faction', tiers: [2, 4, 6], color: '#7d8aa3', icon: '⛨',
-    desc: '은하 보안을 책임지는 비밀 위원회. 위원회 기물은 피해에 강하고, 해로운 효과에 시달릴수록 오히려 기술을 빨리 꺼냅니다. 위원회 기물의 기본 공격은 확률로 적을 [둔화]시키고, 위원회 기물이 거는 해로운 효과는 더 오래 갑니다.',
-    tierDesc: ['피해량 경감 10%, 정신 피해 추가 -15%, 해로운 효과 1개당 쿨다운 감소 속도 +10%, 기본 공격 25% 확률 [둔화] 2초, 거는 해로운 효과 +1초', '피해량 경감 20%, 정신 피해 추가 -20%, 해로운 효과 1개당 +20%, [둔화] 35%, 해로운 효과 +2초',
-      '[비상 대권] 피해량 경감 30%, 정신 피해 추가 -30%, 해로운 효과 1개당 쿨다운 감소 속도 +50%, [둔화] 50%, 해로운 효과 +3초'],
+    desc: `은하 보안을 책임지는 비밀 위원회.\n· 위원회 기물은 받는 피해와 정신 피해가 줄어듭니다.\n· 위원회 기물이 거는 해로운 효과는 더 오래 갑니다.\n· (6): ${SEC_QUAR.every}초마다 [합동 격리] — 모든 적에게 전술 위력 비례 고정 피해. 대상이 가진 해로운 효과 1개당 계수가 늘어납니다.`,
+    tierDesc: ['받는 피해 -10%, 정신 피해 추가 -15%, 거는 해로운 효과 +1초', '받는 피해 -20%, 정신 피해 추가 -20%, 거는 해로운 효과 +2초',
+      `[비상 대권] 받는 피해 -30%, 정신 피해 추가 -30%, 거는 해로운 효과 +3초, ${SEC_QUAR.first}초 후부터 ${SEC_QUAR.every}초마다 [합동 격리]: 모든 적에게 전술 위력 ${pct(SEC_QUAR.base)} + 대상의 해로운 효과 1개당 ${pct(SEC_QUAR.per)} 고정 피해 (최대 ${SEC_QUAR.cap}개)`],
     member: (t) => {
-      const k = T(t, [0.1, 0.2, 0.5]), ext = T(t, [1, 2, 3]), slowP = T(t, [0.25, 0.35, 0.5]);
+      const ext = T(t, [1, 2, 3]);
       return {
         taken: [red('all', T(t, [0.1, 0.2, 0.3])), red('psy', T(t, [0.15, 0.2, 0.3]))],
         hooks: {
           onInflict(_b, u, tgt, s) { if (tgt.side !== u.side && isHarmful(s)) s.dur += ext; },
-          onBasic(b, u, tgt, r) { if (!r.miss && tgt.alive) slow(b, u, tgt, 0.2, 2, slowP); },
-          onTick(_b, u) {
-            const v = harmfulCount(u) * k;
-            u.st.cdr += v - (u.mem.secCdr || 0);
-            u.mem.secCdr = v;
-          },
+          onTick: t >= 3 ? (b, u, dt) => {
+            if (b.alliesOf(u).find((a) => a.synergies.has('SEC') && !a.isSummon) !== u) return; // 대표 위원회 기물 1명
+            u.mem.secT = (u.mem.secT ?? SEC_QUAR.every - SEC_QUAR.first) + dt;
+            if (u.mem.secT >= SEC_QUAR.every) { u.mem.secT = 0; secQuarantine(b, u); }
+          } : undefined,
         },
       };
     },
