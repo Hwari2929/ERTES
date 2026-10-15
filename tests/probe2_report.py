@@ -18,16 +18,18 @@ TTN = {'major': '메이저', 'minor': '마이너', 'special': '스페셜', 'psio
 def load(arm):
     d = os.path.join(ROOT, arm)
     parts = sorted(glob.glob(f'{d}/part*.json'))
-    if not parts: return None
     runs, agg = [], {}
     for p in parts:
-        j = json.load(open(p))
+        try: j = json.load(open(p))
+        except Exception:
+            sys.stderr.write(f'skip unreadable {p}\n'); continue
         runs += j['runs']
         for t, tab in j['agg'].items():
             T = agg.setdefault(t, {})
             for k, v in tab.items():
                 a = T.setdefault(k, {})
                 for f, x in v.items(): a[f] = a.get(f, 0) + x
+    if not runs: return None
     runs.sort(key=lambda r: r['seed'])
     return {'runs': runs, 'agg': agg}
 
@@ -494,6 +496,11 @@ for f in fieldsSeen:
     us = [u for u in units if s1[u][0] >= 20 and s2[u][0] >= 20]
     half.append((f, len(us), spearman([s1[u][1] / s1[u][0] for u in us], [s2[u][1] / s2[u][0] for u in us])))
 P('\n잡음 기준 (같은 전장을 홀 · 짝 시드로 나눈 두 절반 사이 ρ): ' + ', '.join(f"{FLD.get(f, f)} {r:.2f} (n={n})" for f, n, r in half))
+rel = {f: 2 * r / (1 + r) for f, n, r in half}  # 스피어만-브라운: 전체 표본 신뢰도
+P('\n전체 표본 신뢰도 (스피어만-브라운 2r/(1+r)): ' + ', '.join(f"{FLD.get(f, f)} {rel[f]:.2f}" for f in fieldsSeen))
+P('\n**잡음 보정 상관 (ρ ÷ √(신뢰도A · 신뢰도B), 1 에 가까울수록 전장이 달라도 순위가 같다)**\n')
+tbl(['전장 A', '전장 B', 'ρ', '보정 ρ'], [[FLD.get(a, a), FLD.get(b, b), f2(r7[f'{a}|{b}']), f2(r7[f'{a}|{b}'] / math.sqrt(rel[a] * rel[b]))] for i, a in enumerate(fieldsSeen) for b in fieldsSeen[i + 1:]])
+RES_rel = rel
 RES['exp7'] = {'rho': r7, 'split_half': half}
 
 # ═════════ 8. 성유물
