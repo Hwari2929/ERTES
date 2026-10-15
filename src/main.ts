@@ -31,6 +31,7 @@ import { deleteSave, exportCode, importCode, listSaves, loadRun, saveRun, SLOT_N
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd, metaTutEnd, metaTutSeen, tutMeta, tutOver } from './ui/meta';
 import { bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg, standURL } from './ui/portraits';
 import { advKey, closeAdv, playAdv } from './ui/adv';
+import { ABIL_ICONS } from './ui/abilicons.gen';
 import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 import { closeCoach, coachKey, startCoach, type CoachStep } from './ui/coach';
 import { TUTORIAL_FLOW, TUTORIAL_SCENES, TUTORIAL_TIPS } from './data/scenes/tutorial';
@@ -432,7 +433,8 @@ function faithAbil(d: UnitDef, u: UnitState | null, run: RunState | null) {
   const f = u?.faith || d.faith;
   const fd = FAITH_DEF[f];
   const on = d.ttype === 'divine';
-  return `<div class="abil ab-faith${on ? '' : ' off'}"><div class="ab-head"><span class="ab-kind">신앙</span><b>${FAITH_NAME[f]}</b><span class="ab-meta">${on ? '활성' : '비활성'}</span></div>
+  const tok = abTok(`faith.${f}`);
+  return `<div class="abil ab-faith${on ? '' : ' off'}${tok ? ' has-tok' : ''}">${tok}<div class="ab-head"><span class="ab-kind">신앙</span><b>${FAITH_NAME[f]}</b><span class="ab-meta">${on ? '활성' : '비활성'}</span></div>
     <p>${on ? `${esc(fd.buff)}. 신성력: ${esc(fd.gain)}${app.detail ? `, 초당 +2 (수집 상한 ${CFG.divCap + (run?.divCap || 0)})` : ''}.` : '디바인만 신앙의 힘을 쓴다.'}</p></div>`;
 }
 /** 능력 란의 전술 유형 섹션: 유형마다 구성이 다르다 (u 없으면 도감 미리보기, c 있으면 전투 중 실시간 값) */
@@ -486,8 +488,8 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
       const cd = c?.cantripMax || sc.cantrip.cd;
       const chips = AB.skillChips(CANTRIP_INFO[sc.id], actx(b, c, true), b && c ? b.S(c, 'range') : d.range, cd) + AB.chip('a.reason', `-${sc.cantrip.cost}`, '이성 소모');
       body.push(`<div class="ps-cards" style="--sc:${sc.color}">
-        <div class="ps-card ab-click${abilOn('cantrip')}" data-a="abil-pop" data-v="cantrip" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">비술</span><b>${esc(sc.cantrip.name)}</b></div><div class="ab-chips">${chips}</div></div>
-        <div class="ps-card ab-click${abilOn('psipass')}" data-a="abil-pop" data-v="psipass" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">지속</span><b>${esc(sc.passive.name)}</b></div><span class="small">${esc(PASSIVE_BRIEF[sc.id])}</span></div>
+        <div class="ps-card ab-click${abilOn('cantrip')} has-tok" data-a="abil-pop" data-v="cantrip" role="button" tabindex="0">${abTok(`cantrip.${sc.id}`)}<div class="ab-head"><span class="ab-kind">비술</span><b>${esc(sc.cantrip.name)}</b></div><div class="ab-chips">${chips}</div></div>
+        <div class="ps-card ab-click${abilOn('psipass')} has-tok" data-a="abil-pop" data-v="psipass" role="button" tabindex="0">${abTok(`passive.${sc.id}`)}<div class="ab-head"><span class="ab-kind">지속</span><b>${esc(sc.passive.name)}</b></div><span class="small">${esc(PASSIVE_BRIEF[sc.id])}</span></div>
       </div>`);
       // 이성: 양 끝에 효과, 가운데 0 (누르면 규칙 상세)
       const r = live && c && c.reason !== null ? c.reason : null;
@@ -532,7 +534,8 @@ function traitGroup(d: UnitDef, u: UnitState | null, run: RunState | null, b: Ba
   const k = (x: string) => `${d.id}:${x}`;
   const ct = CTYPE_DESC[d.ctype];
   void u; void run;
-  return `<div class="abil ab-trait"><div class="ab-click${abilOn('trait')}" data-a="abil-pop" data-v="trait" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, c)}</div>
+  const tok = abTok(`trait.${d.id}`);
+  return `<div class="abil ab-trait"><div class="ab-click${abilOn('trait')}${tok ? ' has-tok' : ''}" data-a="abil-pop" data-v="trait" role="button" tabindex="0">${tok}<div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, c)}</div>
     <div class="subs">
       ${sub(k('ct'), CTYPE_ICON(d.ctype), `ct-${d.ctype}`, CTYPE_NAME[d.ctype], '전투 유형', `<p>${esc(app.detail ? ct[1] : ct[0])}</p>`)}
     </div></div>`;
@@ -1055,13 +1058,20 @@ function previewAlly(run: RunState, u: UnitState) {
 // ───────────────────────── 능력 (통일 형식 · 누르면 좌측 상세 팝업)
 const actx = (b: Battle | null, c: CUnit | null, skill = false): AB.AbilCtx => ({ b, c, p: c?.sk || {}, skill });
 const abilOn = (k: string) => (app.abilPop === k ? ' on' : '');
-function abilCard(key: string, kind: keyof typeof AB_KIND, name: string, meta: string, body: string, extra = '') {
-  return `<div class="abil ab-${kind} ab-click${abilOn(key)}" data-a="abil-pop" data-v="${esc(key)}" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">${AB_KIND[kind]}</span><b>${name.startsWith('<svg') ? name.replace(/(<\/svg>)(.*)$/, (_m, x, t) => x + esc(t)) : esc(name)}</b>${meta ? `<span class="ab-meta">${meta}</span>` : ''}</div>${body}${extra}</div>`;
+/** 능력 아이콘 토큰 (없으면 빈 문자열). 키: skill.<기물> · trait.<기물> · ult.<기물> · weapon.<기물> · cantrip/passive.<전공> · faith.<신앙> */
+function abTok(ic?: string) {
+  const src = ic ? ABIL_ICONS[ic] : '';
+  return src ? `<img class="ab-tok" src="${src}" alt="" draggable="false">` : '';
 }
-function weaponCard(w: Weapon, b: Battle | null, c: CUnit | null, elem = w.elem) {
-  if (w.kind === 'none') return abilCard('weapon', 'weapon', w.name, '', '<p>기본 공격을 하지 않는다.</p>');
+function abilCard(key: string, kind: keyof typeof AB_KIND, name: string, meta: string, body: string, extra = '', ic?: string) {
+  const tok = abTok(ic);
+  return `<div class="abil ab-${kind} ab-click${abilOn(key)}${tok ? ' has-tok' : ''}" data-a="abil-pop" data-v="${esc(key)}" role="button" tabindex="0">${tok}<div class="ab-head"><span class="ab-kind">${AB_KIND[kind]}</span><b>${name.startsWith('<svg') ? name.replace(/(<\/svg>)(.*)$/, (_m, x, t) => x + esc(t)) : esc(name)}</b>${meta ? `<span class="ab-meta">${meta}</span>` : ''}</div>${body}${extra}</div>`;
+}
+function weaponCard(w: Weapon, b: Battle | null, c: CUnit | null, elem = w.elem, uid?: string) {
+  const ic = uid ? `weapon.${uid}` : undefined;
+  if (w.kind === 'none') return abilCard('weapon', 'weapon', w.name, '', '<p>기본 공격을 하지 않는다.</p>', '', ic);
   const range = b && c ? b.S(c, 'range') : w.range;
-  return abilCard('weapon', 'weapon', w.name, WPOS(range), `<div class="ab-chips">${AB.weaponChips(w, actx(b, c), range, elem)}</div>`);
+  return abilCard('weapon', 'weapon', w.name, WPOS(range), `<div class="ab-chips">${AB.weaponChips(w, actx(b, c), range, elem)}</div>`, '', ic);
 }
 /** 메이저 궁극기 카드 (스킬과 같은 모양) */
 function ultCard(d: UnitDef, b: Battle | null, c: CUnit | null, live = false) {
@@ -1070,7 +1080,7 @@ function ultCard(d: UnitDef, b: Battle | null, c: CUnit | null, live = false) {
   const eff = c && b ? b.S(c, 'ultCharge') : 0;
   const sec = CFG.ultTime / (ul.charge * Math.max(0.1, 1 + eff));
   const chips = `<div class="ab-chips"><span class="abc" title="자연 충전 주기">${lineIcon('a.cd', 'li')}${sec.toFixed(0)}초</span><span class="abc" title="전투 시작 게이지">${lineIcon('a.battery', 'li')}시작 ${Math.round((CFG.ultStart + (c?.mem.ultStart || 0)) * 100)}%</span>${live && c ? `<span class="abc v">${Math.round((c.ultG || 0) * 100)}%</span>` : ''}</div>`;
-  return abilCard('ult', 'ult', `${lineIcon('a.ult', 'li ab-ic')}${ul.name}`, `약 ${sec.toFixed(0)}초`, `${chips}<p>${statIc(esc(ul.desc))}</p>`);
+  return abilCard('ult', 'ult', ul.name, `약 ${sec.toFixed(0)}초`, `${chips}<p>${statIc(esc(ul.desc))}</p>`, '', `ult.${d.id}`);
 }
 /** 디바인 신권 대행 카드: 장착한 성유물 */
 /** 성유물 섹션: 장착 슬롯 + 종속 하위 능력(신권 대행) */
@@ -1094,7 +1104,7 @@ function skillCard(d: UnitDef, b: Battle | null, c: CUnit | null) {
   const info = ABIL[d.id]?.skill?.(p);
   const cd = c?.cdMax ?? d.skill.cd;
   const range = b && c ? b.S(c, 'range') : d.range;
-  return abilCard('skill', 'skill', d.skill.name, info ? '' : `${cd.toFixed(1)}초`, info ? `<div class="ab-chips">${AB.skillChips(info, actx(b, c, true), range, cd)}</div>` : `<p>${esc(skillText(d, p))}</p>`);
+  return abilCard('skill', 'skill', d.skill.name, info ? '' : `${cd.toFixed(1)}초`, info ? `<div class="ab-chips">${AB.skillChips(info, actx(b, c, true), range, cd)}</div>` : `<p>${esc(skillText(d, p))}</p>`, '', `skill.${d.id}`);
 }
 const traitHtml = (d: UnitDef, b: Battle | null, c: CUnit | null) => {
   const t = ABIL[d.id]?.trait;
@@ -1193,7 +1203,11 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     mech = pool === 'unit' ? '이 기물 전용 증강. 획득하면 영구 적용.' : pool === 'special' ? '스페셜 기물 합류 시 고르는 증강. 영구 적용.' : pool === 'psionic' ? '사이오닉 증강. 이성 규칙을 바꾼다. 영구 적용.' : '공용 증강. 영구 적용.';
     body = `<p>${augText(id, c?.src?.augments.find((a) => a.id === id)?.param, b, c, gl)}</p>`;
   } else return '';
-  return `<div class="stat-pop abil-pop"><div class="sp-head"><span class="ab-kind">${kind}</span><b>${esc(name)}</b><button class="btn tiny" data-a="abil-pop" data-v="">닫기</button></div>${mech ? `<p class="ap-mech">${mech}</p>` : ''}${body}</div>`;
+  // 머리에 능력 아이콘 (아군 기물의 무기 · 특성 · 스킬 · 궁극기 · 비술 · 지속 · 신앙)
+  const sc = c ? cSchool(c) : (app.run?.units.find((x) => x.defId === d.id) as { school?: SchoolId } | undefined)?.school ?? null;
+  const icKey = key === 'cantrip' && sc ? `cantrip.${sc}` : key === 'psipass' && sc ? `passive.${sc}` : ['weapon', 'trait', 'skill', 'ult'].includes(key) ? `${key}.${d.id}` : '';
+  const tok = icKey && UNIT_BY_ID[d.id] ? abTok(icKey).replace('ab-tok', 'ab-tok ap-tok') : '';
+  return `<div class="stat-pop abil-pop"><div class="sp-head">${tok}<span class="ab-kind">${kind}</span><b>${esc(name)}</b><button class="btn tiny" data-a="abil-pop" data-v="">닫기</button></div>${mech ? `<p class="ap-mech">${mech}</p>` : ''}${body}</div>`;
 }
 
 /** 적 능력: 무기 · 특성 · 스킬 카드 */
@@ -1304,7 +1318,7 @@ function unitModal(run: RunState) {
         </dl>
         <h3>능력</h3>
         <div class="abils">
-          ${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem)}
+          ${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem, d.id)}
           ${traitGroup(d, u, run, b, c)}
           ${aceAbil(run, u)}${voyAbil(d, run, u)}
           ${skillCard(d, b, c)}
@@ -1371,7 +1385,7 @@ function detailPanel(run: RunState, extra = '') {
     </div>
     <h3>능력</h3>
     <div class="abils">
-      ${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem)}
+      ${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem, d.id)}
       ${traitGroup(d, u, run, b, c)}
       ${aceAbil(run, u)}${voyAbil(d, run, u)}
       ${skillCard(d, b, c)}
@@ -2498,7 +2512,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
   if (u.side === 0 && !u.isSummon) {
     const d = UNIT_BY_ID[u.defId];
     head = heroHead(d.id, sprite(u, 'spr big'), d.name, allyTags(d));
-    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem)}<div class="abil ab-trait ab-click${abilOn('trait')}" data-a="abil-pop" data-v="trait" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${ultCard(d, b, u, true)}${faithAbil(d, u.src || null, app.run)}${ttSection(d, u.src || null, app.run, b, u, true)}${relicSection(d, u.src || null, app.run, u, true)}`;
+    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem, d.id)}<div class="abil ab-trait ab-click${abilOn('trait')} has-tok" data-a="abil-pop" data-v="trait" role="button" tabindex="0">${abTok(`trait.${d.id}`)}<div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${ultCard(d, b, u, true)}${faithAbil(d, u.src || null, app.run)}${ttSection(d, u.src || null, app.run, b, u, true)}${relicSection(d, u.src || null, app.run, u, true)}`;
     if (app.abilPop) pop = abilPopHtml(app.abilPop, d, b, u);
   } else if (u.side === 1 && ENEMY_BY_ID[u.defId]) {
     const e = ENEMY_BY_ID[u.defId];
@@ -2602,7 +2616,7 @@ function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
     <div class="majors-mini">${MAJORS.map((mm) => `<span title="${MAJOR_NAME[mm]} (기본)">${majorIcon(mm)}<b>${d.base[mm]}</b></span>`).join('')}</div>
     <h3>시너지</h3><div class="cx-syns">${syn}</div>
     <h3>역할군 · 능력 <span class="muted small">1등급 · 장비 없음 기준</span></h3>
-    <div class="abils">${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem)}${traitGroup(d, null, null, b, c)}${skillCard(d, b, c)}${voyAbil(d, null, null)}</div>
+    <div class="abils">${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem, d.id)}${traitGroup(d, null, null, b, c)}${skillCard(d, b, c)}${voyAbil(d, null, null)}</div>
     <div class="abils">${ultCard(d, b, c)}${faithAbil(d, null, null)}${ttSection(d, null, null, b, c)}${relicSection(d, null, null, c)}</div>
     <h3>추천 장비 <span class="muted small">${CTYPE_NAME[d.ctype]}</span></h3><ul class="rc-list">${reco}</ul>
     <h3>이야기</h3>${STORIES[d.id] ? `<p class="small">${esc(STORIES[d.id])}</p>` : ''}<p class="lore">${esc(d.lore)}</p>

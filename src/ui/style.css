@@ -2269,3 +2269,15 @@ body.coaching .kw-tip, body.coaching .item-tip, body.coaching .drag-ghost { z-in
 @media (max-width: 700px) { .gl-list { grid-template-columns: minmax(0, 1fr); } }
 /* 전체 상세(.um)에서 경험치를 사 등급이 오르면 등급 보상 창이 그 위에 뜨게 */
 .modal-bg:has(> .modal.rankup) { z-index: 62; }
+/* ───────── 능력 아이콘 토큰: 카드 왼쪽 정사각 아이콘, 테두리는 능력 종류 색 */
+.has-tok { display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 9px; align-items: start; }
+.has-tok > :not(.ab-tok) { grid-column: 2; min-width: 0; }
+.ab-tok { grid-column: 1; grid-row: 1 / span 4; width: 44px; height: 44px; border-radius: 9px; object-fit: cover; border: 1.5px solid var(--ab, var(--line)); box-shadow: 0 0 0 1px rgb(0 0 0 / .45), 0 3px 10px rgb(0 0 0 / .35), inset 0 0 0 1px rgb(255 255 255 / .06); background: #0c0e14; user-select: none; }
+.ab-faith.off .ab-tok { filter: grayscale(.85) brightness(.7); }
+.abil.has-tok .ab-head { min-height: 18px; }
+.ab-trait > .ab-click.has-tok { margin: -2px -4px; padding: 2px 4px; }
+.ps-card.has-tok { grid-template-columns: 38px minmax(0, 1fr); }
+.ps-card .ab-tok { width: 38px; height: 38px; border-color: var(--sc); }
+@media (max-width: 700px) { .has-tok { grid-template-columns: 38px minmax(0, 1fr); } .ab-tok { width: 38px; height: 38px; } }
+.abil-pop .sp-head .ap-tok { grid-row: auto; width: 40px; height: 40px; border-color: var(--accent); }
+@media (max-width: 700px) { .um-grid { align-content: start; grid-auto-rows: auto; } .um-col { min-height: auto; } }
