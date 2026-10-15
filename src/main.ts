@@ -27,6 +27,7 @@ import { Rng } from './rng';
 import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SynergyId, type UnitState } from './types';
 import { BattleView, fmt, FX, FX_DEFAULT, type DeathStyle, type MotionPreset, type UltCut } from './ui/battleview';
 import { ULTS } from './data/ults';
+import { VOICE, voicePick } from './data/voicelines';
 import { DEFAULT_RELIC, RELIC_BY_ID } from './data/relics';
 import { deleteSave, exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd, metaTutEnd, metaTutSeen, tutMeta, tutOver } from './ui/meta';
@@ -1539,7 +1540,9 @@ function summaryModal(run: RunState) {
   const b = app.lastBattle;
   const mvp = b ? pickMvp(b) : null;
   const d = mvp ? UNIT_BY_ID[mvp.a.u.defId] : null;
-  const quote = d ? d.lore.replace(/^["“]|["”]$/g, '') : '';
+  // 대사: 승리 = MVP 대사, 패배 = 분투 대사, 전멸 = 패배 대사 (런 시드 · 단계로 고정 → 다시 그려도 그대로). 없으면 소개 문구
+  const vs = d ? VOICE[d.id] : undefined;
+  const quote = d ? voicePick(s.won ? vs?.mvp : s.gameOver ? vs?.lose : vs?.struggle, `${run.seed}|${run.step}|${d.id}`) || d.lore.replace(/^["“]|["”]$/g, '') : '';
   // 공명도: 전투 전 → 후 막대 (등급이 오르면 한 번 가득 찼다가 새 등급에서 다시 차오른다)
   const xp = s.xp.filter((x) => x.amount > 0).map((x, i) => {
     const u = run.units.find((y) => y.uid === x.uid);

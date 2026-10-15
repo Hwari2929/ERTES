@@ -4,6 +4,7 @@ import type { BEvent, Battle, CUnit } from '../engine/combat';
 import type { Elem } from '../types';
 import { hasPortrait, iconURL, standURL } from './portraits';
 import { ULTS } from '../data/ults';
+import { VOICE, voicePick } from '../data/voicelines';
 import { RELIC_BY_ID } from '../data/relics';
 import { SCHOOL_BY_ID, type SchoolId } from '../data/schools';
 import { lineIcon } from './synicons';
@@ -912,7 +913,9 @@ export class BattleView {
       d.querySelector('b')!.textContent = ult.name;
       return;
     }
-    this.cutQ.push({ u, name: ult.name, line: ult.line, theme: ult.theme, label: '궁극기' });
+    // 대사: 기물 음성 대사 중 하나 (같은 시전이면 같은 줄)
+    const line = voicePick(VOICE[u.defId]?.ult, `${e.id}|${this.b.t.toFixed(2)}`) || ult.line;
+    this.cutQ.push({ u, name: ult.name, line, theme: ult.theme, label: '궁극기' });
     this.nextCut();
   }
   /** 디바인 신권 대행: 궁극기와 같은 틀에 금빛 신성 테마 (강화되면 더 밝게) */
@@ -932,7 +935,7 @@ export class BattleView {
       d.querySelector('b')!.textContent = name;
       return;
     }
-    this.cutQ.push({ u, name, line: DIV_LINE[u.defId] || '신이시여, 지금 이 손에 권능을.', theme: { pat: 'halo', c1: enh ? '#fff6c8' : '#ffd34d', c2: enh ? '#5a4410' : '#2a2008', txt: enh ? 'spark' : 'mist' }, label: enh ? '신권 대행 · 강화' : '신권 대행' });
+    this.cutQ.push({ u, name, line: voicePick(VOICE[u.defId]?.divine, `${id}|${this.b.t.toFixed(2)}`) || DIV_LINE[u.defId] || '신이시여, 지금 이 손에 권능을.', theme: { pat: 'halo', c1: enh ? '#fff6c8' : '#ffd34d', c2: enh ? '#5a4410' : '#2a2008', txt: enh ? 'spark' : 'mist' }, label: enh ? '신권 대행 · 강화' : '신권 대행' });
     this.nextCut();
   }
   private nextCut() {
