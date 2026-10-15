@@ -11,7 +11,7 @@ import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isLocked, isMod
 import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { DIVINE_ACT, FAITH_DEF, MAJOR_AUGS, MINOR_TRAIT_GROW, recMajors } from './data/rework';
-import { GROUPS, SCHOOL_BY_ID, SCHOOL_PASSIVES, UNIT_GROUP, psiAugId, schoolOf, type SchoolId } from './data/schools';
+import { GROUPS, SCHOOL_BY_ID, SCHOOL_PASSIVES, UNIT_GROUP, isTransformAug, psiAugId, schoolOf, type SchoolId } from './data/schools';
 import { BRIEF, PSI_BRIEF } from './data/brief';
 import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
 import * as AB from './ui/abil';
@@ -330,7 +330,7 @@ function sub(key: string, icon: string, cls: string, name: string, kind: string,
 /** 증강 한 줄 (이름 · 설명) */
 function augRow(id: string, param?: string, b: Battle | null = null, c: CUnit | null = null, tag = '') {
   const ad = AUG_BY_ID[id];
-  return `<li class="aug-li ab-click${abilOn(`aug:${id}`)}" data-a="abil-pop" data-v="aug:${esc(id)}" role="button" tabindex="0">${augIcon(id)}<span><b>${esc(ad?.name || id)}</b>${tag ? ` <span class="tag">${tag}</span>` : ''}<br><span class="muted">${b && c ? augText(id, param, b, c) : esc(augDesc(id, param))}</span></span></li>`;
+  return `<li class="aug-li ab-click${abilOn(`aug:${id}`)}" data-a="abil-pop" data-v="aug:${esc(id)}" role="button" tabindex="0">${augIcon(id)}<span><b>${isTransformAug(id) ? '◆ ' : ''}${esc(ad?.name || id)}</b>${tag ? ` <span class="tag">${tag}</span>` : ''}<br><span class="muted">${b && c ? augText(id, param, b, c) : esc(augDesc(id, param))}</span></span></li>`;
 }
 /** 다음 이정표 등급 */
 function nextMilestone(tt: TType, rank: number): number | null {
@@ -1570,7 +1570,7 @@ function pendingModal(run: RunState): string {
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];
           if (p.kind === 'school') return schoolOpt(a.id, i);
-          return `<button class="aug-opt ${app.augPick === i ? 'on' : ''}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">${augIcon(a.id)}<span class="ao-txt"><b>${esc(ad.name)}</b><span>${augText(a.id, a.param, pv.b, pv.c)}</span></span><kbd>${i + 1}</kbd></button>`;
+          return `<button class="aug-opt ${app.augPick === i ? 'on' : ''}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">${augIcon(a.id)}<span class="ao-txt"><b>${isTransformAug(a.id) ? '◆ ' : ''}${esc(ad.name)}</b><span>${augText(a.id, a.param, pv.b, pv.c)}</span></span><kbd>${i + 1}</kbd></button>`;
         }).join('') || '<p class="muted">고를 수 있는 증강이 없습니다.</p>'}</div>
         <div class="ru-foot">${opts.length
           ? `<button class="btn primary aug-ok" data-a="pick-aug" data-v="${app.augPick ?? ''}" ${app.augPick === null ? 'disabled' : ''}>${app.augPick === null ? '증강을 고르세요' : '확정'}</button>`

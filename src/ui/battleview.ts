@@ -62,6 +62,8 @@ const TOP_ICON: Record<string, { t: string; svg: string }> = {
   regen: { t: '지속 회복', svg: svg('M20 3C10 3 4 8 4 15c0 2 .6 3.6 1.4 5L7 18.5C8 13 12 9 16 7c-3.5 3-6 6.5-7 11.5 1 .4 2 .5 3 .5 6 0 9-6 8-16Z') },
   bond: { t: '결속: 받는 피해 증가 · 피해 공유', svg: svg('M3.5 9.5a4 4 0 0 1 5.7-5.7l3 3-1.4 1.4-3-3a2 2 0 0 0-2.9 2.9l3 3-1.4 1.4ZM20.5 14.5a4 4 0 0 1-5.7 5.7l-3-3 1.4-1.4 3 3a2 2 0 0 0 2.9-2.9l-3-3 1.4-1.4ZM8.5 7.1l8.4 8.4-1.4 1.4-8.4-8.4Z') },
   resonance: { t: '공진: 피격될 때마다 주변 적에게 피해', svg: svg('M12 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM7.05 7.05l1.41 1.41a5 5 0 0 0 0 7.08l-1.41 1.41a7 7 0 0 1 0-9.9ZM16.95 7.05a7 7 0 0 1 0 9.9l-1.41-1.41a5 5 0 0 0 0-7.08ZM4.22 4.22l1.42 1.42a9 9 0 0 0 0 12.72l-1.42 1.42a11 11 0 0 1 0-15.56ZM19.78 4.22a11 11 0 0 1 0 15.56l-1.42-1.42a9 9 0 0 0 0-12.72Z') },
+  confuse: { t: '혼란: 가까운 아무나 공격 (같은 편 포함)', svg: svg('M12 3a9 9 0 1 0 9 9h-2.2A6.8 6.8 0 1 1 12 5.2a4.6 4.6 0 1 1-4.6 4.6H5.2A6.8 6.8 0 1 0 12 3Zm0 7a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z') },
+  scent: { t: '향취: 회피 감소 · 받는 피해 증가', svg: svg('M11 2c-1.5 2 1.5 3.5 0 5.5s1.5 3.5 0 5.5h2c1.5-2-1.5-3.5 0-5.5S11.5 4 13 2ZM7 15h10l-1.5 7h-7Z') },
 };
 const ICON_FREEZE = svg('M12 1.5 21 6.75v10.5L12 22.5 3 17.25V6.75Zm0 4L7 8.4v7.2l5 2.9 5-2.9V8.4Z');
 const ICON_CHARM = svg('M12 21s-8.5-5.3-8.5-11.2A4.8 4.8 0 0 1 12 6.6a4.8 4.8 0 0 1 8.5 3.2C20.5 15.7 12 21 12 21Z');
@@ -72,7 +74,7 @@ const schoolOfC = (u: CUnit): string | null => (u as { school?: string | null })
 const barOf = (sc: string) => (sc === 'mind' ? 'trans' : sc);
 const hasKey = (u: CUnit, k: string) => u.statuses.some((s) => s.key === k && s.dur > 0);
 const inFrenzy = (u: CUnit) => !!u.mem.frenzy || u.statuses.some((s) => s.key === 'frenzy');
-const PSI_TOP: Record<string, 1> = { burn: 1, conduct: 1, chill: 1, regen: 1, bond: 1, resonance: 1 };
+const PSI_TOP: Record<string, 1> = { burn: 1, conduct: 1, chill: 1, regen: 1, bond: 1, resonance: 1, confuse: 1, scent: 1 };
 /** 위쪽 아이콘 줄에 올릴 상태 (기절 · 공포는 중앙, 암운 · 분석은 아래 중첩 표식) */
 function topIconKey(st: { key: string; type: string; taken?: { kind: string }[]; elem?: string }): string | null {
   if (st.key === 'shock' || st.key === 'bleed' || st.key === 'poison' || st.key === 'slow' || st.key === 'wound' || st.key === 'suppress' || st.key in PSI_TOP) return st.key;
