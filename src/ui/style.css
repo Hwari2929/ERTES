@@ -2396,3 +2396,30 @@ button.cx2-row { cursor: pointer; } button.cx2-row:hover { border-color: var(--d
 .cx2-fld-tx > small { color: var(--dim); font-size: .74rem; }
 .cx2-fld-tx > p { margin: 2px 0; font-size: .82rem; line-height: 1.5; }
 .cx2-fld .cx2-mem { align-items: center; }
+/* 전체 상세 왼쪽 열: 내려 보면 스탠딩이 접히고 머리 초상화 · 공명 등급 · 시너지 머리줄이 위에 붙는다 */
+.um-a { position: relative; }
+.um-sticky { position: sticky; top: -12px; height: 0; z-index: 4; margin: 0 -14px; } /* 열 안쪽 여백(12px)만큼 끌어올려 맨 위에 붙인다 */
+.um-sc { position: absolute; left: 0; right: 0; top: 0; display: flex; gap: 10px; align-items: center; padding: 8px 14px; background: color-mix(in srgb, var(--panel-2) 94%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); box-shadow: 0 6px 18px rgb(0 0 0 / .35);
+  opacity: 0; visibility: hidden; transform: translateY(-10px); pointer-events: none; transition: opacity .28s ease, transform .28s ease, visibility 0s linear .28s; }
+.um-sc .um-face { width: 52px; height: 52px; flex: none; border-radius: 12px; object-fit: cover; border: 2px solid var(--accent); background: var(--panel); image-rendering: auto; }
+.um-sc .um-face:not(.pt) { image-rendering: pixelated; }
+.um-sc-main { min-width: 0; flex: 1; display: grid; gap: 4px; }
+.um-sc .um-rank { gap: 6px; } .um-sc .um-rank .xpbar, .um-sc .um-rank .xp { min-width: 60px; }
+.um-a.compact .um-sc { opacity: 1; visibility: visible; transform: none; pointer-events: auto; transition: opacity .28s ease, transform .28s ease, visibility 0s; }
+.um-art { transition: opacity .35s ease, transform .35s ease, filter .35s ease; transform-origin: 50% 0; }
+.um-a.compact .um-art { opacity: 0; transform: scale(.86); filter: blur(2px); }
+.um-a.um-instant .um-sc, .um-a.um-instant .um-art { transition: none !important; }
+@media (prefers-reduced-motion: reduce) { .um-sc, .um-a.compact .um-sc, .um-art { transition: none; transform: none !important; filter: none !important; } }
+@media (max-width: 700px) { .um-sticky { top: 0; } .um-sc .um-face { width: 44px; height: 44px; } }
+/* 전체 상세 머리줄: 기물 방출 버튼 + 확인 창 */
+.btn.danger-ghost { color: #ff8a8a; border-color: color-mix(in srgb, #ff6a6a 55%, var(--line)); background: transparent; }
+.btn.danger-ghost:hover:not(:disabled) { background: color-mix(in srgb, #b03030 30%, transparent); }
+.btn.danger-ghost[aria-expanded="true"] { background: color-mix(in srgb, #b03030 35%, transparent); }
+.um-release { padding: 8px 14px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, #b03030 12%, var(--panel)); }
+.um-release .release { margin: 0; }
+/* 편성: 엔지니어 감시 포탑 (가장자리 열 · 끌어 옮기기) */
+.board .cell.tpad { background: repeating-linear-gradient(45deg, color-mix(in srgb, #a0b4c8 14%, transparent) 0 6px, transparent 6px 12px); outline: 1px dashed color-mix(in srgb, #a0b4c8 45%, transparent); outline-offset: -3px; }
+.board .cell.edge { background: transparent; border-color: transparent; }
+.u.turret-tk { cursor: grab; }
+.u.turret-tk .tk-card { border-color: #a0b4c8; }
+.u.turret-tk .tk-tag { position: absolute; left: 2px; bottom: 2px; font-size: 10px; line-height: 1; padding: 2px 3px; border-radius: 4px; background: rgb(0 0 0 / .65); color: #cfe0f0; }

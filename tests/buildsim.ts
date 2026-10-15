@@ -243,7 +243,9 @@ function runComps() {
   for (let ci = i0; ci < i1; ci++) {
     const comp = comps[ci];
     const rows: unknown[] = [];
-    for (const f of FIELDS) for (const ph of [3, 4, 5, 6]) for (let s = 0; s < NS; s++) {
+    const FL = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.BS_FIELDS?.split(',');
+    const PHS = DIFF ? [5, 6] : [3, 4, 5, 6]; // 고위험은 후반(5 · 6페이즈)만 본다
+    for (const f of FIELDS.filter((x) => !FL || FL.includes(x.id))) for (const ph of PHS) for (let s = 0; s < NS; s++) {
       const seed = 100000 + ph * 1000 + s * 17 + FIELDS.indexOf(f) * 7;
       const run = buildRun(comp, f.id, ph, RANK || PH_RANK[ph], seed, DIFF);
       for (const nd of NODES) {

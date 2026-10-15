@@ -146,6 +146,8 @@ export interface RunState {
   fleet?: number;
   /** 지정 소집 횟수 (가격 상승) */
   musters?: number;
+  /** 엔지니어 감시 포탑 배치 (편성 화면에서 끌어 옮긴 자리, 순서대로). c = -1 / 99 는 양옆 가장자리 열 */
+  turretPos?: { c: number; r: number }[];
   /** 튜토리얼 런: 진행 순서(TUTORIAL_FLOW) 위치. 있으면 고정 항로 · 고정 조우 · 지는 일 없음 */
   tutorial?: { i: number };
   seed: number;

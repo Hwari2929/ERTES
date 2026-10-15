@@ -18,7 +18,7 @@ import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
 import * as AB from './ui/abil';
 import * as CX2 from './ui/codex2';
 import {
-  activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, unitEffects, ZONE,
+  activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, turretCells, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
 import { Battle, type CUnit, type Status, STATUS_NAME } from './engine/combat';
 import * as R from './engine/run';
@@ -899,7 +899,8 @@ function rosterRow(u: UnitState) {
 let tacShownPrev = false;
 function tacPill(run: RunState) {
   const dep = deployed(run);
-  const scheme = tierOf('SCHEME', synergyCounts(dep, run).SCHEME || 0) > 0; // [암운] 피해가 전술 위력 비례
+  const sc = synergyCounts(dep, run);
+  const scheme = tierOf('SCHEME', sc.SCHEME || 0) > 0 || tierOf('ENG', sc.ENG || 0) > 0; // [암운] 피해 · 포탑 사격 위력이 전술 위력 비례
   const b = dep.length ? buildBattle(run, run.node?.enc ? { ...run.node.enc, enemies: [] } : { n: CFG.bossBoard, env: '', enemies: [], mult: 1, seed: 1 }, false) : null;
   const allies = b ? b.units.filter((u) => u.side === 0 && !u.isSummon) : [];
   const cmds = allies.filter((u) => u.ctype === 'CMD');
@@ -913,8 +914,8 @@ function tacPill(run: RunState) {
   const extra = allies.reduce((sum, u) => sum + (u.mem.tacBonus || 0), 0);
   if (extra) lines.push(`기타 보정 +${extra}`);
   const v = b.tac[0];
-  const title = `전술 위력 ${v}\n${lines.join('\n')}\n지휘관의 스킬 · 전술 무기 · [암운]은 이 값을 위력으로 씁니다.`;
-  return `<span class="tac-wrap"><button class="pill tac-pill${pop ? ' pop' : ''}" data-a="tac-info" title="${esc(title)}" aria-label="${esc(title)}" aria-expanded="${app.tacOpen}">${lineIcon('p.tac', 'li')}<b>${v}</b></button>${cmds.length ? `<span class="tac-cmd" title="출전 지휘관 수">지휘관 ${cmds.length}</span>` : ''}${app.tacOpen ? `<span class="tac-pop" role="note"><b>전술 위력 ${v}</b>${lines.map((l) => `<span>${esc(l)}</span>`).join('')}<span class="muted">지휘관의 스킬 · 전술 무기 · [암운]은 이 값을 위력으로 씁니다.</span></span>` : ''}</span>`;
+  const title = `전술 위력 ${v}\n${lines.join('\n')}\n지휘관의 스킬 · 전술 무기 · [암운] · 감시 포탑은 이 값을 위력으로 씁니다.`;
+  return `<span class="tac-wrap"><button class="pill tac-pill${pop ? ' pop' : ''}" data-a="tac-info" title="${esc(title)}" aria-label="${esc(title)}" aria-expanded="${app.tacOpen}">${lineIcon('p.tac', 'li')}<b>${v}</b></button>${cmds.length ? `<span class="tac-cmd" title="출전 지휘관 수">지휘관 ${cmds.length}</span>` : ''}${app.tacOpen ? `<span class="tac-pop" role="note"><b>전술 위력 ${v}</b>${lines.map((l) => `<span>${esc(l)}</span>`).join('')}<span class="muted">지휘관의 스킬 · 전술 무기 · [암운] · 감시 포탑은 이 값을 위력으로 씁니다.</span></span>` : ''}</span>`;
 }
 function prepScreen(run: RunState) {
   const node = run.node;
@@ -924,13 +925,17 @@ function prepScreen(run: RunState) {
   const cap = R.deployCap(run);
   // 편성 화면은 배치 구역만 보여준다 (바깥 테두리 칸 제외). 좌표는 전장 좌표 그대로
   const { w: fw, h: fh } = boardDims(n);
-  const bw = fw - 2 * PAD, bh = fh - 2 * PAD;
-  const cellBox = (x: number, y: number) => `left:${((x - PAD) / bw) * 100}%;top:${((y - PAD) / bh) * 100}%;width:${100 / bw}%;height:${100 / bh}%`;
+  // 엔지니어 감시 포탑이 있으면 양옆 가장자리 열(포탑 전용)까지 보여 준다
+  const tcs = turretCells(run, n);
+  const ex = tcs.length ? PAD : 0;
+  const bw = fw - 2 * PAD + 2 * ex, bh = fh - 2 * PAD;
+  const cellBox = (x: number, y: number) => `left:${((x - PAD + ex) / bw) * 100}%;top:${((y - PAD) / bh) * 100}%;width:${100 / bw}%;height:${100 / bh}%`;
   let cells = '';
   for (let y = PAD; y < fh - PAD; y++)
-    for (let x = PAD; x < fw - PAD; x++) {
+    for (let x = PAD - ex; x < fw - PAD + ex; x++) {
       const mine = y >= ALLY_Y0 && y <= ALLY_Y1;
       const enemyZone = y < PAD + ZONE;
+      if (x < PAD || x >= fw - PAD) { cells += mine ? `<div class="cell tpad" data-drop="tcell:${x}:${y}" title="포탑 전용 칸"></div>` : '<div class="cell edge"></div>'; continue; }
       cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}" ${mine ? `data-drop="cell:${x}:${y}"` : ''}></div>`;
     }
   let units = '';
@@ -945,6 +950,11 @@ function prepScreen(run: RunState) {
         <span class="tk-side"><b class="tk-rank" title="공명 등급 ${u.rank}">${u.rank}</b><i class="tt-${d.ttype}" title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i><i class="ct-${d.ctype}" title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i></span>
         <span class="tk-items">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-drop="eqitem:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : itemIcon(null))).join('')}</span></div></div>`;
   }
+  const tSpr = { sprite: 'turret', palette: TURRET_PAL, art: 'sm_turret' };
+  tcs.forEach((p, i) => {
+    units += `<div class="u side0 tk placed turret-tk" style="${cellBox(p.x, p.y)}" data-drag="turret:${i}" data-drop="turret:${i}" title="감시 포탑 ${i + 1} — 끌어서 옮길 수 있습니다 (판매 · 대기석 · 장비 불가)">
+      <div class="tk-card"><div class="tk-art">${sprite(tSpr, '')}<span class="tk-tag">포탑</span></div></div></div>`;
+  });
   if (node?.enc) node.enc.enemies.forEach((s, i) => {
     const e = ENEMY_BY_ID[s.defId];
     const sel = app.sel?.k === 'enemy' && app.sel.i === i;
@@ -1299,18 +1309,22 @@ function unitModal(run: RunState) {
     return `<div class="major"><span>${majorIcon(m)}${MAJOR_NAME[m]}</span><span class="mbar"><i style="width:${Math.min(100, tm[m] * 3)}%"></i></span><b>${tm[m]}</b>${add ? `<small class="${add > 0 ? 'up' : 'down'}">${add > 0 ? '+' : ''}${add}</small>` : ''}</div>`;
   }).join('')}</div>`;
   const pop = app.abilPop ? `<div class="um-pop">${abilPopHtml(app.abilPop, d, b, c)}</div>` : '';
+  const rankRow = `<div class="um-rank">${rankLabel(u.rank)}${xpBar(u)}<button class="btn tiny" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''}>경험치 +${cost}c</button></div>`;
+  const synRow = `<div class="pc-syn">${memberships(u, run).map((id) => synToken(id, cnt[id] || 0)).join('')}</div>`;
   return `<div class="um-back" data-a="big-close"></div>
   <section class="um" role="dialog" aria-modal="true" aria-label="${esc(d.name)} 전체 상세">
     <header class="um-head">
       <div class="um-id"><b>${esc(d.name)}</b><span class="muted small">${esc(d.title || '')}</span></div>
       <span class="dh-types"><i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i>${categoryTag(cat)}</span>
-      <span class="um-tools">${detailToggle()}<button class="btn" data-a="big-close" aria-label="닫기" title="닫기 (Esc)">✕</button></span>
+      <span class="um-tools">${detailToggle()}<button class="btn small danger-ghost" data-a="release" data-v="${u.uid}" ${run.units.length <= 1 ? 'disabled title="마지막 남은 기물은 방출할 수 없습니다"' : 'title="기물 방출 (확인 후 진행)"'} aria-expanded="${app.releaseConfirm === u.uid}">기물 방출</button><button class="btn" data-a="big-close" aria-label="닫기" title="닫기 (Esc)">✕</button></span>
     </header>
+    ${app.releaseConfirm === u.uid ? `<div class="um-release">${releaseBlock(run, u)}</div>` : ''}
     <div class="um-grid">
       <div class="um-col um-a">
+        <div class="um-sticky"><div class="um-sc" aria-hidden="true">${sprite(d, 'um-face')}<div class="um-sc-main">${rankRow}${synRow}</div></div></div>
         <div class="um-art">${hero(d.id) || sprite(d, 'spr big')}</div>
-        <div class="um-rank">${rankLabel(u.rank)}${xpBar(u)}<button class="btn tiny" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''}>경험치 +${cost}c</button></div>
-        <div class="pc-syn">${memberships(u, run).map((id) => synToken(id, cnt[id] || 0)).join('')}</div>
+        ${rankRow}
+        ${synRow}
         <h3>장비</h3>${eqBox(u)}
         ${rel ? `<div class="um-relic">${relicTok(rel.id)}<span><b>${esc(rel.name)}</b><br><span class="muted small">성유물 · 신권 대행</span></span></div>` : ''}
         <h3>메이저 스탯</h3>${majors}
@@ -1347,6 +1361,26 @@ function unitModal(run: RunState) {
       </div>
     </div>${pop}
   </section>`;
+}
+/** 전체 상세 왼쪽 열: 스탠딩 일러스트를 일정 이상(일러스트 높이의 30%) 내려 보면 일러스트가 접히고 머리 초상화 · 공명 등급 · 시너지 머리줄이 위에 붙는다.
+ *  넓은 화면은 왼쪽 열이, 좁은 화면(≤700px)은 팝업 전체(.um-grid)가 스크롤된다 */
+function umCompactBind() {
+  const a = root.querySelector<HTMLElement>('.um-a');
+  const grid = root.querySelector<HTMLElement>('.um-grid');
+  if (!a || !grid) return;
+  const upd = (instant = false) => {
+    const art = a.querySelector<HTMLElement>('.um-art');
+    const lim = Math.max(40, (art?.offsetHeight || 160) * 0.3);
+    const y = a.scrollTop + (grid.scrollHeight > grid.clientHeight + 1 ? grid.scrollTop : 0);
+    const on = y > lim;
+    if (on === a.classList.contains('compact')) return;
+    if (instant) { a.classList.add('um-instant'); requestAnimationFrame(() => requestAnimationFrame(() => a.classList.remove('um-instant'))); }
+    a.classList.toggle('compact', on);
+    a.querySelector('.um-sc')?.setAttribute('aria-hidden', String(!on));
+  };
+  a.addEventListener('scroll', () => upd(), { passive: true });
+  grid.addEventListener('scroll', () => upd(), { passive: true });
+  upd(true);
 }
 /** 장비 · 개조부품 칸 (끌어 놓기 지원) */
 function eqBox(u: UnitState) {
@@ -2090,6 +2124,7 @@ function render() {
   const kept = KEEP.map((q) => root.querySelector<HTMLElement>(q)?.scrollTop ?? 0);
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
+  umCompactBind();
   // 창 내용은 첫 그리기에서 채워질 수 있으므로 (선택지 생성 등) 그린 뒤의 키를 기억한다
   lastView.modal = modalKeyOf();
   scrollRestore(scrolled, newModal);
@@ -2831,7 +2866,7 @@ function tipSteps(key: string, run: RunState | null): Partial<CoachStep>[] {
       let c0 = r.credits;
       return [
         { target: '.map .party .rt', until: () => !!app.bigUnit },
-        { target: '.um [data-a="buyxp"]', need: true, until: () => r.credits < c0, enter: () => { c0 = r.credits; if (!app.bigUnit) { app.bigUnit = r.units[0].uid; app.sel = { k: 'unit', uid: r.units[0].uid }; render(); } } },
+        { target: '.um-a > .um-rank [data-a="buyxp"]', need: true, until: () => r.credits < c0, enter: () => { c0 = r.credits; if (!app.bigUnit) { app.bigUnit = r.units[0].uid; app.sel = { k: 'unit', uid: r.units[0].uid }; render(); } } },
         { target: '.um .um-rank' },
         { target: '.map .ship-btn[data-a="fleet"]', need: true, until: () => (r.fleet || 0) >= 1, enter: () => {
           // 린디웨 예산(20)으로 반드시 살 수 있게: 다른 데 썼으면 모자란 만큼 채운다
@@ -3158,7 +3193,7 @@ function act(a: string, v: string) {
     case 'tac-info': app.tacOpen = !app.tacOpen; break;
     case 'map-unit': app.sel = v ? { k: 'unit', uid: v } : null; app.bigUnit = v || null; app.statPop = false; app.abilPop = null; break;
     case 'big-open': app.bigUnit = v; app.sel = { k: 'unit', uid: v }; app.statPop = false; app.abilPop = null; break;
-    case 'big-close': app.bigUnit = null; app.abilPop = null; if (app.screen === 'map') app.sel = null; break;
+    case 'big-close': app.bigUnit = null; app.abilPop = null; app.releaseConfirm = null; if (app.screen === 'map') app.sel = null; break;
     case 'manage': app.screen = 'prep'; app.sel = v ? { k: 'unit', uid: v } : null; break;
     case 'to-map': app.screen = run?.node?.type === 'shop' ? 'shop' : run?.node?.type === 'news' ? 'news' : run?.node?.type === 'invest' ? 'invest' : 'map'; break;
     case 'fight':
@@ -3239,7 +3274,7 @@ function act(a: string, v: string) {
     case 'bsel': app.bPick = null; app.abilPop = null; app.battleSel = app.battleSel === +v ? null : +v; applySpeed(); updateMeter(true); return;
     case 'bdesel': if (app.battleSel !== null) { app.battleSel = null; app.bPick = null; app.abilPop = null; app.statPop = false; applySpeed(); updateMeter(true); } return;
     case 'bpick': app.bPick = app.bPick === v ? null : v; updateMeter(true); return;
-    case 'release': app.releaseConfirm = v; break;
+    case 'release': app.releaseConfirm = app.releaseConfirm === v ? null : v; break; // 전체 상세 머리줄 버튼은 열고 닫기
     case 'release-cancel': app.releaseConfirm = null; break;
     case 'release-confirm': {
       if (!run) return;
@@ -3247,6 +3282,7 @@ function act(a: string, v: string) {
       app.releaseConfirm = null;
       if (err) { toast(err); return; }
       app.sel = null;
+      if (app.bigUnit === v) { app.bigUnit = null; app.abilPop = null; }
       toast('기물을 방출했습니다.');
       persist();
       break;
@@ -3380,6 +3416,25 @@ function onDrop(src: string, dst: string) {
   const [sk, ...sv] = src.split(':');
   const [dk, ...dv] = dst.split(':');
   const n = run.node?.enc?.n || CFG.bossBoard;
+  if (sk === 'turret' || (dk === 'turret' && sk !== 'unit')) { turretDrop(run, n, sk === 'turret' ? +sv[0] : -1, dk, dv); persist(); render(); return; }
+  if (sk === 'unit' && dk === 'tcell') { toast('가장자리 칸에는 포탑만 둘 수 있습니다.'); render(); return; }
+  if (sk === 'unit' && dk === 'turret') {
+    // 기물을 포탑 칸에 놓으면: 기물이 그 칸으로, 포탑은 기물이 있던 칸으로 (대기석에서 왔으면 빈칸으로)
+    const u = run.units.find((x) => x.uid === sv[0]);
+    const tcs = turretCells(run, n), j = +dv[0], q = tcs[j];
+    if (!u || !q) return;
+    if (q.x < PAD || q.x >= PAD + n) { toast('가장자리 칸에는 포탑만 둘 수 있습니다.'); render(); return; }
+    if (!R.canDeploy(run, u)) { toast('이번 페이즈에는 배치할 수 없는 기물입니다.'); render(); return; }
+    if (!u.pos && deployed(run).length >= R.deployCap(run)) { toast(`출전 인원이 가득 찼습니다 (${R.deployCap(run)}명).`); render(); return; }
+    const from = layout(run, n).get(u.uid);
+    const tp = tcs.map((c) => turretSavePos(c.x, c.y, n));
+    if (from) tp[j] = turretSavePos(from.x, from.y, n); else tp.splice(j, 1);
+    run.turretPos = tp;
+    u.pos = toPos(q.x, q.y);
+    if (!from) run.turretPos = turretCells(run, n).map((c) => turretSavePos(c.x, c.y, n));
+    app.sel = { k: 'unit', uid: u.uid };
+    persist(); render(); return;
+  }
   if (sk === 'unit') {
     const u = run.units.find((x) => x.uid === sv[0]);
     if (!u) return;
@@ -3434,6 +3489,28 @@ function onDrop(src: string, dst: string) {
   }
   persist();
   render();
+}
+
+/** 감시 포탑 끌어 옮기기: 기물이 없는 아군 칸 · 가장자리 칸으로만. 다른 포탑 위면 자리 교환. 판매 · 대기석 · 장비는 불가 */
+function turretDrop(run: RunState, n: number, i: number, dk: string, dv: string[]) {
+  if (i < 0) { toast('포탑에는 장비를 줄 수 없습니다.'); return; }
+  const tcs = turretCells(run, n);
+  if (!tcs[i]) return;
+  const tp = tcs.map((c) => turretSavePos(c.x, c.y, n));
+  if (dk === 'turret') {
+    const j = +dv[0];
+    if (j === i || !tp[j]) return;
+    [tp[i], tp[j]] = [tp[j], tp[i]];
+  } else if (dk === 'cell' || dk === 'tcell') {
+    const x = +dv[0], y = +dv[1];
+    if ([...layout(run, n).values()].some((p) => p.x === x && p.y === y)) { toast('기물이 있는 칸에는 포탑을 둘 수 없습니다.'); return; }
+    const j = tcs.findIndex((c) => c.x === x && c.y === y);
+    if (j >= 0) [tp[i], tp[j]] = [tp[j], tp[i]];
+    else tp[i] = turretSavePos(x, y, n);
+  } else if (dk === 'bench' || dk === 'inv' || dk === 'invitem') { toast('포탑은 대기석으로 옮기거나 판매할 수 없습니다.'); return; }
+  else if (dk === 'unit' || dk === 'eqitem') { toast('기물이 있는 칸에는 포탑을 둘 수 없습니다.'); return; }
+  else return;
+  run.turretPos = tp;
 }
 
 // ───────────────────────── 단축키
@@ -3518,6 +3595,7 @@ document.addEventListener('keydown', (e) => {
     if (sv) sv.remove();
     else if (app.cardOpen) { app.cardOpen = null; render(); }
     else if (app.bigUnit && app.abilPop) { app.abilPop = null; render(); }
+    else if (app.bigUnit && app.releaseConfirm) act('release-cancel', '');
     else if (app.bigUnit) act('big-close', '');
     else if (app.menu) act('menu-close', '');
     else if (app.releaseConfirm) act('release-cancel', '');

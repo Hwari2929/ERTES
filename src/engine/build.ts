@@ -334,19 +334,47 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   return c;
 }
 
-// 엔지니어 감시 포탑: 출전한 엔지니어 능력치 평균을 단계별 비율(60 / 80 / 120%)로 상속
-const TURRET_PAL = ['#0c0e12', '#7a8aa0', '#3a4458', '#c0c8d0', '#7fe3ff', '#4a5468', '#e8f0ff'];
+// 엔지니어 감시 포탑: 출전한 엔지니어 능력치 평균을 단계별 비율로 상속 + 엔지니어 전술 위력 일부를 사격 위력에
+export const TURRET_PAL = ['#0c0e12', '#7a8aa0', '#3a4458', '#c0c8d0', '#7fe3ff', '#4a5468', '#e8f0ff'];
+/** 포탑 배치 저장값 (c, r): c = -1 왼쪽 가장자리 열, c = 99 오른쪽 가장자리 열, 그 밖은 배치 구역 열. r = 0 이 맨 뒷줄 */
+export type TurretPos = { c: number; r: number };
+const TURRET_DEFAULT: TurretPos[] = [{ c: -1, r: 1 }, { c: 99, r: 1 }, { c: -1, r: 0 }, { c: 99, r: 0 }, { c: -1, r: 2 }, { c: 99, r: 2 }];
+export const turretBoardCell = (p: TurretPos, W: number) => ({ x: p.c < 0 ? 0 : p.c >= 99 ? W + 2 * PAD - 1 : PAD + Math.min(p.c, W - 1), y: ALLY_Y1 - Math.max(0, Math.min(p.r, ZONE - 1)) });
+export const turretSavePos = (x: number, y: number, W: number): TurretPos => ({ c: x < PAD ? -1 : x >= PAD + W ? 99 : x - PAD, r: ALLY_Y1 - y });
+/** 편성에서 보일 포탑 수 = 엔지니어 단계 */
+export function turretCount(run: RunState): number {
+  return tierOf('ENG', synergyCounts(deployed(run), run).ENG || 0);
+}
+/** 보드 크기 W 에서 포탑 칸 (저장 위치 → 기본 위치 → 빈칸 순, 기물 · 다른 포탑과 겹치지 않게) */
+export function turretCells(run: RunState, W: number, count = turretCount(run)): { x: number; y: number }[] {
+  const used = new Set([...layout(run, W).values()].map((p) => `${p.x},${p.y}`));
+  const out: { x: number; y: number }[] = [];
+  const free = (q: { x: number; y: number }) => !used.has(`${q.x},${q.y}`);
+  for (let i = 0; i < count; i++) {
+    let q: { x: number; y: number } | null = run.turretPos?.[i] ? turretBoardCell(run.turretPos[i], W) : null;
+    if (q && !free(q)) q = null;
+    for (const d of TURRET_DEFAULT) { if (q) break; const c = turretBoardCell(d, W); if (free(c)) q = c; }
+    for (let y = ALLY_Y1; y >= ALLY_Y0 && !q; y--) for (let x = 0; x < W + 2 * PAD && !q; x++) if (free({ x, y })) q = { x, y };
+    if (!q) break;
+    used.add(`${q.x},${q.y}`);
+    out.push(q);
+  }
+  return out;
+}
+/** 전투별 포탑 설치 칸 (buildBattle 이 편성 위치를 넘긴다) */
+const TURRET_AT = new WeakMap<Battle, { x: number; y: number }[]>();
 ENG_HOOK.spawn = (b, lead, engs, n) => {
   const avg = (k: keyof Stats) => engs.reduce((s, e) => s + b.S(e, k), 0) / engs.length;
   const hpBonus = engs.reduce((s, e) => s + (e.mem.turretHp || 0), 0);
   const tier = lead.mem.eng || 1;
   const inherit = [1.25, 1.875, 2.75, 4.0][Math.min(4, tier) - 1]; // 엔지니어 단계별 상속률
-  const asBonus = 0.4 + engs.reduce((s, e) => s + (e.mem.turretAs || 0), 0) + (tier >= 3 ? 0.5 : 0); // 기본 공격 속도 +40%
+  const asBonus = 0.4 + engs.reduce((s, e) => s + (e.mem.turretAs || 0), 0) + (tier >= 3 ? 0.8 : 0); // 기본 공격 속도 +40%
+  const tacAdd = (engs.reduce((s, e) => s + b.tacPower(e), 0) / engs.length) * [0.6, 1.0, 1.5, 2.2][Math.min(4, tier) - 1]; // 엔지니어 전술 위력 일부
   for (let i = 0; i < n; i++) {
     const t = blankUnit(lead.side);
     const st = emptyStats();
     st.maxHp = avg('maxHp') * inherit * (1 + hpBonus);
-    st.shoot = st.strike = st.tech = Math.max(avg('shoot'), avg('tech')) * inherit;
+    st.shoot = st.strike = st.tech = Math.max(avg('shoot'), avg('tech')) * inherit + tacAdd;
     st.armor = avg('armor') * inherit * (1 + hpBonus);
     st.acc = avg('acc') * 0.5; st.crit = avg('crit') * 0.5; st.critDmg = 1.5; st.effRes = avg('effRes') * 0.5;
     st.atkSpd = asBonus; st.range = 4; st.moveSpd = 1;
@@ -363,7 +391,9 @@ ENG_HOOK.spawn = (b, lead, engs, n) => {
     const edges = (i % 2 === 0 ? [0, b.w - 1] : [b.w - 1, 0]);
     const rowsBy = [...Array(b.h).keys()].filter(mine).sort((a, c) => Math.abs(a - lead.y) - Math.abs(c - lead.y));
     let cell: { x: number; y: number } | null = null;
-    for (const x of edges) { for (const y of rowsBy) if (b.inBounds(x, y) && !b.unitAt(x, y)) { cell = { x, y }; break; } if (cell) break; }
+    const planned = lead.side === 0 ? TURRET_AT.get(b) : undefined; // 편성 화면에서 정한 자리 (순서대로 소모)
+    while (planned?.length && !cell) { const q = planned.shift()!; if (b.inBounds(q.x, q.y) && !b.unitAt(q.x, q.y)) cell = q; }
+    if (!cell) for (const x of edges) { for (const y of rowsBy) if (b.inBounds(x, y) && !b.unitAt(x, y)) { cell = { x, y }; break; } if (cell) break; }
     for (let r = 1; r < Math.max(b.w, b.h) && !cell; r++)
       for (let dy = -r; dy <= r && !cell; dy++)
         for (let dx = -r; dx <= r && !cell; dx++) {
@@ -467,6 +497,7 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
     c.x = c.px = p.x; c.y = c.py = p.y;
     b.add(c);
   }
+  TURRET_AT.set(b, turretCells(run, enc.n, 8));
   for (const s of enc.enemies) {
     const def = ENEMY_BY_ID[s.defId];
     const e = buildEnemy(b, def, enc.phase ?? run.phase, enc.mult, s);
