@@ -76,7 +76,7 @@ export const ABIL_C: Record<string, AbilText> = {
         ...opt(p.stun, '기절', `[st:stun:${p.stun}]`),
       ],
     }),
-    trait: '신성 피해 [pp:0.2]. 전투 스킬 사용 시 자신에게 최대 체력 [p:0.2] 보호막.',
+    trait: '신성 피해 [pp:0.2]. 전투 스킬 사용 시 자신에게 최대 체력 [p:0.25] 보호막.',
     augs: {
       smite: '맞은 적에게 [st:stun:1.2].',
       crusade: '성전 돌입 피해 [dmg+:strike:1.6:holy].',

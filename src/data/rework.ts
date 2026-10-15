@@ -614,7 +614,7 @@ export const REWORK: Record<string, ReworkDef> = {
   kyle: {
     ctype: 'VAN', ttype: 'divine', faith: 'sirius', weapon: K('성전 장검', 'holy', 1.0, 1, 0.8, 4),
     factions: ['SIR'], traits: ['GUARD'],
-    trait: { name: '성전 기사', desc: '신성 피해량 +20%. 전투 스킬을 쓸 때 최대 체력 20% 보호막.', effect: { mods: [inc('holy', 0.2)], hooks: { onSkill(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.2); } } } },
+    trait: { name: '성전 기사', desc: '신성 피해량 +20%. 전투 스킬을 쓸 때 최대 체력 25% 보호막.', effect: { mods: [inc('holy', 0.2)], hooks: { onSkill(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.25); } } } },
   },
   doros: {
     ctype: 'CMD', ttype: 'divine', faith: 'sirius', weapon: G('빵 투척', 'holy', 1.0, 3, 0.6, 6, 2),

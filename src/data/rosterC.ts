@@ -55,7 +55,7 @@ export const ROSTER_C: BaseUnit[] = [
           u.mem.regenT = (u.mem.regenT || 0) + dt;
           if (u.mem.regenT >= 1) { u.mem.regenT = 0; b.heal(u, u, b.S(u, 'maxHp') * u.sk.regen, true); }
           // 체사레의 위압: 8초마다 주변 1칸 적 공포 (재생 촉진과 따로 돈다)
-          if (every(u, 'cesFearT', dt, 8) && b.around(u, 1, b.enemiesOf(u)).length) {
+          if (every(u, 'cesFearT', dt, 8, 8) && b.around(u, 1, b.enemiesOf(u)).length) {
             b.fx(u.x, u.y, 1, 'psy');
             for (const e of b.around(u, 1, b.enemiesOf(u))) fear(b, u, e, 1.5, u.sk.fearChance);
           }
