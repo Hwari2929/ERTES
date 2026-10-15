@@ -159,6 +159,10 @@ bw = {k: v['w'] / v['n'] for k, v in aggB['bw'].items()}
 A_adj = adj_runs(runsB, bw)
 P(f"# 2차 밸런스 측정 결과 (probe2)\n")
 P(f"- 기준 팔(base): 시드 1..{runsB[-1]['seed']} ({len(runsB)}런), 클리어 {pc(sum(r['cleared'] for r in runsB) / len(runsB))}, 런당 전투 {sum(r['battles'] for r in runsB) / len(runsB):.1f}")
+tf = os.path.join(ROOT, 'times.txt')
+if os.path.exists(tf): P('- 실행 시간 (4 워커): ' + ', '.join(l.strip() for l in open(tf) if l.strip()))
+P('- 팔: base = 현행 (시드 1..9600, cf 반사실 포함) · noreasondot = CFG.reasonDot 0 · nofrenzyally = CFG.frenzyFriendly false · reasonbot = 이성 관리 봇 (모두 시드 1..4800) · randrelic = 디바인 성유물 무작위 (시드 50001..54800)')
+P('- 봇 · 난수 소비는 tests/balance.ts 와 동일 (같은 시드 = 같은 런, 40런 대조로 확인). 위험 등급 0.')
 P("- 승률 차 단위: %p. 보정 = 같은 페이즈 × 노드 종류 평균 승률 대비. 95% 구간 = 런 군집 ±1.96 SE. ✱ = 0 에서 유의하게 벗어남.\n")
 
 # ═════════ 1. 사이오닉 전공 (같은 기물 · 같은 학파)
