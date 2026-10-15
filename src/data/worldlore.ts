@@ -167,7 +167,7 @@ export const LORE: LoreEntry[] = [
 
   // ═══════════════ 지역 · 연합 섹터
   {
-    id: 'bertha', group: 'region', bloc: 'union', name: '베르타', mark: 'UNI',
+    id: 'bertha', group: 'region', bloc: 'union', name: '베르타', mark: 'UNI', art: 'lore_bertha',
     tag: '연합의 수도 지구. 정부 · 군 · 정보 기관이 모두 모여 있다.',
     bullets: [
       '수도 베르타-4는 구인류가 남긴 네 겹 링월드다. 연합은 그 안에 들어가 살 뿐, 작동 원리는 5%도 풀지 못했다.',
@@ -177,7 +177,7 @@ export const LORE: LoreEntry[] = [
     rel: { units: ['yelena', 'bill'], syn: ['SEC'], fields: ['swarm'] },
   },
   {
-    id: 'neosite', group: 'region', bloc: 'union', name: '네오사이트', mark: 'UNI',
+    id: 'neosite', group: 'region', bloc: 'union', name: '네오사이트', mark: 'UNI', art: 'lore_neosite',
     tag: '연합 개척의 출발점 같은 곳. 엘베스타드 본가가 여기 있다.',
     bullets: [
       '거대한 행성 하나가 곧 지구 전체다. 한쪽은 사막, 반대쪽은 설원이고, 사람은 그 사이 초록 띠에 모여 산다.',
@@ -207,7 +207,7 @@ export const LORE: LoreEntry[] = [
     rel: { fields: ['swarm'] },
   },
   {
-    id: 'yebeson', group: 'region', bloc: 'union', name: '예베손', mark: 'UNI',
+    id: 'yebeson', group: 'region', bloc: 'union', name: '예베손', mark: 'UNI', art: 'lore_yebeson',
     tag: '범죄를 몰아내는 대신 \'등록\'해 버린 모범 개척지.',
     bullets: [
       '지표만 보면 흠잡을 데 없는 완성 개척 지구다. 무법을 없앤 게 아니라, 등록시켜 통계에서 지웠을 뿐이다.',
@@ -216,7 +216,7 @@ export const LORE: LoreEntry[] = [
     rel: { units: ['donovan', 'mirinae'] },
   },
   {
-    id: 'zion', group: 'region', bloc: 'union', name: '지온', mark: 'UNI',
+    id: 'zion', group: 'region', bloc: 'union', name: '지온', mark: 'UNI', art: 'lore_zion',
     tag: '잿빛 성운 속 자원 · 군수 지구. 채굴 기계들이 2년째 일손을 놓았다.',
     bullets: [
       '성운과 소행성대가 겹쳐 희귀 광물과 \'성운 가루\'가 난다. 함선 장갑에 섞으면 사이오닉 간섭에 강해진다.',
@@ -226,7 +226,7 @@ export const LORE: LoreEntry[] = [
     rel: { units: ['grenholm'] },
   },
   {
-    id: 'countyfall', group: 'region', bloc: 'union', name: '카운티폴', mark: 'UNI',
+    id: 'countyfall', group: 'region', bloc: 'union', name: '카운티폴', mark: 'UNI', art: 'lore_countyfall',
     tag: '행정 수치가 지나치게 좋아서 오히려 의심받는 모범 지구.',
     bullets: [
       '연합이 내세우는 완성형 개척 모델이다. 범죄는 드물고, 무엇을 조사해도 문제가 나오지 않는다.',
@@ -235,7 +235,7 @@ export const LORE: LoreEntry[] = [
     rel: { units: ['eden'], fields: ['county'] },
   },
   {
-    id: 'cordo', group: 'region', bloc: 'union', name: '코르도', mark: 'UNI',
+    id: 'cordo', group: 'region', bloc: 'union', name: '코르도', mark: 'UNI', art: 'lore_cordo',
     tag: '페트라 돈으로 지은 연구 지구. 성공도 몰락도 빠르다.',
     bullets: [
       '거의 맨땅에서 페트라 자본으로 세웠다. 행성마다 연구 용도가 미리 정해져 있다.',
@@ -246,7 +246,7 @@ export const LORE: LoreEntry[] = [
 
   // ═══════════════ 지역 · 제국 대공령
   {
-    id: 'crimson', group: 'region', bloc: 'empire', name: '크림슨', mark: 'KAL',
+    id: 'crimson', group: 'region', bloc: 'empire', name: '크림슨', mark: 'KAL', art: 'lore_crimson',
     tag: '강화 인간과 생체공학으로 군체를 막는 제국 북쪽의 방패.',
     bullets: [
       '300년 넘게 군체와 싸워 온 최전선이다. 주민들은 대공령 전체를 하나의 몸처럼 여긴다.',
@@ -256,7 +256,7 @@ export const LORE: LoreEntry[] = [
     rel: { units: ['franze', 'exile'], fields: ['crimson'], lore: ['swarm', 'sirius'] },
   },
   {
-    id: 'deneb', group: 'region', bloc: 'empire', name: '데네브', mark: 'KAL',
+    id: 'deneb', group: 'region', bloc: 'empire', name: '데네브', mark: 'KAL', art: 'lore_deneb',
     tag: '제국 함선과 무기의 절반이 나오는 강철 공업 대공령.',
     bullets: [
       '용암빛 행성과 소행성대에서 함체 · 장갑 재료를 캔다. 망치 소리가 하루 종일 멈추지 않는 디젤펑크의 땅이다.',
@@ -266,7 +266,7 @@ export const LORE: LoreEntry[] = [
     rel: { units: ['kairo'] },
   },
   {
-    id: 'sephir', group: 'region', bloc: 'empire', name: '세피르', mark: 'KAL',
+    id: 'sephir', group: 'region', bloc: 'empire', name: '세피르', mark: 'KAL', art: 'lore_sephir',
     tag: '기록을 수정에 담아 사고파는 학술 · 정보의 대공령.',
     bullets: [
       '오감까지 담기는 백수정 기록이 특산품이다. 대공령 전체가 거대한 도서관이자 정보 시장이다.',
@@ -276,7 +276,7 @@ export const LORE: LoreEntry[] = [
     rel: { units: ['nadir', 'zahara', 'kairo'], lore: ['alexandria'] },
   },
   {
-    id: 'albion', group: 'region', bloc: 'empire', name: '알비온', mark: 'KAL',
+    id: 'albion', group: 'region', bloc: 'empire', name: '알비온', mark: 'KAL', art: 'lore_albion',
     tag: '제국의 법과 예법을 지키는 정원 같은 대공령. 화려함 아래 빈부 차가 크다.',
     bullets: [
       '황제가 서명하기 전 모든 법안과 조약을 검토하는 정치 심장이다. 이름난 대학과 역사 연구소가 몰려 있다.',
@@ -285,7 +285,7 @@ export const LORE: LoreEntry[] = [
     ],
   },
   {
-    id: 'hoishun', group: 'region', bloc: 'empire', name: '호이슌', mark: 'KAL',
+    id: 'hoishun', group: 'region', bloc: 'empire', name: '호이슌', mark: 'KAL', art: 'lore_hoishun',
     tag: '네온과 기업이 움직이는 제국의 신참 대공령. 기회도 위험도 가장 크다.',
     bullets: [
       '원래 기업국가였는데 황제의 제안으로 최근 제국에 합쳐졌다. 지금도 기업과 암흑가가 뒤엉켜 있다.',
@@ -307,7 +307,7 @@ export const LORE: LoreEntry[] = [
     rel: { units: ['thermo', 'iris', 'odysseus'], fields: ['sparta'], lore: ['swarm'] },
   },
   {
-    id: 'athens', group: 'region', bloc: 'alliance', name: '아테네', mark: 'HEL',
+    id: 'athens', group: 'region', bloc: 'alliance', name: '아테네', mark: 'HEL', art: 'lore_athens',
     tag: '논쟁으로 시민권을 따는 바다 군도의 민주 폴리스.',
     bullets: [
       '동맹에서 유일하게 투표로 다스린다. 공개 논증을 통과한 시민은 두 표를 행사한다.',
@@ -326,7 +326,7 @@ export const LORE: LoreEntry[] = [
     ],
   },
   {
-    id: 'ithaca', group: 'region', bloc: 'alliance', name: '이타카', mark: 'HEL',
+    id: 'ithaca', group: 'region', bloc: 'alliance', name: '이타카', mark: 'HEL', art: 'lore_ithaca',
     tag: '출신을 묻지 않는 동맹의 자유항이자 관문.',
     bullets: [
       '알렉산드리아를 빼면, 바깥에서 성운으로 들어오는 사실상 유일한 길목이다. 머무는 사람보다 지나가는 사람이 훨씬 많다.',
@@ -346,7 +346,7 @@ export const LORE: LoreEntry[] = [
     rel: { units: ['phyllis'], fields: ['crete'] },
   },
   {
-    id: 'cyprus', group: 'region', bloc: 'alliance', name: '키프로스', mark: 'HEL',
+    id: 'cyprus', group: 'region', bloc: 'alliance', name: '키프로스', mark: 'HEL', art: 'lore_cyprus',
     tag: '별빛 없는 붉은 성운 속, 동맹을 먹여 살리는 우주 공방.',
     bullets: [
       '항성 없는 소행성대에 세운 공방이라, 사람이 피운 불이 유일한 빛이다.',
@@ -355,7 +355,7 @@ export const LORE: LoreEntry[] = [
     ],
   },
   {
-    id: 'olympus', group: 'region', bloc: 'alliance', name: '올림푸스', mark: 'HEL',
+    id: 'olympus', group: 'region', bloc: 'alliance', name: '올림푸스', mark: 'HEL', art: 'lore_olympus',
     tag: '항성 하나를 통째로 감싼 다이슨 스피어. 동맹 최대의 발전소.',
     bullets: [
       '에너지는 넘치지만 등대가 꺼진 뒤 밖으로 보낼 길이 없다. 30년째 배터리에 쌓이기만 한다.',
