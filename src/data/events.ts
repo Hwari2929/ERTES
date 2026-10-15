@@ -49,6 +49,7 @@ export interface EventDef {
   choices: EventChoice[];
 }
 
+import { TUTORIAL_EVENT } from './scenes/tutorial';
 import { BOONS_A, STORY_A } from './storyA';
 import { BOONS_B, STORY_B } from './storyB';
 import { BOONS_C, STORY_C } from './storyC';
@@ -290,6 +291,8 @@ export const EVENTS: EventDef[] = [
 ];
 EVENTS.push(...STORY_A, ...STORY_B, ...STORY_C, ...STORY_D);
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
+// 튜토리얼 전용 사건: 사건 창(id 조회)에서만 쓰고 EVENTS(무작위 사건 목록 · 도감)에는 넣지 않는다
+EVENT_BY_ID[TUTORIAL_EVENT.id] = TUTORIAL_EVENT;
 
 /** 사건 효과로 생기는 팀 효과: boons(영구) / phaseBoons(이번 페이즈) */
 export const BOONS: Record<string, { name: string; effect: Effect }> = {

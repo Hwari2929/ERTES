@@ -1,16 +1,17 @@
 // 튜토리얼 「당직 근무 중 승계」 대본 (docs/TUTORIAL_DRAFT.md).
 // 장면(미연시) → 지도 노드 → 조작 · 전투(안내 말풍선)가 번갈아 나온다. 진행 순서는 맨 아래 TUTORIAL_FLOW.
 // 표정은 base · smile · serious · angry · surprise · worried 만 쓴다 (튜토리얼 9인 표정 차분 기준).
-import type { Beat, SceneReg } from '../scene';
+import type { EventDef } from '../events';
+import type { Beat, EventScene, SceneReg } from '../scene';
 import { N, S, T } from './dsl';
 
 export const TUTORIAL_REG: SceneReg = {
   npcs: {
+    tu_cob: { name: '탈영 약탈자 코브', color: '#b8905a', desc: '바르가 약탈단의 막내였다. 사흘 전 성채에서 도망쳐 컨테이너에 숨어 지냈다. 팔에 녹슨 닻 문신이 있다.' },
     tu_varga: { name: '약탈 함장 바르가', color: '#a03a28', desc: '황무지 성계 약탈단의 함장. 기함을 잃은 뒤 소행성 정박지에 컨테이너 성채를 쌓고 눌러앉았다. 녹슨 닻을 어깨에 걸고 다니며, 아문센을 영감이라 부른다.' },
   },
   bgs: {
     erantes_bar: '에란테스 바 — 지상에 있는 엄청나게 거대한 실내 바. 여러 층의 발코니와 길게 휘어진 카운터, 끝없이 늘어선 술병 진열장',
-    tu_comms: '현장 통신 — 바 카운터 위에 띄운 홀로그램 창. 모래바람 부는 소행성 정박지, 녹슨 컨테이너 사이로 튀는 총구 불빛',
     tu_bridge: '에란테스 함교 — 조명을 반쯤 낮춘 함교. 작전 탁자 위에 항로도가 떠 있고, 칸칸이 이어진 점선 끝에 붉은 보스 표식이 깜빡인다',
     tu_field_dock: '황무지 소행성 정박지 — 모래바람, 녹슨 크레인, 컨테이너를 쌓아 만든 성채. 꼭대기에 약탈단 깃발이 펄럭인다',
   },
@@ -82,7 +83,7 @@ export const TUTORIAL_SCENES: Record<string, { title: string; beats: Beat[] }> =
   ch1_intro: {
     title: '1장 — 교전 중 인수인계',
     beats: [
-      N('카운터 위로 홀로그램 창이 펼쳐진다. 모래바람 부는 소행성 정박지. 녹슨 컨테이너 사이로 총구 불빛이 튄다.', { bg: 'tu_comms', bgm: 'tense', sfx: 'd_gun', stage: [R0, A0] }),
+      N('카운터 위로 홀로그램 창이 펼쳐진다. 모래바람 부는 소행성 정박지. 녹슨 컨테이너 사이로 총구 불빛이 튄다.', { bg: 'tu_field_dock', bgm: 'tense', sfx: 'd_gun', stage: [R0, A0] }),
       S('vivian', '레이첼? 왜 레이첼이 받아? 단장님은?', { at: 'R', face: 'worried' }),
       S('rachel', '은퇴했대. 오늘 저녁에.'),
       S('vivian', '은퇴? 지금? 우리 교전 중인데? 그런 건 보통 의뢰 끝나고 하는 거 아냐?', { face: 'surprise' }),
@@ -113,7 +114,7 @@ export const TUTORIAL_SCENES: Record<string, { title: string; beats: Beat[] }> =
   ch1_after: {
     title: '1장 — 연장전은 남의 돈',
     beats: [
-      N('마지막 약탈자가 모래 위로 쓰러진다. 홀로그램 창 너머엔 모래바람 소리만 남는다.', { bg: 'tu_comms', bgm: 'calm', stage: [R0, A0] }),
+      N('마지막 약탈자가 모래 위로 쓰러진다. 홀로그램 창 너머엔 모래바람 소리만 남는다.', { bg: 'tu_field_dock', bgm: 'calm', stage: [R0, A0] }),
       S('temur', '끝났다. 주인님, 밥.', { at: 'R', face: 'smile' }),
       S('rachel', '거기 밥 없어?'),
       S('temur', '있다. 냉동이다. 냉동은 밥이 아니다.', { face: 'angry' }),
@@ -137,7 +138,7 @@ export const TUTORIAL_SCENES: Record<string, { title: string; beats: Beat[] }> =
   ch1b_intro: {
     title: '1장 — 생각 없는 상대',
     beats: [
-      N('홀로그램 가장자리에 붉은 점이 늘어난다. 회전 날을 단 정찰 드론 무리가 낮게 윙윙거린다.', { bg: 'tu_comms', bgm: 'tense', sfx: 'servo', stage: [R0, A0] }),
+      N('홀로그램 가장자리에 붉은 점이 늘어난다. 회전 날을 단 정찰 드론 무리가 낮게 윙윙거린다.', { bg: 'tu_field_dock', bgm: 'tense', sfx: 'servo', stage: [R0, A0] }),
       N('나디르는 기록을 담는 하얀 수정, 백수정을 다룬다. 빈 수정을 터뜨리면 눈부신 섬광이 된다.'),
       S('nadir', '걱정 마요. 저 정도는 백수정 섬광 한 방이면—', { at: 'R', face: 'smile', sfx: 'tu_crystal' }),
       S('aiden', '안 됩니다.', { face: 'base' }),
@@ -190,6 +191,9 @@ export const TUTORIAL_SCENES: Record<string, { title: string; beats: Beat[] }> =
       S('lindiwe', '공명도는 실전에서 쌓이는 경험치 같은 거예요. 모이면 공명 등급이 오르고, 등급이 오르면 능력치가 올라요.', { face: 'base' }),
       S('lindiwe', '정해진 등급마다 증강 같은 특별 보상도 받아요. 언제 뭘 받는지는 기물마다 달라서… 그건 프란체 씨 담당이에요.'),
       S('lindiwe', '함대 확장은 한 번에 출전할 수 있는 인원을 늘리는 거예요. 제일 비싸고, 제가 제일 좋아하는 지출이죠.', { face: 'smile' }),
+      S('lindiwe', '그래서 첫 결재 예산은 딱 20크레딧. 함대 확장 한 번 값이에요. 다른 데 쓰시면 안 돼요.', { face: 'serious' }),
+      S('rachel', '안 쓰고 두면 이자 붙잖아.'),
+      S('lindiwe', '…벌써 배우셨네요. 그래도 이건 써요. 다섯 번째 자리가 곧 필요해질 거예요.', { face: 'smile' }),
       S('rachel', '전부 돈이네.'),
       S('lindiwe', '전부 신용이죠.', { face: 'smile' }),
       N('통신기가 다시 지직거린다. 현장 팀이 버려진 보급 정거장을 찾았다는 보고다. 남은 물자도 있고, 근처엔 좌판을 편 장사꾼도 하나 있단다.', { sfx: 'static' }),
@@ -429,7 +433,7 @@ export const TUTORIAL_TIPS: Record<string, [string, string, string][]> = {
     ['lindiwe', '파티 목록의 기물 아이콘 (누르면 상세)', '기물을 눌러 상세를 열어요. 공명 등급과 공명도 막대가 있죠.'],
     ['lindiwe', '[경험치 +4c] 버튼', '4크레딧에 공명도 4. 1등급 기물이면 바로 2등급이에요.'],
     ['lindiwe', '공명 등급 상승 표시', '등급이 오르면 모든 메이저 능력치 +1. 나머지는 유형마다 달라요.'],
-    ['lindiwe', '지도의 함선 관리 · [함대 확장] 버튼', '함대 확장은 출전 인원 +1. 비싸지만 제일 확실한 투자예요.'],
+    ['lindiwe', '지도의 함선 관리 · [함대 확장] 버튼 (예산 20크레딧으로 구매)', '아까 드린 20크레딧, 여기 써요. 함대 확장은 출전 인원 +1. 비싸지만 제일 확실한 투자예요.'],
   ],
   // 영입 노드: 필리스 고정 → 스페셜 합류 증강 선택
   ch3_recruit: [
@@ -482,15 +486,15 @@ export const TUTORIAL_TIPS: Record<string, [string, string, string][]> = {
     ['franze', '전장 카드: 세력 보너스 줄', '전장마다 힘을 받는 세력도 있습니다. 편성할 때 참고하십시오.'],
     ['franze', '[전장 브리핑 다시 보기] 버튼', '브리핑은 언제든 다시 열립니다. 안 읽었다는 변명은 기각입니다.'],
   ],
-  // 레이첼 합류 (사이오닉: 8개 전공 중 선택) + 출전 한도 5 (함대 확장 1회 무료 지급)
+  // 레이첼 합류 (사이오닉: 8개 전공 중 선택) + 출전 한도 5 (2장에서 산 함대 확장 1회)
   ch4_deploy: [
-    ['lindiwe', '출전 인원 표시 (4 → 5)', '함대 확장 한 칸은 제가 처리해 뒀어요. 이번만 서비스예요.'],
     ['franze', '레이첼 전공 선택 창 (8개 전공)', '사이오닉은 합류할 때 전공을 고릅니다. 레이첼 님은 여덟 개 모두에서.'],
+    ['lindiwe', '출전 인원 표시 (5/5 · 2장에서 산 함대 확장)', '아까 결재한 함대 확장 덕분에 다섯 자리예요. 제 투자가 옳았죠?'],
     ['franze', '레이첼 상세: 이성 수치', '이성이 0 밑으로 내려가면 매초 정신 피해를 받습니다. 주의하십시오.'],
     ['franze', '레이첼 → 보드 앞줄', '레이첼 님은 돌격가입니다. 앞줄로 가시지요.'],
     ['yelena', '시너지 패널: 우리의 출항기! 5명 (완전체)', '출항기 다섯. 전원이 숨겨 둔 고유 능력을 꺼내요.'],
   ],
-  // 사건 노드: 기존 사건 재사용 권장 — turncoat(바르가의 전 부관, 보스 복선). 고용 시 루스는 대기석으로
+  // 사건 노드: 튜토리얼 전용 사건 tu_dock (TUTORIAL_EVENT, 바르가 복선). 세 번째 선택지는 늘 회색 (조건 안내용)
   ch4_event: [
     ['franze', '사건 장면 진입', '사건입니다. 이야기를 읽고, 끝에서 하나를 고르십시오.'],
     ['franze', '사건 선택지의 설명 줄', '선택지 아래 작은 글씨가 효과입니다. 늘 그렇듯 작은 글씨가 중요합니다.'],
@@ -519,7 +523,7 @@ export const TUTORIAL_TIPS: Record<string, [string, string, string][]> = {
     ['aiden', '위험 등급 선택', '위험 등급이 오를수록 적이 셉니다. 성공하면 다음 등급이 열립니다.'],
     ['aiden', '특권 증강 선택 (새로고침 3회)', '출격 직전에 특권 하나를 고릅니다. 새로고침은 세 번.'],
     ['aiden', '도감 · [교범] 탭', '오늘 배운 용어는 도감의 교범 탭에 모아 두었습니다.'],
-    ['aiden', '메뉴 → 튜토리얼 다시 보기', '다시 보고 싶으시면 메뉴에서 언제든. 핫초코는 별도입니다.'],
+    ['aiden', '타이틀 → [튜토리얼] 버튼', '다시 보고 싶으시면 타이틀에서 언제든. 핫초코는 별도입니다.'],
   ],
 };
 
@@ -534,15 +538,15 @@ export const TUTORIAL_FLOW: ['scene' | 'tips', string, string][] = [
   ['scene', 'ch1b_intro', '나디르 합류'],
   ['tips', 'ch1b_detail', '고정 전투 ② 배치'],
   ['tips', 'ch1b_battle', '전투 중 일시정지 후 표시'],
-  ['scene', 'ch2_intro', ''],
+  ['scene', 'ch2_intro', '끝나면 함대 확장 예산 20크레딧 지급'],
   ['tips', 'ch2_map', '지도 화면 첫 진입'],
   ['tips', 'ch2_supply', '보급 노드'],
   ['tips', 'ch2_shop', '상점 노드'],
-  ['tips', 'ch2_xp', '상점 직후 지도'],
+  ['tips', 'ch2_xp', '상점 직후 지도 · 함대 확장 구매 (린디웨 예산 20)'],
   ['scene', 'ch3_intro', ''],
   ['scene', 'ch3_recruit', ''],
   ['tips', 'ch3_recruit', '영입 노드'],
-  ['tips', 'ch3_equip', '편성 화면'],
+  ['tips', 'ch3_equip', '편성 화면 (예레나: 재료 2 · 칼리토 제국 문장 · 크레딧 10 지급)'],
   ['tips', 'ch3_emblem', '편성 화면'],
   ['tips', 'ch3_battle', '고정 전투 ③ 배치'],
   ['tips', 'ch3_result', '전투 결과 창'],
@@ -550,10 +554,59 @@ export const TUTORIAL_FLOW: ['scene' | 'tips', string, string][] = [
   ['tips', 'ch4_map', '지도 화면'],
   ['tips', 'ch4_brief', '지도 화면 환경 탭'],
   ['tips', 'ch4_deploy', '레이첼 합류 · 첫 출전'],
-  ['tips', 'ch4_event', '사건 노드'],
+  ['tips', 'ch4_event', '사건 노드 (튜토리얼 전용 사건 tu_dock)'],
   ['tips', 'ch4_adversity', '역경 노드 배치 · 전투'],
   ['scene', 'ch4_boss', ''],
   ['tips', 'ch4_boss', '보스 노드 배치 · 전투'],
   ['scene', 'epilogue', '보스 승리 후'],
   ['tips', 'epilogue', '본편 해금 · 새 의뢰 화면'],
 ];
+
+// ───────── 4장 사건 노드: 튜토리얼 전용 사건 (본편 사건 목록 EVENTS 에는 넣지 않는다 → 일반 런에는 나오지 않음)
+/** 컨테이너 속 탈영병: 보스 바르가 복선. 물자(크레딧 · 재료) 또는 정보(보스 체력 -15%). 세 번째는 늘 회색 (조건 안내용) */
+export const TUTORIAL_EVENT: EventDef = {
+  id: 'tu_dock', title: '컨테이너 속 탈영병', weight: 0, once: true,
+  text: '성채로 가는 길, 잠긴 컨테이너 안에서 바르가의 부하였던 젊은 약탈자가 굴러 나온다. 빼돌린 물자와 함장의 약점, 둘 중 하나를 내밀며 목숨을 흥정한다.',
+  choices: [
+    { label: '물자를 받는다', desc: '에너지 크레딧 +6, 장비 재료 1개 (복합 장갑판).', apply: (run, api) => { run.credits += 6; api.gain('C_def'); return '크레딧 +6, 복합 장갑판을 얻었습니다.'; } },
+    { label: '약점을 듣는다', desc: '보스 바르가의 체력 -15% (이번 의뢰 한정).', apply: (_run, api) => { api.flag('tu_intel'); return '바르가 갑옷의 이음매를 알아냈습니다. 보스 체력 -15%.'; } },
+    { label: '아문센의 이름으로 담판을 짓는다', desc: '바르가에게 직접 연락해, 싸우지 않고 정박지를 넘겨받는다.', block: () => '조건: 단장 아문센이 파티에 있어야 합니다 (은퇴함)', apply: () => '' },
+  ],
+};
+export const TUTORIAL_EVENT_SCENE: EventScene = {
+  cast: ['rachel', 'temur', 'vivian', 'nadir', 'phyllis'],
+  scene: [
+    N('성채로 이어지는 컨테이너 골목. 모래바람 사이로, 잠긴 컨테이너 하나가 안쪽에서 쿵, 쿵 울린다.', { bg: 'tu_field_dock', bgm: 'tense', sfx: 'clank', stage: [R0] }),
+    S('temur', '안에 뭐가 있다. 밥이면 좋겠다.', { at: 'R', face: 'base' }),
+    S('phyllis', '자물쇠 정도는 균열로 톡- 하면 돼.', { at: 'C', face: 'smile', sfx: 'tu_rift' }),
+    N('문이 열리자 바짝 마른 청년 하나가 굴러 나온다. 팔뚝에는 녹슨 닻 문신. 바르가 약탈단의 표식이다.'),
+    S('tu_cob', '쏘, 쏘지 마! 나 이제 그쪽 사람 아니야! 사흘 전에 도망쳤다고!'),
+    S('rachel', '도망친 사람이 왜 성채 바로 앞 컨테이너에 숨어 있어.', { face: 'serious' }),
+    S('tu_cob', '…밖이 더 무섭거든. 함장은 탈영병을 닻에 묶어서 소행성 밖으로 던져.'),
+    S('vivian', '리키가 이 사람한테서 거짓말 냄새는 안 난대. 겁 냄새는 엄청 나고. …에취!', { at: 'R', face: 'worried' }),
+    S('tu_cob', '당신들, 에란테스지? 아문센 영감네. 함장이 맨날 그 영감 욕을 해. 갚을 빚이 있다고.'),
+    S('tu_cob', '기함 「녹슨 닻」을 잃은 밤 얘기야. 그날 영감이 함장 갑옷 왼쪽 어깨 이음매를 뜯어 놨거든. 지금도 거기만 덧댄 철판이야.'),
+    T('rachel', '아빠는 은퇴하고 나서도 일을 하네. 몇 년 전 일로.'),
+    S('nadir', '그거 진짜면 큰 정보예요. 두꺼운 갑옷도 이음매는 얇으니까.', { at: 'R', face: 'surprise' }),
+    S('tu_cob', '대신 나 좀 놔줘. 내가 빼돌린 물자도 있어. 크레딧이랑, 장갑판 하나.'),
+    S('tu_cob', '물자를 가져가든, 함장 약점을 자세히 듣든. 둘 다는 안 돼. 나도 먹고살아야지.'),
+    S('phyllis', '둘 다 가지면 되잖아. 균열로 슬쩍-', { at: 'C', face: 'smile' }),
+    S('rachel', '필리스. 하나만.', { face: 'base' }),
+    S('nadir', '…지휘관님이 단장님 딸이라고 하면, 바르가가 협상에 나올까요?', { at: 'R', face: 'worried' }),
+    S('tu_cob', '절대. 함장은 영감 본인 아니면 말도 안 섞어. 그 얼굴을 봐야 닻을 내려놓는다나.'),
+    T('rachel', '은퇴한 사람 얼굴은 못 보여 준다. 그럼 남은 건 둘 중 하나.'),
+  ],
+  after: [
+    [
+      N('청년이 컨테이너 바닥판을 들어 올린다. 크레딧 칩 한 줌과 찌그러진 장갑판 한 장.', { bg: 'tu_field_dock', sfx: 'clank', stage: [R0] }),
+      S('tu_cob', '이게 내 전 재산이야. 잘 써. 난 이제 진짜로 도망간다!'),
+      S('temur', '밥은 없었다. 아쉽다.', { at: 'R', face: 'worried' }),
+    ],
+    [
+      S('tu_cob', '왼쪽 어깨. 닻을 휘두를 때마다 이음매가 벌어져. 거기를 계속 때리면 버티는 힘이 쭉 빠질 거야.', { bg: 'tu_field_dock', stage: [R0] }),
+      S('nadir', '기록해 뒀어요. 백수정에 한 줄.', { at: 'R', face: 'smile', sfx: 'tu_crystal' }),
+      T('rachel', '아빠가 남긴 흠집으로 아빠 빚을 받는다. …이건 좀 마음에 든다.'),
+    ],
+    null,
+  ],
+};
