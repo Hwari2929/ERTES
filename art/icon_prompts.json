@@ -821,27 +821,27 @@
   "color": "lavender and prismatic"
  },
  "faith.emperor": {
-  "subject": "imperial crown above a crossed scepter and sword, executioner verdict",
+  "subject": "heavy gauntlet raising a crown triumphantly",
   "color": "gold and amber, golden holy light"
  },
  "faith.athena": {
-  "subject": "owl perched on a crested greek helmet with a spear, wisdom",
+  "subject": "wise owl with spread wings perched on an olive branch",
   "color": "gold and amber, golden holy light"
  },
  "faith.hermes": {
-  "subject": "winged sandal and caduceus staff with speed trails",
+  "subject": "caduceus staff with two snakes and wings, glowing",
   "color": "gold and amber, golden holy light"
  },
  "faith.ares": {
-  "subject": "battle-worn spartan helmet with crossed spears and a round shield",
+  "subject": "two clashing swords sparking at the crossing point, war cry shockwave",
   "color": "gold and amber, golden holy light"
  },
  "faith.hades": {
-  "subject": "bident spear and a skull crown with souls rising, underworld key",
+  "subject": "ornate skeleton key with a skull bow and ghostly flames",
   "color": "gold and amber, golden holy light"
  },
  "faith.zeus": {
-  "subject": "thunderbolt clutched by an eagle talon, lightning crack",
+  "subject": "mighty thunderbolt javelin striking from storm clouds",
   "color": "gold and amber, golden holy light"
  },
  "faith.selene": {
@@ -853,7 +853,7 @@
   "color": "gold and amber, golden holy light"
  },
  "faith.index": {
-  "subject": "rising stock chart arrow made of gold coins, market candle bars",
+  "subject": "golden ticker tape and balance scales of trade",
   "color": "gold and amber, golden holy light"
  },
  "faith.science": {
