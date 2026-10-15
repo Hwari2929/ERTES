@@ -34,8 +34,12 @@ KEEP = {
   'yelena': '::1.3::heterochromia, white eye, blue eye, left eye white, right eye blue::',
   'franze': '::1.3::red eyes, glowing red eyes, pale skin::',
   'temur': '::1.3::dark skin, tan skin::',
+  'phyllis': 'gold hair ornament, one eye closed',
+  'lindiwe': 'earrings',
   'franze': '::1.3::red eyes, glowing red eyes, pale skin::',
   'temur': '::1.3::dark skin, tan skin::',
+  'phyllis': 'gold hair ornament, one eye closed',
+  'lindiwe': 'earrings',
 }
 args = sys.argv[1:]
 def opt(k, d=None):
@@ -67,7 +71,7 @@ k = S / side
 fx, fy = (cx - crop[0]) * k, (brow - crop[1]) * k
 hh = h * k
 mask = Image.new('L', (S, S), 0)
-ImageDraw.Draw(mask).ellipse((int(fx - hh * 1.05), int(fy - hh * 0.95), int(fx + hh * 1.05), int(fy + hh * 1.55)), fill=255)
+ImageDraw.Draw(mask).ellipse((int(fx - hh * 1.05), int(fy - hh * 0.95), int(fx + hh * 1.05), int(fy + hh * 1.28)), fill=255)
 def b64(im):
   bio = io.BytesIO(); im.save(bio, 'PNG'); return base64.b64encode(bio.getvalue()).decode()
 NEG = cfg['negative'] + ', glasses, eyewear, goggles, mask, blindfold, bandage, face paint, censor bar'

@@ -10,7 +10,7 @@ for path in sys.argv[1:]:
   src = Image.open(f'art/picked/{uid}.webp').convert('RGBA'); img = Image.open(path).convert('RGBA')
   cx, brow, chin = F[uid]; h = chin - brow
   m = Image.new('L', src.size, 0)
-  ImageDraw.Draw(m).ellipse((cx - h * 1.05, brow - h * 0.95, cx + h * 1.05, brow + h * 1.55), fill=255)
+  ImageDraw.Draw(m).ellipse((cx - h * 1.05, brow - h * 0.95, cx + h * 1.05, brow + h * 1.28), fill=255)
   a = np.array(src.split()[3]) > 200
   sel = (np.array(m) > 0) & a
   rs = np.array(src.convert('RGB')).astype(float); ri = np.array(img.convert('RGB')).astype(float)
