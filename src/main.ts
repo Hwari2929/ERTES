@@ -1251,28 +1251,26 @@ function unitModal(run: RunState) {
     <header class="um-head">
       <div class="um-id"><b>${esc(d.name)}</b><span class="muted small">${esc(d.title || '')}</span></div>
       <span class="dh-types"><i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i>${categoryTag(cat)}</span>
-      <span class="um-rank">${rankLabel(u.rank)}${xpBar(u)}<button class="btn tiny" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''}>경험치 +${cost}c</button></span>
       <span class="um-tools">${detailToggle()}<button class="btn" data-a="big-close" aria-label="닫기" title="닫기 (Esc)">✕</button></span>
     </header>
     <div class="um-grid">
       <div class="um-col um-a">
         <div class="um-art">${hero(d.id) || sprite(d, 'spr big')}</div>
+        <div class="um-rank">${rankLabel(u.rank)}${xpBar(u)}<button class="btn tiny" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''}>경험치 +${cost}c</button></div>
         <div class="pc-syn">${memberships(u, run).map((id) => synToken(id, cnt[id] || 0)).join('')}</div>
         <h3>장비</h3>${eqBox(u)}
         ${rel ? `<div class="um-relic">${relicTok(rel.id)}<span><b>${esc(rel.name)}</b><br><span class="muted small">성유물 · 신권 대행</span></span></div>` : ''}
         <h3>메이저 스탯</h3>${majors}
         ${powRow(b, c, d, !!u.pos)}
-      </div>
-      <div class="um-col um-b">
         <h3>상세 스탯</h3>${statLines(c, b)}
+      </div>
+      <div class="um-col um-c">
         <h3>유형 특성</h3>
         <dl class="um-types">
           <dt>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</dt><dd>${esc(CTYPE_DESC[d.ctype]?.[app.detail ? 1 : 0] || '')}</dd>
           <dt>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</dt><dd>${esc(TTYPE_RULE[d.ttype])}</dd>
           <dt>${CATEGORY_NAME[cat]}</dt><dd>${esc(CATEGORY_RULE[cat])}</dd>
         </dl>
-      </div>
-      <div class="um-col um-c">
         <h3>능력</h3>
         <div class="abils">
           ${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem)}
@@ -1972,10 +1970,11 @@ function render() {
   const winY = window.scrollY;
   lastView.screen = app.screen; lastView.modal = modalKey;
   // 다시 그려도 스크롤 위치 유지 (상세 패널 · 전체 상세 팝업)
-  const KEEP = ['.um-grid', '.side.right', '.map-detail', '.detail'];
+  const KEEP = ['.um-grid', '.um-a', '.um-c', '.side.right', '.map-detail', '.detail'];
   const kept = KEEP.map((q) => root.querySelector<HTMLElement>(q)?.scrollTop ?? 0);
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
+  restoredAt = performance.now();
   layoutPanels();
   if (app.screen === 'intro' && !app.introDone) introAnim();
   // 리본 시너지 줄: 넘치면 오른쪽 끝에 '더 있음' 표시 (끝까지 밀면 사라짐)
@@ -3117,8 +3116,22 @@ document.addEventListener('click', (ev) => {
   document.body.appendChild(v);
 });
 
+// 전체 상세 팝업: 능력 상세는 스크롤하거나 바깥을 누르면 닫힘 (다시 그리지 않고 지움)
+let restoredAt = 0;
+function closeUmPop() {
+  if (!app.bigUnit || !app.abilPop) return;
+  app.abilPop = null;
+  root.querySelector('.um-pop')?.remove();
+  root.querySelectorAll('.um .ab-click.on').forEach((x) => x.classList.remove('on'));
+}
+addEventListener('scroll', (e) => {
+  if (!app.bigUnit || !app.abilPop || performance.now() - restoredAt < 200) return; // 다시 그린 직후 스크롤 복원은 무시
+  const t = e.target as HTMLElement;
+  if (t instanceof HTMLElement && t.closest('.um') && !t.closest('.um-pop')) closeUmPop();
+}, { passive: true, capture: true });
 root.addEventListener('click', (ev) => {
   if (suppressClick) return;
+  if (app.bigUnit && app.abilPop && !(ev.target as HTMLElement).closest('.um-pop, [data-a="abil-pop"]')) closeUmPop();
   const el = (ev.target as HTMLElement).closest('[data-a]') as HTMLElement | null;
   if (!el || (el as HTMLButtonElement).disabled) return;
   if (el.classList.contains('modal-bg') && (ev.target as HTMLElement).closest('.modal')) return; // 창 안쪽을 눌러도 닫지 않음

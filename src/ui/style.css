@@ -2120,13 +2120,14 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .um { position: fixed; z-index: 61; inset: max(16px, 3vh) max(16px, 3vw); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 20px 60px rgb(0 0 0 / .6); overflow: hidden; }
 .um-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
 .um-id { display: grid; } .um-id b { font-size: 20px; }
-.um-rank { display: inline-flex; align-items: center; gap: 8px; } .um-rank .xpbar, .um-rank .xp { min-width: 90px; }
+.um-rank { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .um-rank .xpbar, .um-rank .xp { flex: 1; min-width: 90px; }
 .um-tools { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; }
-.um-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(220px, 280px) minmax(240px, 300px) minmax(0, 1fr); gap: 14px; padding: 12px 14px; overflow: auto; }
-.um-col { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.um-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 0; overflow: hidden; }
+.um-col { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 8px; overflow: auto; overscroll-behavior: contain; padding: 12px 14px; }
+.um-a { border-right: 1px solid var(--line); background: color-mix(in srgb, var(--panel-2) 45%, transparent); }
 .um-col h3 { margin: 4px 0 0; font-size: 13px; color: var(--dim); letter-spacing: .04em; }
-.um-c { overflow: visible; }
-.um-c .abils { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 8px; align-items: start; }
+.um-c .abils { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 8px; align-items: start; max-width: 1100px; }
+.um-c .um-types { max-width: 1100px; }
 .um-c .abils .tt-sec, .um-c .abils .ab-relic { grid-column: 1 / -1; }
 .um-art { border-radius: 10px; overflow: hidden; background: var(--panel-2); max-height: 300px; display: grid; place-items: center; }
 .um-art img, .um-art .hero { max-height: 300px; width: auto; max-width: 100%; }
@@ -2138,7 +2139,8 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .um-pop > * { position: static !important; width: auto !important; }
 .max-btn { margin-left: auto; }
 .max-btn + .mag-btn { margin-left: 4px; }
-@media (max-width: 1100px) { .um-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .um-c { grid-column: 1 / -1; } }
-@media (max-width: 700px) { .um { inset: 8px; } .um-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1100px) { .um-grid { grid-template-columns: minmax(240px, 280px) minmax(0, 1fr); } .um-c .abils { grid-template-columns: minmax(0, 1fr); max-width: 620px; } }
+@media (max-width: 700px) { .um { inset: 8px; } .um-grid { grid-template-columns: minmax(0, 1fr); overflow: auto; } .um-col { overflow: visible; } .um-a { border-right: 0; border-bottom: 1px solid var(--line); } .um-c .abils { max-width: none; } }
 .um .pc-syn { position: static; display: flex; flex-direction: row; flex-wrap: wrap; gap: 4px; transform: none; inset: auto; }
 .um-pop.sheet { left: 8px !important; right: 8px !important; top: auto !important; bottom: 8px; width: auto; }
+.um-col > * { flex-shrink: 0; }
