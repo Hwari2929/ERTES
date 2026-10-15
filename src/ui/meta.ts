@@ -13,6 +13,8 @@ export interface Meta {
   enemies: Record<string, { seen: number; kills: number }>;
   events: Record<string, number>;
   fields: Record<string, { runs: number; clears: number; bestDiff: number }>;
+  /** 튜토리얼: 끝까지 봄 · 건너뜀 · 본 장면과 안내 (교범 항목 해금) */
+  tut?: { done?: boolean; skipped?: boolean; seen?: string[] };
 }
 
 const KEY = 'errantes.meta.v1';
@@ -73,5 +75,26 @@ export function metaRunEnd(run: RunState) {
     u.ranks += r;
     u.best = Math.max(u.best, r);
   }
+  save();
+}
+
+// ───────── 튜토리얼 · 교범
+export const tutMeta = () => loadMeta().tut || {};
+/** 튜토리얼을 끝냈거나 건너뛰었는지 (교범 전체 해금) */
+export const tutOver = () => !!(tutMeta().done || tutMeta().skipped);
+/** 튜토리얼 장면 · 안내를 봤다 (그 키에 걸린 교범 항목이 열린다) */
+export function metaTutSeen(key: string) {
+  const m = loadMeta();
+  const t = (m.tut ||= {});
+  const seen = (t.seen ||= []);
+  if (seen.includes(key)) return;
+  seen.push(key);
+  save();
+}
+/** 튜토리얼 종료: 끝까지 봤거나 (done) 건너뜀 (skipped). 어느 쪽이든 교범이 모두 열린다 */
+export function metaTutEnd(kind: 'done' | 'skipped') {
+  const m = loadMeta();
+  const t = (m.tut ||= {});
+  t[kind] = true;
   save();
 }

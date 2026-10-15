@@ -146,6 +146,8 @@ export interface RunState {
   fleet?: number;
   /** 지정 소집 횟수 (가격 상승) */
   musters?: number;
+  /** 튜토리얼 런: 진행 순서(TUTORIAL_FLOW) 위치. 있으면 고정 항로 · 고정 조우 · 지는 일 없음 */
+  tutorial?: { i: number };
   seed: number;
   rng: number;
   phase: number;

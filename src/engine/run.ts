@@ -473,6 +473,7 @@ const tierNow = (run: RunState, id: 'STAR' | 'HOI' | 'OCCULT' | 'HEL') => tierOf
 export function advance(run: RunState) {
   run.node = null;
   run.step++;
+  if (run.tutorial && run.step >= run.map.length) return; // 튜토리얼: 항로 끝 (다음 페이즈 없음)
   if (run.mods.nodeIncome) run.credits += run.mods.nodeIncome; // 분할 정산 등
   if (run.step >= run.map.length) {
     run.phase++;
@@ -705,6 +706,18 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   log(run, `P${p} ${type === 'boss' ? '보스' : type === 'adversity' ? '역경' : '전투'} ${won ? '승리' : '패배'}`);
 
   let gameOver = false;
+  if (run.tutorial) {
+    // 튜토리얼: 체력은 1 아래로 내려가지 않고, 지면 같은 조우를 다시 (다음 칸으로 넘어가지 않는다)
+    run.hp = Math.max(1, run.hp);
+    if (!won) {
+      const enc = run.node!.enc!;
+      run.node = { type: node, enc: { ...enc, seed: (enc.seed + 7919) % 2147483647 } };
+      lines.push('튜토리얼 — 같은 전투를 다시 시도합니다.');
+      const gained0 = run.inventory.slice();
+      for (const id of inv0) { const i = gained0.indexOf(id); if (i >= 0) gained0.splice(i, 1); }
+      return { won, lines, xp, hpLoss, gameOver: false, items: gained0 };
+    }
+  }
   if (challenge && won) {
     challengeReward(run, lines);
     const bonus = Math.round(CFG.xpPool(p) * CFG.challengeXp);
@@ -949,6 +962,7 @@ export const SUPPLY_TEXT: Record<string, string> = {
   repair: '플레이어 체력 +15', adv: '무작위 희귀 장비 1개',
 };
 export function takeSupply(run: RunState, opt: string) {
+  if (opt === 'parts' && run.tutorial) { gainItem(run, 'C_pow'); run.credits += 4; return; } // 튜토리얼: 3장 조합 안내용 고정 재료
   if (opt === 'parts') { gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS))); run.credits += 4; }
   if (opt === 'parts2') { gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS))); distributeXp(run, Math.round(CFG.xpPool(run.phase) / 2)); run.units.forEach((u) => settleXp(run, u)); }
   if (opt === 'credits') run.credits += 12 + run.phase;

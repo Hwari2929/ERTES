@@ -27,11 +27,15 @@ import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, ty
 import { BattleView, fmt, FX, FX_DEFAULT, type DeathStyle, type MotionPreset, type UltCut } from './ui/battleview';
 import { ULTS } from './data/ults';
 import { DEFAULT_RELIC, RELIC_BY_ID } from './data/relics';
-import { exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
-import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd } from './ui/meta';
+import { deleteSave, exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
+import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd, metaTutEnd, metaTutSeen, tutMeta, tutOver } from './ui/meta';
 import { bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg, standURL } from './ui/portraits';
 import { advKey, closeAdv, playAdv } from './ui/adv';
 import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
+import { closeCoach, coachKey, startCoach, type CoachStep } from './ui/coach';
+import { TUTORIAL_FLOW, TUTORIAL_SCENES, TUTORIAL_TIPS } from './data/scenes/tutorial';
+import { GLOSSARY, GLOSSARY_COUNT } from './data/glossary';
+import * as TUT from './engine/tutorial';
 
 // 편의 설정 (이 브라우저에만 저장): 전투 속도, 진형 속도 등
 const PREF_KEY = 'errantes.prefs.v1';
@@ -95,7 +99,8 @@ const app = {
   introDone: false, // 출격 연출을 끝까지 봤는지 (다시 그릴 때 연출 생략)
   introFoe: null as string | null, // 전장 브리핑에서 연 적 상세
   dsInfo: null as number | null, // 난이도 카드에서 펼친 세부 조건
-  codexTab: 'units' as 'units' | 'enemies' | 'events' | 'records',
+  codexTab: 'units' as 'units' | 'enemies' | 'events' | 'manual' | 'records',
+  tutAsk: false, // 첫 실행: 새 계약을 누르면 튜토리얼부터 볼지 묻는다
   codexGroup: 'none' as 'none' | 'faction' | 'trait' | 'ctype' | 'ttype', // 도감 기물: 모아보기 기준
   codexSel: null as string | null, // 도감 기물: 상세를 펼친 기물
   meterTab: 'dmg' as 'dmg' | 'taken' | 'support' | 'kills',
@@ -118,7 +123,7 @@ function toast(msg: string) {
 }
 function persist() {
   if (app.run && !app.run.over && app.screen !== 'battle') R.checkOccult(app.run); // 신비학자 새 단계 → 전용 개조부품 선택
-  if (app.run && !app.run.over) saveRun(app.run, 'auto');
+  if (app.run && !app.run.over) saveRun(app.run, app.run.tutorial ? TUT_SLOT : 'auto'); // 튜토리얼 런은 이어하기(자동 저장)를 덮지 않게 따로
 }
 
 // ───────────────────────── 공용 조각
@@ -284,6 +289,7 @@ function titleScreen() {
       <nav class="title-actions" aria-label="메뉴">
         ${auto ? `<button class="btn primary ts-btn" data-a="load" data-v="auto"><b>이어하기</b><small>페이즈 ${auto.phase} · 체력 ${auto.hp}</small></button>` : ''}
         <button class="btn ${auto ? '' : 'primary'} ts-btn" data-a="newrun"><b>새 계약</b>${auto ? '<small>진행 중인 의뢰는 덮어씁니다</small>' : ''}</button>
+        ${tutButton()}
         <button class="btn ts-btn" data-a="codex"><b>도감 · 기록</b></button>
         <button class="btn ghost ts-btn" data-a="menu-import"><b>저장 코드 불러오기</b></button>
       </nav>
@@ -291,7 +297,24 @@ function titleScreen() {
       ${m.runs ? `<p class="ts-meta"><span>의뢰 <b>${m.runs}</b></span><span>성공 <b>${m.clears}</b></span><span>위험 등급 <b>${m.maxDiff}</b></span></p>` : ''}
     </div>
     <p class="ts-foot">싱글 PvE · 오프라인 플레이 · 진행은 이 브라우저에 자동 저장됩니다.</p>
+    ${app.tutAsk ? tutAskModal() : ''}
   </main>`;
+}
+/** 타이틀: 튜토리얼 버튼 (끝내기 전에는 NEW, 진행 중이면 이어서) */
+function tutButton() {
+  const saved = listTutSave();
+  return `<button class="btn ts-btn ts-tut" data-a="tutorial"><b>튜토리얼 — 당직 근무</b>${saved ? `<small>이어서 · 항로 ${Math.min(saved.step + 1, TUT.TUT_MAP.length)}/${TUT.TUT_MAP.length}칸</small>` : '<small>새벽 두 시, 에란테스 바에서 지휘를 배운다</small>'}${tutMeta().done ? '' : '<span class="ts-new">NEW</span>'}</button>
+    ${saved ? '<div class="ts-sub"><button class="btn ghost tiny" data-a="tutorial-restart">튜토리얼 처음부터</button></div>' : ''}`;
+}
+/** 첫 실행: 튜토리얼부터 / 건너뛰기 */
+function tutAskModal() {
+  const d = UNIT_BY_ID.aiden;
+  return `<div class="modal-bg"><div class="modal tut-ask" role="dialog" aria-label="튜토리얼 안내">
+    <div class="ta-head">${d ? sprite(d, 'spr') : ''}<div><h1>처음 오셨군요</h1><p class="muted small">에이든 · 에란테스 바텐더</p></div></div>
+    <p>지휘가 처음이시라면 튜토리얼 「당직 근무」부터 권합니다. 20분쯤 걸리고, 지는 일은 없습니다. 배운 용어는 도감의 교범 탭에 남습니다.</p>
+    <p class="muted small">건너뛰면 교범이 모두 열리고, 튜토리얼은 타이틀에서 언제든 다시 할 수 있습니다.</p>
+    <div class="row-btns"><button class="btn primary" data-a="tutorial">튜토리얼부터</button><button class="btn" data-a="tut-ask-skip">건너뛰기</button><button class="btn ghost" data-a="tut-ask-close">닫기</button></div>
+  </div></div>`;
 }
 
 // ───────────────────────── 화면: 시작 기물 선택
@@ -721,7 +744,7 @@ function mapScreen(run: RunState) {
   const p = run.phase;
   const scale = `적 체력 ×${fmt(phaseHpMult(p))} (이번 페이즈 ×${p > 1 ? CFG.phaseHpFactor(p).toFixed(2) : '1'}) · 방어도 ×${Math.pow(CFG.phaseArmor, p - 1).toFixed(2)} · 피해 ×${phaseAmpMult(p).toFixed(2)}`;
   const opts = R.currentOptions(run);
-  const pick = run.node ? run.node.type : opts.includes(app.nodePick as NodeType) ? (app.nodePick as NodeType) : opts[0];
+  const pick: NodeType | undefined = run.node ? run.node.type : opts.includes(app.nodePick as NodeType) ? (app.nodePick as NodeType) : opts[0];
   const nodeIc = (o: NodeType, i: number) => {
     const uid = o === 'recruit' && i < run.step ? run.nodeUnits?.[i] : undefined;
     return uid && UNIT_BY_ID[uid] ? sprite(UNIT_BY_ID[uid], 'spr tl-pt') : NODE_ICON[o];
@@ -738,7 +761,8 @@ function mapScreen(run: RunState) {
   }).join('');
   const enter = run.node
     ? `<button class="btn primary tl-go" data-a="resume">${esc(NODE_NAME[run.node.type])} 계속하기</button>`
-    : `<button class="btn primary tl-go" data-a="enter" data-v="${pick}" title="단축키 Enter">${esc(NODE_NAME[pick])} 진입하기</button>`;
+    : pick ? `<button class="btn primary tl-go" data-a="enter" data-v="${pick}" title="단축키 Enter">${esc(NODE_NAME[pick])} 진입하기</button>`
+    : '<button class="btn primary tl-go" disabled>항로 끝</button>'; // 튜토리얼: 보스 뒤
   const f = fieldOf(run.field);
   const pet = tierOf('PET', synergyCounts(deployed(run), run).PET || 0);
   return `<main class="wrap map">
@@ -748,7 +772,7 @@ function mapScreen(run: RunState) {
     <section class="map-main">
       <div class="screen-head"><h1>페이즈 ${p}</h1><p class="muted small">${scale}</p></div>
       <div class="tl"><ol class="tl-track">${track}</ol></div>
-      <div class="tl-info"><b>${esc(NODE_NAME[pick])}</b><span class="muted small">${run.node ? '진행 중' : ic(esc(nodeHint(pick)))}</span></div>
+      <div class="tl-info"><b>${pick ? esc(NODE_NAME[pick]) : '항로 끝'}</b><span class="muted small">${run.node ? '진행 중' : pick ? ic(esc(nodeHint(pick))) : '이번 항로의 모든 칸을 지났습니다.'}</span></div>
       <div class="row-btns">${enter}
         ${pet >= 2 ? `<button class="btn" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 ${CR}+25 · 상환 30</button>` : ''}
       </div>
@@ -1632,7 +1656,7 @@ function advSync(run: RunState | null) {
     });
   } else if (live && p.t === 'notice' && p.scene?.length) {
     playAdv(`nt:${p.title}:${run.pending.length}`, p.scene, { title: p.title, result: p.body, speaker: advSpeaker, fmt: (x) => ic(esc(x)), onDone: () => act('notice-ok', '') });
-  } else if (advKey()) closeAdv();
+  } else if (advKey() && !advKey()!.startsWith('tu:')) closeAdv(); // 튜토리얼 장면은 튜토리얼이 닫는다
 }
 // ───────────────────────── 모달: 대기 중인 선택
 function pendingModal(run: RunState): string {
@@ -1804,11 +1828,12 @@ function menuModal(run: RunState | null) {
   }
   return `<div class="modal-bg"><div class="modal">
     ${tabs}
-    ${run ? `<h3>저장</h3><div class="slot-list">${['slot1', 'slot2', 'slot3'].map((s) => `<div class="slot"><span><b>${SLOT_NAME[s]}</b> <span class="muted small">${meta(s)}</span></span>
+    ${run?.tutorial ? `<h3>튜토리얼</h3><p class="muted small">튜토리얼 진행은 따로 저장되어, 타이틀의 [튜토리얼] 버튼으로 이어서 할 수 있습니다. 끝내면 교범이 모두 열립니다.</p>
+      <div class="row-btns"><button class="btn" data-a="tut-quit">튜토리얼 끝내기 (건너뛰기)</button></div>` : run ? `<h3>저장</h3><div class="slot-list">${['slot1', 'slot2', 'slot3'].map((s) => `<div class="slot"><span><b>${SLOT_NAME[s]}</b> <span class="muted small">${meta(s)}</span></span>
       <span><button class="btn tiny" data-a="save" data-v="${s}">저장</button><button class="btn tiny" data-a="load" data-v="${s}" ${saves.some((x) => x.slot === s) ? '' : 'disabled'}>불러오기</button></span></div>`).join('')}
       <div class="slot"><span><b>자동 저장</b> <span class="muted small">${meta('auto')}</span></span><span><button class="btn tiny" data-a="load" data-v="auto" ${saves.some((x) => x.slot === 'auto') ? '' : 'disabled'}>불러오기</button></span></div></div>` : ''}
     <div class="row-btns">
-      ${run ? '<button class="btn" data-a="menu-export">저장 코드 내보내기</button>' : ''}
+      ${run && !run.tutorial ? '<button class="btn" data-a="menu-export">저장 코드 내보내기</button>' : ''}
       <button class="btn" data-a="menu-import">저장 코드 불러오기</button>
       <button class="btn" data-a="to-title">타이틀로</button>
       <button class="btn primary" data-a="menu-close">닫기</button>
@@ -2040,6 +2065,7 @@ function render() {
     mountBattleView(document.getElementById('bboard')!);
     initBoardPan(root.querySelector<HTMLElement>('.bview')!);
   }
+  tutSync();
   const fi = document.getElementById('import-file') as HTMLInputElement | null;
   if (fi) fi.onchange = () => {
     const f = fi.files?.[0];
@@ -2239,7 +2265,7 @@ function mountBattleView(board: HTMLElement) {
   app.paused = false;
   app.view = new BattleView(board, b, updateMeter, () => {
     app.summary = R.resolveBattle(run, b);
-    metaBattle(b);
+    if (!run.tutorial) metaBattle(b); // 튜토리얼 전투는 도감 기록에서 뺀다
     persist();
     // 보드는 그대로 두고 상단 바와 결과 창만 갱신
     const top = root.querySelector('header.top');
@@ -2585,7 +2611,7 @@ function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
 }
 function codexScreen() {
   const m = loadMeta();
-  const tabs = ([['units', '기물'], ['enemies', '적'], ['events', '사건'], ['records', '기록']] as const)
+  const tabs = ([['units', '기물'], ['enemies', '적'], ['events', '사건'], ['manual', '교범'], ['records', '기록']] as const)
     .map(([k, l]) => `<button class="btn small ${app.codexTab === k ? 'primary' : ''}" data-a="codex-tab" data-v="${k}">${l}</button>`).join('');
   let body = '';
   if (app.codexTab === 'units') {
@@ -2609,12 +2635,325 @@ function codexScreen() {
       const n = m.events[e.id] || 0;
       return `<div class="codex-row ${n ? '' : 'unknown'} ${e.rare ? 'rare' : ''}"><div><b>${n ? esc(e.title) : '???'}</b>${e.rare ? ' <span class="tag">희귀</span>' : ''}<div class="small">${n ? esc(e.text) : '아직 겪지 못한 사건입니다.'}</div></div><div class="small mono">${n}회</div></div>`;
     }).join('')}</div>`).join('');
+  } else if (app.codexTab === 'manual') {
+    body = codexManual();
   } else {
     body = `<dl class="stats big"><dt>의뢰</dt><dd>${m.runs}</dd><dt>의뢰 성공</dt><dd>${m.clears}</dd><dt>최고 도달 페이즈</dt><dd>${m.bestPhase}</dd><dt>해금된 위험 등급</dt><dd>${m.maxDiff}</dd></dl>
       <h2>전장별</h2><div class="codex-list">${FIELDS.map((f) => { const r = m.fields[f.id]; return `<div class="codex-row"><div><b style="color:${f.color}">${f.icon} ${esc(f.name)}</b><div class="small muted">${esc(f.region)}</div></div><div class="small mono">의뢰 ${r?.runs || 0} · 성공 ${r?.clears || 0}${r && r.bestDiff >= 0 ? ` · 최고 위험 ${r.bestDiff}` : ''}</div></div>`; }).join('')}</div>`;
   }
   return `<main class="wrap codex"><div class="screen-head"><h1>도감 · 기록</h1><p class="muted small">이 브라우저에 저장됩니다.</p></div>
     <div class="row-btns">${tabs}<button class="btn ghost" data-a="codex-back">돌아가기</button></div>${body}</main>`;
+}
+
+// ───────────────────────── 튜토리얼 「당직 근무 중 승계」: 장면(미연시) · 안내 말풍선 진행
+// 진행 위치는 run.tutorial.i (TUTORIAL_FLOW). 장면은 지도에서, 안내는 각 화면 조건(TIP_GATE)이 맞으면 띄운다.
+// render() 끝과 0.3초 간격으로 tutSync() 를 불러 조건을 확인한다 (전투 시간 · 미연시 진행처럼 다시 그리지 않고 바뀌는 상태 때문)
+const TUT_SLOT = 'tut';
+/** 저장된 튜토리얼 런 (타이틀 버튼: 이어서) */
+function listTutSave(): { step: number } | null {
+  const r = loadRun(TUT_SLOT);
+  return r?.tutorial ? { step: r.step } : null;
+}
+const tutRun = () => (app.run?.tutorial && !app.run.over ? app.run : null);
+let tutLock = false; // tutSync 재진입 방지
+let tutPaused = false; // 안내 때문에 멈춘 전투
+let tutEpi = false; // 종장 뒤 타이틀에서 마지막 안내를 띄울 차례
+/** 전투 화면은 다시 그리면 전투 보드가 초기화되므로 그리지 않는다 (전투 중 상태는 뷰가 직접 갱신) */
+const tutRender = () => { if (app.screen !== 'battle') render(); };
+
+// 장면이 뜰 수 있는 최소 칸 (지도 화면 · 대기 창 없음)
+const SCENE_STEP: Record<string, number> = { prologue: 0, ch1_intro: 0, ch1_after: 1, ch1b_intro: 1, ch2_intro: 2, ch3_intro: 4, ch3_recruit: 4, ch4_intro: 6, ch4_boss: 8, epilogue: 9 };
+// 안내가 속한 칸: 이 칸을 지나쳤는데 (전투 화면 밖) 아직 안 띄웠으면 건너뛴다 (전투를 '결과로'로 넘긴 경우 등)
+const TIP_STEP: Record<string, number> = { ch1_place: 0, ch1_battle: 0, ch1b_detail: 1, ch1b_battle: 1, ch2_map: 2, ch2_supply: 3, ch2_shop: 3, ch2_xp: 4, ch3_recruit: 5, ch3_equip: 5, ch3_emblem: 5, ch3_battle: 5, ch3_result: 5, ch4_map: 6, ch4_brief: 6, ch4_deploy: 6, ch4_event: 7, ch4_adversity: 7, ch4_boss: 8 };
+/** 불러온 직후처럼 지도에 있으면 편성 화면으로 옮겨 띄우는 안내 */
+const TIP_PREP = ['ch3_equip', 'ch3_emblem', 'ch4_deploy'];
+
+const unitOf = (run: RunState, id: string) => run.units.find((u) => u.defId === id);
+const q1 = (sel: string) => document.querySelector(sel);
+const btT = () => app.view?.b.t ?? 0;
+const inBattle = (t: number) => app.screen === 'battle' && !!app.view && !app.view.b.over && btT() >= t;
+/** 편성 보드 위 아군 토큰 */
+const prepTok = (run: RunState, id: string) => () => { const u = unitOf(run, id); return u ? q1(`.prep .board .u.side0[data-v="${u.uid}"]`) : null; };
+/** 편성 보드 위 적 토큰 (적 id) */
+const foeTok = (run: RunState, ...ids: string[]) => () => (run.node?.enc?.enemies || []).flatMap((s, i) => (ids.includes(s.defId) ? Array.from(document.querySelectorAll(`.prep .board .u.side1[data-v="${i}"]`)) : []));
+/** 전투 보드 위 기물 (side 0 아군 기물 id · side 1 적 id, 비우면 그 편 전부) */
+const bTok = (side: 0 | 1, ...ids: string[]) => () => (app.view?.b.units || []).filter((c) => c.side === side && !c.isSummon && c.alive && (!ids.length || ids.includes(c.defId)))
+  .map((c) => q1(`#bboard .u[data-v="${c.id}"]`)).filter((x): x is Element => !!x);
+const bPart = (part: string) => () => bTok(0)().map((e) => e.querySelector(part)).filter((x): x is Element => !!x);
+/** 시너지 토큰 (넓은 화면은 왼쪽 패널, 좁은 화면은 상단 띠) */
+const synTok = (id: string, sub = '') => [`.side.left .syn-tk:has([data-syn="${id}"])${sub}`, `.top-syns .syn-tk:has([data-syn="${id}"])${sub}`];
+/** 결과 창 보상 줄 */
+const rsLine = (re: RegExp) => () => Array.from(document.querySelectorAll('.rs-lines li')).filter((li) => re.test(li.textContent || ''));
+/** 편성 보드 + 대기석 (끌어다 놓기 안내) */
+const boardAnd = (...more: string[]) => () => ['.prep .board', ...more].map(q1).filter((x): x is Element => !!x);
+function selUnit(run: RunState, id: string) {
+  const u = unitOf(run, id);
+  if (!u || (app.sel?.k === 'unit' && app.sel.uid === u.uid)) return;
+  app.sel = { k: 'unit', uid: u.uid }; app.abilPop = null; app.statPop = false;
+  tutRender();
+}
+function selFoe(run: RunState, id: string) {
+  const i = (run.node?.enc?.enemies || []).findIndex((s) => s.defId === id);
+  if (i < 0 || (app.sel?.k === 'enemy' && app.sel.i === i)) return;
+  app.sel = { k: 'enemy', i }; app.abilPop = null;
+  tutRender();
+}
+const hasGear = (run: RunState, re: RegExp) => run.units.some((u) => u.items.some((x) => !!x && re.test(x)));
+
+/** 안내가 처음 뜨는 조건 (화면 · 노드 · 대기 창) */
+const TIP_GATE: Record<string, (r: RunState) => boolean> = {
+  prologue: () => advKey() === 'tu:prologue',
+  ch1_place: (r) => app.screen === 'prep' && r.node?.type === 'battle' && r.step === 0,
+  ch1_battle: () => inBattle(2.5),
+  ch1b_detail: (r) => app.screen === 'prep' && r.node?.type === 'battle' && r.step === 1,
+  ch1b_battle: () => inBattle(3.5),
+  ch2_map: (r) => app.screen === 'map' && !r.node && r.step === 2,
+  ch2_supply: (r) => r.pending[0]?.t === 'supply',
+  ch2_shop: () => app.screen === 'shop',
+  ch2_xp: (r) => app.screen === 'map' && !r.node && r.step === 4,
+  ch3_recruit: (r) => r.pending[0]?.t === 'recruit',
+  ch3_equip: (r) => app.screen === 'prep' && !r.node,
+  ch3_emblem: (r) => app.screen === 'prep' && !r.node,
+  ch3_battle: (r) => app.screen === 'prep' && r.node?.type === 'battle' && r.step === 5,
+  ch3_result: () => app.screen === 'battle' && !!app.summary?.won && !!q1('.modal.result'),
+  ch4_map: (r) => app.screen === 'map' && !r.node && r.step === 6,
+  ch4_brief: (r) => app.screen === 'map' && !r.node && r.step === 6,
+  ch4_deploy: (r) => app.screen === 'prep' && !r.node && !!unitOf(r, 'rachel'),
+  ch4_event: (r) => r.pending[0]?.t === 'event' && !!advKey()?.startsWith('ev:'),
+  ch4_adversity: (r) => app.screen === 'prep' && r.node?.type === 'adversity',
+  ch4_boss: (r) => app.screen === 'prep' && r.node?.type === 'boss',
+};
+
+/** 안내 단계별 대상 UI · 진행 조건 (TUTORIAL_TIPS[key] 와 같은 순서) */
+function tipSteps(key: string, run: RunState | null): Partial<CoachStep>[] {
+  const r = run!;
+  const fight: Partial<CoachStep> = { target: '.prep [data-a="fight"]', need: true, until: () => app.screen === 'battle' };
+  switch (key) {
+    case 'prologue': return [{ target: '.adv .adv-box', pend: true }, { target: '.adv [data-x="log"]', pend: true }, { target: '.adv [data-x="auto"]', pend: true }, { target: '.adv [data-x="skip"]', pend: true }];
+    case 'ch1_place': return [
+      { target: '.prep .board .cell.mine' },
+      { target: boardAnd('.prep .bench'), until: () => unitOf(r, 'temur')?.pos?.r === 2 },
+      { target: boardAnd('.prep .bench'), until: () => unitOf(r, 'vivian')?.pos?.r === 0 },
+      { target: '.prep .dep-pill' },
+      { target: ['.prep [data-a="autofill"]', '.prep .board-head'] },
+      { ...fight, enter: () => { if (!deployed(r).length) { R.autoFill(r); persist(); render(); } } },
+    ];
+    case 'ch1_battle': return [{ target: '#btime' }, { target: bPart('.bars') }, { target: bTok(0) }, { target: bPart('.cd') }, { target: '.battle .speed' }, { target: ['.battle #meter', '.battle .side.left'] }].map((x) => ({ ...x, pend: true }));
+    case 'ch1b_detail': return [
+      { target: foeTok(r, 'drone'), until: () => app.sel?.k === 'enemy' && r.node?.enc?.enemies[app.sel.i]?.defId === 'drone' },
+      { target: '.prep .side.right .detail > .small.muted', enter: () => selFoe(r, 'drone') },
+      { target: '.prep .side.right .abils .ab-weapon', enter: () => selUnit(r, 'nadir') },
+      { target: '.prep .side.right .dh-types' },
+      { target: ['.prep .side.right .d-mag', '.prep [data-a="toggle-detail"]'] },
+      fight,
+    ];
+    case 'ch1b_battle': return [{ target: bTok(1, 'drone') }, { target: bTok(1) }, { target: bTok(0, 'temur') }, { target: bTok(0, 'vivian') }].map((x) => ({ ...x, pend: true }));
+    case 'ch2_map': return [{ target: '.map .tl-track' }, { target: '.top .stat-row' }, { target: '.map .tl-go', need: true, until: () => r.step > 2 || r.pending[0]?.t === 'supply' }];
+    case 'ch2_supply': return [{ target: '.modal .cards', pend: true }, { target: '.modal [data-a="pick-supply"][data-v="parts"]', pend: true, until: () => r.pending[0]?.t !== 'supply' }];
+    case 'ch2_shop': return [
+      { target: '.shop .shop-item.tC' }, { target: '.shop .shop-item.tA' },
+      { target: '.shop .shop-item.tC', need: true, until: () => !!r.node?.shop?.some((x) => x.sold) },
+      { target: '.top .pill.cr' }, { target: '.inv' },
+      { target: '[data-a="leave-shop"]', need: true, until: () => app.screen !== 'shop' },
+    ];
+    case 'ch2_xp': {
+      let c0 = r.credits;
+      return [
+        { target: '.map .party .rt', until: () => !!app.bigUnit },
+        { target: '.um [data-a="buyxp"]', need: true, until: () => r.credits < c0, enter: () => { c0 = r.credits; if (!app.bigUnit) { app.bigUnit = r.units[0].uid; app.sel = { k: 'unit', uid: r.units[0].uid }; render(); } } },
+        { target: '.um .um-rank' },
+        { target: '.map .ship-btn[data-a="fleet"]', need: true, until: () => (r.fleet || 0) >= 1, enter: () => {
+          // 린디웨 예산(20)으로 반드시 살 수 있게: 다른 데 썼으면 모자란 만큼 채운다
+          const cost = R.fleetCost(r) ?? 0;
+          if (!r.fleet && r.credits < cost) r.credits = cost;
+          app.bigUnit = null; app.sel = null; app.abilPop = null; persist(); render();
+        } },
+      ];
+    }
+    case 'ch3_recruit': return [
+      { target: '.modal.recruit', pend: true, need: true, until: () => r.pending[0]?.t !== 'recruit' },
+      { target: '.modal.rankup .aug-list', pend: true, gate: () => r.pending[0]?.t === 'rankup' },
+      { target: '.modal.rankup .ru-reroll', pend: true, gate: () => r.pending[0]?.t === 'rankup' },
+      { target: synTok('VOYAGE') },
+    ];
+    case 'ch3_equip': return [
+      { target: boardAnd('.prep .inv-rail'), until: () => hasGear(r, /^[CGA]_/) },
+      { target: '.prep .side.right .d-eqbox', enter: () => { const u = r.units.find((x) => x.items.some((y) => !!y && /^[CGA]_/.test(y))) || r.units[0]; if (u) selUnit(r, u.defId); } },
+      { target: boardAnd('.prep .inv-rail'), until: () => hasGear(r, /^[GA]_/) },
+      { target: '.prep .inv-rail', until: () => r.inventory.some((x) => /^[GA]_/.test(x)) },
+      { target: ['.prep .board .tk-it .item.tA', '.prep .board .tk-it .item.tG', '.prep .inv-rail .item.tA', '.prep .inv-rail .item.tG'] },
+      { target: '.prep .side.right .reco-btn' },
+    ];
+    case 'ch3_emblem': return [
+      { target: '.prep .inv-rail .item.tM' },
+      { target: boardAnd('.prep .inv-rail'), until: () => r.units.some((u) => !!u.mod && isEmblem(u.mod)) },
+      { target: synTok('KAL') },
+      { target: synTok('KAL', ' .syn-b') },
+    ];
+    case 'ch3_battle': return [{ target: synTok('VOYAGE') }, { target: prepTok(r, 'phyllis') }, fight];
+    case 'ch3_result': return [{ target: rsLine(/이자/) }, { target: rsLine(/승리 보상|연승/) }, { target: ['.rs-xp', '.rs-reward'] }].map((x) => ({ ...x, pend: true }));
+    case 'ch4_map': return [{ target: '.map .tl-track' }, { target: '.map .tl-step.cur .tl-node' }, { target: '.map .tl-node.n-council' }, { target: '.map .tl-node.n-shop' }, { target: '.map .tl-info' }, { target: '.top .stat-row .pill:first-child' }, {}];
+    case 'ch4_brief': return [
+      { target: '.map .st-tab[data-v="1"]', until: () => app.mapTab === 1 },
+      { target: '.map .field-btn .fc-rules', enter: () => { if (app.mapTab !== 1) setMapTab(1); } },
+      { target: '.map .field-btn .fc-rules li:last-child' },
+      { target: '.map .field-btn' },
+    ];
+    case 'ch4_deploy': return [
+      { target: '.modal.rankup', pend: true, until: () => !r.pending.some((p) => p.t === 'rankup' && p.kind === 'school') },
+      { target: '.prep .dep-pill' },
+      { target: ['.prep .side.right .ps-reason', '.prep .side.right .tt-sec'], enter: () => selUnit(r, 'rachel') },
+      { target: prepTok(r, 'rachel') },
+      { target: synTok('VOYAGE') },
+    ];
+    case 'ch4_event': return [
+      { target: '.adv .adv-box', pend: true },
+      { target: '.adv .adv-end:not([hidden]) .adv-choice:not([disabled]) span', pend: true, wait: true },
+      { target: '.adv .adv-end:not([hidden]) .adv-choice[disabled]', pend: true, wait: true },
+    ];
+    case 'ch4_adversity': return [
+      { target: '.prep .board-head b' }, { target: foeTok(r, 'warlord') }, { target: foeTok(r, 'wraith') }, { target: foeTok(r, 'turret') },
+      { target: foeTok(r, 'warlord', 'wraith', 'turret'), until: () => app.sel?.k === 'enemy' },
+    ];
+    case 'ch4_boss': return [
+      { target: foeTok(r, 'varga') }, { target: foeTok(r, 'raider', 'gunner') },
+      { target: '.prep .side.right .ab-ace-wrap', enter: () => selUnit(r, 'rachel') },
+      { target: '#btime', gate: () => inBattle(3), pend: true },
+      { gate: () => inBattle(3), pend: true },
+    ];
+    case 'epilogue': return [{}, { target: '[data-a="newrun"]' }, { target: '[data-a="newrun"]' }, { target: '[data-a="newrun"]' }, { target: '[data-a="codex"]' }, { target: '[data-a="tutorial"]' }];
+  }
+  return [];
+}
+
+/** 안내 묶음 띄우기 (run 이 없으면 타이틀의 종장 안내) */
+function tutCoach(key: string, run: RunState | null) {
+  const cfg = tipSteps(key, run);
+  const steps: CoachStep[] = TUTORIAL_TIPS[key].map(([who, , text], i) => {
+    const d = UNIT_BY_ID[who];
+    return { name: d?.name || who, icon: d ? iconURL(d) : '', color: speakerOf(who).color, text, ...cfg[i] };
+  });
+  startCoach({
+    key: `tu:${key}`, steps,
+    skipLabel: run ? '튜토리얼 건너뛰기' : null,
+    // 선택 창 · 미연시 · 메뉴가 떠 있으면 숨겨 둔다 (그 창을 가리키는 단계는 pend)
+    hold: (st) => !st.pend && (!!app.menu || !!q1('.modal-bg, .adv, .stand-view, .um-pop')),
+    onShow: () => {
+      if (app.screen === 'battle' && app.view && !app.view.b.over) { app.paused = true; applySpeed(); tutPaused = true; }
+    },
+    onHide: () => tutResume(),
+    onDone: () => { tutResume(); tutTipsDone(key); },
+    onSkip: () => { tutResume(); tutFinish('skipped'); },
+  });
+}
+/** 안내 때문에 멈춘 전투를 다시 */
+function tutResume() {
+  if (!tutPaused) return;
+  tutPaused = false;
+  if (app.screen === 'battle' && app.paused) { app.paused = false; applySpeed(); }
+}
+
+function tutSync() {
+  if (tutLock) return;
+  const run = tutRun();
+  if (!run) {
+    if (coachKey()?.startsWith('tu:') && coachKey() !== 'tu:epilogue') closeCoach(); // 다른 런을 불러왔다
+    if (advKey()?.startsWith('tu:')) closeAdv();
+    if (tutEpi && app.screen === 'title' && !app.run && !coachKey() && !app.tutAsk && !app.menu) { tutEpi = false; tutCoach('epilogue', null); }
+    return;
+  }
+  const item = TUTORIAL_FLOW[run.tutorial!.i];
+  if (!item) return;
+  const [kind, key] = item;
+  tutLock = true;
+  try {
+    if (kind === 'scene') {
+      if (advKey() || coachKey() || app.screen !== 'map' || run.node || run.pending.length || app.summary || app.menu || app.bigUnit || q1('.modal-bg')) return;
+      if (run.step < (SCENE_STEP[key] ?? 0)) return;
+      const sc = TUTORIAL_SCENES[key];
+      playAdv(`tu:${key}`, sc.beats, { title: sc.title, speaker: advSpeaker, fmt: (x) => ic(esc(x)), onDone: () => tutSceneDone(key) });
+      if (key === 'prologue') tutCoach('prologue', run); // 서장 첫 줄 위에 겹쳐서
+      return;
+    }
+    if (coachKey()) return;
+    // 이미 지나친 칸의 안내는 건너뛴다
+    if (TIP_STEP[key] !== undefined && run.step > TIP_STEP[key] && app.screen !== 'battle') { tutNext(run, key); persist(); render(); return; }
+    if (TIP_PREP.includes(key) && app.screen === 'map' && !run.node && !run.pending.length && (key !== 'ch4_deploy' || unitOf(run, 'rachel'))) { app.screen = 'prep'; render(); return; }
+    if (TIP_GATE[key]?.(run)) tutCoach(key, run);
+  } finally { tutLock = false; }
+}
+/** 진행 한 칸 (본 것으로 기록 → 교범 해금) */
+function tutNext(run: RunState, key: string) {
+  metaTutSeen(key);
+  if (TUTORIAL_FLOW[run.tutorial!.i]?.[1] === key) run.tutorial!.i++;
+}
+function tutSceneDone(key: string) {
+  const run = tutRun();
+  if (!run || TUTORIAL_FLOW[run.tutorial!.i]?.[1] !== key) return;
+  tutNext(run, key);
+  if (key === 'prologue') { // 서장 안내는 장면과 함께 끝난다
+    if (coachKey() === 'tu:prologue') closeCoach();
+    tutNext(run, 'prologue');
+  }
+  const at = (step: number) => run.step === step && !run.node;
+  if (key === 'ch1_intro' && at(0)) TUT.tutEnterNode(run, 'battle');
+  if (key === 'ch1b_intro' && at(1)) { TUT.tutJoin(run, 'nadir', true); TUT.tutEnterNode(run, 'battle'); }
+  if (key === 'ch2_intro') TUT.tutGrant(run, 'budget');
+  if (key === 'ch3_recruit' && at(4)) TUT.tutEnterNode(run, 'recruit');
+  if (key === 'ch4_boss' && at(8)) TUT.tutEnterNode(run, 'boss');
+  if (key === 'epilogue') { tutFinish('done'); return; }
+  app.sel = null; app.abilPop = null;
+  goPrepOrMap();
+  persist();
+  tutRender();
+}
+function tutTipsDone(key: string) {
+  metaTutSeen(key);
+  const run = tutRun();
+  if (!run || key === 'prologue' || TUTORIAL_FLOW[run.tutorial!.i]?.[1] !== key) { tutRender(); return; }
+  tutNext(run, key);
+  if (key === 'ch3_recruit') { TUT.tutGrant(run, 'storeroom'); app.screen = 'prep'; app.sel = null; }
+  if (key === 'ch3_emblem' && run.step === 5 && !run.node) { TUT.tutEnterNode(run, 'battle'); app.screen = 'prep'; app.sel = null; }
+  if (key === 'ch4_brief') { app.mapTab = 0; TUT.tutJoin(run, 'rachel'); app.screen = 'prep'; app.sel = null; }
+  if (key === 'ch4_deploy') { app.screen = 'map'; app.sel = null; }
+  persist();
+  tutRender();
+}
+/** 튜토리얼 끝 (종장까지 봄 · 건너뜀): 저장을 지우고 교범을 모두 열고 타이틀로 */
+function tutFinish(kind: 'done' | 'skipped') {
+  closeCoach();
+  if (advKey()?.startsWith('tu:')) closeAdv();
+  if (app.view) { app.view.destroy(); app.view = null; }
+  deleteSave(TUT_SLOT);
+  metaTutEnd(kind);
+  tutPaused = false;
+  Object.assign(app, { run: null, summary: null, sel: null, bigUnit: null, menu: null, abilPop: null, statPop: false, paused: false, screen: 'title' as Screen, tutAsk: false });
+  if (kind === 'done') tutEpi = true;
+  else toast('튜토리얼을 건너뛰었습니다. 교범이 모두 열렸습니다.');
+  render();
+}
+/** 타이틀로 나갈 때: 튜토리얼은 저장해 두고 화면만 정리 */
+function tutAway() {
+  if (coachKey()?.startsWith('tu:')) closeCoach();
+  if (advKey()?.startsWith('tu:')) closeAdv();
+  tutPaused = false;
+}
+setInterval(() => { if (app.run?.tutorial || tutEpi || coachKey()) tutSync(); }, 300);
+
+/** 도감 · 교범: 튜토리얼에서 배운 용어 (장 · 담당 인물별). 아직 안 배운 항목은 ??? */
+function codexManual() {
+  const all = tutOver();
+  const seen = new Set(tutMeta().seen || []);
+  const open = (k: string) => all || seen.has(k);
+  const n = GLOSSARY.reduce((s2, c) => s2 + c.entries.filter((e) => open(e.key)).length, 0);
+  return `<p class="muted small">튜토리얼 「당직 근무」에서 배운 용어 <b>${n}</b> / ${GLOSSARY_COUNT}. ${all ? '' : '튜토리얼을 진행하면 항목이 열리고, 끝내거나 건너뛰면 모두 열립니다.'}</p>`
+    + GLOSSARY.map((c) => {
+      const d = UNIT_BY_ID[c.who];
+      return `<section class="gl-ch" style="--c:${speakerOf(c.who).color}"><h2 class="gl-h">${d ? sprite(d, 'spr gl-pt') : ''}<span>${esc(c.title)}</span><small class="muted">${esc(d?.name || c.who)}</small></h2>
+        <div class="gl-list">${c.entries.map((e) => (open(e.key)
+          ? `<div class="gl-row"><b>${esc(e.term)}</b><p class="small">${ic(esc(e.text))}</p></div>`
+          : '<div class="gl-row locked"><b>???</b><p class="small muted">아직 배우지 않은 항목입니다.</p></div>')).join('')}</div></section>`;
+    }).join('');
 }
 
 // ───────────────────────── 액션
@@ -2629,10 +2968,24 @@ function act(a: string, v: string) {
   }
   switch (a) {
     case 'newrun': // 출격: 전장 추첨 연출부터
+      if (app.screen === 'title' && !app.tutAsk && !tutOver() && !loadMeta().runs && !listTutSave()) { app.tutAsk = true; break; } // 첫 실행: 튜토리얼부터 볼지
+      app.tutAsk = false;
       app.screen = 'intro'; app.menu = null; app.introDone = false; app.introFoe = null; app.abilPop = null; preloadBgs();
       app.introField = FIELDS[Math.floor(Math.random() * FIELDS.length)].id;
       break;
     case 'intro-back': app.screen = 'intro'; app.introDone = true; break;
+    case 'tutorial': case 'tutorial-restart': { // 튜토리얼: 저장이 있으면 이어서, 아니면 새로
+      const saved = a === 'tutorial' ? loadRun(TUT_SLOT) : null;
+      if (app.view) { app.view.destroy(); app.view = null; }
+      closeCoach(); tutEpi = false;
+      app.tutAsk = false; app.menu = null; app.summary = null; app.sel = null; app.bigUnit = null; app.abilPop = null; app.mapTab = 0;
+      if (saved?.tutorial) { app.run = saved; goPrepOrMap(); }
+      else { deleteSave(TUT_SLOT); app.run = TUT.newTutorialRun(); app.screen = 'map'; persist(); }
+      break;
+    }
+    case 'tut-ask-skip': app.tutAsk = false; metaTutEnd('skipped'); toast('튜토리얼을 건너뛰었습니다. 교범이 모두 열렸습니다.'); return act('newrun', '');
+    case 'tut-ask-close': app.tutAsk = false; break;
+    case 'tut-quit': tutFinish('skipped'); return;
     case 'intro-foe': app.introFoe = v || null; app.abilPop = null; break;
     case 'ds-info': { // 난이도 세부 조건: 다시 그리지 않고 펼침만
       app.dsInfo = app.dsInfo === +v ? null : +v;
@@ -2650,7 +3003,7 @@ function act(a: string, v: string) {
     case 'card-open': app.cardOpen = app.cardOpen === v ? null : v; syncCardOpen(); return; // 터치: 설명 펼치기 · 접기
     case 'toggle-detail': app.detail = !app.detail; savePref('detail', app.detail); if (app.screen === 'battle') { updateMeter(true); return; } break;
     case 'toggle-sub': if (app.subOpen.has(v)) app.subOpen.delete(v); else app.subOpen.add(v); break;
-    case 'to-title': if (app.view) { app.view.destroy(); app.view = null; } app.screen = 'title'; app.menu = null; app.run = null; break;
+    case 'to-title': if (app.view) { app.view.destroy(); app.view = null; } tutAway(); app.screen = 'title'; app.menu = null; app.run = null; break;
     case 'pick-starter': {
       const i = app.starters.indexOf(v);
       if (i >= 0) app.starters.splice(i, 1);
@@ -2714,7 +3067,8 @@ function act(a: string, v: string) {
     case 'field-info': if (run) run.pending.unshift({ t: 'field' }); break;
     case 'enter': {
       if (!run || run.pending.length) return;
-      R.enterNode(run, v as NodeType);
+      if (run.tutorial && TUTORIAL_FLOW[run.tutorial.i]?.[0] === 'scene') return; // 튜토리얼: 장면이 먼저 (장면 뒤에 노드로 들어간다)
+      if (run.tutorial) TUT.tutEnterNode(run, v as NodeType); else R.enterNode(run, v as NodeType);
       app.sel = null;
       app.nodePick = null;
       goPrepOrMap();
@@ -2790,7 +3144,7 @@ function act(a: string, v: string) {
       if (!run || p?.t !== 'event') return;
       const err = R.chooseEvent(run, +v);
       if (err) { toast(err); return; }
-      metaEvent(p.id);
+      if (!run.tutorial) metaEvent(p.id);
       persist();
       break;
     }

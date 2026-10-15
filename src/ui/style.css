@@ -2219,3 +2219,53 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 @media (prefers-reduced-motion: reduce) { .adv *, .adv { animation: none !important; transition: none !important; } }
 .adv [hidden] { display: none !important; }
 @media (max-width: 700px) { .adv-place { top: calc(max(12px, env(safe-area-inset-top)) + 40px); } }
+
+/* ── 튜토리얼: 안내 말풍선 (코치 마크) · 타이틀 NEW · 첫 실행 질문 · 도감 교범 */
+.coach { position: fixed; inset: 0; z-index: 140; pointer-events: none; --cc: var(--accent); }
+.coach[hidden] { display: none; }
+.co-dim { position: fixed; left: 0; top: 0; width: 0; height: 0; background: rgb(4 6 10 / .66); pointer-events: auto; }
+.co-ring { position: fixed; border: 2px solid var(--cc); border-radius: 10px; pointer-events: none; box-shadow: 0 0 0 3px rgb(0 0 0 / .35), 0 0 22px color-mix(in srgb, var(--cc) 55%, transparent); animation: co-pulse 1.8s ease-in-out infinite; }
+.co-ring[hidden] { display: none; }
+@keyframes co-pulse { 50% { box-shadow: 0 0 0 3px rgb(0 0 0 / .35), 0 0 36px color-mix(in srgb, var(--cc) 80%, transparent); } }
+.co-bub { position: fixed; pointer-events: auto; width: min(360px, calc(100vw - 16px)); display: grid; gap: 8px; padding: 12px 14px 10px; border-radius: 12px;
+  background: var(--panel); border: 1px solid color-mix(in srgb, var(--cc) 55%, var(--line)); box-shadow: 0 12px 34px rgb(0 0 0 / .6); cursor: default; }
+.co-bub[data-mode="center"] { left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.co-bub.nudge { animation: co-nudge .35s; }
+@keyframes co-nudge { 25% { translate: -5px 0; } 50% { translate: 4px 0; } 75% { translate: -2px 0; } }
+.co-head { display: flex; align-items: center; gap: 10px; }
+.co-pt { width: 40px; height: 40px; flex: none; border-radius: 50%; object-fit: cover; border: 2px solid var(--cc); background: var(--panel-2); }
+.co-nm { color: var(--cc); font-size: .95rem; }
+.co-n { margin-left: auto; font: 600 .72rem var(--f-mono); color: var(--dim); }
+.co-tx { font-size: .95rem; line-height: 1.6; word-break: keep-all; }
+.co-foot { display: flex; align-items: center; gap: 8px; min-height: 30px; }
+.co-skip { background: none; border: 0; padding: 2px 0; color: var(--dim); font-size: .75rem; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.co-skip.armed { color: var(--bad); }
+.co-hint { flex: 1; text-align: right; color: var(--accent); font-size: .78rem; }
+.co-hint:empty { flex: 1; }
+.co-next { padding: 5px 16px; }
+.co-next[hidden] { display: none; }
+body.coaching .kw-tip, body.coaching .item-tip, body.coaching .drag-ghost { z-index: 145; }
+@media (max-width: 700px) {
+  .co-bub, .co-bub[data-mode] { left: 8px; right: 8px; width: auto; transform: none; }
+  .co-bub[data-mode="bottom"], .co-bub[data-mode="center"] { top: auto; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .co-bub[data-mode="top"] { top: calc(8px + env(safe-area-inset-top, 0px)); bottom: auto; }
+  .co-tx { font-size: .9rem; }
+}
+@media (prefers-reduced-motion: reduce) { .co-ring, .co-bub.nudge { animation: none; } }
+.title-actions .ts-btn.ts-tut { position: relative; }
+.ts-new { position: absolute; top: -7px; right: -6px; padding: 1px 7px; border-radius: 99px; background: var(--accent); color: var(--accent-ink); font: 800 10px var(--f-mono); letter-spacing: .06em; box-shadow: 0 2px 8px rgb(0 0 0 / .4); }
+.ts-sub { display: flex; gap: 6px; justify-content: center; }
+.tut-ask { max-width: 440px; display: grid; gap: 10px; }
+.tut-ask .ta-head { display: flex; gap: 12px; align-items: center; }
+.tut-ask .ta-head .spr { width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--accent); object-fit: cover; }
+.gl-ch { --c: var(--accent); margin-top: 14px; }
+.gl-h { display: flex; align-items: center; gap: 10px; color: var(--fg); margin-block: 14px 8px; }
+.gl-h small { font-family: var(--f-body); font-size: .8rem; }
+.gl-h .gl-pt { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--c); object-fit: cover; background: var(--panel-2); }
+.gl-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 6px; }
+.gl-row { display: grid; gap: 3px; align-content: start; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--c); border-radius: 6px; }
+.gl-row p { line-height: 1.55; word-break: keep-all; }
+.gl-row.locked { opacity: .55; border-left-color: var(--line); }
+@media (max-width: 700px) { .gl-list { grid-template-columns: minmax(0, 1fr); } }
+/* 전체 상세(.um)에서 경험치를 사 등급이 오르면 등급 보상 창이 그 위에 뜨게 */
+.modal-bg:has(> .modal.rankup) { z-index: 62; }
