@@ -8,8 +8,8 @@
   "color": "crimson red"
  },
  "weapon.romani": {
-  "subject": "coiled whip cracking with sharp metal tip, shockwave arc",
-  "color": "dark red"
+  "subject": "long leather whip with metal tip coiled",
+  "color": "steel and crimson"
  },
  "cantrip.pyro": {
   "subject": "fireball exploding with embers and flames",
@@ -522,5 +522,229 @@
  "ult.rus": {
   "subject": "twin pistols firing in a spray, gold coins flying, pirate bandana",
   "color": "gold and orange"
+ },
+ "weapon.yelena": {
+  "subject": "sleek black military service pistol with blue accent lines",
+  "color": "violet and purple"
+ },
+ "weapon.mirinae": {
+  "subject": "long sniper rifle with cute pink charm and scope",
+  "color": "steel and crimson"
+ },
+ "weapon.gebek": {
+  "subject": "heavy rotary machine gun with bunny ear decals",
+  "color": "steel and crimson"
+ },
+ "weapon.donovan": {
+  "subject": "glowing monomolecular wire coiled between two handles",
+  "color": "steel and crimson"
+ },
+ "weapon.chloe": {
+  "subject": "compact dart pistol loaded with a toxic green dart",
+  "color": "toxic green"
+ },
+ "weapon.west": {
+  "subject": "industrial rivet gun with hose and rivets",
+  "color": "steel and crimson"
+ },
+ "weapon.lindiwe": {
+  "subject": "armored shield gauntlet projecting a hexagonal barrier",
+  "color": "steel and crimson"
+ },
+ "weapon.orca": {
+  "subject": "harpoon gun with barbed harpoon and rope",
+  "color": "steel and crimson"
+ },
+ "weapon.franze": {
+  "subject": "energy blade sword with glowing red edge and ornate hilt",
+  "color": "steel and crimson"
+ },
+ "weapon.grenholm": {
+  "subject": "heavy armored blade with layered shield plates",
+  "color": "steel and crimson"
+ },
+ "weapon.lars": {
+  "subject": "open empty gloved hands with business card, unarmed",
+  "color": "steel and crimson"
+ },
+ "weapon.falcon": {
+  "subject": "long railgun with magnetic coils and glowing rails",
+  "color": "steel and crimson"
+ },
+ "weapon.hiiro": {
+  "subject": "paper talisman charm burning with blue fox fire",
+  "color": "violet and purple"
+ },
+ "weapon.nadir": {
+  "subject": "jagged white crystal shard glowing with light",
+  "color": "violet and purple"
+ },
+ "weapon.temur": {
+  "subject": "huge gladiator greatsword with leather grip",
+  "color": "steel and crimson"
+ },
+ "weapon.kairo": {
+  "subject": "elegant bolt action sniper rifle with long scope",
+  "color": "steel and crimson"
+ },
+ "weapon.zahara": {
+  "subject": "twin curved scimitars crossed",
+  "color": "steel and crimson"
+ },
+ "weapon.bianca": {
+  "subject": "pistol with glowing healing ammo cartridges",
+  "color": "steel and crimson"
+ },
+ "weapon.zephyro": {
+  "subject": "ornate feather quill pen with ink trail",
+  "color": "steel and crimson"
+ },
+ "weapon.phyllis": {
+  "subject": "large multi-purpose wrench glowing with holy light",
+  "color": "gold and amber"
+ },
+ "weapon.eleni": {
+  "subject": "massive requiem greatsword with moon engraving",
+  "color": "steel and crimson"
+ },
+ "weapon.iris": {
+  "subject": "winged throwing daggers with feather motifs",
+  "color": "gold and amber"
+ },
+ "weapon.odysseus": {
+  "subject": "tall wooden longbow with nocked arrow",
+  "color": "steel and crimson"
+ },
+ "weapon.argon": {
+  "subject": "ship harpoon launcher dripping toxic liquid",
+  "color": "toxic green"
+ },
+ "weapon.joshua": {
+  "subject": "tranquilizer dart pistol with glowing golden darts",
+  "color": "gold and amber"
+ },
+ "weapon.sarma": {
+  "subject": "bulky fusion cannon with glowing core",
+  "color": "steel and crimson"
+ },
+ "weapon.kyle": {
+  "subject": "holy crusader longsword with cross guard",
+  "color": "gold and amber"
+ },
+ "weapon.doros": {
+  "subject": "freshly baked bread loaves flying, golden glow",
+  "color": "gold and amber"
+ },
+ "weapon.demiurgos": {
+  "subject": "giant ghostly friendly hand reaching out",
+  "color": "violet and purple"
+ },
+ "weapon.aiden": {
+  "subject": "liquid metal blade morphing from a silver hand",
+  "color": "steel and crimson"
+ },
+ "weapon.vivian": {
+  "subject": "dart rifle with animal tracking darts",
+  "color": "steel and crimson"
+ },
+ "weapon.yupito": {
+  "subject": "welding arc gun crackling with electric sparks",
+  "color": "cyan and electric blue"
+ },
+ "weapon.ingel": {
+  "subject": "retro stage microphone emitting sound waves",
+  "color": "violet and purple"
+ },
+ "weapon.amundsen": {
+  "subject": "orbital artillery shell falling with targeting reticle",
+  "color": "steel and crimson"
+ },
+ "weapon.rachel": {
+  "subject": "floating dark matter core orb with swirling void",
+  "color": "violet and purple"
+ },
+ "weapon.oliver": {
+  "subject": "train engineer wrench, heavy and worn",
+  "color": "steel and crimson"
+ },
+ "weapon.rasmus": {
+  "subject": "garden pruning shears",
+  "color": "steel and crimson"
+ },
+ "weapon.sigmund": {
+  "subject": "silver cutlery knives and forks thrown in a fan",
+  "color": "steel and crimson"
+ },
+ "weapon.gunnir": {
+  "subject": "kitchen chef knives thrown in a fan",
+  "color": "steel and crimson"
+ },
+ "weapon.bjorn": {
+  "subject": "rescue electric harpoon launcher with coiled cable",
+  "color": "cyan and electric blue"
+ },
+ "weapon.zina": {
+  "subject": "silenced pistol hidden in a flower bouquet",
+  "color": "toxic green"
+ },
+ "weapon.fotini": {
+  "subject": "tour guide flag on a pole emitting a laser beam",
+  "color": "gold and amber"
+ },
+ "weapon.kaburaya": {
+  "subject": "office stun gun taser crackling with electricity",
+  "color": "cyan and electric blue"
+ },
+ "weapon.bill": {
+  "subject": "colorful toy water gun spraying liquid",
+  "color": "toxic green"
+ },
+ "weapon.winter": {
+  "subject": "syringe pistol with glowing vial",
+  "color": "toxic green"
+ },
+ "weapon.issac": {
+  "subject": "bandaged fist punching",
+  "color": "toxic green"
+ },
+ "weapon.eden": {
+  "subject": "old worn revolver with engraved cylinder",
+  "color": "steel and crimson"
+ },
+ "weapon.reika": {
+  "subject": "glowing light stick beam saber",
+  "color": "cyan and electric blue"
+ },
+ "weapon.mao": {
+  "subject": "cocktail shaker blaster with electric fizz",
+  "color": "cyan and electric blue"
+ },
+ "weapon.skadi": {
+  "subject": "leather briefcase full of documents crackling with electricity",
+  "color": "cyan and electric blue"
+ },
+ "weapon.mingki": {
+  "subject": "sharp cat claws slashing",
+  "color": "steel and crimson"
+ },
+ "weapon.onyx": {
+  "subject": "choir of floating glowing music notes and singing mouths",
+  "color": "violet and purple"
+ },
+ "weapon.exile": {
+  "subject": "crimson blood sword dripping",
+  "color": "steel and crimson"
+ },
+ "weapon.thermo": {
+  "subject": "spartan spear and round bronze shield",
+  "color": "steel and crimson"
+ },
+ "weapon.u404": {
+  "subject": "hydraulic press robotic arm with pistons",
+  "color": "steel and crimson"
+ },
+ "weapon.rus": {
+  "subject": "twin pistols crossed",
+  "color": "steel and crimson"
  }
 }
