@@ -227,6 +227,7 @@ function playRun(seed: number) {
         const ir = { n: 1, wins: won ? 1 : 0, share: row.share, died };
         add('item', it, ir); add('item_ph', `${it}|${ph}`, ir);
         add('unit_item', `${id}|${it}`, ir); add('unit_item_ph', `${id}|${it}|${ph}`, ir);
+        if (DETAIL) { const v = (det[`i:${it}|${ph}:${ntype}`] ??= [0, 0]); v[0]++; if (won) v[1]++; }
       }
       add('nitems', `${items.length}|${ph}`, { n: 1, wins: won ? 1 : 0, share: row.share });
     }
@@ -240,6 +241,7 @@ function playRun(seed: number) {
       active.push(s.id);
       add('syn', `${s.id}|${t}`, { n: 1, wins: won ? 1 : 0 });
       add('syn_ph', `${s.id}|${t}|${ph}`, { n: 1, wins: won ? 1 : 0 });
+      if (DETAIL) { const v = (det[`s:${s.id}|${t}|${ph}:${ntype}`] ??= [0, 0]); v[0]++; if (won) v[1]++; }
     }
     add('nsyn', `${active.length}|${ph}`, { n: 1, wins: won ? 1 : 0 });
     // 반사실: 표본 전투에서 활성 시너지를 하나씩 꺼 보고 아군 피해 · 승패 차이를 잰다

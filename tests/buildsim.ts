@@ -9,6 +9,7 @@ import { ENEMY_BY_ID } from '../src/data/enemies';
 import { UNITS, UNIT_BY_ID } from '../src/data/units';
 import { FIELDS } from '../src/data/battlefields';
 import { ULTS } from '../src/data/ults';
+import { SYNERGIES, tierOf } from '../src/data/synergies';
 import { deployed, synergyCounts, buildBattle } from '../src/engine/build';
 import { Battle, type CUnit, type DmgOpts, type DmgResult } from '../src/engine/combat';
 import * as R from '../src/engine/run';
@@ -245,6 +246,10 @@ function runComps() {
   for (let ci = i0; ci < i1; ci++) {
     const comp = comps[ci];
     const rows: unknown[] = [];
+    // 조합의 활성 시너지 단계 (보고서에서 시너지 ↔ 조합 연결용)
+    const syn: Record<string, [number, number]> = {};
+    { const r0 = buildRun(comp, FIELDS[0].id, 5, PH_RANK[5], 1, DIFF); const cnt = synergyCounts(deployed(r0), r0) as Record<string, number>;
+      for (const x of SYNERGIES) { const t = tierOf(x.id, cnt[x.id] || 0); if (t > 0) syn[x.id] = [cnt[x.id] || 0, t]; } }
     const FL = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.BS_FIELDS?.split(',');
     const PHS = DIFF ? [5, 6] : [3, 4, 5, 6]; // 고위험은 후반(5 · 6페이즈)만 본다
     for (const f of FIELDS.filter((x) => !FL || FL.includes(x.id))) for (const ph of PHS) for (let s = 0; s < NS; s++) {
@@ -269,7 +274,7 @@ function runComps() {
         });
       }
     }
-    res.push({ id: comp.id, rows });
+    res.push({ id: comp.id, syn, rows });
     process.stderr.write(`${comp.id} done\n`);
   }
   process.stdout.write(JSON.stringify(res));

@@ -7,7 +7,7 @@ import { FIELDS } from '../src/data/battlefields';
 declare const process: { argv: string[] };
 const ids: string[] = JSON.parse(process.argv[2] || '[]');
 console.log(JSON.stringify({
-  units: Object.fromEntries(UNITS.map((u) => [u.id, { name: u.name, ct: u.ctype, tt: u.ttype, syn: [...u.factions, ...u.traits], starter: !u.noStarter, eventOnly: !!u.eventOnly }])),
+  units: Object.fromEntries(UNITS.map((u) => [u.id, { name: u.name, ct: u.ctype, tt: u.ttype, syn: [...u.factions, ...u.traits], starter: !u.noStarter, eventOnly: !!u.eventOnly, base: u.base, range: u.range, skill: u.skill.name }])),
   syn: Object.fromEntries(SYNERGIES.map((s) => [s.id, { name: s.name, tiers: s.tiers, kind: s.kind, color: s.color }])),
   items: Object.fromEntries(ids.map((id) => { try { const i = itemInfo(id); return [id, { name: i.name, tier: id.startsWith('U_') ? 'U' : i.tier }]; } catch { return [id, { name: id, tier: '?' }]; } })),
   ct: CTYPE_NAME, tt: TTYPE_NAME,
