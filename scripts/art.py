@@ -233,6 +233,26 @@ def cmd_build():
     print(f'art {len(os.listdir(OUT))}개 {total / 1024 / 1024:.1f} MB, icon {len(icons)}개 {sum(map(len, icons.values())) / 1024:.0f} KB')
 
 
+def cmd_variants(only=None):
+    """표정 차분만 빠르게 다시 내기: python3 scripts/art.py variants [id.face ...]"""
+    for fn in sorted(os.listdir(PICKED)):
+        parts = fn.split('.')
+        if len(parts) != 3 or parts[2] != 'webp' or parts[0].startswith('bg_'):
+            continue
+        if only and f'{parts[0]}.{parts[1]}' not in only:
+            continue
+        i = parts[0]
+        cut = cut_of(i)
+        bbox = cut.split()[-1].getbbox()
+        scale = STAND_H / cut.height
+        w, h = (bbox[2] - bbox[0], bbox[3] - bbox[1]) if bbox else cut.size
+        v = Image.open(f'{PICKED}/{fn}').convert('RGBA').resize(cut.size)
+        v = v.crop(bbox) if bbox else v
+        v = v.resize((max(1, round(w * scale)), max(1, round(h * scale))), Image.LANCZOS)
+        v.save(f'{OUT}/{fn}', 'WEBP', quality=82, method=6)
+        print('variant', fn)
+
+
 def cmd_sheet(out):
     faces = load_json(FACES, {})
     items = [i for i in ids() if i in faces and os.path.exists(f'{PICKED}/{i}.webp')]
@@ -263,4 +283,4 @@ def cmd_croptool():
 
 if __name__ == '__main__':
     cmd = sys.argv[1] if len(sys.argv) > 1 else ''
-    {'pick': cmd_pick, 'faces': cmd_faces, 'build': cmd_build, 'croptool': cmd_croptool}.get(cmd, lambda: cmd_sheet(sys.argv[2]) if cmd == 'sheet' else cmd_holes(sys.argv[2]) if cmd == 'holes' else print(__doc__))()
+    {'pick': cmd_pick, 'faces': cmd_faces, 'build': cmd_build, 'croptool': cmd_croptool, 'variants': lambda: cmd_variants(sys.argv[2:] or None)}.get(cmd, lambda: cmd_sheet(sys.argv[2]) if cmd == 'sheet' else cmd_holes(sys.argv[2]) if cmd == 'holes' else print(__doc__))()

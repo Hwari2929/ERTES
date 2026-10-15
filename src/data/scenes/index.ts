@@ -9,9 +9,10 @@ import { STORY_B3_REG, STORY_B3_SCENES } from './story_b3';
 import { STORY_C_REG, STORY_C_SCENES } from './story_c';
 import { STORY_C2_REG, STORY_C2_SCENES } from './story_c2';
 import { STORY_D_REG, STORY_D_SCENES } from './story_d';
+import { TUTORIAL_REG } from './tutorial';
 
 // 묶음별 등록부(NPC · 배경 · 배경음 · 효과음)를 공용 등록부에 합친다
-for (const r of [COMMON_REG, STORY_A_REG, STORY_B_REG, STORY_B2_REG, STORY_B3_REG, STORY_C_REG, STORY_C2_REG, STORY_D_REG] as SceneReg[]) {
+for (const r of [COMMON_REG, STORY_A_REG, STORY_B_REG, STORY_B2_REG, STORY_B3_REG, STORY_C_REG, STORY_C2_REG, STORY_D_REG, TUTORIAL_REG] as SceneReg[]) {
   Object.assign(NPCS, r.npcs || {});
   Object.assign(BGS, r.bgs || {});
   Object.assign(BGMS, r.bgms || {});

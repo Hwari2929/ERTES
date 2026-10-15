@@ -12,8 +12,10 @@
   "diff_adventure": "small starship sailing through a vivid nebula toward unknown planets, light rays, orange and teal palette, sense of adventure, dynamic composition",
   "diff_challenge": "ominous black hole with red lightning, enemy warfleet emerging from darkness, dramatic storm of debris, crimson and black palette, menacing",
   "title": "a lone battered mercenary starship drifting past a vast nebula, warm amber running lights, distant galaxy spiral, scattered stars, faint asteroid belt, silhouette of the ship against glowing gas clouds, calm and grand, dark negative space at center for a logo",
-  "erantes_bar": "interior of a small cozy starship bar at night, dim warm amber lights, polished wooden counter with stools, rows of bottles on glowing shelves, large porthole window showing stars and nebula, old navigation charts and trophies on the walls, empty, quiet late night shift",
-  "erantes_bridge": "interior of a mercenary starship bridge, holographic star route map glowing on a central table, branching route lines and nodes, captain chair, consoles with amber and cyan screens, large front viewport with stars, dim lighting",
-  "field_comms": "cockpit communication screen showing a distant battlefield on a rocky alien planet surface, static lines, tactical overlay markers, smoke and explosions in the distance, dusk sky with two moons"
+  "tu_bar_night": "interior of a small cozy starship bar at night, dim warm amber lights, polished wooden counter with stools, rows of bottles on glowing shelves, large porthole window showing stars and nebula, old navigation charts and trophies on the walls, empty, quiet late night shift",
+  "tu_bridge": "interior of a mercenary starship bridge, holographic star route map glowing on a central table, branching route lines and nodes, captain chair, consoles with amber and cyan screens, large front viewport with stars, dim lighting",
+  "tu_comms": "cockpit communication screen showing a distant battlefield on a rocky alien planet surface, static lines, tactical overlay markers, smoke and explosions in the distance, dusk sky with two moons",
+  "tu_field_dock": "desert asteroid docking yard under a dusty orange sky, rusted cranes, stacked shipping containers forming a makeshift fortress, tattered pirate banner on top, sandstorm haze, scattered wreckage, distant small moons",
+  "tu_bar_dawn": "interior of a small cozy starship bar in the early morning, soft artificial sunlight slanting through window blinds, polished wooden counter with stools, steaming bowls and mugs on the counter, rows of bottles on shelves, large porthole window, warm and peaceful"
  }
 }
