@@ -336,7 +336,7 @@ export const LORE: LoreEntry[] = [
     rel: { units: ['iris', 'argon'] },
   },
   {
-    id: 'crete', group: 'region', bloc: 'alliance', name: '크레타', mark: 'HEL',
+    id: 'crete', group: 'region', bloc: 'alliance', name: '크레타', mark: 'HEL', art: 'lore_crete',
     tag: '죽은 이의 망령을 접수하고 돌려보내는 동맹의 관청 행성.',
     bullets: [
       '동맹 곳곳에서 생긴 망령을 받아 심사하고 안식시킨다. 해마다 3억 건 가까이 접수되고, 평균 3년을 기다린다.',
@@ -364,7 +364,7 @@ export const LORE: LoreEntry[] = [
     ],
   },
   {
-    id: 'alexandria', group: 'region', bloc: 'alliance', name: '알렉산드리아', mark: 'HEL',
+    id: 'alexandria', group: 'region', bloc: 'alliance', name: '알렉산드리아', mark: 'HEL', art: 'lore_alexandria',
     tag: '동맹 · 제국 · 연합이 함께 사절을 두는 중립 도시.',
     bullets: [
       '해가 없는 떠돌이 행성에 고대 등대와 도서관이 서 있고, 진짜 도시는 그 위를 감싼 정거장 무리다.',
