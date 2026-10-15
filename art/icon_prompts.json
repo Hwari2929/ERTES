@@ -761,7 +761,7 @@
   "color": "steel and crimson"
  },
  "passive.pyro": {
-  "subject": "smoldering ember flame stacking on a burning mark, ignite",
+  "subject": "blazing fire sigil brand glowing on dark ground, flames spreading outward from it, three ember sparks stacked above",
   "color": "orange and red"
  },
  "cantrip.chrono": {
