@@ -2,7 +2,7 @@
 import type { Battle, CUnit } from '../engine/combat';
 import { type AugDef, type Effect, inc, red, vuln } from '../engine/effects';
 import type { Elem, Weapon } from '../types';
-import { gw, isHarmful, pct, poison, shock, skillHit, slow } from './kit';
+import { every, gw, isHarmful, pct, poison, shock, skillHit, slow } from './kit';
 import { cookPower, pickEnemy, strike, support } from './tpl';
 import { B, PAL, type BaseUnit, type ReworkDef, setSk, tint, uaug } from './unitkit';
 
@@ -28,16 +28,15 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'knight', palette: tint(PAL.PAN, '#5a6a78', '#d4af37', '#ffd84d'),
     lore: '"뒤는 걱정 마라. 내가 서 있는 한, 아무도 남겨 두고 가지 않는다."',
     skill: strike({
+      // rescue · rescueN: 특성 [바이킹의 피]의 구조 신호 보호막 수치
       name: '구조 작살', cd: 7, pow: 'shoot', elem: 'elec', mult: 2.2, target: 'farthest', params: { stun: 1, rescue: 1.2 },
-      desc: (p) => `가장 먼 적에게 전기 작살을 박아 사격 위력 ${pct(p.mult)} 전기 피해, ${p.stun}초 기절. 체력 비율이 가장 낮은 아군에게 사격 위력 ${pct(p.rescue)} 보호막.`,
+      desc: (p) => `가장 먼 적에게 전기 작살을 박아 사격 위력 ${pct(p.mult)} 전기 피해, ${p.stun}초 기절${p.pull ? '. 대상을 비외른 앞 1칸으로 끌어온다 (엘리트 · 보스 제외)' : ''}.`,
       after: (b, u, t, _d, p) => {
         // 끌어당기기: 대상을 비외른 앞 1칸으로 (엘리트 · 보스 제외)
         if (p.pull && t.alive && !t.big && !t.isBoss && b.dist(u, t) > 1) {
           const c = b.freeCellNear(u.x, u.y);
           if (c && b.dist(u, c) <= 1) { t.x = t.px = c.x; t.y = t.py = c.y; t.moveT = 0; b.fx(c.x, c.y, 0, 'elec'); }
         }
-        if ((p.rescueN || 1) <= 1) { const l = lowestAlly(b, u); if (l) b.shield(l, b.P(u, 'shoot') * p.rescue); return; }
-        for (const l of b.alliesOf(u).sort((a, c) => b.hpPct(a) - b.hpPct(c)).slice(0, p.rescueN)) b.shield(l, b.P(u, 'shoot') * p.rescue);
       },
     }),
   },
@@ -97,8 +96,8 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'knight', palette: tint(SLIME, '#f0f0f0', '#4cc860', '#ffffff'),
     lore: '"놀라셨다면 죄송합니다. 붕대는… 예의상 감고 있는 것입니다."',
     skill: strike({
-      name: '붕대 해제', cd: 7, pow: 'strike', elem: 'chem', mult: 1.8, aroundSelf: true, params: { radius: 1, poison: 0.3, selfShield: 0.15 },
-      desc: (p) => `붕대를 풀어 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 화학 피해 + 중독 (초당 ${pct(p.poison)}), 최대 체력 ${pct(p.selfShield)} 보호막.`,
+      name: '붕대 해제', cd: 7, pow: 'strike', elem: 'chem', mult: 1.8, aroundSelf: true, params: { radius: 1, poison: 0.3 },
+      desc: (p) => `붕대를 풀어 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 화학 피해 + 중독 (초당 ${pct(p.poison)}).`,
     }),
   },
   {
@@ -160,8 +159,8 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'knight', palette: tint(STL_PAL, '#1c1c24', '#ffe14d', '#4fc3ff'),
     lore: '"잠재력이 보이네요. 연봉 협상은 살아서 돌아온 다음에 하죠."',
     skill: strike({
-      name: '분기 실적 보고', cd: 6.5, pow: 'strike', elem: 'elec', mult: 2.0, aroundSelf: true, params: { radius: 1, stun: 0.8, selfShield: 0.2 },
-      desc: (p) => `서류 가방을 휘둘러 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 전기 피해, ${p.stun}초 기절, 최대 체력 ${pct(p.selfShield)} 보호막.`,
+      name: '분기 실적 보고', cd: 6.5, pow: 'strike', elem: 'elec', mult: 2.0, aroundSelf: true, params: { radius: 1, stun: 0.8 },
+      desc: (p) => `서류 가방을 휘둘러 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 전기 피해, ${p.stun}초 기절.`,
     }),
   },
 ];
@@ -171,8 +170,16 @@ export const REWORK_F: Record<string, ReworkDef> = {
   bjorn: {
     ctype: 'MARK', ttype: 'special', faith: 'human', weapon: G('구조용 전기 작살포', 'elec', 1.1, 3, 1.0, 6, 2.0),
     trait: {
-      name: '바이킹의 피', desc: '피해량 경감 15%. 잃은 체력 1%당 주는 피해 +1%.',
-      effect: { taken: [red('all', 0.15)], hooks: { dmgMult: (b, u) => 1 + (1 - b.hpPct(u)) * (u.mem.vikingK || 1) } },
+      name: '바이킹의 피', desc: '피해량 경감 15%. 잃은 체력 1%당 주는 피해 +1%. [구조 신호] 7초마다 체력 비율이 가장 낮은 아군에게 사격 위력 120% 보호막.',
+      effect: { taken: [red('all', 0.15)], hooks: {
+        dmgMult: (b, u) => 1 + (1 - b.hpPct(u)) * (u.mem.vikingK || 1),
+        onTick(b, u, dt) {
+          if (!every(u, 'rescueT', dt, 7) || !b.enemiesOf(u).length) return;
+          const p = u.sk;
+          const ls = (p.rescueN || 1) <= 1 ? [lowestAlly(b, u)] : b.alliesOf(u).sort((a, c) => b.hpPct(a) - b.hpPct(c)).slice(0, p.rescueN);
+          for (const l of ls) if (l) { b.shield(l, b.P(u, 'shoot') * p.rescue); b.fx(l.x, l.y, 0, 'elec', 'heal'); }
+        },
+      } },
     },
     specialAugs: [
       sp('bjorn', 'first', '구조 우선', '아군이 쓰러질 피해를 받으면 전투당 1회 비외른이 대신 맞아 그 아군은 체력 1로 버틴다.', {
@@ -191,7 +198,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
       sp('bjorn', 'valhalla', '발할라', '체력이 30% 이하이면 피해량 경감 15% → 35%.', { hooks: { onTick(b, u) {
         if (b.hpPct(u) <= 0.3) b.buff(u, u, 'bjorn.valhalla', 0.3, { taken: [red('all', 0.2)] });
       } } }, ['berserk']),
-      sp('bjorn', 'gear', '구조 장비', '구조 작살의 보호막 120% → 200%, 체력 비율이 가장 낮은 아군 2명에게.', setSk((s) => { s.rescue *= 2 / 1.2; s.rescueN = 2; })),
+      sp('bjorn', 'gear', '구조 장비', '구조 신호 보호막 120% → 200%, 체력 비율이 가장 낮은 아군 2명에게.', setSk((s) => { s.rescue *= 2 / 1.2; s.rescueN = 2; })),
       sp('bjorn', 'berserk', '광전사', '피해량 경감이 0%가 된다. 대신 잃은 체력 1%당 주는 피해 +1% → +2%.', { taken: [red('all', -0.15)], setup: (u) => { u.mem.vikingK = 2; } }),
       sp('bjorn', 'storm', '북해의 폭풍', '감전된 적에게 주는 피해 +30%.', { hooks: { dmgMult: (b, _u, t) => (b.has(t, 'shock') ? 1.3 : 1) } }),
     ],
@@ -274,8 +281,11 @@ export const REWORK_F: Record<string, ReworkDef> = {
   issac: {
     ctype: 'VAN', ttype: 'major', faith: 'science', weapon: K('붕대 감은 주먹', 'chem', 0.85, 1, 1.0, 3),
     trait: {
-      name: '재생하는 괴물', desc: '초당 최대 체력 0.5% 재생. 화학 피해량 경감 30%.',
-      effect: { taken: [red('chem', 0.3)], hooks: { onTick(b, u, dt) { u.mem.issacT = (u.mem.issacT || 0) + dt; if (u.mem.issacT >= 1) { u.mem.issacT = 0; b.heal(u, u, b.S(u, 'maxHp') * 0.005, true); } } } },
+      name: '재생하는 괴물', desc: '초당 최대 체력 0.5% 재생. 화학 피해량 경감 30%. 전투 스킬을 쓸 때 최대 체력 15% 보호막 (점액 재생).',
+      effect: { taken: [red('chem', 0.3)], hooks: {
+        onTick(b, u, dt) { u.mem.issacT = (u.mem.issacT || 0) + dt; if (u.mem.issacT >= 1) { u.mem.issacT = 0; b.heal(u, u, b.S(u, 'maxHp') * 0.005, true); } },
+        onSkill(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.15); },
+      } },
     },
   },
   eden: {
@@ -327,21 +337,18 @@ export const REWORK_F: Record<string, ReworkDef> = {
         t.mem.maoAfterHook = 1;
         t.hooks.push({ onKill(_bb, self) { const x = self.statuses.find((y) => y.key === 'sup.mao'); if (x) x.dur = Math.max(x.dur, u.sk.dur); } });
       } } }),
-      sp('mao', 'bomb', '칵테일 폭탄', '요리를 낸 뒤 체력이 가장 높은 적에게 셰이커를 던져 전술 위력 150% 전기 피해 + 2초 감전. 네온 칵테일 쿨다운 +2초.', { setup: (u) => {
+      sp('mao', 'bomb', '칵테일 폭탄', '네온 칵테일이 칵테일 폭탄으로 바뀐다: 아군에게 요리를 내는 대신 체력이 가장 높은 적에게 셰이커를 던져 전술 위력 220% 전기 피해 + 2초 감전 (회복 · 강화 없음).', { setup: (u) => {
         const base = u.skill;
         if (!base) return;
-        u.cdMax += 2;
-        u.skill = { ...base, cast(b, self) {
-          const ok = base.cast(b, self);
+        u.skill = { ...base, needsRange: false, tag: () => '강적 전기 공격 + 감전', cast(b, self) {
           const t = pickEnemy(b, self, 'strongest');
-          if (t) {
-            b.emit({ k: 'atk', from: self.id, to: t.id, elem: 'elec', ranged: true });
-            skillHit(b, self, t, 'tech', 1.5, 'elec', { noMiss: true });
-            if (t.alive) shock(b, self, t, 2, 1);
-          }
-          return ok || !!t;
+          if (!t) return false;
+          b.emit({ k: 'atk', from: self.id, to: t.id, elem: 'elec', ranged: true });
+          skillHit(b, self, t, 'tech', 2.2, 'elec', { noMiss: true });
+          if (t.alive) shock(b, self, t, 2, 1);
+          return true;
         } };
-      } }),
+      } }, ['bar', 'contract', 'vip', 'special', 'after', 'regular']),
       sp('mao', 'regular', '단골 대접', '같은 아군에게 연속으로 요리하면 효과 +20% 누적 (최대 3회, +60%).', { hooks: { onInflict(b, u, t, s) {
         if (s.key !== 'sup.mao') return;
         const k = `mao${u.id}`, cast = u.counters.casts; // 시전 중에는 아직 이번 시전이 집계되기 전
@@ -361,8 +368,8 @@ export const REWORK_F: Record<string, ReworkDef> = {
   skadi: {
     ctype: 'VAN', ttype: 'divine', faith: 'index', weapon: K('결재 서류 가방', 'elec', 0.9, 1, 1.0, 3),
     trait: {
-      name: '인재 육성', desc: '전투 시작 시 공명 등급이 가장 낮은 다른 출전 아군에게 전투 동안 피해 +30%, 피해량 경감 15%.',
-      effect: { hooks: { onStart(b, u) {
+      name: '인재 육성', desc: '전투 시작 시 공명 등급이 가장 낮은 다른 출전 아군에게 전투 동안 피해 +30%, 피해량 경감 15%. 전투 스킬을 쓸 때 최대 체력 12% 보호막 (결재 서류 방패).',
+      effect: { hooks: { onSkill(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.12); }, onStart(b, u) {
         const pool = b.alliesOf(u, false).filter((a) => a.src && !a.isSummon);
         if (!pool.length) return;
         const t = pool.reduce((a, c) => ((c.src!.rank < a.src!.rank) ? c : a));

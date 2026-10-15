@@ -27,21 +27,9 @@ export const ROSTER_E: BaseUnit[] = [
       },
     },
     skill: strike({
+      // heal: 특성 [내면의 괴물]의 츄르 간식 회복 비율 (전투 스킬을 쓴 뒤)
       name: '츄르 사냥', cd: 6, pow: 'strike', elem: 'phys', mult: 1.8, target: 'lowest', blink: true, params: { monsterAt: 0.5, heal: 0.05 },
-      desc: (p) => `[내면의 괴물] 체력이 처음 ${pct(p.monsterAt)} 이하가 되면 피해 +80%, 공격 속도 +50%. 기술: 체력 비율이 가장 낮은 적에게 뛰어들어 타격 위력 ${pct(p.mult)} 물리 피해${p.hits > 1 ? ` ${p.hits}회` : ''}, 최대 체력 ${pct(p.heal)} 회복.`,
-      after: (b, u, _t, _d, p) => {
-        b.heal(u, u, b.S(u, 'maxHp') * p.heal);
-        // 얌전한 고양이: 아군 전원 최대 체력 5% 회복 + 2초 보호막 10%
-        if (u.mem.tame) for (const a of b.alliesOf(u)) {
-          if (a !== u) b.heal(u, a, b.S(a, 'maxHp') * 0.05);
-          const amt = b.S(a, 'maxHp') * 0.1, before = a.shield;
-          b.shield(a, amt);
-          const got = a.shield - before;
-          if (got <= 0) continue;
-          a.mem.purrSh = (a.mem.purrSh || 0) + got;
-          b.applyStatus(u, a, { type: 'buff', key: 'mingki.purr', dur: 2, onExpire(_bb, tgt) { tgt.shield = Math.max(0, tgt.shield - (tgt.mem.purrSh || 0)); tgt.mem.purrSh = 0; } });
-        }
-      },
+      desc: (p) => `[내면의 괴물] 체력이 처음 ${pct(p.monsterAt)} 이하가 되면 피해 +80%, 공격 속도 +50%. 기술: 체력 비율이 가장 낮은 적에게 뛰어들어 타격 위력 ${pct(p.mult)} 물리 피해${p.hits > 1 ? ` ${p.hits}회` : ''}.`,
     }),
   },
   {
@@ -72,8 +60,8 @@ export const ROSTER_E: BaseUnit[] = [
     sprite: 'knight', palette: CRIMSON, eventOnly: true, noStarter: true,
     lore: '"제국의 방패는 피로 만들어졌다지. 나는 그 피를 조금 덜 흘리기로 했을 뿐이네." [임시]',
     skill: strike({
-      name: '혈검', cd: 6, pow: 'strike', elem: 'phys', mult: 2.2, target: 'lowest', blink: true, params: { lifesteal: 0.4, bleed: 0.3 },
-      desc: (p) => `체력 비율이 가장 낮은 적에게 파고들어 타격 위력 ${pct(p.mult)} 물리 피해 + 출혈, 준 피해의 ${pct(p.lifesteal)} 회복${p.resetOnKill ? `. 처치 시 쿨다운 ${pct(p.resetOnKill)} 초기화` : ''}.`,
+      name: '혈검', cd: 6, pow: 'strike', elem: 'phys', mult: 2.2, target: 'lowest', blink: true, params: { bleed: 0.3 },
+      desc: (p) => `체력 비율이 가장 낮은 적에게 파고들어 타격 위력 ${pct(p.mult)} 물리 피해 + 출혈${p.resetOnKill ? `. 처치 시 쿨다운 ${pct(p.resetOnKill)} 초기화` : ''}.`,
     }),
   },
   {

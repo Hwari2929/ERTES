@@ -1,6 +1,6 @@
 // 시리우스 성도회 · 범은하 공동체 · 엘베스타드 일가
 import { inc, vuln } from '../engine/effects';
-import { blinkTo, bleed, cleanse, fear, pct, skillHit, summonsOf } from './kit';
+import { blinkTo, bleed, cleanse, every, fear, pct, skillHit, summonsOf } from './kit';
 import { cookPower, strike, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type BaseUnit } from './unitkit';
 
@@ -54,19 +54,23 @@ export const ROSTER_C: BaseUnit[] = [
           if (!u.mem.cesare) return;
           u.mem.regenT = (u.mem.regenT || 0) + dt;
           if (u.mem.regenT >= 1) { u.mem.regenT = 0; b.heal(u, u, b.S(u, 'maxHp') * u.sk.regen, true); }
+          // 체사레의 위압: 8초마다 주변 1칸 적 공포 (재생 촉진과 따로 돈다)
+          if (every(u, 'cesFearT', dt, 8) && b.around(u, 1, b.enemiesOf(u)).length) {
+            b.fx(u.x, u.y, 1, 'psy');
+            for (const e of b.around(u, 1, b.enemiesOf(u))) fear(b, u, e, 1.5, u.sk.fearChance);
+          }
         },
       },
     },
     skill: {
       name: '재생 촉진', tag: () => '아군 전체 회복', cd: 8, params: { heal: 0.7, cleanse: 0, threshold: -50, rage: 0.4, regen: 0.015, fearChance: 0.6 },
-      desc: (p) => `모든 아군의 자연 치유를 가속해 기술 위력 ${pct(p.heal)} 회복${p.cleanse ? ' + 해로운 상태이상 제거' : ''}. 이성이 ${p.threshold} 이하가 되면 체사레로 전환: 근접 도끼 공격, 피해 +${pct(p.rage)}, 초당 최대 체력 ${pct(p.regen)} 재생, 주변 적 ${pct(p.fearChance)} 확률 공포. 체사레의 재생 촉진은 자신에게만 2배로 쓰인다.`,
+      desc: (p) => `모든 아군의 자연 치유를 가속해 기술 위력 ${pct(p.heal)} 회복${p.cleanse ? ' + 해로운 상태이상 제거' : ''}. 이성이 ${p.threshold} 이하가 되면 체사레로 전환: 근접 도끼 공격, 피해 +${pct(p.rage)}, 초당 최대 체력 ${pct(p.regen)} 재생, 전환할 때와 그 뒤 8초마다 주변 적 ${pct(p.fearChance)} 확률 1.5초 공포. 체사레의 재생 촉진은 자신에게만 2배로 쓰인다.`,
       cast(b, u) {
         if (!b.enemiesOf(u).length) return false;
         const p = u.sk;
         if (u.mem.cesare) {
           b.heal(u, u, b.P(u, 'tech') * p.heal * 2, true);
-          b.fx(u.x, u.y, 1, 'psy');
-          for (const e of b.around(u, 1, b.enemiesOf(u))) fear(b, u, e, 1.5, p.fearChance);
+          b.fx(u.x, u.y, 0, 'holy', 'heal');
           return true;
         }
         const allies = b.alliesOf(u);
@@ -91,8 +95,8 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'strike', elem: 'holy', interval: 1.1 }, range: 1, base: B(9, 7, 5, 8, 3),
     sprite: 'knight', palette: PAL.SIR, lore: '적진 한가운데가 그의 제단이다.',
     skill: strike({
-      name: '성전 돌입', cd: 8, pow: 'strike', elem: 'holy', mult: 1.6, target: 'backline', blink: true, params: { radius: 1, selfShield: 0.25 },
-      desc: (p) => `적 후방으로 돌입해 주변 ${p.radius}칸에 타격 위력 ${pct(p.mult)} 신성 피해${p.stun ? ` + ${p.stun}초 기절` : ''}, 최대 체력 ${pct(p.selfShield)} 보호막${p.lifesteal ? `, 피해의 ${pct(p.lifesteal)} 회복` : ''}.`,
+      name: '성전 돌입', cd: 8, pow: 'strike', elem: 'holy', mult: 1.6, target: 'backline', blink: true, params: { radius: 1 },
+      desc: (p) => `적 후방으로 돌입해 주변 ${p.radius}칸에 타격 위력 ${pct(p.mult)} 신성 피해${p.stun ? ` + ${p.stun}초 기절` : ''}.`,
     }),
   },
   {
@@ -137,8 +141,8 @@ export const ROSTER_C: BaseUnit[] = [
     summon: { name: '리키', art: 'sm_ricky', sprite: 'beast', palette: WOLF, atk: { type: 'strike', elem: 'phys', interval: 0.8 }, range: 1, hpMul: 1.1 },
     lore: '"흠흠- 만나서 반가워! 나는 정찰과 은하 생태학을 담당하는 비비안이야."',
     skill: {
-      name: '동물 교감', tag: () => '리키 돌격 + 기절', cd: 7, params: { mult: 2.3, stun: 1, kazoo: 0, vuln: 0 },
-      desc: (p) => `리키에게 공격 지시를 내린다. 리키가 비비안의 대상에게 덮쳐 리키 타격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}${p.kazoo ? `. 모든 아군 3초간 공격 속도 +${pct(p.kazoo)}` : ''}. 리키가 없으면 비비안이 직접 사격 위력 150%로 쏜다.`,
+      name: '동물 교감', tag: () => '리키 돌격 + 기절', cd: 7, params: { mult: 2.3, stun: 1, vuln: 0 },
+      desc: (p) => `리키에게 공격 지시를 내린다. 리키가 비비안의 대상에게 덮쳐 리키 타격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}. 리키가 없으면 비비안이 직접 사격 위력 150%로 쏜다.`,
       cast(b, u) {
         const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u));
         if (!t) return false;
@@ -154,7 +158,6 @@ export const ROSTER_C: BaseUnit[] = [
           b.stun(u, t, p.stun);
           if (p.vuln) b.applyStatus(u, t, { type: 'buff', key: 'vivian.record', dur: 4, taken: [vuln('all', p.vuln)], label: '관찰 기록' });
         }
-        if (p.kazoo) for (const a of b.alliesOf(u)) b.buff(u, a, 'vivian.kazoo', 3, { delta: { atkSpd: p.kazoo }, label: '카주' });
         return true;
       },
     },
@@ -201,7 +204,7 @@ export const ROSTER_C: BaseUnit[] = [
     lore: '"…이거 꼭 지금 해야 돼요? 하면 잘하긴 하는데."',
     skill: strike({
       name: '염동 제압', cd: 7, pow: 'strike', elem: 'psy', mult: 2.0, params: { stun: 1.5 },
-      desc: (p) => `암흑물질 노심의 출력을 실어 대상에게 타격 위력 ${pct(p.mult)} 정신 피해 + ${p.stun}초 기절${p.radius ? ` (주변 ${p.radius}칸)` : ''}${p.selfShield ? `, 최대 체력 ${pct(p.selfShield)} 보호막` : ''}${p.lifesteal ? `, 피해의 ${pct(p.lifesteal)} 회복` : ''}.`,
+      desc: (p) => `암흑물질 노심의 출력을 실어 대상에게 타격 위력 ${pct(p.mult)} 정신 피해 + ${p.stun}초 기절${p.radius ? ` (주변 ${p.radius}칸)` : ''}.`,
     }),
   },
   {

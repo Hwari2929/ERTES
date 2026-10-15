@@ -64,8 +64,6 @@ function strikeTag(o: StrikeOpts, p: Record<string, number>) {
   if (o.blink) t = '돌진 · ' + t;
   const r = RIDER.find(([k]) => p[k]);
   if (r) t += ` + ${r[1]}`;
-  else if (p.selfShield) t += ' + 보호막';
-  else if (p.lifesteal) t += ' + 흡혈';
   return t;
 }
 const ALLY_WORD: Record<AllyPick, string> = { self: '자신', all: '아군 전체', aroundSelf: '주변 아군', lowest: '약한 아군', strongest: '핵심 아군', commanded: '핵심 아군' };
@@ -84,11 +82,12 @@ export interface StrikeOpts {
   after?: (b: Battle, u: CUnit, t: CUnit, dealt: number, p: Record<string, number>, results: DmgResult[]) => void;
 }
 
-/** 공격형 기술: 대상 선택 → (순간이동) → 단일/범위 피해 × 타수 → 부가 효과 */
+/** 공격형 기술: 대상 선택 → (순간이동) → 단일/범위 피해 × 타수 → 해로운 부가 효과.
+ *  아군 쪽 효과(회복 · 보호막 · 강화)는 넣지 않는다 — 특성 · 별도 발동으로 분리 (스킬 한쪽 원칙) */
 export function strike(o: StrikeOpts): SkillDef {
   return {
     name: o.name, cd: o.cd, needsRange: o.needsRange ?? (!o.blink && !o.aroundSelf && (o.target || 'current') === 'current'),
-    params: { mult: o.mult, radius: 0, hits: 1, second: 0.6, pen: 0, crit: 0, selfShield: 0, lifesteal: 0, resetOnKill: 0, ...o.params },
+    params: { mult: o.mult, radius: 0, hits: 1, second: 0.6, pen: 0, crit: 0, resetOnKill: 0, ...o.params },
     desc: o.desc,
     tag: (p) => o.tag || strikeTag(o, p),
     cast(b, u) {
@@ -114,8 +113,6 @@ export function strike(o: StrikeOpts): SkillDef {
           if (r.killed && p.resetOnKill) u.cd = Math.min(u.cd, u.cdMax * (1 - p.resetOnKill));
         }
       }
-      if (p.selfShield) b.shield(u, b.S(u, 'maxHp') * p.selfShield);
-      if (p.lifesteal) b.heal(u, u, dealt * p.lifesteal, true);
       o.after?.(b, u, t, dealt, p, results);
       return true;
     },

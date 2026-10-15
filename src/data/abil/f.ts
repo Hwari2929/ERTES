@@ -15,10 +15,10 @@ export const ABIL_F: Record<string, AbilText> = {
       rows: [
         ['피해', `[dmg:shoot:${p.mult}:elec]`],
         ['기절', `[st:stun:${p.stun}]`],
-        ['보호막', `체력 비율이 가장 낮은 아군에게 [shield:${p.rescue}:shoot]`],
+        ...when(p.pull, ['끌어오기', '대상을 앞 [t:1]로 끌어옴 (엘리트 · 보스 제외)']),
       ],
     }),
-    trait: '[g:red] [p:0.15]. 잃은 체력 [p:0.01]당 주는 피해 +[p:0.01].',
+    trait: '[g:red] [p:0.15]. 잃은 체력 [p:0.01]당 주는 피해 +[p:0.01]. 구조 신호: [s:7]마다 체력 비율이 가장 낮은 아군에게 [shield:1.2:shoot].',
     augs: {
       harpoon: '구조 작살 피해 [dmg+:shoot:2.2:elec].',
       rescue: '구조 작살 보호막 [shield+:1.5:shoot].',
@@ -30,7 +30,7 @@ export const ABIL_F: Record<string, AbilText> = {
       'sp.song': '전투 시작 시 모든 아군 [s:8] 동안 피해 +[p:0.2].',
       'sp.pull': '구조 작살이 대상을 앞 [t:1]로 끌어옴 (엘리트 · 보스 제외). [st:stun:2]. 작살 피해 -[p:0.3].',
       'sp.valhalla': '체력 [p:0.3] 이하일 때 [g:red] [p:0.15] → [p:0.35].',
-      'sp.gear': '구조 작살 보호막 [p:1.2] → [p:2], 체력 비율이 가장 낮은 아군 2명.',
+      'sp.gear': '구조 신호 보호막 [p:1.2] → [p:2], 체력 비율이 가장 낮은 아군 2명.',
       'sp.berserk': '[g:red] [p:0]. 잃은 체력 1%당 주는 피해 +2%.',
       'sp.storm': '[g:shock] 상태의 적에게 주는 피해 +[p:0.3].',
     },
@@ -110,10 +110,9 @@ export const ABIL_F: Record<string, AbilText> = {
       rows: [
         ['피해', `[dmg:strike:${p.mult}:chem${hitsTxt(p.hits)}]`],
         ['중독', `[st:poison:4:0.9] 초당 [dmg:strike:${p.poison}:chem]`],
-        ...when(p.selfShield, ['보호막', `자신에게 최대 체력 [p:${p.selfShield}] 보호막`]),
       ],
     }),
-    trait: '초당 최대 체력 [p:0.005] 회복. 화학 [g:red] [p:0.3].',
+    trait: '초당 최대 체력 [p:0.005] 회복. 화학 [g:red] [p:0.3]. 전투 스킬 사용 시 자신에게 최대 체력 [p:0.15] 보호막.',
     augs: {
       unwrap: '붕대 해제 피해 [dmg+:strike:1.8:chem], 범위 +[t:1].',
       ooze: '붕대 해제 중독 초당 피해 [dmg+:strike:0.6:chem].',
@@ -181,7 +180,7 @@ export const ABIL_F: Record<string, AbilText> = {
       'sp.vip': '요리 버프 지속 [s:6] → [s:10].',
       'sp.special': '요리받은 아군이 [s:6] 동안 기술 피해의 [p:0.15] 흡혈.',
       'sp.after': '요리받은 아군이 적을 처치하면 요리 버프 지속이 처음으로 갱신.',
-      'sp.bomb': '요리를 낸 뒤 체력이 가장 높은 적에게 [dmg:tech:1.5:elec] + [st:shock:2]. 쿨다운 +2초.',
+      'sp.bomb': '네온 칵테일이 칵테일 폭탄으로 바뀜: 요리 대신 체력이 가장 높은 적에게 [dmg:tech:2.2:elec] + [st:shock:2] (회복 · 강화 없음).',
       'sp.regular': '같은 아군에게 연속으로 요리하면 효과 +[p:0.2] 누적 (최대 3회).',
     },
   },
@@ -191,10 +190,9 @@ export const ABIL_F: Record<string, AbilText> = {
       rows: [
         ['피해', `[dmg:strike:${p.mult}:elec${hitsTxt(p.hits)}]`],
         ['기절', `[st:stun:${p.stun}]`],
-        ...when(p.selfShield, ['보호막', `자신에게 최대 체력 [p:${p.selfShield}] 보호막`]),
       ],
     }),
-    trait: '전투 시작 시 공명 등급이 가장 낮은 다른 아군 1명에게 피해 +[p:0.3], [g:red] [p:0.15] (전투 동안).',
+    trait: '전투 시작 시 공명 등급이 가장 낮은 다른 아군 1명에게 피해 +[p:0.3], [g:red] [p:0.15] (전투 동안). 전투 스킬 사용 시 자신에게 최대 체력 [p:0.12] 보호막.',
     augs: {
       q4: '분기 실적 보고 피해 [dmg+:strike:2:elec].',
       audit: '분기 실적 보고 기절 +[s:1], 범위 +[t:1].',
@@ -209,10 +207,9 @@ export const ABIL_F: Record<string, AbilText> = {
       rows: [
         ['피해', `[dmg:strike:${p.mult}:phys${hitsTxt(p.hits)}]`],
         ...secondRow(p),
-        ['회복', `자신 최대 체력 [p:${p.heal}] 회복`],
       ],
     }),
-    trait: '체력이 처음 [p:0.5] 이하가 되면 [g:monster] 발동.',
+    trait: '체력이 처음 [p:0.5] 이하가 되면 [g:monster] 발동. 전투 스킬 사용 후 츄르 간식: 자신 최대 체력 [p:0.05] 회복.',
     augs: {
       nebula: '츄르 사냥 피해 [dmg+:strike:1.8:phys].',
       hungry: '처음 피해를 받으면 바로 [g:monster] 발동.',
@@ -221,12 +218,12 @@ export const ABIL_F: Record<string, AbilText> = {
       double: '츄르 사냥 타수 +1 (두 번째도 [p:1] 피해).',
       'sp.awake': '전투 시작부터 [g:monster] 발동. 대신 체력 [p:0.1] 초과일 때 초당 최대 체력 [p:0.02]의 고정 피해를 받는다.',
       'sp.master': '전투 시작 시 엘베스타드 아군 피해 +[p:0.1] (전투 동안).',
-      'sp.full': '츄르 사냥 쿨다운 -[s:2], 회복 최대 체력 [pp:0.075].',
+      'sp.full': '츄르 사냥 쿨다운 -[s:2], 츄르 간식 회복 최대 체력 [pp:0.075].',
       'sp.appetite': '[g:monster] 중 처치 시 최대 체력 [p:0.1] 회복, 피해 +[p:0.1] 누적 (최대 +[p:0.5]).',
       'sp.purr': '[g:monster]이 깨어날 때 주변 [t:2] 적 [st:fear:1.5].',
       'sp.liquid': '회피 [pp:0.1]. [g:monster] 중 추가 [pp:0.15].',
       'sp.second': '체력이 처음 [p:0.2] 이하가 되면 2단 각성: 피해 +[p:0.5], 흡혈 [p:0.2].',
-      'sp.tame': '[g:monster]이 깨어나지 않음. 츄르 사냥이 모든 아군 최대 체력 [p:0.05] 회복 + [s:2] 동안 최대 체력 [p:0.1] 보호막.',
+      'sp.tame': '[g:monster]이 깨어나지 않음. 츄르 사냥이 그르릉으로 바뀜: 적에게 뛰어드는 대신 다른 모든 아군 각자 최대 체력 [p:0.06] 회복, 자신 포함 모든 아군 [s:3] 동안 각자 최대 체력 [p:0.1] 보호막 (피해 없음).',
     },
   },
   onyx: {
@@ -253,11 +250,10 @@ export const ABIL_F: Record<string, AbilText> = {
       rows: [
         ['피해', `[dmg:strike:${p.mult}:phys${hitsTxt(p.hits)}]`],
         ['출혈', `[st:bleed:4] 초당 [dmg:strike:${p.bleed}:phys]`],
-        ['흡혈', `준 피해의 [p:${p.lifesteal}] 회복`],
         ...when(p.resetOnKill, ['처치', `처치 시 쿨다운 [p:${p.resetOnKill}] 회복`]),
       ],
     }),
-    trait: '[g:finish]로 준 피해의 [p:0.3] 회복.',
+    trait: '[g:finish] · 전투 스킬 · 궁극기로 준 피해의 [p:0.35] 회복.',
     augs: {
       vein: '혈검 피해 [dmg+:strike:2.2:phys].',
       thirst: '혈검 흡혈 [pp:0.25]. 모든 피해 흡혈 [pp:0.15].',

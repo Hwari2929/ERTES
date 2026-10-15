@@ -5,7 +5,7 @@ import { type AugDef, type Effect, applyLive, inc, red, vuln } from '../engine/e
 import { type CType, type Elem, type FaithId, FAITH_NAME, type Major, MAJORS, type RunState, type Weapon } from '../types';
 import { itemEffect } from './items';
 import { RELIC_BY_ID } from './relics';
-import { blinkTo, corrode, fear, gw, isHarmful, lineTargets, pct, skillHit, summonsOf } from './kit';
+import { blinkTo, corrode, every, fear, gw, isHarmful, lineTargets, nth, pct, skillHit, summonsOf } from './kit';
 import { kairoSnipe } from './rosterB';
 import { pickEnemy } from './tpl';
 import { type BaseUnit, type ReworkDef, setSk, uaug } from './unitkit';
@@ -106,7 +106,14 @@ export const REWORK: Record<string, ReworkDef> = {
   donovan: {
     ctype: 'SPEC', ttype: 'special', faith: 'human', weapon: K('단분자 와이어', 'phys', 0.8, 1, 0.8, 4),
     factions: ['UNI', 'SEC'], traits: ['BUDDY'],
-    trait: { name: '자안의 사수', desc: '기술 피해도 치명타가 터진다. 체력 비율이 가장 낮은 적을 우선 노린다.', effect: { setup: (u) => { u.mem.techCrit = 1; u.mem.lowestFocus = 1; } } },
+    trait: { name: '자안의 사수', desc: '기술 피해도 치명타가 터진다. 체력 비율이 가장 낮은 적을 우선 노린다. 까악이 공격 속도 +30%.', effect: {
+      setup: (u) => { u.mem.techCrit = 1; u.mem.lowestFocus = 1; },
+      hooks: { onTick(b, u) {
+        if (u.mem.crowInit) return;
+        u.mem.crowInit = 1;
+        for (const d of summonsOf(b, u)) b.buff(u, d, 'donovan.crow', 999, { delta: { atkSpd: 0.3 }, label: '해킹 지원' });
+      } },
+    } },
     specialAugs: [
       sp('donovan', 'eye', '자안 개방', '기술 피해가 치명타로 터지면 기술 쿨다운 -1초.', { hooks: { onDeal(_b, u, _t, r, o) { if (r.crit && o.kind === 'tech') u.cd -= 1; } } }),
       sp('donovan', 'crow', '까악이 해킹', '까악이의 공격이 30% 확률로 1초 감전을 건다.', { hooks: { onStart(_b, u) { u.mem.crowShock = 1; } } }),
@@ -143,9 +150,10 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'SPEC', ttype: 'minor', faith: 'science', weapon: G('다트 권총', 'chem', 1.0, 3, 0.9, 6, 1.8),
     factions: ['SEC'], traits: ['MED', 'DECOMP'],
     trait: {
-      name: '항밈 처방', desc: '기본 공격이 대상에게 [중독]을 건다 (4초간 초당 기술 위력 25% 화학 피해). 회복할 때 대상의 해로운 상태이상 1개를 제거한다.',
+      name: '항밈 처방', desc: '기본 공격이 대상에게 [중독]을 건다 (4초간 초당 기술 위력 25% 화학 피해). 다트가 6번 맞을 때마다 항밈 수면제: 대상이 50% 확률로 2초 기절. 회복할 때 대상의 해로운 상태이상 1개를 제거한다.',
       effect: { hooks: { onBasic(b, u, t, r) {
         if (r.amount > 0 && t.alive) b.applyStatus(u, t, { type: 'dot', key: 'poison', dur: 4, dps: b.S(u, 'tech') * 0.25 * gw(u), elem: 'chem' }, 1);
+        if (r.amount > 0 && t.alive && nth(u, 'sleepN', 6)) b.stun(u, t, u.sk.sleep || 2, u.sk.sleepChance || 0.5);
       }, onHealDone(_b, u, t) {
         const i = t.statuses.findIndex(harmful);
         if (i < 0) return;
@@ -157,8 +165,11 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'MARK', ttype: 'minor', faith: 'human', weapon: G('리벳건', 'phys', 0.6, 3, 0.6, 20, 3),
     factions: ['UNI'], traits: ['ENG'],
     trait: {
-      name: '현장 반장', desc: '포탑의 공격이 웨스트 사격 위력 15%의 고정 피해를 추가로 준다.',
-      effect: { hooks: { onTick(b, u) {
+      name: '현장 반장', desc: '포탑의 공격이 웨스트 사격 위력 15%의 고정 피해를 추가로 준다. 7초마다 모든 포탑을 기술 위력 100% 수리하고 4초간 공격 속도 +35%.',
+      effect: { hooks: { onTick(b, u, dt) {
+        if (every(u, 'westFixT', dt, 7) && b.enemiesOf(u).length) {
+          for (const tur of b.alliesOf(u)) if (tur.defId === 'turret') { b.heal(u, tur, b.P(u, 'tech') * (u.sk.fix ?? 1)); b.buff(u, tur, 'west.oc', 4, { delta: { atkSpd: u.sk.overclock ?? 0.35 }, label: '정비' }); }
+        }
         if (u.mem.westInit) return;
         u.mem.westInit = 1;
         for (const tur of b.units) {
@@ -177,8 +188,8 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'VAN', ttype: 'major', faith: 'index', weapon: K('방어막 건틀릿', 'phys', 0.9, 1, 0.8, 3),
     factions: ['PET'], traits: ['SCHEME', 'GUARD'],
     trait: {
-      name: '특별경호팀', desc: '자신과 주변 1칸 아군의 피해량 경감 30%p. 주변 아군이 받는 피해의 절반은 린디웨가 나눠 받는다.',
-      effect: { hooks: { onTick(b, u, dt) {
+      name: '특별경호팀', desc: '자신과 주변 1칸 아군의 피해량 경감 30%p. 주변 아군이 받는 피해의 절반은 린디웨가 나눠 받는다. 전투 스킬을 쓸 때 최대 체력 18% 보호막.',
+      effect: { hooks: { onSkill(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.18); }, onTick(b, u, dt) {
         u.mem.lindT = (u.mem.lindT || 0) - dt;
         if (u.mem.lindT > 0) return;
         u.mem.lindT = 0.5;
@@ -204,10 +215,10 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'CMD', ttype: 'major', faith: 'index', weapon: K('에너지 블레이드', 'phys', 0.9, 1, 0.6, 4),
     factions: ['PET', 'TIME', 'KAL'], traits: [],
     trait: {
-      name: '은하법 검사', desc: '흡혈 +10%p. 기본 공격이 맞은 적에게 5초간 [심판]: 그동안 아군이 준 피해의 20%를 기록하고, 끝날 때 기록의 100%를 고정 피해로 정산한다.',
+      name: '은하법 검사', desc: '흡혈 +10%p. 전투 스킬을 쓴 뒤 잃은 체력의 12.5%를 재생한다. 기본 공격이 맞은 적에게 5초간 [심판]: 그동안 아군이 준 피해의 20%를 기록하고, 끝날 때 기록의 100%를 고정 피해로 정산한다.',
       effect: {
         stats: { lifesteal: 0.1 },
-        hooks: { onBasic(b, u, t, r) {
+        hooks: { onSkill(b, u) { b.heal(u, u, (b.S(u, 'maxHp') - u.hp) * (u.sk.rewind ?? 0.125), true); }, onBasic(b, u, t, r) {
           if (r.amount <= 0 || !t.alive || t.statuses.some((s) => s.key === 'franze.judge')) return;
           b.applyStatus(u, t, { type: 'buff', key: 'franze.judge', dur: 5, rec: 0, label: '심판',
             onExpire(bb, tgt, s) { if (s.rec && s.src && tgt.alive) bb.dealDamage(s.src, tgt, s.rec, { elem: 'true', tag: 'proc' }); } });
@@ -219,10 +230,10 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'VAN', ttype: 'major', faith: 'index', weapon: K('7중 방호 블레이드', 'phys', 1.1, 1, 0.8, 3),
     factions: ['PET'], traits: ['STAR', 'INFIL'],
     trait: {
-      name: '7중 방호 슈트', desc: '기본 공격 · 기술을 쓸 때마다 최대 체력 5% 보호막 (최대 30%까지 쌓임).',
+      name: '7중 방호 슈트', desc: '기본 공격 · 기술을 쓸 때마다 최대 체력 5% 보호막 (최대 20%까지 쌓임). 전투 스킬을 쓸 때는 최대 체력 15% 보호막을 추가로 전개한다.',
       effect: { hooks: {
         onBasic(b, u) { grenShield(b, u); },
-        onSkill(b, u) { grenShield(b, u); },
+        onSkill(b, u) { grenShield(b, u); b.shield(u, b.S(u, 'maxHp') * 0.15); },
       } },
     },
   },
@@ -230,8 +241,20 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'CMD', ttype: 'special', faith: 'index', weapon: { name: '비무장', kind: 'none', type: 'shoot', elem: 'phys', interval: 1, range: 3, mult: 0 },
     factions: ['PET'], traits: ['BUDDY'],
     trait: {
-      name: '합리적인 거래', desc: '기본 공격을 하지 않는다. 라르스가 함께한 뒤 번 크레딧 10당 경호원 메이저 +1 (100에서 상한 +10). 이자 상한 +2.',
-      effect: { setup: (u) => { u.mem.summonMaj = Math.min(10, Math.floor(gv(u.src?.grow || {}, 'earn') / 10)); } },
+      name: '합리적인 거래', desc: '기본 공격을 하지 않는다. 라르스가 함께한 뒤 번 크레딧 10당 경호원 메이저 +1 (100에서 상한 +10). 이자 상한 +2. [경호 계약] 8초마다 경호원 전원에게 기술 위력 150% 보호막.',
+      effect: {
+        setup: (u) => { u.mem.summonMaj = Math.min(10, Math.floor(gv(u.src?.grow || {}, 'earn') / 10)); },
+        hooks: { onTick(b, u, dt) {
+          if (!every(u, 'guardT', dt, 8) || !b.enemiesOf(u).length) return;
+          const amt = b.P(u, 'tech') * (u.sk.shield ?? 1.5);
+          // 하청: 경호원 대신 무작위 아군 2명
+          if (u.sk.subcon) {
+            const pool = b.alliesOf(u, false).filter((a) => !a.isSummon);
+            for (const a of (pool.length ? b.rng.sample(pool, 2) : [u])) b.shield(a, amt);
+          }
+          for (const bot of summonsOf(b, u)) b.shield(bot, amt);
+        } },
+      },
     },
     specialAugs: [
       sp('lars', 'bribe', '매수', '거래 대상 적이 4초간 공포에 걸리고 받는 피해 +25%.', { hooks: { onSkill(b, u) {
@@ -267,7 +290,7 @@ export const REWORK: Record<string, ReworkDef> = {
       sp('lars', 'installment', '분할 상환', '거래 제안 쿨다운 +2초. 대신 같은 적과 거래할 때마다 주는 피해 감소가 20%에서 10%p씩 쌓인다 (최대 60%, 전투 동안 유지).', { setup: (u) => {
         u.cdMax += 2; u.sk.installment = 1;
       } }),
-      sp('lars', 'subcon', '하청', '경호원을 데려오지 않는다. 대신 거래 제안 때 무작위 아군 2명에게 거래 보호막 (기술 위력 150%).', { setup: (u) => {
+      sp('lars', 'subcon', '하청', '경호원을 데려오지 않는다. 대신 경호 계약 보호막 (기술 위력 150%)을 무작위 아군 2명에게 준다.', { setup: (u) => {
         u.mem.noSummon = 1; u.sk.subcon = 1;
       } }, ex('lars', 'counsel', 'elite', 'penalty')),
     ],
@@ -288,8 +311,10 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'CMD', ttype: 'psionic', faith: 'emperor', weapon: G('여우불 부적', 'psy', 1.1, 3, 0.6, 5, 2),
     factions: ['KAL', 'HOI'], traits: ['STAR'],
     trait: {
-      name: '점괘', desc: '전투 시작 시 점괘를 본다. 길: 아군 전원 12초간 피해 +12%. 흉: 아군 전원 6초간 받는 피해 +8%. 이성이 높을수록 길이 잘 나온다.',
-      effect: { hooks: { onStart(b, u) {
+      name: '점괘', desc: '전투 시작 시 점괘를 본다. 길: 아군 전원 12초간 피해 +12%. 흉: 아군 전원 6초간 받는 피해 +8%. 이성이 높을수록 길이 잘 나온다. 여우불 부적이 맞으면 10% 확률로 대상이 환술에 걸려 2초 공포 (3초에 1회).',
+      effect: { hooks: { onBasic(b, u, t, r) {
+        if (r.amount > 0 && t.alive && b.rng.chance(0.1) && icd(b, u, 'hiiroFear', 3)) fear(b, u, t, 2, 1);
+      }, onStart(b, u) {
         const good = b.rng.chance(Math.min(0.95, 0.5 + (u.reason ?? 50) / 200));
         for (const a of b.alliesOf(u)) {
           if (good) b.buff(u, a, 'hiiro.start', 12, { mods: [inc('all', 0.12)] });
@@ -332,8 +357,8 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'MARK', ttype: 'special', faith: 'emperor', weapon: G('안단테-7 저격총', 'phys', 1.0, 6, 1.2, 5, 3),
     factions: ['KAL'], traits: ['CHEF', 'HUNTER'],
     trait: {
-      name: '기다림의 미학', desc: '칵테일 1잔 또는 아군 기본 공격 12회마다 1스택. 8스택이면 안단테-7 저격.',
-      effect: { hooks: { onAllyBasic(b, u, a) {
+      name: '기다림의 미학', desc: '칵테일 1잔 또는 아군 기본 공격 12회마다 1스택 (전투 시작 시 2스택). 8스택이면 안단테-7로 체력이 가장 높은 적에게 사격 위력 800% 물리 저격 (치명타 확률 +15%p, 회피 불가).',
+      effect: { hooks: { onTick(b, u) { if ((u.mem.wait ?? 0) >= u.sk.need) kairoSnipe(b, u); }, onAllyBasic(b, u, a) {
         if (a.isSummon) return;
         u.mem.kc = (u.mem.kc || 0) + 1;
         if (u.mem.kc < 12) return;
@@ -442,8 +467,15 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'SPEC', ttype: 'special', faith: 'hades', weapon: K('만능 렌치', 'holy', 0.8, 1, 0.8, 4),
     factions: ['HEL', 'VOYAGE'], traits: ['INFIL'],
     trait: {
-      name: '균열 회피', desc: '회피 +5%p. 회피하면 공격자에게 타격 위력 100% 반격하고 무작위 적에게 순간이동한다 (0.5초에 1회).',
-      effect: { stats: { eva: 0.05 }, hooks: { onEvade(b, u, src) {
+      name: '균열 회피', desc: '회피 +5%p. 회피하면 공격자에게 타격 위력 100% 반격하고 무작위 적에게 순간이동한다 (0.5초에 1회). [물자 전송] 6초마다 체력 비율이 가장 낮은 아군에게 기술 위력 100% 보호막.',
+      effect: { stats: { eva: 0.05 }, hooks: { onTick(b, u, dt) {
+        if (!every(u, 'supplyT', dt, 6) || !b.enemiesOf(u).length) return;
+        const a = b.lowestHpAlly(u);
+        if (!a) return;
+        b.shield(a, b.P(u, 'tech') * (u.sk.supply ?? 0.8));
+        b.fx(a.x, a.y, 0, 'holy', 'heal');
+        if (u.sk.supplyCleanse) { const i = a.statuses.findIndex(isHarmful); if (i >= 0) a.statuses.splice(i, 1); } // 하데스 택배
+      }, onEvade(b, u, src) {
         if (!src.alive || !icd(b, u, 'phIcd', 0.5)) return;
         proc(b, u, src, b.S(u, 'strike') * (u.mem.counterMul || 1), 'holy', 'strike');
         const es = b.enemiesOf(u);
@@ -465,7 +497,7 @@ export const REWORK: Record<string, ReworkDef> = {
         const t = b.lowestEnemy(u) || b.nearest(u, b.enemiesOf(u));
         if (t && blinkTo(b, u, t)) u.atkTimer = 0;
       } } }),
-      sp('phyllis', 'hades', '하데스 택배', '균열 도약의 보호막 100% → 160%, 보호막을 받은 아군의 해로운 효과 1개 제거.', setSk((s) => { s.supply *= 1.6; s.supplyCleanse = 1; })),
+      sp('phyllis', 'hades', '하데스 택배', '물자 전송 보호막 ×1.6 (기술 위력 100% → 160%), 보호막을 받은 아군의 해로운 효과 1개 제거.', setSk((s) => { s.supply *= 1.6; s.supplyCleanse = 1; })),
       sp('phyllis', 'rift', '균열 잔상', '균열 도약으로 떠난 자리에 2초간 균열 (주변 1칸): 지나는 적에게 기술 위력 40% 신성 피해 (균열마다 적 1회).', { hooks: {
         onTick(b, u) {
           if ((u.mem.riftUntil || 0) > b.t) {
@@ -487,7 +519,7 @@ export const REWORK: Record<string, ReworkDef> = {
       } }),
       sp('phyllis', 'dodge', '회피 달인', '회피 +10%p, 균열 회피 반격 피해 100% → 150%.', { stats: { eva: 0.1 }, setup: (u) => { u.mem.counterMul = 1.5; } }),
       sp('phyllis', 'supply', '긴급 조달', '전투 시작 시 모든 아군에게 기술 위력 60% 보호막.', { hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.shield(a, b.P(u, 'tech') * 0.6); } } }),
-      sp('phyllis', 'underworld', '명계 출장', '균열 도약이 적 대신 가장 뒤에 있는 아군 곁으로 순간이동해, 자신과 주변 1칸 아군 모두에게 보호막 (균열 도약 보호막 수치). 피해는 주지 않는다.', { setup: (u) => {
+      sp('phyllis', 'underworld', '명계 출장', '균열 도약이 적 대신 가장 뒤에 있는 아군 곁으로 순간이동해, 자신과 주변 1칸 아군 모두에게 보호막 (물자 전송 보호막 수치). 피해는 주지 않는다.', { setup: (u) => {
         const base = u.skill;
         if (!base) return;
         u.skill = { ...base, needsRange: false, tag: () => '아군 후방 순간이동 · 보호막', cast(b, self) {
@@ -510,8 +542,11 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'VAN', ttype: 'divine', faith: 'selene', weapon: K('진혼 대검', 'phys', 1.1, 1, 0.85, 3),
     factions: ['HEL'], traits: ['MED', 'GUARD'],
     trait: {
-      name: '등대기사', desc: '주변 2칸 아군이 초당 최대 체력 1% 회복.',
-      effect: { hooks: { onTick(b, u, dt) {
+      name: '등대기사', desc: '주변 2칸 아군이 초당 최대 체력 1% 회복. 피니쉬가 주변 1칸 적 모두에게 타격 위력 50% 물리 피해 (달빛 베기).',
+      effect: { hooks: { onBasic(b, u) {
+        if (!u.mem.finished) return;
+        for (const e of b.around(u, 1, b.enemiesOf(u))) proc(b, u, e, b.S(u, 'strike') * 0.5, 'phys', 'strike');
+      }, onTick(b, u, dt) {
         u.mem.lightT = (u.mem.lightT || 0) + dt;
         if (u.mem.lightT < 1) return;
         u.mem.lightT -= 1;
@@ -524,8 +559,12 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'CMD', ttype: 'divine', faith: 'hermes', weapon: G('날개 단검 투척', 'holy', 0.9, 3, 0.6, 6, 1.5),
     factions: ['HEL', 'STL'], traits: [],
     trait: {
-      name: '헤르메스의 날개', desc: '아군 전원 이동 속도 · 공격 속도 +25%p.',
-      effect: { hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'iris.wing', 999, { delta: { moveSpd: 0.25, atkSpd: 0.25 } }); } } },
+      name: '헤르메스의 날개', desc: '아군 전원 이동 속도 · 공격 속도 +25%p. 날개 단검이 6번 맞을 때마다 대상의 인지를 교란해 기술 위력 120% 신성 피해 + 50% 확률로 1.5초 공포.',
+      effect: { hooks: { onBasic(b, u, t, r) {
+        if (r.amount <= 0 || !t.alive || !nth(u, 'irisN', 6)) return;
+        skillHit(b, u, t, 'tech', u.sk.jam ?? 1.2, 'holy', { noMiss: true });
+        if (t.alive) fear(b, u, t, 1.5, u.sk.fearChance ?? 0.5);
+      }, onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'iris.wing', 999, { delta: { moveSpd: 0.25, atkSpd: 0.25 } }); } } },
     },
   },
   odysseus: {
@@ -575,7 +614,7 @@ export const REWORK: Record<string, ReworkDef> = {
   kyle: {
     ctype: 'VAN', ttype: 'divine', faith: 'sirius', weapon: K('성전 장검', 'holy', 1.0, 1, 0.8, 4),
     factions: ['SIR'], traits: ['GUARD'],
-    trait: { name: '성전 기사', desc: '신성 피해량 +20%. 전투 스킬을 쓸 때 최대 체력 15% 보호막.', effect: { mods: [inc('holy', 0.2)], hooks: { onSkill(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.15); } } } },
+    trait: { name: '성전 기사', desc: '신성 피해량 +20%. 전투 스킬을 쓸 때 최대 체력 20% 보호막.', effect: { mods: [inc('holy', 0.2)], hooks: { onSkill(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.2); } } } },
   },
   doros: {
     ctype: 'CMD', ttype: 'divine', faith: 'sirius', weapon: G('빵 투척', 'holy', 1.0, 3, 0.6, 6, 2),
@@ -611,7 +650,18 @@ export const REWORK: Record<string, ReworkDef> = {
     },
     specialAugs: [
       sp('aiden', 'cat', '고양이 상시', '고양이 형태가 계속 유지되고 이동 속도 +40%, 최대 체력 -30%.', { pct: { maxHp: -0.3 }, stats: { moveSpd: 0.4 }, hooks: { onStart(b, u) { cat(b, u, 999); } } }),
-      sp('aiden', 'bar', '바텐더 근무', '전투 스킬을 쓸 때 체력 비율이 가장 낮은 아군을 기술 위력 120% 회복.', { hooks: { onSkill(b, u) { const a = b.lowestHpAlly(u); if (a) b.heal(u, a, b.P(u, 'tech') * 1.2); } } }),
+      sp('aiden', 'bar', '바텐더 근무', '액체 금속 변형이 바텐더 근무로 바뀐다: 적에게 파고드는 대신 체력 비율이 가장 낮은 아군을 기술 위력 180% 회복 (피해 · 공포 없음).', { setup: (u) => {
+        const base = u.skill;
+        if (!base) return;
+        u.skill = { ...base, needsRange: false, tag: () => '약한 아군 회복', cast(b, self) {
+          if (!b.enemiesOf(self).length) return false;
+          const a = b.lowestHpAlly(self);
+          if (!a || b.hpPct(a) > 0.95) return false;
+          b.heal(self, a, b.P(self, 'tech') * 1.8);
+          b.fx(a.x, a.y, 0, 'holy', 'heal');
+          return true;
+        } };
+      } }, ex('aiden', 'illusion')),
       sp('aiden', 'crystal', '수정 섭취', '처치하면 최대 체력 7.5% 회복, 콤보 +2.', { hooks: { onKill(b, u) { b.heal(u, u, b.S(u, 'maxHp') * 0.075); u.combo += 2; } } }),
       sp('aiden', 'nine', '아홉 목숨', '쓰러질 피해를 받으면 전투당 1회 체력 1로 버티고, 고양이 형태로 3초간 모든 공격을 회피한다 (회피 +100%p, 피해 무시).', { hooks: { onLethal(b, u) {
         if (u.mem.nine) return false;
@@ -798,14 +848,15 @@ export const REWORK: Record<string, ReworkDef> = {
   mingki: {
     ctype: 'VAN', ttype: 'special', faith: 'index', weapon: K('발톱', 'phys', 0.65, 1, 0.7, 6),
     factions: ['FAM'], traits: ['INFIL'],
-    trait: { name: '내면의 괴물', desc: '체력이 처음 50% 이하가 되면 피해 +80%, 공격 속도 +50%.' },
+    trait: { name: '내면의 괴물', desc: '체력이 처음 50% 이하가 되면 피해 +80%, 공격 속도 +50%. 전투 스킬을 쓸 때마다 츄르 간식으로 최대 체력 5% 회복.',
+      effect: { hooks: { onSkill(b, u) { b.heal(u, u, b.S(u, 'maxHp') * (u.sk.heal ?? 0.05)); } } } },
     specialAugs: [
       sp('mingki', 'awake', '상시 각성', '내면의 괴물이 전투 시작부터 깨어 있지만 초당 최대 체력 2%를 잃는다.', { setup: (u) => { u.sk.monsterAt = 1; }, hooks: {
         onStart(b, u) { u.mem.monster = 1; b.buff(u, u, 'mingki.monster', 999, { delta: { atkSpd: 0.5 }, mods: [inc('all', 0.8)], label: '내면의 괴물' }); },
         onTick(b, u, dt) { u.mem.mt = (u.mem.mt || 0) + dt; if (u.mem.mt >= 1) { u.mem.mt -= 1; if (b.hpPct(u) > 0.1) b.dealDamage(u, u, b.S(u, 'maxHp') * 0.02, { elem: 'true', tag: 'dot', noHooks: true }); } },
       } }),
       sp('mingki', 'master', '저택의 주인', '엘베스타드 아군 전원 피해 +10%.', { hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) if (a.synergies.has('FAM')) b.buff(u, a, 'mingki.master', 999, { mods: [inc('all', 0.1)] }); } } }),
-      sp('mingki', 'full', '배부른 고양이', '츄르 사냥 쿨다운 -2초, 회복 +7.5%p.', { setup: (u) => { u.cdMax = Math.max(1, u.cdMax - 2); u.sk.heal += 0.075; } }),
+      sp('mingki', 'full', '배부른 고양이', '츄르 사냥 쿨다운 -2초, 츄르 간식 회복 +7.5%p.', { setup: (u) => { u.cdMax = Math.max(1, u.cdMax - 2); u.sk.heal += 0.075; } }),
       sp('mingki', 'appetite', '괴물의 식욕', '각성 중 적을 처치하면 최대 체력 10% 회복, 피해 +10% 누적 (최대 +50%).', { hooks: {
         onKill(b, u) {
           if (!b.has(u, 'buff', 'mingki.monster')) return;
@@ -827,7 +878,25 @@ export const REWORK: Record<string, ReworkDef> = {
         b.buff(u, u, 'mingki.monster2', 999, { mods: [inc('all', 0.5)], delta: { lifesteal: 0.2 }, label: '두 번째 괴물' });
         b.emit({ k: 'status', id: u.id, name: '두 번째 괴물이 깨어났다!' });
       } } }, ex('mingki', 'tame')),
-      sp('mingki', 'tame', '얌전한 고양이', '내면의 괴물이 깨어나지 않는다. 대신 츄르 사냥이 아군 전원을 최대 체력 5% 회복시키고 2초간 최대 체력 10% 보호막을 준다.', { setup: (u) => { u.mem.tame = 1; } }, ex('mingki', 'awake')),
+      sp('mingki', 'tame', '얌전한 고양이', '내면의 괴물이 깨어나지 않는다. 츄르 사냥이 그르릉으로 바뀐다: 적에게 뛰어드는 대신 다른 아군 전원을 최대 체력 6% 회복시키고, 자신 포함 아군 전원에게 3초간 최대 체력 10% 보호막을 준다 (피해 없음).', { setup: (u) => {
+        u.mem.tame = 1;
+        const base = u.skill;
+        if (!base) return;
+        u.skill = { ...base, needsRange: false, tag: () => '아군 전체 회복 · 보호막', cast(b, self) {
+          if (!b.enemiesOf(self).length) return false;
+          b.fx(self.x, self.y, 0, 'holy', 'heal');
+          for (const a of b.alliesOf(self)) {
+            if (a !== self) b.heal(self, a, b.S(a, 'maxHp') * 0.06);
+            const before = a.shield;
+            b.shield(a, b.S(a, 'maxHp') * 0.1);
+            const got = a.shield - before;
+            if (got <= 0) continue;
+            a.mem.purrSh = (a.mem.purrSh || 0) + got;
+            b.applyStatus(self, a, { type: 'buff', key: 'mingki.purr', dur: 3, onExpire(_bb, tgt) { tgt.shield = Math.max(0, tgt.shield - (tgt.mem.purrSh || 0)); tgt.mem.purrSh = 0; } });
+          }
+          return true;
+        } };
+      } }, ex('mingki', 'awake')),
     ],
   },
 
@@ -835,7 +904,10 @@ export const REWORK: Record<string, ReworkDef> = {
   exile: {
     ctype: 'VAN', ttype: 'major', faith: 'emperor', weapon: K('혈검', 'phys', 0.85, 1, 0.8, 4),
     factions: ['KAL'], traits: ['INFIL'],
-    trait: { name: '혈족의 갈증', desc: '피니쉬로 준 피해의 30%만큼 회복.', effect: { hooks: { onBasic(b, u, _t, r) { if (u.mem.finished && r.amount > 0) b.heal(u, u, r.amount * 0.3, true); } } } },
+    trait: { name: '혈족의 갈증', desc: '피니쉬 · 전투 스킬 · 궁극기로 준 피해의 35%만큼 회복.', effect: { hooks: {
+      onBasic(b, u, _t, r) { if (u.mem.finished && r.amount > 0) b.heal(u, u, r.amount * 0.35, true); },
+      onDeal(b, u, t, r, o) { if (o.tag === 'skill' && t !== u && r.amount > 0) b.heal(u, u, r.amount * 0.35, true); },
+    } } },
   },
   thermo: {
     ctype: 'VAN', ttype: 'divine', faith: 'ares', weapon: K('도리와 방패', 'phys', 1.1, 2, 0.85, 3),
@@ -860,7 +932,7 @@ export const REWORK: Record<string, ReworkDef> = {
 // ───────── 특성 보조 함수
 function grenShield(b: Battle, u: CUnit) {
   const max = b.S(u, 'maxHp');
-  const cap = max * 0.3;
+  const cap = max * 0.2;
   if (u.shield < cap) b.shield(u, Math.min(max * 0.05, cap - u.shield));
 }
 function romaniPull(b: Battle, u: CUnit) {

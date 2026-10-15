@@ -96,3 +96,13 @@ export function blinkTo(b: Battle, u: CUnit, t: CUnit): boolean {
 }
 /** 주인의 살아 있는 소환물 */
 export const summonsOf = (b: Battle, u: CUnit) => b.units.filter((s) => s.owner === u && s.alive);
+
+/** 주기 발동 특성: period 초마다 true (첫 발동은 first 초 뒤). 전투 스킬과 따로 도는 지원 · 견제 효과용 */
+export const every = (u: CUnit, key: string, dt: number, period: number, first = period / 2) => {
+  u.mem[key] = (u.mem[key] ?? first) - dt;
+  if (u.mem[key] > 0) return false;
+  u.mem[key] += period;
+  return true;
+};
+/** n 번째 적중마다 true */
+export const nth = (u: CUnit, key: string, n: number) => { u.mem[key] = ((u.mem[key] || 0) + 1) % n; return u.mem[key] === 0; };

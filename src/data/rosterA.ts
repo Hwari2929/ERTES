@@ -50,8 +50,8 @@ export const ROSTER_A: BaseUnit[] = [
     lore: '"휴가 중. 기한 100년. 고양이 사료는 문 앞에."',
     skill: strike({
       name: '자안의 사수', cd: 7, pow: 'tech', elem: 'phys', mult: 2.0, target: 'lowest', blink: true, params: { crit: 0.2 },
-      desc: (p) => `급소가 붉게 보인다. 체력 비율이 가장 낮은 적에게 파고들어 단분자 와이어로 기술 위력 ${pct(p.mult)} 물리 피해 (치명타 확률 +${pct(p.crit)}p)${p.bleed ? `, 4초간 초당 ${pct(p.bleed)} 출혈` : ''}${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}${p.shock ? `, ${pct(p.shockChance || 0.7)} 확률로 ${p.shock}초 감전` : ''}. 까악이는 4초간 공격 속도 +50%로 같은 적을 노린다.`,
-      after: (b, u, t) => { for (const d of summonsOf(b, u)) { d.target = t; b.buff(u, d, 'donovan.crow', 4, { delta: { atkSpd: 0.5 }, label: '해킹 지원' }); } },
+      desc: (p) => `급소가 붉게 보인다. 체력 비율이 가장 낮은 적에게 파고들어 단분자 와이어로 기술 위력 ${pct(p.mult)} 물리 피해 (치명타 확률 +${pct(p.crit)}p)${p.bleed ? `, 4초간 초당 ${pct(p.bleed)} 출혈` : ''}${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}${p.shock ? `, ${pct(p.shockChance || 0.7)} 확률로 ${p.shock}초 감전` : ''}. 까악이도 같은 적을 노린다.`,
+      after: (b, u, t) => { for (const d of summonsOf(b, u)) d.target = t; },
     }),
   },
   {
@@ -59,9 +59,9 @@ export const ROSTER_A: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.1 }, range: 3, base: B(6, 6, 9, 4, 5),
     sprite: 'medic', palette: tint(PAL.UNI, '#1a1a22', '#f0f0f0', '#ff80c0'), lore: '"어머, 이 숙녀가 여기 있으면 안 될 이유라도 있으신가요?"',
     skill: support({
+      // sleep · sleepChance: 특성 [항밈 처방]의 수면 다트 수치
       name: '업계 비밀 배합', cd: 7, target: 'lowest', params: { heal: 1.1, cleanse: 1, sleep: 2, sleepChance: 0.5 },
-      desc: (p) => `체력 비율이 가장 낮은 아군${p.radius ? `과 주변 ${p.radius}칸` : ''}에게 약물을 투여해 기술 위력 ${pct(p.heal)} 회복 + 해로운 상태이상 제거. 가장 가까운 적에게는 항밈 수면제를 써서 ${pct(p.sleepChance)} 확률로 ${p.sleep}초 기절.`,
-      after: (b, u, _ts, p) => { const e = b.nearest(u, b.enemiesOf(u)); if (e) b.stun(u, e, p.sleep, p.sleepChance); },
+      desc: (p) => `체력 비율이 가장 낮은 아군${p.radius ? `과 주변 ${p.radius}칸` : ''}에게 약물을 투여해 기술 위력 ${pct(p.heal)} 회복 + 해로운 상태이상 제거.`,
     }),
   },
   {
@@ -69,11 +69,9 @@ export const ROSTER_A: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 4, base: B(7, 8, 8, 5, 3),
     sprite: 'soldier', palette: tint(PAL.UNI, '#e0c020', '#3a4a6a', '#7fe3ff'), lore: '"흠. 그래. 일단 담배 한 대 피고 얘기하지."',
     skill: strike({
+      // fix · overclock: 특성 [현장 반장]의 포탑 정비 수치
       name: '스패너 던지기', cd: 7, pow: 'shoot', elem: 'phys', mult: 1.6, params: { stun: 1, fix: 1.0, overclock: 0.35 },
-      desc: (p) => `대상에게 스패너를 던져 사격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절. 모든 포탑을 기술 위력 ${pct(p.fix)}만큼 수리하고 4초간 공격 속도 +${pct(p.overclock)}.`,
-      after: (b, u, _t, _d, p) => {
-        for (const t of b.alliesOf(u)) if (t.defId === 'turret') { b.heal(u, t, b.P(u, 'tech') * p.fix); b.buff(u, t, 'west.oc', 4, { delta: { atkSpd: p.overclock }, label: '정비' }); }
-      },
+      desc: (p) => `대상에게 스패너를 던져 사격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절.`,
     }),
   },
   // ───────── 주식회사 페트라
@@ -82,8 +80,8 @@ export const ROSTER_A: BaseUnit[] = [
     atk: { type: 'strike', elem: 'phys', interval: 0.9 }, range: 1, base: B(10, 7, 5, 8, 3),
     sprite: 'knight', palette: tint(PAL.PET, '#e07a1f', '#f0e0c0', '#7dff8a'), lore: '"행복은 잠깐이지만, 신용은 영원하죠"',
     skill: strike({
-      name: '실드 제너레이터', cd: 8, pow: 'strike', elem: 'phys', mult: 1.2, aroundSelf: true, params: { radius: 1, selfShield: 0.3, counter: 0.3, dur: 4 },
-      desc: (p) => `팔목 방어막을 전개해 최대 체력 ${pct(p.selfShield)} 보호막을 얻고, 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해${p.stun ? ` + ${p.stun}초 기절` : ''}. ${p.dur}초간 받은 피해의 ${pct(p.counter)}를 카운터로 되돌려준다.`,
+      name: '실드 제너레이터', cd: 8, pow: 'strike', elem: 'phys', mult: 1.2, aroundSelf: true, params: { radius: 1, counter: 0.3, dur: 4 },
+      desc: (p) => `팔목 방어막을 펼쳐 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해${p.stun ? ` + ${p.stun}초 기절` : ''}. ${p.dur}초간 받은 피해의 ${pct(p.counter)}를 카운터로 되돌려준다.`,
       after: (b, u, _t, _d, p) => { b.buff(u, u, 'lindiwe.guard', p.dur, { reflect: p.counter, label: '카운터' }); },
     }),
   },
@@ -101,9 +99,9 @@ export const ROSTER_A: BaseUnit[] = [
     atk: { type: 'strike', elem: 'phys', interval: 0.95 }, range: 1, base: B(8, 8, 5, 6, 5),
     sprite: 'knight', palette: tint(PAL.PET, '#2a2a34', '#c02030', '#ff3040'), lore: '"이의 있습니다. 방금 그 발언, 기록해도 되겠습니까?"',
     skill: strike({
+      // rewind: 특성 [은하법 검사]의 재생 비율
       name: '이의 있습니다', cd: 7, pow: 'strike', elem: 'phys', mult: 1.8, params: { rewind: 0.125 },
-      desc: (p) => `에너지 블레이드로 대상에게 타격 위력 ${pct(p.mult)} 물리 피해${p.stun ? ` + ${p.stun}초 기절` : ''}. 이후 잃은 체력의 ${pct(p.rewind)}를 재생한다.`,
-      after: (b, u, _t, _d, p) => { b.heal(u, u, (b.S(u, 'maxHp') - u.hp) * p.rewind, true); },
+      desc: (p) => `에너지 블레이드로 대상에게 타격 위력 ${pct(p.mult)} 물리 피해${p.stun ? ` + ${p.stun}초 기절` : ''}.`,
     }),
   },
   {
@@ -112,8 +110,8 @@ export const ROSTER_A: BaseUnit[] = [
     sprite: 'knight', palette: tint(PAL.PET, '#24242e', '#e0602a', '#ff8a40'),
     lore: '"이 병신같은 보고서 양식은 주주님의 좆같은 면상을 따와 그린 겁니까?" — 주주총회에서',
     skill: strike({
-      name: '군수품 시연', cd: 8, pow: 'strike', elem: 'phys', mult: 1.0, aroundSelf: true, params: { radius: 1, stun: 1, selfShield: 0.25 },
-      desc: (p) => `에너지 블레이드와 EMP로 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}. 7중 방호 슈트가 최대 체력 ${pct(p.selfShield)} 보호막을 전개한다.`,
+      name: '군수품 시연', cd: 8, pow: 'strike', elem: 'phys', mult: 1.0, aroundSelf: true, params: { radius: 1, stun: 1 },
+      desc: (p) => `에너지 블레이드와 EMP로 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해 + ${p.stun}초 기절${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}.`,
     }),
   },
   {
@@ -128,8 +126,9 @@ export const ROSTER_A: BaseUnit[] = [
       hooks: { takenMult: (b, u) => (summonsOf(b, u).length ? 0.75 : 1) },
     },
     skill: {
-      name: '거래 제안', tag: () => '강적 약화 · 경호원 지원', cd: 8, params: { shield: 1.5, mult: 2.0, weak: 0.2, dur: 4, vuln: 0 },
-      desc: (p) => `[비무장] 기본 공격을 하지 않는다. 경호원 2명을 데려오며, 경호원이 살아 있는 동안 피해량 경감 25%. 체력이 가장 높은 적에게 거래를 제안해 ${p.dur}초간 주는 피해 -${pct(p.weak)}${p.vuln ? `, 받는 피해 +${pct(p.vuln)}` : ''}. 경호원들에게 기술 위력 ${pct(p.shield)} 보호막을 주고 그 적을 타격 위력 ${pct(p.mult)}로 공격하게 한다.`,
+      // shield: 특성 [합리적인 거래]의 경호 계약 보호막 수치
+      name: '거래 제안', tag: () => '강적 약화 · 경호원 공격', cd: 8, params: { shield: 1.5, mult: 2.0, weak: 0.2, dur: 4, vuln: 0 },
+      desc: (p) => `[비무장] 기본 공격을 하지 않는다. 경호원 2명을 데려오며, 경호원이 살아 있는 동안 피해량 경감 25%. 체력이 가장 높은 적에게 거래를 제안해 ${p.dur}초간 주는 피해 -${pct(p.weak)}${p.vuln ? `, 받는 피해 +${pct(p.vuln)}` : ''}. 경호원들이 그 적을 경호원 타격 위력 ${pct(p.mult)}로 공격한다.`,
       cast(b, u) {
         const t = pickEnemy(b, u, 'strongest');
         if (!t) return false;
@@ -141,13 +140,8 @@ export const ROSTER_A: BaseUnit[] = [
         if (p.installment) t.statuses = t.statuses.filter((s) => s.key !== 'deal.lars');
         b.applyStatus(u, t, { type: 'buff', key: 'deal.lars', dur: p.installment ? 999 : p.dur, mods: [inc('all', -weak)], taken: p.vuln ? [vuln('all', p.vuln)] : undefined, label: '거래 조건' });
         b.fx(t.x, t.y, 0, 'psy');
-        // 하청: 경호원 대신 무작위 아군 2명에게 거래 보호막
-        if (p.subcon) {
-          const pool = b.alliesOf(u, false).filter((a) => !a.isSummon);
-          for (const a of (pool.length ? b.rng.sample(pool, 2) : [u])) b.shield(a, b.P(u, 'tech') * p.shield);
-        }
+        // 경호원 보호막은 특성 [합리적인 거래]의 경호 계약이 따로 준다
         for (const bot of summonsOf(b, u)) {
-          b.shield(bot, b.P(u, 'tech') * p.shield);
           bot.target = t;
           if (b.dist(bot, t) <= 1) skillHit(b, bot, t, 'strike', p.mult, 'phys');
         }

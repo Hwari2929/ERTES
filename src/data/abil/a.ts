@@ -36,10 +36,10 @@ export const ABIL_A: Record<string, AbilText> = {
         ...opt(p.bleed, '출혈', `[st:bleed:4] 초당 [dmg:tech:${p.bleed}:phys]`),
         ...opt(p.vuln, '취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`),
         ...opt(p.shock, '감전', `[st:shock:${p.shock}:${p.shockChance || 0.7}]`),
-        ['소환', '까악이가 같은 대상 공격, 공격 속도 +[p:0.5] ([s:4])'],
+        ['소환', '까악이가 같은 대상을 노림'],
       ],
     }),
-    trait: '기술 피해도 [g:crit] 발생. 기본 공격은 사거리 안에서 체력 비율이 가장 낮은 적을 노림.',
+    trait: '기술 피해도 [g:crit] 발생. 기본 공격은 사거리 안에서 체력 비율이 가장 낮은 적을 노림. 까악이 공격 속도 +[p:0.3].',
     augs: {
       wire: '자안의 사수 적중 시 [st:bleed:4]: 초당 [dmg:tech:0.5:phys].',
       marker: '자안의 사수 적중 시 [st:vuln:4]: 받는 피해 +[p:0.3].',
@@ -62,10 +62,9 @@ export const ABIL_A: Record<string, AbilText> = {
       rows: [
         ['회복', `[heal:${p.heal}]`],
         ['정화', '[g:cleanse]'],
-        ['기절', `가장 가까운 적에게 [st:stun:${p.sleep}:${p.sleepChance}]`],
       ],
     }),
-    trait: '기본 공격 적중 시 [st:poison:4]: 초당 [dmg:tech:0.25:chem]. 회복 시 대상의 해로운 효과 1개 제거.',
+    trait: '기본 공격 적중 시 [st:poison:4]: 초당 [dmg:tech:0.25:chem]. 다트 6번째 적중마다 항밈 수면제: 대상 [st:stun:2:0.5]. 회복 시 대상의 해로운 효과 1개 제거.',
     augs: {
       seven: '업계 비밀 배합 회복 [heal+:1.2].',
       sedative: '기절 확률 [pp:0.4], 지속 +[s:1].',
@@ -80,11 +79,9 @@ export const ABIL_A: Record<string, AbilText> = {
       rows: [
         ['피해', `[dmg:shoot:${p.mult}:phys]`],
         ['기절', `[st:stun:${p.stun}]`],
-        ['수리', `모든 아군 [g:turret] [heal:${p.fix}]`],
-        ['버프', `모든 아군 [g:turret] 공격 속도 +[p:${p.overclock}] ([s:4])`],
       ],
     }),
-    trait: '아군 [g:turret] 기본 공격 적중 시 추가 [dmg:shoot:0.15:true].',
+    trait: '아군 [g:turret] 기본 공격 적중 시 추가 [dmg:shoot:0.15:true]. [s:7]마다 모든 아군 [g:turret] [heal:1] + 공격 속도 +[p:0.35] ([s:4]).',
     augs: {
       spanner: '스패너 던지기 피해 [dmg+:shoot:1.6:phys].',
       cig: '쿨다운 감소 속도 [pp:0.4].',
@@ -98,12 +95,11 @@ export const ABIL_A: Record<string, AbilText> = {
       tgt: '자신', range: 0, area: { k: 'self', r: p.radius || 1 },
       rows: [
         ['피해', `[dmg:strike:${p.mult}:phys]`],
-        ['보호막', `자신에게 최대 체력 [p:${p.selfShield}] 보호막`],
         ['반사', `[g:reflect] [p:${p.counter}] ([s:${p.dur}])`],
         ...opt(p.stun, '기절', `[st:stun:${p.stun}]`),
       ],
     }),
-    trait: '자신과 주변 [t:1] 아군 [g:red] [p:0.3]. 주변 아군이 받는 피해의 [p:0.5]를 대신 받음.',
+    trait: '자신과 주변 [t:1] 아군 [g:red] [p:0.3]. 주변 아군이 받는 피해의 [p:0.5]를 대신 받음. 전투 스킬 사용 시 자신에게 최대 체력 [p:0.18] 보호막.',
     augs: {
       onetwo: '실드 제너레이터 피해 [dmg+:strike:1.2:phys].',
       overload: '실드 제너레이터 보호막 최대 체력 [pp:0.3].',
@@ -139,11 +135,10 @@ export const ABIL_A: Record<string, AbilText> = {
       tgt: '현재 대상', range: 'unit', area: { k: 'one' },
       rows: [
         ['피해', `[dmg:strike:${p.mult}:phys]`],
-        ['회복', `자신의 잃은 체력 [p:${p.rewind}]`],
         ...opt(p.stun, '기절', `[st:stun:${p.stun}]`),
       ],
     }),
-    trait: '[g:lifesteal] [pp:0.1]. 기본 공격 적중 시 [g:judge] ([s:5], 대상당 1개). 전투 스킬은 [g:tac]으로 계산.',
+    trait: '[g:lifesteal] [pp:0.1]. 전투 스킬 사용 후 잃은 체력의 [p:0.125] 재생. 기본 공격 적중 시 [g:judge] ([s:5], 대상당 1개). 전투 스킬은 [g:tac]으로 계산.',
     augs: {
       precedent: '이의 있습니다 피해 [dmg+:strike:1.8:phys].',
       deferred: '이의 있습니다 잃은 체력 회복 [pp:0.125].',
@@ -158,11 +153,10 @@ export const ABIL_A: Record<string, AbilText> = {
       rows: [
         ['피해', `[dmg:strike:${p.mult}:phys]`],
         ['기절', `[st:stun:${p.stun}]`],
-        ['보호막', `자신에게 최대 체력 [p:${p.selfShield}] 보호막`],
         ...opt(p.vuln, '취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`),
       ],
     }),
-    trait: '기본 공격 · 스킬 사용 시 최대 체력 [p:0.05] 보호막 (최대 [p:0.3]).',
+    trait: '기본 공격 · 스킬 사용 시 최대 체력 [p:0.05] 보호막 (최대 [p:0.2]). 전투 스킬 사용 시 최대 체력 [p:0.15] 보호막 추가.',
     augs: {
       deflect: '군수품 시연 보호막 최대 체력 [pp:0.3].',
       rocket: '군수품 시연 범위 +[t:1]. 피해 [dmg+:strike:0.3:phys].',
@@ -177,11 +171,10 @@ export const ABIL_A: Record<string, AbilText> = {
       rows: [
         ['약화', `[g:weak] [p:${p.weak}] ([s:${p.dur}])`],
         ...opt(p.vuln, '취약', `[g:vuln] 받는 피해 +[p:${p.vuln}] ([s:${p.dur}])`),
-        ['보호막', `모든 경호원에게 [shield:${p.shield}]`],
         ['피해', `경호원이 대상을 공격. 인접한 경호원은 즉시 경호원 타격 위력의 [p:${p.mult}] 물리 피해`],
       ],
     }),
-    trait: '기본 공격을 하지 않음. 경호원 +1명. 경호원이 살아 있으면 [g:red] [p:0.25]. 함께한 뒤 번 크레딧 10당 경호원 메이저 스탯 +1 (최대 +10). 이자 상한 +2. 전투 스킬은 [g:tac]으로 계산.',
+    trait: '기본 공격을 하지 않음. 경호원 +1명. 경호원이 살아 있으면 [g:red] [p:0.25]. 함께한 뒤 번 크레딧 10당 경호원 메이저 스탯 +1 (최대 +10). 이자 상한 +2. 경호 계약: [s:8]마다 모든 경호원에게 [shield:1.5]. 전투 스킬 · 경호 계약은 [g:tac]으로 계산.',
     augs: {
       guards: '경호원 +1명. 경호원 방어도 +240.',
       elite: '경호원 스탯 상속률 [pp:0.4].',
@@ -195,7 +188,7 @@ export const ABIL_A: Record<string, AbilText> = {
       'sp.penalty': '경호원이 쓰러지면 체력이 가장 높은 적에게 [dmg:tech:2.5:phys], [st:vuln:6] 받는 피해 +[p:0.2].',
       'sp.exclusive': '거래 대상 [s:4] 동안 속박 (이동 불가), 공격 속도 -[p:0.3].',
       'sp.installment': '거래 제안 쿨다운 +[s:2]. 같은 적과 거래할 때마다 [g:weak] [pp:0.1] 누적 (최대 [p:0.6], 전투 동안 유지).',
-      'sp.subcon': '경호원을 데려오지 않음. 거래 제안 때 무작위 아군 2명에게 [shield:1.5].',
+      'sp.subcon': '경호원을 데려오지 않음. 경호 계약 보호막 ([shield:1.5])을 무작위 아군 2명에게.',
     },
   },
   falcon: {

@@ -1,6 +1,6 @@
 // 칼리토 제국 · 헬레니우스 동맹
 import { inc, red } from '../engine/effects';
-import { fear, isHarmful, pct, skillHit, summonsOf } from './kit';
+import { pct, skillHit, summonsOf } from './kit';
 import { cookPower, pickEnemy, strike, strongestAlly, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type BaseUnit } from './unitkit';
 
@@ -35,11 +35,10 @@ export const ROSTER_B: BaseUnit[] = [
     sprite: 'robe', palette: tint(PAL.KAL, '#f0a0c8', '#ffffff', '#ff60c0'),
     lore: '누군가는 3년 전부터 있었다고 하고, 누군가는 처음부터 있었던 것 같다고 한다.',
     skill: {
-      name: '점괘', tag: () => '아군 강화 · 적 공포', cd: 8, params: { count: 1, luck: 0.7, dmg: 0.5, as: 0.3, dur: 5, fearChance: 0.5 },
-      desc: (p) => `가장 강한 아군 ${p.count}명의 점괘를 본다. ${pct(p.luck)} 확률로 길(${p.dur}초간 피해 +${pct(p.dmg)}, 공격 속도 +${pct(p.as)}), 아니면 흉(피해 +${pct(p.dmg * 0.3)}). 가장 가까운 적은 환술에 ${pct(p.fearChance)} 확률로 2초 공포.`,
+      name: '점괘', tag: () => '핵심 아군 강화', cd: 8, params: { count: 1, luck: 0.7, dmg: 0.5, as: 0.3, dur: 5 },
+      desc: (p) => `가장 강한 아군 ${p.count}명의 점괘를 본다. ${pct(p.luck)} 확률로 길(${p.dur}초간 피해 +${pct(p.dmg)}, 공격 속도 +${pct(p.as)}), 아니면 흉(피해 +${pct(p.dmg * 0.3)}).`,
       cast(b, u) {
-        const foe = b.nearest(u, b.enemiesOf(u));
-        if (!foe) return false;
+        if (!b.enemiesOf(u).length) return false;
         const p = u.sk;
         for (const a of strongestAlly(b, u, p.count)) {
           const good = b.rng.chance(Math.min(1, p.luck + (u.reason ?? 50) / 400 - 0.125));
@@ -48,7 +47,6 @@ export const ROSTER_B: BaseUnit[] = [
             ? { delta: { atkSpd: p.as }, mods: [inc('all', p.dmg)], label: '대길' }
             : { mods: [inc('all', p.dmg * 0.3)], label: '흉' });
         }
-        fear(b, u, foe, 2, p.fearChance);
         return true;
       },
     },
@@ -78,7 +76,7 @@ export const ROSTER_B: BaseUnit[] = [
     sprite: 'soldier', palette: tint(PAL.KAL, '#5a3a2a', '#e0b040', '#ff3040'), lore: '"사감은 없어. 예술을 추구할 뿐이네."',
     skill: {
       name: '바텐더의 칵테일', tag: () => '약한 아군 보호막 · 치명 강화', cd: 4.5, params: { shield: 1.2, crit: 0.075, dur: 5, need: 8, snipe: 8, snipeCrit: 0.15, keep: 0, start: 2 },
-      desc: (p) => `[요리] 체력 비율이 가장 낮은 아군에게 칵테일을 내어 기술 위력 ${pct(p.shield)} 보호막 + ${p.dur}초간 치명타 +${pct(p.crit)}p. 한 잔마다 (또는 아군 기본 공격 12회마다) [기다림의 미학] 1스택, ${p.need}스택이면 안단테-7로 체력이 가장 높은 적에게 사격 위력 ${pct(p.snipe)} 물리 저격 (치명타 확률 +${pct(p.snipeCrit)}p). 전투 시작 시 ${p.start}스택.`,
+      desc: (p) => `[요리] 체력 비율이 가장 낮은 아군에게 칵테일을 내어 기술 위력 ${pct(p.shield)} 보호막 + ${p.dur}초간 치명타 +${pct(p.crit)}p. 한 잔마다 [기다림의 미학] 1스택 (저격은 특성이 따로 쏜다).`,
       cast(b, u) {
         if (!b.enemiesOf(u).length) return false;
         const p = u.sk;
@@ -90,8 +88,7 @@ export const ROSTER_B: BaseUnit[] = [
         }
         u.mem.wait = (u.mem.wait ?? p.start) + 1;
         b.emit({ k: 'status', id: u.id, name: `기다림 ${u.mem.wait}/${p.need}` });
-        kairoSnipe(b, u);
-        return true;
+        return true; // 저격은 특성 [기다림의 미학]이 다음 틱에 별도 행동으로 쏜다
       },
     },
   },
@@ -140,29 +137,16 @@ export const ROSTER_B: BaseUnit[] = [
     sprite: 'robe', palette: tint(PAL.HEL, '#8a8a90', '#2a2a30', '#ffd040'), lore: '"일은 똑똑하게 해야지- 나 쉬러간다-!"',
     skill: strike({
       name: '균열 도약', cd: 6, pow: 'tech', elem: 'holy', mult: 2.2, target: 'lowest', blink: true, params: { supply: 0.8 },
-      desc: (p) => `공간 균열로 체력 비율이 가장 낮은 적에게 파고들어 기술 위력 ${pct(p.mult)} 신성 피해${p.hits > 1 ? ` ${p.hits}회` : ''}. 긴급 조달한 물자를 체력이 가장 낮은 아군에게 전송해 기술 위력 ${pct(p.supply)} 보호막.`,
-      after: (b, u, _t, _d, p) => {
-        const a = b.lowestHpAlly(u);
-        if (!a) return;
-        b.shield(a, b.P(u, 'tech') * p.supply);
-        if (p.supplyCleanse) { const i = a.statuses.findIndex(isHarmful); if (i >= 0) a.statuses.splice(i, 1); } // 하데스 택배
-      },
+      desc: (p) => `공간 균열로 체력 비율이 가장 낮은 적에게 파고들어 기술 위력 ${pct(p.mult)} 신성 피해${p.hits > 1 ? ` ${p.hits}회` : ''}.`,
     }),
   },
   {
     id: 'eleni', name: '엘레니', title: '로도스 생환 등대지기 · 영매기사', factions: ['HEL'], traits: ['MED'], keywords: ['mech'],
     atk: { type: 'strike', elem: 'phys', interval: 1.2 }, range: 1, base: B(10, 7, 5, 8, 1),
     sprite: 'knight', palette: tint(PAL.HEL, '#e8eef0', '#c0c8d0', '#a0e0ff'), lore: '"셀레네의 은총과 달빛이 우리 앞 길을 비추길-"',
-    skill: strike({
-      name: '달빛 진혼', cd: 8, pow: 'strike', elem: 'phys', mult: 1.2, aroundSelf: true, params: { radius: 1, guard: 1.0, mend: 0.5, armor: 0 },
-      desc: (p) => `대검으로 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해. 자신과 주변 ${p.radius}칸 아군에게 기술 위력 ${pct(p.guard)} 보호막 + ${pct(p.mend)} 회복${p.armor ? `, 4초간 방어도 +${p.armor}` : ''}.`,
-      after: (b, u, _t, _d, p) => {
-        for (const a of b.around(u, p.radius, b.alliesOf(u))) {
-          b.shield(a, b.P(u, 'tech') * p.guard);
-          b.heal(u, a, b.P(u, 'tech') * p.mend);
-          if (p.armor) b.buff(u, a, 'eleni.light', 4, { delta: { armor: p.armor }, label: '달빛' });
-        }
-      },
+    skill: support({
+      name: '달빛 진혼', cd: 8, target: 'aroundSelf', params: { radius: 1, shield: 1.0, heal: 0.5, armor: 0 },
+      desc: (p) => `달빛을 모아 자신과 주변 ${p.radius}칸 아군에게 기술 위력 ${pct(p.shield)} 보호막 + ${pct(p.heal)} 회복${p.armor ? `, 4초간 방어도 +${p.armor}` : ''}.`,
     }),
   },
   {
@@ -171,13 +155,7 @@ export const ROSTER_B: BaseUnit[] = [
     sprite: 'medic', palette: tint(PAL.HEL, '#f0f0f0', '#d4a83a', '#ffd040'), lore: '"헤르메스 신도가 되는거 어떻게 생각하세요? 그- 일단 우리 헤르메스님이 엄청 잘생기셨거든요!"',
     skill: support({
       name: '헤르메스의 가속', cd: 7, target: 'commanded', params: { count: 2, as: 0.35, dur: 4, jam: 1.2, fearChance: 0.5 },
-      desc: (p) => `가장 강한 아군 ${p.count}명의 공격 속도 ${p.dur}초간 +${pct(p.as)}. 가장 가까운 적의 인지를 교란해 기술 위력 ${pct(p.jam)} 신성 피해 + ${pct(p.fearChance)} 확률로 1.5초 공포.`,
-      after: (b, u, _ts, p) => {
-        const e = b.nearest(u, b.enemiesOf(u));
-        if (!e) return;
-        skillHit(b, u, e, 'tech', p.jam, 'holy', { noMiss: true });
-        if (e.alive) fear(b, u, e, 1.5, p.fearChance);
-      },
+      desc: (p) => `피해 기여가 가장 큰 아군 ${p.count}명의 공격 속도 ${p.dur}초간 +${pct(p.as)}.`,
     }),
   },
   {

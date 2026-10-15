@@ -14,11 +14,10 @@ export const ABIL_B: Record<string, AbilText> = {
         ['길', `[s:${p.dur}] 동안 피해 +[p:${p.dmg}], 공격 속도 +[p:${p.as}]`],
         ['흉', `[s:${p.dur}] 동안 피해 +[p:${p.dmg * 0.3}]`],
         ['길 확률', `[p:${p.luck}] (이성 50 기준, 이성 1당 [pp:0.0025])`],
-        ['공포', `가장 가까운 적 [st:fear:2:${p.fearChance}]`],
         ['이성', '길 +10, 흉 -10'],
       ],
     }),
-    trait: '전투 시작 시 [p:0.5] + 이성 1당 [pp:0.005] 확률 (최대 [p:0.95])로 길: 모든 아군 [s:12] 동안 피해 +[p:0.12]. 아니면 흉: 모든 아군 [s:6] 동안 받는 피해 +[p:0.08]. 길이면 이성 +10, 흉이면 이성 -10.',
+    trait: '전투 시작 시 [p:0.5] + 이성 1당 [pp:0.005] 확률 (최대 [p:0.95])로 길: 모든 아군 [s:12] 동안 피해 +[p:0.12]. 아니면 흉: 모든 아군 [s:6] 동안 받는 피해 +[p:0.08]. 길이면 이성 +10, 흉이면 이성 -10. 기본 공격 적중 시 [p:0.1] 확률로 환술: 대상 [st:fear:2] ([s:3]에 1회).',
     augs: {
       second: '점괘 대상 +1명.',
       daegil: '길 확률 [pp:0.3]. 점괘 피해 증가 [pp:0.3].',
@@ -52,15 +51,10 @@ export const ABIL_B: Record<string, AbilText> = {
         ['보호막', `[shield:${p.shield}]`],
         ['버프', `[s:${p.dur}] 동안 치명타 확률 [pp:${p.crit}]`],
         ['배율', '[g:cook] 배율 적용'],
-        ...(p.need < 999 ? [
-          ['스택', `[g:wait] +1 (${p.need}스택에서 저격, 전투 시작 시 ${p.start}스택)`] as Row,
-          ['저격', `체력이 가장 높은 적에게 [dmg:shoot:${p.snipe}:phys] (회피 불가)`] as Row,
-          ['치명타', `저격 [g:crit] 확률 [pp:${p.snipeCrit}]`] as Row,
-          ...(p.keep ? [['유지', `저격 후 ${p.keep}스택 유지`] as Row] : []),
-        ] : []),
+        ...(p.need < 999 ? [['스택', `[g:wait] +1 (${p.need}스택이면 특성이 저격)`] as Row] : []),
       ],
     }),
-    trait: '다른 아군 기본 공격 12회마다 [g:wait] +1 (소환물 제외).',
+    trait: '칵테일 1잔 또는 다른 아군 기본 공격 12회마다 (소환물 제외) [g:wait] +1, 전투 시작 시 2스택. 8스택이면 별도 행동으로 체력이 가장 높은 적에게 [dmg:shoot:8:phys] 저격 (회피 불가, [g:crit] 확률 [pp:0.15]) 후 스택 초기화.',
     augs: {
       patience: '저격에 필요한 스택 -2.',
       record: '저격 피해 [dmg+:shoot:8:phys].',
@@ -148,11 +142,10 @@ export const ABIL_B: Record<string, AbilText> = {
       rows: [
         ['피해', `[dmg:tech:${p.mult}:holy${hitsTxt(p.hits)}]`],
         ['이동', '대상 옆으로 순간이동'],
-        ['보호막', `체력 비율이 가장 낮은 아군에게 [shield:${p.supply}]`],
         ...(p.resetOnKill ? [['처치', `쿨다운 [p:${p.resetOnKill}] 회복`] as Row] : []),
       ],
     }),
-    trait: '회피 [pp:0.05]. 회피 시 공격자에게 [dmg:strike:1:holy] 반격 후 무작위 적 옆으로 순간이동 ([s:0.5]에 1회).',
+    trait: '회피 [pp:0.05]. 회피 시 공격자에게 [dmg:strike:1:holy] 반격 후 무작위 적 옆으로 순간이동 ([s:0.5]에 1회). 물자 전송: [s:6]마다 체력 비율이 가장 낮은 아군에게 [shield:1].',
     augs: {
       rush: '균열 도약 타수 +1 (두 번째도 [p:1] 피해).',
       supply: '균열 도약 보호막: [shield:0.8] 추가.',
@@ -162,24 +155,23 @@ export const ABIL_B: Record<string, AbilText> = {
       'sp.mail': '전투 시작 시 첫 번째 장비 효과를 무작위 아군 1명에게도 적용.',
       'sp.slack': '전투 시작 시 자신 [st:stun:3]. 피해 +[p:0.6].',
       'sp.chain': '처치 시 사거리 안에서 체력 비율이 가장 낮은 적 옆으로 순간이동하고 즉시 기본 공격.',
-      'sp.hades': '균열 도약 보호막 ×1.6, 보호막을 받은 아군의 해로운 효과 1개 제거.',
+      'sp.hades': '물자 전송 보호막 ×1.6, 보호막을 받은 아군의 해로운 효과 1개 제거.',
       'sp.rift': '균열 도약으로 떠난 자리 주변 [t:1]에 [s:2] 동안 균열: 지나는 적에게 [dmg:tech:0.4:holy] (균열마다 1회).',
       'sp.dodge': '회피 [pp:0.1]. 균열 회피 반격 [dmg:strike:1.5:holy].',
       'sp.supply': '전투 시작 시 모든 아군 [shield:0.6].',
-      'sp.underworld': '균열 도약이 가장 뒤에 있는 아군 곁으로 순간이동해 자신과 주변 [t:1] 아군에게 [shield:1] (균열 도약 보호막 수치). 피해 없음.',
+      'sp.underworld': '균열 도약이 가장 뒤에 있는 아군 곁으로 순간이동해 자신과 주변 [t:1] 아군에게 [shield:1] (물자 전송 보호막 수치). 피해 없음.',
     },
   },
   eleni: {
     skill: (p) => ({
-      tgt: '자신', range: 0, area: { k: 'self', r: p.radius || 1 },
+      tgt: '자신과 주변 아군', range: 0, area: { k: 'self', r: p.radius || 1 },
       rows: [
-        ['피해', `[dmg:strike:${p.mult}:phys]`],
-        ['보호막', `자신과 주변 [t:${p.radius || 1}] 아군에게 [shield:${p.guard}]`],
-        ['회복', `[heal:${p.mend}]`],
+        ['보호막', `자신과 주변 [t:${p.radius || 1}] 아군에게 [shield:${p.shield}]`],
+        ['회복', `[heal:${p.heal}]`],
         ...(p.armor ? [['방어도', `[s:4] 동안 방어도 +${p.armor}`] as Row] : []),
       ],
     }),
-    trait: '주변 [t:2] 아군 매초 최대 체력 [p:0.01] 회복.',
+    trait: '주변 [t:2] 아군 매초 최대 체력 [p:0.01] 회복. [g:finish] 적중 시 달빛 베기: 주변 [t:1] 적 모두에게 [dmg:strike:0.5:phys].',
     augs: {
       baklava: '달빛 진혼 보호막: [shield:1] 추가.',
       harp: '달빛 진혼 회복 [heal+:0.5].',
@@ -190,14 +182,12 @@ export const ABIL_B: Record<string, AbilText> = {
   },
   iris: {
     skill: (p) => ({
-      tgt: `가장 강한 아군${cntTxt(p.count)}`, range: null, area: { k: 'one' },
+      tgt: `피해 기여가 가장 큰 아군${cntTxt(p.count)}`, range: null, area: { k: 'one' },
       rows: [
         ['버프', `[s:${p.dur}] 동안 공격 속도 +[p:${p.as}]`],
-        ['피해', `가장 가까운 적에게 [dmg:tech:${p.jam}:holy] (회피 불가)`],
-        ['공포', `[st:fear:1.5:${p.fearChance}]`],
       ],
     }),
-    trait: '모든 아군 이동 속도 · 공격 속도 [pp:0.25].',
+    trait: '모든 아군 이동 속도 · 공격 속도 [pp:0.25]. 날개 단검 6번째 적중마다 인지 교란: 대상에게 [dmg:tech:1.2:holy] (회피 불가) + [st:fear:1.5:0.5].',
     augs: {
       kerykeion: '헤르메스의 가속 대상 +1명.',
       blessing: '헤르메스의 가속 공격 속도 증가 [pp:0.35].',
