@@ -2018,6 +2018,34 @@ function layoutPanels() {
 window.addEventListener('resize', () => layoutPanels());
 window.addEventListener('scroll', () => { if (root.querySelector('.stat-pop')) layoutPanels(); }, { passive: true });
 
+/** 스크롤된 요소 목록: [클래스 이름, 같은 클래스 중 순번, 위, 왼쪽, 창 안 여부] */
+type ScrollMark = [string, number, number, number, boolean];
+function scrollSnapshot(): ScrollMark[] {
+  const out: ScrollMark[] = [];
+  const seen = new Map<string, number>();
+  for (const el of Array.from(root.querySelectorAll<HTMLElement>('*'))) {
+    if (!(el instanceof HTMLElement) || !el.className || typeof el.className !== 'string') continue;
+    const cls = el.className.replace(/\b(on|enter|sel|peek|dragging|played|landed|opened)\b/g, '').trim();
+    const n = seen.get(cls) ?? 0;
+    seen.set(cls, n + 1);
+    if (el.scrollTop > 0 || el.scrollLeft > 0) out.push([cls, n, el.scrollTop, el.scrollLeft, !!el.closest('.modal')]);
+  }
+  return out;
+}
+function scrollRestore(marks: ScrollMark[], newModal: boolean) {
+  if (!marks.length) return;
+  const want = new Map(marks.filter((m) => !(newModal && m[4])).map((m) => [`${m[0]}#${m[1]}`, m]));
+  if (!want.size) return;
+  const seen = new Map<string, number>();
+  for (const el of Array.from(root.querySelectorAll<HTMLElement>('*'))) {
+    if (!(el instanceof HTMLElement) || !el.className || typeof el.className !== 'string') continue;
+    const cls = el.className.replace(/\b(on|enter|sel|peek|dragging|played|landed|opened)\b/g, '').trim();
+    const n = seen.get(cls) ?? 0;
+    seen.set(cls, n + 1);
+    const m = want.get(`${cls}#${n}`);
+    if (m) { el.scrollTop = m[2]; el.scrollLeft = m[3]; }
+  }
+}
 function render() {
   AB.ABOPT.coef = app.detail; // 상세 보기: 피해 · 회복을 계수로
   if (app.screen !== 'battle' && app.view) { app.view.destroy(); app.view = null; }
@@ -2037,18 +2065,24 @@ function render() {
   else if (app.screen === 'over') body = overScreen(run);
   const showTop = run && app.screen !== 'title' && app.screen !== 'newrun' && app.screen !== 'codex';
   // 다시 그려도 같은 화면 · 같은 창이면 스크롤 위치를 유지한다
-  const modalKey = run?.pending[0] ? JSON.stringify([run.pending[0].t, (run.pending[0] as { uid?: string }).uid, (run.pending[0] as { allocDone?: boolean }).allocDone, (run.pending[0] as { options?: unknown }).options]) : app.menu || '';
+  const modalKeyOf = () => (run?.pending[0] ? JSON.stringify([run.pending[0].t, (run.pending[0] as { uid?: string }).uid, (run.pending[0] as { allocDone?: boolean }).allocDone, (run.pending[0] as { options?: unknown }).options]) : app.menu || '');
+  const modalKey = modalKeyOf();
   const sameView = lastView.screen === app.screen;
   const newModal = lastView.modal !== modalKey;
+  // 스크롤된 모든 요소 기억 (같은 화면을 다시 그릴 때 복원: 증강 · 학파 고르기, 탭 전환 등)
+  const scrolled = sameView ? scrollSnapshot() : [];
   const keep = ['.side.left', '.side.right', 'aside.side', '.codex-grid', '.map-detail', '.cx-detail', '.cx-list'].map((sel) => [sel, root.querySelector(sel)?.scrollTop || 0] as const);
   const modalTop = lastView.modal === modalKey ? root.querySelector('.modal')?.scrollTop || 0 : 0;
   const winY = window.scrollY;
-  lastView.screen = app.screen; lastView.modal = modalKey;
+  lastView.screen = app.screen;
   // 다시 그려도 스크롤 위치 유지 (상세 패널 · 전체 상세 팝업)
   const KEEP = ['.um-grid', '.um-a', '.um-c', '.um-r', '.um-main', '.side.right', '.map-detail', '.detail'];
   const kept = KEEP.map((q) => root.querySelector<HTMLElement>(q)?.scrollTop ?? 0);
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
+  // 창 내용은 첫 그리기에서 채워질 수 있으므로 (선택지 생성 등) 그린 뒤의 키를 기억한다
+  lastView.modal = modalKeyOf();
+  scrollRestore(scrolled, newModal);
   restoredAt = performance.now();
   layoutPanels();
   advSync(run ?? null);
