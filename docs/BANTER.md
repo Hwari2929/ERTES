@@ -24,3 +24,7 @@
 | [banter/08_staff.md](banter/08_staff.md) | 참모진 · 작전반 · 의무실 |
 | [banter/09_factions.md](banter/09_factions.md) | 세력별 (페트라 · 호이슌 · 연합 · 성도회 · 동맹) |
 | [banter/10_oddcouple.md](banter/10_oddcouple.md) | 이상한 조합 |
+| [banter/11_hobbies.md](banter/11_hobbies.md) | 취미 · 쉬는 날 |
+| [banter/12_inbattle.md](banter/12_inbattle.md) | 전투 중 한마디 (2줄) |
+| [banter/13_shiplife.md](banter/13_shiplife.md) | 함선 생활 |
+| [banter/14_groups.md](banter/14_groups.md) | 셋 이상 (단체) |
