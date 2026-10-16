@@ -202,8 +202,8 @@ export const TURRET_GEAR_IDS = Object.keys(TURRET_GEAR);
 export const TURRET_BASIC = TURRET_GEAR_IDS.filter((k) => TURRET_GEAR[k].grade === 'basic');
 export const TURRET_ADV = TURRET_GEAR_IDS.filter((k) => TURRET_GEAR[k].grade === 'adv');
 export const isTurretGear = (id: string | null | undefined) => !!id && id.startsWith('T_') && !!TURRET_GEAR[id];
-/** 포탑 1기의 장비 칸 수: 엔지니어 1 · 2단계 1칸, 3단계 이상 2칸 */
-export const turretSlots = (engTier: number) => (engTier >= 3 ? 2 : 1);
+/** 포탑 1기의 장비 칸 수: 엔지니어 단계 1 (2명) 1칸, 2단계 (4명) 2칸, 3단계 (6명) 이상 3칸 */
+export const turretSlots = (engTier: number) => (engTier >= 3 ? 3 : engTier >= 2 ? 2 : 1);
 
 export function itemInfo(id: string): ItemInfo {
   if (isTurretGear(id)) { const g = TURRET_GEAR[id]; return { id, tier: 'T', name: g.name, icon: g.icon, majors: {}, desc: `[포탑 전용 · ${g.grade === 'adv' ? '고급형' : '보급형'}] ${g.desc}` }; }

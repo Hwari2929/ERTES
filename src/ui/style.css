@@ -335,6 +335,10 @@ button { font: inherit; color: inherit; }
 .u.tkb .tk-cat { position: absolute; top: 8px; right: calc(var(--sts) * -.55); box-sizing: border-box; width: var(--sts); height: var(--sts); display: grid; place-items: center; border-radius: 2px; border: 1px solid color-mix(in srgb, #8fc8ff 45%, transparent); background: rgb(10 12 18 / .85); box-shadow: 0 1px 2px #000; z-index: 2; pointer-events: none; }
 .u.tkb .tk-cat .li { width: 80%; height: 80%; }
 .u.tkb.has-cat .sts.buf { top: calc(9px + var(--sts)); }
+.u.tkb.edge-l .sts.deb { left: 1px; }
+.u.tkb.edge-r .sts.buf, .u.tkb.edge-r .tk-cat { right: 1px; }
+.u.tkb.edge-r .gx, .u.tkb.edge-r .rl { right: calc(var(--sts) + 2px); }
+.u.tkb.edge-l .cpi { left: calc(var(--sts) + 2px); }
 @keyframes sti-spin { to { transform: rotate(360deg); } }
 .u.stunned img { filter: grayscale(.7) brightness(.65); }
 /* 행동 불가 상태: 초상화 중앙 큰 표식 */
@@ -1148,7 +1152,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 /* 전투 보드: 배치 구역만 보이는 창 + 전체 전장(테두리 포함)을 끌어서 보기 */
 .bview { overflow: hidden; border-radius: 6px; touch-action: none; cursor: grab; }
 .bview.panning { cursor: grabbing; }
-.board-in { position: absolute; width: calc(var(--fw) / var(--w) * 100%); height: calc(var(--fh) / var(--h) * 100%); left: calc(-100% / var(--w)); top: calc(-100% / var(--h)); will-change: transform; }
+.board-in { position: absolute; width: calc(var(--fw) / var(--w) * 100%); height: calc(var(--fh) / var(--h) * 100%); left: calc(-100% * var(--ox, 1) / var(--w)); top: calc(-100% / var(--h)); will-change: transform; }
 .board-in .cells { grid-template-columns: repeat(var(--fw), 1fr); grid-template-rows: repeat(var(--fh), 1fr); }
 .bview .u { cursor: pointer; }
 /* 시너지 목록 한 단계 크게 */

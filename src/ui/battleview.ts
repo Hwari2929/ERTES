@@ -402,6 +402,9 @@ export class BattleView {
       const p = this.pos(x, y);
       e.el.style.left = p.left;
       e.el.style.top = p.top;
+      // 전장 맨 왼쪽 · 오른쪽 열: 상태 줄 · 배지를 카드 안쪽으로 (화면 밖으로 잘리지 않게)
+      const edge = u.x <= 0 ? 'l' : u.x >= this.b.w - 1 ? 'r' : '';
+      if (e.el.dataset.edge !== edge) { e.el.dataset.edge = edge; e.el.classList.toggle('edge-l', edge === 'l'); e.el.classList.toggle('edge-r', edge === 'r'); }
       const max = this.b.S(u, 'maxHp');
       const hp = Math.max(0, Math.min(max, u.hp - (this.lagHp.get(id) || 0)));
       const sh = Math.max(0, u.shield - (this.lagSh.get(id) || 0));

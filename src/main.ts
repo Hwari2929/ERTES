@@ -1027,11 +1027,11 @@ function turretDetail(run: RunState, i: number, bar: string) {
     ${heroHead('', sprite(TURRET_SPR, 'spr big'), `감시 포탑 ${i + 1}`, `<span class="tag cat-mech">${lineIcon('k.mech', 'li')}기계</span><span class="tag">구조물</span><span class="tag">엔지니어 소환물</span>`)}
     <div class="small muted">기계: ${esc(CATEGORY_RULE.mech)}<br>구조물: ${esc(CATEGORY_RULE.struct)}</div>
     ${t ? `<dl class="stats">${row('최대 체력', fmt(t.st.maxHp))}${row('사격 위력', fmt(t.st.shoot))}${row('방어도', fmt(t.st.armor))}${row('공격 속도', `+${Math.round(t.st.atkSpd * 100)}%`)}${row('사거리', String(t.st.range))}${row('피해 속성', ELEM_NAME[t.atk.elem])}</dl>` : '<p class="muted small">엔지니어가 출전해야 포탑이 설치됩니다.</p>'}
-    <h3>포탑 장비 <span class="muted small">${slots}칸 · 포탑 전용</span></h3>
+    <h3>포탑 장비 <span class="muted small" title="엔지니어 2명 1칸 · 4명 2칸 · 6명 이상 3칸">${slots}칸 · 포탑 전용</span></h3>
     <div class="t-gear">${[...Array(slots).keys()].map((k) => { const it = g[k]; return it
       ? `<div class="t-slot">${itemIcon(it, `data-drag="tgear:${i}:${k}" data-drop="tgear:${i}:${k}"`)}<div><b>${esc(itemInfo(it).name)}</b><div class="small muted">${esc(TURRET_GEAR[it].desc)}</div></div><button class="btn tiny" data-a="tunequip" data-v="${i}:${k}">해제</button></div>`
       : `<div class="t-slot empty">${itemIcon(null, `data-drop="tgear:${i}:${k}"`)}<span class="muted small">빈 칸 — 보관함의 포탑 전용 장비를 끌어 놓거나, 장비를 고른 뒤 포탑을 누르세요.</span></div>`; }).join('')}</div>
-    <p class="muted small">포탑 전용 장비는 분기점의 [정비]에서 삽니다. 일반 기물에게는 장착할 수 없고, 엔지니어 시너지가 꺼지면 보관함으로 돌아옵니다.</p>
+    <p class="muted small">장비 칸: 엔지니어 2명 1칸 · 4명 2칸 · 6명 이상 3칸. 포탑 전용 장비는 분기점의 [정비]에서 삽니다. 일반 기물에게는 장착할 수 없고, 칸이 줄거나 엔지니어 시너지가 꺼지면 넘치는 장비는 보관함으로 돌아옵니다.</p>
   </div>`;
 }
 
@@ -1522,6 +1522,8 @@ function applySpeed() {
   const tag = document.getElementById('bslow');
   if (tag) tag.hidden = !slow;
 }
+/** 전투 화면 가로 여유 칸: 엔지니어 포탑이 있으면 편성 화면처럼 양옆 가장자리 열(포탑 칸)까지 보여 준다 */
+const bviewEx = (run: RunState) => (!app.zoomOut && turretCount(run) > 0 ? PAD : 0);
 function battleScreen(run: RunState) {
   const enc = run.node!.enc!;
   return `<main class="wrap battle">
@@ -1533,7 +1535,7 @@ function battleScreen(run: RunState) {
       <div class="board-head"><b>${esc(enc.env)}</b><span id="btime" class="mono">0.0초</span><span id="bslow" class="bslow" hidden title="상세 정보를 보는 중 · 설정에서 끌 수 있습니다">상세 보기 ×0.25</span>
         <span class="speed"><button class="btn tiny pause${app.paused ? ' on' : ''}" data-a="pause" title="일시 정지 (Space)" aria-label="일시 정지">${app.paused ? '▶' : '❚❚'}</button>${SPEEDS.map((s) => `<button class="btn tiny ${app.speed === s ? 'on' : ''}" data-a="speed" data-v="${s}">${s}×</button>`).join('')}
         <button class="btn tiny" data-a="skip">결과로</button></span></div>
-      <div class="board bview${app.zoomOut ? ' full' : ''}" data-a="bdesel" style="--w:${boardDims(enc.n).w - (app.zoomOut ? 0 : 2 * PAD)};--h:${boardDims(enc.n).h - (app.zoomOut ? 0 : 2 * PAD)};--fw:${boardDims(enc.n).w};--fh:${boardDims(enc.n).h}"><div class="board-in" id="bboard"><div class="cells">${battleCells(enc.n)}</div></div></div>
+      <div class="board bview${app.zoomOut ? ' full' : ''}" data-a="bdesel" data-ex="${bviewEx(run)}" style="--ox:${PAD - bviewEx(run)};--w:${boardDims(enc.n).w - (app.zoomOut ? 0 : 2 * PAD - 2 * bviewEx(run))};--h:${boardDims(enc.n).h - (app.zoomOut ? 0 : 2 * PAD)};--fw:${boardDims(enc.n).w};--fh:${boardDims(enc.n).h}"><div class="board-in" id="bboard"><div class="cells">${battleCells(enc.n)}</div></div></div>
     </section>
     <aside class="side right">
       <div id="bunit" class="bunit detail"></div>
@@ -2371,12 +2373,13 @@ function followCamera(b: Battle) {
   if (!inner) return;
   const alive = b.units.filter((u) => u.alive);
   if (!alive.length) return;
-  const viewH = b.h - 2 * PAD, viewW = b.w - 2 * PAD;
+  const ex = +(inner.parentElement?.dataset.ex || 0); // 포탑 가장자리 열을 함께 보이는 만큼
+  const viewH = b.h - 2 * PAD, viewW = b.w - 2 * PAD + 2 * ex;
   const maxY = Math.max(...alive.map((u) => u.y));
   const top = Math.max(0, Math.min(b.h - viewH, maxY - (viewH - 1)));
   // 가로: 좌우 끝 기물을 따라가되, 양쪽에 다 있으면 더 많은 기물이 보이는 위치 (같으면 가운데)
-  let left = PAD, best = -1;
-  for (const c of [PAD, 0, b.w - viewW]) {
+  let left = PAD - ex, best = -1;
+  for (const c of [PAD - ex, 0, b.w - viewW]) {
     const seen = alive.filter((u) => u.x >= c && u.x < c + viewW).length;
     if (seen > best) { best = seen; left = c; }
   }
