@@ -270,6 +270,8 @@ export interface BattleCtx { phase: number; credits: number; field?: string; dif
 
 /** 전장 조건 훅: 전장(id)마다 하나. battlefields.ts 가 FIELD_RULES 에 등록하고, 전투 시작 때 ctx.field 로 붙는다 */
 export interface FieldRules {
+  /** 기물 onStart 보다 먼저 (배치를 바꾸는 전장 규칙 — 침투자 순간이동 등보다 앞서야 할 때) */
+  onPreStart?(b: Battle): void;
   /** 모든 기물 onStart 직후 */
   onStart?(b: Battle): void;
   /** 매 틱 (기물 행동 전) */
@@ -464,9 +466,10 @@ export class Battle {
       if (u.weapon?.kind === 'mag') u.ammo = u.weapon.mag || 1;
     }
     this.computeTac();
+    this.fr = this.ctx.field ? FIELD_RULES[this.ctx.field] || null : null;
+    this.fr?.onPreStart?.(this);
     for (const u of this.units.slice()) { this.actor = u; for (const h of u.hooks) h.onStart?.(this, u); }
     this.actor = null;
-    this.fr = this.ctx.field ? FIELD_RULES[this.ctx.field] || null : null;
     this.fr?.onStart?.(this);
     for (const u of this.units) u.hp = Math.min(u.hp, this.S(u, 'maxHp'));
   }

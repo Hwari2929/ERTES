@@ -123,7 +123,8 @@ export const FIELDS: FieldDef[] = [
     enemyMod: (c) => threat(c, 1.18),
     ally: { syn: 'SEC', effect: { mods: [inc('all', 0.2)], setup: (u) => { u.mem.seeStealth = 1; } } },
     battle: {
-      onStart(b) {
+      // 침투자 순간이동보다 먼저 굴린다 (이웃이 먼저 뒷줄에 섞이고, 침투자는 그 뒤에 적진으로 뛴다)
+      onPreStart(b) {
         if (b.units.some((u) => u.isBoss)) return;
         const back = b.h - 2; // 아군 뒷줄
         const cells = b.rng.shuffle([...Array(b.w - 2).keys()].map((i) => ({ x: i + 1, y: back })).filter((c) => !b.unitAt(c.x, c.y)));
