@@ -2304,7 +2304,16 @@ function render() {
   // 페이즈 전환 연출
   if (run && run.phase !== lastPhase) { if (lastPhase && run.phase > lastPhase) banner('phase', `PHASE ${run.phase}`, `${fieldOf(run.field).name} · 적이 강해집니다`); lastPhase = run.phase; }
   if (!run) lastPhase = 0;
-  if (cxScroll) { cxScroll = false; const det = root.querySelector<HTMLElement>('.cx-detail'); if (det) { det.scrollTop = 0; if (innerWidth <= 860) det.scrollIntoView({ block: 'start' }); } }
+  if (cxScroll) { // 도감: 상세를 맨 위로. 좁은 화면은 상세 ↔ 목록이 번갈아 보이므로 상세 머리나, 돌아온 목록의 그 항목으로
+    cxScroll = false;
+    const det = root.querySelector<HTMLElement>('.cx-detail'), wrapEl = root.querySelector<HTMLElement>('.cx-wrap');
+    if (det) det.scrollTop = 0;
+    if (innerWidth <= 860 && wrapEl) {
+      const f = CX2.CX2.focus ? Array.from(root.querySelectorAll<HTMLElement>('.cx-list [data-v]')).find((el) => el.dataset.v === CX2.CX2.focus) : null;
+      if (wrapEl.classList.contains('has-sel')) wrapEl.scrollIntoView({ block: 'start' }); else if (f) f.scrollIntoView({ block: 'center' });
+    }
+    CX2.CX2.focus = null;
+  }
   animateResult(root);
   if (app.screen === 'newrun') setupCarousel();
   const stv = root.querySelector<HTMLElement>('.st-view');
@@ -2848,30 +2857,15 @@ function renderBattleUnit(b: Battle, force: boolean) {
 
 // ───────────────────────── 도감
 let cxScroll = false;
-/** 도감 · 기물: 세력 · 특성 · 전투 유형 · 전술 유형으로 모아보기 + 펼친 기물의 시너지 · 능력 · 역할 · 추천 장비 · 이야기 */
+/** 도감 그림 조각 (codex2.ts 로 넘김) */
+const cxH = (): CX2.CxH => ({ itemIcon, augIcon, sprite: (d) => sprite(d), abTok, statIc, relicTok: (id) => relicTok(id), majorIcon: (m) => majorIcon(m), bust: (id) => standImg(id, 'cx-bust', true), typeIcon });
+/** 도감 · 기물: 초상화 카드 목록 (묶기 · 정렬 · 검색은 codex2.ts) + 고른 기물의 큰 일러스트 · 요약 · 능력 · 시너지 */
 function codexUnits(m: ReturnType<typeof loadMeta>) {
   const known = (d: UnitDef) => !d.eventOnly || !!m.units[d.id];
-  const GROUPS = [['none', '전체'], ['faction', '세력'], ['trait', '특성'], ['ctype', '전투 유형'], ['ttype', '전술 유형']] as const;
-  const bar = `<div class="cx-bar" role="group" aria-label="모아보기">${GROUPS.map(([k, l]) => `<button class="btn tiny ${app.codexGroup === k ? 'on' : ''}" data-a="codex-group" data-v="${k}" aria-pressed="${app.codexGroup === k}">${l}</button>`).join('')}</div>`;
-  const byName = (x: UnitDef, y: UnitDef) => x.name.localeCompare(y.name, 'ko');
-  const tile = (d: UnitDef) => {
-    const k = known(d), on = app.codexSel === d.id;
-    return `<button class="cx-tile${on ? ' on' : ''}${k ? '' : ' unknown'}" data-a="codex-sel" data-v="${d.id}" aria-pressed="${on}" title="${k ? esc(d.name) : '???'}">
-      <span class="cx-face">${sprite(d, 'spr')}</span><span class="cx-nm">${k ? esc(d.name) : '???'}</span>
-      <span class="cx-role">${k ? `<i class="ct-${d.ctype}" title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i><i class="tt-${d.ttype}" title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i>` : ''}</span>
-      <span class="cx-syn">${k ? [...d.factions, ...d.traits].map((id) => `<i style="color:${SYN_BY_ID[id as SynergyId]?.color}" title="${esc(SYN_BY_ID[id as SynergyId]?.name || id)}">${synIcon(id) || SYN_BY_ID[id as SynergyId]?.icon || ''}</i>`).join('') : ''}</span></button>`;
-  };
-  const grid = (list: UnitDef[]) => `<div class="cx-grid">${list.sort(byName).map(tile).join('')}</div>`;
-  let groups: [string, string, UnitDef[]][];
-  const g = app.codexGroup;
-  if (g === 'faction' || g === 'trait') groups = SYNERGIES.filter((x) => x.kind === g).map((x) => [`<span style="color:${x.color}">${synIcon(x.id) || x.icon}</span> ${esc(x.name)}`, `${x.tiers.join(' / ')}`, UNITS.filter((d) => ([...d.factions, ...d.traits] as string[]).includes(x.id))] as [string, string, UnitDef[]]).filter(([, , l]) => l.length);
-  else if (g === 'ctype') groups = (Object.keys(CTYPE_NAME) as CType[]).map((k) => [`${CTYPE_ICON(k)} ${CTYPE_NAME[k]}`, '', UNITS.filter((d) => d.ctype === k)] as [string, string, UnitDef[]]).filter(([, , l]) => l.length);
-  else if (g === 'ttype') groups = (Object.keys(TTYPE_NAME) as TType[]).map((k) => [`${TTYPE_ICON(k)} ${TTYPE_NAME[k]}`, '', UNITS.filter((d) => d.ttype === k)] as [string, string, UnitDef[]]).filter(([, , l]) => l.length);
-  else groups = [['', '', UNITS.slice()]];
-  const list = groups.map(([h, sub, l]) => `${h ? `<h3 class="cx-h">${h} <span class="muted small">${l.length}명${sub ? ` · 단계 ${sub}` : ''}</span></h3>` : ''}${grid(l)}`).join('');
-  const d = app.codexSel ? UNIT_BY_ID[app.codexSel] : null;
+  const { html, first } = CX2.unitsList(cxH(), { group: app.codexGroup, sel: app.codexSel, known });
+  const d = UNIT_BY_ID[app.codexSel || first || ''];
   const detail = d && known(d) ? codexDetail(d, m) : `<div class="cx-empty muted small">기물을 고르면 시너지 · 능력 · 역할군 · 추천 장비 · 이야기를 볼 수 있습니다.</div>`;
-  return `<div class="cx-wrap"><section class="cx-list">${bar}${list}</section><aside class="cx-detail">${detail}</aside></div>`;
+  return CX2.cxWrap('cx-units', html, detail, app.codexSel ? `data-a="codex-sel" data-v="${esc(app.codexSel)}"` : null);
 }
 function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
   // 1등급 · 장비 없음 기준 미리보기 (시너지 미적용)
@@ -2883,28 +2877,34 @@ function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
   b.add(c); b.computeTac();
   if (d.ctype === 'CMD') b.tac[0] = CFG.tacBase + CFG.tacPerMnd * (c.mem.mnd || 0); // 전술 위력: 출전 4명 · 지휘관 1명 기준
   const r = m.units[d.id];
-  const syn = [...d.factions, ...d.traits].map((id) => { const x = SYN_BY_ID[id as SynergyId]; if (!x) return ''; return `<div class="cx-syn-row" style="--c:${x.color}"><span class="cx-syn-ic">${synIcon(x.id) || x.icon}</span><div><b>${esc(x.name)}</b> <span class="muted small">${x.kind === 'faction' ? '세력' : '특성'} · ${x.tiers.join(' / ')}</span><p class="small">${esc(x.desc).replace(/\n/g, '<br>')}</p></div></div>`; }).join('');
-  const augLi = (a: { id: string }, tag = '') => { const ad = AUG_BY_ID[a.id]; return `<li class="aug-li ab-click${abilOn(`aug:${a.id}`)}" data-a="abil-pop" data-v="aug:${esc(a.id)}" role="button" tabindex="0">${augIcon(a.id)}<span><b>${esc(ad?.name || a.id)}</b>${tag ? ` <span class="tag">${tag}</span>` : ''}<br><span class="muted">${augText(a.id, undefined, b, c)}</span></span></li>`; };
+  const syn = [...d.factions, ...d.traits].map((id) => { const x = SYN_BY_ID[id as SynergyId]; if (!x) return ''; return `<button class="cx-syn-row" style="--c:${x.color}" data-a="cx2" data-v="go:syn:${x.id}" title="시너지 도감에서 보기"><span class="cx-syn-ic">${synIcon(x.id) || x.icon}</span><span><b>${esc(x.name)}</b> <span class="muted small">${x.kind === 'faction' ? '세력' : '특성'} · <span class="f-num">${x.tiers.join(' / ')}</span></span><p class="small muted">${esc(x.desc).replace(/\n/g, '<br>')}</p></span></button>`; }).join('');
   const reco = (RECO[d.ctype] || []).map((key) => { const it = itemInfo(`A_${key}`); const [ca, cb] = it.recipe || []; return `<li class="rc-row">${itemIcon(`A_${key}`)}<div class="rc-main"><b>${esc(it.name)}</b><span class="small muted">${statIc(esc(it.desc))}</span></div><div class="rc-parts" title="조합 재료">${[ca, cb].filter(Boolean).map((x) => itemIcon(x!)).join('')}</div></li>`; }).join('');
-  return `<div class="detail cx-d">
-    <div class="d-hero">${hero(d.id) || `<div class="hero none">${sprite(d, 'spr big')}</div>`}
-      <div class="dh-name"><b>${esc(d.name)}</b><span class="dh-types"><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i><i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i></span></div></div>
-    <p class="muted small">${esc(d.title)}</p>
-    ${powRow(b, c, d, false)}
-    <div class="majors-mini">${MAJORS.map((mm) => `<span title="${MAJOR_NAME[mm]} (기본)">${majorIcon(mm)}<b>${d.base[mm]}</b></span>`).join('')}</div>
-    <h3>시너지</h3><div class="cx-syns">${syn}</div>
-    <h3>역할군 · 능력 <span class="muted small">1등급 · 장비 없음 기준</span></h3>
-    <div class="abils">${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem, d.id)}${traitGroup(d, null, null, b, c)}${skillCard(d, b, c)}${voyAbil(d, null, null)}</div>
-    <div class="abils">${ultCard(d, b, c)}${faithAbil(d, null, null)}${ttSection(d, null, null, b, c)}${relicSection(d, null, null, c)}</div>
-    <h3>추천 장비 <span class="muted small">${CTYPE_NAME[d.ctype]}</span></h3><ul class="rc-list">${reco}</ul>
-    <h3>이야기</h3>${STORIES[d.id] ? `<p class="small">${esc(STORIES[d.id])}</p>` : ''}<p class="lore">${esc(d.lore)}</p>${CX2.loreLinks(d.id)}
-    <div class="codex-stats small">의뢰 <b>${r?.runs || 0}</b>회 · 누적 공명 등급 <b>${r?.ranks || 0}</b> · 최고 <b>${r?.best || 0}</b> · 성공 <b>${r?.clears || 0}</b></div>
+  const art = standImg(d.id, 'stand full') + standImg(d.id, 'stand bust', true);
+  return `<div class="detail cx-d cx-ud">
+    <div class="cx-ud-top">
+      <div class="cx-ud-art${art ? '' : ' none'}"${art ? ` data-stand="${d.id}" title="전신 보기"` : ''}>${art || sprite(d, 'spr big')}</div>
+      <div class="cx-ud-id">
+        <h2 class="cx-ud-name f-title">${esc(d.name)}</h2>
+        <p class="muted small">${esc(d.title)}</p>
+        <span class="dh-types"><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i><i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i></span>
+        <div class="cx-ud-pow">${powRow(b, c, d, false)}<div class="majors-mini">${MAJORS.map((mm) => `<span title="${MAJOR_NAME[mm]} (기본)">${majorIcon(mm)}<b class="f-num">${d.base[mm]}</b></span>`).join('')}</div></div>
+        ${unitSummary(app.run as RunState, tmp, d, b, c)}
+        <h3>시너지</h3><div class="cx-syns">${syn}</div>
+      </div>
+    </div>
+    <h3>능력 <span class="cx-hn">1등급 · 장비 없음 기준</span></h3>
+    <div class="cx-ud-abil"><div class="abils">${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem, d.id)}${traitGroup(d, null, null, b, c)}${skillCard(d, b, c)}${voyAbil(d, null, null)}</div>
+    <div class="abils">${ultCard(d, b, c)}${faithAbil(d, null, null)}${ttSection(d, null, null, b, c)}${relicSection(d, null, null, c)}</div></div>
+    <div class="cx-ud-more"><div><h3>추천 장비 <span class="cx-hn">${CTYPE_NAME[d.ctype]}</span></h3><ul class="rc-list">${reco}</ul></div>
+    <div><h3>이야기</h3>${STORIES[d.id] ? `<p class="small">${esc(STORIES[d.id])}</p>` : ''}<p class="lore">${esc(d.lore)}</p>${CX2.loreLinks(d.id)}</div></div>
+    <div class="codex-stats small">의뢰 <b class="f-num">${r?.runs || 0}</b>회 · 누적 공명 등급 <b class="f-num">${r?.ranks || 0}</b> · 최고 <b class="f-num">${r?.best || 0}</b> · 성공 <b class="f-num">${r?.clears || 0}</b></div>
   </div>${app.abilPop ? abilPopHtml(app.abilPop, d, b, c) : ''}`;
 }
 function codexScreen() {
   const m = loadMeta();
-  const tabs = ([['units', '기물'], ...CX2.CX2_TABS, ['enemies', '적'], ['events', '사건'], ['manual', '교범'], ['records', '기록']] as const)
-    .map(([k, l]) => `<button class="btn small ${app.codexTab === k ? 'primary' : ''}" data-a="codex-tab" data-v="${k}">${l}</button>`).join('');
+  // 탭: 자료 (기물 · 시너지 · 장비 · 증강 · 사이오닉 · 세계관) | 기록 (적 · 사건 · 교범 · 기록)
+  const tb = ([k, l]: readonly [string, string]) => `<button class="cx-tab${app.codexTab === k ? ' on' : ''}" data-a="codex-tab" data-v="${k}" aria-pressed="${app.codexTab === k}">${l}</button>`;
+  const tabs = `<div class="cx-tg">${([['units', '기물'], ...CX2.CX2_TABS] as const).map(tb).join('')}</div><div class="cx-tg cx-tg2">${([['enemies', '적'], ['events', '사건'], ['manual', '교범'], ['records', '기록']] as const).map(tb).join('')}</div>`;
   let body = '';
   if (app.codexTab === 'units') {
     body = codexUnits(m);
@@ -2928,15 +2928,15 @@ function codexScreen() {
       return `<div class="codex-row ${n ? '' : 'unknown'} ${e.rare ? 'rare' : ''}"><div><b>${n ? esc(e.title) : '???'}</b>${e.rare ? ' <span class="tag">희귀</span>' : ''}<div class="small">${n ? esc(e.text) : '아직 겪지 못한 사건입니다.'}</div></div><div class="small mono">${n}회</div></div>`;
     }).join('')}</div>`).join('');
   } else if (CX2.isCx2Tab(app.codexTab)) { // 장비 · 시너지 · 증강 · 사이오닉 (src/ui/codex2.ts)
-    body = CX2.codex2Body(app.codexTab, { itemIcon, augIcon, sprite: (d) => sprite(d), abTok, statIc, relicTok: (id) => relicTok(id), majorIcon: (m) => majorIcon(m) });
+    body = CX2.codex2Body(app.codexTab, cxH());
   } else if (app.codexTab === 'manual') {
     body = codexManual();
   } else {
     body = `<dl class="stats big"><dt>의뢰</dt><dd>${m.runs}</dd><dt>의뢰 성공</dt><dd>${m.clears}</dd><dt>최고 도달 페이즈</dt><dd>${m.bestPhase}</dd><dt>해금된 위험 등급</dt><dd>${m.maxDiff}</dd></dl>
       <h2>전장별</h2><div class="codex-list">${FIELDS.map((f) => { const r = m.fields[f.id]; return `<div class="codex-row"><div><b style="color:${f.color}">${f.icon} ${esc(f.name)}</b><div class="small muted">${esc(f.region)}</div></div><div class="small mono">의뢰 ${r?.runs || 0} · 성공 ${r?.clears || 0}${r && r.bestDiff >= 0 ? ` · 최고 위험 ${r.bestDiff}` : ''}</div></div>`; }).join('')}</div>`;
   }
-  return `<main class="wrap codex"><div class="screen-head"><h1>도감 · 기록</h1><p class="muted small">이 브라우저에 저장됩니다.</p></div>
-    <div class="row-btns">${tabs}<button class="btn ghost" data-a="codex-back">돌아가기</button></div>${body}</main>`;
+  return `<main class="wrap codex"><div class="cx-top"><h1 class="f-title">도감 · 기록</h1><span class="muted small">이 브라우저에 저장됩니다.</span><button class="btn ghost small" data-a="codex-back">돌아가기</button></div>
+    <nav class="cx-tabs" aria-label="도감 탭">${tabs}</nav>${body}</main>`;
 }
 
 // ───────────────────────── 튜토리얼 「당직 근무 중 승계」: 장면(미연시) · 안내 말풍선 진행
@@ -3469,7 +3469,7 @@ function act(a: string, v: string) {
     case 'codex-tab': app.codexTab = v as typeof app.codexTab; break;
     case 'cx2': { const r = CX2.codex2Act(v); if (r.tab) app.codexTab = r.tab as typeof app.codexTab; if (r.unit) app.codexSel = r.unit; app.abilPop = null; cxScroll = r.scroll; if (r.tab) window.scrollTo(0, 0); break; }
     case 'codex-group': app.codexGroup = v as typeof app.codexGroup; break;
-    case 'codex-sel': app.codexSel = app.codexSel === v ? null : v; app.abilPop = null; cxScroll = !!app.codexSel; break;
+    case 'codex-sel': if (app.codexSel === v) CX2.CX2.focus = v; app.codexSel = app.codexSel === v ? null : v; app.abilPop = null; cxScroll = true; break;
     case 'codex-back': app.screen = app.run ? (app.run.over ? 'over' : 'map') : 'title'; if (app.run && !app.run.over) goPrepOrMap(); break;
     case 'meter-tab': app.meterTab = v as typeof app.meterTab; document.querySelectorAll('.meter-tabs .btn').forEach((e) => e.classList.toggle('on', (e as HTMLElement).dataset.v === v)); updateMeter(true); return;
     case 'bsel': app.bPick = null; app.abilPop = null; app.battleSel = app.battleSel === +v ? null : +v; applySpeed(); updateMeter(true); return;
