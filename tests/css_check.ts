@@ -25,6 +25,7 @@ export const JS_VARS = [
 
 interface Decl { sel: string; prop: string; value: string; line: number; root: boolean; important: boolean }
 
+export const braceErrors: string[] = [];
 export function parse(css: string): Decl[] {
   const out: Decl[] = [];
   // 주석 제거 (줄 번호 유지)
@@ -59,12 +60,15 @@ export function parse(css: string): Decl[] {
       bufLine = line; continue;
     }
     if (ch === '}' && depthParen === 0) {
-      flushDecl(buf, bufLine); buf = ''; stack.pop(); bufLine = line; continue;
+      flushDecl(buf, bufLine); buf = '';
+      if (!stack.length) braceErrors.push(`${line}행: 여는 괄호 없이 닫는 } (지우다 남은 괄호?)`);
+      stack.pop(); bufLine = line; continue;
     }
     if (ch === ';' && depthParen === 0) { flushDecl(buf, bufLine); buf = ''; bufLine = line; continue; }
     if (!buf.trim()) bufLine = line;
     buf += ch;
   }
+  if (stack.length) braceErrors.push(`파일 끝: 닫히지 않은 블록 ${stack.length}개 (${stack.slice(-1)[0]})`);
   return out;
 }
 
@@ -159,6 +163,7 @@ function main() {
   cmp('radius', '둥글기 리터럴', () => 'var(--r-sm) 4px · var(--r-md) 6px · var(--r-lg) 10px · var(--r-pill) (원은 50%)');
   cmp('zIndex', 'z-index 리터럴', () => ':root 의 --z-* 층 이름 (--z-raise · --z-board-fx · --z-sticky · --z-top · --z-pop · --z-modal · --z-over · --z-adv · --z-coach · --z-toast)');
   if (st.important > base.important) fails.push(`!important 늘어남 (${base.important} → ${st.important})\n    위치: ${lines('important', '')}\n    고치기: 덮어쓰기 대신 원래 규칙을 고치거나 선택자 우선순위로 해결`);
+  for (const e of braceErrors) fails.push(`괄호 짝이 맞지 않음 — ${CSS_PATH} ${e}`);
   for (const u of undefinedVars(decls)) fails.push(`정의되지 않은 변수 ${u.name} (${CSS_PATH}:${u.line} ${u.sel})\n    고치기: :root 에 정의하거나, JS 가 주입하는 변수라면 tests/css_check.ts 의 JS_VARS 에 추가`);
   const shrunk = (['colors', 'legacy', 'fontSize', 'radius', 'zIndex'] as const).some((k) => Object.entries(base[k]).some(([key, n]) => (st[k][key] || 0) < n)) || st.important < base.important;
   if (fails.length) {
