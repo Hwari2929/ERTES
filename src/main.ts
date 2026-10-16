@@ -826,7 +826,7 @@ function mapScreen(run: RunState) {
     return `<li class="tl-step ${state}${opts2.includes('boss') ? ' tl-boss' : ''}"><span class="tl-num">${i + 1}</span><div class="tl-nodes">${nodes}</div></li>`;
   }).join('');
   const enter = run.node
-    ? `<button class="btn primary tl-go" data-a="resume">${esc(NODE_NAME[run.node.type])} 계속하기</button>`
+    ? `<button class="btn primary tl-go" data-a="resume" title="${esc(NODE_NAME[run.node.type])} 계속하기">계속하기</button>`
     : pick ? `<button class="btn primary tl-go" data-a="enter" data-v="${pick}" title="단축키 Enter">${FIGHT_NODES.includes(pick) ? (pick === 'boss' ? '보스전 진입' : '전투 진입') : `${esc(NODE_NAME[pick])} 진입`}</button>`
     : '<button class="btn primary tl-go" disabled>항로 끝</button>'; // 튜토리얼: 보스 뒤
   const f = fieldOf(run.field);
@@ -839,8 +839,8 @@ function mapScreen(run: RunState) {
       <div class="screen-head map-head"><h1>페이즈 ${p}</h1>${bossGoal(run)}</div>
       <div class="tl"><ol class="tl-track">${track}</ol></div>
       <p class="map-scale" title="이번 페이즈 적 강도 (페이즈마다 누적)">${scale}</p>
-      ${mapAhead(run, pick, `${enter}${pet >= 2 ? `<button class="btn" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 ${CR}+25 · 상환 30</button>` : ''}`)}
-      ${shipPanel(run)}
+      ${mapAhead(run, pick, enter)}
+      ${shipPanel(run, pet >= 2 ? `<button class="btn ship-loan" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 ${CR}+25 · 상환 30</button>` : '')}
     </section>
     <aside class="side side-tabs${app.sel?.k === 'unit' ? ' has-detail' : ''}">${mapDetail(run)}
       <div class="st-tabs" role="tablist">${['파티', '환경', '기록'].map((t, i) => `<button role="tab" class="st-tab" data-a="map-tab" data-v="${i}" aria-selected="${app.mapTab === i}">${t}</button>`).join('')}<span class="st-ink" style="--i:${app.mapTab}"></span></div>
@@ -882,7 +882,7 @@ function mapDetail(run: RunState) {
   </aside>`;
 }
 /** 함선 관리: 함대 확장 (출전 인원) · 지정 소집 (시너지 지정 영입) */
-function shipPanel(run: RunState) {
+function shipPanel(run: RunState, extra = '') {
   const fc = R.fleetCost(run), mc = R.musterCost(run), busy = !!run.node || run.pending.length > 0;
   const full = run.units.length >= CFG.maxParty;
   return `<section class="ship" aria-labelledby="ship-h"><h2 id="ship-h">함선 관리</h2><div class="ship-grid">
@@ -894,7 +894,7 @@ function shipPanel(run: RunState) {
       <span class="sb-ic">${NODE_ICON.recruit}</span><b>지정 소집</b>
       <span class="small muted">${full ? `보유 한도 ${CFG.maxParty}명` : `시너지 ${CFG.musterPicks}개를 골라 그 안에서 영입`}</span>
       <span class="sb-cost">${CR}${mc}</span></button>
-  </div></section>`;
+  </div>${extra}</section>`;
 }
 function musterModal(run: RunState) {
   const sel = app.musterSel;
@@ -954,16 +954,20 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   const f = fieldOf(run.field);
   const elite = ENEMY_BY_ID[f.elite];
   const PART = lineIcon('r.part', 'li'), CONS = lineIcon('r.cons', 'li');
-  // 조건 줄 (둥근 칩): 위험 · 보상 배율 (설정값) · 역경 정예 (역경에는 정예가 반드시 나온다)
-  const chips = (o: NodeType) => {
-    const c: string[] = [];
-    if (o === 'adversity' || o === 'challenge') c.push(tchip(lineIcon('a.power', 'li'), `적 ×${CFG.adversityMult}`, 'bad', '적 체력 · 능력 배율'));
-    if (o === 'adversity') c.push(tchip('', `보상 ×${CFG.adversityReward}`, 'good', '승리 크레딧 · 공명도 배율'));
-    if (o === 'adversity' && elite) c.push(tchip(sprite(elite, 'spr'), esc(elite.name), 'bad', `정예 · ${ENEMY_DESC[elite.id] || ''}`));
-    if (FIGHT_NODES.includes(o)) c.push(diffAddChip(run, o === 'challenge' ? run.phase + 1 : run.phase)); // 위험 등급 적 증원
-    return c.join('');
+  // 모디파이어 (현재 칸만, 둥근 칸 · 아이콘 + 값, 설명은 툴팁): 적 강화 배율 · 보상 배율 (설정값) · 위험 등급 적 증원 (해골 +n) · 역경 정예 (초상)
+  const mod = (icon: string, val: string, title: string, cls = '') => `<span class="ah-md ${cls}" title="${esc(title)}">${icon}${val ? `<b>${val}</b>` : ''}</span>`;
+  const mods = (o: NodeType) => {
+    if (!FIGHT_NODES.includes(o)) return '';
+    const m: string[] = [];
+    const ph = o === 'challenge' ? run.phase + 1 : run.phase;
+    if (o === 'adversity' || o === 'challenge') m.push(mod(lineIcon('m.up', 'li'), `×${CFG.adversityMult}`, `적 강화: 체력 · 능력 ×${CFG.adversityMult}`, 'bad'));
+    const add = diffAddCount(run.diff, ph);
+    if (add > 0) m.push(mod(lineIcon('m.skull', 'li'), `+${add}`, `적 수량 +${add} — 위험 등급 ${run.diff} 적 증원: ${diffAddRule(run.diff)}`, 'bad'));
+    if (o === 'adversity' && elite) m.push(mod(sprite(elite, 'spr'), '', `정예 ${elite.name} 출현 (역경에는 정예가 반드시 나온다) — ${ENEMY_DESC[elite.id] || ''}`, 'bad'));
+    if (o === 'adversity') m.push(mod(lineIcon('m.gift', 'li'), `×${CFG.adversityReward}`, `보상 강화: 승리 크레딧 · 공명도 ×${CFG.adversityReward}`, 'good'));
+    return m.length ? `<div class="ah-mods" aria-label="모디파이어"><span class="ah-sec">모디파이어</span>${m.join('')}</div>` : '';
   };
-  // 예상 수입 (네모 칸, 아이콘 + 숫자): 승리 시 공명도 풀 · 크레딧 (엔진의 보상 계산 battleRewardPreview) + 장비 · 재료 · 소모품 (×n = 확정, % = 확률, 설정값 · 전장 배율)
+  // 예상 수입 (현재 칸만, 네모 칸 · 아이콘 + 숫자): 승리 시 공명도 풀 · 크레딧 (엔진의 보상 계산 battleRewardPreview) + 장비 · 재료 · 소모품 (×n = 확정, % = 확률, 설정값 · 전장 배율)
   const inc = (icon: string, val: string, title: string, cls = '') => `<span class="ah-in ${cls}" title="${esc(title)}">${icon}<b>${val}</b></span>`;
   const income = (o: NodeType) => {
     if (!FIGHT_NODES.includes(o)) return '';
@@ -976,24 +980,25 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
     if (CFG.drop.utility[t]) out.push(inc(CONS, pctTxt(CFG.drop.utility[t]), '전투 보상 소모품 1개 — 확률', 'cons'));
     return `<div class="ah-inc" aria-label="예상 수입"><span class="ah-sec">예상 수입</span>${out.join('')}</div>`;
   };
-  // 순서 배지: 현재 · +1 · +2 … (몇 칸 뒤인지는 툴팁)
+  // 순서 배지: 현재 · 노드 아이콘 + 몇 칸 뒤 (몇 번째 칸인지는 툴팁)
   const step = (i: number) => (i === run.step ? '<span class="ah-step now">현재</span>' : `<span class="ah-step" title="${i - run.step}칸 뒤 (${i + 1}번째 칸)">${lineIcon('r.node', 'li')}${i - run.step}</span>`);
+  // 현재 칸 단추: 카드 오른쪽 위에 고정 (내용 길이와 무관)
   const act = (cur: boolean) => (cur ? `<div class="ah-act">${buttons}</div>` : '');
+  // 현재 칸 카드: 이름 · 예상 수입 · 모디파이어 · (전투 밖) 설명. 다음 칸 카드: 유형 · 이름 (보스는 초상 · 특징)만, 설명은 툴팁
   const bossCard = (i: number, e: EnemyDef, cur: boolean) => {
     const cat = enemyCategory(e), td = TEND_NAME[e.tend], rk = foeRank(run, e, run.phase, R.encounterMult('boss', i));
-    return `<li class="ah-card ah-boss n-boss${cur ? ' cur tl-info' : ''}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}"><span class="ah-lead"><span class="ah-port">${sprite(e, 'spr big')}<i class="ah-ic">${NODE_ICON.boss}</i></span>${step(i)}</span>
-      <div class="ah-body"><b>${esc(e.name)}</b>${income('boss')}<div class="ah-chips">${rankChip(rk)}${diffAddChip(run, run.phase)}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${act(cur)}</div></li>`;
+    return `<li class="ah-card ah-boss n-boss${cur ? ' cur tl-info' : ''}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}">${act(cur)}<span class="ah-lead"><span class="ah-port">${sprite(e, 'spr big')}<i class="ah-ic">${NODE_ICON.boss}</i></span>${step(i)}</span>
+      <div class="ah-body"><b>${esc(e.name)}</b><div class="ah-chips">${rankChip(rk)}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${cur ? `${income('boss')}${mods('boss')}` : ''}</div></li>`;
   };
   const nodeCard = (i: number, o: NodeType, cur: boolean) => {
     const e = o === 'boss' ? phaseBoss(run) : undefined;
     if (e) return bossCard(i, e, cur);
-    const c = chips(o);
-    const note = cur && run.node ? '<span class="ah-hint">진행 중</span>' : FIGHT_NODES.includes(o) ? '' : `<span class="ah-hint">${ic(esc(nodeHint(o)))}</span>`;
-    return `<li class="ah-card n-${o}${cur ? ' cur tl-info' : ''}"><span class="ah-lead"><i class="ah-ic">${NODE_ICON[o]}</i>${step(i)}</span><div class="ah-body"><b>${esc(NODE_NAME[o])}</b>${income(o)}${c ? `<div class="ah-chips">${c}</div>` : ''}${note}${act(cur)}</div></li>`;
+    const note = cur && run.node ? '<span class="ah-hint">진행 중</span>' : cur && !FIGHT_NODES.includes(o) ? `<span class="ah-hint">${ic(esc(nodeHint(o)))}</span>` : '';
+    return `<li class="ah-card n-${o}${cur ? ' cur tl-info' : ''}"${cur ? '' : ` title="${esc(nodeHint(o))}"`}>${act(cur)}<span class="ah-lead"><i class="ah-ic">${NODE_ICON[o]}</i>${step(i)}</span><div class="ah-body"><b>${esc(NODE_NAME[o])}</b>${cur ? `${income(o)}${mods(o)}` : ''}${note}</div></li>`;
   };
-  // 현재 칸 (진입 단추 포함, 강조) → 다음 칸들 → 보스: 같은 카드 토큰으로 한 흐름
+  // 현재 칸 (진입 단추 포함, 강조) → 다음 칸들: 같은 카드 토큰으로 한 흐름
   const cur = pick ? nodeCard(run.step, pick, true)
-    : `<li class="ah-card cur tl-info"><span class="ah-lead"><i class="ah-ic">${NODE_ICON.boss}</i>${step(run.step)}</span><div class="ah-body"><b>항로 끝</b><span class="ah-hint">이번 항로의 모든 칸을 지났습니다.</span>${act(true)}</div></li>`;
+    : `<li class="ah-card cur tl-info">${act(true)}<span class="ah-lead"><i class="ah-ic">${NODE_ICON.boss}</i>${step(run.step)}</span><div class="ah-body"><b>항로 끝</b><span class="ah-hint">이번 항로의 모든 칸을 지났습니다.</span></div></li>`;
   return `<section class="ahead" aria-label="현재 칸과 앞으로 올 칸"><ol class="ah-list">${cur}${idx.flatMap((i) => run.map[i].includes('boss') ? [nodeCard(i, 'boss', false)] : run.map[i].map((o) => nodeCard(i, o, false))).join('')}</ol></section>`;
 }
 // ───────── 적 스펙 ≈ 공명 등급: 적의 공격 위력을 '장비 · 시너지 · 증강 없는 아군(영입 가능 기물 평균)'의 등급별 위력과 비교해 가장 가까운 등급

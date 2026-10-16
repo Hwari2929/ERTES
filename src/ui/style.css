@@ -561,17 +561,13 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 /* 현재 칸: 같은 카드 토큰 + 선택 색 테두리, 진입 단추를 품는다 (넓은 화면은 단추를 오른쪽 세로로) */
 .ah-card.cur { flex: 1 1 100%; border-color: var(--c-select); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-select) 40%, transparent); }
 .ah-card.tl-info { margin: 0; gap: 10px; align-items: flex-start; flex-wrap: nowrap; } /* 튜토리얼 안내가 가리키는 이름표(.tl-info) 를 카드가 겸한다 */
-.ah-act { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
-.ah-act > .btn { flex: 1 1 auto; min-width: 0; } /* 좁은 화면: 단추가 한 줄에 */
-@media (min-width: 641px) {
-  .ah-card.cur .ah-body { grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; }
-  .ah-card.cur .ah-body > * { grid-column: 1; }
-  .ah-card.cur .ah-act { grid-column: 2; grid-row: 1 / span 6; align-self: center; flex-direction: column; margin: 0; }
-  .ah-card.cur .ah-act .btn { width: 100%; }
-}
+/* 현재 칸 단추: 카드 오른쪽 위에 고정 (내용이 길어져도 위치 그대로). 제목 줄이 단추 높이 · 폭만큼 자리를 비워 겹치지 않는다 */
+.ah-card.cur { position: relative; }
+.ah-act { position: absolute; top: 12px; right: 12px; z-index: var(--z-raise); }
+.ah-act .tl-go { min-width: 0; height: 36px; padding: 0 16px; white-space: nowrap; }
+.ah-card.cur .ah-body > b:first-child { display: flex; align-items: center; min-height: 36px; margin-top: -2px; padding-right: 128px; }
 .ah-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .ah-hint { font-size: var(--fs-sm); color: var(--c-text-2); }
-/* 예상 보상: 공명도 · 크레딧을 따로 묶은 두 칸 (큰 숫자 = 승리, 작은 글씨 = 패배) */
 /* 예상 수입 (네모 칸 · 아이콘 + 굵은 숫자) — 조건 줄(.ah-chips 의 둥근 칩)과 모양을 나눈다 */
 .ah-inc { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .ah-sec { flex-basis: 100%; font-size: var(--fs-2xs); color: var(--c-text-2); letter-spacing: .04em; }
@@ -581,6 +577,13 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 .ah-in.g-C .li { color: color-mix(in srgb, var(--g-C) var(--data-mix), var(--c-text)); } /* 장비 재료 (희귀도 색) */
 .ah-in.g-A .li { color: color-mix(in srgb, var(--g-A) var(--data-mix), var(--c-text)); } /* 희귀 장비 */
 .ah-in.cons .li { color: var(--c-text-2); } /* 소모품 */
+/* 모디파이어 (둥근 칸 · 아이콘 + 값, 좋으면 초록 · 나쁘면 빨강) — 예상 수입(네모 칸)과 모양을 나눈다 */
+.ah-mods { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.ah-md { --tc: var(--c-text-2); display: inline-flex; align-items: center; gap: 3px; height: 24px; min-width: 24px; justify-content: center; padding: 0 8px; border: 1px solid color-mix(in srgb, var(--tc) 45%, var(--line)); border-radius: var(--r-pill); background: color-mix(in srgb, var(--tc) 12%, var(--panel-2)); color: color-mix(in srgb, var(--tc) var(--data-mix), var(--c-text)); }
+.ah-md.bad { --tc: var(--c-bad); } .ah-md.good { --tc: var(--c-good); }
+.ah-md .li { width: 14px; height: 14px; flex: none; }
+.ah-md .spr { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; margin: 0 -4px; }
+.ah-md b { font: 700 var(--fs-sm) var(--f-mono); line-height: 1; }
 .ah-body > .ah-chips { margin-top: 2px; }
 .foe-rank { align-self: center; display: inline-flex; align-items: center; min-height: 20px; padding: 0 7px; border-radius: var(--r-pill); } /* 다른 칩(분류 · 성향)과 같은 둥글기 */
 .ah-boss { flex: 2 1 300px; }
@@ -592,6 +595,7 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 .ship { margin-top: 14px; }
 .ship h2 { margin: 0 0 6px; }
 .ship-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; max-width: 640px; }
+.ship-loan { margin-top: 8px; } /* 페트라 대출 (현재 칸 단추에서 옮겨 옴) */
 .ship-btn { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; column-gap: 10px; align-items: center; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 6px 12px 6px 8px; color: var(--c-text); }
 .ship-btn:not(:disabled):hover { border-color: var(--c-select); }
 .ship-btn:disabled { opacity: calc(.45 + var(--op-lift)); cursor: default; }
