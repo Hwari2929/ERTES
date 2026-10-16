@@ -4,6 +4,7 @@
 // main.ts 에만 있는 그림 조각(장비 · 증강 아이콘, 초상화 등)은 CxH 로 받는다.
 import { CFG } from '../config';
 import { augAbilText } from '../data/abiltext';
+import { augReqState } from '../data/augreq';
 import { FIELD_BY_ID } from '../data/battlefields';
 import { ALL_AUGS, augDesc, augSource } from '../data/augments';
 import { BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES } from '../data/globals';
@@ -348,7 +349,8 @@ function augLi(H: CxH, a: AugDef, tags: string[] = [], q = '') {
   const x = (a.excl || []).map((e) => augById(e)?.name).filter(Boolean) as string[];
   const all = [...tags, ...(a.stack ? ['중복 가능'] : []), ...(a.roll ? ['능력치 무작위'] : [])];
   const text = augHtml(H, a.id) + tfLine(H, a.id);
-  return `<li class="aug-li" data-id="${esc(a.id)}"${qAttr('augs', `${a.name} ${a.desc} ${text} ${all.join(' ')} ${q}`)}>${H.augIcon(a.id)}<span><b>${isTransformAug(a.id) ? '◆ ' : ''}${esc(a.name)}</b>${all.map((t) => ` <span class="tag">${esc(t)}</span>`).join('')}<br><span class="muted">${text}</span>${x.length ? `<br><span class="cx2-x">함께 가질 수 없음: ${x.map(esc).join(', ')}</span>` : ''}</span></li>`;
+  const rq = augReqState(a.id);
+  return `<li class="aug-li" data-id="${esc(a.id)}"${qAttr('augs', `${a.name} ${a.desc} ${text} ${all.join(' ')} ${q}`)}>${H.augIcon(a.id)}<span><b>${isTransformAug(a.id) ? '◆ ' : ''}${esc(a.name)}</b>${all.map((t) => ` <span class="tag">${esc(t)}</span>`).join('')}<br><span class="muted">${text}</span>${x.length ? `<br><span class="cx2-x">함께 가질 수 없음: ${x.map(esc).join(', ')} <span class="muted">(같은 선택 창에 함께 나올 수 있고, 하나를 고르면 나머지는 이후 제외)</span></span>` : ''}${rq ? `<br><span class="aug-req ${rq.ok === false ? 'bad' : 'info'}">조합 조건: ${esc(rq.hint)}. ${esc(rq.cur)}</span>` : ''}</span></li>`;
 }
 
 // ═══════════════════════ 사이오닉

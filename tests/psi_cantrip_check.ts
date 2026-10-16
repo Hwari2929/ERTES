@@ -60,5 +60,24 @@ else {
   const tm = bb.clone.hooks.map((h) => h.takenMult?.(null as never, bb.clone!, bb.clone!, { elem: 'phys' } as never)).find((x) => x !== undefined);
   if (tm === undefined || Math.abs(tm - (1 - PSI.illusion.solidCloneRed)) > 1e-9) fails.push(`실체화 분신 받는 피해 배율 ${tm}`);
 }
+// (3) 추첨: 배타 증강도 같은 창에 나오고, 각 후보 등장 확률이 고르다 (시공 7종 중 3개 → 각 3/7)
+{
+  const run = R.newRun(11, ['romani', 'vivian', 'falcon']);
+  const u = run.units.find((x) => x.defId === 'romani')!;
+  u.augments = [{ id: 'school.chrono' }];
+  const N = 4000, cnt: Record<string, number> = {};
+  let both = 0;
+  for (let i = 0; i < N; i++) {
+    const ids = R.augOptions(run, u, 'psionic').map((o) => o.id);
+    for (const id of ids) cnt[id] = (cnt[id] || 0) + 1;
+    if (ids.includes('psi.chrono.storm') && ids.includes('psi.chrono.haste')) both++;
+  }
+  const rates = Object.entries(cnt).map(([k, v]) => `${k.slice(11)} ${(v / N).toFixed(3)}`).join(' · ');
+  console.log(`추첨 ${N}회: ${rates} · 폭풍+가속 함께 ${(both / N).toFixed(3)} (기대 ${(1 / 7).toFixed(3)})`);
+  if (!both) fails.push('배타 증강이 같은 창에 나오지 않음');
+  for (const [k, v] of Object.entries(cnt)) if (Math.abs(v / N - 3 / 7) > 0.04) fails.push(`추첨 편향: ${k} ${(v / N).toFixed(3)}`);
+  u.augments.push({ id: 'psi.chrono.haste' });
+  for (let i = 0; i < 300; i++) if (R.augOptions(run, u, 'psionic').some((o) => o.id === 'psi.chrono.storm')) { fails.push('보유 증강과 충돌하는 후보가 나옴'); break; }
+}
 if (fails.length) { console.log('실패\n' + fails.join('\n')); process.exit(1); }
 console.log('통과');

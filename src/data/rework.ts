@@ -62,7 +62,7 @@ const gv = (g: Record<string, number>, k: string) => g[k] || 0;
 // ───────── 스페셜 증강
 const sp = (owner: string, id: string, name: string, desc: string, effect: Effect, extra: Partial<AugDef> = {}): AugDef =>
   ({ ...uaug(owner, `sp.${id}`, name, desc, effect, extra), pool: 'special' });
-/** 함께 제시하지 않는 증강 (같은 기물의 sp 키) */
+/** 함께 보유할 수 없는 증강 (같은 기물의 sp 키, 같은 창에는 함께 나올 수 있음) */
 const ex = (owner: string, ...keys: string[]): Partial<AugDef> => ({ excl: keys.map((k) => `${owner}.sp.${k}`) });
 /** 소환물에 훅을 한 번 붙인다 (소환물은 전투 시작 훅에서 생기므로 첫 틱에) */
 const petHook = (key: string, make: (owner: CUnit) => Hooks): Hooks => ({ onTick(b, u) {
@@ -997,8 +997,8 @@ export const MAJOR_AUGS: AugDef[] = [
   { id: 'maj.tech', name: '기술 교범', desc: '기술 피해량 +20%.', pool: 'major', stack: true, effect: () => ({ mods: [inc('tech', 0.2)] }) },
   { id: 'maj.crit', name: '급소 연구', desc: '치명타 피해 +30%p.', pool: 'major', stack: true, effect: () => ({ stats: { critDmg: 0.3 } }) },
   { id: 'maj.hp', name: '체력 단련', desc: '최대 체력 +15%.', pool: 'major', stack: true, effect: () => ({ pct: { maxHp: 0.15 } }) },
-  { id: 'maj.reload', name: '재장전 훈련', desc: '재장전 속도 +25%.', pool: 'major', stack: true, effect: () => ({ stats: { reloadSpd: 0.25 } }) },
-  { id: 'maj.finish', name: '마무리 일격', desc: '피니쉬 피해량 +40%.', pool: 'major', stack: true, effect: () => ({ mods: [inc('finish', 0.4)] }) },
+  { id: 'maj.reload', name: '재장전 훈련', desc: '재장전 속도 +25%.', pool: 'major', stack: true, requires: { hint: '탄창 무기 필요', weapon: 'mag' }, effect: () => ({ stats: { reloadSpd: 0.25 } }) },
+  { id: 'maj.finish', name: '마무리 일격', desc: '피니쉬 피해량 +40%.', pool: 'major', stack: true, requires: { hint: '콤보 무기 필요', weapon: 'combo' }, effect: () => ({ mods: [inc('finish', 0.4)] }) },
   { id: 'maj.cdr', name: '전술 숙련', desc: '쿨다운 감소 속도 +20%.', pool: 'major', stack: true, effect: () => ({ stats: { cdr: 0.2 } }) },
   { id: 'maj.dot', name: '지속 피해 연구', desc: '지속 피해량 +30%.', pool: 'major', stack: true, effect: () => ({ mods: [inc('dot', 0.3)] }) },
   { id: 'maj.ultc', name: '충전 회로', desc: '궁극기 충전 효율 +25%.', pool: 'major', stack: true, effect: () => ({ stats: { ultCharge: 0.25 } }) },

@@ -2512,3 +2512,11 @@ button.cx2-row { cursor: pointer; } button.cx2-row:hover { border-color: var(--d
 .rt-box { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 10px; margin: 0 0 8px; font-size: 12px; }
 .rt-box dt { color: var(--dim); } .rt-box dd { margin: 0; }
 .rt-report { margin-top: 12px; } .rt-report h4 { margin: 0 0 6px; }
+/* 증강 카드: 조합 조건 · 선택하면 포기 */
+.aug-req, .aug-forgo, .aug-opt .ao-txt .aug-req, .aug-opt .ao-txt .aug-forgo { display: block; margin-top: 2px; font-size: .74rem; line-height: 1.35; }
+.aug-req.ok, .aug-opt .ao-txt .aug-req.ok { color: var(--good); }
+.aug-req.info, .aug-opt .ao-txt .aug-req.info { color: var(--dim); }
+.aug-req.bad, .aug-opt .ao-txt .aug-req.bad { color: var(--bad); font-weight: 600; }
+.aug-forgo, .aug-opt .ao-txt .aug-forgo { color: #f0b35a; }
+.aug-forgo b { text-decoration: underline; }
+p.aug-req, p.aug-forgo { margin: 6px 0 0; }

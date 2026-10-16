@@ -56,6 +56,8 @@ export const PSI = {
     per: 0.1, dur: 5, max: 3, concMax: 6, proc: 0.25,
     /** 재생 포자 (◆): 지속 · 초당 회복 */
     regenDur: 5, regenHps: 0.25,
+    /** 괴사: 필요 중첩 · 받는 피해 */
+    necroAt: 6, necroVuln: 0.2,
   },
   mind: {
     /** 계시: 결속 인원 (집단 무의식) · 지속 · 받는 피해 · 공유 비율 (연결된 운명) */
@@ -97,4 +99,17 @@ export function cantripCdOf(id: SchoolId, has: (k: string) => boolean): number {
   if (id === 'gold' && has('gold.vol')) cd -= PSI.gold.volCd; // 변동성
   if (id === 'illusion' && has('illusion.clone')) cd += PSI.illusion.cloneCd; // 분신
   return Math.max(0.5, cd);
+}
+
+/** 자신이 거는 상태의 최대 중첩 (전공 증강 반영). 엔진 · 조합 조건 표시 공용 */
+export type PsiStack = 'burn' | 'chill' | 'conduct' | 'poison' | 'scent' | 'tempgear';
+export function psiStackCap(st: PsiStack, has: (k: string) => boolean): number {
+  switch (st) {
+    case 'burn': return has('pyro.wp') ? PSI.pyro.wpMax : PSI.pyro.max;
+    case 'chill': return has('chrono.zero') ? PSI.chrono.zeroMax : PSI.chrono.chillMax;
+    case 'conduct': return PSI.volt.max;
+    case 'poison': return has('seed.conc') ? PSI.seed.concMax : PSI.seed.max;
+    case 'scent': return has('illusion.dense') ? PSI.illusion.denseMax : 1;
+    case 'tempgear': return PSI.gold.max;
+  }
 }

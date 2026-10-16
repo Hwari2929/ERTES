@@ -5,12 +5,12 @@
 // 기본 지속 능력의 확률 발동은 기본 공격 · 전투 스킬 · 비술 적중에만 (지속 피해 · 소환물 · 부가 피해 제외).
 // 공통 규칙 (저이성 정신 피해 · 광폭 · 혼란 · 도발)은 engine/combat.ts 에 있다.
 import type { Battle, Cantrip, CUnit, DmgOpts, DmgResult, Hooks, Status } from '../engine/combat';
-import { type AugDef, type Effect, type EffectCtx, applyLive, red, scaleEffect, vuln } from '../engine/effects';
+import { type AugDef, type AugReq, type Effect, type EffectCtx, applyLive, red, scaleEffect, vuln } from '../engine/effects';
 import { emptyStats, type Elem, type StatKey } from '../types';
 import { ALL_COMPONENTS, itemEffect } from './items';
 import { isHarmful } from './kit';
 import { CFG } from '../config';
-import { cantripCdOf, PSI } from './psinum';
+import { cantripCdOf, PSI, psiStackCap } from './psinum';
 import { GROUPS, PSI_STATUS, SCHOOLS, SCHOOL_BY_ID, SCHOOL_PASSIVES, psiAugId, schoolAugId, type GroupId, type SchoolId } from './schools';
 
 const LB = (k: string) => PSI_STATUS[k].name;
@@ -67,7 +67,7 @@ const burnArmor = (s: Status) => { s.armorMul = s.src && P(s.src, 'pyro.white') 
 export function addBurn(b: Battle, u: CUnit, t: CUnit, n: number, chance = 1) {
   const per = mp(b, u) * PSI.pyro.dps;
   return b.applyStatus(u, t, {
-    type: 'dot', key: 'burn', dur: PSI.pyro.dur, elem: 'phys', stacks: n, maxStacks: P(u, 'pyro.wp') ? PSI.pyro.wpMax : PSI.pyro.max,
+    type: 'dot', key: 'burn', dur: PSI.pyro.dur, elem: 'phys', stacks: n, maxStacks: psiStackCap('burn', (k) => P(u, k)),
     perDps: per, dps: per * n, label: LB('burn'), onStack: burnArmor,
   }, chance);
 }
@@ -102,7 +102,7 @@ function incinerate(b: Battle, u: CUnit, depth = 0): false | { to?: CUnit } {
 export function addChill(b: Battle, u: CUnit, t: CUnit, n: number, chance = 1) {
   const per = mp(b, u) * PSI.chrono.chillDps;
   return b.applyStatus(u, t, {
-    type: 'dot', key: 'chill', dur: 5, elem: 'phys', stacks: n, maxStacks: P(u, 'chrono.zero') ? PSI.chrono.zeroMax : PSI.chrono.chillMax, perDps: per, dps: per * n,
+    type: 'dot', key: 'chill', dur: 5, elem: 'phys', stacks: n, maxStacks: psiStackCap('chill', (k) => P(u, k)), perDps: per, dps: per * n,
     perDelta: { atkSpd: -PSI.chrono.chillSlow, moveSpd: -PSI.chrono.chillSlow }, label: LB('chill'),
   }, chance);
 }
@@ -193,7 +193,7 @@ function conductStatus(b: Battle, u: CUnit, n: number, ally: boolean): Status {
   // 역전류(아군 전도)도 고전압이면 중첩당 피해가 오른다 (고전압의 피해 증가가 사라지지 않게)
   const per = ally ? (hv ? PSI.volt.reverseHvPer : PSI.volt.reversePer) : hv ? PSI.volt.hvPer : PSI.volt.per;
   return {
-    type: 'buff', key: 'conduct', dur: PSI.volt.dur, stacks: n, maxStacks: PSI.volt.max, val: mp(b, u) * per, label: LB('conduct'),
+    type: 'buff', key: 'conduct', dur: PSI.volt.dur, stacks: n, maxStacks: psiStackCap('conduct', (k) => P(u, k)), val: mp(b, u) * per, label: LB('conduct'),
     onAct(bb, t, s) {
       const c = s.src;
       if (!c) return;
@@ -292,10 +292,10 @@ function shockwave(b: Battle, u: CUnit) {
 // ───────────────────────── 파종: 중독 · (◆ 지속 회복)
 function poisonStatus(b: Battle, u: CUnit, stacks: number, perDps = mp(b, u) * PSI.seed.per): Status {
   return {
-    type: 'dot', key: 'poison', dur: PSI.seed.dur, elem: 'chem', perDps, dps: perDps * stacks, stacks, maxStacks: P(u, 'seed.conc') ? PSI.seed.concMax : PSI.seed.max,
+    type: 'dot', key: 'poison', dur: PSI.seed.dur, elem: 'chem', perDps, dps: perDps * stacks, stacks, maxStacks: psiStackCap('poison', (k) => P(u, k)),
     healMul: P(u, 'seed.rot') ? 0.4 : undefined, label: LB('poison'),
     // 괴사: 6중첩 이상이면 받는 모든 피해 +20%
-    onStack: P(u, 'seed.necro') ? (s) => { s.taken = (s.stacks || 0) >= 6 ? [vuln('all', 0.2)] : undefined; } : undefined,
+    onStack: P(u, 'seed.necro') ? (s) => { s.taken = (s.stacks || 0) >= PSI.seed.necroAt ? [vuln('all', PSI.seed.necroVuln)] : undefined; } : undefined,
   };
 }
 function spore(b: Battle, u: CUnit) {
@@ -483,7 +483,7 @@ function incense(b: Battle, u: CUnit) {
 }
 function scent(b: Battle, u: CUnit, t: CUnit, chance: number) {
   return b.applyStatus(u, t, {
-    type: 'buff', key: 'scent', dur: PSI.illusion.scentDur, stacks: 1, maxStacks: P(u, 'illusion.dense') ? PSI.illusion.denseMax : 1, perDelta: { eva: -PSI.illusion.scentEva }, label: LB('scent'),
+    type: 'buff', key: 'scent', dur: PSI.illusion.scentDur, stacks: 1, maxStacks: psiStackCap('scent', (k) => P(u, k)), perDelta: { eva: -PSI.illusion.scentEva }, label: LB('scent'),
     onStack: (s) => { s.taken = [vuln('all', PSI.illusion.scentVuln * (s.stacks || 1))]; },
   }, chance);
 }
@@ -514,7 +514,7 @@ const PROC: Record<SchoolId, ((b: Battle, u: CUnit, t: CUnit) => void) | null> =
     addBurn(b, u, t, 1, PSI.pyro.proc * (P(u, 'pyro.runaway') && reasonOf(u) < 0 ? PSI.pyro.runawayProc : 1));
   },
   chrono(b, u, t) {
-    if (P(u, 'chrono.zero') && stacksOf(t, 'chill') >= 6 && freeze(b, u, t, 99)) return; // 절대 영도: 확정 빙결
+    if (P(u, 'chrono.zero') && stacksOf(t, 'chill') >= PSI.chrono.zeroMax && freeze(b, u, t, 99)) return; // 절대 영도: 확정 빙결
     addChill(b, u, t, 1, PSI.chrono.proc);
   },
   volt(b, u, t) { addConduct(b, u, t, 1, PSI.volt.proc); },
@@ -696,6 +696,23 @@ const EXCL: Record<string, string[]> = {
   'mind.hypno': ['mind.ascend', 'mind.dominate'],
   'gold.dividend': ['gold.folio'],
 };
+/** 조합 조건: 다른 증강 · 상태가 있어야 제대로 작동하는 전공 증강 (선택은 막지 않는다, 표시는 data/augreq.ts) */
+const FREEZE_SRC = { hint: '빙결 수단 필요: 서리 파편 (시간 가속이면 절대 영도의 확정 빙결)', breaks: ['psi.chrono.haste'], alt: ['psi.chrono.zero'] };
+const REQ: Record<string, AugReq> = {
+  'pyro.runaway': { hint: '이성 0 미만일 때만 작동', reason: 'neg' },
+  'chrono.perma': FREEZE_SRC,
+  'chrono.stop': FREEZE_SRC,
+  'chrono.revert': FREEZE_SRC,
+  'volt.short': { hint: `전도 ${PSI.volt.overloadAt}중첩 필요`, stacks: { st: 'conduct', need: PSI.volt.overloadAt } },
+  'volt.overload': { hint: `전도 ${PSI.volt.overloadAt}중첩 필요`, stacks: { st: 'conduct', need: PSI.volt.overloadAt } },
+  'wave.standing': { hint: '공진된 적을 기절 · 빙결시킬 수단 필요 (충돌 · 진도 측정, 또는 다른 기물)', alt: ['psi.wave.impact', 'psi.wave.seismic'] },
+  'wave.field': { hint: '이성 30 이상일 때만 작동', reason: 'hi30' },
+  'seed.photo': { hint: '이성 30 이상일 때만 작동', reason: 'hi30' },
+  'seed.necro': { hint: `중독 ${PSI.seed.necroAt}중첩 필요 (독성 농축, 또는 다른 기물의 중독과 함께)`, stacks: { st: 'poison', need: PSI.seed.necroAt } },
+  'mind.split': { hint: '이성 0 미만 · 결속된 적이 있을 때만 작동', reason: 'neg' },
+  'gold.short': { hint: '이성 0 미만일 때만 작동', reason: 'neg' },
+  'gold.folio': { hint: `임시 장비 ${PSI.gold.max}개 필요`, stacks: { st: 'tempgear', need: PSI.gold.max } },
+};
 /** 전공 증강 56종 (전공당 7종, 5 · 10 · 15 · 20등급에 그 전공 것만, 최대 4개) */
 export const PSI_AUGS: AugDef[] = SCHOOLS.flatMap((s) => SCHOOL_PASSIVES[s.id].map(([key, name, desc]): AugDef => {
   const ex = [...(EXCL[`${s.id}.${key}`] || []), ...Object.entries(EXCL).filter(([, v]) => v.includes(`${s.id}.${key}`)).map(([k]) => k)];
@@ -703,6 +720,7 @@ export const PSI_AUGS: AugDef[] = SCHOOLS.flatMap((s) => SCHOOL_PASSIVES[s.id].m
     id: psiAugId(s.id, key), name, desc, pool: 'psionic', owner: s.id,
     effect: () => passiveEffect(s.id, key),
     excl: ex.length ? ex.map((x) => `psi.${x}`) : undefined,
+    requires: REQ[`${s.id}.${key}`],
   };
 }));
 /** 전공의 전공 증강 */

@@ -30,6 +30,21 @@ export interface Effect {
   rankBonus?: number;
 }
 
+/** 조합 조건 (하나 이상). 충족 여부는 기물의 보유 증강 · 무기로 엔진과 같은 계산을 해서 구한다 */
+export interface AugReq {
+  /** 무엇이 필요한지 (짧은 문장) */
+  hint: string;
+  /** 자신이 거는 상태가 need 중첩까지 쌓여야 함 (현재 최대 중첩 = psiStackCap) */
+  stacks?: { st: 'burn' | 'chill' | 'conduct' | 'poison' | 'scent' | 'tempgear'; need: number };
+  /** 기본 수단을 없애는 증강 (보유하면 alt 중 하나가 필요) */
+  breaks?: string[];
+  /** 대신 충족시켜 주는 증강 (breaks 가 없으면 이 중 하나를 가져야 함) */
+  alt?: string[];
+  /** 무기 형태 */
+  weapon?: 'mag' | 'combo';
+  /** 이성 구간 (전투 중 상태라 경고 대신 안내만) */
+  reason?: 'neg' | 'hi30';
+}
 export interface AugDef {
   id: string;
   name: string;
@@ -42,8 +57,10 @@ export interface AugDef {
   /** 제시될 때 무작위 파라미터 결정 */
   roll?: (pickFrom: <T>(a: readonly T[]) => T) => string;
   descParam?: (param: string) => string;
-  /** 함께 제시 · 보유할 수 없는 증강 id (서로 충돌하는 변형) */
+  /** 함께 보유할 수 없는 증강 id (서로 충돌하는 변형). 같은 선택 창에는 함께 나올 수 있고, 카드에 "선택하면 포기"로 표시 */
   excl?: string[];
+  /** 조합 조건: 다른 증강 · 상태가 있어야 제대로 작동한다 (선택은 막지 않고 카드 · 상세에 표시, data/augreq.ts 가 현재 값을 계산) */
+  requires?: AugReq;
   /** 전투 종료 후 런 단위 효과 (kills = 이 기물의 처치 수) */
   after?: (run: RunState, u: UnitState, won: boolean, kills: number) => void;
 }

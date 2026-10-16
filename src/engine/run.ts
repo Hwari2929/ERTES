@@ -818,7 +818,7 @@ export function augRoom(u: UnitState, kind: AugKind) {
   if (u.augments.filter((a) => pool.has(a.id)).length >= 4) return false;
   return list.some((a) => !u.augments.some((p) => p.id === a.id) && !augClash(u, a.id)); // 고를 수 있는 증강이 남았는지
 }
-/** 두 증강이 서로 충돌하는 변형인지 (어느 쪽이든 excl 에 적혀 있으면) */
+/** 두 증강이 서로 충돌하는 변형인지 (어느 쪽이든 excl 에 적혀 있으면). 같은 창에는 함께 나올 수 있고, 하나를 고르면 다른 쪽은 이후 제외 */
 export function augsClash(a: string, b: string) {
   return !!(AUG_BY_ID[a]?.excl?.includes(b) || AUG_BY_ID[b]?.excl?.includes(a));
 }
@@ -836,12 +836,9 @@ export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major')
   const base = kind === 'special' ? def.specialAugs || [] : kind === 'psionic' ? psiPool(u) : MAJOR_AUGS;
   const unitPool = base.filter((a) => avail(a) && !augClash(u, a.id));
   return rng(run, (r) => {
-    let out: string[];
-    if (unitPool.some((a) => a.excl?.length)) {
-      // 서로 충돌하는 변형은 함께 제시하지 않는다
-      out = [];
-      for (const id of r.sample(unitPool.map((x) => x.id), unitPool.length)) if (out.length < CFG.augmentChoices && !out.some((o) => augsClash(o, id))) out.push(id);
-    } else out = r.sample(unitPool.map((x) => x.id), CFG.augmentChoices);
+    // 보유 증강과 충돌하는 후보만 뺀다 (unitPool). 이번 창 안의 배타 증강은 함께 나와도 된다: 강화와 변형을 나란히 비교하도록.
+    // 균등 비복원 추출이라 먼저 뽑힌 후보가 다른 후보의 등장을 막지 않는다 (카드에 '선택하면 포기' 표시)
+    const out = r.sample(unitPool.map((x) => x.id), CFG.augmentChoices);
     return out.map((id) => {
       const a = AUG_BY_ID[id];
       return a.roll ? { id, param: a.roll((arr) => r.pick(arr)) } : { id };

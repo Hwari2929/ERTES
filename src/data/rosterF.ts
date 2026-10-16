@@ -200,7 +200,8 @@ export const REWORK_F: Record<string, ReworkDef> = {
       } } }, ['berserk']),
       sp('bjorn', 'gear', '구조 장비', '구조 신호 보호막 120% → 200%, 체력 비율이 가장 낮은 아군 2명에게.', setSk((s) => { s.rescue *= 2 / 1.2; s.rescueN = 2; })),
       sp('bjorn', 'berserk', '광전사', '피해량 경감이 0%가 된다. 대신 잃은 체력 1%당 주는 피해 +1% → +2%.', { taken: [red('all', -0.15)], setup: (u) => { u.mem.vikingK = 2; } }),
-      sp('bjorn', 'storm', '북해의 폭풍', '감전된 적에게 주는 피해 +30%.', { hooks: { dmgMult: (b, _u, t) => (b.has(t, 'shock') ? 1.3 : 1) } }),
+      { ...sp('bjorn', 'storm', '북해의 폭풍', '감전된 적에게 주는 피해 +30%.', { hooks: { dmgMult: (b, _u, t) => (b.has(t, 'shock') ? 1.3 : 1) } }),
+        requires: { hint: '감전 수단 필요 (토르의 작살, 또는 다른 기물의 감전)', alt: ['bjorn.sp.thunder'] } },
     ],
   },
   zina: {
