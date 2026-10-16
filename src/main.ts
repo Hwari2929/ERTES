@@ -2314,6 +2314,10 @@ function render() {
     }
     CX2.CX2.focus = null;
   }
+  if (app.screen === 'codex') { // 좁은 화면의 한 줄 탭 막대: 고른 탭이 보이게 가로로 민다
+    const tb = root.querySelector<HTMLElement>('.cx-tabs'), on = tb?.querySelector<HTMLElement>('.cx-tab.on');
+    if (tb && on && tb.scrollWidth > tb.clientWidth) tb.scrollLeft = Math.max(0, on.offsetLeft - 16);
+  }
   animateResult(root);
   if (app.screen === 'newrun') setupCarousel();
   const stv = root.querySelector<HTMLElement>('.st-view');

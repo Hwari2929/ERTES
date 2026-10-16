@@ -2718,23 +2718,23 @@ h3 { font-size: .9rem; }
 .cx-tools .cx2-q { flex: 1 1 100%; max-width: none; }
 /* 고정 영역: 탭 막대(맨 위) → 목록 머리(그 아래) · 상세 칸(그 아래에서 따로 스크롤). --cx-tabs-h 는 탭 막대의 고정 높이 */
 .codex { --cx-tabs-h: 40px; --cx-gap: 8px; }
-.cx-tabs { position: sticky; top: 0; z-index: var(--z-sticky); background: var(--bg); flex-wrap: nowrap; height: var(--cx-tabs-h); }
+.cx-tabs { position: sticky; top: 0; z-index: var(--z-sticky); background: var(--bg); flex-wrap: nowrap; height: var(--cx-tabs-h); margin-inline: -16px; padding-inline: 16px; } /* .wrap 좌우 여백까지 덮음 */
 .cx-tab { height: var(--cx-tabs-h); padding-block: 0; line-height: 1; white-space: nowrap; }
 .cx-tg { flex: none; flex-wrap: nowrap; }
-.cx-tools { top: var(--cx-tabs-h); z-index: var(--z-raise); }
+.cx-tools { top: var(--cx-tabs-h); z-index: var(--z-raise); margin-inline: -4px; padding-inline: 4px; }
 .cx-detail { top: calc(var(--cx-tabs-h) + var(--cx-gap)); max-height: calc(100dvh - var(--cx-tabs-h) - 2 * var(--cx-gap)); }
 .cx-wrap, .cx-list [data-v] { scroll-margin-top: calc(var(--cx-tabs-h) + var(--cx-gap)); }
 /* 좁은 화면: 탭 막대는 한 줄 가로 스크롤 (오른쪽 끝을 흐리게 해 더 있음을 표시) */
 @media (max-width: 860px) {
   .codex { --cx-tabs-h: 36px; }
-  .cx-tabs { overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
+  .cx-tabs { overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, var(--bg) calc(100% - 24px), transparent); mask-image: linear-gradient(90deg, var(--bg) calc(100% - 24px), transparent); }
   .cx-tabs::-webkit-scrollbar { display: none; }
   .cx-tabs::after { content: ''; flex: none; width: 20px; }
 }
 /* 낮은 화면: 탭 막대를 더 낮게, 목록 머리는 고정하지 않음 */
 @media (max-height: 640px) {
   .codex { --cx-tabs-h: 32px; }
-  .cx-tab { font-size: var(--fs-sm, .82rem); }
+  .cx-tab { font-size: var(--fs-md); }
   .cx-tools { position: static; }
 }
 .cx-seg { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
