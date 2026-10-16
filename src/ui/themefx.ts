@@ -116,56 +116,72 @@ function starLayer(level: FxLevel): Layer {
 }
 
 // ───────────────────────── 호이슌: 벚꽃잎 (화면 앞, 창보다는 아래)
+// 한 장 한 장이 진짜 꽃잎처럼: 천천히(꽃잎마다 다른 속도) 떨어지며 진자처럼 좌우로 살랑이고(흔들리는 쪽으로 기울고,
+// 가운데서 빨라지고 끝에서 느려진다), 3D 로 뒤집히며 앞면(진한 분홍) · 뒷면(옅은 분홍)이 번갈아 보인다.
+// 깊이 z(0 먼 ~ 1 가까운)에 따라 멀수록 작고 느리고 흐리다. 움직임은 꽃잎마다 미리 계산한 자세들을 잇는 Web Animations (합성기)
 const PETAL_CAP = 80;
-const PETAL_C = ['#ffc3d9', '#ff9ec4', '#fff0f6'];
+const PETAL_C = ['#ffc3d9', '#ff9ec4', '#ffd6e6'];
+type Flight = { x: number; y: number; z: number; vy: number; amp: number; per: number; ph: number; drift: number; spin: number; ax: number; ay: number; r0: number };
+const flight = (x: number, y: number, z: number): Flight => ({
+  x, y, z, vy: (9 + 17 * z) * rnd(0.8, 1.2), amp: (12 + 26 * z) * rnd(0.7, 1.2), per: rnd(3.2, 6.2), ph: rnd(0, 6.28), drift: rnd(3, 12),
+  spin: rnd(30, 150) * (Math.random() < 0.5 ? -1 : 1), ax: rnd(0.2, 1), ay: rnd(0.2, 1), r0: rnd(0, 360),
+});
+/** 시각 t(초)의 자세. wx · wy 는 바람 · 튀어 오름으로 더해지는 이동 */
+const pose = (f: Flight, t: number, wx = 0, wy = 0, spinMul = 1) => {
+  const w = (2 * Math.PI) / f.per, a = w * t + f.ph;
+  const x = f.x + f.drift * t + wx + f.amp * Math.sin(a);
+  const y = f.y + f.vy * t + wy + ((f.vy * 0.28) / w) * Math.sin(2 * a); // 낙하 속도 = vy(1 + 0.56cos2a): 흔들림 가운데서 빠르고 끝에서 느리다
+  const rz = f.r0 + 32 * Math.cos(a); // 흔들리는 쪽으로 기운다
+  const th = f.spin * spinMul * t + 50 * Math.sin(2 * a); // 뒤집힘 (천천히 돌며 팔랑인다)
+  return `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) rotate(${rz.toFixed(0)}deg) rotate3d(${f.ax.toFixed(2)}, ${f.ay.toFixed(2)}, 0.3, ${th.toFixed(0)}deg)`;
+};
+const STEP = 0.4; // 자세 간격 (초): 사이는 선형으로 잇는다
 function petalLayer(level: FxLevel): Layer {
   const el = layerEl('tfx-petals');
   let isBusy = false, stopStorm = () => {}, rz = 0;
   const still = reduced();
   const count = () => el.childElementCount;
   const mark = () => { el.dataset.n = String(count()); }; // 측정용: 지금 떠 있는 꽃잎 수
-  const base = () => Math.round((level === 'low' ? 12 : 30) * (isBusy ? 0.5 : 1));
-  /** 꽃잎 하나 (요소 하나 = 합성 레이어 하나) */
-  const petal = (cls = '') => {
+  const base = () => Math.round((level === 'low' ? 12 : 30) * (isBusy ? 0.35 : 1)); // 전투 중엔 3분의 1
+  /** 꽃잎 하나 (요소 하나 = 합성 레이어 하나, 앞뒷면은 ::before · ::after) */
+  const petal = (z: number, cls = '') => {
     const o = document.createElement('b'), t = Math.random();
     if (cls) o.className = cls;
-    o.style.cssText = `--s:${rnd(5, 9).toFixed(1)}px;--c:${PETAL_C[t < 0.55 ? 0 : t < 0.85 ? 1 : 2]};--a:${rnd(0.55, 0.85).toFixed(2)}`;
+    o.style.cssText = `--s:${(4 + 6 * z).toFixed(1)}px;--c:${PETAL_C[t < 0.5 ? 0 : t < 0.8 ? 1 : 2]};--a:${(0.4 + 0.45 * z).toFixed(2)}`;
     el.appendChild(o);
     return o;
   };
-  const tf = (x: number, y: number, r: number) => `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) rotate(${r.toFixed(0)}deg)`;
-  // 평소 꽃잎: 좌우로 하늘거리며 위에서 아래로 천천히, 끝나면 처음부터 되풀이 (시작 지점은 제각각)
-  const ambient = () => {
-    const o = petal('amb'), W = innerWidth, H = innerHeight;
-    const x = rnd(-20, W), vx = rnd(8, 26), vy = rnd(22, 48), dur = (H + 60) / vy, ph = rnd(0, 6.28), sw = rnd(1.8, 3.6), r0 = rnd(0, 360), spin = rnd(-60, 60);
-    if (still) { o.style.transform = tf(x, rnd(0, H), r0); return; }
-    const K = Math.ceil(dur / sw) * 2; // 흔들림 반 주기마다 한 점
-    o.animate(Array.from({ length: K + 1 }, (_, k) => { const t = (k / K) * dur; return { transform: tf(x + vx * t + 7 * Math.sin(ph + (t / sw) * Math.PI), -30 + vy * t, r0 + spin * t + 40 * Math.sin(ph + (t / sw) * Math.PI)) }; }),
-      { duration: dur * 1000, iterations: Infinity, iterationStart: Math.random(), easing: 'linear' });
+  /** 자세들을 이어 한 번(또는 끝없이) 날린다 */
+  const fly = (o: HTMLElement, dur: number, at: (t: number) => string, opt: KeyframeAnimationOptions, fade = 0) => {
+    const K = Math.max(2, Math.ceil(dur / STEP));
+    // 사라질 때는 투명도 대신 작아지며 멀어진다 (투명도를 움직이면 3D 앞뒷면이 납작해진다)
+    return o.animate(Array.from({ length: K + 1 }, (_, k) => { const t = (k / K) * dur; return { transform: fade ? `${at(t)} scale(${Math.min(1, (dur - t) / (dur * fade)).toFixed(2)})` : at(t) }; }),
+      { duration: dur * 1000, easing: 'linear', ...opt });
+  };
+  // 평소 꽃잎: 위에서 아래로, 끝나면 처음부터 되풀이 (시작 지점은 제각각). 먼 꽃잎부터 깔아 가까운 꽃잎이 앞에 온다
+  const ambient = (z: number) => {
+    const o = petal(z, 'amb'), W = innerWidth, H = innerHeight;
+    const f = flight(rnd(-40, W), -30, z), dur = (H + 60) / f.vy;
+    if (still) { o.style.transform = pose(f, rnd(0, dur)); return; }
+    fly(o, dur, (t) => pose(f, t), { iterations: Infinity, iterationStart: Math.random() });
   };
   const fillAmbient = () => {
     const a = el.querySelectorAll('.amb');
     for (let k = a.length - 1; k >= base(); k--) a[k].remove();
-    for (let k = a.length; k < base(); k++) ambient();
+    const add = Array.from({ length: Math.max(0, base() - a.length) }, () => Math.random()).sort();
+    for (const z of add) ambient(z);
     mark();
   };
   /** 한 번 날아가고 사라지는 꽃잎 (폭풍 · 누른 자리). 상한을 넘으면 만들지 않는다 */
-  const fling = (pts: [number, number][], dur: number) => {
+  const once = (z: number, dur: number, at: (f: Flight, t: number) => string, x: number, y: number) => {
     if (count() >= PETAL_CAP) return;
-    const o = petal(), r0 = rnd(0, 360), al = +o.style.getPropertyValue('--a');
-    const a = o.animate(pts.map(([x, y], i) => ({ transform: tf(x, y, r0 + i * 35), opacity: i === pts.length - 1 ? 0 : al })), { duration: dur });
-    a.onfinish = () => { o.remove(); mark(); };
+    const o = petal(z), f = flight(x, y, z);
+    fly(o, dur, (t) => at(f, t), {}, 0.3).onfinish = () => { o.remove(); mark(); };
   };
-  // 누른 자리에서 흩날림: 위로 튀었다가 떨어지며 흩어진다 (클릭은 그대로 통과)
+  // 누른 자리에서 흩날림: 살짝 튀어 올랐다가 감속하며 흩어지고, 이내 살랑이며 내려앉는다 (클릭은 그대로 통과)
   const burst = (cx: number, cy: number) => {
-    let x = cx + rnd(-6, 6), y = cy + rnd(-6, 6), vx = rnd(-140, 140), vy = rnd(-160, -40), b = rnd(0.5, 0.9);
-    const pts: [number, number][] = [[x, y]];
-    for (let s = 1; s <= 48; s++) { // 0.05초씩 2.4초
-      if (b > 0) { vy += 13; vx *= 0.92; b -= 0.05; if (b <= 0) vy = Math.min(vy, rnd(30, 50)); }
-      x += (vx + Math.sin(s * 0.065 + cx) * 14) * 0.05; y += vy * 0.05;
-      if (s % 6 === 0) pts.push([x, y]);
-    }
-    fling(pts, 2400);
+    const vx = rnd(-130, 130), vy = rnd(60, 150), tau = rnd(0.35, 0.6);
+    once(rnd(0.55, 1), rnd(2.6, 3.4), (f, t) => { const e = tau * (1 - Math.exp(-t / tau)); return pose({ ...f, amp: f.amp * Math.min(1, t / 1.2) }, t, vx * e, -vy * e); }, cx + rnd(-6, 6), cy + rnd(-6, 6));
   };
   const indoor = () => !!document.querySelector('.bar, .adv'); // 바(실내) · 사건 장면: 꽃잎 층을 내리므로 터짐 · 폭풍도 쉰다
   const onDown = (e: PointerEvent) => {
@@ -174,20 +190,21 @@ function petalLayer(level: FxLevel): Layer {
     for (let k = 0; k < n; k++) burst(e.clientX, e.clientY);
     mark();
   };
-  // 벚꽃 폭풍: 켜기에서 무작위 1~2분마다 4초, 바람이 꽃잎을 몰고 지나간다 (전투 중엔 약하게)
+  // 벚꽃 폭풍: 켜기에서 무작위 1~2분마다. 바람이 일었다가 잦아들며 꽃잎을 비스듬히 실어 나른다 (전투 중엔 약하게)
   const storm = () => {
     if (indoor()) return;
     const W = innerWidth, H = innerHeight, extra = isBusy ? 20 : 45;
-    el.animate([{ transform: 'none' }, { transform: 'translateX(110px)', offset: 0.5 }, { transform: 'none' }], { duration: 4000, easing: 'ease-in-out' });
+    el.animate([{ transform: 'none' }, { transform: 'translateX(60px)', offset: 0.35 }, { transform: 'none' }], { duration: 5000, easing: 'ease-in-out' });
     let k = 0;
     const tick = window.setInterval(() => {
       if (++k > 30) { clearInterval(tick); return; }
       for (let j = 0; j < 2 && count() < Math.min(PETAL_CAP, base() + extra); j++) {
-        const x = rnd(-W * 0.25, W * 0.5), y = rnd(-60, H * 0.7), dx = rnd(900, 1400), dy = rnd(120, 300);
-        fling([[x, y], [x + dx * 0.5, y + dy * 0.25], [x + dx, y + dy]], rnd(2600, 3800));
+        const wmax = rnd(220, 340), tr = rnd(0.6, 1), tau = rnd(1.2, 2); // 바람: tr 초 동안 일었다가 tau 로 잦아든다
+        const gust = (t: number) => wmax * (t < tr ? (t * t) / (2 * tr) : tr / 2 + tau * (1 - Math.exp(-(t - tr) / tau)));
+        once(rnd(0.3, 1), rnd(4.5, 6.5), (f, t) => pose(f, t, gust(t), 0, 1.8), rnd(-W * 0.35, W * 0.35), rnd(-60, H * 0.55));
       }
       mark();
-    }, 100);
+    }, 110);
   };
   const onResize = () => { clearTimeout(rz); rz = window.setTimeout(() => { el.querySelectorAll('.amb').forEach((x) => x.remove()); fillAmbient(); }, 300); };
   return {
