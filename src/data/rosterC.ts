@@ -30,7 +30,7 @@ export const ROSTER_C: BaseUnit[] = [
         b.buff(u, u, 'romani.guard', p.guardDur, { taken: [red('all', p.guard)], label: '집행자의 자세' }); // 끌어온 직후 버티기
         for (let i = 0; i < p.hits && t.alive; i++) skillHit(b, u, t, 'strike', p.mult * (i ? p.second || 0.6 : 1), 'phys');
         if (!t.alive) return true;
-        if (b.dist(u, t) > 1 && !t.immobile && !t.isBoss) { blinkTo(b, t, u); t.target = u; }
+        if (b.dist(u, t) > 1 && !t.immobile && !t.isBoss) { blinkTo(b, t, u); b.provoke(t, u, 2); } // 끌어온 적은 2초간 로마니를 노린다 (도발)
         b.stun(u, t, p.stun);
         if (t.alive) b.applyStatus(u, t, { type: 'buff', key: 'romani.weak', dur: p.weakDur, mods: [inc('all', -p.weak)], label: '집행 약화' }); // 대상이 주는 피해 감소
         if (p.splash) for (const e of b.around(t, 1, b.enemiesOf(u))) if (e !== t) skillHit(b, u, e, 'strike', p.splash, 'phys', { noMiss: true });

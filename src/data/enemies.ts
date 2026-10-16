@@ -1,4 +1,4 @@
-import type { Battle, CUnit, Hooks, SkillDef } from '../engine/combat';
+import type { Battle, CUnit, EnemyTend, Hooks, SkillDef } from '../engine/combat';
 import type { CType, Elem, Keyword, TType } from '../types';
 import { bleed, blinkTo, corrode, fear, lineTargets, poison, skillHit } from './kit';
 
@@ -18,6 +18,8 @@ export interface EnemyDef {
   sprite: string;
   palette: string[];
   tier: 'minion' | 'elite' | 'boss';
+  /** 성향: 표적을 고르는 방식 (도발 수치에 곱하는 가중치) */
+  tend: EnemyTend;
   minPhase: number;
   hp: number; power: number; armor: number;
   acc?: number; eva?: number; crit?: number; effHit?: number; effRes?: number;
@@ -108,32 +110,32 @@ const TOMB_BOSS = ['#080404', '#7a2020', '#e05050', '#ffc0b0', '#e0ff80', '#3a0a
 const CLOWNS = new Set(['cf_neighbor', 'cf_dog', 'sw_spitter', 'cf_model']);
 
 export const ENEMIES: EnemyDef[] = [
-  { id: 'raider', name: '약탈자 척후병', keywords: ['bio'], sprite: 'knight', palette: RAIDER, tier: 'minion', minPhase: 1,
+  { id: 'raider', name: '약탈자 척후병', tend: 'charge', keywords: ['bio'], sprite: 'knight', palette: RAIDER, tier: 'minion', minPhase: 1,
     hp: 420, power: 30, armor: 120, acc: 0.05, eva: 0.05, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'gunner', name: '약탈자 사수', keywords: ['bio'], sprite: 'soldier', palette: RAIDER, tier: 'minion', minPhase: 1,
+  { id: 'gunner', name: '약탈자 사수', tend: 'sniper', keywords: ['bio'], sprite: 'soldier', palette: RAIDER, tier: 'minion', minPhase: 1,
     hp: 320, power: 28, armor: 80, acc: 0.1, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false },
-  { id: 'drone', name: '정찰 드론', keywords: ['mech'], sprite: 'drone', palette: MACHINE, tier: 'minion', minPhase: 1,
+  { id: 'drone', name: '정찰 드론', tend: 'assassin', keywords: ['mech'], sprite: 'drone', palette: MACHINE, tier: 'minion', minPhase: 1,
     hp: 230, power: 20, armor: 60, eva: 0.15, interval: 0.7, range: 2, moveSpd: 1.4, atk: { type: 'shoot', elem: 'elec' }, melee: false },
-  { id: 'crawler', name: '산성 크롤러', keywords: ['bio'], sprite: 'crawler', palette: BUG, tier: 'minion', minPhase: 1,
+  { id: 'crawler', name: '산성 크롤러', tend: 'charge', keywords: ['bio'], sprite: 'crawler', palette: BUG, tier: 'minion', minPhase: 1,
     hp: 380, power: 24, armor: 100, interval: 0.9, range: 1, moveSpd: 1.2, atk: { type: 'strike', elem: 'chem' }, melee: true,
     onBasic: (b, u, t) => { poison(b, u, t, b.S(u, 'strike') * 0.25, 3, 0.5); } },
-  { id: 'trooper', name: '강습 기갑병', keywords: ['mech'], sprite: 'mech', palette: MACHINE, tier: 'minion', minPhase: 2,
+  { id: 'trooper', name: '강습 기갑병', tend: 'charge', keywords: ['mech'], sprite: 'mech', palette: MACHINE, tier: 'minion', minPhase: 2,
     hp: 700, power: 32, armor: 350, interval: 1.3, range: 1, moveSpd: 0.8, atk: { type: 'strike', elem: 'phys' }, melee: true,
     skill: {
       name: '충격 강타', cd: 10, needsRange: true, params: {}, desc: () => '주변 적 기절',
       cast(b, u) { b.fx(u.x, u.y, 1, 'phys'); for (const e of b.around(u, 1, b.enemiesOf(u))) { skillHit(b, u, e, 'strike', 1.0, 'phys'); b.stun(u, e, 1, 0.7); } return true; },
     } },
-  { id: 'turret', name: '방어 포탑', keywords: ['struct', 'mech'], sprite: 'turret', palette: MACHINE, tier: 'minion', minPhase: 2,
+  { id: 'turret', name: '방어 포탑', tend: 'sniper', keywords: ['struct', 'mech'], sprite: 'turret', palette: MACHINE, tier: 'minion', minPhase: 2,
     hp: 600, power: 34, armor: 300, acc: 0.1, interval: 1.2, range: 4, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false },
-  { id: 'wraith', name: '공허 환영', keywords: ['phantom'], sprite: 'phantom', palette: VOID, tier: 'minion', minPhase: 2,
+  { id: 'wraith', name: '공허 환영', tend: 'assassin', keywords: ['phantom'], sprite: 'phantom', palette: VOID, tier: 'minion', minPhase: 2,
     hp: 300, power: 30, armor: 40, eva: 0.25, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false },
-  { id: 'priest', name: '사이오닉 사제', keywords: ['bio', 'phantom'], sprite: 'medic', palette: VOID, tier: 'minion', minPhase: 3,
+  { id: 'priest', name: '사이오닉 사제', tend: 'counter', keywords: ['bio', 'phantom'], sprite: 'medic', palette: VOID, tier: 'minion', minPhase: 3,
     hp: 340, power: 24, armor: 80, interval: 1.2, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     skill: {
       name: '공허 치유', cd: 6, params: {}, desc: () => '아군 회복',
       cast(b, u) { const l = b.lowestHpAlly(u); if (!l || b.hpPct(l) > 0.85) return false; b.fx(l.x, l.y, 0, 'psy'); b.heal(u, l, b.S(u, 'tech') * 3); return true; },
     } },
-  { id: 'warlord', name: '약탈자 두목', keywords: ['bio'], sprite: 'knight', palette: ['#1a0a0a', '#a02020', '#e0a020', '#d0a080', '#ffe040', '#55504a', '#fff0a0'],
+  { id: 'warlord', name: '약탈자 두목', tend: 'charge', keywords: ['bio'], sprite: 'knight', palette: ['#1a0a0a', '#a02020', '#e0a020', '#d0a080', '#ffe040', '#55504a', '#fff0a0'],
     tier: 'elite', minPhase: 1, hp: 1100, power: 42, armor: 250, acc: 0.1, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     skill: {
       name: '두목의 일격', cd: 8, needsRange: true, params: {}, desc: () => '주변 광역 베기',
@@ -150,7 +152,7 @@ export const ENEMIES: EnemyDef[] = [
       for (const a of b.alliesOf(u)) b.buff(u, a, 'warlord', 4, { mods: [{ kind: 'inc', tag: 'all', v: 0.2 }], label: '약탈 명령' });
     } },
   // ───────── 보스
-  { id: 'varga', name: '약탈 함장 바르가', keywords: ['bio'], sprite: 'knight', palette: ['#1a0a0a', '#601818', '#e0a020', '#d0a080', '#ff3020', '#55504a', '#fff0a0'],
+  { id: 'varga', name: '약탈 함장 바르가', tend: 'charge', keywords: ['bio'], sprite: 'knight', palette: ['#1a0a0a', '#601818', '#e0a020', '#d0a080', '#ff3020', '#55504a', '#fff0a0'],
     tier: 'boss', minPhase: 1, hp: 3200, power: 50, armor: 300, acc: 0.15, effRes: 0.3, interval: 1.1, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     escort: ['raider', 'gunner'],
     skill: {
@@ -168,7 +170,7 @@ export const ENEMIES: EnemyDef[] = [
       b.emit({ k: 'status', id: u.id, name: '함장의 호령' });
       for (const a of b.alliesOf(u)) b.buff(u, a, 'varga', 5, { delta: { atkSpd: 0.3 }, mods: [{ kind: 'inc', tag: 'all', v: 0.3 }], label: '광폭화' });
     } },
-  { id: 'goliath', name: '강철 군주 골리앗', keywords: ['mech', 'struct'], sprite: 'mech', palette: ['#0c0e12', '#8a6a30', '#3a4048', '#c0c8d0', '#30d0ff', '#40464e', '#fff0c0'],
+  { id: 'goliath', name: '강철 군주 골리앗', tend: 'charge', keywords: ['mech', 'struct'], sprite: 'mech', palette: ['#0c0e12', '#8a6a30', '#3a4048', '#c0c8d0', '#30d0ff', '#40464e', '#fff0c0'],
     tier: 'boss', minPhase: 2, hp: 3600, power: 44, armor: 380, effRes: 0.3, interval: 1.4, range: 1, moveSpd: 0.7, atk: { type: 'strike', elem: 'phys' }, melee: true,
     skill: {
       name: '지진 강타', cd: 7, params: {}, desc: () => '주변 2칸 전기 피해 + 기절',
@@ -183,7 +185,7 @@ export const ENEMIES: EnemyDef[] = [
       u.mem.summon = (u.mem.summon || 0) + dt;
       if (u.mem.summon >= 15) { u.mem.summon = 0; summonHook?.(b, u, 'drone', 2); }
     } },
-  { id: 'nyx', name: '공허의 여왕 닉스', keywords: ['phantom'], sprite: 'phantom', palette: ['#0a0612', '#2a0a4a', '#d050ff', '#ffb0ff', '#ffffff', '#30204a', '#ffe0ff'],
+  { id: 'nyx', name: '공허의 여왕 닉스', tend: 'sniper', keywords: ['phantom'], sprite: 'phantom', palette: ['#0a0612', '#2a0a4a', '#d050ff', '#ffb0ff', '#ffffff', '#30204a', '#ffe0ff'],
     tier: 'boss', minPhase: 3, hp: 3000, power: 48, armor: 150, eva: 0.2, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     escort: ['wraith', 'wraith'],
     skill: {
@@ -197,21 +199,21 @@ export const ENEMIES: EnemyDef[] = [
     } },
   // ═════════ 전장별 적 (플레이스홀더 스프라이트: 나중에 에셋으로 교체)
   // ── 군체 (연합 · 베르타–산노디스 물류망)
-  { id: 'sw_spore', name: '포자 살점', keywords: ['bio'], sprite: 'crawler', palette: SWARM, tier: 'minion', minPhase: 1,
+  { id: 'sw_spore', name: '포자 살점', tend: 'charge', keywords: ['bio'], sprite: 'crawler', palette: SWARM, tier: 'minion', minPhase: 1,
     hp: 360, power: 24, armor: 80, interval: 0.9, range: 1, moveSpd: 1.1, atk: { type: 'strike', elem: 'chem' }, melee: true,
     onBasic: (b, u, t) => { poison(b, u, t, b.S(u, 'strike') * 0.2, 3, 0.5); } },
-  { id: 'sw_hound', name: '군체 사냥개체', keywords: ['bio'], sprite: 'beast', palette: SWARM, tier: 'minion', minPhase: 1,
+  { id: 'sw_hound', name: '군체 사냥개체', tend: 'assassin', keywords: ['bio'], sprite: 'beast', palette: SWARM, tier: 'minion', minPhase: 1,
     hp: 320, power: 28, armor: 70, eva: 0.1, interval: 0.7, range: 1, moveSpd: 1.5, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'sw_spitter', name: '산성 분사체', keywords: ['bio'], sprite: 'crawler', palette: SWARM2, tier: 'minion', minPhase: 1,
+  { id: 'sw_spitter', name: '산성 분사체', tend: 'sniper', keywords: ['bio'], sprite: 'crawler', palette: SWARM2, tier: 'minion', minPhase: 1,
     hp: 280, power: 26, armor: 60, interval: 1.2, range: 3, atk: { type: 'shoot', elem: 'chem' }, melee: false,
     onBasic: (b, u, t) => { corrode(b, u, t, 0.85, 3, 0.3); } },
-  { id: 'sw_carrier', name: '마부 개체', keywords: ['bio'], sprite: 'beast', palette: SWARM2, tier: 'minion', minPhase: 2,
+  { id: 'sw_carrier', name: '마부 개체', tend: 'charge', keywords: ['bio'], sprite: 'beast', palette: SWARM2, tier: 'minion', minPhase: 2,
     hp: 900, power: 30, armor: 230, interval: 1.4, range: 1, moveSpd: 0.7, atk: { type: 'strike', elem: 'phys' }, melee: true,
     skill: {
       name: '짓밟기', cd: 10, needsRange: true, params: {}, desc: () => '주변 적 피해 + 기절',
       cast(b, u) { b.fx(u.x, u.y, 1, 'phys'); for (const e of b.around(u, 1, b.enemiesOf(u))) { skillHit(b, u, e, 'strike', 1.0, 'phys'); b.stun(u, e, 1, 0.6); } return true; },
     } },
-  { id: 'sw_brood', name: '군체 산란체', keywords: ['bio'], sprite: 'crawler', palette: SWARM_ELITE, tier: 'elite', minPhase: 1,
+  { id: 'sw_brood', name: '군체 산란체', tend: 'charge', keywords: ['bio'], sprite: 'crawler', palette: SWARM_ELITE, tier: 'elite', minPhase: 1,
     hp: 1200, power: 36, armor: 200, interval: 1.2, range: 1, moveSpd: 0.8, atk: { type: 'strike', elem: 'chem' }, melee: true,
     onTick: (b, u, dt) => {
       u.mem.spawnT = (u.mem.spawnT || 0) + dt;
@@ -220,7 +222,7 @@ export const ENEMIES: EnemyDef[] = [
       const alive = b.units.filter((x) => x.alive && x.side === u.side && x.defId === 'sw_spore').length; // 포자 동시 생존 최대 6
       if (alive < 6) summonHook?.(b, u, 'sw_spore', Math.min(2, 6 - alive));
     } },
-  { id: 'sw_queen', name: '군체 여왕', keywords: ['bio', 'phantom'], sprite: 'phantom', palette: SWARM_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'sw_queen', name: '군체 여왕', tend: 'counter', keywords: ['bio', 'phantom'], sprite: 'phantom', palette: SWARM_BOSS, tier: 'boss', minPhase: 1,
     hp: 3000, power: 46, armor: 180, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     escort: ['sw_hound', 'sw_spitter'],
     skill: {
@@ -238,7 +240,7 @@ export const ENEMIES: EnemyDef[] = [
       b.emit({ k: 'status', id: u.id, name: '사이오닉 지배' });
       for (const a of b.alliesOf(u)) b.buff(u, a, 'swarm.dom', 5, { delta: { atkSpd: 0.3 }, mods: [{ kind: 'inc', tag: 'all', v: 0.25 }], label: '사이오닉장' });
     } },
-  { id: 'sw_harvester', name: '거대 마부 개체', keywords: ['bio'], sprite: 'beast', palette: SWARM_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'sw_harvester', name: '거대 마부 개체', tend: 'charge', keywords: ['bio'], sprite: 'beast', palette: SWARM_BOSS, tier: 'boss', minPhase: 1,
     hp: 3500, power: 44, armor: 320, effRes: 0.3, interval: 1.3, range: 1, moveSpd: 0.7, atk: { type: 'strike', elem: 'phys' }, melee: true,
     escort: ['sw_spore', 'sw_spore'],
     skill: {
@@ -248,27 +250,27 @@ export const ENEMIES: EnemyDef[] = [
     onTick: (b, u, dt) => { u.mem.spawnT = (u.mem.spawnT || 0) + dt; if (u.mem.spawnT >= 15) { u.mem.spawnT = 0; summonHook?.(b, u, 'sw_spore', 2); } } },
 
   // ── 크림슨 대공령 (제국)
-  { id: 'cr_thrall', name: '혈족 종자', keywords: ['bio'], sprite: 'knight', palette: CRIMSON, tier: 'minion', minPhase: 1,
+  { id: 'cr_thrall', name: '혈족 종자', tend: 'charge', keywords: ['bio'], sprite: 'knight', palette: CRIMSON, tier: 'minion', minPhase: 1,
     hp: 440, power: 30, armor: 140, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     onBasic: (b, u) => { b.heal(u, u, b.S(u, 'strike') * 0.6); } },
-  { id: 'cr_hound', name: '배양 사냥개', keywords: ['bio'], sprite: 'beast', palette: CRIMSON, tier: 'minion', minPhase: 1,
+  { id: 'cr_hound', name: '배양 사냥개', tend: 'assassin', keywords: ['bio'], sprite: 'beast', palette: CRIMSON, tier: 'minion', minPhase: 1,
     hp: 340, power: 28, armor: 80, eva: 0.1, interval: 0.7, range: 1, moveSpd: 1.5, atk: { type: 'strike', elem: 'phys' }, melee: true,
     onBasic: (b, u, t) => { bleed(b, u, t, b.S(u, 'strike') * 0.2, 3, 0.4); } },
-  { id: 'cr_musket', name: '정맥관 총사', keywords: ['bio'], sprite: 'soldier', palette: CRIMSON, tier: 'minion', minPhase: 1,
+  { id: 'cr_musket', name: '정맥관 총사', tend: 'sniper', keywords: ['bio'], sprite: 'soldier', palette: CRIMSON, tier: 'minion', minPhase: 1,
     hp: 300, power: 30, armor: 80, acc: 0.1, interval: 1.2, range: 4, atk: { type: 'shoot', elem: 'phys' }, melee: false },
-  { id: 'cr_leech', name: '배양조 사제', keywords: ['bio'], sprite: 'medic', palette: CRIMSON2, tier: 'minion', minPhase: 2,
+  { id: 'cr_leech', name: '배양조 사제', tend: 'counter', keywords: ['bio'], sprite: 'medic', palette: CRIMSON2, tier: 'minion', minPhase: 2,
     hp: 340, power: 24, armor: 80, interval: 1.2, range: 3, atk: { type: 'shoot', elem: 'chem' }, melee: false,
     skill: {
       name: '수혈', cd: 6, params: {}, desc: () => '아군 회복',
       cast(b, u) { const l = b.lowestHpAlly(u); if (!l || b.hpPct(l) > 0.85) return false; b.fx(l.x, l.y, 0, 'chem'); b.heal(u, l, b.S(u, 'tech') * 3); return true; },
     } },
-  { id: 'cr_knight', name: '크림슨 혈기사', keywords: ['bio'], sprite: 'knight', palette: CRIMSON_ELITE, tier: 'elite', minPhase: 1,
+  { id: 'cr_knight', name: '크림슨 혈기사', tend: 'charge', keywords: ['bio'], sprite: 'knight', palette: CRIMSON_ELITE, tier: 'elite', minPhase: 1,
     hp: 1200, power: 44, armor: 300, acc: 0.1, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     skill: {
       name: '피의 일섬', cd: 8, needsRange: true, params: {}, desc: () => '주변 베기 + 흡혈',
       cast(b, u) { b.fx(u.x, u.y, 1, 'phys'); for (const e of b.around(u, 1, b.enemiesOf(u))) skillHit(b, u, e, 'strike', 1.6, 'phys'); b.heal(u, u, b.S(u, 'maxHp') * 0.06); return true; },
     } },
-  { id: 'cr_count', name: '혈족 백작', keywords: ['bio'], sprite: 'knight', palette: CRIMSON_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'cr_count', name: '혈족 백작', tend: 'charge', keywords: ['bio'], sprite: 'knight', palette: CRIMSON_BOSS, tier: 'boss', minPhase: 1,
     hp: 3300, power: 50, armor: 280, acc: 0.15, effRes: 0.3, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     escort: ['cr_thrall', 'cr_musket'],
     skill: {
@@ -287,7 +289,7 @@ export const ENEMIES: EnemyDef[] = [
       b.heal(u, u, b.S(u, 'maxHp') * 0.06);
       for (const a of b.alliesOf(u)) b.buff(u, a, 'crimson.feast', 5, { mods: [{ kind: 'inc', tag: 'all', v: 0.25 }], label: '혈연 축제' });
     } },
-  { id: 'cr_heart', name: '그라나툼 심핵 수호체', keywords: ['bio', 'struct'], sprite: 'mech', palette: CRIMSON_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'cr_heart', name: '그라나툼 심핵 수호체', tend: 'counter', keywords: ['bio', 'struct'], sprite: 'mech', palette: CRIMSON_BOSS, tier: 'boss', minPhase: 1,
     hp: 3400, power: 40, armor: 280, effRes: 0.3, interval: 1.3, range: 5, immobile: true, atk: { type: 'shoot', elem: 'chem' }, melee: false,
     escort: ['cr_hound', 'cr_thrall'],
     skill: {
@@ -297,28 +299,28 @@ export const ENEMIES: EnemyDef[] = [
     onTick: (b, u, dt) => { u.mem.spawnT = (u.mem.spawnT || 0) + dt; if (u.mem.spawnT >= 15) { u.mem.spawnT = 0; summonHook?.(b, u, 'cr_thrall', 1); } } },
 
   // ── 스파르타 전쟁 궤도 (동맹)
-  { id: 'sp_hoplite', name: '호플리테 메카', keywords: ['mech'], sprite: 'mech', palette: SPARTA, tier: 'minion', minPhase: 1,
+  { id: 'sp_hoplite', name: '호플리테 메카', tend: 'charge', keywords: ['mech'], sprite: 'mech', palette: SPARTA, tier: 'minion', minPhase: 1,
     hp: 650, power: 28, armor: 420, effRes: 0.3, interval: 1.2, range: 1, moveSpd: 0.8, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'sp_lancer', name: '창병 메카', keywords: ['mech'], sprite: 'knight', palette: SPARTA, tier: 'minion', minPhase: 1,
+  { id: 'sp_lancer', name: '창병 메카', tend: 'charge', keywords: ['mech'], sprite: 'knight', palette: SPARTA, tier: 'minion', minPhase: 1,
     hp: 420, power: 34, armor: 220, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'sp_archer', name: '궤도 사수 메카', keywords: ['mech'], sprite: 'soldier', palette: SPARTA, tier: 'minion', minPhase: 1,
+  { id: 'sp_archer', name: '궤도 사수 메카', tend: 'sniper', keywords: ['mech'], sprite: 'soldier', palette: SPARTA, tier: 'minion', minPhase: 1,
     hp: 300, power: 30, armor: 150, acc: 0.1, interval: 1.2, range: 4, atk: { type: 'shoot', elem: 'elec' }, melee: false },
-  { id: 'sp_drone', name: '예인 드론', keywords: ['mech'], sprite: 'drone', palette: SPARTA, tier: 'minion', minPhase: 2,
+  { id: 'sp_drone', name: '예인 드론', tend: 'sniper', keywords: ['mech'], sprite: 'drone', palette: SPARTA, tier: 'minion', minPhase: 2,
     hp: 240, power: 22, armor: 100, eva: 0.15, interval: 0.7, range: 2, moveSpd: 1.4, atk: { type: 'shoot', elem: 'elec' }, melee: false },
-  { id: 'sp_phalanx', name: '팔랑크스 지휘기', keywords: ['mech'], sprite: 'mech', palette: SPARTA_ELITE, tier: 'elite', minPhase: 1,
+  { id: 'sp_phalanx', name: '팔랑크스 지휘기', tend: 'counter', keywords: ['mech'], sprite: 'mech', palette: SPARTA_ELITE, tier: 'elite', minPhase: 1,
     hp: 1300, power: 38, armor: 500, effRes: 0.3, interval: 1.2, range: 1, moveSpd: 0.8, atk: { type: 'strike', elem: 'phys' }, melee: true,
     skill: {
       name: '방패벽', cd: 9, params: {}, desc: () => '아군 보호막 + 방어도 증가',
       cast(b, u) { b.fx(u.x, u.y, 2, 'phys'); for (const a of b.alliesOf(u)) { b.shield(a, b.S(a, 'maxHp') * 0.15); b.buff(u, a, 'sparta.wall', 4, { delta: { armor: 200 }, label: '방패벽' }); } return true; },
     } },
-  { id: 'sp_spear', name: '창구 절멸 포대', keywords: ['mech', 'struct'], sprite: 'turret', palette: SPARTA_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'sp_spear', name: '창구 절멸 포대', tend: 'sniper', keywords: ['mech', 'struct'], sprite: 'turret', palette: SPARTA_BOSS, tier: 'boss', minPhase: 1,
     hp: 4000, power: 52, armor: 450, effRes: 0.4, interval: 1.4, range: 7, immobile: true, atk: { type: 'shoot', elem: 'elec' }, melee: false,
     escort: ['sp_hoplite', 'sp_hoplite', 'sp_archer'],
     skill: {
       name: '절멸 광선', cd: 7, params: {}, desc: () => '직선 관통 전기 피해',
       cast(b, u) { const t = u.target?.alive ? u.target : b.farthest(u); if (!t) return false; for (const e of lineTargets(b, u, t)) { b.fx(e.x, e.y, 0, 'elec'); skillHit(b, u, e, 'tech', 2.0, 'elec', { noMiss: true }); } return true; },
     } },
-  { id: 'sp_colossus', name: '전쟁 궤도 콜로서스', keywords: ['mech'], sprite: 'mech', palette: SPARTA_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'sp_colossus', name: '전쟁 궤도 콜로서스', tend: 'charge', keywords: ['mech'], sprite: 'mech', palette: SPARTA_BOSS, tier: 'boss', minPhase: 1,
     hp: 3500, power: 46, armor: 360, effRes: 0.3, interval: 1.4, range: 1, moveSpd: 0.7, atk: { type: 'strike', elem: 'phys' }, melee: true,
     escort: ['sp_lancer', 'sp_archer'],
     skill: {
@@ -328,22 +330,22 @@ export const ENEMIES: EnemyDef[] = [
     onTick: (b, u, dt) => { u.mem.spawnT = (u.mem.spawnT || 0) + dt; if (u.mem.spawnT >= 15) { u.mem.spawnT = 0; summonHook?.(b, u, 'sp_drone', 2); } } },
 
   // ── 페트라 본사 성역 · 격리 구역
-  { id: 'pt_guard', name: '보안 집행 로봇', keywords: ['mech'], sprite: 'mech', palette: PETRA, tier: 'minion', minPhase: 1,
+  { id: 'pt_guard', name: '보안 집행 로봇', tend: 'charge', keywords: ['mech'], sprite: 'mech', palette: PETRA, tier: 'minion', minPhase: 1,
     hp: 600, power: 30, armor: 300, interval: 1.2, range: 1, moveSpd: 0.9, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'pt_drone', name: '감시 드론', keywords: ['mech'], sprite: 'drone', palette: PETRA, tier: 'minion', minPhase: 1,
+  { id: 'pt_drone', name: '감시 드론', tend: 'sniper', keywords: ['mech'], sprite: 'drone', palette: PETRA, tier: 'minion', minPhase: 1,
     hp: 240, power: 22, armor: 80, eva: 0.15, interval: 0.7, range: 3, moveSpd: 1.4, atk: { type: 'shoot', elem: 'elec' }, melee: false },
-  { id: 'pt_unix', name: '유닉스 생산 로봇', keywords: ['mech'], sprite: 'mech', palette: UNIX, tier: 'minion', minPhase: 1,
+  { id: 'pt_unix', name: '유닉스 생산 로봇', tend: 'charge', keywords: ['mech'], sprite: 'mech', palette: UNIX, tier: 'minion', minPhase: 1,
     hp: 500, power: 26, armor: 250, interval: 1.1, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'pt_anomaly', name: '격리 이탈 개체', keywords: ['phantom'], sprite: 'phantom', palette: ANOMALY, tier: 'minion', minPhase: 2,
+  { id: 'pt_anomaly', name: '격리 이탈 개체', tend: 'assassin', keywords: ['phantom'], sprite: 'phantom', palette: ANOMALY, tier: 'minion', minPhase: 2,
     hp: 320, power: 32, armor: 40, eva: 0.3, interval: 1.1, range: 2, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     onBasic: (b, u, t) => { fear(b, u, t, 1, 0.15); } },
-  { id: 'pt_auditor', name: '정보감사관', keywords: ['bio'], sprite: 'soldier', palette: PETRA_ELITE, tier: 'elite', minPhase: 1,
+  { id: 'pt_auditor', name: '정보감사관', tend: 'sniper', keywords: ['bio'], sprite: 'soldier', palette: PETRA_ELITE, tier: 'elite', minPhase: 1,
     hp: 1000, power: 40, armor: 200, acc: 0.15, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false,
     skill: {
       name: '감사번호 부여', cd: 7, params: {}, desc: () => '대상 피격 피해 증가 (영구 기록)',
       cast(b, u) { const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u)); if (!t) return false; b.fx(t.x, t.y, 0, 'phys'); skillHit(b, u, t, 'shoot', 1.5, 'phys'); b.applyStatus(u, t, { type: 'buff', key: 'pt.audit', dur: 8, taken: [{ kind: 'vuln', tag: 'all', v: 0.3 }], label: '감사번호' }); return true; },
     } },
-  { id: 'pt_contract', name: '계약서에 없던 것', keywords: ['phantom'], sprite: 'phantom', palette: ANOMALY_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'pt_contract', name: '계약서에 없던 것', tend: 'sniper', keywords: ['phantom'], sprite: 'phantom', palette: ANOMALY_BOSS, tier: 'boss', minPhase: 1,
     hp: 3200, power: 50, armor: 150, eva: 0.2, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     escort: ['pt_anomaly', 'pt_guard'],
     skill: {
@@ -355,7 +357,7 @@ export const ENEMIES: EnemyDef[] = [
         return true;
       },
     } },
-  { id: 'pt_unixline', name: '유닉스 생산 라인', keywords: ['mech', 'struct'], sprite: 'turret', palette: UNIX, tier: 'boss', minPhase: 1,
+  { id: 'pt_unixline', name: '유닉스 생산 라인', tend: 'counter', keywords: ['mech', 'struct'], sprite: 'turret', palette: UNIX, tier: 'boss', minPhase: 1,
     hp: 2900, power: 34, armor: 320, effRes: 0.3, interval: 1.2, range: 4, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false,
     escort: ['pt_guard', 'pt_drone'],
     // 1원칙: 매 분기 직전 대비 더 많이 생산한다
@@ -370,17 +372,17 @@ export const ENEMIES: EnemyDef[] = [
 
   // ═════════ 신규 전장 (docs/FIELDS_DRAFT.md 1 · 3 · 8 · 9 · 10 · 12 · 14 · 15)
   // ── 카운티폴 세피아 교외 (연합 · 광대 × 성도회 정화조)
-  { id: 'cf_neighbor', name: '완벽한 이웃', keywords: ['bio'], sprite: 'knight', palette: SEPIA, tier: 'minion', minPhase: 1,
+  { id: 'cf_neighbor', name: '완벽한 이웃', tend: 'assassin', keywords: ['bio'], sprite: 'knight', palette: SEPIA, tier: 'minion', minPhase: 1,
     hp: 430, power: 30, armor: 120, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'cf_dog', name: '이웃집 개', keywords: ['bio'], sprite: 'beast', palette: SEPIA, tier: 'minion', minPhase: 1,
+  { id: 'cf_dog', name: '이웃집 개', tend: 'assassin', keywords: ['bio'], sprite: 'beast', palette: SEPIA, tier: 'minion', minPhase: 1,
     hp: 320, power: 26, armor: 70, eva: 0.1, interval: 0.7, range: 1, moveSpd: 1.5, atk: { type: 'strike', elem: 'phys' }, melee: true,
     onBasic: (b, u, t) => { bleed(b, u, t, b.S(u, 'strike') * 0.2, 3, 0.4); } },
-  { id: 'cf_purifier', name: '정화사', keywords: ['bio'], sprite: 'robe', palette: SIRIUS, tier: 'minion', minPhase: 1,
+  { id: 'cf_purifier', name: '정화사', tend: 'sniper', keywords: ['bio'], sprite: 'robe', palette: SIRIUS, tier: 'minion', minPhase: 1,
     hp: 300, power: 28, armor: 70, interval: 1.2, range: 3, atk: { type: 'shoot', elem: 'holy' }, melee: false,
     onBasic: (b, u, t) => { antiheal(b, u, t, 0.3, 4); } },
-  { id: 'cf_drone', name: '성광 드론', keywords: ['mech'], sprite: 'drone', palette: SIRIUS, tier: 'minion', minPhase: 2,
+  { id: 'cf_drone', name: '성광 드론', tend: 'sniper', keywords: ['mech'], sprite: 'drone', palette: SIRIUS, tier: 'minion', minPhase: 2,
     hp: 240, power: 22, armor: 70, eva: 0.15, interval: 0.7, range: 2, moveSpd: 1.4, atk: { type: 'shoot', elem: 'elec' }, melee: false },
-  { id: 'cf_chair', name: '반상회장', keywords: ['bio'], sprite: 'soldier', palette: SEPIA_ELITE, tier: 'elite', minPhase: 1,
+  { id: 'cf_chair', name: '반상회장', tend: 'counter', keywords: ['bio'], sprite: 'soldier', palette: SEPIA_ELITE, tier: 'elite', minPhase: 1,
     hp: 1100, power: 40, armor: 220, acc: 0.1, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false,
     // 반상회 소집: 8초마다 광대 1기 은신 + 피해 증가
     onTick: (b, u, dt) => {
@@ -392,7 +394,7 @@ export const ENEMIES: EnemyDef[] = [
       b.buff(u, t, 'stealth', 3, { label: '은신' });
       b.buff(u, t, 'cf.chair', 3, { mods: [{ kind: 'inc', tag: 'all', v: 0.5 }], label: '기습 준비' });
     } },
-  { id: 'cf_model', name: '모범 시민', keywords: ['bio'], sprite: 'knight', palette: SEPIA_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'cf_model', name: '모범 시민', tend: 'charge', keywords: ['bio'], sprite: 'knight', palette: SEPIA_BOSS, tier: 'boss', minPhase: 1,
     hp: 3300, power: 48, armor: 260, acc: 0.1, effRes: 0.3, interval: 1.1, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     escort: ['cf_neighbor', 'cf_dog'],
     skill: {
@@ -413,7 +415,7 @@ export const ENEMIES: EnemyDef[] = [
       b.buff(u, u, 'cf.unmask', 9999, { delta: { atkSpd: 0.4 }, label: '거대화' });
       u.cd = Math.min(u.cd, 1);
     } },
-  { id: 'cf_inquisitor', name: '정화관', keywords: ['bio'], sprite: 'robe', palette: SIRIUS_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'cf_inquisitor', name: '정화관', tend: 'sniper', keywords: ['bio'], sprite: 'robe', palette: SIRIUS_BOSS, tier: 'boss', minPhase: 1,
     hp: 3000, power: 48, armor: 180, effRes: 0.3, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'holy' }, melee: false,
     escort: ['cf_purifier', 'cf_neighbor'],
     skill: {
@@ -426,14 +428,14 @@ export const ENEMIES: EnemyDef[] = [
     } },
 
   // ── 리빈 낙원동 방역 시즌 (연합 · 부유체 · 프리버드)
-  { id: 'lv_floater', name: '부유체', keywords: ['bio'], sprite: 'phantom', palette: FLOAT, tier: 'minion', minPhase: 1,
+  { id: 'lv_floater', name: '부유체', tend: 'sniper', keywords: ['bio'], sprite: 'phantom', palette: FLOAT, tier: 'minion', minPhase: 1,
     hp: 460, power: 26, armor: 60, interval: 1.3, range: 2, moveSpd: 0.6, atk: { type: 'shoot', elem: 'chem' }, melee: false,
     onBasic: (b, u, t) => { poison(b, u, t, b.S(u, 'shoot') * 0.2, 3, 0.3); } },
-  { id: 'lv_spores', name: '부유 포자 무리', keywords: ['bio'], sprite: 'crawler', palette: FLOAT, tier: 'minion', minPhase: 1,
+  { id: 'lv_spores', name: '부유 포자 무리', tend: 'charge', keywords: ['bio'], sprite: 'crawler', palette: FLOAT, tier: 'minion', minPhase: 1,
     hp: 200, power: 18, armor: 30, interval: 0.9, range: 1, moveSpd: 1.3, atk: { type: 'strike', elem: 'chem' }, melee: true },
-  { id: 'lv_raptor', name: '랩터급 프리버드', keywords: ['bio'], sprite: 'beast', palette: BIRD, tier: 'minion', minPhase: 1,
+  { id: 'lv_raptor', name: '랩터급 프리버드', tend: 'assassin', keywords: ['bio'], sprite: 'beast', palette: BIRD, tier: 'minion', minPhase: 1,
     hp: 340, power: 28, armor: 70, eva: 0.2, interval: 0.7, range: 1, moveSpd: 1.6, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'lv_alpha', name: '무리 우두머리 프리버드', keywords: ['bio'], sprite: 'beast', palette: BIRD_ELITE, tier: 'elite', minPhase: 1,
+  { id: 'lv_alpha', name: '무리 우두머리 프리버드', tend: 'charge', keywords: ['bio'], sprite: 'beast', palette: BIRD_ELITE, tier: 'elite', minPhase: 1,
     hp: 1200, power: 42, armor: 220, interval: 1.0, range: 1, moveSpd: 1.2, atk: { type: 'strike', elem: 'phys' }, melee: true,
     // 포식: 6초마다 가장 가까운 부유체를 삼켜 회복, 3초 뒤 체내 폭발
     onTick: (b, u, dt) => {
@@ -448,11 +450,11 @@ export const ENEMIES: EnemyDef[] = [
       b.heal(u, u, b.S(u, 'maxHp') * 0.15);
       b.later(3, () => { if (u.alive) gasBlast(b, u, u.x, u.y, 1, 0.1); });
     } },
-  { id: 'lv_mother', name: '부유체 모체', keywords: ['bio'], sprite: 'phantom', palette: FLOAT_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'lv_mother', name: '부유체 모체', tend: 'counter', keywords: ['bio'], sprite: 'phantom', palette: FLOAT_BOSS, tier: 'boss', minPhase: 1,
     hp: 3000, power: 42, armor: 160, effRes: 0.3, interval: 1.3, range: 3, moveSpd: 0.5, atk: { type: 'shoot', elem: 'chem' }, melee: false,
     escort: ['lv_floater', 'lv_raptor'],
     onTick: (b, u, dt) => { u.mem.spawnT = (u.mem.spawnT || 0) + dt; if (u.mem.spawnT >= 14) { u.mem.spawnT = 0; b.emit({ k: 'status', id: u.id, name: '포자 방출' }); summonHook?.(b, u, 'lv_spores', 2); } } },
-  { id: 'lv_king', name: '목초지의 왕', keywords: ['bio'], sprite: 'beast', palette: BIRD_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'lv_king', name: '목초지의 왕', tend: 'assassin', keywords: ['bio'], sprite: 'beast', palette: BIRD_BOSS, tier: 'boss', minPhase: 1,
     hp: 4000, power: 54, armor: 300, effRes: 0.3, interval: 1.2, range: 1, moveSpd: 0.9, atk: { type: 'strike', elem: 'phys' }, melee: true,
     escort: ['lv_raptor', 'lv_floater'],
     skill: {
@@ -467,14 +469,14 @@ export const ENEMIES: EnemyDef[] = [
     } },
 
   // ── 라이덴 제34블록 봉쇄선 (제국 호이슌 · 폭주한 과개조자)
-  { id: 'rd_laborer', name: '노동 등급 폭주자', keywords: ['bio'], sprite: 'knight', palette: NEON, tier: 'minion', minPhase: 1,
+  { id: 'rd_laborer', name: '노동 등급 폭주자', tend: 'charge', keywords: ['bio'], sprite: 'knight', palette: NEON, tier: 'minion', minPhase: 1,
     hp: 460, power: 30, armor: 130, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'rd_combat', name: '전투 등급 폭주자', keywords: ['mech'], sprite: 'knight', palette: CHROME, tier: 'minion', minPhase: 1,
+  { id: 'rd_combat', name: '전투 등급 폭주자', tend: 'assassin', keywords: ['mech'], sprite: 'knight', palette: CHROME, tier: 'minion', minPhase: 1,
     hp: 500, power: 32, armor: 250, interval: 0.8, range: 1, moveSpd: 1.2, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'rd_sub', name: '구독 치안 드론', keywords: ['mech'], sprite: 'drone', palette: CHROME, tier: 'minion', minPhase: 1,
+  { id: 'rd_sub', name: '구독 치안 드론', tend: 'sniper', keywords: ['mech'], sprite: 'drone', palette: CHROME, tier: 'minion', minPhase: 1,
     hp: 260, power: 24, armor: 90, eva: 0.1, interval: 0.8, range: 3, moveSpd: 1.3, atk: { type: 'shoot', elem: 'elec' }, melee: false,
     onBasic: (b, u, t) => { b.applyStatus(u, t, { type: 'buff', key: 'rd.unpaid', dur: 4, taken: [{ kind: 'vuln', tag: 'all', v: 0.15 }], label: '미납' }); } },
-  { id: 'rd_stream', name: '데스 스트리밍 드론', keywords: ['mech'], sprite: 'drone', palette: NEON, tier: 'minion', minPhase: 2,
+  { id: 'rd_stream', name: '데스 스트리밍 드론', tend: 'counter', keywords: ['mech'], sprite: 'drone', palette: NEON, tier: 'minion', minPhase: 2,
     hp: 240, power: 10, armor: 80, eva: 0.2, interval: 1.0, range: 4, moveSpd: 1.2, atk: { type: 'shoot', elem: 'phys' }, melee: false, noAttack: true,
     // 생중계: 2초마다 가장 가까운 적 하나를 찍는다 (받는 피해 +15%)
     onTick: (b, u, dt) => {
@@ -484,7 +486,7 @@ export const ENEMIES: EnemyDef[] = [
       const t = b.nearest(u, b.targetable(u).filter((e) => b.dist(u, e) <= 4));
       if (t) b.applyStatus(u, t, { type: 'buff', key: 'rd.stream', dur: 2.5, taken: [{ kind: 'vuln', tag: 'all', v: 0.15 }], label: '생중계' });
     } },
-  { id: 'rd_critical', name: '\'임계\' 과개조자', keywords: ['mech'], sprite: 'knight', palette: NEON_ELITE, tier: 'elite', minPhase: 1,
+  { id: 'rd_critical', name: '\'임계\' 과개조자', tend: 'charge', keywords: ['mech'], sprite: 'knight', palette: NEON_ELITE, tier: 'elite', minPhase: 1,
     hp: 1200, power: 44, armor: 280, interval: 0.9, range: 1, moveSpd: 1.1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     // 임계 돌파: 체력 50% 이하에서 한 번, 8초 광폭 + 받는 피해 -30%
     onTick: (b, u) => {
@@ -493,7 +495,7 @@ export const ENEMIES: EnemyDef[] = [
       rampage(b, u, 8);
       b.buff(u, u, 'rd.crit', 8, { taken: [{ kind: 'red', tag: 'all', v: 0.3 }], label: '임계 돌파' });
     } },
-  { id: 'rd_tower', name: '결함 펌웨어 송출탑', keywords: ['mech', 'struct'], sprite: 'turret', palette: NEON_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'rd_tower', name: '결함 펌웨어 송출탑', tend: 'counter', keywords: ['mech', 'struct'], sprite: 'turret', palette: NEON_BOSS, tier: 'boss', minPhase: 1,
     hp: 3000, power: 40, armor: 300, effRes: 0.3, interval: 1.3, range: 5, immobile: true, atk: { type: 'shoot', elem: 'elec' }, melee: false,
     escort: ['rd_laborer', 'rd_combat', 'rd_sub'],
     // 펌웨어 송출: 10초마다 같은 편 2기 광폭 + 적 기계 기물 2초 감전
@@ -506,7 +508,7 @@ export const ENEMIES: EnemyDef[] = [
       for (const a of al) rampage(b, a, 4);
       for (const e of b.enemiesOf(u)) if (e.category === 'mech') b.applyStatus(u, e, { type: 'shock', key: 'shock', dur: 2 });
     } },
-  { id: 'rd_repo', name: '구독 해지 집행반장', keywords: ['mech'], sprite: 'soldier', palette: CHROME_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'rd_repo', name: '구독 해지 집행반장', tend: 'sniper', keywords: ['mech'], sprite: 'soldier', palette: CHROME_BOSS, tier: 'boss', minPhase: 1,
     hp: 3200, power: 48, armor: 260, acc: 0.1, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false,
     escort: ['rd_sub', 'rd_combat'],
     skill: {
@@ -522,11 +524,11 @@ export const ENEMIES: EnemyDef[] = [
     } },
 
   // ── 크레타 백원 (동맹 · 장군의 망령)
-  { id: 'kr_nameless', name: '무명 망령', keywords: ['phantom'], sprite: 'knight', palette: GHOST, tier: 'minion', minPhase: 1,
+  { id: 'kr_nameless', name: '무명 망령', tend: 'charge', keywords: ['phantom'], sprite: 'knight', palette: GHOST, tier: 'minion', minPhase: 1,
     hp: 380, power: 28, armor: 60, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'kr_archer', name: '대열 궁수 망령', keywords: ['phantom'], sprite: 'soldier', palette: GHOST, tier: 'minion', minPhase: 1,
+  { id: 'kr_archer', name: '대열 궁수 망령', tend: 'sniper', keywords: ['phantom'], sprite: 'soldier', palette: GHOST, tier: 'minion', minPhase: 1,
     hp: 280, power: 28, armor: 40, acc: 0.05, interval: 1.2, range: 4, atk: { type: 'shoot', elem: 'phys' }, melee: false },
-  { id: 'kr_builder', name: '미완의 건축가 망령', keywords: ['phantom'], sprite: 'robe', palette: GHOST, tier: 'minion', minPhase: 2,
+  { id: 'kr_builder', name: '미완의 건축가 망령', tend: 'counter', keywords: ['phantom'], sprite: 'robe', palette: GHOST, tier: 'minion', minPhase: 2,
     hp: 320, power: 22, armor: 60, interval: 1.2, range: 2, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     // 묘석 축조: 10초마다 적 쪽 빈칸에 묘석
     onTick: (b, u, dt) => {
@@ -538,12 +540,12 @@ export const ENEMIES: EnemyDef[] = [
       const cell = [[0, dy], [-1, dy], [1, dy], [-1, 0], [1, 0]].map(([dx, d]) => ({ x: u.x + dx, y: u.y + d })).find((c) => b.inBounds(c.x, c.y) && !b.unitAt(c.x, c.y));
       if (cell && dropObstacle(b, 'kr_stone', cell, 20)) b.emit({ k: 'status', id: u.id, name: '묘석 축조' });
     } },
-  { id: 'kr_ferryman', name: '은퇴 못 한 이송관', keywords: ['phantom'], sprite: 'robe', palette: GHOST_ELITE, tier: 'minion', minPhase: 1,
+  { id: 'kr_ferryman', name: '은퇴 못 한 이송관', tend: 'charge', keywords: ['phantom'], sprite: 'robe', palette: GHOST_ELITE, tier: 'minion', minPhase: 1,
     hp: 420, power: 28, armor: 100, interval: 1.2, range: 2, atk: { type: 'strike', elem: 'phys' }, melee: true,
     onBasic: (b, u, t) => { b.applyStatus(u, t, { type: 'buff', key: 'root', dur: 1.5 }, 0.5); } },
-  { id: 'kr_bearer', name: '기수 망령', keywords: ['phantom'], sprite: 'knight', palette: GHOST_ELITE, tier: 'elite', minPhase: 1,
+  { id: 'kr_bearer', name: '기수 망령', tend: 'charge', keywords: ['phantom'], sprite: 'knight', palette: GHOST_ELITE, tier: 'elite', minPhase: 1,
     hp: 1100, power: 40, armor: 180, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'kr_general', name: '장군의 망령', keywords: ['phantom'], sprite: 'knight', palette: GHOST_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'kr_general', name: '장군의 망령', tend: 'charge', keywords: ['phantom'], sprite: 'knight', palette: GHOST_BOSS, tier: 'boss', minPhase: 1,
     hp: 3300, power: 50, armor: 220, acc: 0.1, effRes: 0.3, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     escort: ['kr_nameless', 'kr_archer'],
     // 재집결: 9초마다 쓰러진 망령 2기를 체력 50%로 다시 세운다. 서사의 망령 피해 +30%
@@ -558,7 +560,7 @@ export const ENEMIES: EnemyDef[] = [
       b.emit({ k: 'status', id: u.id, name: '재집결' });
       for (const d of dead) { d.mem.raised = 1; const n = ENEMY_RT.spawn?.(b, d.defId, d, { hpPct: 0.5, mult: d.mem.mult, summon: true }); if (n) n.mem.raised = 1; }
     } },
-  { id: 'kr_choir', name: '무명의 합창', keywords: ['phantom'], sprite: 'phantom', palette: GHOST_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'kr_choir', name: '무명의 합창', tend: 'counter', keywords: ['phantom'], sprite: 'phantom', palette: GHOST_BOSS, tier: 'boss', minPhase: 1,
     hp: 3000, power: 46, armor: 120, effRes: 0.3, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     escort: ['kr_nameless', 'kr_ferryman'],
     skill: {
@@ -572,15 +574,15 @@ export const ENEMIES: EnemyDef[] = [
     },
     hooks: { onAllyDeath: (b, u, dead) => { if (dead !== u && dead.category === 'soul') b.heal(u, u, b.S(u, 'maxHp') * 0.03); } } },
   // 전장 전용 (풀 밖): 서사의 망령 · 묘석
-  { id: 'kr_echo', name: '서사의 망령', keywords: ['phantom'], sprite: 'phantom', palette: GHOST, tier: 'minion', minPhase: 99,
+  { id: 'kr_echo', name: '서사의 망령', tend: 'charge', keywords: ['phantom'], sprite: 'phantom', palette: GHOST, tier: 'minion', minPhase: 99,
     hp: 300, power: 20, armor: 40, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'kr_stone', name: '묘석', keywords: ['struct'], sprite: 'turret', palette: STONE, tier: 'minion', minPhase: 99,
+  { id: 'kr_stone', name: '묘석', tend: 'charge', keywords: ['struct'], sprite: 'turret', palette: STONE, tier: 'minion', minPhase: 99,
     hp: 420, power: 0, armor: 200, interval: 9, range: 0, immobile: true, atk: { type: 'strike', elem: 'phys' }, melee: false, noAttack: true, inert: true },
 
   // ── 올림푸스 성관 축전 구획 (동맹 · 흑운)
-  { id: 'ol_battery', name: '자동 포격 포대', keywords: ['mech', 'struct'], sprite: 'turret', palette: RING, tier: 'minion', minPhase: 1,
+  { id: 'ol_battery', name: '자동 포격 포대', tend: 'sniper', keywords: ['mech', 'struct'], sprite: 'turret', palette: RING, tier: 'minion', minPhase: 1,
     hp: 520, power: 30, armor: 260, acc: 0.1, interval: 1.4, range: 5, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false },
-  { id: 'ol_tender', name: '축전 정비 드론', keywords: ['mech'], sprite: 'drone', palette: RING, tier: 'minion', minPhase: 1,
+  { id: 'ol_tender', name: '축전 정비 드론', tend: 'counter', keywords: ['mech'], sprite: 'drone', palette: RING, tier: 'minion', minPhase: 1,
     hp: 260, power: 20, armor: 80, eva: 0.1, interval: 0.8, range: 2, moveSpd: 1.3, atk: { type: 'shoot', elem: 'elec' }, melee: false,
     // 축전 정비: 8초마다 주변 2칸 아군에게 충전 비례 보호막
     onTick: (b, u, dt) => {
@@ -590,9 +592,9 @@ export const ENEMIES: EnemyDef[] = [
       b.fx(u.x, u.y, 2, 'elec', 'buff');
       for (const a of b.around(u, 2, b.alliesOf(u))) b.shield(a, b.S(a, 'maxHp') * (0.03 + 0.015 * (a.mem.charge || 0)));
     } },
-  { id: 'ol_patrol', name: '링 순찰기', keywords: ['mech'], sprite: 'mech', palette: RING, tier: 'minion', minPhase: 1,
+  { id: 'ol_patrol', name: '링 순찰기', tend: 'charge', keywords: ['mech'], sprite: 'mech', palette: RING, tier: 'minion', minPhase: 1,
     hp: 560, power: 30, armor: 280, interval: 1.1, range: 1, moveSpd: 0.9, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'ol_manager', name: '축전 구획 관리기', keywords: ['mech', 'struct'], sprite: 'turret', palette: BLACKCLOUD, tier: 'elite', minPhase: 1,
+  { id: 'ol_manager', name: '축전 구획 관리기', tend: 'counter', keywords: ['mech', 'struct'], sprite: 'turret', palette: BLACKCLOUD, tier: 'elite', minPhase: 1,
     hp: 1300, power: 40, armor: 320, interval: 1.2, range: 3, immobile: true, atk: { type: 'shoot', elem: 'elec' }, melee: false,
     // 축전 배분: 8초마다 주변 2칸 아군 충전 +3 (자신은 방전 피해 면역)
     onTick: (b, u, dt) => {
@@ -603,7 +605,7 @@ export const ENEMIES: EnemyDef[] = [
       b.emit({ k: 'status', id: u.id, name: '축전 배분' });
       for (const a of b.around(u, 2, b.alliesOf(u, false))) ENEMY_RT.charge?.(b, a, 3, u);
     } },
-  { id: 'ol_cloud', name: '흑운', keywords: ['mech'], sprite: 'mech', palette: BLACKCLOUD_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'ol_cloud', name: '흑운', tend: 'charge', keywords: ['mech'], sprite: 'mech', palette: BLACKCLOUD_BOSS, tier: 'boss', minPhase: 1,
     hp: 3800, power: 50, armor: 380, effRes: 0.3, interval: 1.4, range: 1, moveSpd: 0.7, atk: { type: 'strike', elem: 'phys' }, melee: true,
     escort: ['ol_patrol', 'ol_tender'],
     skill: {
@@ -615,7 +617,7 @@ export const ENEMIES: EnemyDef[] = [
         return true;
       },
     } },
-  { id: 'ol_conduit', name: '극지 도관', keywords: ['mech', 'struct'], sprite: 'turret', palette: BLACKCLOUD_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'ol_conduit', name: '극지 도관', tend: 'counter', keywords: ['mech', 'struct'], sprite: 'turret', palette: BLACKCLOUD_BOSS, tier: 'boss', minPhase: 1,
     hp: 2800, power: 38, armor: 300, effRes: 0.3, interval: 1.3, range: 5, immobile: true, atk: { type: 'shoot', elem: 'elec' }, melee: false,
     escort: ['ol_patrol', 'ol_tender'],
     // 살아 있는 동안 모든 아군 공격 속도 +20%, 4초마다 충전이 가장 높은 아군 +2
@@ -630,7 +632,7 @@ export const ENEMIES: EnemyDef[] = [
     } },
 
   // ── 캣휠 그늘 성계 (유닉스 · 일탈 개체 회수)
-  { id: 'cw_reclaim', name: '회수 집행 유닉스', keywords: ['mech'], sprite: 'mech', palette: UNIX, tier: 'minion', minPhase: 1,
+  { id: 'cw_reclaim', name: '회수 집행 유닉스', tend: 'charge', keywords: ['mech'], sprite: 'mech', palette: UNIX, tier: 'minion', minPhase: 1,
     hp: 540, power: 28, armor: 250, interval: 1.1, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     onBasic: (b, u, t) => { b.applyStatus(u, t, { type: 'buff', key: 'root', dur: 1 }, 0.5); },
     // 회수 우선순위: 기계 기물 먼저
@@ -639,9 +641,9 @@ export const ENEMIES: EnemyDef[] = [
       const m = b.targetable(u).filter((e) => e.category === 'mech');
       if (m.length) u.target = b.nearest(u, m);
     } },
-  { id: 'cw_maid', name: '전투 메이드 유닉스', keywords: ['mech'], sprite: 'knight', palette: MAID, tier: 'minion', minPhase: 1,
+  { id: 'cw_maid', name: '전투 메이드 유닉스', tend: 'assassin', keywords: ['mech'], sprite: 'knight', palette: MAID, tier: 'minion', minPhase: 1,
     hp: 380, power: 30, armor: 140, eva: 0.1, interval: 0.7, range: 1, moveSpd: 1.5, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'cw_dropper', name: '투하 드론', keywords: ['mech'], sprite: 'drone', palette: ASH, tier: 'minion', minPhase: 2,
+  { id: 'cw_dropper', name: '투하 드론', tend: 'counter', keywords: ['mech'], sprite: 'drone', palette: ASH, tier: 'minion', minPhase: 2,
     hp: 260, power: 10, armor: 80, eva: 0.15, interval: 1.0, range: 4, moveSpd: 1.2, atk: { type: 'shoot', elem: 'phys' }, melee: false, noAttack: true,
     onTick: (b, u, dt) => {
       u.mem.dropT = (u.mem.dropT ?? 3) - dt;
@@ -651,14 +653,14 @@ export const ENEMIES: EnemyDef[] = [
       const cell = b.freeCellNear(t.x, t.y);
       if (cell) petRock(b, cell);
     } },
-  { id: 'cw_sub', name: '서브루틴', keywords: ['mech'], sprite: 'robe', palette: UNIX_ELITE, tier: 'elite', minPhase: 1,
+  { id: 'cw_sub', name: '서브루틴', tend: 'counter', keywords: ['mech'], sprite: 'robe', palette: UNIX_ELITE, tier: 'elite', minPhase: 1,
     hp: 1100, power: 40, armor: 220, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'elec' }, melee: false,
     onTick: (b, u, dt) => {
       if (!command(b, u, 'cmdT', dt, 8, 4)) return;
       b.emit({ k: 'status', id: u.id, name: '작업 할당' });
       for (const a of b.alliesOf(u)) if (a.category === 'mech' && !a.mem.inert) b.buff(u, a, 'cw.sub', 4, { delta: { atkSpd: 0.3 }, label: '작업 가속' });
     } },
-  { id: 'cw_ship', name: '회수함 \'루틴 7\'', keywords: ['mech', 'struct'], sprite: 'turret', palette: UNIX_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'cw_ship', name: '회수함 \'루틴 7\'', tend: 'sniper', keywords: ['mech', 'struct'], sprite: 'turret', palette: UNIX_BOSS, tier: 'boss', minPhase: 1,
     hp: 3600, power: 44, armor: 340, effRes: 0.3, interval: 1.3, range: 6, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false,
     escort: ['cw_reclaim', 'cw_maid', 'pt_unix'],
     skill: {
@@ -674,7 +676,7 @@ export const ENEMIES: EnemyDef[] = [
         return true;
       },
     } },
-  { id: 'cw_kernel', name: '커널 응답체', keywords: ['mech'], sprite: 'robe', palette: UNIX_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'cw_kernel', name: '커널 응답체', tend: 'counter', keywords: ['mech'], sprite: 'robe', palette: UNIX_BOSS, tier: 'boss', minPhase: 1,
     hp: 3200, power: 46, armor: 260, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'elec' }, melee: false,
     escort: ['cw_maid', 'cw_reclaim'],
     // 권한 거부: 체력 25% 구간마다 4초 무적 + 반려 돌 4개
@@ -686,18 +688,18 @@ export const ENEMIES: EnemyDef[] = [
       b.emit({ k: 'status', id: u.id, name: 'Root 권한이 없습니다' });
       for (let i = 0; i < 4; i++) { const c = b.freeCellNear(u.x, u.y + (u.y < b.h / 2 ? 2 : -2)); if (c) petRock(b, c); }
     } },
-  { id: 'cw_rock', name: '반려 돌', keywords: ['struct'], sprite: 'turret', palette: STONE, tier: 'minion', minPhase: 99,
+  { id: 'cw_rock', name: '반려 돌', tend: 'charge', keywords: ['struct'], sprite: 'turret', palette: STONE, tier: 'minion', minPhase: 99,
     hp: 480, power: 0, armor: 250, interval: 9, range: 0, immobile: true, atk: { type: 'strike', elem: 'phys' }, melee: false, noAttack: true, inert: true },
 
   // ── 금고선 히페리온호 (범은하 · 금고장 조디악)
-  { id: 'hy_teller', name: '창구 은행원', keywords: ['bio'], sprite: 'soldier', palette: BANK, tier: 'minion', minPhase: 1,
+  { id: 'hy_teller', name: '창구 은행원', tend: 'sniper', keywords: ['bio'], sprite: 'soldier', palette: BANK, tier: 'minion', minPhase: 1,
     hp: 320, power: 28, armor: 90, acc: 0.1, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false },
-  { id: 'hy_cashier', name: '출납 드론', keywords: ['mech'], sprite: 'drone', palette: BANK, tier: 'minion', minPhase: 1,
+  { id: 'hy_cashier', name: '출납 드론', tend: 'sniper', keywords: ['mech'], sprite: 'drone', palette: BANK, tier: 'minion', minPhase: 1,
     hp: 220, power: 20, armor: 60, eva: 0.15, interval: 0.6, range: 2, moveSpd: 1.6, atk: { type: 'shoot', elem: 'elec' }, melee: false },
-  { id: 'hy_exchange', name: '환전 집행관', keywords: ['bio'], sprite: 'knight', palette: BANK, tier: 'minion', minPhase: 1,
+  { id: 'hy_exchange', name: '환전 집행관', tend: 'charge', keywords: ['bio'], sprite: 'knight', palette: BANK, tier: 'minion', minPhase: 1,
     hp: 460, power: 30, armor: 160, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     hooks: { dmgMult: (b) => 1 + 0.02 * Math.floor((b.ctx.credits || 0) / 10) } },
-  { id: 'hy_appraiser', name: '감정 은행원', keywords: ['bio'], sprite: 'soldier', palette: BANK_ELITE, tier: 'elite', minPhase: 1,
+  { id: 'hy_appraiser', name: '감정 은행원', tend: 'sniper', keywords: ['bio'], sprite: 'soldier', palette: BANK_ELITE, tier: 'elite', minPhase: 1,
     hp: 1000, power: 40, armor: 200, acc: 0.15, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false,
     skill: {
       name: '감정 중', cd: 7, params: {}, desc: () => '장비가 가장 많은 적 사격 + 4초 약화',
@@ -710,7 +712,7 @@ export const ENEMIES: EnemyDef[] = [
         return true;
       },
     } },
-  { id: 'hy_door', name: '13번째 금고문', keywords: ['struct'], sprite: 'turret', palette: VAULT, tier: 'boss', minPhase: 1,
+  { id: 'hy_door', name: '13번째 금고문', tend: 'counter', keywords: ['struct'], sprite: 'turret', palette: VAULT, tier: 'boss', minPhase: 1,
     hp: 2600, power: 38, armor: 360, effRes: 0.3, interval: 1.3, range: 5, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false,
     escort: ['hy_teller', 'hy_exchange', 'turret'],
     // 금고 재봉인: 5초마다 자기 보호막 +1겹, 12초마다 모든 아군 +2겹 (처음 겹 수까지)
@@ -720,7 +722,7 @@ export const ENEMIES: EnemyDef[] = [
       if (u.mem.sealT >= 5) { u.mem.sealT = 0; addLayers(b, u, 1); }
       if (u.mem.sealAll >= 12) { u.mem.sealAll = 0; b.emit({ k: 'status', id: u.id, name: '금고 재봉인' }); for (const a of b.alliesOf(u, false)) addLayers(b, a, 2); }
     } },
-  { id: 'hy_zodiac', name: '금고장 조디악', keywords: ['bio'], sprite: 'soldier', palette: VAULT, tier: 'boss', minPhase: 1,
+  { id: 'hy_zodiac', name: '금고장 조디악', tend: 'sniper', keywords: ['bio'], sprite: 'soldier', palette: VAULT, tier: 'boss', minPhase: 1,
     hp: 3000, power: 46, armor: 220, acc: 0.15, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false,
     escort: ['hy_teller', 'hy_cashier'],
     hooks: { dmgMult: (_b, u) => Math.pow(1.06, u.mem.interest || 0) },
@@ -733,19 +735,19 @@ export const ENEMIES: EnemyDef[] = [
     } },
 
   // ── 브샤크 묘비 해안 (황무지 · 군체 휴면 군집)
-  { id: 'bs_herring', name: '긴다리 청어 떼', keywords: ['bio'], sprite: 'beast', palette: PALE, tier: 'minion', minPhase: 1,
+  { id: 'bs_herring', name: '긴다리 청어 떼', tend: 'assassin', keywords: ['bio'], sprite: 'beast', palette: PALE, tier: 'minion', minPhase: 1,
     hp: 260, power: 24, armor: 50, eva: 0.2, interval: 0.6, range: 1, moveSpd: 1.7, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'bs_vapor', name: '기화 살점', keywords: ['bio'], sprite: 'crawler', palette: PALE, tier: 'minion', minPhase: 1,
+  { id: 'bs_vapor', name: '기화 살점', tend: 'charge', keywords: ['bio'], sprite: 'crawler', palette: PALE, tier: 'minion', minPhase: 1,
     hp: 360, power: 24, armor: 80, interval: 0.9, range: 1, moveSpd: 1.1, atk: { type: 'strike', elem: 'chem' }, melee: true,
     hooks: { onLethal: (b, u) => { for (const e of b.around(u, 1, b.enemiesOf(u))) antiheal(b, u, e, 0.5, 3); return false; } } },
-  { id: 'bs_knight', name: '해안 기사 개체', keywords: ['bio'], sprite: 'knight', palette: TOMB, tier: 'elite', minPhase: 1,
+  { id: 'bs_knight', name: '해안 기사 개체', tend: 'charge', keywords: ['bio'], sprite: 'knight', palette: TOMB, tier: 'elite', minPhase: 1,
     hp: 1200, power: 42, armor: 260, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     hooks: { takenMult: (_b, _u, _s, o) => (o.elem === 'chem' ? 1 : 0.7) } },
-  { id: 'bs_tomb', name: '묘비 개체', keywords: ['bio', 'struct'], sprite: 'turret', palette: TOMB_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'bs_tomb', name: '묘비 개체', tend: 'counter', keywords: ['bio', 'struct'], sprite: 'turret', palette: TOMB_BOSS, tier: 'boss', minPhase: 1,
     hp: 2800, power: 38, armor: 260, effRes: 0.3, interval: 1.3, range: 4, immobile: true, atk: { type: 'shoot', elem: 'chem' }, melee: false,
     escort: ['sw_spore'],
     onTick: (b, u, dt) => { u.mem.spawnT = (u.mem.spawnT || 0) + dt; if (u.mem.spawnT >= 15) { u.mem.spawnT = 0; summonHook?.(b, u, 'sw_spore', 2); } } },
-  { id: 'bs_signal', name: '신호를 보내는 것', keywords: ['bio', 'phantom'], sprite: 'phantom', palette: TOMB_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'bs_signal', name: '신호를 보내는 것', tend: 'assassin', keywords: ['bio', 'phantom'], sprite: 'phantom', palette: TOMB_BOSS, tier: 'boss', minPhase: 1,
     hp: 3300, power: 52, armor: 160, eva: 0.1, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     escort: ['bs_herring', 'sw_hound', 'bs_vapor'],
     skill: {

@@ -244,6 +244,49 @@ export interface CUnit {
   rlog?: ReasonLog;
   /** 일러스트 id (소환물 · 포탑) */
   art?: string;
+  /** 적 성향 (표적 고르기) · 아군별 도발 수치 (적만) */
+  tend?: EnemyTend;
+  prov?: Map<CUnit, number>;
+}
+
+// ───────── 도발 수치: 적이 표적을 고르는 규칙
+/** 적 성향: 돌격형 (가까운 대상 · 도발 수치에 충실) · 암살형 (약하거나 뒷줄 · 도발 수치 영향 적음) · 저격형 (피해를 많이 준 대상) · 반격형 (동료 적을 때린 대상) */
+export type EnemyTend = 'charge' | 'assassin' | 'sniper' | 'counter';
+export const TEND_NAME: Record<EnemyTend, { name: string; desc: string }> = {
+  charge: { name: '돌격형', desc: '가까운 대상을 먼저 노리고, 도발 수치를 가장 충실히 따른다' },
+  assassin: { name: '암살형', desc: '체력이 낮거나 뒷줄에 있는 약한 대상을 노리고, 도발 수치에 덜 휘둘린다' },
+  sniper: { name: '저격형', desc: '피해를 가장 많이 준 대상을 노린다' },
+  counter: { name: '반격형', desc: '동료 적을 때린 대상을 노린다' },
+};
+/** 도발 수치 계수 */
+export const PROV = {
+  /** 그 적에게 준 피해 1당 */
+  dmg: 0.1,
+  /** 회복 · 보호막 1당 (주변 supportR 칸 적 전체에) */
+  support: 0.08, supportR: 4,
+  /** 초당 감소 비율 */
+  decay: 0.08,
+  /** 표적 다시 고르는 간격 (초) · 갈아타는 기준 (지금 대상 점수의 배수) */
+  every: 0.75, switchAt: 1.3,
+  /** 도발 상태: 다른 대상 최대치 × tauntMul + tauntFlat 으로 올리고 tauntLock 초 고정 */
+  tauntMul: 1.5, tauntFlat: 400, tauntLock: 1.5,
+  /** 점수 바닥값 (모두 0일 때 성향 규칙으로 고르게) — 피해 600 상당 */
+  seed: 60,
+  /** 사거리 밖 대상 감쇠 (돌격형 · 저격형 · 반격형): 1 / (1 + far × 넘는 칸) */
+  far: 0.5,
+  /** 도발 배율: 돌격가 · 수호자 가산 · 소환물 (근접 · 고정 · 원거리) · 은신 · 기습 중 */
+  van: 3, guard: 1.5, sumMelee: 1.4, sumFixed: 1.2, sumRanged: 1, hide: 0.3,
+  /** 거리 감쇠 (돌격형 · 저격형 · 반격형, 칸당) · 저격형 피해 점유 가중치 · 도발 수치 지수 (1 = 비례) */
+  near: 0.5, snipe: 0.5, pow: 1,
+};
+/** 기물별 도발 배율: 돌격가 3, 수호자 +1.5, 소환물 (근접 1.4 · 고정 1.2 · 원거리 1.0, 돌격가 소환물 3), 은신 · 침투자 기습 중 ×0.3 */
+export function provMult(b: Battle | null, a: CUnit): number {
+  let m = a.ctype === 'VAN' ? PROV.van : 1;
+  if (a.isSummon && a.ctype !== 'VAN') m = a.immobile ? PROV.sumFixed : a.atk.type === 'strike' ? PROV.sumMelee : PROV.sumRanged;
+  if (a.synergies?.has('GUARD')) m += PROV.guard;
+  if (a.mem.provMul) m *= a.mem.provMul;
+  if (b && (b.hidden(a) || a.statuses.some((x) => x.key === 'infil.ambush'))) m *= PROV.hide;
+  return m;
 }
 
 export type BEvent =
@@ -379,6 +422,57 @@ export class Battle {
   /** 혼란: 가까운 아무나 공격 (같은 편 포함), 스킬 · 비술 · 궁극기 사용 불가 */
   confused(u: CUnit) { return u.statuses.some((s) => s.key === 'confuse'); }
   /** 도발 (환영): 주변 1칸 안의 도발 기물을 우선 공격 */
+  // ───────── 도발 수치
+  /** 적 e 의 아군 a 에 대한 도발 수치 +v (a 의 도발 배율 적용) */
+  provAdd(e: CUnit, a: CUnit, v: number) {
+    if (!e.prov || v <= 0 || !a.alive || this.sideOf(a) === this.sideOf(e)) return;
+    e.prov.set(a, (e.prov.get(a) || 0) + v * provMult(this, a));
+  }
+  /** 도발: e 의 a 에 대한 도발 수치를 크게 올리고 lock 초 동안 표적을 고정한다 */
+  provoke(e: CUnit, a: CUnit, lock = PROV.tauntLock) {
+    if (!e.prov || !a.alive) { e.target = a; return; }
+    let top = 0;
+    for (const [x, v] of e.prov) if (x !== a && v > top) top = v;
+    e.prov.set(a, Math.max(e.prov.get(a) || 0, top * PROV.tauntMul + PROV.tauntFlat));
+    e.mem.provLock = Math.max(e.mem.provLock || 0, this.t + lock);
+    e.target = a;
+  }
+  /** 도발 수치 상위 n명 (표시용) */
+  provTop(e: CUnit, n = 3): { u: CUnit; v: number }[] {
+    return e.prov ? [...e.prov].filter(([x]) => x.alive).sort((a, c) => c[1] - a[1]).slice(0, n).map(([u, v]) => ({ u, v })) : [];
+  }
+  /** 성향을 곱한 표적 점수 */
+  provScore(u: CUnit, c: CUnit, maxDmg: number): number {
+    const p = Math.pow((u.prov?.get(c) || 0) + PROV.seed, PROV.pow);
+    const d = this.dist(u, c), range = this.S(u, 'range');
+    const reach = (d <= range ? 1 : 1 / (1 + PROV.far * (d - range))) / (1 + PROV.near * d);
+    switch (u.tend) {
+      case 'assassin': {
+        const foes = this.enemiesOf(c);
+        const front = foes.length ? Math.min(...foes.map((e) => this.dist(c, e))) : 1;
+        const depth = Math.min(1, Math.max(0, (front - 1) / 4));
+        return Math.sqrt(p) * (1 + 1.5 * (1 - this.hpPct(c))) * (1 + 0.6 * depth) * (d <= range ? 1 : 1 / (1 + 0.08 * (d - range)));
+      }
+      case 'sniper': return p * (1 + PROV.snipe * (maxDmg > 0 ? c.counters.dmg / maxDmg : 0)) * reach;
+      case 'counter': {
+        let o = 0, n = 0;
+        for (const e of this.units) if (e !== u && e.alive && e.prov && this.sideOf(e) === this.sideOf(u)) { o += e.prov.get(c) || 0; n++; }
+        return (p + (n ? (0.6 * o) / n : 0)) * reach;
+      }
+      default: return p * reach; // 돌격형: 같으면 가까운 쪽 (거리 감쇠)
+    }
+  }
+  /** 표적 다시 고르기: 지금 대상보다 switchAt 배 이상 높을 때만 갈아탄다 (force = 지금 대상이 무효) */
+  provPick(u: CUnit, cands: CUnit[], force: boolean) {
+    if (!cands.length) { if (force) u.target = null; return; }
+    const maxDmg = Math.max(0, ...cands.map((c) => c.counters.dmg));
+    let best: CUnit | null = null, bs = -1;
+    for (const c of cands) { const sc = this.provScore(u, c, maxDmg) + this.rng.next() * 1e-6; if (sc > bs) { bs = sc; best = c; } }
+    if (!best) return;
+    const cur = !force && u.target && cands.includes(u.target) ? u.target : null;
+    if (cur && best !== cur && bs < PROV.switchAt * this.provScore(u, cur, maxDmg)) return;
+    u.target = best;
+  }
   taunter(u: CUnit): CUnit | null {
     let best: CUnit | null = null, bd = 2;
     for (const e of this.units) {
@@ -513,6 +607,7 @@ export class Battle {
     if (this.fr?.onTick) { this.actor = null; this.fr.onTick(this, dt); if (this.over) return; }
     for (const u of this.units) {
       if (!u.alive) continue;
+      if (u.prov?.size) { const k = Math.max(0, 1 - PROV.decay * dt); for (const [a, v] of u.prov) { if (!a.alive) u.prov.delete(a); else u.prov.set(a, v * k); } } // 도발 수치 감소
       this.actor = u;
       this.tickStatuses(u, dt);
       if (!u.alive) continue;
@@ -598,7 +693,16 @@ export class Battle {
     const confused = this.confused(u);
     const ff = (frenzy && CFG.frenzyFriendly) || confused; // 광폭이 아군도 노리는지 (기본 true) · 혼란은 항상
     const pool = () => (ff ? this.units.filter((x) => x.alive && x !== u && !this.hidden(x) && !x.mem.inert) : this.targetable(u));
-    if (!u.target || !u.target.alive || (this.hidden(u.target) && !u.mem.seeStealth) || u.target === u || (!ff && this.sideOf(u.target) === this.sideOf(u))) u.target = this.nearest(u, pool());
+    // 적: 도발 수치 + 성향으로 표적을 고른다 (광폭 · 혼란 · 매혹 중에는 예전 규칙)
+    const provAI = !!u.prov && !ff && !u.mem.charmTo;
+    const badT = !u.target || !u.target.alive || (this.hidden(u.target) && !u.mem.seeStealth) || u.target === u || (!ff && this.sideOf(u.target) === this.sideOf(u));
+    if (provAI) {
+      const tz = this.taunter(u);
+      if (tz) this.provoke(u, tz);
+      u.mem.provT = (u.mem.provT ?? 0) - dt;
+      const locked = (u.mem.provLock || 0) > this.t && !badT;
+      if (badT || (!locked && u.mem.provT <= 0)) { u.mem.provT = PROV.every; this.provPick(u, pool(), badT); }
+    } else if (badT) u.target = this.nearest(u, pool());
     // 명사수 기본 메커니즘: 1초마다 사거리 안에서 체력 비율이 가장 낮은 적으로 대상을 바꾼다 (아군 명사수, 외길 추적 · 광폭 · 매혹 제외)
     if (u.ctype === 'MARK' && u.side === 0 && !u.isSummon && !frenzy && !confused && !u.mem.lockTarget && !u.mem.charmTo) {
       u.mem.mkScan = (u.mem.mkScan || 0) - dt;
@@ -609,12 +713,12 @@ export class Battle {
       }
     }
     // 도발: 주변 1칸에 도발 기물(환영)이 있으면 그쪽을 노린다 (광폭 · 혼란 제외)
-    if (!ff) { const tz = this.taunter(u); if (tz) u.target = tz; }
+    if (!ff && !provAI) { const tz = this.taunter(u); if (tz) u.target = tz; }
     const tgt = u.target;
     if (!tgt) return;
     const range = this.S(u, 'range');
     // 사거리 밖의 더 가까운 적이 생기면 재조준 (외길 추적: 대상이 쓰러질 때까지 바꾸지 않음)
-    if (this.dist(u, tgt) > range && (!u.mem.lockTarget || ff) && !tgt.mem.taunt) {
+    if (!provAI && this.dist(u, tgt) > range && (!u.mem.lockTarget || ff) && !tgt.mem.taunt) {
       const near = this.nearest(u, pool());
       if (near && this.dist(u, near) < this.dist(u, tgt)) u.target = near;
     }
@@ -862,6 +966,7 @@ export class Battle {
     }
     this.emit({ k: 'dmg', id: tgt.id, src: src.id, v: dmg, crit: res.crit, miss: res.miss, graze: res.graze, elem: o.elem, tag: o.tag, syn: o.syn, dhp, dsh });
     if (dmg > 0) { tgt.mem.lastChem = o.elem === 'chem' ? 1 : 0; this.fr?.afterHit?.(this, src, tgt, res, o); }
+    if (dmg > 0 && tgt.prov && src !== tgt) this.provAdd(tgt, src, dmg * PROV.dmg); // 도발 수치: 준 피해 비례
     if (dmg > 0 && !o.noHooks) {
       const ls = this.S(src, 'lifesteal');
       if (ls > 0 && src.alive) this.heal(src, src, dmg * ls, true);
@@ -981,10 +1086,16 @@ export class Battle {
     tgt.hp += real;
     (syn ? this.synStat(syn, src.side) : src.counters).healed += real;
     if (real >= 1) this.emit({ k: 'heal', id: tgt.id, src: src.id, v: real, dhp: real });
+    if (real > 0) this.provSupport(src, real);
     if (!raw) for (const h of src.hooks) h.onHealDone?.(this, src, tgt, real, a - real);
     return real;
   }
 
+  /** 도발 수치: 회복 · 보호막을 쓰면 주변 적 전체에 조금씩 */
+  provSupport(src: CUnit, amt: number) {
+    if (!src.alive) return;
+    for (const e of this.units) if (e.alive && e.prov && this.sideOf(e) !== this.sideOf(src) && this.dist(e, src) <= PROV.supportR) this.provAdd(e, src, amt * PROV.support);
+  }
   /** 부상 중첩이 있으면 회복 · 보호막 1회를 대신 소모한다 */
   consumeWound(tgt: CUnit) {
     const w = tgt.statuses.find((s) => s.key === 'wound' && (s.stacks || 0) > 0);
@@ -1002,6 +1113,7 @@ export class Battle {
     tgt.shield = Math.min(this.S(tgt, 'maxHp'), tgt.shield + amt);
     const giver = giver0;
     (syn ? this.synStat(syn, tgt.side) : giver.counters).shield += tgt.shield - before;
+    if (tgt.shield > before) this.provSupport(giver, tgt.shield - before);
     this.emit({ k: 'shield', id: tgt.id, src: giver.id, v: amt, dsh: tgt.shield - before });
   }
 

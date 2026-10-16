@@ -310,6 +310,7 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   });
   c.mem.mult = mult;
   c.elite = def.tier === 'elite';
+  c.tend = def.tend; c.prov = new Map(); // 표적 고르기: 성향 + 도발 수치
   applyCategory(c);
   for (const m of MAJORS) c.mem[`M_${m}`] = em[m];
   c.cd = c.cdMax * 0.6;

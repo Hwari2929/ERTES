@@ -23,7 +23,7 @@ import * as TFX from './ui/themefx';
 import {
   activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
-import { Battle, type CUnit, REASON_HI, REASON_LO, type Status, STATUS_NAME } from './engine/combat';
+import { Battle, type CUnit, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME } from './engine/combat';
 import * as R from './engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
@@ -723,6 +723,7 @@ function foeModal(id: string) {
     <div class="detail">${heroHead(`en_${e.id}`, sprite(e, 'spr big'), e.name, enemyTags(e))}
       <div class="small muted">${CATEGORY_RULE[enemyCategory(e)]}</div>
       ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}
+      <p class="small muted">${esc(tendText(e))}</p>
       <h3>능력 <span class="muted small">1페이즈 기준</span></h3><div class="abils">${enemyAbilCards(e, b, c)}</div></div>
     ${app.abilPop ? enemyAbilPop(app.abilPop, e, b, c) : ''}
     <div class="row-btns"><button class="btn primary" data-a="intro-foe" data-v="">닫기</button></div>
@@ -1084,7 +1085,7 @@ function prepScreen(run: RunState) {
     const e = ENEMY_BY_ID[s.defId];
     const sel = app.sel?.k === 'enemy' && app.sel.i === i;
     units += `<div class="u side1 placed${hasPortrait(e) ? ' tk' : ''} ${e.tier !== 'minion' && !hasPortrait(e) ? 'big' : ''} ${sel ? 'sel' : ''}" style="${(() => { const ec = enemyCell(s.c, s.row, n); return cellBox(ec.x, ec.y); })()}"
-      data-a="sel-enemy" data-v="${i}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}">${hasPortrait(e)
+      data-a="sel-enemy" data-v="${i}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''} · ${tendText(e)}`)}">${hasPortrait(e)
         ? `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${e.mod ? `<span class="tk-mod">${itemIcon(e.mod)}</span>` : ''}</div>${(() => { const cat = enemyCategory(e); return `<span class="tk-side">${e.tier === 'minion' ? '' : `<b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : 'E'}</b>`}<i class="cat-${cat}" title="${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}">${lineIcon(`k.${cat}`, 'li')}</i></span>`; })()}<span class="tk-items">${[0, 1, 2].map((k) => itemIcon(e.items?.[k] || null)).join('')}</span></div>`
         : sprite(e, '')}</div>`;
   });
@@ -1666,6 +1667,7 @@ function detailPanel(run: RunState, extra = '') {
       ${heroHead(`en_${e.id}`, sprite(e, 'spr big'), e.name, enemyTags(e))}
       <div class="small muted">${CATEGORY_RULE[enemyCategory(e)]} · 체력 ${fmt(b.S(c, 'maxHp'))}${known ? ` · 도감: 조우 ${known.seen} · 처치 ${known.kills}` : ''}</div>
       ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}
+      <p class="small muted">${esc(tendText(e))}</p>
       ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.map((x) => `<span class="tk-it" title="${esc(itemInfo(x).name + ' — ' + itemInfo(x).desc)}">${itemIcon(x)}</span>`).join('')}</div></div>` : ''}
       <div class="mj-wrap"><div class="mj-head"><h3>메이저 스탯 <span class="muted small">페이즈 ${ph}</span></h3>${magBtn()}</div>${majorsHtml(ms)}</div>
       <div class="small accent">페이즈 피해 배율 ×${c.phaseAmp.toFixed(2)}</div>
@@ -1688,6 +1690,7 @@ function detailPanel(run: RunState, extra = '') {
       <div class="dh-name"><b>${esc(d.name)}</b><span class="dh-types"><i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i></span></div></div>
     <div class="dh-rank"><span class="dh-r">${rankLabel(u.rank)}</span>${xpBar(u)}<button class="btn tiny dh-buy" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''} title="공명도 +${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)} 구입 (에너지 크레딧 ${cost})">${lineIcon('r.res', 'li res')}+${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)}<span class="dh-cost">${lineIcon('r.cr', 'li cr')}${cost}</span></button></div>
     ${powRow(b, c, d, !!u.pos)}
+    ${provLine(null, c)}
     ${memberships(u, run).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}
     <h3>장비</h3>${eqBox(u)}
 
@@ -2879,7 +2882,21 @@ function majorsHtml(ms: Record<Major, number>) {
 }
 /** 아군: 전술 유형 · 전투 유형 · 분류, 적: 분류 · 등급 */
 function allyTags(d: UnitDef) { return `<i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i>${categoryTag(unitCategory(d))}`; }
-function enemyTags(e: EnemyDef) { return `${categoryTag(enemyCategory(e))}<i>${tierKo(e)}</i>`; }
+function enemyTags(e: EnemyDef) { return `${categoryTag(enemyCategory(e))}<i>${tierKo(e)}</i><i title="${esc(TEND_NAME[e.tend].desc)}">성향: ${TEND_NAME[e.tend].name}</i>`; }
+/** 적 성향 한 줄 (툴팁 · 상세) */
+const tendText = (e: EnemyDef) => `성향: ${TEND_NAME[e.tend].name} — ${TEND_NAME[e.tend].desc}`;
+/** 아군 도발 배율 한 줄 */
+function provLine(b: Battle | null, c: CUnit) {
+  const m = provMult(b, c);
+  return `<div class="small muted" title="적이 이 기물에게 쌓는 도발 수치에 곱해지는 값 (돌격가 3 · 수호자 +1.5 · 그 밖 1.0, 은신 · 기습 중 ×0.3)">도발 배율 <b class="f-num">×${m.toFixed(1)}</b></div>`;
+}
+/** 적: 지금 표적 + 도발 수치 상위 3명 (전투 상세) */
+function provInfo(b: Battle, u: CUnit) {
+  if (!u.prov || !u.alive) return '';
+  const top = b.provTop(u, 3);
+  const tg = u.target?.alive ? u.target : null;
+  return `<h3>표적 <span class="muted small">${u.tend ? esc(TEND_NAME[u.tend].name) : ''}</span></h3><p class="small">${tg ? `지금 표적: <b>${esc(tg.name)}</b>` : '표적 없음'}${(u.mem.provLock || 0) > b.t ? ' <span class="tag">도발 고정</span>' : ''}</p>${top.length ? `<ol class="as-log">${top.map((x) => `<li>${esc(x.u.name)} <span class="muted">도발 수치 ${Math.round(x.v)}</span></li>`).join('')}</ol>` : ''}`;
+}
 function heroHead(artId: string, fallback: string, name: string, tags: string) {
   const t = tags ? `<span class="dh-types">${tags}</span>` : '';
   return `<div class="d-hero">${hero(artId) || `<div class="hero none">${fallback}</div>`}<div class="dh-name"><b>${esc(name)}</b>${t}</div></div>`;
@@ -2910,7 +2927,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
   let head = '', abils = '', pop = '';
   if (u.side === 0 && !u.isSummon) {
     const d = UNIT_BY_ID[u.defId];
-    head = heroHead(d.id, sprite(u, 'spr big'), d.name, allyTags(d));
+    head = heroHead(d.id, sprite(u, 'spr big'), d.name, allyTags(d)) + provLine(b, u);
     abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem, d.id)}<div class="abil ab-trait ab-click${abilOn('trait')} has-tok" data-a="abil-pop" data-v="trait" role="button" tabindex="0">${abTok(`trait.${d.id}`)}<div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${ultCard(d, b, u, true)}${faithAbil(d, u.src || null, app.run, u)}${ttSection(d, u.src || null, app.run, b, u, true)}${relicSection(d, u.src || null, app.run, u, true)}`;
     if (app.abilPop) pop = abilPopHtml(app.abilPop, d, b, u);
   } else if (u.side === 1 && ENEMY_BY_ID[u.defId]) {
@@ -2934,7 +2951,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
 function battleUnitDyn(b: Battle, u: CUnit) {
   const max = b.S(u, 'maxHp');
   return `<div class="bs-hp"><span class="bs-bar"><i style="width:${Math.max(0, (u.hp / max) * 100)}%"></i>${u.shield > 0 ? `<i class="sh" style="width:${Math.min(100, (u.shield / max) * 100)}%"></i>` : ''}</span><span class="mono small">${u.alive ? `${fmt(Math.max(0, u.hp))} / ${fmt(max)}${u.shield > 0 ? ` · 보호막 ${fmt(u.shield)}` : ''}` : '전투 불능'}</span></div>
-    ${actState(b, u)}${reasonTrend(b, u)}
+    ${actState(b, u)}${provInfo(b, u)}${reasonTrend(b, u)}
     <h3>효과 <span class="muted small">${u.statuses.filter((s) => s.dur > 0).length}</span></h3>${buffIcons(u)}${bpickInfo(u)}`;
 }
 // ───────── 이성 추이 (사이오닉): 엔진 rlog 기록을 읽어 보여 준다 (표시 전용)
@@ -3066,7 +3083,7 @@ function codexScreen() {
         const e = ENEMY_BY_ID[id];
         const r = m.enemies[id];
         return `<div class="codex-row ${r ? '' : 'unknown'}">${sprite(e)}<div><b>${r ? esc(e.name) : '???'}</b> <span class="muted small">${e.tier === 'boss' ? '보스' : e.tier === 'elite' ? '정예' : '일반'}</span>
-          <div class="small">${r ? esc(ENEMY_DESC[id] || '') : '아직 만나지 못했습니다.'}</div></div><div class="small mono">조우 ${r?.seen || 0}<br>처치 ${r?.kills || 0}</div></div>`;
+          <div class="small">${r ? esc(ENEMY_DESC[id] || '') : '아직 만나지 못했습니다.'}</div>${r ? `<div class="small muted">${esc(tendText(e))}</div>` : ''}</div><div class="small mono">조우 ${r?.seen || 0}<br>처치 ${r?.kills || 0}</div></div>`;
       }).join('')}</div>`;
     }).join('') + (() => { const extra = ENEMIES.filter((e) => !FIELDS.some((f) => [...f.pool, f.elite, ...f.bosses].includes(e.id)) && m.enemies[e.id]); return extra.length ? `<h2>기타</h2><div class="codex-list">${extra.map((e) => `<div class="codex-row">${sprite(e)}<div><b>${esc(e.name)}</b></div><div class="small mono">처치 ${m.enemies[e.id].kills}</div></div>`).join('')}</div>` : ''; })();
   } else if (app.codexTab === 'events') {
@@ -4226,8 +4243,8 @@ root.addEventListener('click', (ev) => {
   }
   act(el.dataset.a!, el.dataset.v || '');
 });
-
 SND.init({ prefs: loadPrefs, save: savePref, rankSum: () => app.run?.units.reduce((s, u) => s + u.rank, 0) ?? 0 }); // 효과음 설정 (errantes.prefs.v1)
+
 // 순례: 신앙 변경
 root.addEventListener('change', (ev) => {
   const el = ev.target as HTMLSelectElement;
