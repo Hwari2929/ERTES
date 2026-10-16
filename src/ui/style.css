@@ -2652,3 +2652,8 @@ h3 { font-size: .9rem; }
 .modal h1 { color: var(--c-text); }
 @media (max-width: 700px) { .um-main { display: contents; } .um-sum { order: -1; } .um-a, .um-c, .um-r { order: 0; } }
 @media (max-width: 700px) { .um-grid { grid-template-rows: none; } .um-sum, .um-a, .um-c, .um-r { grid-row: auto; grid-column: auto; } }
+/* 머리줄이 켜지면 본문에 남은 공명 등급 · 시너지 조각은 즉시 숨기고, 꺼질 때는 머리줄이 다 사라진 뒤(140ms) 다시 보인다 */
+.um-idblk { transition: visibility 0s linear .14s; }
+.um-a.compact .um-idblk { visibility: hidden; transition: none; }
+.um-a.um-instant .um-idblk { transition: none; }
+@media (prefers-reduced-motion: reduce) { .um-idblk { transition: none; } }

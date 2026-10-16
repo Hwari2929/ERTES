@@ -1495,15 +1495,15 @@ function umCompactBind() {
   const grid = root.querySelector<HTMLElement>('.um-grid');
   const blk = a?.querySelector<HTMLElement>('.um-idblk');
   if (!a || !grid || !blk) return;
-  // 머리줄은 본문의 공명 등급 · 시너지 블록이 스크롤 영역 위로 완전히 사라진 뒤에만 (두 표기가 동시에 보이지 않게).
-  // 경계에서 떨리지 않게 들어올 때 · 나갈 때 기준을 6px 다르게 (히스테리시스)
-  const HYS = 6;
+  // 머리줄: 본문의 공명 등급 · 시너지 블록이 거의 다 가려지면 켠다 (보이는 높이 ≤ 블록의 25% 또는 ≤ 24px), 40% 이상 보이면 끈다 (히스테리시스).
+  // 켜진 동안 남은 블록 조각은 CSS 로 숨겨 시너지 표기가 두 번 보이지 않게 한다
   const scroller = () => (a.scrollHeight > a.clientHeight + 1 && getComputedStyle(a).overflowY !== 'visible' ? a : grid);
   const upd = (instant = false) => {
-    const top = scroller().getBoundingClientRect().top;
-    const bottom = blk.getBoundingClientRect().bottom;
+    const sr = scroller().getBoundingClientRect(), br = blk.getBoundingClientRect();
+    const h = Math.max(1, br.height);
+    const vis = Math.max(0, Math.min(br.bottom, sr.bottom) - Math.max(br.top, sr.top));
     const was = a.classList.contains('compact');
-    const on = was ? bottom < top + HYS : bottom < top - HYS;
+    const on = was ? vis < h * 0.4 : vis <= h * 0.25 || vis <= 24;
     if (on === was) return;
     if (instant) { a.classList.add('um-instant'); requestAnimationFrame(() => requestAnimationFrame(() => a.classList.remove('um-instant'))); }
     a.classList.toggle('compact', on);
