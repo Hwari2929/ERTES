@@ -151,7 +151,7 @@ export const ROSTER_A: BaseUnit[] = [
     },
   },
   {
-    id: 'falcon', name: '팔콘', title: '페트라 레일건 시험 사수', factions: ['PET'], traits: ['ENG'], keywords: ['bio'],
+    id: 'falcon', name: '케빈', title: '페트라 레일건 시험 사수', factions: ['PET'], traits: ['ENG'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.4 }, range: 6, base: B(4, 10, 8, 3, 5),
     sprite: 'soldier', palette: tint(PAL.PET, '#d0d0d8', '#e07a1f', '#62d6ff'), lore: '시제품 레일건 시험 사격 1,204회. 사고 보고서 1,203건.',
     skill: {

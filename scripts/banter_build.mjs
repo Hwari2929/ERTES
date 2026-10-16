@@ -11,7 +11,7 @@ const OUT = join(ROOT, 'src/data/bar/banter.gen.ts');
 // 화자 이름 → 화자 id (기물 id · 바 전용 id)
 const NAME_ID = {
   예레나: 'yelena', 미리내: 'mirinae', 게베크: 'gebek', 도노반: 'donovan', 클로에: 'chloe', 웨스트: 'west', 린디웨: 'lindiwe', 오르카: 'orca',
-  프란체: 'franze', 그렌홀름: 'grenholm', 라르스: 'lars', 팔콘: 'falcon', 히이로: 'hiiro', 나디르: 'nadir', 테무르: 'temur', 카이로: 'kairo',
+  프란체: 'franze', 그렌홀름: 'grenholm', 라르스: 'lars', 케빈: 'falcon', 히이로: 'hiiro', 나디르: 'nadir', 테무르: 'temur', 카이로: 'kairo',
   자하라: 'zahara', 비앙카: 'bianca', 제피로: 'zephyro', 필리스: 'phyllis', 엘레니: 'eleni', 이리스: 'iris', 오디세우스: 'odysseus', 아르곤: 'argon',
   로마니: 'romani', 조슈아: 'joshua', 사르마: 'sarma', 카일: 'kyle', 도로스: 'doros', 데미우르고스: 'demiurgos', 에이든: 'aiden', 비비안: 'vivian',
   유피토: 'yupito', 잉겔: 'ingel', 아문센: 'amundsen', 레이첼: 'rachel', 올리버: 'oliver', 라스무스: 'rasmus', 시그문드: 'sigmund', 구닐라: 'gunnir',

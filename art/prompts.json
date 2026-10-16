@@ -82,11 +82,11 @@
   "notes": "금회색 머리 → ash blonde+grey hair 병용. 청금빛 브로치는 파랑+금. 소환 경호원은 제외. | 투명 배경 전환 시 소년처럼 나와 나이 태그 강화(40s, wrinkles, nasolabial folds, stubble)."
  },
  "falcon": {
-  "name": "팔콘",
+  "name": "케빈",
   "subject": "1boy",
   "tags": "adult male, short hair, brown hair, goggles on head, bandaid on cheek, soot on face, light grey bodysuit, padded armor, orange trim, cable, holding railgun, oversized gun, nervous smile, sweatdrop, full body, standing, looking at viewer",
   "source": "temp",
-  "notes": "문서 없음. 성별·외모 미정 → 남성 임의, 사고 보고서 1,203건 설정 반영해 반창고·그을음. 개척개발부장은 다른 인물 케빈(사용자 확인), 팔콘은 레일건 시험 사수."
+  "notes": "문서 없음. 성별·외모 미정 → 남성 임의, 사고 보고서 1,203건 설정 반영해 반창고·그을음. 레일건 시험 사수 = 케빈(사용자 확인, 기물 id falcon 유지). 틀-페트라 개척개발부장 팔콘과는 다른 인물."
  },
  "hiiro": {
   "name": "히이로",

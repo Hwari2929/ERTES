@@ -996,7 +996,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
       ],
       falcon: [
         S('falcon', '정보감사실이요? 저 여기 단골이에요. 사고 보고서 1,203건 전부 여기서 심사받았거든요.', { at: 'C', face: 'base' }),
-        S('c_auditor', '…팔콘 씨. 오늘은 무슨 사고입니까.', { face: 'tired' }),
+        S('c_auditor', '…케빈 씨. 오늘은 무슨 사고입니까.', { face: 'tired' }),
         S('falcon', '아뇨, 오늘은 그냥 따라왔어요. 아직은요.', { face: 'smile', exit: true }),
       ],
     },

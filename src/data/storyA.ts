@@ -26,7 +26,7 @@ const anyUnit = (r: RunState, api: EventApi): UnitState | null => {
 const nm = (u: UnitState | null | undefined) => (u ? u.defId : '');
 const NAME: Record<string, string> = {
   yelena: '예레나', mirinae: '미리내', gebek: '게베크', donovan: '도노반', chloe: '클로에', west: '웨스트', lindiwe: '린디웨', orca: '오르카',
-  franze: '프란체', grenholm: '그렌홀름', lars: '라르스', falcon: '팔콘', hiiro: '히이로', nadir: '나디르', temur: '테무르', kairo: '카이로',
+  franze: '프란체', grenholm: '그렌홀름', lars: '라르스', falcon: '케빈', hiiro: '히이로', nadir: '나디르', temur: '테무르', kairo: '카이로',
   zahara: '자하라', bianca: '비앙카', zephyro: '제피로', phyllis: '필리스', eleni: '엘레니', iris: '이리스', odysseus: '오디세우스', argon: '아르곤',
   romani: '로마니', joshua: '조슈아', sarma: '사르마', kyle: '카일', doros: '도로스', demiurgos: '데미우르고스', aiden: '에이든', vivian: '비비안',
   yupito: '유피토', ingel: '잉겔', amundsen: '아문센', rachel: '레이첼', oliver: '올리버', rasmus: '라스무스', sigmund: '시그문드', gunnir: '구닐라', mingki: '밍키',
