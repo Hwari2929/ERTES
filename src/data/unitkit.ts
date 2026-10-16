@@ -62,6 +62,14 @@ export interface SummonDef {
   hpMul?: number;
   /** 일러스트 id (art/<art>.webp, 초상화 아이콘) */
   art?: string;
+  /** 상속률 배율 (기본 1) */
+  rate?: number;
+  /** 이동 속도 (기본 1.15) */
+  moveSpd?: number;
+  /** 사거리 안에서 체력 비율이 가장 낮은 적을 노린다 */
+  focusLow?: boolean;
+  /** 함께 소환되는 다른 소환물 (각 1기, 추가 소환 효과는 첫 소환물에만) */
+  also?: SummonDef[];
 }
 
 export const B = (vit: number, pow: number, mnd: number, def: number, agi: number) => ({ vit, pow, mnd, def, agi });

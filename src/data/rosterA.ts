@@ -122,7 +122,8 @@ export const ROSTER_A: BaseUnit[] = [
     lore: '"좋습니다. 서로가 만족할 거래가 되었군요."',
     // 비무장: 폭력은 경호팀에게 아웃소싱했다
     passive: {
-      setup: (u) => { u.noAttack = true; u.mem.extraSummon = (u.mem.extraSummon || 0) + 1; },
+      // 경호원: 기본 1명 + 공명 등급 3등급마다 1명 (최대 4명)
+      setup: (u) => { u.noAttack = true; u.mem.extraSummon = (u.mem.extraSummon || 0) + Math.min(3, Math.floor((u.src?.rank || 1) / 3)); },
       hooks: { takenMult: (b, u) => (summonsOf(b, u).length ? 0.75 : 1) },
     },
     skill: {

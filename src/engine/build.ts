@@ -223,11 +223,14 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
 }
 
 /** 최고의 친구: 주인 스탯 일부를 물려받는 소환물 */
-function spawnSummons(b: Battle, owner: CUnit, sd: SummonDef) {
+function spawnSummons(b: Battle, owner: CUnit, sd0: SummonDef) {
   const n = owner.mem.noSummon ? 0 : 1 + (owner.mem.extraSummon || 0);
   const base = Math.min(6, (owner.mem.bond || 0.35) + (owner.mem.bondBonus || 0));
-  for (let i = 0; i < n; i++) {
-    const r = i === 0 ? base : base * 0.8; // 추가 소환물은 상속률 80%
+  // 첫 소환물 n기 + 함께 소환되는 다른 소환물 (라스무스: 맥스 + 라라) 각 1기
+  const list: { sd: SummonDef; i: number }[] = [...Array(n).keys()].map((i) => ({ sd: sd0, i }));
+  if (n) for (const x of sd0.also || []) list.push({ sd: x, i: 0 });
+  for (const { sd, i } of list) {
+    const r = (i === 0 ? base : base * 0.8) * (sd.rate || 1); // 추가 소환물은 상속률 80%
     const s = blankUnit(owner.side);
     const o = owner.st;
     const st = emptyStats();
@@ -235,7 +238,7 @@ function spawnSummons(b: Battle, owner: CUnit, sd: SummonDef) {
     st.shoot = o.shoot * r; st.strike = o.strike * r; st.tech = o.tech * r;
     st.armor = o.armor * r + (owner.mem.summonArmor || 0);
     st.acc = o.acc; st.crit = o.crit; st.critDmg = o.critDmg; st.effHit = o.effHit; st.effRes = o.effRes; st.eva = o.eva;
-    st.moveSpd = 1.15; st.range = sd.range;
+    st.moveSpd = sd.moveSpd || 1.15; st.range = sd.range;
     st.maxHp *= (1 + (owner.mem.summonHpPct || 0)) * (owner.mem.summonHpMul || 1);
     // 라르스: 경호원 메이저 보너스
     const gm = owner.mem.summonMaj || 0;
@@ -249,6 +252,7 @@ function spawnSummons(b: Battle, owner: CUnit, sd: SummonDef) {
       ],
     });
     applyCategory(s);
+    if (sd.focusLow) s.mem.lowestFocus = 1;
     s.hp = st.maxHp;
     s.atkTimer = 0.3;
     const treat = owner.mem.summonTreat;

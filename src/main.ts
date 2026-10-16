@@ -358,10 +358,10 @@ const CTYPE_DESC: Record<string, [string, string]> = {
 };
 /** 전술 유형 공통 규칙: 공명 등급마다 모든 능력치 +1, 이정표 보상은 유형별 */
 const TTYPE_RULE: Record<TType, string> = {
-  major: `공명 등급마다 모든 능력치 +1. 5등급마다 메이저 증강 1개. 고유 궁극기는 시간이 지나면 저절로 차오르며 (기본 약 ${CFG.ultTime}초, 전투 시작 ${Math.round(CFG.ultStart * 100)}%) 한 전투에 여러 번 쓸 수 있다.`,
+  major: `공명 등급마다 모든 능력치 +1. 4등급마다 메이저 증강 1개. 고유 궁극기는 시간이 지나면 저절로 차오르며 (기본 약 ${CFG.ultTime}초, 전투 시작 ${Math.round(CFG.ultStart * 100)}%) 한 전투에 여러 번 쓸 수 있다.`,
   minor: '공명 등급마다 모든 능력치 +1. 3등급마다 능력치 2종 +3. 기술 계수와 특성 수치가 등급에 따라 자란다 (10등급 ×2, 20등급 ×3).',
-  special: '공명 등급마다 모든 능력치 +1. 합류 · 7 · 14 · 21등급에 전용 증강 (최대 4개).',
-  psionic: '공명 등급마다 모든 능력치 +1. 기물마다 학파가 정해져 있고, 합류할 때 그 학파의 전공을 고른다 (비술 + 지속 능력). 5등급마다 전공 증강 (최대 4개, 20등급에 완성).',
+  special: '공명 등급마다 모든 능력치 +1. 합류 · 5 · 10 · 15등급에 전용 증강 (최대 4개).',
+  psionic: '공명 등급마다 모든 능력치 +1. 기물마다 학파가 정해져 있고, 합류할 때 그 학파의 전공을 고른다 (비술 + 지속 능력). 4 · 8 · 12 · 16등급에 전공 증강 (최대 4개, 16등급에 완성).',
   divine: '공명 등급마다 모든 능력치 +1. 고유 신앙이 깨어 있어 신성력을 모으고, 가득 차면 장착한 성유물의 신권 대행을 전투당 한 번 쓴다. 모은 신성력은 전투 후 권능 포인트가 된다.',
 };
 /** 특성 하위 항목 (접힘) */
@@ -479,7 +479,7 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
     const mine = owned.filter((a) => MAJOR_AUGS.some((m) => m.id === a.id));
     body.push(`<div class="tt-row"><span class="tt-k">메이저 증강</span><b>${mine.length}</b>${nx ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
     body.push(mine.length ? `<div class="tt-icons">${mine.map((a) => `<button class="tt-ic ab-click${abilOn(`aug:${a.id}`)}" data-a="abil-pop" data-v="aug:${esc(a.id)}" title="${esc(AUG_BY_ID[a.id]?.name || a.id)}">${augIcon(a.id)}</button>`).join('')}</div>`
-      : `<p class="muted small">${u ? '5등급에 첫 메이저 증강을 고릅니다.' : `공용 풀 ${MAJOR_AUGS.length}종: 능력치 · 세부 능력치 상승.`}</p>`);
+      : `<p class="muted small">${u ? '4등급에 첫 메이저 증강을 고릅니다.' : `공용 풀 ${MAJOR_AUGS.length}종: 능력치 · 세부 능력치 상승.`}</p>`);
   } else if (tt === 'minor') {
     const g = CFG.minorGrow(rank);
     const tl = MINOR_TRAIT_GROW[d.id];
@@ -1846,7 +1846,7 @@ function pendingModal(run: RunState): string {
       const pv = previewAlly(run, u);
       body = `${side}<div class="ru-main">
         <div class="ru-head"><h1>${p.kind === 'school' ? '합류 · 사이오닉 전공' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 전공 증강` : `${p.rank}등급 달성 · 메이저 증강`}</h1>
-          <span class="muted small">${p.kind === 'school' ? `${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙고, 5 · 10 · 15 · 20등급에 전공 증강을 고릅니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}` : p.kind === 'special' ? '스페셜 기물은 합류할 때와 7 · 14 · 21등급에 전용 증강을 고릅니다 (최대 4개).' : p.kind === 'psionic' ? '사이오닉 기물은 5등급마다 전공 증강을 고릅니다 (최대 4개).' : '메이저 기물은 5등급마다 메이저 증강을 고릅니다.'}</span>
+          <span class="muted small">${p.kind === 'school' ? `${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙고, 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}` : p.kind === 'special' ? '스페셜 기물은 합류할 때와 5 · 10 · 15등급에 전용 증강을 고릅니다 (최대 4개).' : p.kind === 'psionic' ? '사이오닉 기물은 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다 (최대 4개).' : '메이저 기물은 4등급마다 메이저 증강을 고릅니다.'}</span>
           ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];

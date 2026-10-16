@@ -10,6 +10,8 @@ const extraPet = { setup: (u: { mem: Record<string, number> }) => { u.mem.extraS
 const bond = (v: number) => ({ setup: (u: { mem: Record<string, number> }) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + v; } });
 const WOLF = ['#101014', '#7a7a80', '#d8d8d8', '#b0b0b0', '#ffcf40', '#4a4a50', '#ffffff'];
 const BEAR = ['#0c0806', '#4a3424', '#8a6a4a', '#c0a080', '#ffcf40', '#2a1a10', '#e0d0c0'];
+/** 라라: 크림색 사냥개 (일러스트 없음 → 도트) */
+const LARA = ['#0c0806', '#d8b880', '#f0e0c0', '#c0a080', '#7fd0ff', '#8a6a40', '#fff8e8'];
 
 export const ROSTER_C: BaseUnit[] = [
   // ───────── 시리우스 성도회
@@ -87,7 +89,7 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.2 }, range: 4, base: B(6, 10, 8, 3, 5),
     sprite: 'soldier', palette: tint(PAL.SIR, '#6a5aa0', '#e8e2c8', '#c0b0ff'), lore: '"아, 실례했군요. 죄송해요. 제가 이번 은하는 처음이라."',
     skill: strike({
-      name: '포켓 블랙홀', cd: 7, pow: 'shoot', elem: 'phys', mult: 2.2, params: { radius: 1, slow: 0.4 },
+      name: '포켓 블랙홀', cd: 11, pow: 'shoot', elem: 'phys', mult: 4.5, params: { radius: 2, slow: 0.4 },
       desc: (p) => `융합포로 대상 지점에 소형 블랙홀을 열어 주변 ${p.radius}칸 적에게 사격 위력 ${pct(p.mult)} 물리 피해 + 둔화${p.stun ? ` + ${p.stun}초 기절` : ''}${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}${p.pen ? ` (방어도 관통 ${pct(p.pen)})` : ''}.`,
     }),
   },
@@ -226,11 +228,13 @@ export const ROSTER_C: BaseUnit[] = [
     id: 'rasmus', name: '라스무스', title: '엘베스타드가 조경사 · 경비견 맥스', factions: ['FAM'], traits: ['BUDDY'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, base: B(9, 7, 5, 7, 3),
     sprite: 'knight', palette: tint(PAL.FAM, '#4a5a3a', '#c8ccd8', '#ffcf40'),
-    summon: { name: '맥스', art: 'sm_max', sprite: 'beast', palette: BEAR, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.6 },
+    // 맥스: 체력이 두꺼운 경비견 (앞을 막는다) · 라라: 빠르고 약한 적을 노리는 사냥개 (상속 80%, 체력 0.9배)
+    summon: { name: '맥스', art: 'sm_max', sprite: 'beast', palette: BEAR, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.6,
+      also: [{ name: '라라', sprite: 'beast', palette: LARA, atk: { type: 'strike', elem: 'phys', interval: 0.75 }, range: 1, hpMul: 0.9, rate: 0.8, moveSpd: 1.5, focusLow: true }] },
     lore: '본가의 정원을 40년 가꿨다. 정원을 망치는 것은 무엇이든 맥스가 먼저 쫓아낸다.',
     skill: {
-      name: '불청객 퇴치', tag: () => '맥스 돌격 + 출혈', cd: 7, params: { mult: 2.5, bleed: 0.3, roar: 0 },
-      desc: (p) => `맥스가 라스무스의 대상에게 달려들어 맥스 타격 위력 ${pct(p.mult)} 물리 피해 + 초당 ${pct(p.bleed)} 출혈${p.roar ? `, 맥스 주변 적 ${pct(p.roar)} 확률 1.2초 공포` : ''}. 맥스가 없으면 라스무스가 전정가위로 직접 150%.`,
+      name: '불청객 퇴치', tag: () => '맥스 · 라라 돌격 + 출혈', cd: 7, params: { mult: 2.5, bleed: 0.3, roar: 0 },
+      desc: (p) => `맥스와 라라가 라스무스의 대상에게 달려들어 각자 타격 위력 ${pct(p.mult)} 물리 피해 + 초당 ${pct(p.bleed)} 출혈${p.roar ? `, 각자 주변 적 ${pct(p.roar)} 확률 1.2초 공포` : ''}. 개가 없으면 라스무스가 전정가위로 직접 150%.`,
       cast(b, u) {
         const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u));
         if (!t) return false;
@@ -279,7 +283,7 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(8, 5, 8, 7, 3),
     sprite: 'robe', palette: tint(PAL.FAM, '#1a1a1a', '#ffffff', '#c8ccd8'), lore: '3대째 같은 스튜를 끓인다. 레시피는 가주도 모른다.',
     skill: support({
-      name: '가문의 스튜', cd: 4.5, target: 'lowest', power: cookPower, params: { shield: 1.8, heal: 0.6, armor: 200, dur: 5 },
+      name: '가문의 스튜', cd: 6.5, target: 'lowest', power: cookPower, params: { shield: 1.8, heal: 0.6, armor: 200, dur: 5 },
       desc: (p) => `[요리] 체력 비율이 가장 낮은 아군에게 기술 위력 ${pct(p.shield)} 보호막 + ${pct(p.heal)} 회복${p.cleanse ? ', 해로운 상태이상 제거' : ''}, ${p.dur}초간 방어도 +${p.armor}${p.splash ? '. 주변 1칸 아군에게 50% 효과' : ''}.`,
     }),
   },

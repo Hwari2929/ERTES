@@ -24,12 +24,12 @@ export const CFG = {
   growth: {
     /** 마이너: 3등급마다 능력치 2종 +3 */
     pick: (tt: string, rank: number) => tt === 'minor' && rank % 3 === 0,
-    /** 메이저: 5등급마다 메이저 증강 */
-    major: (tt: string, rank: number) => tt === 'major' && rank % 5 === 0,
-    /** 스페셜: 합류 + 7 · 14 · 21등급에 전용 증강 (최대 4) */
-    special: (tt: string, rank: number) => tt === 'special' && (rank === 7 || rank === 14 || rank === 21),
-    /** 사이오닉: 5등급마다 전공 증강 (최대 4, 20등급에 완성) */
-    psionic: (tt: string, rank: number) => tt === 'psionic' && rank % 5 === 0 && rank <= 20,
+    /** 메이저: 4등급마다 메이저 증강 */
+    major: (tt: string, rank: number) => tt === 'major' && rank % 4 === 0,
+    /** 스페셜: 합류(1등급) + 5 · 10 · 15등급에 전용 증강 (최대 4) */
+    special: (tt: string, rank: number) => tt === 'special' && (rank === 5 || rank === 10 || rank === 15),
+    /** 사이오닉: 4 · 8 · 12 · 16등급에 전공 증강 (최대 4, 16등급에 완성) */
+    psionic: (tt: string, rank: number) => tt === 'psionic' && rank % 4 === 0 && rank <= 16,
   },
   /** 메이저 궁극기: 자연 충전 기준 시간(초, 충전 계수 1.0) · 전투 시작 게이지 */
   ultTime: 35, ultStart: 0.2,

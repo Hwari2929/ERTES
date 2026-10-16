@@ -816,7 +816,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'VAN', ttype: 'minor', faith: 'human', weapon: K('전정가위', 'phys', 1.0, 1, 0.8, 4),
     factions: ['FAM'], traits: ['BUDDY', 'HUNTER'],
     trait: {
-      name: '가지치기', desc: '라스무스와 맥스의 공격이 [부상]을 쌓는다 (최대 5, 6초). 부상은 회복 · 보호막을 1회씩 대신 소모시킨다.',
+      name: '가지치기', desc: '라스무스와 개들(맥스 · 라라)의 공격이 [부상]을 쌓는다 (최대 5, 6초). 부상은 회복 · 보호막을 1회씩 대신 소모시킨다.',
       effect: { hooks: {
         onBasic(b, u, t, r) { if (r.amount > 0) wound(b, u, t); },
         onTick(b, u) {
