@@ -167,13 +167,16 @@ function petalLayer(level: FxLevel): Layer {
     }
     fling(pts, 2400);
   };
+  const indoor = () => !!document.querySelector('.bar, .adv'); // 바(실내) · 사건 장면: 꽃잎 층을 내리므로 터짐 · 폭풍도 쉰다
   const onDown = (e: PointerEvent) => {
+    if (indoor()) return;
     const n = Math.min(level === 'low' ? 5 : 10, PETAL_CAP - count());
     for (let k = 0; k < n; k++) burst(e.clientX, e.clientY);
     mark();
   };
   // 벚꽃 폭풍: 켜기에서 무작위 1~2분마다 4초, 바람이 꽃잎을 몰고 지나간다 (전투 중엔 약하게)
   const storm = () => {
+    if (indoor()) return;
     const W = innerWidth, H = innerHeight, extra = isBusy ? 20 : 45;
     el.animate([{ transform: 'none' }, { transform: 'translateX(110px)', offset: 0.5 }, { transform: 'none' }], { duration: 4000, easing: 'ease-in-out' });
     let k = 0;
