@@ -8,6 +8,7 @@
 // 로어는 재료로만 쓴다 (docs/SCENES.md 3차 지침). 인물마다 입장이 갈리게.
 import { FRAMES_A } from './frames_a';
 import { FRAMES_B } from './frames_b';
+import { FRAME_EXTRA } from './frames_c';
 
 export type FrameTheme = 'gag' | 'trend' | 'politics' | 'debate';
 export const FRAME_THEME: Record<FrameTheme, string> = { gag: '뜬금없는 소리', trend: '요즘 유행', politics: '시사 · 정치', debate: '진지한 토론' };
@@ -27,5 +28,6 @@ export interface Frame {
   slots: Record<string, string[]>[];
 }
 
-export const FRAMES: Frame[] = [...FRAMES_A, ...FRAMES_B];
+/** 4차 추가 후보(frames_c.ts)는 첫 슬롯에 합친다 */
+export const FRAMES: Frame[] = [...FRAMES_A, ...FRAMES_B].map((f) => (FRAME_EXTRA[f.id] ? { ...f, slots: [{ ...f.slots[0], ...FRAME_EXTRA[f.id] }, ...f.slots.slice(1)] } : f));
 export const FRAME_BY_ID: Record<string, Frame> = Object.fromEntries(FRAMES.map((f) => [f.id, f]));

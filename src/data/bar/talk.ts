@@ -8,6 +8,9 @@
 // 치환: {pc} 레이첼 · {field} 전장 · {mvp} 직전 런 MVP · {event} 처음 겪은 사건 · {gap} 빠진 출격 수 · {phase} 페이즈. 뒤의 조사는 자동으로 맞춘다.
 //
 // 보상은 없다. 반응 대사 · 이야기는 도감 '기록' 탭에 모인다.
+// 나머지 단원 대본: talk_b.ts (로어 있는 16명) · talk_c.ts (로어 없는 28명). 아래 BAR_TALK · DEEP_TOPICS 에 합친다.
+import { DEEP_B, TALK_B } from './talk_b';
+import { TALK_C } from './talk_c';
 
 /** 반응 조건 (src/ui/bar.ts 의 REACT_RULES 가 판정한다) */
 export type ReactKey = 'mvp' | 'clear' | 'wipe' | 'neglect' | 'mvpOther' | 'newEvent' | 'field' | 'resume';
@@ -31,7 +34,7 @@ export const FIELD_SHORT: Record<string, string> = {
   livin: '리빈', raiden: '라이덴', crete: '크레타', olympus: '올림푸스', catwheel: '캣휠', hyperion: '히페리온호', bshak: '브샤크 해안',
 };
 
-export const BAR_TALK: Record<string, BarTalk> = {
+const BAR_TALK_A: Record<string, BarTalk> = {
   // ───────── 바텐더
   aiden: {
     watch: true,
@@ -354,7 +357,7 @@ export const BAR_IDLE: { sit: string; lines: string[] }[] = [
 
 /** 실재 층 화제 (심야): 그 인물과의 관계(바에서 말 건 횟수 + 함께 출전한 런 수)가 쌓여야 열린다 (src/ui/bar.ts DEEP_BOND).
  *  고백하지 않는다. docs/VOICES.md '새어 나오는 방식'의 트리거를 깔고, 인물은 반응만 한다. */
-export const DEEP_TOPICS: Record<string, { key: string; label: string; lines: string[] }> = {
+const DEEP_A: Record<string, { key: string; label: string; lines: string[] }> = {
   aiden: { key: 'deep', label: '마감 뒤의 잔', lines: [
     '* 새벽 5시. 마지막 손님이 나간 바. 에이든이 잔 하나를 닦고, 또 닦는다.', '레이첼: 그거 아까부터 닦았어.', '그렇습니까. 오래된 손님 잔이라서요.', '레이첼: 누구.',
     '주문만 기억합니다. 늘 시켜 놓고 마시지 않던 손님이었죠. …핫초코 곱빼기 손님, 오늘은 마시멜로 4개입니다.', '레이첼: 왜.', '제 기분이 그런 날이라서요.'] },
@@ -392,3 +395,6 @@ export const DEEP_TOPICS: Record<string, { key: string; label: string; lines: st
     '* 협상에서 돌아온 게베크가 넥타이를 푼다. 얼굴의 웃음이 한꺼번에 내려간다.', '레이첼: 오늘 바보 같았어.', '그렇지? 그게 일이야. 상대가 날 바보로 보면 반값에 끝나.',
     '레이첼: 진짜 바보 아니야?', '하하! …지휘관, 우리 애들 건드리는 놈 앞에선 나 바보 안 해. 그것만 알아 둬.', '* 웃음이 다시 올라온다.', '자! 볶음면!'] },
 };
+
+export const BAR_TALK: Record<string, BarTalk> = { ...BAR_TALK_A, ...TALK_B, ...TALK_C };
+export const DEEP_TOPICS: Record<string, { key: string; label: string; lines: string[] }> = { ...DEEP_A, ...DEEP_B };

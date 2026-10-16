@@ -47,6 +47,15 @@ for (const u of UNITS) {
     tiers.filter(Boolean).forEach((t) => askLines(t as string).forEach((l) => lineCheck(`ask/${u.id}/${q.key}`, l)));
   }
 }
+// 바 대본: 레이첼을 뺀 전원에게 인사 · 반응 3개 이상 · 화제 2편. 심야 화제(실재 층)는 로어 있는 인물만
+for (const u of UNITS) {
+  if (u.id === 'rachel') continue;
+  const t = BAR_TALK[u.id];
+  if (!t) { errs.push(`대본: ${u.name} 없음`); continue; }
+  if (!t.at || !t.hello.length || Object.keys(t.react).length < 3 || t.topics.length < 2) errs.push(`대본: ${u.name} 인사 · 반응(3+) · 화제(2) 부족`);
+  if (DEEP_TOPICS[u.id] && !LORE.has(u.name)) errs.push(`대본: ${u.name} 로어 문서 없이 심야 화제가 있음`);
+  if (LORE.has(u.name) && !DEEP_TOPICS[u.id]) errs.push(`대본: ${u.name} 심야 화제 없음 (로어 있음)`);
+}
 for (const id of Object.keys(ASK)) if (!UNIT_BY_ID[id] || id === 'rachel') errs.push(`물어보기: 모르는 인물 ${id}`);
 const askN = Object.keys(ASK).length, askDeep = Object.values(ASK).filter((a) => a.past[2]).length;
 console.log(`물어보기: ${askN}명 × 질문 ${ASK_Q.length}개 (실재 층 답 ${askDeep}명)`);
