@@ -174,10 +174,10 @@ export const STORY_B_SCENES: Record<string, EventScene> = {
     ],
     subs: {
       temur: [
-        S('temur', '결투. 안다. 경기장에선 관객이 엄지로 정했다.', { at: 'C', face: 'serious' }),
-        S('temur', '여기는 누가 정하냐.'),
+        S('temur', '결투라면 알지. 경기장에선 관객이 엄지로 정했어.', { at: 'C', face: 'serious' }),
+        S('temur', '여기서는 누가 정하는데?'),
         S('b_collector', '검이 정한다.'),
-        S('temur', '좋다. 엄지보다 낫다.', { face: 'grin', exit: true }),
+        S('temur', '좋네. 엄지보다 낫다.', { face: 'grin', exit: true }),
       ],
       franze: [
         S('franze', '이의 있습니다. 제국식 결투라면 도전받은 쪽이 무기를 고를 권리가 있지요.', { at: 'C', face: 'smug' }),
@@ -245,7 +245,7 @@ export const STORY_B_SCENES: Record<string, EventScene> = {
       S('b_trierarch', '이타카로 가겠다던 남작 부인이, 제국 투기장으로 끌려갔다는 노래였소.'),
       S('iris', '……', { at: 'L', face: 'sad' }),
       S('b_trierarch', '그래서 묻겠소. 그 부인 값으로 얼마 받았소?', { face: 'angry' }),
-      S('rachel', '…스물.', { at: 'C', face: 'blank' }),
+      S('rachel', '…20.', { at: 'C', face: 'blank' }),
       S('b_trierarch', '…솔직하군. 노래에 그것도 넣겠소.', { face: 'tired' }),
       S('b_trierarch', '동맹은 에란테스를 항해자 명부에서 지울 수 있소.', { face: 'serious' }),
       S('rachel', '그게 뭔데.'),

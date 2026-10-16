@@ -65,9 +65,9 @@ export const PILOT_SCENES: Record<string, EventScene> = {
         N('고물상이 원통을 진열대 맨 뒤로 슬쩍 밀어 놓는다.', { exit: ['falcon'] }),
       ],
       lindiwe: [
-        S('lindiwe', '하나 주면 2개! 좋네요! 영수증은요?', { at: 'C', face: 'smile' }),
+        S('lindiwe', '하나 주면 2개. 좋네요. 영수증은요?', { at: 'C', face: 'smile' }),
         S('scrapper', '영수증? 여기 그런 거 없어.'),
-        S('lindiwe', '그럼 제가 쓸게요. 품목은… "고철, 뭔지 모름, 2개." 됐어요!', { face: 'grin', exit: true }),
+        S('lindiwe', '그럼 제가 쓸게요. 품목은… "고철, 뭔지 모름, 2개." 됐어요.', { face: 'grin', exit: true }),
       ],
     },
     after: [
@@ -119,10 +119,10 @@ export const PILOT_SCENES: Record<string, EventScene> = {
     ],
     subs: {
       temur: [
-        S('temur', '4년 서 있었냐. 밥은.', { at: 'C', face: 'surprise' }),
+        S('temur', '4년이나 서 있었냐? 밥은?', { at: 'C', face: 'surprise' }),
         S('thermo', '에너지 공급, 태양광. 섭취 불요.'),
-        S('temur', '밥 안 먹는다. 4년.', { face: 'blank' }),
-        S('temur', '…불쌍하다. 나라면 죽었다.', { face: 'sad', exit: true }),
+        S('temur', '밥을 안 먹는다고? 4년이나?', { face: 'blank' }),
+        S('temur', '…불쌍하네. 나였으면 진작 죽었어.', { face: 'sad', exit: true }),
       ],
       iris: [
         S('iris', '저, 스파르타 기체를 막 데려가도 되는 걸까요? 아레스 신전 소속일 텐데…', { at: 'C', face: 'worried' }),
@@ -403,9 +403,9 @@ export const PILOT_SCENES: Record<string, EventScene> = {
         S('mirinae', '구경만 할게. 구경도 재밌어. 아마.', { face: 'tired', exit: true }),
       ],
       temur: [
-        S('temur', '저 꼬치. 공짜냐.', { at: 'R', face: 'grin' }),
+        S('temur', '저 꼬치, 공짜냐?', { at: 'R', face: 'grin' }),
         S('barkeep', '그건 딜러 거야.'),
-        S('temur', '그럼 딴다. 따서 먹는다.', { face: 'serious', exit: true }),
+        S('temur', '그럼 따지 뭐. 따서 먹을래.', { face: 'serious', exit: true }),
       ],
       hiiro: [
         S('hiiro', '점 봐 줄까요? 오늘 밤 누군가 크게 따. …우리라고는 안 했어.', { at: 'R', face: 'smile' }),
@@ -413,9 +413,9 @@ export const PILOT_SCENES: Record<string, EventScene> = {
         S('hiiro', '그건 추가 요금. 2c.', { face: 'smug', exit: true }),
       ],
       lindiwe: [
-        S('lindiwe', '저는 장부만 볼게요! 누가 얼마 잃는지!', { at: 'R', face: 'smile' }),
+        S('lindiwe', '저는 장부만 볼게요. 누가 얼마 잃는지.', { at: 'R', face: 'smile' }),
         S('orca', '린디웨 씨, 그건 제 일입니다.'),
-        S('lindiwe', '오늘은 반반 해요! 정산은 제가!', { face: 'grin', exit: true }),
+        S('lindiwe', '오늘은 반반 하죠. 정산은 제가 할게요.', { face: 'grin', exit: true }),
       ],
     },
     after: [

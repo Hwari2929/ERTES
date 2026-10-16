@@ -32,6 +32,9 @@ export const MOTIFS: Record<string, [string, RegExp, number?][]> = {
   라르스: [['할러', /할러/, 6], ['탈모 · 머리', /탈모|머리숱/, 6], ['밍키 협상', /츄르/, 8]],
   그렌홀름: [['악어', /악어/, 4], ['554년', /554/, 5]],
   이리스: [['굿즈', /굿즈/, 6], ['벽에 부딪힘', /벽에|또 벽/, 4]],
+  // 로어 없는 인물도 반복 개그로 줄어들기 쉬운 소재는 센다 (4차 말투 재점검)
+  비외른: [['청구 · 구조비', /청구|구조비|대여비|안정비/, 20]],
+  빌: [['김치(사진)', /김치/, 12]],
 };
 
 /** 인물 이름 → 기물 id (사건 · 바 대본의 화자 id) */
@@ -39,6 +42,7 @@ const ID: Record<string, string> = {
   게베크: 'gebek', 웨스트: 'west', 비비안: 'vivian', 테무르: 'temur', 필리스: 'phyllis', 예레나: 'yelena', 린디웨: 'lindiwe', 오르카: 'orca', 프란체: 'franze',
   나디르: 'nadir', 유피토: 'yupito', 에이든: 'aiden', 아문센: 'amundsen', 제피로: 'zephyro', 엘레니: 'eleni', 카이로: 'kairo', 도노반: 'donovan', 자하라: 'zahara',
   클로에: 'chloe', 비앙카: 'bianca', 조슈아: 'joshua', 라르스: 'lars', 그렌홀름: 'grenholm', 이리스: 'iris',
+  비외른: 'bjorn', 빌: 'bill',
 };
 const SOURCES: [string, string, RegExp][] = [
   ['만담', 'docs/banter', /\.md$/],

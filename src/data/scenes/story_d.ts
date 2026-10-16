@@ -207,7 +207,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       lindiwe: [
         S('lindiwe', '잠깐요! 원하는 걸로, 기한 없이, 한도 없이요? 계약서는요?', { at: 'C', face: 'surprise' }),
         S('d_captain', '계약서? 말로 했으면 된 걸세.'),
-        S('lindiwe', '…말로요. 네. 제가 받아 적을게요. 서명은 손도장으로 하시고요!', { face: 'smile', exit: true }),
+        S('lindiwe', '…말로요. 네. 제가 받아 적을게요. 서명은 손도장으로 하시고요.', { face: 'smile', exit: true }),
       ],
       oliver: [
         S('oliver', '세관선을 엔진 터질 때까지 따돌렸다고? 최고 속도 몇이었어? 꺾을 땐? 영상 있어?', { at: 'C', face: 'grin' }),
@@ -279,9 +279,9 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         S('west', '총한테 스트레스가 어딨어, 이 양반아!', { exit: true }),
       ],
       temur: [
-        S('temur', '통행료 얼마냐. 밥 몇 끼냐.', { at: 'C', face: 'serious' }),
+        S('temur', '통행료 얼마냐? 밥으로 치면 몇 끼야?', { at: 'C', face: 'serious' }),
         S('gebek', '대충 너 3일 치.'),
-        S('temur', '…싸운다.', { face: 'angry', exit: true }),
+        S('temur', '…싸우지 뭐.', { face: 'angry', exit: true }),
       ],
       falcon: [
         S('falcon', '제 레일건으로 선두 함 엔진 노려 볼까요? 이번엔 안 터질 것 같은 느낌이 들어요.', { at: 'C', face: 'smile' }),
@@ -500,7 +500,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       temur: [
         S('temur', '생명 유지 장치 줄이면 추워지냐?', { at: 'C', face: 'worried' }),
         S('oliver', '음, 조금? 냉동고 정도?'),
-        S('temur', '…주인님. 그건 안 된다. 진짜 안 된다.', { face: 'angry', exit: true }),
+        S('temur', '…주인님, 그건 안 돼. 진짜 안 돼.', { face: 'angry', exit: true }),
       ],
       west: [
         S('west', '바늘 붉은 선 밑으로 떨어진 거 누가 마지막으로 봤어? 점검표엔 2일 전에 서명돼 있는데.', { at: 'C', face: 'angry' }),
@@ -596,9 +596,9 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         S('kairo', '그럼 빠지지. 그건 사격이 아니라 몸싸움이네.', { face: 'tired', exit: true }),
       ],
       temur: [
-        S('temur', '결투? 돈 걸린 결투? 내가 한다. 나 그거 잘한다.', { at: 'C', face: 'grin' }),
+        S('temur', '결투? 돈 걸린 결투? 내가 할게. 나 그거 잘해.', { at: 'C', face: 'grin' }),
         S('zahara', '…아무도 너라고 안 했어.'),
-        S('temur', '그럼 지금 해라.', { exit: true }),
+        S('temur', '그럼 지금 해.', { exit: true }),
       ],
     },
     after: [
@@ -748,11 +748,11 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       S('temur', '많이.'),
       SUB,
       N('챔피언이 모래를 한 줌 쥐었다가 흘린다. 테무르 쪽을 보고 있다.'),
-      S('temur', '주인님. 셋이다.', { face: 'serious' }),
-      S('temur', '하나. 우리 쪽에서 누가 들어가서 싸운다. 나면 좋다.'),
-      S('temur', '둘. 저 챔피언한테 돈 건다. 저놈 세다. 근데 센 놈도 진다. 나도 져 봤다.'),
-      S('temur', '셋. 그냥 본다. 저놈 발 움직이는 거, 볼 게 많다.'),
-      S('temur', '…난 들어가고 싶다. 근데 돈은 주인님 거다.', { face: 'grin' }),
+      S('temur', '주인님, 방법은 셋이야.', { face: 'serious' }),
+      S('temur', '하나. 우리 쪽에서 누가 들어가서 싸운다. 나면 좋고.'),
+      S('temur', '둘. 저 챔피언한테 돈 건다. 저놈 세. 근데 센 놈도 져. 나도 져 봤거든.'),
+      S('temur', '셋. 그냥 본다. 저놈 발 움직이는 거, 볼 게 많아.'),
+      S('temur', '…난 들어가고 싶어. 근데 돈은 주인님 거니까.', { face: 'grin' }),
     ],
     subs: {
       zahara: [
@@ -767,7 +767,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       ],
       kyle: [
         S('kyle', '저 우리 안, 맨 앞자리는 비었나?', { at: 'C', face: 'smile' }),
-        S('temur', '안에 자리 없다. 서서 싸운다.'),
+        S('temur', '안에 자리 없어. 서서 싸워.'),
         S('kyle', '좋다. 기도는 미리 해 두지. 짧게.', { exit: true }),
       ],
       yelena: [
@@ -792,32 +792,32 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         decision: [
           N('{fighter}와 챔피언은 우리 안을 10바퀴는 돌았다. 아무도 쓰러지지 않았다.', { sfx: 'crowd' }),
           N('결국 종이 울렸다. 판정은 광부들 함성 크기로 정해졌다. 아슬아슬하게 에란테스 쪽.', { sfx: 'd_bell' }),
-          S('temur', '이겼다. 근데 밥 반만 먹은 기분이다.', { at: 'L', face: 'base' }),
+          S('temur', '이겼다. 근데 밥을 반만 먹은 기분이네.', { at: 'L', face: 'base' }),
         ],
         lose: [
           N('{fighter}가 모래 우리에 들어서고 10초 뒤, 광장이 조용해졌다.', { fx: 'shake' }),
           N('끌던 왼발은 미끼였다.'),
           S('d_caller', '모래 맛 어때, 손님들!', { at: 'R', face: 'laugh' }),
-          S('temur', '졌다. 배고프다. 고기 먹고 다시 온다.', { at: 'L', face: 'tired' }),
+          S('temur', '졌어. 배고프다. 고기 먹고 다시 올게.', { at: 'L', face: 'tired' }),
         ],
       },
       {
         champ: [
           N('도전자는 3번째 합에서 모래 위로 나가떨어졌다. 광장이 우레처럼 울렸다.', { sfx: 'crowd' }),
           N('챔피언에게 건 판돈이 2배가 되어 돌아왔다.', { sfx: 'coin' }),
-          S('temur', '센 놈이 이겼다. 재미없다. 돈은 된다.', { at: 'L', face: 'smile' }),
+          S('temur', '센 놈이 이겼네. 재미는 없는데, 돈은 되지.', { at: 'L', face: 'smile' }),
         ],
         upset: [
           N('이름 모를 도전자의 주먹이 챔피언 턱에 꽂혔다. 광장이 한순간 조용해졌다.', { fx: 'flash' }),
           N('이어서 터진 건 함성이 아니라 욕이었다. 광부 대부분이 챔피언에게 걸었다.', { sfx: 'crowd' }),
-          S('temur', '봐라. 센 놈도 진다. 내가 말했다.', { at: 'L', face: 'grin' }),
-          S('temur', '…우리 돈도 졌다.', { face: 'sad' }),
+          S('temur', '봐. 센 놈도 진다니까. 내가 말했잖아.', { at: 'L', face: 'grin' }),
+          S('temur', '…우리 돈도 같이 졌네.', { face: 'sad' }),
         ],
       },
       [
         N('단원들은 철창 맨 앞줄에 붙어 서서 해가 질 때까지 경기를 봤다.', { sfx: 'crowd' }),
         N('챔피언은 상대가 바뀔 때마다 발을 조금씩 바꿨다. 끌던 왼발도 일부러일 때가 있었다.'),
-        S('temur', '저놈, 싸우는 게 아니다. 돌 깎듯이 깎는다. 조금씩.', { at: 'L', face: 'serious' }),
+        S('temur', '저놈은 싸우는 게 아니야. 돌 깎듯이 깎아. 조금씩.', { at: 'L', face: 'serious' }),
         N('그날 밤 함선 휴게실에서, 몇몇 단원이 거울 앞에서 발을 옮겨 보았다.'),
       ],
     ],
@@ -943,7 +943,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       ],
       lindiwe: [
         S('lindiwe', '검문관 매수요? 이 규모면 시세가 있어요. 잔금에서 빼면 거의 본전이고요.', { at: 'C', face: 'base' }),
-        S('lindiwe', '…방금 건 페트라 협력팀장 말 아니에요. 그냥 친절한 동료 말이에요. 장부엔 통행 경비로 적을게요!', { face: 'smile', exit: true }),
+        S('lindiwe', '…방금 건 페트라 협력팀장 말 아니에요. 그냥 친절한 동료 말이에요. 장부엔 통행 경비로 적을게요.', { face: 'smile', exit: true }),
       ],
       eleni: [
         S('eleni', '보안 의식 유지 중입니다. 탐조등 26개. 전부 저희를 비추고 있습니다.', { at: 'C', face: 'serious' }),
@@ -1125,14 +1125,14 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         N('오르카가 마지막 조항까지 확인한 뒤에야 서명란을 넘겼다. 사채업자가 두툼한 크레딧 칩을 콘솔에 내려놓았다.', { sfx: 'coin' }),
         S('d_shark', '갚을 날이 오겠지. 꼭.', { at: 'R', face: 'grin' }),
         N('사채업자가 장부 맨 뒷장에 에란테스라고 적었다. 아직 붉은 줄은 없었다.'),
-        S('lindiwe', '받은 날, 갚을 날. 둘 다 빨간 펜으로 적어 둘게요!', { at: 'C', face: 'smile' }),
+        S('lindiwe', '받은 날, 갚을 날. 둘 다 빨간 펜으로 적어 둘게요.', { at: 'C', face: 'smile' }),
       ],
       {
         cut: [
           S('orca', '7번째 줄 각주. 여기 복리 주기를 숨기셨는데, 그러면 3번째 줄 수수료와 이중 부과가 됩니다. 감사 대상이죠.', { at: 'L', face: 'base' }),
           S('d_shark', '……', { at: 'R', face: 'angry' }),
           N('사채업자가 입을 다물었다. 금니가 처음으로 안 보였다. 그는 장부를 펴고 에란테스 이름 옆 숫자를 고쳐 적었다.'),
-          S('lindiwe', '숨김없이 다 까고 이기는 거, 언제 봐도 깔끔하네요!', { at: 'C', face: 'smile' }),
+          S('lindiwe', '숨김없이 다 까고 이기는 거, 언제 봐도 깔끔하네요.', { at: 'C', face: 'smile' }),
         ],
         fail: [
           S('orca', '7번째 줄 각주가—', { at: 'L', face: 'base' }),
