@@ -1873,8 +1873,8 @@ function sceneHtml(beats: Beat[]): string {
 /** 미연시 화자: 기물 · NPC · 주인공(레이첼 스탠딩) */
 function advSpeaker(id: string) {
   const sp = speakerOf(id);
-  const stand = id === 'pc' ? 'rachel' : UNIT_BY_ID[id] ? id : null;
-  return { ...sp, stand: stand && standURL(stand) ? stand : null };
+  const stand = id === 'pc' ? 'rachel' : id; // 기물 · NPC 모두 스탠딩이 있으면 세운다
+  return { ...sp, stand: standURL(stand) ? stand : null };
 }
 /** 사건 · 결과 장면은 전체 화면 미연시로 */
 function advSync(run: RunState | null) {
