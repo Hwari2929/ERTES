@@ -294,6 +294,16 @@ export const LORE: LoreEntry[] = [
     ],
     rel: { units: ['hiiro', 'kaburaya', 'mao', 'reika'], syn: ['HOI'], fields: ['raiden'] },
   },
+  {
+    id: 'akasi', group: 'region', bloc: 'empire', name: '아카시', mark: 'KAL',
+    tag: '제국 동부 변방의 소공국. 140년째 반란과 내전이 형태만 바꿔 이어진다.',
+    bullets: [
+      '세 행성(가람 · 겨울 · 여름)의 고대 방호망과 보호막이 함대 결전과 궤도 폭격을 막는다. 게이트가 부서져 제국의 손도 닿지 않는다.',
+      '혁명파(차인훈)가 수도 행성 가람과 궤도 연구소 청라성을 쥐었고, 제국파(강채령)는 질량 강습으로 처음 교두보를 뚫었다. 혁명파의 보급은 성도회가 댄다.',
+      '아카식 레코드 곁에 산다는 사람들. 마지막 공왕 이야기를 구전으로 잇고, 송향초를 태우며, 원리 모를 고대 설비를 대대로 다룬다. 난민은 카운티폴-3에 모여 산다.',
+    ],
+    rel: { units: ['mirinae', 'eden'], fields: ['county'], lore: ['countyfall', 'hoishun', 'sirius'] },
+  },
 
   // ═══════════════ 지역 · 동맹 도시국가
   {
