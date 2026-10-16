@@ -5,6 +5,9 @@
   python3 scripts/art.py build    art/picked + art/faces.json → public/art/<id>.webp (전신) · <id>.<표정>.webp (표정 차분)
                                   + public/art/<id>.bust.webp (머리 크기를 맞춘 상반신 배너)
                                   + src/ui/portraits.gen.ts (머리 크기를 맞춘 아이콘, 데이터 URI 내장)
+                                  + src/ui/standface.gen.ts (스탠딩 그림 안의 얼굴 위치표, 아래 standfaces)
+  python3 scripts/art.py standfaces   스탠딩 그림 안의 얼굴 위치표만 다시 → src/ui/standface.gen.ts
+                                  (바 무대가 인물을 얼굴 기준으로 가운데 · 같은 턱 높이 · 같은 얼굴 크기로 세울 때 쓴다)
   NAI V5 투명 배경 원본(RGBA)은 그대로 쓰고, 흰 배경 원본만 배경을 깎는다.
   python3 scripts/art.py croptool       초상화 크롭 도구 → dist/crop/index.html + dist/crop/img/ (아티팩트로 게시)
                                   도구에서 저장한 값은 art/crops.json [x, y, 한 변] 에 옮겨 두면 faces.json 보다 우선한다
@@ -195,7 +198,7 @@ def bust_of(cut, face):
 def cmd_build():
     faces = load_json(FACES, {})
     os.makedirs(OUT, exist_ok=True)
-    icons, total = {}, 0
+    icons, total, faced = {}, 0, []
     for i in ids():
         src = f'{PICKED}/{i}.webp'
         if not os.path.exists(src):
@@ -223,6 +226,9 @@ def cmd_build():
             buf = io.BytesIO()
             icon_of(cut, crop_box(i, faces)).save(buf, 'WEBP', quality=70, alpha_quality=80, method=6)
             icons[i] = 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode()
+            row = standface_row(i, cut, faces)
+            if row:
+                faced.append(row)
     with open('src/ui/portraits.gen.ts', 'w') as f:
         f.write('// 자동 생성: python3 scripts/art.py build — 직접 고치지 말 것\n')
         f.write('/** 기물 id → 머리 크롭 아이콘 (128px WebP 데이터 URI) */\n')
@@ -231,6 +237,33 @@ def cmd_build():
             f.write(f"  {k}: '{v}',\n")
         f.write('};\n')
     print(f'art {len(os.listdir(OUT))}개 {total / 1024 / 1024:.1f} MB, icon {len(icons)}개 {sum(map(len, icons.values())) / 1024:.0f} KB')
+    write_standfaces(faced)
+
+
+def standface_row(i, cut, faces):
+    """스탠딩 그림(투명 테두리를 깎은 전신 = build 의 bbox) 안의 얼굴: [얼굴 가운데 x, 눈썹 y, 턱 y] 를 그림 폭 · 높이 비율로. 적 · 소환물 · 배경은 뺀다"""
+    if i.startswith(('en_', 'sm_', 'lore_', 'bg_')):
+        return None
+    x0, y0, x1, y1 = cut.split()[-1].getbbox() or (0, 0, cut.width, cut.height)
+    fx, brow, chin = face_of(i, faces)
+    return f'  {i}: [{(fx - x0) / (x1 - x0):.3f}, {(brow - y0) / (y1 - y0):.3f}, {(chin - y0) / (y1 - y0):.3f}],'
+
+
+def cmd_standfaces():
+    """얼굴 위치표만 다시 (build 없이) → src/ui/standface.gen.ts"""
+    faces = load_json(FACES, {})
+    crops = load_json(CROPS, {})
+    rows = [standface_row(i, cut_of(i), faces) for i in ids() if os.path.exists(f'{PICKED}/{i}.webp') and (i in faces or i in crops) and not i.startswith(('en_', 'sm_', 'lore_', 'bg_'))]
+    write_standfaces([r for r in rows if r])
+
+
+def write_standfaces(rows):
+    with open('src/ui/standface.gen.ts', 'w') as f:
+        f.write('// 자동 생성: python3 scripts/art.py standfaces (build 때도 함께) — 직접 고치지 말 것\n')
+        f.write('/** 스탠딩 그림(public/art/<id>.webp) 안의 얼굴: [얼굴 가운데 x, 눈썹 y, 턱 y] — 그림 폭 · 높이에 대한 비율 */\n')
+        f.write('export const STAND_FACE: Record<string, [number, number, number]> = {\n')
+        f.write('\n'.join(rows) + '\n};\n')
+    print(f'standface {len(rows)}개')
 
 
 def cmd_variants(only=None):
@@ -283,4 +316,4 @@ def cmd_croptool():
 
 if __name__ == '__main__':
     cmd = sys.argv[1] if len(sys.argv) > 1 else ''
-    {'pick': cmd_pick, 'faces': cmd_faces, 'build': cmd_build, 'croptool': cmd_croptool, 'variants': lambda: cmd_variants(sys.argv[2:] or None)}.get(cmd, lambda: cmd_sheet(sys.argv[2]) if cmd == 'sheet' else cmd_holes(sys.argv[2]) if cmd == 'holes' else print(__doc__))()
+    {'pick': cmd_pick, 'faces': cmd_faces, 'build': cmd_build, 'standfaces': cmd_standfaces, 'croptool': cmd_croptool, 'variants': lambda: cmd_variants(sys.argv[2:] or None)}.get(cmd, lambda: cmd_sheet(sys.argv[2]) if cmd == 'sheet' else cmd_holes(sys.argv[2]) if cmd == 'holes' else print(__doc__))()
