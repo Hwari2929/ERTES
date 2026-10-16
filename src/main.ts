@@ -19,6 +19,7 @@ import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
 import * as AB from './ui/abil';
 import * as CX2 from './ui/codex2';
 import * as BAR from './ui/bar';
+import * as TFX from './ui/themefx';
 import {
   activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
@@ -49,7 +50,7 @@ import * as TUT from './engine/tutorial';
 const PREF_KEY = 'errantes.prefs.v1';
 /** 전투 배속 (단축키 1~6, Space 정지) */
 const SPEEDS = [0.25, 0.5, 1, 2, 4, 8];
-function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean; fxMs?: number; skillMs?: number; motion?: MotionPreset; death?: DeathStyle; ultCut?: UltCut; uiTheme?: string } {
+function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean; fxMs?: number; skillMs?: number; motion?: MotionPreset; death?: DeathStyle; ultCut?: UltCut; uiTheme?: string; uiFx?: string } {
   try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}; } catch { return {}; }
 }
 /** 연출 설정을 전투 화면에 반영 */
@@ -72,7 +73,14 @@ const UI_THEMES = [
   { id: 'calito', name: '칼리토 스타더스트 홀', desc: '황실 연회장 남보라 · 금색 · 별가루 은빛' },
 ] as const;
 const uiTheme = () => { const t = loadPrefs().uiTheme; return UI_THEMES.some((x) => x.id === t) ? t! : 'galaxy'; };
-function applyTheme() { document.documentElement.dataset.uiTheme = uiTheme(); }
+/** 테마 연출 (설정): 켜기 · 줄이기 · 끄기. 첫 실행 기본값 = 켜기 */
+const UI_FX = [['on', '켜기'], ['low', '줄이기'], ['off', '끄기']] as const;
+const uiFx = (): TFX.FxLevel => { const v = loadPrefs().uiFx; return v === 'low' || v === 'off' ? v : 'on'; };
+function applyTheme() {
+  const t = uiTheme(), fx = uiFx(), h = document.documentElement;
+  h.dataset.uiTheme = t; h.dataset.tfx = fx;
+  TFX.setThemeFx(t, fx);
+}
 /** 설정: 테마 견본 (견본 칩은 data-ui-theme 로 그 테마의 토큰을 그대로 읽는다) */
 function themePicker() {
   const cur = uiTheme();
@@ -2054,6 +2062,8 @@ function menuModal(run: RunState | null) {
       ${tabs}
       <h3>테마</h3>
       ${themePicker()}
+      <div class="pref"><span><b>테마 연출</b><br><span class="muted small">갤럭시 별빛 · 빈티지 가죽 결 · 이타카 물결 전환 · 호이슌 벚꽃. 줄이기: 입자를 줄이고 유성 · 폭풍 없이, 물결 대신 짧은 페이드</span></span>
+        <span class="seg">${UI_FX.map(([k, l]) => `<button class="btn tiny ${uiFx() === k ? 'on' : ''}" data-a="pref-uifx" data-v="${k}" aria-pressed="${uiFx() === k}">${l}</button>`).join('')}</span></div>
       <h3>전투</h3>
       <label class="pref"><input type="checkbox" data-a="pref-slow" ${app.slowDetail ? 'checked' : ''}><span><b>상세 정보 볼 때 느리게</b><br><span class="muted small">전투 중 기물을 눌러 상세 정보를 보는 동안 진행 속도에 ×0.25 를 곱합니다. 빈 보드를 누르거나 Esc 로 선택을 풀면 원래 속도로 돌아갑니다.</span></span></label>
       <label class="pref"><input type="checkbox" data-a="pref-zoom" ${app.zoomOut ? 'checked' : ''}><span><b>넓은 전장 전체 보기</b><br><span class="muted small">전투 화면을 축소해 바깥 테두리 칸까지 전장 전체를 한 번에 보여 줍니다. 끄면 배치 구역 크기로 보고, 카메라가 끝 기물을 따라갑니다.</span></span></label>
@@ -2296,6 +2306,7 @@ function render() {
   const keep = ['.side.left', '.side.right', 'aside.side', '.codex-grid', '.map-detail', '.cx-detail', '.cx-list'].map((sel) => [sel, root.querySelector(sel)?.scrollTop || 0] as const);
   const modalTop = lastView.modal === modalKey ? root.querySelector('.modal')?.scrollTop || 0 : 0;
   const winY = window.scrollY;
+  const prevScreen = lastView.screen;
   lastView.screen = app.screen;
   // 다시 그려도 스크롤 위치 유지 (상세 패널 · 전체 상세 팝업)
   const KEEP = ['.um-grid', '.um-a', '.um-c', '.um-r', '.um-main', '.side.right', '.map-detail', '.detail'];
@@ -2309,6 +2320,7 @@ function render() {
   restoredAt = performance.now();
   layoutPanels();
   advSync(run ?? null);
+  TFX.onScreen(prevScreen, app.screen); // 테마 연출: 전투 중 강도 낮춤 · (이타카) 큰 화면 전환 물결 (사건 장면이 떴는지 본 뒤)
   if (app.screen === 'bar') BAR.barMount();
   if (app.screen === 'intro' && !app.introDone) introAnim();
   // 리본 시너지 줄: 넘치면 오른쪽 끝에 '더 있음' 표시 (끝까지 밀면 사라짐)
@@ -3370,6 +3382,7 @@ function act(a: string, v: string) {
     case 'pref-death': savePref('death', v); applyFxPrefs(); render(); { const h = document.querySelector<HTMLElement>('.dpv'); if (h) previewDeath(h, FX.death); } return;
     case 'death-preview': { const h = document.querySelector<HTMLElement>('.dpv'); if (h) previewDeath(h, FX.death); } return;
     case 'pref-theme': savePref('uiTheme', v); applyTheme(); break;
+    case 'pref-uifx': savePref('uiFx', v); applyTheme(); break;
     case 'pref-ultcut': savePref('ultCut', v); applyFxPrefs(); break;
     case 'pref-fx-reset': savePref('fxMs', FX_DEFAULT.fxMs); savePref('skillMs', FX_DEFAULT.skillMs); savePref('motion', FX_DEFAULT.motion); savePref('death', FX_DEFAULT.death); savePref('ultCut', FX_DEFAULT.ultCut); applyFxPrefs(); break;
     case 'pref-slow': app.slowDetail = !app.slowDetail; savePref('slowDetail', app.slowDetail); applySpeed(); break;
