@@ -21,6 +21,7 @@
   --c-ink: rgb(10 12 18);              /* 그림 위 어두운 유리 칩 (color-mix 로 투명도) */
   --c-steel: #a0b4c8;                  /* 감시 포탑 · 기계 */
   --c-divine: #ffd34d;                 /* 신성 · 성유물 금색 */
+  --c-occult: #c38cff;                 /* 개조부품 기본 보라 (시너지 색이 없을 때) */
   --fame: #ff9de2;
   --staff: #c9b37a;
   --ally-hp: var(--c-good);
@@ -66,17 +67,27 @@
   --r-lg: 10px;  /* 창 · 큰 패널 */
   --r-pill: 999px;
 
-  /* ── 쌓임 층 (z-index). 카드 · 토큰 안쪽 순서는 0 · 1 그대로 */
-  --z-raise: 2;       /* 같은 면 안에서 한 단 위 (배지 · 게이지) */
-  --z-board-fx: 5;    /* 보드 위 연출 · 토큰 표식 */
-  --z-sticky: 10;     /* 화면 안 고정 바 (하단 버튼 줄 · 상세 머리) */
-  --z-top: 20;        /* 상단 바 */
-  --z-pop: 60;        /* 말풍선 · 툴팁 · 드롭다운 */
-  --z-modal: 100;     /* 창 (모달) */
-  --z-over: 120;      /* 창 위 창 · 창 안 팝업 */
-  --z-adv: 140;       /* 사건 연출 (ADV) · 전환 배너 */
-  --z-coach: 145;     /* 튜토리얼 안내 */
-  --z-toast: 200;     /* 알림 */
+  /* ── 쌓임 층 (z-index). 실제 쓰임에서 뽑은 층 이름 · 값. 카드 · 토큰 안쪽 순서(0 ~ 6)는 지역 쌓임이라 숫자 그대로 */
+  --z-raise: 3;        /* 같은 목록 안에서 고른 칸을 한 단 위로 */
+  --z-sticky: 5;       /* 화면 하단 버튼 줄 */
+  --z-sticky-head: 6;  /* 상세 패널 머리 바 */
+  --z-cutin: 15;       /* 전투 궁극기 컷인 */
+  --z-top: 20;         /* 상단 바 · 바 아래 펼침 */
+  --z-float: 30;       /* 떠 있는 상세 능력치 */
+  --z-pop: 40;         /* 드롭다운 · 하단 시트 · 보관 물품 팝업 */
+  --z-modal: 50;       /* 창 (모달 바탕) */
+  --z-tip: 60;         /* 말풍선 · 전체 상세 바탕 (창 위) */
+  --z-um: 61;          /* 전체 상세 창 */
+  --z-um-over: 62;     /* 전체 상세 위 등급 보상 창 */
+  --z-over: 75;        /* 창 안 팝업 (증강 상세) */
+  --z-stand: 80;       /* 스탠딩 크게 보기 */
+  --z-adv: 90;         /* 사건 연출 (ADV) */
+  --z-drag: 100;       /* 끌고 있는 기물 · 장비 */
+  --z-kw: 120;         /* 용어 말풍선 */
+  --z-coach: 140;      /* 튜토리얼 안내 */
+  --z-coach-tip: 145;  /* 튜토리얼 중 말풍선 */
+  --z-banner: 150;     /* 전환 배너 */
+  --z-toast: 200;      /* 알림 */
   color-scheme: dark;
 }
 html, body { height: 100%; }
@@ -402,7 +413,7 @@ button { font: inherit; color: inherit; }
 .bench-u .ubadge { left: 4px; right: auto; bottom: 4px; }
 .inv-detail { display: flex; gap: 10px; align-items: flex-start; width: min(100%, 560px); margin: 10px auto 0; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); font-size: var(--fs-md); }
 .inv-detail > div { min-width: 0; }
-.drag-ghost { position: fixed; z-index: var(--z-modal); pointer-events: none; transform: translate(-50%, -50%); width: 56px; height: 56px; display: grid; place-items: center; font-size: var(--fs-3xl); }
+.drag-ghost { position: fixed; z-index: var(--z-drag); pointer-events: none; transform: translate(-50%, -50%); width: 56px; height: 56px; display: grid; place-items: center; font-size: var(--fs-3xl); }
 .drag-ghost img { width: 100%; height: 100%; image-rendering: pixelated; }
 /* 편성 보드 토큰: [초상화 / 장비 3칸] | [공명 등급 · 전술 유형 · 전투 유형]. 아군 = 흰 테두리, 적 = 붉은 테두리, 포탑 = 강철색 */
 .u.tk { display: flex; align-items: center; justify-content: center; }
@@ -439,7 +450,7 @@ button { font: inherit; color: inherit; }
 .u.tk .tk-side > .tk-rank:not(.tier-boss):not(.tier-elite):empty, .u.tk .tk-side > .tk-rank.tier-minion { display: none; }
 .u.tk .tk-side > .tk-rank.tier-boss, .u.tk .tk-side > .tk-rank.tier-elite { background: var(--c-bad); color: var(--c-white); }
 /* 하단 버튼 줄 (편성 · 상점 · 지도 공용): 내용 위에 떠 있을 때만 바탕 그라데이션 */
-.sticky-actions { position: sticky; bottom: 0; z-index: var(--z-board-fx); display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 12px;
+.sticky-actions { position: sticky; bottom: 0; z-index: var(--z-sticky); display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 12px;
   padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(transparent, var(--bg) 30%); }
 @media (max-width: 640px) {
   .board-row { flex-direction: column; align-items: stretch; }
@@ -593,39 +604,74 @@ button { font: inherit; color: inherit; }
 .as-log { margin: 2px 0 6px; padding-left: 1.3em; font-size: 12px; display: grid; gap: 2px; } .as-log li:first-child { color: var(--accent); }
 
 
-/* ── 장비 */
-.inv { width: min(100%, 560px); margin: 10px auto 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+/* ── 상점 · 정비 · 합성 공방 + 장비 칸 (보관함 · 장비 아이콘 · 장비 말풍선 · 보관 물품 팝업 공용)
+   장비 색은 희귀도(--g-*) 데이터 색, 개조부품은 시너지 색(--sc). 호박색은 고른 칸에만 */
+.shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.shop-item { display: flex; gap: 10px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 10px; }
+.shop-item > div { flex: 1; min-width: 0; }
+.shop-item.sold { opacity: .4; }
+.shop-item.tC b { color: var(--g-C); } .shop-item.tG b { color: var(--g-G); } .shop-item.tA b { color: var(--g-A); } .shop-item.tL b { color: var(--g-L); } .shop-item.tT b { color: var(--g-T); }
+/* 정비: 포탑별 장비 칸 */
+.maint-tur { margin: 10px 0; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--c-steel) 45%, var(--line)); border-radius: var(--r-lg); }
+.maint-tur h3 { margin: 0 0 6px; }
+.mt-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.mt-row { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: var(--r-md); background: color-mix(in srgb, var(--c-steel) 10%, transparent); }
+.mt-row .spr { width: 32px; height: 32px; }
+.mt-slots { display: flex; gap: 4px; }
+.t-gear { display: grid; gap: 6px; margin: 4px 0 8px; }
+.t-slot { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px; border: 1px solid var(--line); border-radius: var(--r-md); background: color-mix(in srgb, var(--g-T) 6%, transparent); }
+.t-slot.empty { grid-template-columns: auto minmax(0, 1fr); border-style: dashed; }
+/* 보관함 */
+.inv { width: min(100%, 560px); margin: 10px auto 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 8px 10px; }
 .inv-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 .inv-items { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-.item { width: 30px; height: 30px; display: inline-grid; place-items: center; border-radius: 5px; background: var(--panel-2); border: 1px solid var(--line); font-size: 15px; cursor: grab; touch-action: none; flex: none; }
+/* 장비 아이콘: 사각 (희귀도 테두리) · 개조부품 마름모 · 소모품 육각형 · 포탑 장비 이중 테두리 */
+.item { width: 30px; height: 30px; display: inline-grid; place-items: center; border-radius: var(--r-md); background: var(--panel-2); border: 1px solid var(--line); font-size: var(--fs-lg); cursor: grab; touch-action: none; flex: none; }
 .item.empty { border-style: dashed; cursor: default; }
 .item.tC { border-color: color-mix(in srgb, var(--g-C) 55%, var(--line)); color: var(--g-C); }
 .item.tG { border-color: var(--g-G); color: var(--g-G); }
 .item.tA { border-color: var(--g-A); color: var(--g-A); }
 .item.tL { border-color: var(--g-L); color: var(--g-L); box-shadow: 0 0 8px var(--g-L); }
-.item.tM { border-color: var(--sc, #c38cff); color: var(--sc, #c38cff); }
+.item.tM { border-color: var(--sc, var(--c-occult)); color: var(--sc, var(--c-occult)); }
+.item.tT { border-color: var(--g-T); color: var(--g-T); border-style: double; border-width: 3px; border-radius: 2px; }
+.item .ii { width: 18px; height: 18px; }
 .item .ii, .item .mi, .item svg { color: inherit; stroke: currentColor; }
-.item .mi { stroke: none; fill: currentColor; }
-.shop-item.tC b { color: var(--g-C); } .shop-item.tG b { color: var(--g-G); } .shop-item.tA b { color: var(--g-A); } .shop-item.tL b { color: var(--g-L); }
-.item.tM, .item.hex { position: relative; border-color: transparent !important; background: transparent; box-shadow: none; }
-/* 개조부품: 시너지와 같은 마름모 */
-.item.tM::before { content: ''; position: absolute; inset: 14%; transform: rotate(45deg); border: 1.5px solid var(--sc, #c38cff); border-radius: 3px;
-  background: color-mix(in srgb, var(--sc, #c38cff) 14%, var(--panel-2)); }
+.item .mi { stroke: none; fill: currentColor; color: inherit; } /* 장비 안에서는 등급 색 */
+.item.tM, .item.hex { position: relative; border-color: transparent !important; background: transparent; box-shadow: none; } /* 모양은 ::before 가 그린다 (희귀도 · 칸별 테두리 색을 모두 덮어야 함) */
+.item.tM::before { content: ''; position: absolute; inset: 14%; transform: rotate(45deg); border: 1.5px solid var(--sc, var(--c-occult)); border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--sc, var(--c-occult)) 14%, var(--panel-2)); }
 .item.tM.empty::before { border-style: dashed; background: transparent; }
 .item.tM > *, .item.hex > * { position: relative; z-index: 1; }
-/* 소모품: 육각형 테두리 (테두리 색은 --hc) */
-.item.hex::before, .item.hex::after { content: ''; position: absolute; inset: 0; clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%); }
+.item.hex::before, .item.hex::after { content: ''; position: absolute; inset: 0; clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%); } /* 소모품: 테두리 색은 --hc */
 .item.hex::before { background: var(--hc, var(--g-C)); }
 .item.hex::after { inset: 1.5px; background: var(--panel-2); clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%); }
+.item.sel { position: relative; z-index: var(--z-raise); outline: 2px solid var(--c-select); outline-offset: 1px; } /* 고른 칸을 위로 */
+.item.tM.sel, .item.hex.sel { outline: none; filter: drop-shadow(0 0 1.5px var(--c-select)) drop-shadow(0 0 4px var(--c-select)); }
+/* 장비 설명 말풍선: 왼쪽 띠 = 희귀도 색 */
+.item-tip { --c: var(--line); position: absolute; z-index: var(--z-tip); max-width: 240px; display: grid; gap: 2px; padding: 8px 10px; background: var(--panel-2); border: 1px solid var(--c); border-left: 3px solid var(--c); border-radius: var(--r-md); box-shadow: 0 6px 18px color-mix(in srgb, var(--c-black) 50%, transparent); font-size: var(--fs-base); }
+.item-tip small { color: var(--c-text-2); font-size: var(--fs-xs); }
+.item-tip b { color: var(--c); }
+.item-tip.tip-C { --c: var(--g-C); }
+.item-tip.tip-G { --c: var(--g-G); }
+.item-tip.tip-A { --c: var(--g-A); }
+.item-tip.tip-L, .item-tip.tip-U { --c: var(--g-L); box-shadow: 0 0 12px color-mix(in srgb, var(--g-L) 35%, transparent), 0 6px 18px color-mix(in srgb, var(--c-black) 50%, transparent); }
+.item-tip.tip-M { --c: var(--c-occult); }
+.tip-tier { font-size: var(--fs-2xs); font-weight: 700; color: var(--c); letter-spacing: .04em; }
+.tip-foot { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin-top: 4px; }
+.item-tip .mi { width: 1.05em; height: 1.05em; }
+/* 보관 물품 정보 팝업 (스킬 상세처럼: 아이콘 · 능력치 · 효과) */
+.inv-pop { position: fixed; z-index: var(--z-pop); width: 260px; display: grid; gap: 8px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 8px 24px color-mix(in srgb, var(--c-black) 45%, transparent); font-size: var(--fs-base); }
+.inv-pop.sheet { left: 8px !important; right: 8px; bottom: 8px; top: auto !important; width: auto; } /* JS 가 넣은 인라인 left · top 을 이긴다 (하단 시트) */
+.ip-head { display: flex; align-items: center; gap: 10px; } .ip-head > div { display: grid; min-width: 0; } .ip-head b { font-size: var(--fs-md); }
+.ip-kind { font-size: var(--fs-xs); color: var(--c-text-2); letter-spacing: .04em; }
+.ip-x { margin-left: auto; padding: 0 7px; }
+.ip-stats { display: flex; flex-wrap: wrap; gap: 4px 10px; } .ip-stats span { display: inline-flex; align-items: center; gap: 4px; } .ip-stats .li, .ip-stats .mi { width: 14px; height: 14px; }
+.ip-eff { margin: 0; line-height: 1.5; }
+.ip-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .eq-slot.mod { border-color: #c38cff55; }
-.item.sel { outline: 2px solid var(--accent); }
 .eq { display: grid; gap: 6px; }
 .eq-slot { display: flex; gap: 8px; align-items: center; background: var(--panel-2); border-radius: 6px; padding: 6px; touch-action: none; }
 .eq-slot > span { flex: 1; min-width: 0; font-size: .82rem; }
-.shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
-.shop-item { display: flex; gap: 10px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
-.shop-item > div { flex: 1; min-width: 0; }
-.shop-item.sold { opacity: .4; }
 
 /* ── 상세 패널 */
 .detail { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
@@ -762,7 +808,6 @@ kbd { font-family: var(--f-mono); font-size: .75em; border: 1px solid var(--line
 
 /* ── 메이저 스탯 아이콘 · 능력치 고르기 (2×3, 확정 버튼 우하단, 상세는 툴팁) */
 .mi { width: 1em; height: 1em; fill: currentColor; stroke: none; color: var(--fg); vertical-align: -.15em; flex: none; } /* 메이저 능력치: 흰색 면 아이콘 */
-.item .mi { color: inherit; } /* 장비 안에서는 등급 색 */
 .majors-mini span { display: inline-flex; align-items: center; gap: 3px; }
 .major > span:first-child { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .major { grid-template-columns: 5.2em 1fr 2.2em 2.4em; }
@@ -996,7 +1041,6 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .sub-h i .ti { width: 13px; height: 13px; vertical-align: -2px; }
 .pc-role .ti { margin-right: 3px; }
 .li, .ii { width: 1em; height: 1em; flex: none; }
-.item .ii { width: 18px; height: 18px; }
 .track .li { width: 1em; height: 1em; vertical-align: -.15em; }
 /* 영입 창: 시작 기물과 같은 카드, 한 줄 */
 .modal.recruit { width: min(1280px, 100%); height: min(90dvh, 900px); max-height: none; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
@@ -1027,19 +1071,6 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .u.tkb .cd { left: 4%; right: 12%; bottom: 2px; }
 .u.tkb .gx { left: auto; right: 2px; top: 10px; bottom: 6px; width: 4px; height: auto; display: flex; align-items: flex-end; }
 .u.tkb .gx i { width: 100%; height: var(--v, 0%); }
-/* 장비 설명 말풍선 */
-.item-tip { position: absolute; z-index: 60; max-width: 240px; display: grid; gap: 2px; padding: 8px 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 18px rgb(0 0 0 / .5); font-size: .8rem; }
-.item-tip small { color: var(--dim); font-size: .7rem; }
-.item-tip { --c: var(--line); border-color: var(--c); border-left: 3px solid var(--c); }
-.item-tip b { color: var(--c); }
-.item-tip.tip-C { --c: var(--g-C); }
-.item-tip.tip-G { --c: var(--g-G); }
-.item-tip.tip-A { --c: var(--g-A); }
-.item-tip.tip-L, .item-tip.tip-U { --c: var(--g-L); box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 35%, transparent), 0 6px 18px rgb(0 0 0 / .5); }
-.item-tip.tip-M { --c: #c38cff; }
-.tip-tier { font-size: .66rem; font-weight: 700; color: var(--c); letter-spacing: .04em; }
-.tip-foot { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin-top: 4px; }
-.item-tip .mi { width: 1.05em; height: 1.05em; }
 /* 상세 보기 장비 줄: 장비 3 + 개조부품 1 */
 .d-eqbox { display: flex; align-items: stretch; gap: 8px; padding: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; }
 .reco-btn { flex: 1; min-width: 0; align-self: stretch; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 6px; white-space: nowrap; border-radius: 6px; background: var(--panel); border: 1px solid var(--line); color: var(--fg); font: inherit; font-size: .8rem; cursor: pointer; }
@@ -1806,9 +1837,6 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .d-bar .d-mag.on { border-color: var(--accent); color: var(--accent); }
 .d-bar .btn.tiny { height: 34px; }
 @media (max-width: 1100px) { .d-bar { top: calc(var(--top-h, 54px) - 10px); } }
-/* 보관함 선택 표시: 선택한 칸을 위로 */
-.item.sel { position: relative; z-index: 3; outline-offset: 1px; }
-.item.tM.sel, .item.hex.sel { outline: none; filter: drop-shadow(0 0 1.5px var(--accent)) drop-shadow(0 0 4px var(--accent)); }
 .map .stat-pop { z-index: 60; }
 
 /* ───────── 출격 연출: 별 무리 → 커튼 → 전장 슬롯 → 브리핑 */
@@ -2061,16 +2089,6 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .ab-relic > .ab-head { align-items: center; } .rl-bless { margin-left: auto; border-color: rgb(255 211 77 / .6); color: #ffd34d; } .rl-bless.done { opacity: .7; }
 
 .relic-tok.on { box-shadow: 0 0 0 2px var(--accent); }
-
-/* 보관 물품 정보 팝업 (스킬 상세처럼: 아이콘 · 능력치 · 효과) */
-.inv-pop { position: fixed; z-index: 40; width: 260px; display: grid; gap: 8px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgb(0 0 0 / .45); font-size: 12.5px; }
-.inv-pop.sheet { left: 8px !important; right: 8px; bottom: 8px; top: auto !important; width: auto; }
-.ip-head { display: flex; align-items: center; gap: 10px; } .ip-head > div { display: grid; min-width: 0; } .ip-head b { font-size: 14px; }
-.ip-kind { font-size: 10.5px; color: var(--dim); letter-spacing: .04em; }
-.ip-x { margin-left: auto; padding: 0 7px; }
-.ip-stats { display: flex; flex-wrap: wrap; gap: 4px 10px; } .ip-stats span { display: inline-flex; align-items: center; gap: 4px; } .ip-stats .li, .ip-stats .mi { width: 14px; height: 14px; }
-.ip-eff { margin: 0; line-height: 1.5; }
-.ip-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 
 /* ───────── 사이오닉 학파 이성 막대 (가운데 0 · 고이성 위/오른쪽 · 저이성 아래/왼쪽)
    --a: 채움 시작, --w: 채움 길이, --k: |이성|/100 (연출 세기) */
@@ -2502,20 +2520,8 @@ button.cx2-row { cursor: pointer; } button.cx2-row:hover { border-color: var(--d
 .um-release { padding: 8px 14px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, #b03030 12%, var(--panel)); }
 .um-release .release { margin: 0; }
 /* 편성: 엔지니어 감시 포탑 (가장자리 열 · 끌어 옮기기) */
-/* 포탑 전용 장비 (T_): 강철색 사각 + 모서리 절단 */
-.item.tT { border-color: var(--g-T); color: var(--g-T); border-style: double; border-width: 3px; border-radius: 2px; }
-.shop-item.tT b { color: var(--g-T); }
 .tag.cat-mech { display: inline-flex; align-items: center; gap: 2px; }
 .tag.cat-mech .li { width: 12px; height: 12px; }
-.t-gear { display: grid; gap: 6px; margin: 4px 0 8px; }
-.t-slot { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px; border: 1px solid var(--line); border-radius: 6px; background: color-mix(in srgb, var(--g-T) 6%, transparent); }
-.t-slot.empty { grid-template-columns: auto minmax(0, 1fr); border-style: dashed; }
-.maint-tur { margin: 10px 0; padding: 8px 10px; border: 1px solid color-mix(in srgb, #a0b4c8 45%, var(--line)); border-radius: 8px; }
-.maint-tur h3 { margin: 0 0 6px; }
-.mt-list { display: flex; flex-wrap: wrap; gap: 8px; }
-.mt-row { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; background: color-mix(in srgb, #a0b4c8 10%, transparent); }
-.mt-row .spr { width: 32px; height: 32px; }
-.mt-slots { display: flex; gap: 4px; }
 .cx2-knight { display: flex; gap: 10px; align-items: flex-start; }
 .cx2-knight .spr { width: 48px; height: 48px; image-rendering: pixelated; }
 /* 사이오닉: ◆ 변형 · 증강 반영 표시 */
