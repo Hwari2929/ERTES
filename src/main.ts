@@ -48,7 +48,7 @@ import * as TUT from './engine/tutorial';
 const PREF_KEY = 'errantes.prefs.v1';
 /** 전투 배속 (단축키 1~6, Space 정지) */
 const SPEEDS = [0.25, 0.5, 1, 2, 4, 8];
-function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean; fxMs?: number; skillMs?: number; motion?: MotionPreset; death?: DeathStyle; ultCut?: UltCut } {
+function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean; fxMs?: number; skillMs?: number; motion?: MotionPreset; death?: DeathStyle; ultCut?: UltCut; uiTheme?: string } {
   try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}; } catch { return {}; }
 }
 /** 연출 설정을 전투 화면에 반영 */
@@ -61,6 +61,23 @@ function applyFxPrefs() {
   // 저장값이 없으면 기본값 (휘리릭). 예전에 고른 '스르륵' 은 직접 고른 것과 구분할 수 없어 그대로 둔다
   FX.death = isDeathStyle(p.death) ? p.death : FX_DEFAULT.death;
   FX.ultCut = p.ultCut === 'full' || p.ultCut === 'short' || p.ultCut === 'off' ? p.ultCut : FX_DEFAULT.ultCut;
+}
+/** UI 테마 (설정 → 테마). 색은 style.css 의 [data-ui-theme] 블록에 있고, 여기서는 <html data-ui-theme> 만 바꾼다. 첫 실행 기본값 = 에란테스 갤럭시 */
+const UI_THEMES = [
+  { id: 'galaxy', name: '에란테스 갤럭시', desc: '잉크빛 남색 · 미색 · 계약서 호박색 (기본)' },
+  { id: 'vintage', name: '에란테스 퓨처리스틱 네이비 빈티지', desc: '짙은 네이비 · 빛바랜 종이 · 녹청 강조 · 바랜 황동' },
+  { id: 'ithaca', name: '이타카 코랄 베이지 시-사이드', desc: '밝은 모래 바탕 · 코랄 강조 · 바다색 (라이트)' },
+  { id: 'hoishun', name: '호이슌 사쿠라 가든', desc: '자줏빛 네온 밤 · 벚꽃 분홍 · 네온 청록' },
+  { id: 'calito', name: '칼리토 스타더스트 홀', desc: '황실 연회장 남보라 · 금색 · 별가루 은빛' },
+] as const;
+const uiTheme = () => { const t = loadPrefs().uiTheme; return UI_THEMES.some((x) => x.id === t) ? t! : 'galaxy'; };
+function applyTheme() { document.documentElement.dataset.uiTheme = uiTheme(); }
+/** 설정: 테마 견본 (견본 칩은 data-ui-theme 로 그 테마의 토큰을 그대로 읽는다) */
+function themePicker() {
+  const cur = uiTheme();
+  return `<div class="th-list" role="radiogroup" aria-label="테마">${UI_THEMES.map((t) => `<button class="th-opt${cur === t.id ? ' on' : ''}" data-a="pref-theme" data-v="${t.id}" role="radio" aria-checked="${cur === t.id}">
+    <span class="th-sw" data-ui-theme="${t.id}" aria-hidden="true"><i class="sw-bg"></i><i class="sw-panel"></i><i class="sw-text"></i><i class="sw-sel"></i></span>
+    <span class="th-tx"><b>${t.name}</b><span class="muted small">${t.desc}</span></span></button>`).join('')}</div>`;
 }
 function savePref(k: string, v: unknown) {
   try { localStorage.setItem(PREF_KEY, JSON.stringify({ ...loadPrefs(), [k]: v })); } catch { /* 저장 불가 환경 */ }
@@ -307,6 +324,7 @@ function titleScreen() {
         <button class="btn ts-btn" data-a="bar"><b>에란테스 바</b><small>${auto ? '들렀다가 이어서 출격' : '단원 · 손님들의 잡담'}</small></button>
         <button class="btn ts-btn" data-a="codex"><b>도감 · 기록</b></button>
         <button class="btn ghost ts-btn" data-a="menu-import"><b>저장 코드 불러오기</b></button>
+        <button class="btn ghost ts-btn" data-a="menu-tab" data-v="settings"><b>설정 · 테마</b></button>
       </nav>
       ${slots.length ? `<div class="slots">${slots.map((s) => `<button class="btn ghost" data-a="load" data-v="${s.slot}">${SLOT_NAME[s.slot]} · 페이즈 ${s.phase} · 기물 ${s.units}</button>`).join('')}</div>` : ''}
       ${m.runs ? `<p class="ts-meta"><span>의뢰 <b>${m.runs}</b></span><span>성공 <b>${m.clears}</b></span><span>위험 등급 <b>${m.maxDiff}</b></span></p>` : ''}
@@ -2028,6 +2046,8 @@ function menuModal(run: RunState | null) {
   if (app.menu === 'settings') {
     return `<div class="modal-bg"><div class="modal">
       ${tabs}
+      <h3>테마</h3>
+      ${themePicker()}
       <h3>전투</h3>
       <label class="pref"><input type="checkbox" data-a="pref-slow" ${app.slowDetail ? 'checked' : ''}><span><b>상세 정보 볼 때 느리게</b><br><span class="muted small">전투 중 기물을 눌러 상세 정보를 보는 동안 진행 속도에 ×0.25 를 곱합니다. 빈 보드를 누르거나 Esc 로 선택을 풀면 원래 속도로 돌아갑니다.</span></span></label>
       <label class="pref"><input type="checkbox" data-a="pref-zoom" ${app.zoomOut ? 'checked' : ''}><span><b>넓은 전장 전체 보기</b><br><span class="muted small">전투 화면을 축소해 바깥 테두리 칸까지 전장 전체를 한 번에 보여 줍니다. 끄면 배치 구역 크기로 보고, 카메라가 끝 기물을 따라갑니다.</span></span></label>
@@ -3338,6 +3358,7 @@ function act(a: string, v: string) {
     case 'pref-motion': savePref('motion', v); applyFxPrefs(); break;
     case 'pref-death': savePref('death', v); applyFxPrefs(); render(); { const h = document.querySelector<HTMLElement>('.dpv'); if (h) previewDeath(h, FX.death); } return;
     case 'death-preview': { const h = document.querySelector<HTMLElement>('.dpv'); if (h) previewDeath(h, FX.death); } return;
+    case 'pref-theme': savePref('uiTheme', v); applyTheme(); break;
     case 'pref-ultcut': savePref('ultCut', v); applyFxPrefs(); break;
     case 'pref-fx-reset': savePref('fxMs', FX_DEFAULT.fxMs); savePref('skillMs', FX_DEFAULT.skillMs); savePref('motion', FX_DEFAULT.motion); savePref('death', FX_DEFAULT.death); savePref('ultCut', FX_DEFAULT.ultCut); applyFxPrefs(); break;
     case 'pref-slow': app.slowDetail = !app.slowDetail; savePref('slowDetail', app.slowDetail); applySpeed(); break;
@@ -3937,6 +3958,7 @@ root.addEventListener('change', (ev) => {
 });
 
 applyFxPrefs();
+applyTheme();
 
 // 아티팩트 뷰어 업데이트 시 진행 상황 유지
 type Hot = { snapshot?: (f: () => unknown) => void; ready?: (f: (d: unknown) => void) => void; data?: unknown };

@@ -45,7 +45,7 @@ export function parse(css: string): Decl[] {
     let value = t.slice(k + 1).trim();
     const important = /!important\s*$/.test(value);
     value = value.replace(/\s*!important\s*$/, '');
-    const root = /(^|,)\s*:root\b/.test(sel) || /\[data-theme/.test(sel);
+    const root = /(^|,)\s*:root\b/.test(sel) || /^\s*\[data-ui-theme="[\w-]+"\]\s*$/.test(sel); // 토큰 정의 블록 = :root · 테마 블록
     out.push({ sel: sel.replace(/\s+/g, ' ').trim(), prop, value, line: at, root, important });
   };
   let depthParen = 0;
@@ -120,6 +120,30 @@ export function collect(decls: Decl[]) {
   return { st, where };
 }
 
+/** 테마 블록: [data-ui-theme="id"] 단독 선택자 (기본 테마는 ':root, [data-ui-theme="galaxy"]') → 정의한 토큰 */
+export function themeBlocks(decls: Decl[]) {
+  const out: Record<string, { props: Set<string>; line: number }> = {};
+  for (const d of decls) {
+    const m = /^(?::root,\s*)?\[data-ui-theme="([\w-]+)"\]$/.exec(d.sel);
+    if (!m) continue;
+    (out[m[1]] ||= { props: new Set(), line: d.line }).props.add(d.prop);
+  }
+  return out;
+}
+/** 기본 테마가 정의한 토큰을 다른 테마가 모두 정의했는지 (빠진 토큰이 있으면 그 테마에서 기본값이 새어 나온다) */
+export function themeMissing(decls: Decl[], base = 'galaxy') {
+  const th = themeBlocks(decls);
+  const need = th[base]?.props;
+  const miss: { theme: string; line: number; props: string[] }[] = [];
+  if (!need) return { themes: Object.keys(th), miss: [{ theme: base, line: 0, props: ['(기본 테마 블록 없음)'] }] };
+  for (const [id, t] of Object.entries(th)) {
+    if (id === base) continue;
+    const m = [...need].filter((p) => !t.props.has(p));
+    if (m.length) miss.push({ theme: id, line: t.line, props: m });
+  }
+  return { themes: Object.keys(th), miss };
+}
+
 export function undefinedVars(decls: Decl[]) {
   const defined = new Set(decls.filter((d) => d.prop.startsWith('--')).map((d) => d.prop));
   JS_VARS.forEach((v) => defined.add(v));
@@ -164,6 +188,8 @@ function main() {
   cmp('zIndex', 'z-index 리터럴', () => ':root 의 --z-* 층 이름 (--z-raise · --z-board-fx · --z-sticky · --z-top · --z-pop · --z-modal · --z-over · --z-adv · --z-coach · --z-toast)');
   if (st.important > base.important) fails.push(`!important 늘어남 (${base.important} → ${st.important})\n    위치: ${lines('important', '')}\n    고치기: 덮어쓰기 대신 원래 규칙을 고치거나 선택자 우선순위로 해결`);
   for (const e of braceErrors) fails.push(`괄호 짝이 맞지 않음 — ${CSS_PATH} ${e}`);
+  const tm = themeMissing(decls);
+  for (const m of tm.miss) fails.push(`테마 '${m.theme}' 에 빠진 토큰 ${m.props.length}개: ${m.props.join(' · ')} (${CSS_PATH}:${m.line})\n    고치기: 기본 테마 블록(:root, [data-ui-theme="galaxy"])에 있는 역할 · 면 · 선 토큰은 모든 [data-ui-theme] 블록이 다시 정의한다`);
   for (const u of undefinedVars(decls)) fails.push(`정의되지 않은 변수 ${u.name} (${CSS_PATH}:${u.line} ${u.sel})\n    고치기: :root 에 정의하거나, JS 가 주입하는 변수라면 tests/css_check.ts 의 JS_VARS 에 추가`);
   const shrunk = (['colors', 'legacy', 'fontSize', 'radius', 'zIndex'] as const).some((k) => Object.entries(base[k]).some(([key, n]) => (st[k][key] || 0) < n)) || st.important < base.important;
   if (fails.length) {
@@ -171,7 +197,7 @@ function main() {
     console.log('\n의도한 변경이면 (예: 다른 구획이 들어와 기준을 맞출 때) node dist/css_check.cjs --update 로 기준을 갱신하고 diff 를 확인한다.');
     process.exit(1);
   }
-  console.log(`CSS 검사: 색 ${s.colors} · 옛 토큰 ${s.legacy} · 글자 크기 ${s.fontSizeKinds}종 ${s.fontSize} · 둥글기 ${s.radiusKinds}종 · z-index ${s.zKinds}종 · !important ${s.important}${shrunk ? ' (기준보다 줄었음: --update 로 갱신 가능)' : ''}`);
+  console.log(`CSS 검사: 테마 ${tm.themes.length}종 (${tm.themes.join(' · ')}) · 색 ${s.colors} · 옛 토큰 ${s.legacy} · 글자 크기 ${s.fontSizeKinds}종 ${s.fontSize} · 둥글기 ${s.radiusKinds}종 · z-index ${s.zKinds}종 · !important ${s.important}${shrunk ? ' (기준보다 줄었음: --update 로 갱신 가능)' : ''}`);
   console.log('통과');
 }
 main();
