@@ -214,6 +214,27 @@ export function autoFill(run: RunState) {
 
 // ───────────────────────── 노드 진행
 export function currentOptions(run: RunState): NodeType[] { return run.map[run.step] || []; }
+/** 조우 강도 배율 (적 체력 · 피해): 역경은 설정값, 그 밖은 페이즈 안에서 진행한 칸에 따라 조금씩 (genEncounter · 지도 미리보기 공용) */
+export const encounterMult = (type: NodeType, step: number) => (type === 'adversity' ? CFG.adversityMult : 1 + 0.04 * step);
+/** 지도 미리보기: 전투 한 번의 예상 크레딧 수입 · 공명도 풀 (승리 / 패배). resolveBattle 과 같은 식 · 같은 설정값.
+ *  이자는 지금 보유 크레딧 기준, 연승은 이번에 이긴다고 보고 센다 (대출 상환 · 퀘스트 · 장비 드랍 · 성장 특성은 빼고) */
+export function battleRewardPreview(run: RunState, node: NodeType) {
+  const type: NodeType = node === 'challenge' ? 'adversity' : node; // 도전은 보상을 역경 기준으로
+  const p = run.phase;
+  const counts = synergyCounts(deployed(run), run);
+  const pet = tierOf('PET', counts.PET || 0);
+  const cap = Math.max(0, CFG.interestMax + run.mods.interestCap - (diffHas(run.diff, 3) ? 1 : 0)) + (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (pet >= 4 ? 4 : 0) + (hasGlobal(run, 'G.interest') ? 5 : 0)
+    + (run.units.some((u) => u.defId === 'lars') ? 2 : 0);
+  const interest = Math.min(cap, Math.floor(run.credits / CFG.interestPer));
+  let c = CFG.winCredits(p);
+  if (type === 'adversity') c = Math.round(c * CFG.adversityReward);
+  c = Math.round(c * CFG.diffWinMul(run.diff || 0));
+  if (type === 'boss') c += 5;
+  const win = interest + c + CFG.streakBonus(Math.max(1, run.streak + 1)) + (pet >= 1 ? (pet >= 4 ? 3 : 1) : 0) + (fieldOf(run.field).winCredits || 0);
+  const loss = interest + CFG.lossCredits + (pet >= 2 ? 6 : 0);
+  const pool = (won: boolean) => Math.round(CFG.xpPool(p) * (won ? 1 : 0.5) * (type === 'adversity' ? CFG.adversityReward : 1) * (hasGlobal(run, 'G.resonance') ? 1.35 : 1));
+  return { credits: { win, loss, interest }, xp: { win: pool(true), loss: pool(false) } };
+}
 
 export function enterNode(run: RunState, type: NodeType) {
   run.picked[run.step] = type;
@@ -589,7 +610,7 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
     gearEnemies(run, r, enemies, type, p);
     return {
       n, env: type === 'boss' ? '보스 아레나' : env.env, enemies,
-      mult: type === 'adversity' ? CFG.adversityMult : 1 + 0.04 * run.step,
+      mult: encounterMult(type, run.step),
       seed: r.int(1, 2 ** 31 - 1),
       ...(phase !== run.phase ? { phase } : {}),
     };
@@ -648,7 +669,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     const uc = CFG.drop.utility[type] || 0;
     if (uc && rng(run, (r) => r.chance(uc))) gainItem(run, rng(run, (r) => r.pick(DROP_CONSUMABLES)), lines);
     if (type === 'adversity') {
-      if (rng(run, (r) => r.chance(CFG.drop.adversity * (fieldOf(run.field).dropMul || 1)))) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
+      for (let k = 0; k < CFG.drop.advParts; k++) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines); // 무작위 장비 재료 확정
     } else if (type === 'battle') {
       if (rng(run, (r) => r.chance(CFG.drop.battle * (fieldOf(run.field).dropMul || 1)))) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
     } else if (type === 'boss') {

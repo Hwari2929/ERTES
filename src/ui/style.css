@@ -492,13 +492,9 @@ button { font: inherit; color: inherit; }
 span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 /* 노드 유형 색 (--nc): 앞으로 올 칸의 아이콘 · 미리보기 카드 · 팝오버 · 편성 패널 전투 종류 */
 :is(.tl-node, .ah-card, .tl-pop, .pb-kind) { --nc: var(--c-text-2); }
-:is(.tl-node, .ah-card, .tl-pop, .pb-kind):is(.n-battle, .n-news) { --nc: var(--c-info); }
+/* 평범한 칸(전투 · 상점 · 보급 · 사건 …)은 중립, 판단이 필요한 칸만 색: 위험이 오르는 칸 · 보스 · 런을 바꾸는 특수 보상 */
 :is(.tl-node, .ah-card, .tl-pop, .pb-kind):is(.n-adversity, .n-fork) { --nc: var(--c-streak); }
 :is(.tl-node, .ah-card, .tl-pop, .pb-kind):is(.n-boss, .n-challenge) { --nc: var(--c-bad); }
-:is(.tl-node, .ah-card, .tl-pop, .pb-kind):is(.n-shop, .n-invest, .n-maint) { --nc: var(--c-credit); }
-:is(.tl-node, .ah-card, .tl-pop, .pb-kind).n-supply { --nc: var(--c-good); }
-:is(.tl-node, .ah-card, .tl-pop, .pb-kind).n-recruit { --nc: var(--fame); }
-:is(.tl-node, .ah-card, .tl-pop, .pb-kind).n-event { --nc: var(--c-psi); }
 :is(.tl-node, .ah-card, .tl-pop, .pb-kind):is(.n-council, .n-pilgrim) { --nc: var(--c-divine); }
 .tl-step.next .tl-node { color: color-mix(in srgb, var(--nc) var(--data-mix), var(--c-text)); border-color: color-mix(in srgb, var(--nc) 40%, var(--line)); }
 /* 보스 칸 (런의 목표): 붉은 테두리. 트랙이 넘쳐 가로로 밀릴 때(.tl.over)는 오른쪽 끝에 붙어 늘 보인다 */
@@ -527,12 +523,12 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 .tl-pop .tp-boss { font-weight: 700; color: color-mix(in srgb, var(--c-bad) var(--data-mix), var(--c-text)); }
 /* 지도 머리: 런의 목표(보스)까지 남은 전투. 적 배율 줄은 트랙 아래 보조 정보 */
 .map-head { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; }
-.boss-goal { display: inline-grid; grid-template-columns: auto auto; column-gap: 8px; align-items: center; padding: 3px 14px 3px 3px; border: 1px solid color-mix(in srgb, var(--c-bad) 50%, var(--line)); border-radius: var(--r-pill); background: color-mix(in srgb, var(--c-bad) 8%, var(--panel)); }
-.boss-goal > .spr, .boss-goal > .li { grid-row: 1 / 3; width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
-.boss-goal > .li { padding: 8px; color: var(--c-bad); }
-.boss-goal .bg-main { font-size: var(--fs-md); font-weight: 700; line-height: 1.25; }
-.boss-goal .bg-main b { font: 400 var(--fs-xl) var(--f-display); color: var(--c-bad); margin-inline: 2px; }
-.boss-goal .bg-sub { font-size: var(--fs-xs); color: var(--c-text-2); line-height: 1.3; }
+.boss-goal { display: inline-flex; align-items: center; gap: 6px; height: 32px; box-sizing: border-box; padding: 0 12px 0 3px; border: 1px solid color-mix(in srgb, var(--c-bad) 50%, var(--line)); border-radius: var(--r-pill); background: color-mix(in srgb, var(--c-bad) 8%, var(--panel)); }
+.boss-goal .bg-ic { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; overflow: hidden; background: var(--panel-2); color: var(--c-bad); } /* 초상화를 원 안으로 잘라낸다 */
+.boss-goal .bg-ic .spr { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 0; box-shadow: none; }
+.boss-goal .bg-ic .li { width: 16px; height: 16px; }
+.boss-goal .bg-main { font-size: var(--fs-md); font-weight: 700; line-height: 1; white-space: nowrap; }
+.boss-goal .bg-main b { font: 400 var(--fs-lg) var(--f-display); color: var(--c-bad); margin-inline: 2px; }
 .map-scale { margin: -2px 0 6px; font-size: var(--fs-xs); color: var(--c-text-2); }
 /* 작은 칩 (지도 미리보기 · 편성 적 구성 공용): 아이콘 + 글씨. good 유리(초록) · bad 불리(빨강) · mute 면역 등, --c 는 데이터 색 아이콘 */
 .tchip { display: inline-flex; align-items: center; gap: 4px; min-height: 20px; padding: 0 7px; border: 1px solid color-mix(in srgb, var(--tc) 35%, var(--line)); border-radius: var(--r-pill); background: color-mix(in srgb, var(--tc) 10%, var(--panel-2)); color: var(--c-text); font-size: var(--fs-xs); font-weight: 600; font-style: normal; white-space: nowrap; --tc: var(--c-text-2); }
@@ -541,6 +537,8 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 .tchip.good { --tc: var(--c-good); color: color-mix(in srgb, var(--c-good) var(--data-mix), var(--c-text)); }
 .tchip.bad { --tc: var(--c-bad); color: color-mix(in srgb, var(--c-bad) var(--data-mix), var(--c-text)); }
 .tchip.mute { --tc: var(--c-text-2); color: var(--c-text-2); }
+.tchip.rk { --tc: var(--c-chalk); background: color-mix(in srgb, var(--c-chalk) 92%, transparent); border-color: transparent; color: var(--c-chalk-ink); font-family: var(--f-mono); } /* 공명 등급 근사: 공명 등급 배지와 같은 흰 배지 */
+.tchip .rstar { width: 11px; height: 11px; }
 .tchip:is(.good, .bad) .li { color: inherit; }
 .tchip[class*="cat-"] .li { color: inherit; } /* 분류 칩: 분류 색 (.cat-*) */
 /* 지도: 앞으로 2칸 + 보스 — 노드 아이콘 · 유형 색을 앞세운 카드 */
@@ -550,11 +548,18 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 .ah-card { flex: 1 1 200px; min-width: 0; display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--nc) 35%, var(--line)); border-left: 4px solid var(--nc); border-radius: var(--r-lg); background: color-mix(in srgb, var(--nc) 7%, var(--panel)); }
 .ah-ic { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--nc) 18%, var(--panel-2)); border: 1px solid color-mix(in srgb, var(--nc) 45%, var(--line)); color: color-mix(in srgb, var(--nc) var(--data-mix), var(--c-text)); }
 .ah-ic .li { width: 22px; height: 22px; }
-.ah-body { display: grid; gap: 4px; min-width: 0; }
+.ah-body { flex: 1; display: grid; gap: 4px; min-width: 0; }
 .ah-body > b { font-size: var(--fs-lg); line-height: 1.2; }
 .ah-when { font: 600 var(--fs-xs) var(--f-mono); color: var(--c-text-2); }
 .ah-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .ah-hint { font-size: var(--fs-sm); color: var(--c-text-2); }
+/* 예상 보상: 공명도 · 크레딧을 따로 묶은 두 칸 (큰 숫자 = 승리, 작은 글씨 = 패배) */
+.ah-rws { display: grid; gap: 4px; }
+.ah-rw { display: flex; align-items: baseline; gap: 6px; padding: 2px 8px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel-2); }
+.ah-rk { display: inline-flex; align-items: center; gap: 3px; min-width: 52px; font-size: var(--fs-xs); color: var(--c-text-2); white-space: nowrap; }
+.ah-rk .li { width: 12px; height: 12px; }
+.ah-rw b { font: 700 var(--fs-lg) var(--f-mono); line-height: 1.2; }
+.ah-rw small { font-size: var(--fs-xs); color: var(--c-text-2); white-space: nowrap; }
 .ah-boss { flex: 2 1 300px; }
 .ah-port { position: relative; flex: none; }
 .ah-port .spr.big { display: block; width: 56px; height: 56px; border-radius: var(--r-md); object-fit: cover; box-shadow: 0 0 0 2px color-mix(in srgb, var(--nc) 60%, transparent); }
@@ -678,7 +683,7 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 .syn li.cur { color: var(--c-text); }
 
 /* ── 보드 (편성 · 전투 공용 바탕) */
-.prep { display: grid; grid-template-columns: 200px minmax(0, 1fr) 330px; gap: 20px; align-items: start; --board-reserve: 200px; }
+.prep { display: grid; grid-template-columns: 200px minmax(0, 1fr) 340px; gap: 20px; align-items: start; --board-reserve: 200px; }
 .battle { display: grid; grid-template-columns: 250px minmax(0, 1fr) 320px; gap: 20px; align-items: start; --board-reserve: 80px; }
 .board-col { min-width: 0; }
 .board-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
@@ -795,6 +800,7 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .bench-u.syn-hl, main.syn-focu
 .tend-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 4px 0; font-size: var(--fs-sm); }
 .tend-line .li { width: 16px; height: 16px; color: var(--c-bad); flex: none; }
 .tend-line span { color: var(--c-text-2); }
+.tend-line.rk .rstar { width: 15px; height: 15px; color: var(--c-text); flex: none; }
 .inv-detail { display: flex; gap: 10px; align-items: flex-start; width: min(100%, 560px); margin: 10px auto 0; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); font-size: var(--fs-md); }
 .inv-detail > div { min-width: 0; }
 .drag-ghost { position: fixed; z-index: var(--z-drag); pointer-events: none; transform: translate(-50%, -50%); width: 56px; height: 56px; display: grid; place-items: center; font-size: var(--fs-3xl); }
@@ -1153,7 +1159,7 @@ textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--c-
 
 /* ── 반응형 */
 @media (max-width: 1100px) {
-  .prep { grid-template-columns: minmax(0, 1fr) 300px; }
+  .prep { grid-template-columns: minmax(0, 1fr) 320px; } /* 오른쪽 상세 폭은 지도와 같게 */
   .prep .side.left { grid-column: 1 / -1; order: 3; }
   .map { grid-template-columns: minmax(0, 1fr) 320px; }
   .map .side.left { grid-column: 1 / -1; order: 3; }
@@ -1429,6 +1435,7 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 /* 카드 앞면 시너지: 좌상단 세로 마름모 아이콘만 (세력 → 특성, 이름 · 단계는 눌러서). 펼치면 사라지고 글자 칩으로 대체 */
 .pc-syn { position: absolute; top: 12px; left: 12px; z-index: 1; display: grid; gap: 4px; justify-items: start; transition: opacity .4s cubic-bezier(.45, 0, .55, 1); }
 .pc-syn .syn-tk .syn-dia { opacity: 1; } /* 카드 위 마름모는 비활성도 불투명 */
+.pcard .pc-syn .syn-tk:not(.active) .syn-dia { background: color-mix(in srgb, var(--c-ink) 65%, transparent); } /* 그림 위 마름모는 비활성도 유리 바탕 — 목록을 차분하게 하려던 '.syn-tk:not(.active) .syn-dia { background: none }' (4127403) 이 카드까지 번져 바탕이 사라졌었다 */
 .pc-syn .syn-tx, .pc-syn .syn-lv { display: none; }
 .pc-syn .syn-tx { background: color-mix(in srgb, var(--c-ink) 72%, transparent); padding: 2px 6px; border-radius: var(--r-sm); } /* 펼쳐 보일 때 (전체 상세 등): 그림 위 반투명 바탕 */
 .pc-syn .syn-tx b { font-size: var(--fs-xs); }
@@ -1827,8 +1834,6 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .syn-list .syn-lv { min-width: 18px; height: 18px; font-size: var(--fs-sm); }
 .syn-list .syn-tx b { font-size: var(--fs-md); }
 .syn-list .syn-steps { font-size: var(--fs-sm); }
-.syn-list .syn-next { font-size: var(--fs-xs); color: var(--c-text-2); line-height: 1.3; } /* 다음 단계까지 남은 인원 */
-.syn-list .syn-next b { color: var(--c-text); }
 /* 상세 보기: 시너지 토큰을 일러스트 좌상단에 (영입 카드와 같은 배열) */
 .d-hero .dh-syn { top: 8px; left: 8px; z-index: 3; }
 /* 상세 보기: 마름모만 (이름 · 단계는 눌러서) */
@@ -1979,7 +1984,7 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
   .top-syns-wrap.more .ts-more { opacity: 1; animation: ts-blink 1.4s ease-in-out infinite; }
   .menu-btn { width: 30px; height: 30px; margin-left: 0; }
   /* 화면 구성: 보드 | 오른쪽 패널 (시너지 패널은 리본 아이콘으로 대신) */
-  .prep { grid-template-columns: minmax(0, 1fr) minmax(240px, 34%); gap: 12px; }
+  .prep { grid-template-columns: minmax(0, 1fr) minmax(240px, 36%); gap: 12px; }
   .map { grid-template-columns: minmax(0, 1fr) minmax(240px, 36%); gap: 12px; }
   .battle { grid-template-columns: minmax(0, 1fr) minmax(220px, 32%); gap: 12px; }
   .prep .side.left, .map .side.left { display: none; }

@@ -173,6 +173,8 @@ const L: Record<string, string> = {
   'k.soul': '<path d="M6 21V11a6 6 0 0 1 12 0v10l-2-2-2 2-2-2-2 2-2-2z"/><path d="M10 11h.01M14 11h.01"/>',
   'k.struct': '<path d="M4 21h16M6 21V8l6-4 6 4v13"/><path d="M10 21v-5h4v5M9 11h6"/>',
   'u.finish': '<path d="M12 2l2.4 6.6L21 9l-5 4.4L17.5 21 12 17l-5.5 4L8 13.4 3 9l6.6-.4z"/>',
+  // 장비 재료 (상자)
+  'r.part': '<path d="M3 7.5L12 3l9 4.5-9 4.5z"/><path d="M3 7.5v9L12 21l9-4.5v-9"/><path d="M12 12v9"/><path d="M7.5 5.2l9 4.6"/>',
   // 적 성향 (도발 수치 가중치): 돌격 · 저격 · 반격 · 암살
   't.charge': '<path d="M4 5l7 7-7 7"/><path d="M12 5l7 7-7 7"/>',
   't.sniper': '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 7v2M12 15v2M7 12h2M15 12h2"/>',

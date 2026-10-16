@@ -261,7 +261,7 @@ function sources(id: string): string[] {
     out.push('일부 사건 보상');
     return out;
   }
-  if (t === 'C') out.push(`상점 · ${P.C} 크레딧 (매번 ${D.shopParts}개)`, `전투 ${pctTxt(D.battle)} · 역경 ${pctTxt(D.adversity)} 확률 전리품`, '보스 · 도전 전리품, 보급 · 사건 · 퀘스트 보상');
+  if (t === 'C') out.push(`상점 · ${P.C} 크레딧 (매번 ${D.shopParts}개)`, `전투 ${pctTxt(D.battle)} 확률 · 역경 ${D.advParts}개 확정 전리품`, '보스 · 도전 전리품, 보급 · 사건 · 퀘스트 보상');
   if (t === 'G') out.push('같은 재료 2개 조합', `상점 · ${P.G} 크레딧 (${pctTxt(D.shopGraded)} 확률 입고)`);
   if (t === 'A') {
     out.push(itemInfo(id).recipe ? '서로 다른 재료 2개 조합' : '조합 불가 (상점 · 전리품으로만)');

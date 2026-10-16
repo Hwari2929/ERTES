@@ -29,6 +29,7 @@ import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
 import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SynergyId, type UnitState } from './types';
 import { encounterMatchup, matchupLines, matchupShort, schoolWarnings } from './ui/matchup';
+import { computeStats } from './engine/build';
 import { gradeCards } from './ui/revealfx';
 import { BattleView, DEATH_STYLES, fmt, FX, FX_DEFAULT, isDeathStyle, previewDeath, type DeathStyle, type MotionPreset, type UltCut } from './ui/battleview';
 import { ULTS } from './data/ults';
@@ -313,12 +314,7 @@ function synergyPanel(run: RunState) {
   const list = SYNERGIES.filter((s) => counts[s.id] || benchN[s.id])
     .sort((a, b) => tierOf(b.id, counts[b.id] || 0) - tierOf(a.id, counts[a.id] || 0) || (counts[b.id] || 0) - (counts[a.id] || 0));
   if (!list.length) return `<div class="muted small">출전한 기물이 없습니다.</div>`;
-  // 보조 줄: 다음 단계까지 남은 인원 (최고 단계면 그렇게) · 대기 중인 소속 기물 수
-  return list.map((s) => {
-    const c = counts[s.id] || 0, next = s.tiers.find((need) => need > c), bn = benchN[s.id] || 0;
-    const note = `<span class="syn-next">${next ? `다음 단계까지 <b>${next - c}</b>명` : '최고 단계'}${bn ? ` · 대기 ${bn}` : ''}</span>`;
-    return synToken(s.id, c, c ? '' : ' benchonly', note);
-  }).join('');
+  return list.map((s) => synToken(s.id, counts[s.id] || 0, counts[s.id] ? '' : ' benchonly')).join('');
 }
 
 // ───────────────────────── 화면: 타이틀
@@ -924,7 +920,7 @@ function musterModal(run: RunState) {
 }
 function nodeHint(o: NodeType) {
   return ({
-    battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 ${CFG.adversityReward}배 + 재료 확률`,
+    battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 ${CFG.adversityReward}배 + 장비 재료 ${CFG.drop.advParts}개 확정`,
     council: `전역 증강 3장 중 택1 · 새로고침 ${CFG.globalRerolls}회`, shop: '분기점 — 상점 / 보급 / 속보 / 모집 (+ 호이슌 투자 · 순례)',
     supply: '보급품 3종 중 택1', recruit: '새 동료 3명 중 택1', boss: `승리 시 페이즈 클리어 · ${CFG.drop.bossAdvEvery}페이즈마다 희귀 장비`,
     pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', invest: '호이슌 투자 상품 · 크레딧으로 문장 · 증강 · 다음 페이즈 수익', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
@@ -952,9 +948,8 @@ function bossGoal(run: RunState) {
   const t = toBoss(run);
   if (!t) return '';
   const e = phaseBoss(run);
-  const main = t.steps === 0 ? '<b>보스전</b>' : `보스까지 전투 <b>${t.fights}</b>회`;
-  const sub = t.steps === 0 ? esc(e?.name || NODE_NAME.boss) : `${t.steps}칸 남음${t.forks ? ` · ${NODE_NAME.fork}에서 ${NODE_NAME.challenge} 승리 시 지름길` : ''}`;
-  return `<div class="boss-goal" title="${esc(`${t.bi + 1}번째 칸 · ${e?.name || NODE_NAME.boss}`)}">${e ? sprite(e, 'spr') : NODE_ICON.boss}<span class="bg-main">${main}</span><span class="bg-sub">${sub}</span></div>`;
+  const txt = t.steps === 0 ? `<b>보스전</b>` : `보스까지 <b>${t.steps}</b>칸`;
+  return `<div class="boss-goal" title="${esc(`${t.bi + 1}번째 칸 · ${e?.name || NODE_NAME.boss} · 보스까지 전투 ${t.fights}회${t.forks ? ` (${NODE_NAME.fork}에서 ${NODE_NAME.challenge} 승리 시 지름길)` : ''}`)}"><span class="bg-ic">${e ? sprite(e, 'spr') : NODE_ICON.boss}</span><span class="bg-main">${txt}</span></div>`;
 }
 /** 지도 미리보기: 다음 3칸 + (그보다 멀면) 보스 칸. 설명은 nodeHint, 재료 확률은 설정 · 전장값, 보스는 적 데이터에서 읽는다 */
 function mapAhead(run: RunState) {
@@ -965,31 +960,68 @@ function mapAhead(run: RunState) {
   if (!idx.length) return '';
   const f = fieldOf(run.field);
   const elite = ENEMY_BY_ID[f.elite];
-  // 핵심 수치 칩: 적 배율 · 보상 배율 (설정값) · 재료 확률 (설정 × 전장) · 역경 정예 (역경에는 정예가 반드시 나온다)
+  const PART = lineIcon('r.part', 'li');
+  // 조건 칩: 적 배율 · 보상 배율 (설정값) · 장비 재료 (일반 = 확률 × 전장, 역경 = 확정 개수) · 역경 정예 (역경에는 정예가 반드시 나온다)
   const chips = (o: NodeType) => {
     const c: string[] = [];
     if (o === 'adversity' || o === 'challenge') c.push(tchip(lineIcon('a.power', 'li'), `적 ×${CFG.adversityMult}`, 'bad', '적 체력 · 능력 배율'));
-    if (o === 'adversity') c.push(tchip(CR, `보상 ×${CFG.adversityReward}`, 'good', '승리 크레딧 · 공명도 배율'));
-    if (o === 'battle') c.push(tchip(CR + RES, '보상', '', '승리 크레딧 · 공명도'));
-    if (o === 'battle' || o === 'adversity') c.push(tchip(lineIcon('r.reco', 'li'), pctTxt(Math.min(1, CFG.drop[o] * (f.dropMul || 1))), '', '장비 재료가 나올 확률'));
+    if (o === 'adversity') c.push(tchip('', `보상 ×${CFG.adversityReward}`, 'good', '승리 크레딧 · 공명도 배율'));
+    if (o === 'battle') c.push(tchip(PART, `재료 ${pctTxt(Math.min(1, CFG.drop.battle * (f.dropMul || 1)))}`, '', '승리 시 무작위 장비 재료 1개가 나올 확률'));
+    if (o === 'adversity') c.push(tchip(PART, `재료 ×${CFG.drop.advParts} (무작위)`, 'good', '승리 시 무작위 장비 재료 확정'));
     if (o === 'adversity' && elite) c.push(tchip(sprite(elite, 'spr'), esc(elite.name), 'bad', `정예 · ${ENEMY_DESC[elite.id] || ''}`));
     return c.join('');
+  };
+  // 예상 보상: 공명도 풀 · 크레딧 수입 (승리 / 패배), 엔진의 보상 계산에서 (battleRewardPreview)
+  const reward = (o: NodeType) => {
+    if (!FIGHT_NODES.includes(o)) return '';
+    const r = R.battleRewardPreview(run, o);
+    return `<div class="ah-rws"><div class="ah-rw" title="전투 후 출전 · 대기 기물에게 나눠 주는 공명도 풀 (패배하면 절반)"><span class="ah-rk">${RES}공명도</span><b>${r.xp.win}</b><small>패배 ${r.xp.loss}</small></div>
+      <div class="ah-rw" title="${esc(`승리 보상 · 연승 · 이자(지금 보유 크레딧 기준 +${r.credits.interest}) 등 이번 전투의 크레딧 수입`)}"><span class="ah-rk">${CR}크레딧</span><b>+${r.credits.win}</b><small>패배 +${r.credits.loss}</small></div></div>`;
   };
   const when = (i: number) => `<span class="ah-when">${i > run.step ? `${i - run.step}칸 뒤` : '지금'} · ${i + 1}번째</span>`;
   const card = (i: number) => {
     const e = run.map[i].includes('boss') ? phaseBoss(run) : undefined;
     if (e) {
-      const cat = enemyCategory(e), td = TEND_NAME[e.tend];
+      const cat = enemyCategory(e), td = TEND_NAME[e.tend], rk = foeRank(run, e, run.phase, R.encounterMult('boss', i));
       return `<li class="ah-card ah-boss n-boss" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}"><span class="ah-port">${sprite(e, 'spr big')}<i class="ah-ic">${NODE_ICON.boss}</i></span>
-        <div class="ah-body">${when(i)}<b>${esc(e.name)}</b><div class="ah-chips">${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}${tchip(lineIcon('u.finish', 'li'), '페이즈 클리어', 'good', nodeHint('boss'))}</div></div></li>`;
+        <div class="ah-body">${when(i)}<b>${esc(e.name)}</b><div class="ah-chips">${rankChip(rk)}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${reward('boss')}</div></li>`;
     }
     return run.map[i].map((o) => {
       const c = chips(o);
-      return `<li class="ah-card n-${o}"><i class="ah-ic">${NODE_ICON[o]}</i><div class="ah-body">${when(i)}<b>${esc(NODE_NAME[o])}</b>${c ? `<div class="ah-chips">${c}</div>` : `<span class="ah-hint">${ic(esc(nodeHint(o)))}</span>`}</div></li>`;
+      return `<li class="ah-card n-${o}"><i class="ah-ic">${NODE_ICON[o]}</i><div class="ah-body">${when(i)}<b>${esc(NODE_NAME[o])}</b>${reward(o)}${c ? `<div class="ah-chips">${c}</div>` : ''}${FIGHT_NODES.includes(o) ? '' : `<span class="ah-hint">${ic(esc(nodeHint(o)))}</span>`}</div></li>`;
     }).join('');
   };
   return `<section class="ahead" aria-labelledby="ah-h"><h2 id="ah-h">앞으로</h2><ol class="ah-list">${idx.map(card).join('')}</ol></section>`;
 }
+// ───────── 적 스펙 ≈ 공명 등급: 적의 공격 위력을 '장비 · 시너지 · 증강 없는 아군(영입 가능 기물 평균)'의 등급별 위력과 비교해 가장 가까운 등급
+//   위력 = 사격 · 타격 · 기술 중 큰 값 (적은 × 페이즈 피해 배율). 아군 등급 성장은 설정값 그대로 (모든 메이저 +rankAll, 마이너 추천 메이저 rankPoints, 위력 rankPowGrowth)
+//   체력은 비교 기준에 넣지 않는다: 적 체력은 여럿이 한 적을 치는 전제로 페이즈마다 곱으로 커져 등급(한 기물 +1씩)과 맞지 않는다 → 같은 등급 아군 대비 배수로 따로 보여 준다
+const allyRefs: { hp: number; pow: number }[] = [];
+function allyRef(rank: number) {
+  if (allyRefs[rank]) return allyRefs[rank];
+  let hp = 0, pow = 0;
+  for (const d of RECRUITABLE) {
+    const alloc = Object.fromEntries(MAJORS.map((m) => [m, 0])) as Record<Major, number>;
+    for (let r = 2; r <= rank; r++) {
+      for (const m of MAJORS) alloc[m] += CFG.rankAll;
+      if (CFG.growth.pick(d.ttype, r)) for (const m of recommendedMajors(d).slice(0, CFG.rankPicks)) alloc[m] += CFG.rankPoints;
+    }
+    const { st } = computeStats({ defId: d.id, rank, alloc, perm: Object.fromEntries(MAJORS.map((m) => [m, 0])) } as unknown as UnitState, []);
+    hp += st.maxHp; pow += Math.max(st.shoot, st.strike, st.tech);
+  }
+  return (allyRefs[rank] = { hp: hp / RECRUITABLE.length, pow: pow / RECRUITABLE.length });
+}
+function foeRank(run: RunState, e: EnemyDef, phase: number, mult: number, s?: { items?: string[]; mod?: string }) {
+  const c = buildEnemy(new Battle(9, 9, new Rng(1), { phase, credits: 0, field: run.field, diff: run.diff }), e, phase, mult, s);
+  const pow = Math.max(c.st.shoot, c.st.strike, c.st.tech) * c.phaseAmp;
+  if (e.noAttack || !(pow > 0)) return null; // 공격하지 않는 장애물 · 지원 드론
+  let lv = 1;
+  while (lv < CFG.maxRank && allyRef(lv + 1).pow <= pow) lv++; // 위력은 등급에 따라 늘기만 한다
+  if (lv < CFG.maxRank && allyRef(lv + 1).pow - pow < pow - allyRef(lv).pow) lv++; // 더 가까운 쪽
+  return { lv, hpX: c.st.maxHp / allyRef(lv).hp };
+}
+const rankTip = (r: { lv: number; hpX: number }) => `공명 등급 ≈ ★${r.lv} 수준: 공격 위력이 장비 · 시너지 없는 ★${r.lv} 아군 평균과 비슷 · 체력은 그 아군의 ×${r.hpX >= 10 ? Math.round(r.hpX) : r.hpX.toFixed(1)}`;
+const rankChip = (r: { lv: number; hpX: number } | null) => (r ? tchip(RANK_STAR, `≈${r.lv}`, 'rk', rankTip(r)) : '');
 /** 자원 아이콘: 에너지 크레딧 · 공명도 */
 const CR = lineIcon('r.cr', 'li cr'), RES = lineIcon('r.res', 'li res');
 /** 문장 속 '크레딧' · '공명도' 앞에 아이콘 (이미 escape 된 HTML 에만) */
@@ -1661,7 +1693,7 @@ function prepBrief(run: RunState) {
     const atk = x.e.noAttack ? '' : tchip(lineIcon(`e.${x.e.atk.elem}`, 'li'), '', '', `${ELEM_NAME[x.e.atk.elem]} ${x.e.atk.type === 'shoot' ? '사격' : '타격'}`, `--c:var(--el-${x.e.atk.elem})`);
     return `<li><button class="pb-foe tier-${x.e.tier}" data-a="sel-enemy" data-v="${x.i}" title="${esc(`${x.e.name} — ${ENEMY_DESC[x.e.id] || ''}`)}">${sprite(x.e, 'spr')}
       <span class="pb-nm"><b>${esc(x.e.name)}</b>${x.e.tier !== 'minion' ? `<em>${tierKo(x.e)}</em>` : ''}${x.e.inert ? '<em>장애물</em>' : ''}</span><span class="pb-n">${x.n > 1 ? `×${x.n}` : ''}</span>
-      <span class="pb-sub">${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${x.e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}${atk}${x.gear.length ? `<span class="pb-gear" aria-label="장착 장비">${x.gear.map((id) => itemIcon(id, `data-a="foe-item" data-v="${id}"`)).join('')}</span>` : ''}</span></button></li>`;
+      <span class="pb-sub">${rankChip(foeRank(run, x.e, enc.phase ?? run.phase, enc.mult, enc.enemies[x.i]))}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${x.e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}${atk}${x.gear.length ? `<span class="pb-gear" aria-label="장착 장비">${x.gear.map((id) => itemIcon(id, `data-a="foe-item" data-v="${id}"`)).join('')}</span>` : ''}</span></button></li>`;
   };
   // 상성 · 아군 공격 속성: 같은 줄 토큰 (아이콘 · 이름 · 인원 · 유리(초록) / 불리(빨강) / 면역 칩)
   const row = (icon: string, name: string, n: number, tags: string, cls = '', st = '') => `<li class="pb-row"><i class="pb-ri ${cls}"${st ? ` style="${st}"` : ''}>${icon}</i><b>${esc(name)}</b><span class="pb-cnt">${n}명</span><span class="pb-tags">${tags}</span></li>`;
@@ -1721,6 +1753,7 @@ function detailPanel(run: RunState, extra = '') {
       ${heroHead(`en_${e.id}`, sprite(e, 'spr big'), e.name, enemyTags(e))}
       <div class="small muted">${CATEGORY_RULE[enemyCategory(e)]} · 체력 ${fmt(b.S(c, 'maxHp'))}${known ? ` · 도감: 조우 ${known.seen} · 처치 ${known.kills}` : ''}</div>
       ${TEND_NAME[e.tend] ? `<div class="tend-line">${lineIcon(`t.${e.tend}`, 'li')}<b>${TEND_NAME[e.tend].name}</b><span>${esc(TEND_NAME[e.tend].desc)}</span></div>` : ''}
+      ${(() => { const r = foeRank(run, e, ph, run.node!.enc!.mult, s); return r ? `<div class="tend-line rk">${RANK_STAR}<b>공명 등급 ≈ ★${r.lv} 수준</b><span>${esc(rankTip(r).split(': ')[1])}</span></div>` : ''; })()}
       ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}
       ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.map((x) => `<span class="tk-it">${itemIcon(x, `data-a="foe-item" data-v="${x}"`)}</span>`).join('')}</div></div>` : ''}
       <div class="mj-wrap"><div class="mj-head"><h3>주요 능력치 <span class="muted small">페이즈 ${ph}</span></h3>${magBtn()}</div>${majorsHtml(ms)}</div>
@@ -2364,11 +2397,24 @@ function placeInvPop() {
   const p = root.querySelector<HTMLElement>('.inv-pop');
   if (!p) return;
   const a = root.querySelector<HTMLElement>('.inv-rail .item.sel, .inv-rail .relic-tok.on, .inv .item.sel, .inv .relic-tok.on');
-  if (!a || innerWidth <= 700) { p.classList.add('sheet'); p.style.cssText = ''; return; }
+  // 좁은 화면: 하단 시트. 누른 칸이 시트에 가려지는 높이면 위쪽(상단 바 밑)에 띄운다
+  if (!a || innerWidth <= 700) {
+    p.classList.add('sheet'); p.style.cssText = '';
+    if (a && a.getBoundingClientRect().bottom > innerHeight - p.offsetHeight - 16) {
+      p.style.setProperty('top', `${Math.max(8, (root.querySelector('header.top')?.getBoundingClientRect().bottom ?? 0) + 8)}px`, 'important');
+      p.style.bottom = 'auto';
+    }
+    return;
+  }
+  // 넓은 화면: 보관함 상자 바깥 왼쪽에 (같은 보관함의 다른 칸 · 누른 칸을 가리지 않게). 자리가 없으면 오른쪽, 그래도 없으면 상자 아래 · 위
   p.classList.remove('sheet');
-  const r = a.getBoundingClientRect();
-  p.style.left = `${Math.max(8, r.left - p.offsetWidth - 10)}px`;
-  p.style.top = `${Math.min(innerHeight - p.offsetHeight - 8, Math.max(8, r.top))}px`;
+  const r = a.getBoundingClientRect(), box = a.closest<HTMLElement>('.inv-rail, .inv')?.getBoundingClientRect() || r;
+  const w = p.offsetWidth, h = p.offsetHeight;
+  let left = box.left - w - 10, top = Math.min(innerHeight - h - 8, Math.max(8, r.top));
+  if (left < 8) left = box.right + 10 + w <= innerWidth - 8 ? box.right + 10 : -1;
+  if (left < 0) { left = Math.max(8, Math.min(innerWidth - w - 8, r.left)); top = box.bottom + 8 + h <= innerHeight - 8 ? box.bottom + 8 : Math.max(8, box.top - h - 8); }
+  p.style.left = `${left}px`;
+  p.style.top = `${top}px`;
 }
 /** 전체 상세 팝업 안의 능력 상세: 누른 카드의 왼쪽에 (자리가 없으면 오른쪽) */
 function placeUmPop() {
