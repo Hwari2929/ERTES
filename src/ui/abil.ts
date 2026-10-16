@@ -199,8 +199,10 @@ export function skillBody(info: SkillInfo, ctx: AbilCtx, range: number, cd: numb
   const r = info.range === 'unit' ? range : info.range;
   const pow = info.rows.map(([, v]) => /\[dmg:(\w+):/.exec(v)?.[1]).find(Boolean) as Pow | undefined;
   const healer = !pow && info.rows.some(([, v]) => /\[(heal|shield):/.test(v));
+  // 회복 · 보호막 위력 (토큰 둘째 인자, 없으면 기술 위력)
+  const hpow = (info.rows.map(([, v]) => /\[(?:heal|shield):[^:\]]*:(\w+)\]/.exec(v)?.[1]).find(Boolean) as Pow | undefined) || 'tech';
   const rows: [string, string][] = [['대상', esc(info.tgt)], ['쿨다운', `${lineIcon('a.cd', 'li')}${cd.toFixed(1)}초`],
-    ...(pow ? [['피해 유형', powType(ctx, pow)] as [string, string]] : healer ? [['위력 기준', powType(ctx, 'tech')] as [string, string]] : []),
+    ...(pow ? [['피해 유형', powType(ctx, pow)] as [string, string]] : healer ? [['위력 기준', powType(ctx, hpow)] as [string, string]] : []),
     // 항목명이 회복 · 보호막이면 값 뒤 같은 말은 생략
     ...info.rows.map(([k, v]) => [k, tok(v, ctx, gl).replace(k === '회복' || k === '보호막' ? new RegExp(`</span> ${k}`, 'g') : /$^/, '</span>')] as [string, string])];
   return popBody(r, info.area, rows);

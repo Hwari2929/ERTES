@@ -2490,3 +2490,10 @@ button.cx2-row { cursor: pointer; } button.cx2-row:hover { border-color: var(--d
 .mt-slots { display: flex; gap: 4px; }
 .cx2-knight { display: flex; gap: 10px; align-items: flex-start; }
 .cx2-knight .spr { width: 48px; height: 48px; image-rendering: pixelated; }
+/* 사이오닉: ◆ 변형 · 증강 반영 표시 */
+.psi-tf { margin-left: 6px; font-size: .68rem; padding: 0 6px; border-radius: 999px; border: 1px solid var(--sc, var(--accent)); color: var(--sc, var(--accent)); white-space: nowrap; font-weight: 600; }
+.psi-tfn { margin: 0 0 4px; color: var(--accent); }
+.psi-mods { margin: 0 0 6px; }
+.psi-tfh { margin: 10px 0 4px; font-size: .85rem; color: var(--accent); }
+.cx2-tfv { font-size: .78rem; }
+.cx2-tfv b { color: var(--accent); }

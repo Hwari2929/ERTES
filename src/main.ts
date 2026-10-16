@@ -11,7 +11,7 @@ import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isLocked, isMod
 import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { DIVINE_ACT, FAITH_DEF, MAJOR_AUGS, MINOR_TRAIT_GROW, recMajors } from './data/rework';
-import { CANTRIP_INFO, PASSIVE_BRIEF, PASSIVE_INFO, SCHOOL_LINE } from './data/psiinfo';
+import { type AugList, cantripView, passiveView, SCHOOL_LINE, transformPreview } from './data/psiinfo';
 import { GROUPS, SCHOOL_BY_ID, SCHOOL_PASSIVES, UNIT_GROUP, isTransformAug, psiAugId, schoolOf, type SchoolId } from './data/schools';
 import { BRIEF, PSI_BRIEF } from './data/brief';
 import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
@@ -502,11 +502,14 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
       // 머리: 학파 · 전공 칩
       body.push(`<div class="ps-head" style="--sc:${sc.color}">${lineIcon(`s.${sc.id}`, 'li')}<span class="ps-grp">${g.name}</span><b>${sc.name}</b><span class="muted small">${sc.study}</span></div>`);
       // 비술 · 지속 능력: 두 장의 작은 카드 (누르면 상세)
-      const cd = c?.cantripMax || sc.cantrip.cd;
-      const chips = AB.skillChips(CANTRIP_INFO[sc.id], actx(b, c, true), b && c ? b.S(c, 'range') : d.range, cd) + AB.chip('a.reason', `-${sc.cantrip.cost}`, '이성 소모');
+      // 전공 증강(◆ 변형 포함)을 반영한 실제 비술 · 지속 능력
+      const pa = c?.src?.augments || owned;
+      const cv = cantripView(sc.id, pa), pv = passiveView(sc.id, pa);
+      const cd = psiCd(b, c, cv.cd);
+      const chips = AB.skillChips(cv.info, actx(b, c, true), b && c ? b.S(c, 'range') : d.range, cd) + AB.chip('a.reason', `-${cv.cost}`, '이성 소모');
       body.push(`<div class="ps-cards" style="--sc:${sc.color}">
-        <div class="ps-card ab-click${abilOn('cantrip')} has-tok" data-a="abil-pop" data-v="cantrip" role="button" tabindex="0">${abTok(`cantrip.${sc.id}`)}<div class="ab-head"><span class="ab-kind">비술</span><b>${esc(sc.cantrip.name)}</b></div><div class="ab-chips">${chips}</div></div>
-        <div class="ps-card ab-click${abilOn('psipass')} has-tok" data-a="abil-pop" data-v="psipass" role="button" tabindex="0">${abTok(`passive.${sc.id}`)}<div class="ab-head"><span class="ab-kind">지속</span><b>${esc(sc.passive.name)}</b></div><span class="small">${esc(PASSIVE_BRIEF[sc.id])}</span></div>
+        <div class="ps-card ab-click${abilOn('cantrip')} has-tok" data-a="abil-pop" data-v="cantrip" role="button" tabindex="0">${abTok(`cantrip.${sc.id}`)}<div class="ab-head"><span class="ab-kind">비술</span><b>${esc(cv.name)}</b>${psiTfTag(cv.transform)}</div><div class="ab-chips">${chips}</div></div>
+        <div class="ps-card ab-click${abilOn('psipass')} has-tok" data-a="abil-pop" data-v="psipass" role="button" tabindex="0">${abTok(`passive.${sc.id}`)}<div class="ab-head"><span class="ab-kind">지속</span><b>${esc(sc.passive.name)}</b>${psiTfTag(pv.transform)}</div><span class="small">${esc(pv.brief)}</span></div>
       </div>`);
       // 이성: 양 끝에 효과, 가운데 0 (누르면 규칙 상세)
       const r = live && c && c.reason !== null ? c.reason : null;
@@ -1192,6 +1195,18 @@ function skillMech(range: 'unit' | number | null, cmd: boolean) {
   const when = range === 'unit' ? '대상이 사거리 안에 있으면' : range === 0 ? '주변에 대상이 있으면' : '조건이 맞으면';
   return `쿨다운이 차고 ${when} 자동으로 시전.${cmd ? ' 지휘관은 전술 위력으로 계산.' : ''}`;
 }
+/** 사이오닉 기물의 보유 증강 (전투 중이면 그 전투 기물의 원본, 아니면 런의 기물) */
+const psiAugsFor = (d: UnitDef, c: CUnit | null): AugList => c?.src?.augments || app.run?.units.find((x) => x.defId === d.id)?.augments || [];
+/** 비술 쿨다운: 전투 기물이면 엔진 계산 (열폭주 등 이성 반영), 아니면 증강 반영 기본값 */
+const psiCd = (b: Battle | null, c: CUnit | null, base: number) => (b && c?.cantrip ? c.cantrip.cd(b, c) : base);
+/** ◆ 변형 표시 (카드 머리) */
+const psiTfTag = (tf: string | null) => (tf ? `<span class="psi-tf" title="◆ 변형 증강 「${esc(tf)}」이 적용된 모습">◆ ${esc(tf)}</span>` : '');
+/** ◆ 변형 · 증강 반영 안내 (상세 팝업 첫 줄) */
+function psiTfNote(tf: string | null, mods: string[], base: string) {
+  const tfl = tf ? `<p class="psi-tfn"><b>◆ 변형됨: ${esc(tf)}</b> <span class="muted small">원래 「${esc(base)}」에서 바뀐 모습</span></p>` : '';
+  const ml = mods.length ? `<p class="psi-mods muted small">증강 반영: ${mods.map(esc).join(' · ')}</p>` : '';
+  return tfl + ml;
+}
 /** 좌측 능력 상세 팝업 */
 function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null, aceK = 1) {
   // 'cantrip:<전공>' · 'psipass:<전공>': 아직 고르지 않은 전공 미리보기 (전공 선택 창)
@@ -1223,9 +1238,10 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     kind = '비술'; name = sc?.cantrip.name || '비술';
     mech = `${sc ? `${GROUPS[sc.group].name} ${sc.name}` : '전공'}의 비술. 전투 스킬과 별개로 쿨다운마다 자동으로 시전하고, 쓸 때마다 이성이 줄어든다. 광폭 중에는 쓰지 않는다.`;
     if (sc) {
-      const info = CANTRIP_INFO[sc.id];
-      const cd = c?.cantripMax || sc.cantrip.cd;
-      body = AB.skillBody(info, ctx, b && c ? b.S(c, 'range') : d.range, cd, gl) + AB.rowsHtml([['이성 소모', `${lineIcon('a.reason', 'li')}-${sc.cantrip.cost}`]]);
+      // 전공 선택 미리보기(forcedSchool)는 기본형, 그 밖에는 보유 증강을 반영한 실제 비술
+      const cv = cantripView(sc.id, forcedSchool ? [] : psiAugsFor(d, c));
+      const cd = psiCd(b, c, cv.cd);
+      body = psiTfNote(cv.transform, cv.mods, sc.cantrip.name) + AB.skillBody(cv.info, ctx, b && c ? b.S(c, 'range') : d.range, cd, gl) + AB.rowsHtml([['이성 소모', `${lineIcon('a.reason', 'li')}-${cv.cost}`]]);
     }
   } else if (key === 'psipass') {
     const ru = app.run?.units.find((x) => x.defId === d.id);
@@ -1233,7 +1249,8 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     const sc = sid ? SCHOOL_BY_ID[sid] : null;
     kind = '지속 능력'; name = sc?.passive.name || '지속 능력';
     mech = '전투 내내 적용된다. 확률 발동은 평타 · 전투 스킬 · 비술이 적중할 때만 판정하고, 지속 피해 · 소환물 공격은 판정하지 않는다.';
-    body = sc ? AB.rowsHtml(PASSIVE_INFO[sc.id].map(([k, v]) => [k, statIc(AB.tok(v, ctx, gl))] as [string, string])) : '';
+    const pv = sc ? passiveView(sc.id, forcedSchool ? [] : psiAugsFor(d, c)) : null;
+    body = sc && pv ? psiTfNote(pv.transform, pv.mods, sc.passive.name) + AB.rowsHtml(pv.rows.map(([k, v]) => [k, statIc(AB.tok(v, ctx, gl))] as [string, string])) : '';
   } else if (key === 'reason') {
     const ru = app.run?.units.find((x) => x.defId === d.id);
     const sid = cSchool(c) || (ru ? schoolOf(ru) : null);
@@ -1271,6 +1288,14 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     const pool = AUG_BY_ID[id]?.pool;
     mech = pool === 'unit' ? '이 기물 전용 증강. 획득하면 영구 적용.' : pool === 'special' ? '스페셜 기물 합류 시 고르는 증강. 영구 적용.' : pool === 'psionic' ? '사이오닉 증강. 이성 규칙을 바꾼다. 영구 적용.' : '공용 증강. 영구 적용.';
     body = `<p>${augText(id, c?.src?.augments.find((a) => a.id === id)?.param, b, c, gl)}</p>`;
+    // ◆ 변형 증강: 바뀐 비술 · 지속 능력을 함께 (이 기물의 다른 전공 증강까지 반영)
+    const tp = transformPreview(id);
+    if (tp) {
+      const all = [...psiAugsFor(d, c), id], s2 = SCHOOL_BY_ID[tp.sid];
+      const cv = cantripView(tp.sid, all), pv = passiveView(tp.sid, all);
+      if (cv.transform) body += `<h4 class="psi-tfh">변형 후 비술 「${esc(cv.name)}」</h4>${AB.skillBody(cv.info, ctx, b && c ? b.S(c, 'range') : d.range, psiCd(b, c, cv.cd), gl)}`;
+      if (pv.transform) body += `<h4 class="psi-tfh">변형 후 지속 「${esc(s2.passive.name)}」</h4>${AB.rowsHtml(pv.rows.map(([k, v]) => [k, statIc(AB.tok(v, ctx, gl))] as [string, string]))}`;
+    }
   } else return '';
   // 머리에 능력 아이콘 (아군 기물의 무기 · 특성 · 스킬 · 궁극기 · 비술 · 지속 · 신앙)
   const sc = forcedSchool || (c ? cSchool(c) : (app.run?.units.find((x) => x.defId === d.id) as { school?: SchoolId } | undefined)?.school ?? null);

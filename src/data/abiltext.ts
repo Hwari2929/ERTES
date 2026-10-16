@@ -6,6 +6,7 @@
 //   [t:칸] [s:초] [p:비율] [pp:비율포인트]
 // 위력 종류: shoot · strike · tech (지휘관은 자동으로 전술 위력)
 
+import { PSI } from './psinum';
 import { ABIL_A, GLOSS_A } from './abil/a';
 import { ABIL_B, GLOSS_B } from './abil/b';
 import { ABIL_C, GLOSS_C } from './abil/c';
@@ -224,7 +225,7 @@ Object.assign(AUG_TEXT, {
   'psi.chrono.revert': '[g:freeze]를 걸 때마다 [g:reason] +6. 빙결된 적 1명당 쿨다운 감소 속도 [pp:0.1] (최대 [pp:0.3]).',
   'psi.chrono.zero': '[g:chill] 최대 4 → 6중첩. 6중첩인 적에게 다음 적중은 확정 [g:freeze].',
   'psi.chrono.haste': '◆ 서리 파편이 적 대신 아군 3명에게 [s:4]간 공격 속도 +[p:0.25]를 준다. 절대 0도는 그대로.',
-  'psi.volt.hv': '[g:conduct] 범위 [t:1] → [t:2]. 중첩당 피해 [dmg:main:0.15:elec] → [dmg:main:0.22:elec].',
+  'psi.volt.hv': `[g:conduct] 범위 [t:1] → [t:2]. 중첩당 피해 [dmg:main:${PSI.volt.per}:elec] → [dmg:main:${PSI.volt.hvPer}:elec] (역전류의 아군 전도는 [dmg:main:${PSI.volt.reversePer}:elec] → [dmg:main:${PSI.volt.reverseHvPer}:elec]).`,
   'psi.volt.chain': '[dmg:main:0.54:elec]가 가장 가까운 적부터 최대 3회 [g:bounce]된다 (거리 제한 없음).',
   'psi.volt.short': '[g:conduct] 3중첩인 적이 행동하면 [st:shock:1] (같은 적에게 2초에 1회).',
   'psi.volt.store': '[g:conduct] 피해를 줄 때마다 [g:reason] +1 (초당 최대 +3).',
@@ -258,14 +259,14 @@ Object.assign(AUG_TEXT, {
   'psi.gold.short': '[g:reason]이 0 미만이면 기본 공격 적중 시 대상에게 [dmg:main:0.2:phys] 추가 피해 (임시 장비 1개당 [pp:0.05]).',
   'psi.gold.vol': '[g:reason] 증감량 ×1.5. 시장 개입 쿨다운 -[s:2].',
   'psi.gold.folio': '[g:tempgear]이 3개면 고이성 · 저이성 효과가 모두 [p:0.5]씩 함께 적용된다.',
-  'psi.gold.dividend': '◆ 시장 개입이 성공하면 임시 장비를 자신 대신 아군 3명에게 1개씩 [g:tempgear] (성공 3회까지, 분산 투자는 성공 횟수로 계산).',
+  'psi.gold.dividend': '◆ 시장 개입이 성공하면 임시 장비를 자신 대신 아군 3명에게 1개씩 [g:tempgear] (성공 3회까지, 분산 투자는 성공 횟수 + 자신이 받은 임시 장비로 계산, 최대 3).',
   'psi.illusion.troupe': '[g:illusion] 최대 2 → 4기.',
   'psi.illusion.echo': '[g:illusion]이 사라질 때 주변 [t:1] 적에게 [dmg:main:1.2:psy].',
   'psi.illusion.fog': '[g:illusion] 주변 [t:1] 적은 명중 [pp:-0.3].',
-  'psi.illusion.solid': '[g:illusion]이 [dmg:main:0.4:psy]로 공격한다.',
+  'psi.illusion.solid': `[g:illusion]이 [dmg:main:${PSI.illusion.solid}:psy]로 공격한다. 분신과 함께면: [g:clone] 체력 [p:${PSI.illusion.cloneHp}] → [p:${PSI.illusion.solidCloneHp}], 분신이 받는 피해 -[p:${PSI.illusion.solidCloneRed}], 분신의 기본 공격이 맞으면 [dmg:main:${PSI.illusion.solidCloneHit}:psy] 추가.`,
   'psi.illusion.dense': '[g:scent]가 최대 3중첩까지 쌓인다.',
   'psi.illusion.disrupt': '[g:illusion]을 공격한 적은 [s:4]간 공격 속도 -[p:0.1] (최대 -[p:0.3]).',
-  'psi.illusion.clone': '◆ 환영 대신 자신의 [g:clone] 1기를 부른다 ([s:12], 체력 [p:0.5], 자신 피해의 [p:0.5]로 싸운다). 비술 쿨다운 +[s:4].',
+  'psi.illusion.clone': `◆ 환영 대신 자신의 [g:clone] 1기를 부른다 ([s:${PSI.illusion.cloneLife}], 체력 [p:${PSI.illusion.cloneHp}], 자신 피해의 [p:${PSI.illusion.cloneDmg}]로 싸운다). 비술 쿨다운 +[s:${PSI.illusion.cloneCd}]. 실체화와 함께면 분신 체력 [p:${PSI.illusion.solidCloneHp}], 받는 피해 -[p:${PSI.illusion.solidCloneRed}], 기본 공격 적중 시 [dmg:main:${PSI.illusion.solidCloneHit}:psy] 추가.`,
 } as Record<string, string>);
 Object.assign(GLOSS, {
   reason: { name: '이성', desc: '사이오닉 게이지 (-100 ~ +100). 학파의 고이성 · 저이성 효과가 이성에 비례해 커진다. 0 미만이면 초당 최대 체력 × 0.5% × (−이성/100) 정신 피해 (−50 이하 2배).' },
@@ -285,7 +286,7 @@ Object.assign(GLOSS, {
   pull: { name: '끌어당기기', desc: '시전자 바로 앞 칸으로 끌려온다 (빈 칸일 때). 보스 · 고정 기물 면역.' },
   illusion: { name: '환영', desc: '환조 사이오닉이 부르는 제자리 소환물. 주변 1칸 적의 공격을 끈다 (도발). 시간이 다 되거나 시전자가 쓰러지면 사라진다.' },
   taunt: { name: '도발', desc: '주변 1칸 적은 이 기물을 우선 공격한다 (광폭 · 혼란 제외).' },
-  clone: { name: '분신', desc: '자신의 능력치를 물려받아 함께 싸우는 소환물 (체력 · 피해 50%, 12초). 스킬 · 비술은 쓰지 않는다.' },
+  clone: { name: '분신', desc: `자신의 능력치 · 무기를 물려받아 함께 싸우는 소환물 (체력 · 피해 ${Math.round(PSI.illusion.cloneHp * 100)}%, ${PSI.illusion.cloneLife}초, 실체화가 있으면 체력 ${Math.round(PSI.illusion.solidCloneHp * 100)}% · 받는 피해 -${Math.round(PSI.illusion.solidCloneRed * 100)}%). 스킬 · 비술은 쓰지 않는다.` },
   tempgear: { name: '임시 장착', desc: '이번 전투 동안만 장착되는 장비 (장비 칸을 쓰지 않고 전투 후 사라진다).' },
   spawn: { name: '증원', desc: '전장에 아군 개체를 추가로 불러냄.' },
   lifesteal: { name: '흡혈', desc: '준 피해의 일부만큼 회복.' },

@@ -9,7 +9,7 @@ import { ALL_AUGS, augDesc, augSource } from '../data/augments';
 import { BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES } from '../data/globals';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_PRICE, UNIQUE_IDS } from '../data/items';
 import { PSI_BRIEF } from '../data/brief';
-import { CANTRIP_INFO, PASSIVE_INFO, SCHOOL_LINE } from '../data/psiinfo';
+import { cantripView, passiveView, SCHOOL_LINE, transformPreview } from '../data/psiinfo';
 import { RELIC_BY_ID, RELICS } from '../data/relics';
 import { GROUPS, type GroupId, isTransformAug, SCHOOL_BY_ID, SCHOOLS, type SchoolId, UNIT_GROUP } from '../data/schools';
 import { KAL_GUARD_TEXT, KAL_GUARDS, SYN_BY_ID, SYNERGIES, VOYAGE_SPECIAL } from '../data/synergies';
@@ -334,10 +334,20 @@ export function augHtml(H: CxH, id: string, param?: string, gl = new Set<string>
   return t ? H.statIc(AB.tok(t, NO_CTX, gl)) : esc(augDesc(id, param));
 }
 const augById = (id: string) => ALL_AUGS.find((a) => a.id === id);
+/** ◆ 변형 증강: 변형 후 비술 · 지속 능력 한 줄 요약 (psiinfo 에서 읽음) */
+function tfLine(H: CxH, id: string) {
+  const tp = transformPreview(id);
+  if (!tp) return '';
+  const gl = new Set<string>();
+  const part = (label: string, name: string, rows: [string, string][], tgt?: string) =>
+    `<span class="cx2-tfv"><b>${label} 「${esc(name)}」</b>${tgt ? ` 대상: ${esc(tgt)} ·` : ''} ${rows.map(([k, v]) => `${esc(k)}: ${H.statIc(AB.tok(v, NO_CTX, gl))}`).join(' · ')}</span>`;
+  const s = SCHOOL_BY_ID[tp.sid];
+  return `${tp.cantrip.transform ? `<br>${part('변형 후 비술', tp.cantrip.name, tp.cantrip.info.rows, tp.cantrip.info.tgt)}` : ''}${tp.passive.transform ? `<br>${part('변형 후 지속', s.passive.name, tp.passive.rows)}` : ''}`;
+}
 function augLi(H: CxH, a: AugDef, tags: string[] = [], q = '') {
   const x = (a.excl || []).map((e) => augById(e)?.name).filter(Boolean) as string[];
   const all = [...tags, ...(a.stack ? ['중복 가능'] : []), ...(a.roll ? ['능력치 무작위'] : [])];
-  const text = augHtml(H, a.id);
+  const text = augHtml(H, a.id) + tfLine(H, a.id);
   return `<li class="aug-li" data-id="${esc(a.id)}"${qAttr('augs', `${a.name} ${a.desc} ${text} ${all.join(' ')} ${q}`)}>${H.augIcon(a.id)}<span><b>${isTransformAug(a.id) ? '◆ ' : ''}${esc(a.name)}</b>${all.map((t) => ` <span class="tag">${esc(t)}</span>`).join('')}<br><span class="muted">${text}</span>${x.length ? `<br><span class="cx2-x">함께 가질 수 없음: ${x.map(esc).join(', ')}</span>` : ''}</span></li>`;
 }
 
@@ -366,23 +376,37 @@ function psiTab(H: CxH) {
 function psiDetail(H: CxH, sid: SchoolId) {
   const s = SCHOOL_BY_ID[sid], g = GROUPS[s.group];
   const gl = new Set<string>();
-  const info = CANTRIP_INFO[sid];
-  const cantrip = `<div class="abil cx2-ab has-tok" style="--ab:${s.color}">${H.abTok(`cantrip.${sid}`)}<div class="ab-head"><span class="ab-kind">비술</span><b>${esc(s.cantrip.name)}</b><span class="ab-meta">${lineIcon('a.cd', 'li')}${s.cantrip.cd}초 · ${lineIcon('a.reason', 'li')}이성 -${s.cantrip.cost}</span></div>
-    <div class="cx2-body">${info ? AB.skillBody(info, NO_CTX, 0, s.cantrip.cd, gl) + AB.rowsHtml([['이성 소모', `${lineIcon('a.reason', 'li')}-${s.cantrip.cost}`]]) : `<p>${esc(s.cantrip.desc)}</p>`}</div></div>`;
-  const pi = PASSIVE_INFO[sid];
-  const passive = `<div class="abil cx2-ab has-tok" style="--ab:${s.color}">${H.abTok(`passive.${sid}`)}<div class="ab-head"><span class="ab-kind">지속</span><b>${esc(s.passive.name)}</b></div>
-    <div class="cx2-body">${pi ? AB.rowsHtml(pi.map(([k, v]) => [k, H.statIc(AB.tok(v, NO_CTX, gl))] as [string, string])) : `<p>${esc(s.passive.desc)}</p>`}</div></div>`;
+  const cantrip = cantripCard(H, sid, [], gl);
+  const passive = passiveCard(H, sid, [], gl);
   const augs = schoolAugs(sid);
   const units = [...groupUnits(s.group), ...freeUnits()];
   return `<div class="detail cx-d cx2-d cx2-psi" style="--sc:${s.color}">
     <div class="cx2-band"><div class="cx2-hd">${lineIcon(`s.${sid}`, 'li cx2-sico')}<div><b style="color:${s.color}">${esc(s.name)}</b><small>${esc(g.name)} · ${esc(s.study)}</small></div></div><p class="small">${esc(SCHOOL_LINE[sid] || '')}</p>
     <dl class="cx2-reason"><dt>고이성</dt><dd>${esc(g.high)}</dd><dt>저이성</dt><dd>${esc(g.low)}</dd></dl></div>
     <h3>비술 · 지속 능력 <span class="muted small">계수 기준</span></h3><div class="abils">${cantrip}${passive}</div>
+    ${augs.filter((a) => isTransformAug(a.id)).map((a) => `<h3>◆ 변형 후 <span class="muted small">「${esc(a.name)}」을 고르면</span></h3><div class="abils">${transformCards(H, a.id, gl)}</div>`).join('')}
     ${AB.glossHtml(gl)}
     <h3>전공 증강 <span class="muted small">${augs.length}종 · ${esc(milestones(CFG.growth.psionic, 'psionic'))}</span></h3>
     <ul class="augs cx2-augs one">${augs.map((a) => augLi(H, a, isTransformAug(a.id) ? ['변형'] : [])).join('')}</ul>
     <h3>이 전공을 고를 수 있는 기물</h3><ul class="cx2-rows">${units.map((d) => `<li>${unitRowBtn(H, d, PSI_BRIEF[d.id] || d.psi?.desc || '')}</li>`).join('')}</ul>
   </div>`;
+}
+/** 비술 카드 (augs = 반영할 전공 증강, ◆ 변형이면 머리에 표시) */
+function cantripCard(H: CxH, sid: SchoolId, augs: string[], gl: Set<string>) {
+  const s = SCHOOL_BY_ID[sid], cv = cantripView(sid, augs);
+  return `<div class="abil cx2-ab has-tok" style="--ab:${s.color}">${H.abTok(`cantrip.${sid}`)}<div class="ab-head"><span class="ab-kind">비술</span><b>${esc(cv.name)}</b>${cv.transform ? `<span class="psi-tf">◆ 변형됨: ${esc(cv.transform)}</span>` : ''}<span class="ab-meta">${lineIcon('a.cd', 'li')}${cv.cd}초 · ${lineIcon('a.reason', 'li')}이성 -${cv.cost}</span></div>
+    <div class="cx2-body">${AB.skillBody(cv.info, NO_CTX, 0, cv.cd, gl)}${AB.rowsHtml([['이성 소모', `${lineIcon('a.reason', 'li')}-${cv.cost}`]])}</div></div>`;
+}
+function passiveCard(H: CxH, sid: SchoolId, augs: string[], gl: Set<string>) {
+  const s = SCHOOL_BY_ID[sid], pv = passiveView(sid, augs);
+  return `<div class="abil cx2-ab has-tok" style="--ab:${s.color}">${H.abTok(`passive.${sid}`)}<div class="ab-head"><span class="ab-kind">지속</span><b>${esc(s.passive.name)}</b>${pv.transform ? `<span class="psi-tf">◆ 변형됨: ${esc(pv.transform)}</span>` : ''}</div>
+    <div class="cx2-body">${AB.rowsHtml(pv.rows.map(([k, v]) => [k, H.statIc(AB.tok(v, NO_CTX, gl))] as [string, string]))}</div></div>`;
+}
+/** ◆ 변형 증강: 바뀐 비술 · 지속 능력 카드 */
+function transformCards(H: CxH, augId: string, gl: Set<string>) {
+  const tp = transformPreview(augId);
+  if (!tp) return '';
+  return `${tp.cantrip.transform ? cantripCard(H, tp.sid, [augId], gl) : ''}${tp.passive.transform ? passiveCard(H, tp.sid, [augId], gl) : ''}`;
 }
 function unitRowBtn(H: CxH, d: UnitDef, text: string) {
   return `<button class="cx2-row" ${go(`unit:${d.id}`)}>${H.sprite(d)}<span><b>${esc(d.name)}</b> <span class="muted small">${UNIT_GROUP[d.id] ? esc(GROUPS[UNIT_GROUP[d.id]].name) : '학파 없음'}</span>${text ? `<p class="muted">${esc(text)}</p>` : ''}</span></button>`;
