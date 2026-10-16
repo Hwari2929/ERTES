@@ -187,6 +187,7 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
     synergies: new Set(memberships(u, run)),
     weapon: { ...d.weapon }, ctype: d.ctype, ttype: d.ttype, faith: u.faith || d.faith,
   });
+  if (c.synergies.has('GUARD') && !tierOf('GUARD', counts.GUARD || 0)) c.mem.guardOff = 1; // 도발 배율: 수호자 시너지가 꺼져 있으면 수호자 가산 없음
   c.mem.mnd = majors.mnd;
   applyCategory(c);
   if (d.weapon.kind === 'none') c.noAttack = true;

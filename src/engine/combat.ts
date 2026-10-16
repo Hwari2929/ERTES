@@ -279,11 +279,11 @@ export const PROV = {
   /** 거리 감쇠 (돌격형 · 저격형 · 반격형, 칸당) · 저격형 피해 점유 가중치 · 도발 수치 지수 (1 = 비례) */
   near: 0.5, snipe: 0.5, pow: 1,
 };
-/** 기물별 도발 배율: 돌격가 3, 수호자 +1.5, 소환물 (근접 1.4 · 고정 1.2 · 원거리 1.0, 돌격가 소환물 3), 은신 · 침투자 기습 중 ×0.3 */
+/** 기물별 도발 배율: 돌격가 3, 수호자 시너지가 켜지면 +1.5, 소환물 (근접 1.4 · 고정 1.2 · 원거리 1.0, 돌격가 소환물 3), 은신 · 침투자 기습 중 ×0.3 */
 export function provMult(b: Battle | null, a: CUnit): number {
   let m = a.ctype === 'VAN' ? PROV.van : 1;
   if (a.isSummon && a.ctype !== 'VAN') m = a.immobile ? PROV.sumFixed : a.atk.type === 'strike' ? PROV.sumMelee : PROV.sumRanged;
-  if (a.synergies?.has('GUARD')) m += PROV.guard;
+  if (a.synergies?.has('GUARD') && !a.mem.guardOff) m += PROV.guard; // 수호자 혼자(시너지 꺼짐)면 가산 없음
   if (a.mem.provMul) m *= a.mem.provMul;
   if (b && (b.hidden(a) || a.statuses.some((x) => x.key === 'infil.ambush'))) m *= PROV.hide;
   return m;

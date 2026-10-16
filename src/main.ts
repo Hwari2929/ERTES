@@ -2890,7 +2890,7 @@ const tendText = (e: EnemyDef) => `성향: ${TEND_NAME[e.tend].name} — ${TEND_
 /** 아군 도발 배율 한 줄 */
 function provLine(b: Battle | null, c: CUnit) {
   const m = provMult(b, c);
-  return `<div class="small muted" title="적이 이 기물에게 쌓는 도발 수치에 곱해지는 값 (돌격가 3 · 수호자 +1.5 · 그 밖 1.0, 은신 · 기습 중 ×0.3)">도발 배율 <b class="f-num">×${m.toFixed(1)}</b></div>`;
+  return `<div class="small muted" title="적이 이 기물에게 쌓는 도발 수치에 곱해지는 값 (돌격가 3 · 수호자 시너지 발동 시 +1.5 · 그 밖 1.0, 은신 · 기습 중 ×0.3)">도발 배율 <b class="f-num">×${m.toFixed(1)}</b></div>`;
 }
 /** 적: 지금 표적 + 도발 수치 상위 3명 (전투 상세) */
 function provInfo(b: Battle, u: CUnit) {
