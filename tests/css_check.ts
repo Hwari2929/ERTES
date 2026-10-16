@@ -84,7 +84,7 @@ const isTokenOnly = (v: string) => /^var\(--[\w-]+\)$/.test(v.trim());
 function literalOf(prop: string, v: string): string | null {
   if (isTokenOnly(v) || /^(inherit|initial|unset|0|50%|auto|100%)$/.test(v.trim())) return null;
   if (prop === 'z-index') return /^-?\d+$/.test(v.trim()) && !/^-?[01]$/.test(v.trim()) ? v.trim() : null; // 0 · ±1 은 국소 쌓임 (허용)
-  if (prop === 'border-radius' && /^(var\([^)]*\)\s*)+$/.test(v.trim())) return null;
+  if (prop === 'border-radius' && !/(^|[\s/])(\d*\.?\d+)(px|rem|em)\b/.test(v.replace(/var\([^)]*\)/g, ''))) return null; // 토큰 · % · 0 만으로 된 모양 값
   return v.trim();
 }
 

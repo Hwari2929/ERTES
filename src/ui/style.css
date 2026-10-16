@@ -22,6 +22,13 @@
   --c-steel: #a0b4c8;                  /* 감시 포탑 · 기계 */
   --c-divine: #ffd34d;                 /* 신성 · 성유물 금색 */
   --c-occult: #c38cff;                 /* 개조부품 기본 보라 (시너지 색이 없을 때) */
+  --c-psi: #b07cff;                    /* 사이오닉 · 이성 */
+  --c-ult: #4aa8ff;                    /* 궁극기 게이지 · 컷인 */
+  /* 상태 이상 팔레트: 버프 = 파랑 테두리, 디버프 = 빨강 테두리, 아이콘 색은 종류별 */
+  --st-buff: #5ab8ff; --st-buff-ink: #9fd4ff; --st-debuff: #ff6a6a; --st-debuff-ink: #ff9a9a; --st-chip: #14161d;
+  --st-bleed: #ff5a5a; --st-dot: #ff9a5a; --st-corrode: #e0a050; --st-slow: #7fb6ff; --st-wound: #ff7a8a; --st-vuln: #ffb0b0;
+  --st-suppress: #c9ccd4; --st-gloom: #c9a8ff; --st-burn: #ff7a3d; --st-conduct: #4fd1ff; --st-chill: #a9dcff; --st-teal: #7ff0d8;
+  --st-regen: #8fd14f; --st-power: #ffb347; --st-fear: #d6a3ff;
   --fame: #ff9de2;
   --staff: #c9b37a;
   --ally-hp: var(--c-good);
@@ -457,17 +464,17 @@ button { font: inherit; color: inherit; }
   .inv-rail { width: 100%; max-height: none; flex-direction: row; }
   .ir-items { grid-template-columns: none; grid-auto-flow: column; overflow-x: auto; }
 }
-.bars { position: absolute; left: 8%; right: 8%; top: 2%; height: 6px; background: rgba(0, 0, 0, .55); border-radius: 2px; overflow: hidden; }
+.bars { position: absolute; left: 8%; right: 8%; top: 2%; height: 6px; background: color-mix(in srgb, var(--c-black) 55%, transparent); border-radius: 2px; overflow: hidden; }
 .bars .hp { position: absolute; inset: 0 auto 0 0; background: var(--ally-hp); }
-.bars .loss { position: absolute; inset: 0 auto 0 0; background: #fff; opacity: .75; } /* 큰 피해 뒤 잠깐 남는 손실 구간 */
+.bars .loss { position: absolute; inset: 0 auto 0 0; background: var(--c-white); opacity: .75; } /* 큰 피해 뒤 잠깐 남는 손실 구간 */
 .side1 .bars .hp { background: var(--foe-hp); }
 .bars .sh { position: absolute; inset: 0 auto 0 0; background: var(--shield); opacity: .75; }
-.cd { position: absolute; left: 14%; right: 14%; bottom: 3%; height: 3px; background: rgba(0, 0, 0, .5); }
-.cd i { display: block; height: 100%; background: var(--info); }
-.gx { position: absolute; left: 14%; right: 14%; bottom: calc(3% + 4px); height: 3px; background: rgba(0, 0, 0, .5); }
-.gx i { display: block; height: 100%; width: var(--v, 0%); background: #b07cff; }
+.cd { position: absolute; left: 14%; right: 14%; bottom: 3%; height: 3px; background: color-mix(in srgb, var(--c-black) 50%, transparent); }
+.cd i { display: block; height: 100%; background: var(--c-info); }
+.gx { position: absolute; left: 14%; right: 14%; bottom: calc(3% + 4px); height: 3px; background: color-mix(in srgb, var(--c-black) 50%, transparent); }
+.gx i { display: block; height: 100%; width: var(--v, 0%); background: var(--c-psi); }
 .gx i.frenzy { background: #ff4060; }
-.gx i.div { background: #ffd34d; }
+.gx i.div { background: var(--c-divine); }
 .gx i.div.used { background: rgba(255, 211, 77, .35); }
 /* 피격 · 상태이상 시 초상화의 filter/transform 이 쌓임 맥락을 만들어도 게이지 · 배지는 항상 위 */
 .u .bars, .u .cd, .u .gx, .u .ubadge, .u .uitems, .u .sts, .u .stc, .u .rl { z-index: 2; }
@@ -475,7 +482,6 @@ button { font: inherit; color: inherit; }
 .u.lunge img { animation: lunge .2s; }
 .side1.lunge img { animation: lunge-f .2s; }
 .u.dead { opacity: 0; transition: opacity .5s; pointer-events: none; }
-.u.stunned img { filter: brightness(.6) sepia(1) hue-rotate(10deg); }
 .u.feared img { filter: hue-rotate(220deg) saturate(1.6); }
 .u.shocked .cd i { background: var(--el-elec); animation: blink .3s infinite; }
 @keyframes hit { 50% { filter: brightness(2.2); } }
@@ -483,14 +489,14 @@ button { font: inherit; color: inherit; }
 @keyframes lunge-f { 50% { transform: scaleX(-1) translateY(14%); } }
 @keyframes blink { 50% { opacity: .2; } }
 .fx-layer { position: absolute; inset: 0; pointer-events: none; z-index: 4; overflow: visible; }
-.ft { position: absolute; transform: translate(-50%, 0); font: 700 13px var(--f-mono); text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; white-space: nowrap; pointer-events: none; }
-.ft.crit { font-size: 18px; }
-.ft.graze { font-size: 11px; opacity: .8; }
-.ft.miss { color: var(--dim); font-size: 11px; }
-.ft.heal { color: var(--good); }
-.ft.shield { color: var(--shield); font-size: 11px; }
-.ft.status { color: var(--accent); font: 600 11px var(--f-body); }
-.ft.skill { color: var(--accent); font: 400 14px var(--f-display); animation-duration: 1.1s; }
+.ft { position: absolute; transform: translate(-50%, 0); font: 700 var(--fs-base) var(--f-mono); text-shadow: 1px 1px 0 var(--c-black), -1px -1px 0 var(--c-black); white-space: nowrap; pointer-events: none; }
+.ft.crit { font-size: var(--fs-xl); }
+.ft.graze { font-size: var(--fs-xs); opacity: .8; }
+.ft.miss { color: var(--c-text-2); font-size: var(--fs-xs); }
+.ft.heal { color: var(--c-good); }
+.ft.shield { color: var(--shield); font-size: var(--fs-xs); }
+.ft.status { color: var(--c-text); font: 600 var(--fs-xs) var(--f-body); }
+.ft.skill { color: var(--c-text); font: 400 var(--fs-md) var(--f-display); animation-duration: 1.1s; }
 @keyframes float { from { transform: translate(-50%, 0); opacity: 1; } to { transform: translate(-50%, -150%); opacity: 0; } }
 .proj { position: absolute; width: 6px; height: 6px; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 6px currentColor; }
 .area { position: absolute; border: 2px solid; border-radius: 14%; animation: area .6s ease-out forwards; }
@@ -500,46 +506,46 @@ button { font: inherit; color: inherit; }
 /* ── 전투 연출: 시전자 → 전달 → 대상 반응 */
 .focus-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; overflow: visible; }
 .focus-lines .fl-tgt { stroke-width: .5; stroke-dasharray: 1.4 1; vector-effect: non-scaling-stroke; stroke-width: 2px; opacity: .85; }
-.focus-lines .fl-tgt.side0 { stroke: var(--accent); } .focus-lines .fl-tgt.side1 { stroke: var(--bad); }
+.focus-lines .fl-tgt.side0 { stroke: var(--c-select); } .focus-lines .fl-tgt.side1 { stroke: var(--c-bad); }
 .focus-lines .fl-ring { fill: none; vector-effect: non-scaling-stroke; stroke-width: 2px; }
-.focus-lines .fl-ring.side0 { stroke: var(--accent); } .focus-lines .fl-ring.side1 { stroke: var(--bad); }
-.focus-lines .fl-dest { fill: none; stroke: var(--fg); stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; stroke-width: 1.5px; opacity: .7; }
-.proj2 { position: absolute; width: 18px; height: 3px; border-radius: 2px; transform: translate(-50%, -50%) rotate(var(--a)); background: linear-gradient(90deg, transparent, var(--c) 70%, #fff); box-shadow: 0 0 6px var(--c); pointer-events: none; }
+.focus-lines .fl-ring.side0 { stroke: var(--c-select); } .focus-lines .fl-ring.side1 { stroke: var(--c-bad); }
+.focus-lines .fl-dest { fill: none; stroke: var(--c-text); stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; stroke-width: 1.5px; opacity: .7; }
+.proj2 { position: absolute; width: 18px; height: 3px; border-radius: 2px; transform: translate(-50%, -50%) rotate(var(--a)); background: linear-gradient(90deg, transparent, var(--c) 70%, var(--c-white)); box-shadow: 0 0 6px var(--c); pointer-events: none; }
 .proj2.focus { height: 4px; width: 24px; }
 .impact { position: absolute; width: 4.5%; aspect-ratio: 1; border-radius: 50%; border: 2px solid var(--c); box-shadow: 0 0 8px var(--c); pointer-events: none; }
-.slash { position: absolute; width: 7%; height: 3px; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--c), #fff, var(--c), transparent); pointer-events: none; transform-origin: center; }
+.slash { position: absolute; width: 7%; height: 3px; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--c), var(--c-white), var(--c), transparent); pointer-events: none; transform-origin: center; }
 .orb { position: absolute; width: 10px; height: 10px; border-radius: 50%; pointer-events: none; }
-.orb.heal { background: radial-gradient(circle, #fff 0 25%, var(--good) 55%, transparent 72%); box-shadow: 0 0 8px var(--good); }
+.orb.heal { background: radial-gradient(circle, var(--c-white) 0 25%, var(--c-good) 55%, transparent 72%); box-shadow: 0 0 8px var(--c-good); }
 .orb.shield { background: transparent; border: 2px solid var(--shield); transform: rotate(45deg); border-radius: 2px; box-shadow: 0 0 6px var(--shield); }
-.cic { position: absolute; font: 700 12px var(--f-mono); width: 16px; height: 16px; display: grid; place-items: center; border-radius: 50%; pointer-events: none; z-index: 2; }
-.cic.heal { background: var(--good); color: #0c1a12; } .cic.shield { background: var(--shield); color: #1b1a17; }
-.rise { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: var(--good); box-shadow: 0 0 5px var(--good); pointer-events: none; }
-.shring { position: absolute; width: 8.5%; aspect-ratio: 1; border-radius: 10px; border: 2px solid var(--shield); box-shadow: 0 0 10px var(--shield), inset 0 0 8px color-mix(in srgb, var(--shield) 50%, transparent); pointer-events: none; }
+.cic { position: absolute; font: 700 var(--fs-sm) var(--f-mono); width: 16px; height: 16px; display: grid; place-items: center; border-radius: 50%; pointer-events: none; z-index: 2; }
+.cic.heal { background: var(--c-good); color: #0c1a12; } .cic.shield { background: var(--shield); color: #1b1a17; }
+.rise { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: var(--c-good); box-shadow: 0 0 5px var(--c-good); pointer-events: none; }
+.shring { position: absolute; width: 8.5%; aspect-ratio: 1; border-radius: var(--r-lg); border: 2px solid var(--shield); box-shadow: 0 0 10px var(--shield), inset 0 0 8px color-mix(in srgb, var(--shield) 50%, transparent); pointer-events: none; }
 .shring.gold { border-color: var(--el-holy); box-shadow: 0 0 14px var(--el-holy); }
-.shbreak { position: absolute; width: 8.5%; aspect-ratio: 1; border-radius: 10px; border: 2px dashed var(--shield); pointer-events: none; }
-.buffland { position: absolute; color: var(--accent); font: 700 12px var(--f-mono); text-shadow: 0 0 4px #000; pointer-events: none; }
-.skb { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 2px 7px 3px; border-radius: 4px; white-space: nowrap; pointer-events: none; z-index: 5;
-  background: rgb(14 16 22 / .82); border: 1px solid rgb(255 255 255 / .75); box-shadow: 0 2px 8px rgb(0 0 0 / .5); }
-.skb b { font: 400 13px var(--f-display); color: #fff; letter-spacing: .02em; }
-.skb small { font: 600 10px var(--f-body); color: #d8dbe4; }
+.shbreak { position: absolute; width: 8.5%; aspect-ratio: 1; border-radius: var(--r-lg); border: 2px dashed var(--shield); pointer-events: none; }
+.buffland { position: absolute; color: var(--st-buff-ink); font: 700 var(--fs-sm) var(--f-mono); text-shadow: 0 0 4px var(--c-black); pointer-events: none; }
+.skb { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 2px 7px 3px; border-radius: var(--r-sm); white-space: nowrap; pointer-events: none; z-index: 5;
+  background: rgb(14 16 22 / .82); border: 1px solid color-mix(in srgb, var(--c-white) 75%, transparent); box-shadow: 0 2px 8px color-mix(in srgb, var(--c-black) 50%, transparent); }
+.skb b { font: 400 var(--fs-base) var(--f-display); color: var(--c-white); letter-spacing: .02em; }
+.skb small { font: 600 var(--fs-2xs) var(--f-body); color: #d8dbe4; }
 .skb.dimf, .ft.dimf { opacity: .45 !important; }
-.ft.focus { font-size: 15px; z-index: 6; }
-.ft.dmg.sm { font-size: 10.5px; font-weight: 600; }
-.ft.dot { font-size: 10px; opacity: .9; }
-.ft.status.harm { color: #d6a3ff; }
+.ft.focus { font-size: var(--fs-lg); z-index: 6; }
+.ft.dmg.sm { font-size: var(--fs-xs); font-weight: 600; }
+.ft.dot { font-size: var(--fs-2xs); opacity: .9; }
+.ft.status.harm { color: var(--st-fear); }
 .ft.status.gift { color: var(--el-holy); }
-.ft.mark { font: 400 15px var(--f-display); letter-spacing: .03em; }
-.ft.mark.revive, .ft.mark.immortal { color: var(--el-holy); } .ft.mark.rewind { color: #8fd3ff; } .ft.mark.execute { color: var(--bad); font-size: 17px; }
-.ft.mark-sh { color: var(--shield); font: 600 10px var(--f-body); }
+.ft.mark { font: 400 var(--fs-lg) var(--f-display); letter-spacing: .03em; }
+.ft.mark.revive, .ft.mark.immortal { color: var(--el-holy); } .ft.mark.rewind { color: #8fd3ff; } .ft.mark.execute { color: var(--c-bad); font-size: var(--fs-lg); }
+.ft.mark-sh { color: var(--shield); font: 600 var(--fs-2xs) var(--f-body); }
 .area2 { position: absolute; pointer-events: none; border-radius: 14%; }
 .area2.atk { border: 2px solid var(--c); background: radial-gradient(circle, color-mix(in srgb, var(--c) 30%, transparent), transparent 70%); }
-.area2.heal { border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--good) 40%, transparent), transparent 70%); }
-.area2.aura { border-radius: 3px; border: 1px solid color-mix(in srgb, var(--good) 30%, transparent); background: color-mix(in srgb, var(--good) 9%, transparent); }
+.area2.heal { border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--c-good) 40%, transparent), transparent 70%); }
+.area2.aura { border-radius: var(--r-sm); border: 1px solid color-mix(in srgb, var(--c-good) 30%, transparent); background: color-mix(in srgb, var(--c-good) 9%, transparent); }
 .area2.buff { border: 2px dashed #f2f4f8; border-radius: 50%; }
 .rewind { position: absolute; width: 10%; aspect-ratio: 1; border-radius: 50%; pointer-events: none; border: 3px solid transparent; border-top-color: #8fd3ff; border-left-color: #8fd3ff; box-shadow: 0 0 12px #8fd3ff; }
 .pillar { position: absolute; width: 5%; height: 26%; pointer-events: none; transform-origin: bottom; background: linear-gradient(to top, color-mix(in srgb, var(--el-holy) 85%, transparent), transparent); filter: blur(1px); }
-.exec { position: absolute; font: 700 34px var(--f-mono); color: var(--bad); text-shadow: 0 0 10px var(--bad), 0 0 2px #000; pointer-events: none; }
-.tool { position: absolute; font-size: 20px; color: var(--accent); text-shadow: 0 0 6px #000; pointer-events: none; }
+.exec { position: absolute; font: 700 34px var(--f-mono); color: var(--c-bad); text-shadow: 0 0 10px var(--c-bad), 0 0 2px var(--c-black); pointer-events: none; }
+.tool { position: absolute; font-size: var(--fs-2xl); color: var(--c-text); text-shadow: 0 0 6px var(--c-black); pointer-events: none; }
 .gift-fly { position: absolute; pointer-events: none; z-index: 5; } .gift-fly .item { transform: scale(.8); box-shadow: 0 0 10px var(--el-holy); }
 /* 필드 상태 토큰: 디버프 = 카드 왼쪽 가장자리 세로 줄 (원 · 빨강 테두리), 버프 = 오른쪽 세로 줄 (각진 칸 · 파랑 테두리)
    카드 가장자리에 걸쳐 (바깥 55%) 초상 얼굴 · 체력바를 가리지 않는다. 한 줄 최대 3칸, 칸 크기는 칸 폭에 비례 (9 ~ 13px) */
@@ -550,26 +556,26 @@ button { font: inherit; color: inherit; }
 .u.tkb .sts { top: 8px; }
 .u.tkb .sts.deb { left: calc(var(--sts) * -.55); }
 .u.tkb .sts.buf { right: calc(var(--sts) * -.55); }
-.sts i { position: relative; box-sizing: border-box; width: var(--sts); height: var(--sts); display: grid; place-items: center; background: #14161d; box-shadow: 0 1px 2px #000; font-style: normal; }
-.sts.deb i { border-radius: 50%; border: 1px solid #ff6a6a; color: #ff9a9a; }
-.sts.buf i { border-radius: 2px; border: 1px solid #5ab8ff; color: #9fd4ff; }
+.sts i { position: relative; box-sizing: border-box; width: var(--sts); height: var(--sts); display: grid; place-items: center; background: var(--st-chip); box-shadow: 0 1px 2px var(--c-black); font-style: normal; }
+.sts.deb i { border-radius: 50%; border: 1px solid var(--st-debuff); color: var(--st-debuff-ink); }
+.sts.buf i { border-radius: 2px; border: 1px solid var(--st-buff); color: var(--st-buff-ink); }
 .sts i svg { width: 70%; height: 70%; fill: currentColor; }
-.sts i b { position: absolute; right: -4px; bottom: -3px; min-width: 7px; padding: 0 1px; border-radius: 3px; background: rgb(0 0 0 / .85); color: #fff; font: 700 8px/9px var(--f-mono); text-align: center; }
-.sts i.sts-more { border-style: dashed; color: #f0f2f6; font: 700 calc(var(--sts) * .6)/1 var(--f-mono); letter-spacing: -.5px; }
+.sts i b { position: absolute; right: -4px; bottom: -3px; min-width: 7px; padding: 0 1px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--c-black) 85%, transparent); color: var(--c-white); font: 700 8px/9px var(--f-mono); text-align: center; }
+.sts i.sts-more { border-style: dashed; color: var(--c-chalk); font: 700 calc(var(--sts) * .6)/1 var(--f-mono); letter-spacing: -.5px; }
 /* 디버프 아이콘 색 (테두리는 공통 빨강) */
-.sts .sts-shock { color: var(--el-elec); } .sts .sts-bleed { color: #ff5a5a; } .sts .sts-poison { color: var(--el-chem); } .sts .sts-dot { color: #ff9a5a; }
-.sts .sts-judge { color: var(--el-holy); } .sts .sts-corrode, .sts .sts-shred { color: #e0a050; } .sts .sts-slow { color: #7fb6ff; } .sts .sts-wound { color: #ff7a8a; }
-.sts .sts-vuln { color: #ffb0b0; } .sts .sts-suppress { color: #c9ccd4; } .sts .sts-gloom { color: #c9a8ff; }
-.sts .sts-burn { color: #ff7a3d; } .sts .sts-conduct { color: #4fd1ff; } .sts .sts-chill { color: #a9dcff; }
-.sts .sts-bond { color: #b07cff; } .sts .sts-resonance { color: #7ff0d8; } .sts .sts-confuse { color: #ffd34d; } .sts .sts-scent { color: #ff9de2; }
+.sts .sts-shock { color: var(--el-elec); } .sts .sts-bleed { color: var(--st-bleed); } .sts .sts-poison { color: var(--el-chem); } .sts .sts-dot { color: var(--st-dot); }
+.sts .sts-judge { color: var(--el-holy); } .sts .sts-corrode, .sts .sts-shred { color: var(--st-corrode); } .sts .sts-slow { color: var(--st-slow); } .sts .sts-wound { color: var(--st-wound); }
+.sts .sts-vuln { color: var(--st-vuln); } .sts .sts-suppress { color: var(--st-suppress); } .sts .sts-gloom { color: var(--st-gloom); }
+.sts .sts-burn { color: var(--st-burn); } .sts .sts-conduct { color: var(--st-conduct); } .sts .sts-chill { color: var(--st-chill); }
+.sts .sts-bond { color: var(--c-psi); } .sts .sts-resonance { color: var(--st-teal); } .sts .sts-confuse { color: var(--c-divine); } .sts .sts-scent { color: var(--fame); }
 /* 버프 아이콘 색 (테두리는 공통 파랑) */
-.sts .sts-regen { color: #8fd14f; } .sts .sts-power { color: #ffb347; } .sts .sts-guard { color: #9fd4ff; } .sts .sts-haste { color: #7ff0d8; }
+.sts .sts-regen { color: var(--st-regen); } .sts .sts-power { color: var(--st-power); } .sts .sts-guard { color: var(--st-buff-ink); } .sts .sts-haste { color: var(--st-teal); }
 /* 상태 줄과 겹치지 않게: 이성 막대 · 소마법 고리 · 재장전 고리를 줄 안쪽으로 */
 .u.tkb .gx { right: calc(var(--sts) * .45 + 1px); }
 .u.tkb .cpi { left: calc(var(--sts) * .45 + 1px); }
 .u.tkb .rl { right: calc(var(--sts) * .45 + 1px); }
 /* 감시 포탑: 우측 상단 '기계' 배지 (편성 토큰의 분류 칸과 같은 모양) — 버프 줄은 배지 아래부터 */
-.u.tkb .tk-cat { position: absolute; top: 8px; right: calc(var(--sts) * -.55); box-sizing: border-box; width: var(--sts); height: var(--sts); display: grid; place-items: center; border-radius: 2px; border: 1px solid color-mix(in srgb, #8fc8ff 45%, transparent); background: rgb(10 12 18 / .85); box-shadow: 0 1px 2px #000; z-index: 2; pointer-events: none; }
+.u.tkb .tk-cat { position: absolute; top: 8px; right: calc(var(--sts) * -.55); box-sizing: border-box; width: var(--sts); height: var(--sts); display: grid; place-items: center; border-radius: 2px; border: 1px solid color-mix(in srgb, #8fc8ff 45%, transparent); background: color-mix(in srgb, var(--c-ink) 85%, transparent); box-shadow: 0 1px 2px var(--c-black); z-index: 2; pointer-events: none; }
 .u.tkb .tk-cat .li { width: 80%; height: 80%; }
 .u.tkb.has-cat .sts.buf { top: calc(9px + var(--sts)); }
 .u.tkb.edge-l .sts.deb { left: 1px; }
@@ -580,16 +586,16 @@ button { font: inherit; color: inherit; }
 .u.stunned img { filter: grayscale(.7) brightness(.65); }
 /* 행동 불가 상태: 초상화 중앙 큰 표식 */
 .stc { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
-.stc i { display: grid; place-items: center; width: 58%; aspect-ratio: 1; border-radius: 50%; background: rgb(10 12 18 / .72); border: 2px solid currentColor; box-shadow: 0 0 12px currentColor, 0 2px 6px #000; }
+.stc i { display: grid; place-items: center; width: 58%; aspect-ratio: 1; border-radius: 50%; background: color-mix(in srgb, var(--c-ink) 72%, transparent); border: 2px solid currentColor; box-shadow: 0 0 12px currentColor, 0 2px 6px var(--c-black); }
 .stc i svg { width: 62%; height: 62%; fill: currentColor; }
-.stc .stc-stun { color: #ffd34d; } .stc .stc-stun svg { animation: sti-spin 1.6s linear infinite; }
-.stc .stc-fear { color: #d6a3ff; }
+.stc .stc-stun { color: var(--c-divine); } .stc .stc-stun svg { animation: sti-spin 1.6s linear infinite; }
+.stc .stc-fear { color: var(--st-fear); }
 .rl { position: absolute; right: 0; bottom: 6%; width: 20px; height: 20px; pointer-events: none; display: grid; place-items: center;
-  border-radius: 50%; background: rgb(14 16 22 / .85); box-shadow: 0 1px 4px rgb(0 0 0 / .7); }
+  border-radius: 50%; background: rgb(14 16 22 / .85); box-shadow: 0 1px 4px color-mix(in srgb, var(--c-black) 70%, transparent); }
 /* 굵은 원형 진행선 + 가운데 탄약 아이콘 */
-.rl .rl-ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#fff var(--p, 0%), rgb(255 255 255 / .16) 0);
-  -webkit-mask: radial-gradient(circle, transparent 54%, #000 56%); mask: radial-gradient(circle, transparent 54%, #000 56%); }
-.rl svg { position: relative; width: 7px; height: 11px; fill: #fff; transform: rotate(45deg); }
+.rl .rl-ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(var(--c-white) var(--p, 0%), color-mix(in srgb, var(--c-white) 16%, transparent) 0);
+  -webkit-mask: radial-gradient(circle, transparent 54%, var(--c-black) 56%); mask: radial-gradient(circle, transparent 54%, var(--c-black) 56%); }
+.rl svg { position: relative; width: 7px; height: 11px; fill: var(--c-white); transform: rotate(45deg); }
 .rl[hidden] { display: none; }
 .board-in.paused .cells { filter: saturate(.6); }
 /* 정지: CSS 애니메이션(기절 회전 · 감전 점멸 · 폭발 등)도 함께 멈춘다 */
@@ -597,11 +603,11 @@ button { font: inherit; color: inherit; }
 .speed .pause { min-width: 28px; }
 /* 상세: 행동 상태 */
 .act-state { display: grid; gap: 4px; margin: 6px 0; }
-.as-why { margin: 0; font-size: 12px; font-weight: 600; color: var(--accent); } .as-why.bad { color: var(--bad); }
-.as-row { display: grid; grid-template-columns: 5.2em 1fr 3.4em; gap: 6px; align-items: center; font-size: 11px; }
-.as-bar { height: 5px; border-radius: 3px; background: var(--panel-2); overflow: hidden; } .as-bar i { display: block; height: 100%; }
-.as-row.sk .as-bar i { background: var(--info); } .as-row.rl .as-bar i, .as-row.ammo .as-bar i { background: #f2f4f8; } .as-row.atk .as-bar i { background: var(--fg); opacity: .7; }
-.as-log { margin: 2px 0 6px; padding-left: 1.3em; font-size: 12px; display: grid; gap: 2px; } .as-log li:first-child { color: var(--accent); }
+.as-why { margin: 0; font-size: var(--fs-sm); font-weight: 600; color: var(--c-text); } .as-why.bad { color: var(--c-bad); }
+.as-row { display: grid; grid-template-columns: 5.2em 1fr 3.4em; gap: 6px; align-items: center; font-size: var(--fs-xs); }
+.as-bar { height: 5px; border-radius: var(--r-sm); background: var(--panel-2); overflow: hidden; } .as-bar i { display: block; height: 100%; }
+.as-row.sk .as-bar i { background: var(--c-info); } .as-row.rl .as-bar i, .as-row.ammo .as-bar i { background: #f2f4f8; } .as-row.atk .as-bar i { background: var(--c-text); opacity: .7; }
+.as-log { margin: 2px 0 6px; padding-left: 1.3em; font-size: var(--fs-sm); display: grid; gap: 2px; } .as-log li:first-child { color: var(--c-text); }
 
 
 /* ── 상점 · 정비 · 합성 공방 + 장비 칸 (보관함 · 장비 아이콘 · 장비 말풍선 · 보관 물품 팝업 공용)
@@ -690,11 +696,11 @@ button { font: inherit; color: inherit; }
 
 /* ── 전투 측면 */
 .meter { display: grid; gap: 4px; }
-.mrow { display: grid; grid-template-columns: 24px minmax(0, 1fr) 70px auto; gap: 6px; align-items: center; font-size: .78rem; }
+.mrow { display: grid; grid-template-columns: 24px minmax(0, 1fr) 70px auto; gap: 6px; align-items: center; cursor: pointer; font-size: var(--fs-sm); }
 .mrow .spr { width: 24px; height: 24px; }
 .mrow.dead { opacity: .4; }
 .mname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.heal-t { color: var(--good); grid-column: 2 / -1; text-align: right; margin-top: -4px; }
+.heal-t { color: var(--c-good); grid-column: 2 / -1; text-align: right; margin-top: -4px; }
 
 /* ── 모달 */
 .modal-bg { position: fixed; inset: 0; z-index: 50; background: var(--overlay); display: grid; place-items: center; padding: 16px; }
@@ -759,17 +765,16 @@ textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--fg
 .down { color: #ff7a7a; }
 /* 전투 기록 */
 .meter-tabs { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 6px; }
-.mrow { cursor: pointer; }
-.mrow.sel { outline: 1px solid var(--accent); border-radius: 4px; }
+.mrow.sel { outline: 1px solid var(--c-select); border-radius: var(--r-sm); }
 .mbar { position: relative; }
 .mbar .ebar { position: absolute; inset: 0; opacity: .25; }
 .mbar .fill { position: relative; }
-.ebar { display: flex; height: 8px; min-width: 60px; border-radius: 3px; overflow: hidden; background: var(--panel-2); }
+.ebar { display: flex; height: 8px; min-width: 60px; border-radius: var(--r-sm); overflow: hidden; background: var(--panel-2); }
 .ebar i { display: block; height: 100%; }
 .bunit { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
-.bunit h3 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: .9rem; }
+.bunit h3 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: var(--fs-md); }
 .bitems { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
-.bitems li { display: flex; gap: 6px; align-items: flex-start; font-size: .8rem; }
+.bitems li { display: flex; gap: 6px; align-items: flex-start; font-size: var(--fs-base); }
 .elegend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 .elegend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 3px; }
 /* 도감 */
@@ -1124,8 +1129,8 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .rank { display: inline-flex; align-items: center; gap: 1px; }
 /* 전투 화면 아군 토큰: 초상화만 (우하단은 버프 자리로 비워 둠) */
 .u.tkb { display: flex; align-items: center; justify-content: center; }
-.u.tkb .tk-card { position: relative; width: 80%; aspect-ratio: 1; border-radius: 3px; box-shadow: 0 0 0 1px rgb(240 242 246 / .35), 0 2px 6px rgb(0 0 0 / .5); }
-.u.tkb .tk-card img.pt { width: 100%; height: 100%; border-radius: 3px; box-shadow: none; }
+.u.tkb .tk-card { position: relative; width: 80%; aspect-ratio: 1; border-radius: var(--r-sm); box-shadow: 0 0 0 1px color-mix(in srgb, var(--c-chalk) 35%, transparent), 0 2px 6px color-mix(in srgb, var(--c-black) 50%, transparent); }
+.u.tkb .tk-card img.pt { width: 100%; height: 100%; border-radius: var(--r-sm); box-shadow: none; }
 .u.tkb .bars { top: 2px; left: 4%; right: 4%; height: 5px; }
 .u.tkb .cd { left: 4%; right: 12%; bottom: 2px; }
 .u.tkb .gx { left: auto; right: 2px; top: 10px; bottom: 6px; width: 4px; height: auto; display: flex; align-items: flex-end; }
@@ -1207,10 +1212,10 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .rc-parts { display: grid; grid-template-columns: auto auto; gap: 2px 6px; align-items: center; justify-items: start; }
 .rc-parts .item { width: 24px; height: 24px; font-size: 11px; cursor: default; }
 /* 적 · 소환물 토큰: 아군과 같은 카드, 적은 빨간 테두리 */
-.u.side1.tkb .tk-card { box-shadow: 0 0 0 1px color-mix(in srgb, var(--bad) 85%, transparent), 0 2px 6px rgb(0 0 0 / .5); }
+.u.side1.tkb .tk-card { box-shadow: 0 0 0 1px color-mix(in srgb, var(--c-bad) 85%, transparent), 0 2px 6px color-mix(in srgb, var(--c-black) 50%, transparent); }
 .u.side1.tkb img.pt { transform: none; }
-.u.side1.tkb .bars .hp { background: var(--bad); }
-.u.tkb.big .tk-card, .u.tk.big .tk-card { outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 1px; }
+.u.side1.tkb .bars .hp { background: var(--c-bad); }
+.u.tkb.big .tk-card, .u.tk.big .tk-card { outline: 2px solid color-mix(in srgb, var(--c-bad) 60%, transparent); outline-offset: 1px; } /* 큰 적 (보스 · 엘리트) */
 /* 분기점 */
 .br-card { align-items: center; text-align: center; }
 .br-card .br-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2); margin: 0 auto 4px; }
@@ -1219,32 +1224,32 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 /* 전투 중 상세 정보 */
 .battle .board .u { cursor: pointer; }
 .battle .board .u.sel { z-index: 3; }
-.battle .board .u.sel::after { content: ''; position: absolute; inset: 6%; border-radius: 6px; box-shadow: 0 0 0 2px var(--fg), 0 0 10px rgb(240 242 246 / .6); pointer-events: none; }
+.battle .board .u.sel::after { content: ''; position: absolute; inset: 6%; border-radius: var(--r-md); box-shadow: 0 0 0 2px var(--c-text), 0 0 10px color-mix(in srgb, var(--c-chalk) 60%, transparent); pointer-events: none; }
 .battle .bunit { margin-top: 0; border-top: 0; padding-top: 0; }
 .bs-hp { display: grid; gap: 3px; margin: 8px 0 2px; }
-.bs-bar { position: relative; height: 8px; border-radius: 4px; background: var(--panel-2); overflow: hidden; }
-.bs-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--good); border-radius: 4px; }
-.bs-bar i.sh { background: rgb(240 242 246 / .75); height: 3px; top: auto; }
+.bs-bar { position: relative; height: 8px; border-radius: var(--r-sm); background: var(--panel-2); overflow: hidden; }
+.bs-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c-good); border-radius: var(--r-sm); }
+.bs-bar i.sh { background: color-mix(in srgb, var(--c-chalk) 75%, transparent); height: 3px; top: auto; }
 .bs-stats { margin-top: 6px; }
-.bunit .d-eq .tk-it { padding: 0; border: 0; background: none; cursor: pointer; border-radius: 6px; }
-.bunit .d-eq .tk-it.on .item { box-shadow: 0 0 0 2px var(--fg); }
+.bunit .d-eq .tk-it { padding: 0; border: 0; background: none; cursor: pointer; border-radius: var(--r-md); }
+.bunit .d-eq .tk-it.on .item { box-shadow: 0 0 0 2px var(--c-text); }
 /* 버프 · 디버프: 파랑 / 빨강 / 흰색, 한 줄 8개 · 최대 2줄 */
 .bf-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
-.bf { --c: var(--fg); position: relative; aspect-ratio: 1; display: grid; place-items: center; padding: 0; border-radius: 5px; cursor: pointer;
+.bf { --c: var(--c-text); position: relative; aspect-ratio: 1; display: grid; place-items: center; padding: 0; border-radius: var(--r-sm); cursor: pointer;
   border: 1.5px solid var(--c); color: var(--c); background: color-mix(in srgb, var(--c) 14%, var(--panel-2)); }
 .bf .li { width: 64%; height: 64%; }
-.bf-more { --c: var(--dim); font-size: .7rem; font-weight: 700; cursor: default; }
-.bf b { position: absolute; right: 1px; bottom: 0; font-size: .62rem; line-height: 1; color: var(--fg); text-shadow: 0 1px 2px #000; }
+.bf-more { --c: var(--c-text-2); font-size: var(--fs-xs); font-weight: 700; cursor: default; }
+.bf b { position: absolute; right: 1px; bottom: 0; font-size: var(--fs-2xs); line-height: 1; color: var(--c-text); text-shadow: 0 1px 2px var(--c-black); }
 .bf.on { box-shadow: 0 0 0 2px var(--c); }
-.bf-buff { --c: var(--info); }
-.bf-debuff { --c: var(--bad); }
-.bf-odd { --c: #f0f2f6; }
-.bf-info { --c: var(--line); display: grid; gap: 2px; margin-top: 6px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--c); background: var(--panel-2); }
-.bf-info.bf-buff { --c: var(--info); } .bf-info.bf-debuff { --c: var(--bad); } .bf-info.bf-odd { --c: #f0f2f6; }
+.bf-buff { --c: var(--c-info); }
+.bf-debuff { --c: var(--c-bad); }
+.bf-odd { --c: var(--c-chalk); }
+.bf-info { --c: var(--line); display: grid; gap: 2px; margin-top: 6px; padding: 6px 8px; border-radius: var(--r-md); border: 1px solid var(--c); background: var(--panel-2); }
+.bf-info.bf-buff { --c: var(--c-info); } .bf-info.bf-debuff { --c: var(--c-bad); } .bf-info.bf-odd { --c: var(--c-chalk); }
 .bf-ih { display: flex; align-items: baseline; gap: 8px; }
 .bf-ih .small { color: var(--c); margin-left: auto; }
 .bf-none { margin: 2px 0; }
-.bslow { font-size: .72rem; color: var(--info); border: 1px solid var(--info); border-radius: 4px; padding: 0 6px; }
+.bslow { font-size: var(--fs-xs); color: var(--c-info); border: 1px solid var(--c-info); border-radius: var(--r-sm); padding: 0 6px; }
 .bslow[hidden] { display: none; }
 .menu-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
 .pref { display: flex; gap: 10px; align-items: flex-start; padding: 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
@@ -1382,7 +1387,7 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .sp-tiers li.on b { background: var(--c); color: var(--accent-ink); }
 .sp-tiers li.cur { color: var(--fg); background: color-mix(in srgb, var(--c) 14%, transparent); border-radius: 4px; box-shadow: inset 2px 0 0 var(--c); }
 /* 전투 보드: 배치 구역만 보이는 창 + 전체 전장(테두리 포함)을 끌어서 보기 */
-.bview { overflow: hidden; border-radius: 6px; touch-action: none; cursor: grab; }
+.bview { overflow: hidden; border-radius: var(--r-md); touch-action: none; cursor: grab; }
 .bview.panning { cursor: grabbing; }
 .board-in { position: absolute; width: calc(var(--fw) / var(--w) * 100%); height: calc(var(--fh) / var(--h) * 100%); left: calc(-100% * var(--ox, 1) / var(--w)); top: calc(-100% / var(--h)); will-change: transform; }
 .board-in .cells { grid-template-columns: repeat(var(--fw), 1fr); grid-template-rows: repeat(var(--fh), 1fr); }
@@ -1399,7 +1404,6 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .d-hero .dh-syn { top: 8px; left: 8px; z-index: 3; }
 /* 상세 보기: 마름모만 (이름 · 단계는 눌러서) */
 .dh-syn .syn-lv { display: none; }
-.board-in { transition: top .6s cubic-bezier(.4, 0, .2, 1); }
 .board-in { transition: top .6s cubic-bezier(.4, 0, .2, 1), left .6s cubic-bezier(.4, 0, .2, 1); }
 /* 전체 보기: 테두리 포함 전장 전체를 축소 */
 .bview.full .board-in { left: 0; top: 0; width: 100%; height: 100%; }
@@ -1797,15 +1801,15 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 /* 시너지 자체 효과 집계 줄 */
 .syn-src { display: inline-grid; place-items: center; width: 18px; height: 18px; flex: none; vertical-align: middle; }
 .syn-src svg { width: 16px; height: 16px; }
-.mrow-h { margin: 8px 0 2px; font-size: .7rem; letter-spacing: .08em; color: var(--muted); border-top: 1px solid var(--line); padding-top: 6px; }
+.mrow-h { margin: 8px 0 2px; font-size: var(--fs-xs); letter-spacing: .08em; color: var(--c-text-2); border-top: 1px solid var(--line); padding-top: 6px; }
 .mrow.syn { cursor: default; }
 
 /* 스텔라레이서 비행선 추락 연출 */
 .crash-ship { position: absolute; z-index: 8; width: 110px; height: 18px; margin: -9px 0 0 -100px; transform-origin: 100px 50%; transform: rotate(var(--a)); pointer-events: none;
-  border-radius: 6px 50% 50% 6px; background: linear-gradient(90deg, transparent, rgba(255, 106, 61, .25) 25%, #ff6a3d 70%, #ffe7c2 92%, #fff);
+  border-radius: var(--r-md) 50% 50% var(--r-md); background: linear-gradient(90deg, transparent, rgba(255, 106, 61, .25) 25%, #ff6a3d 70%, #ffe7c2 92%, var(--c-white));
   box-shadow: 0 0 12px #ff6a3d, 0 0 26px rgba(255, 106, 61, .6); }
 .crash-boom { position: absolute; z-index: 7; width: 70%; aspect-ratio: 1.6; translate: -50% -50%; pointer-events: none; border-radius: 50%;
-  background: radial-gradient(closest-side, #fff 0 8%, #ffd2a0 18%, rgba(255, 106, 61, .75) 38%, rgba(255, 106, 61, .25) 62%, transparent 72%);
+  background: radial-gradient(closest-side, var(--c-white) 0 8%, #ffd2a0 18%, rgba(255, 106, 61, .75) 38%, rgba(255, 106, 61, .25) 62%, transparent 72%);
   animation: crash-boom .85s ease-out forwards; }
 .crash-boom::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 3px solid #ff6a3d; animation: crash-ring .7s ease-out forwards; }
 @keyframes crash-boom { 0% { transform: scale(.2); opacity: 1; } 35% { opacity: 1; } 100% { transform: scale(1.15); opacity: 0; } }
@@ -1950,30 +1954,30 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 
 /* ── 사망 · 처형 · 전투 종료 연출 */
 .u.dead.instant { transition: none; }
-.half { position: absolute; pointer-events: none; z-index: 4; border-radius: 3px; overflow: hidden; }
+.half { position: absolute; pointer-events: none; z-index: 4; border-radius: var(--r-sm); overflow: hidden; }
 .half img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .half.l { clip-path: polygon(0 0, 62% 0, 38% 100%, 0 100%); }
 .half.r { clip-path: polygon(62% 0, 100% 0, 100% 100%, 38% 100%); }
-.cutline { position: absolute; height: 3px; border-radius: 2px; pointer-events: none; z-index: 5; background: linear-gradient(90deg, transparent, #fff 20%, #fff 80%, transparent); box-shadow: 0 0 10px #fff, 0 0 18px var(--bad); }
-.skull { position: absolute; width: 4.2%; min-width: 30px; aspect-ratio: 1; pointer-events: none; z-index: 6; filter: drop-shadow(0 0 8px var(--bad)) drop-shadow(0 2px 3px #000); }
+.cutline { position: absolute; height: 3px; border-radius: 2px; pointer-events: none; z-index: 5; background: linear-gradient(90deg, transparent, var(--c-white) 20%, var(--c-white) 80%, transparent); box-shadow: 0 0 10px var(--c-white), 0 0 18px var(--c-bad); }
+.skull { position: absolute; width: 4.2%; min-width: 30px; aspect-ratio: 1; pointer-events: none; z-index: 6; filter: drop-shadow(0 0 8px var(--c-bad)) drop-shadow(0 2px 3px var(--c-black)); }
 .skull svg { width: 100%; height: 100%; fill: #f4f1ea; }
 /* 사망 연출 (battleview deathFx): 모든 요소는 카드 크기 · 카드 중앙 기준 */
 .dfx, .dslash, .dring, .dflash, .dmote { position: absolute; pointer-events: none; z-index: 5; }
-.dfx { border-radius: 3px; overflow: hidden; }
+.dfx { border-radius: var(--r-sm); overflow: hidden; }
 .dfx img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .dfx img.px { image-rendering: pixelated; object-fit: contain; }
-.dshard { box-shadow: inset 0 0 0 1px rgb(255 255 255 / .35); }
+.dshard { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-white) 35%, transparent); }
 .dglitch { filter: drop-shadow(3px 0 0 rgb(0 255 240 / .8)) drop-shadow(-3px 0 0 rgb(255 0 200 / .8)); }
-.dsoul { overflow: visible; filter: grayscale(1) sepia(1) hue-rotate(225deg) saturate(3) brightness(1.5) blur(.6px) drop-shadow(0 0 8px #b07cff); mix-blend-mode: screen; }
-.dslash { height: 4px !important; border-radius: 2px; background: linear-gradient(90deg, transparent, #fff 12%, #fff 88%, transparent); box-shadow: 0 0 6px #fff, 0 0 14px rgb(255 255 255 / .6); }
-.dring { border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 10px #fff, inset 0 0 8px rgb(255 255 255 / .5); }
-.dring.psi { border-color: #c9a8ff; box-shadow: 0 0 12px #b07cff, inset 0 0 10px #b07cff; }
-.dflash { border-radius: 50%; background: radial-gradient(circle, #fff 0 30%, rgb(160 230 255 / .8) 50%, transparent 70%); mix-blend-mode: screen; }
-.dmote::before { content: ''; position: absolute; left: var(--mx, 50%); top: var(--my, 50%); width: 3px; height: 3px; border-radius: 1px; background: #e8fbff; box-shadow: 0 0 6px #9fe8ff, 0 0 2px #fff; }
-.finale { position: absolute; left: 50%; top: 50%; z-index: 20; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 90px 14px;
+.dsoul { overflow: visible; filter: grayscale(1) sepia(1) hue-rotate(225deg) saturate(3) brightness(1.5) blur(.6px) drop-shadow(0 0 8px var(--c-psi)); mix-blend-mode: screen; }
+.dslash { height: 4px !important; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--c-white) 12%, var(--c-white) 88%, transparent); box-shadow: 0 0 6px var(--c-white), 0 0 14px color-mix(in srgb, var(--c-white) 60%, transparent); }
+.dring { border-radius: 50%; border: 2px solid var(--c-white); box-shadow: 0 0 10px var(--c-white), inset 0 0 8px color-mix(in srgb, var(--c-white) 50%, transparent); }
+.dring.psi { border-color: #c9a8ff; box-shadow: 0 0 12px var(--c-psi), inset 0 0 10px var(--c-psi); }
+.dflash { border-radius: 50%; background: radial-gradient(circle, var(--c-white) 0 30%, rgb(160 230 255 / .8) 50%, transparent 70%); mix-blend-mode: screen; }
+.dmote::before { content: ''; position: absolute; left: var(--mx, 50%); top: var(--my, 50%); width: 3px; height: 3px; border-radius: 1px; background: #e8fbff; box-shadow: 0 0 6px #9fe8ff, 0 0 2px var(--c-white); }
+.finale { position: absolute; left: 50%; top: 50%; z-index: var(--z-top); pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 90px 14px;
   background: linear-gradient(90deg, transparent, rgb(8 10 14 / .85) 18%, rgb(8 10 14 / .85) 82%, transparent); white-space: nowrap; }
 .finale b { font: 400 40px var(--f-display); letter-spacing: .18em; }
-.finale b { color: #fff; text-shadow: 0 0 18px rgb(255 255 255 / .55); }
+.finale b { color: var(--c-white); text-shadow: 0 0 18px color-mix(in srgb, var(--c-white) 55%, transparent); }
 .bview .u, #bboard > .u { container-type: inline-size; }
 
 /* ── 능력 란: 전술 유형 섹션 (다른 능력 블록과 같은 틀, 색만 유형별) */
@@ -2022,29 +2026,29 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .cat-bio { color: #8fdc7a; } .cat-mech { color: #8fc8ff; } .cat-soul { color: #d6a3ff; } .cat-struct { color: #d8c9a8; }
 
 /* ── 궁극기 · 신성력 테두리 게이지: 12시에서 반시계로 차오르고, 찰수록 선명 */
-.ug { --uc: #4aa8ff; position: absolute; inset: -4px; padding: 3px; border-radius: 6px; pointer-events: none; z-index: 1;
-  background: conic-gradient(var(--uc) var(--p, 0%), rgb(255 255 255 / .06) 0);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+.ug { --uc: var(--c-ult); position: absolute; inset: -4px; padding: 3px; border-radius: var(--r-md); pointer-events: none; z-index: 1;
+  background: conic-gradient(var(--uc) var(--p, 0%), color-mix(in srgb, var(--c-white) 6%, transparent) 0);
+  -webkit-mask: linear-gradient(var(--c-black) 0 0) content-box, linear-gradient(var(--c-black) 0 0); -webkit-mask-composite: xor; mask: linear-gradient(var(--c-black) 0 0) content-box exclude, linear-gradient(var(--c-black) 0 0);
   opacity: var(--o, .25); transform: scaleX(-1); transition: opacity .2s; }
-.ug.div { --uc: #ffd34d; }
+.ug.div { --uc: var(--c-divine); }
 .ug.full { opacity: 1; animation: ug-glow 1s ease-in-out infinite alternate; }
 .ug.used { --uc: #7a6420; opacity: .5; }
 @keyframes ug-glow { from { filter: drop-shadow(0 0 2px var(--uc)); } to { filter: drop-shadow(0 0 7px var(--uc)) brightness(1.25); } }
 .u:not(.tkb) > .ug { inset: 4%; }
-.skb.ult { border-color: #4aa8ff; } .skb.ult small { color: #8fc8ff; }
+.skb.ult { border-color: var(--c-ult); } .skb.ult small { color: #8fc8ff; }
 /* ── 궁극기 컷인 */
-.cutin { --c1: #4aa8ff; --c2: #10141c; position: absolute; inset: 0; z-index: 15; pointer-events: none; overflow: hidden; container-type: size; will-change: transform; }
+.cutin { --c1: var(--c-ult); --c2: #10141c; position: absolute; inset: 0; z-index: var(--z-cutin); pointer-events: none; overflow: hidden; container-type: size; will-change: transform; }
 .bview > .board-in { z-index: 0; }
 .ci-band { position: absolute; left: -12%; right: -12%; top: 27%; height: 46%; background-color: var(--c2);
-  box-shadow: 0 0 0 2px var(--c1), 0 0 26px color-mix(in srgb, var(--c1) 60%, transparent), 0 14px 30px rgb(0 0 0 / .65); }
-.ci-band::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgb(0 0 0 / .55), transparent 45%, rgb(0 0 0 / .25)); }
+  box-shadow: 0 0 0 2px var(--c1), 0 0 26px color-mix(in srgb, var(--c1) 60%, transparent), 0 14px 30px color-mix(in srgb, var(--c-black) 65%, transparent); }
+.ci-band::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, color-mix(in srgb, var(--c-black) 55%, transparent), transparent 45%, color-mix(in srgb, var(--c-black) 25%, transparent)); }
 .ci-art { position: absolute; left: 0; top: 14%; bottom: 14%; width: 44%; overflow: hidden; clip-path: polygon(0 0, 100% 0, 80% 100%, 0 100%); }
 .ci-art img { position: absolute; left: 50%; top: 0; height: 230%; max-width: none; transform: translateX(-50%); filter: drop-shadow(0 0 10px var(--c1)); }
 .ci-text { position: absolute; left: 45%; right: 3%; top: 33%; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-.ci-who { font: 600 11px var(--f-body); letter-spacing: .22em; color: var(--c1); text-shadow: 0 1px 2px #000; }
-.ci-name { font: 400 clamp(16px, 6.4cqw, 44px)/1.05 var(--f-display); color: #fff; letter-spacing: .06em; text-shadow: 0 0 14px var(--c1), 0 2px 0 #000; white-space: nowrap; }
+.ci-who { font: 600 var(--fs-xs) var(--f-body); letter-spacing: .22em; color: var(--c1); text-shadow: 0 1px 2px var(--c-black); }
+.ci-name { font: 400 clamp(16px, 6.4cqw, 44px)/1.05 var(--f-display); color: var(--c-white); letter-spacing: .06em; text-shadow: 0 0 14px var(--c1), 0 2px 0 var(--c-black); white-space: nowrap; }
 .ci-name span { display: inline-block; }
-.ci-line { font: 600 clamp(10px, 2.3cqw, 16px) var(--f-body); color: #fff; padding: 4px 10px; background: rgb(0 0 0 / .5); border-left: 3px solid var(--c1); max-width: 100%; }
+.ci-line { font: 600 clamp(10px, 2.3cqw, 16px) var(--f-body); color: var(--c-white); padding: 4px 10px; background: color-mix(in srgb, var(--c-black) 50%, transparent); border-left: 3px solid var(--c1); max-width: 100%; }
 .cutin.short .ci-band { top: 34%; height: 32%; } .cutin.short .ci-text { top: 40%; }
 /* 배경 패턴 */
 .ci-pat-haze .ci-band { background-image: repeating-linear-gradient(0deg, color-mix(in srgb, var(--c1) 40%, transparent) 0 2px, transparent 2px 9px), radial-gradient(ellipse at 70% 50%, var(--c1), transparent 70%); }
@@ -2055,14 +2059,14 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .ci-pat-rail .ci-band { background-image: repeating-linear-gradient(90deg, transparent 0 20px, var(--c1) 20px 22px), linear-gradient(0deg, transparent 46%, color-mix(in srgb, var(--c1) 70%, transparent) 50%, transparent 54%); }
 .ci-pat-arena .ci-band { background-image: repeating-conic-gradient(from 0deg at 15% 130%, color-mix(in srgb, var(--c1) 55%, transparent) 0 5deg, transparent 5deg 11deg); }
 .ci-pat-sea .ci-band { background-image: repeating-radial-gradient(ellipse at 50% 140%, color-mix(in srgb, var(--c1) 45%, transparent) 0 2px, transparent 2px 13px), radial-gradient(circle at 78% 45%, #ffe9a0 0 3%, transparent 9%); }
-.ci-pat-vortex .ci-band { background-image: radial-gradient(circle at 72% 50%, #000 0 6%, transparent 18%), repeating-conic-gradient(from 0deg at 72% 50%, color-mix(in srgb, var(--c1) 60%, transparent) 0 9deg, transparent 9deg 24deg); }
+.ci-pat-vortex .ci-band { background-image: radial-gradient(circle at 72% 50%, var(--c-black) 0 6%, transparent 18%), repeating-conic-gradient(from 0deg at 72% 50%, color-mix(in srgb, var(--c1) 60%, transparent) 0 9deg, transparent 9deg 24deg); }
 .ci-pat-blueprint .ci-band { background-color: #0c2a52; background-image: linear-gradient(color-mix(in srgb, var(--c1) 45%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--c1) 45%, transparent) 1px, transparent 1px); background-size: 16px 16px; }
 .ci-pat-metro .ci-band { background-image: repeating-linear-gradient(-30deg, var(--c1) 0 12px, transparent 12px 26px); }
-.ci-pat-office .ci-band { background-image: repeating-linear-gradient(0deg, rgb(255 255 255 / .07) 0 1px, transparent 1px 7px), linear-gradient(90deg, transparent 60%, color-mix(in srgb, var(--c1) 35%, transparent)); }
+.ci-pat-office .ci-band { background-image: repeating-linear-gradient(0deg, color-mix(in srgb, var(--c-white) 7%, transparent) 0 1px, transparent 1px 7px), linear-gradient(90deg, transparent 60%, color-mix(in srgb, var(--c1) 35%, transparent)); }
 .ci-pat-tape .ci-band { background-image: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--c1) 70%, transparent) 0 14px, #111 14px 28px); }
 .ci-pat-moon .ci-band { background-image: radial-gradient(circle at 78% 42%, var(--c1) 0 13%, transparent 14%), radial-gradient(circle at 78% 42%, color-mix(in srgb, var(--c1) 40%, transparent), transparent 40%); }
 .ci-pat-halo .ci-band { background-image: repeating-conic-gradient(from 0deg at 76% 50%, color-mix(in srgb, var(--c1) 45%, transparent) 0 4deg, transparent 4deg 14deg), radial-gradient(circle at 76% 50%, color-mix(in srgb, var(--c1) 80%, transparent) 0 7%, transparent 30%); }
-.skb.div { border-color: #ffd34d; } .skb.div small { color: #ffd34d; }
+.skb.div { border-color: var(--c-divine); } .skb.div small { color: var(--c-divine); }
 .ci-pat-bounty .ci-band { background-color: #4a3018; background-image: repeating-linear-gradient(45deg, color-mix(in srgb, var(--c1) 35%, transparent) 0 2px, transparent 2px 10px); }
 .relic-tok:not(.empty) { border-style: solid !important; outline: none; }
 /* 성유물 섹션: 슬롯 · 희미한 구분선 · 종속 하위 능력(신권 대행) */
@@ -2077,23 +2081,23 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 
 /* ───────── 사이오닉 학파 이성 막대 (가운데 0 · 고이성 위/오른쪽 · 저이성 아래/왼쪽)
    --a: 채움 시작, --w: 채움 길이, --k: |이성|/100 (연출 세기) */
-.gx.sc { --sc: #b07cff; --dir: 90deg; --fill: var(--sc); --glow: var(--sc); overflow: visible; }
+.gx.sc { --sc: var(--c-psi); --dir: 90deg; --fill: var(--sc); --glow: var(--sc); overflow: visible; }
 .u.tkb .gx.sc { --dir: 0deg; display: block; }
-.gx.sc::before { content: ''; position: absolute; left: 50%; top: -1px; bottom: -1px; width: 1px; background: rgb(255 255 255 / .6); z-index: 1; }
+.gx.sc::before { content: ''; position: absolute; left: 50%; top: -1px; bottom: -1px; width: 1px; background: color-mix(in srgb, var(--c-white) 60%, transparent); z-index: 1; }
 .u.tkb .gx.sc::before { left: -1px; right: -1px; top: 50%; bottom: auto; width: auto; height: 1px; }
 .gx.sc i { position: absolute; top: 0; bottom: 0; left: var(--a, 50%); width: var(--w, 0%); height: auto; background: var(--fill); }
 .u.tkb .gx.sc i { left: 0; right: 0; top: auto; bottom: var(--a, 50%); width: auto; height: var(--w, 0%); }
 .gx.sc.hi i { box-shadow: 0 0 calc(2px + var(--k) * 6px) var(--glow); }
 /* 홍염: 잉걸 → 고이성 흰 금빛 불꽃 · 저이성 붉게 깜빡이며 불티 */
-.gx.sc-pyro { --sc: #ff7a3d; --fill: linear-gradient(var(--dir), #c2410c, #ff9a3d); --glow: #ffe2a0; }
+.gx.sc-pyro { --sc: var(--st-burn); --fill: linear-gradient(var(--dir), #c2410c, #ff9a3d); --glow: #ffe2a0; }
 .gx.sc-pyro.hi { --fill: linear-gradient(var(--dir), #ff8a3d, #fff1c2); }
-.gx.sc-pyro.lo { --fill: linear-gradient(var(--dir), #ff2d2d, #ff7a3d); }
+.gx.sc-pyro.lo { --fill: linear-gradient(var(--dir), #ff2d2d, var(--st-burn)); }
 .gx.sc-pyro.lo i { animation: gxFlick calc(.9s - var(--k) * .5s) steps(3) infinite; }
 .gx.sc-pyro.lo::after { content: ''; position: absolute; left: var(--a); bottom: -2px; width: 2px; height: 2px; border-radius: 50%; background: #ffb347; box-shadow: 0 0 3px #ff5a1f; animation: gxSpark calc(1.1s - var(--k) * .5s) ease-in infinite; }
 .u.tkb .gx.sc-pyro.lo::after { left: 50%; bottom: calc(50% - var(--w)); }
 /* 뇌전: 회로 눈금 → 고이성 매끄러운 푸른 빛 · 저이성 아크가 튐 */
 .gx.sc-volt { --sc: #4fd1ff; --fill: repeating-linear-gradient(var(--dir), #4fd1ff 0 3px, rgb(79 209 255 / .35) 3px 4px); --glow: #8fe6ff; }
-.gx.sc-volt.lo { --fill: repeating-linear-gradient(var(--dir), #c9a8ff 0 3px, rgb(255 255 255 / .5) 3px 4px); }
+.gx.sc-volt.lo { --fill: repeating-linear-gradient(var(--dir), #c9a8ff 0 3px, color-mix(in srgb, var(--c-white) 50%, transparent) 3px 4px); }
 .gx.sc-volt.lo i { animation: gxZap calc(1.4s - var(--k) * .8s) steps(1) infinite; }
 /* 파종: 마디 덩굴 → 고이성 연두 싹 · 저이성 누런 보라 독방울 */
 .gx.sc-seed { --sc: #8fd14f; --fill: radial-gradient(circle, #e6ffc8 .8px, transparent 1.3px) 0 0 / 4px 4px, linear-gradient(var(--dir), #3f8f2a, #a8e063); --glow: #c8ff8a; }
@@ -2101,16 +2105,16 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .gx.sc-seed.lo::after { content: ''; position: absolute; left: var(--a); bottom: -1px; width: 2px; height: 3px; border-radius: 0 0 2px 2px; background: #b46ee0; animation: gxDrip calc(1.6s - var(--k) * .8s) ease-in infinite; }
 .u.tkb .gx.sc-seed.lo::after { left: 50%; bottom: calc(50% - var(--w)); }
 /* 시공: 시계 눈금 서리 → 고이성 또렷한 서리선 · 저이성 금 가고 어긋남 */
-.gx.sc-chrono { --sc: #a9dcff; --fill: repeating-linear-gradient(var(--dir), #f2fbff 0 1px, #a9dcff 1px 4px); --glow: #ffffff; }
+.gx.sc-chrono { --sc: #a9dcff; --fill: repeating-linear-gradient(var(--dir), #f2fbff 0 1px, #a9dcff 1px 4px); --glow: var(--c-white); }
 .gx.sc-chrono.lo { --fill: repeating-linear-gradient(var(--dir), #a9dcff 0 2px, transparent 2px 3px, #5d8fb8 3px 5px); }
 .gx.sc-chrono.lo i { animation: gxGlitch calc(1.2s - var(--k) * .7s) steps(1) infinite; }
 /* 초월: 별무리 → 고이성 후광 · 저이성 공허 맥동 · 색 반전 */
-.gx.sc-trans { --sc: #b07cff; --fill: radial-gradient(circle, #fff .6px, transparent 1px) 0 0 / 3px 5px, linear-gradient(var(--dir), #5a2fc0, #c9a2ff); --glow: #ecdcff; }
+.gx.sc-trans { --sc: var(--c-psi); --fill: radial-gradient(circle, var(--c-white) .6px, transparent 1px) 0 0 / 3px 5px, linear-gradient(var(--dir), #5a2fc0, #c9a2ff); --glow: #ecdcff; }
 .gx.sc-trans i { animation: gxStars 3s linear infinite; }
-.gx.sc-trans.hi i { box-shadow: 0 0 calc(3px + var(--k) * 7px) #ecdcff, 0 0 0 1px rgb(255 255 255 / .35); }
+.gx.sc-trans.hi i { box-shadow: 0 0 calc(3px + var(--k) * 7px) #ecdcff, 0 0 0 1px color-mix(in srgb, var(--c-white) 35%, transparent); }
 .gx.sc-trans.lo i { box-shadow: -1px 0 #ff3d7f, 1px 0 #3dd6ff; animation: gxStars 3s linear infinite, gxVoid calc(1.6s - var(--k) * .8s) ease-in-out infinite; }
 /* 파장: 사인파 → 고이성 낮고 고른 파형 · 저이성 진폭이 커지고 카드가 흔들림 */
-.gx.sc-wave { --sc: #7ff0d8; --fill: repeating-linear-gradient(var(--dir), #c9fff2 0 1px, #7ff0d8 1px 3px, #2aa58c 3px 5px); --glow: #c9fff2; }
+.gx.sc-wave { --sc: var(--st-teal); --fill: repeating-linear-gradient(var(--dir), #c9fff2 0 1px, var(--st-teal) 1px 3px, #2aa58c 3px 5px); --glow: #c9fff2; }
 .gx.sc-wave i { background-size: 100% 10px; animation: gxScroll 1.6s linear infinite; }
 .gx.sc-wave.lo i { animation: gxScroll calc(.8s - var(--k) * .5s) linear infinite, gxAmp calc(.5s - var(--k) * .25s) ease-in-out infinite; }
 .u.psi-lo[data-sc="wave"] > img, .u.psi-lo[data-sc="wave"] .tk-card { animation: wvShake .16s steps(2) infinite; }
@@ -2136,7 +2140,7 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 @keyframes gxGlint { 0%, 100% { filter: brightness(1) } 50% { filter: brightness(1.7) } }
 @keyframes gxFrz { from { opacity: .65 } to { opacity: 1 } }
 /* 소마법 고리 · 이름 */
-.cring { position: absolute; width: 9%; aspect-ratio: 1; border-radius: 50%; border: 2px solid var(--sc, #b07cff); box-shadow: 0 0 12px var(--sc, #b07cff), inset 0 0 8px var(--sc, #b07cff); pointer-events: none; }
+.cring { position: absolute; width: 9%; aspect-ratio: 1; border-radius: 50%; border: 2px solid var(--sc, var(--c-psi)); box-shadow: 0 0 12px var(--sc, var(--c-psi)), inset 0 0 8px var(--sc, var(--c-psi)); pointer-events: none; }
 .cring.cr-volt, .cring.cr-wave { border-style: dashed; }
 .cring.cr-chrono { border-radius: 30%; }
 .fl.cantrip, .float.cantrip { font-weight: 800; letter-spacing: .04em; }
@@ -2172,32 +2176,32 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .u.tkb .gx.sc-pyro.lo::after, .u.tkb .gx.sc-seed.lo::after { left: 50%; translate: -50% 0; bottom: calc(var(--w) - 3px); }
 /* 소마법 준비 고리 (카드 왼쪽 아래, 재장전 고리와 대칭) */
 .cpi { position: absolute; left: 0; bottom: 6%; width: 18px; height: 18px; display: grid; place-items: center; pointer-events: none; z-index: 3; color: var(--sc); }
-.cpi .cpi-ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(var(--sc) var(--p, 0%), rgb(255 255 255 / .14) 0); -webkit-mask: radial-gradient(circle, transparent 54%, #000 56%); mask: radial-gradient(circle, transparent 54%, #000 56%); }
-.cpi::before { content: ''; position: absolute; inset: 2px; border-radius: 50%; background: rgb(10 12 18 / .78); }
+.cpi .cpi-ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(var(--sc) var(--p, 0%), color-mix(in srgb, var(--c-white) 14%, transparent) 0); -webkit-mask: radial-gradient(circle, transparent 54%, var(--c-black) 56%); mask: radial-gradient(circle, transparent 54%, var(--c-black) 56%); }
+.cpi::before { content: ''; position: absolute; inset: 2px; border-radius: 50%; background: color-mix(in srgb, var(--c-ink) 78%, transparent); }
 .cpi .li { position: relative; width: 10px; height: 10px; }
 .cpi.ready { filter: drop-shadow(0 0 4px var(--sc)); }
-.cpi.ready .li { color: #fff; }
+.cpi.ready .li { color: var(--c-white); }
 .cpi.off { opacity: .35; filter: grayscale(1); }
 .cpi[hidden] { display: none; }
 /* 소마법 이름표 · 광선 */
-.cpb { position: absolute; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 5px; border-radius: 999px; white-space: nowrap; pointer-events: none; z-index: 6;
-  font: 800 clamp(10px, 1.6vw, 13px)/1.2 var(--f-body, inherit); letter-spacing: .03em; color: #fff;
-  background: color-mix(in srgb, var(--sc) 30%, rgb(10 12 18 / .88)); border: 1.5px solid var(--sc); box-shadow: 0 0 10px color-mix(in srgb, var(--sc) 55%, transparent), 0 2px 6px #000; }
+.cpb { position: absolute; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 5px; border-radius: var(--r-pill); white-space: nowrap; pointer-events: none; z-index: 6;
+  font: 800 clamp(10px, 1.6vw, 13px)/1.2 var(--f-body); letter-spacing: .03em; color: var(--c-white);
+  background: color-mix(in srgb, var(--sc) 30%, color-mix(in srgb, var(--c-ink) 88%, transparent)); border: 1.5px solid var(--sc); box-shadow: 0 0 10px color-mix(in srgb, var(--sc) 55%, transparent), 0 2px 6px var(--c-black); }
 .cpb .li { width: 13px; height: 13px; color: var(--sc); }
 .cpb.dimf { opacity: .45; }
 .cbeam { position: absolute; height: 3px; margin-top: -1.5px; transform-origin: 0 50%; pointer-events: none; border-radius: 2px;
-  background: linear-gradient(90deg, transparent, var(--sc) 30%, #fff 92%, var(--sc)); box-shadow: 0 0 6px var(--sc), 0 0 12px var(--sc); }
-.cbeam.cb-volt { background: repeating-linear-gradient(90deg, var(--sc) 0 6px, #fff 6px 8px); }
+  background: linear-gradient(90deg, transparent, var(--sc) 30%, var(--c-white) 92%, var(--sc)); box-shadow: 0 0 6px var(--sc), 0 0 12px var(--sc); }
+.cbeam.cb-volt { background: repeating-linear-gradient(90deg, var(--sc) 0 6px, var(--c-white) 6px 8px); }
 .cbeam.cb-wave { height: 5px; margin-top: -2.5px; background: repeating-linear-gradient(90deg, var(--sc) 0 3px, transparent 3px 6px); }
-.cbeam.cb-trans { background: linear-gradient(90deg, transparent, #ff6bd0 20%, var(--sc) 60%, #fff); }
+.cbeam.cb-trans { background: linear-gradient(90deg, transparent, #ff6bd0 20%, var(--sc) 60%, var(--c-white)); }
 .cring { width: 11%; border-width: 2.5px; }
 /* 환조: 보라 · 분홍 안개 → 고이성 향 연기가 곧게 오름 · 저이성 연기가 흩어지며 끝이 흐려짐 */
 .gx.sc-illusion { --sc: #e08bd8; --fill: linear-gradient(var(--dir), #6b3a8f, #e08bd8); --glow: #ffd6f6; }
-.gx.sc-illusion i { background-image: radial-gradient(ellipse at 50% 30%, rgb(255 255 255 / .55) 0 1px, transparent 2px), var(--fill); background-size: 4px 9px, 100% 100%; animation: gxRise 2.4s linear infinite; }
+.gx.sc-illusion i { background-image: radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--c-white) 55%, transparent) 0 1px, transparent 2px), var(--fill); background-size: 4px 9px, 100% 100%; animation: gxRise 2.4s linear infinite; }
 .gx.sc-illusion.lo i { filter: blur(calc(var(--k) * 1.2px)); animation: gxRise calc(1.4s - var(--k) * .6s) linear infinite, gxHaze calc(1.6s - var(--k) * .6s) ease-in-out infinite; }
 @keyframes gxRise { from { background-position: 0 0, 0 0 } to { background-position: 0 -18px, 0 0 } }
 @keyframes gxHaze { 0%, 100% { opacity: 1 } 50% { opacity: .55 } }
-.cbeam.cb-illusion { background: linear-gradient(90deg, transparent, #b07cff 30%, var(--sc)); filter: blur(.6px); }
+.cbeam.cb-illusion { background: linear-gradient(90deg, transparent, var(--c-psi) 30%, var(--sc)); filter: blur(.6px); }
 .tt-pass { align-items: baseline; } .tt-pass b { color: var(--sc); }
 .tt-school .muted { margin-right: 2px; }
 /* 사이오닉 섹션 (간결형): 머리 칩 · 비술/지속 카드 · 이성 바 · 증강 슬롯 */
