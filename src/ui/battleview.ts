@@ -9,6 +9,7 @@ import { VOICE, voicePick } from '../data/voicelines';
 import { RELIC_BY_ID } from '../data/relics';
 import { DIVINE_ACT } from '../data/rework';
 import { SCHOOL_BY_ID, type SchoolId } from '../data/schools';
+import { cantripView } from '../data/psiinfo';
 import { lineIcon } from './synicons';
 
 export const ELEM_COLOR: Record<Elem, string> = {
@@ -1056,8 +1057,20 @@ export class BattleView {
 
   /** 부활 · 시간 역행 · 처형 · 불사: 숫자보다 고유 표식 */
   /** 사이오닉 비술: 시전자 학파 색 테두리 + 학파 이름표 + 대상까지 광선 + 대상 이중 고리 */
-  private onCantrip(e: { id: number; school: string; to?: number; name: string }) {
-    const u = this.unit(e.id); if (!u) return;
+  /** 비술 표시 이름: ◆ 변형 증강을 받았으면 바뀐 이름 (cantripView) */
+  private cpName = new Map<number, string>();
+  private cantripName(u: CUnit, school: string, base: string) {
+    let n = this.cpName.get(u.id);
+    if (n === undefined) {
+      n = base;
+      try { if (SCHOOL_BY_ID[school as SchoolId] && u.src) { const v = cantripView(school as SchoolId, u.src.augments); n = v.transform || v.name || base; } } catch { /* 기본 이름 */ }
+      this.cpName.set(u.id, n);
+    }
+    return n;
+  }
+  private onCantrip(e0: { id: number; school: string; to?: number; name: string }) {
+    const u = this.unit(e0.id); if (!u) return;
+    const e = { ...e0, name: this.cantripName(u, e0.school, e0.name) };
     const t = this.unit(e.to);
     const color = SCHOOL_BY_ID[e.school as SchoolId]?.color || '#b07cff';
     this.log(e.id, `cp:${e.name}`, `비술 ${e.name}`, 1, (n) => `비술 ${e.name}${n > 1 ? ` ×${n}` : ''}`);

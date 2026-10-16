@@ -1389,6 +1389,34 @@ function powRow(b: Battle, c: CUnit, d: UnitDef, deployedNow: boolean) {
 /** 확대 버튼 (전체 상세 팝업) */
 const maxBtn = (uid: string) => `<button class="mag-btn max-btn" data-a="big-open" data-v="${uid}" title="전체 상세" aria-label="전체 상세 열기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button>`;
 /** 기물 전체 상세 팝업: 장비 · 메이저/상세 스탯 · 능력 구성 · 유형 특성을 한 화면에 */
+/** 전체 상세 머리 요약: 역할 → 전투에서 반복하는 행동 → 이번 빌드에서 달라진 점 (변형 증강이면 그 변화를 먼저) */
+function unitSummary(run: RunState, u: UnitState, d: UnitDef, b: Battle, c: CUnit) {
+  const role = `${CTYPE_NAME[d.ctype]} · ${TTYPE_NAME[d.ttype]} — ${CTYPE_DESC[d.ctype]?.[0] || ''}`;
+  const w = c.weapon || d.weapon;
+  const acts: string[] = [];
+  if (w) acts.push(`기본 공격 「${w.name}」 ${w.interval.toFixed(1)}초마다`);
+  if (d.skill) acts.push(`스킬 「${d.skill.name}」 ${(c.cdMax || d.skill.cd).toFixed(0)}초마다`);
+  const sc = schoolOf(u);
+  const cv = sc ? cantripView(sc, u.augments) : null, pv = sc ? passiveView(sc, u.augments) : null;
+  if (cv) acts.push(`비술 「${cv.transform || cv.name}」 ${cv.cd.toFixed(0)}초마다 (이성 −${cv.cost})`);
+  const ul = d.ttype === 'major' ? ULTS[d.id] : null;
+  if (ul) acts.push(`궁극기 「${ul.name}」 게이지가 차면`);
+  const changes: string[] = [];
+  if (cv?.transform) changes.push(`<b>◆ 현재 비술은 「${esc(cv.transform)}」으로 변형됨</b>`);
+  if (pv?.transform) changes.push(`<b>◆ 지속 능력이 「${esc(pv.transform)}」으로 변형됨</b>`);
+  const mods = [...new Set([...(cv?.mods || []), ...(pv?.mods || [])])];
+  if (mods.length) changes.push(`전공 증강 반영: ${mods.map(esc).join(' · ')}`);
+  const augs = (u.augments.filter((a) => !a.id.startsWith('school.')).map((a) => AUG_BY_ID[a.id]?.name).filter(Boolean) as string[]).filter((n) => !mods.includes(n) && n !== cv?.transform && n !== pv?.transform);
+  if (augs.length) changes.push(`증강 ${augs.length}개: ${augs.slice(0, 4).map(esc).join(' · ')}${augs.length > 4 ? ' …' : ''}`);
+  const items = u.items.filter(Boolean).length + (u.mod ? 1 : 0);
+  if (items) changes.push(`장비 ${items}개 장착`);
+  void run; void b;
+  return `<section class="um-sum" aria-label="요약">
+    <div class="us-row"><span class="us-k">역할</span><p>${esc(role)}</p></div>
+    <div class="us-row"><span class="us-k">반복 행동</span><p>${acts.map(esc).join(' → ')}</p></div>
+    <div class="us-row"><span class="us-k">이번 빌드</span><p>${changes.length ? changes.join('<br>') : '<span class="muted">기본 상태 (증강 · 장비 없음)</span>'}</p></div>
+  </section>`;
+}
 function unitModal(run: RunState) {
   const u = run.units.find((x) => x.uid === app.bigUnit);
   if (!u) return '';
@@ -1428,6 +1456,7 @@ function unitModal(run: RunState) {
         <h3>상세 스탯</h3>${statLines(c, b)}
       </div>
       <div class="um-main">
+        ${unitSummary(run, u, d, b, c)}
         <div class="um-col um-c">
           <h3>전투 유형</h3>
           <dl class="um-types">
