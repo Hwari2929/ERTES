@@ -1830,6 +1830,24 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 /* ── 창 등장 */
 .modal.enter { animation: modal-in .32s cubic-bezier(.2, .8, .3, 1) both; }
 @keyframes modal-in { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+/* ── 증강 · 보상 카드 등급 연출 (revealfx.ts · 공개음과 같은 3단계): 2 희귀 = 테두리 광 · 빛 훑기, 3 최상 = + 카드 뒤 빛 줄기 · 화면 플래시 · 흔들림.
+   색은 장비 희귀도 색 (희귀 --g-A · 전설 --g-L). 공개 전에도 옅은 테두리 (기대감), 공개되면 진하게.
+   움직임은 JS(WAAPI)의 개별 속성 · 덧붙인 요소로만 → 이타카 물결 등장 · 뒤집기 · 특권 막의 transform 과 겹치지 않는다 */
+.rv-2 { --rv-c: var(--g-A); } .rv-3 { --rv-c: var(--g-L); }
+.pv-bg .rv-2 { --rv-c: color-mix(in srgb, var(--g-A) 65%, var(--c-white)); } .pv-bg .rv-3 { --rv-c: color-mix(in srgb, var(--g-L) 65%, var(--c-white)); } /* 특권: 어두운 막 위 */
+:is(.rv-2, .rv-3) { position: relative; --rv-glow: color-mix(in srgb, var(--rv-c) 60%, transparent); }
+:is(.rv-2, .rv-3):not(:focus-visible) { outline: 1px solid color-mix(in srgb, var(--rv-c) 35%, transparent); outline-offset: 2px; }
+.rv-on.rv-2:not(:focus-visible) { outline: 1.5px solid color-mix(in srgb, var(--rv-c) 75%, transparent); }
+.rv-on.rv-3:not(:focus-visible) { outline: 2px solid var(--rv-c); outline-offset: 3px; }
+.rv-shine { position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--rv-c) 40%, transparent) 46%, color-mix(in srgb, var(--c-white) 50%, transparent) 50%, color-mix(in srgb, var(--rv-c) 40%, transparent) 54%, transparent 65%) 130% 0 / 250% 100% no-repeat; }
+.rv-host { position: relative; isolation: isolate; }
+.rv-rays { position: absolute; z-index: -1; pointer-events: none; border-radius: 50%; opacity: 0;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--rv-c) 80%, transparent) 0 6deg, transparent 6deg 18deg);
+  mask: radial-gradient(circle, var(--c-black) 20%, transparent 68%); -webkit-mask: radial-gradient(circle, var(--c-black) 20%, transparent 68%); }
+.rv-flash { position: fixed; inset: 0; z-index: var(--z-raise); pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at var(--x) var(--y), color-mix(in srgb, var(--rv-c) 55%, transparent), color-mix(in srgb, var(--rv-c) 14%, transparent) 45%, transparent 75%); }
+@media (prefers-reduced-motion: reduce) { .rv-shine, .rv-rays, .rv-flash { display: none; } }
 /* ── 전환 연출 배너 */
 .banner { position: fixed; inset: 0; z-index: var(--z-banner); pointer-events: none; display: grid; place-items: center; animation: bn-fade 1.8s ease both; }
 .banner.bn-boss { animation-duration: 2.3s; background: radial-gradient(circle at 50% 50%, rgb(120 0 20 / .35), transparent 70%); }

@@ -29,6 +29,7 @@ import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
 import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SynergyId, type UnitState } from './types';
 import { bossImmuneText, encounterMatchup, matchupLines, matchupShort, schoolWarnings } from './ui/matchup';
+import { gradeCards } from './ui/revealfx';
 import { BattleView, DEATH_STYLES, fmt, FX, FX_DEFAULT, isDeathStyle, previewDeath, type DeathStyle, type MotionPreset, type UltCut } from './ui/battleview';
 import { ULTS } from './data/ults';
 import { VOICE, voicePick } from './data/voicelines';
@@ -2444,6 +2445,7 @@ function render() {
   if (app.screen !== 'prep') tacShownPrev = false;
   const deal = (newModal && md?.querySelector<HTMLElement>('.rc-track, .gc-row')) || (app.screen === 'newrun' && !sameView && root.querySelector<HTMLElement>('.car-track'));
   if (deal) revealCards(deal);
+  if (md && run && app.screen !== 'battle') gradeCards(md as HTMLElement, run.pending[0], newModal); // 증강 · 보상 카드 등급 연출 (공개음과 같은 3단계)
   if (!artWarmed) { artWarmed = true; setTimeout(() => prefetchArt(RECRUITABLE.map((d) => d.id)), 1500); }
   // 페이즈 전환 연출
   if (run && run.phase !== lastPhase) { if (lastPhase && run.phase > lastPhase) banner('phase', `PHASE ${run.phase}`, `${fieldOf(run.field).name} · 적이 강해집니다`); lastPhase = run.phase; }
