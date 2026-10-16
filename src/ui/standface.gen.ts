@@ -69,7 +69,7 @@ export const STAND_FACE: Record<string, [number, number, number]> = {
   b_collector: [0.497, 0.057, 0.108],
   b_trierarch: [0.610, 0.061, 0.113],
   c_merc: [0.636, 0.088, 0.144],
-  c_blood: [0.491, 0.056, 0.100],
+  c_blood: [0.502, 0.075, 0.139],
   d_shark: [0.647, 0.051, 0.106],
   b_baroness: [0.495, 0.068, 0.142],
   c_auditor: [0.731, 0.083, 0.158],
