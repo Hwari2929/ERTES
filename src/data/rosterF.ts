@@ -154,7 +154,7 @@ export const ROSTER_F: BaseUnit[] = [
     }),
   },
   {
-    id: 'skadi', name: '스카디', title: '페트라 자산운용 인재개발실장', factions: ['PET', 'STL'], traits: ['COND'], keywords: ['bio'],
+    id: 'skadi', name: '스카디', title: '페트라 자산관리부 인재격려실장', factions: ['PET', 'STL'], traits: ['COND'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'elec', interval: 0.9 }, range: 1, base: B(9, 8, 5, 7, 4),
     sprite: 'knight', palette: tint(STL_PAL, '#1c1c24', '#ffe14d', '#4fc3ff'),
     lore: '"잠재력이 보이네요. 연봉 협상은 살아서 돌아온 다음에 하죠."',
