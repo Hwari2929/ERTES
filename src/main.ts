@@ -946,12 +946,11 @@ function bossGoal(run: RunState) {
   const txt = t.steps === 0 ? `<b>보스전</b>` : `보스까지 남은 노드 <b>${t.steps}</b>개`;
   return `<div class="boss-goal" title="${esc(`${t.bi + 1}번째 칸 · ${e?.name || NODE_NAME.boss} · 보스까지 전투 ${t.fights}회${t.forks ? ` (${NODE_NAME.fork}에서 ${NODE_NAME.challenge} 승리 시 지름길)` : ''}`)}"><span class="bg-ic">${e ? sprite(e, 'spr') : NODE_ICON.boss}</span><span class="bg-main">${txt}</span></div>`;
 }
-/** 지도 미리보기: 다음 3칸 + (그보다 멀면) 보스 칸. 설명은 nodeHint, 재료 확률은 설정 · 전장값, 보스는 적 데이터에서 읽는다 */
+/** 지도 미리보기: 현재 칸 + 다음 2칸 (보스는 그 안에 들어올 때만 — 남은 노드 수는 페이즈 옆 보스 칩). 설명은 nodeHint, 재료 확률은 설정 · 전장값, 보스는 적 데이터에서 읽는다 */
 function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   const tb = toBoss(run);
   const idx: number[] = [];
   for (let i = run.step + 1; i < Math.min(run.map.length, run.step + 3); i++) if (!tb || i <= tb.bi) idx.push(i);
-  if (tb && !idx.includes(tb.bi)) idx.push(tb.bi);
   const f = fieldOf(run.field);
   const elite = ENEMY_BY_ID[f.elite];
   const PART = lineIcon('r.part', 'li'), CONS = lineIcon('r.cons', 'li');
@@ -982,19 +981,19 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   const act = (cur: boolean) => (cur ? `<div class="ah-act">${buttons}</div>` : '');
   const bossCard = (i: number, e: EnemyDef, cur: boolean) => {
     const cat = enemyCategory(e), td = TEND_NAME[e.tend], rk = foeRank(run, e, run.phase, R.encounterMult('boss', i));
-    return `<li class="ah-card ah-boss n-boss${cur ? ' cur tl-info' : ''}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}"><span class="ah-port">${sprite(e, 'spr big')}<i class="ah-ic">${NODE_ICON.boss}</i></span>
-      <div class="ah-body">${step(i)}<b>${esc(e.name)}</b>${income('boss')}<div class="ah-chips">${rankChip(rk)}${diffAddChip(run, run.phase)}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${act(cur)}</div></li>`;
+    return `<li class="ah-card ah-boss n-boss${cur ? ' cur tl-info' : ''}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}"><span class="ah-lead"><span class="ah-port">${sprite(e, 'spr big')}<i class="ah-ic">${NODE_ICON.boss}</i></span>${step(i)}</span>
+      <div class="ah-body"><b>${esc(e.name)}</b>${income('boss')}<div class="ah-chips">${rankChip(rk)}${diffAddChip(run, run.phase)}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${act(cur)}</div></li>`;
   };
   const nodeCard = (i: number, o: NodeType, cur: boolean) => {
     const e = o === 'boss' ? phaseBoss(run) : undefined;
     if (e) return bossCard(i, e, cur);
     const c = chips(o);
     const note = cur && run.node ? '<span class="ah-hint">진행 중</span>' : FIGHT_NODES.includes(o) ? '' : `<span class="ah-hint">${ic(esc(nodeHint(o)))}</span>`;
-    return `<li class="ah-card n-${o}${cur ? ' cur tl-info' : ''}"><i class="ah-ic">${NODE_ICON[o]}</i><div class="ah-body">${step(i)}<b>${esc(NODE_NAME[o])}</b>${income(o)}${c ? `<div class="ah-chips">${c}</div>` : ''}${note}${act(cur)}</div></li>`;
+    return `<li class="ah-card n-${o}${cur ? ' cur tl-info' : ''}"><span class="ah-lead"><i class="ah-ic">${NODE_ICON[o]}</i>${step(i)}</span><div class="ah-body"><b>${esc(NODE_NAME[o])}</b>${income(o)}${c ? `<div class="ah-chips">${c}</div>` : ''}${note}${act(cur)}</div></li>`;
   };
   // 현재 칸 (진입 단추 포함, 강조) → 다음 칸들 → 보스: 같은 카드 토큰으로 한 흐름
   const cur = pick ? nodeCard(run.step, pick, true)
-    : `<li class="ah-card cur tl-info"><i class="ah-ic">${NODE_ICON.boss}</i><div class="ah-body">${step(run.step)}<b>항로 끝</b><span class="ah-hint">이번 항로의 모든 칸을 지났습니다.</span>${act(true)}</div></li>`;
+    : `<li class="ah-card cur tl-info"><span class="ah-lead"><i class="ah-ic">${NODE_ICON.boss}</i>${step(run.step)}</span><div class="ah-body"><b>항로 끝</b><span class="ah-hint">이번 항로의 모든 칸을 지났습니다.</span>${act(true)}</div></li>`;
   return `<section class="ahead" aria-label="현재 칸과 앞으로 올 칸"><ol class="ah-list">${cur}${idx.flatMap((i) => run.map[i].includes('boss') ? [nodeCard(i, 'boss', false)] : run.map[i].map((o) => nodeCard(i, o, false))).join('')}</ol></section>`;
 }
 // ───────── 적 스펙 ≈ 공명 등급: 적의 공격 위력을 '장비 · 시너지 · 증강 없는 아군(영입 가능 기물 평균)'의 등급별 위력과 비교해 가장 가까운 등급

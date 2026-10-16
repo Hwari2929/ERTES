@@ -554,6 +554,10 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 .ah-step { justify-self: start; display: inline-flex; align-items: center; gap: 2px; height: 18px; padding: 0 6px; border-radius: var(--r-sm); background: var(--panel-2); border: 1px solid var(--line); font: 700 var(--fs-xs) var(--f-mono); color: var(--c-text-2); }
 .ah-step .li { width: 12px; height: 12px; }
 .ah-step.now { background: var(--c-select); border-color: var(--c-select); color: var(--c-select-ink); }
+/* 카드 왼쪽 열: 노드 아이콘(보스는 초상화) + 바로 밑 순서 배지. 오른쪽 글은 제목이 카드 맨 위에서 시작 */
+.ah-lead { flex: none; display: grid; justify-items: center; align-content: start; gap: 6px; }
+.ah-lead .ah-step { justify-self: center; }
+.ah-body > b:first-child { margin-top: -2px; line-height: 1.2; }
 /* 현재 칸: 같은 카드 토큰 + 선택 색 테두리, 진입 단추를 품는다 (넓은 화면은 단추를 오른쪽 세로로) */
 .ah-card.cur { flex: 1 1 100%; border-color: var(--c-select); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-select) 40%, transparent); }
 .ah-card.tl-info { margin: 0; gap: 10px; align-items: flex-start; flex-wrap: nowrap; } /* 튜토리얼 안내가 가리키는 이름표(.tl-info) 를 카드가 겸한다 */
