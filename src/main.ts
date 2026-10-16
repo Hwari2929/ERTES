@@ -36,6 +36,7 @@ import { deleteSave, exportCode, importCode, listSaves, loadRun, saveRun, SLOT_N
 import { loadMeta, metaBarMvp, metaBattle, metaClear, metaEvent, metaRunEnd, metaTutEnd, metaTutSeen, tutMeta, tutOver } from './ui/meta';
 import { bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg, standURL } from './ui/portraits';
 import { advKey, closeAdv, playAdv } from './ui/adv';
+import * as SND from './ui/sound';
 import { ABIL_ICONS } from './ui/abilicons.gen';
 import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 import { closeCoach, coachKey, startCoach, type CoachStep } from './ui/coach';
@@ -140,6 +141,7 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const pctTxt = (x: number) => `${Math.round(x * 100)}%`;
 
 function toast(msg: string) {
+  SND.toastSfx(msg); // 입력 중에 뜬 오류 알림이면 그 입력의 소리를 오류음으로
   app.toast = msg;
   if (app.toastT) clearTimeout(app.toastT);
   app.toastT = setTimeout(() => { app.toast = ''; const t = document.getElementById('toast'); if (t) t.hidden = true; }, 2400);
@@ -1703,6 +1705,7 @@ function animateResult(scope: Element | Document) {
     setTimeout(() => { bar.style.transition = 'width .45s ease-in'; bar.style.width = '100%'; }, delay);
     setTimeout(() => {
       li.classList.add('ranked');
+      SND.sfx('rankUp', { step: i }); // 등급 상승음 (아래 줄일수록 조금씩 높게)
       rank.innerHTML = rankLabel(+li.dataset.r1!);
       old.style.width = '0%';
       bar.style.transition = 'none'; bar.style.width = '0%'; void bar.offsetWidth;
@@ -2008,6 +2011,7 @@ function pendingModal(run: RunState): string {
   } else if (p.t === 'notice') {
     body = `<h1>${esc(p.title)}</h1>${p.scene?.length ? sceneHtml(p.scene) : ''}<p class="${p.scene?.length ? 'sc-result' : ''}">${ic(esc(p.body))}</p><button class="btn primary" data-a="notice-ok">확인</button>`;
   }
+  SND.reveal(p); // 증강 · 보상 카드 공개음 (등급별 3단계, 같은 카드 묶음은 한 번)
   // 특권: 화면 전체를 덮는 막 (모달 바깥에 두어야 화면 기준으로 깔린다)
   // 별무리 커튼이 좌우에서 닫힌다. 런마다 한 번만 (새로고침으로 다시 그려도 커튼은 내려온 상태로)
   let pvCls = '';
@@ -2061,6 +2065,7 @@ function menuModal(run: RunState | null) {
         <div class="dpv" aria-hidden="true"><div class="dpv-card"><img alt="" src="${iconURL({ sprite: '', palette: [], id: 'rachel' })}"></div><button class="btn tiny dpv-btn" data-a="death-preview">미리보기</button></div></div>
       <div class="pref"><span><b>궁극기 컷인</b><br><span class="muted small">메이저 궁극기 발동 시 스탠딩 · 스킬명 · 대사 컷인과 감속. 짧게: 대사 없이 0.7초, 끄기: 스킬명 배너만</span></span>
         <span class="seg">${([['full', '전체'], ['short', '짧게'], ['off', '끄기']] as const).map(([k, l]) => `<button class="btn tiny ${FX.ultCut === k ? 'on' : ''}" data-a="pref-ultcut" data-v="${k}" aria-pressed="${FX.ultCut === k}">${l}</button>`).join('')}</span></div>
+      ${SND.prefHtml()}
       <div class="row-btns"><button class="btn ghost" data-a="pref-fx-reset">연출 기본값</button><button class="btn primary" data-a="menu-close">닫기</button></div>
     </div></div>`;
   }
@@ -2546,6 +2551,7 @@ function mountBattleView(board: HTMLElement) {
   if (nt === 'boss') banner('boss', 'BOSS', ENEMY_BY_ID[enc.enemies.find((e) => ENEMY_BY_ID[e.defId].tier === 'boss')?.defId || '']?.name || '보스전');
   else if (nt === 'challenge') banner('adversity', '도전', `페이즈 ${enc.phase} 역경 수준`);
   else banner(nt === 'adversity' ? 'adversity' : 'battle', nt === 'adversity' ? '역경 전투' : '전투 개시', enc.env);
+  SND.sfx('start', { boss: nt === 'boss' }); // 전투 개시음 (보스는 낮게)
   const b = buildBattle(run, run.node!.enc!);
   app.lastBattle = b;
   app.battleSel = null;
@@ -2566,6 +2572,7 @@ function mountBattleView(board: HTMLElement) {
       if (!app.summary || app.screen !== 'battle' || root.querySelector('.modal.result')) return;
       root.querySelector('main.battle')?.insertAdjacentHTML('beforeend', summaryModal(run));
       animateResult(root);
+      SND.sfx(app.summary.won ? 'win' : 'lose'); // 결과 창이 뜰 때 승리 · 패배음
     }, CFG.resultDelay * 1000);
   });
   app.view.itemHtml = (id) => itemIcon(id);
@@ -3945,6 +3952,7 @@ root.addEventListener('click', (ev) => {
   act(el.dataset.a!, el.dataset.v || '');
 });
 
+SND.init({ prefs: loadPrefs, save: savePref, rankSum: () => app.run?.units.reduce((s, u) => s + u.rank, 0) ?? 0 }); // 효과음 설정 (errantes.prefs.v1)
 // 순례: 신앙 변경
 root.addEventListener('change', (ev) => {
   const el = ev.target as HTMLSelectElement;
