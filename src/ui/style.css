@@ -233,7 +233,7 @@ button { font: inherit; color: inherit; }
 .gx i.div { background: #ffd34d; }
 .gx i.div.used { background: rgba(255, 211, 77, .35); }
 /* 피격 · 상태이상 시 초상화의 filter/transform 이 쌓임 맥락을 만들어도 게이지 · 배지는 항상 위 */
-.u .bars, .u .cd, .u .gx, .u .ubadge, .u .uitems, .u .sti, .u .stc, .u .stk, .u .rl { z-index: 2; }
+.u .bars, .u .cd, .u .gx, .u .ubadge, .u .uitems, .u .sts, .u .stc, .u .rl { z-index: 2; }
 .u.hit img { animation: hit .18s; }
 .u.lunge img { animation: lunge .2s; }
 .side1.lunge img { animation: lunge-f .2s; }
@@ -304,13 +304,37 @@ button { font: inherit; color: inherit; }
 .exec { position: absolute; font: 700 34px var(--f-mono); color: var(--bad); text-shadow: 0 0 10px var(--bad), 0 0 2px #000; pointer-events: none; }
 .tool { position: absolute; font-size: 20px; color: var(--accent); text-shadow: 0 0 6px #000; pointer-events: none; }
 .gift-fly { position: absolute; pointer-events: none; z-index: 5; } .gift-fly .item { transform: scale(.8); box-shadow: 0 0 10px var(--el-holy); }
-/* 행동을 막는 상태 · 중첩 · 재장전 */
-.sti { position: absolute; top: -12%; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; pointer-events: none; }
-.sti i { width: clamp(11px, 24cqw, 16px); aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; background: #14161d; border: 1px solid currentColor; box-shadow: 0 1px 3px #000; color: #d6a3ff; }
-.sti i svg { width: 70%; height: 70%; fill: currentColor; }
-.sti .sti-shock { color: var(--el-elec); } .sti .sti-bleed { color: #ff5a5a; } .sti .sti-poison { color: var(--el-chem); } .sti .sti-dot { color: #ff9a5a; }
-.sti .sti-judge { color: var(--el-holy); } .sti .sti-corrode { color: #e0a050; } .sti .sti-slow { color: #7fb6ff; } .sti .sti-wound { color: #ff7a8a; }
-.sti .sti-vuln { color: #ffb0b0; } .sti .sti-suppress { color: #c9ccd4; }
+/* 필드 상태 토큰: 디버프 = 카드 왼쪽 가장자리 세로 줄 (원 · 빨강 테두리), 버프 = 오른쪽 세로 줄 (각진 칸 · 파랑 테두리)
+   카드 가장자리에 걸쳐 (바깥 55%) 초상 얼굴 · 체력바를 가리지 않는다. 한 줄 최대 3칸, 칸 크기는 칸 폭에 비례 (9 ~ 13px) */
+.bview .u, #bboard > .u { --sts: clamp(9px, 19cqw, 13px); }
+.sts { position: absolute; top: 12%; display: flex; flex-direction: column; gap: 1px; pointer-events: none; }
+.sts.deb { left: 12%; }
+.sts.buf { right: 12%; }
+.u.tkb .sts { top: 8px; }
+.u.tkb .sts.deb { left: calc(var(--sts) * -.55); }
+.u.tkb .sts.buf { right: calc(var(--sts) * -.55); }
+.sts i { position: relative; box-sizing: border-box; width: var(--sts); height: var(--sts); display: grid; place-items: center; background: #14161d; box-shadow: 0 1px 2px #000; font-style: normal; }
+.sts.deb i { border-radius: 50%; border: 1px solid #ff6a6a; color: #ff9a9a; }
+.sts.buf i { border-radius: 2px; border: 1px solid #5ab8ff; color: #9fd4ff; }
+.sts i svg { width: 70%; height: 70%; fill: currentColor; }
+.sts i b { position: absolute; right: -4px; bottom: -3px; min-width: 7px; padding: 0 1px; border-radius: 3px; background: rgb(0 0 0 / .85); color: #fff; font: 700 8px/9px var(--f-mono); text-align: center; }
+.sts i.sts-more { border-style: dashed; color: #f0f2f6; font: 700 calc(var(--sts) * .6)/1 var(--f-mono); letter-spacing: -.5px; }
+/* 디버프 아이콘 색 (테두리는 공통 빨강) */
+.sts .sts-shock { color: var(--el-elec); } .sts .sts-bleed { color: #ff5a5a; } .sts .sts-poison { color: var(--el-chem); } .sts .sts-dot { color: #ff9a5a; }
+.sts .sts-judge { color: var(--el-holy); } .sts .sts-corrode, .sts .sts-shred { color: #e0a050; } .sts .sts-slow { color: #7fb6ff; } .sts .sts-wound { color: #ff7a8a; }
+.sts .sts-vuln { color: #ffb0b0; } .sts .sts-suppress { color: #c9ccd4; } .sts .sts-gloom { color: #c9a8ff; }
+.sts .sts-burn { color: #ff7a3d; } .sts .sts-conduct { color: #4fd1ff; } .sts .sts-chill { color: #a9dcff; }
+.sts .sts-bond { color: #b07cff; } .sts .sts-resonance { color: #7ff0d8; } .sts .sts-confuse { color: #ffd34d; } .sts .sts-scent { color: #ff9de2; }
+/* 버프 아이콘 색 (테두리는 공통 파랑) */
+.sts .sts-regen { color: #8fd14f; } .sts .sts-power { color: #ffb347; } .sts .sts-guard { color: #9fd4ff; } .sts .sts-haste { color: #7ff0d8; }
+/* 상태 줄과 겹치지 않게: 이성 막대 · 소마법 고리 · 재장전 고리를 줄 안쪽으로 */
+.u.tkb .gx { right: calc(var(--sts) * .45 + 1px); }
+.u.tkb .cpi { left: calc(var(--sts) * .45 + 1px); }
+.u.tkb .rl { right: calc(var(--sts) * .45 + 1px); }
+/* 감시 포탑: 우측 상단 '기계' 배지 (편성 토큰의 분류 칸과 같은 모양) — 버프 줄은 배지 아래부터 */
+.u.tkb .tk-cat { position: absolute; top: 8px; right: calc(var(--sts) * -.55); box-sizing: border-box; width: var(--sts); height: var(--sts); display: grid; place-items: center; border-radius: 2px; border: 1px solid color-mix(in srgb, #8fc8ff 45%, transparent); background: rgb(10 12 18 / .85); box-shadow: 0 1px 2px #000; z-index: 2; pointer-events: none; }
+.u.tkb .tk-cat .li { width: 80%; height: 80%; }
+.u.tkb.has-cat .sts.buf { top: calc(9px + var(--sts)); }
 @keyframes sti-spin { to { transform: rotate(360deg); } }
 .u.stunned img { filter: grayscale(.7) brightness(.65); }
 /* 행동 불가 상태: 초상화 중앙 큰 표식 */
@@ -319,9 +343,6 @@ button { font: inherit; color: inherit; }
 .stc i svg { width: 62%; height: 62%; fill: currentColor; }
 .stc .stc-stun { color: #ffd34d; } .stc .stc-stun svg { animation: sti-spin 1.6s linear infinite; }
 .stc .stc-fear { color: #d6a3ff; }
-.stk { position: absolute; left: 6%; right: 6%; bottom: -10%; display: flex; justify-content: center; gap: 3px; pointer-events: none; }
-.stk-seg { display: flex; gap: 1px; } .stk-seg i { width: 5px; height: 4px; background: rgb(0 0 0 / .6); border: 1px solid #e0a050; } .stk-seg i.on { background: #ffb347; }
-.stk-gloom { font: 700 9px var(--f-mono); color: #e4d2ff; background: #3a2458; border-radius: 6px; padding: 0 3px; line-height: 12px; box-shadow: 0 0 4px #8a5cc8; }
 .rl { position: absolute; right: 0; bottom: 6%; width: 20px; height: 20px; pointer-events: none; display: grid; place-items: center;
   border-radius: 50%; background: rgb(14 16 22 / .85); box-shadow: 0 1px 4px rgb(0 0 0 / .7); }
 /* 굵은 원형 진행선 + 가운데 탄약 아이콘 */
@@ -2051,12 +2072,8 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .cring.cr-volt, .cring.cr-wave { border-style: dashed; }
 .cring.cr-chrono { border-radius: 30%; }
 .fl.cantrip, .float.cantrip { font-weight: 800; letter-spacing: .04em; }
-/* 새 상태이상 아이콘 색 · 중첩 숫자 */
-.sti .sti-burn { color: #ff7a3d; } .sti .sti-conduct { color: #4fd1ff; } .sti .sti-chill { color: #a9dcff; }
-.sti .sti-regen { color: #8fd14f; } .sti .sti-bond { color: #b07cff; } .sti .sti-resonance { color: #7ff0d8; }
+/* 행동 불가 큰 표식 색 */
 .stc .stc-freeze { color: #a9dcff; } .stc .stc-charm { color: #ff7ab8; }
-.stk-n { font: 700 9px/1 var(--f-mono); padding: 1px 3px; border-radius: 3px; background: #14161d; border: 1px solid currentColor; }
-.stk-n.stk-burn { color: #ff7a3d; } .stk-n.stk-chill { color: #a9dcff; } .stk-n.stk-poison { color: var(--el-chem); }
 @media (prefers-reduced-motion: reduce) { .gx.sc i, .gx.sc::after, .u.psi-lo > img, .u.psi-lo .tk-card { animation: none !important; } }
 /* 사이오닉 학파: 섹션 · 선택 카드 */
 .aug-ic.sch { background: color-mix(in srgb, var(--sc) 18%, #12141a); border-color: color-mix(in srgb, var(--sc) 70%, transparent); color: var(--sc); }
@@ -2424,15 +2441,11 @@ button.cx2-row { cursor: pointer; } button.cx2-row:hover { border-color: var(--d
 .board .cell.edge { background: transparent; border-color: transparent; }
 .u.turret-tk { cursor: grab; }
 .u.turret-tk .tk-card { border-color: #a0b4c8; }
-.u.turret-tk .tk-tag { position: absolute; left: 2px; bottom: 2px; font-size: 10px; line-height: 1; padding: 2px 3px; border-radius: 4px; background: rgb(0 0 0 / .65); color: #cfe0f0; }
 /* 포탑 전용 장비 (T_): 강철색 사각 + 모서리 절단 */
 :root { --g-T: #9fd0e8; }
 .item.tT { border-color: var(--g-T); color: var(--g-T); border-style: double; border-width: 3px; border-radius: 2px; }
 .u.tk .tk-items > .item.tT, .u.tk .tk-it .item.tT { border-width: 2px; }
 .shop-item.tT b { color: var(--g-T); }
-.u.turret-tk .tk-tag { display: inline-flex; align-items: center; gap: 1px; white-space: nowrap; color: #8fc8ff; }
-.u.turret-tk .tk-tag .li { width: 10px; height: 10px; }
-.u.turret-tk .tk-side .li { width: 72%; height: 72%; }
 .u.turret-tk.sel .tk-card { outline: 2px solid var(--accent); }
 .tag.cat-mech { display: inline-flex; align-items: center; gap: 2px; }
 .tag.cat-mech .li { width: 12px; height: 12px; }

@@ -971,8 +971,8 @@ function prepScreen(run: RunState) {
       return it ? `<span class="tk-it" data-drag="tgear:${i}:${k}" data-drop="tgear:${i}:${k}" data-hold title="${esc(itemInfo(it).name + ' — ' + itemInfo(it).desc)}">${itemIcon(it)}</span>` : itemIcon(null, `data-drop="tgear:${i}:${k}" title="포탑 장비 칸 — 포탑 전용 장비를 끌어 장착"`);
     }).join('');
     units += `<div class="u side0 tk placed turret-tk${sel ? ' sel' : ''}" style="${cellBox(p.x, p.y)}" data-drag="turret:${i}" data-drop="turret:${i}" data-a="sel-turret" data-v="${i}" title="감시 포탑 ${i + 1} · 기계 — 끌어서 옮기기 · 포탑 전용 장비를 끌어 장착 (판매 · 대기석 불가)">
-      <div class="tk-card"><div class="tk-art">${sprite(TURRET_SPR, '')}<span class="tk-tag">${lineIcon('k.mech', 'li')}기계</span></div>
-        <span class="tk-side"><b class="tk-rank" title="감시 포탑 ${i + 1}">${i + 1}</b><i class="cat-mech" title="기계 · 구조물: ${esc(CATEGORY_RULE.struct)}">${lineIcon('k.mech', 'li')}</i></span>
+      <div class="tk-card"><div class="tk-art">${sprite(TURRET_SPR, '')}</div>
+        <span class="tk-side"><i class="cat-mech" title="기계 · 구조물: ${esc(CATEGORY_RULE.struct)}">${lineIcon('k.mech', 'li')}</i></span>
         <span class="tk-items">${slots}</span></div></div>`;
   });
   if (node?.enc) node.enc.enemies.forEach((s, i) => {
@@ -1568,7 +1568,7 @@ function updateMeter(force = false) {
       const sv = (x: SynAgg) => (tab === 'dmg' ? x.dmg : tab === 'taken' ? x.taken : x.healed + x.shield);
       const ss = aggSyn(v.b).filter((x) => sv(x) >= 1).sort((x, y) => sv(y) - sv(x));
       return ss.length ? `<div class="mrow-h">시너지 효과</div>${ss.map((x) => `<div class="mrow syn">${synBadge(x)}<span class="mname">${esc(x.name)}</span>
-        ${tab === 'dmg' ? `<span class="mbar">${elemBar(x as unknown as Agg)}<i class="fill" style="width:${(x.dmg / max) * 100}%"></i></span>` : `<span class="mbar"><i style="width:${(sv(x) / max) * 100}%"></i></span>`}
+        ${tab === 'dmg' ? `<span class="mbar">${elemBar(x as unknown as Agg)}<i class="fill" style="width:${Math.min(100, (x.dmg / max) * 100)}%"></i></span>` : `<span class="mbar"><i style="width:${Math.min(100, (sv(x) / max) * 100)}%"></i></span>`}
         <b class="mono">${fmt(sv(x))}</b>${tab === 'support' ? `<small class="heal-t">회복 ${fmt(x.healed)} · 보호막 ${fmt(x.shield)}</small>` : ''}</div>`).join('')}` : '';
     })();
   followCamera(v.b);
@@ -2503,6 +2503,8 @@ const ELEM_COLOR: Record<string, string> = { phys: '#cfd3dc', chem: '#7fdc4a', e
 type Agg = { u: CUnit; dmg: number; taken: number; healed: number; shield: number; kills: number; elem: Record<string, number> };
 /** 아군 기물별 집계 (소환물은 주인에게 합산) */
 /** 시너지 자체 효과 집계 (아군 진영): 기물 몫과 따로 */
+/** 시너지 소환물 → 기록을 받을 시너지 (엔지니어 감시 포탑 · 칼리토 근위기사). 최고의 친구 · 사이오닉 소환물은 주인 기물 몫 (aggAllies) */
+const SUMMON_SYN: Record<string, SynergyId> = { turret: 'ENG', kal_guard: 'KAL' };
 type SynAgg = { id: string; name: string; color: string; icon: string; dmg: number; taken: number; healed: number; shield: number; elem: Record<string, number> };
 function aggSyn(b: Battle): SynAgg[] {
   const mk = (id: string): SynAgg => { const sd = SYN_BY_ID[id as SynergyId]; return { id, name: sd?.name || id, color: sd?.color || 'var(--fg)', icon: synIcon(id) || sd?.icon || '◆', dmg: 0, taken: 0, healed: 0, shield: 0, elem: {} }; };
@@ -2513,12 +2515,14 @@ function aggSyn(b: Battle): SynAgg[] {
     a.dmg = x.dmg; a.healed = x.healed; a.shield = x.shield; a.elem = { ...(x.elem as Record<string, number>) };
     out.set(a.id, a);
   }
-  // 엔지니어 감시 포탑: 포탑이 준 · 받은 피해는 엔지니어 시너지 몫
-  for (const t of b.units.filter((u) => u.side === 0 && u.defId === 'turret')) {
-    const a = out.get('ENG') || mk('ENG');
+  // 시너지가 부른 소환물 (주인 기물 없음): 준 · 받은 피해 · 회복 · 보호막을 그 시너지 몫으로
+  for (const t of b.units) {
+    const id = t.side === 0 && t.isSummon && !t.owner ? SUMMON_SYN[t.defId] : undefined;
+    if (!id) continue;
+    const a = out.get(id) || mk(id);
     a.dmg += t.counters.dmg; a.taken += t.counters.taken; a.healed += t.counters.healed; a.shield += t.counters.shield;
     for (const [e, v] of Object.entries(t.counters.elem)) a.elem[e] = (a.elem[e] || 0) + (v || 0);
-    out.set('ENG', a);
+    out.set(id, a);
   }
   return [...out.values()].filter((x) => x.dmg + x.taken + x.healed + x.shield >= 1);
 }
@@ -2597,13 +2601,12 @@ const durTxt = (d: number) => (d > 900 ? '전투 내내' : `${d.toFixed(1)}초 �
 function buffIcons(u: CUnit) {
   const all = u.statuses.filter((s) => s.dur > 0);
   if (!all.length) return '<p class="muted small bf-none">걸린 효과 없음</p>';
-  // 한 줄 8개 · 최대 2줄 (넘치면 마지막 칸에 남은 개수)
-  const list = all.length > 16 ? all.slice(0, 15) : all;
-  return `<div class="bf-grid">${list.map((s) => {
+  // 한 줄 8개, 개수 제한 없이 모두 (필드 토큰은 줄여서 보이므로 여기서 전부 확인)
+  return `<div class="bf-grid">${all.map((s) => {
     const nm = statusName(s);
     const on = app.bPick === `st:${s.key}`;
     return `<button class="bf bf-${statusKind(u, s)}${on ? ' on' : ''}" data-a="bpick" data-v="st:${esc(s.key)}" title="${esc(nm)}" aria-label="${esc(nm)}">${lineIcon(augKey(`${nm} ${statusParts(u, s).out.join(' ')}`))}${s.stacks ? `<b>${s.stacks}</b>` : ''}</button>`;
-  }).join('')}${all.length > 16 ? `<span class="bf bf-more" title="${esc(all.slice(15).map(statusName).join(', '))}">+${all.length - 15}</span>` : ''}</div>`;
+  }).join('')}</div>`;
 }
 /** 선택한 버프 · 장비 설명 (지속 시간은 실시간) */
 function bpickInfo(u: CUnit) {

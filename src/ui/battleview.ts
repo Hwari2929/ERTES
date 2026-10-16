@@ -1,6 +1,7 @@
 import { CFG } from '../config';
 import { itemInfo } from '../data/items';
-import type { BEvent, Battle, CUnit } from '../engine/combat';
+import type { BEvent, Battle, CUnit, Status } from '../engine/combat';
+import { isHarmful } from '../data/kit';
 import type { Elem } from '../types';
 import { hasPortrait, iconURL, standURL } from './portraits';
 import { ULTS } from '../data/ults';
@@ -30,6 +31,7 @@ interface UEl {
   u: CUnit; dead: boolean;
   /** 체력 바 손실 구간 (큰 피해 뒤 잠깐 남는 흰 띠) */
   trail: number; trailHold: number;
+  /** 상태 표시 서명 (바뀔 때만 다시 그림) · sti = 디버프 줄, stk = 버프 줄 */
   stiSig: string; stkSig: string; rlMax: number;
 }
 /** 최근 행동 한 줄 */
@@ -86,6 +88,83 @@ function topIconKey(st: { key: string; type: string; taken?: { kind: string }[];
   if (st.type === 'dot') return 'dot';
   if (st.taken?.some((t) => t.kind === 'vuln')) return 'vuln';
   return null;
+}
+// ───────── 필드 상태 토큰: 디버프 = 왼쪽 세로 줄 (빨간 테두리) · 버프 = 오른쪽 세로 줄 (파란 테두리)
+// 같은 아이콘 종류는 한 칸으로 합치고 (중첩 · 개수 합을 숫자로), 한 줄에 최대 3칸 (넘치면 2칸 + '+n').
+// 순서: 전투 내내 가는 효과는 뒤로 → 중요도(STS_W) 높은 것 → 남은 지속이 짧은 것.
+const UP = 'M12 3 4 11h5v10h6V11h5Z';
+const STS_ICON: Record<string, { t: string; svg: string }> = {
+  gloom: { t: '암운: 매초 고정 피해 (중첩)', svg: svg('M7 18a5 5 0 0 1-.6-10A6 6 0 0 1 18 7.5 4.5 4.5 0 0 1 17.5 18Z') },
+  shred: { t: '방어 분석: 방어도 감소 (중첩)', svg: svg('M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5Zm-1 5h2v6h-2Zm0 8h2v2h-2Z') },
+  weak: { t: '약화: 주는 피해 · 위력 감소', svg: svg('M12 21 4 13h5V3h6v10h5Z') },
+  down: { t: '해로운 효과', svg: svg('M12 21 4 13h5V3h6v10h5Z') },
+  power: { t: '강화: 주는 피해 · 위력 증가', svg: svg('M14.5 2 21 2v6.5l-9.8 9.8 1.4 1.4-1.4 1.4-2.8-2.8L5.6 21.1 2.9 18.4l2.8-2.8-2.8-2.8 1.4-1.4 1.4 1.4Z') },
+  guard: { t: '보호: 받는 피해 감소 · 방어 증가', svg: svg('M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5Z') },
+  haste: { t: '가속: 공격 · 이동 · 쿨다운 가속', svg: svg('M4 5h3l6 7-6 7H4l6-7Zm7 0h3l6 7-6 7h-3l6-7Z') },
+  regen: TOP_ICON.regen,
+  up: { t: '이로운 효과', svg: svg(UP) },
+};
+const STS_W: Record<string, number> = {
+  confuse: 9, shock: 9, suppress: 8, wound: 7, vuln: 7, judge: 6, bond: 6, burn: 5, bleed: 5, poison: 5, dot: 5, chill: 5, slow: 5,
+  corrode: 4, shred: 4, gloom: 4, conduct: 3, resonance: 3, scent: 3, weak: 3, down: 1,
+  guard: 5, regen: 4, power: 4, haste: 3, up: 1,
+};
+const CENTER_KEYS = new Set(['stun', 'fear', 'freeze', 'charm', 'frenzy']);
+const ATK_KEYS = ['shoot', 'strike', 'tech', 'crit', 'critDmg', 'armorPen', 'acc', 'effHit'];
+const DEF_KEYS = ['armor', 'effRes', 'maxHp', 'eva'];
+const SPD_KEYS = ['atkSpd', 'moveSpd', 'cdr', 'reloadSpd'];
+type StsTok = { k: string; n: number; w: number; dur: number; names: string[] };
+/** 상태 하나 → [디버프?, 아이콘 종류] (보여 줄 것이 없으면 null) */
+function stsKind(u: CUnit, s: Status): [boolean, string] | null {
+  if (s.dur <= 0 || CENTER_KEYS.has(s.key) || s.share === u) return null;
+  let good = 0, bad = 0, atk = 0, def = 0, spd = 0;
+  const add = (v: number, k: 'a' | 'd' | 's' | '') => { if (!v) return; if (v > 0) good++; else bad++; if (v > 0) { if (k === 'a') atk++; else if (k === 'd') def++; else if (k === 's') spd++; } };
+  for (const [k, v] of Object.entries(s.delta || {})) add(v as number, ATK_KEYS.includes(k) ? 'a' : DEF_KEYS.includes(k) ? 'd' : SPD_KEYS.includes(k) ? 's' : '');
+  if (s.armorMul !== undefined && s.armorMul !== 1) add(s.armorMul - 1, 'd');
+  for (const m of s.mods || []) add(m.v, 'a');
+  for (const t of s.taken || []) add(t.kind === 'red' ? t.v : -t.v, 'd');
+  if (s.reflect || s.reflectTrue || (s.share && s.share !== u)) { good++; def++; }
+  if (s.hps) good++;
+  if (s.healMul !== undefined && s.healMul < 1) bad++;
+  if (s.dps) bad++;
+  const foe = !!s.src && s.src.side !== u.side;
+  const harm = isHarmful(s) || (bad > 0 && !good) || (bad > 0 && good > 0 && foe) || (!bad && !good && foe);
+  if (harm) {
+    if (s.key === 'gloom') return [true, 'gloom'];
+    if (s.key === 'vivian.shred') return [true, 'shred'];
+    const k = topIconKey(s);
+    if (k) return [true, k];
+    if (s.armorMul !== undefined && s.armorMul < 1 || Object.entries(s.delta || {}).some(([k2, v]) => k2 === 'armor' && (v as number) < 0)) return [true, 'corrode'];
+    if (Object.entries(s.delta || {}).some(([k2, v]) => SPD_KEYS.includes(k2) && (v as number) < 0)) return [true, 'slow'];
+    if ((s.mods || []).some((m) => m.v < 0) || Object.entries(s.delta || {}).some(([k2, v]) => ATK_KEYS.includes(k2) && (v as number) < 0)) return [true, 'weak'];
+    return [true, 'down'];
+  }
+  if (!good && !s.label) return null; // 효과 없는 내부 표식
+  return [false, s.hps ? 'regen' : atk ? 'power' : def ? 'guard' : spd ? 'haste' : 'up'];
+}
+/** 기물의 상태를 디버프 · 버프 토큰으로 묶는다 (우선순위 순) */
+function statusTokens(u: CUnit): { deb: StsTok[]; buf: StsTok[] } {
+  const deb = new Map<string, StsTok>(), buf = new Map<string, StsTok>();
+  for (const s of u.statuses) {
+    const r = stsKind(u, s);
+    if (!r) continue;
+    const m = r[0] ? deb : buf;
+    const t = m.get(r[1]) || { k: r[1], n: 0, w: STS_W[r[1]] ?? 1, dur: Infinity, names: [] };
+    t.n += Math.max(1, s.stacks || 1);
+    t.dur = Math.min(t.dur, s.dur);
+    if (s.label && !t.names.includes(s.label)) t.names.push(s.label);
+    m.set(r[1], t);
+  }
+  const ord = (a: StsTok, b: StsTok) => (+(a.dur > 900) - +(b.dur > 900)) || b.w - a.w || a.dur - b.dur || (a.k < b.k ? -1 : 1);
+  return { deb: [...deb.values()].sort(ord), buf: [...buf.values()].sort(ord) };
+}
+const STS_MAX = 3;
+const tokSig = (l: StsTok[]) => l.slice(0, STS_MAX).map((t) => `${t.k}${t.n}`).join(',') + (l.length > STS_MAX ? `+${l.length}` : '');
+function tokHtml(l: StsTok[]) {
+  const show = l.length > STS_MAX ? l.slice(0, STS_MAX - 1) : l;
+  const rest = l.slice(show.length);
+  const ic = (t: StsTok) => { const d = STS_ICON[t.k] || TOP_ICON[t.k]; return `<i class="sts-${t.k}" title="${d.t}${t.names.length ? ` (${t.names.join(', ')})` : ''}">${d.svg}${t.n > 1 ? `<b>${t.n > 99 ? '99' : t.n}</b>` : ''}</i>`; };
+  return show.map(ic).join('') + (rest.length ? `<i class="sts-more" title="${rest.map((t) => (STS_ICON[t.k] || TOP_ICON[t.k]).t.split(':')[0]).join(', ')}">+${rest.length}</i>` : '');
 }
 /** 디바인 신권 대행 컷인 대사 */
 const DIV_LINE: Record<string, string> = {
@@ -266,12 +345,13 @@ export class BattleView {
   private mount(u: CUnit) {
     const el = document.createElement('div');
     const card = hasPortrait(u);
-    el.className = `u side${u.side}${card ? ' tkb' : ''}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
+    const turret = card && u.isSummon && u.defId === 'turret'; // 엔지니어 감시 포탑: 우측 상단 '기계' 배지
+    el.className = `u side${u.side}${card ? ' tkb' : ''}${turret ? ' has-cat' : ''}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
     el.style.width = `${100 / this.b.w}%`;
     el.style.height = `${100 / this.b.h}%`;
     el.dataset.a = 'bsel';
     el.dataset.v = String(u.id);
-    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div><img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && u.reason !== null ? `<div class="gx${schoolOfC(u) ? ` sc sc-${barOf(schoolOfC(u)!)}` : ''}"><i></i></div>` : ''}${schoolOfC(u) ? `<div class="cpi" style="--sc:${SCHOOL_BY_ID[schoolOfC(u) as SchoolId]?.color || '#b07cff'}" title="비술 준비"><i class="cpi-ring"></i>${lineIcon(`s.${schoolOfC(u)}`, 'li')}</div>` : ''}<div class="sti"></div><div class="stc"></div><div class="stk"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
+    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div><img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && u.reason !== null ? `<div class="gx${schoolOfC(u) ? ` sc sc-${barOf(schoolOfC(u)!)}` : ''}"><i></i></div>` : ''}${schoolOfC(u) ? `<div class="cpi" style="--sc:${SCHOOL_BY_ID[schoolOfC(u) as SchoolId]?.color || '#b07cff'}" title="비술 준비"><i class="cpi-ring"></i>${lineIcon(`s.${schoolOfC(u)}`, 'li')}</div>` : ''}${turret ? `<span class="tk-cat cat-mech" title="기계 · 구조물">${lineIcon('k.mech', 'li')}</span>` : ''}<div class="sti sts deb"></div><div class="stc"></div><div class="stk sts buf"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
     el.innerHTML = card ? `<div class="tk-card">${inner}</div>` : inner;
     this.board.appendChild(el);
     const q = <T extends HTMLElement>(s: string) => el.querySelector<T>(s)!;
@@ -382,35 +462,23 @@ export class BattleView {
         if (e.rl.hidden) { e.rl.hidden = false; e.rlMax = u.reloadT; }
         e.rl.style.setProperty('--p', `${Math.round((1 - u.reloadT / Math.max(0.01, e.rlMax)) * 100)}%`);
       } else if (!e.rl.hidden) e.rl.hidden = true;
-      // 행동을 막는 상태: 머리 위 아이콘
-      // 행동 불가류(기절 · 공포)는 초상화 중앙에 아이콘만 크게, 지속 피해 · 디버프는 위쪽 작은 아이콘 줄
+      // 행동 불가류(기절 · 빙결 · 매혹 · 공포)는 초상화 중앙에 크게, 나머지 상태는 좌(디버프) · 우(버프) 세로 줄 (statusTokens)
       const big = !alive ? '' : hasKey(u, 'freeze') ? 'freeze' : this.b.has(u, 'stun') ? 'stun' : hasKey(u, 'charm') ? 'charm' : this.b.has(u, 'fear') ? 'fear' : '';
-      const top: string[] = [];
-      if (alive) for (const st of u.statuses) {
-        const k = topIconKey(st);
-        if (k && !top.includes(k)) top.push(k);
-      }
-      const blk = `${big}|${top.slice(0, 5).join(',')}`;
-      if (blk !== e.stiSig) {
+      const { deb, buf } = alive ? statusTokens(u) : { deb: [], buf: [] };
+      const sig = `${big}|${tokSig(deb)}|${tokSig(buf)}`;
+      if (sig !== e.stiSig) {
         const prevBig = e.stiSig.split('|')[0];
-        e.stiSig = blk;
+        e.stiSig = sig;
         e.stc.innerHTML = big ? `<i class="stc-${big}" title="${BIG_ICON[big][1]}">${BIG_ICON[big][0]}</i>` : '';
-        e.sti.innerHTML = top.slice(0, 5).map((k) => `<i class="sti-${k.replace('.', '-')}" title="${TOP_ICON[k].t}">${TOP_ICON[k].svg}</i>`).join('');
+        e.sti.innerHTML = tokHtml(deb);
+        e.stk.innerHTML = tokHtml(buf);
         if (big && big !== prevBig && !this.reduced) this.play(e.stc, [{ transform: 'scale(1.6)', opacity: 0, easing: EASE_OUT }, { transform: 'scale(1)', opacity: 1 }], 260);
       }
       e.el.classList.toggle('stunned', big === 'stun');
       e.el.classList.toggle('frozen', big === 'freeze');
       e.el.classList.toggle('charmed', big === 'charm');
       e.el.classList.toggle('feared', big === 'fear');
-      e.el.classList.toggle('shocked', top.includes('shock'));
-      // 중첩 표식: 분석 (분절) · 암운 (개수)
-      let stk = '';
-      if (alive) for (const s of u.statuses) {
-        if (s.key === 'vivian.shred' && s.stacks) { const m = s.stacks > 3 ? 5 : 3; stk += `<span class="stk-seg" title="방어 분석 ${s.stacks}/${m}">${'<i class="on"></i>'.repeat(s.stacks)}${'<i></i>'.repeat(Math.max(0, m - s.stacks))}</span>`; }
-        if (s.key === 'gloom' && s.stacks) stk += `<span class="stk-gloom" title="암운 ${s.stacks}중첩">☁${s.stacks}</span>`;
-        if ((s.key === 'burn' || s.key === 'chill' || s.key === 'poison') && (s.stacks || 0) > 1) stk += `<span class="stk-n stk-${s.key}" title="${s.label || s.key} ${s.stacks}중첩">${s.stacks}</span>`;
-      }
-      if (stk !== e.stkSig) { e.stkSig = stk; e.stk.innerHTML = stk; }
+      e.el.classList.toggle('shocked', alive && hasKey(u, 'shock'));
       if (!alive && !e.dead) { e.dead = true; this.dieFx(e); }
       else if (alive && e.dead && u.alive) { e.dead = false; e.el.classList.remove('dead'); }
     }
@@ -688,7 +756,7 @@ export class BattleView {
         }
       } else if (e.syn === 'SCHEME') {
         // 암운 맥동
-        const st = this.els.get(e.id)?.stk.querySelector('.stk-gloom');
+        const st = this.els.get(e.id)?.sti.querySelector('.sts-gloom');
         if (st) this.play(st, [{ transform: 'scale(1)' }, { transform: 'scale(1.5)', filter: 'brightness(1.8)', offset: 0.3 }, { transform: 'scale(1)' }], 320);
         this.flash(e.id, 'brightness(.7) saturate(1.6) hue-rotate(250deg)', 260);
       }
