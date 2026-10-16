@@ -801,7 +801,8 @@ export class Battle {
       }
     }
     // 치명타: 사격 · 타격 피해만 (기술 피해는 기술 치명 특성이 있을 때만, 지속 피해 없음)
-    const canCrit = o.tag !== 'dot' && (o.kind === 'shoot' || o.kind === 'strike' || (o.kind === 'tech' && src.mem.techCrit));
+    // 기술 피해 치명: 기술 치명 허용(도노반 등) 또는 인과학파 저이성 (mem.lowTechCrit, data/psionic.ts)
+    const canCrit = o.tag !== 'dot' && (o.kind === 'shoot' || o.kind === 'strike' || (o.kind === 'tech' && (src.mem.techCrit || src.mem.lowTechCrit)));
     if (dmg > 0 && canCrit && !res.miss) {
       if (this.rng.next() < this.S(src, 'crit') + (o.critBonus || 0)) {
         res.crit = true;

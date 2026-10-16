@@ -10,7 +10,7 @@ import { emptyStats, type Elem, type StatKey } from '../types';
 import { ALL_COMPONENTS, itemEffect } from './items';
 import { isHarmful } from './kit';
 import { CFG } from '../config';
-import { cantripCdOf, PSI, psiStackCap } from './psinum';
+import { cantripCdOf, CONDUCT_SNAP, PSI, PSI_HIT, PSI_ICD, psiStackCap } from './psinum';
 import { GROUPS, PSI_STATUS, SCHOOLS, SCHOOL_BY_ID, SCHOOL_PASSIVES, psiAugId, schoolAugId, type GroupId, type SchoolId } from './schools';
 
 const LB = (k: string) => PSI_STATUS[k].name;
@@ -202,13 +202,15 @@ function storeReason(b: Battle, c: CUnit) {
   if (b.t >= (c.mem.storeW || 0)) { c.mem.storeW = Math.floor(b.t) + 1; c.mem.storeN = 0; }
   if ((c.mem.storeN || 0) < 3) { c.mem.storeN = (c.mem.storeN || 0) + 1; b.addReason(c, 1, 'volt.store'); }
 }
-/** ally = 역전류 (아군에게 걸린 전도: 그 아군 주변 적에게 피해) */
-function conductStatus(b: Battle, u: CUnit, n: number, ally: boolean): Status {
+/** ally = 역전류 (아군에게 걸린 전도: 그 아군 주변 적에게 피해). hit = 전도를 건 피해량 (적 전도는 중첩당 피해를 이 값 기준으로 고정) */
+function conductStatus(b: Battle, u: CUnit, n: number, ally: boolean, hit?: number): Status {
   const hv = P(u, 'volt.hv'), rad = hv ? PSI.volt.hvR : PSI.volt.r;
   // 역전류(아군 전도)도 고전압이면 중첩당 피해가 오른다 (고전압의 피해 증가가 사라지지 않게)
   const per = ally ? (hv ? PSI.volt.reverseHvPer : PSI.volt.reversePer) : hv ? PSI.volt.hvPer : PSI.volt.per;
   return {
-    type: 'buff', key: 'conduct', dur: PSI.volt.dur, stacks: n, maxStacks: psiStackCap('conduct', (k) => P(u, k)), val: mp(b, u) * per, label: LB('conduct'),
+    // 적 전도: 걸 때의 피해량으로 고정 (잔타가 거는 중첩은 약하게, 최대 2배). 피해량을 모르면 주요 위력 기준
+    type: 'buff', key: 'conduct', dur: PSI.volt.dur, stacks: n, maxStacks: psiStackCap('conduct', (k) => P(u, k)),
+    val: mp(b, u) * per * (!ally && hit !== undefined ? Math.min(CONDUCT_SNAP.max, Math.max(0, hit) / Math.max(1, mp(b, u) * CONDUCT_SNAP.ref)) : 1), label: LB('conduct'),
     onAct(bb, t, s) {
       const c = s.src;
       if (!c) return;
@@ -229,7 +231,7 @@ function conductStatus(b: Battle, u: CUnit, n: number, ally: boolean): Status {
     },
   };
 }
-function addConduct(b: Battle, u: CUnit, t: CUnit, n: number, chance = 1) {
+function addConduct(b: Battle, u: CUnit, t: CUnit, n: number, chance = 1, hit?: number) {
   if (P(u, 'volt.reverse')) {
     // 역전류: 대상과 가장 가까운 아군에게
     if (chance < 1 && !b.rng.chance(chance)) return false;
@@ -237,7 +239,7 @@ function addConduct(b: Battle, u: CUnit, t: CUnit, n: number, chance = 1) {
     const a = al.length ? b.nearest(t, al) : null;
     return a ? b.applyStatus(u, a, conductStatus(b, u, n, true)) : false;
   }
-  return b.applyStatus(u, t, conductStatus(b, u, n, false), chance);
+  return b.applyStatus(u, t, conductStatus(b, u, n, false, hit), chance);
 }
 function discharge(b: Battle, u: CUnit) {
   const t = cantripTarget(b, u);
@@ -271,14 +273,14 @@ function discharge(b: Battle, u: CUnit) {
   }
   b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'elec', ranged: true });
   const cs = statusOf(t, 'conduct');
-  zap(b, u, t, PSI.volt.coef, 'elec');
+  const hr = zap(b, u, t, PSI.volt.coef, 'elec');
   if (t.alive && cs && (cs.stacks || 0) >= PSI.volt.overloadAt && P(u, 'volt.overload')) {
     // 과부하: 전도 3중첩 소모 → 주요 위력 300% 전기 폭발
     t.statuses = t.statuses.filter((s) => s !== cs);
     b.fx(t.x, t.y, 1, 'elec');
     b.emit({ k: 'status', id: t.id, name: '과부하', src: u.id, harm: true });
     zap(b, u, t, PSI.volt.overload, 'elec');
-  } else if (t.alive) b.applyStatus(u, t, conductStatus(b, u, PSI.volt.conduct, false));
+  } else if (t.alive) b.applyStatus(u, t, conductStatus(b, u, PSI.volt.conduct, false, hr.amount));
   if (P(u, 'volt.chain')) {
     // 바운스 번개: 대상에서 가장 가까운 다른 적 3명에게 차례로 60%
     const others = b.targetable(u).filter((e) => e !== t).sort((a, c) => b.dist(a, t) - b.dist(c, t)).slice(0, PSI.volt.bounceN);
@@ -555,27 +557,31 @@ function makeCantrip(id: SchoolId): Cantrip {
 export const CANTRIPS = Object.fromEntries(SCHOOLS.map((s) => [s.id, makeCantrip(s.id)])) as Record<SchoolId, Cantrip>;
 
 // ───────────────────────── 기본 지속 능력: 기본 공격 · 전투 스킬 · 비술 적중 시 확률 발동
-const PROC: Record<SchoolId, ((b: Battle, u: CUnit, t: CUnit) => void) | null> = {
+/** 피해량 비례 확률 배율 (파장 · 시공): 이번 피해 ÷ (주요 위력 × 0.8), 최대 2배 */
+const hitScale = (b: Battle, u: CUnit, dmg: number) => Math.min(PSI_HIT.max, Math.max(0, dmg) / Math.max(1, mp(b, u) * PSI_HIT.ref));
+/** 같은 대상에게는 1초에 한 번만 판정 (환조 · 정신) */
+const perTarget = (b: Battle, u: CUnit, t: CUnit, tag: string) => icd(b, t, `${tag}${u.id}`, PSI_ICD);
+const PROC: Record<SchoolId, ((b: Battle, u: CUnit, t: CUnit, r: DmgResult) => void) | null> = {
   pyro(b, u, t) {
     if (P(u, 'pyro.beacon')) return; // 봉화: 자신의 발화 확률 0 (아군 기본 공격 쪽에서 붙는다)
     addBurn(b, u, t, 1, PSI.pyro.proc * (P(u, 'pyro.runaway') && reasonOf(u) < 0 ? PSI.pyro.runawayProc : 1));
   },
-  chrono(b, u, t) {
+  chrono(b, u, t, r) {
     if (P(u, 'chrono.zero') && stacksOf(t, 'chill') >= PSI.chrono.zeroMax && freeze(b, u, t, 99)) return; // 절대 영도: 확정 빙결
-    addChill(b, u, t, 1, PSI.chrono.proc);
+    addChill(b, u, t, 1, PSI.chrono.proc * hitScale(b, u, r.amount));
   },
-  volt(b, u, t) { addConduct(b, u, t, 1, PSI.volt.proc); },
-  wave(b, u, t) { b.applyStatus(u, t, resonanceStatus(b, u), PSI.wave.proc); },
+  volt(b, u, t, r) { addConduct(b, u, t, 1, PSI.volt.proc, r.amount); },
+  wave(b, u, t, r) { b.applyStatus(u, t, resonanceStatus(b, u), PSI.wave.proc * hitScale(b, u, r.amount)); },
   seed(b, u, t) { b.applyStatus(u, t, poisonStatus(b, u, 1), PSI.seed.proc); },
-  mind(b, u, t) { confuse(b, u, t, PSI.mind.confuse, PSI.mind.proc); },
+  mind(b, u, t) { if (perTarget(b, u, t, 'mindIcd')) confuse(b, u, t, PSI.mind.confuse, PSI.mind.proc); },
   gold: null,
-  illusion(b, u, t) { scent(b, u, t, PSI.illusion.proc); },
+  illusion(b, u, t) { if (perTarget(b, u, t, 'scentIcd')) scent(b, u, t, PSI.illusion.proc); },
 };
 const procHooks = (id: SchoolId): Hooks => ({
   onDeal(b, u, t, r, o) {
     if (o.tag !== 'basic' && o.tag !== 'skill') return;
     if (r.miss || !t.alive || t === u || b.sideOf(t) === b.sideOf(u)) return;
-    PROC[id]?.(b, u, t);
+    PROC[id]?.(b, u, t, r);
   },
 });
 /** 전공별 기본 훅 (지속 능력 중 확률 발동이 아닌 것) */
@@ -603,7 +609,8 @@ const GROUP_FX: Record<GroupId, GroupFx> = {
   field: axis(['elec'], 0.4, 0.3),
   life: axis(['chem', 'psy'], 0.35, 0.3),
   causal: {
-    dyn: (u, h, l) => { dyn(u, 'crit', 0.25 * l); dyn(u, 'critDmg', 0.25 * l); dyn(u, 'eva', 0.1 * h); u.mem.critRed = 0.4 * h; },
+    // 저이성: 치명타가 기술 피해(전투 스킬 · 비술)에도 적용된다 (기술 치명 허용의 예외, 지속 피해 제외)
+    dyn: (u, h, l) => { dyn(u, 'crit', 0.25 * l); dyn(u, 'critDmg', 0.25 * l); dyn(u, 'eva', 0.1 * h); u.mem.critRed = 0.4 * h; u.mem.lowTechCrit = l > 0 ? 1 : 0; },
     hooks: {},
   },
 };

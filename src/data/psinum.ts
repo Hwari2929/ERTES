@@ -2,6 +2,13 @@
 import { SCHOOL_BY_ID, type SchoolId } from './schools';
 // 계수는 주요 위력 기준 (명사수 사격 · 돌격가 타격 · 전문가 기술 · 지휘관 전술) × CFG.psiPower.
 
+/** 피해량 기준 (파장 · 시공 발동 확률, 뇌전 전도 스냅샷): 이번 피해 ÷ (주요 위력 × ref), 확률은 최대 max 배 */
+export const PSI_HIT = { ref: 0.8, max: 2 } as const;
+/** 뇌전 전도 스냅샷: 중첩당 피해 = 계수 × 주요 위력 × min(2, 건 피해 ÷ (주요 위력 × ref)). ref 1.0 = 주요 위력만큼의 피해로 걸면 예전과 같다 */
+export const CONDUCT_SNAP = { ref: 1, max: 2 } as const;
+/** 같은 대상 재판정 대기 (환조 향취 · 정신 혼란) */
+export const PSI_ICD = 1;
+
 export const PSI = {
   pyro: {
     /** 소각: 대상 · 주변 1칸 피해 */
@@ -70,8 +77,8 @@ export const PSI = {
     charm: 1.5, ascendPlus: 1, dominate: 1,
     /** 집단 최면 (◆) 혼란 */
     hypno: 2,
-    /** 자아 침식 */
-    proc: 0.15, confuse: 1,
+    /** 자아 침식 (같은 대상 1초에 1회 판정) */
+    proc: 0.25, confuse: 1,
   },
   gold: {
     /** 시장 개입 성공 확률 = base + perReason × |이성|/100 (+ 내부 정보) */
@@ -94,8 +101,8 @@ export const PSI = {
     solidCloneHp: 0.7, solidCloneRed: 0.15, solidCloneHit: 0.2,
     /** 잔향 · 안개 · 교란 */
     echo: 1.2, fog: 0.3, disrupt: 0.1, disruptMax: 3,
-    /** 향취 */
-    proc: 0.2, scentDur: 4, scentEva: 0.15, scentVuln: 0.08, denseMax: 3,
+    /** 향취 (같은 대상 1초에 1회 판정) */
+    proc: 0.3, scentDur: 4, scentEva: 0.15, scentVuln: 0.08, denseMax: 3,
   },
 } as const;
 

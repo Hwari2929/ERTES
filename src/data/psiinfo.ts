@@ -2,7 +2,7 @@
 // 수치는 엔진과 같은 표(psinum.ts)에서 읽는다. 전공 증강(◆ 변형 포함)을 가진 기물은 cantripView · passiveView 로
 // 실제로 적용 중인 모습을 받는다 (상세 창 · 칩 · 팝업 · 전투 중 표시 · 도감 공용).
 import type { SkillInfo } from './abiltext';
-import { cantripCdOf, PSI } from './psinum';
+import { cantripCdOf, CONDUCT_SNAP, PSI, PSI_HIT, PSI_ICD } from './psinum';
 import { SCHOOL_BY_ID, SCHOOL_PASSIVES, SCHOOLS, TRANSFORM_KEYS, type SchoolId } from './schools';
 
 /** 보유 증강 목록 → has('전공.키') */
@@ -196,6 +196,10 @@ export function cantripView(sid: SchoolId, augs: AugList = []): CantripView {
 }
 
 // ───────────────────────── 지속 능력
+/** 피해량 비례 확률 (파장 · 시공) */
+const HIT_SCALED = (p: number) => `평타 · 전투 스킬 · 비술 적중 시 [p:${p}] × (이번 피해 ÷ 주요 위력 ${Math.round(PSI_HIT.ref * 100)}%), 최대 [p:${p * PSI_HIT.max}]`;
+/** 같은 대상 재판정 대기 (환조 · 정신) */
+const PER_TARGET = (p: number) => `평타 · 전투 스킬 · 비술 적중 시 [p:${p}] (같은 대상에게는 [s:${PSI_ICD}]에 한 번만 판정)`;
 type PBuild = (use: (k: string) => boolean) => { rows: [string, string][]; brief: string; tf: boolean };
 const PASSIVE: Record<SchoolId, PBuild> = {
   pyro(use) {
@@ -212,12 +216,12 @@ const PASSIVE: Record<SchoolId, PBuild> = {
     const N = PSI.chrono;
     const zero = use('zero');
     const rows: [string, string][] = [
-      ['발동', `평타 · 전투 스킬 · 비술 적중 시 [p:${N.proc}]`],
+      ['발동', HIT_SCALED(N.proc)],
       ['효과', `[g:chill] 1중첩: 중첩당 초당 [dmg:main:${N.chillDps}:phys], 이동 · 공격 속도 -${Math.round(N.chillSlow * 100)}%p, 빙결 확률 [pp:${N.freezePerChill}]`],
       ['중첩', `최대 ${zero ? N.zeroMax : N.chillMax} · [s:5]`],
     ];
     if (zero) rows.push(['절대 영도', `${N.zeroMax}중첩인 적에게 다음 적중은 확정 [g:freeze]`]);
-    return { tf: false, brief: `적중 시 ${Math.round(N.proc * 100)}% 오한`, rows };
+    return { tf: false, brief: `적중 시 ${Math.round(N.proc * 100)}% 오한 (피해 비례)`, rows };
   },
   volt(use) {
     const N = PSI.volt;
@@ -229,15 +233,16 @@ const PASSIVE: Record<SchoolId, PBuild> = {
     ] };
     return { tf: false, brief: `적중 시 ${Math.round(N.proc * 100)}% 전도`, rows: [
       ['발동', `평타 · 전투 스킬 · 비술 적중 시 [p:${N.proc}]`],
-      ['효과', `[g:conduct] 1중첩: 대상이 행동할 때마다 주변 [t:${hv ? N.hvR : N.r}] 다른 적에게 중첩당 [dmg:main:${hv ? N.hvPer : N.per}:elec]`],
+      ['효과', `[g:conduct] 1중첩: 대상이 행동할 때마다 주변 [t:${hv ? N.hvR : N.r}] 다른 적에게 중첩당 [dmg:main:${hv ? N.hvPer : N.per}:elec] × (건 피해 ÷ 주요 위력, 최대 ${CONDUCT_SNAP.max}배)`],
+      ['기준', '전도를 건 순간의 피해량으로 고정 (같은 대상에 다시 걸면 더 큰 쪽)'],
       ['중첩', `최대 ${N.max} · [s:${N.dur}]`],
     ] };
   },
   wave(use) {
     const N = PSI.wave;
     const attract = use('attract'), freq = use('freq');
-    return { tf: attract, brief: `적중 시 ${Math.round(N.proc * 100)}% 공진`, rows: [
-      ['발동', `평타 · 전투 스킬 · 비술 적중 시 [p:${N.proc}]`],
+    return { tf: attract, brief: `적중 시 ${Math.round(N.proc * 100)}% 공진 (피해 비례)`, rows: [
+      ['발동', HIT_SCALED(N.proc)],
       ['효과', `[s:${N.resDur}] [g:resonance]: 피격될 때마다 주변 [t:${attract ? N.attractResR : N.resR}] 적에게 [dmg:main:${freq ? N.freqRes : N.res}:elec] (${N.resIcd}초에 1회)`],
     ] };
   },
@@ -249,7 +254,7 @@ const PASSIVE: Record<SchoolId, PBuild> = {
   mind() {
     const N = PSI.mind;
     return { tf: false, brief: `적중 시 ${Math.round(N.proc * 100)}% 혼란`, rows: [
-      ['발동', `평타 · 전투 스킬 · 비술 적중 시 [p:${N.proc}]`], ['효과', `[st:confuse:${N.confuse}]: 가까운 아무나 공격 (같은 편 포함)`]] };
+      ['발동', PER_TARGET(N.proc)], ['효과', `[st:confuse:${N.confuse}]: 가까운 아무나 공격 (같은 편 포함)`]] };
   },
   gold(use) {
     const N = PSI.gold;
@@ -261,7 +266,7 @@ const PASSIVE: Record<SchoolId, PBuild> = {
   illusion(use) {
     const N = PSI.illusion;
     return { tf: false, brief: `적중 시 ${Math.round(N.proc * 100)}% 향취`, rows: [
-      ['발동', `평타 · 전투 스킬 · 비술 적중 시 [p:${N.proc}]`],
+      ['발동', PER_TARGET(N.proc)],
       ['효과', `[st:scent:${N.scentDur}]: 회피 [pp:${-N.scentEva}], 받는 피해 +[p:${N.scentVuln}]${use('dense') ? ` (최대 ${N.denseMax}중첩)` : ''}`]] };
   },
 };

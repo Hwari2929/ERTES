@@ -38,8 +38,8 @@ const SCHOOL_KEYS: Record<SchoolId, string[]> = {
 const PSI_KEYS = new Set(Object.keys(PSI_STATUS));
 const tr = (u: CUnit) => TR?.get(u) || null;
 const isFoe = (b: Battle, a: CUnit, t: CUnit) => b.sideOf(a) !== b.sideOf(t);
-/** 피해가 치명타 대상인지 (엔진 규칙 그대로: 사격 · 타격, 기술은 기술 치명 특성이 있을 때만, 지속 피해 제외) */
-const critEligible = (src: CUnit, o: DmgOpts) => o.tag !== 'dot' && (o.kind === 'shoot' || o.kind === 'strike' || (o.kind === 'tech' && !!src.mem.techCrit));
+/** 피해가 치명타 대상인지 (엔진 규칙 그대로: 사격 · 타격, 기술은 기술 치명 특성 또는 인과학파 저이성일 때, 지속 피해 제외) */
+const critEligible = (src: CUnit, o: DmgOpts) => o.tag !== 'dot' && (o.kind === 'shoot' || o.kind === 'strike' || (o.kind === 'tech' && !!(src.mem.techCrit || src.mem.lowTechCrit)));
 
 const P = Battle.prototype;
 const oDeal = P.dealDamage, oRaw = P.rawHit, oStatus = P.applyStatus, oStep = P.step, oShield = P.shield, oHeal = P.heal;
