@@ -982,19 +982,21 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   };
   // 순서 배지: 현재 · 노드 아이콘 + 몇 칸 뒤 (몇 번째 칸인지는 툴팁)
   const step = (i: number) => (i === run.step ? '<span class="ah-step now">현재</span>' : `<span class="ah-step" title="${i - run.step}칸 뒤 (${i + 1}번째 칸)">${lineIcon('r.node', 'li')}${i - run.step}</span>`);
+  // 이름 밑 한 줄 설명 (작은 보조 글씨, 길면 줄임표 · 전체는 툴팁): 모든 카드 같은 규칙
+  const desc = (t: string) => `<span class="ah-desc" title="${esc(t)}">${ic(esc(t))}</span>`;
   // 현재 칸 단추: 카드 오른쪽 위에 고정 (내용 길이와 무관)
   const act = (cur: boolean) => (cur ? `<div class="ah-act">${buttons}</div>` : '');
   // 현재 칸 카드: 이름 · 예상 수입 · 모디파이어 · (전투 밖) 설명. 다음 칸 카드: 유형 · 이름 (보스는 초상 · 특징)만, 설명은 툴팁
   const bossCard = (i: number, e: EnemyDef, cur: boolean) => {
     const cat = enemyCategory(e), td = TEND_NAME[e.tend], rk = foeRank(run, e, run.phase, R.encounterMult('boss', i));
     return `<li class="ah-card ah-boss n-boss${cur ? ' cur tl-info' : ''}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}">${act(cur)}<span class="ah-lead"><span class="ah-port">${sprite(e, 'spr big')}<i class="ah-ic">${NODE_ICON.boss}</i></span>${step(i)}</span>
-      <div class="ah-body"><b>${esc(e.name)}</b><div class="ah-chips">${rankChip(rk)}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${cur ? `${income('boss')}${mods('boss')}` : ''}</div></li>`;
+      <div class="ah-body"><b>${esc(e.name)}</b>${desc(`${NODE_NAME.boss} · ${nodeHint('boss')}`)}<div class="ah-chips">${rankChip(rk)}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${cur ? `${income('boss')}${mods('boss')}` : ''}</div></li>`;
   };
   const nodeCard = (i: number, o: NodeType, cur: boolean) => {
     const e = o === 'boss' ? phaseBoss(run) : undefined;
     if (e) return bossCard(i, e, cur);
-    const note = cur && run.node ? '<span class="ah-hint">진행 중</span>' : cur && !FIGHT_NODES.includes(o) ? `<span class="ah-hint">${ic(esc(nodeHint(o)))}</span>` : '';
-    return `<li class="ah-card n-${o}${cur ? ' cur tl-info' : ''}"${cur ? '' : ` title="${esc(nodeHint(o))}"`}>${act(cur)}<span class="ah-lead"><i class="ah-ic">${NODE_ICON[o]}</i>${step(i)}</span><div class="ah-body"><b>${esc(NODE_NAME[o])}</b>${cur ? `${income(o)}${mods(o)}` : ''}${note}</div></li>`;
+    const note = cur && run.node ? '<span class="ah-hint">진행 중</span>' : '';
+    return `<li class="ah-card n-${o}${cur ? ' cur tl-info' : ''}">${act(cur)}<span class="ah-lead"><i class="ah-ic">${NODE_ICON[o]}</i>${step(i)}</span><div class="ah-body"><b>${esc(NODE_NAME[o])}</b>${desc(nodeHint(o))}${cur ? `${income(o)}${mods(o)}` : ''}${note}</div></li>`;
   };
   // 현재 칸 (진입 단추 포함, 강조) → 다음 칸들: 같은 카드 토큰으로 한 흐름
   const cur = pick ? nodeCard(run.step, pick, true)
