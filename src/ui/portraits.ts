@@ -3,17 +3,20 @@ import { ICONS } from './portraits.gen';
 import { spriteURL } from './sprites';
 
 type Spriteish = { sprite: string; palette: string[]; id?: string | number; defId?: string; side?: number; art?: string; tier?: string };
+/** 그림을 다른 id 의 것으로 쓰는 기물: 반려 돌(절망 증강)은 적 반려 돌 그림을 그대로 쓴다 */
+const ART_ALIAS: Record<string, string> = { petrock: 'en_cw_rock' };
+const artId = (id: string) => ART_ALIAS[id] || id;
 
 /** 기물 id (적 · 소환물 · 포탑은 null) */
 function unitKey(x: Spriteish): string | null {
   if (x.art) return ICONS[x.art] ? x.art : null; // 소환물 · 포탑
   if (x.defId !== undefined) {
-    if (x.side === 0) return ICONS[x.defId] ? x.defId : null;
+    if (x.side === 0) return ICONS[artId(x.defId)] ? artId(x.defId) : null;
     return ICONS[`en_${x.defId}`] ? `en_${x.defId}` : null; // 적
   }
   if (typeof x.id !== 'string') return null;
   if (x.tier) return ICONS[`en_${x.id}`] ? `en_${x.id}` : null; // 적 정의
-  return ICONS[x.id] ? x.id : null;
+  return ICONS[artId(x.id)] ? artId(x.id) : null;
 }
 
 export function hasPortrait(x: Spriteish) {
@@ -32,6 +35,7 @@ export const artURL = (file: string) => EMBED?.[file] ?? `art/${file}`;
 /** 배경 일러스트 (전장 · 난이도) */
 export const bgURL = (key: string) => artURL(`bg_${key}.webp`);
 export function standURL(id: string) {
+  id = artId(id);
   return ICONS[id] ? artURL(`${id}.webp`) : null;
 }
 
@@ -39,7 +43,7 @@ export function standURL(id: string) {
 export function standImg(id: string, cls = 'stand', bust = false) {
   const url = standURL(id);
   if (!url) return '';
-  return `<img class="${cls}" alt="" loading="lazy" decoding="async" src="${bust ? artURL(`${id}.bust.webp`) : url}" onerror="this.remove()">`;
+  return `<img class="${cls}" alt="" loading="lazy" decoding="async" src="${bust ? artURL(`${artId(id)}.bust.webp`) : url}" onerror="this.remove()">`;
 }
 
 // ───────── 일러스트 미리 받기: 같은 주소는 한 번만, 브라우저 캐시에 올려 둔다

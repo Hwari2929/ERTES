@@ -2,7 +2,8 @@ import { CFG, phaseAmpMult, phaseHpMult } from './config';
 import { AUG_BY_ID, augDesc } from './data/augments';
 import { ENEMIES, ENEMY_BY_ID, type EnemyDef } from './data/enemies';
 import { ENEMY_DESC } from './data/enemyText';
-import { DIFFS, MAX_DIFF, diffAddCount, diffAddEvery, diffAddRule } from './data/difficulty';
+import { DIFFS, MAX_DIFF, diffAddCount, diffAddEvery, diffAddRule, diffLabel, diffName } from './data/difficulty';
+import { CATWHEEL, DESPAIR_BY_ID, DESPAIRS, despairDiff } from './data/despair';
 import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
 import { STORIES } from './data/stories';
 import { FIELDS, fieldOf } from './data/battlefields';
@@ -36,7 +37,7 @@ import { ULTS } from './data/ults';
 import { VOICE, voicePick } from './data/voicelines';
 import { DEFAULT_RELIC, RELIC_BY_ID } from './data/relics';
 import { deleteSave, exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
-import { loadMeta, metaBarMvp, metaBattle, metaClear, metaEvent, metaRunEnd, metaTutEnd, metaTutSeen, tutMeta, tutOver } from './ui/meta';
+import { despairUnlocked, loadMeta, metaBarMvp, metaBattle, metaClear, metaEvent, metaRunEnd, metaTutEnd, metaTutSeen, tutMeta, tutOver } from './ui/meta';
 import { bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg, standURL } from './ui/portraits';
 import { advKey, closeAdv, playAdv } from './ui/adv';
 import * as SND from './ui/sound';
@@ -131,7 +132,7 @@ const app = {
   toastT: 0 as ReturnType<typeof setTimeout> | 0,
   importErr: '',
   needMount: false,
-  diff: 0, // 새 런 난이도 (쉬움 0 · 모험 3 · 도전 6)
+  diff: 0, // 새 런 난이도 (쉬움 0 · 모험 3 · 고난 6)
   introField: null as string | null, // 출격 연출: 이번 런 전장
   introDone: false, // 출격 연출을 끝까지 봤는지 (다시 그릴 때 연출 생략)
   introFoe: null as string | null, // 전장 브리핑에서 연 적 상세
@@ -263,6 +264,7 @@ function topbar() {
       <span class="pill" title="페이즈 · 노드">P<b>${r.phase}</b> · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>
       <span class="pill hp" title="체력">${lineIcon('r.hp', 'li')}<b>${r.hp}</b>/${r.maxHp}</span>
       <span class="pill cr" title="에너지 크레딧">${CR}<b>${r.credits}</b></span>
+      ${r.despair && DESPAIR_BY_ID[r.despair] ? `<button class="pill despair" data-a="despair-info" title="절망 증강 — ${esc(DESPAIR_BY_ID[r.despair].name)}: ${esc(DESPAIR_BY_ID[r.despair].desc())}">${lineIcon(DESPAIR_BY_ID[r.despair].icon, 'li')}<b>${esc(DESPAIR_BY_ID[r.despair].name)}</b></button>` : ''}
       ${extra.length ? `<details class="pill more"><summary title="기타 자원">${lineIcon('r.more', 'li')}<span class="more-tx">기타</span></summary><ul class="more-list">${extra.join('')}</ul></details>` : ''}
     </div>
     ${app.screen === 'battle' ? '' : `<button class="btn ghost menu-btn" data-a="menu" title="메뉴" aria-label="메뉴">${lineIcon('r.menu', 'li')}</button>`}
@@ -730,6 +732,8 @@ function foeModal(id: string) {
 let bgWarm = false;
 /** 특권 커튼 연출을 이미 보여 준 런 (시드) */
 let pvPlayed: number | null = null;
+/** 절망 증강 막을 이미 보여 준 런 (시드) */
+let dpPlayed: number | null = null;
 function preloadBgs() {
   if (bgWarm) return;
   bgWarm = true;
@@ -760,21 +764,27 @@ function introAnim() {
   };
   introTimer = window.setTimeout(() => { el.classList.add('opened'); introTimer = window.setTimeout(spin, 650); }, 900);
 }
-const DIFF_PICKS = [
-  { lvl: 0, name: '쉬움', sub: '표준 의뢰', bg: 'diff_easy', line: '처음 출격하는 용병단을 위한 안정적인 항로.' },
-  { lvl: 3, name: '모험', sub: '위험 등급 3', bg: 'diff_adventure', line: `적이 장비를 챙기고 ${diffAddEvery(3)}페이즈마다 1기씩 늘어납니다. 승리 크레딧 ×${CFG.diffWinMul(3)}.` },
-  { lvl: 6, name: '도전', sub: '위험 등급 6', bg: 'diff_challenge', line: `함대 체력이 줄고 적은 ${diffAddEvery(6)}페이즈마다 1기씩 더 몰려옵니다. 크레딧 ×${CFG.diffWinMul(6)}, 베테랑 전용.` },
+const DIFF_PICKS = [ // 이름은 difficulty.ts DIFF_PRESETS (배경 키 diff_challenge 는 그림 파일 이름이라 그대로)
+  { lvl: 0, name: diffName(0), sub: '표준 의뢰', bg: 'diff_easy', line: '처음 출격하는 용병단을 위한 안정적인 항로.' },
+  { lvl: 3, name: diffName(3), sub: '위험 등급 3', bg: 'diff_adventure', line: `적이 장비를 챙기고 ${diffAddEvery(3)}페이즈마다 1기씩 늘어납니다. 승리 크레딧 ×${CFG.diffWinMul(3)}.` },
+  { lvl: 6, name: diffName(6), sub: '위험 등급 6', bg: 'diff_challenge', line: `함대 체력이 줄고 적은 ${diffAddEvery(6)}페이즈마다 1기씩 더 몰려옵니다. 크레딧 ×${CFG.diffWinMul(6)}, 베테랑 전용.` },
 ];
+/** 절망 증강 안내 (고난 카드): 해금 전에는 해금 조건, 해금 뒤에는 고르는 방식 */
+function despairNote(lvl: number) {
+  if (!despairDiff(lvl)) return '';
+  return despairUnlocked() ? `절망 증강: 특권 증강 다음에 ${CFG.despair.choices}개 중 1개를 반드시 고릅니다 (새로고침 ${CFG.despair.rerolls}회).` : `${diffName(CFG.despair.unlock)} 의뢰를 1번 성공하면 절망 증강이 열립니다.`;
+}
 function diffScreen() {
   return `<main class="diffsel"><h1 class="ds-title">난이도 설정</h1>
     <div class="ds-row">${DIFF_PICKS.map((d) => {
       const on = app.diff === d.lvl;
-      const conds = DIFFS.filter((x) => x.lvl >= 1 && x.lvl <= d.lvl).map((x) => x.desc);
+      const conds = DIFFS.filter((x) => x.lvl >= 1 && x.lvl <= d.lvl).map((x) => x.desc).concat(despairUnlocked() && despairDiff(d.lvl) ? [despairNote(d.lvl)] : []);
 return `<button class="ds-card${on ? ' on' : ''}${app.dsInfo === d.lvl ? ' info' : ''}" data-a="diff" data-v="${d.lvl}" aria-pressed="${on}">
         <span class="ds-bg" style="background-image:url('${bgURL(d.bg)}')"></span><span class="ds-shade"></span>
         <span class="ds-info-btn" data-a="ds-info" data-v="${d.lvl}" role="button" aria-label="${d.name} 세부 조건" title="세부 조건">i</span>
         <span class="ds-pop">${conds.length ? `<b>세부 조건</b><ul>${conds.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : '<b>세부 조건</b><span>추가 조건 없음</span>'}</span>
-        <span class="ds-body"><span class="ds-sub">${d.sub}</span><b class="ds-name">${d.name}</b><span class="ds-line">${d.line}</span></span></button>`;
+        <span class="ds-body"><span class="ds-sub">${d.sub}</span><b class="ds-name">${d.name}</b><span class="ds-line">${d.line}</span></span>
+        ${despairDiff(d.lvl) ? `<span class="ds-despair${despairUnlocked() ? ' open' : ''}">${lineIcon(despairUnlocked() ? 'k.soul' : 'r.key', 'li')}<span>${esc(despairNote(d.lvl))}</span></span>` : ''}</button>`;
     }).join('')}</div>
     <div class="ds-act"><button class="btn ghost" data-a="intro-back">전장 다시 보기</button><button class="btn primary" data-a="diff-ok">출격 준비</button></div>
   </main>`;
@@ -857,6 +867,7 @@ function mapScreen(run: RunState) {
       ${run.quests.length ? `<h2>헬레니우스 퀘스트</h2><ul class="quests">${run.quests.map((q) =>
         `<li class="${q.done ? 'done' : ''}">${esc(R.questText(q))} <span class="muted">${Math.min(q.progress, q.target)}/${q.target} · 보상 ${R.questRewardText(q)}</span></li>`).join('')}</ul>` : ''}
       ${run.privilege ? `<h2>특권</h2><ul class="globals"><li><b>${esc(R.privilegeName(run.privilege))}</b> <span class="muted">${esc(R.privilegeDesc(run.privilege))}</span></li></ul>` : ''}
+      ${run.despair && DESPAIR_BY_ID[run.despair] ? `<h2>절망 증강</h2><ul class="globals despair"><li><b>${esc(DESPAIR_BY_ID[run.despair].name)}</b> <span class="muted">${ic(esc(DESPAIR_BY_ID[run.despair].desc()))}</span></li></ul>` : ''}
       ${run.boons.length || run.phaseBoons.length || run.mods.nodeIncome || run.mods.interestCap ? `<h2>사건 효과</h2><ul class="globals">${run.boons.map((id) => `<li><b>${esc(BOONS[id]?.name || id)}</b> <span class="muted">영구</span></li>`).join('')}${run.phaseBoons.map((id) => `<li><b>${esc(BOONS[id]?.name || id)}</b> <span class="muted">이번 페이즈</span></li>`).join('')}${run.mods.nodeIncome ? `<li><b>분할 정산</b> <span class="muted">노드마다 크레딧 +${run.mods.nodeIncome}, 이자 상한 ${run.mods.interestCap}</span></li>` : ''}</ul>` : ''}
       ${run.globals.length ? `<h2>전역 증강</h2><ul class="globals">${run.globals.map((g) => `<li><b>${esc(GLOBAL_BY_ID[g].name)}</b> <span class="muted">${ic(esc(GLOBAL_BY_ID[g].desc))}</span></li>`).join('')}</ul>` : ''}
       </section>
@@ -965,6 +976,8 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
     if (add > 0) m.push(mod(lineIcon('m.skull', 'li'), `+${add}`, `적 수량 +${add} — 위험 등급 ${run.diff} 적 증원: ${diffAddRule(run.diff)}`, 'bad'));
     if ((o === 'adversity' || o === 'challenge') && f.elite) m.push(mod(lineIcon('m.elite', 'li'), '정예', `정예 확정: ${NODE_NAME[o]} 전투에는 이 전장의 정예가 반드시 나온다`, 'bad tx'));
     if (o === 'adversity') m.push(mod(lineIcon('m.gift', 'li'), `×${CFG.adversityReward}`, `보상 강화: 승리 크레딧 · 공명도 ×${CFG.adversityReward}`, 'good'));
+    const dsp = run.despair ? DESPAIR_BY_ID[run.despair] : undefined, dv = dsp?.mod?.(o === 'boss'); // 절망 증강 (이 전투에 걸리는 것만)
+    if (dsp && dv) m.push(mod(lineIcon(dsp.icon, 'li'), dv, `절망 증강 [${dsp.name}]: ${dsp.desc()}`, 'bad despair'));
     return m.length ? `<div class="ah-mods" aria-label="모디파이어"><span class="ah-sec">모디파이어</span>${m.join('')}</div>` : '';
   };
   // 예상 수입 (현재 칸만, 네모 칸 · 아이콘 + 숫자): 승리 시 공명도 풀 · 크레딧 (엔진의 보상 계산 battleRewardPreview) + 장비 · 재료 · 소모품 (×n = 확정, % = 확률, 설정값 · 전장 배율)
@@ -1584,7 +1597,7 @@ function unitModal(run: RunState) {
     return `<div class="major"><span>${majorIcon(m)}${MAJOR_NAME[m]}</span><span class="mbar"><i style="width:${Math.min(100, tm[m] * 3)}%"></i></span><b>${tm[m]}</b>${add ? `<small class="${add > 0 ? 'up' : 'down'}">${add > 0 ? '+' : ''}${add}</small>` : ''}</div>`;
   }).join('')}</div>`;
   const pop = app.abilPop ? `<div class="um-pop">${abilPopHtml(app.abilPop, d, b, c)}</div>` : '';
-  const rankRow = `<div class="um-rank">${rankLabel(u.rank)}${xpBar(u)}<button class="btn tiny" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''}>경험치 +${cost}c</button></div>`;
+  const rankRow = `<div class="um-rank">${rankLabel(u.rank)}${xpBar(u)}<button class="btn tiny" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost || R.isRock(u) ? 'disabled' : ''}>경험치 +${cost}c</button></div>`;
   const synRow = `<div class="pc-syn">${memberships(u, run).map((id) => synToken(id, cnt[id] || 0)).join('')}</div>`;
   return `<div class="um-back" data-a="big-close"></div>
   <section class="um" role="dialog" aria-modal="true" aria-label="${esc(d.name)} 전체 상세">
@@ -1800,7 +1813,7 @@ function detailPanel(run: RunState, extra = '') {
     <div class="d-hero">${hero(d.id) || `<div class="hero none">${sprite(d, 'spr big')}</div>`}
       <div class="pc-syn dh-syn">${synTok}</div>
       <div class="dh-name"><b>${esc(d.name)}</b><span class="dh-types"><i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i></span></div></div>
-    <div class="dh-rank"><span class="dh-r">${rankLabel(u.rank)}</span>${xpBar(u)}<button class="btn tiny dh-buy" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''} title="공명도 +${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)} 구입 (에너지 크레딧 ${cost})">${lineIcon('r.res', 'li res')}+${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)}<span class="dh-cost">${lineIcon('r.cr', 'li cr')}${cost}</span></button></div>
+    <div class="dh-rank"><span class="dh-r">${rankLabel(u.rank)}</span>${xpBar(u)}<button class="btn tiny dh-buy" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost || R.isRock(u) ? 'disabled' : ''} title="공명도 +${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)} 구입 (에너지 크레딧 ${cost})">${lineIcon('r.res', 'li res')}+${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)}<span class="dh-cost">${lineIcon('r.cr', 'li cr')}${cost}</span></button></div>
     ${powRow(b, c, d, !!u.pos)}
     ${memberships(u, run).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}
     <h3>장비</h3>${eqBox(u)}
@@ -2052,7 +2065,7 @@ function investScreen(run: RunState) {
 
 function overScreen(run: RunState) {
   return `<main class="wrap over">
-    <div class="screen-head"><h1>${run.cleared ? '의뢰 성공' : '계약 종료'}</h1><p class="muted">${run.cleared ? `${esc(fieldOf(run.field).name)} 의뢰 완료${run.endless ? ` · 무한 모드 페이즈 ${run.phase}에서 귀환 불가` : ''}.` : `ERRANTEs 는 페이즈 ${run.phase}에서 무너졌습니다.`}${run.diff ? ` 위험 등급 ${run.diff}.` : ''}</p></div>
+    <div class="screen-head"><h1>${run.cleared ? '의뢰 성공' : '계약 종료'}</h1><p class="muted">${run.cleared ? `${esc(fieldOf(run.field).name)} 의뢰 완료${run.endless ? ` · 무한 모드 페이즈 ${run.phase}에서 귀환 불가` : ''}.` : `ERRANTEs 는 페이즈 ${run.phase}에서 무너졌습니다.`}${run.diff ? ` ${diffLabel(run.diff)}.` : ''}${run.despair ? ` 절망 증강 [${esc(DESPAIR_BY_ID[run.despair]?.name || '')}].` : ''}</p></div>
     <dl class="stats big">
       <dt>도달 페이즈</dt><dd>${run.phase}</dd><dt>전투</dt><dd>${run.stats.wins}승 ${run.stats.losses}패</dd>
       <dt>처치</dt><dd>${run.stats.kills}</dd><dt>최대 단일 피해</dt><dd>${fmt(run.stats.bestHit)}</dd>
@@ -2134,7 +2147,7 @@ function pendingModal(run: RunState): string {
   } else if (p.t === 'event' || (p.t === 'notice' && p.scene?.length)) {
     return ''; // 미연시 화면 (advSync)
   } else if (p.t === 'victory') {
-    body = `<h1>의뢰 성공</h1><p>페이즈 ${run.phase} 보스를 격파했습니다. ${esc(fieldOf(run.field).name)} 의뢰가 완료되었습니다${run.diff ? ` (위험 등급 ${run.diff})` : ''}.</p>
+    body = `<h1>의뢰 성공</h1><p>페이즈 ${run.phase} 보스를 격파했습니다. ${esc(fieldOf(run.field).name)} 의뢰가 완료되었습니다${run.diff ? ` (${diffLabel(run.diff)}${run.despair ? ` · 절망 증강 [${esc(DESPAIR_BY_ID[run.despair]?.name || '')}]` : ''})` : ''}.</p>
       <p class="muted small">귀환하면 런이 끝나고 기록이 남습니다. 계속하면 무한 모드로 이어지며, 적은 계속 강해집니다. 어느 쪽이든 다음 위험 등급이 해금됩니다.</p>
       <div class="row-btns"><button class="btn primary" data-a="victory-end">귀환 (의뢰 완료)</button><button class="btn" data-a="victory-endless">무한 모드로 계속</button></div>`;
   } else if (p.t === 'field') {
@@ -2146,6 +2159,13 @@ function pendingModal(run: RunState): string {
     body = `<div class="pv-body"><span class="pv-kicker">출격 특권</span><h1>특권 증강</h1><p class="muted small">이번 런에만 적용되는 특권을 한 장 고르세요.</p>
       <div class="pv-row">${p.options.map((o, i) => `<button class="pv-card" style="--i:${i}" data-a="pick-privilege" data-v="${i}"><span class="pv-sigil" aria-hidden="true">♜</span><b>${esc(R.privilegeName(o))}</b><span class="pv-desc">${ic(esc(R.privilegeDesc(o)))}</span></button>`).join('')}</div>
       <div class="row-btns"><button class="btn" data-a="reroll-privilege" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div></div>`;
+  } else if (p.t === 'despair') {
+    // 절망 증강: 어둡게 가라앉는 카드 (특권 · 등급 공개 연출과 따로, 소리는 낮은 음 하나 — sound.ts despair)
+    mcls = 'despair';
+    const rec = loadMeta().despair || {};
+    body = `<div class="dp-body"><span class="dp-kicker">고난의 대가</span><h1>절망 증강</h1><p class="small dp-sub">이번 의뢰 내내 짊어질 절망을 하나 고르세요. 고르지 않고는 출격할 수 없습니다.</p>
+      <div class="dp-row">${p.options.map((id, i) => { const d = DESPAIR_BY_ID[id]; const r = rec[id]; return `<button class="dp-card" style="--i:${i}" data-a="pick-despair" data-v="${i}"><span class="dp-sigil" aria-hidden="true">${lineIcon(d.icon, 'li')}</span><b>${esc(d.name)}</b><span class="dp-desc">${ic(esc(d.desc()))}</span><span class="dp-quip">${esc(d.quip)}</span><span class="dp-rec">${r?.clears ? `이 절망으로 성공 ${r.clears}회` : '아직 이 절망으로 성공한 적 없음'}</span></button>`; }).join('')}</div>
+      <div class="row-btns"><button class="btn" data-a="reroll-despair" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div></div>`;
   } else if (p.t === 'rankup') {
     const u = run.units.find((x) => x.uid === p.uid)!;
     const d = UNIT_BY_ID[u.defId];
@@ -2243,9 +2263,12 @@ function pendingModal(run: RunState): string {
   // 별무리 커튼이 좌우에서 닫힌다. 런마다 한 번만 (새로고침으로 다시 그려도 커튼은 내려온 상태로)
   let pvCls = '';
   if (mcls === 'privilege') { pvCls = pvPlayed === run.seed ? ' pv-bg played' : ' pv-bg'; pvPlayed = run.seed; }
+  // 절망 증강: 붉은 재가 천천히 가라앉는 어두운 막 (런마다 한 번만 내려온다)
+  if (mcls === 'despair') { pvCls = dpPlayed === run.seed ? ' dp-bg played' : ' dp-bg'; dpPlayed = run.seed; }
+  const veil = mcls === 'despair' ? `<div class="dp-veil" aria-hidden="true">${Array.from({ length: 24 }, (_, i) => `<i style="--x:${(i * 37) % 100}%;--d:${(i % 6) * 0.7}s;--s:${6 + (i % 4)}s"></i>`).join('')}</div>` : '';
   const curtain = mcls === 'privilege' ? `<div class="pv-curtain" aria-hidden="true"><i class="pv-half l"></i><i class="pv-half r"></i><span class="pv-seam"></span>
     <span class="pv-stars">${Array.from({ length: 36 }, (_, i) => `<i style="--x:${(i * 41) % 100}%;--d:${(i % 6) * 0.5}s;--s:${3 + (i % 5)}s"></i>`).join('')}</span></div>` : '';
-  return `<div class="modal-bg${pvCls}">${curtain}<div class="modal ${mcls}">${body}</div></div>`;
+  return `<div class="modal-bg${pvCls}">${curtain}${veil}<div class="modal ${mcls}">${body}</div></div>`;
 }
 const STAT_SHORT: Record<string, string> = {
   maxHp: '체력', healEff: '회복 효율', shoot: '사격', strike: '타격', tech: '기술', acc: '명중', crit: '치명', effHit: '효과 명중',
@@ -2862,7 +2885,7 @@ function diffPicker() {
 function releaseBlock(run: RunState, u: UnitState) {
   const v = R.releaseValue(run, u);
   const name = UNIT_BY_ID[u.defId].name;
-  const lines = [
+  const lines = R.isRock(u) ? ['반려 돌은 보상 없이 사라집니다. 절망 증강이 걸려 있으면 다시 영입 선택지에 섞여 나옵니다.'] : [
     `${CR}<b>+${v.credits}</b> (3 + 공명 등급 ${u.rank} × 2)`,
     `${RES}<b>${v.xp}</b> — 이 기물에 쌓인 공명도 ${v.invested}의 60%를 남은 파티에 분배 (출전 기물 우선)`,
     v.items.length ? `장비 · 개조부품 ${v.items.length}개는 보관함으로 (${v.items.map((x) => esc(itemInfo(x).name)).join(', ')})` : '장착한 장비 없음',
@@ -3249,8 +3272,9 @@ function codexScreen() {
   } else if (app.codexTab === 'manual') {
     body = codexManual();
   } else {
-    body = `<dl class="stats big"><dt>의뢰</dt><dd>${m.runs}</dd><dt>의뢰 성공</dt><dd>${m.clears}</dd><dt>최고 도달 페이즈</dt><dd>${m.bestPhase}</dd><dt>해금된 위험 등급</dt><dd>${m.maxDiff}</dd></dl>
-      <h2>전장별</h2><div class="codex-list">${FIELDS.map((f) => { const r = m.fields[f.id]; return `<div class="codex-row"><div><b style="color:${f.color}">${f.icon} ${esc(f.name)}</b><div class="small muted">${esc(f.region)}</div></div><div class="small mono">의뢰 ${r?.runs || 0} · 성공 ${r?.clears || 0}${r && r.bestDiff >= 0 ? ` · 최고 위험 ${r.bestDiff}` : ''}</div></div>`; }).join('')}</div>${BAR.barRecordsHtml()}`;
+    body = `<dl class="stats big"><dt>의뢰</dt><dd>${m.runs}</dd><dt>의뢰 성공</dt><dd>${m.clears}</dd><dt>최고 도달 페이즈</dt><dd>${m.bestPhase}</dd><dt>해금된 위험 등급</dt><dd>${m.maxDiff}</dd><dt>절망 증강</dt><dd>${despairUnlocked(m) ? `${Object.values(m.despair || {}).filter((x) => x.clears).length}/${DESPAIRS.length} 성공` : '잠김'}</dd></dl>
+      <h2>전장별</h2><div class="codex-list">${FIELDS.map((f) => { const r = m.fields[f.id]; return `<div class="codex-row"><div><b style="color:${f.color}">${f.icon} ${esc(f.name)}</b><div class="small muted">${esc(f.region)}</div></div><div class="small mono">의뢰 ${r?.runs || 0} · 성공 ${r?.clears || 0}${r && r.bestDiff >= 0 ? ` · 최고 ${diffLabel(r.bestDiff)}` : ''}</div></div>`; }).join('')}</div>
+      <h2>절망 증강별</h2>${despairUnlocked(m) ? '' : `<p class="small muted">${diffName(CFG.despair.unlock)} 의뢰를 1번 성공하면 열립니다.</p>`}<div class="codex-list">${DESPAIRS.map((d) => { const r = m.despair?.[d.id]; return `<div class="codex-row"><div><b>${lineIcon(d.icon, 'li')} ${esc(d.name)}</b><div class="small muted">${esc(d.desc())}</div></div><div class="small mono">의뢰 ${r?.runs || 0} · 성공 ${r?.clears || 0}</div></div>`; }).join('')}</div>${BAR.barRecordsHtml()}`;
   }
   return `<main class="wrap codex"><div class="cx-top"><h1 class="f-title">도감 · 기록</h1><span class="muted small">이 브라우저에 저장됩니다.</span><button class="btn ghost small" data-a="codex-back">돌아가기</button></div>
     <nav class="cx-tabs" aria-label="도감 탭">${tabs}</nav>${body}</main>`;
@@ -3626,8 +3650,8 @@ function act(a: string, v: string) {
     case 'random-starters': app.starters = new Rng(Date.now() | 0).sample(app.pool, CFG.startUnits); break;
     case 'start-run':
       if (app.starters.length !== CFG.startUnits) return;
-      app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, app.introField || undefined, Math.min(app.diff, MAX_DIFF));
-      { const fi = fieldIntroPending(app.run); if (fi) app.run.pending.unshift(fi); } // 전장 도입 이야기 → 특권 증강
+      app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, app.introField || undefined, Math.min(app.diff, MAX_DIFF), despairUnlocked());
+      { const fi = fieldIntroPending(app.run); if (fi) app.run.pending.unshift(fi); } // 전장 도입 이야기 → 특권 증강 → (고난) 절망 증강
       app.screen = 'map'; app.sel = null; persist(); break;
     case 'load': {
       const r = loadRun(v);
@@ -3754,7 +3778,7 @@ function act(a: string, v: string) {
     case 'sell': if (run) { R.sellItem(run, +v); app.sel = null; persist(); } break;
     case 'unequip': if (run) { const [uid, s] = v.split(':'); const e = R.unequip(run, uid, +s); if (e) toast(e); persist(); } break;
     case 'buyxp': if (run) { if (!R.buyXp(run, v)) toast('크레딧이 부족합니다.'); persist(); } break;
-    case 'buy': if (run) { const e = R.buyShop(run, +v); if (e) toast(e); persist(); } break;
+    case 'buy': if (run) { const it = run.node?.shop?.[+v]?.item; const e = R.buyShop(run, +v); if (e) toast(e); else if (it && it !== CATWHEEL && run.inventory[run.inventory.length - 1] === CATWHEEL) toast(`유닉스제 대량 생산 — ${itemInfo(it).name} 대신 캣휠이 들어왔습니다.`); persist(); } break;
     case 'pick-blessing': if (run && run.pending[0]?.t === 'blessing') { R.pickBlessing(run, v); run.pending.shift(); persist(); } break;
     case 'buy-news': if (run) { const e = R.buyNews(run, +v); if (e) toast(e); persist(); } break;
     case 'buy-invest': if (run) { const e = R.buyInvest(run, +v); if (e) toast(e); persist(); } break;
@@ -3822,6 +3846,9 @@ function act(a: string, v: string) {
     }
     case 'pick-privilege': if (run) { R.pickPrivilege(run, +v); persist(); } break;
     case 'reroll-privilege': if (run) { R.rerollPrivilege(run); persist(); } break;
+    case 'pick-despair': if (run) { R.pickDespair(run, +v); persist(); } break;
+    case 'reroll-despair': if (run) { R.rerollDespair(run); persist(); } break;
+    case 'despair-info': if (run?.despair && DESPAIR_BY_ID[run.despair]) { const d = DESPAIR_BY_ID[run.despair]; toast(`절망 증강 [${d.name}] ${d.desc()}`); } return;
     case 'alloc-pick': {
       const m = v as Major;
       if (app.picks.includes(m)) app.picks = app.picks.filter((x) => x !== m);
@@ -3850,7 +3877,7 @@ function act(a: string, v: string) {
       run.pending.shift(); persist(); break;
     }
     case 'skip-aug': app.augPick = null; run?.pending.shift(); persist(); break;
-    case 'pick-item': { const p = run?.pending[0]; if (run && p?.t === 'itemPick') { R.gainItem(run, p.options[+v]); run.pending.shift(); persist(); } break; }
+    case 'pick-item': { const p = run?.pending[0]; if (run && p?.t === 'itemPick') { const got = R.gainItem(run, p.options[+v]); if (got === CATWHEEL && p.options[+v] !== CATWHEEL) toast(`유닉스제 대량 생산 — ${itemInfo(p.options[+v]).name} 대신 캣휠이 들어왔습니다.`); run.pending.shift(); persist(); } break; }
     case 'rc-tap': app.recruitPick = app.recruitPick === v ? null : v; break;
     case 'pick-recruit': if (run && v && run.pending[0]?.t === 'recruit') { R.recruit(run, v); run.pending.shift(); app.recruitPick = null; app.cardOpen = null; persist(); } break;
     case 'pick-branch': if (run && run.pending[0]?.t === 'branch') { R.pickBranch(run, v as NodeType); goPrepOrMap(); persist(); } break;
@@ -3999,6 +4026,9 @@ function onDrop(src: string, dst: string) {
     const other0 = dk === 'unit' ? run.units.find((x) => x.uid === dv[0]) : null;
     const blocked = (dk === 'cell' && !R.canDeploy(run, u)) || (dk === 'unit' && other0 && ((other0.pos && !R.canDeploy(run, u)) || (u.pos && !R.canDeploy(run, other0))));
     if (blocked) { toast('이번 페이즈에는 배치할 수 없는 기물입니다.'); render(); return; }
+    // 반려 돌 (절망 증강)은 늘 출전: 반려 돌이 대기석으로 내려가는 이동은 막는다 (자리 바꾸기는 된다)
+    const cellOf = dk === 'cell' ? deployed(run).find((o) => { const p = lay.get(o.uid); return p && p.x === +dv[0] && p.y === +dv[1]; }) : null;
+    if ((R.isRock(u) && (dk === 'bench' || (dk === 'unit' && !other0?.pos))) || (!u.pos && ((cellOf && R.isRock(cellOf)) || (other0 && R.isRock(other0))))) { toast('반려 돌은 늘 출전합니다. 대기석으로 옮길 수 없습니다.'); render(); return; }
     if (dk === 'cell') {
       const x = +dv[0], y = +dv[1];
       const other = deployed(run).find((o) => { const p = lay.get(o.uid); return p && p.x === x && p.y === y; });
@@ -4105,7 +4135,7 @@ const HOTKEYS: HotKey[] = [
   { scope: 'any', keys: ['d'], cap: 'D', sel: ['[data-a="toggle-detail"]'], run: () => act('toggle-detail', ''), desc: '상세 보기 켜기 · 끄기' },
   { scope: 'modal', keys: DIGITS, cap: '#', sel: [PICK_SEL], desc: '선택지 고르기 (증강 · 전공 · 영입은 숫자키로 고르면 바로 확정)' },
   { scope: 'modal', keys: ['Enter', ' '], cap: 'Enter', sel: [CONFIRM_ACTS.map((a) => `.modal [data-a="${a}"]`).join(', ')], desc: '확인 · 계속' },
-  { scope: 'modal', keys: ['r'], cap: 'R', sel: ['.modal [data-a="reroll"], .modal [data-a="reroll-privilege"]'], desc: '새로고침' },
+  { scope: 'modal', keys: ['r'], cap: 'R', sel: ['.modal [data-a="reroll"], .modal [data-a="reroll-privilege"], .modal [data-a="reroll-despair"]'], desc: '새로고침' },
   { scope: 'map', keys: DIGITS, cap: '#', sel: ['.tl-step.cur .tl-node'], desc: '다음 노드 고르기' },
   { scope: 'map', keys: ['Enter', ' '], cap: 'Enter', sel: ['.tl-go'], desc: '노드 진입' },
   { scope: 'map', keys: ['m'], cap: 'M', sel: [], run: () => act('manage', ''), desc: '편성 관리 (단추 없이 키로만)' },

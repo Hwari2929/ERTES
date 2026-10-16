@@ -15,6 +15,7 @@
   --data-mix: 100%;                    /* 글씨로 쓰는 데이터 색의 비율 (라이트 테마는 본문색과 섞어 대비 확보) */
   --c-black: #000;
   --c-bad-deep: rgb(120 10 20);        /* 패배 비네트 */
+  --c-despair: #c23a4a; --c-despair-deep: rgb(34 6 12); /* 절망 증강 (어두운 진홍) */
   --c-steel: #a0b4c8;                  /* 감시 포탑 · 기계 */
   --c-divine: #ffd34d;                 /* 신성 · 성유물 금색 */
   --c-occult: #c38cff;                 /* 개조부품 기본 보라 (시너지 색이 없을 때) */
@@ -2396,6 +2397,46 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 @keyframes pv-card { from { opacity: 0; transform: translateY(40px) rotateX(40deg); } }
 @media (max-width: 700px) { .pv-row { grid-template-columns: 1fr; } .pv-card { min-height: 0; } }
 @media (prefers-reduced-motion: reduce) { .pv-curtain, .pv-card, .pv-body { animation: none; } }
+
+/* ───────── 절망 증강 (data/despair.ts): 특권 막과 달리 위에서 어둠이 내려앉고, 붉은 재가 가라앉으며, 카드는 무겁게 떨어진다 (빛 · 반짝임 없음) */
+.modal-bg.dp-bg { background: color-mix(in srgb, var(--c-despair-deep) 90%, var(--c-black)); animation: dp-dark 1.6s ease-in both; }
+@keyframes dp-dark { from { background-color: transparent; } }
+.dp-veil { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background: radial-gradient(75% 60% at 50% 42%, transparent 30%, color-mix(in srgb, var(--c-black) 88%, transparent)); }
+.dp-veil i { position: absolute; top: -3%; left: var(--x); width: 3px; height: 3px; border-radius: 50%; background: var(--c-despair); box-shadow: 0 0 6px var(--c-despair); opacity: .5; animation: dp-ash var(--s) linear var(--d) infinite; }
+.dp-veil i:nth-child(3n) { width: 2px; height: 2px; opacity: .3; }
+@keyframes dp-ash { to { transform: translate(-40px, 108vh); opacity: 0; } }
+.modal.despair { position: relative; z-index: 1; background: none; border: 0; box-shadow: none; width: min(1040px, 100%); overflow: visible; max-height: none; padding: 0; }
+.dp-body { display: grid; gap: 12px; justify-items: center; text-align: center; animation: dp-in 1.1s ease .5s both; }
+@keyframes dp-in { from { opacity: 0; translate: 0 -14px; } }
+.dp-body h1 { margin: 0; font-size: var(--fs-banner); color: var(--c-text); letter-spacing: .12em; text-shadow: 0 2px 0 var(--c-black), 0 0 26px var(--c-despair); }
+.dp-kicker { font-size: var(--fs-sm); letter-spacing: .4em; color: var(--c-despair); }
+.dp-sub { margin: 0; color: var(--c-text-2); }
+.dp-row { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 6px; }
+.dp-card { display: grid; align-content: start; gap: 8px; min-height: 260px; padding: 20px 16px; border-radius: var(--r-lg); text-align: left; color: var(--c-text); cursor: pointer; border: 1px solid color-mix(in srgb, var(--c-despair) 50%, transparent);
+  background: linear-gradient(178deg, var(--c-despair-deep), color-mix(in srgb, var(--c-black) 94%, transparent) 72%); box-shadow: inset 0 0 44px color-mix(in srgb, var(--c-black) 75%, transparent), 0 16px 34px color-mix(in srgb, var(--c-black) 65%, transparent);
+  animation: dp-card 1.3s cubic-bezier(.5, 0, .2, 1) both; animation-delay: calc(1s + var(--i) * .4s); transition: translate .35s, box-shadow .35s, filter .35s; filter: saturate(.75); }
+@keyframes dp-card { 0% { opacity: 0; translate: 0 -36px; filter: brightness(0); } 70% { opacity: 1; translate: 0 3px; filter: brightness(.55) saturate(.4); } }
+.dp-card:hover, .dp-card:focus-visible { translate: 0 4px; filter: none; box-shadow: 0 0 0 1px var(--c-despair), 0 0 32px color-mix(in srgb, var(--c-despair) 38%, transparent), inset 0 0 44px color-mix(in srgb, var(--c-black) 75%, transparent); }
+.dp-card b { font-size: var(--fs-xl); }
+.dp-sigil { color: var(--c-despair); line-height: 0; }
+.dp-sigil .li { width: 30px; height: 30px; }
+.dp-desc { font-size: var(--fs-md); color: var(--c-narr-2); }
+.dp-quip { font-size: var(--fs-sm); color: var(--c-text-2); font-style: italic; }
+.dp-rec { margin-top: auto; font-size: var(--fs-xs); color: var(--c-text-2); }
+.dp-bg.played, .dp-bg.played .dp-body, .dp-bg.played .dp-card { animation-duration: 0s; animation-delay: 0s; }
+@media (max-width: 700px) { .dp-row { grid-template-columns: 1fr; } .dp-card { min-height: 0; } }
+@media (prefers-reduced-motion: reduce) { .modal-bg.dp-bg, .dp-veil i, .dp-body, .dp-card { animation: none; } }
+/* 런 내내: 상단 바 표시 (누르면 설명) · 환경 탭 · 지도 현재 칸 모디파이어 · 도감 */
+.pill.despair { border-color: color-mix(in srgb, var(--c-despair) 70%, transparent); background: color-mix(in srgb, var(--c-despair-deep) 80%, var(--panel-2)); color: var(--c-text); cursor: pointer; font: inherit; }
+.pill.despair .li { color: var(--c-despair); }
+@media (max-width: 860px) { .top .pill.despair b { display: none; } }
+.ah-md.despair { --tc: var(--c-despair); }
+.globals.despair b, .cx2-despair .aug-ic { color: var(--c-despair); }
+/* 난이도 선택: 고난 카드의 절망 증강 안내 (ⓘ 조건 창이 열리면 숨김) */
+.ds-despair { position: absolute; top: 12px; left: 12px; right: 52px; display: flex; align-items: flex-start; gap: 6px; padding: 6px 10px; border-radius: var(--r-md); font-size: var(--fs-sm); line-height: 1.35; color: var(--c-text-2); background: color-mix(in srgb, var(--c-black) 62%, transparent); border: 1px solid var(--line); transition: opacity .25s; }
+.ds-despair.open { color: var(--c-text); border-color: color-mix(in srgb, var(--c-despair) 70%, transparent); background: color-mix(in srgb, var(--c-despair-deep) 88%, transparent); box-shadow: 0 0 18px color-mix(in srgb, var(--c-despair) 30%, transparent); }
+.ds-despair .li { width: 14px; height: 14px; flex: none; margin-top: 1px; color: var(--c-despair); }
+.ds-card.info .ds-despair { opacity: 0; }
 
 /* 난이도 카드: 제목 높이를 맞추고 세부 조건은 i 버튼으로 */
 .ds-info-btn { position: absolute; top: 12px; right: 12px; z-index: 3; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font: italic 700 var(--fs-lg) Georgia, serif; color: var(--c-text); background: rgb(8 10 16 / .65); border: 1px solid color-mix(in srgb, var(--c-white) 35%, transparent); cursor: pointer; }

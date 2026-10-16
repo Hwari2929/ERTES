@@ -21,7 +21,7 @@ npm run events-doc       # docs/EVENTS.md 다시 생성
 ```
 - 무엇을 바꾸든 `npm run -s build`와 `npx tsc --noEmit -p .`가 통과해야 합니다.
 - 기물 · 장비 · 시너지 · 증강 · 전공 · 성유물을 추가 · 수정 · 삭제했으면 `npm run check`도 통과해야 하고, 능력 문구(`src/data/abiltext.ts`, `src/data/abil/*.ts`, `src/data/brief.ts`)도 같이 고칩니다. 작업 규칙 전체는 [`CLAUDE.md`](CLAUDE.md)에 있습니다.
-- 그 밖의 검사 · 계측 스크립트는 `tests/`에 있고, 실행법은 파일 첫 줄 주석에 적혀 있습니다 (사건 연출 검사 `scenes_check.ts`, 증강 문구 대조 `augtext_check.ts`, 밸런스 계측 `balance.ts` · `buildsim.ts` · `probe2.ts` 등).
+- 그 밖의 검사 · 계측 스크립트는 `tests/`에 있고, 실행법은 파일 첫 줄 주석에 적혀 있습니다 (사건 연출 검사 `scenes_check.ts`, 증강 문구 대조 `augtext_check.ts`, 밸런스 계측 `balance.ts` · `buildsim.ts` · `probe2.ts`, 절망 증강 비교 `despair_sim.ts` 등).
 
 ## 폴더 구조
 | 경로 | 내용 |
@@ -30,7 +30,7 @@ npm run events-doc       # docs/EVENTS.md 다시 생성
 | `src/config.ts` | 전투 · 성장 · 경제 · 적 강도 수치 (`CFG`) |
 | `src/types.ts` | 공용 타입: 주요 능력치, 속성, 분류, 전투 · 전술 유형, 신앙, 노드 종류, 런 상태 |
 | `src/engine/` | `combat.ts` 전투 시뮬레이션 · `build.ts` 기물 → 전투 유닛 변환, 스탯 · 시너지 집계 · `run.ts` 런 진행 (노드, 보상, 성장, 상점, 사건) · `effects.ts` 효과 모델 · `tutorial.ts` 튜토리얼 런 |
-| `src/data/` | 게임 데이터. 기물(`roster*.ts` + `rework.ts`, `units.ts`에서 합침), 시너지, 장비, 증강, 사이오닉(`schools.ts` · `psionic.ts`), 성유물, 궁극기, 전장, 적, 사건(`events.ts` · `story*.ts`), 사건 연출(`scenes/`), 난이도, 전역 증강 · 특권, 교범, 세계관 요약, 음성 대사 |
+| `src/data/` | 게임 데이터. 기물(`roster*.ts` + `rework.ts`, `units.ts`에서 합침), 시너지, 장비, 증강, 사이오닉(`schools.ts` · `psionic.ts`), 성유물, 궁극기, 전장, 적, 사건(`events.ts` · `story*.ts`), 사건 연출(`scenes/`), 난이도 · 절망 증강(`difficulty.ts` · `despair.ts`), 전역 증강 · 특권, 교범, 세계관 요약, 음성 대사 |
 | `src/ui/` | 전투 연출(`battleview.ts`), 도감(`codex2.ts`), 미연시 화면(`adv.ts`), 안내 말풍선(`coach.ts`), 저장 · 기록, 스타일. `*.gen.ts`는 스크립트가 만드는 파일이라 손으로 고치지 않습니다 |
 | `tests/` | 검사 · 시뮬레이션 · 문서 생성 스크립트 |
 | `scripts/` | 빌드(`build.mjs`)와 에셋 파이프라인 |

@@ -14,6 +14,7 @@ const CRIMSON = ['#100406', '#4a0a14', '#d0c0c0', '#e8c8b8', '#ff2030', '#2a0a10
 const SPARTA = ['#0c0a06', '#b08a30', '#5a4a30', '#f0d080', '#ff6020', '#6a5a30', '#fff0c0'];
 const UNIX = ['#0c0c0c', '#b0b0a0', '#6a6a60', '#e0e0d0', '#30ff60', '#4a4a40', '#ffffff'];
 const RAIDER = ['#1a0f0a', '#7a5a3a', '#c04a2a', '#d0a080', '#ffd040', '#55504a', '#f0d0a0'];
+const STONE = ['#0e0e0e', '#8a8a86', '#5a5a58', '#c8c8c0', '#a0a098', '#3a3a38', '#e8e8e0'];
 
 export const ROSTER_E: BaseUnit[] = [
   {
@@ -102,5 +103,14 @@ export const ROSTER_E: BaseUnit[] = [
       name: '약탈 사격', cd: 7, pow: 'shoot', elem: 'phys', mult: 2.4, target: 'farthest', params: { pen: 0.2, hits: 1 },
       desc: (p) => `가장 먼 적에게 사격 위력 ${pct(p.mult)} 물리 피해 (방어도 관통 ${pct(p.pen)})${p.hits > 1 ? ` ${p.hits}회` : ''}.`,
     }),
+  },
+  // 절망 증강 [단장의 반려 돌] 전용 (data/despair.ts): 영입 선택지에만 끼어든다. 시작 기물 · 영입 풀 · 사건에는 나오지 않는다.
+  // 그림은 적 반려 돌(en_cw_rock)을 그대로 쓴다 (ui/portraits.ts ART_ALIAS)
+  {
+    id: 'petrock', name: '반려 돌', title: '단장의 반려 돌 · 유닉스제 반려 용품', factions: [], traits: [], keywords: ['struct'],
+    atk: { type: 'strike', elem: 'phys', interval: 9 }, range: 1, base: B(1, 0, 0, 1, 0),
+    sprite: 'turret', palette: STONE, eventOnly: true, noStarter: true, inert: true,
+    lore: '"돌보는 대상이 돌입니다." — 유닉스 반려 용품 카탈로그',
+    skill: { name: '가만히 있기', cd: 99, params: {}, desc: () => '아무것도 하지 않는다.', cast: () => false },
   },
 ];

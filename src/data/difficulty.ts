@@ -37,5 +37,10 @@ const BASE: DiffDef[] = [
 /** 위험 등급표: 기본 조건 + 적 증원 조건 (설정값에서 읽는다) */
 export const DIFFS: DiffDef[] = BASE.map((x) => { const a = addDesc(x.lvl); return a ? { ...x, desc: `${x.desc} ${a}` } : x; });
 export const MAX_DIFF = DIFFS.length - 1;
+/** 난이도 선택 화면의 세 단계 (위험 0 · 3 · 6). 이름은 선택 화면 · 기록 · 결과 문구가 여기서 읽는다 */
+export const DIFF_PRESETS: { lvl: number; name: string }[] = [{ lvl: 0, name: '쉬움' }, { lvl: 3, name: '모험' }, { lvl: 6, name: '고난' }];
+export const diffName = (d: number) => DIFF_PRESETS.find((x) => x.lvl === d)?.name || '';
+/** 기록 표기: '고난 (위험 6)' · 단계 이름이 없는 등급은 '위험 4' */
+export const diffLabel = (d: number) => (diffName(d) ? `${diffName(d)} (위험 ${d})` : `위험 ${d}`);
 /** 단계 d 에서 조건 n 이 켜져 있는지 */
 export const diffHas = (d: number | undefined, n: number) => (d || 0) >= n;

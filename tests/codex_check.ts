@@ -5,7 +5,8 @@ import { ALL_AUGS } from '../src/data/augments';
 import { FIELD_BY_ID, FIELDS } from '../src/data/battlefields';
 import { BLURB, blurbNames, unitBlurb } from '../src/data/brief';
 import { BLESSINGS, EMBLEM_SYNS, GLOBALS, PRIVILEGES } from '../src/data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, CONSUMABLES, emblemId, HEL_ITEM_IDS, itemInfo, OCCULT_MODS, TURRET_GEAR_IDS, UNIQUE_IDS } from '../src/data/items';
+import { DESPAIRS } from '../src/data/despair';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, CONSUMABLES, emblemId, HEL_ITEM_IDS, itemInfo, OCCULT_MODS, TURRET_GEAR_IDS, UNIQUE_IDS, JUNK_IDS } from '../src/data/items';
 import { CANTRIP_INFO, PASSIVE_INFO } from '../src/data/psiinfo';
 import { RELICS } from '../src/data/relics';
 import { GROUPS, SCHOOLS } from '../src/data/schools';
@@ -52,7 +53,7 @@ let nItems = 0;
 const itemIds = new Set<string>([
   ...ALL_COMPONENTS, ...ALL_GRADED, ...ALL_ADVANCED, ...ALL_ADVANCED.map((x) => 'L_' + x.slice(2)),
   ...EMBLEM_SYNS.map(emblemId), ...HEL_ITEM_IDS, ...HEL_ITEM_IDS.map((x) => 'L_' + x.slice(2)),
-  ...Object.keys(OCCULT_MODS), ...Object.keys(CONSUMABLES), ...UNIQUE_IDS, ...TURRET_GEAR_IDS,
+  ...Object.keys(OCCULT_MODS), ...Object.keys(CONSUMABLES), ...UNIQUE_IDS, ...TURRET_GEAR_IDS, ...JUNK_IDS,
   ...UNITS.map((d) => d.item).filter((x): x is string => !!x),
 ]);
 for (const id of itemIds) {
@@ -117,6 +118,11 @@ for (const a of ALL_AUGS) {
 for (const g of GLOBALS) { named(`전역 ${g.id}`, g.name); if (!augRow(g.id)) fail(`전역 증강 ${g.id} (${g.name}): 증강 탭에 없음`); }
 for (const p of PRIVILEGES) { named(`특권 ${p.id}`, p.name('X')); if (!augRow(p.id)) fail(`특권 ${p.id}: 증강 탭에 없음`); }
 for (const b of BLESSINGS) { named(`축복 ${b.id}`, b.name); if (!augRow(b.id)) fail(`축복 ${b.id} (${b.name}): 증강 탭에 없음`); }
+for (const d of DESPAIRS) {
+  named(`절망 증강 ${d.id}`, d.name);
+  if (!augRow(d.id)) fail(`절망 증강 ${d.id} (${d.name}): 증강 탭에 없음`);
+  else if (!lists.augs.includes(esc(d.desc()))) fail(`절망 증강 ${d.id}: 효과 설명이 증강 탭에 없음`);
+}
 
 // ───── 세계관: 모든 항목이 목록에 나오고, 연결한 기물 · 시너지 · 전장 · 항목이 실제로 있고 양쪽에서 이어지는지 + 분량 규칙
 const loreSeen = new Set<string>();
@@ -190,7 +196,7 @@ for (const d of UNITS) {
 }
 for (const id of Object.keys(BLURB)) if (!UNIT_BY_ID[id]) fail(`한 줄 설명 ${id}: 없는 기물`);
 
-const n = { units: UNITS.length, items: nItems, syn: SYNERGIES.length, schools: SCHOOLS.length, augs: ALL_AUGS.length + GLOBALS.length + PRIVILEGES.length + BLESSINGS.length, lore: LORE.length };
+const n = { units: UNITS.length, items: nItems, syn: SYNERGIES.length, schools: SCHOOLS.length, augs: ALL_AUGS.length + GLOBALS.length + PRIVILEGES.length + BLESSINGS.length + DESPAIRS.length, lore: LORE.length };
 console.log(`도감 검사: 기물 ${n.units} · 장비 ${n.items} · 시너지 ${n.syn} · 전공 ${n.schools} · 증강 ${n.augs} · 세계관 ${n.lore}`);
 for (const w of warns) console.log(`  경고 ${w}`);
 if (fails.length) {

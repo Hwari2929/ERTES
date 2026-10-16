@@ -73,6 +73,7 @@ function knownSet(): Set<string> {
   for (const id of resumeInfo()?.units || []) k.add(id);
   if (k.has('rasmus')) k.add('max');
   if (k.has('joshua')) k.add('cesare');
+  for (const id of k) if (UNIT_BY_ID[id]?.inert) k.delete(id); // 반려 돌(절망 증강)은 바에 오지 않는다
   return k;
 }
 let resumeCache: { t: number; v: ReactCtx['resume'] | null } = { t: 0, v: null };
@@ -320,7 +321,7 @@ function decide(prev: Scene | null): Pick {
   return nextScene(fresh, true) || leaveScene(true) || waitScene();
 }
 function guestSeat(): { id: string; guest: true } {
-  const pool = UNITS.filter((d) => !S.known.has(d.id) && standURL(d.id));
+  const pool = UNITS.filter((d) => !S.known.has(d.id) && standURL(d.id) && !d.inert);
   return { id: pool.length ? pick(pool).id : 'guest', guest: true };
 }
 /** 무대 계획 반영: 물러날 사람을 빼고, 에이든은 카운터 쪽(왼쪽) · 나머지는 문 쪽(오른쪽)에 세운다 */

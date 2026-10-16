@@ -961,6 +961,11 @@ export const REWORK: Record<string, ReworkDef> = {
     factions: ['PET'], traits: ['ENG'],
     trait: { name: '1원칙', desc: '전투 스킬을 쓸 때마다 피해가 오른다 (전투 동안 중첩).' },
   },
+  // 절망 증강 반려 돌: 칸만 차지하는 짐 (build.ts buildAlly 의 inert)
+  petrock: {
+    ctype: 'VAN', ttype: 'minor', faith: 'index', weapon: { name: '없음', kind: 'none', type: 'strike', elem: 'phys', interval: 9, range: 1, mult: 0 },
+    trait: { name: '돌', desc: '공격 · 이동 · 기술을 하지 않고 칸만 차지한다. 적의 표적이 되지 않는다. 시너지가 없고, 공명 등급이 오르지 않으며, 장비를 달 수 없다. 영입하면 늘 출전한다.' },
+  },
 };
 
 // ───────── 특성 보조 함수

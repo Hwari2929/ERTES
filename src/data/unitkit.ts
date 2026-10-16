@@ -28,6 +28,8 @@ export interface BaseUnit {
   noStarter?: boolean;
   /** 사건 노드로만 합류 (영입 노드 · 시작 기물 제외) */
   eventOnly?: boolean;
+  /** 공격 · 이동 · 기술 없이 칸만 차지하는 짐 (절망 증강 반려 돌: 늘 출전 · 공명도 없음 · 장비 불가) */
+  inert?: boolean;
   /** 기물 고유 패시브 (조슈아의 체사레 전환 등) */
   passive?: Effect;
 }

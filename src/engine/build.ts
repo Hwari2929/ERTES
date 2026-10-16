@@ -93,7 +93,7 @@ export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, 
     out.push({ majors: { vit: m, pow: m, mnd: m, def: m, agi: m } });
   }
   for (const a of u.augments) { const d = AUG_BY_ID[a.id]; if (d) out.push(d.effect(a.param)); }
-  for (const it of u.items) if (it) out.push(itemEffect(it));
+  for (const it of u.items) if (it) out.push(itemEffect(it, u.defId));
   if (u.mod) out.push(itemEffect(u.mod)); // 신비 개조부품 (문장은 빈 효과)
   if (onBoard) {
     const ctx = makeCtx(run, u, counts);
@@ -189,6 +189,7 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
   });
   if (c.synergies.has('GUARD') && !tierOf('GUARD', counts.GUARD || 0)) c.mem.guardOff = 1; // 도발 배율: 수호자 시너지가 꺼져 있으면 수호자 가산 없음
   c.mem.mnd = majors.mnd;
+  if (d.inert) { c.immobile = true; c.noAttack = true; c.skill = null; c.mem.inert = 1; c.mem.invulnUntil = Infinity; } // 반려 돌 (절망 증강): 공격 · 이동 · 기술 없이 칸만 차지 (표적 · 승패 판정에서 빠지고, 범위 피해도 받지 않음)
   applyCategory(c);
   if (d.weapon.kind === 'none') c.noAttack = true;
   const p = boardPos(u.pos!, b.w - 2 * PAD);
@@ -325,11 +326,16 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   // 난이도 단계
   const d = b.ctx.diff || 0;
   if (diffHas(d, 1)) st.maxHp *= 1.15;
-  if (diffHas(d, 2)) c.phaseAmp *= diffHas(d, 6) ? 1.5 : diffHas(d, 3) ? 1.25 : 1.15; // 위험 2 ×1.15 · 모험(3) ×1.25 · 도전(6) ×1.5
+  if (diffHas(d, 2)) c.phaseAmp *= diffHas(d, 6) ? 1.5 : diffHas(d, 3) ? 1.25 : 1.15; // 위험 2 ×1.15 · 모험(3) ×1.25 · 고난(6) ×1.5
   if (diffHas(d, 4) && def.tier === 'boss') st.maxHp *= 1.25;
   if (diffHas(d, 5)) st.eva += 0.1;
   if (diffHas(d, 7)) { st.armor *= 1.25; st.effRes += 0.15; st.eva += 0.1; }
   if (diffHas(d, 8)) st.maxHp *= Math.pow(1.05, phase - 1);
+  // 절망 증강 (data/despair.ts · CFG.despair)
+  const dsp = b.ctx.despair, DS = CFG.despair;
+  if (dsp === 'D.overclock') st.cdr += DS.overclock;
+  if (dsp === 'D.final' && def.tier === 'boss') { st.maxHp *= 1 + DS.boss; c.phaseAmp *= 1 + DS.boss; }
+  if (dsp === 'D.petra') c.hooks.push({ onStart(bb, u) { bb.shield(u, bb.S(u, 'maxHp') * DS.shield); } });
   // 적 장비 · 개조부품
   for (const it of [...(def.items || []), def.mod || null, ...(gear?.items || []), gear?.mod || null]) if (it) applyLive(c, itemEffect(it), b, makeCtx(null, null, {}));
   if (gear?.items?.length || gear?.mod) { c.tempItems = [...(gear.items || []), ...(gear.mod ? [gear.mod] : [])]; c.mem.gear = 1; } // 위험 등급 장비 (표시용)
@@ -577,7 +583,7 @@ export function layout(run: RunState, n: number): Map<string, { x: number; y: nu
 
 export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): Battle {
   const dim = boardDims(enc.n);
-  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff });
+  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despair: run.despair || undefined });
   b.keepEvents = keepEvents;
   const dep = deployed(run);
   const counts = synergyCounts(dep, run);

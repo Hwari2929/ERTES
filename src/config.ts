@@ -43,7 +43,7 @@ export const CFG = {
   /** 난이도별 승리 크레딧 배율 (위험 3 · 6 단계) */
   diffWinMul: (d: number) => (d >= 6 ? 1.5 : d >= 3 ? 1.25 : 1),
   /** 난이도별 적 증원: [위험 등급, 간격(페이즈)] — 그 등급부터 간격 페이즈마다 조우의 적 +1 (높은 등급이 대체).
-   *  쉬움(0) 없음 · 모험(3) 3페이즈마다 · 도전(6) 2페이즈마다. 페이즈 p 의 증원 = ⌊p ÷ 간격⌋ (difficulty.ts diffAddCount) */
+   *  쉬움(0) 없음 · 모험(3) 3페이즈마다 · 고난(6) 2페이즈마다. 페이즈 p 의 증원 = ⌊p ÷ 간격⌋ (difficulty.ts diffAddCount) */
   diffAdd: [[3, 3], [6, 2]] as [number, number][],
   baseHit: 0.8,
   minHit: 0.15, // 최저 명중률 (회피 과다 누적 방지) [임시]
@@ -113,7 +113,7 @@ export const CFG = {
   interestPer: 10, interestMax: 5,
   streakBonus: (streak: number) => (streak >= 6 ? 3 : streak >= 4 ? 2 : streak >= 2 ? 1 : 0),
   price: { C: 7, G: 16, A: 16, L: 60 } as Record<string, number>,
-  sell: { C: 3, G: 7, A: 7, L: 20, M: 6, O: 8, K: 4, T: 5 } as Record<string, number>,
+  sell: { C: 3, G: 7, A: 7, L: 20, M: 6, O: 8, K: 4, T: 5, J: 1 } as Record<string, number>, // J: 유닉스제 잡동사니 (캣휠)
   // 장비 드랍 [임시]
   // advParts: 역경(· 도전) 승리 시 무작위 장비 재료 확정 개수 (예전: 확률 50%)
   drop: { battle: 0.1, advParts: 1, bossAdvEvery: 3, bossPart: 0.5, shopParts: 2, shopAdv: 0.4, shopAdv2: 0.1, shopGraded: 0.15, shopLegend: 0.05, shopLegendPhase: 6, supplyAdv: 0.12, utility: { battle: 0.15, adversity: 0.3, boss: 0.5 } as Record<string, number> },
@@ -126,6 +126,24 @@ export const CFG = {
 
   privilegeRerolls: 3, // 런 시작 특권 증강 새로고침 횟수
   globalRerolls: 1, // 항로 회의 전역 증강 새로고침 횟수
+
+  // ── 절망 증강 (src/data/despair.ts): 고난(위험 6 = unlock) 의뢰를 1회 이상 성공하면 열리고, 그 등급 이상 런에서 특권 증강 직후 3개 중 1개를 반드시 고른다.
+  //   수치: 봇 클리어율 하락폭이 비슷하도록 맞췄다 (tests/despair_sim.ts). 고난 · 모험은 봇 성공률이 바닥이라 비교가 안 돼, 쉬움(위험 0)에 하나씩 강제로 걸어
+  //   같은 시드 800판을 비교 — 기준 30.9% 대비 -3.6 ~ -7.5%p (반려 돌 · 캣휠 20% 는 지정값 그대로)
+  despair: {
+    unlock: 6, // 이 위험 등급 이상 의뢰를 성공하면 해금 · 이 등급 이상 런에서 고른다
+    choices: 3, rerolls: 1, // 선택지 수 · 새로고침 횟수
+    rockSlots: 1, // 단장의 반려 돌: 영입 선택지 중 반려 돌로 바뀌는 수
+    overclock: 2, // 오버클럭: 적 기술 쿨다운 감소 속도 +
+    rival: 0.4, // 배타적 경쟁 항로: 보유 기물과 시너지가 겹치는 기물의 영입 가중치 ×
+    interest: 0.5, // 근시안적 투자안: 이자 수입 감소 비율 (내림)
+    catwheel: 0.2, catwheelMajors: 3, // 유닉스제 대량 생산: 희귀 · 고급 장비가 캣휠로 바뀌는 확률 · 밍키가 캣휠을 달면 모든 주요 능력치 +
+    shield: 0.08, // 페트라 균등 납품: 적 전투 시작 보호막 (최대 체력 비율)
+    tariff: 0.3, // 무역관세부 특별 관세: 상점 · 정비 · 합성 가격, 함대 확장 · 지정 소집 비용 +
+    heal: 0.5, // 기적 정기 휴무: 아군이 받는 회복 감소
+    boss: 0.3, // 스타페어 결승전 특집: 보스 체력 · 피해 +
+    xp: 0.15, // 군체 공명 간섭: 전투 공명도 풀 감소
+  },
 };
 
 /** p 페이즈 적 피해 누적 배율 */

@@ -315,6 +315,10 @@ export const ABIL_F: Record<string, AbilText> = {
       aim: '사거리 +[t:1]. [g:crit] 확률 [pp:0.1], 치명타 피해 [pp:0.35].',
     },
   },
+  petrock: {
+    skill: () => ({ tgt: '없음', range: null, area: { k: 'one' }, rows: [['효과', '아무것도 하지 않는다.']] }),
+    trait: '공격 · 이동 · 기술 없이 칸만 차지한다. 적의 표적이 되지 않고 승패 판정에도 세지 않는다. 시너지 · 공명 등급 성장 · 장비 칸이 없다.',
+  },
 };
 
 /** 이 그룹에서 새로 쓰는 용어 (공용 GLOSS 에 없을 때만) */

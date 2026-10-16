@@ -37,7 +37,7 @@ for (const [id, t] of Object.entries(BAR_TALK)) {
 // 공통 질문: 바에 나올 수 있는 단원 전원(레이첼 제외)에게 답이 있어야 한다. 실재 층 답은 로어 문서가 있는 인물만
 const LORE = new Set(require('node:fs').readdirSync('lore/인물').filter((f) => f.endsWith('.md')).map((f) => f.replace(/\.md$/, '')));
 for (const u of UNITS) {
-  if (u.id === 'rachel') continue;
+  if (u.id === 'rachel' || u.inert) continue; // 반려 돌(절망 증강)은 바에 오지 않는다
   const a = ASK[u.id];
   if (!a) { errs.push(`물어보기: ${u.name}(${u.id}) 답 없음`); continue; }
   for (const q of ASK_Q) {
@@ -51,7 +51,7 @@ for (const u of UNITS) {
 }
 // 바 대본: 레이첼을 뺀 전원에게 인사 · 반응 3개 이상 · 화제 2편. 심야 화제(실재 층)는 로어 있는 인물만
 for (const u of UNITS) {
-  if (u.id === 'rachel') continue;
+  if (u.id === 'rachel' || u.inert) continue;
   const t = BAR_TALK[u.id];
   if (!t) { errs.push(`대본: ${u.name} 없음`); continue; }
   if (!t.at || !t.hello.length || Object.keys(t.react).length < 3 || t.topics.length < 2) errs.push(`대본: ${u.name} 인사 · 반응(3+) · 화제(2) 부족`);
@@ -65,7 +65,7 @@ for (const [id, ls] of Object.entries(LEAVE_LINES)) {
   if (!ls.length || ls.some((l) => !l.trim())) errs.push(`작별 인사: ${id} 빈 줄`);
   ls.forEach((l) => lineCheck(`leave/${id}`, l));
 }
-for (const u of UNITS) if (u.id !== 'rachel' && u.id !== 'aiden' && !LEAVE_LINES[u.id]) errs.push(`작별 인사: ${u.name}(${u.id}) 없음`);
+for (const u of UNITS) if (u.id !== 'rachel' && u.id !== 'aiden' && !u.inert && !LEAVE_LINES[u.id]) errs.push(`작별 인사: ${u.name}(${u.id}) 없음`);
 if (!LEAVE_GENERIC.length || !BAR_WAIT.length || !BAR_ENTER.length) errs.push('작별 인사: 일반 인사 · 대기 서술 · 입장 서술 풀이 비었음');
 
 // 무대 규칙 (src/ui/bar.ts 구경 모드, 화면 없이 모의 실행): 무대 STAGE_MAX 명 이하 · 0명 없음 · 레이첼 미등장 · 말하는 사람은 무대에 ·
@@ -75,7 +75,7 @@ const needN = (c: string[]) => new Set(c.filter((id) => id !== 'rachel').map((id
 const castN = [0, 1, 2, 3, 4].map((n) => amb.filter((b) => b.cast.filter((id) => id !== 'rachel' && id !== 'aiden').length === n).length);
 console.log(`바 무대 ${STAGE_MAX}명 (레이첼은 무대 밖 · 에이든은 나오는 장면에서만): 재생 가능한 바 만담 ${amb.filter((b) => needN(b.cast) <= STAGE_MAX).length}/${amb.length}편 · 레이첼 · 에이든 뺀 출연 0~4명 = ${castN.join(' / ')}편`);
 const ROSTERS: [string, string[]][] = [
-  ['전원', UNITS.map((u) => u.id).filter((id) => id !== 'rachel' && id !== 'aiden')],
+  ['전원', UNITS.filter((u) => !u.inert).map((u) => u.id).filter((id) => id !== 'rachel' && id !== 'aiden')], // 반려 돌(절망 증강)은 바에 오지 않는다
   ['튜토리얼 7명', ['yelena', 'franze', 'lindiwe', 'vivian', 'phyllis', 'temur', 'nadir']],
   ['2명', ['vivian', 'temur']],
   ['없음', []],

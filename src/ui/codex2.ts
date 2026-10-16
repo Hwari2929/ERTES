@@ -9,7 +9,9 @@ import { augReqState } from '../data/augreq';
 import { FIELD_BY_ID, FIELDS } from '../data/battlefields';
 import { ALL_AUGS, augDesc, augSource } from '../data/augments';
 import { BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_PRICE, UNIQUE_IDS } from '../data/items';
+import { DESPAIR_BY_ID, DESPAIRS } from '../data/despair';
+import { diffName } from '../data/difficulty';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_PRICE, UNIQUE_IDS, isJunk, JUNK_IDS } from '../data/items';
 import { PSI_BRIEF } from '../data/brief';
 import { cantripView, passiveView, SCHOOL_LINE, transformPreview } from '../data/psiinfo';
 import { RELIC_BY_ID, RELICS } from '../data/relics';
@@ -24,6 +26,7 @@ import type { AugDef } from '../engine/effects';
 import { type Category, CATEGORY_NAME, CTYPE_NAME, ELEM_NAME, MAJOR_NAME, type Major, type RunState, type SynergyId, TTYPE_NAME } from '../types';
 import * as AB from './abil';
 import { schoolCore, schoolWarnings } from './matchup';
+import { despairUnlocked, loadMeta } from './meta';
 import { artURL, bgURL } from './portraits';
 import { lineIcon, synIcon } from './synicons';
 
@@ -151,7 +154,7 @@ function unitCard(H: CxH, d: UnitDef, on: boolean, peek: boolean, known: boolean
   const q = known ? `${d.name} ${d.title} ${role} ${syn.map((s) => SYN_BY_ID[s as SynergyId]?.name || '').join(' ')}` : '???';
   return `<button class="cx-card${on ? ' on' : peek ? ' peek' : ''}${known ? '' : ' unknown'}" data-a="codex-sel" data-v="${esc(d.id)}" aria-pressed="${on}"${qAttr('units', q)}>
     <span class="cx-pic">${H.sprite(d)}${known && H.bust ? H.bust(d.id) : ''}</span>
-    <span class="cx-cap"><b class="cx-nm">${known ? esc(d.name) : '???'}</b>${known ? `<span class="cx-role">${esc(role)}</span><span class="cx-syns">${syn.map(synTag).join('')}</span>` : '<span class="cx-role">사건으로 합류</span>'}</span></button>`;
+    <span class="cx-cap"><b class="cx-nm">${known ? esc(d.name) : '???'}</b>${known ? `<span class="cx-role">${esc(role)}</span><span class="cx-syns">${syn.map(synTag).join('')}</span>` : `<span class="cx-role">${d.inert ? '절망 증강으로 합류' : '사건으로 합류'}</span>`}</span></button>`;
 }
 /** 기물 목록 (묶기 · 정렬 · 검색). first = 아무것도 고르지 않았을 때 넓은 화면에서 미리 보여 줄 기물 */
 export function unitsList(H: CxH, o: { group: UnitGroupBy; sel: string | null; known: (d: UnitDef) => boolean }): { html: string; first: string | null } {
@@ -189,7 +192,7 @@ export function itemCatalog(): [IGrp, string[]][] {
     ['A', ALL_ADVANCED.slice()],
     ['L', ALL_ADVANCED.map(legendOf)],
     ['M', EMBLEM_SYNS.map(emblemId)],
-    ['X', [...HEL_ITEM_IDS.flatMap((x) => [x, legendOf(x)]), ...Object.keys(OCCULT_MODS), ...UNIQUE_IDS]],
+    ['X', [...HEL_ITEM_IDS.flatMap((x) => [x, legendOf(x)]), ...Object.keys(OCCULT_MODS), ...UNIQUE_IDS, ...JUNK_IDS]],
     ['T', TURRET_GEAR_IDS.slice()],
     ['K', Object.keys(CONSUMABLES)],
     ['R', RELICS.map((r) => RELIC_KEY + r.id)],
@@ -210,7 +213,7 @@ function synGear(sid: SynergyId): string[] {
 function itemName(id: string) { return id.startsWith(RELIC_KEY) ? RELIC_BY_ID[id.slice(2)]?.name || id : itemInfo(id).name; }
 function itemDescText(id: string) { return id.startsWith(RELIC_KEY) ? RELIC_BY_ID[id.slice(2)]?.desc(1) || '' : itemInfo(id).desc; }
 function itemIc(H: CxH, id: string) { return id.startsWith(RELIC_KEY) ? H.relicTok(id.slice(2)) : H.itemIcon(id); }
-const tierLabel = (g: IGrp, id: string) => (g === 'T' ? `포탑 전용 · ${TURRET_GEAR[id]?.grade === 'adv' ? '고급형' : '보급형'}` : g === 'X' ? (isHelItem(id) ? (id[0] === 'L' ? '동맹 전용 · 전설' : '동맹 전용 · 희귀') : isOccultMod(id) ? `신비 부품 ${OCCULT_MODS[id].tier}단계` : '고유') : g === 'K' ? (CONSUMABLES[id]?.drop ? '소모품 · 전투 보상' : '소모품 · 합성') : IGRP_NAME[g]);
+const tierLabel = (g: IGrp, id: string) => (g === 'T' ? `포탑 전용 · ${TURRET_GEAR[id]?.grade === 'adv' ? '고급형' : '보급형'}` : g === 'X' ? (isHelItem(id) ? (id[0] === 'L' ? '동맹 전용 · 전설' : '동맹 전용 · 희귀') : isOccultMod(id) ? `신비 부품 ${OCCULT_MODS[id].tier}단계` : isJunk(id) ? '유닉스제 · 절망 증강' : '고유') : g === 'K' ? (CONSUMABLES[id]?.drop ? '소모품 · 전투 보상' : '소모품 · 합성') : IGRP_NAME[g]);
 
 /** 얻는 곳 (가격 · 확률 · 단계는 설정 · 데이터에서) */
 function sources(id: string): string[] {
@@ -246,6 +249,12 @@ function sources(id: string): string[] {
     const c = CONSUMABLES[id];
     out.push(c.drop ? '전투 종료 보상 (확률)' : `${SYN_BY_ID.OCCULT.name} [합성] 공방 · ${c.price} 크레딧`);
     out.push(`사용: ${c.target === 'unit' ? '기물에 끌어다 놓기' : '장비에 끌어다 놓기'}`);
+    return out;
+  }
+  if (isJunk(id)) { // 절망 증강이 끼워 넣는 잡동사니
+    const u = DESPAIR_BY_ID['D.unix'];
+    if (u) out.push(`절망 증강 [${u.name}]: 희귀 · 고급 장비를 얻거나 합성할 때 ${pctTxt(CFG.despair.catwheel)} 확률로 대신 들어옴`);
+    out.push('조합 · 전설 주조 불가');
     return out;
   }
   if (isLocked(id)) {
@@ -619,10 +628,10 @@ function augGroups(): AugGroup[] {
     }
     out.push({ key: pool, name, note, body, count: list.length });
   }
-  // 전역 · 특권 · 축복: 기물이 아닌 함대 전체 증강
-  const simple = (key: string, name: string, note: string, rows: { id: string; name: string; desc: string; tags: string[] }[]): AugGroup => ({
+  // 전역 · 특권 · 축복 · 절망: 기물이 아닌 함대 전체 증강 (icon: 줄마다 아이콘이 다를 때)
+  const simple = (key: string, name: string, note: string, rows: { id: string; name: string; desc: string; tags: string[]; icon?: string }[]): AugGroup => ({
     key, name, note, count: rows.length,
-    body: () => `<ul class="augs cx2-augs">${rows.map((r) => `<li class="aug-li" data-id="${esc(r.id)}"${qAttr('augs', `${r.name} ${r.desc} ${r.tags.join(' ')}`)}><span class="aug-ic" aria-hidden="true">${lineIcon(key === 'bless' ? 'a.divact' : key === 'priv' ? 'a.power' : 'n.council', 'li')}</span><span><b>${esc(r.name)}</b>${r.tags.map((t) => ` <span class="cx2-note">${esc(t)}</span>`).join('')}<br><span class="muted">${esc(r.desc)}</span></span></li>`).join('')}</ul>`,
+    body: () => `<ul class="augs cx2-augs${key === 'despair' ? ' cx2-despair' : ''}">${rows.map((r) => `<li class="aug-li" data-id="${esc(r.id)}"${qAttr('augs', `${r.name} ${r.desc} ${r.tags.join(' ')}`)}><span class="aug-ic" aria-hidden="true">${lineIcon(r.icon || (key === 'bless' ? 'a.divact' : key === 'priv' ? 'a.power' : 'n.council'), 'li')}</span><span><b>${esc(r.name)}</b>${r.tags.map((t) => ` <span class="cx2-note">${esc(t)}</span>`).join('')}<br><span class="muted">${esc(r.desc)}</span></span></li>`).join('')}</ul>`,
   });
   out.push(simple('global', '전역 증강', '런 시작과 매 페이즈 항로 회의에서 3개 중 1개. 함대 전체에 적용됩니다.',
     GLOBALS.map((g) => ({ id: g.id, name: g.name, desc: g.desc, tags: [...(g.unique ? ['1회'] : []), ...(g.team ? ['모든 아군'] : []), ...(g.onPick ? ['즉시'] : [])] }))));
@@ -632,6 +641,9 @@ function augGroups(): AugGroup[] {
     PRIVILEGES.map((p) => ({ id: p.id, name: p.name(PH), desc: p.desc(PH), tags: [`출현 ${pctTxt(p.w / wsum)}`] }))));
   out.push(simple('bless', '축복', `${TTYPE_NAME.divine} 기물이 있으면 열리는 순례에서 권능으로 받습니다. 이번 페이즈 동안 모든 아군에게.`,
     BLESSINGS.map((b) => { const c = PILGRIM_CARDS[`bless:${b.id}`]; return { id: b.id, name: b.name, desc: b.desc, tags: c ? [`권능 ${c.cost}`] : [] }; })));
+  const meta = loadMeta(), open = despairUnlocked(meta);
+  out.push(simple('despair', '절망 증강', `${diffName(CFG.despair.unlock)}(위험 ${CFG.despair.unlock}) 의뢰를 1번 성공하면 열립니다${open ? ' (열림)' : ' (잠김)'}. 그 뒤 ${diffName(CFG.despair.unlock)} 런은 특권 증강 다음에 ${CFG.despair.choices}개 중 1개를 반드시 고릅니다 (새로고침 ${CFG.despair.rerolls}회). 의뢰 내내 적용되는 디버프이고, 증강별로 의뢰 · 성공 기록이 남습니다.`,
+    DESPAIRS.map((d) => { const r = meta.despair?.[d.id]; return { id: d.id, name: d.name, desc: `${d.desc()} — ${d.quip}`, icon: d.icon, tags: [r?.clears ? `성공 ${r.clears}회` : r?.runs ? `의뢰 ${r.runs}회 · 성공 없음` : '기록 없음'] }; })));
   return out;
 }
 function augsTab(H: CxH) {

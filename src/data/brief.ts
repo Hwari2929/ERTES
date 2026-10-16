@@ -49,6 +49,7 @@ export const BRIEF: Record<string, { skill: string; trait: string }> = {
   thermo: { skill: '주변 아군에게 보호막을 주고 받는 피해를 줄인다.', trait: '주변 아군의 피해를 줄인다.' },
   u404: { skill: '주변 적을 내리친다. 쓸 때마다 더 강해진다.', trait: '스킬을 쓸 때마다 피해가 계속 오른다.' },
   rus: { skill: '가장 먼 적에게 강한 사격을 한다.', trait: '적을 처치하면 크레딧을 챙긴다.' },
+  petrock: { skill: '아무것도 하지 않는다.', trait: '칸만 차지한다. 적은 반려 돌을 노리지 않는다.' },
   bjorn: { skill: '가장 먼 적에게 전기 작살을 박아 기절시킨다.', trait: '단단하고, 다칠수록 더 세게 싸운다. 주기적으로 가장 다친 아군에게 보호막을 준다.' },
   zina: { skill: '가장 약한 적 곁으로 숨어들어 독을 쏘고, 처치하면 바로 다시 노린다.', trait: '기본 공격이 독을 걸고, 중독된 적에게 더 아프다.' },
   fotini: { skill: '대상 주변을 안내 깃발로 쏘고, 맞은 적이 더 아프게 만든다.', trait: '전투 시작 시 아군 전원이 빨라지고 잠시 강해진다. 자신은 잠시 빠르게 쏘고, 처치하면 다시 빨라진다.' },
@@ -125,6 +126,7 @@ export const BLURB: Record<string, string> = {
   thermo: '곁의 아군과 함께 피해를 줄이고, {skill}로 주변 아군에게 보호막을 두른다.',
   u404: '{skill}을 쓸 때마다 피해가 쌓여, 오래 싸울수록 강해진다.',
   rus: '{skill}으로 가장 먼 적을 쏘고, 적을 처치할 때마다 크레딧을 챙긴다.',
+  petrock: '싸우지도 움직이지도 않고, 출전 칸 하나를 묵묵히 차지한다.',
 };
 /** 한 줄 설명 자리표시 → 데이터의 실제 이름 (없으면 undefined → 자리표시가 그대로 남아 검사에 걸린다) */
 export function blurbNames(d: UnitDef): Record<string, string | undefined> {

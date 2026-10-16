@@ -317,7 +317,7 @@ export type BEvent =
   /** 사이오닉 소마법 시전 (to: 주 대상) */
   | { k: 'cantrip'; id: number; school: SchoolId; to?: number; name: string };
 
-export interface BattleCtx { phase: number; credits: number; field?: string; diff?: number }
+export interface BattleCtx { phase: number; credits: number; field?: string; diff?: number; despair?: string } // despair: 절망 증강 id (data/despair.ts)
 
 /** 전장 조건 훅: 전장(id)마다 하나. battlefields.ts 가 FIELD_RULES 에 등록하고, 전투 시작 때 ctx.field 로 붙는다 */
 export interface FieldRules {
@@ -387,7 +387,7 @@ export class Battle {
   }
   computeTac() {
     for (const side of [0, 1] as const) {
-      const us = this.units.filter((x) => x.side === side && !x.isSummon && x.alive);
+      const us = this.units.filter((x) => x.side === side && !x.isSummon && x.alive && !x.mem.inert); // 반려 돌은 세지 않는다
       // 아군 (위력 단위, 출전 4명 · 지휘관 1명 = 100): 출전 기물 1명당 +16, 지휘관 1명 추가당 +40, 지휘관 정신력 1당 +2
       // 적: 기존 규칙을 위력 단위로 (8 × (20 - 2×인원 + 지휘관 2))
       const cmds = us.filter((c) => c.ctype === 'CMD');
@@ -1082,6 +1082,7 @@ export class Battle {
       for (const h of src.hooks) if (h.healMult) a *= h.healMult(this, src, tgt);
     }
     for (const s of tgt.statuses) if (s.healMul !== undefined) a *= s.healMul; // 부패
+    if (tgt.side === 0 && this.ctx.despair === 'D.miracle') a *= 1 - CFG.despair.heal; // 절망 증강 [기적 정기 휴무]
     const max = this.S(tgt, 'maxHp');
     const real = Math.min(a, max - tgt.hp);
     tgt.hp += real;

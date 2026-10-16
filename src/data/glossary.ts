@@ -1,6 +1,8 @@
 // 교범: 튜토리얼에서 가르치는 용어 모음 (도감 · 교범 탭). 수치는 config.ts · run.ts · combat.ts 기준.
 // key = 이 항목을 여는 튜토리얼 장면 · 안내 키 (TUTORIAL_FLOW). 튜토리얼을 끝내거나 건너뛰면 전부 열린다.
 import { CFG } from '../config';
+import { DIFF_PRESETS, diffName } from './difficulty';
+import { DESPAIRS } from './despair';
 
 export interface GlossEntry { id: string; term: string; text: string; key: string }
 export interface GlossChapter { ch: string; title: string; who: string; entries: GlossEntry[] }
@@ -71,8 +73,9 @@ export const GLOSSARY: GlossChapter[] = [
   },
   {
     ch: 'epi', title: '종장 — 본편', who: 'aiden', entries: [
-      { id: 'diff', term: '새 계약 · 위험 등급', key: 'epilogue', text: `새 계약은 출격에 응한 후보 여덟 명 중 넷을 골라 시작한다. 위험 등급이 오를수록 적이 강해지고 조건이 붙는 대신 승리 보수도 늘어나며, 의뢰에 성공하면 다음 등급이 열린다. 모험 · 도전 등급에서는 페이즈가 지날수록 모든 전투의 적 수도 늘어난다 (${CFG.diffAdd.map(([l, k]) => `위험 ${l}부터 ${k}페이즈마다 +1`).join(' · ')}).` },
+      { id: 'diff', term: '새 계약 · 위험 등급', key: 'epilogue', text: `새 계약은 출격에 응한 후보 여덟 명 중 넷을 골라 시작한다. 위험 등급이 오를수록 적이 강해지고 조건이 붙는 대신 승리 보수도 늘어나며, 의뢰에 성공하면 다음 등급이 열린다. 출격 화면에서는 ${DIFF_PRESETS.map((x) => `${x.name}(위험 ${x.lvl})`).join(' · ')} 중에서 고른다. ${diffName(3)} · ${diffName(6)} 등급에서는 페이즈가 지날수록 모든 전투의 적 수도 늘어난다 (${CFG.diffAdd.map(([l, k]) => `위험 ${l}부터 ${k}페이즈마다 +1`).join(' · ')}).` },
       { id: 'privilege', term: '특권 증강', key: 'epilogue', text: '출격 직전에 고르는 이번 의뢰 한정 특권 (새로고침 3회). 문장 · 추가 영입 · 전역 증강 · 후원금 · 체력 · 공명 등급 같은 것들.' },
+      { id: 'despair', term: '절망 증강', key: 'epilogue', text: `${diffName(CFG.despair.unlock)} 의뢰를 한 번 성공하면 열리는 대가. 그 뒤 ${diffName(CFG.despair.unlock)} 런은 특권 증강 다음에 ${CFG.despair.choices}개 중 1개를 반드시 고르고 (새로고침 ${CFG.despair.rerolls}회), 그 디버프가 의뢰 내내 걸린다. 상단 바의 붉은 표시를 누르면 효과를 다시 볼 수 있다. ${DESPAIRS.length}종 (${DESPAIRS.map((d) => d.name).join(' · ')}), 증강별 성공 기록은 도감 기록 탭에 남는다.` },
     ],
   },
 ];

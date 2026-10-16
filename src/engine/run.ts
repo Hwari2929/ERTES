@@ -2,6 +2,7 @@ import { CFG } from '../config';
 import { AUG_BY_ID } from '../data/augments';
 import { FIELDS, fieldOf } from '../data/battlefields';
 import { diffAddCount, diffHas } from '../data/difficulty';
+import { CATWHEEL, DESPAIRS, despairDiff, hasDespair, PETROCK } from '../data/despair';
 import { EVENT_BY_ID, EVENTS, type EventApi } from '../data/events';
 import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
@@ -33,9 +34,17 @@ export function rng<T>(run: RunState, f: (r: Rng) => T): T {
 const zeroMajors = (): Record<Major, number> => ({ vit: 0, pow: 0, mnd: 0, def: 0, agi: 0 });
 const log = (run: RunState, s: string) => { run.log.unshift(s); if (run.log.length > 60) run.log.length = 60; };
 export const hasGlobal = (run: RunState, id: string) => run.globals.includes(id);
+/** 반려 돌 (절망 증강): 칸만 차지하는 짐. 늘 출전 · 공명도 · 장비 없음 */
+export const isRock = (u: UnitState) => !!UNIT_BY_ID[u.defId]?.inert;
+/** 절망 증강 [근시안적 투자안]: 이자 수입 감소 (내림) */
+const despairInterest = (run: RunState, x: number) => (hasDespair(run, 'D.myopic') ? Math.floor(x * (1 - CFG.despair.interest)) : x);
+/** 절망 증강 [군체 공명 간섭]: 전투 공명도 풀 배율 */
+const despairXp = (run: RunState) => (hasDespair(run, 'D.swarm') ? 1 - CFG.despair.xp : 1);
+/** 절망 증강 [무역관세부 특별 관세]: 상점 · 정비 · 합성 가격, 함대 확장 · 지정 소집 비용 배율 */
+const despairPrice = (run: RunState) => (hasDespair(run, 'D.tariff') ? 1 + CFG.despair.tariff : 1);
 
 // ───────────────────────── 런 생성
-export function newRun(seed: number, starters: string[], field?: string, diff = 0): RunState {
+export function newRun(seed: number, starters: string[], field?: string, diff = 0, despair = false): RunState { // despair: 절망 증강 해금 (도감 기록)
   const run: RunState = {
     version: SAVE_VERSION, seed, rng: seed, phase: 1, step: 0, map: phaseMap(1), picked: [], node: null,
     hp: CFG.playerHp - (diffHas(diff, 6) ? 25 : 0), maxHp: CFG.playerHp - (diffHas(diff, 6) ? 25 : 0), credits: diffHas(diff, 3) ? 0 : CFG.startCredits, streak: 0, units: [], inventory: [],
@@ -48,6 +57,7 @@ export function newRun(seed: number, starters: string[], field?: string, diff = 
   if (!field) run.field = rng(run, (r) => r.pick(FIELDS).id);
   // 전장 · 난이도는 출격 전 화면에서 이미 보여 줬다. 특권 증강이 시작 기물 합류 증강보다 먼저
   run.pending.unshift({ t: 'privilege', options: rollPrivileges(run), rerolls: CFG.privilegeRerolls });
+  if (despair && despairDiff(diff)) run.pending.splice(1, 0, { t: 'despair', options: rollDespairs(run), rerolls: CFG.despair.rerolls }); // 특권 바로 다음
   log(run, '용병단 ERRANTEs, 출격.');
   return run;
 }
@@ -101,11 +111,31 @@ export function pickPrivilege(run: RunState, idx: number) {
       break;
     }
   }
-  run.pending.unshift(...next);
+  run.pending.splice(run.pending[0]?.t === 'despair' ? 1 : 0, 0, ...next); // 절망 증강은 특권 바로 다음
   log(run, `특권: ${privilegeName(pick)}`);
 }
 export const privilegeName = (p: AugPick) => PRIVILEGES.find((d) => d.id === p.id)!.name(p.param);
 export const privilegeDesc = (p: AugPick) => PRIVILEGES.find((d) => d.id === p.id)!.desc(p.param);
+
+// ───────────────────────── 절망 증강 (고난 런 시작, data/despair.ts)
+export function rollDespairs(run: RunState): string[] {
+  return rng(run, (r) => r.sample(DESPAIRS.map((d) => d.id), CFG.despair.choices));
+}
+export function rerollDespair(run: RunState) {
+  const p = run.pending[0];
+  if (p?.t !== 'despair' || p.rerolls <= 0) return;
+  p.rerolls--;
+  p.options = rollDespairs(run);
+}
+/** 절망 증강 선택 (반드시 1개). 영입에 걸리는 증강이면 이미 펼쳐 둔 영입 선택지(특권 추가 계약 등)를 다시 뽑는다 */
+export function pickDespair(run: RunState, idx: number) {
+  const p = run.pending[0];
+  if (p?.t !== 'despair' || !p.options[idx]) return;
+  run.pending.shift();
+  run.despair = p.options[idx];
+  if (run.despair === 'D.rock' || run.despair === 'D.rival') for (const q of run.pending) if (q.t === 'recruit' && !q.syns) q.options = recruitOptions(run, q.options.length);
+  log(run, `절망 증강: ${DESPAIRS.find((d) => d.id === run.despair)?.name}`);
+}
 
 /** 영입 선택지. 인맥(G.network)이 있으면 파티와 시너지가 겹치는 기물 가중 */
 function recruitOptions(run: RunState, k: number, only?: string[]): string[] {
@@ -114,11 +144,18 @@ function recruitOptions(run: RunState, k: number, only?: string[]): string[] {
   const net = hasGlobal(run, 'G.network');
   const have = new Set(run.units.flatMap((u) => memberships(u)));
   const base = (x: string) => (rare(x) ? CFG.amundsenRecruitW : 1); // 아주 드물게
+  const shared = (x: string) => [...UNIT_BY_ID[x].factions, ...UNIT_BY_ID[x].traits].filter((s) => have.has(s)).length;
+  const rival = hasDespair(run, 'D.rival') ? CFG.despair.rival : 1; // 절망 증강 [배타적 경쟁 항로]
   return rng(run, (r) => {
     const left = pool.slice(), out: string[] = [];
     while (out.length < k && left.length) {
-      const id = r.weighted(left, (x) => base(x) * (net ? 1 + 2 * [...UNIT_BY_ID[x].factions, ...UNIT_BY_ID[x].traits].filter((s) => have.has(s)).length : 1));
+      const id = r.weighted(left, (x) => base(x) * (net ? 1 + 2 * shared(x) : 1) * (shared(x) ? rival : 1));
       out.push(id); left.splice(left.indexOf(id), 1);
+    }
+    // 절망 증강 [단장의 반려 돌]: 반려 돌이 없으면 선택지 일부가 반려 돌로 바뀐다
+    if (hasDespair(run, 'D.rock') && !run.units.some((u) => u.defId === PETROCK)) for (let i = 0; i < CFG.despair.rockSlots && out.length; i++) {
+      const j = r.int(0, out.length - 1);
+      if (out[j] !== PETROCK) out[j] = PETROCK;
     }
     return out;
   });
@@ -149,7 +186,7 @@ export const deployCap = (run: RunState) => CFG.deployBase + fleetOf(run) + (has
 
 // ───────────────────────── 함선 관리: 함대 확장 · 지정 소집
 /** 다음 함대 확장 비용 (최대면 null) */
-export const fleetCost = (run: RunState): number | null => CFG.fleetCosts[fleetOf(run)] ?? null;
+export const fleetCost = (run: RunState): number | null => { const c = CFG.fleetCosts[fleetOf(run)]; return c === undefined ? null : Math.round(c * despairPrice(run)); };
 export function buyFleet(run: RunState): string | null {
   const c = fleetCost(run);
   if (c === null) return '함대가 이미 최대 규모입니다';
@@ -160,7 +197,7 @@ export function buyFleet(run: RunState): string | null {
   log(run, `함대 확장: 출전 인원 ${deployCap(run)}명 (크레딧 -${c})`);
   return null;
 }
-export const musterCost = (run: RunState) => CFG.musterCost + CFG.musterStep * (run.musters || 0);
+export const musterCost = (run: RunState) => Math.round((CFG.musterCost + CFG.musterStep * (run.musters || 0)) * despairPrice(run));
 /** 지정 소집 후보 풀: 고른 시너지 중 하나라도 가진, 아직 없는 기물 */
 /** 지정 소집에 고를 수 있는 시너지: 구성 기물이 2명 이상 (데미우르고스 · 아문센 같은 1인 독립 시너지 제외) */
 export const musterSyns = () => SYNERGIES.filter((s) => RECRUITABLE.filter((d) => ([...d.factions, ...d.traits] as string[]).includes(s.id)).length > 1).map((s) => s.id as string);
@@ -192,6 +229,12 @@ export function cancelMuster(run: RunState) { if (run.pending[0]?.t === 'muster'
 
 export function autoPlace(run: RunState, order: UnitState[] = run.units) {
   const cap = deployCap(run);
+  // 반려 돌 (절망 증강): 늘 출전. 자리가 없으면 공명 등급이 가장 낮은 출전 기물을 대기석으로
+  const rock = run.units.find((u) => isRock(u) && !u.pos);
+  if (rock) {
+    if (deployed(run).length >= cap) { const low = deployed(run).filter((u) => !isRock(u)).sort((a, b) => a.rank - b.rank)[0]; if (low) low.pos = null; }
+    order = [rock, ...order.filter((u) => u !== rock)];
+  }
   const used = new Set(run.units.filter((u) => u.pos).map((u) => `${u.pos!.c},${u.pos!.r}`));
   for (const u of order) {
     if (u.pos || deployed(run).length >= cap || !canDeploy(run, u)) continue;
@@ -225,14 +268,14 @@ export function battleRewardPreview(run: RunState, node: NodeType) {
   const pet = tierOf('PET', counts.PET || 0);
   const cap = Math.max(0, CFG.interestMax + run.mods.interestCap - (diffHas(run.diff, 3) ? 1 : 0)) + (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (pet >= 4 ? 4 : 0) + (hasGlobal(run, 'G.interest') ? 5 : 0)
     + (run.units.some((u) => u.defId === 'lars') ? 2 : 0);
-  const interest = Math.min(cap, Math.floor(run.credits / CFG.interestPer));
+  const interest = despairInterest(run, Math.min(cap, Math.floor(run.credits / CFG.interestPer)));
   let c = CFG.winCredits(p);
   if (type === 'adversity') c = Math.round(c * CFG.adversityReward);
   c = Math.round(c * CFG.diffWinMul(run.diff || 0));
   if (type === 'boss') c += 5;
   const win = interest + c + CFG.streakBonus(Math.max(1, run.streak + 1)) + (pet >= 1 ? (pet >= 4 ? 3 : 1) : 0) + (fieldOf(run.field).winCredits || 0);
   const loss = interest + CFG.lossCredits + (pet >= 2 ? 6 : 0);
-  const pool = (won: boolean) => Math.round(CFG.xpPool(p) * (won ? 1 : 0.5) * (type === 'adversity' ? CFG.adversityReward : 1) * (hasGlobal(run, 'G.resonance') ? 1.35 : 1));
+  const pool = (won: boolean) => Math.round(CFG.xpPool(p) * (won ? 1 : 0.5) * (type === 'adversity' ? CFG.adversityReward : 1) * (hasGlobal(run, 'G.resonance') ? 1.35 : 1) * despairXp(run));
   return { credits: { win, loss, interest }, xp: { win: pool(true), loss: pool(false) } };
 }
 
@@ -367,7 +410,7 @@ export function checkOccult(run: RunState): boolean {
 }
 function genSynth(run: RunState): NonNullable<NonNullable<RunState['node']>['shop']> {
   const t = occultTier(run);
-  const n = 2 + t, mul = t >= 3 ? 0.7 : 1;
+  const n = 2 + t, mul = (t >= 3 ? 0.7 : 1) * despairPrice(run);
   return rng(run, (r) => {
     const ids = r.sample(ALL_CONSUMABLES, Math.min(n, ALL_CONSUMABLES.length)); // 서로 다른 종류 먼저, 남는 칸은 무작위
     while (ids.length < n) ids.push(r.pick(ALL_CONSUMABLES));
@@ -384,6 +427,7 @@ export function useCheck(run: RunState, kIdx: number, tg: UseTarget): string | n
     if (tg.k === 'inv') return '기물에게 사용하는 소모품입니다';
     const u = run.units.find((x) => x.uid === tg.uid);
     if (!u) return '대상 없음';
+    if (isRock(u)) return '반려 돌에게는 쓸 수 없습니다';
     if (id === 'K_rank' && u.rank >= CFG.maxRank) return '이미 최고 공명 등급입니다';
     if (id === 'K_morph' && !morphPool(run).length) return '바뀔 수 있는 기물이 없습니다';
     if (id === 'K_xp' && u.rank >= CFG.maxRank) return '이미 최고 공명 등급입니다';
@@ -445,7 +489,7 @@ export function useConsumable(run: RunState, kIdx: number, tg: UseTarget): { ok:
       for (const it of u.items) {
         if (!it || isLocked(it)) continue;
         const k = nu.items.indexOf(null);
-        if (k >= 0) nu.items[k] = it; else gainItem(run, it, undefined, true);
+        if (k >= 0) nu.items[k] = it; else gainItem(run, it, undefined, true, true);
       }
       nu.mod = u.mod;
       run.units = run.units.filter((x) => x !== u);
@@ -565,7 +609,7 @@ function gearEnemies(run: RunState, r: Rng, enemies: EnemySpawn[], type: NodeTyp
       if (!r.chance(p)) continue;
       items.push(big && r.chance(0.5) ? r.pick(ALL_GRADED) : r.pick(ALL_COMPONENTS));
     }
-    // (6) 도전: 1페이즈부터 모든 적이 기본 장비를 최소 1개
+    // (6) 고난: 1페이즈부터 모든 적이 기본 장비를 최소 1개
     if (!items.length && diffHas(run.diff, 6)) items.push(big && r.chance(0.5) ? r.pick(ALL_GRADED) : r.pick(ALL_COMPONENTS));
     if (items.length) s.items = items;
     if (diffHas(run.diff, 5) && r.chance(tier === 'boss' ? 0.6 : tier === 'elite' ? 0.3 : 0.1)) s.mod = r.pick(mods);
@@ -593,7 +637,7 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
       if (type === 'adversity' || (p >= 2 && r.chance(diffHas(run.diff, 5) ? 0.6 : 0.3))) ids.push(f.elite);
       while (ids.length < count) ids.push(r.pick(pool));
     }
-    // 위험 등급 적 증원 (모험 · 도전, CFG.diffAdd): 보스전 포함 모든 전투. 이 조우에 이미 나온 일반 적(정예 · 보스 · 장애물 제외) 중에서 복제하고,
+    // 위험 등급 적 증원 (모험 · 고난, CFG.diffAdd): 보스전 포함 모든 전투. 이 조우에 이미 나온 일반 적(정예 · 보스 · 장애물 제외) 중에서 복제하고,
     // 없으면 전장 풀에서. 보드 칸(줄 × 폭 - 2)이 모자라면 들어가는 만큼만
     const add = Math.max(0, Math.min(diffAddCount(run.diff, p), rows * n - 2 - ids.length));
     if (add) {
@@ -654,7 +698,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   const cap = Math.max(0, CFG.interestMax + run.mods.interestCap - (diffHas(run.diff, 3) ? 1 : 0)) + (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (pet >= 4 ? 4 : 0) + (hasGlobal(run, 'G.interest') ? 5 : 0)
     + (run.units.some((u) => u.defId === 'lars') ? 2 : 0); // 라르스: 이자 상한 +2
   const creditsBefore = run.credits;
-  const interest = Math.min(cap, Math.floor(run.credits / CFG.interestPer));
+  const interest = despairInterest(run, Math.min(cap, Math.floor(run.credits / CFG.interestPer)));
   let income = interest;
   if (interest) lines.push(`이자 +${interest} (상한 ${cap})`);
 
@@ -711,7 +755,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   // 공명도
   const xpBefore = new Map(run.units.map((u) => [u.uid, u.xp + totalXpOf(u)]));
   const lvBefore = new Map(run.units.map((u) => [u.uid, { rank0: u.rank, xp0: u.xp }]));
-  let pool = CFG.xpPool(p) * (won ? 1 : 0.5) * (type === 'adversity' ? CFG.adversityReward : 1) * (hasGlobal(run, 'G.resonance') ? 1.35 : 1);
+  let pool = CFG.xpPool(p) * (won ? 1 : 0.5) * (type === 'adversity' ? CFG.adversityReward : 1) * (hasGlobal(run, 'G.resonance') ? 1.35 : 1) * despairXp(run);
   pool = Math.round(pool);
   distributeXp(run, pool);
   lines.push(`공명도 풀 ${pool} 분배`);
@@ -754,7 +798,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   }
   if (challenge && won) {
     challengeReward(run, lines);
-    const bonus = Math.round(CFG.xpPool(p) * CFG.challengeXp);
+    const bonus = Math.round(CFG.xpPool(p) * CFG.challengeXp * despairXp(run));
     distributeXp(run, bonus);
     run.units.forEach((u) => settleXp(run, u));
     lines.push(`도전 성공 — 공명도 풀 ${bonus} 추가 분배`);
@@ -780,7 +824,7 @@ function totalXpOf(u: UnitState) { let t = 0; for (let r = 1; r < u.rank; r++) t
 /** 공명도 풀을 파티 전체에 무작위 분배 (최소 1pt 보정) */
 export function distributeXp(run: RunState, pool: number) {
   // 출전 기물은 최소 1 보장, 대기 기물은 가중치를 낮춰 나눠 받는다
-  const us = run.units;
+  const us = run.units.filter((u) => !isRock(u)); // 반려 돌은 공명도를 받지 않는다
   if (!us.length) return;
   rng(run, (r) => {
     const base = (u: UnitState) => (u.pos ? 1 : 0);
@@ -805,6 +849,7 @@ export function settleXp(run: RunState, u: UnitState) {
 }
 
 function rankUp(run: RunState, u: UnitState) {
+  if (isRock(u)) return; // 반려 돌: 공명 등급이 오르지 않는다
   u.rank++;
   run.rankLog[u.defId] = Math.max(run.rankLog[u.defId] || 0, u.rank);
   for (const k of MAJORS) u.alloc[k] += CFG.rankAll; // 모든 메이저 자동 상승
@@ -820,7 +865,7 @@ function rankUp(run: RunState, u: UnitState) {
 export function buyXp(run: RunState, uid: string): boolean {
   const u = run.units.find((x) => x.uid === uid);
   const cost = CFG.buyXpCost - (hasGlobal(run, 'G.study') ? 1 : 0);
-  if (!u || u.rank >= CFG.maxRank || run.credits < cost) return false;
+  if (!u || isRock(u) || u.rank >= CFG.maxRank || run.credits < cost) return false;
   run.credits -= cost;
   u.xp += CFG.buyXpAmount + (hasGlobal(run, 'G.study') ? 1 : 0);
   settleXp(run, u);
@@ -887,21 +932,33 @@ export function ensureRankupOptions(run: RunState, p: Extract<Pending, { t: 'ran
 }
 
 // ───────────────────────── 경제 / 아이템
-export function gainItem(run: RunState, id: string, lines?: string[], force = false) {
+/** 절망 증강 [유닉스제 대량 생산]: 새로 얻는 희귀 · 고급 장비 (합성 결과 포함)가 확률로 캣휠이 된다 */
+export function unixSwap(run: RunState, id: string, lines?: string[]): string {
+  if (!hasDespair(run, 'D.unix') || !(ALL_ADVANCED.includes(id) || ALL_GRADED.includes(id))) return id;
+  if (!rng(run, (r) => r.chance(CFG.despair.catwheel))) return id;
+  const msg = `유닉스제 대량 생산 — ${itemInfo(id).name} 대신 ${itemInfo(CATWHEEL).name}`;
+  lines?.push(msg);
+  log(run, msg);
+  return CATWHEEL;
+}
+/** 장비 획득. own = 이미 가진 장비를 돌려받는 경우 (방출 · 변성: 유닉스제 대체 없음). 들어온 장비 id (자동 판매면 null) */
+export function gainItem(run: RunState, id: string, lines?: string[], force = false, own = false): string | null {
+  if (!own) id = unixSwap(run, id, lines);
   if (run.inventory.length >= CFG.inventoryMax && !force) {
     const v = CFG.sell[id[0]];
     run.credits += v;
     lines?.push(`인벤토리 가득 참 — ${itemInfo(id).name} 자동 판매 +${v}`);
-    return;
+    return null;
   }
   run.inventory.push(id);
   lines?.push(`장비 획득: ${itemInfo(id).name}`);
+  return id;
 }
 
 function genShop(run: RunState) {
   return rng(run, (r) => {
     const stock = [];
-    const pr = (g: string) => Math.round(CFG.price[g] * (fieldOf(run.field).shopMul || 1));
+    const pr = (g: string) => Math.round(CFG.price[g] * (fieldOf(run.field).shopMul || 1) * despairPrice(run));
     // 재료 2개 확정 + 희귀(입고 행사면 2개) · 고급 · 후반 전설 확률
     for (let i = 0; i < CFG.drop.shopParts; i++) { const id = r.pick(ALL_COMPONENTS); stock.push({ item: id, price: pr('C'), sold: false }); }
     const rares = r.chance(CFG.drop.shopAdv2) ? 2 : r.chance(CFG.drop.shopAdv) ? 1 : 0;
@@ -915,7 +972,7 @@ function genShop(run: RunState) {
 /** 정비 (엔지니어): 포탑 전용 장비. 보급형 1개 무료 + 보급형 2 · 고급형 2 (가격은 상점 등급 기준) */
 function genMaint(run: RunState) {
   return rng(run, (r) => {
-    const mul = fieldOf(run.field).shopMul || 1;
+    const mul = (fieldOf(run.field).shopMul || 1) * despairPrice(run);
     const basic = r.sample(TURRET_BASIC, 3), adv = r.sample(TURRET_ADV, 2);
     return [
       { item: basic[0], price: 0, sold: false },
@@ -981,7 +1038,7 @@ export function buyShop(run: RunState, idx: number): string | null {
   if (run.inventory.length >= CFG.inventoryMax) return '인벤토리 가득 참';
   run.credits -= s.price;
   s.sold = true;
-  run.inventory.push(s.item);
+  run.inventory.push(unixSwap(run, s.item));
   return null;
 }
 export function sellItem(run: RunState, invIdx: number) {
@@ -993,8 +1050,9 @@ export function sellItem(run: RunState, invIdx: number) {
 export function combineInv(run: RunState, i: number, j: number): string | null {
   if (i === j) return null;
   const a = run.inventory[i], b = run.inventory[j];
-  const res = a && b ? combine(a, b) : null;
-  if (!res) return null;
+  const made = a && b ? combine(a, b) : null;
+  if (!made) return null;
+  const res = unixSwap(run, made);
   run.inventory = run.inventory.filter((_, k) => k !== i && k !== j);
   run.inventory.push(res);
   return res;
@@ -1003,6 +1061,7 @@ export function equip(run: RunState, invIdx: number, uid: string): string | null
   const u = run.units.find((x) => x.uid === uid);
   const id = run.inventory[invIdx];
   if (!u || !id) return '대상 없음';
+  if (isRock(u)) return '반려 돌은 장비를 달 수 없습니다';
   if (isConsumable(id)) return '소모품은 장착할 수 없습니다';
   if (isTurretGear(id)) return '포탑 전용 장비는 감시 포탑에만 장착할 수 있습니다';
   // 개조부품은 전용 칸으로 (이미 있으면 맞교환)
@@ -1018,13 +1077,13 @@ export function equip(run: RunState, invIdx: number, uid: string): string | null
   if (slot < 0) {
     const k = u.items.findIndex((x) => x && combine(x, id));
     if (k < 0) return '장비 슬롯이 가득 찼습니다 (3칸)';
-    u.items[k] = combine(u.items[k]!, id);
+    u.items[k] = unixSwap(run, combine(u.items[k]!, id)!);
     run.inventory.splice(invIdx, 1);
     return null;
   }
   // 같은 기물에 조합 가능한 재료가 있으면 자동 조합
   const k = u.items.findIndex((x) => x && x[0] === 'C' && id[0] === 'C');
-  if (k >= 0) u.items[k] = combine(u.items[k]!, id);
+  if (k >= 0) u.items[k] = unixSwap(run, combine(u.items[k]!, id)!);
   else u.items[slot] = id;
   run.inventory.splice(invIdx, 1);
   return null;
@@ -1072,12 +1131,12 @@ export function takeSupply(run: RunState, opt: string) {
 }
 /** 영입 · 합류 등급: max(페이즈 - 1, 출전 기물 평균 등급 × k) */
 export function joinRank(run: RunState): number {
-  const dep = run.units.filter((u) => u.pos);
+  const dep = run.units.filter((u) => u.pos && !isRock(u));
   const avg = dep.length ? dep.reduce((s, u) => s + u.rank, 0) / dep.length : 1;
   return Math.min(CFG.maxRank, Math.max(1, run.phase - 1, Math.round(avg * CFG.joinRankRatio)));
 }
 export function recruit(run: RunState, defId: string) {
-  const rank = Math.min(CFG.maxRank, joinRank(run) + (hasGlobal(run, 'G.scout') ? 1 : 0));
+  const rank = UNIT_BY_ID[defId].inert ? 1 : Math.min(CFG.maxRank, joinRank(run) + (hasGlobal(run, 'G.scout') ? 1 : 0)); // 반려 돌은 등급 1
   addUnit(run, defId, Math.min(CFG.maxRank, rank));
   autoPlace(run);
   if (run.picked[run.step - 1] === 'recruit') (run.nodeUnits ??= {})[run.step - 1] = defId; // 타임라인 표시용
@@ -1413,6 +1472,7 @@ export function releaseValue(run: RunState, u: UnitState) {
   for (let r = 1; r < u.rank; r++) invested += CFG.xpToNext(r);
   const items = [...u.items.filter((x): x is string => !!x && !isLocked(x)), ...(u.mod ? [u.mod] : [])];
   const lost = u.items.filter((x): x is string => !!x && isLocked(x));
+  if (isRock(u)) return { xp: 0, credits: 0, items, lost, invested: 0 }; // 반려 돌: 보상 없이 사라진다
   return { xp: Math.round(invested * 0.6), credits: 3 + u.rank * 2, items, lost, invested };
 }
 export function releaseUnit(run: RunState, uid: string): string | null {
@@ -1424,7 +1484,7 @@ export function releaseUnit(run: RunState, uid: string): string | null {
   if (run.staffTarget === uid) run.staffTarget = null;
   if (run.aceTarget === uid) run.aceTarget = null;
   run.credits += v.credits;
-  for (const id of v.items) gainItem(run, id, undefined, true);
+  for (const id of v.items) gainItem(run, id, undefined, true, true);
   if (u.relic && u.relic !== DEFAULT_RELIC[u.defId]) (run.relics ??= []).push(u.relic); // 성유물은 보관 칸으로 (기본 성유물은 기물과 함께 떠남)
   distributeXp(run, v.xp);
   run.units.forEach((x) => settleXp(run, x));

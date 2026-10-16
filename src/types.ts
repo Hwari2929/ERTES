@@ -129,6 +129,7 @@ export type Pending =
   | { t: 'victory' }
   | { t: 'event'; id: string; sub?: string | null } // sub: 이번 사건의 동적 조연 (기물 id)
   | { t: 'privilege'; options: AugPick[]; rerolls: number }
+  | { t: 'despair'; options: string[]; rerolls: number } // 절망 증강 (data/despair.ts): 반드시 1개
   | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean; join?: boolean; kind?: 'major' | 'special' | 'psionic' | 'school'; great?: boolean; round?: number } // school: 사이오닉 합류 시 학파 선택 · great: 마이너 능력치 대성공 (만들 때 굴림, 첫 확정 뒤 공개) · round: 대성공으로 두 번째 고르는 중
   | { t: 'pilgrim'; cards?: { id: string; cost: number; sold: boolean; faith?: FaithId }[]; relics?: { id: string; cost: number; sold: boolean }[] }
   | { t: 'itemPick'; options: string[]; title: string }
@@ -183,6 +184,8 @@ export interface RunState {
   occultTier?: number;
   helTier?: number; // 헬레니우스: 지금까지 도달한 최고 단계 (전용 장비 지급 기록) // 신비학자: 지금까지 도달한 최고 단계 (전용 개조부품 지급 기록)
   privilege: AugPick | null; // 런 시작 특권 증강
+  /** 절망 증강 id (data/despair.ts). 고난 런에서 특권 다음에 고른다 */
+  despair?: string | null;
   field: string; // 전장 (battlefields.ts)
   diff: number; // 난이도 단계 (difficulty.ts)
   cleared: boolean; // 목표 페이즈 보스 격파 (의뢰 성공)

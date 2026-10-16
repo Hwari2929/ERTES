@@ -48,6 +48,8 @@ const R: Record<string, (o: SfxOpts) => L[]> = {
   reveal1: () => [tone('s', m(81), 0.4, 0.1), tone('s', m(93), 0.16, 0.02)],
   reveal2: () => [tone('t', m(76), 0.5, 0.08), tone('t', m(83), 0.5, 0.07, { t: 0.06 }), tone('s', m(88), 0.3, 0.04, { t: 0.14 }), ...sparkle(2, 0.14)],
   reveal3: () => [...[72, 76, 79, 84].map((n, i) => tone('t', m(n), 0.7, 0.075, { t: i * 0.06 })), tone('w', m(48), 1, 0.03, { a: 0.18, p: 'l', c: 700, c2: 1600 }), tone('w', m(55), 1, 0.026, { a: 0.18, p: 'l', c: 700, c2: 1600 }), ...sparkle(6, 0.2)],
+  // 절망 증강 공개: 낮은 음 하나가 천천히 차올랐다 가라앉는다 (작은 스피커에서도 들리게 한 옥타브 위를 옅게)
+  despair: () => [tone('s', m(43), 1.7, 0.15, { a: 0.09, h: 0.25, p: 'l', c: 420 }), tone('t', m(55), 1.4, 0.035, { a: 0.12, h: 0.2, p: 'l', c: 600, v: 0.004 })],
   confirm: () => [tone('t', m(79), 0.12, 0.11), tone('s', m(86), 0.3, 0.11, { t: 0.06 }), tone('s', m(91), 0.15, 0.018, { t: 0.06 })],
   // 전투
   start: (o) => { const k = o.boss ? 0.75 : 1, n2 = o.boss ? 65 : 69; return [tone('w', m(62) * k, 0.45, 0.055, { a: 0.03, h: 0.12, p: 'l', c: 500, c2: 2200, q: 1 }), tone('w', m(n2) * k, 0.45, 0.045, { a: 0.03, h: 0.12, p: 'l', c: 500, c2: 2200, q: 1, t: 0.005 }), tone('s', 150, 0.22, 0.1, { e: 75 }), noise(0.12, 0.035, 'b', 1100, { q: 0.8 })]; },
@@ -205,7 +207,7 @@ const COOL: Record<string, number> = { click: 40, crit: 90, finish: 90, kill: 11
 /** 동시 재생 상한을 넘어도 내는 소리 (큰 사건 · 화면 전환) */
 const BIG = new Set(['ult', 'win', 'lose', 'start', 'rankUp', 'reveal3', 'error']);
 /** 같은 입력 안에서 기본 클릭음을 대신하지 않는 소리 */
-const SIDE = new Set(['reveal1', 'reveal2', 'reveal3']);
+const SIDE = new Set(['reveal1', 'reveal2', 'reveal3', 'despair']);
 
 function applyVol() { if (volNode && ctx) volNode.gain.setTargetAtTime(gainOf(), ctx.currentTime, 0.02); }
 function unlock() {
@@ -318,6 +320,7 @@ export function toastSfx(msg: string) {
 let revealKey = '';
 export function reveal(p: Pending | undefined) {
   if (!HAS || !p) return;
+  if (p.t === 'despair') { const k = `despair:${p.options.join()}`; if (k !== revealKey) { revealKey = k; play('despair', { delay: 0.35 }, 'ui', 0.01); } return; } // 절망 증강: 등급 공개음 대신 낮은 음 하나
   let key = '', g = 1;
   if (p.t === 'rankup' && p.allocDone && p.options?.length) {
     key = `ru:${p.uid}:${p.rank}:${p.options.map((x) => x.id).join()}`;

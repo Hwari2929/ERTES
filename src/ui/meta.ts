@@ -1,4 +1,5 @@
 // 도감 · 기록 (런 사이에 유지되는 데이터). 이 브라우저의 localStorage 에만 저장된다.
+import { CFG } from '../config';
 import { MAX_DIFF } from '../data/difficulty';
 import type { Battle } from '../engine/combat';
 import type { RunState } from '../types';
@@ -17,6 +18,8 @@ export interface Meta {
   tut?: { done?: boolean; skipped?: boolean; seen?: string[] };
   /** 에란테스 바: 본 만담 · 들은 이야기 · 직전 런 요약 (바 반응 대사 조건) */
   bar?: BarMeta;
+  /** 절망 증강별 기록 (data/despair.ts): 그 증강을 건 의뢰 수 · 성공 수 */
+  despair?: Record<string, { runs: number; clears: number }>;
 }
 /** 직전 런 요약: 바 반응 대사가 읽는다 */
 export interface BarLast { run: number; field: string; cleared: boolean; phase: number; diff: number; mvp?: string; units: string[]; newEvents: string[] }
@@ -97,10 +100,13 @@ export function metaBar(kind: 'seen' | 'talk' | 'heard', key: string) {
   if (kind === 'heard' && l.length > 400) l.splice(0, l.length - 400);
   save();
 }
+/** 절망 증강이 열렸는지: 고난(위험 CFG.despair.unlock) 이상 의뢰를 한 번이라도 성공 (전장별 최고 위험 등급 기록으로 판정 → 예전 기록도 그대로 인정) */
+export const despairUnlocked = (m: Meta = loadMeta()) => Object.values(m.fields).some((f) => f.bestDiff >= CFG.despair.unlock);
 /** 의뢰 성공 (목표 페이즈 보스 격파): 다음 난이도 해금 */
 export function metaClear(run: RunState) {
   const m = loadMeta();
   m.clears++;
+  if (run.despair) ((m.despair ||= {})[run.despair] ||= { runs: 0, clears: 0 }).clears++;
   const f = (m.fields[run.field] ||= { runs: 0, clears: 0, bestDiff: -1 });
   f.clears++;
   f.bestDiff = Math.max(f.bestDiff, run.diff);
@@ -115,6 +121,7 @@ export function metaRunEnd(run: RunState) {
   const m = loadMeta();
   m.runs++;
   m.bestPhase = Math.max(m.bestPhase, run.phase);
+  if (run.despair) ((m.despair ||= {})[run.despair] ||= { runs: 0, clears: 0 }).runs++;
   (m.fields[run.field] ||= { runs: 0, clears: 0, bestDiff: -1 }).runs++;
   for (const id of run.usedIds) {
     const u = (m.units[id] ||= { runs: 0, ranks: 0, best: 0, clears: 0 });

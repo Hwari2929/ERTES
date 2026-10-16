@@ -1,7 +1,8 @@
 import type { Effect } from '../engine/effects';
 import { inc, red, scaleEffect, vuln } from '../engine/effects';
 import type { Major, SynergyId } from '../types';
-import { ELEM_NAME, MAJOR_NAME } from '../types';
+import { ELEM_NAME, MAJOR_NAME, MAJORS } from '../types';
+import { CFG } from '../config';
 import { SYN_BY_ID } from './synergies';
 import { slow } from './kit';
 
@@ -56,7 +57,7 @@ const ADV: AdvDef[] = [
 // stats/pct/mods/taken 기반 효과는 scaleEffect 로 배율 적용, 훅 기반은 k 를 직접 받는다
 const HOOK_SCALED = new Set(['vit_vit', 'vit_pow', 'vit_def', 'vit_agi', 'pow_def', 'mnd_def', 'def_agi', 'agi_agi']);
 
-export interface ItemInfo { id: string; tier: 'C' | 'G' | 'A' | 'L' | 'M' | 'K' | 'T'; name: string; icon: string; majors: Partial<Record<Major, number>>; desc: string; recipe?: [string, string] }
+export interface ItemInfo { id: string; tier: 'C' | 'G' | 'A' | 'L' | 'M' | 'K' | 'T' | 'J'; name: string; icon: string; majors: Partial<Record<Major, number>>; desc: string; recipe?: [string, string] }
 
 const ADV_BY_ID = Object.fromEntries(ADV.map((a) => [a.id, a]));
 
@@ -70,6 +71,15 @@ const UNIQUE: Record<string, { name: string; icon: string; desc: string; effect:
   },
 };
 export const isLocked = (id: string | null) => !!id && id.startsWith('U_');
+
+// ── 유닉스제 잡동사니 (J_): 절망 증강 [유닉스제 대량 생산]이 희귀 · 고급 장비 대신 끼워 넣는다. 기능 없음 (조합 · 전설 주조 불가, 판매 CFG.sell.J)
+//    캣휠은 밍키가 달면 모든 주요 능력치 +CFG.despair.catwheelMajors (itemEffect 의 owner)
+const JUNK: Record<string, { name: string; icon: string; desc: string; cat?: boolean }> = {
+  J_catwheel: { name: '캣휠', icon: '◎', desc: '[유닉스제] 아무 기능이 없다. 한 성계의 빛을 가릴 만큼 만들어졌다. 고양이라면 또 모르겠다.', cat: true },
+};
+export const isJunk = (id: string | null | undefined) => !!id && !!JUNK[id];
+/** 잡동사니 id 목록 (도감) */
+export const JUNK_IDS = Object.keys(JUNK);
 /** 고유 장비 id 목록 (도감) */
 export const UNIQUE_IDS = Object.keys(UNIQUE);
 
@@ -211,6 +221,7 @@ export function itemInfo(id: string): ItemInfo {
     const h = HEL_ITEMS[id.slice(2)], k = id[0] === 'L' ? 2 : 1;
     return { id, tier: id[0] === 'L' ? 'L' : 'A', name: (k === 2 ? '[전설] ' : '') + h.name, icon: h.icon, majors: { [h.major]: 6 * k }, desc: `[동맹 전용] ${MAJOR_NAME[h.major]} +${6 * k}. ${h.desc(k)}` };
   }
+  if (JUNK[id]) { const j = JUNK[id]; return { id, tier: 'J', name: j.name, icon: j.icon, majors: {}, desc: j.desc }; }
   if (CONSUMABLES[id]) { const c = CONSUMABLES[id]; return { id, tier: 'K', name: c.name, icon: c.icon, majors: {}, desc: `[소모품] ${c.desc}` }; }
   if (OCCULT_MODS[id]) { const o = OCCULT_MODS[id]; return { id, tier: 'M', name: o.name, icon: o.icon, majors: {}, desc: `[신비 개조부품] ${o.desc}` }; }
   if (UNIQUE[id]) return { id, tier: 'L', name: UNIQUE[id].name, icon: UNIQUE[id].icon, majors: {}, desc: UNIQUE[id].desc };
@@ -239,7 +250,9 @@ export function itemInfo(id: string): ItemInfo {
   };
 }
 
-export function itemEffect(id: string): Effect {
+/** owner: 장착한 기물 id (캣휠 · 밍키처럼 기물에 따라 달라지는 장비) */
+export function itemEffect(id: string, owner?: string): Effect {
+  if (JUNK[id]) { const k = JUNK[id].cat && owner === 'mingki' ? CFG.despair.catwheelMajors : 0; return k ? { majors: Object.fromEntries(MAJORS.map((m) => [m, k])) } : {}; }
   if (isTurretGear(id)) return TURRET_GEAR[id].effect;
   if (isHelItem(id)) { const h = HEL_ITEMS[id.slice(2)], k = id[0] === 'L' ? 2 : 1; return { ...h.effect(k), majors: { [h.major]: 6 * k } }; }
   if (UNIQUE[id]) return UNIQUE[id].effect;
@@ -254,7 +267,7 @@ export function itemEffect(id: string): Effect {
 }
 
 export function combine(x: string, y: string): string | null {
-  if (isLocked(x) || isLocked(y) || isMod(x) || isMod(y) || isConsumable(x) || isConsumable(y) || isTurretGear(x) || isTurretGear(y)) return null;
+  if (isLocked(x) || isLocked(y) || isMod(x) || isMod(y) || isConsumable(x) || isConsumable(y) || isTurretGear(x) || isTurretGear(y) || isJunk(x) || isJunk(y)) return null;
   // 같은 재료 2개 → 고급, 서로 다른 재료 2개 → 희귀. 전설은 조합 불가
   if (x[0] === 'C' && y[0] === 'C') {
     if (x === y) return `G_${x.slice(2)}`;
