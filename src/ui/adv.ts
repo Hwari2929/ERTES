@@ -3,6 +3,7 @@
 import type { Beat, Face, Pos } from '../data/scene';
 import { BGS } from '../data/scene';
 import { bgURL, standURL } from './portraits';
+import * as SND from './sound';
 
 export interface AdvChoice { label: string; desc?: string; why?: string }
 export interface AdvOpts {
@@ -127,6 +128,7 @@ export function playAdv(key: string, beats: Beat[], o: AdvOpts) {
     full = b.text;
     logLines.push(`${nm ? `<b style="--c:${sp?.color || 'var(--dim)'}">${esc(nm)}</b>` : ''}<span class="${b.think ? 'think' : b.who ? '' : 'narr'}">${fmt(b.text)}</span>`);
     fx(b.fx);
+    if (b.sfx) SND.scene(b.sfx); // 효과음: 이 줄의 sfx 태그 (합성음 근사)
     type();
     if (b.exit) setTimeout(() => exit(b.exit === true ? (b.who ? [b.who] : []) : b.exit as string[]), 0);
   }
@@ -153,6 +155,7 @@ export function playAdv(key: string, beats: Beat[], o: AdvOpts) {
   el.addEventListener('click', (e) => {
     const t = e.target as HTMLElement;
     const c = t.closest<HTMLButtonElement>('[data-c]');
+    if (c && !c.disabled) SND.sfx('confirm'); // 효과음: 선택지 확정
     if (c) { if (!c.disabled) { closeAdv(); o.onDone(+c.dataset.c!); } return; }
     const x = t.closest<HTMLElement>('[data-x]')?.dataset.x;
     if (x === 'log') { $('.adv-log-in').innerHTML = logLines.map((l) => `<p>${l}</p>`).join(''); $('.adv-log').hidden = false; $('.adv-log-in').scrollTop = 1e6; return; }

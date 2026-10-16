@@ -3799,6 +3799,7 @@ window.addEventListener('pointercancel', () => { if (drag?.ghost) { drag.ghost.r
 function onDrop(src: string, dst: string) {
   const run = app.run;
   if (!run) return;
+  SND.uiAct('drop'); // 효과음: 배치 · 장착 (오류 알림이 뜨면 오류음)
   const [sk, ...sv] = src.split(':');
   const [dk, ...dv] = dst.split(':');
   const n = run.node?.enc?.n || CFG.bossBoard;
@@ -4243,9 +4244,10 @@ root.addEventListener('click', (ev) => {
     if (on) { el.classList.add('peek'); setTimeout(() => el.classList.remove('peek'), 1800); }
     return;
   }
+  SND.uiAct(el.dataset.a!); // 효과음: 동작이 끝난 뒤 결과에 맞춰 (클릭 · 구매 · 판매 · 리롤 · 확정 · 오류)
   act(el.dataset.a!, el.dataset.v || '');
 });
-SND.init({ prefs: loadPrefs, save: savePref, rankSum: () => app.run?.units.reduce((s, u) => s + u.rank, 0) ?? 0 }); // 효과음 설정 (errantes.prefs.v1)
+SND.init({ prefs: loadPrefs, save: savePref, ranks: () => Object.fromEntries(app.run?.units.map((u) => [u.uid, u.rank]) ?? []) }); // 효과음 설정 (errantes.prefs.v1) · 등급 상승 판정
 
 // 순례: 신앙 변경
 root.addEventListener('change', (ev) => {

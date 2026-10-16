@@ -14,6 +14,7 @@ import { lineIcon } from './synicons';
 import { SYN_BY_ID } from '../data/synergies';
 import { GLOSS } from '../data/abiltext';
 import { FeedList, type FeedItem } from './bfeed';
+import * as SND from './sound';
 
 export const ELEM_COLOR: Record<Elem, string> = {
   phys: 'var(--el-phys)', chem: 'var(--el-chem)', elec: 'var(--el-elec)', psy: 'var(--el-psy)', holy: 'var(--el-holy)', true: 'var(--el-true)',
@@ -1130,6 +1131,7 @@ export class BattleView {
       if (dot) { this.num(u, `dot:${e.id}:${e.elem}`, e.v, (x) => fmt(x), 'dot', SLOT.dot, { color, rel }); return; }
       if (e.graze) this.word(u, '찰과', 'graze', { rel, prio: 0 });
       const kill = this.lethal.has(e), fin = this.finDmg.has(e);
+      if (!kill && (fin || e.crit)) SND.battle(fin ? 'finish' : 'crit', this._speed, this.b.keepEvents, src?.side === 1); // 효과음 (결정타는 쓰러질 때 처치음)
       if (kill || fin || e.crit) this.bigNum(u, e.v, color, rel, { kill, fin, crit: e.crit });
       else {
         const m = this.hitNum(u, `hit:${e.id}:${e.elem}`, e.v, e.tag === 'basic' ? 'dmg sm' : 'dmg', color, rel, e.tag === 'basic' ? 0 : 1);
@@ -1350,6 +1352,7 @@ export class BattleView {
   private onUlt(e: Extract<BEvent, { k: 'ult' }>) {
     const u = this.unit(e.id), ult = ULTS[e.ult];
     if (!u || !ult) return;
+    SND.battle('ult', this._speed, this.b.keepEvents); // 효과음: 궁극기
     const off = FX.ultCut === 'off' || this.reduced || !this.b.keepEvents;
     // 효과는 컷인 직후에 닿도록 (감속 중이라 게임 시간으로는 짧다)
     this.skillCtx = { id: e.id, land: this.vt + (off ? T_SKILL : 0.18) };
@@ -1368,6 +1371,7 @@ export class BattleView {
   private onDivAct(id: number) {
     const u = this.unit(id);
     if (!u) return;
+    SND.battle('ult', this._speed, this.b.keepEvents); // 효과음: 신권 대행 (궁극기와 같은 소리)
     const rel = u.relic ? RELIC_BY_ID[u.relic] : null;
     const name = rel?.name || (u.ctype ? DIVINE_ACT[u.ctype].name : '신권 대행'); // 성유물이 없으면 (성찬으로 깨어난 기물) 전투 유형 기본형
     const enh = (u.mem.enh || 1) > 1;
@@ -1452,6 +1456,7 @@ export class BattleView {
   // ───────── 사망 · 종료 연출
   private dieFx(e: UEl) {
     const u = e.u;
+    SND.battle('kill', this._speed, this.b.keepEvents, u.side === 0); // 효과음: 처치 (아군이 쓰러지면 낮고 작게)
     const hide = () => { if (!e.u.alive) e.el.classList.add('dead'); };
     this.motion.get(u.id)?.a.cancel();
     if (this.reduced || !this.b.keepEvents) { hide(); return; }

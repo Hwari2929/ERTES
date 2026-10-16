@@ -33,33 +33,33 @@ const sparkle = (n: number, t0: number) => Array.from({ length: n }, (_, i) => t
 const woof = (t: number, k: number, far = false) => far
   ? [tone('w', 470 * k, 0.12, 0.07, { e: 280 * k, t, a: 0.01, p: 'l', c: 520 })]
   : [tone('w', 540 * k, 0.11, 0.11, { e: 300 * k, t, a: 0.008, p: 'b', c: 900, q: 1.2 }), tone('w', 560 * k, 0.1, 0.05, { e: 320 * k, t, p: 'b', c: 1800, q: 2 }), noise(0.05, 0.04, 'b', 1300, { t })];
-const knock = (t = 0) => [tone('s', 250, 0.08, 0.24, { e: 150, a: 0.002, t }), noise(0.03, 0.09, 'b', 1200, { q: 1.5, a: 0.001, t })];
+const knock = (t = 0) => [tone('s', 250, 0.08, 0.14, { e: 150, a: 0.002, t }), noise(0.03, 0.06, 'b', 1200, { q: 1.5, a: 0.001, t })];
 
 /** 소리 이름 → 겹 목록 (부를 때마다 무작위 요소를 새로 뽑는다) */
 const R: Record<string, (o: SfxOpts) => L[]> = {
   // UI
-  click: () => [tone('t', 1150, 0.035, 0.08, { e: 820, a: 0.002 }), noise(0.012, 0.025, 'b', 2600, { q: 1.5, a: 0.001 })],
+  click: () => [tone('t', 1150, 0.035, 0.045, { e: 820, a: 0.002 }), noise(0.012, 0.015, 'b', 2600, { q: 1.5, a: 0.001 })],
   error: () => [tone('t', m(63), 0.08, 0.17, { p: 'l', c: 1400 }), tone('t', m(60), 0.13, 0.17, { t: 0.1, p: 'l', c: 1100 })],
   buy: () => [tone('t', m(83), 0.07, 0.1), tone('s', m(88), 0.28, 0.12, { t: 0.06 }), tone('s', m(100), 0.12, 0.02, { t: 0.06 }), noise(0.05, 0.025, 'b', 5000, { t: 0.06, q: 2 })],
   sell: () => [tone('t', m(76), 0.1, 0.12), tone('t', m(71), 0.22, 0.11, { t: 0.07 }), noise(0.05, 0.03, 'b', 3600, { t: 0.07, q: 3 })],
   reroll: () => [noise(0.14, 0.14, 'b', 450, { c2: 2400, a: 0.1, q: 1.3 }), tone('t', 1300, 0.03, 0.045, { t: 0.2, e: 1000 }), tone('t', 1500, 0.03, 0.04, { t: 0.26, e: 1150 })],
-  place: () => [tone('s', 340, 0.075, 0.24, { e: 190, a: 0.002 }), noise(0.025, 0.06, 'b', 1700, { q: 2, a: 0.001 })],
+  place: () => [tone('s', 340, 0.075, 0.12, { e: 190, a: 0.002 }), noise(0.025, 0.04, 'b', 1700, { q: 2, a: 0.001 })],
   rankUp: (o) => { const k = 2 ** (Math.min(6, o.step || 0) / 6); return [...[72, 76, 79].map((n, i) => tone('t', m(n) * k, 0.2, 0.1, { t: i * 0.07 })), tone('s', m(84) * k, 0.45, 0.07, { t: 0.21 }), tone('s', m(91) * k, 0.25, 0.018, { t: 0.24 })]; },
   reveal1: () => [tone('s', m(81), 0.4, 0.1), tone('s', m(93), 0.16, 0.02)],
   reveal2: () => [tone('t', m(76), 0.5, 0.08), tone('t', m(83), 0.5, 0.07, { t: 0.06 }), tone('s', m(88), 0.3, 0.04, { t: 0.14 }), ...sparkle(2, 0.14)],
   reveal3: () => [...[72, 76, 79, 84].map((n, i) => tone('t', m(n), 0.7, 0.075, { t: i * 0.06 })), tone('w', m(48), 1, 0.03, { a: 0.18, p: 'l', c: 700, c2: 1600 }), tone('w', m(55), 1, 0.026, { a: 0.18, p: 'l', c: 700, c2: 1600 }), ...sparkle(6, 0.2)],
   confirm: () => [tone('t', m(79), 0.12, 0.11), tone('s', m(86), 0.3, 0.11, { t: 0.06 }), tone('s', m(91), 0.15, 0.018, { t: 0.06 })],
   // 전투
-  start: (o) => { const k = o.boss ? 0.75 : 1, n2 = o.boss ? 65 : 69; return [tone('w', m(62) * k, 0.45, 0.055, { a: 0.03, h: 0.12, p: 'l', c: 500, c2: 2200, q: 1 }), tone('w', m(n2) * k, 0.45, 0.045, { a: 0.03, h: 0.12, p: 'l', c: 500, c2: 2200, q: 1, t: 0.005 }), tone('s', 150, 0.22, 0.2, { e: 75 }), noise(0.12, 0.045, 'b', 1100, { q: 0.8 })]; },
-  crit: () => [noise(0.07, 0.13, 'b', 2600, { c2: 1100, q: 1.2 }), tone('t', 640, 0.09, 0.16, { e: 300 }), tone('s', 1480, 0.13, 0.04, { t: 0.004 })],
-  finish: () => [noise(0.13, 0.18, 'b', 3000, { c2: 650, q: 0.9, a: 0.012 }), tone('s', 170, 0.14, 0.24, { e: 82, t: 0.02 }), tone('t', 460, 0.08, 0.08, { e: 220, t: 0.02 })],
+  start: (o) => { const k = o.boss ? 0.75 : 1, n2 = o.boss ? 65 : 69; return [tone('w', m(62) * k, 0.45, 0.055, { a: 0.03, h: 0.12, p: 'l', c: 500, c2: 2200, q: 1 }), tone('w', m(n2) * k, 0.45, 0.045, { a: 0.03, h: 0.12, p: 'l', c: 500, c2: 2200, q: 1, t: 0.005 }), tone('s', 150, 0.22, 0.1, { e: 75 }), noise(0.12, 0.035, 'b', 1100, { q: 0.8 })]; },
+  crit: () => [noise(0.07, 0.07, 'b', 2600, { c2: 1100, q: 1.2 }), tone('t', 640, 0.09, 0.08, { e: 300 }), tone('s', 1480, 0.13, 0.025, { t: 0.004 })],
+  finish: () => [noise(0.13, 0.11, 'b', 3000, { c2: 650, q: 0.9, a: 0.012 }), tone('s', 170, 0.14, 0.13, { e: 82, t: 0.02 }), tone('t', 460, 0.08, 0.05, { e: 220, t: 0.02 })],
   kill: () => [tone('t', 820, 0.16, 0.13, { e: 300 }), noise(0.17, 0.1, 'l', 1500, { c2: 300 }), tone('s', m(84), 0.22, 0.045, { t: 0.06 })],
   down: () => [tone('t', 440, 0.25, 0.09, { e: 196 }), noise(0.15, 0.05, 'l', 700, { c2: 200 })],
   ult: () => [noise(0.2, 0.06, 'b', 300, { c2: 2800, a: 0.32, q: 1.2 }), tone('w', m(57), 0.6, 0.035, { a: 0.3, p: 'l', c: 400, c2: 2600 }), tone('w', m(64), 0.6, 0.03, { a: 0.3, p: 'l', c: 400, c2: 2600 }), tone('s', m(84), 0.7, 0.09, { t: 0.32 }), tone('s', m(84) * 2.01, 0.35, 0.022, { t: 0.32 }), tone('s', m(79), 0.6, 0.055, { t: 0.36 })],
   win: () => [...[72, 76, 79].map((n, i) => tone('t', m(n), 0.22, 0.11, { t: i * 0.11 })), tone('t', m(84), 0.8, 0.11, { t: 0.36 }), tone('s', m(88), 0.8, 0.06, { t: 0.36 }), tone('s', m(79), 0.8, 0.055, { t: 0.36 }), tone('w', m(60), 1, 0.026, { t: 0.33, a: 0.1, p: 'l', c: 900 })],
   lose: () => [...[69, 65, 62].map((n, i) => tone('t', m(n), 0.4, 0.1, { t: i * 0.22, p: 'l', c: 1500 })), tone('s', m(50), 0.9, 0.08, { t: 0.66 }), tone('s', m(57), 0.9, 0.04, { t: 0.66 })],
   // 사건 장면 (SFXS)
-  clank: () => [...bar(420, 0.11), noise(0.02, 0.09, 'b', 3000, { q: 1 }), ...at(0.11, bar(450, 0.065))],
+  clank: () => [...bar(420, 0.07), noise(0.02, 0.06, 'b', 3000, { q: 1 }), ...at(0.11, bar(450, 0.04))],
   scrape: () => [noise(0.2, 0.09, 'b', 1700, { a: 0.05, h: 0.28, q: 3 }), noise(0.2, 0.055, 'b', 900, { a: 0.05, h: 0.28, q: 4, c2: 1300 }), tone('w', 85, 0.2, 0.022, { a: 0.05, h: 0.28, p: 'l', c: 600 })],
   bark: () => [...woof(0, 1), ...woof(0.2, 0.94)],
   bark_far: () => woof(0, 0.9, true),
@@ -71,7 +71,7 @@ const R: Record<string, (o: SfxOpts) => L[]> = {
   dice: () => { let t = 0; return Array.from({ length: 6 }, (_, i) => { const r = at(t, [noise(0.015, 0.09, 'b', 1800 + rnd() * 900, { q: 3, a: 0.001 }), tone('t', 800 + rnd() * 500, 0.02, 0.035)]); t += 0.05 + i * 0.012 + rnd() * 0.05; return r; }).flat(); },
   crowd: () => [noise(0.6, 0.045, 'b', 500, { a: 0.25, h: 0.45, q: 1.5 }), noise(0.6, 0.04, 'b', 1100, { a: 0.25, h: 0.45, q: 1.8 }), noise(0.6, 0.026, 'b', 2400, { a: 0.25, h: 0.45, q: 2 }), ...[310, 370, 440].map((f) => tone('w', f, 0.6, 0.011, { e: f * 1.12, a: 0.2, h: 0.4, p: 'l', c: 1100, v: 0.02, t: rnd() * 0.1 }))],
   coin: () => [tone('s', 1500, 0.28, 0.055), tone('s', 3500, 0.12, 0.018), tone('s', 1550, 0.2, 0.032, { t: 0.13 }), tone('s', 3620, 0.08, 0.01, { t: 0.13 })],
-  blast: () => [noise(0.9, 0.3, 'l', 2200, { c2: 160, a: 0.005 }), tone('s', 95, 0.35, 0.26, { e: 45 }), noise(0.12, 0.09, 'b', 900, { q: 0.8 })],
+  blast: () => [noise(0.9, 0.18, 'l', 2200, { c2: 160, a: 0.005 }), tone('s', 95, 0.35, 0.14, { e: 45 }), noise(0.12, 0.06, 'b', 900, { q: 0.8 })],
   // 묶음별 추가 효과음의 바탕 (SCENE 표에서 음높이 · 크기만 바꿔 쓴다)
   hum: () => [tone('w', 110, 0.5, 0.035, { a: 0.3, h: 0.7, p: 'l', c: 320 }), tone('w', 111.5, 0.5, 0.028, { a: 0.3, h: 0.7, p: 'l', c: 320 }), tone('s', 220, 0.5, 0.018, { a: 0.3, h: 0.7 })],
   bell: () => [...bell(880, 0.08), ...at(0.45, bell(880, 0.05))],
@@ -83,10 +83,10 @@ const R: Record<string, (o: SfxOpts) => L[]> = {
   paper: () => [noise(0.12, 0.06, 'b', 2600, { a: 0.03, q: 1.2, c2: 1800 }), noise(0.05, 0.04, 'h', 4000, { t: 0.1 })],
   bubble: () => Array.from({ length: 10 }, () => { const f = 300 + rnd() * 400; return tone('s', f, 0.04, 0.045, { e: f * 1.7, t: rnd() * 0.8 }); }),
   beep: () => [tone('q', 880, 0.05, 0.03, { h: 0.04, p: 'l', c: 2200 }), tone('q', 1175, 0.05, 0.026, { t: 0.12, h: 0.04, p: 'l', c: 2200 })],
-  cards: () => [...Array.from({ length: 12 }, (_, i) => noise(0.012, 0.045, 'b', 2500 + rnd() * 1000, { t: i * 0.025, q: 2, a: 0.001 })), noise(0.08, 0.05, 'b', 1200, { t: 0.32 })],
+  cards: () => [...Array.from({ length: 12 }, (_, i) => noise(0.012, 0.08, 'b', 2500 + rnd() * 1000, { t: i * 0.025, q: 2, a: 0.001 })), noise(0.08, 0.08, 'b', 1200, { t: 0.32 })],
   squeal: () => [tone('w', 1250, 0.25, 0.022, { a: 0.05, h: 0.5, v: 0.015, p: 'b', c: 1300, q: 4 }), noise(0.3, 0.035, 'b', 2500, { a: 0.05, h: 0.4 })],
-  creak: () => [tone('w', 95, 0.2, 0.045, { e: 150, a: 0.1, h: 0.4, p: 'b', c: 900, q: 6, v: 0.08 })],
-  gun: () => [noise(0.03, 0.16, 'h', 2000), noise(0.3, 0.22, 'l', 3000, { c2: 350 }), tone('s', 150, 0.12, 0.18, { e: 60 })],
+  creak: () => [tone('w', 95, 0.2, 0.13, { e: 150, a: 0.1, h: 0.4, p: 'b', c: 900, q: 6, v: 0.08 })],
+  gun: () => [noise(0.03, 0.1, 'h', 2000), noise(0.3, 0.14, 'l', 3000, { c2: 350 }), tone('s', 150, 0.12, 0.1, { e: 60 })],
   rift: () => [...[900, 1350, 2100].map((f) => tone('s', f, 0.05, 0.035, { a: 0.6, e: f * 1.06 })), noise(0.05, 0.035, 'h', 3000, { a: 0.6 })],
   gurgle: () => [tone('s', 140, 0.2, 0.11, { a: 0.05, h: 0.4, v: 0.25, e: 110, p: 'l', c: 600 })],
 };
@@ -179,14 +179,14 @@ function master(ctx: BaseAudioContext, vol: number): [AudioNode, GainNode] {
 
 // ───────── 설정
 let save: (k: string, v: unknown) => void = () => {};
-let rankSum: () => number = () => 0;
+let ranks: () => Record<string, number> = () => ({});
 let vol = 60, mute = false;
-/** main 이 넘겨주는 설정 읽기 · 쓰기 (errantes.prefs.v1) · 보유 기물 등급 합 (UI 동작 뒤 등급 상승 판정) */
-export function init(o: { prefs: () => object; save: (k: string, v: unknown) => void; rankSum: () => number }) {
+/** main 이 넘겨주는 설정 읽기 · 쓰기 (errantes.prefs.v1) · 보유 기물 uid → 등급 (UI 동작 뒤 등급 상승 판정: 새로 들어온 기물은 제외) */
+export function init(o: { prefs: () => object; save: (k: string, v: unknown) => void; ranks: () => Record<string, number> }) {
   const p = o.prefs() as { sndVol?: unknown; sndMute?: unknown };
   vol = typeof p.sndVol === 'number' && p.sndVol >= 0 && p.sndVol <= 100 ? Math.round(p.sndVol) : 60;
   mute = p.sndMute === true;
-  save = o.save; rankSum = o.rankSum;
+  save = o.save; ranks = o.ranks;
   applyVol();
 }
 /** 들리는 크기는 대략 제곱에 비례하게 (60 → 0.36) */
@@ -283,7 +283,7 @@ export function battle(kind: 'crit' | 'finish' | 'kill' | 'ult', speed: number, 
 }
 
 // 같은 입력(클릭 · 끌어 놓기) 안에서: 따로 소리를 낸 동작이 없으면 동작에 맞는 기본음, 오류 알림이 떴으면 오류음, 등급이 올랐으면 등급 상승음
-let gest: { claimed: boolean; err: boolean; rank: number } | null = null;
+let gest: { claimed: boolean; err: boolean; rank: Record<string, number> } | null = null;
 const ACT: Record<string, string> = {};
 for (const [s, as] of Object.entries({
   buy: 'buy buy-news buy-invest buyxp pil-card pil-relic fleet loan muster-open',
@@ -296,12 +296,13 @@ for (const [s, as] of Object.entries({
 /** UI 동작 직전에 부른다 (data-a 이름). 동작이 끝난 뒤(마이크로태스크) 결과에 맞는 소리를 낸다 */
 export function uiAct(a: string) {
   if (!HAS) return;
-  const g = { claimed: false, err: false, rank: rankSum() };
+  const g = { claimed: false, err: false, rank: ranks() };
   gest = g;
   queueMicrotask(() => {
     if (gest === g) gest = null;
     if (g.err) { play('error', {}, 'ui', 0.02); return; }
-    if (rankSum() > g.rank) { play('rankUp', {}, 'ui', 0.02); return; }
+    const r = ranks();
+    if (Object.keys(g.rank).some((k) => (r[k] ?? 0) > g.rank[k])) { play('rankUp', {}, 'ui', 0.02); return; }
     const s = ACT[a] ?? 'click';
     if (!g.claimed && s) play(s, {}, 'ui', 0.02);
   });
