@@ -13,7 +13,7 @@ import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { DIVINE_ACT, FAITH_DEF, MAJOR_AUGS, MINOR_TRAIT_GROW, recMajors } from './data/rework';
 import { type AugList, cantripView, passiveView, SCHOOL_LINE, transformPreview } from './data/psiinfo';
 import { augReqState } from './data/augreq';
-import { GROUPS, SCHOOL_BY_ID, SCHOOL_PASSIVES, UNIT_GROUP, isTransformAug, psiAugId, schoolOf, type SchoolId } from './data/schools';
+import { GROUPS, SCHOOL_BY_ID, SCHOOL_PASSIVES, UNIT_GROUP, augMark, psiAugId, schoolOf, type SchoolId } from './data/schools';
 import { BRIEF, PSI_BRIEF, unitBlurb } from './data/brief';
 import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
 import * as AB from './ui/abil';
@@ -408,7 +408,7 @@ function sub(key: string, icon: string, cls: string, name: string, kind: string,
 /** 증강 한 줄 (이름 · 설명) */
 function augRow(id: string, param?: string, b: Battle | null = null, c: CUnit | null = null, tag = '') {
   const ad = AUG_BY_ID[id];
-  return `<li class="aug-li ab-click${abilOn(`aug:${id}`)}" data-a="abil-pop" data-v="aug:${esc(id)}" role="button" tabindex="0">${augIcon(id)}<span><b>${isTransformAug(id) ? '◆ ' : ''}${esc(ad?.name || id)}</b>${tag ? ` <span class="tag">${tag}</span>` : ''}<br><span class="muted">${b && c ? augText(id, param, b, c) : esc(augDesc(id, param))}</span></span></li>`;
+  return `<li class="aug-li ab-click${abilOn(`aug:${id}`)}" data-a="abil-pop" data-v="aug:${esc(id)}" role="button" tabindex="0">${augIcon(id)}<span><b>${augMark(id)}${esc(ad?.name || id)}</b>${tag ? ` <span class="tag">${tag}</span>` : ''}<br><span class="muted">${b && c ? augText(id, param, b, c) : esc(augDesc(id, param))}</span></span></li>`;
 }
 /** 다음 이정표 등급 */
 function nextMilestone(tt: TType, rank: number): number | null {
@@ -563,7 +563,7 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
       body.push(`<div class="tt-row ps-augs"><span class="tt-k">전공 증강</span><div class="tt-icons">${slots}</div></div>`);
       if (!u || app.detail) {
         const rest = SCHOOL_PASSIVES[sc.id].filter(([k]) => !mine.some((m) => m.id === psiAugId(sc.id, k)));
-        if (rest.length) body.push(`<div class="ps-rest">${rest.map(([k, n, dsc]) => `<span class="pill" title="${esc(dsc)}">${isTransformAug(psiAugId(sc.id, k)) ? '◆ ' : ''}${esc(n)}</span>`).join('')}</div>`);
+        if (rest.length) body.push(`<div class="ps-rest">${rest.map(([k, n, dsc]) => `<span class="pill" title="${esc(dsc)}">${augMark(psiAugId(sc.id, k))}${esc(n)}</span>`).join('')}</div>`);
       }
     } else {
       const gid = UNIT_GROUP[d.id];
@@ -2145,8 +2145,10 @@ function pendingModal(run: RunState): string {
       const rec = recommendedMajors(d);
       const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? +((v as number) * 100).toFixed(1) + '%' : v}`).join(', ');
       body = `${side}<div class="ru-main">
-        <div class="ru-head"><h1>${p.rank}등급 달성 보상 · 능력치</h1></div>
-        <p class="muted small">마이너 기물이 공명 등급 3의 배수마다 받는 보상입니다. 서로 다른 주요 능력치 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.options?.length === 0 ? '' : ` · 이어서 ${p.rank}등급 증강`}<br>(등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>
+        <div class="ru-head"><h1>${p.round ? `${p.rank}등급 달성 보상 · <b class="accent">대성공!</b>` : `${p.rank}등급 달성 보상 · 능력치`}</h1></div>
+        ${p.round
+          ? `<p class="small"><b class="accent">대성공 — 주요 능력치를 한 번 더 고릅니다.</b> 서로 다른 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b> (방금 고른 능력치를 다시 고르면 그 능력치는 +${p.points * 2})</p>`
+          : `<p class="muted small">마이너 기물이 공명 등급 3의 배수마다 받는 보상입니다. 서로 다른 주요 능력치 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.options?.length === 0 ? '' : ` · 이어서 ${p.rank}등급 증강`}<br>확정할 때 ${Math.round(CFG.greatChance * 100)}% 확률로 <b>대성공</b>: 한 번 더 고른다 (상승량 2배) · (등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>`}
         <div class="alloc-grid">${MAJORS.map((m) => {
           const on = app.picks.includes(m);
           return `<button class="stat-pick ${on ? 'on' : ''} ${rec.includes(m) ? 'rec' : ''}" data-a="alloc-pick" data-v="${m}" aria-pressed="${on}" aria-label="${MAJOR_NAME[m]} ${on ? tm[m] + p.points : tm[m]}" ${on || left ? '' : 'disabled'}>
@@ -2162,13 +2164,13 @@ function pendingModal(run: RunState): string {
       const pv = previewAlly(run, u);
       body = `${side}<div class="ru-main">
         <div class="ru-head"><h1>${p.kind === 'school' ? '합류 · 사이오닉 전공' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 전공 증강` : `${p.rank}등급 달성 · 메이저 증강`}</h1>
-          <span class="muted small">${p.kind === 'school' ? `${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙고, 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}` : p.kind === 'special' ? '스페셜 기물은 합류할 때와 5 · 10 · 15등급에 전용 증강을 고릅니다 (최대 4개).' : p.kind === 'psionic' ? '사이오닉 기물은 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다 (최대 4개).' : '메이저 기물은 4등급마다 메이저 증강을 고릅니다.'}</span>
+          <span class="muted small">${p.kind === 'school' ? `${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙고, 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}` : p.kind === 'special' ? '스페셜 기물은 합류할 때와 5 · 10 · 15등급에 전용 증강을 고릅니다 (최대 4개).' : p.kind === 'psionic' ? `사이오닉 기물은 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다 (최대 4개). 이번 ★ 전설 출현 확률 ${Math.round(R.psiLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.psiLegend.pity * 100)}%p)` : '메이저 기물은 4등급마다 메이저 증강을 고릅니다.'}</span>
           ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
         ${p.kind === 'school' ? `<p class="mu-short small">이 전장의 주요 적: ${esc(matchupShort(run.field))}</p>` : ''}
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];
           if (p.kind === 'school') return schoolOpt(a.id, i);
-          return `<button class="aug-opt ${app.augPick === i ? 'on' : ''}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">${augIcon(a.id)}<span class="ao-txt"><b>${isTransformAug(a.id) ? '◆ ' : ''}${esc(ad.name)}</b><span>${augText(a.id, a.param, pv.b, pv.c)}</span>${augNotes(a.id, u)}</span><kbd>${i + 1}</kbd></button>`;
+          return `<button class="aug-opt ${app.augPick === i ? 'on' : ''}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">${augIcon(a.id)}<span class="ao-txt"><b>${augMark(a.id)}${esc(ad.name)}</b><span>${augText(a.id, a.param, pv.b, pv.c)}</span>${augNotes(a.id, u)}</span><kbd>${i + 1}</kbd></button>`;
         }).join('') || '<p class="muted">고를 수 있는 증강이 없습니다.</p>'}</div>
         ${p.kind === 'school' && app.abilPop && /^(cantrip|psipass):/.test(app.abilPop) ? `<div class="ru-pop">${abilPopHtml(app.abilPop, d, pv.b, pv.c)}</div>` : ''}
         <div class="ru-foot">${opts.length
@@ -2505,7 +2507,7 @@ function render() {
   else if (app.screen === 'over') body = overScreen(run);
   const showTop = run && app.screen !== 'title' && app.screen !== 'newrun' && app.screen !== 'codex';
   // 다시 그려도 같은 화면 · 같은 창이면 스크롤 위치를 유지한다
-  const modalKeyOf = () => (run?.pending[0] ? JSON.stringify([run.pending[0].t, (run.pending[0] as { uid?: string }).uid, (run.pending[0] as { allocDone?: boolean }).allocDone, (run.pending[0] as { options?: unknown }).options]) : app.menu || '');
+  const modalKeyOf = () => (run?.pending[0] ? JSON.stringify([run.pending[0].t, (run.pending[0] as { uid?: string }).uid, (run.pending[0] as { allocDone?: boolean }).allocDone, (run.pending[0] as { options?: unknown }).options, (run.pending[0] as { round?: number }).round]) : app.menu || '');
   const modalKey = modalKeyOf();
   const sameView = lastView.screen === app.screen;
   const newModal = lastView.modal !== modalKey;
@@ -3792,9 +3794,10 @@ function act(a: string, v: string) {
     case 'alloc-ok': {
       const p = run?.pending[0];
       if (!run || p?.t !== 'rankup') return;
-      if (!R.applyRankPicks(run, p.uid, app.picks, p.points)) return;
+      const done = R.allocRank(run, p, app.picks);
+      if (!done) return;
       app.picks = [];
-      p.allocDone = true;
+      if (done === 'again') { persist(); break; } // 대성공: 같은 창에서 한 번 더 고른다 (전설 연출 · 공개음)
       if (p.options && !p.options.length) run.pending.shift(); // 이번 등급은 능력치만
       persist();
       break;

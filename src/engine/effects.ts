@@ -57,8 +57,8 @@ export interface AugDef {
   descParam?: (param: string) => string;
   /** 조합 조건: 다른 증강 · 상태가 있어야 제대로 작동한다 (선택은 막지 않고 카드 · 상세에 표시, data/augreq.ts 가 현재 값을 계산) */
   requires?: AugReq;
-  /** 전투 종료 후 런 단위 효과 (kills = 이 기물의 처치 수) */
-  after?: (run: RunState, u: UnitState, won: boolean, kills: number) => void;
+  /** 전투 종료 후 런 단위 효과 (kills = 이 기물의 처치 수, x.c = 이 기물의 전투 유닛, x.gain = 장비 획득) */
+  after?: (run: RunState, u: UnitState, won: boolean, kills: number, x?: { c?: CUnit; gain?: (id: string) => void }) => void;
 }
 
 export const inc = (tag: Mod['tag'], v: number): Mod => ({ kind: 'inc', tag, v });

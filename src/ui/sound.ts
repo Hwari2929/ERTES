@@ -8,7 +8,7 @@
 // - 디버그: 주소에 ?soundtest 가 있으면 window.__sfx 에 호출 기록 · 합성 도구를 둔다.
 import type { Pending } from '../types';
 import { itemInfo } from '../data/items';
-import { isTransformAug } from '../data/schools';
+import { augGrade, greatOpen } from './revealfx';
 
 type Wave = 's' | 't' | 'q' | 'w' | 'n';
 /** 소리 한 겹. o 파형(s 사인 · t 삼각 · q 사각 · w 톱니 · n 노이즈), f → e 음높이 미끄러짐(Hz), t 시작(초), a 어택 · h 유지 · d 감쇠, g 크기,
@@ -313,15 +313,17 @@ export function toastSfx(msg: string) {
 }
 
 /** 증강 · 보상 카드가 처음 펼쳐질 때 (같은 카드 묶음은 한 번). 등급: 1 일반 · 2 희귀 · 3 최상
- *  증강 = 변형(◆) 증강이 있으면 3, 학파 선택 2, 그 밖에는 달성 등급 (12+ → 3 · 8+ → 2) / 장비 = 전설 3 · 희귀 2 / 전역 · 특권 2 / 영입 · 축복 1 */
+ *  증강 = 카드 중 가장 높은 revealfx.augGrade (★ 전설 전공 증강 3, ◆ 변형 2, 학파 선택 2, 그 밖에는 달성 등급 12+ → 3 · 8+ → 2, 전공 증강은 2까지)
+ *  / 마이너 능력치 대성공 3 / 장비 = 전설 3 · 희귀 2 / 전역 · 특권 2 / 영입 · 축복 1 */
 let revealKey = '';
 export function reveal(p: Pending | undefined) {
   if (!HAS || !p) return;
   let key = '', g = 1;
   if (p.t === 'rankup' && p.allocDone && p.options?.length) {
     key = `ru:${p.uid}:${p.rank}:${p.options.map((x) => x.id).join()}`;
-    g = p.options.some((x) => isTransformAug(x.id)) || p.rank >= 12 ? 3 : p.kind === 'school' || p.rank >= 8 ? 2 : 1;
-  } else if (p.t === 'global' || p.t === 'privilege') { key = `${p.t}:${p.options.map((x) => (typeof x === 'string' ? x : x.id)).join()}`; g = 2; }
+    g = Math.max(...p.options.map((x) => augGrade(p, x.id)));
+  } else if (p.t === 'rankup' && greatOpen(p)) { key = `great:${p.uid}:${p.rank}`; g = 3; } // 마이너 능력치 대성공
+  else if (p.t === 'global' || p.t === 'privilege') { key = `${p.t}:${p.options.map((x) => (typeof x === 'string' ? x : x.id)).join()}`; g = 2; }
   else if (p.t === 'itemPick') { key = `it:${p.options.join()}`; g = Math.max(...p.options.map((id) => { const t = itemInfo(id).tier; return t === 'L' ? 3 : t === 'A' ? 2 : 1; })); }
   else if (p.t === 'recruit' || p.t === 'blessing') { key = `${p.t}:${p.options.join()}`; g = 1; }
   if (!key || key === revealKey) return;

@@ -1,5 +1,5 @@
 // 사이오닉 4학파 · 8전공 (docs/PSIONIC_REWORK_DRAFT.md)
-// 전공 증강 8종 (pool 'school': 비술 + 기본 지속 능력 + 학파 이성 축) · 전공 증강 56종 (pool 'psionic', 전공당 7종, ◆ 변형 포함)
+// 전공 증강 8종 (pool 'school': 비술 + 기본 지속 능력 + 학파 이성 축) · 전공 증강 80종 (pool 'psionic', 전공당 기본 8종 (◆ 변형 포함) + ★ 전설 2종)
 // 이성 비율 r = 이성/100, 고이성 h = max(0, r), 저이성 l = max(0, -r) (선형).
 // 계수 기준 = 주요 위력 (명사수 사격 · 돌격가 타격 · 전문가 기술 · 지휘관 전술) × CFG.psiPower.
 // 기본 지속 능력의 확률 발동은 기본 공격 · 전투 스킬 · 비술 적중에만 (지속 피해 · 소환물 · 부가 피해 제외).
@@ -10,6 +10,7 @@ import { emptyStats, type Elem, type StatKey } from '../types';
 import { ALL_COMPONENTS, itemEffect } from './items';
 import { isHarmful } from './kit';
 import { CFG } from '../config';
+import { Rng } from '../rng';
 import { cantripCdOf, CONDUCT_SNAP, PSI, PSI_HIT, PSI_ICD, psiStackCap } from './psinum';
 import { GROUPS, PSI_STATUS, SCHOOLS, SCHOOL_BY_ID, SCHOOL_PASSIVES, psiAugId, schoolAugId, type GroupId, type SchoolId } from './schools';
 
@@ -66,10 +67,25 @@ const nearby = (b: Battle, u: CUnit, t: CUnit, r: number) => b.around(t, r, b.en
 const burnArmor = (s: Status) => { s.armorMul = s.src && P(s.src, 'pyro.white') ? Math.max(0.2, 1 - 0.06 * (s.stacks || 0)) : undefined; };
 export function addBurn(b: Battle, u: CUnit, t: CUnit, n: number, chance = 1) {
   const per = mp(b, u) * PSI.pyro.dps;
-  return b.applyStatus(u, t, {
-    type: 'dot', key: 'burn', dur: PSI.pyro.dur, elem: 'phys', stacks: n, maxStacks: psiStackCap('burn', (k) => P(u, k)),
+  const ok = b.applyStatus(u, t, {
+    type: 'dot', key: 'burn', dur: P(u, 'pyro.kindle') ? PSI.pyro.kindleDur : PSI.pyro.dur, elem: 'phys', stacks: n, maxStacks: psiStackCap('burn', (k) => P(u, k)),
     perDps: per, dps: per * n, label: LB('burn'), onStack: burnArmor,
   }, chance);
+  if (ok && P(u, 'pyro.nova')) nova(b, u, t);
+  return ok;
+}
+/** ★ 초신성: 연소가 최대 중첩이면 폭발 (대상 + 주변 2칸, 중첩당 20%), 휘말린 적에게 연소 2중첩 (같은 적 3초에 1회) */
+function nova(b: Battle, u: CUnit, t: CUnit) {
+  const s = statusOf(t, 'burn');
+  if (!s || !t.alive || (s.stacks || 0) < (s.maxStacks || PSI.pyro.max)) return;
+  if (!icd(b, t, `novaIcd${u.id}`, PSI.pyro.novaIcd)) return;
+  const n = s.stacks || 1;
+  t.statuses = t.statuses.filter((x) => x !== s);
+  b.fx(t.x, t.y, PSI.pyro.novaR, 'phys');
+  b.emit({ k: 'status', id: t.id, name: '초신성', src: u.id, harm: true });
+  const hit = [t, ...nearby(b, u, t, PSI.pyro.novaR)];
+  for (const e of hit) if (e.alive) zap(b, u, e, PSI.pyro.novaPer * n, 'phys', 'proc');
+  for (const e of hit) if (e !== t && e.alive) addBurn(b, u, e, PSI.pyro.novaSeed);
 }
 function incinerate(b: Battle, u: CUnit, depth = 0): false | { to?: CUnit } {
   const es = b.targetable(u);
@@ -94,7 +110,7 @@ function incinerate(b: Battle, u: CUnit, depth = 0): false | { to?: CUnit } {
     drop();
     // 연쇄 소각: 연소를 소모한 적이 쓰러지면 즉시 한 번 더 (쿨다운 · 이성 소모 없음)
     if (!t.alive && P(u, 'pyro.chain') && depth < PSI.pyro.chainMax && u.alive && !b.over) incinerate(b, u, depth + 1);
-  } else if (t.alive) addBurn(b, u, t, PSI.pyro.seed);
+  } else if (t.alive) addBurn(b, u, t, P(u, 'pyro.kindle') ? PSI.pyro.kindleSeed : PSI.pyro.seed); // 불씨 보존: 2 → 4중첩
   return { to: t };
 }
 
@@ -106,10 +122,21 @@ export function addChill(b: Battle, u: CUnit, t: CUnit, n: number, chance = 1) {
     perDelta: { atkSpd: -PSI.chrono.chillSlow, moveSpd: -PSI.chrono.chillSlow }, label: LB('chill'),
   }, chance);
 }
+/** ★ 시간의 메아리: 빙결 상태별로 얼어 있는 동안 받은 피해 */
+const ECHO_REC = new WeakMap<Status, number>();
 function freeze(b: Battle, u: CUnit, t: CUnit, chance: number) {
+  const echo = P(u, 'chrono.echo');
   const ok = b.applyStatus(u, t, {
     type: 'stun', key: 'freeze', dur: P(u, 'chrono.perma') ? PSI.chrono.permaDur : PSI.chrono.freezeDur, label: LB('freeze'),
     taken: P(u, 'chrono.stop') ? [vuln('all', PSI.chrono.stopVuln)] : undefined,
+    // 시간의 메아리: 얼어 있는 동안 받은 피해를 모았다가, 빙결이 풀릴 때 그 40%를 한 번 더 (이미 경감된 피해 그대로)
+    onHit: echo ? (_bb, _v, _src, r, _o, st) => { ECHO_REC.set(st, (ECHO_REC.get(st) || 0) + r.amount); } : undefined,
+    onExpire: echo ? (bb, v, st) => {
+      const rec = ECHO_REC.get(st) || 0;
+      if (!v.alive || rec <= 0) return;
+      bb.emit({ k: 'status', id: v.id, name: '시간의 메아리', src: u.id, harm: true });
+      bb.rawHit(u, v, rec * PSI.chrono.echoK, 'phys');
+    } : undefined,
   }, chance);
   if (!ok) return false;
   if (!P(u, 'chrono.perma')) t.statuses = t.statuses.filter((s) => s.key !== 'chill'); // 오한 소모
@@ -203,10 +230,10 @@ function storeReason(b: Battle, c: CUnit) {
   if ((c.mem.storeN || 0) < 3) { c.mem.storeN = (c.mem.storeN || 0) + 1; b.addReason(c, 1, 'volt.store'); }
 }
 /** ally = 역전류 (아군에게 걸린 전도: 그 아군 주변 적에게 피해). hit = 전도를 건 피해량 (적 전도는 중첩당 피해를 이 값 기준으로 고정) */
-function conductStatus(b: Battle, u: CUnit, n: number, ally: boolean, hit?: number): Status {
-  const hv = P(u, 'volt.hv'), rad = hv ? PSI.volt.hvR : PSI.volt.r;
-  // 역전류(아군 전도)도 고전압이면 중첩당 피해가 오른다 (고전압의 피해 증가가 사라지지 않게)
-  const per = ally ? (hv ? PSI.volt.reverseHvPer : PSI.volt.reversePer) : hv ? PSI.volt.hvPer : PSI.volt.per;
+function conductStatus(b: Battle, u: CUnit, n: number, ally: boolean, hit?: number, opt?: { rad: number; per: number }): Status {
+  const hv = P(u, 'volt.hv'), rad = opt?.rad ?? (hv ? PSI.volt.hvR : PSI.volt.r);
+  // 역전류(아군 전도)도 고전압이면 중첩당 피해가 오른다 (고전압의 피해 증가가 사라지지 않게). opt = 뇌신 강림 (자신에게 두르는 전도)
+  const per = opt?.per ?? (ally ? (hv ? PSI.volt.reverseHvPer : PSI.volt.reversePer) : hv ? PSI.volt.hvPer : PSI.volt.per);
   return {
     // 적 전도: 걸 때의 피해량으로 고정 (잔타가 거는 중첩은 약하게, 최대 2배). 피해량을 모르면 주요 위력 기준
     type: 'buff', key: 'conduct', dur: PSI.volt.dur, stacks: n, maxStacks: psiStackCap('conduct', (k) => P(u, k)),
@@ -215,10 +242,20 @@ function conductStatus(b: Battle, u: CUnit, n: number, ally: boolean, hit?: numb
       const c = s.src;
       if (!c) return;
       const foes = ally ? bb.enemiesOf(t) : bb.enemiesOf(c);
-      for (const e of bb.around(t, rad, foes)) {
+      const near = bb.around(t, rad, foes);
+      for (const e of near) {
         if (e === t || !e.alive) continue;
         const r = bb.dealDamage(c, e, (s.val || 0) * (s.stacks || 1), { elem: 'elec', tag: 'proc', kind: pk(c) });
         if (r.amount > 0 && c.alive && P(c, 'volt.store')) storeReason(bb, c);
+      }
+      // ★ 전력망: 범위 밖 무작위 적 2명에게도 같은 피해
+      if (P(c, 'volt.grid')) {
+        const far = foes.filter((e) => e.alive && e !== t && !near.includes(e));
+        for (const e of bb.rng.sample(far, PSI.volt.gridN)) {
+          bb.emit({ k: 'atk', from: t.id, to: e.id, elem: 'elec', ranged: true, chain: true });
+          const r = bb.dealDamage(c, e, (s.val || 0) * (s.stacks || 1), { elem: 'elec', tag: 'proc', kind: pk(c) });
+          if (r.amount > 0 && c.alive && P(c, 'volt.store')) storeReason(bb, c);
+        }
       }
       // 단락: 전도 3중첩인 적이 행동하면 1초 감전 (같은 적 2초에 1회)
       if (!ally && t.alive && P(c, 'volt.short') && (s.stacks || 0) >= 3 && icd(bb, t, 'shortIcd', PSI.volt.shortIcd)) bb.applyStatus(c, t, { type: 'shock', key: 'shock', dur: PSI.volt.shortShock });
@@ -303,7 +340,12 @@ function resonanceStatus(b: Battle, u: CUnit): Status {
       const c = s.src;
       if (!c || !icd(bb, v, 'resIcd', 0.5)) return;
       const k = (v.mem.standUntil || 0) > bb.t ? 2 : 1; // 정상파
-      for (const e of bb.around(v, rad, bb.enemiesOf(c))) if (e !== v && e.alive) bb.dealDamage(c, e, (s.val || 0) * k, { elem: 'elec', tag: 'proc', kind: pk(c) });
+      for (const e of bb.around(v, rad, bb.enemiesOf(c))) {
+        if (e === v || !e.alive) continue;
+        bb.dealDamage(c, e, (s.val || 0) * k, { elem: 'elec', tag: 'proc', kind: pk(c) });
+        // ★ 공명 연쇄: 공진 피해를 받은 적에게도 공진이 옮겨 붙는다
+        if (e.alive && P(c, 'wave.cascade') && !hasKey(e, 'resonance')) bb.applyStatus(c, e, resonanceStatus(bb, c));
+      }
     },
     // 정상파: 공진된 적이 기절(빙결 포함)하면 공진 갱신 + 3초간 공진 피해 2배
     onOther: P(u, 'wave.standing') ? (bb, v, s, added) => { if (added.type === 'stun') { s.dur = Math.max(s.dur, 5); v.mem.standUntil = bb.t + 3; } } : undefined,
@@ -327,11 +369,27 @@ function shockwave(b: Battle, u: CUnit) {
     if (v.alive) b.applyStatus(u, v, resonanceStatus(b, u));
   }
   if (t.alive && P(u, 'wave.seismic') && b.rng.chance(PSI.wave.seismicP)) b.stun(u, t, PSI.wave.stun);
+  // ★ 중력 붕괴: 대상 주변 2칸 적을 대상 곁으로 끌어모으고 공진
+  if (t.alive && P(u, 'wave.collapse')) {
+    const pool = b.around(t, PSI.wave.collapseR, b.enemiesOf(u)).filter((e) => e !== t && e.alive).sort((a, c) => b.dist(a, t) - b.dist(c, t));
+    b.fx(t.x, t.y, PSI.wave.collapseR, 'elec');
+    for (const e of pool) {
+      if (b.dist(e, t) > 1) b.pull(t, e);
+      if (e.alive) b.applyStatus(u, e, resonanceStatus(b, u));
+    }
+  }
+  // 여진: 1.5초 뒤 같은 대상에게 한 번 더 (밀쳐내기 없음)
+  if (P(u, 'wave.after')) b.later(PSI.wave.afterDelay, () => {
+    if (b.over || !t.alive || !u.alive) return;
+    b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'elec', ranged: true });
+    zap(b, u, t, PSI.wave.afterCoef, 'elec', 'proc');
+    if (t.alive) b.applyStatus(u, t, resonanceStatus(b, u));
+  });
   return { to: t };
 }
 
 // ───────────────────────── 파종: 중독 · (◆ 지속 회복)
-function poisonStatus(b: Battle, u: CUnit, stacks: number, perDps = mp(b, u) * PSI.seed.per): Status {
+function poisonStatus(b: Battle, u: CUnit, stacks: number, perDps = mp(b, u) * (P(u, 'seed.venom') ? PSI.seed.venomPer : PSI.seed.per)): Status { // 맹독 14%
   return {
     type: 'dot', key: 'poison', dur: PSI.seed.dur, elem: 'chem', perDps, dps: perDps * stacks, stacks, maxStacks: psiStackCap('poison', (k) => P(u, k)),
     healMul: P(u, 'seed.rot') ? 0.4 : undefined, label: LB('poison'),
@@ -375,7 +433,7 @@ function revelation(b: Battle, u: CUnit) {
     // 승천: 혼란 지속 +1초 · 정신 지배: 혼란된 적이 같은 편에게 주는 피해 +100%
     const dur = PSI.mind.hypno + (P(u, 'mind.ascend') ? PSI.mind.ascendPlus : 0);
     for (const e of b.enemiesOf(u)) if (e.statuses.some((s) => s.key === 'bond' && s.grp === gid)) {
-      confuse(b, u, e, dur);
+      if (confuse(b, u, e, dur)) puppetOn(u, e, 'confuse');
       if (P(u, 'mind.dominate') && !e.mem.hypnoDom) {
         e.mem.hypnoDom = 1;
         e.hooks.push({ dmgMult: (bb, self, t) => (t !== self && bb.sideOf(t) === bb.sideOf(self) && self.statuses.some((s) => s.key === 'confuse' && s.src && P(s.src, 'mind.dominate')) ? 1 + PSI.mind.dominate : 1) });
@@ -385,10 +443,31 @@ function revelation(b: Battle, u: CUnit) {
     // 매혹: 일반 적만 (승천: 엘리트도, 지속 +1초 · 엘리트는 절반)
     const asc = P(u, 'mind.ascend');
     if (t.alive && !t.isBoss && (!t.elite || asc)) {
-      b.applyStatus(u, t, { type: 'buff', key: 'charm', dur: PSI.mind.charm + (asc ? PSI.mind.ascendPlus : 0), label: LB('charm'), mods: P(u, 'mind.dominate') ? [{ kind: 'inc', tag: 'all', v: PSI.mind.dominate }] : undefined });
+      if (b.applyStatus(u, t, { type: 'buff', key: 'charm', dur: PSI.mind.charm + (asc ? PSI.mind.ascendPlus : 0), label: LB('charm'), mods: P(u, 'mind.dominate') ? [{ kind: 'inc', tag: 'all', v: PSI.mind.dominate }] : undefined })) puppetOn(u, t, 'charm');
     }
   }
   return { to: t };
+}
+/** ★ 꼭두각시 극장: 계시의 매혹 · 혼란이 끝날 때 체력 50% 이하인 일반 적(승천이면 엘리트도)은 전투 끝까지 매혹 (전투당 최대 2명) */
+function puppetOn(u: CUnit, e: CUnit, key: 'charm' | 'confuse') {
+  if (!P(u, 'mind.puppet')) return;
+  const s = statusOf(e, key);
+  if (s && !s.onExpire) s.onExpire = (bb, v) => puppetize(bb, u, v);
+}
+function puppetize(b: Battle, u: CUnit, v: CUnit) {
+  if (!v.alive || v.isBoss || (v.elite && !P(u, 'mind.ascend')) || b.hpPct(v) > PSI.mind.puppetHp || (u.mem.puppets || 0) >= PSI.mind.puppetMax) return;
+  const ok = b.applyStatus(u, v, { type: 'buff', key: 'charm', dur: 999, label: '꼭두각시', mods: P(u, 'mind.dominate') ? [{ kind: 'inc', tag: 'all', v: PSI.mind.dominate }] : undefined }, 9);
+  if (!ok) return;
+  u.mem.puppets = (u.mem.puppets || 0) + 1;
+  b.fx(v.x, v.y, 0, 'psy', 'aura');
+  // 줄이 끊긴 꼭두각시: 매혹되지 않은 적이 하나도 남지 않으면 쓰러진다 (전투가 끝나도록)
+  if (!v.mem.puppetHook) {
+    v.mem.puppetHook = 1;
+    v.hooks.push({ onTick(bb, self) {
+      if (!self.mem.charmTo || bb.units.some((x) => x.alive && x.side === self.side && !x.mem.charmTo && !x.mem.inert)) return;
+      bb.kill(self, u);
+    } });
+  }
 }
 
 // ───────────────────────── 보화: 임시 장비 (전투 한정)
@@ -399,6 +478,7 @@ export function giveTempItem(b: Battle, u: CUnit, to: CUnit = u) {
   applyLive(to, P(u, 'gold.leverage') ? scaleEffect(itemEffect(id), 2) : itemEffect(id), b, noCtx(b));
   to.tempItems = [...(to.tempItems || []), id];
   to.mem.goldItems = (to.mem.goldItems || 0) + 1;
+  GOLD_GOT.set(u, [...(GOLD_GOT.get(u) || []), id]);
   b.emit({ k: 'gift', from: u.id, to: to.id, item: id });
   return true;
 }
@@ -406,7 +486,8 @@ function market(b: Battle, u: CUnit) {
   if (!b.enemiesOf(u).length) return false;
   const t = cantripTarget(b, u);
   const p = PSI.gold.base + PSI.gold.perReason * Math.abs(reasonOf(u)) / 100 + (P(u, 'gold.insider') ? PSI.gold.insider : 0);
-  const win = b.rng.chance(p);
+  const hedge = P(u, 'gold.hedge'); // ★ 완전 헤지: 성공과 실패를 모두
+  const win = hedge || b.rng.chance(p);
   let got = false;
   if (win && P(u, 'gold.dividend')) {
     // 배당: 아군 3명에게 1개씩 (성공 3회까지)
@@ -416,15 +497,21 @@ function market(b: Battle, u: CUnit) {
       if (got) u.mem.goldDiv = (u.mem.goldDiv || 0) + 1;
     }
   } else if (win) got = giveTempItem(b, u, u);
-  if (!got) {
+  if (hedge) failShield(b, u); // 완전 헤지: 실패 몫은 언제나 보호막 (레버리지여도 자해 없음)
+  else if (!got) {
     if (!win && P(u, 'gold.leverage')) b.dealDamage(u, u, b.S(u, 'maxHp') * PSI.gold.leverageSelf, { elem: 'true', tag: 'proc', noHooks: true, key: 'reason' }); // 레버리지 실패
-    else {
-      const a = b.lowestHpAlly(u);
-      if (a) { b.shield(a, mp(b, u) * PSI.gold.shield); b.fx(a.x, a.y, 0, 'holy', 'heal'); }
-    }
+    else failShield(b, u);
   }
   return { to: t || undefined };
 }
+/** 시장 개입 실패 보호막: 체력이 가장 낮은 아군 (안전 자산: 2명 · 140%) */
+function failShield(b: Battle, u: CUnit) {
+  const safe = P(u, 'gold.safe');
+  const al = b.alliesOf(u).slice().sort((x, y) => b.hpPct(x) - b.hpPct(y)).slice(0, safe ? PSI.gold.safeN : 1);
+  for (const a of al) { b.shield(a, mp(b, u) * (safe ? PSI.gold.safeShield : PSI.gold.shield)); b.fx(a.x, a.y, 0, 'holy', 'heal'); }
+}
+/** ★ 실물 인출: 이번 전투에서 자신이 받은 임시 장비 */
+const GOLD_GOT = new WeakMap<CUnit, string[]>();
 
 // ───────────────────────── 환조: 환영 (도발 소환물) · 향취
 const ILLUSION_PAL = ['#1a0f24', '#e9a6ff', '#7a3f9e', '#ffd6f5', '#ff8fd0', '#4a2a66', '#fff0fb'];
@@ -444,7 +531,7 @@ const shadesOf = (b: Battle, u: CUnit) => b.units.filter((s) => s.alive && s.own
 /** 잔향: 환영이 사라질 때 주변 1칸 적에게 주요 위력 120% 정신 피해 */
 function echo(b: Battle, s: CUnit) {
   const o = s.owner;
-  if (!o || !o.alive || !P(o, 'illusion.echo') || s.mem.echoed) return;
+  if (!o || !o.alive || !s.mem.illusion || !P(o, 'illusion.echo') || s.mem.echoed) return;
   s.mem.echoed = 1;
   b.fx(s.x, s.y, 1, 'psy');
   for (const e of b.around(s, 1, b.enemiesOf(o))) if (e.alive) zap(b, o, e, PSI.illusion.echo, 'psy', 'proc');
@@ -496,7 +583,7 @@ function summonShade(b: Battle, u: CUnit, near: CUnit) {
       name: `${u.name}의 분신`, sprite: u.sprite, palette: u.palette, art: u.defId, atk: { ...u.atk }, keywords: u.keywords.slice(), category: u.category,
       weapon: u.weapon ? { ...u.weapon } : null, ammo: u.weapon?.mag || 0, ctype: u.ctype, phaseAmp: I.cloneDmg, noAttack: u.noAttack,
     });
-    s.mem.life = P(u, 'illusion.troupe') ? I.troupeCloneLife : I.cloneLife; // 군무: 분신이 더 오래 남아 여러 기가 함께 싸운다
+    s.mem.life = (P(u, 'illusion.troupe') ? I.troupeCloneLife : I.cloneLife) + (P(u, 'illusion.linger') ? I.lingerClone : 0); // 군무: 분신이 더 오래 남아 여러 기가 함께 싸운다 · 잔상 +3초
     if (solid) {
       // 실체화 + 분신: 더 단단한 몸 (체력 70%, 받는 피해 -15%), 기본 공격이 맞으면 주요 위력 20% 정신 추가 피해 (시전자 몫)
       s.mem.solid = 1;
@@ -507,7 +594,8 @@ function summonShade(b: Battle, u: CUnit, near: CUnit) {
     }
   } else {
     // 환영: 체력 = 자신 최대 체력 30%, 제자리 · 도발 (실체화: 주요 위력 40%로 공격)
-    st.maxHp = b.S(u, 'maxHp') * PSI.illusion.hp;
+    const linger = P(u, 'illusion.linger'); // 잔상: 지속 · 체력
+    st.maxHp = b.S(u, 'maxHp') * (linger ? PSI.illusion.lingerHp : PSI.illusion.hp);
     st.armor = b.S(u, 'armor');
     st.effRes = b.S(u, 'effRes');
     st.range = 1; st.moveSpd = 1; st.critDmg = 1.5;
@@ -515,7 +603,7 @@ function summonShade(b: Battle, u: CUnit, near: CUnit) {
     st.acc = b.S(u, 'acc');
     Object.assign(s, { name: '환영', immobile: true, noAttack: !P(u, 'illusion.solid') });
     s.mem.taunt = 1;
-    s.mem.life = PSI.illusion.life;
+    s.mem.life = linger ? PSI.illusion.lingerLife : PSI.illusion.life;
   }
   s.mem.illusion = 1;
   s.hp = st.maxHp;
@@ -526,9 +614,30 @@ function incense(b: Battle, u: CUnit) {
   const t = cantripTarget(b, u);
   if (!t) return false;
   const s = summonShade(b, u, P(u, 'illusion.clone') ? u : t);
+  if (P(u, 'illusion.mirror') && t.alive && !t.isBoss) mirrorImage(b, u, t);
   if (!s) return false;
   b.fx(s.x, s.y, 0, 'psy', 'aura');
   return { to: t };
+}
+/** ★ 거울 상: 대상 적의 능력치 · 기본 공격을 복사한 아군 (8초, 체력 40%, 피해 60%, 스킬 없음, 최대 1기, 보스 제외) */
+function mirrorImage(b: Battle, u: CUnit, t: CUnit) {
+  const I = PSI.illusion;
+  const old = b.units.find((x) => x.alive && x.owner === u && x.mem.mirror);
+  if (old) dismiss(b, old);
+  const s = blankSummon(u);
+  Object.assign(s.st, t.st);
+  s.st.maxHp = b.S(t, 'maxHp') * I.mirrorHp;
+  Object.assign(s, {
+    name: `${t.name}의 거울 상`, sprite: t.sprite, palette: ILLUSION_PAL, art: t.art, atk: { ...t.atk }, keywords: t.keywords.slice(), category: t.category,
+    phaseAmp: (t.phaseAmp || 1) * I.mirrorDmg, immobile: t.immobile, noAttack: t.noAttack,
+  });
+  s.mem.mirror = 1;
+  s.mem.life = I.mirrorLife;
+  s.hp = s.st.maxHp;
+  s.hooks.push({ onTick(bb, self, dt) { self.mem.life -= dt; if (self.mem.life <= 0) dismiss(bb, self); } });
+  const m = b.spawn(s, t);
+  if (m) { b.fx(m.x, m.y, 0, 'psy', 'aura'); b.emit({ k: 'status', id: m.id, name: '거울 상', src: u.id }); }
+  return m;
 }
 function scent(b: Battle, u: CUnit, t: CUnit, chance: number) {
   return b.applyStatus(u, t, {
@@ -570,10 +679,10 @@ const PROC: Record<SchoolId, ((b: Battle, u: CUnit, t: CUnit, r: DmgResult) => v
     if (P(u, 'chrono.zero') && stacksOf(t, 'chill') >= PSI.chrono.zeroMax && freeze(b, u, t, 99)) return; // 절대 영도: 확정 빙결
     addChill(b, u, t, 1, PSI.chrono.proc * hitScale(b, u, r.amount));
   },
-  volt(b, u, t, r) { addConduct(b, u, t, 1, PSI.volt.proc, r.amount); },
+  volt(b, u, t, r) { addConduct(b, u, t, 1, P(u, 'volt.static') ? PSI.volt.staticProc : PSI.volt.proc, r.amount); }, // 정전기 40%
   wave(b, u, t, r) { b.applyStatus(u, t, resonanceStatus(b, u), PSI.wave.proc * hitScale(b, u, r.amount)); },
   seed(b, u, t) { b.applyStatus(u, t, poisonStatus(b, u, 1), PSI.seed.proc); },
-  mind(b, u, t) { if (perTarget(b, u, t, 'mindIcd')) confuse(b, u, t, PSI.mind.confuse, PSI.mind.proc); },
+  mind(b, u, t) { const er = P(u, 'mind.erode'); if (perTarget(b, u, t, 'mindIcd')) confuse(b, u, t, er ? PSI.mind.erodeConfuse : PSI.mind.confuse, er ? PSI.mind.erodeProc : PSI.mind.proc); }, // 잠식 40% · 1.5초
   gold: null,
   illusion(b, u, t) { if (perTarget(b, u, t, 'scentIcd')) scent(b, u, t, PSI.illusion.proc); },
 };
@@ -640,6 +749,40 @@ function schoolEffect(id: SchoolId): Effect {
 }
 
 // ───────────────────────── 전공 증강: 플래그 + 필요한 훅
+/** ★ 뇌신 강림: 자신에게 사라지지 않는 전도를 두른다 (지워지거나 줄면 다시) */
+function avatar(b: Battle, u: CUnit) {
+  if (u.school !== 'volt' || !u.alive) return;
+  const N = PSI.volt;
+  const st = conductStatus(b, u, N.avatarN, true, undefined, { rad: N.avatarR, per: P(u, 'volt.hv') ? N.avatarHvPer : N.avatarPer });
+  st.dur = 1e6; st.label = '뇌신 강림';
+  const ex = statusOf(u, 'conduct');
+  if (ex) u.statuses = u.statuses.filter((x) => x !== ex);
+  b.applyStatus(u, u, st);
+}
+const COLONY_PAL = ['#14200c', '#a3d65c', '#4f7a2a', '#e6f5c8', '#8fd14f', '#2e4a18', '#f4ffe0'];
+/** ★ 포자 군락: 아군 편 제자리 소환물 */
+function colony(b: Battle, u: CUnit, at: CUnit) {
+  const N = PSI.seed;
+  const live = b.units.filter((x) => x.alive && x.owner === u && x.mem.colony);
+  if (live.length >= N.colonyMax) dismiss(b, live[0]);
+  const s = blankSummon(u);
+  Object.assign(s.st, { maxHp: b.S(u, 'maxHp') * N.colonyHp, armor: b.S(u, 'armor'), effRes: b.S(u, 'effRes'), range: 1, moveSpd: 1 });
+  Object.assign(s, { name: '포자 군락', sprite: 'crawler', palette: COLONY_PAL, immobile: true, noAttack: true, keywords: ['bio'], category: 'bio' });
+  s.mem.colony = 1;
+  s.mem.life = N.colonyLife;
+  s.hp = s.st.maxHp;
+  s.hooks.push({ onTick(bb, self, dt) {
+    self.mem.life -= dt;
+    if (self.mem.life <= 0) { dismiss(bb, self); return; }
+    self.mem.sporeT = (self.mem.sporeT || 0) + dt;
+    if (self.mem.sporeT < 1) return;
+    self.mem.sporeT -= 1;
+    for (const e of bb.around(self, 1, bb.enemiesOf(self))) if (e.alive) bb.applyStatus(u, e, poisonStatus(bb, u, 1));
+  } });
+  const c = b.spawn(s, at);
+  if (c) { b.fx(c.x, c.y, 0, 'chem', 'aura'); b.emit({ k: 'status', id: c.id, name: '포자 군락', src: u.id }); }
+  return c;
+}
 const PASSIVE_FX: Record<string, Effect> = {
   // 화염 확산: 연소된 적이 쓰러지면 그 중첩을 주변 1칸 적 모두에게
   'pyro.spread': { hooks: { onAnyDeath(b, u, dead) {
@@ -660,12 +803,44 @@ const PASSIVE_FX: Record<string, Effect> = {
       if (u.alive && t.alive && r.amount > 0 && !r.miss && bb.sideOf(t) !== bb.sideOf(u)) addBurn(bb, u, t, 1, PSI.pyro.beacon * (P(u, 'pyro.runaway') && reasonOf(u) < 0 ? PSI.pyro.runawayProc : 1)); // 열폭주: 봉화 확률도 2배
     } });
   } } },
+  // ★ 불사조: 전투당 1회, 쓰러질 피해를 받으면 체력 50% · 해로운 효과 제거로 되살아나고 주변 2칸 적 연소 최대 중첩
+  'pyro.phoenix': { hooks: { onLethal(b, u) {
+    if (u.mem.phoenix || u.school !== 'pyro') return false;
+    u.mem.phoenix = 1;
+    u.hp = b.S(u, 'maxHp') * PSI.pyro.phoenixHp;
+    u.statuses = u.statuses.filter((x) => !isHarmful(x));
+    b.emit({ k: 'mark', id: u.id, name: '불사조', style: 'revive' });
+    b.fx(u.x, u.y, PSI.pyro.phoenixR, 'phys');
+    const cap = psiStackCap('burn', (k) => P(u, k));
+    for (const e of b.around(u, PSI.pyro.phoenixR, b.enemiesOf(u))) if (e.alive) addBurn(b, u, e, cap);
+    return u.hp > 0;
+  } } },
   'chrono.rewind': { hooks: rewindHooks() },
+  // 서리 갑옷: 자신을 공격한 적에게 오한 1중첩 (같은 적 1초에 1회)
+  'chrono.rime': { hooks: { onHurt(b, u, src, _r, o) {
+    if ((o.tag !== 'basic' && o.tag !== 'skill') || !src.alive || src === u || b.sideOf(src) === b.sideOf(u)) return;
+    if (icd(b, src, `rime${u.id}`, PSI.chrono.rimeIcd)) addChill(b, u, src, 1);
+  } } },
+  // ★ 시간 정지: 비술 4번째마다 보스가 아닌 적 전원 확정 빙결, 보스는 2초간 공격 · 이동 속도 -50%
+  'chrono.timestop': { hooks: { onCantrip(b, u) {
+    if (u.school !== 'chrono') return;
+    u.mem.tstopN = (u.mem.tstopN || 0) + 1;
+    if (u.mem.tstopN % PSI.chrono.stopEvery) return;
+    const N = PSI.chrono;
+    b.emit({ k: 'mark', id: u.id, name: '시간 정지', style: 'rewind' });
+    for (const e of b.enemiesOf(u)) {
+      if (!e.alive) continue;
+      if (e.isBoss) b.applyStatus(u, e, { type: 'buff', key: 'psi.tstop', dur: N.stopBossDur, delta: { atkSpd: -N.stopBossSlow, moveSpd: -N.stopBossSlow }, label: '시간 정지' }, 9);
+      else freeze(b, u, e, 99);
+    }
+  } } },
   // 엔트로피 역류: 빙결된 적 1명당 쿨다운 감소 속도 +10% (최대 +30%)
   'chrono.revert': { hooks: { onTick(b, u) {
     const n = b.enemiesOf(u).filter((e) => hasKey(e, 'freeze')).length;
     dyn(u, 'cdr', Math.min(0.3, 0.1 * n), 'revert');
   } } },
+  // ★ 뇌신 강림: 자신에게 사라지지 않는 전도 3중첩 (주변 2칸, 중첩당 12% · 고전압 18%)
+  'volt.avatar': { hooks: { onStart(b, u) { avatar(b, u); }, onTick(b, u) { const s = statusOf(u, 'conduct'); if (!s || (s.stacks || 0) < PSI.volt.avatarN || s.dur < 100) avatar(b, u); } } },
   // 패러데이 새장: 전투 시작 6초간 아군 전원
   'volt.cage': { hooks: { onStart(b, u) {
     if (u.school !== 'volt') return;
@@ -687,6 +862,12 @@ const PASSIVE_FX: Record<string, Effect> = {
     if (reasonOf(u) < 30) { u.mem.photoT = 0; return; }
     u.mem.photoT = (u.mem.photoT || 0) + dt;
     if (u.mem.photoT >= 1) { u.mem.photoT -= 1; b.heal(u, u, b.S(u, 'maxHp') * 0.015); }
+  } } },
+  // ★ 포자 군락: 중독된 적이 쓰러지면 그 자리에 아군 포자 군락 (8초, 1초마다 주변 1칸 적 중독 1중첩, 최대 3기)
+  'seed.colony': { hooks: { onAnyDeath(b, u, dead) {
+    if (!u.alive || u.school !== 'seed' || b.sideOf(dead) === b.sideOf(u) || dead.isSummon) return;
+    if (!dead.statuses.some((x) => x.key === 'poison' && x.src === u)) return;
+    colony(b, u, dead);
   } } },
   // 포자 폭발: 중독된 적이 쓰러지면 주변 1칸 적에게 60% 화학 피해 + 중독을 옮긴다
   'seed.burst': { hooks: { onAnyDeath(b, u, dead) {
@@ -720,6 +901,17 @@ const PASSIVE_FX: Record<string, Effect> = {
   'gold.futures': { hooks: { onStart(b, u) { if (u.school === 'gold') { giveTempItem(b, u); giveTempItem(b, u); } } } },
   // 변동성: 이성 증감량 ×1.5 (쿨다운 -2초는 비술 쪽)
   'gold.vol': { setup: (u) => { u.mem.reasonAmp = (u.mem.reasonAmp || 0) + 0.5; } },
+  // ★ 신기루: 환영 · 분신이 있으면 은신 (적의 표적이 되지 않음)
+  'illusion.mirage': { hooks: {
+    onTick(b, u) {
+      if (u.school !== 'illusion' || !shadesOf(b, u).length) return;
+      const st = statusOf(u, 'stealth');
+      if (st) st.dur = Math.max(st.dur, 0.3);
+      else b.buff(u, u, 'stealth', 0.3, { label: '신기루' });
+    },
+    // 은신 중 주는 피해 +
+    dmgMult: (b, u, t) => (t !== u && b.hidden(u) ? 1 + PSI.illusion.mirageDmg : 1),
+  } },
   // 환조: 환영이 쓰러질 때 잔향 (시간 만료는 dismiss 에서)
   'illusion.echo': { hooks: { onAllyDeath(b, u, dead) { if (dead.owner === u && dead.mem.illusion) echo(b, dead); } } },
 };
@@ -743,6 +935,18 @@ export const SCHOOL_AUGS: AugDef[] = SCHOOLS.map((s) => ({
   id: schoolAugId(s.id), name: s.name, desc: schoolDesc(s.id), pool: 'school', owner: s.id,
   effect: () => schoolEffect(s.id),
 }));
+/** 전투가 끝난 뒤 런 단위 효과 */
+const AFTER: Record<string, AugDef['after']> = {
+  // ★ 실물 인출: 이긴 전투에서 받은 임시 장비 중 1개를 30% 확률로 진짜 재료 장비로 (보관함)
+  'gold.cashout': (run, _u, won, _k, x) => {
+    const got = (x?.c && GOLD_GOT.get(x.c)) || [];
+    if (!won || !got.length || !x?.gain) return;
+    const r = new Rng(run.rng);
+    const hit = r.chance(PSI.gold.cashoutP), id = r.pick(got);
+    run.rng = r.s;
+    if (hit) x.gain(id);
+  },
+};
 /** 조합 조건: 다른 증강 · 상태가 있어야 제대로 작동하는 전공 증강 (선택은 막지 않는다, 표시는 data/augreq.ts) */
 const REQ: Record<string, AugReq> = {
   'pyro.runaway': { hint: '이성 0 미만일 때만 작동', reason: 'neg' },
@@ -762,6 +966,7 @@ export const PSI_AUGS: AugDef[] = SCHOOLS.flatMap((s) => SCHOOL_PASSIVES[s.id].m
     id: psiAugId(s.id, key), name, desc, pool: 'psionic', owner: s.id,
     effect: () => passiveEffect(s.id, key),
     requires: REQ[`${s.id}.${key}`],
+    after: AFTER[`${s.id}.${key}`],
   };
 }));
 /** 전공의 전공 증강 */

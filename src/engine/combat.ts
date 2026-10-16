@@ -985,7 +985,8 @@ export class Battle {
       const bd = tgt.statuses.find((s) => s.key === 'bond' && s.val);
       if (bd) {
         const others = this.units.filter((x) => x.alive && x !== tgt && x.statuses.some((s) => s.key === 'bond' && s.grp === bd.grp));
-        for (const x of others) this.rawHit(bd.src || src, x, (dmg * bd.val!) / others.length, o.elem);
+        const div = bd.src?.mem['ps.mind.hive'] ? 1 : others.length; // ★ 집단 자아: 나누지 않고 각자 공유 비율만큼
+        for (const x of others) this.rawHit(bd.src || src, x, (dmg * bd.val!) / div, o.elem);
       }
       // 공진 등: 피격 반응
       if (tgt.alive) for (const s of tgt.statuses.slice()) if (s.onHit && s.dur > 0) s.onHit(this, tgt, src, res, o, s);

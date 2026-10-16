@@ -1,6 +1,7 @@
 // 사이오닉: 4학파 · 8전공 (docs/PSIONIC_REWORK_DRAFT.md)
 // 학파 = 기물마다 고정 (UNIT_GROUP), 이성 축 효과를 정한다. 전공 = 합류 시 학파의 2개 중 1개 (pool 'school': 비술 + 지속 능력),
-// 전공 증강 = 그 전공의 7개 (pool 'psionic', 5 · 10 · 15 · 20등급, 최대 4개). ◆ = 비술 · 지속 능력을 바꾸는 변형
+// 전공 증강 = 그 전공의 기본 8개 + ★ 전설 2개 (pool 'psionic', 4 · 8 · 12 · 16등급, 최대 4개). ◆ = 비술 · 지속 능력을 바꾸는 변형,
+// ★ 전설 = 학파 규칙을 비트는 효과 (출현 확률 CFG.psiLegend: 기본 + 못 얻을 때마다 보정, 얻으면 보정 제거)
 import type { AugDef } from '../engine/effects';
 
 /** 전공 8종 */
@@ -71,7 +72,7 @@ export const SCHOOL_BY_ID = Object.fromEntries(SCHOOLS.map((s) => [s.id, s])) as
 /** 이 기물이 고를 수 있는 전공 (학파가 없으면 8개 전부) */
 export const majorsOf = (defId: string): SchoolId[] => (UNIT_GROUP[defId] ? GROUPS[UNIT_GROUP[defId]].majors : SCHOOLS.map((s) => s.id));
 
-/** 전공 증강 7종 (◆ 변형 포함, 이름에는 ◆ 없음) — 키 · 이름 · 설명. 효과는 psionic.ts */
+/** 전공 증강: 기본 8종 (◆ 변형 포함) + ★ 전설 2종 (LEGEND_KEYS, 각 목록 끝 2개). 이름에는 ◆ · ★ 없음 — 키 · 이름 · 설명. 효과는 psionic.ts */
 export const SCHOOL_PASSIVES: Record<SchoolId, [key: string, name: string, desc: string][]> = {
   pyro: [
     ['wp', '백린', '연소 최대 중첩 5 → 10. 소각의 중첩당 피해 50% → 35%.'],
@@ -81,6 +82,9 @@ export const SCHOOL_PASSIVES: Record<SchoolId, [key: string, name: string, desc:
     ['runaway', '열폭주', '이성 0 미만이면 발화 확률 2배 (봉화와 함께면 봉화 확률 2배), 소각 쿨다운 -50%. 대신 자신이 준 연소 피해의 10%를 자신도 받는다.'],
     ['ember', '잿불 갑주', '연소 피해의 20%만큼 자신에게 보호막.'],
     ['beacon', '봉화', '발화가 아군 전원의 기본 공격에 10% 확률로 붙는다. 자신의 발화 확률은 0. 열폭주와 함께면 이성 0 미만일 때 20%.'],
+    ['kindle', '불씨 보존', '연소 지속 5 → 8초. 연소가 없는 적에게 소각을 쓰면 연소 2 → 4중첩.'],
+    ['nova', '초신성', '연소가 최대 중첩에 닿으면 폭발한다: 대상과 주변 2칸 적에게 중첩당 주요 위력 20% 물리 피해. 대상의 연소는 사라지고 휘말린 적에게 연소 2중첩 (같은 적은 3초에 1회 폭발).'],
+    ['phoenix', '불사조', '전투당 1회, 쓰러질 피해를 받으면 불꽃으로 되살아난다: 체력 50% · 해로운 효과 제거, 주변 2칸 적 전원에게 연소를 최대 중첩까지.'],
   ],
   chrono: [
     ['perma', '영구 동토', '빙결 2 → 3초. 빙결을 걸어도 오한이 사라지지 않는다.'],
@@ -90,6 +94,9 @@ export const SCHOOL_PASSIVES: Record<SchoolId, [key: string, name: string, desc:
     ['revert', '엔트로피 역류', '빙결을 걸 때마다 이성 +6. 빙결된 적 1명당 쿨다운 감소 속도 +10% (최대 +30%).'],
     ['zero', '절대 영도', '오한 최대 4 → 6중첩. 6중첩인 적에게 다음 적중은 확정 빙결.'],
     ['haste', '시간 가속', '서리 파편이 적 대신 아군 3명에게 4초간 공격 속도 +25%와 서리 무장을 준다: 그 아군의 다음 기본 공격이 맞으면 서리 파편과 같은 확률로 빙결. 절대 0도는 그대로.'],
+    ['rime', '서리 갑옷', '자신을 공격한 적에게 오한 1중첩 (같은 적은 1초에 1회).'],
+    ['timestop', '시간 정지', '비술을 4번 쓸 때마다 적 전원의 시간이 멈춘다: 보스가 아닌 적 전원 확정 빙결, 보스는 2초간 공격 · 이동 속도 -50%.'],
+    ['echo', '시간의 메아리', '자신이 건 빙결이 풀릴 때, 얼어 있는 동안 그 적이 받은 피해의 40%를 한 번 더 준다.'],
   ],
   volt: [
     ['hv', '고전압', '전도 범위 1 → 2칸. 중첩당 피해 15% → 22% (역전류의 아군 전도는 10% → 15%).'],
@@ -99,6 +106,9 @@ export const SCHOOL_PASSIVES: Record<SchoolId, [key: string, name: string, desc:
     ['overload', '과부하', '방전 대상이 전도 3중첩이면 중첩을 모두 소모해 주요 위력 300% 전기 폭발. 역전류와 함께면 충전할 아군이 이미 3중첩일 때 소모해 주변 1칸 적 전원에게 150%.'],
     ['cage', '패러데이 새장', '전투 시작 6초간 아군 전원 받는 전기 피해 -30%, 효과 저항 +20%p.'],
     ['reverse', '역전류', '방전이 적을 치지 않고 대상과 가장 가까운 아군에게 전도 3중첩을 건다 (유도 전류의 전도도 적 대신 그 아군에게). 전도된 아군이 행동할 때마다 주변 1칸 적에게 중첩당 주요 위력 10% 전기 피해. 바운스 번개 · 단락 · 과부하는 충전한 아군 기준으로 작동.'],
+    ['static', '정전기', '유도 전류 확률 25% → 40%.'],
+    ['grid', '전력망', '전도 피해가 범위를 넘는다: 전도된 대상이 행동할 때 범위 밖 무작위 적 2명에게도 같은 피해.'],
+    ['avatar', '뇌신 강림', '자신이 사라지지 않는 전도 3중첩을 두른다: 자신이 행동할 때마다 주변 2칸 적에게 중첩당 주요 위력 12% 전기 피해 (고전압이면 18%). 단락 · 과부하 · 축전도 이 전도에 작동.'],
   ],
   wave: [
     ['freq', '고유 진동수', '공진 피해 15% → 25%.'],
@@ -108,6 +118,9 @@ export const SCHOOL_PASSIVES: Record<SchoolId, [key: string, name: string, desc:
     ['field', '역장', '이성 30 이상이면 피해량 경감 15%, 밀쳐내기 면역.'],
     ['seismic', '진도 측정', '충격파가 35% 확률로 1.2초 기절.'],
     ['attract', '끌개', '밀쳐내기가 끌어당기기로 바뀐다 (대상을 자기 앞 칸으로). 공진 범위 1 → 2칸.'],
+    ['after', '여진', '충격파 1.5초 뒤 같은 대상에게 한 번 더 주요 위력 35% 전기 피해 + 공진 갱신 (밀쳐내기 없음).'],
+    ['collapse', '중력 붕괴', '충격파가 대상 주변 2칸 적을 모두 대상 곁으로 끌어모으고 공진을 건다 (보스 · 고정 적 제외).'],
+    ['cascade', '공명 연쇄', '공진 피해를 받은 적에게도 공진이 옮겨 붙는다 (이미 공진이면 그대로).'],
   ],
   seed: [
     ['conc', '독성 농축', '중독 최대 3 → 6중첩.'],
@@ -117,6 +130,9 @@ export const SCHOOL_PASSIVES: Record<SchoolId, [key: string, name: string, desc:
     ['burst', '포자 폭발', '중독된 적이 쓰러지면 주변 1칸 적에게 주요 위력 60% 화학 피해와 중독을 옮긴다.'],
     ['necro', '괴사', '중독 6중첩 이상인 적은 받는 모든 피해 +20%.'],
     ['regen', '재생 포자', '포자가 적 대신 체력 비율이 가장 낮은 아군에게 지속 회복 (5초, 초당 주요 위력 25%). 대사는 그대로.'],
+    ['venom', '맹독', '중독 중첩당 피해 10% → 14%.'],
+    ['colony', '포자 군락', '중독된 적이 쓰러지면 그 자리에 포자 군락(아군 소환물)이 자란다: 8초, 체력 = 자신 최대 체력 25%, 움직이지 않고 1초마다 주변 1칸 적에게 중독 1중첩 (최대 3기).'],
+    ['endless', '끝없는 번식', '중독 최대 중첩 제한이 사라진다 (중첩이 끝없이 쌓인다).'],
   ],
   mind: [
     ['ascend', '승천', '매혹 지속 +1초, 엘리트에게도 걸린다 (지속 절반). 집단 최면과 함께면 혼란 지속 +1초.'],
@@ -126,6 +142,9 @@ export const SCHOOL_PASSIVES: Record<SchoolId, [key: string, name: string, desc:
     ['split', '자아 분리', '이성 0 미만이면 자신이 받는 피해의 30%를 결속된 적에게 넘긴다.'],
     ['gaze', '초월자의 시선', '결속된 적에게 주는 피해 +30%.'],
     ['hypno', '집단 최면', '계시가 매혹 대신 결속된 적 전원을 2초간 혼란에 빠뜨린다. 승천 · 정신 지배는 혼란에 적용된다.'],
+    ['erode', '잠식', '자아 침식 확률 25% → 40%, 혼란 1 → 1.5초.'],
+    ['puppet', '꼭두각시 극장', '계시의 매혹 · 혼란이 끝날 때 체력 50% 이하인 일반 적은 전투가 끝날 때까지 매혹된다 (전투당 최대 2명, 승천이면 엘리트도). 매혹되지 않은 적이 모두 쓰러지면 꼭두각시도 쓰러진다.'],
+    ['hive', '집단 자아', '결속 피해 공유가 나뉘지 않는다: 결속된 적이 피해를 받으면 다른 결속 대상 각각이 공유 비율만큼 받는다 (원래는 인원수로 나눔).'],
   ],
   gold: [
     ['futures', '선물 거래', '전투 시작 시 임시 장비 2개를 장착.'],
@@ -135,6 +154,9 @@ export const SCHOOL_PASSIVES: Record<SchoolId, [key: string, name: string, desc:
     ['vol', '변동성', '이성 증감량 ×1.5. 시장 개입 쿨다운 -2초.'],
     ['folio', '포트폴리오', '임시 장비가 3개면 고이성 · 저이성 효과가 모두 50%씩 함께 적용된다 (배당이면 성공 횟수 + 자신이 받은 임시 장비로 센다).'],
     ['dividend', '배당', '성공하면 임시 장비를 자신 대신 아군 3명에게 1개씩 장착한다 (성공 3회까지, 분산 투자는 성공 횟수 + 자신이 받은 임시 장비로 계산, 최대 3).'],
+    ['safe', '안전 자산', '시장 개입 실패 보호막 80% → 140%, 체력이 가장 낮은 아군 2명에게.'],
+    ['hedge', '완전 헤지', '시장 개입이 성공과 실패를 모두 일으킨다: 임시 장비를 받고, 체력이 가장 낮은 아군에게 보호막도 준다 (레버리지여도 자해 없음).'],
+    ['cashout', '실물 인출', '이긴 전투에서 임시 장비를 받았다면 30% 확률로 그중 1개를 진짜 재료 장비로 얻는다 (보관함).'],
   ],
   illusion: [
     ['troupe', '군무', '환영 최대 2 → 4기. 분신과 함께면 분신 지속 12 → 18초.'],
@@ -144,17 +166,29 @@ export const SCHOOL_PASSIVES: Record<SchoolId, [key: string, name: string, desc:
     ['dense', '짙은 향', '향취가 최대 3중첩까지 쌓인다.'],
     ['disrupt', '교란', '환영을 공격한 적은 공격 속도 -10% (최대 -30%, 4초).'],
     ['clone', '분신', '환영 대신 자신의 분신 1기를 부른다 (12초, 체력 50%, 자신 피해의 50%로 싸운다). 비술 쿨다운 +4초. 실체화가 있으면 분신이 더 단단해지고 정신 추가 피해를 준다. 군무와 함께면 지속 18초.'],
+    ['linger', '잔상', '환영 지속 6 → 9초, 체력 30% → 45% (분신은 지속 +3초).'],
+    ['mirage', '신기루', '환영 · 분신이 하나라도 있으면 자신은 은신한다 (적의 표적이 되지 않는다). 은신 중 주는 피해 +25%.'],
+    ['mirror', '거울 상', '환영 향을 쓸 때마다 대상 적의 거울 상도 만든다: 대상의 능력치 · 기본 공격을 복사한 아군 (8초, 체력 40%, 피해 60%, 스킬 없음, 최대 1기, 보스 제외).'],
   ],
 };
 /** ◆ 변형 증강 (전공별 1개) */
 export const TRANSFORM_KEYS: Record<SchoolId, string> = {
   pyro: 'beacon', chrono: 'haste', volt: 'reverse', wave: 'attract', seed: 'regen', mind: 'hypno', gold: 'dividend', illusion: 'clone',
 };
+/** ★ 전설 전공 증강 (전공별 2개) */
+export const LEGEND_KEYS: Record<SchoolId, readonly [string, string]> = {
+  pyro: ['nova', 'phoenix'], chrono: ['timestop', 'echo'], volt: ['grid', 'avatar'], wave: ['collapse', 'cascade'],
+  seed: ['colony', 'endless'], mind: ['puppet', 'hive'], gold: ['hedge', 'cashout'], illusion: ['mirage', 'mirror'],
+};
 
 export const schoolAugId = (s: SchoolId) => `school.${s}`;
 export const psiAugId = (s: SchoolId, key: string) => `psi.${s}.${key}`;
 /** ◆ 변형 증강인지 */
 export const isTransformAug = (id: string) => { const [, s, k] = id.split('.'); return id.startsWith('psi.') && TRANSFORM_KEYS[s as SchoolId] === k; };
+/** ★ 전설 전공 증강인지 */
+export const isLegendAug = (id: string) => { const [, s, k] = id.split('.'); return id.startsWith('psi.') && !!LEGEND_KEYS[s as SchoolId]?.includes(k); };
+/** 증강 이름 앞 표식: ★ 전설 · ◆ 변형 */
+export const augMark = (id: string) => (isLegendAug(id) ? '★ ' : isTransformAug(id) ? '◆ ' : '');
 /** 보유 증강에서 전공을 찾는다 */
 export function schoolOf(u: { augments: { id: string }[] }): SchoolId | null {
   const a = u.augments.find((x) => x.id.startsWith('school.') && x.id.slice(7) in SCHOOL_BY_ID);

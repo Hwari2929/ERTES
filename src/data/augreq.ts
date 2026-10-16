@@ -1,4 +1,4 @@
-// 증강 카드 · 상세의 부가 정보: 조합 조건 (AugDef.requires). 배타 증강은 없다 (어떤 조합도 함께 작동).
+// 증강 카드 · 상세의 부가 정보: 조합 조건 (AugDef.requires). 배타 증강은 없다 (어떤 조합도 함께 작동, ★ 전설 전공 증강 포함).
 // 현재 값은 엔진과 같은 계산(psinum.psiStackCap · 기물 무기)으로 구한다. 선택은 막지 않는다.
 import type { AugReq } from '../engine/effects';
 import { AUG_BY_ID } from './augments';
@@ -27,7 +27,7 @@ export function augReqState(id: string, u?: { defId: string; augments: readonly 
   if (r.stacks) {
     const cap = psiStackCap(r.stacks.st, has);
     const unit = r.stacks.st === 'tempgear' ? '개' : '중첩';
-    return { hint: r.hint, cur: `${u ? '현재 자신의' : '기본'} 최대 ${ST_NAME[r.stacks.st]}: ${cap}${unit}`, ok: cap >= r.stacks.need };
+    return { hint: r.hint, cur: `${u ? '현재 자신의' : '기본'} 최대 ${ST_NAME[r.stacks.st]}: ${cap === Infinity ? '제한 없음 (끝없는 번식)' : `${cap}${unit}`}`, ok: cap >= r.stacks.need };
   }
   if (r.alt) {
     const alt = r.alt.filter(hasId);

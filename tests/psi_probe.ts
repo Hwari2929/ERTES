@@ -3,10 +3,11 @@
 // 실행:
 //   node X.cjs school <i0> <i1> [시드 수]   → (사이오닉 기물, 전공) 쌍 i0..i1-1: 적중 · 상태 공급 · 중첩 · 비술 · 인과학파 치명타 계측
 //   node X.cjs role <comps.json> <i0> <i1> [시드 수] [위험 등급 (주면 5 · 6페이즈만)] → 조합 전투의 기물별 '핵심 행동' 시각 · 사망 시각 · 처치 · 유효 회복 · 실흡수 보호막
+//   node X.cjs aug <i0> <i1> [시드 수] → (사이오닉 기물, 전공) 쌍마다 전공 증강 0개 / 각 1개(기본 8 · ★ 전설 2): 승률 · 피해 · 생존 · 발동 표식 수 (전설 밸런스)
 import { CFG } from '../src/config';
 import { FIELDS } from '../src/data/battlefields';
 import { UNIT_BY_ID } from '../src/data/units';
-import { majorsOf, PSI_STATUS, type SchoolId } from '../src/data/schools';
+import { majorsOf, PSI_STATUS, SCHOOL_PASSIVES, type SchoolId } from '../src/data/schools';
 import { mp } from '../src/data/psionic';
 import { buildBattle } from '../src/engine/build';
 import { Battle, type CUnit, type DmgOpts, type DmgResult, type Status } from '../src/engine/combat';
@@ -240,6 +241,50 @@ function runRole() {
   process.stdout.write(JSON.stringify(per));
 }
 
+// ───────── 4) 전공 증강 하나씩: 전설이 기본 증강보다 과하게 튀지 않는지
+/** 발동 표식 (status · mark 이름) 세기 */
+let EV: Record<string, number> | null = null;
+const oEmit = P.emit;
+P.emit = function (this: Battle, e: Parameters<Battle['emit']>[0]) {
+  if (EV && (e.k === 'status' || e.k === 'mark') && 'name' in e && e.name) EV[e.name] = (EV[e.name] || 0) + 1;
+  return oEmit.call(this, e);
+};
+function runAug() {
+  const pairs = PAIRS.filter((x) => x.id !== 'rachel');
+  const i0 = +process.argv[3] || 0, i1 = Math.min(pairs.length, +process.argv[4] || pairs.length), NS = +process.argv[5] || 6;
+  const res: unknown[] = [];
+  for (let pi = i0; pi < i1; pi++) {
+    const pr = pairs[pi];
+    const vars = ['', ...SCHOOL_PASSIVES[pr.s].map(([k]) => k)];
+    const out: Record<string, Record<string, number>> = {};
+    for (const v of vars) {
+      const acc: Record<string, number> = {};
+      const add = (k: string, x: number) => (acc[k] = (acc[k] || 0) + x);
+      for (const ph of [4, 5]) for (const f of FIELDS5) for (let s = 0; s < NS; s++) {
+        const seed = 400000 + ph * 1000 + s * 17 + FIELDS.findIndex((x) => x.id === f) * 7;
+        const run = makeRun([pr.id, ...PARTNERS.filter((x) => x !== pr.id)], ph === 4 ? 10 : 12, ph, f, seed, pr);
+        const ru = run.units.find((x) => x.defId === pr.id)!;
+        if (v) ru.augments.push({ id: `psi.${pr.s}.${v}` });
+        for (const nd of NODES) {
+          EV = {};
+          const { b, out: o } = fight(run, nd, ph, seed, (bb) => bb.units.filter((u) => u.side === 0 && u.defId === pr.id));
+          const u = [...o.keys()][0], t = o.get(u)!;
+          add('n', 1); add('win', b.winner === 0 ? 1 : 0); add('dur', b.t); add('alive', t.alive); add('died', t.death >= 0 ? 1 : 0);
+          add('dmg', t.dmg); add('team', b.units.filter((x) => x.side === 0).reduce((q, x) => q + x.counters.dmg, 0));
+          add('healed', t.healed); add('shield', t.shieldGiven);
+          for (const [k, c] of Object.entries(EV)) add(`ev:${k}`, c);
+          EV = null;
+        }
+      }
+      out[v || '-'] = acc;
+    }
+    res.push({ id: pr.id, school: pr.s, out });
+    process.stderr.write(`${pr.id}.${pr.s} done\n`);
+  }
+  process.stdout.write(JSON.stringify(res));
+}
+
 const MODE = process.argv[2];
 if (MODE === 'school') runSchool();
 else if (MODE === 'role') runRole();
+else if (MODE === 'aug') runAug();

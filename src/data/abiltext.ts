@@ -210,7 +210,7 @@ Object.assign(AUG_TEXT, {
   'school.mind': '[g:cantrip] 「계시」 ([s:7] · [g:reason] -10): 대상과 주변 [t:1] 적 최대 3명 [s:5] [g:bond] (받는 피해 +[p:0.1], 받은 피해의 [p:0.25]를 다른 결속 대상이 나눠 받음). 대상이 일반 적이면 [st:charm:1.5]. 지속 「자아 침식」: 적중 시 [st:confuse:1:0.25] (같은 대상 1초에 1회 판정). 생명학파 — 고이성: 받는 화학 · 정신 피해 최대 -[p:0.3]. 저이성: 주는 화학 · 정신 피해 최대 +[p:0.35].',
   'school.gold': '[g:cantrip] 「시장 개입」 ([s:8] · [g:reason] -8): 성공 확률 [p:0.4] + [p:0.5] × |이성|/100. 성공: 무작위 재료 장비 1개를 [g:tempgear] (최대 3개). 실패: 체력이 가장 낮은 아군에게 [shield:0.8:main]. 지속 「분산 투자」: 임시 장비 1개당 주는 피해 +[p:0.05], [g:red] +[p:0.03]. 인과학파 — 고이성: 받는 [g:crit] 피해 최대 -[p:0.4], 회피 최대 [pp:0.1]. 저이성: 치명타 확률 최대 [pp:0.25], 치명타 피해 최대 +[p:0.25], 기술 피해(스킬 · 비술)도 [g:crit] 가능.',
   'school.illusion': '[g:cantrip] 「환영 향」 ([s:7] · [g:reason] -8): 대상 적 근처에 [g:illusion] 1기 ([s:6], 최대 2기, 체력 = 자신 최대 체력 [p:0.3]). 주변 [t:1] 적은 환영을 우선 공격한다 ([g:taunt]). 지속 「향취」: 적중 시 [st:scent:4:0.3] (같은 대상 1초에 1회 판정). 인과학파 — 고이성: 받는 [g:crit] 피해 최대 -[p:0.4], 회피 최대 [pp:0.1]. 저이성: 치명타 확률 최대 [pp:0.25], 치명타 피해 최대 +[p:0.25], 기술 피해(스킬 · 비술)도 [g:crit] 가능.',
-  // ── 전공 증강 (전공당 7종, ◆ = 변형)
+  // ── 전공 증강 (전공당 기본 8종 + ★ 전설 2종, ◆ = 변형, 추가분은 아래 블록)
   'psi.pyro.wp': '[g:burn] 최대 중첩 5 → 10. 소각의 중첩당 피해 [dmg:main:0.5:phys] → [dmg:main:0.35:phys].',
   'psi.pyro.chain': '소각으로 [g:burn]을 소모한 적이 쓰러지면 소각이 즉시 한 번 더 나간다 (쿨다운 · 이성 소모 없음).',
   'psi.pyro.spread': '[g:burn]된 적이 쓰러지면 그 중첩을 주변 [t:1] 적 모두에게 옮긴다.',
@@ -267,6 +267,33 @@ Object.assign(AUG_TEXT, {
   'psi.illusion.dense': '[g:scent]가 최대 3중첩까지 쌓인다.',
   'psi.illusion.disrupt': '[g:illusion]을 공격한 적은 [s:4]간 공격 속도 -[p:0.1] (최대 -[p:0.3]).',
   'psi.illusion.clone': `◆ 환영 대신 자신의 [g:clone] 1기를 부른다 ([s:${PSI.illusion.cloneLife}], 체력 [p:${PSI.illusion.cloneHp}], 자신 피해의 [p:${PSI.illusion.cloneDmg}]로 싸운다). 비술 쿨다운 +[s:${PSI.illusion.cloneCd}]. 실체화와 함께면 분신 체력 [p:${PSI.illusion.solidCloneHp}], 받는 피해 -[p:${PSI.illusion.solidCloneRed}], 기본 공격 적중 시 [dmg:main:${PSI.illusion.solidCloneHit}:psy] 추가. 군무와 함께면 지속 [s:${PSI.illusion.troupeCloneLife}].`,
+} as Record<string, string>);
+// ── 전공 증강 추가 (전공당 기본 1종 + ★ 전설 2종)
+Object.assign(AUG_TEXT, {
+  'psi.pyro.kindle': `[g:burn] 지속 [s:${PSI.pyro.dur}] → [s:${PSI.pyro.kindleDur}]. 연소가 없는 적에게 소각을 쓰면 연소 ${PSI.pyro.seed} → ${PSI.pyro.kindleSeed}중첩.`,
+  'psi.pyro.nova': `★ [g:burn]이 최대 중첩에 닿으면 폭발한다: 대상과 주변 [t:${PSI.pyro.novaR}] 적에게 중첩당 [dmg:main:${PSI.pyro.novaPer}:phys]. 대상의 연소는 사라지고 휘말린 적에게 연소 ${PSI.pyro.novaSeed}중첩 (같은 적은 [s:${PSI.pyro.novaIcd}]에 1회 폭발).`,
+  'psi.pyro.phoenix': `★ 전투당 1회, 쓰러질 피해를 받으면 불꽃으로 되살아난다: 체력 [p:${PSI.pyro.phoenixHp}] · 해로운 효과 제거, 주변 [t:${PSI.pyro.phoenixR}] 적 전원에게 [g:burn]을 최대 중첩까지.`,
+  'psi.chrono.rime': `자신을 공격한 적에게 [g:chill] 1중첩 (같은 적은 [s:${PSI.chrono.rimeIcd}]에 1회).`,
+  'psi.chrono.timestop': `★ [g:cantrip]을 ${PSI.chrono.stopEvery}번 쓸 때마다 적 전원의 시간이 멈춘다: 보스가 아닌 적 전원 확정 [g:freeze], 보스는 [s:${PSI.chrono.stopBossDur}]간 공격 · 이동 속도 -[p:${PSI.chrono.stopBossSlow}].`,
+  'psi.chrono.echo': `★ 자신이 건 [g:freeze]가 풀릴 때, 얼어 있는 동안 그 적이 받은 피해의 [p:${PSI.chrono.echoK}]를 한 번 더 준다.`,
+  'psi.volt.static': `유도 전류 확률 [p:${PSI.volt.proc}] → [p:${PSI.volt.staticProc}].`,
+  'psi.volt.grid': `★ [g:conduct] 피해가 범위를 넘는다: 전도된 대상이 행동할 때 범위 밖 무작위 적 ${PSI.volt.gridN}명에게도 같은 피해.`,
+  'psi.volt.avatar': `★ 자신이 사라지지 않는 [g:conduct] ${PSI.volt.avatarN}중첩을 두른다: 자신이 행동할 때마다 주변 [t:${PSI.volt.avatarR}] 적에게 중첩당 [dmg:main:${PSI.volt.avatarPer}:elec] (고전압이면 [dmg:main:${PSI.volt.avatarHvPer}:elec]). 단락 · 과부하 · 축전도 이 전도에 작동한다.`,
+  'psi.wave.after': `충격파 [s:${PSI.wave.afterDelay}] 뒤 같은 대상에게 한 번 더 [dmg:main:${PSI.wave.afterCoef}:elec] + [g:resonance] 갱신 ([g:knock] 없음).`,
+  'psi.wave.collapse': `★ 충격파가 대상 주변 [t:${PSI.wave.collapseR}] 적을 모두 대상 곁으로 [g:pull]해 끌어모으고 [g:resonance]을 건다 (보스 · 고정 적 제외).`,
+  'psi.wave.cascade': '★ [g:resonance] 피해를 받은 적에게도 공진이 옮겨 붙는다 (이미 공진이면 그대로).',
+  'psi.seed.venom': `[g:poison] 중첩당 초당 [dmg:main:${PSI.seed.per}:chem] → [dmg:main:${PSI.seed.venomPer}:chem].`,
+  'psi.seed.colony': `★ [g:poison]된 적이 쓰러지면 그 자리에 포자 군락(아군 소환물)이 자란다: [s:${PSI.seed.colonyLife}], 체력 = 자신 최대 체력 [p:${PSI.seed.colonyHp}], 움직이지 않고 1초마다 주변 [t:1] 적에게 중독 1중첩 (최대 ${PSI.seed.colonyMax}기).`,
+  'psi.seed.endless': '★ [g:poison] 최대 중첩 제한이 사라진다 (중첩이 끝없이 쌓인다).',
+  'psi.mind.erode': `자아 침식 확률 [p:${PSI.mind.proc}] → [p:${PSI.mind.erodeProc}], [g:confuse] [s:${PSI.mind.confuse}] → [s:${PSI.mind.erodeConfuse}].`,
+  'psi.mind.puppet': `★ 계시의 [g:charm] · [g:confuse]가 끝날 때 체력 [p:${PSI.mind.puppetHp}] 이하인 일반 적은 전투가 끝날 때까지 매혹된다 (전투당 최대 ${PSI.mind.puppetMax}명, 승천이면 엘리트도). 매혹되지 않은 적이 모두 쓰러지면 꼭두각시도 쓰러진다.`,
+  'psi.mind.hive': '★ [g:bond] 피해 공유가 나뉘지 않는다: 결속된 적이 피해를 받으면 다른 결속 대상 각각이 공유 비율만큼 받는다 (원래는 인원수로 나눔).',
+  'psi.gold.safe': `시장 개입 실패 보호막 [shield:${PSI.gold.shield}:main] → [shield:${PSI.gold.safeShield}:main], 체력이 가장 낮은 아군 ${PSI.gold.safeN}명에게.`,
+  'psi.gold.hedge': '★ 시장 개입이 성공과 실패를 모두 일으킨다: [g:tempgear]하고, 체력이 가장 낮은 아군에게 보호막도 준다 (레버리지여도 자해 없음).',
+  'psi.gold.cashout': `★ 이긴 전투에서 [g:tempgear]을 받았다면 [p:${PSI.gold.cashoutP}] 확률로 그중 1개를 진짜 재료 장비로 얻는다 (보관함).`,
+  'psi.illusion.linger': `[g:illusion] 지속 [s:${PSI.illusion.life}] → [s:${PSI.illusion.lingerLife}], 체력 [p:${PSI.illusion.hp}] → [p:${PSI.illusion.lingerHp}] ([g:clone]은 지속 +[s:${PSI.illusion.lingerClone}]).`,
+  'psi.illusion.mirage': `★ [g:illusion] · [g:clone]이 하나라도 있으면 자신은 [g:stealth] (적의 표적이 되지 않는다). 은신 중 주는 피해 +[p:${PSI.illusion.mirageDmg}].`,
+  'psi.illusion.mirror': `★ 환영 향을 쓸 때마다 대상 적의 거울 상도 만든다: 대상의 능력치 · 기본 공격을 복사한 아군 ([s:${PSI.illusion.mirrorLife}], 체력 [p:${PSI.illusion.mirrorHp}], 피해 [p:${PSI.illusion.mirrorDmg}], 스킬 없음, 최대 1기, 보스 제외).`,
 } as Record<string, string>);
 Object.assign(GLOSS, {
   reason: { name: '이성', desc: '사이오닉 게이지 (-100 ~ +100). 학파의 고이성 · 저이성 효과가 이성에 비례해 커진다. 0 미만이면 초당 최대 체력 × 0.5% × (−이성/100) 정신 피해 (−50 이하 2배).' },

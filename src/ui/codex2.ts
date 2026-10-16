@@ -13,7 +13,7 @@ import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, CONSUMABLES, emblemI
 import { PSI_BRIEF } from '../data/brief';
 import { cantripView, passiveView, SCHOOL_LINE, transformPreview } from '../data/psiinfo';
 import { RELIC_BY_ID, RELICS } from '../data/relics';
-import { GROUPS, type GroupId, isTransformAug, PSI_STATUS, SCHOOL_BY_ID, SCHOOLS, type SchoolId, UNIT_GROUP } from '../data/schools';
+import { augMark, GROUPS, type GroupId, isLegendAug, isTransformAug, PSI_STATUS, SCHOOL_BY_ID, SCHOOLS, type SchoolId, UNIT_GROUP } from '../data/schools';
 import { KAL_GUARD_TEXT, KAL_GUARDS, SYN_BY_ID, SYNERGIES, VOYAGE_SPECIAL } from '../data/synergies';
 import { KNIGHT_PAL } from '../engine/build';
 import { BOSS_CC_IMMUNE, categoryImmune, categoryMult, REASON_HI, REASON_LO } from '../engine/combat';
@@ -422,9 +422,9 @@ function reqLine(id: string, tag = 'span') {
   return rq ? `<${tag} class="cx2-req ${rq.ok === false ? 'warn' : 'info'}">⚠ 조합 조건: ${esc(rq.hint)}. <span class="muted">${esc(rq.cur)}</span></${tag}>` : '';
 }
 function augLi(H: CxH, a: AugDef, tags: string[] = [], q = '') {
-  const all = [...tags, ...(a.stack ? ['중복 가능'] : []), ...(a.roll ? ['능력치 무작위'] : [])];
+  const all = [...tags, ...(isLegendAug(a.id) ? ['★ 전설'] : []), ...(a.stack ? ['중복 가능'] : []), ...(a.roll ? ['능력치 무작위'] : [])];
   const text = augHtml(H, a.id) + tfLine(H, a.id);
-  return `<li class="aug-li" data-id="${esc(a.id)}"${qAttr('augs', `${a.name} ${a.desc} ${text} ${all.join(' ')} ${q}`)}>${H.augIcon(a.id)}<span><b>${isTransformAug(a.id) ? '◆ ' : ''}${esc(a.name)}</b>${all.map((t) => ` <span class="cx2-note">${esc(t)}</span>`).join('')}<br><span class="muted">${text}</span>${reqLine(a.id)}</span></li>`;
+  return `<li class="aug-li" data-id="${esc(a.id)}"${qAttr('augs', `${a.name} ${a.desc} ${text} ${all.join(' ')} ${q}`)}>${H.augIcon(a.id)}<span><b>${augMark(a.id)}${esc(a.name)}</b>${all.map((t) => ` <span class="cx2-note">${esc(t)}</span>`).join('')}<br><span class="muted">${text}</span>${reqLine(a.id)}</span></li>`;
 }
 
 // ═══════════════════════ 사이오닉
@@ -503,7 +503,8 @@ function psiGroupDetail(H: CxH, gid: GroupId) {
     ${row('거는 상태', (sid) => core(sid).statuses.map((k) => esc(PSI_STATUS[k].name)).join(' · ') || '—')}
     ${row('피해 속성', (sid) => core(sid).elems.map((e) => esc(ELEM_NAME[e])).join(' · ') || '—')}
     ${row('◆ 변형', (sid) => (tfName(sid) ? esc(tfName(sid)!) : '—'))}
-    ${row('전공 증강', (sid) => { const l = schoolAugs(sid); const r = l.filter((a) => a.requires).length; return `<span class="f-num">${l.length}</span>종${r ? ` · 조합 조건 <span class="f-num">${r}</span>종` : ''}`; })}
+    ${row('★ 전설', (sid) => schoolAugs(sid).filter((a) => isLegendAug(a.id)).map((a) => esc(a.name)).join(' · ') || '—')}
+    ${row('전공 증강', (sid) => { const l = schoolAugs(sid); const n = l.filter((a) => isLegendAug(a.id)).length, r = l.filter((a) => a.requires).length; return `기본 <span class="f-num">${l.length - n}</span>종 · ★ 전설 <span class="f-num">${n}</span>종${r ? ` · 조합 조건 <span class="f-num">${r}</span>종` : ''}`; })}
   </tbody></table>`;
   const units = groupUnits(gid);
   return `<div class="detail cx-d cx2-d psi-d">
@@ -519,11 +520,11 @@ function psiGroupDetail(H: CxH, gid: GroupId) {
 /** 전공 증강 한 줄: 이름 · 무엇을 바꾸는지 · 효과 · 조합 조건 (경고) */
 function psiAugRow(H: CxH, sid: SchoolId, a: AugDef, gl: Set<string>) {
   const c = cantripView(sid, [a.id]), p = passiveView(sid, [a.id]);
-  const tf = isTransformAug(a.id);
+  const tf = isTransformAug(a.id), lg = isLegendAug(a.id);
   const hit = [c.transform || c.mods.length ? '비술' : '', p.transform || p.mods.length ? '지속 능력' : ''].filter(Boolean);
   const t = augAbilText(a.id);
   const text = t ? H.statIc(AB.tok(t, NO_CTX, gl)) : esc(a.desc);
-  return `<div class="pa${tf ? ' tf' : ''}" data-id="${esc(a.id)}"><div class="pa-n">${H.augIcon(a.id)}<span><b>${tf ? '◆ ' : ''}${esc(a.name)}</b><small>${tf ? '변형 · ' : ''}${hit.length ? `${hit.join(' · ')} 변경` : '추가 효과'}</small></span></div><div class="pa-t">${text}${reqLine(a.id, 'p')}</div></div>`;
+  return `<div class="pa${tf ? ' tf' : ''}" data-id="${esc(a.id)}"><div class="pa-n">${H.augIcon(a.id)}<span><b>${augMark(a.id)}${esc(a.name)}</b><small>${tf ? '변형 · ' : lg ? '전설 · ' : ''}${hit.length ? `${hit.join(' · ')} 변경` : '추가 효과'}</small></span></div><div class="pa-t">${text}${reqLine(a.id, 'p')}</div></div>`;
 }
 /** 상성: 핵심 상태 · 피해 속성이 적 분류마다 어떻게 받는지 (엔진 규칙에서) + 전장별 경고 (matchup.ts) */
 function psiMatchup(sid: SchoolId) {
@@ -547,7 +548,8 @@ function psiDetail(H: CxH, sid: SchoolId) {
   const s = SCHOOL_BY_ID[sid], g = GROUPS[s.group];
   const gl = new Set<string>();
   const all = schoolAugs(sid);
-  const augs = [...all.filter((a) => isTransformAug(a.id)), ...all.filter((a) => !isTransformAug(a.id))];
+  const augs = [...all.filter((a) => isTransformAug(a.id)), ...all.filter((a) => !isTransformAug(a.id) && !isLegendAug(a.id)), ...all.filter((a) => isLegendAug(a.id))];
+  const nLeg = augs.filter((a) => isLegendAug(a.id)).length;
   const cv = cantripView(sid);
   const units = [...groupUnits(s.group), ...freeUnits()];
   const rAugs = augs.filter((a) => a.requires?.reason);
@@ -561,7 +563,8 @@ function psiDetail(H: CxH, sid: SchoolId) {
       <div class="cx2-cols even"><div class="cx2-c abils">${cantripCard(H, sid, [], gl)}</div><div class="cx2-c abils">${passiveCard(H, sid, [], gl)}</div></div></section>
     <section class="psi-sec"><h3>이성 관리</h3>${reasonBand(g)}
       <dl class="cx-rows"><dt>소모</dt><dd>비술 1회마다 이성 −<span class="f-num">${cv.cost}</span> (쿨다운 <span class="f-num">${cv.cd}</span>초)</dd>${rAugs.length ? `<dt>이성 조건 증강</dt><dd>${rAugs.map((a) => `<b>${esc(a.name)}</b> — ${esc(a.requires!.hint)}`).join('<br>')}</dd>` : ''}</dl></section>
-    <section class="psi-sec"><h3>성장 · 전공 증강 <span class="cx-hn">${augs.length}종 · ${esc(milestones(CFG.growth.psionic, 'psionic'))}에 1개씩, 최대 ${msCount(CFG.growth.psionic, 'psionic')}개</span></h3>
+    <section class="psi-sec"><h3>성장 · 전공 증강 <span class="cx-hn">기본 ${augs.length - nLeg}종 + ★ 전설 ${nLeg}종 · ${esc(milestones(CFG.growth.psionic, 'psionic'))}에 1개씩, 최대 ${msCount(CFG.growth.psionic, 'psionic')}개</span></h3>
+      <p class="muted small">★ 전설: 선택지 ${CFG.augmentChoices}장 중 1장으로 섞일 확률 ${Math.round(CFG.psiLegend.base * 100)}%, 전설 없이 전공 증강을 고를 때마다 +${Math.round(CFG.psiLegend.pity * 100)}%p (전설을 한 번 얻으면 다시 ${Math.round(CFG.psiLegend.base * 100)}%).</p>
       <div class="psi-augs">${augs.map((a) => psiAugRow(H, sid, a, gl)).join('')}</div>${tfBlock}</section>
     <section class="psi-sec"><h3>상성</h3>${psiMatchup(sid)}</section>
     <section class="psi-sec"><h3>이 전공을 가질 수 있는 기물 <span class="cx-hn">${units.length}명</span></h3><ul class="cx2-rows">${units.map((d) => `<li>${unitRowBtn(H, d, PSI_BRIEF[d.id] || d.psi?.desc || '')}</li>`).join('')}</ul></section>

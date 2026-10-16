@@ -23,6 +23,12 @@ export const PSI = {
     proc: 0.25, beacon: 0.1, runawayProc: 2, runawayCd: 0.5,
     /** 연쇄 소각 최대 연속 횟수 */
     chainMax: 4,
+    /** 불씨 보존: 연소 지속 · 연소 없을 때 거는 중첩 */
+    kindleDur: 8, kindleSeed: 4,
+    /** ★ 초신성: 중첩당 폭발 계수 · 범위 · 휘말린 적 연소 · 같은 적 재폭발 대기 */
+    novaPer: 0.2, novaR: 2, novaSeed: 2, novaIcd: 3,
+    /** ★ 불사조: 되살아날 때 체력 · 연소 범위 */
+    phoenixHp: 0.5, phoenixR: 2,
   },
   chrono: {
     /** 서리 파편 발 수 · 파편당 피해 (서리 폭풍) */
@@ -37,6 +43,12 @@ export const PSI = {
     hasteStormN: 6, hasteStormAtkSpd: 0.18,
     /** 오한: 중첩당 초당 · 속도 감소 · 최대 (절대 영도) · 발동 확률 */
     chillDps: 0.04, chillSlow: 0.08, chillMax: 4, zeroMax: 6, proc: 0.3,
+    /** 서리 갑옷: 같은 적 재판정 대기 */
+    rimeIcd: 1,
+    /** ★ 시간 정지: 비술 n번마다 · 보스 감속 · 지속 */
+    stopEvery: 4, stopBossSlow: 0.5, stopBossDur: 2,
+    /** ★ 시간의 메아리: 얼어 있는 동안 받은 피해 중 다시 주는 비율 */
+    echoK: 0.4,
   },
   volt: {
     /** 방전 피해 · 거는 전도 */
@@ -51,6 +63,12 @@ export const PSI = {
     reverseN: 3, reversePer: 0.1, reverseHvPer: 0.15,
     /** 역전류 + 과부하: 충전 대상 아군이 이미 3중첩이면 소모해 주변 1칸 적 전원에게 · 역전류 + 단락: 3중첩 아군이 행동하면 가장 가까운 적 감전 */
     reverseOverload: 1.5, shortShock: 1, shortIcd: 2,
+    /** 정전기: 유도 전류 확률 */
+    staticProc: 0.4,
+    /** ★ 전력망: 범위 밖 추가 대상 수 */
+    gridN: 2,
+    /** ★ 뇌신 강림: 두르는 전도 · 범위 · 중첩당 피해 (고전압) */
+    avatarN: 3, avatarR: 2, avatarPer: 0.12, avatarHvPer: 0.18,
   },
   wave: {
     /** 충격파 피해 · 공진 지속 */
@@ -59,6 +77,10 @@ export const PSI = {
     res: 0.15, freqRes: 0.25, resR: 1, attractResR: 2, resIcd: 0.5, proc: 0.2,
     /** 충돌 · 진도 측정 기절 */
     stun: 1.2, seismicP: 0.35,
+    /** 여진: 지연 · 피해 */
+    afterDelay: 1.5, afterCoef: 0.35,
+    /** ★ 중력 붕괴: 끌어모으는 범위 */
+    collapseR: 2,
   },
   seed: {
     /** 포자 피해 · 거는 중독 */
@@ -69,6 +91,10 @@ export const PSI = {
     regenDur: 5, regenHps: 0.25,
     /** 괴사: 필요 중첩 · 받는 피해 */
     necroAt: 6, necroVuln: 0.2,
+    /** 맹독: 중첩당 초당 */
+    venomPer: 0.14,
+    /** ★ 포자 군락: 지속 · 체력 (자신 최대 체력 비율) · 최대 수 */
+    colonyLife: 8, colonyHp: 0.25, colonyMax: 3,
   },
   mind: {
     /** 계시: 결속 인원 (집단 무의식) · 지속 · 받는 피해 · 공유 비율 (연결된 운명) */
@@ -79,6 +105,10 @@ export const PSI = {
     hypno: 2,
     /** 자아 침식 (같은 대상 1초에 1회 판정) */
     proc: 0.25, confuse: 1,
+    /** 잠식: 자아 침식 확률 · 혼란 */
+    erodeProc: 0.4, erodeConfuse: 1.5,
+    /** ★ 꼭두각시 극장: 체력 조건 · 전투당 최대 */
+    puppetHp: 0.5, puppetMax: 2,
   },
   gold: {
     /** 시장 개입 성공 확률 = base + perReason × |이성|/100 (+ 내부 정보) */
@@ -89,6 +119,10 @@ export const PSI = {
     divN: 3, divMax: 3,
     /** 분산 투자: 임시 장비 1개당 피해 · 경감 */
     perDmg: 0.05, perRed: 0.03,
+    /** 안전 자산: 실패 보호막 · 대상 수 */
+    safeShield: 1.4, safeN: 2,
+    /** ★ 실물 인출: 이긴 전투에서 임시 장비 1개를 얻을 확률 */
+    cashoutP: 0.3,
   },
   illusion: {
     /** 환영: 지속 · 최대 (군무) · 체력 · 실체화 공격 계수 */
@@ -103,6 +137,12 @@ export const PSI = {
     echo: 1.2, fog: 0.3, disrupt: 0.1, disruptMax: 3,
     /** 향취 (같은 대상 1초에 1회 판정) */
     proc: 0.3, scentDur: 4, scentEva: 0.15, scentVuln: 0.08, denseMax: 3,
+    /** 잔상: 환영 지속 · 체력 · 분신 지속 추가 */
+    lingerLife: 9, lingerHp: 0.45, lingerClone: 3,
+    /** ★ 거울 상: 지속 · 체력 · 피해 (대상 적 기준) */
+    mirrorLife: 8, mirrorHp: 0.4, mirrorDmg: 0.6,
+    /** ★ 신기루: 은신 중 주는 피해 */
+    mirageDmg: 0.25,
   },
 } as const;
 
@@ -121,7 +161,7 @@ export function psiStackCap(st: PsiStack, has: (k: string) => boolean): number {
     case 'burn': return has('pyro.wp') ? PSI.pyro.wpMax : PSI.pyro.max;
     case 'chill': return has('chrono.zero') ? PSI.chrono.zeroMax : PSI.chrono.chillMax;
     case 'conduct': return PSI.volt.max;
-    case 'poison': return has('seed.conc') ? PSI.seed.concMax : PSI.seed.max;
+    case 'poison': return has('seed.endless') ? Infinity : has('seed.conc') ? PSI.seed.concMax : PSI.seed.max; // ★ 끝없는 번식: 상한 없음
     case 'scent': return has('illusion.dense') ? PSI.illusion.denseMax : 1;
     case 'tempgear': return PSI.gold.max;
   }

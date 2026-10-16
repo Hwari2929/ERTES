@@ -5,7 +5,7 @@ import * as R from '../src/engine/run';
 import { UNIT_BY_ID } from '../src/data/units';
 import { cantripView, passiveView } from '../src/data/psiinfo';
 import { PSI } from '../src/data/psinum';
-import { SCHOOLS, TRANSFORM_KEYS, psiAugId } from '../src/data/schools';
+import { isLegendAug, LEGEND_KEYS, SCHOOL_PASSIVES, SCHOOLS, TRANSFORM_KEYS, psiAugId } from '../src/data/schools';
 import { CFG } from '../src/config';
 import { ALL_AUGS } from '../src/data/augments';
 import type { CUnit } from '../src/engine/combat';
@@ -61,7 +61,7 @@ else {
   const tm = bb.clone.hooks.map((h) => h.takenMult?.(null as never, bb.clone!, bb.clone!, { elem: 'phys' } as never)).find((x) => x !== undefined);
   if (tm === undefined || Math.abs(tm - (1 - PSI.illusion.solidCloneRed)) > 1e-9) fails.push(`실체화 분신 받는 피해 배율 ${tm}`);
 }
-// (3) 추첨: 배타 증강도 같은 창에 나오고, 각 후보 등장 확률이 고르다 (시공 7종 중 3개 → 각 3/7)
+// (3) 추첨: 배타 증강도 같은 창에 나오고, 각 후보 등장 확률이 고르다 (기본 8종: 전설이 없으면 3장, 있으면 2장 · ★ 전설 2종 중 1장)
 {
   const run = R.newRun(11, ['romani', 'vivian', 'falcon']);
   const u = run.units.find((x) => x.defId === 'romani')!;
@@ -74,9 +74,11 @@ else {
     if (ids.includes('psi.chrono.storm') && ids.includes('psi.chrono.haste')) both++;
   }
   const rates = Object.entries(cnt).map(([k, v]) => `${k.slice(11)} ${(v / N).toFixed(3)}`).join(' · ');
-  console.log(`추첨 ${N}회: ${rates} · 폭풍+가속 함께 ${(both / N).toFixed(3)} (기대 ${(1 / 7).toFixed(3)})`);
+  const pL = R.psiLegendChance(u), nN = SCHOOL_PASSIVES.chrono.length - LEGEND_KEYS.chrono.length;
+  const expN = (1 - pL) * 3 / nN + pL * 2 / nN, expL = pL / LEGEND_KEYS.chrono.length;
+  console.log(`추첨 ${N}회 (전설 확률 ${pL}): ${rates} · 폭풍+가속 함께 ${(both / N).toFixed(3)} · 기대 기본 ${expN.toFixed(3)} · 전설 ${expL.toFixed(3)}`);
   if (!both) fails.push('배타 증강이 같은 창에 나오지 않음');
-  for (const [k, v] of Object.entries(cnt)) if (Math.abs(v / N - 3 / 7) > 0.04) fails.push(`추첨 편향: ${k} ${(v / N).toFixed(3)}`);
+  for (const [k, v] of Object.entries(cnt)) if (Math.abs(v / N - (isLegendAug(k) ? expL : expN)) > 0.04) fails.push(`추첨 편향: ${k} ${(v / N).toFixed(3)}`);
   // 배타 없음: 시간 가속을 가져도 서리 폭풍이 계속 나온다
   u.augments.push({ id: 'psi.chrono.haste' });
   let seen = false;
@@ -119,6 +121,31 @@ function fight(def: string, school: string, keys: string[], seed = 5) {
   const c1 = fight('hiiro', 'illusion', ['clone', 'troupe']);
   console.log(`분신 + 군무: 분신 ${c1.clones}기, 최대 남은 시간 ${c1.cloneLife.toFixed(1)}초`);
   if (c1.cloneLife <= PSI.illusion.cloneLife) fails.push('군무 + 분신: 지속이 늘지 않음');
+}
+// (6) ★ 전설 출현 보정: 기본 + 전설 없이 지나간 선택마다 보정, 얻으면 기본으로 · 확률 1이면 언제나 전설 1장
+{
+  const run = R.newRun(13, ['romani', 'vivian', 'falcon']);
+  const u = run.units.find((x) => x.defId === 'romani')!;
+  u.augments = [{ id: 'school.pyro' }];
+  const seq: number[] = [];
+  for (const k of ['wp', 'chain', 'spread']) { seq.push(R.psiLegendChance(u)); u.augments.push({ id: psiAugId('pyro', k) }); }
+  seq.push(R.psiLegendChance(u));
+  const exp = [0, 1, 2, 3].map((i) => Math.min(1, CFG.psiLegend.base + CFG.psiLegend.pity * i));
+  console.log(`전설 확률 (전설 없이 0 · 1 · 2 · 3개): ${seq.join(' · ')} (기대 ${exp.join(' · ')})`);
+  if (seq.some((v, i) => Math.abs(v - exp[i]) > 1e-9)) fails.push('전설 출현 보정이 기대와 다름');
+  if (exp[3] >= 1) for (let i = 0; i < 200; i++) { const n = R.augOptions(run, u, 'psionic').filter((o) => isLegendAug(o.id)).length; if (n !== 1) { fails.push(`확률 1인데 전설 ${n}장`); break; } }
+  u.augments.push({ id: psiAugId('pyro', 'nova') });
+  if (R.psiLegendChance(u) !== CFG.psiLegend.base) fails.push('전설을 얻은 뒤 보정이 남음');
+}
+// (7) 새 전공 증강 (기본 · 전설): 전투가 끝까지 돌고, 시전자가 피해 · 회복 · 소환 중 하나는 낸다
+for (const s of SCHOOLS) {
+  const unit = s.id === 'pyro' || s.id === 'chrono' ? 'romani' : s.id === 'volt' || s.id === 'wave' ? 'nadir' : s.id === 'seed' || s.id === 'mind' ? 'zina' : 'hiiro';
+  for (const [k] of SCHOOL_PASSIVES[s.id].slice(-3)) {
+    let r: ReturnType<typeof fight> | null = null;
+    try { r = fight(unit, s.id, [k]); } catch (e) { fails.push(`${s.id}.${k}: 전투 중 오류 ${(e as Error).message}`); continue; }
+    console.log(`${`${s.id}.${k}`.padEnd(18)} ${isLegendAug(psiAugId(s.id, k)) ? '★' : ' '} 시전자 피해 ${Math.round(r.dmg)} · 빙결 ${r.freezes} · 혼란 ${r.confused}`);
+    if (!(r.dmg > 0)) fails.push(`${s.id}.${k}: 시전자 피해 없음`);
+  }
 }
 if (fails.length) { console.log('실패\n' + fails.join('\n')); process.exit(1); }
 console.log('통과');

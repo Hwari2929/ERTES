@@ -12,7 +12,7 @@ import { SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, recMajors } from '../data/rework';
 import { SCHOOL_AUGS, schoolPassives } from '../data/psionic';
-import { majorsOf, schoolAugId, schoolOf, type SchoolId } from '../data/schools';
+import { isLegendAug, majorsOf, schoolAugId, schoolOf, type SchoolId } from '../data/schools';
 import { DEFAULT_RELIC, RELIC_BY_ID, RELICS } from '../data/relics';
 import { Rng } from '../rng';
 import { FAITHS,
@@ -717,7 +717,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   lines.push(`공명도 풀 ${pool} 분배`);
   if (uni) for (const u of dep) if (memberships(u).includes('UNI')) u.xp += [0, 1, 2, 3, 5][uni]; // 연합: 전투 후 추가 공명도
   const killsOf = (u: UnitState) => b.units.find((c) => c.src === u)?.counters.kills || 0;
-  for (const u of dep) for (const a of u.augments) AUG_BY_ID[a.id]?.after?.(run, u, won, killsOf(u));
+  for (const u of dep) for (const a of u.augments) AUG_BY_ID[a.id]?.after?.(run, u, won, killsOf(u), { c: b.units.find((c) => c.src === u), gain: (id) => gainItem(run, id, lines) });
   // 성직자: 승리 시 신앙 / 대스타: 승리 시 명성 + 대스타 처치 수
   const star = tierOf('STAR', counts.STAR || 0);
   settleGrowth(run, b, won, interest, lines);
@@ -811,7 +811,7 @@ function rankUp(run: RunState, u: UnitState) {
   const tt = UNIT_BY_ID[u.defId].ttype;
   const R = u.rank;
   // 마이너: 능력치 2종 +3 · 메이저: 메이저 증강 · 스페셜: 전용 증강 · 사이오닉: 전공 증강 (디바인은 스탯만)
-  if (CFG.growth.pick(tt, R)) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: CFG.rankPoints, options: [], rerolls: 0, allocDone: false });
+  if (CFG.growth.pick(tt, R)) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: CFG.rankPoints, options: [], rerolls: 0, allocDone: false, ...(rng(run, (r) => r.chance(CFG.greatChance)) ? { great: true } : {}) }); // 대성공은 미리 굴려 두고 첫 확정 때 공개
   if (CFG.growth.major(tt, R)) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, kind: 'major' });
   if (CFG.growth.special(tt, R) && augRoom(u, 'special')) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, kind: 'special' });
   if (CFG.growth.psionic(tt, R) && augRoom(u, 'psionic')) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, kind: 'psionic' });
@@ -856,6 +856,15 @@ export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major')
   if (kind === 'school') { const ok = majorsOf(def.id); return SCHOOL_AUGS.filter((a) => ok.includes(a.owner as SchoolId)).map((a) => ({ id: a.id })); }
   const base = kind === 'special' ? def.specialAugs || [] : kind === 'psionic' ? psiPool(u) : MAJOR_AUGS;
   const unitPool = base.filter((a) => avail(a));
+  if (kind === 'psionic') {
+    // 전공 증강: 기본 증강 3장, 확률(psiLegendChance)로 그중 1장이 ★ 전설
+    const leg = unitPool.filter((a) => isLegendAug(a.id)).map((a) => a.id), norm = unitPool.filter((a) => !isLegendAug(a.id)).map((a) => a.id);
+    return rng(run, (r) => {
+      const show = leg.length > 0 && r.chance(psiLegendChance(u));
+      const out = show ? [...r.sample(norm, CFG.augmentChoices - 1), r.pick(leg)] : r.sample(norm, CFG.augmentChoices);
+      return r.shuffle(out).map((id) => ({ id }));
+    });
+  }
   return rng(run, (r) => {
     // 배타 증강은 없다 (어떤 조합도 함께 작동). 보유하지 않은 후보에서 균등 비복원 추출
     const out = r.sample(unitPool.map((x) => x.id), CFG.augmentChoices);
@@ -866,6 +875,12 @@ export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major')
   });
 }
 
+/** ★ 전설 전공 증강이 이번 선택지에 섞일 확률: 기본 + 전설 없이 지나간 전공 증강 선택마다 보정, 전설을 한 번 얻으면 기본만 */
+export function psiLegendChance(u: UnitState): number {
+  const owned = u.augments.filter((a) => a.id.startsWith('psi.'));
+  if (owned.some((a) => isLegendAug(a.id))) return CFG.psiLegend.base;
+  return Math.min(1, CFG.psiLegend.base + CFG.psiLegend.pity * owned.length);
+}
 export function ensureRankupOptions(run: RunState, p: Extract<Pending, { t: 'rankup' }>) {
   const u = run.units.find((x) => x.uid === p.uid);
   if (u && !p.options) p.options = augOptions(run, u, (p.kind as AugKind) || 'major');
@@ -1069,6 +1084,19 @@ export function recruit(run: RunState, defId: string) {
   log(run, `${UNIT_BY_ID[defId].name} 합류 (공명 ${rank})`);
 }
 
+/** 마이너 능력치 보상 확정 (화면 · 봇 공용). 대성공이면 첫 확정 뒤 같은 창에서 한 번 더 고른다.
+ *  반환: false = 잘못된 선택, 'again' = 대성공 공개 (한 번 더), true = 끝 (allocDone) */
+export function allocRank(run: RunState, p: Extract<Pending, { t: 'rankup' }>, picks: Major[]): boolean | 'again' {
+  if (p.allocDone || !applyRankPicks(run, p.uid, picks, p.points)) return false;
+  if (p.great && !p.round) {
+    p.round = 1;
+    const u = run.units.find((x) => x.uid === p.uid);
+    log(run, `대성공! ${u ? UNIT_BY_ID[u.defId].name : ''} 능력치를 한 번 더 고른다`);
+    return 'again';
+  }
+  p.allocDone = true;
+  return true;
+}
 /** 등급업 선택: 서로 다른 메이저 CFG.rankPicks개에 각각 points만큼 */
 export function applyRankPicks(run: RunState, uid: string, picks: Major[], points: number): boolean {
   const u = run.units.find((x) => x.uid === uid);

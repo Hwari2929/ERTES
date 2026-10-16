@@ -4,6 +4,8 @@ import { CFG } from '../config';
 
 export interface GlossEntry { id: string; term: string; text: string; key: string }
 export interface GlossChapter { ch: string; title: string; who: string; entries: GlossEntry[] }
+/** 비율 → '25%' */
+const pc = (v: number) => `${Math.round(v * 100)}%`;
 
 export const GLOSSARY: GlossChapter[] = [
   {
@@ -59,6 +61,8 @@ export const GLOSSARY: GlossChapter[] = [
       { id: 'nodes', term: '노드 종류', key: 'ch4_map', text: '전투, 역경, 사건, 보급(갈림길: 상점 · 보급 · 속보 · 모집), 전환(짝수 페이즈: 휴식 · 도전), 보스. 항로 회의에서는 의뢰 내내 함대 전체에 적용되는 전역 증강 셋 중 하나를 고른다. 2페이즈부터는 페이즈마다 영입 기회가 열린다.' },
       { id: 'field', term: '전장 · 전장 조건', key: 'ch4_brief', text: '의뢰마다 싸우는 전장이 정해진다. 전장 조건은 모든 전투에 붙고(적 증가, 가격 상승 등), 힘을 받는 세력도 따로 있다. 지도의 환경 탭에서 언제든 다시 본다.' },
       { id: 'ttype', term: '전술 유형', key: 'ch4_intro', text: '성장 방식. 메이저(궁극기 · 4등급마다 메이저 증강), 마이너(3등급마다 주요 능력치 2종 +3 · 기술이 등급 따라 자람), 스페셜(합류 · 5 · 10 · 15등급 전용 증강), 사이오닉(전공 · 이성 · 4 · 8 · 12 · 16등급 전공 증강), 디바인(신앙 · 신성력 · 성유물). 증강끼리 배타는 없다: 비술 · 기술을 바꾸는 변형 증강도 다른 증강과 함께 작동한다.' },
+      { id: 'psileg', term: '★ 전설 전공 증강', key: 'ch4_intro', text: `사이오닉의 전공 증강은 전공마다 기본 8종에 ★ 전설 2종이 더 있다. 전설은 학파의 규칙 자체를 비튼다 (초신성 · 시간 정지 · 포자 군락 등). 전공 증강 선택지 ${CFG.augmentChoices}장 중 1장이 전설로 섞일 확률은 ${pc(CFG.psiLegend.base)}이고, 전설 없이 고를 때마다 +${pc(CFG.psiLegend.pity)}p씩 오른다 (4번째 선택에서는 반드시 나온다). 전설을 한 번 얻으면 다시 ${pc(CFG.psiLegend.base)}. 전설 카드는 가장 화려한 공개 연출로 나오고, ◆ 변형 증강은 그보다 한 단계 아래로 나온다.` },
+      { id: 'great', term: '능력치 대성공', key: 'ch4_intro', text: `마이너 기물의 능력치 보상(3등급마다)은 확정할 때 ${pc(CFG.greatChance)} 확률로 대성공한다. 대성공이면 화려한 연출과 함께 주요 능력치 ${CFG.rankPicks}종을 한 번 더 골라 각각 +${CFG.rankPoints} (같은 능력치를 다시 고르면 +${CFG.rankPoints * 2}, 상승량 2배).` },
       { id: 'reason', term: '이성 (사이오닉)', key: 'ch4_deploy', text: '사이오닉의 정신 수치. 50에서 시작해 기술과 행동에 따라 오르내리고, 0 밑으로 내려가면 매초 정신 피해를 받는다. 사이오닉은 합류할 때 학파의 전공을 하나 고른다. 학파마다 고이성 · 저이성 효과가 다르다 (인과학파 저이성은 기술 피해에도 치명타).' },
       { id: 'event', term: '사건', key: 'ch4_event', text: '이야기를 읽고 끝에서 선택지를 고른다. 선택지 아래 작은 글씨가 효과이며, 회색 선택지는 조건이 모자란 것이고 이유가 함께 적힌다.' },
       { id: 'adversity', term: '역경', key: 'ch4_adversity', text: '적 체력 1.5배 · 피해 1.25배에 정예가 반드시 섞인다. 대신 크레딧과 공명도 보상도 1.5배이고, 이기면 무작위 장비 재료 1개가 확정으로 나온다.' },

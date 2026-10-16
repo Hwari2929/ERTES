@@ -84,6 +84,10 @@ export const CFG = {
   xpPool: (phase: number) => 6 + 3 * phase, // 전투 1회 공명도 풀 [임시]
   buyXpCost: 4, buyXpAmount: 4, // [임시]
   augmentChoices: 3, augmentRerolls: 1,
+  /** ★ 전설 전공 증강: 전공 증강 선택지 3장 중 1장이 전설일 확률 = base + pity × (전설 없이 지나간 전공 증강 수). 전설을 한 번 얻으면 보정 없이 base */
+  psiLegend: { base: 0.25, pity: 0.25 },
+  /** 마이너 능력치 보상 대성공 확률: 대성공이면 주요 능력치를 한 번 더 고른다 (상승량 2배) */
+  greatChance: 0.2,
 
   // ── 파티/보드
   victoryPhase: 6, // 이 페이즈 보스를 이기면 의뢰 성공

@@ -322,7 +322,7 @@ function playRun(seed: number) {
       else if (p.t === 'rankup') {
         const u = run.units.find((x) => x.uid === p.uid)!;
         const pref: Major[] = UNIT_BY_ID[u.defId].range <= 1 ? ['vit', 'pow'] : ['pow', 'mnd'];
-        if (!p.allocDone) R.applyRankPicks(run, p.uid, pref, p.points);
+        if (!p.allocDone) while (R.allocRank(run, p, pref) === 'again'); // 대성공이면 같은 능력치를 한 번 더
         R.ensureRankupOptions(run, p);
         { const a = augChoiceP(p, u, bot, alt); if (a) R.chooseAug(run, p.uid, a); }
       } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
