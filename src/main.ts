@@ -718,10 +718,9 @@ function foeModal(id: string) {
   const b = new Battle(9, 9, new Rng(1), { phase: 1, credits: 0 });
   const c = buildEnemy(b, e, 1, 1);
   return `<div class="modal-bg" data-a="intro-foe" data-v=""><div class="modal foe-modal">
-    <div class="detail">${heroHead(`en_${e.id}`, sprite(e, 'spr big'), e.name, enemyTags(e))}
-      <div class="small muted">${CATEGORY_RULE[enemyCategory(e)]}</div>
-      ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}
-      <p class="small muted">${esc(tendText(e))}</p>
+    <div class="detail">${foeHead(e, sprite(e, 'spr big'), unitRank(e, c))}
+      ${(() => { const eq = foeGear(e, {}), ms = battleMajors(c)!; return `${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.map((x) => `<span class="tk-it">${itemIcon(x, `data-a="foe-item" data-v="${x}"`)}</span>`).join('')}</div></div>` : ''}
+      <div class="mj-wrap"><div class="mj-head"><h3>주요 능력치 <span class="muted small">1페이즈 기준 · 체력 ${fmt(b.S(c, 'maxHp'))}</span></h3></div>${majorsHtml(ms, foeAmp(ms, c))}</div>`; })()}
       <h3>능력 <span class="muted small">1페이즈 기준</span></h3><div class="abils">${enemyAbilCards(e, b, c)}</div></div>
     ${app.abilPop ? enemyAbilPop(app.abilPop, e, b, c) : ''}
     <div class="row-btns"><button class="btn primary" data-a="intro-foe" data-v="">닫기</button></div>
@@ -1035,7 +1034,10 @@ function allyRef(rank: number) {
   return (allyRefs[rank] = { hp: hp / RECRUITABLE.length, pow: pow / RECRUITABLE.length });
 }
 function foeRank(run: RunState, e: EnemyDef, phase: number, mult: number, s?: { items?: string[]; mod?: string }) {
-  const c = buildEnemy(new Battle(9, 9, new Rng(1), { phase, credits: 0, field: run.field, diff: run.diff }), e, phase, mult, s);
+  return unitRank(e, buildEnemy(new Battle(9, 9, new Rng(1), { phase, credits: 0, field: run.field, diff: run.diff }), e, phase, mult, s));
+}
+/** 적 유닛(편성 미리보기 · 전투 중)의 공명 등급 추정 */
+function unitRank(e: EnemyDef, c: CUnit) {
   const pow = Math.max(c.st.shoot, c.st.strike, c.st.tech) * c.phaseAmp;
   if (e.noAttack || !(pow > 0)) return null; // 공격하지 않는 장애물 · 지원 드론
   let lv = 1;
@@ -1771,20 +1773,14 @@ function detailPanel(run: RunState, extra = '') {
     if (!s) return '';
     const e = ENEMY_BY_ID[s.defId];
     const ph = run.node.enc.phase ?? run.phase; // 도전은 다음 페이즈 적
-    const b = new Battle(9, 9, new Rng(1), { phase: ph, credits: 0 });
+    const b = new Battle(9, 9, new Rng(1), { phase: ph, credits: 0, field: run.field, diff: run.diff }); // 실제 전투와 같은 전장 · 위험 등급 (체력 · 피해 배율)
     const c = buildEnemy(b, e, ph, run.node.enc.mult, s);
     const ms = battleMajors(c)!;
     const eq = foeGear(e, s);
-    const known = loadMeta().enemies[e.id];
     return `<div class="detail">${bar}
-      ${heroHead(`en_${e.id}`, sprite(e, 'spr big'), e.name, enemyTags(e))}
-      <div class="small muted">${CATEGORY_RULE[enemyCategory(e)]} · 체력 ${fmt(b.S(c, 'maxHp'))}${known ? ` · 도감: 조우 ${known.seen} · 처치 ${known.kills}` : ''}</div>
-      ${TEND_NAME[e.tend] ? `<div class="tend-line">${lineIcon(`t.${e.tend}`, 'li')}<b>${TEND_NAME[e.tend].name}</b><span>${esc(TEND_NAME[e.tend].desc)}</span></div>` : ''}
-      ${(() => { const r = foeRank(run, e, ph, run.node!.enc!.mult, s); return r ? `<div class="tend-line rk">${RANK_STAR}<b>공명 등급 ${rankLabel(r.lv)} 수준</b><span>${esc(rankTip(r).split(': ')[1])}</span></div>` : ''; })()}
-      ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}
+      ${foeHead(e, sprite(e, 'spr big'), unitRank(e, c))}
       ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.map((x) => `<span class="tk-it">${itemIcon(x, `data-a="foe-item" data-v="${x}"`)}</span>`).join('')}</div></div>` : ''}
-      <div class="mj-wrap"><div class="mj-head"><h3>주요 능력치 <span class="muted small">페이즈 ${ph}</span></h3>${magBtn()}</div>${majorsHtml(ms)}</div>
-      <div class="small accent">페이즈 피해 배율 ×${c.phaseAmp.toFixed(2)}</div>
+      <div class="mj-wrap"><div class="mj-head"><h3>주요 능력치 <span class="muted small">페이즈 ${ph} · 체력 ${fmt(b.S(c, 'maxHp'))}</span></h3>${magBtn()}</div>${majorsHtml(ms, foeAmp(ms, c))}</div>
       <h3>능력</h3><div class="abils">${enemyAbilCards(e, b, c)}</div>
     </div>`;
   }
@@ -3013,12 +3009,33 @@ function bpickInfo(u: CUnit) {
 
 // ───────────────────────── 전투 중 상세 정보 (아군 · 적 공용)
 const magBtn = () => `<button class="mag-btn${app.statPop ? ' on' : ''}" data-a="stat-pop" title="상세 능력치" aria-label="상세 능력치 ${app.statPop ? '닫기' : '보기'}" aria-pressed="${app.statPop}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg></button>`;
-function majorsHtml(ms: Record<Major, number>) {
-  return `<div class="majors">${MAJORS.map((m) => `<div class="major"><span>${majorIcon(m)}${MAJOR_NAME[m]}</span><span class="mbar"><i style="width:${Math.min(100, ms[m] * 3)}%"></i></span><b>${ms[m]}</b></div>`).join('')}</div>`;
+function majorsHtml(ms: Record<Major, number>, amp?: { m: Major; x: number }) {
+  return `<div class="majors">${MAJORS.map((m) => {
+    const a = amp?.m === m ? amp : null, v = a ? Math.round(ms[m] * a.x) : ms[m];
+    const pop = a ? ` data-kw="foe" data-tt="${MAJOR_NAME[m]} ${v}" data-td="기본 ${ms[m]} × 페이즈 피해 배율 ${a.x.toFixed(2)}" tabindex="0"` : '';
+    return `<div class="major${a && v !== ms[m] ? ' amp' : ''}"${pop}><span>${majorIcon(m)}${MAJOR_NAME[m]}</span><span class="mbar"><i style="width:${Math.min(100, v * 3)}%"></i></span><b>${v}</b></div>`;
+  }).join('')}</div>`;
 }
+/** 적의 주력 능력치 (전투력 · 정신력 중 큰 쪽) × 페이즈 피해 배율 (전장 · 위험 등급 포함, 엔진의 phaseAmp) */
+const foeAmp = (ms: Record<Major, number>, c: CUnit) => ({ m: (ms.mnd > ms.pow ? 'mnd' : 'pow') as Major, x: c.phaseAmp });
 /** 아군: 전술 유형 · 전투 유형 · 분류, 적: 분류 · 등급 */
 function allyTags(d: UnitDef) { return `<i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i>${categoryTag(unitCategory(d))}`; }
-function enemyTags(e: EnemyDef) { return `${categoryTag(enemyCategory(e))}<i>${tierKo(e)}</i><i title="${esc(TEND_NAME[e.tend].desc)}">성향: ${TEND_NAME[e.tend].name}</i>`; }
+/** 적 상세 머리 (편성 · 전장 브리핑 · 전투 공용): 초상 → 칩 줄 (공명 등급 · 분류 · 성향 · 정예 / 보스만 등급) → 한 줄 설명.
+ *  칩은 편성 적 패널과 같은 토큰 (.rank.foe-rank · .tchip). 누르면(PC 호버) 설명 팝업 — 공명 등급 추정 · 분류 규칙 · 성향 · 용어집 '정예 · 보스' 데이터에서 읽는다 */
+function foeHead(e: EnemyDef, fallback: string, rk: { lv: number; hpX: number } | null) {
+  const cat = enemyCategory(e), td = TEND_NAME[e.tend];
+  const pop = (t: string, d: string) => ` data-kw="foe" data-tt="${esc(t)}" data-td="${esc(d)}" tabindex="0" role="button"`;
+  const tier = e.tier === 'minion' ? undefined : GLOSSARY.flatMap((c) => c.entries).find((x) => x.id === 'boss');
+  const [rt, rd] = rk ? rankTip(rk).split(': ') : ['', ''];
+  const chips = (rk ? `<span class="rank foe-rank"${pop(rt, rd)}>${rankLabel(rk.lv)}</span>` : '')
+    + `<span class="tchip cat-${cat}"${pop(CATEGORY_NAME[cat], CATEGORY_RULE[cat])}>${lineIcon(`k.${cat}`, 'li')}${CATEGORY_NAME[cat]}</span>`
+    + (td ? `<span class="tchip"${pop(td.name, td.desc)}>${lineIcon(`t.${e.tend}`, 'li')}${td.name}</span>` : '')
+    + (tier ? `<span class="tchip bad"${pop(tier.term, tier.text)}>${lineIcon(e.tier === 'boss' ? 'n.boss' : 'm.elite', 'li')}${tierKo(e)}</span>` : '');
+  const line = foeBlurb(e);
+  return `${heroHead(`en_${e.id}`, fallback, e.name, chips)}${line ? `<p class="small foe-line">${esc(line)}</p>` : ''}`;
+}
+/** 적 한 줄 설명 (표시용): 설명 데이터(ENEMY_DESC)에서 칩과 겹치는 머리말(보스 · 정예)과 출현 페이즈('n페이즈부터')를 걸러 낸다 — 도감 · 툴팁은 원문 그대로 */
+const foeBlurb = (e: EnemyDef) => (ENEMY_DESC[e.id] || '').replace(/^(보스|정예)(\. | · )/, '').replace(/\s*\d+페이즈부터\.?/g, '').trim();
 /** 적 성향 한 줄 (툴팁 · 상세) */
 const tendText = (e: EnemyDef) => `성향: ${TEND_NAME[e.tend].name} — ${TEND_NAME[e.tend].desc}`;
 /** 적: 지금 표적 + 도발 수치 상위 3명 (전투 상세) */
@@ -3035,7 +3052,7 @@ function heroHead(artId: string, fallback: string, name: string, tags: string) {
 function enemyWeapon(e: EnemyDef, interval = e.interval) {
   return abil('weapon', '기본 공격', `${interval.toFixed(1)}초`, `${e.atk.type === 'shoot' ? '사격' : '타격'} · ${ELEM_NAME[e.atk.elem]} 피해 · 사거리 ${e.range}${e.immobile ? ' · 이동하지 않음' : ''}${e.melee ? ' · 근접' : ''}`);
 }
-const tierKo = (e: EnemyDef) => (e.tier === 'boss' ? '보스' : e.tier === 'elite' ? '엘리트' : '일반');
+const tierKo = (e: EnemyDef) => (e.tier === 'boss' ? '보스' : e.tier === 'elite' ? '정예' : '일반'); // 정예: 용어집 · 적 설명 · 도감과 같은 말
 const majorCache = new Map<number, Record<Major, number>>();
 function battleMajors(u: CUnit): Record<Major, number> | null {
   if (u.side === 1) return Object.fromEntries(MAJORS.map((m) => [m, u.mem[`M_${m}`] || 0])) as Record<Major, number>;
@@ -3064,7 +3081,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
     if (app.abilPop) pop = abilPopHtml(app.abilPop, d, b, u);
   } else if (u.side === 1 && ENEMY_BY_ID[u.defId]) {
     const e = ENEMY_BY_ID[u.defId];
-    head = heroHead(`en_${e.id}`, sprite(u, 'spr big'), e.name, enemyTags(e));
+    head = foeHead(e, sprite(u, 'spr big'), unitRank(e, u));
     abils = enemyAbilCards(e, b, u);
     if (app.abilPop) pop = enemyAbilPop(app.abilPop, e, b, u);
   } else {
@@ -3075,7 +3092,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
   return `${dBar('bdesel')}${head}
     <div class="bs-dyn"></div>
     ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.join('')}</div></div>` : ''}
-    ${ms ? `<div class="mj-wrap"><div class="mj-head"><h3>주요 능력치</h3>${magBtn()}</div>${majorsHtml(ms)}</div>` : `<div class="mj-head"><h3>능력치</h3>${magBtn()}</div>`}
+    ${ms ? `<div class="mj-wrap"><div class="mj-head"><h3>주요 능력치</h3>${magBtn()}</div>${majorsHtml(ms, u.side === 1 && ENEMY_BY_ID[u.defId] ? foeAmp(ms, u) : undefined)}</div>` : `<div class="mj-head"><h3>능력치</h3>${magBtn()}</div>`}
     ${app.statPop ? '<div class="bs-stats"></div>' : ''}
     ${abils ? `<h3>능력</h3><div class="abils">${abils}</div>` : ''}${pop}`;
 }
@@ -4262,11 +4279,11 @@ addEventListener('scroll', () => document.querySelector('.tl-pop')?.remove(), { 
 let kwPinned: HTMLElement | null = null;
 function showKw(el: HTMLElement) {
   const k = el.dataset.kw!;
-  const g = GLOSS[k];
+  const g = GLOSS[k] || (el.dataset.td ? { name: el.dataset.tt || '', desc: el.dataset.td } : undefined);
   if (!g) return;
   let tip = document.querySelector<HTMLElement>('.kw-tip');
   if (!tip) { tip = document.createElement('div'); tip.className = 'kw-tip'; tip.setAttribute('role', 'tooltip'); document.body.appendChild(tip); }
-  tip.innerHTML = `<b>${AB.kwIcon(k)}${esc(g.name)}</b><span>${esc(g.desc)}</span>`;
+  tip.innerHTML = `<b>${GLOSS[k] ? AB.kwIcon(k) : el.querySelector('.li')?.outerHTML || ''}${esc(g.name)}</b><span>${esc(g.desc)}</span>`;
   const r = el.getBoundingClientRect();
   const w = Math.min(260, innerWidth - 16);
   tip.style.width = `${w}px`;

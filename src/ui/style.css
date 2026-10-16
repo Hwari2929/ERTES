@@ -823,11 +823,6 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .bench-u.syn-hl, main.syn-focu
 .pb-cnt { color: var(--c-text-2); font-variant-numeric: tabular-nums; }
 .pb-tags { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
 .pb-tips { margin: 14px 0 0; }
-/* 적 상세: 분류 줄 바로 밑 전투 성향 */
-.tend-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 4px 0; font-size: var(--fs-sm); }
-.tend-line .li { width: 16px; height: 16px; color: var(--c-bad); flex: none; }
-.tend-line span { color: var(--c-text-2); }
-.tend-line.rk .rstar { width: 15px; height: 15px; color: var(--c-text); flex: none; }
 .inv-detail { display: flex; gap: 10px; align-items: flex-start; width: min(100%, 560px); margin: 10px auto 0; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); font-size: var(--fs-md); }
 .inv-detail > div { min-width: 0; }
 .drag-ghost { position: fixed; z-index: var(--z-drag); pointer-events: none; transform: translate(-50%, -50%); width: 56px; height: 56px; display: grid; place-items: center; font-size: var(--fs-3xl); }
@@ -1616,6 +1611,10 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .dh-types { display: flex; gap: 6px; flex-wrap: wrap; }
 .dh-types i { font-style: normal; display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-sm); font-weight: 600; color: var(--c-chalk); background: color-mix(in srgb, var(--c-ink) 70%, transparent); border-radius: var(--r-sm); padding: 1px 7px 1px 5px; }
 .dh-types .ti { width: 13px; height: 13px; }
+.dh-types [data-kw] { pointer-events: auto; cursor: help; text-shadow: none; } /* 적 상세 칩: 편성 적 패널과 같은 토큰, 눌러서(호버) 설명 */
+.major[data-kw] { cursor: help; }
+.major.amp b { color: color-mix(in srgb, var(--c-bad) var(--data-mix), var(--c-text)); } /* 적 주력 능력치 × 페이즈 피해 배율 */
+.major.amp .mbar i { background: color-mix(in srgb, var(--c-bad) 70%, var(--c-text-2)); }
 .dh-rank { display: flex; align-items: stretch !important; gap: 8px; margin-top: 6px; height: 26px; }
 .dh-r { font-family: var(--f-mono); font-weight: 700; font-size: var(--fs-2xl); display: inline-flex; align-items: center; gap: 2px; flex: none; }
 .dh-rank .dh-r { align-self: center; line-height: 1; }
