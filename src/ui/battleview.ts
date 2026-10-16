@@ -11,6 +11,9 @@ import { DIVINE_ACT } from '../data/rework';
 import { SCHOOL_BY_ID, type SchoolId } from '../data/schools';
 import { cantripView } from '../data/psiinfo';
 import { lineIcon } from './synicons';
+import { SYN_BY_ID } from '../data/synergies';
+import { GLOSS } from '../data/abiltext';
+import { FeedList, type FeedItem } from './bfeed';
 
 export const ELEM_COLOR: Record<Elem, string> = {
   phys: 'var(--el-phys)', chem: 'var(--el-chem)', elec: 'var(--el-elec)', psy: 'var(--el-psy)', holy: 'var(--el-holy)', true: 'var(--el-true)',
@@ -371,6 +374,23 @@ export function previewDeath(host: HTMLElement, style: DeathStyle) {
 
 /** 표시 우선순위: 0 일반 숫자 · 1 스킬 피해 · 범위 · 2 스킬명 · 부활 · 상태이상 (생략하지 않음) */
 type Prio = 0 | 1 | 2;
+/** 피드가 보드 옆이 아니라 아래로 접히는 배치 (style.css 의 .battle .side.left 접힘 조건과 같게): 스킬 줄도 사건 피드에 */
+const FEED_NARROW = '(max-width: 1100px), (orientation: landscape) and (max-height: 560px)';
+/** 떠오르는 글자 자리 (칸 크기 배율, 기물 중앙 기준): 피해 숫자는 위 가운데 (같은 종류는 합산), 큰 숫자(치명타 · 피니쉬 · 처치)는 그보다 위,
+ *  지속 피해 · 회복 · 보호막은 옆, 상태 글자(회피 · 찰과 · 상태이상 이름)는 카드 아래쪽 두 칸을 나눠 쓴다 */
+const SLOT = {
+  hit: [[0, -0.28], [-0.28, -0.16], [0.28, -0.16]], big: [[0, -0.56], [-0.3, -0.74], [0.3, -0.74]],
+  dot: [-0.24, -0.08], heal: [0.3, -0.14], sh: [-0.3, -0.3], word: [[0, 0.3], [0, 0.13]],
+} as const;
+/** 합산 창 (실시간 초): 마지막 타격 뒤 이 안에 같은 대상 · 같은 종류 피해가 오면 숫자 하나로. 이펙트 · 숫자 지속 시간 설정에 비례 (0.3 ~ 0.5초) */
+const mergeGap = () => Math.max(0.3, Math.min(0.5, FX.fxMs / 3000));
+/** 한 숫자가 합산을 이어 가는 최대 시간 (계속 맞는 대상도 숫자가 떠올라 사라지게) */
+const mergeMax = () => Math.max(0.8, Math.min(1.6, FX.fxMs / 1000));
+/** f: 큰 숫자 표식 (치명타 · 피니쉬 · 처치). 같은 대상의 큰 숫자는 하나로 합산하고 표식을 모은다 */
+type BigF = { kill: boolean; fin: boolean; crit: boolean };
+type Merge = { el: HTMLElement; v: number; t0: number; last: number; n: number; a: Animation | null; show: (v: number) => string; f?: BigF };
+/** 큰 숫자 글자: 표식(피니쉬 · 처치)은 위 작은 줄, 치명타는 '!' (데이터 이름: 피니쉬 = GLOSS.finish) */
+const bigHtml = (v: number, f: BigF) => { const tag = [f.fin ? GLOSS.finish.name : '', f.kill ? '처치' : ''].filter(Boolean).join(' · '); return `${tag ? `<small>${tag}</small>` : ''}${fmt(v)}${f.crit ? '!' : ''}`; };
 
 /** 전투를 실시간으로 진행하며 보드 위 DOM 을 갱신한다.
  *  행동마다 '시전자 → 전달 → 대상 반응' 을 보여 주고, 탄환 · 표식이 닿는 순간에 피해 숫자 · 체력 변화 · 사망을 맞춘다 */
@@ -396,7 +416,23 @@ export class BattleView {
   /** 이 기물에게 날아가는 탄환이 닿는 시각 (연쇄 탄환은 그 다음에 출발) */
   private projLand = new Map<number, number>();
   private anims = new Set<Animation>();
-  private merges = new Map<string, { el: HTMLElement; v: number; until: number; fmt: (v: number) => string }>();
+  /** 합산 중인 숫자 · 글자 (키: 종류 · 대상 · 속성) */
+  private merges = new Map<string, Merge>();
+  /** 상태 글자 칸 (기물마다 2칸) · 피해 숫자 줄 (기물마다 돌아가며) */
+  private wordSlots = new Map<number, (Merge | null)[]>();
+  private hitLane = new Map<number, number>();
+  private bigLane = new Map<number, number>();
+  /** 이번 묶음에서 미리 본 것: 피니쉬 기본 공격 · 쓰러뜨린 피해 · 쓰러짐 정보 · 발동 이름 (시너지) */
+  private finAtk = new WeakSet<object>();
+  private finDmg = new WeakSet<object>();
+  private lethal = new WeakSet<object>();
+  private killInfo = new WeakMap<object, { fin: boolean }>();
+  private synName = new WeakMap<object, string>();
+  private skipEv = new WeakSet<object>();
+  /** 보드 밖 피드: 스킬 사용 (왼쪽 피해 미터 아래) · 큰 사건 (오른쪽 패널) */
+  private mq = typeof matchMedia !== 'undefined' ? matchMedia(FEED_NARROW) : null;
+  private feedSk = new FeedList('bf-skill', () => 7, (el, kf, ms, opt) => this.play(el, kf, ms, opt, 'ui'));
+  private feedEv = new FeedList('bf-event', () => (this.mq?.matches ? 8 : 12), (el, kf, ms, opt) => this.play(el, kf, ms, opt, 'ui'));
   private castSeen = new Set<number>();
   /** 종료 연출: 시간 배율 · 마지막 쓰러진 기물 */
   private slowMul = 1;
@@ -410,8 +446,9 @@ export class BattleView {
   private syncVt = 0;
   private lastDown: number | null = null;
   private executed = new Set<number>();
+  /** 처형 표식 이름 (쓰러짐 줄에 붙임) */
+  private execNm = new Map<number, string>();
   private lastHitFrom = new Map<number, number>();
-  private lanes = new Map<number, number>();
   private statusSeen = new Map<string, number>();
   private logs = new Map<number, ActLine[]>();
   /** 장비 아이콘 HTML (main 에서 주입) */
@@ -428,6 +465,14 @@ export class BattleView {
     board.appendChild(this.svg);
     for (const u of b.units) this.mount(u);
     this.sync();
+    // 피니쉬 표시: 콤보 무기의 피니쉬 여부는 기본 공격 이벤트가 나가는 그 순간의 콤보 상태로만 알 수 있다 (이벤트에 없는 정보, 엔진은 그대로)
+    const emit = b.emit.bind(b);
+    b.emit = (e: BEvent) => {
+      if (e.k === 'atk' && b.keepEvents) { const a = this.unit(e.from); if (a?.weapon?.kind === 'combo' && a.mem.finished) this.finAtk.add(e); }
+      emit(e);
+    };
+    // 피드 비우기 (지난 전투의 줄이 남지 않게)
+    for (const id of ['bf-skill', 'bf-event']) { const h = document.getElementById(id); if (h) h.textContent = ''; }
   }
 
   get speed() { return this._speed; }
@@ -494,6 +539,7 @@ export class BattleView {
     this.selId = id;
     this.board.classList.toggle('has-focus', id !== null);
     this.drawFocus();
+    this.feedSk.focus(id); this.feedEv.focus(id);
   }
 
   /** 선택 기물의 최근 행동 (최신 순, 최대 n개) */
@@ -720,26 +766,119 @@ export class BattleView {
   }
   private rel(...ids: (number | undefined)[]) { return this.selId !== null && ids.includes(this.selId); }
 
-  /** 떠오르는 글자. side: 피해는 가운데, 회복은 오른쪽, 보호막은 왼쪽 */
-  private float(u: CUnit, text: string, cls: string, o: { color?: string; prio?: Prio; side?: 'c' | 'l' | 'r'; rel?: boolean; merge?: string; v?: number; fmt?: (v: number) => string } = {}) {
-    const prio = o.prio ?? 0, rel = !!o.rel;
-    if (o.merge && o.v !== undefined) {
-      const m = this.merges.get(o.merge);
-      if (m && this.vt < m.until && m.el.isConnected) { m.v += o.v; m.el.textContent = m.fmt(m.v); m.until = this.vt + 0.35; return; }
+  // ───────── 떠오르는 글자: 같은 대상 · 같은 종류는 짧은 창 안에서 합산해 숫자 하나로 (표시만 합친다, 기록 · 통계는 엔진 값 그대로)
+  /** 글자 요소 하나 (애니메이션을 갈아 끼워도 지워지지 않게 직접 관리) */
+  private ftEl(cls: string, x: number, y: number) {
+    const d = document.createElement('div');
+    d.className = cls;
+    d.style.left = `${x}%`; d.style.top = `${y}%`;
+    this.fxLayer.appendChild(d);
+    return d;
+  }
+  /** 글자 애니메이션 시작 (끝나면 지움, 다른 애니메이션으로 바뀌었으면 그대로 둠). bump = 합산되며 살짝 커졌다 돌아옴 */
+  private ftRun(m: { el: HTMLElement; a: Animation | null }, kind: 'pop' | 'bump' | 'big' | 'word' | 'wbump', ms = FX.fxMs) {
+    m.a?.cancel();
+    const kf: Keyframe[] = kind === 'wbump'
+      ? [{ transform: 'translate(-50%, -50%) scale(1.25)', opacity: 1, easing: EASE_OUT }, { transform: 'translate(-50%, -50%) scale(1)', opacity: 1, offset: 0.15 }, { transform: 'translate(-50%, -60%)', opacity: 1, offset: 0.78 }, { transform: 'translate(-50%, -80%)', opacity: 0 }]
+      : kind === 'bump' && m.el.classList.contains('big')
+      ? [{ transform: 'translate(-50%, -60%) scale(1.3)', opacity: 1, easing: EASE_OUT }, { transform: 'translate(-50%, -60%) scale(1)', opacity: 1, offset: 0.14 }, { transform: 'translate(-50%, -72%)', opacity: 1, offset: 0.75, easing: 'ease-in' }, { transform: 'translate(-50%, -100%)', opacity: 0 }]
+      : kind === 'bump'
+      ? [{ transform: 'translate(-50%, -60%) scale(1.3)', opacity: 1, easing: EASE_OUT }, { transform: 'translate(-50%, -60%) scale(1)', opacity: 1, offset: 0.14 }, { transform: 'translate(-50%, -85%)', opacity: 1, offset: 0.72, easing: 'ease-in' }, { transform: 'translate(-50%, -125%)', opacity: 0 }]
+      : kind === 'big'
+        ? [{ transform: 'translate(-50%, -20%) scale(1.9)', opacity: 0, easing: EASE_OUT }, { transform: 'translate(-50%, -60%) scale(1)', opacity: 1, offset: 0.16 }, { transform: 'translate(-50%, -72%)', opacity: 1, offset: 0.75, easing: 'ease-in' }, { transform: 'translate(-50%, -100%)', opacity: 0 }]
+        : kind === 'word'
+          ? [{ transform: 'translate(-50%, -30%) scale(.8)', opacity: 0, easing: EASE_OUT }, { transform: 'translate(-50%, -50%) scale(1)', opacity: 1, offset: 0.15 }, { transform: 'translate(-50%, -60%)', opacity: 1, offset: 0.78 }, { transform: 'translate(-50%, -80%)', opacity: 0 }]
+          : [{ transform: 'translate(-50%, 10%) scale(1.25)', opacity: 0, easing: EASE_OUT }, { transform: 'translate(-50%, -60%) scale(1)', opacity: 1, offset: 0.18, easing: 'linear' }, { transform: 'translate(-50%, -85%)', opacity: 1, offset: 0.72, easing: 'ease-in' }, { transform: 'translate(-50%, -125%)', opacity: 0 }];
+    const a = this.play(m.el, kf, ms, { fill: 'both' }, true);
+    m.a = a;
+    if (!a) { m.el.remove(); return; }
+    const el = m.el;
+    a.finished.then(() => { if (m.a === a) el.remove(); }, () => {});
+  }
+  /** 합산 이어 가기: 같은 키가 창 안에 있으면 값 · 글자를 갱신하고 true */
+  private mergeInto(key: string, v: number) {
+    const m = this.merges.get(key), now = this.rt;
+    if (!m || !m.el.isConnected || now - m.last > mergeGap() || now - m.t0 > mergeMax()) return null;
+    m.v += v; m.n++; m.last = now;
+    if (m.f) m.el.innerHTML = bigHtml(m.v, m.f); else m.el.textContent = m.show(m.v);
+    const w = m.el.classList.contains('word'), bg = m.el.classList.contains('big');
+    this.ftRun(m, w ? 'wbump' : 'bump', FX.fxMs * (w ? 0.9 : bg ? 1.15 : 1));
+    return m;
+  }
+  private ftCls(cls: string, rel: boolean) { return `ft ${cls}${rel ? ' focus' : this.selId !== null ? ' dimf' : ''}`; }
+  /** 숫자 (피해 · 지속 피해 · 회복 · 보호막): 같은 key 는 합산 */
+  private num(u: CUnit, key: string, v: number, show: (v: number) => string, cls: string, at: readonly [number, number], o: { color?: string; prio?: Prio; rel?: boolean } = {}) {
+    const hit = this.mergeInto(key, v);
+    if (hit) return hit;
+    const rel = !!o.rel;
+    if (this.crowd(o.prio ?? 0, rel)) return null;
+    this.retire(key);
+    const c = this.centerAt(u), cw = 100 / this.b.w, ch = 100 / this.b.h;
+    const m: Merge = { el: this.ftEl(this.ftCls(cls, rel), c.x + at[0] * cw, c.y + at[1] * ch), v, t0: this.rt, last: this.rt, n: 1, a: null, show };
+    m.el.textContent = show(v);
+    if (o.color) m.el.style.color = o.color;
+    this.merges.set(key, m);
+    this.ftRun(m, 'pop');
+    return m;
+  }
+  /** 피해 숫자 한 갈래 (속성마다): 새 갈래는 기물 위 세 자리를 돌아가며 쓴다 */
+  private hitNum(u: CUnit, key: string, v: number, cls: string, color: string, rel: boolean, prio: Prio) {
+    const hit = this.mergeInto(key, v);
+    if (hit) return hit;
+    const l = (this.hitLane.get(u.id) || 0) % 3; // 새 갈래는 다음 자리 (아직 떠 있는 이전 숫자와 겹치지 않게)
+    this.hitLane.set(u.id, l + 1);
+    return this.num(u, key, v, (x) => fmt(x), cls, SLOT.hit[l], { color, rel, prio });
+  }
+  /** 합산이 끝났는데 아직 떠 있는 같은 키의 숫자는 빨리 걷어 낸다 (새 숫자와 겹쳐 보이지 않게) */
+  private retire(key: string) {
+    const old = this.merges.get(key);
+    if (old?.a && old.el.isConnected) old.a.playbackRate = Math.max(old.a.playbackRate, 1) * 3;
+  }
+  /** 큰 숫자 (치명타 · 피니쉬 · 처치): 같은 대상에 잇달아 오면 하나로 합산하고 표식을 모은다 */
+  private bigNum(u: CUnit, v: number, color: string, rel: boolean, f: BigF) {
+    const key = `bn:${u.id}`;
+    const m = this.mergeInto(key, v);
+    if (m) {
+      m.f = { kill: m.f!.kill || f.kill, fin: m.f!.fin || f.fin, crit: m.f!.crit || f.crit };
+      m.el.innerHTML = bigHtml(m.v, m.f);
+      m.el.classList.toggle('kill', m.f.kill); m.el.classList.toggle('fin', m.f.fin && !m.f.kill); m.el.classList.toggle('crit', m.f.crit);
+      return;
     }
-    if (this.crowd(prio, rel)) return;
-    const c = this.centerAt(u);
-    // 같은 기물 위 숫자가 겹치지 않도록 세 줄로 번갈아 띄운다
-    const lane = (this.lanes.get(u.id) || 0) % 3;
-    this.lanes.set(u.id, lane + 1);
-    const dx = o.side === 'r' ? 3.2 : o.side === 'l' ? -3.2 : (lane - 1) * 2.2;
-    const sel = this.selId !== null;
-    const d = this.spawnFx(`ft ${cls}${rel ? ' focus' : sel ? ' dimf' : ''}`, c.x + dx, c.y - 100 / this.b.h * 0.3 - lane * 1.8,
-      [{ transform: 'translate(-50%, 20%) scale(1.25)', opacity: 0, easing: EASE_OUT }, { transform: 'translate(-50%, -70%) scale(1)', opacity: 1, offset: 0.2, easing: 'linear' }, { transform: 'translate(-50%, -110%)', opacity: 1, offset: 0.7, easing: 'ease-in' }, { transform: 'translate(-50%, -140%)', opacity: 0 }],
-      FX.fxMs, {}, '', true);
-    d.textContent = text;
-    if (o.color) d.style.color = o.color;
-    if (o.merge && o.v !== undefined) this.merges.set(o.merge, { el: d, v: o.v, until: this.vt + 0.35, fmt: o.fmt || ((v) => fmt(v)) });
+    this.retire(key);
+    this.big(u, '', `${f.kill ? 'kill' : f.fin ? 'fin' : ''}${f.crit ? ' crit' : ''}`, { color, rel, html: bigHtml(v, f), key, v, f });
+  }
+  /** 큰 글자: 치명타 · 피니쉬 · 처치 · 부활 같은 고유 표식 (위쪽 자리, 연달아 뜨면 좌우로 비킴). html 은 내부에서 만든 표식만 */
+  private big(u: CUnit, text: string, cls: string, o: { color?: string; rel?: boolean; html?: string; key?: string; v?: number; f?: BigF } = {}) {
+    const c = this.centerAt(u), cw = 100 / this.b.w, ch = 100 / this.b.h;
+    const l = (this.bigLane.get(u.id) || 0) % 3;
+    this.bigLane.set(u.id, l + 1);
+    const at = SLOT.big[l];
+    const m: Merge = { el: this.ftEl(this.ftCls(`big ${cls}`, !!o.rel), c.x + at[0] * cw, c.y + at[1] * ch), v: o.v ?? 0, t0: this.rt, last: this.rt, n: 1, a: null, show: () => text, f: o.f };
+    if (o.html) m.el.innerHTML = o.html; else m.el.textContent = text;
+    if (o.color) m.el.style.color = o.color;
+    if (o.key) this.merges.set(o.key, m);
+    this.ftRun(m, 'big', FX.fxMs * 1.15);
+  }
+  /** 상태 글자 (회피 · 찰과 · 보호막 파괴 · 상태이상 이름 · 장비): 카드 아래쪽 두 칸을 나눠 쓰고, 같은 글자는 ×n 으로 합친다 */
+  private word(u: CUnit, text: string, cls: string, o: { rel?: boolean; prio?: Prio } = {}) {
+    const key = `w:${u.id}:${text}`;
+    if (this.mergeInto(key, 1)) return;
+    const rel = !!o.rel;
+    if (this.crowd(o.prio ?? 2, rel)) return;
+    // 칸이 작은 보드 (휴대폰 세로)는 글자 두 줄이 겹치므로 한 칸만
+    const n = this.board.clientWidth / this.b.w < 56 ? 1 : 2;
+    const slots = this.wordSlots.get(u.id) || [null, null];
+    this.wordSlots.set(u.id, slots);
+    // 빈 칸 → 없으면 가장 오래된 칸을 비운다
+    let i = slots.slice(0, n).findIndex((x) => !x || !x.el.isConnected);
+    if (i < 0) { i = n === 1 || slots[0]!.t0 <= slots[1]!.t0 ? 0 : 1; const old = slots[i]!; old.a?.cancel(); old.el.remove(); }
+    const c = this.centerAt(u), cw = 100 / this.b.w, ch = 100 / this.b.h;
+    const at = SLOT.word[i];
+    const m: Merge = { el: this.ftEl(this.ftCls(`word ${cls}`, rel), c.x + at[0] * cw, c.y + at[1] * ch), v: 1, t0: this.rt, last: this.rt, n: 1, a: null, show: (n) => (n > 1 ? `${text} ×${n}` : text) };
+    m.el.textContent = text;
+    slots[i] = m;
+    this.merges.set(key, m);
+    this.ftRun(m, 'word', FX.fxMs * 0.9);
   }
   /** 머리 위 작은 아이콘 점등 (회복 · 보호막 · 강화를 '누가' 했는지) */
   private casterIcon(u: CUnit, glyph: string, cls: string) {
@@ -839,11 +978,56 @@ export class BattleView {
   private drain() {
     const evs = this.b.events;
     this.b.events = [];
+    if (evs.length) this.scan(evs);
     for (const e of evs) this.handle(e);
     this.atkCtx = null; this.skillCtx = null;
     for (const u of this.b.units) if (!this.els.has(u.id)) this.mount(u);
   }
   private unit(id: number | undefined) { return id === undefined ? undefined : this.els.get(id)?.u || this.b.units.find((x) => x.id === id); }
+
+  /** 이번 묶음 미리 보기 (표시용 표식만, 엔진 값은 건드리지 않음):
+   *  · 피니쉬 기본 공격 → 바로 뒤 그 대상의 기본 공격 피해
+   *  · 쓰러짐 → 바로 앞 그 기물이 받은 피해 = 결정타 (처형 · 주인 사망으로 사라진 소환물은 제외)
+   *  · 시너지 발동 (기물 자기 기술이 아닌 발동 · '!' 알림 · 비행선 추락) → 뒤따르는 시너지 피해의 시너지 이름 */
+  private scan(evs: BEvent[]) {
+    for (let i = 0; i < evs.length; i++) {
+      const e = evs[i];
+      if (e.k === 'atk' && this.finAtk.has(e)) {
+        for (let j = i + 1; j < Math.min(evs.length, i + 12); j++) {
+          const d = evs[j];
+          if (d.k === 'dmg' && d.id === e.to && d.src === e.from && d.tag === 'basic') { this.finDmg.add(d); break; }
+        }
+      } else if (e.k === 'skill' || (e.k === 'status' && e.name.endsWith('!'))) {
+        const src = e.id;
+        if (e.k === 'skill' && this.unit(src)?.skill?.name === e.name) continue;
+        if (e.k === 'status' && evs[i + 1]?.k === 'crash') this.skipEv.add(evs[i + 1]);
+        for (let j = i + 1; j < Math.min(evs.length, i + 80); j++) {
+          const d = evs[j];
+          if (d.k === 'skillEnd' && d.id === src) break;
+          if (d.k === 'dmg' && d.syn && d.src === src && d.tag !== 'dot') { const nm = SYN_BY_ID[d.syn as keyof typeof SYN_BY_ID]?.name; if (nm) this.synName.set(e, nm); break; }
+        }
+      } else if (e.k === 'spawn' && evs.slice(i + 1, i + 4).some((m) => m.k === 'mark' && m.id === e.id)) this.skipEv.add(e); // 되살아난 기물 (부활 표식이 따로 뜬다)
+    }
+    const pend = new Map<number, { at: number; die: object }>();
+    for (let i = evs.length - 1; i >= 0; i--) {
+      const e = evs[i];
+      if (e.k === 'die') { if (e.by !== undefined) pend.set(e.id, { at: i, die: e }); continue; }
+      if (e.k === 'mark' && e.style === 'execute') { pend.delete(e.id); continue; }
+      if (e.k !== 'dmg' || e.v < 1 || (e.miss && !e.graze)) continue;
+      const p = pend.get(e.id);
+      if (p && p.at - i <= 40) { pend.delete(e.id); this.lethal.add(e); this.killInfo.set(p.die, { fin: this.finDmg.has(e) }); }
+    }
+  }
+  /** 피드 줄: 스킬 사용 (좁은 화면은 사건 피드에 함께) · 큰 사건 */
+  private skillLine(it: FeedItem) {
+    if (!this.b.keepEvents) return;
+    const narrow = !!this.mq?.matches;
+    (narrow ? this.feedEv : this.feedSk).push(narrow ? { ...it, t: this.b.t } : it, this.rt, Math.max(3000, FX.skillMs * 3.2), this.selId === it.u.id, this.reduced);
+  }
+  private eventLine(it: FeedItem) {
+    if (!this.b.keepEvents) return;
+    this.feedEv.push({ ...it, t: it.t ?? this.b.t }, this.rt, Math.max(8000, FX.skillMs * 6), this.selId === it.u.id, this.reduced);
+  }
 
   private handle(e: BEvent) {
     if ((e as { k: string }).k === 'cantrip') return this.onCantrip(e as unknown as { id: number; school: string; to?: number; name: string });
@@ -859,11 +1043,15 @@ export class BattleView {
       case 'fx': return this.onArea(e);
       case 'mark': return this.onMark(e);
       case 'gift': return this.onGift(e);
-      case 'spawn': return this.onSpawn(e.id);
+      case 'spawn': return this.onSpawn(e.id, this.skipEv.has(e));
       case 'die': {
         const u = this.unit(e.id), by = this.unit(e.by);
         if (u && (!u.isSummon || this.lastDown === null)) this.lastDown = e.id;
         if (u && by && by.side !== u.side) this.log(by.id, `kill`, `${u.name} 처치`, 1, (n) => n > 1 ? `적 ${n}명 처치` : `${u.name} 처치`);
+        if (u && (!u.isSummon || u.isBoss)) {
+          const how = this.execNm.get(e.id) || (this.killInfo.get(e)?.fin ? GLOSS.finish.name : '');
+          this.eventLine({ kind: 'die', u, label: '쓰러짐', title: u.name, sub: by && by !== u ? `${by.name}${how ? ` · ${how}` : ''}` : how || undefined, key: `die|${u.id}|${this.b.t}` });
+        }
         return;
       }
       case 'crash': this.crash(e.side); return;
@@ -914,7 +1102,7 @@ export class BattleView {
       if (e.miss && !e.graze) {
         // 완전 회피: 비켜서는 동작만 (피격 섬광 없음)
         this.move(e.id, { transform: `translate(${-v.y * 24}%, ${v.x * 24}%)`, opacity: 0.55 }, 320, 2, 0.2);
-        this.float(u, '회피', 'miss', { rel });
+        this.word(u, '회피', 'miss', { rel, prio: 0 });
         return;
       }
       if (e.v < 1) return;
@@ -935,12 +1123,18 @@ export class BattleView {
       // 보호막 파괴
       if ((e.dsh || 0) < 0 && u.shield - (this.lagSh.get(e.id) || 0) <= 0.5) {
         this.spawnFx('shbreak', c.x, c.y, [{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }, { transform: 'translate(-50%,-50%) scale(1.6)', opacity: 0 }], 380);
-        this.float(u, '보호막 파괴', 'mark-sh', { prio: 2, rel });
+        this.word(u, '보호막 파괴', 'mark-sh', { rel });
       }
-      const basic = e.tag === 'basic' && !e.crit;
-      const txt = (e.graze ? '찰과 ' : '') + fmt(e.v) + (e.crit ? '!' : '');
-      if (dot) this.float(u, fmt(e.v), 'dot', { color: ELEM_COLOR[e.elem], rel, merge: `dot:${e.id}:${e.elem}`, v: e.v });
-      else this.float(u, txt, e.crit ? 'crit' : e.graze ? 'graze' : basic ? 'dmg sm' : 'dmg', { color: ELEM_COLOR[e.elem], rel, prio: basic ? 0 : 1 });
+      // 숫자: 같은 대상 · 같은 속성은 합산 (지속 피해는 따로). 크게 띄우는 것은 치명타 · 피니쉬 · 결정타(처치)만
+      const color = ELEM_COLOR[e.elem];
+      if (dot) { this.num(u, `dot:${e.id}:${e.elem}`, e.v, (x) => fmt(x), 'dot', SLOT.dot, { color, rel }); return; }
+      if (e.graze) this.word(u, '찰과', 'graze', { rel, prio: 0 });
+      const kill = this.lethal.has(e), fin = this.finDmg.has(e);
+      if (kill || fin || e.crit) this.bigNum(u, e.v, color, rel, { kill, fin, crit: e.crit });
+      else {
+        const m = this.hitNum(u, `hit:${e.id}:${e.elem}`, e.v, e.tag === 'basic' ? 'dmg sm' : 'dmg', color, rel, e.tag === 'basic' ? 0 : 1);
+        if (m && e.tag !== 'basic') m.el.classList.remove('sm');
+      }
     });
   }
 
@@ -982,11 +1176,11 @@ export class BattleView {
         // 회복: 얇은 초록 테두리 점멸 (최대 체력 30% 이상 회복에서 가장 진하게)
         this.rim(e.id, 'heal', e.v / (this.b.S(u, 'maxHp') * 0.3));
         if (other && e.v >= this.b.S(u, 'maxHp') * 0.05 && !this.crowd(1, rel)) for (let i = 0; i < 2; i++) this.spawnFx('rise', c.x + (i ? 1.6 : -1.6), c.y, [{ transform: 'translate(-50%,-50%)', opacity: 1 }, { transform: 'translate(-50%,-260%)', opacity: 0 }], 520, { delay: i * 90 });
-        this.float(u, '+' + fmt(e.v), 'heal', { side: 'r', rel, prio: other ? 1 : 0, merge: `heal:${e.id}`, v: e.v, fmt: (v) => '+' + fmt(v) });
+        this.num(u, `heal:${e.id}`, e.v, (v) => '+' + fmt(v), 'heal', SLOT.heal, { rel, prio: other ? 1 : 0 });
       } else {
         // 보호막: 흰 테두리가 바깥에서 조여 들어와 장착된 뒤 사라진다 (최대 체력 50% 이상에서 가장 굵게)
         this.rim(e.id, 'shield', e.v / (this.b.S(u, 'maxHp') * 0.5));
-        this.float(u, '◇' + fmt(e.v), 'shield', { side: 'l', rel, prio: other ? 1 : 0, merge: `sh:${e.id}`, v: e.v, fmt: (v) => '◇' + fmt(v) });
+        this.num(u, `sh:${e.id}`, e.v, (v) => '◇' + fmt(v), 'shield', SLOT.sh, { rel, prio: other ? 1 : 0 });
       }
     });
   }
@@ -995,6 +1189,8 @@ export class BattleView {
     const u = this.unit(e.id); if (!u) return;
     const src = this.unit(e.src);
     const rel = this.rel(e.id, e.src);
+    // '!' 로 끝나는 알림 (비행선 추락! · 광폭! · 자폭! 등)은 사건 피드에도
+    if (e.name.endsWith('!') && !e.src) { const sy = this.synName.get(e); this.eventLine({ kind: sy ? 'syn' : 'event', u, label: sy, title: e.name, sub: u.name }); }
     // 같은 표시는 1.2초에 한 번
     const k = `st:${e.id}:${e.name}`;
     if ((this.statusSeen.get(k) ?? -9) > this.vt - 1.2) return;
@@ -1010,7 +1206,7 @@ export class BattleView {
         const c = this.center(u);
         this.spawnFx('buffland', c.x, c.y - 100 / this.b.h * 0.42, [{ transform: 'translate(-50%,-180%)', opacity: 0 }, { transform: 'translate(-50%,-50%)', opacity: 1, offset: 0.5 }, { transform: 'translate(-50%,-50%)', opacity: 0 }], 600, {}, '▲');
       }
-      this.float(u, e.name, e.harm ? 'status harm' : 'status', { prio: 2, rel });
+      this.word(u, e.name, e.harm ? 'status harm' : 'status', { rel });
     });
   }
 
@@ -1027,13 +1223,9 @@ export class BattleView {
     this.castSeen.add(e.id);
     const showTag = !!e.tag && (first || this.rel(e.id));
     this.log(e.id, `sk:${e.name}`, `${e.name}${e.tag ? ` · ${e.tag}` : ''} 발동`, 1, (n) => `${e.name}${e.tag ? ` · ${e.tag}` : ''} 발동${n > 1 ? ` ×${n}` : ''}`);
-    if (this.crowd(2, false)) return;
-    const c = this.centerAt(u);
-    const d = this.spawnFx(`skb${this.rel(e.id) ? ' focus' : this.selId !== null ? ' dimf' : ''}`, c.x, c.y - 100 / this.b.h * 0.55,
-      [{ transform: 'translate(-50%, -30%)', opacity: 0, easing: EASE_OUT }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.15 }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.75, easing: 'ease-in' }, { transform: 'translate(-50%, -150%)', opacity: 0 }],
-      FX.skillMs, {}, `<b></b>${showTag ? '<small></small>' : ''}`, true);
-    d.querySelector('b')!.textContent = e.name;
-    if (showTag) d.querySelector('small')!.textContent = e.tag!;
+    // 스킬 이름은 보드 위가 아니라 피드에: 기물 자기 전투 기술 = 스킬 피드, 그 밖의 발동 (시너지 · 항해 특수 능력 등) = 사건 피드
+    if (u.skill?.name !== e.name) this.eventLine({ kind: 'syn', u, label: this.synName.get(e) || '발동', title: e.name, sub: `${u.name}${e.tag ? ` · ${e.tag}` : ''}` });
+    else this.skillLine({ kind: 'skill', u, title: e.name, sub: showTag ? `${u.name} · ${e.tag}` : u.name });
   }
 
   /** 범위: 공격 = 터지는 원 · 회복 = 부드러운 빛 · 강화 = 점선 고리 */
@@ -1079,14 +1271,8 @@ export class BattleView {
       this.play(ee.face, [{ boxShadow: `0 0 0 0 ${color}` }, { boxShadow: `0 0 0 3px ${color}, 0 0 14px ${color}`, offset: 0.3 }, { boxShadow: '0 0 0 0 transparent' }], 420);
       if (ee.cpi) this.play(ee.cpi, [{ transform: 'scale(1.6)', filter: 'brightness(2)' }, { transform: 'scale(1)', filter: 'none' }], 320);
     }
-    if (!this.crowd(1, this.rel(e.id))) {
-      const c = this.center(u);
-      const d = this.spawnFx(`cpb${this.rel(e.id) ? ' focus' : this.selId !== null ? ' dimf' : ''}`, c.x, c.y - 100 / this.b.h * 0.5,
-        [{ transform: 'translate(-50%, -20%) scale(.8)', opacity: 0, easing: EASE_OUT }, { transform: 'translate(-50%, -100%) scale(1)', opacity: 1, offset: 0.15 }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.72, easing: 'ease-in' }, { transform: 'translate(-50%, -140%)', opacity: 0 }],
-        FX.skillMs * 0.75, {}, `${lineIcon(`s.${e.school}`, 'li')}<b></b>`, true);
-      d.style.setProperty('--sc', color);
-      d.querySelector('b')!.textContent = e.name;
-    }
+    // 비술 이름: 보드 위 이름표 대신 스킬 피드 (학파 아이콘 · 학파 색)
+    this.skillLine({ kind: 'cantrip', u, title: e.name, sub: u.name, icon: lineIcon(`s.${e.school}`, 'li'), color });
     if (this.reduced) return;
     const ct = this.center(t || u);
     if (t && t !== u) {
@@ -1106,9 +1292,12 @@ export class BattleView {
   private onMark(e: Extract<BEvent, { k: 'mark' }>) {
     const u = this.unit(e.id); if (!u) return;
     const c = this.center(u);
-    if (e.style === 'execute') this.executed.add(e.id);
+    if (e.style === 'execute') { this.executed.add(e.id); this.execNm.set(e.id, e.name); }
     const at = Math.max(this.vt, this.projLand.get(e.id) ?? 0);
-    if (e.style !== 'execute') this.log(e.id, `mk:${e.name}`, `${e.name}${e.style === 'immortal' ? '로 버팀' : '으로 부활'}`);
+    if (e.style !== 'execute') {
+      this.log(e.id, `mk:${e.name}`, `${e.name}${e.style === 'immortal' ? '로 버팀' : '으로 부활'}`);
+      this.eventLine({ kind: e.style, u, label: e.style === 'immortal' ? '버팀' : e.style === 'rewind' ? '되감기' : '부활', title: e.name, sub: u.name });
+    }
     this.later(at, () => {
       if (e.style === 'rewind') {
         this.spawnFx('rewind', c.x, c.y, [{ transform: 'translate(-50%,-50%) rotate(0) scale(1.3)', opacity: 0 }, { transform: 'translate(-50%,-50%) rotate(-300deg) scale(1)', opacity: 1, offset: 0.7 }, { transform: 'translate(-50%,-50%) rotate(-360deg) scale(.9)', opacity: 0 }], 800);
@@ -1123,7 +1312,7 @@ export class BattleView {
       } else {
         this.spawnFx('shring gold', c.x, c.y, [{ transform: 'translate(-50%,-50%) scale(.6)', opacity: 1 }, { transform: 'translate(-50%,-50%) scale(1.5)', opacity: 0 }], 600);
       }
-      this.float(u, e.name, `mark ${e.style}`, { prio: 2, rel: this.rel(e.id) });
+      this.big(u, e.name, `mark ${e.style}`, { rel: this.rel(e.id) });
     });
   }
 
@@ -1132,18 +1321,20 @@ export class BattleView {
     const a = this.unit(e.from), t = this.unit(e.to); if (!a || !t) return;
     const nm = itemInfo(e.item).name;
     this.log(e.from, `gift:${e.to}:${e.item}`, `${t.name}에게 ${nm} 지급`);
+    this.eventLine({ kind: 'gift', u: a, label: '장비', title: nm, sub: a !== t ? `${a.name} → ${t.name}` : a.name });
     if (a !== t) this.log(e.to, `giftr:${e.item}`, `${a.name}에게서 ${nm} 받음`);
     const start = this.skillCtx?.id === e.from ? T_SKILL : 0, dur = 0.45;
     this.arc(a, t, 'gift-fly', start, dur, this.itemHtml(e.item));
     this.later(this.vt + start + dur, () => {
       const ee = this.els.get(e.to);
       if (ee) this.play(ee.face, [{ transform: 'scale(1)' }, { transform: 'scale(1.12)', offset: 0.3 }, { transform: 'scale(1)' }], 300, { composite: 'add' } as KeyframeAnimationOptions);
-      this.float(t, nm, 'status gift', { prio: 2, rel: this.rel(e.from, e.to) });
+      this.word(t, nm, 'status gift', { rel: this.rel(e.from, e.to) });
     });
   }
 
-  private onSpawn(id: number) {
+  private onSpawn(id: number, skip = false) {
     const u = this.unit(id); if (!u) return;
+    if (!skip) this.eventLine({ kind: 'spawn', u, label: '소환', title: u.name, sub: u.owner?.name, key: `spawn|${u.owner?.id ?? `s${u.side}`}|${u.name}` });
     const ee = this.els.get(id);
     if (ee?.dead && u.alive) { ee.dead = false; ee.el.classList.remove('dead'); for (const a of ee.el.getAnimations()) a.cancel(); }
     if (!ee || this.reduced) return;
@@ -1164,14 +1355,10 @@ export class BattleView {
     this.skillCtx = { id: e.id, land: this.vt + (off ? T_SKILL : 0.18) };
     this.castSeen.add(e.id);
     this.log(e.id, `ult:${ult.id}`, `궁극기 · ${ult.name}`, 1, (n) => `궁극기 · ${ult.name}${n > 1 ? ` ×${n}` : ''}`);
+    this.eventLine({ kind: 'ult', u, label: '궁극기', title: ult.name, sub: u.name });
     const ee = this.els.get(e.id);
     if (ee && !this.reduced) this.play(ee.face, [{ boxShadow: '0 0 0 0 #4aa8ff' }, { boxShadow: '0 0 0 4px #4aa8ff, 0 0 22px #4aa8ff', offset: 0.3 }, { boxShadow: '0 0 0 0 transparent' }], 600);
-    if (off) {
-      const c = this.centerAt(u);
-      const d = this.spawnFx('skb ult', c.x, c.y - 100 / this.b.h * 0.55, [{ transform: 'translate(-50%, -30%)', opacity: 0, easing: EASE_OUT }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.15 }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.75, easing: 'ease-in' }, { transform: 'translate(-50%, -150%)', opacity: 0 }], FX.skillMs, {}, '<b></b><small>궁극기</small>', true);
-      d.querySelector('b')!.textContent = ult.name;
-      return;
-    }
+    if (off) { if (FX.ultCut === 'off' && this.b.keepEvents) this.big(u, ult.name, 'mark ult', { rel: this.rel(e.id) }); return; } // 컷인 끔: 보드 위에는 이름만 짧게 (배너는 피드로)
     // 대사: 기물 음성 대사 중 하나 (같은 시전이면 같은 줄)
     const line = voicePick(VOICE[u.defId]?.ult, `${e.id}|${this.b.t.toFixed(2)}`) || ult.line;
     this.cutQ.push({ u, name: ult.name, line, theme: ult.theme, label: '궁극기' });
@@ -1186,14 +1373,10 @@ export class BattleView {
     const enh = (u.mem.enh || 1) > 1;
     this.skillCtx = { id, land: this.vt + 0.18 };
     this.log(id, 'divact', `신권 대행 · ${name}${enh ? ' (강화)' : ''}`);
+    this.eventLine({ kind: 'div', u, label: enh ? '신권 대행 · 강화' : '신권 대행', title: name, sub: u.name });
     const ee = this.els.get(id);
     if (ee && !this.reduced) this.play(ee.face, [{ boxShadow: '0 0 0 0 #ffd34d' }, { boxShadow: '0 0 0 4px #ffd34d, 0 0 24px #ffd34d', offset: 0.3 }, { boxShadow: '0 0 0 0 transparent' }], 700);
-    if (FX.ultCut === 'off' || this.reduced || !this.b.keepEvents) {
-      const c = this.centerAt(u);
-      const d = this.spawnFx('skb div', c.x, c.y - 100 / this.b.h * 0.55, [{ transform: 'translate(-50%, -30%)', opacity: 0, easing: EASE_OUT }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.15 }, { transform: 'translate(-50%, -100%)', opacity: 1, offset: 0.75, easing: 'ease-in' }, { transform: 'translate(-50%, -150%)', opacity: 0 }], FX.skillMs, {}, '<b></b><small>신권 대행</small>', true);
-      d.querySelector('b')!.textContent = name;
-      return;
-    }
+    if (FX.ultCut === 'off' || this.reduced || !this.b.keepEvents) { if (FX.ultCut === 'off' && this.b.keepEvents) this.big(u, name, 'mark div', { rel: this.rel(id) }); return; }
     this.cutQ.push({ u, name, line: voicePick(VOICE[u.defId]?.divine, `${id}|${this.b.t.toFixed(2)}`) || DIV_LINE[u.defId] || '신이시여, 지금 이 손에 권능을.', theme: { pat: 'halo', c1: enh ? '#fff6c8' : '#ffd34d', c2: enh ? '#5a4410' : '#2a2008', txt: enh ? 'spark' : 'mist' }, label: enh ? '신권 대행 · 강화' : '신권 대행' });
     this.nextCut();
   }

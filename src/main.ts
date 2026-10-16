@@ -1633,6 +1633,7 @@ function battleScreen(run: RunState) {
     <aside class="side left">
       <div class="meter-tabs">${([['dmg', '준 피해'], ['taken', '받은 피해'], ['support', '회복 · 보호막'], ['kills', '결정타']] as const).map(([k, l]) => `<button class="btn tiny ${app.meterTab === k ? 'on' : ''}" data-a="meter-tab" data-v="${k}">${l}</button>`).join('')}</div>
       <div id="meter" class="meter"></div>
+      <section class="bf-wrap bf-sk" aria-label="스킬 사용"><h4 class="bf-h">스킬 사용</h4><ol id="bf-skill" class="bfeed"></ol></section>
     </aside>
     <section class="board-col">
       <div class="board-head"><b>${esc(enc.env)}</b><span id="btime" class="mono">0.0초</span><span id="bslow" class="bslow" hidden title="상세 정보를 보는 중 · 설정에서 끌 수 있습니다">상세 보기 ×0.25</span>
@@ -1641,7 +1642,8 @@ function battleScreen(run: RunState) {
       <div class="board bview${app.zoomOut ? ' full' : ''}" data-a="bdesel" data-ex="${bviewEx(run)}" style="--ox:${PAD - bviewEx(run)};--w:${boardDims(enc.n).w - (app.zoomOut ? 0 : 2 * PAD - 2 * bviewEx(run))};--h:${boardDims(enc.n).h - (app.zoomOut ? 0 : 2 * PAD)};--fw:${boardDims(enc.n).w};--fh:${boardDims(enc.n).h}"><div class="board-in" id="bboard"><div class="cells">${battleCells(enc.n)}</div></div></div>
     </section>
     <aside class="side right">
-      <div id="bunit" class="bunit detail"></div>
+      <section id="bf-ev-wrap" class="bf-wrap bf-ev" aria-label="전투 사건"><h4 class="bf-h">전투 사건<small>기물을 누르면 상세 정보</small></h4><ol id="bf-event" class="bfeed"></ol><p class="bf-empty muted small">궁극기 · 부활 · 쓰러짐 · 소환 · 시너지 발동이 여기에 쌓입니다.</p></section>
+      <div id="bunit" class="bunit detail" hidden></div>
     </aside>
     ${app.summary ? summaryModal(run) : ''}
   </main>`;
@@ -2883,9 +2885,11 @@ function renderBattleUnit(b: Battle, force: boolean) {
   const bu = document.getElementById('bunit');
   if (!bu) return;
   const u = b.units.find((x) => x.id === app.battleSel);
-  if (!u) { if (bunitFor !== 'none' || force) { bu.innerHTML = '<p class="muted small">보드 위 기물이나 왼쪽 목록을 누르면 상세 정보를 볼 수 있습니다.</p>'; bunitFor = 'none'; } return; }
+  // 고른 기물이 없으면 사건 피드 (battleview 가 채움), 고르면 그 기물 상세
+  const feed = document.getElementById('bf-ev-wrap');
+  if (!u) { if (bunitFor !== 'none' || force) { bu.innerHTML = ''; bu.hidden = true; if (feed) feed.hidden = false; bunitFor = 'none'; } return; }
   const sig = `${u.id}:${app.statPop}:${app.abilPop}:${app.bPick?.startsWith('it:') ? app.bPick : ''}`;
-  if (force || sig !== bunitFor) { bu.innerHTML = battleUnitStatic(b, u); bunitFor = sig; layoutPanels(); }
+  if (force || sig !== bunitFor) { bu.hidden = false; if (feed) feed.hidden = true; bu.innerHTML = battleUnitStatic(b, u); bunitFor = sig; layoutPanels(); }
   const dyn = bu.querySelector('.bs-dyn');
   if (dyn) dyn.innerHTML = battleUnitDyn(b, u);
   const st = bu.querySelector('.bs-stats');

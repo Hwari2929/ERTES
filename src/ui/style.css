@@ -689,18 +689,28 @@ button { font: inherit; color: inherit; }
 .shring.gold { border-color: var(--el-holy); box-shadow: 0 0 14px var(--el-holy); }
 .shbreak { position: absolute; width: 8.5%; aspect-ratio: 1; border-radius: var(--r-lg); border: 2px dashed var(--shield); pointer-events: none; }
 .buffland { position: absolute; color: var(--st-buff-ink); font: 700 var(--fs-sm) var(--f-mono); text-shadow: 0 0 4px var(--c-black); pointer-events: none; }
-.skb { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 2px 7px 3px; border-radius: var(--r-sm); white-space: nowrap; pointer-events: none; z-index: 5;
-  background: rgb(14 16 22 / .82); border: 1px solid color-mix(in srgb, var(--c-white) 75%, transparent); box-shadow: 0 2px 8px color-mix(in srgb, var(--c-black) 50%, transparent); }
-.skb b { font: 400 var(--fs-base) var(--f-display); color: var(--c-white); letter-spacing: .02em; }
-.skb small { font: 600 var(--fs-2xs) var(--f-body); color: #d8dbe4; }
-.skb.dimf, .ft.dimf { opacity: .45 !important; }
+.ft.dimf { opacity: .45 !important; }
 .ft.focus { font-size: var(--fs-lg); z-index: 6; }
+/* 떠오르는 글자 자리 (battleview SLOT): 피해 숫자는 같은 대상 · 같은 속성끼리 합산되어 하나로 (합산되면 살짝 커졌다 돌아옴).
+   크게 띄우는 것은 치명타 · 피니쉬 · 결정타(처치)와 부활 같은 고유 표식뿐 (.big, 숫자보다 위 칸). 상태 글자(.word)는 카드 아래쪽 두 칸 */
+.ft.big { font: 700 var(--fs-xl) var(--f-mono); z-index: 5; text-align: center; line-height: 1.05; }
+.ft.big small { display: block; font: 700 var(--fs-2xs) var(--f-body); letter-spacing: .06em; color: var(--c-text); }
+.ft.big.fin { font-size: var(--fs-xl); }
+.ft.big.kill { font-size: var(--fs-2xl); text-shadow: 1px 1px 0 var(--ft-outline), -1px -1px 0 var(--ft-outline), 0 0 6px var(--ft-outline); }
+.ft.big.focus { font-size: var(--fs-2xl); z-index: 6; }
+.ft.word { font: 600 var(--fs-xs) var(--f-body); color: var(--c-text); }
+.ft.word.miss, .ft.word.graze { color: var(--c-text-2); font-weight: 700; }
+@media (max-width: 860px) { /* 휴대폰: 칸이 작아 글자를 한 단계씩 줄인다 */
+  .ft { font-size: var(--fs-sm); } .ft.dmg.sm, .ft.word { font-size: var(--fs-2xs); }
+  .ft.big, .ft.big.fin { font-size: var(--fs-lg); } .ft.big.kill, .ft.big.focus { font-size: var(--fs-xl); }
+}
 .ft.dmg.sm { font-size: var(--fs-xs); font-weight: 600; }
 .ft.dot { font-size: var(--fs-2xs); opacity: .9; }
 .ft.status.harm { color: var(--st-fear); }
 .ft.status.gift { color: var(--el-holy); }
 .ft.mark { font: 400 var(--fs-lg) var(--f-display); letter-spacing: .03em; }
 .ft.mark.revive, .ft.mark.immortal { color: var(--el-holy); } .ft.mark.rewind { color: #8fd3ff; } .ft.mark.execute { color: var(--c-bad); font-size: var(--fs-lg); }
+.ft.mark.ult { color: var(--c-ult); } .ft.mark.div { color: var(--c-divine); } /* 컷인을 끈 궁극기 · 신권 대행: 이름만 짧게 */
 .ft.mark-sh { color: var(--shield); font: 600 var(--fs-2xs) var(--f-body); }
 .area2 { position: absolute; pointer-events: none; border-radius: 14%; }
 .area2.atk { border: 2px solid var(--c); background: radial-gradient(circle, color-mix(in srgb, var(--c) 30%, transparent), transparent 70%); }
@@ -866,6 +876,46 @@ button { font: inherit; color: inherit; }
 .mrow.dead { opacity: .4; }
 .mname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .heal-t { color: var(--c-good); grid-column: 2 / -1; text-align: right; margin-top: -4px; }
+/* 전투 피드 (bfeed.ts): 보드 위 스킬 이름 배너 대신. 스킬 사용 = 왼쪽 피해 미터 아래, 큰 사건 = 오른쪽 패널 (고른 기물이 없을 때).
+   줄: 편 색 띠 (아군 = 아군 체력색, 적 = 적 체력색) · 초상화 · 이름 · ×n. 새 줄이 위, 오래된 줄은 흐려지다 사라진다 */
+.bf-wrap { display: grid; gap: 5px; align-content: start; }
+.bf-wrap[hidden] { display: none; }
+.bf-sk { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.bf-h { margin: 0; display: flex; align-items: baseline; gap: 8px; font-size: var(--fs-xs); font-weight: 600; letter-spacing: .08em; color: var(--c-text-2); }
+.bf-h small { margin-left: auto; font-size: var(--fs-xs); font-weight: 400; letter-spacing: 0; }
+.bfeed { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.bf-ln { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto auto; align-items: center; gap: 0 6px; min-height: 28px; padding: 3px 7px 3px 4px; border-radius: var(--r-sm); border-left: 3px solid var(--ally-hp); background: var(--panel-2); cursor: pointer; }
+.bf-ln.s1 { border-left-color: var(--foe-hp); }
+.bf-ln:hover { background: color-mix(in srgb, var(--c-text) 7%, var(--panel-2)); }
+.bf-ln.focus { box-shadow: inset 0 0 0 1px var(--c-text-2); }
+.bf-pt { width: 22px; height: 22px; border-radius: var(--r-sm); object-fit: cover; background: var(--panel); }
+.bf-pt.px { image-rendering: pixelated; object-fit: contain; }
+.bf-tx { display: flex; align-items: baseline; gap: 6px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.bf-tx b { flex: 0 0 auto; max-width: 100%; overflow: hidden; text-overflow: ellipsis; font: 400 var(--fs-base) var(--f-display); letter-spacing: .02em; color: var(--c-text); }
+.bf-tx small { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: var(--fs-xs); color: var(--c-text-2); }
+.bf-tx .li { flex: none; align-self: center; width: 13px; height: 13px; color: color-mix(in srgb, var(--c) var(--data-mix), var(--c-text)); }
+.bf-k { flex: none; padding: 0 5px; border-radius: var(--r-sm); border: 1px solid var(--line); font-style: normal; font-size: var(--fs-2xs); font-weight: 700; color: var(--c-text-2); }
+.bf-n { font: normal 700 var(--fs-xs) var(--f-mono); color: var(--c-text-2); }
+.bf-n:empty { display: none; }
+.bf-t { font: var(--fs-2xs) var(--f-mono); color: var(--c-text-2); }
+.bf-empty { margin: 2px 0 0; }
+.bfeed:not(:empty) ~ .bf-empty { display: none; }
+/* 큰 사건: 줄이 조금 크고, 종류 표시는 데이터 색 (궁극기 · 신성 · 회복 · 위험) */
+.bf-ev .bf-ln { min-height: 32px; grid-template-columns: 26px minmax(0, 1fr) auto auto; }
+.bf-ev .bf-pt { width: 26px; height: 26px; }
+.bf-ev .bf-ln:is(.k-skill, .k-cantrip) { min-height: 26px; background: none; } /* 좁은 화면: 스킬 줄도 여기에 (작게) */
+.bf-ev .bf-ln:is(.k-skill, .k-cantrip) .bf-pt { width: 20px; height: 20px; justify-self: center; }
+.bf-ln.k-ult .bf-k { color: color-mix(in srgb, var(--c-ult) var(--data-mix), var(--c-text)); border-color: color-mix(in srgb, var(--c-ult) 55%, var(--line)); }
+.bf-ln.k-div .bf-k { color: color-mix(in srgb, var(--c-divine) var(--data-mix), var(--c-text)); border-color: color-mix(in srgb, var(--c-divine) 55%, var(--line)); }
+.bf-ln:is(.k-revive, .k-rewind, .k-immortal) .bf-k { color: var(--c-good); border-color: color-mix(in srgb, var(--c-good) 55%, var(--line)); }
+.bf-ln.k-die .bf-pt { filter: grayscale(1); opacity: .65; }
+.bf-ln.k-die.s0 .bf-k { color: var(--c-bad); border-color: color-mix(in srgb, var(--c-bad) 55%, var(--line)); }
+.bf-ln.k-die b { color: var(--c-text-2); }
+@media (min-width: 1101px) { /* 넓은 화면: 피해 미터가 길어도 스킬 피드는 옆 패널 아래에 붙어 보인다 */
+  .battle .bf-sk { position: sticky; bottom: 0; padding-bottom: 6px; background: var(--bg); }
+}
+@media (max-width: 1100px) { .battle .bf-sk { display: none; } } /* 피해 미터가 보드 아래로 접히면 스킬 줄은 사건 피드에 함께 */
+@media (orientation: landscape) and (max-height: 560px) { .battle .bf-sk { display: none; } }
 
 /* ── 모달 */
 .modal-bg { position: fixed; inset: 0; z-index: var(--z-modal); background: var(--overlay); display: grid; place-items: center; padding: 16px; }
@@ -2176,7 +2226,6 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .ug.used { --uc: #7a6420; opacity: .5; }
 @keyframes ug-glow { from { filter: drop-shadow(0 0 2px var(--uc)); } to { filter: drop-shadow(0 0 7px var(--uc)) brightness(1.25); } }
 .u:not(.tkb) > .ug { inset: 4%; }
-.skb.ult { border-color: var(--c-ult); } .skb.ult small { color: #8fc8ff; }
 /* ── 궁극기 컷인 */
 .cutin { --c1: var(--c-ult); --c2: #10141c; position: absolute; inset: 0; z-index: var(--z-cutin); pointer-events: none; overflow: hidden; container-type: size; will-change: transform; }
 .bview > .board-in { z-index: 0; }
@@ -2207,7 +2256,6 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .ci-pat-tape .ci-band { background-image: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--c1) 70%, transparent) 0 14px, #111 14px 28px); }
 .ci-pat-moon .ci-band { background-image: radial-gradient(circle at 78% 42%, var(--c1) 0 13%, transparent 14%), radial-gradient(circle at 78% 42%, color-mix(in srgb, var(--c1) 40%, transparent), transparent 40%); }
 .ci-pat-halo .ci-band { background-image: repeating-conic-gradient(from 0deg at 76% 50%, color-mix(in srgb, var(--c1) 45%, transparent) 0 4deg, transparent 4deg 14deg), radial-gradient(circle at 76% 50%, color-mix(in srgb, var(--c1) 80%, transparent) 0 7%, transparent 30%); }
-.skb.div { border-color: var(--c-divine); } .skb.div small { color: var(--c-divine); }
 .ci-pat-bounty .ci-band { background-color: #4a3018; background-image: repeating-linear-gradient(45deg, color-mix(in srgb, var(--c1) 35%, transparent) 0 2px, transparent 2px 10px); }
 .relic-tok:not(.empty) { border-style: solid !important; outline: none; }
 /* 성유물 섹션: 슬롯 · 희미한 구분선 · 종속 하위 능력(신권 대행) */
@@ -2322,12 +2370,7 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .cpi.ready .li { color: var(--c-white); }
 .cpi.off { opacity: .35; filter: grayscale(1); }
 .cpi[hidden] { display: none; }
-/* 소마법 이름표 · 광선 */
-.cpb { position: absolute; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 5px; border-radius: var(--r-pill); white-space: nowrap; pointer-events: none; z-index: 6;
-  font: 800 clamp(10px, 1.6vw, 13px)/1.2 var(--f-body); letter-spacing: .03em; color: var(--c-white);
-  background: color-mix(in srgb, var(--sc) 30%, color-mix(in srgb, var(--c-ink) 88%, transparent)); border: 1.5px solid var(--sc); box-shadow: 0 0 10px color-mix(in srgb, var(--sc) 55%, transparent), 0 2px 6px var(--c-black); }
-.cpb .li { width: 13px; height: 13px; color: color-mix(in srgb, var(--sc) var(--data-mix), var(--c-text)); }
-.cpb.dimf { opacity: .45; }
+/* 소마법 광선 (이름은 전투 피드로) */
 .cbeam { position: absolute; height: 3px; margin-top: -1.5px; transform-origin: 0 50%; pointer-events: none; border-radius: 2px;
   background: linear-gradient(90deg, transparent, var(--sc) 30%, var(--c-white) 92%, var(--sc)); box-shadow: 0 0 6px var(--sc), 0 0 12px var(--sc); }
 .cbeam.cb-volt { background: repeating-linear-gradient(90deg, var(--sc) 0 6px, var(--c-white) 6px 8px); }
