@@ -952,9 +952,8 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   const idx: number[] = [];
   for (let i = run.step + 1; i < Math.min(run.map.length, run.step + 3); i++) if (!tb || i <= tb.bi) idx.push(i);
   const f = fieldOf(run.field);
-  const elite = ENEMY_BY_ID[f.elite];
   const PART = lineIcon('r.part', 'li'), CONS = lineIcon('r.cons', 'li');
-  // 모디파이어 (현재 칸만, 둥근 칸 · 아이콘 + 값, 설명은 툴팁): 적 강화 배율 · 보상 배율 (설정값) · 위험 등급 적 증원 (해골 +n) · 역경 정예 (초상)
+  // 모디파이어 (현재 칸만, 둥근 칸 · 아이콘 + 값, 설명은 툴팁): 규칙 수치만 — 적 강화 배율 · 보상 배율 (설정값) · 위험 등급 적 증원 (해골 +n) · 정예 확정 (역경 · 도전). 적 개체(초상 · 이름)는 넣지 않는다
   const mod = (icon: string, val: string, title: string, cls = '') => `<span class="ah-md ${cls}" title="${esc(title)}">${icon}${val ? `<b>${val}</b>` : ''}</span>`;
   const mods = (o: NodeType) => {
     if (!FIGHT_NODES.includes(o)) return '';
@@ -963,7 +962,7 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
     if (o === 'adversity' || o === 'challenge') m.push(mod(lineIcon('m.up', 'li'), `×${CFG.adversityMult}`, `적 강화: 체력 · 능력 ×${CFG.adversityMult}`, 'bad'));
     const add = diffAddCount(run.diff, ph);
     if (add > 0) m.push(mod(lineIcon('m.skull', 'li'), `+${add}`, `적 수량 +${add} — 위험 등급 ${run.diff} 적 증원: ${diffAddRule(run.diff)}`, 'bad'));
-    if (o === 'adversity' && elite) m.push(mod(sprite(elite, 'spr'), '', `정예 ${elite.name} 출현 (역경에는 정예가 반드시 나온다) — ${ENEMY_DESC[elite.id] || ''}`, 'bad'));
+    if ((o === 'adversity' || o === 'challenge') && f.elite) m.push(mod(lineIcon('m.elite', 'li'), '정예', `정예 확정: ${NODE_NAME[o]} 전투에는 이 전장의 정예가 반드시 나온다`, 'bad tx'));
     if (o === 'adversity') m.push(mod(lineIcon('m.gift', 'li'), `×${CFG.adversityReward}`, `보상 강화: 승리 크레딧 · 공명도 ×${CFG.adversityReward}`, 'good'));
     return m.length ? `<div class="ah-mods" aria-label="모디파이어"><span class="ah-sec">모디파이어</span>${m.join('')}</div>` : '';
   };
@@ -982,11 +981,21 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   };
   // 순서 배지: 현재 · 노드 아이콘 + 몇 칸 뒤 (몇 번째 칸인지는 툴팁)
   const step = (i: number) => (i === run.step ? '<span class="ah-step now">현재</span>' : `<span class="ah-step" title="${i - run.step}칸 뒤 (${i + 1}번째 칸)">${lineIcon('r.node', 'li')}${i - run.step}</span>`);
-  // 이름 밑 한 줄 설명 (작은 보조 글씨, 길면 줄임표 · 전체는 툴팁): 모든 카드 같은 규칙
-  const desc = (t: string) => `<span class="ah-desc" title="${esc(t)}">${ic(esc(t))}</span>`;
+  // 이름 밑 설명 (작은 보조 글씨): 설명 원문을 가운데 점 ' · ' 기준으로 나눠 조각마다 한 줄 (괄호 안의 점은 그대로). 모든 카드 같은 규칙
+  const lines = (t: string) => {
+    const out: string[] = [];
+    let depth = 0, from = 0;
+    for (let i = 0; i < t.length; i++) {
+      if (t[i] === '(') depth++;
+      else if (t[i] === ')') depth--;
+      else if (!depth && t.startsWith(' · ', i)) { out.push(t.slice(from, i)); from = i + 3; i += 2; }
+    }
+    return [...out, t.slice(from)].filter((x) => x.trim());
+  };
+  const desc = (t: string) => `<span class="ah-desc">${lines(t).map((x) => `<span>${ic(esc(x))}</span>`).join('')}</span>`;
   // 현재 칸 단추: 카드 오른쪽 위에 고정 (내용 길이와 무관)
   const act = (cur: boolean) => (cur ? `<div class="ah-act">${buttons}</div>` : '');
-  // 현재 칸 카드: 이름 · 예상 수입 · 모디파이어 · (전투 밖) 설명. 다음 칸 카드: 유형 · 이름 (보스는 초상 · 특징)만, 설명은 툴팁
+  // 모든 카드: 이름 줄 → 설명 줄들 (보스는 초상 · 특징 칩 추가). 현재 칸 카드만 예상 수입 · 모디파이어
   const bossCard = (i: number, e: EnemyDef, cur: boolean) => {
     const cat = enemyCategory(e), td = TEND_NAME[e.tend], rk = foeRank(run, e, run.phase, R.encounterMult('boss', i));
     return `<li class="ah-card ah-boss n-boss${cur ? ' cur tl-info' : ''}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}">${act(cur)}<span class="ah-lead"><span class="ah-port">${sprite(e, 'spr big')}<i class="ah-ic">${NODE_ICON.boss}</i></span>${step(i)}</span>
