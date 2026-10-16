@@ -108,7 +108,7 @@ export const ROSTER_B: BaseUnit[] = [
     summon: { name: '베헤모스', art: 'sm_behemoth', sprite: 'crawler', palette: BEHEMOTH, atk: { type: 'strike', elem: 'phys', interval: 0.9 }, range: 1, hpMul: 1.4 },
     lore: '"체온 관리는 중요해. 이상 체온은 베헤모스를 자극할 수 있어."',
     skill: support({
-      name: '치유 탄환', cd: 7, target: 'lowest', params: { heal: 1.8, petDmg: 0.4 },
+      name: '치유 탄환', cd: 7, target: 'lowest', params: { heal: 2.2, petDmg: 0.4 },
       desc: (p) => `의료 드론이 체력 비율이 가장 낮은 아군에게 치유 탄환을 꽂아 기술 위력 ${pct(p.heal)} 회복${p.shield ? ` + ${pct(p.shield)} 보호막` : ''}${p.cleanse ? ', 해로운 상태이상 제거' : ''}${p.red ? `, 4초간 받는 피해 -${pct(p.red)}` : ''}. 베헤모스는 4초간 피해 +${pct(p.petDmg)}.`,
       after: (b, u, ts, p) => {
         for (const d of summonsOf(b, u)) b.buff(u, d, 'bianca.behemoth', 4, { mods: [inc('all', p.petDmg)], label: '변이' });

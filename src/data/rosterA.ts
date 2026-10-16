@@ -49,7 +49,7 @@ export const ROSTER_A: BaseUnit[] = [
     summon: { name: '까악이', art: 'sm_crow', sprite: 'drone', palette: DRONE, atk: { type: 'shoot', elem: 'elec', interval: 0.8 }, range: 3, hpMul: 1.2 },
     lore: '"휴가 중. 기한 100년. 고양이 사료는 문 앞에."',
     skill: strike({
-      name: '자안의 사수', cd: 7, pow: 'tech', elem: 'phys', mult: 2.0, target: 'lowest', blink: true, params: { crit: 0.2 },
+      name: '자안의 사수', cd: 7, pow: 'tech', elem: 'phys', mult: 2.3, target: 'lowest', blink: true, params: { crit: 0.2 },
       desc: (p) => `급소가 붉게 보인다. 체력 비율이 가장 낮은 적에게 파고들어 단분자 와이어로 기술 위력 ${pct(p.mult)} 물리 피해 (치명타 확률 +${pct(p.crit)}p)${p.bleed ? `, 4초간 초당 ${pct(p.bleed)} 출혈` : ''}${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}${p.shock ? `, ${pct(p.shockChance || 0.7)} 확률로 ${p.shock}초 감전` : ''}. 까악이도 같은 적을 노린다.`,
       after: (b, u, t) => { for (const d of summonsOf(b, u)) d.target = t; },
     }),
@@ -122,8 +122,8 @@ export const ROSTER_A: BaseUnit[] = [
     lore: '"좋습니다. 서로가 만족할 거래가 되었군요."',
     // 비무장: 폭력은 경호팀에게 아웃소싱했다
     passive: {
-      // 경호원: 기본 1명 + 공명 등급 3등급마다 1명 (최대 4명)
-      setup: (u) => { u.noAttack = true; u.mem.extraSummon = (u.mem.extraSummon || 0) + Math.min(3, Math.floor((u.src?.rank || 1) / 3)); },
+      // 경호원: 기본 1명 + 공명 등급 4등급마다 1명 (4 · 8 · 12등급, 최대 4명)
+      setup: (u) => { u.noAttack = true; u.mem.extraSummon = (u.mem.extraSummon || 0) + Math.min(3, Math.floor((u.src?.rank || 1) / 4)); },
       hooks: { takenMult: (b, u) => (summonsOf(b, u).length ? 0.75 : 1) },
     },
     skill: {

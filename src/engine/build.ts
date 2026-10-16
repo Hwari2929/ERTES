@@ -253,6 +253,7 @@ function spawnSummons(b: Battle, owner: CUnit, sd0: SummonDef) {
     });
     applyCategory(s);
     if (sd.focusLow) s.mem.lowestFocus = 1;
+    if (sd.basicMult && sd.basicMult !== 1) s.mods.push({ kind: 'inc', tag: 'basic', v: sd.basicMult - 1 }); // 기본 공격 계수 (리키 +12%)
     s.hp = st.maxHp;
     s.atkTimer = 0.3;
     const treat = owner.mem.summonTreat;

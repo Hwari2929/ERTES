@@ -62,6 +62,8 @@ export interface SummonDef {
   hpMul?: number;
   /** 일러스트 id (art/<art>.webp, 초상화 아이콘) */
   art?: string;
+  /** 기본 공격 계수 (기본 1) */
+  basicMult?: number;
   /** 상속률 배율 (기본 1) */
   rate?: number;
   /** 이동 속도 (기본 1.15) */

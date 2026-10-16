@@ -141,7 +141,7 @@ export const ROSTER_C: BaseUnit[] = [
     id: 'vivian', name: '비비안', title: '생태계 분석관 · 군체 연구원', factions: ['PAN'], traits: ['BUDDY'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(6, 7, 8, 5, 5),
     sprite: 'medic', palette: tint(PAL.PAN, '#f0d040', '#1a1a22', '#ff8080'),
-    summon: { name: '리키', art: 'sm_ricky', sprite: 'beast', palette: WOLF, atk: { type: 'strike', elem: 'phys', interval: 0.8 }, range: 1, hpMul: 1.1 },
+    summon: { name: '리키', art: 'sm_ricky', sprite: 'beast', palette: WOLF, atk: { type: 'strike', elem: 'phys', interval: 0.8 }, range: 1, hpMul: 1.1, basicMult: 1.12 },
     lore: '"흠흠- 만나서 반가워! 나는 정찰과 은하 생태학을 담당하는 비비안이야."',
     skill: {
       name: '동물 교감', tag: () => '리키 돌격 + 기절', cd: 7, params: { mult: 2.3, stun: 1, vuln: 0 },

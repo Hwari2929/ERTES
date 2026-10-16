@@ -692,10 +692,10 @@ export const REWORK: Record<string, ReworkDef> = {
     ],
   },
   vivian: {
-    ctype: 'SPEC', ttype: 'minor', faith: 'science', weapon: G('다트 소총', 'phys', 1.0, 3, 0.9, 5, 2),
+    ctype: 'SPEC', ttype: 'minor', faith: 'science', weapon: G('다트 소총', 'phys', 1.0, 3, 1.0, 5, 2),
     factions: ['PAN', 'VOYAGE'], traits: ['BUDDY'],
     trait: {
-      name: '생태 분석', desc: '비비안과 리키의 기본 공격이 대상의 방어도를 10%p 깎는다 (최대 3중첩, 5초).',
+      name: '생태 분석', desc: '비비안과 리키의 기본 공격이 대상의 방어도를 10%p 깎는다 (최대 3중첩, 5초). 리키 기본 공격 피해 +12%.',
       effect: { hooks: {
         onBasic(b, u, t, r) { if (r.amount > 0) shred(b, u, t); },
         onTick(b, u) {
