@@ -923,7 +923,7 @@ function musterModal(run: RunState) {
 }
 function nodeHint(o: NodeType) {
   return ({
-    battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 1.5배 + 재료 확률`,
+    battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 ${CFG.adversityReward}배 + 재료 확률`,
     council: `전역 증강 3장 중 택1 · 새로고침 ${CFG.globalRerolls}회`, shop: '분기점 — 상점 / 보급 / 속보 / 모집 (+ 호이슌 투자 · 순례)',
     supply: '보급품 3종 중 택1', recruit: '새 동료 3명 중 택1', boss: `승리 시 페이즈 클리어 · ${CFG.drop.bossAdvEvery}페이즈마다 희귀 장비`,
     pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', invest: '호이슌 투자 상품 · 크레딧으로 문장 · 증강 · 다음 페이즈 수익', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
@@ -3977,7 +3977,7 @@ function firstOn(sels: string[]) {
 /** 버튼 모서리 키캡: 지금 화면에서 단축키가 누를 버튼에 data-key (CSS ::before 가 그린다). 설정에서 끄면 달지 않고, 터치 화면은 CSS 가 숨긴다 */
 function keyHints() {
   root.querySelectorAll('[data-key]').forEach((x) => x.removeAttribute('data-key'));
-  if (!uxPrefs().keyHints) return;
+  if (!uxPrefs().keyHints || (typeof matchMedia !== 'undefined' && matchMedia('(hover: none), (pointer: coarse)').matches)) return;
   const ks = keyScope();
   const mark = (el: Element | null | undefined, cap: string) => { if (el instanceof HTMLElement && !el.dataset.key && !el.querySelector('kbd')) el.dataset.key = cap; };
   for (const h of HOTKEYS) {
@@ -4004,7 +4004,7 @@ function uxPrefs() {
 function uxSettings() {
   const u = uxPrefs();
   return `<h3>진행 · 단축키</h3>
-      <div class="pref"><span><b>결과 창 자동으로 닫기</b><br><span class="muted small">전투 결과 창을 정한 시간 뒤 저절로 닫습니다. 창을 누르거나 스크롤하면 멈춥니다. 런이 끝난 결과는 닫지 않고, 보상 · 증강 · 영입 · 상점처럼 고를 것이 있는 창은 언제나 기다립니다.</span></span>
+      <div class="pref pref-wrap"><span><b>결과 창 자동으로 닫기</b><br><span class="muted small">전투 결과 창을 정한 시간 뒤 저절로 닫습니다. 창을 누르거나 스크롤하면 멈춥니다. 런이 끝난 결과는 닫지 않고, 보상 · 증강 · 영입 · 상점처럼 고를 것이 있는 창은 언제나 기다립니다.</span></span>
         <span class="seg">${AUTO_RESULT.map((s) => `<button class="btn tiny ${u.autoResult === s ? 'on' : ''}" data-a="pref-autores" data-v="${s}" aria-pressed="${u.autoResult === s}">${s ? `${s}초` : '끄기'}</button>`).join('')}</span></div>
       <label class="pref"><input type="checkbox" data-a="pref-autofight" ${u.autoFight ? 'checked' : ''}><span><b>편성 그대로 바로 전투</b><br><span class="muted small">지도에서 일반 전투 · 역경에 진입하면 편성 화면을 건너뛰고 지금 편성으로 바로 전투를 시작합니다. 보스 · 도전 전투, 빈 자리에 넣을 대기 기물이 있을 때, 고를 것이 남아 있을 때는 편성 화면에서 멈춥니다.</span></span></label>
       <label class="pref"><input type="checkbox" data-a="pref-keyhints" ${u.keyHints ? 'checked' : ''}><span><b>단축키 표시</b><br><span class="muted small">버튼 모서리에 키보드 단축키(Space · Enter · 1 등)를 작게 표시합니다. 터치 화면에서는 표시하지 않습니다. 전체 목록은 메뉴 탭에 있습니다.</span></span></label>`;

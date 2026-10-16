@@ -305,7 +305,7 @@ export function pickFork(run: RunState, choice: 'rest' | 'challenge' | 'synth') 
 /** 도전 승리 보상: 남은 역경 2 · 사건 · 보급 · 보스를 합친 정도 */
 function challengeReward(run: RunState, lines: string[]) {
   const p = run.phase;
-  const c = Math.round(CFG.winCredits(p) * 1.5 * 2 + CFG.winCredits(p) + 5 + 12 + p);
+  const c = Math.round(CFG.winCredits(p) * CFG.adversityReward * 2 + CFG.winCredits(p) + 5 + 12 + p);
   run.credits += c;
   lines.push(`도전 보상 +${c}`);
   gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
@@ -634,7 +634,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     run.streak = Math.max(1, run.streak + 1);
     run.stats.wins++;
     let c = CFG.winCredits(p);
-    if (type === 'adversity') c = Math.round(c * 1.5);
+    if (type === 'adversity') c = Math.round(c * CFG.adversityReward);
     c = Math.round(c * CFG.diffWinMul(run.diff || 0)); // 위험 3 ×1.25 · 위험 6 ×1.5
     if (type === 'boss') c += 5;
     income += c;
@@ -663,7 +663,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     run.stats.losses++;
     income += CFG.lossCredits;
     const survivors = b.fighters(1).length;
-    hpLoss = type === 'boss' ? CFG.bossLossDamage(p) : CFG.lossDamage(p, survivors) * (type === 'adversity' ? 1.5 : 1);
+    hpLoss = type === 'boss' ? CFG.bossLossDamage(p) : CFG.lossDamage(p, survivors) * (type === 'adversity' ? CFG.adversityLoss : 1);
     if (pet >= 2) { hpLoss *= 0.5; income += 6; lines.push('페트라 보험금 +6, 체력 피해 50% 감소'); }
     if (hasGlobal(run, 'G.survival')) hpLoss *= 0.7;
     hpLoss = Math.round(hpLoss);
@@ -682,7 +682,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   // 공명도
   const xpBefore = new Map(run.units.map((u) => [u.uid, u.xp + totalXpOf(u)]));
   const lvBefore = new Map(run.units.map((u) => [u.uid, { rank0: u.rank, xp0: u.xp }]));
-  let pool = CFG.xpPool(p) * (won ? 1 : 0.5) * (type === 'adversity' ? 1.5 : 1) * (hasGlobal(run, 'G.resonance') ? 1.35 : 1);
+  let pool = CFG.xpPool(p) * (won ? 1 : 0.5) * (type === 'adversity' ? CFG.adversityReward : 1) * (hasGlobal(run, 'G.resonance') ? 1.35 : 1);
   pool = Math.round(pool);
   distributeXp(run, pool);
   lines.push(`공명도 풀 ${pool} 분배`);

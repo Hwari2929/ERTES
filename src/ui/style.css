@@ -462,7 +462,7 @@ button { font: inherit; color: inherit; }
 @media (max-width: 640px) { /* 좁은 화면: 칸 · 노드를 줄여 12칸을 한 줄에 */
   .tl-track { padding: 0 2px; }
   .tl-step { min-width: 26px; gap: 4px; }
-  .tl-step.cur { flex-grow: 1.4; }
+  .tl-step.cur, .tl-step.tl-boss { flex-grow: 1.4; } /* 큰 노드(지금 · 보스)는 칸도 넓게: 끝 칸이 넘치지 않게 */
   .tl-num { font-size: var(--fs-2xs); }
   .tl-nodes { min-height: 34px; }
   .tl-step::before { top: 35px; }
@@ -1183,6 +1183,7 @@ kbd { font-family: var(--f-mono); font-size: .75em; border: 1px solid var(--line
 .tl-node[data-key] { overflow: visible; }
 @media (hover: none), (pointer: coarse) { [data-key]::before { content: none; } }
 /* 결과 창 자동 닫기 카운트다운 (설정) */
+.pref.pref-wrap { flex-wrap: wrap; } .pref.pref-wrap > span:first-child { flex: 1 1 240px; } /* 설명이 좁아지면 단추 줄이 아래로 */
 .auto-cd { margin-right: auto; align-self: center; font-size: var(--fs-sm); color: var(--c-text-2); font-variant-numeric: tabular-nums; }
 .chip .own { font-family: var(--f-mono); font-size: var(--fs-xs); margin-left: 2px; color: var(--c-text); }
 

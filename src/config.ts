@@ -59,6 +59,8 @@ export const CFG = {
   lateFrom: 5, lateHp: 0.9, lateAmp: 1.05,
   phaseHpFactor: (p: number) => (p <= 5 ? 1.85 : Math.max(1.1, 1.85 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
   adversityMult: 1.5,
+  adversityReward: 1.5, // 역경 승리 보상 배율: 크레딧 · 공명도 풀 (도전 보상의 '남은 역경' 몫도 이 값)
+  adversityLoss: 1.5, // 역경 패배 체력 피해 배율 (도전 패배도 역경 기준)
   enemyHpMul: 4.6, enemyPowMul: 2.25, // 적 기초 수치 전체 배율 (튜닝용)
   // 아군 치명타 · 회피 환산은 0.01 (예전 0.02 의 0.5배). 적은 아래 배율로 예전 값을 유지한다
   // 적 메이저 → 명중 · 회피 · 치명타 · 효과 저항 환산 배율 (아군 환산 × 배율). 페이즈 6 일반 적 기준 회피 ~30% · 치명타 ~35% · 효과 저항 ~30%
