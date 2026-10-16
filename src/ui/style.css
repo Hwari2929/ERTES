@@ -2989,3 +2989,56 @@ button.psi-gh:hover { background: rgb(255 255 255 / .025); }
 }
 @media (max-width: 520px) { .codex .cx-top > span { display: none; } }
 
+
+/* ═════════ 바 허브 (에란테스 바: src/ui/bar.ts) ═════════
+   지상의 바. 화면 전체를 덮는 층 (body 여백 무관). 배경 위에 인물 2~4명, 말하는 사람 머리 위에 말풍선 하나. 호박색(--c-select)은 '이어서 출격' 버튼에만 */
+.bar { position: fixed; inset: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; overflow: hidden; isolation: isolate; color: var(--c-text); }
+.bar-bg { position: absolute; inset: 0; background: center 40% / cover no-repeat; }
+.bar-shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, var(--shade-2), transparent 26%, transparent 58%, var(--shade-3)); }
+.bar-top, .bar-floor, .bar-acts, .bar-hint { position: relative; }
+.bar-top { display: grid; gap: 2px; padding: max(16px, env(safe-area-inset-top)) 16px 0; text-shadow: 0 2px 8px var(--shade-3); }
+.bar-top h1 { font-size: var(--fs-3xl); }
+.bar-sit { min-height: 1.5em; color: var(--c-text-2); font-size: var(--fs-md); }
+.bar-floor { display: flex; justify-content: center; align-items: flex-end; gap: clamp(4px, 2vw, 28px); min-height: 0; padding: 0 8px; }
+.bar-seat { position: relative; flex: 0 1 260px; min-width: 0; height: 100%; max-height: 66vh; display: flex; align-items: flex-end; justify-content: center; }
+.bar-fig { position: relative; display: flex; align-items: flex-end; justify-content: center; width: 100%; height: 100%; padding: 0; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; }
+.bar-fig.is-pc { cursor: default; }
+.bar-fig img { display: block; height: 100%; width: auto; max-width: 150%; object-fit: contain; object-position: bottom; filter: brightness(.78) drop-shadow(0 8px 18px var(--shade-2)); transition: filter .25s; }
+.bar-seat.talking .bar-fig img, .bar-fig:hover img, .bar-fig:focus-visible img { filter: brightness(1) drop-shadow(0 8px 18px var(--shade-2)); }
+.bar-fig.is-guest img, .bar-fig.is-guest:hover img { filter: brightness(0) drop-shadow(0 0 1px var(--c-text-2)); opacity: .9; }
+.bar-fig:focus-visible { outline: 0; }
+.bar-fig:focus-visible .bar-tag { outline: 2px solid var(--c-select); outline-offset: 2px; }
+.bar-sil { display: block; width: 56%; height: 72%; border-radius: var(--r-pill) var(--r-pill) var(--r-md) var(--r-md); background: var(--shade-2); border: 1px solid var(--line-soft); }
+.bar-tag { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); padding: 2px 10px; white-space: nowrap; font-size: var(--fs-sm); font-weight: 700; background: var(--overlay); border: 1px solid var(--line-soft); border-radius: var(--r-pill); }
+.bar-bub { position: absolute; top: 2%; left: 50%; z-index: var(--z-raise); width: min(280px, 44vw); transform: translateX(-50%); padding: 8px 12px 10px; display: grid; gap: 2px; text-align: left; font-size: var(--fs-md); line-height: 1.45; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); pointer-events: none; }
+.bar-bub[hidden] { display: none; }
+.bar-bub b { color: var(--c, var(--c-text-2)); font-size: var(--fs-xs); }
+.bar-bub::after { content: ''; position: absolute; left: 50%; bottom: -6px; width: 10px; height: 10px; transform: translateX(-50%) rotate(45deg); background: var(--panel); border: 1px solid var(--line); border-top: 0; border-left: 0; }
+.bar-seat:first-child:not(:last-child) .bar-bub { left: 0; transform: none; }
+.bar-seat:first-child:not(:last-child) .bar-bub::after { left: 28px; }
+.bar-seat:last-child:not(:first-child) .bar-bub { left: auto; right: 0; transform: none; }
+.bar-seat:last-child:not(:first-child) .bar-bub::after { left: auto; right: 22px; transform: rotate(45deg); }
+.bar-bub.on { animation: bar-pop .22s ease-out; }
+@keyframes bar-pop { from { opacity: 0; translate: 0 6px; } }
+.bar-seat.enter { animation: bar-in .5s ease-out; }
+@keyframes bar-in { from { opacity: 0; translate: 0 14px; } }
+.bar-acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 12px 16px 4px; background: linear-gradient(transparent, var(--shade-3) 40%); }
+.bar-acts .btn { display: grid; justify-items: center; gap: 0; min-width: 116px; }
+.bar-acts .btn small { font-size: var(--fs-xs); font-weight: 400; opacity: .85; }
+.bar-hint { padding: 2px 16px calc(10px + env(safe-area-inset-bottom, 0px)); text-align: center; background: var(--shade-3); color: var(--c-text-2); }
+@media (max-width: 600px) {
+  .bar-top h1 { font-size: var(--fs-2xl); }
+  .bar-sit { font-size: var(--fs-base); }
+  .bar-seat { max-height: 58vh; }
+  .bar-bub { width: min(210px, 62vw); font-size: var(--fs-base); padding: 6px 10px 8px; }
+  .bar-tag { font-size: var(--fs-xs); padding: 1px 8px; bottom: 6px; }
+  .bar-acts .btn { min-width: 0; flex: 1 1 40%; padding: 7px 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .bar-bub.on, .bar-seat.enter { animation: none; } .bar-fig img { transition: none; } }
+/* 도감 기록 탭: 바에서 본 만담 · 들은 이야기 (카드 없이 줄로) */
+.bar-rec details { border-bottom: 1px solid var(--line-soft); }
+.bar-rec summary { padding: 9px 2px; cursor: pointer; }
+.bar-rec-b { padding: 8px 2px 10px; border-top: 1px solid var(--line-soft); }
+.bar-rec-b h3 { margin: 0 0 4px; font-size: var(--fs-md); }
+.bar-rec-b p { font-size: var(--fs-base); }
+.bar-rec-b p b { color: var(--c, var(--c-text)); margin-right: 6px; }

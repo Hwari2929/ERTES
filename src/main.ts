@@ -18,6 +18,7 @@ import { BRIEF, PSI_BRIEF } from './data/brief';
 import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
 import * as AB from './ui/abil';
 import * as CX2 from './ui/codex2';
+import * as BAR from './ui/bar';
 import {
   activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
@@ -32,7 +33,7 @@ import { ULTS } from './data/ults';
 import { VOICE, voicePick } from './data/voicelines';
 import { DEFAULT_RELIC, RELIC_BY_ID } from './data/relics';
 import { deleteSave, exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
-import { loadMeta, metaBattle, metaClear, metaEvent, metaRunEnd, metaTutEnd, metaTutSeen, tutMeta, tutOver } from './ui/meta';
+import { loadMeta, metaBarMvp, metaBattle, metaClear, metaEvent, metaRunEnd, metaTutEnd, metaTutSeen, tutMeta, tutOver } from './ui/meta';
 import { bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg, standURL } from './ui/portraits';
 import { advKey, closeAdv, playAdv } from './ui/adv';
 import { ABIL_ICONS } from './ui/abilicons.gen';
@@ -65,7 +66,7 @@ function savePref(k: string, v: unknown) {
   try { localStorage.setItem(PREF_KEY, JSON.stringify({ ...loadPrefs(), [k]: v })); } catch { /* 저장 불가 환경 */ }
 }
 
-type Screen = 'title' | 'intro' | 'diffsel' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'invest' | 'over' | 'codex';
+type Screen = 'title' | 'intro' | 'diffsel' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'invest' | 'over' | 'codex' | 'bar';
 type Sel = { k: 'unit'; uid: string } | { k: 'turret'; i: number } | { k: 'item'; idx: number } | { k: 'relic'; id: string } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
 
 const app = {
@@ -303,6 +304,7 @@ function titleScreen() {
         ${auto ? `<button class="btn primary ts-btn" data-a="load" data-v="auto"><b>이어하기</b><small>페이즈 ${auto.phase} · 체력 ${auto.hp}</small></button>` : ''}
         <button class="btn ${auto ? '' : 'primary'} ts-btn" data-a="newrun"><b>새 계약</b>${auto ? '<small>진행 중인 의뢰는 덮어씁니다</small>' : ''}</button>
         ${tutButton()}
+        <button class="btn ts-btn" data-a="bar"><b>에란테스 바</b><small>${auto ? '들렀다가 이어서 출격' : '단원 · 손님들의 잡담'}</small></button>
         <button class="btn ts-btn" data-a="codex"><b>도감 · 기록</b></button>
         <button class="btn ghost ts-btn" data-a="menu-import"><b>저장 코드 불러오기</b></button>
       </nav>
@@ -1810,7 +1812,7 @@ function overScreen(run: RunState) {
       <dt>처치</dt><dd>${run.stats.kills}</dd><dt>최대 단일 피해</dt><dd>${fmt(run.stats.bestHit)}</dd>
     </dl>
     <div class="roster">${run.units.map(rosterRow).join('')}</div>
-    <div class="sticky-actions"><button class="btn primary" data-a="newrun">새 계약</button><button class="btn" data-a="codex">도감</button><button class="btn" data-a="to-title">타이틀</button></div>
+    <div class="sticky-actions"><button class="btn primary" data-a="newrun">새 계약</button><button class="btn" data-a="bar">에란테스 바</button><button class="btn" data-a="codex">도감</button><button class="btn" data-a="to-title">타이틀</button></div>
   </main>`;
 }
 
@@ -1869,7 +1871,7 @@ function advSync(run: RunState | null) {
     });
   } else if (live && p.t === 'notice' && p.scene?.length) {
     playAdv(`nt:${p.title}:${run.pending.length}`, p.scene, { title: p.title, result: p.body, speaker: advSpeaker, fmt: (x) => ic(esc(x)), onDone: () => act('notice-ok', '') });
-  } else if (advKey() && !advKey()!.startsWith('tu:')) closeAdv(); // 튜토리얼 장면은 튜토리얼이 닫는다
+  } else if (advKey() && !advKey()!.startsWith('tu:') && !(app.screen === 'bar' && advKey()!.startsWith('bar:'))) closeAdv(); // 튜토리얼 장면은 튜토리얼이, 바 장면은 바가 닫는다
 }
 // ───────────────────────── 모달: 대기 중인 선택
 function pendingModal(run: RunState): string {
@@ -2051,6 +2053,7 @@ function menuModal(run: RunState | null) {
     <div class="row-btns">
       ${run && !run.tutorial ? '<button class="btn" data-a="menu-export">저장 코드 내보내기</button>' : ''}
       <button class="btn" data-a="menu-import">저장 코드 불러오기</button>
+      ${run && !run.tutorial ? '<button class="btn" data-a="bar">저장하고 바에 들르기</button>' : ''}
       <button class="btn" data-a="to-title">타이틀로</button>
       <button class="btn primary" data-a="menu-close">닫기</button>
     </div>
@@ -2243,6 +2246,7 @@ function render() {
   const run = app.run;
   let body = '';
   if (app.screen === 'codex') body = codexScreen();
+  else if (app.screen === 'bar') body = BAR.barScreen();
   else if (app.screen === 'intro') body = introScreen();
   else if (app.screen === 'diffsel') body = diffScreen();
   else if (app.screen === 'title' || !run) body = app.screen === 'newrun' ? newRunScreen() : titleScreen();
@@ -2278,6 +2282,7 @@ function render() {
   restoredAt = performance.now();
   layoutPanels();
   advSync(run ?? null);
+  if (app.screen === 'bar') BAR.barMount();
   if (app.screen === 'intro' && !app.introDone) introAnim();
   // 리본 시너지 줄: 넘치면 오른쪽 끝에 '더 있음' 표시 (끝까지 밀면 사라짐)
   const ts = root.querySelector<HTMLElement>('.top-syns');
@@ -2531,6 +2536,7 @@ function mountBattleView(board: HTMLElement) {
   app.view = new BattleView(board, b, updateMeter, () => {
     app.summary = R.resolveBattle(run, b);
     if (!run.tutorial) metaBattle(b); // 튜토리얼 전투는 도감 기록에서 뺀다
+    if (!run.tutorial && app.summary?.won) { const mv = pickMvp(b); if (mv) metaBarMvp(run.seed, mv.a.u.defId); } // 바 반응: 직전 런 MVP
     persist();
     // 보드는 그대로 두고 상단 바와 결과 창만 갱신
     const top = root.querySelector('header.top');
@@ -2937,7 +2943,7 @@ function codexScreen() {
     body = codexManual();
   } else {
     body = `<dl class="stats big"><dt>의뢰</dt><dd>${m.runs}</dd><dt>의뢰 성공</dt><dd>${m.clears}</dd><dt>최고 도달 페이즈</dt><dd>${m.bestPhase}</dd><dt>해금된 위험 등급</dt><dd>${m.maxDiff}</dd></dl>
-      <h2>전장별</h2><div class="codex-list">${FIELDS.map((f) => { const r = m.fields[f.id]; return `<div class="codex-row"><div><b style="color:${f.color}">${f.icon} ${esc(f.name)}</b><div class="small muted">${esc(f.region)}</div></div><div class="small mono">의뢰 ${r?.runs || 0} · 성공 ${r?.clears || 0}${r && r.bestDiff >= 0 ? ` · 최고 위험 ${r.bestDiff}` : ''}</div></div>`; }).join('')}</div>`;
+      <h2>전장별</h2><div class="codex-list">${FIELDS.map((f) => { const r = m.fields[f.id]; return `<div class="codex-row"><div><b style="color:${f.color}">${f.icon} ${esc(f.name)}</b><div class="small muted">${esc(f.region)}</div></div><div class="small mono">의뢰 ${r?.runs || 0} · 성공 ${r?.clears || 0}${r && r.bestDiff >= 0 ? ` · 최고 위험 ${r.bestDiff}` : ''}</div></div>`; }).join('')}</div>${BAR.barRecordsHtml()}`;
   }
   return `<main class="wrap codex"><div class="cx-top"><h1 class="f-title">도감 · 기록</h1><span class="muted small">이 브라우저에 저장됩니다.</span><button class="btn ghost small" data-a="codex-back">돌아가기</button></div>
     <nav class="cx-tabs" aria-label="도감 탭">${tabs}</nav>${body}</main>`;
@@ -3255,6 +3261,7 @@ function codexManual() {
 }
 
 // ───────────────────────── 액션
+let codexFrom = ''; // 도감을 연 화면 (바에서 열었으면 바로 돌아간다)
 function act(a: string, v: string) {
   const run = app.run;
   // 전투 중에는 속도 조절 / 결과 보기 / 계속만 받는다 (재렌더하면 전투 화면이 초기화됨)
@@ -3456,7 +3463,7 @@ function act(a: string, v: string) {
       if (!run || p?.t !== 'event') return;
       const err = R.chooseEvent(run, +v);
       if (err) { toast(err); return; }
-      if (!run.tutorial) metaEvent(p.id);
+      if (!run.tutorial) metaEvent(p.id, run.seed);
       persist();
       break;
     }
@@ -3469,12 +3476,20 @@ function act(a: string, v: string) {
         return;
       }
       break;
-    case 'codex': app.screen = 'codex'; app.menu = null; break;
+    case 'codex': codexFrom = app.screen === 'bar' ? 'bar' : ''; app.screen = 'codex'; app.menu = null; break;
+    case 'bar': // 에란테스 바: 진행 중인 런은 자동 저장해 두고 나온다 (바에서 '이어서 출격')
+      if (run && !run.over && !run.tutorial) persist();
+      if (run?.tutorial) tutAway();
+      if (app.view) { app.view.destroy(); app.view = null; }
+      Object.assign(app, { run: null, menu: null, summary: null, sel: null, bigUnit: null, abilPop: null, statPop: false, screen: 'bar' as Screen });
+      BAR.barEnter();
+      break;
+    case 'bar-x': if (!BAR.barAct(v)) return; break;
     case 'codex-tab': app.codexTab = v as typeof app.codexTab; break;
     case 'cx2': { const r = CX2.codex2Act(v); if (r.tab) app.codexTab = r.tab as typeof app.codexTab; if (r.unit) app.codexSel = r.unit; app.abilPop = null; cxScroll = r.scroll; if (r.tab) window.scrollTo(0, 0); break; }
     case 'codex-group': app.codexGroup = v as typeof app.codexGroup; break;
     case 'codex-sel': if (app.codexSel === v) CX2.CX2.focus = v; app.codexSel = app.codexSel === v ? null : v; app.abilPop = null; cxScroll = true; break;
-    case 'codex-back': app.screen = app.run ? (app.run.over ? 'over' : 'map') : 'title'; if (app.run && !app.run.over) goPrepOrMap(); break;
+    case 'codex-back': app.screen = app.run ? (app.run.over ? 'over' : 'map') : codexFrom === 'bar' ? 'bar' : 'title'; if (app.run && !app.run.over) goPrepOrMap(); break;
     case 'meter-tab': app.meterTab = v as typeof app.meterTab; document.querySelectorAll('.meter-tabs .btn').forEach((e) => e.classList.toggle('on', (e as HTMLElement).dataset.v === v)); updateMeter(true); return;
     case 'bsel': app.bPick = null; app.abilPop = null; app.battleSel = app.battleSel === +v ? null : +v; applySpeed(); updateMeter(true); return;
     case 'bdesel': if (app.battleSel !== null) { app.battleSel = null; app.bPick = null; app.abilPop = null; app.statPop = false; applySpeed(); updateMeter(true); } return;

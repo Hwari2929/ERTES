@@ -15,6 +15,23 @@ export interface Meta {
   fields: Record<string, { runs: number; clears: number; bestDiff: number }>;
   /** 튜토리얼: 끝까지 봄 · 건너뜀 · 본 장면과 안내 (교범 항목 해금) */
   tut?: { done?: boolean; skipped?: boolean; seen?: string[] };
+  /** 에란테스 바: 본 만담 · 들은 이야기 · 직전 런 요약 (바 반응 대사 조건) */
+  bar?: BarMeta;
+}
+/** 직전 런 요약: 바 반응 대사가 읽는다 */
+export interface BarLast { run: number; field: string; cleared: boolean; phase: number; diff: number; mvp?: string; units: string[]; newEvents: string[] }
+export interface BarMeta {
+  /** 본 만담 id (도감 기록) */
+  seen?: string[];
+  /** 들은 말 걸기 이야기 키 (도감 기록) */
+  talk?: string[];
+  /** 반응 대사를 들은 키 (런 번호:기물:반응) — 같은 런 결과에 같은 반응은 한 번만 */
+  heard?: string[];
+  last?: BarLast;
+  /** 진행 중인 런: 전투 MVP 횟수 · 처음 겪은 사건 */
+  cur?: { seed: number; mvp: Record<string, number>; newEv: string[] };
+  /** 기물별 마지막으로 기용한 런 번호 */
+  used?: Record<string, number>;
 }
 
 const KEY = 'errantes.meta.v1';
@@ -44,9 +61,31 @@ export function metaBattle(b: Battle) {
   }
   save();
 }
-export function metaEvent(id: string) {
+export function metaEvent(id: string, seed?: number) {
   const m = loadMeta();
+  if (!m.events[id] && seed !== undefined) barCur(m, seed).newEv.push(id); // 처음 겪은 사건 (바 반응)
   m.events[id] = (m.events[id] || 0) + 1;
+  save();
+}
+const barCur = (m: Meta, seed: number) => {
+  const b = (m.bar ||= {});
+  if (b.cur?.seed !== seed) b.cur = { seed, mvp: {}, newEv: [] };
+  return b.cur;
+};
+/** 전투 승리 MVP (바 반응: 직전 런 MVP) */
+export function metaBarMvp(seed: number, defId: string) {
+  const m = loadMeta();
+  const c = barCur(m, seed);
+  c.mvp[defId] = (c.mvp[defId] || 0) + 1;
+  save();
+}
+/** 바에서 본 만담 · 들은 이야기 · 반응 대사 기록 */
+export function metaBar(kind: 'seen' | 'talk' | 'heard', key: string) {
+  const m = loadMeta();
+  const l = ((m.bar ||= {})[kind] ||= []);
+  if (l.includes(key)) return;
+  l.push(key);
+  if (kind === 'heard' && l.length > 400) l.splice(0, l.length - 400);
   save();
 }
 /** 의뢰 성공 (목표 페이즈 보스 격파): 다음 난이도 해금 */
@@ -74,6 +113,15 @@ export function metaRunEnd(run: RunState) {
     u.runs++;
     u.ranks += r;
     u.best = Math.max(u.best, r);
+  }
+  if (!run.tutorial) { // 바 반응용 직전 런 요약
+    const b = (m.bar ||= {});
+    const cur = b.cur?.seed === run.seed ? b.cur : null;
+    const top = (o: Record<string, number>) => Object.entries(o).sort((x, y) => y[1] - x[1])[0]?.[0];
+    const used = (b.used ||= {});
+    for (const id of run.usedIds) used[id] = m.runs;
+    b.last = { run: m.runs, field: run.field, cleared: !!run.cleared, phase: run.phase, diff: run.diff, mvp: (cur && top(cur.mvp)) || top(run.rankLog), units: [...run.usedIds], newEvents: cur?.newEv.slice(0, 6) || [] };
+    b.cur = undefined;
   }
   save();
 }
