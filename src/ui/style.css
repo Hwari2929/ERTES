@@ -1,29 +1,76 @@
 /* 용병단 전술 단말기: 잉크빛 남색 바탕 + 계약서 호박색 강조. 단일 다크 룩. */
 :root {
-  --bg: #0f1219;
-  --panel: #171c26;
-  --panel-2: #1e2532;
-  --line: #2b3445;
-  --fg: #e9e4d8;
-  --dim: #8d96a8;
-  --accent: #f2a93b;
-  --accent-ink: #1a1206;
-  --good: #63d297;
-  --bad: #ff6b5e;
-  --info: #6cb6ff;
+  /* ── 색: 역할 토큰 (화면은 이것만 쓴다) */
+  --bg: #0f1219;                       /* 바탕 */
+  --panel: #171c26;                    /* 1단 면 */
+  --panel-2: #1e2532;                  /* 2단 면 (버튼 · 칸) */
+  --line: #2b3445;                     /* 테두리 */
+  --line-soft: color-mix(in srgb, var(--line) 65%, transparent);
+  --c-text: #e9e4d8;                   /* 본문 글씨 */
+  --c-text-2: #8d96a8;                 /* 흐린 글씨 (보조 · 단위 · 꺼진 항목) */
+  --c-select: #f2a93b;                 /* 선택 · 확정 · 다음 행동 전용 (호박색) */
+  --c-select-ink: #1a1206;             /* 호박색 위 글씨 */
+  --c-good: #63d297;                   /* 회복 · 이득이 실제로 일어난 곳 */
+  --c-bad: #ff6b5e;                    /* 위험 · 손실 · 피해 */
+  --c-info: #6cb6ff;                   /* 정보 · 진행 (경험치 막대 등) */
+  --c-win: #ffd34d;                    /* 승리 · 보상 수치 (금색, 선택과 구분) */
+  --c-white: #fff;
+  --c-black: #000;
   --fame: #ff9de2;
   --staff: #c9b37a;
-  --ally-hp: #63d297;
-  --foe-hp: #ff6b5e;
-  --shield: #e9e4d8;
+  --ally-hp: var(--c-good);
+  --foe-hp: var(--c-bad);
+  --shield: var(--c-text);
   --cell-mine: #1b2433;
   --cell-foe: #22191c;
   --cell-mid: #161b24;
   --overlay: rgba(6, 8, 12, 0.78);
+  --tint-1: rgb(255 255 255 / .03);    /* 면 위 살짝 밝게 (hover · 선택 행) */
+  --tint-2: rgb(255 255 255 / .06);
+  --shade-1: rgb(0 0 0 / .35);         /* 그림자 · 글씨 받침 */
+  --shade-2: rgb(0 0 0 / .55);
+  --shade-3: rgb(0 0 0 / .8);
+  --shadow-pop: 0 10px 26px var(--shade-2);  /* 떠 있는 창 · 팝업 */
+  /* 데이터 색 (예외: 속성 · 희귀도. 세력 · 시너지 · 전공은 JS 가 --c · --sc 로 넣는다) */
   --el-phys: #eceae4; --el-chem: #9be15d; --el-elec: #62d6ff; --el-psy: #d48cff; --el-holy: #ffd866; --el-true: #ff7a7a;
+  --g-C: #eef0f4; --g-G: #6cb6ff; --g-A: #63d297; --g-L: #f2a93b; --g-T: #9fd0e8;
+  /* 옛 이름 (별칭: 새 코드에서 쓰지 않는다 · tests/css_check.ts 가 사용 횟수를 막는다) */
+  --accent: var(--c-select); --accent-ink: var(--c-select-ink);
+  --fg: var(--c-text); --dim: var(--c-text-2); --muted: var(--c-text-2);
+  --good: var(--c-good); --bad: var(--c-bad); --info: var(--c-info);
+
+  /* ── 글자: 글꼴 3역할 + 크기 단계 (rem = 16px) */
   --f-display: 'Black Han Sans', 'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
   --f-body: 'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif;
   --f-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --fs-2xs: .625rem;   /* 10px  배지 숫자 · 아주 작은 표식 */
+  --fs-xs: .6875rem;   /* 11px  메타 · 단위 · 칩 */
+  --fs-sm: .75rem;     /* 12px  보조 설명 · 표 */
+  --fs-base: .8125rem; /* 13px  목록 · 본문 (작은 칸) */
+  --fs-md: .875rem;    /* 14px  본문 · 버튼 */
+  --fs-lg: 1rem;       /* 16px  이름 · 소제목 */
+  --fs-xl: 1.125rem;   /* 18px  창 제목 */
+  --fs-2xl: 1.375rem;  /* 22px  화면 제목 */
+  --fs-3xl: 1.75rem;   /* 28px  큰 제목 (h1 · 결과) */
+  --fs-meta: var(--fs-sm);
+
+  /* ── 모서리 둥글기 3단계 */
+  --r-sm: 4px;   /* 칩 · 배지 · 작은 칸 */
+  --r-md: 6px;   /* 버튼 · 입력 · 카드 */
+  --r-lg: 10px;  /* 창 · 큰 패널 */
+  --r-pill: 999px;
+
+  /* ── 쌓임 층 (z-index). 카드 · 토큰 안쪽 순서는 0 · 1 그대로 */
+  --z-raise: 2;       /* 같은 면 안에서 한 단 위 (배지 · 게이지) */
+  --z-board-fx: 5;    /* 보드 위 연출 · 토큰 표식 */
+  --z-sticky: 10;     /* 화면 안 고정 바 (하단 버튼 줄 · 상세 머리) */
+  --z-top: 20;        /* 상단 바 */
+  --z-pop: 60;        /* 말풍선 · 툴팁 · 드롭다운 */
+  --z-modal: 100;     /* 창 (모달) */
+  --z-over: 120;      /* 창 위 창 · 창 안 팝업 */
+  --z-adv: 140;       /* 사건 연출 (ADV) · 전환 배너 */
+  --z-coach: 145;     /* 튜토리얼 안내 */
+  --z-toast: 200;     /* 알림 */
   color-scheme: dark;
 }
 html, body { height: 100%; }
@@ -383,7 +430,6 @@ button { font: inherit; color: inherit; }
 .inv-detail { margin-top: 8px; font-size: .85rem; }
 .item { width: 30px; height: 30px; display: inline-grid; place-items: center; border-radius: 5px; background: var(--panel-2); border: 1px solid var(--line); font-size: 15px; cursor: grab; touch-action: none; flex: none; }
 .item.empty { border-style: dashed; cursor: default; }
-:root { --g-C: #eef0f4; --g-G: #6cb6ff; --g-A: #63d297; --g-L: #f2a93b; }
 .item.tC { border-color: color-mix(in srgb, var(--g-C) 55%, var(--line)); color: var(--g-C); }
 .item.tG { border-color: var(--g-G); color: var(--g-G); }
 .item.tA { border-color: var(--g-A); color: var(--g-A); }
@@ -656,7 +702,7 @@ kbd { font-family: var(--f-mono); font-size: .75em; border: 1px solid var(--line
 .ct-MARK, .ct-VAN, .ct-SPEC, .ct-CMD { color: var(--fg); }
 .tt-major, .tt-minor, .tt-special, .tt-psionic, .tt-divine { color: #cfcabe; }
 .pil-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0; }
-.pil-row select { background: var(--bg2, #1a1d26); color: inherit; border: 1px solid #444; border-radius: 4px; padding: 2px 4px; }
+.pil-row select { background: var(--panel); color: inherit; border: 1px solid #444; border-radius: 4px; padding: 2px 4px; }
 /* 이름 블록: 이름 + 유형 아이콘, 아래 공명 등급 · 시너지 */
 .nb { display: grid; gap: 4px; min-width: 0; }
 .nb-name { display: flex; align-items: center; gap: 8px; }
@@ -1783,7 +1829,7 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .intro.opened .in-curtain.r { transform: translateX(101%); }
 .in-slot { position: relative; z-index: 2; display: grid; justify-items: center; gap: 4px; text-align: center; }
 .in-kicker { font-size: .78rem; letter-spacing: .3em; color: var(--dim); }
-.in-name { font: 400 clamp(1.8rem, 6vw, 3.4rem) var(--display, 'Black Han Sans', sans-serif); color: #fff; text-shadow: 0 0 24px var(--c, var(--accent)); min-height: 1.2em; }
+.in-name { font: 400 clamp(1.8rem, 6vw, 3.4rem) var(--f-display); color: #fff; text-shadow: 0 0 24px var(--c, var(--accent)); min-height: 1.2em; }
 .in-region { font-size: .85rem; color: var(--c, var(--accent)); }
 .intro.landed .in-name { animation: slot-land .5s cubic-bezier(.2, 1.6, .4, 1); }
 @keyframes slot-land { from { transform: scale(1.25); } }
@@ -1805,7 +1851,7 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 
 /* ───────── 난이도 설정: 삼분할, 선택된 칸이 넓어지고 살짝 확대 */
 .diffsel { min-height: 100vh; box-sizing: border-box; padding: 32px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 18px; background: #06070c; }
-.ds-title { margin: 0; text-align: center; font: 400 clamp(1.6rem, 4vw, 2.4rem) var(--display, 'Black Han Sans', sans-serif); color: var(--accent); letter-spacing: .06em; }
+.ds-title { margin: 0; text-align: center; font: 400 clamp(1.6rem, 4vw, 2.4rem) var(--f-display); color: var(--accent); letter-spacing: .06em; }
 .ds-row { display: flex; gap: 12px; min-height: 60vh; }
 .ds-card { position: relative; flex: 1 1 0; min-width: 0; overflow: hidden; border: 0; border-radius: 14px; padding: 0; background: #0b0d14; color: var(--fg); text-align: left; cursor: pointer;
   transition: flex-grow .55s cubic-bezier(.25, .8, .3, 1), min-height .55s cubic-bezier(.25, .8, .3, 1), transform .55s cubic-bezier(.25, .8, .3, 1), box-shadow .4s; }
@@ -1815,7 +1861,7 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .ds-shade { position: absolute; inset: 0; background: linear-gradient(transparent 30%, rgb(5 6 11 / .92)); }
 .ds-body { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px; display: grid; gap: 6px; }
 .ds-sub { font-size: .75rem; letter-spacing: .18em; color: var(--dim); }
-.ds-name { font: 400 clamp(1.6rem, 3.5vw, 2.6rem) var(--display, 'Black Han Sans', sans-serif); }
+.ds-name { font: 400 clamp(1.6rem, 3.5vw, 2.6rem) var(--f-display); }
 .ds-card.on .ds-name { color: var(--accent); }
 .ds-line { font-size: .86rem; }
 .ds-conds { margin: 0; padding-left: 16px; font-size: .76rem; color: var(--dim); display: grid; gap: 2px; max-height: 0; overflow: hidden; transition: max-height .45s; }
@@ -1890,7 +1936,7 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .env-hero { position: relative; min-height: 150px; border-radius: 10px; overflow: hidden; background-size: cover; background-position: center; display: grid; align-content: end; gap: 2px; padding: 14px; margin-bottom: 6px;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent); isolation: isolate; animation: env-pan 24s ease-in-out infinite alternate; }
 .env-hero::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(transparent 20%, rgb(8 10 16 / .9)), radial-gradient(120% 80% at 50% 0%, transparent, rgb(8 10 16 / .35)); }
-.env-hero b { font: 400 1.3rem var(--display, 'Black Han Sans', sans-serif); text-shadow: 0 0 16px var(--c); }
+.env-hero b { font: 400 1.3rem var(--f-display); text-shadow: 0 0 16px var(--c); }
 .env-hero span { font-size: .78rem; color: var(--c); }
 .env-kicker { letter-spacing: .25em; color: var(--dim) !important; font-size: .68rem !important; }
 @keyframes env-pan { from { background-position: 30% center; } to { background-position: 70% center; } }
@@ -2225,7 +2271,7 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .adv-place { position: absolute; left: 16px; top: max(16px, env(safe-area-inset-top)); padding: 6px 12px; border-left: 3px solid var(--accent); background: rgb(8 10 14 / .72); font-size: 13px; letter-spacing: .03em; opacity: 0; }
 .adv-place.show { animation: adv-place 3.2s ease forwards; }
 @keyframes adv-place { 10%, 75% { opacity: 1; } to { opacity: 0; } }
-.adv-title { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); font: 800 clamp(20px, 3vw, 30px) var(--f-head, inherit); letter-spacing: .08em; text-shadow: 0 2px 12px #000; animation: adv-title 2.6s ease forwards; pointer-events: none; white-space: nowrap; }
+.adv-title { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); font: 800 clamp(20px, 3vw, 30px) var(--f-body); letter-spacing: .08em; text-shadow: 0 2px 12px #000; animation: adv-title 2.6s ease forwards; pointer-events: none; white-space: nowrap; }
 @keyframes adv-title { from { opacity: 0; } 15%, 70% { opacity: 1; } to { opacity: 0; } }
 .adv-tools { position: absolute; right: 12px; top: max(12px, env(safe-area-inset-top)); display: flex; gap: 6px; z-index: 2; }
 .adv-tools button { font: 600 12px inherit; padding: 5px 10px; border-radius: 6px; border: 1px solid rgb(255 255 255 / .18); background: rgb(8 10 14 / .6); color: inherit; cursor: pointer; }
@@ -2472,7 +2518,6 @@ button.cx2-row { cursor: pointer; } button.cx2-row:hover { border-color: var(--d
 .u.turret-tk { cursor: grab; }
 .u.turret-tk .tk-card { border-color: #a0b4c8; }
 /* 포탑 전용 장비 (T_): 강철색 사각 + 모서리 절단 */
-:root { --g-T: #9fd0e8; }
 .item.tT { border-color: var(--g-T); color: var(--g-T); border-style: double; border-width: 3px; border-radius: 2px; }
 .u.tk .tk-items > .item.tT, .u.tk .tk-it .item.tT { border-width: 2px; }
 .shop-item.tT b { color: var(--g-T); }
@@ -2531,13 +2576,6 @@ p.aug-req { margin: 6px 0 0; }
    · .f-title (Black Han Sans): 화면 제목 · 전투 결과 · 장면 제목 (h1)
    · .f-ui (Gothic A1): 이름 · 메뉴 · 능력명 · 설명 · 소제목 (h2 · h3)
    · .f-num (IBM Plex Mono): 정렬이 필요한 수치 */
-:root {
-  --c-select: var(--accent); --c-select-ink: var(--accent-ink);
-  --c-good: var(--good); --c-bad: var(--bad);
-  --c-text: var(--fg); --c-text-2: var(--dim);
-  --line-soft: color-mix(in srgb, var(--line) 65%, transparent);
-  --fs-meta: 12px;
-}
 .f-title { font-family: var(--f-display); font-weight: 400; }
 .f-ui { font-family: var(--f-body); }
 .f-num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }

@@ -10,7 +10,8 @@
     "offline": "node scripts/build.mjs --offline",
     "syn-doc": "node scripts/build.mjs --syndoc && node dist/syndoc.cjs > docs/SYNERGY_TABLE.md",
     "events-doc": "node scripts/build.mjs --eventdoc && node dist/eventdoc.cjs > docs/EVENTS.md",
-    "check": "npx esbuild tests/codex_check.ts --bundle --platform=node --log-level=error --outfile=dist/codex_check.cjs && node dist/codex_check.cjs"
+    "check": "npx esbuild tests/codex_check.ts --bundle --platform=node --log-level=error --outfile=dist/codex_check.cjs && node dist/codex_check.cjs && npx esbuild tests/css_check.ts --bundle --platform=node --log-level=error --outfile=dist/css_check.cjs && node dist/css_check.cjs",
+    "css-baseline": "npx esbuild tests/css_check.ts --bundle --platform=node --log-level=error --outfile=dist/css_check.cjs && node dist/css_check.cjs --update"
   },
   "devDependencies": {
     "esbuild": "0.25.10",
