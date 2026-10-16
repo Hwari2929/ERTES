@@ -113,7 +113,7 @@ export const STORY_B: EventDef[] = [
         },
       },
       {
-        label: '구출을 약속한다', desc: '출전 기물 중 무작위 1명이 이번 페이즈 동안 투기장 구출 작전에 빠진다 (출전 불가). 그 기물 모든 메이저 +2 (영구), 공명도 12.',
+        label: '구출을 약속한다', desc: '출전 기물 중 무작위 1명이 이번 페이즈 동안 투기장 구출 작전에 빠진다 (출전 불가). 그 기물 모든 주요 능력치 +2 (영구), 공명도 12.',
         block: noDeployed,
         apply: (r, api) => {
           const u = pickOne(api, deployed(r))!;
@@ -191,7 +191,7 @@ export const STORY_B: EventDef[] = [
         },
       },
       {
-        label: '신용을 포기한다', desc: '이자 상한 -2 (영구). 소송을 피해 숨어 지내며 훈련만 한다: 출전 기물 전원 모든 메이저 +1 (영구).',
+        label: '신용을 포기한다', desc: '이자 상한 -2 (영구). 소송을 피해 숨어 지내며 훈련만 한다: 출전 기물 전원 모든 주요 능력치 +1 (영구).',
         apply: (r) => { r.mods.interestCap -= 2; for (const u of deployed(r)) allMaj(u, 1); return '페트라 신용망에서 이름이 지워졌습니다. 대신 훈련할 시간은 많았습니다.'; },
       },
     ],
@@ -413,9 +413,9 @@ export const STORY_B: EventDef[] = [
         apply: (r, api) => { const u = ace(r)!; bench(r, u); r.credits += 18; api.gain(api.randomItem('A')); api.outcome('default', { name: nm(u) }); return `${nm(u)}이(가) 페트라 경호 업무에 파견되었습니다. 크레딧 +18, 희귀 장비 1개.`; },
       },
       {
-        label: '대항 제안을 낸다', desc: '크레딧 -12. 공명 등급이 가장 높은 기물 모든 메이저 +2 (영구).',
+        label: '대항 제안을 낸다', desc: '크레딧 -12. 공명 등급이 가장 높은 기물 모든 주요 능력치 +2 (영구).',
         block: (r) => needCr(12)(r) ?? noUnits(r),
-        apply: (r, api) => { r.credits -= 12; const u = ace(r)!; allMaj(u, 2); api.outcome('default', { name: nm(u) }); return `${nm(u)}의 처우를 올렸습니다. 모든 메이저 +2.`; },
+        apply: (r, api) => { r.credits -= 12; const u = ace(r)!; allMaj(u, 2); api.outcome('default', { name: nm(u) }); return `${nm(u)}의 처우를 올렸습니다. 모든 주요 능력치 +2.`; },
       },
       {
         label: '역으로 스카우트한다', desc: '50%: 헤드헌터의 인맥으로 기물 3명 중 1명 영입 / 50%: 접대비만 날린다, 크레딧 -6.',

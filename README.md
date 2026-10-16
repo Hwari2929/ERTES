@@ -28,7 +28,7 @@ npm run events-doc       # docs/EVENTS.md 다시 생성
 |---|---|
 | `src/main.ts` | 화면 · 입력 · 진행 흐름 (타이틀, 전장 추첨, 난이도, 시작 기물, 지도, 편성, 전투, 상점, 도감, 튜토리얼 진행) |
 | `src/config.ts` | 전투 · 성장 · 경제 · 적 강도 수치 (`CFG`) |
-| `src/types.ts` | 공용 타입: 메이저 스탯, 속성, 분류, 전투 · 전술 유형, 신앙, 노드 종류, 런 상태 |
+| `src/types.ts` | 공용 타입: 주요 능력치, 속성, 분류, 전투 · 전술 유형, 신앙, 노드 종류, 런 상태 |
 | `src/engine/` | `combat.ts` 전투 시뮬레이션 · `build.ts` 기물 → 전투 유닛 변환, 스탯 · 시너지 집계 · `run.ts` 런 진행 (노드, 보상, 성장, 상점, 사건) · `effects.ts` 효과 모델 · `tutorial.ts` 튜토리얼 런 |
 | `src/data/` | 게임 데이터. 기물(`roster*.ts` + `rework.ts`, `units.ts`에서 합침), 시너지, 장비, 증강, 사이오닉(`schools.ts` · `psionic.ts`), 성유물, 궁극기, 전장, 적, 사건(`events.ts` · `story*.ts`), 사건 연출(`scenes/`), 난이도, 전역 증강 · 특권, 교범, 세계관 요약, 음성 대사 |
 | `src/ui/` | 전투 연출(`battleview.ts`), 도감(`codex2.ts`), 미연시 화면(`adv.ts`), 안내 말풍선(`coach.ts`), 저장 · 기록, 스타일. `*.gen.ts`는 스크립트가 만드는 파일이라 손으로 고치지 않습니다 |

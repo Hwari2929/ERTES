@@ -23,7 +23,7 @@ import * as TFX from './ui/themefx';
 import {
   activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
-import { Battle, type CUnit, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME } from './engine/combat';
+import { Battle, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME } from './engine/combat';
 import * as R from './engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
@@ -398,11 +398,11 @@ const CTYPE_DESC: Record<string, [string, string]> = {
 };
 /** 전술 유형 공통 규칙: 공명 등급마다 모든 능력치 +1, 이정표 보상은 유형별 */
 const TTYPE_RULE: Record<TType, string> = {
-  major: `공명 등급마다 모든 능력치 +1. 4등급마다 메이저 증강 1개. 고유 궁극기는 시간이 지나면 저절로 차오르며 (기본 약 ${CFG.ultTime}초, 전투 시작 ${Math.round(CFG.ultStart * 100)}%) 한 전투에 여러 번 쓸 수 있다.`,
-  minor: '공명 등급마다 모든 능력치 +1. 3등급마다 능력치 2종 +3. 기술 계수와 특성 수치가 등급에 따라 자란다 (10등급 ×2, 20등급 ×3).',
-  special: '공명 등급마다 모든 능력치 +1. 합류 · 5 · 10 · 15등급에 전용 증강 (최대 4개).',
-  psionic: '공명 등급마다 모든 능력치 +1. 기물마다 학파가 정해져 있고, 합류할 때 그 학파의 전공을 고른다 (비술 + 지속 능력). 4 · 8 · 12 · 16등급에 전공 증강 (최대 4개, 16등급에 완성).',
-  divine: '공명 등급마다 모든 능력치 +1. 고유 신앙이 깨어 있어 신성력을 모으고, 가득 차면 장착한 성유물의 신권 대행을 전투당 한 번 쓴다. 모은 신성력은 전투 후 권능 포인트가 된다.',
+  major: `공명 등급마다 모든 주요 능력치 +1. 4등급마다 메이저 증강 1개. 고유 궁극기는 시간이 지나면 저절로 차오르며 (기본 약 ${CFG.ultTime}초, 전투 시작 ${Math.round(CFG.ultStart * 100)}%) 한 전투에 여러 번 쓸 수 있다.`,
+  minor: '공명 등급마다 모든 주요 능력치 +1. 3등급마다 주요 능력치 2종 +3. 기술 계수와 특성 수치가 등급에 따라 자란다 (10등급 ×2, 20등급 ×3).',
+  special: '공명 등급마다 모든 주요 능력치 +1. 합류 · 5 · 10 · 15등급에 전용 증강 (최대 4개).',
+  psionic: '공명 등급마다 모든 주요 능력치 +1. 기물마다 학파가 정해져 있고, 합류할 때 그 학파의 전공을 고른다 (비술 + 지속 능력). 4 · 8 · 12 · 16등급에 전공 증강 (최대 4개, 16등급에 완성).',
+  divine: '공명 등급마다 모든 주요 능력치 +1. 고유 신앙이 깨어 있어 신성력을 모으고, 가득 차면 장착한 성유물의 신권 대행을 전투당 한 번 쓴다. 모은 신성력은 전투 후 권능 포인트가 된다.',
 };
 /** 특성 하위 항목 (접힘) */
 function sub(key: string, icon: string, cls: string, name: string, kind: string, body: string) {
@@ -520,7 +520,7 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
     const mine = owned.filter((a) => MAJOR_AUGS.some((m) => m.id === a.id));
     body.push(`<div class="tt-row"><span class="tt-k">메이저 증강</span><b>${mine.length}</b>${nx ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
     body.push(mine.length ? `<div class="tt-icons">${mine.map((a) => `<button class="tt-ic ab-click${abilOn(`aug:${a.id}`)}" data-a="abil-pop" data-v="aug:${esc(a.id)}" title="${esc(AUG_BY_ID[a.id]?.name || a.id)}">${augIcon(a.id)}</button>`).join('')}</div>`
-      : `<p class="muted small">${u ? '4등급에 첫 메이저 증강을 고릅니다.' : `공용 풀 ${MAJOR_AUGS.length}종: 능력치 · 세부 능력치 상승.`}</p>`);
+      : `<p class="muted small">${u ? '4등급에 첫 메이저 증강을 고릅니다.' : `공용 풀 ${MAJOR_AUGS.length}종: 주요 · 상세 능력치 상승.`}</p>`);
   } else if (tt === 'minor') {
     const g = CFG.minorGrow(rank);
     const tl = MINOR_TRAIT_GROW[d.id];
@@ -1479,11 +1479,18 @@ function powRow(b: Battle, c: CUnit, d: UnitDef, deployedNow: boolean) {
   const w = c.weapon;
   if (w && w.kind !== 'none') { const wk: K = w.tactical ? 'tac' : w.type === 'shoot' ? 'shoot' : 'strike'; if (!keys.includes(wk)) keys.push(wk); }
   const val = (k: K) => Math.round(k === 'tac' ? b.tacPower(c) : b.S(c, k));
-  return `<div class="d-pows">${keys.map((k, i) => `<span class="d-pow pw-${k}${i ? ' sub' : ''}" title="${POW_NAME[k]}${k === 'tac' ? (deployedNow ? ' · 지금 출전 구성 기준' : ' · 이 기물이 출전했을 때 기준') : ''}">${lineIcon(`p.${k}`, 'li')}<span>${POW_NAME[k]}</span><b>${fmt(val(k))}</b></span>`).join('')}</div>`;
+  return `<div class="d-pows">${keys.map((k, i) => `<span class="d-pow pw-${k}${i ? ' sub' : ''}" title="${POW_NAME[k]}${k === 'tac' ? (deployedNow ? ' · 지금 출전 구성 기준' : ' · 이 기물이 출전했을 때 기준') : ''}">${lineIcon(`p.${k}`, 'li')}<span>${POW_NAME[k]}</span><b>${fmt(val(k))}</b></span>`).join('')}${provChip(null, c)}</div>`;
 }
-/** 확대 버튼 (전체 상세 팝업) */
-const maxBtn = (uid: string) => `<button class="mag-btn max-btn" data-a="big-open" data-v="${uid}" title="전체 상세" aria-label="전체 상세 열기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button>`;
-/** 기물 전체 상세 팝업: 장비 · 메이저/상세 스탯 · 능력 구성 · 유형 특성을 한 화면에 */
+/** 도발 배율 칩 (위력 칩과 같은 모양): 정상값(×1)이 아닐 때만. 배율 규칙은 엔진 PROV 에서 읽는다 */
+function provChip(b: Battle | null, c: CUnit) {
+  const m = provMult(b, c);
+  if (Math.abs(m - 1) < 0.05) return '';
+  const rule = `돌격가 ×${PROV.van} · 수호자 시너지 +${PROV.guard} · 소환물 근접 ×${PROV.sumMelee} · 고정 ×${PROV.sumFixed} · 그 밖 ×1, 은신 · 기습 중 ×${PROV.hide}`;
+  return `<span class="d-pow pw-prov" title="도발 배율: 적이 이 기물에게 쌓는 도발 수치에 곱해지는 값 (${rule})">${lineIcon('p.prov', 'li')}<span>도발 배율</span><b>×${+m.toFixed(2)}</b></span>`;
+}
+/** 확대 버튼 (전체 상세 팝업): 상세 창 위쪽 바 (자세히 보기 옆) */
+const maxBtn = (uid: string) => `<button class="btn d-mag d-max" data-a="big-open" data-v="${uid}" title="전체 상세 (확대)" aria-label="전체 상세 열기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button>`;
+/** 기물 전체 상세 팝업: 장비 · 주요 · 상세 능력치 · 능력 구성 · 유형 특성을 한 화면에 */
 /** 전체 상세 머리 요약: 역할 → 전투에서 반복하는 행동 → 이번 빌드에서 달라진 점 (변형 증강이면 그 변화를 먼저) */
 function unitSummary(run: RunState, u: UnitState, d: UnitDef, b: Battle, c: CUnit) {
   const role = `${CTYPE_NAME[d.ctype]} · ${TTYPE_NAME[d.ttype]} — ${CTYPE_DESC[d.ctype]?.[0] || ''}`;
@@ -1546,9 +1553,9 @@ function unitModal(run: RunState) {
         ${synRow}</div>
         <h3>장비</h3>${eqBox(u)}
         ${rel ? `<div class="um-relic">${relicTok(rel.id)}<span><b>${esc(rel.name)}</b><br><span class="muted small">성유물 · 신권 대행</span></span></div>` : ''}
-        <h3>메이저 스탯</h3>${majors}
+        <h3>주요 능력치</h3>${majors}
         ${powRow(b, c, d, !!u.pos)}
-        <h3>상세 스탯</h3>${statLines(c, b)}
+        <h3>상세 능력치</h3>${statLines(c, b)}
       </div>
       <div class="um-main">
         ${unitSummary(run, u, d, b, c)}
@@ -1584,34 +1591,51 @@ function unitModal(run: RunState) {
 }
 /** 전체 상세 왼쪽 열: 스탠딩 일러스트를 일정 이상(일러스트 높이의 30%) 내려 보면 일러스트가 접히고 머리 초상화 · 공명 등급 · 시너지 머리줄이 위에 붙는다.
  *  넓은 화면은 왼쪽 열이, 좁은 화면(≤700px)은 팝업 전체(.um-grid)가 스크롤된다 */
-let umIO: IntersectionObserver | null = null;
+let umIO: { disconnect(): void } | null = null;
 function umCompactBind() {
   const a = root.querySelector<HTMLElement>('.um-a');
   const grid = root.querySelector<HTMLElement>('.um-grid');
   const blk = a?.querySelector<HTMLElement>('.um-idblk');
   if (!a || !grid || !blk) return;
-  // 머리줄: 본문의 공명 등급 · 시너지 블록이 거의 다 가려지면 켠다 (보이는 높이 ≤ 블록의 25% 또는 ≤ 24px), 40% 이상 보이면 끈다 (히스테리시스).
-  // 켜진 동안 남은 블록 조각은 CSS 로 숨겨 시너지 표기가 두 번 보이지 않게 한다
   const scroller = () => (a.scrollHeight > a.clientHeight + 1 && getComputedStyle(a).overflowY !== 'visible' ? a : grid);
+  umIO?.disconnect();
+  umIO = compactHead(a, blk, () => { const r = scroller().getBoundingClientRect(); return [r.top, r.bottom]; }, [a, grid]);
+}
+/** 작은 고정 머리 (전체 상세 · 편성 기물 상세 공용): 본문의 초상 · 공명 등급 · 시너지 블록이 거의 다 가려지면 col 에 compact 를 켠다
+ *  (보이는 높이 ≤ 블록의 25% 또는 ≤ 24px), 40% 이상 보이면 끈다 (히스테리시스). 켜진 동안 남은 블록 조각은 CSS 로 숨긴다.
+ *  view = 지금 보이는 세로 범위 [위, 아래] (위쪽 고정 바 아래부터). 반환: 레이아웃 변화 감시 (다시 묶을 때 끊는다) */
+function compactHead(col: HTMLElement, blk: HTMLElement, view: () => [number, number], scrollers: (HTMLElement | Window)[]) {
   const upd = (instant = false) => {
-    const sr = scroller().getBoundingClientRect(), br = blk.getBoundingClientRect();
+    if (!col.isConnected) return;
+    const [top, bottom] = view(), br = blk.getBoundingClientRect();
     const h = Math.max(1, br.height);
-    const vis = Math.max(0, Math.min(br.bottom, sr.bottom) - Math.max(br.top, sr.top));
-    const was = a.classList.contains('compact');
+    const vis = Math.max(0, Math.min(br.bottom, bottom) - Math.max(br.top, top));
+    const was = col.classList.contains('compact');
     const on = was ? vis < h * 0.4 : vis <= h * 0.25 || vis <= 24;
     if (on === was) return;
-    if (instant) { a.classList.add('um-instant'); requestAnimationFrame(() => requestAnimationFrame(() => a.classList.remove('um-instant'))); }
-    a.classList.toggle('compact', on);
-    a.querySelector('.um-sc')?.setAttribute('aria-hidden', String(!on));
+    if (instant) { col.classList.add('um-instant'); requestAnimationFrame(() => requestAnimationFrame(() => col.classList.remove('um-instant'))); }
+    col.classList.toggle('compact', on);
+    col.querySelector('.um-sc')?.setAttribute('aria-hidden', String(!on));
   };
   let raf = 0;
   const onScroll = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; upd(); }); };
-  a.addEventListener('scroll', onScroll, { passive: true });
-  grid.addEventListener('scroll', onScroll, { passive: true });
+  for (const s of scrollers) s.addEventListener('scroll', onScroll, { passive: true });
   // 크기 변화 · 레이아웃 변화로 블록이 가려지거나 드러날 때도 (스크롤 없이)
-  umIO?.disconnect();
-  if (typeof IntersectionObserver !== 'undefined') { umIO = new IntersectionObserver(() => upd(), { root: null, threshold: [0, 1] }); umIO.observe(blk); }
+  const io = typeof IntersectionObserver !== 'undefined' ? new IntersectionObserver(() => upd(), { root: null, threshold: [0, 1] }) : null;
+  io?.observe(blk);
   upd(true);
+  return { disconnect: () => { io?.disconnect(); for (const s of scrollers) s.removeEventListener('scroll', onScroll); } };
+}
+/** 편성 기물 상세의 작은 고정 머리: 위쪽 바(닫기 · 자세히 보기 · 확대) 바로 아래에 붙는다. 넓은 화면은 옆 패널이, 좁은 화면은 창이 스크롤된다 */
+let dpHead: { disconnect(): void } | null = null;
+function detailHeadBind() {
+  dpHead?.disconnect(); dpHead = null;
+  const det = root.querySelector<HTMLElement>('.detail.dp-unit'), bar = det?.querySelector<HTMLElement>('.d-bar'), st = det?.querySelector<HTMLElement>('.dp-sticky'), blk = det?.querySelector<HTMLElement>('.d-hero');
+  if (!det || !bar || !st || !blk) return;
+  st.style.top = `calc(${getComputedStyle(bar).top} + ${bar.offsetHeight}px)`; // 바 높이 · 바의 고정 위치를 그대로 따른다
+  const side = det.closest<HTMLElement>('.side');
+  const own = () => !!side && side.scrollHeight > side.clientHeight + 1 && getComputedStyle(side).overflowY !== 'visible';
+  dpHead = compactHead(det, blk, () => [bar.getBoundingClientRect().bottom, own() ? side!.getBoundingClientRect().bottom : innerHeight], side ? [side, window] : [window]);
 }
 /** 장비 · 개조부품 칸 (끌어 놓기 지원) */
 function eqBox(u: UnitState) {
@@ -1707,7 +1731,7 @@ function detailPanel(run: RunState, extra = '') {
       ${TEND_NAME[e.tend] ? `<div class="tend-line">${lineIcon(`t.${e.tend}`, 'li')}<b>${TEND_NAME[e.tend].name}</b><span>${esc(TEND_NAME[e.tend].desc)}</span></div>` : ''}
       ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}
       ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.map((x) => `<span class="tk-it">${itemIcon(x, `data-a="foe-item" data-v="${x}"`)}</span>`).join('')}</div></div>` : ''}
-      <div class="mj-wrap"><div class="mj-head"><h3>메이저 스탯 <span class="muted small">페이즈 ${ph}</span></h3>${magBtn()}</div>${majorsHtml(ms)}</div>
+      <div class="mj-wrap"><div class="mj-head"><h3>주요 능력치 <span class="muted small">페이즈 ${ph}</span></h3>${magBtn()}</div>${majorsHtml(ms)}</div>
       <div class="small accent">페이즈 피해 배율 ×${c.phaseAmp.toFixed(2)}</div>
       <h3>능력</h3><div class="abils">${enemyAbilCards(e, b, c)}</div>
     </div>`;
@@ -1722,18 +1746,19 @@ function detailPanel(run: RunState, extra = '') {
   const tm = totalMajors(u, effects);
   const title = rankTitle(u.rank + effects.reduce((s, e) => s + (e.rankBonus || 0), 0)) + effects.reduce((s, e) => s + (e.title || 0), 0);
   const cost = R.xpCost(run);
-  return `<div class="detail">${bar}
+  const synTok = (() => { const cnt = synergyCounts(deployed(run), run) as Record<string, number>; return memberships(u, run).map((id) => synToken(id, cnt[id] || 0)).join(''); })();
+  return `<div class="detail dp-unit">${dBar('desel', maxBtn(u.uid) + extra)}
+    <div class="um-sticky dp-sticky"><div class="um-sc" aria-hidden="true">${sprite(d, 'um-face')}<div class="um-sc-main"><div class="um-rank">${rankLabel(u.rank)}${xpBar(u)}</div><div class="pc-syn">${synTok}</div></div></div></div>
     <div class="d-hero">${hero(d.id) || `<div class="hero none">${sprite(d, 'spr big')}</div>`}
-      <div class="pc-syn dh-syn">${(() => { const cnt = synergyCounts(deployed(run), run) as Record<string, number>; return memberships(u, run).map((id) => synToken(id, cnt[id] || 0)).join(''); })()}</div>
+      <div class="pc-syn dh-syn">${synTok}</div>
       <div class="dh-name"><b>${esc(d.name)}</b><span class="dh-types"><i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i></span></div></div>
     <div class="dh-rank"><span class="dh-r">${rankLabel(u.rank)}</span>${xpBar(u)}<button class="btn tiny dh-buy" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost ? 'disabled' : ''} title="공명도 +${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)} 구입 (에너지 크레딧 ${cost})">${lineIcon('r.res', 'li res')}+${CFG.buyXpAmount + (R.hasGlobal(run, 'G.study') ? 1 : 0)}<span class="dh-cost">${lineIcon('r.cr', 'li cr')}${cost}</span></button></div>
     ${powRow(b, c, d, !!u.pos)}
-    ${provLine(null, c)}
     ${memberships(u, run).includes('KAL') ? `<div class="small accent">작위: ${TITLE_NAME[Math.min(6, title)]}</div>` : ''}
     <h3>장비</h3>${eqBox(u)}
 
     <div class="mj-wrap">
-    <div class="mj-head"><h3>메이저 스탯</h3>${maxBtn(u.uid)}<button class="mag-btn${app.statPop ? ' on' : ''}" data-a="stat-pop" title="상세 능력치" aria-label="상세 능력치 ${app.statPop ? '닫기' : '보기'}" aria-pressed="${app.statPop}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg></button></div>
+    <div class="mj-head"><h3>주요 능력치</h3><button class="mag-btn${app.statPop ? ' on' : ''}" data-a="stat-pop" title="상세 능력치" aria-label="상세 능력치 ${app.statPop ? '닫기' : '보기'}" aria-pressed="${app.statPop}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.5"/><path d="M15 15l4.5 4.5"/></svg></button></div>
     <div class="majors">${MAJORS.map((m) => {
       const base = d.base[m], add = tm[m] - base;
       return `<div class="major"><span>${majorIcon(m)}${MAJOR_NAME[m]}</span><span class="mbar"><i style="width:${Math.min(100, tm[m] * 3)}%"></i></span><b>${tm[m]}</b>${add ? `<small class="${add > 0 ? 'up' : 'down'}">${add > 0 ? '+' : ''}${add}</small>` : ''}</div>`;
@@ -2089,7 +2114,7 @@ function pendingModal(run: RunState): string {
       const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? +((v as number) * 100).toFixed(1) + '%' : v}`).join(', ');
       body = `${side}<div class="ru-main">
         <div class="ru-head"><h1>${p.rank}등급 달성 보상 · 능력치</h1></div>
-        <p class="muted small">마이너 기물이 공명 등급 3의 배수마다 받는 보상입니다. 서로 다른 스탯 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.options?.length === 0 ? '' : ` · 이어서 ${p.rank}등급 증강`}<br>(등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>
+        <p class="muted small">마이너 기물이 공명 등급 3의 배수마다 받는 보상입니다. 서로 다른 주요 능력치 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.options?.length === 0 ? '' : ` · 이어서 ${p.rank}등급 증강`}<br>(등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>
         <div class="alloc-grid">${MAJORS.map((m) => {
           const on = app.picks.includes(m);
           return `<button class="stat-pick ${on ? 'on' : ''} ${rec.includes(m) ? 'rec' : ''}" data-a="alloc-pick" data-v="${m}" aria-pressed="${on}" aria-label="${MAJOR_NAME[m]} ${on ? tm[m] + p.points : tm[m]}" ${on || left ? '' : 'disabled'}>
@@ -2452,6 +2477,7 @@ function render() {
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
   umCompactBind();
+  detailHeadBind();
   // 창 내용은 첫 그리기에서 채워질 수 있으므로 (선택지 생성 등) 그린 뒤의 키를 기억한다
   lastView.modal = modalKeyOf();
   scrollRestore(scrolled, newModal);
@@ -2924,11 +2950,6 @@ function allyTags(d: UnitDef) { return `<i>${typeIcon(d.ttype)}${TTYPE_NAME[d.tt
 function enemyTags(e: EnemyDef) { return `${categoryTag(enemyCategory(e))}<i>${tierKo(e)}</i><i title="${esc(TEND_NAME[e.tend].desc)}">성향: ${TEND_NAME[e.tend].name}</i>`; }
 /** 적 성향 한 줄 (툴팁 · 상세) */
 const tendText = (e: EnemyDef) => `성향: ${TEND_NAME[e.tend].name} — ${TEND_NAME[e.tend].desc}`;
-/** 아군 도발 배율 한 줄 */
-function provLine(b: Battle | null, c: CUnit) {
-  const m = provMult(b, c);
-  return `<div class="small muted" title="적이 이 기물에게 쌓는 도발 수치에 곱해지는 값 (돌격가 3 · 수호자 시너지 발동 시 +1.5 · 그 밖 1.0, 은신 · 기습 중 ×0.3)">도발 배율 <b class="f-num">×${m.toFixed(1)}</b></div>`;
-}
 /** 적: 지금 표적 + 도발 수치 상위 3명 (전투 상세) */
 function provInfo(b: Battle, u: CUnit) {
   if (!u.prov || !u.alive) return '';
@@ -2966,7 +2987,8 @@ function battleUnitStatic(b: Battle, u: CUnit) {
   let head = '', abils = '', pop = '';
   if (u.side === 0 && !u.isSummon) {
     const d = UNIT_BY_ID[u.defId];
-    head = heroHead(d.id, sprite(u, 'spr big'), d.name, allyTags(d)) + provLine(b, u);
+    const pv = provChip(b, u);
+    head = heroHead(d.id, sprite(u, 'spr big'), d.name, allyTags(d)) + (pv ? `<div class="d-pows">${pv}</div>` : '');
     abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem, d.id)}<div class="abil ab-trait ab-click${abilOn('trait')} has-tok" data-a="abil-pop" data-v="trait" role="button" tabindex="0">${abTok(`trait.${d.id}`)}<div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${ultCard(d, b, u, true)}${faithAbil(d, u.src || null, app.run, u)}${ttSection(d, u.src || null, app.run, b, u, true)}${relicSection(d, u.src || null, app.run, u, true)}`;
     if (app.abilPop) pop = abilPopHtml(app.abilPop, d, b, u);
   } else if (u.side === 1 && ENEMY_BY_ID[u.defId]) {
@@ -2982,7 +3004,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
   return `${dBar('bdesel')}${head}
     <div class="bs-dyn"></div>
     ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.join('')}</div></div>` : ''}
-    ${ms ? `<div class="mj-wrap"><div class="mj-head"><h3>메이저 스탯</h3>${magBtn()}</div>${majorsHtml(ms)}</div>` : `<div class="mj-head"><h3>능력치</h3>${magBtn()}</div>`}
+    ${ms ? `<div class="mj-wrap"><div class="mj-head"><h3>주요 능력치</h3>${magBtn()}</div>${majorsHtml(ms)}</div>` : `<div class="mj-head"><h3>능력치</h3>${magBtn()}</div>`}
     ${app.statPop ? '<div class="bs-stats"></div>' : ''}
     ${abils ? `<h3>능력</h3><div class="abils">${abils}</div>` : ''}${pop}`;
 }

@@ -76,7 +76,7 @@ export const FIELDS: FieldDef[] = [
   {
     id: 'swarm', name: '베르타–산노디스 물류망', region: '성간 인류 연합 · 군체 침식 전선', icon: '★', color: '#3b6fd8',
     desc: '561년, 군체 마부 개체가 연합의 수도 물류망을 끊었다. 행성이 잠식된 항로 위로 사이오닉장이 번진다.',
-    rules: ['사이오닉장: 보스 군체가 살아 있는 동안 모든 적 피해 +20%', '연합 기물 피해 +20%, 모든 메이저 +3'],
+    rules: ['사이오닉장: 보스 군체가 살아 있는 동안 모든 적 피해 +20%', '연합 기물 피해 +20%, 모든 주요 능력치 +3'],
     pool: ['sw_spore', 'sw_hound', 'sw_spitter', 'sw_carrier', 'crawler'], elite: 'sw_brood', bosses: ['sw_queen', 'sw_harvester'],
     enemyMod: (c) => { c.hooks.push({ dmgMult: (b, u) => (b.alliesOf(u).some((a) => a.isBoss && a.alive) ? 1.2 : 1) }); },
     ally: { syn: 'UNI', effect: { mods: [inc('all', 0.2)], majors: { vit: 3, pow: 3, mnd: 3, def: 3, agi: 3 } } },

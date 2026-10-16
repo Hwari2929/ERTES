@@ -123,6 +123,7 @@ const L: Record<string, string> = {
   'p.shoot': '<circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/><circle cx="12" cy="12" r="1.2"/>',
   'p.strike': '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4"/>',
   'p.tech': '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+  'p.prov': '<circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/><path d="M3 3l5.5 5.5M21 3l-5.5 5.5M3 21l5.5-5.5M21 21l-5.5-5.5"/><path d="M8.5 4.5v4h-4M15.5 4.5v4h4M8.5 19.5v-4h-4M15.5 19.5v-4h4"/>', // 도발 배율: 적이 이 기물로 모여든다
   'p.tac': '<path d="M5 21.5h14"/><path d="M8.3 18.6c-.5-2.9.6-4.9 2.8-6.6l-4.3 1.5a1.7 1.7 0 0 1-2-.6l-.5-.7a1.7 1.7 0 0 1 .2-2.2L9.6 5.6 11 2.5l1.9 2.4c4.4.4 7.2 4.4 6.6 9.4l-.5 4.3z"/><circle cx="10.4" cy="8.4" r="1" fill="currentColor" stroke="none"/>',
   // 능력 수치
   'u.range': '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',

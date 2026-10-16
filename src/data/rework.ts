@@ -50,7 +50,7 @@ export const MINOR_TRAIT_GROW: Record<string, (g: number) => string> = {
   vivian: (g) => `[생태 분석] 중첩당 방어도 -${pct(Math.min(0.2, 0.1 * g))}`,
   ingel: (g) => `[무대 위의 달] 아군 1명당 피해 +${pct(0.1 * g)} · 소환물당 +${pct(0.05 * g)}`,
   rasmus: (g) => `[가지치기] 부상 최대 ${Math.round(5 * g)}중첩`,
-  sigmund: (g) => `[집사의 예법] 모시는 엘베스타드 모든 메이저 +${Math.round(5 * g)}`,
+  sigmund: (g) => `[집사의 예법] 모시는 엘베스타드 모든 주요 능력치 +${Math.round(5 * g)}`,
   gunnir: (g) => `[저택의 실세] 기술 후 아군 전원 회복 기술 위력 ${pct(0.25 * g)}`,
   bill: (g) => `[호쾌한 관광객] 해로운 효과 대상 피해 +${pct(0.1 * g)}`,
   eden: (g) => `[밑바닥 생존자] 체력 50% 이하 피해 +${pct(0.2 * g)}`,
@@ -245,7 +245,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'CMD', ttype: 'special', faith: 'index', weapon: { name: '비무장', kind: 'none', type: 'shoot', elem: 'phys', interval: 1, range: 3, mult: 0 },
     factions: ['PET'], traits: ['BUDDY'],
     trait: {
-      name: '합리적인 거래', desc: '기본 공격을 하지 않는다. 라르스가 함께한 뒤 번 크레딧 10당 경호원 메이저 +1 (100에서 상한 +10). 이자 상한 +2. [경호 계약] 8초마다 경호원 전원에게 기술 위력 150% 보호막.',
+      name: '합리적인 거래', desc: '기본 공격을 하지 않는다. 라르스가 함께한 뒤 번 크레딧 10당 경호원 주요 능력치 +1 (100에서 상한 +10). 이자 상한 +2. [경호 계약] 8초마다 경호원 전원에게 기술 위력 150% 보호막.',
       effect: {
         setup: (u) => { u.mem.summonMaj = Math.min(10, Math.floor(gv(u.src?.grow || {}, 'earn') / 10)); },
         hooks: { onTick(b, u, dt) {
@@ -278,7 +278,7 @@ export const REWORK: Record<string, ReworkDef> = {
         u.weapon = G('만년필', 'phys', 1.0, 3, 1.8, 1, 1.5);
         u.atk = { type: 'shoot', elem: 'phys', interval: 1.0 };
       } }),
-      sp('lars', 'elite', '정예 경호', '경호원 최대 체력 +40%, 경호원 메이저 +2. 하청과 함께면 경호 계약 보호막 +40%.', { setup: (u) => {
+      sp('lars', 'elite', '정예 경호', '경호원 최대 체력 +40%, 경호원 주요 능력치 +2. 하청과 함께면 경호 계약 보호막 +40%.', { setup: (u) => {
         u.mem.summonHpPct = (u.mem.summonHpPct || 0) + 0.4;
         u.mem.summonMaj = (u.mem.summonMaj || 0) + 2;
       } }),
@@ -858,7 +858,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'CMD', ttype: 'minor', faith: 'index', weapon: G('은식기 투척', 'phys', 1.1, 3, 0.6, 6, 2),
     factions: ['FAM'], traits: ['GUARD'],
     trait: {
-      name: '집사의 예법', desc: '공명 등급이 가장 높은 아군을 모신다 (보좌 우선 대상). 그 기물이 엘베스타드가 아니면 엘베스타드 시너지에 합류시키고, 이미 엘베스타드면 모든 메이저 +5.',
+      name: '집사의 예법', desc: '공명 등급이 가장 높은 아군을 모신다 (보좌 우선 대상). 그 기물이 엘베스타드가 아니면 엘베스타드 시너지에 합류시키고, 이미 엘베스타드면 모든 주요 능력치 +5.',
       effect: { setup(u, _b, ctx) {
         const uid = ctx.run ? sigmundTarget(ctx.run) : null;
         if (!uid) return;
@@ -1019,7 +1019,7 @@ export function sigmundTarget(run: RunState): string | null {
 // ───────────────────────── 메이저 공용 · 사이오닉 증강
 const MAJOR_KO: Record<Major, string> = { vit: '생명력', pow: '전투력', mnd: '정신력', def: '방어력', agi: '기동력' };
 export const MAJOR_AUGS: AugDef[] = [
-  { id: 'maj.stat', name: '집중 단련', desc: '지정 메이저 +10.', pool: 'major', stack: true, effect: (p) => ({ majors: { [p as Major || 'pow']: 10 } }),
+  { id: 'maj.stat', name: '집중 단련', desc: '지정 주요 능력치 +10.', pool: 'major', stack: true, effect: (p) => ({ majors: { [p as Major || 'pow']: 10 } }),
     roll: (pick) => pick(MAJORS), descParam: (p) => `${MAJOR_KO[p as Major]} +10.` },
   { id: 'maj.shoot', name: '사격 교범', desc: '사격 피해량 +20%.', pool: 'major', stack: true, effect: () => ({ mods: [inc('shoot', 0.2)] }) },
   { id: 'maj.strike', name: '타격 교범', desc: '타격 피해량 +20%.', pool: 'major', stack: true, effect: () => ({ mods: [inc('strike', 0.2)] }) },

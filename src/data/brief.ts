@@ -73,7 +73,7 @@ export const GROWTH_BRIEF: Record<string, string> = {
   demiurgos: '서로 다른 아군을 치료할수록 치료량이 늘어난다.',
   u404: '전투마다 피해 목표를 달성하면 타격 위력이 오른다.',
   bill: '적에게 해로운 효과를 걸수록 효과 명중과 치명타가 오른다.',
-  eden: '출전할수록 모든 메이저가 조금씩 오른다.',
+  eden: '출전할수록 모든 주요 능력치가 조금씩 오른다.',
 };
 export const PSI_BRIEF: Record<string, string> = {
   yelena: '스킬을 쓰면 이성이 떨어지고, 아군이 스킬을 쓰면 회복된다.',

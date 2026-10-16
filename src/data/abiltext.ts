@@ -162,7 +162,7 @@ const ABIL_PILOT: Record<string, AbilText> = {
       refit: '[g:pen] [pp:0.4]. 화력 지원 [g:crit] 확률 [pp:0.15].',
       twin: '화력 지원 2회 (두 번째도 [p:1] 피해).',
       carpet: '화력 지원 범위: 대상 주변 [t:1]. 피해 [dmg+:shoot:0.3:phys].',
-      travelogue: '모든 메이저 스탯 +4.',
+      travelogue: '모든 주요 능력치 +4.',
       'sp.shade': '[g:rewind].',
       'sp.mount': '[g:immobile]. 기본 공격 피해 ×1.6, 사거리 +[t:2]. 단장의 명령과 함께면 대신 [g:tac] +16.',
       'sp.order': '기본 공격을 하지 않음. [g:tac] +48.',

@@ -4,7 +4,8 @@
 //   3 최상 — 위 + 카드 뒤 빛 줄기 + 화면 플래시 (창 하나에 한 번) + 카드 흔들림 (전설 장비 · ◆ 변형 증강 · 12등급 이상)
 // 카드의 기존 등장 애니메이션(이타카 물결 등장 · 전역 증강 뒤집기 · 특권 막)이 끝난 뒤에 시작하고,
 // 그 애니메이션의 transform 을 건드리지 않도록 개별 속성(translate · scale)과 덧붙인 요소로만 움직인다. 입력은 막지 않는다
-// (숫자키 즉시 확정으로 창이 닫히면 연출도 그대로 끝남). 움직임 줄이기에서는 정적인 등급 테두리만 남긴다.
+// (숫자키 즉시 확정으로 창이 닫히면 연출도 그대로 끝남). 테두리 광은 공개 순간에 나타났다 사라진다 (희귀 ~1.3초 · 최상 ~2.4초).
+// 공개 전 · 공개 뒤에 남는 등급 테두리는 없다 (선택 표시 .on · 포커스 테두리와 겹치지 않게). 움직임 줄이기는 테두리만 제자리에서 나타났다 사라진다.
 import type { Pending } from '../types';
 import { itemInfo } from '../data/items';
 import { isTransformAug } from '../data/schools';
@@ -46,16 +47,15 @@ function flipped(box: Element | null) {
   });
 }
 
-/** 그릴 때마다 부른다: 등급 표식 (rv-2 · rv-3). fresh = 새로 뜬 창이면 카드가 다 나타난 뒤 공개 연출, 아니면 공개된 상태로 */
+/** 그릴 때마다 부른다: 등급 표식 (rv-2 · rv-3, 색 변수만). fresh = 새로 뜬 창이면 카드가 다 나타난 뒤 공개 연출 */
 export function gradeCards(md: HTMLElement, p: Pending | undefined, fresh: boolean) {
   if (!p) return;
   const cards = cardsOf(md, p).map((el, i) => [el, gradeOf(p, i)] as const).filter(([, g]) => g > 1);
   for (const [el, g] of cards) el.classList.add(`rv-${g}`, ...(fresh ? [] : ['rv-on']));
   if (!fresh || !cards.length) return;
-  if (reduced()) { for (const [el] of cards) el.classList.add('rv-on'); return; }
-  void reveal(md, cards);
+  void reveal(md, cards, reduced());
 }
-async function reveal(md: HTMLElement, cards: (readonly [HTMLElement, Grade])[]) {
+async function reveal(md: HTMLElement, cards: (readonly [HTMLElement, Grade])[], still: boolean) {
   await frame(); // 같은 그리기에서 붙는 카드 뒤집기(deal-box) · 창 등장 클래스가 먼저 걸리게
   await settle(md);
   let flashed = false;
@@ -66,11 +66,23 @@ async function reveal(md: HTMLElement, cards: (readonly [HTMLElement, Grade])[])
     await wait(i * 70);
     if (!el.isConnected) return;
     el.classList.add('rv-on');
+    ring(el, g, still);
+    if (still) return;
     burst(el, g, g === 3 && !flashed);
     if (g === 3) flashed = true;
   });
 }
 
+/** 테두리 광: 나타났다가 사라진다 (최상은 조금 더 오래). still = 움직임 줄이기 (바깥에서 조여 드는 움직임 없이) */
+function ring(el: HTMLElement, g: Grade, still: boolean) {
+  const w = g === 3 ? '3px' : '2px', off = g === 3 ? '3px' : '2px', from = still ? off : '7px';
+  el.animate([
+    { outline: `${w} solid transparent`, outlineOffset: from },
+    { outline: `${w} solid var(--rv-c)`, outlineOffset: off, offset: 0.16 },
+    { outline: `${w} solid var(--rv-c)`, outlineOffset: off, offset: g === 3 ? 0.62 : 0.5 },
+    { outline: `${w} solid transparent`, outlineOffset: off },
+  ], { duration: g === 3 ? 2400 : 1300, easing: 'ease-out' });
+}
 /** 공개 순간 한 번 */
 function burst(el: HTMLElement, g: Grade, flash: boolean) {
   const add = (cls: string, host: Element) => { const d = document.createElement('i'); d.className = `${cls} rv-${g}`; d.setAttribute('aria-hidden', 'true'); host.appendChild(d); return d; };
