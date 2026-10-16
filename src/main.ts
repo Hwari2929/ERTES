@@ -2,7 +2,7 @@ import { CFG, phaseAmpMult, phaseHpMult } from './config';
 import { AUG_BY_ID, augDesc } from './data/augments';
 import { ENEMIES, ENEMY_BY_ID, type EnemyDef } from './data/enemies';
 import { ENEMY_DESC } from './data/enemyText';
-import { DIFFS, MAX_DIFF } from './data/difficulty';
+import { DIFFS, MAX_DIFF, diffAddCount, diffAddEvery, diffAddRule } from './data/difficulty';
 import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
 import { STORIES } from './data/stories';
 import { FIELDS, fieldOf } from './data/battlefields';
@@ -762,8 +762,8 @@ function introAnim() {
 }
 const DIFF_PICKS = [
   { lvl: 0, name: '쉬움', sub: '표준 의뢰', bg: 'diff_easy', line: '처음 출격하는 용병단을 위한 안정적인 항로.' },
-  { lvl: 3, name: '모험', sub: '위험 등급 3', bg: 'diff_adventure', line: '적이 강해지고 장비를 챙겨 나옵니다. 대신 승리 크레딧 ×1.25.' },
-  { lvl: 6, name: '도전', sub: '위험 등급 6', bg: 'diff_challenge', line: '함대 체력이 줄고 적은 끝없이 몰려옵니다. 승리 크레딧 ×1.5, 베테랑 전용.' },
+  { lvl: 3, name: '모험', sub: '위험 등급 3', bg: 'diff_adventure', line: `적이 장비를 챙기고 ${diffAddEvery(3)}페이즈마다 1기씩 늘어납니다. 승리 크레딧 ×${CFG.diffWinMul(3)}.` },
+  { lvl: 6, name: '도전', sub: '위험 등급 6', bg: 'diff_challenge', line: `함대 체력이 줄고 적은 ${diffAddEvery(6)}페이즈마다 1기씩 더 몰려옵니다. 크레딧 ×${CFG.diffWinMul(6)}, 베테랑 전용.` },
 ];
 function diffScreen() {
   return `<main class="diffsel"><h1 class="ds-title">난이도 설정</h1>
@@ -961,6 +961,7 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
     if (o === 'adversity' || o === 'challenge') c.push(tchip(lineIcon('a.power', 'li'), `적 ×${CFG.adversityMult}`, 'bad', '적 체력 · 능력 배율'));
     if (o === 'adversity') c.push(tchip('', `보상 ×${CFG.adversityReward}`, 'good', '승리 크레딧 · 공명도 배율'));
     if (o === 'adversity' && elite) c.push(tchip(sprite(elite, 'spr'), esc(elite.name), 'bad', `정예 · ${ENEMY_DESC[elite.id] || ''}`));
+    if (FIGHT_NODES.includes(o)) c.push(diffAddChip(run, o === 'challenge' ? run.phase + 1 : run.phase)); // 위험 등급 적 증원
     return c.join('');
   };
   // 예상 수입 (네모 칸, 아이콘 + 숫자): 승리 시 공명도 풀 · 크레딧 (엔진의 보상 계산 battleRewardPreview) + 장비 · 재료 · 소모품 (×n = 확정, % = 확률, 설정값 · 전장 배율)
@@ -982,7 +983,7 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   const bossCard = (i: number, e: EnemyDef, cur: boolean) => {
     const cat = enemyCategory(e), td = TEND_NAME[e.tend], rk = foeRank(run, e, run.phase, R.encounterMult('boss', i));
     return `<li class="ah-card ah-boss n-boss${cur ? ' cur tl-info' : ''}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}"><span class="ah-port">${sprite(e, 'spr big')}<i class="ah-ic">${NODE_ICON.boss}</i></span>
-      <div class="ah-body">${step(i)}<b>${esc(e.name)}</b>${income('boss')}<div class="ah-chips">${rankChip(rk)}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${act(cur)}</div></li>`;
+      <div class="ah-body">${step(i)}<b>${esc(e.name)}</b>${income('boss')}<div class="ah-chips">${rankChip(rk)}${diffAddChip(run, run.phase)}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${act(cur)}</div></li>`;
   };
   const nodeCard = (i: number, o: NodeType, cur: boolean) => {
     const e = o === 'boss' ? phaseBoss(run) : undefined;
@@ -1707,7 +1708,7 @@ function prepBrief(run: RunState) {
   ].join('');
   const elRows = mu.elems.map((x) => row(lineIcon(`e.${x.e}`, 'li'), x.name, x.allies, `${x.weak ? tag(`적 ${x.weak}명 취약`, 'good') : ''}${x.resist ? tag(`적 ${x.resist}명 저항`, 'bad') : ''}`, '', `--c:var(--el-${x.e})`)).join('');
   return `<div class="detail pb" aria-label="이번 전투 적 구성">
-    <div class="pb-head"><h3>이번 전투</h3><span class="pb-kind n-${type}">${esc(kind)}</span><span class="muted small">적 ${mu.foes}명 · 체력 ×${+enc.mult.toFixed(2)}</span></div>
+    <div class="pb-head"><h3>이번 전투</h3><span class="pb-kind n-${type}">${esc(kind)}</span><span class="muted small">적 ${mu.foes}명 · 체력 ×${+enc.mult.toFixed(2)}</span>${diffAddChip(run, enc.phase ?? run.phase, enc.add || 0)}</div>
     <ul class="pb-foes">${rows.map(foe).join('')}</ul>
     <h3>상성</h3>
     <ul class="pb-rows">${muRows || '<li class="pb-row muted">특별한 면역 · 취약 없음</li>'}</ul>
@@ -2815,6 +2816,10 @@ function goPrepOrMap() {
 
 
 // ───────────────────────── 난이도 선택
+/** 위험 등급 적 증원 칩 (지도 미리보기 · 편성 적 구성): 그 페이즈 전투에 더해지는 적 수. n 을 주면 조우에 실제로 더한 수 (보드 칸 상한 반영) */
+function diffAddChip(run: RunState, phase: number, n = diffAddCount(run.diff, phase)) {
+  return n > 0 ? tchip('', `적 +${n}`, 'bad', `위험 등급 ${run.diff} 적 증원: ${diffAddRule(run.diff)} — 페이즈 ${phase} 전투마다 적 +${n}`) : '';
+}
 /** 한 줄 위험 등급 선택 (조건은 툴팁) */
 function diffMini() {
   const max = MAX_DIFF; // 모든 위험 등급을 처음부터 고를 수 있다

@@ -42,6 +42,9 @@ export const CFG = {
   armorK: 3200,
   /** 난이도별 승리 크레딧 배율 (위험 3 · 6 단계) */
   diffWinMul: (d: number) => (d >= 6 ? 1.5 : d >= 3 ? 1.25 : 1),
+  /** 난이도별 적 증원: [위험 등급, 간격(페이즈)] — 그 등급부터 간격 페이즈마다 조우의 적 +1 (높은 등급이 대체).
+   *  쉬움(0) 없음 · 모험(3) 3페이즈마다 · 도전(6) 2페이즈마다. 페이즈 p 의 증원 = ⌊p ÷ 간격⌋ (difficulty.ts diffAddCount) */
+  diffAdd: [[3, 3], [6, 2]] as [number, number][],
   baseHit: 0.8,
   minHit: 0.15, // 최저 명중률 (회피 과다 누적 방지) [임시]
   grazeBase: 0.3, grazeAccK: 0.5, grazeChanceMax: 0.8,

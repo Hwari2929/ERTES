@@ -114,7 +114,7 @@ export const NODE_NAME: Record<NodeType, string> = {
 };
 
 export interface EnemySpawn { defId: string; c: number; row: number; elite?: boolean; items?: string[]; mod?: string } // items · mod: 위험 등급 장비
-export interface Encounter { n: number; env: string; enemies: EnemySpawn[]; mult: number; seed: number; phase?: number } // phase: 적 강도 기준 페이즈 (도전 = 다음 페이즈)
+export interface Encounter { n: number; env: string; enemies: EnemySpawn[]; mult: number; seed: number; phase?: number; add?: number } // phase: 적 강도 기준 페이즈 (도전 = 다음 페이즈) · add: 위험 등급 적 증원으로 더한 수 (difficulty.ts)
 
 export interface ShopSlot { item: string; price: number; sold: boolean }
 export interface NewsOffer { id: string; cost: number; sold: boolean }

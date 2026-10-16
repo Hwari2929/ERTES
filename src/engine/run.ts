@@ -1,7 +1,7 @@
 import { CFG } from '../config';
 import { AUG_BY_ID } from '../data/augments';
 import { FIELDS, fieldOf } from '../data/battlefields';
-import { diffHas } from '../data/difficulty';
+import { diffAddCount, diffHas } from '../data/difficulty';
 import { EVENT_BY_ID, EVENTS, type EventApi } from '../data/events';
 import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
@@ -593,6 +593,13 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
       if (type === 'adversity' || (p >= 2 && r.chance(diffHas(run.diff, 5) ? 0.6 : 0.3))) ids.push(f.elite);
       while (ids.length < count) ids.push(r.pick(pool));
     }
+    // 위험 등급 적 증원 (모험 · 도전, CFG.diffAdd): 보스전 포함 모든 전투. 이 조우에 이미 나온 일반 적(정예 · 보스 · 장애물 제외) 중에서 복제하고,
+    // 없으면 전장 풀에서. 보드 칸(줄 × 폭 - 2)이 모자라면 들어가는 만큼만
+    const add = Math.max(0, Math.min(diffAddCount(run.diff, p), rows * n - 2 - ids.length));
+    if (add) {
+      const same = ids.filter((id) => ENEMY_BY_ID[id].tier === 'minion' && !ENEMY_BY_ID[id].inert);
+      for (let i = 0; i < add; i++) ids.push(r.pick(same.length ? same : pool));
+    }
     // 근접은 앞줄, 원거리는 뒷줄
     const front = rows - 1;
     const taken = new Set<string>();
@@ -613,6 +620,7 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
       mult: encounterMult(type, run.step),
       seed: r.int(1, 2 ** 31 - 1),
       ...(phase !== run.phase ? { phase } : {}),
+      ...(add ? { add } : {}),
     };
   });
 }
