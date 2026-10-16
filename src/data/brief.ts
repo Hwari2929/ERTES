@@ -1,4 +1,7 @@
 // 간단 설명: 계수를 숨긴 요약 (상세 보기를 켜면 원래 설명을 보여준다)
+import type { UnitDef } from './unitkit';
+import { ULTS } from './ults';
+
 export const BRIEF: Record<string, { skill: string; trait: string }> = {
   yelena: { skill: '대상의 기억을 지워 정신 피해를 주고, 기술 쿨다운을 늦추며 공포에 빠뜨릴 수 있다.', trait: '사격이 정신 피해가 되고, 맞은 적의 기술 쿨다운을 늦춘다.' },
   mirinae: { skill: '핸드캐논 한 발로 대상에게 큰 피해를 준다. 치명타가 잘 터진다.', trait: '장비를 많이 장착할수록 회피와 치명타 확률이 오른다.' },
@@ -58,6 +61,94 @@ export const BRIEF: Record<string, { skill: string; trait: string }> = {
   mao: { skill: '[요리] 가장 강한 아군을 치료하고 피해와 공격 속도를 올린다.', trait: '요리받은 아군의 기술 쿨다운이 줄어든다.' },
   skadi: { skill: '주변 적을 서류 가방으로 치고 기절시킨다.', trait: '전투 시작 시 가장 신참인 아군을 크게 키운다. 스킬을 쓸 때 보호막을 두른다.' },
 };
+
+/** 기물 한 줄 설명: 이 기물을 어떻게 쓰는지 (전체 상세 · 도감 기물 상세 머리). 수치는 넣지 않는다 — 수치는 능력 칸이 데이터에서 읽는다.
+ *  능력 이름은 직접 적지 않고 자리표시로 쓴다 → 그릴 때 데이터의 실제 이름이 「」에 싸여 들어간다 (이름이 바뀌면 따라간다).
+ *    {skill} 스킬 · {trait} 특성 · {weapon} 무기 · {ult} 궁극기 (메이저) · {summon} 소환물
+ *  자리표시 바로 뒤에 붙인 조사(으로/로 · 을/를 · 이/가 · 은/는 · 과/와)는 이름의 받침에 맞게 바뀐다.
+ *  기물을 추가하면 여기도 채운다 (npm run check 가 빠진 기물 · 남은 자리표시 · 수치 · 길이를 검사한다). */
+export const BLURB: Record<string, string> = {
+  yelena: '정신 속성 사격과 {skill}으로 적의 기술을 늦추고 공포로 묶는다.',
+  mirinae: '장비를 많이 걸칠수록 치명타가 오르고, {skill} 한 발로 대상을 끝낸다.',
+  gebek: '{skill}으로 대상 주변을 쓸고, [제압]으로 적의 다음 공격을 무력화한다.',
+  donovan: '{summon}와 함께 가장 약한 적을 노려, 치명타가 터지는 {skill}로 끝낸다.',
+  chloe: '화학 다트로 중독을 걸고, {skill}으로 다친 아군을 치료 · 정화한다.',
+  west: '엔지니어 포탑을 수리 · 강화하고, {skill}로 대상을 기절시킨다.',
+  lindiwe: '곁의 아군이 받는 피해를 나눠 받고, {skill}로 맞은 피해를 되돌려준다.',
+  orca: '요리 {skill}로 아군을 치료 · 가속하고, 틈틈이 적을 기절시킨다.',
+  franze: '아군이 준 피해를 [심판]으로 기록해 고정 피해로 정산하고, 흡혈로 버틴다.',
+  grenholm: '행동마다 보호막을 쌓아 전선을 지키고, {skill}으로 주변 적을 기절시킨다.',
+  lars: '직접 싸우지 않고 {summon}을 부려, {skill}으로 강한 적을 약화시킨다.',
+  falcon: '기본 공격도 직선을 관통하고, {skill}으로 줄지어 선 적을 한꺼번에 꿰뚫는다.',
+  hiiro: '{skill}로 아군을 강화하며, 이성이 높을수록 길한 결과가 나온다.',
+  nadir: '정신 속성 공격이 근처 적에게 튀고, {skill}으로 무리의 명중을 떨어뜨린다.',
+  temur: '상태이상에 강하고 맞을수록 세지며, {skill}으로 주변 적을 베어 넘긴다.',
+  kairo: '{skill}로 아군을 지키며 기다리다, 때가 차면 가장 튼튼한 적을 저격한다.',
+  zahara: '맞으면 반격하고, {skill}으로 가장 강한 아군을 치료 · 강화한다.',
+  bianca: '{skill}으로 아군을 치료하고, 적이 쓰러질수록 {summon}를 키운다.',
+  zephyro: '아군 전원의 치명타를 올리고, {skill}로 주변 아군이 받는 피해를 줄인다.',
+  phyllis: '회피하면 반격하며 순간이동하고, {skill}으로 가장 약한 적에게 신성 피해를 준다.',
+  eleni: '곁의 아군을 계속 회복시키며 버티고, {skill}으로 주변에 보호막과 회복을 준다.',
+  iris: '아군 전원을 빠르게 하고, {skill}으로 주력 공격수를 더 가속한다.',
+  odysseus: '가장 약한 적만 노려, 치명타가 잘 터지는 {skill}로 마무리한다.',
+  argon: '버프를 거부하는 대신 상태이상에 강하고, {skill}로 화학 작살을 흩뿌린다.',
+  romani: '공격으로 가장 먼 적을 끌어오고, {skill}으로 후열을 당겨 기절시킨다.',
+  joshua: '{skill}으로 아군 전원을 치료하다가, 이성을 잃으면 {trait}로 바뀌어 싸운다.',
+  sarma: '기본 공격이 주변으로 번지고, {skill}로 넓은 범위를 휩쓸며 느리게 만든다.',
+  kyle: '{skill}으로 적 후방에 뛰어들어 신성 피해를 주고, 보호막으로 버틴다.',
+  doros: '요리 {skill}으로 아군을 치료 · 정화하고, 신앙을 깨워 신권 대행을 쓰게 한다.',
+  demiurgos: '{skill}로 가장 다친 아군을 크게 치료하고, 잠시 받는 피해를 줄여 준다.',
+  aiden: '고양이로 변해 날렵하게 피하며, {skill}으로 가장 약한 적에게 파고든다.',
+  vivian: '{summon}와 함께 적의 방어도를 깎고, {skill}으로 대상을 덮쳐 기절시킨다.',
+  yupito: '특제 장비로 아군을 키우고, {skill}으로 아군 · 포탑에 보호막을 친다.',
+  ingel: '출전 아군이 많을수록 강해지고, {skill}로 넓게 정신 피해를 준다.',
+  amundsen: '전술 위력으로 싸우며, {skill}으로 가장 먼 적을 포격한다.',
+  rachel: '정신 속성 공격으로 체력을 흡수하며 싸우고, {skill}으로 대상을 기절시킨다.',
+  oliver: '빠를수록 기술이 세지고, {skill}으로 가장 뒤쪽 적을 들이받는다.',
+  rasmus: '{skill}로 개들을 풀고, [부상]을 쌓아 적의 회복 · 보호막을 막는다.',
+  sigmund: '공명 등급이 가장 높은 아군을 엘베스타드로 모시고, {skill}로 강화한다.',
+  gunnir: '요리 {skill}로 다친 아군을 단단하게 하고, 아군 전원도 회복시킨다.',
+  bjorn: '단단하고 다칠수록 세지며, {skill}로 가장 먼 적을 전기 작살로 기절시킨다.',
+  zina: '화학 사격으로 중독을 걸고, {skill}로 가장 약한 적을 연달아 처치한다.',
+  fotini: '전투 시작에 아군을 가속하고, {skill}의 신성 피해로 적을 취약하게 한다.',
+  kaburaya: '전기 공격으로 감전을 걸어 기술을 묶고, {skill}로 범위를 감전시킨다.',
+  bill: '화학 물총으로 둔화를 걸고, {skill}로 주변에 전기 피해와 공포를 준다.',
+  winter: '{skill}으로 다친 아군을 치료하고, 치료할수록 최대 체력을 늘려 준다.',
+  issac: '계속 재생하며 버티고, {skill}로 주변 적에게 화학 피해와 중독을 준다.',
+  eden: '궁지에 몰릴수록 세지고, {skill}으로 화학 피해를 뿌리며 적의 버프를 벗긴다.',
+  reika: '아군이 기술을 쓸수록 세지고, {skill}로 모든 적에게 전기 피해를 준다.',
+  mao: '요리 {skill}로 가장 강한 아군의 피해와 공격 속도를 올리고 쿨다운을 줄인다.',
+  skadi: '가장 신참인 아군을 키워 주고, {skill}로 주변 적을 전기로 기절시킨다.',
+  mingki: '체력이 반 아래면 괴물이 깨어나고, {skill}으로 가장 약한 적에게 뛰어든다.',
+  onyx: '이성이 깎일수록 정신 피해가 커지고, {skill}으로 모든 적을 흔든다.',
+  exile: '{skill}으로 가장 약한 적에게 파고들어 출혈을 걸고, 준 피해만큼 체력을 흡수한다.',
+  thermo: '곁의 아군과 함께 피해를 줄이고, {skill}로 주변 아군에게 보호막을 두른다.',
+  u404: '{skill}을 쓸 때마다 피해가 쌓여, 오래 싸울수록 강해진다.',
+  rus: '{skill}으로 가장 먼 적을 쏘고, 적을 처치할 때마다 크레딧을 챙긴다.',
+};
+/** 한 줄 설명 자리표시 → 데이터의 실제 이름 (없으면 undefined → 자리표시가 그대로 남아 검사에 걸린다) */
+export function blurbNames(d: UnitDef): Record<string, string | undefined> {
+  return { skill: d.skill?.name, trait: d.trait?.name, weapon: d.weapon?.name, ult: d.ttype === 'major' ? ULTS[d.id]?.name : undefined, summon: d.summon?.name };
+}
+/** 받침에 맞는 조사 (으로/로 · 을/를 · 이/가 · 은/는 · 과/와). 숫자로 끝나면 읽는 소리 기준 */
+function josa(name: string, p: string) {
+  const pair = ([['으로', '로'], ['을', '를'], ['이', '가'], ['은', '는'], ['과', '와']] as const).find((x) => (x as readonly string[]).includes(p));
+  if (!pair) return p;
+  const ch = name.trim().slice(-1), code = ch.charCodeAt(0) - 0xac00;
+  const jong = code >= 0 && code < 11172 ? code % 28 : /\d/.test(ch) ? [21, 8, 0, 16, 0, 0, 1, 8, 8, 0][+ch] : 0; // 영 일 이 삼 사 오 육 칠 팔 구
+  if (pair[0] === '으로') return jong && jong !== 8 ? '으로' : '로'; // ㄹ 받침은 '로'
+  return jong ? pair[0] : pair[1];
+}
+/** 기물 한 줄 설명 (이름은 「」로 감싼 평문). 없으면 '' */
+export function unitBlurb(d: UnitDef): string {
+  const t = BLURB[d.id];
+  if (!t) return '';
+  const names = blurbNames(d);
+  return t.replace(/\{(\w+)\}(으로|로|을|를|이|가|은|는|과|와)?/g, (m, k: string, p?: string) => {
+    const n = names[k];
+    return n ? `「${n}」${p ? josa(n, p) : ''}` : m;
+  });
+}
 
 /** 마이너 성장 특성 · 사이오닉 이성 규칙 요약 */
 export const GROWTH_BRIEF: Record<string, string> = {

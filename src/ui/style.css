@@ -2993,12 +2993,14 @@ h2, h3 { font-family: var(--f-body); font-weight: 800; letter-spacing: 0; }
 /* 능력 그림: 같은 목록에서 시각적 무게 맞춤 (흰 배경 그림은 가장자리를 눌러 주고, 발광 그림은 밝기를 낮춤). 테두리 · 그림자 없음 */
 .ps-card .ab-tok, .so-ic .ab-tok { border: 0; }
 
-/* ── 기물 전체 상세: 요약 한 블록 (역할 → 반복 행동 → 이번 빌드) 을 위에 고정 */
+/* ── 기물 전체 상세: 요약 한 블록 (한 줄 설명 → 이번 빌드) 을 위에 고정 */
 .um-sum { display: grid; gap: 4px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--panel); font-size: var(--fs-base); grid-column: 2 / 4; }
 .us-row { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px; align-items: baseline; }
 .us-k { color: var(--c-text-2); font-size: var(--fs-sm); font-weight: 700; }
 .us-row p { margin: 0; line-height: 1.5; }
 .us-row b { font-weight: 700; color: var(--c-text); }
+.us-blurb { margin: 0; line-height: 1.5; color: var(--c-text); }
+.us-blurb b { font-weight: 700; }
 .um-c, .um-r { grid-row: 2; }
 @media (max-width: 1100px) { .um-sum { grid-column: auto; } .um-a { grid-row: 1 / 3; }  }
 @media (max-width: 700px) { .um-a, .um-main { grid-row: auto; } .us-row { grid-template-columns: 64px minmax(0, 1fr); } }
@@ -3162,7 +3164,7 @@ h2, h3 { font-family: var(--f-body); font-weight: 800; letter-spacing: 0; }
 .cx-ud-pow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
 .cx-ud-pow .d-pows { margin: 0; }
 .cx-d .um-sum { grid-column: auto; grid-row: auto; padding: 8px 0; background: none; border: 0; border-block: 1px solid var(--line-soft); order: 0; }
-.cx-d .um-sum .us-row:nth-child(3) { display: none; } /* '이번 빌드' 는 런 안의 기물에만 */
+.cx-d .um-sum .us-build { display: none; } /* '이번 빌드' 는 런 안의 기물에만 */
 .cx-syn-row:last-child { border-bottom: 0; }
 .cx-syn-row:hover { background: color-mix(in srgb, var(--c-white) 3%, transparent); }
 .cx-ud-abil .abils + .abils { margin-top: 0; }

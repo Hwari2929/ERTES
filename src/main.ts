@@ -14,7 +14,7 @@ import { DIVINE_ACT, FAITH_DEF, MAJOR_AUGS, MINOR_TRAIT_GROW, recMajors } from '
 import { type AugList, cantripView, passiveView, SCHOOL_LINE, transformPreview } from './data/psiinfo';
 import { augReqState } from './data/augreq';
 import { GROUPS, SCHOOL_BY_ID, SCHOOL_PASSIVES, UNIT_GROUP, isTransformAug, psiAugId, schoolOf, type SchoolId } from './data/schools';
-import { BRIEF, PSI_BRIEF } from './data/brief';
+import { BRIEF, PSI_BRIEF, unitBlurb } from './data/brief';
 import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
 import * as AB from './ui/abil';
 import * as CX2 from './ui/codex2';
@@ -1491,18 +1491,11 @@ function provChip(b: Battle | null, c: CUnit) {
 /** 확대 버튼 (전체 상세 팝업): 상세 창 위쪽 바 (자세히 보기 옆) */
 const maxBtn = (uid: string) => `<button class="btn d-mag d-max" data-a="big-open" data-v="${uid}" title="전체 상세 (확대)" aria-label="전체 상세 열기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button>`;
 /** 기물 전체 상세 팝업: 장비 · 주요 · 상세 능력치 · 능력 구성 · 유형 특성을 한 화면에 */
-/** 전체 상세 머리 요약: 역할 → 전투에서 반복하는 행동 → 이번 빌드에서 달라진 점 (변형 증강이면 그 변화를 먼저) */
+/** 전체 상세 머리 요약: 한 줄 설명 (brief.ts BLURB, 능력 이름은 데이터에서) → 이번 빌드에서 달라진 점 (변형 증강이면 그 변화를 먼저) */
 function unitSummary(run: RunState, u: UnitState, d: UnitDef, b: Battle, c: CUnit) {
-  const role = `${CTYPE_NAME[d.ctype]} · ${TTYPE_NAME[d.ttype]} — ${CTYPE_DESC[d.ctype]?.[0] || ''}`;
-  const w = c.weapon || d.weapon;
-  const acts: string[] = [];
-  if (w) acts.push(`기본 공격 「${w.name}」 ${w.interval.toFixed(1)}초마다`);
-  if (d.skill) acts.push(`스킬 「${d.skill.name}」 ${(c.cdMax || d.skill.cd).toFixed(0)}초마다`);
+  const blurb = unitBlurb(d);
   const sc = schoolOf(u);
   const cv = sc ? cantripView(sc, u.augments) : null, pv = sc ? passiveView(sc, u.augments) : null;
-  if (cv) acts.push(`비술 「${cv.transform || cv.name}」 ${cv.cd.toFixed(0)}초마다 (이성 −${cv.cost})`);
-  const ul = d.ttype === 'major' ? ULTS[d.id] : null;
-  if (ul) acts.push(`궁극기 「${ul.name}」 게이지가 차면`);
   const changes: string[] = [];
   if (cv?.transform) changes.push(`<b>◆ 현재 비술은 「${esc(cv.transform)}」으로 변형됨</b>`);
   if (pv?.transform) changes.push(`<b>◆ 지속 능력이 「${esc(pv.transform)}」으로 변형됨</b>`);
@@ -1512,11 +1505,10 @@ function unitSummary(run: RunState, u: UnitState, d: UnitDef, b: Battle, c: CUni
   if (augs.length) changes.push(`증강 ${augs.length}개: ${augs.slice(0, 4).map(esc).join(' · ')}${augs.length > 4 ? ' …' : ''}`);
   const items = u.items.filter(Boolean).length + (u.mod ? 1 : 0);
   if (items) changes.push(`장비 ${items}개 장착`);
-  void run; void b;
+  void run; void b; void c;
   return `<section class="um-sum" aria-label="요약">
-    <div class="us-row"><span class="us-k">역할</span><p>${esc(role)}</p></div>
-    <div class="us-row"><span class="us-k">반복 행동</span><p>${acts.map(esc).join(' → ')}</p></div>
-    <div class="us-row"><span class="us-k">이번 빌드</span><p>${changes.length ? changes.join('<br>') : '<span class="muted">기본 상태 (증강 · 장비 없음)</span>'}</p></div>
+    ${blurb ? `<p class="us-blurb">${esc(blurb).replace(/「([^」]*)」/g, '<b>「$1」</b>')}</p>` : ''}
+    <div class="us-row us-build"><span class="us-k">이번 빌드</span><p>${changes.length ? changes.join('<br>') : '<span class="muted">기본 상태 (증강 · 장비 없음)</span>'}</p></div>
   </section>`;
 }
 function unitModal(run: RunState) {

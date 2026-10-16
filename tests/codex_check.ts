@@ -3,6 +3,7 @@
 // 실행: npm run check   (실패하면 종료 코드 1)
 import { ALL_AUGS } from '../src/data/augments';
 import { FIELD_BY_ID, FIELDS } from '../src/data/battlefields';
+import { BLURB, blurbNames, unitBlurb } from '../src/data/brief';
 import { BLESSINGS, EMBLEM_SYNS, GLOBALS, PRIVILEGES } from '../src/data/globals';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, CONSUMABLES, emblemId, HEL_ITEM_IDS, itemInfo, OCCULT_MODS, TURRET_GEAR_IDS, UNIQUE_IDS } from '../src/data/items';
 import { CANTRIP_INFO, PASSIVE_INFO } from '../src/data/psiinfo';
@@ -10,8 +11,10 @@ import { RELICS } from '../src/data/relics';
 import { GROUPS, SCHOOLS } from '../src/data/schools';
 import { SYNERGIES } from '../src/data/synergies';
 import { UNIT_BY_ID, UNITS } from '../src/data/units';
+import { ULTS } from '../src/data/ults';
 import { LORE, LORE_BY_ID, loreWords } from '../src/data/worldlore';
 import { codex2Body, codex2Detail, CX2, CX2_TABS, type Cx2Tab, type CxH, loreLinks } from '../src/ui/codex2';
+import { ELEM_NAME } from '../src/types';
 
 declare const process: { exit(code: number): never };
 declare function require(m: 'node:fs'): { existsSync(p: string): boolean };
@@ -167,8 +170,28 @@ for (const [t, html] of Object.entries(lists)) for (const m of html.matchAll(/go
 // ───── 기물 참조: 도감 링크가 가리키는 기물이 실제로 있는지
 for (const [t, html] of Object.entries(lists)) for (const m of html.matchAll(/data-v="unit:([^"]+)"/g)) if (!UNIT_BY_ID[m[1]]) fail(`${t}: 없는 기물 ${m[1]} 로 연결`);
 
-const n = { items: nItems, syn: SYNERGIES.length, schools: SCHOOLS.length, augs: ALL_AUGS.length + GLOBALS.length + PRIVILEGES.length + BLESSINGS.length, lore: LORE.length };
-console.log(`도감 검사: 장비 ${n.items} · 시너지 ${n.syn} · 전공 ${n.schools} · 증강 ${n.augs} · 세계관 ${n.lore}`);
+// ───── 기물 한 줄 설명 (src/data/brief.ts BLURB): 전체 상세 · 도감 기물 상세 머리에 나온다
+//   모든 기물(사건 전용 포함, 소환물 제외)에 있고, 자리표시가 실제 이름으로 다 채워지고, 수치 없이 알맞은 길이인지.
+//   피해 속성을 말하면 그 속성이 무기 · 특성 · 스킬 · 궁극기 중 어딘가에 실제로 있는지 (키트를 바꾸고 설명을 안 고친 경우)
+const ELEMS = ['물리', '화학', '전기', '정신', '신성', '고정'];
+for (const d of UNITS) {
+  const t = BLURB[d.id];
+  if (!t) { fail(`기물 ${d.id} (${d.name}): 한 줄 설명 없음 — src/data/brief.ts BLURB 에 추가`); continue; }
+  const s = unitBlurb(d);
+  clean(`기물 ${d.id} 한 줄 설명`, s);
+  const names = blurbNames(d);
+  for (const m of t.matchAll(/\{(\w+)\}/g)) if (!(m[1] in names)) fail(`기물 ${d.id} 한 줄 설명: 모르는 자리표시 {${m[1]}} (쓸 수 있는 것: ${Object.keys(names).join(' · ')})`);
+  if (/[{}]/.test(s)) fail(`기물 ${d.id} 한 줄 설명: 채워지지 않은 자리표시 — ${s}`);
+  if (/\d/.test(t.replace(/\{\w+\}/g, ''))) fail(`기물 ${d.id} 한 줄 설명: 수치를 넣지 않는다 (수치는 능력 칸이 보여 준다) — ${t}`);
+  if (s.length < 20 || s.length > 60) fail(`기물 ${d.id} 한 줄 설명: ${s.length}자 (20–60자) — ${s}`);
+  if (!/다\.$/.test(s)) fail(`기물 ${d.id} 한 줄 설명: '~다.' 로 끝나는 한 문장으로 — ${s}`);
+  const kit = [ELEM_NAME[d.weapon.elem], d.trait.desc, d.skill.desc(d.skill.params), ULTS[d.id]?.desc || ''].join(' ');
+  for (const el of ELEMS) if (s.replace(/「[^」]*」/g, '').includes(el) && !kit.includes(el)) fail(`기물 ${d.id} 한 줄 설명: '${el}' 을 말하지만 무기 · 특성 · 스킬 · 궁극기에 ${el} 이 없음 — ${s}`);
+}
+for (const id of Object.keys(BLURB)) if (!UNIT_BY_ID[id]) fail(`한 줄 설명 ${id}: 없는 기물`);
+
+const n = { units: UNITS.length, items: nItems, syn: SYNERGIES.length, schools: SCHOOLS.length, augs: ALL_AUGS.length + GLOBALS.length + PRIVILEGES.length + BLESSINGS.length, lore: LORE.length };
+console.log(`도감 검사: 기물 ${n.units} · 장비 ${n.items} · 시너지 ${n.syn} · 전공 ${n.schools} · 증강 ${n.augs} · 세계관 ${n.lore}`);
 for (const w of warns) console.log(`  경고 ${w}`);
 if (fails.length) {
   for (const f of fails) console.log(`  실패 ${f}`);
