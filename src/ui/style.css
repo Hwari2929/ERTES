@@ -373,20 +373,20 @@ button { font: inherit; color: inherit; }
 .board-head .warn { color: var(--c-select); font-weight: 700; }
 .dep-pill b { color: var(--c-text); }
 .tac-wrap { position: relative; display: inline-flex; align-items: center; gap: 6px; }
-.tac-pill { position: relative; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; font: inherit; line-height: 1; color: var(--c-text); border-color: var(--line); background: var(--panel-2); }
-.tac-pill .li { display: block; width: 16px; height: 16px; margin: 0; color: var(--c-text); flex: none; }
-.tac-pill b { display: block; line-height: 1; color: var(--c-text); font-variant-numeric: tabular-nums; }
+.pill.tac-pill { position: relative; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; font: inherit; line-height: 1; color: var(--c-text); border-color: var(--line); background: var(--panel-2); }
+.pill.tac-pill .li { display: block; width: 16px; height: 16px; margin: 0; color: var(--c-text); flex: none; }
+.pill.tac-pill b { display: block; line-height: 1; color: var(--c-text); font-variant-numeric: tabular-nums; }
 .tac-cmd { font-size: var(--fs-sm); color: var(--c-text-2); white-space: nowrap; }
 /* 나타날 때: 톡 튀어나오고 고리가 퍼지며 작은 불꽃 네 갈래 (무채색) */
-.tac-pill.pop { animation: tac-pop .5s cubic-bezier(.2, 1.6, .4, 1) both; }
-.tac-pill.pop::before, .tac-pill.pop::after { content: ''; position: absolute; pointer-events: none; border-radius: var(--r-pill); }
-.tac-pill.pop::after { inset: -2px; border: 2px solid var(--c-text); animation: tac-ring .55s ease-out .08s both; }
-.tac-pill.pop::before { left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; background: var(--c-text);
+.pill.tac-pill.pop { animation: tac-pop .5s cubic-bezier(.2, 1.6, .4, 1) both; }
+.pill.tac-pill.pop::before, .pill.tac-pill.pop::after { content: ''; position: absolute; pointer-events: none; border-radius: var(--r-pill); }
+.pill.tac-pill.pop::after { inset: -2px; border: 2px solid var(--c-text); animation: tac-ring .55s ease-out .08s both; }
+.pill.tac-pill.pop::before { left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; background: var(--c-text);
   box-shadow: 0 -16px 0 0 var(--c-text), 0 16px 0 0 var(--c-text), -30px 0 0 0 var(--c-text), 30px 0 0 0 var(--c-text); animation: tac-spark .5s ease-out .06s both; }
 @keyframes tac-pop { 0% { opacity: 0; transform: scale(.4); } 60% { opacity: 1; transform: scale(1.12); } 100% { transform: scale(1); } }
 @keyframes tac-ring { from { opacity: .9; transform: scale(1); } to { opacity: 0; transform: scale(1.5, 1.9); } }
 @keyframes tac-spark { 0% { opacity: 0; transform: scale(.3); } 30% { opacity: 1; } 100% { opacity: 0; transform: scale(1.6); } }
-@media (prefers-reduced-motion: reduce) { .tac-pill.pop, .tac-pill.pop::before, .tac-pill.pop::after { animation: none; } .tac-pill.pop::before, .tac-pill.pop::after { display: none; } }
+@media (prefers-reduced-motion: reduce) { .pill.tac-pill.pop, .pill.tac-pill.pop::before, .pill.tac-pill.pop::after { animation: none; } .pill.tac-pill.pop::before, .pill.tac-pill.pop::after { display: none; } }
 .tac-pop { position: absolute; z-index: var(--z-top); top: calc(100% + 6px); left: 0; display: grid; gap: 3px; width: max-content; max-width: min(320px, 80vw); padding: 8px 10px;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 8px 22px color-mix(in srgb, var(--c-black) 45%, transparent); font-size: var(--fs-base); font-weight: 400; }
 /* 보드 + 오른쪽 세로 보관 칸 */
@@ -432,7 +432,7 @@ button { font: inherit; color: inherit; }
 .u.tk .tk-items > * { aspect-ratio: 1; min-width: 0; display: flex; overflow: hidden; }
 .u.tk .tk-items > .item, .u.tk .tk-it .item { display: grid; place-items: center; line-height: 0; margin: 0; width: 100%; height: 100%; font-size: 7px; border-radius: 2px; cursor: inherit; border-width: 1px; }
 .u.tk .tk-items > .item.tT, .u.tk .tk-it .item.tT { border-width: 2px; }
-.u.tk .tk-it { display: block; min-width: 0; min-height: 0; cursor: pointer; touch-action: none; -webkit-touch-callout: none; user-select: none; }
+.u.tk .tk-it { min-width: 0; min-height: 0; cursor: pointer; touch-action: none; -webkit-touch-callout: none; user-select: none; }
 .u.tk .item .ii { width: 75%; height: 75%; }
 .u.tk .ubadge { left: 1px; right: auto; bottom: 1px; }
 .u.tk .tk-mod { position: absolute; left: 1px; top: 1px; width: 26%; aspect-ratio: 1; cursor: pointer; touch-action: none; -webkit-touch-callout: none; }
@@ -624,7 +624,7 @@ button { font: inherit; color: inherit; }
 /* 보관함 */
 .inv { width: min(100%, 560px); margin: 10px auto 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 8px 10px; }
 .inv-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
-.inv-items { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.inv-items { display: flex; flex-wrap: wrap; gap: 6px; }
 /* 장비 아이콘: 사각 (희귀도 테두리) · 개조부품 마름모 · 소모품 육각형 · 포탑 장비 이중 테두리 */
 .item { width: 30px; height: 30px; display: inline-grid; place-items: center; border-radius: var(--r-md); background: var(--panel-2); border: 1px solid var(--line); font-size: var(--fs-lg); cursor: grab; touch-action: none; flex: none; }
 .item.empty { border-style: dashed; cursor: default; }
@@ -998,6 +998,9 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .pc-syn { position: absolute; top: 12px; left: 12px; z-index: 1; display: grid; gap: 4px; justify-items: start; transition: opacity .4s cubic-bezier(.45, 0, .55, 1); }
 .pc-syn .syn-tk .syn-dia { opacity: 1; } /* 카드 위 마름모는 비활성도 불투명 */
 .pc-syn .syn-tx, .pc-syn .syn-lv { display: none; }
+.pc-syn .syn-tx { background: color-mix(in srgb, var(--c-ink) 72%, transparent); padding: 2px 6px; border-radius: var(--r-sm); } /* 펼쳐 보일 때 (전체 상세 등): 그림 위 반투명 바탕 */
+.pc-syn .syn-tx b { font-size: var(--fs-xs); }
+.pc-syn .syn-steps { font-size: var(--fs-2xs); }
 .pcard.open .pc-syn { opacity: 0; pointer-events: none; }
 .pcard.open .pc-top .chips { max-height: 120px; opacity: 1; }
 /* 마우스: 호버로 펼침 (터치 기기의 '끈적한 호버'는 제외) */
