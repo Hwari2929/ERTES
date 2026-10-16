@@ -28,7 +28,7 @@ import * as R from './engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
 import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SynergyId, type UnitState } from './types';
-import { bossImmuneText, encounterMatchup, matchupLines, matchupShort, schoolWarnings } from './ui/matchup';
+import { encounterMatchup, matchupLines, matchupShort, schoolWarnings } from './ui/matchup';
 import { gradeCards } from './ui/revealfx';
 import { BattleView, DEATH_STYLES, fmt, FX, FX_DEFAULT, isDeathStyle, previewDeath, type DeathStyle, type MotionPreset, type UltCut } from './ui/battleview';
 import { ULTS } from './data/ults';
@@ -824,8 +824,8 @@ function mapScreen(run: RunState) {
     const shown = i < run.step && run.picked[i] ? [run.picked[i]!] : opts2;
     const nodes = shown.map((o, k) => {
       const nm = o === 'recruit' && i < run.step && run.nodeUnits?.[i] ? `${NODE_NAME[o]} · ${UNIT_BY_ID[run.nodeUnits[i]]?.name}` : NODE_NAME[o];
-      if (state === 'cur' && !run.node) return `<button class="tl-node n-${o}${o === pick ? ' on' : ''}" data-a="tl-pick" data-v="${o}" title="${esc(nm)} (단축키 ${k + 1})" aria-pressed="${o === pick}">${nodeIc(o, i)}</button>`;
-      return `<span class="tl-node n-${o}${state === 'cur' ? ' on' : ''}" title="${esc(nm)}">${nodeIc(o, i)}</span>`;
+      if (state === 'cur' && !run.node) return `<button class="tl-node n-${o}${o === pick ? ' on' : ''}" data-a="tl-pick" data-v="${o}" data-step="${i}" data-node="${o}" title="${esc(nm)} (단축키 ${k + 1})" aria-pressed="${o === pick}">${nodeIc(o, i)}</button>`;
+      return `<span class="tl-node n-${o}${state === 'cur' ? ' on' : ''}" data-step="${i}" data-node="${o}" role="button" tabindex="0" title="${esc(nm)}">${nodeIc(o, i)}</span>`;
     }).join('');
     return `<li class="tl-step ${state}${opts2.includes('boss') ? ' tl-boss' : ''}"><span class="tl-num">${i + 1}</span><div class="tl-nodes">${nodes}</div></li>`;
   }).join('');
@@ -960,27 +960,33 @@ function bossGoal(run: RunState) {
 function mapAhead(run: RunState) {
   const tb = toBoss(run);
   const idx: number[] = [];
-  for (let i = run.step + 1; i < Math.min(run.map.length, run.step + 4); i++) if (!tb || i <= tb.bi) idx.push(i);
+  for (let i = run.step + 1; i < Math.min(run.map.length, run.step + 3); i++) if (!tb || i <= tb.bi) idx.push(i);
   if (tb && !idx.includes(tb.bi)) idx.push(tb.bi);
   if (!idx.length) return '';
   const f = fieldOf(run.field);
-  const tags = (o: NodeType) => {
-    const t: string[] = [];
-    if (o === 'battle' || o === 'adversity') t.push(`재료 ${pctTxt(Math.min(1, CFG.drop[o] * (f.dropMul || 1)))}`);
-    if (o === 'adversity' && ENEMY_BY_ID[f.elite]) t.push(`정예 ${esc(ENEMY_BY_ID[f.elite].name)}`); // 역경에는 정예가 반드시 나온다
-    return t.length ? `<span class="ah-tags">${t.map((x) => `<i>${x}</i>`).join('')}</span>` : '';
+  const elite = ENEMY_BY_ID[f.elite];
+  // 핵심 수치 칩: 적 배율 · 보상 배율 (설정값) · 재료 확률 (설정 × 전장) · 역경 정예 (역경에는 정예가 반드시 나온다)
+  const chips = (o: NodeType) => {
+    const c: string[] = [];
+    if (o === 'adversity' || o === 'challenge') c.push(tchip(lineIcon('a.power', 'li'), `적 ×${CFG.adversityMult}`, 'bad', '적 체력 · 능력 배율'));
+    if (o === 'adversity') c.push(tchip(CR, `보상 ×${CFG.adversityReward}`, 'good', '승리 크레딧 · 공명도 배율'));
+    if (o === 'battle') c.push(tchip(CR + RES, '보상', '', '승리 크레딧 · 공명도'));
+    if (o === 'battle' || o === 'adversity') c.push(tchip(lineIcon('r.reco', 'li'), pctTxt(Math.min(1, CFG.drop[o] * (f.dropMul || 1))), '', '장비 재료가 나올 확률'));
+    if (o === 'adversity' && elite) c.push(tchip(sprite(elite, 'spr'), esc(elite.name), 'bad', `정예 · ${ENEMY_DESC[elite.id] || ''}`));
+    return c.join('');
   };
+  const when = (i: number) => `<span class="ah-when">${i > run.step ? `${i - run.step}칸 뒤` : '지금'} · ${i + 1}번째</span>`;
   const card = (i: number) => {
-    const far = i - run.step;
-    const when = `<span class="ah-when">${far ? `${far}칸 뒤` : '지금'} · ${i + 1}번째</span>`;
     const e = run.map[i].includes('boss') ? phaseBoss(run) : undefined;
     if (e) {
-      const cat = enemyCategory(e);
-      const guard = (e.escort || []).map((id) => ENEMY_BY_ID[id]?.name).filter(Boolean);
-      return `<li class="ah-card ah-boss">${when}<div class="ah-bh">${sprite(e, 'spr big')}<div><b>${esc(e.name)}</b><span class="ah-tags"><i class="cat-${cat}" title="${esc(CATEGORY_RULE[cat])}">${lineIcon(`k.${cat}`, 'li')}${CATEGORY_NAME[cat]}</i><i>${lineIcon(`e.${e.atk.elem}`, 'li')}${ELEM_NAME[e.atk.elem]} 공격</i>${guard.length ? `<i>호위 ${esc(guard.join(' · '))}</i>` : ''}</span></div></div>
-        ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}<p class="small muted">${esc(bossImmuneText())} · ${ic(esc(nodeHint('boss')))}</p></li>`;
+      const cat = enemyCategory(e), td = TEND_NAME[e.tend];
+      return `<li class="ah-card ah-boss n-boss" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}"><span class="ah-port">${sprite(e, 'spr big')}<i class="ah-ic">${NODE_ICON.boss}</i></span>
+        <div class="ah-body">${when(i)}<b>${esc(e.name)}</b><div class="ah-chips">${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}${tchip(lineIcon('u.finish', 'li'), '페이즈 클리어', 'good', nodeHint('boss'))}</div></div></li>`;
     }
-    return `<li class="ah-card">${when}${run.map[i].map((o) => `<div class="ah-node"><span class="ah-ic">${NODE_ICON[o]}</span><b>${esc(NODE_NAME[o])}</b>${tags(o)}<span class="small muted">${ic(esc(nodeHint(o)))}</span></div>`).join('')}</li>`;
+    return run.map[i].map((o) => {
+      const c = chips(o);
+      return `<li class="ah-card n-${o}"><i class="ah-ic">${NODE_ICON[o]}</i><div class="ah-body">${when(i)}<b>${esc(NODE_NAME[o])}</b>${c ? `<div class="ah-chips">${c}</div>` : `<span class="ah-hint">${ic(esc(nodeHint(o)))}</span>`}</div></li>`;
+    }).join('');
   };
   return `<section class="ahead" aria-labelledby="ah-h"><h2 id="ah-h">앞으로</h2><ol class="ah-list">${idx.map(card).join('')}</ol></section>`;
 }
@@ -1087,7 +1093,7 @@ function prepScreen(run: RunState) {
     const sel = app.sel?.k === 'enemy' && app.sel.i === i;
     units += `<div class="u side1 placed${hasPortrait(e) ? ' tk' : ''} ${e.tier !== 'minion' && !hasPortrait(e) ? 'big' : ''} ${sel ? 'sel' : ''}" style="${(() => { const ec = enemyCell(s.c, s.row, n); return cellBox(ec.x, ec.y); })()}"
       data-a="sel-enemy" data-v="${i}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''} · ${tendText(e)}`)}">${hasPortrait(e)
-        ? `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${e.mod ? `<span class="tk-mod">${itemIcon(e.mod)}</span>` : ''}</div>${(() => { const cat = enemyCategory(e); return `<span class="tk-side">${e.tier === 'minion' ? '' : `<b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : 'E'}</b>`}<i class="cat-${cat}" title="${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}">${lineIcon(`k.${cat}`, 'li')}</i></span>`; })()}<span class="tk-items">${[0, 1, 2].map((k) => itemIcon(e.items?.[k] || null)).join('')}</span></div>`
+        ? (() => { const cat = enemyCategory(e), td = TEND_NAME[e.tend], mod = s.mod || e.mod, its = [...(e.items || []).filter((x): x is string => !!x), ...(s.items || [])]; return `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${mod ? `<span class="tk-mod">${itemIcon(mod, `data-a="foe-item" data-v="${mod}"`)}</span>` : ''}</div><span class="tk-side">${e.tier === 'minion' ? '' : `<b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : 'E'}</b>`}<i class="cat-${cat}" title="${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}">${lineIcon(`k.${cat}`, 'li')}</i>${td ? `<i class="tk-tend" title="${esc(`${td.name}: ${td.desc}`)}">${lineIcon(`t.${e.tend}`, 'li')}</i>` : ''}</span><span class="tk-items">${[0, 1, 2].map((k) => (its[k] ? itemIcon(its[k], `data-a="foe-item" data-v="${its[k]}"`) : itemIcon(null))).join('')}</span></div>`; })()
         : sprite(e, '')}</div>`;
   });
   const bench = run.units.filter((u) => !u.pos);
@@ -1618,38 +1624,69 @@ function prepBrief(run: RunState) {
   const enc = run.node?.enc;
   if (!enc) return `<div class="detail pb"><h3>이 전장의 주요 적</h3>${matchupHtml(run.field) || '<p class="small muted">특별한 면역 · 취약 없음</p>'}${PREP_TIPS}</div>`;
   const type = run.node!.type;
-  // 같은 적은 한 줄로 묶는다 (누르면 그 적의 첫 개체 상세)
-  const groups = new Map<string, { i: number; n: number; gear: number }>();
+  // 같은 적 · 같은 장비는 한 줄로 묶는다 (장비가 다르면 따로: 장비 아이콘을 줄에서 바로 본다). 누르면 그 적의 첫 개체 상세
+  const groups = new Map<string, { id: string; i: number; n: number; gear: string[] }>();
   enc.enemies.forEach((s, i) => {
-    const g = groups.get(s.defId) || { i, n: 0, gear: 0 };
+    const gear = foeGear(ENEMY_BY_ID[s.defId], s);
+    const key = `${s.defId}|${gear.join(',')}`;
+    const g = groups.get(key) || { id: s.defId, i, n: 0, gear };
     g.n++;
-    if (s.items?.length || s.mod) g.gear++;
-    groups.set(s.defId, g);
+    groups.set(key, g);
   });
   const rank = (e: EnemyDef) => (e.tier === 'boss' ? 0 : e.tier === 'elite' ? 1 : e.inert ? 3 : 2);
-  const rows = [...groups].map(([id, g]) => ({ e: ENEMY_BY_ID[id], ...g })).filter((x) => x.e).sort((a, b) => rank(a.e) - rank(b.e));
+  const rows = [...groups.values()].map((g) => ({ e: ENEMY_BY_ID[g.id], ...g })).filter((x) => x.e).sort((a, b) => rank(a.e) - rank(b.e));
   // 아군 공격 속성: 미리보기 전투에서 실제 값을 읽는다 (장비 · 증강 반영)
   const b = deployed(run).length ? buildBattle(run, { ...enc, enemies: [] }, false) : null;
   const allies = b ? b.units.filter((u) => u.side === 0 && !u.isSummon) : [];
   const mu = encounterMatchup(enc.enemies.map((s) => s.defId), allies.map((u) => u.atk.elem));
   const kind = type === 'challenge' ? `${NODE_NAME.challenge} · P${enc.phase ?? run.phase}` : type === 'boss' ? '보스전' : NODE_NAME[type];
   const foe = (x: (typeof rows)[number]) => {
-    const cat = enemyCategory(x.e);
-    const atk = x.e.noAttack ? '' : `<i title="${ELEM_NAME[x.e.atk.elem]} ${x.e.atk.type === 'shoot' ? '사격' : '타격'}">${lineIcon(`e.${x.e.atk.elem}`, 'li')}</i>`;
+    const cat = enemyCategory(x.e), td = TEND_NAME[x.e.tend];
+    const atk = x.e.noAttack ? '' : tchip(lineIcon(`e.${x.e.atk.elem}`, 'li'), '', '', `${ELEM_NAME[x.e.atk.elem]} ${x.e.atk.type === 'shoot' ? '사격' : '타격'}`, `--c:var(--el-${x.e.atk.elem})`);
     return `<li><button class="pb-foe tier-${x.e.tier}" data-a="sel-enemy" data-v="${x.i}" title="${esc(`${x.e.name} — ${ENEMY_DESC[x.e.id] || ''}`)}">${sprite(x.e, 'spr')}
-      <span class="pb-nm"><b>${esc(x.e.name)}</b>${x.e.tier !== 'minion' ? `<em>${tierKo(x.e)}</em>` : ''}${x.e.inert ? '<em>장애물</em>' : ''}</span>
-      <span class="pb-ic"><i class="cat-${cat}" title="${esc(`${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}">${lineIcon(`k.${cat}`, 'li')}</i>${atk}${x.gear ? `<i title="장비를 단 적 ${x.gear}명">${lineIcon('r.reco', 'li')}</i>` : ''}</span>
-      <span class="pb-n">${x.n > 1 ? `×${x.n}` : ''}</span></button></li>`;
+      <span class="pb-nm"><b>${esc(x.e.name)}</b>${x.e.tier !== 'minion' ? `<em>${tierKo(x.e)}</em>` : ''}${x.e.inert ? '<em>장애물</em>' : ''}</span><span class="pb-n">${x.n > 1 ? `×${x.n}` : ''}</span>
+      <span class="pb-sub">${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${x.e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}${atk}${x.gear.length ? `<span class="pb-gear" aria-label="장착 장비">${x.gear.map((id) => itemIcon(id, `data-a="foe-item" data-v="${id}"`)).join('')}</span>` : ''}</span></button></li>`;
   };
+  // 상성 · 아군 공격 속성: 같은 줄 토큰 (아이콘 · 이름 · 인원 · 유리(초록) / 불리(빨강) / 면역 칩)
+  const row = (icon: string, name: string, n: number, tags: string, cls = '', st = '') => `<li class="pb-row"><i class="pb-ri ${cls}"${st ? ` style="${st}"` : ''}>${icon}</i><b>${esc(name)}</b><span class="pb-cnt">${n}명</span><span class="pb-tags">${tags}</span></li>`;
+  const tag = (txt: string, tone: 'good' | 'bad' | 'mute') => tchip('', esc(txt), tone);
+  const muRows = [
+    ...mu.cats.map((x) => row(lineIcon(`k.${x.c}`, 'li'), CATEGORY_NAME[x.c], x.n, [x.weak.length ? tag(`${x.weak.join('·')} 취약`, 'good') : '', x.resist.length ? tag(`${x.resist.join('·')} 저항`, 'bad') : '', x.immune.length ? tag(`${x.immune.join('·')} 면역`, 'mute') : ''].join(''), `cat-${x.c}`)),
+    mu.bosses ? row(NODE_ICON.boss, NODE_NAME.boss, mu.bosses, tag(`${mu.bossImmune.join('·')} 면역`, 'mute'), '', '--c:var(--c-bad)') : '',
+  ].join('');
+  const elRows = mu.elems.map((x) => row(lineIcon(`e.${x.e}`, 'li'), x.name, x.allies, `${x.weak ? tag(`적 ${x.weak}명 취약`, 'good') : ''}${x.resist ? tag(`적 ${x.resist}명 저항`, 'bad') : ''}`, '', `--c:var(--el-${x.e})`)).join('');
   return `<div class="detail pb" aria-label="이번 전투 적 구성">
     <div class="pb-head"><h3>이번 전투</h3><span class="pb-kind n-${type}">${esc(kind)}</span><span class="muted small">적 ${mu.foes}명 · 체력 ×${+enc.mult.toFixed(2)}</span></div>
     <ul class="pb-foes">${rows.map(foe).join('')}</ul>
     <h3>상성</h3>
-    <ul class="pb-mu">${mu.lines.map((l) => `<li class="mu-l ${l.cls}">${esc(l.text)}</li>`).join('') || '<li class="muted">특별한 면역 · 취약 없음</li>'}</ul>
-    ${mu.elems.length ? `<h3>아군 공격 속성 <span class="muted small">출전 ${allies.length}명</span></h3>
-    <ul class="pb-el">${mu.elems.map((x) => `<li class="${x.weak > x.resist ? 'good' : x.resist > x.weak ? 'bad' : ''}">${lineIcon(`e.${x.e}`, 'li')}<b>${esc(x.name)}</b><span>${x.allies}명</span>${x.weak ? `<small class="w">적 ${x.weak}명 취약</small>` : ''}${x.resist ? `<small class="r">적 ${x.resist}명 저항</small>` : ''}</li>`).join('')}</ul>` : ''}
+    <ul class="pb-rows">${muRows || '<li class="pb-row muted">특별한 면역 · 취약 없음</li>'}</ul>
+    ${elRows ? `<h3>아군 공격 속성 <span class="muted small">출전 ${allies.length}명</span></h3><ul class="pb-rows">${elRows}</ul>` : ''}
     ${PREP_TIPS}
   </div>`;
+}
+/** 적이 단 장비: 적 정의의 장비 · 개조부품 + 이번 조우의 위험 등급 장비 (편성 보드 · 적 구성 · 적 상세 공용) */
+function foeGear(e: EnemyDef, s: { items?: string[]; mod?: string }) {
+  return [...(e.items || []).filter((x): x is string => !!x), ...(e.mod ? [e.mod] : []), ...(s.items || []), ...(s.mod ? [s.mod] : [])];
+}
+/** 작은 칩: 아이콘 + 글씨. tone = good(유리) · bad(불리) · mute(면역 등), 그 밖 클래스 · --c(데이터 색) 지정 가능 */
+function tchip(icon: string, txt: string, cls = '', title = '', st = '') {
+  return `<span class="tchip ${cls}"${title ? ` title="${esc(title)}"` : ''}${st ? ` style="${st}"` : ''}>${icon}${txt}</span>`;
+}
+/** 적 장비 설명 (편성 적 구성 · 보드 · 적 상세): 누르면 이름 · 설명 (마우스는 title 로도 보인다) */
+function foeItemTip(el: HTMLElement, id: string) {
+  document.querySelector('.item-tip')?.remove();
+  if (!id) return;
+  const it = itemInfo(id);
+  const tip = document.createElement('div');
+  tip.className = `item-tip tip-${id.startsWith('U_') ? 'U' : it.tier}`;
+  tip.innerHTML = `<span class="tip-tier">적 장비</span><b>${esc(it.name)}</b><span>${statIc(esc(it.desc))}</span>`;
+  tip.addEventListener('pointerdown', (e) => e.stopPropagation());
+  document.body.appendChild(tip);
+  const r = el.getBoundingClientRect(), tr = tip.getBoundingClientRect();
+  const left = Math.max(8, Math.min(innerWidth - tr.width - 8, r.left + r.width / 2 - tr.width / 2));
+  const top = r.top - tr.height - 6 < 8 ? r.bottom + 6 : r.top - tr.height - 6;
+  tip.style.left = `${left + scrollX}px`; tip.style.top = `${top + scrollY}px`;
+  setTimeout(() => window.addEventListener('pointerdown', () => tip.remove(), { once: true }), 0);
 }
 function detailPanel(run: RunState, extra = '') {
   const sel = app.sel;
@@ -1662,14 +1699,14 @@ function detailPanel(run: RunState, extra = '') {
     const b = new Battle(9, 9, new Rng(1), { phase: ph, credits: 0 });
     const c = buildEnemy(b, e, ph, run.node.enc.mult, s);
     const ms = battleMajors(c)!;
-    const eq = [...(e.items || []).filter((x): x is string => !!x), ...(e.mod ? [e.mod] : []), ...(s.items || []), ...(s.mod ? [s.mod] : [])];
+    const eq = foeGear(e, s);
     const known = loadMeta().enemies[e.id];
     return `<div class="detail">${bar}
       ${heroHead(`en_${e.id}`, sprite(e, 'spr big'), e.name, enemyTags(e))}
       <div class="small muted">${CATEGORY_RULE[enemyCategory(e)]} · 체력 ${fmt(b.S(c, 'maxHp'))}${known ? ` · 도감: 조우 ${known.seen} · 처치 ${known.kills}` : ''}</div>
+      ${TEND_NAME[e.tend] ? `<div class="tend-line">${lineIcon(`t.${e.tend}`, 'li')}<b>${TEND_NAME[e.tend].name}</b><span>${esc(TEND_NAME[e.tend].desc)}</span></div>` : ''}
       ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}
-      <p class="small muted">${esc(tendText(e))}</p>
-      ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.map((x) => `<span class="tk-it" title="${esc(itemInfo(x).name + ' — ' + itemInfo(x).desc)}">${itemIcon(x)}</span>`).join('')}</div></div>` : ''}
+      ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.map((x) => `<span class="tk-it">${itemIcon(x, `data-a="foe-item" data-v="${x}"`)}</span>`).join('')}</div></div>` : ''}
       <div class="mj-wrap"><div class="mj-head"><h3>메이저 스탯 <span class="muted small">페이즈 ${ph}</span></h3>${magBtn()}</div>${majorsHtml(ms)}</div>
       <div class="small accent">페이즈 피해 배율 ×${c.phaseAmp.toFixed(2)}</div>
       <h3>능력</h3><div class="abils">${enemyAbilCards(e, b, c)}</div>
@@ -4050,6 +4087,7 @@ function resultShown() {
 }
 /** 다시 그린 뒤: 키캡 · 결과 창 감시 · 시너지 강조 되살리기 */
 function uxAfterRender() {
+  document.querySelector('.tl-pop')?.remove();
   keyHints();
   resultObs?.disconnect();
   if (app.screen === 'battle') {
@@ -4099,6 +4137,33 @@ document.addEventListener('click', (e) => {
   synFocus(b.dataset.synfocus!, 'stick');
 }, true);
 document.addEventListener('pointerdown', (e) => { if (synHl?.how === 'stick' && !(e.target as HTMLElement).closest('[data-synfocus]')) synFocus(null); }, true);
+
+// ───────────────────────── 지도 타임라인: 노드를 누르면 유형 · 간단한 설명 팝오버 (터치 포함). 바깥을 누르거나 스크롤하면 닫힌다
+function tlPop(el: HTMLElement) {
+  document.querySelector('.tl-pop')?.remove();
+  const run = app.run, i = +(el.dataset.step ?? -1), o = el.dataset.node as NodeType | undefined;
+  if (!run || i < 0 || !o || !NODE_NAME[o]) return;
+  const far = i - run.step;
+  const boss = o === 'boss' ? phaseBoss(run) : undefined;
+  const who = o === 'recruit' && far < 0 && run.nodeUnits?.[i] ? UNIT_BY_ID[run.nodeUnits[i]]?.name : '';
+  const tip = document.createElement('div');
+  tip.className = `tl-pop n-${o}`;
+  tip.setAttribute('role', 'tooltip');
+  tip.innerHTML = `<b>${NODE_ICON[o]}${esc(NODE_NAME[o])}${who ? ` · ${esc(who)}` : ''}</b><small>${i + 1}번째 칸 · ${far < 0 ? '지난 칸' : far ? `${far}칸 뒤` : '지금'}</small>${boss ? `<span class="tp-boss">${esc(boss.name)}</span>` : ''}<span>${ic(esc(nodeHint(o)))}</span>`;
+  document.body.appendChild(tip);
+  const r = el.getBoundingClientRect(), w = Math.min(260, innerWidth - 16);
+  tip.style.width = `${w}px`;
+  tip.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2))}px`;
+  tip.style.top = `${r.bottom + 8 + tip.offsetHeight > innerHeight - 8 ? Math.max(8, r.top - tip.offsetHeight - 8) : r.bottom + 8}px`;
+}
+root.addEventListener('click', (e) => {
+  const n = (e.target as HTMLElement).closest<HTMLElement>('.tl .tl-node');
+  if (!n) return;
+  const k = `.tl-node[data-step="${n.dataset.step}"][data-node="${n.dataset.node}"]`;
+  setTimeout(() => { const el = root.querySelector<HTMLElement>(k); if (el) tlPop(el); }, 0); // 지금 칸 노드는 고르기(다시 그림) 뒤에 연다
+});
+document.addEventListener('pointerdown', (e) => { if (!(e.target as HTMLElement).closest('.tl-pop')) document.querySelector('.tl-pop')?.remove(); }, true);
+addEventListener('scroll', () => document.querySelector('.tl-pop')?.remove(), { passive: true, capture: true });
 // ───────────────────────── 키워드 설명 팝업 (PC 호버 · 모바일 탭)
 let kwPinned: HTMLElement | null = null;
 function showKw(el: HTMLElement) {
@@ -4238,6 +4303,7 @@ root.addEventListener('click', (ev) => {
   if (!el || (el as HTMLButtonElement).disabled) return;
   if (el.classList.contains('modal-bg') && (ev.target as HTMLElement).closest('.modal')) return; // 창 안쪽을 눌러도 닫지 않음
   if (el.dataset.a === 'item-info') { itemTip(el, el.dataset.v || ''); return; }
+  if (el.dataset.a === 'foe-item') { foeItemTip(el, el.dataset.v || ''); return; }
   if (el.dataset.a === 'syn-peek') {
     const on = !el.classList.contains('peek');
     root.querySelectorAll('.syn-b.peek').forEach((x) => x.classList.remove('peek'));

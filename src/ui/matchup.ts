@@ -62,7 +62,11 @@ export function matchupLines(fid: string): { cls: string; text: string }[] {
 // 아군 공격 속성마다 취약 · 저항인 적 수를 센다. 규칙은 위와 같이 엔진(categoryMult · categoryImmune)에 물어서 얻는다
 export interface EncMatchup {
   foes: number;
-  lines: { cls: string; text: string }[];
+  /** 분류별 인원 · 면역 · 취약 · 저항 (인원 많은 순) */
+  cats: ({ c: Category; n: number } & ReturnType<typeof categoryTraits>)[];
+  /** 보스 수 · 보스 공통 면역 */
+  bosses: number;
+  bossImmune: string[];
   /** 아군 공격 속성: 그 속성으로 치는 아군 수 · 그 속성에 취약 · 저항인 적 수 */
   elems: { e: Elem; name: string; allies: number; weak: number; resist: number }[];
 }
@@ -70,11 +74,7 @@ export function encounterMatchup(ids: string[], allyElems: Elem[]): EncMatchup {
   const roster = ids.map((id) => ENEMY_BY_ID[id]).filter((e) => e && !e.inert).map((e) => ({ c: categoryOf(e.keywords, !!e.immobile), boss: e.tier === 'boss' }));
   const by = new Map<Category, number>();
   for (const r of roster) by.set(r.c, (by.get(r.c) || 0) + 1);
-  const lines = [...by].sort((a, b) => b[1] - a[1]).map(([c, n]) => {
-    const r = catLine(c);
-    return { cls: `cat-${c}`, text: `${CATEGORY_NAME[c]} ${n}명${r ? ` — ${r}` : ''}` };
-  });
-  if (roster.some((r) => r.boss)) lines.push({ cls: 'boss', text: bossImmuneText() });
+  const cats = [...by].sort((a, b) => b[1] - a[1]).map(([c, n]) => ({ c, n, ...categoryTraits(c) }));
   const cnt = new Map<Elem, number>();
   for (const e of allyElems) cnt.set(e, (cnt.get(e) || 0) + 1);
   const elems = [...cnt].sort((a, b) => b[1] - a[1]).map(([e, n]) => ({
@@ -82,7 +82,7 @@ export function encounterMatchup(ids: string[], allyElems: Elem[]): EncMatchup {
     weak: roster.filter((r) => categoryMult(r.c, e) > 1).length,
     resist: roster.filter((r) => categoryMult(r.c, e) < 1).length,
   }));
-  return { foes: roster.length, lines, elems };
+  return { foes: roster.length, cats, bosses: roster.filter((r) => r.boss).length, bossImmune: BOSS_CC_IMMUNE.map((k) => STATUS_NAME[k]), elems };
 }
 /** 한 줄 요약 (모집 화면 머리 등) */
 export function matchupShort(fid: string) {
