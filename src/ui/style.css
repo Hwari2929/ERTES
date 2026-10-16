@@ -570,6 +570,7 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 .ah-hint { font-size: var(--fs-sm); color: var(--c-text-2); }
 .ah-desc { display: grid; gap: 1px; min-width: 0; margin-top: -2px; font-size: var(--fs-sm); line-height: 1.35; color: var(--c-text-2); } /* 이름 밑 설명: 원문을 ' · ' 기준으로 나눠 조각마다 한 줄 */
 .ah-desc .li { width: 12px; height: 12px; vertical-align: -2px; }
+.ah-about { display: block; margin-bottom: 4px; word-break: keep-all; text-wrap: pretty; } /* 현재 칸: 노드 설명 한 줄 → 예상 수입 · 모디파이어 섹션과 간격 */
 /* 예상 수입 (네모 칸 · 아이콘 + 굵은 숫자) — 조건 줄(.ah-chips 의 둥근 칩)과 모양을 나눈다 */
 .ah-inc { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .ah-sec { flex-basis: 100%; font-size: var(--fs-2xs); color: var(--c-text-2); letter-spacing: .04em; }
