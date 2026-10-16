@@ -38,7 +38,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
     ],
     subs: {
       gebek: [
-        S('gebek', '어이, 배고픈 친구! 이거 먹어. 스콜치 꼬치야. 조금 매워.', { at: 'C', face: 'grin' }),
+        S('gebek', '어이, 배고픈 친구! 이거 먹어. 매운 꼬치야. 조금 매워. 아주 조금.', { at: 'C', face: 'grin' }),
         N('용병이 꼬치를 한 입 문다. 삼 초 뒤, 얼굴이 새빨개진다.'),
         S('c_merc', '조, 조금이라면서요!', { face: 'surprise' }),
         S('gebek', '나한텐 조금이지! 하하! 물은 저쪽이다!', { face: 'laugh', exit: true }),
@@ -276,7 +276,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
       vivian: [
         S('vivian', '혹시 알러지약 남는 거 있어요? 오늘 거 먹었는지 기억이 안 나서….', { at: 'C', face: 'worried' }),
         S('c_medic', '먹었는지 모르면 반만 줄게.'),
-        S('vivian', '그럼 재채기도 반만 하면 되겠다! 에취! …아, 이건 한 번이야!', { face: 'smile', exit: true }),
+        S('vivian', '그럼 재채기도 반만 하면 되겠다! …재채기 반만 하는 법 알려 줘!', { face: 'smile', exit: true }),
       ],
     },
     after: [
@@ -289,7 +289,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
         S('bianca', '둘 다입니다.', { face: 'base' }),
       ],
       [
-        N('진료대 두 개에 단원 둘이 눕혀졌다. 비앙카가 일곱 번째 손 씻기를 마치고 오자, 의사가 말없이 장갑 상자를 내밀었다.'),
+        N('진료대 두 개에 단원 둘이 눕혀졌다. 비앙카가 손을 씻고 오자, 의사가 말없이 장갑 상자를 내밀었다.'),
         N('검진은 해 질 무렵까지 이어졌다. 두 의사가 나눈 말은 "집게.", "여기.", "다음." 정도였다.'),
         S('c_medic', '당신, 어디서 배웠어.', { at: 'R', face: 'serious' }),
         S('bianca', '말씀드리면 진료비를 깎아 주십니까.', { at: 'L', face: 'base' }),
@@ -516,7 +516,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
       S('vivian', '오, 연합 컨테이너! 봉인등 초록이면 안에 든 거 멀쩡하다는 거야!', { face: 'grin' }),
       S('rachel', '가지러 가면.'),
       S('vivian', '포자 때문에 좀 아파. 선체 필터로 다 못 거르거든. 외피도 좀 삭고, 다들 며칠 콜록콜록.', { face: 'worried' }),
-      S('vivian', '에취! …아, 이건 포자 아니야. 리키 털이야.', { face: 'shy' }),
+      S('vivian', '…아, 나 코 간지러운 건 포자 아니야. 리키 털이야.', { face: 'shy' }),
       N('비비안이 태블릿에 마구 적는다. 증발 속도, 안개 색, 리키가 으르렁댄 횟수.'),
       S('vivian', '아 맞다! 지금 찍은 관측 기록, 연합 연구소에 팔 수 있어. 거기 사람들 이런 거 진짜 좋아해!', { face: 'grin' }),
       SUB,
@@ -533,7 +533,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
       ],
       west: [
         S('west', '필터 교체 주기 방금 반토막 났다. 들어가기만 해 봐, 외피 도장 다시 하는 거 다 내 일이야.', { at: 'C', face: 'angry' }),
-        S('west', '…흠. 그래도 컨테이너는 아깝긴 하네. 담배나 한 대— 아, 여기 포자 때문에 못 피우지.', { face: 'tired', exit: true }),
+        S('west', '…흠. 그래도 컨테이너는 아깝긴 하네. 이따 필터 내가 뜯어 볼 거니까 아무도 손대지 마.', { face: 'tired', exit: true }),
       ],
       onyx: [
         S('onyx', '저 살점, 음이 반음 낮아요. 계속 내려가고 있어요.', { at: 'C', face: 'blank' }),
@@ -604,8 +604,8 @@ export const COMMON_SCENES: Record<string, EventScene> = {
         S('sarma', '…아닙니다. 수프가 맛있네요.', { face: 'shy', exit: true }),
       ],
       zephyro: [
-        S('zephyro', '꿈에서 들판을 계속 걸었어. 그래서 아침에 이렇게 피곤한 거야. 나 오늘 누워 있어도 되지?', { at: 'C', face: 'tired' }),
-        S('onyx', '들판에서도 누워 계셨는데요.'),
+        S('zephyro', '꿈에서 들판을 계속 걸었어. 그래서 아침에 이렇게 피곤한 거야. 오늘은 제일 짧은 항로로 가자. 응?', { at: 'C', face: 'tired' }),
+        S('onyx', '들판에서도 제일 짧은 길로만 걸으셨는데요.'),
         S('zephyro', '…그럼 왜 피곤하지?', { face: 'surprise', exit: true }),
       ],
     },
@@ -658,7 +658,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
       donovan: [
         S('donovan', '제7 수송단이면 위원회 감시 목록에 있던 데다. 화물 목록 두 줄이 늘 안 맞았지.', { at: 'C', face: 'smug' }),
         S('yelena', '그 두 줄, 당신이 맞춰 줬잖아요.', { face: 'smile' }),
-        S('donovan', '…그 얘긴 까악이 앞에서 하지 마. 쟤 녹음해.', { face: 'tired', exit: true }),
+        S('donovan', '…그 얘긴 내 드론 앞에서 하지 마. 쟤 녹음해.', { face: 'tired', exit: true }),
       ],
       gebek: [
         S('gebek', '전투 식량이라. 거기 매운 소스 들었으려나. 연합 거는 맨날 싱겁더구먼.', { at: 'C', face: 'grin' }),
@@ -1028,7 +1028,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
       S('donovan', '…저거 몇 년째 저러고 있냐.', { at: 'L', face: 'tired' }),
       S('donovan', '까악, 기체 정보.'),
       N('어깨 위 해킹 드론이 불만스럽게 삑 운다. 정식 이름으로 부르라는 뜻이다.'),
-      S('donovan', '…리비볼드 경. 기체 정보 좀 부탁드립니다. 됐냐?', { face: 'tired' }),
+      S('donovan', '…기체 정보 좀 부탁드립니다, 경. …됐냐?', { face: 'tired' }),
       N('드론이 허공에 홀로그램을 띄운다. 유닉스 표준 생산기, 일련번호 U-404. 소속 라인 폐쇄. 생산 목표 없음.'),
       S('donovan', '라인이 닫혔는데 아무도 얘한테 말을 안 해 줬네. 그래서 없는 걸 계속 만드는 거고.', { face: 'base' }),
       S('u404', '공정 7번. 집기. 조립…', { name: '유닉스 생산 로봇', fx: 'glitch' }),
@@ -1045,7 +1045,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
         S('yupito', '본인이 허락하면 그게 더 무섭지 않아? 하하!', { face: 'laugh', exit: true }),
       ],
       phyllis: [
-        S('phyllis', '오, 이거 팔 하나 긴급 조달해도 돼? 주방에 집게 팔 필요했는데-.', { at: 'C', face: 'grin' }),
+        S('phyllis', '오, 이거 팔 하나 떼 가도 돼? 주방에 집게 팔 필요했는데-.', { at: 'C', face: 'grin' }),
         S('u404', '공정 7번. 집기.', { name: '유닉스 생산 로봇' }),
         S('phyllis', '봐, 집기 된대. 딱이네-!', { face: 'smile', exit: true }),
       ],
@@ -1057,7 +1057,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
         N('도노반의 통신기에 지상 바의 홀로그램 창이 뜬다. 에이든이 화면 너머 로봇을 한참 본다.', { stage: [{ id: 'aiden', at: 'C', face: 'blank' }], sfx: 'static' }),
         S('aiden', '저 관절 배열, 어딘가 낯이 익군요.', { name: AIDEN_CALL }),
         S('donovan', '어디서 봤는데.'),
-        N('화면 속 에이든은 대답 대신 고양이로 변해 앞발을 핥기 시작한다.', { exit: ['aiden'] }),
+        N('화면 속 에이든은 대답 대신 잔을 닦기 시작한다. 같은 잔을, 오래.', { exit: ['aiden'] }),
       ],
     },
     after: [
@@ -1114,7 +1114,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
       zephyro: [
         S('zephyro', '그냥 지나가. 불 켜진 빈 배 들어가서 잘 끝난 얘기, 나 하나도 몰라.', { at: 'C', face: 'tired' }),
         S('phyllis', '모르는 거지, 없는 건 아니잖아-.', { face: 'smug' }),
-        S('zephyro', '…그건 그렇네. 그래도 난 여기 누워 있을게.', { face: 'base', exit: true }),
+        S('zephyro', '…그건 그렇네. 그래도 난 빈 배는 멀리 돌아갈래.', { face: 'base', exit: true }),
       ],
       yupito: [
         S('yupito', '함교만 불 켜졌다고? 보조 전지 따로 단 거네! 누가 일부러 배선했어! 와, 보고 싶다!', { at: 'C', face: 'grin' }),
@@ -1151,7 +1151,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
     scene: [
       N('황무지 성계, 이름 없는 소행성 정박지. 낡은 포함 한 척이 에란테스 함선 옆에 붙어 있다.', { bg: 'c_waste_dock', bgm: 'tense' }),
       N('포함 옆구리에 커다란 문양을 긁어낸 자국이 있다. 그 위엔 아무것도 새로 그리지 않았다.'),
-      N('정박지 난간에 제피로가 반쯤 누워 있다. 포함에서 내린 남자가 그 옆에 와서 기댄다.'),
+      N('정박지 난간에 제피로가 팔을 걸치고 기대 있다. 포함에서 내린 남자가 그 옆에 와서 같이 기댄다.'),
       S('rus', '함장이 배를 잃었을 때 나는 배를 챙겼지.', { at: 'R', face: 'smug' }),
       S('zephyro', '…누구?', { at: 'L', face: 'tired' }),
       S('rus', '루스. 바르가 함장 밑에서 부관 했어. 그 양반이 포격전에서 기함 날려 먹었을 때, 난 저 배 몰고 빠져나왔지.', { face: 'grin' }),

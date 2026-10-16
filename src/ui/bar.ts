@@ -6,6 +6,7 @@
 import { BANTER, BANTER_TOPICS, type Banter } from '../data/bar/banter.gen';
 import { REACT_RULES, type ReactCtx } from '../data/bar/react';
 import { FRAME_THEME, FRAMES, type Frame } from '../data/bar/frames';
+import { ASK, ASK_MID, ASK_Q, askLines, type AskKey } from '../data/bar/ask';
 import { BAR_GUEST, BAR_IDLE, BAR_TALK, DEEP_TOPICS, FIELD_SHORT, GENERIC_REACT } from '../data/bar/talk';
 import { FIELDS, fieldOf } from '../data/battlefields';
 import { EVENT_BY_ID } from '../data/events';
@@ -350,17 +351,21 @@ export function barEnter() { stop(); S.seats = []; S.cur = null; S.li = 0; S.ses
 
 // ───────── 말 걸기
 const advOpts = { speaker, fmt };
+/** 장면 첫 줄에 바 배경 · 그 인물 자리 */
+const atBar = (id: string, beats: Beat[]): Beat[] => (beats.length ? [{ ...beats[0], bg: 'erantes_bar', stage: [{ id: figOf(id), at: 'R' as const }] }, ...beats.slice(1)] : beats);
+/** 메뉴로 돌아올 때 한 줄 (빈 장면이면 배경이 없으므로) */
+const backBeat = (id: string): Beat[] => atBar(id, [{ text: fillText('{name}이 잔을 다시 든다.', { name: nameOf(id) }) }]);
 function talk(id: string) {
   const t = BAR_TALK[id];
   if (id === 'guest') { playAdv('bar:guest', toBeats('aiden', pick(BAR_GUEST), { pc: PC }).map((b, i) => (i ? b : { ...b, bg: 'erantes_bar' })), { ...advOpts, title: '에란테스 바', onDone: () => {} }); return; }
   metaBarBond(id);
   const r = reactFor(id);
   if (r) metaBar('heard', r.key);
-  if (!t) { talkPlain(id, r); return; }
+  if (!t) { plainMenu(id, atBar(id, r ? toBeats(id, r.lines, r.vars) : [{ text: fillText('{name}이 잔을 들어 보인다. 옆자리가 비어 있다.', { name: nameOf(id) }) }]), true); return; }
   const open = toBeats(id, [t.at, ...(r ? r.lines : pick(t.hello))], r?.vars || { pc: PC, name: nameOf(id) });
-  open[0] = { ...open[0], bg: 'erantes_bar', stage: [{ id, at: 'R' }] };
-  topicMenu(id, open, []);
+  topicMenu(id, atBar(id, open), []);
 }
+const ASK_CHOICE = { label: '물어보기…', desc: '누구에게나 묻는 질문' };
 function topicMenu(id: string, beats: Beat[], done: string[]) {
   const t = BAR_TALK[id];
   const heard = new Set(loadMeta().bar?.talk || []);
@@ -368,31 +373,68 @@ function topicMenu(id: string, beats: Beat[], done: string[]) {
   const open = deepOpen(id);
   const tops = [...t.topics, ...(deep && open ? [{ ...deep, label: `(심야) ${deep.label}` }] : [])].filter((x) => !done.includes(x.key));
   const locked = deep && !open ? [{ label: '(심야) …', desc: '더 가까워지면 들을 수 있는 이야기', why: `관계 ${bondOf(id)} / ${DEEP_BOND} (말 걸기 + 함께 출전한 런)` }] : [];
-  playAdv(`bar:talk:${id}:${done.length}`, beats, {
-    ...advOpts, title: done.length ? undefined : nameOf(id),
-    choices: [...tops.map((x) => ({ label: x.label, desc: heard.has(`${id}.${x.key}`) ? '들은 이야기' : undefined })), ...locked, { label: '자리로 돌아간다' }],
+  playAdv(`bar:talk:${id}:${done.length}:${Date.now()}`, beats, {
+    ...advOpts, title: done.length || beats.length < 2 ? undefined : nameOf(id),
+    choices: [...tops.map((x) => ({ label: x.label, desc: heard.has(`${id}.${x.key}`) ? '들은 이야기' : undefined })), ...(ASK[id] ? [ASK_CHOICE] : []), ...locked, { label: '자리로 돌아간다' }],
     onDone: (k) => {
+      if (k === tops.length && ASK[id]) { askMenu(id, backBeat(id), () => topicMenu(id, backBeat(id), done)); return; }
       const x = k < tops.length ? tops[k] : null;
       if (!x) return;
       metaBar('talk', `${id}.${x.key}`);
-      const next = toBeats(id, x.lines, { pc: PC, name: nameOf(id) });
-      next[0] = { ...next[0], bg: 'erantes_bar', stage: [{ id, at: 'R' }] }; // 새 장면도 같은 배경 · 같은 자리에서 이어진다
-      topicMenu(id, next, [...done, x.key]);
+      topicMenu(id, atBar(id, toBeats(id, x.lines, { pc: PC, name: nameOf(id) })), [...done, x.key]); // 새 장면도 같은 배경 · 같은 자리에서
     },
   });
 }
-/** 대본이 없는 단원: 반응(서술) 또는 그 단원이 나오는 만담 한 편 */
-function talkPlain(id: string, r: ReturnType<typeof reactFor>) {
+/** 대본이 없는 단원: 물어보기 · 같이 있던 이야기(그 단원이 나오는 만담) */
+function plainMenu(id: string, beats: Beat[], first: boolean) {
   const k = S.known;
   const seen = new Set(loadMeta().bar?.seen || []);
   const pool = shuffle(BANTER.filter((b) => b.place !== 2 && b.cast.includes(id) && b.cast.every((x) => k.has(x))));
   const b = pool.find((x) => !seen.has(x.id)) || pool[0];
-  const beats: Beat[] = [];
-  if (r) beats.push(...toBeats(id, r.lines, r.vars));
-  if (b) { beats.push({ text: b.sit }, ...banterBeats(b)); metaBar('seen', b.id); }
-  if (!beats.length) beats.push({ text: fillText('{name}이 잔을 들어 보이고, 하던 이야기로 돌아간다.', { name: nameOf(id) }) });
-  beats[0] = { ...beats[0], bg: 'erantes_bar', stage: [{ id: figOf(id), at: 'R' }] };
-  playAdv(`bar:plain:${id}`, beats, { ...advOpts, title: nameOf(id), onDone: () => {} });
+  const ch = [...(ASK[id] ? [ASK_CHOICE] : []), ...(b ? [{ label: '요즘 있었던 일', desc: '이 단원이 나오는 만담 한 편' }] : []), { label: '자리로 돌아간다' }];
+  playAdv(`bar:plain:${id}:${Date.now()}`, beats, {
+    ...advOpts, title: first ? nameOf(id) : undefined, choices: ch,
+    onDone: (c) => {
+      const x = ch[c];
+      if (x === ASK_CHOICE) askMenu(id, backBeat(id), () => plainMenu(id, backBeat(id), false));
+      else if (b && x.label === '요즘 있었던 일') { metaBar('seen', b.id); plainMenu(id, atBar(id, [{ text: b.sit }, ...banterBeats(b)]), false); }
+    },
+  });
+}
+/** 공통 질문의 지금 깊이: 0 표면 · 1 이상 (관계 ASK_MID) · 2 실재 (관계 DEEP_BOND, 로어 있는 인물만) */
+export function askTier(id: string, key: AskKey): number {
+  const a = ASK[id];
+  if (!a) return 0;
+  const v = a[key];
+  if (!Array.isArray(v)) return 0;
+  const b = bondOf(id);
+  return v[2] && b >= DEEP_BOND ? 2 : b >= ASK_MID ? 1 : 0;
+}
+const TIER_NAME = ['표면', '이상', '실재'];
+const askText = (id: string, key: AskKey, tier: number) => { const v = ASK[id][key]; return Array.isArray(v) ? v[tier] || v[0] : v; };
+/** 물어보기: 질문 다섯 개. 과거 · 꿈은 관계가 쌓이면 답이 깊어지고, 다음 단계까지의 진행도를 보여 준다 */
+function askMenu(id: string, beats: Beat[], back: () => void) {
+  const heard = new Set(loadMeta().bar?.talk || []);
+  const b = bondOf(id);
+  const ch = ASK_Q.map((q) => {
+    const v = ASK[id][q.key];
+    const tier = askTier(id, q.key);
+    const max = Array.isArray(v) ? (v[2] ? 3 : 2) : 1;
+    const nextAt = tier === 0 ? ASK_MID : DEEP_BOND;
+    const got = heard.has(`ask:${id}.${q.key}.${tier}`);
+    const desc = max > 1 ? `깊이 ${tier + 1}/${max}${tier + 1 < max ? ` · 관계 ${b}/${nextAt}에서 더 깊은 답` : ''}${got ? ' · 들은 답' : ''}` : got ? '들은 답' : undefined;
+    return { label: q.label, desc };
+  });
+  playAdv(`bar:ask:${id}:${Date.now()}`, beats, {
+    ...advOpts, choices: [...ch, { label: '다른 얘기 하자' }],
+    onDone: (k) => {
+      const q = ASK_Q[k];
+      if (!q) { back(); return; }
+      const tier = askTier(id, q.key);
+      metaBar('talk', `ask:${id}.${q.key}.${tier}`);
+      askMenu(id, atBar(id, [{ who: 'rachel', text: q.label }, ...toBeats(id, askLines(askText(id, q.key, tier)), { pc: PC, name: nameOf(id) })]), back);
+    },
+  });
 }
 
 // ───────── 통신 기록: 바 밖 만담 (지난 의뢰 단원 우선)
@@ -467,15 +509,21 @@ export function barRecordsHtml(): string {
     const total = f.slots.reduce((a, sl) => a + Object.keys(sl).length, 0);
     return `<section class="bar-rec-b"><h3>${esc(FRAME_THEME[f.theme])} · ${esc(f.sit)} <span class="muted small f-num">${ints.size}/${total}</span>${f.layer === 'r' ? ' <span class="muted small">심야</span>' : ''}</h3>${core}${slots}</section>`;
   };
+  // 알게 된 것: 물어보기로 들은 답 (인물별, 질문 · 깊이별)
+  const askRows = Object.keys(ASK).map((id) => ({ id, got: ASK_Q.flatMap((q) => [0, 1, 2].filter((t) => talk.has(`ask:${id}.${q.key}.${t}`)).map((t) => ({ q, t }))) })).filter((r) => r.got.length);
+  const askAll = Object.values(ASK).reduce((n, a) => n + ASK_Q.reduce((m, q) => { const v = a[q.key]; return m + (Array.isArray(v) ? (v[2] ? 3 : 2) : 1); }, 0), 0);
+  const askGot = askRows.reduce((n, r) => n + r.got.length, 0);
+  const knowHtml = askRows.map(({ id, got }) => `<section class="bar-rec-b"><h3>${esc(nameOf(id))} <span class="muted small f-num">${got.length}</span></h3>${got.map(({ q, t }) => `<div class="bar-rec-v"><span class="muted small">${esc(q.note)}${Array.isArray(ASK[id][q.key]) ? ` · ${TIER_NAME[t]}` : ''}</span>${scriptLines(id, askLines(askText(id, q.key, t)))}</div>`).join('')}</section>`).join('');
   return `<h2>에란테스 바</h2>
-    <p class="muted small">본 만담 <b class="f-num">${banterN}</b> / ${BANTER.length}편 · 끼어들기 만담 <b class="f-num">${frameRows.length}</b> / ${FRAMES.length}편 (버전 <b class="f-num">${fseen.length}</b> / ${variants}) · 단원에게 들은 이야기 <b class="f-num">${talkRows.length}</b> / ${talkAll}편.
+    <p class="muted small">본 만담 <b class="f-num">${banterN}</b> / ${BANTER.length}편 · 끼어들기 만담 <b class="f-num">${frameRows.length}</b> / ${FRAMES.length}편 (버전 <b class="f-num">${fseen.length}</b> / ${variants}) · 단원에게 들은 이야기 <b class="f-num">${talkRows.length}</b> / ${talkAll}편 · 알게 된 것 <b class="f-num">${askGot}</b> / ${askAll}.
       심야 이야기는 그 단원과 가까워지면(말 걸기 + 함께 출전한 런 ${DEEP_BOND}) 열립니다.</p>
     <div class="bar-rec">
+      ${askRows.length ? `<details><summary><b>알게 된 것</b> <span class="muted small f-num">${askGot}/${askAll}</span></summary>${knowHtml}</details>` : ''}
       ${talkRows.length ? `<details><summary><b>단원 이야기</b> <span class="muted small f-num">${talkRows.length}/${talkAll}</span></summary>
         ${talkRows.map(({ id, x }) => `<section class="bar-rec-b"><h3>${esc(nameOf(id))} · ${esc(x.label)}</h3>${scriptLines(id, x.lines)}</section>`).join('')}</details>` : ''}
       ${frameRows.length ? `<details><summary><b>끼어들기 만담</b> <span class="muted small f-num">${frameRows.length}/${FRAMES.length}</span></summary>${frameRows.map((r) => frameHtml(r.f, r.keys)).join('')}</details>` : ''}
       ${byTopic.filter((g) => g.got.length).map((g) => `<details><summary><b>${esc(g.title)}</b> <span class="muted small f-num">${g.got.length}/${g.all.length}</span></summary>
         ${g.got.map((b) => `<section class="bar-rec-b"><h3>${b.cast.map((id) => esc(nameOf(id))).join(' × ')} <span class="muted small">— ${esc(b.sit)}</span></h3>${b.lines.map(([w, t, nm]) => line(w, t, nm)).join('')}</section>`).join('')}</details>`).join('')}
-      ${!seen.size && !talkRows.length ? '<p class="muted small">아직 바에 들르지 않았습니다. 타이틀이나 메뉴에서 「에란테스 바」로 갈 수 있습니다.</p>' : ''}
+      ${!seen.size && !talkRows.length && !askRows.length ? '<p class="muted small">아직 바에 들르지 않았습니다. 타이틀이나 메뉴에서 「에란테스 바」로 갈 수 있습니다.</p>' : ''}
     </div>`;
 }

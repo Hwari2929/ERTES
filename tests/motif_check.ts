@@ -1,4 +1,4 @@
-// 소재 사용 횟수 검사 (경고만, 실패하지 않는다). npm run check 에서 함께 돈다.
+// 소재 사용 횟수 검사. npm run check 에서 함께 돈다. 3차 정리로 초과 0건이 되어, 이제 기준을 넘으면 실패한다 (--warn 이면 경고만).
 //   인물별 표면 소재(말버릇 · 취미 · 반복 개그 키워드)가 만담 · 사건 장면 · 바 대본에서 몇 번 쓰였는지 센다.
 //   기준(limit)을 넘으면 경고 → 그 소재 대신 이상 · 실재 층(docs/VOICES.md '새어 나오는 방식')으로 쓴다.
 //   표 갱신: node dist/motif_check.cjs --doc  (docs/MOTIFS.md)
@@ -43,17 +43,19 @@ const ID: Record<string, string> = {
 const SOURCES: [string, string, RegExp][] = [
   ['만담', 'docs/banter', /\.md$/],
   ['사건', 'src/data/scenes', /\.ts$/],
-  ['바', 'src/data/bar', /^(talk|frames.*)\.ts$/],
+  ['바', 'src/data/bar', /^(talk|frames.*|ask.*)\.ts$/],
 ];
 // 줄마다 '이 줄이 누구 몫인가'를 붙인다: 만담 = 그 편의 출연자 전원, 코드 = 화자 id · 묶음 키 · 이름표
-type Line = { t: string; who: Set<string> };
+type Line = { t: string; who: Set<string>; at: string };
 const text: Record<string, Line[]> = {};
 const NAMES = Object.keys(ID);
 for (const [k, dir, re] of SOURCES) {
   text[k] = [];
   for (const f of fs.readdirSync(dir).filter((x) => re.test(x)).sort()) {
     let cast = new Set<string>(), block = '';
+    let ln = 0;
     for (const t of fs.readFileSync(`${dir}/${f}`, 'utf8').split('\n')) {
+      ln++;
       const who = new Set<string>();
       if (k === '만담') {
         const h = t.match(/^\*\*(.+?)\*\*/);
@@ -65,7 +67,7 @@ for (const [k, dir, re] of SOURCES) {
         if (b) block = b[1];
         for (const n of NAMES) if (t.includes(`'${ID[n]}'`) || t.includes(n) || block === ID[n]) who.add(n);
       }
-      text[k].push({ t, who });
+      text[k].push({ t, who, at: `${dir}/${f}:${ln}` });
     }
   }
 }
@@ -81,10 +83,17 @@ for (const [who, list] of Object.entries(MOTIFS)) {
 }
 rows.sort((a, b) => b.total / b.limit - a.total / a.limit);
 const over = rows.filter((r) => r.total > r.limit);
+if (process.argv.includes('--list')) { // 기준을 넘은 소재의 줄 위치
+  for (const r of rows.filter((x) => x.total > x.limit)) {
+    console.log(`## ${r.who} ${r.name} ${r.total}/${r.limit}`);
+    const re = MOTIFS[r.who].find((m) => m[0] === r.name)![1];
+    for (const [k] of SOURCES) for (const l of text[k]) if (l.who.has(r.who) && re.test(l.t)) console.log(`${l.at}  ${l.t.trim().slice(0, 150)}`);
+  }
+}
 if (process.argv.includes('--doc')) {
   const head = `# 소재 사용 횟수 (자동 생성: tests/motif_check.ts --doc)
 
-인물별 표면 소재가 그 인물이 나오는 만담(docs/banter) · 사건 장면(src/data/scenes) · 바 대본(src/data/bar)에 나온 줄 수. 기준을 넘으면 \`npm run check\` 가 경고한다 (실패는 아님).
+인물별 표면 소재가 그 인물이 나오는 만담(docs/banter) · 사건 장면(src/data/scenes) · 바 대본(src/data/bar)에 나온 줄 수. 기준을 넘으면 \`npm run check\` 가 실패한다 (3차 정리 뒤 초과 0건).
 넘은 소재는 새 글에서 쉬게 하고, 그 인물의 이상 · 실재 층(docs/VOICES.md '새어 나오는 방식')으로 쓴다.
 
 | 인물 | 소재 | 만담 | 사건 | 바 | 합계 | 기준 | |
@@ -93,7 +102,8 @@ if (process.argv.includes('--doc')) {
   fs.writeFileSync('docs/MOTIFS.md', head + rows.map((r) => `| ${r.who} | ${r.name} | ${r.n['만담']} | ${r.n['사건']} | ${r.n['바']} | ${r.total} | ${r.limit} | ${r.total > r.limit ? '⚠ 초과' : ''} |`).join('\n') + '\n');
 }
 if (over.length) {
-  console.log(`소재 검사: 경고 ${over.length}건 (기준 초과 · 실패 아님, 표는 docs/MOTIFS.md)`);
+  console.log(`소재 검사: 기준 초과 ${over.length}건 (표는 docs/MOTIFS.md). 그 소재 대신 이상 · 실재 층으로 쓰거나 다른 개그로 바꾼다`);
   for (const r of over.slice(0, 12)) console.log(` · ${r.who} '${r.name}' ${r.total}회 (기준 ${r.limit}) — 만담 ${r.n['만담']} · 사건 ${r.n['사건']} · 바 ${r.n['바']}`);
   if (over.length > 12) console.log(`   … 외 ${over.length - 12}건`);
+  if (!process.argv.includes('--warn')) process.exitCode = 1;
 } else console.log('소재 검사: 통과');

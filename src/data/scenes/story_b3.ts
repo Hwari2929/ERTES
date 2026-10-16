@@ -94,7 +94,7 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
           N('아무도 돈을 걸지 않은 변방 용병단이 결승에서 이긴다. 귀족석 부채들이 일제히 멈춘다.', { bg: 'b_arena', bgm: 'b_fanfare', sfx: 'coin' }),
           S('amundsen', '허. 이변이군.', { at: 'C', face: 'laugh' }),
           S('temur', '주인님. 우리가 건 거 맞지. 그 돈으로 밥 사도 되냐.', { at: 'L', face: 'grin' }),
-          S('amundsen', '나한테 묻지 말게. 나는 땅콩버터 값만 남으면 되네.', { face: 'smug' }),
+          S('amundsen', '나한테 묻지 말게. 나는 재미만 남으면 되네.', { face: 'smug' }),
         ],
         lose: [
           N('예상대로다. 귀족들이 웃으며 판돈을 쓸어 간다. 비단 부채가 깃발처럼 펄럭인다.', { bg: 'b_arena', bgm: 'b_fanfare' }),
@@ -132,7 +132,7 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
       S('west', '아니면 사흘 얌전히 기다려. 다들 잠이나 실컷 자고. 검사야 뭐, 저 친구 꼴 보니 상자 다 열 기운도 없겠다.'),
       S('west', '아니면 저 차단기를 그냥 밀고 나간다. 경고 사격 몇 발은 맞겠지. 화물은 지키고.'),
       S('b_clerk', '저기요, 마지막 건 제 앞에서 말씀 안 하시면 안 돼요?', { face: 'worried' }),
-      S('west', '흠. 그래. 일단 담배 한 대 피고… 아, 여기 금연이지.', { face: 'tired' }),
+      S('west', '흠. 그래. …그 프린터 소리 이상한데. 기다리는 동안 내가 본다.', { face: 'tired' }),
       S('west', '젠장. 골라, {pc}.'),
     ],
     subs: {
@@ -211,7 +211,7 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
       S('rachel', '응. 한쪽은 지키래고 한쪽은 털래. 같은 날.', { face: 'blank' }),
       S('rachel', '그리고 둘 다 선금 벌써 보냈어. 통장에 있어.'),
       S('amundsen', '허허. 돈이 먼저 오면 거절하기가 귀찮아지지. 저쪽도 그걸 알고 보낸 거고.', { face: 'laugh' }),
-      N('아문센이 금색 회중시계를 꺼냈다 넣었다 한다. 체인이 탁자 모서리에 짤랑거린다.', { sfx: 'tick' }),
+      N('아문센이 와인 잔을 돌린다. 마시지는 않는다.', { sfx: 'tick' }),
       S('rachel', '아빠. 시계 그만 만지고 뭐라도 말해.', { face: 'worried' }),
       S('amundsen', '지휘관 생각부터 들어 봐야지 않겠나?', { face: 'smile' }),
       S('rachel', '동맹 쪽은 착한 일. 근데 싸워야 돼서 피곤해.', { face: 'tired' }),
@@ -516,7 +516,7 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
       zephyro: [
         S('zephyro', '뱃노래는 3절이 제일 좋아. 다들 가사를 몰라서 제일 크게 부르거든.', { at: 'C', face: 'tired' }),
         S('b_ithacan', '역시 뱃사람이구먼!', { face: 'laugh' }),
-        S('zephyro', '전직. 지금은 누워 있는 사람.', { exit: true }),
+        S('zephyro', '전직. 지금은 안전 운항만 하는 사람.', { exit: true }),
       ],
     },
     after: [

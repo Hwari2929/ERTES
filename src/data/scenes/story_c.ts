@@ -156,7 +156,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       zephyro: [
         S('zephyro', '저 배, 삼백 년 떠돌면서 한 번도 안 부딪혔대. …항로 누가 짰어? 진짜 궁금해서.', { at: 'C', face: 'tired' }),
         S('argon', '운이오.'),
-        S('zephyro', '운이 항로를 짜? …다음엔 제대로 그려 줘. 나 누워서 볼게.', { face: 'base', exit: true }),
+        S('zephyro', '운이 항로를 짜? …다음엔 제대로 그려 줘. 그 운, 나는 못 믿어.', { face: 'base', exit: true }),
       ],
       iris: [
         S('iris', '헤르메스님은 길 잃은 여행자를 집까지 데려다주시는 분이기도 해요! 그러니까 저 배에도 분명—', { at: 'C', face: 'surprise' }),
@@ -216,7 +216,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       SUB,
       S('west', '흐음~ 흠… 아, 진짜. 야, 너 머리 쓰는 쪽이잖아. 이거 좀 빼 봐.', { face: 'angry' }),
       S('nadir', '제가 귀이개예요? 억지로 빼다가 아저씨 다른 기억까지 빠지면요?', { face: 'smug' }),
-      S('west', '담배 피우는 법만 남겨 주면 된다.', { face: 'tired' }),
+      S('west', '공구 쥐는 법만 남겨 주면 된다.', { face: 'tired' }),
       S('nadir', '근데 진짜 가면요, 간 사람은 한동안 여기 없겠죠. 대신 돌아오면 엄청 세져 있을 거고요!', { face: 'grin' }),
       S('west', '합창단이 녹음본도 판다더라. 함내 방송으로 틀면 다들 머리가 잘 돈다나. 돈은 좀 들고.'),
       S('west', '…효과는 확실하다. 내가 증거다.', { face: 'tired' }),
@@ -251,7 +251,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       zephyro: [
         S('zephyro', '거절하면 노래가 쓸쓸해질 뿐이라. 그거 협박 아니야. 투정이지.', { at: 'C', face: 'tired' }),
         S('west', '투정을 사흘째 내 귀에다 하는 놈도 있냐?'),
-        S('zephyro', '있네. 여기. …나 저기 좀 누워도 돼?', { face: 'base', exit: true }),
+        S('zephyro', '있네. 여기. …나 저 뒤에 가 있어도 돼? 귀 안 닿는 데로.', { face: 'base', exit: true }),
       ],
     },
     after: [
@@ -260,7 +260,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
         N('셔틀 문이 닫히는 순간, 정비실 쪽에서 콧노래가 뚝 끊겼다.', { sfx: 'c_hum' }),
         S('west', '…어? 멈췄다. 멈췄어!', { at: 'R', face: 'surprise' }),
         N('웨스트가 렌치를 내려놓고, 다시 집고, 또 내려놓는다.'),
-        S('west', '…조용하니까 손이 심심하군. 담배나 한 대 피고.', { face: 'tired' }),
+        S('west', '…조용하니까 손이 심심하군. 뭐 고칠 거 없냐.', { face: 'tired' }),
       ],
       [
         N('함내 방송으로 합창단 녹음본이 흘러나왔다. 가사 없는 화음이 함선 구석구석을 채웠다.', { bg: 'c_workshop', bgm: 'c_hymn' }),
@@ -337,7 +337,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       ],
       vivian: [
         S('vivian', '와, 이 화음 고래 노래 같아! 고래들 멀리서 서로 부를 때 딱 이렇게 해!', { at: 'C', face: 'surprise' }),
-        S('vivian', '리키는 고래 노래 싫어하는데. 지금 귀 접고 있어. 에취!', { face: 'grin', exit: true }),
+        S('vivian', '리키는 고래 노래 싫어하는데. 지금 귀 접고 있어. 흠흠- 나는 좋은데!', { face: 'grin', exit: true }),
       ],
       kairo: [
         S('kairo', '4분의 3박자로군. 방아쇠 손가락이 자꾸 따라가.', { at: 'C', face: 'tired' }),
@@ -422,7 +422,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       vivian: [
         S('vivian', '나도 꿨어! 근데 날 부른 게 리키였어! 리키가 말을 했다니까!', { at: 'C', face: 'surprise' }),
         S('temur', '늑대가 말하냐.'),
-        S('vivian', '그러니까! 근데 목소리가 리키 목소리가 아니었어. …리키 목소리가 뭔지는 나도 모르지만! 에취!', { face: 'grin', exit: true }),
+        S('vivian', '그러니까! 근데 목소리가 리키 목소리가 아니었어. …리키 목소리가 뭔지는 나도 모르지만! 적어 둬야지!', { face: 'grin', exit: true }),
       ],
       odysseus: [
         S('odysseus', '복도 끝에 문 하나라. 나는 이십 년 동안 그 꿈 꿨지. 우리 집 현관문이었어.', { at: 'C', face: 'smile' }),
@@ -581,7 +581,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       N('필리스가 편지 한 통을 집어 불빛에 비춰 본다. 봉투 안에서 뭔가 바스락거린다.', { sfx: 'rustle' }),
       S('phyllis', '이건 송금. 이건 소포. 이건… 봉투에 손톱 자국 난 거 보니까 저주 편지네. 꼭 하나씩 섞여 있더라-.', { face: 'base' }),
       S('iris', '뜯으면 안 돼요! 남의 편지예요!', { face: 'surprise' }),
-      S('phyllis', '수신인 칸 비었잖아. 받을 사람 없으면 주운 사람 거지. 긴급 조달이야.', { face: 'smug' }),
+      S('phyllis', '수신인 칸 비었잖아. 받을 사람 없으면 주운 사람 거지. 나 지금 주웠어.', { face: 'smug' }),
       S('iris', '아니에요. 받을 사람이 없으면 찾아서 갖다주는 게 맞아요. 시간은 좀 걸려도요. 배달 수당도 나오고요!', { face: 'serious' }),
       S('phyllis', '누가 가는데. 나는 빼.'),
       S('iris', '아니면… 누가 이 우편낭을 아예 짊어지는 방법도 있어요. 그럼 그분이 그 사람 발걸음을 가볍게 해 주실 거예요!', { face: 'smile' }),

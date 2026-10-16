@@ -214,7 +214,7 @@ export const STORY_B_SCENES: Record<string, EventScene> = {
           N('세 합째에 추심관의 검이 부러진다. 부러진 날이 갑판을 굴러 기사들 발치에서 멈춘다.', { fx: 'flash' }),
           S('b_collector', '…기사의 이름을 걸었다. 그 줄은 지운다.', { at: 'R', face: 'surprise' }),
           N('추심관이 부러진 검을 장부 사이에 끼워 넣고 돌아선다. 기사단은 떠나며 결투 상금을 갑판에 두고 간다.', { sfx: 'coin' }),
-          S('iris', '부러졌어요! 검이! 저거 굿즈로 만들면— 아, 안 주시겠죠.', { at: 'L', face: 'laugh' }),
+          S('iris', '부러졌어요! 검이! 저거 기념품으로 만들면— 아, 안 주시겠죠.', { at: 'L', face: 'laugh' }),
         ],
         lose: [
           N('결투는 길지 않았다. 추심관의 검은 화려하지 않았고, 한 번도 헛되이 움직이지 않았다.', { bg: 'b_standoff', bgm: 'tense', sfx: 'b_sword' }),

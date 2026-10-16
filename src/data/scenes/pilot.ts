@@ -425,7 +425,7 @@ export const PILOT_SCENES: Record<string, EventScene> = {
           N('여섯.', { fx: 'flash' }),
           N('도박장이 한순간 조용해졌다가, 터져 나온다.', { sfx: 'crowd' }),
           S('dealer', '…여섯 번째 달이 떴습니다.', { face: 'surprise' }),
-          S('orca', '칠 년 만이군요. 그때도 세 번째 여자친구가 옆에 있었는데.', { at: 'L', face: 'base' }),
+          S('orca', '칠 년 만이군요. 그때도 이 자리였는데. 의자 높이가 그대로군요.', { at: 'L', face: 'base' }),
           S('rachel', '…그 얘기 또 해?', { at: 'C', face: 'tired' }),
         ],
         mid: [

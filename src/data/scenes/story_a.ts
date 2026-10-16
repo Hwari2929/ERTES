@@ -103,7 +103,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       amundsen: [
         S('amundsen', '레이첼, 거기 녹슨 훈장 하나 없냐. 날개 달린 거.', { name: '아문센 (덕트 밖)' }),
         S('rachel', '있어. 제일 따뜻한 자리에.'),
-        S('amundsen', '허허. 그럼 내 땅콩버터도 거기 있나?', { name: '아문센 (덕트 밖)' }),
+        S('amundsen', '허허. 그럼 내 와인 코르크도 거기 있나?', { name: '아문센 (덕트 밖)' }),
         S('rachel', '없어.'),
         S('amundsen', '그렇다면 범인은 따로 있다는 얘기로군.', { name: '아문센 (덕트 밖)', exit: true }),
       ],
@@ -277,12 +277,12 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       orca: [
         S('orca', '숫자만 말씀드리죠. 이 속도면 내일 아침 조회수 세 배입니다.', { at: 'C', face: 'base' }),
         S('ingel', '그거 위로야, 공격이야?'),
-        S('orca', '회계입니다. …아, 제 네 번째 여자친구도 노래를 했는데요.'),
+        S('orca', '회계입니다. …노래는 장부에 안 맞습니다. 그래서 좋은 겁니다.'),
         S('ingel', '나가.', { face: 'angry' }),
         N('오르카가 고개를 한 번 숙이고 함교를 나간다. 걸음 속도는 그대로다.', { exit: ['orca'] }),
       ],
       vivian: [
-        S('vivian', '나 이거 열 번 들었어! 흥얼거리는 데 카주 넣어 봐도 돼? 돼?', { at: 'C', face: 'smile' }),
+        S('vivian', '나 이거 열 번 들었어! 흥얼거리는 데 내 악기 넣어 봐도 돼? 돼?', { at: 'C', face: 'smile' }),
         S('ingel', '안 돼.'),
         S('vivian', '반만!', { face: 'grin' }),
         N('비비안이 주머니에서 카주를 꺼내다가, 잉겔 눈빛에 도로 집어넣는다.', { exit: ['vivian'] }),
@@ -358,12 +358,12 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       gebek: [
         S('gebek', '어이, 관리국 양반! 서류는 이따 보자고. 지금은 줄 서는 거나 보고!', { at: 'C', face: 'grin' }),
         N('게베크가 슈트 어깨를 한 번 돌린다. 관리국 직원과 무대 사이에 2미터짜리 벽이 생긴다.', { sfx: 'servo' }),
-        S('gebek', '그리고 저 응원봉, 색이 우리 지르곤이랑 똑같네! 요즘 말로 깔맞춤이지? 맞지?', { exit: true }),
+        S('gebek', '그리고 저 응원봉, 색이 우리 응원 팀이랑 똑같네! 요즘 말로 깔맞춤이지? 맞지?', { exit: true }),
       ],
       franze: [
         S('franze', '이의 있습니다. 정박지 조례상 비영리 즉석 집회는 사후 신고로 갈음할 수 있습니다.', { at: 'C', face: 'serious' }),
         S('a_official', '비영리요? 저쪽에서 티셔츠 상자 뜯고 있잖아요!'),
-        S('franze', '그건 증거로 채택되지 않았습니다. 기록해도 되겠— 잠시만요, 머리에 불이 붙었습니다.'),
+        S('franze', '그건 증거로 채택되지 않았습니다. 기록해도 되겠— 잠시만요, 거기 블라인드 좀 내려 주시겠습니까. 감사합니다. 제3항.'),
         N('무대 조명이 기울자 프란체 머리끝에서 작은 불꽃이 핀다. 그는 손으로 툭 끄고 조례집을 한 장 넘긴다.', { exit: ['franze'] }),
       ],
       zahara: [
@@ -463,7 +463,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       orca: [
         S('orca', '계산해 보니 이 제안은 시간당 0.3크레딧입니다. 움직일 이유가 없는 가격이죠.', { at: 'C', face: 'base' }),
         S('lars', '그럼 얼마면 되겠습니까.'),
-        S('orca', '가격 문제가 아닙니다. 저분은 장부를 안 쓰세요. 제 두 번째 여자친구처럼요.', { exit: true }),
+        S('orca', '가격 문제가 아닙니다. 저분은 장부를 안 쓰세요. 숨기는 건 하수인데요.', { exit: true }),
       ],
       phyllis: [
         S('phyllis', '부장님, 고양이 일은 고양이한테 맡겨야지! 통역해 줄까?', { at: 'C', face: 'grin' }),
@@ -787,7 +787,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       S('amundsen', '레이첼, 끝까지 들을 거냐? 그럼 내일 아침은 각오해야 할 게다.', { face: 'smile' }),
       S('amundsen', '아니면 내 방에 낡은 상자가 하나 있는데. 그 얘기를 해 줄 수도 있고.'),
       S('amundsen', '그것도 싫으면 카드 한 판 어떠냐. 술값 내기. 미리 말해 두지만 나는 블러핑으로 삼십 년 버틴 사람이다.', { face: 'smug' }),
-      S('aiden', '술값 장부는 이미 펼쳐 두었습니다, 핫초코 곱빼기 손님.', { face: 'smug' }),
+      S('aiden', '술값 장부는 이미 펼쳐 두었습니다, 체리 세 알 손님.', { face: 'smug' }),
     ],
     subs: {
       gebek: [
@@ -1002,13 +1002,13 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
     after: [
       {
         ok: [
-          N('웨스트가 점검구를 열고 상체를 반쯤 집어넣었다. 욕이 세 번, 공구 소리가 두 번.', { sfx: 'clank' }),
+          N('웨스트가 배관 덮개를 열고 상체를 반쯤 집어넣었다. 욕이 세 번, 공구 소리가 두 번.', { sfx: 'clank' }),
           N('그리고 기름투성이 손에 볼트 하나를 들고 나왔다. 손가락 두 마디만 한 볼트.'),
           S('west', '이거 하나 때문에 정비소 갔으면 반년 치 담뱃값 날아갔다.', { at: 'L', face: 'smug' }),
           S('rachel', '이제 자도 돼?', { at: 'R', face: 'tired' }),
         ],
         burst: [
-          N('웨스트가 볼트를 반 바퀴 돌린 순간, 쉭 소리와 함께 점검구가 하얗게 터졌다.', { sfx: 'a_steam', fx: 'flash' }),
+          N('웨스트가 볼트를 반 바퀴 돌린 순간, 쉭 소리와 함께 배관 덮개가 하얗게 터졌다.', { sfx: 'a_steam', fx: 'flash' }),
           N('냉각수가 쏟아졌다. 웨스트는 배관 뒤로 몸을 날렸고, 하필 옆에 서 있던 레이첼이 정통으로 뒤집어썼다.'),
           S('rachel', '……차가워.', { at: 'R', face: 'blank' }),
           S('west', '…볼트가 아니라 냉각 라인이었네. 의무실 가. 지금.', { at: 'L', face: 'worried' }),
@@ -1030,7 +1030,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
           N('항해 사흘째 밤. 쿵, 쿵, 그리고 아주 긴 조용함.', { sfx: 'a_knock' }),
           N('기관이 멈췄다. 조명이 비상등으로 바뀌고 배 안이 붉어졌다.', { fx: 'dark' }),
           S('west', '…그러니까 열어 보자고 했잖아!', { at: 'L', face: 'angry' }),
-          N('비상 수리에 꼬박 하루가 걸렸다. 그동안 배 안은 지독하게 추웠고, 웨스트 담배는 두 갑이 비었다.'),
+          N('비상 수리에 꼬박 하루가 걸렸다. 그동안 배 안은 지독하게 추웠고, 웨스트는 그 하루 동안 한 번도 앉지 않았다.'),
         ],
       },
     ],

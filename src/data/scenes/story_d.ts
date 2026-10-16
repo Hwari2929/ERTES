@@ -23,7 +23,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       S('west', '하나. 격벽을 딴다. 안에 든 게 뭐든 우리 거. 반응로가 성질만 안 부리면.'),
       S('west', '둘. 겉에 외장재랑 배선만 벗겨 간다. 고철값이지. 다칠 일 없어.'),
       S('west', '셋. 저 배 장갑판을 떼서 우리 배에 덧댄다. 두께는 쓸 만해. 대신 용접하다 누구 하나는 덴다. 보통은 나고.', { face: 'grin' }),
-      N('웨스트가 꽁초를 휴대용 재떨이에 비벼 넣고 새 담배를 꺼낸다.'),
+      N('웨스트가 말하는 사이에 벌써 용접 장갑을 끼고 있다.'),
       S('west', '일단 담배 한 대 피고. {pc}, 불 붙기 전에 골라.', { face: 'base' }),
     ],
     subs: {
@@ -102,12 +102,12 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       S('mirinae', '음. 근데 진짜 조난당한 사람도 저렇게 말하잖아. 구조 신호는 말하는 법이 정해져 있으니까.', { at: 'L', face: 'base' }),
       S('orca', '그래서 미끼로 쓰기 좋은 겁니다.'),
       S('mirinae', '그럼 가 보면 되지 뭐. 미끼면 문 놈 쏘고, 진짜면 꺼내 주고.', { face: 'smile' }),
-      S('orca', '미리 말씀드리죠. 제 두 번째 여자친구가 딱 그렇게 말하고 미끼를 물었습니다.'),
+      S('orca', '미리 말씀드리죠. 미끼를 무는 사람은 꼭 그렇게 말합니다. 확률표를 드릴까요.'),
       S('mirinae', '…그래서? 죽었어?', { face: 'surprise' }),
       S('orca', '아뇨. 미끼 놓은 선장이랑 결혼했습니다. 저는 차였고요.'),
       S('mirinae', '…그건 좀 다른 얘기 같은데-.', { face: 'tired' }),
       S('d_mayday', '…누구든… 제발…', { fx: 'glitch' }),
-      N('다들 습관처럼 함교 뒤편을 돌아본다. 아문센이 담배를 재떨이에 비벼 끄고, 회중시계 뚜껑을 딸깍 닫는다.', { sfx: 'tick' }),
+      N('다들 습관처럼 함교 뒤편을 돌아본다. 아문센이 담배를 재떨이에 비벼 끈다.', { sfx: 'tick' }),
       N('그러고는 턱으로 지휘관석을 가리킨다.'),
       S('rachel', '…또 나야.', { at: 'C', face: 'tired' }),
       SUB,
@@ -350,7 +350,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         S('rus', '술 마시지. 계약금 받고 왔거든. 너도 언젠가 맞춰 봐.', { face: 'grin', exit: true }),
       ],
       donovan: [
-        S('donovan', '그 습격 경로, 까악이가 받아 적는 중. 반은 원래 알던 거래.', { at: 'C', face: 'tired' }),
+        S('donovan', '그 습격 경로, 내 드론이 받아 적는 중. 반은 원래 알던 거래.', { at: 'C', face: 'tired' }),
         S('d_scar', '나머지 반은.'),
         S('donovan', '몰랐던 거. …쓸 만하단 소리야. 여기 탄산 하나요.', { exit: true }),
         S('kairo', '여기 탄산 없네. 주점이야.', { face: 'tired' }),
@@ -434,7 +434,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       ],
       eleni: [
         S('eleni', '보안 의식 유지 중입니다. 저 기함, 제 대검 사정거리 밖입니다.', { at: 'C', face: 'serious' }),
-        S('gebek', '그 칼 위협용이라며.'),
+        S('gebek', '그 칼 휘두르는 건 처음 보겠구먼.'),
         S('eleni', '그러니까 위협이 안 닿는다는 보고입니다. …참회하겠습니다.', { face: 'base', exit: true }),
       ],
     },
@@ -576,7 +576,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
     ],
     subs: {
       donovan: [
-        S('donovan', '그 수배서, 까악이가 원본 찾아봤는데. 발행처가 세 번 바뀌었어. 현상금은 세 번 다 올랐고.', { at: 'C', face: 'tired' }),
+        S('donovan', '그 수배서, 원본 찾아봤는데. 발행처가 세 번 바뀌었어. 현상금은 세 번 다 올랐고.', { at: 'C', face: 'tired' }),
         S('d_hunter', '…해커냐.'),
         S('donovan', '아니. 저녁 메뉴 고민하는 사람.', { exit: true }),
       ],
@@ -665,7 +665,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       orca: [
         S('orca', '저 경매인, 낙찰가 부를 때 숫자 끝을 반 박자 늦춥니다. 마지막 입찰을 기다리는 척하면서 값을 올리는 거죠.', { at: 'C', face: 'base' }),
         S('lars', '압니다. 그래서 저는 반 박자 더 늦게 들 겁니다.'),
-        S('orca', '…그럼 저는 동전이나 굴리고 있겠습니다.', { exit: true }),
+        S('orca', '…그럼 저는 장부나 보고 있겠습니다.', { exit: true }),
       ],
       franze: [
         S('franze', '참고로, 출처 불명 물품의 소유권 분쟁은 낙찰 순간부터 낙찰자 문제입니다.', { at: 'C', face: 'serious' }),
@@ -763,7 +763,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       gebek: [
         S('gebek', '어이, 판돈은 누가 관리해? 중계는? 응원단은 있고?', { at: 'C', face: 'grin' }),
         S('d_caller', '응원단? 광부들이 술 걸고 소리 지르는 게 응원단이지!'),
-        S('gebek', '좋네! 지르곤 팬들보다 매너 좋아 보여.', { face: 'laugh', exit: true }),
+        S('gebek', '좋네! 레이싱 관중보다 매너 좋아 보여.', { face: 'laugh', exit: true }),
       ],
       kyle: [
         S('kyle', '저 우리 안, 맨 앞자리는 비었나?', { at: 'C', face: 'smile' }),
@@ -851,7 +851,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
     subs: {
       vivian: [
         S('vivian', '리키가 저 상자 앞에서 계속 낑낑대! 무서운 거 아니고 궁금한 거야!', { at: 'C', face: 'surprise' }),
-        S('vivian', '리키가 궁금해하는 건 보통 살아 있는 거거나 먹는 거야! …먹는 거면 좋겠다. 에취!', { face: 'smile', exit: true }),
+        S('vivian', '리키가 궁금해하는 건 보통 살아 있는 거거나 먹는 거야! …먹는 거면 좋겠다. 이름 지어 줘야지!', { face: 'smile', exit: true }),
       ],
       bianca: [
         S('bianca', '소리 주기가 0.8초에서 1.3초 사이로 흔들립니다. 기계 펌프는 이렇게 흔들리지 않습니다.', { at: 'C', face: 'base' }),
@@ -1003,7 +1003,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       S('argon', '동전은 별이 맞아야 따오. 드무오.'),
       S('zephyro', '참고로 저 영감 지는 거 본 사람 없어.'),
       S('zephyro', '셋째도 있어. 아무것도 안 걸고 노래 한 곡 청하는 거. 저 영감 뱃노래, 이타카에서도 잘 안 불러 줘.', { face: 'smile' }),
-      S('zephyro', '난 셋째. 제일 안 위험하잖아. …근데 정하는 건 지휘관이니까, 나는 누워 있을게.', { face: 'tired' }),
+      S('zephyro', '난 셋째. 제일 안 위험하잖아. …근데 정하는 건 지휘관이니까. 나는 물어만 봤어.', { face: 'tired' }),
     ],
     subs: {
       iris: [
@@ -1187,7 +1187,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       ],
       vivian: [
         S('vivian', '리키가 저 배 쪽으로 털을 세웠어. 아픈 냄새래.', { at: 'C', face: 'worried' }),
-        S('vivian', '근데… 따뜻한 냄새도 섞였대! 누가 살아 있는 거야! 아마! 에취!', { face: 'surprise' }),
+        S('vivian', '근데… 따뜻한 냄새도 섞였대! 누가 살아 있는 거야! 아마! 아마 맞아!', { face: 'surprise' }),
         S('mirinae', '…알러지약은 먹었어?'),
         S('vivian', '먹었…나?', { face: 'shy', exit: true }),
       ],
