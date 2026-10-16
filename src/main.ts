@@ -28,7 +28,7 @@ import * as R from './engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
 import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SynergyId, type UnitState } from './types';
-import { matchupLines, matchupShort, schoolWarnings } from './ui/matchup';
+import { bossImmuneText, encounterMatchup, matchupLines, matchupShort, schoolWarnings } from './ui/matchup';
 import { BattleView, DEATH_STYLES, fmt, FX, FX_DEFAULT, isDeathStyle, previewDeath, type DeathStyle, type MotionPreset, type UltCut } from './ui/battleview';
 import { ULTS } from './data/ults';
 import { VOICE, voicePick } from './data/voicelines';
@@ -267,14 +267,14 @@ function topbar() {
   </header>`;
 }
 
-/** 시너지 토큰: 마름모 아이콘(누르면 상세) + 활성 단계 원 + 이름 · 구성 단계 */
-function synToken(id: string, c: number, extra = '') {
+/** 시너지 토큰: 마름모 아이콘(누르면 상세) + 활성 단계 원 + 이름 · 구성 단계 (+ note: 목록의 보조 줄) */
+function synToken(id: string, c: number, extra = '', note = '') {
   const sd = SYN_BY_ID[id as SynergyId];
   const t = tierOf(sd.id, c);
   const steps = sd.tiers.map((need, i) => `<span class="${c >= need ? 'on' : ''}${i === t - 1 ? ' cur' : ''}">${need}</span>`).join('');
   return `<div class="syn-tk${t ? ' active' : ''}${extra}" style="--c:${sd.color}">
     <button class="syn-b" type="button" data-syn="${sd.id}" aria-label="${esc(sd.name)} 상세"><span class="syn-dia">${synIcon(sd.id) || sd.icon}</span><span class="syn-lv" title="출전 ${c}명">${c}</span></button>
-    <span class="syn-tx"><b>${esc(sd.name)}</b><span class="syn-steps">${steps}</span></span></div>`;
+    <span class="syn-tx"><b>${esc(sd.name)}</b><span class="syn-steps">${steps}</span>${note}</span></div>`;
 }
 /** 시너지 상세 팝업 (마름모를 누르면) */
 function synPopHtml(sid: string) {
@@ -301,17 +301,23 @@ function synPopHtml(sid: string) {
   mem = `<div class="sp-units">${pool.map((d) => `<span class="sp-u s${st(d)}" title="${esc(d.name)} · ${TAG[st(d)]}">${sprite(d, 'spr')}<i>${esc(d.name)}</i></span>`).join('')}</div>
     <div class="sp-legend small"><span class="s0">출전</span><span class="s1">대기</span><span class="s2">미보유</span></div>`;
   const t = tierOf(id, c);
-  return `<b class="sp-t">${synIcon(id) || sd.icon}${esc(sd.name)}<small>${sd.kind === 'faction' ? '세력' : '특성'}</small></b>${head}<p>${esc(sd.desc).replace(/\n/g, '<br>')}</p>${mem}
+  const focus = run && (app.screen === 'prep' || app.screen === 'map') ? `<button class="btn tiny sp-focus" type="button" data-synfocus="${id}">${app.screen === 'map' ? '파티에서' : '보드에서'} 강조</button>` : '';
+  return `<b class="sp-t">${synIcon(id) || sd.icon}${esc(sd.name)}<small>${sd.kind === 'faction' ? '세력' : '특성'}</small></b>${head}${focus}<p>${esc(sd.desc).replace(/\n/g, '<br>')}</p>${mem}
     <ol class="sp-tiers">${sd.tierDesc.map((d, i) => `<li class="${i === t - 1 ? 'cur' : ''}${c >= sd.tiers[i] ? ' on' : ''}"><b>${sd.tiers[i]}</b><span>${esc(d)}</span></li>`).join('')}</ol>`;
 }
 function synergyPanel(run: RunState) {
   const counts = synergyCounts(deployed(run), run);
-  const benchHas = new Set<string>();
-  for (const u of run.units) if (!u.pos) for (const sid of memberships(u)) benchHas.add(sid);
-  const list = SYNERGIES.filter((s) => counts[s.id] || benchHas.has(s.id))
+  const benchN: Record<string, number> = {}; // 시너지별 대기 기물 수
+  for (const u of run.units) if (!u.pos) for (const sid of memberships(u)) benchN[sid] = (benchN[sid] || 0) + 1;
+  const list = SYNERGIES.filter((s) => counts[s.id] || benchN[s.id])
     .sort((a, b) => tierOf(b.id, counts[b.id] || 0) - tierOf(a.id, counts[a.id] || 0) || (counts[b.id] || 0) - (counts[a.id] || 0));
   if (!list.length) return `<div class="muted small">출전한 기물이 없습니다.</div>`;
-  return list.map((s) => synToken(s.id, counts[s.id] || 0, counts[s.id] ? '' : ' benchonly')).join('');
+  // 보조 줄: 다음 단계까지 남은 인원 (최고 단계면 그렇게) · 대기 중인 소속 기물 수
+  return list.map((s) => {
+    const c = counts[s.id] || 0, next = s.tiers.find((need) => need > c), bn = benchN[s.id] || 0;
+    const note = `<span class="syn-next">${next ? `다음 단계까지 <b>${next - c}</b>명` : '최고 단계'}${bn ? ` · 대기 ${bn}` : ''}</span>`;
+    return synToken(s.id, c, c ? '' : ' benchonly', note);
+  }).join('');
 }
 
 // ───────────────────────── 화면: 타이틀
@@ -819,7 +825,7 @@ function mapScreen(run: RunState) {
       if (state === 'cur' && !run.node) return `<button class="tl-node n-${o}${o === pick ? ' on' : ''}" data-a="tl-pick" data-v="${o}" title="${esc(nm)} (단축키 ${k + 1})" aria-pressed="${o === pick}">${nodeIc(o, i)}</button>`;
       return `<span class="tl-node n-${o}${state === 'cur' ? ' on' : ''}" title="${esc(nm)}">${nodeIc(o, i)}</span>`;
     }).join('');
-    return `<li class="tl-step ${state}"><span class="tl-num">${i + 1}</span><div class="tl-nodes">${nodes}</div></li>`;
+    return `<li class="tl-step ${state}${opts2.includes('boss') ? ' tl-boss' : ''}"><span class="tl-num">${i + 1}</span><div class="tl-nodes">${nodes}</div></li>`;
   }).join('');
   const enter = run.node
     ? `<button class="btn primary tl-go" data-a="resume">${esc(NODE_NAME[run.node.type])} 계속하기</button>`
@@ -832,12 +838,15 @@ function mapScreen(run: RunState) {
       <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
     </aside>
     <section class="map-main">
-      <div class="screen-head"><h1>페이즈 ${p}</h1><p class="muted small">${scale}</p></div>
+      <div class="screen-head map-head"><h1>페이즈 ${p}</h1>${bossGoal(run)}</div>
       <div class="tl"><ol class="tl-track">${track}</ol></div>
+      <p class="map-scale" title="이번 페이즈 적 강도 (페이즈마다 누적)">${scale}</p>
       <div class="tl-info"><b>${pick ? esc(NODE_NAME[pick]) : '항로 끝'}</b><span class="muted small">${run.node ? '진행 중' : pick ? ic(esc(nodeHint(pick))) : '이번 항로의 모든 칸을 지났습니다.'}</span></div>
       <div class="row-btns">${enter}
+        <button class="btn map-manage" data-a="manage">편성 관리</button>
         ${pet >= 2 ? `<button class="btn" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 ${CR}+25 · 상환 30</button>` : ''}
       </div>
+      ${mapAhead(run)}
       ${shipPanel(run)}
     </section>
     <aside class="side side-tabs${app.sel?.k === 'unit' ? ' has-detail' : ''}">${mapDetail(run)}
@@ -913,12 +922,65 @@ function musterModal(run: RunState) {
 }
 function nodeHint(o: NodeType) {
   return ({
-    battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 1.5배 + 재료 확률`, shop: '분기점 — 상점 / 보급 / 속보 / 모집 (+ 호이슌 투자 · 순례)',
+    battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 1.5배 + 재료 확률`,
+    council: `전역 증강 3장 중 택1 · 새로고침 ${CFG.globalRerolls}회`, shop: '분기점 — 상점 / 보급 / 속보 / 모집 (+ 호이슌 투자 · 순례)',
     supply: '보급품 3종 중 택1', recruit: '새 동료 3명 중 택1', boss: `승리 시 페이즈 클리어 · ${CFG.drop.bossAdvEvery}페이즈마다 희귀 장비`,
     pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', invest: '호이슌 투자 상품 · 크레딧으로 문장 · 증강 · 다음 페이즈 수익', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
     fork: `갈림길 — 휴식(체력 +${CFG.forkRestHp} + 잃은 체력 ${Math.round(CFG.forkRestLost * 100)}%) 또는 도전(다음 페이즈 역경급 전투, 승리 시 다음 페이즈로)`,
     challenge: '다음 페이즈 역경 수준의 전투 · 승리 시 남은 노드 보상을 받고 다음 페이즈로',
   } as Record<NodeType, string>)[o] || '';
+}
+/** 이번 페이즈 보스: 전장의 보스는 페이즈마다 순환한다 (조우 생성과 같은 규칙) */
+const phaseBoss = (run: RunState): EnemyDef | undefined => { const f = fieldOf(run.field); return ENEMY_BY_ID[f.bosses[(run.phase - 1) % f.bosses.length]]; };
+const FIGHT_NODES: NodeType[] = ['battle', 'adversity', 'challenge', 'boss'];
+/** 지도: 보스 칸까지 남은 전투 수 (지금 칸 포함, 보스 제외) · 남은 칸 · 전환 칸 수. 실제 지도(run.map)와 이미 고른 노드에서 센다 */
+function toBoss(run: RunState) {
+  const bi = run.map.findIndex((o, i) => i >= run.step && o.includes('boss'));
+  if (bi < 0) return null;
+  let fights = 0, forks = 0;
+  for (let i = run.step; i < bi; i++) {
+    const o = run.picked[i] ? [run.picked[i]!] : run.map[i];
+    if (o.every((x) => FIGHT_NODES.includes(x))) fights++;
+    else if (o.includes('fork')) forks++;
+  }
+  return { bi, fights, forks, steps: bi - run.step };
+}
+/** 지도 머리: 런의 목표(이번 페이즈 보스)까지 남은 전투 */
+function bossGoal(run: RunState) {
+  const t = toBoss(run);
+  if (!t) return '';
+  const e = phaseBoss(run);
+  const main = t.steps === 0 ? '<b>보스전</b>' : `보스까지 전투 <b>${t.fights}</b>회`;
+  const sub = t.steps === 0 ? esc(e?.name || NODE_NAME.boss) : `${t.steps}칸 남음${t.forks ? ` · ${NODE_NAME.fork}에서 ${NODE_NAME.challenge} 승리 시 지름길` : ''}`;
+  return `<div class="boss-goal" title="${esc(`${t.bi + 1}번째 칸 · ${e?.name || NODE_NAME.boss}`)}">${e ? sprite(e, 'spr') : NODE_ICON.boss}<span class="bg-main">${main}</span><span class="bg-sub">${sub}</span></div>`;
+}
+/** 지도 미리보기: 다음 3칸 + (그보다 멀면) 보스 칸. 설명은 nodeHint, 재료 확률은 설정 · 전장값, 보스는 적 데이터에서 읽는다 */
+function mapAhead(run: RunState) {
+  const tb = toBoss(run);
+  const idx: number[] = [];
+  for (let i = run.step + 1; i < Math.min(run.map.length, run.step + 4); i++) if (!tb || i <= tb.bi) idx.push(i);
+  if (tb && !idx.includes(tb.bi)) idx.push(tb.bi);
+  if (!idx.length) return '';
+  const f = fieldOf(run.field);
+  const tags = (o: NodeType) => {
+    const t: string[] = [];
+    if (o === 'battle' || o === 'adversity') t.push(`재료 ${pctTxt(Math.min(1, CFG.drop[o] * (f.dropMul || 1)))}`);
+    if (o === 'adversity' && ENEMY_BY_ID[f.elite]) t.push(`정예 ${esc(ENEMY_BY_ID[f.elite].name)}`); // 역경에는 정예가 반드시 나온다
+    return t.length ? `<span class="ah-tags">${t.map((x) => `<i>${x}</i>`).join('')}</span>` : '';
+  };
+  const card = (i: number) => {
+    const far = i - run.step;
+    const when = `<span class="ah-when">${far ? `${far}칸 뒤` : '지금'} · ${i + 1}번째</span>`;
+    const e = run.map[i].includes('boss') ? phaseBoss(run) : undefined;
+    if (e) {
+      const cat = enemyCategory(e);
+      const guard = (e.escort || []).map((id) => ENEMY_BY_ID[id]?.name).filter(Boolean);
+      return `<li class="ah-card ah-boss">${when}<div class="ah-bh">${sprite(e, 'spr big')}<div><b>${esc(e.name)}</b><span class="ah-tags"><i class="cat-${cat}" title="${esc(CATEGORY_RULE[cat])}">${lineIcon(`k.${cat}`, 'li')}${CATEGORY_NAME[cat]}</i><i>${lineIcon(`e.${e.atk.elem}`, 'li')}${ELEM_NAME[e.atk.elem]} 공격</i>${guard.length ? `<i>호위 ${esc(guard.join(' · '))}</i>` : ''}</span></div></div>
+        ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}<p class="small muted">${esc(bossImmuneText())} · ${ic(esc(nodeHint('boss')))}</p></li>`;
+    }
+    return `<li class="ah-card">${when}${run.map[i].map((o) => `<div class="ah-node"><span class="ah-ic">${NODE_ICON[o]}</span><b>${esc(NODE_NAME[o])}</b>${tags(o)}<span class="small muted">${ic(esc(nodeHint(o)))}</span></div>`).join('')}</li>`;
+  };
+  return `<section class="ahead" aria-labelledby="ah-h"><h2 id="ah-h">앞으로</h2><ol class="ah-list">${idx.map(card).join('')}</ol></section>`;
 }
 /** 자원 아이콘: 에너지 크레딧 · 공명도 */
 const CR = lineIcon('r.cr', 'li cr'), RES = lineIcon('r.res', 'li res');
@@ -934,7 +996,7 @@ function rosterTile(u: UnitState) {
   const locked = !!run && u.lock === run.phase;
   const tip = `${d.name} · 공명 등급 ${u.rank}${u.pos ? '' : ' · 대기'}${locked ? ' · 이번 페이즈 출전 불가' : ''}`;
   const on = app.screen === 'map' && app.sel?.k === 'unit' && app.sel.uid === u.uid;
-  return `<button class="rt${u.pos ? '' : ' rt-off'}${on ? ' on' : ''}" data-a="${app.screen === 'map' ? 'map-unit' : 'manage'}" data-v="${u.uid}" aria-pressed="${on}" title="${esc(tip)}" aria-label="${esc(tip)}">
+  return `<button class="rt${u.pos ? '' : ' rt-off'}${on ? ' on' : ''}" data-a="${app.screen === 'map' ? 'map-unit' : 'manage'}" data-v="${u.uid}" data-syns="${memberships(u, run).join(' ')}" aria-pressed="${on}" title="${esc(tip)}" aria-label="${esc(tip)}">
     <span class="rt-art">${sprite(d)}${u.mod ? `<span class="rt-mod">${itemIcon(u.mod)}</span>` : ''}
       <span class="rt-type" aria-hidden="true"><i title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i><i title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i></span>
       <span class="rt-rank">${rankLabel(u.rank)}</span>${locked ? '<span class="rt-lock" aria-hidden="true">⛓</span>' : ''}</span>
@@ -1000,7 +1062,7 @@ function prepScreen(run: RunState) {
     const d = UNIT_BY_ID[u.defId];
     const sel = app.sel?.k === 'unit' && app.sel.uid === u.uid;
     units += `<div class="u side0 tk placed ${sel ? 'sel' : ''}" style="${cellBox(p.x, p.y)}"
-      data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}">
+      data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}" data-syns="${memberships(u, run).join(' ')}">
       <div class="tk-card"><div class="tk-art">${sprite(d, '')}${u.mod ? `<span class="tk-mod" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-drop="eqitem:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : ''}</div>
         <span class="tk-side"><b class="tk-rank" title="공명 등급 ${u.rank}">${u.rank}</b><i class="tt-${d.ttype}" title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i><i class="ct-${d.ctype}" title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i></span>
         <span class="tk-items">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-drop="eqitem:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : itemIcon(null))).join('')}</span></div></div>`;
@@ -1013,7 +1075,7 @@ function prepScreen(run: RunState) {
       const it = g[k];
       return it ? `<span class="tk-it" data-drag="tgear:${i}:${k}" data-drop="tgear:${i}:${k}" data-hold title="${esc(itemInfo(it).name + ' — ' + itemInfo(it).desc)}">${itemIcon(it)}</span>` : itemIcon(null, `data-drop="tgear:${i}:${k}" title="포탑 장비 칸 — 포탑 전용 장비를 끌어 장착"`);
     }).join('');
-    units += `<div class="u side0 tk placed turret-tk${sel ? ' sel' : ''}" style="${cellBox(p.x, p.y)}" data-drag="turret:${i}" data-drop="turret:${i}" data-a="sel-turret" data-v="${i}" title="감시 포탑 ${i + 1} · 기계 — 끌어서 옮기기 · 포탑 전용 장비를 끌어 장착 (판매 · 대기석 불가)">
+    units += `<div class="u side0 tk placed turret-tk${sel ? ' sel' : ''}" style="${cellBox(p.x, p.y)}" data-drag="turret:${i}" data-drop="turret:${i}" data-a="sel-turret" data-v="${i}" data-syns="" title="감시 포탑 ${i + 1} · 기계 — 끌어서 옮기기 · 포탑 전용 장비를 끌어 장착 (판매 · 대기석 불가)">
       <div class="tk-card"><div class="tk-art">${sprite(TURRET_SPR, '')}</div>
         <span class="tk-side"><i class="cat-mech" title="기계 · 구조물: ${esc(CATEGORY_RULE.struct)}">${lineIcon('k.mech', 'li')}</i></span>
         <span class="tk-items">${slots}</span></div></div>`;
@@ -1039,11 +1101,11 @@ function prepScreen(run: RunState) {
         ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}</div>
       <div class="board-row"><div class="board" style="--w:${bw};--h:${bh}"><div class="cells">${cells}</div>${units}</div>${invRail(run)}</div>
       <div class="bench" data-drop="bench">
-        <span class="bench-label">대기</span>
+        <span class="bench-label">대기 <b>${bench.length}</b></span>
         ${bench.length ? bench.map((u) => {
           const d = UNIT_BY_ID[u.defId];
           const sel = app.sel?.k === 'unit' && app.sel.uid === u.uid;
-          return `<div class="bench-u ${sel ? 'sel' : ''}" data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}">${sprite(d, '')}<span class="ubadge">${rankLabel(u.rank)}</span></div>`;
+          return `<div class="bench-u ${sel ? 'sel' : ''}" data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}" data-syns="${memberships(u, run).join(' ')}">${sprite(d, '')}<span class="ubadge">${rankLabel(u.rank)}</span></div>`;
         }).join('') : '<span class="muted small">기물을 여기로 끌어 출전에서 뺄 수 있습니다.</span>'}
       </div>
       ${invDetail(run)}
@@ -1547,6 +1609,46 @@ function umCompactBind() {
 function eqBox(u: UnitState) {
   return `<div class="d-eqbox"><div class="d-eq" aria-label="장비 · 개조부품">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-drop="eqitem:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : `<span data-drop="unit:${u.uid}">${itemIcon(null)}</span>`)).join('')}${u.mod ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-drop="eqitem:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : `<span data-drop="unit:${u.uid}" title="개조부품 칸 · 문장을 끌어다 장착"><span class="item empty tM"></span></span>`}</div><button class="reco-btn" data-a="reco" data-v="${u.uid}" title="추천 장비 · 보유 현황">${lineIcon('r.reco', 'li')}추천 장비</button></div>`;
 }
+/** 편성 화면 오른쪽 기본 패널 (아무것도 고르지 않았을 때): 이번 전투의 적 구성 + 상성 요약.
+ *  기물 · 적을 고르면 그 상세로 바뀌고, 선택을 풀면 다시 이 패널. 전투 밖 편성 관리에서는 이 전장의 주요 적 */
+const PREP_TIPS = '<p class="pb-tips small muted">기물을 누르면 스탯 · 스킬 · 증강 · 장비를 봅니다. 기물을 끌어 배치를 바꾸고(보드 ↔ 대기열), 장비를 기물에게 끌어 장착합니다.</p>';
+function prepBrief(run: RunState) {
+  const enc = run.node?.enc;
+  if (!enc) return `<div class="detail pb"><h3>이 전장의 주요 적</h3>${matchupHtml(run.field) || '<p class="small muted">특별한 면역 · 취약 없음</p>'}${PREP_TIPS}</div>`;
+  const type = run.node!.type;
+  // 같은 적은 한 줄로 묶는다 (누르면 그 적의 첫 개체 상세)
+  const groups = new Map<string, { i: number; n: number; gear: number }>();
+  enc.enemies.forEach((s, i) => {
+    const g = groups.get(s.defId) || { i, n: 0, gear: 0 };
+    g.n++;
+    if (s.items?.length || s.mod) g.gear++;
+    groups.set(s.defId, g);
+  });
+  const rank = (e: EnemyDef) => (e.tier === 'boss' ? 0 : e.tier === 'elite' ? 1 : e.inert ? 3 : 2);
+  const rows = [...groups].map(([id, g]) => ({ e: ENEMY_BY_ID[id], ...g })).filter((x) => x.e).sort((a, b) => rank(a.e) - rank(b.e));
+  // 아군 공격 속성: 미리보기 전투에서 실제 값을 읽는다 (장비 · 증강 반영)
+  const b = deployed(run).length ? buildBattle(run, { ...enc, enemies: [] }, false) : null;
+  const allies = b ? b.units.filter((u) => u.side === 0 && !u.isSummon) : [];
+  const mu = encounterMatchup(enc.enemies.map((s) => s.defId), allies.map((u) => u.atk.elem));
+  const kind = type === 'challenge' ? `${NODE_NAME.challenge} · P${enc.phase ?? run.phase}` : type === 'boss' ? '보스전' : NODE_NAME[type];
+  const foe = (x: (typeof rows)[number]) => {
+    const cat = enemyCategory(x.e);
+    const atk = x.e.noAttack ? '' : `<i title="${ELEM_NAME[x.e.atk.elem]} ${x.e.atk.type === 'shoot' ? '사격' : '타격'}">${lineIcon(`e.${x.e.atk.elem}`, 'li')}</i>`;
+    return `<li><button class="pb-foe tier-${x.e.tier}" data-a="sel-enemy" data-v="${x.i}" title="${esc(`${x.e.name} — ${ENEMY_DESC[x.e.id] || ''}`)}">${sprite(x.e, 'spr')}
+      <span class="pb-nm"><b>${esc(x.e.name)}</b>${x.e.tier !== 'minion' ? `<em>${tierKo(x.e)}</em>` : ''}${x.e.inert ? '<em>장애물</em>' : ''}</span>
+      <span class="pb-ic"><i class="cat-${cat}" title="${esc(`${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}">${lineIcon(`k.${cat}`, 'li')}</i>${atk}${x.gear ? `<i title="장비를 단 적 ${x.gear}명">${lineIcon('r.reco', 'li')}</i>` : ''}</span>
+      <span class="pb-n">${x.n > 1 ? `×${x.n}` : ''}</span></button></li>`;
+  };
+  return `<div class="detail pb" aria-label="이번 전투 적 구성">
+    <div class="pb-head"><h3>이번 전투</h3><span class="pb-kind n-${type}">${esc(kind)}</span><span class="muted small">적 ${mu.foes}명 · 체력 ×${+enc.mult.toFixed(2)}</span></div>
+    <ul class="pb-foes">${rows.map(foe).join('')}</ul>
+    <h3>상성</h3>
+    <ul class="pb-mu">${mu.lines.map((l) => `<li class="mu-l ${l.cls}">${esc(l.text)}</li>`).join('') || '<li class="muted">특별한 면역 · 취약 없음</li>'}</ul>
+    ${mu.elems.length ? `<h3>아군 공격 속성 <span class="muted small">출전 ${allies.length}명</span></h3>
+    <ul class="pb-el">${mu.elems.map((x) => `<li class="${x.weak > x.resist ? 'good' : x.resist > x.weak ? 'bad' : ''}">${lineIcon(`e.${x.e}`, 'li')}<b>${esc(x.name)}</b><span>${x.allies}명</span>${x.weak ? `<small class="w">적 ${x.weak}명 취약</small>` : ''}${x.resist ? `<small class="r">적 ${x.resist}명 저항</small>` : ''}</li>`).join('')}</ul>` : ''}
+    ${PREP_TIPS}
+  </div>`;
+}
 function detailPanel(run: RunState, extra = '') {
   const sel = app.sel;
   const bar = dBar('desel', extra);
@@ -1571,8 +1673,7 @@ function detailPanel(run: RunState, extra = '') {
     </div>`;
   }
   if (sel?.k === 'turret') return turretDetail(run, sel.i, bar);
-  if (sel?.k !== 'unit') return `<div class="detail muted small">기물을 선택하면 스탯 · 스킬 · 증강 · 장비를 볼 수 있습니다.<br><br>
-    · 기물을 끌어 배치를 바꿉니다 (보드 ↔ 대기열).<br>· 장비를 기물에게 끌어 장착합니다.<br>· 적을 누르면 적 정보를 봅니다.</div>`;
+  if (sel?.k !== 'unit') return prepBrief(run);
   const u = run.units.find((x) => x.uid === sel.uid);
   if (!u) return '';
   const d = UNIT_BY_ID[u.defId];
@@ -1851,7 +1952,7 @@ function overScreen(run: RunState) {
 function fieldCard(run: RunState, compact = false) {
   const f = fieldOf(run.field);
   const nm = (id: string) => esc(ENEMY_BY_ID[id]?.name || id);
-  const bossNow = f.bosses[(run.phase - 1) % f.bosses.length];
+  const bossNow = phaseBoss(run)?.id;
   return `<div class="field-card ${compact ? 'compact' : ''}" style="--c:${f.color}">
     <div class="fc-head"><span class="fc-ic">${f.icon}</span><div><b>${esc(f.name)}</b><div class="muted small">${esc(f.region)}</div></div></div>
     ${compact ? '' : `<p class="small">${esc(f.desc)}</p>`}
@@ -2067,6 +2168,7 @@ function menuModal(run: RunState | null) {
       <h3>전투</h3>
       <label class="pref"><input type="checkbox" data-a="pref-slow" ${app.slowDetail ? 'checked' : ''}><span><b>상세 정보 볼 때 느리게</b><br><span class="muted small">전투 중 기물을 눌러 상세 정보를 보는 동안 진행 속도에 ×0.25 를 곱합니다. 빈 보드를 누르거나 Esc 로 선택을 풀면 원래 속도로 돌아갑니다.</span></span></label>
       <label class="pref"><input type="checkbox" data-a="pref-zoom" ${app.zoomOut ? 'checked' : ''}><span><b>넓은 전장 전체 보기</b><br><span class="muted small">전투 화면을 축소해 바깥 테두리 칸까지 전장 전체를 한 번에 보여 줍니다. 끄면 배치 구역 크기로 보고, 카메라가 끝 기물을 따라갑니다.</span></span></label>
+      ${uxSettings()}
       <h3>전투 연출</h3>
       <label class="pref pref-num"><span><b>이펙트 · 숫자 지속 시간</b><br><span class="muted small">피해 · 회복 숫자, 상태 표시, 적중 · 범위 · 테두리 이펙트가 화면에 머무는 시간 (1배속 기준, 기본 ${FX_DEFAULT.fxMs}ms)</span></span><span class="pn"><input type="number" min="300" max="4000" step="100" data-pref="fxMs" value="${FX.fxMs}"> ms</span></label>
       <label class="pref pref-num"><span><b>스킬 사용 연출 시간</b><br><span class="muted small">스킬명 배너와 시전 테두리가 머무는 시간 (기본 ${FX_DEFAULT.skillMs}ms)</span></span><span class="pn"><input type="number" min="500" max="5000" step="100" data-pref="skillMs" value="${FX.skillMs}"> ms</span></label>
@@ -2095,12 +2197,7 @@ function menuModal(run: RunState | null) {
       <button class="btn primary" data-a="menu-close">닫기</button>
     </div>
     <h3>단축키</h3>
-    <ul class="keys small">
-      <li><kbd>1</kbd>~<kbd>9</kbd> 선택지 고르기 (증강 · 영입 · 보급 · 사건 · 다음 노드)</li>
-      <li><kbd>Enter</kbd> 확인 · 계속 / <kbd>R</kbd> 새로고침 / <kbd>Esc</kbd> 닫기 · 선택 해제</li>
-      <li>편성: <kbd>Space</kbd> 전투 시작, <kbd>A</kbd> 자동 배치 / 맵: <kbd>M</kbd> 편성 관리</li>
-      <li>전투: <kbd>1</kbd>~<kbd>6</kbd> 속도 0.25·0.5·1·2·4·8배, <kbd>Space</kbd> 일시 정지 · 계속, <kbd>Enter</kbd> 결과로</li>
-    </ul>
+    ${keyList()}
     <p class="muted small">진행 상황은 노드를 지날 때마다 자동 저장됩니다. 전투 도중 불러오면 전투 직전 편성 화면으로 돌아갑니다.</p>
   </div></div>`;
 }
@@ -2373,6 +2470,7 @@ function render() {
     mountBattleView(document.getElementById('bboard')!);
     initBoardPan(root.querySelector<HTMLElement>('.bview')!);
   }
+  uxAfterRender();
   tutSync();
   const fi = document.getElementById('import-file') as HTMLInputElement | null;
   if (fi) fi.onchange = () => {
@@ -3386,6 +3484,9 @@ function act(a: string, v: string) {
     case 'pref-ultcut': savePref('ultCut', v); applyFxPrefs(); break;
     case 'pref-fx-reset': savePref('fxMs', FX_DEFAULT.fxMs); savePref('skillMs', FX_DEFAULT.skillMs); savePref('motion', FX_DEFAULT.motion); savePref('death', FX_DEFAULT.death); savePref('ultCut', FX_DEFAULT.ultCut); applyFxPrefs(); break;
     case 'pref-slow': app.slowDetail = !app.slowDetail; savePref('slowDetail', app.slowDetail); applySpeed(); break;
+    case 'pref-autores': savePref('autoResult', +v || 0); break;
+    case 'pref-autofight': savePref('autoFight', !uxPrefs().autoFight); break;
+    case 'pref-keyhints': savePref('keyHints', !uxPrefs().keyHints); break;
     case 'menu-close': app.menu = null; app.importErr = ''; break;
     case 'menu-export': app.menu = 'export'; break;
     case 'menu-import': app.menu = 'import'; app.importErr = ''; break;
@@ -3425,6 +3526,7 @@ function act(a: string, v: string) {
       app.nodePick = null;
       goPrepOrMap();
       persist();
+      if (autoFightOk(run)) return act('fight', ''); // 설정: 편성 그대로 바로 전투
       break;
     }
     case 'resume': goPrepOrMap(); break;
@@ -3812,6 +3914,171 @@ function clickFirst(sel: string) {
   el.click();
   return true;
 }
+/** 단축키 표: 키 처리(keydown) · 버튼 모서리 키캡(keyHints) · 메뉴의 단축키 목록(keyList)이 모두 이 표를 읽는다 */
+type KeyScope = 'modal' | 'battle' | 'prep' | 'map' | 'any';
+interface HotKey {
+  scope: KeyScope;
+  /** e.key (글자는 소문자) */
+  keys: string[];
+  /** 키캡 글자. '#' = 숫자키 (선택지 · 노드 · 속도 순서) */
+  cap: string;
+  /** 누를 버튼: 앞에서부터 찾아 처음 누를 수 있는 것 (키캡도 그 버튼에) */
+  sel: string[];
+  /** 버튼을 누르는 대신 할 일 (n = 숫자키). 이때 키캡은 sel 의 버튼 모두에 */
+  run?: (n: number) => void;
+  /** 누를 버튼이 없어도 브라우저 기본 동작(스크롤 등)을 막는다 */
+  always?: boolean;
+  desc: string;
+}
+const DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+/** 창의 선택지 (숫자키 순서). 영입은 카드가 선택지 ('영입' 버튼은 확정) */
+const PICK_SEL = '[data-a^="pick-"]:not(.aug-ok):not([data-a="pick-recruit"]), [data-a="event-choice"], [data-a="alloc-pick"], .rc-track .pcard[data-a="rc-tap"]';
+const HOTKEYS: HotKey[] = [
+  { scope: 'any', keys: ['d'], cap: 'D', sel: ['[data-a="toggle-detail"]'], run: () => act('toggle-detail', ''), desc: '상세 보기 켜기 · 끄기' },
+  { scope: 'modal', keys: DIGITS, cap: '#', sel: [PICK_SEL], desc: '선택지 고르기 (증강 · 전공 · 영입은 숫자키로 고르면 바로 확정)' },
+  { scope: 'modal', keys: ['Enter', ' '], cap: 'Enter', sel: [CONFIRM_ACTS.map((a) => `.modal [data-a="${a}"]`).join(', ')], desc: '확인 · 계속' },
+  { scope: 'modal', keys: ['r'], cap: 'R', sel: ['.modal [data-a="reroll"], .modal [data-a="reroll-privilege"]'], desc: '새로고침' },
+  { scope: 'map', keys: DIGITS, cap: '#', sel: ['.tl-step.cur .tl-node'], desc: '다음 노드 고르기' },
+  { scope: 'map', keys: ['Enter', ' '], cap: 'Enter', sel: ['.tl-go'], desc: '노드 진입' },
+  { scope: 'map', keys: ['m'], cap: 'M', sel: ['.map-manage'], run: () => act('manage', ''), desc: '편성 관리' },
+  { scope: 'prep', keys: [' ', 'Enter'], cap: 'Space', sel: ['[data-a="fight"]'], desc: '전투 시작' },
+  { scope: 'prep', keys: ['a'], cap: 'A', sel: ['[data-a="autofill"]'], run: () => act('autofill', ''), desc: '자동 배치' },
+  { scope: 'battle', keys: DIGITS.slice(0, SPEEDS.length), cap: '#', sel: ['.speed [data-a="speed"]'], run: (n) => act('speed', String(SPEEDS[n - 1])), desc: `속도 ${SPEEDS.join(' · ')}배` },
+  { scope: 'battle', keys: ['Enter'], cap: 'Enter', sel: ['[data-a="after-battle"]', '[data-a="skip"]'], always: true, desc: '결과로 · 결과 창 닫기' },
+  { scope: 'battle', keys: [' ', 'p'], cap: 'Space', sel: ['[data-a="after-battle"]', '.speed [data-a="pause"]'], always: true, desc: '일시 정지 · 계속' },
+];
+/** 지금 단축키가 듣는 곳: 창(전투 화면 밖) · 전투 · 편성 · 지도 */
+function keyScope(): { scope: KeyScope; box: ParentNode } | null {
+  const modal = document.querySelector('.modal-bg .modal');
+  if (modal && app.screen !== 'battle') return { scope: 'modal', box: modal };
+  return app.screen === 'battle' || app.screen === 'prep' || app.screen === 'map' ? { scope: app.screen, box: document } : null;
+}
+function firstOn(sels: string[]) {
+  for (const s of sels) { const el = Array.from(document.querySelectorAll<HTMLButtonElement>(s)).find((b) => !b.disabled); if (el) return el; }
+  return null;
+}
+/** 버튼 모서리 키캡: 지금 화면에서 단축키가 누를 버튼에 data-key (CSS ::before 가 그린다). 설정에서 끄면 달지 않고, 터치 화면은 CSS 가 숨긴다 */
+function keyHints() {
+  root.querySelectorAll('[data-key]').forEach((x) => x.removeAttribute('data-key'));
+  if (!uxPrefs().keyHints) return;
+  const ks = keyScope();
+  const mark = (el: Element | null | undefined, cap: string) => { if (el instanceof HTMLElement && !el.dataset.key && !el.querySelector('kbd')) el.dataset.key = cap; };
+  for (const h of HOTKEYS) {
+    if (h.scope !== 'any' && h.scope !== ks?.scope) continue;
+    if (h.cap === '#') Array.from((ks?.box || document).querySelectorAll(h.sel[0])).slice(0, h.keys.length).forEach((el, i) => mark(el, String(i + 1)));
+    else if (h.run) h.sel.forEach((s) => document.querySelectorAll(s).forEach((el) => mark(el, h.cap)));
+    else mark(firstOn(h.sel), h.cap);
+  }
+}
+/** 메뉴의 단축키 목록 (단축키 표에서) */
+function keyList() {
+  const NAME: Record<KeyScope, string> = { modal: '선택 창', map: '지도', prep: '편성', battle: '전투', any: '어디서나' };
+  const cap = (k: string) => `<kbd>${k === ' ' ? 'Space' : k === 'Escape' ? 'Esc' : k.length === 1 ? k.toUpperCase() : k}</kbd>`;
+  const keys = (h: HotKey) => (h.cap === '#' ? `${cap(h.keys[0])}~${cap(h.keys[h.keys.length - 1])}` : h.keys.map(cap).join(' '));
+  return `<ul class="keys small">${(['modal', 'map', 'prep', 'battle', 'any'] as const).map((s) => `<li><b>${NAME[s]}</b> ${[...HOTKEYS.filter((h) => h.scope === s).map((h) => `${keys(h)} ${esc(h.desc)}`), ...(s === 'any' ? [`${cap('Escape')} 닫기 · 선택 해제`] : [])].join(' / ')}</li>`).join('')}</ul>`;
+}
+
+// ───────────────────────── 반복 줄이기 설정 (이 브라우저에만): 결과 창 자동 닫기(초, 0 = 끔) · 편성 그대로 바로 전투 · 단축키 키캡. 기본값은 모두 꺼짐 (키캡만 켜짐)
+const AUTO_RESULT = [0, 3, 5, 8];
+function uxPrefs() {
+  const p: Record<string, unknown> = loadPrefs();
+  return { autoResult: AUTO_RESULT.includes(p.autoResult as number) ? (p.autoResult as number) : 0, autoFight: p.autoFight === true, keyHints: p.keyHints !== false };
+}
+function uxSettings() {
+  const u = uxPrefs();
+  return `<h3>진행 · 단축키</h3>
+      <div class="pref"><span><b>결과 창 자동으로 닫기</b><br><span class="muted small">전투 결과 창을 정한 시간 뒤 저절로 닫습니다. 창을 누르거나 스크롤하면 멈춥니다. 런이 끝난 결과는 닫지 않고, 보상 · 증강 · 영입 · 상점처럼 고를 것이 있는 창은 언제나 기다립니다.</span></span>
+        <span class="seg">${AUTO_RESULT.map((s) => `<button class="btn tiny ${u.autoResult === s ? 'on' : ''}" data-a="pref-autores" data-v="${s}" aria-pressed="${u.autoResult === s}">${s ? `${s}초` : '끄기'}</button>`).join('')}</span></div>
+      <label class="pref"><input type="checkbox" data-a="pref-autofight" ${u.autoFight ? 'checked' : ''}><span><b>편성 그대로 바로 전투</b><br><span class="muted small">지도에서 일반 전투 · 역경에 진입하면 편성 화면을 건너뛰고 지금 편성으로 바로 전투를 시작합니다. 보스 · 도전 전투, 빈 자리에 넣을 대기 기물이 있을 때, 고를 것이 남아 있을 때는 편성 화면에서 멈춥니다.</span></span></label>
+      <label class="pref"><input type="checkbox" data-a="pref-keyhints" ${u.keyHints ? 'checked' : ''}><span><b>단축키 표시</b><br><span class="muted small">버튼 모서리에 키보드 단축키(Space · Enter · 1 등)를 작게 표시합니다. 터치 화면에서는 표시하지 않습니다. 전체 목록은 메뉴 탭에 있습니다.</span></span></label>`;
+}
+/** 편성 그대로 바로 전투: 일반 · 역경만, 고를 것이 없고 빈 자리에 넣을 대기 기물이 없을 때 */
+function autoFightOk(run: RunState) {
+  const t = run.node?.type;
+  if (!uxPrefs().autoFight || run.tutorial || run.pending.length || app.screen !== 'prep' || !run.node?.enc || (t !== 'battle' && t !== 'adversity')) return false;
+  const dep = deployed(run);
+  return dep.length > 0 && !(R.deployCap(run) > dep.length && run.units.some((u) => !u.pos && R.canDeploy(run, u)));
+}
+/** 결과 창: 다시 그리지 않고 끼워 넣으므로 뜨는 순간을 지켜보다가 키캡을 다시 달고 자동 닫기를 건다 */
+let autoResFor: unknown = null;
+let autoResT = 0;
+const resultObs = typeof MutationObserver === 'undefined' ? null : new MutationObserver(() => { if (app.summary && app.summary !== autoResFor && root.querySelector('.modal.result')) resultShown(); });
+function resultShown() {
+  keyHints();
+  const s = app.summary, box = root.querySelector<HTMLElement>('.modal.result');
+  if (!s || !box || autoResFor === s) return;
+  autoResFor = s;
+  resultObs?.disconnect();
+  const sec = uxPrefs().autoResult;
+  const btn = box.querySelector<HTMLButtonElement>('[data-a="after-battle"]');
+  if (!sec || !btn || s.gameOver || app.run?.tutorial) return; // 런이 끝난 결과 · 튜토리얼은 기다린다
+  const tag = document.createElement('span');
+  tag.className = 'auto-cd';
+  btn.before(tag);
+  let left = sec;
+  const show = () => { tag.textContent = `${left}초 뒤 자동으로 닫힘`; };
+  show();
+  clearInterval(autoResT);
+  autoResT = window.setInterval(() => {
+    if (!btn.isConnected || app.summary !== s) { clearInterval(autoResT); autoResT = 0; return; }
+    if (--left > 0) { show(); return; }
+    clearInterval(autoResT); autoResT = 0;
+    btn.click();
+  }, 1000);
+  const hold = () => { if (!autoResT) return; clearInterval(autoResT); autoResT = 0; tag.textContent = '자동 닫기 멈춤'; };
+  for (const ev of ['pointerdown', 'wheel', 'touchstart'] as const) box.addEventListener(ev, hold, { once: true, passive: true });
+}
+/** 다시 그린 뒤: 키캡 · 결과 창 감시 · 시너지 강조 되살리기 */
+function uxAfterRender() {
+  keyHints();
+  resultObs?.disconnect();
+  if (app.screen === 'battle') {
+    if (root.querySelector('.modal.result')) resultShown();
+    else resultObs?.observe(root, { childList: true, subtree: true });
+  }
+  if (synHl && synHl.how !== 'hover') synFocus(synHl.id, synHl.how); else synHl = null;
+  tlOver();
+}
+/** 지도 트랙이 넘쳐 가로로 밀리면 보스 칸을 오른쪽 끝에 붙인다 (.tl.over) */
+function tlOver() {
+  const tl = root.querySelector<HTMLElement>('.tl');
+  if (tl) tl.classList.toggle('over', tl.scrollWidth > tl.clientWidth + 1);
+}
+addEventListener('resize', tlOver, { passive: true });
+
+// ───────────────────────── 시너지 강조: 시너지 목록에 마우스를 올리면(누르면 시너지 창이 열려 있는 동안) 보드 · 대기열 · 파티에서 그 시너지 기물만 밝게
+// 시너지 창의 '보드에서 강조' 버튼: 창을 닫고 강조만 남긴다 (터치 화면 · 창이 보드를 가릴 때). 다음에 어디든 누르면 풀린다
+let synHl: { id: string; how: 'hover' | 'pin' | 'stick' } | null = null;
+function synFocus(id: string | null, how: 'hover' | 'pin' | 'stick' = 'hover') {
+  synHl = id ? { id, how } : null;
+  root.querySelectorAll<HTMLElement>('.syn-hl').forEach((x) => { x.classList.remove('syn-hl'); x.style.removeProperty('--c'); });
+  root.querySelectorAll('.syn-tk.syn-on').forEach((x) => x.classList.remove('syn-on'));
+  const main = root.querySelector('main');
+  const on = !!id && !!main?.querySelector('[data-syns]');
+  main?.classList.toggle('syn-focus', on);
+  if (!id || !on) return;
+  const c = SYN_BY_ID[id as SynergyId]?.color;
+  root.querySelectorAll<HTMLElement>('[data-syns]').forEach((el) => {
+    if (!el.dataset.syns!.split(' ').includes(id)) return;
+    el.classList.add('syn-hl');
+    if (c) el.style.setProperty('--c', c);
+  });
+  root.querySelectorAll<HTMLElement>('.syn-tk [data-syn]').forEach((b) => { if (b.dataset.syn === id) b.closest('.syn-tk')!.classList.add('syn-on'); });
+}
+root.addEventListener('mouseover', (e) => {
+  if (!CAN_HOVER || kwPinned || synHl?.how === 'stick') return;
+  const tk = (e.target as HTMLElement).closest<HTMLElement>('.syn-list .syn-tk, .top-syns .syn-tk');
+  const id = tk?.querySelector<HTMLElement>('[data-syn]')?.dataset.syn || null;
+  if (id !== (synHl?.id ?? null)) synFocus(id);
+});
+root.addEventListener('mouseleave', () => { if (synHl?.how === 'hover') synFocus(null); });
+document.addEventListener('click', (e) => {
+  const b = (e.target as HTMLElement).closest<HTMLElement>('[data-synfocus]');
+  if (!b) return;
+  hideKw();
+  synFocus(b.dataset.synfocus!, 'stick');
+}, true);
+document.addEventListener('pointerdown', (e) => { if (synHl?.how === 'stick' && !(e.target as HTMLElement).closest('[data-synfocus]')) synFocus(null); }, true);
 // ───────────────────────── 키워드 설명 팝업 (PC 호버 · 모바일 탭)
 let kwPinned: HTMLElement | null = null;
 function showKw(el: HTMLElement) {
@@ -3828,7 +4095,7 @@ function showKw(el: HTMLElement) {
   const below = r.bottom + 6;
   tip.style.top = `${below + tip.offsetHeight > innerHeight - 8 ? Math.max(8, r.top - tip.offsetHeight - 6) : below}px`;
 }
-function hideKw() { document.querySelector('.kw-tip')?.remove(); kwPinned = null; }
+function hideKw() { document.querySelector('.kw-tip')?.remove(); kwPinned = null; if (synHl?.how === 'pin') synFocus(null); }
 /** 시너지 상세 팝업: 마름모 옆에 띄운다 */
 function showSyn(el: HTMLElement) {
   hideKw();
@@ -3839,6 +4106,7 @@ function showSyn(el: HTMLElement) {
   document.body.appendChild(tip);
   placeSyn(tip, el);
   kwPinned = el;
+  synFocus(el.dataset.syn!, 'pin');
 }
 function placeSyn(tip: HTMLElement, el: HTMLElement) {
   const r = el.getBoundingClientRect();
@@ -3895,37 +4163,27 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (sv) return;
-  if (k === 'd') { act('toggle-detail', ''); return; }
   if (app.screen === 'newrun' && (k === 'ArrowLeft' || k === 'ArrowRight')) { carStep(k === 'ArrowRight' ? 1 : -1); e.preventDefault(); return; }
-  const modal = document.querySelector('.modal-bg .modal');
-  const digit = /^[1-9]$/.test(k) ? +k : 0;
-  if (modal && app.screen !== 'battle') {
-    if (digit) {
-      const opts = Array.from(modal.querySelectorAll<HTMLButtonElement>('[data-a^="pick-"]:not(.aug-ok), [data-a="event-choice"], [data-a="alloc-pick"]'));
-      const b = opts[digit - 1];
-      if (b && !b.disabled) { b.click(); e.preventDefault(); }
-    } else if (k === 'r') clickFirst('.modal [data-a="reroll"], .modal [data-a="reroll-privilege"]');
-    else if (k === 'Enter' || k === ' ') { if (clickFirst(CONFIRM_ACTS.map((a) => `.modal [data-a="${a}"]`).join(', '))) e.preventDefault(); }
+  // 나머지는 단축키 표(HOTKEYS)대로
+  const ks = keyScope();
+  const h = HOTKEYS.find((x) => (x.scope === 'any' || x.scope === ks?.scope) && x.keys.includes(k));
+  if (!h) return;
+  if (h.always) e.preventDefault();
+  const n = /^[1-9]$/.test(k) ? +k : 0;
+  if (h.run) { h.run(n); return; }
+  if (h.cap === '#') {
+    const el = Array.from((ks?.box || document).querySelectorAll<HTMLElement>(h.sel[0]))[n - 1];
+    if (!el || (el as HTMLButtonElement).disabled) return;
+    e.preventDefault();
+    // 증강 · 전공 · 영입: 숫자키는 고르기 + 확정 한 번에 (마우스는 그대로 고른 뒤 확정)
+    if (el.dataset.a === 'pick-augsel') act('pick-aug', el.dataset.v || '');
+    else if (el.dataset.a === 'rc-tap') act('pick-recruit', el.dataset.v || '');
+    else el.click();
     return;
   }
-  if (app.screen === 'battle') {
-    if (digit >= 1 && digit <= SPEEDS.length) act('speed', String(SPEEDS[digit - 1]));
-    else if (k === ' ' || k === 'p' || k === 'P') { e.preventDefault(); if (!clickFirst('[data-a="after-battle"]')) act('pause', ''); }
-    else if (k === 'Enter') { e.preventDefault(); if (!clickFirst('[data-a="after-battle"]')) act('skip', ''); }
-    return;
-  }
-  if (app.screen === 'prep') {
-    if (k === ' ' || k === 'Enter') { if (clickFirst('[data-a="fight"]')) e.preventDefault(); }
-    else if (k === 'a') act('autofill', '');
-    return;
-  }
-  if (app.screen === 'map') {
-    if (digit) clickFirst(`.tl-step.cur .tl-node:nth-child(${digit})`);
-    else if (k === 'Enter' || k === ' ') { if (clickFirst('.tl-go')) e.preventDefault(); }
-    else if (k === 'm') act('manage', '');
-  }
+  const el = firstOn(h.sel);
+  if (el) { e.preventDefault(); el.click(); }
 });
-
 // 스탠딩 전신 보기 (카드 버튼 안의 배너는 카드 선택이 우선)
 document.addEventListener('click', (ev) => {
   const t = ev.target as HTMLElement;

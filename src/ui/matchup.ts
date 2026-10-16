@@ -44,6 +44,8 @@ const catLine = (c: Category) => {
   const t = categoryTraits(c);
   return [t.immune.length ? `${t.immune.join('·')} 면역` : '', t.weak.length ? `${t.weak.join('·')} 취약` : '', t.resist.length ? `${t.resist.join('·')} 저항` : ''].filter(Boolean).join(', ');
 };
+/** 보스 공통 면역 한 줄 (엔진 BOSS_CC_IMMUNE) */
+export const bossImmuneText = () => `보스: ${BOSS_CC_IMMUNE.map((k) => STATUS_NAME[k]).join('·')} 면역`;
 /** 요약 줄: 비중 30% 이상 분류 (최대 2) + 보스 면역 */
 export function matchupLines(fid: string): { cls: string; text: string }[] {
   const ff = fieldFoes(fid);
@@ -52,8 +54,35 @@ export function matchupLines(fid: string): { cls: string; text: string }[] {
     const r = catLine(x.c);
     out.push({ cls: `cat-${x.c}`, text: `${CATEGORY_NAME[x.c]} ${x.share >= 0.6 ? '다수' : '일부'} (${Math.round(x.share * 100)}%)${r ? ` — ${r}` : ''}` });
   }
-  if (ff.hasBoss) out.push({ cls: 'boss', text: `보스: ${BOSS_CC_IMMUNE.map((k) => STATUS_NAME[k]).join('·')} 면역` });
+  if (ff.hasBoss) out.push({ cls: 'boss', text: bossImmuneText() });
   return out;
+}
+
+// ───────── 이번 전투 상성 (편성 화면 기본 패널): 실제 조우의 적 목록으로 분류별 인원 · 면역 · 취약 · 저항과
+// 아군 공격 속성마다 취약 · 저항인 적 수를 센다. 규칙은 위와 같이 엔진(categoryMult · categoryImmune)에 물어서 얻는다
+export interface EncMatchup {
+  foes: number;
+  lines: { cls: string; text: string }[];
+  /** 아군 공격 속성: 그 속성으로 치는 아군 수 · 그 속성에 취약 · 저항인 적 수 */
+  elems: { e: Elem; name: string; allies: number; weak: number; resist: number }[];
+}
+export function encounterMatchup(ids: string[], allyElems: Elem[]): EncMatchup {
+  const roster = ids.map((id) => ENEMY_BY_ID[id]).filter((e) => e && !e.inert).map((e) => ({ c: categoryOf(e.keywords, !!e.immobile), boss: e.tier === 'boss' }));
+  const by = new Map<Category, number>();
+  for (const r of roster) by.set(r.c, (by.get(r.c) || 0) + 1);
+  const lines = [...by].sort((a, b) => b[1] - a[1]).map(([c, n]) => {
+    const r = catLine(c);
+    return { cls: `cat-${c}`, text: `${CATEGORY_NAME[c]} ${n}명${r ? ` — ${r}` : ''}` };
+  });
+  if (roster.some((r) => r.boss)) lines.push({ cls: 'boss', text: bossImmuneText() });
+  const cnt = new Map<Elem, number>();
+  for (const e of allyElems) cnt.set(e, (cnt.get(e) || 0) + 1);
+  const elems = [...cnt].sort((a, b) => b[1] - a[1]).map(([e, n]) => ({
+    e, name: ELEM_NAME[e], allies: n,
+    weak: roster.filter((r) => categoryMult(r.c, e) > 1).length,
+    resist: roster.filter((r) => categoryMult(r.c, e) < 1).length,
+  }));
+  return { foes: roster.length, lines, elems };
 }
 /** 한 줄 요약 (모집 화면 머리 등) */
 export function matchupShort(fid: string) {
