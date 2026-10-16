@@ -26,6 +26,8 @@ export const PSI = {
     stopVuln: 0.4, revertReason: 6,
     /** 시간 가속 (◆): 아군 수 · 지속 · 공격 속도 */
     hasteN: 3, hasteDur: 4, hasteAtkSpd: 0.25,
+    /** 시간 가속 + 서리 폭풍: 대상 아군 수 · 공격 속도 */
+    hasteStormN: 6, hasteStormAtkSpd: 0.18,
     /** 오한: 중첩당 초당 · 속도 감소 · 최대 (절대 영도) · 발동 확률 */
     chillDps: 0.04, chillSlow: 0.08, chillMax: 4, zeroMax: 6, proc: 0.3,
   },
@@ -40,6 +42,8 @@ export const PSI = {
     bounce: 0.6, bounceN: 3,
     /** 역전류 (◆): 충전 중첩 · 아군 전도 중첩당 피해 (고전압이면 hv) */
     reverseN: 3, reversePer: 0.1, reverseHvPer: 0.15,
+    /** 역전류 + 과부하: 충전 대상 아군이 이미 3중첩이면 소모해 주변 1칸 적 전원에게 · 역전류 + 단락: 3중첩 아군이 행동하면 가장 가까운 적 감전 */
+    reverseOverload: 1.5, shortShock: 1, shortIcd: 2,
   },
   wave: {
     /** 충격파 피해 · 공진 지속 */
@@ -84,6 +88,8 @@ export const PSI = {
     life: 6, max: 2, troupeMax: 4, hp: 0.3, solid: 0.4,
     /** 분신 (◆): 지속 · 체력 · 피해 · 쿨다운 증가 */
     cloneLife: 12, cloneHp: 0.5, cloneDmg: 0.5, cloneCd: 4,
+    /** 군무 + 분신: 분신 지속 */
+    troupeCloneLife: 18,
     /** 실체화 + 분신: 체력 · 받는 피해 감소 · 기본 공격 적중 시 정신 추가 피해 */
     solidCloneHp: 0.7, solidCloneRed: 0.15, solidCloneHit: 0.2,
     /** 잔향 · 안개 · 교란 */

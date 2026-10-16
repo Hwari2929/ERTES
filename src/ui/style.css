@@ -2512,14 +2512,12 @@ button.cx2-row { cursor: pointer; } button.cx2-row:hover { border-color: var(--d
 .rt-box { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 10px; margin: 0 0 8px; font-size: 12px; }
 .rt-box dt { color: var(--dim); } .rt-box dd { margin: 0; }
 .rt-report { margin-top: 12px; } .rt-report h4 { margin: 0 0 6px; }
-/* 증강 카드: 조합 조건 · 선택하면 포기 */
-.aug-req, .aug-forgo, .aug-opt .ao-txt .aug-req, .aug-opt .ao-txt .aug-forgo { display: block; margin-top: 2px; font-size: .74rem; line-height: 1.35; }
+/* 증강 카드: 조합 조건 */
+.aug-req, .aug-opt .ao-txt .aug-req { display: block; margin-top: 2px; font-size: .74rem; line-height: 1.35; }
 .aug-req.ok, .aug-opt .ao-txt .aug-req.ok { color: var(--good); }
 .aug-req.info, .aug-opt .ao-txt .aug-req.info { color: var(--dim); }
 .aug-req.bad, .aug-opt .ao-txt .aug-req.bad { color: var(--bad); font-weight: 600; }
-.aug-forgo, .aug-opt .ao-txt .aug-forgo { color: #f0b35a; }
-.aug-forgo b { text-decoration: underline; }
-p.aug-req, p.aug-forgo { margin: 6px 0 0; }
+p.aug-req { margin: 6px 0 0; }
 
 /* ═════════ 디자인 1차 정돈 (색 · 글꼴 역할) ═════════
    색 역할
@@ -2634,7 +2632,6 @@ h3 { font-size: .9rem; }
 .aug-opt .ao-txt span { color: color-mix(in srgb, var(--fg) 78%, var(--dim)); }
 .aug-opt kbd { font-family: var(--f-mono); font-size: 11px; background: none; border: 1px solid var(--line-soft); }
 .aug-ic { background: var(--panel); border: 1px solid var(--line-soft); color: var(--c-text); border-radius: 8px; }
-.aug-forgo, .aug-opt .ao-txt .aug-forgo { color: color-mix(in srgb, var(--c-bad) 80%, var(--fg)); }
 .aug-req.ok, .aug-opt .ao-txt .aug-req.ok { color: color-mix(in srgb, var(--c-good) 85%, var(--fg)); }
 .aug-opt.sch-opt { border-color: var(--line-soft); }
 .aug-opt.sch-opt.on { border-color: var(--c-select); box-shadow: none; }

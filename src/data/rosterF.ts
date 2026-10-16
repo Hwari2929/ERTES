@@ -10,8 +10,8 @@ const G = (name: string, elem: Elem, interval: number, range: number, mult: numb
   ({ name, kind: 'mag', type: 'shoot', elem, interval, range, mult, mag, reload });
 const K = (name: string, elem: Elem, interval: number, range: number, mult: number, combo: number): Weapon =>
   ({ name, kind: 'combo', type: 'strike', elem, interval, range, mult, combo });
-const sp = (owner: string, id: string, name: string, desc: string, effect: Effect, excl: string[] = []): AugDef =>
-  ({ ...uaug(owner, `sp.${id}`, name, desc, effect), pool: 'special', ...(excl.length ? { excl: excl.map((k) => `${owner}.sp.${k}`) } : {}) });
+const sp = (owner: string, id: string, name: string, desc: string, effect: Effect): AugDef =>
+  ({ ...uaug(owner, `sp.${id}`, name, desc, effect), pool: 'special' });
 /** 전투당 n회까지 성장 기록 */
 const rec = (u: CUnit, key: string, max: number) => { if ((u.mem[key] || 0) < max) u.mem[key] = (u.mem[key] || 0) + 1; };
 const lowestAlly = (b: Battle, u: CUnit) => b.lowestHpAlly(u);
@@ -195,9 +195,9 @@ export const REWORK_F: Record<string, ReworkDef> = {
       sp('bjorn', 'thunder', '토르의 작살', '기본 공격이 30% 확률로 1초 감전을 건다.', { hooks: { onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) shock(b, u, t, 1, 0.3); } } }),
       sp('bjorn', 'song', '전사의 노래', '전투 시작 시 모든 아군 8초간 피해 +20%.', { hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'bjorn.song', 8, { mods: [inc('all', 0.2)], label: '전사의 노래' }); } } }),
       sp('bjorn', 'pull', '끌어당기기', '구조 작살이 대상을 비외른 앞 1칸으로 끌어오고 (엘리트 · 보스 제외) 기절 1 → 2초. 대신 작살 피해 -30%.', setSk((s) => { s.pull = 1; s.stun = 2; s.mult *= 0.7; })),
-      sp('bjorn', 'valhalla', '발할라', '체력이 30% 이하이면 피해량 경감 15% → 35%.', { hooks: { onTick(b, u) {
+      sp('bjorn', 'valhalla', '발할라', '체력이 30% 이하이면 피해량 경감 +20%p (15% → 35%, 광전사와 함께면 0% → 20%).', { hooks: { onTick(b, u) {
         if (b.hpPct(u) <= 0.3) b.buff(u, u, 'bjorn.valhalla', 0.3, { taken: [red('all', 0.2)] });
-      } } }, ['berserk']),
+      } } }),
       sp('bjorn', 'gear', '구조 장비', '구조 신호 보호막 120% → 200%, 체력 비율이 가장 낮은 아군 2명에게.', setSk((s) => { s.rescue *= 2 / 1.2; s.rescueN = 2; })),
       sp('bjorn', 'berserk', '광전사', '피해량 경감이 0%가 된다. 대신 잃은 체력 1%당 주는 피해 +1% → +2%.', { taken: [red('all', -0.15)], setup: (u) => { u.mem.vikingK = 2; } }),
       { ...sp('bjorn', 'storm', '북해의 폭풍', '감전된 적에게 주는 피해 +30%.', { hooks: { dmgMult: (b, _u, t) => (b.has(t, 'shock') ? 1.3 : 1) } }),
@@ -264,10 +264,10 @@ export const REWORK_F: Record<string, ReworkDef> = {
       sp('winter', 'vaccine', '광역 백신', '임상 시험 혈청이 모든 아군에게 30% 효과로 퍼진다.', { hooks: { onSkill(b, u) { for (const a of b.alliesOf(u)) b.heal(u, a, b.P(u, 'tech') * u.sk.heal * 0.3); } } }),
       sp('winter', 'antidote', '해독제', '치료할 때 해로운 효과를 모두 없앤다.', { hooks: { onHealDone(_b, _u, t) { t.statuses = t.statuses.filter((s) => !isHarmful(s)); } } }),
       sp('winter', 'pathogen', '병원체 샘플', '기본 공격이 기술 위력 30% 화학 중독을 건다 (4초).', { hooks: { onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) poison(b, u, t, b.S(u, 'tech') * 0.3, 4, 1); } } }),
-      sp('winter', 'tenure', '정년 보장', '생명과학 교수의 대상당 상한 5회 → 10회.', { setup: (u) => { u.mem.winterCap = 10; } }, ['trial']),
+      sp('winter', 'tenure', '정년 보장', '생명과학 교수의 대상당 상한 5회 → 10회.', { setup: (u) => { u.mem.winterCap = 10; } }),
       sp('winter', 'phase2', '임상 2상', '임상 시험 혈청의 받는 피해 -15% → -25%, 지속 4 → 6초.', setSk((s) => { s.red = 0.25; s.dur = 6; })),
-      sp('winter', 'overheal', '과잉 치료', '넘친 회복량의 50%를 보호막으로 준다.', { hooks: { onHealDone(b, _u, t, _amt, over) { if (over > 0) b.shield(t, over * 0.5); } } }, ['trial']),
-      sp('winter', 'trial', '생체 실험', '임상 시험 혈청을 아군 대신 적에게 쓴다: 기술 위력 220% 화학 피해 + 4초간 받는 피해 +15% (임상 2상의 수치 · 지속 적용).', { setup: (u) => {
+      sp('winter', 'overheal', '과잉 치료', '넘친 회복량의 50%를 보호막으로 준다.', { hooks: { onHealDone(b, _u, t, _amt, over) { if (over > 0) b.shield(t, over * 0.5); } } }),
+      sp('winter', 'trial', '생체 실험', '임상 시험 혈청을 아군 대신 적에게 쓴다: 기술 위력 180% 화학 피해 + 4초간 받는 피해 +15% (임상 2상의 수치 · 지속 적용). 실험 데이터로 체력 비율이 가장 낮은 아군을 혈청 회복량의 40%만큼 치료한다 (치료 증강 · 생명과학 교수 적용).', { setup: (u) => {
         const base = u.skill;
         if (!base) return;
         u.skill = { ...base, needsRange: false, tag: () => '화학 공격 + 취약', cast(b, self) {
@@ -275,11 +275,14 @@ export const REWORK_F: Record<string, ReworkDef> = {
           if (!t) return false;
           const p = self.sk;
           b.emit({ k: 'atk', from: self.id, to: t.id, elem: 'chem', ranged: true });
-          skillHit(b, self, t, 'tech', 2.2, 'chem', { noMiss: true });
+          skillHit(b, self, t, 'tech', 1.8, 'chem', { noMiss: true });
           if (t.alive) b.applyStatus(self, t, { type: 'buff', key: 'winter.trial', dur: p.dur, taken: [vuln('all', p.red)], label: '생체 실험' });
+          // 실험 데이터: 약한 아군 치료 (해독제 · 과잉 치료 · 정년 보장이 함께 작동하도록)
+          const a = b.lowestHpAlly(self);
+          if (a) b.heal(self, a, b.P(self, 'tech') * p.heal * 0.4);
           return true;
         } };
-      } }, ['vaccine', 'antidote']),
+      } }),
       sp('winter', 'lab', '연구실 동료', '전투 시작 시 보안위원회 · 의무관 아군 1명당 기술 위력 +8.', { hooks: { onStart(b, u) {
         u.st.tech += 8 * b.alliesOf(u).filter((a) => !a.isSummon && (a.synergies.has('SEC') || a.synergies.has('MED'))).length;
       } } }),
@@ -344,18 +347,20 @@ export const REWORK_F: Record<string, ReworkDef> = {
         t.mem.maoAfterHook = 1;
         t.hooks.push({ onKill(_bb, self) { const x = self.statuses.find((y) => y.key === 'sup.mao'); if (x) x.dur = Math.max(x.dur, u.sk.dur); } });
       } } }),
-      sp('mao', 'bomb', '칵테일 폭탄', '네온 칵테일이 칵테일 폭탄으로 바뀐다: 아군에게 요리를 내는 대신 체력이 가장 높은 적에게 셰이커를 던져 전술 위력 220% 전기 피해 + 2초 감전 (회복 · 강화 없음).', { setup: (u) => {
+      sp('mao', 'bomb', '칵테일 폭탄', '네온 칵테일에 폭탄이 딸려 나간다: 요리를 낸 뒤 체력이 가장 높은 적에게 셰이커를 던져 전술 위력 150% 전기 피해 + 1.5초 감전. 대신 요리 쿨다운 +2초 (요리 증강은 그대로 적용).', { setup: (u) => {
         const base = u.skill;
         if (!base) return;
-        u.skill = { ...base, needsRange: false, tag: () => '강적 전기 공격 + 감전', cast(b, self) {
+        u.cdMax += 2;
+        u.skill = { ...base, needsRange: false, tag: () => '요리 + 강적 전기 공격', cast(b, self) {
+          const cooked = base.cast(b, self);
           const t = pickEnemy(b, self, 'strongest');
-          if (!t) return false;
+          if (!t) return cooked;
           b.emit({ k: 'atk', from: self.id, to: t.id, elem: 'elec', ranged: true });
-          skillHit(b, self, t, 'tech', 2.2, 'elec', { noMiss: true });
-          if (t.alive) shock(b, self, t, 2, 1);
+          skillHit(b, self, t, 'tech', 1.5, 'elec', { noMiss: true });
+          if (t.alive) shock(b, self, t, 1.5, 1);
           return true;
         } };
-      } }, ['bar', 'contract', 'vip', 'special', 'after', 'regular']),
+      } }),
       sp('mao', 'regular', '단골 대접', '같은 아군에게 연속으로 요리하면 효과 +20% 누적 (최대 3회, +60%).', { hooks: { onInflict(b, u, t, s) {
         if (s.key !== 'sup.mao') return;
         const k = `mao${u.id}`, cast = u.counters.casts; // 시전 중에는 아직 이번 시전이 집계되기 전

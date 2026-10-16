@@ -12,7 +12,7 @@ import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYA
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { DIVINE_ACT, FAITH_DEF, MAJOR_AUGS, MINOR_TRAIT_GROW, recMajors } from './data/rework';
 import { type AugList, cantripView, passiveView, SCHOOL_LINE, transformPreview } from './data/psiinfo';
-import { augForgo, augReqState } from './data/augreq';
+import { augReqState } from './data/augreq';
 import { GROUPS, SCHOOL_BY_ID, SCHOOL_PASSIVES, UNIT_GROUP, isTransformAug, psiAugId, schoolOf, type SchoolId } from './data/schools';
 import { BRIEF, PSI_BRIEF } from './data/brief';
 import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
@@ -1204,16 +1204,11 @@ function skillMech(range: 'unit' | number | null, cmd: boolean) {
   const when = range === 'unit' ? '대상이 사거리 안에 있으면' : range === 0 ? '주변에 대상이 있으면' : '조건이 맞으면';
   return `쿨다운이 차고 ${when} 자동으로 시전.${cmd ? ' 지휘관은 전술 위력으로 계산.' : ''}`;
 }
-/** 증강 카드 · 상세의 부가 줄: 조합 조건 (충족 못 하면 경고색) · 선택하면 포기 (이번 창 후보 굵게). block = 상세 팝업용 문단 */
-function augNotes(id: string, u: UnitState | null, window: string[] = [], block = false) {
+/** 증강 카드 · 상세의 부가 줄: 조합 조건 (충족 못 하면 경고색). block = 상세 팝업용 문단 */
+function augNotes(id: string, u: UnitState | null, block = false) {
   const rq = augReqState(id, u);
-  const owned = (u?.augments || []).map((a) => a.id);
-  const fg = owned.includes(id) ? { now: [], later: [] } : augForgo(id, owned, window);
   const tag = block ? 'p' : 'span';
-  const req = rq ? `<${tag} class="aug-req ${rq.ok === false ? 'bad' : rq.ok ? 'ok' : 'info'}">${rq.ok === false ? '⚠ ' : ''}조합 조건: ${esc(rq.hint)}. ${esc(rq.cur)}</${tag}>` : '';
-  const all = [...fg.now.map((n) => `<b>${esc(n)}</b>`), ...fg.later.map(esc)];
-  const fo = all.length ? `<${tag} class="aug-forgo">선택하면 포기: ${all.join(', ')}${fg.now.length ? ' <small class="muted">(굵게 = 이번 후보)</small>' : ''}</${tag}>` : '';
-  return req + fo;
+  return rq ? `<${tag} class="aug-req ${rq.ok === false ? 'bad' : rq.ok ? 'ok' : 'info'}">${rq.ok === false ? '⚠ ' : ''}조합 조건: ${esc(rq.hint)}. ${esc(rq.cur)}</${tag}>` : '';
 }
 /** 사이오닉 기물의 보유 증강 (전투 중이면 그 전투 기물의 원본, 아니면 런의 기물) */
 const psiAugsFor = (d: UnitDef, c: CUnit | null): AugList => c?.src?.augments || app.run?.units.find((x) => x.defId === d.id)?.augments || [];
@@ -1307,7 +1302,7 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     kind = '증강'; name = AUG_BY_ID[id]?.name || id;
     const pool = AUG_BY_ID[id]?.pool;
     mech = pool === 'unit' ? '이 기물 전용 증강. 획득하면 영구 적용.' : pool === 'special' ? '스페셜 기물 합류 시 고르는 증강. 영구 적용.' : pool === 'psionic' ? '사이오닉 증강. 이성 규칙을 바꾼다. 영구 적용.' : '공용 증강. 영구 적용.';
-    body = `<p>${augText(id, c?.src?.augments.find((a) => a.id === id)?.param, b, c, gl)}</p>${augNotes(id, c?.src || app.run?.units.find((x) => x.defId === d.id) || null, [], true)}`;
+    body = `<p>${augText(id, c?.src?.augments.find((a) => a.id === id)?.param, b, c, gl)}</p>${augNotes(id, c?.src || app.run?.units.find((x) => x.defId === d.id) || null, true)}`;
     // ◆ 변형 증강: 바뀐 비술 · 지속 능력을 함께 (이 기물의 다른 전공 증강까지 반영)
     const tp = transformPreview(id);
     if (tp) {
@@ -1941,7 +1936,7 @@ function pendingModal(run: RunState): string {
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];
           if (p.kind === 'school') return schoolOpt(a.id, i);
-          return `<button class="aug-opt ${app.augPick === i ? 'on' : ''}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">${augIcon(a.id)}<span class="ao-txt"><b>${isTransformAug(a.id) ? '◆ ' : ''}${esc(ad.name)}</b><span>${augText(a.id, a.param, pv.b, pv.c)}</span>${augNotes(a.id, u, opts.map((o) => o.id))}</span><kbd>${i + 1}</kbd></button>`;
+          return `<button class="aug-opt ${app.augPick === i ? 'on' : ''}" data-a="pick-augsel" data-v="${i}" aria-pressed="${app.augPick === i}">${augIcon(a.id)}<span class="ao-txt"><b>${isTransformAug(a.id) ? '◆ ' : ''}${esc(ad.name)}</b><span>${augText(a.id, a.param, pv.b, pv.c)}</span>${augNotes(a.id, u)}</span><kbd>${i + 1}</kbd></button>`;
         }).join('') || '<p class="muted">고를 수 있는 증강이 없습니다.</p>'}</div>
         ${p.kind === 'school' && app.abilPop && /^(cantrip|psipass):/.test(app.abilPop) ? `<div class="ru-pop">${abilPopHtml(app.abilPop, d, pv.b, pv.c)}</div>` : ''}
         <div class="ru-foot">${opts.length

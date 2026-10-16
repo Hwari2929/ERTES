@@ -56,42 +56,53 @@ const CANTRIP: Record<SchoolId, Build> = {
   },
   chrono(use) {
     const N = PSI.chrono;
-    if (use('haste')) {
-      // 시간 가속 (◆): 적을 치지 않고 아군에게 공격 속도
-      return { tf: true, info: { tgt: `아군 ${N.hasteN}명 (기물 우선, 같은 아군 중복 없음)`, range: null, area: { k: 'one' }, rows: [
-        ['가속', `[s:${N.hasteDur}]간 공격 속도 +[p:${N.hasteAtkSpd}]`],
-        ['적', '피해 · 빙결 없음 (오한 소모도 없음)'],
-        ['절대 0도', '지속 능력의 [g:chill]은 그대로'],
-      ] } };
-    }
     const storm = use('storm'), perma = use('perma'), stop = use('stop'), revert = use('revert');
+    const extra = (rows: [string, string][]) => {
+      if (stop) rows.push(['정지된 시간', `빙결된 적이 받는 피해 +[p:${N.stopVuln}]`]);
+      if (revert) rows.push(['엔트로피 역류', `빙결을 걸 때마다 [g:reason] +${N.revertReason}`]);
+      return rows;
+    };
+    if (use('haste')) {
+      // 시간 가속 (◆): 적을 치지 않고 아군에게 공격 속도 + 서리 무장 (다음 기본 공격이 빙결 판정)
+      const n = storm ? N.hasteStormN : N.hasteN;
+      return { tf: true, info: { tgt: `아군 ${n}명 (기물 우선, 같은 아군 중복 없음)`, range: null, area: { k: 'one' }, rows: extra([
+        ['가속', `[s:${N.hasteDur}]간 공격 속도 +[p:${storm ? N.hasteStormAtkSpd : N.hasteAtkSpd}]${storm ? ' (서리 폭풍: 대상 3 → 6명, 가속 25% → 18%)' : ''}`],
+        ['서리 무장', `그 아군의 다음 기본 공격이 맞으면 [st:freeze:${perma ? N.permaDur : N.freezeDur}:${N.freezeP}] ([g:chill] 1중첩당 [pp:${N.freezePerChill}])`],
+        ['소모', perma ? '빙결을 걸어도 오한이 남는다' : '빙결되면 오한 중첩 전부 제거'],
+        ['적', '파편 피해 없음'],
+      ]) } };
+    }
     const n = storm ? N.stormShards : N.shards;
     const rows: [string, string][] = [
       ['피해', `파편 ${n}발, 각각 [dmg:main:${storm ? N.stormCoef : N.coef}:phys]`],
       ['빙결', `각 [st:freeze:${perma ? N.permaDur : N.freezeDur}:${N.freezeP}] ([g:chill] 1중첩당 [pp:${N.freezePerChill}])`],
       ['소모', perma ? '빙결을 걸어도 오한이 남는다' : '빙결되면 오한 중첩 전부 제거'],
     ];
-    if (stop) rows.push(['정지된 시간', `빙결된 적이 받는 피해 +[p:${N.stopVuln}]`]);
-    if (revert) rows.push(['엔트로피 역류', `빙결을 걸 때마다 [g:reason] +${N.revertReason}`]);
-    return { tf: false, info: { tgt: `서로 다른 적 ${n}명 (적이 적으면 중복)`, range: null, area: { k: 'one' }, rows } };
+    return { tf: false, info: { tgt: `서로 다른 적 ${n}명 (적이 적으면 중복)`, range: null, area: { k: 'one' }, rows: extra(rows) } };
   },
   volt(use) {
     const N = PSI.volt;
     const hv = use('hv');
+    const overload = use('overload'), chain = use('chain'), short = use('short');
+    const bounce = `[dmg:main:${Math.round(N.coef * N.bounce * 100) / 100}:elec]`;
     if (use('reverse')) {
-      // 역전류 (◆): 적 대신 대상과 가장 가까운 아군에게 전도 충전
-      return { tf: true, info: { tgt: '대상과 가장 가까운 아군 (자신 포함)', range: null, area: { k: 'one' }, rows: [
-        ['충전', `[g:conduct] ${N.reverseN}중첩 (적에게는 피해 없음)`],
+      // 역전류 (◆): 적 대신 대상과 가장 가까운 아군에게 전도 충전. 방전 강화 증강은 충전한 아군 기준으로 작동
+      const rows: [string, string][] = [
+        ['충전', `[g:conduct] ${N.reverseN}중첩 (적에게 직접 피해 없음)`],
         ['전도 피해', `전도된 아군이 행동할 때마다 주변 [t:${hv ? N.hvR : N.r}] 적에게 중첩당 [dmg:main:${hv ? N.reverseHvPer : N.reversePer}:elec]`],
-      ] } };
+      ];
+      if (overload) rows.push(['과부하', `그 아군이 이미 전도 ${N.overloadAt}중첩이면 소모해 주변 [t:1] 적 전원에게 [dmg:main:${N.reverseOverload}:elec] 후 다시 충전`]);
+      if (chain) rows.push(['바운스', `${bounce}가 충전한 아군에서 가장 가까운 적부터 최대 ${N.bounceN}회 [g:bounce]`]);
+      if (short) rows.push(['단락', `전도 ${N.overloadAt}중첩인 아군이 행동하면 범위 안 가장 가까운 적 [st:shock:${N.shortShock}] (그 아군 기준 ${N.shortIcd}초에 1회)`]);
+      return { tf: true, info: { tgt: '대상과 가장 가까운 아군 (자신 포함)', range: null, area: { k: 'one' }, rows } };
     }
-    const overload = use('overload'), chain = use('chain');
     const rows: [string, string][] = [
       ['피해', `[dmg:main:${N.coef}:elec]`],
       ['전도', `[g:conduct] ${N.conduct}중첩${hv ? ` (주변 [t:${N.hvR}], 중첩당 [dmg:main:${N.hvPer}:elec])` : ''}`],
     ];
     if (overload) rows.push(['과부하', `대상이 전도 ${N.overloadAt}중첩이면 중첩을 모두 소모해 [dmg:main:${N.overload}:elec] (전도를 새로 걸지 않음)`]);
-    if (chain) rows.push(['바운스', `[dmg:main:${Math.round(N.coef * N.bounce * 100) / 100}:elec]가 대상에서 가까운 다른 적 최대 ${N.bounceN}명에게 차례로 [g:bounce] (거리 제한 없음)`]);
+    if (chain) rows.push(['바운스', `${bounce}가 대상에서 가까운 다른 적 최대 ${N.bounceN}명에게 차례로 [g:bounce] (거리 제한 없음)`]);
+    if (short) rows.push(['단락', `전도 ${N.overloadAt}중첩인 적이 행동하면 [st:shock:${N.shortShock}] (같은 적 ${N.shortIcd}초에 1회)`]);
     return { tf: false, info: { tgt: '현재 대상', range: null, area: { k: 'one' }, rows } };
   },
   wave(use) {
@@ -126,12 +137,13 @@ const CANTRIP: Record<SchoolId, Build> = {
     const N = PSI.mind;
     const n = use('collective') ? N.collectiveN : N.n, share = use('fate') ? N.fateShare : N.share;
     const rows: [string, string][] = [['결속', `[s:${N.bondDur}] [g:bond]: 받는 피해 +[p:${N.bondVuln}], 받은 피해의 [p:${share}]를 다른 결속 대상이 나눠 받음`]];
-    const hypno = use('hypno');
-    if (hypno) rows.push(['혼란', `매혹 대신 결속된 적 전원 [st:confuse:${N.hypno}]`]);
-    else {
-      const asc = use('ascend');
+    const hypno = use('hypno'), asc = use('ascend'), dom = use('dominate');
+    if (hypno) {
+      rows.push(['혼란', `매혹 대신 결속된 적 전원 [st:confuse:${N.hypno + (asc ? N.ascendPlus : 0)}]${asc ? ' (승천 +1초)' : ''}`]);
+      if (dom) rows.push(['정신 지배', `혼란된 적이 같은 편에게 주는 피해 +[p:${N.dominate}]`]);
+    } else {
       rows.push(['매혹', asc ? `대상이 일반 적이면 [st:charm:${N.charm + N.ascendPlus}], 엘리트면 절반` : `대상이 일반 적이면 [st:charm:${N.charm}]`]);
-      if (use('dominate')) rows.push(['정신 지배', `매혹된 적이 주는 피해 +[p:${N.dominate}]`]);
+      if (dom) rows.push(['정신 지배', `매혹된 적이 주는 피해 +[p:${N.dominate}]`]);
     }
     return { tf: hypno, info: { tgt: `현재 대상과 주변 적 (최대 ${n}명)`, range: null, area: { k: 'around', r: 1 }, rows } };
   },
@@ -148,13 +160,13 @@ const CANTRIP: Record<SchoolId, Build> = {
   },
   illusion(use) {
     const N = PSI.illusion;
-    const max = use('troupe') ? N.troupeMax : N.max;
+    const troupe = use('troupe'), max = troupe ? N.troupeMax : N.max;
     const clone = use('clone'), solid = use('solid');
     const rows: [string, string][] = [];
     if (clone) {
       // 분신 (◆): 자신의 능력치 · 공격 방식을 물려받은 소환물
       rows.push(
-        ['소환', `자신의 [g:clone] 1기 ([s:${N.cloneLife}], 최대 ${max}기)`],
+        ['소환', `자신의 [g:clone] 1기 ([s:${troupe ? N.troupeCloneLife : N.cloneLife}], 최대 ${max}기)${troupe ? ' (군무: 지속 12 → 18초, 분신 여러 기가 함께 싸운다)' : ''}`],
         ['능력치', `자신의 능력치 · 무기 · 공격 방식을 물려받음. 체력 = 자신 최대 체력 [p:${solid ? N.solidCloneHp : N.cloneHp}], 주는 피해 [p:${N.cloneDmg}]`],
       );
       if (solid) rows.push(['실체화', `체력 [p:${N.cloneHp}] → [p:${N.solidCloneHp}], 받는 피해 -[p:${N.solidCloneRed}], 기본 공격이 맞으면 [dmg:main:${N.solidCloneHit}:psy] 추가`]);
@@ -188,11 +200,11 @@ type PBuild = (use: (k: string) => boolean) => { rows: [string, string][]; brief
 const PASSIVE: Record<SchoolId, PBuild> = {
   pyro(use) {
     const N = PSI.pyro;
-    const wp = use('wp'), beacon = use('beacon'), runaway = !beacon && use('runaway');
+    const wp = use('wp'), beacon = use('beacon'), runaway = use('runaway');
     const max = wp ? N.wpMax : N.max;
     const eff: [string, string] = ['효과', `[g:burn] 1중첩: 중첩당 초당 [dmg:main:${N.dps}:phys]`];
     const stack: [string, string] = ['중첩', `최대 ${max} · [s:${N.dur}] · 걸 때마다 갱신`];
-    if (beacon) return { tf: true, brief: `아군 기본 공격 ${Math.round(N.beacon * 100)}% 연소`, rows: [['발동', `아군 전원의 기본 공격 적중 시 [p:${N.beacon}] (자신의 평타 · 스킬 · 비술 발화는 0)`], eff, stack] };
+    if (beacon) return { tf: true, brief: `아군 기본 공격 ${Math.round(N.beacon * 100)}% 연소`, rows: [['발동', `아군 전원의 기본 공격 적중 시 [p:${N.beacon}]${runaway ? ` ([g:reason] 0 미만이면 [p:${N.beacon * N.runawayProc}])` : ''} (자신의 평타 · 스킬 · 비술 발화는 0)`], eff, stack] };
     return { tf: false, brief: `적중 시 ${Math.round(N.proc * 100)}% 연소`, rows: [
       ['발동', `평타 · 전투 스킬 · 비술 적중 시 [p:${N.proc}]${runaway ? ` ([g:reason] 0 미만이면 [p:${N.proc * N.runawayProc}])` : ''}`], eff, stack] };
   },

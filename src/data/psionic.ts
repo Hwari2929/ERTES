@@ -128,11 +128,26 @@ function spread<T>(b: Battle, first: T | null, pool: T[], n: number): T[] {
 function frostShards(b: Battle, u: CUnit) {
   const n = P(u, 'chrono.storm') ? PSI.chrono.stormShards : PSI.chrono.shards;
   if (P(u, 'chrono.haste')) {
-    // 시간 가속: 아군 3명에게 4초간 공격 속도 +25% (소환물보다 기물 우선)
+    // 시간 가속: 아군 3명에게 4초간 공격 속도 +25% (소환물보다 기물 우선) + 서리 무장: 그 아군의 다음 기본 공격이 서리 파편처럼 빙결을 판정
+    // 서리 폭풍이면 아군 6명 · 공격 속도 +18% (파편 수 → 대상 수)
+    const N = PSI.chrono, storm = P(u, 'chrono.storm');
     const al = b.alliesOf(u);
     const real = al.filter((a) => !a.isSummon && !a.noAttack), pool = real.length ? real : al;
-    const picks = [...new Set(spread(b, null, pool, Math.min(PSI.chrono.hasteN, pool.length)))];
-    for (const a of picks) { b.buff(u, a, 'psi.haste', PSI.chrono.hasteDur, { delta: { atkSpd: PSI.chrono.hasteAtkSpd }, label: '시간 가속' }); b.fx(a.x, a.y, 0, 'elec', 'buff'); }
+    const picks = [...new Set(spread(b, null, pool, Math.min(storm ? N.hasteStormN : N.hasteN, pool.length)))];
+    for (const a of picks) {
+      b.buff(u, a, 'psi.haste', N.hasteDur, { delta: { atkSpd: storm ? N.hasteStormAtkSpd : N.hasteAtkSpd }, label: '시간 가속' });
+      b.buff(u, a, 'psi.frostArm', N.hasteDur, { label: '서리 무장' });
+      if (!a.mem.frostArmHook) {
+        a.mem.frostArmHook = 1;
+        a.hooks.push({ onBasic(bb, self, t, r) {
+          const s = statusOf(self, 'psi.frostArm');
+          if (!s || !s.src || r.miss || r.amount <= 0 || !t.alive || bb.sideOf(t) === bb.sideOf(self)) return;
+          self.statuses = self.statuses.filter((x) => x !== s);
+          freeze(bb, s.src, t, N.freezeP + N.freezePerChill * stacksOf(t, 'chill'));
+        } });
+      }
+      b.fx(a.x, a.y, 0, 'elec', 'buff');
+    }
     return picks.length ? { to: picks[0] } : false;
   }
   const es = b.targetable(u);
@@ -204,7 +219,13 @@ function conductStatus(b: Battle, u: CUnit, n: number, ally: boolean): Status {
         if (r.amount > 0 && c.alive && P(c, 'volt.store')) storeReason(bb, c);
       }
       // 단락: 전도 3중첩인 적이 행동하면 1초 감전 (같은 적 2초에 1회)
-      if (!ally && t.alive && P(c, 'volt.short') && (s.stacks || 0) >= 3 && icd(bb, t, 'shortIcd', 2)) bb.applyStatus(c, t, { type: 'shock', key: 'shock', dur: 1 });
+      if (!ally && t.alive && P(c, 'volt.short') && (s.stacks || 0) >= 3 && icd(bb, t, 'shortIcd', PSI.volt.shortIcd)) bb.applyStatus(c, t, { type: 'shock', key: 'shock', dur: PSI.volt.shortShock });
+      // 역전류 + 단락: 전도 3중첩인 아군이 행동하면 범위 안 가장 가까운 적 감전 (그 아군 기준 2초에 1회)
+      if (ally && P(c, 'volt.short') && (s.stacks || 0) >= 3) {
+        const near = bb.around(t, rad, foes).filter((e) => e.alive);
+        const e = near.length ? bb.nearest(t, near) : null;
+        if (e && icd(bb, t, 'shortIcdA', PSI.volt.shortIcd)) bb.applyStatus(c, e, { type: 'shock', key: 'shock', dur: PSI.volt.shortShock });
+      }
     },
   };
 }
@@ -227,7 +248,25 @@ function discharge(b: Battle, u: CUnit) {
     const a = al.length ? b.nearest(t, al) : null;
     if (!a) return false;
     b.fx(a.x, a.y, 0, 'elec', 'buff');
+    // 역전류 + 과부하: 그 아군이 이미 전도 3중첩이면 소모해 주변 1칸 적 전원에게 폭발
+    const prev = statusOf(a, 'conduct');
+    if (prev && (prev.stacks || 0) >= PSI.volt.overloadAt && P(u, 'volt.overload')) {
+      a.statuses = a.statuses.filter((x) => x !== prev);
+      b.fx(a.x, a.y, 1, 'elec');
+      b.emit({ k: 'status', id: a.id, name: '과부하', src: u.id });
+      for (const e of b.around(a, 1, b.enemiesOf(u))) if (e.alive) zap(b, u, e, PSI.volt.reverseOverload, 'elec');
+    }
     b.applyStatus(u, a, conductStatus(b, u, PSI.volt.reverseN, true));
+    // 역전류 + 바운스 번개: 충전한 아군에서 가장 가까운 적부터 차례로
+    if (P(u, 'volt.chain')) {
+      const others = b.targetable(u).sort((x, y) => b.dist(x, a) - b.dist(y, a)).slice(0, PSI.volt.bounceN);
+      let from = a;
+      for (const e of others) {
+        b.emit({ k: 'atk', from: from.id, to: e.id, elem: 'elec', ranged: true, chain: true });
+        zap(b, u, e, PSI.volt.coef * PSI.volt.bounce, 'elec');
+        from = e;
+      }
+    }
     return { to: a };
   }
   b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'elec', ranged: true });
@@ -331,7 +370,15 @@ function revelation(b: Battle, u: CUnit) {
   b.fx(t.x, t.y, 1, 'psy');
   if (P(u, 'mind.hypno')) {
     // 집단 최면: 매혹 대신 결속된 적 전원 2초 혼란
-    for (const e of b.enemiesOf(u)) if (e.statuses.some((s) => s.key === 'bond' && s.grp === gid)) confuse(b, u, e, PSI.mind.hypno);
+    // 승천: 혼란 지속 +1초 · 정신 지배: 혼란된 적이 같은 편에게 주는 피해 +100%
+    const dur = PSI.mind.hypno + (P(u, 'mind.ascend') ? PSI.mind.ascendPlus : 0);
+    for (const e of b.enemiesOf(u)) if (e.statuses.some((s) => s.key === 'bond' && s.grp === gid)) {
+      confuse(b, u, e, dur);
+      if (P(u, 'mind.dominate') && !e.mem.hypnoDom) {
+        e.mem.hypnoDom = 1;
+        e.hooks.push({ dmgMult: (bb, self, t) => (t !== self && bb.sideOf(t) === bb.sideOf(self) && self.statuses.some((s) => s.key === 'confuse' && s.src && P(s.src, 'mind.dominate')) ? 1 + PSI.mind.dominate : 1) });
+      }
+    }
   } else {
     // 매혹: 일반 적만 (승천: 엘리트도, 지속 +1초 · 엘리트는 절반)
     const asc = P(u, 'mind.ascend');
@@ -447,7 +494,7 @@ function summonShade(b: Battle, u: CUnit, near: CUnit) {
       name: `${u.name}의 분신`, sprite: u.sprite, palette: u.palette, art: u.defId, atk: { ...u.atk }, keywords: u.keywords.slice(), category: u.category,
       weapon: u.weapon ? { ...u.weapon } : null, ammo: u.weapon?.mag || 0, ctype: u.ctype, phaseAmp: I.cloneDmg, noAttack: u.noAttack,
     });
-    s.mem.life = I.cloneLife;
+    s.mem.life = P(u, 'illusion.troupe') ? I.troupeCloneLife : I.cloneLife; // 군무: 분신이 더 오래 남아 여러 기가 함께 싸운다
     if (solid) {
       // 실체화 + 분신: 더 단단한 몸 (체력 70%, 받는 피해 -15%), 기본 공격이 맞으면 주요 위력 20% 정신 추가 피해 (시전자 몫)
       s.mem.solid = 1;
@@ -603,7 +650,7 @@ const PASSIVE_FX: Record<string, Effect> = {
   'pyro.beacon': { hooks: { onStart(b, u) {
     if (u.school !== 'pyro') return;
     for (const a of b.alliesOf(u)) a.hooks.push({ onBasic(bb, _self, t, r) {
-      if (u.alive && t.alive && r.amount > 0 && !r.miss && bb.sideOf(t) !== bb.sideOf(u)) addBurn(bb, u, t, 1, PSI.pyro.beacon);
+      if (u.alive && t.alive && r.amount > 0 && !r.miss && bb.sideOf(t) !== bb.sideOf(u)) addBurn(bb, u, t, 1, PSI.pyro.beacon * (P(u, 'pyro.runaway') && reasonOf(u) < 0 ? PSI.pyro.runawayProc : 1)); // 열폭주: 봉화 확률도 2배
     } });
   } } },
   'chrono.rewind': { hooks: rewindHooks() },
@@ -689,20 +736,9 @@ export const SCHOOL_AUGS: AugDef[] = SCHOOLS.map((s) => ({
   id: schoolAugId(s.id), name: s.name, desc: schoolDesc(s.id), pool: 'school', owner: s.id,
   effect: () => schoolEffect(s.id),
 }));
-/** 서로 함께 가질 수 없는 조합 (◆ 변형이 무의미하게 만드는 증강) */
-const EXCL: Record<string, string[]> = {
-  'chrono.haste': ['chrono.storm'],
-  'volt.reverse': ['volt.short', 'volt.overload', 'volt.chain'],
-  'mind.hypno': ['mind.ascend', 'mind.dominate'],
-  'gold.dividend': ['gold.folio'],
-};
 /** 조합 조건: 다른 증강 · 상태가 있어야 제대로 작동하는 전공 증강 (선택은 막지 않는다, 표시는 data/augreq.ts) */
-const FREEZE_SRC = { hint: '빙결 수단 필요: 서리 파편 (시간 가속이면 절대 영도의 확정 빙결)', breaks: ['psi.chrono.haste'], alt: ['psi.chrono.zero'] };
 const REQ: Record<string, AugReq> = {
   'pyro.runaway': { hint: '이성 0 미만일 때만 작동', reason: 'neg' },
-  'chrono.perma': FREEZE_SRC,
-  'chrono.stop': FREEZE_SRC,
-  'chrono.revert': FREEZE_SRC,
   'volt.short': { hint: `전도 ${PSI.volt.overloadAt}중첩 필요`, stacks: { st: 'conduct', need: PSI.volt.overloadAt } },
   'volt.overload': { hint: `전도 ${PSI.volt.overloadAt}중첩 필요`, stacks: { st: 'conduct', need: PSI.volt.overloadAt } },
   'wave.standing': { hint: '공진된 적을 기절 · 빙결시킬 수단 필요 (충돌 · 진도 측정, 또는 다른 기물)', alt: ['psi.wave.impact', 'psi.wave.seismic'] },
@@ -715,11 +751,9 @@ const REQ: Record<string, AugReq> = {
 };
 /** 전공 증강 56종 (전공당 7종, 5 · 10 · 15 · 20등급에 그 전공 것만, 최대 4개) */
 export const PSI_AUGS: AugDef[] = SCHOOLS.flatMap((s) => SCHOOL_PASSIVES[s.id].map(([key, name, desc]): AugDef => {
-  const ex = [...(EXCL[`${s.id}.${key}`] || []), ...Object.entries(EXCL).filter(([, v]) => v.includes(`${s.id}.${key}`)).map(([k]) => k)];
   return {
     id: psiAugId(s.id, key), name, desc, pool: 'psionic', owner: s.id,
     effect: () => passiveEffect(s.id, key),
-    excl: ex.length ? ex.map((x) => `psi.${x}`) : undefined,
     requires: REQ[`${s.id}.${key}`],
   };
 }));

@@ -334,7 +334,6 @@ export function augHtml(H: CxH, id: string, param?: string, gl = new Set<string>
   const t = augAbilText(id);
   return t ? H.statIc(AB.tok(t, NO_CTX, gl)) : esc(augDesc(id, param));
 }
-const augById = (id: string) => ALL_AUGS.find((a) => a.id === id);
 /** ◆ 변형 증강: 변형 후 비술 · 지속 능력 한 줄 요약 (psiinfo 에서 읽음) */
 function tfLine(H: CxH, id: string) {
   const tp = transformPreview(id);
@@ -346,11 +345,10 @@ function tfLine(H: CxH, id: string) {
   return `${tp.cantrip.transform ? `<br>${part('변형 후 비술', tp.cantrip.name, tp.cantrip.info.rows, tp.cantrip.info.tgt)}` : ''}${tp.passive.transform ? `<br>${part('변형 후 지속', s.passive.name, tp.passive.rows)}` : ''}`;
 }
 function augLi(H: CxH, a: AugDef, tags: string[] = [], q = '') {
-  const x = (a.excl || []).map((e) => augById(e)?.name).filter(Boolean) as string[];
   const all = [...tags, ...(a.stack ? ['중복 가능'] : []), ...(a.roll ? ['능력치 무작위'] : [])];
   const text = augHtml(H, a.id) + tfLine(H, a.id);
   const rq = augReqState(a.id);
-  return `<li class="aug-li" data-id="${esc(a.id)}"${qAttr('augs', `${a.name} ${a.desc} ${text} ${all.join(' ')} ${q}`)}>${H.augIcon(a.id)}<span><b>${isTransformAug(a.id) ? '◆ ' : ''}${esc(a.name)}</b>${all.map((t) => ` <span class="tag">${esc(t)}</span>`).join('')}<br><span class="muted">${text}</span>${x.length ? `<br><span class="cx2-x">함께 가질 수 없음: ${x.map(esc).join(', ')} <span class="muted">(같은 선택 창에 함께 나올 수 있고, 하나를 고르면 나머지는 이후 제외)</span></span>` : ''}${rq ? `<br><span class="aug-req ${rq.ok === false ? 'bad' : 'info'}">조합 조건: ${esc(rq.hint)}. ${esc(rq.cur)}</span>` : ''}</span></li>`;
+  return `<li class="aug-li" data-id="${esc(a.id)}"${qAttr('augs', `${a.name} ${a.desc} ${text} ${all.join(' ')} ${q}`)}>${H.augIcon(a.id)}<span><b>${isTransformAug(a.id) ? '◆ ' : ''}${esc(a.name)}</b>${all.map((t) => ` <span class="tag">${esc(t)}</span>`).join('')}<br><span class="muted">${text}</span>${rq ? `<br><span class="aug-req ${rq.ok === false ? 'bad' : 'info'}">조합 조건: ${esc(rq.hint)}. ${esc(rq.cur)}</span>` : ''}</span></li>`;
 }
 
 // ═══════════════════════ 사이오닉

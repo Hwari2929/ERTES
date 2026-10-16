@@ -7,6 +7,7 @@ import { itemEffect } from './items';
 import { RELIC_BY_ID } from './relics';
 import { blinkTo, corrode, every, fear, gw, isHarmful, lineTargets, nth, pct, skillHit, summonsOf } from './kit';
 import { kairoSnipe } from './rosterB';
+import { monsterBuff } from './rosterE';
 import { pickEnemy } from './tpl';
 import { type BaseUnit, type ReworkDef, setSk, uaug } from './unitkit';
 /** 레이첼 [암흑물질 붕괴]: 정신 피해 흡혈 · 기본 공격 추가 고정 피해 (타격 위력 대비) · 피니쉬 주변 고정 피해 (피니쉬 피해 대비) */
@@ -62,8 +63,8 @@ const gv = (g: Record<string, number>, k: string) => g[k] || 0;
 // ───────── 스페셜 증강
 const sp = (owner: string, id: string, name: string, desc: string, effect: Effect, extra: Partial<AugDef> = {}): AugDef =>
   ({ ...uaug(owner, `sp.${id}`, name, desc, effect, extra), pool: 'special' });
-/** 함께 보유할 수 없는 증강 (같은 기물의 sp 키, 같은 창에는 함께 나올 수 있음) */
-const ex = (owner: string, ...keys: string[]): Partial<AugDef> => ({ excl: keys.map((k) => `${owner}.sp.${k}`) });
+/** 이 기물(전투 기물)이 그 스페셜 증강을 가졌는지 (setup 순서와 무관하게 조합을 판정) */
+const hasSp = (u: CUnit, owner: string, key: string) => !!u.src?.augments.some((a) => a.id === `${owner}.sp.${key}`);
 /** 소환물에 훅을 한 번 붙인다 (소환물은 전투 시작 훅에서 생기므로 첫 틱에) */
 const petHook = (key: string, make: (owner: CUnit) => Hooks): Hooks => ({ onTick(b, u) {
   if (u.mem[key]) return;
@@ -252,8 +253,11 @@ export const REWORK: Record<string, ReworkDef> = {
           const amt = b.P(u, 'tech') * (u.sk.shield ?? 1.5);
           // 하청: 경호원 대신 무작위 아군 2명
           if (u.sk.subcon) {
+            // 변호인단: 1명 줄고 ×2 · 정예 경호: +40% (경호원 강화가 하청 보호막으로)
+            const n = Math.max(1, 2 + Math.min(0, u.mem.extraSummon || 0));
+            const amt2 = amt * (u.mem.summonHpMul || 1) * (1 + (u.mem.summonHpPct || 0));
             const pool = b.alliesOf(u, false).filter((a) => !a.isSummon);
-            for (const a of (pool.length ? b.rng.sample(pool, 2) : [u])) b.shield(a, amt);
+            for (const a of (pool.length ? b.rng.sample(pool, n) : [u])) b.shield(a, amt2);
           }
           for (const bot of summonsOf(b, u)) b.shield(bot, amt);
         } },
@@ -264,28 +268,28 @@ export const REWORK: Record<string, ReworkDef> = {
         const t = dealTarget(b, u);
         if (t) b.applyStatus(u, t, { type: 'fear', key: 'fear', dur: 4, taken: [vuln('all', 0.25)] });
       } } }),
-      sp('lars', 'counsel', '변호인단', '경호원이 1명 줄지만, 남은 경호원의 최대 체력 ×2, 피해 ×1.5.', { setup: (u) => {
+      sp('lars', 'counsel', '변호인단', '경호원이 1명 줄지만, 남은 경호원의 최대 체력 ×2, 피해 ×1.5. 하청과 함께면 경호 계약 보호막을 받는 아군이 1명 줄고 보호막 ×2.', { setup: (u) => {
         u.mem.extraSummon = (u.mem.extraSummon || 0) - 1;
         u.mem.summonHpMul = (u.mem.summonHpMul || 1) * 2;
         u.mem.summonDmg = (u.mem.summonDmg || 0) + 0.5;
-      } }, ex('lars', 'subcon')),
+      } }),
       sp('lars', 'pen', '직접 협상', '비무장 해제: 만년필을 던진다 (사격, 탄 1 · 재장전 1.5초, 계수 180%).', { setup: (u) => {
         u.noAttack = false;
         u.weapon = G('만년필', 'phys', 1.0, 3, 1.8, 1, 1.5);
         u.atk = { type: 'shoot', elem: 'phys', interval: 1.0 };
       } }),
-      sp('lars', 'elite', '정예 경호', '경호원 최대 체력 +40%, 경호원 메이저 +2.', { setup: (u) => {
+      sp('lars', 'elite', '정예 경호', '경호원 최대 체력 +40%, 경호원 메이저 +2. 하청과 함께면 경호 계약 보호막 +40%.', { setup: (u) => {
         u.mem.summonHpPct = (u.mem.summonHpPct || 0) + 0.4;
         u.mem.summonMaj = (u.mem.summonMaj || 0) + 2;
-      } }, ex('lars', 'subcon')),
-      sp('lars', 'penalty', '위약금', '경호원이 쓰러지면 체력이 가장 높은 적에게 기술 위력 250% 피해를 주고 6초간 받는 피해 +20%.', { hooks: { onAllyDeath(b, u, dead) {
-        if (!dead.isSummon || dead.owner !== u) return;
+      } }),
+      sp('lars', 'penalty', '위약금', '경호원이 쓰러지면 체력이 가장 높은 적에게 기술 위력 250% 피해를 주고 6초간 받는 피해 +20%. 하청과 함께면 계약한 아군(기물)이 쓰러질 때 청구한다.', { hooks: { onAllyDeath(b, u, dead) {
+        if (u.mem.noSummon ? dead.isSummon : !dead.isSummon || dead.owner !== u) return; // 하청: 소환물이 아닌 아군
         const t = pickEnemy(b, u, 'strongest');
         if (!t) return;
         b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'phys', ranged: true });
         skillHit(b, u, t, 'tech', 2.5, 'phys', { noMiss: true });
         if (t.alive) b.applyStatus(u, t, { type: 'buff', key: 'lars.penalty', dur: 6, taken: [vuln('all', 0.2)], label: '위약금' });
-      } } }, ex('lars', 'subcon')),
+      } } }),
       sp('lars', 'exclusive', '독점 계약', '거래 대상 적이 4초간 속박(이동 불가)되고 공격 속도 -30%.', { hooks: { onSkill(b, u) {
         const t = dealTarget(b, u);
         if (t) b.applyStatus(u, t, { type: 'buff', key: 'root', dur: 4, delta: { atkSpd: -0.3 }, label: '속박' });
@@ -293,9 +297,9 @@ export const REWORK: Record<string, ReworkDef> = {
       sp('lars', 'installment', '분할 상환', '거래 제안 쿨다운 +2초. 대신 같은 적과 거래할 때마다 주는 피해 감소가 20%에서 10%p씩 쌓인다 (최대 60%, 전투 동안 유지).', { setup: (u) => {
         u.cdMax += 2; u.sk.installment = 1;
       } }),
-      sp('lars', 'subcon', '하청', '경호원을 데려오지 않는다. 대신 경호 계약 보호막 (기술 위력 150%)을 무작위 아군 2명에게 준다.', { setup: (u) => {
+      sp('lars', 'subcon', '하청', '경호원을 데려오지 않는다. 대신 경호 계약 보호막 (기술 위력 150%)을 무작위 아군 2명에게 준다. 변호인단 · 정예 경호 · 위약금은 하청 아군에게 적용된다.', { setup: (u) => {
         u.mem.noSummon = 1; u.sk.subcon = 1;
-      } }, ex('lars', 'counsel', 'elite', 'penalty')),
+      } }),
     ],
   },
   falcon: {
@@ -371,7 +375,7 @@ export const REWORK: Record<string, ReworkDef> = {
       } } },
     },
     specialAugs: [
-      sp('kairo', 'cocktail', '칵테일 전문', '칵테일 쿨다운이 절반이 되지만 저격을 하지 않는다.', { setup: (u) => { u.cdMax *= 0.5; u.sk.need = 999; } }),
+      sp('kairo', 'cocktail', '칵테일 전문', '칵테일 쿨다운이 절반이 되지만 저격에 필요한 스택이 2배가 된다 (8 → 16, 인내면 12 → 24).', { setup: (u) => { u.cdMax *= 0.5; }, hooks: { onStart(_b, u) { u.sk.need *= 2; } } }),
       sp('kairo', 'kilo', '콜사인 킬로', '자신의 기본 공격이 2번 맞을 때마다 기다림의 미학 1스택.', { hooks: { onBasic(b, u, _t, r) {
         if (r.amount <= 0) return;
         u.mem.kilo = (u.mem.kilo || 0) + 1;
@@ -380,10 +384,10 @@ export const REWORK: Record<string, ReworkDef> = {
         kairoSnipe(b, u);
       } } }),
       sp('kairo', 'andante', '안단테', '탄창이 1발이 되지만 기본 공격 피해 ×4.', { setup: (u) => { if (u.weapon) u.weapon = { ...u.weapon, mag: 1, mult: u.weapon.mult * 4 }; } }),
-      sp('kairo', 'lastorder', '라스트 오더', '저격 대상이 체력 25% 이하로 남으면 즉시 처형한다.', setSk((s) => { s.lastOrder = 0.25; }), ex('kairo', 'cocktail')),
-      sp('kairo', 'double', '더블 샷', '저격이 두 번째로 체력이 높은 적에게도 50% 피해를 준다.', setSk((s) => { s.double = 0.5; }), ex('kairo', 'cocktail')),
+      sp('kairo', 'lastorder', '라스트 오더', '저격 대상이 체력 25% 이하로 남으면 즉시 처형한다.', setSk((s) => { s.lastOrder = 0.25; })),
+      sp('kairo', 'double', '더블 샷', '저격이 두 번째로 체력이 높은 적에게도 50% 피해를 준다.', setSk((s) => { s.double = 0.5; })),
       sp('kairo', 'signature', '시그니처', '칵테일이 보호막 대신 대상의 기술 쿨다운을 1.5초 줄이고, 치명타 확률 +15%p를 준다.', setSk((s) => { s.shield = 0; s.crit = 0.15; s.sigCd = 1.5; })),
-      sp('kairo', 'patience', '인내', '저격에 12스택이 필요하지만 저격 피해 ×2, 방어도를 무시한다.', setSk((s) => { s.need = 12; s.snipe *= 2; s.snipePen = 1; }), ex('kairo', 'cocktail')),
+      sp('kairo', 'patience', '인내', '저격에 12스택이 필요하지만 저격 피해 ×2, 방어도를 무시한다.', setSk((s) => { s.need = 12; s.snipe *= 2; s.snipePen = 1; })),
       sp('kairo', 'regular', '단골 손님', '전투 시작 시 칼리토 아군 수만큼 기다림의 미학 스택을 더 얻는다.', { hooks: { onStart(b, u) {
         const n = b.alliesOf(u).filter((a) => !a.isSummon && a.synergies.has('KAL')).length;
         u.mem.wait = (u.mem.wait ?? u.sk.start) + n;
@@ -421,29 +425,46 @@ export const REWORK: Record<string, ReworkDef> = {
       },
     },
     specialAugs: [
-      sp('bianca', 'unleash', '베헤모스 해방', '베헤모스 상속률 +60%p, 피해 +50%. 비앙카는 기본 공격을 하지 않는다.', { setup: (u) => {
-        u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.6; u.mem.bondAmp = (u.mem.bondAmp || 0) + 0.5; u.noAttack = true;
+      sp('bianca', 'unleash', '베헤모스 해방', '베헤모스 상속률 +60%p, 피해 +50%. 비앙카는 기본 공격을 하지 않는다. 표본 회수와 함께면 기본 공격은 유지하고, 피해 +50%가 비앙카와 변이에 붙는다.', { setup: (u) => {
+        u.mem.bondBonus = (u.mem.bondBonus || 0) + 0.6; u.mem.bondAmp = (u.mem.bondAmp || 0) + 0.5;
+        if (!hasSp(u, 'bianca', 'sample')) u.noAttack = true;
       } }),
       sp('bianca', 'drone', '드론 편대', '치유 탄환이 대상 주변 1칸 아군에게도 50% 효과.', setSk((s) => { s.splash = 1; })),
       sp('bianca', 'cold', '냉혈 처방', '치유 탄환이 회복 대신 보호막을 준다 (양 +50%).', setSk((s) => { s.shield += s.heal * 1.5; s.heal = 0; })),
       sp('bianca', 'genes', '유전 표본', '유전 물질 수집 확률 30% → 50%.', { setup: (u) => { u.mem.geneRate = 0.5; } }),
-      sp('bianca', 'symbiosis', '공생', '베헤모스가 준 피해의 15%만큼 체력 비율이 가장 낮은 아군을 회복한다.', { hooks: petHook('symInit', (o) => ({ onDeal(bb, _self, _t, r) {
-        if (r.amount <= 0 || !o.alive) return;
-        const a = bb.lowestHpAlly(o);
-        if (a) bb.heal(o, a, r.amount * 0.15);
-      } })) }, ex('bianca', 'sample')),
-      sp('bianca', 'regen', '야생 재생', '베헤모스가 쓰러질 피해를 받으면 전투당 1회 체력 50%로 재기동한다.', { hooks: petHook('regenInit', (o) => ({ onLethal(bb, self) {
-        if (o.mem.petRevive) return false;
-        o.mem.petRevive = 1;
-        self.hp = bb.S(self, 'maxHp') * 0.5;
-        bb.emit({ k: 'mark', id: self.id, name: '재기동', style: 'revive' });
-        return true;
-      } })) }, ex('bianca', 'sample')),
+      sp('bianca', 'symbiosis', '공생', '베헤모스가 준 피해의 15%만큼 체력 비율이 가장 낮은 아군을 회복한다. 표본 회수와 함께면 비앙카가 준 피해로 계산한다.', { hooks: {
+        ...petHook('symInit', (o) => ({ onDeal(bb, _self, _t, r) {
+          if (r.amount <= 0 || !o.alive) return;
+          const a = bb.lowestHpAlly(o);
+          if (a) bb.heal(o, a, r.amount * 0.15);
+        } })),
+        onDeal(bb, u, t, r) {
+          if (!u.mem.sample || r.amount <= 0 || t === u || bb.sideOf(t) === bb.sideOf(u)) return;
+          const a = bb.lowestHpAlly(u);
+          if (a) bb.heal(u, a, r.amount * 0.15);
+        },
+      } }),
+      sp('bianca', 'regen', '야생 재생', '베헤모스가 쓰러질 피해를 받으면 전투당 1회 체력 50%로 재기동한다. 표본 회수와 함께면 비앙카가 대신 재기동한다.', { hooks: {
+        ...petHook('regenInit', (o) => ({ onLethal(bb, self) {
+          if (o.mem.petRevive) return false;
+          o.mem.petRevive = 1;
+          self.hp = bb.S(self, 'maxHp') * 0.5;
+          bb.emit({ k: 'mark', id: self.id, name: '재기동', style: 'revive' });
+          return true;
+        } })),
+        onLethal(bb, u) {
+          if (!u.mem.sample || u.mem.petRevive) return false;
+          u.mem.petRevive = 1;
+          u.hp = bb.S(u, 'maxHp') * 0.5;
+          bb.emit({ k: 'mark', id: u.id, name: '재기동', style: 'revive' });
+          return true;
+        },
+      } }),
       sp('bianca', 'serum', '생체 강화 탄', '치유 탄환 대상이 4초간 피해 +20% (베헤모스 버프와 별도).', setSk((s) => { s.dmg += 0.2; s.dur = 4; })),
-      sp('bianca', 'sample', '표본 회수', '베헤모스를 부르지 않는다. 대신 유전 물질 단계의 피해 보너스를 비앙카가 얻고, 치유 탄환 대상이 4초간 변이 (피해 +40% + 유전 물질 단계 피해 보너스).', { setup: (u) => {
-        u.mem.noSummon = 1; u.mem.sample = 1;
-        if (u.mem.bondAmp) u.mods.push(inc('all', u.mem.bondAmp));
-      } }, ex('bianca', 'unleash')),
+      sp('bianca', 'sample', '표본 회수', '베헤모스를 부르지 않는다. 대신 유전 물질 단계의 피해 보너스를 비앙카가 얻고, 치유 탄환 대상이 4초간 변이 (피해 +40% + 유전 물질 단계 피해 보너스). 베헤모스 증강은 비앙카에게 옮겨 온다.', {
+        setup: (u) => { u.mem.noSummon = 1; u.mem.sample = 1; },
+        hooks: { onStart(_b, u) { if (u.mem.bondAmp) u.mods.push(inc('all', u.mem.bondAmp)); } }, // 다른 증강의 피해 보너스까지 모인 뒤 적용
+      }),
     ],
   },
 
@@ -663,9 +684,11 @@ export const REWORK: Record<string, ReworkDef> = {
           if (!a || b.hpPct(a) > 0.95) return false;
           b.heal(self, a, b.P(self, 'tech') * 1.8);
           b.fx(a.x, a.y, 0, 'holy', 'heal');
+          // 환술 심화: 회복한 아군 주변 적에게 공포
+          if (self.sk.illusion) for (const e of b.around(a, 1, b.enemiesOf(self))) if (e.alive) fear(b, self, e, self.sk.fear, self.sk.fearChance);
           return true;
         } };
-      } }, ex('aiden', 'illusion')),
+      } }),
       sp('aiden', 'crystal', '수정 섭취', '처치하면 최대 체력 7.5% 회복, 콤보 +2.', { hooks: { onKill(b, u) { b.heal(u, u, b.S(u, 'maxHp') * 0.075); u.combo += 2; } } }),
       sp('aiden', 'nine', '아홉 목숨', '쓰러질 피해를 받으면 전투당 1회 체력 1로 버티고, 고양이 형태로 3초간 모든 공격을 회피한다 (회피 +100%p, 피해 무시).', { hooks: { onLethal(b, u) {
         if (u.mem.nine) return false;
@@ -680,15 +703,15 @@ export const REWORK: Record<string, ReworkDef> = {
       sp('aiden', 'tail', '칼날 꼬리', '고양이 형태일 때 기본 공격이 대상 주변 1칸 적에게 50% 피해를 준다.', { hooks: { onBasic(b, u, t) {
         if (!b.has(u, 'buff', 'aiden.cat')) return;
         for (const e of b.around(t, 1, b.enemiesOf(u))) if (e !== t) proc(b, u, e, b.S(u, 'strike') * (u.weapon?.mult || 1) * 0.5, 'phys', 'strike');
-      } } }, ex('aiden', 'human')),
-      sp('aiden', 'illusion', '환술 심화', '액체 금속 변형의 공포 확률 40% → 70%, 지속 0.8 → 1.5초.', setSk((s) => { s.fearChance = 0.7; s.fear = 1.5; })),
+      } } }),
+      sp('aiden', 'illusion', '환술 심화', '액체 금속 변형의 공포 확률 40% → 70%, 지속 0.8 → 1.5초. 바텐더 근무와 함께면 회복한 아군 주변 1칸 적이 70% 확률로 1.5초 공포.', setSk((s) => { s.fearChance = 0.7; s.fear = 1.5; s.illusion = 1; })),
       sp('aiden', 'gap', '시간의 틈', '고양이 형태가 될 때 주변 2칸 아군이 2초간 공격 속도 +30%.', { hooks: { onInflict(b, u, t, s) {
         if (s.key !== 'aiden.cat' || t !== u) return;
         for (const a of b.around(u, 2, b.alliesOf(u, false))) b.buff(u, a, 'aiden.gap', 2, { delta: { atkSpd: 0.3 }, label: '시간의 틈' });
-      } } }, ex('aiden', 'human')),
-      sp('aiden', 'human', '인간 형태', '고양이 형태가 되지 않는다. 대신 최대 체력 +40%, 방어도 +30, 스킬 피해 +50%.', {
+      } } }),
+      sp('aiden', 'human', '인간 형태', '고양이 형태가 되지 않는다. 대신 최대 체력 +40%, 방어도 +30, 스킬 피해 +50%. 고양이 형태가 될 때마다 같은 시간 동안 [집중] (회피 · 공격 속도 보너스 없음): 고양이 형태에 반응하는 증강은 집중 상태에서 발동한다.', {
         pct: { maxHp: 0.4 }, stats: { armor: 30 }, mods: [inc('skill', 0.5)], setup: (u) => { u.mem.noCat = 1; },
-      }, ex('aiden', 'cat')),
+      }),
     ],
   },
   vivian: {
@@ -760,7 +783,11 @@ export const REWORK: Record<string, ReworkDef> = {
         b.emit({ k: 'status', id: u.id, name: '되감기' });
         return true;
       } } }),
-      sp('amundsen', 'mount', '7703 탑승', '움직이지 않지만 포격 피해 ×1.6, 사거리 +2.', { stats: { range: 2 }, setup: (u) => { u.immobile = true; if (u.weapon) u.weapon = { ...u.weapon, mult: u.weapon.mult * 1.6 }; } }, ex('amundsen', 'order')),
+      sp('amundsen', 'mount', '7703 탑승', '움직이지 않지만 포격 피해 ×1.6, 사거리 +2. 단장의 명령과 함께면 (기본 포격이 없으므로) 대신 전술 위력 +16.', { stats: { range: 2 }, setup: (u) => {
+        u.immobile = true;
+        if (hasSp(u, 'amundsen', 'order')) u.mem.tacBonus = (u.mem.tacBonus || 0) + 16;
+        else if (u.weapon) u.weapon = { ...u.weapon, mult: u.weapon.mult * 1.6 };
+      } }),
       sp('amundsen', 'order', '단장의 명령', '기본 공격을 하지 않지만 전술 위력 +48.', { setup: (u) => { u.noAttack = true; u.mem.tacBonus = (u.mem.tacBonus || 0) + 48; } }),
       sp('amundsen', 'volley', '일제 포격', '스킬 포격이 대상 주변 1칸 적에게도 60% 피해를 준다.', { hooks: { onDeal(b, u, t, _r, o) {
         if (o.tag !== 'skill' || o.kind !== 'shoot') return;
@@ -859,7 +886,7 @@ export const REWORK: Record<string, ReworkDef> = {
       effect: { hooks: { onSkill(b, u) { b.heal(u, u, b.S(u, 'maxHp') * (u.sk.heal ?? 0.05)); } } } },
     specialAugs: [
       sp('mingki', 'awake', '상시 각성', '내면의 괴물이 전투 시작부터 깨어 있지만 초당 최대 체력 2%를 잃는다.', { setup: (u) => { u.sk.monsterAt = 1; }, hooks: {
-        onStart(b, u) { u.mem.monster = 1; b.buff(u, u, 'mingki.monster', 999, { delta: { atkSpd: 0.5 }, mods: [inc('all', 0.8)], label: '내면의 괴물' }); },
+        onStart(b, u) { u.mem.monster = 1; b.buff(u, u, 'mingki.monster', 999, monsterBuff(u)); },
         onTick(b, u, dt) { u.mem.mt = (u.mem.mt || 0) + dt; if (u.mem.mt >= 1) { u.mem.mt -= 1; if (b.hpPct(u) > 0.1) b.dealDamage(u, u, b.S(u, 'maxHp') * 0.02, { elem: 'true', tag: 'dot', noHooks: true }); } },
       } }),
       sp('mingki', 'master', '저택의 주인', '엘베스타드 아군 전원 피해 +10%.', { hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) if (a.synergies.has('FAM')) b.buff(u, a, 'mingki.master', 999, { mods: [inc('all', 0.1)] }); } } }),
@@ -871,11 +898,11 @@ export const REWORK: Record<string, ReworkDef> = {
           u.mem.appetite = Math.min(5, (u.mem.appetite || 0) + 1);
         },
         dmgMult: (b, u) => (b.has(u, 'buff', 'mingki.monster') ? 1 + 0.1 * (u.mem.appetite || 0) : 1),
-      } }, ex('mingki', 'tame')),
+      } }),
       sp('mingki', 'purr', '그르릉', '각성할 때 주변 2칸 적을 1.5초 공포에 빠뜨린다.', { hooks: { onInflict(b, u, t, s) {
         if (s.key !== 'mingki.monster' || t !== u) return;
         for (const e of b.around(u, 2, b.enemiesOf(u))) fear(b, u, e, 1.5, 1);
-      } } }, ex('mingki', 'tame')),
+      } } }),
       sp('mingki', 'liquid', '고양이는 액체', '회피 +10%p. 각성 중에는 추가로 +15%p.', { stats: { eva: 0.1 }, hooks: { onInflict(b, u, t, s) {
         if (s.key === 'mingki.monster' && t === u) b.buff(u, u, 'mingki.liquid', 999, { delta: { eva: 0.15 }, label: '액체' });
       } } }),
@@ -884,8 +911,8 @@ export const REWORK: Record<string, ReworkDef> = {
         u.mem.monster2 = 1;
         b.buff(u, u, 'mingki.monster2', 999, { mods: [inc('all', 0.5)], delta: { lifesteal: 0.2 }, label: '두 번째 괴물' });
         b.emit({ k: 'status', id: u.id, name: '두 번째 괴물이 깨어났다!' });
-      } } }, ex('mingki', 'tame')),
-      sp('mingki', 'tame', '얌전한 고양이', '내면의 괴물이 깨어나지 않는다. 츄르 사냥이 그르릉으로 바뀐다: 적에게 뛰어드는 대신 다른 아군 전원을 최대 체력 6% 회복시키고, 자신 포함 아군 전원에게 3초간 최대 체력 10% 보호막을 준다 (피해 없음).', { setup: (u) => {
+      } } }),
+      sp('mingki', 'tame', '얌전한 고양이', '내면의 괴물이 수호 각성으로 바뀐다 (피해 +80% 대신 받는 피해 -25%, 공격 속도 +50%는 그대로). 츄르 사냥이 그르릉으로 바뀐다: 적에게 뛰어드는 대신 다른 아군 전원을 최대 체력 6% 회복시키고, 자신 포함 아군 전원에게 3초간 최대 체력 10% 보호막을 준다 (피해 없음).', { setup: (u) => {
         u.mem.tame = 1;
         const base = u.skill;
         if (!base) return;
@@ -903,7 +930,7 @@ export const REWORK: Record<string, ReworkDef> = {
           }
           return true;
         } };
-      } }, ex('mingki', 'awake')),
+      } }),
     ],
   },
 
@@ -968,9 +995,11 @@ function retreat(b: Battle, u: CUnit) {
   }
 }
 function cat(b: Battle, u: CUnit, dur: number) {
-  if (u.mem.noCat) return; // 인간 형태
+  // 인간 형태: 고양이 대신 [집중] (같은 키라 고양이 형태에 반응하는 증강이 그대로 발동, 회피 · 공격 속도 보너스 없음)
+  if (u.mem.noCat) { b.buff(u, u, 'aiden.cat', dur, { label: '집중' }); return; }
   b.buff(u, u, 'aiden.cat', dur, { delta: { eva: 0.15, atkSpd: 0.3 }, label: '고양이' });
 }
+
 function shred(b: Battle, u: CUnit, t: CUnit) {
   // 우리의 출항기! [정밀 분석]: 최대 5중첩, 중첩당 받는 모든 피해 +15%
   const voy = (u.owner || u).mem.voyViv;

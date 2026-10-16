@@ -1,9 +1,14 @@
 // 사건 전용 기물: 사건 노드로만 합류한다 (시작 기물 · 영입 노드에는 나오지 않음)
+import type { CUnit, Status } from '../engine/combat';
 import { inc, red } from '../engine/effects';
 import { fear, pct, skillHit } from './kit';
 import { strike, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type BaseUnit } from './unitkit';
 
+/** 밍키 내면의 괴물 (얌전한 고양이면 수호 각성: 피해 +80% 대신 받는 피해 -25%) */
+export function monsterBuff(u: CUnit): Partial<Status> {
+  return u.mem.tame ? { delta: { atkSpd: 0.5 }, taken: [red('all', 0.25)], label: '수호 각성' } : { delta: { atkSpd: 0.5 }, mods: [inc('all', 0.8)], label: '내면의 괴물' };
+}
 const CAT = ['#0c0a10', '#3a3448', '#e8e0f0', '#c8b8d8', '#9ad0ff', '#2a2434', '#ffffff'];
 const CRIMSON = ['#100406', '#4a0a14', '#d0c0c0', '#e8c8b8', '#ff2030', '#2a0a10', '#fff0f0'];
 const SPARTA = ['#0c0a06', '#b08a30', '#5a4a30', '#f0d080', '#ff6020', '#6a5a30', '#fff0c0'];
@@ -19,10 +24,10 @@ export const ROSTER_E: BaseUnit[] = [
     passive: {
       hooks: {
         onHurt(b, u) {
-          if (u.mem.monster || u.mem.tame || b.hpPct(u) > (u.sk.monsterAt || 0.5)) return;
+          if (u.mem.monster || b.hpPct(u) > (u.sk.monsterAt || 0.5)) return;
           u.mem.monster = 1;
-          b.buff(u, u, 'mingki.monster', 999, { delta: { atkSpd: 0.5 }, mods: [inc('all', 0.8)], label: '내면의 괴물' });
-          b.emit({ k: 'status', id: u.id, name: '내면의 괴물이 깨어났다!' });
+          b.buff(u, u, 'mingki.monster', 999, monsterBuff(u));
+          b.emit({ k: 'status', id: u.id, name: u.mem.tame ? '수호 각성!' : '내면의 괴물이 깨어났다!' });
         },
       },
     },
