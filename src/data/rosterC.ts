@@ -1,5 +1,5 @@
 // 시리우스 성도회 · 범은하 공동체 · 엘베스타드 일가
-import { inc, vuln } from '../engine/effects';
+import { inc, red, vuln } from '../engine/effects';
 import { blinkTo, bleed, cleanse, every, fear, pct, skillHit, summonsOf } from './kit';
 import { cookPower, strike, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type BaseUnit } from './unitkit';
@@ -20,13 +20,14 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'strike', elem: 'phys', interval: 1.0 }, range: 1, base: B(7, 9, 7, 5, 4),
     sprite: 'knight', palette: tint(PAL.SIR, '#3a2a50', '#e8e8f0', '#b07cff'), lore: '"그 정도면 잘했어. 네 수준에서는."',
     skill: {
-      name: '집행자 투척', tag: () => '먼 적 끌어오기 + 기절 · 약화', cd: 7, params: { mult: 1.8, stun: 1, hits: 1, splash: 0, weak: 0.25, weakDur: 4 },
-      desc: (p) => `거대 도끼 집행자를 가장 먼 적에게 던져 타격 위력 ${pct(p.mult)} 물리 피해${p.hits > 1 ? ` ${p.hits}회` : ''}, 염동력으로 자기 앞까지 끌어당겨 ${p.stun}초 기절, ${p.weakDur}초간 대상이 주는 피해 -${pct(p.weak)}${p.splash ? `. 끌려온 자리 주변 1칸에 ${pct(p.splash)} 피해` : ''}.`,
+      name: '집행자 투척', tag: () => '먼 적 끌어오기 + 기절 · 약화', cd: 7, params: { mult: 1.8, stun: 1, hits: 1, splash: 0, weak: 0.25, weakDur: 4, guard: 0.3, guardDur: 3 },
+      desc: (p) => `거대 도끼 집행자를 가장 먼 적에게 던져 타격 위력 ${pct(p.mult)} 물리 피해${p.hits > 1 ? ` ${p.hits}회` : ''}, 염동력으로 자기 앞까지 끌어당겨 ${p.stun}초 기절, ${p.weakDur}초간 대상이 주는 피해 -${pct(p.weak)}${p.splash ? `. 끌려온 자리 주변 1칸에 ${pct(p.splash)} 피해` : ''}. 투척 직후 ${p.guardDur}초간 받는 피해 -${pct(p.guard)}.`,
       cast(b, u) {
         const t = b.farthest(u);
         if (!t) return false;
         const p = u.sk;
         b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'phys', ranged: true });
+        b.buff(u, u, 'romani.guard', p.guardDur, { taken: [red('all', p.guard)], label: '집행자의 자세' }); // 끌어온 직후 버티기
         for (let i = 0; i < p.hits && t.alive; i++) skillHit(b, u, t, 'strike', p.mult * (i ? p.second || 0.6 : 1), 'phys');
         if (!t.alive) return true;
         if (b.dist(u, t) > 1 && !t.immobile && !t.isBoss) { blinkTo(b, t, u); t.target = u; }
