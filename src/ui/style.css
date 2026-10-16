@@ -545,7 +545,7 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 .ahead { margin-top: 6px; }
 .ahead h2 { margin: 0 0 8px; }
 .ah-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; max-width: 780px; }
-.ah-card { flex: 1 1 200px; min-width: 0; display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--nc) 35%, var(--line)); border-left: 4px solid var(--nc); border-radius: var(--r-lg); background: color-mix(in srgb, var(--nc) 7%, var(--panel)); }
+.ah-card { flex: 1 1 200px; min-width: 0; display: flex; gap: 10px; align-items: flex-start; padding: 14px 12px; border: 1px solid color-mix(in srgb, var(--nc) 35%, var(--line)); border-left: 4px solid var(--nc); border-radius: var(--r-lg); background: color-mix(in srgb, var(--nc) 7%, var(--panel)); }
 .ah-ic { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--nc) 18%, var(--panel-2)); border: 1px solid color-mix(in srgb, var(--nc) 45%, var(--line)); color: color-mix(in srgb, var(--nc) var(--data-mix), var(--c-text)); }
 .ah-ic .li { width: 22px; height: 22px; }
 .ah-body { flex: 1; display: grid; gap: 4px; min-width: 0; }
@@ -582,7 +582,7 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 .ah-in.g-A .li { color: color-mix(in srgb, var(--g-A) var(--data-mix), var(--c-text)); } /* 희귀 장비 */
 .ah-in.cons .li { color: var(--c-text-2); } /* 소모품 */
 .ah-body > .ah-chips { margin-top: 2px; }
-.foe-rank { align-self: center; }
+.foe-rank { align-self: center; display: inline-flex; align-items: center; min-height: 20px; padding: 0 7px; border-radius: var(--r-pill); } /* 다른 칩(분류 · 성향)과 같은 둥글기 */
 .ah-boss { flex: 2 1 300px; }
 .ah-port { position: relative; flex: none; }
 .ah-port .spr.big { display: block; width: 56px; height: 56px; border-radius: var(--r-md); object-fit: cover; box-shadow: 0 0 0 2px color-mix(in srgb, var(--nc) 60%, transparent); }
@@ -808,9 +808,6 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .bench-u.syn-hl, main.syn-focu
 .pb-nm em { flex: none; font-style: normal; font-size: var(--fs-2xs); font-weight: 700; color: var(--c-bad); }
 .pb-n { font: 700 var(--fs-md) var(--f-mono); text-align: right; }
 .pb-sub { grid-column: 2 / 4; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-.pb-gear { display: inline-flex; gap: 2px; margin-left: 2px; }
-.pb-gear .item { width: 20px; height: 20px; font-size: var(--fs-2xs); cursor: help; }
-.pb-gear .item .ii { width: 14px; height: 14px; }
 /* 상성 · 아군 공격 속성: 같은 줄 토큰 [아이콘 | 이름 | 인원 | 칩] */
 .pb-row { display: grid; grid-template-columns: 24px auto auto minmax(0, 1fr); align-items: center; gap: 4px 8px; padding: 5px 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-md); font-size: var(--fs-sm); }
 .pb-ri { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--panel); color: color-mix(in srgb, var(--c, var(--c-text-2)) var(--data-mix), var(--c-text)); font-style: normal; }
@@ -848,7 +845,7 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .bench-u.syn-hl, main.syn-focu
 .u.tk .tk-it { min-width: 0; min-height: 0; cursor: pointer; touch-action: none; -webkit-touch-callout: none; user-select: none; }
 .u.tk .item .ii { width: 75%; height: 75%; }
 .u.tk .ubadge { left: 1px; right: auto; bottom: 1px; }
-.u.tk .tk-mod { position: absolute; left: 1px; top: 1px; width: 26%; aspect-ratio: 1; cursor: pointer; touch-action: none; -webkit-touch-callout: none; }
+.u.tk .tk-mod { position: absolute; left: 0; top: 0; display: grid; width: 26%; aspect-ratio: 1; cursor: pointer; touch-action: none; -webkit-touch-callout: none; }
 .u.tk .tk-mod .item { width: 100%; height: 100%; font-size: 7px; background: color-mix(in srgb, var(--c-ink) 75%, transparent); border-width: 1px; }
 .u.tk .tk-type { position: absolute; right: 1px; top: 1px; display: grid; gap: 1px; pointer-events: none; }
 .u.tk .tk-type i { display: grid; place-items: center; width: 14px; height: 14px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--c-ink) 70%, transparent); color: var(--c-chalk); }
@@ -857,6 +854,7 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .bench-u.syn-hl, main.syn-focu
 .u.tk .tk-side > * { aspect-ratio: 1; display: grid; place-items: center; border-radius: 2px; background: color-mix(in srgb, var(--c-ink) 70%, transparent); color: var(--c-chalk); font-style: normal; }
 .u.tk .tk-side .ti { width: 72%; height: 72%; }
 .tk-side .li { width: 13px; height: 13px; }
+.u.tk .tk-side > .tk-tend .li { width: 10px; height: 10px; } /* 전투 성향: 분류 아이콘보다 한 단 작게 */
 /* 공명 등급 칸: 흰 배지 · 적 보스 · 엘리트 = 붉은 배지 (호박색 아님) */
 .u.tk .tk-side > .tk-rank { display: flex; align-items: center; justify-content: center; white-space: nowrap; overflow: hidden; letter-spacing: -.5px; background: color-mix(in srgb, var(--c-chalk) 92%, transparent); color: var(--c-chalk-ink); font: 700 clamp(7px, 1vw, 11px)/1 var(--f-mono); }
 .u.tk .tk-rank::before { content: none; }

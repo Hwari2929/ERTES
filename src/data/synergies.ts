@@ -1,4 +1,5 @@
 import type { Battle, CUnit } from '../engine/combat';
+import { PROV } from '../engine/combat'; // 수호자 도발 배율 (설명 문구에 끼운다)
 import type { Effect, EffectCtx } from '../engine/effects';
 import { amp, applyLive, inc, red, vuln } from '../engine/effects';
 import { CFG } from '../config';
@@ -580,7 +581,7 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'GUARD', name: '수호자', kind: 'trait', tiers: [2, 4, 6], color: '#c9a86a', icon: '⛉',
-    desc: '앞에 서서 모두를 지키는 이들. 출전한 수호자 1명마다 모든 아군의 방어도가 오르고 (수호자 자신은 2배), 수호자의 기본 공격에는 자신 방어도에 비례한 물리 피해가 더해집니다.',
+    desc: `앞에 서서 모두를 지키는 이들. 출전한 수호자 1명마다 모든 아군의 방어도가 오르고 (수호자 자신은 2배), 수호자의 기본 공격에는 자신 방어도에 비례한 물리 피해가 더해집니다. 시너지가 켜지면 (2명 이상) 수호자의 도발 배율이 +${PROV.guard} 올라 적이 수호자를 더 노립니다.`,
     tierDesc: ['수호자 1명당 모든 아군 방어도 +4% (수호자 +8%), 수호자 기본 공격 + 방어도 10% 물리 피해', '수호자 1명당 모든 아군 방어도 +8% (수호자 +16%), 수호자 기본 공격 + 방어도 20% 물리 피해', '[철벽 방진] 수호자 1명당 모든 아군 방어도 +16% (수호자 +32%), 수호자 기본 공격 + 방어도 50% 물리 피해'],
     team: (t, ctx) => ({ pct: { armor: (ctx.counts.GUARD || 0) * T(t, [0.04, 0.08, 0.16]) } }),
     member: (t, ctx) => {

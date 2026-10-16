@@ -827,7 +827,7 @@ function mapScreen(run: RunState) {
   }).join('');
   const enter = run.node
     ? `<button class="btn primary tl-go" data-a="resume">${esc(NODE_NAME[run.node.type])} 계속하기</button>`
-    : pick ? `<button class="btn primary tl-go" data-a="enter" data-v="${pick}" title="단축키 Enter">${esc(NODE_NAME[pick])} 진입하기</button>`
+    : pick ? `<button class="btn primary tl-go" data-a="enter" data-v="${pick}" title="단축키 Enter">${FIGHT_NODES.includes(pick) ? (pick === 'boss' ? '보스전 진입' : '전투 진입') : `${esc(NODE_NAME[pick])} 진입`}</button>`
     : '<button class="btn primary tl-go" disabled>항로 끝</button>'; // 튜토리얼: 보스 뒤
   const f = fieldOf(run.field);
   const pet = tierOf('PET', synergyCounts(deployed(run), run).PET || 0);
@@ -839,7 +839,7 @@ function mapScreen(run: RunState) {
       <div class="screen-head map-head"><h1>페이즈 ${p}</h1>${bossGoal(run)}</div>
       <div class="tl"><ol class="tl-track">${track}</ol></div>
       <p class="map-scale" title="이번 페이즈 적 강도 (페이즈마다 누적)">${scale}</p>
-      ${mapAhead(run, pick, `${enter}<button class="btn map-manage" data-a="manage">편성 관리</button>${pet >= 2 ? `<button class="btn" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 ${CR}+25 · 상환 30</button>` : ''}`)}
+      ${mapAhead(run, pick, `${enter}${pet >= 2 ? `<button class="btn" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 ${CR}+25 · 상환 30</button>` : ''}`)}
       ${shipPanel(run)}
     </section>
     <aside class="side side-tabs${app.sel?.k === 'unit' ? ' has-detail' : ''}">${mapDetail(run)}
@@ -977,7 +977,7 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
     return `<div class="ah-inc" aria-label="예상 수입"><span class="ah-sec">예상 수입</span>${out.join('')}</div>`;
   };
   // 순서 배지: 현재 · +1 · +2 … (몇 칸 뒤인지는 툴팁)
-  const step = (i: number) => (i === run.step ? '<span class="ah-step now">현재</span>' : `<span class="ah-step" title="${i - run.step}칸 뒤 (${i + 1}번째 칸)">${lineIcon('r.next', 'li')}+${i - run.step}</span>`);
+  const step = (i: number) => (i === run.step ? '<span class="ah-step now">현재</span>' : `<span class="ah-step" title="${i - run.step}칸 뒤 (${i + 1}번째 칸)">${lineIcon('r.node', 'li')}${i - run.step}</span>`);
   const act = (cur: boolean) => (cur ? `<div class="ah-act">${buttons}</div>` : '');
   const bossCard = (i: number, e: EnemyDef, cur: boolean) => {
     const cat = enemyCategory(e), td = TEND_NAME[e.tend], rk = foeRank(run, e, run.phase, R.encounterMult('boss', i));
@@ -1675,15 +1675,19 @@ function prepBrief(run: RunState) {
   const enc = run.node?.enc;
   if (!enc) return `<div class="detail pb"><h3>이 전장의 주요 적</h3>${matchupHtml(run.field) || '<p class="small muted">특별한 면역 · 취약 없음</p>'}${PREP_TIPS}</div>`;
   const type = run.node!.type;
-  // 같은 적 · 같은 장비는 한 줄로 묶는다 (장비가 다르면 따로: 장비 아이콘을 줄에서 바로 본다). 누르면 그 적의 첫 개체 상세
-  const groups = new Map<string, { id: string; i: number; n: number; gear: string[] }>();
+  // 같은 적은 한 줄로 묶는다 (장비는 편성 보드의 적 카드에 보인다). 누르면 그 적의 첫 개체 상세
+  const groups = new Map<string, { id: string; i: number; n: number; idx: number[] }>();
   enc.enemies.forEach((s, i) => {
-    const gear = foeGear(ENEMY_BY_ID[s.defId], s);
-    const key = `${s.defId}|${gear.join(',')}`;
-    const g = groups.get(key) || { id: s.defId, i, n: 0, gear };
+    const g = groups.get(s.defId) || { id: s.defId, i, n: 0, idx: [] };
     g.n++;
-    groups.set(key, g);
+    g.idx.push(i);
+    groups.set(s.defId, g);
   });
+  // 공명 등급 추정: 개체마다 (장비 · 개조부품이 다를 수 있다) 구해 평균, 올림
+  const groupRank = (e: EnemyDef, idx: number[]) => {
+    const rs = idx.map((i) => foeRank(run, e, enc.phase ?? run.phase, enc.mult, enc.enemies[i])).filter((r): r is NonNullable<typeof r> => !!r);
+    return rs.length ? { lv: Math.ceil(rs.reduce((a, r) => a + r.lv, 0) / rs.length), hpX: rs.reduce((a, r) => a + r.hpX, 0) / rs.length } : null;
+  };
   const rank = (e: EnemyDef) => (e.tier === 'boss' ? 0 : e.tier === 'elite' ? 1 : e.inert ? 3 : 2);
   const rows = [...groups.values()].map((g) => ({ e: ENEMY_BY_ID[g.id], ...g })).filter((x) => x.e).sort((a, b) => rank(a.e) - rank(b.e));
   // 아군 공격 속성: 미리보기 전투에서 실제 값을 읽는다 (장비 · 증강 반영)
@@ -1696,7 +1700,7 @@ function prepBrief(run: RunState) {
     const atk = x.e.noAttack ? '' : tchip(lineIcon(`e.${x.e.atk.elem}`, 'li'), '', '', `${ELEM_NAME[x.e.atk.elem]} ${x.e.atk.type === 'shoot' ? '사격' : '타격'}`, `--c:var(--el-${x.e.atk.elem})`);
     return `<li><button class="pb-foe tier-${x.e.tier}" data-a="sel-enemy" data-v="${x.i}" title="${esc(`${x.e.name} — ${ENEMY_DESC[x.e.id] || ''}`)}">${sprite(x.e, 'spr')}
       <span class="pb-nm"><b>${esc(x.e.name)}</b>${x.e.tier !== 'minion' ? `<em>${tierKo(x.e)}</em>` : ''}${x.e.inert ? '<em>장애물</em>' : ''}</span><span class="pb-n">${x.n > 1 ? `×${x.n}` : ''}</span>
-      <span class="pb-sub">${rankChip(foeRank(run, x.e, enc.phase ?? run.phase, enc.mult, enc.enemies[x.i]))}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${x.e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}${atk}${x.gear.length ? `<span class="pb-gear" aria-label="장착 장비">${x.gear.map((id) => itemIcon(id, `data-a="foe-item" data-v="${id}"`)).join('')}</span>` : ''}</span></button></li>`;
+      <span class="pb-sub">${rankChip(groupRank(x.e, x.idx))}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${x.e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}${atk}</span></button></li>`;
   };
   // 상성 · 아군 공격 속성: 같은 줄 토큰 (아이콘 · 이름 · 인원 · 유리(초록) / 불리(빨강) / 면역 칩)
   const row = (icon: string, name: string, n: number, tags: string, cls = '', st = '') => `<li class="pb-row"><i class="pb-ri ${cls}"${st ? ` style="${st}"` : ''}>${icon}</i><b>${esc(name)}</b><span class="pb-cnt">${n}명</span><span class="pb-tags">${tags}</span></li>`;
@@ -4064,7 +4068,7 @@ const HOTKEYS: HotKey[] = [
   { scope: 'modal', keys: ['r'], cap: 'R', sel: ['.modal [data-a="reroll"], .modal [data-a="reroll-privilege"]'], desc: '새로고침' },
   { scope: 'map', keys: DIGITS, cap: '#', sel: ['.tl-step.cur .tl-node'], desc: '다음 노드 고르기' },
   { scope: 'map', keys: ['Enter', ' '], cap: 'Enter', sel: ['.tl-go'], desc: '노드 진입' },
-  { scope: 'map', keys: ['m'], cap: 'M', sel: ['.map-manage'], run: () => act('manage', ''), desc: '편성 관리' },
+  { scope: 'map', keys: ['m'], cap: 'M', sel: [], run: () => act('manage', ''), desc: '편성 관리 (단추 없이 키로만)' },
   { scope: 'prep', keys: [' ', 'Enter'], cap: 'Space', sel: ['[data-a="fight"]'], desc: '전투 시작' },
   { scope: 'prep', keys: ['a'], cap: 'A', sel: ['[data-a="autofill"]'], run: () => act('autofill', ''), desc: '자동 배치' },
   { scope: 'battle', keys: DIGITS.slice(0, SPEEDS.length), cap: '#', sel: ['.speed [data-a="speed"]'], run: (n) => act('speed', String(SPEEDS[n - 1])), desc: `속도 ${SPEEDS.join(' · ')}배` },
