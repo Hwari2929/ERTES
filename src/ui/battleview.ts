@@ -183,12 +183,12 @@ const easeOut = (t: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 3);
 
 /** 연출 설정 (설정 메뉴에서 바꿈): 이펙트 · 숫자 지속 ms, 스킬 연출 ms, 모션 속도 */
 export type MotionPreset = 'fast' | 'mid' | 'slow';
-/** 사망 연출: 휘리릭 (포물선을 그리며 전장 밖으로) · 스르륵 (흰 X 후 흐려짐) */
-export type DeathStyle = 'spin' | 'fade';
+/** 사망 연출 6종 (DEATH_STYLES). 처형은 설정과 무관하게 항상 갈라짐 + 해골 */
+export type DeathStyle = 'spin' | 'fade' | 'shatter' | 'glitch' | 'vapor' | 'soul';
 /** 궁극기 컷인: 전체 · 짧게 · 끄기 */
 export type UltCut = 'full' | 'short' | 'off';
-export const FX = { fxMs: 1200, skillMs: 1800, motion: 'mid' as MotionPreset, death: 'fade' as DeathStyle, ultCut: 'full' as UltCut };
-export const FX_DEFAULT = { fxMs: 1200, skillMs: 1800, motion: 'mid' as MotionPreset, death: 'fade' as DeathStyle, ultCut: 'full' as UltCut };
+export const FX = { fxMs: 1200, skillMs: 1800, motion: 'mid' as MotionPreset, death: 'spin' as DeathStyle, ultCut: 'full' as UltCut };
+export const FX_DEFAULT = { fxMs: 1200, skillMs: 1800, motion: 'mid' as MotionPreset, death: 'spin' as DeathStyle, ultCut: 'full' as UltCut };
 /** 모션 프리셋: 날렵 · 보통 (날렵 6 : 느긋 4) · 느긋 */
 const MOTION: Record<MotionPreset, { mul: number; ein: string; eout: string; peak: (p: number) => number; cell: (t: number) => number }> = {
   fast: { mul: 1, ein: EASE_IN, eout: EASE_OUT, peak: (p) => p, cell: easeOut },
@@ -199,6 +199,174 @@ const motion = () => MOTION[FX.motion] || MOTION.mid;
 /** 이펙트 지속 배율 (기본 900ms = 1) */
 const fxK = () => Math.max(0.2, FX.fxMs / 900);
 const skK = () => Math.max(0.2, FX.skillMs / 1500);
+
+// ───────── 사망 연출 (전투 화면 · 설정 미리보기 공용)
+/** 설정 메뉴용 이름 · 한 줄 설명 (순서 = 선택지 순서) */
+export const DEATH_STYLES: { id: DeathStyle; name: string; desc: string }[] = [
+  { id: 'spin', name: '휘리릭', desc: '맞은 반대쪽으로 낮은 포물선을 그리며 회전하며 날아감' },
+  { id: 'fade', name: '스르륵', desc: '일섬 한 줄 → 짧은 정지 → 카드가 위아래로 닫히며 꺼짐' },
+  { id: 'shatter', name: '파쇄', desc: '금이 간 카드가 여섯 조각으로 터져 흩어지며 떨어짐' },
+  { id: 'glitch', name: '소거', desc: '신호가 깨지며 화면이 어긋나다 브라운관처럼 한 점으로 꺼짐' },
+  { id: 'vapor', name: '증발', desc: '하얗게 타오르는 섬광 뒤 입자가 되어 위로 흩어짐' },
+  { id: 'soul', name: '이탈', desc: '몸이 잿빛으로 가라앉고 보랏빛 혼이 빠져나가 떠오름' },
+];
+export const isDeathStyle = (v: unknown): v is DeathStyle => DEATH_STYLES.some((d) => d.id === v);
+/** 연출 환경: el = 사라질 기물(카드), spawn = 카드 크기 · 카드 중앙에 놓이는 연출 요소 (ms 는 1배 기준) */
+export interface DeathCtx {
+  el: HTMLElement; img: string; pixel: boolean; sx: number;
+  play(el: Element, kf: Keyframe[], ms: number, opt?: KeyframeAnimationOptions): Animation | null;
+  spawn(cls: string, kf: Keyframe[], ms: number, opt?: KeyframeAnimationOptions, html?: string): HTMLElement;
+}
+const C0 = 'translate(-50%,-50%)';
+/** 사망 연출 실행. 반환: 기물 본체 애니메이션 (끝나면 숨김). 처형 · 모션 감소는 호출 쪽에서 처리 */
+export function deathFx(style: DeathStyle, x: DeathCtx): Animation | null {
+  const pic = (cls = '') => `<img alt="" class="${x.pixel ? 'px' : ''} ${cls}" src="${x.img}">`;
+  switch (style) {
+    case 'spin': {
+      // 휘리릭: 맞은 반대쪽으로 낮게 튀어 올랐다가 아래로 떨어지며 화면 밖으로 (회전)
+      const rot = x.sx * 900;
+      const t0 = 0.22, A = 95 / (t0 * t0), B = -2 * A * t0; // 포물선: t=0.22 에서 최고점 -95%, 끝에서 +1100%
+      const kf: Keyframe[] = [];
+      for (let i = 0; i <= 12; i++) {
+        const t = i / 12;
+        kf.push({ transform: `translate(${(x.sx * 420 * t).toFixed(1)}%, ${(A * t * t + B * t).toFixed(1)}%) rotate(${(rot * t).toFixed(0)}deg) scale(${(1 - 0.2 * t).toFixed(2)})`, opacity: 1, offset: t });
+      }
+      return x.play(x.el, kf, 1000, { fill: 'forwards', easing: 'linear' });
+    }
+    case 'fade': {
+      // 스르륵: 일섬 (0.09초) → 히트스톱 (흰 섬광으로 0.1초 정지) → 위아래로 닫혀 가로 한 줄 → 한 점으로 꺼짐
+      const ang = x.sx > 0 ? -24 : 24;
+      x.spawn('dslash', [
+        { transform: `${C0} rotate(${ang}deg) scaleX(0)`, opacity: 1, easing: 'cubic-bezier(.1,.9,.2,1)' },
+        { transform: `${C0} rotate(${ang}deg) scaleX(1.25)`, opacity: 1, offset: 0.12 },
+        { transform: `${C0} rotate(${ang}deg) scaleX(1.25)`, opacity: 1, offset: 0.26, easing: 'ease-in' },
+        { transform: `${C0} rotate(${ang}deg) scaleX(1.25) scaleY(0)`, opacity: 0, offset: 0.4 },
+        { transform: `${C0} rotate(${ang}deg) scaleX(1.25) scaleY(0)`, opacity: 0 },
+      ], 760);
+      return x.play(x.el, [
+        { transform: 'none', filter: 'none', opacity: 1 },
+        { transform: 'none', filter: 'none', opacity: 1, offset: 0.11, easing: 'steps(1, end)' },
+        { transform: 'translateX(0)', filter: 'brightness(2.4) contrast(1.4)', opacity: 1, offset: 0.12 },
+        { transform: 'translateX(0)', filter: 'brightness(2.4) contrast(1.4)', opacity: 1, offset: 0.25, easing: 'cubic-bezier(.7,0,.9,.4)' },
+        { transform: 'scale(1.04, .05)', filter: 'brightness(4)', opacity: 1, offset: 0.46, easing: 'cubic-bezier(.7,0,.9,.4)' },
+        { transform: 'scale(0, .05)', filter: 'brightness(4)', opacity: 1, offset: 0.6 },
+        { transform: 'scale(0, 0)', filter: 'brightness(4)', opacity: 0 },
+      ], 760, { fill: 'forwards' });
+    }
+    case 'shatter': {
+      // 파쇄: 금이 간 채 0.08초 멈췄다가 여섯 조각이 바깥으로 터지며 떨어진다 (중앙 충격파 1)
+      const C = [52, 46];
+      const parts: number[][][] = [
+        [[0, 0], [55, 0]], [[55, 0], [100, 0], [100, 40]], [[100, 40], [100, 100], [70, 100]],
+        [[70, 100], [25, 100]], [[25, 100], [0, 100], [0, 60]], [[0, 60], [0, 0]],
+      ];
+      parts.forEach((pts, i) => {
+        const poly = [C, ...pts];
+        const cx = poly.reduce((a2, q) => a2 + q[0], 0) / poly.length - C[0], cy = poly.reduce((a2, q) => a2 + q[1], 0) / poly.length - C[1];
+        const l = Math.hypot(cx, cy) || 1, dx = (cx / l) * (70 + (i % 3) * 18) + x.sx * 25, dy = (cy / l) * 60;
+        const r = (cx >= 0 ? 1 : -1) * (40 + i * 23);
+        const d = x.spawn('dfx dshard', [
+          { transform: C0, filter: 'brightness(1)', opacity: 1 },
+          { transform: `translate(calc(-50% + ${(cx / l) * 3}%), calc(-50% + ${(cy / l) * 3}%))`, filter: 'brightness(1.8)', opacity: 1, offset: 0.08, easing: 'steps(1, end)' },
+          { transform: `translate(calc(-50% + ${(cx / l) * 3}%), calc(-50% + ${(cy / l) * 3}%))`, filter: 'brightness(1.8)', opacity: 1, offset: 0.16, easing: 'cubic-bezier(.15,.8,.3,1)' },
+          { transform: `translate(calc(-50% + ${dx * 0.7}%), calc(-50% + ${dy * 0.7 - 10}%)) rotate(${r * 0.6}deg)`, filter: 'brightness(1)', opacity: 1, offset: 0.55, easing: 'ease-in' },
+          { transform: `translate(calc(-50% + ${dx}%), calc(-50% + ${dy + 70}%)) rotate(${r}deg)`, filter: 'brightness(.6)', opacity: 0 },
+        ], 1050, {}, pic());
+        d.style.clipPath = `polygon(${poly.map((q) => `${q[0]}% ${q[1]}%`).join(',')})`;
+      });
+      x.spawn('dring', [{ transform: `${C0} scale(.2)`, opacity: 0 }, { transform: `${C0} scale(.2)`, opacity: 1, offset: 0.1 }, { transform: `${C0} scale(1.5)`, opacity: 0, offset: 0.45 }, { transform: `${C0} scale(1.5)`, opacity: 0 }], 1050);
+      return x.play(x.el, [{ opacity: 0 }, { opacity: 0 }], 1050, { fill: 'forwards' });
+    }
+    case 'glitch': {
+      // 소거: 색이 갈라지며 띠가 어긋나는 신호 오류 (0.45초) → 세로로 눌려 가로 한 줄 → 한 점 → 꺼짐
+      const j = [[3, 0], [-4, 1], [2, -1], [-2, 0], [5, 0], [-3, -1], [0, 0]];
+      const kf: Keyframe[] = j.map(([dx, dy], i) => ({ transform: `translate(${dx}%, ${dy}%)`, filter: i % 2 ? 'hue-rotate(160deg) saturate(3) contrast(1.6)' : 'saturate(.4) brightness(1.4)', opacity: i === 3 ? 0.55 : 1, offset: (i / j.length) * 0.45, easing: 'steps(1, end)' }));
+      kf.push({ transform: 'scale(1, 1)', filter: 'brightness(2.2) saturate(0)', opacity: 1, offset: 0.46, easing: 'cubic-bezier(.8,0,.9,.3)' },
+        { transform: 'scale(1.08, .03)', filter: 'brightness(4) saturate(0)', opacity: 1, offset: 0.62, easing: 'cubic-bezier(.8,0,.9,.3)' },
+        { transform: 'scale(.03, .03)', filter: 'brightness(5) saturate(0)', opacity: 1, offset: 0.78 },
+        { transform: 'scale(0, 0)', filter: 'brightness(5) saturate(0)', opacity: 0 });
+      const bands = [[12, 70], [44, 42], [72, 14]];
+      bands.forEach(([t, b], i) => {
+        const sh = (i % 2 ? -1 : 1) * (9 + i * 4);
+        const d = x.spawn('dfx dglitch', [
+          { transform: C0, opacity: 0, easing: 'steps(1, end)' },
+          { transform: `translate(calc(-50% + ${sh}%), -50%)`, opacity: 0.9, offset: 0.06 + i * 0.05, easing: 'steps(1, end)' },
+          { transform: `translate(calc(-50% + ${-sh * 0.6}%), -50%)`, opacity: 0.9, offset: 0.2 + i * 0.05, easing: 'steps(1, end)' },
+          { transform: `translate(calc(-50% + ${sh * 1.4}%), -50%)`, opacity: 0.8, offset: 0.33 + i * 0.03, easing: 'steps(1, end)' },
+          { transform: C0, opacity: 0, offset: 0.45 },
+          { transform: C0, opacity: 0 },
+        ], 950, {}, pic());
+        d.style.clipPath = `inset(${t}% 0 ${b}% 0)`;
+      });
+      return x.play(x.el, kf, 950, { fill: 'forwards' });
+    }
+    case 'vapor': {
+      // 증발: 0.1초 만에 하얗게 타오르고 (섬광) 위로 번지며 흩어진다 + 입자 6
+      x.spawn('dflash', [{ transform: `${C0} scale(.4)`, opacity: 0 }, { transform: `${C0} scale(1.25)`, opacity: 1, offset: 0.1 }, { transform: `${C0} scale(1.6)`, opacity: 0, offset: 0.4 }, { transform: `${C0} scale(1.6)`, opacity: 0 }], 1100);
+      for (let i = 0; i < 6; i++) {
+        const px = 14 + i * 14 + ((i * 37) % 9), py = 40 + ((i * 53) % 40), rise = 90 + ((i * 29) % 60), drift = ((i % 3) - 1) * 18 + x.sx * 6;
+        const d = x.spawn('dmote', [
+          { transform: C0, opacity: 0 },
+          { transform: C0, opacity: 0, offset: 0.14 + i * 0.03 },
+          { transform: 'translate(-50%, calc(-50% - 10%))', opacity: 1, offset: 0.28 + i * 0.03, easing: 'cubic-bezier(.2,.6,.4,1)' },
+          { transform: `translate(calc(-50% + ${drift}%), calc(-50% - ${rise}%)) scale(.4)`, opacity: 0 },
+        ], 1100);
+        d.style.setProperty('--mx', `${px}%`); d.style.setProperty('--my', `${py}%`);
+      }
+      return x.play(x.el, [
+        { transform: 'none', filter: 'none', opacity: 1, easing: 'ease-out' },
+        { transform: 'scale(1.06)', filter: 'brightness(4) saturate(0)', opacity: 1, offset: 0.1 },
+        { transform: 'scale(1.06)', filter: 'brightness(4) saturate(0)', opacity: 1, offset: 0.2, easing: 'cubic-bezier(.3,0,.6,1)' },
+        { transform: 'translateY(-14%) scale(.92, 1.12)', filter: 'brightness(3) saturate(0) blur(3px)', opacity: 0.35, offset: 0.62 },
+        { transform: 'translateY(-22%) scale(.8, 1.25)', filter: 'brightness(3) saturate(0) blur(6px)', opacity: 0 },
+      ], 1100, { fill: 'forwards' });
+    }
+    case 'soul': {
+      // 이탈: 몸은 잿빛으로 가라앉고, 보랏빛 혼(초상 잔상)이 일렁이며 떠올라 사라진다 + 사이오닉 고리
+      x.spawn('dfx dsoul', [
+        { transform: `${C0} scale(1)`, opacity: 0 },
+        { transform: `${C0} scale(1.02)`, opacity: 0.85, offset: 0.16, easing: 'ease-out' },
+        { transform: 'translate(calc(-50% + 6%), calc(-50% - 40%)) scale(1.12)', opacity: 0.65, offset: 0.5, easing: 'ease-in-out' },
+        { transform: 'translate(calc(-50% - 5%), calc(-50% - 85%)) scale(1.22)', opacity: 0.3, offset: 0.78, easing: 'ease-in' },
+        { transform: 'translate(-50%, calc(-50% - 120%)) scale(1.3, 1.5)', opacity: 0 },
+      ], 1150, {}, pic());
+      x.spawn('dring psi', [{ transform: `${C0} scale(.5)`, opacity: 0 }, { transform: `${C0} scale(.6)`, opacity: 1, offset: 0.14 }, { transform: `${C0} scale(1.45)`, opacity: 0, offset: 0.55 }, { transform: `${C0} scale(1.45)`, opacity: 0 }], 1150);
+      return x.play(x.el, [
+        { transform: 'none', filter: 'none', opacity: 1 },
+        { transform: 'none', filter: 'grayscale(1) brightness(.55)', opacity: 1, offset: 0.16, easing: 'ease-in' },
+        { transform: 'translateY(8%) scale(.96)', filter: 'grayscale(1) brightness(.35)', opacity: 0.6, offset: 0.6 },
+        { transform: 'translateY(14%) scale(.92)', filter: 'grayscale(1) brightness(.2)', opacity: 0 },
+      ], 1150, { fill: 'forwards' });
+    }
+  }
+}
+/** 설정 미리보기: host 안의 .dpv-card 를 대상으로 연출을 한 번 재생 */
+export function previewDeath(host: HTMLElement, style: DeathStyle) {
+  const card = host.querySelector<HTMLElement>('.dpv-card');
+  const img = card?.querySelector('img');
+  if (!card || !img) return;
+  for (const a of card.getAnimations()) a.cancel();
+  host.querySelectorAll('.dpv-fx').forEach((n) => n.remove());
+  if (typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const k = fxK();
+  const play = (el: Element, kf: Keyframe[], ms: number, opt: KeyframeAnimationOptions = {}) => (el.animate ? el.animate(kf, { duration: ms * k, ...opt }) : null);
+  const a = deathFx(style, {
+    el: card, img: img.src, pixel: false, sx: 1, play,
+    spawn(cls, kf, ms, opt = {}, html = '') {
+      const d = document.createElement('div');
+      d.className = `${cls} dpv-fx`;
+      d.style.left = '50%'; d.style.top = '50%'; d.style.width = `${card.offsetWidth}px`; d.style.height = `${card.offsetHeight}px`;
+      if (html) d.innerHTML = html;
+      host.appendChild(d);
+      const an = play(d, kf, ms, { fill: 'both', ...opt });
+      if (an) { const rm = () => d.remove(); an.finished.then(rm, rm); } else d.remove();
+      return d;
+    },
+  });
+  // 끝나면 잠시 뒤 카드를 되살린다
+  const back = () => setTimeout(() => { for (const an of card.getAnimations()) an.cancel(); }, 450);
+  if (a) a.finished.then(back, back);
+}
 
 /** 표시 우선순위: 0 일반 숫자 · 1 스킬 피해 · 범위 · 2 스킬명 · 부활 · 상태이상 (생략하지 않음) */
 type Prio = 0 | 1 | 2;
@@ -1111,32 +1279,15 @@ export class BattleView {
       return;
     }
     const finish = (a: Animation | null) => { if (a) { const f = () => hide(); a.finished.then(f, f); } else hide(); };
-    if (FX.death === 'spin') {
-      // 휘리릭: 맞은 반대쪽으로 낮게 튀어 올랐다가 아래로 떨어지며 화면 밖으로 (회전)
-      const from = this.unit(this.lastHitFrom.get(u.id));
-      const sx = from ? Math.sign(u.x - from.x) || (u.side === 0 ? -1 : 1) : (u.side === 0 ? -1 : 1);
-      const rot = sx * 900;
-      // 포물선: x 는 등속, y = A·t² + B·t (t=0.22 에서 최고점 -95%, 끝에서 +1100%)
-      const t0 = 0.22, A = 95 / (t0 * t0), B = -2 * A * t0;
-      const kf: Keyframe[] = [];
-      for (let i = 0; i <= 12; i++) {
-        const t = i / 12;
-        kf.push({ transform: `translate(${(sx * 420 * t).toFixed(1)}%, ${(A * t * t + B * t).toFixed(1)}%) rotate(${(rot * t).toFixed(0)}deg) scale(${(1 - 0.2 * t).toFixed(2)})`, opacity: 1, offset: t });
-      }
-      finish(this.play(e.el, kf, 1000 * fxK(), { fill: 'forwards', easing: 'linear' }));
-    } else {
-      // 스르륵: 크고 흰 X 가 그어지고 흐려지며 사라진다
-      for (const [i, deg] of [[0, 45], [1, -45]] as const) {
-        const d = this.spawnFx('xmark', c.x, c.y, [
-          { transform: `translate(-50%,-50%) rotate(${deg}deg) scaleX(0)`, opacity: 1, easing: EASE_OUT },
-          { transform: `translate(-50%,-50%) rotate(${deg}deg) scaleX(1)`, opacity: 1, offset: 0.3 },
-          { transform: `translate(-50%,-50%) rotate(${deg}deg) scaleX(1)`, opacity: 1, offset: 0.7 },
-          { transform: `translate(-50%,-50%) rotate(${deg}deg) scaleX(1)`, opacity: 0 },
-        ], 900, { delay: i * 110 * fxK() });
-        d.style.width = `${cw * 1.05}%`;
-      }
-      finish(this.play(e.el, [{ filter: 'blur(0)', opacity: 1 }, { filter: 'blur(0)', opacity: 1, offset: 0.35 }, { filter: 'blur(3px) grayscale(1)', opacity: 0 }], 900 * fxK(), { fill: 'forwards' }));
-    }
+    const from = this.unit(this.lastHitFrom.get(u.id));
+    const sx = from ? Math.sign(u.x - from.x) || (u.side === 0 ? -1 : 1) : (u.side === 0 ? -1 : 1);
+    const card = hasPortrait(u);
+    const W = `${cw * (card ? 0.8 : 0.82)}%`, H = `${ch * (card ? 0.8 : 0.82)}%`;
+    finish(deathFx(FX.death, {
+      el: e.el, img: iconURL(u), pixel: !card, sx,
+      play: (el, kf, ms, opt = {}) => this.play(el, kf, ms * fxK(), opt),
+      spawn: (cls, kf, ms, opt = {}, html = '') => { const d = this.spawnFx(cls, c.x, c.y, kf, ms, opt, html); d.style.width = W; d.style.height = H; return d; },
+    }));
   }
 
   /** 승패가 갈린 순간: 마지막으로 쓰러진 기물로 확대 + 감속 */

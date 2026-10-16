@@ -1016,6 +1016,20 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .pref .pn { display: flex; align-items: center; gap: 4px; font-size: 12px; white-space: nowrap; }
 .pref .pn input { width: 76px; height: auto; margin: 0; padding: 4px 6px; font: 600 13px var(--f-mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; text-align: right; }
 .pref .seg { display: flex; gap: 4px; flex: none; }
+/* 사망 연출: 6종 선택지 (이름 + 한 줄 설명) + 미리보기 카드 */
+div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px; grid-template-areas: "h pv" "sel pv"; gap: 8px 12px; align-items: start; }
+.pref-death > span { grid-area: h; }
+.pref-death .dsel { grid-area: sel; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.pref-death .dopt { display: grid; gap: 1px; text-align: left; padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--fg); cursor: pointer; font: inherit; }
+.pref-death .dopt b { font-size: 12.5px; }
+.pref-death .dopt .small { font-size: 11px; line-height: 1.35; }
+.pref-death .dopt.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--bg)); }
+.pref-death .dopt.on b { color: var(--accent); }
+.dpv { grid-area: pv; position: relative; height: 170px; border-radius: 6px; background: var(--cell-mine, #1a2230); overflow: hidden; display: grid; place-items: center; align-self: stretch; }
+.dpv-card { width: 56px; height: 56px; border-radius: 3px; box-shadow: 0 0 0 1px rgb(240 242 246 / .35), 0 2px 6px rgb(0 0 0 / .5); }
+.dpv-card img { width: 100%; height: 100%; border-radius: 3px; display: block; object-fit: cover; }
+.dpv-btn { position: absolute; left: 50%; bottom: 6px; translate: -50% 0; white-space: nowrap; z-index: 6; }
+@media (max-width: 520px) { div.pref.pref-death { grid-template-columns: minmax(0, 1fr); grid-template-areas: "h" "pv" "sel"; } .pref-death .dsel { grid-template-columns: minmax(0, 1fr); } .dpv { height: 150px; } }
 
 /* ── 능력 (통일 형식) */
 .ab-click { cursor: pointer; border-radius: 4px; }
@@ -1893,7 +1907,19 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .cutline { position: absolute; height: 3px; border-radius: 2px; pointer-events: none; z-index: 5; background: linear-gradient(90deg, transparent, #fff 20%, #fff 80%, transparent); box-shadow: 0 0 10px #fff, 0 0 18px var(--bad); }
 .skull { position: absolute; width: 4.2%; min-width: 30px; aspect-ratio: 1; pointer-events: none; z-index: 6; filter: drop-shadow(0 0 8px var(--bad)) drop-shadow(0 2px 3px #000); }
 .skull svg { width: 100%; height: 100%; fill: #f4f1ea; }
-.xmark { position: absolute; height: 5px; border-radius: 3px; pointer-events: none; z-index: 5; background: #fff; box-shadow: 0 0 8px rgb(255 255 255 / .8), 0 1px 3px #000; }
+/* 사망 연출 (battleview deathFx): 모든 요소는 카드 크기 · 카드 중앙 기준 */
+.dfx, .dslash, .dring, .dflash, .dmote { position: absolute; pointer-events: none; z-index: 5; }
+.dfx { border-radius: 3px; overflow: hidden; }
+.dfx img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dfx img.px { image-rendering: pixelated; object-fit: contain; }
+.dshard { box-shadow: inset 0 0 0 1px rgb(255 255 255 / .35); }
+.dglitch { filter: drop-shadow(3px 0 0 rgb(0 255 240 / .8)) drop-shadow(-3px 0 0 rgb(255 0 200 / .8)); }
+.dsoul { overflow: visible; filter: grayscale(1) sepia(1) hue-rotate(225deg) saturate(3) brightness(1.5) blur(.6px) drop-shadow(0 0 8px #b07cff); mix-blend-mode: screen; }
+.dslash { height: 4px !important; border-radius: 2px; background: linear-gradient(90deg, transparent, #fff 12%, #fff 88%, transparent); box-shadow: 0 0 6px #fff, 0 0 14px rgb(255 255 255 / .6); }
+.dring { border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 10px #fff, inset 0 0 8px rgb(255 255 255 / .5); }
+.dring.psi { border-color: #c9a8ff; box-shadow: 0 0 12px #b07cff, inset 0 0 10px #b07cff; }
+.dflash { border-radius: 50%; background: radial-gradient(circle, #fff 0 30%, rgb(160 230 255 / .8) 50%, transparent 70%); mix-blend-mode: screen; }
+.dmote::before { content: ''; position: absolute; left: var(--mx, 50%); top: var(--my, 50%); width: 3px; height: 3px; border-radius: 1px; background: #e8fbff; box-shadow: 0 0 6px #9fe8ff, 0 0 2px #fff; }
 .finale { position: absolute; left: 50%; top: 50%; z-index: 20; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 90px 14px;
   background: linear-gradient(90deg, transparent, rgb(8 10 14 / .85) 18%, rgb(8 10 14 / .85) 82%, transparent); white-space: nowrap; }
 .finale b { font: 400 40px var(--f-display); letter-spacing: .18em; }

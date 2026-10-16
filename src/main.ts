@@ -25,7 +25,7 @@ import * as R from './engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
 import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SynergyId, type UnitState } from './types';
-import { BattleView, fmt, FX, FX_DEFAULT, type DeathStyle, type MotionPreset, type UltCut } from './ui/battleview';
+import { BattleView, DEATH_STYLES, fmt, FX, FX_DEFAULT, isDeathStyle, previewDeath, type DeathStyle, type MotionPreset, type UltCut } from './ui/battleview';
 import { ULTS } from './data/ults';
 import { VOICE, voicePick } from './data/voicelines';
 import { DEFAULT_RELIC, RELIC_BY_ID } from './data/relics';
@@ -55,7 +55,8 @@ function applyFxPrefs() {
   FX.fxMs = ms(p.fxMs, FX_DEFAULT.fxMs);
   FX.skillMs = ms(p.skillMs, FX_DEFAULT.skillMs);
   FX.motion = p.motion === 'fast' || p.motion === 'slow' || p.motion === 'mid' ? p.motion : FX_DEFAULT.motion;
-  FX.death = p.death === 'spin' || p.death === 'fade' ? p.death : FX_DEFAULT.death;
+  // 저장값이 없으면 기본값 (휘리릭). 예전에 고른 '스르륵' 은 직접 고른 것과 구분할 수 없어 그대로 둔다
+  FX.death = isDeathStyle(p.death) ? p.death : FX_DEFAULT.death;
   FX.ultCut = p.ultCut === 'full' || p.ultCut === 'short' || p.ultCut === 'off' ? p.ultCut : FX_DEFAULT.ultCut;
 }
 function savePref(k: string, v: unknown) {
@@ -1951,8 +1952,9 @@ function menuModal(run: RunState | null) {
       <label class="pref pref-num"><span><b>스킬 사용 연출 시간</b><br><span class="muted small">스킬명 배너와 시전 테두리가 머무는 시간 (기본 ${FX_DEFAULT.skillMs}ms)</span></span><span class="pn"><input type="number" min="500" max="5000" step="100" data-pref="skillMs" value="${FX.skillMs}"> ms</span></label>
       <div class="pref"><span><b>모션 속도</b><br><span class="muted small">공격 · 피격 · 회피 · 이동 동작의 빠르기</span></span>
         <span class="seg">${([['fast', '날렵'], ['mid', '보통'], ['slow', '느긋']] as const).map(([k, l]) => `<button class="btn tiny ${FX.motion === k ? 'on' : ''}" data-a="pref-motion" data-v="${k}" aria-pressed="${FX.motion === k}">${l}</button>`).join('')}</span></div>
-      <div class="pref"><span><b>사망 연출</b><br><span class="muted small">휘리릭: 맞은 반대쪽으로 낮은 포물선을 그리며 떨어져 나감 · 스르륵: 흰 X 후 흐려짐 (처형은 항상 갈라짐 + 해골)</span></span>
-        <span class="seg">${([['spin', '휘리릭'], ['fade', '스르륵']] as const).map(([k, l]) => `<button class="btn tiny ${FX.death === k ? 'on' : ''}" data-a="pref-death" data-v="${k}" aria-pressed="${FX.death === k}">${l}</button>`).join('')}</span></div>
+      <div class="pref pref-death"><span><b>사망 연출</b><br><span class="muted small">처형은 설정과 관계없이 항상 갈라짐 + 해골. 고르면 오른쪽에서 미리 봅니다.</span></span>
+        <div class="dsel">${DEATH_STYLES.map((d) => `<button class="dopt${FX.death === d.id ? ' on' : ''}" data-a="pref-death" data-v="${d.id}" aria-pressed="${FX.death === d.id}"><b>${d.name}</b><span class="muted small">${d.desc}</span></button>`).join('')}</div>
+        <div class="dpv" aria-hidden="true"><div class="dpv-card"><img alt="" src="${iconURL({ sprite: '', palette: [], id: 'rachel' })}"></div><button class="btn tiny dpv-btn" data-a="death-preview">미리보기</button></div></div>
       <div class="pref"><span><b>궁극기 컷인</b><br><span class="muted small">메이저 궁극기 발동 시 스탠딩 · 스킬명 · 대사 컷인과 감속. 짧게: 대사 없이 0.7초, 끄기: 스킬명 배너만</span></span>
         <span class="seg">${([['full', '전체'], ['short', '짧게'], ['off', '끄기']] as const).map(([k, l]) => `<button class="btn tiny ${FX.ultCut === k ? 'on' : ''}" data-a="pref-ultcut" data-v="${k}" aria-pressed="${FX.ultCut === k}">${l}</button>`).join('')}</span></div>
       <div class="row-btns"><button class="btn ghost" data-a="pref-fx-reset">연출 기본값</button><button class="btn primary" data-a="menu-close">닫기</button></div>
@@ -3204,7 +3206,8 @@ function act(a: string, v: string) {
     case 'menu-tab': app.menu = v as 'menu' | 'settings'; break;
     case 'pref-zoom': app.zoomOut = !app.zoomOut; savePref('zoomOut', app.zoomOut); break;
     case 'pref-motion': savePref('motion', v); applyFxPrefs(); break;
-    case 'pref-death': savePref('death', v); applyFxPrefs(); break;
+    case 'pref-death': savePref('death', v); applyFxPrefs(); render(); { const h = document.querySelector<HTMLElement>('.dpv'); if (h) previewDeath(h, FX.death); } return;
+    case 'death-preview': { const h = document.querySelector<HTMLElement>('.dpv'); if (h) previewDeath(h, FX.death); } return;
     case 'pref-ultcut': savePref('ultCut', v); applyFxPrefs(); break;
     case 'pref-fx-reset': savePref('fxMs', FX_DEFAULT.fxMs); savePref('skillMs', FX_DEFAULT.skillMs); savePref('motion', FX_DEFAULT.motion); savePref('death', FX_DEFAULT.death); savePref('ultCut', FX_DEFAULT.ultCut); applyFxPrefs(); break;
     case 'pref-slow': app.slowDetail = !app.slowDetail; savePref('slowDetail', app.slowDetail); applySpeed(); break;
