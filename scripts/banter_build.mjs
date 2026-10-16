@@ -70,19 +70,39 @@ for (const b of out) {
   const ids = new Set([...b.cast, ...b.lines.map(([w]) => w)].map((w) => (w === 'cesare' ? 'joshua' : w)));
   b.cast = [...ids];
 }
+// 층 태그: 표면(s, 말버릇 · 소재) · 이상(i, 가치 · 목표 · 입장) · 실재(r, 상처 · 기제). 키워드 자동 + LAYER_FIX 수동 보정
+const DEEP = /사별|브샤크|로도스|거미집|기도서|살아남아라|벤데타|숨어 살|묘비|금서|읽혔|병합|유랑령|어머니|전도사|구토|표정 연습|기억이 비|기억 소실|노예|해리|돌아오지 못|못 지켰|무덤|장례|위령|유품|떠난 사람|마지막 수/;
+const IDEAL = /정의|윤리|신념|원칙|목표|버킷리스트|승천|자유|책임|의미가|왜 싸|용병이|약속|지키는|믿어|추모|신앙|기도|꿈이|명예|배신|복수|계약서에 없는|사람을 살리|이기는 게/;
+// 이상 · 실재는 키워드가 잘못 걸리기 쉬워 (기도 · 목표 · 책임 같은 말은 대개 개그) 수동으로만 올린다. DEEP 는 후보 표시용
+const cand = [];
+const LAYER_FIX = {
+  '11.11': 'r', // 오르카 × 비비안: 브샤크 음식 기억 ("같은 걸 기억하는 사람이 있으니")
+  '08.20': 'i', // 유피토 × 필리스: 후임 · 책임
+  '11.32': 'i', // 미리내: 부모님께 계약을 숨긴다
+  '10.19': 'i', // 테르모필레: '물러서라'
+  '18.10': 'i', // 웨스트 × 테르모필레: 한 발 물러서는 게 고장
+};
+for (const b of out) {
+  const all = [b.sit, b.sub, ...b.lines.map((l) => l[1])].join(' ');
+  b.layer = LAYER_FIX[b.id] || 's';
+  if (!LAYER_FIX[b.id] && (DEEP.test(all) || IDEAL.test(all))) cand.push(`${b.id} ${b.sit}`);
+}
 if (unknown.size) { console.error('알 수 없는 화자 · 줄:', [...unknown].join(', ')); process.exit(1); }
 
 const J = (x) => JSON.stringify(x);
 const body = `// 자동 생성: node scripts/banter_build.mjs (원본 docs/banter/*.md) — 직접 고치지 말 것
 /** 만담 주제: [파일 키, 제목] */
 export const BANTER_TOPICS: [string, string][] = ${J(topics)};
-/** 만담 한 편: id · 주제 번호 · 소제목 · 상황 · 장소(0 바 · 1 어디서나 · 2 바 밖) · 출연 기물 · 대사 [화자, 대사, 이름표?] */
-export interface Banter { id: string; t: number; sub: string; sit: string; place: 0 | 1 | 2; cast: string[]; lines: ([string, string] | [string, string, string])[] }
+/** 만담 한 편: id · 주제 번호 · 소제목 · 상황 · 장소(0 바 · 1 어디서나 · 2 바 밖) · 층(s 표면 · i 이상 · r 실재) · 출연 기물 · 대사 [화자, 대사, 이름표?] */
+export interface Banter { id: string; t: number; sub: string; sit: string; place: 0 | 1 | 2; layer: 's' | 'i' | 'r'; cast: string[]; lines: ([string, string] | [string, string, string])[] }
 export const BANTER: Banter[] = [
-${out.map((b) => `  {id:${J(b.id)},t:${b.t},sub:${J(b.sub)},sit:${J(b.sit)},place:${b.place},cast:${J(b.cast)},lines:${J(b.lines)}},`).join('\n')}
+${out.map((b) => `  {id:${J(b.id)},t:${b.t},sub:${J(b.sub)},sit:${J(b.sit)},place:${b.place},layer:${J(b.layer)},cast:${J(b.cast)},lines:${J(b.lines)}},`).join('\n')}
 ];
 `;
 writeFileSync(OUT, body);
 const cnt = [0, 0, 0];
 for (const b of out) cnt[b.place]++;
+const lay = { s: 0, i: 0, r: 0 };
+for (const b of out) lay[b.layer]++;
+console.log(`층: 표면 ${lay.s} · 이상 ${lay.i} · 실재 ${lay.r} (키워드 후보 ${cand.length}편은 표면 유지, LAYER_FIX 로 수동 지정)`);
 console.log(`만담 ${out.length}편 · 주제 ${topics.length}개 → ${OUT.replace(ROOT, '')} (바 ${cnt[0]} · 어디서나 ${cnt[1]} · 바 밖 ${cnt[2]})`);

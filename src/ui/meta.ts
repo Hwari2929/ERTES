@@ -32,6 +32,8 @@ export interface BarMeta {
   cur?: { seed: number; mvp: Record<string, number>; newEv: string[] };
   /** 기물별 마지막으로 기용한 런 번호 */
   used?: Record<string, number>;
+  /** 바에서 말 건 횟수 (관계: 실재 층 해금 기준의 일부) */
+  bond?: Record<string, number>;
 }
 
 const KEY = 'errantes.meta.v1';
@@ -79,7 +81,14 @@ export function metaBarMvp(seed: number, defId: string) {
   c.mvp[defId] = (c.mvp[defId] || 0) + 1;
   save();
 }
-/** 바에서 본 만담 · 들은 이야기 · 반응 대사 기록 */
+/** 바에서 이 인물에게 말을 걸었다 */
+export function metaBarBond(id: string) {
+  const m = loadMeta();
+  const b = ((m.bar ||= {}).bond ||= {});
+  b[id] = (b[id] || 0) + 1;
+  save();
+}
+/** 바에서 본 만담 · 들은 이야기 · 반응 대사 기록 (만담 id, 확장 틀은 '틀 id+끼어든 인물') */
 export function metaBar(kind: 'seen' | 'talk' | 'heard', key: string) {
   const m = loadMeta();
   const l = ((m.bar ||= {})[kind] ||= []);

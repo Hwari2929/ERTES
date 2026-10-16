@@ -2886,3 +2886,7 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .bar-rec-b h3 { margin: 0 0 4px; font-size: var(--fs-md); }
 .bar-rec-b p { font-size: var(--fs-base); }
 .bar-rec-b p b { color: var(--c, var(--c-text)); margin-right: 6px; }
+.bar-rec-v { margin-top: 6px; padding-left: 10px; border-left: 2px solid var(--line-soft); }
+/* 실재 층 장면(심야): 바 조명을 낮춘다 */
+.bar.late .bar-shade { background: linear-gradient(180deg, var(--shade-3), var(--shade-1) 30%, var(--shade-2) 60%, var(--shade-3)); }
+@media (prefers-reduced-motion: no-preference) { .bar-shade { transition: background .8s; } }

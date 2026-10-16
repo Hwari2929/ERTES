@@ -5,14 +5,15 @@
 // 보상은 없다. 본 만담 · 들은 이야기는 도감 '기록' 탭에 모인다 (meta.bar).
 import { BANTER, BANTER_TOPICS, type Banter } from '../data/bar/banter.gen';
 import { REACT_RULES, type ReactCtx } from '../data/bar/react';
-import { BAR_GUEST, BAR_IDLE, BAR_TALK, FIELD_SHORT, GENERIC_REACT } from '../data/bar/talk';
+import { FRAME_THEME, FRAMES, type Frame } from '../data/bar/frames';
+import { BAR_GUEST, BAR_IDLE, BAR_TALK, DEEP_TOPICS, FIELD_SHORT, GENERIC_REACT } from '../data/bar/talk';
 import { FIELDS, fieldOf } from '../data/battlefields';
 import { EVENT_BY_ID } from '../data/events';
 import { BGS, fillText, NPCS, type Beat } from '../data/scene';
 import { SYN_BY_ID } from '../data/synergies';
 import { UNIT_BY_ID, UNITS } from '../data/units';
 import { advKey, closeAdv, playAdv } from './adv';
-import { loadMeta, metaBar } from './meta';
+import { loadMeta, metaBar, metaBarBond } from './meta';
 import { bgURL, standURL } from './portraits';
 import { listSaves, loadRun } from './save';
 
@@ -27,6 +28,12 @@ const TUT_CAST = ['yelena', 'franze', 'lindiwe', 'vivian', 'phyllis', 'temur', '
 const BASE = ['aiden', 'rachel'];
 /** 바텐더를 빼고 바에 앉는 최대 인원 (손님 포함) */
 const SEATS = 3;
+/** 실재 층 해금: 그 인물과의 관계 = 바에서 말 건 횟수 + 함께 출전한 런 수 */
+export const DEEP_BOND = 6;
+/** 구경 모드 층 비율: 실재 약 10% · 이상 약 25% (해금된 것이 있을 때) */
+const DEEP_SHARE = 0.1, IDEAL_SHARE = 0.25;
+export const bondOf = (id: string) => { const m = loadMeta(); return (m.bar?.bond?.[id] || 0) + (m.units[id]?.runs || 0); };
+const deepOpen = (id?: string) => !id || bondOf(id) >= DEEP_BOND;
 
 // ───────── 화자 · 이름
 const NAME_ID: Record<string, string> = Object.fromEntries([
@@ -111,13 +118,16 @@ const fmt = (s: string) => esc(s);
 
 // ───────── 구경 모드 상태
 interface Seat { id: string; guest?: boolean }
+/** 지금 재생 중인 장면: 줄 = [화자 id ('' = 서술), 대사, 이름표?] */
+type Line = [string, string, string?];
+interface Scene { key: string; sit: string; lines: Line[]; layer?: 's' | 'i' | 'r' }
 const S = {
   seats: [] as Seat[],
-  cur: null as null | { id: string; sit: string; lines: [string, string, string?][] },
+  cur: null as null | Scene,
   li: 0,
   timer: 0,
   known: new Set<string>(),
-  session: new Set<string>(), // 이번 방문에 본 만담
+  session: new Set<string>(), // 이번 방문에 본 장면 키
   idleI: 0,
   entered: 0,
 };
@@ -127,20 +137,62 @@ function eligibleAmbient(): Banter[] {
   const k = S.known;
   return BANTER.filter((b) => b.place !== 2 && b.cast.every((id) => k.has(id)) && b.cast.filter((id) => id !== 'aiden').length <= SEATS);
 }
-/** 다음 만담: 안 본 것 · 지금 앉아 있는 사람이 많이 겹치는 것 우선 */
-function nextBanter() {
-  const seen = new Set(loadMeta().bar?.seen || []);
-  const pool = eligibleAmbient().filter((b) => !S.session.has(b.id));
+/** 대본 줄 → 장면 줄 ('이름: 대사' · '* 서술', 이름이 없으면 owner) */
+function parseLine(l: string, owner: string, suffix = ''): Line {
+  if (l.startsWith('* ')) return ['', l.slice(2)];
+  const m = l.match(/^([^:\s]{1,8}): (.*)$/);
+  if (m && NAME_ID[m[1]]) return [NAME_ID[m[1]], fillText(m[2], { pc: PC })];
+  return [owner, fillText(l, { pc: PC }), suffix ? nameOf(owner) + suffix : undefined];
+}
+/** 확장 틀 펼치기: 슬롯마다 후보 중 바에 앉아 있는 사람 → 없으면 해금된 후보를 불러 앉힌다 (70%) → 없으면 건너뜀.
+ *  comm: 통신 기록 (끼어드는 사람은 현장에서 홀로그램으로) */
+function buildFrame(f: Frame, pool: Set<string>, here: Set<string>, comm = false): Scene {
+  const ints: string[] = [];
+  const onStage = new Set(f.cast.filter((id) => id !== 'aiden'));
+  for (const slot of f.slots) {
+    const cands = Object.keys(slot).filter((id) => pool.has(id) && !f.cast.includes(id) && !ints.includes(id));
+    const seated = cands.filter((id) => here.has(id));
+    let c: string | null = seated.length ? pick(seated) : cands.length && Math.random() < 0.7 ? pick(cands) : null;
+    if (c && !comm && c !== 'aiden' && !onStage.has(c) && onStage.size >= SEATS) c = seated.includes(c) ? c : null; // 자리가 꽉 찼으면 새로 부르지 않는다
+    if (c) { ints.push(c); if (c !== 'aiden') onStage.add(c); } else ints.push('');
+  }
+  const lines: Line[] = [];
+  for (const l of f.lines) {
+    const sm = l.match(/^@(\d)$/);
+    if (sm) { const c = ints[+sm[1]]; if (c) lines.push(...f.slots[+sm[1]][c].map((x) => parseLine(x, c, comm ? ' (통신)' : ''))); continue; }
+    lines.push(parseLine(l, f.cast[0]));
+  }
+  return { key: `${f.id}+${ints.filter(Boolean).join('+') || '-'}`, sit: f.sit, lines, layer: f.layer };
+}
+const frameOf = (key: string) => FRAMES.find((f) => f.id === key.split('+')[0]);
+/** 다음 장면: 층을 먼저 고르고 (실재 10% · 이상 25%), 그 안에서 안 본 것 · 확장 틀 · 지금 앉은 사람과 겹치는 것 우선 */
+function nextScene(): Scene {
+  const m = loadMeta();
+  const seen = new Set(m.bar?.seen || []);
+  const seenFrame = new Set([...seen].filter((k) => k.includes('+')).map((k) => k.split('+')[0]));
   const here = new Set(S.seats.map((s) => s.id));
-  const score = (b: Banter) => (seen.has(b.id) ? 0 : 4) + b.cast.filter((id) => here.has(id)).length * 1.5 + Math.random() * 2;
-  const best = pool.sort((a, b) => score(b) - score(a))[0];
-  // 해금한 단원이 적으면 바텐더 · 손님 만담과 번갈아
-  const idleTurn = pool.length < 8 && (S.idleI + S.session.size) % 2 === 1;
+  type Item = { layer: 's' | 'i' | 'r'; score: number; make: () => Scene };
+  const items: Item[] = [];
+  for (const b of eligibleAmbient()) {
+    if (S.session.has(b.id)) continue;
+    if (b.layer === 'r' && !b.cast.filter((id) => !BASE.includes(id)).every((id) => deepOpen(id))) continue; // 실재 층: 출연자 모두와 가까워야
+    items.push({ layer: b.layer, score: (seen.has(b.id) ? 0 : 4) + b.cast.filter((id) => here.has(id)).length * 1.5, make: () => ({ key: b.id, sit: b.sit, layer: b.layer, lines: b.lines.map((l) => [l[0], fillText(l[1], { pc: PC }), l[2]] as Line) }) });
+  }
+  for (const f of FRAMES) {
+    if (!f.cast.every((id) => S.known.has(id)) || !deepOpen(f.deep) || [...S.session].some((k) => k.startsWith(f.id + '+'))) continue;
+    items.push({ layer: f.layer, score: (seenFrame.has(f.id) ? 2 : 6) + f.cast.filter((id) => here.has(id)).length * 1.5, make: () => buildFrame(f, S.known, here) });
+  }
+  const roll = Math.random();
+  const by = (l: string) => items.filter((x) => x.layer === l);
+  const layerPool = roll < DEEP_SHARE && by('r').length ? by('r') : roll < DEEP_SHARE + IDEAL_SHARE && by('i').length ? by('i') : by('s').length ? by('s') : items;
+  const best = layerPool.map((x) => ({ x, sc: x.score + Math.random() * 2 })).sort((a, b) => b.sc - a.sc)[0]?.x;
+  // 해금한 단원이 적으면 바텐더 · 손님 대화와 번갈아
+  const idleTurn = items.length < 8 && (S.idleI + S.session.size) % 2 === 1;
   if (!best || idleTurn) {
     const it = BAR_IDLE[S.idleI++ % BAR_IDLE.length];
-    return { id: '', sit: it.sit, lines: it.lines.map((l) => { const m = l.match(/^([^:\s]{1,8}): (.*)$/)!; return [NAME_ID[m[1]], m[2]] as [string, string]; }) };
+    return { key: '', sit: it.sit, lines: it.lines.map((l) => parseLine(l, 'aiden')) };
   }
-  return { id: best.id, sit: best.sit, lines: best.lines.map((l) => [l[0], fillText(l[1], { pc: PC }), l[2]] as [string, string, string?]) };
+  return best.make();
 }
 /** 무대 인원 갱신: 만담 출연자가 앉고, 넘치면 오래 앉아 있던 사람부터 일어난다. 빈자리는 손님 (실루엣) */
 function seatFor(cast: string[]) {
@@ -185,12 +237,12 @@ function floorHtml() { return S.seats.map(seatHtml).join(''); }
 
 export function barScreen(): string {
   S.known = knownSet();
-  if (!S.seats.length) { const b = nextBanter(); S.cur = b; S.li = 0; seatFor(b.lines.map(([w]) => w)); }
+  if (!S.seats.length) { const b = nextScene(); S.cur = b; S.li = 0; seatFor(b.lines.map(([w]) => w).filter(Boolean)); }
   const res = resumeInfo();
   const auto = listSaves().find((x) => x.slot === 'auto');
   const m = loadMeta();
   const seenN = m.bar?.seen?.length || 0;
-  const hasLog = !!awayPool().length;
+  const hasLog = !!awayPool().length || !!m.bar?.last;
   return `<main class="bar" aria-label="에란테스 바">
     <div class="bar-bg" style="background-image:url('${bgURL('erantes_bar')}')"></div><div class="bar-shade"></div>
     <header class="bar-top"><h1 class="f-title">에란테스 바</h1><p class="bar-sit f-ui" aria-live="polite">${S.cur?.sit ? `— ${esc(S.cur.sit)}` : ''}</p></header>
@@ -215,6 +267,13 @@ function showLine() {
   root.querySelectorAll<HTMLElement>('.bar-bub').forEach((b) => { b.hidden = true; b.classList.remove('on'); });
   root.querySelectorAll('.bar-seat').forEach((s) => s.classList.remove('talking'));
   const [who, text, nm] = S.cur.lines[S.li];
+  if (!who) { // 서술: 위쪽 상황 줄에 잠깐
+    const sit = root.querySelector<HTMLElement>('.bar-sit');
+    if (sit) sit.textContent = text;
+    return Math.min(5000, Math.max(1800, 900 + [...text].length * 55));
+  }
+  const sitEl = root.querySelector<HTMLElement>('.bar-sit');
+  if (sitEl && S.cur.sit) sitEl.textContent = `— ${S.cur.sit}`;
   const seat = root.querySelector<HTMLElement>(`.bar-seat[data-seat="${figOf(who) === 'guest' || !S.seats.some((s) => s.id === figOf(who)) ? 'guest' : figOf(who)}"]`) || root.querySelector<HTMLElement>('.bar-seat[data-seat="aiden"]');
   const bub = seat?.querySelector<HTMLElement>('.bar-bub');
   if (!seat || !bub) return 0;
@@ -230,16 +289,17 @@ function tick() {
   if (!root) { stop(); return; }
   if (advKey()) { schedule(700); return; } // 말 거는 중에는 멈춘다
   if (!S.cur || S.li >= S.cur.lines.length) {
-    if (S.cur?.id) { metaBar('seen', S.cur.id); S.session.add(S.cur.id); }
+    if (S.cur?.key) { metaBar('seen', S.cur.key); S.session.add(S.cur.key); }
     else if (S.cur) S.session.add(`idle${S.idleI}`);
     root.querySelectorAll<HTMLElement>('.bar-bub').forEach((b) => { b.hidden = true; });
     root.querySelectorAll('.bar-seat').forEach((s) => s.classList.remove('talking'));
-    const b = nextBanter();
+    const b = nextScene();
     S.cur = b; S.li = 0;
     const before = S.seats.map((s) => s.id).join();
-    seatFor(b.lines.map(([w]) => w));
+    seatFor(b.lines.map(([w]) => w).filter(Boolean));
     const sit = root.querySelector<HTMLElement>('.bar-sit');
     if (sit) sit.textContent = b.sit ? `— ${b.sit}` : '';
+    root.classList.toggle('late', b.layer === 'r'); // 실재 층: 심야 조명
     if (S.seats.map((s) => s.id).join() !== before) {
       const prev = new Set(before.split(','));
       const fl = root.querySelector<HTMLElement>('.bar-floor')!;
@@ -253,6 +313,23 @@ function tick() {
   const ms = showLine();
   S.li++;
   schedule(ms || 600);
+}
+/** 확인용 (주소에 ?bartest): 특정 틀을 정한 끼어들기로 바로 재생. window.__barFrame('g01', ['temur']) */
+if (typeof location !== 'undefined' && location.search.includes('bartest')) {
+  (globalThis as unknown as { __barFrame: (id: string, ints: string[]) => void }).__barFrame = (id, ints) => {
+    const f = FRAMES.find((x) => x.id === id);
+    if (!f) return;
+    const here = new Set(ints);
+    S.cur = buildFrame({ ...f, slots: f.slots.map((sl, i) => (ints[i] && sl[ints[i]] ? { [ints[i]]: sl[ints[i]] } : {})) }, here, here);
+    S.cur.key = `${f.id}+${ints.filter(Boolean).join('+') || '-'}`;
+    S.li = 0;
+    seatFor(S.cur.lines.map(([w]) => w).filter(Boolean));
+    const root = document.querySelector<HTMLElement>(BAR_SEL);
+    const fl = root?.querySelector<HTMLElement>('.bar-floor');
+    if (fl) fl.innerHTML = floorHtml();
+    root?.classList.toggle('late', f.layer === 'r');
+    stop(); tick();
+  };
 }
 /** 화면을 그린 뒤 (render 끝): 말풍선 진행을 이어 간다 */
 export function barMount() {
@@ -276,6 +353,7 @@ const advOpts = { speaker, fmt };
 function talk(id: string) {
   const t = BAR_TALK[id];
   if (id === 'guest') { playAdv('bar:guest', toBeats('aiden', pick(BAR_GUEST), { pc: PC }).map((b, i) => (i ? b : { ...b, bg: 'erantes_bar' })), { ...advOpts, title: '에란테스 바', onDone: () => {} }); return; }
+  metaBarBond(id);
   const r = reactFor(id);
   if (r) metaBar('heard', r.key);
   if (!t) { talkPlain(id, r); return; }
@@ -286,12 +364,15 @@ function talk(id: string) {
 function topicMenu(id: string, beats: Beat[], done: string[]) {
   const t = BAR_TALK[id];
   const heard = new Set(loadMeta().bar?.talk || []);
-  const tops = t.topics.filter((x) => !done.includes(x.key));
+  const deep = DEEP_TOPICS[id];
+  const open = deepOpen(id);
+  const tops = [...t.topics, ...(deep && open ? [{ ...deep, label: `(심야) ${deep.label}` }] : [])].filter((x) => !done.includes(x.key));
+  const locked = deep && !open ? [{ label: '(심야) …', desc: '더 가까워지면 들을 수 있는 이야기', why: `관계 ${bondOf(id)} / ${DEEP_BOND} (말 걸기 + 함께 출전한 런)` }] : [];
   playAdv(`bar:talk:${id}:${done.length}`, beats, {
     ...advOpts, title: done.length ? undefined : nameOf(id),
-    choices: [...tops.map((x) => ({ label: x.label, desc: heard.has(`${id}.${x.key}`) ? '들은 이야기' : undefined })), { label: '자리로 돌아간다' }],
+    choices: [...tops.map((x) => ({ label: x.label, desc: heard.has(`${id}.${x.key}`) ? '들은 이야기' : undefined })), ...locked, { label: '자리로 돌아간다' }],
     onDone: (k) => {
-      const x = tops[k];
+      const x = k < tops.length ? tops[k] : null;
       if (!x) return;
       metaBar('talk', `${id}.${x.key}`);
       const next = toBeats(id, x.lines, { pc: PC, name: nameOf(id) });
@@ -326,9 +407,23 @@ function awayPool(): Banter[] {
 const SHIP_TOPICS = new Set(['05_travel', '13_shiplife']);
 // 통신 기록 배경: 전장 일러스트 (장소 표시는 전장 이름)
 for (const f of FIELDS) BGS[`field_${f.id}`] ??= f.name;
+/** 통신 기록: 확장 틀을 바에서 재생하고, 끼어드는 자리는 지난 의뢰에 나간 단원이 홀로그램으로 */
+function playFrameLog(): boolean {
+  const last = loadMeta().bar?.last;
+  if (!last) return false;
+  const crew = new Set(last.units);
+  const fs = shuffle(FRAMES.filter((f) => f.cast.every((id) => S.known.has(id)) && deepOpen(f.deep) && f.slots.some((sl) => Object.keys(sl).some((id) => crew.has(id)))));
+  if (!fs.length) return false;
+  const sc = buildFrame(fs[0], crew, crew, true);
+  metaBar('seen', sc.key);
+  const beats: Beat[] = [{ text: `홀로그램 통신이 연결된다. ${sc.sit}`, bg: 'erantes_bar' }, ...sc.lines.map(([who, text, name]) => (who ? { who, text, name } : { text }))];
+  playAdv(`bar:flog:${sc.key}`, beats, { ...advOpts, title: '통신 기록 — 현장에서 끼어든 단원', onDone: () => {} });
+  return true;
+}
 function playLog() {
+  if (Math.random() < 0.5 && playFrameLog()) return;
   const pool = awayPool();
-  if (!pool.length) return;
+  if (!pool.length) { playFrameLog(); return; }
   const seen = new Set(loadMeta().bar?.seen || []);
   const b = shuffle(pool).find((x) => !seen.has(x.id)) || pick(pool);
   const last = loadMeta().bar?.last;
@@ -355,18 +450,30 @@ export function barRecordsHtml(): string {
   const seen = new Set(m.bar?.seen || []);
   const talk = new Set(m.bar?.talk || []);
   const byTopic = BANTER_TOPICS.map(([, title], t) => ({ title, all: BANTER.filter((b) => b.t === t), got: BANTER.filter((b) => b.t === t && seen.has(b.id)) }));
-  const line = (who: string, text: string, nm?: string) => `<p><b style="--c:${colorOf(who)}">${esc(nm || nameOf(who))}</b> ${esc(fillText(text, { pc: PC }))}</p>`;
-  const talkRows = Object.entries(BAR_TALK).flatMap(([id, t]) => t.topics.filter((x) => talk.has(`${id}.${x.key}`)).map((x) => ({ id, x })));
-  const talkAll = Object.values(BAR_TALK).reduce((n, t) => n + t.topics.length, 0);
+  const banterN = BANTER.filter((b) => seen.has(b.id)).length;
+  const line = (who: string, text: string, nm?: string) => (who ? `<p><b style="--c:${colorOf(who)}">${esc(nm || nameOf(who))}</b> ${esc(fillText(text, { pc: PC }))}</p>` : `<p class="muted">${esc(text)}</p>`);
+  const scriptLines = (owner: string, ls: string[]) => ls.map((l) => { const [w, t, nm] = parseLine(l, owner); return line(w, t, nm); }).join('');
+  const topicsOf = (id: string) => [...BAR_TALK[id].topics, ...(DEEP_TOPICS[id] ? [{ ...DEEP_TOPICS[id], label: `(심야) ${DEEP_TOPICS[id].label}` }] : [])];
+  const talkRows = Object.keys(BAR_TALK).flatMap((id) => topicsOf(id).filter((x) => talk.has(`${id}.${x.key}`)).map((x) => ({ id, x })));
+  const talkAll = Object.keys(BAR_TALK).reduce((n, id) => n + topicsOf(id).length, 0);
+  // 확장 틀: 본 끼어들기 조합별로
+  const fseen = [...seen].filter((k) => k.includes('+'));
+  const frameRows = FRAMES.map((f) => ({ f, keys: fseen.filter((k) => k.split('+')[0] === f.id) })).filter((r) => r.keys.length);
+  const variants = FRAMES.reduce((n, f) => n + f.slots.reduce((a, sl) => a + Object.keys(sl).length, 0), 0);
+  const frameHtml = (f: Frame, keys: string[]) => {
+    const ints = new Set(keys.flatMap((k) => k.split('+').slice(1)).filter((x) => x !== '-'));
+    const core = f.lines.map((l) => (/^@\d$/.test(l) ? '<p class="muted small">( 끼어드는 자리 )</p>' : scriptLines(f.cast[0], [l]))).join('');
+    const slots = f.slots.map((sl) => Object.entries(sl).filter(([id]) => ints.has(id)).map(([id, ls]) => `<div class="bar-rec-v"><span class="muted small">${esc(nameOf(id))} 버전</span>${scriptLines(id, ls)}</div>`).join('')).join('');
+    const total = f.slots.reduce((a, sl) => a + Object.keys(sl).length, 0);
+    return `<section class="bar-rec-b"><h3>${esc(FRAME_THEME[f.theme])} · ${esc(f.sit)} <span class="muted small f-num">${ints.size}/${total}</span>${f.layer === 'r' ? ' <span class="muted small">심야</span>' : ''}</h3>${core}${slots}</section>`;
+  };
   return `<h2>에란테스 바</h2>
-    <p class="muted small">바에서 본 만담 <b class="f-num">${seen.size}</b> / ${BANTER.length}편 · 단원에게 들은 이야기 <b class="f-num">${talkRows.length}</b> / ${talkAll}편. 바에 들를 때마다 쌓입니다.</p>
+    <p class="muted small">본 만담 <b class="f-num">${banterN}</b> / ${BANTER.length}편 · 끼어들기 만담 <b class="f-num">${frameRows.length}</b> / ${FRAMES.length}편 (버전 <b class="f-num">${fseen.length}</b> / ${variants}) · 단원에게 들은 이야기 <b class="f-num">${talkRows.length}</b> / ${talkAll}편.
+      심야 이야기는 그 단원과 가까워지면(말 걸기 + 함께 출전한 런 ${DEEP_BOND}) 열립니다.</p>
     <div class="bar-rec">
       ${talkRows.length ? `<details><summary><b>단원 이야기</b> <span class="muted small f-num">${talkRows.length}/${talkAll}</span></summary>
-        ${talkRows.map(({ id, x }) => `<section class="bar-rec-b"><h3>${esc(nameOf(id))} · ${esc(x.label)}</h3>${x.lines.map((l) => {
-          if (l.startsWith('* ')) return `<p class="muted">${esc(l.slice(2))}</p>`;
-          const mm = l.match(/^([^:\s]{1,8}): (.*)$/);
-          return mm && NAME_ID[mm[1]] ? line(NAME_ID[mm[1]], mm[2], mm[1]) : line(id, l);
-        }).join('')}</section>`).join('')}</details>` : ''}
+        ${talkRows.map(({ id, x }) => `<section class="bar-rec-b"><h3>${esc(nameOf(id))} · ${esc(x.label)}</h3>${scriptLines(id, x.lines)}</section>`).join('')}</details>` : ''}
+      ${frameRows.length ? `<details><summary><b>끼어들기 만담</b> <span class="muted small f-num">${frameRows.length}/${FRAMES.length}</span></summary>${frameRows.map((r) => frameHtml(r.f, r.keys)).join('')}</details>` : ''}
       ${byTopic.filter((g) => g.got.length).map((g) => `<details><summary><b>${esc(g.title)}</b> <span class="muted small f-num">${g.got.length}/${g.all.length}</span></summary>
         ${g.got.map((b) => `<section class="bar-rec-b"><h3>${b.cast.map((id) => esc(nameOf(id))).join(' × ')} <span class="muted small">— ${esc(b.sit)}</span></h3>${b.lines.map(([w, t, nm]) => line(w, t, nm)).join('')}</section>`).join('')}</details>`).join('')}
       ${!seen.size && !talkRows.length ? '<p class="muted small">아직 바에 들르지 않았습니다. 타이틀이나 메뉴에서 「에란테스 바」로 갈 수 있습니다.</p>' : ''}
