@@ -12,6 +12,12 @@ export function categoryMult(c: Category, elem: Elem): number {
   if (c === 'soul') return elem === 'phys' ? 0.6 : elem === 'holy' ? 1.5 : 1;
   return 1;
 }
+/** 이성 출처 태그: cantrip 비술 · frenzy 광폭 회복 · rule 기물 고유 규칙(기본) · '<전공>.<증강키>' 전공 증강 (예: volt.store) */
+export interface ReasonLog { gain: Record<string, number>; loss: Record<string, number>; hiT: number; loT: number; frzT: number; recent: { t: number; tag: string; d: number }[] }
+/** 이성 구간 기준 (표시용): 고이성 > +15, 저이성 < -15 */
+export const REASON_HI = 15, REASON_LO = -15;
+/** 보스가 면역인 군중 제어 (빙결 · 매혹 · 혼란) */
+export const BOSS_CC_IMMUNE = ['freeze', 'charm', 'confuse'];
 /** 분류별 상태이상 면역 */
 export function categoryImmune(c: Category, s: { type: string; key: string }): boolean {
   if (c === 'mech') return s.key === 'bleed' || s.key === 'poison';
@@ -234,6 +240,8 @@ export interface CUnit {
   relic?: string;
   src?: UnitState;
   owner?: CUnit;
+  /** 이성 기록 (표시 전용, 전투 결과에 영향 없음): 출처별 회복 · 감소, 고이성 · 저이성 · 광폭 시간, 최근 변화 */
+  rlog?: ReasonLog;
   /** 일러스트 id (소환물 · 포탑) */
   art?: string;
 }
@@ -349,10 +357,22 @@ export class Battle {
   }
 
   // ───────── 이성 (사이오닉)
-  addReason(u: CUnit, d: number) {
+  addReason(u: CUnit, d: number, tag = 'rule') {
     if (u.reason === null || !u.alive || !d) return;
+    const before = u.reason;
     u.reason = Math.max(-100, Math.min(100, u.reason + d * (1 + (u.mem.reasonAmp || 0))));
+    this.logReason(u, u.reason - before, tag);
     this.checkFrenzy(u);
+  }
+  /** 이성 변화 기록 (표시 전용): 출처별 누적 + 최근 6초 */
+  private logReason(u: CUnit, real: number, tag: string) {
+    if (!real) return;
+    const L = (u.rlog ??= { gain: {}, loss: {}, hiT: 0, loT: 0, frzT: 0, recent: [] });
+    const m = real > 0 ? L.gain : L.loss;
+    m[tag] = (m[tag] || 0) + Math.abs(real);
+    const last = L.recent[L.recent.length - 1];
+    if (last && last.tag === tag && Math.sign(last.d) === Math.sign(real) && this.t - last.t < 0.5) { last.d += real; last.t = this.t; } else L.recent.push({ t: this.t, tag, d: real });
+    while (L.recent.length && L.recent[0].t < this.t - 6) L.recent.shift();
   }
   /** 광폭: 이성 -100 에서 시작 (피아 구분 없이 가장 가까운 대상 공격 · 비술 불가 · 피해 +30%, 같은 편에게는 50%), -60 을 넘으면 해제 */
   frenzied(u: CUnit) { return u.statuses.some((s) => s.key === 'frenzy' || s.key === 'rampage'); }
@@ -538,8 +558,11 @@ export class Battle {
           if (!u.alive) return;
         }
       } else u.mem.lowT = 0;
+      // 이성 구간 시간 (표시 전용)
+      const L = (u.rlog ??= { gain: {}, loss: {}, hiT: 0, loT: 0, frzT: 0, recent: [] });
+      if (this.frenzied(u)) L.frzT += dt; else if (u.reason > REASON_HI) L.hiT += dt; else if (u.reason < REASON_LO) L.loT += dt;
       // 광폭 중 초당 이성 +5 (-60 을 넘으면 해제)
-      if (this.frenzied(u)) this.addReason(u, 5 * dt);
+      if (this.frenzied(u)) this.addReason(u, 5 * dt, 'frenzy');
       else this.checkFrenzy(u);
     }
     const gone = u.statuses.filter((s) => s.dur <= 0 && s.onExpire);
@@ -662,7 +685,7 @@ export class Battle {
     u.cantripMax = Math.max(0.5, cd);
     u.cantripCd = u.cantripMax;
     u.mem.cantrips = (u.mem.cantrips || 0) + 1;
-    this.addReason(u, -cost);
+    this.addReason(u, -cost, 'cantrip');
     for (const h of u.hooks) h.onCantrip?.(this, u);
   }
   /** 행동(기본 공격 · 전투 스킬)에 반응하는 상태이상 (전도) */
@@ -986,7 +1009,7 @@ export class Battle {
     if (!tgt.alive) return false;
     if (categoryImmune(tgt.category, s)) return false;
     if ((s.type === 'stun' || s.type === 'fear') && (tgt.mem.ccImmuneUntil || 0) > this.t && src.side !== tgt.side) return false; // 궁극기 등 일시 면역 // 분류 면역 (기계: 출혈 · 중독, 구조물: 기절 · 공포 · 빙결, 영혼: 매혹)
-    const cc = s.key === 'freeze' || s.key === 'charm' || s.key === 'confuse';
+    const cc = BOSS_CC_IMMUNE.includes(s.key);
     if (cc && tgt.isBoss) return false; // 보스: 빙결 · 매혹 · 혼란 면역
     const hostile = this.sideOf(src) !== this.sideOf(tgt);
     if (hostile && tgt.category === 'bio' && s.dps && (s.key === 'bleed' || s.key === 'poison')) { s.dps *= 1.25; if (s.perDps) s.perDps *= 1.25; } // 생체: 출혈 · 중독 강화

@@ -20,11 +20,12 @@ import * as CX2 from './ui/codex2';
 import {
   activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
-import { Battle, type CUnit, type Status, STATUS_NAME } from './engine/combat';
+import { Battle, type CUnit, REASON_HI, REASON_LO, type Status, STATUS_NAME } from './engine/combat';
 import * as R from './engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
 import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SynergyId, type UnitState } from './types';
+import { matchupLines, matchupShort, schoolWarnings } from './ui/matchup';
 import { BattleView, DEATH_STYLES, fmt, FX, FX_DEFAULT, isDeathStyle, previewDeath, type DeathStyle, type MotionPreset, type UltCut } from './ui/battleview';
 import { ULTS } from './data/ults';
 import { VOICE, voicePick } from './data/voicelines';
@@ -464,6 +465,7 @@ function schoolOpt(id: string, i: number) {
   return `<div class="aug-opt sch-opt ${app.augPick === i ? 'on' : ''}" style="--sc:${sc.color}" data-a="pick-augsel" data-v="${i}" role="button" tabindex="0" aria-pressed="${app.augPick === i}">
     <span class="so-head">${augIcon(id)}<span><span class="muted small">${GROUPS[sc.group].name}</span><b>${sc.name}</b></span><kbd>${i + 1}</kbd></span>
     <p class="so-line">${esc(SCHOOL_LINE[sc.id])}</p>
+    ${app.run ? schoolWarnings(sc.id, app.run.field).map((w) => `<p class="so-warn ${w.level}">${w.level === 'good' ? '▲' : '⚠'} ${esc(w.text)}</p>`).join('') : ''}
     <span class="so-ics">${ic(`cantrip:${sc.id}`, `cantrip.${sc.id}`, '비술', sc.cantrip.name)}${ic(`psipass:${sc.id}`, `passive.${sc.id}`, '지속', sc.passive.name)}</span></div>`;
 }
 /** 전투 기물의 학파 (엔진 필드) */
@@ -631,6 +633,11 @@ function pickCard(d: UnitDef, o: PickOpts) {
 const CAN_HOVER = typeof matchMedia !== 'undefined' && matchMedia('(hover: hover)').matches;
 
 // ───────────────────────── 출격 연출: 전장 추첨 → 난이도 → 계약 기물
+/** 전장 상성 요약 (적 풀 · 분류 규칙에서 자동 집계) */
+function matchupHtml(fid: string) {
+  const ls = matchupLines(fid);
+  return ls.length ? `<div class="mu-box"><span class="mu-k">이 전장의 주요 적</span>${ls.map((l) => `<span class="mu-l ${l.cls}">${esc(l.text)}</span>`).join('')}</div>` : '';
+}
 /** 전장 정보: 적 유형 · 우세 속성 · 우세 시너지 */
 function fieldBrief(fid: string) {
   const f = fieldOf(fid);
@@ -644,6 +651,7 @@ function fieldBrief(fid: string) {
     <div class="fb-cell"><span class="fb-k">우세 속성</span><span class="fb-v">${top(el, 2).map((e) => `<i>${lineIcon(`e.${e}`, 'li')}${ELEM_NAME[e as Elem]}</i>`).join('')}</span></div>
     <div class="fb-cell"><span class="fb-k">우세 시너지</span><span class="fb-v">${syn ? `<i style="--c:${syn.color}">${synIcon(syn.id) || syn.icon}${esc(syn.name)}</i>` : '<i>없음</i>'}</span></div>
   </div>
+  ${matchupHtml(fid)}
   <ul class="fb-rules">${f.rules.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
   <div class="fb-foes">${[...f.bosses, f.elite, ...f.pool].map((id) => {
     const e = ENEMY_BY_ID[id];
@@ -1690,7 +1698,7 @@ function summaryModal(run: RunState) {
         ${s.items?.length ? `<h4>장비 획득</h4><ul class="rs-items">${s.items.map((id, i) => `<li style="--i:${i}">${itemIcon(id)}<span class="it-n it-${itemInfo(id).tier}">${esc(itemInfo(id).name)}</span></li>`).join('')}</ul>` : ''}
         ${xp ? `<h4>${RES}공명도 획득</h4><ul class="rs-xp">${xp}</ul>` : ''}
       </section>
-      <section class="rs-report"><h3>전투 보고서 <span class="muted small">${b ? `${b.t.toFixed(1)}초` : ''}</span></h3>${b ? battleTable(b) : ''}</section>
+      <section class="rs-report"><h3>전투 보고서 <span class="muted small">${b ? `${b.t.toFixed(1)}초` : ''}</span></h3>${b ? battleTable(b) + reasonReport(b) : ''}</section>
     </div>
     <div class="rs-foot"><button class="btn primary" data-a="after-battle">${s.gameOver ? '결과 보기' : '계속'}</button></div>
   </div></div>`;
@@ -1770,6 +1778,7 @@ function fieldCard(run: RunState, compact = false) {
     <ul class="fc-rules">${f.rules.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
     <div class="small muted">출현: ${f.pool.map(nm).join(' · ')} · 정예 ${nm(f.elite)}</div>
     <div class="small"><span class="accent">보스</span> ${f.bosses.map((id) => (id === bossNow ? `<b>${nm(id)}</b>` : nm(id))).join(' → ')} <span class="muted">(페이즈마다 순환)</span></div>
+    ${compact ? '' : matchupHtml(f.id)}
   </div>`;
 }
 
@@ -1876,6 +1885,7 @@ function pendingModal(run: RunState): string {
         <div class="ru-head"><h1>${p.kind === 'school' ? '합류 · 사이오닉 전공' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 전공 증강` : `${p.rank}등급 달성 · 메이저 증강`}</h1>
           <span class="muted small">${p.kind === 'school' ? `${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙고, 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}` : p.kind === 'special' ? '스페셜 기물은 합류할 때와 5 · 10 · 15등급에 전용 증강을 고릅니다 (최대 4개).' : p.kind === 'psionic' ? '사이오닉 기물은 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다 (최대 4개).' : '메이저 기물은 4등급마다 메이저 증강을 고릅니다.'}</span>
           ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
+        ${p.kind === 'school' ? `<p class="mu-short small">이 전장의 주요 적: ${esc(matchupShort(run.field))}</p>` : ''}
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];
           if (p.kind === 'school') return schoolOpt(a.id, i);
@@ -1894,7 +1904,7 @@ function pendingModal(run: RunState): string {
     const rr = p.rerolls ?? 1;
     mcls = 'recruit';
     const pick = app.recruitPick && p.options.includes(app.recruitPick) ? app.recruitPick : null;
-    body = `<div class="rc-head"><div><h1>${p.syns ? '지정 소집' : '기물 영입'}</h1><p class="muted small">${p.syns ? `${p.syns.map((s) => esc(SYN_BY_ID[s as SynergyId]?.name || s)).join(' · ')} 중에서 ` : ''}새 동료 한 명을 고르세요. 공명 등급 ${rank}로 합류합니다. 보유 ${run.units.length}/${CFG.maxParty} (출전 최대 ${R.deployCap(run)}명)</p></div>${detailToggle()}</div>
+    body = `<div class="rc-head"><div><h1>${p.syns ? '지정 소집' : '기물 영입'}</h1><p class="muted small">${p.syns ? `${p.syns.map((s) => esc(SYN_BY_ID[s as SynergyId]?.name || s)).join(' · ')} 중에서 ` : ''}새 동료 한 명을 고르세요. 공명 등급 ${rank}로 합류합니다. 보유 ${run.units.length}/${CFG.maxParty} (출전 최대 ${R.deployCap(run)}명)</p><p class="mu-short small" title="사이오닉 전공은 합류할 때 정해집니다">이 전장의 주요 적: ${esc(matchupShort(run.field))}</p></div>${detailToggle()}</div>
       <div class="rc-track">${p.options.map((id, i) => pickCard(UNIT_BY_ID[id], { i, on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), nameExtra: `<span class="rc-rank" title="공명 등급 ${rank}">${rankLabel(rank)}</span>` })).join('')}</div>
       <div class="rc-foot">${pick ? (() => {
         // 영입하면 바뀌는 시너지: 보유 기물 + 이 기물 기준 인원, 단계가 오르면 강조
@@ -2719,8 +2729,45 @@ function battleUnitStatic(b: Battle, u: CUnit) {
 function battleUnitDyn(b: Battle, u: CUnit) {
   const max = b.S(u, 'maxHp');
   return `<div class="bs-hp"><span class="bs-bar"><i style="width:${Math.max(0, (u.hp / max) * 100)}%"></i>${u.shield > 0 ? `<i class="sh" style="width:${Math.min(100, (u.shield / max) * 100)}%"></i>` : ''}</span><span class="mono small">${u.alive ? `${fmt(Math.max(0, u.hp))} / ${fmt(max)}${u.shield > 0 ? ` · 보호막 ${fmt(u.shield)}` : ''}` : '전투 불능'}</span></div>
-    ${actState(b, u)}
+    ${actState(b, u)}${reasonTrend(b, u)}
     <h3>효과 <span class="muted small">${u.statuses.filter((s) => s.dur > 0).length}</span></h3>${buffIcons(u)}${bpickInfo(u)}`;
+}
+// ───────── 이성 추이 (사이오닉): 엔진 rlog 기록을 읽어 보여 준다 (표시 전용)
+/** 이성 출처 태그 → 이름 (전공 증강은 'volt.store' 처럼 전공.키) */
+function reasonTagName(tag: string) {
+  if (tag === 'cantrip') return '비술';
+  if (tag === 'frenzy') return '광폭 회복';
+  if (tag === 'rule') return '고유 규칙';
+  const [sc, k] = tag.split('.');
+  return SCHOOL_PASSIVES[sc as SchoolId]?.find(([key]) => key === k)?.[1] || tag;
+}
+const sgnN = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v) >= 10 ? Math.round(Math.abs(v)) : Math.abs(v).toFixed(1).replace(/\.0$/, '')}`;
+/** 출처별 합계 줄: 큰 순서, 최대 n개 */
+const tagSum = (m: Record<string, number>, n: number, sign = 1) => Object.entries(m).filter(([, v]) => Math.abs(v) >= 0.5).sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, n).map(([k, v]) => `${esc(reasonTagName(k))} ${sgnN(v * sign)}`).join(' · ');
+const secs = (v: number) => `${v.toFixed(1)}초`;
+function reasonTrend(b: Battle, u: CUnit) {
+  if (u.reason === null) return '';
+  const L = u.rlog;
+  const win: Record<string, number> = {};
+  let net = 0;
+  for (const r of L?.recent || []) if (r.t >= b.t - 5) { win[r.tag] = (win[r.tag] || 0) + r.d; net += r.d; }
+  const arrow = net > 1 ? '<i class="rt-up" title="최근 5초 회복 중">↑</i>' : net < -1 ? '<i class="rt-down" title="최근 5초 떨어지는 중">↓</i>' : '<i class="rt-flat" title="최근 5초 거의 그대로">→</i>';
+  const recent = tagSum(win, 4);
+  const gain = L ? tagSum(L.gain, 4) : '';
+  return `<h3>이성 <span class="rt-now">${Math.round(u.reason)} ${arrow}</span></h3>
+    <dl class="rt-box">
+      <dt>최근 5초</dt><dd>${recent || '<span class="muted">변화 없음</span>'}${recent ? ` <span class="muted">(합 ${sgnN(net)})</span>` : ''}</dd>
+      <dt>구간 시간</dt><dd>고이성 ${secs(L?.hiT || 0)} · 저이성 ${secs(L?.loT || 0)} · 광폭 ${secs(L?.frzT || 0)}</dd>
+      <dt>회복 기여</dt><dd>${gain || '<span class="muted">없음</span>'}</dd>
+    </dl>`;
+}
+/** 결과 화면: 사이오닉 아군의 이성 관리 요약 */
+function reasonReport(b: Battle) {
+  const us = b.units.filter((u) => u.side === 0 && !u.isSummon && u.reason !== null && u.rlog);
+  if (!us.length) return '';
+  return `<div class="rt-report"><h4>이성 관리 <span class="muted small">고이성 &gt; +${REASON_HI} · 저이성 &lt; ${REASON_LO}</span></h4><div class="btable-wrap"><table class="btable"><thead><tr><th>기물</th><th>고이성</th><th>저이성</th><th>광폭</th><th>회복 기여</th><th>감소</th></tr></thead><tbody>
+    ${us.map((u) => { const L = u.rlog!; return `<tr class="${u.alive ? '' : 'dead'}"><td>${sprite(u)} ${esc(u.name)}</td><td class="mono">${secs(L.hiT)}</td><td class="mono">${secs(L.loT)}</td><td class="mono${L.frzT ? ' down' : ''}">${secs(L.frzT)}</td><td class="small">${tagSum(L.gain, 3) || '-'}</td><td class="small muted">${tagSum(L.loss, 2, -1) || '-'}</td></tr>`; }).join('')}
+  </tbody></table></div></div>`;
 }
 /** 행동 상태: 왜 지금 멈췄는지 + 기술 준비 · 재장전 · 다음 공격 진행도 + 최근 행동 3개 */
 function actState(b: Battle, u: CUnit) {

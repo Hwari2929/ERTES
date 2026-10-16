@@ -114,7 +114,7 @@ function freeze(b: Battle, u: CUnit, t: CUnit, chance: number) {
   if (!ok) return false;
   if (!P(u, 'chrono.perma')) t.statuses = t.statuses.filter((s) => s.key !== 'chill'); // 오한 소모
   b.fx(t.x, t.y, 0, 'elec', 'aura');
-  if (P(u, 'chrono.revert')) b.addReason(u, PSI.chrono.revertReason);
+  if (P(u, 'chrono.revert')) b.addReason(u, PSI.chrono.revertReason, 'chrono.revert');
   return true;
 }
 /** 서리 파편 대상: 서로 다른 적 n명 (현재 대상 우선, 모자라면 중복) */
@@ -185,7 +185,7 @@ const rewindHooks = (): Hooks => ({
 function storeReason(b: Battle, c: CUnit) {
   // 축전: 전도 피해마다 이성 +1 (초당 최대 +3)
   if (b.t >= (c.mem.storeW || 0)) { c.mem.storeW = Math.floor(b.t) + 1; c.mem.storeN = 0; }
-  if ((c.mem.storeN || 0) < 3) { c.mem.storeN = (c.mem.storeN || 0) + 1; b.addReason(c, 1); }
+  if ((c.mem.storeN || 0) < 3) { c.mem.storeN = (c.mem.storeN || 0) + 1; b.addReason(c, 1, 'volt.store'); }
 }
 /** ally = 역전류 (아군에게 걸린 전도: 그 아군 주변 적에게 피해) */
 function conductStatus(b: Battle, u: CUnit, n: number, ally: boolean): Status {
