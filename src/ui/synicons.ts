@@ -175,6 +175,10 @@ const L: Record<string, string> = {
   'u.finish': '<path d="M12 2l2.4 6.6L21 9l-5 4.4L17.5 21 12 17l-5.5 4L8 13.4 3 9l6.6-.4z"/>',
   // 장비 재료 (상자)
   'r.part': '<path d="M3 7.5L12 3l9 4.5-9 4.5z"/><path d="M3 7.5v9L12 21l9-4.5v-9"/><path d="M12 12v9"/><path d="M7.5 5.2l9 4.6"/>',
+  // 다음 칸 (앞으로 화살표)
+  'r.next': '<path d="M4 12h13"/><path d="M13 7l5 5-5 5"/>',
+  // 소모품 (육각 + 더하기: 보관함의 소모품 육각형과 같은 모양)
+  'r.cons': '<path d="M12 2.5l8.2 4.75v9.5L12 21.5l-8.2-4.75v-9.5z"/><path d="M12 8.5v7M8.5 12h7"/>',
   // 적 성향 (도발 수치 가중치): 돌격 · 저격 · 반격 · 암살
   't.charge': '<path d="M4 5l7 7-7 7"/><path d="M12 5l7 7-7 7"/>',
   't.sniper': '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 7v2M12 15v2M7 12h2M15 12h2"/>',

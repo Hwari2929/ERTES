@@ -839,12 +839,7 @@ function mapScreen(run: RunState) {
       <div class="screen-head map-head"><h1>페이즈 ${p}</h1>${bossGoal(run)}</div>
       <div class="tl"><ol class="tl-track">${track}</ol></div>
       <p class="map-scale" title="이번 페이즈 적 강도 (페이즈마다 누적)">${scale}</p>
-      <div class="tl-info"><b>${pick ? esc(NODE_NAME[pick]) : '항로 끝'}</b><span class="muted small">${run.node ? '진행 중' : pick ? ic(esc(nodeHint(pick))) : '이번 항로의 모든 칸을 지났습니다.'}</span></div>
-      <div class="row-btns">${enter}
-        <button class="btn map-manage" data-a="manage">편성 관리</button>
-        ${pet >= 2 ? `<button class="btn" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 ${CR}+25 · 상환 30</button>` : ''}
-      </div>
-      ${mapAhead(run)}
+      ${mapAhead(run, pick, `${enter}<button class="btn map-manage" data-a="manage">편성 관리</button>${pet >= 2 ? `<button class="btn" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 ${CR}+25 · 상환 30</button>` : ''}`)}
       ${shipPanel(run)}
     </section>
     <aside class="side side-tabs${app.sel?.k === 'unit' ? ' has-detail' : ''}">${mapDetail(run)}
@@ -948,50 +943,58 @@ function bossGoal(run: RunState) {
   const t = toBoss(run);
   if (!t) return '';
   const e = phaseBoss(run);
-  const txt = t.steps === 0 ? `<b>보스전</b>` : `보스까지 <b>${t.steps}</b>칸`;
+  const txt = t.steps === 0 ? `<b>보스전</b>` : `보스까지 남은 노드 <b>${t.steps}</b>개`;
   return `<div class="boss-goal" title="${esc(`${t.bi + 1}번째 칸 · ${e?.name || NODE_NAME.boss} · 보스까지 전투 ${t.fights}회${t.forks ? ` (${NODE_NAME.fork}에서 ${NODE_NAME.challenge} 승리 시 지름길)` : ''}`)}"><span class="bg-ic">${e ? sprite(e, 'spr') : NODE_ICON.boss}</span><span class="bg-main">${txt}</span></div>`;
 }
 /** 지도 미리보기: 다음 3칸 + (그보다 멀면) 보스 칸. 설명은 nodeHint, 재료 확률은 설정 · 전장값, 보스는 적 데이터에서 읽는다 */
-function mapAhead(run: RunState) {
+function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   const tb = toBoss(run);
   const idx: number[] = [];
   for (let i = run.step + 1; i < Math.min(run.map.length, run.step + 3); i++) if (!tb || i <= tb.bi) idx.push(i);
   if (tb && !idx.includes(tb.bi)) idx.push(tb.bi);
-  if (!idx.length) return '';
   const f = fieldOf(run.field);
   const elite = ENEMY_BY_ID[f.elite];
-  const PART = lineIcon('r.part', 'li');
-  // 조건 칩: 적 배율 · 보상 배율 (설정값) · 장비 재료 (일반 = 확률 × 전장, 역경 = 확정 개수) · 역경 정예 (역경에는 정예가 반드시 나온다)
+  const PART = lineIcon('r.part', 'li'), CONS = lineIcon('r.cons', 'li');
+  // 조건 줄 (둥근 칩): 위험 · 보상 배율 (설정값) · 역경 정예 (역경에는 정예가 반드시 나온다)
   const chips = (o: NodeType) => {
     const c: string[] = [];
     if (o === 'adversity' || o === 'challenge') c.push(tchip(lineIcon('a.power', 'li'), `적 ×${CFG.adversityMult}`, 'bad', '적 체력 · 능력 배율'));
     if (o === 'adversity') c.push(tchip('', `보상 ×${CFG.adversityReward}`, 'good', '승리 크레딧 · 공명도 배율'));
-    if (o === 'battle') c.push(tchip(PART, `재료 ${pctTxt(Math.min(1, CFG.drop.battle * (f.dropMul || 1)))}`, '', '승리 시 무작위 장비 재료 1개가 나올 확률'));
-    if (o === 'adversity') c.push(tchip(PART, `재료 ×${CFG.drop.advParts} (무작위)`, 'good', '승리 시 무작위 장비 재료 확정'));
     if (o === 'adversity' && elite) c.push(tchip(sprite(elite, 'spr'), esc(elite.name), 'bad', `정예 · ${ENEMY_DESC[elite.id] || ''}`));
     return c.join('');
   };
-  // 예상 보상: 공명도 풀 · 크레딧 수입 (승리 / 패배), 엔진의 보상 계산에서 (battleRewardPreview)
-  const reward = (o: NodeType) => {
+  // 예상 수입 (네모 칸, 아이콘 + 숫자): 승리 시 공명도 풀 · 크레딧 (엔진의 보상 계산 battleRewardPreview) + 장비 · 재료 · 소모품 (×n = 확정, % = 확률, 설정값 · 전장 배율)
+  const inc = (icon: string, val: string, title: string, cls = '') => `<span class="ah-in ${cls}" title="${esc(title)}">${icon}<b>${val}</b></span>`;
+  const income = (o: NodeType) => {
     if (!FIGHT_NODES.includes(o)) return '';
+    const t: NodeType = o === 'challenge' ? 'adversity' : o; // 도전은 보상 · 전리품을 역경 기준으로
     const r = R.battleRewardPreview(run, o);
-    return `<div class="ah-rws"><div class="ah-rw" title="전투 후 출전 · 대기 기물에게 나눠 주는 공명도 풀 (패배하면 절반)"><span class="ah-rk">${RES}공명도</span><b>${r.xp.win}</b><small>패배 ${r.xp.loss}</small></div>
-      <div class="ah-rw" title="${esc(`승리 보상 · 연승 · 이자(지금 보유 크레딧 기준 +${r.credits.interest}) 등 이번 전투의 크레딧 수입`)}"><span class="ah-rk">${CR}크레딧</span><b>+${r.credits.win}</b><small>패배 +${r.credits.loss}</small></div></div>`;
+    const out = [inc(RES, String(r.xp.win), '공명도 풀 (승리 시) — 출전 · 대기 기물에게 나눠 줌'), inc(CR, `+${r.credits.win}`, `크레딧 수입 (승리 시) — 승리 보상 · 연승 · 이자 +${r.credits.interest} 등`)];
+    if (t === 'battle') out.push(inc(PART, pctTxt(Math.min(1, CFG.drop.battle * (f.dropMul || 1))), '무작위 장비 재료 1개 — 확률', 'g-C'));
+    if (t === 'adversity') out.push(inc(PART, `×${CFG.drop.advParts}`, '무작위 장비 재료 — 확정', 'g-C'));
+    if (t === 'boss') out.push(run.phase % CFG.drop.bossAdvEvery === 0 ? inc(PART, '×1', '희귀 장비 3개 중 1개 선택 — 확정', 'g-A') : inc(PART, pctTxt(CFG.drop.bossPart), '장비 재료 3개 중 1개 선택 — 확률', 'g-C'));
+    if (CFG.drop.utility[t]) out.push(inc(CONS, pctTxt(CFG.drop.utility[t]), '전투 보상 소모품 1개 — 확률', 'cons'));
+    return `<div class="ah-inc" aria-label="예상 수입"><span class="ah-sec">예상 수입</span>${out.join('')}</div>`;
   };
-  const when = (i: number) => `<span class="ah-when">${i > run.step ? `${i - run.step}칸 뒤` : '지금'} · ${i + 1}번째</span>`;
-  const card = (i: number) => {
-    const e = run.map[i].includes('boss') ? phaseBoss(run) : undefined;
-    if (e) {
-      const cat = enemyCategory(e), td = TEND_NAME[e.tend], rk = foeRank(run, e, run.phase, R.encounterMult('boss', i));
-      return `<li class="ah-card ah-boss n-boss" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}"><span class="ah-port">${sprite(e, 'spr big')}<i class="ah-ic">${NODE_ICON.boss}</i></span>
-        <div class="ah-body">${when(i)}<b>${esc(e.name)}</b><div class="ah-chips">${rankChip(rk)}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${reward('boss')}</div></li>`;
-    }
-    return run.map[i].map((o) => {
-      const c = chips(o);
-      return `<li class="ah-card n-${o}"><i class="ah-ic">${NODE_ICON[o]}</i><div class="ah-body">${when(i)}<b>${esc(NODE_NAME[o])}</b>${reward(o)}${c ? `<div class="ah-chips">${c}</div>` : ''}${FIGHT_NODES.includes(o) ? '' : `<span class="ah-hint">${ic(esc(nodeHint(o)))}</span>`}</div></li>`;
-    }).join('');
+  // 순서 배지: 현재 · +1 · +2 … (몇 칸 뒤인지는 툴팁)
+  const step = (i: number) => (i === run.step ? '<span class="ah-step now">현재</span>' : `<span class="ah-step" title="${i - run.step}칸 뒤 (${i + 1}번째 칸)">${lineIcon('r.next', 'li')}+${i - run.step}</span>`);
+  const act = (cur: boolean) => (cur ? `<div class="ah-act">${buttons}</div>` : '');
+  const bossCard = (i: number, e: EnemyDef, cur: boolean) => {
+    const cat = enemyCategory(e), td = TEND_NAME[e.tend], rk = foeRank(run, e, run.phase, R.encounterMult('boss', i));
+    return `<li class="ah-card ah-boss n-boss${cur ? ' cur tl-info' : ''}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}"><span class="ah-port">${sprite(e, 'spr big')}<i class="ah-ic">${NODE_ICON.boss}</i></span>
+      <div class="ah-body">${step(i)}<b>${esc(e.name)}</b>${income('boss')}<div class="ah-chips">${rankChip(rk)}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${act(cur)}</div></li>`;
   };
-  return `<section class="ahead" aria-labelledby="ah-h"><h2 id="ah-h">앞으로</h2><ol class="ah-list">${idx.map(card).join('')}</ol></section>`;
+  const nodeCard = (i: number, o: NodeType, cur: boolean) => {
+    const e = o === 'boss' ? phaseBoss(run) : undefined;
+    if (e) return bossCard(i, e, cur);
+    const c = chips(o);
+    const note = cur && run.node ? '<span class="ah-hint">진행 중</span>' : FIGHT_NODES.includes(o) ? '' : `<span class="ah-hint">${ic(esc(nodeHint(o)))}</span>`;
+    return `<li class="ah-card n-${o}${cur ? ' cur tl-info' : ''}"><i class="ah-ic">${NODE_ICON[o]}</i><div class="ah-body">${step(i)}<b>${esc(NODE_NAME[o])}</b>${income(o)}${c ? `<div class="ah-chips">${c}</div>` : ''}${note}${act(cur)}</div></li>`;
+  };
+  // 현재 칸 (진입 단추 포함, 강조) → 다음 칸들 → 보스: 같은 카드 토큰으로 한 흐름
+  const cur = pick ? nodeCard(run.step, pick, true)
+    : `<li class="ah-card cur tl-info"><i class="ah-ic">${NODE_ICON.boss}</i><div class="ah-body">${step(run.step)}<b>항로 끝</b><span class="ah-hint">이번 항로의 모든 칸을 지났습니다.</span>${act(true)}</div></li>`;
+  return `<section class="ahead" aria-label="현재 칸과 앞으로 올 칸"><ol class="ah-list">${cur}${idx.flatMap((i) => run.map[i].includes('boss') ? [nodeCard(i, 'boss', false)] : run.map[i].map((o) => nodeCard(i, o, false))).join('')}</ol></section>`;
 }
 // ───────── 적 스펙 ≈ 공명 등급: 적의 공격 위력을 '장비 · 시너지 · 증강 없는 아군(영입 가능 기물 평균)'의 등급별 위력과 비교해 가장 가까운 등급
 //   위력 = 사격 · 타격 · 기술 중 큰 값 (적은 × 페이즈 피해 배율). 아군 등급 성장은 설정값 그대로 (모든 메이저 +rankAll, 마이너 추천 메이저 rankPoints, 위력 rankPowGrowth)
@@ -1020,8 +1023,8 @@ function foeRank(run: RunState, e: EnemyDef, phase: number, mult: number, s?: { 
   if (lv < CFG.maxRank && allyRef(lv + 1).pow - pow < pow - allyRef(lv).pow) lv++; // 더 가까운 쪽
   return { lv, hpX: c.st.maxHp / allyRef(lv).hp };
 }
-const rankTip = (r: { lv: number; hpX: number }) => `공명 등급 ≈ ★${r.lv} 수준: 공격 위력이 장비 · 시너지 없는 ★${r.lv} 아군 평균과 비슷 · 체력은 그 아군의 ×${r.hpX >= 10 ? Math.round(r.hpX) : r.hpX.toFixed(1)}`;
-const rankChip = (r: { lv: number; hpX: number } | null) => (r ? tchip(RANK_STAR, `≈${r.lv}`, 'rk', rankTip(r)) : '');
+const rankTip = (r: { lv: number; hpX: number }) => `공명 등급 ★${r.lv} 수준 (추정): 공격 위력이 장비 · 시너지 없는 ★${r.lv} 아군 평균과 비슷 · 체력은 그 아군의 ×${r.hpX >= 10 ? Math.round(r.hpX) : r.hpX.toFixed(1)}`;
+const rankChip = (r: { lv: number; hpX: number } | null) => (r ? `<span class="rank foe-rank" title="${esc(rankTip(r))}">${rankLabel(r.lv)}</span>` : ''); // 아군 공명 등급과 같은 흰 배지
 /** 자원 아이콘: 에너지 크레딧 · 공명도 */
 const CR = lineIcon('r.cr', 'li cr'), RES = lineIcon('r.res', 'li res');
 /** 문장 속 '크레딧' · '공명도' 앞에 아이콘 (이미 escape 된 HTML 에만) */
@@ -1753,7 +1756,7 @@ function detailPanel(run: RunState, extra = '') {
       ${heroHead(`en_${e.id}`, sprite(e, 'spr big'), e.name, enemyTags(e))}
       <div class="small muted">${CATEGORY_RULE[enemyCategory(e)]} · 체력 ${fmt(b.S(c, 'maxHp'))}${known ? ` · 도감: 조우 ${known.seen} · 처치 ${known.kills}` : ''}</div>
       ${TEND_NAME[e.tend] ? `<div class="tend-line">${lineIcon(`t.${e.tend}`, 'li')}<b>${TEND_NAME[e.tend].name}</b><span>${esc(TEND_NAME[e.tend].desc)}</span></div>` : ''}
-      ${(() => { const r = foeRank(run, e, ph, run.node!.enc!.mult, s); return r ? `<div class="tend-line rk">${RANK_STAR}<b>공명 등급 ≈ ★${r.lv} 수준</b><span>${esc(rankTip(r).split(': ')[1])}</span></div>` : ''; })()}
+      ${(() => { const r = foeRank(run, e, ph, run.node!.enc!.mult, s); return r ? `<div class="tend-line rk">${RANK_STAR}<b>공명 등급 ${rankLabel(r.lv)} 수준</b><span>${esc(rankTip(r).split(': ')[1])}</span></div>` : ''; })()}
       ${ENEMY_DESC[e.id] ? `<p class="small">${esc(ENEMY_DESC[e.id])}</p>` : ''}
       ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.map((x) => `<span class="tk-it">${itemIcon(x, `data-a="foe-item" data-v="${x}"`)}</span>`).join('')}</div></div>` : ''}
       <div class="mj-wrap"><div class="mj-head"><h3>주요 능력치 <span class="muted small">페이즈 ${ph}</span></h3>${magBtn()}</div>${majorsHtml(ms)}</div>
