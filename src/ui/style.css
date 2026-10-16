@@ -2641,6 +2641,14 @@ h3 { font-size: .9rem; }
 .so-ic { background: none; border-color: var(--line-soft); }
 .so-ic small { color: var(--c-text-2) !important; }
 .so-ic:hover, .so-ic.on { border-color: var(--line); background: rgb(255 255 255 / .03); }
+/* 기물 상세 접히는 머리줄: 위에서 살짝 내려오며 나타남 (들어올 때 200ms · 나갈 때 140ms), 초상화는 약간 확대 → 1 */
+.um-sc { transform: translateY(-8px); transition: opacity .14s ease-in, transform .14s ease-in, visibility 0s linear .14s; }
+.um-sc .um-face { transform: scale(1.08); transition: transform .14s ease-in; }
+.um-a.compact .um-sc { transition: opacity .2s cubic-bezier(.2, .7, .3, 1), transform .2s cubic-bezier(.2, .7, .3, 1), visibility 0s; }
+.um-a.compact .um-sc .um-face { transform: none; transition: transform .2s cubic-bezier(.2, .7, .3, 1); }
+.um-a.compact .um-art { opacity: 1; transform: none; filter: none; } /* 머리줄은 일러스트 · 블록이 다 지나간 뒤에 나오므로 일러스트를 따로 흐리지 않는다 */
+.um-a.um-instant .um-sc .um-face { transition: none !important; }
+@media (prefers-reduced-motion: reduce) { .um-sc, .um-a.compact .um-sc, .um-sc .um-face, .um-a.compact .um-sc .um-face { transition: none !important; transform: none !important; } }
 .modal h1 { color: var(--c-text); }
 @media (max-width: 700px) { .um-main { display: contents; } .um-sum { order: -1; } .um-a, .um-c, .um-r { order: 0; } }
 @media (max-width: 700px) { .um-grid { grid-template-rows: none; } .um-sum, .um-a, .um-c, .um-r { grid-row: auto; grid-column: auto; } }

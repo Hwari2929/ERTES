@@ -1447,8 +1447,8 @@ function unitModal(run: RunState) {
       <div class="um-col um-a">
         <div class="um-sticky"><div class="um-sc" aria-hidden="true">${sprite(d, 'um-face')}<div class="um-sc-main">${rankRow}${synRow}</div></div></div>
         <div class="um-art">${hero(d.id) || sprite(d, 'spr big')}</div>
-        ${rankRow}
-        ${synRow}
+        <div class="um-idblk">${rankRow}
+        ${synRow}</div>
         <h3>장비</h3>${eqBox(u)}
         ${rel ? `<div class="um-relic">${relicTok(rel.id)}<span><b>${esc(rel.name)}</b><br><span class="muted small">성유물 · 신권 대행</span></span></div>` : ''}
         <h3>메이저 스탯</h3>${majors}
@@ -1489,22 +1489,33 @@ function unitModal(run: RunState) {
 }
 /** 전체 상세 왼쪽 열: 스탠딩 일러스트를 일정 이상(일러스트 높이의 30%) 내려 보면 일러스트가 접히고 머리 초상화 · 공명 등급 · 시너지 머리줄이 위에 붙는다.
  *  넓은 화면은 왼쪽 열이, 좁은 화면(≤700px)은 팝업 전체(.um-grid)가 스크롤된다 */
+let umIO: IntersectionObserver | null = null;
 function umCompactBind() {
   const a = root.querySelector<HTMLElement>('.um-a');
   const grid = root.querySelector<HTMLElement>('.um-grid');
-  if (!a || !grid) return;
+  const blk = a?.querySelector<HTMLElement>('.um-idblk');
+  if (!a || !grid || !blk) return;
+  // 머리줄은 본문의 공명 등급 · 시너지 블록이 스크롤 영역 위로 완전히 사라진 뒤에만 (두 표기가 동시에 보이지 않게).
+  // 경계에서 떨리지 않게 들어올 때 · 나갈 때 기준을 6px 다르게 (히스테리시스)
+  const HYS = 6;
+  const scroller = () => (a.scrollHeight > a.clientHeight + 1 && getComputedStyle(a).overflowY !== 'visible' ? a : grid);
   const upd = (instant = false) => {
-    const art = a.querySelector<HTMLElement>('.um-art');
-    const lim = Math.max(40, (art?.offsetHeight || 160) * 0.3);
-    const y = a.scrollTop + (grid.scrollHeight > grid.clientHeight + 1 ? grid.scrollTop : 0);
-    const on = y > lim;
-    if (on === a.classList.contains('compact')) return;
+    const top = scroller().getBoundingClientRect().top;
+    const bottom = blk.getBoundingClientRect().bottom;
+    const was = a.classList.contains('compact');
+    const on = was ? bottom < top + HYS : bottom < top - HYS;
+    if (on === was) return;
     if (instant) { a.classList.add('um-instant'); requestAnimationFrame(() => requestAnimationFrame(() => a.classList.remove('um-instant'))); }
     a.classList.toggle('compact', on);
     a.querySelector('.um-sc')?.setAttribute('aria-hidden', String(!on));
   };
-  a.addEventListener('scroll', () => upd(), { passive: true });
-  grid.addEventListener('scroll', () => upd(), { passive: true });
+  let raf = 0;
+  const onScroll = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; upd(); }); };
+  a.addEventListener('scroll', onScroll, { passive: true });
+  grid.addEventListener('scroll', onScroll, { passive: true });
+  // 크기 변화 · 레이아웃 변화로 블록이 가려지거나 드러날 때도 (스크롤 없이)
+  umIO?.disconnect();
+  if (typeof IntersectionObserver !== 'undefined') { umIO = new IntersectionObserver(() => upd(), { root: null, threshold: [0, 1] }); umIO.observe(blk); }
   upd(true);
 }
 /** 장비 · 개조부품 칸 (끌어 놓기 지원) */
