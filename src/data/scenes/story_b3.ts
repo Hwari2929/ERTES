@@ -1,10 +1,10 @@
-// 사건 연출: 이야기 B (추가분) — 황제 탄신 검투 · 연합 검문소 · 두 장의 의뢰서 · 정전 회담 · 헤드헌터 · 이타카의 연회
+// 사건 연출: 이야기 B (추가분) — 황제 탄신 검투 · 연합 검문소 · 2장의 의뢰서 · 정전 회담 · 헤드헌터 · 이타카의 연회
 import type { EventScene, SceneReg } from '../scene';
 import { N, S, SUB } from './dsl';
 
 export const STORY_B3_REG: SceneReg = {
   bgs: {
-    b3_bridge: '에란테스 함교 작전 탁자 — 나란히 놓인 의뢰서 두 장, 뜯다 만 과자 봉지',
+    b3_bridge: '에란테스 함교 작전 탁자 — 나란히 놓인 의뢰서 2장, 뜯다 만 과자 봉지',
     b3_lounge: '에란테스 함선 휴게실 — 낡은 소파와 카드 게임판, 오늘따라 여기저기 놓인 명함',
   },
 };
@@ -39,7 +39,7 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
     ],
     subs: {
       kairo: [
-        S('kairo', '귀족석 셋째 줄, 공작새 부채. 지난 대회 땐 자기 기사한테 걸고, 전날 그 기사 술에 약을 탔지.', { at: 'C', face: 'smug' }),
+        S('kairo', '귀족석 3번째 줄, 공작새 부채. 지난 대회 땐 자기 기사한테 걸고, 전날 그 기사 술에 약을 탔지.', { at: 'C', face: 'smug' }),
         S('temur', '자기 편한테? 왜.', { face: 'surprise' }),
         S('kairo', '반대쪽에 더 걸었으니까. 사감은 없네. 아는 걸 말했을 뿐이지.', { face: 'tired', exit: true }),
       ],
@@ -113,11 +113,11 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
       N('성간 인류 연합 검문소. 심사 창구 위 전광판의 대기 번호가 한 시간에 한 칸씩 넘어간다.', { bg: 'b_checkpoint', bgm: 'calm' }),
       N('창밖에 대기 중인 함선들이 줄지어 있다. 몇 척은 선체에 빨래를 널었다.'),
       S('west', '빨래를 널었어. 저놈들 여기다 살림 차렸네.', { at: 'L', face: 'tired' }),
-      S('b_clerk', '다음 분… 아, 에란테스. 서류는 받았고요. 대기는 사흘입니다.', { at: 'R', face: 'tired' }),
-      S('west', '사흘?', { face: 'surprise' }),
-      S('b_clerk', '사흘이요. 저도 사흘째 집에 못 갔어요.'),
-      S('rachel', '사흘이면 밥 몇 끼야.', { at: 'C', face: 'worried' }),
-      S('west', '네 기준으로? 서른여섯 끼.', { face: 'base' }),
+      S('b_clerk', '다음 분… 아, 에란테스. 서류는 받았고요. 대기는 3일입니다.', { at: 'R', face: 'tired' }),
+      S('west', '3일?', { face: 'surprise' }),
+      S('b_clerk', '3일이요. 저도 3일째 집에 못 갔어요.'),
+      S('rachel', '3일이면 밥 몇 끼야.', { at: 'C', face: 'worried' }),
+      S('west', '네 기준으로? 36끼.', { face: 'base' }),
       N('관료가 길게 한숨을 쉰다. 책상 위 서류 더미가 한쪽으로 스르륵 기운다.', { sfx: 'b_paper' }),
       S('b_clerk', '물론… 급행 처리라는 게 있긴 해요. 수수료가 좀 붙고요. 공식적으로는 없는 제도지만요.'),
       S('west', '공식적으론 없는데 수수료는 있다. 흠. 군대에서 많이 들어 본 소리네.', { face: 'smug' }),
@@ -128,8 +128,8 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
       S('rachel', '…누가 주웠는데.'),
       S('west', '묻지 마.'),
       SUB,
-      S('west', '정리하자, {pc}. 저 친구 서랍에 수수료 찔러 주면 오늘 나간다. 남는 시간엔 애들 굴리고. 걸리면 돈 두 번 내는 거고.', { face: 'serious' }),
-      S('west', '아니면 사흘 얌전히 기다려. 다들 잠이나 실컷 자고. 검사야 뭐, 저 친구 꼴 보니 상자 다 열 기운도 없겠다.'),
+      S('west', '정리하자, {pc}. 저 친구 서랍에 수수료 찔러 주면 오늘 나간다. 남는 시간엔 애들 굴리고. 걸리면 돈 2번 내는 거고.', { face: 'serious' }),
+      S('west', '아니면 3일 얌전히 기다려. 다들 잠이나 실컷 자고. 검사야 뭐, 저 친구 꼴 보니 상자 다 열 기운도 없겠다.'),
       S('west', '아니면 저 차단기를 그냥 밀고 나간다. 경고 사격 몇 발은 맞겠지. 화물은 지키고.'),
       S('b_clerk', '저기요, 마지막 건 제 앞에서 말씀 안 하시면 안 돼요?', { face: 'worried' }),
       S('west', '흠. 그래. …그 프린터 소리 이상한데. 기다리는 동안 내가 본다.', { face: 'tired' }),
@@ -142,23 +142,23 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
         S('phyllis', '나 잠깐 산책 좀-!', { face: 'shy', exit: true }),
       ],
       gebek: [
-        S('gebek', '나 이 검문소 알아. 예전에 스콜치 소스 스무 상자 실었다가 밀수범으로 찍혔던 데야.', { at: 'C', face: 'grin' }),
+        S('gebek', '나 이 검문소 알아. 예전에 스콜치 소스 20상자 실었다가 밀수범으로 찍혔던 데야.', { at: 'C', face: 'grin' }),
         S('b_clerk', '아, 그 소스 분이세요? 그 건 아직 서류 처리 안 끝났는데요.', { face: 'surprise' }),
         S('gebek', '…나 배에 가 있을게.', { face: 'tired', exit: true }),
       ],
       yupito: [
-        S('yupito', '저 검문 장비 십 년 된 거네! 반나절만 주면 내가 싹—', { at: 'C', face: 'smile' }),
+        S('yupito', '저 검문 장비 10년 된 거네! 반나절만 주면 내가 싹—', { at: 'C', face: 'smile' }),
         S('west', '건드리지 마. 넌 고치는 게 아니라 딴 물건을 만들잖아.', { face: 'angry' }),
         S('yupito', '더 좋은 물건! 버튼도 하나 더 달아 주고! 하하!', { face: 'grin' }),
         S('west', '그러니까 그게 문제라고.', { exit: ['yupito'] }),
       ],
       yelena: [
-        S('yelena', '수수료 줄 거면 지금 주세요. 감찰 순찰이 십오 분 뒤에 이 창구 지나가요.', { at: 'C', face: 'base' }),
+        S('yelena', '수수료 줄 거면 지금 주세요. 감찰 순찰이 15분 뒤에 이 창구 지나가요.', { at: 'C', face: 'base' }),
         S('west', '그걸 어떻게 알아.'),
         S('yelena', '느낌이요. 그리고 순찰표요. 저기 벽에 붙어 있잖아요.', { face: 'smug', exit: true }),
       ],
       donovan: [
-        S('donovan', '사흘이면 보스 밥은 누가 줘.', { at: 'C', face: 'tired' }),
+        S('donovan', '3일이면 보스 밥은 누가 줘.', { at: 'C', face: 'tired' }),
         S('west', '보스가 누군데.'),
         S('donovan', '우리 집 호랑이. 새끼 셋 딸린.', { face: 'blank' }),
         S('west', '…빨리 나가자.', { face: 'worried', exit: ['donovan'] }),
@@ -170,7 +170,7 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
           N('관료가 서류에 도장을 내리찍는다. 칩 하나가 서랍 속으로 사라진다.', { bg: 'b_checkpoint', bgm: 'calm', sfx: 'b_stamp' }),
           S('b_clerk', '급행 처리 완료입니다. 서류상으로는 정상 처리고요.', { at: 'R', face: 'smile' }),
           S('west', '고맙다. 오늘은 집에 가라.', { at: 'L', face: 'base' }),
-          S('west', '그리고 너희는 격납고 집합. 남는 사흘, 노는 꼴은 못 본다.', { face: 'serious' }),
+          S('west', '그리고 너희는 격납고 집합. 남는 3일, 노는 꼴은 못 본다.', { face: 'serious' }),
           S('rachel', '…밥은?', { at: 'C', face: 'tired' }),
           S('west', '뛰고 나서.'),
         ],
@@ -178,31 +178,31 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
           N('칩이 서랍에 들어가기 직전, 등 뒤에서 헛기침 소리가 난다.', { bg: 'b_checkpoint', bgm: 'tense' }),
           S('b_inspector', '급행 처리는 공식적으로 없는 제도입니다. 그러니 방금 그건 벌금 대상이고요.', { at: 'R', face: 'smug' }),
           S('b_clerk', '…죄송합니다. 진짜로요.', { face: 'sad' }),
-          S('west', '사흘 야근한 놈 말고 그 위에 있는 놈을 잡으라고, 이 양반아.', { at: 'L', face: 'angry' }),
-          S('b_inspector', '그쪽도 벌금 서류 쓰시죠. 두 장입니다.'),
+          S('west', '3일 야근한 놈 말고 그 위에 있는 놈을 잡으라고, 이 양반아.', { at: 'L', face: 'angry' }),
+          S('b_inspector', '그쪽도 벌금 서류 쓰시죠. 2장입니다.'),
         ],
       },
       [
-        N('사흘. 대기 번호는 정확히 한 시간에 한 칸씩 넘어갔다. 단원들은 늘어지게 잤고, 누군가는 옆 함선과 빨랫줄을 나눠 썼다.', { bg: 'b_checkpoint', bgm: 'calm' }),
-        S('west', '사흘 동안 한 대도 못 피웠다. 근데 기침이 안 나. 이게 무슨 배신이야.', { at: 'L', face: 'tired' }),
+        N('3일. 대기 번호는 정확히 한 시간에 한 칸씩 넘어갔다. 단원들은 늘어지게 잤고, 누군가는 옆 함선과 빨랫줄을 나눠 썼다.', { bg: 'b_checkpoint', bgm: 'calm' }),
+        S('west', '3일 동안 한 대도 못 피웠다. 근데 기침이 안 나. 이게 무슨 배신이야.', { at: 'L', face: 'tired' }),
         S('b_clerk', '수고하셨습니다. 화물 검사는… 그냥 통과로 할게요. 저도 내일은 집에 가요.', { at: 'R', face: 'smile' }),
         S('west', '…이불이나 널고 갈걸.', { face: 'base' }),
       ],
       [
         N('차단기를 밀고 나가는 순간, 연합 경비정이 경고 사격을 퍼붓는다. 선체가 크게 덜컹인다.', { bg: 'b_checkpoint', bgm: 'tense', sfx: 'blast', fx: 'shake' }),
         S('b_clerk', '저기요! 저 이거 보고서 써야 된다고요!', { name: '검문소 관료 (무전)', face: 'worried' }),
-        S('west', '미안하다! 사흘 치 잠이나 자 둬!', { at: 'L', face: 'grin' }),
-        S('west', '…장갑판 세 장 나갔네. 결국 또 내 일이지.', { face: 'tired' }),
+        S('west', '미안하다! 3일 치 잠이나 자 둬!', { at: 'L', face: 'grin' }),
+        S('west', '…장갑판 3장 나갔네. 결국 또 내 일이지.', { face: 'tired' }),
         N('화물칸 바닥판 아래 상자들은 하나도 열리지 않았다.'),
       ],
     ],
   },
 
-  // ───────── 두 장의 의뢰서 — 주연 레이첼 · 아문센
+  // ───────── 2장의 의뢰서 — 주연 레이첼 · 아문센
   sb_double: {
     cast: ['rachel', 'amundsen'],
     scene: [
-      N('함교 작전 탁자 위에 의뢰서 두 장이 나란히 놓여 있다. 옆에는 뜯다 만 과자 봉지.', { bg: 'b3_bridge', bgm: 'comic' }),
+      N('함교 작전 탁자 위에 의뢰서 2장이 나란히 놓여 있다. 옆에는 뜯다 만 과자 봉지.', { bg: 'b3_bridge', bgm: 'comic' }),
       S('rachel', '이거 봐. 웃기지.', { at: 'L', face: 'tired' }),
       S('amundsen', '뭐가 말인가?', { at: 'R', face: 'base' }),
       S('rachel', '이건 헬레니우스 동맹. 자기네 항구 지켜 달래.', { face: 'base' }),
@@ -219,7 +219,7 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
       S('amundsen', '둘 다 피곤하군.'),
       S('rachel', '응. 그래서 고르기 싫어.'),
       SUB,
-      S('amundsen', '세 번째 길도 있지. 선금은 둘 다 받아 두고, 양쪽이 엉켜 있는 사이에 조용히 빠지는 거.', { face: 'grin' }),
+      S('amundsen', '3번째 길도 있지. 선금은 둘 다 받아 두고, 양쪽이 엉켜 있는 사이에 조용히 빠지는 거.', { face: 'grin' }),
       S('rachel', '…그거 들키면?', { face: 'surprise' }),
       S('amundsen', '양쪽에서 동시에 포탄이 날아오겠지. 재밌지 않나?'),
       S('rachel', '안 재밌어.', { face: 'tired' }),
@@ -240,7 +240,7 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
       franze: [
         S('franze', '이의 있습니다. 같은 사안에 반대되는 계약을 동시에 받는 건 은하법상—', { at: 'C', face: 'serious' }),
         S('amundsen', '프란체.'),
-        S('franze', '…위약금 조항부터 확인하겠습니다. 두 장 다요. 빨리.', { face: 'tired', exit: true }),
+        S('franze', '…위약금 조항부터 확인하겠습니다. 2장 다요. 빨리.', { face: 'tired', exit: true }),
       ],
       zephyro: [
         S('zephyro', '둘 다 싸워야 돼? 싸움 없는 쪽은 없어?', { at: 'C', face: 'tired' }),
@@ -248,7 +248,7 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
         S('zephyro', '…그럼 난 낮잠. 정해지면 깨워.', { exit: true }),
       ],
       temur: [
-        S('temur', '주인님. 선금 두 개. 밥도 두 배냐.', { at: 'C', face: 'grin' }),
+        S('temur', '주인님. 선금 2개. 밥도 2배냐.', { at: 'C', face: 'grin' }),
         S('rachel', '…그렇게 따지면 그렇긴 한데.'),
         S('temur', '그럼 둘 다다.'),
         S('rachel', '너한텐 안 물어봤어.', { face: 'tired', exit: ['temur'] }),
@@ -257,9 +257,9 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
     after: [
       [
         N('항구 방어선은 하루를 버텼다. 페트라의 선금은 편지와 함께 돌려보냈다.', { bg: 'b3_bridge', bgm: 'calm' }),
-        S('rachel', '편지는 내가 썼어. "죄송합니다, 다음에 또 불러 주세요." 다섯 번 고쳤어.', { at: 'L', face: 'tired' }),
-        S('amundsen', '다섯 번이나?', { at: 'R', face: 'surprise' }),
-        S('rachel', '앞에 네 개는 너무 솔직했어.', { face: 'blank' }),
+        S('rachel', '편지는 내가 썼어. "죄송합니다, 다음에 또 불러 주세요." 5번 고쳤어.', { at: 'L', face: 'tired' }),
+        S('amundsen', '5번이나?', { at: 'R', face: 'surprise' }),
+        S('rachel', '앞에 4개는 너무 솔직했어.', { face: 'blank' }),
       ],
       [
         N('항구 창고가 하나씩 비워졌다. 페트라 서류에 "회수 완료" 도장이 찍혔다.', { bg: 'b3_bridge', bgm: 'calm' }),
@@ -299,7 +299,7 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
       S('b_masked', '좋은 밤이군요, 경비대 분들.', { name: '???', at: 'R', face: 'base' }),
       N('조명이 닿지 않는 구석에 얼굴을 천으로 가린 사내가 서 있다. 발전기 소리에 발소리가 묻혀 있었다.'),
       S('yelena', '여긴 출입 금지 구역이에요. 나가세요.', { face: 'serious' }),
-      S('b_masked', '길게 말하지 않겠습니다. 이 발전기, 내일 회담 도중에 딱 십 분만 꺼 주십시오.'),
+      S('b_masked', '길게 말하지 않겠습니다. 이 발전기, 내일 회담 도중에 딱 10분만 꺼 주십시오.'),
       N('사내가 크레딧 칩을 내민다. 금액이 발전기 불빛에 반짝인다.', { sfx: 'coin' }),
       S('rachel', '…0이 몇 개야.', { face: 'surprise' }),
       S('yelena', '세지 마요.', { face: 'serious' }),
@@ -317,7 +317,7 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
     ],
     subs: {
       donovan: [
-        S('donovan', '저 칩 일련번호, 긁어 볼까. 십 초면 누가 찍은 건지 나와.', { at: 'C', face: 'base' }),
+        S('donovan', '저 칩 일련번호, 긁어 볼까. 10초면 누가 찍은 건지 나와.', { at: 'C', face: 'base' }),
         S('yelena', '…지금 말고, 나중에.'),
         S('donovan', '알았어. 근데 이미 긁었어. 듣고 나면 실망할걸.', { face: 'smug', exit: true }),
       ],
@@ -352,13 +352,13 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
       ],
       {
         clean: [
-          N('서명 직전, 방어막이 소리 없이 꺼졌다. 십 분 뒤 회담장은 아수라장이 되었고, 아무도 이유를 알아내지 못했다.', { bg: 'b_summit', bgm: 'tense', fx: 'dark' }),
+          N('서명 직전, 방어막이 소리 없이 꺼졌다. 10분 뒤 회담장은 아수라장이 되었고, 아무도 이유를 알아내지 못했다.', { bg: 'b_summit', bgm: 'tense', fx: 'dark' }),
           S('yelena', '…칩은 들어왔어요. 계좌도 확인했고요.', { at: 'L', face: 'blank' }),
-          S('yelena', '보고서엔 "원인 불명"이라고 쓸게요. 제일 싫어하는 네 글자예요.', { face: 'tired' }),
+          S('yelena', '보고서엔 "원인 불명"이라고 쓸게요. 제일 싫어하는 4글자예요.', { face: 'tired' }),
           S('yelena', '주식 손실은… 아니에요. 아무 말도 안 했어요.', { face: 'blank' }),
         ],
         exposed: [
-          N('방어막이 꺼졌던 십 분. 발전기실 출입 기록에 에란테스 이름이 또렷하게 남아 있었다.', { bg: 'b_summit', bgm: 'tense', sfx: 'b_alarm' }),
+          N('방어막이 꺼졌던 10분. 발전기실 출입 기록에 에란테스 이름이 또렷하게 남아 있었다.', { bg: 'b_summit', bgm: 'tense', sfx: 'b_alarm' }),
           N('연합 함대와 제국 함대가 처음으로 같은 목표를 쫓았다. 에란테스 함선을.', { sfx: 'blast', fx: 'shake' }),
           S('yelena', '협정은 깨졌는데 양쪽이 사이좋게 협력하네요! 축하할 일이네요!', { at: 'L', face: 'angry' }),
           S('yelena', '회피 경로 짜고, 수습 문서 초안 쓸게요. …하나도 안 깔끔해.', { face: 'tired' }),
@@ -451,13 +451,13 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
       ],
       {
         ok: [
-          N('새벽 두 시. 빈 술병 사이로, 헤드헌터가 명함첩을 통째로 밀어 놓는다.', { bg: 'b3_lounge', bgm: 'calm', sfx: 'b_cup' }),
+          N('새벽 2시. 빈 술병 사이로, 헤드헌터가 명함첩을 통째로 밀어 놓는다.', { bg: 'b3_lounge', bgm: 'calm', sfx: 'b_cup' }),
           S('b_headhunter', '이건… 친구니까 주는 거예요. 내일 아침엔 기억 안 날 거고요.', { at: 'R', face: 'tired' }),
           S('orca', '걱정 마십시오. 기억은 제가 해 두겠습니다.', { at: 'L', face: 'base' }),
-          S('orca', '그럼 면접 시작하죠. 첫 질문은 제 세 번째 여자친구에 관한 겁니다.'),
+          S('orca', '그럼 면접 시작하죠. 첫 질문은 제 3번째 여자친구에 관한 겁니다.'),
         ],
         fail: [
-          N('헤드헌터는 제일 비싼 술 세 병을 비우고, 명함 한 장 남기지 않고 떠났다.', { bg: 'b3_lounge', bgm: 'calm' }),
+          N('헤드헌터는 제일 비싼 술 3병을 비우고, 명함 한 장 남기지 않고 떠났다.', { bg: 'b3_lounge', bgm: 'calm' }),
           S('orca', '…명함첩은 끝까지 주머니 안이었습니다. 프로군요.', { at: 'L', face: 'blank' }),
           S('orca', '접대비 청구서는 제가 쓰고, 제가 결재하고, 제가 웁니다. 표정은 안 바뀌겠지만요.', { face: 'base' }),
         ],
@@ -478,7 +478,7 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
       S('phyllis', '3절 가사 몰라요-.'),
       S('b_ithacan', '아무도 몰라! 그냥 크게 부르면 돼!'),
       N('함장이 턱짓으로 부두 끝을 가리킨다. 과녁 앞에 도끼 열두 자루가 일렬로 서 있다. 도끼머리 구멍들이 횃불 아래 한 줄로 겹쳐 보인다.', { sfx: 'b_bow' }),
-      S('b_ithacan', '활쏘기 내기다! 화살 한 발로 저 구멍 열두 개를 다 꿰면 이겨. 이기면 함장들이 문장을 내려 주고, 지면 술값!'),
+      S('b_ithacan', '활쏘기 내기다! 화살 한 발로 저 구멍 12개를 다 꿰면 이겨. 이기면 함장들이 문장을 내려 주고, 지면 술값!'),
       S('phyllis', '문장 받으면 뭐 좋은데요?'),
       S('b_ithacan', '함장들 도장이지! 그거 하나면 동맹 바다 어딜 가도 대접이 달라지구먼!', { face: 'smug' }),
       SUB,
@@ -508,7 +508,7 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
         S('gebek', '오, 그거 좋다! 네가 찍어 줘. 횃불 나오게. 아니, 나 잘 나오게!', { face: 'grin', exit: true }),
       ],
       orca: [
-        S('orca', '저 부두 세 번째 계단 밑이 몰래 들어오는 길이라고 들었습니다.', { at: 'C', face: 'base' }),
+        S('orca', '저 부두 3번째 계단 밑이 몰래 들어오는 길이라고 들었습니다.', { at: 'C', face: 'base' }),
         S('phyllis', '…누가 그래?', { face: 'surprise' }),
         S('orca', '이리스 씨가요.'),
         S('phyllis', '그거 내가 옛날에 쓰던 길이거든-?!', { face: 'angry', exit: ['orca'] }),
@@ -522,14 +522,14 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
     after: [
       {
         win: [
-          N('화살이 도끼 열두 개의 구멍을 차례로 꿰뚫고 과녁에 꽂힌다. 연회장이 순간 조용해진다.', { bg: 'b_feast', bgm: 'b_feast', sfx: 'b_bow', fx: 'flash' }),
+          N('화살이 도끼 12개의 구멍을 차례로 꿰뚫고 과녁에 꽂힌다. 연회장이 순간 조용해진다.', { bg: 'b_feast', bgm: 'b_feast', sfx: 'b_bow', fx: 'flash' }),
           N('다음 순간, 함성.', { sfx: 'crowd' }),
           S('b_ithacan', '이거 노래 4절 생기겠구먼!', { at: 'R', face: 'laugh' }),
           S('phyllis', '나 아무것도 안 했어! 진짜 이번엔 아무것도 안 했어!', { at: 'L', face: 'shy' }),
           S('b_ithacan', '안 했으니까 4절이지! 술!', { sfx: 'b_cup' }),
         ],
         lose: [
-          N('화살이 세 번째 도끼에서 튕겨 나가, 생선 굽는 화로에 꽂힌다.', { bg: 'b_feast', bgm: 'b_feast', sfx: 'b_bow' }),
+          N('화살이 3번째 도끼에서 튕겨 나가, 생선 굽는 화로에 꽂힌다.', { bg: 'b_feast', bgm: 'b_feast', sfx: 'b_bow' }),
           S('b_ithacan', '술값! 술값!', { at: 'R', face: 'laugh' }),
           S('phyllis', '그 생선 내가 먹으려던 건데…', { at: 'L', face: 'sad' }),
           S('rachel', '…내 것도.', { at: 'C', face: 'sad' }),

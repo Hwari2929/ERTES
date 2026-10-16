@@ -11,7 +11,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       N('사르마가 탁자에 턱을 괴고 일지를 노려보고 있다. 구석 의자에서는 아르곤이 등불 심지를 다듬는다.'),
       S('sarma', '아! 또 생겼어요! 방금 딱 한 번 눈 깜빡였는데!', { at: 'R', face: 'surprise', sfx: 'c_page' }),
       S('argon', '몇 시간째요.', { at: 'L', face: 'tired' }),
-      S('sarma', '세 시간이요. 가져온 날부터 매일 밤 한 줄씩 늘잖아요. 누가 쓰는지 오늘은 꼭 보려고 했는데…', { face: 'worried' }),
+      S('sarma', '3시간이요. 가져온 날부터 매일 밤 한 줄씩 늘잖아요. 누가 쓰는지 오늘은 꼭 보려고 했는데…', { face: 'worried' }),
       S('sarma', '아, 그리고 날짜요. 이번에도 내일 날짜예요.'),
       S('argon', '읽어 보시오.'),
       S('sarma', '들어 보세요. "에란테스가 우리를 찾아왔다. 우리는 그들에게 집으로 가는 길을 물었다."', { face: 'serious' }),
@@ -19,8 +19,8 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       N('아르곤이 일지를 끌어당겨 맨 뒷장을 편다. 좌표 하나에 연필로 동그라미가 쳐져 있다.'),
       S('argon', '이 동그라미. 어제는 없었소.', { face: 'serious' }),
       S('sarma', '어? 정말이네요. 여기 어디예요?'),
-      S('argon', '열한 시간 거리.'),
-      S('sarma', '열한 시간이요? 그 배 시계도 열한 시간 빨랐잖아요. 이건 우연이… 아니겠죠, 네.', { face: 'worried' }),
+      S('argon', '11시간 거리.'),
+      S('sarma', '11시간이요? 그 배 시계도 11시간 빨랐잖아요. 이건 우연이… 아니겠죠, 네.', { face: 'worried' }),
       SUB,
       N('문이 열리고 레이첼이 들어온다. 잠옷 위에 코트를 걸쳤고, 손에는 빈 접시를 들었다.'),
       S('rachel', '…불 켜져 있길래. 야식 있어?', { at: 'C', face: 'tired' }),
@@ -38,14 +38,14 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
     ],
     subs: {
       oliver: [
-        S('oliver', '열한 시간? 에이, 내가 몰면 여덟 시간! 신호만 안 걸리면^^', { at: 'C', face: 'grin' }),
+        S('oliver', '11시간? 에이, 내가 몰면 8시간! 신호만 안 걸리면^^', { at: 'C', face: 'grin' }),
         S('argon', '우주엔 신호 없소.'),
-        S('oliver', '그러니까 여덟 시간이라니까!', { face: 'laugh' }),
+        S('oliver', '그러니까 8시간이라니까!', { face: 'laugh' }),
         S('argon', '…키 근처 오지 마시오.', { face: 'tired', exit: ['oliver'] }),
       ],
       odysseus: [
         S('odysseus', '집 가는 길을 남한테 물어? 똑똑한 배네.', { at: 'C', face: 'smile' }),
-        S('odysseus', '나는 안 물어봤거든. 그래서 이십 년 걸렸지.'),
+        S('odysseus', '나는 안 물어봤거든. 그래서 20년 걸렸지.'),
         S('sarma', '…그건 길을 잃으신 거 아니에요?', { face: 'surprise' }),
         S('odysseus', '돌아간 거라니까. 경치 좋은 길로.', { face: 'smug', exit: true }),
       ],
@@ -57,7 +57,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       hiiro: [
         S('hiiro', '어머, 혼자 쓰는 공책. 나도 하나 갖고 싶다. 점괘 받아 적기 귀찮거든.', { at: 'C', face: 'smile' }),
         S('sarma', '히이로 씨, 혹시 이게 내일 뭐라고 쓸지 점쳐 주실 수 있어요?'),
-        S('hiiro', '음… 내일 줄엔 쉼표가 두 개. 점괘값은 2c.', { face: 'grin', exit: true }),
+        S('hiiro', '음… 내일 줄엔 쉼표가 2개. 점괘값은 2c.', { face: 'grin', exit: true }),
       ],
       eleni: [
         S('eleni', '영혼 반응이 미약하게 잡힙니다. 말을 걸어 보겠습니다.', { at: 'C', face: 'serious' }),
@@ -70,8 +70,8 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       [
         N('그날 밤 함선이 항로를 꺾었다. 좌표까지 돌아가느라 연료가 더 들었고, 장부에서 크레딧이 조금 빠져나갔다.', { bg: 'space', bgm: 'melancholy' }),
         S('argon', '키는 내가 잡소.', { at: 'L', face: 'base' }),
-        S('sarma', '안 주무시고요? 열한 시간인데요.', { at: 'R', face: 'worried' }),
-        S('argon', '열한 시간쯤이야.'),
+        S('sarma', '안 주무시고요? 11시간인데요.', { at: 'R', face: 'worried' }),
+        S('argon', '11시간쯤이야.'),
         N('다음 날 아침, 일지에는 새 줄이 없었다. 대신 마지막 장의 동그라미가 한 번 더 덧그려져 있었다.', { sfx: 'c_page' }),
         S('sarma', '…이거 재촉하는 거죠?', { face: 'surprise' }),
         S('argon', '가고 있소.', { face: 'tired' }),
@@ -106,7 +106,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
   sc_argo_home: {
     cast: ['argon'],
     scene: [
-      N('항해일지가 동그라미 쳐 둔 좌표. 별도 잔해도 없는 빈 곳에서, 함선이 열한 시간째 기다리고 있다.', { bg: 'space', bgm: 'melancholy' }),
+      N('항해일지가 동그라미 쳐 둔 좌표. 별도 잔해도 없는 빈 곳에서, 함선이 11시간째 기다리고 있다.', { bg: 'space', bgm: 'melancholy' }),
       S('argon', '…셋. 둘.', { at: 'L', face: 'serious', sfx: 'tick' }),
       N('빈 공간에 배 한 척이 불쑥 나타난다. 아르고-7이다.', { fx: 'flash' }),
       N('이번에는 함교 창가에 사람들이 서 있다. 짐 가방을 든 사람, 아이를 목말 태운 사람. 다들 이쪽을 보며 손을 흔든다.'),
@@ -120,7 +120,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       N('통신 너머가 조용해진다. 창가의 사람들이 숨을 죽이고 대답을 기다린다.'),
       S('argon', '선장. 출항 언제요.'),
       S('c_argo_captain', '어제요. 아니, 오늘 아침이던가? 애들 짐도 아직 못 풀었는데 벌써 도착이라니, 빠르네요!'),
-      S('rachel', '…삼백 년 됐다고 말해 줘?', { face: 'base' }),
+      S('rachel', '…300년 됐다고 말해 줘?', { face: 'base' }),
       S('argon', '아직이오.'),
       SUB,
       N('아르곤이 뼈만 남은 손가락으로 조타 콘솔을 두드린다. 똑, 똑, 똑.'),
@@ -151,16 +151,16 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       odysseus: [
         S('odysseus', '아르고라. 우리 집 개 이름이랑 한 글자 차이네.', { at: 'C', face: 'smile' }),
         S('argon', '그래서.'),
-        S('odysseus', '그 녀석은 이십 년 만에 온 나를 냄새로 알아봤어. 마누라는 사흘 걸렸고.', { face: 'grin', exit: true }),
+        S('odysseus', '그 녀석은 20년 만에 온 나를 냄새로 알아봤어. 마누라는 3일 걸렸고.', { face: 'grin', exit: true }),
       ],
       zephyro: [
-        S('zephyro', '저 배, 삼백 년 떠돌면서 한 번도 안 부딪혔대. …항로 누가 짰어? 진짜 궁금해서.', { at: 'C', face: 'tired' }),
+        S('zephyro', '저 배, 300년 떠돌면서 한 번도 안 부딪혔대. …항로 누가 짰어? 진짜 궁금해서.', { at: 'C', face: 'tired' }),
         S('argon', '운이오.'),
         S('zephyro', '운이 항로를 짜? …다음엔 제대로 그려 줘. 그 운, 나는 못 믿어.', { face: 'base', exit: true }),
       ],
       iris: [
         S('iris', '헤르메스님은 길 잃은 여행자를 집까지 데려다주시는 분이기도 해요! 그러니까 저 배에도 분명—', { at: 'C', face: 'surprise' }),
-        S('argon', '삼백 년이오.'),
+        S('argon', '300년이오.'),
         S('iris', '…좀 늦으셨네요. 바쁘셨나 봐요. 엄청 바쁘신 분이거든요, 진짜로요!', { face: 'shy', exit: true }),
       ],
     },
@@ -201,7 +201,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
     scene: [
       N('함선 정비실. 분해된 포탑 옆에서 웨스트가 렌치를 돌리고 있다. 콧노래를 부르면서.', { bg: 'c_workshop', bgm: 'comic', sfx: 'c_hum' }),
       S('west', '흐음~ 흠흐흐음~ …젠장. 또 나왔어.', { at: 'R', face: 'angry' }),
-      S('nadir', '저 왔어요! …아저씨 또 노래해요? 사흘째잖아요!', { at: 'L', face: 'grin' }),
+      S('nadir', '저 왔어요! …아저씨 또 노래해요? 3일째잖아요!', { at: 'L', face: 'grin' }),
       S('west', '노래 아니다. 고장이다.', { face: 'tired' }),
       S('nadir', '그 초대장 때문이죠? 합창단에서 보낸 거.'),
       S('west', '그래. 서명 대신 악보 한 줄 그려 놨길래 오류 있나 검수 좀 했지. 그 뒤로 이게 귀에서 안 빠진다.'),
@@ -210,7 +210,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       S('west', '우리 쪽 사이오닉 하나를 모셔 가고 싶단다. 비어 있는 성부라나. 파트 하나가 빈대.', { face: 'base' }),
       S('west', '거절하면? 노래가 조금 쓸쓸해질 뿐이래. 협박인지 뭔지.'),
       S('nadir', '사이오닉이면… 잠깐. 저요?! 저도 사이오닉이잖아요!', { face: 'surprise' }),
-      S('nadir', '이거 스카우트예요? 합창단 스카우트? 저 노래방 점수 맨날 육십 점대인데?!'),
+      S('nadir', '이거 스카우트예요? 합창단 스카우트? 저 노래방 점수 맨날 60점대인데?!'),
       S('west', '머리로 부르는 합창이라더라. 목청은 상관없나 보지.'),
       S('nadir', '단복 있어요? 정장이면 안 가요. 와이셔츠까지만 돼요.', { face: 'worried' }),
       SUB,
@@ -244,19 +244,19 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
         S('hiiro', '그럼 다음 주 목요일이려나. 환불은 안 돼.', { face: 'smile', exit: true }),
       ],
       joshua: [
-        S('joshua', '웨스트 씨, 같은 노래가 사흘째면 많이 지치셨겠어요. 잠은 좀 주무셨어요?', { at: 'C', face: 'worried' }),
+        S('joshua', '웨스트 씨, 같은 노래가 3일째면 많이 지치셨겠어요. 잠은 좀 주무셨어요?', { at: 'C', face: 'worried' }),
         S('west', '잤지. 꿈에서도 불렀지만.', { face: 'tired' }),
         S('joshua', '흐음~ …어. 죄송해요. 방금 저도 따라 했어요.', { face: 'shy', exit: true }),
       ],
       zephyro: [
         S('zephyro', '거절하면 노래가 쓸쓸해질 뿐이라. 그거 협박 아니야. 투정이지.', { at: 'C', face: 'tired' }),
-        S('west', '투정을 사흘째 내 귀에다 하는 놈도 있냐?'),
+        S('west', '투정을 3일째 내 귀에다 하는 놈도 있냐?'),
         S('zephyro', '있네. 여기. …나 저 뒤에 가 있어도 돼? 귀 안 닿는 데로.', { face: 'base', exit: true }),
       ],
     },
     after: [
       [
-        N('사흘 뒤, 합창단이 보낸 작은 셔틀이 함선 옆에 붙었다. 가방 하나 들고 오른 사람은 {who}.', { bg: 'ship_cargo', bgm: 'melancholy' }),
+        N('3일 뒤, 합창단이 보낸 작은 셔틀이 함선 옆에 붙었다. 가방 하나 들고 오른 사람은 {who}.', { bg: 'ship_cargo', bgm: 'melancholy' }),
         N('셔틀 문이 닫히는 순간, 정비실 쪽에서 콧노래가 뚝 끊겼다.', { sfx: 'c_hum' }),
         S('west', '…어? 멈췄다. 멈췄어!', { at: 'R', face: 'surprise' }),
         N('웨스트가 렌치를 내려놓고, 다시 집고, 또 내려놓는다.'),
@@ -272,7 +272,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       {
         quiet: [
           N('수집가는 초대장을 받자마자 액자부터 꺼냈다. 크레딧이 들어오고, 초대장은 떠났다.', { bg: 'c_workshop', sfx: 'coin' }),
-          S('west', '…조용하다. 사흘 만에.', { at: 'R', face: 'smile' }),
+          S('west', '…조용하다. 3일 만에.', { at: 'R', face: 'smile' }),
           S('nadir', '아저씨 웃었다! 방금 웃었죠?!', { at: 'L', face: 'grin' }),
           S('west', '안 웃었다. 일이나 해.', { face: 'base' }),
         ],
@@ -290,12 +290,12 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
   sc_choir2: {
     cast: ['west', 'chloe'],
     scene: [
-      N('새벽 세 시, 함선 선실 복도. 비상등만 켜져 있다. 어느 방에서 노랫소리가 새어 나온다.', { bg: 'c_quarters_night', bgm: 'c_hymn' }),
+      N('새벽 3시, 함선 선실 복도. 비상등만 켜져 있다. 어느 방에서 노랫소리가 새어 나온다.', { bg: 'c_quarters_night', bgm: 'c_hymn' }),
       N('합창단에 다녀온 단원의 방이다. 본인은 자고 있다. 자면서, 알아들을 수 없는 말로 화음을 넣고 있다.'),
       N('복도 벽의 사이오닉 계측기 바늘이 그 박자에 맞춰 까딱거린다.', { sfx: 'tick' }),
-      S('west', '고장 아니다. 세 번 뜯어 봤어. 저 노래에 맞춰 흔들리는 거다.', { at: 'L', face: 'tired' }),
-      S('chloe', '어머, 원사님. 새벽 세 시에 공구 들고 복도에 서 계시면 꽤 무서운 거 아세요?', { at: 'R', face: 'smile' }),
-      S('west', '새벽 세 시에 가운 걸치고 돌아다니는 너는 안 무섭냐.'),
+      S('west', '고장 아니다. 3번 뜯어 봤어. 저 노래에 맞춰 흔들리는 거다.', { at: 'L', face: 'tired' }),
+      S('chloe', '어머, 원사님. 새벽 3시에 공구 들고 복도에 서 계시면 꽤 무서운 거 아세요?', { at: 'R', face: 'smile' }),
+      S('west', '새벽 3시에 가운 걸치고 돌아다니는 너는 안 무섭냐.'),
       S('chloe', '이 숙녀는 낮에 자 두거든요. …본인한테는 물어보셨어요?'),
       S('west', '아침마다 묻지. 합창단에서 뭐 했는지, 밤에 노래하는 거, 하나도 기억 안 난단다.'),
       S('chloe', '흐음. 기억 지우는 건 이 숙녀 전공인데요.', { face: 'smug' }),
@@ -303,7 +303,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       S('chloe', '그런 무례는 제가 하는 건 괜찮은데, 남이 하면 기분 나쁘거든요.', { face: 'smug' }),
       N('그때 복도 통신기에 짧은 전언이 하나 뜬다. 발신자는 오닉스 합창단.', { sfx: 'static' }),
       S('c_onyx_choir', '노래는 아직 끝나지 않았습니다.', { at: 'C', name: '오닉스 합창단 (전언)' }),
-      S('chloe', '어머. 새벽 세 시에 이런 문자 보내는 상대는 대개 안 끝내 주던데요.', { face: 'grin', exit: ['c_onyx_choir'] }),
+      S('chloe', '어머. 새벽 3시에 이런 문자 보내는 상대는 대개 안 끝내 주던데요.', { face: 'grin', exit: ['c_onyx_choir'] }),
       SUB,
       S('west', '흠. 방법은 셋이다.', { face: 'base' }),
       S('west', '끝까지 들어 주든가. 운 좋으면 노래가 배에 눌러앉고, 운 나쁘면 다 같이 바닥에서 깨는 거다.'),
@@ -315,7 +315,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       N('복도 끝 문이 열리고, 레이첼이 베개를 안은 채 나온다.'),
       S('rachel', '…시끄러워. 뭐야.', { at: 'C', face: 'tired' }),
       S('west', '정해라. 셋 중 하나.'),
-      S('rachel', '…세 시야.'),
+      S('rachel', '…3시야.'),
       S('chloe', '노래는 시간을 안 가리더라고요, 지휘관님.', { face: 'smile' }),
     ],
     subs: {
@@ -325,14 +325,14 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
         S('chloe', '…그건 안 돼요, 선생님.', { face: 'tired', exit: ['bianca'] }),
       ],
       sigmund: [
-        S('sigmund', '실례합니다. 가주님 서류를 전하러 들렀다가 오늘로 이틀째 신세 지고 있습니다.', { at: 'C', face: 'base' }),
+        S('sigmund', '실례합니다. 가주님 서류를 전하러 들렀다가 오늘로 2일째 신세 지고 있습니다.', { at: 'C', face: 'base' }),
         S('sigmund', '노랫소리에 깨신 분이 지금까지 일곱 분입니다. 따뜻한 우유를 돌리고 있습니다.'),
         S('west', '난 됐다. 커피 없냐.'),
-        S('sigmund', '새벽 세 시의 커피는 권해 드릴 수 없습니다. 우유 두고 가겠습니다.', { exit: true }),
+        S('sigmund', '새벽 3시의 커피는 권해 드릴 수 없습니다. 우유 두고 가겠습니다.', { exit: true }),
       ],
       yupito: [
         S('yupito', '오, 계측기가 춤춘다! 이거 뜯어서 스피커 달면 노래 더 크게 들리겠다. 하하!', { at: 'C', face: 'laugh' }),
-        S('west', '새벽 세 시다. 내려놔.', { face: 'angry' }),
+        S('west', '새벽 3시다. 내려놔.', { face: 'angry' }),
         S('yupito', '이미 뜯었는데? …다시 붙일게. 아마!', { face: 'grin', exit: true }),
       ],
       vivian: [
@@ -361,10 +361,10 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
         ],
       },
       [
-        N('웨스트와 클로에가 번갈아 화음을 받아 적었다. 해가 뜰 무렵, 정비 일지 뒷면에 악보 열두 장이 쌓였다.', { bg: 'c_quarters_night', sfx: 'c_page' }),
+        N('웨스트와 클로에가 번갈아 화음을 받아 적었다. 해가 뜰 무렵, 정비 일지 뒷면에 악보 12장이 쌓였다.', { bg: 'c_quarters_night', sfx: 'c_page' }),
         N('사이오닉 단원들이 그 악보를 돌려 보더니, 하나같이 관자놀이를 문질렀다. 머리가 맑아졌다고 했다.'),
         S('chloe', '원사님 악보 글씨, 의외로 예쁘시네요.', { at: 'R', face: 'grin' }),
-        S('west', '정비 일지 삼십 년 쓰면 다 이렇게 된다.', { at: 'L', face: 'smug' }),
+        S('west', '정비 일지 30년 쓰면 다 이렇게 된다.', { at: 'L', face: 'smug' }),
       ],
       [
         N('클로에가 주머니에서 작은 앰풀을 꺼내 깨뜨린다. 잠든 단원의 코밑에 대자, 노래가 칼로 자른 듯 끊긴다.', { bg: 'c_quarters_night', fx: 'flash' }),
@@ -381,7 +381,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
     scene: [
       N('아침, 함선 식당. 숟가락 소리만 난다. 평소라면 셋이 동시에 떠들고 하나가 커피를 엎을 시간이다.', { bg: 'c_mess', bgm: 'eerie' }),
       N('다들 눈 밑이 거뭇하다. 그리고 서로 눈이 안 마주치게 애쓰고 있다.'),
-      N('테무르만 평소처럼 먹는다. 털 코트를 두 겹 걸친 채, 벌써 세 그릇째다.'),
+      N('테무르만 평소처럼 먹는다. 털 코트를 2겹 걸친 채, 벌써 3그릇째다.'),
       S('temur', '야. 다들 문 꿈 꿨지.', { at: 'L', face: 'base' }),
       N('식당이 얼어붙는다. 누군가의 숟가락이 그릇에 빠진다.', { sfx: 'clank' }),
       S('hiiro', '어머. 그걸 그냥 말해 버리네. 다들 누가 먼저 꺼내나 눈치만 보던 참인데.', { at: 'R', face: 'smile' }),
@@ -390,7 +390,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       S('hiiro', '응. 부른 이름은 다 달랐는데, 목소리는 똑같았지?', { face: 'base' }),
       S('temur', '…어떻게 알아.', { face: 'surprise' }),
       S('hiiro', '나도 꿨거든. 날 부른 이름은… 비밀.', { face: 'smile' }),
-      N('맞은편에서 레이첼이 네 번째 그릇을 비운다.'),
+      N('맞은편에서 레이첼이 4번째 그릇을 비운다.'),
       S('rachel', '…나도 꿨어. 내 목소리가 나 불렀어. 기분 나빠.', { at: 'C', face: 'tired' }),
       S('temur', '…주인님 목소리 맞다. 나도 그거였다. 더 쉰 목소리.', { face: 'serious' }),
       SUB,
@@ -416,8 +416,8 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       ],
       bianca: [
         S('bianca', '승무원 전원 수면 질 저하. 여러 명이 같은 꿈을 꾸는 사례는 매우 드뭅니다. 기록하겠습니다.', { at: 'C', face: 'base' }),
-        S('bianca', '수면제는 의무실에 충분합니다. 테무르 씨는 체중 기준으로 세 알입니다.'),
-        S('temur', '세 알 먹으면 점심까지 잔다.', { face: 'worried', exit: ['bianca'] }),
+        S('bianca', '수면제는 의무실에 충분합니다. 테무르 씨는 체중 기준으로 3알입니다.'),
+        S('temur', '3알 먹으면 점심까지 잔다.', { face: 'worried', exit: ['bianca'] }),
       ],
       vivian: [
         S('vivian', '나도 꿨어! 근데 날 부른 게 리키였어! 리키가 말을 했다니까!', { at: 'C', face: 'surprise' }),
@@ -425,8 +425,8 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
         S('vivian', '그러니까! 근데 목소리가 리키 목소리가 아니었어. …리키 목소리가 뭔지는 나도 모르지만! 적어 둬야지!', { face: 'grin', exit: true }),
       ],
       odysseus: [
-        S('odysseus', '복도 끝에 문 하나라. 나는 이십 년 동안 그 꿈 꿨지. 우리 집 현관문이었어.', { at: 'C', face: 'smile' }),
-        S('odysseus', '이름 부르면 바로 대답하지 마. 목소리부터 확인해. 나는 우리 집 앵무새한테 세 번 속았거든.', { face: 'grin', exit: true }),
+        S('odysseus', '복도 끝에 문 하나라. 나는 20년 동안 그 꿈 꿨지. 우리 집 현관문이었어.', { at: 'C', face: 'smile' }),
+        S('odysseus', '이름 부르면 바로 대답하지 마. 목소리부터 확인해. 나는 우리 집 앵무새한테 3번 속았거든.', { face: 'grin', exit: true }),
       ],
       sarma: [
         S('sarma', '여러 명이 같은 꿈이라니, 시간축 어딘가에서 같은 문이 열렸다는— 아, 실례했어요.', { at: 'C', face: 'surprise' }),
@@ -475,7 +475,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       S('temur', '손잡이 안 만진다. 발로 민다.', { at: 'L', face: 'serious' }),
       N('문이 열리자 함교가 나온다. 에란테스 함선의 함교다. 의자 배치도, 콘솔에 붙은 메모지도 똑같다.', { bg: 'c_old_bridge', sfx: 'c_creak' }),
       N('다만 전부 조금씩 낡았다. 의자는 바랬고, 콘솔 한쪽은 테이프로 감겨 있다. 자리마다 앉은 승무원들도 다들 조금씩 늙어 보인다.'),
-      N('구석에서 털 코트를 세 겹 껴입은 덩치가 졸고 있다.'),
+      N('구석에서 털 코트를 3겹 껴입은 덩치가 졸고 있다.'),
       S('temur', '…저거 나다. 코트 한 겹 늘었다.', { face: 'surprise' }),
       N('함장석에 앉은 사람이 고개를 든다. 레이첼이다. 눈 밑이 몇 해 치 더 시커먼 레이첼.'),
       S('c_future_cmd', '왔네. 이번엔 너희 차례구나.', { at: 'R' }),
@@ -484,7 +484,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       S('temur', '늙었다. 우리 안 늙는다며.', { face: 'base' }),
       S('c_future_cmd', '안 늙었어. 피곤한 거야. 몇 년 치.'),
       S('c_future_cmd', '시간 없으니까 짧게 할게. 하나만 가져가. 둘 이상 가져가면 우리가 사라져.'),
-      N('탁자 위에 상자 세 개. 금빛 상자, 검은 상자, 그리고 뚜껑이 열린 채 비어 있는 상자 하나.'),
+      N('탁자 위에 상자 3개. 금빛 상자, 검은 상자, 그리고 뚜껑이 열린 채 비어 있는 상자 하나.'),
       S('rachel', '저 빈 건?'),
       S('c_future_cmd', '저번 애들이 가져갔어. 금빛은 기도야. 아직 아무도 안 올린 기도. 검은 건… 우리도 몰라. 열 때마다 달라.'),
       SUB,
@@ -513,7 +513,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
       ],
       eleni: [
         S('eleni', '저쪽의 저는 대검을 등에 메고 있습니다. …위협용입니다. 저쪽도 분명 위협용입니다.', { at: 'C', face: 'serious' }),
-        S('c_future_cmd', '그거 작년에 세 번 휘둘렀어.'),
+        S('c_future_cmd', '그거 작년에 3번 휘둘렀어.'),
         S('eleni', '……참회하겠습니다. 미리.', { face: 'shy', exit: true }),
       ],
       zephyro: [
@@ -568,7 +568,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
     scene: [
       N('궤도에 가죽 가방 하나가 떠 있다. 날개 문양이 찍힌 낡은 우편낭이 별빛 사이를 천천히 돈다.', { bg: 'c_orbit_post', bgm: 'calm' }),
       N('집게 팔로 건져 화물칸에 내려놓는다. 수신인 칸은 비어 있고, 안에는 봉인된 편지가 수십 통. 겉봉 날짜는 제각각이다.', { bg: 'ship_cargo' }),
-      S('iris', '이, 이거, 헤르메스 우정국 거예요! 날개 문양 보이세요? 진품이에요. 가짜는 깃털이 일곱 개거든요!', { at: 'L', face: 'surprise' }),
+      S('iris', '이, 이거, 헤르메스 우정국 거예요! 날개 문양 보이세요? 진품이에요. 가짜는 깃털이 7개거든요!', { at: 'L', face: 'surprise' }),
       S('phyllis', '깃털 개수까지 세고 있어…', { at: 'R', face: 'tired' }),
       S('phyllis', '근데 헤르메스 우정국이 뭐야. 신이 우체국도 해?', { face: 'grin' }),
       S('iris', '하세요! 그분은 정말, 정말— 길이랑, 편지랑, 여행자랑, 장사랑… 아 그리고 도둑도요!', { face: 'laugh' }),
@@ -591,7 +591,7 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
     ],
     subs: {
       argon: [
-        S('argon', '편지 마흔일곱 통.', { at: 'C', face: 'base' }),
+        S('argon', '편지 47통.', { at: 'C', face: 'base' }),
         S('iris', '벌써 세셨어요? 아르곤 씨도 한번 만져 보실래요? 축복받은 물건이에요!', { face: 'smile' }),
         S('argon', '그래서 안 만지오.', { face: 'tired', exit: true }),
       ],
@@ -630,10 +630,10 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
           S('phyllis', '기도는 좀-. 대신 고맙다고는 할게.', { face: 'tired' }),
         ],
         curse: [
-          N('필리스가 손톱 자국 난 봉투를 뜯고 말았다. 안에는 한 줄뿐이었다. 이 편지를 연 자에게 일곱 번의 불운을.', { bg: 'ship_cargo', fx: 'glitch' }),
+          N('필리스가 손톱 자국 난 봉투를 뜯고 말았다. 안에는 한 줄뿐이었다. 이 편지를 연 자에게 7번의 불운을.', { bg: 'ship_cargo', fx: 'glitch' }),
           N('곧바로 함선 어딘가에서 배관이 터지고, 조명이 나가고, 누군가 계단에서 굴렀다.', { sfx: 'clank', fx: 'shake' }),
           S('phyllis', '…그거 하나는 빼고 뜯으려고 했는데.', { at: 'R', face: 'shy' }),
-          S('iris', '그러니까 뜯지 말자고 했잖아요! …지금 세 번이에요. 네 번 남았어요!', { at: 'L', face: 'angry' }),
+          S('iris', '그러니까 뜯지 말자고 했잖아요! …지금 3번이에요. 4번 남았어요!', { at: 'L', face: 'angry' }),
         ],
       },
       [
@@ -655,14 +655,14 @@ export const STORY_C_SCENES: Record<string, EventScene> = {
 
 export const STORY_C_REG: SceneReg = {
   npcs: {
-    c_argo_captain: { name: '아르고 선장', color: '#a8c4e0', desc: '아르고-7의 선장. 삼백 년 항해를 하룻밤으로 기억한다. 아이들 짐도 아직 못 풀었다.' },
+    c_argo_captain: { name: '아르고 선장', color: '#a8c4e0', desc: '아르고-7의 선장. 300년 항해를 하룻밤으로 기억한다. 아이들 짐도 아직 못 풀었다.' },
     c_onyx_choir: { name: '오닉스 합창단', color: '#9a5ad0', desc: '머리로 노래하는 사이오닉 감응자들의 합창단. 초대장에 서명 대신 악보를 적는다.' },
     c_future_cmd: { name: '저편의 지휘관', color: '#b0a890', desc: '꿈속 문 너머 함교의 지휘관. 몇 해 치 피로가 쌓인 레이첼. 여전히 푸딩을 찾는다.' },
   },
   bgs: {
     c_chartroom: '함선 해도실 — 성도가 펼쳐진 탁자, 스탠드 하나, 덜 마른 잉크 냄새',
     c_workshop: '함선 정비실 — 공구가 걸린 벽, 분해된 포탑, 꽁초가 수북한 재떨이',
-    c_quarters_night: '새벽 세 시의 선실 복도 — 비상등의 붉은 띠, 벽에 달린 사이오닉 계측기',
+    c_quarters_night: '새벽 3시의 선실 복도 — 비상등의 붉은 띠, 벽에 달린 사이오닉 계측기',
     c_dream_hall: '꿈속의 복도 — 똑같은 문틀이 끝없이 이어지고, 맨 끝에 문 하나',
     c_old_bridge: '문 너머의 함교 — 에란테스 함교와 똑같지만 낡았다. 바랜 의자, 테이프로 막은 콘솔',
     c_ship_bridge: '에란테스 함선 함교 — 새벽 조명, 함장석, 항법 콘솔',

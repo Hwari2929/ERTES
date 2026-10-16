@@ -6,13 +6,13 @@ import { N, S, SUB } from './dsl';
 export const STORY_A_REG: SceneReg = {
   npcs: {
     a_board: { name: '흰사슴 게시판', color: '#e8e4f0', desc: '잉겔의 팬덤 흰사슴의 게시판. 새 글 알림이 멈추지 않는다.' },
-    a_official: { name: '관리국 직원', color: '#9aa8b8', desc: '정박지 관리국 직원. 허가증 세 장을 늘 부채처럼 들고 다닌다.' },
+    a_official: { name: '관리국 직원', color: '#9aa8b8', desc: '정박지 관리국 직원. 허가증 3장을 늘 부채처럼 들고 다닌다.' },
     a_navi: { name: '항법사', color: '#88b0c8', desc: '에란테스 함교의 당직 항법사. 항해일지에 고양이를 적어야 할지 고민 중이다.' },
     a_supply: { name: '보급 담당', color: '#a8b890', desc: '에란테스 함선의 보급 담당 단원. 배급 계획표를 짠 사람. 클립보드를 놓지 않는다.' },
   },
   bgs: {
     a_den: '공조기 뒤편 맥스의 소굴 — 배열판 열기로 따뜻한 빈 공간, 걸레 위에 줄 맞춰 놓인 물건들',
-    a_hangar_night: '새벽 세 시의 빈 격납고 — 야간 조명의 푸른 띠, 공구 상자 하나',
+    a_hangar_night: '새벽 3시의 빈 격납고 — 야간 조명의 푸른 띠, 공구 상자 하나',
     a_bridge: '에란테스 함선 함교 — 함장석과 항법 콘솔, 보조 화면들',
     a_plaza: '정박지 광장 — 화물 컨테이너를 이어 붙인 즉석 무대, 흰 사슴뿔 머리띠의 인파',
     a_kitchen: '함선 주방 — 커다란 냄비 하나, 김이 서린 조명, 국자를 든 셰프',
@@ -20,7 +20,7 @@ export const STORY_A_REG: SceneReg = {
     a_bar: '에란테스 바 — 지상의 거대한 실내 바, 호박색 조명, 술병 진열장, 카운터 끝자리',
     a_mess: '함선 식당 — 긴 테이블들과 공용 냉장고, 벽에 붙은 배급 계획표',
     a_engine: '기관실 — 초록불 계기판, 격벽 너머의 육중한 기관',
-    a_lounge: '휴게실 — 화이트보드와 빈 의자 스무 개, 벽시계',
+    a_lounge: '휴게실 — 화이트보드와 빈 의자 20개, 벽시계',
     a_hangar_garden: '격납고 한쪽 구석의 텃밭 — 줄지어 선 화분, 배관을 타고 오르는 덩굴',
     a_dock: '정박지 착륙장 — 유도등과 화물 하역 구역',
   },
@@ -65,8 +65,8 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       S('rachel', '클로에 거네. 그다음.'),
       S('rasmus', '드론 프로펠러. 이빨 자국이 넷이오.'),
       S('rachel', '도노반 거. …잠깐. 저 봉지.', { face: 'surprise' }),
-      N('반쯤 먹은 초콜릿 웨하스 봉지. 매직으로 큼직하게 레이첼이라고 쓰여 있다. 입구는 얌전하게 두 번 접혀 있다.'),
-      S('rachel', '내 거잖아. 이틀 찾았는데.', { face: 'angry' }),
+      N('반쯤 먹은 초콜릿 웨하스 봉지. 매직으로 큼직하게 레이첼이라고 쓰여 있다. 입구는 얌전하게 2번 접혀 있다.'),
+      S('rachel', '내 거잖아. 2일 찾았는데.', { face: 'angry' }),
       S('max', '왕.'),
       N('맥스가 줄 맨 끝 물건을 코로 밀어 레이첼 쪽으로 굴린다. 녹슨 훈장이다. 날개 문양 위에 연합군 문장.'),
       S('rachel', '…이거 아빠 거. 일주일 내내 찾던 거.', { face: 'surprise' }),
@@ -91,7 +91,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         S('donovan', '프로펠러 거기 있냐. …이빨 자국? 몇 개.', { name: '도노반 (덕트 밖)' }),
         S('rasmus', '넷이오.'),
         S('donovan', '까악이한텐 말하지 마. 리비볼드 경 체면이 어쩌고 한 시간 간다.', { name: '도노반 (덕트 밖)' }),
-        S('donovan', '그리고 그거 한 장에 사료 두 포대 값이야. 그냥 하는 말이야.', { name: '도노반 (덕트 밖)', exit: true }),
+        S('donovan', '그리고 그거 한 장에 사료 2포대 값이야. 그냥 하는 말이야.', { name: '도노반 (덕트 밖)', exit: true }),
       ],
       rachel: [
         S('rachel', '이거 지금 먹어도 돼? 맥스가 접어 놔서 안 눅눅할 것 같은데.'),
@@ -117,7 +117,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
     after: [
       [
         N('물건은 덕트 입구에서 하나씩 주인에게 돌아갔다. 맥스는 물건마다 따라 나와 주인 앞에 얌전히 앉았다.', { bg: 'ship_cargo', bgm: 'calm' }),
-        N('도노반은 프로펠러를 받고 맥스 머리를 두 번 쓰다듬었다. 클로에는 약병 뚜껑부터 확인했다.'),
+        N('도노반은 프로펠러를 받고 맥스 머리를 2번 쓰다듬었다. 클로에는 약병 뚜껑부터 확인했다.'),
         N('아문센은 훈장을 한참 보더니, 자기 가슴 대신 맥스 목줄에 걸어 주었다.'),
         S('rasmus', '…맥스, 목 무겁겠소.', { at: 'L', face: 'smile' }),
         S('max', '왕!'),
@@ -152,14 +152,14 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
   sa_ingel_guitar: {
     cast: ['ingel'],
     scene: [
-      N('새벽 세 시. 레이첼은 야식을 찾으러 식당으로 가는 길이다. 빈 격납고 앞을 지나는데 안에서 소리가 샌다.', { bg: 'a_hangar_night', bgm: 'a_night' }),
+      N('새벽 3시. 레이첼은 야식을 찾으러 식당으로 가는 길이다. 빈 격납고 앞을 지나는데 안에서 소리가 샌다.', { bg: 'a_hangar_night', bgm: 'a_night' }),
       N('기타 소리다. 코드가 바뀔 때마다 한 박자씩 늦는다.', { sfx: 'a_strum' }),
       N('문틈으로 보니 공구 상자 위에 잉겔이 혼자 앉아 있다. 은하 투어를 도는 그 가수가, 기타를 붙들고 쩔쩔매고 있다.'),
       S('ingel', 'G, 그다음 C. …아니 왜 손가락이 거기 가 있어.', { at: 'L', face: 'angry' }),
       S('ingel', '다시. 처음부터.', { face: 'serious' }),
-      N('이번엔 두 마디까지 간다. 기타 위로 작은 흥얼거림이 얹힌다. 가사는 없다.'),
-      N('세 번째 코드에서 또 무너진다. 줄 하나가 찡 울고, 잉겔이 이마를 기타에 쿵 박는다.', { sfx: 'a_strum' }),
-      S('ingel', '…석 달째야. 석 달.', { face: 'tired' }),
+      N('이번엔 2마디까지 간다. 기타 위로 작은 흥얼거림이 얹힌다. 가사는 없다.'),
+      N('3번째 코드에서 또 무너진다. 줄 하나가 찡 울고, 잉겔이 이마를 기타에 쿵 박는다.', { sfx: 'a_strum' }),
+      S('ingel', '…3개월째야. 3개월.', { face: 'tired' }),
       S('rachel', '…저거 기타였구나.', { at: 'R', face: 'blank' }),
       S('ingel', '아버지가 보면 뭐라 하겠어. 이 시간에 자면 컨디션이 몇 퍼센트 오르는지 아느냐고.', { face: 'tired' }),
       S('ingel', '알아. 안다고. 그러니까 아무도 없을 때 하는 거잖아.'),
@@ -173,7 +173,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
     subs: {
       aiden: [
         N('레이첼 단말기에 작은 홀로 창이 뜬다. 아까 눌러 둔 바 야식 주문 창이다.'),
-        S('aiden', '핫초코 곱빼기 손님, 새벽 세 시 주문은 처음이시군요. 아쉽지만 지상 바에서 함대까지는 배달이 안 됩니다.', { at: 'C', name: '에이든 (통신)' }),
+        S('aiden', '핫초코 곱빼기 손님, 새벽 3시 주문은 처음이시군요. 아쉽지만 지상 바에서 함대까지는 배달이 안 됩니다.', { at: 'C', name: '에이든 (통신)' }),
         S('rachel', '쉿. 소리 줄여.'),
         S('aiden', '…아, 연주 중이군요. C 코드에서 약지가 반 박자 늦습니다.', { name: '에이든 (통신)' }),
         N('레이첼이 홀로 창을 손바닥으로 덮는다. 창 너머에서 고양이 우는 소리가 작게 난다.', { exit: ['aiden'] }),
@@ -190,7 +190,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         S('mirinae', '저 소리 때문에 깼는데… 뭐, 모닥불 소리라고 치지 뭐. 잘 자-', { exit: true }),
       ],
       hiiro: [
-        S('hiiro', '어머. 새벽 세 시에 문틈 엿보기네. 오늘 운세랑 똑같다.', { at: 'C', face: 'smile' }),
+        S('hiiro', '어머. 새벽 3시에 문틈 엿보기네. 오늘 운세랑 똑같다.', { at: 'C', face: 'smile' }),
         S('rachel', '운세에 뭐라고 나왔는데.'),
         S('hiiro', '배고픈 사람이 엉뚱한 걸 줍는다. …점괘값은 2c. 아침에 줘요.', { exit: true }),
       ],
@@ -203,7 +203,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
     },
     after: [
       [
-        N('레이첼은 문틈에서 물러났다. 식당까지 열두 걸음.'),
+        N('레이첼은 문틈에서 물러났다. 식당까지 12걸음.'),
         N('냉장고 앞에서 푸딩을 먹는 동안에도 격납고 쪽에서 늦은 박자가 희미하게 들렸다.', { sfx: 'a_strum' }),
         N('침대에 누우니 그 박자가 아직 귀에 남아 있었다. 거기 맞춰 숨을 쉬다 보니 금방 잠이 들었다.'),
         S('rachel', '…C. 그다음 F…', { at: 'R', face: 'tired' }),
@@ -212,7 +212,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         ok: [
           N('문이 끼익 열리는 소리에 잉겔이 기타를 등 뒤로 숨기려다 포기한다. 숨겨지는 크기가 아니다.'),
           S('ingel', '…뭐야. 언제부터 있었어.', { at: 'L', face: 'shy' }),
-          S('rachel', '석 달 얘기할 때부터. 바 밴드 아저씨는 C 잡을 때 손목을 내리던데. 이렇게.', { at: 'R', face: 'base' }),
+          S('rachel', '3개월 얘기할 때부터. 바 밴드 아저씨는 C 잡을 때 손목을 내리던데. 이렇게.', { at: 'R', face: 'base' }),
           S('ingel', '…한 번만 더 보여 줘.', { face: 'serious' }),
           N('둘은 해가 뜰 때까지 앉아 있었다. 마지막 C 코드는 처음으로 박자에 맞았다. 레이첼은 아침밥 시간을 놓쳤다.', { sfx: 'a_strum' }),
         ],
@@ -247,15 +247,15 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       S('rachel', '이거 언제 켰지.'),
       N('그때 함교 문이 열린다. 자동문인데 누가 걷어찬 것 같은 소리가 난다.', { sfx: 'a_door' }),
       S('ingel', '찾았다.', { at: 'L', face: 'angry' }),
-      S('ingel', '새벽 세 시, 격납고 앞 복도. 출입 기록에 딱 한 명 찍혀 있더라. 레이첼.'),
+      S('ingel', '새벽 3시, 격납고 앞 복도. 출입 기록에 딱 한 명 찍혀 있더라. 레이첼.'),
       S('rachel', '야식 먹으러 간 거야.'),
       S('ingel', '야식이 격납고 문틈에 있었어?', { face: 'smug' }),
       S('a_board', '근데 이거 정규 앨범보다 좋음. 이거 내 줘요 제발', { sfx: 'a_ping' }),
-      S('ingel', '봤어? 정규 앨범은 녹음만 여덟 달 걸렸어. 이건 틀린 코드 세 개짜리 3분 42초고.', { face: 'tired' }),
+      S('ingel', '봤어? 정규 앨범은 녹음만 8개월 걸렸어. 이건 틀린 코드 3개짜리 3분 42초고.', { face: 'tired' }),
       SUB,
       N('잉겔이 함장석 팔걸이에 걸터앉아 팔짱을 낀다. 게시판 알림은 멈추지 않는다.', { sfx: 'a_ping' }),
       S('ingel', '말해 봐. 사과할 거야? 아니면 이걸로 돈 얘기라도 할 거야?', { face: 'serious' }),
-      S('ingel', '아니면 너 아니라고 해 보든가. 나 거짓말하는 목소리는 귀신같이 구분해. 녹음실에서 십 년 굴렀거든.', { face: 'smug' }),
+      S('ingel', '아니면 너 아니라고 해 보든가. 나 거짓말하는 목소리는 귀신같이 구분해. 녹음실에서 10년 굴렀거든.', { face: 'smug' }),
     ],
     subs: {
       donovan: [
@@ -275,14 +275,14 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         S('lindiwe', '…저장 눌렀는데요.', { face: 'grin', exit: true }),
       ],
       orca: [
-        S('orca', '숫자만 말씀드리죠. 이 속도면 내일 아침 조회수 세 배입니다.', { at: 'C', face: 'base' }),
+        S('orca', '숫자만 말씀드리죠. 이 속도면 내일 아침 조회수 3배입니다.', { at: 'C', face: 'base' }),
         S('ingel', '그거 위로야, 공격이야?'),
         S('orca', '회계입니다. …노래는 장부에 안 맞습니다. 그래서 좋은 겁니다.'),
         S('ingel', '나가.', { face: 'angry' }),
         N('오르카가 고개를 한 번 숙이고 함교를 나간다. 걸음 속도는 그대로다.', { exit: ['orca'] }),
       ],
       vivian: [
-        S('vivian', '나 이거 열 번 들었어! 흥얼거리는 데 내 악기 넣어 봐도 돼? 돼?', { at: 'C', face: 'smile' }),
+        S('vivian', '나 이거 10번 들었어! 흥얼거리는 데 내 악기 넣어 봐도 돼? 돼?', { at: 'C', face: 'smile' }),
         S('ingel', '안 돼.'),
         S('vivian', '반만!', { face: 'grin' }),
         N('비비안이 주머니에서 카주를 꺼내다가, 잉겔 눈빛에 도로 집어넣는다.', { exit: ['vivian'] }),
@@ -300,7 +300,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         post: [
           S('rachel', '…미안. 녹음한 건 나야.', { at: 'R', face: 'base' }),
           S('ingel', '말로는 안 돼. 써. 그거 올라간 데랑 똑같은 데에.', { at: 'L', face: 'serious' }),
-          N('사과문이 함내 공용 채널에 올라갔다. 제목은 「새벽.wav 관련 사과」. 본문은 세 줄이었다.'),
+          N('사과문이 함내 공용 채널에 올라갔다. 제목은 「새벽.wav 관련 사과」. 본문은 3줄이었다.'),
           N('댓글이 줄줄이 달렸다. 대부분은 원본 파일 다시 올려 달라는 얘기였다.', { sfx: 'a_ping' }),
           S('ingel', '…이것들이.', { face: 'tired' }),
         ],
@@ -324,7 +324,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
           S('ingel', '그래? 그럼 이건 뭔데.', { at: 'L', face: 'smug' }),
           N('보조 화면에 파일 정보가 뜬다. 새벽.wav. 녹음 기기, 레이첼 단말기.'),
           S('ingel', '목소리 들을 필요도 없었네.', { face: 'angry' }),
-          N('그다음 일은 함교 기록에서 지워졌다. 레이첼은 이틀 동안 왼쪽 정강이를 절었다.', { fx: 'shake' }),
+          N('그다음 일은 함교 기록에서 지워졌다. 레이첼은 2일 동안 왼쪽 정강이를 절었다.', { fx: 'shake' }),
         ],
       },
     ],
@@ -334,8 +334,8 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
   sa_ingel_stage: {
     cast: ['ingel'],
     scene: [
-      N('정박지 광장. 화물 컨테이너 네 개를 붙인 무대 위로 조명 하나가 흔들린다.', { bg: 'a_plaza', bgm: 'a_live', sfx: 'crowd' }),
-      N('잉겔이 공지 한 줄을 올린 지 사십 분. 광장은 벌써 흰 사슴뿔 머리띠로 꽉 찼다.'),
+      N('정박지 광장. 화물 컨테이너 4개를 붙인 무대 위로 조명 하나가 흔들린다.', { bg: 'a_plaza', bgm: 'a_live', sfx: 'crowd' }),
+      N('잉겔이 공지 한 줄을 올린 지 40분. 광장은 벌써 흰 사슴뿔 머리띠로 꽉 찼다.'),
       N('무대 뒤 컨테이너 틈. 잉겔이 기타를 메고 서 있다. 오늘은 마이크가 없다.'),
       S('a_official', '책임자 누굽니까! 광장 사용 허가증, 공연 허가증, 소음 허가증!', { at: 'R', face: 'angry' }),
       S('ingel', '허가증은 매니저가… 아, 오늘 매니저 없지.', { at: 'L', face: 'tired' }),
@@ -344,10 +344,10 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       N('잉겔이 피크를 쥔다. 피크 끝이 아주 조금 떨린다.'),
       S('ingel', '보지 마.', { face: 'shy' }),
       S('rachel', '떨어?'),
-      S('ingel', '노래할 땐 안 떨어. 열여섯 곡 연달아 불러도. …근데 이건 손이잖아. 손은 틀려.'),
+      S('ingel', '노래할 땐 안 떨어. 16곡 연달아 불러도. …근데 이건 손이잖아. 손은 틀려.'),
       S('a_official', '오 분 드립니다! 오 분 뒤에도 사람 있으면 과태료!'),
       SUB,
-      N('광장 어딘가에서 누가 새벽.wav 흥얼거림을 따라 부른다. 한 명, 열 명, 백 명.', { sfx: 'crowd' }),
+      N('광장 어딘가에서 누가 새벽.wav 흥얼거림을 따라 부른다. 한 명, 10명, 100명.', { sfx: 'crowd' }),
       S('ingel', '…저 사람들, 틀린 박자까지 똑같이 따라 하네.', { face: 'surprise' }),
       S('ingel', '레이첼. 나 나간다. 저 아저씨 좀 붙잡아 두든가.', { face: 'serious' }),
       S('ingel', '아니면 저쪽 가서 티셔츠라도 팔든가. 어젯밤 공작기로 찍어 둔 거 한 상자 있어.'),
@@ -372,7 +372,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       ],
       iris: [
         S('iris', '저, 저기 흰사슴분들 머리띠 보셨어요? 전부 손으로 만든 거래요!', { at: 'C', face: 'surprise' }),
-        S('iris', '저도 헤르메스님 굿즈 1호는 손으로 만들었거든요, 그때 실을 세 번이나—'),
+        S('iris', '저도 헤르메스님 굿즈 1호는 손으로 만들었거든요, 그때 실을 3번이나—'),
         S('ingel', '이리스. 나중에.', { face: 'tired' }),
         S('iris', '네…', { face: 'sad', exit: true }),
       ],
@@ -389,7 +389,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         N('그사이 첫 코드가 광장에 떨어졌다. 반 박자 늦었다. 광장 전체가 같이 늦었다.', { sfx: 'a_strum' }),
         S('a_official', '…저기, 이거 몇 시에 끝나요?', { at: 'R', face: 'tired' }),
         S('rachel', '몰라. 앙코르 몇 번 하는지 봐야지.', { at: 'L', face: 'base' }),
-        N('앙코르는 세 번이었다. 함선으로 돌아가는 셔틀 안에서 다들 그 늦은 박자를 흥얼거렸다.', { sfx: 'crowd' }),
+        N('앙코르는 3번이었다. 함선으로 돌아가는 셔틀 안에서 다들 그 늦은 박자를 흥얼거렸다.', { sfx: 'crowd' }),
       ],
       [
         N('광장 가장자리에 좌판을 폈다. 티셔츠 가슴팍에는 새벽.wav, 등판에는 3:42.'),
@@ -406,9 +406,9 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
           N('이 공연은 에란테스에서 두고두고 얘깃거리가 됐다. 영상 속 탬버린 담당은 끝까지 조명 밖에 있었다.'),
         ],
         fail: [
-          N('세 번째 곡 후렴. 레이첼이 탬버린을 높이 든 순간, 손에서 미끄러졌다.', { sfx: 'a_tambourine' }),
+          N('3번째 곡 후렴. 레이첼이 탬버린을 높이 든 순간, 손에서 미끄러졌다.', { sfx: 'a_tambourine' }),
           N('탬버린은 예쁜 포물선을 그리며 날아가 관리국 직원 이마에 꽂혔다.', { fx: 'shake' }),
-          S('a_official', '…과태료. 과태료 두 배!', { at: 'R', face: 'angry' }),
+          S('a_official', '…과태료. 과태료 2배!', { at: 'R', face: 'angry' }),
           S('rachel', '…흔드는 거 아니었네.', { at: 'L', face: 'blank' }),
           N('이어진 소동에 무대 조명 하나가 넘어졌고, 레이첼은 그 밑에 깔렸다. 영상 조회수는 꽤 나왔다.'),
         ],
@@ -420,18 +420,18 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
   sa_mingki_deal: {
     cast: ['lars', 'mingki'],
     scene: [
-      N('오후 두 시, 함교. 전면 창으로 든 햇빛이 함장석 위에 딱 한 뼘짜리 양지를 만든다.', { bg: 'a_bridge', bgm: 'comic' }),
+      N('오후 2시, 함교. 전면 창으로 든 햇빛이 함장석 위에 딱 한 뼘짜리 양지를 만든다.', { bg: 'a_bridge', bgm: 'comic' }),
       N('그 양지에 밍키가 식빵 자세로 앉아 있다. 라르스가 본가에서 데리고 탄 고양이다.', { stage: [{ id: 'mingki', at: 'R', face: 'blank' }] }),
       N('그리고 그 앞에 라르스가 무릎을 꿇고 있다. 바짓단 주름은 신경도 안 쓰고.'),
       S('rachel', '…내 자리에서 뭐 해?', { at: 'C', face: 'blank' }),
-      S('lars', '아, {pc}님. 협상 중입니다. 일곱 번째 안이요.', { at: 'L', face: 'smile' }),
+      S('lars', '아, {pc}님. 협상 중입니다. 7번째 안이요.', { at: 'L', face: 'smile' }),
       S('lars', '20분 뒤에 본사 분기 보고가 있습니다. 함교에서 본사 회선이 잡히는 자리가 저기 하나뿐이라서요.'),
-      S('lars', '자. 츄르 두 개. 그리고 내일부터 매일 14시에서 16시까지 이 양지 독점권. 대신 지금 20분만 비켜 주시면 됩니다.'),
+      S('lars', '자. 츄르 2개. 그리고 내일부터 매일 14시에서 16시까지 이 양지 독점권. 대신 지금 20분만 비켜 주시면 됩니다.'),
       N('밍키가 하품을 한다. 분홍색 입천장이 길게 보였다가 천천히 닫힌다.'),
       S('mingki', '냐.'),
       S('lars', '…방금 그건 거절입니까, 역제안입니까.', { face: 'tired' }),
       S('rachel', '그냥 들어서 옮기면 되잖아.'),
-      N('라르스가 말없이 소매를 걷는다. 손등에 가지런한 평행선 세 줄.'),
+      N('라르스가 말없이 소매를 걷는다. 손등에 가지런한 평행선 3줄.'),
       S('lars', '해 봤습니다.', { face: 'tired' }),
       N('밍키 꼬리가 팔걸이를 탁 친다. 콘솔 화면 하나가 꺼진다.', { sfx: 'a_beep' }),
       SUB,
@@ -448,7 +448,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         N('린디웨는 사진 대신 밍키에게 손을 뻗었다가 앞발에 한 대 맞는다. 세상에서 제일 행복한 얼굴로.', { exit: ['lindiwe'] }),
       ],
       aiden: [
-        S('aiden', '츄르 두 개 손님, 추가 주문 받았습니다. 다음 셔틀 편으로 올려 보내 드리죠.', { at: 'C', name: '에이든 (통신)' }),
+        S('aiden', '츄르 2개 손님, 추가 주문 받았습니다. 다음 셔틀 편으로 올려 보내 드리죠.', { at: 'C', name: '에이든 (통신)' }),
         S('lars', '…에이든 씨. 저는 이름이 있습니다.'),
         N('화면 속 에이든이 은빛 고양이로 변해 그루밍을 시작한다. 밍키가 화면을 본다. 두 고양이가 동시에 하품을 한다.', { exit: ['aiden'] }),
         S('lars', '협상 상대가 늘었군요.', { face: 'tired' }),
@@ -458,7 +458,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         S('lars', '알고 있네.'),
         S('sigmund', '아실 때 걷으셨어야 합니다. 협상은 몇 번째이십니까.'),
         S('lars', '…일곱.', { face: 'tired' }),
-        S('sigmund', '저택 기록으로는 서른한 번째입니다. 전패로.', { exit: true }),
+        S('sigmund', '저택 기록으로는 31번째입니다. 전패로.', { exit: true }),
       ],
       orca: [
         S('orca', '계산해 보니 이 제안은 시간당 0.3크레딧입니다. 움직일 이유가 없는 가격이죠.', { at: 'C', face: 'base' }),
@@ -476,13 +476,13 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
     after: [
       {
         ok: [
-          N('레이첼이 보탠 돈으로 츄르가 다섯 개가 됐다. 라르스가 한 개씩, 정확한 간격으로 내밀었다.'),
-          N('다섯 번째가 비자 밍키가 기지개를 켜고 내려왔다. 내려오는 길에 라르스 구두를 밟고 갔다.', { stage: [{ id: 'mingki', at: 'R' }] }),
+          N('레이첼이 보탠 돈으로 츄르가 5개가 됐다. 라르스가 한 개씩, 정확한 간격으로 내밀었다.'),
+          N('5번째가 비자 밍키가 기지개를 켜고 내려왔다. 내려오는 길에 라르스 구두를 밟고 갔다.', { stage: [{ id: 'mingki', at: 'R' }] }),
           S('lars', '좋습니다. 서로 만족할 만한 거래였군요.', { at: 'L', face: 'smile' }),
           N('분기 보고는 정시에 시작해 정시에 끝났다. 그날 저녁 라르스는 승리 기념이라며 상여금을 돌렸다.'),
         ],
         fail: [
-          N('츄르는 다섯 개가 됐고, 다섯 개 다 사라졌다.'),
+          N('츄르는 5개가 됐고, 5개 다 사라졌다.'),
           N('밍키는 마지막 한 방울까지 핥고 다시 식빵 자세로 돌아갔다. 눈 감는 데 1초.', { stage: [{ id: 'mingki', at: 'R', face: 'blank' }] }),
           S('lars', '…장기전으로 가지.', { at: 'L', face: 'tired' }),
           N('분기 보고는 복도 공용 단말기로 했다. 화면 속 임원들은 끝까지 고양이 얘기를 안 했다. 다들 하고 싶은 얼굴이었다.'),
@@ -495,7 +495,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         N('밍키가 눈을 감았다. 함장석 위 양지가 조금 넓어진 것 같았다.', { stage: [{ id: 'mingki', at: 'R', face: 'smile' }] }),
       ],
       [
-        N('레이첼이 통신기에 대고 딱 두 마디 했다. 아빠, 함교.'),
+        N('레이첼이 통신기에 대고 딱 2마디 했다. 아빠, 함교.'),
         N('일 분 뒤, 아문센이 회중시계를 보며 들어왔다. 상황을 한 번 훑더니 밍키를 번쩍 들어 올렸다.'),
         S('amundsen', '라르스, 고양이랑 협상하는 사람이 어디 있나?', { at: 'R', face: 'smug' }),
         N('아문센은 그대로 함장석에 앉아 밍키를 무릎에 올렸다. 밍키는 거기서도 식빵 자세를 잡았다.'),
@@ -509,12 +509,12 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
   sa_mingki_throne: {
     cast: ['zephyro', 'mingki'],
     scene: [
-      N('밍키가 함장석을 차지한 지 사흘째. 레이첼은 사흘째 접이식 의자에 앉아 있다.', { bg: 'a_bridge', bgm: 'calm', stage: [{ id: 'mingki', at: 'R', face: 'blank' }] }),
+      N('밍키가 함장석을 차지한 지 3일째. 레이첼은 3일째 접이식 의자에 앉아 있다.', { bg: 'a_bridge', bgm: 'calm', stage: [{ id: 'mingki', at: 'R', face: 'blank' }] }),
       S('a_navi', '또 올라갑니다! 꼬리!'),
       N('밍키 꼬리가 콘솔 위로 툭 떨어진다. 키 하나가 눌리고 항로가 2도 꺾인다.', { sfx: 'a_beep' }),
       N('30초 뒤, 원래 항로 자리를 작은 유성 무리가 소리 없이 지나간다.'),
       S('zephyro', '봐. 또 피했어. 어제는 해적 매복, 그제는 중력 소용돌이.', { at: 'L', face: 'tired' }),
-      N('제피로는 항법석 의자를 끝까지 젖혀 거의 누워 있다. 사흘 내내 그 자세다.'),
+      N('제피로는 항법석 의자를 끝까지 젖혀 거의 누워 있다. 3일 내내 그 자세다.'),
       S('a_navi', '항해일지에 뭐라고 적습니까? 항로 수정 사유, 고양이?'),
       S('zephyro', '사유를 왜 적어? 결과만 적어. 안 부딪힘. 끝.'),
       S('a_navi', '…그게 됩니까?'),
@@ -530,7 +530,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
     ],
     subs: {
       lars: [
-        S('lars', '사흘간 연료 효율이 11퍼센트 올랐습니다.', { at: 'C', face: 'serious' }),
+        S('lars', '3일간 연료 효율이 11퍼센트 올랐습니다.', { at: 'C', face: 'serious' }),
         S('lars', '…제가 진 협상이 이익을 내고 있군요. 장부 어디에 적어야 할지 모르겠습니다.', { face: 'tired', exit: true }),
       ],
       oliver: [
@@ -549,9 +549,9 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         N('아르곤이 함교 안 머릿수를 한 번 세고, 고양이까지 센 뒤 나간다.', { exit: ['argon'] }),
       ],
       kairo: [
-        S('kairo', '사흘간 꼬리 입력 열일곱 번. 쓸모 있던 건 세 번. 나머지는 그냥 2도 꺾기네.', { at: 'C', face: 'smug' }),
+        S('kairo', '3일간 꼬리 입력 17번. 쓸모 있던 건 3번. 나머지는 그냥 2도 꺾기네.', { at: 'C', face: 'smug' }),
         S('zephyro', '그럼 운이네.'),
-        S('kairo', '운이 세 번 연속이면 내 탄보다 정확한데. …기분 나쁘군.', { face: 'tired', exit: true }),
+        S('kairo', '운이 3번 연속이면 내 탄보다 정확한데. …기분 나쁘군.', { face: 'tired', exit: true }),
       ],
     },
     after: [
@@ -563,8 +563,8 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       ],
       {
         ok: [
-          N('사흘치 항로 기록이 다음 정거장 정보상에게 넘어갔다. 해적 매복 지점 셋, 유성 무리 하나, 중력 소용돌이 하나.'),
-          N('정보상은 기록을 훑어보더니 값을 두 번 다시 불렀다. 출처는 안 물었다.', { sfx: 'coin' }),
+          N('3일치 항로 기록이 다음 정거장 정보상에게 넘어갔다. 해적 매복 지점 셋, 유성 무리 하나, 중력 소용돌이 하나.'),
+          N('정보상은 기록을 훑어보더니 값을 2번 다시 불렀다. 출처는 안 물었다.', { sfx: 'coin' }),
           S('zephyro', '물었으면 뭐라 했을까. 고양이요?', { at: 'L', face: 'grin' }),
         ],
         doodle: [
@@ -579,13 +579,13 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
           N('사료가 그릇에 쏟아지는 소리. 밍키 귀가 먼저 돌아가고, 몸이 따라 내려왔다.'),
           N('밍키는 밥을 먹고 미련 없이 함교를 떠났다. 함장석에 고양이 모양으로 데워진 자국이 남았다.'),
           S('rachel', '…따뜻하다.', { at: 'C', face: 'smile' }),
-          S('zephyro', '사흘 데운 의자잖아. 나도 좀 앉아 보면 안 돼?', { at: 'L', face: 'smile' }),
+          S('zephyro', '3일 데운 의자잖아. 나도 좀 앉아 보면 안 돼?', { at: 'L', face: 'smile' }),
         ],
         monster: [
           N('사료 봉지 찾는 데 1분, 뜯는 데 1분, 그릇 찾는 데 1분. 정확히 3분 늦었다.'),
           N('밍키가 천천히 일어섰다. 털이 한 올씩 서고, 동공이 함교 조명을 다 삼킬 만큼 커졌다.', { stage: [{ id: 'mingki', at: 'R', face: 'angry' }], fx: 'dark' }),
           S('mingki', '…냐아아아아.', { fx: 'shake' }),
-          N('그다음 일은 항법사들이 아무 말도 안 한다. 레이첼 손등에 평행선 네 줄이 오래 남았다.'),
+          N('그다음 일은 항법사들이 아무 말도 안 한다. 레이첼 손등에 평행선 4줄이 오래 남았다.'),
           S('zephyro', '올리버 말 진짜였네. 말싸움 안 하길 잘했다.', { at: 'L', face: 'worried' }),
         ],
       },
@@ -631,16 +631,16 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         S('zahara', '…구도라도 좋게 찍는다.', { face: 'tired', exit: true }),
       ],
       temur: [
-        S('temur', '요리사. 나 세 그릇.', { at: 'C', face: 'grin' }),
+        S('temur', '요리사. 나 3그릇.', { at: 'C', face: 'grin' }),
         S('gunnir', '줄 서세요.'),
-        S('temur', '줄 서면 세 그릇이냐.'),
+        S('temur', '줄 서면 3그릇이냐.'),
         S('gunnir', '줄 서면 한 그릇. 또 서면 또 한 그릇.'),
-        N('테무르가 진지한 얼굴로 줄 끝으로 간다. 세 번 설 생각인 얼굴이다.', { exit: ['temur'] }),
+        N('테무르가 진지한 얼굴로 줄 끝으로 간다. 3번 설 생각인 얼굴이다.', { exit: ['temur'] }),
       ],
       lars: [
         S('lars', '구닐라, 오늘은 하나만 알려 주십시오. 무엇이 들어갔는지 딱 하나만.', { at: 'C', face: 'smile' }),
-        S('gunnir', '가주님, 일곱 살 때도 똑같이 물으셨어요.'),
-        S('lars', '그때도 결렬이었죠. 사십팔 년째 연패군요.', { face: 'tired', exit: true }),
+        S('gunnir', '가주님, 7살 때도 똑같이 물으셨어요.'),
+        S('lars', '그때도 결렬이었죠. 48년째 연패군요.', { face: 'tired', exit: true }),
       ],
       rachel: [
         S('rachel', '구닐라. 아까 넣은 거, 혹시 단 거야?'),
@@ -653,7 +653,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
     after: [
       [
         N('레이첼은 큰 그릇을 받아 들고 복도 벽에 기대앉았다.'),
-        N('세 숟갈째에 말이 없어졌다. 다섯 숟갈째에 눈이 반쯤 감겼다.'),
+        N('3숟갈째에 말이 없어졌다. 5숟갈째에 눈이 반쯤 감겼다.'),
         S('rachel', '…따뜻해.', { at: 'R', face: 'smile' }),
         S('gunnir', '더 드실 거면 줄 끝으로 가세요.', { at: 'L', face: 'base' }),
       ],
@@ -661,8 +661,8 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         secret: [
           S('rachel', '구닐라. 하나만. 진짜 하나만.', { at: 'R', face: 'base' }),
           N('구닐라 국자가 멈췄다. 한참 뒤 그녀가 몸을 숙여 아주 작게 말했다.'),
-          S('gunnir', '…월계수는 두 장.', { at: 'L', face: 'shy' }),
-          N('그게 다였다. 그날 저녁 스튜를 세 그릇 비운 {name}은(는) 다음 날 어딘가 단단해져 있었다.'),
+          S('gunnir', '…월계수는 2장.', { at: 'L', face: 'shy' }),
+          N('그게 다였다. 그날 저녁 스튜를 3그릇 비운 {name}은(는) 다음 날 어딘가 단단해져 있었다.'),
         ],
         ladle: [
           S('rachel', '구닐라. 아까 넣은 거 뭐—', { at: 'R', face: 'base' }),
@@ -685,8 +685,8 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
   sa_sigmund_inspect: {
     cast: ['sigmund'],
     scene: [
-      N('오전 아홉 시 정각, 함선 중앙 복도.', { bg: 'a_corridor', bgm: 'tense' }),
-      N('가주를 따라 승선한 지 사흘째인 본가 집사 시그문드가 흰 장갑을 낀다. 왼손, 오른손.'),
+      N('오전 9시 정각, 함선 중앙 복도.', { bg: 'a_corridor', bgm: 'tense' }),
+      N('가주를 따라 승선한 지 3일째인 본가 집사 시그문드가 흰 장갑을 낀다. 왼손, 오른손.'),
       S('sigmund', '좋은 아침입니다, {pc}님. 오늘부터 이 배도 저택 기준으로 점검하겠습니다.', { at: 'L', face: 'base' }),
       S('rachel', '…누가 그러라고 했어?', { at: 'R', face: 'tired' }),
       S('sigmund', '가주님께서 타고 계십니다. 그거면 충분합니다.'),
@@ -698,7 +698,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       S('sigmund', '먼지 두께로요.'),
       S('sigmund', '그리고 격납고 옆 창고 문이 안 닫힙니다. 안에서 뭔가가 문을 밀고 있더군요.'),
       SUB,
-      N('수첩이 한 장, 두 장, 세 장 넘어간다.', { sfx: 'a_pen' }),
+      N('수첩이 한 장, 2장, 3장 넘어간다.', { sfx: 'a_pen' }),
       S('sigmund', '정오에 한 번 더 보겠습니다. 그때까지 다 같이 닦으셔도 되고, 치우셔도 됩니다.', { face: 'base' }),
       S('sigmund', '어디로 치우셨는지는 제가 확인하겠지만요.', { face: 'smug' }),
       N('시그문드가 복도 끝 탕비실 쪽을 본다. 선반 위에서 한 번도 안 쓴 찻잔 세트가 먼지를 쓰고 있다.'),
@@ -738,7 +738,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
     },
     after: [
       [
-        N('정오까지 세 시간. 걸레와 솔이 배 안을 돌았다. 레이첼도 걸레를 들었다. 두 번 닦고 한 번 쉬었다.'),
+        N('정오까지 3시간. 걸레와 솔이 배 안을 돌았다. 레이첼도 걸레를 들었다. 2번 닦고 한 번 쉬었다.'),
         N('정오. 시그문드가 같은 난간을 장갑으로 쓸었다. 장갑은 하얀 그대로였다.'),
         S('sigmund', '…통과입니다.', { at: 'L', face: 'smile' }),
         S('rachel', '그럼 밥.', { at: 'R', face: 'tired' }),
@@ -773,9 +773,9 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       N('함대가 정박한 밤. 단원들이 셔틀로 내려와 지상의 에란테스 바에 모였다.', { bg: 'a_bar', bgm: 'calm' }),
       N('자정 조금 전. 카운터 끝자리에 아문센이 앉아 흰 수염을 쓸고 있다. 저 자세가 나오면 옛날 얘기가 시작된다.'),
       N('카운터 안쪽에서 에이든이 벌써 잔을 채우고 있다. 아무도 주문하지 않은 술이다.', { sfx: 'a_glass' }),
-      S('aiden', '늘 드시던 걸로. 길어지실 테니 두 잔째도 미리 따라 두겠습니다.', { at: 'R', face: 'smile' }),
+      S('aiden', '늘 드시던 걸로. 길어지실 테니 2잔째도 미리 따라 두겠습니다.', { at: 'R', face: 'smile' }),
       S('amundsen', '오늘은 연합군 시절 얘기를 하지. 내가 에이스로 불리던 때 말일세.', { at: 'L', face: 'smile' }),
-      S('rachel', '…그거 백 번 들었어.', { at: 'C', face: 'tired' }),
+      S('rachel', '…그거 100번 들었어.', { at: 'C', face: 'tired' }),
       S('amundsen', '백한 번째가 제일 재밌는 법이지. 안 그러냐?', { face: 'smug' }),
       S('amundsen', '그날 나는 기체 하나로 해적선 셋을 몰아붙였네. 탄창은 비고, 연료는 바닥이고.', { face: 'grin' }),
       S('aiden', '지난번에는 둘이셨습니다.'),
@@ -786,28 +786,28 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       N('아문센이 금색 회중시계를 꺼내 체인을 손가락에 감는다. 레이첼이 그걸 흘끗 본다.'),
       S('amundsen', '레이첼, 끝까지 들을 거냐? 그럼 내일 아침은 각오해야 할 게다.', { face: 'smile' }),
       S('amundsen', '아니면 내 방에 낡은 상자가 하나 있는데. 그 얘기를 해 줄 수도 있고.'),
-      S('amundsen', '그것도 싫으면 카드 한 판 어떠냐. 술값 내기. 미리 말해 두지만 나는 블러핑으로 삼십 년 버틴 사람이다.', { face: 'smug' }),
-      S('aiden', '술값 장부는 이미 펼쳐 두었습니다, 체리 세 알 손님.', { face: 'smug' }),
+      S('amundsen', '그것도 싫으면 카드 한 판 어떠냐. 술값 내기. 미리 말해 두지만 나는 블러핑으로 30년 버틴 사람이다.', { face: 'smug' }),
+      S('aiden', '술값 장부는 이미 펼쳐 두었습니다, 체리 3알 손님.', { face: 'smug' }),
     ],
     subs: {
       gebek: [
         S('gebek', '단장 양반, 그 해적 내가 처음 들었을 땐 한 척이었는데!', { at: 'C', face: 'grin' }),
         S('amundsen', '자네가 처음 들었을 땐 내가 겸손했지.'),
         N('게베크가 스콜치를 한 입에 털어 넣고 트림을 한다. 작은 푸른 불꽃이 핀다.'),
-        S('aiden', '…카운터에서 불은 자제해 주시죠, 매운 거 세 접시 손님.', { face: 'tired', exit: ['gebek'] }),
+        S('aiden', '…카운터에서 불은 자제해 주시죠, 매운 거 3접시 손님.', { face: 'tired', exit: ['gebek'] }),
       ],
       joshua: [
-        S('joshua', '단장님, 또 새벽까지 가시면… 해장약 세 개 챙겨 둘게요. 두 개는 단장님 몫이고요.', { at: 'C', face: 'worried' }),
+        S('joshua', '단장님, 또 새벽까지 가시면… 해장약 3개 챙겨 둘게요. 2개는 단장님 몫이고요.', { at: 'C', face: 'worried' }),
         S('amundsen', '자네는 걱정을 미리 하는군.'),
         S('joshua', '…미리 해 두면 덜 놀라거든요.', { face: 'shy', exit: true }),
       ],
       yelena: [
         S('yelena', '단장님 얘기는 안주가 필요 없어서 좋아요.', { at: 'C', face: 'smug' }),
-        S('aiden', '다크 링거 세 잔 손님. 오늘 분량도 급여에서 나눠 공제해 드릴까요.'),
-        S('yelena', '…그 호칭 좀. 그리고 공제는 네 번으로.', { face: 'tired', exit: true }),
+        S('aiden', '다크 링거 3잔 손님. 오늘 분량도 급여에서 나눠 공제해 드릴까요.'),
+        S('yelena', '…그 호칭 좀. 그리고 공제는 4번으로.', { face: 'tired', exit: true }),
       ],
       bianca: [
-        S('bianca', '단장님. 지금 속도면 새벽 네 시에 의무실 신세입니다.', { at: 'C', face: 'base' }),
+        S('bianca', '단장님. 지금 속도면 새벽 4시에 의무실 신세입니다.', { at: 'C', face: 'base' }),
         S('bianca', '문을 열어 두겠습니다. 걱정이 아니라 일정 관리입니다.'),
         S('amundsen', '그 둘이 다른가?', { face: 'smile' }),
         S('bianca', '…다릅니다. 아마.', { exit: true }),
@@ -824,12 +824,12 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         N('동틀 무렵, 아문센이 갑자기 목소리를 낮추고 회피 기동 요령 하나를 아주 정확하게 설명했다. 다들 그 부분만은 냅킨에 받아 적었다.'),
         S('aiden', '오늘 밤 매출은 기록적이었습니다. 내일 아침 해장 음료 매출도 그렇겠군요.', { at: 'R', face: 'smile' }),
         S('rachel', '…머리 깨질 것 같아. 그 부분만 다시 해 줘.', { at: 'C', face: 'tired' }),
-        S('amundsen', '백두 번째에.', { at: 'L', face: 'smug' }),
+        S('amundsen', '102번째에.', { at: 'L', face: 'smug' }),
       ],
       {
         parts: [
           N('아문센이 잠깐 자리를 비웠다가, 도장이 반쯤 벗겨진 금속 상자를 들고 왔다.'),
-          S('amundsen', '내 첫 기체 손볼 때 떼어 낸 것들이다. 삼십 년 묵었지.', { at: 'L', face: 'base' }),
+          S('amundsen', '내 첫 기체 손볼 때 떼어 낸 것들이다. 30년 묵었지.', { at: 'L', face: 'base' }),
           N('기름에 전 부품들이었다. 놀랍게도 아직 쓸 만했다.'),
           S('aiden', '제 시대 기준으론 골동품 축에도 못 듭니다만.', { at: 'R', face: 'smug' }),
         ],
@@ -838,7 +838,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
           N('뚜껑을 열자 안에서 낮은 빛이 새어 나왔다. 부품이 아니었다.', { fx: 'flash' }),
           S('amundsen', '이건 이제 내가 쓸 일이 없지.', { at: 'L', face: 'base' }),
           S('rachel', '…아빠, 이거 진짜 줘도 돼?', { at: 'C', face: 'surprise' }),
-          S('amundsen', '안 주면 또 상자 속에서 삼십 년 자겠지. 그건 재미없지 않냐.', { face: 'smile' }),
+          S('amundsen', '안 주면 또 상자 속에서 30년 자겠지. 그건 재미없지 않냐.', { face: 'smile' }),
           S('aiden', '…오늘 밤 처음으로 숫자가 안 부푼 얘기를 들었군요.', { at: 'R', face: 'surprise' }),
         ],
       },
@@ -865,19 +865,19 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
   sa_rachel_fridge: {
     cast: ['rachel'],
     scene: [
-      N('아침 일곱 시, 함선 식당. 공용 냉장고 문이 활짝 열려 있다. 바닥으로 냉기가 흘러나온다.', { bg: 'a_mess', bgm: 'comic', sfx: 'a_fridge' }),
+      N('아침 7시, 함선 식당. 공용 냉장고 문이 활짝 열려 있다. 바닥으로 냉기가 흘러나온다.', { bg: 'a_mess', bgm: 'comic', sfx: 'a_fridge' }),
       N('안은 텅 비었다. 일주일 치 보급이 하룻밤 새에 사라졌다.'),
       S('a_supply', '…누구야. 누가 이랬어.'),
       N('범인은 숨지도 않았다. 냉장고 바로 앞 의자에 레이첼이 늘어져 있다. 주위에 빈 용기가 탑처럼 쌓였다.'),
       S('rachel', '배고팠어.', { at: 'L', face: 'tired' }),
-      S('a_supply', '{pc}님… 그거 일주일 치예요. 스물네 명 일주일 치.'),
-      S('rachel', '새벽 세 시에 깼는데 배고팠어. 정신 차리니까 일곱 시야.'),
+      S('a_supply', '{pc}님… 그거 일주일 치예요. 24명 일주일 치.'),
+      S('rachel', '새벽 3시에 깼는데 배고팠어. 정신 차리니까 7시야.'),
       N('보급 담당이 벽에 붙은 배급 계획표를 본다. 1인 1일 기준 칸 옆에 누가 연필로 작게 써 놨다. 레이첼 ×4.'),
-      S('rachel', '거기 써 있잖아. 나 네 배 먹는다고. 근데 계산엔 안 들어갔어.', { face: 'base' }),
+      S('rachel', '거기 써 있잖아. 나 4배 먹는다고. 근데 계산엔 안 들어갔어.', { face: 'base' }),
       S('a_supply', '그건 누가 장난으로 쓴 줄 알았죠!'),
       S('rachel', '내가 쓴 거야.'),
       SUB,
-      S('a_supply', '다음 보급항까지 엿새예요. 엿새.'),
+      S('a_supply', '다음 보급항까지 6일예요. 6일.'),
       S('a_supply', '방법은 셋이에요. 웃돈 주고 비상 보급선을 부르든가, 다 같이 배급 줄이고 버티든가.'),
       S('a_supply', '아니면 먹은 사람이 직접 구해 오든가요. 근처에 소행성 정거장이 하나 있어요. 셔틀로 반나절.'),
       S('rachel', '…마지막 거, 나 말하는 거지.', { face: 'blank' }),
@@ -896,7 +896,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         S('orca', '그럼 숫자는 숨기죠. 이번만입니다. 원래 숨기는 건 제 방식이 아니라서요.', { exit: true }),
       ],
       bianca: [
-        S('bianca', '{pc}님의 기초 대사량은 보통 사람의 네 배입니다. 오류는 계획표 쪽입니다.', { at: 'C', face: 'base' }),
+        S('bianca', '{pc}님의 기초 대사량은 보통 사람의 4배입니다. 오류는 계획표 쪽입니다.', { at: 'C', face: 'base' }),
         S('bianca', '다만 그걸 하룻밤에 증명하신 방식은 비효율적이었습니다.'),
         S('rachel', '증명은 증명이잖아.', { exit: ['bianca'] }),
       ],
@@ -916,12 +916,12 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
     after: [
       [
         N('웃돈을 얹은 비상 보급선이 왔다. 웃돈은 거리 값, 급행 값, 그리고 레이첼 값이었다.'),
-        N('이번 계획표에는 처음부터 레이첼 몫이 네 배로 들어가 있었다. 연필이 아니라 인쇄로.'),
+        N('이번 계획표에는 처음부터 레이첼 몫이 4배로 들어가 있었다. 연필이 아니라 인쇄로.'),
         S('rachel', '이제야 계획표가 맞네.', { at: 'L', face: 'smile' }),
         S('a_supply', '…다음 달 예산은 생각하지 말죠.'),
       ],
       [
-        N('일주일 동안 식당 메뉴는 하나였다. 묽은 죽, 비스킷 두 개.'),
+        N('일주일 동안 식당 메뉴는 하나였다. 묽은 죽, 비스킷 2개.'),
         N('복도에서 누군가의 배에서 소리가 나면, 다른 누군가의 배가 대답했다.'),
         S('rachel', '그래도 살 만한데?', { at: 'L', face: 'base' }),
         S('a_supply', '…{pc}님은 일주일 치를 미리 드셨잖아요.'),
@@ -929,7 +929,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       ],
       {
         ok: [
-          N('레이첼은 셔틀을 타고 소행성 정거장으로 갔다. 출발하면서 하품을 세 번 했다.'),
+          N('레이첼은 셔틀을 타고 소행성 정거장으로 갔다. 출발하면서 하품을 3번 했다.'),
           N('돌아올 때 짐칸이 미어터졌다. 식량, 그리고 정거장 고철상에서 얻어 온 부품 몇 개.', { sfx: 'clank' }),
           S('rachel', '고철상 아저씨가 그냥 가져가래. 내가 너무 오래 쳐다봤대.', { at: 'L', face: 'base' }),
           S('a_supply', '부품을요?'),
@@ -959,7 +959,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       S('west', '계기판은 늘 정상이래. 고장 나기 직전까지.', { face: 'angry' }),
       S('west', '4초 간격, 세기 일정. 뭐가 하나 헐거워진 거야. 아니면 헐거워지기 직전이든가.'),
       N('구석에서 신참 하나가 정비 매뉴얼을 소리 내어 읽는다. 해당 증상 발생 시, 공인 정비소 입고를 권장합니다.'),
-      S('west', '공인 정비소? 그놈들은 소리 하나 고치러 가면 소리 세 개 만들어 와.', { face: 'angry' }),
+      S('west', '공인 정비소? 그놈들은 소리 하나 고치러 가면 소리 3개 만들어 와.', { face: 'angry' }),
       N('쿵. 조명이 아주 잠깐 흔들린다. 신참들 얼굴에 다 같은 말이 쓰여 있다. 제발 저절로 멈춰라.', { sfx: 'a_knock' }),
       SUB,
       S('west', '{pc}, 정해. 내가 열어 보면 알 거야. 대신 뭐가 튀어나와도 내 탓 하지 마.', { face: 'serious' }),
@@ -1002,8 +1002,8 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
     after: [
       {
         ok: [
-          N('웨스트가 배관 덮개를 열고 상체를 반쯤 집어넣었다. 욕이 세 번, 공구 소리가 두 번.', { sfx: 'clank' }),
-          N('그리고 기름투성이 손에 볼트 하나를 들고 나왔다. 손가락 두 마디만 한 볼트.'),
+          N('웨스트가 배관 덮개를 열고 상체를 반쯤 집어넣었다. 욕이 3번, 공구 소리가 2번.', { sfx: 'clank' }),
+          N('그리고 기름투성이 손에 볼트 하나를 들고 나왔다. 손가락 2마디만 한 볼트.'),
           S('west', '이거 하나 때문에 정비소 갔으면 반년 치 담뱃값 날아갔다.', { at: 'L', face: 'smug' }),
           S('rachel', '이제 자도 돼?', { at: 'R', face: 'tired' }),
         ],
@@ -1016,7 +1016,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       },
       [
         N('공인 정비소 정비사들이 반나절 동안 기관실을 뜯어봤다.'),
-        N('원인은 헐거워진 볼트 하나였다. 그리고 그들은 고칠 데를 세 군데 더 찾아냈다. 웨스트가 몇 달째 미뤄 둔 곳들이었다.'),
+        N('원인은 헐거워진 볼트 하나였다. 그리고 그들은 고칠 데를 3군데 더 찾아냈다. 웨스트가 몇 달째 미뤄 둔 곳들이었다.'),
         S('west', '…쳇. 거긴 다음 주에 하려고 했어.', { at: 'L', face: 'angry' }),
         N('청구서는 비쌌다. 배는 확실히 튼튼해졌다.'),
       ],
@@ -1027,7 +1027,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
           S('west', '…아무도 이유를 몰라. 나도. 그게 제일 기분 나빠.', { at: 'L', face: 'tired' }),
         ],
         dead: [
-          N('항해 사흘째 밤. 쿵, 쿵, 그리고 아주 긴 조용함.', { sfx: 'a_knock' }),
+          N('항해 3일째 밤. 쿵, 쿵, 그리고 아주 긴 조용함.', { sfx: 'a_knock' }),
           N('기관이 멈췄다. 조명이 비상등으로 바뀌고 배 안이 붉어졌다.', { fx: 'dark' }),
           S('west', '…그러니까 열어 보자고 했잖아!', { at: 'L', face: 'angry' }),
           N('비상 수리에 꼬박 하루가 걸렸다. 그동안 배 안은 지독하게 추웠고, 웨스트는 그 하루 동안 한 번도 앉지 않았다.'),
@@ -1040,9 +1040,9 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
   sa_lars_seminar: {
     cast: ['lars', 'sigmund'],
     scene: [
-      N('오후 세 시 반, 휴게실. 화이트보드 위로 마커가 끽끽거린다.', { bg: 'a_lounge', bgm: 'comic', sfx: 'a_marker' }),
+      N('오후 3시 반, 휴게실. 화이트보드 위로 마커가 끽끽거린다.', { bg: 'a_lounge', bgm: 'comic', sfx: 'a_marker' }),
       N('라르스가 그래프를 그리고 있다. 올라가는 실선 하나, 그 밑에 덜 올라가는 점선 하나. 제목은 「용병단 재무 구조 개선」.'),
-      N('의자는 스무 개. 앉은 사람은 하나. 맨 앞자리 시그문드가 그래프를 수첩에 옮겨 적고 있다.', { sfx: 'a_pen' }),
+      N('의자는 20개. 앉은 사람은 하나. 맨 앞자리 시그문드가 그래프를 수첩에 옮겨 적고 있다.', { sfx: 'a_pen' }),
       S('rachel', '여기 과자 바구니 있지 않았어?', { at: 'C', face: 'blank' }),
       S('lars', '치웠습니다. 강의 중엔 집중이 흐트러지거든요. 마침 잘 오셨습니다, {pc}님.', { at: 'L', face: 'smile' }),
       S('lars', '공지부터 하죠. 이 강의는 정확히 17시에 끝납니다. 질문이 남아도, 결론이 남아도 17시.'),
@@ -1069,7 +1069,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         S('grenholm', '라르스. 제목 틀렸습니다. 재무 구조 개선이 아니라 정시 퇴근 합리화 세미나죠.', { at: 'C', face: 'angry' }),
         S('lars', '오셨습니까, 할러 씨.', { face: 'smug' }),
         S('grenholm', '…그 이름 한 번만 더 부르면, 그래프 숫자 틀린 거 처음부터 전부 읽어 드립니다.', { face: 'angry' }),
-        N('강제 휴가 중이라 갈 데가 없는 그렌홀름은 맨 뒷자리에 앉아, 17시까지 그래프 오류를 열한 개 찾아냈다.', { exit: ['grenholm'] }),
+        N('강제 휴가 중이라 갈 데가 없는 그렌홀름은 맨 뒷자리에 앉아, 17시까지 그래프 오류를 11개 찾아냈다.', { exit: ['grenholm'] }),
       ],
       franze: [
         S('franze', '이의 있습니다. 원금 보장이라는 표현은 금융 광고 규정상 문제가 됩니다.', { at: 'C', face: 'serious' }),
@@ -1085,7 +1085,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       ],
       rachel: [
         S('rachel', '이거 몇 시에 끝나?'),
-        S('lars', '17시. 앞으로 한 시간 이십 분.'),
+        S('lars', '17시. 앞으로 한 시간 20분.'),
         S('rachel', '…길다. 과자 바구니 어디 뒀어?', { face: 'tired' }),
         S('sigmund', '제 의자 밑입니다. 끝까지 들으시면 드리겠습니다.'),
       ],
@@ -1099,7 +1099,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       ],
       {
         big: [
-          N('맡긴 돈은 일주일 뒤 두 배가 되어 돌아왔다.'),
+          N('맡긴 돈은 일주일 뒤 2배가 되어 돌아왔다.'),
           N('라르스가 무슨 거래를 했는지는 아무도 모른다. 거래 상대는 지금도 자기가 이겼다고 믿는다고 한다.'),
           S('lars', '상대도 아주 기뻐했습니다. 그게 제일 중요하죠.', { at: 'L', face: 'smug' }),
         ],
@@ -1139,7 +1139,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       N('화분이 줄지어 있다. 토마토, 바질, 로즈마리. 이름 모를 덩굴 하나는 천장 배관을 타고 올라가는 중이다.'),
       N('본가 정원사 라스무스가 분무기로 잎 하나하나에 물을 뿌린다. 그 옆에서 맥스가 화분 사이를 오가며 냄새만 맡는다. 파지는 않는다.', { sfx: 'a_spray' }),
       S('rachel', '…토마토 냄새 나서 왔는데.', { at: 'R', face: 'surprise' }),
-      S('rasmus', '아직 안 익었소. 사흘.', { at: 'L', face: 'base' }),
+      S('rasmus', '아직 안 익었소. 3일.', { at: 'L', face: 'base' }),
       S('rachel', '이거 언제 다 갖다 놨어?'),
       S('rasmus', '지난주. 허락은 안 받았소.'),
       N('격납고 반대편에서 정비 담당이 줄자를 들고 투덜댄다. 장갑판 어디 갔냐고, 훈련 공간 왜 줄었냐고. 줄자 끝이 화분 앞에서 멈춘다.'),
@@ -1156,11 +1156,11 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
     ],
     subs: {
       gunnir: [
-        S('gunnir', '라스무스. 바질 열 장. 아니, 다섯 장.', { at: 'C', face: 'base' }),
-        S('rasmus', '세 장.'),
-        S('gunnir', '…네 장. 대신 오늘 스튜에 이 토마토 넣을게요.'),
-        S('rasmus', '……네 장.'),
-        N('구닐라가 바질 네 장을 손바닥에 올리고 세 번 센다.', { exit: ['gunnir'] }),
+        S('gunnir', '라스무스. 바질 10장. 아니, 5장.', { at: 'C', face: 'base' }),
+        S('rasmus', '3장.'),
+        S('gunnir', '…4장. 대신 오늘 스튜에 이 토마토 넣을게요.'),
+        S('rasmus', '……4장.'),
+        N('구닐라가 바질 4장을 손바닥에 올리고 3번 센다.', { exit: ['gunnir'] }),
       ],
       west: [
         S('west', '이봐 영감, 여기 장갑판 자리야. 저 덩굴이 배관 타고 가면 냉각 라인 막혀.', { at: 'C', face: 'angry' }),
@@ -1177,7 +1177,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         S('franze', '네오사이트산 토마토군요. 제 화분보다 잘 자랐습니다.', { at: 'C', face: 'base' }),
         S('franze', '제 화분은 낮에 테라스에 두는데, 어째선지 늘 저보다 먼저 탑니다.'),
         S('rasmus', '그늘에 두시오. 둘 다.'),
-        N('다음 날, 그늘 쪽에 화분 하나가 늘어 있었다. 이름 없이 메모만 붙어서. 물은 이틀에 한 번.', { exit: ['franze'] }),
+        N('다음 날, 그늘 쪽에 화분 하나가 늘어 있었다. 이름 없이 메모만 붙어서. 물은 2일에 한 번.', { exit: ['franze'] }),
       ],
       mingki: [
         N('밍키가 화분 사이로 들어와, 볕 제일 좋은 바질 화분 위에 식빵 자세로 앉는다.', { stage: [{ id: 'mingki', at: 'C' }] }),
@@ -1188,10 +1188,10 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
     },
     after: [
       [
-        N('양액 통이 들어오고, 화분이 두 줄에서 네 줄이 됐다.'),
-        N('사흘 뒤 식탁에 생토마토가 올랐다. 썰어서 소금만 뿌렸는데, 다들 말없이 한 접시씩 비웠다.'),
+        N('양액 통이 들어오고, 화분이 2줄에서 4줄이 됐다.'),
+        N('3일 뒤 식탁에 생토마토가 올랐다. 썰어서 소금만 뿌렸는데, 다들 말없이 한 접시씩 비웠다.'),
         S('rachel', '…한 접시 더.', { at: 'R', face: 'smile' }),
-        S('rasmus', '사흘 뒤에 또 익소.', { at: 'L', face: 'smile' }),
+        S('rasmus', '3일 뒤에 또 익소.', { at: 'L', face: 'smile' }),
       ],
       {
         ok: [
@@ -1214,7 +1214,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
           N('문 너머에서 대답 대신 분무기 소리가 났다.', { sfx: 'a_spray' }),
         ],
         kitchen: [
-          N('화분은 주방으로 갔다. 구닐라가 직접 날랐다. 한 번에 두 개씩, 아주 조심스럽게.'),
+          N('화분은 주방으로 갔다. 구닐라가 직접 날랐다. 한 번에 2개씩, 아주 조심스럽게.'),
           N('격납고는 다시 훈련장이 됐다. 함성 사이로 주방 창가의 바질 냄새가 희미하게 흘러왔다.'),
           S('gunnir', '물은 제가 줄게요. 그 사람이 하던 대로.', { at: 'L', face: 'base' }),
         ],
@@ -1226,14 +1226,14 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
   sa_eating_bet: {
     cast: ['temur', 'rachel'],
     scene: [
-      N('저녁 여덟 시, 함선 식당. 가운데 테이블 하나만 남기고 나머지가 전부 벽 쪽으로 밀려났다.', { bg: 'a_mess', bgm: 'lively', sfx: 'crowd' }),
+      N('저녁 8시, 함선 식당. 가운데 테이블 하나만 남기고 나머지가 전부 벽 쪽으로 밀려났다.', { bg: 'a_mess', bgm: 'lively', sfx: 'crowd' }),
       N('테이블 양쪽에 테무르와 레이첼이 마주 앉았다. 누가 더 많이 먹나. 시작은 테무르의 한마디였다. 주인님보다 내가 더 먹는다.'),
       N('카이로가 배당판을 들고 돌아다니고, 비앙카가 그 뒤에서 장부를 적는다. 배당판에는 테무르 3배, 레이첼 1.6배.'),
       S('temur', '…1.6배? 나를 뭘로 보고.', { at: 'L', face: 'angry' }),
       S('rachel', '나를 뭘로 보는지는 정확하네.', { at: 'R', face: 'tired' }),
       S('temur', '조건 있다. 차가운 건 뺀다. 아이스크림, 냉채. 그건 음식 아니다.'),
       S('rachel', '난 다 먹는데.'),
-      N('구닐라가 첫 냄비 두 개를 들고 나온다. 뒤에 대기 중인 냄비가 열 개. 구닐라 얼굴은 시작도 전에 지쳐 있다.', { sfx: 'a_simmer' }),
+      N('구닐라가 첫 냄비 2개를 들고 나온다. 뒤에 대기 중인 냄비가 10개. 구닐라 얼굴은 시작도 전에 지쳐 있다.', { sfx: 'a_simmer' }),
       S('rachel', '근데 나 아까 저녁 먹었는데.'),
       S('temur', '…먹었다고? 지금?', { face: 'surprise' }),
       S('rachel', '응. 그러니까 이건 간식.'),
@@ -1243,7 +1243,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       S('rachel', '…너랑 붙는 게 나잖아.'),
       S('temur', '그러니까. 주인님이 지면 주인님이 돈 번다. 이기면 배부르다. 둘 다 좋다.', { face: 'grin' }),
       S('rachel', '나한테 걸면 조금 벌고. 대신 확실해. …안 졸리면.', { face: 'base' }),
-      N('냄비 열두 개 너머에서 구닐라가 아무도 못 들을 만큼 작게 한숨을 쉰다. 설거지 당번은 아직 아무도 없다.'),
+      N('냄비 12개 너머에서 구닐라가 아무도 못 들을 만큼 작게 한숨을 쉰다. 설거지 당번은 아직 아무도 없다.'),
       S('rachel', '…냄비 바닥에 눌은 거, 설거지하는 사람이 먹는 거지?', { face: 'blank' }),
       N('구닐라가 고개를 끄덕인다. 아주 작게.'),
     ],
@@ -1253,14 +1253,14 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
         S('kairo', '참고로 내 돈은 {pc} 쪽이네. 사감은 없어. 데이터일 뿐.', { face: 'smug', exit: true }),
       ],
       bianca: [
-        S('bianca', '{pc}님께 보고드립니다. 이 대결은 식량 예산 사흘 치에 해당합니다.', { at: 'C', face: 'base' }),
+        S('bianca', '{pc}님께 보고드립니다. 이 대결은 식량 예산 3일 치에 해당합니다.', { at: 'C', face: 'base' }),
         S('rachel', '응. 알았어.'),
         N('레이첼은 벌써 숟가락을 들고 있다.'),
         S('bianca', '…묵살로 기록하겠습니다.', { exit: true }),
       ],
       gunnir: [
-        S('gunnir', '냄비는 열두 개예요. 열세 번째는 없어요.', { at: 'C', face: 'tired' }),
-        S('temur', '열세 번째 필요하면?'),
+        S('gunnir', '냄비는 12개예요. 13번째는 없어요.', { at: 'C', face: 'tired' }),
+        S('temur', '13번째 필요하면?'),
         S('gunnir', '직접 끓이세요.'),
         N('테무르가 진지하게 고민하기 시작한다.', { exit: ['gunnir'] }),
       ],
@@ -1271,22 +1271,22 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       ],
       aiden: [
         N('식당 벽 화면에 지상 바와 연결된 홀로 창이 켜져 있다. 바 손님들이 이 판을 중계로 보고 있다.'),
-        S('aiden', '참고로 제 기록상 최다는 스튜 스물두 그릇입니다. 그분은 다음 날 기록에서 사라지셨지요.', { at: 'C', name: '에이든 (통신)' }),
+        S('aiden', '참고로 제 기록상 최다는 스튜 22그릇입니다. 그분은 다음 날 기록에서 사라지셨지요.', { at: 'C', name: '에이든 (통신)' }),
         S('temur', '…무슨 뜻이냐.'),
-        S('aiden', '그쯤에서 멈추시라는 뜻입니다, 고기 세 근 손님.', { name: '에이든 (통신)', exit: true }),
+        S('aiden', '그쯤에서 멈추시라는 뜻입니다, 고기 3근 손님.', { name: '에이든 (통신)', exit: true }),
       ],
     },
     after: [
       {
         win: [
-          N('일곱 번째 그릇. 레이첼 숟가락이 그릇 가장자리에서 멈췄다.'),
+          N('7번째 그릇. 레이첼 숟가락이 그릇 가장자리에서 멈췄다.'),
           S('rachel', '…귀찮아.', { at: 'R', face: 'tired' }),
           N('레이첼이 수저를 내려놓았다. 배가 불러서가 아니라 진짜로 귀찮아서. 식당이 뒤집어졌다.', { sfx: 'crowd' }),
           S('temur', '이겼다! 주인님, 이겼다! 주인님도 이겼다!', { at: 'L', face: 'laugh' }),
         ],
         lose: [
-          N('테무르는 열두 그릇째에서 쓰러졌다. 의자째 뒤로, 아주 장렬하게.', { sfx: 'clank', fx: 'shake' }),
-          N('레이첼은 열두 번째 그릇을 비우고 메뉴판을 펼쳤다.'),
+          N('테무르는 12그릇째에서 쓰러졌다. 의자째 뒤로, 아주 장렬하게.', { sfx: 'clank', fx: 'shake' }),
+          N('레이첼은 12번째 그릇을 비우고 메뉴판을 펼쳤다.'),
           S('rachel', '디저트 뭐 있어?', { at: 'R', face: 'smile' }),
           S('temur', '…주인님. 돈 잃었는데 왜 웃냐.', { at: 'L', face: 'sad' }),
           S('rachel', '배불러서.'),
@@ -1295,20 +1295,20 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       {
         win: [
           N('예상대로였다. 레이첼은 같은 속도, 같은 표정, 같은 숟가락질을 끝없이 반복했다.'),
-          N('테무르가 아홉 그릇째에서 숨을 고르는 사이, 레이첼은 열 그릇을 넘겼다.'),
+          N('테무르가 9그릇째에서 숨을 고르는 사이, 레이첼은 10그릇을 넘겼다.'),
           S('rachel', '끝? 그럼 나 잔다.', { at: 'R', face: 'tired' }),
           N('배당은 짰지만 확실했다. 카이로가 장부를 넘기며 짧게 휘파람을 불었다.', { sfx: 'whistle' }),
         ],
         lose: [
-          N('다섯 번째 그릇. 레이첼 숟가락질이 점점 느려졌다.'),
-          N('여섯 번째 그릇 앞에서, 숟가락을 든 채 고개가 툭 떨어졌다. 규칙적인 숨소리.'),
+          N('5번째 그릇. 레이첼 숟가락질이 점점 느려졌다.'),
+          N('6번째 그릇 앞에서, 숟가락을 든 채 고개가 툭 떨어졌다. 규칙적인 숨소리.'),
           S('temur', '…자냐? 지금?', { at: 'L', face: 'surprise' }),
           N('비앙카가 장부에 짧게 적었다. 몰수패. 레이첼은 그 자리에서 한 시간을 더 잤다.'),
         ],
       },
       [
         N('레이첼은 판을 테무르 부전승으로 넘기고 주방으로 갔다. 소매를 걷으며 제일 먼저 물었다. 누룽지는?', { bg: 'a_kitchen', bgm: 'calm' }),
-        N('냄비 열두 개. 눌어붙은 스튜를 긁는 데 한 시간, 헹구는 데 또 한 시간. 긁어낸 건 반쯤 레이첼 입으로 갔다.'),
+        N('냄비 12개. 눌어붙은 스튜를 긁는 데 한 시간, 헹구는 데 또 한 시간. 긁어낸 건 반쯤 레이첼 입으로 갔다.'),
         S('gunnir', '…처음이에요. 이 배에서 설거지 도와준 사람.', { at: 'L', face: 'smile' }),
         S('rachel', '누룽지 때문이야.', { at: 'R', face: 'base' }),
         N('남은 스튜는 구닐라가 따로 덜어 두었다. 그 몫은 {names}에게 돌아갔다.'),
@@ -1329,7 +1329,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       S('sigmund', '장비입니다. 꽤 귀한 것으로. 다만 배송은…', { name: '시그문드 (본가)' }),
       N('시그문드가 말을 멈춘다. 아주 잠깐.'),
       S('sigmund', '…올리버 도련님께서 맡으셨습니다.', { face: 'tired', name: '시그문드 (본가)' }),
-      N('화면 구석에 두 번째 창이 억지로 열린다. 덜컹거리는 조종석, 미친 듯이 흐르는 별빛, 그리고 기관사 모자를 삐뚤게 쓴 청년.', { sfx: 'static' }),
+      N('화면 구석에 2번째 창이 억지로 열린다. 덜컹거리는 조종석, 미친 듯이 흐르는 별빛, 그리고 기관사 모자를 삐뚤게 쓴 청년.', { sfx: 'static' }),
       S('oliver', '안녕! 들려? 나 지금 규정 속도 경계선에서 달리는 중이라 길게는 못 해!', { at: 'R', face: 'grin', name: '올리버 (운행 중)' }),
       S('oliver', '화물 무사! 나도 대체로 무사! 도착은 예정보다 빨라! 얼마나 빠른지는 나도 몰라!', { name: '올리버 (운행 중)' }),
       S('sigmund', '도련님. 화물칸에 무엇을 더 실으셨습니까.', { face: 'serious', name: '시그문드 (본가)' }),
@@ -1348,11 +1348,11 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       ],
       rasmus: [
         S('rasmus', '시그문드. 동쪽 화단 수국. 물.', { at: 'C', face: 'base' }),
-        S('sigmund', '사흘에 한 번, 오전에. 오늘로 열한 번째입니다.', { name: '시그문드 (본가)' }),
+        S('sigmund', '3일에 한 번, 오전에. 오늘로 11번째입니다.', { name: '시그문드 (본가)' }),
         S('rasmus', '……고맙소.', { face: 'smile', exit: true }),
       ],
       gunnir: [
-        S('gunnir', '시그문드, 주방 세 번째 화구 잠갔어요? 도련님 들어가면 안 돼요.', { at: 'C', face: 'worried' }),
+        S('gunnir', '시그문드, 주방 3번째 화구 잠갔어요? 도련님 들어가면 안 돼요.', { at: 'C', face: 'worried' }),
         S('oliver', '나 지금 운행 중이라고, 구닐라! 들어가고 싶어도 못 들어가!', { name: '올리버 (운행 중)' }),
         S('gunnir', '그러니까 지금 확인하는 거예요.'),
         S('sigmund', '잠가 두었습니다. 열쇠는 제 수첩 안에 있습니다.', { name: '시그문드 (본가)', exit: ['gunnir'] }),

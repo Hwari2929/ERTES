@@ -1,4 +1,4 @@
-// 사건 연출 시범 5편: 고물상의 제안 · 탈주 메카 · 맥스의 땅굴 · 유령선 아르고 · 여섯 번째 달
+// 사건 연출 시범 5편: 고물상의 제안 · 탈주 메카 · 맥스의 땅굴 · 유령선 아르고 · 6번째 달
 import type { EventScene } from '../scene';
 import { N, S, SUB } from './dsl';
 
@@ -7,7 +7,7 @@ export const PILOT_SCENES: Record<string, EventScene> = {
   tinker: {
     cast: ['yupito'],
     scene: [
-      N('보급 정거장 외곽의 고물 시장. 폐선 세 척을 용접해 이어 붙인 노점가에 불꽃 튀는 소리와 흥정 소리가 엉킨다.', { bg: 'scrap_market', bgm: 'lively' }),
+      N('보급 정거장 외곽의 고물 시장. 폐선 3척을 용접해 이어 붙인 노점가에 불꽃 튀는 소리와 흥정 소리가 엉킨다.', { bg: 'scrap_market', bgm: 'lively' }),
       N('보급품을 사러 내려온 길. 유피토가 고철 진열대 앞에 붙어 서서 움직이지 않는다.'),
       S('rachel', '유피토. 보급품 사러 온 거야. 고철 말고.', { at: 'C', face: 'tired' }),
       S('yupito', '잠깐만, 잠깐만! 이거 봐, 냉각핀! 이 휜 각도 봐! 하하!', { at: 'L', face: 'laugh' }),
@@ -15,19 +15,19 @@ export const PILOT_SCENES: Record<string, EventScene> = {
       S('yupito', '얼마야? 이건 공짜지?', { face: 'grin' }),
       S('scrapper', '공짜는 없어. 대신 오늘은 교환을 받지.'),
       N('고물상이 진열대를 손바닥으로 쾅 친다. 부품 더미가 한 뼘쯤 무너져 내린다.', { sfx: 'clank' }),
-      S('scrapper', '너네 장비 하나 맡겨. 그럼 같은 급으로 두 개 줄게.'),
-      S('rachel', '하나 주면 두 개?', { face: 'base' }),
-      S('scrapper', '두 개. 대신 뭘 맡길지도, 뭘 내줄지도 내가 고른다. 눈 감고.', { face: 'smug' }),
+      S('scrapper', '너네 장비 하나 맡겨. 그럼 같은 급으로 2개 줄게.'),
+      S('rachel', '하나 주면 2개?', { face: 'base' }),
+      S('scrapper', '2개. 대신 뭘 맡길지도, 뭘 내줄지도 내가 고른다. 눈 감고.', { face: 'smug' }),
       S('yupito', '눈 감고? 하하! 완전 뽑기잖아!', { face: 'laugh' }),
-      S('rachel', '…그 두 개는 어디서 났는데.'),
+      S('rachel', '…그 2개는 어디서 났는데.'),
       S('scrapper', '출처는 묻지 마. 그게 이 바닥 예의야.'),
       N('유피토가 쪼그려 앉아 진열대 밑 상자를 뒤진다. 하나 꺼내서 흔들어 보고, 귀에 대 보고, 내려놓는다.'),
       S('yupito', '이건 연합 출력 코어. 이건… 냄비 뚜껑. 이건 연합 거야? 도장이 반쯤 지워졌네.', { face: 'smile' }),
       S('scrapper', '연합 거야. 아마.'),
       SUB,
-      S('rachel', '정리하면. 우리 거 아무거나 하나 주고, 아무거나 두 개 받는 거.', { face: 'base' }),
+      S('rachel', '정리하면. 우리 거 아무거나 하나 주고, 아무거나 2개 받는 거.', { face: 'base' }),
       S('scrapper', '정확해. 운 나쁘면 아끼는 거 하나 내가 집어 가는 거고. 그게 이 장사 재미지.'),
-      S('yupito', '두 개면 하나는 쓰고 하나는 뜯어 보면 되잖아! 응? 응?', { face: 'grin' }),
+      S('yupito', '2개면 하나는 쓰고 하나는 뜯어 보면 되잖아! 응? 응?', { face: 'grin' }),
       S('scrapper', '자, 맡길래, 그냥 갈래? 구경만 하고 가는 손님이 제일 무서워.'),
       S('rachel', '…좀 조용히 해 봐. 생각 중이야.', { face: 'tired' }),
     ],
@@ -40,7 +40,7 @@ export const PILOT_SCENES: Record<string, EventScene> = {
         S('phyllis', '빈손이거든-! 나 쉬러 간다-!', { face: 'grin', exit: true }),
       ],
       west: [
-        S('west', '규격도 없는 고철을 두 개나 받아서 어따 쓰게. 정비는 누가 하는데.', { at: 'C', face: 'angry' }),
+        S('west', '규격도 없는 고철을 2개나 받아서 어따 쓰게. 정비는 누가 하는데.', { at: 'C', face: 'angry' }),
         S('yupito', '웨스트가 하지! 투덜대면서! 하하!', { face: 'laugh' }),
         S('west', '…흠. 테이프로 감아 놓기만 해 봐. 일단 담배 한 대 피고.', { face: 'tired', exit: true }),
       ],
@@ -65,9 +65,9 @@ export const PILOT_SCENES: Record<string, EventScene> = {
         N('고물상이 원통을 진열대 맨 뒤로 슬쩍 밀어 놓는다.', { exit: ['falcon'] }),
       ],
       lindiwe: [
-        S('lindiwe', '하나 주면 두 개! 좋네요! 영수증은요?', { at: 'C', face: 'smile' }),
+        S('lindiwe', '하나 주면 2개! 좋네요! 영수증은요?', { at: 'C', face: 'smile' }),
         S('scrapper', '영수증? 여기 그런 거 없어.'),
-        S('lindiwe', '그럼 제가 쓸게요. 품목은… "고철, 뭔지 모름, 두 개." 됐어요!', { face: 'grin', exit: true }),
+        S('lindiwe', '그럼 제가 쓸게요. 품목은… "고철, 뭔지 모름, 2개." 됐어요!', { face: 'grin', exit: true }),
       ],
     },
     after: [
@@ -75,8 +75,8 @@ export const PILOT_SCENES: Record<string, EventScene> = {
         N('고물상이 에란테스 짐 상자에 손을 넣는다. 눈을 감고, 하나를 집어 든다.', { bg: 'scrap_market', bgm: 'lively' }),
         S('yupito', '아, 그거! 그거 내가 어제 기름칠한— 아니다, 괜찮아! 괜찮아!', { at: 'L', face: 'surprise' }),
         N('고물상이 커튼 뒤로 사라진다. 쇠붙이 부딪히는 소리, 와르르 무너지는 소리, 짧은 욕설.', { sfx: 'clank' }),
-        S('scrapper', '자, 두 개! 약속은 지켰어.', { at: 'R', face: 'grin' }),
-        S('yupito', '하나는 멀쩡하고, 하나는… 이거 뭐야? 버튼이 왜 세 개야? 하하! 오늘 밤에 뜯어 봐야지!', { face: 'laugh' }),
+        S('scrapper', '자, 2개! 약속은 지켰어.', { at: 'R', face: 'grin' }),
+        S('yupito', '하나는 멀쩡하고, 하나는… 이거 뭐야? 버튼이 왜 3개야? 하하! 오늘 밤에 뜯어 봐야지!', { face: 'laugh' }),
       ],
       [
         S('scrapper', '에이, 구경만 하고 가는 손님이 제일 무섭다니까.', { bg: 'scrap_market', bgm: 'lively', at: 'R', face: 'sad' }),
@@ -128,7 +128,7 @@ export const PILOT_SCENES: Record<string, EventScene> = {
         S('iris', '저, 스파르타 기체를 막 데려가도 되는 걸까요? 아레스 신전 소속일 텐데…', { at: 'C', face: 'worried' }),
         S('iris', '아, 근데 헤르메스님이 길 잃은 애들 담당이시니까! 길 잃은 메카도 포함이에요! 그분은 정말, 정말—', { face: 'surprise' }),
         S('eleni', '이리스. 나중에 하십시오.', { face: 'tired' }),
-        S('iris', '…네. 세 시간짜리라서 참을게요.', { face: 'shy', exit: true }),
+        S('iris', '…네. 3시간짜리라서 참을게요.', { face: 'shy', exit: true }),
       ],
       odysseus: [
         S('odysseus', '4년이라. 짧네. 나는 20년 걸렸는데.', { at: 'C', face: 'smile' }),
@@ -195,7 +195,7 @@ export const PILOT_SCENES: Record<string, EventScene> = {
       S('rasmus', '…들었군.', { face: 'tired' }),
       S('rasmus', '그래도 안 나올 수 있소. 녀석이 배부르면.'),
       S('rasmus', '아니면 나한테 맡기시오. 휘파람이면 길은 찾소.', { face: 'base' }),
-      S('rasmus', '어느 쪽이든 여섯 시 전엔 꺼내야 하오. 녀석 저녁밥이오.'),
+      S('rasmus', '어느 쪽이든 6시 전엔 꺼내야 하오. 녀석 저녁밥이오.'),
     ],
     subs: {
       vivian: [
@@ -224,7 +224,7 @@ export const PILOT_SCENES: Record<string, EventScene> = {
       rachel: [
         S('rachel', '맥스가 뭘 쫓아갔는데. …혹시 내 웨하스야?', { at: 'R', face: 'worried' }),
         S('rasmus', '웨하스가 없어졌소?'),
-        S('rachel', '어제 하나. …세 개. 이름도 써 놨는데.', { face: 'angry', exit: true }),
+        S('rachel', '어제 하나. …3개. 이름도 써 놨는데.', { face: 'angry', exit: true }),
       ],
       gunnir: [
         S('gunnir', '요 며칠 레이첼 간식이 자꾸 비길래, 당연히 레이첼이 먹은 줄 알았는데요.', { at: 'R', face: 'smile' }),
@@ -261,7 +261,7 @@ export const PILOT_SCENES: Record<string, EventScene> = {
       [
         N('라스무스가 덕트 입구에 귀를 대고 휘파람을 분다. 높은 음 하나, 낮은 음 둘.', { bg: 'ship_cargo', bgm: 'calm', sfx: 'whistle' }),
         N('철판 너머에서 같은 박자로 짖는 소리가 돌아온다.', { sfx: 'bark_far' }),
-        S('rasmus', '왼쪽으로 두 번 꺾었소. 그다음 아래.', { at: 'L', face: 'base' }),
+        S('rasmus', '왼쪽으로 2번 꺾었소. 그다음 아래.', { at: 'L', face: 'base' }),
         N('한 번 더 휘파람. 이번엔 짖는 소리가 조금 가깝다.', { sfx: 'whistle' }),
         S('rasmus', '공조기 뒤편이오. 따뜻한 데.'),
         S('rasmus', '…나라도 거기 살겠소.', { face: 'smile' }),
@@ -274,18 +274,18 @@ export const PILOT_SCENES: Record<string, EventScene> = {
     cast: ['argon'],
     scene: [
       N('항로 한가운데에 낡은 이민선 한 척이 떠 있다. 엔진은 꺼져 있는데, 선체가 아주 천천히 이쪽으로 돌아선다.', { bg: 'space', bgm: 'eerie' }),
-      N('선체 번호 아르고-7. 항로 기록에는 삼백 년 전 실종으로 떠 있다. 외벽에는 긁힌 자국 하나 없다.'),
+      N('선체 번호 아르고-7. 항로 기록에는 300년 전 실종으로 떠 있다. 외벽에는 긁힌 자국 하나 없다.'),
       S('argo', '여기는 아르고-7. 이 신호를 받았다면…', { sfx: 'static' }),
       S('argo', '…당신들은 이미 늦었습니다. 반복합니다. 이 신호를 받았다면, 당신들은 이미 늦었습니다.'),
       S('rachel', '뭐에 늦었는데.', { at: 'C', face: 'tired' }),
       S('argon', '……', { at: 'L', face: 'serious' }),
       N('아르곤이 조타 콘솔을 손가락으로 두드린다. 똑. 똑. 똑. 똑. 똑.'),
-      S('rachel', '다섯 번. …많이 안 좋다는 거지.', { face: 'worried' }),
+      S('rachel', '5번. …많이 안 좋다는 거지.', { face: 'worried' }),
       S('argon', '다섯이오.'),
       N('원격 영상이 저쪽 함교를 잡는다. 텅 빈 조종석, 벽시계 하나. 초침이 돌고 있다.', { bg: 'argo_bridge', sfx: 'tick' }),
-      S('argon', '열한 시간.'),
+      S('argon', '11시간.'),
       S('rachel', '응?'),
-      S('argon', '저 시계. 열한 시간 빠르오.'),
+      S('argon', '저 시계. 11시간 빠르오.'),
       SUB,
       N('다시 바깥 화면. 아르고-7이 같은 자리에서 천천히 돌고 있다.', { bg: 'space' }),
       S('rachel', '그래서. 뭐 할 수 있는데.', { face: 'base' }),
@@ -293,7 +293,7 @@ export const PILOT_SCENES: Record<string, EventScene> = {
       S('argon', '시계를 맞출 수도 있소.'),
       S('rachel', '시계 맞추면 뭐가 되는데.'),
       S('argon', '전에 한 번 봤소. 맞춘 날, 다들 안 배운 걸 알고 있었소.'),
-      S('argon', '대신 하나는 열한 시간을 잃었소. 기억째.', { face: 'serious' }),
+      S('argon', '대신 하나는 11시간을 잃었소. 기억째.', { face: 'serious' }),
       S('rachel', '…아니면.'),
       S('argon', '쏘면 고철이오. 고철은 값이 나가오.'),
       S('argo', '이 신호를… 받았다면…', { fx: 'glitch' }),
@@ -301,7 +301,7 @@ export const PILOT_SCENES: Record<string, EventScene> = {
     ],
     subs: {
       sarma: [
-        S('sarma', '열한 시간 앞선 시계! 시간축이 접혀 있어요. 아름답네요…', { at: 'R', face: 'surprise' }),
+        S('sarma', '11시간 앞선 시계! 시간축이 접혀 있어요. 아름답네요…', { at: 'R', face: 'surprise' }),
         S('sarma', '아, 실례했어요. 위험하다는 뜻도 포함이에요. 제가 있던 은하에선 이런 배가 교과서에… 아, 아닙니다. 못 들은 걸로 해 주세요.', { face: 'shy', exit: true }),
       ],
       odysseus: [
@@ -315,7 +315,7 @@ export const PILOT_SCENES: Record<string, EventScene> = {
         S('eleni', '아닙니다. 죽은 사람도 없습니다. 처음부터 아무도 안 탄 배 같습니다.', { face: 'serious', exit: true }),
       ],
       hiiro: [
-        S('hiiro', '어머, 시계가 빠르네. 점 봐 줄까요? …저 배 들어가면 세 번째 계단 조심.', { at: 'R', face: 'smile' }),
+        S('hiiro', '어머, 시계가 빠르네. 점 봐 줄까요? …저 배 들어가면 3번째 계단 조심.', { at: 'R', face: 'smile' }),
         S('rachel', '…그게 다야?'),
         S('hiiro', '그게 다예요. 해석은 별도. 점괘값은 3c, 오늘은 말차라떼가 비싸서요.', { face: 'smug', exit: true }),
       ],
@@ -331,12 +331,12 @@ export const PILOT_SCENES: Record<string, EventScene> = {
           N('아르고-7의 복도. 먼지 한 톨 없는 선실마다 가방이 놓여 있다. 지퍼는 전부 닫혀 있다.', { bg: 'argo_corridor', bgm: 'eerie' }),
           S('argon', '침상 이백열. 가방 이백열.', { at: 'L', face: 'serious' }),
           S('rachel', '사람은 영.', { at: 'C', face: 'tired' }),
-          N('함교 콘솔 위에 항해일지 한 권이 있다. 첫 장 날짜는 삼백 년 전. 마지막 장 날짜는 오늘보다 열한 시간 뒤다.'),
+          N('함교 콘솔 위에 항해일지 한 권이 있다. 첫 장 날짜는 300년 전. 마지막 장 날짜는 오늘보다 11시간 뒤다.'),
           N('빈 선실 하나에서 장비 상자를 들고 나온다. 상자에 출항 축하 리본이 매여 있다.', { sfx: 'clank' }),
           S('argon', '일지는 챙기시오. 리본은 두고.'),
         ],
         hurt: [
-          N('세 번째 격벽을 지나는 순간, 복도가 접힌다.', { bg: 'argo_corridor', bgm: 'tense', fx: 'shake' }),
+          N('3번째 격벽을 지나는 순간, 복도가 접힌다.', { bg: 'argo_corridor', bgm: 'tense', fx: 'shake' }),
           N('앞에 있던 벽이 뒤에 있다. 내려가던 계단이 올라간다. 누군가 비명을 지르고, 같은 비명이 몇 초 뒤에 한 번 더 들린다.'),
           S('argon', '손 놓지 마시오!', { at: 'L', face: 'angry' }),
           N('겨우 빠져나왔을 때, 모두의 손목시계가 조금씩 다른 시각을 가리키고 있었다. 항해일지만은 품 안에 있었다.'),
@@ -345,33 +345,33 @@ export const PILOT_SCENES: Record<string, EventScene> = {
       },
       [
         S('argon', '돌리시오. 천천히.', { bg: 'argo_bridge', bgm: 'eerie', at: 'L', face: 'serious' }),
-        N('원격 조작으로 함교 시계 바늘을 열한 시간 되돌린다. 딸깍.', { sfx: 'tick' }),
+        N('원격 조작으로 함교 시계 바늘을 11시간 되돌린다. 딸깍.', { sfx: 'tick' }),
         N('순간 모두의 손끝에 낯선 감각이 흘러든다. 해 본 적 없는 전투의 손놀림, 배운 적 없는 요령.', { fx: 'flash' }),
-        N('그리고 {victim}의 열한 시간이 통째로 비었다. 정신을 차린 곳은 의무실 침대 위였다.'),
-        N('의무실 기록에는 이렇게 적혔다. 열한 시간 분실. 원인: 시계.'),
+        N('그리고 {victim}의 11시간이 통째로 비었다. 정신을 차린 곳은 의무실 침대 위였다.'),
+        N('의무실 기록에는 이렇게 적혔다. 11시간 분실. 원인: 시계.'),
       ],
       [
-        N('포격 세 발. 아르고-7이 소리 없이 부서진다.', { bg: 'space', bgm: 'eerie', sfx: 'blast', fx: 'flash' }),
+        N('포격 3발. 아르고-7이 소리 없이 부서진다.', { bg: 'space', bgm: 'eerie', sfx: 'blast', fx: 'flash' }),
         N('구조 신호는 마지막 순간까지 같은 문장을 반복했다. 이 신호를 받았다면, 당신들은 이미—'),
-        N('잔해는 고물상에 넘어갔다. 고물상은 삼백 년 묵은 고철이 너무 새것 같다며 고개를 갸웃했다.', { bgm: 'melancholy' }),
+        N('잔해는 고물상에 넘어갔다. 고물상은 300년 묵은 고철이 너무 새것 같다며 고개를 갸웃했다.', { bgm: 'melancholy' }),
         S('argon', '…값은 받았소.', { at: 'L', face: 'base' }),
       ],
     ],
   },
 
-  // ───────── 이야기 D: 여섯 번째 달 — 주연 오르카
+  // ───────── 이야기 D: 6번째 달 — 주연 오르카
   sd_dice: {
     cast: ['orca'],
     scene: [
-      N('폐광 행성 지하 이백 미터. 갱도를 파다 만 자리에 도박장이 하나 들어서 있다. 이름은 여섯 번째 달.', { bg: 'casino', bgm: 'lively' }),
-      N('천장에는 달이 다섯 개 그려져 있다. 자욱한 연기 속에서 주사위 구르는 소리, 환호, 욕설이 뒤섞인다.', { sfx: 'dice' }),
+      N('폐광 행성 지하 200미터. 갱도를 파다 만 자리에 도박장이 하나 들어서 있다. 이름은 6번째 달.', { bg: 'casino', bgm: 'lively' }),
+      N('천장에는 달이 5개 그려져 있다. 자욱한 연기 속에서 주사위 구르는 소리, 환호, 욕설이 뒤섞인다.', { sfx: 'dice' }),
       S('barkeep', '야, 오르카! 페트라에서 잘렸다더니 살아 있었네!', { at: 'R', face: 'grin' }),
       S('orca', '살아 있습니다. 잘린 것도 맞고요. 물 한 잔 주시죠. 소금 한 꼬집 넣어서.', { at: 'L', face: 'base' }),
       S('barkeep', '또 그 소금물. 외상은 안 된다. 너는 특히.'),
       S('rachel', '…아는 데야?', { at: 'C', face: 'base' }),
-      S('orca', '단골이었습니다. 두 번째 여자친구랑 처음 온 데가 여기죠. 아니, 세 번째였나.'),
+      S('orca', '단골이었습니다. 2번째 여자친구랑 처음 온 데가 여기죠. 아니, 3번째였나.'),
       S('rachel', '안 물어봤어.', { face: 'tired' }),
-      S('orca', '세 번째였습니다. 두 번째는 주사위를 싫어했거든요.'),
+      S('orca', '3번째였습니다. 2번째는 주사위를 싫어했거든요.'),
       N('오르카가 카운터에 동전 하나를 올려 손가락 사이로 굴린다. 말이 반 박자 느려진다.', { sfx: 'coin' }),
       S('dealer', '손님들, 판에 앉으시겠습니까? 구경은 무료입니다. 오늘 밤은요.', { face: 'smile' }),
       SUB,
@@ -421,22 +421,22 @@ export const PILOT_SCENES: Record<string, EventScene> = {
     after: [
       {
         big: [
-          N('주사위 세 개가 펠트 위를 구른다. 여섯. 여섯. 그리고—', { bg: 'casino', bgm: 'lively', sfx: 'dice' }),
+          N('주사위 3개가 펠트 위를 구른다. 여섯. 여섯. 그리고—', { bg: 'casino', bgm: 'lively', sfx: 'dice' }),
           N('여섯.', { fx: 'flash' }),
           N('도박장이 한순간 조용해졌다가, 터져 나온다.', { sfx: 'crowd' }),
-          S('dealer', '…여섯 번째 달이 떴습니다.', { face: 'surprise' }),
+          S('dealer', '…6번째 달이 떴습니다.', { face: 'surprise' }),
           S('orca', '칠 년 만이군요. 그때도 이 자리였는데. 의자 높이가 그대로군요.', { at: 'L', face: 'base' }),
           S('rachel', '…그 얘기 또 해?', { at: 'C', face: 'tired' }),
         ],
         mid: [
           N('판은 길게 이어졌다. 잃었다가, 땄다가, 다시 잃었다가.', { bg: 'casino', bgm: 'lively', sfx: 'dice' }),
-          N('본전을 조금 넘긴 순간, 오르카가 어깨를 두 번 두드린다.'),
+          N('본전을 조금 넘긴 순간, 오르카가 어깨를 2번 두드린다.'),
           S('rachel', '한 판만 더.', { at: 'C', face: 'base' }),
-          S('orca', '그 말 하신 분, 이 가게에서만 열두 명 봤습니다. 일어나시죠.', { at: 'L', face: 'base' }),
+          S('orca', '그 말 하신 분, 이 가게에서만 12명 봤습니다. 일어나시죠.', { at: 'L', face: 'base' }),
         ],
         lose: [
           N('주사위가 멈춘다. 딜러가 미소를 지으며 판돈을 쓸어 간다. 손이 빠르다. 정말로.', { bg: 'casino', bgm: 'lively', sfx: 'dice' }),
-          S('dealer', '또 오십시오. 여섯 번째 달은 언제나 다음 판에 뜹니다.', { face: 'smile' }),
+          S('dealer', '또 오십시오. 6번째 달은 언제나 다음 판에 뜹니다.', { face: 'smile' }),
           S('orca', '사이오닉 폭풍 같은 겁니다. 언제 올지 모르고, 지나가면 지갑이 비어 있죠.', { at: 'L', face: 'base' }),
           N('오르카가 귀에서 이어플러그를 빼서 주머니에 넣는다.'),
         ],
@@ -451,14 +451,14 @@ export const PILOT_SCENES: Record<string, EventScene> = {
         lose: [
           N('조용히 잃었다. 언제 잃었는지도 모를 만큼.', { bg: 'casino', bgm: 'lively', sfx: 'dice' }),
           S('orca', '작은 판의 장점입니다. 잃어도 할 얘기가 안 남죠.', { at: 'L', face: 'base' }),
-          S('orca', '대신 제 다섯 번째 여자친구 얘기를 해 드리죠. 그분도 작은 판만—'),
+          S('orca', '대신 제 5번째 여자친구 얘기를 해 드리죠. 그분도 작은 판만—'),
           S('rachel', '가자.', { at: 'C', face: 'tired' }),
         ],
       },
       [
-        N('그날 밤, 여섯 번째 달의 바 안쪽에는 무표정한 오르카가 서 있었다.', { bg: 'casino_bar', bgm: 'calm' }),
+        N('그날 밤, 6번째 달의 바 안쪽에는 무표정한 오르카가 서 있었다.', { bg: 'casino_bar', bgm: 'calm' }),
         N('손님 술잔 밑에서 동전이 나오고, 빈 잔에서 카드가 나왔다. 손님들은 그게 마술인지 서비스인지 묻지 않았다.', { sfx: 'coin' }),
-        S('orca', '이건 숙성 우유를 이틀 재운 겁니다. 빵에 올려 드시죠. 소금은 제가 맞췄습니다.', { at: 'L', face: 'base' }),
+        S('orca', '이건 숙성 우유를 2일 재운 겁니다. 빵에 올려 드시죠. 소금은 제가 맞췄습니다.', { at: 'L', face: 'base' }),
         N('단원들은 반값 술을 앞에 두고 오랜만에 늘어졌다. 오르카의 앞치마 주머니에 팁이 쌓였다.'),
         S('barkeep', '야, 너 그냥 여기 취직해라.', { face: 'grin' }),
         S('orca', '이미 장부 맡은 데가 있어서요. 이번 장부는 아주 깨끗합니다.'),

@@ -8,9 +8,9 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
     cast: ['west'],
     scene: [
       N('항로 표지 하나 없는 암흑 구역. 탐조등 불빛 끝에 대형 화물선 한 척이 비스듬히 떠 있다.', { bg: 'd_void', bgm: 'eerie' }),
-      N('선체에 절단 자국이 세 겹이다. 녹슨 것, 덜 녹슨 것, 아직 반짝이는 것.'),
-      S('west', '세 번 털린 배네. 우리가 네 번째고.', { at: 'L', face: 'tired' }),
-      N('웨스트가 담배를 문 채 휴대용 스캐너를 손바닥으로 퍽 친다. 화면이 두 번 깜빡이다 켜진다.', { sfx: 'clank' }),
+      N('선체에 절단 자국이 3겹이다. 녹슨 것, 덜 녹슨 것, 아직 반짝이는 것.'),
+      S('west', '3번 털린 배네. 우리가 4번째고.', { at: 'L', face: 'tired' }),
+      N('웨스트가 담배를 문 채 휴대용 스캐너를 손바닥으로 퍽 친다. 화면이 2번 깜빡이다 켜진다.', { sfx: 'clank' }),
       S('west', '망할 고물. …껍데기는 텅 비었어. 근데 화물칸 안쪽에 격벽 하나가 아직 잠겨 있다.', { face: 'angry' }),
       N('화물칸 안쪽. 바닥에 널린 절단 자국이 전부 그 격벽 앞에서 끊겨 있다.', { bg: 'd_derelict' }),
       S('west', '약탈자 셋이 다 여기서 손을 뗐어. 이유가 있겠지.', { face: 'serious' }),
@@ -19,7 +19,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       S('rachel', '그거 열면 터져?', { at: 'R', face: 'base' }),
       S('west', '열어 봐야 알지. 그래서 셋 다 안 열었고.', { face: 'tired' }),
       SUB,
-      S('west', '자, 할 수 있는 건 세 가지야.', { face: 'base' }),
+      S('west', '자, 할 수 있는 건 3가지야.', { face: 'base' }),
       S('west', '하나. 격벽을 딴다. 안에 든 게 뭐든 우리 거. 반응로가 성질만 안 부리면.'),
       S('west', '둘. 겉에 외장재랑 배선만 벗겨 간다. 고철값이지. 다칠 일 없어.'),
       S('west', '셋. 저 배 장갑판을 떼서 우리 배에 덧댄다. 두께는 쓸 만해. 대신 용접하다 누구 하나는 덴다. 보통은 나고.', { face: 'grin' }),
@@ -61,7 +61,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         relic: [
           N('토치가 격벽 가장자리를 한 바퀴 돌자 압력 빠지는 소리가 나고, 문이 안쪽으로 넘어갔다.', { sfx: 'd_hiss' }),
           N('안은 멀쩡했다. 완충재에 싸인 상자 하나가 선반에 단단히 묶여 있었다.'),
-          S('west', '세 번 털리고도 안 털린 상자라. 약탈자들이 겁쟁이였네.', { at: 'L', face: 'grin' }),
+          S('west', '3번 털리고도 안 털린 상자라. 약탈자들이 겁쟁이였네.', { at: 'L', face: 'grin' }),
           N('스캐너의 붉은 숫자는 끝까지 내려가지 않았다. 웨스트는 상자를 들고 뒤도 안 보고 나왔다.'),
         ],
         cargo: [
@@ -83,7 +83,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       ],
       [
         N('화물선 장갑판은 생각보다 두껍고, 생각보다 무거웠다.', { sfx: 'clank' }),
-        N('세 번째 판을 붙이다 고정 클램프가 미끄러졌다. 짧은 비명, 그리고 화상 연고 냄새.', { fx: 'shake' }),
+        N('3번째 판을 붙이다 고정 클램프가 미끄러졌다. 짧은 비명, 그리고 화상 연고 냄새.', { fx: 'shake' }),
         S('west', '보통은 나라고 했잖아. 왜 줄 서서 데고 있어.', { at: 'L', face: 'tired' }),
         N('누더기처럼 덧댄 장갑판이 함선 옆구리에 붙었다. 보기엔 흉해도 두껍다.'),
       ],
@@ -96,7 +96,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
     scene: [
       N('함교 통신기가 지직거린다. 잡음 사이로 같은 문장이 되풀이된다.', { bg: 'd_bridge', bgm: 'tense', sfx: 'static' }),
       S('d_mayday', '생명 유지 장치 고장… 승무원 일곱… 누구든…'),
-      N('목소리가 끊기고, 십이 초 뒤 처음부터 다시 나온다.'),
+      N('목소리가 끊기고, 12초 뒤 처음부터 다시 나온다.'),
       S('orca', '무시하시죠.', { at: 'R', face: 'base' }),
       S('orca', '이 근방 약탈자들이 쓰는 미끼 문구와 토씨 하나 안 다릅니다. 승무원 일곱까지요. 다섯이면 안 오고, 열이면 안 믿으니까 일곱이죠.'),
       S('mirinae', '음. 근데 진짜 조난당한 사람도 저렇게 말하잖아. 구조 신호는 말하는 법이 정해져 있으니까.', { at: 'L', face: 'base' }),
@@ -145,23 +145,23 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
     after: [
       {
         real: [
-          N('신호는 진짜였다. 엔진이 터진 소형 화물선 안에서, 일곱 명이 산소 마스크 두 개를 돌려 쓰고 있었다.'),
+          N('신호는 진짜였다. 엔진이 터진 소형 화물선 안에서, 7명이 산소 마스크 2개를 돌려 쓰고 있었다.'),
           S('d_captain', '에란테스라… 이 빚은 꼭 갚겠네. 반드시.', { at: 'R', face: 'tired' }),
           S('mirinae', '배 이름은? 나중에 받으러 가게.', { at: 'L', face: 'base' }),
           S('d_captain', '하하… 그건 다음에 말하지.', { face: 'smile' }),
           N('선장은 배 이름 대신 미리내의 손을 두 손으로 오래 붙잡았다.'),
         ],
         ambush: [
-          N('좌표에 닿자마자 바위 뒤에서 포함 두 척이 튀어나왔다.', { sfx: 'blast', fx: 'shake' }),
+          N('좌표에 닿자마자 바위 뒤에서 포함 2척이 튀어나왔다.', { sfx: 'blast', fx: 'shake' }),
           S('orca', '…그러니까 무시하자고 했습니다.', { at: 'R', face: 'base' }),
           S('mirinae', '알아. 근데 문 놈은 쏘면 된다고도 했잖아.', { at: 'L', face: 'grin' }),
           N('매복은 짧고 시끄럽게 끝났다. 함선은 여기저기 긁혔고, 달아난 약탈자들이 떨군 상자 몇 개가 뒤를 따라 떠다녔다.'),
         ],
       },
       [
-        N('웨스트가 신호 원본을 세 번 돌려 들었다. 잡음이 매번 달랐다.', { sfx: 'static' }),
+        N('웨스트가 신호 원본을 3번 돌려 들었다. 잡음이 매번 달랐다.', { sfx: 'static' }),
         S('west', '진짜다. 가. …아, 분석기 하나 탔다. 장부에 달아.', { at: 'R', face: 'tired' }),
-        N('함선은 곧장 조난선 옆에 붙었다. 일곱 명이 산소 마스크 두 개를 돌려 쓰고 있었다.'),
+        N('함선은 곧장 조난선 옆에 붙었다. 7명이 산소 마스크 2개를 돌려 쓰고 있었다.'),
         S('d_captain', '에란테스… 이 빚은 잊지 않겠네.', { at: 'R', face: 'tired' }),
         S('mirinae', '분석기 값은 웨스트한테 갚아요. 그 사람이 제일 무서워.', { at: 'L', face: 'smile' }),
       ],
@@ -249,8 +249,8 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
   sd_raiders: {
     cast: ['gebek'],
     scene: [
-      N('소행성대 마지막 바위를 비껴 지나는 순간, 근접 경보가 네 번 연달아 울린다.', { bg: 'd_asteroid', bgm: 'tense', sfx: 'd_alarm' }),
-      N('바위 그림자에서 개조 포함 네 척이 빠져나와 함선을 에워싼다. 검은 방열판마다 이빨 자국 문양이 그려져 있다.'),
+      N('소행성대 마지막 바위를 비껴 지나는 순간, 근접 경보가 4번 연달아 울린다.', { bg: 'd_asteroid', bgm: 'tense', sfx: 'd_alarm' }),
+      N('바위 그림자에서 개조 포함 4척이 빠져나와 함선을 에워싼다. 검은 방열판마다 이빨 자국 문양이 그려져 있다.'),
       S('d_scar', '에란테스. 이름은 들어 봤다.', { at: 'R', face: 'grin', sfx: 'static' }),
       N('통신 화면에 얼굴 하나가 꽉 찬다. 흉터가 너무 많아서 흉터 없는 데를 찾는 게 빠르다.'),
       S('d_scar', '통행료다. 아니면 배째로 받아 가지.'),
@@ -280,7 +280,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       ],
       temur: [
         S('temur', '통행료 얼마냐. 밥 몇 끼냐.', { at: 'C', face: 'serious' }),
-        S('gebek', '대충 너 사흘 치.'),
+        S('gebek', '대충 너 3일 치.'),
         S('temur', '…싸운다.', { face: 'angry', exit: true }),
       ],
       falcon: [
@@ -296,7 +296,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
     },
     after: [
       [
-        N('네 척 가운데 두 척이 먼저 떨어져 나갔다. 겉멋 부리던 쪽이었다.', { sfx: 'blast', fx: 'shake' }),
+        N('4척 가운데 2척이 먼저 떨어져 나갔다. 겉멋 부리던 쪽이었다.', { sfx: 'blast', fx: 'shake' }),
         N('기함 엔진까지 꺼지자, 통신 화면 속 두목은 피 묻은 이를 드러낸 채 한참 말이 없었다.'),
         S('gebek', '가라. 다음엔 통행료 말고 술이나 한잔 사.', { at: 'L', face: 'base' }),
         S('d_scar', '…오늘 일은 기억하지.', { at: 'R', face: 'serious' }),
@@ -306,11 +306,11 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         N('기함 함교가 열렸을 때, 두목은 끝까지 칼을 쥐고 있었다.', { sfx: 'blast', fx: 'flash' }),
         N('수배 기록과 대조하는 데 일 분도 안 걸렸다. 현상금은 생각보다 두둑했다.'),
         S('gebek', '…장사는 장사지.', { at: 'L', face: 'serious' }),
-        N('그날 저녁 게베크는 집에 영상 통화를 두 번 걸었다.'),
+        N('그날 저녁 게베크는 집에 영상 통화를 2번 걸었다.'),
         N('달아난 포함 한 척이 같은 깃발을 단 채 어딘가로 사라졌다.'),
       ],
       [
-        N('크레딧을 보내자 포함 네 척이 미련 없이 길을 비켰다.', { sfx: 'coin' }),
+        N('크레딧을 보내자 포함 4척이 미련 없이 길을 비켰다.', { sfx: 'coin' }),
         S('d_scar', '현명하군. 다음에도 현명하길.', { at: 'R', face: 'smug' }),
         N('게베크가 아쉬운 듯 탄띠를 내려놓고, 기관총 총신을 툭툭 두드린다.', { sfx: 'clank' }),
         S('gebek', '다음엔 놀자, 응? 다음엔.', { at: 'L', face: 'tired' }),
@@ -360,12 +360,12 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         S('zahara', '…검은 바탕. 구도는 괜찮겠다.', { face: 'smug', exit: true }),
       ],
       yelena: [
-        S('yelena', '그 습격 경로, 연합 항로청에서 꽤 쳐줄 거예요. 우리가 쓰고 나서 팔면 두 번 버는 거고요.', { at: 'C', face: 'smile' }),
+        S('yelena', '그 습격 경로, 연합 항로청에서 꽤 쳐줄 거예요. 우리가 쓰고 나서 팔면 2번 버는 거고요.', { at: 'C', face: 'smile' }),
         S('d_scar', '…이 동네서 그런 말 크게 하면 칼 맞는다.'),
         S('yelena', '그래서 작게 했잖아요. 여기 흑맥주 있어요? 한 잔만요.', { face: 'grin', exit: true }),
       ],
       aiden: [
-        S('aiden', '이 손님은 독주 스트레이트, 얼음 없이, 두 번째 잔부터 천천히. 기억해 두죠.', { at: 'C', face: 'smile' }),
+        S('aiden', '이 손님은 독주 스트레이트, 얼음 없이, 2번째 잔부터 천천히. 기억해 두죠.', { at: 'C', face: 'smile' }),
         S('kairo', '남의 가게에서 주문 받지 말게.'),
         S('aiden', '받은 게 아니라 기록한 겁니다. 이 가게 술로는 받을 수가 없어서요.', { face: 'smug', exit: true }),
       ],
@@ -395,13 +395,13 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
     cast: ['gebek', 'west'],
     scene: [
       N('텅 빈 항로 한가운데. 숨을 바위도, 들어갈 성운도 없다.', { bg: 'd_lane', bgm: 'tense' }),
-      N('그 앞을 이빨 자국 깃발을 단 함선 다섯 척이 일렬로 막고 있다.'),
+      N('그 앞을 이빨 자국 깃발을 단 함선 5척이 일렬로 막고 있다.'),
       S('d_brother', '형 목값으로 마신 술은 맛있었냐, 에란테스?', { at: 'R', face: 'angry', sfx: 'static' }),
       N('통신 화면 속 얼굴이 그 흉터 두목과 닮았다. 흉터만 없다.'),
       S('d_brother', '형은 통행료만 받고 보내 주는 사람이었다. 너희가 그걸 목값으로 바꿨지.'),
       N('기함 포문이 천천히 열린다. 동생이 직접 조준석에 앉아 있다.', { sfx: 'servo' }),
       S('gebek', '…그래. 형제가 있다더니.', { at: 'L', face: 'serious' }),
-      S('west', '다섯 척이 일렬이야. 포는 좋은데 진형은 엉망이고. 열받아서 있는 대로 다 끌고 나왔군.', { at: 'C', face: 'serious' }),
+      S('west', '5척이 일렬이야. 포는 좋은데 진형은 엉망이고. 열받아서 있는 대로 다 끌고 나왔군.', { at: 'C', face: 'serious' }),
       S('west', '정면으로 붙어도 이길 거다. 아마. 확률은 묻지 마.', { face: 'tired' }),
       S('west', '창고에 기뢰 열두 발 있어. 깔면 확실해. 대신 그거 비싼 거다.', { face: 'base', exit: true }),
       SUB,
@@ -442,7 +442,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       {
         rout: [
           N('첫 일제 사격에 기함 방패가 찢어졌다. 그 틈으로 게베크가 쉬지 않고 탄을 밀어 넣었다.', { sfx: 'blast', fx: 'shake' }),
-          N('다섯 척이 하나씩 꺼졌다. 마지막으로 기함이 기울며 깃발이 불길에 말려 들어갔다.'),
+          N('5척이 하나씩 꺼졌다. 마지막으로 기함이 기울며 깃발이 불길에 말려 들어갔다.'),
           S('gebek', '…끝났다. 형제 둘 다.', { at: 'L', face: 'serious' }),
           N('잔해 사이에서 쓸 만한 장비 상자 하나를 건졌다.'),
         ],
@@ -461,7 +461,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       },
       [
         N('웨스트가 창고 구석에서 기뢰 열두 발을 꺼냈다. 하나에 얼마인지는 아무도 묻지 않았다.'),
-        N('함선이 일부러 느릿하게 물러나자, 다섯 척이 일렬로 따라붙었다. 그리고 차례로 멈춰 섰다.', { sfx: 'blast', fx: 'flash' }),
+        N('함선이 일부러 느릿하게 물러나자, 5척이 일렬로 따라붙었다. 그리고 차례로 멈춰 섰다.', { sfx: 'blast', fx: 'flash' }),
         S('west', '열받은 놈들은 꼭 일렬로 와.', { at: 'R', face: 'smug' }),
         N('멈춘 기함 화물칸에서 쓸 만한 장비 하나를 건졌다. 동생은 통신을 끊고 아무 말도 하지 않았다.'),
       ],
@@ -483,7 +483,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       S('oliver', '어? 어어? 이거 진짜야? 저 바늘 장식인 줄 알았는데!', { at: 'L', face: 'surprise' }),
       N('올리버가 핸들을 쥔 채 몸만 기울여 계기판을 톡톡 친다. 바늘은 꿈쩍 안 한다.'),
       S('oliver', '괜찮아, 괜찮아! 메트로 몰 때도 이 정도면 종점까진 갔어. …그땐 내리막이었구나.', { face: 'grin' }),
-      N('항법 화면에 갈 곳이 두 개 뜬다. 가장 가까운 급유소, 그리고 그보다 조금 더 가까운 광산 연료고.'),
+      N('항법 화면에 갈 곳이 2개 뜬다. 가장 가까운 급유소, 그리고 그보다 조금 더 가까운 광산 연료고.'),
       S('d_fuelman', '어서 오십시오, 손님. 다음 급유소까진 반 성계입니다. 천천히 고민하세요. 천천히.', { at: 'R', face: 'smug', sfx: 'static' }),
       N('업자의 통신 화면 뒤로 가격표 숫자가 바뀐다. 위로만.'),
       S('oliver', '와, 방금 또 올랐어! 우리가 말하는 동안에도 올라!', { face: 'surprise' }),
@@ -503,7 +503,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         S('temur', '…주인님. 그건 안 된다. 진짜 안 된다.', { face: 'angry', exit: true }),
       ],
       west: [
-        S('west', '바늘 붉은 선 밑으로 떨어진 거 누가 마지막으로 봤어? 점검표엔 이틀 전에 서명돼 있는데.', { at: 'C', face: 'angry' }),
+        S('west', '바늘 붉은 선 밑으로 떨어진 거 누가 마지막으로 봤어? 점검표엔 2일 전에 서명돼 있는데.', { at: 'C', face: 'angry' }),
         S('oliver', '나! 그땐 선 위였어. 거의!'),
         S('west', '거의는 연료가 아니야, 이 자식아.', { face: 'tired', exit: true }),
       ],
@@ -525,13 +525,13 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
     },
     after: [
       [
-        N('독점 업자는 세 배 값을 받고도 웃었다.', { sfx: 'coin' }),
+        N('독점 업자는 3배 값을 받고도 웃었다.', { sfx: 'coin' }),
         S('d_fuelman', '또 오십시오. 다음 급유소는 여전히 반 성계 밖입니다.', { at: 'R', face: 'smug' }),
         S('oliver', '오늘 오운완에 이 가게 별점도 같이 올려야지. 별 하나^^', { at: 'L', face: 'smile' }),
       ],
       [
         N('생명 유지 장치 출력이 절반으로 떨어졌다. 함내 온도가 내려가고 입김이 하얗게 보였다.', { bgm: 'melancholy' }),
-        N('다들 담요를 두 겹씩 덮고 서로 등을 맞댔다. 숨이 차서 아무도 말을 많이 하지 않았다.'),
+        N('다들 담요를 2겹씩 덮고 서로 등을 맞댔다. 숨이 차서 아무도 말을 많이 하지 않았다.'),
         S('oliver', '이렇게 다 같이 덜덜 떠니까 좀 가족 같지 않아? …아무도 대답 안 하네.', { at: 'L', face: 'smile' }),
         N('연료는 겨우 버텼다. 다음 날 아침, 다들 말없이 서로의 담요를 개 주었다.'),
       ],
@@ -576,7 +576,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
     ],
     subs: {
       donovan: [
-        S('donovan', '그 수배서, 원본 찾아봤는데. 발행처가 세 번 바뀌었어. 현상금은 세 번 다 올랐고.', { at: 'C', face: 'tired' }),
+        S('donovan', '그 수배서, 원본 찾아봤는데. 발행처가 3번 바뀌었어. 현상금은 3번 다 올랐고.', { at: 'C', face: 'tired' }),
         S('d_hunter', '…해커냐.'),
         S('donovan', '아니. 저녁 메뉴 고민하는 사람.', { exit: true }),
       ],
@@ -591,7 +591,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         S('franze', '저는 봅니다. 방금 그 발언, 기록해도 되겠습니까?', { face: 'smug', exit: true }),
       ],
       kairo: [
-        S('kairo', '결투라. 거리는? 십 킬로미터쯤이면 내가 나가지.', { at: 'C', face: 'smug' }),
+        S('kairo', '결투라. 거리는? 10킬로미터쯤이면 내가 나가지.', { at: 'C', face: 'smug' }),
         S('d_hunter', '…이 미터.'),
         S('kairo', '그럼 빠지지. 그건 사격이 아니라 몸싸움이네.', { face: 'tired', exit: true }),
       ],
@@ -610,7 +610,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
           N('찢긴 수배서가 기압 조절기 바람에 날려 갔다. 이긴 단원은 그날 저녁 술값을 한 푼도 내지 않았다.'),
         ],
         lose: [
-          N('총성은 두 번이었다. 먼저 울린 쪽은 에란테스가 아니었다.', { sfx: 'd_gun', fx: 'flash' }),
+          N('총성은 2번이었다. 먼저 울린 쪽은 에란테스가 아니었다.', { sfx: 'd_gun', fx: 'flash' }),
           S('d_hunter', '급소는 피했어. 개인적인 감정은 없다니까.', { at: 'R', face: 'base' }),
           N('다친 단원은 의무실로 실려 갔다. 당분간 출전은 무리였다. 사냥꾼은 수배서를 다시 접어 품에 넣었다.'),
           S('zahara', '…칼 한 번도 못 뽑았네.', { at: 'L', face: 'angry' }),
@@ -619,7 +619,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       [
         N('크레딧 칩이 사냥꾼의 장갑 낀 손바닥에 떨어졌다.', { sfx: 'coin' }),
         S('d_hunter', '깔끔하군. 고객이 다 이러면 좋겠는데.', { at: 'R', face: 'smile' }),
-        N('사냥꾼이 수배서를 네 조각으로 찢었다. 자하라는 찢기기 직전 그 사진을 한 번 더 봤다.'),
+        N('사냥꾼이 수배서를 4조각으로 찢었다. 자하라는 찢기기 직전 그 사진을 한 번 더 봤다.'),
         S('zahara', '…다음엔 제대로 찍어 와.', { at: 'L', face: 'smug' }),
       ],
       {
@@ -644,8 +644,8 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
     scene: [
       N('버려진 정거장 화물칸. 조명은 경매대 위 한 줄뿐이고, 객석은 어둡다.', { bg: 'd_auction', bgm: 'tense' }),
       N('아무도 이름을 대지 않는다. 다들 번호판을 든다.'),
-      S('d_auctioneer', '다음 물품입니다. 출처는 묻지 마십시오. 물으시면 가격이 두 배가 됩니다.', { at: 'R', face: 'smile', sfx: 'd_gavel' }),
-      N('라르스가 의자에 느긋하게 기대앉아 번호판을 집어 든다. 십칠 번. 다른 손으로는 손목시계를 본다.'),
+      S('d_auctioneer', '다음 물품입니다. 출처는 묻지 마십시오. 물으시면 가격이 2배가 됩니다.', { at: 'R', face: 'smile', sfx: 'd_gavel' }),
+      N('라르스가 의자에 느긋하게 기대앉아 번호판을 집어 든다. 17번. 다른 손으로는 손목시계를 본다.'),
       S('lars', '17시 40분. 18시 30분 안에 끝나면 저녁에 늦지 않습니다.', { at: 'L', face: 'base' }),
       N('경매대 위로 납으로 봉인된 상자 하나가 올라온다. 판매자는 경매인 뒤 어둠 속에 서 있다.'),
       S('d_auctioneer', '봉인 상자입니다. 안에 뭐가 들었는지는 판매자도 모릅니다. …라고 판매자가 말합니다.'),
@@ -657,7 +657,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       S('lars', '하나, 저 상자를 낙찰받는다. 운에 거는 겁니다.'),
       S('lars', '둘, 우리 장비 하나를 이 자리에 내놓는다. 이런 데선 파는 쪽이 대개 웃지요.'),
       S('lars', '셋… 저 경비 뒤 책상에 오늘 경매 장부가 펼쳐져 있더군요. 누가 뭘 샀는지는 다른 손님들한테 꽤 비싼 정보입니다.', { face: 'smug' }),
-      S('d_auctioneer', '십칠 번 손님. 그 말씀을 경비가 들었다면 무척 섭섭해할 겁니다.', { face: 'grin' }),
+      S('d_auctioneer', '17번 손님. 그 말씀을 경비가 들었다면 무척 섭섭해할 겁니다.', { face: 'grin' }),
       S('lars', '농담입니다. 반쯤은. 하, 하.', { face: 'smile' }),
       S('lars', '자, 48분 남았습니다.', { face: 'base' }),
     ],
@@ -678,14 +678,14 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         S('phyllis', '…부자들은 놀 줄을 몰라.', { face: 'shy', exit: true }),
       ],
       aiden: [
-        S('aiden', '저 봉인, 오래된 방식이군요. 그 방식이면 딱지가 두 개 붙어 있어야 합니다. 깨지기 쉬움, 그리고 열면 후회함.', { at: 'C', face: 'smile' }),
+        S('aiden', '저 봉인, 오래된 방식이군요. 그 방식이면 딱지가 2개 붙어 있어야 합니다. 깨지기 쉬움, 그리고 열면 후회함.', { at: 'C', face: 'smile' }),
         S('lars', '둘 다 붙어 있습니까?'),
         S('aiden', '하나는 벗겨져 있군요. 어느 쪽인지는 메뉴판에 없습니다.', { face: 'smug', exit: true }),
       ],
       sigmund: [
         S('sigmund', '가주님. 저녁 일정은 18시 45분입니다. 이동 시간을 빼면 여유가 많지 않습니다.', { at: 'C', face: 'serious' }),
         S('lars', '알고 있어요, 시그문드. 그래서 서두르는 겁니다.'),
-        S('sigmund', '오늘로 네 번째 서두르시는 중입니다. 기록하고 있습니다.', { face: 'base', exit: true }),
+        S('sigmund', '오늘로 4번째 서두르시는 중입니다. 기록하고 있습니다.', { face: 'base', exit: true }),
       ],
     },
     after: [
@@ -699,7 +699,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         rare: [
           N('망치가 떨어지고 상자가 열렸다. 완충재 안에 쓸 만한 장비가 하나.', { sfx: 'd_gavel' }),
           S('lars', '값만큼입니다. 이런 데서 값만큼이면 이긴 거지요.', { at: 'L', face: 'base' }),
-          S('d_auctioneer', '십칠 번 손님, 다음에도 와 주시길.', { at: 'R', face: 'smile' }),
+          S('d_auctioneer', '17번 손님, 다음에도 와 주시길.', { at: 'R', face: 'smile' }),
         ],
         dud: [
           N('망치가 떨어지고 상자가 열렸다. 재료 한 덩이와, 무게를 맞추려고 채운 납 조각뿐.', { sfx: 'd_gavel' }),
@@ -711,7 +711,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       [
         N('에란테스가 내놓은 장비가 경매대에 올랐다. 출처는 묻지 말라는 말이 이번엔 이쪽 편이었다.', { sfx: 'd_gavel' }),
         N('입찰이 붙을 때마다 라르스는 의자에 조금씩 더 깊이 기대앉았다.'),
-        S('d_auctioneer', '낙찰. 십칠 번 손님의 출품작이었습니다.', { at: 'R', face: 'surprise' }),
+        S('d_auctioneer', '낙찰. 17번 손님의 출품작이었습니다.', { at: 'R', face: 'surprise' }),
         S('lars', '18시 10분. 팔고도 20분이 남는군요. 좋은 날입니다.', { at: 'L', face: 'smile' }),
       ],
       {
@@ -723,7 +723,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         caught: [
           N('장부에 손이 닿기 직전, 경비 둘이 양쪽 어깨를 붙잡았다.', { fx: 'shake' }),
           N('경매장 밖 복도로 내던져지는 데 오 초. 바닥은 생각보다 단단했다.', { sfx: 'clank' }),
-          S('d_auctioneer', '십칠 번 손님, 이번 경매는 출입 정지입니다. 다음 경매도요.', { at: 'R', face: 'smile' }),
+          S('d_auctioneer', '17번 손님, 이번 경매는 출입 정지입니다. 다음 경매도요.', { at: 'R', face: 'smile' }),
           S('lars', '…저는 손가락 하나 안 움직였습니다만.', { at: 'L', face: 'tired' }),
         ],
       },
@@ -772,7 +772,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       ],
       yelena: [
         S('yelena', '판돈 흐름 보니까 챔피언 쪽이 압도적이네요. 배당 짜요.', { at: 'C', face: 'base' }),
-        S('yelena', '…반대로 걸어서 크게 딴 적 한 번 있어요. 그 뒤로 열 번 잃었지만. 아무한테도 말하지 마요.', { face: 'tired', exit: true }),
+        S('yelena', '…반대로 걸어서 크게 딴 적 한 번 있어요. 그 뒤로 10번 잃었지만. 아무한테도 말하지 마요.', { face: 'tired', exit: true }),
       ],
       odysseus: [
         S('odysseus', '나는 어느 쪽이든 상관없어. 근데 저 호객꾼, 판돈에서 조금씩 빼돌리는 거 봤지?', { at: 'C', face: 'smile' }),
@@ -786,16 +786,16 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
           N('철창 문이 열리고 {fighter}가 모래 위로 걸어 들어갔다. 함성이 한 번 크게 부풀었다.', { sfx: 'crowd' }),
           N('승부는 짧았다. 끌던 왼발 쪽으로 한 방, 그리고 무거운 게 모래 위로 쓰러지는 소리.', { fx: 'shake' }),
           S('d_caller', '…챔피언이 쓰러졌다! 새 챔피언이다!', { at: 'R', face: 'surprise' }),
-          S('temur', '하하! 오늘 밥은 고기다! 두 근!', { at: 'L', face: 'laugh' }),
+          S('temur', '하하! 오늘 밥은 고기다! 2근!', { at: 'L', face: 'laugh' }),
           N('광부들이 품삯 봉투를 허공에 던졌다.'),
         ],
         decision: [
-          N('{fighter}와 챔피언은 우리 안을 열 바퀴는 돌았다. 아무도 쓰러지지 않았다.', { sfx: 'crowd' }),
+          N('{fighter}와 챔피언은 우리 안을 10바퀴는 돌았다. 아무도 쓰러지지 않았다.', { sfx: 'crowd' }),
           N('결국 종이 울렸다. 판정은 광부들 함성 크기로 정해졌다. 아슬아슬하게 에란테스 쪽.', { sfx: 'd_bell' }),
           S('temur', '이겼다. 근데 밥 반만 먹은 기분이다.', { at: 'L', face: 'base' }),
         ],
         lose: [
-          N('{fighter}가 모래 우리에 들어서고 십 초 뒤, 광장이 조용해졌다.', { fx: 'shake' }),
+          N('{fighter}가 모래 우리에 들어서고 10초 뒤, 광장이 조용해졌다.', { fx: 'shake' }),
           N('끌던 왼발은 미끼였다.'),
           S('d_caller', '모래 맛 어때, 손님들!', { at: 'R', face: 'laugh' }),
           S('temur', '졌다. 배고프다. 고기 먹고 다시 온다.', { at: 'L', face: 'tired' }),
@@ -803,8 +803,8 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       },
       {
         champ: [
-          N('도전자는 세 번째 합에서 모래 위로 나가떨어졌다. 광장이 우레처럼 울렸다.', { sfx: 'crowd' }),
-          N('챔피언에게 건 판돈이 두 배가 되어 돌아왔다.', { sfx: 'coin' }),
+          N('도전자는 3번째 합에서 모래 위로 나가떨어졌다. 광장이 우레처럼 울렸다.', { sfx: 'crowd' }),
+          N('챔피언에게 건 판돈이 2배가 되어 돌아왔다.', { sfx: 'coin' }),
           S('temur', '센 놈이 이겼다. 재미없다. 돈은 된다.', { at: 'L', face: 'smile' }),
         ],
         upset: [
@@ -836,7 +836,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       S('yupito', '기계 숨소리면 내가 박사야! 우리 작업실은 하루 종일 웅웅거린다고. 근데 저건 좀— 잠깐, 귀 좀 대 볼게!', { face: 'grin' }),
       N('유피토가 컨테이너에 귀를 찰싹 붙인다. 이음새의 봉인 장치가 작게 딸깍거린다.', { sfx: 'clank' }),
       S('d_client', '손대지 마시오. 그 봉인은 억지로 열면 터지오.', { face: 'angry' }),
-      S('yupito', '터져? 진짜? 와, 압력식이네. 기폭선도 두 줄이고. 이거 어디서 샀어? 아니, 직접 만들었어?', { face: 'laugh' }),
+      S('yupito', '터져? 진짜? 와, 압력식이네. 기폭선도 2줄이고. 이거 어디서 샀어? 아니, 직접 만들었어?', { face: 'laugh' }),
       S('yupito', '이런 건 보통 뒷구멍이 하나 있거든. 찾으면 딸깍, 못 찾으면 펑! 하하!'),
       S('d_client', '……웃을 일이 아니오.'),
       SUB,
@@ -882,7 +882,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       ],
       {
         loot: [
-          N('유피토는 봉인 장치의 뒷구멍을 십오 분 만에 찾아냈다. 딸깍. 기폭선이 꺼졌다.', { sfx: 'clank' }),
+          N('유피토는 봉인 장치의 뒷구멍을 15분 만에 찾아냈다. 딸깍. 기폭선이 꺼졌다.', { sfx: 'clank' }),
           N('안에는 밀수 장비가 가득했다. 웅웅거리는 소리는 그중 동력 코어 하나에서 나고 있었다. …아마도.', { sfx: 'd_hum' }),
           S('yupito', '하나쯤은 아무도 모를 거야. 웨스트한텐 말하지 마!', { at: 'L', face: 'grin' }),
         ],
@@ -894,7 +894,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         ],
       },
       [
-        N('페트라 세관 순찰선이 오기까지 이십 분. 의뢰인은 그동안 한 번도 도망치려 하지 않았다.'),
+        N('페트라 세관 순찰선이 오기까지 20분. 의뢰인은 그동안 한 번도 도망치려 하지 않았다.'),
         S('d_client', '…열어 보지 않는다는 조건만은 지켰군.', { at: 'R', face: 'sad' }),
         N('세관원들이 의뢰인과 컨테이너를 함께 실어 갔다. 웅웅거리는 소리도 같이 멀어졌다.', { sfx: 'd_hum' }),
         N('며칠 뒤 페트라 문장 하나가 감사 서한과 함께 도착했다. 상자 안에 뭐가 있었는지는 한 줄도 없었다.'),
@@ -910,17 +910,17 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       N('성계 경계. 세관 순찰선들이 일렬로 서서 탐조등을 켜 두었다. 빛 기둥 수십 개가 길을 막는다.', { bg: 'd_checkpoint', bgm: 'tense' }),
       N('함선이 속도를 줄이자 화물칸의 그 컨테이너가 더 크게 웅웅거린다. 함교 바닥까지 울린다.', { sfx: 'd_hum' }),
       S('d_inspector', '에란테스 선적 함선, 정지하십시오. 화물 목록을 제출하고 승선 검사에 응하십시오.', { at: 'R', face: 'serious', sfx: 'static' }),
-      S('yupito', '얘 또 커졌어! 처음 실을 때보다 세 배는 커! 하하… 하.', { at: 'C', face: 'worried' }),
+      S('yupito', '얘 또 커졌어! 처음 실을 때보다 3배는 커! 하하… 하.', { at: 'C', face: 'worried' }),
       S('sarma', '와… 주기가 0.4초까지 짧아졌어요. 저 탐조등 파장이랑 공명하고 있나 봐요. 아름답네요.', { at: 'L', face: 'smile' }),
       S('sarma', '…아, 그건 저쪽 스캐너에도 다 잡힌다는 뜻이에요. 죄송해요, 그 얘기를 먼저 했어야 했는데.', { face: 'worried' }),
       S('d_inspector', '반복합니다. 귀 함선 화물칸에서 미등록 공명 반응이 감지되었습니다. 정지하십시오.'),
       S('yupito', '들켰네! 웅웅거리는 상자 숨기는 법은 나도 몰라!', { face: 'laugh' }),
       S('yupito', '저 검문관 주머니를 채워 주든가, 올리버한테 핸들 맡기고 튀든가, 상자 넘기고 착한 척하든가!', { face: 'grin', exit: true }),
       SUB,
-      S('sarma', '튄다면, 순찰선 사이 틈이 두 군데 있어요. 넓은 쪽, 좁은 쪽. 올리버 씨라면… 아마 좁은 쪽이겠죠.', { face: 'base' }),
+      S('sarma', '튄다면, 순찰선 사이 틈이 2군데 있어요. 넓은 쪽, 좁은 쪽. 올리버 씨라면… 아마 좁은 쪽이겠죠.', { face: 'base' }),
       S('sarma', '돈을 주면 일단 통과는 돼요. 배달 끝나면 잔금이 들어오니까 크게 손해는 아니고요.'),
       S('sarma', '협조하면 선불은 압수예요. 대신 세관 기록에 협력 업체로 남아요. 그 기록, 꽤 오래가요. 제가 있던 시대까지— 아, 아니에요. 못 들은 걸로 해 주세요.', { face: 'shy' }),
-      S('d_inspector', '마지막 경고입니다. 삼십 초 안에 응답하십시오.', { face: 'angry', sfx: 'd_alarm' }),
+      S('d_inspector', '마지막 경고입니다. 30초 안에 응답하십시오.', { face: 'angry', sfx: 'd_alarm' }),
       S('sarma', '어떻게 하시겠습니까, 단장?', { face: 'serious' }),
       S('rachel', '…단장 아니야.', { at: 'C', face: 'tired' }),
       S('sarma', '아! 죄송해요, 지휘관. 이 시대 직함은 아직 헷갈려서요.', { face: 'shy' }),
@@ -946,7 +946,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         S('lindiwe', '…방금 건 페트라 협력팀장 말 아니에요. 그냥 친절한 동료 말이에요. 장부엔 통행 경비로 적을게요!', { face: 'smile', exit: true }),
       ],
       eleni: [
-        S('eleni', '보안 의식 유지 중입니다. 탐조등 스물여섯 개. 전부 저희를 비추고 있습니다.', { at: 'C', face: 'serious' }),
+        S('eleni', '보안 의식 유지 중입니다. 탐조등 26개. 전부 저희를 비추고 있습니다.', { at: 'C', face: 'serious' }),
         S('eleni', '…위압적이군요. 마음에 듭니다.', { face: 'shy', exit: true }),
       ],
     },
@@ -960,9 +960,9 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       {
         clean: [
           N('올리버가 핸들을 꺾었다. 넓은 틈이 아니라 좁은 틈 쪽으로.', { fx: 'shake' }),
-          N('순찰선 두 척 사이, 함선 폭보다 조금 넓은 틈을 그대로 뚫고 나갔다. 탐조등이 창문을 훑고 지나갔다.', { fx: 'flash' }),
+          N('순찰선 2척 사이, 함선 폭보다 조금 넓은 틈을 그대로 뚫고 나갔다. 탐조등이 창문을 훑고 지나갔다.', { fx: 'flash' }),
           S('sarma', '…역시 좁은 쪽이었어요. 아름다웠어요. 다시는 안 하고 싶지만요.', { at: 'L', face: 'surprise' }),
-          N('잔금은 두둑했다. 그날 올리버의 오운완 글에는 좋아요가 두 배 달렸다.'),
+          N('잔금은 두둑했다. 그날 올리버의 오운완 글에는 좋아요가 2배 달렸다.'),
         ],
         hit: [
           N('좁은 틈을 거의 빠져나왔을 때, 순찰선 한 척이 경고 사격이 아닌 사격을 했다.', { sfx: 'blast', fx: 'shake' }),
@@ -1052,7 +1052,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         win: [
           N('카드 뒷면의 별자리들이 차례로 맞물렸다.', { sfx: 'd_cards', fx: 'flash' }),
           S('argon', '별이 맞았소. 가져가시오.', { at: 'L', face: 'base' }),
-          N('돌려받은 동전 주머니가 처음보다 세 배는 무거웠다. 몇 닢에는 처음 보는 왕의 얼굴이 새겨져 있었다.', { sfx: 'coin' }),
+          N('돌려받은 동전 주머니가 처음보다 3배는 무거웠다. 몇 닢에는 처음 보는 왕의 얼굴이 새겨져 있었다.', { sfx: 'coin' }),
         ],
         lose: [
           N('별자리는 끝내 맞지 않았다. 마지막 카드의 별 하나가 있어야 할 자리에 없었다.', { sfx: 'd_cards' }),
@@ -1074,16 +1074,16 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
   sd_shark: {
     cast: ['orca', 'lindiwe'],
     scene: [
-      N('함교 승강구가 열리고 금속 장화 소리가 세 쌍 올라온다.', { bg: 'd_bridge', bgm: 'tense', sfx: 'clank' }),
-      N('앞장선 사내가 웃는다. 앞니 두 개가 금이다. 뒤따라온 경호원 둘이 승강구 양옆을 막아선다.'),
+      N('함교 승강구가 열리고 금속 장화 소리가 3쌍 올라온다.', { bg: 'd_bridge', bgm: 'tense', sfx: 'clank' }),
+      N('앞장선 사내가 웃는다. 앞니 2개가 금이다. 뒤따라온 경호원 둘이 승강구 양옆을 막아선다.'),
       S('d_shark', '변경에선 은행이 멀지. 나는 가깝고.', { at: 'R', face: 'grin' }),
       N('사채업자가 두꺼운 장부를 콘솔 위에 펼친다. 용병단 이름이 줄줄이 적혀 있고, 대부분 위로 붉은 줄이 그어져 있다.'),
       S('d_shark', '다 갚은 데야. 어떻게든.', { face: 'smug' }),
       S('d_shark', '너희가 어디서 진 빚이 있으면, 그 문서도 결국 나한테 와. 이 바닥 빚 문서는 내가 다 사 모으거든.'),
       N('사채업자가 계약서를 내밀기도 전에 오르카가 그걸 낚아챈다. 표정은 그대로인데 손이 빠르다.'),
       S('orca', '실례. 서명하는 쪽이 먼저 읽는 게 예의라서요.', { at: 'L', face: 'base' }),
-      N('오르카가 조항을 한 줄씩 짚어 내려간다. 셋째 줄에서 한 번, 일곱째 줄에서 한 번 손가락이 멈춘다.'),
-      S('lindiwe', '셋째 줄 지연 수수료, 일곱째 줄 조기 상환 위약금. 둘이 물려 있네요.', { at: 'C', face: 'smile' }),
+      N('오르카가 조항을 한 줄씩 짚어 내려간다. 3번째 줄에서 한 번, 7번째 줄에서 한 번 손가락이 멈춘다.'),
+      S('lindiwe', '3번째 줄 지연 수수료, 7번째 줄 조기 상환 위약금. 둘이 물려 있네요.', { at: 'C', face: 'smile' }),
       S('lindiwe', '늦게 갚아도 손해. 일찍 갚아도 손해. …예쁜 구조네요. 칭찬 아니고요.', { face: 'serious', exit: true }),
       SUB,
       S('d_shark', '다 읽었으면 서명하지. 다들 급전 필요한 얼굴인데.', { face: 'grin' }),
@@ -1095,7 +1095,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
     ],
     subs: {
       lars: [
-        S('lars', '이 계약서, 제가 보기엔 업자분이 십 퍼센트쯤 손해 보는 구조군요.', { at: 'C', face: 'smile' }),
+        S('lars', '이 계약서, 제가 보기엔 업자분이 10퍼센트쯤 손해 보는 구조군요.', { at: 'C', face: 'smile' }),
         S('d_shark', '…뭐? 어디가?'),
         S('lars', '어디일까요. 찾으시는 동안 저는 퇴근하겠습니다. 18시거든요.', { face: 'smug', exit: true }),
       ],
@@ -1105,7 +1105,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         S('yelena', '그냥 가십이에요. 보고서엔 나중에 적을게요.', { face: 'smile', exit: true }),
       ],
       franze: [
-        S('franze', '이의 있습니다. 제7항 각주 무효, 제3항 과잉 부과, 이율은 은하법 상한의 세 배.', { at: 'C', face: 'serious' }),
+        S('franze', '이의 있습니다. 제7항 각주 무효, 제3항 과잉 부과, 이율은 은하법 상한의 3배.', { at: 'C', face: 'serious' }),
         S('d_shark', '여긴 변경이야. 그딴 법 안 통해.'),
         S('franze', '하나라도 반박하시겠습니까? 없군요. 기록합니다. 변경에도 언젠간 법원이 생기니까요.', { face: 'smug', exit: true }),
       ],
@@ -1129,16 +1129,16 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       ],
       {
         cut: [
-          S('orca', '일곱째 줄 각주. 여기 복리 주기를 숨기셨는데, 그러면 셋째 줄 수수료와 이중 부과가 됩니다. 감사 대상이죠.', { at: 'L', face: 'base' }),
+          S('orca', '7번째 줄 각주. 여기 복리 주기를 숨기셨는데, 그러면 3번째 줄 수수료와 이중 부과가 됩니다. 감사 대상이죠.', { at: 'L', face: 'base' }),
           S('d_shark', '……', { at: 'R', face: 'angry' }),
           N('사채업자가 입을 다물었다. 금니가 처음으로 안 보였다. 그는 장부를 펴고 에란테스 이름 옆 숫자를 고쳐 적었다.'),
           S('lindiwe', '숨김없이 다 까고 이기는 거, 언제 봐도 깔끔하네요!', { at: 'C', face: 'smile' }),
         ],
         fail: [
-          S('orca', '일곱째 줄 각주가—', { at: 'L', face: 'base' }),
+          S('orca', '7번째 줄 각주가—', { at: 'L', face: 'base' }),
           S('d_shark', '각주는 읽으라고 있는 게 아니야. 읽은 값도 받아야겠군.', { at: 'R', face: 'angry' }),
           N('사채업자가 얼굴을 붉히며 장부에 수수료 한 줄을 더 얹었다. 오르카는 그 줄을 끝까지 읽었다.'),
-          S('orca', '…네 번째 여자친구랑 헤어질 때랑 비슷하군요. 그때도 말을 끝까지 못 했습니다.', { face: 'tired' }),
+          S('orca', '…4번째 여자친구랑 헤어질 때랑 비슷하군요. 그때도 말을 끝까지 못 했습니다.', { face: 'tired' }),
         ],
       },
       {
@@ -1165,7 +1165,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       N('깃발을 단 건 중형 의료선이다. 항해등은 꺼져 있고, 엔진도 없이 떠 있다.'),
       N('통신은 없다. 대신 의료 보급품 신호 하나가 또렷하게 잡힌다.', { sfx: 'static' }),
       S('bianca', '깃발 규격으로 보아 혈액 매개 감염병입니다. 공기 전파일 가능성은 낮습니다. 0은 아닙니다.', { at: 'R', face: 'base' }),
-      N('비앙카가 장갑을 두 겹 낀다.'),
+      N('비앙카가 장갑을 2겹 낀다.'),
       S('mirinae', '음. 통신은 꺼 놨는데 보급품 신호는 켜 놨네. 누가 일부러 켜 둔 거지 뭐.', { at: 'L', face: 'base' }),
       S('mirinae', '안에 살아 있는 사람 있으면 도울 수 있고. 없으면… 약은 남아 있겠지.', { face: 'serious' }),
       N('미리내가 마스크를 고쳐 쓴다.'),
@@ -1222,7 +1222,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
         tainted: [
           N('창고 문을 연 순간 기압차로 안쪽 공기가 확 밀려 나왔다.', { bg: 'd_medship', sfx: 'd_hiss', fx: 'shake' }),
           N('마스크 필터 경고등이 일제히 붉게 깜빡였다. 단원들은 아무것도 못 챙기고 물러났다.', { sfx: 'd_alarm' }),
-          S('bianca', '노출 시간 사십 초. 해독제 투여합니다. 한 줄로 서십시오.', { at: 'R', face: 'serious' }),
+          S('bianca', '노출 시간 40초. 해독제 투여합니다. 한 줄로 서십시오.', { at: 'R', face: 'serious' }),
           S('mirinae', '주사 싫은데-. …약은 남아 있었으려나.', { at: 'L', face: 'tired' }),
         ],
       },
@@ -1237,7 +1237,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
           N('의무실 침대 위의 생존자들은 겨우 숨을 붙들고 있었다.', { bg: 'd_medship', bgm: 'melancholy' }),
           N('비앙카의 손은 한 번도 떨리지 않았다. 아침이 되자 생존자들의 호흡이 고르게 돌아왔다.'),
           S('mirinae', '다 살았네. …우리는 좀 지쳤고.', { at: 'L', face: 'tired' }),
-          S('bianca', '수고했습니다. 손 씻으십시오. 일곱 번.', { at: 'R', face: 'base' }),
+          S('bianca', '수고했습니다. 손 씻으십시오. 7번.', { at: 'R', face: 'base' }),
         ],
       },
       [
@@ -1257,7 +1257,7 @@ export const STORY_D_REG: SceneReg = {
     d_brother: { name: '두목의 동생', color: '#c05848', desc: '목값이 매겨진 약탈단 두목의 동생. 형을 닮았지만 흉터는 아직 없다. 성질은 급하고 조준은 정확하다.' },
     d_fuelman: { name: '급유소 업자', color: '#a0a050', desc: '반 성계 안에 하나뿐인 급유소의 독점 업자. 가격표는 위로만 갱신된다.' },
     d_hunter: { name: '현상금 사냥꾼', color: '#8a7a6a', desc: '탄흔이 훈장처럼 박힌 장갑 외투의 사냥꾼. 개인적인 감정은 없다. 돈이 걸렸을 뿐.' },
-    d_auctioneer: { name: '경매인', color: '#b89ad0', desc: '버려진 정거장 암시장 경매의 진행자. 출처를 물으면 가격이 두 배가 된다.' },
+    d_auctioneer: { name: '경매인', color: '#b89ad0', desc: '버려진 정거장 암시장 경매의 진행자. 출처를 물으면 가격이 2배가 된다.' },
     d_caller: { name: '호객꾼', color: '#d0a040', desc: '광산 도시 모래 우리의 진행자. 도전자를 부르고 판돈을 걷는다.' },
     d_client: { name: '후드 쓴 의뢰인', color: '#707890', desc: '봉인된 컨테이너의 운송을 맡기는 의뢰인. 얼굴을 끝까지 보이지 않는다.' },
     d_inspector: { name: '검문관', color: '#6a9ac0', desc: '성계 경계 세관 검문소의 검문관. 원칙대로 말하지만, 원칙에도 시세가 있다.' },

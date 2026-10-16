@@ -6,10 +6,10 @@ export const STORY_B_REG: SceneReg = {
   npcs: {
     b_baroness: { name: '남작 부인', color: '#c08aa8', desc: '칼리토 제국의 남작 부인이었던 여인. 제국 투기장의 비밀 장부를 품고 홀로 도망쳤다.' },
     b_collector: { name: '제국 추심관', color: '#b8484a', desc: '붉은 망토의 기사들을 거느린 칼리토 제국의 추심관. 왼손에 검, 오른손에 장부를 든다.' },
-    b_trierarch: { name: '삼단노선 함장', color: '#6f9fc0', desc: '헬레니우스 동맹 삼단노선 기함의 함장. 흥정을 시작할 때 뱃전을 두 번 두드린다.' },
+    b_trierarch: { name: '삼단노선 함장', color: '#6f9fc0', desc: '헬레니우스 동맹 삼단노선 기함의 함장. 흥정을 시작할 때 뱃전을 2번 두드린다.' },
     b_ithacan: { name: '이타카 함장', color: '#7fb0a8', desc: '이타카의 함장. 빚은 노래로 남기고, 약속은 술잔으로 한다.' },
     b_director: { name: '조달 담당 이사', color: '#9a9ab0', desc: '주식회사 페트라의 조달 담당 이사. 명함에 이름 대신 부서 번호만 적혀 있다.' },
-    b_auditor: { name: '정보감사실 감사관', color: '#a0a8b8', desc: '페트라 정보감사실 감사관. 소수점 아래 넷째 자리까지 본다.' },
+    b_auditor: { name: '정보감사실 감사관', color: '#a0a8b8', desc: '페트라 정보감사실 감사관. 소수점 아래 4번째 자리까지 본다.' },
     b_inspector: { name: '연합 감찰관', color: '#7f9cc8', desc: '성간 인류 연합 감찰국 감찰관. 정직한 업체를 좋아한다.' },
     b_counsel: { name: '페트라 변호사', color: '#b0a890', desc: '페트라 법무부 대외분쟁팀 변호사. 소송장을 들고 와서도 예의가 바르다.' },
     b_liaison: { name: '연합 연락관', color: '#8fa8d0', desc: '성간 인류 연합의 연락관. 끝까지라는 단어를 좋아한다.' },
@@ -28,9 +28,9 @@ export const STORY_B_REG: SceneReg = {
     b_beacon: '항로 표지 아래 — 일정하게 깜빡이는 표지등, 그 아래 표류하는 금박 요트',
     b_harbor: '이타카 하항 계류장 — 층층이 쌓인 부두, 음유시인의 노랫소리',
     b_standoff: '함선 정면 대치 — 반원을 그린 붉은 망토 기사단의 강습정들, 멀리 이타카 함대의 불빛',
-    b_trireme: '삼단노선 봉쇄선 — 노처럼 펼쳐진 추진 날개 세 줄, 번쩍이는 충각',
-    b_backroom: '정거장 라운지 구석 칸막이석 — 소음 차단막, 식은 커피 두 잔',
-    b_hearing: '임시 소명실 — 접이식 탁자, 서로 다른 문장을 단 기록 드론 두 대',
+    b_trireme: '삼단노선 봉쇄선 — 노처럼 펼쳐진 추진 날개 3줄, 번쩍이는 충각',
+    b_backroom: '정거장 라운지 구석 칸막이석 — 소음 차단막, 식은 커피 2잔',
+    b_hearing: '임시 소명실 — 접이식 탁자, 서로 다른 문장을 단 기록 드론 2대',
     b_dock_office: '도킹한 페트라 사무용 함선 회의실 — 거울 같은 탁자, 서류 상자 탑, 유난히 밝은 천장 조명',
     b_boarding: '함선 승강구 — 열린 에어록, 갑주 문양 사이로 일렁이는 신성력',
     b_envoy_ship: '사절단 함선 회의실 — 높이가 전부 다른 의자들, 다종족 통역 단말',
@@ -87,7 +87,7 @@ export const STORY_B_SCENES: Record<string, EventScene> = {
       S('iris', '추격함에 넘기면 돈은 바로 들어와요. 그땐 동맹 쪽이 기억할 거고요.'),
       S('iris', '장부만 사는 방법도 있어요. 진짜면 대박이고, 아니면… 그냥 비싼 책이요.', { face: 'worried' }),
       S('rachel', '…추격함 몇 분 남았어.', { face: 'tired' }),
-      S('iris', '십 분이요! 아니, 구 분!', { face: 'surprise' }),
+      S('iris', '10분이요! 아니, 구 분!', { face: 'surprise' }),
     ],
     subs: {
       exile: [
@@ -110,7 +110,7 @@ export const STORY_B_SCENES: Record<string, EventScene> = {
         S('kairo', '…아니, 있으면 재밌겠군. 몇 쪽인지만 알려 주게.', { face: 'smug', exit: true }),
       ],
       bianca: [
-        S('bianca', '입술이 갈라졌고 동공이 커져 있습니다. 탈수 초기입니다. 최소 사흘은 혼자 버텼습니다.', { at: 'C', face: 'base' }),
+        S('bianca', '입술이 갈라졌고 동공이 커져 있습니다. 탈수 초기입니다. 최소 3일은 혼자 버텼습니다.', { at: 'C', face: 'base' }),
         S('bianca', '데려가든 넘기든, 물 한 병은 먼저 보내십시오. 그쪽이 효율적입니다.', { exit: true }),
       ],
     },
@@ -138,7 +138,7 @@ export const STORY_B_SCENES: Record<string, EventScene> = {
           S('iris', '진짜였어요! 와, 진짜였어요! …그분도 무사히 가셨으면 좋겠다.', { at: 'L', face: 'smile' }),
         ],
         fake: [
-          N('장부를 펼친 지 한 시간. 같은 귀족이 같은 날, 세 군데 투기장에 동시에 앉아 있다.', { bg: 'b_beacon', bgm: 'calm', sfx: 'b_paper' }),
+          N('장부를 펼친 지 한 시간. 같은 귀족이 같은 날, 3군데 투기장에 동시에 앉아 있다.', { bg: 'b_beacon', bgm: 'calm', sfx: 'b_paper' }),
           S('iris', '…이 사람, 분신술 써요?', { at: 'L', face: 'surprise' }),
           N('절반은 위조였다. 남작 부인은 진짜 장부를 품에 안고, 가짜를 팔아 여비를 마련한 것이다.'),
           S('iris', '화는… 안 나네요. 도망치려면 그 정도는 해야죠. 헤르메스님도 그러셨을 거예요.', { face: 'tired' }),
@@ -161,7 +161,7 @@ export const STORY_B_SCENES: Record<string, EventScene> = {
       N('추심관이 장부를 펼친다. 남작 부인 이름 옆에 항목이 길게 이어진다. 요트값, 장부값, 기사단 연료비. 왕복.', { sfx: 'b_paper' }),
       S('rachel', '…연료비를 왜 우리가 내.', { at: 'C', face: 'tired' }),
       S('b_collector', '너희 때문에 왔으니까.'),
-      S('b_collector', '제국은 두 가지로 받는다. 크레딧, 아니면 검.'),
+      S('b_collector', '제국은 2가지로 받는다. 크레딧, 아니면 검.'),
       S('b_collector', '배상금을 내라. 아니면 너희 대표를 내보내라. 결투에서 이기면 이 줄은 지운다. 기사의 이름을 걸고.', { face: 'smug' }),
       N('통신망 구석에 작은 신호 하나가 더 잡혀 있다. 이타카 함대의 식별 부호다. 멀찍이 떨어져 움직이지 않는다.', { sfx: 'static' }),
       S('iris', '저기 이타카 함대예요. 남작 부인 무사히 내린 거 알고 지켜보는 거예요.', { face: 'base' }),
@@ -181,7 +181,7 @@ export const STORY_B_SCENES: Record<string, EventScene> = {
       ],
       franze: [
         S('franze', '이의 있습니다. 제국식 결투라면 도전받은 쪽이 무기를 고를 권리가 있지요.', { at: 'C', face: 'smug' }),
-        S('b_collector', '…그 조항은 칠십 년 전에 없어졌다.', { face: 'surprise' }),
+        S('b_collector', '…그 조항은 70년 전에 없어졌다.', { face: 'surprise' }),
         S('franze', '폐지 기록을 열람해도 되겠습니까? 지금 바로. 사본으로.', { face: 'grin', exit: true }),
       ],
       gebek: [
@@ -211,7 +211,7 @@ export const STORY_B_SCENES: Record<string, EventScene> = {
       {
         win: [
           N('강습정 갑판 위. 붉은 망토들이 둥글게 물러선다. 가운데에 추심관, 그리고 {name}.', { bg: 'b_standoff', bgm: 'tense', sfx: 'b_sword' }),
-          N('세 합째에 추심관의 검이 부러진다. 부러진 날이 갑판을 굴러 기사들 발치에서 멈춘다.', { fx: 'flash' }),
+          N('3합째에 추심관의 검이 부러진다. 부러진 날이 갑판을 굴러 기사들 발치에서 멈춘다.', { fx: 'flash' }),
           S('b_collector', '…기사의 이름을 걸었다. 그 줄은 지운다.', { at: 'R', face: 'surprise' }),
           N('추심관이 부러진 검을 장부 사이에 끼워 넣고 돌아선다. 기사단은 떠나며 결투 상금을 갑판에 두고 간다.', { sfx: 'coin' }),
           S('iris', '부러졌어요! 검이! 저거 기념품으로 만들면— 아, 안 주시겠죠.', { at: 'L', face: 'laugh' }),
@@ -239,7 +239,7 @@ export const STORY_B_SCENES: Record<string, EventScene> = {
   sb_defector_grudge: {
     cast: ['iris'],
     scene: [
-      N('삼단노선 함대가 항로를 가로막고 있다. 추진 날개가 노처럼 세 줄로 펼쳐져 있다.', { bg: 'b_trireme', bgm: 'tense' }),
+      N('삼단노선 함대가 항로를 가로막고 있다. 추진 날개가 노처럼 3줄로 펼쳐져 있다.', { bg: 'b_trireme', bgm: 'tense' }),
       N('기함 뱃머리에 커다란 충각이 달려 있다. 상대 배를 들이받는 쇠뿔이다.'),
       S('b_trierarch', '에란테스. 오늘 아침 이타카 하항에 새 노래가 돌더군.', { at: 'R', face: 'serious' }),
       S('b_trierarch', '이타카로 가겠다던 남작 부인이, 제국 투기장으로 끌려갔다는 노래였소.'),
@@ -250,7 +250,7 @@ export const STORY_B_SCENES: Record<string, EventScene> = {
       S('b_trierarch', '동맹은 에란테스를 항해자 명부에서 지울 수 있소.', { face: 'serious' }),
       S('rachel', '그게 뭔데.'),
       S('iris', '동맹 배들 이름 적어 둔 책이에요. 거기서 지워지면 어느 항구도 안 받아 줘요. 길 안내도 못 받고요.', { face: 'worried' }),
-      N('함장이 손가락으로 뱃전을 두 번 두드린다.', { sfx: 'clank' }),
+      N('함장이 손가락으로 뱃전을 2번 두드린다.', { sfx: 'clank' }),
       S('iris', '어, 저거… 흥정 시작한다는 뜻이에요. 이타카 사람들 버릇이요.', { face: 'surprise' }),
       S('b_trierarch', '저울에 뭘 올릴지 고르시오. 크레딧이든, 포탄이든, 약속이든.', { face: 'smug' }),
       SUB,
@@ -311,7 +311,7 @@ export const STORY_B_SCENES: Record<string, EventScene> = {
       },
       [
         S('b_trierarch', '구출이라. 말은 쉽소. 누가 가오?', { bg: 'b_trireme', bgm: 'tense', at: 'R', face: 'serious' }),
-        N('{name}. 함장이 그 이름을 두 번 되뇌더니, 뱃전을 천천히 두드린다.', { sfx: 'clank' }),
+        N('{name}. 함장이 그 이름을 2번 되뇌더니, 뱃전을 천천히 두드린다.', { sfx: 'clank' }),
         N('그날 밤 제국행 화물선 짐칸에 자리 하나가 마련된다. 투기장 노예 상인들이 쓰는 뒷길로 가는 자리다.'),
         S('b_trierarch', '데려오면 노래를 고쳐 부르겠소. 못 데려와도 노래는 생기겠지만.'),
         S('iris', '고쳐 부르게 될 거예요. 3절 가사는 제가 미리 써 놓을게요.', { at: 'L', face: 'serious' }),
