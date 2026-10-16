@@ -4,6 +4,7 @@
 // 결과: art/raw/bg/<key>/<seed>.png
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
+import { guard, anlas, pause } from './nai_guard.mjs';
 
 const cfg = JSON.parse(readFileSync('art/nai.config.json', 'utf8'));
 const P = JSON.parse(readFileSync('art/bg_prompts.json', 'utf8'));
@@ -39,7 +40,7 @@ async function gen(key, seed) {
   };
   for (let attempt = 0; attempt < 4; attempt++) {
     const res = await fetch('https://image.novelai.net/ai/generate-image', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    if (res.status === 429) { await new Promise((r) => setTimeout(r, 8000 * (attempt + 1))); continue; }
+    if (res.status === 429) { await new Promise((r) => setTimeout(r, 30000 * (attempt + 1))); continue; }
     if (!res.ok) throw new Error(`${key}: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
     mkdirSync(`art/raw/bg/${key}`, { recursive: true });
     writeFileSync(`art/raw/bg/${key}/${seed}.png`, unzipFirst(Buffer.from(await res.arrayBuffer())));
@@ -49,8 +50,10 @@ async function gen(key, seed) {
   throw new Error(`${key}: 요청 제한`);
 }
 
+if (!flag('--dry')) await guard(keys.length * count, token);
 for (const key of keys) {
   if (!P.bgs[key]) { console.error(`${key} 없음`); continue; }
   if (!flag('--force') && existsSync(`art/raw/bg/${key}`) && readdirSync(`art/raw/bg/${key}`).length) { console.log(`${key}: 이미 있음`); continue; }
-  for (let k = 0; k < count; k++) { await gen(key, Math.floor(Math.random() * 4294967295)); await new Promise((r) => setTimeout(r, 2500)); }
+  for (let k = 0; k < count; k++) { await gen(key, Math.floor(Math.random() * 4294967295)); await new Promise((r) => setTimeout(r, pause())); }
 }
+if (!flag('--dry')) await anlas(token, '끝난 뒤');

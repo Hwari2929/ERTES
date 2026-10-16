@@ -8,7 +8,7 @@
 - 기물 · 장비 · 시너지 · 증강 · 전공 · 성유물을 추가 · 수정 · 삭제하면 `npm run check` (도감 누락 · undefined · NaN 검사)를 돌려 통과시킨다. 능력 문구(src/data/abiltext.ts · src/data/abil/*.ts · brief.ts)도 함께 맞춘다.
 
 ## 에셋
-- **NovelAI 생성 스크립트(scripts/nai*.mjs · nai_*.py)를 에이전트가 자동으로 돌리지 않는다.** 무료 생성 자동화로 계정이 영구 제한됐다 (ToS 9.1.6). 이미지는 사용자가 직접 생성해 넘겨주고, 에이전트는 프롬프트 정리 · 업스케일 이후 처리 · 크롭 · 게임 반영만 맡는다. 유료(Anlas) 생성도 사용자가 명시적으로 요청한 경우에만, 한 번에 한 장씩.
+- **NovelAI 생성은 사용자가 요청한 분량만, 유료(Anlas)로만 돌린다.** 무료 생성 자동화로 무료 생성이 영구 제한됐다 (ToS 9.1.6). 스크립트(scripts/nai_guard.mjs)가 1회 실행 최대 8장 · 동시 실행 금지 · 장 사이 무작위 6~15초 휴식을 강제하고, 무료 범위를 벗어나도록 29스텝으로 생성한다. 에이전트가 스스로 판단해 생성을 시작하지 않는다.
 - 배경 · 스탠딩 일러스트는 넣기 전에 반드시 사용자 확인을 받는다 (시안을 보여 주고 고르게 한다).
 - 능력 아이콘: art/icon_prompts.json → scripts/nai_icon.mjs → art/icons/raw → `python3 scripts/icons_build.py` → src/ui/abilicons.gen.ts. 다시 뽑을 때는 프롬프트를 바꾼 시안 3개를 보여 준다. 물리 계열 스킬 · 무기는 흰 배경(light).
 

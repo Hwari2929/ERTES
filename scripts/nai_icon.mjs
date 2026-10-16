@@ -3,6 +3,7 @@
 // 입력: art/icon_prompts.json { id: { subject, color } }  결과: art/icons/raw/<id>.png
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
+import { guard, anlas, pause } from './nai_guard.mjs';
 
 const cfg = JSON.parse(readFileSync('art/nai.config.json', 'utf8'));
 const P = JSON.parse(readFileSync('art/icon_prompts.json', 'utf8'));
@@ -54,7 +55,7 @@ async function gen(id, seed) {
     v4_negative_prompt: { caption: { base_caption: NEG(p), char_captions: [] }, legacy_uc: false } } };
   for (let a = 0; a < 5; a++) {
     const res = await fetch('https://image.novelai.net/ai/generate-image', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    if (res.status === 429) { await new Promise((r) => setTimeout(r, 8000 * (a + 1))); continue; }
+    if (res.status === 429) { await new Promise((r) => setTimeout(r, 30000 * (a + 1))); continue; }
     if (!res.ok) throw new Error(`${id}: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
     mkdirSync(out, { recursive: true });
     writeFileSync(`${out}/${id}.png`, unzipFirst(Buffer.from(await res.arrayBuffer())));
@@ -62,10 +63,12 @@ async function gen(id, seed) {
   }
   throw new Error(`${id}: 429 반복`);
 }
+if (!flag('--dry')) await guard(ids.length, token);
 for (const id of ids) {
   if (!P[id]) { console.error(`${id}: 프롬프트 없음`); continue; }
   if (!flag('--force') && !flag('--dry') && existsSync(`${out}/${id}.png`)) continue;
   try { await gen(id, opt('--seed') ? Number(opt('--seed')) : Math.floor(Math.random() * 4294967295)); }
   catch (e) { console.error(String(e)); }
-  if (!flag('--dry')) await new Promise((r) => setTimeout(r, 2500));
+  if (!flag('--dry')) await new Promise((r) => setTimeout(r, pause()));
 }
+if (!flag('--dry')) await anlas(token, '끝난 뒤');

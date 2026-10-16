@@ -7,6 +7,7 @@
 // 결과: art/raw/<id>/<seed>.png (깃에 넣지 않음), 기록: art/gen-log.json
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
+import { guard, anlas, pause } from './nai_guard.mjs';
 
 const cfg = JSON.parse(readFileSync('art/nai.config.json', 'utf8'));
 const prompts = JSON.parse(readFileSync('art/prompts.json', 'utf8'));
@@ -19,7 +20,9 @@ const alt = opt('--alt');
 const count = Math.max(1, Math.min(8, Number(opt('--n')) || 1));
 
 // Anlas 보호: Portrait(832×1216) · 28스텝 이하 · 1장만 허용
-if (cfg.width * cfg.height > 832 * 1216 || cfg.steps > 28) {
+// 무료 생성이 막힌 계정: 무료 범위(28스텝 이하)를 벗어나야 Anlas 로 생성된다. 기본은 29스텝.
+if (!flag('--free')) cfg.steps = Math.max(cfg.steps, 29);
+if (cfg.width * cfg.height > 832 * 1216 || cfg.steps > 29) {
   console.error('설정이 무료 생성 범위를 벗어납니다 (Portrait 832×1216, 28스텝 이하). art/nai.config.json 을 확인하세요.');
   process.exit(1);
 }
@@ -78,7 +81,7 @@ async function generate(id, seed) {
     const res = await fetch('https://image.novelai.net/ai/generate-image', {
       method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
-    if (res.status === 429) { await new Promise((r) => setTimeout(r, 8000 * (attempt + 1))); continue; }
+    if (res.status === 429) { await new Promise((r) => setTimeout(r, 30000 * (attempt + 1))); continue; }
     if (!res.ok) throw new Error(`${id}: HTTP ${res.status} ${(await res.text()).slice(0, 300)}`);
     const png = unzipFirst(Buffer.from(await res.arrayBuffer()));
     mkdirSync(`art/raw/${id}`, { recursive: true });
@@ -91,11 +94,13 @@ async function generate(id, seed) {
   throw new Error(`${id}: 요청 제한으로 실패`);
 }
 
+if (!flag('--dry')) await guard(ids.length * count, token);
 for (const id of ids) {
   if (!flag('--force') && !flag('--dry') && existsSync(`art/raw/${id}`) && readdirSync(`art/raw/${id}`).length && !opt('--seed')) { console.log(`${id}: 이미 있음 (건너뜀)`); continue; }
   for (let k = 0; k < count; k++) {
     const seed = opt('--seed') ? Number(opt('--seed')) + k : Math.floor(Math.random() * 4294967295);
     await generate(id, seed);
-    if (!flag('--dry')) await new Promise((r) => setTimeout(r, 2500)); // 동시 요청 방지
+    if (!flag('--dry')) await new Promise((r) => setTimeout(r, pause())); // 동시 요청 방지
   }
 }
+if (!flag('--dry')) await anlas(token, '끝난 뒤');
