@@ -6,6 +6,7 @@ import { CFG } from '../config';
 import { diffName } from './difficulty';
 import { SYN_BY_ID } from './synergies';
 import { slow } from './kit';
+import { provMult } from '../engine/combat';
 
 // 장비 등급: 재료(+3) → 고급(같은 재료 2개, 능력치 +12) / 희귀(서로 다른 재료 2개, 능력치 +6 + 특수 효과) · 전설(효과 3배, 조합 불가 · 이벤트 · 상점)
 export const COMPONENTS: { id: string; major: Major; name: string; icon: string }[] = [
@@ -18,7 +19,13 @@ export const COMPONENTS: { id: string; major: Major; name: string; icon: string 
 const COMP_PTS = 3;
 const GRADE_PTS = 12; // 고급: 같은 재료 2개
 
-interface AdvDef { id: string; a: Major; b: Major; name: string; desc: (k: number) => string; effect: (k: number) => Effect }
+/** craft: false = 조합식 없음 (상점 · 보급 · 전리품 등에서만, 같은 재료 희귀처럼) */
+interface AdvDef { id: string; a: Major; b: Major; craft?: false; name: string; desc: (k: number) => string; effect: (k: number) => Effect }
+/** 위협 신호기: 도발 배율 1당 받는 피해 감소 · 상한 (고정 피해 제외) */
+const TAUNT_RED = 0.03, TAUNT_CAP = 0.3;
+/** 수호자 판금: 전투 시작 보호막 (최대 체력 비율, 전설 3배). 12% → 24% 상향: 같은 시드 1200판 18% 대비 클리어 +1.4%p (성공→실패 14 · 실패→성공 31),
+ *  페이즈 보정 장착 승률은 희귀 17종 중 12위 (+0.5%p, 범위 −1.1 ~ +3.5) — 상위권을 넘지 않는다. 전설은 12% 때 −8%p 로 가장 낮았다 */
+const PLATE_SHIELD = 0.24;
 
 const ADV: AdvDef[] = [
   { id: 'vit_vit', a: 'vit', b: 'vit', name: '재생 외골격', desc: (k) => `초당 최대 체력 ${k}% 회복.`,
@@ -27,8 +34,8 @@ const ADV: AdvDef[] = [
     effect: (k) => ({ hooks: { dmgMult: (bt, u) => (bt.hpPct(u) <= 0.5 ? 1 + 0.3 * k : 1) } }) },
   { id: 'vit_mnd', a: 'vit', b: 'mnd', name: '생체 동기화기', desc: (k) => `회복 효율 +${30 * k}%, 효과 저항 +${15 * k}%p.`,
     effect: () => ({ stats: { healEff: 0.3, effRes: 0.15 } }) },
-  { id: 'vit_def', a: 'vit', b: 'def', name: '수호자 판금', desc: (k) => `전투 시작 시 최대 체력 ${12 * k}% 보호막.`,
-    effect: (k) => ({ hooks: { onStart(bt, u) { bt.shield(u, bt.S(u, 'maxHp') * 0.12 * k); } } }) },
+  { id: 'vit_def', a: 'vit', b: 'def', name: '수호자 판금', desc: (k) => `전투 시작 시 최대 체력 ${Math.round(PLATE_SHIELD * 100 * k)}% 보호막.`,
+    effect: (k) => ({ hooks: { onStart(bt, u) { bt.shield(u, bt.S(u, 'maxHp') * PLATE_SHIELD * k); } } }) },
   { id: 'vit_agi', a: 'vit', b: 'agi', name: '생존 키트', desc: (k) => `치명적인 피해를 받으면 전투당 ${k}회 버티고 체력 15% 회복.`,
     effect: (k) => ({ hooks: { onLethal(bt, u) { if ((u.mem.kit || 0) >= k) return false; u.mem.kit = (u.mem.kit || 0) + 1; u.hp = 1; bt.heal(u, u, bt.S(u, 'maxHp') * 0.15, true); return true; } } }) },
   { id: 'pow_pow', a: 'pow', b: 'pow', name: '과출력 무기', desc: (k) => `모든 피해 +${15 * k}%.`,
@@ -54,9 +61,16 @@ const ADV: AdvDef[] = [
       stats: { eva: 0.075 },
       hooks: { onEvade(bt, u) { u.mem.phase = Math.min(10, (u.mem.phase || 0) + 1); const s = u.statuses.find((x) => x.key === 'item.phase'); const d = { atkSpd: 0.05 * k * u.mem.phase }; if (s) s.delta = d; else bt.buff(u, u, 'item.phase', 999, { delta: d, label: '' }); } },
     }) },
+  // 조합식 없는 희귀 (상점 · 보급 · 전리품): 도발 배율을 올려 적의 표적을 끌고, 돌격가라면 경계 교전 시간도 늘린다 (CFG.zoc.holdPerProv)
+  { id: 'taunt', a: 'vit', b: 'def', craft: false, name: '위협 신호기',
+    desc: (k) => `도발 배율 +${k}. 받는 피해가 도발 배율 1당 ${Math.round(TAUNT_RED * 100)}% 줄어든다 (고정 피해 제외, 최대 ${Math.round(TAUNT_CAP * 100)}%). 돌격가가 달면 경계 교전 시간도 +${+(k * CFG.zoc.holdPerProv).toFixed(3)}초 (도발 배율 1당 ${CFG.zoc.holdPerProv}초).`,
+    effect: (k) => ({
+      setup: (u) => { u.mem.provPlus = (u.mem.provPlus || 0) + k; },
+      hooks: { takenMult: (bt, u, _src, o) => (o.elem === 'true' ? 1 : 1 - Math.min(TAUNT_CAP, TAUNT_RED * provMult(bt, u))) },
+    }) },
 ];
 // stats/pct/mods/taken 기반 효과는 scaleEffect 로 배율 적용, 훅 기반은 k 를 직접 받는다
-const HOOK_SCALED = new Set(['vit_vit', 'vit_pow', 'vit_def', 'vit_agi', 'pow_def', 'mnd_def', 'def_agi', 'agi_agi']);
+const HOOK_SCALED = new Set(['vit_vit', 'vit_pow', 'vit_def', 'vit_agi', 'pow_def', 'mnd_def', 'def_agi', 'agi_agi', 'taunt']);
 
 export interface ItemInfo { id: string; tier: 'C' | 'G' | 'A' | 'L' | 'M' | 'K' | 'T' | 'J'; name: string; icon: string; majors: Partial<Record<Major, number>>; desc: string; recipe?: [string, string] }
 
@@ -295,7 +309,7 @@ export function itemInfo(id: string): ItemInfo {
   const mtxt = Object.entries(majors).map(([m, v]) => `${MAJOR_NAME[m as Major]} +${v}`).join(', ');
   return {
     id, tier, name: (tier === 'L' ? '[전설] ' : '') + a.name, icon: COMPONENTS.find((c) => c.major === a.a)!.icon,
-    majors, desc: `${mtxt}. ${a.desc(k)}`, recipe: tier === 'A' && a.a !== a.b ? [`C_${a.a}`, `C_${a.b}`] : undefined,
+    majors, desc: `${mtxt}. ${a.desc(k)}`, recipe: tier === 'A' && a.a !== a.b && a.craft !== false ? [`C_${a.a}`, `C_${a.b}`] : undefined,
   };
 }
 

@@ -25,7 +25,7 @@ import * as TFX from './ui/themefx';
 import {
   activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyBaseMoveSpd, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
-import { Battle, controlNames, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME, zocRule, zocShort } from './engine/combat';
+import { Battle, controlNames, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME, zocHoldFormula, zocHoldOf, zocRule, zocShort } from './engine/combat';
 import * as R from './engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
@@ -403,7 +403,7 @@ function nameBlock(d: UnitDef, syns: string[], rank: number | undefined, chipFn:
 }
 const CTYPE_DESC: Record<string, [string, string]> = {
   MARK: ['사격으로 싸운다. 1초마다 사거리 안에서 체력 비율이 가장 낮은 적을 다시 노린다. 사격 위력 · 공격 속도 · 재장전 · 명중 · 치명타가 중요하다.', '마무리 사격: 1초마다 사거리 안에서 체력 비율이 가장 낮은 적으로 대상을 바꾼다. 주력: 사격 위력, 사격 속도, 재장전 속도, 명중, 치명 확률 · 피해. 탄창을 다 쓰면 재장전하는 동안 기본 공격을 못 한다 (스킬은 가능).'],
-  VAN: [`근접 타격으로 싸운다. 타격 위력 · 콤보와 피니쉬 · 치명타가 중요하다. 주변 ${CFG.zoc.r}칸은 경계 — 들어온 적이 멈춰 선다 (암살형 제외).`, `주력: 타격 위력, 타격 속도, 명중, 콤보 · 피니쉬 피해량, 치명 확률 · 피해. 무기별 N번째 공격이 피니쉬 (×${CFG.finishMult}). ${zocRule()}`],
+  VAN: [`근접 타격으로 싸운다. 타격 위력 · 콤보와 피니쉬 · 치명타가 중요하다. 주변 ${CFG.zoc.r}칸은 경계 — 들어온 적이 ${zocHoldFormula()} 멈춰 선다 (암살형 제외).`, `주력: 타격 위력, 타격 속도, 명중, 콤보 · 피니쉬 피해량, 치명 확률 · 피해. 무기별 N번째 공격이 피니쉬 (×${CFG.finishMult}). ${zocRule()}`],
   SPEC: ['기술로 싸운다. 기술 위력 · 효과 명중 · 쿨다운이 중요하다.', '주력: 기술 위력, 효과 명중, 쿨다운 감소 속도, 기술 범위. 기술 피해는 치명타가 없다 (일부 특성 예외).'],
   CMD: ['아군이 함께 쓰는 전술 위력으로 스킬을 쓴다. 출전 인원이 많을수록, 지휘관이 많고 정신력이 높을수록 강하다.', `스킬은 전술 위력으로 계산한다. 전술 위력 = ${CFG.tacBase} (출전 4명 · 지휘관 1명 기준) + 출전 기물 1명당 ${CFG.tacPerUnit} + 지휘관 1명 추가당 ${CFG.tacPerCmd} + 지휘관 정신력 1당 ${CFG.tacPerMnd}.`],
 };
@@ -1143,22 +1143,25 @@ function prepScreen(run: RunState) {
   const ex = tcs.length ? PAD : 0;
   const bw = fw - 2 * PAD + 2 * ex, bh = fh - 2 * PAD;
   const cellBox = (x: number, y: number) => `left:${((x - PAD + ex) / bw) * 100}%;top:${((y - PAD) / bh) * 100}%;width:${100 / bw}%;height:${100 / bh}%`;
-  // 돌격가 경계 (편성 화면에서만 표시): 출전한 아군 돌격가 주변 CFG.zoc.r 칸
-  const zocCells = new Set<string>();
+  // 돌격가 경계 (편성 화면에서만 표시): 출전한 아군 돌격가 주변 CFG.zoc.r 칸. 칸 툴팁 = 그 돌격가의 도발 배율로 계산한 교전 시간 (겹치면 긴 쪽)
+  const zocCells = new Map<string, number>();
+  const zocB = new Battle(fw, fh, new Rng(1), { phase: run.phase, credits: run.credits }), zocCounts = synergyCounts(deployed(run), run);
+  zocB.keepEvents = false;
   for (const u of deployed(run)) {
     const p = lay.get(u.uid), d = UNIT_BY_ID[u.defId];
     if (!p || d.ctype !== 'VAN' || d.inert) continue;
-    for (let dy = -CFG.zoc.r; dy <= CFG.zoc.r; dy++) for (let dx = -CFG.zoc.r; dx <= CFG.zoc.r; dx++) if (dx || dy) zocCells.add(`${p.x + dx},${p.y + dy}`);
+    const hold = zocHoldOf(provMult(null, buildAlly(zocB, run, u, zocCounts)));
+    for (let dy = -CFG.zoc.r; dy <= CFG.zoc.r; dy++) for (let dx = -CFG.zoc.r; dx <= CFG.zoc.r; dx++) if (dx || dy) { const k = `${p.x + dx},${p.y + dy}`; zocCells.set(k, Math.max(zocCells.get(k) || 0, hold)); }
   }
-  const zocTip = ` title="${esc(zocShort())}"`;
+  const zocTip = (x: number, y: number) => ` title="${esc(zocShort(zocCells.get(`${x},${y}`)))}"`;
   let cells = '';
   for (let y = PAD; y < fh - PAD; y++)
     for (let x = PAD - ex; x < fw - PAD + ex; x++) {
       const mine = y >= ALLY_Y0 && y <= ALLY_Y1;
       const enemyZone = y < PAD + ZONE;
       const zc = zocCells.has(`${x},${y}`);
-      if (x < PAD || x >= fw - PAD) { cells += mine ? `<div class="cell tpad${zc ? ' zoc' : ''}" data-drop="tcell:${x}:${y}" title="포탑 전용 칸${zc ? ` · ${esc(zocShort())}` : ''}"></div>` : `<div class="cell edge${zc ? ' zoc' : ''}"${zc ? zocTip : ''}></div>`; continue; }
-      cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}${zc ? ' zoc' : ''}" ${mine ? `data-drop="cell:${x}:${y}"` : ''}${zc ? zocTip : ''}></div>`;
+      if (x < PAD || x >= fw - PAD) { cells += mine ? `<div class="cell tpad${zc ? ' zoc' : ''}" data-drop="tcell:${x}:${y}" title="포탑 전용 칸${zc ? ` · ${esc(zocShort(zocCells.get(`${x},${y}`)))}` : ''}"></div>` : `<div class="cell edge${zc ? ' zoc' : ''}"${zc ? zocTip(x, y) : ''}></div>`; continue; }
+      cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}${zc ? ' zoc' : ''}" ${mine ? `data-drop="cell:${x}:${y}"` : ''}${zc ? zocTip(x, y) : ''}></div>`;
     }
   let units = '';
   for (const u of deployed(run)) {
@@ -1598,8 +1601,9 @@ function powRow(b: Battle, c: CUnit, d: UnitDef, deployedNow: boolean) {
 function provChip(b: Battle | null, c: CUnit) {
   const m = provMult(b, c);
   if (Math.abs(m - 1) < 0.05) return '';
-  const rule = `돌격가 ×${PROV.van} · 수호자 시너지 +${PROV.guard} · 소환물 근접 ×${PROV.sumMelee} · 고정 ×${PROV.sumFixed} · 그 밖 ×1, 은신 · 기습 중 ×${PROV.hide}`;
-  return `<span class="d-pow pw-prov" title="도발 배율: 적이 이 기물에게 쌓는 도발 수치에 곱해지는 값 (${rule})">${lineIcon('p.prov', 'li')}<span>도발 배율</span><b>×${+m.toFixed(2)}</b></span>`;
+  const rule = `돌격가 ×${PROV.van} · 수호자 시너지 +${PROV.guard}${c.mem.provPlus ? ` · 장비 +${c.mem.provPlus}` : ''} · 소환물 근접 ×${PROV.sumMelee} · 고정 ×${PROV.sumFixed} · 그 밖 ×1, 은신 · 기습 중 ×${PROV.hide}`;
+  const zoc = c.side === 0 && c.ctype === 'VAN' && !c.isSummon ? ` 돌격가 경계 교전 시간 ${+zocHoldOf(m).toFixed(3)}초 (${zocHoldFormula()}).` : '';
+  return `<span class="d-pow pw-prov" title="도발 배율: 적이 이 기물에게 쌓는 도발 수치에 곱해지는 값 (${rule}).${zoc}">${lineIcon('p.prov', 'li')}<span>도발 배율</span><b>×${+m.toFixed(2)}</b></span>`;
 }
 /** 확대 버튼 (전체 상세 팝업): 상세 창 위쪽 바 (자세히 보기 옆) */
 const maxBtn = (uid: string) => `<button class="btn d-mag d-max" data-a="big-open" data-v="${uid}" title="전체 상세 (확대)" aria-label="전체 상세 열기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button>`;
@@ -2430,7 +2434,7 @@ function statPopHtml(run: RunState) {
 /** 전투 유형별 추천 희귀 장비 (재료 조합 id) */
 const RECO: Record<string, string[]> = {
   MARK: ['pow_agi', 'pow_mnd', 'pow_pow', 'agi_agi', 'mnd_agi'],
-  VAN: ['vit_pow', 'vit_def', 'pow_def', 'def_def', 'vit_vit'],
+  VAN: ['vit_pow', 'vit_def', 'pow_def', 'def_def', 'vit_vit', 'taunt'],
   SPEC: ['mnd_mnd', 'mnd_agi', 'mnd_def', 'vit_mnd', 'pow_mnd'],
   CMD: ['mnd_agi', 'mnd_mnd', 'def_def', 'vit_def', 'mnd_def'],
 };
@@ -2459,7 +2463,7 @@ function recoModal(run: RunState) {
   }).join('');
   return `<div class="modal-bg" data-a="reco" data-v=""><div class="modal reco">
     <h1>추천 장비 <span class="muted small">${esc(d.name)} · ${CTYPE_NAME[d.ctype]}</span></h1>
-    <p class="muted small">전투 유형에 맞는 희귀 장비입니다. 서로 다른 재료 2개를 겹치면 만들 수 있습니다 (같은 유형 조합은 상점 · 보급 · 사건에서만).</p>
+    <p class="muted small">전투 유형에 맞는 희귀 장비입니다. 서로 다른 재료 2개를 겹치면 만들 수 있습니다 (같은 유형 조합처럼 조합식이 없는 장비는 상점 · 보급 · 사건에서만).</p>
     <ul class="rc-list">${rows}</ul>
     <div class="row-btns"><button class="btn primary" data-a="reco" data-v="">닫기</button></div>
   </div></div>`;

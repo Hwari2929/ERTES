@@ -268,10 +268,16 @@ export const TEND_NAME: Record<EnemyTend, { name: string; desc: string }> = {
   sniper: { name: '저격형', desc: '피해를 가장 많이 준 대상을 노린다' },
   counter: { name: '반격형', desc: '동료 적을 때린 대상을 노린다' },
 };
-/** 돌격가 경계 규칙 문구 (교범 · 전투 유형 설명): CFG.zoc 에서 읽는다 */
-export const zocRule = () => `아군 돌격가 주변 ${CFG.zoc.r}칸은 경계다. 적이 경계 칸에 들어오면 그 자리에서 멈춰 ${CFG.zoc.hold}초 동안 움직이지 못하고 (공격 · 기술은 한다) 그 돌격가에게 도발 수치가 쌓인다. 경계 칸에서 다른 경계 칸으로 곧장 넘어갈 수 없어 돌격가 사이의 틈을 그냥 빠져나가지 못한다. 암살형 성향의 적은 경계를 무시하고, 적 쪽에는 경계가 없다. 경계 범위는 편성 화면에서만 보인다.`;
+/** 경계 교전(붙잡힘) 시간: CFG.zoc.hold + (그 돌격가의 도발 배율 − 1) × CFG.zoc.holdPerProv (도발 배율 = provMult, 전투 상세의 '도발 배율 ×N') */
+export const zocHoldOf = (mult: number) => Math.max(0, CFG.zoc.hold + (mult - 1) * CFG.zoc.holdPerProv);
+/** 교전 시간 식 문구: '1초 + (도발 배율 − 1) × 0.25초' */
+export const zocHoldFormula = () => `${CFG.zoc.hold}초 + (도발 배율 − 1) × ${CFG.zoc.holdPerProv}초`;
+/** 교전 시간 예시 문구: '돌격가 ×3 → 1.5초, 수호자 시너지가 켜지면 ×4.5 → 1.875초' */
+const zocHoldExamples = () => `돌격가 ×${PROV.van} → ${+zocHoldOf(PROV.van).toFixed(3)}초, 수호자 시너지가 켜지면 ×${PROV.van + PROV.guard} → ${+zocHoldOf(PROV.van + PROV.guard).toFixed(3)}초`;
+/** 돌격가 경계 규칙 문구 (교범 · 전투 유형 설명): CFG.zoc · PROV 에서 읽는다 */
+export const zocRule = () => `아군 돌격가 주변 ${CFG.zoc.r}칸은 경계다. 적이 경계 칸에 들어오면 그 자리에서 멈춰 교전 시간 동안 움직이지 못하고 (공격 · 기술은 한다) 그 돌격가에게 도발 수치가 쌓인다. 교전 시간 = ${zocHoldFormula()}, 도발 배율은 그 경계를 만든 돌격가의 값이다 (${zocHoldExamples()}, 경계가 겹치면 긴 쪽). 경계 칸에서 다른 경계 칸으로 곧장 넘어갈 수 없어 돌격가 사이의 틈을 그냥 빠져나가지 못한다. 암살형 성향의 적은 경계를 무시하고, 적 쪽에는 경계가 없다. 경계 범위는 편성 화면에서만 보인다.`;
 /** 짧은 경계 문구 (편성 칸 툴팁 · 돌격가 한 줄 설명) */
-export const zocShort = () => `돌격가 경계: 들어온 적은 ${CFG.zoc.hold}초 멈춰 교전, 경계에서 경계로 곧장 넘어가지 못함 (암살형 무시)`;
+export const zocShort = (hold?: number) => `돌격가 경계: 들어온 적은 ${hold !== undefined ? `${+hold.toFixed(3)}초` : zocHoldFormula()} 멈춰 교전, 경계에서 경계로 곧장 넘어가지 못함 (암살형 무시)`;
 /** 도발 수치 계수 */
 export const PROV = {
   /** 그 적에게 준 피해 1당 */
@@ -295,11 +301,12 @@ export const PROV = {
   /** 돌격가 경계에 걸린 적 → 그 돌격가에게 (도발 배율 적용 전, 피해 1당 dmg 와 같은 단위: 40 = 피해 400 상당) */
   zoc: 40,
 };
-/** 기물별 도발 배율: 돌격가 3, 수호자 시너지가 켜지면 +1.5, 소환물 (근접 1.4 · 고정 1.2 · 원거리 1.0, 돌격가 소환물 3), 은신 · 침투자 기습 중 ×0.3 */
+/** 기물별 도발 배율: 돌격가 3, 수호자 시너지가 켜지면 +1.5, 장비(위협 신호기) +n, 소환물 (근접 1.4 · 고정 1.2 · 원거리 1.0, 돌격가 소환물 3), 은신 · 침투자 기습 중 ×0.3 */
 export function provMult(b: Battle | null, a: CUnit): number {
   let m = a.ctype === 'VAN' ? PROV.van : 1;
   if (a.isSummon && a.ctype !== 'VAN') m = a.immobile ? PROV.sumFixed : a.atk.type === 'strike' ? PROV.sumMelee : PROV.sumRanged;
   if (a.synergies?.has('GUARD') && !a.mem.guardOff) m += PROV.guard; // 수호자 혼자(시너지 꺼짐)면 가산 없음
+  if (a.mem.provPlus) m += a.mem.provPlus; // 장비 가산 (위협 신호기)
   if (a.mem.provMul) m *= a.mem.provMul;
   if (b && (b.hidden(a) || a.statuses.some((x) => x.key === 'infil.ambush'))) m *= PROV.hide;
   return m;
@@ -937,15 +944,17 @@ export class Battle {
         }
     return m;
   }
-  /** 경계 칸에 막 들어선 적: 도착한 뒤 CFG.zoc.hold 초 동안 이동 금지 + 그 경계의 돌격가에게 도발 수치 (바로 표적을 다시 고른다) */
+  /** 경계 칸에 막 들어선 적: 도착한 뒤 교전 시간(zocHoldOf, 겹치면 긴 쪽) 동안 이동 금지 + 그 경계의 돌격가에게 도발 수치 (바로 표적을 다시 고른다) */
   private zocCatch(u: CUnit) {
-    u.mem.zocUntil = this.t + u.moveDur + CFG.zoc.hold;
+    let hold = 0;
     u.mem.provT = 0;
     for (const v of this.zocOwners()) if (this.dist(u, v) <= CFG.zoc.r) {
+      hold = Math.max(hold, zocHoldOf(provMult(this, v)));
       this.provAdd(u, v, PROV.zoc);
       u.mem.zocBy = v.id;
       v.mem.zocCaught = (v.mem.zocCaught || 0) + 1;
     }
+    u.mem.zocUntil = this.t + u.moveDur + hold;
   }
 
   // ───────── 피해 / 회복
