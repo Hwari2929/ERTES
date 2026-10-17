@@ -79,6 +79,13 @@ export function oathEnv(r: RunState) {
   if (!on.length) return '';
   return `<h2>절망 서약 <span class="muted small">절망 수치 ${r.oathHeat ?? oathHeat(r.oaths)}</span></h2><ul class="globals despair">${on.map((x) => `<li>${lineIcon(x.def.icon, 'li')}<b>${esc(x.def.name)} ${x.n}단계</b> <span class="muted">${esc(x.def.lv(x.n))}</span></li>`).join('')}</ul>`;
 }
+/** 결과 문구: 의뢰 성공 창(victory, 기록 전 — 이 전장 최고면 표시) · 결과 화면(기록 뒤 — 이 전장 최고). 서약 없이 출격했으면 '' */
+export function oathResult(r: RunState, victory: boolean) {
+  if (!r.oaths) return '';
+  const heat = r.oathHeat ?? oathHeat(r.oaths), best = loadMeta().oath?.best?.[r.field];
+  if (victory) return ` · 절망 서약 ${heat}${best === undefined || heat > best ? ' (이 전장 최고 기록)' : ''}`;
+  return ` 절망 서약 ${heat}${r.cleared && best !== undefined ? ` (이 전장 최고 ${best})` : ''}.`;
+}
 /** 군세의 서약: 지도 모디파이어의 적 수량에 더하는 수 */
 export const hordeAdd = (r: RunState) => oathV(r, 'horde', 'add');
 /** 도감 기록: 모든 전장 중 최고 절망 수치 성공 (없으면 '—') */

@@ -448,6 +448,18 @@ button { font: inherit; color: inherit; }
 .tagline { color: var(--c-text-2); letter-spacing: .12em; font-size: var(--fs-md); }
 .title-actions, .slots { display: flex; flex-direction: column; gap: 8px; width: min(320px, 100%); margin-top: 12px; }
 .title-actions small { display: block; font-weight: 400; opacity: .8; }
+/* 타이틀 메뉴 위계: 주 동작(이어하기 · 새 계약) 크게 → 둘러보기 2×2 칸(튜토리얼 · 바 · 도감 · 절망 서약) → 저장 · 설정은 글자 단추 줄 */
+.title-actions { width: min(440px, 100%); gap: 10px; }
+.ts-main { display: grid; gap: 8px; }
+.title-actions .ts-hero { padding: 16px; box-shadow: 0 10px 28px color-mix(in srgb, var(--c-black) 45%, transparent); }
+.title-actions .ts-hero b { font-size: var(--fs-xl); }
+.ts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.title-actions .ts-tile { padding: 10px 12px; min-width: 0; }
+.title-actions .ts-tile b { font-size: var(--fs-md); }
+.ts-tile small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ts-util { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 4px; }
+.title-actions .ts-util .btn { background: transparent; border-color: transparent; color: var(--c-text-2); text-shadow: 0 1px 4px var(--c-black); }
+.title-actions .ts-util .btn:hover, .title-actions .ts-util .btn:focus-visible { color: var(--c-text); border-color: var(--line); }
 
 /* ── 칩 / 스프라이트 */
 .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-block: 6px; }

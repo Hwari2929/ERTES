@@ -347,14 +347,13 @@ function titleScreen() {
       <div class="logo">ERRANTEs</div>
       <p class="tagline">은하 용병단 오토배틀러 · 증강 도파민 MAX</p>
       <nav class="title-actions" aria-label="메뉴">
-        ${auto ? `<button class="btn primary ts-btn" data-a="load" data-v="auto"><b>이어하기</b><small>페이즈 ${auto.phase} · 체력 ${auto.hp}</small></button>` : ''}
-        <button class="btn ${auto ? '' : 'primary'} ts-btn" data-a="newrun"><b>새 계약</b>${auto ? '<small>진행 중인 의뢰는 덮어씁니다</small>' : ''}</button>
-        ${tutButton()}
-        <button class="btn ts-btn" data-a="bar"><b>에란테스 바</b><small>${auto ? '들렀다가 이어서 출격' : '단원 · 손님들의 잡담'}</small></button>
-        <button class="btn ts-btn" data-a="codex"><b>도감 · 기록</b></button>
-        <button class="btn ts-btn ts-oath" data-a="oath"><b>절망 서약</b><small>${diffName(CFG.oathFrom) || `위험 ${CFG.oathFrom}`} 의뢰 조건 · 절망 수치 ${OATH.heatNow()}</small></button>
-        <button class="btn ghost ts-btn" data-a="menu-import"><b>저장 코드 불러오기</b></button>
-        <button class="btn ghost ts-btn" data-a="menu-tab" data-v="settings"><b>설정 · 테마</b></button>
+        <div class="ts-main">${auto ? `<button class="btn primary ts-btn ts-hero" data-a="load" data-v="auto"><b>이어하기</b><small>페이즈 ${auto.phase} · 체력 ${auto.hp}</small></button>` : ''}
+          <button class="btn ${auto ? '' : 'primary ts-hero'} ts-btn" data-a="newrun"><b>새 계약</b>${auto ? '<small>진행 중인 의뢰는 덮어씁니다</small>' : '<small>전장 추첨 · 난이도 · 계약 기물 4명</small>'}</button></div>
+        <div class="ts-grid" role="group" aria-label="둘러보기">${tutButton()}
+          <button class="btn ts-btn ts-tile" data-a="bar"><b>에란테스 바</b><small>${auto ? '들렀다가 이어서 출격' : '단원 · 손님들의 잡담'}</small></button>
+          <button class="btn ts-btn ts-tile" data-a="codex"><b>도감 · 기록</b><small>교범 · 기록 · 업적</small></button>
+          <button class="btn ts-btn ts-tile ts-oath" data-a="oath"><b>절망 서약</b><small>${diffName(CFG.oathFrom) || `위험 ${CFG.oathFrom}`} 조건 · 절망 ${OATH.heatNow()}</small></button></div>
+        <div class="ts-util" role="group" aria-label="저장 · 설정">${listTutSave() ? '<button class="btn ghost tiny" data-a="tutorial-restart">튜토리얼 처음부터</button>' : ''}<button class="btn ghost tiny" data-a="menu-import">저장 코드 불러오기</button><button class="btn ghost tiny" data-a="menu-tab" data-v="settings">설정 · 테마</button></div>
       </nav>
       ${slots.length ? `<div class="slots">${slots.map((s) => `<button class="btn ghost" data-a="load" data-v="${s.slot}">${SLOT_NAME[s.slot]} · 페이즈 ${s.phase} · 기물 ${s.units}</button>`).join('')}</div>` : ''}
       ${m.runs ? `<p class="ts-meta"><span>의뢰 <b>${m.runs}</b></span><span>성공 <b>${m.clears}</b></span><span>위험 등급 <b>${m.maxDiff}</b></span></p>` : ''}
@@ -363,11 +362,10 @@ function titleScreen() {
     ${app.tutAsk ? tutAskModal() : ''}
   </main>`;
 }
-/** 타이틀: 튜토리얼 버튼 (끝내기 전에는 NEW, 진행 중이면 이어서) */
+/** 타이틀: 튜토리얼 칸 (끝내기 전에는 NEW, 진행 중이면 이어서 — '처음부터'는 아래 보조 줄) */
 function tutButton() {
   const saved = listTutSave();
-  return `<button class="btn ts-btn ts-tut" data-a="tutorial"><b>튜토리얼 — 당직 근무</b>${saved ? `<small>이어서 · 항로 ${Math.min(saved.step + 1, TUT.TUT_MAP.length)}/${TUT.TUT_MAP.length}칸</small>` : '<small>새벽 두 시, 에란테스 바에서 지휘를 배운다</small>'}${tutMeta().done ? '' : '<span class="ts-new">NEW</span>'}</button>
-    ${saved ? '<div class="ts-sub"><button class="btn ghost tiny" data-a="tutorial-restart">튜토리얼 처음부터</button></div>' : ''}`;
+  return `<button class="btn ts-btn ts-tile ts-tut" data-a="tutorial" title="튜토리얼 — 당직 근무: 새벽 두 시, 에란테스 바에서 지휘를 배운다"><b>튜토리얼</b>${saved ? `<small>이어서 · 항로 ${Math.min(saved.step + 1, TUT.TUT_MAP.length)}/${TUT.TUT_MAP.length}칸</small>` : '<small>당직 근무 · 지휘 배우기</small>'}${tutMeta().done ? '' : '<span class="ts-new">NEW</span>'}</button>`;
 }
 /** 첫 실행: 튜토리얼부터 / 건너뛰기 */
 function tutAskModal() {
@@ -2114,7 +2112,7 @@ function investScreen(run: RunState) {
 
 function overScreen(run: RunState) {
   return `<main class="wrap over">
-    <div class="screen-head"><h1>${run.cleared ? '의뢰 성공' : '계약 종료'}</h1><p class="muted">${run.cleared ? `${esc(fieldOf(run.field).name)} 의뢰 완료${run.endless ? ` · 무한 모드 페이즈 ${run.phase}에서 귀환 불가` : ''}.` : `ERRANTEs 는 페이즈 ${run.phase}에서 무너졌습니다.`}${run.diff ? ` ${diffLabel(run.diff)}.` : ''}${despairsOf(run).length ? ` 절망 증강 ${despairNames(run)}.` : ''}</p></div>
+    <div class="screen-head"><h1>${run.cleared ? '의뢰 성공' : '계약 종료'}</h1><p class="muted">${run.cleared ? `${esc(fieldOf(run.field).name)} 의뢰 완료${run.endless ? ` · 무한 모드 페이즈 ${run.phase}에서 귀환 불가` : ''}.` : `ERRANTEs 는 페이즈 ${run.phase}에서 무너졌습니다.`}${run.diff ? ` ${diffLabel(run.diff)}.` : ''}${despairsOf(run).length ? ` 절망 증강 ${despairNames(run)}.` : ''}${OATH.oathResult(run, false)}</p></div>
     <dl class="stats big">
       <dt>도달 페이즈</dt><dd>${run.phase}</dd><dt>전투</dt><dd>${run.stats.wins}승 ${run.stats.losses}패</dd>
       <dt>처치</dt><dd>${run.stats.kills}</dd><dt>최대 단일 피해</dt><dd>${fmt(run.stats.bestHit)}</dd>
@@ -2196,7 +2194,7 @@ function pendingModal(run: RunState): string {
   } else if (p.t === 'event' || (p.t === 'notice' && p.scene?.length)) {
     return ''; // 미연시 화면 (advSync)
   } else if (p.t === 'victory') {
-    body = `<h1>의뢰 성공</h1><p>페이즈 ${run.phase} 보스를 격파했습니다. ${esc(fieldOf(run.field).name)} 의뢰가 완료되었습니다${run.diff ? ` (${diffLabel(run.diff)}${despairsOf(run).length ? ` · 절망 증강 ${despairNames(run)}` : ''})` : ''}.</p>
+    body = `<h1>의뢰 성공</h1><p>페이즈 ${run.phase} 보스를 격파했습니다. ${esc(fieldOf(run.field).name)} 의뢰가 완료되었습니다${run.diff ? ` (${diffLabel(run.diff)}${despairsOf(run).length ? ` · 절망 증강 ${despairNames(run)}` : ''}${OATH.oathResult(run, true)})` : ''}.</p>
       <p class="muted small">귀환하면 런이 끝나고 기록이 남습니다. 계속하면 무한 모드로 이어지며, 적은 계속 강해집니다. 어느 쪽이든 다음 위험 등급이 해금됩니다.</p>
       <div class="row-btns"><button class="btn primary" data-a="victory-end">귀환 (의뢰 완료)</button><button class="btn" data-a="victory-endless">무한 모드로 계속</button></div>`;
   } else if (p.t === 'field') {
