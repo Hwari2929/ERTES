@@ -349,7 +349,9 @@ def t_nodes():
         if n['ph'] <= 6: rows.append([n['ph'], n['t'], N(n['n']), P(n['win'], 1), F(n['dur'], 0)])
     return table(['페이즈', '노드', '전투', '승률', '평균 전투(초)'], rows)
 
-T = {k[2:]: v for k, v in globals().items() if k.startswith('t_') and callable(v)}
+import inspect
+# 인자 없이 부를 수 있는 표만 자동 등록 (t_item_sel 처럼 인자가 필요한 도우미는 아래에서 감싸 등록)
+T = {k[2:]: v for k, v in globals().items() if k.startswith('t_') and callable(v) and not any(p.default is inspect.Parameter.empty for p in inspect.signature(v).parameters.values())}
 T['item_new'] = lambda: t_item_sel({'A_vit_def', 'L_vit_def', 'A_taunt', 'L_taunt'} | {x['id'] for x in D['items'] if 'taunt' in x['id'] or x['name'] in ('위협 신호기',)})
 
 if __name__ == '__main__':
