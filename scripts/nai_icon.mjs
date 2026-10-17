@@ -14,7 +14,8 @@ const valued = ['--seed', '--style', '--out'];
 const ids = flag('--all') ? Object.keys(P).filter((k) => !k.startsWith('_')) : args.filter((a, i) => !a.startsWith('--') && !valued.includes(args[i - 1]));
 const style = opt('--style') || 'E';
 const out = opt('--out') || 'art/icons/raw';
-const W = 832, H = 832, STEPS = 23; // 무료 범위 (1MP 이하 · 28스텝 이하)
+// 무료 생성이 막힌 계정: 무료 범위(28스텝 이하)를 벗어나 Anlas 로 생성 (29스텝). 아이콘은 작게 써서 640px 로 충분
+const W = 640, H = 640, STEPS = 29;
 const token = process.env.NOVELAI_TOKEN;
 if (!flag('--dry') && !token) { console.error('NOVELAI_TOKEN 없음'); process.exit(1); }
 

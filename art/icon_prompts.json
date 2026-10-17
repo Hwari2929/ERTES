@@ -932,5 +932,143 @@
  "divine.CMD": {
   "subject": "oracle eye within a halo issuing a command beam",
   "color": "gold and amber, golden holy light"
+ },
+ "weapon.muhyul": {
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true,
+  "subject": "ornate korean royal composite bow with glowing high-tech limbs and a nocked arrow"
+ },
+ "skill.muhyul": {
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true,
+  "subject": "single arrow piercing a target and leaving a glowing written record seal mark, calligraphy stroke trail"
+ },
+ "trait.muhyul": {
+  "subject": "ancient record scroll rewinding with clock hands, rewind arrows around an unfurled scroll",
+  "color": "red and pale gold"
+ },
+ "ult.muhyul": {
+  "subject": "vertical pillar of white light splitting the sky above a royal crown, meteor flash",
+  "color": "crimson red and gold"
+ },
+ "weapon.dobin": {
+  "subject": "industrial nail gun rivet launcher firing a glowing spike with electric sparks",
+  "color": "electric blue and yellow"
+ },
+ "skill.dobin": {
+  "subject": "giant holy spike nailing the ground with radiant shockwave pushing away, chains of light",
+  "color": "white and pale gold"
+ },
+ "trait.dobin": {
+  "subject": "small sentry turret firing a bullet wreathed in holy golden light, wrench emblem",
+  "color": "white and pale gold"
+ },
+ "weapon.siu": {
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true,
+  "subject": "compact self-defense pistol with ornate engraving"
+ },
+ "skill.siu": {
+  "subject": "toxic chemical droplet bouncing between three points with arcing green trails",
+  "color": "acid green and teal"
+ },
+ "trait.siu": {
+  "subject": "glowing armillary sphere dripping chemical tears that ricochet",
+  "color": "acid green and blue"
+ },
+ "weapon.jaehwon": {
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true,
+  "subject": "long hunting rifle shotgun with leather strap and fur trim"
+ },
+ "skill.jaehwon": {
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true,
+  "subject": "five rapid bullets streaking toward a single crosshair target, muzzle flashes in a row"
+ },
+ "trait.jaehwon": {
+  "subject": "cracked crosshair with critical hit spark and a fast spinning cooldown clock",
+  "color": "orange and pink"
+ },
+ "weapon.juseong": {
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true,
+  "subject": "old worn greatsword with chipped blade and wrapped hilt"
+ },
+ "skill.juseong": {
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true,
+  "subject": "circular sword dance slash around a center with snowflakes, weakening chains"
+ },
+ "trait.juseong": {
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true,
+  "subject": "heavy finishing sword strike knocking back with stun stars and impact burst"
+ },
+ "ult.juseong": {
+  "subject": "crescent glaive slash under a full moon, guarding a prince silhouette behind, moonlit arc",
+  "color": "dark green and silver moonlight"
+ },
+ "weapon.clover": {
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true,
+  "subject": "spinning harvesting blade disc with serrated edges"
+ },
+ "skill.clover": {
+  "subject": "small cute agricultural drone with smiling screen face dropping vegetables and a heart",
+  "color": "leaf green and cream"
+ },
+ "trait.clover": {
+  "subject": "four-leaf clover emblem on a heavy armored shield plate with a burning flame ring around",
+  "color": "green and orange"
+ },
+ "weapon.hana": {
+  "subject": "korean paper talisman with red ink seal glowing with psychic energy",
+  "color": "violet and dark crimson"
+ },
+ "skill.hana": {
+  "subject": "shaman ritual circle with talismans scattering targets into swirling displaced positions",
+  "color": "violet and black"
+ },
+ "trait.hana": {
+  "subject": "pushed figure silhouette arrow with a ghostly fear skull and psychic burst",
+  "color": "violet and deep purple"
+ },
+ "weapon.gayoung": {
+  "subject": "ritual shaman dagger glowing with holy white light",
+  "color": "white and pale gold"
+ },
+ "skill.gayoung": {
+  "subject": "holy blade slash in a circle with a blinding eye symbol crossed out",
+  "color": "white and pale gold"
+ },
+ "trait.gayoung": {
+  "subject": "frenzied white sleeves dance swirl reducing evasion, broken dodge arrow",
+  "color": "white and silver"
+ },
+ "weapon.gungo": {
+  "color": "white, silver and light gray with subtle crimson accents",
+  "light": true,
+  "subject": "tiger claw slash marks with sharp orange claws"
+ },
+ "skill.gungo": {
+  "subject": "orbital fire cannon beam striking down from the sky igniting the ground in flames",
+  "color": "orange and red"
+ },
+ "trait.gungo": {
+  "subject": "tiger fat oil dripping and melting a shield in half, tiger stripe pattern",
+  "color": "orange and amber"
+ },
+ "weapon.minos": {
+  "subject": "heavy official stamp seal of the underworld with glowing psychic ink",
+  "color": "gray and spectral blue"
+ },
+ "skill.minos": {
+  "subject": "queue of ghostly clerks firing at once at a stamped execution document",
+  "color": "gray and spectral blue"
+ },
+ "trait.minos": {
+  "subject": "stack of ledgers and quill with three ghostly hooded clerks rising, fear aura",
+  "color": "gray and spectral blue"
  }
 }
