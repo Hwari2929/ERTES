@@ -3,6 +3,7 @@
 //  · 전투 하나가 끝나면 resolveBattle 이 recBattle 을 한 번 부른다 (게임 · 봇 시뮬레이션 공통). 지출은 쓰는 곳에서 recSpend.
 //  · 기물별 수치는 엔진 집계(CUnit.counters)를 그대로 더한다. 소환물(주인이 있는 것: 단짝 · 사이오닉 소환물 등)의 피해 · 회복 · 보호막 · 버프 · 약화 · 제어 · 탱킹은
 //    주인 기물에 합산한다 (소환물은 그 기물 능력의 일부라서). 주인 없는 시너지 소환물(감시 포탑 · 근위기사)과 시너지 자체 효과는 시너지 몫.
+//    공왕 무휼(청라공국이 소환, 가상 기물 상태 uid 'king')은 기물 정의가 있어 자기 줄로 기록한다 (출전 칸 밖이라 전투력 합계 powerOf 에서는 빠진다).
 //  · 예상치: tests/report_base.ts 봇 시뮬레이션(실제 게임과 같은 계약 기물 후보 · 위험 등급별)의 평균을 상수 표로 넣었다 (EXPECT).
 import { CFG } from '../config';
 import type { NodeType, RunState } from '../types';
@@ -71,7 +72,7 @@ export function recEnd(run: RunState) { rec(run).t1 ??= Date.now(); }
 
 /** 주요 위력: 사격 · 타격 · 기술 위력 중 큰 값 (기물 상세 위력 칩 · 적 공명 등급 추정과 같은 기준), 아군 지휘관은 전술 위력. 적은 페이즈 피해 배율을 곱한다 */
 export function mainPower(b: Battle, c: CUnit): number {
-  if (c.side === 0 && c.ctype === 'CMD' && !c.isSummon) return Math.max(1, b.tac[0]) * (1 + (c.mem.tacPct || 0));
+  if (c.side === 0 && c.ctype === 'CMD' && (!c.isSummon || c.mem.tacOk)) return Math.max(1, b.tac[0]) * (1 + (c.mem.tacPct || 0));
   return Math.max(c.st.shoot, c.st.strike, c.st.tech) * (c.side === 1 ? c.phaseAmp : 1);
 }
 /** 전투력 (아군) · 적 전력: 소환물 · 장애물 · 반려 돌을 뺀 기물의 주요 위력 합 */

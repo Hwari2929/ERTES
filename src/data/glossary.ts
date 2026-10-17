@@ -4,6 +4,7 @@ import { CFG, encDmgMult } from '../config';
 import { DIFF_PRESETS, diffName } from './difficulty';
 import { DESPAIRS } from './despair';
 import { controlNames, RELOAD_RESET_LABEL, zocRule } from '../engine/combat';
+import { CAUSAL, causalNeed } from './chungra';
 
 export interface GlossEntry { id: string; term: string; text: string; key: string }
 export interface GlossChapter { ch: string; title: string; who: string; entries: GlossEntry[] }
@@ -83,6 +84,7 @@ export const GLOSSARY: GlossChapter[] = [
       { id: 'diff', term: '새 계약 · 위험 등급', key: 'epilogue', text: `새 계약은 출격에 응한 후보 ${CFG.starterPool}명 중 ${CFG.startUnits}명을 골라 시작한다 (후보 새로고침 ${CFG.starterRerolls}회: 고른 기물을 모두 풀고 후보를 통째로 새로 뽑는다). 위험 등급이 오를수록 적이 강해지고 조건이 붙는 대신 승리 보수도 늘어난다. 출격 화면에서는 ${DIFF_PRESETS.map((x) => `${x.name}(위험 ${x.lvl})`).join(' · ')} 중에서 고른다. ${CFG.diffAdd.map(([l]) => diffName(l) || `위험 ${l}`).join(' · ')} 등급에서는 페이즈가 지날수록 모든 전투의 적 수도 늘어나고 (${CFG.diffAdd.map(([l, k]) => `위험 ${l}부터 ${k}페이즈마다 +1`).join(' · ')}), ${diffName(CFG.despair.from) || `위험 ${CFG.despair.from}`} 등급은 절망 증강까지 짊어진다.` },
       { id: 'privilege', term: '특권 증강', key: 'epilogue', text: '출격 직전에 고르는 이번 의뢰 한정 특권 (새로고침 3회). 문장 · 추가 영입 · 전역 증강 · 후원금 · 체력 · 공명 등급 같은 것들.' },
       { id: 'despair', term: '절망 증강', key: 'epilogue', text: `${diffName(CFG.despair.from) || `위험 ${CFG.despair.from}`} 의뢰의 대가. 출격 때 특권 증강 다음에 ${CFG.despair.choices}개 중 1개를 반드시 고르고, ${CFG.despair.every}페이즈마다 1개씩 더 고른다 (고를 때마다 새로고침 ${CFG.despair.rerolls}회). 고른 디버프는 의뢰 내내 쌓여서 걸리고, 같은 증강은 다시 나오지 않는다. 상단 바의 붉은 표시를 누르거나 지도 [환경] 탭에서 효과를 다시 볼 수 있다. ${DESPAIRS.length}종 (${DESPAIRS.map((d) => d.name).join(' · ')}), 증강별 성공 기록은 도감 기록 탭에 남는다.` },
+      { id: 'causal', term: '청라공국 · 인과율', key: 'epilogue', text: `청라공국 기물이 3명 이상 출전하면 전투 시작 때 공왕 무휼이 출전 칸 밖(포탑처럼)에 소환된다. 무휼은 공명도를 받지 않고, 이긴 전투마다 모으는 인과율로 인과 단계(1~${CAUSAL.max})를 올린다. 1회 수집량 = (${CAUSAL.base} + 출전 아군 장비 점수 ÷ ${CAUSAL.gearDiv}) × 청라 단계 배율 (${CAUSAL.mult.slice(1).map((m) => `×${m}`).join(' · ')}). 장비 점수는 재료 ${CAUSAL.gearPts.C} · 고급 · 희귀 ${CAUSAL.gearPts.A} · 전설 ${CAUSAL.gearPts.L}. ${CAUSAL.max}단계까지 누적 ${causalNeed(CAUSAL.max)}이 든다. 청라가 3명 아래로 줄어도 모은 인과율은 남는다.` },
       { id: 'oath', term: '절망 서약', key: 'epilogue', text: `${diffName(CFG.oathFrom) || `위험 ${CFG.oathFrom}`} 의뢰에 스스로 거는 고정 조건. 타이틀의 [절망 서약]에서 서약 ${Object.keys(CFG.oath).length}종 중 원하는 것을 켜고 단계를 올리면, 단계마다 절망 수치가 쌓인다. 설정은 이 브라우저에 남고, ${diffName(CFG.oathFrom) || `위험 ${CFG.oathFrom}`}으로 출격할 때만 걸린다 (쉬움 · 모험은 무시). 무작위로 고르는 절망 증강과 따로 걸리며, 성공하면 전장별 최고 절망 수치가 도감 기록 탭에 남는다. 절망 수치 ${CFG.oathDiffStep}마다 표기 위험 등급이 1씩 올라 (위험 ${CFG.oathFrom} → 절망 ${CFG.oathDiffStep}이면 위험 ${CFG.oathFrom + 1}) 결과 · 전장 기록 · 업적이 그 등급을 읽는다. 적이 세지는 것은 서약 효과뿐이다. 런 중에는 상단 바의 서약 표시와 지도 [환경] 탭에서 켠 서약을 볼 수 있다.` },
     ],
   },

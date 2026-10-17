@@ -22,6 +22,7 @@ import { FAITHS,
   type Quest, type RunState, type ShopSlot, type SynergyId, type UnitState,
 } from '../types';
 import { deployed, memberships, playerRows, synergyCounts, turretCount } from './build';
+import { causalGain, causalLeft, causalStage, KING_GEAR, KING_GEAR_NAME } from '../data/chungra';
 import type { Battle } from './combat';
 import { newRec, recBattle, recReroll, recSpend } from './report';
 
@@ -281,7 +282,7 @@ export function autoPlace(run: RunState, order: UnitState[] = run.units) {
   for (const u of order) {
     if (u.pos || deployed(run).length >= cap || !canDeploy(run, u)) continue;
     const def = UNIT_BY_ID[u.defId];
-    const rowsPref = def.range <= 1 ? [2, 1, 0] : [0, 1, 2];
+    const rowsPref = def.range <= 1 || def.front ? [2, 1, 0] : [0, 1, 2];
     outer: for (const r of rowsPref)
       for (const c of [3, 2, 4, 1, 5, 0, 6]) {
         if (!used.has(`${c},${r}`)) { u.pos = { c, r }; used.add(`${c},${r}`); break outer; }
@@ -774,6 +775,8 @@ export interface BattleSummary {
   items?: string[];
   hpLoss: number;
   gameOver: boolean;
+  /** 청라공국: 이번 전투의 인과율 (결과 창 '인과율 +k (장비 +j)') */
+  causal?: { gain: number; gear: number; stage0: number; stage: number; left: number };
 }
 
 /** 이번 페이즈 보스가 '이겨야 넘어가는' 보스인지: 의뢰의 마지막 보스 (victoryPhase 이상 · 아직 의뢰 성공 전)만. 그 밖의 보스는 져도 다음 페이즈로 (무한 모드 보스 포함) */
@@ -870,6 +873,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   // 성직자: 승리 시 신앙 / 대스타: 승리 시 명성 + 대스타 처치 수
   const star = tierOf('STAR', counts.STAR || 0);
   settleGrowth(run, b, won, interest, lines);
+  const causal = settleCausal(run, won, tierOf('CHR', counts.CHR || 0), lines);
   if (star) {
     const starKills = dep.filter((u) => memberships(u).includes('STAR')).reduce((sum, u) => sum + killsOf(u), 0);
     const f = (won ? 2 * [0, 1, 2, 3, 5][star] : 0) + Math.floor(starKills / 3);
@@ -922,7 +926,22 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   else run.node = { type: 'boss', enc: genEncounter(run, 'boss') };
   const gained = run.inventory.slice();
   for (const id of inv0) { const i = gained.indexOf(id); if (i >= 0) gained.splice(i, 1); }
-  return { won, lines, xp, hpLoss, gameOver, items: gained };
+  return { won, lines, xp, hpLoss, gameOver, items: gained, causal };
+}
+
+/** 청라공국: 이긴 전투에서만 인과율을 모은다 (기본 몫 + 출전 아군 장비 점수 몫, 둘 다 청라 단계 배율). 전용 장비 해금 단계도 여기서 기록 */
+function settleCausal(run: RunState, won: boolean, tier: number, lines: string[]): BattleSummary['causal'] {
+  if (tier > (run.chrTier || 0)) {
+    for (let t = (run.chrTier || 0) + 1; t <= Math.min(3, tier); t++) lines.push(`청라공국 ${[3, 5, 7][t - 1]}명: 무휼 전용 장비 [${KING_GEAR_NAME[KING_GEAR[t - 1]]}] 해금 · 자동 장착`);
+    run.chrTier = tier;
+  }
+  if (!won || !tier) return undefined;
+  const pts0 = run.causal || 0, g = causalGain(run, tier);
+  if (!g.total) return undefined;
+  run.causal = pts0 + g.total;
+  const s0 = causalStage(pts0), s1 = causalStage(run.causal);
+  lines.push(`인과율 +${g.total} (장비 +${g.gear}) · 인과 ${s1}단계${s1 > s0 ? ` 상승!` : ''}${causalLeft(run.causal) ? ` · 다음까지 ${causalLeft(run.causal)}` : ' · 최고 단계'}`);
+  return { gain: g.total, gear: g.gear, stage0: s0, stage: s1, left: causalLeft(run.causal) };
 }
 
 function totalXpOf(u: UnitState) { let t = 0; for (let r = 1; r < u.rank; r++) t += CFG.xpToNext(r); return t; }

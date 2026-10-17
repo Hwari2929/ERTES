@@ -37,7 +37,7 @@ export const ROSTER_F: BaseUnit[] = [
         // 끌어당기기: 대상을 비외른 앞 1칸으로 (엘리트 · 보스 제외)
         if (p.pull && t.alive && !t.big && !t.isBoss && b.dist(u, t) > 1) {
           const c = b.freeCellNear(u.x, u.y);
-          if (c && b.dist(u, c) <= 1) { t.x = t.px = c.x; t.y = t.py = c.y; t.moveT = 0; b.fx(c.x, c.y, 0, 'elec'); }
+          if (c && b.dist(u, c) <= 1) { t.x = t.px = c.x; t.y = t.py = c.y; t.moveT = 0; b.fx(c.x, c.y, 0, 'elec'); b.displaced(u, t, 'pull'); }
         }
       },
     }),

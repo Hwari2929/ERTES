@@ -19,6 +19,7 @@ import { RELIC_BY_ID, RELICS } from '../data/relics';
 import { augMark, GROUPS, type GroupId, isLegendAug, isTransformAug, PSI_STATUS, SCHOOL_BY_ID, SCHOOLS, type SchoolId, UNIT_GROUP } from '../data/schools';
 import { KAL_GUARD_TEXT, KAL_GUARDS, SYN_BY_ID, SYNERGIES, VOYAGE_SPECIAL } from '../data/synergies';
 import { KNIGHT_PAL } from '../engine/build';
+import { CAUSAL, causalNeed, isKingGear, KING_GEAR, KING_MS_TEXT, kingStageText } from '../data/chungra';
 import { BOSS_CC_IMMUNE, categoryImmune, categoryMult, REASON_HI, REASON_LO } from '../engine/combat';
 import { UNIT_BY_ID, UNITS, type UnitDef } from '../data/units';
 import { LORE, LORE_BY_ID, LORE_GROUP_NAME, LORE_SECTIONS, type LoreEntry, type LoreGroup, loreRegionsOf } from '../data/worldlore';
@@ -155,7 +156,7 @@ function unitCard(H: CxH, d: UnitDef, on: boolean, peek: boolean, known: boolean
   const q = known ? `${d.name} ${d.title} ${role} ${syn.map((s) => SYN_BY_ID[s as SynergyId]?.name || '').join(' ')}` : '???';
   return `<button class="cx-card${on ? ' on' : peek ? ' peek' : ''}${known ? '' : ' unknown'}" data-a="codex-sel" data-v="${esc(d.id)}" aria-pressed="${on}"${qAttr('units', q)}>
     <span class="cx-pic">${H.sprite(d)}${known && H.bust ? H.bust(d.id) : ''}</span>
-    <span class="cx-cap"><b class="cx-nm">${known ? esc(d.name) : '???'}</b>${known ? `<span class="cx-role">${esc(role)}</span><span class="cx-syns">${syn.map(synTag).join('')}</span>` : `<span class="cx-role">${d.inert ? '절망 증강으로 합류' : '사건으로 합류'}</span>`}</span></button>`;
+    <span class="cx-cap"><b class="cx-nm">${known ? esc(d.name) : '???'}</b>${known ? `<span class="cx-role">${esc(role)}</span><span class="cx-syns">${syn.map(synTag).join('')}</span>` : `<span class="cx-role">${d.inert ? '절망 증강으로 합류' : d.king ? '청라공국이 소환' : '사건으로 합류'}</span>`}</span></button>`;
 }
 /** 기물 목록 (묶기 · 정렬 · 검색). first = 아무것도 고르지 않았을 때 넓은 화면에서 미리 보여 줄 기물 */
 export function unitsList(H: CxH, o: { group: UnitGroupBy; sel: string | null; known: (d: UnitDef) => boolean }): { html: string; first: string | null } {
@@ -202,6 +203,7 @@ export function itemCatalog(): [IGrp, string[]][] {
 /** 전용 장비가 속한 시너지 (문장 제외) */
 function gearSyn(id: string): SynergyId | null {
   if (isHelItem(id)) return 'HEL';
+  if (isKingGear(id)) return 'CHR';
   if (isTurretGear(id)) return 'ENG';
   if (isOccultMod(id) || (CONSUMABLES[id] && !CONSUMABLES[id].drop)) return 'OCCULT';
   if (CONSUMABLES[id]?.chef) return 'CHEF';
@@ -407,7 +409,17 @@ function investOffers() {
 }
 /** 소속 기물: 작은 초상화 카드 (이름 · 유형) */
 function memberCards(H: CxH, list: UnitDef[]) {
-  return `<div class="cx-mini">${list.map((d) => `<button class="cx-mc" ${go(`unit:${d.id}`)} title="${esc(d.name)} — 기물 도감에서 보기"><span class="cx-pic">${H.sprite(d)}${H.bust ? H.bust(d.id) : ''}</span><b>${esc(d.name)}</b><small>${esc(CTYPE_NAME[d.ctype])} · ${esc(TTYPE_NAME[d.ttype])}${d.eventOnly ? ' · 사건' : ''}</small></button>`).join('')}</div>`;
+  return `<div class="cx-mini">${list.map((d) => `<button class="cx-mc" ${go(`unit:${d.id}`)} title="${esc(d.name)} — 기물 도감에서 보기"><span class="cx-pic">${H.sprite(d)}${H.bust ? H.bust(d.id) : ''}</span><b>${esc(d.name)}</b><small>${esc(CTYPE_NAME[d.ctype])} · ${esc(TTYPE_NAME[d.ttype])}${d.king ? ' · 공왕 (소환)' : d.eventOnly ? ' · 사건' : ''}</small></button>`).join('')}</div>`;
+}
+/** 공왕 무휼: 인과 단계표 (data/chungra.ts 에서 읽는다) — 청라공국 · 공왕 시너지 도감과 무휼 기물 도감이 함께 쓴다. gear = 전용 장비 줄도 */
+export function kingSection(H: CxH, gear = false): string {
+  const d = UNIT_BY_ID.muhyul;
+  const rows = [...Array(CAUSAL.max).keys()].map((i) => `<tr><th class="f-num">${i + 1}단계</th><td class="f-num">${causalNeed(i + 1)}</td><td>${esc(kingStageText(i + 1))}</td></tr>`).join('');
+  return `<h3>공왕 무휼 · 인과 단계 <span class="cx-hn">인과율 = (${CAUSAL.base} + 장비 점수 ÷ ${CAUSAL.gearDiv}) × 청라 단계 배율, 이긴 전투만</span></h3>
+    ${d ? `<div class="cx2-row">${H.sprite(d)}<span><button class="cx2-note" ${go('unit:muhyul')} title="기물 도감에서 보기">${esc(d.name)} · ${esc(CTYPE_NAME[d.ctype])} · ${esc(TTYPE_NAME[d.ttype])}</button><p class="muted">출전 칸 밖에 포탑처럼 놓이고, 공명도 · 영입 · 판매가 없습니다. 청라공국 인원에는 세지 않습니다.</p></span></div>` : ''}
+    <table class="cx-tbl cx2-tiers"><thead><tr><th>단계</th><th>누적 인과율</th><th>능력치</th></tr></thead><tbody>${rows}</tbody></table>
+    <ul class="cx2-rows">${KING_MS_TEXT.map((x) => `<li class="muted">${esc(x)}</li>`).join('')}</ul>
+    ${gear ? `<h3>전용 장비 <span class="cx-hn">청라공국 3 · 5 · 7명에 해금 · 자동 장착</span></h3><ul class="cx2-rows">${KING_GEAR.map((id, i) => `<li>${itemRow(H, id, `청라 ${[3, 5, 7][i]}명`)}</li>`).join('')}</ul>` : ''}`;
 }
 /** 최고의 친구 소환물: 주인 · 소환물 · 전투 유형 · 기본 공격 · 기술 (주인 스킬 연계, 기본 파라미터) — 데이터(UnitDef.summon · ABIL[].summon)에서 읽는다 */
 function buddySummons(H: CxH) {
@@ -438,6 +450,7 @@ function synDetail(H: CxH, sid: SynergyId): string {
     a.push(`<h3>소환물 · ${esc(k.name)} <span class="cx-hn">${esc(counts)}</span></h3><div class="cx2-row cx2-knight">${H.sprite({ id: 'kal_guard', name: k.name, sprite: 'knight', palette: KNIGHT_PAL } as unknown as UnitDef)}<span><b>${esc(k.name)}</b> <span class="cx2-note">${esc(CTYPE_NAME.VAN)} · ${esc(TTYPE_NAME.major)} · 소환물</span><p class="muted">${esc(k.desc)}</p><p class="muted">${esc(k.weapon)}<br>${esc(k.skill)}<br>${esc(k.ult)}</p></span></div>`);
   }
   if (sid === 'BUDDY') a.push(buddySummons(H));
+  if (sid === 'CHR' || sid === 'KING') a.push(kingSection(H, sid === 'KING'));
   if (sid === 'HOI') a.push(offerList('[투자] 상품', '크레딧', investOffers()));
   if (sid === 'STAR') a.push(offerList('[속보] 명성 교환', '명성', Object.values(NEWS_OFFERS)));
   if (sid === 'VOYAGE') a.push(`<h3>단독 출항 · 완전체 고유 능력</h3><ul class="cx2-rows">${Object.entries(VOYAGE_SPECIAL).map(([uid, v]) => `<li class="cx2-row">${UNIT_BY_ID[uid] ? H.sprite(UNIT_BY_ID[uid]) : ''}<span><b>${esc(v.who)} · ${esc(v.name)}</b><p class="muted">${esc(v.text)}</p></span></li>`).join('')}</ul>`);

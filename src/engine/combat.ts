@@ -148,9 +148,15 @@ export interface Hooks {
   onFrenzy?(b: Battle, self: CUnit): void;
   /** 소마법을 쓴 직후 */
   onCantrip?(b: Battle, self: CUnit): void;
+  /** 누군가의 위치가 효과로 강제로 바뀐 뒤 (밀쳐내기 · 끌어당기기 · 강제 이동, Battle.displaced 가 모아 부른다).
+   *  victim = 옮겨진 기물, src = 옮긴 효과의 주인. 모든 살아 있는 기물에게 불린다 (편 판정은 받는 쪽이) */
+  onDisplace?(b: Battle, self: CUnit, victim: CUnit, src: CUnit, kind: DisplaceKind): void;
   /** 받을 피해가 정해진 뒤, 일부를 다른 대상에게 넘긴다 (반환: 남은 피해) */
   redirect?(b: Battle, self: CUnit, src: CUnit, dmg: number, o: DmgOpts): number;
 }
+
+/** 강제 위치 변경 종류: 밀쳐내기 · 끌어당기기 · 그 밖의 강제 이동 (순간 이동 · 재배치) */
+export type DisplaceKind = 'knock' | 'pull' | 'move';
 
 /** 사이오닉 소마법 (학파 증강이 붙인다). cast: 대상이 없으면 false */
 export interface Cantrip {
@@ -405,7 +411,7 @@ export class Battle {
 
   /** 기술 위력 조회: 지휘관은 사격/타격/기술 대신 전술 위력 기반 */
   P(u: CUnit, k: 'shoot' | 'strike' | 'tech'): number {
-    if (u.ctype === 'CMD' && !u.isSummon) return this.tacPower(u);
+    if (u.ctype === 'CMD' && (!u.isSummon || u.mem.tacOk)) return this.tacPower(u); // tacOk: 주인 없는 시너지 기물 (공왕 무휼)
     return this.S(u, k);
   }
   tacPower(u: CUnit): number {
@@ -1124,6 +1130,7 @@ export class Battle {
     tgt.moveDur = tgt.moveT = 0.25;
     tgt.mem.lastCell = -1;
     this.emit({ k: 'status', id: tgt.id, name: '끌어당기기', src: src.id, harm: true, stype: 'knock' });
+    this.displaced(src, tgt, 'pull');
     return { moved: true };
   }
   /** 밀쳐내기: 시전자 반대 방향으로 1칸 (보스 · 고정 기물 면역). blocker = 부딪힌 기물 */
@@ -1140,7 +1147,24 @@ export class Battle {
     tgt.moveDur = tgt.moveT = 0.2;
     tgt.mem.lastCell = -1;
     this.emit({ k: 'status', id: tgt.id, name: '밀쳐내기', src: src.id, harm: true, stype: 'knock' });
+    this.displaced(src, tgt, 'knock');
     return { moved: true };
+  }
+  /** 강제 위치 변경 알림 (한 곳): pull · knockback 이 부르고, 칸을 직접 옮기는 효과(끌어오기 · 재배치)도 옮긴 뒤 이것을 부른다.
+   *  모든 살아 있는 기물의 onDisplace 훅이 받는다 (한아 [혼란한 땅] 등) */
+  displaced(src: CUnit, tgt: CUnit, kind: DisplaceKind) {
+    if (!tgt.alive) return;
+    for (const a of this.living()) for (const h of a.hooks) h.onDisplace?.(this, a, tgt, src, kind);
+  }
+  /** 대상을 (x, y) 칸으로 강제로 옮긴다 (빈칸이어야 함, 밀쳐내기 면역 무시 — 부르는 쪽이 판단). 옮기면 displaced 알림 */
+  relocate(src: CUnit, tgt: CUnit, x: number, y: number, kind: DisplaceKind = 'move') {
+    if (!tgt.alive || !this.inBounds(x, y) || this.unitAt(x, y)) return false;
+    tgt.px = tgt.x; tgt.py = tgt.y;
+    tgt.x = x; tgt.y = y;
+    tgt.moveDur = tgt.moveT = 0.2;
+    tgt.mem.lastCell = -1;
+    this.displaced(src, tgt, kind);
+    return true;
   }
 
   kill(u: CUnit, by: CUnit | null) {

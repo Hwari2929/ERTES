@@ -37,6 +37,7 @@ export const UNIT_GROUP: Record<string, GroupId> = {
   nadir: 'field', zephyro: 'field',
   yelena: 'life', joshua: 'life', zina: 'life',
   hiiro: 'causal', onyx: 'causal',
+  hana: 'field', gungo: 'thermo', minos: 'life',
 };
 
 const S = (id: SchoolId, name: string, study: string, color: string, group: GroupId, cantrip: CantripDef, passive: { name: string; desc: string }): SchoolDef =>

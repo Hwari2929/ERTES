@@ -14,6 +14,7 @@ import { RELICS } from '../src/data/relics';
 import { FIELDS } from '../src/data/battlefields';
 import { fieldSyn, starterPool } from '../src/engine/starters';
 import { oathV } from '../src/data/oaths';
+import { causalStage } from '../src/data/chungra';
 import type { Major, RunState, SynergyId } from '../src/types';
 
 declare const process: { argv: string[]; stdout: { write(s: string): void }; stderr: { write(s: string): void } };
@@ -35,6 +36,12 @@ const POOL = process.argv.includes('pool') || process.argv.includes('pool0');
 if (process.argv.includes('pool0')) CFG.starterFav = 0;
 /** oath=grit:3,pain:2 — 절망 서약 설정 (고난 이상에서만 걸린다). oathfrom=3 — 서약이 걸리는 위험 등급을 낮춰 쉬움 · 모험 기준으로 서약만 따로 잰다 */
 const OATH_SEL = Object.fromEntries((process.argv.find((a) => a.startsWith('oath='))?.slice(5) || '').split(',').filter(Boolean).map((x) => { const [k, v] = x.split(':'); return [k, +v || 1]; }));
+/** chr: 청라공국 우선 봇 — 시작 기물 중 2명을 청라 기물로 (영입 가능한 청라 기물에서), 영입 · 출전은 청라 기물을 먼저, 없는 청라 기물이 있으면 지정 소집 (무휼 인과 단계 계측용).
+ *  fac=<세력 id>: 같은 정책을 다른 세력으로 (비교 기준, 예: fac=HEL) */
+const FAC = (process.argv.find((a) => a.startsWith('fac='))?.slice(4) || (process.argv.includes('chr') ? 'CHR' : '')) as SynergyId | '';
+const CHR = !!FAC;
+const isFac = (id: string) => !!FAC && ([...UNIT_BY_ID[id].factions, ...UNIT_BY_ID[id].traits] as string[]).includes(FAC);
+const CHR_IDS = UNITS.filter((u) => isFac(u.id) && !u.noStarter && !u.eventOnly).map((u) => u.id);
 const OATH_FROM = process.argv.find((a) => a.startsWith('oathfrom='));
 if (OATH_FROM) (CFG as { oathFrom: number }).oathFrom = +OATH_FROM.slice(9);
 
@@ -114,6 +121,7 @@ function playRun(seed: number) {
     const fav = pr.shuffle(pool.filter((id) => !!syn && ([...UNIT_BY_ID[id].factions, ...UNIT_BY_ID[id].traits] as string[]).includes(syn))).slice(0, CFG.starterFav);
     starters = [...fav, ...pr.sample(pool.filter((id) => !fav.includes(id)), CFG.startUnits - fav.length)];
   }
+  if (CHR) { const pick = bot.sample(CHR_IDS, 2); starters = [...pick, ...starters.filter((x) => !pick.includes(x))].slice(0, CFG.startUnits); }
   const run = R.newRun(seed, starters, FORCE_FIELD, DIFF, OATH_SEL);
   const synMax: Record<string, number> = {};
   const det: Record<string, [number, number]> = {}; // detail 모드: `키|페이즈:노드` → [전투, 승리]
@@ -143,7 +151,7 @@ function playRun(seed: number) {
         // 영입: 보유 기물과 시너지가 가장 많이 겹치는 기물 (+약간의 무작위)
         const have = new Map<string, number>();
         for (const u of run.units) { const d = UNIT_BY_ID[u.defId]; for (const x of [...d.factions, ...d.traits]) have.set(x, (have.get(x) || 0) + 1); }
-        const score = (id: string) => { const d = UNIT_BY_ID[id]; return [...d.factions, ...d.traits].reduce((s2, x) => s2 + (have.get(x) || 0), 0) + bot.next(); };
+        const score = (id: string) => { const d = UNIT_BY_ID[id]; return [...d.factions, ...d.traits].reduce((s2, x) => s2 + (have.get(x) || 0), 0) + bot.next() + (CHR && isFac(id) ? 20 : 0); };
         const pick = p.options.slice().sort((x, y) => score(y) - score(x))[0];
         for (const id of p.options) add('offer', id, { offered: 1, picked: id === pick ? 1 : 0 });
         R.recruit(run, pick);
@@ -164,7 +172,18 @@ function playRun(seed: number) {
       const u = run.units.filter((x) => x.pos && x.rank < CFG.maxRank).sort((a, b) => a.rank - b.rank)[0];
       if (!u || !R.buyXp(run, u.uid)) break;
     }
-    R.autoPlace(run);
+    // 청라 우선: 아직 없는 청라 기물이 있으면 지정 소집 (청라 · 엔지니어 · 신비학자)
+    if (CHR && !run.node && !run.pending.length && run.units.length < CFG.maxParty && CHR_IDS.some((id) => !run.units.some((u) => u.defId === id)) && run.credits >= R.musterCost(run) + 5) {
+      if (R.openMuster(run) === null && R.confirmMuster(run, FAC === 'CHR' ? ['CHR', 'ENG', 'OCCULT'] : [FAC, ...['ENG', 'OCCULT', 'MED'].filter((x) => x !== FAC)].slice(0, 3)) !== null) R.cancelMuster(run);
+      resolvePending();
+    }
+    if (CHR) for (const u of run.units.filter((x) => !x.pos && isFac(x.defId) && R.canDeploy(run, x))) { // 대기 중인 청라 기물이 있으면 청라가 아닌 출전 기물과 바꾼다
+      if (deployed(run).length < R.deployCap(run)) break;
+      const out = deployed(run).filter((x) => !isFac(x.defId) && !R.isRock(x)).sort((a, b) => a.rank - b.rank)[0];
+      if (!out) break;
+      u.pos = out.pos; out.pos = null;
+    }
+    R.autoPlace(run, CHR ? run.units.slice().sort((a, b) => +isFac(b.defId) - +isFac(a.defId)) : run.units);
   };
 
   let n = 0, battles = 0;
@@ -284,7 +303,7 @@ function playRun(seed: number) {
   for (const id of run.inventory) if (id.startsWith('K_')) add('cons', id, { left: 1 });
   for (const u of run.units) if (u.mod?.startsWith('O_')) add('cons', u.mod, { equipped: 1 });
   add('cons', '_occult', { tier: run.occultTier || 0, runs: 1 });
-  runs.push({ seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems, ...(DETAIL ? { det } : {}) });
+  runs.push({ seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, causal: run.causal || 0, king: run.causal ? causalStage(run.causal) : 0, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems, ...(DETAIL ? { det } : {}) });
 }
 
 for (let i = 0; i < COUNT; i++) {

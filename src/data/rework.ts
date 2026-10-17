@@ -55,6 +55,7 @@ export const MINOR_TRAIT_GROW: Record<string, (g: number) => string> = {
   bill: (g) => `[호쾌한 관광객] 해로운 효과 대상 피해 +${pct(0.1 * g)}`,
   eden: (g) => `[밑바닥 생존자] 체력 50% 이하 피해 +${pct(0.2 * g)}`,
   u404: (g) => `[1원칙] 기술마다 피해 +${pct(0.1 * g)} 중첩`,
+  jaehwon: (g) => `[절멸파 수장] 스킬 치명타 확률 +${pct(0.15 * g)}p`,
 };
 
 // ───────── 성장 수치 조회
@@ -489,7 +490,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   phyllis: {
     ctype: 'SPEC', ttype: 'special', faith: 'hades', weapon: K('만능 렌치', 'holy', 0.8, 1, 0.8, 4),
-    factions: ['HEL', 'VOYAGE'], traits: ['INFIL'],
+    factions: ['VOYAGE'], traits: ['INFIL', 'ENG'], // 5차 확장: 헬레니우스 동맹에서 빠지고 엔지니어 추가 (동맹 자리는 미노스)
     trait: {
       name: '균열 회피', desc: '회피 +5%p. 회피하면 공격자에게 타격 위력 100% 반격하고 무작위 적에게 순간이동한다 (0.5초에 1회). [물자 전송] 6초마다 체력 비율이 가장 낮은 아군에게 기술 위력 100% 보호막.',
       effect: { stats: { eva: 0.05 }, hooks: { onTick(b, u, dt) {
@@ -981,7 +982,7 @@ function romaniPull(b: Battle, u: CUnit) {
   if (e.big || e.isBoss) { proc(b, u, e, b.S(u, 'strike') * 1.5, 'phys', 'strike'); return; }
   if (b.dist(u, e) > 1) {
     const c = b.freeCellNear(u.x, u.y);
-    if (c && b.dist(u, c) <= 1) { e.x = e.px = c.x; e.y = e.py = c.y; e.moveT = 0; b.fx(c.x, c.y, 0, 'psy'); }
+    if (c && b.dist(u, c) <= 1) { e.x = e.px = c.x; e.y = e.py = c.y; e.moveT = 0; b.fx(c.x, c.y, 0, 'psy'); b.displaced(u, e, 'pull'); }
   }
   proc(b, u, e, b.S(u, 'strike') * 0.5, 'phys', 'strike');
 }

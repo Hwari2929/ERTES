@@ -7,6 +7,7 @@ import { diffName } from './difficulty';
 import { SYN_BY_ID } from './synergies';
 import { slow } from './kit';
 import { provMult } from '../engine/combat';
+import { KING_GEAR_NAME } from './chungra';
 
 // 장비 등급: 재료(+3) → 고급(같은 재료 2개, 능력치 +12) / 희귀(서로 다른 재료 2개, 능력치 +6 + 특수 효과) · 전설(효과 3배, 조합 불가 · 이벤트 · 상점)
 export const COMPONENTS: { id: string; major: Major; name: string; icon: string }[] = [
@@ -93,6 +94,25 @@ const UNIQUE: Record<string, { name: string; icon: string; desc: string; effect:
       stats: { cdr: 1.5 },
       hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'item.shade', 999, { delta: { eva: 0.1, crit: 0.1 }, label: '그늘' }); } },
     },
+  },
+  // 공왕 무휼 전용 (청라공국 3 · 5 · 7명에 해금, 자동 장착 · 해제 불가 · 일반 기물 장착 불가). data/chungra.ts KING_GEAR
+  U_mh_seal: {
+    name: `[고유] ${KING_GEAR_NAME.U_mh_seal}`, icon: '印', desc: '무휼 전용 · 청라공국 3명에 해금. 모든 주요 능력치 +4, 피해량 경감 10%.',
+    effect: { majors: { vit: 4, pow: 4, mnd: 4, def: 4, agi: 4 }, taken: [red('all', 0.1)] },
+  },
+  U_mh_bow: {
+    name: `[고유] ${KING_GEAR_NAME.U_mh_bow}`, icon: '弓', desc: '무휼 전용 · 청라공국 5명에 해금. 전투력 +8, 공격 속도 +20%. 기본 공격이 대상 주변 1칸의 다른 적에게 사격 위력 40% 물리 피해.',
+    effect: { majors: { pow: 8 }, stats: { atkSpd: 0.2 }, hooks: { onBasic(b, u, t, r) {
+      if (r.miss) return;
+      for (const e of b.around(t, 1, b.enemiesOf(u))) if (e !== t) b.dealDamage(u, e, b.S(u, 'shoot') * 0.4, { elem: 'phys', tag: 'proc', kind: 'shoot' });
+    } } },
+  },
+  U_mh_sword: {
+    name: `[고유] ${KING_GEAR_NAME.U_mh_sword}`, icon: '劍', desc: '무휼 전용 · 청라공국 7명에 해금. 사이오닉 의식검. 정신력 +8, 쿨다운 감소 속도 +30%. 전투 스킬을 쓰면 대상에게 전술 위력 120% 정신 피해를 더한다.',
+    effect: { majors: { mnd: 8 }, stats: { cdr: 0.3 }, hooks: { onSkill(b, u) {
+      const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u));
+      if (t) { b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'psy', ranged: true }); b.dealDamage(u, t, b.P(u, 'tech') * 1.2, { elem: 'psy', tag: 'proc', kind: 'tech' }); }
+    } } },
   },
 };
 export const isLocked = (id: string | null) => !!id && id.startsWith('U_');

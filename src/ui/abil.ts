@@ -22,9 +22,9 @@ export function powKey(ctx: AbilCtx, pow: Pow, tactical = false): Pow | 'tac' {
     if (!c) return 'main';
     if (c.ctype === 'MARK') return 'shoot';
     if (c.ctype === 'VAN') return 'strike';
-    return c.ctype === 'CMD' && !c.isSummon ? 'tac' : 'tech';
+    return c.ctype === 'CMD' && (!c.isSummon || c.mem.tacOk) ? 'tac' : 'tech';
   }
-  return tactical || (ctx.skill && ctx.c?.ctype === 'CMD' && !ctx.c.isSummon) ? 'tac' : pow;
+  return tactical || (ctx.skill && ctx.c?.ctype === 'CMD' && (!ctx.c.isSummon || !!ctx.c.mem.tacOk)) ? 'tac' : pow;
 }
 export function powVal(ctx: AbilCtx, pow: Pow, tactical = false): number | null {
   if (!ctx.b || !ctx.c) return null;

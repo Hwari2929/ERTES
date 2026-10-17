@@ -5,6 +5,7 @@ import { amp, applyLive, inc, red, vuln } from '../engine/effects';
 import { CFG } from '../config';
 import { type Major, MAJORS, type RunState, type Stats, type SynergyId } from '../types';
 import { ALL_ADVANCED, itemEffect, itemInfo } from './items';
+import { CAUSAL, KING_GEAR, KING_GEAR_NAME } from './chungra';
 import { addStacks, blinkTo, harmfulCount, isDebuffed, isHarmful, pct } from './kit';
 import { UNIT_BY_ID } from './units';
 
@@ -190,6 +191,10 @@ function secQuarantine(b: Battle, u: CUnit, t: number) {
   b.emit({ k: 'skillEnd', id: u.id });
 }
 
+/** 청라공국: 청라 기물 피해 증가 (단계별). 무휼은 청라 인원이 아니라 받지 않는다 (무휼은 인과 단계로 성장). 봇 sim (청라 우선 정책) 클리어율을 다른 대형 세력 우선 정책과 맞추려 넣은 몫 */
+export const CHR_DMG = [0.15, 0.4, 0.7, 1.2];
+/** 청라공국: 청라 기물 모든 주요 능력치 (단계별) */
+export const CHR_MAJ = [3, 6, 10, 20];
 /** 칼리토 제국 (5 · 7 · 9): 전투 시작 시 [근위기사] 소환 수 · 공명 등급 비율 */
 export const KAL_GUARDS = [0, 1, 2, 3];
 export const KAL_GUARD_RANK = 0.65;
@@ -378,6 +383,22 @@ export const SYNERGIES: SynDef[] = [
         },
       } : undefined,
     }),
+  },
+
+  {
+    id: 'CHR', name: '청라공국', kind: 'faction', tiers: [3, 5, 7, 9], color: '#3fa8b8', icon: '靑',
+    desc: `필서 속에 기록된 고대 공국. 공명도가 아닌 인과율로 공왕을 키운다.\n· 3명 이상이면 전투 시작 시 [공왕 무휼]을 소환합니다. 무휼은 출전 칸을 차지하지 않고 포탑처럼 놓입니다 (편성 화면에서 끌어 옮기기, 판매 · 대기석 불가).\n· 무휼은 공명도를 받지 않습니다. 이긴 전투마다 인과율을 모아 인과 단계 1~${CAUSAL.max}로 성장합니다.\n· 인과율 1회 수집량 = (${CAUSAL.base} + 장비 점수 ÷ ${CAUSAL.gearDiv}) × 단계 배율. 장비 점수 = 출전 아군이 장착한 장비 (재료 ${CAUSAL.gearPts.C} · 고급 · 희귀 ${CAUSAL.gearPts.A} · 전설 ${CAUSAL.gearPts.L}, 개조부품 · 포탑 장비 · 무휼 전용 장비 제외).\n· 청라 기물이 3명 아래로 줄어도 쌓은 인과율은 남습니다.\n· 3 · 5 · 7명에 처음 닿으면 무휼 전용 장비가 해금되어 자동으로 장착됩니다 (일반 장비는 장착할 수 없지만 장비 점수에는 셉니다).`,
+    tierDesc: [
+      `청라 기물 모든 주요 능력치 +${CHR_MAJ[0]} · 피해 +${pct(CHR_DMG[0])}, 전투 시작 시 공왕 무휼 소환, 인과율 수집 ×${CAUSAL.mult[1]}, 무휼 전용 장비 [${KING_GEAR_NAME[KING_GEAR[0]]}] 해금`,
+      `청라 기물 모든 주요 능력치 +${CHR_MAJ[1]} · 피해 +${pct(CHR_DMG[1])}, 인과율 수집 ×${CAUSAL.mult[2]}, 무휼 전용 장비 [${KING_GEAR_NAME[KING_GEAR[1]]}] 해금`,
+      `청라 기물 모든 주요 능력치 +${CHR_MAJ[2]} · 피해 +${pct(CHR_DMG[2])}, 인과율 수집 ×${CAUSAL.mult[3]}, 무휼 전용 장비 [${KING_GEAR_NAME[KING_GEAR[2]]}] 해금`,
+      `[필서 개봉] 인과율 수집 ×${CAUSAL.mult[4]}, 청라 기물 모든 주요 능력치 +${CHR_MAJ[3]} · 피해 +${pct(CHR_DMG[3])}`,
+    ],
+    member: (t, ctx) => ({ majors: { vit: T(t, CHR_MAJ), pow: T(t, CHR_MAJ), mnd: T(t, CHR_MAJ), def: T(t, CHR_MAJ), agi: T(t, CHR_MAJ) }, mods: [inc('all', T(t, CHR_DMG))], hooks: { onStart(b, u) {
+      const chr = b.alliesOf(u).filter((a) => !a.isSummon && a.synergies.has('CHR'));
+      if (chr[0] !== u) return; // 대표 청라 기물 1명만 소환
+      CHR_HOOK.spawn?.(b, u, ctx, t);
+    } } }),
   },
 
   // ═══════════════ 특성
@@ -649,6 +670,23 @@ export const SYNERGIES: SynDef[] = [
       return { majors: { vit: 2 * n, pow: 2 * n, mnd: 4 * n, def: 2 * n, agi: 2 * n } };
     },
   },
+  {
+    id: 'KING', name: '공왕', kind: 'trait', tiers: [1], color: '#c8303a', icon: '王',
+    desc: '무휼 전용. 청라공국 시너지(3명 이상)가 전투 시작 때 소환합니다. 공명 등급 대신 인과 단계로 성장하고, 영입 · 판매 · 상점에 나오지 않습니다. 청라공국 인원에는 세지 않습니다.',
+    tierDesc: ['인과 단계 1~10: 단계마다 모든 주요 능력치 · 위력 · 피해 · 최대 체력 상승, 4 · 7 · 10단계에 천명 기록 강화'],
+  },
+  {
+    id: 'SANGUN', name: '산군', kind: 'trait', tiers: [1], color: '#e07a1f', icon: '虎',
+    desc: '궁오 전용. 범이 된 산군. 체력이 처음 50% 이하가 되면 [범의 형상]으로 깨어납니다.',
+    tierDesc: ['[범의 형상] 체력이 처음 50% 이하가 되면 8초간 피해 +40% · 흡혈 15%, 주변 1칸 적 1초 공포'],
+    member: () => ({ hooks: { onHurt(b, u) {
+      if (u.mem.tigerForm || b.hpPct(u) > 0.5) return;
+      u.mem.tigerForm = 1;
+      b.buff(u, u, 'sangun.form', 8, { mods: [inc('all', 0.4)], delta: { lifesteal: 0.15 }, label: '범의 형상' });
+      for (const e of b.around(u, 1, b.enemiesOf(u))) b.applyStatus(u, e, { type: 'fear', key: 'fear', dur: 1 });
+      b.fx(u.x, u.y, 1, 'phys');
+    } } }),
+  },
 ];
 
 export const SYN_BY_ID = Object.fromEntries(SYNERGIES.map((s) => [s.id, s])) as Record<SynergyId, SynDef>;
@@ -675,5 +713,7 @@ export function aceTargetUid(run: RunState): string | null {
 
 /** 엔지니어 포탑 생성 (build.ts 에서 주입: 순환 import 방지) */
 export const ENG_HOOK: { spawn?: (b: Battle, lead: CUnit, engs: CUnit[], n: number) => void } = {};
+/** 청라공국 공왕 무휼 생성 (build.ts 에서 주입): lead = 대표 청라 기물, t = 청라 단계 */
+export const CHR_HOOK: { spawn?: (b: Battle, lead: CUnit, ctx: EffectCtx, t: number) => void } = {};
 /** 칼리토 근위기사 생성 (build.ts 에서 주입) */
 export const KAL_HOOK: { spawn?: (b: Battle, lead: CUnit, n: number) => void } = {};

@@ -1,4 +1,4 @@
-// 성유물 13종: 디바인 전용 장비. 장착한 성유물이 곧 신권 대행 (전투당 1회).
+// 성유물 15종: 디바인 전용 장비. 장착한 성유물이 곧 신권 대행 (전투당 1회).
 // 신권 대행의 지속 효과는 발동한 뒤 전투가 끝날 때까지 유지된다. k = 강화 배율 (강화하면 다음 전투 한정 3)
 import type { Battle, CUnit } from '../engine/combat';
 import { inc, red, vuln } from '../engine/effects';
@@ -97,6 +97,30 @@ export const RELICS: RelicDef[] = [
       for (const a of b.around(u, 2, b.alliesOf(u))) a.mem.invulnUntil = b.t + 3;
       for (const a of b.alliesOf(u)) b.buff(u, a, 'rel.aspis', FOREVER, { taken: [red('all', Math.min(0.5, 0.1 * k))], label: '팔랑크스 대형' });
       b.fx(u.x, u.y, 2, 'holy', 'buff');
+    } },
+  { id: 'gauge', name: '절대 영점 측량기', owner: 'dobin', price: 25, enh: 30,
+    desc: (k) => `모든 적에게 주력 위력 ${pct(2.5 * k)} 신성 피해 + 2초 고정 (움직일 수 없음). 전투 끝까지 아군 감시 포탑 공격 속도 +${pct(0.4 * k)}.`,
+    act(b, u, k) {
+      for (const e of b.enemiesOf(u)) {
+        b.dealDamage(u, e, mainPow(b, u) * 2.5 * k, { elem: 'holy', tag: 'skill', kind: 'tech', canMiss: false });
+        if (e.alive) b.applyStatus(u, e, { type: 'buff', key: 'root', dur: 2, label: '고정' });
+      }
+      for (const a of b.alliesOf(u)) if (a.defId === 'turret') b.buff(u, a, 'rel.gauge', FOREVER, { delta: { atkSpd: 0.4 * k }, label: '영점 조정' });
+      b.fx(u.x, u.y, 0, 'holy', 'buff');
+    } },
+  { id: 'bell', name: '흰 무녀의 방울', owner: 'gayoung', price: 25, enh: 30,
+    desc: (k) => `아군 전원 해로운 효과 제거 + 최대 체력 ${pct(0.12 * k)} 회복. 전투 끝까지 자신의 피해 +${pct(0.2 * k)}, 주변 1칸 적이 받는 피해 +${pct(0.1 * k)}.`,
+    act(b, u, k) {
+      for (const a of b.alliesOf(u)) {
+        a.statuses = a.statuses.filter((s) => s.type === 'buff' && !s.taken?.some((t) => t.kind === 'vuln'));
+        b.heal(u, a, b.S(a, 'maxHp') * 0.12 * k);
+      }
+      b.buff(u, u, 'rel.bell', FOREVER, { mods: [inc('all', 0.2 * k)], label: '방울 소리' });
+      u.hooks.push({ onTick(bb, self) {
+        if (!self.alive) return;
+        for (const e of bb.around(self, 1, bb.enemiesOf(self))) bb.applyStatus(self, e, { type: 'buff', key: 'rel.bell.v', dur: 0.4, taken: [vuln('all', 0.1 * k)], label: '' });
+      } });
+      b.fx(u.x, u.y, 1, 'holy', 'heal');
     } },
   // ── 순례 전용
   { id: 'key', name: '하데스의 열쇠', price: 30, enh: 40,

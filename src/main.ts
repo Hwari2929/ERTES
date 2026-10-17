@@ -23,10 +23,11 @@ import * as BAR from './ui/bar';
 import * as ACH from './ui/achieve';
 import * as TFX from './ui/themefx';
 import {
-  activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyBaseMoveSpd, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
+  activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, chrTier, deployed, kingCell, kingOn, kingState, enemyBaseMoveSpd, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
 import { Battle, controlNames, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME, zocHoldFormula, zocHoldOf, zocRule, zocShort } from './engine/combat';
 import * as R from './engine/run';
+import { CAUSAL, causalGain, causalLeft, causalNeed, causalStage, gearScore, KING, KING_GEAR, KING_GEAR_NAME, KING_MS_TEXT, kingStageText } from './data/chungra';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
 import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SynergyId, type UnitState } from './types';
@@ -102,7 +103,7 @@ function savePref(k: string, v: unknown) {
 }
 
 type Screen = 'title' | 'intro' | 'diffsel' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'invest' | 'over' | 'codex' | 'bar' | 'oath';
-type Sel = { k: 'unit'; uid: string } | { k: 'turret'; i: number } | { k: 'item'; idx: number } | { k: 'relic'; id: string } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
+type Sel = { k: 'unit'; uid: string } | { k: 'turret'; i: number } | { k: 'king' } | { k: 'item'; idx: number } | { k: 'relic'; id: string } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
 
 const app = {
   screen: 'title' as Screen,
@@ -298,7 +299,7 @@ function topbar() {
       <span class="pill" title="페이즈 · 노드">P<b>${r.phase}</b> · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>
       <span class="pill hp" title="체력">${lineIcon('r.hp', 'li')}<b>${r.hp}</b>/${r.maxHp}</span>
       <button class="pill cr" data-a="interest-info" title="${esc(`에너지 크레딧 ${r.credits}\n${it.tip}`)}">${CR}<b>${r.credits}</b>${r.over ? '' : `<span class="cr-int${it.i.interest ? '' : ' zero'}${it.i.raw >= it.i.cap ? ' max' : ''}">+${it.i.interest}<span class="cr-int-tx"> 이자</span></span>`}</button>
-      ${despairPill(r)}${OATH.oathPill(r)}
+      ${despairPill(r)}${OATH.oathPill(r)}${kingPill(r)}
       ${extra.length ? `<details class="pill more"><summary title="기타 자원">${lineIcon('r.more', 'li')}<span class="more-tx">기타</span></summary><ul class="more-list">${extra.join('')}</ul></details>` : ''}
     </div>
     ${app.screen === 'battle' ? '' : `<button class="btn ghost menu-btn" data-a="menu" title="메뉴" aria-label="메뉴">${lineIcon('r.menu', 'li')}</button>`}
@@ -306,6 +307,12 @@ function topbar() {
   </header>`;
 }
 
+/** 상단 바: 공왕 무휼 인과 단계 (인과율이 있거나 청라공국이 켜져 있을 때). 누르면 무휼 상세 */
+function kingPill(r: RunState) {
+  if (!r.causal && !kingOn(r)) return '';
+  const st = causalStage(r.causal || 0), lf = causalLeft(r.causal || 0);
+  return `<button class="pill king-pill" data-a="king-info" title="${esc(`공왕 무휼 · 누적 인과율 ${r.causal || 0}\n이긴 전투마다 (${CAUSAL.base} + 장비 점수 ÷ ${CAUSAL.gearDiv}) × 청라 단계 배율`)}">${lineIcon('a.power', 'li')}<span class="kp-tx">인과</span><b>${st}단계</b><span class="kp-next">${lf ? ` · 다음까지 ${lf}` : ' · 최고'}</span></button>`;
+}
 /** 시너지 토큰: 마름모 아이콘(누르면 상세) + 활성 단계 원 + 이름 · 구성 단계 (+ note: 목록의 보조 줄) */
 function synToken(id: string, c: number, extra = '', note = '') {
   const sd = SYN_BY_ID[id as SynergyId];
@@ -892,7 +899,7 @@ function mapScreen(run: RunState) {
       ${mapAhead(run, pick, enter)}
       ${shipPanel(run, pet >= 2 ? `<button class="btn ship-loan" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 ${CR}+25 · 상환 30</button>` : '')}
     </section>
-    <aside class="side side-tabs${app.sel?.k === 'unit' ? ' has-detail' : ''}">${mapDetail(run)}
+    <aside class="side side-tabs${app.sel?.k === 'unit' || app.sel?.k === 'king' ? ' has-detail' : ''}">${mapDetail(run)}
       <div class="st-tabs" role="tablist">${['파티', '환경', '기록'].map((t, i) => `<button role="tab" class="st-tab" data-a="map-tab" data-v="${i}" aria-selected="${app.mapTab === i}">${t}</button>`).join('')}<span class="st-ink" style="--i:${app.mapTab}"></span></div>
       <div class="st-view"><div class="st-track" style="--i:${app.mapTab}">
       <section class="st-pane" role="tabpanel" aria-label="파티">
@@ -904,6 +911,7 @@ function mapScreen(run: RunState) {
       <section class="st-pane" role="tabpanel" aria-label="환경">
       <div class="env-hero" style="--c:${fieldOf(run.field).color};background-image:url('${bgURL(`field_${fieldOf(run.field).id}`)}'), linear-gradient(165deg, color-mix(in srgb, ${fieldOf(run.field).color} 40%, #0b0d14), #0b0d14 75%)"><span class="env-kicker">현재 전장</span><b>${esc(fieldOf(run.field).name)}</b><span>${esc(fieldOf(run.field).region)}</span></div>
       <button class="field-btn" data-a="field-info" title="전장 브리핑 다시 보기">${fieldCard(run, true)}</button>
+      ${kingEnv(run)}
       ${run.quests.length ? `<h2>헬레니우스 퀘스트</h2><ul class="quests">${run.quests.map((q) =>
         `<li class="${q.done ? 'done' : ''}">${esc(R.questText(q))} <span class="muted">${Math.min(q.progress, q.target)}/${q.target} · 보상 ${R.questRewardText(q)}</span></li>`).join('')}</ul>` : ''}
       ${run.privilege ? `<h2>특권</h2><ul class="globals"><li><b>${esc(R.privilegeName(run.privilege))}</b> <span class="muted">${esc(R.privilegeDesc(run.privilege))}</span></li></ul>` : ''}
@@ -920,10 +928,23 @@ function mapScreen(run: RunState) {
     ${app.sel?.k === 'unit' ? statPopHtml(run) : ''}
   </main>`;
 }
+/** 지도 환경 탭: 청라공국 · 인과율 (인과율이 있거나 청라가 켜져 있을 때) */
+function kingEnv(run: RunState) {
+  if (!run.causal && !kingOn(run)) return '';
+  const pts = run.causal || 0, n = causalStage(pts), lf = causalLeft(pts), t = chrTier(run), g = causalGain(run, t);
+  return `<h2>청라공국 · 인과율</h2><ul class="globals"><li><button class="pill-btn" data-a="king-info"><b>공왕 무휼 · 인과 ${n}단계</b></button> <span class="muted">${lf ? `다음까지 ${lf}` : '최고 단계'} · 누적 ${pts}</span></li>
+    <li><b>수집</b> <span class="muted">청라 ${t ? `×${CAUSAL.mult[t]}` : '꺼짐 (3명부터)'} · 장비 점수 ${gearScore(run)}${t ? ` · 다음 승리 +${g.total} (장비 +${g.gear})` : ''}</span></li>
+    <li><b>단계 효과</b> <span class="muted">${esc(kingStageText(n))}</span></li></ul>`;
+}
 /** 메인 화면 상세 보기: 파티 아이콘을 누르면 오른쪽 패널(파티 · 환경 · 기록 자리)에 기물 상세가 열린다 */
 let lastMapDetail: string | null = null;
 function mapDetail(run: RunState) {
   const sel = app.sel;
+  if (sel?.k === 'king') {
+    const fresh = lastMapDetail !== 'king';
+    lastMapDetail = 'king';
+    return `<aside class="map-detail${fresh ? ' in' : ''}" aria-label="무휼 상세">${kingDetail(run, dBar('map-unit'))}</aside>`;
+  }
   const u = sel?.k === 'unit' ? run.units.find((x) => x.uid === sel.uid) : undefined;
   if (!u) { lastMapDetail = null; return ''; }
   const fresh = lastMapDetail !== u.uid;
@@ -1161,7 +1182,8 @@ function prepScreen(run: RunState) {
   const { w: fw, h: fh } = boardDims(n);
   // 엔지니어 감시 포탑이 있으면 양옆 가장자리 열(포탑 전용)까지 보여 준다
   const tcs = turretCells(run, n);
-  const ex = tcs.length ? PAD : 0;
+  const kc = kingCell(run, n); // 청라공국: 공왕 무휼 (출전 칸 밖, 포탑처럼 끌어 옮긴다)
+  const ex = tcs.length || kc ? PAD : 0;
   const bw = fw - 2 * PAD + 2 * ex, bh = fh - 2 * PAD;
   const cellBox = (x: number, y: number) => `left:${((x - PAD + ex) / bw) * 100}%;top:${((y - PAD) / bh) * 100}%;width:${100 / bw}%;height:${100 / bh}%`;
   // 돌격가 경계 (편성 화면에서만 표시): 출전한 아군 돌격가 주변 CFG.zoc.r 칸. 칸 툴팁 = 그 돌격가의 도발 배율로 계산한 교전 시간 (겹치면 긴 쪽)
@@ -1181,7 +1203,7 @@ function prepScreen(run: RunState) {
       const mine = y >= ALLY_Y0 && y <= ALLY_Y1;
       const enemyZone = y < PAD + ZONE;
       const zc = zocCells.has(`${x},${y}`);
-      if (x < PAD || x >= fw - PAD) { cells += mine ? `<div class="cell tpad${zc ? ' zoc' : ''}" data-drop="tcell:${x}:${y}" title="포탑 전용 칸${zc ? ` · ${esc(zocShort(zocCells.get(`${x},${y}`)))}` : ''}"></div>` : `<div class="cell edge${zc ? ' zoc' : ''}"${zc ? zocTip(x, y) : ''}></div>`; continue; }
+      if (x < PAD || x >= fw - PAD) { cells += mine ? `<div class="cell tpad${zc ? ' zoc' : ''}" data-drop="tcell:${x}:${y}" title="포탑 · 공왕 전용 칸${zc ? ` · ${esc(zocShort(zocCells.get(`${x},${y}`)))}` : ''}"></div>` : `<div class="cell edge${zc ? ' zoc' : ''}"${zc ? zocTip(x, y) : ''}></div>`; continue; }
       cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}${zc ? ' zoc' : ''}" ${mine ? `data-drop="cell:${x}:${y}"` : ''}${zc ? zocTip(x, y) : ''}></div>`;
     }
   let units = '';
@@ -1209,6 +1231,13 @@ function prepScreen(run: RunState) {
         <span class="tk-side"><i class="cat-mech" title="기계 · 구조물: ${esc(CATEGORY_RULE.struct)}">${lineIcon('k.mech', 'li')}</i></span>
         <span class="tk-items">${slots}</span></div></div>`;
   });
+  if (kc) {
+    const kd = UNIT_BY_ID.muhyul, ks = kingState(run), st = causalStage(run.causal || 0);
+    units += `<div class="u side0 tk placed turret-tk king-tk${app.sel?.k === 'king' ? ' sel' : ''}" style="${cellBox(kc.x, kc.y)}" data-drag="king" data-drop="king" data-a="sel-king" data-syns="KING" title="${esc(`공왕 무휼 · 인과 ${st}단계 — 청라공국이 소환 (출전 칸 밖). 끌어서 옮기기 (판매 · 대기석 불가, 전용 장비 자동 장착)`)}">
+      <div class="tk-card"><div class="tk-art">${sprite(kd, '')}</div>
+        <span class="tk-side"><b class="tk-rank" title="인과 ${st}단계">${st}</b><i class="tt-${kd.ttype}" title="${TTYPE_NAME[kd.ttype]}">${typeIcon(kd.ttype)}</i><i class="ct-${kd.ctype}" title="${CTYPE_NAME[kd.ctype]}">${typeIcon(kd.ctype)}</i></span>
+        <span class="tk-items">${[0, 1, 2].map((k) => (ks.items[k] ? `<span class="tk-it" title="${esc(itemInfo(ks.items[k]!).name)}">${itemIcon(ks.items[k]!)}</span>` : itemIcon(null))).join('')}</span></div></div>`;
+  }
   if (node?.enc) node.enc.enemies.forEach((s, i) => {
     const e = ENEMY_BY_ID[s.defId];
     const sel = app.sel?.k === 'enemy' && app.sel.i === i;
@@ -1269,6 +1298,49 @@ function turretDetail(run: RunState, i: number, bar: string) {
   </div>`;
 }
 
+/** 공왕 무휼 상세 (기물 상세 형식): 인과 단계 · 인과율 · 능력치 · 전용 장비 · 능력. 미리보기 전투에서 실제 수치를 읽는다 */
+function kingDetail(run: RunState, bar: string) {
+  const d = UNIT_BY_ID.muhyul, vu = kingState(run);
+  const counts = synergyCounts(deployed(run), run);
+  const b = new Battle(9, 9, new Rng(1), { phase: run.phase, credits: run.credits });
+  b.keepEvents = false;
+  const c = buildAlly(b, run, vu, counts);
+  c.isSummon = true; c.mem.tacOk = 1; c.mem.king = 1;
+  for (const o of deployed(run)) b.add(buildAlly(b, run, o, counts));
+  b.add(c);
+  b.computeTac();
+  const pts = run.causal || 0, n = causalStage(pts), left = causalLeft(pts), t = chrTier(run);
+  const lo = causalNeed(n), hi = causalNeed(Math.min(CAUSAL.max, n + 1));
+  const prog = n >= CAUSAL.max ? 100 : Math.round(((pts - lo) / Math.max(1, hi - lo)) * 100);
+  const g = causalGain(run, t);
+  const tm = totalMajors(vu, unitEffects(run, vu, counts, true));
+  const gearRow = KING_GEAR.map((id, i) => vu.items.includes(id)
+    ? `<div class="t-slot">${itemIcon(id)}<div><b>${esc(itemInfo(id).name)}</b><div class="small muted">${statIc(esc(itemInfo(id).desc))}</div></div></div>`
+    : `<div class="t-slot empty">${itemIcon(null)}<span class="muted small">청라공국 ${[3, 5, 7][i]}명에 처음 닿으면 [${esc(KING_GEAR_NAME[id])}] 해금 · 자동 장착</span></div>`).join('');
+  return `<div class="detail dp-unit dp-king">${bar}
+    <div class="d-hero">${hero(d.id) || `<div class="hero none">${sprite(d, 'spr big')}</div>`}
+      <div class="dh-name"><b>${esc(d.name)}</b><span class="dh-types"><i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i><i>공왕 · 소환</i></span></div></div>
+    <div class="dh-rank king-rank"><span class="dh-r" title="공명 등급 대신 인과 단계">인과 ${n}단계</span><span class="xpbar" title="누적 인과율 ${pts}"><i style="width:${prog}%"></i></span><span class="small muted">${n >= CAUSAL.max ? '최고 단계' : `다음까지 ${left}`}</span></div>
+    <p class="small muted">누적 인과율 <b>${pts}</b> · 청라공국 ${counts.CHR || 0}명 (수집 ×${CAUSAL.mult[t] || 0})${t ? ` · 다음 승리 예상 +${g.total} (장비 점수 ${g.score} → +${g.gear})` : ' · 3명 이상이면 소환 · 수집'}</p>
+    ${kingOn(run) ? '' : '<p class="small warn">청라공국 기물이 3명 이상 출전해야 전투에 소환됩니다. 쌓은 인과율은 그대로 남습니다.</p>'}
+    ${powRow(b, c, d, true)}
+    <h3>인과 단계 효과</h3><p class="small">${esc(kingStageText(n))}</p>
+    <ul class="small king-ms">${KING_MS_TEXT.map((x, i) => `<li class="${n >= KING.ms[i] ? 'on' : 'muted'}">${esc(x)}</li>`).join('')}</ul>
+    <h3>전용 장비 <span class="muted small">일반 장비는 장착할 수 없음 (장비 점수에는 셈)</span></h3><div class="t-gear">${gearRow}</div>
+    <div class="mj-wrap"><div class="mj-head"><h3>주요 능력치</h3></div>
+    <div class="majors">${MAJORS.map((m) => { const add = tm[m] - d.base[m]; return `<div class="major"><span>${majorIcon(m)}${MAJOR_NAME[m]}</span><span class="mbar"><i style="width:${Math.min(100, tm[m] * 3)}%"></i></span><b>${tm[m]}</b>${add ? `<small class="${add > 0 ? 'up' : 'down'}">${add > 0 ? '+' : ''}${add}</small>` : ''}</div>`; }).join('')}</div></div>
+    <dl class="stats"><dt>최대 체력</dt><dd>${fmt(b.S(c, 'maxHp'))}</dd><dt>사격 위력</dt><dd>${fmt(b.S(c, 'shoot'))}</dd><dt>방어도</dt><dd>${fmt(b.S(c, 'armor'))}</dd><dt>사거리</dt><dd>${b.S(c, 'range')}</dd></dl>
+    <h3>능력</h3>
+    <div class="abils">
+      ${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem, d.id)}
+      ${traitGroup(d, null, run, b, c)}
+      ${skillCard(d, b, c)}
+      ${ultCard(d, b, c)}
+    </div>
+    <p class="lore">${esc(d.lore)}</p>
+  </div>`;
+}
+
 /** 편성 표 오른쪽 세로 보관 칸 (장비 · 이후 소모품). 기물에게 끌어다 장착, 재료끼리 겹치면 조합 */
 function invRail(run: RunState) {
   const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
@@ -1324,7 +1396,7 @@ function statLines(c: CUnit, b: Battle) {
   const lines: [string, string, string, string?][] = [
     ['r.hp', '최대 체력', fmt(S('maxHp'))], ['a.heal', '회복 효율', '+' + pctTxt(S('healEff'))],
     ['p.shoot', '사격 위력', fmt(S('shoot'))], ['p.strike', '타격 위력', fmt(S('strike'))], ['p.tech', '기술 위력', fmt(S('tech'))],
-    ...(c.ctype === 'CMD' && !c.isSummon ? [['p.tac', '전술 위력', fmt(b.tacPower(c))] as [string, string, string]] : []),
+    ...(c.ctype === 'CMD' && (!c.isSummon || c.mem.tacOk) ? [['p.tac', '전술 위력', fmt(b.tacPower(c))] as [string, string, string]] : []),
     ['u.target', '명중', '+' + pctTxt(S('acc'))], ['u.finish', '치명타', pctTxt(S('crit'))], ['a.power', '치명타 피해', pctTxt(S('critDmg'))], ['a.stun', '효과 명중', '+' + pctTxt(S('effHit'))],
     ['a.shield', '방어도', `${fmt(armor)} (물리 -${pctTxt(armor / (armor + CFG.armorK))})`], ['a.reason', '효과 저항', '+' + pctTxt(S('effRes'))],
     ['a.speed', '이동 속도', pctTxt(S('moveSpd')), moveRule(c)], ['a.evade', '회피', pctTxt(S('eva'))],
@@ -1361,12 +1433,25 @@ function previewAlly(run: RunState, u: UnitState) {
 }
 
 // ───────────────────────── 능력 (통일 형식 · 누르면 좌측 상세 팝업)
+/** 아이콘이 아직 없는 능력: 비슷한 기존 아이콘을 임시로 쓴다 (청라공국 · 미노스, 사용자 확인 뒤 scripts/nai_icon.mjs 로 새로 뽑는다) */
+const ABIL_ICON_ALIAS: Record<string, string> = {
+  'weapon.muhyul': 'weapon.odysseus', 'skill.muhyul': 'skill.odysseus', 'trait.muhyul': 'trait.hiiro', 'ult.muhyul': 'ult.falcon',
+  'weapon.dobin': 'weapon.gebek', 'skill.dobin': 'skill.bjorn', 'trait.dobin': 'trait.west',
+  'weapon.siu': 'weapon.eden', 'skill.siu': 'skill.sarma', 'trait.siu': 'trait.nadir',
+  'weapon.jaehwon': 'weapon.mirinae', 'skill.jaehwon': 'skill.mirinae', 'trait.jaehwon': 'trait.odysseus',
+  'weapon.juseong': 'weapon.temur', 'skill.juseong': 'skill.temur', 'trait.juseong': 'trait.grenholm', 'ult.juseong': 'ult.temur',
+  'weapon.clover': 'weapon.u404', 'skill.clover': 'skill.orca', 'trait.clover': 'trait.yupito',
+  'weapon.hana': 'weapon.hiiro', 'skill.hana': 'skill.hiiro', 'trait.hana': 'trait.romani',
+  'weapon.gayoung': 'weapon.exile', 'skill.gayoung': 'skill.kyle', 'trait.gayoung': 'trait.phyllis',
+  'weapon.gungo': 'weapon.mingki', 'skill.gungo': 'skill.sarma', 'trait.gungo': 'trait.temur',
+  'weapon.minos': 'weapon.yelena', 'skill.minos': 'skill.onyx', 'trait.minos': 'trait.lars',
+};
 /** 능력 문장 계산 맥락. 전투 밖(도감 · 상세)에서는 기물 기본 스킬 파라미터로 @파라미터를 채운다 */
 const actx = (b: Battle | null, c: CUnit | null, skill = false, d?: UnitDef | null): AB.AbilCtx => ({ b, c, p: c?.sk || d?.skill.params || {}, skill });
 const abilOn = (k: string) => (app.abilPop === k ? ' on' : '');
 /** 능력 아이콘 토큰 (없으면 빈 문자열). 키: skill.<기물> · trait.<기물> · ult.<기물> · weapon.<기물> · cantrip/passive.<전공> · faith.<신앙> */
 function abTok(ic?: string) {
-  const src = ic ? ABIL_ICONS[ic] : '';
+  const src = ic ? ABIL_ICONS[ic] || ABIL_ICONS[ABIL_ICON_ALIAS[ic]] : '';
   return src ? `<img class="ab-tok" src="${src}" alt="" draggable="false">` : '';
 }
 function abilCard(key: string, kind: keyof typeof AB_KIND, name: string, meta: string, body: string, extra = '', ic?: string) {
@@ -1965,6 +2050,7 @@ function detailPanel(run: RunState, extra = '') {
     </div>`;
   }
   if (sel?.k === 'turret') return turretDetail(run, sel.i, bar);
+  if (sel?.k === 'king') return kingDetail(run, bar);
   if (sel?.k !== 'unit') return prepBrief(run);
   const u = run.units.find((x) => x.uid === sel.uid);
   if (!u) return '';
@@ -2030,7 +2116,7 @@ function applySpeed() {
   if (tag) tag.hidden = !slow;
 }
 /** 전투 화면 가로 여유 칸: 엔지니어 포탑이 있으면 편성 화면처럼 양옆 가장자리 열(포탑 칸)까지 보여 준다 */
-const bviewEx = (run: RunState) => (!app.zoomOut && turretCount(run) > 0 ? PAD : 0);
+const bviewEx = (run: RunState) => (!app.zoomOut && (turretCount(run) > 0 || kingOn(run)) ? PAD : 0);
 function battleScreen(run: RunState) {
   const enc = run.node!.enc!;
   return `<main class="wrap battle">
@@ -2090,7 +2176,7 @@ function updateMeter(force = false) {
 /** 보상 줄: 종류별 아이콘 + 내용 + 수치 */
 function resLine(l: string, i: number) {
   const STREAK = lineIcon('r.streak', 'li streak');
-  const icon = /연승/.test(l) ? STREAK : /공명도/.test(l) ? RES : /명성/.test(l) ? lineIcon('a.fame', 'li fame') : /권능/.test(l) ? lineIcon('n.pilgrim', 'li faith')
+  const icon = /연승/.test(l) ? STREAK : /인과|청라공국/.test(l) ? lineIcon('a.power', 'li faith') : /공명도/.test(l) ? RES : /명성/.test(l) ? lineIcon('a.fame', 'li fame') : /권능/.test(l) ? lineIcon('n.pilgrim', 'li faith')
     : /승리 보상|이자|실적|정산|보험금|상환|판매|크레딧/.test(l) ? CR : /패배|체력/.test(l) ? lineIcon('r.hp', 'li bad') : lineIcon('r.more', 'li');
   const m = l.match(/^(.*?)\s*([+-]\d+)(.*)$/);
   const body = m ? `<span class="rl-t">${esc(m[1])}${m[3] ? ` <small>${esc(m[3].trim())}</small>` : ''}</span><b class="rl-v${m[2].startsWith('-') ? ' neg' : ''}">${esc(m[2])}</b>` : `<span class="rl-t">${esc(l)}</span>`;
@@ -3144,7 +3230,7 @@ function aggSyn(b: Battle): SynAgg[] {
 }
 const synBadge = (x: SynAgg) => `<span class="syn-src" style="color:${x.color}" title="시너지 효과">${x.icon}</span>`;
 function aggAllies(b: Battle): Agg[] {
-  return b.units.filter((u) => u.side === 0 && !u.isSummon).map((u) => {
+  return b.units.filter((u) => u.side === 0 && (!u.isSummon || u.mem.king)).map((u) => { // 공왕 무휼: 시너지가 부르지만 기물 정의가 있어 자기 줄
     const parts = [u, ...b.units.filter((s) => s.owner === u)];
     const elem: Record<string, number> = {};
     for (const p of parts) for (const [k, x] of Object.entries(p.counters.elem)) elem[k] = (elem[k] || 0) + (x || 0);
@@ -3309,7 +3395,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
   const ic2 = (id: string, tag = '') => `<button class="tk-it${app.bPick === `it:${id}` ? ' on' : ''}" data-a="bpick" data-v="it:${id}" title="${esc(itemInfo(id).name)}${tag}">${itemIcon(id)}</button>`;
   const eq = [...items.filter((x): x is string => !!x).map((x) => ic2(x)), ...(mod ? [ic2(mod)] : []), ...temp.map((x) => ic2(x, u.side === 1 ? '' : ' (임시)'))];
   let head = '', abils = '', pop = '';
-  if (u.side === 0 && !u.isSummon) {
+  if (u.side === 0 && (!u.isSummon || u.mem.king)) {
     const d = UNIT_BY_ID[u.defId];
     const pv = provChip(b, u);
     head = heroHead(d.id, sprite(u, 'spr big'), d.name, allyTags(d)) + (pv ? `<div class="d-pows">${pv}</div>` : '');
@@ -3415,7 +3501,7 @@ let cxScroll = false;
 const cxH = (): CX2.CxH => ({ itemIcon, augIcon, sprite: (d) => sprite(d), abTok, statIc, relicTok: (id) => relicTok(id), majorIcon: (m) => majorIcon(m), bust: (id) => standImg(id, 'cx-bust', true), typeIcon });
 /** 도감 · 기물: 초상화 카드 목록 (묶기 · 정렬 · 검색은 codex2.ts) + 고른 기물의 큰 일러스트 · 요약 · 능력 · 시너지 */
 function codexUnits(m: ReturnType<typeof loadMeta>) {
-  const known = (d: UnitDef) => !d.eventOnly || !!m.units[d.id];
+  const known = (d: UnitDef) => !d.eventOnly || !!d.king || !!m.units[d.id]; // 공왕 무휼은 늘 공개 (청라공국 시너지 설명의 일부)
   const { html, first } = CX2.unitsList(cxH(), { group: app.codexGroup, sel: app.codexSel, known });
   const d = UNIT_BY_ID[app.codexSel || first || ''];
   const detail = d && known(d) ? codexDetail(d, m) : `<div class="cx-empty muted small">기물을 고르면 시너지 · 능력 · 역할군 · 추천 장비 · 이야기를 볼 수 있습니다.</div>`;
@@ -3449,7 +3535,8 @@ function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
     <h3>능력 <span class="cx-hn">1등급 · 장비 없음 기준</span></h3>
     <div class="cx-ud-abil"><div class="abils">${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem, d.id)}${traitGroup(d, null, null, b, c)}${skillCard(d, b, c)}${summonSection(d, b, c, sumScope(null))}${voyAbil(d, null, null)}</div>
     <div class="abils">${ultCard(d, b, c)}${faithAbil(d, null, null)}${ttSection(d, null, null, b, c)}${relicSection(d, null, null, c)}</div></div>
-    <div class="cx-ud-more"><div><h3>추천 장비 <span class="cx-hn">${CTYPE_NAME[d.ctype]}</span></h3><ul class="rc-list">${reco}</ul></div>
+    ${d.king ? `<div class="cx-ud-king">${CX2.kingSection(cxH(), true)}</div>` : ''}
+    <div class="cx-ud-more"><div><h3>${d.king ? '장비' : '추천 장비'} <span class="cx-hn">${d.king ? '일반 장비 장착 불가 (전용 장비 자동 장착)' : CTYPE_NAME[d.ctype]}</span></h3>${d.king ? '' : `<ul class="rc-list">${reco}</ul>`}</div>
     <div><h3>이야기</h3>${STORIES[d.id] ? `<p class="small">${esc(STORIES[d.id])}</p>` : ''}<p class="lore">${esc(d.lore)}</p>${CX2.loreLinks(d.id)}</div></div>
     <div class="codex-stats small">의뢰 <b class="f-num">${r?.runs || 0}</b>회 · 누적 공명 등급 <b class="f-num">${r?.ranks || 0}</b> · 최고 <b class="f-num">${r?.best || 0}</b> · 성공 <b class="f-num">${r?.clears || 0}</b></div>
   </div>${app.abilPop ? abilPopHtml(app.abilPop, d, b, c) : ''}`;
@@ -3972,6 +4059,8 @@ function act(a: string, v: string) {
       if (app.sel?.k === 'relic' && run) { const e = R.equipRelic(run, v, app.sel.id); if (e) toast(e); else toast(`성유물 장착: ${RELIC_BY_ID[app.sel.id].name}`); app.sel = { k: 'unit', uid: v }; persist(); break; }
       if (app.sel?.k === 'item' && run && isConsumable(run.inventory[app.sel.idx])) { app.useK = { i: app.sel.idx, tg: CONSUMABLES[run.inventory[app.sel.idx]].target === 'run' ? { k: 'run' } : { k: 'unit', uid: v } }; break; } // 탭: 소모품 → 기물 (바로 쓰는 소모품은 함대)
       app.sel = app.sel?.k === 'item' && run ? equipSel(run, app.sel.idx, v) : { k: 'unit', uid: v }; break;
+    case 'sel-king': app.abilPop = null; if (app.sel?.k === 'item') toast('무휼은 일반 장비를 장착할 수 없습니다 (청라공국 전용 장비 자동 장착).'); app.sel = { k: 'king' }; break;
+    case 'king-info': app.abilPop = null; app.sel = { k: 'king' }; if (app.screen !== 'prep' && app.screen !== 'map') app.screen = 'prep'; break;
     case 'sel-turret': {
       if (!run) return;
       app.abilPop = null;
@@ -4215,6 +4304,7 @@ function onDrop(src: string, dst: string) {
   const [dk, ...dv] = dst.split(':');
   const n = run.node?.enc?.n || CFG.bossBoard;
   // 포탑 장비: 보관함 → 포탑 · 포탑 칸 → 보관함 / 다른 포탑 칸
+  if (sk === 'king' || dk === 'king') { kingDrop(run, n, sk, sv, dk, dv); persist(); render(); return; }
   if (sk === 'item' && (dk === 'turret' || dk === 'tgear')) {
     const id = run.inventory[+sv[0]];
     if (isConsumable(id)) { toast('소모품은 포탑에 쓸 수 없습니다.'); render(); return; }
@@ -4313,6 +4403,48 @@ function onDrop(src: string, dst: string) {
   }
   persist();
   render();
+}
+
+/** 공왕 무휼 끌어 옮기기 (포탑과 같은 규칙: 빈 아군 칸 · 가장자리 칸, 포탑 위면 자리 교환) · 무휼 칸에 기물을 놓으면 기물이 그 칸, 무휼은 기물이 있던 칸으로 */
+function kingDrop(run: RunState, n: number, sk: string, sv: string[], dk: string, dv: string[]) {
+  const kc = kingCell(run, n);
+  if (!kc) return;
+  const save = (c: { x: number; y: number }) => turretSavePos(c.x, c.y, n);
+  if (sk === 'king') {
+    if (dk === 'cell' || dk === 'tcell') {
+      const x = +dv[0], y = +dv[1];
+      if ([...layout(run, n).values()].some((p) => p.x === x && p.y === y)) { toast('기물이 있는 칸에는 무휼을 둘 수 없습니다.'); return; }
+      run.kingPos = { c: save({ x, y }).c, r: save({ x, y }).r };
+    } else if (dk === 'turret') {
+      const tcs = turretCells(run, n), j = +dv[0];
+      if (!tcs[j]) return;
+      const tp = tcs.map(save);
+      tp[j] = save(kc);
+      run.kingPos = save(tcs[j]);
+      run.turretPos = tp;
+    } else if (dk === 'bench' || dk === 'inv' || dk === 'invitem') toast('무휼은 대기석으로 옮기거나 판매할 수 없습니다 (청라공국 3명 이상이면 늘 소환).');
+    else if (dk === 'unit' || dk === 'eqitem') toast('기물이 있는 칸에는 무휼을 둘 수 없습니다.');
+    return;
+  }
+  // 무휼 칸에 놓기
+  if (sk === 'unit') {
+    const u = run.units.find((x) => x.uid === sv[0]);
+    if (!u) return;
+    if (kc.x < PAD || kc.x >= PAD + n) { toast('가장자리 칸에는 포탑 · 무휼만 둘 수 있습니다.'); return; }
+    if (!R.canDeploy(run, u)) { toast('이번 페이즈에는 배치할 수 없는 기물입니다.'); return; }
+    if (!u.pos && deployed(run).length >= R.deployCap(run)) { toast(`출전 인원이 가득 찼습니다 (${R.deployCap(run)}명).`); return; }
+    const from = layout(run, n).get(u.uid);
+    u.pos = toPos(kc.x, kc.y);
+    run.kingPos = from ? save(from) : undefined;
+    app.sel = { k: 'unit', uid: u.uid };
+  } else if (sk === 'turret') {
+    const tcs = turretCells(run, n), i = +sv[0];
+    if (!tcs[i]) return;
+    const tp = tcs.map(save);
+    tp[i] = save(kc);
+    run.kingPos = save(tcs[i]);
+    run.turretPos = tp;
+  } else if (sk === 'item' || sk === 'eq' || sk === 'relic' || sk === 'tgear') toast('무휼은 일반 장비를 장착할 수 없습니다. 전용 장비는 청라공국 3 · 5 · 7명에 해금되어 자동으로 장착됩니다.');
 }
 
 /** 감시 포탑 끌어 옮기기: 기물이 없는 아군 칸 · 가장자리 칸으로만. 다른 포탑 위면 자리 교환. 판매 · 대기석 · 장비는 불가 */

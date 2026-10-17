@@ -7,12 +7,13 @@ import { oathEnemy, oathV } from '../data/oaths';
 import { BOONS } from '../data/events';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
 import { emblemOf, isEmblem, isTurretGear, itemEffect, turretSlots } from '../data/items';
-import { ENG_HOOK, KAL_GUARD_RANK, KAL_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
+import { CHR_HOOK, ENG_HOOK, KAL_GUARD_RANK, KAL_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
+import { causalStage, KING, kingGearOf } from '../data/chungra';
 import { UNIT_BY_ID } from '../data/units';
 import { enableDivine, ENEMY_PSI, FAITH_DEF, sigmundTarget } from '../data/rework';
 import { DEFAULT_RELIC } from '../data/relics';
 import { ULTS } from '../data/ults';
-import type { SummonDef } from '../data/unitkit';
+import { SUMMON_RT, type SummonDef } from '../data/unitkit';
 import type { SkillDef } from './combat';
 import { Rng } from '../rng';
 import { categoryOf, type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
@@ -65,6 +66,8 @@ export function synergyCounts(units: UnitState[], run?: RunState | null, raw = f
     if (run.globals.includes('G.faction')) { const t = top('faction'); if (t) c[t.id]! += 1; }
     if (run.globals.includes('G.trait')) { const t = top('trait'); if (t) c[t.id]! += 1; }
   }
+  // 공왕: 청라공국이 켜져 있으면 무휼(출전 칸 밖)이 소환되므로 1명으로 센다 (청라 인원에는 넣지 않는다)
+  if (run && tierOf('CHR', c.CHR || 0) >= 1) c.KING = 1;
   void raw; // (구) 최종 단계 증표 규칙은 제거됨
   return c;
 }
@@ -385,6 +388,8 @@ export function turretCount(run: RunState): number {
 /** 보드 크기 W 에서 포탑 칸 (저장 위치 → 기본 위치 → 빈칸 순, 기물 · 다른 포탑과 겹치지 않게) */
 export function turretCells(run: RunState, W: number, count = turretCount(run)): { x: number; y: number }[] {
   const used = new Set([...layout(run, W).values()].map((p) => `${p.x},${p.y}`));
+  const kc = kingCell(run, W);
+  if (kc) used.add(`${kc.x},${kc.y}`); // 공왕 무휼 자리
   const out: { x: number; y: number }[] = [];
   const free = (q: { x: number; y: number }) => !used.has(`${q.x},${q.y}`);
   for (let i = 0; i < count; i++) {
@@ -398,6 +403,63 @@ export function turretCells(run: RunState, W: number, count = turretCount(run)):
   }
   return out;
 }
+// ───────── 청라공국: 공왕 무휼 (출전 칸 밖, 포탑처럼 둔다). 인과율 · 단계 수치는 data/chungra.ts
+/** 청라 단계 (출전 기준) */
+export const chrTier = (run: RunState) => tierOf('CHR', synergyCounts(deployed(run), run).CHR || 0);
+/** 무휼이 이번 편성에서 소환되는지 */
+export const kingOn = (run: RunState) => chrTier(run) >= 1;
+/** 무휼의 가상 기물 상태: 공명 등급 대신 인과 단계로 정한 성장 등급 · 모든 주요 능력치 가산 · 해금된 전용 장비.
+ *  run.units 에 들어가지 않는다 (출전 칸 · 공명도 · 판매 없음). tier = 지금 청라 단계 (전용 장비 해금은 지금까지의 최고 단계와 비교) */
+export function kingState(run: RunState, tier = chrTier(run)): UnitState {
+  const n = causalStage(run.causal || 0), m = KING.maj(n);
+  return {
+    uid: 'king', defId: 'muhyul', rank: KING.rank(n), xp: 0,
+    alloc: { vit: m, pow: m, mnd: m, def: m, agi: m }, perm: { vit: 0, pow: 0, mnd: 0, def: 0, agi: 0 },
+    augments: [], items: kingGearOf(Math.max(run.chrTier || 0, tier)), mod: null, pos: { c: 0, r: 0 },
+  };
+}
+/** 무휼 기본 자리: 왼쪽 · 오른쪽 가장자리 맨 뒷줄, 그다음 가운데 뒷줄 */
+const KING_DEFAULT: TurretPos[] = [{ c: -1, r: 0 }, { c: 99, r: 0 }, { c: 3, r: 0 }, { c: -1, r: 2 }, { c: 99, r: 2 }];
+/** 보드 크기 W 에서 무휼 칸 (저장 위치 → 기본 위치 → 빈칸, 출전 기물과 겹치지 않게). 소환되지 않으면 null */
+export function kingCell(run: RunState, W: number): { x: number; y: number } | null {
+  if (!kingOn(run)) return null;
+  const used = new Set([...layout(run, W).values()].map((p) => `${p.x},${p.y}`));
+  const free = (q: { x: number; y: number }) => !used.has(`${q.x},${q.y}`);
+  const saved = run.kingPos ? turretBoardCell(run.kingPos, W) : null;
+  if (saved && free(saved)) return saved;
+  for (const d of KING_DEFAULT) { const c = turretBoardCell(d, W); if (free(c)) return c; }
+  for (let y = ALLY_Y1; y >= ALLY_Y0; y--) for (let x = 0; x < W + 2 * PAD; x++) if (free({ x, y })) return { x, y };
+  return null;
+}
+/** 전투별 무휼 칸 */
+const KING_AT = new WeakMap<Battle, { x: number; y: number } | null>();
+CHR_HOOK.spawn = (b, lead, ctx, t) => {
+  const run = ctx.run;
+  if (!run || lead.side !== 0) return;
+  const c = buildAlly(b, run, kingState(run, t), ctx.counts);
+  c.isSummon = true; // 출전 기물 수 · 전술 위력 · 부활 대상에서 빠진다 (전투 기록은 무휼 자신의 줄)
+  c.mem.tacOk = 1; c.mem.king = 1;
+  let cell = KING_AT.get(b) || null;
+  if (cell && (!b.inBounds(cell.x, cell.y) || b.unitAt(cell.x, cell.y))) cell = null;
+  if (!cell) for (const x of [0, b.w - 1]) { if (!b.unitAt(x, ALLY_Y1)) { cell = { x, y: ALLY_Y1 }; break; } }
+  if (!cell) cell = b.freeCellNear(lead.x, lead.y);
+  if (!cell) return;
+  c.x = c.px = cell.x; c.y = c.py = cell.y;
+  c.hp = b.S(c, 'maxHp');
+  c.atkTimer = c.atk.interval * 0.5;
+  if (c.weapon?.kind === 'mag') c.ammo = c.weapon.mag || 1;
+  b.add(c);
+  b.emit({ k: 'spawn', id: c.id });
+  b.actor = c;
+  for (const h of c.hooks) h.onStart?.(b, c);
+  b.actor = lead;
+};
+SUMMON_RT.make = (b, owner, sd) => {
+  const m = makeSummons(owner, sd)[0];
+  if (!m) return null;
+  return b.spawn(m.unit, owner);
+};
+
 /** 전투별 포탑 설치 칸 (buildBattle 이 편성 위치를 넘긴다) */
 const TURRET_AT = new WeakMap<Battle, { x: number; y: number }[]>();
 /** 전투별 포탑 장비 (포탑 순서대로) */
@@ -510,7 +572,7 @@ export function buildKnight(b: Battle, side: 0 | 1, rank: number, bonus = 0): CU
   return c;
 }
 KAL_HOOK.spawn = (b, lead, n) => {
-  const top = Math.max(1, ...b.units.filter((u) => u.side === lead.side && u.src).map((u) => u.src!.rank));
+  const top = Math.max(1, ...b.units.filter((u) => u.side === lead.side && u.src && !u.mem.king).map((u) => u.src!.rank)); // 공왕 무휼(인과 단계 등급)은 세지 않는다
   const rank = Math.ceil(top * KAL_GUARD_RANK);
   const titles = Math.max(0, ...b.units.filter((u) => u.side === lead.side && u.src && u.mem.kalTitle).map((u) => u.mem.kalTitle));
   for (let i = 0; i < n; i++) {
@@ -619,6 +681,7 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
     b.add(c);
   }
   TURRET_AT.set(b, turretCells(run, enc.n, 8));
+  KING_AT.set(b, kingCell(run, enc.n));
   TURRET_GEAR_AT.set(b, (run.turretGear || []).map((g) => g.slice()));
   for (const s of enc.enemies) {
     const def = ENEMY_BY_ID[s.defId];

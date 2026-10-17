@@ -7,6 +7,7 @@ import { ACH_BY_ID } from '../data/achievements';
 import { fieldOf } from '../data/battlefields';
 import { despairsOf } from '../data/despair';
 import { UNIT_BY_ID } from '../data/units';
+import { causalStage } from '../data/chungra';
 import { economy, expBasis, expInterest, expSource, expPower, influence, rec, SPEND_NAME, SUPPORT_PARTS, type BattleRec, type Influence } from '../engine/report';
 import { NODE_NAME, type RunState } from '../types';
 import { medalSvg } from './achieve';
@@ -106,7 +107,8 @@ function impactSection(run: RunState, inf: ReturnType<typeof influence>, o: Repo
   const byUid = new Map(rows.map((x) => [x.uid, x]));
   const max = { dmg: Math.max(1e-9, ...rows.map((x) => x.dmg), inf.synShare.dmg), heal: Math.max(1e-9, ...rows.map((x) => x.heal), inf.synShare.heal), sup: Math.max(1e-9, ...rows.map((x) => x.sup)) };
   const rankOf = (x: Influence) => run.units.find((u) => u.uid === x.uid)?.rank ?? run.rankLog[x.r.d] ?? 1;
-  const gone = (x: Influence) => !run.units.some((u) => u.uid === x.uid);
+  const gone = (x: Influence) => !UNIT_BY_ID[x.r.d]?.king && !run.units.some((u) => u.uid === x.uid); // 공왕 무휼은 run.units 밖 (청라공국이 소환)
+  const rankTxt = (x: Influence) => (UNIT_BY_ID[x.r.d]?.king ? `인과 ${causalStage(run.causal || 0)}단계` : o.rank(rankOf(x)));
   const mvpCard = (k: AxisK) => {
     const a = AXES.find((z) => z.k === k)!, uid = inf.mvp[k], x = uid ? byUid.get(uid) : undefined, d = x ? UNIT_BY_ID[x.r.d] : undefined;
     if (!x || !d) return `<div class="aar-mvp is-none" style="--ax:var(--ax-${k})"><span class="aar-mvp-k">${lineIcon(a.ic, 'li')}${a.name} MVP</span><b>해당 없음</b><small>${a.sub} 기록 없음</small></div>`;
@@ -120,10 +122,10 @@ function impactSection(run: RunState, inf: ReturnType<typeof influence>, o: Repo
   const row = (x: Influence, i: number) => {
     const d = UNIT_BY_ID[x.r.d];
     const tags = AXES.filter((a) => inf.mvp[a.k] === x.uid).map((a) => `<em class="aar-tag ax-${a.k}">${a.name} MVP</em>`).join('');
-    return `<li class="aar-row" style="--i:${i}"><div class="aar-who">${sprite(x.r.d)}<span class="aar-who-t"><b>${esc(d?.name || x.r.d)}</b><small><span class="rank">${o.rank(rankOf(x))}</span><span class="mono">${x.r.n}전</span>${gone(x) ? '<span class="aar-gone">방출</span>' : ''}${x.r.kills ? `<span>결정타 ${fmt(x.r.kills)}</span>` : ''}</small>${tags ? `<span class="aar-tags">${tags}</span>` : ''}</span></div>
+    return `<li class="aar-row" style="--i:${i}"><div class="aar-who">${sprite(x.r.d)}<span class="aar-who-t"><b>${esc(d?.name || x.r.d)}</b><small><span class="rank">${rankTxt(x)}</span><span class="mono">${x.r.n}전</span>${gone(x) ? '<span class="aar-gone">방출</span>' : ''}${x.r.kills ? `<span>결정타 ${fmt(x.r.kills)}</span>` : ''}</small>${tags ? `<span class="aar-tags">${tags}</span>` : ''}</span></div>
       ${AXES.map((a) => cell(x, a.k)).join('')}</li>`;
   };
-  const syn = inf.synShare.dmg + inf.synShare.heal > 0 ? `<li class="aar-row is-syn"><div class="aar-who"><span class="aar-syn-ic" aria-hidden="true">${lineIcon('a.power', 'li')}</span><span class="aar-who-t"><b>시너지 효과</b><small>포탑 · 근위기사 · 시너지 추가타</small></span></div>
+  const syn = inf.synShare.dmg + inf.synShare.heal > 0 ? `<li class="aar-row is-syn"><div class="aar-who"><span class="aar-syn-ic" aria-hidden="true">${lineIcon('a.power', 'li')}</span><span class="aar-who-t"><b>시너지 효과</b><small>포탑 · 근위기사 · 시너지 추가타 (공왕 무휼은 자기 줄)</small></span></div>
       <div class="aar-ax ax-dmg"><span class="aar-ax-k">전투</span><span class="aar-bar" aria-hidden="true"><i style="--w:${(inf.synShare.dmg / max.dmg) * 100}%"></i></span><b class="mono">${pct(inf.synShare.dmg)}</b><small class="mono">${fmt(rec(run).syn.dmg)}</small></div>
       <div class="aar-ax ax-heal"><span class="aar-ax-k">회복</span><span class="aar-bar" aria-hidden="true"><i style="--w:${(inf.synShare.heal / max.heal) * 100}%"></i></span><b class="mono">${pct(inf.synShare.heal)}</b><small class="mono">${fmt(rec(run).syn.heal)}</small></div>
       <div class="aar-ax ax-sup zero"><span class="aar-ax-k">서포팅</span><span class="aar-bar" aria-hidden="true"><i style="--w:0%"></i></span><b class="mono">—</b><small class="mono">${rec(run).syn.shield >= 1 ? `보호막 ${fmt(rec(run).syn.shield)}` : '—'}</small></div></li>` : '';

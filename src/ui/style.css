@@ -3848,3 +3848,16 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 /* 실재 층 장면(심야): 바 조명을 낮춘다 */
 .bar.late .bar-shade { background: linear-gradient(180deg, var(--shade-3), var(--shade-1) 30%, var(--shade-2) 60%, var(--shade-3)); }
 @media (prefers-reduced-motion: no-preference) { .bar-shade { transition: background .8s; } }
+/* 청라공국 · 공왕 무휼: 상단 인과 단계 · 환경 탭 · 상세 */
+.pill.king-pill { cursor: pointer; font: inherit; line-height: 1; gap: 4px; border-color: var(--el-holy); color: var(--el-holy); }
+.pill.king-pill .li { width: 15px; height: 15px; margin: 0; flex: none; }
+.pill.king-pill b { color: inherit; }
+.pill.king-pill .kp-next { color: var(--c-text-2); font-size: var(--fs-sm); }
+.pill-btn { all: unset; cursor: pointer; }
+.pill-btn:hover b, .pill-btn:focus-visible b { text-decoration: underline; }
+.king-rank .xpbar { flex: 1; position: relative; border-radius: var(--r-md); background: var(--panel-2); overflow: hidden; }
+.king-rank .xpbar i { position: absolute; inset: 0 auto 0 0; background: var(--el-holy); opacity: .55; }
+.king-rank .small { align-self: center; }
+.king-ms { margin: 4px 0 8px; padding-left: 18px; }
+.king-ms li.on { color: var(--el-holy); }
+@media (max-width: 560px) { .pill.king-pill .kp-next, .pill.king-pill .kp-tx { display: none; } }

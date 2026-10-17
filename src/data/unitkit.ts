@@ -1,4 +1,4 @@
-import type { CUnit, SkillDef } from '../engine/combat';
+import type { Battle, CUnit, SkillDef } from '../engine/combat';
 import type { AugDef, Effect } from '../engine/effects';
 import type { CType, Elem, FactionId, FaithId, Keyword, Major, TraitId, TType, Weapon } from '../types';
 
@@ -32,7 +32,16 @@ export interface BaseUnit {
   inert?: boolean;
   /** 기물 고유 패시브 (조슈아의 체사레 전환 등) */
   passive?: Effect;
+  /** 공왕 (청라공국 시너지가 전투 시작 때 소환): 영입 · 판매 · 상점 · 공명도 없음, 인과 단계로 성장 (data/chungra.ts) */
+  king?: boolean;
+  /** 자동 배치에서 앞줄에 둔다 (사거리가 2 이상이어도: 움직이지 않는 근거리 광역 — 클로버) */
+  front?: boolean;
+  /** 바 대본이 아직 없음: 바(구경 · 대화)에 나오지 않는다 (대본은 docs/SCENES.md 지침으로 따로) */
+  noBar?: boolean;
 }
+
+/** 전투 중 단짝 소환물 1기 추가 소환 (build.ts 가 주입: 순환 import 방지). 클로버 · 미노스처럼 주기적으로 더 부르는 기물용 */
+export const SUMMON_RT: { make?: (b: Battle, owner: CUnit, sd: SummonDef) => CUnit | null } = {};
 
 /** 리워크 정보: 전투 유형 · 전술 유형 · 무기 · 고유 특성 · 신앙 */
 export interface ReworkDef {

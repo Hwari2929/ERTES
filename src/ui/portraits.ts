@@ -3,8 +3,8 @@ import { ICONS } from './portraits.gen';
 import { spriteURL } from './sprites';
 
 type Spriteish = { sprite: string; palette: string[]; id?: string | number; defId?: string; side?: number; art?: string; tier?: string };
-/** 그림을 다른 id 의 것으로 쓰는 기물: 반려 돌(절망 증강)은 적 반려 돌 그림을 그대로 쓴다 */
-const ART_ALIAS: Record<string, string> = { petrock: 'en_cw_rock' };
+/** 그림을 다른 id 의 것으로 쓰는 기물: 반려 돌(절망 증강)은 적 반려 돌 그림을 그대로 쓴다 · 미노스는 전장 의뢰인 그림 */
+const ART_ALIAS: Record<string, string> = { petrock: 'en_cw_rock', minos: 'fi_minos' }; // 미노스: 전장 의뢰인 일러스트(fi_minos)를 기물 그림으로
 const artId = (id: string) => ART_ALIAS[id] || id;
 
 /** 기물 id (적 · 소환물 · 포탑은 null) */

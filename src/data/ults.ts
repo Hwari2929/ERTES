@@ -154,7 +154,7 @@ export const ULTS: Record<string, UltDef> = {
         bb.fx(cx, cy, 2, 'psy');
         for (const e of bb.around({ x: cx, y: cy }, 2, bb.enemiesOf(u))) {
           const nx = e.x + Math.sign(cx - e.x), ny = e.y + Math.sign(cy - e.y);
-          if (!e.immobile && !e.isBoss && (nx !== e.x || ny !== e.y) && bb.inBounds(nx, ny) && !bb.unitAt(nx, ny)) { e.px = e.x; e.py = e.y; e.x = nx; e.y = ny; e.moveT = e.moveDur = 0.2; }
+          if (!e.immobile && !e.isBoss && (nx !== e.x || ny !== e.y) && bb.inBounds(nx, ny) && !bb.unitAt(nx, ny)) { e.px = e.x; e.py = e.y; e.x = nx; e.y = ny; e.moveT = e.moveDur = 0.2; bb.displaced(u, e, 'pull'); }
           bb.dealDamage(u, e, S(bb, u, 'shoot') * 1.2, { elem: 'phys', tag: 'skill', kind: 'shoot', canMiss: false });
         }
       }, (bb) => {
@@ -197,7 +197,7 @@ export const ULTS: Record<string, UltDef> = {
         if (!e.alive) continue;
         b.stun(u, e, 1);
         const nx = e.x + Math.sign(dx), ny = e.y + Math.sign(dy);
-        if (!e.immobile && !e.isBoss && b.inBounds(nx, ny) && !b.unitAt(nx, ny)) { e.px = e.x; e.py = e.y; e.x = nx; e.y = ny; e.moveT = e.moveDur = 0.2; }
+        if (!e.immobile && !e.isBoss && b.inBounds(nx, ny) && !b.unitAt(nx, ny)) { e.px = e.x; e.py = e.y; e.x = nx; e.y = ny; e.moveT = e.moveDur = 0.2; b.displaced(u, e, 'knock'); }
       }
       return true;
     },
@@ -265,6 +265,37 @@ export const ULTS: Record<string, UltDef> = {
         const r = shot(b, u, e, 1.8);
         if (r.killed && (u.mem.ultLoot || 0) < 3) { u.mem.ultLoot = (u.mem.ultLoot || 0) + 1; u.mem.g_ultLoot = (u.mem.g_ultLoot || 0) + 2; }
       }
+      return true;
+    },
+  },
+  // 청라공국: 공왕 무휼 (지휘관이면 전술 위력, 명사수면 사격 위력 — b.P)
+  muhyul: {
+    id: 'muhyul', name: '귀허의 섬광', charge: 0.9, line: '본좌는 마땅히 있어야 할 곳으로 돌아가겠다!',
+    desc: '적이 가장 많이 모인 곳 주변 2칸에 기억의 유성을 떨어뜨려 전술 위력 380% 물리 피해 + 1초 기절, 맞은 적에게 [기록] (6초, 받는 피해 +15%).',
+    theme: { pat: 'rail', c1: '#7fe3ff', c2: '#c8303a', txt: 'glitch' },
+    cast(b, u) {
+      const c = densest(b, u, 2);
+      if (!c) return false;
+      b.fx(c.x, c.y, 2, 'phys');
+      for (const e of b.around(c, 2, b.enemiesOf(u))) {
+        b.dealDamage(u, e, b.P(u, 'shoot') * 3.8, { elem: 'phys', tag: 'skill', kind: 'shoot', canMiss: false });
+        if (!e.alive) continue;
+        b.stun(u, e, 1);
+        b.applyStatus(u, e, { type: 'buff', key: 'king.rec', dur: 6, taken: [vuln('all', Math.max(0.15, u.sk.vuln || 0))], label: '기록' });
+      }
+      return true;
+    },
+  },
+  juseong: {
+    id: 'juseong', name: '월하 호위', charge: 1.0, line: '왕자는 뒤로. 여기서부터는 통행료 받는다.',
+    desc: '주변 2칸 적에게 타격 위력 320% 물리 피해 + 1초 기절, 자신에게 최대 체력 25% 보호막.',
+    theme: { pat: 'shells', c1: '#5ad08a', c2: '#14201a', txt: 'shake' },
+    cast(b, u) {
+      const es = b.around(u, 2, b.enemiesOf(u));
+      if (!es.length) return false;
+      b.fx(u.x, u.y, 2, 'phys');
+      for (const e of es) { slash(b, u, e, 3.2); if (e.alive) b.stun(u, e, 1); }
+      b.shield(u, b.S(u, 'maxHp') * 0.25);
       return true;
     },
   },
