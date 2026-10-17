@@ -22,9 +22,9 @@ import * as CX2 from './ui/codex2';
 import * as BAR from './ui/bar';
 import * as TFX from './ui/themefx';
 import {
-  activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
+  activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyBaseMoveSpd, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
-import { Battle, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME } from './engine/combat';
+import { Battle, controlNames, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME } from './engine/combat';
 import * as R from './engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
@@ -1266,18 +1266,30 @@ function statLines(c: CUnit, b: Battle) {
   const S = (k: keyof CUnit['st']) => b.S(c, k);
   const armor = S('armor');
   // 마이너 능력치: 흰색 선 아이콘 + 이름 + 값
-  const lines: [string, string, string][] = [
+  const lines: [string, string, string, string?][] = [
     ['r.hp', '최대 체력', fmt(S('maxHp'))], ['a.heal', '회복 효율', '+' + pctTxt(S('healEff'))],
     ['p.shoot', '사격 위력', fmt(S('shoot'))], ['p.strike', '타격 위력', fmt(S('strike'))], ['p.tech', '기술 위력', fmt(S('tech'))],
     ...(c.ctype === 'CMD' && !c.isSummon ? [['p.tac', '전술 위력', fmt(b.tacPower(c))] as [string, string, string]] : []),
     ['u.target', '명중', '+' + pctTxt(S('acc'))], ['u.finish', '치명타', pctTxt(S('crit'))], ['a.power', '치명타 피해', pctTxt(S('critDmg'))], ['a.stun', '효과 명중', '+' + pctTxt(S('effHit'))],
     ['a.shield', '방어도', `${fmt(armor)} (물리 -${pctTxt(armor / (armor + CFG.armorK))})`], ['a.reason', '효과 저항', '+' + pctTxt(S('effRes'))],
-    ['a.speed', '이동 속도', pctTxt(S('moveSpd'))], ['a.evade', '회피', pctTxt(S('eva'))],
+    ['a.speed', '이동 속도', pctTxt(S('moveSpd')), moveRule(c)], ['a.evade', '회피', pctTxt(S('eva'))],
     ['u.combo', '공격 속도', `${(Math.max(0.2, 1 + S('atkSpd')) / c.atk.interval).toFixed(2)}/초`], ['a.cd', '쿨다운 감소', '+' + pctTxt(S('cdr'))], ['u.range', '사거리', String(S('range'))],
   ];
   if (S('armorPen')) lines.push(['a.snipe', '방어도 관통', pctTxt(S('armorPen'))]);
   if (S('lifesteal')) lines.push(['a.heal', '흡혈', pctTxt(S('lifesteal'))]);
-  return `<dl class="stats">${lines.map(([ic, k, v]) => `<dt>${lineIcon(ic, 'li')}${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+  return `<dl class="stats">${lines.map(([ic, k, v, tip]) => `<dt${tip ? ` title="${esc(tip)}"` : ''}>${lineIcon(ic, 'li')}${k}</dt><dd${tip ? ` title="${esc(tip)}"` : ''}>${v}</dd>`).join('')}</dl>`;
+}
+/** 이동 속도 계산 규칙 (능력치 줄 툴팁 · 도감): 아군 기물 · 적 (데이터 CFG · enemyBaseMoveSpd 에서 읽는다) */
+const agiMovePp = () => `${+(CFG.conv.agi.moveSpd * 100).toFixed(1)}%p`;
+function enemyMoveRule(e: EnemyDef) {
+  const mul = e.moveSpd ?? 1, base = e.tend === 'assassin' ? CFG.enemyMoveSpd.assassin : CFG.enemyMoveSpd.base;
+  const why = [e.tend === 'assassin' ? `암살형 ${mul !== 1 ? pctTxt(base) : ''}`.trim() : mul !== 1 ? pctTxt(base) : '', mul !== 1 ? `이동 배율 ${mul}` : ''].filter(Boolean).join(' × ');
+  return `기본 이동 속도 ${pctTxt(enemyBaseMoveSpd(e))}${why ? ` (${why})` : ''} + 기동력 1당 ${agiMovePp()}`;
+}
+function moveRule(c: CUnit): string {
+  if (c.side === 1 && ENEMY_BY_ID[c.defId] && !c.mem.echoOf) return enemyMoveRule(ENEMY_BY_ID[c.defId]);
+  if (c.side === 0 && c.src) return `기본 ${pctTxt(CFG.unitMoveSpd)} + 기동력 1당 ${agiMovePp()}`;
+  return '';
 }
 
 function previewAlly(run: RunState, u: UnitState) {
@@ -1366,13 +1378,13 @@ function weaponMech(w: Weapon, ctx: AB.AbilCtx) {
   if (w.kind === 'none') return '기본 공격을 하지 않는다.';
   if (w.kind === 'mag') {
     const rs = ctx.b && ctx.c ? Math.max(0.2, 1 + ctx.b.S(ctx.c, 'reloadSpd')) : 1;
-    return `사거리 안의 대상을 사격. 탄창 ${w.mag}발을 모두 쓰면 ${((w.reload || 1.5) / rs).toFixed(1)}초 동안 재장전.${tac}`;
+    return `사거리 안의 대상을 사격. 탄창 ${w.mag}발을 모두 쓰면 ${((w.reload || 1.5) / rs).toFixed(1)}초 동안 재장전 — 그동안 기술도 쓰지 않는다 (쿨다운은 계속 돈다). 재장전 중 제어 효과(${controlNames()})를 받으면 재장전이 처음부터 다시.${tac}`;
   }
   return `사거리 안의 대상을 타격. ${w.combo}번째 공격마다 피니쉬(×${CFG.finishMult})로 마무리.${tac}`;
 }
-function skillMech(range: 'unit' | number | null, cmd: boolean) {
+function skillMech(range: 'unit' | number | null, cmd: boolean, mag = false) {
   const when = range === 'unit' ? '대상이 사거리 안에 있으면' : range === 0 ? '주변에 대상이 있으면' : '조건이 맞으면';
-  return `쿨다운이 차고 ${when} 자동으로 시전.${cmd ? ' 지휘관은 전술 위력으로 계산.' : ''}`;
+  return `쿨다운이 차고 ${when} 자동으로 시전.${mag ? ' 재장전 중에는 쓰지 않고 재장전이 끝나기를 기다린다.' : ''}${cmd ? ' 지휘관은 전술 위력으로 계산.' : ''}`;
 }
 /** 증강 카드 · 상세의 부가 줄: 조합 조건 (충족 못 하면 경고색). block = 상세 팝업용 문단 */
 function augNotes(id: string, u: UnitState | null, block = false) {
@@ -1409,7 +1421,7 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     const p = c?.sk || d.skill.params;
     const info = ABIL[d.id]?.skill?.(p);
     const cd = c?.cdMax ?? d.skill.cd;
-    kind = '스킬'; name = d.skill.name; mech = skillMech(info?.range ?? 'unit', d.ctype === 'CMD');
+    kind = '스킬'; name = d.skill.name; mech = skillMech(info?.range ?? 'unit', d.ctype === 'CMD', (c?.weapon || d.weapon).kind === 'mag');
     body = info ? AB.skillBody(info, actx(b, c, true), b && c ? b.S(c, 'range') : d.range, cd, gl) : `<p>${esc(d.skill.desc(p))}</p><p class="muted small">쿨다운 ${cd.toFixed(1)}초</p>`;
   } else if (key === 'ult' && ULTS[d.id]) {
     const ul = ULTS[d.id];
@@ -1508,7 +1520,7 @@ function enemyAbilPop(key: string, e: EnemyDef, b: Battle, c: CUnit) {
     kind = '무기'; name = '기본 공격'; mech = weaponMech(c.weapon!, ctx);
     body = AB.popBody(b.S(c, 'range'), { k: 'one' }, AB.weaponRows({ ...c.weapon!, name }, ctx, e.atk.elem, gl));
   } else if (key === 'skill' && e.skill) {
-    kind = '스킬'; name = e.skill.name; mech = skillMech(ab?.skill?.range ?? 'unit', false);
+    kind = '스킬'; name = e.skill.name; mech = skillMech(ab?.skill?.range ?? 'unit', false, c.weapon?.kind === 'mag');
     body = ab?.skill ? AB.skillBody(ab.skill, ctx, b.S(c, 'range'), e.skill.cd, gl) : `<p>${esc(e.skill.desc(c.sk))}</p>`;
   } else if (key === 'trait' && ab?.trait) {
     kind = '특성'; name = '특성'; mech = '전투 내내 적용되는 이 적의 고유 효과.';
@@ -2272,7 +2284,7 @@ function pendingModal(run: RunState): string {
 }
 const STAT_SHORT: Record<string, string> = {
   maxHp: '체력', healEff: '회복 효율', shoot: '사격', strike: '타격', tech: '기술', acc: '명중', crit: '치명', effHit: '효과 명중',
-  armor: '방어도', effRes: '효과 저항', moveSpd: '이동', eva: '회피',
+  armor: '방어도', effRes: '효과 저항', moveSpd: '이동', eva: '회피', atkSpd: '공격 속도', reloadSpd: '재장전',
 };
 
 function menuModal(run: RunState | null) {
@@ -2971,9 +2983,9 @@ function statusParts(u: CUnit, s: Status) {
   const out: string[] = [];
   let good = 0, bad = 0;
   const mark = (v: number) => { if (v > 0) good++; else if (v < 0) bad++; };
-  if (s.type === 'stun') { out.push('행동 불가'); bad++; }
-  if (s.type === 'fear') { out.push('공포: 공격하지 못하고 달아남'); bad++; }
-  if (s.type === 'shock') { out.push('감전: 스킬 · 공격 지연'); bad++; }
+  if (s.type === 'stun') { out.push('행동 불가 · 재장전 정지'); bad++; }
+  if (s.type === 'fear') { out.push('공포: 공격 · 기술 불가, 재장전 정지'); bad++; }
+  if (s.type === 'shock') { out.push('감전: 쿨다운 · 재장전 정지'); bad++; }
   if (s.dps) { out.push(`초당 ${fmt(s.dps)} ${ELEM_NAME[s.elem || 'phys']} 피해`); bad++; }
   for (const [k, v] of Object.entries(s.delta || {}) as [StatKey, number][]) {
     if (!v) continue;
@@ -3167,16 +3179,16 @@ function reasonReport(b: Battle) {
 function actState(b: Battle, u: CUnit) {
   if (!u.alive) return '';
   const bar = (label: string, f: number, cls: string, note = '') => `<div class="as-row ${cls}"><span>${label}</span><span class="as-bar"><i style="width:${Math.round(Math.max(0, Math.min(1, f)) * 100)}%"></i></span><span class="mono small">${note}</span></div>`;
-  const why = b.has(u, 'stun') ? '기절 — 행동 불가' : b.has(u, 'fear') ? '공포 — 공격 · 기술 불가' : u.moveT > 0 ? '이동 중' : u.reloadT > 0 ? '재장전 중' : u.target && u.target.alive && b.dist(u, u.target) > b.S(u, 'range') ? '사거리 밖 — 접근 중' : '';
+  const why = b.has(u, 'stun') ? '기절 — 행동 불가' : b.has(u, 'fear') ? '공포 — 공격 · 기술 불가' : u.reloadT > 0 && b.has(u, 'shock') ? '감전 — 쿨다운 · 재장전 정지' : u.moveT > 0 ? '이동 중' : u.reloadT > 0 ? (u.skill && u.cd <= 0 ? '재장전 중 — 기술 대기' : '재장전 중') : u.target && u.target.alive && b.dist(u, u.target) > b.S(u, 'range') ? '사거리 밖 — 접근 중' : '';
   const rows: string[] = [];
-  if (u.skill) rows.push(bar('기술 준비', u.cdMax ? 1 - u.cd / u.cdMax : 1, 'sk', u.cd <= 0 ? '준비됨' : `${Math.max(0, u.cd).toFixed(1)}초`));
+  if (u.skill) rows.push(bar('기술 준비', u.cdMax ? 1 - u.cd / u.cdMax : 1, 'sk', u.cd <= 0 ? (u.reloadT > 0 ? '재장전 대기' : '준비됨') : `${Math.max(0, u.cd).toFixed(1)}초`));
   if (u.weapon?.kind === 'mag') {
     const mag = u.weapon.mag || 1, rl = u.weapon.reload || 1.5;
     rows.push(u.reloadT > 0 ? bar('재장전', 1 - u.reloadT / rl, 'rl', `${u.reloadT.toFixed(1)}초`) : bar('탄창', u.ammo / mag, 'ammo', `${u.ammo}/${mag}`));
   }
   if (!u.noAttack) rows.push(bar('다음 공격', 1 - Math.max(0, u.atkTimer) / Math.max(0.01, u.atk.interval), 'atk', u.atkTimer <= 0 ? '대기' : ''));
   const rec = app.view?.recent(u.id) || [];
-  return `<div class="act-state">${why ? `<p class="as-why${/기절|공포/.test(why) ? ' bad' : ''}">${why}</p>` : ''}${rows.join('')}</div>
+  return `<div class="act-state">${why ? `<p class="as-why${/기절|공포|감전/.test(why) ? ' bad' : ''}">${why}</p>` : ''}${rows.join('')}</div>
     ${rec.length ? `<h3>최근 행동</h3><ol class="as-log">${rec.map((r) => `<li>${esc(r.text)}</li>`).join('')}</ol>` : ''}`;
 }
 let bunitFor = '';
@@ -3255,7 +3267,7 @@ function codexScreen() {
         const e = ENEMY_BY_ID[id];
         const r = m.enemies[id];
         return `<div class="codex-row ${r ? '' : 'unknown'}">${sprite(e)}<div><b>${r ? esc(e.name) : '???'}</b> <span class="muted small">${e.tier === 'boss' ? '보스' : e.tier === 'elite' ? '정예' : '일반'}</span>
-          <div class="small">${r ? esc(ENEMY_DESC[id] || '') : '아직 만나지 못했습니다.'}</div>${r ? `<div class="small muted">${esc(tendText(e))}</div>` : ''}</div><div class="small mono">조우 ${r?.seen || 0}<br>처치 ${r?.kills || 0}</div></div>`;
+          <div class="small">${r ? esc(ENEMY_DESC[id] || '') : '아직 만나지 못했습니다.'}</div>${r ? `<div class="small muted">${esc(tendText(e))}</div>${e.immobile ? '' : `<div class="small muted">${esc(enemyMoveRule(e))}</div>`}` : ''}</div><div class="small mono">조우 ${r?.seen || 0}<br>처치 ${r?.kills || 0}</div></div>`;
       }).join('')}</div>`;
     }).join('') + (() => { const extra = ENEMIES.filter((e) => !FIELDS.some((f) => [...f.pool, f.elite, ...f.bosses].includes(e.id)) && m.enemies[e.id]); return extra.length ? `<h2>기타</h2><div class="codex-list">${extra.map((e) => `<div class="codex-row">${sprite(e)}<div><b>${esc(e.name)}</b></div><div class="small mono">처치 ${m.enemies[e.id].kills}</div></div>`).join('')}</div>` : ''; })();
   } else if (app.codexTab === 'events') {

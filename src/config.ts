@@ -6,7 +6,9 @@ export const CFG = {
     pow: { shoot: 5, strike: 5, crit: 0.01 },
     mnd: { tech: 5, acc: 0.02, effHit: 0.03 },
     def: { armor: 60, effRes: 0.03 },
-    agi: { moveSpd: 0.048, eva: 0.01, atkSpd: 0.01, reloadSpd: 0.01 },
+    // 재장전 속도 1%p → 2%p: 재장전 중 기술 금지 · 제어 시 재장전 초기화로 탄창 무기 기물의 기술 횟수가 ~5.5% 줄어든 만큼 보정
+    // (같은 시드 1600판: 보정 전 클리어 31.4% → 29.2%, 보정 후 32.2% · 평균 도달 페이즈 5.61 → 5.60)
+    agi: { moveSpd: 0.048, eva: 0.01, atkSpd: 0.01, reloadSpd: 0.02 },
   },
   // ── 리워크 [임시]
   finishMult: 2.6, // 콤보 무기 피니쉬 배율 (콤보 타격은 무기 계수 그대로)
@@ -54,6 +56,9 @@ export const CFG = {
   tick: 0.05,
   moveTime: 0.45, // 1칸 이동 시간(초) / 이동속도 배율
   unitMoveSpd: 0.5, // 아군 기물 기본 이동 속도 (기동력 1당 conv.agi.moveSpd 만큼 더함)
+  /** 적 기본 이동 속도 = 이 값 × 적별 이동 배율(EnemyDef.moveSpd, 없으면 1), 그 위에 기동력 1당 conv.agi.moveSpd 를 더한다.
+   *  암살형 성향은 assassin (예전 기본값 그대로). 소환물 · 포탑 · 근위기사 · 망령 등 아군 쪽 생성물은 따로 (build.ts) */
+  enemyMoveSpd: { base: 0.5, assassin: 1 },
   overtimeStart: 45, overtimeRamp: 0.1, timeLimit: 75,
 
   // ── 무한 모드 페이즈 스케일링 (확정, 복리)

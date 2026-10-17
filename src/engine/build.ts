@@ -285,6 +285,12 @@ export function enemyMajors(def: EnemyDef, phase: number): Record<Major, number>
   return Object.fromEntries(MAJORS.map((m) => [m, Math.max(0, Math.round(lv * w[m]))])) as Record<Major, number>;
 }
 
+/** 적 기본 이동 속도 (기동력 가산 전): CFG.enemyMoveSpd (암살형은 assassin) × 적별 이동 배율 */
+export function enemyBaseMoveSpd(def: EnemyDef): number {
+  const M = CFG.enemyMoveSpd;
+  return (def.tend === 'assassin' ? M.assassin : M.base) * (def.moveSpd ?? 1);
+}
+
 export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number, gear?: { items?: string[]; mod?: string }): CUnit {
   const c = blankUnit(1);
   const st = emptyStats();
@@ -292,8 +298,10 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   st.shoot = st.strike = st.tech = def.power * CFG.enemyPowMul;
   st.armor = def.armor * Math.pow(CFG.phaseArmor, phase - 1);
   st.acc = def.acc || 0; st.eva = def.eva || 0; st.crit = def.crit ?? 0.05; st.critDmg = 1.5;
-  st.effHit = def.effHit || 0; st.effRes = def.effRes || 0; st.moveSpd = def.moveSpd || 1; st.range = def.range;
+  st.effHit = def.effHit || 0; st.effRes = def.effRes || 0; st.range = def.range;
   const em = enemyMajors(def, phase);
+  // 이동 속도: 기본값 (성향 · 적별 이동 배율) + 기동력 1당 아군과 같은 환산
+  st.moveSpd = enemyBaseMoveSpd(def) + em.agi * CFG.conv.agi.moveSpd;
   // 효과 명중 · 효과 저항은 아군과 같은 환산, 명중 · 회피 · 치명타는 약하게 (전체 난이도 유지)
   const K = CFG.enemyMajorConv;
   st.effHit += em.mnd * CFG.conv.mnd.effHit; st.effRes += em.def * CFG.conv.def.effRes * K.effRes;

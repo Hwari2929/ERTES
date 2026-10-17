@@ -7,6 +7,7 @@
 // 위력 종류: shoot · strike · tech (지휘관은 자동으로 전술 위력)
 
 import { PSI } from './psinum';
+import { controlNames } from '../engine/combat';
 import { ABIL_A, GLOSS_A } from './abil/a';
 import { ABIL_B, GLOSS_B } from './abil/b';
 import { ABIL_C, GLOSS_C } from './abil/c';
@@ -33,9 +34,9 @@ export interface AbilText {
 
 /** 용어 설명: 문장 끝에 --- 아래로 모아 보여준다 */
 export const GLOSS: Record<string, { name: string; desc: string }> = {
-  stun: { name: '기절', desc: '이동 · 공격 · 스킬 사용 불가. 보스는 지속 시간 절반.' },
-  fear: { name: '공포', desc: '공격 · 스킬 사용 불가. 보스는 지속 시간 절반.' },
-  shock: { name: '감전', desc: '스킬 쿨다운이 줄지 않음.' },
+  stun: { name: '기절', desc: '이동 · 공격 · 스킬 사용 불가. 보스는 지속 시간 절반. 제어 효과: 재장전이 멈추고, 재장전 중이었으면 처음부터 다시.' },
+  fear: { name: '공포', desc: '공격 · 스킬 사용 불가. 보스는 지속 시간 절반. 제어 효과: 재장전이 멈추고, 재장전 중이었으면 처음부터 다시.' },
+  shock: { name: '감전', desc: '스킬 쿨다운이 줄지 않음. 제어 효과: 재장전이 멈추고, 재장전 중이었으면 처음부터 다시.' },
   slow: { name: '둔화', desc: '공격 속도 · 이동 속도 감소.' },
   corrode: { name: '침식', desc: '방어도 감소.' },
   vuln: { name: '취약', desc: '받는 피해 증가.' },
@@ -52,7 +53,7 @@ export const GLOSS: Record<string, { name: string; desc: string }> = {
   tac: { name: '전술 위력', desc: '지휘관 전용 위력 (사격 · 타격 · 기술 위력과 같은 단위, 출전 4명 · 지휘관 1명 기준 100). 출전 기물 1명당 +16, 지휘관 1명 추가당 +40, 지휘관 정신력 1당 +2. 지휘관의 스킬은 사격 · 타격 · 기술 위력 대신 이 값을 씀.' },
   combo: { name: '콤보', desc: '정해진 횟수째 공격이 피니쉬로 강화됨.' },
   finish: { name: '피니쉬', desc: '콤보 마지막 공격. 기본 피해 ×2.6.' },
-  mag: { name: '탄창', desc: '다 쓰면 재장전하는 동안 공격 불가.' },
+  mag: { name: '탄창', desc: `다 쓰면 재장전하는 동안 공격 · 스킬 사용 불가 (스킬 쿨다운은 계속 돈다). 재장전 중 제어 효과(${controlNames()})를 받으면 재장전이 처음부터 다시.` },
   psy: { name: '정신 피해', desc: '정신 속성 피해. 사이오닉 이성 · 정신 저항의 영향을 받음.' },
   crit: { name: '치명타', desc: '확률로 치명타 피해 배율만큼 피해 증가.' },
   rewind: { name: '되감기', desc: '전투당 1회, 쓰러질 피해를 받으면 체력 50%로 복귀.' },

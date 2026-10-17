@@ -25,11 +25,21 @@ export function categoryImmune(c: Category, s: { type: string; key: string }): b
   if (c === 'soul') return s.key === 'charm';
   return false;
 }
+/** 제어 효과: 행동을 막는 상태이상 종류 — 기절 · 빙결(type stun) · 공포(fear) · 감전(shock).
+ *  걸려 있는 동안 재장전이 멈추고, 재장전 중에 (적에게서) 받으면 재장전이 처음으로 돌아간다.
+ *  매혹 · 혼란(편 · 표적만 바뀌고 행동은 한다) · 속박(이동만) · 둔화 · 오한(속도만)은 해당하지 않는다 */
+export const CONTROL_TYPES: readonly StatusType[] = ['stun', 'fear', 'shock'];
+/** 제어 효과 이름 순서 (교범 · 툴팁 표시용: STATUS_NAME 에서 이름을 읽는다) */
+export const CONTROL_KEYS = ['stun', 'freeze', 'fear', 'shock'] as const;
 export const STATUS_NAME: Record<string, string> = {
   stun: '기절', fear: '공포', rampage: '광폭', shock: '감전', root: '속박', stealth: '은신', poison: '중독', bleed: '출혈', corrode: '침식', decay: '부식', gloom: '암운', slow: '둔화', frenzy: '광폭', wound: '부상', suppress: '제압',
   // 사이오닉 상태이상 (연소 · 전도 · 지속 회복 · 오한 · 빙결 · 매혹 · 결속 · 공진 · 중독 · 혼란 · 향취)
   ...Object.fromEntries(Object.entries(PSI_STATUS).map(([k, v]) => [k, v.name])),
 };
+/** 제어 효과 이름 묶음 (예: '기절 · 빙결 · 공포 · 감전') */
+export const controlNames = (sep = ' · ') => CONTROL_KEYS.map((k) => STATUS_NAME[k]).join(sep);
+/** 재장전 초기화 떠오르는 글자 (상태 글자 규칙: status 이벤트) */
+export const RELOAD_RESET_LABEL = '재장전 초기화';
 
 export interface Status {
   type: StatusType;
@@ -254,7 +264,7 @@ export interface CUnit {
 export type EnemyTend = 'charge' | 'assassin' | 'sniper' | 'counter';
 export const TEND_NAME: Record<EnemyTend, { name: string; desc: string }> = {
   charge: { name: '돌격형', desc: '가까운 대상을 먼저 노리고, 도발 수치를 가장 충실히 따른다' },
-  assassin: { name: '암살형', desc: '체력이 낮거나 뒷줄에 있는 약한 대상을 노리고, 도발 수치에 덜 휘둘린다' },
+  assassin: { name: '암살형', desc: `체력이 낮거나 뒷줄에 있는 약한 대상을 노리고, 도발 수치에 덜 휘둘린다. 기본 이동 속도가 다른 성향의 ${+(CFG.enemyMoveSpd.assassin / CFG.enemyMoveSpd.base).toFixed(2)}배` },
   sniper: { name: '저격형', desc: '피해를 가장 많이 준 대상을 노린다' },
   counter: { name: '반격형', desc: '동료 적을 때린 대상을 노린다' },
 };
@@ -682,7 +692,8 @@ export class Battle {
       if (u.cantrip) u.cantripCd = Math.max(0, u.cantripCd - dt * cdr);
     }
     u.atkTimer -= dt * Math.max(0.2, 1 + this.S(u, 'atkSpd'));
-    if (u.reloadT > 0) {
+    // 재장전: 제어 효과(공포 · 감전 등, 기절 · 빙결은 위에서 이미 멈춤)가 걸려 있는 동안은 멈춘다
+    if (u.reloadT > 0 && !this.controlled(u)) {
       u.reloadT -= dt * Math.max(0.2, 1 + this.S(u, 'reloadSpd'));
       if (u.reloadT <= 0) { u.reloadT = 0; u.ammo = u.weapon?.mag || 1; }
     }
@@ -738,7 +749,8 @@ export class Battle {
       } else this.events.length = Math.min(this.events.length, at);
     }
 
-    if (!feared && u.skill && u.cd <= 0) {
+    // 재장전 중에는 기술을 쓰지 않는다 (쿨다운은 계속 돌고, 재장전이 끝나는 순간 기본 공격보다 먼저 시전)
+    if (!feared && u.skill && u.cd <= 0 && u.reloadT <= 0) {
       const sk = u.skill;
       if (!sk.needsRange || d <= range + (sk.reach || 0)) {
         // 시전 전에 쿨다운을 채워 두어, 시전 중 처치 등으로 쿨다운을 돌려받을 수 있게 한다
@@ -771,11 +783,28 @@ export class Battle {
         const tgt2 = u.mem.lowestFocus ? this.lowestEnemy(u) || t2 : t2;
         this.basicAttack(u, tgt2);
         u.atkTimer = u.atk.interval;
-        if (u.weapon?.kind === 'mag' && --u.ammo <= 0) u.reloadT = u.weapon.reload || 1.5;
+        if (u.weapon?.kind === 'mag' && --u.ammo <= 0) this.startReload(u);
       }
     } else if (!u.immobile && !u.statuses.some((s) => s.key === 'root')) {
       this.moveToward(u, t2, range);
     }
+  }
+
+  // ───────── 재장전 · 제어 효과
+  /** 제어 효과(CONTROL_TYPES)가 걸려 있는지 */
+  controlled(u: CUnit) { return u.statuses.some((s) => s.dur > 0 && CONTROL_TYPES.includes(s.type)); }
+  /** 탄창을 다 써서 재장전 시작 (처음 길이를 기억해 초기화 때 쓴다) */
+  startReload(u: CUnit) {
+    u.reloadT = u.mem.rlFull = u.weapon?.reload || 1.5;
+  }
+  /** 재장전 중에 제어 효과를 받으면 재장전이 처음으로 돌아간다 (제어가 풀린 뒤 처음부터 다시). 진행이 없었으면 그대로 */
+  resetReload(u: CUnit, src?: CUnit) {
+    if (u.reloadT <= 0) return;
+    const full = u.mem.rlFull || u.weapon?.reload || 1.5;
+    if (u.reloadT >= full - 1e-6) return;
+    u.reloadT = full;
+    u.mem.rlResets = (u.mem.rlResets || 0) + 1;
+    this.emit({ k: 'status', id: u.id, name: RELOAD_RESET_LABEL, src: src?.id, harm: true, stype: 'reload' });
   }
 
   /** 소마법 시전: 시전 전 이성으로 쿨다운 · 소모를 정하고, 성공하면 이성 감소 */
@@ -1153,6 +1182,7 @@ export class Battle {
     for (const x of tgt.statuses.slice()) if (x !== cur && x.onOther) x.onOther(this, tgt, x, cur);
     const label = s.label || STATUS_NAME[s.key];
     if (label) this.emit({ k: 'status', id: tgt.id, name: label, src: src.id, harm: hostile, stype: s.type });
+    if (hostile && CONTROL_TYPES.includes(s.type)) this.resetReload(tgt, src); // 재장전 중 제어 효과: 재장전 초기화
     return true;
   }
   /** 같은 키 상태이상을 다시 걸 때: 지속 갱신, 중첩형이면 중첩 추가 */

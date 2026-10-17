@@ -3,11 +3,14 @@
 import { CFG } from '../config';
 import { DIFF_PRESETS, diffName } from './difficulty';
 import { DESPAIRS } from './despair';
+import { controlNames, RELOAD_RESET_LABEL } from '../engine/combat';
 
 export interface GlossEntry { id: string; term: string; text: string; key: string }
 export interface GlossChapter { ch: string; title: string; who: string; entries: GlossEntry[] }
 /** 비율 → '25%' */
 const pc = (v: number) => `${Math.round(v * 100)}%`;
+/** 비율 포인트 → '4.8%p' */
+const pp = (v: number) => `${+(v * 100).toFixed(1)}%p`;
 
 export const GLOSSARY: GlossChapter[] = [
   {
@@ -19,7 +22,8 @@ export const GLOSSARY: GlossChapter[] = [
     ch: 'ch1', title: '1장 — 전투 기초', who: 'aiden', entries: [
       { id: 'place', term: '배치 · 출전 인원', key: 'ch1_place', text: '전투 준비 화면에서 보드 아래쪽 세 줄(아군 진영)에 기물을 끌어다 세운다. 근접은 앞줄, 원거리는 뒷줄이 기본이고 자동 배치(단축키 A)도 있다. 한 번에 세울 수 있는 인원은 기본 4명이며, 대기석의 기물은 공명도를 절반 비율로 받는다.' },
       { id: 'auto', term: '자동 전투', key: 'ch1_battle', text: '전투가 시작되면 기물이 스스로 움직이고 공격하고 기술을 쓴다. 지휘관이 하는 일은 배치까지. 전투 중에는 배속(0.25~8배, 단축키 1~6)과 일시정지(Space)만 조절한다.' },
-      { id: 'attack', term: '사격 · 타격', key: 'ch1_battle', text: '기본 공격은 무기에 따라 사격 아니면 타격. 사격(탄창형)은 탄창을 다 쓰면 재장전하고, 타격(콤보형)은 정해진 횟수마다 피니쉬로 2.6배 피해를 준다.' },
+      { id: 'attack', term: '사격 · 타격', key: 'ch1_battle', text: `기본 공격은 무기에 따라 사격 아니면 타격. 사격(탄창형)은 탄창을 다 쓰면 재장전하고, 타격(콤보형)은 정해진 횟수마다 피니쉬로 ${CFG.finishMult}배 피해를 준다. 재장전 중에는 기본 공격도 기술도 쓰지 않는다 — 기술 쿨다운은 계속 돌다가, 재장전이 끝나는 순간 기술부터 나간다 (궁극기 · 비술은 재장전과 상관없다).` },
+      { id: 'move', term: '이동 속도 · 기동력', key: 'ch1_battle', text: `한 칸을 옮기는 데 ${CFG.moveTime}초 ÷ 이동 속도가 걸린다. 아군 기물의 기본 이동 속도는 ${pc(CFG.unitMoveSpd)}이고 기동력 1당 +${pp(CFG.conv.agi.moveSpd)}. 적은 기본 ${pc(CFG.enemyMoveSpd.base)} × 적마다 정해진 이동 배율 (날랜 적은 높고 굼뜬 적은 낮다)에 기동력 1당 같은 +${pp(CFG.conv.agi.moveSpd)}를 더한다. 암살형 성향의 적만 기본이 ${pc(CFG.enemyMoveSpd.assassin)} × 이동 배율이라 훨씬 빨리 파고든다.` },
       { id: 'skill', term: '기술 · 쿨다운', key: 'ch1_battle', text: '기술은 쿨다운이 다 차면 저절로 나간다. 마나 같은 자원은 없다. 쿨다운 감소 속도가 높을수록 자주 쓴다.' },
       { id: 'prov', term: '도발 수치 · 적 성향', key: 'ch1_battle', text: '적은 아군마다 도발 수치를 기억한다. 그 적에게 준 피해에 비례해 오르고, 회복 · 보호막을 쓰면 주변 적에게 조금 오르며, 시간이 지나면 조금씩 줄어든다. 적은 0.75초마다 도발 수치가 가장 높은 대상을 다시 고르되, 지금 대상보다 1.3배 이상 높아야 갈아탄다. 기물마다 도발 배율이 있다 (돌격가 3 · 수호자 시너지가 켜지면 +1.5 · 그 밖 1.0, 은신 · 침투자 기습 중 ×0.3). 적 성향이 여기에 가중치를 곱한다: 돌격형은 가까운 대상, 암살형은 체력이 낮거나 뒷줄인 대상, 저격형은 피해를 많이 준 대상, 반격형은 동료 적을 때린 대상. [도발] 상태는 도발 수치를 크게 올리고 잠시 표적을 고정시킨다.' },
       { id: 'hpbar', term: '체력 바 · 피해 측정표', key: 'ch1_battle', text: '머리 위 막대가 체력, 흰 막대는 보호막. 체력이 바닥난 기물은 그 전투에서 빠진다. 왼쪽 측정표는 준 피해 · 받은 피해 · 회복과 보호막 · 결정타를 기물별로 보여 준다.' },
@@ -32,6 +36,7 @@ export const GLOSSARY: GlossChapter[] = [
       { id: 'bounce', term: '바운스', key: 'ch1b_intro', text: '피해가 맞은 적에서 정해진 칸 안의 다른 적에게 차례로 옮겨 가며 다시 맞히는 것. 기물 · 시너지 · 장비 설명은 "n% 계수의 OO 속성 피해가 n칸 내의 적에게 최대 n회 바운스된다" 꼴로 적는다. 바로 직전에 맞은 적에게는 다시 가지 않는다.' },
       { id: 'armor', term: '방어도', key: 'ch1b_intro', text: '받는 피해를 줄이는 수치. 피해 × (1 − 방어도 ÷ (방어도 + 3200)), 즉 3200이면 절반. 높을수록 효과가 점점 둔해지고, 방어도 관통으로 일부를 무시할 수 있다.' },
       { id: 'category', term: '분류 (생체 · 기계 · 영혼 · 구조물)', key: 'ch1b_detail', text: '생체는 화학 피해 1.5배, 기계는 전기 1.5배 · 정신 0.25배, 영혼은 물리 0.6배 · 신성 1.5배. 구조물은 움직이지 않고 방어도 1.3배, 기절 · 공포 · 빙결이 듣지 않는다.' },
+      { id: 'control', term: '제어 효과 · 재장전 초기화', key: 'ch1b_detail', text: `${controlNames()}은 행동을 막는 제어 효과다. 제어 효과가 걸려 있는 동안에는 재장전이 멈추고, 재장전 중에 적의 제어 효과를 받으면 재장전이 처음으로 돌아가 제어가 풀린 뒤 처음부터 다시 한다 (머리 위에 '${RELOAD_RESET_LABEL}'). 둔화 · 속박 · 매혹 · 혼란처럼 행동 자체를 막지 않는 효과는 해당하지 않는다.` },
       { id: 'ctype', term: '전투 유형', key: 'ch1b_intro', text: '싸우는 방식. 돌격가(근접 타격 · 피니쉬), 명사수(사격 · 체력 비율이 가장 낮은 적을 노림), 전문가(기술 위력 · 효과 명중), 지휘관(출전 인원이 많을수록 커지는 전술 위력으로 기술).' },
       { id: 'detail', term: '상세 보기', key: 'ch1b_detail', text: '기물이나 적을 누르면 상세가 열린다. 돋보기(상세 보기, 단축키 D)를 켜면 계수와 세부 규칙까지 보인다.' },
     ],

@@ -200,7 +200,7 @@ export const PSI_STATUS: Record<string, { name: string; desc: string }> = {
   conduct: { name: '전도', desc: '행동할 때마다 주변 적에게 전기 피해 (중첩)' },
   regen: { name: '지속 회복', desc: '초마다 체력 회복' },
   chill: { name: '오한', desc: '공격 · 이동 속도 감소, 약한 지속 피해, 빙결 확률 증가 (중첩)' },
-  freeze: { name: '빙결', desc: '행동 불가' },
+  freeze: { name: '빙결', desc: '행동 불가 (제어 효과: 재장전 정지 · 초기화)' },
   charm: { name: '매혹', desc: '잠시 상대 편으로 싸움' },
   bond: { name: '결속', desc: '받는 피해 증가, 다른 결속 대상과 피해 공유' },
   resonance: { name: '공진', desc: '피격될 때마다 주변 적에게 피해' },

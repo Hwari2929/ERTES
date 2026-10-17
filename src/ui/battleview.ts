@@ -54,7 +54,7 @@ const ICON_STUN = svg('M12 1.5l2.6 6.3 6.8.5-5.2 4.4 1.6 6.6L12 15.7l-5.8 3.6 1.
 const ICON_FEAR = svg('M10 3h4l-.8 12h-2.4Zm2 14.5a2.3 2.3 0 1 1 0 4.6 2.3 2.3 0 0 1 0-4.6Z');
 const DROP = 'M12 2.5C9 7 6 10.4 6 14a6 6 0 0 0 12 0c0-3.6-3-7-6-11.5Z';
 const TOP_ICON: Record<string, { t: string; svg: string }> = {
-  shock: { t: '감전: 기술 쿨다운 정지', svg: svg('M13.5 2 5 13.5h5.5L9 22l9-12h-5.6Z') },
+  shock: { t: '감전: 기술 쿨다운 · 재장전 정지', svg: svg('M13.5 2 5 13.5h5.5L9 22l9-12h-5.6Z') },
   bleed: { t: '출혈: 지속 물리 피해', svg: svg(DROP) },
   poison: { t: '중독: 지속 화학 피해', svg: svg(DROP) },
   dot: { t: '지속 피해', svg: svg(DROP) },
@@ -76,7 +76,7 @@ const TOP_ICON: Record<string, { t: string; svg: string }> = {
 };
 const ICON_FREEZE = svg('M12 1.5 21 6.75v10.5L12 22.5 3 17.25V6.75Zm0 4L7 8.4v7.2l5 2.9 5-2.9V8.4Z');
 const ICON_CHARM = svg('M12 21s-8.5-5.3-8.5-11.2A4.8 4.8 0 0 1 12 6.6a4.8 4.8 0 0 1 8.5 3.2C20.5 15.7 12 21 12 21Z');
-const BIG_ICON: Record<string, [string, string]> = { stun: [ICON_STUN, '기절: 행동 불가'], fear: [ICON_FEAR, '공포: 공격 · 기술 불가'], freeze: [ICON_FREEZE, '빙결: 행동 불가'], charm: [ICON_CHARM, '매혹: 잠시 상대 편으로 싸움'] };
+const BIG_ICON: Record<string, [string, string]> = { stun: [ICON_STUN, '기절: 행동 불가 (재장전 정지)'], fear: [ICON_FEAR, '공포: 공격 · 기술 불가 (재장전 정지)'], freeze: [ICON_FREEZE, '빙결: 행동 불가 (재장전 정지)'], charm: [ICON_CHARM, '매혹: 잠시 상대 편으로 싸움'] };
 /** 사이오닉 학파 (엔진 필드가 없을 때도 안전하게) */
 const schoolOfC = (u: CUnit): string | null => (u as { school?: string | null }).school ?? null;
 /** 이성 막대 디자인: 정신은 기존 초월 막대를 쓴다 */
@@ -679,6 +679,7 @@ export class BattleView {
       // 재장전: 탄창 표식 + 진행 고리
       if (alive && u.reloadT > 0) {
         if (e.rl.hidden) { e.rl.hidden = false; e.rlMax = u.reloadT; }
+        else if (u.reloadT > e.rlMax) e.rlMax = u.reloadT; // 재장전 초기화로 처음보다 길어졌으면 (고속 배속에서 첫 표본이 늦은 경우)
         e.rl.style.setProperty('--p', `${Math.round((1 - u.reloadT / Math.max(0.01, e.rlMax)) * 100)}%`);
       } else if (!e.rl.hidden) e.rl.hidden = true;
       // 행동 불가류(기절 · 빙결 · 매혹 · 공포)는 초상화 중앙에 크게, 나머지 상태는 좌(디버프) · 우(버프) 세로 줄 (statusTokens)
