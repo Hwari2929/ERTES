@@ -66,6 +66,8 @@ export const KING = {
   hp: (n: number) => 0.08 * (n - 1),
   /** 지휘관: 전술 위력 증가 (스킬 · 궁극기가 전술 위력을 쓰므로) */
   tac: (n: number) => 0.15 * (n - 1),
+  /** 공왕 시너지 자체: 무휼 전술 위력 +100% (인과 단계와 별도로 더함) */
+  tacBase: 1.0,
   /** 기술 강화 이정표 (인과 단계) */
   ms: [4, 7, 10],
 };
@@ -76,5 +78,5 @@ export const KING_MS_TEXT = [
 ];
 /** 단계 줄 설명 (도감 · 상세) */
 export function kingStageText(n: number) {
-  return `모든 주요 능력치 +${KING.maj(n)} · 위력 성장 ${KING.rank(n)}등급 상당 · 주는 피해 +${Math.round(KING.dmg(n) * 100)}% · 최대 체력 +${Math.round(KING.hp(n) * 100)}% · 전술 위력 +${Math.round(KING.tac(n) * 100)}%`;
+  return `모든 주요 능력치 +${KING.maj(n)} · 위력 성장 ${KING.rank(n)}등급 상당 · 주는 피해 +${Math.round(KING.dmg(n) * 100)}% · 최대 체력 +${Math.round(KING.hp(n) * 100)}% · 전술 위력 +${Math.round((KING.tacBase + KING.tac(n)) * 100)}% (공왕 +${Math.round(KING.tacBase * 100)}% 포함)`;
 }

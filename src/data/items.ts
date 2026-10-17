@@ -258,6 +258,8 @@ export interface TurretGear { name: string; icon: string; grade: 'basic' | 'adv'
 /** 포탑 장비 가격 (정비 노드): 보급형 = 재료~고급 사이, 고급형 = 희귀와 같은 급 */
 export const TURRET_PRICE = { basic: 9, adv: 18 } as const;
 const tPow = (b: import('../engine/combat').Battle, u: import('../engine/combat').CUnit) => b.S(u, 'shoot');
+/** 테슬라 코일 바운스 계수 (사격 위력 비례, 50 → 40%: 포탑 장비 독주 완화) */
+const TESLA_K = 0.4;
 export const TURRET_GEAR: Record<string, TurretGear> = {
   T_cal: { name: '대구경 포신', icon: '◉', grade: 'basic', desc: '포탑 피해 +35%.', effect: { mods: [inc('all', 0.35)] } },
   T_plate: { name: '증가 장갑', icon: '⛊', grade: 'basic', desc: '포탑 최대 체력 +50%, 방어도 +50%.', effect: { pct: { maxHp: 0.5, armor: 0.5 } } },
@@ -283,7 +285,7 @@ export const TURRET_GEAR: Record<string, TurretGear> = {
       return false;
     } } } },
   T_rapid: { name: '과급 급탄기', icon: '≫', grade: 'adv', desc: '포탑 공격 속도 +100%p.', effect: { stats: { atkSpd: 1.0 } } },
-  T_tesla: { name: '테슬라 코일', icon: 'ϟ', grade: 'adv', desc: '기본 공격이 전기 피해로 바뀌고, 맞히면 사격 위력 50% 계수의 전기 속성 피해가 2칸 내의 적에게 최대 2회 바운스된다.',
+  T_tesla: { name: '테슬라 코일', icon: 'ϟ', grade: 'adv', desc: `기본 공격이 전기 피해로 바뀌고, 맞히면 사격 위력 ${Math.round(TESLA_K * 100)}% 계수의 전기 속성 피해가 2칸 내의 적에게 최대 2회 바운스된다.`,
     effect: {
       setup: (u) => { u.atk = { ...u.atk, elem: 'elec' }; },
       hooks: { onBasic(b, u, t, r) {
@@ -293,7 +295,7 @@ export const TURRET_GEAR: Record<string, TurretGear> = {
           const next = b.nearest(at, b.around(at, 2, b.enemiesOf(u)).filter((e) => e !== at && e !== prev));
           if (!next) break;
           b.emit({ k: 'atk', from: at.id, to: next.id, elem: 'elec', ranged: true, chain: true });
-          b.dealDamage(u, next, tPow(b, u) * 0.5, { elem: 'elec', tag: 'proc', kind: 'shoot' });
+          b.dealDamage(u, next, tPow(b, u) * TESLA_K, { elem: 'elec', tag: 'proc', kind: 'shoot' });
           prev = at; at = next;
         }
       } },

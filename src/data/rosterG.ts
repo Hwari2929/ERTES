@@ -340,7 +340,7 @@ export const REWORK_G: Record<string, ReworkDef> = {
           u.mem.kingStage = n;
           u.mods.push(inc('all', KING.dmg(n)));
           u.st.maxHp *= 1 + KING.hp(n);
-          u.mem.tacPct = (u.mem.tacPct || 0) + KING.tac(n); // 지휘관: 전술 위력도 단계마다 (명사수면 쓰이지 않음)
+          u.mem.tacPct = (u.mem.tacPct || 0) + KING.tacBase + KING.tac(n); // 지휘관: 전술 위력도 단계마다 (명사수면 쓰이지 않음)
           if (n >= KING.ms[0]) u.sk.radius = 1;
           if (n >= KING.ms[1]) { u.sk.hits = 2; u.sk.vuln = 0.25; }
           if (n >= KING.ms[2]) { u.sk.final = 1; u.sk.refund = 0.5; }

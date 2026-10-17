@@ -5,7 +5,7 @@ import { amp, applyLive, inc, red, vuln } from '../engine/effects';
 import { CFG } from '../config';
 import { type Major, MAJORS, type RunState, type Stats, type SynergyId } from '../types';
 import { ALL_ADVANCED, itemEffect, itemInfo, OCCULT_MODS, occultModsOfTier } from './items';
-import { CAUSAL, KING_GEAR, KING_GEAR_NAME } from './chungra';
+import { CAUSAL, KING, KING_GEAR, KING_GEAR_NAME } from './chungra';
 import { addStacks, blinkTo, harmfulCount, isDebuffed, isHarmful, pct } from './kit';
 import { UNIT_BY_ID } from './units';
 
@@ -30,6 +30,8 @@ export const TITLE_NAME = ['평민', '기사', '남작', '백작', '공작', '�
 export const rankTitle = (rank: number) => (rank >= 30 ? 6 : rank >= 20 ? 5 : rank >= 9 ? 4 : rank >= 6 ? 3 : rank >= 3 ? 2 : 1); // 3등급마다 작위, 대공 20 · 황제 30
 
 const T = (tier: number, a: number[]) => a[Math.max(0, tier - 1)];
+/** 시리우스 성도회 (5명 이상): 전투당 부활 횟수 — 단계와 무관하게 1회 */
+const SIR_REVIVES = [0, 1, 1, 1];
 /** 최고의 친구 (2 · 4 · 6 · 8명): 소환물 스탯 상속률 · 소환물 피해 증가 · 소환물 모든 주요 능력치 */
 const BUDDY_BOND = [0.6, 1.0, 1.8, 3.0], BUDDY_AMP = [0.15, 0.4, 1.0, 2.5], BUDDY_MAJ = [0, 10, 20, 40];
 
@@ -278,8 +280,8 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'SIR', name: '시리우스 성도회', kind: 'faction', tiers: [3, 5, 7, 9], color: '#e8e2c8', icon: '✧',
     desc: '시리우스를 섬기는 무장 교단. 성도회 기물은 신성 피해가 강하고 단단하며, 단계가 오르면 쓰러진 아군을 되살리는 기적을 일으킵니다.',
-    tierDesc: ['성도회 신성 피해 증폭 +20%, 준 피해(고정 제외)의 10% 추가 신성 피해, 피해량 경감 12%', '신성 피해 증폭 +50%, 추가 신성 피해 20%, 준 신성 피해의 30% 회복, 피해량 경감 18%, 전투당 1회 처음 쓰러지는 아군 부활 (체력 40%)', '신성 피해 증폭 +100%, 추가 신성 피해 35%, 신성 피해 30% 회복, 피해량 경감 25%, 부활 3회 (체력 70%)',
-      '[시리우스 강림] 신성 피해 증폭 +200%, 추가 신성 피해 50%, 신성 피해 30% 회복, 피해량 경감 35%, 부활 6회 (체력 100%), 부활한 아군은 2초 무적 · 10초간 피해 +50%'],
+    tierDesc: ['성도회 신성 피해 증폭 +20%, 준 피해(고정 제외)의 10% 추가 신성 피해, 피해량 경감 12%', '신성 피해 증폭 +50%, 추가 신성 피해 20%, 준 신성 피해의 30% 회복, 피해량 경감 18%, 전투당 1회 처음 쓰러지는 아군 부활 (체력 40%)', '신성 피해 증폭 +100%, 추가 신성 피해 35%, 신성 피해 30% 회복, 피해량 경감 25%, 부활 1회 (체력 70%)',
+      '[시리우스 강림] 신성 피해 증폭 +200%, 추가 신성 피해 50%, 신성 피해 30% 회복, 피해량 경감 35%, 부활 1회 (체력 100%), 부활한 아군은 2초 무적 · 10초간 피해 +50%'],
     member: (t) => {
       const extra = T(t, [0.1, 0.2, 0.35, 0.5]);
       return {
@@ -298,7 +300,7 @@ export const SYNERGIES: SynDef[] = [
     team: (t) => (t >= 2 ? {
       hooks: {
         onLethal(b, u) {
-          if (u.isSummon || (b.mem.sirRevive || 0) >= T(t, [0, 1, 3, 6])) return false;
+          if (u.isSummon || (b.mem.sirRevive || 0) >= T(t, SIR_REVIVES)) return false;
           b.mem.sirRevive = (b.mem.sirRevive || 0) + 1;
           u.hp = b.S(u, 'maxHp') * T(t, [0, 0.4, 0.7, 1.0]);
           u.statuses = u.statuses.filter((s) => s.type === 'buff' && !isHarmful(s));
@@ -698,7 +700,7 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'KING', name: '공왕', kind: 'trait', tiers: [1], color: '#c8303a', icon: '王',
     desc: '무휼 전용. 청라공국 시너지(3명 이상)가 전투 시작 때 소환합니다. 공명 등급 대신 인과 단계로 성장하고, 영입 · 판매 · 상점에 나오지 않습니다. 청라공국 인원에는 세지 않습니다.',
-    tierDesc: ['인과 단계 1~10: 단계마다 모든 주요 능력치 · 위력 · 피해 · 최대 체력 상승, 4 · 7 · 10단계에 천명 기록 강화'],
+    tierDesc: [`[공왕의 권위] 무휼 전술 위력 +${Math.round(KING.tacBase * 100)}%. 인과 단계 1~10: 단계마다 모든 주요 능력치 · 위력 · 피해 · 최대 체력 상승, 4 · 7 · 10단계에 천명 기록 강화`],
   },
   {
     id: 'SANGUN', name: '산군', kind: 'trait', tiers: [1], color: '#e07a1f', icon: '虎',

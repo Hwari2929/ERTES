@@ -17,6 +17,10 @@ const P: Record<string, string> = {
   BUDDY: '<path d="M12 20s-7.5-4.6-9.3-9A5 5 0 0 1 12 6.4 5 5 0 0 1 21.3 11c-1.8 4.4-9.3 9-9.3 9z"/>',
   HUNTER: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5"/>',
   VOYAGE: '<path d="M3 17.5h18l-2.5 3.5h-13z"/><path d="M12 3v13"/><path d="M12 4.5 19 14.5h-7z"/><path d="M12 7 6.5 14.5H12"/>',
+  // 청라공국 · 공왕 · 산군: 한자 글자 그대로 (다른 시너지 아이콘과 같은 틀 안에서 회전 보정을 받도록 SVG 글자로)
+  CHR: '<text x="12" y="18.5" text-anchor="middle" font-size="17" font-weight="700" fill="currentColor" stroke="none" font-family="\'Noto Serif KR\', \'Noto Serif CJK KR\', \'Batang\', serif">靑</text>',
+  KING: '<text x="12" y="18.5" text-anchor="middle" font-size="17" font-weight="700" fill="currentColor" stroke="none" font-family="\'Noto Serif KR\', \'Noto Serif CJK KR\', \'Batang\', serif">王</text>',
+  SANGUN: '<text x="12" y="18.5" text-anchor="middle" font-size="17" font-weight="700" fill="currentColor" stroke="none" font-family="\'Noto Serif KR\', \'Noto Serif CJK KR\', \'Batang\', serif">虎</text>',
   OCCULT: '<circle cx="12" cy="12" r="9"/><path d="M12 3.5 14.4 9h5.6l-4.6 3.5 1.8 5.6L12 14.6l-5.2 3.5 1.8-5.6L4 9h5.6z"/>',
   STAR: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21M8.5 21h7"/>',
   INFIL: '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>',
