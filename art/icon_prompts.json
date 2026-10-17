@@ -1070,5 +1070,50 @@
  "trait.minos": {
   "subject": "stack of ledgers and quill with three ghostly hooded clerks rising, fear aura",
   "color": "gray and spectral blue"
+ },
+ "_re.hana.1": {
+  "subject": "a single korean paper talisman strip with red ink calligraphy seal, floating and glowing with psychic energy",
+  "color": "violet and dark crimson",
+  "prop": true
+ },
+ "_re.hana.2": {
+  "subject": "three yellow paper talismans with red brush script fanned out, burning purple spirit fire at the edges",
+  "color": "violet and yellow",
+  "prop": true
+ },
+ "_re.hana.3": {
+  "subject": "shaman paper charm thrown forward leaving a trail of psychic light, red seal stamp in the center",
+  "color": "violet and deep purple",
+  "prop": true
+ },
+ "_re.gungo.1": {
+  "subject": "three glowing tiger claw slash marks tearing across the frame",
+  "color": "orange and amber",
+  "prop": true
+ },
+ "_re.gungo.2": {
+  "subject": "large tiger paw with extended sharp claws swiping, motion streaks",
+  "color": "orange and black stripes",
+  "prop": true
+ },
+ "_re.gungo.3": {
+  "subject": "tiger head silhouette roaring behind three bright claw scratches",
+  "color": "orange and red",
+  "prop": true
+ },
+ "_re.minos.1": {
+  "subject": "heavy square official seal stamp pressing down onto a document, glowing spectral ink burst",
+  "color": "gray and spectral blue",
+  "prop": true
+ },
+ "_re.minos.2": {
+  "subject": "ornate underworld bureau seal with greek key border stamped mid-air, ghostly blue glow",
+  "color": "gray and spectral blue",
+  "prop": true
+ },
+ "_re.minos.3": {
+  "subject": "round wax seal stamp with a skull and scales emblem, spectral blue light rays",
+  "color": "gray and spectral blue",
+  "prop": true
  }
 }
