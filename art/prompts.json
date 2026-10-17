@@ -1787,5 +1787,13 @@
   "tags": "imperial royal guard knight, full plate armor, ornate crimson and gold armor, closed helmet, visor down, face hidden, eyes not visible, crimson cape, longsword, tower shield, mob character, full body, standing",
   "source": "lore",
   "notes": "칼리토 제국 시너지가 부르는 황실 근위대 돌격가 소환물."
+ },
+ "sm_rockfire": {
+  "name": "반려 돌(인화성)",
+  "subject": "no humans",
+  "tags": "(en_cw_rock 그림에 붉은 필터)",
+  "source": "derived",
+  "notes": "최고의 친구 문장 소환물. 반려 돌 그림에 붉은 색조를 입힌 파생본.",
+  "object": true
  }
 }
