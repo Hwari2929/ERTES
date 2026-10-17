@@ -85,6 +85,8 @@ export interface SummonDef {
   focusLow?: boolean;
   /** 함께 소환되는 다른 소환물 (각 1기, 추가 소환 효과는 첫 소환물에만) */
   also?: SummonDef[];
+  /** 구조물 소환물: 이동하지 않고 방어도 ×1.3 · 기절 · 공포 · 빙결 면역 (체력은 '내구도'로 표기) */
+  struct?: boolean;
 }
 
 export const B = (vit: number, pow: number, mnd: number, def: number, agi: number) => ({ vit, pow, mnd, def, agi });

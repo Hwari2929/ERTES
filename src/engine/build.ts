@@ -256,7 +256,7 @@ export function makeSummons(owner: CUnit, sd0: SummonDef): SummonMade[] {
     if (gm) for (const k of MAJORS) for (const [sk, per] of Object.entries(CFG.conv[k])) st[sk as keyof Stats] += (per as number) * gm;
     Object.assign(s, {
       defId: 'summon', name: sd.name, sprite: sd.sprite, palette: sd.palette, art: sd.art, st, atk: { ...sd.atk },
-      keywords: sd.sprite === 'drone' ? ['mech'] : ['bio'], isSummon: true, owner,
+      keywords: sd.struct ? ['struct'] : sd.sprite === 'drone' ? ['mech'] : ['bio'], isSummon: true, owner, immobile: !!sd.struct,
       mods: [
         ...(owner.mem.bondAmp ? [{ kind: 'inc' as const, tag: 'all' as const, v: owner.mem.bondAmp }] : []),
         ...(owner.mem.summonDmg ? [{ kind: 'inc' as const, tag: 'all' as const, v: owner.mem.summonDmg }] : []), // 라르스 변호인단

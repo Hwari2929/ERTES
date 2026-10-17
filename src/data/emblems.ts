@@ -35,7 +35,7 @@ export const EMB = {
 /** 최고의 친구 문장 소환물: 반려 돌(인화성). 상속률 = 최고의 친구 소환물 규칙(build.ts summonBond) × rate → 기본 EMB.BUDDY.rate */
 export const EMB_ROCK: SummonDef = {
   name: '반려 돌(인화성)', ctype: 'VAN', art: 'sm_rockfire', sprite: 'turret', palette: ['#0e0e0e', '#8a8a86', '#c8502a', '#c8c8c0', '#ffb36b', '#3a3a38', '#e8e8e0'],
-  atk: { type: 'strike', elem: 'phys', interval: 1.2 }, range: 1, moveSpd: 1, rate: EMB.BUDDY.rate / CFG.bond.base,
+  atk: { type: 'strike', elem: 'phys', interval: 1.2 }, range: 1, moveSpd: 1, rate: EMB.BUDDY.rate / CFG.bond.base, struct: true,
 };
 
 const pc = (v: number) => `${Math.round(v * 100)}%`;
@@ -76,7 +76,7 @@ export const EMBLEM_FX: Partial<Record<SynergyId, EmblemDef>> = {
   // 포탑은 출전한 엔지니어(문장 포함)의 mem.turretMaxHp 합만큼 최대 체력이 는다 (engine/build.ts ENG_HOOK.spawn)
   ENG: { text: `아군 감시 포탑 최대 체력 +${pc(EMB.ENG)} (문장끼리 더한다).`, effect: () => ({ setup: (u) => { u.mem.turretMaxHp = (u.mem.turretMaxHp || 0) + EMB.ENG; } }) },
   BUDDY: {
-    text: `전투 시작 시 소환물 [${EMB_ROCK.name}]을 부른다 (기본 상속률 ${pc(EMB.BUDDY.rate)}, 원래 소환물과 따로). 쓰러지면 폭발해 주변 ${EMB.BUDDY.r}칸 적에게 주인 주요 위력 ${pc(EMB.BUDDY.blast)} ${ELEM_NAME.phys} 피해.`,
+    text: `전투 시작 시 소환물 [${EMB_ROCK.name}]을 부른다 (기본 상속률 ${pc(EMB.BUDDY.rate)}, 원래 소환물과 따로). 구조물이라 움직이지 않고 체력 대신 내구도를 가진다. 내구도가 다하면 폭발해 주변 ${EMB.BUDDY.r}칸 적에게 주인 주요 위력 ${pc(EMB.BUDDY.blast)} ${ELEM_NAME.phys} 피해.`,
     effect: () => ({ hooks: {
       onStart(b, u) {
         const r = SUMMON_RT.make?.(b, u, EMB_ROCK);

@@ -1290,7 +1290,7 @@ function turretDetail(run: RunState, i: number, bar: string) {
   return `<div class="detail">${bar}
     ${heroHead('', sprite(TURRET_SPR, 'spr big'), `감시 포탑 ${i + 1}`, `<span class="tag cat-mech">${lineIcon('k.mech', 'li')}기계</span><span class="tag">구조물</span><span class="tag">엔지니어 소환물</span>`)}
     <div class="small muted">기계: ${esc(CATEGORY_RULE.mech)}<br>구조물: ${esc(CATEGORY_RULE.struct)}</div>
-    ${t ? `<dl class="stats">${row('최대 체력', fmt(t.st.maxHp))}${row('사격 위력', fmt(t.st.shoot))}${row('방어도', fmt(t.st.armor))}${row('공격 속도', `+${Math.round(t.st.atkSpd * 100)}%`)}${row('사거리', String(t.st.range))}${row('피해 속성', ELEM_NAME[t.atk.elem])}</dl>` : '<p class="muted small">엔지니어가 출전해야 포탑이 설치됩니다.</p>'}
+    ${t ? `<dl class="stats">${row('최대 내구도', fmt(t.st.maxHp))}${row('사격 위력', fmt(t.st.shoot))}${row('방어도', fmt(t.st.armor))}${row('공격 속도', `+${Math.round(t.st.atkSpd * 100)}%`)}${row('사거리', String(t.st.range))}${row('피해 속성', ELEM_NAME[t.atk.elem])}</dl>` : '<p class="muted small">엔지니어가 출전해야 포탑이 설치됩니다.</p>'}
     <h3>포탑 장비 <span class="muted small" title="엔지니어 2명 1칸 · 4명 2칸 · 6명 이상 3칸">${slots}칸 · 포탑 전용</span></h3>
     <div class="t-gear">${[...Array(slots).keys()].map((k) => { const it = g[k]; return it
       ? `<div class="t-slot">${itemIcon(it, `data-drag="tgear:${i}:${k}" data-drop="tgear:${i}:${k}"`)}<div><b>${esc(itemInfo(it).name)}</b><div class="small muted">${esc(TURRET_GEAR[it].desc)}</div></div><button class="btn tiny" data-a="tunequip" data-v="${i}:${k}">해제</button></div>`
@@ -1330,7 +1330,7 @@ function kingDetail(run: RunState, bar: string) {
     <h3>전용 장비 <span class="muted small">일반 장비는 장착할 수 없음 (장비 점수에는 셈)</span></h3><div class="t-gear">${gearRow}</div>
     <div class="mj-wrap"><div class="mj-head"><h3>주요 능력치</h3></div>
     <div class="majors">${MAJORS.map((m) => { const add = tm[m] - d.base[m]; return `<div class="major"><span>${majorIcon(m)}${MAJOR_NAME[m]}</span><span class="mbar"><i style="width:${Math.min(100, tm[m] * 3)}%"></i></span><b>${tm[m]}</b>${add ? `<small class="${add > 0 ? 'up' : 'down'}">${add > 0 ? '+' : ''}${add}</small>` : ''}</div>`; }).join('')}</div></div>
-    <dl class="stats"><dt>최대 체력</dt><dd>${fmt(b.S(c, 'maxHp'))}</dd><dt>사격 위력</dt><dd>${fmt(b.S(c, 'shoot'))}</dd><dt>방어도</dt><dd>${fmt(b.S(c, 'armor'))}</dd><dt>사거리</dt><dd>${b.S(c, 'range')}</dd></dl>
+    <dl class="stats"><dt>최대 내구도</dt><dd>${fmt(b.S(c, 'maxHp'))}</dd><dt>사격 위력</dt><dd>${fmt(b.S(c, 'shoot'))}</dd><dt>방어도</dt><dd>${fmt(b.S(c, 'armor'))}</dd><dt>사거리</dt><dd>${b.S(c, 'range')}</dd></dl>
     <h3>능력</h3>
     <div class="abils">
       ${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem, d.id)}
@@ -1390,12 +1390,14 @@ function invDetail(run: RunState) {
   return pop(itemIcon(sel), TIER[sel.startsWith('U_') ? 'U' : it.tier] || '', it.name, stats, eff ? statIc(esc(eff)) : '', `<button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${R.sellPrice(run, sel)}</button>${hint}`);
 }
 
+/** 체력 표기: 구조물(포탑 · 반려 돌(인화성) 등)은 '최대 내구도' */
+const hpLabel = (c: CUnit) => (c.category === 'struct' ? '최대 내구도' : '최대 체력');
 function statLines(c: CUnit, b: Battle) {
   const S = (k: keyof CUnit['st']) => b.S(c, k);
   const armor = S('armor');
   // 마이너 능력치: 흰색 선 아이콘 + 이름 + 값
   const lines: [string, string, string, string?][] = [
-    ['r.hp', '최대 체력', fmt(S('maxHp'))], ['a.heal', '회복 효율', '+' + pctTxt(S('healEff'))],
+    ['r.hp', hpLabel(c), fmt(S('maxHp'))], ['a.heal', '회복 효율', '+' + pctTxt(S('healEff'))],
     ['p.shoot', '사격 위력', fmt(S('shoot'))], ['p.strike', '타격 위력', fmt(S('strike'))], ['p.tech', '기술 위력', fmt(S('tech'))],
     ...(c.ctype === 'CMD' && (!c.isSummon || c.mem.tacOk) ? [['p.tac', '전술 위력', fmt(b.tacPower(c))] as [string, string, string]] : []),
     ['u.target', '명중', '+' + pctTxt(S('acc'))], ['u.finish', '치명타', pctTxt(S('crit'))], ['a.power', '치명타 피해', pctTxt(S('critDmg'))], ['a.stun', '효과 명중', '+' + pctTxt(S('effHit'))],
@@ -1522,7 +1524,7 @@ function summonRows(b: Battle | null, c: CUnit, m: SummonMade, ctx: AB.AbilCtx):
   return [
     ['전투 유형', ct ? `${typeIcon(ct)}${CTYPE_NAME[ct]}` : '소환물'],
     ['상속률', `${sumPc(m.rate)} <span class="muted small">${esc(bondNote(c, m))}</span>`],
-    ['최대 체력', `${fmt(sumS(b, s, 'maxHp'))}${sd.hpMul && sd.hpMul !== 1 ? ` <span class="muted small">(체력 ×${sd.hpMul})</span>` : ''}`],
+    [hpLabel(s), `${fmt(sumS(b, s, 'maxHp'))}${sd.hpMul && sd.hpMul !== 1 ? ` <span class="muted small">(체력 ×${sd.hpMul})</span>` : ''}`],
     ['피해 유형', AB.powType(ctx, pow)],
     ['피해', AB.powNum(ctx, pow, sd.basicMult || 1, false, false, s.atk.elem)],
     ...(amp ? [['피해 증가', `+${sumPc(amp)} <span class="muted small">(최고의 친구 단계 · 특성 · 증강)</span>`] as [string, string]] : []),
@@ -1551,7 +1553,7 @@ function summonSection(d: UnitDef, b: Battle | null, c: CUnit | null, scope: str
     const head = `<div class="sm-id">${sprite(s, 'spr sm-face')}<span class="sm-nm">${kinds.length > 1 ? `<b>${esc(sd.name)}</b>` : ''}${ms.length > 1 ? `<span class="sm-n" title="전투 시작 시 불려 나오는 수">${ms.length}기</span>` : ''}<span class="dh-types">${ct ? `<i>${typeIcon(ct)}${CTYPE_NAME[ct]}</i>` : ''}${categoryTag(s.category)}</span></span></div>`;
     const chips = `<div class="ab-chips"><span class="abc sm-bond" title="${esc(`스탯 상속률: 주인의 체력 · 위력 · 방어도를 물려받는 비율 (명중 · 치명타 · 효과 명중 · 효과 저항 · 회피는 주인 값 그대로). ${bondNote(c, m)}`)}">${lineIcon('a.summon', 'li')}상속률 <b>${sumPc(m.rate)}</b></span>`
       + (ex.length ? `<span class="abc" title="${esc(`추가로 불린 소환물 ${ex.length}기: 상속률 ×${CFG.bond.extra}`)}">추가 ${ex.length}기 <b>${sumPc(ex[0].rate)}</b></span>` : '')
-      + `<span class="abc" title="최대 체력">${lineIcon('a.hp', 'li')}${fmt(sumS(b, s, 'maxHp'))}</span>`
+      + `<span class="abc" title="${hpLabel(s)}">${lineIcon('a.hp', 'li')}${fmt(sumS(b, s, 'maxHp'))}</span>`
       + `<span class="abc" title="${pow === 'shoot' ? '사격' : '타격'} 위력">${lineIcon(`p.${pow}`, 'li')}${fmt(sumS(b, s, pow))}</span>`
       + `<span class="abc" title="${esc(`도발 배율: 적이 이 소환물에게 쌓는 도발 수치에 곱해지는 값 (${ct ? `${CTYPE_NAME[ct]} 소환물` : '소환물'}). 돌격가 경계는 소환물에게 없다.`)}">${lineIcon('p.prov', 'li')}×${+pv.toFixed(2)}</span></div>`;
     const atk = `<div class="ps-card ab-click${abilOn(`summon:atk:${k}`)}" data-a="abil-pop" data-v="summon:atk:${k}" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">기본 공격</span><b>${WPOS(range)}</b></div><div class="ab-chips">${AB.chip('u.range', `${range}칸`, '사거리')}${AB.powNum(ctx, pow, sd.basicMult || 1, false, false, s.atk.elem)}${AB.chip('a.speed', `${s.atk.interval}초`, '공격 간격')}</div></div>`;
