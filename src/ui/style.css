@@ -3389,12 +3389,12 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .bar-seat { position: absolute; bottom: 0; left: calc(var(--x, .5) * 100%); width: var(--slot); height: var(--fig-h); margin-left: calc(var(--slot) / -2); }
 .bar-seat.talking { z-index: var(--z-raise); }
 .bar-seat.out { pointer-events: none; }
-/* 입퇴장: 옆으로 걸어 들어오고 나간다 (--x 를 무대 밖으로), 에이든은 카운터 뒤에서 올라오고 내려간다 (data-from="b") */
+/* 입퇴장: 옆으로 몇 걸음 걸어 들어오고 나가며 흐려진다 (--x 를 옆으로 조금), 에이든은 카운터 뒤에서 올라오고 내려간다 (data-from="b") */
 .bar-seat.off { opacity: 0; }
 .bar-seat.off[data-from="b"] { translate: 0 14%; }
 @media (prefers-reduced-motion: no-preference) {
-  .bar-seat { transition: left 1.1s ease-in-out, opacity .6s ease, translate .6s ease; }
-  .bar-seat.out { transition: left 1.2s ease-in, opacity .5s ease .7s, translate .6s ease; } /* 나갈 때는 걸어 나간 다음에 흐려진다 */
+  .bar-seat { transition: left 1.4s ease-in-out, opacity 1s ease, translate 1s ease; }
+  .bar-seat.out { transition: left 2.2s ease-out, opacity 1.8s ease .3s, translate 1.8s ease; } /* 나갈 때: 몇 걸음 걸어가며 천천히 흐려진다 (bar.ts exitSeat 가 다 흐려진 뒤 지운다) */
 }
 .bar-fig { position: absolute; inset: 0; display: block; padding: 0; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; }
 /* 스탠딩(전신)을 얼굴 기준으로 세운다: bar.ts figStyle 이 그림마다 --fx 얼굴 가운데 · --fy 위로 올릴 양 · --fr 그림 높이 ÷ 칸 높이 · --cut 칸 아래 끝(허리)을 준다.
@@ -3430,7 +3430,7 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
   .bar-tag { font-size: var(--fs-xs); padding: 1px 8px; bottom: 8px; }
   .bar-acts .btn { min-width: 0; flex: 1 1 40%; padding: 7px 10px; }
 }
-@media (prefers-reduced-motion: reduce) { .bar-bub.on { animation: none; } .bar-fig img { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .bar-bub.on { animation: none; } .bar-fig img { transition: none; } .bar-seat { transition: opacity .45s ease; } } /* 움직임 줄이기: 걷지 않고 제자리에서 짧게 페이드 */
 /* 도감 기록 탭: 바에서 본 만담 · 들은 이야기 (카드 없이 줄로) */
 .bar-rec details { border-bottom: 1px solid var(--line-soft); }
 .bar-rec summary { padding: 9px 2px; cursor: pointer; }

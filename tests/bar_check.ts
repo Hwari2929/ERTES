@@ -4,10 +4,11 @@ import { FRAMES } from '../src/data/bar/frames';
 import { BAR_TALK, DEEP_TOPICS } from '../src/data/bar/talk';
 import { ASK, ASK_Q, askLines } from '../src/data/bar/ask';
 import { UNIT_BY_ID, UNITS } from '../src/data/units';
-import { BAR_ENTER, BAR_WAIT, LEAVE_GENERIC, LEAVE_LINES } from '../src/data/bar/leave';
+import { AIDEN_BACK, BAR_ENTER, BAR_WAIT, LEAVE_GENERIC, LEAVE_LINES } from '../src/data/bar/leave';
+import { ERANTES_CREW, MONO, MONO_KINDS } from '../src/data/bar/mono';
 import { BAR_TUNE, STAGE_MAX, barSimulate } from '../src/ui/bar';
 declare const process: { exitCode?: number; argv?: string[] };
-declare function require(m: 'node:fs'): { readdirSync(p: string): string[] };
+declare function require(m: 'node:fs'): { readdirSync(p: string): string[]; readFileSync(p: string, e: 'utf8'): string };
 
 const NAMES = new Set([...UNITS.map((u) => u.name), '포티니', '레이카', '오닉스', '귀공자', '체사레', '맥스', '손님']);
 const ok = (id: string) => !!UNIT_BY_ID[id];
@@ -66,29 +67,60 @@ for (const [id, ls] of Object.entries(LEAVE_LINES)) {
   ls.forEach((l) => lineCheck(`leave/${id}`, l));
 }
 for (const u of UNITS) if (u.id !== 'rachel' && u.id !== 'aiden' && !u.inert && !LEAVE_LINES[u.id]) errs.push(`작별 인사: ${u.name}(${u.id}) 없음`);
-if (!LEAVE_GENERIC.length || !BAR_WAIT.length || !BAR_ENTER.length) errs.push('작별 인사: 일반 인사 · 대기 서술 · 입장 서술 풀이 비었음');
+if (!LEAVE_GENERIC.length || !BAR_WAIT.length || !BAR_ENTER.length || !AIDEN_BACK.length) errs.push('작별 인사: 일반 인사 · 대기 서술 · 입장 서술 · 에이든 카운터 풀이 비었음');
+// 정규 단원 명단 = lore/_틀/틀-에란테스.md 의 에란테스 표 (픽서 · 객원 표 앞까지, 주인공 제외)
+const frameDoc = require('node:fs').readFileSync('lore/_틀/틀-에란테스.md', 'utf8').split('픽서')[0];
+const NAME_TO_ID = Object.fromEntries(UNITS.map((u) => [u.name, u.id]));
+const crewDoc = [...frameDoc.matchAll(/\[\[([^\]|]+)/g)].map((m) => m[1]).filter((n) => n !== '주인공');
+const crewIds = crewDoc.map((n) => NAME_TO_ID[n] || `?${n}`);
+crewIds.filter((id) => id.startsWith('?')).forEach((id) => errs.push(`정규 단원: 틀 문서의 ${id.slice(1)} 이(가) 기물에 없음`));
+if ([...crewIds].sort().join() !== [...ERANTES_CREW].sort().join()) errs.push(`정규 단원: mono.ts ERANTES_CREW 가 틀-에란테스 표와 다름 (표 ${crewIds.length}명 · 코드 ${ERANTES_CREW.length}명)`);
+// 혼잣말: 정규 단원마다 6종 (레이첼 제외), 이름표 없는 한 줄
+for (const id of ERANTES_CREW) {
+  if (id === 'rachel') errs.push('혼잣말: 레이첼은 넣지 않는다');
+  for (const k of MONO_KINDS) {
+    const l = MONO[id]?.[k];
+    if (!l?.trim()) errs.push(`혼잣말: ${id} ${k} 없음`);
+    else if (l.startsWith('* ') || /^[^:\s]{1,8}: /.test(l)) errs.push(`혼잣말: ${id} ${k} 는 그 인물의 말 한 줄이어야 한다 (서술 · 이름표 금지)`);
+  }
+}
+for (const id of Object.keys(MONO)) if (!ERANTES_CREW.includes(id)) errs.push(`혼잣말: 정규 단원이 아닌 ${id}`);
 
 // 무대 규칙 (src/ui/bar.ts 구경 모드, 화면 없이 모의 실행): 무대 STAGE_MAX 명 이하 · 0명 없음 · 레이첼 미등장 · 말하는 사람은 무대에 ·
-// 새 단원은 한 번에 1명, 빈자리(또는 직전 입장) 뒤 BAR_TUNE.vacant[0] 이상 지나서만 · 퇴장 전에는 그 사람의 작별 인사
+// 새 단원은 한 번에 1명, 빈자리(또는 직전 입장) 뒤 BAR_TUNE.vacant[0] 이상 지나서만 · 퇴장 전에는 그 사람의 작별 인사 ·
+// 단원은 들어온 뒤 BAR_TUNE.stay 이상 머문다 · 같은 방문에 같은 혼잣말이 두 번 나오지 않는다 · 혼잣말은 정규 단원만
 const amb = BANTER.filter((b) => b.place !== 2);
 const needN = (c: string[]) => new Set(c.filter((id) => id !== 'rachel').map((id) => (id === 'cesare' ? 'joshua' : id))).size;
 const castN = [0, 1, 2, 3, 4].map((n) => amb.filter((b) => b.cast.filter((id) => id !== 'rachel' && id !== 'aiden').length === n).length);
-console.log(`바 무대 ${STAGE_MAX}명 (레이첼은 무대 밖 · 에이든은 나오는 장면에서만): 재생 가능한 바 만담 ${amb.filter((b) => needN(b.cast) <= STAGE_MAX).length}/${amb.length}편 · 레이첼 · 에이든 뺀 출연 0~4명 = ${castN.join(' / ')}편`);
+console.log(`바 무대 ${STAGE_MAX}명 (레이첼은 무대 밖 · 에이든은 거의 늘 1자리): 재생 가능한 바 만담 ${amb.filter((b) => needN(b.cast) <= STAGE_MAX).length}/${amb.length}편 · 레이첼 · 에이든 뺀 출연 0~4명 = ${castN.join(' / ')}편`);
 const ROSTERS: [string, string[]][] = [
   ['전원', UNITS.filter((u) => !u.inert).map((u) => u.id).filter((id) => id !== 'rachel' && id !== 'aiden')], // 반려 돌(절망 증강)은 바에 오지 않는다
   ['튜토리얼 7명', ['yelena', 'franze', 'lindiwe', 'vivian', 'phyllis', 'temur', 'nadir']],
   ['2명', ['vivian', 'temur']],
   ['없음', []],
 ];
-const sim = { steps: 0, entries: 0, joins: 0, leaves: 0, waits: 0, idle: 0, aiden: 0, three: 0 };
+const CREW = new Set(ERANTES_CREW);
+const sim = { steps: 0, entries: 0, joins: 0, leaves: 0, waits: 0, idle: 0, mono: 0 };
+/** 시간 지표 (명단별): 단원 체류 · 퇴장 사이 간격 · 정규 단원 비율(에이든 · 손님 뺀 단원 시간 중) · 에이든 무대 비율 */
+const metric = (label: string) => ({ label, stay: [] as number[], gap: [] as number[], crewT: 0, unitT: 0, aidenT: 0, totT: 0 });
+const metrics: ReturnType<typeof metric>[] = [];
 for (const [label, ids] of ROSTERS) {
   const s0 = { ...sim };
+  const mt = metric(label);
+  metrics.push(mt);
   for (let run = 0; run < 3; run++) {
     const log = barSimulate(300, ids);
     let lastChange = log[0].t;
+    let lastExit = -1;
     let prev = new Set(log[0].stage);
+    const since: Record<string, number> = {};
+    const monos = new Set<string>();
     log.forEach((r, i) => {
       const at = `무대 모의 실행(${label}) ${i}번째 ${r.kind}`;
+      const dt = (log[i + 1]?.t ?? r.t) - r.t;
+      const regs = r.stage.filter((k) => k !== 'aiden' && k !== 'guest');
+      mt.totT += dt; if (r.stage.includes('aiden')) mt.aidenT += dt;
+      for (const k of regs) { mt.unitT += dt; if (CREW.has(k)) mt.crewT += dt; if (since[k] === undefined) since[k] = r.t; }
       if (r.stage.length > STAGE_MAX) errs.push(`${at}: 무대 ${r.stage.length}명`);
       if (!r.stage.length) errs.push(`${at}: 무대가 비었음`);
       if (r.stage.includes('rachel')) errs.push(`${at}: 레이첼이 무대에 섰음`);
@@ -101,23 +133,36 @@ for (const [label, ids] of ROSTERS) {
         if (r.speakers.some((k) => prev.has(k) && k !== 'aiden' && k !== 'guest')) sim.joins++; // 남아 있던 사람과 함께 나오는 합류 장면
         lastChange = r.t;
       }
-      if (r.kind === 'exit') {
+      if (r.kind === 'exit' && r.exit) {
         const p = log[i - 1];
         if (p?.kind !== 'leave' || p.speakers.join() !== r.exit) errs.push(`${at}: 작별 인사 없이 ${r.exit} 퇴장`);
-        sim.leaves++;
-        lastChange = r.t;
+        if (r.exit !== 'aiden') { // 에이든은 카운터 뒤로 잠깐 (빈자리 규칙과 무관)
+          const stay = r.t - (since[r.exit] ?? r.t);
+          if (stay < (CREW.has(r.exit) ? BAR_TUNE.stay.crew : BAR_TUNE.stay.other)) errs.push(`${at}: ${r.exit} 가 ${Math.round(stay / 1000)}초 만에 나감`);
+          mt.stay.push(stay); delete since[r.exit];
+          if (lastExit >= 0) mt.gap.push(r.t - lastExit);
+          lastExit = r.t;
+          sim.leaves++;
+          lastChange = r.t;
+        }
+      }
+      if (r.mono) {
+        sim.mono++;
+        if (monos.has(r.mono)) errs.push(`${at}: 같은 혼잣말이 다시 나옴 (${r.mono})`);
+        monos.add(r.mono);
+        if (!CREW.has(r.mono.slice(5).split('.')[0])) errs.push(`${at}: 정규 단원이 아닌 혼잣말 ${r.mono}`);
       }
       sim.steps++;
       if (r.kind === 'wait') sim.waits++;
       if (r.kind === 'idle') sim.idle++;
-      if (r.stage.includes('aiden')) sim.aiden++;
-      if (r.stage.length === STAGE_MAX) sim.three++;
       prev = new Set(r.stage);
     });
   }
   if (process.argv?.includes('--stage')) console.log(`  ${label}: ${Object.entries(sim).map(([k, v]) => `${k} ${v - s0[k as keyof typeof sim]}`).join(' · ')}`);
 }
-console.log(`무대 모의 실행 ${sim.steps}단계: 입장 ${sim.entries} (합류 장면 ${sim.joins}) · 퇴장 ${sim.leaves} · 빈자리 대기 ${sim.waits} · 바텐더와 손님 ${sim.idle} · 에이든이 나와 있음 ${sim.aiden} · 3명 무대 ${sim.three}`);
+const avgS = (a: number[]) => (a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length / 1000) : 0);
+console.log(`무대 모의 실행 ${sim.steps}단계: 입장 ${sim.entries} (합류 장면 ${sim.joins}) · 퇴장 ${sim.leaves} · 대기 ${sim.waits} · 혼잣말 ${sim.mono} · 바텐더와 손님 ${sim.idle}`);
+for (const m of metrics.slice(0, 2)) console.log(`  ${m.label}: 단원 평균 체류 ${avgS(m.stay)}초 · 퇴장 간격 ${avgS(m.gap)}초 · 정규 단원 비율 ${Math.round((m.crewT / (m.unitT || 1)) * 100)}% · 에이든 무대 ${Math.round((m.aidenT / (m.totT || 1)) * 100)}%`);
 const askN = Object.keys(ASK).length, askDeep = Object.values(ASK).filter((a) => a.past[2]).length;
 console.log(`물어보기: ${askN}명 × 질문 ${ASK_Q.length}개 (실재 층 답 ${askDeep}명)`);
 const lay = (xs: { layer: string }[]) => ['s', 'i', 'r'].map((k) => xs.filter((x) => x.layer === k).length).join(' / ');

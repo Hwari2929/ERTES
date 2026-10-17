@@ -47,7 +47,7 @@ const ID: Record<string, string> = {
 const SOURCES: [string, string, RegExp][] = [
   ['만담', 'docs/banter', /\.md$/],
   ['사건', 'src/data/scenes', /\.ts$/],
-  ['바', 'src/data/bar', /^(talk.*|frames.*|ask.*)\.ts$/],
+  ['바', 'src/data/bar', /^(talk.*|frames.*|ask.*|mono.*)\.ts$/],
 ];
 // 줄마다 '이 줄이 누구 몫인가'를 붙인다: 만담 = 그 편의 출연자 전원, 코드 = 화자 id · 묶음 키 · 이름표
 type Line = { t: string; who: Set<string>; at: string };
