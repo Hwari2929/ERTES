@@ -1712,9 +1712,9 @@
  "juseong": {
   "name": "주성",
   "subject": "1boy",
-  "tags": "adult man, 30s, dark green hair, long hair, tied hair, ponytail, black eyes, gat, korean traditional hat, black gat, amhaeng-eosa, royal secret inspector, dark hanbok, korean clothes, holding glaive, woldo, crescent blade polearm, stern, full body, standing, looking at viewer",
+  "tags": "adult man, 30s, dark green hair, long hair, tied hair, ponytail, black eyes, black wide-brimmed hat, solid black hat, opaque hat, korean traditional hat, amhaeng-eosa, royal secret inspector, dark hanbok, korean clothes, holding glaive, woldo, crescent blade polearm, stern, full body, standing, looking at viewer",
   "source": "user",
-  "notes": "30대 남성, 묶은 긴 어두운 초록 머리, 검은 눈, 갓 + 암행어사 복장 + 월도."
+  "notes": "30대 남성, 묶은 긴 어두운 초록 머리, 검은 눈, 갓 + 암행어사 복장 + 월도. | 갓이 투명 배경 처리에 함께 투명해져 '불투명한 검은 챙 넓은 모자'로 지정."
  },
  "clover": {
   "name": "클로버",
@@ -1733,9 +1733,9 @@
  "gayoung": {
   "name": "가영",
   "subject": "1girl",
-  "tags": "young woman, 20s, black hair, long hair, messy hair, unkempt hair, white hanbok, korean clothes, shaman, mudang, white shaman robes, holding dagger, knife, wild, full body, standing, looking at viewer",
+  "tags": "young woman, 20s, black hair, long hair, messy hair, unkempt hair, wild hair, crazy eyes, wide eyes, manic grin, insane, unhinged, dynamic pose, action pose, lunging, leaning forward, white hanbok, korean clothes, shaman, mudang, white shaman robes, flowing sleeves, holding dagger, knife, reverse grip, full body, looking at viewer",
   "source": "user",
-  "notes": "20대 여성, 길고 어수선한 흑발, 백색 무당 한복 + 단도."
+  "notes": "20대 여성, 길고 어수선한 흑발, 백색 무당 한복 + 단도. | 재생성: 더 역동적이고 미친 사람처럼."
  },
  "muhyul": {
   "name": "무휼",
