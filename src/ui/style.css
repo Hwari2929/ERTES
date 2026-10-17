@@ -1207,24 +1207,32 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .bench-u.syn-hl, main.syn-focu
 .card .src { justify-self: start; }
 .card.aug-unit { border-color: var(--c-text-2); }
 /* 보급 (main.ts supplyHtml): 뒷면(.cback) 카드를 뒤집으면 앞면 — 자원 아이콘 · 양 · 이름. 대박은 오른쪽 위 띠 (공개 연출은 revealfx 의 rv-2 · rv-3) */
-.sup-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.card.sup-card { position: relative; min-height: 170px; justify-items: center; align-content: center; text-align: center; }
-.sup-card:not(.open) .cback { display: block; }
+.modal.supply { width: min(900px, 100%); }
+.sup-cards { grid-template-columns: repeat(3, clamp(150px, 19vw, 250px)); justify-content: center; gap: 14px; }
+.card.sup-card { position: relative; aspect-ratio: 5 / 7; min-height: 0; justify-items: center; align-content: center; text-align: center; gap: 10px; padding: 18px 14px; }
+.sup-card:not(.open) .cback, .sup-card .cback.sup-hold { display: block; }
 .sup-card:not(.open):hover .cback { filter: brightness(1.3); }
 .card.sup-card.open { cursor: default; }
 .card.sup-card.open:hover { transform: none; border-color: var(--line); }
 .card.sup-card.jp { border-color: var(--g-L); }
 .sup-card .sup-ic { display: grid; place-items: center; }
-.sup-card .sup-ic .li { width: 30px; height: 30px; }
-.sup-card .sup-ic .item { width: 42px; height: 42px; cursor: default; }
+.sup-card .sup-ic .li { width: 56px; height: 56px; }
+.sup-card .sup-ic .item { width: 76px; height: 76px; cursor: default; }
+.card.sup-card b { font-size: var(--fs-2xl); }
+.card.sup-card b.tC, .card.sup-card b.tG, .card.sup-card b.tA, .card.sup-card b.tL { font-size: var(--fs-lg); }
 .sup-card b.tC { color: var(--g-C); } .sup-card b.tG { color: var(--g-G); } .sup-card b.tA { color: var(--g-A); } .sup-card b.tL { color: var(--g-L); }
-.card.sup-card .sup-jp { position: absolute; top: 8px; right: 8px; font-size: var(--fs-xs); font-weight: 700; color: var(--g-L); border: 1px solid var(--g-L); border-radius: var(--r-sm); padding: 1px 6px; }
+.card.sup-card .sup-jp { position: absolute; top: 10px; right: 10px; font-size: var(--fs-sm); font-weight: 700; color: var(--g-L); border: 1px solid var(--g-L); border-radius: var(--r-sm); padding: 1px 8px; }
+/* 공개 대기 (revealfx supplyCards): 누른 뒤 뒷면이 잠깐 떨다가 뒤집힌다. 대박은 뒷면에 황금빛이 차오른다 */
+.cback.sup-hold.jp { border-color: var(--g-L); background-color: color-mix(in srgb, var(--g-L) 14%, var(--panel)); }
 .sup-cards + .row-btns { justify-content: center; margin-top: 12px; }
 @media (max-width: 640px) {
-  .sup-cards { gap: 6px; }
-  .card.sup-card { padding: 10px 6px; min-height: 150px; gap: 4px; }
-  .card.sup-card b { font-size: var(--fs-md); word-break: keep-all; }
-  .card.sup-card span:not(.src):not(.sup-ic):not(.sup-jp) { font-size: var(--fs-xs); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .sup-cards { gap: 6px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .card.sup-card { padding: 10px 6px; gap: 6px; aspect-ratio: 3 / 5; }
+  .sup-card .sup-ic .li { width: 40px; height: 40px; }
+  .sup-card .sup-ic .item { width: 52px; height: 52px; }
+  .card.sup-card b { font-size: var(--fs-lg); word-break: keep-all; }
+  .card.sup-card b.tC, .card.sup-card b.tG, .card.sup-card b.tA, .card.sup-card b.tL { font-size: var(--fs-md); }
+  .card.sup-card span:not(.src):not(.sup-ic):not(.sup-jp) { font-size: var(--fs-xs); display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
   .card.sup-card .sup-jp { position: static; }
 }
 textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--c-text); border: 1px solid var(--line); border-radius: var(--r-md); padding: 8px; font: var(--fs-sm) var(--f-mono); }

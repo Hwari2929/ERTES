@@ -8,7 +8,7 @@
 // - 디버그: 주소에 ?soundtest 가 있으면 window.__sfx 에 호출 기록 · 합성 도구를 둔다.
 import type { Pending } from '../types';
 import { revealGrade } from '../data/items';
-import { augGrade, greatOpen, supplyGrade, supplySig } from './revealfx';
+import { augGrade, greatOpen, supplyFaceAt, supplyGrade, supplySig } from './revealfx';
 
 type Wave = 's' | 't' | 'q' | 'w' | 'n';
 /** 소리 한 겹. o 파형(s 사인 · t 삼각 · q 사각 · w 톱니 · n 노이즈), f → e 음높이 미끄러짐(Hz), t 시작(초), a 어택 · h 유지 · d 감쇠, g 크기,
@@ -335,6 +335,10 @@ export function reveal(p: Pending | undefined) {
     const now = open.filter((i) => !before.includes(i));
     if (!now.length) return;
     key = `sup:${sig}:${open.join(',')}`; g = Math.max(...now.map((i) => supplyGrade(p.options[i])));
+    // 공개음은 가장 높은 등급 카드의 앞면이 드러날 때 (revealfx 공개 대기 · 뒤집기 시간)
+    const cs = now.map((i) => p.options[i]), k = cs.findIndex((c) => supplyGrade(c) === g);
+    if (key !== revealKey) { revealKey = key; play(`reveal${g}`, { delay: supplyFaceAt(cs, k) / 1000 }, 'ui', 0.01); }
+    return;
   }
   if (!key || key === revealKey) return;
   revealKey = key;

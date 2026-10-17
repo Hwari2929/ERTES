@@ -27,7 +27,14 @@ export function augGrade(p: Rankup, id: string): Grade {
 export const supplyGrade = (c: SupplyCard): Grade => Math.max(c.mult >= 2 ? 3 : c.mult > 1 ? 2 : 1, ...c.items.map(tierGrade)) as Grade;
 /** 보급품 카드 묶음 표식 (뒤집힌 카드만 새로 공개 처리) */
 export const supplySig = (p: Extract<Pending, { t: 'supply' }>) => p.options.map((c) => `${c.kind}${c.credits}.${c.xp}.${c.items.join('+')}.${c.mult}`).join('|');
-let supSeen = { sig: '', open: new Set<number>() };
+/** 보급 카드 공개 시간 (ms): 누르면 뒷면이 hold 동안 떨다가 turn 동안 뒤집힌다. 대박은 황금빛이 차오르며 더 오래 · 더 느리게. 여러 장은 stagger 간격 */
+export const SUP_REVEAL = { hold: 520, holdJp: 1350, turn: 400, turnJp: 720, stagger: 280 };
+const supHold = (c: SupplyCard) => (c.mult > 1 ? SUP_REVEAL.holdJp : SUP_REVEAL.hold);
+const supTurn = (c: SupplyCard) => (c.mult > 1 ? SUP_REVEAL.turnJp : SUP_REVEAL.turn);
+/** 이번에 뒤집힌 카드들(순서대로) 중 i 번째의 앞면이 드러나는 시각 (ms, 공개음 맞춤) */
+export const supplyFaceAt = (cs: SupplyCard[], k: number) => (reduced() ? 0 : cs.slice(0, k).length * SUP_REVEAL.stagger + supHold(cs[k]) + supTurn(cs[k]) / 2);
+/** 공개한 카드 → 앞면이 다 드러나는 시각 (performance.now 기준). 공개 중에 다시 그려져도 남은 시간만큼 이어서 연출한다 */
+let supSeen = { sig: '', open: new Map<number, number>() };
 /** 마이너 능력치 대성공 (두 번째 고르기) 중인지 */
 export const greatOpen = (p: Pending | undefined): boolean => !!p && p.t === 'rankup' && !p.allocDone && !!p.great && !!p.round;
 /** 선택지 하나의 등급: 장비는 제 등급, 증강은 augGrade, 전역 · 특권은 2, 능력치 대성공은 3 */
@@ -91,25 +98,55 @@ async function reveal(md: HTMLElement, cards: (readonly [HTMLElement, Grade])[],
   });
 }
 
-/** 보급: 방금 뒤집힌 카드만 뒤집기(앞면이 돌아 나옴) + 등급 공개 연출. 이미 공개한 카드는 표식만 (다시 그려도 반복하지 않음) */
+/** 보급: 방금 뒤집힌 카드는 뒷면을 덮어 잠깐 떨게 한 뒤(대박은 황금빛 · 더 길게) 뒤집어 앞면 + 등급 공개 연출. 이미 다 공개한 카드는 표식만 */
 function supplyCards(md: HTMLElement, p: Extract<Pending, { t: 'supply' }>) {
   const sig = supplySig(p);
-  if (supSeen.sig !== sig) supSeen = { sig, open: new Set() };
-  const still = reduced();
-  const fresh: (readonly [HTMLElement, Grade])[] = [];
+  if (supSeen.sig !== sig) supSeen = { sig, open: new Map() };
+  const still = reduced(), now = performance.now();
+  const fresh: SupplyCard[] = [];
+  const hi: (readonly [HTMLElement, Grade])[] = [];
   p.options.forEach((c, i) => {
     const el = md.querySelector<HTMLElement>(`.sup-card[data-sup="${i}"]`);
     if (!el || !c.open) return;
-    const g = supplyGrade(c), seen = supSeen.open.has(i);
-    if (g > 1) el.classList.add(`rv-${g}`, ...(seen ? ['rv-on'] : []));
-    if (seen) return;
-    supSeen.open.add(i);
-    const k = fresh.length;
-    if (!still) el.animate([{ transform: 'perspective(1200px) rotateY(90deg)', opacity: 0.4 }, { transform: 'perspective(1200px) rotateY(0deg)', opacity: 1 }], { duration: 360, delay: k * 120, easing: 'cubic-bezier(.2, .7, .3, 1)', fill: 'backwards' });
-    fresh.push([el, g]);
+    const g = supplyGrade(c);
+    let at = supSeen.open.get(i);
+    const isNew = at === undefined;
+    if (at === undefined) { fresh.push(c); at = now + supplyFaceAt(fresh, fresh.length - 1) + supTurn(c) / 2; supSeen.open.set(i, at); }
+    const left = at - now; // 앞면이 다 드러날 때까지 남은 시간
+    if (g > 1) el.classList.add(`rv-${g}`);
+    if (still || left <= 0) {
+      if (isNew && g > 1) hi.push([el, g]);
+      else if (g > 1) el.classList.add('rv-on');
+      return;
+    }
+    holdFlip(el, c, left);
+    if (g > 1) hi.push([el, g]);
   });
-  const hi = fresh.filter(([, g]) => g > 1);
   if (hi.length) void reveal(md, hi, still);
+}
+/** 앞면 위에 뒷면을 덮고 떨게 하다가 뒤집는다 (left = 다 뒤집힐 때까지 ms). 대박은 뒷면 테두리 · 빛이 황금색으로 차오르고 흔들림이 커진다 */
+function holdFlip(el: HTMLElement, c: SupplyCard, left: number) {
+  const jp = c.mult > 1, turn = Math.min(left, supTurn(c)), hold = left - turn;
+  const back = document.createElement('i');
+  back.className = `cback sup-hold${jp ? ' jp' : ''}`;
+  back.setAttribute('aria-hidden', 'true');
+  el.appendChild(back);
+  if (hold > 0) {
+    if (jp) {
+      el.animate([{ boxShadow: '0 0 0 0 transparent' }, { boxShadow: '0 0 30px 6px color-mix(in srgb, var(--g-L) 70%, transparent)' }], { duration: hold, easing: 'ease-in', fill: 'forwards' });
+      back.animate([{ boxShadow: 'inset 0 0 0 0 transparent' }, { boxShadow: 'inset 0 0 60px 14px color-mix(in srgb, var(--g-L) 55%, transparent)' }], { duration: hold, easing: 'ease-in', fill: 'forwards' });
+      const amp = [1, 1, 2, 2, 3, 3, 4, 4];
+      el.animate(amp.flatMap((a, j) => [{ translate: `${j % 2 ? a : -a}px 0` }]).concat([{ translate: '0 0' }]), { duration: hold, easing: 'ease-in' });
+    } else {
+      el.animate([{ translate: '0 0' }, { translate: '-2px 0', offset: 0.55 }, { translate: '2px 0', offset: 0.7 }, { translate: '-1px 0', offset: 0.85 }, { translate: '0 0' }], { duration: hold, easing: 'ease-in-out' });
+    }
+  }
+  const P = 'perspective(1200px) ';
+  const fx = el.animate([{ transform: `${P}rotateY(0deg)` }, { transform: `${P}rotateY(90deg)`, offset: 0.5 }, { transform: `${P}rotateY(-90deg)`, offset: 0.5 }, { transform: `${P}rotateY(0deg)` }],
+    { duration: turn, delay: hold, easing: jp ? 'cubic-bezier(.45, 0, .25, 1)' : 'ease-in-out' });
+  back.animate([{ opacity: 1 }, { opacity: 1, offset: 0.5 }, { opacity: 0, offset: 0.5 }, { opacity: 0 }], { duration: turn, delay: hold, fill: 'forwards' });
+  const done = () => { back.remove(); el.getAnimations().forEach((a) => { if ((a.effect as KeyframeEffect | null)?.getKeyframes().some((k) => 'boxShadow' in k)) a.cancel(); }); };
+  fx.finished.then(done, done);
 }
 /** 테두리 광: 나타났다가 사라진다 (최상은 조금 더 오래). still = 움직임 줄이기 (바깥에서 조여 드는 움직임 없이) */
 function ring(el: HTMLElement, g: Grade, still: boolean) {

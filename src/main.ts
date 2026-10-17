@@ -2513,6 +2513,7 @@ function pendingModal(run: RunState): string {
     </div>`;
   } else if (p.t === 'supply') {
     body = supplyHtml(p);
+    mcls = 'supply';
   } else if (p.t === 'pilgrim') {
     body = pilgrimHtml(run, p);
   } else if (p.t === 'blessing') {
