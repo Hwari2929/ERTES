@@ -494,7 +494,7 @@ export function buildKnight(b: Battle, side: 0 | 1, rank: number, bonus = 0): CU
   st.shoot *= grow; st.strike *= grow; st.tech *= grow;
   const c = blankUnit(side);
   Object.assign(c, {
-    defId: 'kal_guard', name: '근위기사', sprite: 'knight', palette: KNIGHT_PAL, st, keywords: ['bio'],
+    defId: 'kal_guard', name: '근위기사', sprite: 'knight', palette: KNIGHT_PAL, art: 'sm_kalguard', st, keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 1.0 }, skill: KNIGHT_SKILL, sk: { ...KNIGHT_SKILL.params }, cdMax: KNIGHT_SKILL.cd,
     weapon: { name: '근위 장검', kind: 'combo', type: 'strike', elem: 'phys', interval: 1.0, range: 1, mult: 0.9, combo: 3 },
     ctype: 'VAN', ttype: 'major', isSummon: true,

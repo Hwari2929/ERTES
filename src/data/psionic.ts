@@ -601,7 +601,7 @@ function summonShade(b: Battle, u: CUnit, near: CUnit) {
     st.range = 1; st.moveSpd = 1; st.critDmg = 1.5;
     st.strike = mp(b, u) * PSI.illusion.solid;
     st.acc = b.S(u, 'acc');
-    Object.assign(s, { name: '환영', immobile: true, noAttack: !P(u, 'illusion.solid') });
+    Object.assign(s, { name: '환영', art: 'sm_illusion', immobile: true, noAttack: !P(u, 'illusion.solid') });
     s.mem.taunt = 1;
     s.mem.life = linger ? PSI.illusion.lingerLife : PSI.illusion.life;
   }
@@ -767,7 +767,7 @@ function colony(b: Battle, u: CUnit, at: CUnit) {
   if (live.length >= N.colonyMax) dismiss(b, live[0]);
   const s = blankSummon(u);
   Object.assign(s.st, { maxHp: b.S(u, 'maxHp') * N.colonyHp, armor: b.S(u, 'armor'), effRes: b.S(u, 'effRes'), range: 1, moveSpd: 1 });
-  Object.assign(s, { name: '포자 군락', sprite: 'crawler', palette: COLONY_PAL, immobile: true, noAttack: true, keywords: ['bio'], category: 'bio' });
+  Object.assign(s, { name: '포자 군락', art: 'sm_spore', sprite: 'crawler', palette: COLONY_PAL, immobile: true, noAttack: true, keywords: ['bio'], category: 'bio' });
   s.mem.colony = 1;
   s.mem.life = N.colonyLife;
   s.hp = s.st.maxHp;
