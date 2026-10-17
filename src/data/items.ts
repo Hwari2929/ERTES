@@ -138,8 +138,11 @@ export const isConsumable = (id: string | null) => !!id && id.startsWith('K_');
 const WARD = (elem: 'phys' | 'chem' | 'elec' | 'psy' | 'holy', name: string, icon: string) =>
   ({ name: `${name} 결계`, icon, tier: 1 as const, desc: `받는 ${ELEM_NAME[elem]} 피해 -45%. 그 피해의 30%를 공격자에게 고정 피해로 되돌려줍니다.`,
     effect: { taken: [red(elem, 0.45)], hooks: { onHurt(b, u, src, r, o) { if (o.elem === elem && o.tag !== 'proc' && r.amount > 0 && src.alive && src !== u) b.dealDamage(u, src, r.amount * 0.3, { elem: 'true', tag: 'proc', noHooks: true }); } } } as Effect });
+/** 신비학자 4단계 부품 수치: 심연의 눈 · 영원의 성배 · 금서 사본 */
+const OC4 = { abyss: { dur: 5, vuln: 0.2, crit: 0.15 }, grail: { red: 0.2, regen: 0.02 }, codex: { dmg: 0.1, max: 10, cdr: 0.3 } };
+const pc = (x: number) => `${Math.round(x * 100)}%`;
 /** 신비학자 전용 개조부품. tier = 해금되는 신비학자 단계 */
-export const OCCULT_MODS: Record<string, { name: string; icon: string; tier: 1 | 2 | 3; desc: string; effect: Effect }> = {
+export const OCCULT_MODS: Record<string, { name: string; icon: string; tier: 1 | 2 | 3 | 4; desc: string; effect: Effect }> = {
   O_reach: { name: '천리안 렌즈', icon: '◎', tier: 1, desc: '기본 공격 사거리 +1, 명중 +10%p.', effect: { stats: { range: 1, acc: 0.1 } } },
   O_feast: { name: '포식의 인장', icon: '✺', tier: 1, desc: '결정타를 날리면 최대 체력 10% 회복, 3초간 피해 +30%.',
     effect: { hooks: { onKill(b, u) { b.heal(u, u, b.S(u, 'maxHp') * 0.1, true); b.buff(u, u, 'oc.feast', 3, { mods: [inc('all', 0.3)], label: '포식' }); } } } },
@@ -157,6 +160,16 @@ export const OCCULT_MODS: Record<string, { name: string; icon: string; tier: 1 |
   O_aegis: { name: '불멸의 부적', icon: '☥', tier: 3, desc: '전투당 1회, 치명적인 피해를 받으면 쓰러지지 않고 체력 18% 회복 + 3초 무적.',
     effect: { hooks: { onLethal(b, u) { if (u.mem.aegis) return false; u.mem.aegis = 1; u.hp = 1; b.heal(u, u, b.S(u, 'maxHp') * 0.18, true); u.mem.invulnUntil = b.t + 3; b.emit({ k: 'mark', id: u.id, name: '불멸', style: 'immortal' }); return true; } } } },
   O_void: { name: '공허 렌즈', icon: '◉', tier: 3, desc: '방어 관통 +40%p, 치명타 피해 +40%p.', effect: { stats: { armorPen: 0.4, critDmg: 0.4 } } },
+  // 4단계 (신비학자 8명): 문장 2개가 있어야 닿는 완성 보상. 적은 달지 않는다 (run.ts gearEnemies)
+  O_abyss: { name: '심연의 눈', icon: '⊛', tier: 4, desc: `기본 공격 · 전투 기술로 맞힌 적에게 [심연] (${OC4.abyss.dur}초, 효과 명중 판정): 받는 모든 피해 +${pc(OC4.abyss.vuln)}. 치명타 확률 +${pc(OC4.abyss.crit)}p.`,
+    effect: { stats: { crit: OC4.abyss.crit }, hooks: { onDeal(b, u, t, r, o) {
+      if ((o.tag !== 'basic' && o.tag !== 'skill') || r.amount <= 0 || !t.alive || t.side === u.side) return;
+      b.applyStatus(u, t, { type: 'buff', key: 'oc.abyss', dur: OC4.abyss.dur, taken: [vuln('all', OC4.abyss.vuln)], label: '심연' });
+    } } } },
+  O_grail: { name: '영원의 성배', icon: '♁', tier: 4, desc: `받는 피해 -${pc(OC4.grail.red)}. 전투 중 매초 최대 체력 ${pc(OC4.grail.regen)} 회복.`,
+    effect: { taken: [red('all', OC4.grail.red)], hooks: { onTick(b, u, dt) { u.mem.grailT = (u.mem.grailT || 0) + dt; if (u.mem.grailT >= 1) { u.mem.grailT -= 1; b.heal(u, u, b.S(u, 'maxHp') * OC4.grail.regen, true); } } } } },
+  O_codex: { name: '금서 사본', icon: '❖', tier: 4, desc: `전투 기술을 쓸 때마다 이 전투 동안 피해 +${pc(OC4.codex.dmg)} (최대 ${OC4.codex.max}중첩). 쿨다운 감소 속도 +${pc(OC4.codex.cdr)}.`,
+    effect: { stats: { cdr: OC4.codex.cdr }, hooks: { onSkill(_b, u) { u.mem.codex = Math.min(OC4.codex.max, (u.mem.codex || 0) + 1); }, dmgMult: (_b, u) => 1 + OC4.codex.dmg * (u.mem.codex || 0) } } },
 };
 export const occultModsOfTier = (t: number) => Object.keys(OCCULT_MODS).filter((k) => OCCULT_MODS[k].tier === t);
 
@@ -200,7 +213,7 @@ export const CONSUMABLES: Record<string, { name: string; icon: string; target: '
     desc: '편성 화면에서 이번 전투의 적 1명에게 사용 (보스 포함): 그 적이 단 장비 · 개조부품을 모두 떼어 냅니다. 떼어 낸 것 중 등급이 가장 높은 1개(전설 > 개조부품 > 희귀 > 고급 > 재료)가 보관함으로 들어오고, 나머지는 부서집니다.' },
   K_rank3: { name: '원초 공명석', icon: '◆', target: 'unit', price: 0, drop: true, legend: true, desc: '기물에 사용: 공명 등급 +3. 정제되지 않은 공명석 원핵이 기물의 공명 구조를 단숨에 끌어올립니다.' },
   // 셰프 시너지
-  K_bread: { name: '갓 구운 빵', icon: '◒', target: 'run', price: 0, drop: true, chef: true, get desc() { return `바로 사용: 플레이어 체력 회복 (위험 등급에 따라 ${breadHealText()}). 얻은 뒤 전투 ${CFG.chef.staleAfter}회를 지나면 식은 빵이 됩니다 (셰프 ${SYN_BY_ID.CHEF?.tiers[CFG.chef.noStaleTier - 1] ?? ''}명이 켜진 전투는 세지 않음). 셰프들이 남는 시간에 구워 둔 빵.`; } },
+  K_bread: { name: '갓 구운 빵', icon: '◒', target: 'run', price: 0, drop: true, chef: true, get desc() { return `바로 사용: 플레이어 체력 회복 (위험 등급에 따라 ${breadHealText()}). 얻은 뒤 전투 ${CFG.chef.staleAfter}회를 지나면 식은 빵이 됩니다 (셰프 ${SYN_BY_ID.CHEF?.tiers[CFG.chef.noStaleTier - 1] ?? ''}명 이상이 켜진 전투는 세지 않음). 셰프들이 남는 시간에 구워 둔 빵.`; } },
   K_bread_stale: { name: '식은 빵', icon: '◒', target: 'run', price: 0, drop: true, chef: true, get desc() { return `바로 사용: 플레이어 체력 회복 (위험 등급에 따라 ${breadHealText(true)}). 갓 구운 빵이 전투 ${CFG.chef.staleAfter}회를 지나 식었다. 회복량 −${CFG.chef.staleHeal} · 판매가 −${CFG.chef.staleSell}.`; } },
 };
 /** 합성 공방 상품 */

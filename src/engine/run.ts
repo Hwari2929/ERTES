@@ -10,7 +10,7 @@ import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, breadHeal, breadSell, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_ADV, TURRET_BASIC, TURRET_PRICE, turretSlots } from '../data/items';
-import { SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
+import { OCCULT_SYNTH, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, recMajors } from '../data/rework';
 import { SCHOOL_AUGS, schoolPassives } from '../data/psionic';
@@ -463,7 +463,7 @@ export function checkOccult(run: RunState): boolean {
 }
 function genSynth(run: RunState): NonNullable<NonNullable<RunState['node']>['shop']> {
   const t = occultTier(run);
-  const n = 2 + t, mul = (t >= 3 ? 0.7 : 1) * despairPrice(run);
+  const n = OCCULT_SYNTH.base + t, mul = (1 - (OCCULT_SYNTH.disc[t - 1] || 0)) * despairPrice(run);
   return rng(run, (r) => {
     const ids = r.sample(ALL_CONSUMABLES, Math.min(n, ALL_CONSUMABLES.length)); // 서로 다른 종류 먼저, 남는 칸은 무작위
     while (ids.length < n) ids.push(r.pick(ALL_CONSUMABLES));
@@ -697,7 +697,7 @@ function gearEnemies(run: RunState, r: Rng, enemies: EnemySpawn[], type: NodeTyp
   const slots = Math.min(3, 1 + Math.floor((phase - 1) / 2));
   const big = type === 'adversity' || type === 'boss';
   const legends = ALL_ADVANCED.filter((x) => x !== 'A_vit_vit').map((x) => 'L_' + x.slice(2));
-  const mods = Object.keys(OCCULT_MODS);
+  const mods = Object.keys(OCCULT_MODS).filter((k) => OCCULT_MODS[k].tier <= 3); // 4단계 (신비학자 8명 완성 보상) 부품은 적이 달지 않는다
   for (const s of enemies) {
     const tier = ENEMY_BY_ID[s.defId].tier;
     const items: string[] = [];
@@ -1103,7 +1103,7 @@ function dropBread(run: RunState, i: number) {
   const ages = breadLeft(run, true), k = run.inventory.slice(0, i).filter((x) => x === 'K_bread').length;
   ages.splice(k, 1);
 }
-/** 전투 1회: 빵이 식는 데 남은 전투 −1, 0 이 되면 식은 빵으로 (가장 먼저 얻은 빵부터). 셰프 noStaleTier 단계가 켜진 전투는 세지 않는다. 식은 빵 수 */
+/** 전투 1회: 빵이 식는 데 남은 전투 −1, 0 이 되면 식은 빵으로 (가장 먼저 얻은 빵부터). 셰프 noStaleTier 단계 이상이 켜진 전투는 세지 않는다. 식은 빵 수 */
 function ageBread(run: RunState): number {
   const ages = breadLeft(run, true);
   if (!ages.length || tierNow(run, 'CHEF') >= CFG.chef.noStaleTier) return 0;

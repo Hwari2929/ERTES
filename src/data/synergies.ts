@@ -4,7 +4,7 @@ import type { Effect, EffectCtx } from '../engine/effects';
 import { amp, applyLive, inc, red, vuln } from '../engine/effects';
 import { CFG } from '../config';
 import { type Major, MAJORS, type RunState, type Stats, type SynergyId } from '../types';
-import { ALL_ADVANCED, itemEffect, itemInfo } from './items';
+import { ALL_ADVANCED, itemEffect, itemInfo, OCCULT_MODS, occultModsOfTier } from './items';
 import { CAUSAL, KING_GEAR, KING_GEAR_NAME } from './chungra';
 import { addStacks, blinkTo, harmfulCount, isDebuffed, isHarmful, pct } from './kit';
 import { UNIT_BY_ID } from './units';
@@ -83,6 +83,16 @@ function shipCrash(b: Battle, u: CUnit, k: number, t = 1) {
   // (4) 이상: 추락 직후 4초간 레이서 공격 속도 +60%
   if (t >= 2) for (const a of b.alliesOf(u, true)) if (a.mem.stl) b.buff(u, a, 'stl.rush', 4, { delta: { atkSpd: 0.6 }, label: '추락 가속' });
 }
+
+/** 셰프 (2 · 4 · 6 · 8명): 모든 아군 최대 체력 · (8) [만찬 코스] 요리할 때 다른 모든 아군 회복 = 셰프 기술 위력 × feast × 요리 배율.
+ *  요리 배율 · 빵 확률 · 빵 판매가 · 식지 않는 단계는 CFG.cookPower · CFG.chef */
+const CHEF_HP = [0, 0, 0.15, 0.25], CHEF_FEAST = 0.15;
+/** 수호자 (2 · 4 · 6 · 8명): 수호자 1명당 모든 아군 방어도 (수호자 2배) · 기본 공격 추가 피해 = 방어도 × hit.
+ *  (8) [난공불락]: 추가 피해의 splashK 배가 대상 주변 splash 칸의 다른 적에게도, 수호자가 받는 피해 −red */
+const GUARD_T = { armor: [0.04, 0.08, 0.16, 0.22], hit: [0.1, 0.2, 0.5, 0.7] }, GUARD_WALL = { splash: 1, splashK: 0.5, red: 0.15 };
+/** 신비학자 (2 · 4 · 6 · 8명): 효과 명중 · [합성] 상품 수 (base + 단계) · [합성] 가격 할인 */
+const OCCULT_HIT = [0.15, 0.3, 0.5, 0.8];
+export const OCCULT_SYNTH = { base: 2, disc: [0, 0, 0.3, 0.5] };
 
 /** 의무관 단계별 수치: 모든 아군 회복 효율 · 치료 계수 (기술 위력 배율) · 모든 아군 최대 체력.
  *  회복 효율은 성장 폭이 작아, 예전의 '치료 대상 다음 기본 공격 피해 +20%' 대신 단계마다 최대 체력을 올린다 */
@@ -496,11 +506,18 @@ export const SYNERGIES: SynDef[] = [
     },
   },
   {
-    id: 'CHEF', name: '셰프', kind: 'trait', tiers: [2, 4, 6], color: '#ffb36b', icon: '♨',
+    id: 'CHEF', name: '셰프', kind: 'trait', tiers: [2, 4, 6, 8], color: '#ffb36b', icon: '♨',
     desc: `셰프의 전투 스킬은 요리입니다. 요리는 아군 1명을 회복시키거나 보호막을 주고 특수 버프를 겁니다. 단계가 오르면 요리 위력이 커집니다.\n· 셰프 시너지가 의뢰에서 처음 켜지면 소모품 [갓 구운 빵] 1개를 받고, 켜진 채로 전투에서 이기면 단계에 따라 확률로 1개씩 더 받습니다 (빵은 플레이어 체력 회복).\n· 빵은 얻은 뒤 전투 ${CFG.chef.staleAfter}회를 지나면 식은 빵이 됩니다 (회복 −${CFG.chef.staleHeal} · 판매가 −${CFG.chef.staleSell}). 빵 판매가는 팔 때의 셰프 단계에 따라 오릅니다.`,
-    tierDesc: [1, 2, 3].map((t) => `요리 위력 ×${CFG.cookPower[t]}${t === 3 ? ', 모든 아군 최대 체력 +15%' : ''}, 승리 시 ${Math.round(CFG.chef.breadWin[t - 1] * 100)}% 확률로 갓 구운 빵 (빵 판매가 ${CFG.chef.breadSell[t]}${t >= CFG.chef.noStaleTier ? ', 켜진 동안 빵이 식지 않음' : ''})`),
-    member: (t) => ({ setup: (u) => { u.mem.cook = CFG.cookPower[t]; } }),
-    team: (t) => (t >= 3 ? { pct: { maxHp: 0.15 } } : null),
+    tierDesc: [1, 2, 3, 4].map((t) => `${t === 4 ? '[만찬 코스] ' : ''}요리 위력 ×${CFG.cookPower[t]}${CHEF_HP[t - 1] ? `, 모든 아군 최대 체력 +${pct(CHEF_HP[t - 1])}` : ''}${t === 4 ? `, 셰프가 요리하면 다른 모든 아군도 셰프 기술 위력 ${pct(CHEF_FEAST)} × 요리 배율 회복` : ''}, 승리 시 ${pct(CFG.chef.breadWin[t - 1])} 확률로 갓 구운 빵 (빵 판매가 ${CFG.chef.breadSell[t]}${t >= CFG.chef.noStaleTier ? ', 켜진 동안 빵이 식지 않음' : ''})`),
+    member: (t) => ({
+      setup: (u) => { u.mem.cook = CFG.cookPower[t]; },
+      // (8) [만찬 코스]: 요리(전투 기술)를 쓰면 자신을 뺀 모든 아군 회복 (요리 배율 · 증강 보너스 적용)
+      hooks: t >= 4 ? { onSkill(b, u) {
+        const v = b.P(u, 'tech') * CHEF_FEAST * (u.mem.cook || 1) * (1 + (u.mem.cookBonus || 0));
+        for (const a of b.alliesOf(u, false)) b.heal(u, a, v, false, 'CHEF');
+      } } : undefined,
+    }),
+    team: (t) => (CHEF_HP[t - 1] ? { pct: { maxHp: CHEF_HP[t - 1] } } : null),
   },
   {
     id: 'ENG', name: '엔지니어', kind: 'trait', tiers: [2, 4, 6, 8], color: '#a0b4c8', icon: '⚙',
@@ -597,18 +614,23 @@ export const SYNERGIES: SynDef[] = [
     },
   },
   {
-    id: 'GUARD', name: '수호자', kind: 'trait', tiers: [2, 4, 6], color: '#c9a86a', icon: '⛉',
+    id: 'GUARD', name: '수호자', kind: 'trait', tiers: [2, 4, 6, 8], color: '#c9a86a', icon: '⛉',
     desc: `앞에 서서 모두를 지키는 이들. 출전한 수호자 1명마다 모든 아군의 방어도가 오르고 (수호자 자신은 2배), 수호자의 기본 공격에는 자신 방어도에 비례한 물리 피해가 더해집니다. 시너지가 켜지면 (2명 이상) 수호자의 도발 배율이 +${PROV.guard} 올라 적이 수호자를 더 노립니다.`,
-    tierDesc: ['수호자 1명당 모든 아군 방어도 +4% (수호자 +8%), 수호자 기본 공격 + 방어도 10% 물리 피해', '수호자 1명당 모든 아군 방어도 +8% (수호자 +16%), 수호자 기본 공격 + 방어도 20% 물리 피해', '[철벽 방진] 수호자 1명당 모든 아군 방어도 +16% (수호자 +32%), 수호자 기본 공격 + 방어도 50% 물리 피해'],
-    team: (t, ctx) => ({ pct: { armor: (ctx.counts.GUARD || 0) * T(t, [0.04, 0.08, 0.16]) } }),
+    tierDesc: GUARD_T.armor.map((a, i) => `${['', '', '[철벽 방진] ', '[난공불락] '][i]}수호자 1명당 모든 아군 방어도 +${pct(a)} (수호자 +${pct(a * 2)}), 수호자 기본 공격 + 방어도 ${pct(GUARD_T.hit[i])} 물리 피해${i === 3 ? ` (대상 주변 ${GUARD_WALL.splash}칸의 다른 적에게도 그 ${pct(GUARD_WALL.splashK)}), 수호자가 받는 피해 -${pct(GUARD_WALL.red)}` : ''}`),
+    team: (t, ctx) => ({ pct: { armor: (ctx.counts.GUARD || 0) * T(t, GUARD_T.armor) } }),
     member: (t, ctx) => {
-      const k = T(t, [0.1, 0.2, 0.5]);
+      const k = T(t, GUARD_T.hit);
       return {
-        pct: { armor: (ctx.counts.GUARD || 0) * T(t, [0.04, 0.08, 0.16]) }, // 수호자 기물은 팀 효과를 한 번 더 받아 2배
+        pct: { armor: (ctx.counts.GUARD || 0) * T(t, GUARD_T.armor) }, // 수호자 기물은 팀 효과를 한 번 더 받아 2배
+        taken: t >= 4 ? [red('all', GUARD_WALL.red)] : undefined,
         hooks: {
           onBasic(b, u, tgt, r) {
             if (r.miss || !tgt.alive) return;
-            b.dealDamage(u, tgt, b.S(u, 'armor') * k, { elem: 'phys', tag: 'proc', kind: 'strike', syn: 'GUARD' });
+            const v = b.S(u, 'armor') * k;
+            // (8) [난공불락]: 주변 적에게도 (대상이 이 피해로 쓰러져도 주변은 맞는다)
+            const near = t >= 4 ? b.around(tgt, GUARD_WALL.splash, b.enemiesOf(u)).filter((e) => e !== tgt) : [];
+            b.dealDamage(u, tgt, v, { elem: 'phys', tag: 'proc', kind: 'strike', syn: 'GUARD' });
+            for (const e of near) if (e.alive) b.dealDamage(u, e, v * GUARD_WALL.splashK, { elem: 'phys', tag: 'proc', kind: 'strike', syn: 'GUARD' });
           },
         },
       };
@@ -651,11 +673,13 @@ export const SYNERGIES: SynDef[] = [
     special: (n, ctx) => (n === 1 || n >= 5) && ctx.unit ? VOYAGE_SPECIAL[ctx.unit.defId]?.effect || null : null,
   },
   {
-    id: 'OCCULT', name: '신비학자', kind: 'trait', tiers: [2, 4, 6], color: '#b07cff', icon: '✶',
+    id: 'OCCULT', name: '신비학자', kind: 'trait', tiers: [2, 4, 6, 8], color: '#b07cff', icon: '✶',
     desc: '금지된 지식을 다루는 이들. 처음 도달한 단계마다 신비학자 전용 개조부품 1개를 골라 받고 (단계마다 더 강력한 부품이 해금), 활성화되어 있으면 [전환] 갈림길에 [합성]이 열려 전용 소모품을 살 수 있습니다. 신비학자 기물은 효과 명중이 오릅니다.',
-    tierDesc: ['효과 명중 +15%p, 1단계 부품 해금 (천리안 렌즈 · 포식의 인장 · 강철 결계 · 정신 결계), [합성] 해금', '효과 명중 +30%p, 2단계 부품 해금 (초반사 거울 · 메아리 회로 · 정화/절연/모독 결계), [합성] 상품 +1',
-      '[금지된 의식] 효과 명중 +50%p, 3단계 부품 해금 (영혼 수확기 · 불멸의 부적 · 공허 렌즈), [합성] 상품 +2 · 가격 -30%'],
-    member: (t) => ({ stats: { effHit: T(t, [0.15, 0.3, 0.5]) } }),
+    // 부품 이름은 OCCULT_MODS 에서 읽는다 (items.ts 와 서로 import 하므로 늦게 계산)
+    get tierDesc() {
+      return OCCULT_HIT.map((h, i) => `${['', '', '[금지된 의식] ', '[금단의 계시] '][i]}효과 명중 +${pct(h)}p, ${i + 1}단계 부품 해금 (${occultModsOfTier(i + 1).map((id) => OCCULT_MODS[id].name).join(' · ')}), [합성] ${i ? `상품 +${i}` : '해금'}${OCCULT_SYNTH.disc[i] ? ` · 가격 -${pct(OCCULT_SYNTH.disc[i])}` : ''}`);
+    },
+    member: (t) => ({ stats: { effHit: T(t, OCCULT_HIT) } }),
   },
   {
     id: 'EXPLORER', name: '탐험가', kind: 'trait', tiers: [1], color: '#e6d27a', icon: '⚓',

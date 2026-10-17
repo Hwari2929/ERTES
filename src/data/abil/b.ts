@@ -2,7 +2,7 @@
 import type { AbilText, Area } from '../abiltext';
 import { CFG } from '../../config';
 
-/** 셰프 단계별 요리 배율 '×1.3 / ×2 / ×3.4' (CFG.cookPower) */
+/** 셰프 단계별 요리 배율 '×1.3 / ×2 / ×3.4 / ×4.6' (CFG.cookPower) */
 const COOK_MULT = CFG.cookPower.slice(1).map((x) => `×${x}`).join(' / ');
 
 type Row = [string, string];

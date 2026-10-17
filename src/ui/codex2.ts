@@ -273,11 +273,11 @@ function sources(id: string): string[] {
     if (!c.drop) out.push(`${SYN_BY_ID.OCCULT.name} [합성] 공방 · ${c.price} 크레딧`);
     else if (c.chef) {
       const stale = id === 'K_bread_stale', C = CFG.chef;
-      if (stale) out.push(`[${CONSUMABLES.K_bread?.name}]을 얻은 뒤 전투 ${C.staleAfter}회를 지나면 (승패 무관, ${chef.name} ${chef.tiers[C.noStaleTier - 1]}명이 켜진 전투는 세지 않음 · 이미 식은 빵은 그대로)`);
+      if (stale) out.push(`[${CONSUMABLES.K_bread?.name}]을 얻은 뒤 전투 ${C.staleAfter}회를 지나면 (승패 무관, ${chef.name} ${chef.tiers[C.noStaleTier - 1]}명 이상이 켜진 전투는 세지 않음 · 이미 식은 빵은 그대로)`);
       else {
         out.push(`${chef.name} 시너지가 의뢰에서 처음 켜질 때 (${chef.tiers[0]}명) 1개`);
         out.push(`${chef.name} 활성 중 전투 승리 시 확률로 1개: ${chef.tiers.map((n, i) => `${n}명 ${pctTxt(C.breadWin[i] || 0)}`).join(' · ')}`);
-        out.push(`전투 ${C.staleAfter}회 뒤 [${CONSUMABLES.K_bread_stale?.name}]이 된다 (회복 −${C.staleHeal} · 판매가 −${C.staleSell}, ${chef.name} ${chef.tiers[C.noStaleTier - 1]}명이 켜진 전투는 세지 않음)`);
+        out.push(`전투 ${C.staleAfter}회 뒤 [${CONSUMABLES.K_bread_stale?.name}]이 된다 (회복 −${C.staleHeal} · 판매가 −${C.staleSell}, ${chef.name} ${chef.tiers[C.noStaleTier - 1]}명 이상이 켜진 전투는 세지 않음)`);
       }
       out.push(`회복량 (위험 등급별): ${C.breadHeal.map(([l, h]) => `${diffName(l) || `위험 ${l}`} ${stale ? Math.max(1, h - C.staleHeal) : h}`).join(' · ')}`);
       out.push(`판매가 (팔 때의 ${chef.name} 인원): ${[0, ...chef.tiers.map((_, i) => i + 1)].filter((t, i, a) => i === 0 || breadSell(t, stale) !== breadSell(a[i - 1], stale)).map((t) => `${t ? `${chef.tiers[t - 1]}명 이상` : '기본'} ${breadSell(t, stale)}`).join(' · ')}`);
