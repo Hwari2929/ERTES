@@ -1754,7 +1754,7 @@
  "sm_farmdrone": {
   "name": "농업 드론",
   "subject": "no humans",
-  "tags": "agricultural drone, farming drone, quadcopter, four rotors, white and green body, front screen, small face display screen, digital face on screen, happy face emoticon, ^_^, closed happy eyes, smile on screen, small four-leaf clover emblem, hanging basket of vegetables, cute, hovering, no humans",
+  "tags": "agricultural drone, farming drone, quadcopter, four rotors, white and green body, large front monitor screen, black screen, simple pixel emoticon on screen, two upward arc eyes ^ ^, small asterisk mouth, cheerful kaomoji face, glowing green pixels, small four-leaf clover emblem, hanging basket of vegetables, cute, hovering, front view, no humans",
   "source": "user",
   "notes": "클로버(최고의 친구)의 소환물. 아군에게 농작물을 던져 회복. | 재생성: 표정용 디스플레이에 ^*^ 얼굴.",
   "object": true

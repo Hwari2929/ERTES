@@ -7105,5 +7105,26 @@
     "model": "nai-diffusion-5-full",
     "time": "2026-10-17T10:30:59.986Z",
     "prompt": "no humans, transparent background, concept art, single object, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, agricultural drone, farming drone, quadcopter, four rotors, white and green body, front screen, small face display screen, digital face on screen, happy face emoticon, ^_^, closed happy eyes, smile on screen, small four-leaf clover emblem, hanging basket of vegetables, cute, hovering, no humans"
+  },
+  {
+    "id": "sm_farmdrone",
+    "seed": 588917888,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-17T10:31:51.703Z",
+    "prompt": "no humans, transparent background, concept art, single object, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, agricultural drone, farming drone, quadcopter, four rotors, white and green body, large front monitor screen, black screen, simple pixel emoticon on screen, two upward arc eyes ^ ^, small asterisk mouth, cheerful kaomoji face, glowing green pixels, small four-leaf clover emblem, hanging basket of vegetables, cute, hovering, front view, no humans"
+  },
+  {
+    "id": "sm_farmdrone",
+    "seed": 1496981557,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-17T10:32:04.826Z",
+    "prompt": "no humans, transparent background, concept art, single object, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, agricultural drone, farming drone, quadcopter, four rotors, white and green body, large front monitor screen, black screen, simple pixel emoticon on screen, two upward arc eyes ^ ^, small asterisk mouth, cheerful kaomoji face, glowing green pixels, small four-leaf clover emblem, hanging basket of vegetables, cute, hovering, front view, no humans"
+  },
+  {
+    "id": "sm_farmdrone",
+    "seed": 544624796,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-17T10:32:17.476Z",
+    "prompt": "no humans, transparent background, concept art, single object, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, agricultural drone, farming drone, quadcopter, four rotors, white and green body, large front monitor screen, black screen, simple pixel emoticon on screen, two upward arc eyes ^ ^, small asterisk mouth, cheerful kaomoji face, glowing green pixels, small four-leaf clover emblem, hanging basket of vegetables, cute, hovering, front view, no humans"
   }
 ]
