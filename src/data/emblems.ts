@@ -28,14 +28,25 @@ export const EMB = {
   FAM: 0.1, // 받는 피해 감소
   STAR: { fame: 2, per: 0.01, max: 0.15 }, // 명성 fame 당 가하는 피해 +per, 최대 max
   ENG: 0.25, // 아군 감시 포탑 최대 체력 (문장끼리 더한다)
-  BUDDY: { rate: 0.25, blast: 1.0, r: 1 }, // 반려 돌(인화성): 기본 상속률 · 폭발 계수 (주인 주요 위력) · 반경
+  BUDDY: { rate: 0.25, blast: 1.0, r: 1, prov: 4.5 }, // 반려 돌(인화성): 기본 상속률 · 폭발 계수 (주인 주요 위력) · 반경 · 기본 도발 배율
   VOYAGE: { every: 6, pct: 0.1 }, // [활력 충전] 주기 · 최대 체력 회복 비율
 };
 
 /** 최고의 친구 문장 소환물: 반려 돌(인화성). 상속률 = 최고의 친구 소환물 규칙(build.ts summonBond) × rate → 기본 EMB.BUDDY.rate */
+/** 반려 돌(인화성) 자리 (전장은 적 진형 · 가운데 1줄 · 아군 진형이 위아래로 대칭): 가운데 줄 한가운데 한 칸 → 차 있으면 적진 안으로 (가까운 줄부터, 각 줄은 가운데부터 좌우로) */
+function rockCell(b: Parameters<NonNullable<typeof SUMMON_RT.make>>[0], side: 0 | 1) {
+  const mid = Math.floor(b.h / 2), dir = side === 0 ? -1 : 1, cx = Math.floor(b.w / 2);
+  if (!b.unitAt(cx, mid)) return { x: cx, y: mid };
+  for (let y = mid + dir; y >= 0 && y < b.h; y += dir)
+    for (let k = 0; k < b.w; k++) {
+      const x = cx + (k % 2 ? (k + 1) / 2 : -k / 2);
+      if (b.inBounds(x, y) && !b.unitAt(x, y)) return { x, y };
+    }
+  return null;
+}
 export const EMB_ROCK: SummonDef = {
   name: '반려 돌(인화성)', ctype: 'VAN', art: 'sm_rockfire', sprite: 'turret', palette: ['#0e0e0e', '#8a8a86', '#c8502a', '#c8c8c0', '#ffb36b', '#3a3a38', '#e8e8e0'],
-  atk: { type: 'strike', elem: 'phys', interval: 1.2 }, range: 1, moveSpd: 1, rate: EMB.BUDDY.rate / CFG.bond.base, struct: true,
+  atk: { type: 'strike', elem: 'phys', interval: 1.2 }, range: 1, moveSpd: 1, rate: EMB.BUDDY.rate / CFG.bond.base, struct: true, prov: EMB.BUDDY.prov,
 };
 
 const pc = (v: number) => `${Math.round(v * 100)}%`;
@@ -76,11 +87,15 @@ export const EMBLEM_FX: Partial<Record<SynergyId, EmblemDef>> = {
   // 포탑은 출전한 엔지니어(문장 포함)의 mem.turretMaxHp 합만큼 최대 체력이 는다 (engine/build.ts ENG_HOOK.spawn)
   ENG: { text: `아군 감시 포탑 최대 체력 +${pc(EMB.ENG)} (문장끼리 더한다).`, effect: () => ({ setup: (u) => { u.mem.turretMaxHp = (u.mem.turretMaxHp || 0) + EMB.ENG; } }) },
   BUDDY: {
-    text: `전투 시작 시 소환물 [${EMB_ROCK.name}]을 부른다 (기본 상속률 ${pc(EMB.BUDDY.rate)}, 원래 소환물과 따로). 구조물이라 움직이지 않고 체력 대신 내구도를 가진다. 내구도가 다하면 폭발해 주변 ${EMB.BUDDY.r}칸 적에게 주인 주요 위력 ${pc(EMB.BUDDY.blast)} ${ELEM_NAME.phys} 피해.`,
+    text: `전투 시작 시 소환물 [${EMB_ROCK.name}]을 부른다 (기본 상속률 ${pc(EMB.BUDDY.rate)}, 원래 소환물과 따로). 전장 가운데 줄(배치 불가 구역)의 한가운데에 놓이고, 그 자리가 차 있으면 적진 쪽으로 밀려난다. 구조물이라 움직이지 않고 체력 대신 내구도를 가지며, 기본 도발 배율은 ×${EMB.BUDDY.prov}이다. 내구도가 다하면 폭발해 주변 ${EMB.BUDDY.r}칸 적에게 주인 주요 위력 ${pc(EMB.BUDDY.blast)} ${ELEM_NAME.phys} 피해.`,
     effect: () => ({ hooks: {
       onStart(b, u) {
         const r = SUMMON_RT.make?.(b, u, EMB_ROCK);
-        if (r) r.mem.embRock = 1;
+        if (!r) return;
+        r.mem.embRock = 1;
+        // 자리: 전장 가운데 줄(배치 불가 구역)의 한가운데. 이미 차 있으면 적진 쪽으로 한 줄씩 밀려난다 (아군 쪽에서 본 위 방향)
+        const cell = rockCell(b, u.side);
+        if (cell) { r.x = r.px = cell.x; r.y = r.py = cell.y; }
       },
       // 주인이 먼저 쓰러지면 소환물은 폭발 없이 사라진다 (combat.ts kill)
       onAllyDeath(b, u, dead) {

@@ -87,6 +87,8 @@ export interface SummonDef {
   also?: SummonDef[];
   /** 구조물 소환물: 이동하지 않고 방어도 ×1.3 · 기절 · 공포 · 빙결 면역 (체력은 '내구도'로 표기) */
   struct?: boolean;
+  /** 기본 도발 배율 (전투 유형 값 대신) */
+  prov?: number;
 }
 
 export const B = (vit: number, pow: number, mnd: number, def: number, agi: number) => ({ vit, pow, mnd, def, agi });

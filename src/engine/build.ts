@@ -264,6 +264,7 @@ export function makeSummons(owner: CUnit, sd0: SummonDef): SummonMade[] {
     });
     // 전투 유형: 도발 배율이 그 유형 값을 따른다 (돌격가 ×PROV.van, 그 밖 ×1 — provMult). 돌격가 경계(ZOC)는 소환물에게 없다
     if (sd.ctype) { s.ctype = sd.ctype; s.mem.typed = 1; }
+    if (sd.prov !== undefined) s.mem.provBase = sd.prov;
     applyCategory(s);
     if (sd.focusLow) s.mem.lowestFocus = 1;
     if (sd.basicMult && sd.basicMult !== 1) s.mods.push({ kind: 'inc', tag: 'basic', v: sd.basicMult - 1 }); // 기본 공격 계수 (리키 +12%)

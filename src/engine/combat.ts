@@ -314,8 +314,8 @@ export const PROV = {
 /** 기물별 도발 배율: 돌격가 3, 수호자 시너지가 켜지면 +1.5, 장비(위협 신호기) +n, 은신 · 침투자 기습 중 ×0.3.
  *  소환물: 돌격가 소환물 3, 전투 유형이 정해진 단짝 소환물 (SummonDef.ctype → mem.typed) 은 그 유형 값 (전문가 1), 그 밖은 근접 1.4 · 고정 1.2 · 원거리 1.0 */
 export function provMult(b: Battle | null, a: CUnit): number {
-  let m = a.ctype === 'VAN' ? PROV.van : 1;
-  if (a.isSummon && a.ctype !== 'VAN' && !a.mem.typed) m = a.immobile ? PROV.sumFixed : a.atk.type === 'strike' ? PROV.sumMelee : PROV.sumRanged;
+  let m = a.mem.provBase ?? (a.ctype === 'VAN' ? PROV.van : 1); // provBase: 기본 도발 배율을 따로 정한 소환물 (반려 돌(인화성) 4.5)
+  if (a.isSummon && a.ctype !== 'VAN' && !a.mem.typed && a.mem.provBase === undefined) m = a.immobile ? PROV.sumFixed : a.atk.type === 'strike' ? PROV.sumMelee : PROV.sumRanged;
   if (a.synergies?.has('GUARD') && !a.mem.guardOff) m += PROV.guard; // 수호자 혼자(시너지 꺼짐)면 가산 없음
   if (a.mem.provPlus) m += a.mem.provPlus; // 장비 가산 (위협 신호기)
   if (a.mem.provMul) m *= a.mem.provMul;
