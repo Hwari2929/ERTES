@@ -3125,6 +3125,8 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
 .sm-sec { display: grid; gap: 6px; }
 .sm-unit { display: grid; gap: 5px; min-width: 0; }
 .sm-unit + .sm-unit { border-top: 1px solid var(--line-soft); padding-top: 7px; }
+/* 소환물의 기본 공격 · 기술 카드는 나란히 두지 않고 위아래로 */
+.sm-unit .ps-cards { grid-template-columns: minmax(0, 1fr); }
 .sm-id { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .spr.sm-face { width: 40px; height: 40px; border-radius: var(--r-md); }
 .sm-nm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
