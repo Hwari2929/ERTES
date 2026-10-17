@@ -31,7 +31,7 @@ import * as R from './engine/run';
 import { CAUSAL, causalGain, causalLeft, causalNeed, causalStage, gearScore, KING, KING_GEAR, KING_GEAR_NAME, KING_MS_TEXT, kingStageText } from './data/chungra';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
-import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SynergyId, type UnitState } from './types';
+import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from './types';
 import { encounterMatchup, matchupLines, matchupShort, schoolWarnings } from './ui/matchup';
 import { computeStats, makeSummons, type SummonMade } from './engine/build';
 import { gradeCards } from './ui/revealfx';
@@ -468,6 +468,21 @@ function nextMilestone(tt: TType, rank: number): number | null {
 }
 const PILGRIM_FLAVOR = ['향 연기가 낮게 깔린 성소. 순례자들이 조용히 무릎을 꿇는다.', '닳은 돌계단 끝에 작은 제단이 있다. 누군가 두고 간 등불이 아직 따뜻하다.', '성가대의 노래가 끊겼다 이어진다. 사제가 권능의 값을 매긴다.'];
 /** 순례: 참배 카드 3장 + 성유물 2종 + 디바인 성유물 관리 */
+/** 보급: 뒷면 카드를 뒤집어 모두 받는다 (카드 1장 = 크레딧 · 공명도 · 장비 하나, 대박이면 배율 띠). 공개 연출 · 공개음은 revealfx · sound (supplyGrade) */
+function supplyHtml(p: Extract<Pending, { t: 'supply' }>) {
+  const left = p.options.filter((c) => !c.open).length;
+  const face = (c: SupplyCard, i: number) => {
+    if (!c.open) return `<button class="card sup-card" data-a="pick-supply" data-v="${i}" aria-label="보급품 ${i + 1} 뒤집기"><i class="cback" aria-hidden="true"></i></button>`;
+    const jp = c.mult > 1 ? `<span class="sup-jp">대박 ×${c.mult}</span>` : '';
+    const body = c.kind === 'credits' ? `<span class="sup-ic">${CR}</span><b>+${c.credits}</b><span>에너지 크레딧</span>`
+      : c.kind === 'xp' ? `<span class="sup-ic">${RES}</span><b>+${c.xp}</b><span>공명도 — 파티에 분배</span>`
+      : c.items.map((id) => `<span class="sup-ic">${itemIcon(id)}</span><b class="t${itemInfo(id).tier}">${esc(itemInfo(id).name)}</b><span>${statIc(esc(itemInfo(id).desc))}</span>`).join('');
+    return `<div class="card sup-card open sup-${c.kind}${c.mult > 1 ? ' jp' : ''}" data-sup="${i}">${jp}${body}</div>`;
+  };
+  return `<h1>보급</h1><p class="muted small">보급품 ${p.options.length}장을 모두 받습니다. 뒤집기 전에는 무엇이 들었는지 모릅니다 · 드물게 대박 (가치 ${CFG.supply.jackpot.map(([x]) => `×${x}`).join(' · ')}).</p>
+    <div class="cards sup-cards">${p.options.map(face).join('')}</div>
+    <div class="row-btns">${left ? `<button class="btn primary" data-a="supply-all">모두 뒤집기 (${left}장)</button>` : '<button class="btn primary" data-a="supply-done">계속</button>'}</div>`;
+}
 function pilgrimHtml(run: RunState, p: Extract<Pending, { t: 'pilgrim' }>) {
   const dv = R.divines(run);
   const card = (c: NonNullable<typeof p.cards>[number], i: number) => {
@@ -988,11 +1003,13 @@ function musterModal(run: RunState) {
       <button class="btn" data-a="muster-cancel">취소</button>
       <button class="btn primary" data-a="muster-ok" ${full && pool.length ? '' : 'disabled'}>소집 ${CR}${R.musterCost(run)}</button></div>`;
 }
+/** 보급 미리보기: 카드 수 · 지금 기준 합계 가치 (run.ts supplyBase, 크레딧 환산) */
+const supplyHint = (run: RunState | null) => `보급품 ${CFG.supply.cards}장 모두 받기 (크레딧 · 공명도 · 장비 무작위)${run ? ` · 합계 가치 약 ${Math.round(R.supplyBase(run))} 크레딧어치` : ''} · 드물게 대박`;
 function nodeHint(o: NodeType) {
   return ({
     battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 ${CFG.adversityReward}배 + 장비 재료 ${CFG.drop.advParts}개 확정`,
     council: `전역 증강 3장 중 택1 · 새로고침 ${CFG.globalRerolls}회`, shop: `분기점 — 상점 / 보급 / 모집 (+ ${SYN_BY_ID.STAR.name} 속보 · 호이슌 투자 · 순례)`,
-    supply: '보급품 3종 중 택1', recruit: '새 동료 3명 중 택1', boss: `${app.run && R.bossMustWin(app.run) ? '의뢰의 마지막 보스 · 이길 때까지 다시 싸운다' : `승리 시 페이즈 클리어 · 패배해도 다음 페이즈로 (체력 -${CFG.bossLossDamage(app.run?.phase || 1)})`} · ${CFG.drop.bossAdvEvery}페이즈마다 희귀 장비`,
+    supply: supplyHint(app.run), recruit: '새 동료 3명 중 택1', boss: `${app.run && R.bossMustWin(app.run) ? '의뢰의 마지막 보스 · 이길 때까지 다시 싸운다' : `승리 시 페이즈 클리어 · 패배해도 다음 페이즈로 (체력 -${CFG.bossLossDamage(app.run?.phase || 1)})`} · ${CFG.drop.bossAdvEvery}페이즈마다 희귀 장비`,
     pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', invest: '호이슌 투자 상품 · 크레딧으로 문장 · 증강 · 다음 페이즈 수익', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
     fork: `갈림길 — 휴식(체력 +${CFG.forkRestHp} + 잃은 체력 ${Math.round(CFG.forkRestLost * 100)}%) 또는 도전(다음 페이즈 역경급 전투, 승리 시 다음 페이즈로)`,
     challenge: '다음 페이즈 역경 수준의 전투 · 승리 시 남은 노드 보상을 받고 다음 페이즈로',
@@ -2463,7 +2480,7 @@ function pendingModal(run: RunState): string {
   } else if (p.t === 'itemPick') {
     body = `<h1>${esc(p.title)}</h1><div class="cards">${p.options.map((id, i) => { const it = itemInfo(id); return `<button class="card" data-a="pick-item" data-v="${i}">${itemIcon(id)}<b>${esc(it.name)}</b><span>${statIc(esc(it.desc))}</span></button>`; }).join('')}</div>`;
   } else if (p.t === 'recruit') {
-    const rank = Math.min(CFG.maxRank, R.joinRank(run) + (R.hasGlobal(run, 'G.scout') ? 1 : 0));
+    const rank = R.recruitRank(run);
     const rr = p.rerolls ?? 1;
     mcls = 'recruit';
     const pick = app.recruitPick && p.options.includes(app.recruitPick) ? app.recruitPick : null;
@@ -2480,7 +2497,7 @@ function pendingModal(run: RunState): string {
         <button class="btn primary" data-a="pick-recruit" data-v="${pick || ''}" ${pick ? '' : 'disabled'}>영입</button></div>`;
   } else if (p.t === 'branch') {
     const BR: Partial<Record<NodeType, string>> = {
-      shop: `재료 ${CFG.drop.shopParts}개 확정 · 희귀 / 고급 장비${run.phase >= CFG.shop.gearFrom ? ' 1개 이상 확정' : ''} · 가끔 소모품 · 드물게 문장 · 전설`, supply: '보급품 3종 중 택1',
+      shop: `재료 ${CFG.drop.shopParts}개 확정 · 희귀 / 고급 장비${run.phase >= CFG.shop.gearFrom ? ' 1개 이상 확정' : ''} · 가끔 소모품 · 드물게 문장 · 전설`, supply: supplyHint(run),
       news: `은하 속보: 명성 ${run.fame}을 보상으로 교환`, recruit: '기물 영입 기회 (후보 중 1명)',
       invest: '호이슌 투자 상품 (페이즈당 1회)', maint: '엔지니어 정비: 포탑 전용 장비 구매 (보급형 1개 무료)', pilgrim: `권능 +1 후 순례 (페이즈당 1회) · 보유 권능 ${run.power}`,
     };
@@ -2495,7 +2512,7 @@ function pendingModal(run: RunState): string {
       ${R.occultTier(run) ? `<button class="card br-card n-shop" data-a="pick-fork" data-v="synth" style="--c:${SYN_BY_ID.OCCULT.color}"><span class="br-ic">${synIcon('OCCULT') || '✶'}</span><b>합성</b><span class="small muted">신비학자의 비밀 공방. 공명 촉매 · 변성 촉매 · 전설 주조액 · 복제 배양조 같은 전용 소모품을 크레딧으로 삽니다 (상품 ${OCCULT_SYNTH.base + R.occultTier(run)}개${OCCULT_SYNTH.disc[R.occultTier(run) - 1] ? `, 가격 -${Math.round(OCCULT_SYNTH.disc[R.occultTier(run) - 1] * 100)}%` : ''}).</span></button>` : ''}
     </div>`;
   } else if (p.t === 'supply') {
-    body = `<h1>보급</h1><div class="cards">${p.options.map((o) => `<button class="card" data-a="pick-supply" data-v="${o}"><b>${ic(esc(R.SUPPLY_TEXT[o]))}</b></button>`).join('')}</div>`;
+    body = supplyHtml(p);
   } else if (p.t === 'pilgrim') {
     body = pilgrimHtml(run, p);
   } else if (p.t === 'blessing') {
@@ -3177,8 +3194,8 @@ function releaseBlock(run: RunState, u: UnitState) {
   const v = R.releaseValue(run, u);
   const name = UNIT_BY_ID[u.defId].name;
   const lines = R.isRock(u) ? ['반려 돌은 보상 없이 사라집니다. 절망 증강이 걸려 있으면 다시 영입 선택지에 섞여 나옵니다.'] : [
-    `${CR}<b>+${v.credits}</b> (3 + 공명 등급 ${u.rank} × 2)`,
-    `${RES}<b>${v.xp}</b> — 이 기물에 쌓인 공명도 ${v.invested}의 60%를 남은 파티에 분배 (출전 기물 우선)`,
+    `${CR}<b>+${v.credits}</b> (${CFG.release.base} + 공명 등급 ${u.rank} × ${CFG.release.perRank})`,
+    `${RES}<b>${v.xp}</b> — 이 기물에 쌓인 공명도 ${v.invested}의 ${Math.round(CFG.release.xpShare * 100)}%를 남은 파티에 분배 (출전 기물 우선)`,
     v.items.length ? `장비 · 개조부품 ${v.items.length}개는 보관함으로 (${v.items.map((x) => esc(itemInfo(x).name)).join(', ')})` : '장착한 장비 없음',
     ...(v.lost.length ? [`<span class="down">고유 장비 ${v.lost.map((x) => esc(itemInfo(x).name)).join(', ')}는 함께 사라짐</span>`] : []),
   ];
@@ -3679,7 +3696,11 @@ function tipSteps(key: string, run: RunState | null): Partial<CoachStep>[] {
     ];
     case 'ch1b_battle': return [{ target: bTok(1, 'drone') }, { target: bTok(1) }, { target: bTok(0, 'temur') }, { target: bTok(0, 'vivian') }].map((x) => ({ ...x, pend: true }));
     case 'ch2_map': return [{ target: '.map .tl-track' }, { target: '.top .stat-row' }, { target: '.map .tl-go', need: true, until: () => r.step > 2 || r.pending[0]?.t === 'supply' }];
-    case 'ch2_supply': return [{ target: '.modal .cards', pend: true }, { target: '.modal [data-a="pick-supply"][data-v="parts"]', pend: true, until: () => r.pending[0]?.t !== 'supply' }];
+    case 'ch2_supply': {
+      const sp = () => r.pending[0]?.t === 'supply' ? r.pending[0] : null;
+      return [{ target: '.modal .sup-cards', pend: true }, { target: '.modal [data-a="supply-all"]', pend: true, until: () => !sp()?.options.some((c) => !c.open) },
+        { target: '.modal [data-a="supply-done"]', pend: true, until: () => !sp() }];
+    }
     case 'ch2_shop': return [
       { target: '.shop .shop-item.tC' }, { target: '.shop .shop-item.tA' },
       { target: '.shop .shop-item.tC', need: true, until: () => !!r.node?.shop?.some((x) => x.sold) },
@@ -4205,7 +4226,8 @@ function act(a: string, v: string) {
     case 'muster-cancel': if (run) { R.cancelMuster(run); app.musterSel = []; persist(); } break;
     case 'pick-fork': if (run && run.pending[0]?.t === 'fork') { R.pickFork(run, v as 'rest' | 'challenge' | 'synth'); if (run.node?.synth) app.screen = 'shop'; else goPrepOrMap(); persist(); } break;
     case 'reroll-recruit': if (run) { R.rerollRecruit(run); app.recruitPick = null; persist(); } break;
-    case 'pick-supply': if (run && run.pending[0]?.t === 'supply') { run.pending.shift(); R.takeSupply(run, v); persist(); } break;
+    case 'pick-supply': case 'supply-all': { const p = run?.pending[0]; if (run && p?.t === 'supply') { if (a === 'supply-all') R.flipAllSupply(run, p); else R.flipSupply(run, p, +v); persist(); } break; }
+    case 'supply-done': { const p = run?.pending[0]; if (run && p?.t === 'supply' && p.options.every((c) => c.open)) { run.pending.shift(); persist(); } break; }
     case 'notice-ok': run?.pending.shift(); persist(); break;
     default: return;
   }
@@ -4467,7 +4489,7 @@ function turretDrop(run: RunState, n: number, i: number, dk: string, dv: string[
 }
 
 // ───────────────────────── 단축키
-const CONFIRM_ACTS = ['alloc-ok', 'pick-aug', 'after-battle', 'field-ok', 'notice-ok', 'skip-aug', 'menu-close', 'pick-recruit'];
+const CONFIRM_ACTS = ['alloc-ok', 'pick-aug', 'after-battle', 'field-ok', 'notice-ok', 'skip-aug', 'menu-close', 'pick-recruit', 'supply-all', 'supply-done'];
 function clickFirst(sel: string) {
   const el = Array.from(document.querySelectorAll<HTMLButtonElement>(sel)).find((b) => !b.disabled);
   if (!el) return false;

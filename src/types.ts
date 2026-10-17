@@ -124,6 +124,9 @@ export interface InvestOffer { id: string; cost: number; sold: boolean; uid?: st
 
 export interface Quest { id: string; target: number; progress: number; done: boolean; reward: string }
 
+/** 보급품 카드 (run.ts genSupply): 보상 한 종류 (크레딧 · 공명도 풀 분배 · 장비). value = 크레딧 환산 가치, mult = 대박 배율 (1 = 보통), open = 뒤집어 받음 */
+export interface SupplyCard { kind: 'credits' | 'xp' | 'gear'; xp: number; credits: number; items: string[]; value: number; mult: number; open?: boolean }
+
 export type Pending =
   | { t: 'global'; options: string[]; rerolls?: number } // rerolls: 항로 회의 전역 증강 새로고침
   | { t: 'field' }
@@ -135,7 +138,7 @@ export type Pending =
   | { t: 'pilgrim'; cards?: { id: string; cost: number; sold: boolean; faith?: FaithId }[]; relics?: { id: string; cost: number; sold: boolean }[] }
   | { t: 'itemPick'; options: string[]; title: string }
   | { t: 'recruit'; options: string[]; rerolls?: number; syns?: string[] } // rerolls 없음 = 1회, syns = 지정 소집 조건
-  | { t: 'supply'; options: string[] }
+  | { t: 'supply'; options: SupplyCard[] }
   | { t: 'branch'; options: NodeType[] }
   | { t: 'fork' } // 전환: 휴식 / 도전
   | { t: 'muster' } // 지정 소집: 시너지 4개 선택 창

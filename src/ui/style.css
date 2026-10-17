@@ -1206,6 +1206,27 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .bench-u.syn-hl, main.syn-focu
 .card span:not(.src) { font-size: var(--fs-md); color: var(--c-text-2); }
 .card .src { justify-self: start; }
 .card.aug-unit { border-color: var(--c-text-2); }
+/* 보급 (main.ts supplyHtml): 뒷면(.cback) 카드를 뒤집으면 앞면 — 자원 아이콘 · 양 · 이름. 대박은 오른쪽 위 띠 (공개 연출은 revealfx 의 rv-2 · rv-3) */
+.sup-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.card.sup-card { position: relative; min-height: 170px; justify-items: center; align-content: center; text-align: center; }
+.sup-card:not(.open) .cback { display: block; }
+.sup-card:not(.open):hover .cback { filter: brightness(1.3); }
+.card.sup-card.open { cursor: default; }
+.card.sup-card.open:hover { transform: none; border-color: var(--line); }
+.card.sup-card.jp { border-color: var(--g-L); }
+.sup-card .sup-ic { display: grid; place-items: center; }
+.sup-card .sup-ic .li { width: 30px; height: 30px; }
+.sup-card .sup-ic .item { width: 42px; height: 42px; cursor: default; }
+.sup-card b.tC { color: var(--g-C); } .sup-card b.tG { color: var(--g-G); } .sup-card b.tA { color: var(--g-A); } .sup-card b.tL { color: var(--g-L); }
+.card.sup-card .sup-jp { position: absolute; top: 8px; right: 8px; font-size: var(--fs-xs); font-weight: 700; color: var(--g-L); border: 1px solid var(--g-L); border-radius: var(--r-sm); padding: 1px 6px; }
+.sup-cards + .row-btns { justify-content: center; margin-top: 12px; }
+@media (max-width: 640px) {
+  .sup-cards { gap: 6px; }
+  .card.sup-card { padding: 10px 6px; min-height: 150px; gap: 4px; }
+  .card.sup-card b { font-size: var(--fs-md); word-break: keep-all; }
+  .card.sup-card span:not(.src):not(.sup-ic):not(.sup-jp) { font-size: var(--fs-xs); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .card.sup-card .sup-jp { position: static; }
+}
 textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--c-text); border: 1px solid var(--line); border-radius: var(--r-md); padding: 8px; font: var(--fs-sm) var(--f-mono); }
 .slot-list { display: grid; gap: 6px; }
 .slot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--panel-2); border-radius: var(--r-md); padding: 6px 10px; }

@@ -42,6 +42,8 @@ const FAC = (process.argv.find((a) => a.startsWith('fac='))?.slice(4) || (proces
 const CHR = !!FAC;
 const isFac = (id: string) => !!FAC && ([...UNIT_BY_ID[id].factions, ...UNIT_BY_ID[id].traits] as string[]).includes(FAC);
 const CHR_IDS = UNITS.filter((u) => isFac(u.id) && !u.noStarter && !u.eventOnly).map((u) => u.id);
+/** supply: 첫 상점 뒤의 분기점에서 보급을 고른다 (보급 보상 비교용, 카드는 모두 뒤집는다) */
+const SUPPLY = process.argv.includes('supply');
 const OATH_FROM = process.argv.find((a) => a.startsWith('oathfrom='));
 if (OATH_FROM) (CFG as { oathFrom: number }).oathFrom = +OATH_FROM.slice(9);
 
@@ -157,9 +159,9 @@ function playRun(seed: number) {
         const pick = p.options.slice().sort((x, y) => score(y) - score(x))[0];
         for (const id of p.options) add('offer', id, { offered: 1, picked: id === pick ? 1 : 0 });
         R.recruit(run, pick);
-      } else if (p.t === 'supply') R.takeSupply(run, p.options[0]);
+      } else if (p.t === 'supply') R.flipAllSupply(run, p);
       else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
-      else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? (run.units.length < 10 ? (['recruit', 'invest', 'pilgrim', 'shop'] as const) : (['invest', 'pilgrim', 'shop'] as const)).find((o) => p.options.includes(o))! : 'shop'); continue; }
+      else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? SUPPLY && p.options.includes('supply') ? 'supply' : (run.units.length < 10 ? (['recruit', 'invest', 'pilgrim', 'shop'] as const) : (['invest', 'pilgrim', 'shop'] as const)).find((o) => p.options.includes(o))! : 'shop'); continue; }
       else if (p.t === 'fork') { R.pickFork(run, forkChoice(run, () => bot.chance(0.5))); continue; }
       else if (p.t === 'pilgrim') { pilgrimBot(run); run.pending.shift(); continue; }
       run.pending.shift();

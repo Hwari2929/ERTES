@@ -332,7 +332,7 @@ function playRun(seed: number) {
         const score = (id: string) => { const d = UNIT_BY_ID[id]; return [...d.factions, ...d.traits].reduce((s2, x) => s2 + (have.get(x) || 0), 0) + bot.next(); };
         const pick = p.options.slice().sort((x, y) => score(y) - score(x))[0];
         R.recruit(run, pick);
-      } else if (p.t === 'supply') R.takeSupply(run, p.options[0]);
+      } else if (p.t === 'supply') R.flipAllSupply(run, p);
       else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
       else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? (run.units.length < 10 ? (['recruit', 'invest', 'pilgrim', 'shop'] as const) : (['invest', 'pilgrim', 'shop'] as const)).find((o) => p.options.includes(o))! : 'shop'); continue; }
       else if (p.t === 'fork') { R.pickFork(run, forkChoice(run, () => bot.chance(0.5))); continue; }

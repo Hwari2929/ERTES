@@ -66,7 +66,7 @@ function playRun(seed: number) {
         for (const u of run.units) { const d = UNIT_BY_ID[u.defId]; for (const x of [...d.factions, ...d.traits]) have.set(x, (have.get(x) || 0) + 1); }
         const score = (id: string) => { const d = UNIT_BY_ID[id]; return [...d.factions, ...d.traits].reduce((s2, x) => s2 + (have.get(x) || 0), 0) + bot.next(); };
         R.recruit(run, p.options.slice().sort((x, y) => score(y) - score(x))[0]);
-      } else if (p.t === 'supply') R.takeSupply(run, p.options[0]);
+      } else if (p.t === 'supply') R.flipAllSupply(run, p);
       else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
       else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? (run.units.length < 10 ? (['recruit', 'invest', 'pilgrim', 'shop'] as const) : (['invest', 'pilgrim', 'shop'] as const)).find((o) => p.options.includes(o))! : 'shop'); continue; }
       else if (p.t === 'fork') { R.pickFork(run, run.hp > 60 && bot.chance(0.5) ? 'challenge' : 'rest'); continue; }

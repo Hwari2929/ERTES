@@ -8,7 +8,7 @@
 // - 디버그: 주소에 ?soundtest 가 있으면 window.__sfx 에 호출 기록 · 합성 도구를 둔다.
 import type { Pending } from '../types';
 import { revealGrade } from '../data/items';
-import { augGrade, greatOpen } from './revealfx';
+import { augGrade, greatOpen, supplyGrade, supplySig } from './revealfx';
 
 type Wave = 's' | 't' | 'q' | 'w' | 'n';
 /** 소리 한 겹. o 파형(s 사인 · t 삼각 · q 사각 · w 톱니 · n 노이즈), f → e 음높이 미끄러짐(Hz), t 시작(초), a 어택 · h 유지 · d 감쇠, g 크기,
@@ -291,9 +291,9 @@ for (const [s, as] of Object.entries({
   buy: 'buy buy-news buy-invest buyxp pil-card pil-relic fleet loan muster-open',
   sell: 'sell release-confirm',
   reroll: 'reroll reroll-recruit reroll-global reroll-privilege',
-  confirm: 'pick-aug pick-global pick-privilege pick-item pick-recruit pick-blessing pick-supply alloc-ok muster-ok pick-branch pick-fork start-run diff-ok enter victory-end victory-endless relic-equip relic-enh event-choice',
+  confirm: 'pick-aug pick-global pick-privilege pick-item pick-recruit pick-blessing supply-done alloc-ok muster-ok pick-branch pick-fork start-run diff-ok enter victory-end victory-endless relic-equip relic-enh event-choice',
   place: 'drop autofill',
-  '': 'bdesel syn-peek item-info fight', // 소리 없음 (전투 시작은 개시 연출에서)
+  '': 'bdesel syn-peek item-info fight pick-supply supply-all', // 소리 없음 (전투 시작은 개시 연출에서 · 보급 뒤집기는 공개음 reveal)
 })) for (const a of as.split(' ')) ACT[a] = s;
 /** UI 동작 직전에 부른다 (data-a 이름). 동작이 끝난 뒤(마이크로태스크) 결과에 맞는 소리를 낸다 */
 export function uiAct(a: string) {
@@ -329,6 +329,13 @@ export function reveal(p: Pending | undefined) {
   else if (p.t === 'global' || p.t === 'privilege') { key = `${p.t}:${p.options.map((x) => (typeof x === 'string' ? x : x.id)).join()}`; g = 2; }
   else if (p.t === 'itemPick') { key = `it:${p.options.join()}`; g = Math.max(...p.options.map(revealGrade)); } // 전설 장비 · 전설급 소모품 3, 희귀 2
   else if (p.t === 'recruit' || p.t === 'blessing') { key = `${p.t}:${p.options.join()}`; g = 1; }
+  else if (p.t === 'supply') { // 보급: 카드를 뒤집을 때마다, 이번에 뒤집힌 카드 중 가장 높은 등급 (대박 ×2 이상 3 · 대박 · 희귀 장비 2)
+    const sig = supplySig(p), open = p.options.map((c, i) => (c.open ? i : -1)).filter((i) => i >= 0);
+    const before = revealKey.startsWith(`sup:${sig}:`) ? revealKey.slice(sig.length + 5).split(',').filter(Boolean).map(Number) : [];
+    const now = open.filter((i) => !before.includes(i));
+    if (!now.length) return;
+    key = `sup:${sig}:${open.join(',')}`; g = Math.max(...now.map((i) => supplyGrade(p.options[i])));
+  }
   if (!key || key === revealKey) return;
   revealKey = key;
   play(`reveal${g}`, { delay: 0.12 }, 'ui', 0.01);

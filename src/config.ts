@@ -146,7 +146,7 @@ export const CFG = {
   sell: { C: 3, G: 7, A: 7, L: 20, M: 6, O: 8, K: 4, T: 5, J: 1 } as Record<string, number>, // J: 유닉스제 잡동사니 (캣휠)
   // 장비 드랍 [임시]
   // advParts: 역경(· 도전) 승리 시 무작위 장비 재료 확정 개수 (예전: 확률 50%)
-  drop: { battle: 0.1, advParts: 1, bossAdvEvery: 3, bossPart: 0.5, shopParts: 2, shopAdv: 0.4, shopAdv2: 0.1, shopGraded: 0.15, shopLegend: 0.05, shopLegendPhase: 6, supplyAdv: 0.12, utility: { battle: 0.15, adversity: 0.3, boss: 0.5 } as Record<string, number>,
+  drop: { battle: 0.1, advParts: 1, bossAdvEvery: 3, bossPart: 0.5, shopParts: 2, shopAdv: 0.4, shopAdv2: 0.1, shopGraded: 0.15, shopLegend: 0.05, shopLegendPhase: 6, utility: { battle: 0.15, adversity: 0.3, boss: 0.5 } as Record<string, number>,
     // 전설 소모품 (승리 시, 위 utility 와 따로 굴림): 강제 징수기 = 매우 낮은 확률 (적이 장비를 다는 위험 등급에서만) · 원초 공명석 = 극저확률
     seize: { battle: 0.01, adversity: 0.02, boss: 0.04 } as Record<string, number>,
     rank3: { battle: 0.003, adversity: 0.008, boss: 0.02 } as Record<string, number> },
@@ -164,6 +164,21 @@ export const CFG = {
     price: { K_xp: 6, K_xp2: 14, K_xp3: 26, K_strip: 6, K_reroll: 8, K_seize: 30, K_rank3: 40, emblem: 25 } as Record<string, number>,
   },
   inventoryMax: 32,
+  /** 기물 방출 환급 (run.ts releaseValue): 쌓은 공명도의 xpShare 를 남은 파티에 분배 + 크레딧 base + 공명 등급 × perRank (장비는 보관함으로) */
+  release: { xpShare: 0.6, base: 3, perRank: 2 },
+  /** 보급 노드 (run.ts genSupply): 뒷면 카드 cards장을 뒤집어 모두 받는다. 카드 1장 = 보상 한 종류 (크레딧 · 공명도 · 장비, 겹쳐도 된다, 가중치 kindW).
+   *  3장 합계 기준값 = max(floor(페이즈), 지금 영입할 기물(recruitRank)을 바로 방출할 때의 환급 가치 × ratio) — '영입 → 바로 방출'로 크레딧 · 공명도를
+   *  찍어 내는 것보다 보급이 크게 밀리지 않게 하려는 기준 (floor = 초반 하한, 예전 크레딧 보급 12 + 페이즈). 카드 1장 = 기준값 ÷ cards × (1 ± spread).
+   *  대박: 장마다 jackpot 의 [배율, 확률] 을 앞에서부터 굴려 처음 걸린 배율 (공개 연출 · 공개음 단계가 오른다).
+   *  가치 환산 (크레딧 기준): 크레딧 1 = 1 · 공명도 1 = 직접 구매 단가 (buyXpCost ÷ buyXpAmount) · 장비 = 상점 기본가 CFG.price (재료 C · 고급 G · 희귀 A · 전설 L).
+   *  장비 카드는 카드 가치를 가장 가까운 두 등급 사이에서 확률로 맞춘다 (가치가 높을수록 윗 등급, 기대 가치 = 카드 가치, 차이는 버림). 고급 · 희귀는 같은 값이라 graded 확률로 고급, 전설은 legendFrom 페이즈부터 대박 카드에서만 */
+  supply: {
+    cards: 3, ratio: 0.8, spread: 0.12,
+    floor: (phase: number) => 12 + phase,
+    kindW: { credits: 1, xp: 1, gear: 1 } as Record<string, number>,
+    jackpot: [[2, 0.025], [1.5, 0.09]] as [number, number][],
+    graded: 0.3, legendFrom: 6,
+  },
 
   // ── 플레이어 체력 [임시]
   playerHp: 100,

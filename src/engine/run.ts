@@ -19,7 +19,7 @@ import { DEFAULT_RELIC, RELIC_BY_ID, RELICS } from '../data/relics';
 import { Rng } from '../rng';
 import { FAITHS,
   type AugPick, type Encounter, type InvestOffer, type FaithId, type EnemySpawn, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
-  type Quest, type RunState, type ShopSlot, type SynergyId, type UnitState,
+  type Quest, type RunState, type ShopSlot, type SupplyCard, type SynergyId, type UnitState,
 } from '../types';
 import { deployed, memberships, playerRows, synergyCounts, turretCount } from './build';
 import { causalGain, causalLeft, causalStage, KING_GEAR, KING_GEAR_NAME } from '../data/chungra';
@@ -350,7 +350,7 @@ export function enterNode(run: RunState, type: NodeType) {
   } else if (type === 'shop') {
     run.pending.push({ t: 'branch', options: branchOptions(run) });
   } else if (type === 'supply') {
-    run.pending.push({ t: 'supply', options: rng(run, (r) => r.sample(['parts', 'credits', 'xp', 'repair', r.chance(CFG.drop.supplyAdv) ? 'adv' : 'parts2'], 3)) });
+    run.pending.push({ t: 'supply', options: genSupply(run) });
     advance(run);
   } else if (type === 'recruit') {
     offerRecruit(run);
@@ -1302,28 +1302,76 @@ export function takeLoan(run: RunState): boolean {
 }
 
 // ───────────────────────── 보급 / 영입
-export const SUPPLY_TEXT: Record<string, string> = {
-  parts: '장비 재료 1개 + 크레딧 +4', parts2: '장비 재료 1개 + 공명도 풀 절반 분배', credits: '에너지 크레딧 +12', xp: '공명도 풀 즉시 분배',
-  repair: '플레이어 체력 +15', adv: '무작위 희귀 장비 1개',
-};
-export function takeSupply(run: RunState, opt: string) {
-  if (opt === 'parts' && run.tutorial) { gainItem(run, 'C_pow'); run.credits += 4; return; } // 튜토리얼: 3장 조합 안내용 고정 재료
-  if (opt === 'parts') { gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS))); run.credits += 4; }
-  if (opt === 'parts2') { gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS))); distributeXp(run, Math.round(CFG.xpPool(run.phase) / 2)); run.units.forEach((u) => settleXp(run, u)); }
-  if (opt === 'credits') run.credits += 12 + run.phase;
-  if (opt === 'xp') { distributeXp(run, CFG.xpPool(run.phase)); run.units.forEach((u) => settleXp(run, u)); }
-  if (opt === 'repair') run.hp = Math.min(run.maxHp, run.hp + 15);
-  if (opt === 'adv') gainItem(run, rng(run, (r) => r.pick(ALL_ADVANCED)));
+/** 공명 등급 rank 까지 쌓은 공명도 (1등급부터 + 지금 등급의 xp) */
+export function investedXp(rank: number, xp = 0) {
+  let n = xp;
+  for (let r = 1; r < rank; r++) n += CFG.xpToNext(r);
+  return n;
 }
+/** 가치 환산 (크레딧 기준, CFG.supply 주석): 공명도 1 = 직접 구매 단가, 장비 = 상점 기본가 */
+export const XP_VALUE = CFG.buyXpCost / CFG.buyXpAmount;
+export const gearValue = (id: string) => CFG.price[itemInfo(id).tier] ?? CFG.price.C;
+export const supplyValue = (c: Pick<SupplyCard, 'credits' | 'xp' | 'items'>) => c.credits + c.xp * XP_VALUE + c.items.reduce((s, id) => s + gearValue(id), 0);
+/** 갓 영입한 rank 등급 기물을 바로 방출할 때 받는 환급 가치 (releaseValue 와 같은 식) */
+export function releaseGain(rank: number) {
+  return CFG.release.base + CFG.release.perRank * rank + Math.round(investedXp(rank) * CFG.release.xpShare) * XP_VALUE;
+}
+/** 보급 3장 합계 기준 가치: max(페이즈 하한, 지금 영입할 기물을 바로 방출한 환급 × ratio) */
+export const supplyBase = (run: RunState) => Math.max(CFG.supply.floor(run.phase), releaseGain(recruitRank(run)) * CFG.supply.ratio);
+/** 장비 카드: 가치 v 를 가장 가까운 두 등급(상점 기본가) 사이에서 확률로 (기대 가치 = v, 범위 밖이면 끝 등급). 전설은 대박 카드만 (legendFrom 페이즈부터) */
+function supplyGear(run: RunState, r: Rng, v: number, jackpot: boolean): string {
+  const S = CFG.supply, P = CFG.price;
+  const steps: ['C' | 'U' | 'L', number][] = [['C', P.C], ['U', Math.min(P.G, P.A)], ...(jackpot && run.phase >= S.legendFrom ? [['L', P.L] as ['L', number]] : [])];
+  let t = steps[0][0];
+  for (let i = 0; i < steps.length; i++) {
+    if (v < steps[i][1]) { if (i > 0) t = r.chance((v - steps[i - 1][1]) / (steps[i][1] - steps[i - 1][1])) ? steps[i][0] : steps[i - 1][0]; break; }
+    t = steps[i][0];
+  }
+  if (t === 'C') return r.pick(ALL_COMPONENTS);
+  if (t === 'L') return 'L_' + r.pick(ALL_ADVANCED).slice(2);
+  return r.chance(S.graded) ? r.pick(ALL_GRADED) : r.pick(ALL_ADVANCED);
+}
+/** 보급품 카드 (뒷면): 장마다 종류 무작위 (겹쳐도 됨), 가치 = 기준 ÷ 장 수 × (1 ± spread) × 대박 배율 */
+export function genSupply(run: RunState): SupplyCard[] {
+  const S = CFG.supply, per = supplyBase(run) / S.cards;
+  const kinds = Object.keys(S.kindW) as SupplyCard['kind'][];
+  const total = kinds.reduce((s, k) => s + S.kindW[k], 0);
+  return rng(run, (r) => Array.from({ length: S.cards }, (): SupplyCard => {
+    let roll = r.next() * total;
+    const kind = kinds.find((k) => (roll -= S.kindW[k]) < 0) ?? kinds[0];
+    const mult = S.jackpot.find(([, p]) => r.chance(p))?.[0] ?? 1;
+    const v = per * (1 + (r.next() * 2 - 1) * S.spread) * mult;
+    const c: SupplyCard = { kind, xp: 0, credits: 0, items: [], value: 0, mult };
+    if (kind === 'credits') c.credits = Math.max(1, Math.round(v));
+    else if (kind === 'xp') c.xp = Math.max(1, Math.round(v / XP_VALUE));
+    else c.items = [supplyGear(run, r, v, mult > 1)];
+    c.value = supplyValue(c);
+    return c;
+  }));
+}
+/** 보급품 카드 i 뒤집기 (화면 · 봇 공용): 뒤집는 순간 받는다. 공명도는 공명도 풀처럼 파티에 분배 */
+export function flipSupply(run: RunState, p: Extract<Pending, { t: 'supply' }>, i: number) {
+  const c = p.options[i];
+  if (!c || c.open) return;
+  c.open = true;
+  run.credits += c.credits;
+  for (const id of c.items) gainItem(run, id);
+  if (c.xp) { distributeXp(run, c.xp); run.units.forEach((u) => settleXp(run, u)); }
+  log(run, `보급${c.mult > 1 ? ` (대박 ×${c.mult})` : ''}: ${c.credits ? `크레딧 +${c.credits}` : c.xp ? `공명도 ${c.xp} 분배` : c.items.map((id) => itemInfo(id).name).join(', ')}`);
+}
+/** 남은 보급품 카드를 모두 뒤집는다 (봇 · 모두 뒤집기) */
+export const flipAllSupply = (run: RunState, p: Extract<Pending, { t: 'supply' }>) => p.options.forEach((_, i) => flipSupply(run, p, i));
 /** 영입 · 합류 등급: max(페이즈 - 1, 출전 기물 평균 등급 × k) */
 export function joinRank(run: RunState): number {
   const dep = run.units.filter((u) => u.pos && !isRock(u));
   const avg = dep.length ? dep.reduce((s, u) => s + u.rank, 0) / dep.length : 1;
   return Math.min(CFG.maxRank, Math.max(1, run.phase - 1, Math.round(avg * CFG.joinRankRatio)));
 }
+/** 지금 영입하면 합류할 공명 등급 (전역 증강 정찰망 +1) */
+export const recruitRank = (run: RunState) => Math.min(CFG.maxRank, joinRank(run) + (hasGlobal(run, 'G.scout') ? 1 : 0));
 export function recruit(run: RunState, defId: string) {
-  const rank = UNIT_BY_ID[defId].inert ? 1 : Math.min(CFG.maxRank, joinRank(run) + (hasGlobal(run, 'G.scout') ? 1 : 0)); // 반려 돌은 등급 1
-  addUnit(run, defId, Math.min(CFG.maxRank, rank));
+  const rank = UNIT_BY_ID[defId].inert ? 1 : recruitRank(run); // 반려 돌은 등급 1
+  addUnit(run, defId, rank);
   autoPlace(run);
   if (run.picked[run.step - 1] === 'recruit') (run.nodeUnits ??= {})[run.step - 1] = defId; // 타임라인 표시용
   log(run, `${UNIT_BY_ID[defId].name} 합류 (공명 ${rank})`);
@@ -1536,6 +1584,7 @@ export function migrate(run: RunState): RunState {
     else if (u && p.kind === 'school' && p.options.some((o) => !majorsOf(u.defId).includes(o.id.slice(7) as SchoolId))) p.options = null;
     else if (u && p.kind === 'psionic' && p.options.some((o) => AUG_BY_ID[o.id]?.owner !== schoolOf(u))) p.options = null;
   }
+  for (const p of run.pending) if (p.t === 'supply' && p.options.some((o) => typeof o !== 'object')) p.options = genSupply(run); // 옛 보급 (선택지 이름 문자열) → 뒷면 카드
   run.field ??= 'waste';
   run.diff ??= 0;
   if (!run.despairs) { // 위험 등급 체계 판 2 이전 저장: 절망 증강 1개 → 목록, 예전 위험 7 · 8 → 8 · 9 (위험 7 = 절망 증강을 끼워 넣음)
@@ -1663,14 +1712,13 @@ export function eventScene(p: { id: string; sub?: string | null }): Beat[] {
 }
 
 // ───────────────────────── 기물 방출
-/** 방출 보상 미리보기: 쌓은 공명도의 60%를 남은 파티에, 크레딧 3 + 등급×2, 장비 · 개조부품 반환 */
+/** 방출 보상 미리보기: 쌓은 공명도의 일부(CFG.release)를 남은 파티에, 크레딧 base + 등급 × perRank, 장비 · 개조부품 반환 */
 export function releaseValue(run: RunState, u: UnitState) {
-  let invested = u.xp;
-  for (let r = 1; r < u.rank; r++) invested += CFG.xpToNext(r);
+  const invested = investedXp(u.rank, u.xp);
   const items = [...u.items.filter((x): x is string => !!x && !isLocked(x)), ...(u.mod ? [u.mod] : [])];
   const lost = u.items.filter((x): x is string => !!x && isLocked(x));
   if (isRock(u)) return { xp: 0, credits: 0, items, lost, invested: 0 }; // 반려 돌: 보상 없이 사라진다
-  return { xp: Math.round(invested * 0.6), credits: 3 + u.rank * 2, items, lost, invested };
+  return { xp: Math.round(invested * CFG.release.xpShare), credits: CFG.release.base + u.rank * CFG.release.perRank, items, lost, invested };
 }
 export function releaseUnit(run: RunState, uid: string): string | null {
   const u = run.units.find((x) => x.uid === uid);

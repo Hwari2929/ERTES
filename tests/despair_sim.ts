@@ -50,7 +50,7 @@ function resolvePending(run: RunState, bot: Rng) {
       const best = p.options.slice().sort((x, y) => score(y) - score(x))[0];
       if (best && best !== PETROCK) R.recruit(run, best);
     }
-    else if (p.t === 'supply') R.takeSupply(run, p.options[0]);
+    else if (p.t === 'supply') R.flipAllSupply(run, p);
     else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
     else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? (run.units.length < 10 ? (['recruit', 'invest', 'pilgrim', 'shop'] as const) : (['invest', 'pilgrim', 'shop'] as const)).find((o) => p.options.includes(o))! : 'shop'); continue; }
     else if (p.t === 'fork') { R.pickFork(run, forkChoice(run, () => bot.chance(0.5))); continue; }

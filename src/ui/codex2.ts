@@ -25,7 +25,7 @@ import { UNIT_BY_ID, UNITS, type UnitDef } from '../data/units';
 import { EMB_ROCK, emblemText } from '../data/emblems';
 import type { SummonDef } from '../data/unitkit';
 import { LORE, LORE_BY_ID, LORE_GROUP_NAME, LORE_SECTIONS, type LoreEntry, type LoreGroup, loreRegionsOf } from '../data/worldlore';
-import { FOE_GEAR_DIFF, INVEST_OFFERS, NEWS_OFFERS, PILGRIM_CARDS, SUPPLY_TEXT } from '../engine/run';
+import { FOE_GEAR_DIFF, INVEST_OFFERS, NEWS_OFFERS, PILGRIM_CARDS } from '../engine/run';
 import type { AugDef } from '../engine/effects';
 import { type Category, CATEGORY_NAME, CTYPE_NAME, ELEM_NAME, MAJOR_NAME, type Major, type RunState, type SynergyId, TTYPE_NAME } from '../types';
 import * as AB from './abil';
@@ -240,6 +240,10 @@ const USE_TXT: Record<string, string> = { unit: '기물에 끌어다 놓기', it
 /** 얻는 곳 (가격 · 확률 · 단계는 설정 · 데이터에서) */
 function sources(id: string): string[] {
   const P = CFG.price, D = CFG.drop;
+  // 보급 장비 카드: 카드 가치(크레딧 환산)를 가까운 두 등급 가격 사이에서 확률로 맞춘다 (run.ts supplyGear)
+  const S = CFG.supply;
+  const supGear = (t: 'G' | 'A' | 'L') => t === 'L' ? `보급 장비 카드 (${S.legendFrom}페이즈부터 대박 ${S.jackpot.map(([x]) => `×${x}`).join(' · ')} 카드만, 카드 가치가 ${Math.min(P.G, P.A)}을 넘으면 ${P.L}에 가까울수록 확률 ↑)`
+    : `보급 장비 카드 (카드 가치가 ${P.C}을 넘으면 ${Math.min(P.G, P.A)}에 가까울수록 확률 ↑, 고급 ${pctTxt(S.graded)} · 희귀 ${pctTxt(1 - S.graded)})`;
   const out: string[] = [];
   const hall = NEWS_OFFERS.hall as (typeof NEWS_OFFERS)[string] | undefined, legendK = CONSUMABLES.K_legend as (typeof CONSUMABLES)[string] | undefined;
   if (id.startsWith(RELIC_KEY)) {
@@ -317,14 +321,14 @@ function sources(id: string): string[] {
     return out;
   }
   if (t === 'C') out.push(`상점 · ${P.C} 크레딧 (매번 ${D.shopParts}개)`, `전투 ${pctTxt(D.battle)} 확률 · 역경 ${D.advParts}개 확정 전리품`, '보스 · 도전 전리품, 보급 · 사건 · 퀘스트 보상');
-  if (t === 'G') out.push('같은 재료 2개 조합', `상점 · ${P.G} 크레딧 (${pctTxt(D.shopGraded)} 확률 입고 · ${CFG.shop.gearFrom}페이즈부터는 고급 · 희귀 중 1개 이상 확정)`);
+  if (t === 'G') out.push('같은 재료 2개 조합', `상점 · ${P.G} 크레딧 (${pctTxt(D.shopGraded)} 확률 입고 · ${CFG.shop.gearFrom}페이즈부터는 고급 · 희귀 중 1개 이상 확정)`, supGear('G'));
   if (t === 'A') {
     out.push(itemInfo(id).recipe ? '서로 다른 재료 2개 조합' : '조합 불가 (상점 · 보급 · 전리품으로만)');
-    out.push(`상점 · ${P.A} 크레딧 (${pctTxt(D.shopAdv)} 확률 입고 · ${CFG.shop.gearFrom}페이즈부터는 고급 · 희귀 중 1개 이상 확정)`, `도전 · ${D.bossAdvEvery}페이즈마다 보스 전리품 (희귀 3개 중 1개)`, `보급 [${SUPPLY_TEXT.adv}] (${pctTxt(D.supplyAdv)} 확률로 선택지에 등장)`);
+    out.push(`상점 · ${P.A} 크레딧 (${pctTxt(D.shopAdv)} 확률 입고 · ${CFG.shop.gearFrom}페이즈부터는 고급 · 희귀 중 1개 이상 확정)`, `도전 · ${D.bossAdvEvery}페이즈마다 보스 전리품 (희귀 3개 중 1개)`, supGear('A'));
     if (NEWS_OFFERS.sponsor) out.push(`${SYN_BY_ID.STAR.name} 속보 [${NEWS_OFFERS.sponsor.name}] (무작위)`);
   }
   if (t === 'L') {
-    out.push(`상점 · ${P.L} 크레딧 (${D.shopLegendPhase}페이즈부터 ${pctTxt(D.shopLegend)} 확률 입고)`);
+    out.push(`상점 · ${P.L} 크레딧 (${D.shopLegendPhase}페이즈부터 ${pctTxt(D.shopLegend)} 확률 입고)`, supGear('L'));
     if (hall) out.push(`${SYN_BY_ID.STAR.name} 속보 [${hall.name}] · 명성 ${hall.cost} (3개 중 1개)`);
     if (legendK) out.push(`소모품 [${legendK.name}] 사용`);
   }

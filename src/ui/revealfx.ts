@@ -7,7 +7,7 @@
 // 그 애니메이션의 transform 을 건드리지 않도록 개별 속성(translate · scale)과 덧붙인 요소로만 움직인다. 입력은 막지 않는다
 // (숫자키 즉시 확정으로 창이 닫히면 연출도 그대로 끝남). 테두리 광은 공개 순간에 나타났다 사라진다 (희귀 ~1.3초 · 최상 ~2.4초).
 // 공개 전 · 공개 뒤에 남는 등급 테두리는 없다 (선택 표시 .on · 포커스 테두리와 겹치지 않게). 움직임 줄이기는 테두리만 제자리에서 나타났다 사라진다.
-import type { Pending } from '../types';
+import type { Pending, SupplyCard } from '../types';
 import { revealGrade } from '../data/items';
 import { isLegendAug, isTransformAug } from '../data/schools';
 
@@ -23,6 +23,11 @@ export function augGrade(p: Rankup, id: string): Grade {
   if (p.kind === 'psionic') return (isTransformAug(id) ? 2 : Math.min(2, rankGrade(p))) as Grade;
   return rankGrade(p);
 }
+/** 보급품 카드 등급 (공개 연출 · 공개음 공용): 대박 ×2 이상 3 · 그 밖의 대박 2, 장비는 제 등급과 비교해 높은 쪽 */
+export const supplyGrade = (c: SupplyCard): Grade => Math.max(c.mult >= 2 ? 3 : c.mult > 1 ? 2 : 1, ...c.items.map(tierGrade)) as Grade;
+/** 보급품 카드 묶음 표식 (뒤집힌 카드만 새로 공개 처리) */
+export const supplySig = (p: Extract<Pending, { t: 'supply' }>) => p.options.map((c) => `${c.kind}${c.credits}.${c.xp}.${c.items.join('+')}.${c.mult}`).join('|');
+let supSeen = { sig: '', open: new Set<number>() };
 /** 마이너 능력치 대성공 (두 번째 고르기) 중인지 */
 export const greatOpen = (p: Pending | undefined): boolean => !!p && p.t === 'rankup' && !p.allocDone && !!p.great && !!p.round;
 /** 선택지 하나의 등급: 장비는 제 등급, 증강은 augGrade, 전역 · 특권은 2, 능력치 대성공은 3 */
@@ -62,6 +67,7 @@ function flipped(box: Element | null) {
 /** 그릴 때마다 부른다: 등급 표식 (rv-2 · rv-3, 색 변수만). fresh = 새로 뜬 창이면 카드가 다 나타난 뒤 공개 연출 */
 export function gradeCards(md: HTMLElement, p: Pending | undefined, fresh: boolean) {
   if (!p) return;
+  if (p.t === 'supply') { supplyCards(md, p); return; }
   const cards = cardsOf(md, p).map((el, i) => [el, gradeOf(p, i)] as const).filter(([, g]) => g > 1);
   for (const [el, g] of cards) el.classList.add(`rv-${g}`, ...(fresh ? [] : ['rv-on']));
   if (!fresh || !cards.length) return;
@@ -85,6 +91,26 @@ async function reveal(md: HTMLElement, cards: (readonly [HTMLElement, Grade])[],
   });
 }
 
+/** 보급: 방금 뒤집힌 카드만 뒤집기(앞면이 돌아 나옴) + 등급 공개 연출. 이미 공개한 카드는 표식만 (다시 그려도 반복하지 않음) */
+function supplyCards(md: HTMLElement, p: Extract<Pending, { t: 'supply' }>) {
+  const sig = supplySig(p);
+  if (supSeen.sig !== sig) supSeen = { sig, open: new Set() };
+  const still = reduced();
+  const fresh: (readonly [HTMLElement, Grade])[] = [];
+  p.options.forEach((c, i) => {
+    const el = md.querySelector<HTMLElement>(`.sup-card[data-sup="${i}"]`);
+    if (!el || !c.open) return;
+    const g = supplyGrade(c), seen = supSeen.open.has(i);
+    if (g > 1) el.classList.add(`rv-${g}`, ...(seen ? ['rv-on'] : []));
+    if (seen) return;
+    supSeen.open.add(i);
+    const k = fresh.length;
+    if (!still) el.animate([{ transform: 'perspective(1200px) rotateY(90deg)', opacity: 0.4 }, { transform: 'perspective(1200px) rotateY(0deg)', opacity: 1 }], { duration: 360, delay: k * 120, easing: 'cubic-bezier(.2, .7, .3, 1)', fill: 'backwards' });
+    fresh.push([el, g]);
+  });
+  const hi = fresh.filter(([, g]) => g > 1);
+  if (hi.length) void reveal(md, hi, still);
+}
 /** 테두리 광: 나타났다가 사라진다 (최상은 조금 더 오래). still = 움직임 줄이기 (바깥에서 조여 드는 움직임 없이) */
 function ring(el: HTMLElement, g: Grade, still: boolean) {
   const w = g === 3 ? '3px' : '2px', off = g === 3 ? '3px' : '2px', from = still ? off : '7px';
