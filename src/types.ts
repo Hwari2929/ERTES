@@ -1,4 +1,5 @@
 import type { Beat } from './data/scene';
+import type { RunRec } from './engine/report';
 export type Major = 'vit' | 'pow' | 'mnd' | 'def' | 'agi';
 export const MAJORS: Major[] = ['vit', 'pow', 'mnd', 'def', 'agi'];
 export const MAJOR_NAME: Record<Major, string> = { vit: '생명력', pow: '전투력', mnd: '정신력', def: '방어력', agi: '기동력' };
@@ -211,4 +212,6 @@ export interface RunState {
   over: boolean;
   /** 업적 판정용 런 기록 (engine/achieve.ts): skip = 이번 런에서 사건 장면 · 미연시를 건너뛴 횟수 */
   ach?: { skip?: number };
+  /** 전투 종료 보고서용 누적 기록 (engine/report.ts). 옛 세이브에는 없다 */
+  rep?: RunRec;
 }

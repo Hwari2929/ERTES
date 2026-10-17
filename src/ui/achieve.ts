@@ -7,6 +7,7 @@
 import { ACH_BY_ID, ACH_GRADES, ACHIEVEMENTS, type AchDef, type AchFact, type AchGrade, GRADE_NAME, judge, SHOWCASE_MAX } from '../data/achievements';
 import { battleFact, clearFact, countSkip, eventFact, metaFact, tutorialFact, useFact } from '../engine/achieve';
 import type { Battle } from '../engine/combat';
+import { recAch } from '../engine/report';
 import { lastOutcome, type UseTarget } from '../engine/run';
 import type { RunState } from '../types';
 import { loadMeta, metaAchieve, metaShowcase, metaWatch } from './meta';
@@ -34,7 +35,10 @@ export function achBind(getRun: () => RunState | null) {
 function unlock(f: AchFact) {
   const ids = judge(f, got());
   if (!ids.length) return;
-  for (const id of metaAchieve(ids, today())) enqueue(id);
+  const fresh = metaAchieve(ids, today());
+  const run = runOf();
+  if (run && fresh.length) recAch(run, fresh); // 전투 종료 보고서: 이번 런에 달성한 업적
+  for (const id of fresh) enqueue(id);
 }
 let sweeping = false;
 /** 메타 기록으로 판정하는 업적 (메타가 저장될 때마다) */

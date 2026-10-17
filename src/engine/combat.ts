@@ -29,6 +29,8 @@ export function categoryImmune(c: Category, s: { type: string; key: string }): b
  *  걸려 있는 동안 재장전이 멈추고, 재장전 중에 (적에게서) 받으면 재장전이 처음으로 돌아간다.
  *  매혹 · 혼란(편 · 표적만 바뀌고 행동은 한다) · 속박(이동만) · 둔화 · 오한(속도만)은 해당하지 않는다 */
 export const CONTROL_TYPES: readonly StatusType[] = ['stun', 'fear', 'shock'];
+/** 전투 종료 보고서의 '제어' 시간에 드는 상태 (제어 효과 종류 밖): 매혹 · 혼란 · 속박 · 빙결 */
+const CC_KEYS: readonly string[] = ['charm', 'confuse', 'root', 'freeze'];
 /** 제어 효과 이름 순서 (교범 · 툴팁 표시용: STATUS_NAME 에서 이름을 읽는다) */
 export const CONTROL_KEYS = ['stun', 'freeze', 'fear', 'shock'] as const;
 export const STATUS_NAME: Record<string, string> = {
@@ -225,7 +227,9 @@ export interface CUnit {
   /** 셰프: 기본 공격을 하지 않고 제자리에서 기술만 쓴다 */
   noAttack?: boolean;
   phaseAmp: number;
-  counters: { dmg: number; taken: number; healed: number; kills: number; casts: number; shield: number; elem: Partial<Record<Elem, number>> };
+  counters: { dmg: number; taken: number; healed: number; kills: number; casts: number; shield: number; elem: Partial<Record<Elem, number>>
+    /** 아군만 (전투 종료 보고서, engine/report.ts): 적에게서 받아 낸 피해 · 다른 아군에게 건 버프 · 적에게 건 약화 · 제어가 걸려 있던 시간 (초) */
+    tank?: number; buffT?: number; debuffT?: number; ccT?: number };
   mem: Record<string, number>;
   /** 이번 전투에서만 가진 장비 (캠핑 러버 등) */
   tempItems?: string[];
@@ -651,6 +655,11 @@ export class Battle {
 
   private tickStatuses(u: CUnit, dt: number) {
     for (const s of u.statuses) {
+      const sc = s.src;
+      if (sc && sc.side === 0 && sc !== u && s.type !== 'dot' && !s.hps && s.dur > 0) { // 보고서: 아군이 건 상태가 실제로 걸려 있던 시간 (지속 피해 · 지속 회복은 피해 · 회복으로 이미 센다)
+        const k = u.side === 0 ? (s.type === 'buff' ? 'buffT' : null) : CONTROL_TYPES.includes(s.type) || CC_KEYS.includes(s.key) ? 'ccT' : 'debuffT';
+        if (k) sc.counters[k] = (sc.counters[k] || 0) + Math.min(dt, s.dur);
+      }
       s.dur -= dt;
       if (s.type === 'dot' && s.dps && s.src) {
         s.tickAcc = (s.tickAcc || 0) + dt;
@@ -1025,6 +1034,7 @@ export class Battle {
       let l2 = part;
       if (g.shield > 0) { const a = Math.min(g.shield, l2); g.shield -= a; l2 -= a; }
       g.hp -= l2; g.counters.taken += part; g.mem.shareTaken = (g.mem.shareTaken || 0) + part;
+      if (g.side === 0 && src.side !== 0) g.counters.tank = (g.counters.tank || 0) + part;
       if (g.hp <= 0) this.kill(g, src);
     }
     res.amount = dmg;
@@ -1040,6 +1050,7 @@ export class Battle {
       cs.dmg += dmg;
       cs.elem[o.elem] = (cs.elem[o.elem] || 0) + dmg;
       tgt.counters.taken += dmg;
+      if (tgt.side === 0 && src.side !== 0) tgt.counters.tank = (tgt.counters.tank || 0) + dmg; // 받아 낸 피해 (보고서)
       if (src.side === 0 && dmg > this.counters.bestHit) this.counters.bestHit = dmg;
     }
     this.emit({ k: 'dmg', id: tgt.id, src: src.id, v: dmg, crit: res.crit, miss: res.miss, graze: res.graze, elem: o.elem, tag: o.tag, syn: o.syn, dhp, dsh });

@@ -23,6 +23,7 @@ import { FAITHS,
 } from '../types';
 import { deployed, memberships, playerRows, synergyCounts, turretCount } from './build';
 import type { Battle } from './combat';
+import { newRec, recBattle, recReroll, recSpend } from './report';
 
 export const SAVE_VERSION = 6; // 6: 전술 유형 개편 (개별 증강 폐지)
 
@@ -75,6 +76,7 @@ export function newRun(seed: number, starters: string[], field?: string, diff = 
     mods: { interestCap: 0, nodeIncome: 0 }, boons: [], phaseBoons: [], seenEvents: [], flags: [], usedIds: [], rankLog: {}, nextUid: 1, log: [],
     stats: { wins: 0, losses: 0, kills: 0, bestHit: 0 }, over: false,
   };
+  run.rep = newRec(run); // 전투 종료 보고서 기록 (engine/report.ts)
   for (const id of starters) addUnit(run, id, 1);
   autoPlace(run);
   if (!field) run.field = rng(run, (r) => r.pick(FIELDS).id);
@@ -111,6 +113,7 @@ export function rerollPrivilege(run: RunState) {
   const p = run.pending[0];
   if (p?.t !== 'privilege' || p.rerolls <= 0) return;
   p.rerolls--;
+  recReroll(run);
   p.options = rollPrivileges(run);
 }
 /** 특권 선택: 대기열 맨 앞(특권)을 빼고, 후속 선택은 바로 다음에 끼워 넣는다 */
@@ -158,6 +161,7 @@ export function rerollDespair(run: RunState) {
   const p = run.pending[0];
   if (p?.t !== 'despair' || p.rerolls <= 0) return;
   p.rerolls--;
+  recReroll(run);
   p.options = rollDespairs(run);
 }
 /** 절망 증강 선택 (반드시 1개, 이미 건 증강에 더한다). 영입에 걸리는 증강이면 이미 펼쳐 둔 영입 선택지(특권 추가 계약 · 페이즈 시작 영입 등)를 다시 뽑는다 */
@@ -228,6 +232,7 @@ export function buyFleet(run: RunState): string | null {
   if (c === null) return '함대가 이미 최대 규모입니다';
   if (run.credits < c) return `크레딧이 부족합니다 (${c} 필요)`;
   run.credits -= c;
+  recSpend(run, 'fleet', c);
   run.fleet = fleetOf(run) + 1;
   autoPlace(run);
   log(run, `함대 확장: 출전 인원 ${deployCap(run)}명 (크레딧 -${c})`);
@@ -254,6 +259,7 @@ export function confirmMuster(run: RunState, syns: string[]): string | null {
   const c = musterCost(run);
   if (run.credits < c) return `크레딧이 부족합니다 (${c} 필요)`;
   run.credits -= c;
+  recSpend(run, 'muster', c);
   run.musters = (run.musters || 0) + 1;
   run.pending.shift();
   const k = 4 + (hasGlobal(run, 'G.scout') ? 1 : 0) + (hasGlobal(run, 'G.network') ? 1 : 0); // 지정 소집: 선택지 +1, 리롤 없음
@@ -368,6 +374,7 @@ export function rerollRecruit(run: RunState) {
   const p = run.pending[0];
   if (p?.t !== 'recruit' || (p.rerolls ?? 1) <= 0) return;
   p.rerolls = (p.rerolls ?? 1) - 1;
+  recReroll(run);
   p.options = recruitOptions(run, p.options.length, p.syns ? musterPool(run, p.syns) : undefined);
 }
 
@@ -657,6 +664,7 @@ export function rerollGlobal(run: RunState) {
   const p = run.pending[0];
   if (p?.t !== 'global' || !p.rerolls) return;
   p.rerolls--;
+  recReroll(run);
   p.options = rollGlobals(run);
 }
 export function pickGlobal(run: RunState, id: string) {
@@ -844,6 +852,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     const pay = Math.min(10, run.loan, run.credits + income);
     run.loan -= pay;
     income -= pay;
+    recSpend(run, 'loan', pay);
     lines.push(`대출 상환 -${pay} (잔액 ${run.loan})`);
   }
   run.credits += income;
@@ -878,6 +887,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   run.stats.kills += b.counters.kills;
   run.stats.bestHit = Math.max(run.stats.bestHit, Math.round(b.counters.bestHit));
   log(run, `P${p} ${type === 'boss' ? '보스' : type === 'adversity' ? '역경' : '전투'} ${won ? '승리' : '패배'}`);
+  recBattle(run, b, { interest, cap, credits0: creditsBefore }); // 전투 종료 보고서 누적 (engine/report.ts)
 
   let gameOver = false;
   if (run.tutorial) {
@@ -963,6 +973,7 @@ export function buyXp(run: RunState, uid: string): boolean {
   const cost = CFG.buyXpCost - (hasGlobal(run, 'G.study') ? 1 : 0);
   if (!u || isRock(u) || u.rank >= CFG.maxRank || run.credits < cost) return false;
   run.credits -= cost;
+  recSpend(run, 'xp', cost);
   u.xp += CFG.buyXpAmount + (hasGlobal(run, 'G.study') ? 1 : 0);
   settleXp(run, u);
   return true;
@@ -1189,6 +1200,7 @@ export function buyShop(run: RunState, idx: number): string | null {
   if (run.credits < s.price) return '크레딧 부족';
   if (run.inventory.length >= CFG.inventoryMax) return '인벤토리 가득 참';
   run.credits -= s.price;
+  recSpend(run, 'shop', s.price);
   s.sold = true;
   run.inventory.push(unixSwap(run, s.item));
   return null;
@@ -1446,6 +1458,7 @@ export function buyInvest(run: RunState, idx: number): string | null {
   if (run.credits < o.cost) return '크레딧이 부족합니다';
   const t = Math.max(1, tierNow(run, 'HOI'));
   run.credits -= o.cost;
+  recSpend(run, 'invest', o.cost);
   o.sold = true;
   if (o.id === 'fund') run.fund = (run.fund || 0) + Math.round(o.cost * investRate[t - 1]);
   if (o.id === 'bond') run.fund = (run.fund || 0) + (rng(run, (r) => r.chance(0.5)) ? o.cost * 4 : 0);
@@ -1595,7 +1608,9 @@ export function chooseEvent(run: RunState, idx: number): string | null {
   let outKey = 'default';
   const vars: Record<string, string> = {};
   const api = { ...eventApi(run), outcome: (k: string, v?: Record<string, string>) => { outKey = k; Object.assign(vars, v || {}); } };
+  const cr0 = run.credits;
   const msg = c.apply(run, api);
+  recSpend(run, 'event', cr0 - run.credits); // 사건으로 낸 크레딧 (보고서)
   lastOutcome = outKey;
   run.inventory = run.inventory.filter(Boolean); // 사건 중 비운 칸 정리
   const follow = run.pending.splice(before);

@@ -43,6 +43,8 @@ import { bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg, standURL }
 import { advKey, closeAdv, playAdv } from './ui/adv';
 import * as SND from './ui/sound';
 import * as OATH from './ui/oath';
+import * as REPORT from './ui/report';
+import { recEnd, recReroll } from './engine/report';
 import { ABIL_ICONS } from './ui/abilicons.gen';
 import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 import { closeCoach, coachKey, startCoach, type CoachStep } from './ui/coach';
@@ -2229,16 +2231,14 @@ function investScreen(run: RunState) {
   </main>`;
 }
 
+/** 런 결과 화면: 전투 종료 보고서 (ui/report.ts). 위험 등급 표기는 여기 한 곳에서만 만든다 */
 function overScreen(run: RunState) {
-  return `<main class="wrap over">
-    <div class="screen-head"><h1>${run.cleared ? '의뢰 성공' : '계약 종료'}</h1><p class="muted">${run.cleared ? `${esc(fieldOf(run.field).name)} 의뢰 완료${run.endless ? ` · 무한 모드 페이즈 ${run.phase}에서 귀환 불가` : ''}.` : `ERRANTEs 는 페이즈 ${run.phase}에서 무너졌습니다.`}${run.diff ? ` ${effDiffLabel(run.diff, runHeat(run))}.` : ''}${despairsOf(run).length ? ` 절망 증강 ${despairNames(run)}.` : ''}${OATH.oathResult(run, false)}</p></div>
-    <dl class="stats big">
-      <dt>도달 페이즈</dt><dd>${run.phase}</dd><dt>전투</dt><dd>${run.stats.wins}승 ${run.stats.losses}패</dd>
-      <dt>처치</dt><dd>${run.stats.kills}</dd><dt>최대 단일 피해</dt><dd>${fmt(run.stats.bestHit)}</dd>
-    </dl>
-    <div class="roster">${run.units.map(rosterRow).join('')}</div>
-    <div class="sticky-actions"><button class="btn primary" data-a="newrun">새 계약</button><button class="btn" data-a="bar">에란테스 바</button><button class="btn" data-a="codex">도감</button><button class="btn" data-a="to-title">타이틀</button></div>
-  </main>`;
+  const risk = effDiffLabel(run.diff, runHeat(run)); // 실효 위험 등급 (절망 서약 반영)
+  const summary = `${run.cleared ? `${esc(fieldOf(run.field).name)} 의뢰 완료${run.endless ? ` · 무한 모드 페이즈 ${run.phase}에서 귀환 불가` : ''}.` : `ERRANTEs 는 페이즈 ${run.phase}에서 무너졌습니다.`}${run.diff ? ` ${esc(risk)}.` : ''}${despairsOf(run).length ? ` 절망 증강 ${despairNames(run)}.` : ''}${OATH.oathResult(run, false)}`;
+  return REPORT.reportScreen(run, {
+    risk, summary, rank: rankLabel, roster: run.units.map(rosterRow).join(''),
+    actions: '<button class="btn primary" data-a="newrun">새 계약</button><button class="btn" data-a="bar">에란테스 바</button><button class="btn" data-a="codex">도감</button><button class="btn" data-a="to-title">타이틀</button>',
+  });
 }
 
 /** 전장 정보: 이름 · 지역 · 조건 · 출현 적 · 보스 */
@@ -3043,7 +3043,7 @@ function mountBattleView(board: HTMLElement) {
 
 function goPrepOrMap() {
   const run = app.run!;
-  if (run.over) { app.screen = 'over'; metaRunEnd(run); }
+  if (run.over) { app.screen = 'over'; metaRunEnd(run); recEnd(run); }
   else if (run.node?.enc) app.screen = 'prep';
   else if (run.node?.type === 'shop') app.screen = 'shop';
   else if (run.node?.type === 'news') app.screen = 'news';
@@ -4102,7 +4102,7 @@ function act(a: string, v: string) {
       persist();
       break;
     }
-    case 'reroll': { const p = run?.pending[0]; if (run && p?.t === 'rankup' && p.rerolls > 0) { p.rerolls--; p.options = null; app.augPick = null; } break; }
+    case 'reroll': { const p = run?.pending[0]; if (run && p?.t === 'rankup' && p.rerolls > 0) { p.rerolls--; p.options = null; app.augPick = null; recReroll(run); } break; }
     case 'pick-augsel': app.augPick = +v; break;
     case 'pick-aug': {
       const p = run?.pending[0];
