@@ -3,7 +3,7 @@
 import { CFG, encDmgMult } from '../config';
 import { DIFF_PRESETS, diffName } from './difficulty';
 import { DESPAIRS } from './despair';
-import { controlNames, RELOAD_RESET_LABEL, zocRule } from '../engine/combat';
+import { controlNames, fleeRule, RELOAD_RESET_LABEL, zocRule } from '../engine/combat';
 import { CAUSAL, causalNeed } from './chungra';
 
 export interface GlossEntry { id: string; term: string; text: string; key: string }
@@ -40,6 +40,7 @@ export const GLOSSARY: GlossChapter[] = [
       { id: 'control', term: '제어 효과 · 재장전 초기화', key: 'ch1b_detail', text: `${controlNames()}은 행동을 막는 제어 효과다. 제어 효과가 걸려 있는 동안에는 재장전이 멈추고, 재장전 중에 적의 제어 효과를 받으면 재장전이 처음으로 돌아가 제어가 풀린 뒤 처음부터 다시 한다 (머리 위에 '${RELOAD_RESET_LABEL}'). 둔화 · 속박 · 매혹 · 혼란처럼 행동 자체를 막지 않는 효과는 해당하지 않는다.` },
       { id: 'ctype', term: '전투 유형', key: 'ch1b_intro', text: '싸우는 방식. 돌격가(근접 타격 · 피니쉬 · 경계), 명사수(사격 · 체력 비율이 가장 낮은 적을 노림), 전문가(기술 위력 · 효과 명중), 지휘관(출전 인원이 많을수록 커지는 전술 위력으로 기술).' },
       { id: 'zoc', term: '돌격가 경계', key: 'ch1b_intro', text: zocRule() },
+      { id: 'flee', term: '암살형에게서 물러나기', key: 'ch1b_intro', text: fleeRule() },
       { id: 'detail', term: '상세 보기', key: 'ch1b_detail', text: '기물이나 적을 누르면 상세가 열린다. 돋보기(상세 보기, 단축키 D)를 켜면 계수와 세부 규칙까지 보인다.' },
     ],
   },

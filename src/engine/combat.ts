@@ -1,6 +1,7 @@
 import { CFG } from '../config';
 import { Rng } from '../rng';
 import { PSI_STATUS, type SchoolId } from '../data/schools';
+import { CTYPE_NAME } from '../types';
 import type { Category, CType, DmgTag, Elem, FaithId, Keyword, Mod, Stats, StatKey, SynergyId, TakenMod, TType, UnitState, Weapon } from '../types';
 
 export type StatusType = 'stun' | 'fear' | 'shock' | 'dot' | 'buff';
@@ -272,9 +273,17 @@ export interface CUnit {
 // ───────── 도발 수치: 적이 표적을 고르는 규칙
 /** 적 성향: 돌격형 (가까운 대상 · 도발 수치에 충실) · 암살형 (약하거나 뒷줄 · 도발 수치 영향 적음) · 저격형 (피해를 많이 준 대상) · 반격형 (동료 적을 때린 대상) */
 export type EnemyTend = 'charge' | 'assassin' | 'sniper' | 'counter';
+/** 배율 → '×0.5' */
+const xm = (v: number) => `×${+v.toFixed(2)}`;
+/** 도주하는 전투 유형 이름: '명사수 · 전문가 · 지휘관' */
+const fleeWho = () => CFG.flee.ctypes.map((c) => CTYPE_NAME[c]).join(' · ');
+/** 암살형 적에게 노려지는 아군의 도주 규칙 문구 (교범 · 적 성향 · 전투 유형 설명): CFG.flee 에서 읽는다 */
+export const fleeRule = () => `암살형 적의 표적이 된 아군 ${fleeWho()} 기물은 그 적이 ${CFG.flee.r}칸 안으로 다가오면 그 적에게서 더 먼 빈칸으로 1칸 물러난다. 기본 공격이 준비돼 있고 사거리 안이면 공격이 먼저이고, 한 번 물러나면 ${CFG.flee.cd}초 동안은 다시 물러나지 않는다. 길이 막혔거나 고정 · 속박 · 기절 · 광폭 · 혼란 · 매혹 중이면 제자리, 소환물은 물러나지 않는다. 돌격가 곁으로 물러나면 쫓아오던 암살형이 경계에 걸리기 쉽다.`;
+/** 짧은 도주 문구 (전투 유형 한 줄 설명) */
+export const fleeShort = () => `암살형 적의 표적이 되면 그 적이 ${CFG.flee.r}칸 안으로 올 때 1칸 물러난다 (${CFG.flee.cd}초에 1번, 공격 준비가 되면 공격 먼저)`;
 export const TEND_NAME: Record<EnemyTend, { name: string; desc: string }> = {
   charge: { name: '돌격형', desc: '가까운 대상을 먼저 노리고, 도발 수치를 가장 충실히 따른다' },
-  assassin: { name: '암살형', desc: `체력이 낮거나 뒷줄에 있는 약한 대상을 노리고, 도발 수치에 덜 휘둘린다. 기본 이동 속도가 다른 성향의 ${+(CFG.enemyMoveSpd.assassin / CFG.enemyMoveSpd.base).toFixed(2)}배이고, 돌격가 경계를 무시한다` },
+  assassin: { name: '암살형', desc: `체력이 낮거나 뒷줄에 있는 약한 대상을 노리고, 도발 수치에 덜 휘둘린다. 기본 이동 속도가 다른 성향의 ${+(CFG.enemyMoveSpd.assassin / CFG.enemyMoveSpd.base).toFixed(2)}배이고, 돌격가 경계에 걸리는 교전 시간 · 그때 돌격가에게 쌓이는 도발 수치가 ${xm(CFG.zoc.assassinMul)}이다. 표적이 된 아군 ${fleeWho()} 기물은 이 적이 ${CFG.flee.r}칸 안으로 다가오면 ${CFG.flee.cd}초에 1번씩 1칸 물러난다` },
   sniper: { name: '저격형', desc: '피해를 가장 많이 준 대상을 노린다' },
   counter: { name: '반격형', desc: '동료 적을 때린 대상을 노린다' },
 };
@@ -285,9 +294,9 @@ export const zocHoldFormula = () => `${CFG.zoc.hold}초 + (도발 배율 − 1) 
 /** 교전 시간 예시 문구: '돌격가 ×3 → 1.5초, 수호자 시너지가 켜지면 ×4.5 → 1.875초' */
 const zocHoldExamples = () => `돌격가 ×${PROV.van} → ${+zocHoldOf(PROV.van).toFixed(3)}초, 수호자 시너지가 켜지면 ×${PROV.van + PROV.guard} → ${+zocHoldOf(PROV.van + PROV.guard).toFixed(3)}초`;
 /** 돌격가 경계 규칙 문구 (교범 · 전투 유형 설명): CFG.zoc · PROV 에서 읽는다 */
-export const zocRule = () => `아군 돌격가 주변 ${CFG.zoc.r}칸은 경계다. 적이 경계 칸에 들어오면 그 자리에서 멈춰 교전 시간 동안 움직이지 못하고 (공격 · 기술은 한다) 그 돌격가에게 도발 수치가 쌓인다. 교전 시간 = ${zocHoldFormula()}, 도발 배율은 그 경계를 만든 돌격가의 값이다 (${zocHoldExamples()}, 경계가 겹치면 긴 쪽). 경계 칸에서 다른 경계 칸으로 곧장 넘어갈 수 없어 돌격가 사이의 틈을 그냥 빠져나가지 못한다. 암살형 성향의 적은 경계를 무시하고, 적 쪽에는 경계가 없다. 경계 범위는 편성 화면에서만 보인다.`;
+export const zocRule = () => `아군 돌격가 주변 ${CFG.zoc.r}칸은 경계다. 적이 경계 칸에 들어오면 그 자리에서 멈춰 교전 시간 동안 움직이지 못하고 (공격 · 기술은 한다) 그 돌격가에게 도발 수치가 쌓인다. 교전 시간 = ${zocHoldFormula()}, 도발 배율은 그 경계를 만든 돌격가의 값이다 (${zocHoldExamples()}, 경계가 겹치면 긴 쪽). 경계 칸에서 다른 경계 칸으로 곧장 넘어갈 수 없어 돌격가 사이의 틈을 그냥 빠져나가지 못한다. 암살형 성향의 적도 경계에 걸리지만 교전 시간과 그 돌격가에게 쌓이는 도발 수치가 ${xm(CFG.zoc.assassinMul)}이다 (경계 → 경계 이동 금지는 똑같이 받는다). 적 쪽에는 경계가 없다. 경계 범위는 편성 화면에서만 보인다.`;
 /** 짧은 경계 문구 (편성 칸 툴팁 · 돌격가 한 줄 설명) */
-export const zocShort = (hold?: number) => `돌격가 경계: 들어온 적은 ${hold !== undefined ? `${+hold.toFixed(3)}초` : zocHoldFormula()} 멈춰 교전, 경계에서 경계로 곧장 넘어가지 못함 (암살형 무시)`;
+export const zocShort = (hold?: number) => `돌격가 경계: 들어온 적은 ${hold !== undefined ? `${+hold.toFixed(3)}초` : zocHoldFormula()} 멈춰 교전, 경계에서 경계로 곧장 넘어가지 못함 (암살형은 ${hold !== undefined ? `${+(hold * CFG.zoc.assassinMul).toFixed(3)}초` : `교전 시간 ${xm(CFG.zoc.assassinMul)}`})`;
 /** 도발 수치 계수 */
 export const PROV = {
   /** 그 적에게 준 피해 1당 */
@@ -806,6 +815,8 @@ export class Battle {
       if (this.over) return;
       d2 = this.dist(u, t2); // 밀쳐내기 등으로 대상 위치가 바뀌었을 수 있다
     }
+    // 암살형 적에게 노려지는 아군: 그 적이 다가오면 1칸 물러난다 (공격이 준비돼 있고 사거리 안이면 공격 먼저)
+    if (u.alive && !(t2.alive && !u.noAttack && d2 <= range && !fearOnly && u.atkTimer <= 0 && u.reloadT <= 0) && this.flee(u, frenzy || confused)) return;
     if (!t2.alive || u.noAttack || !u.alive) return;
     if (d2 <= range) {
       if (!fearOnly && u.atkTimer <= 0 && u.reloadT <= 0) {
@@ -891,7 +902,7 @@ export class Battle {
     const cost = new Float64Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), via = new Uint8Array(N), done = new Uint8Array(N);
     cost[start] = 0;
     const back = u.mem.lastCell ?? -1;
-    const zoc = this.zocMask(u); // 돌격가 경계 (적만, 암살형 제외): 경계 → 경계 이동 금지, 경계에 들어가는 길은 비싸게
+    const zoc = this.zocMask(u); // 돌격가 경계 (적만): 경계 → 경계 이동 금지, 경계에 들어가는 길은 비싸게
     let goal = -1;
     for (;;) {
       let cur = -1, bc = Infinity;
@@ -943,12 +954,49 @@ export class Battle {
     for (const h of u.hooks) h.onMove?.(this, u);
   }
 
+  /** 암살형 적에게 노려지는 아군의 도주 (CFG.flee): 자기를 표적으로 삼은 암살형 적이 r칸 안이면 그 적들에게서 더 먼 빈칸으로 1칸.
+   *  같은 거리면 다른 적과 먼 칸, 그다음 아군 돌격가 곁 (쫓아오는 암살형을 경계로 끌어들인다), 그다음 자기 표적이 사거리 안인 칸. 물러났으면 true */
+  private flee(u: CUnit, wild: boolean): boolean {
+    const F = CFG.flee;
+    if (wild || u.side !== 0 || this.sideOf(u) !== 0 || u.isSummon || u.immobile || u.mem.inert || u.mem.charmTo || !u.ctype || !F.ctypes.includes(u.ctype)) return false;
+    if ((u.mem.fleeAt ?? -Infinity) + F.cd > this.t || u.statuses.some((s) => s.key === 'root')) return false;
+    const hunters = this.units.filter((e) => e.alive && e.tend === 'assassin' && e.target === u && this.sideOf(e) === 1 && this.dist(u, e) <= F.r);
+    if (!hunters.length) return false;
+    const near = (p: { x: number; y: number }) => Math.min(...hunters.map((e) => this.dist(p, e)));
+    const others = this.enemiesOf(u).filter((e) => !hunters.includes(e));
+    const vans = this.zocOwners();
+    const range = this.S(u, 'range'), tgt = u.target && u.target.alive ? u.target : null;
+    const d0 = near(u);
+    let best: { x: number; y: number } | null = null, bs = -Infinity;
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const x = u.x + dx, y = u.y + dy;
+        if ((!dx && !dy) || !this.inBounds(x, y) || this.unitAt(x, y)) continue;
+        const p = { x, y }, d = near(p);
+        if (d <= d0) continue;
+        const o = others.length ? Math.min(3, ...others.map((e) => this.dist(p, e))) : 3;
+        const v = vans.length ? Math.min(...vans.map((a) => this.dist(p, a))) : 0;
+        const sc = d * 100 + o * 10 - Math.min(v, 5) + (tgt && this.dist(p, tgt) <= range ? 0.5 : 0) - (dx && dy ? 0.01 : 0);
+        if (sc > bs) { bs = sc; best = p; }
+      }
+    if (!best) return false;
+    u.mem.fleeAt = this.t;
+    u.mem.flees = (u.mem.flees || 0) + 1;
+    u.mem.lastCell = u.y * this.w + u.x;
+    u.px = u.x; u.py = u.y;
+    u.x = best.x; u.y = best.y;
+    u.moveDur = u.moveT = CFG.moveTime / this.S(u, 'moveSpd');
+    this.emit({ k: 'status', id: u.id, name: '물러남' });
+    for (const h of u.hooks) h.onMove?.(this, u);
+    return true;
+  }
+
   // ───────── 돌격가 경계 (아군 돌격가만)
   /** 경계를 만드는 기물: 아군 편 돌격가 (소환물 · 반려 돌 · 은신 · 매혹된 기물 제외) */
   zocOwners() { return this.units.filter((v) => v.alive && v.side === 0 && this.sideOf(v) === 0 && v.ctype === 'VAN' && !v.isSummon && !v.mem.inert && !this.hidden(v)); }
-  /** u 가 경계를 따르는 적이면 칸별 경계 표시 (1 = 아군 돌격가 주변 CFG.zoc.r 칸), 아니면 null. 암살형 · 고정 기물은 무시 */
+  /** u 가 경계를 따르는 적이면 칸별 경계 표시 (1 = 아군 돌격가 주변 CFG.zoc.r 칸), 아니면 null. 고정 기물은 무시 (암살형도 따른다, 교전 시간만 CFG.zoc.assassinMul 배) */
   zocMask(u: CUnit): Uint8Array | null {
-    if (this.sideOf(u) !== 1 || u.tend === 'assassin' || u.immobile) return null;
+    if (this.sideOf(u) !== 1 || u.immobile) return null;
     const owners = this.zocOwners();
     if (!owners.length) return null;
     const n = this.w, m = new Uint8Array(n * this.h), r = CFG.zoc.r;
@@ -960,13 +1008,15 @@ export class Battle {
         }
     return m;
   }
-  /** 경계 칸에 막 들어선 적: 도착한 뒤 교전 시간(zocHoldOf, 겹치면 긴 쪽) 동안 이동 금지 + 그 경계의 돌격가에게 도발 수치 (바로 표적을 다시 고른다) */
+  /** 경계 칸에 막 들어선 적: 도착한 뒤 교전 시간(zocHoldOf, 겹치면 긴 쪽) 동안 이동 금지 + 그 경계의 돌격가에게 도발 수치 (바로 표적을 다시 고른다).
+   *  암살형은 교전 시간 · 도발 수치 모두 CFG.zoc.assassinMul 배 */
   private zocCatch(u: CUnit) {
     let hold = 0;
+    const mul = u.tend === 'assassin' ? CFG.zoc.assassinMul : 1;
     u.mem.provT = 0;
     for (const v of this.zocOwners()) if (this.dist(u, v) <= CFG.zoc.r) {
-      hold = Math.max(hold, zocHoldOf(provMult(this, v)));
-      this.provAdd(u, v, PROV.zoc);
+      hold = Math.max(hold, zocHoldOf(provMult(this, v)) * mul);
+      this.provAdd(u, v, PROV.zoc * mul);
       u.mem.zocBy = v.id;
       v.mem.zocCaught = (v.mem.zocCaught || 0) + 1;
     }
