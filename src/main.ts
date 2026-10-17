@@ -2573,6 +2573,25 @@ function scrollRestore(marks: ScrollMark[], newModal: boolean) {
     if (m) { el.scrollTop = m[2]; el.scrollLeft = m[3]; }
   }
 }
+/** 다시 그릴 때 이미 해독된 그림 요소를 옮겨 심는다 (같은 src 의 <img>, 자식 없는 배경 그림 칸).
+ *  화면 전체를 새로 그리면 데이터 URI 그림을 다시 해독하느라 한 프레임 비어 깜빡인다 (도감 항목 고르기 등). 속성은 새 요소 것으로 맞춘다 */
+function keepMedia() {
+  const Q = 'img[src], [style*="background-image"]';
+  const keyOf = (el: Element) => (el.tagName === 'IMG' ? `i${el.getAttribute('src')}` : el.firstChild ? '' : `${el.tagName}${el.getAttribute('style')}`);
+  const pool = new Map<string, Element[]>();
+  root.querySelectorAll(Q).forEach((el) => { const k = keyOf(el); if (k) (pool.get(k) ?? pool.set(k, []).get(k)!).push(el); });
+  return () => {
+    if (!pool.size) return;
+    root.querySelectorAll(Q).forEach((el) => {
+      const k = keyOf(el), old = k ? pool.get(k)?.shift() : undefined;
+      if (!old) return;
+      for (const a of Array.from(old.attributes)) if (!el.hasAttribute(a.name)) old.removeAttribute(a.name);
+      for (const a of Array.from(el.attributes)) if (old.getAttribute(a.name) !== a.value) old.setAttribute(a.name, a.value);
+      el.replaceWith(old);
+    });
+  };
+}
+
 function render() {
   AB.ABOPT.coef = app.detail; // 상세 보기: 피해 · 회복을 계수로
   if (app.screen !== 'battle' && app.view) { app.view.destroy(); app.view = null; }
@@ -2607,7 +2626,9 @@ function render() {
   // 다시 그려도 스크롤 위치 유지 (상세 패널 · 전체 상세 팝업)
   const KEEP = ['.um-grid', '.um-a', '.um-c', '.um-r', '.um-main', '.side.right', '.map-detail', '.detail'];
   const kept = KEEP.map((q) => root.querySelector<HTMLElement>(q)?.scrollTop ?? 0);
+  const media = app.screen === 'battle' || app.screen === 'bar' ? null : keepMedia();
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
+  media?.();
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
   umCompactBind();
   detailHeadBind();
