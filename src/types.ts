@@ -205,4 +205,6 @@ export interface RunState {
   log: string[];
   stats: { wins: number; losses: number; kills: number; bestHit: number };
   over: boolean;
+  /** 업적 판정용 런 기록 (engine/achieve.ts): skip = 이번 런에서 사건 장면 · 미연시를 건너뛴 횟수 */
+  ach?: { skip?: number };
 }

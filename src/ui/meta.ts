@@ -21,6 +21,10 @@ export interface Meta {
   despair?: Record<string, { runs: number; clears: number }>;
   /** 위험 등급 체계 판 (DIFF_SCALE). 없으면 1 = 위험 7 · 8 이 방어도 · 페이즈 체력이던 때 */
   dv?: number;
+  /** 업적 (data/achievements.ts): 달성한 업적 id → 달성 날짜 (YYYY-MM-DD) */
+  achieved?: Record<string, string>;
+  /** 바 카운터 뒤 진열장에 놓은 업적 (최대 3개, 놓은 순서) */
+  showcase?: string[];
 }
 /** 직전 런 요약: 바 반응 대사가 읽는다 */
 export interface BarLast { run: number; field: string; cleared: boolean; phase: number; diff: number; mvp?: string; units: string[]; newEvents: string[] }
@@ -63,8 +67,28 @@ export function loadMeta(): Meta {
   } catch { cache = blank(); }
   return cache!;
 }
+/** 메타 기록이 바뀔 때마다 부를 함수 (업적: 기록으로 판정하는 업적, ui/achieve.ts) */
+let watch: ((m: Meta) => void) | null = null;
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(cache)); } catch { /* 저장 불가 환경: 이번 세션에만 유지 */ }
+  watch?.(cache!);
+}
+export function metaWatch(fn: (m: Meta) => void) { watch = fn; }
+/** 업적 달성 기록: 처음 달성한 id 만 날짜와 함께 남기고 그 목록을 돌려준다 */
+export function metaAchieve(ids: string[], date: string): string[] {
+  const m = loadMeta();
+  const got = (m.achieved ||= {});
+  const fresh = ids.filter((id) => !got[id]);
+  if (!fresh.length) return [];
+  for (const id of fresh) got[id] = date;
+  save();
+  return fresh;
+}
+/** 바 진열장에 놓을 업적 (달성한 것만, 최대 n개) */
+export function metaShowcase(ids: string[], n: number) {
+  const m = loadMeta();
+  m.showcase = ids.filter((id, i) => m.achieved?.[id] && ids.indexOf(id) === i).slice(0, n);
+  save();
 }
 
 /** 전투 1회: 만난 적 · 처치한 적 */

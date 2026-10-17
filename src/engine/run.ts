@@ -1520,6 +1520,8 @@ function eventApi(run: RunState): EventApi {
   };
 }
 
+/** 마지막으로 실행한 사건 선택지의 결과 키 (api.outcome, 없으면 'default'): 업적 판정용 (ui/achieve.ts) */
+export let lastOutcome = 'default';
 /** 사건 선택지 실행: 결과 알림을 먼저, 후속 선택(영입 등)은 그 뒤에 */
 export function chooseEvent(run: RunState, idx: number): string | null {
   const p = run.pending[0];
@@ -1535,6 +1537,7 @@ export function chooseEvent(run: RunState, idx: number): string | null {
   const vars: Record<string, string> = {};
   const api = { ...eventApi(run), outcome: (k: string, v?: Record<string, string>) => { outKey = k; Object.assign(vars, v || {}); } };
   const msg = c.apply(run, api);
+  lastOutcome = outKey;
   run.inventory = run.inventory.filter(Boolean); // 사건 중 비운 칸 정리
   const follow = run.pending.splice(before);
   // 결과 장면: 연출의 after[선택지] (키별이면 outcome 키)

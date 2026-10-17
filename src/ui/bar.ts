@@ -20,6 +20,7 @@ import { BGS, fillText, NPCS, type Beat } from '../data/scene';
 import { SYN_BY_ID } from '../data/synergies';
 import { UNIT_BY_ID, UNITS } from '../data/units';
 import { advKey, closeAdv, playAdv } from './adv';
+import { barShowcaseHtml } from './achieve';
 import { loadMeta, metaBar, metaBarBond } from './meta';
 import { bgURL, standURL } from './portraits';
 import { STAND_FACE } from './standface.gen';
@@ -529,6 +530,7 @@ export function barScreen(): string {
   const hasLog = !!awayPool().length || !!m.bar?.last;
   return `<main class="bar${S.cur?.layer === 'r' ? ' late' : ''}" aria-label="에란테스 바">
     <div class="bar-bg" style="background-image:url('${bgURL('erantes_bar')}')"></div><div class="bar-shade"></div>
+    ${barShowcaseHtml()}
     <header class="bar-top"><h1 class="f-title">에란테스 바</h1><p class="bar-sit f-ui" aria-live="polite">${S.cur?.sit ? `— ${esc(S.cur.sit)}` : ''}</p></header>
     <div class="bar-floor" data-n="${S.stage.length}">${floorHtml()}</div>
     <nav class="bar-acts" aria-label="바 메뉴">

@@ -161,7 +161,8 @@ export function playAdv(key: string, beats: Beat[], o: AdvOpts) {
     if (x === 'log') { $('.adv-log-in').innerHTML = logLines.map((l) => `<p>${l}</p>`).join(''); $('.adv-log').hidden = false; $('.adv-log-in').scrollTop = 1e6; return; }
     if (x === 'log-close') { $('.adv-log').hidden = true; return; }
     if (x === 'auto') { auto = !auto; t.classList.toggle('on', auto); if (auto && !typing) next(); return; }
-    if (x === 'skip') { while (i < beats.length - 1) { i++; const b = beats[i]; if (b.bg) setBg(b.bg); for (const s of b.stage || []) place(s.id, s.at, s.face); } end(); return; }
+    // 건너뛰기: 아직 안 본 줄이 남았으면 'adv-skip' 을 알린다 (업적: 장면을 건너뛰지 않은 런, ui/achieve.ts)
+    if (x === 'skip') { if (i < beats.length - 1) document.dispatchEvent(new CustomEvent('adv-skip', { detail: key })); while (i < beats.length - 1) { i++; const b = beats[i]; if (b.bg) setBg(b.bg); for (const s of b.stage || []) place(s.id, s.at, s.face); } end(); return; }
     if (!$('.adv-log').hidden || t.closest('.adv-end')) return;
     next();
   });

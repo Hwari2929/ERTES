@@ -20,6 +20,7 @@ import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
 import * as AB from './ui/abil';
 import * as CX2 from './ui/codex2';
 import * as BAR from './ui/bar';
+import * as ACH from './ui/achieve';
 import * as TFX from './ui/themefx';
 import {
   activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyBaseMoveSpd, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
@@ -137,7 +138,7 @@ const app = {
   introDone: false, // 출격 연출을 끝까지 봤는지 (다시 그릴 때 연출 생략)
   introFoe: null as string | null, // 전장 브리핑에서 연 적 상세
   dsInfo: null as number | null, // 난이도 카드에서 펼친 세부 조건
-  codexTab: 'units' as 'units' | CX2.Cx2Tab | 'enemies' | 'events' | 'manual' | 'records',
+  codexTab: 'units' as 'units' | CX2.Cx2Tab | 'enemies' | 'events' | 'manual' | 'records' | 'ach',
   tutAsk: false, // 첫 실행: 새 계약을 누르면 튜토리얼부터 볼지 묻는다
   codexGroup: 'none' as 'none' | 'faction' | 'trait' | 'ctype' | 'ttype', // 도감 기물: 모아보기 기준
   codexSel: null as string | null, // 도감 기물: 상세를 펼친 기물
@@ -2863,6 +2864,7 @@ function mountBattleView(board: HTMLElement) {
   bunitFor = '';
   app.paused = false;
   app.view = new BattleView(board, b, updateMeter, () => {
+    ACH.achBattle(run, b); // 업적: 보상 처리 전 (이 전투의 노드 · 페이즈 · 연승)
     app.summary = R.resolveBattle(run, b);
     if (!run.tutorial) metaBattle(b); // 튜토리얼 전투는 도감 기록에서 뺀다
     if (!run.tutorial && app.summary?.won) { const mv = pickMvp(b); if (mv) metaBarMvp(run.seed, mv.a.u.defId); } // 바 반응: 직전 런 MVP
@@ -3301,7 +3303,7 @@ function codexScreen() {
   const m = loadMeta();
   // 탭: 자료 (기물 · 시너지 · 장비 · 증강 · 사이오닉 · 세계관) | 기록 (적 · 사건 · 교범 · 기록)
   const tb = ([k, l]: readonly [string, string]) => `<button class="cx-tab${app.codexTab === k ? ' on' : ''}" data-a="codex-tab" data-v="${k}" aria-pressed="${app.codexTab === k}">${l}</button>`;
-  const tabs = `<div class="cx-tg">${([['units', '기물'], ...CX2.CX2_TABS] as const).map(tb).join('')}</div><div class="cx-tg cx-tg2">${([['enemies', '적'], ['events', '사건'], ['manual', '교범'], ['records', '기록']] as const).map(tb).join('')}</div>`;
+  const tabs = `<div class="cx-tg">${([['units', '기물'], ...CX2.CX2_TABS] as const).map(tb).join('')}</div><div class="cx-tg cx-tg2">${([['enemies', '적'], ['events', '사건'], ['manual', '교범'], ['records', '기록'], ['ach', '업적']] as const).map(tb).join('')}</div>`;
   let body = '';
   if (app.codexTab === 'units') {
     body = codexUnits(m);
@@ -3328,6 +3330,8 @@ function codexScreen() {
     body = CX2.codex2Body(app.codexTab, cxH());
   } else if (app.codexTab === 'manual') {
     body = codexManual();
+  } else if (app.codexTab === 'ach') { // 업적: 메달 · 달성 날짜 · 바 진열장 고르기 (src/ui/achieve.ts)
+    body = ACH.achCodexHtml();
   } else {
     body = `<dl class="stats big"><dt>의뢰</dt><dd>${m.runs}</dd><dt>의뢰 성공</dt><dd>${m.clears}</dd><dt>최고 도달 페이즈</dt><dd>${m.bestPhase}</dd><dt>해금된 위험 등급</dt><dd>${m.maxDiff}</dd><dt>절망 증강</dt><dd>${DESPAIRS.filter((d) => m.despair?.[d.id]?.clears).length}/${DESPAIRS.length} 성공</dd></dl>
       <h2>전장별</h2><div class="codex-list">${FIELDS.map((f) => { const r = m.fields[f.id]; return `<div class="codex-row"><div><b style="color:${f.color}">${f.icon} ${esc(f.name)}</b><div class="small muted">${esc(f.region)}</div></div><div class="small mono">의뢰 ${r?.runs || 0} · 성공 ${r?.clears || 0}${r && r.bestDiff >= 0 ? ` · 최고 ${diffLabel(r.bestDiff)}` : ''}</div></div>`; }).join('')}</div>
@@ -3618,6 +3622,7 @@ function tutFinish(kind: 'done' | 'skipped') {
   if (app.view) { app.view.destroy(); app.view = null; }
   deleteSave(TUT_SLOT);
   metaTutEnd(kind);
+  ACH.achTutorial(app.run, kind); // 업적: 장면 건너뛰기 없이 끝까지
   tutPaused = false;
   Object.assign(app, { run: null, summary: null, sel: null, bigUnit: null, menu: null, abilPop: null, statPop: false, paused: false, screen: 'title' as Screen, tutAsk: false });
   if (kind === 'done') tutEpi = true;
@@ -3762,7 +3767,7 @@ function act(a: string, v: string) {
     case 'use-k': {
       const u = app.useK;
       app.useK = null;
-      if (run && u && v === 'ok') { const r = R.useConsumable(run, u.i, u.tg); toast(r.msg); app.sel = null; persist(); }
+      if (run && u && v === 'ok') { const k = run.inventory[u.i]; const r = R.useConsumable(run, u.i, u.tg); if (r.ok) ACH.achUse(run, k, u.tg); toast(r.msg); app.sel = null; persist(); }
       break;
     }
     case 'field-info': if (run) run.pending.unshift({ t: 'field' }); break;
@@ -3862,11 +3867,12 @@ function act(a: string, v: string) {
       const err = R.chooseEvent(run, +v);
       if (err) { toast(err); return; }
       if (!run.tutorial) metaEvent(p.id, run.seed);
+      ACH.achEvent(run, p.id, +v);
       persist();
       break;
     }
-    case 'victory-end': if (run) { run.pending.shift(); metaClear(run); run.over = true; goPrepOrMap(); } break;
-    case 'victory-endless': if (run) { run.pending.shift(); metaClear(run); run.endless = true; toast('무한 모드: 적은 계속 강해집니다.'); persist(); } break;
+    case 'victory-end': if (run) { run.pending.shift(); metaClear(run); ACH.achClear(run); run.over = true; goPrepOrMap(); } break;
+    case 'victory-endless': if (run) { run.pending.shift(); metaClear(run); ACH.achClear(run); run.endless = true; toast('무한 모드: 적은 계속 강해집니다.'); persist(); } break;
     case 'diff':
       app.diff = +v;
       if (app.screen === 'diffsel') { // 다시 그리지 않고 클래스만 바꿔 폭 변화가 부드럽게 이어지게
@@ -4523,6 +4529,7 @@ root.addEventListener('click', (ev) => {
   act(el.dataset.a!, el.dataset.v || '');
 });
 SND.init({ prefs: loadPrefs, save: savePref, ranks: () => Object.fromEntries(app.run?.units.map((u) => [u.uid, u.rank]) ?? []) }); // 효과음 설정 (errantes.prefs.v1) · 등급 상승 판정
+ACH.achBind(() => app.run); // 업적: 장면 건너뛰기 · 메타 기록 변화 지켜보기 · 도감 · 바 진열장 입력
 
 // 순례: 신앙 변경
 root.addEventListener('change', (ev) => {

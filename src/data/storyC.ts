@@ -368,7 +368,7 @@ export const STORY_C: EventDef[] = [
         apply: (r, api) => {
           r.credits -= 5;
           const k = tri(api, 0.1, 0.45);
-          if (k === 0) { api.gain(api.randomItem('L'), true); return '번개가 정확히 당신의 이름을 골랐습니다! 전설 장비를 받았습니다.'; }
+          if (k === 0) { api.gain(api.randomItem('L'), true); api.outcome('jackpot'); return '번개가 정확히 당신의 이름을 골랐습니다! 전설 장비를 받았습니다.'; }
           if (k === 1) { r.credits += 15; return '옆 피뢰침에 맞은 덕에 위로금이 나왔습니다. 크레딧 +15.'; }
           hurt(r, 15);
           return '잘못 맞았습니다. 장례는 다행히 필요 없었습니다. 체력 -15.';
