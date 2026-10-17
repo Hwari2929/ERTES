@@ -6,7 +6,7 @@ export const CFG = {
     pow: { shoot: 5, strike: 5, crit: 0.01 },
     mnd: { tech: 5, acc: 0.02, effHit: 0.03 },
     def: { armor: 60, effRes: 0.03 },
-    agi: { moveSpd: 0.04, eva: 0.01, atkSpd: 0.01, reloadSpd: 0.01 },
+    agi: { moveSpd: 0.048, eva: 0.01, atkSpd: 0.01, reloadSpd: 0.01 },
   },
   // ── 리워크 [임시]
   finishMult: 2.6, // 콤보 무기 피니쉬 배율 (콤보 타격은 무기 계수 그대로)
@@ -53,6 +53,7 @@ export const CFG = {
   reductionCap: 0.8,
   tick: 0.05,
   moveTime: 0.45, // 1칸 이동 시간(초) / 이동속도 배율
+  unitMoveSpd: 0.5, // 아군 기물 기본 이동 속도 (기동력 1당 conv.agi.moveSpd 만큼 더함)
   overtimeStart: 45, overtimeRamp: 0.1, timeLimit: 75,
 
   // ── 무한 모드 페이즈 스케일링 (확정, 복리)

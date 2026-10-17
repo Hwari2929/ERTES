@@ -132,7 +132,7 @@ export function computeStats(u: UnitState, effects: Effect[]): { st: Stats; majo
   const m = totalMajors(u, effects);
   const st = emptyStats();
   Object.assign(st, CFG.baseMinor);
-  st.moveSpd = 1;
+  st.moveSpd = CFG.unitMoveSpd;
   st.range = d.range;
   for (const k of MAJORS) {
     const conv = CFG.conv[k] as Partial<Stats>;
