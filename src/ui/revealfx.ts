@@ -1,18 +1,18 @@
 // 증강 · 보상 카드 공개 연출 (소리 없음 — 공개음은 sound.ts reveal). 등급은 공개음과 같은 3단계 판정:
 //   1 일반 — 조용히 (창 · 카드의 기존 등장만)
 //   2 희귀 — 테두리 광 + 빛 훑기 + 살짝 튀어나옴 (희귀 장비 · 전역 · 특권 증강 · 8등급 이상 · 학파 선택 · ◆ 변형 전공 증강)
-//   3 최상 — 위 + 카드 뒤 빛 줄기 + 화면 플래시 (창 하나에 한 번) + 카드 흔들림 (전설 장비 · ★ 전설 전공 증강 · 12등급 이상 메이저 · 전용 증강 · 마이너 능력치 대성공)
+//   3 최상 — 위 + 카드 뒤 빛 줄기 + 화면 플래시 (창 하나에 한 번) + 카드 흔들림 (전설 장비 · 전설급 소모품 · ★ 전설 전공 증강 · 12등급 이상 메이저 · 전용 증강 · 마이너 능력치 대성공)
 //   전공 증강은 ★ 전설만 3 (나머지는 등급이 높아도 2까지)
 // 카드의 기존 등장 애니메이션(이타카 물결 등장 · 전역 증강 뒤집기 · 특권 막)이 끝난 뒤에 시작하고,
 // 그 애니메이션의 transform 을 건드리지 않도록 개별 속성(translate · scale)과 덧붙인 요소로만 움직인다. 입력은 막지 않는다
 // (숫자키 즉시 확정으로 창이 닫히면 연출도 그대로 끝남). 테두리 광은 공개 순간에 나타났다 사라진다 (희귀 ~1.3초 · 최상 ~2.4초).
 // 공개 전 · 공개 뒤에 남는 등급 테두리는 없다 (선택 표시 .on · 포커스 테두리와 겹치지 않게). 움직임 줄이기는 테두리만 제자리에서 나타났다 사라진다.
 import type { Pending } from '../types';
-import { itemInfo } from '../data/items';
+import { revealGrade } from '../data/items';
 import { isLegendAug, isTransformAug } from '../data/schools';
 
 type Grade = 1 | 2 | 3;
-const tierGrade = (id: string): Grade => { const t = itemInfo(id).tier; return t === 'L' ? 3 : t === 'A' ? 2 : 1; };
+const tierGrade = (id: string): Grade => revealGrade(id); // 전설 장비 · 전설급 소모품 3, 희귀 2 (items.ts)
 /** 증강 묶음의 달성 등급 몫 (sound.ts reveal 과 같은 기준: 12등급 이상 3 · 8등급 이상 또는 학파 선택 2) */
 const rankGrade = (p: Extract<Pending, { t: 'rankup' }>): Grade => (p.rank >= 12 ? 3 : p.kind === 'school' || p.rank >= 8 ? 2 : 1);
 

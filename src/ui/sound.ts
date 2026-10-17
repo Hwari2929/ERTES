@@ -7,7 +7,7 @@
 // - 설정: errantes.prefs.v1 의 sndVol (0~100, 기본 60) · sndMute. 설정 화면 마크업은 prefHtml(), 입력은 여기서 직접 받는다 (data-snd).
 // - 디버그: 주소에 ?soundtest 가 있으면 window.__sfx 에 호출 기록 · 합성 도구를 둔다.
 import type { Pending } from '../types';
-import { itemInfo } from '../data/items';
+import { revealGrade } from '../data/items';
 import { augGrade, greatOpen } from './revealfx';
 
 type Wave = 's' | 't' | 'q' | 'w' | 'n';
@@ -316,7 +316,7 @@ export function toastSfx(msg: string) {
 
 /** 증강 · 보상 카드가 처음 펼쳐질 때 (같은 카드 묶음은 한 번). 등급: 1 일반 · 2 희귀 · 3 최상
  *  증강 = 카드 중 가장 높은 revealfx.augGrade (★ 전설 전공 증강 3, ◆ 변형 2, 학파 선택 2, 그 밖에는 달성 등급 12+ → 3 · 8+ → 2, 전공 증강은 2까지)
- *  / 마이너 능력치 대성공 3 / 장비 = 전설 3 · 희귀 2 / 전역 · 특권 2 / 영입 · 축복 1 */
+ *  / 마이너 능력치 대성공 3 / 장비 = 전설 · 전설급 소모품 3 · 희귀 2 / 전역 · 특권 2 / 영입 · 축복 1 */
 let revealKey = '';
 export function reveal(p: Pending | undefined) {
   if (!HAS || !p) return;
@@ -327,7 +327,7 @@ export function reveal(p: Pending | undefined) {
     g = Math.max(...p.options.map((x) => augGrade(p, x.id)));
   } else if (p.t === 'rankup' && greatOpen(p)) { key = `great:${p.uid}:${p.rank}`; g = 3; } // 마이너 능력치 대성공
   else if (p.t === 'global' || p.t === 'privilege') { key = `${p.t}:${p.options.map((x) => (typeof x === 'string' ? x : x.id)).join()}`; g = 2; }
-  else if (p.t === 'itemPick') { key = `it:${p.options.join()}`; g = Math.max(...p.options.map((id) => { const t = itemInfo(id).tier; return t === 'L' ? 3 : t === 'A' ? 2 : 1; })); }
+  else if (p.t === 'itemPick') { key = `it:${p.options.join()}`; g = Math.max(...p.options.map(revealGrade)); } // 전설 장비 · 전설급 소모품 3, 희귀 2
   else if (p.t === 'recruit' || p.t === 'blessing') { key = `${p.t}:${p.options.join()}`; g = 1; }
   if (!key || key === revealKey) return;
   revealKey = key;

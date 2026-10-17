@@ -291,7 +291,7 @@ export function enemyBaseMoveSpd(def: EnemyDef): number {
   return (def.tend === 'assassin' ? M.assassin : M.base) * (def.moveSpd ?? 1);
 }
 
-export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number, gear?: { items?: string[]; mod?: string }): CUnit {
+export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number, gear?: { items?: string[]; mod?: string; stripped?: boolean }): CUnit {
   const c = blankUnit(1);
   const st = emptyStats();
   st.maxHp = def.hp * CFG.enemyHpMul * phaseHpMult(phase) * mult;
@@ -346,7 +346,7 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   if (dsp.includes('D.final') && def.tier === 'boss') { st.maxHp *= 1 + DS.boss; c.phaseAmp *= 1 + DS.boss; }
   if (dsp.includes('D.petra')) c.hooks.push({ onStart(bb, u) { bb.shield(u, bb.S(u, 'maxHp') * DS.shield); } });
   // 적 장비 · 개조부품
-  for (const it of [...(def.items || []), def.mod || null, ...(gear?.items || []), gear?.mod || null]) if (it) applyLive(c, itemEffect(it), b, makeCtx(null, null, {}));
+  for (const it of [...(gear?.stripped ? [] : [...(def.items || []), def.mod || null]), ...(gear?.items || []), gear?.mod || null]) if (it) applyLive(c, itemEffect(it), b, makeCtx(null, null, {})); // stripped: 강제 징수기
   if (gear?.items?.length || gear?.mod) { c.tempItems = [...(gear.items || []), ...(gear.mod ? [gear.mod] : [])]; c.mem.gear = 1; } // 위험 등급 장비 (표시용)
   if (def.onBasic) c.hooks.push({ onBasic: def.onBasic });
   if (def.onTick) c.hooks.push({ onTick: def.onTick });

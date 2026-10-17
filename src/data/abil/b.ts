@@ -1,5 +1,9 @@
 // 능력 설명 (통일 형식) — 그룹 b
 import type { AbilText, Area } from '../abiltext';
+import { CFG } from '../../config';
+
+/** 셰프 단계별 요리 배율 '×1.3 / ×2 / ×3.4' (CFG.cookPower) */
+const COOK_MULT = CFG.cookPower.slice(1).map((x) => `×${x}`).join(' / ');
 
 type Row = [string, string];
 const aroundOr = (r: number): Area => (r ? { k: 'around', r } : { k: 'one' });
@@ -238,7 +242,7 @@ export const ABIL_B: Record<string, AbilText> = {
 
 /** 이 그룹에서 새로 쓰는 용어 (공용 GLOSS 에 없을 때만) */
 export const GLOSS_B: Record<string, { name: string; desc: string }> = {
-  cook: { name: '요리', desc: '셰프의 전투 스킬. 셰프 시너지 단계에 따라 효과 ×1.4 / ×2.1 / ×3.5.' },
+  cook: { name: '요리', desc: `셰프의 전투 스킬. 셰프 시너지 단계에 따라 효과 ${COOK_MULT}.` },
   wait: { name: '기다림의 미학', desc: '스택이 정해진 수에 이르면 체력이 가장 높은 적을 저격하고 스택이 초기화됨.' },
   behemoth: { name: '베헤모스', desc: '전투 시작 시 소환되는 근접 단짝. 비앙카 스탯을 상속률만큼 물려받음.' },
   bond: { name: '상속률', desc: '소환물이 주인 스탯을 물려받는 비율.' },

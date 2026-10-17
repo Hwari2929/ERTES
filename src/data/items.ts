@@ -3,6 +3,7 @@ import { inc, red, scaleEffect, vuln } from '../engine/effects';
 import type { Major, SynergyId } from '../types';
 import { ELEM_NAME, MAJOR_NAME, MAJORS } from '../types';
 import { CFG } from '../config';
+import { diffName } from './difficulty';
 import { SYN_BY_ID } from './synergies';
 import { slow } from './kit';
 
@@ -114,23 +115,62 @@ export const OCCULT_MODS: Record<string, { name: string; icon: string; tier: 1 |
 };
 export const occultModsOfTier = (t: number) => Object.keys(OCCULT_MODS).filter((k) => OCCULT_MODS[k].tier === t);
 
-/** 신비학자 [합성] 전용 소모품: 보관함에서 기물 · 장비에 끌어다 사용 */
-const XP_INJECT = 8;
-export const CONSUMABLES: Record<string, { name: string; icon: string; target: 'unit' | 'item'; price: number; desc: string; drop?: boolean }> = {
+/** 갓 구운 빵 회복량: 위험 등급 d 이하에서 가장 높은 등급의 값 (CFG.chef.breadHeal), 표의 가장 낮은 등급보다 낮으면 그 등급의 값 */
+export function breadHeal(d: number | undefined): number {
+  const t = CFG.chef.breadHeal.slice().sort((a, b) => a[0] - b[0]);
+  let v = t[0]?.[1] || 0;
+  for (const [l, h] of t) if ((d || 0) >= l) v = h;
+  return v;
+}
+/** 회복량 표기: '쉬움 15 · 모험 12 · 고난 10' (등급 이름은 difficulty.ts, 이름이 없는 등급은 '위험 n') */
+const breadHealText = () => CFG.chef.breadHeal.map(([l, h]) => `${diffName(l) || `위험 ${l}`} ${h}`).join(' · ');
+const injText = (id: string) => `기물에 사용: 공명도 +${CFG.inject.amount[id]}.`;
+
+/** 소모품: 보관함에서 기물 · 장비 · 적에게 끌어다 사용.
+ *  target: unit 기물 · item 장비 · foe 이번 전투의 적 (편성 화면) · run 바로 사용 (함대 전체)
+ *  drop = 합성 공방에서 팔지 않음 (전투 보상 · 상점 · 시너지) · legend = 전설급 (공개 연출 3단계 · 금색 테두리) · chef = 셰프 시너지 전용 */
+export const CONSUMABLES: Record<string, { name: string; icon: string; target: 'unit' | 'item' | 'foe' | 'run'; price: number; desc: string; drop?: boolean; legend?: boolean; chef?: boolean }> = {
+  // 신비학자 [합성] 공방 상품 (price = 합성 가격)
   K_rank: { name: '공명 촉매', icon: '▲', target: 'unit', price: 10, desc: '기물에 사용: 공명 등급 +1.' },
   K_morph: { name: '변성 촉매', icon: '⟳', target: 'unit', price: 14, desc: '기물에 사용: 보유하지 않은 무작위 기물로 바뀌고 공명 등급 +3. 장비 · 개조부품 · 배치는 그대로 이어받습니다.' },
   K_legend: { name: '전설 주조액', icon: '★', target: 'item', price: 24, desc: '장비에 사용: 전설 등급으로 바꿉니다 (재료 · 고급은 같은 계열의 전설로).' },
   K_copy: { name: '복제 배양조', icon: '⧉', target: 'item', price: 30, desc: '장비에 사용: 똑같은 장비 1개를 보관함에 만듭니다.' },
-  // 전투 보상 전용 (합성 공방에서는 팔지 않음)
+  // 전투 보상 · 상점 (합성 공방에서는 팔지 않음, 상점 가격은 CFG.shop.price)
   K_strip: { name: '분리 용제', icon: '⇲', target: 'unit', price: 0, drop: true, desc: '기물에 사용: 장착한 장비를 모두 해제해 보관함으로 돌려보냅니다 (고유 장비 · 개조부품 제외).' },
   K_reroll: { name: '재구성 회로', icon: '⟲', target: 'unit', price: 0, drop: true, desc: '기물에 사용: 장착한 장비를 모두 같은 등급의 다른 무작위 장비로 바꿉니다 (고유 장비 · 개조부품 제외).' },
-  K_xp: { name: '공명 주입기', icon: '✚', target: 'unit', price: 0, drop: true, desc: `기물에 사용: 공명도 +${XP_INJECT}.` },
+  // 공명 주입기: 소형 · 중형 · 대형 (K_xp 는 예전 '공명 주입기' 그대로 = 소형, 세이브 호환). 크기는 페이즈에 따라 (injectorWeights)
+  K_xp: { name: '소형 공명 주입기', icon: '✚', target: 'unit', price: 0, drop: true, get desc() { return injText('K_xp'); } },
+  K_xp2: { name: '중형 공명 주입기', icon: '✚', target: 'unit', price: 0, drop: true, get desc() { return injText('K_xp2'); } },
+  K_xp3: { name: '대형 공명 주입기', icon: '✚', target: 'unit', price: 0, drop: true, get desc() { return injText('K_xp3'); } },
+  // 전설급
+  K_seize: { name: '강제 징수기', icon: '⚒', target: 'foe', price: 0, drop: true, legend: true,
+    desc: '편성 화면에서 이번 전투의 적 1명에게 사용 (보스 포함): 그 적이 단 장비 · 개조부품을 모두 떼어 냅니다. 떼어 낸 것 중 등급이 가장 높은 1개(전설 > 개조부품 > 희귀 > 고급 > 재료)가 보관함으로 들어오고, 나머지는 부서집니다.' },
+  K_rank3: { name: '원초 공명석', icon: '◆', target: 'unit', price: 0, drop: true, legend: true, desc: '기물에 사용: 공명 등급 +3. 정제되지 않은 공명석 원핵이 기물의 공명 구조를 단숨에 끌어올립니다.' },
+  // 셰프 시너지
+  K_bread: { name: '갓 구운 빵', icon: '◒', target: 'run', price: 0, drop: true, chef: true, get desc() { return `바로 사용: 플레이어 체력 회복 (위험 등급에 따라 ${breadHealText()}). 셰프들이 남는 시간에 구워 둔 빵.`; } },
 };
 /** 합성 공방 상품 */
 export const ALL_CONSUMABLES = Object.keys(CONSUMABLES).filter((k) => !CONSUMABLES[k].drop);
-/** 전투 종료 보상 소모품 */
-export const DROP_CONSUMABLES = Object.keys(CONSUMABLES).filter((k) => CONSUMABLES[k].drop);
-export const XP_INJECT_AMOUNT = XP_INJECT;
+/** 공명 주입기 (소형 · 중형 · 대형) */
+export const INJECTORS = ['K_xp', 'K_xp2', 'K_xp3'];
+export const isInjector = (id: string | null | undefined) => !!id && INJECTORS.includes(id);
+export const injectAmount = (id: string) => CFG.inject.amount[id] || 0;
+/** 페이즈 p 에서 나올 수 있는 공명 주입기와 가중치 (CFG.inject): 시작 페이즈 전에는 없음, smallTo 가 지나면 소형 가중치를 중형이 가져간다 */
+export function injectorWeights(p: number): [string, number][] {
+  const I = CFG.inject;
+  const out: [string, number][] = [];
+  for (const id of INJECTORS) {
+    if (p < I.from[id] || (id === 'K_xp' && p > I.smallTo)) continue;
+    out.push([id, I.w[id] + (id === 'K_xp2' && p > I.smallTo ? I.w.K_xp : 0)]);
+  }
+  return out;
+}
+/** 전설급 소모품 (공개 연출 · 이름 색) */
+export const isLegendConsumable = (id: string | null | undefined) => !!id && !!CONSUMABLES[id]?.legend;
+/** 공개 연출 등급 (revealfx · sound 공용): 전설 장비 · 전설급 소모품 3, 희귀 2, 그 밖 1 */
+export const revealGrade = (id: string): 1 | 2 | 3 => { const t = itemInfo(id).tier; return isLegendConsumable(id) || t === 'L' ? 3 : t === 'A' ? 2 : 1; };
+/** 장비 등급 순위 (강제 징수기가 가져올 1개를 고를 때): 전설 > 개조부품 > 희귀 > 고급 > 재료 */
+export const gearRank = (id: string) => (id[0] === 'L' ? 5 : isMod(id) ? 4 : id[0] === 'A' ? 3 : id[0] === 'G' ? 2 : id[0] === 'C' ? 1 : 0);
 export const emblemOf = (id: string) => id.slice(2) as SynergyId;
 export const emblemId = (syn: SynergyId) => `M_${syn}`;
 

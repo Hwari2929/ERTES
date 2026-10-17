@@ -113,7 +113,7 @@ export const NODE_NAME: Record<NodeType, string> = {
   pilgrim: '순례', news: '속보', event: '사건', invest: '투자', fork: '전환', challenge: '도전', council: '항로 회의', maint: '정비',
 };
 
-export interface EnemySpawn { defId: string; c: number; row: number; elite?: boolean; items?: string[]; mod?: string } // items · mod: 위험 등급 장비
+export interface EnemySpawn { defId: string; c: number; row: number; elite?: boolean; items?: string[]; mod?: string; stripped?: boolean } // items · mod: 위험 등급 장비 · stripped: 강제 징수기로 장비를 떼어 냄 (적 정의의 장비도 달지 않는다)
 export interface Encounter { n: number; env: string; enemies: EnemySpawn[]; mult: number; seed: number; phase?: number; add?: number } // phase: 적 강도 기준 페이즈 (도전 = 다음 페이즈) · add: 위험 등급 적 증원으로 더한 수 (difficulty.ts)
 
 export interface ShopSlot { item: string; price: number; sold: boolean }
@@ -182,6 +182,7 @@ export interface RunState {
   staffTarget: string | null; // (구) 참모단 — 사용 안 함
   aceTarget: string | null; // 항해자 에이스 파일럿 uid
   occultTier?: number;
+  chefBread?: boolean; // 셰프: 시너지가 처음 켜질 때 주는 갓 구운 빵을 받았는지
   helTier?: number; // 헬레니우스: 지금까지 도달한 최고 단계 (전용 장비 지급 기록) // 신비학자: 지금까지 도달한 최고 단계 (전용 개조부품 지급 기록)
   privilege: AugPick | null; // 런 시작 특권 증강
   /** 절망 증강 id 목록 (data/despair.ts, 고른 순서). 고난 런에서 출격 때 특권 다음에 1개 + CFG.despair.every 페이즈마다 1개 */

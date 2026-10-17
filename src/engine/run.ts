@@ -8,7 +8,7 @@ import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, DROP_CONSUMABLES, XP_INJECT_AMOUNT, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, isConsumable, isEmblem, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_ADV, TURRET_BASIC, TURRET_PRICE, turretSlots } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, breadHeal, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_ADV, TURRET_BASIC, TURRET_PRICE, turretSlots } from '../data/items';
 import { SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, recMajors } from '../data/rework';
@@ -18,7 +18,7 @@ import { DEFAULT_RELIC, RELIC_BY_ID, RELICS } from '../data/relics';
 import { Rng } from '../rng';
 import { FAITHS,
   type AugPick, type Encounter, type InvestOffer, type FaithId, type EnemySpawn, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
-  type Quest, type RunState, type SynergyId, type UnitState,
+  type Quest, type RunState, type ShopSlot, type SynergyId, type UnitState,
 } from '../types';
 import { deployed, memberships, playerRows, synergyCounts, turretCount } from './build';
 import type { Battle } from './combat';
@@ -63,7 +63,7 @@ export function newRun(seed: number, starters: string[], field?: string, diff = 
 }
 
 /** 페이즈 노드 구성 (12칸): 전투 > 전투 > 항로 회의(전역 증강) > 사건 > 전투 > 보급 > 전투(짝수 페이즈는 전환) > 역경 > 사건 > 역경 > 보급 > 보스.
- *  보급 = 상점 / 보급 / 속보 / 모집 (+ 투자 · 순례) 중 선택. 2페이즈부터는 페이즈 시작 때 영입 기회가 열린다 */
+ *  보급 = 상점 / 보급 / 모집 (+ 은하 대스타 속보 · 투자 · 순례) 중 선택. 2페이즈부터는 페이즈 시작 때 영입 기회가 열린다 */
 export function phaseMap(phase: number): NodeType[][] {
   return [['battle'], ['battle'], ['council'], ['event'], ['battle'], ['shop'], [phase % 2 === 0 ? 'fork' : 'battle'], ['adversity'], ['event'], ['adversity'], ['shop'], ['boss']];
 }
@@ -410,8 +410,17 @@ function checkHel(run: RunState) {
   run.pending.push({ t: 'notice', title: '헬레니우스 동맹', body: t >= 4 && had < 4 ? '동맹 대함대가 집결했습니다. 동맹 전용 장비가 전설 등급으로 승격됩니다.' : '동맹이 전용 장비를 보내왔습니다. 보관함을 확인하세요.' });
 }
 
+/** 셰프: 시너지가 처음 켜지면 갓 구운 빵 1개 (런당 1번) */
+function checkChef(run: RunState) {
+  if (run.chefBread || run.tutorial || !tierNow(run, 'CHEF')) return;
+  run.chefBread = true;
+  gainItem(run, 'K_bread', undefined, true);
+  run.pending.push({ t: 'notice', title: '갓 구운 빵', body: `셰프들이 처음 손을 맞춰 빵을 구워 냈습니다. 보관함의 [${CONSUMABLES.K_bread.name}]을 쓰면 플레이어 체력을 ${breadHeal(run.diff)} 회복합니다. 셰프 시너지가 켜진 채로 전투에서 이기면 가끔 더 구워 옵니다.` });
+}
+
 export function checkOccult(run: RunState): boolean {
   checkHel(run);
+  checkChef(run);
   const t = occultTier(run), had = run.occultTier || 0;
   if (t <= had) return false;
   for (let k = had + 1; k <= t; k++) {
@@ -429,20 +438,38 @@ function genSynth(run: RunState): NonNullable<NonNullable<RunState['node']>['sho
     return ids.map((id) => ({ item: id, price: Math.round(CONSUMABLES[id].price * mul), sold: false }));
   });
 }
-export type UseTarget = { k: 'unit'; uid: string } | { k: 'inv'; i: number } | { k: 'eq'; uid: string; slot: number };
+/** 소모품 사용 대상: 기물 · 보관함 장비 · 장착 장비 · 이번 전투의 적 (편성 화면, enc.enemies 순번) · 함대 (바로 사용) */
+export type UseTarget = { k: 'unit'; uid: string } | { k: 'inv'; i: number } | { k: 'eq'; uid: string; slot: number } | { k: 'foe'; i: number } | { k: 'run' };
+/** 적 1명이 단 장비 · 개조부품: 적 정의 + 이번 조우의 위험 등급 장비 (강제 징수기로 떼어 낸 적은 정의 장비도 없음). 편성 보드 · 적 상세 · 징수기 공용 */
+export function foeGearOf(s: EnemySpawn): string[] {
+  const d = ENEMY_BY_ID[s.defId];
+  return [...(s.stripped || !d ? [] : [...(d.items || []), d.mod]), ...(s.items || []), s.mod].filter((x): x is string => !!x);
+}
 /** 소모품 사용 대상이 맞는지 (null = 사용 가능) */
 export function useCheck(run: RunState, kIdx: number, tg: UseTarget): string | null {
   const id = run.inventory[kIdx];
   const c = id ? CONSUMABLES[id] : undefined;
   if (!c) return '소모품이 아닙니다';
+  if (c.target === 'run') {
+    if (id === 'K_bread' && run.hp >= run.maxHp) return '플레이어 체력이 가득 찼습니다';
+    return null;
+  }
+  if (c.target === 'foe') {
+    if (tg.k !== 'foe') return '이번 전투의 적에게 사용하는 소모품입니다 (편성 화면)';
+    const s = run.node?.enc?.enemies[tg.i];
+    if (!s) return '전투를 앞둔 편성 화면에서 적에게 사용하세요';
+    if (!foeGearOf(s).length) return '장비를 달지 않은 적입니다';
+    return null;
+  }
+  if (tg.k === 'foe' || tg.k === 'run') return c.target === 'unit' ? '기물에게 사용하는 소모품입니다' : '장비에 사용하는 소모품입니다';
   if (c.target === 'unit') {
     if (tg.k === 'inv') return '기물에게 사용하는 소모품입니다';
     const u = run.units.find((x) => x.uid === tg.uid);
     if (!u) return '대상 없음';
     if (isRock(u)) return '반려 돌에게는 쓸 수 없습니다';
-    if (id === 'K_rank' && u.rank >= CFG.maxRank) return '이미 최고 공명 등급입니다';
+    if ((id === 'K_rank' || id === 'K_rank3') && u.rank >= CFG.maxRank) return '이미 최고 공명 등급입니다';
     if (id === 'K_morph' && !morphPool(run).length) return '바뀔 수 있는 기물이 없습니다';
-    if (id === 'K_xp' && u.rank >= CFG.maxRank) return '이미 최고 공명 등급입니다';
+    if (isInjector(id) && u.rank >= CFG.maxRank) return '이미 최고 공명 등급입니다';
     const gear = u.items.filter((x) => x && !isLocked(x)).length;
     if ((id === 'K_strip' || id === 'K_reroll') && !gear) return '해제 · 변경할 장비가 없습니다';
     if (id === 'K_strip' && run.inventory.length - 1 + gear > CFG.inventoryMax) return '보관함 공간이 부족합니다';
@@ -466,11 +493,31 @@ export function useConsumable(run: RunState, kIdx: number, tg: UseTarget): { ok:
   const id = run.inventory[kIdx];
   const name = CONSUMABLES[id].name;
   let msg = '';
-  if (id === 'K_strip' || id === 'K_reroll' || id === 'K_xp') {
+  if (id === 'K_bread') { // 갓 구운 빵: 플레이어 체력 회복 (위험 등급별)
+    const h = Math.min(run.maxHp - run.hp, breadHeal(run.diff));
+    run.hp += h;
+    run.inventory.splice(kIdx, 1);
+    msg = `플레이어 체력 +${h} (${run.hp}/${run.maxHp})`;
+    log(run, `${name}: ${msg}`);
+    return { ok: true, msg };
+  }
+  if (id === 'K_seize' && tg.k === 'foe') { // 강제 징수기: 적 장비를 모두 떼어 내고 가장 높은 등급 1개를 보관함으로
+    const s = run.node!.enc!.enemies[tg.i];
+    const gear = foeGearOf(s);
+    const best = gear.reduce((a, b) => (gearRank(b) > gearRank(a) ? b : a));
+    delete s.items; delete s.mod;
+    s.stripped = true;
+    run.inventory.splice(kIdx, 1);
+    const got = gainItem(run, best, undefined, true);
+    msg = `${ENEMY_BY_ID[s.defId]?.name || '적'}의 장비 ${gear.length}개를 떼어 냈습니다 — ${got ? itemInfo(got).name : '?'} 획득`;
+    log(run, `${name}: ${msg}`);
+    return { ok: true, msg };
+  }
+  if (id === 'K_strip' || id === 'K_reroll' || isInjector(id)) {
     const u = run.units.find((x) => x.uid === (tg as { uid: string }).uid)!;
     const nm = UNIT_BY_ID[u.defId].name;
     run.inventory.splice(kIdx, 1);
-    if (id === 'K_xp') { const r0 = u.rank; u.xp += XP_INJECT_AMOUNT; settleXp(run, u); msg = `${nm} 공명도 +${XP_INJECT_AMOUNT}${u.rank > r0 ? ` (공명 등급 ${u.rank})` : ''}`; }
+    if (isInjector(id)) { const r0 = u.rank, a = injectAmount(id); u.xp += a; settleXp(run, u); msg = `${nm} 공명도 +${a}${u.rank > r0 ? ` (공명 등급 ${u.rank})` : ''}`; }
     else if (id === 'K_strip') {
       let n = 0;
       u.items = u.items.map((x) => { if (!x || isLocked(x)) return x; run.inventory.push(x); n++; return null; });
@@ -490,10 +537,10 @@ export function useConsumable(run: RunState, kIdx: number, tg: UseTarget): { ok:
     log(run, `${name}: ${msg}`);
     return { ok: true, msg };
   }
-  if (id === 'K_rank' || id === 'K_morph') {
+  if (id === 'K_rank' || id === 'K_rank3' || id === 'K_morph') {
     const u = run.units.find((x) => x.uid === (tg as { uid: string }).uid)!;
     run.inventory.splice(kIdx, 1);
-    if (id === 'K_rank') { rankUp(run, u); msg = `${UNIT_BY_ID[u.defId].name} 공명 등급 ${u.rank}`; }
+    if (id === 'K_rank' || id === 'K_rank3') { for (let i = 0; i < (id === 'K_rank3' ? 3 : 1) && u.rank < CFG.maxRank; i++) rankUp(run, u); msg = `${UNIT_BY_ID[u.defId].name} 공명 등급 ${u.rank}`; }
     else {
       const to = rng(run, (r) => r.pick(morphPool(run)));
       const nu = addUnit(run, to, Math.min(CFG.maxRank, u.rank + 3));
@@ -530,9 +577,10 @@ export function leaveShop(run: RunState) { run.node = null; advance(run); }
 /** 분기점(상점 노드): 상점 · 보급 + 호이슌 투자 · 순례 (각각 페이즈당 1회) */
 export function branchOptions(run: RunState): NodeType[] {
   const used = run.picked.slice(0, run.step);
-  // 은하 대스타: 보스 직전 분기점이면 곧 속보 노드가 자동으로 붙으므로 분기점의 속보는 빼서 중복을 막는다
-  const preBoss = !!run.map[run.step + 1]?.includes('boss') && tierNow(run, 'STAR') > 0;
-  const o: NodeType[] = preBoss ? ['shop', 'supply', 'recruit'] : ['shop', 'supply', 'news', 'recruit'];
+  // 속보 (명성 교환)는 은하 대스타가 활성화되어 있을 때만. 보스 직전 분기점이면 곧 속보 노드가 자동으로 붙으므로 분기점의 속보는 빼서 중복을 막는다
+  const star = tierNow(run, 'STAR') > 0;
+  const preBoss = !!run.map[run.step + 1]?.includes('boss');
+  const o: NodeType[] = star && !preBoss ? ['shop', 'supply', 'news', 'recruit'] : ['shop', 'supply', 'recruit'];
   if (tierNow(run, 'HOI') && !used.includes('invest')) o.push('invest');
   if (hasDivine(run) && !used.includes('pilgrim')) o.push('pilgrim');
   if (tierNow(run, 'ENG')) o.push('maint'); // 엔지니어 출전 중: 정비 (포탑 전용 장비)
@@ -549,7 +597,7 @@ export function pickBranch(run: RunState, type: NodeType) {
 }
 
 export const hasDivine = (run: RunState) => run.units.some((u) => UNIT_BY_ID[u.defId].ttype === 'divine');
-const tierNow = (run: RunState, id: 'STAR' | 'HOI' | 'OCCULT' | 'HEL' | 'ENG') => tierOf(id, synergyCounts(deployed(run), run)[id] || 0);
+const tierNow = (run: RunState, id: 'STAR' | 'HOI' | 'OCCULT' | 'HEL' | 'ENG' | 'CHEF') => tierOf(id, synergyCounts(deployed(run), run)[id] || 0);
 
 export function advance(run: RunState) {
   run.node = null;
@@ -602,13 +650,16 @@ export function pickGlobal(run: RunState, id: string) {
 }
 
 // ───────────────────────── 조우 생성
+/** 적이 장비를 다는 위험 등급 (difficulty.ts 위험 2 설명) · 그 등급 이상인지 (gearEnemies · 강제 징수기 입고 · 보상 공용) */
+export const FOE_GEAR_DIFF = 2;
+export const foeGearOn = (run: RunState) => diffHas(run.diff, FOE_GEAR_DIFF);
 /**
  * 위험 등급 장비: (2)부터 적이 낮은 확률로 재료를 달고, 역경 · 보스전에서는 고급 장비도 단다 (희귀 · 전설처럼 추가 효과가 있는 장비는 없음).
  * (5)부터 개조부품(문장 제외)을 달 수 있고, 보스는 거의 항상 전설 장비(재생 외골격 제외)를 단다.
  * 장비 칸 수 = 2페이즈마다 1칸 (최대 3). 칸마다 따로 굴리고, 장비는 왼쪽부터 채운다.
  */
 function gearEnemies(run: RunState, r: Rng, enemies: EnemySpawn[], type: NodeType, phase: number) {
-  if (!diffHas(run.diff, 2)) return;
+  if (!foeGearOn(run)) return;
   const slots = Math.min(3, 1 + Math.floor((phase - 1) / 2));
   const big = type === 'adversity' || type === 'boss';
   const legends = ALL_ADVANCED.filter((x) => x !== 'A_vit_vit').map((x) => 'L_' + x.slice(2));
@@ -730,9 +781,15 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     if (pet >= 1) { const pb = pet >= 4 ? 3 : 1; income += pb; lines.push(`페트라 실적 +${pb}`); }
     const fw = fieldOf(run.field).winCredits;
     if (fw) { income += fw; lines.push(`전장 조건 · 계약 정산 +${fw}`); }
-    // 전투 보상 소모품: 분리 용제 · 재구성 회로 · 공명 주입기
+    // 전투 보상 소모품: 분리 용제 · 재구성 회로 · 공명 주입기 (주입기 크기는 페이즈에 따라) 중 하나
     const uc = CFG.drop.utility[type] || 0;
-    if (uc && rng(run, (r) => r.chance(uc))) gainItem(run, rng(run, (r) => r.pick(DROP_CONSUMABLES)), lines);
+    if (uc && rng(run, (r) => r.chance(uc))) gainItem(run, rng(run, (r) => { const k = r.pick(['K_strip', 'K_reroll', 'inject']); return k === 'inject' ? pickInjector(r, p) : k; }), lines);
+    // 전설 소모품 (따로 굴림): 강제 징수기 (적이 장비를 다는 위험 등급에서만) · 원초 공명석
+    if (foeGearOn(run) && rng(run, (r) => r.chance(CFG.drop.seize[type] || 0))) gainItem(run, 'K_seize', lines);
+    if (rng(run, (r) => r.chance(CFG.drop.rank3[type] || 0))) gainItem(run, 'K_rank3', lines);
+    // 셰프: 갓 구운 빵 (셰프 단계별 확률)
+    const chef = tierOf('CHEF', counts.CHEF || 0);
+    if (chef && rng(run, (r) => r.chance(CFG.chef.breadWin[chef - 1] || 0))) gainItem(run, 'K_bread', lines);
     if (type === 'adversity') {
       for (let k = 0; k < CFG.drop.advParts; k++) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines); // 무작위 장비 재료 확정
     } else if (type === 'battle') {
@@ -968,16 +1025,40 @@ export function gainItem(run: RunState, id: string, lines?: string[], force = fa
   return id;
 }
 
+/** 공명 주입기 1개: 페이즈에 맞는 크기 (injectorWeights 가중치) */
+const pickInjector = (r: Rng, phase: number) => r.weighted(injectorWeights(phase), ([, w]) => w)[0];
+
 function genShop(run: RunState) {
   return rng(run, (r) => {
-    const stock = [];
-    const pr = (g: string) => Math.round(CFG.price[g] * (fieldOf(run.field).shopMul || 1) * despairPrice(run));
+    const stock: ShopSlot[] = [];
+    const mul = (fieldOf(run.field).shopMul || 1) * despairPrice(run);
+    const pr = (g: string) => Math.round(CFG.price[g] * mul);
+    const S = CFG.shop, sp = (id: string, key = id) => ({ item: id, price: Math.round(S.price[key] * mul), sold: false });
     // 재료 2개 확정 + 희귀(입고 행사면 2개) · 고급 · 후반 전설 확률
     for (let i = 0; i < CFG.drop.shopParts; i++) { const id = r.pick(ALL_COMPONENTS); stock.push({ item: id, price: pr('C'), sold: false }); }
     const rares = r.chance(CFG.drop.shopAdv2) ? 2 : r.chance(CFG.drop.shopAdv) ? 1 : 0;
     for (const id of r.sample(ALL_ADVANCED, rares)) stock.push({ item: id, price: pr('A'), sold: false });
     if (r.chance(CFG.drop.shopGraded)) stock.push({ item: r.pick(ALL_GRADED), price: pr('G'), sold: false });
     if (run.phase >= CFG.drop.shopLegendPhase && r.chance(CFG.drop.shopLegend)) stock.push({ item: 'L_' + r.pick(ALL_ADVANCED).slice(2), price: pr('L'), sold: false });
+    // 3페이즈부터: 고급 · 희귀 장비 1개 이상 확정 (확률 입고로 하나도 없으면 하나 더)
+    if (run.phase >= S.gearFrom && !stock.some((x) => x.item[0] === 'G' || x.item[0] === 'A')) {
+      if (r.chance(S.gearAdv)) stock.push({ item: r.pick(ALL_ADVANCED), price: pr('A'), sold: false });
+      else stock.push({ item: r.pick(ALL_GRADED), price: pr('G'), sold: false });
+    }
+    // 소모품 (종종): 공명 주입기 (페이즈에 맞는 크기) · 분리 용제 · 재구성 회로 중 하나
+    if (r.chance(S.cons)) {
+      const k = r.weighted(Object.keys(S.consW), (x) => S.consW[x]);
+      const id = k === 'inject' ? pickInjector(r, run.phase) : k;
+      stock.push(sp(id));
+    }
+    // 전설 소모품: 강제 징수기 (종종, 적이 장비를 다는 위험 등급에서만) · 원초 공명석 (희귀)
+    if (foeGearOn(run) && r.chance(S.seize)) stock.push(sp('K_seize'));
+    if (run.phase >= S.rank3From && r.chance(S.rank3)) stock.push(sp('K_rank3'));
+    // 문장 (희귀): 출전 기물이 가진 시너지 위주
+    if (r.chance(S.emblem)) {
+      const own = [...new Set(deployed(run).flatMap((u) => memberships(u)))].filter((x) => EMBLEM_SYNS.includes(x));
+      stock.push(sp(emblemId(r.pick(own.length && r.chance(S.emblemOwn) ? own : EMBLEM_SYNS)), 'emblem'));
+    }
     return stock;
   });
 }

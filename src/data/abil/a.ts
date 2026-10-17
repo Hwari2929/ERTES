@@ -1,5 +1,9 @@
 // 능력 설명 (통일 형식) — 그룹 a
 import type { AbilText, Area } from '../abiltext';
+import { CFG } from '../../config';
+
+/** 셰프 단계별 요리 배율 '×1.3 / ×2 / ×3.4' (CFG.cookPower) */
+const COOK_MULT = CFG.cookPower.slice(1).map((x) => `×${x}`).join(' / ');
 
 type Row = [string, string];
 const aroundOr = (r: number): Area => (r ? { k: 'around', r } : { k: 'one' });
@@ -215,7 +219,7 @@ export const ABIL_A: Record<string, AbilText> = {
 /** 이 그룹에서 새로 쓰는 용어 (공용 GLOSS 에 없을 때만) */
 export const GLOSS_A: Record<string, { name: string; desc: string }> = {
   reflect: { name: '반사', desc: '받은 피해의 비율만큼 공격자에게 물리 피해로 되돌림 (부가 피해 제외).' },
-  cook: { name: '요리', desc: '셰프 시너지 단계에 따라 회복 · 보호막 · 버프 수치 ×1.4 / ×2.1 / ×3.5.' },
+  cook: { name: '요리', desc: `셰프 시너지 단계에 따라 회복 · 보호막 · 버프 수치 ${COOK_MULT}.` },
   lifesteal: { name: '흡혈', desc: '준 피해의 비율만큼 체력 회복.' },
   judge: { name: '심판', desc: '지속 동안 아군이 대상에게 준 피해의 20%를 기록하고, 끝날 때 기록만큼 고정 피해.' },
 };

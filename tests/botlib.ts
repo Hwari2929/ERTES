@@ -1,6 +1,6 @@
 // 시뮬 봇 공용: 장비 · 개조부품 · 소모품 운용 (sim.ts · balance.ts 공용)
 import { CFG } from '../src/config';
-import { CONSUMABLES, isConsumable, isEmblem, isLocked, isOccultMod } from '../src/data/items';
+import { breadHeal, CONSUMABLES, gearRank, isConsumable, isEmblem, isInjector, isLocked, isOccultMod } from '../src/data/items';
 import { memberships } from '../src/engine/build';
 import * as R from '../src/engine/run';
 import type { AugPick, RunState, UnitState } from '../src/types';
@@ -30,9 +30,22 @@ function use(run: RunState, i: number, tg: R.UseTarget, track?: Track): boolean 
 function consumableTarget(run: RunState, id: string): R.UseTarget | null {
   const dep = deployedByRank(run);
   const top = dep.find((u) => u.rank < CFG.maxRank);
+  if (isInjector(id)) return top ? { k: 'unit', uid: top.uid } : null;
   switch (id) {
-    case 'K_rank': case 'K_xp':
+    case 'K_rank': case 'K_rank3':
       return top ? { k: 'unit', uid: top.uid } : null;
+    case 'K_bread':
+      // 잃은 체력이 회복량 이상일 때 (낭비 없이)
+      return run.maxHp - run.hp >= breadHeal(run.diff) ? { k: 'run' } : null;
+    case 'K_seize': {
+      // 편성 중인 조우에서 가장 좋은 장비를 단 적: 전설 · 개조부품이면 언제나, 고급 이상이면 역경 · 도전 · 보스에서
+      const enc = run.node?.enc;
+      if (!enc) return null;
+      let bi = -1, bv = 0;
+      enc.enemies.forEach((s, i) => { const v = Math.max(0, ...R.foeGearOf(s).map(gearRank)); if (v > bv) { bv = v; bi = i; } });
+      const big = run.node!.type !== 'battle';
+      return bi >= 0 && (bv >= 4 || (big && bv >= 2)) ? { k: 'foe', i: bi } : null;
+    }
     case 'K_morph': {
       // 대기열에서 가장 낮은 등급 기물을 바꾼다 (출전 시너지는 건드리지 않음)
       const bench = run.units.filter((u) => !u.pos).sort((a, b) => a.rank - b.rank)[0];

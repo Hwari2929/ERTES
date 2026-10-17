@@ -11,7 +11,7 @@ import { ALL_AUGS, augDesc, augSource } from '../data/augments';
 import { BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES } from '../data/globals';
 import { DESPAIR_BY_ID, DESPAIRS, despairRule } from '../data/despair';
 import { diffName } from '../data/difficulty';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_PRICE, UNIQUE_IDS, isJunk, JUNK_IDS } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, CONSUMABLES, emblemId, injectorWeights, INJECTORS, isLegendConsumable, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_PRICE, UNIQUE_IDS, isJunk, JUNK_IDS } from '../data/items';
 import { PSI_BRIEF } from '../data/brief';
 import { cantripView, passiveView, SCHOOL_LINE, transformPreview } from '../data/psiinfo';
 import { RELIC_BY_ID, RELICS } from '../data/relics';
@@ -21,7 +21,7 @@ import { KNIGHT_PAL } from '../engine/build';
 import { BOSS_CC_IMMUNE, categoryImmune, categoryMult, REASON_HI, REASON_LO } from '../engine/combat';
 import { UNIT_BY_ID, UNITS, type UnitDef } from '../data/units';
 import { LORE, LORE_BY_ID, LORE_GROUP_NAME, LORE_SECTIONS, type LoreEntry, type LoreGroup, loreRegionsOf } from '../data/worldlore';
-import { INVEST_OFFERS, NEWS_OFFERS, PILGRIM_CARDS } from '../engine/run';
+import { FOE_GEAR_DIFF, INVEST_OFFERS, NEWS_OFFERS, PILGRIM_CARDS } from '../engine/run';
 import type { AugDef } from '../engine/effects';
 import { type Category, CATEGORY_NAME, CTYPE_NAME, ELEM_NAME, MAJOR_NAME, type Major, type RunState, type SynergyId, TTYPE_NAME } from '../types';
 import * as AB from './abil';
@@ -203,6 +203,7 @@ function gearSyn(id: string): SynergyId | null {
   if (isHelItem(id)) return 'HEL';
   if (isTurretGear(id)) return 'ENG';
   if (isOccultMod(id) || (CONSUMABLES[id] && !CONSUMABLES[id].drop)) return 'OCCULT';
+  if (CONSUMABLES[id]?.chef) return 'CHEF';
   const owner = UNITS.find((d) => d.item === id);
   return (owner && ([...owner.traits, ...owner.factions] as SynergyId[]).find((s) => SYN_BY_ID[s]?.tiers.length === 1)) || null;
 }
@@ -213,7 +214,23 @@ function synGear(sid: SynergyId): string[] {
 function itemName(id: string) { return id.startsWith(RELIC_KEY) ? RELIC_BY_ID[id.slice(2)]?.name || id : itemInfo(id).name; }
 function itemDescText(id: string) { return id.startsWith(RELIC_KEY) ? RELIC_BY_ID[id.slice(2)]?.desc(1) || '' : itemInfo(id).desc; }
 function itemIc(H: CxH, id: string) { return id.startsWith(RELIC_KEY) ? H.relicTok(id.slice(2)) : H.itemIcon(id); }
-const tierLabel = (g: IGrp, id: string) => (g === 'T' ? `포탑 전용 · ${TURRET_GEAR[id]?.grade === 'adv' ? '고급형' : '보급형'}` : g === 'X' ? (isHelItem(id) ? (id[0] === 'L' ? '동맹 전용 · 전설' : '동맹 전용 · 희귀') : isOccultMod(id) ? `신비 부품 ${OCCULT_MODS[id].tier}단계` : isJunk(id) ? '유닉스제 · 절망 증강' : '고유') : g === 'K' ? (CONSUMABLES[id]?.drop ? '소모품 · 전투 보상' : '소모품 · 합성') : IGRP_NAME[g]);
+const tierLabel = (g: IGrp, id: string) => (g === 'T' ? `포탑 전용 · ${TURRET_GEAR[id]?.grade === 'adv' ? '고급형' : '보급형'}` : g === 'X' ? (isHelItem(id) ? (id[0] === 'L' ? '동맹 전용 · 전설' : '동맹 전용 · 희귀') : isOccultMod(id) ? `신비 부품 ${OCCULT_MODS[id].tier}단계` : isJunk(id) ? '유닉스제 · 절망 증강' : '고유') : g === 'K' ? consLabel(id) : IGRP_NAME[g]);
+/** 소모품 분류: 합성 · 셰프 · 전설 · 전투 보상 · 상점 */
+const consLabel = (id: string) => { const c = CONSUMABLES[id]; return !c?.drop ? '소모품 · 합성' : c.chef ? `소모품 · ${SYN_BY_ID.CHEF.name}` : isLegendConsumable(id) ? '전설 소모품' : '소모품 · 전투 보상 · 상점'; };
+/** 공명 주입기의 페이즈별 비중: '1~2페이즈 100% · 3~4페이즈 66.7%' (CFG.inject, 의뢰 페이즈 + 무한 모드 2페이즈까지 보고 마지막 구간은 '이후') */
+function injectorShare(id: string): string {
+  const parts: [number, number, string][] = [];
+  for (let p = 1; p <= CFG.victoryPhase + 2; p++) {
+    const ws = injectorWeights(p), tot = ws.reduce((a, [, w]) => a + w, 0), w = ws.find(([x]) => x === id)?.[1] || 0;
+    if (!w) continue;
+    const t = pctTxt(w / tot), last = parts[parts.length - 1];
+    if (last && last[2] === t && last[1] === p - 1) last[1] = p; else parts.push([p, p, t]);
+  }
+  return parts.map(([a, b, t]) => `${b === CFG.victoryPhase + 2 ? `${a}페이즈 이후` : a === b ? `${a}페이즈` : `${a}~${b}페이즈`} ${t}`).join(' · ');
+}
+/** 전투 승리 확률표: '일반 15% · 역경 30% · 보스 50%' */
+const dropTxt = (t: Record<string, number>) => [['battle', '일반'], ['adversity', '역경 · 도전'], ['boss', '보스']].filter(([k]) => t[k]).map(([k, n]) => `${n} ${pctTxt(t[k])}`).join(' · ');
+const USE_TXT: Record<string, string> = { unit: '기물에 끌어다 놓기', item: '장비에 끌어다 놓기', foe: '편성 화면에서 이번 전투의 적에게 끌어다 놓기 (적을 눌러도 됨)', run: '보관함에서 골라 [사용]' };
 
 /** 얻는 곳 (가격 · 확률 · 단계는 설정 · 데이터에서) */
 function sources(id: string): string[] {
@@ -246,9 +263,26 @@ function sources(id: string): string[] {
     return out;
   }
   if (CONSUMABLES[id]) {
-    const c = CONSUMABLES[id];
-    out.push(c.drop ? '전투 종료 보상 (확률)' : `${SYN_BY_ID.OCCULT.name} [합성] 공방 · ${c.price} 크레딧`);
-    out.push(`사용: ${c.target === 'unit' ? '기물에 끌어다 놓기' : '장비에 끌어다 놓기'}`);
+    const c = CONSUMABLES[id], S = CFG.shop, chef = SYN_BY_ID.CHEF;
+    const foeGear = `적이 장비를 다는 위험 ${FOE_GEAR_DIFF} 이상 의뢰에서만`;
+    if (!c.drop) out.push(`${SYN_BY_ID.OCCULT.name} [합성] 공방 · ${c.price} 크레딧`);
+    else if (c.chef) {
+      out.push(`${chef.name} 시너지가 의뢰에서 처음 켜질 때 (${chef.tiers[0]}명) 1개`);
+      out.push(`${chef.name} 활성 중 전투 승리 시 확률로 1개: ${chef.tiers.map((n, i) => `${n}명 ${pctTxt(CFG.chef.breadWin[i] || 0)}`).join(' · ')}`);
+      out.push(`회복량 (위험 등급별): ${CFG.chef.breadHeal.map(([l, h]) => `${diffName(l) || `위험 ${l}`} ${h}`).join(' · ')}`);
+    } else if (id === 'K_seize') {
+      out.push(`상점 · ${S.price[id]} 크레딧 (${pctTxt(S.seize)} 확률 진열, ${foeGear})`);
+      out.push(`전투 승리 보상 (매우 낮은 확률, ${foeGear}): ${dropTxt(CFG.drop.seize)}`);
+    } else if (id === 'K_rank3') {
+      out.push(`상점 · ${S.price[id]} 크레딧 (${S.rank3From}페이즈부터 ${pctTxt(S.rank3)} 확률 진열)`);
+      out.push(`전투 승리 보상 (극히 낮은 확률): ${dropTxt(CFG.drop.rank3)}`);
+    } else {
+      const inj = INJECTORS.includes(id);
+      out.push(`전투 승리 보상: ${dropTxt(CFG.drop.utility)} 확률로 소모품 1개 (분리 용제 · 재구성 회로 · 공명 주입기 중 하나${inj ? ', 주입기 크기는 페이즈에 따라' : ''})`);
+      out.push(`상점 · ${S.price[id]} 크레딧 (${pctTxt(S.cons)} 확률로 소모품 1개 진열)`);
+      if (inj) out.push(`주입기 중 이 크기의 비중: ${injectorShare(id)}`);
+    }
+    out.push(`사용: ${USE_TXT[c.target]}`);
     return out;
   }
   if (isJunk(id)) { // 절망 증강이 끼워 넣는 잡동사니
@@ -267,14 +301,15 @@ function sources(id: string): string[] {
     if (pe) out.push('런 시작 특권 증강 (출전 기물의 시너지 위주)');
     if (ge) out.push(`전역 증강 [${ge.name}] (출전 중인 시너지 중 무작위)`);
     if (ie) out.push(`${SYN_BY_ID.HOI.name} 투자 [${ie.name}] · ${ie.cost} 크레딧 (3개 중 1개)`);
+    out.push(`상점 · ${CFG.shop.price.emblem} 크레딧 (${pctTxt(CFG.shop.emblem)} 확률 진열, ${pctTxt(CFG.shop.emblemOwn)}는 출전 기물의 시너지 문장)`);
     out.push('일부 사건 보상');
     return out;
   }
   if (t === 'C') out.push(`상점 · ${P.C} 크레딧 (매번 ${D.shopParts}개)`, `전투 ${pctTxt(D.battle)} 확률 · 역경 ${D.advParts}개 확정 전리품`, '보스 · 도전 전리품, 보급 · 사건 · 퀘스트 보상');
-  if (t === 'G') out.push('같은 재료 2개 조합', `상점 · ${P.G} 크레딧 (${pctTxt(D.shopGraded)} 확률 입고)`);
+  if (t === 'G') out.push('같은 재료 2개 조합', `상점 · ${P.G} 크레딧 (${pctTxt(D.shopGraded)} 확률 입고 · ${CFG.shop.gearFrom}페이즈부터는 고급 · 희귀 중 1개 이상 확정)`);
   if (t === 'A') {
     out.push(itemInfo(id).recipe ? '서로 다른 재료 2개 조합' : '조합 불가 (상점 · 전리품으로만)');
-    out.push(`상점 · ${P.A} 크레딧 (${pctTxt(D.shopAdv)} 확률 입고)`, `도전 · ${D.bossAdvEvery}페이즈마다 보스 전리품 (희귀 3개 중 1개)`);
+    out.push(`상점 · ${P.A} 크레딧 (${pctTxt(D.shopAdv)} 확률 입고 · ${CFG.shop.gearFrom}페이즈부터는 고급 · 희귀 중 1개 이상 확정)`, `도전 · ${D.bossAdvEvery}페이즈마다 보스 전리품 (희귀 3개 중 1개)`);
     if (NEWS_OFFERS.sponsor) out.push(`${SYN_BY_ID.STAR.name} 속보 [${NEWS_OFFERS.sponsor.name}] (무작위)`);
   }
   if (t === 'L') {
@@ -377,7 +412,7 @@ function synDetail(H: CxH, sid: SynergyId): string {
   b.push(`<h3>소속 기물 <span class="cx-hn">${mem.length}명</span></h3>${memberCards(H, mem)}`);
   if (EMBLEM_SYNS.includes(sid)) a.push(`<h3>문장</h3><ul class="cx2-rows"><li>${itemRow(H, emblemId(sid))}</li></ul>`);
   const gear = synGear(sid);
-  if (gear.length) a.push(`<h3>${sid === 'ENG' ? '포탑 전용 장비' : '전용 장비 · 상품'} <span class="cx-hn">${gear.length}종</span></h3><ul class="cx2-rows">${gear.map((id) => `<li>${itemRow(H, id, isHelItem(id) ? (id[0] === 'L' ? '전설' : '희귀') : isOccultMod(id) ? `${OCCULT_MODS[id].tier}단계` : CONSUMABLES[id] ? `합성 · ${CONSUMABLES[id].price}` : isTurretGear(id) ? `${TURRET_GEAR[id].grade === 'adv' ? '고급형' : '보급형'} · ${TURRET_PRICE[TURRET_GEAR[id].grade]}` : '')}</li>`).join('')}</ul>`);
+  if (gear.length) a.push(`<h3>${sid === 'ENG' ? '포탑 전용 장비' : '전용 장비 · 상품'} <span class="cx-hn">${gear.length}종</span></h3><ul class="cx2-rows">${gear.map((id) => `<li>${itemRow(H, id, isHelItem(id) ? (id[0] === 'L' ? '전설' : '희귀') : isOccultMod(id) ? `${OCCULT_MODS[id].tier}단계` : CONSUMABLES[id] ? (CONSUMABLES[id].chef ? '소모품' : `합성 · ${CONSUMABLES[id].price}`) : isTurretGear(id) ? `${TURRET_GEAR[id].grade === 'adv' ? '고급형' : '보급형'} · ${TURRET_PRICE[TURRET_GEAR[id].grade]}` : '')}</li>`).join('')}</ul>`);
   if (sid === 'KAL') {
     const k = KAL_GUARD_TEXT;
     const counts = s.tiers.map((need, i) => (KAL_GUARDS[i] ? `(${need}) ${KAL_GUARDS[i]}기` : '')).filter(Boolean).join(' · ');

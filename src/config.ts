@@ -110,7 +110,11 @@ export const CFG = {
   boardSizes: [ { n: 7, w: 70, env: '표준 전장' }, { n: 6, w: 15, env: '협소한 통로' }, { n: 8, w: 15, env: '개활지' } ],
   bossBoard: 7,
   rarePhase: 3, // 아문센 · 데미우르고스가 영입 후보에 나오는 페이즈 (배치 제한은 없음)
-  cookPower: [1, 1.4, 2.1, 3.5], // 셰프 단계별 요리 위력 배율 (0단계 = 미발동)
+  cookPower: [1, 1.3, 2.0, 3.4], // 셰프 단계별 요리 위력 배율 (0단계 = 미발동). 갓 구운 빵을 얻는 대신 단계마다 10%p 낮춤 (예전 1.4 · 2.1 · 3.5)
+  /** 셰프: 갓 구운 빵 (소모품 K_bread, 플레이어 체력 회복). 셰프 시너지가 처음 켜질 때 1개 + 전투 승리마다 단계별 확률로 1개 (breadWin = 셰프 1 · 2 · 3단계).
+   *  회복량은 위험 등급 기준 [등급, 회복량]: 런의 위험 등급 이하에서 가장 높은 등급의 값, 그보다 낮은 등급은 첫 값.
+   *  지금 표는 선택 화면의 세 단계 (difficulty.ts DIFF_PRESETS: 쉬움 3 · 모험 6 · 고난 7) — 이름은 difficulty.ts 에서 읽는다 */
+  chef: { breadWin: [0.15, 0.2, 0.3], breadHeal: [[3, 15], [6, 12], [7, 10]] as [number, number][] },
 
   // ── 경제 [임시]
   startCredits: 6,
@@ -122,7 +126,23 @@ export const CFG = {
   sell: { C: 3, G: 7, A: 7, L: 20, M: 6, O: 8, K: 4, T: 5, J: 1 } as Record<string, number>, // J: 유닉스제 잡동사니 (캣휠)
   // 장비 드랍 [임시]
   // advParts: 역경(· 도전) 승리 시 무작위 장비 재료 확정 개수 (예전: 확률 50%)
-  drop: { battle: 0.1, advParts: 1, bossAdvEvery: 3, bossPart: 0.5, shopParts: 2, shopAdv: 0.4, shopAdv2: 0.1, shopGraded: 0.15, shopLegend: 0.05, shopLegendPhase: 6, supplyAdv: 0.12, utility: { battle: 0.15, adversity: 0.3, boss: 0.5 } as Record<string, number> },
+  drop: { battle: 0.1, advParts: 1, bossAdvEvery: 3, bossPart: 0.5, shopParts: 2, shopAdv: 0.4, shopAdv2: 0.1, shopGraded: 0.15, shopLegend: 0.05, shopLegendPhase: 6, supplyAdv: 0.12, utility: { battle: 0.15, adversity: 0.3, boss: 0.5 } as Record<string, number>,
+    // 전설 소모품 (승리 시, 위 utility 와 따로 굴림): 강제 징수기 = 매우 낮은 확률 (적이 장비를 다는 위험 등급에서만) · 원초 공명석 = 극저확률
+    seize: { battle: 0.01, adversity: 0.02, boss: 0.04 } as Record<string, number>,
+    rank3: { battle: 0.003, adversity: 0.008, boss: 0.02 } as Record<string, number> },
+  /** 공명 주입기 (소형 K_xp · 중형 K_xp2 · 대형 K_xp3): 공명도 · 입고 가중치 · 나오기 시작하는 페이즈.
+   *  smallTo 페이즈가 지나면 소형은 나오지 않고 그 가중치를 중형이 가져간다 (전투 보상 · 상점 공용) */
+  inject: { amount: { K_xp: 8, K_xp2: 20, K_xp3: 40 } as Record<string, number>, w: { K_xp: 6, K_xp2: 3, K_xp3: 3 } as Record<string, number>, from: { K_xp: 1, K_xp2: 3, K_xp3: 6 } as Record<string, number>, smallTo: 4 },
+  /** 상점 노드 (분기점의 상점, genShop): 재료 · 희귀 · 고급 · 전설은 drop.shop* 그대로, 아래는 그 밖의 진열 */
+  shop: {
+    gearFrom: 3, gearAdv: 0.5, // 이 페이즈부터 고급 · 희귀 장비를 1개 이상 확정 진열 (확률 입고가 없으면 1개 추가: 희귀일 확률, 아니면 고급)
+    cons: 0.4, consW: { inject: 3, K_strip: 1, K_reroll: 1 } as Record<string, number>, // 소모품 1개 (종종): 공명 주입기(페이즈에 맞는 크기) · 분리 용제 · 재구성 회로
+    seize: 0.25, // 강제 징수기 (종종, 적이 장비를 다는 위험 등급에서만)
+    rank3: 0.04, rank3From: 2, // 원초 공명석 (희귀): 입고 확률 · 시작 페이즈
+    emblem: 0.06, emblemOwn: 0.6, // 문장 (희귀): 입고 확률 · 출전 기물이 가진 시너지 문장일 확률
+    /** 가격 (크레딧, 전장 상점 배율 · 관세 적용 전). 소모품 판매가(sell.K)보다 비싸게 */
+    price: { K_xp: 6, K_xp2: 14, K_xp3: 26, K_strip: 6, K_reroll: 8, K_seize: 30, K_rank3: 40, emblem: 25 } as Record<string, number>,
+  },
   inventoryMax: 32,
 
   // ── 플레이어 체력 [임시]

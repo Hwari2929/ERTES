@@ -8,7 +8,7 @@ import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
 import { STORIES } from './data/stories';
 import { FIELDS, fieldOf } from './data/battlefields';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
-import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isLocked, isMod, isOccultMod, isTurretGear, itemInfo, TURRET_GEAR, turretSlots } from './data/items';
+import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isLegendConsumable, isLocked, isMod, isOccultMod, isTurretGear, itemInfo, TURRET_GEAR, turretSlots } from './data/items';
 import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { DIVINE_ACT, FAITH_DEF, MAJOR_AUGS, MINOR_TRAIT_GROW, recMajors } from './data/rework';
@@ -225,14 +225,17 @@ function itemIcon(id: string | null, attrs = '') {
   if (!id) return `<span class="item empty" ${attrs}></span>`;
   const it = itemInfo(id);
   const sc = isEmblem(id) ? SYN_BY_ID[emblemOf(id)]?.color : isOccultMod(id) ? SYN_BY_ID.OCCULT.color : ''; // 문장: 시너지 색 · 신비 부품: 신비학자 색
-  const hx = isConsumable(id) ? ` hex" style="--hc:${CONSUMABLES[id]?.drop ? '#6fc3df' : SYN_BY_ID.OCCULT.color}` : ''; // 소모품: 육각형 (합성품 보라 · 전투 보상 청록)
+  const hx = isConsumable(id) ? ` hex" style="--hc:${consColor(id)}` : ''; // 소모품: 육각형 (합성품 보라 · 전투 보상 청록 · 전설급 금색 · 셰프 주황)
   return `<span class="item t${it.tier}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc)}" ${attrs}>${itemGlyph(id) || it.icon}</span>`;
 }
+/** 소모품 육각형 테두리 색: 전설급 = 전설 장비 색 · 셰프 = 셰프 시너지 색 · 합성품 = 신비학자 색 · 그 밖 (전투 보상 · 상점) 청록 */
+const consColor = (id: string) => (isLegendConsumable(id) ? 'var(--g-L)' : CONSUMABLES[id]?.chef ? SYN_BY_ID.CHEF.color : CONSUMABLES[id]?.drop ? '#6fc3df' : SYN_BY_ID.OCCULT.color);
 /** 신비 개조부품 · 소모품 아이콘 */
 const SPECIAL_GLYPH: Record<string, string> = {
   O_reach: 'a.range', O_feast: 'a.heal', O_ward_phys: 'e.phys', O_ward_psy: 'e.psy', O_ward_chem: 'e.chem', O_ward_elec: 'e.elec', O_ward_holy: 'e.holy',
   O_mirror: 'a.shield', O_echo: 'a.cd', O_soul: 'a.dmg', O_aegis: 'r.hp', O_void: 'a.crit',
-  K_rank: 'r.res', K_morph: 'a.summon', K_legend: 'a.power', K_copy: 'a.reload', K_strip: 'u.area', K_reroll: 'a.cd', K_xp: 'a.heal',
+  K_rank: 'r.res', K_morph: 'a.summon', K_legend: 'a.power', K_copy: 'a.reload', K_strip: 'u.area', K_reroll: 'a.cd', K_xp: 'k.inj1', K_xp2: 'k.inj2', K_xp3: 'k.inj3',
+  K_seize: 'k.seize', K_rank3: 'k.rank3', K_bread: 'k.bread',
   T_cal: 'a.dmg', T_plate: 'a.hp', T_cryo: 's.chrono', T_ammo: 'u.mag', T_barrier: 'a.shield', T_selfd: 'u.area', T_rapid: 'a.speed', T_tesla: 'e.elec', T_flame: 's.pyro', T_snipe: 'a.snipe', T_mark: 'u.target',
 };
 /** 장비 아이콘: 재료 · 고급 = 메이저 아이콘, 희귀 · 전설 = 고유 아이콘, 문장 = 시너지 아이콘 */
@@ -933,7 +936,7 @@ function musterModal(run: RunState) {
 function nodeHint(o: NodeType) {
   return ({
     battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 ${CFG.adversityReward}배 + 장비 재료 ${CFG.drop.advParts}개 확정`,
-    council: `전역 증강 3장 중 택1 · 새로고침 ${CFG.globalRerolls}회`, shop: '분기점 — 상점 / 보급 / 속보 / 모집 (+ 호이슌 투자 · 순례)',
+    council: `전역 증강 3장 중 택1 · 새로고침 ${CFG.globalRerolls}회`, shop: `분기점 — 상점 / 보급 / 모집 (+ ${SYN_BY_ID.STAR.name} 속보 · 호이슌 투자 · 순례)`,
     supply: '보급품 3종 중 택1', recruit: '새 동료 3명 중 택1', boss: `승리 시 페이즈 클리어 · ${CFG.drop.bossAdvEvery}페이즈마다 희귀 장비`,
     pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', invest: '호이슌 투자 상품 · 크레딧으로 문장 · 증강 · 다음 페이즈 수익', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
     fork: `갈림길 — 휴식(체력 +${CFG.forkRestHp} + 잃은 체력 ${Math.round(CFG.forkRestLost * 100)}%) 또는 도전(다음 페이즈 역경급 전투, 승리 시 다음 페이즈로)`,
@@ -1167,8 +1170,8 @@ function prepScreen(run: RunState) {
     const e = ENEMY_BY_ID[s.defId];
     const sel = app.sel?.k === 'enemy' && app.sel.i === i;
     units += `<div class="u side1 placed${hasPortrait(e) ? ' tk' : ''} ${e.tier !== 'minion' && !hasPortrait(e) ? 'big' : ''} ${sel ? 'sel' : ''}" style="${(() => { const ec = enemyCell(s.c, s.row, n); return cellBox(ec.x, ec.y); })()}"
-      data-a="sel-enemy" data-v="${i}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''} · ${tendText(e)}`)}">${hasPortrait(e)
-        ? (() => { const cat = enemyCategory(e), td = TEND_NAME[e.tend], mod = s.mod || e.mod, its = [...(e.items || []).filter((x): x is string => !!x), ...(s.items || [])]; return `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${mod ? `<span class="tk-mod">${itemIcon(mod, `data-a="foe-item" data-v="${mod}"`)}</span>` : ''}</div><span class="tk-side">${e.tier === 'minion' ? '' : `<b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : 'E'}</b>`}<i class="cat-${cat}" title="${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}">${lineIcon(`k.${cat}`, 'li')}</i>${td ? `<i class="tk-tend" title="${esc(`${td.name}: ${td.desc}`)}">${lineIcon(`t.${e.tend}`, 'li')}</i>` : ''}</span><span class="tk-items">${[0, 1, 2].map((k) => (its[k] ? itemIcon(its[k], `data-a="foe-item" data-v="${its[k]}"`) : itemIcon(null))).join('')}</span></div>`; })()
+      data-a="sel-enemy" data-v="${i}" data-drop="foe:${i}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''} · ${tendText(e)}`)}">${hasPortrait(e)
+        ? (() => { const cat = enemyCategory(e), td = TEND_NAME[e.tend], mod = s.mod || (s.stripped ? null : e.mod), its = [...(s.stripped ? [] : (e.items || []).filter((x): x is string => !!x)), ...(s.items || [])]; return `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${mod ? `<span class="tk-mod">${itemIcon(mod, `data-a="foe-item" data-v="${mod}"`)}</span>` : ''}</div><span class="tk-side">${e.tier === 'minion' ? '' : `<b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : 'E'}</b>`}<i class="cat-${cat}" title="${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}">${lineIcon(`k.${cat}`, 'li')}</i>${td ? `<i class="tk-tend" title="${esc(`${td.name}: ${td.desc}`)}">${lineIcon(`t.${e.tend}`, 'li')}</i>` : ''}</span><span class="tk-items">${[0, 1, 2].map((k) => (its[k] ? itemIcon(its[k], `data-a="foe-item" data-v="${its[k]}"`) : itemIcon(null))).join('')}</span></div>`; })()
         : sprite(e, '')}</div>`;
   });
   const bench = run.units.filter((u) => !u.pos);
@@ -1258,11 +1261,14 @@ function invDetail(run: RunState) {
   const sel = selIdx >= 0 ? run.inventory[selIdx] : null;
   if (!sel) return '';
   const it = itemInfo(sel);
-  const TIER: Record<string, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '개조부품', K: '소모품', U: '고유' };
+  const TIER: Record<string, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '개조부품', K: isLegendConsumable(sel) ? '전설 소모품' : '소모품', U: '고유' };
   const ms = Object.entries(it.majors || {}) as [Major, number][];
   const stats = ms.length ? `<div class="ip-stats">${ms.map(([m, v]) => `<span>${majorIcon(m)}${MAJOR_NAME[m]} <b>+${v}</b></span>`).join('')}</div>` : '';
   const eff = it.desc.replace(/^\[[^\]]+\]\s*/, '').replace(/^([^.,]+ \+\d+(, )?)+\.?\s*/, '');
-  const hint = isConsumable(sel) ? `<span class="muted small">${CONSUMABLES[sel].target === 'unit' ? '기물' : '장비'}에 끌어다 놓거나, 선택한 채로 ${CONSUMABLES[sel].target === 'unit' ? '기물' : '보관함의 장비'}을 누르면 사용</span>`
+  const ct = isConsumable(sel) ? CONSUMABLES[sel].target : null;
+  const hint = ct === 'run' ? `<button class="btn small primary" data-a="use-self" data-v="${selIdx}">사용</button>`
+    : ct === 'foe' ? `<span class="muted small">${run.node?.enc ? '이번 전투의 적에게 끌어다 놓거나, 선택한 채로 적을 누르면 사용' : '전투를 앞둔 편성 화면에서 적에게 끌어다 놓아 사용'}</span>`
+    : ct ? `<span class="muted small">${ct === 'unit' ? '기물' : '장비'}에 끌어다 놓거나, 선택한 채로 ${ct === 'unit' ? '기물' : '보관함의 장비'}을 누르면 사용</span>`
     : run.inventory.some((x, j) => j !== selIdx && combine(sel, x)) ? '<span class="muted small">조합 가능한 장비를 누르면 조합</span>' : '';
   return pop(itemIcon(sel), TIER[sel.startsWith('U_') ? 'U' : it.tier] || '', it.name, stats, eff ? statIc(esc(eff)) : '', `<button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${CFG.sell[sel[0]]}</button>${hint}`);
 }
@@ -1771,9 +1777,9 @@ function prepBrief(run: RunState) {
     ${PREP_TIPS}
   </div>`;
 }
-/** 적이 단 장비: 적 정의의 장비 · 개조부품 + 이번 조우의 위험 등급 장비 (편성 보드 · 적 구성 · 적 상세 공용) */
-function foeGear(e: EnemyDef, s: { items?: string[]; mod?: string }) {
-  return [...(e.items || []).filter((x): x is string => !!x), ...(e.mod ? [e.mod] : []), ...(s.items || []), ...(s.mod ? [s.mod] : [])];
+/** 적이 단 장비: 적 정의의 장비 · 개조부품 + 이번 조우의 위험 등급 장비 (편성 보드 · 적 구성 · 적 상세 공용, 강제 징수기로 떼어 낸 적은 정의 장비도 없음) */
+function foeGear(e: EnemyDef, s: { items?: string[]; mod?: string; stripped?: boolean }) {
+  return [...(s.stripped ? [] : [...(e.items || []).filter((x): x is string => !!x), ...(e.mod ? [e.mod] : [])]), ...(s.items || []), ...(s.mod ? [s.mod] : [])];
 }
 /** 작은 칩: 아이콘 + 글씨. tone = good(유리) · bad(불리) · mute(면역 등), 그 밖 클래스 · --c(데이터 색) 지정 가능 */
 function tchip(icon: string, txt: string, cls = '', title = '', st = '') {
@@ -2020,7 +2026,7 @@ function summaryModal(run: RunState) {
           <div class="rs-hp-top">${lineIcon('r.hp', 'li')}<span>함대 체력</span><b>${before} → ${after}</b><em>-${s.hpLoss}</em></div>
           <div class="rs-hp-bar"><i class="loss" style="left:${(after / run.maxHp) * 100}%;width:${(s.hpLoss / run.maxHp) * 100}%"></i><i class="left" style="width:${(after / run.maxHp) * 100}%"></i></div></div>`; })() : ''}
         <ul class="rs-lines">${s.lines.filter((l) => !l.startsWith('장비 획득:')).map((l, i) => resLine(l, i)).join('')}</ul>
-        ${s.items?.length ? `<h4>장비 획득</h4><ul class="rs-items">${s.items.map((id, i) => `<li style="--i:${i}">${itemIcon(id)}<span class="it-n it-${itemInfo(id).tier}">${esc(itemInfo(id).name)}</span></li>`).join('')}</ul>` : ''}
+        ${s.items?.length ? `<h4>장비 획득</h4><ul class="rs-items">${s.items.map((id, i) => `<li style="--i:${i}">${itemIcon(id)}<span class="it-n it-${isLegendConsumable(id) ? 'L' : itemInfo(id).tier}">${esc(itemInfo(id).name)}</span></li>`).join('')}</ul>` : ''}
         ${xp ? `<h4>${RES}공명도 획득</h4><ul class="rs-xp">${xp}</ul>` : ''}
       </section>
       <section class="rs-report"><h3>전투 보고서 <span class="muted small">${b ? `${b.t.toFixed(1)}초` : ''}</span></h3>${b ? battleTable(b) + reasonReport(b) : ''}</section>
@@ -2033,10 +2039,10 @@ function summaryModal(run: RunState) {
 function shopScreen(run: RunState) {
   const stock = run.node?.shop || [];
   return `<main class="wrap">
-    <div class="screen-head">${run.node?.maint ? `<h1>정비</h1><p class="muted">엔지니어의 정비 창고입니다. 포탑 전용 장비는 감시 포탑에만 장착할 수 있습니다 (일반 기물 장착 불가). 보급형 1개는 무료입니다. 보관함의 장비를 아래 포탑 칸에 끌어 놓거나, 편성 화면의 포탑에 끌어 놓으세요.</p>` : run.node?.synth ? `<h1>합성 공방</h1><p class="muted">신비학자의 비밀 공방입니다. 소모품은 보관함에 들어가며, 보관함에서 기물이나 장비에 끌어다 놓아 사용합니다.</p>` : `<h1>암시장 상점</h1><p class="muted">재료 2개를 같은 기물에 장착하거나 보관함에서 겹치면 합성됩니다. 같은 재료 → 고급 장비(능력치 +12), 서로 다른 재료 → 희귀 장비(능력치 +6 + 고유 효과). 전설 장비는 합성할 수 없습니다.</p>`}</div>
+    <div class="screen-head">${run.node?.maint ? `<h1>정비</h1><p class="muted">엔지니어의 정비 창고입니다. 포탑 전용 장비는 감시 포탑에만 장착할 수 있습니다 (일반 기물 장착 불가). 보급형 1개는 무료입니다. 보관함의 장비를 아래 포탑 칸에 끌어 놓거나, 편성 화면의 포탑에 끌어 놓으세요.</p>` : run.node?.synth ? `<h1>합성 공방</h1><p class="muted">신비학자의 비밀 공방입니다. 소모품은 보관함에 들어가며, 보관함에서 기물이나 장비에 끌어다 놓아 사용합니다.</p>` : `<h1>암시장 상점</h1><p class="muted">재료 2개를 같은 기물에 장착하거나 보관함에서 겹치면 합성됩니다. 같은 재료 → 고급 장비(능력치 +12), 서로 다른 재료 → 희귀 장비(능력치 +6 + 고유 효과). 전설 장비는 합성할 수 없습니다. 가끔 소모품이, 드물게 문장이 들어오고, ${CFG.shop.gearFrom}페이즈부터는 고급 · 희귀 장비가 1개 이상 늘 진열됩니다.</p>`}</div>
     <div class="shop">${stock.map((s, i) => {
       const it = itemInfo(s.item);
-      return `<div class="shop-item t${it.tier} ${s.sold ? 'sold' : ''}">${itemIcon(s.item)}<div><b>${esc(it.name)}</b><div class="small muted">${statIc(esc(it.desc))}</div></div>
+      return `<div class="shop-item t${isLegendConsumable(s.item) ? 'L' : it.tier} ${s.sold ? 'sold' : ''}">${itemIcon(s.item)}<div><b>${esc(it.name)}</b><div class="small muted">${statIc(esc(it.desc))}</div></div>
         <button class="btn small" data-a="buy" data-v="${i}" ${s.sold || run.credits < s.price ? 'disabled' : ''}>${s.sold ? '판매됨' : s.price ? `${CR}${s.price}` : '무료'}</button></div>`;
     }).join('')}</div>
     ${run.node?.maint ? maintTurrets(run) : ''}
@@ -2253,8 +2259,8 @@ function pendingModal(run: RunState): string {
         <button class="btn primary" data-a="pick-recruit" data-v="${pick || ''}" ${pick ? '' : 'disabled'}>영입</button></div>`;
   } else if (p.t === 'branch') {
     const BR: Partial<Record<NodeType, string>> = {
-      shop: '재료 2개 확정 · 희귀 / 고급 장비 · 가끔 전설', supply: '보급품 3종 중 택1',
-      news: '은하 속보: 증강 · 정보 상품 구매', recruit: '기물 영입 기회 (후보 중 1명)',
+      shop: `재료 ${CFG.drop.shopParts}개 확정 · 희귀 / 고급 장비${run.phase >= CFG.shop.gearFrom ? ' 1개 이상 확정' : ''} · 가끔 소모품 · 드물게 문장 · 전설`, supply: '보급품 3종 중 택1',
+      news: `은하 속보: 명성 ${run.fame}을 보상으로 교환`, recruit: '기물 영입 기회 (후보 중 1명)',
       invest: '호이슌 투자 상품 (페이즈당 1회)', maint: '엔지니어 정비: 포탑 전용 장비 구매 (보급형 1개 무료)', pilgrim: `권능 +1 후 순례 (페이즈당 1회) · 보유 권능 ${run.power}`,
     };
     body = `<h1>분기점</h1><p class="muted small">어디로 향할지 고르세요.</p><div class="cards">${p.options.map((o, i) => `<button class="card br-card n-${o}" data-a="pick-branch" data-v="${o}" title="단축키 ${i + 1}"><span class="br-ic">${NODE_ICON[o]}</span><b>${esc(NODE_NAME[o])}</b><span class="small muted">${ic(esc(BR[o] || ''))}</span></button>`).join('')}</div>`;
@@ -2448,6 +2454,8 @@ function useModal(run: RunState) {
   const c = CONSUMABLES[id];
   const tg = u.tg;
   const tgt = tg.k === 'unit' ? UNIT_BY_ID[run.units.find((x) => x.uid === tg.uid)?.defId || '']?.name || '?'
+    : tg.k === 'foe' ? ENEMY_BY_ID[run.node?.enc?.enemies[tg.i]?.defId || '']?.name || '?'
+    : tg.k === 'run' ? '함대'
     : (() => { const it = tg.k === 'inv' ? run.inventory[tg.i] : tg.k === 'eq' ? (tg.slot < 0 ? run.units.find((x) => x.uid === tg.uid)?.mod : run.units.find((x) => x.uid === tg.uid)?.items[tg.slot]) : null; return it ? itemInfo(it).name : '?'; })();
   const err = R.useCheck(run, u.i, tg);
   return `<div class="modal-bg" data-a="use-k" data-v="no"><div class="modal use-k">
@@ -3740,6 +3748,7 @@ function act(a: string, v: string) {
     case 'stat-pop': app.statPop = !app.statPop; app.abilPop = null; if (app.screen === 'battle') { updateMeter(true); return; } break;
     case 'reco': app.recoFor = v || null; break;
     case 'desel': app.sel = null; app.abilPop = null; app.statPop = false; break;
+    case 'use-self': if (run) { const r = R.useConsumable(run, +v, { k: 'run' }); toast(r.msg); if (r.ok) { app.sel = null; persist(); } } break;
     case 'use-k': {
       const u = app.useK;
       app.useK = null;
@@ -3787,7 +3796,7 @@ function act(a: string, v: string) {
     case 'sel-unit':
       app.abilPop = null;
       if (app.sel?.k === 'relic' && run) { const e = R.equipRelic(run, v, app.sel.id); if (e) toast(e); else toast(`성유물 장착: ${RELIC_BY_ID[app.sel.id].name}`); app.sel = { k: 'unit', uid: v }; persist(); break; }
-      if (app.sel?.k === 'item' && run && isConsumable(run.inventory[app.sel.idx])) { app.useK = { i: app.sel.idx, tg: { k: 'unit', uid: v } }; break; } // 탭: 소모품 → 기물
+      if (app.sel?.k === 'item' && run && isConsumable(run.inventory[app.sel.idx])) { app.useK = { i: app.sel.idx, tg: CONSUMABLES[run.inventory[app.sel.idx]].target === 'run' ? { k: 'run' } : { k: 'unit', uid: v } }; break; } // 탭: 소모품 → 기물 (바로 쓰는 소모품은 함대)
       app.sel = app.sel?.k === 'item' && run ? equipSel(run, app.sel.idx, v) : { k: 'unit', uid: v }; break;
     case 'sel-turret': {
       if (!run) return;
@@ -3803,10 +3812,13 @@ function act(a: string, v: string) {
     case 'tunequip': if (run) { const [i, k] = v.split(':'); const e = R.unequipTurret(run, +i, +k); if (e) toast(e); persist(); } break;
     case 'sel-clear': app.sel = null; break;
     case 'sel-relic': app.sel = app.sel?.k === 'relic' && app.sel.id === v ? null : { k: 'relic', id: v }; break;
-    case 'sel-enemy': app.abilPop = null; app.sel = { k: 'enemy', i: +v }; break;
+    case 'sel-enemy':
+      app.abilPop = null;
+      if (app.sel?.k === 'item' && run && CONSUMABLES[run.inventory[app.sel.idx]]?.target === 'foe') { app.useK = { i: app.sel.idx, tg: { k: 'foe', i: +v } }; break; } // 탭: 강제 징수기 → 적
+      app.sel = { k: 'enemy', i: +v }; break;
     case 'sel-item': {
       if (!run) return;
-      if (app.sel?.k === 'item' && app.sel.idx !== +v && isConsumable(run.inventory[app.sel.idx])) { app.useK = { i: app.sel.idx, tg: { k: 'inv', i: +v } }; break; } // 탭: 소모품 → 장비
+      if (app.sel?.k === 'item' && app.sel.idx !== +v && isConsumable(run.inventory[app.sel.idx]) && !['run', 'foe'].includes(CONSUMABLES[run.inventory[app.sel.idx]].target)) { app.useK = { i: app.sel.idx, tg: { k: 'inv', i: +v } }; break; } // 탭: 소모품 → 장비 (바로 쓰는 · 적에게 쓰는 소모품은 선택만 바꾼다)
       if (app.sel?.k === 'item' && app.sel.idx !== +v) {
         const res = R.combineInv(run, app.sel.idx, +v);
         if (res) { toast(`조합 완료: ${itemInfo(res).name}`); app.sel = null; persist(); break; }
@@ -4097,8 +4109,10 @@ function onDrop(src: string, dst: string) {
   } else if (sk === 'item' && isConsumable(run.inventory[+sv[0]])) {
     // 소모품: 기물 · 장비에 끌어다 놓으면 확인 창
     const i = +sv[0];
-    const tg: R.UseTarget | null = dk === 'unit' ? { k: 'unit', uid: dv[0] } : dk === 'invitem' && +dv[0] !== i ? { k: 'inv', i: +dv[0] }
-      : dk === 'eqitem' ? (CONSUMABLES[run.inventory[i]].target === 'unit' ? { k: 'unit', uid: dv[0] } : { k: 'eq', uid: dv[0], slot: +dv[1] }) : null;
+    const ct = CONSUMABLES[run.inventory[i]].target;
+    const tg: R.UseTarget | null = dk === 'foe' ? { k: 'foe', i: +dv[0] } : ct === 'run' && (dk === 'unit' || dk === 'eqitem' || (dk === 'invitem' && +dv[0] !== i)) ? { k: 'run' }
+      : dk === 'unit' ? { k: 'unit', uid: dv[0] } : dk === 'invitem' && +dv[0] !== i ? { k: 'inv', i: +dv[0] }
+      : dk === 'eqitem' ? (ct === 'unit' ? { k: 'unit', uid: dv[0] } : { k: 'eq', uid: dv[0], slot: +dv[1] }) : null;
     if (tg) app.useK = { i, tg };
   } else if (sk === 'item') {
     const idx = +sv[0];
