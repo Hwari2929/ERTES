@@ -2,7 +2,7 @@ import { CFG, encDmgMult, phaseAmpMult, phaseHpMult } from './config';
 import { AUG_BY_ID, augDesc } from './data/augments';
 import { ENEMIES, ENEMY_BY_ID, type EnemyDef } from './data/enemies';
 import { ENEMY_DESC } from './data/enemyText';
-import { DIFF_PRESETS, DIFFS, MAX_DIFF, diffAddCount, diffAddEvery, diffAddRule, diffLabel, diffName } from './data/difficulty';
+import { DIFF_PRESETS, DIFFS, MAX_DIFF, diffAddCount, diffAddEvery, diffAddRule, diffLabel, diffName, effDiffLabel, runHeat } from './data/difficulty';
 import { CATWHEEL, DESPAIR_BY_ID, DESPAIRS, despairDiff, despairPhases, despairsOf, type DespairDef } from './data/despair';
 import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
 import { STORIES } from './data/stories';
@@ -257,6 +257,24 @@ function itemGlyph(id: string) {
   return lineIcon(`i.${id.slice(2)}`, 'ii');
 }
 
+/** 예상 이자 (상단 바 크레딧 · 투자 창구): 다음 전투를 마치면 받는 이자. R.interestInfo = 전투 정산(resolveBattle)과 같은 식 · 같은 상한 */
+function interestLines(r: RunState) {
+  const i = R.interestInfo(r);
+  const n = Math.floor(r.credits / i.per), next = r.credits >= 0 && n < i.cap ? i.per - (r.credits % i.per) : 0;
+  return {
+    i,
+    /** 한 줄 (투자 창구 · 눌렀을 때 알림) */
+    short: `다음 전투를 마치면 이자 +${i.interest} (크레딧 ${i.per}당 1, 상한 ${i.cap}${i.myopic ? ` · [${i.myopic}] −${Math.round(CFG.despair.interest * 100)}%` : ''})`,
+    /** 툴팁: 계산식 · 상한 내역 · 다음 1까지 */
+    tip: [
+      `다음 전투를 마치면 이자 +${i.interest} — 승패와 상관없이, 정산 전 보유 크레딧 기준`,
+      `계산: 크레딧 ${i.per}당 1, 상한 ${i.cap} → ${r.credits} ÷ ${i.per} = ${n}${n > i.cap ? ` → 상한 ${i.cap}` : ''}`,
+      `상한 ${i.cap}: ${i.parts.map(([k, v], j) => `${k} ${j && v > 0 ? '+' : ''}${v}`).join(' · ')}${i.floor ? ' (줄어드는 몫은 0 에서 멈춤)' : ''}`,
+      i.myopic ? `절망 증강 [${i.myopic}]: 이자 −${Math.round(CFG.despair.interest * 100)}% (내림) → +${i.interest}` : '',
+      next ? `크레딧 ${next}를 더 모으면 이자 +1` : `이자 상한 ${i.cap}에 닿음`,
+    ].filter(Boolean).join('\n'),
+  };
+}
 function topbar() {
   const r = app.run;
   if (!r) return '';
@@ -271,12 +289,13 @@ function topbar() {
   // 활성 시너지 아이콘 줄 (모바일 전용, 아이콘만)
   const counts = synergyCounts(deployed(r), r);
   const syns = SYNERGIES.filter((s) => (counts[s.id] || 0) > 0).sort((a, b) => tierOf(b.id, counts[b.id] || 0) - tierOf(a.id, counts[a.id] || 0) || (counts[b.id] || 0) - (counts[a.id] || 0));
+  const it = interestLines(r);
   return `<header class="top">
     <div class="brand">ERRANTEs</div>
     <div class="stat-row">
       <span class="pill" title="페이즈 · 노드">P<b>${r.phase}</b> · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>
       <span class="pill hp" title="체력">${lineIcon('r.hp', 'li')}<b>${r.hp}</b>/${r.maxHp}</span>
-      <span class="pill cr" title="에너지 크레딧">${CR}<b>${r.credits}</b></span>
+      <button class="pill cr" data-a="interest-info" title="${esc(`에너지 크레딧 ${r.credits}\n${it.tip}`)}">${CR}<b>${r.credits}</b>${r.over ? '' : `<span class="cr-int${it.i.interest ? '' : ' zero'}${it.i.raw >= it.i.cap ? ' max' : ''}">+${it.i.interest}<span class="cr-int-tx"> 이자</span></span>`}</button>
       ${despairPill(r)}${OATH.oathPill(r)}
       ${extra.length ? `<details class="pill more"><summary title="기타 자원">${lineIcon('r.more', 'li')}<span class="more-tx">기타</span></summary><ul class="more-list">${extra.join('')}</ul></details>` : ''}
     </div>
@@ -352,7 +371,7 @@ function titleScreen() {
         <div class="ts-grid" role="group" aria-label="둘러보기">${tutButton()}
           <button class="btn ts-btn ts-tile" data-a="bar"><b>에란테스 바</b><small>${auto ? '들렀다가 이어서 출격' : '단원 · 손님들의 잡담'}</small></button>
           <button class="btn ts-btn ts-tile" data-a="codex"><b>도감 · 기록</b><small>교범 · 기록 · 업적</small></button>
-          <button class="btn ts-btn ts-tile ts-oath" data-a="oath"><b>절망 서약</b><small>${diffName(CFG.oathFrom) || `위험 ${CFG.oathFrom}`} 조건 · 절망 ${OATH.heatNow()}</small></button></div>
+          <button class="btn ts-btn ts-tile ts-oath" data-a="oath"><b>절망 서약</b><small>${diffName(CFG.oathFrom) || `위험 ${CFG.oathFrom}`} 조건 · 절망 ${OATH.heatNow()}${OATH.effNow() > CFG.oathFrom ? ` (위험 ${OATH.effNow()})` : ''}</small></button></div>
         <div class="ts-util" role="group" aria-label="저장 · 설정">${listTutSave() ? '<button class="btn ghost tiny" data-a="tutorial-restart">튜토리얼 처음부터</button>' : ''}<button class="btn ghost tiny" data-a="menu-import">저장 코드 불러오기</button><button class="btn ghost tiny" data-a="menu-tab" data-v="settings">설정 · 테마</button></div>
       </nav>
       ${slots.length ? `<div class="slots">${slots.map((s) => `<button class="btn ghost" data-a="load" data-v="${s.slot}">${SLOT_NAME[s.slot]} · 페이즈 ${s.phase} · 기물 ${s.units}</button>`).join('')}</div>` : ''}
@@ -801,7 +820,7 @@ return `<button class="ds-card${on ? ' on' : ''}${app.dsInfo === d.lvl ? ' info'
         <span class="ds-bg" style="background-image:url('${bgURL(d.bg)}')"></span><span class="ds-shade"></span>
         <span class="ds-info-btn" data-a="ds-info" data-v="${d.lvl}" role="button" aria-label="${d.name} 세부 조건" title="세부 조건">i</span>
         <span class="ds-pop">${conds.length ? `<b>세부 조건</b><ul>${conds.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : '<b>세부 조건</b><span>추가 조건 없음</span>'}</span>
-        <span class="ds-body"><span class="ds-sub">${d.sub}</span><b class="ds-name">${d.name}</b><span class="ds-line">${d.line}</span></span>
+        <span class="ds-body"><span class="ds-sub">${(() => { const e = OATH.applies(d.lvl) ? OATH.effNow(d.lvl) : d.lvl; return e > d.lvl ? `위험 등급 ${e}<span class="ds-sub-x" title="${esc(OATH.effRule())}"> (${d.lvl} + 절망 서약 ${e - d.lvl})</span>` : d.sub; })()}</span><b class="ds-name">${d.name}</b><span class="ds-line">${d.line}</span></span>
         ${despairDiff(d.lvl) || OATH.applies(d.lvl) ? `<span class="ds-despair open">${despairDiff(d.lvl) ? `${lineIcon('k.soul', 'li')}<span>${esc(despairNote(d.lvl))}</span>` : ''}${OATH.applies(d.lvl) ? OATH.oathCardNote() : ''}</span>` : ''}</button>`; // 고난: 절망 증강 + 절망 서약 (지금 절망 수치)
     }).join('')}</div>
     <div class="ds-act"><button class="btn ghost" data-a="intro-back">전장 다시 보기</button><button class="btn primary" data-a="diff-ok">출격 준비</button></div>
@@ -828,7 +847,7 @@ function newRunScreen() {
       <div class="nr-syn syn-list">${(() => { const cnt = teamCount(app.starters); const ids = SYNERGIES.map((x) => x.id).filter((id) => cnt(id) > 0).sort((x, y) => cnt(y) - cnt(x)); return ids.map((id) => synToken(id, cnt(id))).join(''); })()}</div>
       <button class="btn ghost" data-a="to-title">뒤로</button>
       <button class="btn ghost" data-a="random-starters">무작위</button>
-      <button class="btn ghost" data-a="reroll-starters" title="고르지 않은 후보를 새로 뽑습니다 (단축키 R)" ${app.poolRerolls > 0 ? '' : 'disabled'}>새로고침 (${app.poolRerolls}회)</button>
+      <button class="btn ghost" data-a="reroll-starters" title="고른 기물을 모두 해제하고 후보 ${app.pool.length}명을 새로 뽑습니다. 직전 후보와 겹치지 않게 뽑고, 우세 시너지 기물 보장은 그대로입니다 (단축키 R)" ${app.poolRerolls > 0 ? '' : 'disabled'}>새로고침 (${app.poolRerolls}회)</button>
       <button class="btn primary" data-a="start-run" ${n === CFG.startUnits ? '' : 'disabled'}>출격 (${n}/${CFG.startUnits})</button>
     </div>
   </main>`;
@@ -2100,7 +2119,7 @@ function newsScreen(run: RunState) {
 function investScreen(run: RunState) {
   const offers = run.node?.invest || [];
   return `<main class="wrap">
-    <div class="screen-head"><h1>호이슌 투자 창구</h1><p class="muted">호이슌 홀딩스가 특별 상품을 내밀었습니다. 보유 ${CR}<b class="accent">${run.credits}</b>${run.fund ? ` · 다음 페이즈 정산 예정 <b>${run.fund}</b>` : ''}</p></div>
+    <div class="screen-head"><h1>호이슌 투자 창구</h1><p class="muted">호이슌 홀딩스가 특별 상품을 내밀었습니다. 보유 ${CR}<b class="accent">${run.credits}</b> <span class="small" title="${esc(interestLines(run).tip)}">(다음 전투 이자 +${R.interestInfo(run).interest})</span>${run.fund ? ` · 다음 페이즈 정산 예정 <b>${run.fund}</b>` : ''}</p></div>
     <div class="shop">${offers.map((o, i) => {
       const d = R.INVEST_OFFERS[o.id];
       return `<div class="shop-item ${o.sold ? 'sold' : ''}"><span class="item tA">${synIcon('HOI')}</span><div><b>${esc(d.name)}</b><div class="small muted">${ic(esc(d.desc(run, o)))}</div></div>
@@ -2112,7 +2131,7 @@ function investScreen(run: RunState) {
 
 function overScreen(run: RunState) {
   return `<main class="wrap over">
-    <div class="screen-head"><h1>${run.cleared ? '의뢰 성공' : '계약 종료'}</h1><p class="muted">${run.cleared ? `${esc(fieldOf(run.field).name)} 의뢰 완료${run.endless ? ` · 무한 모드 페이즈 ${run.phase}에서 귀환 불가` : ''}.` : `ERRANTEs 는 페이즈 ${run.phase}에서 무너졌습니다.`}${run.diff ? ` ${diffLabel(run.diff)}.` : ''}${despairsOf(run).length ? ` 절망 증강 ${despairNames(run)}.` : ''}${OATH.oathResult(run, false)}</p></div>
+    <div class="screen-head"><h1>${run.cleared ? '의뢰 성공' : '계약 종료'}</h1><p class="muted">${run.cleared ? `${esc(fieldOf(run.field).name)} 의뢰 완료${run.endless ? ` · 무한 모드 페이즈 ${run.phase}에서 귀환 불가` : ''}.` : `ERRANTEs 는 페이즈 ${run.phase}에서 무너졌습니다.`}${run.diff ? ` ${effDiffLabel(run.diff, runHeat(run))}.` : ''}${despairsOf(run).length ? ` 절망 증강 ${despairNames(run)}.` : ''}${OATH.oathResult(run, false)}</p></div>
     <dl class="stats big">
       <dt>도달 페이즈</dt><dd>${run.phase}</dd><dt>전투</dt><dd>${run.stats.wins}승 ${run.stats.losses}패</dd>
       <dt>처치</dt><dd>${run.stats.kills}</dd><dt>최대 단일 피해</dt><dd>${fmt(run.stats.bestHit)}</dd>
@@ -2194,7 +2213,7 @@ function pendingModal(run: RunState): string {
   } else if (p.t === 'event' || (p.t === 'notice' && p.scene?.length)) {
     return ''; // 미연시 화면 (advSync)
   } else if (p.t === 'victory') {
-    body = `<h1>의뢰 성공</h1><p>페이즈 ${run.phase} 보스를 격파했습니다. ${esc(fieldOf(run.field).name)} 의뢰가 완료되었습니다${run.diff ? ` (${diffLabel(run.diff)}${despairsOf(run).length ? ` · 절망 증강 ${despairNames(run)}` : ''}${OATH.oathResult(run, true)})` : ''}.</p>
+    body = `<h1>의뢰 성공</h1><p>페이즈 ${run.phase} 보스를 격파했습니다. ${esc(fieldOf(run.field).name)} 의뢰가 완료되었습니다${run.diff ? ` (${effDiffLabel(run.diff, runHeat(run))}${despairsOf(run).length ? ` · 절망 증강 ${despairNames(run)}` : ''}${OATH.oathResult(run, true)})` : ''}.</p>
       <p class="muted small">귀환하면 런이 끝나고 기록이 남습니다. 계속하면 무한 모드로 이어지며, 적은 계속 강해집니다. 어느 쪽이든 다음 위험 등급이 해금됩니다.</p>
       <div class="row-btns"><button class="btn primary" data-a="victory-end">귀환 (의뢰 완료)</button><button class="btn" data-a="victory-endless">무한 모드로 계속</button></div>`;
   } else if (p.t === 'field') {
@@ -3745,9 +3764,9 @@ function act(a: string, v: string) {
       break;
     }
     case 'random-starters': app.starters = new Rng(Date.now() | 0).sample(app.pool, CFG.startUnits); break;
-    case 'reroll-starters': // 후보 새로고침: 고른 기물은 남기고 나머지를 새 얼굴로 (우세 시너지 보장 유지)
+    case 'reroll-starters': // 후보 새로고침: 고른 기물을 모두 해제하고 후보 전체를 새로 (직전 후보와 되도록 겹치지 않게, 우세 시너지 보장 유지)
       if (app.poolRerolls <= 0) return;
-      app.poolRerolls--; app.pool = starterPool(new Rng((Date.now() ^ (Math.random() * 1e9)) | 0), app.introField, app.starters, app.pool); carX = null; app.cardOpen = null;
+      app.poolRerolls--; app.starters = []; app.pool = starterPool(new Rng((Date.now() ^ (Math.random() * 1e9)) | 0), app.introField, [], app.pool); carX = null; app.cardOpen = null;
       break;
     case 'start-run':
       if (app.starters.length !== CFG.startUnits) return;
@@ -3958,6 +3977,7 @@ function act(a: string, v: string) {
     case 'reroll-privilege': if (run) { R.rerollPrivilege(run); persist(); } break;
     case 'pick-despair': if (run) { R.pickDespair(run, +v); persist(); } break;
     case 'reroll-despair': if (run) { R.rerollDespair(run); persist(); } break;
+    case 'interest-info': if (run) toast(interestLines(run).short); return; // 상단 바 크레딧: 예상 이자 (터치 화면은 툴팁이 없어 알림으로)
     case 'despair-info': { // 1개면 효과까지, 여러 개면 이름만 (효과는 지도 환경 탭으로 넘긴다)
       const ds = despairsOf(run);
       if (ds.length === 1) toast(`절망 증강 [${ds[0].name}] ${ds[0].desc()}`);

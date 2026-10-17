@@ -1664,6 +1664,11 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .li.cr { color: var(--c-credit); }
 .li.res { color: var(--c-res); }
 .pill.cr { display: inline-flex; align-items: center; gap: 4px; }
+/* 상단 바 크레딧 옆 예상 이자 (다음 전투 정산, 누르면 알림) */
+button.pill.cr { font: inherit; color: var(--c-text); cursor: pointer; }
+.pill.cr .cr-int { font-size: var(--fs-sm); color: var(--c-credit); opacity: .85; white-space: nowrap; }
+.pill.cr .cr-int.zero { color: var(--c-text-2); }
+.pill.cr .cr-int.max { opacity: 1; font-weight: 700; }
 
 /* 상세 보기: 메이저 스탯 제목 옆 돋보기 → 패널 왼쪽에 상세 능력치 */
 .mj-wrap { position: relative; }
@@ -2611,6 +2616,10 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
 .oh-heat span { font-size: var(--fs-sm); letter-spacing: .2em; color: var(--c-text-2); }
 .oh-heat b { font: 700 var(--fs-3xl) var(--f-mono); line-height: 1.1; color: var(--c-despair); text-shadow: 0 0 18px color-mix(in srgb, var(--c-despair) 45%, transparent); }
 .oh-heat small { font-size: var(--fs-xs); color: var(--c-text-2); }
+/* 실효(표기) 위험 등급: 절망 수치 CFG.oathDiffStep 마다 +1 (data/difficulty.ts effDiff) */
+.oh-heat .oh-eff { display: grid; justify-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid color-mix(in srgb, var(--c-despair) 35%, transparent); font-style: normal; font-weight: 700; color: var(--c-text); }
+.ds-sub-x { letter-spacing: normal; color: var(--c-despair); }
+.pill.oath .oh-dl { font-size: var(--fs-sm); color: var(--c-text-2); }
 .oh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
 .oh-card { display: grid; gap: 8px; align-content: start; padding: 12px; border-radius: var(--r-md); border: 1px solid var(--line); background: var(--panel); transition: border-color .2s, background .2s; }
 .oh-card.on { border-color: color-mix(in srgb, var(--c-despair) 65%, transparent); background: linear-gradient(175deg, color-mix(in srgb, var(--c-despair-deep) 85%, var(--panel)), var(--panel) 80%); }
@@ -2637,6 +2646,14 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
 .pill.oath { border-color: color-mix(in srgb, var(--c-despair) 70%, transparent); background: color-mix(in srgb, var(--c-despair-deep) 80%, var(--panel-2)); color: var(--c-text); cursor: pointer; font: inherit; }
 .pill.oath .li { color: var(--c-despair); }
 @media (max-width: 860px) { .top .pill.oath .oh-pl { display: none; } }
+/* 좁은 화면: 서약 표시는 표기 위험 등급만 (절망 수치 · 아이콘은 누르면 알림 · 환경 탭), 예상 이자는 크레딧 칸 모서리 배지 '+n' (누르면 알림) */
+@media (max-width: 860px) {
+  .top .pill.oath .li, .top .pill.oath b { display: none; }
+  .top .pill.oath .oh-dl { color: var(--c-text); }
+  .top .pill.cr { position: relative; }
+  .top .pill.cr .cr-int { position: absolute; top: -10px; right: -6px; padding: 0 4px; border-radius: var(--r-pill); background: var(--panel); border: 1px solid color-mix(in srgb, var(--c-credit) 55%, transparent); font-size: var(--fs-xs); line-height: 1.2; opacity: 1; }
+  .top .pill.cr .cr-int-tx { display: none; }
+}
 .ds-despair { flex-wrap: wrap; }
 .ds-oath { flex-basis: 100%; display: flex; align-items: flex-start; gap: 6px; color: var(--c-text-2); }
 .ds-oath.on { color: var(--c-text); }

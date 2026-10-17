@@ -23,13 +23,13 @@ export type AchFact =
   | { k: 'battle'; won: boolean; node: NodeType; phase: number; endless: boolean; tutorial: boolean; allies: { id: string; items: string[]; alive: boolean }[]; fleet: number; streak: number }
   /** 사건 선택지 확정 (outcome = 사건 데이터의 api.outcome 결과 키, 없으면 'default') */
   | { k: 'event'; id: string; choice: number; outcome: string; tutorial: boolean }
-  /** 의뢰 성공 (목표 페이즈 보스 격파 뒤 귀환 · 무한 모드 선택). skips = 이번 런에서 장면을 건너뛴 횟수 */
+  /** 의뢰 성공 (목표 페이즈 보스 격파 뒤 귀환 · 무한 모드 선택). diff = 실효 위험 등급 (절망 서약 반영), skips = 이번 런에서 장면을 건너뛴 횟수 */
   | { k: 'clear'; tutorial: boolean; diff: number; hp: number; losses: number; skips: number; units: string[] }
   /** 튜토리얼 끝 (done = 종장까지 · 아니면 건너뜀) */
   | { k: 'tutorial'; done: boolean; skips: number }
   /** 소모품 사용 성공. foe = 적에게 쓴 경우 그 적의 등급, got = 얻은 장비의 등급 */
   | { k: 'use'; item: string; foe?: 'minion' | 'elite' | 'boss'; got?: string }
-  /** 메타 기록 (런 사이에 남는 기록): 성공 수 · 전장별 최고 위험 등급 · 겪은 사건 종류 · 바에서 본 만담 수 */
+  /** 메타 기록 (런 사이에 남는 기록): 성공 수 · 전장별 최고 실효 위험 등급 (절망 서약 반영, ui/meta.ts metaClear) · 겪은 사건 종류 · 바에서 본 만담 수 */
   | { k: 'meta'; clears: number; fieldsCleared: string[]; bestDiff: number; events: number; barSeen: number };
 
 export interface AchDef {
@@ -57,6 +57,8 @@ export const LOW_HP = 10;
 export const LAST_ONE_MIN = 4;
 /** 가장 어려운 이름 붙은 난이도 (difficulty.ts DIFF_PRESETS 의 마지막 = 고난) */
 const hardest = () => DIFF_PRESETS[DIFF_PRESETS.length - 1];
+/** 실효 위험 등급 안내: 고난은 절망 서약의 절망 수치 CFG.oathDiffStep 마다 위험 등급 +1 로 친다 (data/difficulty.ts effDiff) */
+const effNote = () => `${hardest().name} 의뢰는 절망 서약의 절망 수치 ${CFG.oathDiffStep}마다 위험 등급이 1씩 오른 것으로 친다.`;
 const famIds = () => UNITS.filter((u) => u.factions.includes('FAM')).map((u) => u.id);
 const ev = (id: string) => `[${EVENT_BY_ID[id]?.title || id}]`;
 const un = (id: string) => UNIT_BY_ID[id]?.name || id;
@@ -130,7 +132,7 @@ export const ACHIEVEMENTS: AchDef[] = [
   // ───────── 금
   { id: 'hard_clear', name: '절망을 짊어진 귀환', grade: 'gold', motif: 'li:n.boss',
     desc: () => `${diffLabel(hardest().lvl)} 이상의 의뢰를 성공한다.`,
-    test: (f) => f.k === 'meta' && f.bestDiff >= hardest().lvl },
+    test: (f) => f.k === 'meta' && f.bestDiff >= hardest().lvl }, // bestDiff = 실효 위험 등급
   { id: 'endless_20', name: `항로 밖 ${ENDLESS_STEPS[1]}페이즈`, grade: 'gold', motif: `num:${ENDLESS_STEPS[1]}`,
     desc: () => `무한 모드에서 ${ENDLESS_STEPS[1]}페이즈 보스를 쓰러뜨린다.`,
     test: (f) => bossWin(f, ENDLESS_STEPS[1]) },
@@ -163,8 +165,8 @@ export const ACHIEVEMENTS: AchDef[] = [
 
   // ───────── 전설
   { id: 'max_clear', name: '계약서의 마지막 칸', grade: 'legend', motif: 'syn:KAL',
-    desc: () => `가장 높은 위험 등급, ${diffLabel(MAX_DIFF)} 의뢰를 성공한다.`,
-    test: (f) => f.k === 'meta' && f.bestDiff >= MAX_DIFF },
+    desc: () => `위험 등급표의 마지막 칸, ${diffLabel(MAX_DIFF)} 이상의 의뢰를 성공한다. ${effNote()}`,
+    test: (f) => f.k === 'meta' && f.bestDiff >= MAX_DIFF }, // bestDiff = 실효 위험 등급: 고난 + 절망 수치 (MAX_DIFF − 고난) × CFG.oathDiffStep 이상이면 달성
   { id: 'endless_30', name: `항로 밖 ${ENDLESS_STEPS[2]}페이즈`, grade: 'legend', motif: `num:${ENDLESS_STEPS[2]}`,
     desc: () => `무한 모드에서 ${ENDLESS_STEPS[2]}페이즈 보스를 쓰러뜨린다.`,
     test: (f) => bossWin(f, ENDLESS_STEPS[2]) },

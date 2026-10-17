@@ -1,6 +1,7 @@
 // 업적 판정 입력 만들기 (순수): 런 · 전투 · 메타 기록을 data/achievements.ts 의 사실(AchFact) 하나로 요약한다.
 // 화면 · 저장 · 알림은 ui/achieve.ts 가 맡는다. 검사: tests/achieve_check.ts
 import type { AchFact } from '../data/achievements';
+import { runEffDiff } from '../data/difficulty';
 import { ENEMY_BY_ID } from '../data/enemies';
 import type { Battle } from './combat';
 import type { Meta } from '../ui/meta';
@@ -15,9 +16,9 @@ export function battleFact(run: RunState, b: Battle): AchFact {
 }
 /** 사건 선택지 확정 뒤 (outcome = run.ts lastOutcome) */
 export const eventFact = (run: RunState, id: string, choice: number, outcome: string): AchFact => ({ k: 'event', id, choice, outcome, tutorial: !!run.tutorial });
-/** 의뢰 성공 */
+/** 의뢰 성공 (diff = 실효 위험 등급: 고난 + 절망 서약이면 절망 수치만큼 오른 표기 등급) */
 export const clearFact = (run: RunState): AchFact => ({
-  k: 'clear', tutorial: !!run.tutorial, diff: run.diff || 0, hp: run.hp, losses: run.stats.losses, skips: run.ach?.skip || 0, units: run.units.map((u) => u.defId),
+  k: 'clear', tutorial: !!run.tutorial, diff: runEffDiff(run), hp: run.hp, losses: run.stats.losses, skips: run.ach?.skip || 0, units: run.units.map((u) => u.defId),
 });
 /** 튜토리얼 끝 */
 export const tutorialFact = (run: RunState | null, done: boolean): AchFact => ({ k: 'tutorial', done, skips: run?.ach?.skip || 0 });

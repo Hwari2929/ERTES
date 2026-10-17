@@ -2,8 +2,8 @@ import { CFG } from '../config';
 import { AUG_BY_ID } from '../data/augments';
 import { FIELDS, fieldOf } from '../data/battlefields';
 import { diffAddCount, diffHas } from '../data/difficulty';
-import { CATWHEEL, DESPAIRS, despairAt, despairDiff, hasDespair, PETROCK } from '../data/despair';
-import { oathDespairEvery, oathHeat, oathLv, oathsFor, oathV, oathWinMul, type OathSel } from '../data/oaths';
+import { CATWHEEL, DESPAIR_BY_ID, DESPAIRS, despairAt, despairDiff, hasDespair, PETROCK } from '../data/despair';
+import { OATH_BY_ID, oathDespairEvery, oathHeat, oathLv, oathsFor, oathV, oathWinMul, type OathSel } from '../data/oaths';
 import { EVENT_BY_ID, EVENTS, type EventApi } from '../data/events';
 import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
@@ -39,6 +39,27 @@ export const hasGlobal = (run: RunState, id: string) => run.globals.includes(id)
 export const isRock = (u: UnitState) => !!UNIT_BY_ID[u.defId]?.inert;
 /** 절망 증강 [근시안적 투자안]: 이자 수입 감소 (내림) */
 const despairInterest = (run: RunState, x: number) => (hasDespair(run, 'D.myopic') ? Math.floor(x * (1 - CFG.despair.interest)) : x);
+/**
+ * 이자: 다음 전투를 마치면 받는 이자 (resolveBattle 정산 · battleRewardPreview 지도 미리보기 · 상단 바 크레딧 표시 공용).
+ * 지금 보유 크레딧 CFG.interestPer 당 1, 상한 cap (위험 등급 · 동결의 서약 · 사건으로 줄고, 페트라 · 전역 증강 · 라르스로 는다). 근시안적 투자안이면 줄어든다 (내림).
+ * parts = 상한 내역 [이름, 더하는 값] (상단 바 툴팁), floor = 줄어드는 쪽 합이 기본 상한을 넘겨 0 에서 멈췄는지
+ */
+export function interestInfo(run: RunState, counts = synergyCounts(deployed(run), run)) {
+  const pet = tierOf('PET', counts.PET || 0);
+  const diffCut = diffHas(run.diff, 6) ? 1 : 0, vault = oathV(run, 'vault', 'cap');
+  const base = CFG.interestMax + run.mods.interestCap - diffCut - vault;
+  const petAdd = (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (pet >= 4 ? 4 : 0);
+  const glob = hasGlobal(run, 'G.interest') ? 5 : 0;
+  const lars = run.units.some((u) => u.defId === 'lars') ? 2 : 0; // 라르스: 이자 상한 +2
+  const cap = Math.max(0, base) + petAdd + glob + lars;
+  const raw = Math.min(cap, Math.floor(run.credits / CFG.interestPer));
+  const parts: [string, number][] = ([
+    ['기본', CFG.interestMax], ['사건 · 계약', run.mods.interestCap], [`위험 6 이상`, -diffCut], [OATH_BY_ID.vault.name, -vault],
+    [`${SYN_BY_ID.PET.name} ${pet}단계`, petAdd], [GLOBAL_BY_ID['G.interest']?.name || '전역 증강', glob], [UNIT_BY_ID.lars?.name || '라르스', lars],
+  ] as [string, number][]).filter(([, v]) => v !== 0);
+  const myopic = hasDespair(run, 'D.myopic');
+  return { interest: despairInterest(run, raw), raw, cap, per: CFG.interestPer, parts, floor: base < 0, myopic: myopic ? DESPAIR_BY_ID['D.myopic'].name : '' };
+}
 /** 절망 증강 [군체 공명 간섭]: 전투 공명도 풀 배율 */
 const despairXp = (run: RunState) => (hasDespair(run, 'D.swarm') ? 1 - CFG.despair.xp : 1);
 /** 절망 증강 [무역관세부 특별 관세]: 상점 · 정비 · 합성 가격, 함대 확장 · 지정 소집 비용 배율 */
@@ -281,9 +302,7 @@ export function battleRewardPreview(run: RunState, node: NodeType) {
   const p = run.phase;
   const counts = synergyCounts(deployed(run), run);
   const pet = tierOf('PET', counts.PET || 0);
-  const cap = Math.max(0, CFG.interestMax + run.mods.interestCap - (diffHas(run.diff, 6) ? 1 : 0) - oathV(run, 'vault', 'cap')) + (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (pet >= 4 ? 4 : 0) + (hasGlobal(run, 'G.interest') ? 5 : 0)
-    + (run.units.some((u) => u.defId === 'lars') ? 2 : 0);
-  const interest = despairInterest(run, Math.min(cap, Math.floor(run.credits / CFG.interestPer)));
+  const { interest } = interestInfo(run, counts);
   let c = CFG.winCredits(p);
   if (type === 'adversity') c = Math.round(c * CFG.adversityReward);
   c = Math.round(c * CFG.diffWinMul(run.diff || 0) * oathWinMul(run)); // 박봉의 서약
@@ -767,11 +786,9 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   const pet = tierOf('PET', counts.PET || 0);
   const uni = tierOf('UNI', counts.UNI || 0);
 
-  // 이자 (수입 전 보유량 기준)
-  const cap = Math.max(0, CFG.interestMax + run.mods.interestCap - (diffHas(run.diff, 6) ? 1 : 0) - oathV(run, 'vault', 'cap')) + (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (pet >= 4 ? 4 : 0) + (hasGlobal(run, 'G.interest') ? 5 : 0)
-    + (run.units.some((u) => u.defId === 'lars') ? 2 : 0); // 라르스: 이자 상한 +2
+  // 이자 (수입 전 보유량 기준, interestInfo: 상단 바 · 지도 미리보기와 같은 식)
   const creditsBefore = run.credits;
-  const interest = despairInterest(run, Math.min(cap, Math.floor(run.credits / CFG.interestPer)));
+  const { interest, cap } = interestInfo(run, counts);
   let income = interest;
   if (interest) lines.push(`이자 +${interest} (상한 ${cap})`);
 

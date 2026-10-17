@@ -3,6 +3,7 @@
 // 체계 판 2 (위험 7 = 절망 증강 삽입): 예전 위험 7 · 8 은 8 · 9 가 됐다 — 예전 기록 · 저장은 ui/meta.ts loadMeta · engine/run.ts migrate 에서 옮긴다.
 import { CFG } from '../config';
 import { despairRule } from './despair';
+import { oathHeat, type OathSel } from './oaths';
 
 export interface DiffDef { lvl: number; name: string; desc: string }
 
@@ -46,5 +47,18 @@ export const DIFF_PRESETS: { lvl: number; name: string }[] = [{ lvl: 3, name: '�
 export const diffName = (d: number) => DIFF_PRESETS.find((x) => x.lvl === d)?.name || '';
 /** 기록 표기: '고난 (위험 7)' · 단계 이름이 없는 등급은 '위험 4' */
 export const diffLabel = (d: number) => (diffName(d) ? `${diffName(d)} (위험 ${d})` : `위험 ${d}`);
+/**
+ * 실효(표기) 위험 등급: 서약이 걸리는 등급(고난, CFG.oathFrom) 이상이면 절망 서약의 절망 수치 CFG.oathDiffStep 마다 +1 (고난 + 절망 5 → 위험 8, 10 → 9, …).
+ * 표기 · 기록(전장별 최고 위험 등급) · 업적만 이 값을 읽는다. 적 배율 · 증원 · 조건(diffHas)은 실제 등급 d 그대로
+ */
+export const oathDiffAdd = (d: number | undefined, heat: number | undefined) => ((d || 0) >= CFG.oathFrom ? Math.floor(Math.max(0, heat || 0) / CFG.oathDiffStep) : 0);
+export const effDiff = (d: number | undefined, heat?: number) => (d || 0) + oathDiffAdd(d, heat);
+/** 표기: '고난 (위험 9)' — 이름은 실제 등급에서(고난), 숫자는 실효 등급. 서약이 없거나 절망 수치가 모자라면 diffLabel 과 같다 */
+export const effDiffLabel = (d: number, heat?: number) => { const e = effDiff(d, heat), n = diffName(d); return n ? `${n} (위험 ${e})` : `위험 ${e}`; };
+/** 런의 절망 수치 (서약 없이 출격했으면 0) · 실효 위험 등급 */
+export const runHeat = (r: { oaths?: OathSel; oathHeat?: number } | null | undefined) => (r?.oaths ? r.oathHeat ?? oathHeat(r.oaths) : 0);
+export const runEffDiff = (r: { diff?: number; oaths?: OathSel; oathHeat?: number }) => effDiff(r.diff, runHeat(r));
+/** 다음 표기 등급까지 남은 절망 수치 (서약이 걸리지 않는 등급이면 0) */
+export const oathDiffNext = (d: number | undefined, heat: number) => ((d || 0) >= CFG.oathFrom ? CFG.oathDiffStep - (Math.max(0, heat) % CFG.oathDiffStep) : 0);
 /** 단계 d 에서 조건 n 이 켜져 있는지 */
 export const diffHas = (d: number | undefined, n: number) => (d || 0) >= n;

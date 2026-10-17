@@ -3,7 +3,7 @@
 // 색은 절망 증강의 어두운 토큰(--c-despair 계열)을 그대로 쓴다.
 import { CFG } from '../config';
 import { FIELDS } from '../data/battlefields';
-import { diffName } from '../data/difficulty';
+import { diffName, effDiff, effDiffLabel, oathDiffNext, runHeat } from '../data/difficulty';
 import { OATHS, oathDespairEvery, oathDiff, oathHeat, oathHeatMax, oathHeatOf, oathLine, oathLv, oathMax, oathsOn, oathV, type OathDef, type OathSel } from '../data/oaths';
 import type { RunState } from '../types';
 import { loadMeta, metaOath, oathSel } from './meta';
@@ -20,6 +20,10 @@ export const applies = (lvl: number) => oathDiff(lvl);
 /** 절망 증강을 더 고르는 간격 (심연의 서약 반영) */
 export const despairEvery = (r: RunState) => oathDespairEvery(r);
 const hardName = () => diffName(CFG.oathFrom) || `위험 ${CFG.oathFrom}`;
+/** 실효(표기) 위험 등급 규칙 한 줄 (data/difficulty.ts effDiff) */
+export const effRule = () => `절망 수치 ${CFG.oathDiffStep}마다 표기 위험 등급 +1`;
+/** 지금 설정으로 고난 출격 때의 표기 위험 등급 (난이도 카드 · 서약 화면) */
+export const effNow = (lvl = CFG.oathFrom) => effDiff(lvl, heatNow());
 
 /** 서약 카드: 단계 줄을 누르면 그 단계로 (지금 단계를 다시 누르면 1단계 내림) */
 function card(d: OathDef, s: OathSel) {
@@ -39,8 +43,8 @@ export function oathScreen() {
   return `<main class="wrap oath">
     <header class="oh-top">
       <div class="oh-title"><span class="oh-kicker">${esc(hardName())} 의뢰 전용</span><h1>${lineIcon(OATH_ICON, 'li')}절망 서약</h1>
-        <p class="muted small">${esc(hardName())}(위험 ${CFG.oathFrom})으로 출격할 때만 걸리는 조건입니다. 쉬움 · 모험에서는 무시합니다. 서약을 켜고 단계를 올릴수록 절망 수치가 쌓이고, ${esc(hardName())} 의뢰에 성공하면 전장별 최고 절망 수치가 기록됩니다. 런 중에 무작위로 고르는 절망 증강과 따로 걸립니다.</p></div>
-      <div class="oh-heat" aria-live="polite"><span>절망 수치</span><b>${heat}</b><small>서약 ${on.length}개 · 최대 ${oathHeatMax()}</small></div>
+        <p class="muted small">${esc(hardName())}(위험 ${CFG.oathFrom})으로 출격할 때만 걸리는 조건입니다. 쉬움 · 모험에서는 무시합니다. 서약을 켜고 단계를 올릴수록 절망 수치가 쌓이고, ${esc(hardName())} 의뢰에 성공하면 전장별 최고 절망 수치가 기록됩니다. ${effRule()} (위험 ${CFG.oathFrom} → 절망 ${CFG.oathDiffStep}이면 위험 ${CFG.oathFrom + 1}) — 결과 · 전장 기록 · 업적이 이 등급을 읽고, 적이 세지는 것은 서약 효과뿐입니다. 런 중에 무작위로 고르는 절망 증강과 따로 걸립니다.</p></div>
+      <div class="oh-heat" aria-live="polite"><span>절망 수치</span><b>${heat}</b><small>서약 ${on.length}개 · 최대 ${oathHeatMax()}</small><em class="oh-eff" title="${esc(effRule())}">${esc(effDiffLabel(CFG.oathFrom, heat))}<small>다음 등급까지 절망 ${oathDiffNext(CFG.oathFrom, heat)}</small></em></div>
     </header>
     <div class="oh-grid">${OATHS.map((d) => card(d, s)).join('')}</div>
     <section class="oh-rec"><h2>전장별 최고 절망 수치 성공</h2><ul>${rec}</ul></section>
@@ -64,25 +68,27 @@ export function oathCardNote() {
   return `<span class="ds-oath${on.length ? ' on' : ''}">${lineIcon(OATH_ICON, 'li')}<span>절망 서약 <b>${oathHeat(s)}</b>${on.length ? ` · 서약 ${on.length}개` : ' · 켠 서약 없음 (타이틀에서 설정)'}</span></span>`;
 }
 /** 난이도 카드 ⓘ 세부 조건에 덧붙이는 줄 */
-export const oathConds = () => { const s = sel(), on = oathsOn(s); return on.length ? [`절망 서약 (절망 수치 ${oathHeat(s)}): ${on.map((x) => oathLine(x.def, x.n)).join(' / ')}`] : []; };
+export const oathConds = () => { const s = sel(), on = oathsOn(s); return on.length ? [`절망 서약 (절망 수치 ${oathHeat(s)} → 표기 위험 ${effNow()}, ${effRule()}): ${on.map((x) => oathLine(x.def, x.n)).join(' / ')}`] : []; };
 /** 런 중 상단 바: 켠 서약이 있을 때만 (누르면 목록) */
 export function oathPill(r: RunState) {
   const on = oathsOn(r.oaths);
   if (!on.length) return '';
-  const tip = `절망 서약 — 절망 수치 ${r.oathHeat ?? oathHeat(r.oaths)}\n${on.map((x) => oathLine(x.def, x.n)).join('\n')}`;
-  return `<button class="pill oath" data-a="oath-info" title="${esc(tip)}">${lineIcon(OATH_ICON, 'li')}<span class="oh-pl">서약</span><b>${r.oathHeat ?? oathHeat(r.oaths)}</b></button>`;
+  const heat = runHeat(r), eff = effDiffLabel(r.diff, heat);
+  const tip = `절망 서약 — 절망 수치 ${heat} · ${eff} (${effRule()})\n${on.map((x) => oathLine(x.def, x.n)).join('\n')}`;
+  return `<button class="pill oath" data-a="oath-info" title="${esc(tip)}">${lineIcon(OATH_ICON, 'li')}<span class="oh-pl">서약</span><b>${heat}</b><span class="oh-dl">위험 ${effDiff(r.diff, heat)}</span></button>`;
 }
-export const oathToast = (r: RunState | null) => { const on = oathsOn(r?.oaths); return on.length ? `절망 서약 ${r!.oathHeat ?? oathHeat(r!.oaths)}: ${on.map((x) => `[${x.def.name} ${x.n}단계]`).join(' ')} — 효과는 지도 [환경] 탭` : ''; };
+export const oathToast = (r: RunState | null) => { const on = oathsOn(r?.oaths); return on.length ? `절망 서약 ${runHeat(r)} (${effDiffLabel(r!.diff, runHeat(r))}): ${on.map((x) => `[${x.def.name} ${x.n}단계]`).join(' ')} — 효과는 지도 [환경] 탭` : ''; };
 /** 지도 환경 탭: 켠 서약과 단계별 효과 */
 export function oathEnv(r: RunState) {
   const on = oathsOn(r.oaths);
   if (!on.length) return '';
-  return `<h2>절망 서약 <span class="muted small">절망 수치 ${r.oathHeat ?? oathHeat(r.oaths)}</span></h2><ul class="globals despair">${on.map((x) => `<li>${lineIcon(x.def.icon, 'li')}<b>${esc(x.def.name)} ${x.n}단계</b> <span class="muted">${esc(x.def.lv(x.n))}</span></li>`).join('')}</ul>`;
+  const heat = runHeat(r);
+  return `<h2>절망 서약 <span class="muted small">절망 수치 ${heat} · ${esc(effDiffLabel(r.diff, heat))}</span></h2><ul class="globals despair"><li class="oh-envdl muted small">${esc(effRule())}: 위험 ${r.diff} + ${effDiff(r.diff, heat) - r.diff} = 위험 ${effDiff(r.diff, heat)} (결과 · 기록 · 업적 표기, 적이 세지는 것은 아래 서약 효과뿐)</li>${on.map((x) => `<li>${lineIcon(x.def.icon, 'li')}<b>${esc(x.def.name)} ${x.n}단계</b> <span class="muted">${esc(x.def.lv(x.n))}</span></li>`).join('')}</ul>`;
 }
 /** 결과 문구: 의뢰 성공 창(victory, 기록 전 — 이 전장 최고면 표시) · 결과 화면(기록 뒤 — 이 전장 최고). 서약 없이 출격했으면 '' */
 export function oathResult(r: RunState, victory: boolean) {
   if (!r.oaths) return '';
-  const heat = r.oathHeat ?? oathHeat(r.oaths), best = loadMeta().oath?.best?.[r.field];
+  const heat = runHeat(r), best = loadMeta().oath?.best?.[r.field];
   if (victory) return ` · 절망 서약 ${heat}${best === undefined || heat > best ? ' (이 전장 최고 기록)' : ''}`;
   return ` 절망 서약 ${heat}${r.cleared && best !== undefined ? ` (이 전장 최고 ${best})` : ''}.`;
 }

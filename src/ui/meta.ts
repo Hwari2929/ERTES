@@ -1,5 +1,6 @@
 // 도감 · 기록 (런 사이에 유지되는 데이터). 이 브라우저의 localStorage 에만 저장된다.
-import { MAX_DIFF } from '../data/difficulty';
+import { CFG } from '../config';
+import { effDiff, MAX_DIFF, runEffDiff } from '../data/difficulty';
 import type { Battle } from '../engine/combat';
 import type { RunState } from '../types';
 
@@ -12,6 +13,7 @@ export interface Meta {
   units: Record<string, { runs: number; ranks: number; best: number; clears: number }>;
   enemies: Record<string, { seen: number; kills: number }>;
   events: Record<string, number>;
+  /** 전장별 기록. bestDiff = 성공한 의뢰의 최고 실효 위험 등급 (고난 + 절망 서약이면 절망 수치만큼 오른 표기 등급, data/difficulty.ts effDiff) — 업적이 읽는다 */
   fields: Record<string, { runs: number; clears: number; bestDiff: number }>;
   /** 튜토리얼: 끝까지 봄 · 건너뜀 · 본 장면과 안내 (교범 항목 해금) */
   tut?: { done?: boolean; skipped?: boolean; seen?: string[] };
@@ -57,6 +59,14 @@ function migrateDiff(m: Meta) {
   if (m.bar?.last && m.bar.last.diff >= 7) m.bar.last.diff++;
 }
 
+/** 절망 서약 표기 위험 등급 이전의 성공 기록: 전장별 최고 절망 수치(고난 이상 성공)로 그 전장의 최고 위험 등급을 다시 잡는다 (늘리기만, 여러 번 해도 같다) */
+export function oathBestDiff(m: Meta) {
+  for (const [id, heat] of Object.entries(m.oath?.best || {})) {
+    const f = m.fields[id];
+    if (f && f.clears > 0 && heat >= 0) f.bestDiff = Math.max(f.bestDiff, effDiff(CFG.oathFrom, heat));
+  }
+}
+
 let cache: Meta | null = null;
 export function loadMeta(): Meta {
   if (cache) return cache;
@@ -66,6 +76,7 @@ export function loadMeta(): Meta {
     cache = p ? { ...blank(), ...p } : blank();
     if (p && !((p.dv || 1) >= DIFF_SCALE)) migrateDiff(cache!);
     cache!.dv = DIFF_SCALE;
+    oathBestDiff(cache!);
   } catch { cache = blank(); }
   return cache!;
 }
@@ -145,8 +156,8 @@ export function metaClear(run: RunState) {
   for (const id of run.despairs || []) ((m.despair ||= {})[id] ||= { runs: 0, clears: 0 }).clears++;
   const f = (m.fields[run.field] ||= { runs: 0, clears: 0, bestDiff: -1 });
   f.clears++;
-  f.bestDiff = Math.max(f.bestDiff, run.diff);
-  if (run.diff >= m.maxDiff) m.maxDiff = Math.min(MAX_DIFF, run.diff + 1);
+  f.bestDiff = Math.max(f.bestDiff, runEffDiff(run)); // 실효 위험 등급 (절망 서약 반영, 업적 판정)
+  if (run.diff >= m.maxDiff) m.maxDiff = Math.min(MAX_DIFF, run.diff + 1); // 해금은 실제 등급 기준 (서약으로 위험 8 · 9 조건이 풀리지는 않는다)
   if (run.oaths) { const b = ((m.oath ||= {}).best ||= {}); b[run.field] = Math.max(b[run.field] ?? -1, run.oathHeat || 0); } // 절망 서약 (고난 이상)
   for (const id of run.usedIds) (m.units[id] ||= { runs: 0, ranks: 0, best: 0, clears: 0 }).clears++;
   save();

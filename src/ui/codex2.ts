@@ -687,7 +687,7 @@ function augGroups(): AugGroup[] {
   out.push(simple('despair', '절망 증강', `${diffName(CFG.despair.from) || `위험 ${CFG.despair.from}`}(위험 ${CFG.despair.from}) 런은 ${despairRule()} 고른 증강은 의뢰 내내 함께 걸리는 디버프이고, 증강별로 의뢰 · 성공 기록이 남습니다.`,
     DESPAIRS.map((d) => { const r = meta.despair?.[d.id]; return { id: d.id, name: d.name, desc: `${d.desc()} — ${d.quip}`, icon: d.icon, tags: [r?.clears ? `성공 ${r.clears}회` : r?.runs ? `의뢰 ${r.runs}회 · 성공 없음` : '기록 없음'] }; })));
   // 절망 서약 (data/oaths.ts): 단계별 효과 · 절망 수치는 CFG.oath 에서 읽는다
-  out.push(simple('oath', '절망 서약', `${diffName(CFG.oathFrom) || `위험 ${CFG.oathFrom}`}(위험 ${CFG.oathFrom}) 이상으로 출격할 때만 걸리는 고정 조건. 타이틀 [절망 서약]에서 직접 켜고 단계를 올리며, 단계마다 절망 수치가 쌓입니다 (쉬움 · 모험에서는 무시). 런 중에 무작위로 고르는 절망 증강과 따로 걸립니다.`,
+  out.push(simple('oath', '절망 서약', `${diffName(CFG.oathFrom) || `위험 ${CFG.oathFrom}`}(위험 ${CFG.oathFrom}) 이상으로 출격할 때만 걸리는 고정 조건. 타이틀 [절망 서약]에서 직접 켜고 단계를 올리며, 단계마다 절망 수치가 쌓입니다 (쉬움 · 모험에서는 무시). 절망 수치 ${CFG.oathDiffStep}마다 표기 위험 등급이 1씩 오르고 (위험 ${CFG.oathFrom} → 절망 ${CFG.oathDiffStep}이면 위험 ${CFG.oathFrom + 1}), 결과 · 전장 기록 · 업적이 그 등급을 읽습니다. 적이 세지는 것은 서약 효과뿐입니다. 런 중에 무작위로 고르는 절망 증강과 따로 걸립니다.`,
     OATHS.map((o) => ({ id: `oath.${o.id}`, name: o.name, desc: `${Array.from({ length: oathMax(o.id) }, (_, i) => `${i + 1}단계: ${o.lv(i + 1)}`).join(' / ')} — ${o.quip}`, icon: o.icon,
       tags: [`최대 ${oathMax(o.id)}단계`, `절망 ${CFG.oath[o.id].heat.join(' · ')} (합 ${oathHeatOf(o.id, oathMax(o.id))})`] }))));
   return out;

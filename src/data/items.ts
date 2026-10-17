@@ -27,6 +27,11 @@ const TAUNT_RED = 0.03, TAUNT_CAP = 0.3;
  *  페이즈 보정 장착 승률은 희귀 17종 중 12위 (+0.5%p, 범위 −1.1 ~ +3.5) — 상위권을 넘지 않는다. 전설은 12% 때 −8%p 로 가장 낮았다.
  *  재확인 (d9a35db, 같은 시드 400판): 12% → 24% 클리어 +1.0%p (성공→실패 7 · 실패→성공 11), 24% → 32% 는 −0.2%p 로 더 올려도 효과가 없어 24% 유지 */
 const PLATE_SHIELD = 0.24;
+/** 수호자 판금: 보호막이 남아 있는 동안 받는 피해 배율 (희귀 · 전설). 다른 경감과 따로 곱하는 독립 경감이고, 위협 신호기처럼 고정 피해에는 걸리지 않는다.
+ *  추가 (bb84837 대비 같은 시드 400판, 위험 0): 클리어 44.75% → 44.50% (성공→실패 6 · 실패→성공 5, 차이 없음), 페이즈 보정 장착 승률 +1.3 → +1.7%p
+ *  (희귀 17종 중 16위 → 14위). 위험 7 400판도 +5.0 → +5.9%p (11위). 상위권을 넘지 않아 보호막 24% 그대로 둔다 */
+const PLATE_TAKEN = 0.9, PLATE_TAKEN_L = 0.8;
+const plateTaken = (k: number) => (k > 1 ? PLATE_TAKEN_L : PLATE_TAKEN);
 
 const ADV: AdvDef[] = [
   { id: 'vit_vit', a: 'vit', b: 'vit', name: '재생 외골격', desc: (k) => `초당 최대 체력 ${k}% 회복.`,
@@ -35,8 +40,12 @@ const ADV: AdvDef[] = [
     effect: (k) => ({ hooks: { dmgMult: (bt, u) => (bt.hpPct(u) <= 0.5 ? 1 + 0.3 * k : 1) } }) },
   { id: 'vit_mnd', a: 'vit', b: 'mnd', name: '생체 동기화기', desc: (k) => `회복 효율 +${30 * k}%, 효과 저항 +${15 * k}%p.`,
     effect: () => ({ stats: { healEff: 0.3, effRes: 0.15 } }) },
-  { id: 'vit_def', a: 'vit', b: 'def', name: '수호자 판금', desc: (k) => `전투 시작 시 최대 체력 ${Math.round(PLATE_SHIELD * 100 * k)}% 보호막.`,
-    effect: (k) => ({ hooks: { onStart(bt, u) { bt.shield(u, bt.S(u, 'maxHp') * PLATE_SHIELD * k); } } }) },
+  { id: 'vit_def', a: 'vit', b: 'def', name: '수호자 판금',
+    desc: (k) => `전투 시작 시 최대 체력 ${Math.round(PLATE_SHIELD * 100 * k)}% 보호막. 보호막이 남아 있는 동안 받는 피해 -${Math.round((1 - plateTaken(k)) * 100)}% (다른 경감과 따로 곱하는 독립 경감, 고정 피해 제외).`,
+    effect: (k) => ({ hooks: {
+      onStart(bt, u) { bt.shield(u, bt.S(u, 'maxHp') * PLATE_SHIELD * k); },
+      takenMult: (_bt, u, _src, o) => (o.elem !== 'true' && u.shield > 0 ? plateTaken(k) : 1),
+    } }) },
   { id: 'vit_agi', a: 'vit', b: 'agi', name: '생존 키트', desc: (k) => `치명적인 피해를 받으면 전투당 ${k}회 버티고 체력 15% 회복.`,
     effect: (k) => ({ hooks: { onLethal(bt, u) { if ((u.mem.kit || 0) >= k) return false; u.mem.kit = (u.mem.kit || 0) + 1; u.hp = 1; bt.heal(u, u, bt.S(u, 'maxHp') * 0.15, true); return true; } } }) },
   { id: 'pow_pow', a: 'pow', b: 'pow', name: '과출력 무기', desc: (k) => `모든 피해 +${15 * k}%.`,

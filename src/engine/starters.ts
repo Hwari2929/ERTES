@@ -19,7 +19,8 @@ export const starterFavNeed = (field: string | null | undefined) => {
 /**
  * 시작 기물 후보 CFG.starterPool 명 (시작 기물이 그보다 적으면 전부). 전장 우세 시너지 기물을 starterFavNeed 명 이상 섞는다
  * (무작위로 뽑아 모자라면 우세 시너지가 아닌 후보를 우세 시너지 기물로 바꾼다).
- * keep = 그대로 남길 후보 (새로고침 때 이미 고른 기물), avoid = 되도록 다시 내지 않을 후보 (새로고침 전 후보 — 모자라면 다시 쓴다)
+ * keep = 그대로 남길 후보, avoid = 되도록 다시 내지 않을 후보 (새로고침 전 후보 — 모자라면 다시 쓴다).
+ * 계약 기물 새로고침(main.ts 'reroll-starters')은 고른 기물을 모두 해제하고 keep 없이 avoid = 직전 후보 전체로 새 풀을 뽑는다
  */
 export function starterPool(r: Rng, field: string | null | undefined, keep: string[] = [], avoid: string[] = []): string[] {
   const all = starterIds();

@@ -4,6 +4,7 @@
 //   3. 참조: 판정이 가리키는 사건 id · 결과 키(api.outcome) · 선택지가 사건 데이터에 실제로 있다
 //   4. 판정(순수 함수): 사실 하나로 기대한 업적만 달성되는지 (이미 달성한 업적은 다시 나오지 않음)
 //   5. 화면 조각: 메달 SVG · 도감 업적 탭 · 바 진열장 HTML 에 undefined · NaN 이 없다
+//   6. 실효 위험 등급 (data/difficulty.ts effDiff): 고난 + 절망 서약 절망 수치 CFG.oathDiffStep 마다 +1 → 의뢰 성공 기록 · 위험 등급 업적
 import { ACH_BY_ID, ACH_GRADES, ACHIEVEMENTS, type AchFact, BAR_GOAL, ENDLESS_STEPS, EVENT_GOAL, jo, judge, LOW_HP } from '../src/data/achievements';
 import { EVENT_BY_ID } from '../src/data/events';
 import { ALL_ADVANCED } from '../src/data/items';
@@ -11,6 +12,8 @@ import { FIELDS } from '../src/data/battlefields';
 import { UNITS } from '../src/data/units';
 import { CFG } from '../src/config';
 import { battleFact, clearFact, countSkip, metaFact, tutorialFact } from '../src/engine/achieve';
+import { effDiff, effDiffLabel, MAX_DIFF, runEffDiff } from '../src/data/difficulty';
+import { loadMeta, metaClear, oathBestDiff } from '../src/ui/meta';
 import { achCodexHtml, barShowcaseHtml, medalSvg, motifOk } from '../src/ui/achieve';
 import type { Battle } from '../src/engine/combat';
 import type { RunState } from '../src/types';
@@ -173,6 +176,37 @@ if (bad(cx)) errs.push('도감 업적 탭에 undefined · NaN');
 for (const a of ACHIEVEMENTS.filter((x) => x.hidden)) if (cx.includes(a.name)) errs.push(`도감 업적 탭: 달성 전 숨김 업적 이름이 보임 (${a.name})`);
 if (!cx.includes(`/ <span class="f-num">${ACHIEVEMENTS.length}</span>`)) errs.push('도감 업적 탭: 전체 개수 표시');
 if (barShowcaseHtml() !== '') errs.push('바 진열장: 놓인 메달이 없으면 그리지 않는다');
+
+// ───────── 6. 실효 위험 등급: 표기 · 기록 · 업적 (적 배율 등 규칙은 실제 등급 그대로)
+const H = CFG.oathFrom, STEP = CFG.oathDiffStep;
+for (const [d, heat, want] of [[H, 0, H], [H, STEP - 1, H], [H, STEP, H + 1], [H, STEP * 2, H + 2], [H, STEP * 2 + 1, H + 2], [H - 1, STEP * 4, H - 1], [3, STEP * 2, 3]] as const) {
+  if (effDiff(d, heat) !== want) errs.push(`effDiff(${d}, 절망 ${heat}) = ${effDiff(d, heat)} (기대 ${want})`);
+}
+if (effDiffLabel(H, STEP * 2) !== `고난 (위험 ${H + 2})`) errs.push(`effDiffLabel: ${effDiffLabel(H, STEP * 2)}`);
+/** 위험 등급표의 마지막 칸(MAX_DIFF)에 닿는 고난 절망 수치 */
+const maxHeat = (MAX_DIFF - H) * STEP;
+const oathRun = (heat: number, field = 'waste') => ({ ...fakeRun, diff: H, field, oaths: heat ? { grit: 1 } : undefined, oathHeat: heat || undefined, cleared: true, usedIds: [], despairs: [] } as unknown as RunState);
+if (runEffDiff(oathRun(maxHeat)) !== MAX_DIFF) errs.push(`runEffDiff: 절망 ${maxHeat} → ${runEffDiff(oathRun(maxHeat))} (기대 ${MAX_DIFF})`);
+if (runEffDiff(oathRun(0)) !== H) errs.push(`runEffDiff: 서약 없음 → ${runEffDiff(oathRun(0))}`);
+const cfo = clearFact(oathRun(maxHeat));
+if (cfo.k !== 'clear' || cfo.diff !== MAX_DIFF) errs.push(`clearFact: 고난 + 절망 ${maxHeat} 의 diff = ${cfo.k === 'clear' ? cfo.diff : '?'} (기대 실효 등급 ${MAX_DIFF})`);
+expect(`메타: 고난 + 절망 ${maxHeat - 1}`, { k: 'meta', clears: 1, fieldsCleared: ['waste'], bestDiff: effDiff(H, maxHeat - 1), events: 0, barSeen: 0 }, ['hard_clear'], ['max_clear']);
+expect(`메타: 고난 + 절망 ${maxHeat}`, { k: 'meta', clears: 1, fieldsCleared: ['waste'], bestDiff: effDiff(H, maxHeat), events: 0, barSeen: 0 }, ['hard_clear', 'max_clear']);
+// 의뢰 성공 기록 (ui/meta.ts metaClear): 전장별 최고 위험 등급 = 실효 등급, 해금(maxDiff)은 실제 등급 기준
+const m0 = loadMeta(), maxDiff0 = m0.maxDiff;
+metaClear(oathRun(STEP, 'swarm'));
+metaClear(oathRun(maxHeat, 'waste'));
+if (loadMeta().fields.swarm?.bestDiff !== H + 1) errs.push(`metaClear: 고난 + 절망 ${STEP} → 전장 최고 ${loadMeta().fields.swarm?.bestDiff} (기대 ${H + 1})`);
+if (loadMeta().fields.waste?.bestDiff !== MAX_DIFF) errs.push(`metaClear: 고난 + 절망 ${maxHeat} → 전장 최고 ${loadMeta().fields.waste?.bestDiff} (기대 ${MAX_DIFF})`);
+if (loadMeta().maxDiff !== Math.max(maxDiff0, Math.min(MAX_DIFF, H + 1))) errs.push(`metaClear: 해금 위험 등급 ${loadMeta().maxDiff} — 실제 등급(${H}) 기준이어야 함`);
+const mfo = metaFact(loadMeta());
+if (mfo.k !== 'meta' || mfo.bestDiff !== MAX_DIFF) errs.push(`metaFact: 실효 최고 위험 등급 ${mfo.k === 'meta' ? mfo.bestDiff : '?'}`);
+expect('metaClear → 판정', mfo, ['hard_clear', 'max_clear']);
+// 예전 기록 (서약 성공의 최고 절망 수치는 있지만 최고 위험 등급이 실제 등급이던 때): 다시 잡는다, 성공이 없는 전장은 그대로
+const old = { fields: { waste: { runs: 2, clears: 1, bestDiff: H }, swarm: { runs: 1, clears: 0, bestDiff: -1 } }, oath: { best: { waste: maxHeat, swarm: maxHeat } } } as unknown as Meta;
+oathBestDiff(old);
+oathBestDiff(old);
+if (old.fields.waste.bestDiff !== MAX_DIFF || old.fields.swarm.bestDiff !== -1) errs.push(`oathBestDiff: ${JSON.stringify(old.fields)}`);
 
 if (errs.length) {
   console.log(`업적 검사 실패 ${errs.length}건`);
