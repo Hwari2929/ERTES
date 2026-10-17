@@ -1750,5 +1750,20 @@
   "tags": "adult man, 30s, tiger boy, tiger ears, tiger tail, tiger stripes, orange hair, furry ears, sharp eyes, fugitive, ragged clothes, tattered cloak, hooded cloak, worn hanbok, bandages, wanderer, full body, standing, looking at viewer",
   "source": "user",
   "notes": "30대 범인(호랑이 수인), 주황 머리, 도망자 복장."
+ },
+ "sm_farmdrone": {
+  "name": "농업 드론",
+  "subject": "no humans",
+  "tags": "agricultural drone, farming drone, quadcopter, four rotors, white and green body, small four-leaf clover emblem, hanging basket of vegetables, crop dispenser, robotic arm, hovering, cute, no humans",
+  "source": "user",
+  "notes": "클로버(최고의 친구)의 소환물. 아군에게 농작물을 던져 회복.",
+  "object": true
+ },
+ "sm_hadesclerk": {
+  "name": "저승청 관료",
+  "subject": "1other",
+  "tags": "underworld bureaucrat, ghostly official, pale grey robes, ancient greek clerk, chiton, black veil, faceless, eyes not visible, holding scroll, ledger, quill, faint blue spectral glow, floating, translucent edges, mob character, full body, standing",
+  "source": "lore",
+  "notes": "미노스(크레타 대집행관)의 소환물. 크레타 암송 관료제 · 하데스 명부를 바탕으로 얼굴 없는 유령 관료."
  }
 }
