@@ -2550,9 +2550,8 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
 .aar-exp, .aar-act { fill: none; stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; pointer-events: none; }
 .aar-exp { stroke: var(--c-text-2); stroke-dasharray: 5 4; }
 .aar-act { stroke: var(--c-info); }
-.aar-dot { stroke: var(--c-info); stroke-width: 6; stroke-linecap: round; vector-effect: non-scaling-stroke; pointer-events: none; }
-.aar-dot.loss { stroke: var(--c-bad); stroke-width: 9; }
-.aar-dot.hole { stroke: var(--panel); stroke-width: 4; }
+.aar-pt { position: absolute; left: var(--x); top: var(--y); width: 6px; height: 6px; border-radius: 50%; background: var(--c-info); transform: translate(-50%, -50%); pointer-events: none; }
+.aar-pt.loss { width: 8px; height: 8px; background: var(--panel); border: 2px solid var(--c-bad); box-sizing: border-box; }
 .aar-xt { position: relative; height: 16px; margin: 4px 4px 0 44px; }
 .aar-xt span { position: absolute; left: var(--x); transform: translateX(-50%); font-size: var(--fs-2xs); color: var(--c-text-2); }
 .aar-more { margin-top: 8px; }

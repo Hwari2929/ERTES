@@ -156,9 +156,8 @@ function powerSection(run: RunState, bs: BattleRec[], ratio: number, last: Battl
     const t = `${i + 1}번째 전투 · 페이즈 ${x.p} ${x.s + 1}칸 ${NODE_NAME[x.k] || x.k} · ${x.w ? '승리' : '패배'}\n전투력 ${fmt(x.pw)} · 예상 ${fmt(e)} (${e > 0 ? pct(x.pw / e) : '—'})\n적 전력 ${fmt(x.ep)}`;
     return `<rect class="aar-col" x="${Math.max(0, X(i) - colW / 2).toFixed(2)}" y="0" width="${colW.toFixed(2)}" height="100"><title>${esc(t)}</title></rect>`;
   }).join('');
-  // 점: 길이 0 선 + 둥근 끝 (늘어나는 SVG 안에서도 동그랗게). 패배는 속이 빈 붉은 고리
-  const dot = (i: number, v: number, cls: string) => `<path class="${cls}" d="M${X(i).toFixed(2)} ${Y(v).toFixed(2)}h0"/>`;
-  const dots = bs.map((x, i) => (x.w ? dot(i, x.pw, 'aar-dot') : dot(i, x.pw, 'aar-dot loss') + dot(i, x.pw, 'aar-dot hole'))).join('');
+  // 점: 늘어나는 SVG 밖의 HTML 점 (가로세로 비율이 달라도 찌그러지지 않고 크기 고정). 패배는 속이 빈 붉은 고리
+  const dots = bs.map((x, i) => `<i class="aar-pt${x.w ? '' : ' loss'}" style="--x:${X(i).toFixed(2)}%;--y:${Y(x.pw).toFixed(2)}%"></i>`).join('');
   // 페이즈별 표 (그래프의 표 보기)
   const byP = new Map<number, { n: number; pw: number; e: number; w: number }>();
   bs.forEach((x, i) => { const a = byP.get(x.p) || { n: 0, pw: 0, e: 0, w: 0 }; a.n++; a.pw += x.pw; a.e += exp[i]; a.w += x.w; byP.set(x.p, a); });
@@ -176,8 +175,8 @@ function powerSection(run: RunState, bs: BattleRec[], ratio: number, last: Battl
           ${cols}
           <path class="aar-exp" d="${line(exp)}"/>
           <path class="aar-act" d="${line(bs.map((x) => x.pw))}"/>
-          ${dots}
         </svg>
+        ${dots}
       </div>
       <div class="aar-xt">${phases.map((ph) => `<span class="mono" style="--x:${X(ph.i)}%">P${ph.p}</span>`).join('')}</div>
     </figure>
