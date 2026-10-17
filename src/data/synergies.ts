@@ -30,6 +30,8 @@ export const TITLE_NAME = ['평민', '기사', '남작', '백작', '공작', '�
 export const rankTitle = (rank: number) => (rank >= 30 ? 6 : rank >= 20 ? 5 : rank >= 9 ? 4 : rank >= 6 ? 3 : rank >= 3 ? 2 : 1); // 3등급마다 작위, 대공 20 · 황제 30
 
 const T = (tier: number, a: number[]) => a[Math.max(0, tier - 1)];
+/** 최고의 친구 (2 · 4 · 6 · 8명): 소환물 스탯 상속률 · 소환물 피해 증가 · 소환물 모든 주요 능력치 */
+const BUDDY_BOND = [0.6, 1.0, 1.8, 3.0], BUDDY_AMP = [0.15, 0.4, 1.0, 2.5], BUDDY_MAJ = [0, 10, 20, 40];
 
 // ─────────────── 범은하 공동체: 기물마다 다른 선물
 type Gift = { name: string; text: string; stats?: Partial<Stats>; pct?: { armor?: number }; tag?: 'tech' | 'psy'; majors?: number };
@@ -431,13 +433,12 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'BUDDY', name: '최고의 친구', kind: 'trait', tiers: [2, 4, 6, 8], color: '#f08fb0', icon: '♥',
     desc: `최고의 친구 기물은 전투 시작 시 단짝 소환물을 부릅니다. 소환물은 칸을 차지하고 공명도가 없으며, 주인 스탯의 일부를 물려받습니다 (기본 ${pct(CFG.bond.base)}, 추가로 불린 소환물은 그 ${pct(CFG.bond.extra)}). 소환물마다 전투 유형(돌격가 · 전문가)이 있어 도발 배율이 그 유형을 따릅니다 (돌격가 경계는 없음). 주인이 쓰러지면 함께 사라집니다.`,
-    tierDesc: ['소환물 스탯 상속 55%, 소환물 피해 +15%', '소환물 스탯 상속 85%, 소환물 피해 +40%, 소환물 모든 주요 능력치 +10', '소환물 스탯 상속 220%, 소환물 피해 +100%, 소환물 모든 주요 능력치 +20',
-      '[우정 파워 MAX] 소환물 스탯 상속 520%, 소환물 피해 +250%, 소환물 모든 주요 능력치 +40'],
+    tierDesc: BUDDY_BOND.map((r, i) => `${i === 3 ? '[우정 파워 MAX] ' : ''}소환물 스탯 상속 ${pct(r)}, 소환물 피해 +${pct(BUDDY_AMP[i])}${BUDDY_MAJ[i] ? `, 소환물 모든 주요 능력치 +${BUDDY_MAJ[i]}` : ''}`),
     member: (t) => ({ setup: (u) => {
       // 6 · 8단계의 추가 소환 대신 그만큼 (추가 1기 = 80%) 상속률을 올린다
-      u.mem.bond = Math.max(u.mem.bond || 0, T(t, [0.55, 0.85, 2.2, 5.2]));
-      u.mem.bondAmp = T(t, [0.15, 0.4, 1.0, 2.5]);
-      u.mem.summonMaj = (u.mem.summonMaj || 0) + T(t, [0, 10, 20, 40]); // 4 · 6 · 8명: 소환물 모든 메이저 +10 / 20 / 40 (라르스 경호원 보너스와 합산)
+      u.mem.bond = Math.max(u.mem.bond || 0, T(t, BUDDY_BOND));
+      u.mem.bondAmp = T(t, BUDDY_AMP);
+      u.mem.summonMaj = (u.mem.summonMaj || 0) + T(t, BUDDY_MAJ); // 4 · 6 · 8명: 소환물 모든 메이저 +10 / 20 / 40 (라르스 경호원 보너스와 합산)
     } }),
   },
   {
