@@ -1549,16 +1549,16 @@ function summonSection(d: UnitDef, b: Battle | null, c: CUnit | null, scope: str
     const range = sumS(b, s, 'range');
     const info = ABIL[d.id]?.summon?.[sd.name]?.(c.sk);
     const pv = provMult(b, s);
-    // 이름은 소환물이 여러 종류일 때만 (한 종류면 섹션 머리에 이미 있다)
-    const head = `<div class="sm-id">${sprite(s, 'spr sm-face')}<span class="sm-nm">${kinds.length > 1 ? `<b>${esc(sd.name)}</b>` : ''}${ms.length > 1 ? `<span class="sm-n" title="전투 시작 시 불려 나오는 수">${ms.length}기</span>` : ''}<span class="dh-types">${ct ? `<i>${typeIcon(ct)}${CTYPE_NAME[ct]}</i>` : ''}${categoryTag(s.category)}</span></span></div>`;
-    const chips = `<div class="ab-chips"><span class="abc sm-bond" title="${esc(`스탯 상속률: 주인의 체력 · 위력 · 방어도를 물려받는 비율 (명중 · 치명타 · 효과 명중 · 효과 저항 · 회피는 주인 값 그대로). ${bondNote(c, m)}`)}">${lineIcon('a.summon', 'li')}상속률 <b>${sumPc(m.rate)}</b></span>`
+    // 머리: 초상 (여러 기면 모서리에 수) | 이름 (여러 종류일 때만 — 한 종류면 섹션 머리에 이미 있다) · 전투 유형 · 분류 / 상속률 · 체력 · 위력 · 도발 칩
+    const chips = `<div class="ab-chips sm-stats"><span class="abc sm-bond" title="${esc(`스탯 상속률: 주인의 체력 · 위력 · 방어도를 물려받는 비율 (명중 · 치명타 · 효과 명중 · 효과 저항 · 회피는 주인 값 그대로). ${bondNote(c, m)}`)}">${lineIcon('a.summon', 'li')}상속률 <b>${sumPc(m.rate)}</b></span>`
       + (ex.length ? `<span class="abc" title="${esc(`추가로 불린 소환물 ${ex.length}기: 상속률 ×${CFG.bond.extra}`)}">추가 ${ex.length}기 <b>${sumPc(ex[0].rate)}</b></span>` : '')
-      + `<span class="abc" title="${hpLabel(s)}">${lineIcon('a.hp', 'li')}${fmt(sumS(b, s, 'maxHp'))}</span>`
-      + `<span class="abc" title="${pow === 'shoot' ? '사격' : '타격'} 위력">${lineIcon(`p.${pow}`, 'li')}${fmt(sumS(b, s, pow))}</span>`
-      + `<span class="abc" title="${esc(`도발 배율: 적이 이 소환물에게 쌓는 도발 수치에 곱해지는 값 (${ct ? `${CTYPE_NAME[ct]} 소환물` : '소환물'}). 돌격가 경계는 소환물에게 없다.`)}">${lineIcon('p.prov', 'li')}×${+pv.toFixed(2)}</span></div>`;
+      + `<span class="abc" title="${hpLabel(s)}">${lineIcon('a.hp', 'li')}<b>${fmt(sumS(b, s, 'maxHp'))}</b></span>`
+      + `<span class="abc" title="${pow === 'shoot' ? '사격' : '타격'} 위력">${lineIcon(`p.${pow}`, 'li')}<b>${fmt(sumS(b, s, pow))}</b></span>`
+      + `<span class="abc" title="${esc(`도발 배율: 적이 이 소환물에게 쌓는 도발 수치에 곱해지는 값 (${ct ? `${CTYPE_NAME[ct]} 소환물` : '소환물'}). 돌격가 경계는 소환물에게 없다.`)}">${lineIcon('p.prov', 'li')}<b>×${+pv.toFixed(2)}</b></span></div>`;
+    const head = `<div class="sm-id"><span class="sm-pic">${sprite(s, 'spr sm-face')}${ms.length > 1 ? `<b class="sm-n" title="전투 시작 시 불려 나오는 수">${ms.length}기</b>` : ''}</span><div class="sm-tx"><span class="sm-nm">${kinds.length > 1 ? `<b>${esc(sd.name)}</b>` : ''}<span class="dh-types">${ct ? `<i>${typeIcon(ct)}${CTYPE_NAME[ct]}</i>` : ''}${categoryTag(s.category)}</span></span>${chips}</div></div>`;
     const atk = `<div class="ps-card ab-click${abilOn(`summon:atk:${k}`)}" data-a="abil-pop" data-v="summon:atk:${k}" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">기본 공격</span><b>${WPOS(range)}</b></div><div class="ab-chips">${AB.chip('u.range', `${range}칸`, '사거리')}${AB.powNum(ctx, pow, sd.basicMult || 1, false, false, s.atk.elem)}${AB.chip('a.speed', `${s.atk.interval}초`, '공격 간격')}</div></div>`;
     const sk = info ? `<div class="ps-card ab-click${abilOn(`summon:skill:${k}`)}" data-a="abil-pop" data-v="summon:skill:${k}" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">기술 · 연계</span><b>${esc(d.skill.name)}</b></div><div class="ab-chips">${AB.skillChips(info, ctx, range, c.cdMax)}</div></div>` : '';
-    return `<div class="sm-unit">${head}${chips}<div class="ps-cards">${atk}${sk}</div></div>`;
+    return `<div class="sm-unit">${head}<div class="ps-cards">${atk}${sk}</div></div>`;
   }).join('') : `<p class="small muted">증강 효과로 이번 빌드에서는 소환물(${esc(names)})을 부르지 않는다.</p>`;
   return `<section class="abil sm-sec"><div class="ab-head"><span class="ab-kind">소환물</span><b>${esc(names)}</b><span class="ab-meta">${esc(scope)}</span></div>${body}</section>`;
 }
