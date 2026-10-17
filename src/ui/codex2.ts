@@ -12,7 +12,7 @@ import { BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES } from '../da
 import { DESPAIR_BY_ID, DESPAIRS, despairRule } from '../data/despair';
 import { OATHS, oathHeatOf, oathMax } from '../data/oaths';
 import { diffName } from '../data/difficulty';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, breadSell, combine, CONSUMABLES, emblemId, injectorWeights, INJECTORS, isLegendConsumable, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_PRICE, UNIQUE_IDS, isJunk, JUNK_IDS } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, breadSellText, combine, CONSUMABLES, emblemId, injectorWeights, INJECTORS, isLegendConsumable, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_PRICE, UNIQUE_IDS, isJunk, JUNK_IDS } from '../data/items';
 import { PSI_BRIEF } from '../data/brief';
 import { cantripView, passiveView, SCHOOL_LINE, transformPreview } from '../data/psiinfo';
 import { RELIC_BY_ID, RELICS } from '../data/relics';
@@ -280,7 +280,7 @@ function sources(id: string): string[] {
         out.push(`전투 ${C.staleAfter}회 뒤 [${CONSUMABLES.K_bread_stale?.name}]이 된다 (회복 −${C.staleHeal} · 판매가 −${C.staleSell}, ${chef.name} ${chef.tiers[C.noStaleTier - 1]}명 이상이 켜진 전투는 세지 않음)`);
       }
       out.push(`회복량 (위험 등급별): ${C.breadHeal.map(([l, h]) => `${diffName(l) || `위험 ${l}`} ${stale ? Math.max(1, h - C.staleHeal) : h}`).join(' · ')}`);
-      out.push(`판매가 (팔 때의 ${chef.name} 인원): ${[0, ...chef.tiers.map((_, i) => i + 1)].filter((t, i, a) => i === 0 || breadSell(t, stale) !== breadSell(a[i - 1], stale)).map((t) => `${t ? `${chef.tiers[t - 1]}명 이상` : '기본'} ${breadSell(t, stale)}`).join(' · ')}`);
+      out.push(`판매가 (난이도별): ${breadSellText(stale)}`);
     } else if (id === 'K_seize') {
       out.push(`상점 · ${S.price[id]} 크레딧 (${pctTxt(S.seize)} 확률 진열, ${foeGear})`);
       out.push(`전투 승리 보상 (매우 낮은 확률, ${foeGear}): ${dropTxt(CFG.drop.seize)}`);

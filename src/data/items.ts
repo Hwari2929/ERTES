@@ -178,8 +178,15 @@ export function breadHeal(d: number | undefined, stale = false): number {
   const v = breadHealBase(d);
   return stale ? Math.max(1, v - CFG.chef.staleHeal) : v;
 }
-/** 빵 판매가: 셰프 단계 tier 기준 (CFG.chef.breadSell), 식은 빵 −staleSell */
-export const breadSell = (tier: number, stale = false) => Math.max(0, (CFG.chef.breadSell[Math.min(tier, CFG.chef.breadSell.length - 1)] ?? CFG.sell.K) - (stale ? CFG.chef.staleSell : 0));
+/** 빵 판매가: 위험 등급 d 기준 (CFG.chef.breadSell, 쉬움 4 · 모험 3 · 고난 2), 식은 빵 −staleSell */
+export function breadSell(d: number | undefined, stale = false) {
+  const t = CFG.chef.breadSell.slice().sort((a, b) => a[0] - b[0]);
+  let v = t[0]?.[1] ?? CFG.sell.K;
+  for (const [l, p] of t) if ((d || 0) >= l) v = p;
+  return Math.max(0, v - (stale ? CFG.chef.staleSell : 0));
+}
+/** 판매가 표기: '쉬움 4 · 모험 3 · 고난 2' */
+export const breadSellText = (stale = false) => CFG.chef.breadSell.map(([l]) => `${diffName(l) || `위험 ${l}`} ${breadSell(l, stale)}`).join(' · ');
 /** 갓 구운 빵 · 식은 빵 */
 export const isBread = (id: string | null | undefined) => id === 'K_bread' || id === 'K_bread_stale';
 function breadHealBase(d: number | undefined): number {
@@ -199,8 +206,8 @@ export const CONSUMABLES: Record<string, { name: string; icon: string; target: '
   // 신비학자 [합성] 공방 상품 (price = 합성 가격)
   K_rank: { name: '공명 촉매', icon: '▲', target: 'unit', price: 10, desc: '기물에 사용: 공명 등급 +1.' },
   K_morph: { name: '변성 촉매', icon: '⟳', target: 'unit', price: 14, desc: '기물에 사용: 보유하지 않은 무작위 기물로 바뀌고 공명 등급 +3. 장비 · 개조부품 · 배치는 그대로 이어받습니다.' },
-  K_legend: { name: '전설 주조액', icon: '★', target: 'item', price: 24, desc: '장비에 사용: 전설 등급으로 바꿉니다 (재료 · 고급은 같은 계열의 전설로).' },
-  K_copy: { name: '복제 배양조', icon: '⧉', target: 'item', price: 30, desc: '장비에 사용: 똑같은 장비 1개를 보관함에 만듭니다.' },
+  K_legend: { name: '전설 주조액', icon: '★', target: 'item', price: 32, desc: '장비에 사용: 전설 등급으로 바꿉니다 (재료 · 고급은 같은 계열의 전설로).' },
+  K_copy: { name: '복제 배양조', icon: '⧉', target: 'item', price: 36, desc: '장비에 사용: 똑같은 장비 1개를 보관함에 만듭니다.' },
   // 전투 보상 · 상점 (합성 공방에서는 팔지 않음, 상점 가격은 CFG.shop.price)
   K_strip: { name: '분리 용제', icon: '⇲', target: 'unit', price: 0, drop: true, desc: '기물에 사용: 장착한 장비를 모두 해제해 보관함으로 돌려보냅니다 (고유 장비 · 개조부품 제외).' },
   K_reroll: { name: '재구성 회로', icon: '⟲', target: 'unit', price: 0, drop: true, desc: '기물에 사용: 장착한 장비를 모두 같은 등급의 다른 무작위 장비로 바꿉니다 (고유 장비 · 개조부품 제외).' },

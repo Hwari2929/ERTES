@@ -1112,8 +1112,8 @@ function ageBread(run: RunState): number {
   for (let k = 0; k < n; k++) { const i = run.inventory.indexOf('K_bread'); if (i >= 0) run.inventory[i] = 'K_bread_stale'; }
   return n;
 }
-/** 보관함 물품 판매가: 빵은 판매할 때의 셰프 단계 기준 (CFG.chef.breadSell, 식은 빵 −staleSell), 그 밖은 CFG.sell */
-export const sellPrice = (run: RunState, id: string) => (id === 'K_bread' || id === 'K_bread_stale' ? breadSell(tierNow(run, 'CHEF'), id === 'K_bread_stale') : CFG.sell[id[0]]);
+/** 보관함 물품 판매가: 빵은 위험 등급 기준 (CFG.chef.breadSell, 식은 빵 −staleSell), 그 밖은 CFG.sell */
+export const sellPrice = (run: RunState, id: string) => (id === 'K_bread' || id === 'K_bread_stale' ? breadSell(run.diff, id === 'K_bread_stale') : CFG.sell[id[0]]);
 
 /** 공명 주입기 1개: 페이즈에 맞는 크기 (injectorWeights 가중치) */
 const pickInjector = (r: Rng, phase: number) => r.weighted(injectorWeights(phase), ([, w]) => w)[0];

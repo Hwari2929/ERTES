@@ -4,7 +4,7 @@ import type { Effect, EffectCtx } from '../engine/effects';
 import { amp, applyLive, inc, red, vuln } from '../engine/effects';
 import { CFG } from '../config';
 import { type Major, MAJORS, type RunState, type Stats, type SynergyId } from '../types';
-import { ALL_ADVANCED, itemEffect, itemInfo, OCCULT_MODS, occultModsOfTier } from './items';
+import { ALL_ADVANCED, breadSellText, itemEffect, itemInfo, OCCULT_MODS, occultModsOfTier } from './items';
 import { CAUSAL, KING, KING_GEAR, KING_GEAR_NAME } from './chungra';
 import { addStacks, blinkTo, harmfulCount, isDebuffed, isHarmful, pct } from './kit';
 import { UNIT_BY_ID } from './units';
@@ -91,7 +91,7 @@ function shipCrash(b: Battle, u: CUnit, k: number, t = 1) {
 const CHEF_HP = [0, 0, 0.15, 0.25], CHEF_FEAST = 0.15;
 /** 수호자 (2 · 4 · 6 · 8명): 수호자 1명당 모든 아군 방어도 (수호자 2배) · 기본 공격 추가 피해 = 방어도 × hit.
  *  (8) [난공불락]: 추가 피해의 splashK 배가 대상 주변 splash 칸의 다른 적에게도, 수호자가 받는 피해 −red */
-const GUARD_T = { armor: [0.04, 0.08, 0.16, 0.22], hit: [0.1, 0.2, 0.5, 0.7] }, GUARD_WALL = { splash: 1, splashK: 0.5, red: 0.15 };
+const GUARD_T = { armor: [0.04, 0.08, 0.13, 0.22], hit: [0.1, 0.2, 0.4, 0.7] }, GUARD_WALL = { splash: 1, splashK: 0.5, red: 0.15 };
 /** 신비학자 (2 · 4 · 6 · 8명): 효과 명중 · [합성] 상품 수 (base + 단계) · [합성] 가격 할인 */
 const OCCULT_HIT = [0.15, 0.3, 0.5, 0.8];
 export const OCCULT_SYNTH = { base: 2, disc: [0, 0, 0.3, 0.5] };
@@ -509,8 +509,8 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'CHEF', name: '셰프', kind: 'trait', tiers: [2, 4, 6, 8], color: '#ffb36b', icon: '♨',
-    desc: `셰프의 전투 스킬은 요리입니다. 요리는 아군 1명을 회복시키거나 보호막을 주고 특수 버프를 겁니다. 단계가 오르면 요리 위력이 커집니다.\n· 셰프 시너지가 의뢰에서 처음 켜지면 소모품 [갓 구운 빵] 1개를 받고, 켜진 채로 전투에서 이기면 단계에 따라 확률로 1개씩 더 받습니다 (빵은 플레이어 체력 회복).\n· 빵은 얻은 뒤 전투 ${CFG.chef.staleAfter}회를 지나면 식은 빵이 됩니다 (회복 −${CFG.chef.staleHeal} · 판매가 −${CFG.chef.staleSell}). 빵 판매가는 팔 때의 셰프 단계에 따라 오릅니다.`,
-    tierDesc: [1, 2, 3, 4].map((t) => `${t === 4 ? '[만찬 코스] ' : ''}요리 위력 ×${CFG.cookPower[t]}${CHEF_HP[t - 1] ? `, 모든 아군 최대 체력 +${pct(CHEF_HP[t - 1])}` : ''}${t === 4 ? `, 셰프가 요리하면 다른 모든 아군도 셰프 기술 위력 ${pct(CHEF_FEAST)} × 요리 배율 회복` : ''}, 승리 시 ${pct(CFG.chef.breadWin[t - 1])} 확률로 갓 구운 빵 (빵 판매가 ${CFG.chef.breadSell[t]}${t >= CFG.chef.noStaleTier ? ', 켜진 동안 빵이 식지 않음' : ''})`),
+    get desc() { return `셰프의 전투 스킬은 요리입니다. 요리는 아군 1명을 회복시키거나 보호막을 주고 특수 버프를 겁니다. 단계가 오르면 요리 위력이 커집니다.\n· 셰프 시너지가 의뢰에서 처음 켜지면 소모품 [갓 구운 빵] 1개를 받고, 켜진 채로 전투에서 이기면 단계에 따라 확률로 1개씩 더 받습니다 (빵은 플레이어 체력 회복).\n· 빵은 얻은 뒤 전투 ${CFG.chef.staleAfter}회를 지나면 식은 빵이 됩니다 (회복 −${CFG.chef.staleHeal} · 판매가 −${CFG.chef.staleSell}). 빵 판매가는 난이도에 따라 정해집니다 (${breadSellText()}).` },
+    tierDesc: [1, 2, 3, 4].map((t) => `${t === 4 ? '[만찬 코스] ' : ''}요리 위력 ×${CFG.cookPower[t]}${CHEF_HP[t - 1] ? `, 모든 아군 최대 체력 +${pct(CHEF_HP[t - 1])}` : ''}${t === 4 ? `, 셰프가 요리하면 다른 모든 아군도 셰프 기술 위력 ${pct(CHEF_FEAST)} × 요리 배율 회복` : ''}, 승리 시 ${pct(CFG.chef.breadWin[t - 1])} 확률로 갓 구운 빵${t >= CFG.chef.noStaleTier ? ' (켜진 동안 빵이 식지 않음)' : ''}`),
     member: (t) => ({
       setup: (u) => { u.mem.cook = CFG.cookPower[t]; },
       // (8) [만찬 코스]: 요리(전투 기술)를 쓰면 자신을 뺀 모든 아군 회복 (요리 배율 · 증강 보너스 적용)

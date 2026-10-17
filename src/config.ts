@@ -127,7 +127,7 @@ export const CFG = {
     // 식은 빵 (K_bread_stale): 얻은 뒤 전투 staleAfter 회를 지나면 식는다 (승패 무관, 빵을 얻은 그 전투는 세지 않음) — 회복 −staleHeal (최소 1) · 판매가 −staleSell.
     // 셰프 noStaleTier 단계 (6명) 이상이 켜진 전투는 세지 않는다 (이미 식은 빵은 그대로)
     staleAfter: 2, staleHeal: 2, staleSell: 1, noStaleTier: 3,
-    breadSell: [4, 4, 5, 6, 7], // 빵 판매가: 판매할 때의 셰프 단계 (0 · 1 · 2 · 3 · 4단계) 기준
+    breadSell: [[3, 4], [6, 3], [7, 2]] as [number, number][], // 빵 판매가: 위험 등급 d 이하에서 가장 높은 등급의 값 (쉬움 4 · 모험 3 · 고난 2, 셰프 단계와 무관)
   },
 
   // ── 경제 [임시]
