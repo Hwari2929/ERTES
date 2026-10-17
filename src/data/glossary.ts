@@ -3,7 +3,7 @@
 import { CFG } from '../config';
 import { DIFF_PRESETS, diffName } from './difficulty';
 import { DESPAIRS } from './despair';
-import { controlNames, RELOAD_RESET_LABEL } from '../engine/combat';
+import { controlNames, RELOAD_RESET_LABEL, zocRule } from '../engine/combat';
 
 export interface GlossEntry { id: string; term: string; text: string; key: string }
 export interface GlossChapter { ch: string; title: string; who: string; entries: GlossEntry[] }
@@ -37,7 +37,8 @@ export const GLOSSARY: GlossChapter[] = [
       { id: 'armor', term: '방어도', key: 'ch1b_intro', text: '받는 피해를 줄이는 수치. 피해 × (1 − 방어도 ÷ (방어도 + 3200)), 즉 3200이면 절반. 높을수록 효과가 점점 둔해지고, 방어도 관통으로 일부를 무시할 수 있다.' },
       { id: 'category', term: '분류 (생체 · 기계 · 영혼 · 구조물)', key: 'ch1b_detail', text: '생체는 화학 피해 1.5배, 기계는 전기 1.5배 · 정신 0.25배, 영혼은 물리 0.6배 · 신성 1.5배. 구조물은 움직이지 않고 방어도 1.3배, 기절 · 공포 · 빙결이 듣지 않는다.' },
       { id: 'control', term: '제어 효과 · 재장전 초기화', key: 'ch1b_detail', text: `${controlNames()}은 행동을 막는 제어 효과다. 제어 효과가 걸려 있는 동안에는 재장전이 멈추고, 재장전 중에 적의 제어 효과를 받으면 재장전이 처음으로 돌아가 제어가 풀린 뒤 처음부터 다시 한다 (머리 위에 '${RELOAD_RESET_LABEL}'). 둔화 · 속박 · 매혹 · 혼란처럼 행동 자체를 막지 않는 효과는 해당하지 않는다.` },
-      { id: 'ctype', term: '전투 유형', key: 'ch1b_intro', text: '싸우는 방식. 돌격가(근접 타격 · 피니쉬), 명사수(사격 · 체력 비율이 가장 낮은 적을 노림), 전문가(기술 위력 · 효과 명중), 지휘관(출전 인원이 많을수록 커지는 전술 위력으로 기술).' },
+      { id: 'ctype', term: '전투 유형', key: 'ch1b_intro', text: '싸우는 방식. 돌격가(근접 타격 · 피니쉬 · 경계), 명사수(사격 · 체력 비율이 가장 낮은 적을 노림), 전문가(기술 위력 · 효과 명중), 지휘관(출전 인원이 많을수록 커지는 전술 위력으로 기술).' },
+      { id: 'zoc', term: '돌격가 경계', key: 'ch1b_intro', text: zocRule() },
       { id: 'detail', term: '상세 보기', key: 'ch1b_detail', text: '기물이나 적을 누르면 상세가 열린다. 돋보기(상세 보기, 단축키 D)를 켜면 계수와 세부 규칙까지 보인다.' },
     ],
   },

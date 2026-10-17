@@ -110,6 +110,8 @@
   --cell-mine: #1b2433;
   --cell-foe: #22191c;
   --cell-mid: #161b24;
+  --cell-zoc: rgb(150 172 214 / .10);   /* 돌격가 경계 칸 덧칠 (편성 화면 전용) */
+  --cell-zoc-line: rgb(150 172 214 / .30); /* 돌격가 경계 칸 테두리 */
   --overlay: rgba(6, 8, 12, 0.78);
   --tint-1: rgb(255 255 255 / .03);    /* 면 위 살짝 밝게 (hover · 선택 행) */
   --tint-2: rgb(255 255 255 / .06);
@@ -139,6 +141,8 @@
   --cell-mine: #16212f;
   --cell-foe: #221a1a;
   --cell-mid: #111a26;
+  --cell-zoc: rgb(92 184 166 / .10);
+  --cell-zoc-line: rgb(92 184 166 / .32);
   --overlay: rgba(4, 8, 14, 0.8);
   --tint-1: rgb(235 222 196 / .035);
   --tint-2: rgb(235 222 196 / .07);
@@ -177,6 +181,8 @@
   --cell-mine: #dfe6df;
   --cell-foe: #efdcd2;
   --cell-mid: #e8dfcd;
+  --cell-zoc: rgb(31 111 142 / .09);
+  --cell-zoc-line: rgb(31 111 142 / .32);
   --overlay: rgba(70, 52, 34, 0.42);
   --tint-1: rgb(60 40 20 / .04);
   --tint-2: rgb(60 40 20 / .08);
@@ -236,6 +242,8 @@
   --cell-mine: #221b36;
   --cell-foe: #2f1727;
   --cell-mid: #1b1427;
+  --cell-zoc: rgb(170 150 230 / .11);
+  --cell-zoc-line: rgb(170 150 230 / .32);
   --overlay: rgba(10, 4, 16, 0.8);
   --tint-1: rgb(255 210 235 / .04);
   --tint-2: rgb(255 210 235 / .08);
@@ -266,6 +274,8 @@
   --cell-mine: #1c1a37;
   --cell-foe: #261624;
   --cell-mid: #16142b;
+  --cell-zoc: rgb(170 195 242 / .10);
+  --cell-zoc-line: rgb(170 195 242 / .30);
   --overlay: rgba(7, 5, 19, 0.8);
   --tint-1: rgb(225 220 255 / .035);
   --tint-2: rgb(225 220 255 / .07);
@@ -732,6 +742,8 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 .cell.drop-hover { outline: 2px dashed var(--c-select); }
 .board .cell.tpad { background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--c-steel) 14%, transparent) 0 6px, transparent 6px 12px); outline: 1px dashed color-mix(in srgb, var(--c-steel) 45%, transparent); outline-offset: -3px; } /* 포탑 전용 가장자리 칸 */
 .board .cell.edge { background: transparent; border-color: transparent; }
+/* 돌격가 경계 (편성 화면에서만 붙는다): 칸 색 위에 은은한 덧칠 + 안쪽 가는 테두리 */
+.prep .board .cell.zoc { box-shadow: inset 0 0 0 1px var(--cell-zoc-line), inset 0 0 0 100vmax var(--cell-zoc); }
 .u { position: absolute; display: grid; place-items: center; transition: none; }
 .u.placed { cursor: grab; touch-action: none; }
 .u img { width: 82%; height: 82%; image-rendering: pixelated; pointer-events: none; }

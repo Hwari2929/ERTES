@@ -24,7 +24,7 @@ import * as TFX from './ui/themefx';
 import {
   activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyBaseMoveSpd, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
-import { Battle, controlNames, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME } from './engine/combat';
+import { Battle, controlNames, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME, zocRule, zocShort } from './engine/combat';
 import * as R from './engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
@@ -394,7 +394,7 @@ function nameBlock(d: UnitDef, syns: string[], rank: number | undefined, chipFn:
 }
 const CTYPE_DESC: Record<string, [string, string]> = {
   MARK: ['사격으로 싸운다. 1초마다 사거리 안에서 체력 비율이 가장 낮은 적을 다시 노린다. 사격 위력 · 공격 속도 · 재장전 · 명중 · 치명타가 중요하다.', '마무리 사격: 1초마다 사거리 안에서 체력 비율이 가장 낮은 적으로 대상을 바꾼다. 주력: 사격 위력, 사격 속도, 재장전 속도, 명중, 치명 확률 · 피해. 탄창을 다 쓰면 재장전하는 동안 기본 공격을 못 한다 (스킬은 가능).'],
-  VAN: ['근접 타격으로 싸운다. 타격 위력 · 콤보와 피니쉬 · 치명타가 중요하다.', `주력: 타격 위력, 타격 속도, 명중, 콤보 · 피니쉬 피해량, 치명 확률 · 피해. 무기별 N번째 공격이 피니쉬 (×${CFG.finishMult}).`],
+  VAN: [`근접 타격으로 싸운다. 타격 위력 · 콤보와 피니쉬 · 치명타가 중요하다. 주변 ${CFG.zoc.r}칸은 경계 — 들어온 적이 멈춰 선다 (암살형 제외).`, `주력: 타격 위력, 타격 속도, 명중, 콤보 · 피니쉬 피해량, 치명 확률 · 피해. 무기별 N번째 공격이 피니쉬 (×${CFG.finishMult}). ${zocRule()}`],
   SPEC: ['기술로 싸운다. 기술 위력 · 효과 명중 · 쿨다운이 중요하다.', '주력: 기술 위력, 효과 명중, 쿨다운 감소 속도, 기술 범위. 기술 피해는 치명타가 없다 (일부 특성 예외).'],
   CMD: ['아군이 함께 쓰는 전술 위력으로 스킬을 쓴다. 출전 인원이 많을수록, 지휘관이 많고 정신력이 높을수록 강하다.', `스킬은 전술 위력으로 계산한다. 전술 위력 = ${CFG.tacBase} (출전 4명 · 지휘관 1명 기준) + 출전 기물 1명당 ${CFG.tacPerUnit} + 지휘관 1명 추가당 ${CFG.tacPerCmd} + 지휘관 정신력 1당 ${CFG.tacPerMnd}.`],
 };
@@ -1133,13 +1133,22 @@ function prepScreen(run: RunState) {
   const ex = tcs.length ? PAD : 0;
   const bw = fw - 2 * PAD + 2 * ex, bh = fh - 2 * PAD;
   const cellBox = (x: number, y: number) => `left:${((x - PAD + ex) / bw) * 100}%;top:${((y - PAD) / bh) * 100}%;width:${100 / bw}%;height:${100 / bh}%`;
+  // 돌격가 경계 (편성 화면에서만 표시): 출전한 아군 돌격가 주변 CFG.zoc.r 칸
+  const zocCells = new Set<string>();
+  for (const u of deployed(run)) {
+    const p = lay.get(u.uid), d = UNIT_BY_ID[u.defId];
+    if (!p || d.ctype !== 'VAN' || d.inert) continue;
+    for (let dy = -CFG.zoc.r; dy <= CFG.zoc.r; dy++) for (let dx = -CFG.zoc.r; dx <= CFG.zoc.r; dx++) if (dx || dy) zocCells.add(`${p.x + dx},${p.y + dy}`);
+  }
+  const zocTip = ` title="${esc(zocShort())}"`;
   let cells = '';
   for (let y = PAD; y < fh - PAD; y++)
     for (let x = PAD - ex; x < fw - PAD + ex; x++) {
       const mine = y >= ALLY_Y0 && y <= ALLY_Y1;
       const enemyZone = y < PAD + ZONE;
-      if (x < PAD || x >= fw - PAD) { cells += mine ? `<div class="cell tpad" data-drop="tcell:${x}:${y}" title="포탑 전용 칸"></div>` : '<div class="cell edge"></div>'; continue; }
-      cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}" ${mine ? `data-drop="cell:${x}:${y}"` : ''}></div>`;
+      const zc = zocCells.has(`${x},${y}`);
+      if (x < PAD || x >= fw - PAD) { cells += mine ? `<div class="cell tpad${zc ? ' zoc' : ''}" data-drop="tcell:${x}:${y}" title="포탑 전용 칸${zc ? ` · ${esc(zocShort())}` : ''}"></div>` : `<div class="cell edge${zc ? ' zoc' : ''}"${zc ? zocTip : ''}></div>`; continue; }
+      cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}${zc ? ' zoc' : ''}" ${mine ? `data-drop="cell:${x}:${y}"` : ''}${zc ? zocTip : ''}></div>`;
     }
   let units = '';
   for (const u of deployed(run)) {
@@ -3214,7 +3223,7 @@ function reasonReport(b: Battle) {
 function actState(b: Battle, u: CUnit) {
   if (!u.alive) return '';
   const bar = (label: string, f: number, cls: string, note = '') => `<div class="as-row ${cls}"><span>${label}</span><span class="as-bar"><i style="width:${Math.round(Math.max(0, Math.min(1, f)) * 100)}%"></i></span><span class="mono small">${note}</span></div>`;
-  const why = b.has(u, 'stun') ? '기절 — 행동 불가' : b.has(u, 'fear') ? '공포 — 공격 · 기술 불가' : u.reloadT > 0 && b.has(u, 'shock') ? '감전 — 쿨다운 · 재장전 정지' : u.moveT > 0 ? '이동 중' : u.reloadT > 0 ? (u.skill && u.cd <= 0 ? '재장전 중 — 기술 대기' : '재장전 중') : u.target && u.target.alive && b.dist(u, u.target) > b.S(u, 'range') ? '사거리 밖 — 접근 중' : '';
+  const why = b.has(u, 'stun') ? '기절 — 행동 불가' : b.has(u, 'fear') ? '공포 — 공격 · 기술 불가' : u.reloadT > 0 && b.has(u, 'shock') ? '감전 — 쿨다운 · 재장전 정지' : u.moveT > 0 ? '이동 중' : (u.mem.zocUntil || 0) > b.t ? `돌격가 경계에 걸림 — ${((u.mem.zocUntil || 0) - b.t).toFixed(1)}초 뒤 이동` : u.reloadT > 0 ? (u.skill && u.cd <= 0 ? '재장전 중 — 기술 대기' : '재장전 중') : u.target && u.target.alive && b.dist(u, u.target) > b.S(u, 'range') ? '사거리 밖 — 접근 중' : '';
   const rows: string[] = [];
   if (u.skill) rows.push(bar('기술 준비', u.cdMax ? 1 - u.cd / u.cdMax : 1, 'sk', u.cd <= 0 ? (u.reloadT > 0 ? '재장전 대기' : '준비됨') : `${Math.max(0, u.cd).toFixed(1)}초`));
   if (u.weapon?.kind === 'mag') {
