@@ -1687,5 +1687,68 @@
   "source": "enemy",
   "notes": "시안(미채택) · 캣휠 장애물(cw_rock). 귀여운 돌 하나만 중앙",
   "object": true
+ },
+ "dobin": {
+  "name": "도빈",
+  "subject": "1girl",
+  "tags": "young woman, 20s, black hair, short hair, short ponytail, tied hair, brown eyes, high-tech engineer outfit, futuristic work jumpsuit, tool belt, mechanical gauntlet, holding nail gun, rivet launcher, sci-fi goggles on head, confident, full body, standing, looking at viewer",
+  "source": "user",
+  "notes": "20대 여성, 짧게 묶은 흑발, 고동색 눈, 하이테크 엔지니어 복장, 대못 발사기."
+ },
+ "siu": {
+  "name": "시우",
+  "subject": "1girl",
+  "tags": "mature female, 30s, black hair, very long hair, green eyes, blue hanbok, futuristic hanbok, korean clothes, high-tech hanbok, glowing circuit patterns, holding staff, armillary sphere staff, celestial globe on staff, scholar, calm, full body, standing, looking at viewer",
+  "source": "user",
+  "notes": "30대 여성, 긴 흑발, 초록 눈, 파란 하이테크 한복, 천구 지팡이."
+ },
+ "jaehwon": {
+  "name": "재훤",
+  "subject": "1boy",
+  "tags": "adult man, 30s, pink hair, short hair, black eyes, blind left eye, closed left eye, scar on face, scar across eye, joseon hanbok, korean clothes, hunter outfit, leather straps, fur trim, holding shotgun, hunting rifle, rugged, full body, standing, looking at viewer",
+  "source": "user",
+  "notes": "30대 남성, 짧은 분홍 머리, 검은 눈, 왼쪽 실명 + 눈가 흉터, 조선 한복 + 사냥꾼 + 엽총."
+ },
+ "juseong": {
+  "name": "주성",
+  "subject": "1boy",
+  "tags": "adult man, 30s, dark green hair, long hair, tied hair, ponytail, black eyes, gat, korean traditional hat, black gat, amhaeng-eosa, royal secret inspector, dark hanbok, korean clothes, holding glaive, woldo, crescent blade polearm, stern, full body, standing, looking at viewer",
+  "source": "user",
+  "notes": "30대 남성, 묶은 긴 어두운 초록 머리, 검은 눈, 갓 + 암행어사 복장 + 월도."
+ },
+ "clover": {
+  "name": "클로버",
+  "subject": "1girl",
+  "tags": "android, robot girl, female android, mechanical body, high-tech, white and green armor plating, faceplate, clover symbol on face, four-leaf clover painted on face, glowing green eyes, joints, agricultural AI, small drone, full body, standing, looking at viewer",
+  "source": "user",
+  "notes": "얼굴 부위에 클로버가 그려진 하이테크 여성형 기계 안드로이드."
+ },
+ "hana": {
+  "name": "한아",
+  "subject": "1girl",
+  "tags": "mature female, 30s, silver hair, long hair, blue eyes, black hanbok, korean clothes, shaman, mudang, dark shaman robes, holding talisman, paper talismans, ofuda, mysterious, full body, standing, looking at viewer",
+  "source": "user",
+  "notes": "30대 여성, 은발 벽안, 흑빛 무당 한복 + 부적."
+ },
+ "gayoung": {
+  "name": "가영",
+  "subject": "1girl",
+  "tags": "young woman, 20s, black hair, long hair, messy hair, unkempt hair, white hanbok, korean clothes, shaman, mudang, white shaman robes, holding dagger, knife, wild, full body, standing, looking at viewer",
+  "source": "user",
+  "notes": "20대 여성, 길고 어수선한 흑발, 백색 무당 한복 + 단도."
+ },
+ "muhyul": {
+  "name": "무휼",
+  "subject": "1boy",
+  "tags": "adult man, 30s, black hair, black eyes, red hanbok, futuristic hanbok, high-tech hanbok, korean clothes, prince, royal, glowing patterns, holding bow, high-tech bow, energy bow, noble, full body, standing, looking at viewer",
+  "source": "user",
+  "notes": "30대 남성, 흑발 흑안, 적색 하이테크 한복 + 하이테크 활 (원본 문서는 '갓 성인' — 사용자 설정 우선)."
+ },
+ "gungo": {
+  "name": "궁오",
+  "subject": "1boy",
+  "tags": "adult man, 30s, tiger boy, tiger ears, tiger tail, tiger stripes, orange hair, furry ears, sharp eyes, fugitive, ragged clothes, tattered cloak, hooded cloak, worn hanbok, bandages, wanderer, full body, standing, looking at viewer",
+  "source": "user",
+  "notes": "30대 범인(호랑이 수인), 주황 머리, 도망자 복장."
  }
 }
