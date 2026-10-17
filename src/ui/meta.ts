@@ -25,6 +25,8 @@ export interface Meta {
   achieved?: Record<string, string>;
   /** 바 카운터 뒤 진열장에 놓은 업적 (최대 3개, 놓은 순서) */
   showcase?: string[];
+  /** 절망 서약 (data/oaths.ts): 지금 설정 (서약 id → 단계) · 전장별 최고 절망 수치 성공 (고난 이상 의뢰 성공 때의 총 절망 수치) */
+  oath?: { sel?: Record<string, number>; best?: Record<string, number> };
 }
 /** 직전 런 요약: 바 반응 대사가 읽는다 */
 export interface BarLast { run: number; field: string; cleared: boolean; phase: number; diff: number; mvp?: string; units: string[]; newEvents: string[] }
@@ -145,6 +147,7 @@ export function metaClear(run: RunState) {
   f.clears++;
   f.bestDiff = Math.max(f.bestDiff, run.diff);
   if (run.diff >= m.maxDiff) m.maxDiff = Math.min(MAX_DIFF, run.diff + 1);
+  if (run.oaths) { const b = ((m.oath ||= {}).best ||= {}); b[run.field] = Math.max(b[run.field] ?? -1, run.oathHeat || 0); } // 절망 서약 (고난 이상)
   for (const id of run.usedIds) (m.units[id] ||= { runs: 0, ranks: 0, best: 0, clears: 0 }).clears++;
   save();
 }
@@ -194,5 +197,12 @@ export function metaTutEnd(kind: 'done' | 'skipped') {
   const m = loadMeta();
   const t = (m.tut ||= {});
   t[kind] = true;
+  save();
+}
+// ───────── 절망 서약 (data/oaths.ts): 타이틀 [절망 서약] 화면의 설정 (고난 이상으로 출격할 때 런에 옮긴다)
+export const oathSel = (): Record<string, number> => ({ ...(loadMeta().oath?.sel || {}) });
+export function metaOath(sel: Record<string, number>) {
+  const m = loadMeta();
+  (m.oath ||= {}).sel = Object.fromEntries(Object.entries(sel).filter(([, n]) => n > 0));
   save();
 }

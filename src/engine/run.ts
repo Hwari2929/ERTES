@@ -3,6 +3,7 @@ import { AUG_BY_ID } from '../data/augments';
 import { FIELDS, fieldOf } from '../data/battlefields';
 import { diffAddCount, diffHas } from '../data/difficulty';
 import { CATWHEEL, DESPAIRS, despairAt, despairDiff, hasDespair, PETROCK } from '../data/despair';
+import { oathDespairEvery, oathHeat, oathLv, oathsFor, oathV, oathWinMul, type OathSel } from '../data/oaths';
 import { EVENT_BY_ID, EVENTS, type EventApi } from '../data/events';
 import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
@@ -44,11 +45,12 @@ const despairXp = (run: RunState) => (hasDespair(run, 'D.swarm') ? 1 - CFG.despa
 const despairPrice = (run: RunState) => (hasDespair(run, 'D.tariff') ? 1 + CFG.despair.tariff : 1);
 
 // ───────────────────────── 런 생성
-export function newRun(seed: number, starters: string[], field?: string, diff = 0): RunState {
+export function newRun(seed: number, starters: string[], field?: string, diff = 0, oathSel?: OathSel): RunState { // oathSel: 절망 서약 설정 (고난 이상일 때만 옮긴다, data/oaths.ts)
+  const oaths = oathsFor(diff, oathSel), hp = CFG.playerHp - (diffHas(diff, 7) ? 25 : 0) - oathV({ oaths }, 'hull', 'hp');
   const run: RunState = {
     version: SAVE_VERSION, seed, rng: seed, phase: 1, step: 0, map: phaseMap(1), picked: [], node: null,
-    hp: CFG.playerHp - (diffHas(diff, 6) ? 25 : 0), maxHp: CFG.playerHp - (diffHas(diff, 6) ? 25 : 0), credits: diffHas(diff, 3) ? 0 : CFG.startCredits, streak: 0, units: [], inventory: [],
-    globals: [], pending: [], quests: [], questPhase: 0, loan: 0, faith: 0, power: 0, divCap: 0, fame: 0, blessing: null, staffTarget: null, aceTarget: null, privilege: null, despairs: [], field: field || 'waste', diff, cleared: false, endless: false,
+    hp, maxHp: hp, credits: diffHas(diff, 3) ? 0 : CFG.startCredits, streak: 0, units: [], inventory: [],
+    globals: [], pending: [], quests: [], questPhase: 0, loan: 0, faith: 0, power: 0, divCap: 0, fame: 0, blessing: null, staffTarget: null, aceTarget: null, privilege: null, despairs: [], ...(oaths ? { oaths, oathHeat: oathHeat(oaths) } : {}), field: field || 'waste', diff, cleared: false, endless: false,
     mods: { interestCap: 0, nodeIncome: 0 }, boons: [], phaseBoons: [], seenEvents: [], flags: [], usedIds: [], rankLog: {}, nextUid: 1, log: [],
     stats: { wins: 0, losses: 0, kills: 0, bestHit: 0 }, over: false,
   };
@@ -56,7 +58,7 @@ export function newRun(seed: number, starters: string[], field?: string, diff = 
   autoPlace(run);
   if (!field) run.field = rng(run, (r) => r.pick(FIELDS).id);
   // 전장 · 난이도는 출격 전 화면에서 이미 보여 줬다. 특권 증강이 시작 기물 합류 증강보다 먼저
-  run.pending.unshift({ t: 'privilege', options: rollPrivileges(run), rerolls: CFG.privilegeRerolls });
+  run.pending.unshift({ t: 'privilege', options: rollPrivileges(run).slice(0, oathV(run, 'strip', 'choices') || undefined), rerolls: oathLv(run, 'strip') ? oathV(run, 'strip', 'rerolls') : CFG.privilegeRerolls }); // 박탈의 서약
   if (despairDiff(diff)) queueDespair(run); // 고난: 특권 바로 다음 (해금 조건 없음)
   log(run, '용병단 ERRANTEs, 출격.');
   return run;
@@ -145,6 +147,7 @@ export function pickDespair(run: RunState, idx: number) {
   run.pending.shift();
   if (hasDespair(run, id)) return; // 이미 건 증강 (선택지는 이를 빼고 뽑으므로 예전 저장에서만): 겹쳐 걸지 않고 넘어간다
   (run.despairs ||= []).push(id);
+  if (p?.t === 'despair' && !p.phase && run.despairs.length < 1 + oathV(run, 'abyss', 'start')) queueDespair(run); // 심연의 서약: 출격 때 하나 더 (고른 뒤에 뽑아 겹치지 않게)
   if (id === 'D.rock' || id === 'D.rival') for (const q of run.pending) if (q.t === 'recruit' && !q.syns) q.options = recruitOptions(run, q.options.length);
   log(run, `절망 증강: ${DESPAIRS.find((d) => d.id === id)?.name}`);
 }
@@ -278,12 +281,12 @@ export function battleRewardPreview(run: RunState, node: NodeType) {
   const p = run.phase;
   const counts = synergyCounts(deployed(run), run);
   const pet = tierOf('PET', counts.PET || 0);
-  const cap = Math.max(0, CFG.interestMax + run.mods.interestCap - (diffHas(run.diff, 3) ? 1 : 0)) + (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (pet >= 4 ? 4 : 0) + (hasGlobal(run, 'G.interest') ? 5 : 0)
+  const cap = Math.max(0, CFG.interestMax + run.mods.interestCap - (diffHas(run.diff, 6) ? 1 : 0) - oathV(run, 'vault', 'cap')) + (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (pet >= 4 ? 4 : 0) + (hasGlobal(run, 'G.interest') ? 5 : 0)
     + (run.units.some((u) => u.defId === 'lars') ? 2 : 0);
   const interest = despairInterest(run, Math.min(cap, Math.floor(run.credits / CFG.interestPer)));
   let c = CFG.winCredits(p);
   if (type === 'adversity') c = Math.round(c * CFG.adversityReward);
-  c = Math.round(c * CFG.diffWinMul(run.diff || 0));
+  c = Math.round(c * CFG.diffWinMul(run.diff || 0) * oathWinMul(run)); // 박봉의 서약
   if (type === 'boss') c += 5;
   const win = interest + c + CFG.streakBonus(Math.max(1, run.streak + 1)) + (pet >= 1 ? (pet >= 4 ? 3 : 1) : 0) + (fieldOf(run.field).winCredits || 0);
   const loss = interest + CFG.lossCredits + (pet >= 2 ? 6 : 0);
@@ -337,7 +340,7 @@ function offerRecruit(run: RunState) {
     const why = pool.length ? `보유 한도(${CFG.maxParty}명)에 도달해` : '영입할 수 있는 기물이 없어';
     run.pending.push({ t: 'notice', title: '영입 불가', body: `${why} 크레딧 +10 으로 대체합니다.` });
   } else {
-    const k = 3 + (hasGlobal(run, 'G.scout') ? 1 : 0) + (hasGlobal(run, 'G.network') ? 1 : 0);
+    const k = Math.max(1, 3 + (hasGlobal(run, 'G.scout') ? 1 : 0) + (hasGlobal(run, 'G.network') ? 1 : 0) - oathV(run, 'recruit', 'less')); // 고립의 서약
     run.pending.push({ t: 'recruit', options: recruitOptions(run, k) });
   }
 }
@@ -616,7 +619,7 @@ export function advance(run: RunState) {
     run.blessing = null;
     run.phaseBoons = [];
     log(run, `페이즈 ${run.phase} 진입. 적이 강해집니다.`);
-    if (despairAt(run.diff, run.phase)) queueDespair(run, run.phase); // 고난: 절망 증강 1개 더 (영입보다 먼저)
+    if (despairAt(run.diff, run.phase, oathDespairEvery(run))) queueDespair(run, run.phase); // 고난: 절망 증강 1개 더 (영입보다 먼저, 심연의 서약이면 간격이 짧다)
     offerRecruit(run); // 페이즈 시작 영입
     if (run.fund) { run.credits += run.fund; log(run, `호이슌 투자 수익 +${run.fund}`); run.pending.push({ t: 'notice', title: '투자 수익 정산', body: `지난 페이즈에 맡긴 자금이 불어나 크레딧 +${run.fund}을 돌려받았습니다.` }); run.fund = 0; }
   }
@@ -695,16 +698,16 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
       const boss = f.bosses[(p - 1) % f.bosses.length];
       ids.push(boss, ...(ENEMY_BY_ID[boss].escort || []));
       const extra = Math.max(0, Math.min(4, p - 1)); // 보스 호위 추가 인원 (최대 4)
-      for (let i = 0; i < extra + (diffHas(run.diff, 4) ? 1 : 0); i++) ids.push(r.pick(pool));
+      for (let i = 0; i < extra + (diffHas(run.diff, 4) ? 1 : 0) + oathV(run, 'titan', 'guard'); i++) ids.push(r.pick(pool)); // 거두의 서약: 호위 +
     } else {
       const late = run.step >= 5 ? 1 : 0; // 페이즈 후반 (항로 회의 이후 두 번째 전투부터)
       const count = Math.min(rows * n - 2, 2 + p + late + (f.extraEnemies || 0) + (type === 'adversity' && diffHas(run.diff, 5) ? 1 : 0));
-      if (type === 'adversity' || (p >= 2 && r.chance(diffHas(run.diff, 5) ? 0.6 : 0.3))) ids.push(f.elite);
+      if (type === 'adversity' || ((p >= 2 || oathLv(run, 'elite')) && r.chance((diffHas(run.diff, 5) ? 0.6 : 0.3) + oathV(run, 'elite', 'chance')))) ids.push(f.elite); // 정예의 서약: 1페이즈부터 · 확률 +
       while (ids.length < count) ids.push(r.pick(pool));
     }
     // 위험 등급 적 증원 (모험 · 고난, CFG.diffAdd): 보스전 포함 모든 전투. 이 조우에 이미 나온 일반 적(정예 · 보스 · 장애물 제외) 중에서 복제하고,
     // 없으면 전장 풀에서. 보드 칸(줄 × 폭 - 2)이 모자라면 들어가는 만큼만
-    const add = Math.max(0, Math.min(diffAddCount(run.diff, p), rows * n - 2 - ids.length));
+    const add = Math.max(0, Math.min(diffAddCount(run.diff, p) + oathV(run, 'horde', 'add'), rows * n - 2 - ids.length)); // + 군세의 서약
     if (add) {
       const same = ids.filter((id) => ENEMY_BY_ID[id].tier === 'minion' && !ENEMY_BY_ID[id].inert);
       for (let i = 0; i < add; i++) ids.push(r.pick(same.length ? same : pool));
@@ -765,7 +768,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   const uni = tierOf('UNI', counts.UNI || 0);
 
   // 이자 (수입 전 보유량 기준)
-  const cap = Math.max(0, CFG.interestMax + run.mods.interestCap - (diffHas(run.diff, 3) ? 1 : 0)) + (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (pet >= 4 ? 4 : 0) + (hasGlobal(run, 'G.interest') ? 5 : 0)
+  const cap = Math.max(0, CFG.interestMax + run.mods.interestCap - (diffHas(run.diff, 6) ? 1 : 0) - oathV(run, 'vault', 'cap')) + (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (pet >= 4 ? 4 : 0) + (hasGlobal(run, 'G.interest') ? 5 : 0)
     + (run.units.some((u) => u.defId === 'lars') ? 2 : 0); // 라르스: 이자 상한 +2
   const creditsBefore = run.credits;
   const interest = despairInterest(run, Math.min(cap, Math.floor(run.credits / CFG.interestPer)));
@@ -778,7 +781,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     run.stats.wins++;
     let c = CFG.winCredits(p);
     if (type === 'adversity') c = Math.round(c * CFG.adversityReward);
-    c = Math.round(c * CFG.diffWinMul(run.diff || 0)); // 위험 3 ×1.25 · 위험 6 ×1.5
+    c = Math.round(c * CFG.diffWinMul(run.diff || 0) * oathWinMul(run)); // 위험 3 ×1.25 · 위험 6 ×1.5 · 박봉의 서약
     if (type === 'boss') c += 5;
     income += c;
     lines.push(`승리 보상 +${c}`);
@@ -812,7 +815,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     run.stats.losses++;
     income += CFG.lossCredits;
     const survivors = b.fighters(1).length;
-    hpLoss = type === 'boss' ? CFG.bossLossDamage(p) : CFG.lossDamage(p, survivors) * (type === 'adversity' ? CFG.adversityLoss : 1);
+    hpLoss = (type === 'boss' ? CFG.bossLossDamage(p) : CFG.lossDamage(p, survivors) * (type === 'adversity' ? CFG.adversityLoss : 1)) * (1 + oathV(run, 'wound', 'loss')); // 패전의 서약
     if (pet >= 2) { hpLoss *= 0.5; income += 6; lines.push('페트라 보험금 +6, 체력 피해 50% 감소'); }
     if (hasGlobal(run, 'G.survival')) hpLoss *= 0.7;
     hpLoss = Math.round(hpLoss);
@@ -982,13 +985,13 @@ export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major')
     const leg = unitPool.filter((a) => isLegendAug(a.id)).map((a) => a.id), norm = unitPool.filter((a) => !isLegendAug(a.id)).map((a) => a.id);
     return rng(run, (r) => {
       const show = leg.length > 0 && r.chance(psiLegendChance(u));
-      const out = show ? [...r.sample(norm, CFG.augmentChoices - 1), r.pick(leg)] : r.sample(norm, CFG.augmentChoices);
+      const out = show ? [...r.sample(norm, augN(run) - 1), r.pick(leg)] : r.sample(norm, augN(run));
       return r.shuffle(out).map((id) => ({ id }));
     });
   }
   return rng(run, (r) => {
     // 배타 증강은 없다 (어떤 조합도 함께 작동). 보유하지 않은 후보에서 균등 비복원 추출
-    const out = r.sample(unitPool.map((x) => x.id), CFG.augmentChoices);
+    const out = r.sample(unitPool.map((x) => x.id), augN(run));
     return out.map((id) => {
       const a = AUG_BY_ID[id];
       return a.roll ? { id, param: a.roll((arr) => r.pick(arr)) } : { id };
@@ -996,6 +999,8 @@ export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major')
   });
 }
 
+/** 증강 선택지 수 (메이저 · 스페셜 · 전공 증강): 침묵의 서약이면 줄어든다 */
+const augN = (run: RunState) => Math.max(1, CFG.augmentChoices - oathV(run, 'augment', 'less'));
 /** ★ 전설 전공 증강이 이번 선택지에 섞일 확률: 기본 + 전설 없이 지나간 전공 증강 선택마다 보정, 전설을 한 번 얻으면 기본만 */
 export function psiLegendChance(u: UnitState): number {
   const owned = u.augments.filter((a) => a.id.startsWith('psi.'));

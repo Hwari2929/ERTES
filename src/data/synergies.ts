@@ -627,7 +627,7 @@ export const SYNERGIES: SynDef[] = [
         majors: { pow: 20 },
         hooks: {
           onSkill(b, u) { b.heal(u, u, b.S(u, 'maxHp') * heal, false, 'VOYAGE'); },
-          dmgMult: (b) => (b.t > CFG.overtimeStart ? ot : 1),
+          dmgMult: (b) => (b.t > CFG.overtimeStart - (b.ctx.otShift || 0) ? ot : 1), // 연장전 (초침의 서약이면 앞당겨짐)
         },
       };
     },

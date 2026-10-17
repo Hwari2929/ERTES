@@ -340,7 +340,7 @@ export type BEvent =
   /** 사이오닉 소마법 시전 (to: 주 대상) */
   | { k: 'cantrip'; id: number; school: SchoolId; to?: number; name: string };
 
-export interface BattleCtx { phase: number; credits: number; field?: string; diff?: number; despairs?: string[] } // despairs: 이 런의 절망 증강 id 목록 (data/despair.ts)
+export interface BattleCtx { phase: number; credits: number; field?: string; diff?: number; despairs?: string[]; oaths?: Record<string, number>; otShift?: number } // despairs: 이 런의 절망 증강 id 목록 (data/despair.ts) · oaths: 절망 서약 (data/oaths.ts) · otShift: 연장전 · 제한 시간을 앞당기는 초 (초침의 서약)
 
 /** 전장 조건 훅: 전장(id)마다 하나. battlefields.ts 가 FIELD_RULES 에 등록하고, 전투 시작 때 ctx.field 로 붙는다 */
 export interface FieldRules {
@@ -640,7 +640,7 @@ export class Battle {
       this.act(u, dt);
       if (this.over) return;
     }
-    if (this.t >= CFG.timeLimit) this.winner = 1;
+    if (this.t >= CFG.timeLimit - (this.ctx.otShift || 0)) this.winner = 1;
   }
 
   runToEnd(maxT = CFG.timeLimit + 1) {
@@ -1005,7 +1005,8 @@ export class Battle {
       dmg *= takenMult(allTaken(tgt), tags, isTrue);
       if (!selfPsy) for (const h of src.hooks) if (h.dmgMult) dmg *= h.dmgMult(this, src, tgt, o);
       for (const h of tgt.hooks) if (h.takenMult) dmg *= h.takenMult(this, tgt, src, o);
-      if (this.t > CFG.overtimeStart) dmg *= 1 + (this.t - CFG.overtimeStart) * CFG.overtimeRamp;
+      const ot = CFG.overtimeStart - (this.ctx.otShift || 0); // 초침의 서약: 연장전을 앞당긴다
+      if (this.t > ot) dmg *= 1 + (this.t - ot) * CFG.overtimeRamp;
       // 광폭: 같은 편에게 주는 피해 50%
       if (src !== tgt && o.tag !== 'dot' && this.sideOf(src) === this.sideOf(tgt) && this.frenzied(src)) dmg *= 0.5;
     }

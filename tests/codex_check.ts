@@ -6,6 +6,7 @@ import { FIELD_BY_ID, FIELDS } from '../src/data/battlefields';
 import { BLURB, blurbNames, unitBlurb } from '../src/data/brief';
 import { BLESSINGS, EMBLEM_SYNS, GLOBALS, PRIVILEGES } from '../src/data/globals';
 import { DESPAIRS } from '../src/data/despair';
+import { OATHS, oathMax } from '../src/data/oaths';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, CONSUMABLES, emblemId, HEL_ITEM_IDS, itemInfo, OCCULT_MODS, TURRET_GEAR_IDS, UNIQUE_IDS, JUNK_IDS } from '../src/data/items';
 import { CANTRIP_INFO, PASSIVE_INFO } from '../src/data/psiinfo';
 import { RELICS } from '../src/data/relics';
@@ -123,6 +124,11 @@ for (const d of DESPAIRS) {
   if (!augRow(d.id)) fail(`절망 증강 ${d.id} (${d.name}): 증강 탭에 없음`);
   else if (!lists.augs.includes(esc(d.desc()))) fail(`절망 증강 ${d.id}: 효과 설명이 증강 탭에 없음`);
 }
+for (const o of OATHS) { // 절망 서약: 모든 단계의 효과가 증강 탭에 있는지 · 단계마다 절망 수치가 있는지
+  named(`절망 서약 ${o.id}`, o.name);
+  if (!augRow(`oath.${o.id}`)) fail(`절망 서약 ${o.id} (${o.name}): 증강 탭에 없음`);
+  for (let n = 1; n <= oathMax(o.id); n++) if (!lists.augs.includes(esc(o.lv(n)))) fail(`절망 서약 ${o.id}: ${n}단계 효과 설명이 증강 탭에 없음`);
+}
 
 // ───── 세계관: 모든 항목이 목록에 나오고, 연결한 기물 · 시너지 · 전장 · 항목이 실제로 있고 양쪽에서 이어지는지 + 분량 규칙
 const loreSeen = new Set<string>();
@@ -196,7 +202,7 @@ for (const d of UNITS) {
 }
 for (const id of Object.keys(BLURB)) if (!UNIT_BY_ID[id]) fail(`한 줄 설명 ${id}: 없는 기물`);
 
-const n = { units: UNITS.length, items: nItems, syn: SYNERGIES.length, schools: SCHOOLS.length, augs: ALL_AUGS.length + GLOBALS.length + PRIVILEGES.length + BLESSINGS.length + DESPAIRS.length, lore: LORE.length };
+const n = { units: UNITS.length, items: nItems, syn: SYNERGIES.length, schools: SCHOOLS.length, augs: ALL_AUGS.length + GLOBALS.length + PRIVILEGES.length + BLESSINGS.length + DESPAIRS.length + OATHS.length, lore: LORE.length };
 console.log(`도감 검사: 기물 ${n.units} · 장비 ${n.items} · 시너지 ${n.syn} · 전공 ${n.schools} · 증강 ${n.augs} · 세계관 ${n.lore}`);
 for (const w of warns) console.log(`  경고 ${w}`);
 if (fails.length) {

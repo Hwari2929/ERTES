@@ -190,6 +190,9 @@ export interface RunState {
   despairs?: string[];
   /** (예전 저장) 절망 증강 1개 — 불러올 때 despairs 로 옮긴다 (run.ts migrate) */
   despair?: string | null;
+  /** 절망 서약 (data/oaths.ts): 고난 이상으로 출격할 때 도감 기록의 설정을 옮겨 둔 것 (서약 id → 단계) · 그때의 총 절망 수치 */
+  oaths?: Record<string, number>;
+  oathHeat?: number;
   field: string; // 전장 (battlefields.ts)
   diff: number; // 난이도 단계 = 위험 등급 (difficulty.ts): 쉬움 3 · 모험 6 · 고난 7
   cleared: boolean; // 목표 페이즈 보스 격파 (의뢰 성공)

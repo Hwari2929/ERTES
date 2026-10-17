@@ -10,6 +10,7 @@ import { FIELD_BY_ID, FIELDS } from '../data/battlefields';
 import { ALL_AUGS, augDesc, augSource } from '../data/augments';
 import { BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES } from '../data/globals';
 import { DESPAIR_BY_ID, DESPAIRS, despairRule } from '../data/despair';
+import { OATHS, oathHeatOf, oathMax } from '../data/oaths';
 import { diffName } from '../data/difficulty';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, breadSell, combine, CONSUMABLES, emblemId, injectorWeights, INJECTORS, isLegendConsumable, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_PRICE, UNIQUE_IDS, isJunk, JUNK_IDS } from '../data/items';
 import { PSI_BRIEF } from '../data/brief';
@@ -672,7 +673,7 @@ function augGroups(): AugGroup[] {
   // 전역 · 특권 · 축복 · 절망: 기물이 아닌 함대 전체 증강 (icon: 줄마다 아이콘이 다를 때)
   const simple = (key: string, name: string, note: string, rows: { id: string; name: string; desc: string; tags: string[]; icon?: string }[]): AugGroup => ({
     key, name, note, count: rows.length,
-    body: () => `<ul class="augs cx2-augs${key === 'despair' ? ' cx2-despair' : ''}">${rows.map((r) => `<li class="aug-li" data-id="${esc(r.id)}"${qAttr('augs', `${r.name} ${r.desc} ${r.tags.join(' ')}`)}><span class="aug-ic" aria-hidden="true">${lineIcon(r.icon || (key === 'bless' ? 'a.divact' : key === 'priv' ? 'a.power' : 'n.council'), 'li')}</span><span><b>${esc(r.name)}</b>${r.tags.map((t) => ` <span class="cx2-note">${esc(t)}</span>`).join('')}<br><span class="muted">${esc(r.desc)}</span></span></li>`).join('')}</ul>`,
+    body: () => `<ul class="augs cx2-augs${key === 'despair' || key === 'oath' ? ' cx2-despair' : ''}">${rows.map((r) => `<li class="aug-li" data-id="${esc(r.id)}"${qAttr('augs', `${r.name} ${r.desc} ${r.tags.join(' ')}`)}><span class="aug-ic" aria-hidden="true">${lineIcon(r.icon || (key === 'bless' ? 'a.divact' : key === 'priv' ? 'a.power' : 'n.council'), 'li')}</span><span><b>${esc(r.name)}</b>${r.tags.map((t) => ` <span class="cx2-note">${esc(t)}</span>`).join('')}<br><span class="muted">${esc(r.desc)}</span></span></li>`).join('')}</ul>`,
   });
   out.push(simple('global', '전역 증강', '런 시작과 매 페이즈 항로 회의에서 3개 중 1개. 함대 전체에 적용됩니다.',
     GLOBALS.map((g) => ({ id: g.id, name: g.name, desc: g.desc, tags: [...(g.unique ? ['1회'] : []), ...(g.team ? ['모든 아군'] : []), ...(g.onPick ? ['즉시'] : [])] }))));
@@ -685,6 +686,10 @@ function augGroups(): AugGroup[] {
   const meta = loadMeta();
   out.push(simple('despair', '절망 증강', `${diffName(CFG.despair.from) || `위험 ${CFG.despair.from}`}(위험 ${CFG.despair.from}) 런은 ${despairRule()} 고른 증강은 의뢰 내내 함께 걸리는 디버프이고, 증강별로 의뢰 · 성공 기록이 남습니다.`,
     DESPAIRS.map((d) => { const r = meta.despair?.[d.id]; return { id: d.id, name: d.name, desc: `${d.desc()} — ${d.quip}`, icon: d.icon, tags: [r?.clears ? `성공 ${r.clears}회` : r?.runs ? `의뢰 ${r.runs}회 · 성공 없음` : '기록 없음'] }; })));
+  // 절망 서약 (data/oaths.ts): 단계별 효과 · 절망 수치는 CFG.oath 에서 읽는다
+  out.push(simple('oath', '절망 서약', `${diffName(CFG.oathFrom) || `위험 ${CFG.oathFrom}`}(위험 ${CFG.oathFrom}) 이상으로 출격할 때만 걸리는 고정 조건. 타이틀 [절망 서약]에서 직접 켜고 단계를 올리며, 단계마다 절망 수치가 쌓입니다 (쉬움 · 모험에서는 무시). 런 중에 무작위로 고르는 절망 증강과 따로 걸립니다.`,
+    OATHS.map((o) => ({ id: `oath.${o.id}`, name: o.name, desc: `${Array.from({ length: oathMax(o.id) }, (_, i) => `${i + 1}단계: ${o.lv(i + 1)}`).join(' / ')} — ${o.quip}`, icon: o.icon,
+      tags: [`최대 ${oathMax(o.id)}단계`, `절망 ${CFG.oath[o.id].heat.join(' · ')} (합 ${oathHeatOf(o.id, oathMax(o.id))})`] }))));
   return out;
 }
 function augsTab(H: CxH) {

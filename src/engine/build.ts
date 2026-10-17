@@ -3,6 +3,7 @@ import { AUG_BY_ID } from '../data/augments';
 import { ENEMY_BY_ID, ENEMY_RT, type EnemyDef, setSummonHook } from '../data/enemies';
 import { fieldOf } from '../data/battlefields';
 import { diffHas } from '../data/difficulty';
+import { oathEnemy, oathV } from '../data/oaths';
 import { BOONS } from '../data/events';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
 import { emblemOf, isEmblem, isTurretGear, itemEffect, turretSlots } from '../data/items';
@@ -345,6 +346,7 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   if (dsp.includes('D.overclock')) st.cdr += DS.overclock;
   if (dsp.includes('D.final') && def.tier === 'boss') { st.maxHp *= 1 + DS.boss; c.phaseAmp *= 1 + DS.boss; }
   if (dsp.includes('D.petra')) c.hooks.push({ onStart(bb, u) { bb.shield(u, bb.S(u, 'maxHp') * DS.shield); } });
+  oathEnemy(b.ctx, st, c, def.tier); // 절망 서약 (data/oaths.ts · CFG.oath): 고난 런에서 켠 고정 조건
   // 적 장비 · 개조부품
   for (const it of [...(gear?.stripped ? [] : [...(def.items || []), def.mod || null]), ...(gear?.items || []), gear?.mod || null]) if (it) applyLive(c, itemEffect(it), b, makeCtx(null, null, {})); // stripped: 강제 징수기
   if (gear?.items?.length || gear?.mod) { c.tempItems = [...(gear.items || []), ...(gear.mod ? [gear.mod] : [])]; c.mem.gear = 1; } // 위험 등급 장비 (표시용)
@@ -592,7 +594,7 @@ export function layout(run: RunState, n: number): Map<string, { x: number; y: nu
 
 export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): Battle {
   const dim = boardDims(enc.n);
-  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined });
+  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined, oaths: run.oaths, otShift: oathV(run, 'clock', 'sec') || undefined });
   b.keepEvents = keepEvents;
   const dep = deployed(run);
   const counts = synergyCounts(dep, run);

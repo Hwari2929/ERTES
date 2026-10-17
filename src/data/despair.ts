@@ -68,8 +68,8 @@ export const despairsOf = (r: { despairs?: string[] } | null | undefined): Despa
 export const hasDespair = (r: { despairs?: string[] } | null | undefined, id: string) => !!r?.despairs?.includes(id);
 /** 이 위험 등급 런에서 절망 증강을 고르는지 (고난 이상, 해금 조건 없음) */
 export const despairDiff = (d: number | undefined) => (d || 0) >= CFG.despair.from;
-/** 페이즈 p 시작 때 절망 증강을 1개 더 고르는지 (출격 때 1개는 따로) */
-export const despairAt = (d: number | undefined, p: number) => despairDiff(d) && p > 1 && p % CFG.despair.every === 0;
+/** 페이즈 p 시작 때 절망 증강을 1개 더 고르는지 (출격 때 1개는 따로). every: 간격 (심연의 서약이면 짧다) */
+export const despairAt = (d: number | undefined, p: number, every = CFG.despair.every) => despairDiff(d) && p > 1 && p % every === 0;
 /** 의뢰 페이즈 안에서 추가로 고르는 페이즈: [3, 6] */
 export const despairPhases = () => { const out: number[] = []; for (let p = CFG.despair.every; p <= CFG.victoryPhase; p += CFG.despair.every) if (p > 1) out.push(p); return out; };
 /** 고르는 방식 한 문장 (난이도 조건 · 선택 화면 · 도감 · 교범이 읽는다) */

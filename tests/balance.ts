@@ -13,6 +13,7 @@ import { Rng } from '../src/rng';
 import { RELICS } from '../src/data/relics';
 import { FIELDS } from '../src/data/battlefields';
 import { fieldSyn, starterPool } from '../src/engine/starters';
+import { oathV } from '../src/data/oaths';
 import type { Major, RunState, SynergyId } from '../src/types';
 
 declare const process: { argv: string[]; stdout: { write(s: string): void }; stderr: { write(s: string): void } };
@@ -32,6 +33,10 @@ const FORCE_FIELD = process.argv.find((a) => a.startsWith('field='))?.slice(6);
 const POOL = process.argv.includes('pool') || process.argv.includes('pool0');
 /** pool0: 같은 정책이되 우세 시너지 보장 없이 무작위 후보 (보장 효과만 따로 보려는 비교용) */
 if (process.argv.includes('pool0')) CFG.starterFav = 0;
+/** oath=grit:3,pain:2 — 절망 서약 설정 (고난 이상에서만 걸린다). oathfrom=3 — 서약이 걸리는 위험 등급을 낮춰 쉬움 · 모험 기준으로 서약만 따로 잰다 */
+const OATH_SEL = Object.fromEntries((process.argv.find((a) => a.startsWith('oath='))?.slice(5) || '').split(',').filter(Boolean).map((x) => { const [k, v] = x.split(':'); return [k, +v || 1]; }));
+const OATH_FROM = process.argv.find((a) => a.startsWith('oathfrom='));
+if (OATH_FROM) (CFG as { oathFrom: number }).oathFrom = +OATH_FROM.slice(9);
 
 // ───────── 집계 저장소 (합으로만 누적 → 워커끼리 더하면 된다)
 type Acc = Record<string, number>;
@@ -73,7 +78,7 @@ Battle.prototype.dealDamage = function (this: Battle, src: CUnit, tgt: CUnit, ba
 /** buildBattle 과 같되 시너지 인원을 덮어쓸 수 있다 (반사실 실험용) */
 function makeBattle(run: RunState, enc: NonNullable<NonNullable<RunState['node']>['enc']>, counts: Record<string, number>) {
   const dim = boardDims(enc.n);
-  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined });
+  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined, oaths: run.oaths, otShift: oathV(run, 'clock', 'sec') || undefined });
   b.keepEvents = false;
   const lay = layout(run, enc.n);
   for (const u of deployed(run)) {
@@ -109,7 +114,7 @@ function playRun(seed: number) {
     const fav = pr.shuffle(pool.filter((id) => !!syn && ([...UNIT_BY_ID[id].factions, ...UNIT_BY_ID[id].traits] as string[]).includes(syn))).slice(0, CFG.starterFav);
     starters = [...fav, ...pr.sample(pool.filter((id) => !fav.includes(id)), CFG.startUnits - fav.length)];
   }
-  const run = R.newRun(seed, starters, FORCE_FIELD, DIFF);
+  const run = R.newRun(seed, starters, FORCE_FIELD, DIFF, OATH_SEL);
   const synMax: Record<string, number> = {};
   const det: Record<string, [number, number]> = {}; // detail 모드: `키|페이즈:노드` → [전투, 승리]
   const relicSet = new Set<string>();

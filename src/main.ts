@@ -42,6 +42,7 @@ import { loadMeta, metaBarMvp, metaBattle, metaClear, metaEvent, metaRunEnd, met
 import { bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg, standURL } from './ui/portraits';
 import { advKey, closeAdv, playAdv } from './ui/adv';
 import * as SND from './ui/sound';
+import * as OATH from './ui/oath';
 import { ABIL_ICONS } from './ui/abilicons.gen';
 import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 import { closeCoach, coachKey, startCoach, type CoachStep } from './ui/coach';
@@ -98,7 +99,7 @@ function savePref(k: string, v: unknown) {
   try { localStorage.setItem(PREF_KEY, JSON.stringify({ ...loadPrefs(), [k]: v })); } catch { /* 저장 불가 환경 */ }
 }
 
-type Screen = 'title' | 'intro' | 'diffsel' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'invest' | 'over' | 'codex' | 'bar';
+type Screen = 'title' | 'intro' | 'diffsel' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'invest' | 'over' | 'codex' | 'bar' | 'oath';
 type Sel = { k: 'unit'; uid: string } | { k: 'turret'; i: number } | { k: 'item'; idx: number } | { k: 'relic'; id: string } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
 
 const app = {
@@ -276,7 +277,7 @@ function topbar() {
       <span class="pill" title="페이즈 · 노드">P<b>${r.phase}</b> · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>
       <span class="pill hp" title="체력">${lineIcon('r.hp', 'li')}<b>${r.hp}</b>/${r.maxHp}</span>
       <span class="pill cr" title="에너지 크레딧">${CR}<b>${r.credits}</b></span>
-      ${despairPill(r)}
+      ${despairPill(r)}${OATH.oathPill(r)}
       ${extra.length ? `<details class="pill more"><summary title="기타 자원">${lineIcon('r.more', 'li')}<span class="more-tx">기타</span></summary><ul class="more-list">${extra.join('')}</ul></details>` : ''}
     </div>
     ${app.screen === 'battle' ? '' : `<button class="btn ghost menu-btn" data-a="menu" title="메뉴" aria-label="메뉴">${lineIcon('r.menu', 'li')}</button>`}
@@ -351,6 +352,7 @@ function titleScreen() {
         ${tutButton()}
         <button class="btn ts-btn" data-a="bar"><b>에란테스 바</b><small>${auto ? '들렀다가 이어서 출격' : '단원 · 손님들의 잡담'}</small></button>
         <button class="btn ts-btn" data-a="codex"><b>도감 · 기록</b></button>
+        <button class="btn ts-btn ts-oath" data-a="oath"><b>절망 서약</b><small>${diffName(CFG.oathFrom) || `위험 ${CFG.oathFrom}`} 의뢰 조건 · 절망 수치 ${OATH.heatNow()}</small></button>
         <button class="btn ghost ts-btn" data-a="menu-import"><b>저장 코드 불러오기</b></button>
         <button class="btn ghost ts-btn" data-a="menu-tab" data-v="settings"><b>설정 · 테마</b></button>
       </nav>
@@ -782,8 +784,8 @@ const DIFF_BG = ['diff_easy', 'diff_adventure', 'diff_challenge'];
 const diffLine = (lvl: number) => {
   const add = diffAddEvery(lvl), cr = `승리 크레딧 ×${CFG.diffWinMul(lvl)}`;
   const foes = add ? `적은 ${add}페이즈마다 1기씩 늘어납니다` : '적이 장비를 챙기지만 수는 늘지 않습니다';
-  if (despairDiff(lvl)) return `절망 증강을 짊어지고 출격해 ${CFG.despair.every}페이즈마다 하나씩 더 쌓이고, ${foes}. ${cr}, 베테랑 전용.`;
-  return lvl >= 6 ? `함대 체력이 줄고 ${foes}. ${cr}.` : `처음 출격하는 용병단을 위한 항로. ${foes}. ${cr}.`;
+  if (despairDiff(lvl)) return `함대 체력이 줄고 절망 증강이 ${CFG.despair.every}페이즈마다 쌓이며, ${foes}. ${cr}, 베테랑 전용.`;
+  return lvl >= 6 ? `처음부터 모든 적이 장비를 갖추고, ${foes}. ${cr}.` : `처음 출격하는 용병단을 위한 항로. ${foes}. ${cr}.`;
 };
 const DIFF_PICKS = DIFF_PRESETS.map((x, i) => ({ lvl: x.lvl, name: x.name, sub: `위험 등급 ${x.lvl}`, bg: DIFF_BG[i] || DIFF_BG[DIFF_BG.length - 1], line: diffLine(x.lvl) }));
 /** 절망 증강 안내 (고난 카드 위 띠): 고르는 횟수만 짧게. 자세한 방식은 ⓘ 세부 조건 (difficulty.ts 위험 7) */
@@ -796,13 +798,13 @@ function diffScreen() {
   return `<main class="diffsel"><h1 class="ds-title">난이도 설정</h1>
     <div class="ds-row">${DIFF_PICKS.map((d) => {
       const on = app.diff === d.lvl;
-      const conds = DIFFS.filter((x) => x.lvl >= 1 && x.lvl <= d.lvl).map((x) => x.desc);
+      const conds = DIFFS.filter((x) => x.lvl >= 1 && x.lvl <= d.lvl).map((x) => x.desc).concat(OATH.applies(d.lvl) ? OATH.oathConds() : []);
 return `<button class="ds-card${on ? ' on' : ''}${app.dsInfo === d.lvl ? ' info' : ''}" data-a="diff" data-v="${d.lvl}" aria-pressed="${on}">
         <span class="ds-bg" style="background-image:url('${bgURL(d.bg)}')"></span><span class="ds-shade"></span>
         <span class="ds-info-btn" data-a="ds-info" data-v="${d.lvl}" role="button" aria-label="${d.name} 세부 조건" title="세부 조건">i</span>
         <span class="ds-pop">${conds.length ? `<b>세부 조건</b><ul>${conds.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : '<b>세부 조건</b><span>추가 조건 없음</span>'}</span>
         <span class="ds-body"><span class="ds-sub">${d.sub}</span><b class="ds-name">${d.name}</b><span class="ds-line">${d.line}</span></span>
-        ${despairDiff(d.lvl) ? `<span class="ds-despair open">${lineIcon('k.soul', 'li')}<span>${esc(despairNote(d.lvl))}</span></span>` : ''}</button>`;
+        ${despairDiff(d.lvl) || OATH.applies(d.lvl) ? `<span class="ds-despair open">${despairDiff(d.lvl) ? `${lineIcon('k.soul', 'li')}<span>${esc(despairNote(d.lvl))}</span>` : ''}${OATH.applies(d.lvl) ? OATH.oathCardNote() : ''}</span>` : ''}</button>`; // 고난: 절망 증강 + 절망 서약 (지금 절망 수치)
     }).join('')}</div>
     <div class="ds-act"><button class="btn ghost" data-a="intro-back">전장 다시 보기</button><button class="btn primary" data-a="diff-ok">출격 준비</button></div>
   </main>`;
@@ -886,7 +888,7 @@ function mapScreen(run: RunState) {
       ${run.quests.length ? `<h2>헬레니우스 퀘스트</h2><ul class="quests">${run.quests.map((q) =>
         `<li class="${q.done ? 'done' : ''}">${esc(R.questText(q))} <span class="muted">${Math.min(q.progress, q.target)}/${q.target} · 보상 ${R.questRewardText(q)}</span></li>`).join('')}</ul>` : ''}
       ${run.privilege ? `<h2>특권</h2><ul class="globals"><li><b>${esc(R.privilegeName(run.privilege))}</b> <span class="muted">${esc(R.privilegeDesc(run.privilege))}</span></li></ul>` : ''}
-      ${despairEnv(run)}
+      ${despairEnv(run)}${OATH.oathEnv(run)}
       ${run.boons.length || run.phaseBoons.length || run.mods.nodeIncome || run.mods.interestCap ? `<h2>사건 효과</h2><ul class="globals">${run.boons.map((id) => `<li><b>${esc(BOONS[id]?.name || id)}</b> <span class="muted">영구</span></li>`).join('')}${run.phaseBoons.map((id) => `<li><b>${esc(BOONS[id]?.name || id)}</b> <span class="muted">이번 페이즈</span></li>`).join('')}${run.mods.nodeIncome ? `<li><b>분할 정산</b> <span class="muted">노드마다 크레딧 +${run.mods.nodeIncome}, 이자 상한 ${run.mods.interestCap}</span></li>` : ''}</ul>` : ''}
       ${run.globals.length ? `<h2>전역 증강</h2><ul class="globals">${run.globals.map((g) => `<li><b>${esc(GLOBAL_BY_ID[g].name)}</b> <span class="muted">${ic(esc(GLOBAL_BY_ID[g].desc))}</span></li>`).join('')}</ul>` : ''}
       </section>
@@ -991,8 +993,8 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
     const m: string[] = [];
     const ph = o === 'challenge' ? run.phase + 1 : run.phase;
     if (o === 'adversity' || o === 'challenge') m.push(mod(lineIcon('m.up', 'li'), `×${CFG.adversityMult}`, `적 강화: 체력 ×${CFG.adversityMult} · 피해 ×${+encDmgMult(CFG.adversityMult).toFixed(2)}`, 'bad'));
-    const add = diffAddCount(run.diff, ph);
-    if (add > 0) m.push(mod(lineIcon('m.skull', 'li'), `+${add}`, `적 수량 +${add} — 위험 등급 ${run.diff} 적 증원: ${diffAddRule(run.diff)}`, 'bad'));
+    const add = diffAddCount(run.diff, ph) + OATH.hordeAdd(run); // 위험 등급 증원 + 군세의 서약
+    if (add > 0) m.push(mod(lineIcon('m.skull', 'li'), `+${add}`, `적 수량 +${add} — ${[diffAddRule(run.diff) && `위험 등급 ${run.diff} 적 증원: ${diffAddRule(run.diff)}`, OATH.hordeAdd(run) && `군세의 서약 +${OATH.hordeAdd(run)}`].filter(Boolean).join(' · ')}`, 'bad'));
     if ((o === 'adversity' || o === 'challenge') && f.elite) m.push(mod(lineIcon('m.elite', 'li'), '정예', `정예 확정: ${NODE_NAME[o]} 전투에는 이 전장의 정예가 반드시 나온다`, 'bad tx'));
     if (o === 'adversity') m.push(mod(lineIcon('m.gift', 'li'), `×${CFG.adversityReward}`, `보상 강화: 승리 크레딧 · 공명도 ×${CFG.adversityReward}`, 'good'));
     for (const dsp of despairsOf(run)) { const dv = dsp.mod?.(o === 'boss'); if (dv) m.push(mod(lineIcon(dsp.icon, 'li'), dv, `절망 증강 [${dsp.name}]: ${dsp.desc()}`, 'bad despair')); } // 절망 증강 (이 전투에 걸리는 것만, 고른 순서)
@@ -1065,7 +1067,7 @@ function allyRef(rank: number) {
   return (allyRefs[rank] = { hp: hp / RECRUITABLE.length, pow: pow / RECRUITABLE.length });
 }
 function foeRank(run: RunState, e: EnemyDef, phase: number, mult: number, s?: { items?: string[]; mod?: string }) {
-  return unitRank(e, buildEnemy(new Battle(9, 9, new Rng(1), { phase, credits: 0, field: run.field, diff: run.diff }), e, phase, mult, s));
+  return unitRank(e, buildEnemy(new Battle(9, 9, new Rng(1), { phase, credits: 0, field: run.field, diff: run.diff, despairs: run.despairs, oaths: run.oaths }), e, phase, mult, s));
 }
 /** 적 유닛(편성 미리보기 · 전투 중)의 공명 등급 추정 */
 function unitRank(e: EnemyDef, c: CUnit) {
@@ -1833,7 +1835,7 @@ function detailPanel(run: RunState, extra = '') {
     if (!s) return '';
     const e = ENEMY_BY_ID[s.defId];
     const ph = run.node.enc.phase ?? run.phase; // 도전은 다음 페이즈 적
-    const b = new Battle(9, 9, new Rng(1), { phase: ph, credits: 0, field: run.field, diff: run.diff }); // 실제 전투와 같은 전장 · 위험 등급 (체력 · 피해 배율)
+    const b = new Battle(9, 9, new Rng(1), { phase: ph, credits: 0, field: run.field, diff: run.diff, despairs: run.despairs, oaths: run.oaths }); // 실제 전투와 같은 전장 · 위험 등급 · 절망 증강 · 절망 서약 (체력 · 피해 배율)
     const c = buildEnemy(b, e, ph, run.node.enc.mult, s);
     const ms = battleMajors(c)!;
     const eq = foeGear(e, s);
@@ -1941,7 +1943,7 @@ function updateMeter(force = false) {
   if (!force && now - meterAt < 250 && !v.b.over) return;
   meterAt = now;
   const t = document.getElementById('btime');
-  if (t) t.textContent = `${v.b.t.toFixed(1)}초${v.b.t > CFG.overtimeStart ? ' · 연장전' : ''}`;
+  if (t) t.textContent = `${v.b.t.toFixed(1)}초${v.b.t > CFG.overtimeStart - (v.b.ctx.otShift || 0) ? ' · 연장전' : ''}`; // 초침의 서약이면 연장전이 빠르다
   const m = document.getElementById('meter');
   if (!m) return;
   // 소환물 수치는 주인에게 합산. 탭: 준 피해(속성 비중) / 받은 피해 / 회복 · 보호막 / 결정타
@@ -2605,6 +2607,7 @@ function render() {
   else if (app.screen === 'bar') body = BAR.barScreen();
   else if (app.screen === 'intro') body = introScreen();
   else if (app.screen === 'diffsel') body = diffScreen();
+  else if (app.screen === 'oath') body = OATH.oathScreen();
   else if (app.screen === 'title' || !run) body = app.screen === 'newrun' ? newRunScreen() : titleScreen();
   else if (app.screen === 'newrun') body = newRunScreen();
   else if (app.screen === 'map') body = mapScreen(run);
@@ -2943,7 +2946,7 @@ function despairPill(r: RunState) {
 /** 지도 환경 탭: 고른 순서대로 이름 · 효과, 고난이면 다음에 더 고르는 페이즈 */
 function despairEnv(run: RunState) {
   const ds = despairsOf(run);
-  const nx = despairDiff(run.diff) ? Math.ceil((run.phase + 1) / CFG.despair.every) * CFG.despair.every : 0;
+  const ev = OATH.despairEvery(run), nx = despairDiff(run.diff) ? Math.ceil((run.phase + 1) / ev) * ev : 0; // 간격: 심연의 서약이면 짧다
   const next = nx && (nx <= CFG.victoryPhase || run.endless) && DESPAIRS.length > ds.length ? nx : 0; // 의뢰 페이즈 밖(무한 모드 전)이거나 남은 증강이 없으면 표시 안 함
   if (!ds.length && !next) return '';
   const nextTxt = next ? `<li class="dp-next muted small">다음 절망 증강: ${next}페이즈 시작 때 1개 더</li>` : '';
@@ -3367,8 +3370,8 @@ function codexScreen() {
   } else if (app.codexTab === 'ach') { // 업적: 메달 · 달성 날짜 · 바 진열장 고르기 (src/ui/achieve.ts)
     body = ACH.achCodexHtml();
   } else {
-    body = `<dl class="stats big"><dt>의뢰</dt><dd>${m.runs}</dd><dt>의뢰 성공</dt><dd>${m.clears}</dd><dt>최고 도달 페이즈</dt><dd>${m.bestPhase}</dd><dt>해금된 위험 등급</dt><dd>${m.maxDiff}</dd><dt>절망 증강</dt><dd>${DESPAIRS.filter((d) => m.despair?.[d.id]?.clears).length}/${DESPAIRS.length} 성공</dd></dl>
-      <h2>전장별</h2><div class="codex-list">${FIELDS.map((f) => { const r = m.fields[f.id]; return `<div class="codex-row"><div><b style="color:${f.color}">${f.icon} ${esc(f.name)}</b><div class="small muted">${esc(f.region)}</div></div><div class="small mono">의뢰 ${r?.runs || 0} · 성공 ${r?.clears || 0}${r && r.bestDiff >= 0 ? ` · 최고 ${diffLabel(r.bestDiff)}` : ''}</div></div>`; }).join('')}</div>
+    body = `<dl class="stats big"><dt>의뢰</dt><dd>${m.runs}</dd><dt>의뢰 성공</dt><dd>${m.clears}</dd><dt>최고 도달 페이즈</dt><dd>${m.bestPhase}</dd><dt>해금된 위험 등급</dt><dd>${m.maxDiff}</dd><dt>절망 증강</dt><dd>${DESPAIRS.filter((d) => m.despair?.[d.id]?.clears).length}/${DESPAIRS.length} 성공</dd><dt>최고 절망 수치 성공</dt><dd>${OATH.bestAll()}</dd></dl>
+      <h2>전장별</h2><div class="codex-list">${FIELDS.map((f) => { const r = m.fields[f.id]; return `<div class="codex-row"><div><b style="color:${f.color}">${f.icon} ${esc(f.name)}</b><div class="small muted">${esc(f.region)}</div></div><div class="small mono">의뢰 ${r?.runs || 0} · 성공 ${r?.clears || 0}${r && r.bestDiff >= 0 ? ` · 최고 ${diffLabel(r.bestDiff)}` : ''}${OATH.oathBest(f.id)}</div></div>`; }).join('')}</div>
       <h2>절망 증강별</h2><p class="small muted">${esc(diffName(CFG.despair.from) || `위험 ${CFG.despair.from}`)} 의뢰에서 고른 절망 증강. 한 의뢰에 여러 개를 짊어지면 각각 셉니다.</p><div class="codex-list">${DESPAIRS.map((d) => { const r = m.despair?.[d.id]; return `<div class="codex-row"><div><b>${lineIcon(d.icon, 'li')} ${esc(d.name)}</b><div class="small muted">${esc(d.desc())}</div></div><div class="small mono">의뢰 ${r?.runs || 0} · 성공 ${r?.clears || 0}</div></div>`; }).join('')}</div>${BAR.barRecordsHtml()}`;
   }
   return `<main class="wrap codex"><div class="cx-top"><h1 class="f-title">도감 · 기록</h1><span class="muted small">이 브라우저에 저장됩니다.</span><button class="btn ghost small" data-a="codex-back">돌아가기</button></div>
@@ -3750,7 +3753,7 @@ function act(a: string, v: string) {
       break;
     case 'start-run':
       if (app.starters.length !== CFG.startUnits) return;
-      app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, app.introField || undefined, Math.min(app.diff, MAX_DIFF));
+      app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, app.introField || undefined, Math.min(app.diff, MAX_DIFF), OATH.sel()); // 절망 서약: 고난 이상일 때만 옮긴다
       { const fi = fieldIntroPending(app.run); if (fi) app.run.pending.unshift(fi); } // 전장 도입 이야기 → 특권 증강 → (고난) 절망 증강
       app.screen = 'map'; app.sel = null; persist(); break;
     case 'load': {
@@ -3919,6 +3922,10 @@ function act(a: string, v: string) {
       }
       break;
     case 'codex': codexFrom = app.screen === 'bar' ? 'bar' : ''; app.screen = 'codex'; app.menu = null; break;
+    case 'oath': app.screen = 'oath'; app.menu = null; break; // 절망 서약 화면 (ui/oath.ts)
+    case 'oath-back': app.screen = 'title'; break;
+    case 'oath-set': case 'oath-clear': OATH.oathAct(a, v); break;
+    case 'oath-info': { const t = OATH.oathToast(run); if (t) toast(t); if (t && app.screen === 'map') setMapTab(1); return; }
     case 'bar': // 에란테스 바: 진행 중인 런은 자동 저장해 두고 나온다 (바에서 '이어서 출격')
       if (run && !run.over && !run.tutorial) persist();
       if (run?.tutorial) tutAway();
