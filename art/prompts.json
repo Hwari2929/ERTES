@@ -1765,5 +1765,27 @@
   "tags": "underworld bureaucrat, ghostly official, pale grey robes, ancient greek clerk, chiton, black veil, faceless, eyes not visible, holding scroll, ledger, quill, faint blue spectral glow, floating, translucent edges, mob character, full body, standing",
   "source": "lore",
   "notes": "미노스(크레타 대집행관)의 소환물. 크레타 암송 관료제 · 하데스 명부를 바탕으로 얼굴 없는 유령 관료."
+ },
+ "sm_illusion": {
+  "name": "환영",
+  "subject": "1other",
+  "tags": "psychic phantom, illusion, ghostly humanoid silhouette, translucent body, shimmering violet and pink mist, fragrant smoke, incense trail, faceless, eyes not visible, flowing veil, floating, ethereal, full body, standing",
+  "source": "lore",
+  "notes": "사이오닉 환조 학파의 도발 소환물 '환영'(향취)."
+ },
+ "sm_spore": {
+  "name": "포자 군락",
+  "subject": "no humans",
+  "tags": "fungal spore colony, cluster of glowing mushrooms, bioluminescent fungus, green and teal spores floating, mycelium mound, organic, small, no humans",
+  "source": "lore",
+  "notes": "사이오닉 씨앗 학파의 제자리 소환물 '포자 군락'.",
+  "object": true
+ },
+ "sm_kalguard": {
+  "name": "근위기사",
+  "subject": "1boy",
+  "tags": "imperial royal guard knight, full plate armor, ornate crimson and gold armor, closed helmet, visor down, face hidden, eyes not visible, crimson cape, longsword, tower shield, mob character, full body, standing",
+  "source": "lore",
+  "notes": "칼리토 제국 시너지가 부르는 황실 근위대 돌격가 소환물."
  }
 }
