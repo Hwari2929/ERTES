@@ -1,0 +1,3611 @@
+{
+ "meta": {
+  "baseHead": "5c2ad65",
+  "note": "각 변형은 기준선 대비 한 가지만 바꾼 작업 사본의 번들. 전체 런 = tests/balance.ts (실제 buildBattle 경로), 조합 = tests/buildsim.ts comps (위험 9, 5 · 6페이즈 역경 + 보스, 조합당 600전)"
+ },
+ "exps": [
+  {
+   "id": "v1_eng",
+   "name": "엔지니어 1단계 포탑 상속률 150 → 180%",
+   "runs": {
+    "def": {
+     "base": {
+      "runs": 800,
+      "clears": 358,
+      "clear": 0.4475,
+      "ci": [
+       0.4134,
+       0.4821
+      ],
+      "nonBoss": {
+       "n": 24927,
+       "win": 0.9123,
+       "pm": 0.0055
+      },
+      "boss": {
+       "n": 4317,
+       "win": 0.7755,
+       "pm": 0.0161
+      },
+      "phase": 6.186,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9908,
+        "bossN": 800,
+        "boss": 0.9663
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3884,
+        "nonBoss": 0.9629,
+        "bossN": 548,
+        "boss": 0.9672
+       },
+       "3": {
+        "reach": 1.0,
+        "nonBossN": 4799,
+        "nonBoss": 0.9906,
+        "bossN": 798,
+        "boss": 0.9273
+       },
+       "4": {
+        "reach": 0.9962,
+        "nonBossN": 4032,
+        "nonBoss": 0.8906,
+        "bossN": 656,
+        "boss": 0.7927
+       },
+       "5": {
+        "reach": 0.9587,
+        "nonBossN": 4388,
+        "nonBoss": 0.8491,
+        "bossN": 659,
+        "boss": 0.648
+       },
+       "6": {
+        "reach": 0.7837,
+        "nonBossN": 3024,
+        "nonBoss": 0.7192,
+        "bossN": 856,
+        "boss": 0.4182
+       }
+      }
+     },
+     "var": {
+      "runs": 800,
+      "clears": 358,
+      "clear": 0.4475,
+      "ci": [
+       0.4134,
+       0.4821
+      ],
+      "nonBoss": {
+       "n": 24942,
+       "win": 0.9124,
+       "pm": 0.0055
+      },
+      "boss": {
+       "n": 4321,
+       "win": 0.7767,
+       "pm": 0.0162
+      },
+      "phase": 6.196,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9908,
+        "bossN": 800,
+        "boss": 0.9663
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3884,
+        "nonBoss": 0.9629,
+        "bossN": 548,
+        "boss": 0.969
+       },
+       "3": {
+        "reach": 1.0,
+        "nonBossN": 4799,
+        "nonBoss": 0.9912,
+        "bossN": 798,
+        "boss": 0.9286
+       },
+       "4": {
+        "reach": 0.9962,
+        "nonBossN": 4031,
+        "nonBoss": 0.8916,
+        "bossN": 654,
+        "boss": 0.792
+       },
+       "5": {
+        "reach": 0.9625,
+        "nonBossN": 4395,
+        "nonBoss": 0.8512,
+        "bossN": 663,
+        "boss": 0.6561
+       },
+       "6": {
+        "reach": 0.79,
+        "nonBossN": 3033,
+        "nonBoss": 0.7151,
+        "bossN": 858,
+        "boss": 0.4172
+       }
+      }
+     },
+     "dClear": 0.0,
+     "SF": 9,
+     "FS": 9,
+     "signP": 1.0,
+     "dPhase": 0.01,
+     "dPhasePm": 0.012,
+     "dNonBoss": 0.0001,
+     "dBoss": 0.0012
+    },
+    "pool": {
+     "base": {
+      "runs": 800,
+      "clears": 457,
+      "clear": 0.5713,
+      "ci": [
+       0.5367,
+       0.6051
+      ],
+      "nonBoss": {
+       "n": 25347,
+       "win": 0.9345,
+       "pm": 0.0049
+      },
+      "boss": {
+       "n": 4339,
+       "win": 0.8053,
+       "pm": 0.0173
+      },
+      "phase": 6.428,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9975,
+        "bossN": 800,
+        "boss": 0.9775
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3763,
+        "nonBoss": 0.9801,
+        "bossN": 488,
+        "boss": 0.9836
+       },
+       "3": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.996,
+        "bossN": 800,
+        "boss": 0.95
+       },
+       "4": {
+        "reach": 1.0,
+        "nonBossN": 3984,
+        "nonBoss": 0.9222,
+        "bossN": 609,
+        "boss": 0.8194
+       },
+       "5": {
+        "reach": 0.9888,
+        "nonBossN": 4597,
+        "nonBoss": 0.8997,
+        "bossN": 713,
+        "boss": 0.7237
+       },
+       "6": {
+        "reach": 0.8675,
+        "nonBossN": 3403,
+        "nonBoss": 0.7696,
+        "bossN": 929,
+        "boss": 0.4919
+       }
+      }
+     },
+     "var": {
+      "runs": 800,
+      "clears": 461,
+      "clear": 0.5763,
+      "ci": [
+       0.5417,
+       0.61
+      ],
+      "nonBoss": {
+       "n": 25368,
+       "win": 0.9341,
+       "pm": 0.005
+      },
+      "boss": {
+       "n": 4338,
+       "win": 0.8064,
+       "pm": 0.0176
+      },
+      "phase": 6.435,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9975,
+        "bossN": 800,
+        "boss": 0.9775
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3763,
+        "nonBoss": 0.9801,
+        "bossN": 488,
+        "boss": 0.9836
+       },
+       "3": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9965,
+        "bossN": 800,
+        "boss": 0.9513
+       },
+       "4": {
+        "reach": 1.0,
+        "nonBossN": 3978,
+        "nonBoss": 0.9223,
+        "bossN": 603,
+        "boss": 0.8259
+       },
+       "5": {
+        "reach": 0.9888,
+        "nonBossN": 4601,
+        "nonBoss": 0.8985,
+        "bossN": 715,
+        "boss": 0.7217
+       },
+       "6": {
+        "reach": 0.87,
+        "nonBossN": 3426,
+        "nonBoss": 0.7688,
+        "bossN": 932,
+        "boss": 0.4946
+       }
+      }
+     },
+     "dClear": 0.005,
+     "SF": 6,
+     "FS": 10,
+     "signP": 0.4545,
+     "dPhase": 0.007,
+     "dPhasePm": 0.011,
+     "dNonBoss": -0.0004,
+     "dBoss": 0.0011
+    }
+   },
+   "comps": [
+    {
+     "id": "G_UNI5",
+     "syn": {
+      "UNI": [
+       7,
+       3
+      ],
+      "SEC": [
+       2,
+       1
+      ],
+      "STL": [
+       2,
+       1
+      ],
+      "ENG": [
+       2,
+       1
+      ],
+      "DECOMP": [
+       2,
+       1
+      ],
+      "HUNTER": [
+       2,
+       1
+      ]
+     },
+     "base": {
+      "n": 600,
+      "win": 0.325,
+      "ci": [
+       0.2887,
+       0.3635
+      ],
+      "bossN": 300,
+      "bossWin": 0.14,
+      "bossCi": [
+       0.1053,
+       0.1838
+      ],
+      "advWin": 0.51,
+      "p6Win": 0.0933,
+      "dur": 34.01,
+      "hpLeft": 0.2347
+     },
+     "var": {
+      "n": 600,
+      "win": 0.3267,
+      "ci": [
+       0.2903,
+       0.3652
+      ],
+      "bossN": 300,
+      "bossWin": 0.15,
+      "bossCi": [
+       0.114,
+       0.1948
+      ],
+      "advWin": 0.5033,
+      "p6Win": 0.0933,
+      "dur": 34.6,
+      "hpLeft": 0.2358
+     },
+     "dWin": 0.0017,
+     "dBoss": 0.01,
+     "SF": 9,
+     "FS": 10,
+     "signP": 1.0
+    },
+    {
+     "id": "G_HUNTER4",
+     "syn": {
+      "UNI": [
+       5,
+       2
+      ],
+      "SEC": [
+       2,
+       1
+      ],
+      "BUDDY": [
+       2,
+       1
+      ],
+      "ENG": [
+       2,
+       1
+      ],
+      "DECOMP": [
+       2,
+       1
+      ],
+      "HUNTER": [
+       4,
+       2
+      ]
+     },
+     "base": {
+      "n": 600,
+      "win": 0.065,
+      "ci": [
+       0.0479,
+       0.0876
+      ],
+      "bossN": 300,
+      "bossWin": 0.0,
+      "bossCi": [
+       0.0,
+       0.0126
+      ],
+      "advWin": 0.13,
+      "p6Win": 0.0,
+      "dur": 23.19,
+      "hpLeft": 0.0264
+     },
+     "var": {
+      "n": 600,
+      "win": 0.0617,
+      "ci": [
+       0.0451,
+       0.0838
+      ],
+      "bossN": 300,
+      "bossWin": 0.0,
+      "bossCi": [
+       0.0,
+       0.0126
+      ],
+      "advWin": 0.1233,
+      "p6Win": 0.0,
+      "dur": 23.97,
+      "hpLeft": 0.026
+     },
+     "dWin": -0.0033,
+     "dBoss": 0.0,
+     "SF": 3,
+     "FS": 1,
+     "signP": 0.625
+    },
+    {
+     "id": "H_HUNT5_UNI",
+     "syn": {
+      "UNI": [
+       4,
+       1
+      ],
+      "ENG": [
+       3,
+       1
+      ],
+      "HUNTER": [
+       5,
+       2
+      ]
+     },
+     "base": {
+      "n": 600,
+      "win": 0.0067,
+      "ci": [
+       0.0026,
+       0.017
+      ],
+      "bossN": 300,
+      "bossWin": 0.0,
+      "bossCi": [
+       0.0,
+       0.0126
+      ],
+      "advWin": 0.0133,
+      "p6Win": 0.0,
+      "dur": 17.35,
+      "hpLeft": 0.0026
+     },
+     "var": {
+      "n": 600,
+      "win": 0.0083,
+      "ci": [
+       0.0036,
+       0.0194
+      ],
+      "bossN": 300,
+      "bossWin": 0.0,
+      "bossCi": [
+       0.0,
+       0.0126
+      ],
+      "advWin": 0.0167,
+      "p6Win": 0.0,
+      "dur": 18.05,
+      "hpLeft": 0.0032
+     },
+     "dWin": 0.0016,
+     "dBoss": 0.0,
+     "SF": 0,
+     "FS": 1,
+     "signP": 1.0
+    },
+    {
+     "id": "H_STL6_ENG",
+     "syn": {
+      "PAN": [
+       1,
+       1
+      ],
+      "STL": [
+       6,
+       3
+      ],
+      "ENG": [
+       2,
+       1
+      ]
+     },
+     "base": {
+      "n": 600,
+      "win": 0.0933,
+      "ci": [
+       0.0726,
+       0.1193
+      ],
+      "bossN": 300,
+      "bossWin": 0.0333,
+      "bossCi": [
+       0.0182,
+       0.0603
+      ],
+      "advWin": 0.1533,
+      "p6Win": 0.01,
+      "dur": 23.99,
+      "hpLeft": 0.0604
+     },
+     "var": {
+      "n": 600,
+      "win": 0.0983,
+      "ci": [
+       0.077,
+       0.1248
+      ],
+      "bossN": 300,
+      "bossWin": 0.0333,
+      "bossCi": [
+       0.0182,
+       0.0603
+      ],
+      "advWin": 0.1633,
+      "p6Win": 0.0133,
+      "dur": 24.65,
+      "hpLeft": 0.0653
+     },
+     "dWin": 0.005,
+     "dBoss": 0.0,
+     "SF": 6,
+     "FS": 9,
+     "signP": 0.6072
+    },
+    {
+     "id": "H_UNI7_SWAP",
+     "syn": {
+      "UNI": [
+       6,
+       2
+      ],
+      "SEC": [
+       2,
+       1
+      ],
+      "STL": [
+       2,
+       1
+      ],
+      "ENG": [
+       2,
+       1
+      ],
+      "DECOMP": [
+       2,
+       1
+      ],
+      "HUNTER": [
+       2,
+       1
+      ]
+     },
+     "base": {
+      "n": 600,
+      "win": 0.1067,
+      "ci": [
+       0.0844,
+       0.1339
+      ],
+      "bossN": 300,
+      "bossWin": 0.0367,
+      "bossCi": [
+       0.0206,
+       0.0645
+      ],
+      "advWin": 0.1767,
+      "p6Win": 0.0033,
+      "dur": 25.44,
+      "hpLeft": 0.0753
+     },
+     "var": {
+      "n": 600,
+      "win": 0.11,
+      "ci": [
+       0.0874,
+       0.1376
+      ],
+      "bossN": 300,
+      "bossWin": 0.0367,
+      "bossCi": [
+       0.0206,
+       0.0645
+      ],
+      "advWin": 0.1833,
+      "p6Win": 0.0033,
+      "dur": 26.17,
+      "hpLeft": 0.0806
+     },
+     "dWin": 0.0033,
+     "dBoss": 0.0,
+     "SF": 3,
+     "FS": 5,
+     "signP": 0.7266
+    }
+   ],
+   "lift": {
+    "s:ENG|1": {
+     "def": {
+      "base": {
+       "n": 3466,
+       "runs": 132,
+       "win": 0.8728,
+       "lift": -0.06,
+       "pm": 1.97
+      },
+      "var": {
+       "n": 3506,
+       "runs": 132,
+       "win": 0.8725,
+       "lift": 0.06,
+       "pm": 1.91
+      }
+     },
+     "pool": {
+      "base": {
+       "n": 3502,
+       "runs": 130,
+       "win": 0.9109,
+       "lift": 1.24,
+       "pm": 1.78
+      },
+      "var": {
+       "n": 3518,
+       "runs": 131,
+       "win": 0.9105,
+       "lift": 1.37,
+       "pm": 1.77
+      }
+     }
+    },
+    "s:ENG|2": {
+     "def": {
+      "base": {
+       "n": 269,
+       "runs": 14,
+       "win": 0.9442,
+       "lift": 12.04,
+       "pm": 3.73
+      },
+      "var": {
+       "n": 268,
+       "runs": 14,
+       "win": 0.959,
+       "lift": 12.75,
+       "pm": 3.67
+      }
+     },
+     "pool": {
+      "base": {
+       "n": 225,
+       "runs": 14,
+       "win": 0.96,
+       "lift": 12.03,
+       "pm": 2.58
+      },
+      "var": {
+       "n": 238,
+       "runs": 14,
+       "win": 0.9538,
+       "lift": 11.32,
+       "pm": 3.07
+      }
+     }
+    }
+   }
+  },
+  {
+   "id": "v2_hunt1",
+   "name": "사냥꾼 1단계 공격 속도 15 → 20%",
+   "runs": {
+    "def": {
+     "base": {
+      "runs": 800,
+      "clears": 358,
+      "clear": 0.4475,
+      "ci": [
+       0.4134,
+       0.4821
+      ],
+      "nonBoss": {
+       "n": 24927,
+       "win": 0.9123,
+       "pm": 0.0055
+      },
+      "boss": {
+       "n": 4317,
+       "win": 0.7755,
+       "pm": 0.0161
+      },
+      "phase": 6.186,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9908,
+        "bossN": 800,
+        "boss": 0.9663
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3884,
+        "nonBoss": 0.9629,
+        "bossN": 548,
+        "boss": 0.9672
+       },
+       "3": {
+        "reach": 1.0,
+        "nonBossN": 4799,
+        "nonBoss": 0.9906,
+        "bossN": 798,
+        "boss": 0.9273
+       },
+       "4": {
+        "reach": 0.9962,
+        "nonBossN": 4032,
+        "nonBoss": 0.8906,
+        "bossN": 656,
+        "boss": 0.7927
+       },
+       "5": {
+        "reach": 0.9587,
+        "nonBossN": 4388,
+        "nonBoss": 0.8491,
+        "bossN": 659,
+        "boss": 0.648
+       },
+       "6": {
+        "reach": 0.7837,
+        "nonBossN": 3024,
+        "nonBoss": 0.7192,
+        "bossN": 856,
+        "boss": 0.4182
+       }
+      }
+     },
+     "var": {
+      "runs": 800,
+      "clears": 362,
+      "clear": 0.4525,
+      "ci": [
+       0.4183,
+       0.4871
+      ],
+      "nonBoss": {
+       "n": 24960,
+       "win": 0.9122,
+       "pm": 0.0055
+      },
+      "boss": {
+       "n": 4311,
+       "win": 0.7789,
+       "pm": 0.0159
+      },
+      "phase": 6.196,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9912,
+        "bossN": 800,
+        "boss": 0.9675
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3881,
+        "nonBoss": 0.9632,
+        "bossN": 547,
+        "boss": 0.9671
+       },
+       "3": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9906,
+        "bossN": 799,
+        "boss": 0.9274
+       },
+       "4": {
+        "reach": 0.9962,
+        "nonBossN": 4028,
+        "nonBoss": 0.8925,
+        "bossN": 655,
+        "boss": 0.7924
+       },
+       "5": {
+        "reach": 0.96,
+        "nonBossN": 4396,
+        "nonBoss": 0.8496,
+        "bossN": 662,
+        "boss": 0.6541
+       },
+       "6": {
+        "reach": 0.7875,
+        "nonBossN": 3055,
+        "nonBoss": 0.7159,
+        "bossN": 848,
+        "boss": 0.4269
+       }
+      }
+     },
+     "dClear": 0.005,
+     "SF": 5,
+     "FS": 9,
+     "signP": 0.424,
+     "dPhase": 0.01,
+     "dPhasePm": 0.013,
+     "dNonBoss": -0.0001,
+     "dBoss": 0.0034
+    },
+    "pool": {
+     "base": {
+      "runs": 800,
+      "clears": 457,
+      "clear": 0.5713,
+      "ci": [
+       0.5367,
+       0.6051
+      ],
+      "nonBoss": {
+       "n": 25347,
+       "win": 0.9345,
+       "pm": 0.0049
+      },
+      "boss": {
+       "n": 4339,
+       "win": 0.8053,
+       "pm": 0.0173
+      },
+      "phase": 6.428,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9975,
+        "bossN": 800,
+        "boss": 0.9775
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3763,
+        "nonBoss": 0.9801,
+        "bossN": 488,
+        "boss": 0.9836
+       },
+       "3": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.996,
+        "bossN": 800,
+        "boss": 0.95
+       },
+       "4": {
+        "reach": 1.0,
+        "nonBossN": 3984,
+        "nonBoss": 0.9222,
+        "bossN": 609,
+        "boss": 0.8194
+       },
+       "5": {
+        "reach": 0.9888,
+        "nonBossN": 4597,
+        "nonBoss": 0.8997,
+        "bossN": 713,
+        "boss": 0.7237
+       },
+       "6": {
+        "reach": 0.8675,
+        "nonBossN": 3403,
+        "nonBoss": 0.7696,
+        "bossN": 929,
+        "boss": 0.4919
+       }
+      }
+     },
+     "var": {
+      "runs": 800,
+      "clears": 452,
+      "clear": 0.565,
+      "ci": [
+       0.5304,
+       0.599
+      ],
+      "nonBoss": {
+       "n": 25361,
+       "win": 0.9347,
+       "pm": 0.0049
+      },
+      "boss": {
+       "n": 4347,
+       "win": 0.8026,
+       "pm": 0.0174
+      },
+      "phase": 6.423,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9981,
+        "bossN": 800,
+        "boss": 0.9775
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3761,
+        "nonBoss": 0.9803,
+        "bossN": 487,
+        "boss": 0.9836
+       },
+       "3": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9958,
+        "bossN": 800,
+        "boss": 0.9513
+       },
+       "4": {
+        "reach": 1.0,
+        "nonBossN": 3984,
+        "nonBoss": 0.9242,
+        "bossN": 608,
+        "boss": 0.8273
+       },
+       "5": {
+        "reach": 0.9875,
+        "nonBossN": 4596,
+        "nonBoss": 0.9008,
+        "bossN": 713,
+        "boss": 0.7181
+       },
+       "6": {
+        "reach": 0.87,
+        "nonBossN": 3420,
+        "nonBoss": 0.7678,
+        "bossN": 939,
+        "boss": 0.4814
+       }
+      }
+     },
+     "dClear": -0.0063,
+     "SF": 11,
+     "FS": 6,
+     "signP": 0.3323,
+     "dPhase": -0.005,
+     "dPhasePm": 0.016,
+     "dNonBoss": 0.0002,
+     "dBoss": -0.0027
+    }
+   },
+   "comps": [],
+   "lift": {
+    "s:HUNTER|1": {
+     "def": {
+      "base": {
+       "n": 3269,
+       "runs": 126,
+       "win": 0.8764,
+       "lift": 0.09,
+       "pm": 2.19
+      },
+      "var": {
+       "n": 3272,
+       "runs": 126,
+       "win": 0.8787,
+       "lift": 0.37,
+       "pm": 2.18
+      }
+     },
+     "pool": {
+      "base": {
+       "n": 4878,
+       "runs": 180,
+       "win": 0.9006,
+       "lift": -0.19,
+       "pm": 1.67
+      },
+      "var": {
+       "n": 4903,
+       "runs": 180,
+       "win": 0.9019,
+       "lift": 0.05,
+       "pm": 1.54
+      }
+     }
+    },
+    "s:HUNTER|2": {
+     "def": {
+      "base": {
+       "n": 165,
+       "runs": 11,
+       "win": 0.8545,
+       "lift": 4.77,
+       "pm": 11.78
+      },
+      "var": {
+       "n": 175,
+       "runs": 10,
+       "win": 0.8743,
+       "lift": 7.14,
+       "pm": 11.65
+      }
+     },
+     "pool": {
+      "base": {
+       "n": 478,
+       "runs": 26,
+       "win": 0.9142,
+       "lift": 4.66,
+       "pm": 3.58
+      },
+      "var": {
+       "n": 479,
+       "runs": 26,
+       "win": 0.8998,
+       "lift": 3.58,
+       "pm": 3.29
+      }
+     }
+    }
+   }
+  },
+  {
+   "id": "v3_hunt2",
+   "name": "사냥꾼 2단계 최대 체력 비례 고정 피해 2 → 2.5%",
+   "runs": {
+    "def": {
+     "base": {
+      "runs": 800,
+      "clears": 358,
+      "clear": 0.4475,
+      "ci": [
+       0.4134,
+       0.4821
+      ],
+      "nonBoss": {
+       "n": 24927,
+       "win": 0.9123,
+       "pm": 0.0055
+      },
+      "boss": {
+       "n": 4317,
+       "win": 0.7755,
+       "pm": 0.0161
+      },
+      "phase": 6.186,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9908,
+        "bossN": 800,
+        "boss": 0.9663
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3884,
+        "nonBoss": 0.9629,
+        "bossN": 548,
+        "boss": 0.9672
+       },
+       "3": {
+        "reach": 1.0,
+        "nonBossN": 4799,
+        "nonBoss": 0.9906,
+        "bossN": 798,
+        "boss": 0.9273
+       },
+       "4": {
+        "reach": 0.9962,
+        "nonBossN": 4032,
+        "nonBoss": 0.8906,
+        "bossN": 656,
+        "boss": 0.7927
+       },
+       "5": {
+        "reach": 0.9587,
+        "nonBossN": 4388,
+        "nonBoss": 0.8491,
+        "bossN": 659,
+        "boss": 0.648
+       },
+       "6": {
+        "reach": 0.7837,
+        "nonBossN": 3024,
+        "nonBoss": 0.7192,
+        "bossN": 856,
+        "boss": 0.4182
+       }
+      }
+     },
+     "var": {
+      "runs": 800,
+      "clears": 358,
+      "clear": 0.4475,
+      "ci": [
+       0.4134,
+       0.4821
+      ],
+      "nonBoss": {
+       "n": 24930,
+       "win": 0.9124,
+       "pm": 0.0055
+      },
+      "boss": {
+       "n": 4320,
+       "win": 0.7748,
+       "pm": 0.0161
+      },
+      "phase": 6.188,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9908,
+        "bossN": 800,
+        "boss": 0.9663
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3884,
+        "nonBoss": 0.9629,
+        "bossN": 548,
+        "boss": 0.9672
+       },
+       "3": {
+        "reach": 1.0,
+        "nonBossN": 4799,
+        "nonBoss": 0.9906,
+        "bossN": 798,
+        "boss": 0.9273
+       },
+       "4": {
+        "reach": 0.9962,
+        "nonBossN": 4031,
+        "nonBoss": 0.8906,
+        "bossN": 655,
+        "boss": 0.7924
+       },
+       "5": {
+        "reach": 0.9587,
+        "nonBossN": 4388,
+        "nonBoss": 0.8496,
+        "bossN": 659,
+        "boss": 0.648
+       },
+       "6": {
+        "reach": 0.785,
+        "nonBossN": 3028,
+        "nonBoss": 0.719,
+        "bossN": 860,
+        "boss": 0.4163
+       }
+      }
+     },
+     "dClear": 0.0,
+     "SF": 0,
+     "FS": 0,
+     "signP": 1.0,
+     "dPhase": 0.001,
+     "dPhasePm": 0.002,
+     "dNonBoss": 0.0001,
+     "dBoss": -0.0007
+    },
+    "pool": {
+     "base": {
+      "runs": 800,
+      "clears": 457,
+      "clear": 0.5713,
+      "ci": [
+       0.5367,
+       0.6051
+      ],
+      "nonBoss": {
+       "n": 25347,
+       "win": 0.9345,
+       "pm": 0.0049
+      },
+      "boss": {
+       "n": 4339,
+       "win": 0.8053,
+       "pm": 0.0173
+      },
+      "phase": 6.428,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9975,
+        "bossN": 800,
+        "boss": 0.9775
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3763,
+        "nonBoss": 0.9801,
+        "bossN": 488,
+        "boss": 0.9836
+       },
+       "3": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.996,
+        "bossN": 800,
+        "boss": 0.95
+       },
+       "4": {
+        "reach": 1.0,
+        "nonBossN": 3984,
+        "nonBoss": 0.9222,
+        "bossN": 609,
+        "boss": 0.8194
+       },
+       "5": {
+        "reach": 0.9888,
+        "nonBossN": 4597,
+        "nonBoss": 0.8997,
+        "bossN": 713,
+        "boss": 0.7237
+       },
+       "6": {
+        "reach": 0.8675,
+        "nonBossN": 3403,
+        "nonBoss": 0.7696,
+        "bossN": 929,
+        "boss": 0.4919
+       }
+      }
+     },
+     "var": {
+      "runs": 800,
+      "clears": 457,
+      "clear": 0.5713,
+      "ci": [
+       0.5367,
+       0.6051
+      ],
+      "nonBoss": {
+       "n": 25348,
+       "win": 0.9346,
+       "pm": 0.0049
+      },
+      "boss": {
+       "n": 4342,
+       "win": 0.8052,
+       "pm": 0.0174
+      },
+      "phase": 6.428,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9975,
+        "bossN": 800,
+        "boss": 0.9775
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3763,
+        "nonBoss": 0.9801,
+        "bossN": 488,
+        "boss": 0.9836
+       },
+       "3": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.996,
+        "bossN": 800,
+        "boss": 0.95
+       },
+       "4": {
+        "reach": 1.0,
+        "nonBossN": 3985,
+        "nonBoss": 0.9222,
+        "bossN": 610,
+        "boss": 0.8197
+       },
+       "5": {
+        "reach": 0.9888,
+        "nonBossN": 4597,
+        "nonBoss": 0.8997,
+        "bossN": 713,
+        "boss": 0.7251
+       },
+       "6": {
+        "reach": 0.8675,
+        "nonBossN": 3403,
+        "nonBoss": 0.7702,
+        "bossN": 931,
+        "boss": 0.4909
+       }
+      }
+     },
+     "dClear": 0.0,
+     "SF": 1,
+     "FS": 1,
+     "signP": 1.0,
+     "dPhase": 0.0,
+     "dPhasePm": 0.003,
+     "dNonBoss": 0.0001,
+     "dBoss": -0.0001
+    }
+   },
+   "comps": [
+    {
+     "id": "G_HUNTER4",
+     "syn": {
+      "UNI": [
+       5,
+       2
+      ],
+      "SEC": [
+       2,
+       1
+      ],
+      "BUDDY": [
+       2,
+       1
+      ],
+      "ENG": [
+       2,
+       1
+      ],
+      "DECOMP": [
+       2,
+       1
+      ],
+      "HUNTER": [
+       4,
+       2
+      ]
+     },
+     "base": {
+      "n": 600,
+      "win": 0.065,
+      "ci": [
+       0.0479,
+       0.0876
+      ],
+      "bossN": 300,
+      "bossWin": 0.0,
+      "bossCi": [
+       0.0,
+       0.0126
+      ],
+      "advWin": 0.13,
+      "p6Win": 0.0,
+      "dur": 23.19,
+      "hpLeft": 0.0264
+     },
+     "var": {
+      "n": 600,
+      "win": 0.0667,
+      "ci": [
+       0.0493,
+       0.0895
+      ],
+      "bossN": 300,
+      "bossWin": 0.0,
+      "bossCi": [
+       0.0,
+       0.0126
+      ],
+      "advWin": 0.1333,
+      "p6Win": 0.0,
+      "dur": 23.24,
+      "hpLeft": 0.029
+     },
+     "dWin": 0.0017,
+     "dBoss": 0.0,
+     "SF": 4,
+     "FS": 5,
+     "signP": 1.0
+    },
+    {
+     "id": "H_HUNT5_UNI",
+     "syn": {
+      "UNI": [
+       4,
+       1
+      ],
+      "ENG": [
+       3,
+       1
+      ],
+      "HUNTER": [
+       5,
+       2
+      ]
+     },
+     "base": {
+      "n": 600,
+      "win": 0.0067,
+      "ci": [
+       0.0026,
+       0.017
+      ],
+      "bossN": 300,
+      "bossWin": 0.0,
+      "bossCi": [
+       0.0,
+       0.0126
+      ],
+      "advWin": 0.0133,
+      "p6Win": 0.0,
+      "dur": 17.35,
+      "hpLeft": 0.0026
+     },
+     "var": {
+      "n": 600,
+      "win": 0.0083,
+      "ci": [
+       0.0036,
+       0.0194
+      ],
+      "bossN": 300,
+      "bossWin": 0.0,
+      "bossCi": [
+       0.0,
+       0.0126
+      ],
+      "advWin": 0.0167,
+      "p6Win": 0.0,
+      "dur": 17.51,
+      "hpLeft": 0.0025
+     },
+     "dWin": 0.0016,
+     "dBoss": 0.0,
+     "SF": 1,
+     "FS": 2,
+     "signP": 1.0
+    },
+    {
+     "id": "H_HUNT5",
+     "syn": {
+      "PAN": [
+       1,
+       1
+      ],
+      "DECOMP": [
+       2,
+       1
+      ],
+      "HUNTER": [
+       5,
+       2
+      ]
+     },
+     "base": {
+      "n": 600,
+      "win": 0.0,
+      "ci": [
+       0.0,
+       0.0064
+      ],
+      "bossN": 300,
+      "bossWin": 0.0,
+      "bossCi": [
+       0.0,
+       0.0126
+      ],
+      "advWin": 0.0,
+      "p6Win": 0.0,
+      "dur": 13.09,
+      "hpLeft": 0.0
+     },
+     "var": {
+      "n": 600,
+      "win": 0.0,
+      "ci": [
+       0.0,
+       0.0064
+      ],
+      "bossN": 300,
+      "bossWin": 0.0,
+      "bossCi": [
+       0.0,
+       0.0126
+      ],
+      "advWin": 0.0,
+      "p6Win": 0.0,
+      "dur": 13.16,
+      "hpLeft": 0.0
+     },
+     "dWin": 0.0,
+     "dBoss": 0.0,
+     "SF": 0,
+     "FS": 0,
+     "signP": 1.0
+    }
+   ],
+   "lift": {
+    "s:HUNTER|1": {
+     "def": {
+      "base": {
+       "n": 3269,
+       "runs": 126,
+       "win": 0.8764,
+       "lift": 0.09,
+       "pm": 2.19
+      },
+      "var": {
+       "n": 3269,
+       "runs": 126,
+       "win": 0.8764,
+       "lift": 0.1,
+       "pm": 2.19
+      }
+     },
+     "pool": {
+      "base": {
+       "n": 4878,
+       "runs": 180,
+       "win": 0.9006,
+       "lift": -0.19,
+       "pm": 1.67
+      },
+      "var": {
+       "n": 4880,
+       "runs": 180,
+       "win": 0.8998,
+       "lift": -0.26,
+       "pm": 1.67
+      }
+     }
+    },
+    "s:HUNTER|2": {
+     "def": {
+      "base": {
+       "n": 165,
+       "runs": 11,
+       "win": 0.8545,
+       "lift": 4.77,
+       "pm": 11.78
+      },
+      "var": {
+       "n": 171,
+       "runs": 11,
+       "win": 0.8363,
+       "lift": 4.31,
+       "pm": 11.67
+      }
+     },
+     "pool": {
+      "base": {
+       "n": 478,
+       "runs": 26,
+       "win": 0.9142,
+       "lift": 4.66,
+       "pm": 3.58
+      },
+      "var": {
+       "n": 480,
+       "runs": 26,
+       "win": 0.925,
+       "lift": 5.63,
+       "pm": 3.69
+      }
+     }
+    }
+   }
+  },
+  {
+   "id": "v4_taunt",
+   "name": "위협 신호기 도발 배율 1당 받는 피해 감소 3 → 2.5%",
+   "runs": {
+    "def": {
+     "base": {
+      "runs": 800,
+      "clears": 358,
+      "clear": 0.4475,
+      "ci": [
+       0.4134,
+       0.4821
+      ],
+      "nonBoss": {
+       "n": 24927,
+       "win": 0.9123,
+       "pm": 0.0055
+      },
+      "boss": {
+       "n": 4317,
+       "win": 0.7755,
+       "pm": 0.0161
+      },
+      "phase": 6.186,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9908,
+        "bossN": 800,
+        "boss": 0.9663
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3884,
+        "nonBoss": 0.9629,
+        "bossN": 548,
+        "boss": 0.9672
+       },
+       "3": {
+        "reach": 1.0,
+        "nonBossN": 4799,
+        "nonBoss": 0.9906,
+        "bossN": 798,
+        "boss": 0.9273
+       },
+       "4": {
+        "reach": 0.9962,
+        "nonBossN": 4032,
+        "nonBoss": 0.8906,
+        "bossN": 656,
+        "boss": 0.7927
+       },
+       "5": {
+        "reach": 0.9587,
+        "nonBossN": 4388,
+        "nonBoss": 0.8491,
+        "bossN": 659,
+        "boss": 0.648
+       },
+       "6": {
+        "reach": 0.7837,
+        "nonBossN": 3024,
+        "nonBoss": 0.7192,
+        "bossN": 856,
+        "boss": 0.4182
+       }
+      }
+     },
+     "var": {
+      "runs": 800,
+      "clears": 357,
+      "clear": 0.4462,
+      "ci": [
+       0.4121,
+       0.4809
+      ],
+      "nonBoss": {
+       "n": 24928,
+       "win": 0.9122,
+       "pm": 0.0055
+      },
+      "boss": {
+       "n": 4319,
+       "win": 0.7759,
+       "pm": 0.0163
+      },
+      "phase": 6.188,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9908,
+        "bossN": 800,
+        "boss": 0.9663
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3884,
+        "nonBoss": 0.9629,
+        "bossN": 548,
+        "boss": 0.9672
+       },
+       "3": {
+        "reach": 1.0,
+        "nonBossN": 4799,
+        "nonBoss": 0.9906,
+        "bossN": 798,
+        "boss": 0.9273
+       },
+       "4": {
+        "reach": 0.9962,
+        "nonBossN": 4032,
+        "nonBoss": 0.8906,
+        "bossN": 656,
+        "boss": 0.7927
+       },
+       "5": {
+        "reach": 0.9613,
+        "nonBossN": 4389,
+        "nonBoss": 0.8476,
+        "bossN": 658,
+        "boss": 0.655
+       },
+       "6": {
+        "reach": 0.7837,
+        "nonBossN": 3024,
+        "nonBoss": 0.7206,
+        "bossN": 859,
+        "boss": 0.4156
+       }
+      }
+     },
+     "dClear": -0.0013,
+     "SF": 3,
+     "FS": 2,
+     "signP": 1.0,
+     "dPhase": 0.001,
+     "dPhasePm": 0.007,
+     "dNonBoss": -0.0001,
+     "dBoss": 0.0004
+    },
+    "pool": {
+     "base": {
+      "runs": 800,
+      "clears": 457,
+      "clear": 0.5713,
+      "ci": [
+       0.5367,
+       0.6051
+      ],
+      "nonBoss": {
+       "n": 25347,
+       "win": 0.9345,
+       "pm": 0.0049
+      },
+      "boss": {
+       "n": 4339,
+       "win": 0.8053,
+       "pm": 0.0173
+      },
+      "phase": 6.428,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9975,
+        "bossN": 800,
+        "boss": 0.9775
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3763,
+        "nonBoss": 0.9801,
+        "bossN": 488,
+        "boss": 0.9836
+       },
+       "3": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.996,
+        "bossN": 800,
+        "boss": 0.95
+       },
+       "4": {
+        "reach": 1.0,
+        "nonBossN": 3984,
+        "nonBoss": 0.9222,
+        "bossN": 609,
+        "boss": 0.8194
+       },
+       "5": {
+        "reach": 0.9888,
+        "nonBossN": 4597,
+        "nonBoss": 0.8997,
+        "bossN": 713,
+        "boss": 0.7237
+       },
+       "6": {
+        "reach": 0.8675,
+        "nonBossN": 3403,
+        "nonBoss": 0.7696,
+        "bossN": 929,
+        "boss": 0.4919
+       }
+      }
+     },
+     "var": {
+      "runs": 800,
+      "clears": 458,
+      "clear": 0.5725,
+      "ci": [
+       0.538,
+       0.6064
+      ],
+      "nonBoss": {
+       "n": 25342,
+       "win": 0.9343,
+       "pm": 0.005
+      },
+      "boss": {
+       "n": 4339,
+       "win": 0.805,
+       "pm": 0.0173
+      },
+      "phase": 6.429,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.9975,
+        "bossN": 800,
+        "boss": 0.9775
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3763,
+        "nonBoss": 0.9801,
+        "bossN": 488,
+        "boss": 0.9836
+       },
+       "3": {
+        "reach": 1.0,
+        "nonBossN": 4800,
+        "nonBoss": 0.996,
+        "bossN": 800,
+        "boss": 0.95
+       },
+       "4": {
+        "reach": 1.0,
+        "nonBossN": 3984,
+        "nonBoss": 0.9219,
+        "bossN": 609,
+        "boss": 0.8194
+       },
+       "5": {
+        "reach": 0.9888,
+        "nonBossN": 4597,
+        "nonBoss": 0.8995,
+        "bossN": 713,
+        "boss": 0.7209
+       },
+       "6": {
+        "reach": 0.8675,
+        "nonBossN": 3398,
+        "nonBoss": 0.769,
+        "bossN": 929,
+        "boss": 0.493
+       }
+      }
+     },
+     "dClear": 0.0012,
+     "SF": 0,
+     "FS": 1,
+     "signP": 1.0,
+     "dPhase": 0.001,
+     "dPhasePm": 0.002,
+     "dNonBoss": -0.0002,
+     "dBoss": -0.0003
+    }
+   },
+   "comps": [],
+   "lift": {
+    "i:A_taunt": {
+     "def": {
+      "base": {
+       "n": 3146,
+       "runs": 177,
+       "win": 0.8541,
+       "lift": 5.38,
+       "pm": 2.51
+      },
+      "var": {
+       "n": 3156,
+       "runs": 177,
+       "win": 0.8504,
+       "lift": 5.13,
+       "pm": 2.55
+      }
+     },
+     "pool": {
+      "base": {
+       "n": 3051,
+       "runs": 179,
+       "win": 0.8879,
+       "lift": 3.89,
+       "pm": 2.2
+      },
+      "var": {
+       "n": 3046,
+       "runs": 179,
+       "win": 0.8864,
+       "lift": 3.75,
+       "pm": 2.26
+      }
+     }
+    },
+    "i:L_taunt": {
+     "def": {
+      "base": {
+       "n": 137,
+       "runs": 10,
+       "win": 0.7372,
+       "lift": -8.2,
+       "pm": 12.9
+      },
+      "var": {
+       "n": 138,
+       "runs": 10,
+       "win": 0.7536,
+       "lift": -6.28,
+       "pm": 12.5
+      }
+     },
+     "pool": {
+      "base": {
+       "n": 19,
+       "runs": 4,
+       "win": 0.8421,
+       "lift": 1.1,
+       "pm": 30.55
+      },
+      "var": {
+       "n": 19,
+       "runs": 4,
+       "win": 0.8421,
+       "lift": 1.18,
+       "pm": 30.53
+      }
+     }
+    }
+   }
+  },
+  {
+   "id": "v5_tesla",
+   "name": "테슬라 코일 바운스 계수 50 → 40%",
+   "runs": {},
+   "comps": [
+    {
+     "id": "G_ENG4|T_tesla",
+     "syn": {
+      "UNI": [
+       3,
+       1
+      ],
+      "PAN": [
+       2,
+       2
+      ],
+      "STL": [
+       2,
+       1
+      ],
+      "ENG": [
+       4,
+       2
+      ],
+      "COND": [
+       2,
+       1
+      ],
+      "HUNTER": [
+       2,
+       1
+      ]
+     },
+     "base": {
+      "n": 600,
+      "win": 0.395,
+      "ci": [
+       0.3567,
+       0.4347
+      ],
+      "bossN": 300,
+      "bossWin": 0.1767,
+      "bossCi": [
+       0.1377,
+       0.2238
+      ],
+      "advWin": 0.6133,
+      "p6Win": 0.1433,
+      "dur": 48.08,
+      "hpLeft": 0.186
+     },
+     "var": {
+      "n": 600,
+      "win": 0.3533,
+      "ci": [
+       0.3161,
+       0.3924
+      ],
+      "bossN": 300,
+      "bossWin": 0.16,
+      "bossCi": [
+       0.1229,
+       0.2057
+      ],
+      "advWin": 0.5467,
+      "p6Win": 0.08,
+      "dur": 47.6,
+      "hpLeft": 0.1642
+     },
+     "dWin": -0.0417,
+     "dBoss": -0.0167,
+     "SF": 29,
+     "FS": 4,
+     "signP": 0.0
+    },
+    {
+     "id": "H_TURRET|T_tesla",
+     "syn": {
+      "PAN": [
+       1,
+       1
+      ],
+      "ENG": [
+       4,
+       2
+      ],
+      "GUARD": [
+       3,
+       1
+      ]
+     },
+     "base": {
+      "n": 600,
+      "win": 0.385,
+      "ci": [
+       0.3469,
+       0.4246
+      ],
+      "bossN": 300,
+      "bossWin": 0.1767,
+      "bossCi": [
+       0.1377,
+       0.2238
+      ],
+      "advWin": 0.5933,
+      "p6Win": 0.1233,
+      "dur": 51.06,
+      "hpLeft": 0.2355
+     },
+     "var": {
+      "n": 600,
+      "win": 0.3467,
+      "ci": [
+       0.3097,
+       0.3856
+      ],
+      "bossN": 300,
+      "bossWin": 0.1733,
+      "bossCi": [
+       0.1347,
+       0.2202
+      ],
+      "advWin": 0.52,
+      "p6Win": 0.0667,
+      "dur": 50.39,
+      "hpLeft": 0.2111
+     },
+     "dWin": -0.0383,
+     "dBoss": -0.0034,
+     "SF": 28,
+     "FS": 5,
+     "signP": 0.0001
+    }
+   ],
+   "lift": {}
+  },
+  {
+   "id": "v6_sir",
+   "name": "성도회 3단계 부활 3 → 2회",
+   "runs": {},
+   "comps": [
+    {
+     "id": "H_SIR7_DEMI",
+     "syn": {
+      "SIR": [
+       7,
+       3
+      ],
+      "PAN": [
+       1,
+       1
+      ],
+      "INFIL": [
+       2,
+       1
+      ],
+      "OCCULT": [
+       2,
+       1
+      ],
+      "RFRIEND": [
+       1,
+       1
+      ]
+     },
+     "base": {
+      "n": 600,
+      "win": 0.71,
+      "ci": [
+       0.6724,
+       0.7449
+      ],
+      "bossN": 300,
+      "bossWin": 0.59,
+      "bossCi": [
+       0.5335,
+       0.6442
+      ],
+      "advWin": 0.83,
+      "p6Win": 0.58,
+      "dur": 55.27,
+      "hpLeft": 0.7332
+     },
+     "var": {
+      "n": 600,
+      "win": 0.6817,
+      "ci": [
+       0.6433,
+       0.7177
+      ],
+      "bossN": 300,
+      "bossWin": 0.5533,
+      "bossCi": [
+       0.4968,
+       0.6086
+      ],
+      "advWin": 0.81,
+      "p6Win": 0.5333,
+      "dur": 54.91,
+      "hpLeft": 0.6975
+     },
+     "dWin": -0.0283,
+     "dBoss": -0.0367,
+     "SF": 24,
+     "FS": 7,
+     "signP": 0.0033
+    }
+   ],
+   "lift": {}
+  },
+  {
+   "id": "v7_d6",
+   "name": "모험(위험 6) 적 최소 장비 1개 보장 1 → 3페이즈부터",
+   "runs": {
+    "d6def": {
+     "base": {
+      "runs": 600,
+      "clears": 3,
+      "clear": 0.005,
+      "ci": [
+       0.0017,
+       0.0146
+      ],
+      "nonBoss": {
+       "n": 9539,
+       "win": 0.5726,
+       "pm": 0.0171
+      },
+      "boss": {
+       "n": 1424,
+       "win": 0.1103,
+       "pm": 0.0195
+      },
+      "phase": 3.197,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 3600,
+        "nonBoss": 0.6719,
+        "bossN": 600,
+        "boss": 0.0633
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3036,
+        "nonBoss": 0.5672,
+        "bossN": 546,
+        "boss": 0.1648
+       },
+       "3": {
+        "reach": 0.825,
+        "nonBossN": 2057,
+        "nonBoss": 0.4482,
+        "bossN": 187,
+        "boss": 0.0749
+       },
+       "4": {
+        "reach": 0.2533,
+        "nonBossN": 588,
+        "nonBoss": 0.466,
+        "bossN": 68,
+        "boss": 0.1471
+       },
+       "5": {
+        "reach": 0.0917,
+        "nonBossN": 214,
+        "nonBoss": 0.486,
+        "bossN": 15,
+        "boss": 0.1333
+       },
+       "6": {
+        "reach": 0.0217,
+        "nonBossN": 44,
+        "nonBoss": 0.4773,
+        "bossN": 8,
+        "boss": 0.375
+       }
+      }
+     },
+     "var": {
+      "runs": 600,
+      "clears": 1,
+      "clear": 0.0017,
+      "ci": [
+       0.0003,
+       0.0094
+      ],
+      "nonBoss": {
+       "n": 9990,
+       "win": 0.6166,
+       "pm": 0.0159
+      },
+      "boss": {
+       "n": 1480,
+       "win": 0.1135,
+       "pm": 0.02
+      },
+      "phase": 3.298,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 3600,
+        "nonBoss": 0.7308,
+        "bossN": 600,
+        "boss": 0.0867
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3097,
+        "nonBoss": 0.6626,
+        "bossN": 573,
+        "boss": 0.1431
+       },
+       "3": {
+        "reach": 0.9167,
+        "nonBossN": 2449,
+        "nonBoss": 0.4259,
+        "bossN": 203,
+        "boss": 0.1034
+       },
+       "4": {
+        "reach": 0.2617,
+        "nonBossN": 591,
+        "nonBoss": 0.511,
+        "bossN": 75,
+        "boss": 0.12
+       },
+       "5": {
+        "reach": 0.1017,
+        "nonBossN": 213,
+        "nonBoss": 0.507,
+        "bossN": 16,
+        "boss": 0.1875
+       },
+       "6": {
+        "reach": 0.0167,
+        "nonBossN": 40,
+        "nonBoss": 0.6,
+        "bossN": 13,
+        "boss": 0.0769
+       }
+      }
+     },
+     "dClear": -0.0033,
+     "SF": 3,
+     "FS": 1,
+     "signP": 0.625,
+     "dPhase": 0.102,
+     "dPhasePm": 0.076,
+     "dNonBoss": 0.044,
+     "dBoss": 0.0032
+    },
+    "d6pool": {
+     "base": {
+      "runs": 600,
+      "clears": 4,
+      "clear": 0.0067,
+      "ci": [
+       0.0026,
+       0.017
+      ],
+      "nonBoss": {
+       "n": 10889,
+       "win": 0.6672,
+       "pm": 0.015
+      },
+      "boss": {
+       "n": 1650,
+       "win": 0.1848,
+       "pm": 0.0232
+      },
+      "phase": 3.532,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 3600,
+        "nonBoss": 0.7689,
+        "bossN": 600,
+        "boss": 0.1367
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3142,
+        "nonBoss": 0.6856,
+        "bossN": 581,
+        "boss": 0.2565
+       },
+       "3": {
+        "reach": 0.9217,
+        "nonBossN": 2690,
+        "nonBoss": 0.5632,
+        "bossN": 286,
+        "boss": 0.1469
+       },
+       "4": {
+        "reach": 0.38,
+        "nonBossN": 939,
+        "nonBoss": 0.5847,
+        "bossN": 130,
+        "boss": 0.1615
+       },
+       "5": {
+        "reach": 0.18,
+        "nonBossN": 425,
+        "nonBoss": 0.5459,
+        "bossN": 35,
+        "boss": 0.2
+       },
+       "6": {
+        "reach": 0.0433,
+        "nonBossN": 93,
+        "nonBoss": 0.5054,
+        "bossN": 18,
+        "boss": 0.2222
+       }
+      }
+     },
+     "var": {
+      "runs": 600,
+      "clears": 3,
+      "clear": 0.005,
+      "ci": [
+       0.0017,
+       0.0146
+      ],
+      "nonBoss": {
+       "n": 11556,
+       "win": 0.6979,
+       "pm": 0.0136
+      },
+      "boss": {
+       "n": 1752,
+       "win": 0.2215,
+       "pm": 0.0221
+      },
+      "phase": 3.745,
+      "byPhase": {
+       "1": {
+        "reach": 1.0,
+        "nonBossN": 3600,
+        "nonBoss": 0.8206,
+        "bossN": 600,
+        "boss": 0.1667
+       },
+       "2": {
+        "reach": 1.0,
+        "nonBossN": 3160,
+        "nonBoss": 0.7434,
+        "bossN": 573,
+        "boss": 0.3525
+       },
+       "3": {
+        "reach": 0.95,
+        "nonBossN": 2854,
+        "nonBoss": 0.582,
+        "bossN": 326,
+        "boss": 0.1472
+       },
+       "4": {
+        "reach": 0.4767,
+        "nonBossN": 1210,
+        "nonBoss": 0.5884,
+        "bossN": 178,
+        "boss": 0.1573
+       },
+       "5": {
+        "reach": 0.2583,
+        "nonBossN": 610,
+        "nonBoss": 0.5328,
+        "bossN": 49,
+        "boss": 0.1429
+       },
+       "6": {
+        "reach": 0.055,
+        "nonBossN": 122,
+        "nonBoss": 0.5246,
+        "bossN": 26,
+        "boss": 0.1154
+       }
+      }
+     },
+     "dClear": -0.0017,
+     "SF": 4,
+     "FS": 3,
+     "signP": 1.0,
+     "dPhase": 0.213,
+     "dPhasePm": 0.087,
+     "dNonBoss": 0.0307,
+     "dBoss": 0.0367
+    }
+   },
+   "comps": [],
+   "lift": {}
+  }
+ ],
+ "chungra": {
+  "base_chr": {
+   "runs": 2400,
+   "curve": "base",
+   "need": [
+    0,
+    9,
+    36,
+    81,
+    144,
+    225,
+    324,
+    441,
+    576,
+    729
+   ],
+   "clear": 0.7817,
+   "clearCi": [
+    0.7647,
+    0.7977
+   ],
+   "phase": 6.754,
+   "chr7": {
+    "runs": 200,
+    "p5entry": {
+     "n": 200,
+     "mean": 4.91,
+     "4": 0.2,
+     "5": 0.69,
+     "6": 0.11,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0188
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0188
+     ],
+     "ptsMed": 175,
+     "ptsMean": 175.4
+    },
+    "p5boss": {
+     "n": 200,
+     "mean": 6.01,
+     "5": 0.145,
+     "6": 0.695,
+     "7": 0.16,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0188
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0188
+     ],
+     "ptsMed": 271,
+     "ptsMean": 275.3
+    },
+    "p6entry": {
+     "n": 200,
+     "mean": 6.13,
+     "5": 0.085,
+     "6": 0.7,
+     "7": 0.21,
+     "8": 0.005,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0188
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0188
+     ],
+     "ptsMed": 286,
+     "ptsMean": 292.7
+    },
+    "p6boss": {
+     "n": 200,
+     "mean": 7.1,
+     "6": 0.115,
+     "7": 0.67,
+     "8": 0.215,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0188
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0188
+     ],
+     "ptsMed": 387,
+     "ptsMean": 395.6
+    },
+    "final": {
+     "n": 200,
+     "mean": 7.29,
+     "6": 0.055,
+     "7": 0.625,
+     "8": 0.29,
+     "9": 0.03,
+     "ge9": 0.03,
+     "ge9ci": [
+      0.0138,
+      0.0639
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0188
+     ],
+     "ptsMed": 412,
+     "ptsMean": 419.8
+    },
+    "clear": 1.0
+   },
+   "chr5": {
+    "runs": 1825,
+    "p5entry": {
+     "n": 1825,
+     "mean": 4.52,
+     "3": 0.0323,
+     "4": 0.4181,
+     "5": 0.5485,
+     "6": 0.0011,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0021
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0021
+     ],
+     "ptsMed": 149,
+     "ptsMean": 144.4
+    },
+    "p5boss": {
+     "n": 1818,
+     "mean": 5.42,
+     "3": 0.0006,
+     "4": 0.0704,
+     "5": 0.4433,
+     "6": 0.4835,
+     "7": 0.0022,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0021
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0021
+     ],
+     "ptsMed": 223,
+     "ptsMean": 218.0
+    },
+    "p6entry": {
+     "n": 1809,
+     "mean": 5.54,
+     "3": 0.0006,
+     "4": 0.0564,
+     "5": 0.3566,
+     "6": 0.576,
+     "7": 0.0105,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0021
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0021
+     ],
+     "ptsMed": 235,
+     "ptsMean": 229.9
+    },
+    "p6boss": {
+     "n": 1704,
+     "mean": 6.24,
+     "4": 0.0053,
+     "5": 0.0933,
+     "6": 0.5552,
+     "7": 0.3451,
+     "8": 0.0012,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0022
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0022
+     ],
+     "ptsMed": 305,
+     "ptsMean": 299.8
+    },
+    "final": {
+     "n": 1496,
+     "mean": 6.48,
+     "4": 0.0007,
+     "5": 0.0515,
+     "6": 0.4198,
+     "7": 0.5187,
+     "8": 0.0094,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0026
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0026
+     ],
+     "ptsMed": 327,
+     "ptsMean": 321.9
+    },
+    "clear": 0.8197
+   },
+   "chrAll": {
+    "runs": 2400,
+    "p5entry": {
+     "n": 2398,
+     "mean": 4.43,
+     "1": 0.0004,
+     "3": 0.0684,
+     "4": 0.4462,
+     "5": 0.475,
+     "6": 0.01,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0016
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0016
+     ],
+     "ptsMed": 142,
+     "ptsMean": 138.0
+    },
+    "p5boss": {
+     "n": 2361,
+     "mean": 5.28,
+     "2": 0.0004,
+     "3": 0.0008,
+     "4": 0.1825,
+     "5": 0.3698,
+     "6": 0.4312,
+     "7": 0.0152,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0016
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0016
+     ],
+     "ptsMed": 217,
+     "ptsMean": 209.2
+    },
+    "p6entry": {
+     "n": 2336,
+     "mean": 5.4,
+     "3": 0.0009,
+     "4": 0.1537,
+     "5": 0.3129,
+     "6": 0.506,
+     "7": 0.0261,
+     "8": 0.0004,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0016
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0016
+     ],
+     "ptsMed": 229,
+     "ptsMean": 221.3
+    },
+    "p6boss": {
+     "n": 2172,
+     "mean": 6.15,
+     "3": 0.0005,
+     "4": 0.0239,
+     "5": 0.1763,
+     "6": 0.4461,
+     "7": 0.3324,
+     "8": 0.0207,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0018
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0018
+     ],
+     "ptsMed": 301,
+     "ptsMean": 291.7
+    },
+    "final": {
+     "n": 1876,
+     "mean": 6.43,
+     "4": 0.0032,
+     "5": 0.1338,
+     "6": 0.3412,
+     "7": 0.4803,
+     "8": 0.0384,
+     "9": 0.0032,
+     "ge9": 0.0032,
+     "ge9ci": [
+      0.0015,
+      0.007
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.002
+     ],
+     "ptsMed": 326,
+     "ptsMean": 318.5
+    },
+    "clear": 0.7817
+   }
+  },
+  "cA_top60_chr": {
+   "runs": 2400,
+   "curve": "cA_top60",
+   "need": [
+    0,
+    9,
+    36,
+    81,
+    144,
+    225,
+    324,
+    441,
+    501,
+    561
+   ],
+   "clear": 0.7817,
+   "clearCi": [
+    0.7647,
+    0.7977
+   ],
+   "phase": 6.754,
+   "chr7": {
+    "runs": 200,
+    "p5entry": {
+     "n": 200,
+     "mean": 4.91,
+     "4": 0.2,
+     "5": 0.69,
+     "6": 0.11,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0188
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0188
+     ],
+     "ptsMed": 175,
+     "ptsMean": 175.4
+    },
+    "p5boss": {
+     "n": 200,
+     "mean": 6.01,
+     "5": 0.145,
+     "6": 0.695,
+     "7": 0.16,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0188
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0188
+     ],
+     "ptsMed": 271,
+     "ptsMean": 275.3
+    },
+    "p6entry": {
+     "n": 200,
+     "mean": 6.13,
+     "5": 0.085,
+     "6": 0.7,
+     "7": 0.21,
+     "8": 0.005,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0188
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0188
+     ],
+     "ptsMed": 286,
+     "ptsMean": 292.7
+    },
+    "p6boss": {
+     "n": 200,
+     "mean": 7.18,
+     "6": 0.115,
+     "7": 0.67,
+     "8": 0.15,
+     "9": 0.045,
+     "10": 0.02,
+     "ge9": 0.065,
+     "ge9ci": [
+      0.0384,
+      0.108
+     ],
+     "eq10": 0.02,
+     "eq10ci": [
+      0.0078,
+      0.0503
+     ],
+     "ptsMed": 387,
+     "ptsMean": 395.6
+    },
+    "final": {
+     "n": 200,
+     "mean": 7.44,
+     "6": 0.055,
+     "7": 0.625,
+     "8": 0.19,
+     "9": 0.085,
+     "10": 0.045,
+     "ge9": 0.13,
+     "ge9ci": [
+      0.0903,
+      0.1837
+     ],
+     "eq10": 0.045,
+     "eq10ci": [
+      0.0239,
+      0.0833
+     ],
+     "ptsMed": 412,
+     "ptsMean": 419.8
+    },
+    "clear": 1.0
+   },
+   "chr5": {
+    "runs": 1825,
+    "p5entry": {
+     "n": 1825,
+     "mean": 4.52,
+     "3": 0.0323,
+     "4": 0.4181,
+     "5": 0.5485,
+     "6": 0.0011,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0021
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0021
+     ],
+     "ptsMed": 149,
+     "ptsMean": 144.4
+    },
+    "p5boss": {
+     "n": 1818,
+     "mean": 5.42,
+     "3": 0.0006,
+     "4": 0.0704,
+     "5": 0.4433,
+     "6": 0.4835,
+     "7": 0.0022,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0021
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0021
+     ],
+     "ptsMed": 223,
+     "ptsMean": 218.0
+    },
+    "p6entry": {
+     "n": 1809,
+     "mean": 5.54,
+     "3": 0.0006,
+     "4": 0.0564,
+     "5": 0.3566,
+     "6": 0.576,
+     "7": 0.0105,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0021
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0021
+     ],
+     "ptsMed": 235,
+     "ptsMean": 229.9
+    },
+    "p6boss": {
+     "n": 1704,
+     "mean": 6.24,
+     "4": 0.0053,
+     "5": 0.0933,
+     "6": 0.5552,
+     "7": 0.3451,
+     "8": 0.0012,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0022
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0022
+     ],
+     "ptsMed": 305,
+     "ptsMean": 299.8
+    },
+    "final": {
+     "n": 1496,
+     "mean": 6.48,
+     "4": 0.0007,
+     "5": 0.0515,
+     "6": 0.4198,
+     "7": 0.5187,
+     "8": 0.0094,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0026
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0026
+     ],
+     "ptsMed": 327,
+     "ptsMean": 321.9
+    },
+    "clear": 0.8197
+   },
+   "chrAll": {
+    "runs": 2400,
+    "p5entry": {
+     "n": 2398,
+     "mean": 4.43,
+     "1": 0.0004,
+     "3": 0.0684,
+     "4": 0.4462,
+     "5": 0.475,
+     "6": 0.01,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0016
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0016
+     ],
+     "ptsMed": 142,
+     "ptsMean": 138.0
+    },
+    "p5boss": {
+     "n": 2361,
+     "mean": 5.28,
+     "2": 0.0004,
+     "3": 0.0008,
+     "4": 0.1825,
+     "5": 0.3698,
+     "6": 0.4312,
+     "7": 0.0152,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0016
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0016
+     ],
+     "ptsMed": 217,
+     "ptsMean": 209.2
+    },
+    "p6entry": {
+     "n": 2336,
+     "mean": 5.4,
+     "3": 0.0009,
+     "4": 0.1537,
+     "5": 0.3129,
+     "6": 0.506,
+     "7": 0.0261,
+     "8": 0.0004,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0016
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0016
+     ],
+     "ptsMed": 229,
+     "ptsMean": 221.3
+    },
+    "p6boss": {
+     "n": 2172,
+     "mean": 6.16,
+     "3": 0.0005,
+     "4": 0.0239,
+     "5": 0.1763,
+     "6": 0.4461,
+     "7": 0.3324,
+     "8": 0.0147,
+     "9": 0.0041,
+     "10": 0.0018,
+     "ge9": 0.006,
+     "ge9ci": [
+      0.0035,
+      0.0102
+     ],
+     "eq10": 0.0018,
+     "eq10ci": [
+      0.0007,
+      0.0047
+     ],
+     "ptsMed": 301,
+     "ptsMean": 291.7
+    },
+    "final": {
+     "n": 1876,
+     "mean": 6.44,
+     "4": 0.0032,
+     "5": 0.1338,
+     "6": 0.3412,
+     "7": 0.4803,
+     "8": 0.0277,
+     "9": 0.0091,
+     "10": 0.0048,
+     "ge9": 0.0139,
+     "ge9ci": [
+      0.0095,
+      0.0202
+     ],
+     "eq10": 0.0048,
+     "eq10ci": [
+      0.0025,
+      0.0091
+     ],
+     "ptsMed": 326,
+     "ptsMean": 318.5
+    },
+    "clear": 0.7817
+   },
+   "vsBase": {
+    "base": {
+     "runs": 2400,
+     "clears": 1876,
+     "clear": 0.7817,
+     "ci": [
+      0.7647,
+      0.7977
+     ],
+     "nonBoss": {
+      "n": 78133,
+      "win": 0.9695,
+      "pm": 0.002
+     },
+     "boss": {
+      "n": 13934,
+      "win": 0.8837,
+      "pm": 0.0082
+     },
+     "phase": 6.754
+    },
+    "var": {
+     "runs": 2400,
+     "clears": 1876,
+     "clear": 0.7817,
+     "ci": [
+      0.7647,
+      0.7977
+     ],
+     "nonBoss": {
+      "n": 78133,
+      "win": 0.9695,
+      "pm": 0.002
+     },
+     "boss": {
+      "n": 13934,
+      "win": 0.8837,
+      "pm": 0.0082
+     },
+     "phase": 6.754
+    },
+    "dClear": 0.0,
+    "SF": 0,
+    "FS": 0,
+    "signP": 1.0,
+    "dPhase": 0.0,
+    "dPhasePm": 0.0,
+    "dNonBoss": 0.0,
+    "dBoss": 0.0
+   }
+  },
+  "cB_pow16_chr": {
+   "runs": 2400,
+   "curve": "cB_pow16",
+   "need": [
+    0,
+    17,
+    51,
+    97,
+    154,
+    221,
+    295,
+    378,
+    468,
+    565
+   ],
+   "clear": 0.7829,
+   "clearCi": [
+    0.766,
+    0.799
+   ],
+   "phase": 6.751,
+   "chr7": {
+    "runs": 201,
+    "p5entry": {
+     "n": 201,
+     "mean": 4.82,
+     "3": 0.005,
+     "4": 0.3035,
+     "5": 0.5572,
+     "6": 0.1343,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0188
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0188
+     ],
+     "ptsMed": 174,
+     "ptsMean": 174.8
+    },
+    "p5boss": {
+     "n": 201,
+     "mean": 6.19,
+     "5": 0.1194,
+     "6": 0.6169,
+     "7": 0.2189,
+     "8": 0.0448,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0188
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0188
+     ],
+     "ptsMed": 270,
+     "ptsMean": 274.6
+    },
+    "p6entry": {
+     "n": 201,
+     "mean": 6.45,
+     "5": 0.0647,
+     "6": 0.5025,
+     "7": 0.3532,
+     "8": 0.0796,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0188
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0188
+     ],
+     "ptsMed": 286,
+     "ptsMean": 292.0
+    },
+    "p6boss": {
+     "n": 201,
+     "mean": 7.7,
+     "6": 0.0398,
+     "7": 0.393,
+     "8": 0.4179,
+     "9": 0.1294,
+     "10": 0.0199,
+     "ge9": 0.1493,
+     "ge9ci": [
+      0.1066,
+      0.2051
+     ],
+     "eq10": 0.0199,
+     "eq10ci": [
+      0.0078,
+      0.05
+     ],
+     "ptsMed": 386,
+     "ptsMean": 394.8
+    },
+    "final": {
+     "n": 201,
+     "mean": 7.97,
+     "6": 0.01,
+     "7": 0.2637,
+     "8": 0.5174,
+     "9": 0.1692,
+     "10": 0.0398,
+     "ge9": 0.209,
+     "ge9ci": [
+      0.1585,
+      0.2704
+     ],
+     "eq10": 0.0398,
+     "eq10ci": [
+      0.0203,
+      0.0766
+     ],
+     "ptsMed": 412,
+     "ptsMean": 419.0
+    },
+    "clear": 1.0
+   },
+   "chr5": {
+    "runs": 1815,
+    "p5entry": {
+     "n": 1815,
+     "mean": 4.33,
+     "2": 0.0006,
+     "3": 0.1168,
+     "4": 0.4353,
+     "5": 0.4441,
+     "6": 0.0033,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0021
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0021
+     ],
+     "ptsMed": 149,
+     "ptsMean": 144.7
+    },
+    "p5boss": {
+     "n": 1807,
+     "mean": 5.46,
+     "3": 0.0033,
+     "4": 0.0852,
+     "5": 0.3841,
+     "6": 0.5042,
+     "7": 0.0232,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0021
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0021
+     ],
+     "ptsMed": 223,
+     "ptsMean": 218.5
+    },
+    "p6entry": {
+     "n": 1799,
+     "mean": 5.61,
+     "3": 0.0022,
+     "4": 0.0673,
+     "5": 0.3046,
+     "6": 0.5675,
+     "7": 0.0584,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0021
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0021
+     ],
+     "ptsMed": 235,
+     "ptsMean": 230.3
+    },
+    "p6boss": {
+     "n": 1696,
+     "mean": 6.53,
+     "3": 0.0006,
+     "4": 0.0059,
+     "5": 0.0837,
+     "6": 0.3426,
+     "7": 0.5083,
+     "8": 0.059,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0023
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0023
+     ],
+     "ptsMed": 306,
+     "ptsMean": 300.4
+    },
+    "final": {
+     "n": 1505,
+     "mean": 6.83,
+     "4": 0.0007,
+     "5": 0.0372,
+     "6": 0.2319,
+     "7": 0.5947,
+     "8": 0.1342,
+     "9": 0.0013,
+     "ge9": 0.0013,
+     "ge9ci": [
+      0.0004,
+      0.0048
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0025
+     ],
+     "ptsMed": 328,
+     "ptsMean": 322.6
+    },
+    "clear": 0.8292
+   },
+   "chrAll": {
+    "runs": 2400,
+    "p5entry": {
+     "n": 2398,
+     "mean": 4.2,
+     "1": 0.0004,
+     "2": 0.0008,
+     "3": 0.2118,
+     "4": 0.3903,
+     "5": 0.3828,
+     "6": 0.0138,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0016
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0016
+     ],
+     "ptsMed": 142,
+     "ptsMean": 138.0
+    },
+    "p5boss": {
+     "n": 2353,
+     "mean": 5.3,
+     "2": 0.0004,
+     "3": 0.011,
+     "4": 0.198,
+     "5": 0.3102,
+     "6": 0.4399,
+     "7": 0.0365,
+     "8": 0.0038,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0016
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0016
+     ],
+     "ptsMed": 217,
+     "ptsMean": 209.4
+    },
+    "p6entry": {
+     "n": 2325,
+     "mean": 5.47,
+     "2": 0.0004,
+     "3": 0.0056,
+     "4": 0.1751,
+     "5": 0.2538,
+     "6": 0.4826,
+     "7": 0.0757,
+     "8": 0.0069,
+     "ge9": 0.0,
+     "ge9ci": [
+      0.0,
+      0.0016
+     ],
+     "eq10": 0.0,
+     "eq10ci": [
+      0.0,
+      0.0016
+     ],
+     "ptsMed": 230,
+     "ptsMean": 221.7
+    },
+    "p6boss": {
+     "n": 2163,
+     "mean": 6.41,
+     "3": 0.0009,
+     "4": 0.0421,
+     "5": 0.1503,
+     "6": 0.2728,
+     "7": 0.435,
+     "8": 0.0851,
+     "9": 0.012,
+     "10": 0.0018,
+     "ge9": 0.0139,
+     "ge9ci": [
+      0.0097,
+      0.0197
+     ],
+     "eq10": 0.0018,
+     "eq10ci": [
+      0.0007,
+      0.0047
+     ],
+     "ptsMed": 301,
+     "ptsMean": 292.4
+    },
+    "final": {
+     "n": 1879,
+     "mean": 6.77,
+     "4": 0.0106,
+     "5": 0.1107,
+     "6": 0.1879,
+     "7": 0.5045,
+     "8": 0.1629,
+     "9": 0.0192,
+     "10": 0.0043,
+     "ge9": 0.0234,
+     "ge9ci": [
+      0.0175,
+      0.0313
+     ],
+     "eq10": 0.0043,
+     "eq10ci": [
+      0.0022,
+      0.0084
+     ],
+     "ptsMed": 328,
+     "ptsMean": 319.6
+    },
+    "clear": 0.7829
+   },
+   "vsBase": {
+    "base": {
+     "runs": 2400,
+     "clears": 1876,
+     "clear": 0.7817,
+     "ci": [
+      0.7647,
+      0.7977
+     ],
+     "nonBoss": {
+      "n": 78133,
+      "win": 0.9695,
+      "pm": 0.002
+     },
+     "boss": {
+      "n": 13934,
+      "win": 0.8837,
+      "pm": 0.0082
+     },
+     "phase": 6.754
+    },
+    "var": {
+     "runs": 2400,
+     "clears": 1879,
+     "clear": 0.7829,
+     "ci": [
+      0.766,
+      0.799
+     ],
+     "nonBoss": {
+      "n": 78088,
+      "win": 0.9695,
+      "pm": 0.0019
+     },
+     "boss": {
+      "n": 13856,
+      "win": 0.888,
+      "pm": 0.008
+     },
+     "phase": 6.751
+    },
+    "dClear": 0.0012,
+    "SF": 35,
+    "FS": 38,
+    "signP": 0.8151,
+    "dPhase": -0.003,
+    "dPhasePm": 0.008,
+    "dNonBoss": 0.0,
+    "dBoss": 0.0043
+   }
+  }
+ },
+ "pathCheck": {
+  "note": "tests/balance.ts 전투 구성: 수정 전 makeBattle(포탑 자리 · 포탑 장비 · 무휼 자리 미전달) vs 수정 후 buildBattle, 같은 시드 400런씩",
+  "bots": {
+   "pool": {
+    "runs": 400,
+    "clearOld": 227,
+    "clearNew": 222,
+    "SF": 7,
+    "FS": 2,
+    "signP": 0.1797,
+    "changedRuns": 36,
+    "changedWithEng": 35,
+    "engRuns": 56,
+    "changedEngShare": 0.625
+   },
+   "chr": {
+    "runs": 400,
+    "clearOld": 313,
+    "clearNew": 314,
+    "SF": 0,
+    "FS": 1,
+    "signP": 1,
+    "changedRuns": 4,
+    "changedWithEng": 4,
+    "engRuns": 76,
+    "changedEngShare": 0.053
+   }
+  }
+ }
+}

@@ -5,7 +5,7 @@ import { CFG } from '../src/config';
 import { ENEMY_BY_ID, enemyTypes } from '../src/data/enemies';
 import { UNITS, UNIT_BY_ID } from '../src/data/units';
 import { SYNERGIES, tierOf } from '../src/data/synergies';
-import { boardDims, buildAlly, buildEnemy, deployed, enemyCell, layout, memberships, synergyCounts } from '../src/engine/build';
+import { boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyCell, layout, memberships, synergyCounts } from '../src/engine/build';
 import { Battle, type CUnit, type DmgOpts, type DmgResult } from '../src/engine/combat';
 import * as R from '../src/engine/run';
 import { augChoice, forkChoice, manageItems, shopSynth, type Track, pilgrimBot } from './botlib';
@@ -82,7 +82,9 @@ Battle.prototype.dealDamage = function (this: Battle, src: CUnit, tgt: CUnit, ba
   return r;
 };
 
-/** buildBattle 과 같되 시너지 인원을 덮어쓸 수 있다 (반사실 실험용) */
+/** 반사실 실험 전용: buildBattle 과 같되 시너지 인원을 덮어쓸 수 있다.
+ *  편성 화면의 포탑 자리 · 포탑 장비 · 무휼 자리(build.ts 내부 WeakMap)는 넘기지 못해 기본 자리 · 장비 없음으로 설치된다.
+ *  그래서 실제 전투는 buildBattle 로 돌리고, 반사실 비교는 '켠 상태'도 이 함수로 다시 돌려 같은 경로끼리 비교한다. */
 function makeBattle(run: RunState, enc: NonNullable<NonNullable<RunState['node']>['enc']>, counts: Record<string, number>) {
   const dim = boardDims(enc.n);
   const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined, oaths: run.oaths, otShift: oathV(run, 'clock', 'sec') || undefined });
@@ -190,6 +192,8 @@ function playRun(seed: number) {
   const usedUnits = new Set<string>();
   const crAt: Record<number, [number, number]> = {}; // 경제: 페이즈별 전투 직전 보유 크레딧 [합, 전투 수]
   const czAt: Record<number, [number, number]> = {}; // 청라공국: 페이즈 첫 전투 직전 무휼 인과율 · 그 전투의 청라 단계
+  const kbAt: Record<number, number> = {}; // 청라공국: 페이즈 보스전 첫 진입 직전 무휼 인과율 (최종 보스 승리 뒤 성장분 제외용)
+  const bw = [0, 0, 0, 0]; // [보스전 수, 보스 승리, 보스 외 전투 수, 보스 외 승리]
   while (!run.over && !run.cleared && n < 200) {
     resolvePending(); manage(); resolvePending();
     if (run.node?.synth) { shopSynth(run, track); continue; }
@@ -215,10 +219,12 @@ function playRun(seed: number) {
 
     if (RANDREL) for (const u of run.units) if (UNIT_BY_ID[u.defId].ttype === 'divine' && !relicSet.has(u.uid)) { relicSet.add(u.uid); u.relic = RELICS[Math.floor(bot.next() * RELICS.length)].id; }
     tap = { pair: {}, evaded: new Map() };
-    const b = makeBattle(run, enc, counts);
+    if (ntype === 'boss' && kbAt[ph] === undefined) kbAt[ph] = run.causal || 0; // 무휼: 페이즈 보스 첫 진입 직전 인과율
+    const b = buildBattle(run, enc, false); // 실제 게임과 같은 경로 (포탑 · 무휼 자리, 포탑 장비 포함)
     b.runToEnd();
     const won = b.winner === 0;
     battles++;
+    { const k2 = ntype === 'boss' ? 0 : 2; bw[k2]++; if (won) bw[k2 + 1]++; }
     const T = tap; tap = null;
     for (const [k, v] of Object.entries(T.pair)) {
       const [side, kind, pair, f] = k.split('|');
@@ -288,13 +294,15 @@ function playRun(seed: number) {
     add('nsyn', `${active.length}|${ph}`, { n: 1, wins: won ? 1 : 0 });
     // 반사실: 표본 전투에서 활성 시너지를 하나씩 꺼 보고 아군 피해 · 승패 차이를 잰다
     if (active.length && bot.chance(CF_RATE)) {
-      const full = allyDamage(b);
+      const b1 = makeBattle(run, enc, counts); // 같은 경로로 '켠 상태' 재전투 (buildBattle 과 포탑 · 무휼 자리가 다를 수 있다)
+      b1.runToEnd();
+      const full = allyDamage(b1), wonFull = b1.winner === 0;
       for (const sid of active) {
         const c2 = { ...counts, [sid]: 0 };
         const b2 = makeBattle(run, enc, c2);
         b2.runToEnd();
         const tier = tierOf(sid as SynergyId, counts[sid] || 0);
-        const v = { n: 1, full, without: allyDamage(b2), winFull: won ? 1 : 0, winWithout: b2.winner === 0 ? 1 : 0, durFull: b.t, durWithout: b2.t };
+        const v = { n: 1, full, without: allyDamage(b2), winFull: wonFull ? 1 : 0, winWithout: b2.winner === 0 ? 1 : 0, durFull: b1.t, durWithout: b2.t };
         add('cf', sid, v); add('cf_t', `${sid}|${tier}`, v); add('cf_ph', `${sid}|${ph}`, v);
       }
     }
@@ -312,7 +320,7 @@ function playRun(seed: number) {
   const eco = { nb: rb.length, i: rb.reduce((s, x) => s + x.i, 0), cap: rb.reduce((s, x) => s + x.cap, 0), inc: rb.reduce((s, x) => s + x.c, 0), atCap: rb.filter((x) => x.cap > 0 && x.i >= x.cap).length,
     sp: run.rep?.sp || {}, crAt, end: run.credits, loan: run.loan || 0 };
   runs.push({ seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, causal: run.causal || 0, king: run.causal ? causalStage(run.causal) : 0, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems,
-    cz: czAt, diff: run.diff || 0, heat: run.oathHeat || 0, despairs: run.despairs || [], hp: run.hp, eco, ...(DETAIL ? { det } : {}) });
+    cz: czAt, kb: kbAt, chrMax: run.chrTier || 0, bw, diff: run.diff || 0, heat: run.oathHeat || 0, despairs: run.despairs || [], hp: run.hp, eco, ...(DETAIL ? { det } : {}) });
 }
 
 for (let i = 0; i < COUNT; i++) {
