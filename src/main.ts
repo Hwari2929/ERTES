@@ -2,8 +2,8 @@ import { CFG, phaseAmpMult, phaseHpMult } from './config';
 import { AUG_BY_ID, augDesc } from './data/augments';
 import { ENEMIES, ENEMY_BY_ID, type EnemyDef } from './data/enemies';
 import { ENEMY_DESC } from './data/enemyText';
-import { DIFFS, MAX_DIFF, diffAddCount, diffAddEvery, diffAddRule, diffLabel, diffName } from './data/difficulty';
-import { CATWHEEL, DESPAIR_BY_ID, DESPAIRS, despairDiff } from './data/despair';
+import { DIFF_PRESETS, DIFFS, MAX_DIFF, diffAddCount, diffAddEvery, diffAddRule, diffLabel, diffName } from './data/difficulty';
+import { CATWHEEL, DESPAIR_BY_ID, DESPAIRS, despairDiff, despairPhases, despairsOf, type DespairDef } from './data/despair';
 import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
 import { STORIES } from './data/stories';
 import { FIELDS, fieldOf } from './data/battlefields';
@@ -37,7 +37,7 @@ import { ULTS } from './data/ults';
 import { VOICE, voicePick } from './data/voicelines';
 import { DEFAULT_RELIC, RELIC_BY_ID } from './data/relics';
 import { deleteSave, exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
-import { despairUnlocked, loadMeta, metaBarMvp, metaBattle, metaClear, metaEvent, metaRunEnd, metaTutEnd, metaTutSeen, tutMeta, tutOver } from './ui/meta';
+import { loadMeta, metaBarMvp, metaBattle, metaClear, metaEvent, metaRunEnd, metaTutEnd, metaTutSeen, tutMeta, tutOver } from './ui/meta';
 import { bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg, standURL } from './ui/portraits';
 import { advKey, closeAdv, playAdv } from './ui/adv';
 import * as SND from './ui/sound';
@@ -132,7 +132,7 @@ const app = {
   toastT: 0 as ReturnType<typeof setTimeout> | 0,
   importErr: '',
   needMount: false,
-  diff: 0, // 새 런 난이도 (쉬움 0 · 모험 3 · 고난 6)
+  diff: DIFF_PRESETS[0].lvl, // 새 런 난이도 = 위험 등급 (쉬움 3 · 모험 6 · 고난 7, data/difficulty.ts DIFF_PRESETS)
   introField: null as string | null, // 출격 연출: 이번 런 전장
   introDone: false, // 출격 연출을 끝까지 봤는지 (다시 그릴 때 연출 생략)
   introFoe: null as string | null, // 전장 브리핑에서 연 적 상세
@@ -264,7 +264,7 @@ function topbar() {
       <span class="pill" title="페이즈 · 노드">P<b>${r.phase}</b> · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>
       <span class="pill hp" title="체력">${lineIcon('r.hp', 'li')}<b>${r.hp}</b>/${r.maxHp}</span>
       <span class="pill cr" title="에너지 크레딧">${CR}<b>${r.credits}</b></span>
-      ${r.despair && DESPAIR_BY_ID[r.despair] ? `<button class="pill despair" data-a="despair-info" title="절망 증강 — ${esc(DESPAIR_BY_ID[r.despair].name)}: ${esc(DESPAIR_BY_ID[r.despair].desc())}">${lineIcon(DESPAIR_BY_ID[r.despair].icon, 'li')}<b>${esc(DESPAIR_BY_ID[r.despair].name)}</b></button>` : ''}
+      ${despairPill(r)}
       ${extra.length ? `<details class="pill more"><summary title="기타 자원">${lineIcon('r.more', 'li')}<span class="more-tx">기타</span></summary><ul class="more-list">${extra.join('')}</ul></details>` : ''}
     </div>
     ${app.screen === 'battle' ? '' : `<button class="btn ghost menu-btn" data-a="menu" title="메뉴" aria-label="메뉴">${lineIcon('r.menu', 'li')}</button>`}
@@ -732,8 +732,8 @@ function foeModal(id: string) {
 let bgWarm = false;
 /** 특권 커튼 연출을 이미 보여 준 런 (시드) */
 let pvPlayed: number | null = null;
-/** 절망 증강 막을 이미 보여 준 런 (시드) */
-let dpPlayed: number | null = null;
+/** 절망 증강 막을 이미 보여 준 선택 (시드:이미 고른 수) */
+let dpPlayed: string | null = null;
 function preloadBgs() {
   if (bgWarm) return;
   bgWarm = true;
@@ -764,27 +764,33 @@ function introAnim() {
   };
   introTimer = window.setTimeout(() => { el.classList.add('opened'); introTimer = window.setTimeout(spin, 650); }, 900);
 }
-const DIFF_PICKS = [ // 이름은 difficulty.ts DIFF_PRESETS (배경 키 diff_challenge 는 그림 파일 이름이라 그대로)
-  { lvl: 0, name: diffName(0), sub: '표준 의뢰', bg: 'diff_easy', line: '처음 출격하는 용병단을 위한 안정적인 항로.' },
-  { lvl: 3, name: diffName(3), sub: '위험 등급 3', bg: 'diff_adventure', line: `적이 장비를 챙기고 ${diffAddEvery(3)}페이즈마다 1기씩 늘어납니다. 승리 크레딧 ×${CFG.diffWinMul(3)}.` },
-  { lvl: 6, name: diffName(6), sub: '위험 등급 6', bg: 'diff_challenge', line: `함대 체력이 줄고 적은 ${diffAddEvery(6)}페이즈마다 1기씩 더 몰려옵니다. 크레딧 ×${CFG.diffWinMul(6)}, 베테랑 전용.` },
-];
-/** 절망 증강 안내 (고난 카드): 해금 전에는 해금 조건, 해금 뒤에는 고르는 방식 */
+/** 난이도 카드: 등급 · 이름은 difficulty.ts DIFF_PRESETS (쉬움 3 · 모험 6 · 고난 7), 증원 간격 · 보상 배율 · 절망 증강 횟수는 설정값에서 읽는다.
+ *  배경 키(diff_easy · diff_adventure · diff_challenge)는 그림 파일 이름이라 카드 순서대로 그대로 쓴다 */
+const DIFF_BG = ['diff_easy', 'diff_adventure', 'diff_challenge'];
+const diffLine = (lvl: number) => {
+  const add = diffAddEvery(lvl), cr = `승리 크레딧 ×${CFG.diffWinMul(lvl)}`;
+  const foes = add ? `적은 ${add}페이즈마다 1기씩 늘어납니다` : '적이 장비를 챙기지만 수는 늘지 않습니다';
+  if (despairDiff(lvl)) return `절망 증강을 짊어지고 출격해 ${CFG.despair.every}페이즈마다 하나씩 더 쌓이고, ${foes}. ${cr}, 베테랑 전용.`;
+  return lvl >= 6 ? `함대 체력이 줄고 ${foes}. ${cr}.` : `처음 출격하는 용병단을 위한 항로. ${foes}. ${cr}.`;
+};
+const DIFF_PICKS = DIFF_PRESETS.map((x, i) => ({ lvl: x.lvl, name: x.name, sub: `위험 등급 ${x.lvl}`, bg: DIFF_BG[i] || DIFF_BG[DIFF_BG.length - 1], line: diffLine(x.lvl) }));
+/** 절망 증강 안내 (고난 카드 위 띠): 고르는 횟수만 짧게. 자세한 방식은 ⓘ 세부 조건 (difficulty.ts 위험 7) */
 function despairNote(lvl: number) {
   if (!despairDiff(lvl)) return '';
-  return despairUnlocked() ? `절망 증강: 특권 증강 다음에 ${CFG.despair.choices}개 중 1개를 반드시 고릅니다 (새로고침 ${CFG.despair.rerolls}회).` : `${diffName(CFG.despair.unlock)} 의뢰를 1번 성공하면 절망 증강이 열립니다.`;
+  const ph = despairPhases();
+  return `절망 증강: 출격 때 1개${ph.length ? ` + ${ph.map((p) => `${p}페이즈`).join(' · ')} 시작 때 1개씩` : ''} (의뢰 중 ${1 + ph.length}개)`;
 }
 function diffScreen() {
   return `<main class="diffsel"><h1 class="ds-title">난이도 설정</h1>
     <div class="ds-row">${DIFF_PICKS.map((d) => {
       const on = app.diff === d.lvl;
-      const conds = DIFFS.filter((x) => x.lvl >= 1 && x.lvl <= d.lvl).map((x) => x.desc).concat(despairUnlocked() && despairDiff(d.lvl) ? [despairNote(d.lvl)] : []);
+      const conds = DIFFS.filter((x) => x.lvl >= 1 && x.lvl <= d.lvl).map((x) => x.desc);
 return `<button class="ds-card${on ? ' on' : ''}${app.dsInfo === d.lvl ? ' info' : ''}" data-a="diff" data-v="${d.lvl}" aria-pressed="${on}">
         <span class="ds-bg" style="background-image:url('${bgURL(d.bg)}')"></span><span class="ds-shade"></span>
         <span class="ds-info-btn" data-a="ds-info" data-v="${d.lvl}" role="button" aria-label="${d.name} 세부 조건" title="세부 조건">i</span>
         <span class="ds-pop">${conds.length ? `<b>세부 조건</b><ul>${conds.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : '<b>세부 조건</b><span>추가 조건 없음</span>'}</span>
         <span class="ds-body"><span class="ds-sub">${d.sub}</span><b class="ds-name">${d.name}</b><span class="ds-line">${d.line}</span></span>
-        ${despairDiff(d.lvl) ? `<span class="ds-despair${despairUnlocked() ? ' open' : ''}">${lineIcon(despairUnlocked() ? 'k.soul' : 'r.key', 'li')}<span>${esc(despairNote(d.lvl))}</span></span>` : ''}</button>`;
+        ${despairDiff(d.lvl) ? `<span class="ds-despair open">${lineIcon('k.soul', 'li')}<span>${esc(despairNote(d.lvl))}</span></span>` : ''}</button>`;
     }).join('')}</div>
     <div class="ds-act"><button class="btn ghost" data-a="intro-back">전장 다시 보기</button><button class="btn primary" data-a="diff-ok">출격 준비</button></div>
   </main>`;
@@ -867,7 +873,7 @@ function mapScreen(run: RunState) {
       ${run.quests.length ? `<h2>헬레니우스 퀘스트</h2><ul class="quests">${run.quests.map((q) =>
         `<li class="${q.done ? 'done' : ''}">${esc(R.questText(q))} <span class="muted">${Math.min(q.progress, q.target)}/${q.target} · 보상 ${R.questRewardText(q)}</span></li>`).join('')}</ul>` : ''}
       ${run.privilege ? `<h2>특권</h2><ul class="globals"><li><b>${esc(R.privilegeName(run.privilege))}</b> <span class="muted">${esc(R.privilegeDesc(run.privilege))}</span></li></ul>` : ''}
-      ${run.despair && DESPAIR_BY_ID[run.despair] ? `<h2>절망 증강</h2><ul class="globals despair"><li><b>${esc(DESPAIR_BY_ID[run.despair].name)}</b> <span class="muted">${ic(esc(DESPAIR_BY_ID[run.despair].desc()))}</span></li></ul>` : ''}
+      ${despairEnv(run)}
       ${run.boons.length || run.phaseBoons.length || run.mods.nodeIncome || run.mods.interestCap ? `<h2>사건 효과</h2><ul class="globals">${run.boons.map((id) => `<li><b>${esc(BOONS[id]?.name || id)}</b> <span class="muted">영구</span></li>`).join('')}${run.phaseBoons.map((id) => `<li><b>${esc(BOONS[id]?.name || id)}</b> <span class="muted">이번 페이즈</span></li>`).join('')}${run.mods.nodeIncome ? `<li><b>분할 정산</b> <span class="muted">노드마다 크레딧 +${run.mods.nodeIncome}, 이자 상한 ${run.mods.interestCap}</span></li>` : ''}</ul>` : ''}
       ${run.globals.length ? `<h2>전역 증강</h2><ul class="globals">${run.globals.map((g) => `<li><b>${esc(GLOBAL_BY_ID[g].name)}</b> <span class="muted">${ic(esc(GLOBAL_BY_ID[g].desc))}</span></li>`).join('')}</ul>` : ''}
       </section>
@@ -976,8 +982,7 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
     if (add > 0) m.push(mod(lineIcon('m.skull', 'li'), `+${add}`, `적 수량 +${add} — 위험 등급 ${run.diff} 적 증원: ${diffAddRule(run.diff)}`, 'bad'));
     if ((o === 'adversity' || o === 'challenge') && f.elite) m.push(mod(lineIcon('m.elite', 'li'), '정예', `정예 확정: ${NODE_NAME[o]} 전투에는 이 전장의 정예가 반드시 나온다`, 'bad tx'));
     if (o === 'adversity') m.push(mod(lineIcon('m.gift', 'li'), `×${CFG.adversityReward}`, `보상 강화: 승리 크레딧 · 공명도 ×${CFG.adversityReward}`, 'good'));
-    const dsp = run.despair ? DESPAIR_BY_ID[run.despair] : undefined, dv = dsp?.mod?.(o === 'boss'); // 절망 증강 (이 전투에 걸리는 것만)
-    if (dsp && dv) m.push(mod(lineIcon(dsp.icon, 'li'), dv, `절망 증강 [${dsp.name}]: ${dsp.desc()}`, 'bad despair'));
+    for (const dsp of despairsOf(run)) { const dv = dsp.mod?.(o === 'boss'); if (dv) m.push(mod(lineIcon(dsp.icon, 'li'), dv, `절망 증강 [${dsp.name}]: ${dsp.desc()}`, 'bad despair')); } // 절망 증강 (이 전투에 걸리는 것만, 고른 순서)
     return m.length ? `<div class="ah-mods" aria-label="모디파이어"><span class="ah-sec">모디파이어</span>${m.join('')}</div>` : '';
   };
   // 예상 수입 (현재 칸만, 네모 칸 · 아이콘 + 숫자): 승리 시 공명도 풀 · 크레딧 (엔진의 보상 계산 battleRewardPreview) + 장비 · 재료 · 소모품 (×n = 확정, % = 확률, 설정값 · 전장 배율)
@@ -2077,7 +2082,7 @@ function investScreen(run: RunState) {
 
 function overScreen(run: RunState) {
   return `<main class="wrap over">
-    <div class="screen-head"><h1>${run.cleared ? '의뢰 성공' : '계약 종료'}</h1><p class="muted">${run.cleared ? `${esc(fieldOf(run.field).name)} 의뢰 완료${run.endless ? ` · 무한 모드 페이즈 ${run.phase}에서 귀환 불가` : ''}.` : `ERRANTEs 는 페이즈 ${run.phase}에서 무너졌습니다.`}${run.diff ? ` ${diffLabel(run.diff)}.` : ''}${run.despair ? ` 절망 증강 [${esc(DESPAIR_BY_ID[run.despair]?.name || '')}].` : ''}</p></div>
+    <div class="screen-head"><h1>${run.cleared ? '의뢰 성공' : '계약 종료'}</h1><p class="muted">${run.cleared ? `${esc(fieldOf(run.field).name)} 의뢰 완료${run.endless ? ` · 무한 모드 페이즈 ${run.phase}에서 귀환 불가` : ''}.` : `ERRANTEs 는 페이즈 ${run.phase}에서 무너졌습니다.`}${run.diff ? ` ${diffLabel(run.diff)}.` : ''}${despairsOf(run).length ? ` 절망 증강 ${despairNames(run)}.` : ''}</p></div>
     <dl class="stats big">
       <dt>도달 페이즈</dt><dd>${run.phase}</dd><dt>전투</dt><dd>${run.stats.wins}승 ${run.stats.losses}패</dd>
       <dt>처치</dt><dd>${run.stats.kills}</dd><dt>최대 단일 피해</dt><dd>${fmt(run.stats.bestHit)}</dd>
@@ -2159,7 +2164,7 @@ function pendingModal(run: RunState): string {
   } else if (p.t === 'event' || (p.t === 'notice' && p.scene?.length)) {
     return ''; // 미연시 화면 (advSync)
   } else if (p.t === 'victory') {
-    body = `<h1>의뢰 성공</h1><p>페이즈 ${run.phase} 보스를 격파했습니다. ${esc(fieldOf(run.field).name)} 의뢰가 완료되었습니다${run.diff ? ` (${diffLabel(run.diff)}${run.despair ? ` · 절망 증강 [${esc(DESPAIR_BY_ID[run.despair]?.name || '')}]` : ''})` : ''}.</p>
+    body = `<h1>의뢰 성공</h1><p>페이즈 ${run.phase} 보스를 격파했습니다. ${esc(fieldOf(run.field).name)} 의뢰가 완료되었습니다${run.diff ? ` (${diffLabel(run.diff)}${despairsOf(run).length ? ` · 절망 증강 ${despairNames(run)}` : ''})` : ''}.</p>
       <p class="muted small">귀환하면 런이 끝나고 기록이 남습니다. 계속하면 무한 모드로 이어지며, 적은 계속 강해집니다. 어느 쪽이든 다음 위험 등급이 해금됩니다.</p>
       <div class="row-btns"><button class="btn primary" data-a="victory-end">귀환 (의뢰 완료)</button><button class="btn" data-a="victory-endless">무한 모드로 계속</button></div>`;
   } else if (p.t === 'field') {
@@ -2175,7 +2180,9 @@ function pendingModal(run: RunState): string {
     // 절망 증강: 어둡게 가라앉는 카드 (특권 · 등급 공개 연출과 따로, 소리는 낮은 음 하나 — sound.ts despair)
     mcls = 'despair';
     const rec = loadMeta().despair || {};
-    body = `<div class="dp-body"><span class="dp-kicker">고난의 대가</span><h1>절망 증강</h1><p class="small dp-sub">이번 의뢰 내내 짊어질 절망을 하나 고르세요. 고르지 않고는 출격할 수 없습니다.</p>
+    const held = despairsOf(run); // 페이즈 시작 때 더 고르는 것: 이미 짊어진 절망을 함께 보여 준다
+    body = `<div class="dp-body"><span class="dp-kicker">${p.phase ? `${p.phase}페이즈 · 깊어지는 절망` : `${esc(diffName(run.diff) || '고난')}의 대가`}</span><h1>절망 증강</h1><p class="small dp-sub">${p.phase ? `절망이 하나 더 쌓입니다. 의뢰가 끝날 때까지 이미 짊어진 절망과 함께 걸립니다. 고르지 않고는 나아갈 수 없습니다.` : '이번 의뢰 내내 짊어질 절망을 하나 고르세요. 고르지 않고는 출격할 수 없습니다.'}</p>
+      ${held.length ? `<p class="dp-held"><span>짊어진 절망</span>${held.map((d) => `<b title="${esc(d.desc())}">${lineIcon(d.icon, 'li')}${esc(d.name)}</b>`).join('')}</p>` : ''}
       <div class="dp-row">${p.options.map((id, i) => { const d = DESPAIR_BY_ID[id]; const r = rec[id]; return `<button class="dp-card" style="--i:${i}" data-a="pick-despair" data-v="${i}"><span class="dp-sigil" aria-hidden="true">${lineIcon(d.icon, 'li')}</span><b>${esc(d.name)}</b><span class="dp-desc">${ic(esc(d.desc()))}</span><span class="dp-quip">${esc(d.quip)}</span><span class="dp-rec">${r?.clears ? `이 절망으로 성공 ${r.clears}회` : '아직 이 절망으로 성공한 적 없음'}</span></button>`; }).join('')}</div>
       <div class="row-btns"><button class="btn" data-a="reroll-despair" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div></div>`;
   } else if (p.t === 'rankup') {
@@ -2275,8 +2282,8 @@ function pendingModal(run: RunState): string {
   // 별무리 커튼이 좌우에서 닫힌다. 런마다 한 번만 (새로고침으로 다시 그려도 커튼은 내려온 상태로)
   let pvCls = '';
   if (mcls === 'privilege') { pvCls = pvPlayed === run.seed ? ' pv-bg played' : ' pv-bg'; pvPlayed = run.seed; }
-  // 절망 증강: 붉은 재가 천천히 가라앉는 어두운 막 (런마다 한 번만 내려온다)
-  if (mcls === 'despair') { pvCls = dpPlayed === run.seed ? ' dp-bg played' : ' dp-bg'; dpPlayed = run.seed; }
+  // 절망 증강: 붉은 재가 천천히 가라앉는 어두운 막 (고를 때마다 한 번 내려온다 — 새로고침으로 다시 그려도 그대로)
+  if (mcls === 'despair') { const k = `${run.seed}:${run.despairs?.length || 0}`; pvCls = dpPlayed === k ? ' dp-bg played' : ' dp-bg'; dpPlayed = k; } // 고를 때마다 (출격 · 페이즈 시작) 한 번씩
   const veil = mcls === 'despair' ? `<div class="dp-veil" aria-hidden="true">${Array.from({ length: 24 }, (_, i) => `<i style="--x:${(i * 37) % 100}%;--d:${(i % 6) * 0.7}s;--s:${6 + (i % 4)}s"></i>`).join('')}</div>` : '';
   const curtain = mcls === 'privilege' ? `<div class="pv-curtain" aria-hidden="true"><i class="pv-half l"></i><i class="pv-half r"></i><span class="pv-seam"></span>
     <span class="pv-stars">${Array.from({ length: 36 }, (_, i) => `<i style="--x:${(i * 41) % 100}%;--d:${(i % 6) * 0.5}s;--s:${3 + (i % 5)}s"></i>`).join('')}</span></div>` : '';
@@ -2871,6 +2878,26 @@ function goPrepOrMap() {
 }
 
 
+// ───────────────────────── 절망 증강 표시 (여러 개가 쌓일 수 있다, data/despair.ts)
+/** 상단 바: 1개면 아이콘 + 이름, 여러 개면 아이콘을 나란히 + '절망 n' (좁은 화면은 아이콘만). 누르면 설명 */
+function despairPill(r: RunState) {
+  const ds = despairsOf(r);
+  if (!ds.length) return '';
+  const tip = `절망 증강 ${ds.length}개\n${ds.map((d) => `[${d.name}] ${d.desc()}`).join('\n')}`;
+  return `<button class="pill despair" data-a="despair-info" title="${esc(tip)}"><span class="dp-ics">${ds.map((d) => lineIcon(d.icon, 'li')).join('')}</span><b>${ds.length === 1 ? esc(ds[0].name) : `절망 ${ds.length}`}</b></button>`;
+}
+/** 지도 환경 탭: 고른 순서대로 이름 · 효과, 고난이면 다음에 더 고르는 페이즈 */
+function despairEnv(run: RunState) {
+  const ds = despairsOf(run);
+  const nx = despairDiff(run.diff) ? Math.ceil((run.phase + 1) / CFG.despair.every) * CFG.despair.every : 0;
+  const next = nx && (nx <= CFG.victoryPhase || run.endless) && DESPAIRS.length > ds.length ? nx : 0; // 의뢰 페이즈 밖(무한 모드 전)이거나 남은 증강이 없으면 표시 안 함
+  if (!ds.length && !next) return '';
+  const nextTxt = next ? `<li class="dp-next muted small">다음 절망 증강: ${next}페이즈 시작 때 1개 더</li>` : '';
+  return `<h2>절망 증강${ds.length > 1 ? ` <span class="muted small">${ds.length}개</span>` : ''}</h2><ul class="globals despair">${ds.map((d: DespairDef) => `<li>${lineIcon(d.icon, 'li')}<b>${esc(d.name)}</b> <span class="muted">${ic(esc(d.desc()))}</span></li>`).join('')}${nextTxt}</ul>`;
+}
+/** 결과 문구: '[반려 돌] · [오버클럭]' */
+const despairNames = (run: RunState) => despairsOf(run).map((d) => `[${esc(d.name)}]`).join(' · ');
+
 // ───────────────────────── 난이도 선택
 /** 위험 등급 적 증원 칩 (지도 미리보기 · 편성 적 구성): 그 페이즈 전투에 더해지는 적 수. n 을 주면 조우에 실제로 더한 수 (보드 칸 상한 반영) */
 function diffAddChip(run: RunState, phase: number, n = diffAddCount(run.diff, phase)) {
@@ -3284,9 +3311,9 @@ function codexScreen() {
   } else if (app.codexTab === 'manual') {
     body = codexManual();
   } else {
-    body = `<dl class="stats big"><dt>의뢰</dt><dd>${m.runs}</dd><dt>의뢰 성공</dt><dd>${m.clears}</dd><dt>최고 도달 페이즈</dt><dd>${m.bestPhase}</dd><dt>해금된 위험 등급</dt><dd>${m.maxDiff}</dd><dt>절망 증강</dt><dd>${despairUnlocked(m) ? `${Object.values(m.despair || {}).filter((x) => x.clears).length}/${DESPAIRS.length} 성공` : '잠김'}</dd></dl>
+    body = `<dl class="stats big"><dt>의뢰</dt><dd>${m.runs}</dd><dt>의뢰 성공</dt><dd>${m.clears}</dd><dt>최고 도달 페이즈</dt><dd>${m.bestPhase}</dd><dt>해금된 위험 등급</dt><dd>${m.maxDiff}</dd><dt>절망 증강</dt><dd>${DESPAIRS.filter((d) => m.despair?.[d.id]?.clears).length}/${DESPAIRS.length} 성공</dd></dl>
       <h2>전장별</h2><div class="codex-list">${FIELDS.map((f) => { const r = m.fields[f.id]; return `<div class="codex-row"><div><b style="color:${f.color}">${f.icon} ${esc(f.name)}</b><div class="small muted">${esc(f.region)}</div></div><div class="small mono">의뢰 ${r?.runs || 0} · 성공 ${r?.clears || 0}${r && r.bestDiff >= 0 ? ` · 최고 ${diffLabel(r.bestDiff)}` : ''}</div></div>`; }).join('')}</div>
-      <h2>절망 증강별</h2>${despairUnlocked(m) ? '' : `<p class="small muted">${diffName(CFG.despair.unlock)} 의뢰를 1번 성공하면 열립니다.</p>`}<div class="codex-list">${DESPAIRS.map((d) => { const r = m.despair?.[d.id]; return `<div class="codex-row"><div><b>${lineIcon(d.icon, 'li')} ${esc(d.name)}</b><div class="small muted">${esc(d.desc())}</div></div><div class="small mono">의뢰 ${r?.runs || 0} · 성공 ${r?.clears || 0}</div></div>`; }).join('')}</div>${BAR.barRecordsHtml()}`;
+      <h2>절망 증강별</h2><p class="small muted">${esc(diffName(CFG.despair.from) || `위험 ${CFG.despair.from}`)} 의뢰에서 고른 절망 증강. 한 의뢰에 여러 개를 짊어지면 각각 셉니다.</p><div class="codex-list">${DESPAIRS.map((d) => { const r = m.despair?.[d.id]; return `<div class="codex-row"><div><b>${lineIcon(d.icon, 'li')} ${esc(d.name)}</b><div class="small muted">${esc(d.desc())}</div></div><div class="small mono">의뢰 ${r?.runs || 0} · 성공 ${r?.clears || 0}</div></div>`; }).join('')}</div>${BAR.barRecordsHtml()}`;
   }
   return `<main class="wrap codex"><div class="cx-top"><h1 class="f-title">도감 · 기록</h1><span class="muted small">이 브라우저에 저장됩니다.</span><button class="btn ghost small" data-a="codex-back">돌아가기</button></div>
     <nav class="cx-tabs" aria-label="도감 탭">${tabs}</nav>${body}</main>`;
@@ -3640,7 +3667,7 @@ function act(a: string, v: string) {
       root.querySelectorAll<HTMLElement>('.ds-card').forEach((c) => c.classList.toggle('info', +(c.dataset.v || 0) === app.dsInfo));
       return;
     }
-    case 'intro-ok': app.screen = 'diffsel'; if (![0, 3, 6].includes(app.diff)) app.diff = 0; break;
+    case 'intro-ok': app.screen = 'diffsel'; if (!DIFF_PRESETS.some((x) => x.lvl === app.diff)) app.diff = DIFF_PRESETS[0].lvl; break;
     case 'diff-ok':
       app.starters = []; app.screen = 'newrun'; app.menu = null; carX = null; app.cardOpen = null;
       app.pool = new Rng((Date.now() ^ (Math.random() * 1e9)) | 0).sample(UNITS.filter((u) => !u.noStarter).map((u) => u.id), 8);
@@ -3662,7 +3689,7 @@ function act(a: string, v: string) {
     case 'random-starters': app.starters = new Rng(Date.now() | 0).sample(app.pool, CFG.startUnits); break;
     case 'start-run':
       if (app.starters.length !== CFG.startUnits) return;
-      app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, app.introField || undefined, Math.min(app.diff, MAX_DIFF), despairUnlocked());
+      app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, app.introField || undefined, Math.min(app.diff, MAX_DIFF));
       { const fi = fieldIntroPending(app.run); if (fi) app.run.pending.unshift(fi); } // 전장 도입 이야기 → 특권 증강 → (고난) 절망 증강
       app.screen = 'map'; app.sel = null; persist(); break;
     case 'load': {
@@ -3860,7 +3887,12 @@ function act(a: string, v: string) {
     case 'reroll-privilege': if (run) { R.rerollPrivilege(run); persist(); } break;
     case 'pick-despair': if (run) { R.pickDespair(run, +v); persist(); } break;
     case 'reroll-despair': if (run) { R.rerollDespair(run); persist(); } break;
-    case 'despair-info': if (run?.despair && DESPAIR_BY_ID[run.despair]) { const d = DESPAIR_BY_ID[run.despair]; toast(`절망 증강 [${d.name}] ${d.desc()}`); } return;
+    case 'despair-info': { // 1개면 효과까지, 여러 개면 이름만 (효과는 지도 환경 탭으로 넘긴다)
+      const ds = despairsOf(run);
+      if (ds.length === 1) toast(`절망 증강 [${ds[0].name}] ${ds[0].desc()}`);
+      else if (ds.length) { toast(`절망 증강 ${ds.length}개: ${ds.map((d) => `[${d.name}]`).join(' ')} — 효과는 지도 [환경] 탭`); if (app.screen === 'map') setMapTab(1); }
+      return;
+    }
     case 'alloc-pick': {
       const m = v as Major;
       if (app.picks.includes(m)) app.picks = app.picks.filter((x) => x !== m);

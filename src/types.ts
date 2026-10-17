@@ -129,7 +129,7 @@ export type Pending =
   | { t: 'victory' }
   | { t: 'event'; id: string; sub?: string | null } // sub: 이번 사건의 동적 조연 (기물 id)
   | { t: 'privilege'; options: AugPick[]; rerolls: number }
-  | { t: 'despair'; options: string[]; rerolls: number } // 절망 증강 (data/despair.ts): 반드시 1개
+  | { t: 'despair'; options: string[]; rerolls: number; phase?: number } // 절망 증강 (data/despair.ts): 반드시 1개 · phase: 페이즈 시작 때 더 고르는 것 (없으면 출격 때)
   | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean; join?: boolean; kind?: 'major' | 'special' | 'psionic' | 'school'; great?: boolean; round?: number } // school: 사이오닉 합류 시 학파 선택 · great: 마이너 능력치 대성공 (만들 때 굴림, 첫 확정 뒤 공개) · round: 대성공으로 두 번째 고르는 중
   | { t: 'pilgrim'; cards?: { id: string; cost: number; sold: boolean; faith?: FaithId }[]; relics?: { id: string; cost: number; sold: boolean }[] }
   | { t: 'itemPick'; options: string[]; title: string }
@@ -184,10 +184,12 @@ export interface RunState {
   occultTier?: number;
   helTier?: number; // 헬레니우스: 지금까지 도달한 최고 단계 (전용 장비 지급 기록) // 신비학자: 지금까지 도달한 최고 단계 (전용 개조부품 지급 기록)
   privilege: AugPick | null; // 런 시작 특권 증강
-  /** 절망 증강 id (data/despair.ts). 고난 런에서 특권 다음에 고른다 */
+  /** 절망 증강 id 목록 (data/despair.ts, 고른 순서). 고난 런에서 출격 때 특권 다음에 1개 + CFG.despair.every 페이즈마다 1개 */
+  despairs?: string[];
+  /** (예전 저장) 절망 증강 1개 — 불러올 때 despairs 로 옮긴다 (run.ts migrate) */
   despair?: string | null;
   field: string; // 전장 (battlefields.ts)
-  diff: number; // 난이도 단계 (difficulty.ts)
+  diff: number; // 난이도 단계 = 위험 등급 (difficulty.ts): 쉬움 3 · 모험 6 · 고난 7
   cleared: boolean; // 목표 페이즈 보스 격파 (의뢰 성공)
   endless: boolean; // 의뢰 성공 후 무한 모드 진행 중
   mods: { interestCap: number; nodeIncome: number; divStart?: number; divGain?: number }; // 사건으로 바뀐 경제 규칙 · 순례 효과 (다음 전투 신성력 · 이번 페이즈 신성력 획득)

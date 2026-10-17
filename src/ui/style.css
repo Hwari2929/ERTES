@@ -2432,6 +2432,13 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 @media (max-width: 860px) { .top .pill.despair b { display: none; } }
 .ah-md.despair { --tc: var(--c-despair); }
 .globals.despair b, .cx2-despair .aug-ic { color: var(--c-despair); }
+/* 고난: 절망 증강이 쌓인다 (출격 때 1개 + 몇 페이즈마다 1개). 상단 바는 아이콘을 나란히 + '절망 n', 환경 탭은 고른 순서대로, 선택 창은 이미 짊어진 절망 줄 */
+.pill.despair .dp-ics { display: inline-flex; align-items: center; gap: 2px; }
+.globals.despair li > .li { vertical-align: -.15em; margin-right: 4px; color: var(--c-despair); }
+.dp-held { margin: 0; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 8px; font-size: var(--fs-sm); color: var(--c-text-2); }
+.dp-held > span { letter-spacing: .2em; }
+.dp-held b { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: var(--r-pill); border: 1px solid color-mix(in srgb, var(--c-despair) 55%, transparent); background: color-mix(in srgb, var(--c-despair-deep) 85%, transparent); color: var(--c-text); }
+.dp-held .li { color: var(--c-despair); }
 /* 난이도 선택: 고난 카드의 절망 증강 안내 (ⓘ 조건 창이 열리면 숨김) */
 .ds-despair { position: absolute; top: 12px; left: 12px; right: 52px; display: flex; align-items: flex-start; gap: 6px; padding: 6px 10px; border-radius: var(--r-md); font-size: var(--fs-sm); line-height: 1.35; color: var(--c-text-2); background: color-mix(in srgb, var(--c-black) 62%, transparent); border: 1px solid var(--line); transition: opacity .25s; }
 .ds-despair.open { color: var(--c-text); border-color: color-mix(in srgb, var(--c-despair) 70%, transparent); background: color-mix(in srgb, var(--c-despair-deep) 88%, transparent); box-shadow: 0 0 18px color-mix(in srgb, var(--c-despair) 30%, transparent); }

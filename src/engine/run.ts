@@ -2,7 +2,7 @@ import { CFG } from '../config';
 import { AUG_BY_ID } from '../data/augments';
 import { FIELDS, fieldOf } from '../data/battlefields';
 import { diffAddCount, diffHas } from '../data/difficulty';
-import { CATWHEEL, DESPAIRS, despairDiff, hasDespair, PETROCK } from '../data/despair';
+import { CATWHEEL, DESPAIRS, despairAt, despairDiff, hasDespair, PETROCK } from '../data/despair';
 import { EVENT_BY_ID, EVENTS, type EventApi } from '../data/events';
 import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
@@ -44,11 +44,11 @@ const despairXp = (run: RunState) => (hasDespair(run, 'D.swarm') ? 1 - CFG.despa
 const despairPrice = (run: RunState) => (hasDespair(run, 'D.tariff') ? 1 + CFG.despair.tariff : 1);
 
 // ───────────────────────── 런 생성
-export function newRun(seed: number, starters: string[], field?: string, diff = 0, despair = false): RunState { // despair: 절망 증강 해금 (도감 기록)
+export function newRun(seed: number, starters: string[], field?: string, diff = 0): RunState {
   const run: RunState = {
     version: SAVE_VERSION, seed, rng: seed, phase: 1, step: 0, map: phaseMap(1), picked: [], node: null,
     hp: CFG.playerHp - (diffHas(diff, 6) ? 25 : 0), maxHp: CFG.playerHp - (diffHas(diff, 6) ? 25 : 0), credits: diffHas(diff, 3) ? 0 : CFG.startCredits, streak: 0, units: [], inventory: [],
-    globals: [], pending: [], quests: [], questPhase: 0, loan: 0, faith: 0, power: 0, divCap: 0, fame: 0, blessing: null, staffTarget: null, aceTarget: null, privilege: null, field: field || 'waste', diff, cleared: false, endless: false,
+    globals: [], pending: [], quests: [], questPhase: 0, loan: 0, faith: 0, power: 0, divCap: 0, fame: 0, blessing: null, staffTarget: null, aceTarget: null, privilege: null, despairs: [], field: field || 'waste', diff, cleared: false, endless: false,
     mods: { interestCap: 0, nodeIncome: 0 }, boons: [], phaseBoons: [], seenEvents: [], flags: [], usedIds: [], rankLog: {}, nextUid: 1, log: [],
     stats: { wins: 0, losses: 0, kills: 0, bestHit: 0 }, over: false,
   };
@@ -57,7 +57,7 @@ export function newRun(seed: number, starters: string[], field?: string, diff = 
   if (!field) run.field = rng(run, (r) => r.pick(FIELDS).id);
   // 전장 · 난이도는 출격 전 화면에서 이미 보여 줬다. 특권 증강이 시작 기물 합류 증강보다 먼저
   run.pending.unshift({ t: 'privilege', options: rollPrivileges(run), rerolls: CFG.privilegeRerolls });
-  if (despair && despairDiff(diff)) run.pending.splice(1, 0, { t: 'despair', options: rollDespairs(run), rerolls: CFG.despair.rerolls }); // 특권 바로 다음
+  if (despairDiff(diff)) queueDespair(run); // 고난: 특권 바로 다음 (해금 조건 없음)
   log(run, '용병단 ERRANTEs, 출격.');
   return run;
 }
@@ -117,9 +117,19 @@ export function pickPrivilege(run: RunState, idx: number) {
 export const privilegeName = (p: AugPick) => PRIVILEGES.find((d) => d.id === p.id)!.name(p.param);
 export const privilegeDesc = (p: AugPick) => PRIVILEGES.find((d) => d.id === p.id)!.desc(p.param);
 
-// ───────────────────────── 절망 증강 (고난 런 시작, data/despair.ts)
+// ───────────────────────── 절망 증강 (고난 런: 출격 때 1개 + CFG.despair.every 페이즈마다 1개, data/despair.ts)
+/** 선택지: 아직 걸리지 않은 증강 중에서 (같은 증강 중복 없음) */
 export function rollDespairs(run: RunState): string[] {
-  return rng(run, (r) => r.sample(DESPAIRS.map((d) => d.id), CFG.despair.choices));
+  const pool = DESPAIRS.filter((d) => !hasDespair(run, d.id)).map((d) => d.id);
+  return rng(run, (r) => r.sample(pool, Math.min(CFG.despair.choices, pool.length)));
+}
+/** 절망 증강 선택을 대기열에 넣는다: 출격 때는 특권 바로 다음, 페이즈 시작 때(phase)는 맨 뒤. 남은 증강이 없으면 넘어간다 */
+function queueDespair(run: RunState, phase?: number) {
+  const options = rollDespairs(run);
+  if (!options.length) return;
+  const p: Pending = { t: 'despair', options, rerolls: CFG.despair.rerolls, ...(phase ? { phase } : {}) };
+  if (phase) run.pending.push(p);
+  else run.pending.splice(run.pending[0]?.t === 'privilege' ? 1 : 0, 0, p);
 }
 export function rerollDespair(run: RunState) {
   const p = run.pending[0];
@@ -127,14 +137,16 @@ export function rerollDespair(run: RunState) {
   p.rerolls--;
   p.options = rollDespairs(run);
 }
-/** 절망 증강 선택 (반드시 1개). 영입에 걸리는 증강이면 이미 펼쳐 둔 영입 선택지(특권 추가 계약 등)를 다시 뽑는다 */
+/** 절망 증강 선택 (반드시 1개, 이미 건 증강에 더한다). 영입에 걸리는 증강이면 이미 펼쳐 둔 영입 선택지(특권 추가 계약 · 페이즈 시작 영입 등)를 다시 뽑는다 */
 export function pickDespair(run: RunState, idx: number) {
   const p = run.pending[0];
-  if (p?.t !== 'despair' || !p.options[idx]) return;
+  const id = p?.t === 'despair' ? p.options[idx] : undefined;
+  if (!id) return;
   run.pending.shift();
-  run.despair = p.options[idx];
-  if (run.despair === 'D.rock' || run.despair === 'D.rival') for (const q of run.pending) if (q.t === 'recruit' && !q.syns) q.options = recruitOptions(run, q.options.length);
-  log(run, `절망 증강: ${DESPAIRS.find((d) => d.id === run.despair)?.name}`);
+  if (hasDespair(run, id)) return; // 이미 건 증강 (선택지는 이를 빼고 뽑으므로 예전 저장에서만): 겹쳐 걸지 않고 넘어간다
+  (run.despairs ||= []).push(id);
+  if (id === 'D.rock' || id === 'D.rival') for (const q of run.pending) if (q.t === 'recruit' && !q.syns) q.options = recruitOptions(run, q.options.length);
+  log(run, `절망 증강: ${DESPAIRS.find((d) => d.id === id)?.name}`);
 }
 
 /** 영입 선택지. 인맥(G.network)이 있으면 파티와 시너지가 겹치는 기물 가중 */
@@ -555,6 +567,7 @@ export function advance(run: RunState) {
     run.blessing = null;
     run.phaseBoons = [];
     log(run, `페이즈 ${run.phase} 진입. 적이 강해집니다.`);
+    if (despairAt(run.diff, run.phase)) queueDespair(run, run.phase); // 고난: 절망 증강 1개 더 (영입보다 먼저)
     offerRecruit(run); // 페이즈 시작 영입
     if (run.fund) { run.credits += run.fund; log(run, `호이슌 투자 수익 +${run.fund}`); run.pending.push({ t: 'notice', title: '투자 수익 정산', body: `지난 페이즈에 맡긴 자금이 불어나 크레딧 +${run.fund}을 돌려받았습니다.` }); run.fund = 0; }
   }
@@ -1351,6 +1364,11 @@ export function migrate(run: RunState): RunState {
   }
   run.field ??= 'waste';
   run.diff ??= 0;
+  if (!run.despairs) { // 위험 등급 체계 판 2 이전 저장: 절망 증강 1개 → 목록, 예전 위험 7 · 8 → 8 · 9 (위험 7 = 절망 증강을 끼워 넣음)
+    run.despairs = run.despair ? [run.despair] : [];
+    if (run.diff >= 7) run.diff++;
+  }
+  delete run.despair;
   run.cleared ??= false;
   run.endless ??= false;
   run.mods ??= { interestCap: 0, nodeIncome: 0 };

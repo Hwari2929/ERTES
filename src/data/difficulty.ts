@@ -1,5 +1,8 @@
-// 난이도 단계 (위험 등급). 단계 n 은 1~n 의 조건을 모두 포함한다. 단계 n 을 클리어하면 n+1 해금.
+// 난이도 단계 (위험 등급). 단계 n 은 1~n 의 조건을 모두 포함한다. 단계 n 을 클리어하면 n+1 해금 (기록).
+// 선택 화면의 세 단계: 쉬움 = 위험 3 · 모험 = 위험 6 · 고난 = 위험 7 (위험 6 + 절망 증강 · 빠른 증원). 적 증원은 CFG.diffAdd, 절망 증강은 CFG.despair.
+// 체계 판 2 (위험 7 = 절망 증강 삽입): 예전 위험 7 · 8 은 8 · 9 가 됐다 — 예전 기록 · 저장은 ui/meta.ts loadMeta · engine/run.ts migrate 에서 옮긴다.
 import { CFG } from '../config';
+import { despairRule } from './despair';
 
 export interface DiffDef { lvl: number; name: string; desc: string }
 
@@ -31,16 +34,17 @@ const BASE: DiffDef[] = [
   { lvl: 4, name: '위험 4', desc: '보스 체력 +25%, 보스 호위 +1.' },
   { lvl: 5, name: '위험 5', desc: '역경 적 +1, 일반 전투 정예 출현 확률 2배, 적 회피 +10%p. 적이 개조부품(문장 제외)을 달 수 있고, 보스는 거의 항상 전설 장비를 장착합니다.' },
   { lvl: 6, name: '위험 6', desc: '적 피해 ×1.5 (위험 3 대체). 최대 플레이어 체력 -25. 승리 크레딧 ×1.5 (위험 3 대체). 1페이즈부터 모든 적이 장비 재료(역경 · 보스전은 고급 장비도)를 최소 1개 장착합니다.' },
-  { lvl: 7, name: '위험 7', desc: '적 방어도 +25%, 효과 저항 +15%p, 적 회피 +10%p 추가.' },
-  { lvl: 8, name: '위험 8', desc: '페이즈마다 적 체력 +5% 추가 (누적).' },
+  { lvl: 7, name: '위험 7', desc: `절망 증강: ${despairRule()}` },
+  { lvl: 8, name: '위험 8', desc: '적 방어도 +25%, 효과 저항 +15%p, 적 회피 +10%p 추가.' },
+  { lvl: 9, name: '위험 9', desc: '페이즈마다 적 체력 +5% 추가 (누적).' },
 ];
 /** 위험 등급표: 기본 조건 + 적 증원 조건 (설정값에서 읽는다) */
 export const DIFFS: DiffDef[] = BASE.map((x) => { const a = addDesc(x.lvl); return a ? { ...x, desc: `${x.desc} ${a}` } : x; });
 export const MAX_DIFF = DIFFS.length - 1;
-/** 난이도 선택 화면의 세 단계 (위험 0 · 3 · 6). 이름은 선택 화면 · 기록 · 결과 문구가 여기서 읽는다 */
-export const DIFF_PRESETS: { lvl: number; name: string }[] = [{ lvl: 0, name: '쉬움' }, { lvl: 3, name: '모험' }, { lvl: 6, name: '고난' }];
+/** 난이도 선택 화면의 세 단계 (위험 3 · 6 · 7). 이름은 선택 화면 · 기록 · 결과 문구가 여기서 읽는다 */
+export const DIFF_PRESETS: { lvl: number; name: string }[] = [{ lvl: 3, name: '쉬움' }, { lvl: 6, name: '모험' }, { lvl: 7, name: '고난' }];
 export const diffName = (d: number) => DIFF_PRESETS.find((x) => x.lvl === d)?.name || '';
-/** 기록 표기: '고난 (위험 6)' · 단계 이름이 없는 등급은 '위험 4' */
+/** 기록 표기: '고난 (위험 7)' · 단계 이름이 없는 등급은 '위험 4' */
 export const diffLabel = (d: number) => (diffName(d) ? `${diffName(d)} (위험 ${d})` : `위험 ${d}`);
 /** 단계 d 에서 조건 n 이 켜져 있는지 */
 export const diffHas = (d: number | undefined, n: number) => (d || 0) >= n;

@@ -3,7 +3,7 @@
 // 실행: npx esbuild tests/despair_sim.ts --bundle --platform=node --log-level=error --outfile=dist/despair_sim.cjs && node dist/despair_sim.cjs <위험 등급> <증강 id | none> <런 수> [시작 시드] [설정키=값 …]
 //   예) node dist/despair_sim.cjs 0 D.overclock 100 1 overclock=2   → 한 줄 JSON {d, id, n, start, clears, phase, over} (시드 (start..start+n-1) × 1013)
 //   병렬: 시작 시드를 1 · 101 · 201 · 301 … 로 나눠 여러 프로세스로 돌리고 합친다 (증강마다 같은 시드 묶음 → 기준과의 차이를 같은 시드끼리 본다).
-//   고난 · 모험은 봇 성공률이 바닥(0~2%)이라 쉬움(0)에서 비교했다. 봇은 반려 돌을 영입하지 않고, 캣휠은 밍키가 있으면 밍키에게 · 없으면 판다.
+//   고난 · 모험은 봇 성공률이 바닥(0~2%)이라 위험 0 에서 비교했다 (위험 7 이상이면 출격 · 페이즈 시작 때 첫 선택지 절망 증강도 함께 걸린다). 봇은 반려 돌을 영입하지 않고, 캣휠은 밍키가 있으면 밍키에게 · 없으면 판다.
 import { CFG } from '../src/config';
 import { DESPAIR_BY_ID, PETROCK } from '../src/data/despair';
 import { isJunk } from '../src/data/items';
@@ -77,7 +77,7 @@ function playRun(seed: number) {
   const bot = new Rng(seed * 7 + 1);
   const starters = bot.sample(STARTERS, CFG.startUnits);
   const run = R.newRun(seed, starters, undefined, DIFF);
-  if (ID !== 'none') run.despair = ID; // 특권 고르기 전에 걸어 둔다 (추가 계약 영입도 영향을 받게)
+  if (ID !== 'none') run.despairs = [ID]; // 특권 고르기 전에 걸어 둔다 (추가 계약 영입도 영향을 받게)
   let battles = 0;
   while (!run.over && !run.cleared && run.phase <= 25 && battles < 300) {
     resolvePending(run, bot);

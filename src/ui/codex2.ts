@@ -9,7 +9,7 @@ import { augReqState } from '../data/augreq';
 import { FIELD_BY_ID, FIELDS } from '../data/battlefields';
 import { ALL_AUGS, augDesc, augSource } from '../data/augments';
 import { BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES } from '../data/globals';
-import { DESPAIR_BY_ID, DESPAIRS } from '../data/despair';
+import { DESPAIR_BY_ID, DESPAIRS, despairRule } from '../data/despair';
 import { diffName } from '../data/difficulty';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, CONSUMABLES, emblemId, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_PRICE, UNIQUE_IDS, isJunk, JUNK_IDS } from '../data/items';
 import { PSI_BRIEF } from '../data/brief';
@@ -26,7 +26,7 @@ import type { AugDef } from '../engine/effects';
 import { type Category, CATEGORY_NAME, CTYPE_NAME, ELEM_NAME, MAJOR_NAME, type Major, type RunState, type SynergyId, TTYPE_NAME } from '../types';
 import * as AB from './abil';
 import { schoolCore, schoolWarnings } from './matchup';
-import { despairUnlocked, loadMeta } from './meta';
+import { loadMeta } from './meta';
 import { artURL, bgURL } from './portraits';
 import { lineIcon, synIcon } from './synicons';
 
@@ -641,8 +641,8 @@ function augGroups(): AugGroup[] {
     PRIVILEGES.map((p) => ({ id: p.id, name: p.name(PH), desc: p.desc(PH), tags: [`출현 ${pctTxt(p.w / wsum)}`] }))));
   out.push(simple('bless', '축복', `${TTYPE_NAME.divine} 기물이 있으면 열리는 순례에서 권능으로 받습니다. 이번 페이즈 동안 모든 아군에게.`,
     BLESSINGS.map((b) => { const c = PILGRIM_CARDS[`bless:${b.id}`]; return { id: b.id, name: b.name, desc: b.desc, tags: c ? [`권능 ${c.cost}`] : [] }; })));
-  const meta = loadMeta(), open = despairUnlocked(meta);
-  out.push(simple('despair', '절망 증강', `${diffName(CFG.despair.unlock)}(위험 ${CFG.despair.unlock}) 의뢰를 1번 성공하면 열립니다${open ? ' (열림)' : ' (잠김)'}. 그 뒤 ${diffName(CFG.despair.unlock)} 런은 특권 증강 다음에 ${CFG.despair.choices}개 중 1개를 반드시 고릅니다 (새로고침 ${CFG.despair.rerolls}회). 의뢰 내내 적용되는 디버프이고, 증강별로 의뢰 · 성공 기록이 남습니다.`,
+  const meta = loadMeta();
+  out.push(simple('despair', '절망 증강', `${diffName(CFG.despair.from) || `위험 ${CFG.despair.from}`}(위험 ${CFG.despair.from}) 런은 ${despairRule()} 고른 증강은 의뢰 내내 함께 걸리는 디버프이고, 증강별로 의뢰 · 성공 기록이 남습니다.`,
     DESPAIRS.map((d) => { const r = meta.despair?.[d.id]; return { id: d.id, name: d.name, desc: `${d.desc()} — ${d.quip}`, icon: d.icon, tags: [r?.clears ? `성공 ${r.clears}회` : r?.runs ? `의뢰 ${r.runs}회 · 성공 없음` : '기록 없음'] }; })));
   return out;
 }

@@ -1,5 +1,4 @@
 // 도감 · 기록 (런 사이에 유지되는 데이터). 이 브라우저의 localStorage 에만 저장된다.
-import { CFG } from '../config';
 import { MAX_DIFF } from '../data/difficulty';
 import type { Battle } from '../engine/combat';
 import type { RunState } from '../types';
@@ -18,8 +17,10 @@ export interface Meta {
   tut?: { done?: boolean; skipped?: boolean; seen?: string[] };
   /** 에란테스 바: 본 만담 · 들은 이야기 · 직전 런 요약 (바 반응 대사 조건) */
   bar?: BarMeta;
-  /** 절망 증강별 기록 (data/despair.ts): 그 증강을 건 의뢰 수 · 성공 수 */
+  /** 절망 증강별 기록 (data/despair.ts): 그 증강을 건 의뢰 수 · 성공 수 (한 의뢰에 여러 개면 각각 센다) */
   despair?: Record<string, { runs: number; clears: number }>;
+  /** 위험 등급 체계 판 (DIFF_SCALE). 없으면 1 = 위험 7 · 8 이 방어도 · 페이즈 체력이던 때 */
+  dv?: number;
 }
 /** 직전 런 요약: 바 반응 대사가 읽는다 */
 export interface BarLast { run: number; field: string; cleared: boolean; phase: number; diff: number; mvp?: string; units: string[]; newEvents: string[] }
@@ -40,14 +41,25 @@ export interface BarMeta {
 }
 
 const KEY = 'errantes.meta.v1';
-const blank = (): Meta => ({ v: 1, maxDiff: 0, runs: 0, clears: 0, bestPhase: 0, units: {}, enemies: {}, events: {}, fields: {} });
+/** 위험 등급 체계 판: 2 = 위험 7 에 절망 증강을 끼워 넣어 예전 위험 7 · 8 이 8 · 9 가 됨 (data/difficulty.ts) */
+const DIFF_SCALE = 2;
+const blank = (): Meta => ({ v: 1, maxDiff: 0, runs: 0, clears: 0, bestPhase: 0, units: {}, enemies: {}, events: {}, fields: {}, dv: DIFF_SCALE });
+/** 예전 위험 등급 기록을 지금 체계로: 조건이 같은 등급 번호는 그대로 (예전 모험 3 → 쉬움 3, 예전 고난 6 → 모험 6), 예전 위험 7 · 8 → 8 · 9 */
+function migrateDiff(m: Meta) {
+  for (const f of Object.values(m.fields)) if (f.bestDiff >= 7) f.bestDiff++;
+  if (m.maxDiff >= 8) m.maxDiff = Math.min(MAX_DIFF, m.maxDiff + 1); // 예전 위험 7 성공 = 지금 위험 8 성공 → 9 해금
+  if (m.bar?.last && m.bar.last.diff >= 7) m.bar.last.diff++;
+}
 
 let cache: Meta | null = null;
 export function loadMeta(): Meta {
   if (cache) return cache;
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(KEY) : null;
-    cache = raw ? { ...blank(), ...JSON.parse(raw) } : blank();
+    const p = raw ? JSON.parse(raw) : null;
+    cache = p ? { ...blank(), ...p } : blank();
+    if (p && !((p.dv || 1) >= DIFF_SCALE)) migrateDiff(cache!);
+    cache!.dv = DIFF_SCALE;
   } catch { cache = blank(); }
   return cache!;
 }
@@ -100,13 +112,11 @@ export function metaBar(kind: 'seen' | 'talk' | 'heard', key: string) {
   if (kind === 'heard' && l.length > 400) l.splice(0, l.length - 400);
   save();
 }
-/** 절망 증강이 열렸는지: 고난(위험 CFG.despair.unlock) 이상 의뢰를 한 번이라도 성공 (전장별 최고 위험 등급 기록으로 판정 → 예전 기록도 그대로 인정) */
-export const despairUnlocked = (m: Meta = loadMeta()) => Object.values(m.fields).some((f) => f.bestDiff >= CFG.despair.unlock);
 /** 의뢰 성공 (목표 페이즈 보스 격파): 다음 난이도 해금 */
 export function metaClear(run: RunState) {
   const m = loadMeta();
   m.clears++;
-  if (run.despair) ((m.despair ||= {})[run.despair] ||= { runs: 0, clears: 0 }).clears++;
+  for (const id of run.despairs || []) ((m.despair ||= {})[id] ||= { runs: 0, clears: 0 }).clears++;
   const f = (m.fields[run.field] ||= { runs: 0, clears: 0, bestDiff: -1 });
   f.clears++;
   f.bestDiff = Math.max(f.bestDiff, run.diff);
@@ -121,7 +131,7 @@ export function metaRunEnd(run: RunState) {
   const m = loadMeta();
   m.runs++;
   m.bestPhase = Math.max(m.bestPhase, run.phase);
-  if (run.despair) ((m.despair ||= {})[run.despair] ||= { runs: 0, clears: 0 }).runs++;
+  for (const id of run.despairs || []) ((m.despair ||= {})[id] ||= { runs: 0, clears: 0 }).runs++;
   (m.fields[run.field] ||= { runs: 0, clears: 0, bestDiff: -1 }).runs++;
   for (const id of run.usedIds) {
     const u = (m.units[id] ||= { runs: 0, ranks: 0, best: 0, clears: 0 });

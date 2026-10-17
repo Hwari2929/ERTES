@@ -18,7 +18,7 @@ declare const process: { argv: string[]; stdout: { write(s: string): void }; std
 const START = +process.argv[2] || 1;
 const COUNT = +process.argv[3] || 10;
 const CF_RATE = process.argv[4] !== undefined ? +process.argv[4] : 0.06;
-/** 위험 등급 (기본 0). 2 이상이면 적 장비 · 개조부품이 실제 게임처럼 붙는다 */
+/** 위험 등급 (기본 0). 2 이상이면 적 장비 · 개조부품이 실제 게임처럼 붙는다. 쉬움 3 · 모험 6 · 고난 7 (고난은 절망 증강을 봇이 무작위로 고른다) */
 const DIFF = +process.argv[5] || 0;
 /** detail: 런마다 기물 · 증강 · 성유물별 [전투 수, 승리] 기록 (군집 신뢰구간용). randrelic: 디바인 성유물을 무작위로 장착 (성유물 효과 분리 실험) */
 const DETAIL = process.argv.includes('detail');
@@ -66,7 +66,7 @@ Battle.prototype.dealDamage = function (this: Battle, src: CUnit, tgt: CUnit, ba
 /** buildBattle 과 같되 시너지 인원을 덮어쓸 수 있다 (반사실 실험용) */
 function makeBattle(run: RunState, enc: NonNullable<NonNullable<RunState['node']>['enc']>, counts: Record<string, number>) {
   const dim = boardDims(enc.n);
-  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff });
+  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined });
   b.keepEvents = false;
   const lay = layout(run, enc.n);
   for (const u of deployed(run)) {
@@ -105,6 +105,7 @@ function playRun(seed: number) {
     while (run.pending.length) {
       const p = run.pending[0];
       if (p.t === 'privilege') { R.pickPrivilege(run, bot.int(0, p.options.length - 1)); continue; }
+      if (p.t === 'despair') { R.pickDespair(run, bot.int(0, p.options.length - 1)); continue; } // 고난: 절망 증강 무작위 (출격 · 페이즈 시작)
       if (p.t === 'event') {
         let done = false;
         for (const i of bot.shuffle([0, 1, 2])) if (R.chooseEvent(run, i) === null && run.pending[0] !== p) { done = true; break; }

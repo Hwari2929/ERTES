@@ -1,6 +1,6 @@
 // 절망 증강: 게임을 어렵게 만드는 런 한정 디버프.
-// 고난(위험 CFG.despair.unlock) 의뢰를 1회 이상 성공하면 열린다 (도감 기록 ui/meta.ts). 열린 뒤 그 등급 이상 런에서는
-// 특권 증강을 고른 직후 CFG.despair.choices 개 중 1개를 반드시 고른다 (새로고침 CFG.despair.rerolls 회).
+// 고난(위험 CFG.despair.from) 이상 런은 해금 조건 없이, 출격 때 특권 증강을 고른 직후 CFG.despair.choices 개 중 1개를 반드시 고르고
+// CFG.despair.every 페이즈마다 (그 페이즈 시작 때) 1개를 더 고른다 (누적 · 이미 고른 증강은 선택지에 다시 나오지 않음 · 고를 때마다 새로고침 CFG.despair.rerolls 회).
 // 수치는 전부 CFG.despair 에서 읽는다 (설명문도 그릴 때마다 읽음). 효과가 실제로 걸리는 곳:
 //   rock      run.ts recruitOptions · recruit · autoPlace (반려 돌 기물 'petrock', rosterE.ts)
 //   overclock build.ts buildEnemy · rival run.ts recruitOptions · myopic run.ts despairInterest
@@ -62,7 +62,18 @@ export const DESPAIRS: DespairDef[] = [
 ];
 export const DESPAIR_BY_ID: Record<string, DespairDef> = Object.fromEntries(DESPAIRS.map((d) => [d.id, d]));
 export const despairName = (id: string | null | undefined) => (id && DESPAIR_BY_ID[id]?.name) || '';
-/** 이 런에 걸린 절망 증강이 id 인지 */
-export const hasDespair = (r: { despair?: string | null } | null | undefined, id: string) => !!r && r.despair === id;
-/** 이 위험 등급 런에서 절망 증강을 고르는지 (해금 여부는 따로) */
-export const despairDiff = (d: number | undefined) => (d || 0) >= CFG.despair.unlock;
+/** 이 런에 걸린 절망 증강 (고른 순서, 없어진 id 는 뺀다) */
+export const despairsOf = (r: { despairs?: string[] } | null | undefined): DespairDef[] => (r?.despairs || []).map((id) => DESPAIR_BY_ID[id]).filter((d): d is DespairDef => !!d);
+/** 이 런에 절망 증강 id 가 걸려 있는지 */
+export const hasDespair = (r: { despairs?: string[] } | null | undefined, id: string) => !!r?.despairs?.includes(id);
+/** 이 위험 등급 런에서 절망 증강을 고르는지 (고난 이상, 해금 조건 없음) */
+export const despairDiff = (d: number | undefined) => (d || 0) >= CFG.despair.from;
+/** 페이즈 p 시작 때 절망 증강을 1개 더 고르는지 (출격 때 1개는 따로) */
+export const despairAt = (d: number | undefined, p: number) => despairDiff(d) && p > 1 && p % CFG.despair.every === 0;
+/** 의뢰 페이즈 안에서 추가로 고르는 페이즈: [3, 6] */
+export const despairPhases = () => { const out: number[] = []; for (let p = CFG.despair.every; p <= CFG.victoryPhase; p += CFG.despair.every) if (p > 1) out.push(p); return out; };
+/** 고르는 방식 한 문장 (난이도 조건 · 선택 화면 · 도감 · 교범이 읽는다) */
+export const despairRule = () => {
+  const D = CFG.despair, ph = despairPhases();
+  return `출격 때 특권 증강 다음에 ${D.choices}개 중 1개를 반드시 고르고, ${D.every}페이즈마다${ph.length ? ` (${ph.map((p) => `${p}페이즈`).join(' · ')} 시작 때)` : ''} 1개씩 더 고릅니다 (누적 · 이미 고른 증강은 다시 나오지 않음 · 고를 때마다 새로고침 ${D.rerolls}회).`;
+};

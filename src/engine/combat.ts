@@ -327,7 +327,7 @@ export type BEvent =
   /** 사이오닉 소마법 시전 (to: 주 대상) */
   | { k: 'cantrip'; id: number; school: SchoolId; to?: number; name: string };
 
-export interface BattleCtx { phase: number; credits: number; field?: string; diff?: number; despair?: string } // despair: 절망 증강 id (data/despair.ts)
+export interface BattleCtx { phase: number; credits: number; field?: string; diff?: number; despairs?: string[] } // despairs: 이 런의 절망 증강 id 목록 (data/despair.ts)
 
 /** 전장 조건 훅: 전장(id)마다 하나. battlefields.ts 가 FIELD_RULES 에 등록하고, 전투 시작 때 ctx.field 로 붙는다 */
 export interface FieldRules {
@@ -1111,7 +1111,7 @@ export class Battle {
       for (const h of src.hooks) if (h.healMult) a *= h.healMult(this, src, tgt);
     }
     for (const s of tgt.statuses) if (s.healMul !== undefined) a *= s.healMul; // 부패
-    if (tgt.side === 0 && this.ctx.despair === 'D.miracle') a *= 1 - CFG.despair.heal; // 절망 증강 [기적 정기 휴무]
+    if (tgt.side === 0 && this.ctx.despairs?.includes('D.miracle')) a *= 1 - CFG.despair.heal; // 절망 증강 [기적 정기 휴무]
     const max = this.S(tgt, 'maxHp');
     const real = Math.min(a, max - tgt.hp);
     tgt.hp += real;
