@@ -185,7 +185,8 @@ function calibRun(seed: number, out: Record<string, Record<string, number>>) {
 }
 
 // ═════════ comps: 고정 조합 전투
-interface Comp { id: string; units: string[]; items?: Record<string, string[]>; pos?: Record<string, [number, number]>; turretGear?: (string | null)[][]; mods?: Record<string, string> }
+/** causal: 청라공국 조합의 무휼 인과율 (페이즈 → 누적 인과율, 없으면 0 = 인과 1단계) */
+interface Comp { id: string; units: string[]; items?: Record<string, string[]>; pos?: Record<string, [number, number]>; turretGear?: (string | null)[][]; mods?: Record<string, string>; causal?: Record<string, number> }
 /** 기본 장비: 근접 탱커 = 수호자 판금 + 요새 장갑, 원거리 사격 = 조준 보조 AI + 고속 연사, 기술 = 사이오닉 증폭기 + 예지 회로, 근접 딜러 = 광전사 + 과출력 */
 function defaultItems(id: string): string[] {
   const d = UNIT_BY_ID[id];
@@ -218,6 +219,7 @@ function buildRun(comp: Comp, field: string, phase: number, rank: number, seed: 
   const hel = run.units.filter((u) => UNIT_BY_ID[u.defId].factions.includes('HEL'));
   const helItems = ['A_helanchor', 'A_hellight', 'A_helrelic'].slice(0, hel.length >= 7 ? 3 : hel.length >= 5 ? 2 : hel.length >= 3 ? 1 : 0);
   for (const it of helItems) { const t = hel.find((u) => u.items.includes(null)); if (t) t.items[t.items.indexOf(null)] = it; }
+  if (comp.causal) run.causal = comp.causal[String(phase)] ?? 0; // 청라공국: 페이즈별 무휼 인과율 (봇 청라 런 기준)
   if (comp.turretGear) run.turretGear = comp.turretGear.map((g) => g.slice()); // 포탑 전용 장비 (포탑 순서대로)
   // 배치: 근접 = 앞줄(r=2), 원거리 = 뒷줄(r=0), 지정 좌표 우선
   const used = new Set<string>();
@@ -240,6 +242,8 @@ function runComps() {
   const RANK = +process.argv[7] || 0; // 0 = 페이즈별 기준 등급
   const PH_RANK: Record<number, number> = { 3: 9, 4: 10, 5: 12, 6: 13 }; // 봇 풀런 보스전 평균 등급 근사
   const DIFF = +process.argv[8] || 0;
+  // BS_NOADD=1: 위험 등급 적 증원(CFG.diffAdd)을 끈다 (증원 도입 전 측정과 비교용)
+  if ((globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.BS_NOADD) CFG.diffAdd = [];
   const NODES: { t: NodeType; step: number }[] = [{ t: 'battle', step: 6 }, { t: 'adversity', step: 7 }, { t: 'boss', step: 11 }];
   ECON = Object.fromEntries([3, 4, 5, 6].map((p) => [p, { credits: 40, fame: 10 * (p - 1) }]));
   const res: unknown[] = [];

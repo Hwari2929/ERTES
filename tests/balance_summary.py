@@ -6,20 +6,33 @@
 #   <hr.json>         buildsim.cjs comps ... 위험 8 출력 (고위험 후반)
 #   <turret.json>     buildsim.cjs comps turret_comps.json ... 위험 8 출력 (포탑 장비 비교, 없으면 '-')
 #   <출력.json>
+#   선택 (2026-10-17 판에서 추가, 여러 번 줄 수 있음):
+#   --diff=<이름>=<parts 디렉터리>   balance.cjs <시작> <런 수> 0 <위험 등급> [oath=…] 출력 → 난이도별 요약 (예: --diff=쉬움=d3)
+#   --fac=<이름>=<parts 디렉터리>    balance.cjs … chr 또는 fac=<세력> 출력 → 세력 우선 봇 (청라 인과 단계 분포)
+#   --pool=<parts 디렉터리>          balance.cjs … pool 출력 → 계약 기물 후보(우세 시너지 보장) 봇, 같은 시드의 전체 런과 비교
+#   --hrnoadd=<hr.json>              BS_NOADD=1 buildsim.cjs comps … 출력 (적 증원 끔) → 고위험 조합 증원 효과
+#   --prev=<이전 balance_report.json> 이전 보고서 대비 변화
 # 오차: 전투 단위 지표는 런 단위 군집 표준오차(비율 추정량), 런 단위 비율은 윌슨 95% 구간.
-import json, sys, glob, math, collections
+import json, sys, glob, math, collections, re
 
 parts_dir, meta_p, rd_p, hr_p, tur_p, out_p = sys.argv[1:7]
+OPT = collections.defaultdict(list)
+for a in sys.argv[7:]:
+    k, v = a[2:].split('=', 1); OPT[k].append(v)
 M = json.load(open(meta_p))
 RD = json.load(open(rd_p))
-agg, runs = collections.defaultdict(dict), []
-for p in sorted(glob.glob(f'{parts_dir}/part*.json')):
-    d = json.load(open(p))
-    runs += d['runs']
-    for t, rows in d['agg'].items():
-        for k, v in rows.items():
-            a = agg[t].setdefault(k, {})
-            for f, x in v.items(): a[f] = a.get(f, 0) + x
+def load_parts(dir_):
+    agg, runs = collections.defaultdict(dict), []
+    for p in sorted(glob.glob(f'{dir_}/part*.json')):
+        d = json.load(open(p))
+        runs += d['runs']
+        for t, rows in d['agg'].items():
+            for k, v in rows.items():
+                a = agg[t].setdefault(k, {})
+                for f, x in v.items(): a[f] = a.get(f, 0) + x
+    for r in runs: r['phase'] = min(r['phase'], 6)  # 의뢰 성공 뒤 7페이즈로 넘어간 값은 6으로 (도달 기준)
+    return agg, runs
+agg, runs = load_parts(parts_dir)
 N = len(runs)
 CLEAR = sum(r['cleared'] for r in runs) / N
 Z = 1.96
@@ -126,7 +139,9 @@ for sid, info in M['syn'].items():
     pooled = syn_groups.get(sid, {})
     # 대표 조합: 조합 id 에 시너지 이름이 들어간 것 (그 시너지를 노린 조합). 없으면 그 시너지가 2단계 이상인 조합
     alias = {'VOYAGE': ['VOY'], 'HUNTER': ['HUNTER', 'HUNT'], 'ENG': ['ENG', 'TURRET']}.get(sid, [sid])
-    hr = [c for c in HR if c['syn'].get(sid, [0, 0])[1] >= 1 and any(x in c['id'].split('_', 1)[1] for x in alias)] or [c for c in HR if c['syn'].get(sid, [0, 0])[1] >= 2]
+    # 민감도 조합(H_CHR7_S1 · H_CHR7_S10: 무휼 인과 단계를 1 · 10으로 고정)은 대표 조합에서 뺀다
+    HRr = [c for c in HR if not re.search(r'_S\d+$', c['id'])]
+    hr = [c for c in HRr if c['syn'].get(sid, [0, 0])[1] >= 1 and any(x in c['id'].split('_', 1)[1] for x in alias)] or [c for c in HRr if c['syn'].get(sid, [0, 0])[1] >= 2]
     hr = sorted(hr, key=lambda c: -(c['win'] or 0))
     cf = RD and next((x for x in RD['syns'] if x['id'] == sid), {}).get('cf')
     synergies.append({'id': sid, 'name': info['name'], 'kind': info['kind'], 'tiers': tiers, 'mainTier': main,
@@ -158,6 +173,8 @@ def classify(s):
 for s in synergies:
     s['class'], s['classWhy'] = classify(s)
 # 종합 순위: 전체 런 lift(전 단계 합산) 백분위와 고위험 대표 조합 최고 승률 백분위의 평균 (고위험 조합이 없으면 lift 만)
+DUMMY_SYN = ('KING', 'SANGUN', 'EXPLORER', 'RFRIEND')  # 기물 한 명짜리 표식 특성 (공왕 · 산군 · 탐험가 · 당신의 친구): 순위 · 분류에서 뺀다
+synergies = [s for s in synergies if s['id'] not in DUMMY_SYN]
 ranked = [s for s in synergies if s['pooled'].get('all') and s['pooled']['all']['n'] >= 1000]
 def pct(vals, v): return sum(1 for x in vals if x < v) / max(1, len(vals) - 1)
 lifts = [s['pooled']['all']['lift'] for s in ranked]
@@ -280,6 +297,118 @@ combo = RD['combo']
 # 고위험: 유형 몰빵 조합
 hr_type = [c for c in HR if c['id'] in ('H_PSI7', 'H_PSI_SEC', 'H_DIV7', 'H_DIV_SIR', 'H_MARK_PAN', 'H_TURRET')]
 
+# ───────── 5. 증강 (런 단위 군집 lift, 공명 증강 · 학파 · 전공 · 스페셜. 사건 증강 ev.* 제외)
+aug_groups = stats_for(collect(lambda k: k[2:] if k.startswith('a:') else None))
+augs = []
+for aid, g in aug_groups.items():
+    info = M.get('augs', {}).get(aid, {'name': aid, 'src': '?', 'owner': ''})
+    augs.append({'id': aid, 'name': info['name'], 'src': info['src'], 'owner': info.get('owner', ''), 'all': g.get('all'), 'early': g.get('early'), 'late': g.get('late'), 'boss': g.get('boss')})
+aug_src = collections.defaultdict(lambda: [0, 0.0, 0])
+for a in augs:
+    if not a['all']: continue
+    o = aug_src[a['src'] if a['src'] in ('메이저', '스페셜', '사이오닉', '학파', '전용', '공용') else '시너지']; o[0] += a['all']['n']; o[1] += a['all']['n'] * a['all']['lift']; o[2] += 1
+aug_src = [{'src': k, 'n': v[0], 'lift': v[1] / v[0], 'kinds': v[2]} for k, v in aug_src.items()]
+
+# ───────── 6. 경제 (run.rep 전투 기록: 이자 · 상한 · 정산 수입, 지출 종류별, 페이즈별 전투 직전 보유 크레딧)
+def econ(rs):
+    rs = [r for r in rs if r.get('eco')]
+    if not rs: return None
+    nb = sum(r['eco']['nb'] for r in rs) or 1
+    cr = collections.defaultdict(lambda: [0, 0])
+    for r in rs:
+        for p, (sm, n) in r['eco']['crAt'].items(): c = cr[int(p)]; c[0] += sm; c[1] += n
+    sp = collections.Counter()
+    for r in rs: sp.update(r['eco']['sp'])
+    return {'runs': len(rs), 'battles': nb, 'interestPerBattle': sum(r['eco']['i'] for r in rs) / nb, 'capPerBattle': sum(r['eco']['cap'] for r in rs) / nb,
+            'atCapRate': sum(r['eco']['atCap'] for r in rs) / nb, 'incomePerBattle': sum(r['eco']['inc'] for r in rs) / nb,
+            'creditsAtBattle': {p: v[0] / v[1] for p, v in sorted(cr.items()) if v[1]},
+            'spendPerRun': {k: v / len(rs) for k, v in sp.most_common()}, 'endCredits': sum(r['eco']['end'] for r in rs) / len(rs),
+            'loanRuns': sum(1 for r in rs if r['eco'].get('loan', 0) > 0) / len(rs)}
+economy = {'all': econ(runs), 'cleared': econ([r for r in runs if r['cleared']]), 'failed': econ([r for r in runs if not r['cleared']])}
+
+# ───────── 7. 난이도별 요약 (봇 기준)
+def run_summary(agg2, runs2):
+    n = len(runs2)
+    if not n: return None
+    k = sum(r['cleared'] for r in runs2)
+    ph2 = {}
+    for p, a in sorted(agg2.get('phase', {}).items(), key=lambda x: int(x[0])):
+        if int(p) > 6: continue
+        ph2[int(p)] = {'battles': a['battles'], 'win': a['wins'] / a['battles']}
+    boss = {}
+    for kk, v in agg2.get('node', {}).items():
+        p, t = kk.split('|')
+        if t == 'boss' and int(p) <= 6: boss[int(p)] = {'n': v['n'], 'win': v['wins'] / v['n']}
+    reach = {p: sum(1 for r in runs2 if r['phase'] >= p) / n for p in range(1, 7)}
+    deaths = collections.Counter()
+    for kk, v in agg2.get('death', {}).items(): deaths[int(kk.split('|')[0])] += v['n']
+    return {'runs': n, 'clear': k / n, 'clearCI': wilson(k, n), 'avgPhase': sum(r['phase'] for r in runs2) / n, 'reach': reach,
+            'phaseWin': ph2, 'bossWin': dict(sorted(boss.items())), 'deathPhase': {p: deaths[p] / n for p in sorted(deaths)},
+            'heat': sum(r.get('heat', 0) for r in runs2) / n, 'despairs': sum(len(r.get('despairs', [])) for r in runs2) / n,
+            'econ': econ(runs2)}
+difficulty = [{'name': '표준 (위험 0)', 'dir': parts_dir, **run_summary(agg, runs)}]
+for spec in OPT['diff']:
+    name, d = spec.split('=', 1)
+    a2, r2 = load_parts(d)
+    difficulty.append({'name': name, 'dir': d, **run_summary(a2, r2)})
+
+# ───────── 1-5. 세력 우선 봇 (청라공국: 무휼 인과 단계)
+def fac_summary(name, d):
+    a2, r2 = load_parts(d)
+    base_s = run_summary(a2, r2)
+    fid = 'CHR' if name.startswith('청라') else None
+    out2 = {'name': name, 'dir': d, **base_s}
+    sid = next((x for x in M['syn'] if M['syn'][x]['name'] == name), fid)
+    if sid:
+        tiers = collections.Counter(r['synMax'].get(sid, 0) for r in r2)
+        out2['synId'] = sid
+        out2['maxTier'] = {t: tiers[t] / len(r2) for t in sorted(tiers)}
+        out2['clearByTier'] = {t: (lambda rs: {'n': len(rs), 'clear': sum(x['cleared'] for x in rs) / len(rs), 'ci': wilson(sum(x['cleared'] for x in rs), len(rs))} if rs else None)([x for x in r2 if x['synMax'].get(sid, 0) == t]) for t in sorted(tiers)}
+    if any(r.get('causal') for r in r2):
+        def kings(rs):
+            c = collections.Counter(r['king'] for r in rs)
+            return {'n': len(rs), 'dist': {k: c[k] / len(rs) for k in sorted(c)}, 'mean': sum(r['king'] for r in rs) / len(rs) if rs else None,
+                    'meanCausal': sum(r['causal'] for r in rs) / len(rs) if rs else None}
+        t3 = [r for r in r2 if r['synMax'].get('CHR', 0) >= 3]
+        out2['king'] = {'tier3': kings(t3), 'tier3cleared': kings([r for r in t3 if r['cleared']]), 'tier2only': kings([r for r in r2 if r['synMax'].get('CHR', 0) == 2]), 'all': kings([r for r in r2 if r['synMax'].get('CHR', 0) >= 1])}
+        # 페이즈 첫 전투 직전 인과율 (청라 3단계 도달 런, 그 페이즈 청라 단계별 중앙값)
+        cz = collections.defaultdict(list)
+        for r in t3:
+            for p, (pts, t) in r.get('cz', {}).items(): cz[int(p)].append(pts)
+        med = lambda xs: sorted(xs)[len(xs) // 2] if xs else None
+        out2['causalAtPhase'] = {p: {'n': len(v), 'median': med(v), 'mean': sum(v) / len(v)} for p, v in sorted(cz.items())}
+    return out2
+factions = [fac_summary(*spec.split('=', 1)) for spec in OPT['fac']]
+
+# 계약 기물 후보(우세 시너지 보장) 봇: 같은 시드의 무작위 시작과 비교
+pool = None
+if OPT['pool']:
+    a2, r2 = load_parts(OPT['pool'][0])
+    seeds = {r['seed'] for r in r2}
+    same = [r for r in runs if r['seed'] in seeds]
+    pool = {'pool': run_summary(a2, r2), 'randomSameSeeds': {'runs': len(same), 'clear': sum(r['cleared'] for r in same) / max(1, len(same)), 'clearCI': wilson(sum(r['cleared'] for r in same), len(same)), 'avgPhase': sum(r['phase'] for r in same) / max(1, len(same))}}
+
+HR_NOADD = comp_rows(OPT['hrnoadd'][0]) if OPT['hrnoadd'] else []
+
+# ───────── 이전 보고서 대비
+prev = None
+if OPT['prev']:
+    P = json.load(open(OPT['prev'][0]))
+    pm = P['meta']
+    pu = {u['id']: u for u in P['units']}
+    ps = {x['id']: x for x in P['synergies']}
+    ph_ = P['phases']
+    prev = {'clear': [pm['clear'], CLEAR], 'avgPhase': [pm['avgPhase'], RD['avgPhase']],
+            'phaseWin': {p: [ph_.get(p, {}).get('win'), RD['phases'].get(p, {}).get('win')] for p in RD['phases'] if int(p) <= 6},
+            'syn': {x['id']: {'lift': [((ps.get(x['id']) or {}).get('pooled') or {}).get('all', {}).get('lift') if ps.get(x['id']) else None, (x['pooled'].get('all') or {}).get('lift')],
+                              'hrBest': [max((c['win'] for c in ps[x['id']]['hr']), default=None) if x['id'] in ps else None, max((c['win'] for c in x['hr']), default=None)],
+                              'class': [ps[x['id']]['class'] if x['id'] in ps else None, x['class']]} for x in synergies},
+            'units': {u['id']: {'lift': [(pu[u['id']].get('all') or {}).get('lift') if u['id'] in pu and pu[u['id']].get('all') else None, (u['all'] or {}).get('lift')],
+                                'startClear': [pu[u['id']].get('startClear') if u['id'] in pu else None, u['startClear']],
+                                'score': [pu[u['id']].get('score') if u['id'] in pu else None, u.get('score')]} for u in units},
+            'hr': {c['id']: [next((x['win'] for x in P['hrComps'] if x['id'] == c['id']), None), c['win']] for c in HR},
+            'turret': {c['id']: [next((x['win'] for x in P['turret'] if x['id'] == c['id']), None), c['win']] for c in TUR}}
+
 out = clean({
     'meta': {'runs': N, 'battles': RD['battlesTotal'], 'clear': CLEAR, 'clearCI': wilson(sum(r['cleared'] for r in runs), N), 'avgPhase': RD['avgPhase'],
              'cfBattles': RD['cfTotal'], 'hrComps': len(HR), 'hrBattlesPerComp': HR[0]['n'] if HR else 0,
@@ -289,7 +418,10 @@ out = clean({
                  'lossRatio': '실제 패배 수 / 같은 (페이즈, 노드) 평균으로 기대한 패배 수. 1.0 = 평균, 0.7 = 패배 30% 감소',
                  'stages': 'early = P1~2, mid = P3~4, late = P5~6 (보스 포함), boss = 보스 노드만',
                  'ci': '런 단위 비율은 윌슨 95% 구간',
-                 'hr': '고위험 후반 = 위험 8, 5 · 6페이즈 역경 + 보스, 전장 5곳(swarm · crimson · sparta · petra · waste) × 시드 30 = 조합당 600전',
+                 'hr': '고위험 후반 = 위험 9 (2026-10-17 체계 판 2, 예전 위험 8과 같은 조건 + 2페이즈마다 적 증원. 절망 증강은 걸리지 않음), 5 · 6페이즈 역경 + 보스, 전장 5곳(swarm · crimson · sparta · petra · waste) × 시드 30 = 조합당 600전',
+                 'hrNoAdd': '같은 고위험 조건에서 적 증원(CFG.diffAdd)만 끈 값 (BS_NOADD=1) — 예전 보고서와 비교용',
+                 'economy': '전투 종료 보고서 기록(run.rep.b): 이자 · 이자 상한 · 정산 수입은 전투당 평균, 보유 크레딧은 전투 직전 값의 페이즈별 평균',
+                 'difficulty': '봇 런 요약: 같은 봇 · 같은 시드, 위험 등급만 바꿈. 고난(위험 7)의 절망 증강은 봇이 무작위로 고름',
                  'iDmg': '기물 1명 평균(같은 페이즈) 대비 전투당 피해 배율. iHeal · iShield · iTaken 도 같은 방식',
                  'liftVsRole': '같은 전투 유형(역할) 출전 가중 평균 lift 대비 차이 (게임에 기물 코스트가 없어 역할로 정규화)',
                  'unitAdjLift': '장비를 든 기물의 같은 페이즈 평균 승률 대비 차이 (기물 강약 보정)',
@@ -298,6 +430,8 @@ out = clean({
     'phases': RD['phases'], 'nodes': RD['nodes'], 'fields': RD['fields'], 'death': RD['death'],
     'synergies': synergies, 'units': units, 'items': items, 'itemCats': cats, 'itemRoles': roles, 'turret': turret,
     'ctypes': ctypes, 'ttypes': ttypes, 'combo': combo, 'hrComps': [{k: v for k, v in c.items()} for c in HR], 'hrTypeComps': [c['id'] for c in hr_type],
+    'hrNoAdd': [{k: v for k, v in c.items() if k != 'per'} for c in HR_NOADD],
+    'augs': augs, 'augSrc': aug_src, 'economy': economy, 'difficulty': difficulty, 'factions': factions, 'pool': pool, 'prev': prev,
 })
 json.dump(out, open(out_p, 'w'), ensure_ascii=False, indent=1)
 print('ok', N, 'runs')

@@ -4,6 +4,7 @@ import { SYNERGIES } from '../src/data/synergies';
 import { itemInfo } from '../src/data/items';
 import { CTYPE_NAME, TTYPE_NAME } from '../src/types';
 import { FIELDS } from '../src/data/battlefields';
+import { ALL_AUGS, augSource } from '../src/data/augments';
 declare const process: { argv: string[] };
 const ids: string[] = JSON.parse(process.argv[2] || '[]');
 console.log(JSON.stringify({
@@ -12,4 +13,5 @@ console.log(JSON.stringify({
   items: Object.fromEntries(ids.map((id) => { try { const i = itemInfo(id); return [id, { name: i.name, tier: id.startsWith('U_') ? 'U' : i.tier }]; } catch { return [id, { name: id, tier: '?' }]; } })),
   ct: CTYPE_NAME, tt: TTYPE_NAME,
   fields: Object.fromEntries(FIELDS.map((f) => [f.id, f.name])),
+  augs: Object.fromEntries(ALL_AUGS.map((a) => [a.id, { name: a.name, src: augSource(a), owner: a.owner || '' }])),
 }));

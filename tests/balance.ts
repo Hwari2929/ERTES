@@ -188,6 +188,8 @@ function playRun(seed: number) {
 
   let n = 0, battles = 0;
   const usedUnits = new Set<string>();
+  const crAt: Record<number, [number, number]> = {}; // 경제: 페이즈별 전투 직전 보유 크레딧 [합, 전투 수]
+  const czAt: Record<number, [number, number]> = {}; // 청라공국: 페이즈 첫 전투 직전 무휼 인과율 · 그 전투의 청라 단계
   while (!run.over && !run.cleared && n < 200) {
     resolvePending(); manage(); resolvePending();
     if (run.node?.synth) { shopSynth(run, track); continue; }
@@ -206,7 +208,9 @@ function playRun(seed: number) {
     const enc = run.node.enc!;
     const ph = run.phase, ntype = run.node.type;
     const dep = deployed(run);
+    { const c = (crAt[ph] ??= [0, 0]); c[0] += run.credits; c[1]++; }
     const counts = synergyCounts(dep, run) as Record<string, number>;
+    if (!czAt[ph]) czAt[ph] = [run.causal || 0, tierOf('CHR', counts.CHR || 0)];
     for (const s of SYNERGIES) { const t = tierOf(s.id, counts[s.id] || 0); if (t > (synMax[s.id] || 0)) synMax[s.id] = t; }
 
     if (RANDREL) for (const u of run.units) if (UNIT_BY_ID[u.defId].ttype === 'divine' && !relicSet.has(u.uid)) { relicSet.add(u.uid); u.relic = RELICS[Math.floor(bot.next() * RELICS.length)].id; }
@@ -303,7 +307,12 @@ function playRun(seed: number) {
   for (const id of run.inventory) if (id.startsWith('K_')) add('cons', id, { left: 1 });
   for (const u of run.units) if (u.mod?.startsWith('O_')) add('cons', u.mod, { equipped: 1 });
   add('cons', '_occult', { tier: run.occultTier || 0, runs: 1 });
-  runs.push({ seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, causal: run.causal || 0, king: run.causal ? causalStage(run.causal) : 0, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems, ...(DETAIL ? { det } : {}) });
+  // 경제 (전투 종료 보고서 기록 run.rep): 이자 · 이자 상한 · 전투 정산 수입 합, 지출 종류별, 페이즈별 전투 직전 보유 크레딧
+  const rb = run.rep?.b || [];
+  const eco = { nb: rb.length, i: rb.reduce((s, x) => s + x.i, 0), cap: rb.reduce((s, x) => s + x.cap, 0), inc: rb.reduce((s, x) => s + x.c, 0), atCap: rb.filter((x) => x.cap > 0 && x.i >= x.cap).length,
+    sp: run.rep?.sp || {}, crAt, end: run.credits, loan: run.loan || 0 };
+  runs.push({ seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, causal: run.causal || 0, king: run.causal ? causalStage(run.causal) : 0, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems,
+    cz: czAt, diff: run.diff || 0, heat: run.oathHeat || 0, despairs: run.despairs || [], hp: run.hp, eco, ...(DETAIL ? { det } : {}) });
 }
 
 for (let i = 0; i < COUNT; i++) {
