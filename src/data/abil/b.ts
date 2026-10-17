@@ -105,14 +105,23 @@ export const ABIL_B: Record<string, AbilText> = {
         ...(p.splash ? [['주변', '대상 주변 [t:1] 아군에게 [p:0.5] 효과'] as Row] : []),
       ],
     }),
-    trait: '적이 쓰러질 때 [p:0.3] 확률로 유전 물질 1개 수집 (런 누적). 10 / 30 / 60개: [g:behemoth] [g:bond] [pp:0.1] / [pp:0.25] / [pp:0.45], 피해 +[p:0.1] / [p:0.25] / [p:0.5].',
+    trait: '적이 쓰러질 때 [p:0.3] 확률로 유전 물질 1개 수집 (런 누적). 10 / 30 / 60개: [g:behemoth] [g:inherit] [pp:0.1] / [pp:0.25] / [pp:0.45], 피해 +[p:0.1] / [p:0.25] / [p:0.5].',
+    summon: {
+      베헤모스: (p) => ({
+        tgt: '자신', range: 0, area: { k: 'one' },
+        rows: [
+          ['변이', `비앙카가 스킬을 쓸 때마다 [s:4] 동안 피해 +[p:${p.petDmg}]`],
+          ['유전 물질', '비앙카가 모은 유전 물질 단계에 따라 [g:inherit] · 피해 증가 (비앙카 특성)'],
+        ],
+      }),
+    },
     augs: {
       hands: '치유 탄환 회복 [heal+:1.8].',
-      carapace: '[g:behemoth] [g:bond] [pp:0.25], 방어도 +250.',
+      carapace: '[g:behemoth] [g:inherit] [pp:0.25], 방어도 +250.',
       pheromone: '치유 탄환: [shield:1.8] 추가.',
       scalpel: '공격 속도 [pp:0.25], 치명타 확률 [pp:0.1], 치명타 피해 [pp:0.35].',
       wash: '치유 탄환 대상 [g:cleanse]. [g:red] [p:0.3] ([s:4]).',
-      'sp.unleash': '[g:behemoth] [g:bond] [pp:0.6], 피해 +[p:0.5]. 기본 공격을 하지 않음. 표본 회수와 함께면 기본 공격 유지, 피해 +[p:0.5]는 비앙카 · 변이에.',
+      'sp.unleash': '[g:behemoth] [g:inherit] [pp:0.6], 피해 +[p:0.5]. 기본 공격을 하지 않음. 표본 회수와 함께면 기본 공격 유지, 피해 +[p:0.5]는 비앙카 · 변이에.',
       'sp.drone': '치유 탄환이 대상 주변 [t:1] 아군에게도 [p:0.5] 효과.',
       'sp.cold': '치유 탄환 회복이 보호막으로 바뀜 (양 ×1.5).',
       'sp.genes': '유전 물질 수집 확률 [p:0.3] → [p:0.5].',
@@ -245,5 +254,6 @@ export const GLOSS_B: Record<string, { name: string; desc: string }> = {
   cook: { name: '요리', desc: `셰프의 전투 스킬. 셰프 시너지 단계에 따라 효과 ${COOK_MULT}.` },
   wait: { name: '기다림의 미학', desc: '스택이 정해진 수에 이르면 체력이 가장 높은 적을 저격하고 스택이 초기화됨.' },
   behemoth: { name: '베헤모스', desc: '전투 시작 시 소환되는 근접 단짝. 비앙카 스탯을 상속률만큼 물려받음.' },
-  bond: { name: '상속률', desc: '소환물이 주인 스탯을 물려받는 비율.' },
+  // 'bond' 는 사이오닉 [결속] 용어와 겹쳐 (abiltext.ts 의 GLOSS 덮어쓰기) 상속률이 '결속'으로 보였다 → inherit
+  inherit: { name: '스탯 상속률', desc: '소환물이 주인의 체력 · 위력 · 방어도를 물려받는 비율. 최고의 친구 시너지 단계로 정해지고 (시너지가 꺼져 있으면 기본값), 특성 · 증강으로 더 오른다. 기물 상세의 [소환물] 칸에 지금 값이 나온다.' },
 };

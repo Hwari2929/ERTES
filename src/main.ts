@@ -31,7 +31,7 @@ import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
 import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SynergyId, type UnitState } from './types';
 import { encounterMatchup, matchupLines, matchupShort, schoolWarnings } from './ui/matchup';
-import { computeStats } from './engine/build';
+import { computeStats, makeSummons, type SummonMade } from './engine/build';
 import { gradeCards } from './ui/revealfx';
 import { BattleView, DEATH_STYLES, fmt, FX, FX_DEFAULT, isDeathStyle, previewDeath, type DeathStyle, type MotionPreset, type UltCut } from './ui/battleview';
 import { ULTS } from './data/ults';
@@ -1410,6 +1410,83 @@ function relicSection(d: UnitDef, u: UnitState | null, run: RunState | null, c: 
   }
   return `<section class="abil ab-relic">${head}${slot}${act ? `<hr class="rl-sep">${act}` : ''}</section>`;
 }
+// ───────── 소환물 (최고의 친구): 이름 · 초상 · 전투 유형 · 현재 상속률 + 기본 공격 · 기술 카드 (누르면 좌측 상세)
+type SumDef = NonNullable<UnitDef['summon']>;
+const sumKinds = (sd: SumDef): SumDef[] => [sd, ...(sd.also || [])];
+/** 이 기물의 소환물: 전투에 이미 불려 나와 있으면 그 소환물, 아니면 build.ts makeSummons 로 만든 미리보기
+ *  (상세용 전투의 기물 c 기준 = 지금 런의 시너지 · 특성 · 증강, 도감 · 대기석은 시너지 없이 기본값) */
+function summonList(d: UnitDef, b: Battle | null, c: CUnit | null): SummonMade[] {
+  const sd0 = d.summon;
+  if (!sd0 || !c) return [];
+  const real = b ? b.units.filter((s) => s.isSummon && s.owner === c && s.defId === 'summon') : [];
+  if (real.length) return real.map((s) => ({ sd: sumKinds(sd0).find((k) => k.name === s.name) || sd0, unit: s, rate: s.mem.bondRate || 0, extra: !!s.mem.bondExtra }));
+  return makeSummons(c, sd0);
+}
+const sumPc = (x: number) => `${Math.round(x * 100)}%`;
+const sumPow = (s: CUnit): 'shoot' | 'strike' => (s.atk.type === 'shoot' ? 'shoot' : 'strike');
+const sumS = (b: Battle | null, s: CUnit, k: StatKey) => (b ? b.S(s, k) : s.st[k]);
+/** 상속률 구성: 시너지 단계 (꺼져 있으면 기본) + 특성 · 증강 가산 × 소환물 배율 */
+function bondNote(c: CUnit, m: SummonMade) {
+  const syn = c.mem.bond ? `최고의 친구 단계 ${sumPc(c.mem.bond)}` : `기본 ${sumPc(CFG.bond.base)} (최고의 친구 시너지 꺼짐)`;
+  const bonus = c.mem.bondBonus ? ` + 특성 · 증강 ${sumPc(c.mem.bondBonus)}p` : '';
+  const k = (m.extra ? CFG.bond.extra : 1) * (m.sd.rate || 1);
+  return `${syn}${bonus}${k !== 1 ? ` × ${+k.toFixed(2)}${m.extra ? ' (추가 소환)' : ''}` : ''}`;
+}
+/** 소환물 기본 공격 예상 DPS (치명타 기대값 포함, 방어도 · 속성 보정 · 명중 제외) */
+function sumDps(b: Battle | null, s: CUnit, sd: SumDef) {
+  const ivl = s.atk.interval / Math.max(0.2, 1 + sumS(b, s, 'atkSpd'));
+  const crit = 1 + Math.min(1, Math.max(0, sumS(b, s, 'crit'))) * Math.max(0, sumS(b, s, 'critDmg') - 1);
+  return (sumS(b, s, sumPow(s)) * (sd.basicMult || 1) * crit) / ivl;
+}
+/** 소환물 상세 (기본 공격 팝업) 행 */
+function summonRows(b: Battle | null, c: CUnit, m: SummonMade, ctx: AB.AbilCtx): [string, string][] {
+  const s = m.unit, sd = m.sd, pow = sumPow(s), ct = s.ctype;
+  const aps = Math.max(0.2, 1 + sumS(b, s, 'atkSpd')) / s.atk.interval;
+  const amp = s.mods.reduce((a, x) => a + (x.kind === 'inc' && x.tag === 'all' ? x.v : 0), 0);
+  const pv = provMult(b, s);
+  return [
+    ['전투 유형', ct ? `${typeIcon(ct)}${CTYPE_NAME[ct]}` : '소환물'],
+    ['상속률', `${sumPc(m.rate)} <span class="muted small">${esc(bondNote(c, m))}</span>`],
+    ['최대 체력', `${fmt(sumS(b, s, 'maxHp'))}${sd.hpMul && sd.hpMul !== 1 ? ` <span class="muted small">(체력 ×${sd.hpMul})</span>` : ''}`],
+    ['피해 유형', AB.powType(ctx, pow)],
+    ['피해', AB.powNum(ctx, pow, sd.basicMult || 1, false, false, s.atk.elem)],
+    ...(amp ? [['피해 증가', `+${sumPc(amp)} <span class="muted small">(최고의 친구 단계 · 특성 · 증강)</span>`] as [string, string]] : []),
+    ['공격 속도', `${aps.toFixed(2)}회/초 <span class="muted">(${(1 / aps).toFixed(2)}초)</span>`],
+    ['예상 DPS', `<span class="pw el-t-${s.atk.elem}">${lineIcon(`e.${s.atk.elem}`, 'li')}<b>${fmt(sumDps(b, s, sd))}</b></span><span class="muted small">/초</span>`],
+    ['방어도', fmt(sumS(b, s, 'armor'))],
+    ['도발 배율', `×${+pv.toFixed(2)} <span class="muted small">${ct === 'VAN' ? '돌격가 소환물 (경계는 없음)' : ct ? `${CTYPE_NAME[ct]} 소환물` : '소환물 기본'}</span>`],
+  ];
+}
+/** 소환물 섹션: 소환물마다 초상 · 이름 · 유형 · 상속률 칩 + 기본 공격 · 기술(주인 스킬 연계) 카드. scope = 상속률 기준 (지금 런 · 대기석 · 기본값) */
+function summonSection(d: UnitDef, b: Battle | null, c: CUnit | null, scope: string) {
+  const sd0 = d.summon;
+  if (!sd0 || !c) return '';
+  const kinds = sumKinds(sd0), made = summonList(d, b, c);
+  const names = kinds.map((k) => k.name).join(' · ');
+  const body = made.length ? kinds.map((sd, k) => {
+    const ms = made.filter((x) => x.sd === sd);
+    const m = ms.find((x) => !x.extra) || ms[0];
+    if (!m) return '';
+    const s = m.unit, ex = ms.filter((x) => x.extra), ct = s.ctype, pow = sumPow(s);
+    const ctx: AB.AbilCtx = { b, c: s, p: c.sk };
+    const range = sumS(b, s, 'range');
+    const info = ABIL[d.id]?.summon?.[sd.name]?.(c.sk);
+    const pv = provMult(b, s);
+    // 이름은 소환물이 여러 종류일 때만 (한 종류면 섹션 머리에 이미 있다)
+    const head = `<div class="sm-id">${sprite(s, 'spr sm-face')}<span class="sm-nm">${kinds.length > 1 ? `<b>${esc(sd.name)}</b>` : ''}${ms.length > 1 ? `<span class="sm-n" title="전투 시작 시 불려 나오는 수">${ms.length}기</span>` : ''}<span class="dh-types">${ct ? `<i>${typeIcon(ct)}${CTYPE_NAME[ct]}</i>` : ''}${categoryTag(s.category)}</span></span></div>`;
+    const chips = `<div class="ab-chips"><span class="abc sm-bond" title="${esc(`스탯 상속률: 주인의 체력 · 위력 · 방어도를 물려받는 비율 (명중 · 치명타 · 효과 명중 · 효과 저항 · 회피는 주인 값 그대로). ${bondNote(c, m)}`)}">${lineIcon('a.summon', 'li')}상속률 <b>${sumPc(m.rate)}</b></span>`
+      + (ex.length ? `<span class="abc" title="${esc(`추가로 불린 소환물 ${ex.length}기: 상속률 ×${CFG.bond.extra}`)}">추가 ${ex.length}기 <b>${sumPc(ex[0].rate)}</b></span>` : '')
+      + `<span class="abc" title="최대 체력">${lineIcon('a.hp', 'li')}${fmt(sumS(b, s, 'maxHp'))}</span>`
+      + `<span class="abc" title="${pow === 'shoot' ? '사격' : '타격'} 위력">${lineIcon(`p.${pow}`, 'li')}${fmt(sumS(b, s, pow))}</span>`
+      + `<span class="abc" title="${esc(`도발 배율: 적이 이 소환물에게 쌓는 도발 수치에 곱해지는 값 (${ct ? `${CTYPE_NAME[ct]} 소환물` : '소환물'}). 돌격가 경계는 소환물에게 없다.`)}">${lineIcon('p.prov', 'li')}×${+pv.toFixed(2)}</span></div>`;
+    const atk = `<div class="ps-card ab-click${abilOn(`summon:atk:${k}`)}" data-a="abil-pop" data-v="summon:atk:${k}" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">기본 공격</span><b>${WPOS(range)}</b></div><div class="ab-chips">${AB.chip('u.range', `${range}칸`, '사거리')}${AB.powNum(ctx, pow, sd.basicMult || 1, false, false, s.atk.elem)}${AB.chip('a.speed', `${s.atk.interval}초`, '공격 간격')}</div></div>`;
+    const sk = info ? `<div class="ps-card ab-click${abilOn(`summon:skill:${k}`)}" data-a="abil-pop" data-v="summon:skill:${k}" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">기술 · 연계</span><b>${esc(d.skill.name)}</b></div><div class="ab-chips">${AB.skillChips(info, ctx, range, c.cdMax)}</div></div>` : '';
+    return `<div class="sm-unit">${head}${chips}<div class="ps-cards">${atk}${sk}</div></div>`;
+  }).join('') : `<p class="small muted">증강 효과로 이번 빌드에서는 소환물(${esc(names)})을 부르지 않는다.</p>`;
+  return `<section class="abil sm-sec"><div class="ab-head"><span class="ab-kind">소환물</span><b>${esc(names)}</b><span class="ab-meta">${esc(scope)}</span></div>${body}</section>`;
+}
+/** 상세 창 위치별 상속률 기준 문구 */
+const sumScope = (u: UnitState | null) => (!u ? '기본값 (런 밖)' : u.pos ? '지금 런 · 출전 기준' : '대기석 · 시너지 미적용');
 function skillCard(d: UnitDef, b: Battle | null, c: CUnit | null) {
   const p = c?.sk || d.skill.params;
   const info = ABIL[d.id]?.skill?.(p);
@@ -1464,7 +1541,7 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
   if (/^(cantrip|psipass):/.test(key)) { forcedSchool = key.split(':')[1] as SchoolId; key = key.split(':')[0]; }
   const ctx = actx(b, c);
   const gl = new Set<string>();
-  let kind = '', name = '', body = '', mech = '';
+  let kind = '', name = '', body = '', mech = '', sumTok = '';
   if (key === 'weapon') {
     const w = c?.weapon || d.weapon;
     const range = b && c ? b.S(c, 'range') : w.range;
@@ -1546,11 +1623,32 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
       if (cv.transform) body += `<h4 class="psi-tfh">변형 후 비술 「${esc(cv.name)}」</h4>${AB.skillBody(cv.info, ctx, b && c ? b.S(c, 'range') : d.range, psiCd(b, c, cv.cd), gl)}`;
       if (pv.transform) body += `<h4 class="psi-tfh">변형 후 지속 「${esc(s2.passive.name)}」</h4>${AB.rowsHtml(pv.rows.map(([k, v]) => [k, statIc(AB.tok(v, ctx, gl))] as [string, string]))}`;
     }
+  } else if (key.startsWith('summon:') && d.summon && c) {
+    // 소환물 (최고의 친구): 'summon:atk:<n>' 기본 공격 · 'summon:skill:<n>' 기술 (n = 소환물 종류 순서)
+    const [, part, ks] = key.split(':');
+    const sd = sumKinds(d.summon)[+ks];
+    const ms = sd ? summonList(d, b, c).filter((x) => x.sd === sd) : [];
+    const m = ms.find((x) => !x.extra) || ms[0];
+    if (!sd || !m) return '';
+    const s = m.unit, sctx: AB.AbilCtx = { b, c: s, p: c.sk };
+    const range = b ? b.S(s, 'range') : s.st.range;
+    sumTok = sprite(s, 'ab-tok ap-tok');
+    if (part === 'skill') {
+      const info = ABIL[d.id]?.summon?.[sd.name]?.(c.sk);
+      if (!info) return '';
+      kind = '소환물 기술'; name = `${sd.name} · ${d.skill.name}`;
+      mech = `${d.name}의 스킬 [${d.skill.name}]에 맞춰 움직이는 연계 기술 (쿨다운 = ${d.name}의 스킬 쿨다운). 피해 수치는 ${sd.name}의 위력으로 계산한다.`;
+      body = AB.skillBody(info, sctx, range, c.cdMax, gl);
+    } else {
+      kind = '소환물 기본 공격'; name = `${sd.name}${ms.length > 1 ? ` ×${ms.length}` : ''}`;
+      mech = `전투 시작 시 ${d.name} 곁에 불려 나와 스스로 움직이며 적을 기본 공격한다${sd.focusLow ? ' (사거리 안에서 체력 비율이 가장 낮은 적을 노림)' : ''}. 체력 · 위력 · 방어도는 ${d.name}의 능력치를 상속률만큼 물려받고, 주인이 쓰러지면 함께 사라진다.`;
+      body = AB.popBody(range, { k: 'one' }, summonRows(b, c, m, sctx));
+    }
   } else return '';
   // 머리에 능력 아이콘 (아군 기물의 무기 · 특성 · 스킬 · 궁극기 · 비술 · 지속 · 신앙)
   const sc = forcedSchool || (c ? cSchool(c) : (app.run?.units.find((x) => x.defId === d.id) as { school?: SchoolId } | undefined)?.school ?? null);
   const icKey = key === 'cantrip' && sc ? `cantrip.${sc}` : key === 'psipass' && sc ? `passive.${sc}` : ['weapon', 'trait', 'skill', 'ult'].includes(key) ? `${key}.${d.id}` : '';
-  const tok = icKey && UNIT_BY_ID[d.id] ? abTok(icKey).replace('ab-tok', 'ab-tok ap-tok') : '';
+  const tok = sumTok || (icKey && UNIT_BY_ID[d.id] ? abTok(icKey).replace('ab-tok', 'ab-tok ap-tok') : '');
   return `<div class="stat-pop abil-pop"><div class="sp-head">${tok}<span class="ab-kind">${kind}</span><b>${esc(name)}</b><button class="btn tiny" data-a="abil-pop" data-v="">닫기</button></div>${mech ? `<p class="ap-mech">${mech}</p>` : ''}${body}</div>`;
 }
 
@@ -1620,7 +1718,7 @@ function powRow(b: Battle, c: CUnit, d: UnitDef, deployedNow: boolean) {
 function provChip(b: Battle | null, c: CUnit) {
   const m = provMult(b, c);
   if (Math.abs(m - 1) < 0.05) return '';
-  const rule = `돌격가 ×${PROV.van} · 수호자 시너지 +${PROV.guard}${c.mem.provPlus ? ` · 장비 +${c.mem.provPlus}` : ''} · 소환물 근접 ×${PROV.sumMelee} · 고정 ×${PROV.sumFixed} · 그 밖 ×1, 은신 · 기습 중 ×${PROV.hide}`;
+  const rule = `돌격가 ×${PROV.van} · 수호자 시너지 +${PROV.guard}${c.mem.provPlus ? ` · 장비 +${c.mem.provPlus}` : ''} · 소환물 근접 ×${PROV.sumMelee} · 고정 ×${PROV.sumFixed} (전투 유형이 정해진 최고의 친구 소환물은 그 유형 값: 돌격가 ×${PROV.van} · 전문가 ×1) · 그 밖 ×1, 은신 · 기습 중 ×${PROV.hide}`;
   const zoc = c.side === 0 && c.ctype === 'VAN' && !c.isSummon ? ` 돌격가 경계 교전 시간 ${+zocHoldOf(m).toFixed(3)}초 (${zocHoldFormula()}).` : '';
   return `<span class="d-pow pw-prov" title="도발 배율: 적이 이 기물에게 쌓는 도발 수치에 곱해지는 값 (${rule}).${zoc}">${lineIcon('p.prov', 'li')}<span>도발 배율</span><b>×${+m.toFixed(2)}</b></span>`;
 }
@@ -1699,6 +1797,7 @@ function unitModal(run: RunState) {
             ${traitGroup(d, u, run, b, c)}
             ${skillCard(d, b, c)}
             ${aceAbil(run, u)}${voyAbil(d, run, u)}
+            ${summonSection(d, b, c, sumScope(u))}
           </div>
         </div>
         <div class="um-col um-r">
@@ -1897,6 +1996,7 @@ function detailPanel(run: RunState, extra = '') {
       ${traitGroup(d, u, run, b, c)}
       ${aceAbil(run, u)}${voyAbil(d, run, u)}
       ${skillCard(d, b, c)}
+      ${summonSection(d, b, c, sumScope(u))}
       ${ultCard(d, b, c)}
       ${faithAbil(d, u, run)}
       ${ttSection(d, u, run, b, c)}${relicSection(d, u, run, c)}
@@ -3213,7 +3313,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
     const d = UNIT_BY_ID[u.defId];
     const pv = provChip(b, u);
     head = heroHead(d.id, sprite(u, 'spr big'), d.name, allyTags(d)) + (pv ? `<div class="d-pows">${pv}</div>` : '');
-    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem, d.id)}<div class="abil ab-trait ab-click${abilOn('trait')} has-tok" data-a="abil-pop" data-v="trait" role="button" tabindex="0">${abTok(`trait.${d.id}`)}<div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${ultCard(d, b, u, true)}${faithAbil(d, u.src || null, app.run, u)}${ttSection(d, u.src || null, app.run, b, u, true)}${relicSection(d, u.src || null, app.run, u, true)}`;
+    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem, d.id)}<div class="abil ab-trait ab-click${abilOn('trait')} has-tok" data-a="abil-pop" data-v="trait" role="button" tabindex="0">${abTok(`trait.${d.id}`)}<div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${summonSection(d, b, u, '이번 전투')}${ultCard(d, b, u, true)}${faithAbil(d, u.src || null, app.run, u)}${ttSection(d, u.src || null, app.run, b, u, true)}${relicSection(d, u.src || null, app.run, u, true)}`;
     if (app.abilPop) pop = abilPopHtml(app.abilPop, d, b, u);
   } else if (u.side === 1 && ENEMY_BY_ID[u.defId]) {
     const e = ENEMY_BY_ID[u.defId];
@@ -3221,7 +3321,8 @@ function battleUnitStatic(b: Battle, u: CUnit) {
     abils = enemyAbilCards(e, b, u);
     if (app.abilPop) pop = enemyAbilPop(app.abilPop, e, b, u);
   } else {
-    head = heroHead(u.art || '', sprite(u, 'spr big'), u.name, `${categoryTag(u.category)}<i>${u.owner ? `${esc(u.owner.name)}의 소환물` : '소환물'}</i>`);
+    const pv = u.side === 0 ? provChip(b, u) : '';
+    head = heroHead(u.art || '', sprite(u, 'spr big'), u.name, `${u.ctype ? `<i>${typeIcon(u.ctype)}${CTYPE_NAME[u.ctype]}</i>` : ''}${categoryTag(u.category)}<i>${u.owner ? `${esc(u.owner.name)}의 소환물` : '소환물'}</i>`) + (pv ? `<div class="d-pows">${pv}</div>` : '');
     if (u.skill) abils = abil('skill', u.skill.name, `${u.cdMax.toFixed(1)}초`, u.skill.desc(u.sk));
   }
   const ms = battleMajors(u);
@@ -3346,7 +3447,7 @@ function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
       </div>
     </div>
     <h3>능력 <span class="cx-hn">1등급 · 장비 없음 기준</span></h3>
-    <div class="cx-ud-abil"><div class="abils">${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem, d.id)}${traitGroup(d, null, null, b, c)}${skillCard(d, b, c)}${voyAbil(d, null, null)}</div>
+    <div class="cx-ud-abil"><div class="abils">${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem, d.id)}${traitGroup(d, null, null, b, c)}${skillCard(d, b, c)}${summonSection(d, b, c, sumScope(null))}${voyAbil(d, null, null)}</div>
     <div class="abils">${ultCard(d, b, c)}${faithAbil(d, null, null)}${ttSection(d, null, null, b, c)}${relicSection(d, null, null, c)}</div></div>
     <div class="cx-ud-more"><div><h3>추천 장비 <span class="cx-hn">${CTYPE_NAME[d.ctype]}</span></h3><ul class="rc-list">${reco}</ul></div>
     <div><h3>이야기</h3>${STORIES[d.id] ? `<p class="small">${esc(STORIES[d.id])}</p>` : ''}<p class="lore">${esc(d.lore)}</p>${CX2.loreLinks(d.id)}</div></div>

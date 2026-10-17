@@ -225,15 +225,20 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
   return c;
 }
 
-/** 최고의 친구: 주인 스탯 일부를 물려받는 소환물 */
-function spawnSummons(b: Battle, owner: CUnit, sd0: SummonDef) {
+/** 최고의 친구 소환물의 기본 상속률 (소환물별 rate 배율 · 추가 소환 배율 전): 시너지 단계 (mem.bond, 시너지가 꺼져 있으면 CFG.bond.base)
+ *  + 특성 · 증강 가산 (mem.bondBonus), 상한 CFG.bond.cap */
+export const summonBond = (owner: CUnit) => Math.min(CFG.bond.cap, (owner.mem.bond || CFG.bond.base) + (owner.mem.bondBonus || 0));
+export interface SummonMade { sd: SummonDef; unit: CUnit; rate: number; extra: boolean }
+/** 최고의 친구: 주인 스탯 일부를 물려받는 소환물을 만든다 (배치 전). 전투 시작 때 spawnSummons 가 부르고,
+ *  기물 상세의 소환물 섹션도 같은 함수로 미리보기를 만든다 (rate = 실제 상속률, extra = 추가로 불린 2번째 이후 소환물) */
+export function makeSummons(owner: CUnit, sd0: SummonDef): SummonMade[] {
   const n = owner.mem.noSummon ? 0 : 1 + (owner.mem.extraSummon || 0);
-  const base = Math.min(6, (owner.mem.bond || 0.35) + (owner.mem.bondBonus || 0));
+  const base = summonBond(owner);
   // 첫 소환물 n기 + 함께 소환되는 다른 소환물 (라스무스: 맥스 + 라라) 각 1기
-  const list: { sd: SummonDef; i: number }[] = [...Array(n).keys()].map((i) => ({ sd: sd0, i }));
-  if (n) for (const x of sd0.also || []) list.push({ sd: x, i: 0 });
-  for (const { sd, i } of list) {
-    const r = (i === 0 ? base : base * 0.8) * (sd.rate || 1); // 추가 소환물은 상속률 80%
+  const list: { sd: SummonDef; i: number }[] = [...Array(Math.max(0, n)).keys()].map((i) => ({ sd: sd0, i }));
+  if (n > 0) for (const x of sd0.also || []) list.push({ sd: x, i: 0 });
+  return list.map(({ sd, i }) => {
+    const r = (i === 0 ? base : base * CFG.bond.extra) * (sd.rate || 1); // 추가 소환물은 상속률 ×CFG.bond.extra
     const s = blankUnit(owner.side);
     const o = owner.st;
     const st = emptyStats();
@@ -254,11 +259,15 @@ function spawnSummons(b: Battle, owner: CUnit, sd0: SummonDef) {
         ...(owner.mem.summonDmg ? [{ kind: 'inc' as const, tag: 'all' as const, v: owner.mem.summonDmg }] : []), // 라르스 변호인단
       ],
     });
+    // 전투 유형: 도발 배율이 그 유형 값을 따른다 (돌격가 ×PROV.van, 그 밖 ×1 — provMult). 돌격가 경계(ZOC)는 소환물에게 없다
+    if (sd.ctype) { s.ctype = sd.ctype; s.mem.typed = 1; }
     applyCategory(s);
     if (sd.focusLow) s.mem.lowestFocus = 1;
     if (sd.basicMult && sd.basicMult !== 1) s.mods.push({ kind: 'inc', tag: 'basic', v: sd.basicMult - 1 }); // 기본 공격 계수 (리키 +12%)
     s.hp = st.maxHp;
     s.atkTimer = 0.3;
+    s.mem.bondRate = r; // 상세 창 (전투 중 소환물 섹션) 표시용
+    if (i > 0) s.mem.bondExtra = 1;
     const treat = owner.mem.summonTreat;
     if (owner.mem.crowShock) s.hooks.push({ onBasic(bb, self, t, r2) { if (r2.amount > 0 && t.alive && bb.rng.chance(0.3)) bb.applyStatus(self, t, { type: 'shock', key: 'shock', dur: 1 }); } });
     if (treat) s.hooks.push({
@@ -267,8 +276,11 @@ function spawnSummons(b: Battle, owner: CUnit, sd0: SummonDef) {
         if (self.mem.treat >= 5 && owner.alive) { self.mem.treat = 0; bb.heal(self, owner, bb.S(owner, 'tech') * treat); }
       },
     });
-    b.spawn(s, owner);
-  }
+    return { sd, unit: s, rate: r, extra: i > 0 };
+  });
+}
+function spawnSummons(b: Battle, owner: CUnit, sd0: SummonDef) {
+  for (const m of makeSummons(owner, sd0)) b.spawn(m.unit, owner);
 }
 
 /**

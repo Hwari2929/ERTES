@@ -105,10 +105,10 @@ export const ROSTER_B: BaseUnit[] = [
     id: 'bianca', name: '비앙카', title: '"냉혈한 성녀" 수석 군의관', factions: ['KAL'], traits: ['BUDDY', 'MED'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(7, 6, 8, 5, 4),
     sprite: 'medic', palette: tint(PAL.KAL, '#f0f0f0', '#5a3a2a', '#80c0ff'),
-    summon: { name: '베헤모스', art: 'sm_behemoth', sprite: 'crawler', palette: BEHEMOTH, atk: { type: 'strike', elem: 'phys', interval: 0.9 }, range: 1, hpMul: 1.4 },
+    summon: { name: '베헤모스', ctype: 'SPEC', art: 'sm_behemoth', sprite: 'crawler', palette: BEHEMOTH, atk: { type: 'strike', elem: 'phys', interval: 0.9 }, range: 1, hpMul: 1.4 },
     lore: '"체온 관리는 중요해. 이상 체온은 베헤모스를 자극할 수 있어."',
     skill: support({
-      name: '치유 탄환', cd: 7, target: 'lowest', params: { heal: 2.2, petDmg: 0.4 },
+      name: '치유 탄환', cd: 7, target: 'lowest', params: { heal: 2.6, petDmg: 0.4 }, // 회복 2.2 → 2.6
       desc: (p) => `의료 드론이 체력 비율이 가장 낮은 아군에게 치유 탄환을 꽂아 기술 위력 ${pct(p.heal)} 회복${p.shield ? ` + ${pct(p.shield)} 보호막` : ''}${p.cleanse ? ', 해로운 상태이상 제거' : ''}${p.red ? `, 4초간 받는 피해 -${pct(p.red)}` : ''}. 베헤모스는 4초간 피해 +${pct(p.petDmg)}.`,
       after: (b, u, ts, p) => {
         for (const d of summonsOf(b, u)) b.buff(u, d, 'bianca.behemoth', 4, { mods: [inc('all', p.petDmg)], label: '변이' });
@@ -120,7 +120,7 @@ export const ROSTER_B: BaseUnit[] = [
   // ───────── 헬레니우스 동맹
   {
     id: 'zephyro', name: '제피로', title: '뱃사공 철학자 · 작전계획담당', factions: ['HEL'], traits: ['NAV'], keywords: ['bio'],
-    atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(8, 7, 7, 5, 4),
+    atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 2, base: B(8, 7, 7, 5, 4),
     sprite: 'soldier', palette: tint(PAL.HEL, '#e8eef0', '#2fa39a', '#40c0a0'), lore: '"역풍이 불 때에는 돛 방향을 틀 줄도 알아야지"',
     ace: {
       name: '강철깃털호 안전 항행', desc: (k) => `전투 시작 시 모든 아군 받는 피해 -${Math.round(8 * k)}%.`,

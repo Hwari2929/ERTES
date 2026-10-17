@@ -67,7 +67,8 @@ export const ROSTER_C: BaseUnit[] = [
       },
     },
     skill: {
-      name: '재생 촉진', tag: () => '아군 전체 회복', cd: 8, params: { heal: 0.7, cleanse: 0, threshold: -50, rage: 0.4, regen: 0.015, fearChance: 0.6 },
+      // 회복 0.7 → 0.85 (TUNE s ×1.35 적용 후 95% → 115%)
+      name: '재생 촉진', tag: () => '아군 전체 회복', cd: 8, params: { heal: 0.85, cleanse: 0, threshold: -50, rage: 0.4, regen: 0.015, fearChance: 0.6 },
       desc: (p) => `모든 아군의 자연 치유를 가속해 기술 위력 ${pct(p.heal)} 회복${p.cleanse ? ' + 해로운 상태이상 제거' : ''}. 이성이 ${p.threshold} 이하가 되면 체사레로 전환: 근접 도끼 공격, 피해 +${pct(p.rage)}, 초당 최대 체력 ${pct(p.regen)} 재생, 전환할 때와 그 뒤 8초마다 주변 적 ${pct(p.fearChance)} 확률 1.5초 공포. 체사레의 재생 촉진은 자신에게만 2배로 쓰인다.`,
       cast(b, u) {
         if (!b.enemiesOf(u).length) return false;
@@ -108,7 +109,7 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'holy', interval: 1.0 }, range: 3, base: B(8, 5, 8, 6, 3),
     sprite: 'robe', palette: tint(PAL.SIR, '#c8a070', '#ffffff', '#ffd866'), lore: '빵을 굽는 동안 기도하고, 기도하는 동안 빵을 굽는다.',
     skill: support({
-      name: '성찬', cd: 6, target: 'lowest', power: cookPower, params: { heal: 1.8, cleanse: 1, dmg: 0.3, dur: 5 },
+      name: '성찬', cd: 6, target: 'lowest', power: cookPower, params: { heal: 2.2, cleanse: 1, dmg: 0.3, dur: 5 }, // 회복 1.8 → 2.2
       desc: (p) => `[요리] 체력 비율이 가장 낮은 아군을 기술 위력 ${pct(p.heal)} 회복, 해로운 상태이상 제거, ${p.dur}초간 피해 +${pct(p.dmg)}${p.shield ? `, ${pct(p.shield)} 보호막` : ''}${p.splash ? '. 주변 1칸 아군에게 50% 효과' : ''}.`,
     }),
   },
@@ -142,7 +143,7 @@ export const ROSTER_C: BaseUnit[] = [
     id: 'vivian', name: '비비안', title: '생태계 분석관 · 군체 연구원', factions: ['PAN'], traits: ['BUDDY'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(6, 7, 8, 5, 5),
     sprite: 'medic', palette: tint(PAL.PAN, '#f0d040', '#1a1a22', '#ff8080'),
-    summon: { name: '리키', art: 'sm_ricky', sprite: 'beast', palette: WOLF, atk: { type: 'strike', elem: 'phys', interval: 0.8 }, range: 1, hpMul: 1.1, basicMult: 1.12 },
+    summon: { name: '리키', ctype: 'VAN', art: 'sm_ricky', sprite: 'beast', palette: WOLF, atk: { type: 'strike', elem: 'phys', interval: 0.8 }, range: 1, hpMul: 1.1, basicMult: 1.12 },
     lore: '"흠흠- 만나서 반가워! 나는 정찰과 은하 생태학을 담당하는 비비안이야."',
     skill: {
       name: '동물 교감', tag: () => '리키 돌격 + 기절', cd: 7, params: { mult: 2.3, stun: 1, vuln: 0 },
@@ -230,8 +231,8 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, base: B(9, 7, 5, 7, 3),
     sprite: 'knight', palette: tint(PAL.FAM, '#4a5a3a', '#c8ccd8', '#ffcf40'),
     // 맥스: 체력이 두꺼운 경비견 (앞을 막는다) · 라라: 빠르고 약한 적을 노리는 사냥개 (상속 80%, 체력 0.9배)
-    summon: { name: '맥스', art: 'sm_max', sprite: 'beast', palette: BEAR, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.6,
-      also: [{ name: '라라', sprite: 'beast', palette: LARA, atk: { type: 'strike', elem: 'phys', interval: 0.75 }, range: 1, hpMul: 0.9, rate: 0.8, moveSpd: 1.5, focusLow: true }] },
+    summon: { name: '맥스', ctype: 'VAN', art: 'sm_max', sprite: 'beast', palette: BEAR, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.6,
+      also: [{ name: '라라', ctype: 'VAN', sprite: 'beast', palette: LARA, atk: { type: 'strike', elem: 'phys', interval: 0.75 }, range: 1, hpMul: 0.9, rate: 0.8, moveSpd: 1.5, focusLow: true }] },
     lore: '본가의 정원을 40년 가꿨다. 정원을 망치는 것은 무엇이든 맥스가 먼저 쫓아낸다.',
     skill: {
       name: '불청객 퇴치', tag: () => '맥스 · 라라 돌격 + 출혈', cd: 7, params: { mult: 2.5, bleed: 0.3, roar: 0 },
@@ -284,7 +285,7 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(8, 5, 8, 7, 3),
     sprite: 'robe', palette: tint(PAL.FAM, '#1a1a1a', '#ffffff', '#c8ccd8'), lore: '3대째 같은 스튜를 끓인다. 레시피는 가주도 모른다.',
     skill: support({
-      name: '가문의 스튜', cd: 6.5, target: 'lowest', power: cookPower, params: { shield: 1.8, heal: 0.6, armor: 200, dur: 5 },
+      name: '가문의 스튜', cd: 8, target: 'lowest', power: cookPower, params: { shield: 1.8, heal: 0.6, armor: 200, dur: 5 }, // 쿨다운 6.5 → 8 (특성 [저택의 실세]가 스킬마다 아군 전원 회복)
       desc: (p) => `[요리] 체력 비율이 가장 낮은 아군에게 기술 위력 ${pct(p.shield)} 보호막 + ${pct(p.heal)} 회복${p.cleanse ? ', 해로운 상태이상 제거' : ''}, ${p.dur}초간 방어도 +${p.armor}${p.splash ? '. 주변 1칸 아군에게 50% 효과' : ''}.`,
     }),
   },

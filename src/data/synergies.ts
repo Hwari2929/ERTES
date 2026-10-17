@@ -81,13 +81,10 @@ function shipCrash(b: Battle, u: CUnit, k: number, t = 1) {
   if (t >= 2) for (const a of b.alliesOf(u, true)) if (a.mem.stl) b.buff(u, a, 'stl.rush', 4, { delta: { atkSpd: 0.6 }, label: '추락 가속' });
 }
 
-/** 의무관 (4) 이상: 치료 대상의 다음 기본 공격 피해 +20% (기본 공격이 끝나면 사라짐, 최대 8초) */
-function medBoost(b: Battle, u: CUnit, l: CUnit) {
-  b.buff(u, l, 'med.boost', 8, { mods: [inc('all', 0.2)], label: '응급 처치' });
-  if (l.mem.medHook) return;
-  l.mem.medHook = 1;
-  l.hooks.push({ onBasic(bb, self) { const i = self.statuses.findIndex((x) => x.key === 'med.boost'); if (i >= 0) self.statuses.splice(i, 1); void bb; } });
-}
+/** 의무관 단계별 수치: 모든 아군 회복 효율 · 치료 계수 (기술 위력 배율) · 모든 아군 최대 체력.
+ *  회복 효율은 성장 폭이 작아, 예전의 '치료 대상 다음 기본 공격 피해 +20%' 대신 단계마다 최대 체력을 올린다 */
+const MED = { eff: [0.2, 0.4, 0.75, 1.5], heal: [0.8, 1.5, 2.6, 4.5], hp: [0.06, 0.12, 0.18, 0.24] };
+const medTier = (i: number) => `회복 효율 +${pct(MED.eff[i])}, ${i < 3 ? `치료 = 기술 위력 ${pct(MED.heal[i])}` : `3초마다 기술 위력 ${pct(MED.heal[i])} 치료 + 초과분 보호막`}${i === 2 ? ', 치료 대상에게 초과분까지 보호막' : ''}${i === 3 ? ', 치료할 때 해로운 효과 1개 제거' : ''}, 모든 아군 최대 체력 +${pct(MED.hp[i])}`;
 
 /** 전도체: from 에서 시작해 주변 적에게 튀는 연쇄 전기 (skipFrom = from 을 이미 맞힌 대상으로 취급).
  *  아직 맞지 않은 적을 먼저 노리고, 없으면 (적이 2명 이상일 때) 바로 직전 대상만 빼고 다시 튄다 (적 사이를 왕복) */
@@ -386,12 +383,11 @@ export const SYNERGIES: SynDef[] = [
   // ═══════════════ 특성
   {
     id: 'MED', name: '의무관', kind: 'trait', tiers: [2, 4, 6, 8], color: '#5ad08a', icon: '✚',
-    desc: '모든 아군의 회복 효율이 증가하고, 의무관은 4초마다 체력 비율이 가장 낮은 아군을 치료합니다.',
-    tierDesc: ['회복 효율 +20%, 치료 = 기술 위력 80%', '회복 효율 +40%, 치료 = 기술 위력 150%, 치료 대상의 다음 기본 공격 피해 +20%', '회복 효율 +75%, 치료 = 기술 위력 260%, 치료 대상에게 초과분까지 보호막, 다음 기본 공격 피해 +20%',
-      '[기적의 병동] 회복 효율 +150%, 3초마다 기술 위력 450% 치료 + 초과분 보호막, 치료할 때 해로운 효과 1개 제거, 다음 기본 공격 피해 +20%, 모든 아군 최대 체력 +20%'],
-    team: (t) => ({ stats: { healEff: T(t, [0.2, 0.4, 0.75, 1.5]) }, pct: t >= 4 ? { maxHp: 0.2 } : undefined }),
+    desc: '모든 아군의 회복 효율과 최대 체력이 단계마다 오르고, 의무관은 4초마다 체력 비율이 가장 낮은 아군을 치료합니다.',
+    tierDesc: [0, 1, 2, 3].map((i) => (i === 3 ? `[기적의 병동] ${medTier(i)}` : medTier(i))),
+    team: (t) => ({ stats: { healEff: T(t, MED.eff) }, pct: { maxHp: T(t, MED.hp) } }),
     member: (t) => {
-      const k = T(t, [0.8, 1.5, 2.6, 4.5]), every = t >= 4 ? 3 : 4;
+      const k = T(t, MED.heal), every = t >= 4 ? 3 : 4;
       return {
         hooks: {
           onTick(b, u, dt) {
@@ -404,7 +400,6 @@ export const SYNERGIES: SynDef[] = [
                 b.heal(u, l, v, false, 'MED');
                 if (t >= 3 && v > miss) b.shield(l, v - miss, 'MED');
                 if (t >= 4) { const i = l.statuses.findIndex(isHarmful); if (i >= 0) l.statuses.splice(i, 1); }
-                if (t >= 2) medBoost(b, u, l);
               }
             }
           },
@@ -414,7 +409,7 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'BUDDY', name: '최고의 친구', kind: 'trait', tiers: [2, 4, 6, 8], color: '#f08fb0', icon: '♥',
-    desc: '최고의 친구 기물은 전투 시작 시 단짝 소환물을 부릅니다. 소환물은 칸을 차지하고 공명도가 없으며, 주인 스탯의 일부를 물려받습니다 (기본 35%). 주인이 쓰러지면 함께 사라집니다.',
+    desc: `최고의 친구 기물은 전투 시작 시 단짝 소환물을 부릅니다. 소환물은 칸을 차지하고 공명도가 없으며, 주인 스탯의 일부를 물려받습니다 (기본 ${pct(CFG.bond.base)}, 추가로 불린 소환물은 그 ${pct(CFG.bond.extra)}). 소환물마다 전투 유형(돌격가 · 전문가)이 있어 도발 배율이 그 유형을 따릅니다 (돌격가 경계는 없음). 주인이 쓰러지면 함께 사라집니다.`,
     tierDesc: ['소환물 스탯 상속 55%, 소환물 피해 +15%', '소환물 스탯 상속 85%, 소환물 피해 +40%, 소환물 모든 주요 능력치 +10', '소환물 스탯 상속 220%, 소환물 피해 +100%, 소환물 모든 주요 능력치 +20',
       '[우정 파워 MAX] 소환물 스탯 상속 520%, 소환물 피해 +250%, 소환물 모든 주요 능력치 +40'],
     member: (t) => ({ setup: (u) => {

@@ -2,6 +2,7 @@
 // 표를 직접 순회해서 확인하므로, 데이터에 항목을 더했는데 도감에 안 나오면 여기서 걸린다.
 // 실행: npm run check   (실패하면 종료 코드 1)
 import { ALL_AUGS } from '../src/data/augments';
+import { ABIL } from '../src/data/abiltext';
 import { FIELD_BY_ID, FIELDS } from '../src/data/battlefields';
 import { BLURB, blurbNames, unitBlurb } from '../src/data/brief';
 import { BLESSINGS, EMBLEM_SYNS, GLOBALS, PRIVILEGES } from '../src/data/globals';
@@ -201,6 +202,14 @@ for (const d of UNITS) {
   for (const el of ELEMS) if (s.replace(/「[^」]*」/g, '').includes(el) && !kit.includes(el)) fail(`기물 ${d.id} 한 줄 설명: '${el}' 을 말하지만 무기 · 특성 · 스킬 · 궁극기에 ${el} 이 없음 — ${s}`);
 }
 for (const id of Object.keys(BLURB)) if (!UNIT_BY_ID[id]) fail(`한 줄 설명 ${id}: 없는 기물`);
+
+// ───── 최고의 친구 소환물: 전투 유형 · 기술 정보 (기물 상세의 [소환물] 칸 · 시너지 도감의 소환물 목록)
+const buddy = codex2Detail('syn', 'BUDDY', H);
+for (const d of UNITS.filter((x) => x.summon)) for (const sd of [d.summon!, ...(d.summon!.also || [])]) {
+  if (!sd.ctype) fail(`소환물 ${d.id} · ${sd.name}: 전투 유형(ctype) 없음 — 도발 배율이 정해지지 않음`);
+  if (!ABIL[d.id]?.summon?.[sd.name]?.(d.skill.params)) fail(`소환물 ${d.id} · ${sd.name}: 기술 정보 없음 — src/data/abil/*.ts 의 summon 에 추가`);
+  if (!buddy.includes(`<b>${esc(sd.name)}</b>`)) fail(`소환물 ${d.id} · ${sd.name}: 최고의 친구 시너지 도감의 소환물 목록에 없음`);
+}
 
 const n = { units: UNITS.length, items: nItems, syn: SYNERGIES.length, schools: SCHOOLS.length, augs: ALL_AUGS.length + GLOBALS.length + PRIVILEGES.length + BLESSINGS.length + DESPAIRS.length + OATHS.length, lore: LORE.length };
 console.log(`도감 검사: 기물 ${n.units} · 장비 ${n.items} · 시너지 ${n.syn} · 전공 ${n.schools} · 증강 ${n.augs} · 세계관 ${n.lore}`);

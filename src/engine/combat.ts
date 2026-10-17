@@ -294,17 +294,18 @@ export const PROV = {
   seed: 60,
   /** 사거리 밖 대상 감쇠 (돌격형 · 저격형 · 반격형): 1 / (1 + far × 넘는 칸) */
   far: 0.5,
-  /** 도발 배율: 돌격가 · 수호자 가산 · 소환물 (근접 · 고정 · 원거리) · 은신 · 기습 중 */
+  /** 도발 배율: 돌격가 · 수호자 가산 · 소환물 (근접 · 고정 · 원거리, 전투 유형이 정해진 단짝 소환물은 그 유형 값) · 은신 · 기습 중 */
   van: 3, guard: 1.5, sumMelee: 1.4, sumFixed: 1.2, sumRanged: 1, hide: 0.3,
   /** 거리 감쇠 (돌격형 · 저격형 · 반격형, 칸당) · 저격형 피해 점유 가중치 · 도발 수치 지수 (1 = 비례) */
   near: 0.5, snipe: 0.5, pow: 1,
   /** 돌격가 경계에 걸린 적 → 그 돌격가에게 (도발 배율 적용 전, 피해 1당 dmg 와 같은 단위: 40 = 피해 400 상당) */
   zoc: 40,
 };
-/** 기물별 도발 배율: 돌격가 3, 수호자 시너지가 켜지면 +1.5, 장비(위협 신호기) +n, 소환물 (근접 1.4 · 고정 1.2 · 원거리 1.0, 돌격가 소환물 3), 은신 · 침투자 기습 중 ×0.3 */
+/** 기물별 도발 배율: 돌격가 3, 수호자 시너지가 켜지면 +1.5, 장비(위협 신호기) +n, 은신 · 침투자 기습 중 ×0.3.
+ *  소환물: 돌격가 소환물 3, 전투 유형이 정해진 단짝 소환물 (SummonDef.ctype → mem.typed) 은 그 유형 값 (전문가 1), 그 밖은 근접 1.4 · 고정 1.2 · 원거리 1.0 */
 export function provMult(b: Battle | null, a: CUnit): number {
   let m = a.ctype === 'VAN' ? PROV.van : 1;
-  if (a.isSummon && a.ctype !== 'VAN') m = a.immobile ? PROV.sumFixed : a.atk.type === 'strike' ? PROV.sumMelee : PROV.sumRanged;
+  if (a.isSummon && a.ctype !== 'VAN' && !a.mem.typed) m = a.immobile ? PROV.sumFixed : a.atk.type === 'strike' ? PROV.sumMelee : PROV.sumRanged;
   if (a.synergies?.has('GUARD') && !a.mem.guardOff) m += PROV.guard; // 수호자 혼자(시너지 꺼짐)면 가산 없음
   if (a.mem.provPlus) m += a.mem.provPlus; // 장비 가산 (위협 신호기)
   if (a.mem.provMul) m *= a.mem.provMul;

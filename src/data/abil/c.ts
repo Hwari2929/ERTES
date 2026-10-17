@@ -8,6 +8,16 @@ const hitsTxt = (n: number) => (n > 1 ? `:${n}` : '');
 const opt = (on: unknown, label: string, v: string): Row[] => (on ? [[label, v]] : []);
 /** 부동소수 정리 */
 const n = (x: number) => Math.round(x * 1000) / 1000;
+/** 라스무스의 개 (맥스 · 라라): 불청객 퇴치 연계. 피해 · 출혈은 각자 타격 위력 기준 */
+const rasmusDog = (p: Record<string, number>) => ({
+  tgt: '라스무스의 현재 대상 (곁으로 뛰어듦)', range: null, area: { k: 'one' } as Area,
+  rows: [
+    ['피해', `[dmg:strike:${p.mult}:phys]`],
+    ['출혈', `[st:bleed:4] 초당 [dmg:strike:${p.bleed}:phys]`],
+    ...opt(p.roar, '공포', `주변 [t:1] 적에게 [st:fear:1.2:${p.roar}]`),
+    ['가지치기', '기본 공격 적중 시 [g:wound] 1중첩 (최대 5, [s:6])'],
+  ] as Row[],
+});
 
 export const ABIL_C: Record<string, AbilText> = {
   // ───────── 시리우스 성도회
@@ -163,9 +173,20 @@ export const ABIL_C: Record<string, AbilText> = {
       ],
     }),
     trait: '비비안 · 리키의 기본 공격 적중 시 대상 방어도 -[p:0.1] (중첩, 최대 3, [s:5]). 리키 기본 공격 피해 +[p:0.12].',
+    summon: {
+      리키: (p) => ({
+        tgt: '비비안의 현재 대상 (곁으로 뛰어듦)', range: null, area: { k: 'one' },
+        rows: [
+          ['피해', `[dmg:strike:${p.mult}:phys]`],
+          ['기절', `[st:stun:${p.stun}] (비비안이 건다)`],
+          ...opt(p.vuln, '취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`),
+          ['생태 분석', '기본 공격 적중 시 대상 방어도 -[p:0.1] (중첩, 최대 3, [s:5])'],
+        ],
+      }),
+    },
     augs: {
-      trust: '리키 [g:bond] [pp:0.4].',
-      pack: '동물 동료 +1 (추가 동료 [g:bond]는 기본의 [p:0.8]).',
+      trust: '리키 [g:inherit] [pp:0.4].',
+      pack: '동물 동료 +1 (추가 동료 [g:inherit]는 기본의 [p:0.8]).',
       record: '동물 교감 대상에게 [st:vuln:4]: 받는 피해 +[p:0.3].',
       kit: '정신력 +9, 기동력 +6.',
     },
@@ -255,10 +276,11 @@ export const ABIL_C: Record<string, AbilText> = {
       ],
     }),
     trait: '라스무스 · 맥스 · 라라의 기본 공격 적중 시 [g:wound] 1중첩 (최대 5, [s:6]).',
+    summon: { 맥스: rasmusDog, 라라: rasmusDog },
     augs: {
-      old: '맥스 · 라라 [g:bond] [pp:0.4].',
+      old: '맥스 · 라라 [g:inherit] [pp:0.4].',
       maul: '불청객 퇴치 [g:bleed] 초당 피해 [pp:0.5] (각자 타격 위력 기준).',
-      cub: '맥스 +1 (추가 맥스 [g:bond]는 기본의 [p:0.8]).',
+      cub: '맥스 +1 (추가 맥스 [g:inherit]는 기본의 [p:0.8]).',
       lodge: '생명력 +9, 방어력 +6.',
       roar: '불청객 퇴치 시 맥스 · 라라 각자 주변 [t:1] 적에게 [st:fear:1.2:0.8].',
     },
@@ -308,7 +330,6 @@ export const ABIL_C: Record<string, AbilText> = {
 /** 이 그룹에서 새로 쓰는 용어 (공용 GLOSS 에 없을 때만) */
 export const GLOSS_C: Record<string, { name: string; desc: string }> = {
   cook: { name: '요리', desc: '셰프 시너지 단계에 따라 회복 · 보호막 · 버프 효과가 배로 커지는 기술.' },
-  bond: { name: '스탯 상속률', desc: '소환물이 주인의 능력치를 물려받는 비율.' },
   wound: { name: '부상', desc: '회복 · 보호막을 받을 때 1중첩을 소모하고 그 효과를 무효화.' },
   awaken: { name: '신앙 각성', desc: '고유 신앙이 깨어나 신성력 · 신권 대행을 쓸 수 있게 됨.' },
   catform: { name: '고양이 형태', desc: '회피 +15%p, 공격 속도 +30%p.' },

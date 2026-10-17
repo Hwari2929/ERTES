@@ -10,6 +10,8 @@ const G = (name: string, elem: Elem, interval: number, range: number, mult: numb
   ({ name, kind: 'mag', type: 'shoot', elem, interval, range, mult, mag, reload });
 const K = (name: string, elem: Elem, interval: number, range: number, mult: number, combo: number): Weapon =>
   ({ name, kind: 'combo', type: 'strike', elem, interval, range, mult, combo });
+/** 윈터 [광역 백신]: 혈청이 모든 아군에게 k 효과로 퍼지는 대신 혈청 쿨다운 +cd초 */
+const VACCINE = { k: 0.3, cd: 1.5 };
 const sp = (owner: string, id: string, name: string, desc: string, effect: Effect): AugDef =>
   ({ ...uaug(owner, `sp.${id}`, name, desc, effect), pool: 'special' });
 /** 전투당 n회까지 성장 기록 */
@@ -87,7 +89,7 @@ export const ROSTER_F: BaseUnit[] = [
     lore: '"마스크는 벗지 않을 거예요. 당신들 미생물 수치, 생각보다 꽤 끔찍하거든요."',
     skill: support({
       name: '임상 시험 혈청', cd: 6, target: 'lowest', params: { heal: 2.2, red: 0.15, dur: 4 },
-      desc: (p) => `체력 비율이 가장 낮은 아군에게 기술 위력 ${pct(p.heal)} 회복, ${p.dur}초간 받는 피해 -${pct(p.red)}${p.splash ? '. 주변 1칸 아군에게 50% 효과' : ''}.`,
+      desc: (p) => `체력 비율이 가장 낮은 아군에게 기술 위력 ${pct(p.heal)} 회복, ${p.dur}초간 받는 피해 -${pct(p.red)}${p.splash ? '. 주변 1칸 아군에게 50% 효과' : ''}${p.vaccine ? `. 모든 아군에게 ${pct(p.vaccine)} 효과로 회복 (광역 백신)` : ''}.`,
     }),
   },
   {
@@ -124,7 +126,7 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'robe', palette: tint(HOI_PAL, '#ff4d9a', '#7fe3ff', '#ffe14d'),
     lore: '"안녕안녕~ 레이카 0호야! 오늘도 은하 끝까지 방송 켜 둘게~☆"',
     skill: {
-      name: '라이브 피날레', tag: () => '적 전체 전기 공격 + 감전', cd: 8, params: { mult: 0.9, shockChance: 0.4, shock: 1.2, encore: 0 },
+      name: '라이브 피날레', tag: () => '적 전체 전기 공격 + 감전', cd: 9.5, params: { mult: 0.9, shockChance: 0.4, shock: 1.2, encore: 0 },
       desc: (p) => `모든 적에게 기술 위력 ${pct(p.mult)} 전기 피해, ${pct(p.shockChance)} 확률로 ${p.shock}초 감전${p.encore ? `. 앙코르: 같은 공연을 ${pct(p.encore)} 위력으로 한 번 더` : ''}.`,
       cast(b, u) {
         const es = b.enemiesOf(u);
@@ -261,7 +263,11 @@ export const REWORK_F: Record<string, ReworkDef> = {
       } } },
     },
     specialAugs: [
-      sp('winter', 'vaccine', '광역 백신', '임상 시험 혈청이 모든 아군에게 30% 효과로 퍼진다.', { hooks: { onSkill(b, u) { for (const a of b.alliesOf(u)) b.heal(u, a, b.P(u, 'tech') * u.sk.heal * 0.3); } } }),
+      // 아군 전체 회복으로 바뀌는 대신 혈청 쿨다운이 늘어난다 (상세 쿨다운 · 스킬 설명은 cdMax · sk.vaccine 에서 읽는다)
+      sp('winter', 'vaccine', '광역 백신', `임상 시험 혈청이 모든 아군에게 ${pct(VACCINE.k)} 효과로 퍼진다. 대신 혈청 쿨다운 +${VACCINE.cd}초.`, {
+        setup: (u) => { u.cdMax += VACCINE.cd; u.sk.vaccine = VACCINE.k; },
+        hooks: { onSkill(b, u) { for (const a of b.alliesOf(u)) b.heal(u, a, b.P(u, 'tech') * u.sk.heal * (u.sk.vaccine || 0)); } },
+      }),
       sp('winter', 'antidote', '해독제', '치료할 때 해로운 효과를 모두 없앤다.', { hooks: { onHealDone(_b, _u, t) { t.statuses = t.statuses.filter((s) => !isHarmful(s)); } } }),
       sp('winter', 'pathogen', '병원체 샘플', '기본 공격이 기술 위력 30% 화학 중독을 건다 (4초).', { hooks: { onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) poison(b, u, t, b.S(u, 'tech') * 0.3, 4, 1); } } }),
       sp('winter', 'tenure', '정년 보장', '생명과학 교수의 대상당 상한 5회 → 10회.', { setup: (u) => { u.mem.winterCap = 10; } }),

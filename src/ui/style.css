@@ -2930,6 +2930,16 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
 .ps-card .ab-kind { background: none; color: var(--c-text-2); }
 .ps-card.on, .ps-card:hover { border-color: var(--line); background: color-mix(in srgb, var(--c-white) 3%, transparent); }
 .ps-card .ab-chips { gap: 3px; }
+/* 소환물 (최고의 친구): 소환물마다 초상 · 이름 · 유형 + 상속률 칩 + 기본 공격 · 기술 카드 (ps-card 모양) */
+.sm-sec { display: grid; gap: 6px; }
+.sm-unit { display: grid; gap: 5px; min-width: 0; }
+.sm-unit + .sm-unit { border-top: 1px solid var(--line-soft); padding-top: 7px; }
+.sm-id { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.spr.sm-face { width: 40px; height: 40px; border-radius: var(--r-md); }
+.sm-nm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+.sm-nm > b { font-size: var(--fs-md); }
+.sm-n { font-family: var(--f-mono); color: var(--c-text-2); }
+.sm-bond b { font-family: var(--f-mono); }
 .ps-reason { position: relative; display: grid; gap: 4px; padding: 6px 8px; border-radius: var(--r-md); background: none; border: 1px solid var(--line); cursor: pointer; border-color: var(--line-soft); }
 .ps-reason.on, .ps-reason:hover { border-color: var(--line); }
 .pr-bar { position: relative; height: 8px; border-radius: var(--r-sm); background: linear-gradient(90deg, #ff4a5e, #3a3d48 50%, var(--sc)); }
@@ -2955,7 +2965,7 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
 .um-col h3 { margin: 4px 0 0; font-size: var(--fs-sm); color: var(--c-text-2); letter-spacing: 0; font-weight: 700; }
 .um-c .abils { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 8px; align-items: start; max-width: 1100px; }
 .um-c .um-types { max-width: 1100px; }
-.um-c .abils .tt-sec, .um-c .abils .ab-relic { grid-column: 1 / -1; }
+.um-c .abils .tt-sec, .um-c .abils .ab-relic, .um-c .abils .sm-sec { grid-column: 1 / -1; }
 .um-art { border-radius: var(--r-lg); overflow: hidden; background: var(--panel-2); max-height: 300px; display: grid; place-items: center; transition: opacity .35s ease, transform .35s ease, filter .35s ease; transform-origin: 50% 0; }
 .um-art img, .um-art .hero { max-height: 300px; width: auto; max-width: 100%; }
 .um-relic { display: flex; gap: 8px; align-items: center; }

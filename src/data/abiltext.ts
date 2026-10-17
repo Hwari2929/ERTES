@@ -28,6 +28,8 @@ export interface AbilText {
   skill?: (p: Record<string, number>) => SkillInfo;
   trait?: string;
   ace?: (k: number) => string;
+  /** 최고의 친구 소환물의 기술 (소환물 이름 → 정보). p = 주인의 스킬 파라미터, 위력 · 피해 수치는 소환물 기준으로 계산한다 (기물 상세의 [소환물] 칸) */
+  summon?: Record<string, (p: Record<string, number>) => SkillInfo>;
   /** 증강 id(접두 없이) → 토큰 문장 */
   augs?: Record<string, string>;
 }
@@ -127,6 +129,7 @@ const ABIL_PILOT: Record<string, AbilText> = {
         ['회복', `[heal:${p.heal}]`],
         ['피해량 경감', `[g:red] [p:${p.red}] ([s:${p.dur}])`],
         ...(p.splash ? [['주변', '대상 주변 [t:1] 아군에게 [p:0.5] 효과'] as [string, string]] : []),
+        ...(p.vaccine ? [['광역 백신', `모든 아군 [heal:${Math.round(p.heal * p.vaccine * 1000) / 1000}] (혈청 회복의 [p:${p.vaccine}])`] as [string, string]] : []),
       ],
     }),
     trait: '치료한 아군 최대 체력 +[p:0.02] (전투 동안, 대상당 최대 5회).',
@@ -136,7 +139,7 @@ const ABIL_PILOT: Record<string, AbilText> = {
       sterile: '[g:red] [pp:0.2]. 지속 +[s:3].',
       tenure: '정신력 +10, 생명력 +5.',
       paper: '쿨다운 감소 속도 [pp:0.4].',
-      'sp.vaccine': '임상 시험 혈청 사용 시 모든 아군 [heal:0.88] (기본 회복의 [p:0.4]).',
+      'sp.vaccine': '임상 시험 혈청 사용 시 모든 아군 [heal:0.66] (혈청 회복의 [p:0.3]). 대신 혈청 쿨다운 +[s:1.5].',
       'sp.antidote': '치료한 아군에게 [g:cleanse].',
       'sp.pathogen': '기본 공격 적중 시 [st:poison:4]: 초당 [dmg:tech:0.3:chem].',
       'sp.tenure': '생명과학 교수 대상당 상한 5회 → 10회.',

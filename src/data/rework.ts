@@ -470,7 +470,7 @@ export const REWORK: Record<string, ReworkDef> = {
 
   // ───────────────────────── 헬레니우스 동맹
   zephyro: {
-    ctype: 'CMD', ttype: 'psionic', faith: 'athena', weapon: G('깃펜', 'phys', 0.8, 4, 0.6, 2, 1),
+    ctype: 'CMD', ttype: 'psionic', faith: 'athena', weapon: G('깃펜', 'phys', 0.8, 2, 0.6, 2, 1), // 사거리 4 → 2 (평타 사거리 감소)
     factions: ['HEL', 'PAN'], traits: ['NAV'],
     trait: {
       name: '뱃사공 철학', desc: '기본 공격이 대상 근처의 적 1명을 추가로 맞힌다. 아군 전원 치명타 확률 +10%p.',

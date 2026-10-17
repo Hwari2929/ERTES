@@ -4,7 +4,7 @@
 // main.ts 에만 있는 그림 조각(장비 · 증강 아이콘, 초상화 등)은 CxH 로 받는다.
 // 배치: 왼쪽 목록 + 오른쪽 상세 (상세 폭이 넓으면 2단). 좁은 화면(≤860px)은 목록 → 상세 → '목록' 단추로 돌아오는 한 단 흐름.
 import { CFG } from '../config';
-import { augAbilText, GLOSS } from '../data/abiltext';
+import { ABIL, augAbilText, GLOSS } from '../data/abiltext';
 import { augReqState } from '../data/augreq';
 import { FIELD_BY_ID, FIELDS } from '../data/battlefields';
 import { ALL_AUGS, augDesc, augSource } from '../data/augments';
@@ -409,6 +409,18 @@ function investOffers() {
 function memberCards(H: CxH, list: UnitDef[]) {
   return `<div class="cx-mini">${list.map((d) => `<button class="cx-mc" ${go(`unit:${d.id}`)} title="${esc(d.name)} — 기물 도감에서 보기"><span class="cx-pic">${H.sprite(d)}${H.bust ? H.bust(d.id) : ''}</span><b>${esc(d.name)}</b><small>${esc(CTYPE_NAME[d.ctype])} · ${esc(TTYPE_NAME[d.ttype])}${d.eventOnly ? ' · 사건' : ''}</small></button>`).join('')}</div>`;
 }
+/** 최고의 친구 소환물: 주인 · 소환물 · 전투 유형 · 기본 공격 · 기술 (주인 스킬 연계, 기본 파라미터) — 데이터(UnitDef.summon · ABIL[].summon)에서 읽는다 */
+function buddySummons(H: CxH) {
+  const gl = new Set<string>();
+  const rows = UNITS.filter((d) => d.summon).flatMap((d) => [d.summon!, ...(d.summon!.also || [])].map((sd, i) => {
+    const info = ABIL[d.id]?.summon?.[sd.name]?.(d.skill.params);
+    const atk = `기본 공격: ${sd.atk.type === 'shoot' ? '사격' : '타격'} · ${ELEM_NAME[sd.atk.elem]} · 사거리 ${sd.range} · 공격 간격 ${sd.atk.interval}초${sd.basicMult && sd.basicMult !== 1 ? ` · 계수 ${pctTxt(sd.basicMult)}` : ''} · 체력 ×${sd.hpMul || 1}${sd.rate ? ` · 상속 ×${sd.rate}` : ''}${sd.focusLow ? ' · 체력 비율이 가장 낮은 적을 노림' : ''}`;
+    const sk = info ? `기술 (${esc(d.skill.name)} 연계): ${info.rows.map(([k, v]) => `${esc(k)}: ${H.statIc(AB.tok(v, NO_CTX, gl))}`).join(' · ')}` : '';
+    const face = H.sprite({ id: sd.art || `sm_${d.id}_${i}`, name: sd.name, sprite: sd.sprite, palette: sd.palette, art: sd.art } as unknown as UnitDef);
+    return `<li class="cx2-row">${face}<span><b>${esc(sd.name)}</b> <span class="cx2-note">${esc(sd.ctype ? CTYPE_NAME[sd.ctype] : '소환물')}</span> <button class="cx2-note" ${go(`unit:${d.id}`)} title="기물 도감에서 보기">${esc(d.name)}</button><p class="muted">${esc(atk)}</p>${sk ? `<p class="muted">${sk}</p>` : ''}</span></li>`;
+  }));
+  return `<h3>소환물 <span class="cx-hn">기본 상속률 ${pctTxt(CFG.bond.base)} · 단계가 오르면 위 표대로</span></h3><ul class="cx2-rows">${rows.join('')}</ul>`;
+}
 function synDetail(H: CxH, sid: SynergyId): string {
   const s = SYN_BY_ID[sid];
   if (!s) return empty('시너지를 고르면 단계별 효과 · 소속 기물 · 전용 장비를 볼 수 있습니다.');
@@ -425,6 +437,7 @@ function synDetail(H: CxH, sid: SynergyId): string {
     const counts = s.tiers.map((need, i) => (KAL_GUARDS[i] ? `(${need}) ${KAL_GUARDS[i]}기` : '')).filter(Boolean).join(' · ');
     a.push(`<h3>소환물 · ${esc(k.name)} <span class="cx-hn">${esc(counts)}</span></h3><div class="cx2-row cx2-knight">${H.sprite({ id: 'kal_guard', name: k.name, sprite: 'knight', palette: KNIGHT_PAL } as unknown as UnitDef)}<span><b>${esc(k.name)}</b> <span class="cx2-note">${esc(CTYPE_NAME.VAN)} · ${esc(TTYPE_NAME.major)} · 소환물</span><p class="muted">${esc(k.desc)}</p><p class="muted">${esc(k.weapon)}<br>${esc(k.skill)}<br>${esc(k.ult)}</p></span></div>`);
   }
+  if (sid === 'BUDDY') a.push(buddySummons(H));
   if (sid === 'HOI') a.push(offerList('[투자] 상품', '크레딧', investOffers()));
   if (sid === 'STAR') a.push(offerList('[속보] 명성 교환', '명성', Object.values(NEWS_OFFERS)));
   if (sid === 'VOYAGE') a.push(`<h3>단독 출항 · 완전체 고유 능력</h3><ul class="cx2-rows">${Object.entries(VOYAGE_SPECIAL).map(([uid, v]) => `<li class="cx2-row">${UNIT_BY_ID[uid] ? H.sprite(UNIT_BY_ID[uid]) : ''}<span><b>${esc(v.who)} · ${esc(v.name)}</b><p class="muted">${esc(v.text)}</p></span></li>`).join('')}</ul>`);

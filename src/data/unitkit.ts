@@ -57,6 +57,8 @@ export type UnitDef = BaseUnit & Omit<ReworkDef, 'factions' | 'traits' | 'title'
 
 export interface SummonDef {
   name: string;
+  /** 전투 유형: 도발 배율이 그 유형 값을 따른다 (돌격가 ×3, 전문가 ×1 — combat.ts provMult). 없으면 소환물 기본 (근접 · 고정 · 원거리) */
+  ctype?: Extract<CType, 'VAN' | 'SPEC'>;
   sprite: string;
   palette: string[];
   atk: { type: 'shoot' | 'strike'; elem: Elem; interval: number };
