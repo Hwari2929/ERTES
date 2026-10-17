@@ -8,7 +8,7 @@ import { BLURB, blurbNames, unitBlurb } from '../src/data/brief';
 import { BLESSINGS, EMBLEM_SYNS, GLOBALS, PRIVILEGES } from '../src/data/globals';
 import { DESPAIRS } from '../src/data/despair';
 import { OATHS, oathMax } from '../src/data/oaths';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, CONSUMABLES, emblemId, HEL_ITEM_IDS, itemInfo, OCCULT_MODS, TURRET_GEAR_IDS, UNIQUE_IDS, JUNK_IDS } from '../src/data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, CONSUMABLES, emblemId, HEL_ITEM_IDS, itemInfo, OCCULT_MODS, TURRET_GEAR_IDS, TURRET_MOD_IDS, UNIQUE_IDS, JUNK_IDS } from '../src/data/items';
 import { CANTRIP_INFO, PASSIVE_INFO } from '../src/data/psiinfo';
 import { RELICS } from '../src/data/relics';
 import { GROUPS, SCHOOLS } from '../src/data/schools';
@@ -55,7 +55,7 @@ let nItems = 0;
 const itemIds = new Set<string>([
   ...ALL_COMPONENTS, ...ALL_GRADED, ...ALL_ADVANCED, ...ALL_ADVANCED.map((x) => 'L_' + x.slice(2)),
   ...EMBLEM_SYNS.map(emblemId), ...HEL_ITEM_IDS, ...HEL_ITEM_IDS.map((x) => 'L_' + x.slice(2)),
-  ...Object.keys(OCCULT_MODS), ...Object.keys(CONSUMABLES), ...UNIQUE_IDS, ...TURRET_GEAR_IDS, ...JUNK_IDS,
+  ...Object.keys(OCCULT_MODS), ...Object.keys(CONSUMABLES), ...UNIQUE_IDS, ...TURRET_GEAR_IDS, ...TURRET_MOD_IDS, ...JUNK_IDS,
   ...UNITS.map((d) => d.item).filter((x): x is string => !!x),
 ]);
 for (const id of itemIds) {

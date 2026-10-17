@@ -6,8 +6,8 @@ import { diffHas } from '../data/difficulty';
 import { oathEnemy, oathV } from '../data/oaths';
 import { BOONS } from '../data/events';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
-import { emblemOf, isEmblem, isTurretGear, itemEffect, turretSlots } from '../data/items';
-import { CHR_HOOK, ENG_HOOK, KAL_GUARD_RANK, KAL_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
+import { emblemOf, isEmblem, isTurretGear, isTurretMod, itemEffect, turretSlots } from '../data/items';
+import { CHR_HOOK, ENG_HOOK, ENG_TUR, KAL_GUARD_RANK, KAL_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { causalStage, KING, kingGearOf } from '../data/chungra';
 import { UNIT_BY_ID } from '../data/units';
 import { enableDivine, ENEMY_PSI, FAITH_DEF, sigmundTarget } from '../data/rework';
@@ -375,22 +375,23 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   return c;
 }
 
-// 엔지니어 감시 포탑: 출전한 엔지니어 능력치 평균을 단계별 비율로 상속 + 엔지니어 전술 위력 일부를 사격 위력에
+// 엔지니어 감시 포탑: 출전한 엔지니어 능력치 평균을 단계별 비율로 상속 (data/synergies.ts ENG_TUR)
 export const TURRET_PAL = ['#0c0e12', '#7a8aa0', '#3a4458', '#c0c8d0', '#7fe3ff', '#4a5468', '#e8f0ff'];
 /** 포탑 배치 저장값 (c, r): c = -1 왼쪽 가장자리 열, c = 99 오른쪽 가장자리 열, 그 밖은 배치 구역 열. r = 0 이 맨 뒷줄 */
 export type TurretPos = { c: number; r: number };
 const TURRET_DEFAULT: TurretPos[] = [{ c: -1, r: 1 }, { c: 99, r: 1 }, { c: -1, r: 0 }, { c: 99, r: 0 }, { c: -1, r: 2 }, { c: 99, r: 2 }];
 export const turretBoardCell = (p: TurretPos, W: number) => ({ x: p.c < 0 ? 0 : p.c >= 99 ? W + 2 * PAD - 1 : PAD + Math.min(p.c, W - 1), y: ALLY_Y1 - Math.max(0, Math.min(p.r, ZONE - 1)) });
 export const turretSavePos = (x: number, y: number, W: number): TurretPos => ({ c: x < PAD ? -1 : x >= PAD + W ? 99 : x - PAD, r: ALLY_Y1 - y });
-/** 편성에서 보일 포탑 수 = 엔지니어 단계 */
+/** 엔지니어 단계 (출전 기준) */
+export const engTier = (run: RunState) => tierOf('ENG', synergyCounts(deployed(run), run).ENG || 0);
+/** 편성에서 보일 포탑 수 = 엔지니어 단계별 포탑 수 (ENG_TUR.count, 0단계 = 0기) */
 export function turretCount(run: RunState): number {
-  return tierOf('ENG', synergyCounts(deployed(run), run).ENG || 0);
+  const t = engTier(run);
+  return t ? ENG_TUR.count[Math.min(ENG_TUR.count.length, t) - 1] : 0;
 }
 /** 보드 크기 W 에서 포탑 칸 (저장 위치 → 기본 위치 → 빈칸 순, 기물 · 다른 포탑과 겹치지 않게) */
 export function turretCells(run: RunState, W: number, count = turretCount(run)): { x: number; y: number }[] {
   const used = new Set([...layout(run, W).values()].map((p) => `${p.x},${p.y}`));
-  const kc = kingCell(run, W);
-  if (kc) used.add(`${kc.x},${kc.y}`); // 공왕 무휼 자리
   const out: { x: number; y: number }[] = [];
   const free = (q: { x: number; y: number }) => !used.has(`${q.x},${q.y}`);
   for (let i = 0; i < count; i++) {
@@ -404,7 +405,7 @@ export function turretCells(run: RunState, W: number, count = turretCount(run)):
   }
   return out;
 }
-// ───────── 청라공국: 공왕 무휼 (출전 칸 밖, 포탑처럼 둔다). 인과율 · 단계 수치는 data/chungra.ts
+// ───────── 청라공국: 공왕 무휼 (출전 칸 밖, 편성 화면에 두지 않고 전투 시작 때 나타난다). 인과율 · 단계 수치는 data/chungra.ts
 /** 청라 단계 (출전 기준) */
 export const chrTier = (run: RunState) => tierOf('CHR', synergyCounts(deployed(run), run).CHR || 0);
 /** 무휼이 이번 편성에서 소환되는지 */
@@ -419,17 +420,14 @@ export function kingState(run: RunState, tier = chrTier(run)): UnitState {
     augments: [], items: kingGearOf(Math.max(run.chrTier || 0, tier)), mod: null, pos: { c: 0, r: 0 },
   };
 }
-/** 무휼 기본 자리: 왼쪽 · 오른쪽 가장자리 맨 뒷줄, 그다음 가운데 뒷줄 */
-const KING_DEFAULT: TurretPos[] = [{ c: -1, r: 0 }, { c: 99, r: 0 }, { c: 3, r: 0 }, { c: -1, r: 2 }, { c: 99, r: 2 }];
-/** 보드 크기 W 에서 무휼 칸 (저장 위치 → 기본 위치 → 빈칸, 출전 기물과 겹치지 않게). 소환되지 않으면 null */
+/** 보드 크기 W 에서 무휼이 나타날 칸: 배치 구역 뒷줄 가운데부터 (가운데에서 가까운 열 순, 뒷줄 → 앞줄), 출전 기물 · 포탑 자리와 겹치지 않게.
+ *  양옆 가장자리 열(포탑 칸)은 쓰지 않는다. 소환되지 않으면 null */
 export function kingCell(run: RunState, W: number): { x: number; y: number } | null {
   if (!kingOn(run)) return null;
-  const used = new Set([...layout(run, W).values()].map((p) => `${p.x},${p.y}`));
-  const free = (q: { x: number; y: number }) => !used.has(`${q.x},${q.y}`);
-  const saved = run.kingPos ? turretBoardCell(run.kingPos, W) : null;
-  if (saved && free(saved)) return saved;
-  for (const d of KING_DEFAULT) { const c = turretBoardCell(d, W); if (free(c)) return c; }
-  for (let y = ALLY_Y1; y >= ALLY_Y0; y--) for (let x = 0; x < W + 2 * PAD; x++) if (free({ x, y })) return { x, y };
+  const used = new Set([...layout(run, W).values(), ...turretCells(run, W)].map((p) => `${p.x},${p.y}`));
+  const mid = (W - 1) / 2;
+  const cols = [...Array(W).keys()].sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid) || b - a).map((c) => PAD + c);
+  for (let y = ALLY_Y1; y >= ALLY_Y0; y--) for (const x of cols) if (!used.has(`${x},${y}`)) return { x, y };
   return null;
 }
 /** 전투별 무휼 칸 */
@@ -440,9 +438,9 @@ CHR_HOOK.spawn = (b, lead, ctx, t) => {
   const c = buildAlly(b, run, kingState(run, t), ctx.counts);
   c.isSummon = true; // 출전 기물 수 · 전술 위력 · 부활 대상에서 빠진다 (전투 기록은 무휼 자신의 줄)
   c.mem.tacOk = 1; c.mem.king = 1;
-  let cell = KING_AT.get(b) || null;
+  let cell = KING_AT.get(b) || null; // 뒷줄 가운데 빈칸 (kingCell)
   if (cell && (!b.inBounds(cell.x, cell.y) || b.unitAt(cell.x, cell.y))) cell = null;
-  if (!cell) for (const x of [0, b.w - 1]) { if (!b.unitAt(x, ALLY_Y1)) { cell = { x, y: ALLY_Y1 }; break; } }
+  if (!cell) { const mid = Math.floor(b.w / 2); cell = b.freeCellNear(mid, ALLY_Y1); }
   if (!cell) cell = b.freeCellNear(lead.x, lead.y);
   if (!cell) return;
   c.x = c.px = cell.x; c.y = c.py = cell.y;
@@ -463,36 +461,37 @@ SUMMON_RT.make = (b, owner, sd) => {
 
 /** 전투별 포탑 설치 칸 (buildBattle 이 편성 위치를 넘긴다) */
 const TURRET_AT = new WeakMap<Battle, { x: number; y: number }[]>();
-/** 전투별 포탑 장비 (포탑 순서대로) */
+/** 전투별 포탑 장비 · 개조부품 (포탑 순서대로) */
 const TURRET_GEAR_AT = new WeakMap<Battle, (string | null)[][]>();
-/** 엔지니어 단계별 포탑 상속률 · 사격 위력에 더하는 엔지니어 전술 위력 비율 (2차 조정: 상향) */
-export const TURRET_INHERIT = [1.5, 6.5, 9.5, 14.0];
-export const TURRET_TAC = [0.8, 3.0, 4.5, 6.5];
-ENG_HOOK.spawn = (b, lead, engs, n) => {
+const TURRET_MOD_AT = new WeakMap<Battle, (string | null)[]>();
+ENG_HOOK.spawn = (b, lead, engs, n, first = 0) => {
   const avg = (k: keyof Stats) => engs.reduce((s, e) => s + b.S(e, k), 0) / engs.length;
   const hpBonus = engs.reduce((s, e) => s + (e.mem.turretHp || 0), 0);
   const maxHpBonus = engs.reduce((s, e) => s + (e.mem.turretMaxHp || 0), 0); // 엔지니어 문장: 최대 체력만 (data/emblems.ts)
   const tier = lead.mem.eng || 1;
-  const inherit = TURRET_INHERIT[Math.min(4, tier) - 1]; // 엔지니어 단계별 상속률
-  const asBonus = 0.4 + engs.reduce((s, e) => s + (e.mem.turretAs || 0), 0) + (tier >= 3 ? 0.8 : 0); // 기본 공격 속도 +40%
-  const tacAdd = (engs.reduce((s, e) => s + b.tacPower(e), 0) / engs.length) * TURRET_TAC[Math.min(4, tier) - 1]; // 엔지니어 전술 위력 일부
+  const ti = Math.min(ENG_TUR.inherit.length, tier) - 1;
+  const inherit = ENG_TUR.inherit[ti]; // 엔지니어 단계별 상속률
+  // 기본 공격 속도 +40%, 6명 이상 추가, 8명 [오버클럭] 추가
+  const asBonus = ENG_TUR.as + engs.reduce((s, e) => s + (e.mem.turretAs || 0), 0) + (tier >= ENG_TUR.asHiFrom ? ENG_TUR.asHi : 0) + (tier >= ENG_TUR.count.length ? ENG_TUR.over : 0);
   const gearAll = lead.side === 0 ? TURRET_GEAR_AT.get(b) : undefined;
-  for (let i = 0; i < n; i++) {
+  const modAll = lead.side === 0 ? TURRET_MOD_AT.get(b) : undefined;
+  for (let i = first; i < first + n; i++) {
     const t = blankUnit(lead.side);
     const st = emptyStats();
     st.maxHp = avg('maxHp') * inherit * (1 + hpBonus) * (1 + maxHpBonus);
-    st.shoot = st.strike = st.tech = Math.max(avg('shoot'), avg('tech')) * inherit + tacAdd;
+    st.shoot = st.strike = st.tech = Math.max(avg('shoot'), avg('tech')) * inherit;
     st.armor = avg('armor') * inherit * (1 + hpBonus);
     st.acc = avg('acc') * 0.5; st.crit = avg('crit') * 0.5; st.critDmg = 1.5; st.effRes = avg('effRes') * 0.5;
     st.atkSpd = asBonus; st.range = 4; st.moveSpd = 1;
-    st.armorPen = lead.mem.engPen || 0; // 엔지니어 단계별 방어 관통
     Object.assign(t, {
       defId: 'turret', name: '감시 포탑', sprite: 'turret', palette: TURRET_PAL, art: 'sm_turret', st, atk: { type: 'shoot', elem: 'phys', interval: 1.0 },
       keywords: ['mech', 'struct'], isSummon: true, immobile: true,
     });
     applyCategory(t);
-    // 포탑 전용 장비 (편성 화면에서 장착, 포탑 순서대로)
+    // 포탑 전용 장비 · 엔지니어 전용 개조부품 (편성 화면에서 장착, 포탑 순서대로)
     const gear = (gearAll?.[i] || []).slice(0, turretSlots(tier)).filter((x): x is string => isTurretGear(x));
+    const mod = modAll?.[i];
+    if (mod && isTurretMod(mod)) gear.push(mod);
     if (gear.length) {
       const ctx = makeCtx(null, null, {});
       for (const id of gear) applyLive(t, itemEffect(id), b, ctx);
@@ -685,6 +684,7 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
   TURRET_AT.set(b, turretCells(run, enc.n, 8));
   KING_AT.set(b, kingCell(run, enc.n));
   TURRET_GEAR_AT.set(b, (run.turretGear || []).map((g) => g.slice()));
+  TURRET_MOD_AT.set(b, (run.turretMods || []).slice());
   for (const s of enc.enemies) {
     const def = ENEMY_BY_ID[s.defId];
     const e = buildEnemy(b, def, enc.phase ?? run.phase, enc.mult, s);

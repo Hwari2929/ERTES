@@ -8,7 +8,7 @@ import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
 import { STORIES } from './data/stories';
 import { FIELDS, fieldOf } from './data/battlefields';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
-import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isLegendConsumable, isLocked, isMod, isOccultMod, isTurretGear, itemInfo, TURRET_GEAR, turretSlots } from './data/items';
+import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isLegendConsumable, isLocked, isMod, isOccultMod, isTurretItem, isTurretMod, itemInfo, TURRET_GEAR, turretSlots } from './data/items';
 import { aceTargetUid, OCCULT_SYNTH, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { withEmblemSummon } from './data/emblems';
@@ -24,7 +24,7 @@ import * as BAR from './ui/bar';
 import * as ACH from './ui/achieve';
 import * as TFX from './ui/themefx';
 import {
-  activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, chrTier, deployed, kingCell, kingOn, kingState, enemyBaseMoveSpd, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
+  activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, chrTier, deployed, engTier, kingOn, kingState, enemyBaseMoveSpd, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
 import { Battle, controlNames, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME, fleeShort, zocHoldFormula, zocHoldOf, zocRule, zocShort } from './engine/combat';
 import * as R from './engine/run';
@@ -173,7 +173,7 @@ function persist() {
     R.checkOccult(app.run); // 신비학자 새 단계 → 전용 개조부품 선택
     // 엔지니어 단계가 바뀌면 포탑 장비 칸을 맞추고, 시너지가 꺼지면 포탑 회수 (장비는 보관함으로)
     const back = R.syncTurrets(app.run);
-    if (back.length) toast(turretCount(app.run) ? `포탑 장비 칸이 줄어 장비 ${back.length}개를 보관함으로 돌려보냈습니다.` : `엔지니어 시너지가 꺼져 포탑을 회수했습니다. 장비 ${back.length}개는 보관함으로.`);
+    if (back.length) toast(turretCount(app.run) ? `포탑 수 · 장비 칸이 줄어 장비 · 개조부품 ${back.length}개를 보관함으로 돌려보냈습니다.` : `엔지니어 시너지가 꺼져 포탑을 회수했습니다. 장비 · 개조부품 ${back.length}개는 보관함으로.`);
   }
   if (app.run && !app.run.over) saveRun(app.run, app.run.tutorial ? TUT_SLOT : 'auto'); // 튜토리얼 런은 이어하기(자동 저장)를 덮지 않게 따로
 }
@@ -232,7 +232,7 @@ function xpBar(u: UnitState) {
 function itemIcon(id: string | null, attrs = '', note = '') { // note: 툴팁 덧붙임 (갓 구운 빵의 남은 전투 등)
   if (!id) return `<span class="item empty" ${attrs}></span>`;
   const it = itemInfo(id);
-  const sc = isEmblem(id) ? SYN_BY_ID[emblemOf(id)]?.color : isOccultMod(id) ? SYN_BY_ID.OCCULT.color : ''; // 문장: 시너지 색 · 신비 부품: 신비학자 색
+  const sc = isEmblem(id) ? SYN_BY_ID[emblemOf(id)]?.color : isOccultMod(id) ? SYN_BY_ID.OCCULT.color : isTurretMod(id) ? SYN_BY_ID.ENG.color : ''; // 문장: 시너지 색 · 신비 부품: 신비학자 색 · 포탑 개조부품: 엔지니어 색
   const hx = isConsumable(id) ? ` hex" style="--hc:${consColor(id)}` : ''; // 소모품: 육각형 (합성품 보라 · 전투 보상 청록 · 전설급 금색 · 셰프 주황)
   return `<span class="item t${it.tier}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc + (note ? ` (${note})` : ''))}" ${attrs}>${itemGlyph(id) || it.icon}</span>`;
 }
@@ -250,12 +250,13 @@ const SPECIAL_GLYPH: Record<string, string> = {
   O_mirror: 'a.shield', O_echo: 'a.cd', O_soul: 'a.dmg', O_aegis: 'r.hp', O_void: 'a.crit', O_abyss: 'e.psy', O_grail: 'a.heal', O_codex: 'a.power',
   K_rank: 'r.res', K_morph: 'a.summon', K_legend: 'a.power', K_copy: 'a.reload', K_strip: 'u.area', K_reroll: 'a.cd', K_xp: 'k.inj1', K_xp2: 'k.inj2', K_xp3: 'k.inj3',
   K_seize: 'k.seize', K_rank3: 'k.rank3', K_bread: 'k.bread', K_bread_stale: 'k.bread_stale',
+  E_gyro: 'a.range', E_ricochet: 'u.target', E_coolant: 'a.speed', E_projector: 'a.shield', E_shock: 'a.stun', E_reactive: 'a.hp', E_twin: 'u.mag', E_frag: 'u.area', E_nano: 'r.hp', E_rail: 'a.snipe', E_spin: 'a.reload', E_link: 'p.tac',
   T_cal: 'a.dmg', T_plate: 'a.hp', T_cryo: 's.chrono', T_ammo: 'u.mag', T_barrier: 'a.shield', T_selfd: 'u.area', T_rapid: 'a.speed', T_tesla: 'e.elec', T_flame: 's.pyro', T_snipe: 'a.snipe', T_mark: 'u.target',
 };
 /** 장비 아이콘: 재료 · 고급 = 메이저 아이콘, 희귀 · 전설 = 고유 아이콘, 문장 = 시너지 아이콘 */
 function itemGlyph(id: string) {
   if (isEmblem(id)) return synIcon(emblemOf(id), 'ii');
-  if (isMod(id) || isConsumable(id) || isTurretGear(id)) return lineIcon(SPECIAL_GLYPH[id] || 'a.power', 'ii');
+  if (isMod(id) || isConsumable(id) || isTurretItem(id)) return lineIcon(SPECIAL_GLYPH[id] || 'a.power', 'ii');
   if (id.startsWith('U_')) return lineIcon(`i.${id}`, 'ii');
   if (id.startsWith('C_') || id.startsWith('G_')) return majorIcon(id.slice(2) as Major, 'ii mi');
   return lineIcon(`i.${id.slice(2)}`, 'ii');
@@ -1175,7 +1176,7 @@ let tacShownPrev = false;
 function tacPill(run: RunState) {
   const dep = deployed(run);
   const sc = synergyCounts(dep, run);
-  const scheme = tierOf('SCHEME', sc.SCHEME || 0) > 0 || tierOf('ENG', sc.ENG || 0) > 0; // [암운] 피해 · 포탑 사격 위력이 전술 위력 비례
+  const scheme = tierOf('SCHEME', sc.SCHEME || 0) > 0; // [암운] 피해가 전술 위력 비례
   const b = dep.length ? buildBattle(run, run.node?.enc ? { ...run.node.enc, enemies: [] } : { n: CFG.bossBoard, env: '', enemies: [], mult: 1, seed: 1 }, false) : null;
   const allies = b ? b.units.filter((u) => u.side === 0 && !u.isSummon) : [];
   const cmds = allies.filter((u) => u.ctype === 'CMD');
@@ -1189,8 +1190,8 @@ function tacPill(run: RunState) {
   const extra = allies.reduce((sum, u) => sum + (u.mem.tacBonus || 0), 0);
   if (extra) lines.push(`기타 보정 +${extra}`);
   const v = b.tac[0];
-  const title = `전술 위력 ${v}\n${lines.join('\n')}\n지휘관의 스킬 · 전술 무기 · [암운] · 감시 포탑은 이 값을 위력으로 씁니다.`;
-  return `<span class="tac-wrap"><button class="pill tac-pill${pop ? ' pop' : ''}" data-a="tac-info" title="${esc(title)}" aria-label="${esc(title)}" aria-expanded="${app.tacOpen}">${lineIcon('p.tac', 'li')}<b>${v}</b></button>${cmds.length ? `<span class="tac-cmd" title="출전 지휘관 수">지휘관 ${cmds.length}</span>` : ''}${app.tacOpen ? `<span class="tac-pop" role="note"><b>전술 위력 ${v}</b>${lines.map((l) => `<span>${esc(l)}</span>`).join('')}<span class="muted">지휘관의 스킬 · 전술 무기 · [암운] · 감시 포탑은 이 값을 위력으로 씁니다.</span></span>` : ''}</span>`;
+  const title = `전술 위력 ${v}\n${lines.join('\n')}\n지휘관의 스킬 · 전술 무기 · [암운]은 이 값을 위력으로 씁니다.`;
+  return `<span class="tac-wrap"><button class="pill tac-pill${pop ? ' pop' : ''}" data-a="tac-info" title="${esc(title)}" aria-label="${esc(title)}" aria-expanded="${app.tacOpen}">${lineIcon('p.tac', 'li')}<b>${v}</b></button>${cmds.length ? `<span class="tac-cmd" title="출전 지휘관 수">지휘관 ${cmds.length}</span>` : ''}${app.tacOpen ? `<span class="tac-pop" role="note"><b>전술 위력 ${v}</b>${lines.map((l) => `<span>${esc(l)}</span>`).join('')}<span class="muted">지휘관의 스킬 · 전술 무기 · [암운]은 이 값을 위력으로 씁니다.</span></span>` : ''}</span>`;
 }
 function prepScreen(run: RunState) {
   const node = run.node;
@@ -1200,10 +1201,9 @@ function prepScreen(run: RunState) {
   const cap = R.deployCap(run);
   // 편성 화면은 배치 구역만 보여준다 (바깥 테두리 칸 제외). 좌표는 전장 좌표 그대로
   const { w: fw, h: fh } = boardDims(n);
-  // 엔지니어 감시 포탑이 있으면 양옆 가장자리 열(포탑 전용)까지 보여 준다
+  // 엔지니어 감시 포탑이 있으면 양옆 가장자리 열(포탑 전용)까지 보여 준다. 청라공국 공왕 무휼은 편성 화면에 두지 않는다 (전투 시작 때 뒷줄 가운데 빈칸에 나타남)
   const tcs = turretCells(run, n);
-  const kc = kingCell(run, n); // 청라공국: 공왕 무휼 (출전 칸 밖, 포탑처럼 끌어 옮긴다)
-  const ex = tcs.length || kc ? PAD : 0;
+  const ex = tcs.length ? PAD : 0;
   const bw = fw - 2 * PAD + 2 * ex, bh = fh - 2 * PAD;
   const cellBox = (x: number, y: number) => `left:${((x - PAD + ex) / bw) * 100}%;top:${((y - PAD) / bh) * 100}%;width:${100 / bw}%;height:${100 / bh}%`;
   // 돌격가 경계 (편성 화면에서만 표시): 출전한 아군 돌격가 주변 CFG.zoc.r 칸. 칸 툴팁 = 그 돌격가의 도발 배율로 계산한 교전 시간 (겹치면 긴 쪽)
@@ -1223,7 +1223,7 @@ function prepScreen(run: RunState) {
       const mine = y >= ALLY_Y0 && y <= ALLY_Y1;
       const enemyZone = y < PAD + ZONE;
       const zc = zocCells.has(`${x},${y}`);
-      if (x < PAD || x >= fw - PAD) { cells += mine ? `<div class="cell tpad${zc ? ' zoc' : ''}" data-drop="tcell:${x}:${y}" title="포탑 · 공왕 전용 칸${zc ? ` · ${esc(zocShort(zocCells.get(`${x},${y}`)))}` : ''}"></div>` : `<div class="cell edge${zc ? ' zoc' : ''}"${zc ? zocTip(x, y) : ''}></div>`; continue; }
+      if (x < PAD || x >= fw - PAD) { cells += mine ? `<div class="cell tpad${zc ? ' zoc' : ''}" data-drop="tcell:${x}:${y}" title="포탑 전용 칸${zc ? ` · ${esc(zocShort(zocCells.get(`${x},${y}`)))}` : ''}"></div>` : `<div class="cell edge${zc ? ' zoc' : ''}"${zc ? zocTip(x, y) : ''}></div>`; continue; }
       cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}${zc ? ' zoc' : ''}" ${mine ? `data-drop="cell:${x}:${y}"` : ''}${zc ? zocTip(x, y) : ''}></div>`;
     }
   let units = '';
@@ -1238,26 +1238,21 @@ function prepScreen(run: RunState) {
         <span class="tk-side"><b class="tk-rank" title="공명 등급 ${u.rank}">${u.rank}</b><i class="tt-${d.ttype}" title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i><i class="ct-${d.ctype}" title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i></span>
         <span class="tk-items">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-drop="eqitem:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : itemIcon(null))).join('')}</span></div></div>`;
   }
-  const tSlots = turretSlots(tcs.length);
+  const tSlots = turretSlots(engTier(run));
   tcs.forEach((p, i) => {
     const sel = app.sel?.k === 'turret' && app.sel.i === i;
-    const g = run.turretGear?.[i] || [];
+    const g = run.turretGear?.[i] || [], tm = run.turretMods?.[i];
+    const modSlot = tm ? `<span class="tk-mod" data-drag="tgear:${i}:-1" data-drop="tgear:${i}:-1" data-hold>${itemIcon(tm)}</span>`
+      : `<span class="tk-mod">${turretModEmpty(`data-drop="tgear:${i}:-1"`)}</span>`;
     const slots = [...Array(tSlots).keys()].map((k) => {
       const it = g[k];
       return it ? `<span class="tk-it" data-drag="tgear:${i}:${k}" data-drop="tgear:${i}:${k}" data-hold title="${esc(itemInfo(it).name + ' — ' + itemInfo(it).desc)}">${itemIcon(it)}</span>` : itemIcon(null, `data-drop="tgear:${i}:${k}" title="포탑 장비 칸 — 포탑 전용 장비를 끌어 장착"`);
     }).join('');
-    units += `<div class="u side0 tk placed turret-tk${sel ? ' sel' : ''}" style="${cellBox(p.x, p.y)}" data-drag="turret:${i}" data-drop="turret:${i}" data-a="sel-turret" data-v="${i}" data-syns="" title="감시 포탑 ${i + 1} · 기계 — 끌어서 옮기기 · 포탑 전용 장비를 끌어 장착 (판매 · 대기석 불가)">
-      <div class="tk-card"><div class="tk-art">${sprite(TURRET_SPR, '')}</div>
+    units += `<div class="u side0 tk placed turret-tk${sel ? ' sel' : ''}" style="${cellBox(p.x, p.y)}" data-drag="turret:${i}" data-drop="turret:${i}" data-a="sel-turret" data-v="${i}" data-syns="" title="감시 포탑 ${i + 1} · 기계 — 끌어서 옮기기 · 포탑 전용 장비 · 엔지니어 전용 개조부품을 끌어 장착 (판매 · 대기석 불가)">
+      <div class="tk-card"><div class="tk-art">${sprite(TURRET_SPR, '')}${modSlot}</div>
         <span class="tk-side"><i class="cat-mech" title="기계 · 구조물: ${esc(CATEGORY_RULE.struct)}">${lineIcon('k.mech', 'li')}</i></span>
         <span class="tk-items">${slots}</span></div></div>`;
   });
-  if (kc) {
-    const kd = UNIT_BY_ID.muhyul, ks = kingState(run), st = causalStage(run.causal || 0);
-    units += `<div class="u side0 tk placed turret-tk king-tk${app.sel?.k === 'king' ? ' sel' : ''}" style="${cellBox(kc.x, kc.y)}" data-drag="king" data-drop="king" data-a="sel-king" data-syns="KING" title="${esc(`공왕 무휼 · 인과 ${st}단계 — 청라공국이 소환 (출전 칸 밖). 끌어서 옮기기 (판매 · 대기석 불가, 전용 장비 자동 장착)`)}">
-      <div class="tk-card"><div class="tk-art">${sprite(kd, '')}</div>
-        <span class="tk-side"><b class="tk-rank" title="인과 ${st}단계">${st}</b><i class="tt-${kd.ttype}" title="${TTYPE_NAME[kd.ttype]}">${typeIcon(kd.ttype)}</i><i class="ct-${kd.ctype}" title="${CTYPE_NAME[kd.ctype]}">${typeIcon(kd.ctype)}</i></span>
-        <span class="tk-items">${[0, 1, 2].map((k) => (ks.items[k] ? `<span class="tk-it" title="${esc(itemInfo(ks.items[k]!).name)}">${itemIcon(ks.items[k]!)}</span>` : itemIcon(null))).join('')}</span></div></div>`;
-  }
   if (node?.enc) node.enc.enemies.forEach((s, i) => {
     const e = ENEMY_BY_ID[s.defId];
     const sel = app.sel?.k === 'enemy' && app.sel.i === i;
@@ -1298,23 +1293,29 @@ function prepScreen(run: RunState) {
 }
 
 const TURRET_SPR = { sprite: 'turret', palette: TURRET_PAL, art: 'sm_turret' };
+/** 빈 포탑 개조부품 칸 (엔지니어 색 마름모) */
+const turretModEmpty = (attrs = '') => `<span class="item tM empty" style="--sc:${SYN_BY_ID.ENG.color}" title="포탑 개조부품 칸 — 엔지니어 전용 개조부품을 끌어 장착" ${attrs}></span>`;
 /** 감시 포탑 상세: 미리보기 전투에서 실제 포탑 능력치를 읽는다 */
 function turretDetail(run: RunState, i: number, bar: string) {
   const n = run.node?.enc?.n || CFG.bossBoard;
   const b = buildBattle(run, { n, env: '', enemies: [], mult: 1, seed: 1 }, false);
   const t = b.units.find((u) => u.defId === 'turret' && u.mem.turretIdx === i);
-  const g = run.turretGear?.[i] || [];
-  const slots = turretSlots(turretCount(run));
+  const g = run.turretGear?.[i] || [], tm = run.turretMods?.[i];
+  const slots = turretSlots(engTier(run));
   const row = (k: string, v: string) => `<dt>${k}</dt><dd>${v}</dd>`;
   return `<div class="detail">${bar}
     ${heroHead('', sprite(TURRET_SPR, 'spr big'), `감시 포탑 ${i + 1}`, `<span class="tag cat-mech">${lineIcon('k.mech', 'li')}기계</span><span class="tag">구조물</span><span class="tag">엔지니어 소환물</span>`)}
     <div class="small muted">기계: ${esc(CATEGORY_RULE.mech)}<br>구조물: ${esc(CATEGORY_RULE.struct)}</div>
     ${t ? `<dl class="stats">${row('최대 내구도', fmt(t.st.maxHp))}${row('사격 위력', fmt(t.st.shoot))}${row('방어도', fmt(t.st.armor))}${row('공격 속도', `+${Math.round(t.st.atkSpd * 100)}%`)}${row('사거리', String(t.st.range))}${row('피해 속성', ELEM_NAME[t.atk.elem])}</dl>` : '<p class="muted small">엔지니어가 출전해야 포탑이 설치됩니다.</p>'}
-    <h3>포탑 장비 <span class="muted small" title="엔지니어 2명 1칸 · 4명 2칸 · 6명 이상 3칸">${slots}칸 · 포탑 전용</span></h3>
+    <h3>포탑 장비 <span class="muted small">${slots}칸 · 포탑 전용</span></h3>
     <div class="t-gear">${[...Array(slots).keys()].map((k) => { const it = g[k]; return it
       ? `<div class="t-slot">${itemIcon(it, `data-drag="tgear:${i}:${k}" data-drop="tgear:${i}:${k}"`)}<div><b>${esc(itemInfo(it).name)}</b><div class="small muted">${esc(TURRET_GEAR[it].desc)}</div></div><button class="btn tiny" data-a="tunequip" data-v="${i}:${k}">해제</button></div>`
       : `<div class="t-slot empty">${itemIcon(null, `data-drop="tgear:${i}:${k}"`)}<span class="muted small">빈 칸 — 보관함의 포탑 전용 장비를 끌어 놓거나, 장비를 고른 뒤 포탑을 누르세요.</span></div>`; }).join('')}</div>
-    <p class="muted small">장비 칸: 엔지니어 2명 1칸 · 4명 2칸 · 6명 이상 3칸. 포탑 전용 장비는 분기점의 [정비]에서 삽니다. 일반 기물에게는 장착할 수 없고, 칸이 줄거나 엔지니어 시너지가 꺼지면 넘치는 장비는 보관함으로 돌아옵니다.</p>
+    <h3>개조부품 <span class="muted small">1칸 · 엔지니어 전용</span></h3>
+    <div class="t-gear">${tm
+      ? `<div class="t-slot">${itemIcon(tm, `data-drag="tgear:${i}:-1" data-drop="tgear:${i}:-1"`)}<div><b>${esc(itemInfo(tm).name)}</b><div class="small muted">${esc(itemInfo(tm).desc)}</div></div><button class="btn tiny" data-a="tunequip" data-v="${i}:-1">해제</button></div>`
+      : `<div class="t-slot empty">${turretModEmpty(`data-drop="tgear:${i}:-1"`)}<span class="muted small">빈 칸 — 보관함의 엔지니어 전용 개조부품을 끌어 놓으세요.</span></div>`}</div>
+    <p class="muted small">장비 칸: ${SYN_BY_ID.ENG.tiers.slice(0, 3).map((m, k) => `${k ? '' : '엔지니어 '}${m}명${k === 2 ? ' 이상' : ''} ${turretSlots(k + 1)}칸`).join(' · ')}. 포탑 전용 장비는 분기점의 [정비]에서 삽니다. 개조부품은 엔지니어 ${SYN_BY_ID.ENG.tiers.join(' · ')}명에 처음 닿을 때마다 1개씩 얻습니다. 일반 기물에게는 장착할 수 없고, 포탑 · 칸이 줄거나 엔지니어 시너지가 꺼지면 넘치는 장비 · 개조부품은 보관함으로 돌아옵니다.</p>
   </div>`;
 }
 
@@ -2125,7 +2126,7 @@ function applySpeed() {
   if (tag) tag.hidden = !slow;
 }
 /** 전투 화면 가로 여유 칸: 엔지니어 포탑이 있으면 편성 화면처럼 양옆 가장자리 열(포탑 칸)까지 보여 준다 */
-const bviewEx = (run: RunState) => (!app.zoomOut && (turretCount(run) > 0 || kingOn(run)) ? PAD : 0);
+const bviewEx = (run: RunState) => (!app.zoomOut && turretCount(run) > 0 ? PAD : 0);
 function battleScreen(run: RunState) {
   const enc = run.node!.enc!;
   return `<main class="wrap battle">
@@ -2292,11 +2293,11 @@ function shopScreen(run: RunState) {
 }
 /** 정비: 포탑별 장비 칸 (끌어 놓아 장착 · 보관함으로 끌어 해제) */
 function maintTurrets(run: RunState) {
-  const n = turretCount(run), slots = turretSlots(n);
+  const n = turretCount(run), slots = turretSlots(engTier(run));
   if (!n) return '<p class="muted small">엔지니어가 출전하지 않아 설치된 포탑이 없습니다.</p>';
-  return `<div class="maint-tur"><h3>감시 포탑 <span class="muted small">${n}기 · 포탑마다 ${slots}칸</span></h3><div class="mt-list">${[...Array(n).keys()].map((i) => {
-    const g = run.turretGear?.[i] || [];
-    return `<div class="mt-row" data-drop="turret:${i}">${sprite(TURRET_SPR)}<b>포탑 ${i + 1}</b><span class="tag cat-mech">${lineIcon('k.mech', 'li')}기계</span><span class="mt-slots">${[...Array(slots).keys()].map((k) => g[k] ? itemIcon(g[k], `data-drag="tgear:${i}:${k}" data-drop="tgear:${i}:${k}"`) : itemIcon(null, `data-drop="tgear:${i}:${k}"`)).join('')}</span></div>`;
+  return `<div class="maint-tur"><h3>감시 포탑 <span class="muted small">${n}기 · 포탑마다 장비 ${slots}칸 + 개조부품 1칸</span></h3><div class="mt-list">${[...Array(n).keys()].map((i) => {
+    const g = run.turretGear?.[i] || [], tm = run.turretMods?.[i];
+    return `<div class="mt-row" data-drop="turret:${i}">${sprite(TURRET_SPR)}<b>포탑 ${i + 1}</b><span class="tag cat-mech">${lineIcon('k.mech', 'li')}기계</span><span class="mt-slots">${[...Array(slots).keys()].map((k) => g[k] ? itemIcon(g[k], `data-drag="tgear:${i}:${k}" data-drop="tgear:${i}:${k}"`) : itemIcon(null, `data-drop="tgear:${i}:${k}"`)).join('')}${tm ? itemIcon(tm, `data-drag="tgear:${i}:-1" data-drop="tgear:${i}:-1"`) : turretModEmpty(`data-drop="tgear:${i}:-1"`)}</span></div>`;
   }).join('')}</div></div>`;
 }
 
@@ -4319,7 +4320,6 @@ function onDrop(src: string, dst: string) {
   const [dk, ...dv] = dst.split(':');
   const n = run.node?.enc?.n || CFG.bossBoard;
   // 포탑 장비: 보관함 → 포탑 · 포탑 칸 → 보관함 / 다른 포탑 칸
-  if (sk === 'king' || dk === 'king') { kingDrop(run, n, sk, sv, dk, dv); persist(); render(); return; }
   if (sk === 'item' && (dk === 'turret' || dk === 'tgear')) {
     const id = run.inventory[+sv[0]];
     if (isConsumable(id)) { toast('소모품은 포탑에 쓸 수 없습니다.'); render(); return; }
@@ -4332,12 +4332,12 @@ function onDrop(src: string, dst: string) {
     const i = +sv[0], k = +sv[1];
     if (dk === 'inv' || dk === 'invitem') { const e = R.unequipTurret(run, i, k); if (e) toast(e); }
     else if (dk === 'tgear') R.moveTurretGear(run, [i, k], [+dv[0], +dv[1]]);
-    else if (dk === 'turret' && +dv[0] !== i) R.moveTurretGear(run, [i, k], [+dv[0], 0]);
-    else if (dk === 'unit' || dk === 'eqitem') toast('포탑 전용 장비는 기물에게 장착할 수 없습니다.');
+    else if (dk === 'turret' && +dv[0] !== i) R.moveTurretGear(run, [i, k], [+dv[0], k === -1 ? -1 : 0]);
+    else if (dk === 'unit' || dk === 'eqitem') toast(k === -1 ? '엔지니어 전용 개조부품은 기물에게 장착할 수 없습니다.' : '포탑 전용 장비는 기물에게 장착할 수 없습니다.');
     persist(); render(); return;
   }
-  if (sk === 'item' && isTurretGear(run.inventory[+sv[0]]) && (dk === 'unit' || dk === 'eqitem')) { toast('포탑 전용 장비는 감시 포탑에만 장착할 수 있습니다.'); render(); return; }
-  if ((sk === 'eq' || sk === 'relic') && (dk === 'turret' || dk === 'tgear')) { toast('포탑에는 포탑 전용 장비만 장착할 수 있습니다.'); render(); return; }
+  if (sk === 'item' && isTurretItem(run.inventory[+sv[0]]) && (dk === 'unit' || dk === 'eqitem')) { toast(isTurretMod(run.inventory[+sv[0]]) ? '엔지니어 전용 개조부품은 감시 포탑에만 장착할 수 있습니다.' : '포탑 전용 장비는 감시 포탑에만 장착할 수 있습니다.'); render(); return; }
+  if ((sk === 'eq' || sk === 'relic') && (dk === 'turret' || dk === 'tgear')) { toast('포탑에는 포탑 전용 장비 · 엔지니어 전용 개조부품만 장착할 수 있습니다.'); render(); return; }
   if (sk === 'turret' || (dk === 'turret' && sk !== 'unit')) { turretDrop(run, n, sk === 'turret' ? +sv[0] : -1, dk, dv); persist(); render(); return; }
   if (dk === 'tgear') { if (sk === 'unit') toast('포탑 장비 칸입니다.'); render(); return; }
   if (sk === 'unit' && dk === 'tcell') { toast('가장자리 칸에는 포탑만 둘 수 있습니다.'); render(); return; }
@@ -4418,48 +4418,6 @@ function onDrop(src: string, dst: string) {
   }
   persist();
   render();
-}
-
-/** 공왕 무휼 끌어 옮기기 (포탑과 같은 규칙: 빈 아군 칸 · 가장자리 칸, 포탑 위면 자리 교환) · 무휼 칸에 기물을 놓으면 기물이 그 칸, 무휼은 기물이 있던 칸으로 */
-function kingDrop(run: RunState, n: number, sk: string, sv: string[], dk: string, dv: string[]) {
-  const kc = kingCell(run, n);
-  if (!kc) return;
-  const save = (c: { x: number; y: number }) => turretSavePos(c.x, c.y, n);
-  if (sk === 'king') {
-    if (dk === 'cell' || dk === 'tcell') {
-      const x = +dv[0], y = +dv[1];
-      if ([...layout(run, n).values()].some((p) => p.x === x && p.y === y)) { toast('기물이 있는 칸에는 무휼을 둘 수 없습니다.'); return; }
-      run.kingPos = { c: save({ x, y }).c, r: save({ x, y }).r };
-    } else if (dk === 'turret') {
-      const tcs = turretCells(run, n), j = +dv[0];
-      if (!tcs[j]) return;
-      const tp = tcs.map(save);
-      tp[j] = save(kc);
-      run.kingPos = save(tcs[j]);
-      run.turretPos = tp;
-    } else if (dk === 'bench' || dk === 'inv' || dk === 'invitem') toast('무휼은 대기석으로 옮기거나 판매할 수 없습니다 (청라공국 3명 이상이면 늘 소환).');
-    else if (dk === 'unit' || dk === 'eqitem') toast('기물이 있는 칸에는 무휼을 둘 수 없습니다.');
-    return;
-  }
-  // 무휼 칸에 놓기
-  if (sk === 'unit') {
-    const u = run.units.find((x) => x.uid === sv[0]);
-    if (!u) return;
-    if (kc.x < PAD || kc.x >= PAD + n) { toast('가장자리 칸에는 포탑 · 무휼만 둘 수 있습니다.'); return; }
-    if (!R.canDeploy(run, u)) { toast('이번 페이즈에는 배치할 수 없는 기물입니다.'); return; }
-    if (!u.pos && deployed(run).length >= R.deployCap(run)) { toast(`출전 인원이 가득 찼습니다 (${R.deployCap(run)}명).`); return; }
-    const from = layout(run, n).get(u.uid);
-    u.pos = toPos(kc.x, kc.y);
-    run.kingPos = from ? save(from) : undefined;
-    app.sel = { k: 'unit', uid: u.uid };
-  } else if (sk === 'turret') {
-    const tcs = turretCells(run, n), i = +sv[0];
-    if (!tcs[i]) return;
-    const tp = tcs.map(save);
-    tp[i] = save(kc);
-    run.kingPos = save(tcs[i]);
-    run.turretPos = tp;
-  } else if (sk === 'item' || sk === 'eq' || sk === 'relic' || sk === 'tgear') toast('무휼은 일반 장비를 장착할 수 없습니다. 전용 장비는 청라공국 3 · 5 · 7명에 해금되어 자동으로 장착됩니다.');
 }
 
 /** 감시 포탑 끌어 옮기기: 기물이 없는 아군 칸 · 가장자리 칸으로만. 다른 포탑 위면 자리 교환. 판매 · 대기석 · 장비는 불가 */

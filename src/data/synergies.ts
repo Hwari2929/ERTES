@@ -30,6 +30,8 @@ export const TITLE_NAME = ['평민', '기사', '남작', '백작', '공작', '�
 export const rankTitle = (rank: number) => (rank >= 30 ? 6 : rank >= 20 ? 5 : rank >= 9 ? 4 : rank >= 6 ? 3 : rank >= 3 ? 2 : 1); // 3등급마다 작위, 대공 20 · 황제 30
 
 const T = (tier: number, a: number[]) => a[Math.max(0, tier - 1)];
+/** 엔지니어 (2 · 4 · 6 · 8명) 감시 포탑: 포탑 수 · 상속률 · 포탑 1기 장비 칸 · 기본 공격 속도 · 6명 이상 추가 공격 속도 · 8명 [오버클럭] 공격 속도 (%p) */
+export const ENG_TUR = { count: [2, 3, 4, 4], inherit: [1.2, 2.4, 4.0, 8.0], slots: [1, 2, 3, 3], as: 0.4, asHi: 0.8, asHiFrom: 3, over: 2.0 };
 /** 시리우스 성도회 (5명 이상): 전투당 부활 횟수 — 단계와 무관하게 1회 */
 const SIR_REVIVES = [0, 1, 1, 1];
 /** 최고의 친구 (2 · 4 · 6 · 8명): 소환물 스탯 상속률 · 소환물 피해 증가 · 소환물 모든 주요 능력치 */
@@ -401,7 +403,7 @@ export const SYNERGIES: SynDef[] = [
 
   {
     id: 'CHR', name: '청라공국', kind: 'faction', tiers: [3, 5, 7, 9], color: '#3fa8b8', icon: '靑',
-    desc: `필서 속에 기록된 고대 공국. 공명도가 아닌 인과율로 공왕을 키운다.\n· 3명 이상이면 전투 시작 시 [공왕 무휼]을 소환합니다. 무휼은 출전 칸을 차지하지 않고 포탑처럼 놓입니다 (편성 화면에서 끌어 옮기기, 판매 · 대기석 불가).\n· 무휼은 공명도를 받지 않습니다. 이긴 전투마다 인과율을 모아 인과 단계 1~${CAUSAL.max}로 성장합니다.\n· 인과율 1회 수집량 = (${CAUSAL.base} + 장비 점수 ÷ ${CAUSAL.gearDiv}) × 단계 배율. 장비 점수 = 출전 아군이 장착한 장비 (재료 ${CAUSAL.gearPts.C} · 고급 · 희귀 ${CAUSAL.gearPts.A} · 전설 ${CAUSAL.gearPts.L}, 개조부품 · 포탑 장비 · 무휼 전용 장비 제외).\n· 청라 기물이 3명 아래로 줄어도 쌓은 인과율은 남습니다.\n· 3 · 5 · 7명에 처음 닿으면 무휼 전용 장비가 해금되어 자동으로 장착됩니다 (일반 장비는 장착할 수 없지만 장비 점수에는 셉니다).`,
+    desc: `필서 속에 기록된 고대 공국. 공명도가 아닌 인과율로 공왕을 키운다.\n· 3명 이상이면 전투 시작 시 [공왕 무휼]을 소환합니다. 무휼은 출전 칸을 차지하지 않고, 편성 화면에 놓지 않습니다. 전투가 시작되면 아군 진영 뒷줄 가운데 빈칸(없으면 가까운 빈칸)에 바로 나타납니다 (판매 · 대기석 불가).\n· 무휼은 공명도를 받지 않습니다. 이긴 전투마다 인과율을 모아 인과 단계 1~${CAUSAL.max}로 성장합니다.\n· 인과율 1회 수집량 = (${CAUSAL.base} + 장비 점수 ÷ ${CAUSAL.gearDiv}) × 단계 배율. 장비 점수 = 출전 아군이 장착한 장비 (재료 ${CAUSAL.gearPts.C} · 고급 · 희귀 ${CAUSAL.gearPts.A} · 전설 ${CAUSAL.gearPts.L}, 개조부품 · 포탑 장비 · 무휼 전용 장비 제외).\n· 청라 기물이 3명 아래로 줄어도 쌓은 인과율은 남습니다.\n· 3 · 5 · 7명에 처음 닿으면 무휼 전용 장비가 해금되어 자동으로 장착됩니다 (일반 장비는 장착할 수 없지만 장비 점수에는 셉니다).`,
     tierDesc: [
       `청라 기물 모든 주요 능력치 +${CHR_MAJ[0]} · 피해 +${pct(CHR_DMG[0])}, 전투 시작 시 공왕 무휼 소환, 인과율 수집 ×${CAUSAL.mult[1]}, 무휼 전용 장비 [${KING_GEAR_NAME[KING_GEAR[0]]}] 해금`,
       `청라 기물 모든 주요 능력치 +${CHR_MAJ[1]} · 피해 +${pct(CHR_DMG[1])}, 인과율 수집 ×${CAUSAL.mult[2]}, 무휼 전용 장비 [${KING_GEAR_NAME[KING_GEAR[1]]}] 해금`,
@@ -523,18 +525,16 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'ENG', name: '엔지니어', kind: 'trait', tiers: [2, 4, 6, 8], color: '#a0b4c8', icon: '⚙',
-    desc: '감시 포탑(기계 · 구조물)을 아군 진영에 설치합니다.\n· 포탑은 움직이지 않고, 출전한 엔지니어 능력치 평균의 일부를 물려받으며, 엔지니어 전술 위력의 일부가 사격 위력에 더해집니다.\n· 편성 화면에서 끌어 옮길 수 있고 (판매 · 대기석 불가), 배치와 장비는 다음 전투에도 유지됩니다.\n· 엔지니어는 1명마다 아군 전술 위력을 올립니다.\n\n[포탑 장비]\n· 포탑마다 장비 칸: 엔지니어 2명 1칸 · 4명 2칸 · 6명 이상 3칸, 포탑 전용 장비만 장착 (일반 기물 장착 불가).\n· 엔지니어가 출전한 동안 분기점에 [정비]가 나와 포탑 전용 장비를 삽니다 (보급형 1개 무료).\n· 엔지니어 시너지가 꺼지면 포탑이 회수되고, 장착한 장비는 보관함으로 돌아옵니다.',
-    tierDesc: ['감시 포탑 1기 (장비 1칸, 상속 150%, 공격 속도 +40%, 사격 위력 + 전술 위력 80%), 엔지니어 1명당 전술 위력 +4, 방어 관통 +10%p', '감시 포탑 2기 (장비 2칸, 상속 650%, 사격 위력 + 전술 위력 300%), 엔지니어 1명당 전술 위력 +8, 방어 관통 +20%p',
-      '감시 포탑 3기 (장비 3칸, 상속 950%, 사격 위력 + 전술 위력 450%), 포탑 공격 속도 추가 +80%, 엔지니어 1명당 전술 위력 +12, 방어 관통 +35%p', '[자동화 요새] 감시 포탑 4기 (장비 3칸, 상속 1400%, 사격 위력 + 전술 위력 650%), 포탑 공격 속도 추가 +80%, 엔지니어 1명당 전술 위력 +18, 방어 관통 +35%p'],
+    desc: `감시 포탑(기계 · 구조물)을 아군 진영에 설치합니다.\n· 포탑은 움직이지 않고, 출전한 엔지니어 능력치 평균을 단계별 비율(상속)로 물려받습니다 (사격 위력 = 엔지니어 사격 · 기술 위력 중 높은 쪽 × 상속).\n· 편성 화면에서 끌어 옮길 수 있고 (판매 · 대기석 불가), 배치와 장비는 다음 전투에도 유지됩니다.\n\n[포탑 장비 · 개조부품]\n· 포탑마다 장비 칸: ${ENG_TUR.slots.slice(0, 3).map((k, i) => `${i ? '' : '엔지니어 '}${[2, 4, 6][i]}명${i === 2 ? ' 이상' : ''} ${k}칸`).join(' · ')}, 포탑 전용 장비만 장착 (일반 기물 장착 불가).\n· 포탑마다 개조부품 칸 1칸: 엔지니어 전용 개조부품만 장착합니다. 엔지니어 2 · 4 · 6 · 8명에 처음 닿을 때마다 그 단계의 전용 개조부품 1개를 무작위로 얻습니다 (아직 없는 것 중, 빈 개조부품 칸이 있으면 바로 장착).\n· 엔지니어가 출전한 동안 분기점에 [정비]가 나와 포탑 전용 장비를 삽니다 (보급형 1개 무료).\n· 엔지니어 시너지가 꺼지면 포탑이 회수되고, 장착한 장비 · 개조부품은 보관함으로 돌아옵니다.`,
+    tierDesc: ENG_TUR.count.map((n, i) => `${i === 3 ? '[오버클럭] ' : ''}감시 포탑 ${n}기 (장비 ${ENG_TUR.slots[i]}칸 + 개조부품 1칸, 상속 ${pct(ENG_TUR.inherit[i])}${i ? '' : `, 공격 속도 +${pct(ENG_TUR.as)}`})${i + 1 >= ENG_TUR.asHiFrom ? `, 포탑 공격 속도 추가 +${pct(ENG_TUR.asHi)}` : ''}${i === 3 ? `, 모든 포탑 공격 속도 +${pct(ENG_TUR.over)}p 추가 (포탑은 늘지 않음)` : ''}, 전용 개조부품 1개 무작위 획득`),
     member: (t) => ({
-      stats: { armorPen: T(t, [0.1, 0.2, 0.35, 0.35]) },
-      setup: (u) => { u.mem.eng = t; u.mem.engPen = T(t, [0.1, 0.2, 0.35, 0.35]); u.mem.tacBonus = (u.mem.tacBonus || 0) + T(t, [4, 8, 12, 18]); },
+      setup: (u) => { u.mem.eng = t; },
       hooks: {
         onStart(b, u) {
           const engs = b.alliesOf(u).filter((a) => a.mem.eng);
           if (engs[0] !== u) return; // 대표 엔지니어 1명만 설치
           const extra = engs.reduce((s2, a) => s2 + (a.mem.turretExtra || 0), 0);
-          ENG_HOOK.spawn?.(b, u, engs, t + extra);
+          ENG_HOOK.spawn?.(b, u, engs, T(t, ENG_TUR.count) + extra);
         },
       },
     }),
@@ -738,8 +738,8 @@ export function aceTargetUid(run: RunState): string | null {
   return dep.slice().sort((a, b) => b.rank - a.rank)[0]?.uid ?? null;
 }
 
-/** 엔지니어 포탑 생성 (build.ts 에서 주입: 순환 import 방지) */
-export const ENG_HOOK: { spawn?: (b: Battle, lead: CUnit, engs: CUnit[], n: number) => void } = {};
+/** 엔지니어 포탑 생성 (build.ts 에서 주입: 순환 import 방지). first = 첫 포탑 번호 (편성 장비 · 개조부품을 읽을 번호, 궁극기로 더 세우는 포탑은 장비 없음) */
+export const ENG_HOOK: { spawn?: (b: Battle, lead: CUnit, engs: CUnit[], n: number, first?: number) => void } = {};
 /** 청라공국 공왕 무휼 생성 (build.ts 에서 주입): lead = 대표 청라 기물, t = 청라 단계 */
 export const CHR_HOOK: { spawn?: (b: Battle, lead: CUnit, ctx: EffectCtx, t: number) => void } = {};
 /** 칼리토 근위기사 생성 (build.ts 에서 주입) */

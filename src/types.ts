@@ -153,8 +153,12 @@ export interface RunState {
   musters?: number;
   /** 엔지니어 감시 포탑 배치 (편성 화면에서 끌어 옮긴 자리, 순서대로). c = -1 / 99 는 양옆 가장자리 열 */
   turretPos?: { c: number; r: number }[];
-  /** 엔지니어 감시 포탑 장비 (포탑 순서대로, 포탑마다 1~2칸). 포탑 전용 장비(T_)만 */
+  /** 엔지니어 감시 포탑 장비 (포탑 순서대로, 포탑마다 1~3칸). 포탑 전용 장비(T_)만 */
   turretGear?: (string | null)[][];
+  /** 엔지니어 감시 포탑 개조부품 칸 (포탑 순서대로 1칸씩). 엔지니어 전용 개조부품(E_)만. 옛 세이브에는 없다 → 빈 칸 */
+  turretMods?: (string | null)[];
+  /** 엔지니어: 지금까지 도달한 최고 단계 (전용 개조부품 지급 기록) */
+  engTier?: number;
   /** 튜토리얼 런: 진행 순서(TUTORIAL_FLOW) 위치. 있으면 고정 항로 · 고정 조우 · 지는 일 없음 */
   tutorial?: { i: number };
   seed: number;
@@ -188,7 +192,7 @@ export interface RunState {
   occultTier?: number;
   chefBread?: boolean; // 셰프: 시너지가 처음 켜질 때 주는 갓 구운 빵을 받았는지
   breadFresh?: number[]; // 보관함의 갓 구운 빵이 식기까지 남은 전투 수 (오름차순 = 보관함의 'K_bread' 순서, engine/run.ts breadLeft)
-  /** 청라공국: 쌓은 인과율 (공왕 무휼의 인과 단계, data/chungra.ts) · 지금까지 도달한 최고 청라 단계 (무휼 전용 장비 해금) · 무휼 배치 (포탑과 같은 저장 형식, c = -1 / 99 는 양옆 가장자리 열). 옛 세이브에는 없다 → 0 · 기본 자리 */
+  /** 청라공국: 쌓은 인과율 (공왕 무휼의 인과 단계, data/chungra.ts) · 지금까지 도달한 최고 청라 단계 (무휼 전용 장비 해금) · (예전) 무휼 배치 — 이제 쓰지 않는다 (무휼은 전투 시작 때 뒷줄 가운데 빈칸에 나타난다). 옛 세이브에는 없다 → 0 */
   causal?: number;
   chrTier?: number;
   kingPos?: { c: number; r: number };

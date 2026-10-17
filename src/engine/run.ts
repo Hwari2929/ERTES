@@ -9,7 +9,7 @@ import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, breadHeal, breadSell, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_ADV, TURRET_BASIC, TURRET_PRICE, turretSlots } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, breadHeal, breadSell, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, isTurretItem, isTurretMod, TURRET_ADV, TURRET_BASIC, TURRET_MODS, TURRET_PRICE, turretModsOfTier, turretSlots } from '../data/items';
 import { OCCULT_SYNTH, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, recMajors } from '../data/rework';
@@ -21,7 +21,7 @@ import { FAITHS,
   type AugPick, type Encounter, type InvestOffer, type FaithId, type EnemySpawn, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
   type Quest, type RunState, type ShopSlot, type SupplyCard, type SynergyId, type UnitState,
 } from '../types';
-import { deployed, memberships, playerRows, synergyCounts, turretCount } from './build';
+import { deployed, engTier, memberships, playerRows, synergyCounts, turretCount } from './build';
 import { causalGain, causalLeft, causalStage, KING_GEAR, KING_GEAR_NAME } from '../data/chungra';
 import { EMB } from '../data/emblems';
 import type { Battle } from './combat';
@@ -450,9 +450,33 @@ function checkChef(run: RunState) {
   run.pending.push({ t: 'notice', title: '갓 구운 빵', body: `셰프들이 처음 손을 맞춰 빵을 구워 냈습니다. 보관함의 [${CONSUMABLES.K_bread.name}]을 쓰면 플레이어 체력을 ${breadHeal(run.diff)} 회복합니다. 셰프 시너지가 켜진 채로 전투에서 이기면 가끔 더 구워 옵니다.` });
 }
 
+/** 엔지니어: 2 · 4 · 6 · 8명에 처음 닿을 때마다 그 단계 전용 포탑 개조부품 1개를 무작위로 (아직 가진 적 없는 것 중). 빈 포탑 개조부품 칸이 있으면 바로 장착 */
+function checkEng(run: RunState) {
+  if (run.tutorial) return; // 튜토리얼 런은 고정 진행 (안내 창이 끼지 않게)
+  const t = engTier(run), had = run.engTier || 0;
+  if (t <= had) return;
+  const got: string[] = [];
+  for (let k = had + 1; k <= t; k++) {
+    const owned = new Set([...run.inventory, ...(run.turretMods || [])].filter((x): x is string => !!x && isTurretMod(x)));
+    let pool = turretModsOfTier(k).filter((id) => !owned.has(id));
+    for (let j = k - 1; !pool.length && j >= 1; j--) pool = turretModsOfTier(j).filter((id) => !owned.has(id)); // 그 단계를 다 가졌으면 아래 단계에서
+    if (!pool.length) continue;
+    const id = rng(run, (r) => r.pick(pool));
+    const n = turretCount(run), mods = (run.turretMods ||= []);
+    const slot = [...Array(n).keys()].find((i) => !mods[i]);
+    if (slot !== undefined) { while (mods.length <= slot) mods.push(null); mods[slot] = id; }
+    else gainItem(run, id, undefined, true, true);
+    got.push(`${TURRET_MODS[id].name}${slot !== undefined ? ` (포탑 ${slot + 1}에 장착)` : ' (보관함)'}`);
+    log(run, `엔지니어 ${SYN_BY_ID.ENG.tiers[k - 1]}명: 포탑 개조부품 ${TURRET_MODS[id].name} 획득`);
+  }
+  run.engTier = t;
+  if (got.length) run.pending.push({ t: 'notice', title: `엔지니어 ${SYN_BY_ID.ENG.tiers[t - 1]}명 — 포탑 개조부품 ${got.length}개`, body: `엔지니어들이 감시 포탑 전용 개조부품을 만들어 냈습니다: ${got.join(' · ')}. 편성 화면에서 포탑의 개조부품 칸으로 옮길 수 있습니다.` });
+}
+
 export function checkOccult(run: RunState): boolean {
   checkHel(run);
   checkChef(run);
+  checkEng(run);
   const t = occultTier(run), had = run.occultTier || 0;
   if (t <= had) return false;
   for (let k = had + 1; k <= t; k++) {
@@ -511,7 +535,7 @@ export function useCheck(run: RunState, kIdx: number, tg: UseTarget): string | n
   const it = useItemId(run, tg);
   if (!it) return '대상 장비 없음';
   if (isLocked(it) || isConsumable(it)) return '이 장비에는 쓸 수 없습니다';
-  if (id === 'K_legend' && (it[0] === 'L' || isMod(it) || isTurretGear(it))) return '전설로 바꿀 수 없는 장비입니다';
+  if (id === 'K_legend' && (it[0] === 'L' || isMod(it) || isTurretItem(it))) return '전설로 바꿀 수 없는 장비입니다';
   if (id === 'K_copy' && run.inventory.length - 1 >= CFG.inventoryMax) return '보관함이 가득 찼습니다';
   return null;
 }
@@ -1166,10 +1190,10 @@ function genMaint(run: RunState) {
   });
 }
 
-/** 포탑 장비 칸 상태를 엔지니어 단계에 맞춘다: 포탑 수 · 칸 수가 줄면 남는 장비는 보관함으로, 엔지니어가 꺼지면 포탑 회수 */
+/** 포탑 장비 · 개조부품 칸 상태를 엔지니어 단계에 맞춘다: 포탑 수 · 칸 수가 줄면 남는 장비는 보관함으로, 엔지니어가 꺼지면 포탑 회수 */
 export function syncTurrets(run: RunState): string[] {
   const n = turretCount(run);
-  const slots = turretSlots(n);
+  const slots = turretSlots(engTier(run));
   const back: string[] = [];
   const g = (run.turretGear ||= []);
   for (let i = 0; i < g.length; i++) {
@@ -1179,19 +1203,33 @@ export function syncTurrets(run: RunState): string[] {
   }
   g.length = Math.min(g.length, n);
   for (let i = 0; i < n; i++) { g[i] ||= []; while (g[i].length < slots) g[i].push(null); }
+  // 개조부품 칸: 포탑마다 1칸 (옛 세이브에는 없다 → 빈 칸)
+  const m = (run.turretMods ||= []);
+  for (let i = n; i < m.length; i++) if (m[i]) back.push(m[i]!);
+  m.length = Math.min(m.length, n);
+  for (let i = 0; i < n; i++) m[i] ??= null;
   if (!n && run.turretPos?.length) run.turretPos = []; // 엔지니어 비활성: 설치한 포탑 회수
   for (const id of back) run.inventory.push(id); // 보관함이 가득 차도 돌려준다
-  if (back.length) log(run, `포탑 회수: 장비 ${back.length}개 보관함으로`);
+  if (back.length) log(run, `포탑 회수: 장비 · 개조부품 ${back.length}개 보관함으로`);
   return back;
 }
-/** 보관함의 포탑 장비를 포탑 ti 의 칸에 (slot 생략 = 빈 칸, 없으면 첫 칸과 맞교환) */
+/** 보관함의 포탑 장비를 포탑 ti 의 칸에 (slot 생략 = 빈 칸, 없으면 첫 칸과 맞교환). 엔지니어 전용 개조부품은 개조부품 칸으로 (slot -1, 맞교환) */
 export function equipTurret(run: RunState, invIdx: number, ti: number, slot?: number): string | null {
   const id = run.inventory[invIdx];
   if (!id) return '대상 없음';
-  if (!isTurretGear(id)) return '포탑에는 포탑 전용 장비만 장착할 수 있습니다';
+  if (!isTurretItem(id)) return '포탑에는 포탑 전용 장비 · 엔지니어 전용 개조부품만 장착할 수 있습니다';
   syncTurrets(run);
   const g = run.turretGear![ti];
   if (!g) return '포탑이 없습니다';
+  if (isTurretMod(id)) {
+    if (slot !== undefined && slot >= 0) return '개조부품은 포탑의 개조부품 칸에만 장착할 수 있습니다';
+    const m = run.turretMods!;
+    run.inventory.splice(invIdx, 1);
+    if (m[ti]) run.inventory.push(m[ti]!);
+    m[ti] = id;
+    return null;
+  }
+  if (slot === -1) return '개조부품 칸에는 엔지니어 전용 개조부품만 장착할 수 있습니다';
   let k = slot !== undefined && slot >= 0 && slot < g.length ? slot : g.indexOf(null);
   if (k < 0) k = 0;
   run.inventory.splice(invIdx, 1);
@@ -1199,16 +1237,24 @@ export function equipTurret(run: RunState, invIdx: number, ti: number, slot?: nu
   g[k] = id;
   return null;
 }
+/** slot -1 = 개조부품 칸 */
 export function unequipTurret(run: RunState, ti: number, slot: number): string | null {
-  const g = run.turretGear?.[ti];
-  if (!g?.[slot]) return null;
+  const cur = slot === -1 ? run.turretMods?.[ti] : run.turretGear?.[ti]?.[slot];
+  if (!cur) return null;
   if (run.inventory.length >= CFG.inventoryMax) return '인벤토리 가득 참';
-  run.inventory.push(g[slot]!);
-  g[slot] = null;
+  run.inventory.push(cur);
+  if (slot === -1) run.turretMods![ti] = null; else run.turretGear![ti][slot] = null;
   return null;
 }
-/** 포탑 장비를 다른 포탑 칸으로 (그 칸 장비와 맞교환) */
+/** 포탑 장비를 다른 포탑 칸으로 (그 칸 장비와 맞교환). 칸 -1 = 개조부품 칸 (개조부품 칸끼리만) */
 export function moveTurretGear(run: RunState, from: [number, number], to: [number, number]) {
+  if (from[1] === -1 || to[1] === -1) {
+    if (from[1] !== -1 || to[1] !== -1) return;
+    const m = run.turretMods || [];
+    if (from[0] >= m.length || to[0] >= m.length) return;
+    [m[from[0]], m[to[0]]] = [m[to[0]], m[from[0]]];
+    return;
+  }
   const g = run.turretGear || [];
   const a = g[from[0]], b = g[to[0]];
   if (!a || !b || to[1] >= b.length || from[1] >= a.length) return;
@@ -1250,6 +1296,7 @@ export function equip(run: RunState, invIdx: number, uid: string): string | null
   if (isRock(u)) return '반려 돌은 장비를 달 수 없습니다';
   if (isConsumable(id)) return '소모품은 장착할 수 없습니다';
   if (isTurretGear(id)) return '포탑 전용 장비는 감시 포탑에만 장착할 수 있습니다';
+  if (isTurretMod(id)) return '엔지니어 전용 개조부품은 감시 포탑에만 장착할 수 있습니다';
   // 개조부품은 전용 칸으로 (이미 있으면 맞교환)
   if (isMod(id)) {
     if (isEmblem(id) && memberships(u).includes(emblemOf(id)) && u.mod !== id) return '이미 소속된 시너지의 문장입니다';
