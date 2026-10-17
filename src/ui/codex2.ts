@@ -22,6 +22,8 @@ import { KNIGHT_PAL } from '../engine/build';
 import { CAUSAL, causalNeed, isKingGear, KING_GEAR, KING_MS_TEXT, kingStageText } from '../data/chungra';
 import { BOSS_CC_IMMUNE, categoryImmune, categoryMult, REASON_HI, REASON_LO } from '../engine/combat';
 import { UNIT_BY_ID, UNITS, type UnitDef } from '../data/units';
+import { EMB_ROCK, emblemText } from '../data/emblems';
+import type { SummonDef } from '../data/unitkit';
 import { LORE, LORE_BY_ID, LORE_GROUP_NAME, LORE_SECTIONS, type LoreEntry, type LoreGroup, loreRegionsOf } from '../data/worldlore';
 import { FOE_GEAR_DIFF, INVEST_OFFERS, NEWS_OFFERS, PILGRIM_CARDS, SUPPLY_TEXT } from '../engine/run';
 import type { AugDef } from '../engine/effects';
@@ -424,13 +426,17 @@ export function kingSection(H: CxH, gear = false): string {
 /** 최고의 친구 소환물: 주인 · 소환물 · 전투 유형 · 기본 공격 · 기술 (주인 스킬 연계, 기본 파라미터) — 데이터(UnitDef.summon · ABIL[].summon)에서 읽는다 */
 function buddySummons(H: CxH) {
   const gl = new Set<string>();
+  const atkText = (sd: SummonDef) => `기본 공격: ${sd.atk.type === 'shoot' ? '사격' : '타격'} · ${ELEM_NAME[sd.atk.elem]} · 사거리 ${sd.range} · 공격 간격 ${sd.atk.interval}초${sd.basicMult && sd.basicMult !== 1 ? ` · 계수 ${pctTxt(sd.basicMult)}` : ''} · 체력 ×${sd.hpMul || 1}${sd.rate ? ` · 상속 ×${+sd.rate.toFixed(2)}` : ''}${sd.focusLow ? ' · 체력 비율이 가장 낮은 적을 노림' : ''}`;
   const rows = UNITS.filter((d) => d.summon).flatMap((d) => [d.summon!, ...(d.summon!.also || [])].map((sd, i) => {
     const info = ABIL[d.id]?.summon?.[sd.name]?.(d.skill.params);
-    const atk = `기본 공격: ${sd.atk.type === 'shoot' ? '사격' : '타격'} · ${ELEM_NAME[sd.atk.elem]} · 사거리 ${sd.range} · 공격 간격 ${sd.atk.interval}초${sd.basicMult && sd.basicMult !== 1 ? ` · 계수 ${pctTxt(sd.basicMult)}` : ''} · 체력 ×${sd.hpMul || 1}${sd.rate ? ` · 상속 ×${sd.rate}` : ''}${sd.focusLow ? ' · 체력 비율이 가장 낮은 적을 노림' : ''}`;
+    const atk = atkText(sd);
     const sk = info ? `기술 (${esc(d.skill.name)} 연계): ${info.rows.map(([k, v]) => `${esc(k)}: ${H.statIc(AB.tok(v, NO_CTX, gl))}`).join(' · ')}` : '';
     const face = H.sprite({ id: sd.art || `sm_${d.id}_${i}`, name: sd.name, sprite: sd.sprite, palette: sd.palette, art: sd.art } as unknown as UnitDef);
     return `<li class="cx2-row">${face}<span><b>${esc(sd.name)}</b> <span class="cx2-note">${esc(sd.ctype ? CTYPE_NAME[sd.ctype] : '소환물')}</span> <button class="cx2-note" ${go(`unit:${d.id}`)} title="기물 도감에서 보기">${esc(d.name)}</button><p class="muted">${esc(atk)}</p>${sk ? `<p class="muted">${sk}</p>` : ''}</span></li>`;
   }));
+  // 최고의 친구 문장을 단 기물이 부르는 반려 돌(인화성) (data/emblems.ts)
+  const rk = EMB_ROCK, rface = H.sprite({ id: rk.art, name: rk.name, sprite: rk.sprite, palette: rk.palette, art: rk.art } as unknown as UnitDef);
+  rows.push(`<li class="cx2-row">${rface}<span><b>${esc(rk.name)}</b> <span class="cx2-note">${esc(rk.ctype ? CTYPE_NAME[rk.ctype] : '소환물')}</span> <button class="cx2-note" ${go(`go:items:${emblemId('BUDDY')}`)} title="장비 도감에서 보기">${esc(itemName(emblemId('BUDDY')))} 장착 기물</button><p class="muted">${esc(atkText(rk))}</p><p class="muted">${esc(emblemText('BUDDY'))}</p></span></li>`);
   return `<h3>소환물 <span class="cx-hn">기본 상속률 ${pctTxt(CFG.bond.base)} · 단계가 오르면 위 표대로</span></h3><ul class="cx2-rows">${rows.join('')}</ul>`;
 }
 function synDetail(H: CxH, sid: SynergyId): string {

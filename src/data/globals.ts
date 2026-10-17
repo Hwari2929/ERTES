@@ -1,6 +1,7 @@
 import type { Effect, EffectCtx } from '../engine/effects';
 import { inc, red } from '../engine/effects';
 import type { RunState, SynergyId } from '../types';
+import { emblemText } from './emblems';
 import { skillHit } from './kit';
 import { SYN_BY_ID, SYNERGIES, tierOf } from './synergies';
 
@@ -52,7 +53,7 @@ export const GLOBALS: GlobalDef[] = [
 /** 특권 증강: 런 시작 시 1개 (새로고침 가능) */
 export interface PrivilegeDef { id: string; name: (param?: string) => string; desc: (param?: string) => string; w: number }
 export const PRIVILEGES: PrivilegeDef[] = [
-  { id: 'P.emblem', w: 4, name: (p) => `${synName(p!)} 문장`, desc: (p) => `[개조부품] ${synName(p!)} 문장 획득. 장착한 기물이 ${synName(p!)} 시너지에 추가로 소속됩니다.` },
+  { id: 'P.emblem', w: 4, name: (p) => `${synName(p!)} 문장`, desc: (p) => `[개조부품] ${synName(p!)} 문장 획득. 장착한 기물이 ${synName(p!)} 시너지에 추가로 소속됩니다.${emblemText(p as SynergyId) ? ` ${emblemText(p as SynergyId)}` : ''}` },
   { id: 'P.recruit', w: 1, name: () => '추가 계약', desc: () => '기물 3명 중 1명을 즉시 영입.' },
   { id: 'P.rank', w: 1, name: () => '베테랑 편성', desc: () => '시작 기물 전원 공명 등급 +2.' },
   { id: 'P.global', w: 1, name: () => '작전 재량', desc: () => '전역 증강을 1개 더 선택.' },

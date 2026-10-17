@@ -11,6 +11,7 @@ import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
 import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isLegendConsumable, isLocked, isMod, isOccultMod, isTurretGear, itemInfo, TURRET_GEAR, turretSlots } from './data/items';
 import { aceTargetUid, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
+import { withEmblemSummon } from './data/emblems';
 import { DIVINE_ACT, FAITH_DEF, MAJOR_AUGS, MINOR_TRAIT_GROW, recMajors } from './data/rework';
 import { type AugList, cantripView, passiveView, SCHOOL_LINE, transformPreview } from './data/psiinfo';
 import { augReqState } from './data/augreq';
@@ -1822,7 +1823,7 @@ function unitSummary(run: RunState, u: UnitState, d: UnitDef, b: Battle, c: CUni
 function unitModal(run: RunState) {
   const u = run.units.find((x) => x.uid === app.bigUnit);
   if (!u) return '';
-  const d = UNIT_BY_ID[u.defId];
+  const d = withEmblemSummon(UNIT_BY_ID[u.defId], u.mod); // 최고의 친구 문장: 소환물 섹션에 반려 돌(인화성)
   const { b, c } = previewAlly(run, u);
   const cnt = synergyCounts(deployed(run), run) as Record<string, number>;
   const effects = unitEffects(run, u, cnt, !!u.pos);
@@ -2041,7 +2042,7 @@ function detailPanel(run: RunState, extra = '') {
   if (sel?.k !== 'unit') return prepBrief(run);
   const u = run.units.find((x) => x.uid === sel.uid);
   if (!u) return '';
-  const d = UNIT_BY_ID[u.defId];
+  const d = withEmblemSummon(UNIT_BY_ID[u.defId], u.mod); // 최고의 친구 문장: 소환물 섹션에 반려 돌(인화성)
   const { b, c } = previewAlly(run, u);
   const effects = unitEffects(run, u, synergyCounts(deployed(run), run), !!u.pos);
   const tm = totalMajors(u, effects);
@@ -2604,7 +2605,7 @@ function statPopHtml(run: RunState) {
     if (!u) return '';
     const { b, c } = previewAlly(run, u);
     const nav = tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0);
-    return abilPopHtml(app.abilPop, UNIT_BY_ID[u.defId], b, c, [1, 1, 1.6, 2.5][nav] ?? 1);
+    return abilPopHtml(app.abilPop, withEmblemSummon(UNIT_BY_ID[u.defId], u.mod), b, c, [1, 1, 1.6, 2.5][nav] ?? 1);
   }
   if (!app.statPop && !app.abilPop) return '';
   if (sel?.k === 'enemy' && run.node?.enc) {
@@ -3383,7 +3384,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
   const eq = [...items.filter((x): x is string => !!x).map((x) => ic2(x)), ...(mod ? [ic2(mod)] : []), ...temp.map((x) => ic2(x, u.side === 1 ? '' : ' (임시)'))];
   let head = '', abils = '', pop = '';
   if (u.side === 0 && (!u.isSummon || u.mem.king)) {
-    const d = UNIT_BY_ID[u.defId];
+    const d = withEmblemSummon(UNIT_BY_ID[u.defId], u.src?.mod);
     const pv = provChip(b, u);
     head = heroHead(d.id, sprite(u, 'spr big'), d.name, allyTags(d)) + (pv ? `<div class="d-pows">${pv}</div>` : '');
     abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem, d.id)}<div class="abil ab-trait ab-click${abilOn('trait')} has-tok" data-a="abil-pop" data-v="trait" role="button" tabindex="0">${abTok(`trait.${d.id}`)}<div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${summonSection(d, b, u, '이번 전투')}${ultCard(d, b, u, true)}${faithAbil(d, u.src || null, app.run, u)}${ttSection(d, u.src || null, app.run, b, u, true)}${relicSection(d, u.src || null, app.run, u, true)}`;

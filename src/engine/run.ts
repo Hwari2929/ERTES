@@ -23,6 +23,7 @@ import { FAITHS,
 } from '../types';
 import { deployed, memberships, playerRows, synergyCounts, turretCount } from './build';
 import { causalGain, causalLeft, causalStage, KING_GEAR, KING_GEAR_NAME } from '../data/chungra';
+import { EMB } from '../data/emblems';
 import type { Battle } from './combat';
 import { newRec, recBattle, recReroll, recSpend } from './report';
 
@@ -53,11 +54,12 @@ export function interestInfo(run: RunState, counts = synergyCounts(deployed(run)
   const petAdd = (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (pet >= 4 ? 4 : 0);
   const glob = hasGlobal(run, 'G.interest') ? 5 : 0;
   const lars = run.units.some((u) => u.defId === 'lars') ? 2 : 0; // 라르스: 이자 상한 +2
-  const cap = Math.max(0, base) + petAdd + glob + lars;
+  const pemb = deployed(run).filter((u) => u.mod === 'M_PET').length * EMB.PET; // 페트라 문장: 출전 기물이 단 문장 1개당 (data/emblems.ts)
+  const cap = Math.max(0, base) + petAdd + glob + lars + pemb;
   const raw = Math.min(cap, Math.floor(run.credits / CFG.interestPer));
   const parts: [string, number][] = ([
     ['기본', CFG.interestMax], ['사건 · 계약', run.mods.interestCap], [`위험 6 이상`, -diffCut], [OATH_BY_ID.vault.name, -vault],
-    [`${SYN_BY_ID.PET.name} ${pet}단계`, petAdd], [GLOBAL_BY_ID['G.interest']?.name || '전역 증강', glob], [UNIT_BY_ID.lars?.name || '라르스', lars],
+    [`${SYN_BY_ID.PET.name} ${pet}단계`, petAdd], [GLOBAL_BY_ID['G.interest']?.name || '전역 증강', glob], [UNIT_BY_ID.lars?.name || '라르스', lars], [`${SYN_BY_ID.PET.name} 문장`, pemb],
   ] as [string, number][]).filter(([, v]) => v !== 0);
   const myopic = hasDespair(run, 'D.myopic');
   return { interest: despairInterest(run, raw), raw, cap, per: CFG.interestPer, parts, floor: base < 0, myopic: myopic ? DESPAIR_BY_ID['D.myopic'].name : '' };

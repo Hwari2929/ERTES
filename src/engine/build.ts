@@ -98,7 +98,7 @@ export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, 
   }
   for (const a of u.augments) { const d = AUG_BY_ID[a.id]; if (d) out.push(d.effect(a.param)); }
   for (const it of u.items) if (it) out.push(itemEffect(it, u.defId));
-  if (u.mod) out.push(itemEffect(u.mod)); // 신비 개조부품 (문장은 빈 효과)
+  if (u.mod) out.push(itemEffect(u.mod)); // 신비 개조부품 · 문장 (고유 효과, data/emblems.ts)
   if (onBoard) {
     const ctx = makeCtx(run, u, counts);
     const mine = new Set(memberships(u, run));
@@ -470,6 +470,7 @@ export const TURRET_TAC = [0.8, 3.0, 4.5, 6.5];
 ENG_HOOK.spawn = (b, lead, engs, n) => {
   const avg = (k: keyof Stats) => engs.reduce((s, e) => s + b.S(e, k), 0) / engs.length;
   const hpBonus = engs.reduce((s, e) => s + (e.mem.turretHp || 0), 0);
+  const maxHpBonus = engs.reduce((s, e) => s + (e.mem.turretMaxHp || 0), 0); // 엔지니어 문장: 최대 체력만 (data/emblems.ts)
   const tier = lead.mem.eng || 1;
   const inherit = TURRET_INHERIT[Math.min(4, tier) - 1]; // 엔지니어 단계별 상속률
   const asBonus = 0.4 + engs.reduce((s, e) => s + (e.mem.turretAs || 0), 0) + (tier >= 3 ? 0.8 : 0); // 기본 공격 속도 +40%
@@ -478,7 +479,7 @@ ENG_HOOK.spawn = (b, lead, engs, n) => {
   for (let i = 0; i < n; i++) {
     const t = blankUnit(lead.side);
     const st = emptyStats();
-    st.maxHp = avg('maxHp') * inherit * (1 + hpBonus);
+    st.maxHp = avg('maxHp') * inherit * (1 + hpBonus) * (1 + maxHpBonus);
     st.shoot = st.strike = st.tech = Math.max(avg('shoot'), avg('tech')) * inherit + tacAdd;
     st.armor = avg('armor') * inherit * (1 + hpBonus);
     st.acc = avg('acc') * 0.5; st.crit = avg('crit') * 0.5; st.critDmg = 1.5; st.effRes = avg('effRes') * 0.5;

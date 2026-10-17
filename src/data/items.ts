@@ -8,6 +8,7 @@ import { SYN_BY_ID } from './synergies';
 import { slow } from './kit';
 import { provMult } from '../engine/combat';
 import { KING_GEAR_NAME } from './chungra';
+import { emblemEffect, emblemText } from './emblems';
 
 // 장비 등급: 재료(+3) → 고급(같은 재료 2개, 능력치 +12) / 희귀(서로 다른 재료 2개, 능력치 +6 + 특수 효과) · 전설(효과 3배, 조합 불가 · 이벤트 · 상점)
 export const COMPONENTS: { id: string; major: Major; name: string; icon: string }[] = [
@@ -320,7 +321,8 @@ export function itemInfo(id: string): ItemInfo {
   if (UNIQUE[id]) return { id, tier: 'L', name: UNIQUE[id].name, icon: UNIQUE[id].icon, majors: {}, desc: UNIQUE[id].desc };
   if (isMod(id)) {
     const s = SYN_BY_ID[emblemOf(id)];
-    return { id, tier: 'M', name: `${s?.name || id} 문장`, icon: s?.icon || '◆', majors: {}, desc: `[개조부품] 장착한 기물이 ${s?.name || id} 시너지에 추가로 소속됩니다.` };
+    const fx = emblemText(emblemOf(id)); // 문장 고유 효과 (장착한 기물 1명, data/emblems.ts)
+    return { id, tier: 'M', name: `${s?.name || id} 문장`, icon: s?.icon || '◆', majors: {}, desc: `[개조부품] 장착한 기물이 ${s?.name || id} 시너지에 추가로 소속됩니다.${fx ? ` ${fx}` : ''}` };
   }
   const [tier, rest] = [id[0] as 'C' | 'G' | 'A' | 'L', id.slice(2)];
   if (tier === 'C') {
@@ -350,6 +352,7 @@ export function itemEffect(id: string, owner?: string): Effect {
   if (isHelItem(id)) { const h = HEL_ITEMS[id.slice(2)], k = id[0] === 'L' ? 2 : 1; return { ...h.effect(k), majors: { [h.major]: 6 * k } }; }
   if (UNIQUE[id]) return UNIQUE[id].effect;
   if (OCCULT_MODS[id]) return OCCULT_MODS[id].effect;
+  if (isEmblem(id)) return emblemEffect(emblemOf(id)); // 문장 고유 효과 (data/emblems.ts)
   if (isMod(id) || isConsumable(id)) return {};
   const info = itemInfo(id);
   if (info.tier === 'C' || info.tier === 'G') return { majors: info.majors };

@@ -10,7 +10,7 @@ export interface EffectCtx {
   credits: number;
 }
 
-export type PctKey = 'maxHp' | 'shoot' | 'strike' | 'tech' | 'armor';
+export type PctKey = 'maxHp' | 'shoot' | 'strike' | 'tech' | 'armor' | 'moveSpd';
 
 /** 증강/장비/시너지/전역 증강이 공통으로 쓰는 효과 묶음 */
 export interface Effect {
