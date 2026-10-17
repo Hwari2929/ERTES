@@ -1273,7 +1273,8 @@ function invDetail(run: RunState) {
   const TIER: Record<string, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '개조부품', K: isLegendConsumable(sel) ? '전설 소모품' : '소모품', U: '고유' };
   const ms = Object.entries(it.majors || {}) as [Major, number][];
   const stats = ms.length ? `<div class="ip-stats">${ms.map(([m, v]) => `<span>${majorIcon(m)}${MAJOR_NAME[m]} <b>+${v}</b></span>`).join('')}</div>` : '';
-  const eff = it.desc.replace(/^\[[^\]]+\]\s*/, '').replace(/^([^.,]+ \+\d+(, )?)+\.?\s*/, '');
+  // 능력치 줄(ip-stats)로 따로 보여 주는 '생명력 +6, 방어력 +6.' 접두어만 뗀다 — 능력치가 없는 소모품 · 개조부품 · 포탑 장비는 설명 전체 ('공명도 +8.' 등)
+  const eff0 = it.desc.replace(/^\[[^\]]+\]\s*/, ''), eff = ms.length ? eff0.replace(/^([^.,]+ \+\d+(, )?)+\.?\s*/, '') : eff0;
   const ct = isConsumable(sel) ? CONSUMABLES[sel].target : null;
   const hint = ct === 'run' ? `<button class="btn small primary" data-a="use-self" data-v="${selIdx}">사용</button>`
     : ct === 'foe' ? `<span class="muted small">${run.node?.enc ? '이번 전투의 적에게 끌어다 놓거나, 선택한 채로 적을 누르면 사용' : '전투를 앞둔 편성 화면에서 적에게 끌어다 놓아 사용'}</span>`
