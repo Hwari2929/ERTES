@@ -183,6 +183,7 @@ export interface RunState {
   aceTarget: string | null; // 항해자 에이스 파일럿 uid
   occultTier?: number;
   chefBread?: boolean; // 셰프: 시너지가 처음 켜질 때 주는 갓 구운 빵을 받았는지
+  breadFresh?: number[]; // 보관함의 갓 구운 빵이 식기까지 남은 전투 수 (오름차순 = 보관함의 'K_bread' 순서, engine/run.ts breadLeft)
   helTier?: number; // 헬레니우스: 지금까지 도달한 최고 단계 (전용 장비 지급 기록) // 신비학자: 지금까지 도달한 최고 단계 (전용 개조부품 지급 기록)
   privilege: AugPick | null; // 런 시작 특권 증강
   /** 절망 증강 id 목록 (data/despair.ts, 고른 순서). 고난 런에서 출격 때 특권 다음에 1개 + CFG.despair.every 페이즈마다 1개 */

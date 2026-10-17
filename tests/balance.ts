@@ -11,6 +11,8 @@ import * as R from '../src/engine/run';
 import { augChoice, forkChoice, manageItems, shopSynth, type Track, pilgrimBot } from './botlib';
 import { Rng } from '../src/rng';
 import { RELICS } from '../src/data/relics';
+import { FIELDS } from '../src/data/battlefields';
+import { fieldSyn, starterPool } from '../src/engine/starters';
 import type { Major, RunState, SynergyId } from '../src/types';
 
 declare const process: { argv: string[]; stdout: { write(s: string): void }; stderr: { write(s: string): void } };
@@ -25,6 +27,11 @@ const DETAIL = process.argv.includes('detail');
 const RANDREL = process.argv.includes('randrelic');
 /** field=<id>: 전장 고정 (전장별 클리어율 비교) */
 const FORCE_FIELD = process.argv.find((a) => a.startsWith('field='))?.slice(6);
+/** pool: 실제 게임처럼 계약 기물 후보(engine/starters.ts, 전장 우세 시너지 보장)에서 고른다 — 우세 시너지 기물 먼저 (최대 CFG.starterFav명), 나머지는 무작위.
+ *  없으면 예전처럼 시작 가능한 기물 전체에서 무작위 4명 (예전 기록과 비교용) */
+const POOL = process.argv.includes('pool') || process.argv.includes('pool0');
+/** pool0: 같은 정책이되 우세 시너지 보장 없이 무작위 후보 (보장 효과만 따로 보려는 비교용) */
+if (process.argv.includes('pool0')) CFG.starterFav = 0;
 
 // ───────── 집계 저장소 (합으로만 누적 → 워커끼리 더하면 된다)
 type Acc = Record<string, number>;
@@ -95,7 +102,13 @@ const runs: unknown[] = [];
 
 function playRun(seed: number) {
   const bot = new Rng(seed * 7 + 1);
-  const starters = bot.sample(STARTERS, CFG.startUnits);
+  let starters = bot.sample(STARTERS, CFG.startUnits);
+  if (POOL) { // 전장은 newRun 과 같은 추첨 (시드 첫 난수)
+    const pr = new Rng(seed * 13 + 5), field = FORCE_FIELD || new Rng(seed).pick(FIELDS).id, syn = fieldSyn(field);
+    const pool = starterPool(pr, field);
+    const fav = pr.shuffle(pool.filter((id) => !!syn && ([...UNIT_BY_ID[id].factions, ...UNIT_BY_ID[id].traits] as string[]).includes(syn))).slice(0, CFG.starterFav);
+    starters = [...fav, ...pr.sample(pool.filter((id) => !fav.includes(id)), CFG.startUnits - fav.length)];
+  }
   const run = R.newRun(seed, starters, FORCE_FIELD, DIFF);
   const synMax: Record<string, number> = {};
   const det: Record<string, [number, number]> = {}; // detail 모드: `키|페이즈:노드` → [전투, 승리]

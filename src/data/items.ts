@@ -115,15 +115,23 @@ export const OCCULT_MODS: Record<string, { name: string; icon: string; tier: 1 |
 };
 export const occultModsOfTier = (t: number) => Object.keys(OCCULT_MODS).filter((k) => OCCULT_MODS[k].tier === t);
 
-/** 갓 구운 빵 회복량: 위험 등급 d 이하에서 가장 높은 등급의 값 (CFG.chef.breadHeal), 표의 가장 낮은 등급보다 낮으면 그 등급의 값 */
-export function breadHeal(d: number | undefined): number {
+/** 갓 구운 빵 회복량: 위험 등급 d 이하에서 가장 높은 등급의 값 (CFG.chef.breadHeal), 표의 가장 낮은 등급보다 낮으면 그 등급의 값. stale = 식은 빵 (−staleHeal, 최소 1) */
+export function breadHeal(d: number | undefined, stale = false): number {
+  const v = breadHealBase(d);
+  return stale ? Math.max(1, v - CFG.chef.staleHeal) : v;
+}
+/** 빵 판매가: 셰프 단계 tier 기준 (CFG.chef.breadSell), 식은 빵 −staleSell */
+export const breadSell = (tier: number, stale = false) => Math.max(0, (CFG.chef.breadSell[Math.min(tier, CFG.chef.breadSell.length - 1)] ?? CFG.sell.K) - (stale ? CFG.chef.staleSell : 0));
+/** 갓 구운 빵 · 식은 빵 */
+export const isBread = (id: string | null | undefined) => id === 'K_bread' || id === 'K_bread_stale';
+function breadHealBase(d: number | undefined): number {
   const t = CFG.chef.breadHeal.slice().sort((a, b) => a[0] - b[0]);
   let v = t[0]?.[1] || 0;
   for (const [l, h] of t) if ((d || 0) >= l) v = h;
   return v;
 }
-/** 회복량 표기: '쉬움 15 · 모험 12 · 고난 10' (등급 이름은 difficulty.ts, 이름이 없는 등급은 '위험 n') */
-const breadHealText = () => CFG.chef.breadHeal.map(([l, h]) => `${diffName(l) || `위험 ${l}`} ${h}`).join(' · ');
+/** 회복량 표기: '쉬움 10 · 모험 7 · 고난 5' (등급 이름은 difficulty.ts, 이름이 없는 등급은 '위험 n') */
+const breadHealText = (stale = false) => CFG.chef.breadHeal.map(([l, h]) => `${diffName(l) || `위험 ${l}`} ${stale ? Math.max(1, h - CFG.chef.staleHeal) : h}`).join(' · ');
 const injText = (id: string) => `기물에 사용: 공명도 +${CFG.inject.amount[id]}.`;
 
 /** 소모품: 보관함에서 기물 · 장비 · 적에게 끌어다 사용.
@@ -147,7 +155,8 @@ export const CONSUMABLES: Record<string, { name: string; icon: string; target: '
     desc: '편성 화면에서 이번 전투의 적 1명에게 사용 (보스 포함): 그 적이 단 장비 · 개조부품을 모두 떼어 냅니다. 떼어 낸 것 중 등급이 가장 높은 1개(전설 > 개조부품 > 희귀 > 고급 > 재료)가 보관함으로 들어오고, 나머지는 부서집니다.' },
   K_rank3: { name: '원초 공명석', icon: '◆', target: 'unit', price: 0, drop: true, legend: true, desc: '기물에 사용: 공명 등급 +3. 정제되지 않은 공명석 원핵이 기물의 공명 구조를 단숨에 끌어올립니다.' },
   // 셰프 시너지
-  K_bread: { name: '갓 구운 빵', icon: '◒', target: 'run', price: 0, drop: true, chef: true, get desc() { return `바로 사용: 플레이어 체력 회복 (위험 등급에 따라 ${breadHealText()}). 셰프들이 남는 시간에 구워 둔 빵.`; } },
+  K_bread: { name: '갓 구운 빵', icon: '◒', target: 'run', price: 0, drop: true, chef: true, get desc() { return `바로 사용: 플레이어 체력 회복 (위험 등급에 따라 ${breadHealText()}). 얻은 뒤 전투 ${CFG.chef.staleAfter}회를 지나면 식은 빵이 됩니다 (셰프 ${SYN_BY_ID.CHEF?.tiers[CFG.chef.noStaleTier - 1] ?? ''}명이 켜진 전투는 세지 않음). 셰프들이 남는 시간에 구워 둔 빵.`; } },
+  K_bread_stale: { name: '식은 빵', icon: '◒', target: 'run', price: 0, drop: true, chef: true, get desc() { return `바로 사용: 플레이어 체력 회복 (위험 등급에 따라 ${breadHealText(true)}). 갓 구운 빵이 전투 ${CFG.chef.staleAfter}회를 지나 식었다. 회복량 −${CFG.chef.staleHeal} · 판매가 −${CFG.chef.staleSell}.`; } },
 };
 /** 합성 공방 상품 */
 export const ALL_CONSUMABLES = Object.keys(CONSUMABLES).filter((k) => !CONSUMABLES[k].drop);

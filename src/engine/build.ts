@@ -1,4 +1,4 @@
-import { CFG, phaseAmpMult, phaseHpMult } from '../config';
+import { CFG, encDmgMult, phaseAmpMult, phaseHpMult } from '../config';
 import { AUG_BY_ID } from '../data/augments';
 import { ENEMY_BY_ID, ENEMY_RT, type EnemyDef, setSummonHook } from '../data/enemies';
 import { fieldOf } from '../data/battlefields';
@@ -316,7 +316,7 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
     defId: def.id, name: def.name, sprite: def.sprite, palette: def.palette, st, keywords: def.keywords.slice(),
     atk: { type: def.atk.type, elem: def.atk.elem, interval: def.interval }, skill: def.skill || null,
     sk: { ...(def.skill?.params || {}) }, cdMax: def.skill?.cd || 0, isBoss: def.tier === 'boss', big: def.tier !== 'minion',
-    immobile: !!def.immobile, phaseAmp: phaseAmpMult(phase) * (1 + (mult - 1) / 2) * critTax,
+    immobile: !!def.immobile, phaseAmp: phaseAmpMult(phase) * encDmgMult(mult) * critTax,
   });
   c.mem.mult = mult;
   c.elite = def.tier === 'elite';

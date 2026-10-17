@@ -8,7 +8,7 @@ import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, breadHeal, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_ADV, TURRET_BASIC, TURRET_PRICE, turretSlots } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, breadHeal, breadSell, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_ADV, TURRET_BASIC, TURRET_PRICE, turretSlots } from '../data/items';
 import { SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, recMajors } from '../data/rework';
@@ -62,10 +62,10 @@ export function newRun(seed: number, starters: string[], field?: string, diff = 
   return run;
 }
 
-/** 페이즈 노드 구성 (12칸): 전투 > 전투 > 항로 회의(전역 증강) > 사건 > 전투 > 보급 > 전투(짝수 페이즈는 전환) > 역경 > 사건 > 역경 > 보급 > 보스.
+/** 페이즈 노드 구성 (12칸): 전투 > 전투 > 항로 회의(전역 증강) > 사건 > 역경 > 보급 > 전투(짝수 페이즈는 전환) > 전투 > 사건 > 역경 > 보급 > 보스.
  *  보급 = 상점 / 보급 / 모집 (+ 은하 대스타 속보 · 투자 · 순례) 중 선택. 2페이즈부터는 페이즈 시작 때 영입 기회가 열린다 */
 export function phaseMap(phase: number): NodeType[][] {
-  return [['battle'], ['battle'], ['council'], ['event'], ['battle'], ['shop'], [phase % 2 === 0 ? 'fork' : 'battle'], ['adversity'], ['event'], ['adversity'], ['shop'], ['boss']];
+  return [['battle'], ['battle'], ['council'], ['event'], ['adversity'], ['shop'], [phase % 2 === 0 ? 'fork' : 'battle'], ['battle'], ['event'], ['adversity'], ['shop'], ['boss']];
 }
 
 // ───────────────────────── 특권 증강 (런 시작)
@@ -378,10 +378,10 @@ export function pickFork(run: RunState, choice: 'rest' | 'challenge' | 'synth') 
   log(run, '전환: 도전');
 }
 
-/** 도전 승리 보상: 남은 역경 2 · 사건 · 보급 · 보스를 합친 정도 */
+/** 도전 승리 보상: 건너뛰는 전투 · 사건 · 역경 · 보급 · 보스를 합친 정도 (전환 뒤 칸: phaseMap) */
 function challengeReward(run: RunState, lines: string[]) {
   const p = run.phase;
-  const c = Math.round(CFG.winCredits(p) * CFG.adversityReward * 2 + CFG.winCredits(p) + 5 + 12 + p);
+  const c = Math.round(CFG.winCredits(p) * CFG.adversityReward + CFG.winCredits(p) * 2 + 5 + 12 + p);
   run.credits += c;
   lines.push(`도전 보상 +${c}`);
   gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
@@ -451,7 +451,7 @@ export function useCheck(run: RunState, kIdx: number, tg: UseTarget): string | n
   const c = id ? CONSUMABLES[id] : undefined;
   if (!c) return '소모품이 아닙니다';
   if (c.target === 'run') {
-    if (id === 'K_bread' && run.hp >= run.maxHp) return '플레이어 체력이 가득 찼습니다';
+    if ((id === 'K_bread' || id === 'K_bread_stale') && run.hp >= run.maxHp) return '플레이어 체력이 가득 찼습니다';
     return null;
   }
   if (c.target === 'foe') {
@@ -493,9 +493,10 @@ export function useConsumable(run: RunState, kIdx: number, tg: UseTarget): { ok:
   const id = run.inventory[kIdx];
   const name = CONSUMABLES[id].name;
   let msg = '';
-  if (id === 'K_bread') { // 갓 구운 빵: 플레이어 체력 회복 (위험 등급별)
-    const h = Math.min(run.maxHp - run.hp, breadHeal(run.diff));
+  if (id === 'K_bread' || id === 'K_bread_stale') { // 갓 구운 빵 · 식은 빵: 플레이어 체력 회복 (위험 등급별, 식은 빵은 덜)
+    const h = Math.min(run.maxHp - run.hp, breadHeal(run.diff, id === 'K_bread_stale'));
     run.hp += h;
+    dropBread(run, kIdx);
     run.inventory.splice(kIdx, 1);
     msg = `플레이어 체력 +${h} (${run.hp}/${run.maxHp})`;
     log(run, `${name}: ${msg}`);
@@ -745,7 +746,11 @@ export interface BattleSummary {
   gameOver: boolean;
 }
 
+/** 이번 페이즈 보스가 '이겨야 넘어가는' 보스인지: 의뢰의 마지막 보스 (victoryPhase 이상 · 아직 의뢰 성공 전)만. 그 밖의 보스는 져도 다음 페이즈로 (무한 모드 보스 포함) */
+export const bossMustWin = (run: RunState) => !run.cleared && run.phase >= CFG.victoryPhase;
+
 export function resolveBattle(run: RunState, b: Battle): BattleSummary {
+  const staled = ageBread(run); // 갓 구운 빵: 이번 전투로 식는 것 (이번 전투에서 얻는 빵은 세지 않도록 먼저)
   const inv0 = run.inventory.slice(); // 결과 창: 새로 얻은 장비 표시용
   const node = run.node!.type;
   const challenge = node === 'challenge';
@@ -753,6 +758,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   const won = b.winner === 0;
   const p = run.phase;
   const lines: string[] = [];
+  if (staled) lines.push(`갓 구운 빵 ${staled}개가 식었습니다`);
   const dep = deployed(run);
   const counts = synergyCounts(dep, run);
   const pet = tierOf('PET', counts.PET || 0);
@@ -812,7 +818,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     hpLoss = Math.round(hpLoss);
     run.hp -= hpLoss;
     lines.push(`패배 — 체력 -${hpLoss}`);
-    if (type === 'boss') lines.push('보스를 쓰러뜨려야 다음 페이즈로 넘어갈 수 있습니다.');
+    if (type === 'boss') lines.push(bossMustWin(run) ? '의뢰의 마지막 보스입니다 — 쓰러뜨려야 의뢰를 마칠 수 있습니다. 다시 맞붙습니다.' : '보스를 넘지 못했지만, 함대는 물러나 다음 페이즈로 항로를 이어 갑니다.');
   }
   if (run.loan > 0) {
     const pay = Math.min(10, run.loan, run.credits + income);
@@ -882,7 +888,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     }
   }
   if (run.hp <= 0) { run.hp = 0; run.over = true; gameOver = true; }
-  else if (won || type !== 'boss') advance(run);
+  else if (won || type !== 'boss' || !bossMustWin(run)) advance(run); // 보스: 져도 다음 페이즈로 (의뢰의 마지막 보스만 다시)
   else run.node = { type: 'boss', enc: genEncounter(run, 'boss') };
   const gained = run.inventory.slice();
   for (const id of inv0) { const i = gained.indexOf(id); if (i >= 0) gained.splice(i, 1); }
@@ -1015,15 +1021,45 @@ export function unixSwap(run: RunState, id: string, lines?: string[]): string {
 export function gainItem(run: RunState, id: string, lines?: string[], force = false, own = false): string | null {
   if (!own) id = unixSwap(run, id, lines);
   if (run.inventory.length >= CFG.inventoryMax && !force) {
-    const v = CFG.sell[id[0]];
+    const v = sellPrice(run, id);
     run.credits += v;
     lines?.push(`인벤토리 가득 참 — ${itemInfo(id).name} 자동 판매 +${v}`);
     return null;
   }
+  if (id === 'K_bread') breadLeft(run, true); // 지금 보관함 빵에 맞춘 뒤
   run.inventory.push(id);
+  if (id === 'K_bread') run.breadFresh!.push(CFG.chef.staleAfter); // 새 빵: 식기까지 전투 staleAfter 회
   lines?.push(`장비 획득: ${itemInfo(id).name}`);
   return id;
 }
+
+/** 갓 구운 빵이 식기까지 남은 전투 수: 보관함의 'K_bread' 순서대로 (먼저 얻은 것 = 적게 남은 것부터).
+ *  쓰거나 판 빵은 따로 기록하지 않으므로, 보관함 개수에 맞춰 가장 오래된 기록부터 지운다 (옛 세이브 · 모자라면 새 빵으로 채움). save = run 에 맞춘 값 저장 */
+export function breadLeft(run: RunState, save = false): number[] {
+  const n = run.inventory.filter((x) => x === 'K_bread').length;
+  const ages = (run.breadFresh || []).slice().sort((a, b) => a - b);
+  while (ages.length > n) ages.shift();
+  while (ages.length < n) ages.push(CFG.chef.staleAfter);
+  if (save) run.breadFresh = ages;
+  return ages;
+}
+/** 보관함 칸 i 의 갓 구운 빵을 쓰거나 팔 때: 그 빵의 남은 전투 기록을 지운다 (보관함에서 빼기 전에 부른다) */
+function dropBread(run: RunState, i: number) {
+  if (run.inventory[i] !== 'K_bread') return;
+  const ages = breadLeft(run, true), k = run.inventory.slice(0, i).filter((x) => x === 'K_bread').length;
+  ages.splice(k, 1);
+}
+/** 전투 1회: 빵이 식는 데 남은 전투 −1, 0 이 되면 식은 빵으로 (가장 먼저 얻은 빵부터). 셰프 noStaleTier 단계가 켜진 전투는 세지 않는다. 식은 빵 수 */
+function ageBread(run: RunState): number {
+  const ages = breadLeft(run, true);
+  if (!ages.length || tierNow(run, 'CHEF') >= CFG.chef.noStaleTier) return 0;
+  let n = 0;
+  run.breadFresh = ages.map((x) => x - 1).filter((x) => { if (x > 0) return true; n++; return false; });
+  for (let k = 0; k < n; k++) { const i = run.inventory.indexOf('K_bread'); if (i >= 0) run.inventory[i] = 'K_bread_stale'; }
+  return n;
+}
+/** 보관함 물품 판매가: 빵은 판매할 때의 셰프 단계 기준 (CFG.chef.breadSell, 식은 빵 −staleSell), 그 밖은 CFG.sell */
+export const sellPrice = (run: RunState, id: string) => (id === 'K_bread' || id === 'K_bread_stale' ? breadSell(tierNow(run, 'CHEF'), id === 'K_bread_stale') : CFG.sell[id[0]]);
 
 /** 공명 주입기 1개: 페이즈에 맞는 크기 (injectorWeights 가중치) */
 const pickInjector = (r: Rng, phase: number) => r.weighted(injectorWeights(phase), ([, w]) => w)[0];
@@ -1138,7 +1174,8 @@ export function buyShop(run: RunState, idx: number): string | null {
 export function sellItem(run: RunState, invIdx: number) {
   const id = run.inventory[invIdx];
   if (!id || isLocked(id)) return;
-  run.credits += CFG.sell[id[0]];
+  run.credits += sellPrice(run, id);
+  dropBread(run, invIdx);
   run.inventory.splice(invIdx, 1);
 }
 export function combineInv(run: RunState, i: number, j: number): string | null {

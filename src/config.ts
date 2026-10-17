@@ -72,7 +72,7 @@ export const CFG = {
   // 고페이즈 보정 [임시]: lateFrom 페이즈부터 매 페이즈 체력 ×lateHp, 피해 ×lateAmp 추가 (8페이즈 누적 체력 -19%, 피해 +41%)
   lateFrom: 5, lateHp: 0.9, lateAmp: 1.05,
   phaseHpFactor: (p: number) => (p <= 5 ? 1.85 : Math.max(1.1, 1.85 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
-  adversityMult: 1.5,
+  adversityMult: 1.3, // 역경 · 도전 조우 강도 (위험 등급과 무관): 적 체력 ×이 값, 피해 ×encDmgMult(이 값) (예전 1.5)
   adversityReward: 1.5, // 역경 승리 보상 배율: 크레딧 · 공명도 풀 (도전 보상의 '남은 역경' 몫도 이 값)
   adversityLoss: 1.5, // 역경 패배 체력 피해 배율 (도전 패배도 역경 기준)
   enemyHpMul: 4.6, enemyPowMul: 2.25, // 적 기초 수치 전체 배율 (튜닝용)
@@ -108,6 +108,7 @@ export const CFG = {
   amundsenRecruitW: 0.08, // 아문센 · 데미우르고스 영입 후보 가중치 (다른 기물 = 1)
   joinRankRatio: 0.7, // 영입 · 합류 등급 = max(페이즈 - 1, 출전 기물 평균 등급 × k)
   startUnits: 4, maxParty: 16, // 출전 최대 10 + 대기 6
+  starterPool: 8, starterFav: 2, starterRerolls: 1, // 계약 기물 선택 (engine/starters.ts): 후보 수 · 그중 전장 우세 시너지(FieldDef.ally.syn, 전장 브리핑의 '우세 시너지') 기물 최소 수 · 후보 새로고침 횟수
   deployBase: 4, // 기본 출전 인원. 함대 확장으로 늘린다
   fleetCosts: [20, 40, 56, 72, 90, 108, 128, 160, 200, 256], // 함대 확장 n번째 비용 (출전 5 → 14명)
   musterCost: 16, musterStep: 8, musterPicks: 3, // 지정 소집: 기본 가격, 회당 상승, 고르는 시너지 수
@@ -119,7 +120,12 @@ export const CFG = {
   /** 셰프: 갓 구운 빵 (소모품 K_bread, 플레이어 체력 회복). 셰프 시너지가 처음 켜질 때 1개 + 전투 승리마다 단계별 확률로 1개 (breadWin = 셰프 1 · 2 · 3단계).
    *  회복량은 위험 등급 기준 [등급, 회복량]: 런의 위험 등급 이하에서 가장 높은 등급의 값, 그보다 낮은 등급은 첫 값.
    *  지금 표는 선택 화면의 세 단계 (difficulty.ts DIFF_PRESETS: 쉬움 3 · 모험 6 · 고난 7) — 이름은 difficulty.ts 에서 읽는다 */
-  chef: { breadWin: [0.15, 0.2, 0.3], breadHeal: [[3, 15], [6, 12], [7, 10]] as [number, number][] },
+  chef: { breadWin: [0.15, 0.2, 0.3], breadHeal: [[3, 10], [6, 7], [7, 5]] as [number, number][],
+    // 식은 빵 (K_bread_stale): 얻은 뒤 전투 staleAfter 회를 지나면 식는다 (승패 무관, 빵을 얻은 그 전투는 세지 않음) — 회복 −staleHeal (최소 1) · 판매가 −staleSell.
+    // 셰프 noStaleTier 단계 (6명) 가 켜진 전투는 세지 않는다 (이미 식은 빵은 그대로)
+    staleAfter: 2, staleHeal: 2, staleSell: 1, noStaleTier: 3,
+    breadSell: [4, 4, 5, 6], // 빵 판매가: 판매할 때의 셰프 단계 (0 · 1 · 2 · 3단계) 기준
+  },
 
   // ── 경제 [임시]
   startCredits: 6,
@@ -183,6 +189,9 @@ export const CFG = {
 export function phaseAmpMult(p: number): number {
   return Math.pow(CFG.phaseAmp, p - 1) * Math.pow(CFG.lateAmp, Math.max(0, p - CFG.lateFrom + 1));
 }
+
+/** 조우 강도 배율(적 체력 배율 mult) → 적 피해 배율: 체력 배율의 절반만 반영 (build.ts buildEnemy · 역경 설명 공용) */
+export const encDmgMult = (mult: number) => 1 + (mult - 1) / 2;
 
 /** p 페이즈 적 체력 누적 배율 */
 export function phaseHpMult(p: number): number {

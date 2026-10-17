@@ -480,8 +480,8 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'CHEF', name: '셰프', kind: 'trait', tiers: [2, 4, 6], color: '#ffb36b', icon: '♨',
-    desc: `셰프의 전투 스킬은 요리입니다. 요리는 아군 1명을 회복시키거나 보호막을 주고 특수 버프를 겁니다. 단계가 오르면 요리 위력이 커집니다.\n· 셰프 시너지가 의뢰에서 처음 켜지면 소모품 [갓 구운 빵] 1개를 받고, 켜진 채로 전투에서 이기면 단계에 따라 확률로 1개씩 더 받습니다 (빵은 플레이어 체력 회복).`,
-    tierDesc: [`요리 위력 ×${CFG.cookPower[1]}, 승리 시 ${Math.round(CFG.chef.breadWin[0] * 100)}% 확률로 갓 구운 빵`, `요리 위력 ×${CFG.cookPower[2]}, 승리 시 ${Math.round(CFG.chef.breadWin[1] * 100)}% 확률로 갓 구운 빵`, `요리 위력 ×${CFG.cookPower[3]}, 모든 아군 최대 체력 +15%, 승리 시 ${Math.round(CFG.chef.breadWin[2] * 100)}% 확률로 갓 구운 빵`],
+    desc: `셰프의 전투 스킬은 요리입니다. 요리는 아군 1명을 회복시키거나 보호막을 주고 특수 버프를 겁니다. 단계가 오르면 요리 위력이 커집니다.\n· 셰프 시너지가 의뢰에서 처음 켜지면 소모품 [갓 구운 빵] 1개를 받고, 켜진 채로 전투에서 이기면 단계에 따라 확률로 1개씩 더 받습니다 (빵은 플레이어 체력 회복).\n· 빵은 얻은 뒤 전투 ${CFG.chef.staleAfter}회를 지나면 식은 빵이 됩니다 (회복 −${CFG.chef.staleHeal} · 판매가 −${CFG.chef.staleSell}). 빵 판매가는 팔 때의 셰프 단계에 따라 오릅니다.`,
+    tierDesc: [1, 2, 3].map((t) => `요리 위력 ×${CFG.cookPower[t]}${t === 3 ? ', 모든 아군 최대 체력 +15%' : ''}, 승리 시 ${Math.round(CFG.chef.breadWin[t - 1] * 100)}% 확률로 갓 구운 빵 (빵 판매가 ${CFG.chef.breadSell[t]}${t >= CFG.chef.noStaleTier ? ', 켜진 동안 빵이 식지 않음' : ''})`),
     member: (t) => ({ setup: (u) => { u.mem.cook = CFG.cookPower[t]; } }),
     team: (t) => (t >= 3 ? { pct: { maxHp: 0.15 } } : null),
   },

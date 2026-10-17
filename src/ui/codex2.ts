@@ -11,7 +11,7 @@ import { ALL_AUGS, augDesc, augSource } from '../data/augments';
 import { BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES } from '../data/globals';
 import { DESPAIR_BY_ID, DESPAIRS, despairRule } from '../data/despair';
 import { diffName } from '../data/difficulty';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, CONSUMABLES, emblemId, injectorWeights, INJECTORS, isLegendConsumable, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_PRICE, UNIQUE_IDS, isJunk, JUNK_IDS } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, breadSell, combine, CONSUMABLES, emblemId, injectorWeights, INJECTORS, isLegendConsumable, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_PRICE, UNIQUE_IDS, isJunk, JUNK_IDS } from '../data/items';
 import { PSI_BRIEF } from '../data/brief';
 import { cantripView, passiveView, SCHOOL_LINE, transformPreview } from '../data/psiinfo';
 import { RELIC_BY_ID, RELICS } from '../data/relics';
@@ -267,9 +267,15 @@ function sources(id: string): string[] {
     const foeGear = `적이 장비를 다는 위험 ${FOE_GEAR_DIFF} 이상 의뢰에서만`;
     if (!c.drop) out.push(`${SYN_BY_ID.OCCULT.name} [합성] 공방 · ${c.price} 크레딧`);
     else if (c.chef) {
-      out.push(`${chef.name} 시너지가 의뢰에서 처음 켜질 때 (${chef.tiers[0]}명) 1개`);
-      out.push(`${chef.name} 활성 중 전투 승리 시 확률로 1개: ${chef.tiers.map((n, i) => `${n}명 ${pctTxt(CFG.chef.breadWin[i] || 0)}`).join(' · ')}`);
-      out.push(`회복량 (위험 등급별): ${CFG.chef.breadHeal.map(([l, h]) => `${diffName(l) || `위험 ${l}`} ${h}`).join(' · ')}`);
+      const stale = id === 'K_bread_stale', C = CFG.chef;
+      if (stale) out.push(`[${CONSUMABLES.K_bread?.name}]을 얻은 뒤 전투 ${C.staleAfter}회를 지나면 (승패 무관, ${chef.name} ${chef.tiers[C.noStaleTier - 1]}명이 켜진 전투는 세지 않음 · 이미 식은 빵은 그대로)`);
+      else {
+        out.push(`${chef.name} 시너지가 의뢰에서 처음 켜질 때 (${chef.tiers[0]}명) 1개`);
+        out.push(`${chef.name} 활성 중 전투 승리 시 확률로 1개: ${chef.tiers.map((n, i) => `${n}명 ${pctTxt(C.breadWin[i] || 0)}`).join(' · ')}`);
+        out.push(`전투 ${C.staleAfter}회 뒤 [${CONSUMABLES.K_bread_stale?.name}]이 된다 (회복 −${C.staleHeal} · 판매가 −${C.staleSell}, ${chef.name} ${chef.tiers[C.noStaleTier - 1]}명이 켜진 전투는 세지 않음)`);
+      }
+      out.push(`회복량 (위험 등급별): ${C.breadHeal.map(([l, h]) => `${diffName(l) || `위험 ${l}`} ${stale ? Math.max(1, h - C.staleHeal) : h}`).join(' · ')}`);
+      out.push(`판매가 (팔 때의 ${chef.name} 인원): ${[0, ...chef.tiers.map((_, i) => i + 1)].filter((t, i, a) => i === 0 || breadSell(t, stale) !== breadSell(a[i - 1], stale)).map((t) => `${t ? `${chef.tiers[t - 1]}명 이상` : '기본'} ${breadSell(t, stale)}`).join(' · ')}`);
     } else if (id === 'K_seize') {
       out.push(`상점 · ${S.price[id]} 크레딧 (${pctTxt(S.seize)} 확률 진열, ${foeGear})`);
       out.push(`전투 승리 보상 (매우 낮은 확률, ${foeGear}): ${dropTxt(CFG.drop.seize)}`);
@@ -362,7 +368,7 @@ function itemDetail(H: CxH, id: string): string {
   }
   const src = sources(id);
   if (src.length) a.push(`<h3>얻는 곳</h3><ul class="cx2-src">${src.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>`);
-  const sell = id.startsWith(RELIC_KEY) || isLocked(id) ? undefined : CFG.sell[id[0]];
+  const sell = id.startsWith(RELIC_KEY) || isLocked(id) || CONSUMABLES[id]?.chef ? undefined : CFG.sell[id[0]]; // 빵 판매가는 셰프 인원에 따라 (얻는 곳에 표시)
   if (sell !== undefined) a.push(`<p class="muted small">판매가 <span class="f-num">${sell}</span> 크레딧</p>`);
   return `<div class="detail cx-d cx2-d">${head(itemIc(H, id), esc(itemName(id)), esc(tierLabel(g, id)))}${cols(a.join(''), b.join(''))}</div>`;
 }

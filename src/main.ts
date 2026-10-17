@@ -1,4 +1,4 @@
-import { CFG, phaseAmpMult, phaseHpMult } from './config';
+import { CFG, encDmgMult, phaseAmpMult, phaseHpMult } from './config';
 import { AUG_BY_ID, augDesc } from './data/augments';
 import { ENEMIES, ENEMY_BY_ID, type EnemyDef } from './data/enemies';
 import { ENEMY_DESC } from './data/enemyText';
@@ -50,6 +50,7 @@ import { fieldIntroPending } from './data/scenes/fields';
 import { GLOSSARY, GLOSSARY_COUNT } from './data/glossary';
 import { NODE_DESC } from './data/nodes';
 import * as TUT from './engine/tutorial';
+import { fieldSyn, starterFavNeed, starterPool } from './engine/starters';
 
 // 편의 설정 (이 브라우저에만 저장): 전투 속도, 진형 속도 등
 const PREF_KEY = 'errantes.prefs.v1';
@@ -108,7 +109,8 @@ const app = {
   run: null as RunState | null,
   sel: null as Sel,
   starters: [] as string[],
-  pool: [] as string[], // 시작 기물 후보 (무작위 8명)
+  pool: [] as string[], // 시작 기물 후보 (CFG.starterPool 명, engine/starters.ts)
+  poolRerolls: 0, // 시작 기물 후보 새로고침 남은 횟수
   detail: !!loadPrefs().detail, // 상세 보기: 계수 · 메커니즘 표시
   recruitPick: null as string | null, // 영입 창에서 고른 기물 (확정 전)
   recoFor: null as string | null, // 추천 장비 창을 연 기물 uid
@@ -222,21 +224,27 @@ function xpBar(u: UnitState) {
   const need = CFG.xpToNext(u.rank);
   return `<div class="xp"><i style="width:${(u.xp / need) * 100}%"></i><b>${u.xp}/${need}</b></div>`;
 }
-function itemIcon(id: string | null, attrs = '') {
+function itemIcon(id: string | null, attrs = '', note = '') { // note: 툴팁 덧붙임 (갓 구운 빵의 남은 전투 등)
   if (!id) return `<span class="item empty" ${attrs}></span>`;
   const it = itemInfo(id);
   const sc = isEmblem(id) ? SYN_BY_ID[emblemOf(id)]?.color : isOccultMod(id) ? SYN_BY_ID.OCCULT.color : ''; // 문장: 시너지 색 · 신비 부품: 신비학자 색
   const hx = isConsumable(id) ? ` hex" style="--hc:${consColor(id)}` : ''; // 소모품: 육각형 (합성품 보라 · 전투 보상 청록 · 전설급 금색 · 셰프 주황)
-  return `<span class="item t${it.tier}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc)}" ${attrs}>${itemGlyph(id) || it.icon}</span>`;
+  return `<span class="item t${it.tier}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc + (note ? ` (${note})` : ''))}" ${attrs}>${itemGlyph(id) || it.icon}</span>`;
+}
+/** 보관함 칸 i 가 갓 구운 빵이면 '전투 n회 뒤 식음' (engine/run.ts breadLeft, 셰프 6명이 켜져 있으면 덧붙임) */
+function breadNote(run: RunState, i: number) {
+  if (run.inventory[i] !== 'K_bread') return '';
+  const left = R.breadLeft(run)[run.inventory.slice(0, i).filter((x) => x === 'K_bread').length];
+  return `전투 ${left}회 뒤 식음${tierOf('CHEF', synergyCounts(deployed(run), run).CHEF || 0) >= CFG.chef.noStaleTier ? ' · 지금은 셰프 덕에 식지 않음' : ''}`;
 }
 /** 소모품 육각형 테두리 색: 전설급 = 전설 장비 색 · 셰프 = 셰프 시너지 색 · 합성품 = 신비학자 색 · 그 밖 (전투 보상 · 상점) 청록 */
-const consColor = (id: string) => (isLegendConsumable(id) ? 'var(--g-L)' : CONSUMABLES[id]?.chef ? SYN_BY_ID.CHEF.color : CONSUMABLES[id]?.drop ? '#6fc3df' : SYN_BY_ID.OCCULT.color);
+const consColor = (id: string) => (isLegendConsumable(id) ? 'var(--g-L)' : id === 'K_bread_stale' ? '#8c8478' : CONSUMABLES[id]?.chef ? SYN_BY_ID.CHEF.color : CONSUMABLES[id]?.drop ? '#6fc3df' : SYN_BY_ID.OCCULT.color);
 /** 신비 개조부품 · 소모품 아이콘 */
 const SPECIAL_GLYPH: Record<string, string> = {
   O_reach: 'a.range', O_feast: 'a.heal', O_ward_phys: 'e.phys', O_ward_psy: 'e.psy', O_ward_chem: 'e.chem', O_ward_elec: 'e.elec', O_ward_holy: 'e.holy',
   O_mirror: 'a.shield', O_echo: 'a.cd', O_soul: 'a.dmg', O_aegis: 'r.hp', O_void: 'a.crit',
   K_rank: 'r.res', K_morph: 'a.summon', K_legend: 'a.power', K_copy: 'a.reload', K_strip: 'u.area', K_reroll: 'a.cd', K_xp: 'k.inj1', K_xp2: 'k.inj2', K_xp3: 'k.inj3',
-  K_seize: 'k.seize', K_rank3: 'k.rank3', K_bread: 'k.bread',
+  K_seize: 'k.seize', K_rank3: 'k.rank3', K_bread: 'k.bread', K_bread_stale: 'k.bread_stale',
   T_cal: 'a.dmg', T_plate: 'a.hp', T_cryo: 's.chrono', T_ammo: 'u.mag', T_barrier: 'a.shield', T_selfd: 'u.area', T_rapid: 'a.speed', T_tesla: 'e.elec', T_flame: 's.pyro', T_snipe: 'a.snipe', T_mark: 'u.target',
 };
 /** 장비 아이콘: 재료 · 고급 = 메이저 아이콘, 희귀 · 전설 = 고유 아이콘, 문장 = 시너지 아이콘 */
@@ -804,7 +812,7 @@ function newRunScreen() {
   const n = app.starters.length;
   return `<main class="wrap nr">
     <div class="nr-head">
-      <div><h1>계약 기물 선택</h1><p class="muted small">이번 출격에 응한 ${app.pool.length}명 중 ${CFG.startUnits}명을 고르세요. ${CAN_HOVER ? '카드에 마우스를 올리면 설명이 나오고, 누르면 선택합니다.' : '카드를 누르면 선택합니다. 하단을 위로 끌어올리거나 [상세 보기]를 누르면 설명이 나옵니다.'}</p></div>
+      <div><h1>계약 기물 선택</h1><p class="muted small">이번 출격에 응한 ${app.pool.length}명 중 ${CFG.startUnits}명을 고르세요.${(() => { const syn = fieldSyn(app.introField), k = starterFavNeed(app.introField); return syn && k ? ` 전장 [${esc(fieldOf(app.introField).name)}]의 우세 시너지 ${chip(syn)} 기물이 ${k}명 이상 섞여 있습니다.` : ''; })()} ${CAN_HOVER ? '카드에 마우스를 올리면 설명이 나오고, 누르면 선택합니다.' : '카드를 누르면 선택합니다. 하단을 위로 끌어올리거나 [상세 보기]를 누르면 설명이 나옵니다.'}</p></div>
       ${detailToggle()}
     </div>
     <div class="carousel">
@@ -820,6 +828,7 @@ function newRunScreen() {
       <div class="nr-syn syn-list">${(() => { const cnt = teamCount(app.starters); const ids = SYNERGIES.map((x) => x.id).filter((id) => cnt(id) > 0).sort((x, y) => cnt(y) - cnt(x)); return ids.map((id) => synToken(id, cnt(id))).join(''); })()}</div>
       <button class="btn ghost" data-a="to-title">뒤로</button>
       <button class="btn ghost" data-a="random-starters">무작위</button>
+      <button class="btn ghost" data-a="reroll-starters" title="고르지 않은 후보를 새로 뽑습니다 (단축키 R)" ${app.poolRerolls > 0 ? '' : 'disabled'}>새로고침 (${app.poolRerolls}회)</button>
       <button class="btn primary" data-a="start-run" ${n === CFG.startUnits ? '' : 'disabled'}>출격 (${n}/${CFG.startUnits})</button>
     </div>
   </main>`;
@@ -938,7 +947,7 @@ function nodeHint(o: NodeType) {
   return ({
     battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 ${CFG.adversityReward}배 + 장비 재료 ${CFG.drop.advParts}개 확정`,
     council: `전역 증강 3장 중 택1 · 새로고침 ${CFG.globalRerolls}회`, shop: `분기점 — 상점 / 보급 / 모집 (+ ${SYN_BY_ID.STAR.name} 속보 · 호이슌 투자 · 순례)`,
-    supply: '보급품 3종 중 택1', recruit: '새 동료 3명 중 택1', boss: `승리 시 페이즈 클리어 · ${CFG.drop.bossAdvEvery}페이즈마다 희귀 장비`,
+    supply: '보급품 3종 중 택1', recruit: '새 동료 3명 중 택1', boss: `${app.run && R.bossMustWin(app.run) ? '의뢰의 마지막 보스 · 이길 때까지 다시 싸운다' : `승리 시 페이즈 클리어 · 패배해도 다음 페이즈로 (체력 -${CFG.bossLossDamage(app.run?.phase || 1)})`} · ${CFG.drop.bossAdvEvery}페이즈마다 희귀 장비`,
     pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', invest: '호이슌 투자 상품 · 크레딧으로 문장 · 증강 · 다음 페이즈 수익', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
     fork: `갈림길 — 휴식(체력 +${CFG.forkRestHp} + 잃은 체력 ${Math.round(CFG.forkRestLost * 100)}%) 또는 도전(다음 페이즈 역경급 전투, 승리 시 다음 페이즈로)`,
     challenge: '다음 페이즈 역경 수준의 전투 · 승리 시 남은 노드 보상을 받고 다음 페이즈로',
@@ -981,7 +990,7 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
     if (!FIGHT_NODES.includes(o)) return '';
     const m: string[] = [];
     const ph = o === 'challenge' ? run.phase + 1 : run.phase;
-    if (o === 'adversity' || o === 'challenge') m.push(mod(lineIcon('m.up', 'li'), `×${CFG.adversityMult}`, `적 강화: 체력 · 능력 ×${CFG.adversityMult}`, 'bad'));
+    if (o === 'adversity' || o === 'challenge') m.push(mod(lineIcon('m.up', 'li'), `×${CFG.adversityMult}`, `적 강화: 체력 ×${CFG.adversityMult} · 피해 ×${+encDmgMult(CFG.adversityMult).toFixed(2)}`, 'bad'));
     const add = diffAddCount(run.diff, ph);
     if (add > 0) m.push(mod(lineIcon('m.skull', 'li'), `+${add}`, `적 수량 +${add} — 위험 등급 ${run.diff} 적 증원: ${diffAddRule(run.diff)}`, 'bad'));
     if ((o === 'adversity' || o === 'challenge') && f.elite) m.push(mod(lineIcon('m.elite', 'li'), '정예', `정예 확정: ${NODE_NAME[o]} 전투에는 이 전장의 정예가 반드시 나온다`, 'bad tx'));
@@ -1024,7 +1033,7 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   const bossCard = (i: number, e: EnemyDef, cur: boolean) => {
     const cat = enemyCategory(e), td = TEND_NAME[e.tend], rk = foeRank(run, e, run.phase, R.encounterMult('boss', i));
     return `<li class="ah-card ah-boss n-boss${cur ? ' cur tl-info' : ''}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}">${act(cur)}<span class="ah-lead"><span class="ah-port">${sprite(e, 'spr big')}<i class="ah-ic">${NODE_ICON.boss}</i></span>${step(i)}</span>
-      <div class="ah-body"><b>${esc(e.name)}</b>${cur ? about('boss') : desc(`${NODE_NAME.boss} · ${nodeHint('boss')}`)}<div class="ah-chips">${rankChip(rk)}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${cur ? `${income('boss')}${mods('boss')}` : ''}</div></li>`;
+      <div class="ah-body"><b>${esc(e.name)}</b>${cur ? about('boss') : desc(`${NODE_NAME.boss} · ${nodeHint('boss')}`)}<div class="ah-chips">${rankChip(rk)}${R.bossMustWin(run) ? tchip(lineIcon('m.elite', 'li'), '최종 보스', 'bad', '의뢰의 마지막 보스: 이길 때까지 다시 싸운다 (다른 보스는 져도 다음 페이즈로)') : ''}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${cur ? `${income('boss')}${mods('boss')}` : ''}</div></li>`;
   };
   const nodeCard = (i: number, o: NodeType, cur: boolean) => {
     const e = o === 'boss' ? phaseBoss(run) : undefined;
@@ -1241,14 +1250,14 @@ function invRail(run: RunState) {
   const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
   return `<div class="inv-rail" data-drop="inv" title="기물에게 끌어다 장착 · 재료끼리 겹치면 조합">
     <span class="ir-count">${run.inventory.length}/${CFG.inventoryMax}</span>
-    <div class="ir-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`).replace('class="item', `class="item${i === selIdx ? ' sel' : ''}`)).join('')}${run.inventory.length ? '' : '<span class="ir-empty muted">비어 있음</span>'}${relicInv(run)}</div>
+    <div class="ir-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`, breadNote(run, i)).replace('class="item', `class="item${i === selIdx ? ' sel' : ''}`)).join('')}${run.inventory.length ? '' : '<span class="ir-empty muted">비어 있음</span>'}${relicInv(run)}</div>
   </div>`;
 }
 /** 상점 등: 가로 보관 칸 */
 function inventoryPanel(run: RunState) {
   const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
   return `<div class="inv" data-drop="inv" title="재료끼리 겹치면 조합"><span class="ir-count">${run.inventory.length}/${CFG.inventoryMax}</span>
-    <div class="inv-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`).replace('class="item', `class="item${i === selIdx ? ' sel' : ''}`)).join('') || '<span class="muted small">비어 있음</span>'}${relicInv(run)}</div></div>${invDetail(run)}`;
+    <div class="inv-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`, breadNote(run, i)).replace('class="item', `class="item${i === selIdx ? ' sel' : ''}`)).join('') || '<span class="muted small">비어 있음</span>'}${relicInv(run)}</div></div>${invDetail(run)}`;
 }
 /** 보관 중인 성유물: 소모품처럼 보관 칸에 항상 표시. 디바인에게 끌어다 놓거나 선택 후 디바인을 누르면 장착 */
 function relicInv(run: RunState) {
@@ -1275,13 +1284,13 @@ function invDetail(run: RunState) {
   const ms = Object.entries(it.majors || {}) as [Major, number][];
   const stats = ms.length ? `<div class="ip-stats">${ms.map(([m, v]) => `<span>${majorIcon(m)}${MAJOR_NAME[m]} <b>+${v}</b></span>`).join('')}</div>` : '';
   // 능력치 줄(ip-stats)로 따로 보여 주는 '생명력 +6, 방어력 +6.' 접두어만 뗀다 — 능력치가 없는 소모품 · 개조부품 · 포탑 장비는 설명 전체 ('공명도 +8.' 등)
-  const eff0 = it.desc.replace(/^\[[^\]]+\]\s*/, ''), eff = ms.length ? eff0.replace(/^([^.,]+ \+\d+(, )?)+\.?\s*/, '') : eff0;
+  const eff0 = it.desc.replace(/^\[[^\]]+\]\s*/, ''), eff = (ms.length ? eff0.replace(/^([^.,]+ \+\d+(, )?)+\.?\s*/, '') : eff0) + (breadNote(run, selIdx) ? ` — 이 빵: ${breadNote(run, selIdx)}` : '');
   const ct = isConsumable(sel) ? CONSUMABLES[sel].target : null;
   const hint = ct === 'run' ? `<button class="btn small primary" data-a="use-self" data-v="${selIdx}">사용</button>`
     : ct === 'foe' ? `<span class="muted small">${run.node?.enc ? '이번 전투의 적에게 끌어다 놓거나, 선택한 채로 적을 누르면 사용' : '전투를 앞둔 편성 화면에서 적에게 끌어다 놓아 사용'}</span>`
     : ct ? `<span class="muted small">${ct === 'unit' ? '기물' : '장비'}에 끌어다 놓거나, 선택한 채로 ${ct === 'unit' ? '기물' : '보관함의 장비'}을 누르면 사용</span>`
     : run.inventory.some((x, j) => j !== selIdx && combine(sel, x)) ? '<span class="muted small">조합 가능한 장비를 누르면 조합</span>' : '';
-  return pop(itemIcon(sel), TIER[sel.startsWith('U_') ? 'U' : it.tier] || '', it.name, stats, eff ? statIc(esc(eff)) : '', `<button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${CFG.sell[sel[0]]}</button>${hint}`);
+  return pop(itemIcon(sel), TIER[sel.startsWith('U_') ? 'U' : it.tier] || '', it.name, stats, eff ? statIc(esc(eff)) : '', `<button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${R.sellPrice(run, sel)}</button>${hint}`);
 }
 
 function statLines(c: CUnit, b: Battle) {
@@ -3693,7 +3702,7 @@ function act(a: string, v: string) {
     case 'intro-ok': app.screen = 'diffsel'; if (!DIFF_PRESETS.some((x) => x.lvl === app.diff)) app.diff = DIFF_PRESETS[0].lvl; break;
     case 'diff-ok':
       app.starters = []; app.screen = 'newrun'; app.menu = null; carX = null; app.cardOpen = null;
-      app.pool = new Rng((Date.now() ^ (Math.random() * 1e9)) | 0).sample(UNITS.filter((u) => !u.noStarter).map((u) => u.id), 8);
+      app.pool = starterPool(new Rng((Date.now() ^ (Math.random() * 1e9)) | 0), app.introField); app.poolRerolls = CFG.starterRerolls; // 전장 우세 시너지 기물 보장
       break;
     case 'car-prev': case 'car-next': carStep(a === 'car-next' ? 1 : -1); return;
     case 'syn-peek': return; // 시너지 아이콘 탭: 이름만 보여준다 (클릭 핸들러에서 처리)
@@ -3710,6 +3719,10 @@ function act(a: string, v: string) {
       break;
     }
     case 'random-starters': app.starters = new Rng(Date.now() | 0).sample(app.pool, CFG.startUnits); break;
+    case 'reroll-starters': // 후보 새로고침: 고른 기물은 남기고 나머지를 새 얼굴로 (우세 시너지 보장 유지)
+      if (app.poolRerolls <= 0) return;
+      app.poolRerolls--; app.pool = starterPool(new Rng((Date.now() ^ (Math.random() * 1e9)) | 0), app.introField, app.starters, app.pool); carX = null; app.cardOpen = null;
+      break;
     case 'start-run':
       if (app.starters.length !== CFG.startUnits) return;
       app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, app.introField || undefined, Math.min(app.diff, MAX_DIFF));
@@ -4187,7 +4200,7 @@ function clickFirst(sel: string) {
   return true;
 }
 /** 단축키 표: 키 처리(keydown) · 버튼 모서리 키캡(keyHints) · 메뉴의 단축키 목록(keyList)이 모두 이 표를 읽는다 */
-type KeyScope = 'modal' | 'battle' | 'prep' | 'map' | 'any';
+type KeyScope = 'modal' | 'battle' | 'prep' | 'map' | 'newrun' | 'any';
 interface HotKey {
   scope: KeyScope;
   /** e.key (글자는 소문자) */
@@ -4213,6 +4226,7 @@ const HOTKEYS: HotKey[] = [
   { scope: 'map', keys: DIGITS, cap: '#', sel: ['.tl-step.cur .tl-node'], desc: '다음 노드 고르기' },
   { scope: 'map', keys: ['Enter', ' '], cap: 'Enter', sel: ['.tl-go'], desc: '노드 진입' },
   { scope: 'map', keys: ['m'], cap: 'M', sel: [], run: () => act('manage', ''), desc: '편성 관리 (단추 없이 키로만)' },
+  { scope: 'newrun', keys: ['r'], cap: 'R', sel: ['[data-a="reroll-starters"]'], desc: '후보 새로고침' },
   { scope: 'prep', keys: [' ', 'Enter'], cap: 'Space', sel: ['[data-a="fight"]'], desc: '전투 시작' },
   { scope: 'prep', keys: ['a'], cap: 'A', sel: ['[data-a="autofill"]'], run: () => act('autofill', ''), desc: '자동 배치' },
   { scope: 'battle', keys: DIGITS.slice(0, SPEEDS.length), cap: '#', sel: ['.speed [data-a="speed"]'], run: (n) => act('speed', String(SPEEDS[n - 1])), desc: `속도 ${SPEEDS.join(' · ')}배` },
@@ -4223,7 +4237,7 @@ const HOTKEYS: HotKey[] = [
 function keyScope(): { scope: KeyScope; box: ParentNode } | null {
   const modal = document.querySelector('.modal-bg .modal');
   if (modal && app.screen !== 'battle') return { scope: 'modal', box: modal };
-  return app.screen === 'battle' || app.screen === 'prep' || app.screen === 'map' ? { scope: app.screen, box: document } : null;
+  return app.screen === 'battle' || app.screen === 'prep' || app.screen === 'map' || app.screen === 'newrun' ? { scope: app.screen, box: document } : null;
 }
 function firstOn(sels: string[]) {
   for (const s of sels) { const el = Array.from(document.querySelectorAll<HTMLButtonElement>(s)).find((b) => !b.disabled); if (el) return el; }
@@ -4244,10 +4258,10 @@ function keyHints() {
 }
 /** 메뉴의 단축키 목록 (단축키 표에서) */
 function keyList() {
-  const NAME: Record<KeyScope, string> = { modal: '선택 창', map: '지도', prep: '편성', battle: '전투', any: '어디서나' };
+  const NAME: Record<KeyScope, string> = { modal: '선택 창', map: '지도', prep: '편성', battle: '전투', newrun: '계약 기물 선택', any: '어디서나' };
   const cap = (k: string) => `<kbd>${k === ' ' ? 'Space' : k === 'Escape' ? 'Esc' : k.length === 1 ? k.toUpperCase() : k}</kbd>`;
   const keys = (h: HotKey) => (h.cap === '#' ? `${cap(h.keys[0])}~${cap(h.keys[h.keys.length - 1])}` : h.keys.map(cap).join(' '));
-  return `<ul class="keys small">${(['modal', 'map', 'prep', 'battle', 'any'] as const).map((s) => `<li><b>${NAME[s]}</b> ${[...HOTKEYS.filter((h) => h.scope === s).map((h) => `${keys(h)} ${esc(h.desc)}`), ...(s === 'any' ? [`${cap('Escape')} 닫기 · 선택 해제`] : [])].join(' / ')}</li>`).join('')}</ul>`;
+  return `<ul class="keys small">${(['modal', 'newrun', 'map', 'prep', 'battle', 'any'] as const).map((s) => `<li><b>${NAME[s]}</b> ${[...HOTKEYS.filter((h) => h.scope === s).map((h) => `${keys(h)} ${esc(h.desc)}`), ...(s === 'any' ? [`${cap('Escape')} 닫기 · 선택 해제`] : [])].join(' / ')}</li>`).join('')}</ul>`;
 }
 
 // ───────────────────────── 반복 줄이기 설정 (이 브라우저에만): 결과 창 자동 닫기(초, 0 = 끔) · 편성 그대로 바로 전투 · 단축키 키캡. 기본값은 모두 꺼짐 (키캡만 켜짐)

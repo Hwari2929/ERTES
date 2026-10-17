@@ -34,9 +34,9 @@ function consumableTarget(run: RunState, id: string): R.UseTarget | null {
   switch (id) {
     case 'K_rank': case 'K_rank3':
       return top ? { k: 'unit', uid: top.uid } : null;
-    case 'K_bread':
+    case 'K_bread': case 'K_bread_stale':
       // 잃은 체력이 회복량 이상일 때 (낭비 없이)
-      return run.maxHp - run.hp >= breadHeal(run.diff) ? { k: 'run' } : null;
+      return run.maxHp - run.hp >= breadHeal(run.diff, id === 'K_bread_stale') ? { k: 'run' } : null;
     case 'K_seize': {
       // 편성 중인 조우에서 가장 좋은 장비를 단 적: 전설 · 개조부품이면 언제나, 고급 이상이면 역경 · 도전 · 보스에서
       const enc = run.node?.enc;

@@ -1,6 +1,6 @@
 // 교범: 튜토리얼에서 가르치는 용어 모음 (도감 · 교범 탭). 수치는 config.ts · run.ts · combat.ts 기준.
 // key = 이 항목을 여는 튜토리얼 장면 · 안내 키 (TUTORIAL_FLOW). 튜토리얼을 끝내거나 건너뛰면 전부 열린다.
-import { CFG } from '../config';
+import { CFG, encDmgMult } from '../config';
 import { DIFF_PRESETS, diffName } from './difficulty';
 import { DESPAIRS } from './despair';
 import { controlNames, RELOAD_RESET_LABEL, zocRule } from '../engine/combat';
@@ -52,7 +52,7 @@ export const GLOSSARY: GlossChapter[] = [
       { id: 'fleet', term: '함대 확장', key: 'ch2_xp', text: '지도의 함선 관리에서 출전 인원을 1명 늘린다. 첫 확장은 20크레딧, 이후 40 · 56 · 72 … 점점 비싸진다 (최대 14명).' },
       { id: 'supply', term: '보급', key: 'ch2_supply', text: '보급품 셋 중 하나를 고른다. 장비 재료 + 크레딧, 크레딧 묶음, 공명도 분배, 플레이어 체력 회복 같은 것들.' },
       { id: 'shop', term: '상점', key: 'ch2_shop', text: `재료 장비 ${CFG.drop.shopParts}개는 늘 진열되고 희귀 · 고급 · 전설은 확률로 나온다 (${CFG.shop.gearFrom}페이즈부터는 고급 · 희귀 중 1개 이상 확정). 가끔 소모품, 드물게 문장도 들어온다. 기본가 재료 ${CFG.price.C} · 고급과 희귀 ${CFG.price.G} · 전설 ${CFG.price.L} · 문장 ${CFG.shop.price.emblem}, 전장에 따라 달라진다. 팔면 재료 ${CFG.sell.C} · 고급과 희귀 ${CFG.sell.G} · 소모품 ${CFG.sell.K}.` },
-      { id: 'cons', term: '소모품', key: 'ch2_shop', text: `보관함의 육각형 칸. 쓸 곳에 끌어다 놓으면 한 번 쓰고 사라진다: 기물(공명 주입기 소형 +${CFG.inject.amount.K_xp} · 중형 +${CFG.inject.amount.K_xp2} · 대형 +${CFG.inject.amount.K_xp3} 공명도, 분리 용제 · 재구성 회로), 편성 화면의 적(강제 징수기), 또는 [사용] 단추(갓 구운 빵). 주입기는 ${CFG.inject.from.K_xp2}페이즈부터 중형, ${CFG.inject.from.K_xp3}페이즈부터 대형이 나오고 ${CFG.inject.smallTo + 1}페이즈부터는 소형이 나오지 않는다. 금색 테두리는 전설급이다. 전투 승리 보상 · 상점에서 얻는다.` },
+      { id: 'cons', term: '소모품', key: 'ch2_shop', text: `보관함의 육각형 칸. 쓸 곳에 끌어다 놓으면 한 번 쓰고 사라진다: 기물(공명 주입기 소형 +${CFG.inject.amount.K_xp} · 중형 +${CFG.inject.amount.K_xp2} · 대형 +${CFG.inject.amount.K_xp3} 공명도, 분리 용제 · 재구성 회로), 편성 화면의 적(강제 징수기), 또는 [사용] 단추(갓 구운 빵 — 전투 ${CFG.chef.staleAfter}회 뒤 식으면 회복 −${CFG.chef.staleHeal}). 주입기는 ${CFG.inject.from.K_xp2}페이즈부터 중형, ${CFG.inject.from.K_xp3}페이즈부터 대형이 나오고 ${CFG.inject.smallTo + 1}페이즈부터는 소형이 나오지 않는다. 금색 테두리는 전설급이다. 전투 승리 보상 · 상점에서 얻는다.` },
     ],
   },
   {
@@ -66,7 +66,7 @@ export const GLOSSARY: GlossChapter[] = [
   },
   {
     ch: 'ch4', title: '4장 — 항로 · 적', who: 'franze', entries: [
-      { id: 'phase', term: '페이즈 · 항로', key: 'ch4_map', text: '의뢰 하나는 여섯 페이즈. 한 페이즈는 열두 칸이고 한 칸씩 밟아 간다. 마지막 칸의 보스를 이기면 다음 페이즈, 6페이즈 보스를 이기면 의뢰 성공.' },
+      { id: 'phase', term: '페이즈 · 항로', key: 'ch4_map', text: `의뢰 하나는 ${CFG.victoryPhase}페이즈. 한 페이즈는 12칸이고 한 칸씩 밟아 간다. 마지막 칸의 보스전을 치르면 (지더라도) 다음 페이즈, ${CFG.victoryPhase}페이즈 보스를 이기면 의뢰 성공.` },
       { id: 'nodes', term: '노드 종류', key: 'ch4_map', text: '전투, 역경, 사건, 보급(갈림길: 상점 · 보급 · 모집, 은하 대스타가 있으면 속보도), 전환(짝수 페이즈: 휴식 · 도전), 보스. 항로 회의에서는 의뢰 내내 함대 전체에 적용되는 전역 증강 셋 중 하나를 고른다. 2페이즈부터는 페이즈마다 영입 기회가 열린다.' },
       { id: 'field', term: '전장 · 전장 조건', key: 'ch4_brief', text: '의뢰마다 싸우는 전장이 정해진다. 전장 조건은 모든 전투에 붙고(적 증가, 가격 상승 등), 힘을 받는 세력도 따로 있다. 지도의 환경 탭에서 언제든 다시 본다.' },
       { id: 'ttype', term: '전술 유형', key: 'ch4_intro', text: '성장 방식. 메이저(궁극기 · 4등급마다 메이저 증강), 마이너(3등급마다 주요 능력치 2종 +3 · 기술이 등급 따라 자람), 스페셜(합류 · 5 · 10 · 15등급 전용 증강), 사이오닉(전공 · 이성 · 4 · 8 · 12 · 16등급 전공 증강), 디바인(신앙 · 신성력 · 성유물). 증강끼리 배타는 없다: 비술 · 기술을 바꾸는 변형 증강도 다른 증강과 함께 작동한다.' },
@@ -74,8 +74,8 @@ export const GLOSSARY: GlossChapter[] = [
       { id: 'great', term: '능력치 대성공', key: 'ch4_intro', text: `마이너 기물의 능력치 보상(3등급마다)은 확정할 때 ${pc(CFG.greatChance)} 확률로 대성공한다. 대성공이면 화려한 연출과 함께 주요 능력치 ${CFG.rankPicks}종을 한 번 더 골라 각각 +${CFG.rankPoints} (같은 능력치를 다시 고르면 +${CFG.rankPoints * 2}, 상승량 2배).` },
       { id: 'reason', term: '이성 (사이오닉)', key: 'ch4_deploy', text: '사이오닉의 정신 수치. 50에서 시작해 기술과 행동에 따라 오르내리고, 0 밑으로 내려가면 매초 정신 피해를 받는다. 사이오닉은 합류할 때 학파의 전공을 하나 고른다. 학파마다 고이성 · 저이성 효과가 다르다 (인과학파 저이성은 기술 피해에도 치명타).' },
       { id: 'event', term: '사건', key: 'ch4_event', text: '이야기를 읽고 끝에서 선택지를 고른다. 선택지 아래 작은 글씨가 효과이며, 회색 선택지는 조건이 모자란 것이고 이유가 함께 적힌다.' },
-      { id: 'adversity', term: '역경', key: 'ch4_adversity', text: '적 체력 1.5배 · 피해 1.25배에 정예가 반드시 섞인다. 대신 크레딧과 공명도 보상도 1.5배이고, 이기면 무작위 장비 재료 1개가 확정으로 나온다.' },
-      { id: 'boss', term: '정예 · 보스', key: 'ch4_boss', text: '정예는 체력이 많은 강적. 보스는 페이즈 마지막 칸의 우두머리로 호위를 거느린다. 보스에게 지면 체력이 크게 깎이고, 이길 때까지 다시 싸운다.' },
+      { id: 'adversity', term: '역경', key: 'ch4_adversity', text: `적 체력 ${CFG.adversityMult}배 · 피해 ${+encDmgMult(CFG.adversityMult).toFixed(2)}배에 정예가 반드시 섞인다. 대신 크레딧과 공명도 보상은 ${CFG.adversityReward}배이고, 이기면 무작위 장비 재료 ${CFG.drop.advParts}개가 확정으로 나온다.` },
+      { id: 'boss', term: '정예 · 보스', key: 'ch4_boss', text: `정예는 체력이 많은 강적. 보스는 페이즈 마지막 칸의 우두머리로 호위를 거느린다. 보스에게 지면 체력이 크게 깎이지만 다음 페이즈로는 넘어간다. 의뢰의 마지막 보스(${CFG.victoryPhase}페이즈)만은 이길 때까지 다시 싸운다.` },
     ],
   },
   {
