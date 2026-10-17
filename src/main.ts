@@ -1433,25 +1433,12 @@ function previewAlly(run: RunState, u: UnitState) {
 }
 
 // ───────────────────────── 능력 (통일 형식 · 누르면 좌측 상세 팝업)
-/** 아이콘이 아직 없는 능력: 비슷한 기존 아이콘을 임시로 쓴다 (청라공국 · 미노스, 사용자 확인 뒤 scripts/nai_icon.mjs 로 새로 뽑는다) */
-const ABIL_ICON_ALIAS: Record<string, string> = {
-  'weapon.muhyul': 'weapon.odysseus', 'skill.muhyul': 'skill.odysseus', 'trait.muhyul': 'trait.hiiro', 'ult.muhyul': 'ult.falcon',
-  'weapon.dobin': 'weapon.gebek', 'skill.dobin': 'skill.bjorn', 'trait.dobin': 'trait.west',
-  'weapon.siu': 'weapon.eden', 'skill.siu': 'skill.sarma', 'trait.siu': 'trait.nadir',
-  'weapon.jaehwon': 'weapon.mirinae', 'skill.jaehwon': 'skill.mirinae', 'trait.jaehwon': 'trait.odysseus',
-  'weapon.juseong': 'weapon.temur', 'skill.juseong': 'skill.temur', 'trait.juseong': 'trait.grenholm', 'ult.juseong': 'ult.temur',
-  'weapon.clover': 'weapon.u404', 'skill.clover': 'skill.orca', 'trait.clover': 'trait.yupito',
-  'weapon.hana': 'weapon.hiiro', 'skill.hana': 'skill.hiiro', 'trait.hana': 'trait.romani',
-  'weapon.gayoung': 'weapon.exile', 'skill.gayoung': 'skill.kyle', 'trait.gayoung': 'trait.phyllis',
-  'weapon.gungo': 'weapon.mingki', 'skill.gungo': 'skill.sarma', 'trait.gungo': 'trait.temur',
-  'weapon.minos': 'weapon.yelena', 'skill.minos': 'skill.onyx', 'trait.minos': 'trait.lars',
-};
 /** 능력 문장 계산 맥락. 전투 밖(도감 · 상세)에서는 기물 기본 스킬 파라미터로 @파라미터를 채운다 */
 const actx = (b: Battle | null, c: CUnit | null, skill = false, d?: UnitDef | null): AB.AbilCtx => ({ b, c, p: c?.sk || d?.skill.params || {}, skill });
 const abilOn = (k: string) => (app.abilPop === k ? ' on' : '');
 /** 능력 아이콘 토큰 (없으면 빈 문자열). 키: skill.<기물> · trait.<기물> · ult.<기물> · weapon.<기물> · cantrip/passive.<전공> · faith.<신앙> */
 function abTok(ic?: string) {
-  const src = ic ? ABIL_ICONS[ic] || ABIL_ICONS[ABIL_ICON_ALIAS[ic]] : '';
+  const src = ic ? ABIL_ICONS[ic] : '';
   return src ? `<img class="ab-tok" src="${src}" alt="" draggable="false">` : '';
 }
 function abilCard(key: string, kind: keyof typeof AB_KIND, name: string, meta: string, body: string, extra = '', ic?: string) {
