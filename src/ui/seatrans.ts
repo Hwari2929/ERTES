@@ -28,7 +28,9 @@ export const SEA = {
   /** 판 색: 전환마다 판마다 무작위 (HSL 파스텔). 색 띠는 [hue 범위, 뽑힐 비중] — 민트 · 하늘색 위주, 에메랄드는 가끔 (노랑은 섬 모래색과 겹쳐 뺀다).
    *  이웃 판과는 hueGap 도 · lightGap %p 중 하나 이상 벌어지게. 판 안은 위가 밝고 아래가 deep 만큼 짙은 그라디언트
    *  (가장자리 위로 번지는 빛 띠는 glow) */
-  palette: { zones: [[[156, 176], 0.5], [[180, 198], 0.36], [[142, 154], 0.14]] as [number[], number][], sat: [64, 82], light: [84, 91], hueGap: 12, lightGap: 3, deep: 5 },
+  palette: { zones: [[[156, 176], 0.5], [[180, 198], 0.36], [[142, 154], 0.14]] as [number[], number][], sat: [64, 82], light: [84, 91], hueGap: 12, lightGap: 3, deep: 5,
+    /** 고정 색 (앞 → 뒤, [hue, sat, light]): 있으면 무작위 대신 이 순서대로 */
+    order: null as [number, number, number][] | null },
   glow: { alpha: 0.15, reach: 34, blur: 13, light: 13 }, // 판 가장자리 위로 번지는 빛 띠 (드롭 섀도): 불투명도 · 수면 위로 뻗는 높이 px · 번짐 px · 판 색보다 밝게 %p.
   // 빛 띠는 판 모양을 만들 때 캔버스에 한 번만 그려 이미지로 붙인다 (매 프레임 필터 계산 없이 판과 함께 움직일 뿐)
   sway: { x: 14, y: 5, tilt: 0.7 }, // 판 흔들림: 좌우 px · 위아래 px · 기울기 도
@@ -42,13 +44,14 @@ export const SEA = {
   pop: { island: 140, boat: 60, dur: 560, squash: 0.12 },
   sink: { stretch: 0.12 }, // 물결과 함께 잠기거나 떨어질 때: 위로 솟지 않고 바로 아래로 가속, 세로로 이만큼 늘어난다
   /** 출항 못 한 배: 2번 판이 내려가도 그 자리에 떠 있다가, 맨 앞(아래) 판이 내려가기 시작하고 delay 뒤에 아래로 빠르게 떨어진다 */
-  drop: { delay: 260, dur: 420 },
+  drop: { delay: 230, dur: 420 },
   gulls: { count: 3, delay: 1500 }, // 다 덮은 뒤 이만큼 로딩이 길어지면 갈매기
   launch: { pop: 200, ignite: 140 }, // 엔진이 튀어나오는 시간 · 점화 뒤 출발까지
   /** 비행 궤적: dur 동안 진행도 p = (t/dur)^accel, x 는 앞쪽에서 빨리 나아가다 둔해지고 (turn), y 는 지수로 뒤로 갈수록 급상승 (climb) */
   flight: { dur: 1350, accel: 1.7, turn: 2.2, climb: 4.2, reach: 0.66 },
   crash: { gravity: 1500, drag: 0.3, hop: 360 }, // 추락 중력 px/s² · 누른 순간 남는 속도 비율 · 털썩 튀어 오르는 속도
   objScale: 0.98, // 섬 · 배 크기 배율 (화면 짧은 변 기준 배율에 곱한다)
+  sticker: { line: 9, shade: '#2c5f68', alpha: 0.08, dy: 3 }, // 섬 · 배 스티커: 흰 외곽선 굵기 (그림 단위) · 아주 옅은 그림자 색 · 진하기 · 아래로 어긋남
   gullScale: 1.3, // 갈매기 크기 배율
   maxLife: 7000, // 전환이 끝난 뒤 배 · 갈매기를 기다리는 최대 시간
 };
@@ -117,6 +120,28 @@ const ISLAND_ART = `
   <g fill="#94dcb8"><path d="M30 -108 Q8 -124 -10 -110 Q8 -116 30 -108Z"/><path d="M30 -108 Q56 -126 70 -106 Q52 -118 30 -108Z"/></g>
   <circle cx="25" cy="-101" r="5.5" fill="#c08d62"/><circle cx="35" cy="-100" r="5.5" fill="#c08d62"/><circle cx="23.5" cy="-102.5" r="1.7" fill="#e2b791"/>
   <g fill="#ffb3a8"><circle cx="-56" cy="-14" r="5"/><circle cx="-47" cy="-20" r="3.6"/><circle cx="60" cy="-12" r="4.2"/></g>`;
+/** 스티커 처리: 그림 뒤에 흰색으로 칠하고 굵게 테를 두른 복제본 (외곽선) + 같은 모양의 아주 옅은 그림자 복제본을 깐다.
+ *  필터 없이 벡터 복제라 움직여도 다시 계산할 것이 없다. skip 클래스 (엔진 · 불꽃) 는 빼고, 엔진은 따로 제 그룹 안에서 처리 */
+function sticker(g: SVGGElement, line: number, shade: string, alpha: number, dy: number, skip: string[] = []) {
+  const art = Array.from(g.children).filter((c) => !skip.some((k) => c.classList.contains(k)));
+  const copy = (color: string) => {
+    const c = svg('g');
+    for (const a of art) c.appendChild(a.cloneNode(true));
+    c.querySelectorAll<SVGElement>('*').forEach((el) => {
+      if (el.tagName === 'g') return;
+      const sw = +(el.getAttribute('stroke-width') || 0);
+      if (el.getAttribute('fill') !== 'none') el.setAttribute('fill', color);
+      el.setAttribute('stroke', color); el.setAttribute('stroke-width', String(sw + line));
+      el.setAttribute('stroke-linejoin', 'round'); el.setAttribute('stroke-linecap', 'round');
+      el.removeAttribute('opacity');
+    });
+    return c;
+  };
+  const sh = copy(shade);
+  sh.setAttribute('opacity', String(alpha)); sh.setAttribute('transform', `translate(0 ${dy})`);
+  g.prepend(copy('#ffffff'));
+  g.prepend(sh);
+}
 /** 갈매기 날개: f = 날갯짓 (-1 아래 ~ 1 위) */
 const gullPath = (f: number) => { const y = -6 - 7 * f, c = -12 - 9 * f; return `M-20 ${y} Q-10 ${c} 0 0 Q10 ${c} 20 ${y}`; };
 
@@ -150,6 +175,11 @@ export function seaTransition(): SeaHandle {
   const boatSlot = svg('g'), islandG = svg('g', {}, ISLAND_ART), boatG = svg('g', { class: 'ts-boat' }, BOAT_ART);
   const fx = svg('g'), gullG = svg('g', { fill: 'none', stroke: '#7d8c96', 'stroke-width': 4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
   const hit = svg('circle', { class: 'ts-hit', r: 50, fill: 'transparent' });
+  const K = C.sticker;
+  sticker(islandG, K.line, K.shade, K.alpha, K.dy);
+  sticker(boatG, K.line, K.shade, K.alpha, K.dy, ['ts-jet']);
+  const jetG = boatG.querySelector<SVGGElement>('.ts-jet');
+  if (jetG) sticker(jetG, K.line, K.shade, K.alpha, K.dy, ['ts-flame']);
   boatSlot.appendChild(boatG);
   // 뒤 판부터 쌓는다: 배는 2번 판 바로 뒤, 섬은 1번 판 바로 뒤
   // 판 색: 범위 안에서 무작위, 이웃 판과 너무 비슷하면 다시 뽑는다
@@ -157,6 +187,8 @@ export function seaTransition(): SeaHandle {
   const hue = () => { let q = Math.random() * P.zones.reduce((a, z) => a + z[1], 0); for (const [r, w] of P.zones) { if ((q -= w) <= 0) return rr(r); } return rr(P.zones[0][0]); };
   const hues: [number, number, number][] = [];
   for (let i = 0; i < N; i++) {
+    const fixed = P.order?.[i % P.order.length];
+    if (fixed) { hues.push([...fixed]); continue; }
     let c: [number, number, number] = [hue(), rr(P.sat), rr(P.light)];
     for (let k = 0; k < 12 && i > 0; k++) {
       const q = hues[i - 1];
