@@ -354,7 +354,7 @@ function synPopHtml(sid: string) {
   const ch = t && ni >= 0 ? `${lv('지금', sd.tiers[t - 1])}<span class="td-ar">→</span>${lv('다음', next!)}` : t ? lv('최대', sd.tiers[t - 1]) : lv(run ? '다음' : '첫 단계', sd.tiers[0]);
   const lab: Record<string, string> = { cur: '지금', add: '다음' };
   const rows = cmp.rows.map((r) => `<li class="td-${r.k}">${lab[r.k] ? `<i class="td-l">${lab[r.k]}</i>` : ''}<span>${rowHtml(r, esc, statIc)}</span></li>`).join('');
-  const cmpHtml = `<div class="sp-cmp"><div class="sp-ch">${ch}${tag ? `<span class="td-tag">${esc(tag)}</span>` : ''}</div><ul class="td-rows">${rows}</ul></div>`;
+  const cmpHtml = `<div class="sp-cmp${t ? ' live' : ''}"><div class="sp-ch">${ch}${tag ? `<span class="td-tag">${esc(tag)}</span>` : ''}</div><ul class="td-rows">${rows}</ul></div>`;
   // 소속 기물 초상화: 출전 · 대기 · 미보유 (문장으로 합류한 보유 기물 포함)
   const own = new Map<string, boolean>();
   for (const u of run?.units || []) if (memberships(u).includes(id)) own.set(u.defId, own.get(u.defId) || !!u.pos);

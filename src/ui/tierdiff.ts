@@ -110,7 +110,8 @@ export function rowHtml(r: TierRow, esc: Fmt, ic: Fmt = (s) => s, arrow = true):
     if (!x.n) return ic(esc(x.v));
     const a = an[ni++];
     if (!a || a.v === x.v) return `<span class="td-n">${esc(x.v)}</span>`;
-    return arrow ? `<span class="td-a">${esc(a.v)}</span><span class="td-ar" aria-label="에서">→</span><b class="td-b">${esc(x.v)}</b>` : `<b class="td-b" title="이전 단계 ${esc(a.v)}">${esc(x.v)}</b>`;
+    // 팝업 (arrow): 지금 값을 강조하고 다음 값은 흐리게 / 도감 단계표: 그 단계 값을 강조 (이전 값은 title)
+    return arrow ? `<b class="td-cv">${esc(a.v)}</b><span class="td-ar" aria-label="다음 단계">→</span><span class="td-nx">${esc(x.v)}</span>` : `<b class="td-b" title="이전 단계 ${esc(a.v)}">${esc(x.v)}</b>`;
   }).join('');
 }
 

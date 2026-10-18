@@ -2083,6 +2083,13 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .td-add .td-l { border-color: var(--c); color: var(--c-text); }
 .td-n { font-variant-numeric: tabular-nums; }
 .td-a { color: var(--c-text-2); font-variant-numeric: tabular-nums; }
+/* 시너지 팝업: 지금 값 강조 · 다음 값은 흐리게. 활성(live)이면 지금에만 있는 효과는 그대로, 다음에만 있는 효과는 흐리게 */
+.syn-pop .td-cv { font-weight: 700; font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--c) var(--data-mix), var(--c-text)); }
+.td-nx { color: var(--c-text-2); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+.sp-cmp.live .td-rows .td-cur { color: var(--c-text); }
+.sp-cmp.live .td-rows .td-add { color: var(--c-text-2); }
+.sp-cmp.live .td-add .td-l { border-color: var(--line); color: var(--c-text-2); }
+.sp-cmp.live .td-cur .td-l { border-color: var(--c); color: var(--c-text); }
 .td-ar { margin: 0 3px; font-size: var(--fs-xs); color: var(--c-text-2); }
 :is(.syn-pop, .cx2-tiers) .td-b { display: inline; font-weight: 700; font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--c) var(--data-mix), var(--c-text)); }
 .sp-more { border-top: 1px solid var(--line-soft); padding-top: 4px; display: grid; gap: 6px; }
