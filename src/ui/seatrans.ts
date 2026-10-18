@@ -45,9 +45,9 @@ export const SEA = {
   exit: { dur: 620, gap: 70, delay: 230, fastDelay: 60 }, // 내려가는 시간 · 간격 · 출항 시작 뒤 첫 판이 움직이기까지 (가라앉기면 fastDelay)
   minHold: 260, // 출항할 때: 다 덮은 뒤 최소 대기 (배가 잠깐 떠 있게)
   fastHold: 90, // 가라앉기일 때: 다 덮은 뒤 대기
-  /** 섬 · 배가 솟는 시점 (그 물결이 닿은 뒤 ms) · 솟는 시간. 멈춘 데서 부드럽게 떠올라 살짝 (약 7%) 넘쳤다가 차분히 자리를 잡고,
-   *  그동안 세로로 늘었다 눌린다 (squash) — 튕겨 나가는 스프링과 느린 출렁임 사이 */
-  pop: { island: 140, boat: 60, dur: 560, squash: 0.12 },
+  /** 섬 · 배가 솟는 시점 (그 물결이 닿은 뒤 ms) · 솟는 시간. 멈춘 데서 부드럽게 떠올라 한 번 크게 (약 23%) 출렁~ 넘쳤다가 잦아들고,
+   *  그동안 세로로 늘었다 눌린다 (squash) */
+  pop: { island: 140, boat: 60, dur: 560, squash: 0.14 },
   sink: { stretch: 0.12 }, // 물결과 함께 잠기거나 떨어질 때: 위로 솟지 않고 바로 아래로 가속, 세로로 이만큼 늘어난다
   /** 출항 못 한 배: 2번 판이 내려가도 그 자리에 떠 있다가, 맨 앞(아래) 판이 내려가기 시작하고 delay 뒤에 아래로 빠르게 떨어진다 */
   drop: { delay: 215, dur: 420, narrow: 0.24, tall: 0.06 }, // 떨어질 때 가로폭이 narrow 만큼 좁아지고 세로는 tall 만큼 늘어난다
@@ -66,10 +66,10 @@ const NS = 'http://www.w3.org/2000/svg';
 const clamp = (v: number, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const outQuart = (t: number) => 1 - (1 - t) ** 4;
 const inCubic = (t: number) => t * t * t;
-/** 떠오르기: 처음 속도 0 에서 출발하는 감쇠 진동 (감쇠비 0.65 → 약 7% 넘쳤다가 잦아듦). 1 에서 거의 멈춘다 */
+/** 떠오르기: 처음 속도 0 에서 출발하는 감쇠 진동 (감쇠비 0.42 → 한 번 크게 약 23% 넘쳤다가 잦아듦). 1 에서 거의 멈춘다 */
 const float = (t: number) => {
   if (t >= 1) return 1;
-  const w = 9, z = 0.65, wd = w * Math.sqrt(1 - z * z);
+  const w = 11.5, z = 0.42, wd = w * Math.sqrt(1 - z * z);
   return 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + ((z * w) / wd) * Math.sin(wd * t));
 };
 /** 쫀득한 변형 (세로 늘림 +, 눌림 -): 솟는 동안 늘었다가 도착하며 눌리고 제 모양으로 */

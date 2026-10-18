@@ -80,6 +80,7 @@ const UI_THEMES = [
   { id: 'galaxy', name: '에란테스 갤럭시', desc: '잉크빛 남색 · 미색 · 계약서 호박색 (기본)' },
   { id: 'vintage', name: '에란테스 퓨처리스틱 네이비 빈티지', desc: '짙은 네이비 · 빛바랜 종이 · 녹청 강조 · 바랜 황동' },
   { id: 'ithaca', name: '이타카 코랄 베이지 시-사이드', desc: '밝은 모래 바탕 · 코랄 강조 · 바다색 (라이트)' },
+  { id: 'ithaca-port', name: '이타카 무역항', desc: '물안개 하늘빛 바탕 · 네이비 · 에메랄드 강조 · 바다색 (라이트)' },
   { id: 'hoishun', name: '호이슌 사쿠라 가든', desc: '자줏빛 네온 밤 · 벚꽃 분홍 · 네온 청록' },
   { id: 'calito', name: '칼리토 스타더스트 홀', desc: '황실 연회장 남보라 · 금색 · 별가루 은빛' },
 ] as const;
@@ -370,7 +371,7 @@ function titleScreen() {
   const m = loadMeta();
   const slots = saves.filter((s) => s.slot !== 'auto');
   return `<main class="title-screen">
-    <div class="ts-bg" style="background-image:url('${uiTheme() === 'ithaca' ? artURL('lore_ithaca.webp') : bgURL('title')}')"></div><div class="ts-shade"></div>
+    <div class="ts-bg" style="background-image:url('${uiTheme().startsWith('ithaca') ? artURL('lore_ithaca.webp') : bgURL('title')}')"></div><div class="ts-shade"></div>
     <div class="ts-stars" aria-hidden="true">${Array.from({ length: 36 }, (_, i) => `<i style="--x:${(i * 37) % 100}%;--y:${(i * 53) % 100}%;--d:${(i % 9) * 0.5}s;--s:${2.5 + (i % 5)}s"></i>`).join('')}</div>
     <div class="ts-mid">
       <span class="ts-kicker">에란테스 용병단 · 은하 순회 의뢰</span>
