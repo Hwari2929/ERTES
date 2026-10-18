@@ -41,7 +41,7 @@ import { VOICE, voicePick } from './data/voicelines';
 import { DEFAULT_RELIC, RELIC_BY_ID } from './data/relics';
 import { deleteSave, exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBarMvp, metaBattle, metaClear, metaEvent, metaRunEnd, metaTutEnd, metaTutSeen, tutMeta, tutOver } from './ui/meta';
-import { bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg, standURL } from './ui/portraits';
+import { artURL, bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg, standURL } from './ui/portraits';
 import { advKey, closeAdv, playAdv } from './ui/adv';
 import * as SND from './ui/sound';
 import * as OATH from './ui/oath';
@@ -370,7 +370,7 @@ function titleScreen() {
   const m = loadMeta();
   const slots = saves.filter((s) => s.slot !== 'auto');
   return `<main class="title-screen">
-    <div class="ts-bg" style="background-image:url('${bgURL('title')}')"></div><div class="ts-shade"></div>
+    <div class="ts-bg" style="background-image:url('${uiTheme() === 'ithaca' ? artURL('lore_ithaca.webp') : bgURL('title')}')"></div><div class="ts-shade"></div>
     <div class="ts-stars" aria-hidden="true">${Array.from({ length: 36 }, (_, i) => `<i style="--x:${(i * 37) % 100}%;--y:${(i * 53) % 100}%;--d:${(i % 9) * 0.5}s;--s:${2.5 + (i % 5)}s"></i>`).join('')}</div>
     <div class="ts-mid">
       <span class="ts-kicker">에란테스 용병단 · 은하 순회 의뢰</span>
