@@ -2236,7 +2236,7 @@ function updateMeter(force = false) {
   const val = (a: Agg) => (tab === 'dmg' ? a.dmg : tab === 'taken' ? a.taken : tab === 'support' ? a.healed + a.shield : a.kills);
   const rows = aggAllies(v.b).sort((x, y) => val(y) - val(x));
   const max = Math.max(1, ...rows.map(val));
-  m.innerHTML = rows.map((a) => `<div class="mrow ${a.u.alive ? '' : 'dead'} ${app.battleSel === a.u.id ? 'sel' : ''}" data-a="bsel" data-v="${a.u.id}">${sprite(a.u)}<span class="mname">${esc(a.u.name)}</span>
+  m.innerHTML = rows.map((a) => `<div class="mrow ${a.u.alive ? '' : 'dead'}${a.n ? ' bond' : ''} ${app.battleSel === a.u.id ? 'sel' : ''}" data-a="bsel" data-v="${a.u.id}">${sprite(a.u)}<span class="mname">${aggName(a)}</span>
     ${tab === 'dmg' ? `<span class="mbar">${elemBar(a)}<i class="fill" style="width:${(a.dmg / max) * 100}%"></i></span>` : `<span class="mbar"><i style="width:${(val(a) / max) * 100}%"></i></span>`}
     <b class="mono">${tab === 'kills' ? a.kills : fmt(val(a))}</b>
     ${tab === 'support' ? `<small class="heal-t">회복 ${fmt(a.healed)} · 보호막 ${fmt(a.shield)}</small>` : ''}</div>`).join('')
@@ -2288,7 +2288,7 @@ function animateResult(scope: Element | Document) {
 }
 /** MVP: 피해 · 지원(회복+보호막) · 받아낸 피해 · 결정타를 각각 아군 최고치 대비로 환산해 합산. 가장 큰 항목이 칭호가 된다 */
 function pickMvp(b: Battle) {
-  const rows = aggAllies(b);
+  const rows = aggAllies(b, false);
   if (!rows.length) return null;
   const mx = (f: (a: Agg) => number) => Math.max(1, ...rows.map(f));
   const md = mx((a) => a.dmg), ms = mx((a) => a.healed + a.shield), mt = mx((a) => a.taken), mk = mx((a) => a.kills);
@@ -3552,10 +3552,9 @@ function releaseBlock(run: RunState, u: UnitState) {
 
 // ───────────────────────── 전투 기록 (진행 중 미터 · 결과 표)
 const ELEM_COLOR: Record<string, string> = { phys: '#cfd3dc', chem: '#7fdc4a', elec: '#5ab8ff', psy: '#c07cff', holy: '#ffd866', true: '#ff6a6a' };
-type Agg = { u: CUnit; dmg: number; taken: number; healed: number; shield: number; kills: number; elem: Record<string, number> };
-/** 아군 기물별 집계 (소환물은 주인에게 합산) */
+type Agg = { u: CUnit; dmg: number; taken: number; healed: number; shield: number; kills: number; elem: Record<string, number>; n?: number }; // n: 묶은 소환물 수 (최고의 친구 소환물 줄)
 /** 시너지 자체 효과 집계 (아군 진영): 기물 몫과 따로 */
-/** 시너지 소환물 → 기록을 받을 시너지 (엔지니어 감시 포탑 · 칼리토 근위기사). 최고의 친구 · 사이오닉 소환물은 주인 기물 몫 (aggAllies) */
+/** 시너지 소환물 → 기록을 받을 시너지 (엔지니어 감시 포탑 · 칼리토 근위기사). 사이오닉 등 기물 소환물은 주인 기물 몫, 최고의 친구 소환물은 종류별 자기 줄 (aggAllies) */
 const SUMMON_SYN: Record<string, SynergyId> = { turret: 'ENG', kal_guard: 'KAL' };
 type SynAgg = { id: string; name: string; color: string; icon: string; dmg: number; taken: number; healed: number; shield: number; elem: Record<string, number> };
 function aggSyn(b: Battle): SynAgg[] {
@@ -3579,15 +3578,28 @@ function aggSyn(b: Battle): SynAgg[] {
   return [...out.values()].filter((x) => x.dmg + x.taken + x.healed + x.shield >= 1);
 }
 const synBadge = (x: SynAgg) => `<span class="syn-src" style="color:${x.color}" title="시너지 효과">${x.icon}</span>`;
-function aggAllies(b: Battle): Agg[] {
-  return b.units.filter((u) => u.side === 0 && (!u.isSummon || u.mem.king)).map((u) => { // 공왕 무휼: 시너지가 부르지만 기물 정의가 있어 자기 줄
-    const parts = [u, ...b.units.filter((s) => s.owner === u)];
-    const elem: Record<string, number> = {};
-    for (const p of parts) for (const [k, x] of Object.entries(p.counters.elem)) elem[k] = (elem[k] || 0) + (x || 0);
-    const sum = (k: 'dmg' | 'taken' | 'healed' | 'shield' | 'kills') => parts.reduce((s, p) => s + p.counters[k], 0);
-    return { u, dmg: sum('dmg'), taken: sum('taken'), healed: sum('healed'), shield: sum('shield'), kills: sum('kills'), elem };
-  });
+/** 최고의 친구 소환물 (기물 정의의 단짝 · 경호원 · 관료 등): 주인 줄에 합치지 않고 종류별 자기 줄 */
+const isBond = (s: CUnit) => s.isSummon && s.defId === 'summon' && !!s.owner;
+function aggOf(u: CUnit, parts: CUnit[], n?: number): Agg {
+  const elem: Record<string, number> = {};
+  for (const p of parts) for (const [k, x] of Object.entries(p.counters.elem)) elem[k] = (elem[k] || 0) + (x || 0);
+  const sum = (k: 'dmg' | 'taken' | 'healed' | 'shield' | 'kills') => parts.reduce((s, p) => s + p.counters[k], 0);
+  return { u, dmg: sum('dmg'), taken: sum('taken'), healed: sum('healed'), shield: sum('shield'), kills: sum('kills'), elem, ...(n ? { n } : {}) };
 }
+/** 아군 기물별 집계: 그 밖의 소환물(사이오닉 등)은 주인에게 합산, 최고의 친구 소환물은 주인 · 이름이 같은 것끼리 한 줄 (라라 · 맥스는 따로, 경호원 여럿은 한 줄) */
+function aggAllies(b: Battle, bonds = true): Agg[] {
+  const out: Agg[] = [];
+  for (const u of b.units.filter((x) => x.side === 0 && (!x.isSummon || x.mem.king))) { // 공왕 무휼: 시너지가 부르지만 기물 정의가 있어 자기 줄
+    out.push(aggOf(u, [u, ...b.units.filter((s) => s.owner === u && !isBond(s))]));
+    if (!bonds) continue;
+    const kinds = new Map<string, CUnit[]>();
+    for (const s of b.units.filter((x) => x.owner === u && isBond(x))) kinds.set(s.name, [...(kinds.get(s.name) || []), s]);
+    for (const l of kinds.values()) out.push(aggOf(l.find((x) => x.alive) || l[0], l, l.length));
+  }
+  return out;
+}
+/** 집계 줄 이름: 소환물 줄은 '이름 ×수 · 주인' */
+const aggName = (a: Agg) => (a.n ? `${esc(a.u.name)}${a.n > 1 ? ` ×${a.n}` : ''}<small class="agg-own"> · ${esc(a.u.owner?.name || '')}</small>` : esc(a.u.name));
 function elemBar(a: Agg) {
   const tot = Math.max(1, a.dmg);
   return `<span class="ebar" title="${Object.entries(a.elem).filter(([, x]) => x > 0).map(([k, x]) => `${ELEM_NAME[k as keyof typeof ELEM_NAME]} ${Math.round((x / tot) * 100)}%`).join(' · ')}">${Object.entries(a.elem).filter(([, x]) => x > 0).map(([k, x]) => `<i style="width:${(x / tot) * 100}%;background:${ELEM_COLOR[k]}"></i>`).join('')}</span>`;
@@ -3595,7 +3607,7 @@ function elemBar(a: Agg) {
 function battleTable(b: Battle) {
   const rows = aggAllies(b).sort((x, y) => y.dmg - x.dmg);
   return `<div class="btable-wrap"><table class="btable"><thead><tr><th>기물</th><th>준 피해</th><th>속성 비중</th><th>받은 피해</th><th>회복</th><th>보호막</th><th>결정타</th></tr></thead><tbody>
-    ${rows.map((a) => `<tr class="${a.u.alive ? '' : 'dead'}"><td>${sprite(a.u)} ${esc(a.u.name)}</td><td class="mono">${fmt(a.dmg)}</td><td>${elemBar(a)}</td><td class="mono">${fmt(a.taken)}</td><td class="mono">${fmt(a.healed)}</td><td class="mono">${fmt(a.shield)}</td><td class="mono">${a.kills}</td></tr>`).join('')}
+    ${rows.map((a) => `<tr class="${a.u.alive ? '' : 'dead'}${a.n ? ' bond' : ''}"><td>${sprite(a.u)} ${aggName(a)}</td><td class="mono">${fmt(a.dmg)}</td><td>${elemBar(a)}</td><td class="mono">${fmt(a.taken)}</td><td class="mono">${fmt(a.healed)}</td><td class="mono">${fmt(a.shield)}</td><td class="mono">${a.kills}</td></tr>`).join('')}
     ${(() => { const ss = aggSyn(b).sort((x, y) => y.dmg + y.taken + y.healed + y.shield - (x.dmg + x.taken + x.healed + x.shield)); return ss.length ? `<tr class="bt-sep"><td colspan="7">시너지 효과</td></tr>${ss.map((x) => `<tr class="syn"><td>${synBadge(x)} ${esc(x.name)}</td><td class="mono">${fmt(x.dmg)}</td><td>${x.dmg >= 1 ? elemBar(x as unknown as Agg) : ''}</td><td class="mono${x.taken >= 1 ? '' : ' muted'}">${x.taken >= 1 ? fmt(x.taken) : '-'}</td><td class="mono">${fmt(x.healed)}</td><td class="mono">${fmt(x.shield)}</td><td class="mono muted">-</td></tr>`).join('')}` : ''; })()}
   </tbody></table></div>
   <div class="elegend small muted">${Object.entries(ELEM_COLOR).map(([k, c]) => `<span><i style="background:${c}"></i>${ELEM_NAME[k as keyof typeof ELEM_NAME]}</span>`).join('')}</div>`;

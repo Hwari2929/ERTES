@@ -4171,3 +4171,6 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 /* 전투: 전장 장애물 (중립 지형물) — 진영 색 없이 회색 체력 막대 */
 .u.sideN .bars .hp { background: var(--c-text-2); }
 .u.sideN.tkb .tk-card { box-shadow: 0 0 0 1px var(--line), 0 2px 6px color-mix(in srgb, var(--c-black) 50%, transparent); }
+/* 전투 기록: 최고의 친구 소환물 줄 (종류별 묶음 · 주인 이름) */
+.agg-own { color: var(--c-text-2); font-size: var(--fs-xs); font-weight: 400; }
+.mrow.bond .mname, .btable tr.bond td:first-child { padding-left: 10px; }
