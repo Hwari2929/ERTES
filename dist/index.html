@@ -1602,9 +1602,10 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .pc-role .ti { margin-right: 3px; }
 /* 기물 한 줄 설명 (전체 상세 머리와 같은 brief.ts BLURB): 역할 줄 밑 작은 글씨, 카드가 좁으면 최대 3줄 + 말줄임.
    설명을 끌어올리면 함께 올라가고, 설명을 스크롤하면 접힌다 */
-.pc-blurb { font-size: var(--fs-xs); color: var(--c-text-2); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; max-height: 4.2em;
-  transition: max-height .3s ease, opacity .3s ease, margin .3s ease; }
-.pcard.scrolled .pc-blurb { max-height: 0; opacity: 0; margin-top: -6px; }
+.pc-blurb { --bl: 2; font-size: var(--fs-xs); color: var(--c-text-2); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: var(--bl); -webkit-box-orient: vertical; overflow: hidden;
+  height: calc(var(--bl) * 1.35em); transition: height .3s ease, opacity .3s ease, margin .3s ease; } /* 높이 고정: 설명 길이와 무관하게 이름 · 유형 줄 높이가 카드마다 같게 (넘치면 말줄임) */
+@media (max-width: 640px) { .pc-blurb { --bl: 3; } }
+.pcard.scrolled .pc-blurb { height: 0; opacity: 0; margin-top: -6px; }
 /* 끌어올린 카드 오른쪽 위 최대화 (전체 상세 미리보기) */
 .pc-top .pc-max { position: absolute; top: 8px; right: 8px; z-index: 1; width: 34px; height: 30px; padding: 0; display: none; place-items: center; }
 .pc-max svg { width: 18px; height: 18px; }
