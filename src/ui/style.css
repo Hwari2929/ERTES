@@ -218,9 +218,9 @@
   --art-good: #63d297; --art-bad: #ff6b5e; --art-info: #6cb6ff; --art-select: #e8705a; --art-select-ink: #1f0c07;
 }
 /* 라이트 테마의 그림 위 화면: 어두운 일러스트 위라 면 · 글씨를 밤바다 색으로 되돌린다 (강조 코랄은 그대로). 파생 토큰도 여기서 다시 계산
-   · 특권 선택(.pv-bg)도 어두운 막 · 어두운 카드 위라 여기에 든다. 난이도 카드(.ds-card)도 어두운 그림 카드라 여기, 바탕은 모래색 그대로
+   · 특권 선택(.pv-bg)도 어두운 막 · 어두운 카드 위라 여기에 든다. 난이도 설정(.diffsel)도 어두운 그림 카드뿐이라 화면 전체를 밤바다로
    · 타이틀은 이타카 항구 그림(파스텔)이라 밝은 면 그대로 → 아래 '이타카 가시성' */
-[data-ui-theme="ithaca"] :is(.intro, .bar, .adv, .banner, .pv-bg, .ds-card) {
+[data-ui-theme="ithaca"] :is(.intro, .bar, .adv, .banner, .pv-bg, .diffsel) {
   --bg: var(--art-bg); --panel: var(--art-panel); --panel-2: var(--art-panel-2); --line: var(--art-line);
   --c-text: var(--art-text); --c-text-2: var(--art-text-2); --c-chalk: var(--art-chalk); --c-chalk-ink: var(--art-chalk-ink); --c-ink: var(--art-ink); --overlay: var(--art-overlay);
   --c-good: var(--art-good); --c-bad: var(--art-bad); --c-info: var(--art-info); --c-select: var(--art-select); --c-select-ink: var(--art-select-ink);
@@ -230,7 +230,7 @@
   --data-mix: 100%; --c-narr: var(--art-text-2); --c-narr-2: var(--art-text-2); --c-type: var(--art-text-2); --c-down: var(--art-bad); --c-res: var(--art-info);
   color-scheme: dark; color: var(--c-text);
 }
-/* 이타카 가시성: 타이틀은 파스텔 항구 그림(lore_ithaca, main.ts titleScreen) 위 밝은 유리 단추 · 짙은 글씨, 난이도 설정은 모래색 바탕 위 그림 카드 */
+/* 이타카 가시성: 타이틀은 파스텔 항구 그림(lore_ithaca, main.ts titleScreen) 위 밝은 유리 단추 · 짙은 글씨, 난이도 설정은 밤바다 */
 [data-ui-theme="ithaca"] .title-screen { background: var(--bg); }
 [data-ui-theme="ithaca"] .ts-shade { background: radial-gradient(60% 50% at 50% 46%, color-mix(in srgb, var(--bg) 38%, transparent), transparent 80%), linear-gradient(180deg, transparent 50%, color-mix(in srgb, var(--bg) 85%, transparent)); }
 [data-ui-theme="ithaca"] .ts-stars { display: none; }
@@ -239,12 +239,15 @@
 [data-ui-theme="ithaca"] .ts-kicker { color: var(--c-brand); }
 [data-ui-theme="ithaca"] .ts-meta { color: var(--c-text-2); }
 [data-ui-theme="ithaca"] .title-actions .ts-btn:not(.primary) { background: color-mix(in srgb, var(--panel) 80%, transparent); }
-[data-ui-theme="ithaca"] .diffsel { background: var(--bg); }
+[data-ui-theme="ithaca"] .diffsel { background: radial-gradient(120% 75% at 50% 0%, color-mix(in srgb, var(--sea) 45%, var(--art-bg)), var(--art-bg) 72%); } /* 밤바다: 위쪽이 옅은 물빛 */
 /* 그림 위 이름표: 검은 그림자 대신 모래색 후광 (짙은 글씨가 그림 위에서도 읽히게) */
 [data-ui-theme="ithaca"] :is(.dh-name, .ru-tag, .cx2-lhero .cx2-hd b, .rs-mvp-tag em, .bf b) { text-shadow: 0 0 2px var(--panel), 0 0 8px var(--panel); }
 /* 시너지 마름모: 짙은 시너지색 바탕 + 흰 테두리 · 아이콘 (모래색 위에서 옅은 시너지색이 묻히지 않게). 비활성은 반투명 */
 [data-ui-theme="ithaca"] .syn-dia { background: color-mix(in srgb, var(--c) 55%, var(--c-text)); border-color: var(--c-white); color: var(--c-white); }
 [data-ui-theme="ithaca"] .syn-tk.active .syn-dia, [data-ui-theme="ithaca"] .syn-b:hover .syn-dia, [data-ui-theme="ithaca"] .syn-b.peek .syn-dia { background: color-mix(in srgb, var(--c) 70%, var(--c-text)); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--c) 60%, var(--c-text)); }
+/* 출전 수 배지도 같은 짙은 바탕 + 흰 숫자 · 흰 테두리 */
+[data-ui-theme="ithaca"] .syn-tk .syn-lv { background: color-mix(in srgb, var(--c) 40%, var(--c-text-2)); color: var(--c-white); box-shadow: 0 0 0 1.5px var(--c-white); }
+[data-ui-theme="ithaca"] .syn-tk.active .syn-lv { background: color-mix(in srgb, var(--c) 70%, var(--c-text)); }
 [data-ui-theme="ithaca"] .syn-tk:not(.active) .syn-dia { background: color-mix(in srgb, var(--c) 40%, var(--c-text-2)); border-color: var(--c-white); opacity: .62; }
 [data-ui-theme="ithaca"] .pcard .pc-syn .syn-tk:not(.active) .syn-dia { background: color-mix(in srgb, var(--c) 55%, var(--c-text)); opacity: 1; }
 [data-ui-theme="hoishun"] {
