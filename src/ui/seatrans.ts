@@ -25,12 +25,14 @@ export const SEA = {
     { top: 0.205, amp: 9, len: 0.38 },
     { top: -0.08, amp: 8, len: 0.5 },
   ],
-  /** 판 색: 전환마다 판마다 무작위 (HSL 파스텔). 색 띠는 [hue 범위, 뽑힐 비중] — 민트 · 하늘색 위주, 에메랄드는 가끔 (노랑은 섬 모래색과 겹쳐 뺀다).
+  /** 판 색 (HSL). order 가 있으면 그 순서 (+ jitter), 없으면 판마다 무작위: 색 띠는 [hue 범위, 뽑힐 비중] — 민트 · 하늘색 위주, 에메랄드는 가끔.
    *  이웃 판과는 hueGap 도 · lightGap %p 중 하나 이상 벌어지게. 판 안은 위가 밝고 아래가 deep 만큼 짙은 그라디언트
    *  (가장자리 위로 번지는 빛 띠는 glow) */
   palette: { zones: [[[156, 176], 0.5], [[180, 198], 0.36], [[142, 154], 0.14]] as [number[], number][], sat: [64, 82], light: [84, 91], hueGap: 12, lightGap: 3, deep: 5,
-    /** 고정 색 (앞 → 뒤, [hue, sat, light]): 있으면 무작위 대신 이 순서대로 */
-    order: null as [number, number, number][] | null },
+    /** 고정 색 (앞 → 뒤, [hue, sat, light]): 있으면 무작위 대신 이 순서대로, 전환마다 jitter [hue, sat, light] 범위 안에서 살짝 흔든다.
+     *  기본: 청량 블루와 라군 터콰이즈 사이 — 가까운 바다는 진한 청록, 멀수록 밝은 하늘빛 */
+    order: [[183, 64, 55], [186, 68, 63], [181, 66, 71], [189, 72, 78], [185, 66, 85], [194, 62, 92]] as [number, number, number][] | null,
+    jitter: [4, 4, 2.5] },
   glow: { alpha: 0.15, reach: 34, blur: 13, light: 13 }, // 판 가장자리 위로 번지는 빛 띠 (드롭 섀도): 불투명도 · 수면 위로 뻗는 높이 px · 번짐 px · 판 색보다 밝게 %p.
   // 빛 띠는 판 모양을 만들 때 캔버스에 한 번만 그려 이미지로 붙인다 (매 프레임 필터 계산 없이 판과 함께 움직일 뿐)
   sway: { x: 14, y: 5, tilt: 0.7 }, // 판 흔들림: 좌우 px · 위아래 px · 기울기 도
@@ -188,7 +190,7 @@ export function seaTransition(): SeaHandle {
   const hues: [number, number, number][] = [];
   for (let i = 0; i < N; i++) {
     const fixed = P.order?.[i % P.order.length];
-    if (fixed) { hues.push([...fixed]); continue; }
+    if (fixed) { const j = (k: number) => (Math.random() * 2 - 1) * P.jitter[k]; hues.push([fixed[0] + j(0), fixed[1] + j(1), fixed[2] + j(2)]); continue; }
     let c: [number, number, number] = [hue(), rr(P.sat), rr(P.light)];
     for (let k = 0; k < 12 && i > 0; k++) {
       const q = hues[i - 1];
