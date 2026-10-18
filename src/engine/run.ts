@@ -93,6 +93,8 @@ export function newRun(seed: number, starters: string[], field?: string, diff = 
 /** 페이즈 노드 구성 (12칸): 전투 > 전투 > 항로 회의(전역 증강) > 사건 > 역경 > 보급 > 전투(짝수 페이즈는 전환) > 전투 > 사건 > 역경 > 보급 > 보스.
  *  보급 = 상점 / 보급 / 모집 (+ 은하 대스타 속보 · 투자 · 순례) 중 선택. 2페이즈부터는 페이즈 시작 때 영입 기회가 열린다 */
 export function phaseMap(phase: number): NodeType[][] {
+  // [실험] CFG.supply.p1: 1페이즈만 맨 앞 보급 + 첫 역경 → 보급 (항로 보급, 분기점 보급과 달리 재료 1장 확정 · 대박 없음)
+  if (phase === 1 && CFG.supply.p1) return [['supply'], ['battle'], ['battle'], ['council'], ['event'], ['supply'], ['shop'], ['battle'], ['battle'], ['event'], ['adversity'], ['shop'], ['boss']];
   return [['battle'], ['battle'], ['council'], ['event'], ['adversity'], ['shop'], [phase % 2 === 0 ? 'fork' : 'battle'], ['battle'], ['event'], ['adversity'], ['shop'], ['boss']];
 }
 
@@ -350,7 +352,7 @@ export function enterNode(run: RunState, type: NodeType) {
   } else if (type === 'shop') {
     run.pending.push({ t: 'branch', options: branchOptions(run) });
   } else if (type === 'supply') {
-    run.pending.push({ t: 'supply', options: genSupply(run) });
+    run.pending.push({ t: 'supply', options: genSupply(run, run.map[run.step]?.[0] === 'supply') }); // 항로에 놓인 보급 노드 (분기점 보급 아님)
     advance(run);
   } else if (type === 'recruit') {
     offerRecruit(run);
@@ -1460,19 +1462,20 @@ function supplyGear(run: RunState, r: Rng, v: number, jackpot: boolean): string 
   return r.chance(S.graded) ? r.pick(ALL_GRADED) : r.pick(ALL_ADVANCED);
 }
 /** 보급품 카드 (뒷면): 장마다 종류 무작위 (겹쳐도 됨), 가치 = 기준 ÷ 장 수 × (1 ± spread) × 대박 배율 */
-export function genSupply(run: RunState): SupplyCard[] {
+export function genSupply(run: RunState, onMap = false): SupplyCard[] {
   const S = CFG.supply, per = supplyBase(run) / S.cards;
   const kinds = Object.keys(S.kindW) as SupplyCard['kind'][];
   const total = kinds.reduce((s, k) => s + S.kindW[k], 0);
-  return rng(run, (r) => Array.from({ length: S.cards }, (): SupplyCard => {
+  // 항로 보급 (onMap): 첫 장은 장비 재료 확정, 대박 없음
+  return rng(run, (r) => Array.from({ length: S.cards }, (_, i): SupplyCard => {
     let roll = r.next() * total;
-    const kind = kinds.find((k) => (roll -= S.kindW[k]) < 0) ?? kinds[0];
-    const mult = S.jackpot.find(([, p]) => r.chance(p))?.[0] ?? 1;
+    const kind = onMap && i === 0 ? 'gear' : kinds.find((k) => (roll -= S.kindW[k]) < 0) ?? kinds[0];
+    const mult = onMap ? 1 : S.jackpot.find(([, p]) => r.chance(p))?.[0] ?? 1;
     const v = per * (1 + (r.next() * 2 - 1) * S.spread) * mult;
     const c: SupplyCard = { kind, xp: 0, credits: 0, items: [], value: 0, mult };
     if (kind === 'credits') c.credits = Math.max(1, Math.round(v));
     else if (kind === 'xp') c.xp = Math.max(1, Math.round(v / XP_VALUE));
-    else c.items = [supplyGear(run, r, v, mult > 1)];
+    else c.items = [onMap && i === 0 ? r.pick(ALL_COMPONENTS) : supplyGear(run, r, v, mult > 1)];
     c.value = supplyValue(c);
     return c;
   }));
