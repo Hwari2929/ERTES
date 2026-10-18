@@ -16,6 +16,7 @@ import { DIVINE_ACT, FAITH_DEF, MAJOR_AUGS, MINOR_TRAIT_GROW, recMajors } from '
 import { type AugList, cantripView, passiveView, SCHOOL_LINE, transformPreview } from './data/psiinfo';
 import { augReqState } from './data/augreq';
 import { GROUPS, SCHOOL_BY_ID, SCHOOL_PASSIVES, UNIT_GROUP, augMark, psiAugId, schoolOf, type SchoolId } from './data/schools';
+import { ROLE } from './data/roles';
 import { BRIEF, PSI_BRIEF, unitBlurb } from './data/brief';
 import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
 import * as AB from './ui/abil';
@@ -123,6 +124,7 @@ const app = {
   useK: null as null | { i: number; tg: R.UseTarget }, // 소모품 사용 확인 창
   nodePick: null as string | null, // 지도: 이번 칸에서 고른 노드 (진입 전)
   bigUnit: null as string | null, // 기물 전체 상세 팝업 (대기실 · 편성 확대)
+  preview: null as { defId: string; run: RunState; uid: string } | null, // 영입 전 기물 전체 상세 (카드의 최대화 단추): 런을 복제해 합류시킨 모습
   statPop: false, // 상세 보기: 전투 스탯 펼침 (패널 왼쪽)
   abilPop: null as string | null, // 능력 상세 팝업 (weapon · skill · trait · ace · aug:<id>)
   cardOpen: null as string | null, // 터치 화면: 설명을 펼친 시작 기물 카드
@@ -682,11 +684,13 @@ const traitText = (d: UnitDef) => (app.detail ? d.trait.desc : BRIEF[d.id]?.trai
 /** 상세 창 상단 고정 바: 닫기(←) · [추가 버튼] · 상세 보기(돋보기) */
 function dBar(back: string, extra = '') {
   return `<div class="d-bar"><button class="btn d-back" data-a="${back}" data-v="" aria-label="상세 닫기" title="닫기 (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
-    <span class="d-bar-r">${extra}<button class="btn d-mag${app.detail ? ' on' : ''}" data-a="toggle-detail" aria-pressed="${app.detail}" aria-label="상세 보기 ${app.detail ? '끄기' : '켜기'}" title="상세 보기: 계수 · 세부 규칙 표시 (단축키 D) · ${app.detail ? 'ON' : 'OFF'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M10.5 8v5M8 10.5h5"/></svg></button></span></div>`;
+    <span class="d-bar-r">${extra}${magToggle()}</span></div>`;
 }
-function detailToggle() {
-  return `<button class="btn tiny dtoggle ${app.detail ? 'on' : ''}" data-a="toggle-detail" aria-pressed="${app.detail}" title="계수 · 세부 규칙 표시 (단축키 D)">상세 보기 ${app.detail ? 'ON' : 'OFF'}</button>`;
+/** 상세 보기 단추 (돋보기 아이콘, 켜면 강조색): 상세 패널 머리 · 기물 선택 · 영입 · 전체 상세 공용 */
+function magToggle(cls = '') {
+  return `<button class="btn d-mag${cls}${app.detail ? ' on' : ''}" data-a="toggle-detail" aria-pressed="${app.detail}" aria-label="상세 보기 ${app.detail ? '끄기' : '켜기'}" title="상세 보기: 계수 · 세부 규칙 표시 (단축키 D) · ${app.detail ? 'ON' : 'OFF'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M10.5 8v5M8 10.5h5"/></svg></button>`;
 }
+function detailToggle() { return magToggle(' d-mag-solo'); }
 function unitCard(d: UnitDef, opts: { selected?: boolean; action?: string; rank?: number; clone?: boolean } = {}) {
   return `<button class="ucard ${opts.selected ? 'sel' : ''}" ${opts.clone ? 'aria-hidden="true" tabindex="-1"' : ''} data-a="${opts.action || 'pick-starter'}" data-v="${d.id}">
     ${hero(d.id, 'hero sm')}<div class="ucard-head">${sprite(d, 'spr big')}${nameBlock(d, [...d.factions, ...d.traits], opts.rank, opts.action === 'pick-recruit' ? ownedChip(d.id) : chip)}</div>
@@ -719,7 +723,7 @@ function pickCard(d: UnitDef, o: PickOpts) {
     ${on ? `<span class="pc-check">✓${o.badge ? ` ${o.badge}` : ''}</span>` : ''}
     <div class="pc-syn">${[...d.factions, ...d.traits].map((id) => synToken(id, o.synCount ? o.synCount(id) : 0)).join('')}</div>
     <div class="pc-panel">
-      <div class="pc-top"><div class="pc-nm"><b class="pc-name">${esc(d.name)}</b>${o.nameExtra || ''}</div>${roleTag(d)}${o.extra || ''}
+      <div class="pc-top">${clone ? '' : `<button class="btn d-mag pc-max" data-a="card-max" data-v="${d.id}" title="전체 상세 (확대)" aria-label="${esc(d.name)} 전체 상세 열기">${MAX_SVG}</button>`}<div class="pc-nm"><b class="pc-name">${esc(d.name)}</b>${o.nameExtra || ''}</div>${roleTag(d)}${ROLE[d.id] ? `<span class="pc-blurb">${esc(ROLE[d.id])}</span>` : ''}${o.extra || ''}
         <div class="chips">${[...d.factions, ...d.traits].map(o.chipFn || chip).join('')}</div>
         <button class="pc-more" data-a="card-open" data-v="${d.id}" ${clone ? 'tabindex="-1"' : ''}>${app.cardOpen === d.id && !clone ? '접기 ▼' : '상세 보기 ▲'}</button></div>
       <div class="pc-desc" data-a="noop">${unitInfo(d)}
@@ -827,11 +831,15 @@ function introAnim() {
 /** 난이도 카드: 등급 · 이름은 difficulty.ts DIFF_PRESETS (쉬움 3 · 모험 6 · 고난 7), 증원 간격 · 보상 배율 · 절망 증강 횟수는 설정값에서 읽는다.
  *  배경 키(diff_easy · diff_adventure · diff_challenge)는 그림 파일 이름이라 카드 순서대로 그대로 쓴다 */
 const DIFF_BG = ['diff_easy', 'diff_adventure', 'diff_challenge'];
+/** 난이도 카드 한 줄 설명: 쉬움(가장 낮은 선택지)을 기준으로 달라지는 점만 (승리 크레딧도 쉬움 대비 배율) */
 const diffLine = (lvl: number) => {
-  const add = diffAddEvery(lvl), cr = `승리 크레딧 ×${CFG.diffWinMul(lvl)}`;
-  const foes = add ? `적은 ${add}페이즈마다 1기씩 늘어납니다` : '적이 장비를 챙기지만 수는 늘지 않습니다';
-  if (despairDiff(lvl)) return `함대 체력이 줄고 절망 증강이 ${CFG.despair.every}페이즈마다 쌓이며, ${foes}. ${cr}, 베테랑 전용.`;
-  return lvl >= 6 ? `처음부터 모든 적이 장비를 갖추고, ${foes}. ${cr}.` : `처음 출격하는 용병단을 위한 항로. ${foes}. ${cr}.`;
+  const add = diffAddEvery(lvl), cr = CFG.diffWinMul(lvl) / CFG.diffWinMul(DIFF_PRESETS[0].lvl);
+  const parts: string[] = [];
+  if (despairDiff(lvl)) parts.push('함대 체력 감소', '절망 증강');
+  if (lvl >= 6) parts.push('모든 적 장비');
+  if (add) parts.push(`${add}페이즈마다 적 +1`);
+  if (cr > 1) parts.push(`승리 크레딧 ×${+cr.toFixed(2)}`);
+  return parts.length ? parts.join(' · ') : '처음 출격하는 용병단을 위한 기본 항로';
 };
 const DIFF_PICKS = DIFF_PRESETS.map((x, i) => ({ lvl: x.lvl, name: x.name, sub: `위험 등급 ${x.lvl}`, bg: DIFF_BG[i] || DIFF_BG[DIFF_BG.length - 1], line: diffLine(x.lvl) }));
 /** 절망 증강 안내 (고난 카드 위 띠): 고르는 횟수만 짧게. 자세한 방식은 ⓘ 세부 조건 (difficulty.ts 위험 7) */
@@ -841,7 +849,7 @@ function despairNote(lvl: number) {
   return `절망 증강: 출격 때 1개${ph.length ? ` + ${ph.map((p) => `${p}페이즈`).join(' · ')} 시작 때 1개씩` : ''} (의뢰 중 ${1 + ph.length}개)`;
 }
 function diffScreen() {
-  return `<main class="diffsel"><h1 class="ds-title">난이도 설정</h1>
+  return `<main class="diffsel${lastView.screen !== 'diffsel' ? ' enter' : ''}"><h1 class="ds-title">난이도 설정</h1>
     <div class="ds-row">${DIFF_PICKS.map((d) => {
       const on = app.diff === d.lvl;
       const conds = DIFFS.filter((x) => x.lvl >= 1 && x.lvl <= d.lvl).map((x) => x.desc).concat(OATH.applies(d.lvl) ? OATH.oathConds() : []);
@@ -860,7 +868,9 @@ function newRunScreen() {
   const n = app.starters.length;
   return `<main class="wrap nr">
     <div class="nr-head">
-      <div><h1>계약 기물 선택</h1><p class="muted small">이번 출격에 응한 ${app.pool.length}명 중 ${CFG.startUnits}명을 고르세요.${(() => { const syn = fieldSyn(app.introField), k = starterFavNeed(app.introField); return syn && k ? ` 전장 [${esc(fieldOf(app.introField).name)}]의 우세 시너지 ${chip(syn)} 기물이 ${k}명 이상 섞여 있습니다.` : ''; })()} ${CAN_HOVER ? '카드에 마우스를 올리면 설명이 나오고, 누르면 선택합니다.' : '카드를 누르면 선택합니다. 하단을 위로 끌어올리거나 [상세 보기]를 누르면 설명이 나옵니다.'}</p></div>
+      <div class="nr-title"><h1>계약 기물 선택</h1>
+        <div class="nr-meta"><span class="nr-cnt">후보 ${app.pool.length}명 중 <b>${CFG.startUnits}명</b></span>${(() => { const syn = fieldSyn(app.introField), k = starterFavNeed(app.introField); return syn && k ? `<span class="nr-fav" title="${esc(`전장 [${fieldOf(app.introField).name}]의 우세 시너지 기물이 후보에 ${k}명 이상 섞여 있습니다`)}">${esc(fieldOf(app.introField).name)} 우세 ${chip(syn)} <b>${k}명+</b></span>` : ''; })()}</div>
+        <p class="nr-hint">${CAN_HOVER ? '누르면 선택 · 마우스를 올리면 설명' : '누르면 선택 · 카드 하단을 끌어올리면 설명'}</p></div>
       ${detailToggle()}
     </div>
     <div class="carousel">
@@ -1045,7 +1055,7 @@ function bossGoal(run: RunState) {
 function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   const tb = toBoss(run);
   const idx: number[] = [];
-  for (let i = run.step + 1; i < Math.min(run.map.length, run.step + 3); i++) if (!tb || i <= tb.bi) idx.push(i);
+  for (let i = run.step + 1; i < Math.min(run.map.length, run.step + 2); i++) if (!tb || i <= tb.bi) idx.push(i); // 현재 칸 + 다음 칸만
   const f = fieldOf(run.field);
   const PART = lineIcon('r.part', 'li'), CONS = lineIcon('r.cons', 'li');
   // 모디파이어 (현재 칸만, 둥근 칸 · 아이콘 + 값, 설명은 툴팁): 규칙 수치만 — 적 강화 배율 · 보상 배율 (설정값) · 위험 등급 적 증원 (해골 +n) · 정예 확정 (역경 · 도전). 적 개체(초상 · 이름)는 넣지 않는다
@@ -1075,8 +1085,8 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
     if (CFG.drop.utility[t]) out.push(inc(CONS, pctTxt(CFG.drop.utility[t]), '전투 보상 소모품 1개 — 확률', 'cons'));
     return `<div class="ah-inc" aria-label="예상 수입"><span class="ah-sec">예상 수입</span>${out.join('')}</div>`;
   };
-  // 순서 배지: 현재 · 노드 아이콘 + 몇 칸 뒤 (몇 번째 칸인지는 툴팁)
-  const step = (i: number) => (i === run.step ? '<span class="ah-step now">현재</span>' : `<span class="ah-step" title="${i - run.step}칸 뒤 (${i + 1}번째 칸)">${lineIcon('r.node', 'li')}${i - run.step}</span>`);
+  // 순서 배지: 현재 · 다음 노드 (다음 노드는 그 노드 고유 색 --nc, 몇 번째 칸인지는 툴팁)
+  const step = (i: number) => (i === run.step ? '<span class="ah-step now">현재</span>' : `<span class="ah-step nxt" title="${i + 1}번째 칸">다음 노드</span>`);
   // 다음 칸 카드의 이름 밑 설명 (작은 보조 글씨): nodeHint 원문을 가운데 점 ' · ' 기준으로 나눠 조각마다 한 줄 (괄호 안의 점은 그대로)
   const lines = (t: string) => {
     const out: string[] = [];
@@ -1821,7 +1831,8 @@ function provChip(b: Battle | null, c: CUnit) {
   return `<span class="d-pow pw-prov" title="도발 배율: 적이 이 기물에게 쌓는 도발 수치에 곱해지는 값 (${rule}).${zoc}">${lineIcon('p.prov', 'li')}<span>도발 배율</span><b>×${+m.toFixed(2)}</b></span>`;
 }
 /** 확대 버튼 (전체 상세 팝업): 상세 창 위쪽 바 (자세히 보기 옆) */
-const maxBtn = (uid: string) => `<button class="btn d-mag d-max" data-a="big-open" data-v="${uid}" title="전체 상세 (확대)" aria-label="전체 상세 열기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button>`;
+const MAX_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>';
+const maxBtn = (uid: string) => `<button class="btn d-mag d-max" data-a="big-open" data-v="${uid}" title="전체 상세 (확대)" aria-label="전체 상세 열기">${MAX_SVG}</button>`;
 /** 기물 전체 상세 팝업: 장비 · 주요 · 상세 능력치 · 능력 구성 · 유형 특성을 한 화면에 */
 /** 전체 상세 머리 요약: 한 줄 설명 (brief.ts BLURB, 능력 이름은 데이터에서) → 이번 빌드에서 달라진 점 (변형 증강이면 그 변화를 먼저) */
 function unitSummary(run: RunState, u: UnitState, d: UnitDef, b: Battle, c: CUnit) {
@@ -1843,8 +1854,9 @@ function unitSummary(run: RunState, u: UnitState, d: UnitDef, b: Battle, c: CUni
     <div class="us-row us-build"><span class="us-k">이번 빌드</span><p>${changes.length ? changes.join('<br>') : '<span class="muted">기본 상태 (증강 · 장비 없음)</span>'}</p></div>
   </section>`;
 }
-function unitModal(run: RunState) {
-  const u = run.units.find((x) => x.uid === app.bigUnit);
+/** 기물 전체 상세 팝업. pv = 영입 전 미리보기 (복제한 런에 합류시킨 모습, 방출 · 경험치 구매 없음) */
+function unitModal(run: RunState, pv = false) {
+  const u = run.units.find((x) => x.uid === (pv ? app.preview?.uid : app.bigUnit));
   if (!u) return '';
   const d = withEmblemSummon(UNIT_BY_ID[u.defId], u.mod); // 최고의 친구 문장: 소환물 섹션에 반려 돌(인화성)
   const { b, c } = previewAlly(run, u);
@@ -1859,14 +1871,14 @@ function unitModal(run: RunState) {
     return `<div class="major"><span>${majorIcon(m)}${MAJOR_NAME[m]}</span><span class="mbar"><i style="width:${Math.min(100, tm[m] * 3)}%"></i></span><b>${tm[m]}</b>${add ? `<small class="${add > 0 ? 'up' : 'down'}">${add > 0 ? '+' : ''}${add}</small>` : ''}</div>`;
   }).join('')}</div>`;
   const pop = app.abilPop ? `<div class="um-pop">${abilPopHtml(app.abilPop, d, b, c)}</div>` : '';
-  const rankRow = `<div class="um-rank">${rankLabel(u.rank)}${xpBar(u)}<button class="btn tiny" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost || R.isRock(u) ? 'disabled' : ''}>경험치 +${cost}c</button></div>`;
+  const rankRow = `<div class="um-rank">${rankLabel(u.rank)}${xpBar(u)}${pv ? '' : `<button class="btn tiny" data-a="buyxp" data-v="${u.uid}" ${u.rank >= CFG.maxRank || run.credits < cost || R.isRock(u) ? 'disabled' : ''}>경험치 +${cost}c</button>`}</div>`;
   const synRow = `<div class="pc-syn">${memberships(u, run).map((id) => synToken(id, cnt[id] || 0)).join('')}</div>`;
   return `<div class="um-back" data-a="big-close"></div>
   <section class="um" role="dialog" aria-modal="true" aria-label="${esc(d.name)} 전체 상세">
     <header class="um-head">
       <div class="um-id"><b>${esc(d.name)}</b><span class="muted small">${esc(d.title || '')}</span></div>
       <span class="dh-types"><i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i>${categoryTag(cat)}</span>
-      <span class="um-tools">${detailToggle()}<button class="btn small danger-ghost" data-a="release" data-v="${u.uid}" ${run.units.length <= 1 ? 'disabled title="마지막 남은 기물은 방출할 수 없습니다"' : 'title="기물 방출 (확인 후 진행)"'} aria-expanded="${app.releaseConfirm === u.uid}">기물 방출</button><button class="btn" data-a="big-close" aria-label="닫기" title="닫기 (Esc)">✕</button></span>
+      <span class="um-tools">${detailToggle()}${pv ? '<span class="um-pv">영입 전 미리보기</span>' : `<button class="btn small danger-ghost" data-a="release" data-v="${u.uid}" ${run.units.length <= 1 ? 'disabled title="마지막 남은 기물은 방출할 수 없습니다"' : 'title="기물 방출 (확인 후 진행)"'} aria-expanded="${app.releaseConfirm === u.uid}">기물 방출</button><button class="btn" data-a="big-close" aria-label="닫기" title="닫기 (Esc)">✕</button>`}</span>
     </header>
     ${app.releaseConfirm === u.uid ? `<div class="um-release">${releaseBlock(run, u)}</div>` : ''}
     <div class="um-grid">
@@ -2848,7 +2860,7 @@ function render() {
   const kept = KEEP.map((q) => root.querySelector<HTMLElement>(q)?.scrollTop ?? 0);
   const media = app.screen === 'battle' || app.screen === 'bar' ? null : keepMedia();
   TFX.beforeScreen(prevScreen, app.screen, root); // 이타카: 바뀌기 전 화면을 덮는 바다 (그리기 전에 지금 화면을 얼려 둔다)
-  root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
+  root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${app.preview ? unitModal(app.preview.run, true) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   media?.();
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
   umCompactBind();
@@ -2939,6 +2951,11 @@ function carWrap(track: HTMLElement) {
   carX = track.scrollLeft;
 }
 /** 다시 그리지 않고 펼침 상태만 바꾼다 (트랜지션 유지) */
+// 카드 설명을 스크롤하면 한 줄 역할(.pc-blurb)을 접는다 (맨 위로 돌아오면 다시 펼침)
+if (typeof document !== 'undefined') document.addEventListener('scroll', (e) => {
+  const el = e.target as HTMLElement | null;
+  if (el?.classList?.contains('pc-desc')) el.closest('.pcard')?.classList.toggle('scrolled', el.scrollTop > 6);
+}, { capture: true, passive: true });
 function syncCardOpen() {
   root.querySelectorAll<HTMLElement>('.pcard').forEach((c) => {
     const on = !c.hasAttribute('aria-hidden') && c.dataset.v === app.cardOpen;
@@ -3957,6 +3974,12 @@ function act(a: string, v: string) {
     case 'syn-peek': return; // 시너지 아이콘 탭: 이름만 보여준다 (클릭 핸들러에서 처리)
     case 'card-tap': return act('pick-starter', v); // 카드를 누르면 선택 · 해제
     case 'card-open': app.cardOpen = app.cardOpen === v ? null : v; syncCardOpen(); return; // 터치: 설명 펼치기 · 접기
+    case 'card-max': { // 영입 · 계약 카드의 최대화: 런(없으면 임시 런)을 복제해 그 기물을 합류시킨 모습으로 전체 상세
+      const tmp = app.run ? structuredClone(app.run) : R.newRun(1, [v], app.introField || undefined, app.diff);
+      const pu = app.run ? R.addUnit(tmp, v, UNIT_BY_ID[v].inert ? 1 : R.recruitRank(app.run)) : tmp.units[0];
+      if (pu) { app.preview = { defId: v, run: tmp, uid: pu.uid }; app.abilPop = null; }
+      break;
+    }
     case 'toggle-detail': app.detail = !app.detail; savePref('detail', app.detail); if (app.screen === 'battle') { updateMeter(true); return; } break;
     case 'toggle-sub': if (app.subOpen.has(v)) app.subOpen.delete(v); else app.subOpen.add(v); break;
     case 'to-title': if (app.view) { app.view.destroy(); app.view = null; } tutAway(); app.screen = 'title'; app.menu = null; app.run = null; break;
@@ -4055,7 +4078,7 @@ function act(a: string, v: string) {
     case 'tac-info': app.tacOpen = !app.tacOpen; break;
     case 'map-unit': app.sel = v ? { k: 'unit', uid: v } : null; app.bigUnit = v || null; app.statPop = false; app.abilPop = null; break;
     case 'big-open': app.bigUnit = v; app.sel = { k: 'unit', uid: v }; app.statPop = false; app.abilPop = null; break;
-    case 'big-close': app.bigUnit = null; app.abilPop = null; app.releaseConfirm = null; if (app.screen === 'map') app.sel = null; break;
+    case 'big-close': app.preview = null; app.bigUnit = null; app.abilPop = null; app.releaseConfirm = null; if (app.screen === 'map') app.sel = null; break;
     case 'manage': app.screen = 'prep'; app.sel = v ? { k: 'unit', uid: v } : null; break;
     case 'to-map': app.screen = run?.node?.type === 'shop' ? 'shop' : run?.node?.type === 'news' ? 'news' : run?.node?.type === 'invest' ? 'invest' : 'map'; break;
     case 'fight':
@@ -4736,6 +4759,7 @@ document.addEventListener('keydown', (e) => {
   const sv = document.querySelector('.stand-view');
   if (k === 'Escape') {
     if (sv) sv.remove();
+    else if (app.preview) act('big-close', '');
     else if (app.cardOpen) { app.cardOpen = null; render(); }
     else if (app.bigUnit && app.abilPop) { app.abilPop = null; render(); }
     else if (app.bigUnit && app.releaseConfirm) act('release-cancel', '');
