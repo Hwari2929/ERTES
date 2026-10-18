@@ -29,7 +29,7 @@ export const SEA = {
    *  이웃 판과는 hueGap 도 · lightGap %p 중 하나 이상 벌어지게. 판 안은 위가 밝고 아래가 deep 만큼 짙은 그라디언트
    *  (가장자리 위로 번지는 빛 띠는 glow) */
   palette: { zones: [[[156, 176], 0.5], [[180, 198], 0.36], [[142, 154], 0.14]] as [number[], number][], sat: [50, 66], light: [85, 92], hueGap: 12, lightGap: 3, deep: 5 },
-  glow: { alpha: 0.85, reach: 34, blur: 13, light: 13 }, // 판 가장자리 위로 번지는 빛 띠: 불투명도 · 수면 위로 뻗는 높이 px · 번짐(흐림) px · 판 색보다 밝게 %p
+  glow: { alpha: 0.15, reach: 34, blur: 13, light: 13 }, // 판 가장자리 위로 번지는 빛 띠: 불투명도 · 수면 위로 뻗는 높이 px · 번짐(흐림) px · 판 색보다 밝게 %p
   sway: { x: 14, y: 5, tilt: 0.7 }, // 판 흔들림: 좌우 px · 위아래 px · 기울기 도
   stars: { count: 6, size: [5.5, 10], period: [1.6, 3] }, // 판마다 반짝이는 흰 별 수 · 크기 px · 점멸 주기 초
   enter: { dur: 560, gap: 62 }, // 판 하나가 차오르는 시간 · 다음 판까지 간격 (ms)
