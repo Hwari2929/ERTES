@@ -373,16 +373,14 @@ body:has(.bar, .adv) .tfx-petals { display: none; } /* 바(실내) · 사건 장
 @media (prefers-reduced-motion: no-preference) { [data-ui-theme="ithaca"][data-tfx="on"] .modal.enter:not(.privilege) { animation: tfx-float-in .5s cubic-bezier(.3, 1.3, .5, 1) both; } }
 @keyframes tfx-float-in { 0% { opacity: 0; transform: translateY(16px); } 60% { opacity: 1; transform: translateY(-3px); } 100% { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .tfx-wash:not(.fade) { display: none; } } /* themefx.ts 도 이때는 페이드만 쓴다 */
-/* 이타카 켜기: 큰 화면 전환은 바다가 차올라 덮었다가 내려간다 (seatrans.ts). 물결 색은 앞 → 뒤로 짙은 에메랄드 → 옅은 민트 · 모래빛.
+/* 이타카 켜기: 큰 화면 전환은 바다가 차올라 덮었다가 내려간다 (seatrans.ts).
    .tfx-ghost = 바뀌기 전 화면을 얼려 둔 사본 (바다가 다 덮으면 걷는다). 덮는 동안은 입력을 막고, 내려갈 때부터는 날아가는 배만 누를 수 있다 */
-.tfx-sea { position: fixed; inset: 0; width: 100%; height: 100%; z-index: var(--z-banner); overflow: visible; touch-action: none;
-  --sw1: #5fae98; --sw2: #77bea8; --sw3: #93cdb8; --sw4: #b0dcc8; --sw5: #cde8d8; --sw6: #eaeedd; --sw-foam: #fbf6ec; }
+.tfx-sea { position: fixed; inset: 0; width: 100%; height: 100%; z-index: var(--z-banner); overflow: visible; touch-action: none; } /* 색은 seatrans.ts SEA.colors */
 .tfx-sea.open { pointer-events: none; touch-action: auto; }
 .tfx-sea .ts-hit { pointer-events: none; }
 .tfx-sea .ts-hit.on { pointer-events: all; cursor: pointer; }
 .tfx-ghost { position: fixed; inset: 0; z-index: calc(var(--z-banner) - 1); overflow: hidden; pointer-events: none; background: var(--bg); }
 .tfx-ghost-in { position: relative; min-height: 100%; display: flex; flex-direction: column; }
-.tfx-ghost-in, .tfx-ghost-in * { animation: none !important; transition: none !important; }
 html, body { height: 100%; }
 body { background: var(--bg); color: var(--c-text); font-family: var(--f-body); font-size: var(--fs-md); line-height: 1.5; }
 * { box-sizing: border-box; }

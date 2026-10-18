@@ -51,6 +51,7 @@ export function beforeScreen(prev: string, next: string, app: HTMLElement) {
   const from = app.querySelectorAll('*'), to = copy.querySelectorAll('*');
   document.body.appendChild(ghost);
   from.forEach((el, k) => { if (el.scrollTop || el.scrollLeft) { to[k].scrollTop = el.scrollTop; to[k].scrollLeft = el.scrollLeft; } }); // 스크롤된 목록도 그 자리 그대로
+  for (const a of ghost.getAnimations({ subtree: true })) { try { a.finish(); } catch { a.pause(); } } // 사본에서 등장 애니메이션이 다시 돌지 않게 (반복 애니메이션은 멈춤)
   const h = seaTransition();
   sea = { h, ghost, fresh: true };
   const mine = sea;

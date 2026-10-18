@@ -22,7 +22,9 @@ export const SEA = {
     { top: 0.205, amp: 5, len: 0.58, speed: 0.3 },
     { top: -0.05, amp: 4, len: 0.7, speed: -0.25 },
   ],
-  /** 물결 색은 style.css .tfx-sea 의 --sw1 ~ --sw6 (앞 → 뒤) */
+  /** 물결 색 (앞 → 뒤: 짙은 파스텔 에메랄드 → 옅은 민트 → 모래빛 먼바다) · 물마루 거품 */
+  colors: ['#5fae98', '#77bea8', '#93cdb8', '#b0dcc8', '#cde8d8', '#eaeedd'],
+  foam: '#fbf6ec',
   enter: { dur: 560, gap: 62 }, // 물결 하나가 차오르는 시간 · 다음 물결까지 간격 (ms)
   exit: { dur: 620, gap: 70, delay: 230 }, // 내려가는 시간 · 간격 · 출항 시작 뒤 첫 물결이 움직이기까지
   bob: 1, // 대기 중 출렁임 세기 배율
@@ -112,8 +114,8 @@ export function seaTransition(): SeaHandle {
   for (let i = N - 1; i >= 0; i--) {
     if (i === 1) root.appendChild(boatSlot);
     if (i === 0) root.appendChild(islandG);
-    const g = svg('g'), fill = svg('path', { fill: `var(--sw${i + 1})` }), foam = svg('path', { fill: 'none', stroke: 'var(--sw-foam)', 'stroke-width': 3.5, 'stroke-linecap': 'round', opacity: 0.8 });
-    const gl = svg('g', { fill: 'none', stroke: 'var(--sw-foam)', 'stroke-width': 2.5, 'stroke-linecap': 'round', opacity: 0.45 });
+    const g = svg('g'), fill = svg('path', { fill: C.colors[i % C.colors.length] }), foam = svg('path', { fill: 'none', stroke: C.foam, 'stroke-width': 3.5, 'stroke-linecap': 'round', opacity: 0.8 });
+    const gl = svg('g', { fill: 'none', stroke: C.foam, 'stroke-width': 2.5, 'stroke-linecap': 'round', opacity: 0.45 });
     for (let k = 0; k < C.glints; k++) gl.appendChild(svg('path', { 'data-x': Math.random(), 'data-d': 0.3 + Math.random() * 0.5 }));
     g.append(fill, foam, gl);
     glintG[i] = gl;
