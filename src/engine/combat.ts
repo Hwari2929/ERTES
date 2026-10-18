@@ -713,6 +713,9 @@ export class Battle {
     for (const s of gone) s.onExpire!(this, u, s);
     // 매혹이 끝나거나 지워지면 원래 편으로
     if (u.mem.charmTo && !u.statuses.some((s) => s.key === 'charm')) this.uncharm(u);
+    // 원래 편에 매혹되지 않은 기물이 하나도 없으면 (마지막 남은 적이 매혹 상태): 매혹은 남기되 편을 원래대로 돌려 공격받게 한다 (전투가 매혹이 풀릴 때까지 멈추지 않게). 그동안 스스로는 행동하지 않는다
+    else if (u.mem.charmTo && !this.fighters(u.side).some((x) => !x.mem.charmTo)) { this.uncharm(u); u.mem.charmIdle = 1; }
+    if (u.mem.charmIdle && !u.statuses.some((s) => s.key === 'charm')) u.mem.charmIdle = 0;
   }
   private uncharm(u: CUnit) {
     u.mem.charmTo = 0;
@@ -721,7 +724,7 @@ export class Battle {
   }
 
   private act(u: CUnit, dt: number) {
-    const stunned = this.has(u, 'stun'); // 빙결도 type 'stun'
+    const stunned = this.has(u, 'stun') || !!u.mem.charmIdle; // 빙결도 type 'stun' · 마지막 남은 매혹 기물은 매혹이 끝날 때까지 멍하니 서 있다
     if (u.moveT > 0) { u.moveT -= dt; if (u.moveT <= 0) { u.px = u.x; u.py = u.y; } }
     if (stunned) return;
     if (!this.has(u, 'shock')) {
