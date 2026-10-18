@@ -1591,8 +1591,9 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .rc-rank { flex: none; justify-self: start; display: inline-flex; align-items: center; padding: 1px 6px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--c-chalk) 92%, transparent); color: var(--c-chalk-ink); font: 700 var(--fs-xs)/1.3 var(--f-mono); } /* 카드 이름 옆 공명 등급 (흰 배지) */
 .pc-role { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: var(--fs-base); font-weight: 600; }
 .pc-role .ti { margin-right: 3px; }
-/* 기물 한 줄 역할 (data/roles.ts): 역할 줄 밑 작은 글씨. 설명을 끌어올리면 함께 올라가고, 설명을 스크롤하면 접힌다 */
-.pc-blurb { font-size: var(--fs-xs); color: var(--c-text-2); line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 2em;
+/* 기물 한 줄 설명 (전체 상세 머리와 같은 brief.ts BLURB): 역할 줄 밑 작은 글씨, 카드가 좁으면 최대 3줄 + 말줄임.
+   설명을 끌어올리면 함께 올라가고, 설명을 스크롤하면 접힌다 */
+.pc-blurb { font-size: var(--fs-xs); color: var(--c-text-2); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; max-height: 4.2em;
   transition: max-height .3s ease, opacity .3s ease, margin .3s ease; }
 .pcard.scrolled .pc-blurb { max-height: 0; opacity: 0; margin-top: -6px; }
 /* 끌어올린 카드 오른쪽 위 최대화 (전체 상세 미리보기) */

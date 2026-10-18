@@ -16,7 +16,6 @@ import { DIVINE_ACT, FAITH_DEF, MAJOR_AUGS, MINOR_TRAIT_GROW, recMajors } from '
 import { type AugList, cantripView, passiveView, SCHOOL_LINE, transformPreview } from './data/psiinfo';
 import { augReqState } from './data/augreq';
 import { GROUPS, SCHOOL_BY_ID, SCHOOL_PASSIVES, UNIT_GROUP, augMark, psiAugId, schoolOf, type SchoolId } from './data/schools';
-import { ROLE } from './data/roles';
 import { BRIEF, PSI_BRIEF, unitBlurb } from './data/brief';
 import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
 import * as AB from './ui/abil';
@@ -723,7 +722,7 @@ function pickCard(d: UnitDef, o: PickOpts) {
     ${on ? `<span class="pc-check">✓${o.badge ? ` ${o.badge}` : ''}</span>` : ''}
     <div class="pc-syn">${[...d.factions, ...d.traits].map((id) => synToken(id, o.synCount ? o.synCount(id) : 0)).join('')}</div>
     <div class="pc-panel">
-      <div class="pc-top">${clone ? '' : `<button class="btn d-mag pc-max" data-a="card-max" data-v="${d.id}" title="전체 상세 (확대)" aria-label="${esc(d.name)} 전체 상세 열기">${MAX_SVG}</button>`}<div class="pc-nm"><b class="pc-name">${esc(d.name)}</b>${o.nameExtra || ''}</div>${roleTag(d)}${ROLE[d.id] ? `<span class="pc-blurb">${esc(ROLE[d.id])}</span>` : ''}${o.extra || ''}
+      <div class="pc-top">${clone ? '' : `<button class="btn d-mag pc-max" data-a="card-max" data-v="${d.id}" title="전체 상세 (확대)" aria-label="${esc(d.name)} 전체 상세 열기">${MAX_SVG}</button>`}<div class="pc-nm"><b class="pc-name">${esc(d.name)}</b>${o.nameExtra || ''}</div>${roleTag(d)}${unitBlurb(d) ? `<span class="pc-blurb">${esc(unitBlurb(d))}</span>` : ''}${o.extra || ''}
         <div class="chips">${[...d.factions, ...d.traits].map(o.chipFn || chip).join('')}</div>
         <button class="pc-more" data-a="card-open" data-v="${d.id}" ${clone ? 'tabindex="-1"' : ''}>${app.cardOpen === d.id && !clone ? '접기 ▼' : '상세 보기 ▲'}</button></div>
       <div class="pc-desc" data-a="noop">${unitInfo(d)}
