@@ -5,7 +5,7 @@
 //          섬은 1번 물결 뒤 · 배는 2번 물결 뒤에 끼어 있다가 그 물결이 닿으면 물 위로 솟는다 (아랫부분은 앞 물결에 가린다)
 //   대기   판들이 제각각 흔들리고, 배 · 섬은 자기 물결 수면을 타고 떠 있다. 오래 걸리면 갈매기 3마리가 내려온다
 //   출항   ready() 뒤: 배(이타카제 왕복선) 뒤에서 제트 엔진이 튀어나와 점화 → 거의 수평으로 가속하다 기수가 들리며 오른쪽 위로 솟구쳐 사라진다.
-//          단, 배가 다 떠오르기도 전에 로딩이 끝났으면 출항 없이 제자리에 떠 있다가, 맨 앞 판이 내려가기 시작한 조금 뒤 쫀득하게 떨어진다 (빠른 전환).
+//          단, 배가 다 떠오르기도 전에 로딩이 끝났으면 출항 없이 제자리에 떠 있다가, 맨 앞 판이 내려가기 시작한 조금 뒤 아래로 빠르게 떨어진다 (빠른 전환).
 //          물결은 등장 역순으로 내려가며 다음 화면을 드러내고, 섬은 1번 물결을 따라 물속으로 잠긴다. 갈매기는 위로 날아간다
 //   이스터에그  날고 있는 배를 누르면 엔진이 꺼지고 연기를 뿜으며 곤두박질친다. 전환 흐름과는 완전히 따로 돈다
 // 상태: 전환 entering → waiting → exiting → completed, 배 hidden → floating → (launching → flying → crashing | sinking) → gone.
@@ -37,10 +37,11 @@ export const SEA = {
   exit: { dur: 620, gap: 70, delay: 230, fastDelay: 60 }, // 내려가는 시간 · 간격 · 출항 시작 뒤 첫 판이 움직이기까지 (가라앉기면 fastDelay)
   minHold: 260, // 출항할 때: 다 덮은 뒤 최소 대기 (배가 잠깐 떠 있게)
   fastHold: 90, // 가라앉기일 때: 다 덮은 뒤 대기
-  pop: { island: 140, boat: 60, dur: 640, bounce: 2.8 }, // 섬 · 배가 솟는 시점 (그 물결이 닿은 뒤 ms) · 솟는 시간 · 출렁임 (튀어 올랐다 가라앉는 정도)
-  sink: { bounce: 2.2 }, // 물결과 함께 잠길 때 먼저 살짝 떠올랐다 가라앉는 정도
-  /** 출항 못 한 배: 2번 판이 내려가도 그 자리에 떠 있다가, 맨 앞(아래) 판이 내려가기 시작하고 delay 뒤에 쫀득하게 (움찔 → 가속) 떨어진다 */
-  drop: { delay: 350, dur: 720, bounce: 2.4 },
+  /** 섬 · 배가 솟는 시점 (그 물결이 닿은 뒤 ms) · 솟는 시간. 쫀득하게: 스프링처럼 한 번 탁 튀었다 바로 자리를 잡고, 그동안 세로로 늘었다 눌린다 (squash) */
+  pop: { island: 140, boat: 60, dur: 460, squash: 0.18 },
+  sink: { stretch: 0.12 }, // 물결과 함께 잠기거나 떨어질 때: 위로 솟지 않고 바로 아래로 가속, 세로로 이만큼 늘어난다
+  /** 출항 못 한 배: 2번 판이 내려가도 그 자리에 떠 있다가, 맨 앞(아래) 판이 내려가기 시작하고 delay 뒤에 아래로 빠르게 떨어진다 */
+  drop: { delay: 120, dur: 420 },
   gulls: { count: 3, delay: 1500 }, // 다 덮은 뒤 이만큼 로딩이 길어지면 갈매기
   launch: { pop: 200, ignite: 140 }, // 엔진이 튀어나오는 시간 · 점화 뒤 출발까지
   /** 비행 궤적: dur 동안 진행도 p = (t/dur)^accel, x 는 앞쪽에서 빨리 나아가다 둔해지고 (turn), y 는 지수로 뒤로 갈수록 급상승 (climb) */
@@ -55,7 +56,11 @@ const NS = 'http://www.w3.org/2000/svg';
 const clamp = (v: number, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const outQuart = (t: number) => 1 - (1 - t) ** 4;
 const inCubic = (t: number) => t * t * t;
-const inBack = (t: number, k = 1.7) => (k + 1) * t ** 3 - k * t * t; // 살짝 뒤로(위로) 움찔했다가 가속
+/** 스프링 도착: 한 번 탁 넘쳤다가 (약 13%) 바로 잦아든다 */
+const spring = (t: number) => (t >= 1 ? 1 : 1 - Math.exp(-7 * t) * Math.cos(11 * t));
+/** 쫀득한 변형 (세로 늘림 +, 눌림 -): 솟는 동안 늘었다가 도착하며 눌리고 금방 제 모양 */
+const wobble = (t: number) => (t <= 0 || t >= 1 ? 0 : Math.exp(-5 * t) * Math.sin(13 * t));
+const fall = (t: number) => t * t * (1 + t) / 2; // 위로 솟지 않고 바로 가속하는 낙하
 const outBack = (t: number, k = 1.6) => 1 + (k + 1) * (t - 1) ** 3 + k * (t - 1) ** 2;
 const svg = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number> = {}, html = '') => {
   const el = document.createElementNS(NS, tag);
@@ -273,14 +278,16 @@ export function seaTransition(): SeaHandle {
 
   // ───────── 섬 · 배 (수면을 탄다)
   let bx = 0, by = 0, ba = 0, bvx = 0, bvy = 0; // 배 화면 위치 · 각도(도) · 속도 (비행 · 추락 중)
-  let flyT = -1, crashT = -1, launchT = -1, holdY = 0, fly0: readonly [number, number] = [0, 0];
+  let flyT = -1, crashT = -1, launchT = -1, holdY = 0, bsq = 0, fly0: readonly [number, number] = [0, 0];
   const boatX = () => W * (W < 600 ? 0.27 : 0.24), islandX = () => W * (W < 600 ? 0.74 : 0.77);
   const afloatAt = () => enterEnd(1) + C.pop.boat + C.pop.dur; // 배가 다 떠오른 시점
-  const place = (g: SVGGElement, x: number, y: number, a: number, s: number) => g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${a.toFixed(2)}) scale(${s.toFixed(3)})`);
+  /** 물체 놓기: sq = 세로 늘림 비율 (+ 늘어남 · - 눌림, 수면 기준점에서), 가로는 반대로 */
+  const place = (g: SVGGElement, x: number, y: number, a: number, s: number, sq = 0) => g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${a.toFixed(2)}) scale(${(s * (1 - sq * 0.7)).toFixed(3)} ${(s * (1 + sq)).toFixed(3)})`);
   /** 배 단위 좌표 → 화면 좌표 */
   const toScreen = (lx: number, ly: number) => { const r = (ba * Math.PI) / 180, s = U * C.objScale; return [bx + (lx * Math.cos(r) - ly * Math.sin(r)) * s, by + (lx * Math.sin(r) + ly * Math.cos(r)) * s] as const; };
   /** 그 판이 내려갈 때 물체가 물속으로 잠기는 정도 (판보다 조금 빨리) */
-  const sinkOf = (i: number, t: number) => (exitAt < 0 ? 0 : inBack(clamp((t - exitAt - exitDelay() - (N - 1 - i) * C.exit.gap) / (C.exit.dur * 0.7)), C.sink.bounce));
+  const sinkK = (i: number, t: number) => (exitAt < 0 ? 0 : clamp((t - exitAt - exitDelay() - (N - 1 - i) * C.exit.gap) / (C.exit.dur * 0.7)));
+  const sinkOf = (i: number, t: number) => fall(sinkK(i, t));
 
   // ───────── 연기 · 불똥 입자
   const puffs: Puff[] = [];
@@ -336,13 +343,14 @@ export function seaTransition(): SeaHandle {
 
     // 섬: 1번 판 수면 위로 솟았다가 그 판과 함께 물속으로 잠긴다
     const ix = islandX(), ipop = clamp((t - enterEnd(0) - C.pop.island) / C.pop.dur);
-    place(islandG, ix, surface(0, ix) + 14 * U + ((1 - outBack(ipop, C.pop.bounce)) + sinkOf(0, t)) * 220 * U * C.objScale, slope(0, ix) * 8, U * C.objScale * (W < 600 ? 0.85 : 1));
+    const isq = C.pop.squash * wobble(ipop) + C.sink.stretch * Math.min(1, sinkK(0, t) * 3);
+    place(islandG, ix, surface(0, ix) + 14 * U + ((1 - spring(ipop)) + sinkOf(0, t)) * 220 * U * C.objScale, slope(0, ix) * 8, U * C.objScale * (W < 600 ? 0.85 : 1), isq);
 
     // 배
     if (boat === 'hidden' && t >= enterEnd(1) + C.pop.boat) boat = 'floating';
     if (boat === 'floating' || boat === 'launching' || boat === 'sinking') {
       const x = boatX(), bpop = clamp((t - enterEnd(1) - C.pop.boat) / C.pop.dur);
-      bx = x; by = surface(1, x) - 3 * U + (1 - outBack(bpop, C.pop.bounce)) * 200 * U * C.objScale;
+      bx = x; by = surface(1, x) - 3 * U + (1 - spring(bpop)) * 200 * U * C.objScale; bsq = C.pop.squash * wobble(bpop);
       ba = (Math.atan(slope(1, x)) * 180) / Math.PI * 0.9 + Math.sin(t / 620) * 2.2;
       if (boat === 'floating' && exitAt >= 0 && t >= exitAt) { boat = sinkBoat ? 'sinking' : 'launching'; launchT = t; }
       if (boat === 'sinking') {
@@ -350,7 +358,7 @@ export function seaTransition(): SeaHandle {
         if (exitK(1, t) <= 0) holdY = by;
         else { by = holdY + Math.sin(t / 260) * 2 * U; ba = Math.sin(t / 300) * 3; }
         const dropAt = exitAt + exitDelay() + (N - 1) * C.exit.gap + C.drop.delay, k = clamp((t - dropAt) / C.drop.dur);
-        if (k > 0) { by = holdY + inBack(k, C.drop.bounce) * (H - holdY + 320 * U * C.objScale); ba += 14 * k; }
+        if (k > 0) { by = holdY + fall(k) * (H - holdY + 320 * U * C.objScale); ba += 14 * k; bsq = C.sink.stretch * Math.min(1, k * 3); }
         if (k >= 1) boat = 'gone';
       }
       if (boat === 'launching') {
@@ -385,7 +393,7 @@ export function seaTransition(): SeaHandle {
       if (by > H + 200 * U) boat = 'gone';
     }
     boatG.style.display = boat === 'hidden' || boat === 'gone' ? 'none' : '';
-    if (boat !== 'hidden' && boat !== 'gone') place(boatG, bx, by, ba, U * C.objScale);
+    if (boat !== 'hidden' && boat !== 'gone') place(boatG, bx, by, ba, U * C.objScale, boat === 'floating' || boat === 'sinking' ? bsq : 0);
     const [hx, hy] = toScreen(0, -30);
     hit.setAttribute('cx', hx.toFixed(1)); hit.setAttribute('cy', hy.toFixed(1)); hit.setAttribute('r', (64 * U * C.objScale).toFixed(1));
 
