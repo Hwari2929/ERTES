@@ -120,10 +120,17 @@ export const isLocked = (id: string | null) => !!id && id.startsWith('U_');
 
 // ── 유닉스제 잡동사니 (J_): 절망 증강 [유닉스제 대량 생산]이 희귀 · 고급 장비 대신 끼워 넣는다. 기능 없음 (조합 · 전설 주조 불가, 판매 CFG.sell.J)
 //    캣휠은 밍키가 달면 모든 주요 능력치 +CFG.despair.catwheelMajors (itemEffect 의 owner)
+//    캣휠이 CFG.despair.zi 개 모이면 전설 장비 캣휠(ZI존) (CATWHEEL_ZI, 아래)
 const JUNK: Record<string, { name: string; icon: string; desc: string; cat?: boolean }> = {
   J_catwheel: { name: '캣휠', icon: '◎', desc: '[유닉스제] 아무 기능이 없다. 한 성계의 빛을 가릴 만큼 만들어졌다. 고양이라면 또 모르겠다.', cat: true },
 };
 export const isJunk = (id: string | null | undefined) => !!id && !!JUNK[id];
+/** 캣휠(ZI존): 캣휠이 CFG.despair.zi 개 모이면 자동으로 합쳐지는 전설 장비 (engine/run.ts mergeCatwheels). 모든 주요 능력치 +CFG.despair.ziMajors,
+ *  캣휠로도 친다 (밍키가 달면 캣휠 보너스 · 업적 catwheel). 조합 · 전설 주조 불가 */
+export const CATWHEEL_ZI = 'L_catwheel_zi';
+/** 캣휠 · 캣휠(ZI존) */
+export const isCatwheel = (id: string | null | undefined) => !!id && (!!JUNK[id]?.cat || id === CATWHEEL_ZI);
+const allMajors = (k: number) => Object.fromEntries(MAJORS.map((m) => [m, k])) as Partial<Record<Major, number>>;
 /** 잡동사니 id 목록 (도감) */
 export const JUNK_IDS = Object.keys(JUNK);
 /** 고유 장비 id 목록 (도감) */
@@ -201,16 +208,17 @@ const injText = (id: string) => `기물에 사용: 공명도 +${CFG.inject.amoun
 
 /** 소모품: 보관함에서 기물 · 장비 · 적에게 끌어다 사용.
  *  target: unit 기물 · item 장비 · foe 이번 전투의 적 (편성 화면) · run 바로 사용 (함대 전체)
+ *  alsoItem = target 'unit' 이지만 장비 1개(보관함 · 장착)에도 쓸 수 있음 (재구성 회로)
  *  drop = 합성 공방에서 팔지 않음 (전투 보상 · 상점 · 시너지) · legend = 전설급 (공개 연출 3단계 · 금색 테두리) · chef = 셰프 시너지 전용 */
-export const CONSUMABLES: Record<string, { name: string; icon: string; target: 'unit' | 'item' | 'foe' | 'run'; price: number; desc: string; drop?: boolean; legend?: boolean; chef?: boolean }> = {
+export const CONSUMABLES: Record<string, { name: string; icon: string; target: 'unit' | 'item' | 'foe' | 'run'; price: number; desc: string; drop?: boolean; legend?: boolean; chef?: boolean; alsoItem?: boolean }> = {
   // 신비학자 [합성] 공방 상품 (price = 합성 가격)
   K_rank: { name: '공명 촉매', icon: '▲', target: 'unit', price: 10, desc: '기물에 사용: 공명 등급 +1.' },
   K_morph: { name: '변성 촉매', icon: '⟳', target: 'unit', price: 14, desc: '기물에 사용: 보유하지 않은 무작위 기물로 바뀌고 공명 등급 +3. 장비 · 개조부품 · 배치는 그대로 이어받습니다.' },
   K_legend: { name: '전설 주조액', icon: '★', target: 'item', price: 32, desc: '장비에 사용: 전설 등급으로 바꿉니다 (재료 · 고급은 같은 계열의 전설로).' },
   K_copy: { name: '복제 배양조', icon: '⧉', target: 'item', price: 36, desc: '장비에 사용: 똑같은 장비 1개를 보관함에 만듭니다.' },
   // 전투 보상 · 상점 (합성 공방에서는 팔지 않음, 상점 가격은 CFG.shop.price)
-  K_strip: { name: '분리 용제', icon: '⇲', target: 'unit', price: 0, drop: true, desc: '기물에 사용: 장착한 장비를 모두 해제해 보관함으로 돌려보냅니다 (고유 장비 · 개조부품 제외).' },
-  K_reroll: { name: '재구성 회로', icon: '⟲', target: 'unit', price: 0, drop: true, desc: '기물에 사용: 장착한 장비를 모두 같은 등급의 다른 무작위 장비로 바꿉니다 (고유 장비 · 개조부품 제외).' },
+  K_strip: { name: '분리 용제', icon: '⇲', target: 'unit', price: 0, drop: true, get desc() { return `기물에 사용: 장착한 장비를 모두 해제해 보관함으로 돌려보냅니다 (고유 장비 · 개조부품 제외). ${diffName(CFG.solventFrom) || `위험 ${CFG.solventFrom}`} 이상에서는 장착한 장비 1개를 떼어 보관함 · 다른 기물로 옮길 때도 1개를 소모합니다.`; } },
+  K_reroll: { name: '재구성 회로', icon: '⟲', target: 'unit', alsoItem: true, price: 0, drop: true, desc: '기물에 사용: 장착한 장비를 모두 같은 등급의 다른 무작위 장비로 바꾸고 보관함으로 해제합니다. 장비 1개(보관함 · 장착)에 사용: 그 장비만 바꿉니다 (장착한 장비면 보관함으로 해제). 고유 장비 · 개조부품 · 잡동사니 제외.' },
   // 공명 주입기: 소형 · 중형 · 대형 (K_xp 는 예전 '공명 주입기' 그대로 = 소형, 세이브 호환). 크기는 페이즈에 따라 (injectorWeights)
   K_xp: { name: '소형 공명 주입기', icon: '✚', target: 'unit', price: 0, drop: true, get desc() { return injText('K_xp'); } },
   K_xp2: { name: '중형 공명 주입기', icon: '✚', target: 'unit', price: 0, drop: true, get desc() { return injText('K_xp2'); } },
@@ -440,6 +448,10 @@ export function itemInfo(id: string): ItemInfo {
     return { id, tier: id[0] === 'L' ? 'L' : 'A', name: (k === 2 ? '[전설] ' : '') + h.name, icon: h.icon, majors: { [h.major]: 6 * k }, desc: `[동맹 전용] ${MAJOR_NAME[h.major]} +${6 * k}. ${h.desc(k)}` };
   }
   if (JUNK[id]) { const j = JUNK[id]; return { id, tier: 'J', name: j.name, icon: j.icon, majors: {}, desc: j.desc }; }
+  if (id === CATWHEEL_ZI) {
+    const Z = CFG.despair;
+    return { id, tier: 'L', name: '캣휠(ZI존)', icon: '◎', majors: allMajors(Z.ziMajors), desc: `[유닉스제 · 전설] 캣휠 ${Z.zi}개가 저절로 맞물려 성계 하나를 통째로 가리는 물건이 되었다. 모든 주요 능력치 +${Z.ziMajors}. 고양이라면 더더욱 모르겠다.` };
+  }
   if (CONSUMABLES[id]) { const c = CONSUMABLES[id]; return { id, tier: 'K', name: c.name, icon: c.icon, majors: {}, desc: `[소모품] ${c.desc}` }; }
   if (OCCULT_MODS[id]) { const o = OCCULT_MODS[id]; return { id, tier: 'M', name: o.name, icon: o.icon, majors: {}, desc: `[신비 개조부품] ${o.desc}` }; }
   if (UNIQUE[id]) return { id, tier: 'L', name: UNIQUE[id].name, icon: UNIQUE[id].icon, majors: {}, desc: UNIQUE[id].desc };
@@ -472,6 +484,7 @@ export function itemInfo(id: string): ItemInfo {
 /** owner: 장착한 기물 id (캣휠 · 밍키처럼 기물에 따라 달라지는 장비) */
 export function itemEffect(id: string, owner?: string): Effect {
   if (JUNK[id]) { const k = JUNK[id].cat && owner === 'mingki' ? CFG.despair.catwheelMajors : 0; return k ? { majors: Object.fromEntries(MAJORS.map((m) => [m, k])) } : {}; }
+  if (id === CATWHEEL_ZI) return { majors: allMajors(CFG.despair.ziMajors + (owner === 'mingki' ? CFG.despair.catwheelMajors : 0)) }; // 밍키: 캣휠 보너스도 그대로
   if (isTurretGear(id)) return TURRET_GEAR[id].effect;
   if (isTurretMod(id)) return TURRET_MODS[id].effect;
   if (isHelItem(id)) { const h = HEL_ITEMS[id.slice(2)], k = id[0] === 'L' ? 2 : 1; return { ...h.effect(k), majors: { [h.major]: 6 * k } }; }

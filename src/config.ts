@@ -164,6 +164,9 @@ export const CFG = {
     price: { K_xp: 6, K_xp2: 14, K_xp3: 26, K_strip: 6, K_reroll: 8, K_seize: 30, K_rank3: 40, emblem: 25 } as Record<string, number>,
   },
   inventoryMax: 32,
+  /** 분리 용제 규칙: 이 위험 등급(고난) 이상이면 기물에 장착한 장비(개조부품 · 고유 장비 제외)를 떼어 보관함 · 다른 기물로 옮길 때 분리 용제(K_strip) 1개를 소모한다 (run.ts unequip).
+   *  보관함에서 장착하는 것 · 엔진이 옮기는 것(방출 · 변성 · 재구성 회로 자동 해제 · 분리 용제 사용)은 그대로 무료 */
+  solventFrom: 7,
   /** 기물 방출 환급 (run.ts releaseValue): 쌓은 공명도의 xpShare 를 남은 파티에 분배 + 크레딧 base + 공명 등급 × perRank (장비는 보관함으로) */
   release: { xpShare: 0.6, base: 3, perRank: 2 },
   /** 보급 노드 (run.ts genSupply): 뒷면 카드 cards장을 뒤집어 모두 받는다. 카드 1장 = 보상 한 종류 (크레딧 · 공명도 · 장비, 겹쳐도 된다, 가중치 kindW).
@@ -201,6 +204,7 @@ export const CFG = {
     rival: 0.4, // 배타적 경쟁 항로: 보유 기물과 시너지가 겹치는 기물의 영입 가중치 ×
     interest: 0.5, // 근시안적 투자안: 이자 수입 감소 비율 (내림)
     catwheel: 0.2, catwheelMajors: 3, // 유닉스제 대량 생산: 희귀 · 고급 장비가 캣휠로 바뀌는 확률 · 밍키가 캣휠을 달면 모든 주요 능력치 +
+    zi: 5, ziMajors: 5, // 캣휠(ZI존): 캣휠 (보관함 + 장착 중)이 이만큼 모이면 자동으로 합쳐지는 전설 장비 · 모든 주요 능력치 + (밍키가 달면 캣휠 보너스도 더함)
     shield: 0.08, // 페트라 균등 납품: 적 전투 시작 보호막 (최대 체력 비율)
     tariff: 0.3, // 무역관세부 특별 관세: 상점 · 정비 · 합성 가격, 함대 확장 · 지정 소집 비용 +
     heal: 0.5, // 기적 정기 휴무: 아군이 받는 회복 감소

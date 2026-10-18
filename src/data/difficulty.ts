@@ -39,8 +39,10 @@ const BASE: DiffDef[] = [
   { lvl: 8, name: '위험 8', desc: '적 방어도 +25%, 효과 저항 +15%p, 적 회피 +10%p 추가.' },
   { lvl: 9, name: '위험 9', desc: '페이즈마다 적 체력 +5% 추가 (누적).' },
 ];
-/** 위험 등급표: 기본 조건 + 적 증원 조건 (설정값에서 읽는다) */
-export const DIFFS: DiffDef[] = BASE.map((x) => { const a = addDesc(x.lvl); return a ? { ...x, desc: `${x.desc} ${a}` } : x; });
+/** 분리 용제 규칙 (CFG.solventFrom 등급에서 켜진다, run.ts unequip) */
+export const SOLVENT_RULE = '장착한 장비(개조부품 제외)를 떼어 보관함 · 다른 기물로 옮기려면 분리 용제 1개를 소모합니다 (보관함에서 장착하는 것은 그대로).';
+/** 위험 등급표: 기본 조건 + 적 증원 조건 · 분리 용제 규칙 (설정값에서 읽는다) */
+export const DIFFS: DiffDef[] = BASE.map((x) => { const a = [addDesc(x.lvl), x.lvl === CFG.solventFrom ? SOLVENT_RULE : ''].filter(Boolean).join(' '); return a ? { ...x, desc: `${x.desc} ${a}` } : x; });
 export const MAX_DIFF = DIFFS.length - 1;
 /** 난이도 선택 화면의 세 단계 (위험 3 · 6 · 7). 이름은 선택 화면 · 기록 · 결과 문구가 여기서 읽는다 */
 export const DIFF_PRESETS: { lvl: number; name: string }[] = [{ lvl: 3, name: '쉬움' }, { lvl: 6, name: '모험' }, { lvl: 7, name: '고난' }];

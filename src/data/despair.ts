@@ -42,7 +42,7 @@ export const DESPAIRS: DespairDef[] = [
     desc: () => `이자 수입 -${pc(D().interest)} (내림).`, mod: () => `-${pc(D().interest)}`,
     quip: '이번 분기 실적만 보면 됩니다. 다음 분기는 다음 분기 담당자가.' },
   { id: 'D.unix', name: '유닉스제 대량 생산', icon: 'r.part',
-    desc: () => `장비를 합성하거나 희귀 · 고급 장비를 얻을 때 ${pc(D().catwheel)} 확률로 아무 기능이 없는 [캣휠]로 바뀝니다.`,
+    desc: () => `장비를 합성하거나 희귀 · 고급 장비를 얻을 때 ${pc(D().catwheel)} 확률로 아무 기능이 없는 [캣휠]로 바뀝니다. 캣휠이 ${D().zi}개 모이면 저절로 합쳐져 모든 주요 능력치 +${D().ziMajors} 전설 장비 [캣휠(ZI존)]이 됩니다.`,
     quip: '직전 분기 대비 생산량 증가. 쓸모는 원칙에 포함되지 않는다.' },
   { id: 'D.petra', name: '페트라 균등 납품', icon: 'a.shield',
     desc: () => `모든 적이 전투 시작 때 최대 체력 ${pc(D().shield)} 보호막을 두릅니다.`, mod: () => pc(D().shield),

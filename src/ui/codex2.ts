@@ -12,7 +12,7 @@ import { BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES } from '../da
 import { DESPAIR_BY_ID, DESPAIRS, despairRule } from '../data/despair';
 import { OATHS, oathHeatOf, oathMax } from '../data/oaths';
 import { diffName } from '../data/difficulty';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, breadSellText, combine, CONSUMABLES, emblemId, injectorWeights, INJECTORS, isLegendConsumable, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, isTurretMod, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_MOD_IDS, TURRET_MODS, TURRET_PRICE, UNIQUE_IDS, isJunk, JUNK_IDS } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, breadSellText, combine, CONSUMABLES, emblemId, injectorWeights, INJECTORS, isLegendConsumable, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, isTurretMod, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_MOD_IDS, TURRET_MODS, TURRET_PRICE, UNIQUE_IDS, isJunk, JUNK_IDS, CATWHEEL_ZI, isCatwheel } from '../data/items';
 import { PSI_BRIEF } from '../data/brief';
 import { cantripView, passiveView, SCHOOL_LINE, transformPreview } from '../data/psiinfo';
 import { RELIC_BY_ID, RELICS } from '../data/relics';
@@ -196,7 +196,7 @@ export function itemCatalog(): [IGrp, string[]][] {
     ['A', ALL_ADVANCED.slice()],
     ['L', ALL_ADVANCED.map(legendOf)],
     ['M', EMBLEM_SYNS.map(emblemId)],
-    ['X', [...HEL_ITEM_IDS.flatMap((x) => [x, legendOf(x)]), ...Object.keys(OCCULT_MODS), ...UNIQUE_IDS, ...JUNK_IDS]],
+    ['X', [...HEL_ITEM_IDS.flatMap((x) => [x, legendOf(x)]), ...Object.keys(OCCULT_MODS), ...UNIQUE_IDS, ...JUNK_IDS, CATWHEEL_ZI]],
     ['T', [...TURRET_GEAR_IDS, ...TURRET_MOD_IDS]],
     ['K', Object.keys(CONSUMABLES)],
     ['R', RELICS.map((r) => RELIC_KEY + r.id)],
@@ -219,7 +219,7 @@ function synGear(sid: SynergyId): string[] {
 function itemName(id: string) { return id.startsWith(RELIC_KEY) ? RELIC_BY_ID[id.slice(2)]?.name || id : itemInfo(id).name; }
 function itemDescText(id: string) { return id.startsWith(RELIC_KEY) ? RELIC_BY_ID[id.slice(2)]?.desc(1) || '' : itemInfo(id).desc; }
 function itemIc(H: CxH, id: string) { return id.startsWith(RELIC_KEY) ? H.relicTok(id.slice(2)) : H.itemIcon(id); }
-const tierLabel = (g: IGrp, id: string) => (g === 'T' ? (isTurretMod(id) ? `포탑 개조부품 · ${TURRET_MODS[id].tier}단계` : `포탑 전용 · ${TURRET_GEAR[id]?.grade === 'adv' ? '고급형' : '보급형'}`) : g === 'X' ? (isHelItem(id) ? (id[0] === 'L' ? '동맹 전용 · 전설' : '동맹 전용 · 희귀') : isOccultMod(id) ? `신비 부품 ${OCCULT_MODS[id].tier}단계` : isJunk(id) ? '유닉스제 · 절망 증강' : '고유') : g === 'K' ? consLabel(id) : IGRP_NAME[g]);
+const tierLabel = (g: IGrp, id: string) => (g === 'T' ? (isTurretMod(id) ? `포탑 개조부품 · ${TURRET_MODS[id].tier}단계` : `포탑 전용 · ${TURRET_GEAR[id]?.grade === 'adv' ? '고급형' : '보급형'}`) : g === 'X' ? (isHelItem(id) ? (id[0] === 'L' ? '동맹 전용 · 전설' : '동맹 전용 · 희귀') : isOccultMod(id) ? `신비 부품 ${OCCULT_MODS[id].tier}단계` : isJunk(id) ? '유닉스제 · 절망 증강' : id === CATWHEEL_ZI ? '유닉스제 · 전설' : '고유') : g === 'K' ? consLabel(id) : IGRP_NAME[g]);
 /** 소모품 분류: 합성 · 셰프 · 전설 · 전투 보상 · 상점 */
 const consLabel = (id: string) => { const c = CONSUMABLES[id]; return !c?.drop ? '소모품 · 합성' : c.chef ? `소모품 · ${SYN_BY_ID.CHEF.name}` : isLegendConsumable(id) ? '전설 소모품' : '소모품 · 전투 보상 · 상점'; };
 /** 공명 주입기의 페이즈별 비중: '1~2페이즈 100% · 3~4페이즈 66.7%' (CFG.inject, 의뢰 페이즈 + 무한 모드 2페이즈까지 보고 마지막 구간은 '이후') */
@@ -303,12 +303,17 @@ function sources(id: string): string[] {
       out.push(`상점 · ${S.price[id]} 크레딧 (${pctTxt(S.cons)} 확률로 소모품 1개 진열)`);
       if (inj) out.push(`주입기 중 이 크기의 비중: ${injectorShare(id)}`);
     }
-    out.push(`사용: ${USE_TXT[c.target]}`);
+    out.push(`사용: ${c.alsoItem ? `${USE_TXT.unit} 또는 ${USE_TXT.item} (장비 1개)` : USE_TXT[c.target]}`);
     return out;
   }
   if (isJunk(id)) { // 절망 증강이 끼워 넣는 잡동사니
     const u = DESPAIR_BY_ID['D.unix'];
     if (u) out.push(`절망 증강 [${u.name}]: 희귀 · 고급 장비를 얻거나 합성할 때 ${pctTxt(CFG.despair.catwheel)} 확률로 대신 들어옴`);
+    out.push('조합 · 전설 주조 불가');
+    return out;
+  }
+  if (id === CATWHEEL_ZI) { // 캣휠이 모이면 자동으로 (engine/run.ts mergeCatwheels)
+    out.push(`보관함 + 장착 중인 캣휠이 ${CFG.despair.zi}개 모이면 자동으로 합쳐짐 (보관함 것부터, 모자라면 장착한 것 — 그 칸에 그대로 달림)`);
     out.push('조합 · 전설 주조 불가');
     return out;
   }
@@ -373,6 +378,10 @@ function itemDetail(H: CxH, id: string): string {
     }
     if (g === 'A' || (g === 'X' && isHelItem(id) && id[0] === 'A')) a.push(`<h3>전설 등급</h3><ul class="cx2-rows"><li>${itemRow(H, legendOf(id))}</li></ul>`);
     if (g === 'L' || (g === 'X' && isHelItem(id) && id[0] === 'L')) a.push(`<h3>희귀 등급</h3><ul class="cx2-rows"><li>${itemRow(H, 'A_' + id.slice(2))}</li></ul>`);
+    if (isCatwheel(id)) { // 캣휠 ↔ 캣휠(ZI존)
+      const other = id === CATWHEEL_ZI ? JUNK_IDS.find((x) => isCatwheel(x)) : CATWHEEL_ZI;
+      if (other) a.push(`<h3>${id === CATWHEEL_ZI ? `재료 <span class="cx-hn">${CFG.despair.zi}개</span>` : `${CFG.despair.zi}개가 모이면`}</h3><ul class="cx2-rows"><li>${itemRow(H, other)}</li></ul>`);
+    }
     if (isEmblem(id)) {
       const s = SYN_BY_ID[emblemOf(id)];
       b.push(`<h3>시너지</h3><div class="cx2-mem">${synChip(s.id)}</div><p class="muted small">단계 ${s.tiers.join(' / ')} · 소속 ${UNITS.filter((d) => memberOf(d, s.id)).length}명. 장착한 기물이 이 시너지에 1명으로 더해집니다.</p>`);
@@ -383,8 +392,9 @@ function itemDetail(H: CxH, id: string): string {
   }
   const src = sources(id);
   if (src.length) a.push(`<h3>얻는 곳</h3><ul class="cx2-src">${src.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>`);
-  const sell = id.startsWith(RELIC_KEY) || isLocked(id) || CONSUMABLES[id]?.chef ? undefined : CFG.sell[id[0]]; // 빵 판매가는 셰프 인원에 따라 (얻는 곳에 표시)
-  if (sell !== undefined) a.push(`<p class="muted small">판매가 <span class="f-num">${sell}</span> 크레딧</p>`);
+  // 판매는 소모품만 (빵 판매가는 난이도에 따라 — 얻는 곳에 표시). 장비 · 개조부품은 보관함이 가득 찬 채로 얻을 때만 자동 판매
+  const sell = id.startsWith(RELIC_KEY) || isLocked(id) || CONSUMABLES[id]?.chef ? undefined : CFG.sell[id[0]];
+  if (sell !== undefined) a.push(`<p class="muted small">${CONSUMABLES[id] ? `판매가 <span class="f-num">${sell}</span> 크레딧` : `판매 불가 · 보관함이 가득 찬 채로 얻으면 자동 판매 <span class="f-num">${sell}</span> 크레딧`}</p>`);
   return `<div class="detail cx-d cx2-d">${head(itemIc(H, id), esc(itemName(id)), esc(tierLabel(g, id)))}${cols(a.join(''), b.join(''))}</div>`;
 }
 function itemsTab(H: CxH) {

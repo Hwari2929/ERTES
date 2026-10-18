@@ -105,6 +105,8 @@ function savePref(k: string, v: unknown) {
 }
 
 type Screen = 'title' | 'intro' | 'diffsel' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'invest' | 'over' | 'codex' | 'bar' | 'oath';
+/** 화면을 가리지 않는 확인 팝업: anchor 선택자 중 처음 보이는 요소 옆에 (inv = 보관함 상자 왼쪽 · above = 위 · beside = 옆). ok 가 없으면 안내만 (닫기 버튼 하나) */
+type Ask = { html: string; anchor: string[]; at: 'inv' | 'above' | 'beside'; ok?: () => void; okLabel?: string };
 type Sel = { k: 'unit'; uid: string } | { k: 'turret'; i: number } | { k: 'king' } | { k: 'item'; idx: number } | { k: 'relic'; id: string } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
 
 const app = {
@@ -121,6 +123,7 @@ const app = {
   recruitPick: null as string | null, // 영입 창에서 고른 기물 (확정 전)
   recoFor: null as string | null, // 추천 장비 창을 연 기물 uid
   useK: null as null | { i: number; tg: R.UseTarget }, // 소모품 사용 확인 창
+  ask: null as null | Ask, // 보관함 · 기물 옆 확인 팝업 (장비 조합 · 재구성 회로 · 분리 용제)
   nodePick: null as string | null, // 지도: 이번 칸에서 고른 노드 (진입 전)
   bigUnit: null as string | null, // 기물 전체 상세 팝업 (대기실 · 편성 확대)
   preview: null as { defId: string; run: RunState; uid: string } | null, // 영입 전 기물 전체 상세 (카드의 최대화 단추): 런을 복제해 합류시킨 모습
@@ -173,6 +176,7 @@ function toast(msg: string) {
 function persist() {
   if (app.run && !app.run.over && app.screen !== 'battle') {
     R.checkOccult(app.run); // 신비학자 새 단계 → 전용 개조부품 선택
+    R.mergeCatwheels(app.run); // 캣휠 ZI존: 사건 등 다른 길로 캣휠이 모였을 때도 (알림은 대기 중인 선택으로)
     // 엔지니어 단계가 바뀌면 포탑 장비 칸을 맞추고, 시너지가 꺼지면 포탑 회수 (장비는 보관함으로)
     const back = R.syncTurrets(app.run);
     if (back.length) toast(turretCount(app.run) ? `포탑 수 · 장비 칸이 줄어 장비 · 개조부품 ${back.length}개를 보관함으로 돌려보냈습니다.` : `엔지니어 시너지가 꺼져 포탑을 회수했습니다. 장비 · 개조부품 ${back.length}개는 보관함으로.`);
@@ -1240,13 +1244,9 @@ function prepScreen(run: RunState) {
   for (const u of deployed(run)) {
     const p = lay.get(u.uid);
     if (!p) continue;
-    const d = UNIT_BY_ID[u.defId];
     const sel = app.sel?.k === 'unit' && app.sel.uid === u.uid;
     units += `<div class="u side0 tk placed ${sel ? 'sel' : ''}" style="${cellBox(p.x, p.y)}"
-      data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}" data-syns="${memberships(u, run).join(' ')}">
-      <div class="tk-card"><div class="tk-art">${sprite(d, '')}${u.mod ? `<span class="tk-mod" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-drop="eqitem:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : ''}</div>
-        <span class="tk-side"><b class="tk-rank" title="공명 등급 ${u.rank}">${u.rank}</b><i class="tt-${d.ttype}" title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i><i class="ct-${d.ctype}" title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i></span>
-        <span class="tk-items">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-drop="eqitem:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : itemIcon(null))).join('')}</span></div></div>`;
+      data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}" data-syns="${memberships(u, run).join(' ')}">${allyCard(u)}</div>`;
   }
   const tSlots = turretSlots(engTier(run));
   tcs.forEach((p, i) => {
@@ -1286,9 +1286,8 @@ function prepScreen(run: RunState) {
       <div class="bench" data-drop="bench">
         <span class="bench-label">대기 <b>${bench.length}</b></span>
         ${bench.length ? bench.map((u) => {
-          const d = UNIT_BY_ID[u.defId];
           const sel = app.sel?.k === 'unit' && app.sel.uid === u.uid;
-          return `<div class="bench-u ${sel ? 'sel' : ''}" data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}" data-syns="${memberships(u, run).join(' ')}">${sprite(d, '')}<span class="ubadge">${rankLabel(u.rank)}</span></div>`;
+          return `<div class="bench-u u side0 tk ${sel ? 'sel' : ''}" data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}" data-syns="${memberships(u, run).join(' ')}" title="${esc(UNIT_BY_ID[u.defId].name)} · 공명 등급 ${u.rank}">${allyCard(u)}</div>`;
         }).join('') : '<span class="muted small">기물을 여기로 끌어 출전에서 뺄 수 있습니다.</span>'}
       </div>
       ${invDetail(run)}
@@ -1302,6 +1301,13 @@ function prepScreen(run: RunState) {
   </main>`;
 }
 
+/** 편성 아군 카드형 토큰 (보드 · 대기석 공용): [초상화 + 개조부품 / 장비 3칸] | [공명 등급 · 전술 유형 · 전투 유형]. 장비 · 개조부품은 꾹 눌러 끌기 */
+function allyCard(u: UnitState) {
+  const d = UNIT_BY_ID[u.defId];
+  return `<div class="tk-card"><div class="tk-art">${sprite(d, '')}${u.mod ? `<span class="tk-mod" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-drop="eqitem:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : ''}</div>
+        <span class="tk-side"><b class="tk-rank" title="공명 등급 ${u.rank}">${u.rank}</b><i class="tt-${d.ttype}" title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i><i class="ct-${d.ctype}" title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i></span>
+        <span class="tk-items">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-drop="eqitem:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : itemIcon(null))).join('')}</span></div>`;
+}
 const TURRET_SPR = { sprite: 'turret', palette: TURRET_PAL, art: 'sm_turret' };
 /** 빈 포탑 개조부품 칸 (엔지니어 색 마름모) */
 const turretModEmpty = (attrs = '') => `<span class="item tM empty" style="--sc:${SYN_BY_ID.ENG.color}" title="포탑 개조부품 칸 — 엔지니어 전용 개조부품을 끌어 장착" ${attrs}></span>`;
@@ -1406,18 +1412,27 @@ function invDetail(run: RunState) {
   const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
   const sel = selIdx >= 0 ? run.inventory[selIdx] : null;
   if (!sel) return '';
+  if (app.ask) return ''; // 확인 팝업이 같은 자리(보관함 왼쪽)를 쓴다
   const it = itemInfo(sel);
   const TIER: Record<string, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '개조부품', K: isLegendConsumable(sel) ? '전설 소모품' : '소모품', U: '고유' };
-  const ms = Object.entries(it.majors || {}) as [Major, number][];
-  const stats = ms.length ? `<div class="ip-stats">${ms.map(([m, v]) => `<span>${majorIcon(m)}${MAJOR_NAME[m]} <b>+${v}</b></span>`).join('')}</div>` : '';
-  // 능력치 줄(ip-stats)로 따로 보여 주는 '생명력 +6, 방어력 +6.' 접두어만 뗀다 — 능력치가 없는 소모품 · 개조부품 · 포탑 장비는 설명 전체 ('공명도 +8.' 등)
-  const eff0 = it.desc.replace(/^\[[^\]]+\]\s*/, ''), eff = (ms.length ? eff0.replace(/^([^.,]+ \+\d+(, )?)+\.?\s*/, '') : eff0) + (breadNote(run, selIdx) ? ` — 이 빵: ${breadNote(run, selIdx)}` : '');
+  const { stats, eff: eff1 } = itemBrief(sel);
+  const eff = eff1 + (breadNote(run, selIdx) ? ` — 이 빵: ${breadNote(run, selIdx)}` : '');
   const ct = isConsumable(sel) ? CONSUMABLES[sel].target : null;
   const hint = ct === 'run' ? `<button class="btn small primary" data-a="use-self" data-v="${selIdx}">사용</button>`
     : ct === 'foe' ? `<span class="muted small">${run.node?.enc ? '이번 전투의 적에게 끌어다 놓거나, 선택한 채로 적을 누르면 사용' : '전투를 앞둔 편성 화면에서 적에게 끌어다 놓아 사용'}</span>`
-    : ct ? `<span class="muted small">${ct === 'unit' ? '기물' : '장비'}에 끌어다 놓거나, 선택한 채로 ${ct === 'unit' ? '기물' : '보관함의 장비'}을 누르면 사용</span>`
+    : ct ? `<span class="muted small">${CONSUMABLES[sel].alsoItem ? '기물 · 장비' : ct === 'unit' ? '기물' : '장비'}에 끌어다 놓거나, 선택한 채로 ${CONSUMABLES[sel].alsoItem ? '기물 · 장비를' : ct === 'unit' ? '기물을' : '장비를'} 누르면 사용</span>`
     : run.inventory.some((x, j) => j !== selIdx && combine(sel, x)) ? '<span class="muted small">조합 가능한 장비를 누르면 조합</span>' : '';
-  return pop(itemIcon(sel), TIER[sel.startsWith('U_') ? 'U' : it.tier] || '', it.name, stats, eff ? statIc(esc(eff)) : '', `<button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${R.sellPrice(run, sel)}</button>${hint}`);
+  // 판매는 소모품만 (장비 · 개조부품은 팔 수 없다)
+  return pop(itemIcon(sel), TIER[sel.startsWith('U_') ? 'U' : it.tier] || '', it.name, stats, eff ? statIc(esc(eff)) : '', `${ct ? `<button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${R.sellPrice(run, sel)}</button>` : ''}${hint}`);
+}
+/** 물품 요약: 주요 능력치 줄 + 효과 문장 (설명에서 능력치 접두어를 뗀 것). 보관함 정보 팝업 · 조합 확인 팝업 공용 */
+function itemBrief(id: string) {
+  const it = itemInfo(id);
+  const ms = Object.entries(it.majors || {}) as [Major, number][];
+  const stats = ms.length ? `<div class="ip-stats">${ms.map(([m, v]) => `<span>${majorIcon(m)}${MAJOR_NAME[m]} <b>+${v}</b></span>`).join('')}</div>` : '';
+  // 능력치 줄(ip-stats)로 따로 보여 주는 '생명력 +6, 방어력 +6.' 접두어만 뗀다 — 능력치가 없는 소모품 · 개조부품 · 포탑 장비는 설명 전체 ('공명도 +8.' 등)
+  const eff0 = it.desc.replace(/^\[[^\]]+\]\s*/, ''), eff = ms.length ? eff0.replace(/^([^.,]+ \+\d+(, )?)+\.?\s*/, '') : eff0;
+  return { stats, eff };
 }
 
 /** 체력 표기: 구조물(포탑 · 반려 돌(인화성) 등)은 '최대 내구도' */
@@ -2716,6 +2731,144 @@ function useModal(run: RunState) {
   </div></div>`;
 }
 
+// ───────────────────────── 확인 팝업 (화면을 가리지 않음): 장비 조합 · 재구성 회로 · 분리 용제. ✕ = 취소 (Esc) · ✓ = 확인
+function askPop() {
+  const q = app.ask;
+  if (!q) return '';
+  return `<div class="ask-pop" role="dialog" aria-label="확인">${q.html}<div class="ask-btns">${q.ok
+    ? `<button class="btn ask-x" data-a="ask" data-v="no" title="취소 (Esc)">✕ 취소</button><button class="btn primary ask-v" data-a="ask" data-v="ok">✓ ${esc(q.okLabel || '확인')}</button>`
+    : `<button class="btn ask-x" data-a="ask" data-v="no" title="닫기 (Esc)">✕ 닫기</button>`}</div></div>`;
+}
+const askItem = (id: string) => `<span class="ask-it">${itemIcon(id)}<span>${esc(itemInfo(id).name)}</span></span>`;
+const INV_BOX = ['.inv-rail', '.inv'];
+const invCell = (i: number) => [`.inv-rail [data-drag="item:${i}"]`, `.inv [data-drag="item:${i}"]`, ...INV_BOX];
+/** 조합 결과 알림: 유닉스제 대량 생산으로 바뀌었으면 그 사실도 */
+const combinedToast = (res: string, got: string | null | undefined) => toast(!got ? '조합할 수 없습니다.' : got === res ? `조합 완료: ${itemInfo(got).name}` : `유닉스제 대량 생산 — ${itemInfo(res).name} 대신 ${itemInfo(got).name}이 들어왔습니다.`);
+/** 조합 확인: [A] + [B] = [결과] · 결과 능력치 · 효과 (보관함 왼쪽). 유닉스제 대량 생산은 확률만 알리고 합성할 때 정한다 (미리 굴리지 않음). extra = 덧붙일 안내 */
+function combineAsk(run: RunState, a: string, b: string, res: string, anchor: string[], ok: () => void, extra = '') {
+  const { stats, eff } = itemBrief(res);
+  const ux = R.unixChance(run, res);
+  app.ask = { anchor, at: 'inv', okLabel: '합성', ok,
+    html: `<b class="ask-t">장비 조합</b><div class="ask-eq">${askItem(a)}<b>+</b>${askItem(b)}<b>=</b>${askItem(res)}</div>${stats}${eff ? `<p class="ip-eff">${statIc(esc(eff))}</p>` : ''}${ux ? `<p class="ask-note warn">절망 증강 [${esc(DESPAIR_BY_ID['D.unix']?.name || '')}]: 합성하는 순간 ${pctTxt(ux)} 확률로 ${esc(itemInfo(CATWHEEL).name)}이 됩니다.</p>` : ''}${extra}` };
+}
+/** 보관함 장비 둘: 조합되면 확인 팝업 (V = 조합). 조합할 수 없으면 false */
+function askCombineInv(run: RunState, i: number, j: number): boolean {
+  const res = R.combinePreview(run, i, j);
+  if (!res) return false;
+  const a = run.inventory[i], b = run.inventory[j];
+  combineAsk(run, a, b, res, invCell(j), () => {
+    if (run.inventory[i] !== a || run.inventory[j] !== b) return;
+    combinedToast(res, R.combineInv(run, i, j));
+    app.sel = null; persist();
+  });
+  return true;
+}
+/** 보관함 장비 → 기물: 조합되면 확인 팝업 (보관함 왼쪽), 아니면 바로 장착. 다음 선택 상태 */
+function equipAsk(run: RunState, idx: number, uid: string): Sel {
+  const id = run.inventory[idx], cb = id && !R.equipCheck(run, id, uid) ? R.equipCombo(run, id, uid) : null;
+  const u = run.units.find((x) => x.uid === uid);
+  if (!cb || !u) return equipSel(run, idx, uid);
+  combineAsk(run, u.items[cb.slot]!, id, cb.res, invCell(idx), () => {
+    if (run.inventory[idx] !== id) return;
+    const e = R.equip(run, idx, uid);
+    if (e) toast(e); else { combinedToast(cb.res, u.items[cb.slot]); persist(); }
+    app.sel = { k: 'unit', uid };
+  }, `<p class="ask-note muted">${esc(UNIT_BY_ID[u.defId].name)}에게 장착한 장비와 합칩니다.</p>`);
+  return app.sel;
+}
+/** 장착 장비 옮기기 (보관함 · 다른 기물): 끌기 · 말풍선 [해제] · 기물 상세 패널의 장비 끌기가 모두 여기로 온다.
+ *  분리 용제 규칙 (CFG.solventFrom 이상, 개조부품 제외): 용제 1개를 쓸지 묻고 (R.unequip 이 소모), 없으면 옮길 수 없다고 알린다. 다른 기물에서 조합되면 조합 확인 하나로 */
+function moveEq(run: RunState, uid: string, slot: number, to: string | null) {
+  const u = run.units.find((x) => x.uid === uid);
+  const id = u ? (slot < 0 ? u.mod : u.items[slot]) : null;
+  if (!u || !id || to === uid) return;
+  if (isLocked(id)) { toast('고유 장비는 해제할 수 없습니다.'); return; }
+  if (to) { const e = R.equipCheck(run, id, to); if (e) { toast(`${e}.`); return; } }
+  const pay = R.solventNeed(run, uid, slot), left = R.solventLeft(run), sv = CONSUMABLES.K_strip.name;
+  const here = [`.board [data-drag="eq:${uid}:${slot}"]`, `[data-drag="eq:${uid}:${slot}"]`, ...INV_BOX];
+  const rule = `${esc(diffName(CFG.solventFrom) || `위험 ${CFG.solventFrom}`)} 이상에서는 장착한 장비를 옮길 때마다 ${esc(sv)} 1개가 필요합니다.`;
+  if (pay && !left) {
+    app.ask = { anchor: here, at: 'beside', html: `<b class="ask-t">${itemIcon('K_strip')} ${esc(sv)} 없음</b><div class="ask-eq">${askItem(id)}</div><p class="ask-note">남은 ${esc(sv)}가 없어 옮길 수 없습니다. ${rule}</p>` };
+    return;
+  }
+  const cb = to ? R.equipCombo(run, id, to) : null;
+  const go = () => {
+    if ((slot < 0 ? u.mod : u.items[slot]) !== id) return;
+    const e = R.unequip(run, uid, slot);
+    if (e) { toast(`${e}.`); return; }
+    if (app.sel?.k === 'item') app.sel = null; // 분리 용제가 빠지면 보관함 칸 번호가 바뀐다
+    if (to) {
+      const e2 = R.equip(run, run.inventory.length - 1, to);
+      if (e2) toast(e2); else if (cb) combinedToast(cb.res, run.units.find((x) => x.uid === to)?.items[cb.slot]); else toast(pay ? `${sv} 1개를 써서 옮겼습니다.` : '장착했습니다.');
+      app.sel = { k: 'unit', uid: to };
+    } else if (pay) toast(`${sv} 1개를 써서 보관함으로 옮겼습니다.`);
+    persist();
+  };
+  const payNote = pay ? `<p class="ask-note">${itemIcon('K_strip')} ${esc(sv)} 1개 소모 (남은 ${left}개)</p>` : '';
+  if (cb && to) { combineAsk(run, run.units.find((x) => x.uid === to)!.items[cb.slot]!, id, cb.res, INV_BOX, go, payNote); return; }
+  if (pay) {
+    app.ask = { anchor: here, at: 'beside', okLabel: '옮기기', ok: go,
+      html: `<div class="ask-eq">${askItem(id)}<b>→</b><span class="ask-it">${to ? esc(UNIT_BY_ID[run.units.find((x) => x.uid === to)!.defId].name) : '보관함'}</span></div><p>${esc(sv)}를 1개 소모해 옮길까요? (남은 ${left}개)</p>` };
+    return;
+  }
+  go();
+}
+/** 소모품 사용 시도 (끌어 놓기 · 선택 후 누르기 공용): 쓸 수 없는 대상이면 알림만 띄우고 선택을 바로 푼다. 재구성 회로는 대상 옆 확인 팝업, 나머지는 확인 창 */
+function tryUse(run: RunState, i: number, tg: R.UseTarget) {
+  const err = R.useCheck(run, i, tg);
+  if (err) { toast(`${err}.`); app.sel = null; app.useK = null; return; }
+  if (run.inventory[i] === 'K_reroll') rerollAsk(run, i, tg); else app.useK = { i, tg };
+}
+/** 재구성 회로 확인 팝업: 기물이면 기물 위, 장착 장비면 그 칸 옆, 보관함 장비면 보관함 왼쪽. 결과는 V 를 누른 뒤에 공개 (미리 보고 고를 수 없음) */
+function rerollAsk(run: RunState, i: number, tg: R.UseTarget) {
+  const k = run.inventory[i], c = CONSUMABLES[k];
+  const u = tg.k === 'unit' || tg.k === 'eq' ? run.units.find((x) => x.uid === tg.uid) : undefined;
+  const x = tg.k === 'inv' ? run.inventory[tg.i] : tg.k === 'eq' ? u?.items[tg.slot] : null;
+  if ((tg.k === 'unit' && !u) || (tg.k !== 'unit' && !x)) return;
+  const gear = tg.k === 'unit' ? u!.items.filter((y): y is string => R.canReroll(y)) : [x!];
+  const anchor = tg.k === 'unit' ? [`.board [data-drop="unit:${tg.uid}"]`, `.bench [data-drop="unit:${tg.uid}"]`, `[data-drop="unit:${tg.uid}"]`]
+    : tg.k === 'eq' ? [`.board [data-drag="eq:${tg.uid}:${tg.slot}"]`, `[data-drag="eq:${tg.uid}:${tg.slot}"]`] : tg.k === 'inv' ? invCell(tg.i) : [];
+  const what = tg.k === 'unit' ? `장착한 장비 ${gear.length}개를 같은 등급의 다른 무작위 장비로 바꾸고 보관함으로 해제합니다.` : `같은 등급의 다른 무작위 장비로 바꿉니다${tg.k === 'eq' ? ' (바꾼 장비는 보관함으로 해제)' : ''}.`;
+  app.ask = { anchor: [...anchor, ...INV_BOX], at: tg.k === 'unit' ? 'above' : tg.k === 'eq' ? 'beside' : 'inv', okLabel: '사용',
+    html: `<b class="ask-t">${itemIcon(k)} ${esc(c.name)} → ${esc(u && tg.k === 'unit' ? UNIT_BY_ID[u.defId].name : itemInfo(x!).name)}</b><div class="ask-eq">${gear.map(askItem).join('')}</div><p class="ask-note">${what} 결과는 사용한 뒤에 공개됩니다.</p>`,
+    ok: () => {
+      if (run.inventory[i] !== k) return;
+      const r = R.useConsumable(run, i, tg);
+      if (r.ok) ACH.achUse(run, k, tg);
+      toast(r.msg);
+      // 장비 1개를 바꿨으면 새 장비를 보관함에서 골라 정보 팝업으로 보여 준다
+      app.sel = r.ok && tg.k !== 'unit' ? { k: 'item', idx: tg.k === 'inv' ? (tg.i > i ? tg.i - 1 : tg.i) : run.inventory.length - 1 } : null;
+      if (r.ok) persist();
+    } };
+}
+/** 확인 팝업 위치: anchor 중 처음 보이는 요소 기준 (inv = 보관함 상자 왼쪽, 자리가 없으면 오른쪽 · 아래 / above = 위 / beside = 왼쪽 · 오른쪽). 좁은 화면은 하단 시트 */
+function placeAskPop() {
+  const p = root.querySelector<HTMLElement>('.ask-pop'), q = app.ask;
+  if (!p || !q) return;
+  const vis = (el: Element) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+  const a = q.anchor.map((sel) => Array.from(root.querySelectorAll<HTMLElement>(sel)).find((el) => vis(el) && !el.closest('.ask-pop'))).find(Boolean);
+  if (!a || innerWidth <= 700) {
+    p.classList.add('sheet');
+    Object.assign(p.style, { left: '8px', right: '8px', top: 'auto', bottom: '8px' });
+    return;
+  }
+  p.classList.remove('sheet');
+  Object.assign(p.style, { right: 'auto', bottom: 'auto' });
+  const w = p.offsetWidth, h = p.offsetHeight, r = a.getBoundingClientRect();
+  let left: number, top: number;
+  if (q.at === 'above') {
+    left = r.left + r.width / 2 - w / 2; top = r.top - h - 8;
+    if (top < 8) top = r.bottom + 8;
+  } else {
+    const box = (q.at === 'inv' ? a.closest<HTMLElement>('.inv-rail, .inv') || a : a).getBoundingClientRect();
+    left = box.left - w - 10; top = r.top;
+    if (left < 8) left = box.right + 10 + w <= innerWidth - 8 ? box.right + 10 : -1;
+    if (left < 0) { left = r.left; top = box.bottom + 8 + h <= innerHeight - 8 ? box.bottom + 8 : box.top - h - 8; }
+  }
+  p.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, left))}px`;
+  p.style.top = `${Math.max(8, Math.min(innerHeight - h - 8, top))}px`;
+}
+
 /** 상단 바 높이 → 옆 패널 sticky 기준, 상세 능력치 창을 상세 보기 패널 왼쪽에 고정 */
 /** 보관 물품 정보 팝업: 고른 물품의 왼쪽에 붙인다 (좁은 화면은 아래 시트) */
 function placeInvPop() {
@@ -2761,6 +2914,7 @@ function layoutPanels() {
   document.documentElement.style.setProperty('--top-h', `${(top?.offsetHeight || 0) + 10}px`);
   placeInvPop();
   placeUmPop();
+  placeAskPop();
   const pop = root.querySelector<HTMLElement>('.stat-pop');
   const det = root.querySelector<HTMLElement>('.detail');
   if (!pop || !det) return;
@@ -2773,7 +2927,7 @@ function layoutPanels() {
   pop.style.top = `${Math.max(r.top, (top?.offsetHeight || 0) + 10)}px`;
 }
 window.addEventListener('resize', () => layoutPanels());
-window.addEventListener('scroll', () => { if (root.querySelector('.stat-pop')) layoutPanels(); }, { passive: true });
+window.addEventListener('scroll', () => { if (root.querySelector('.stat-pop, .ask-pop')) layoutPanels(); }, { passive: true });
 
 /** 스크롤된 요소 목록: [클래스 이름, 같은 클래스 중 순번, 위, 왼쪽, 창 안 여부] */
 type ScrollMark = [string, number, number, number, boolean];
@@ -2859,7 +3013,7 @@ function render() {
   const kept = KEEP.map((q) => root.querySelector<HTMLElement>(q)?.scrollTop ?? 0);
   const media = app.screen === 'battle' || app.screen === 'bar' ? null : keepMedia();
   TFX.beforeScreen(prevScreen, app.screen, root); // 이타카: 바뀌기 전 화면을 덮는 바다 (그리기 전에 지금 화면을 얼려 둔다)
-  root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${app.preview ? unitModal(app.preview.run, true) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
+  root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run ? askPop() : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${app.preview ? unitModal(app.preview.run, true) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   media?.();
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
   umCompactBind();
@@ -3807,7 +3961,7 @@ function tutCoach(key: string, run: RunState | null) {
     key: `tu:${key}`, steps,
     skipLabel: run ? '튜토리얼 건너뛰기' : null,
     // 선택 창 · 미연시 · 메뉴가 떠 있으면 숨겨 둔다 (그 창을 가리키는 단계는 pend)
-    hold: (st) => !st.pend && (!!app.menu || !!q1('.modal-bg, .adv, .stand-view, .um-pop')),
+    hold: (st) => !st.pend && (!!app.menu || !!q1('.modal-bg, .adv, .stand-view, .um-pop, .ask-pop')),
     onShow: () => {
       if (app.screen === 'battle' && app.view && !app.view.b.over) { app.paused = true; applySpeed(); tutPaused = true; }
     },
@@ -3931,6 +4085,8 @@ function codexManual() {
 let codexFrom = ''; // 도감을 연 화면 (바에서 열었으면 바로 돌아간다)
 function act(a: string, v: string) {
   const run = app.run;
+  const ask = app.ask;
+  if (ask && a !== 'ask') app.ask = null; // 다른 동작을 하면 확인 팝업은 취소
   // 전투 중에는 속도 조절 / 결과 보기 / 계속만 받는다 (재렌더하면 전투 화면이 초기화됨)
   if (app.screen === 'battle' && !['speed', 'pause', 'skip', 'after-battle', 'meter-tab', 'bsel', 'bdesel', 'bpick', 'stat-pop', 'abil-pop', 'toggle-detail'].includes(a)) return;
   if (a === 'map-tab') {
@@ -4054,6 +4210,13 @@ function act(a: string, v: string) {
       if (run && u && v === 'ok') { const k = run.inventory[u.i]; const r = R.useConsumable(run, u.i, u.tg); if (r.ok) ACH.achUse(run, k, u.tg); toast(r.msg); app.sel = null; persist(); }
       break;
     }
+    case 'ask': app.ask = null; if (v === 'ok' && ask?.ok) ask.ok(); else app.sel = null; break; // ✓ 확인 · ✕ 취소 (선택도 푼다)
+    case 'use-eq': { // 소모품을 고른 채로 기물의 장착 장비를 누름: 끌어 놓기와 같은 대상 (기물용 소모품은 그 기물, 재구성 회로 · 장비용은 그 장비)
+      if (!run || app.sel?.k !== 'item' || !isConsumable(run.inventory[app.sel.idx])) return;
+      const [uid, sl] = v.split(':'), c = CONSUMABLES[run.inventory[app.sel.idx]];
+      tryUse(run, app.sel.idx, c.target === 'unit' && !c.alsoItem ? { k: 'unit', uid } : { k: 'eq', uid, slot: +sl });
+      break;
+    }
     case 'field-info': if (run) run.pending.unshift({ t: 'field' }); break;
     case 'enter': {
       if (!run || run.pending.length) return;
@@ -4095,13 +4258,16 @@ function act(a: string, v: string) {
     case 'sel-unit':
       app.abilPop = null;
       if (app.sel?.k === 'relic' && run) { const e = R.equipRelic(run, v, app.sel.id); if (e) toast(e); else toast(`성유물 장착: ${RELIC_BY_ID[app.sel.id].name}`); app.sel = { k: 'unit', uid: v }; persist(); break; }
-      if (app.sel?.k === 'item' && run && isConsumable(run.inventory[app.sel.idx])) { app.useK = { i: app.sel.idx, tg: CONSUMABLES[run.inventory[app.sel.idx]].target === 'run' ? { k: 'run' } : { k: 'unit', uid: v } }; break; } // 탭: 소모품 → 기물 (바로 쓰는 소모품은 함대)
-      app.sel = app.sel?.k === 'item' && run ? equipSel(run, app.sel.idx, v) : { k: 'unit', uid: v }; break;
-    case 'sel-king': app.abilPop = null; if (app.sel?.k === 'item') toast('무휼은 일반 장비를 장착할 수 없습니다 (청라공국 전용 장비 자동 장착).'); app.sel = { k: 'king' }; break;
+      if (app.sel?.k === 'item' && run && isConsumable(run.inventory[app.sel.idx])) { tryUse(run, app.sel.idx, CONSUMABLES[run.inventory[app.sel.idx]].target === 'run' ? { k: 'run' } : { k: 'unit', uid: v }); break; } // 탭: 소모품 → 기물 (바로 쓰는 소모품은 함대)
+      app.sel = app.sel?.k === 'item' && run ? equipAsk(run, app.sel.idx, v) : { k: 'unit', uid: v }; break;
+    case 'sel-king': app.abilPop = null;
+      if (app.sel?.k === 'item' && run && isConsumable(run.inventory[app.sel.idx])) { toast(`${R.WRONG_TARGET}.`); app.sel = null; break; }
+      if (app.sel?.k === 'item') toast('무휼은 일반 장비를 장착할 수 없습니다 (청라공국 전용 장비 자동 장착).'); app.sel = { k: 'king' }; break;
     case 'king-info': app.abilPop = null; app.sel = { k: 'king' }; if (app.screen !== 'prep' && app.screen !== 'map') app.screen = 'prep'; break;
     case 'sel-turret': {
       if (!run) return;
       app.abilPop = null;
+      if (app.sel?.k === 'item' && isConsumable(run.inventory[app.sel.idx])) { toast(`${R.WRONG_TARGET}.`); app.sel = null; break; }
       if (app.sel?.k === 'item') {
         const e = R.equipTurret(run, app.sel.idx, +v);
         toast(e || '포탑에 장착했습니다.');
@@ -4115,20 +4281,17 @@ function act(a: string, v: string) {
     case 'sel-relic': app.sel = app.sel?.k === 'relic' && app.sel.id === v ? null : { k: 'relic', id: v }; break;
     case 'sel-enemy':
       app.abilPop = null;
-      if (app.sel?.k === 'item' && run && CONSUMABLES[run.inventory[app.sel.idx]]?.target === 'foe') { app.useK = { i: app.sel.idx, tg: { k: 'foe', i: +v } }; break; } // 탭: 강제 징수기 → 적
+      if (app.sel?.k === 'item' && run && isConsumable(run.inventory[app.sel.idx])) { tryUse(run, app.sel.idx, { k: 'foe', i: +v }); break; } // 탭: 강제 징수기 → 적 (다른 소모품은 알림 후 선택 해제)
       app.sel = { k: 'enemy', i: +v }; break;
     case 'sel-item': {
       if (!run) return;
-      if (app.sel?.k === 'item' && app.sel.idx !== +v && isConsumable(run.inventory[app.sel.idx]) && !['run', 'foe'].includes(CONSUMABLES[run.inventory[app.sel.idx]].target)) { app.useK = { i: app.sel.idx, tg: { k: 'inv', i: +v } }; break; } // 탭: 소모품 → 장비 (바로 쓰는 · 적에게 쓰는 소모품은 선택만 바꾼다)
-      if (app.sel?.k === 'item' && app.sel.idx !== +v) {
-        const res = R.combineInv(run, app.sel.idx, +v);
-        if (res) { toast(`조합 완료: ${itemInfo(res).name}`); app.sel = null; persist(); break; }
-      }
+      if (app.sel?.k === 'item' && app.sel.idx !== +v && isConsumable(run.inventory[app.sel.idx])) { tryUse(run, app.sel.idx, { k: 'inv', i: +v }); break; } // 탭: 소모품 → 장비 (맞지 않는 물품이면 알림 후 선택 해제)
+      if (app.sel?.k === 'item' && app.sel.idx !== +v && askCombineInv(run, app.sel.idx, +v)) break; // 탭: 장비 → 조합되는 장비 = 조합 확인 팝업
       app.sel = app.sel?.k === 'item' && app.sel.idx === +v ? null : { k: 'item', idx: +v };
       break;
     }
     case 'sell': if (run) { R.sellItem(run, +v); app.sel = null; persist(); } break;
-    case 'unequip': if (run) { const [uid, s] = v.split(':'); const e = R.unequip(run, uid, +s); if (e) toast(e); persist(); } break;
+    case 'unequip': if (run) { const [uid, s] = v.split(':'); moveEq(run, uid, +s, null); } break;
     case 'buyxp': if (run) { if (!R.buyXp(run, v)) toast('크레딧이 부족합니다.'); persist(); } break;
     case 'buy': if (run) { const it = run.node?.shop?.[+v]?.item; const e = R.buyShop(run, +v); if (e) toast(e); else if (it && it !== CATWHEEL && run.inventory[run.inventory.length - 1] === CATWHEEL) toast(`유닉스제 대량 생산 — ${itemInfo(it).name} 대신 캣휠이 들어왔습니다.`); persist(); } break;
     case 'pick-blessing': if (run && run.pending[0]?.t === 'blessing') { R.pickBlessing(run, v); run.pending.shift(); persist(); } break;
@@ -4293,7 +4456,7 @@ function itemTip(el: HTMLElement, key: string) {
   const tip = document.createElement('div');
   tip.className = `item-tip tip-${tier}`;
   tip.innerHTML = `<span class="tip-tier">${TIER_NAME[tier] || ''}</span><b>${esc(it.name)}</b><span>${statIc(esc(it.desc))}</span>
-    <div class="tip-foot"><small>길게 눌러 다른 기물에게 옮기기</small>${isLocked(id) ? '' : '<button class="btn tiny" type="button">해제</button>'}</div>`;
+    <div class="tip-foot"><small>길게 눌러 다른 기물에게 옮기기${app.run && R.solventNeed(app.run, uid, +slot) ? ` (${esc(CONSUMABLES.K_strip.name)} 1개)` : ''}</small>${isLocked(id) ? '' : '<button class="btn tiny" type="button">해제</button>'}</div>`;
   tip.querySelector('button')?.addEventListener('click', () => { tip.remove(); act('unequip', key); });
   tip.addEventListener('pointerdown', (e) => e.stopPropagation());
   document.body.appendChild(tip);
@@ -4309,6 +4472,20 @@ function itemTip(el: HTMLElement, key: string) {
 const HOLD_MS = 220;
 let drag: { src: string; x: number; y: number; ghost: HTMLElement | null; el: HTMLElement; t0: number; hold: boolean } | null = null;
 let suppressClick = false;
+/** 끄는 동안 손가락 · 커서가 화면 위 · 아래 가장자리에 머물면 창을 스크롤한다 (휴대폰 세로: 아래쪽 기물 상세의 장비를 보드 · 보관함까지 끌고 올라가기) */
+const DRAG_EDGE = 56, DRAG_SCROLL_MAX = 18;
+let dragPt: { x: number; y: number } | null = null, dragScrollRaf = 0;
+function dragAutoScroll() {
+  dragScrollRaf = 0;
+  if (!drag?.ghost || !dragPt) return;
+  const topH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--top-h')) || 0;
+  const up = topH + DRAG_EDGE - dragPt.y, down = dragPt.y - (innerHeight - DRAG_EDGE);
+  const dy = up > 0 ? -Math.min(DRAG_SCROLL_MAX, Math.ceil(up / 3)) : down > 0 ? Math.min(DRAG_SCROLL_MAX, Math.ceil(down / 3)) : 0;
+  if (!dy) return;
+  const y0 = scrollY;
+  scrollBy(0, dy);
+  if (scrollY !== y0) dragScrollRaf = requestAnimationFrame(dragAutoScroll);
+}
 
 root.addEventListener('pointerdown', (ev) => {
   const el = (ev.target as HTMLElement).closest('[data-drag]') as HTMLElement | null;
@@ -4331,12 +4508,14 @@ window.addEventListener('pointermove', (ev) => {
   }
   drag.ghost.style.left = `${ev.clientX}px`;
   drag.ghost.style.top = `${ev.clientY}px`;
+  dragPt = { x: ev.clientX, y: ev.clientY };
+  if (!dragScrollRaf) dragScrollRaf = requestAnimationFrame(dragAutoScroll);
   ev.preventDefault();
 }, { passive: false });
 window.addEventListener('pointerup', (ev) => {
   if (!drag) return;
   const d = drag;
-  drag = null;
+  drag = null; dragPt = null;
   if (!d.ghost) return;
   d.ghost.remove();
   d.el.classList.remove('dragging');
@@ -4351,6 +4530,7 @@ window.addEventListener('pointercancel', () => { if (drag?.ghost) { drag.ghost.r
 function onDrop(src: string, dst: string) {
   const run = app.run;
   if (!run) return;
+  app.ask = null; // 새로 끌어 놓으면 열려 있던 확인 팝업은 취소
   SND.uiAct('drop'); // 효과음: 배치 · 장착 (오류 알림이 뜨면 오류음)
   const [sk, ...sv] = src.split(':');
   const [dk, ...dv] = dst.split(':');
@@ -4433,24 +4613,19 @@ function onDrop(src: string, dst: string) {
     const ct = CONSUMABLES[run.inventory[i]].target;
     const tg: R.UseTarget | null = dk === 'foe' ? { k: 'foe', i: +dv[0] } : ct === 'run' && (dk === 'unit' || dk === 'eqitem' || (dk === 'invitem' && +dv[0] !== i)) ? { k: 'run' }
       : dk === 'unit' ? { k: 'unit', uid: dv[0] } : dk === 'invitem' && +dv[0] !== i ? { k: 'inv', i: +dv[0] }
-      : dk === 'eqitem' ? (ct === 'unit' ? { k: 'unit', uid: dv[0] } : { k: 'eq', uid: dv[0], slot: +dv[1] }) : null;
-    if (tg) app.useK = { i, tg };
+      : dk === 'eqitem' ? (ct === 'unit' && !CONSUMABLES[run.inventory[i]].alsoItem ? { k: 'unit', uid: dv[0] } : { k: 'eq', uid: dv[0], slot: +dv[1] }) : null;
+    if (tg) tryUse(run, i, tg);
   } else if (sk === 'item') {
     const idx = +sv[0];
-    if (dk === 'eqitem') app.sel = equipSel(run, idx, dv[0]);
-    else if (dk === 'unit') app.sel = equipSel(run, idx, dv[0]);
+    if (dk === 'eqitem' || dk === 'unit') app.sel = equipAsk(run, idx, dv[0]);
     else if (dk === 'invitem') {
-      const res = R.combineInv(run, idx, +dv[0]);
-      if (res) toast(`조합 완료: ${itemInfo(res).name}`); else if (idx !== +dv[0]) toast('조합할 수 없는 장비입니다.');
-      app.sel = null;
+      if (!askCombineInv(run, idx, +dv[0])) { if (idx !== +dv[0]) toast('조합할 수 없는 장비입니다.'); app.sel = null; }
     }
   } else if (sk === 'eq') {
+    // 장착 장비 → 보관함 · 다른 기물 (기물 상세 패널의 장비 끌기 포함). 분리 용제 규칙 · 조합 확인은 moveEq
     const [uid, slot] = sv;
-    if (dk === 'inv' || dk === 'invitem') { const e = R.unequip(run, uid, +slot); if (e) toast(e); }
-    else if ((dk === 'unit' || dk === 'eqitem') && dv[0] !== uid) {
-      const e = R.unequip(run, uid, +slot);
-      if (e) toast(e); else app.sel = equipSel(run, run.inventory.length - 1, dv[0]);
-    }
+    if (dk === 'inv' || dk === 'invitem') moveEq(run, uid, +slot, null);
+    else if ((dk === 'unit' || dk === 'eqitem') && dv[0] !== uid) moveEq(run, uid, +slot, dv[0]);
   }
   persist();
   render();
@@ -4758,6 +4933,7 @@ document.addEventListener('keydown', (e) => {
   const sv = document.querySelector('.stand-view');
   if (k === 'Escape') {
     if (sv) sv.remove();
+    else if (app.ask) act('ask', 'no');
     else if (app.preview) act('big-close', '');
     else if (app.cardOpen) { app.cardOpen = null; render(); }
     else if (app.bigUnit && app.abilPop) { app.abilPop = null; render(); }
@@ -4824,7 +5000,10 @@ root.addEventListener('click', (ev) => {
   const el = (ev.target as HTMLElement).closest('[data-a]') as HTMLElement | null;
   if (!el || (el as HTMLButtonElement).disabled) return;
   if (el.classList.contains('modal-bg') && (ev.target as HTMLElement).closest('.modal')) return; // 창 안쪽을 눌러도 닫지 않음
-  if (el.dataset.a === 'item-info') { itemTip(el, el.dataset.v || ''); return; }
+  if (el.dataset.a === 'item-info') { // 소모품을 고른 채로 장착 장비를 누르면 그 장비(또는 기물)에 사용, 아니면 장비 설명 말풍선
+    if (app.sel?.k === 'item' && app.run && isConsumable(app.run.inventory[app.sel.idx])) act('use-eq', el.dataset.v || ''); else itemTip(el, el.dataset.v || '');
+    return;
+  }
   if (el.dataset.a === 'foe-item') { foeItemTip(el, el.dataset.v || ''); return; }
   if (el.dataset.a === 'syn-peek') {
     const on = !el.classList.contains('peek');

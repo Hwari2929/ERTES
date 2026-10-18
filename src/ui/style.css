@@ -896,16 +896,14 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 .bench-label { position: absolute; top: 0; left: 12px; transform: translateY(-50%); padding: 0 6px; border-radius: var(--r-sm); background: var(--bg); font-size: var(--fs-xs); line-height: 1.6; color: var(--c-text-2); } /* 테두리 위 이름표 */
 .bench-label b { color: var(--c-text); font-variant-numeric: tabular-nums; }
 .prep .sticky-actions { margin-top: 18px; }
-.bench-u { position: relative; width: 52px; height: 52px; background: var(--panel-2); border-radius: var(--r-md); display: grid; place-items: center; cursor: grab; touch-action: none; }
-.bench-u img { width: 44px; height: 44px; image-rendering: pixelated; pointer-events: none; }
-.bench-u img.pt { border-radius: var(--r-md); box-shadow: 0 0 0 1px color-mix(in srgb, var(--c-chalk) 35%, transparent); }
-.bench-u.sel { outline: 2px solid var(--c-select); }
-.bench-u .ubadge { left: 4px; right: auto; bottom: 4px; }
+/* 대기 기물: 보드와 같은 카드형 토큰 (.u.tk, main.ts allyCard)을 대기석 줄 크기에 맞춘다 (보드 칸처럼 절대 배치하지 않음) */
+.bench-u.u.tk { position: relative; flex: none; width: clamp(54px, 13vw, 64px); cursor: grab; touch-action: none; }
+.bench-u.u.tk .tk-card { width: 100%; max-height: none; }
 /* 시너지 강조 (main.ts synFocus): 소속 기물만 밝게 · 시너지 색 테두리, 나머지는 흐리게 */
 main.syn-focus [data-syns] { transition: opacity .15s, filter .15s; }
 main.syn-focus [data-syns]:not(.syn-hl) { opacity: .3; filter: grayscale(.85); }
 main.syn-focus .board .u.side1 { opacity: .55; }
-main.syn-focus .u.syn-hl .tk-card, main.syn-focus .bench-u.syn-hl, main.syn-focus .rt.syn-hl { border-color: var(--c); box-shadow: 0 0 0 2px var(--c), 0 0 14px color-mix(in srgb, var(--c) 55%, transparent); }
+main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var(--c); box-shadow: 0 0 0 2px var(--c), 0 0 14px color-mix(in srgb, var(--c) 55%, transparent); }
 .syn-tk.syn-on { background: color-mix(in srgb, var(--c) 14%, transparent); border-radius: var(--r-md); }
 .syn-pop .sp-focus { justify-self: start; }
 @media (prefers-reduced-motion: reduce) { main.syn-focus [data-syns] { transition: none; } }
@@ -1201,6 +1199,19 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .bench-u.syn-hl, main.syn-focu
 .ip-stats { display: flex; flex-wrap: wrap; gap: 4px 10px; } .ip-stats span { display: inline-flex; align-items: center; gap: 4px; } .ip-stats .li, .ip-stats .mi { width: 14px; height: 14px; }
 .ip-eff { margin: 0; line-height: 1.5; }
 .ip-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* 확인 팝업 (장비 조합 · 재구성 회로 · 분리 용제): 화면을 가리지 않고 보관함 · 기물 · 장비 칸 옆에. 위치는 JS (placeAskPop), 좁은 화면은 하단 시트 */
+.ask-pop { position: fixed; z-index: var(--z-pop); width: 290px; display: grid; gap: 8px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--c-select); border-radius: var(--r-lg); box-shadow: 0 8px 24px color-mix(in srgb, var(--c-black) 45%, transparent); font-size: var(--fs-base); }
+.ask-pop.sheet { width: auto; }
+.ask-pop p { margin: 0; line-height: 1.5; }
+.ask-t { display: flex; align-items: center; gap: 6px; font-size: var(--fs-md); }
+.ask-t .item { flex: none; }
+.ask-eq { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.ask-eq > b { color: var(--c-text-2); font-size: var(--fs-md); }
+.ask-it { display: inline-grid; justify-items: center; gap: 2px; max-width: 76px; text-align: center; font-size: var(--fs-xs); line-height: 1.25; }
+.ask-note { font-size: var(--fs-sm); }
+.ask-note.warn { color: var(--c-warn-ink); }
+.ask-btns { display: flex; justify-content: flex-end; gap: 8px; }
+.ask-btns .btn { min-width: 76px; }
 .eq-slot.mod { border-color: color-mix(in srgb, var(--c-occult) 33.3%, transparent); }
 .eq { display: grid; gap: 6px; }
 .eq-slot { display: flex; gap: 8px; align-items: center; background: var(--panel-2); border-radius: var(--r-md); padding: 6px; touch-action: none; }

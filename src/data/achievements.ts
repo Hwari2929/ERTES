@@ -9,7 +9,7 @@ import { FIELDS } from './battlefields';
 import { DIFF_PRESETS, MAX_DIFF, diffLabel } from './difficulty';
 import { CATWHEEL, PETROCK } from './despair';
 import { EVENT_BY_ID } from './events';
-import { itemInfo } from './items';
+import { isCatwheel, itemInfo } from './items';
 import { UNIT_BY_ID, UNITS } from './units';
 import type { NodeType } from '../types';
 
@@ -177,7 +177,7 @@ export const ACHIEVEMENTS: AchDef[] = [
   { id: 'catwheel', name: '고양이라면 또 모르겠다', grade: 'legend', motif: 'li:i.catwheel', hidden: true,
     hint: '아무 기능이 없는 유닉스제 잡동사니도, 임자를 만나면 이야기가 달라진다.',
     desc: () => `${un('mingki')}에게 ${jo(itemInfo(CATWHEEL).name, '을', '를')} 달고 ${jo(un('oliver'), '과', '와')} 함께 출전해 전투에서 이긴다.`,
-    test: (f) => won(f) && f.k === 'battle' && f.allies.some((a) => a.id === 'mingki' && a.items.includes(CATWHEEL)) && f.allies.some((a) => a.id === 'oliver') },
+    test: (f) => won(f) && f.k === 'battle' && f.allies.some((a) => a.id === 'mingki' && a.items.some(isCatwheel)) && f.allies.some((a) => a.id === 'oliver') },
 ];
 export const ACH_BY_ID: Record<string, AchDef> = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));
 

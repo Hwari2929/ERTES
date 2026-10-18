@@ -54,15 +54,15 @@ export const GLOSSARY: GlossChapter[] = [
       { id: 'fleet', term: '함대 확장', key: 'ch2_xp', text: '지도의 함선 관리에서 출전 인원을 1명 늘린다. 첫 확장은 20크레딧, 이후 40 · 56 · 72 … 점점 비싸진다 (최대 14명).' },
       { id: 'supply', term: '보급', key: 'ch2_supply', text: `뒷면 보급품 카드 ${CFG.supply.cards}장을 뒤집어 모두 받는다. 카드 1장은 에너지 크레딧 · 공명도(파티에 분배) · 장비 중 하나이고 같은 종류가 겹치기도 한다. ${CFG.supply.cards}장 합계 가치는 지금 영입할 기물을 바로 방출했을 때 받는 환급의 ${pc(CFG.supply.ratio)} 안팎이라 기물 등급이 오를수록 커진다 (초반에는 ${CFG.supply.floor(1)}크레딧어치부터). 장비는 카드 가치가 높을수록 재료보다 고급 · 희귀가, ${CFG.supply.legendFrom}페이즈부터는 대박 카드에서 전설도 나온다. 장마다 ${CFG.supply.jackpot.map(([x, p]) => `${pc(p)} 확률로 가치 ×${x}`).join(', ')}의 대박.` },
       { id: 'shop', term: '상점', key: 'ch2_shop', text: `재료 장비 ${CFG.drop.shopParts}개는 늘 진열되고 희귀 · 고급 · 전설은 확률로 나온다 (${CFG.shop.gearFrom}페이즈부터는 고급 · 희귀 중 1개 이상 확정). 가끔 소모품, 드물게 문장도 들어온다. 기본가 재료 ${CFG.price.C} · 고급과 희귀 ${CFG.price.G} · 전설 ${CFG.price.L} · 문장 ${CFG.shop.price.emblem}, 전장에 따라 달라진다. 팔면 재료 ${CFG.sell.C} · 고급과 희귀 ${CFG.sell.G} · 소모품 ${CFG.sell.K}.` },
-      { id: 'cons', term: '소모품', key: 'ch2_shop', text: `보관함의 육각형 칸. 쓸 곳에 끌어다 놓으면 한 번 쓰고 사라진다: 기물(공명 주입기 소형 +${CFG.inject.amount.K_xp} · 중형 +${CFG.inject.amount.K_xp2} · 대형 +${CFG.inject.amount.K_xp3} 공명도, 분리 용제 · 재구성 회로), 편성 화면의 적(강제 징수기), 또는 [사용] 단추(갓 구운 빵 — 전투 ${CFG.chef.staleAfter}회 뒤 식으면 회복 −${CFG.chef.staleHeal}). 주입기는 ${CFG.inject.from.K_xp2}페이즈부터 중형, ${CFG.inject.from.K_xp3}페이즈부터 대형이 나오고 ${CFG.inject.smallTo + 1}페이즈부터는 소형이 나오지 않는다. 금색 테두리는 전설급이다. 전투 승리 보상 · 상점에서 얻는다.` },
+      { id: 'cons', term: '소모품', key: 'ch2_shop', text: `보관함의 육각형 칸. 쓸 곳에 끌어다 놓으면 한 번 쓰고 사라진다: 기물(공명 주입기 소형 +${CFG.inject.amount.K_xp} · 중형 +${CFG.inject.amount.K_xp2} · 대형 +${CFG.inject.amount.K_xp3} 공명도, 분리 용제), 기물 또는 장비 1개(재구성 회로 — 같은 등급의 다른 장비로 바꾸고, 장착한 장비였으면 보관함으로 해제), 편성 화면의 적(강제 징수기), 또는 [사용] 단추(갓 구운 빵 — 전투 ${CFG.chef.staleAfter}회 뒤 식으면 회복 −${CFG.chef.staleHeal}). 주입기는 ${CFG.inject.from.K_xp2}페이즈부터 중형, ${CFG.inject.from.K_xp3}페이즈부터 대형이 나오고 ${CFG.inject.smallTo + 1}페이즈부터는 소형이 나오지 않는다. 금색 테두리는 전설급이다. 전투 승리 보상 · 상점에서 얻는다. 쓸 수 없는 대상을 누르면 선택이 풀린다. 보관함에서 팔 수 있는 것은 소모품뿐이다 (장비 · 개조부품은 팔 수 없고, 보관함이 가득 찬 채로 얻으면 자동 판매).` },
     ],
   },
   {
     ch: 'ch3', title: '3장 — 시너지 · 장비', who: 'yelena', entries: [
       { id: 'synergy', term: '시너지 (세력 · 특성)', key: 'ch3_intro', text: '어디 소속인지가 세력, 어떤 사람인지가 특성. 같은 시너지를 가진 기물이 함께 출전하면 효과가 켜지고, 인원이 단계 기준에 닿을 때마다 강해진다. 마름모를 누르면 단계별 효과가 나온다.' },
       { id: 'emblem', term: '문장', key: 'ch3_emblem', text: '개조부품 칸에 다는 소속 증명서. 단 기물이 그 시너지에 한 명 더 있는 것으로 친다. 범은하 공동체를 뺀 문장에는 고유 효과도 1개씩 있다 (대부분 단 기물 1명에게만, 시너지가 꺼져 있어도 같은 수치). 이미 소속된 시너지의 문장은 달 수 없다.' },
-      { id: 'gear', term: '장비 칸 · 추천 장비', key: 'ch3_equip', text: '기물마다 장비 3칸과 개조부품 1칸. 보관함에서 기물에게 끌어다 놓으면 장착되고, 고유 장비가 아니면 언제든 바꿔 낄 수 있다. [추천 장비]는 전투 유형에 어울리는 희귀 장비와 재료 · 보유 현황을 보여 준다.' },
-      { id: 'combine', term: '장비 조합', key: 'ch3_equip', text: '재료(주요 능력치 +3) 둘을 합친다. 같은 재료끼리는 고급(+12), 다른 재료끼리는 희귀(+6과 특수 효과). 재료를 단 기물에 재료를 더 주거나 보관함에서 겹치면 된다. 전설은 조합할 수 없다.' },
+      { id: 'gear', term: '장비 칸 · 추천 장비', key: 'ch3_equip', text: `기물마다 장비 3칸과 개조부품 1칸. 보관함에서 기물에게 끌어다 놓으면 장착되고, 고유 장비가 아니면 언제든 바꿔 낄 수 있다. 장착한 장비는 길게 눌러 보관함 · 다른 기물로 옮긴다 (${diffName(CFG.solventFrom) || `위험 ${CFG.solventFrom}`} 이상은 옮길 때마다 분리 용제 1개 소모, 개조부품 제외). [추천 장비]는 전투 유형에 어울리는 희귀 장비와 재료 · 보유 현황을 보여 준다.` },
+      { id: 'combine', term: '장비 조합', key: 'ch3_equip', text: '재료(주요 능력치 +3) 둘을 합친다. 같은 재료끼리는 고급(+12), 다른 재료끼리는 희귀(+6과 특수 효과). 재료를 단 기물에 재료를 더 주거나 보관함에서 겹치면 된다. 합치기 전에 보관함 옆에 [장비] + [장비] = [결과] 확인 창이 뜬다 (V 합성 · X 취소). 전설은 조합할 수 없다.' },
       { id: 'recruit', term: '영입', key: 'ch3_recruit', text: '보통 후보 셋 중 한 명을 고른다 (새로고침 1회). 새 동료는 출전 기물 평균 공명 등급의 70% 정도로 합류한다.' },
     ],
   },
