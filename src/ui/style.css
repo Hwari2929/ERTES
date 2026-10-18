@@ -242,13 +242,13 @@
 [data-ui-theme="ithaca"] .diffsel { background: radial-gradient(120% 75% at 50% 0%, color-mix(in srgb, var(--sea) 45%, var(--art-bg)), var(--art-bg) 72%); } /* 밤바다: 위쪽이 옅은 물빛 */
 /* 그림 위 이름표: 검은 그림자 대신 모래색 후광 (짙은 글씨가 그림 위에서도 읽히게) */
 [data-ui-theme="ithaca"] :is(.dh-name, .ru-tag, .cx2-lhero .cx2-hd b, .rs-mvp-tag em, .bf b) { text-shadow: 0 0 2px var(--panel), 0 0 8px var(--panel); }
-/* 시너지 마름모: 짙은 시너지색 바탕 + 흰 테두리 · 아이콘 (모래색 위에서 옅은 시너지색이 묻히지 않게). 비활성은 반투명 */
-[data-ui-theme="ithaca"] .syn-dia { background: color-mix(in srgb, var(--c) 55%, var(--c-text)); border-color: var(--c-white); color: var(--c-white); }
-[data-ui-theme="ithaca"] .syn-tk.active .syn-dia, [data-ui-theme="ithaca"] .syn-b:hover .syn-dia, [data-ui-theme="ithaca"] .syn-b.peek .syn-dia { background: color-mix(in srgb, var(--c) 70%, var(--c-text)); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--c) 60%, var(--c-text)); }
+/* 시너지 마름모: 짙은 시너지색 바탕 + 흰 아이콘, 테두리 없음 (모래색 위에서 옅은 시너지색이 묻히지 않게). 비활성은 반투명 */
+[data-ui-theme="ithaca"] .syn-dia { background: color-mix(in srgb, var(--c) 55%, var(--c-text)); border-color: transparent; color: var(--c-white); }
+[data-ui-theme="ithaca"] .syn-tk.active .syn-dia, [data-ui-theme="ithaca"] .syn-b:hover .syn-dia, [data-ui-theme="ithaca"] .syn-b.peek .syn-dia { background: color-mix(in srgb, var(--c) 70%, var(--c-text)); }
 /* 출전 수 배지도 같은 짙은 바탕 + 흰 숫자 · 흰 테두리 */
 [data-ui-theme="ithaca"] .syn-tk .syn-lv { background: color-mix(in srgb, var(--c) 40%, var(--c-text-2)); color: var(--c-white); box-shadow: 0 0 0 1.5px var(--c-white); }
 [data-ui-theme="ithaca"] .syn-tk.active .syn-lv { background: color-mix(in srgb, var(--c) 70%, var(--c-text)); }
-[data-ui-theme="ithaca"] .syn-tk:not(.active) .syn-dia { background: color-mix(in srgb, var(--c) 40%, var(--c-text-2)); border-color: var(--c-white); opacity: .62; }
+[data-ui-theme="ithaca"] .syn-tk:not(.active) .syn-dia { background: color-mix(in srgb, var(--c) 40%, var(--c-text-2)); border-color: transparent; opacity: .62; }
 [data-ui-theme="ithaca"] .pcard .pc-syn .syn-tk:not(.active) .syn-dia { background: color-mix(in srgb, var(--c) 55%, var(--c-text)); opacity: 1; }
 [data-ui-theme="hoishun"] {
   /* 호이슌 사쿠라 가든: 네온이 꺼지지 않는 자줏빛 밤 · 벚꽃 분홍 강조 · 네온 청록 정보색, 통화는 호이슌 홀딩스 금색 */
@@ -399,6 +399,10 @@ body:has(.bar, .adv) .tfx-petals { display: none; } /* 바(실내) · 사건 장
 .tfx-sea { position: fixed; inset: 0; width: 100%; height: 100%; z-index: var(--z-banner); overflow: visible; touch-action: none; } /* 색은 seatrans.ts SEA.colors */
 .tfx-sea.open { pointer-events: none; touch-action: auto; }
 .tfx-sea .ts-hit { pointer-events: none; }
+.tfx-sea .ts-star { transform-box: fill-box; transform-origin: center; }
+.tfx-sea .ts-star { animation: ts-sparkle var(--d, 2s) ease-in-out var(--dl, 0s) infinite; } /* 물결 위 흰 별: 커졌다 작아지며 점멸 */
+@keyframes ts-sparkle { 0%, 100% { opacity: 0; scale: .2; } 30%, 70% { opacity: 1; scale: 1; } 50% { scale: 1.15; } }
+@media (prefers-reduced-motion: reduce) { .tfx-sea .ts-star { animation: none; opacity: .8; } }
 .tfx-sea .ts-hit.on { pointer-events: all; cursor: pointer; }
 .tfx-ghost { position: fixed; inset: 0; z-index: calc(var(--z-banner) - 1); overflow: hidden; pointer-events: none; background: var(--bg); }
 .tfx-ghost-in { position: relative; min-height: 100%; display: flex; flex-direction: column; }

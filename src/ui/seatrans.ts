@@ -1,7 +1,7 @@
 // 이타카 테마: 바다 화면 전환 (themefx.ts 가 큰 화면 전환에 부른다). 게임 코드와 독립된 SVG 오버레이.
 //   등장   물결 N겹이 아래에서 차례로 차올라 화면을 덮는다. 먼저 오는 물결일수록 낮게 멈추고 앞에 그린다 (원근: 앞 = 아래).
 //          물결은 무대 소품 골판지처럼 모양이 고정된 판이고, 판째로 좌우로 흔들리고 살짝 기울며 오르내린다.
-//          판마다 위 → 아래 그라디언트 + 가장자리 위로 번지는 같은 색의 밝은 띠 (흰 선 없이 깊이감). 판 색은 전환마다 노랑 ~ 에메랄드 파스텔에서 무작위.
+//          판마다 위 → 아래 그라디언트 + 가장자리 위로 흐릿하게 번지는 같은 색의 밝은 빛 띠 (흰 선 없이 깊이감). 판 색은 전환마다 노랑 ~ 에메랄드 파스텔에서 무작위.
 //          섬은 1번 물결 뒤 · 배는 2번 물결 뒤에 끼어 있다가 그 물결이 닿으면 물 위로 솟는다 (아랫부분은 앞 물결에 가린다)
 //   대기   판들이 제각각 흔들리고, 배 · 섬은 자기 물결 수면을 타고 떠 있다. 오래 걸리면 갈매기 3마리가 내려온다
 //   출항   ready() 뒤: 배(이타카제 왕복선) 뒤에서 제트 엔진이 튀어나와 점화 → 거의 수평으로 가속하다 기수가 들리며 오른쪽 위로 솟구쳐 사라진다.
@@ -25,13 +25,13 @@ export const SEA = {
     { top: 0.205, amp: 9, len: 0.38 },
     { top: -0.08, amp: 8, len: 0.5 },
   ],
-  /** 판 색: 전환마다 판마다 무작위 (HSL 파스텔). 색 띠는 [hue 범위, 뽑힐 비중] — 노랑 · 에메랄드 민트 위주, 연두는 가끔.
-   *  이웃 판과는 hueGap 도 · lightGap %p 중 하나 이상 벌어지게. 판 안은 위가 밝고 아래가 deep 만큼 짙은 그라디언트,
-   *  가장자리 위로 같은 색을 band 만큼 밝힌 띠가 번진다 */
-  palette: { zones: [[[45, 60], 0.32], [[140, 172], 0.53], [[95, 130], 0.15]] as [number[], number][], sat: [55, 76], light: [79, 89], hueGap: 22, lightGap: 4, deep: 6, band: 9 },
-  shadow: { alpha: 0.5, reach: 18 }, // 판 가장자리 위로 번지는 밝은 띠 (불투명도 · 높이 px)
+  /** 판 색: 전환마다 판마다 무작위 (HSL 파스텔). 색 띠는 [hue 범위, 뽑힐 비중] — 민트 · 하늘색 위주, 에메랄드는 가끔 (노랑은 섬 모래색과 겹쳐 뺀다).
+   *  이웃 판과는 hueGap 도 · lightGap %p 중 하나 이상 벌어지게. 판 안은 위가 밝고 아래가 deep 만큼 짙은 그라디언트
+   *  (가장자리 위로 번지는 빛 띠는 glow) */
+  palette: { zones: [[[156, 176], 0.5], [[180, 198], 0.36], [[142, 154], 0.14]] as [number[], number][], sat: [50, 66], light: [85, 92], hueGap: 12, lightGap: 3, deep: 5 },
+  glow: { alpha: 0.85, reach: 34, blur: 13, light: 13 }, // 판 가장자리 위로 번지는 빛 띠: 불투명도 · 수면 위로 뻗는 높이 px · 번짐(흐림) px · 판 색보다 밝게 %p
   sway: { x: 14, y: 5, tilt: 0.7 }, // 판 흔들림: 좌우 px · 위아래 px · 기울기 도
-  glints: 3, // 판마다 물비늘 수
+  stars: { count: 6, size: [5.5, 10], period: [1.6, 3] }, // 판마다 반짝이는 흰 별 수 · 크기 px · 점멸 주기 초
   enter: { dur: 560, gap: 62 }, // 판 하나가 차오르는 시간 · 다음 판까지 간격 (ms)
   exit: { dur: 620, gap: 70, delay: 230, fastDelay: 60 }, // 내려가는 시간 · 간격 · 출항 시작 뒤 첫 판이 움직이기까지 (가라앉기면 fastDelay)
   minHold: 260, // 출항할 때: 다 덮은 뒤 최소 대기 (배가 잠깐 떠 있게)
@@ -60,7 +60,7 @@ const svg = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string,
 let uid = 0;
 
 // ───────────────────────── 그림 (단위 좌표: 배 · 섬은 수면 가운데가 원점, 오른쪽이 뱃머리)
-/** 이타카제 하이엔드 왕복선 (테두리 없이 둥글고 통통하게, 면 음영 · 하이라이트만): 콩꼴 코랄 선체 · 크림 상갑판 · 민트 띠 · 동그란 창 · 물방울 캐노피 ·
+/** 이타카제 하이엔드 왕복선 (테두리 없이 둥글고 통통하게, 면 음영 · 하이라이트만): 흰 콩꼴 선체 (아래는 옅은 청회색 음영) · 민트 띠 · 동그란 창 · 물방울 캐노피 ·
  *  통통한 날개 돛 · 안테나 구슬 · 항해등. 엔진(.ts-jet)은 고물 안에 숨어 있다 */
 const BOAT_ART = `
   <g class="ts-jet" transform="translate(-56 -12) scale(0)">
@@ -71,21 +71,21 @@ const BOAT_ART = `
     <rect x="-19" y="-13" width="6" height="26" fill="#8fe6d4"/>
     <circle cx="1" cy="0" r="4" fill="#ffd2c4"/>
   </g>
-  <path d="M-64 -8 Q-66 20 -30 21 L44 21 Q80 20 82 -8Z" fill="#ffab95"/>
-  <path d="M-58 10 Q-44 21 -28 21 L44 21 Q72 20 79 4 Q40 15 -58 10Z" fill="#f4927b"/>
-  <path d="M-66 -9 Q-68 -27 -48 -27 L52 -27 Q84 -27 86 -11 Q86 -6 80 -6 L-61 -6 Q-66 -6 -66 -9Z" fill="#fffaf0"/>
-  <path d="M-52 -23 L46 -23" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" opacity=".9"/>
+  <path d="M-64 -8 Q-66 20 -30 21 L44 21 Q80 20 82 -8Z" fill="#ffffff"/>
+  <path d="M-58 10 Q-44 21 -28 21 L44 21 Q72 20 79 4 Q40 15 -58 10Z" fill="#e3edf2"/>
+  <path d="M-66 -9 Q-68 -27 -48 -27 L52 -27 Q84 -27 86 -11 Q86 -6 80 -6 L-61 -6 Q-66 -6 -66 -9Z" fill="#ffffff"/>
+  <path d="M-52 -11 L70 -11" stroke="#eef3f6" stroke-width="3" stroke-linecap="round"/>
   <rect x="-64" y="-10" width="148" height="6" rx="3" fill="#9de8d6"/>
   <g fill="#5d84a0"><circle cx="-34" cy="-16" r="5.5"/><circle cx="-16" cy="-16" r="5.5"/><circle cx="2" cy="-16" r="5.5"/></g>
   <g fill="#e6f6fb"><circle cx="-35.5" cy="-17.5" r="1.8"/><circle cx="-17.5" cy="-17.5" r="1.8"/><circle cx="0.5" cy="-17.5" r="1.8"/></g>
   <circle cx="81" cy="-15" r="3.2" fill="#ffb199"/><circle cx="-62" cy="-17" r="3.2" fill="#8de9d6"/>
   <rect x="-3.5" y="-104" width="7" height="80" rx="3.5" fill="#a9b5c1"/>
   <circle cx="0" cy="-107" r="5" fill="#ff9f86"/><circle cx="-1.5" cy="-108.5" r="1.6" fill="#ffe1d8"/>
-  <path d="M-7 -92 Q-36 -66 -40 -44 Q-40 -38 -34 -38 L-7 -38Z" fill="#c2f0de"/>
-  <path d="M-7 -92 Q-22 -78 -28 -64 L-7 -64Z" fill="#d8f7ea"/>
-  <path d="M7 -100 Q50 -78 52 -46 Q52 -38 45 -38 L7 -38Z" fill="#fffaf0"/>
+  <path d="M-7 -92 Q-36 -66 -40 -44 Q-40 -38 -34 -38 L-7 -38Z" fill="#f4f8fa"/>
+  <path d="M-7 -92 Q-22 -78 -28 -64 L-7 -64Z" fill="#c9f1e3"/>
+  <path d="M7 -100 Q50 -78 52 -46 Q52 -38 45 -38 L7 -38Z" fill="#ffffff"/>
   <path d="M7 -100 Q26 -90 35 -80 L7 -80Z" fill="#ffab95"/>
-  <path d="M7 -64 L46 -64 Q48 -60 49 -57 L7 -57Z" fill="#f3ead9"/>
+  <path d="M7 -64 L46 -64 Q48 -60 49 -57 L7 -57Z" fill="#eaf1f5"/>
   <path d="M-24 -27 Q-22 -50 8 -50 Q36 -50 40 -27Z" fill="#a9e6f2"/>
   <path d="M-10 -40 Q-6 -46 6 -46" stroke="#f2fcff" stroke-width="4" stroke-linecap="round" fill="none"/>`;
 const ISLAND_ART = `
@@ -105,7 +105,7 @@ const ISLAND_ART = `
 const gullPath = (f: number) => { const y = -6 - 7 * f, c = -12 - 9 * f; return `M-20 ${y} Q-10 ${c} 0 0 Q10 ${c} 20 ${y}`; };
 
 /** 물결 판 하나: 모양(로컬 좌표, 수면 기준 y=0)은 고정, 매 프레임 판의 위치 · 흔들림만 바뀐다 */
-interface Wave { g: SVGGElement; fill: SVGPathElement; shade: SVGPathElement | null; glints: SVGGElement; grad: SVGLinearGradientElement; sgrad: SVGLinearGradientElement | null;
+interface Wave { g: SVGGElement; fill: SVGPathElement; shade: SVGPathElement | null; glints: SVGGElement; grad: SVGLinearGradientElement;
   ph: [number, number, number]; k: [number, number]; y: number; tx: number; ty: number; rot: number }
 interface Puff { el: SVGCircleElement; x: number; y: number; vx: number; vy: number; r0: number; r1: number; t: number; life: number }
 interface Gull { el: SVGPathElement; x: number; y: number; tx: number; ty: number; t0: number; ph: number; rate: number; vx: number; vy: number; leaving: boolean }
@@ -129,6 +129,9 @@ export function seaTransition(): SeaHandle {
   let W = innerWidth, H = innerHeight, U = 1;
   const root = svg('svg', { class: 'tfx-sea', 'aria-hidden': 'true' });
   const defs = svg('defs');
+  const blur = svg('feGaussianBlur', { stdDeviation: 12 });
+  const flt = svg('filter', { id: `${id}blur`, x: '-5%', y: '-150%', width: '110%', height: '400%' });
+  flt.appendChild(blur); defs.appendChild(flt);
   root.appendChild(defs);
   const waves: Wave[] = [];
   const boatSlot = svg('g'), islandG = svg('g', {}, ISLAND_ART), boatG = svg('g', { class: 'ts-boat' }, BOAT_ART);
@@ -156,20 +159,18 @@ export function seaTransition(): SeaHandle {
     const [h, sa, l] = hues[i], g = svg('g');
     const grad = svg('linearGradient', { id: `${id}g${i}`, gradientUnits: 'userSpaceOnUse', x1: 0, x2: 0 }, `<stop offset="0" stop-color="${hsl(h, sa, l)}"/><stop offset="1" stop-color="${hsl(h + 4, sa + 4, l - P.deep)}"/>`);
     defs.appendChild(grad);
-    // 그림자 띠: 뒤 판이 있는 판만 (맨 뒤 판은 이전 화면 위로 그림자를 떨어뜨리지 않게)
-    let shade: SVGPathElement | null = null, sgrad: SVGLinearGradientElement | null = null;
+    // 빛 띠: 수면을 따라 위로 뻗은 얇은 띠를 흐려서 뒤 판 위로 부드럽게 번지게 (맨 뒤 판은 이전 화면 위로 번지지 않게 없음)
+    let shade: SVGPathElement | null = null;
     if (i < N - 1) {
-      sgrad = svg('linearGradient', { id: `${id}s${i}`, gradientUnits: 'userSpaceOnUse', x1: 0, x2: 0 }, `<stop offset="0" stop-color="${hsl(h, sa, l + P.band)}" stop-opacity="0"/><stop offset="1" stop-color="${hsl(h, sa, l + P.band)}" stop-opacity="${C.shadow.alpha}"/>`);
-      defs.appendChild(sgrad);
-      shade = svg('path', { fill: `url(#${id}s${i})` });
+      shade = svg('path', { fill: hsl(h, sa - 6, l + C.glow.light), opacity: C.glow.alpha, filter: `url(#${id}blur)` });
       g.appendChild(shade);
     }
     const fill = svg('path', { fill: `url(#${id}g${i})` });
-    const glints = svg('g', { fill: 'none', stroke: '#ffffff', 'stroke-width': 3, 'stroke-linecap': 'round', opacity: 0.55 });
+    const glints = svg('g', { fill: '#ffffff' });
     g.append(fill, glints);
     root.appendChild(g);
     const r = () => Math.random() * 6.283;
-    waves[i] = { g, fill, shade, glints, grad, sgrad, ph: [r(), r(), r()], k: [0.8 + Math.random() * 0.5, 0.6 + Math.random() * 0.5], y: 0, tx: 0, ty: 0, rot: 0 };
+    waves[i] = { g, fill, shade, glints, grad, ph: [r(), r(), r()], k: [0.8 + Math.random() * 0.5, 0.6 + Math.random() * 0.5], y: 0, tx: 0, ty: 0, rot: 0 };
   }
   root.append(fx, gullG, hit);
   const jet = boatG.querySelector<SVGGElement>('.ts-jet')!, flame = boatG.querySelector<SVGGElement>('.ts-flame')!;
@@ -197,17 +198,20 @@ export function seaTransition(): SeaHandle {
       // 그라디언트: 물마루(위)에서 다음 판이 덮는 곳까지
       const a = w.amp * U, span = i ? (C.waves[i - 1].top - w.top) * H : H * 0.2;
       wv.grad.setAttribute('y1', (-a).toFixed(1)); wv.grad.setAttribute('y2', Math.max(40, span).toFixed(1));
-      if (wv.shade && wv.sgrad) {
-        const sh = C.shadow.reach * U;
-        wv.shade.setAttribute('d', d + close);
-        wv.shade.setAttribute('transform', `translate(0 ${(-sh).toFixed(1)})`);
-        wv.sgrad.setAttribute('y1', (-a - sh * 0.2).toFixed(1)); wv.sgrad.setAttribute('y2', (a + sh).toFixed(1));
+      if (wv.shade) { // 위 가장자리 = 수면에서 reach 만큼 위, 아래 가장자리 = 수면 바로 아래 (판에 가린다)
+        const sh = C.glow.reach * U, top = pts.map(([x, y]) => `${x.toFixed(1)} ${(y - sh).toFixed(1)}`), bot = pts.slice().reverse().map(([x, y]) => `${x.toFixed(1)} ${(y + 6).toFixed(1)}`);
+        wv.shade.setAttribute('d', `M${top.join('L')}L${bot.join('L')}Z`);
       }
-      // 물비늘: 판 위 고정 자리 (판과 함께 흔들린다)
+      blur.setAttribute('stdDeviation', (C.glow.blur * U).toFixed(1));
+      // 반짝이는 별: 판 위 고정 자리에 콕콕 (판과 함께 흔들리고, 제각각 점멸 — style.css .ts-star)
       wv.glints.textContent = '';
-      for (let k = 0; k < C.glints; k++) {
-        const x = (k + 0.25 + Math.random() * 0.5) / C.glints * W, y = curve(i, x) + Math.max(16, span * (0.3 + Math.random() * 0.35)), l = 9 * U;
-        wv.glints.appendChild(svg('path', { d: `M${(x - l).toFixed(1)} ${y.toFixed(1)}q${l / 2} ${-4 * U} ${l} 0t${l} 0` }));
+      const SR = C.stars;
+      for (let k = 0; k < SR.count; k++) {
+        const x = (k + 0.15 + Math.random() * 0.7) / SR.count * W, y = curve(i, x) + Math.max(14, Math.max(30, span) * (0.18 + Math.random() * 0.64)), r = (SR.size[0] + Math.random() * (SR.size[1] - SR.size[0])) * U;
+        const star = svg('path', { class: 'ts-star', d: `M0 ${-r}Q0 0 ${r} 0Q0 0 0 ${r}Q0 0 ${-r} 0Q0 0 0 ${-r}Z`, transform: `translate(${x.toFixed(1)} ${y.toFixed(1)})` });
+        star.style.setProperty('--d', `${(SR.period[0] + Math.random() * (SR.period[1] - SR.period[0])).toFixed(2)}s`);
+        star.style.setProperty('--dl', `${(-Math.random() * 3).toFixed(2)}s`);
+        wv.glints.appendChild(star);
       }
     }
   };
