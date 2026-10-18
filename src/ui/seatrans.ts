@@ -1,7 +1,7 @@
 // 이타카 테마: 바다 화면 전환 (themefx.ts 가 큰 화면 전환에 부른다). 게임 코드와 독립된 SVG 오버레이.
 //   등장   물결 N겹이 아래에서 차례로 차올라 화면을 덮는다. 먼저 오는 물결일수록 낮게 멈추고 앞에 그린다 (원근: 앞 = 아래).
 //          물결은 무대 소품 골판지처럼 모양이 고정된 판이고, 판째로 좌우로 흔들리고 살짝 기울며 오르내린다.
-//          판마다 위 → 아래 그라디언트 + 가장자리 위로 흐릿하게 번지는 같은 색의 밝은 빛 띠 (흰 선 없이 깊이감). 판 색은 전환마다 노랑 ~ 에메랄드 파스텔에서 무작위.
+//          판마다 위 → 아래 그라디언트 + 가장자리 위로 번지는 같은 색의 밝은 빛 띠 (드롭 섀도를 한 번 구워 붙인 이미지, 흰 선 없이 깊이감). 판 색은 전환마다 노랑 ~ 에메랄드 파스텔에서 무작위.
 //          섬은 1번 물결 뒤 · 배는 2번 물결 뒤에 끼어 있다가 그 물결이 닿으면 물 위로 솟는다 (아랫부분은 앞 물결에 가린다)
 //   대기   판들이 제각각 흔들리고, 배 · 섬은 자기 물결 수면을 타고 떠 있다. 오래 걸리면 갈매기 3마리가 내려온다
 //   출항   ready() 뒤: 배(이타카제 왕복선) 뒤에서 제트 엔진이 튀어나와 점화 → 거의 수평으로 가속하다 기수가 들리며 오른쪽 위로 솟구쳐 사라진다.
@@ -9,7 +9,7 @@
 //          물결은 등장 역순으로 내려가며 다음 화면을 드러내고, 섬은 1번 물결을 따라 물속으로 잠긴다. 갈매기는 위로 날아간다
 //   이스터에그  날고 있는 배를 누르면 엔진이 꺼지고 연기를 뿜으며 곤두박질친다. 전환 흐름과는 완전히 따로 돈다
 // 상태: 전환 entering → waiting → exiting → completed, 배 hidden → floating → (launching → flying → crashing | sinking) → gone.
-// 물결 판의 모양은 크기가 바뀔 때만 다시 만들고, 매 프레임에는 판의 transform 만 바꾼다 (requestAnimationFrame 한 줄기).
+// 물결 판의 모양 · 빛 띠는 크기가 바뀔 때만 다시 만들고, 매 프레임에는 판의 transform 만 바꾼다 (requestAnimationFrame 한 줄기, 필터 없음).
 // 수치는 아래 SEA 설정에서 조절한다. 크기는 화면 짧은 변 기준 배율(unit)로 맞춰 휴대폰 · 데스크톱 모두 같은 구도.
 
 export type SeaPhase = 'entering' | 'waiting' | 'exiting' | 'completed';
@@ -29,7 +29,8 @@ export const SEA = {
    *  이웃 판과는 hueGap 도 · lightGap %p 중 하나 이상 벌어지게. 판 안은 위가 밝고 아래가 deep 만큼 짙은 그라디언트
    *  (가장자리 위로 번지는 빛 띠는 glow) */
   palette: { zones: [[[156, 176], 0.5], [[180, 198], 0.36], [[142, 154], 0.14]] as [number[], number][], sat: [50, 66], light: [85, 92], hueGap: 12, lightGap: 3, deep: 5 },
-  glow: { alpha: 0.15, reach: 34, blur: 13, light: 13 }, // 판 가장자리 위로 번지는 빛 띠: 불투명도 · 수면 위로 뻗는 높이 px · 번짐(흐림) px · 판 색보다 밝게 %p
+  glow: { alpha: 0.15, reach: 34, blur: 13, light: 13 }, // 판 가장자리 위로 번지는 빛 띠 (드롭 섀도): 불투명도 · 수면 위로 뻗는 높이 px · 번짐 px · 판 색보다 밝게 %p.
+  // 빛 띠는 판 모양을 만들 때 캔버스에 한 번만 그려 이미지로 붙인다 (매 프레임 필터 계산 없이 판과 함께 움직일 뿐)
   sway: { x: 14, y: 5, tilt: 0.7 }, // 판 흔들림: 좌우 px · 위아래 px · 기울기 도
   stars: { count: 6, size: [5.5, 10], period: [1.6, 3] }, // 판마다 반짝이는 흰 별 수 · 크기 px · 점멸 주기 초
   enter: { dur: 560, gap: 62 }, // 판 하나가 차오르는 시간 · 다음 판까지 간격 (ms)
@@ -42,7 +43,8 @@ export const SEA = {
   /** 비행 궤적: dur 동안 진행도 p = (t/dur)^accel, x 는 앞쪽에서 빨리 나아가다 둔해지고 (turn), y 는 지수로 뒤로 갈수록 급상승 (climb) */
   flight: { dur: 1350, accel: 1.7, turn: 2.2, climb: 4.2, reach: 0.66 },
   crash: { gravity: 1500, drag: 0.3, hop: 360 }, // 추락 중력 px/s² · 누른 순간 남는 속도 비율 · 털썩 튀어 오르는 속도
-  objScale: 1.3, // 섬 · 배 · 갈매기 크기 배율 (화면 짧은 변 기준 배율에 곱한다)
+  objScale: 0.98, // 섬 · 배 크기 배율 (화면 짧은 변 기준 배율에 곱한다)
+  gullScale: 1.3, // 갈매기 크기 배율
   maxLife: 7000, // 전환이 끝난 뒤 배 · 갈매기를 기다리는 최대 시간
 };
 
@@ -105,7 +107,7 @@ const ISLAND_ART = `
 const gullPath = (f: number) => { const y = -6 - 7 * f, c = -12 - 9 * f; return `M-20 ${y} Q-10 ${c} 0 0 Q10 ${c} 20 ${y}`; };
 
 /** 물결 판 하나: 모양(로컬 좌표, 수면 기준 y=0)은 고정, 매 프레임 판의 위치 · 흔들림만 바뀐다 */
-interface Wave { g: SVGGElement; fill: SVGPathElement; shade: SVGPathElement | null; glints: SVGGElement; grad: SVGLinearGradientElement;
+interface Wave { g: SVGGElement; fill: SVGPathElement; shade: SVGImageElement | null; glow: string; glints: SVGGElement; grad: SVGLinearGradientElement;
   ph: [number, number, number]; k: [number, number]; y: number; tx: number; ty: number; rot: number }
 interface Puff { el: SVGCircleElement; x: number; y: number; vx: number; vy: number; r0: number; r1: number; t: number; life: number }
 interface Gull { el: SVGPathElement; x: number; y: number; tx: number; ty: number; t0: number; ph: number; rate: number; vx: number; vy: number; leaving: boolean }
@@ -129,9 +131,6 @@ export function seaTransition(): SeaHandle {
   let W = innerWidth, H = innerHeight, U = 1;
   const root = svg('svg', { class: 'tfx-sea', 'aria-hidden': 'true' });
   const defs = svg('defs');
-  const blur = svg('feGaussianBlur', { stdDeviation: 12 });
-  const flt = svg('filter', { id: `${id}blur`, x: '-5%', y: '-150%', width: '110%', height: '400%' });
-  flt.appendChild(blur); defs.appendChild(flt);
   root.appendChild(defs);
   const waves: Wave[] = [];
   const boatSlot = svg('g'), islandG = svg('g', {}, ISLAND_ART), boatG = svg('g', { class: 'ts-boat' }, BOAT_ART);
@@ -160,9 +159,9 @@ export function seaTransition(): SeaHandle {
     const grad = svg('linearGradient', { id: `${id}g${i}`, gradientUnits: 'userSpaceOnUse', x1: 0, x2: 0 }, `<stop offset="0" stop-color="${hsl(h, sa, l)}"/><stop offset="1" stop-color="${hsl(h + 4, sa + 4, l - P.deep)}"/>`);
     defs.appendChild(grad);
     // 빛 띠: 수면을 따라 위로 뻗은 얇은 띠를 흐려서 뒤 판 위로 부드럽게 번지게 (맨 뒤 판은 이전 화면 위로 번지지 않게 없음)
-    let shade: SVGPathElement | null = null;
+    let shade: SVGImageElement | null = null;
     if (i < N - 1) {
-      shade = svg('path', { fill: hsl(h, sa - 6, l + C.glow.light), opacity: C.glow.alpha, filter: `url(#${id}blur)` });
+      shade = svg('image', { preserveAspectRatio: 'none', opacity: C.glow.alpha });
       g.appendChild(shade);
     }
     const fill = svg('path', { fill: `url(#${id}g${i})` });
@@ -170,7 +169,7 @@ export function seaTransition(): SeaHandle {
     g.append(fill, glints);
     root.appendChild(g);
     const r = () => Math.random() * 6.283;
-    waves[i] = { g, fill, shade, glints, grad, ph: [r(), r(), r()], k: [0.8 + Math.random() * 0.5, 0.6 + Math.random() * 0.5], y: 0, tx: 0, ty: 0, rot: 0 };
+    waves[i] = { g, fill, shade, glow: `hsl(${h.toFixed(0)}, ${Math.max(0, sa - 6).toFixed(0)}%, ${Math.min(97, l + C.glow.light).toFixed(0)}%)`, glints, grad, ph: [r(), r(), r()], k: [0.8 + Math.random() * 0.5, 0.6 + Math.random() * 0.5], y: 0, tx: 0, ty: 0, rot: 0 };
   }
   root.append(fx, gullG, hit);
   const jet = boatG.querySelector<SVGGElement>('.ts-jet')!, flame = boatG.querySelector<SVGGElement>('.ts-flame')!;
@@ -180,6 +179,27 @@ export function seaTransition(): SeaHandle {
   const curve = (i: number, x: number) => {
     const w = C.waves[i], wv = waves[i], L = Math.max(200, w.len * W), a = w.amp * U;
     return -a * (0.65 * Math.sin((x / L) * 6.283 + wv.ph[0]) + 0.35 * Math.sin((x / (L * 0.47)) * 6.283 + wv.ph[1]));
+  };
+  /** 빛 띠 굽기: 수면을 따라 위로 reach 만큼 뻗은 띠를 캔버스에 드롭 섀도(shadowBlur)로 한 번 그려 이미지로 만든다.
+   *  도형은 캔버스 밖으로 밀어 두고 그림자만 캔버스 안에 떨어뜨린다. 흐린 그림이라 해상도는 절반이면 충분 */
+  const bakeGlow = (wv: Wave, pts: [number, number][], pad: number) => {
+    const sh = C.glow.reach * U, bl = C.glow.blur * U, ys = pts.map((p) => p[1]);
+    const x0 = -pad, y0 = Math.min(...ys) - sh - bl * 2.5, w = W + pad * 2, h = Math.max(...ys) + 6 + bl * 2.5 - y0;
+    const k = Math.min(2, devicePixelRatio || 1) * 0.5, cv = document.createElement('canvas');
+    cv.width = Math.ceil(w * k); cv.height = Math.ceil(h * k);
+    const cx = cv.getContext('2d');
+    if (!cx || !wv.shade) return;
+    const OFF = 100000; // 도형은 캔버스 밖으로, 그림자만 제자리에 (그림자 오프셋 · 번짐은 변환과 무관하게 장치 픽셀 단위)
+    cx.setTransform(k, 0, 0, k, (-x0 - OFF) * k, -y0 * k);
+    cx.shadowColor = wv.glow; cx.shadowBlur = bl * 2 * k; cx.shadowOffsetX = OFF * k;
+    cx.fillStyle = '#000';
+    cx.beginPath();
+    pts.forEach(([x, y], j) => (j ? cx.lineTo(x, y - sh) : cx.moveTo(x, y - sh)));
+    for (let j = pts.length - 1; j >= 0; j--) cx.lineTo(pts[j][0], pts[j][1] + 6);
+    cx.closePath(); cx.fill();
+    wv.shade.setAttribute('href', cv.toDataURL());
+    wv.shade.setAttribute('x', x0.toFixed(1)); wv.shade.setAttribute('y', y0.toFixed(1));
+    wv.shade.setAttribute('width', w.toFixed(1)); wv.shade.setAttribute('height', h.toFixed(1));
   };
   /** 판 모양 만들기 (처음 · 화면 크기가 바뀔 때). 흔들려도 가장자리가 드러나지 않게 양옆으로 넉넉히 */
   const shapeWaves = () => {
@@ -198,11 +218,7 @@ export function seaTransition(): SeaHandle {
       // 그라디언트: 물마루(위)에서 다음 판이 덮는 곳까지
       const a = w.amp * U, span = i ? (C.waves[i - 1].top - w.top) * H : H * 0.2;
       wv.grad.setAttribute('y1', (-a).toFixed(1)); wv.grad.setAttribute('y2', Math.max(40, span).toFixed(1));
-      if (wv.shade) { // 위 가장자리 = 수면에서 reach 만큼 위, 아래 가장자리 = 수면 바로 아래 (판에 가린다)
-        const sh = C.glow.reach * U, top = pts.map(([x, y]) => `${x.toFixed(1)} ${(y - sh).toFixed(1)}`), bot = pts.slice().reverse().map(([x, y]) => `${x.toFixed(1)} ${(y + 6).toFixed(1)}`);
-        wv.shade.setAttribute('d', `M${top.join('L')}L${bot.join('L')}Z`);
-      }
-      blur.setAttribute('stdDeviation', (C.glow.blur * U).toFixed(1));
+      if (wv.shade) bakeGlow(wv, pts, pad);
       // 반짝이는 별: 판 위 고정 자리에 콕콕 (판과 함께 흔들리고, 제각각 점멸 — style.css .ts-star)
       wv.glints.textContent = '';
       const SR = C.stars;
@@ -381,7 +397,7 @@ export function seaTransition(): SeaHandle {
       }
       const flap = Math.sin(s * (g.leaving ? g.rate * 1.5 : g.rate) + g.ph);
       g.el.setAttribute('d', gullPath(flap));
-      g.el.setAttribute('transform', `translate(${g.x.toFixed(1)} ${g.y.toFixed(1)}) scale(${(U * C.objScale).toFixed(3)})`);
+      g.el.setAttribute('transform', `translate(${g.x.toFixed(1)} ${g.y.toFixed(1)}) scale(${(U * C.gullScale).toFixed(3)})`);
     }
     // 정리: 전환이 끝나고 배 · 갈매기 · 입자가 다 사라지면 (최대 maxLife)
     const gullsOut = gulls.every((g) => g.y < -80 || t < g.t0);
