@@ -42,7 +42,7 @@ export const SEA = {
   pop: { island: 140, boat: 60, dur: 560, squash: 0.12 },
   sink: { stretch: 0.12 }, // 물결과 함께 잠기거나 떨어질 때: 위로 솟지 않고 바로 아래로 가속, 세로로 이만큼 늘어난다
   /** 출항 못 한 배: 2번 판이 내려가도 그 자리에 떠 있다가, 맨 앞(아래) 판이 내려가기 시작하고 delay 뒤에 아래로 빠르게 떨어진다 */
-  drop: { delay: 200, dur: 420 },
+  drop: { delay: 260, dur: 420 },
   gulls: { count: 3, delay: 1500 }, // 다 덮은 뒤 이만큼 로딩이 길어지면 갈매기
   launch: { pop: 200, ignite: 140 }, // 엔진이 튀어나오는 시간 · 점화 뒤 출발까지
   /** 비행 궤적: dur 동안 진행도 p = (t/dur)^accel, x 는 앞쪽에서 빨리 나아가다 둔해지고 (turn), y 는 지수로 뒤로 갈수록 급상승 (climb) */
@@ -283,7 +283,7 @@ export function seaTransition(): SeaHandle {
 
   // ───────── 섬 · 배 (수면을 탄다)
   let bx = 0, by = 0, ba = 0, bvx = 0, bvy = 0; // 배 화면 위치 · 각도(도) · 속도 (비행 · 추락 중)
-  let flyT = -1, crashT = -1, launchT = -1, holdY = 0, bsq = 0, fly0: readonly [number, number] = [0, 0];
+  let flyT = -1, crashT = -1, launchT = -1, holdY = 0, holdA = 0, holdT = 0, bsq = 0, fly0: readonly [number, number] = [0, 0];
   const boatX = () => W * (W < 600 ? 0.27 : 0.24), islandX = () => W * (W < 600 ? 0.74 : 0.77);
   const afloatAt = () => enterEnd(1) + C.pop.boat + C.pop.dur; // 배가 다 떠오른 시점
   /** 물체 놓기: sq = 세로 늘림 비율 (+ 늘어남 · - 눌림, 수면 기준점에서), 가로는 반대로 */
@@ -360,10 +360,11 @@ export function seaTransition(): SeaHandle {
       if (boat === 'floating' && exitAt >= 0 && t >= exitAt) { boat = sinkBoat ? 'sinking' : 'launching'; launchT = t; }
       if (boat === 'sinking') {
         // 2번 판이 움직이기 전까지는 수면을 타다가, 그 뒤로는 제자리에 떠 있고 (판을 따라가지 않음), 맨 앞 판 출발 + delay 뒤 쫀득하게 떨어진다
-        if (exitK(1, t) <= 0) holdY = by;
-        else { by = holdY + Math.sin(t / 260) * 2 * U; ba = Math.sin(t / 300) * 3; }
+        // 멈추는 순간의 높이 · 각도를 그대로 이어받아 (튀지 않게) 그 자리에서 아주 살짝만 흔들린다
+        if (exitK(1, t) <= 0) { holdY = by; holdA = ba; holdT = t; }
+        else { const h = (t - holdT) / 1000; by = holdY + Math.sin(h * 4) * 2 * U; ba = holdA + Math.sin(h * 3.4) * 1.5; }
         const dropAt = exitAt + exitDelay() + (N - 1) * C.exit.gap + C.drop.delay, k = clamp((t - dropAt) / C.drop.dur);
-        if (k > 0) { by = holdY + fall(k) * (H - holdY + 320 * U * C.objScale); ba += 14 * k; bsq = C.sink.stretch * Math.min(1, k * 3); }
+        if (k > 0) { by += fall(k) * (H - holdY + 320 * U * C.objScale); bsq = C.sink.stretch * Math.min(1, k * 3); } // 각도는 그대로, 아래로만
         if (k >= 1) boat = 'gone';
       }
       if (boat === 'launching') {
