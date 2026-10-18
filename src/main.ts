@@ -3361,21 +3361,24 @@ function carStep(dir: number) {
   track.scrollBy({ left: dir * (card.offsetWidth + gap), behavior: 'smooth' });
 }
 
+/** 카메라 가로 위치를 고를 때 적 1기의 무게 (아군 1) */
+const CAM_FOE_W = 1.01;
 /** 전투 카메라: 가장 아래쪽 기물이 화면 맨 아래 줄에 오도록 세로 위치를 맞춘다 (사거리 최대 4칸이라 교전은 화면 안) */
 function followCamera(b: Battle) {
   const inner = document.querySelector<HTMLElement>('.bview:not(.full) .board-in');
   if (!inner) return;
-  const alive = b.units.filter((u) => u.alive);
+  // 중립 지형물 (유닉스 답례 투하의 반려 돌 · 묘석 = 적 쪽 장애물)은 카메라가 따라가지도, 세지도 않는다. 아군 반려 돌(인화성)은 아군이라 센다
+  const alive = b.units.filter((u) => u.alive && !(u.side === 1 && u.mem.inert));
   if (!alive.length) return;
   const ex = +(inner.parentElement?.dataset.ex || 0); // 포탑 가장자리 열을 함께 보이는 만큼
   const viewH = b.h - 2 * PAD, viewW = b.w - 2 * PAD + 2 * ex;
   const maxY = Math.max(...alive.map((u) => u.y));
   const top = Math.max(0, Math.min(b.h - viewH, maxY - (viewH - 1)));
-  // 가로: 좌우 끝 기물을 따라가되, 양쪽에 다 있으면 더 많은 기물이 보이는 위치 (같으면 가운데)
+  // 가로: 좌우 끝 기물을 따라가되, 양쪽에 다 있으면 더 많은 기물이 보이는 위치 (같으면 가운데). 적은 아군보다 살짝 무겁게 (같은 수면 적이 있는 쪽)
   let left = PAD - ex, best = -1;
   for (const c of [PAD - ex, 0, b.w - viewW]) {
-    const seen = alive.filter((u) => u.x >= c && u.x < c + viewW).length;
-    if (seen > best) { best = seen; left = c; }
+    const seen = alive.filter((u) => u.x >= c && u.x < c + viewW).reduce((a, u) => a + (u.side === 1 ? CAM_FOE_W : 1), 0);
+    if (seen > best + 1e-9) { best = seen; left = c; }
   }
   inner.style.top = `calc(${-top} * 100% / var(--h))`;
   inner.style.left = `calc(${-left} * 100% / var(--w))`;
