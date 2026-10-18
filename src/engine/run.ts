@@ -1424,15 +1424,13 @@ export function recruit(run: RunState, defId: string) {
   log(run, `${UNIT_BY_ID[defId].name} 합류 (공명 ${rank})`);
 }
 
-/** 마이너 능력치 보상 확정 (화면 · 봇 공용). 대성공이면 첫 확정 뒤 같은 창에서 한 번 더 고른다.
- *  반환: false = 잘못된 선택, 'again' = 대성공 공개 (한 번 더), true = 끝 (allocDone) */
-export function allocRank(run: RunState, p: Extract<Pending, { t: 'rankup' }>, picks: Major[]): boolean | 'again' {
-  if (p.allocDone || !applyRankPicks(run, p.uid, picks, p.points)) return false;
-  if (p.great && !p.round) {
-    p.round = 1;
+/** 마이너 능력치 보상 확정 (화면 · 봇 공용). 대성공이면 고른 능력치 상승량이 2배 (화면은 확정 때 황금 광 · '대성공' 표시 뒤 닫는다).
+ *  반환: false = 잘못된 선택, true = 끝 (allocDone) */
+export function allocRank(run: RunState, p: Extract<Pending, { t: 'rankup' }>, picks: Major[]): boolean {
+  if (p.allocDone || !applyRankPicks(run, p.uid, picks, p.points * (p.great ? 2 : 1))) return false;
+  if (p.great) {
     const u = run.units.find((x) => x.uid === p.uid);
-    log(run, `대성공! ${u ? UNIT_BY_ID[u.defId].name : ''} 능력치를 한 번 더 고른다`);
-    return 'again';
+    log(run, `대성공! ${u ? UNIT_BY_ID[u.defId].name : ''} 능력치 상승량 2배`);
   }
   p.allocDone = true;
   return true;

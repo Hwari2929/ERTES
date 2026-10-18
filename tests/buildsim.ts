@@ -74,7 +74,7 @@ function resolve(run: RunState, bot: Rng) {
     if (p.t === 'rankup') {
       const u = run.units.find((x) => x.uid === p.uid)!;
       const pref: Major[] = UNIT_BY_ID[u.defId].range <= 1 ? ['vit', 'pow'] : ['pow', 'mnd'];
-      if (!p.allocDone) while (R.allocRank(run, p, pref) === 'again'); // 대성공이면 같은 능력치를 한 번 더
+      if (!p.allocDone) R.allocRank(run, p, pref); // 대성공이면 같은 능력치 2배
       R.ensureRankupOptions(run, p);
       const o = p.options || [];
       if (o.length) R.chooseAug(run, p.uid, p.kind === 'school' ? o[0] : bot.pick(o as AugPick[]));
@@ -122,7 +122,7 @@ function calibRun(seed: number, out: Record<string, Record<string, number>>) {
       else if (p.t === 'rankup') {
         const u = run.units.find((x) => x.uid === p.uid)!;
         const pref: Major[] = UNIT_BY_ID[u.defId].range <= 1 ? ['vit', 'pow'] : ['pow', 'mnd'];
-        if (!p.allocDone) while (R.allocRank(run, p, pref) === 'again'); // 대성공이면 같은 능력치를 한 번 더
+        if (!p.allocDone) R.allocRank(run, p, pref); // 대성공이면 같은 능력치 2배
         R.ensureRankupOptions(run, p);
         const o = p.options || [];
         if (o.length) R.chooseAug(run, p.uid, p.kind === 'school' ? o[0] : bot.pick(o));

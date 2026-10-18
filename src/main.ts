@@ -34,7 +34,7 @@ import { Rng } from './rng';
 import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from './types';
 import { encounterMatchup, matchupLines, matchupShort, schoolWarnings } from './ui/matchup';
 import { computeStats, makeSummons, type SummonMade } from './engine/build';
-import { gradeCards } from './ui/revealfx';
+import { gradeCards, greatFlash } from './ui/revealfx';
 import { BattleView, DEATH_STYLES, fmt, FX, FX_DEFAULT, isDeathStyle, previewDeath, type DeathStyle, type MotionPreset, type UltCut } from './ui/battleview';
 import { ULTS } from './data/ults';
 import { VOICE, voicePick } from './data/voicelines';
@@ -2445,10 +2445,8 @@ function pendingModal(run: RunState): string {
       const rec = recommendedMajors(d);
       const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? +((v as number) * 100).toFixed(1) + '%' : v}`).join(', ');
       body = `${side}<div class="ru-main">
-        <div class="ru-head"><h1>${p.round ? `${p.rank}등급 달성 보상 · <b class="accent">대성공!</b>` : `${p.rank}등급 달성 보상 · 능력치`}</h1></div>
-        ${p.round
-          ? `<p class="small"><b class="accent">대성공 — 주요 능력치를 한 번 더 고릅니다.</b> 서로 다른 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b> (방금 고른 능력치를 다시 고르면 그 능력치는 +${p.points * 2})</p>`
-          : `<p class="muted small">마이너 기물이 공명 등급 3의 배수마다 받는 보상입니다. 서로 다른 주요 능력치 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.options?.length === 0 ? '' : ` · 이어서 ${p.rank}등급 증강`}<br>확정할 때 ${Math.round(CFG.greatChance * 100)}% 확률로 <b>대성공</b>: 한 번 더 고른다 (상승량 2배) · (등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>`}
+        <div class="ru-head"><h1>${p.rank}등급 달성 보상 · 능력치</h1></div>
+        ${`<p class="muted small">마이너 기물이 공명 등급 3의 배수마다 받는 보상입니다. 서로 다른 주요 능력치 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.options?.length === 0 ? '' : ` · 이어서 ${p.rank}등급 증강`}<br>확정할 때 ${Math.round(CFG.greatChance * 100)}% 확률로 <b>대성공</b>: 고른 능력치 상승량 2배 · (등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>`}
         <div class="alloc-grid">${MAJORS.map((m) => {
           const on = app.picks.includes(m);
           return `<button class="stat-pick ${on ? 'on' : ''} ${rec.includes(m) ? 'rec' : ''}" data-a="alloc-pick" data-v="${m}" aria-pressed="${on}" aria-label="${MAJOR_NAME[m]} ${on ? tm[m] + p.points : tm[m]}" ${on || left ? '' : 'disabled'}>
@@ -2988,6 +2986,7 @@ function bindTabSwipe(view: HTMLElement) {
   // 끌어 넘긴 직후의 클릭은 무시 (기물 아이콘이 눌리지 않게)
   view.addEventListener('click', (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
 }
+let greatBusy = false; // 마이너 대성공 연출 중 (확정 연타 막기)
 let artWarmed = false;
 /** 카드 공개: 뒷면으로 깔고, 안의 일러스트가 다 받아질 때까지(최대 4초) 기다렸다가 한 장씩 뒤집는다 */
 function revealCards(box: HTMLElement) {
@@ -4198,14 +4197,27 @@ function act(a: string, v: string) {
     }
     case 'alloc-ok': {
       const p = run?.pending[0];
-      if (!run || p?.t !== 'rankup') return;
-      const done = R.allocRank(run, p, app.picks);
-      if (!done) return;
-      app.picks = [];
-      if (done === 'again') { persist(); break; } // 대성공: 같은 창에서 한 번 더 고른다 (전설 연출 · 공개음)
-      if (p.options && !p.options.length) run.pending.shift(); // 이번 등급은 능력치만
-      persist();
-      break;
+      if (!run || p?.t !== 'rankup' || p.allocDone || greatBusy || app.picks.length !== CFG.rankPicks) return;
+      const finish = () => {
+        greatBusy = false;
+        if (run.pending[0] !== p || !R.allocRank(run, p, app.picks)) return;
+        app.picks = [];
+        if (p.options && !p.options.length) run.pending.shift(); // 이번 등급은 능력치만
+        persist();
+        render();
+      };
+      if (!p.great) { finish(); return; }
+      // 대성공: 창을 새로 띄우지 않고, 고른 능력치 칸에만 황금 광 · 상승값 2배 표시 · '대성공' 제목을 잠깐 보여 준 뒤 그대로 확정
+      greatBusy = true;
+      const md = root.querySelector<HTMLElement>('.modal.rankup');
+      const els = app.picks.map((m) => md?.querySelector<HTMLElement>(`[data-a="alloc-pick"][data-v="${m}"]`)).filter((x): x is HTMLElement => !!x);
+      for (const el of els) { const b = el.querySelector('.sp-val b'); if (b) b.textContent = String(+(b.textContent || 0) + p.points); }
+      md?.querySelector('.ru-head h1')?.insertAdjacentHTML('beforeend', ' · <b class="accent ru-great">대성공! 상승량 ×2</b>');
+      md?.querySelector<HTMLButtonElement>('.alloc-ok')?.setAttribute('disabled', '');
+      greatFlash(els);
+      SND.sfx('reveal3');
+      setTimeout(finish, 1400);
+      return;
     }
     case 'reroll': { const p = run?.pending[0]; if (run && p?.t === 'rankup' && p.rerolls > 0) { p.rerolls--; p.options = null; app.augPick = null; recReroll(run); } break; }
     case 'pick-augsel': app.augPick = +v; break;

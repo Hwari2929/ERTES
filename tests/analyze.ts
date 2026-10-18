@@ -57,7 +57,7 @@ function playRun(seed: number) {
         const u = run.units.find((x) => x.uid === p.uid)!;
         const d = UNIT_BY_ID[u.defId];
         const pref: Major[] = d.range <= 1 ? ['vit', 'pow'] : ['pow', 'mnd'];
-        if (!p.allocDone) while (R.allocRank(run, p, pref) === 'again'); // 대성공이면 같은 능력치를 한 번 더
+        if (!p.allocDone) R.allocRank(run, p, pref); // 대성공이면 같은 능력치 2배
         R.ensureRankupOptions(run, p);
         { const a = augChoice(p, (o) => bot.pick(o)); if (a) R.chooseAug(run, p.uid, a); }
       } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));

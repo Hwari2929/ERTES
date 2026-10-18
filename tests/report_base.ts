@@ -33,7 +33,7 @@ function resolvePending(run: RunState, bot: Rng) {
     else if (p.t === 'rankup') {
       const u = run.units.find((x) => x.uid === p.uid)!;
       const pref: Major[] = UNIT_BY_ID[u.defId].range <= 1 ? ['vit', 'pow'] : ['pow', 'mnd'];
-      if (!p.allocDone) while (R.allocRank(run, p, pref) === 'again');
+      if (!p.allocDone) R.allocRank(run, p, pref);
       R.ensureRankupOptions(run, p);
       { const a = augChoice(p, (o) => bot.pick(o)); if (a) R.chooseAug(run, p.uid, a); }
     } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));

@@ -379,20 +379,11 @@ body:has(.bar, .adv) .tfx-petals { display: none; } /* 바(실내) · 사건 장
 @keyframes tfx-ripple { from { transform: scale(.3); opacity: .9; } to { transform: scale(3.2); opacity: 0; } }
 [data-ui-theme="ithaca"][data-tfx="low"] .in-curtain { transition: opacity .3s ease, visibility 0s .3s; }
 [data-ui-theme="ithaca"][data-tfx="low"] .intro.opened .in-curtain { transform: none; opacity: 0; visibility: hidden; } /* 제자리에서 사라지므로 누름도 막지 않게 */
-/* 특권 선택: 별무리 막 대신 양옆에서 밀려와 닫히는 바닷물, 카드는 파도에 밀려 들어온다 (장비 고르기 등 카드 창도) */
+/* 특권 선택: 별무리 막 대신 양옆에서 밀려와 닫히는 바닷물, 카드 · 창 등장은 다른 테마와 같다 */
 [data-ui-theme="ithaca"][data-tfx="on"] :is(.pv-stars, .pv-seam) { display: none; }
 [data-ui-theme="ithaca"][data-tfx="on"] .pv-curtain::after { background: radial-gradient(48% 42% at 50% 45%, color-mix(in srgb, var(--c-black) 50%, transparent), transparent 75%); } /* 글씨 뒤는 깊은 물빛으로 */
-@media (prefers-reduced-motion: no-preference) { /* 움직임 줄이기에서는 원래 규칙(애니메이션 없음)이 남는다 */
-  [data-ui-theme="ithaca"][data-tfx="on"] :is(.pv-card, .modal.enter > .cards > .card) { animation: tfx-wave-in .8s cubic-bezier(.2, .9, .3, 1.15) both; animation-delay: calc(.6s + var(--i, 0) * .12s); }
-  [data-ui-theme="ithaca"][data-tfx="on"] .modal.enter > .cards > .card:nth-child(2) { --i: 1; } [data-ui-theme="ithaca"][data-tfx="on"] .modal.enter > .cards > .card:nth-child(3) { --i: 2; }
-  [data-ui-theme="ithaca"][data-tfx="on"] .modal.enter > .cards > .card { animation-delay: calc(var(--i, 0) * .12s); }
-}
-@keyframes tfx-wave-in { 0% { opacity: 0; transform: translate(-60px, 70px) rotate(-7deg); } 60% { opacity: 1; transform: translate(4px, -6px) rotate(1.5deg); } 100% { transform: none; } }
 [data-ui-theme="ithaca"][data-tfx="low"] :is(.pv-half, .pv-stars, .pv-seam) { animation-name: tfx-fade-in; animation-duration: .3s; }
 @keyframes tfx-fade-in { from { opacity: 0; } }
-/* 이타카: 작은 창은 가볍게 — 물 위에 뜨듯 살짝 출렁이며 등장 */
-@media (prefers-reduced-motion: no-preference) { [data-ui-theme="ithaca"][data-tfx="on"] .modal.enter:not(.privilege) { animation: tfx-float-in .5s cubic-bezier(.3, 1.3, .5, 1) both; } }
-@keyframes tfx-float-in { 0% { opacity: 0; transform: translateY(16px); } 60% { opacity: 1; transform: translateY(-3px); } 100% { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .tfx-wash:not(.fade) { display: none; } } /* themefx.ts 도 이때는 페이드만 쓴다 */
 /* 이타카 켜기: 큰 화면 전환은 바다가 차올라 덮었다가 내려간다 (seatrans.ts).
    .tfx-ghost = 바뀌기 전 화면을 얼려 둔 사본 (바다가 다 덮으면 걷는다). 덮는 동안은 입력을 막고, 내려갈 때부터는 날아가는 배만 누를 수 있다 */

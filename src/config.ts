@@ -104,7 +104,7 @@ export const CFG = {
   augmentChoices: 3, augmentRerolls: 1,
   /** ★ 전설 전공 증강: 전공 증강 선택지 3장 중 1장이 전설일 확률 = base + pity × (전설 없이 지나간 전공 증강 수). 전설을 한 번 얻으면 보정 없이 base */
   psiLegend: { base: 0.25, pity: 0.25 },
-  /** 마이너 능력치 보상 대성공 확률: 대성공이면 주요 능력치를 한 번 더 고른다 (상승량 2배) */
+  /** 마이너 능력치 보상 대성공 확률: 대성공이면 고른 주요 능력치 상승량 2배 (run.ts allocRank) */
   greatChance: 0.2,
 
   // ── 파티/보드
