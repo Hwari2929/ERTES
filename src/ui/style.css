@@ -1211,7 +1211,16 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .ask-note { font-size: var(--fs-sm); }
 .ask-note.warn { color: var(--c-warn-ink); }
 .ask-btns { display: flex; justify-content: flex-end; gap: 8px; }
-.ask-btns .btn { min-width: 76px; }
+.ask-btns .btn { min-width: 44px; padding-inline: 12px; font-size: var(--fs-md); }
+/* 장비 조합: 재료 둘은 작게, 능력치 · 효과는 결과 카드 안에 (결과 장비의 기능으로 읽히게) */
+.ask-pop:has(.ask-cb) { width: 340px; }
+.ask-cb { flex-wrap: nowrap; align-items: flex-start; }
+.ask-cb > .ask-it, .ask-cb > b { margin-top: 10px; }
+.ask-cb > .ask-it { color: var(--c-text-2); }
+.ask-res { flex: 1; min-width: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 8px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel-2); }
+.ask-res > .ip-stats, .ask-res > .ip-eff { grid-column: 1 / -1; font-size: var(--fs-sm); }
+.ask-rn { display: grid; line-height: 1.25; min-width: 0; }
+.ask-rn small { color: var(--c-text-2); font-size: var(--fs-xs); }
 .eq-slot.mod { border-color: color-mix(in srgb, var(--c-occult) 33.3%, transparent); }
 .eq { display: grid; gap: 6px; }
 .eq-slot { display: flex; gap: 8px; align-items: center; background: var(--panel-2); border-radius: var(--r-md); padding: 6px; touch-action: none; }

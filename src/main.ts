@@ -2736,20 +2736,21 @@ function askPop() {
   const q = app.ask;
   if (!q) return '';
   return `<div class="ask-pop" role="dialog" aria-label="확인">${q.html}<div class="ask-btns">${q.ok
-    ? `<button class="btn ask-x" data-a="ask" data-v="no" title="취소 (Esc)">✕ 취소</button><button class="btn primary ask-v" data-a="ask" data-v="ok">✓ ${esc(q.okLabel || '확인')}</button>`
-    : `<button class="btn ask-x" data-a="ask" data-v="no" title="닫기 (Esc)">✕ 닫기</button>`}</div></div>`;
+    ? `<button class="btn ask-x" data-a="ask" data-v="no" title="취소 (Esc)" aria-label="취소">✕</button><button class="btn primary ask-v" data-a="ask" data-v="ok" title="${esc(q.okLabel || '확인')}" aria-label="${esc(q.okLabel || '확인')}">✓</button>`
+    : `<button class="btn ask-x" data-a="ask" data-v="no" title="닫기 (Esc)" aria-label="닫기">✕</button>`}</div></div>`;
 }
 const askItem = (id: string) => `<span class="ask-it">${itemIcon(id)}<span>${esc(itemInfo(id).name)}</span></span>`;
 const INV_BOX = ['.inv-rail', '.inv'];
 const invCell = (i: number) => [`.inv-rail [data-drag="item:${i}"]`, `.inv [data-drag="item:${i}"]`, ...INV_BOX];
 /** 조합 결과 알림: 유닉스제 대량 생산으로 바뀌었으면 그 사실도 */
 const combinedToast = (res: string, got: string | null | undefined) => toast(!got ? '조합할 수 없습니다.' : got === res ? `조합 완료: ${itemInfo(got).name}` : `유닉스제 대량 생산 — ${itemInfo(res).name} 대신 ${itemInfo(got).name}이 들어왔습니다.`);
+const CB_TIER: Record<string, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', U: '고유' };
 /** 조합 확인: [A] + [B] = [결과] · 결과 능력치 · 효과 (보관함 왼쪽). 유닉스제 대량 생산은 확률만 알리고 합성할 때 정한다 (미리 굴리지 않음). extra = 덧붙일 안내 */
 function combineAsk(run: RunState, a: string, b: string, res: string, anchor: string[], ok: () => void, extra = '') {
   const { stats, eff } = itemBrief(res);
   const ux = R.unixChance(run, res);
   app.ask = { anchor, at: 'inv', okLabel: '합성', ok,
-    html: `<b class="ask-t">장비 조합</b><div class="ask-eq">${askItem(a)}<b>+</b>${askItem(b)}<b>=</b>${askItem(res)}</div>${stats}${eff ? `<p class="ip-eff">${statIc(esc(eff))}</p>` : ''}${ux ? `<p class="ask-note warn">절망 증강 [${esc(DESPAIR_BY_ID['D.unix']?.name || '')}]: 합성하는 순간 ${pctTxt(ux)} 확률로 ${esc(itemInfo(CATWHEEL).name)}이 됩니다.</p>` : ''}${extra}` };
+    html: `<div class="ask-eq ask-cb">${askItem(a)}<b>+</b>${askItem(b)}<b>=</b><div class="ask-res">${itemIcon(res)}<div class="ask-rn"><b>${esc(itemInfo(res).name)}</b><small>${CB_TIER[itemInfo(res).tier] || ''}</small></div>${stats}${eff ? `<p class="ip-eff">${statIc(esc(eff))}</p>` : ''}</div></div>${ux ? `<p class="ask-note warn">절망 증강 [${esc(DESPAIR_BY_ID['D.unix']?.name || '')}]: 합성하는 순간 ${pctTxt(ux)} 확률로 ${esc(itemInfo(CATWHEEL).name)}이 됩니다.</p>` : ''}${extra}` };
 }
 /** 보관함 장비 둘: 조합되면 확인 팝업 (V = 조합). 조합할 수 없으면 false */
 function askCombineInv(run: RunState, i: number, j: number): boolean {
