@@ -103,7 +103,7 @@ export const ROSTER_F: BaseUnit[] = [
     }),
   },
   {
-    id: 'eden', name: '이든', title: '연합 하층 출신 · 보안위원회 비정규 요원', factions: ['UNI', 'SEC'], traits: ['DECOMP'], keywords: ['bio'],
+    id: 'eden', name: '이든', title: '연합 하층 출신 · 보안위원회 비정규 요원', factions: ['UNI'], traits: ['DECOMP'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 4, base: B(6, 8, 5, 4, 7),
     sprite: 'soldier', palette: tint(PAL.UNI, '#3a3a44', '#8a6a4a', '#ffd040'),
     lore: '"트레이닝복이 어때서. 도망칠 땐 이게 제일 편해."',
@@ -146,7 +146,7 @@ export const ROSTER_F: BaseUnit[] = [
     },
   },
   {
-    id: 'mao', name: '마오', title: '호이슌 홀딩스 회장', factions: ['HOI', 'STL'], traits: [], keywords: ['bio'],
+    id: 'mao', name: '마오', title: '호이슌 홀딩스 회장', factions: ['HOI', 'STL'], traits: ['CHEF'], keywords: ['bio'],
     atk: { type: 'shoot', elem: 'elec', interval: 1.1 }, range: 3, base: B(6, 4, 9, 5, 6),
     sprite: 'robe', palette: tint(HOI_PAL, '#1c1c24', '#ff4d9a', '#7fe3ff'),
     lore: '"한 잔 하실래요? 오늘 계약서에 서명하시면, 이 잔은 제가 사죠."',

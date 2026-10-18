@@ -429,9 +429,11 @@ export const occultTier = (run: RunState) => tierNow(run, 'OCCULT');
 function checkHel(run: RunState) {
   const t = tierNow(run, 'HEL'), had = run.helTier || 0;
   if (t <= had) return;
+  const got: string[] = [];
   for (let k = had + 1; k <= Math.min(3, t); k++) {
     const id = HEL_ITEM_IDS[k - 1];
-    gainItem(run, t >= 4 ? 'L_' + id.slice(2) : id, undefined, true);
+    const g = gainItem(run, t >= 4 ? 'L_' + id.slice(2) : id, undefined, true);
+    if (g) got.push(`[${itemInfo(g).name.replace(/^\[전설\] /, '전설 ')}]`);
   }
   if (t >= 4 && had < 4) {
     const up = (x: string | null) => (x && isHelItem(x) && x[0] === 'A' ? 'L_' + x.slice(2) : x);
@@ -439,7 +441,9 @@ function checkHel(run: RunState) {
     for (const u of run.units) u.items = u.items.map(up);
   }
   run.helTier = t;
-  run.pending.push({ t: 'notice', title: '헬레니우스 동맹', body: t >= 4 && had < 4 ? '동맹 대함대가 집결했습니다. 동맹 전용 장비가 전설 등급으로 승격됩니다.' : '동맹이 전용 장비를 보내왔습니다. 보관함을 확인하세요.' });
+  // 알림: 지급한 장비 이름을 그대로 적는다 (4단계: 전설 승격도 함께)
+  const lines = [got.length ? `헬레니우스 동맹: ${got.join(' · ')} 지급 (보관함).` : '', t >= 4 && had < 4 ? '동맹 대함대 집결: 보유한 동맹 전용 장비가 전설 등급으로 승격됩니다 (효과 2배).' : ''].filter(Boolean);
+  run.pending.push({ t: 'notice', title: '헬레니우스 동맹', body: lines.join(' ') });
 }
 
 /** 셰프: 시너지가 처음 켜지면 갓 구운 빵 1개 (런당 1번) */

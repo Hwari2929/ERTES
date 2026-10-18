@@ -4,6 +4,9 @@ import { pct, skillHit, summonsOf } from './kit';
 import { cookPower, pickEnemy, strike, strongestAlly, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type BaseUnit } from './unitkit';
 
+/** 자하라 에이스 파일럿 [곁을 지키는 곡도]: 주변 아군 반격 피해의 흡혈 비율 (×항해자 단계 배율) */
+export const ZAHARA_ACE_STEAL = 0.1;
+
 const faithWin = { after: (run: { power: number }, _u: unknown, won: boolean) => { if (won) run.power += 1; } };
 const BEHEMOTH = ['#140608', '#6a1020', '#b02030', '#d06060', '#ffcf40', '#3a0810', '#ff8080'];
 
@@ -93,12 +96,18 @@ export const ROSTER_B: BaseUnit[] = [
     },
   },
   {
-    id: 'zahara', name: '자하라', title: '알-카흐란 유랑령의 전 왕녀', factions: ['KAL'], traits: ['STAR', 'CHEF'], keywords: ['bio'],
+    id: 'zahara', name: '자하라', title: '알-카흐란 유랑령의 전 왕녀', factions: ['KAL'], traits: ['STAR', 'NAV'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 1.0 }, range: 2, base: B(7, 6, 8, 6, 3),
     sprite: 'robe', palette: tint(PAL.KAL, '#2a3a6a', '#e0b040', '#4060c0'), lore: '"날과 감각은 항상 예리해야 해. 이왕이면 카메라 각도도."',
-    skill: support({
-      name: '사라진 레시피 재현', cd: 4.5, target: 'strongest', power: cookPower, params: { heal: 1.2, dmg: 0.45, dur: 5, count: 1 },
-      desc: (p) => `[요리] 소실 직전의 레시피로 가장 강한 아군 ${p.count}명을 기술 위력 ${pct(p.heal)} 회복하고 ${p.dur}초간 피해 +${pct(p.dmg)}${p.as ? `, 공격 속도 +${pct(p.as)}` : ''}.`,
+    // 항해자 에이스: 특성 [복수자]의 주변 아군 반격이 확정 + 반격 피해 흡혈 (rework.ts 자하라 특성이 mem.zAce 를 읽는다)
+    ace: {
+      name: '곁을 지키는 곡도', desc: (k) => `주변 1칸 아군이 피해를 받으면 [복수자] 반격이 반드시 나간다 (50% 확률 대신, 0.4초에 1회는 그대로). 그 반격 피해의 ${pct(ZAHARA_ACE_STEAL * k)}만큼 체력을 흡수한다.`,
+      effect: (k) => ({ setup: (u) => { u.mem.zAce = k; } }),
+    },
+    skill: strike({
+      // 유랑민 곡도술: 주변 적을 몰아붙이는 2연타 + 출혈 (예전 [요리] 사라진 레시피 재현 → 공격 기술)
+      name: '유랑의 곡도술', cd: 6, pow: 'strike', elem: 'phys', mult: 0.9, aroundSelf: true, params: { radius: 1, hits: 2, second: 1, bleed: 0.25 },
+      desc: (p) => `세피르 유랑민의 곡도술로 몰아붙여 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해 ${p.hits}회, 4초간 초당 타격 위력 ${pct(p.bleed)} 출혈.`,
     }),
   },
   {

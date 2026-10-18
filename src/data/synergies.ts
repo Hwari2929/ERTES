@@ -30,6 +30,8 @@ export const TITLE_NAME = ['평민', '기사', '남작', '백작', '공작', '�
 export const rankTitle = (rank: number) => (rank >= 30 ? 6 : rank >= 20 ? 5 : rank >= 9 ? 4 : rank >= 6 ? 3 : rank >= 3 ? 2 : 1); // 3등급마다 작위, 대공 20 · 황제 30
 
 const T = (tier: number, a: number[]) => a[Math.max(0, tier - 1)];
+/** 기본 확률 판정: base × (1 + 효과 명중 − 효과 저항) (applyStatus 와 같은 식) */
+const baseRoll = (b: Battle, u: CUnit, tgt: CUnit, base: number) => b.rng.chance(Math.min(1, base * (1 + b.S(u, 'effHit') - b.S(tgt, 'effRes'))));
 /** 엔지니어 (2 · 4 · 6 · 8명) 감시 포탑: 포탑 수 · 상속률 · 포탑 1기 장비 칸 · 기본 공격 속도 · 6명 이상 추가 공격 속도 · 8명 [오버클럭] 공격 속도 (%p) */
 export const ENG_TUR = { count: [2, 3, 4, 4], inherit: [1.2, 2.4, 4.0, 8.0], slots: [1, 2, 3, 3], as: 0.4, asHi: 0.8, asHiFrom: 3, over: 2.0 };
 /** 시리우스 성도회 (5명 이상): 전투당 부활 횟수 — 단계와 무관하게 1회 */
@@ -94,14 +96,40 @@ const CHEF_HP = [0, 0, 0.15, 0.25], CHEF_FEAST = 0.15;
 /** 수호자 (2 · 4 · 6 · 8명): 수호자 1명당 모든 아군 방어도 (수호자 2배) · 기본 공격 추가 피해 = 방어도 × hit.
  *  (8) [난공불락]: 추가 피해의 splashK 배가 대상 주변 splash 칸의 다른 적에게도, 수호자가 받는 피해 −red */
 const GUARD_T = { armor: [0.04, 0.08, 0.13, 0.22], hit: [0.1, 0.2, 0.4, 0.7] }, GUARD_WALL = { splash: 1, splashK: 0.5, red: 0.15 };
-/** 신비학자 (2 · 4 · 6 · 8명): 효과 명중 · [합성] 상품 수 (base + 단계) · [합성] 가격 할인 */
-const OCCULT_HIT = [0.15, 0.3, 0.5, 0.8];
+/** 신비학자 (2 · 4 · 6 · 8명): 기술 위력 (%) · [합성] 상품 수 (base + 단계) · [합성] 가격 할인 */
+const OCCULT_TECH = [0.15, 0.3, 0.5, 0.8];
 export const OCCULT_SYNTH = { base: 2, disc: [0, 0, 0.3, 0.5] };
 
 /** 의무관 단계별 수치: 모든 아군 회복 효율 · 치료 계수 (기술 위력 배율) · 모든 아군 최대 체력.
  *  회복 효율은 성장 폭이 작아, 예전의 '치료 대상 다음 기본 공격 피해 +20%' 대신 단계마다 최대 체력을 올린다 */
 const MED = { eff: [0.2, 0.4, 0.75, 1.5], heal: [0.8, 1.5, 2.6, 4.5], hp: [0.06, 0.12, 0.18, 0.24] };
 const medTier = (i: number) => `회복 효율 +${pct(MED.eff[i])}, ${i < 3 ? `치료 = 기술 위력 ${pct(MED.heal[i])}` : `3초마다 기술 위력 ${pct(MED.heal[i])} 치료 + 초과분 보호막`}${i === 2 ? ', 치료 대상에게 초과분까지 보호막' : ''}${i === 3 ? ', 치료할 때 해로운 효과 1개 제거' : ''}, 모든 아군 최대 체력 +${pct(MED.hp[i])}`;
+
+/** 모략가 (2 · 4 · 6 · 8명) [암운]: 기본 공격 · 기술 적중 시 기본 hit 확률, 적에게 해로운 효과를 걸 때 기본 inflict 확률로 1중첩
+ *  (둘 다 효과 명중 · 저항 판정, 한 행동이 둘 다 하면 2번 판정). (4) 이상 고정 fix4.p 확률로 +fix4.n, (6) 이상 고정 fix6.p 확률로 +fix6.n 은
+ *  해로운 효과 1회 부여당 1번만 판정하고 적중 판정에는 붙지 않는다. (8) 쌓는 양 ×mult. max 중첩 · dur 초간 새로 쌓이지 않으면 사라짐 */
+export const SCHEME_GLOOM = { hit: 0.3, inflict: 1.0, fix4: { p: 0.5, n: 1 }, fix6: { p: 0.25, n: 2 }, mult: 3, max: 99, dur: 6 };
+/** 모략가 단계별: 효과 명중 · 전술 위력 · [암운] 1중첩 초당 피해 (전술 위력 배율) · 기본 공격((6) 이상 기술도) 추가 고정 피해 (1중첩당 전술 위력 배율) */
+const SCHEME_T = { effHit: [0.25, 0.5, 0.75, 1.0], tac: [0.1, 0.25, 0.4, 0.8], dps: [0.04, 0.08, 0.15, 0.3], extra: [0, 0.08, 0.1, 0.12] };
+const schemeTier = (i: number) => {
+  const G = SCHEME_GLOOM;
+  return [
+    `${i === 3 ? '[흑막 강림] ' : ''}효과 명중 +${pct(SCHEME_T.effHit[i])}p, 전술 위력 +${pct(SCHEME_T.tac[i])}, ${i ? '' : '[암운] 1중첩당 '}초당 전술 위력 ${pct(SCHEME_T.dps[i])}`,
+    i === 1 ? `적에게 해로운 효과를 걸 때마다 고정 ${pct(G.fix4.p)} 확률로 [암운] ${G.fix4.n}중첩 추가 (해로운 효과 1회당 1번 판정, 기본 확률 판정과 별개, 적중 판정에는 붙지 않음)`
+      : i === 2 ? `해로운 효과를 걸 때 고정 ${pct(G.fix6.p)} 확률로 ${G.fix6.n}중첩 더 추가` : '',
+    i === 3 ? `[암운] 쌓는 양 ${G.mult}배` : '',
+    i === 1 ? `모략가의 기본 공격이 [암운] 1중첩당 전술 위력 ${pct(SCHEME_T.extra[i])} 고정 피해 추가`
+      : i === 2 ? `모략가의 기본 공격 · 기술이 [암운] 1중첩당 전술 위력 ${pct(SCHEME_T.extra[i])} 고정 피해 추가`
+      : i === 3 ? `기본 공격 · 기술 추가 피해 [암운] 1중첩당 전술 위력 ${pct(SCHEME_T.extra[i])}` : '',
+  ].filter(Boolean).join(', ');
+};
+/** 분해자 (2 · 4 · 6 · 8명): 화학 피해 증가 · 추가 화학 피해 (자신 최대 체력 배율) · [부식] 최대 중첩 · [부식] 부여 기본 확률 (효과 명중 · 저항 판정) */
+export const DECOMP_T = { chem: [0.1, 0.25, 0.5, 1.0], hp: [0.02, 0.04, 0.06, 0.1], max: [5, 7, 9, 13], chance: [0.5, 0.5, 1.0, 1.0] };
+const DECOMP_DECAY = { vuln: 0.1, dur: 8, heal: 0.1 };
+/** 전도체 (2 · 4 · 6 · 8명): [바운스] 고정 확률 (효과 명중과 무관) · 단계별 전기 피해 증가 · 계수 · 칸 · 횟수 · (4) 이상 피격 바운스 고정 확률 */
+export const COND_T = { chance: 0.5, elec: [0.15, 0.35, 0.6, 1.0], k: [0.25, 0.5, 0.75, 1.0], radius: [1, 2, 3, 3], hops: [1, 3, 6, 10], hurt: 0.5 };
+/** 엘베스타드 일가 (3 · 5 · 7 · 9명): 일가 기물 피해 독립 증폭 · 받는 피해 독립 감소 (둘 다 다른 증폭 · 감소와 합치지 않는 별도 배율, 고정 피해는 감소 제외) */
+export const FAM_T = { amp: [0.3, 0.75, 2.0, 4.0], red: [0.05, 0.1, 0.2, 0.4] };
 
 /** 전도체: from 에서 시작해 주변 적에게 튀는 연쇄 전기 (skipFrom = from 을 이미 맞힌 대상으로 취급).
  *  아직 맞지 않은 적을 먼저 노리고, 없으면 (적이 2명 이상일 때) 바로 직전 대상만 빼고 다시 튄다 (적 사이를 왕복) */
@@ -321,12 +349,12 @@ export const SYNERGIES: SynDef[] = [
     team: (t, ctx) => panGift(t, ctx),
   },
   {
-    id: 'FAM', name: '엘베스타드 일가', kind: 'faction', tiers: [3, 5, 7], color: '#b8c0d8', icon: '♞',
-    desc: '은하 귀족 엘베스타드 가문. 일가 기물이 주는 모든 피해가 증폭되고, 받는 피해가 줄어듭니다. 이 증폭은 다른 증폭과 겹치지 않는 별도 배율로 곱해집니다.',
-    tierDesc: ['일가 기물 피해 증폭 +30%, 받는 피해 -10%', '일가 기물 피해 증폭 +90%, 받는 피해 -10%', '일가 기물 피해 증폭 +200%, 받는 피해 -10%'],
+    id: 'FAM', name: '엘베스타드 일가', kind: 'faction', tiers: [3, 5, 7, 9], color: '#b8c0d8', icon: '♞',
+    desc: '은하 귀족 엘베스타드 가문. 일가 기물이 주는 모든 피해가 독립 증폭되고, 받는 피해가 독립 감소합니다. 이 증폭 · 감소는 다른 증폭 · 감소와 겹치지 않는 별도 배율로 곱해집니다 (받는 피해 감소는 고정 피해에는 적용되지 않음).',
+    tierDesc: FAM_T.amp.map((a, i) => `일가 기물 독립 피해 증폭 +${pct(a)}, 받는 피해 독립 감소 -${pct(FAM_T.red[i])}`),
     member: (t) => {
-      const m = 1 + T(t, [0.3, 0.9, 2.0]);
-      return { taken: [red('all', 0.1)], hooks: { dmgMult: () => m } };
+      const m = 1 + T(t, FAM_T.amp), k = 1 - T(t, FAM_T.red);
+      return { hooks: { dmgMult: () => m, takenMult: (_b, _u, _s, o) => (o.elem === 'true' ? 1 : k) } };
     },
   },
   {
@@ -541,52 +569,54 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'SCHEME', name: '모략가', kind: 'trait', tiers: [2, 4, 6, 8], color: '#8a5cc8', icon: '♠',
-    desc: '판 뒤에서 실을 당기는 이들. 모략가가 적에게 해로운 효과를 걸면 기본 75% 확률로 [암운]을 쌓습니다. [암운]은 1중첩당 매초 아군 전술 위력 비례 고정 피해를 줍니다 (최대 99중첩, 6초간 새로 쌓이지 않으면 사라짐).',
-    tierDesc: ['효과 명중 +25%p, 전술 위력 +10%, [암운] 1중첩당 초당 전술 위력 4%', '효과 명중 +50%p, 전술 위력 +25%, 초당 전술 위력 8%, 적에게 해로운 효과를 걸 때마다 고정 50% 확률로 [암운] 1중첩 추가 (기본 확률 판정과 별개), 모략가의 기본 공격이 [암운] 1중첩당 전술 위력 8% 고정 피해 추가',
-      '효과 명중 +75%p, 전술 위력 +40%, 초당 전술 위력 15%, 고정 25% 확률로 2중첩 더 추가, 모략가의 기본 공격 · 기술이 [암운] 1중첩당 전술 위력 10% 고정 피해 추가',
-      '[흑막 강림] 효과 명중 +100%p, 전술 위력 +80%, 초당 전술 위력 30%, [암운] 쌓는 양 3배, 기본 공격 · 기술 추가 피해 [암운] 1중첩당 전술 위력 12%'],
+    desc: `판 뒤에서 실을 당기는 이들. 모략가의 기본 공격 · 기술이 적에게 적중하면 기본 ${pct(SCHEME_GLOOM.hit)} 확률로, 모략가가 적에게 해로운 효과를 걸면 추가로 기본 ${pct(SCHEME_GLOOM.inflict)} 확률로 [암운]을 1중첩 쌓습니다 (한 행동이 적중과 해로운 효과를 함께 하면 2번 판정). [암운]은 1중첩당 매초 아군 전술 위력 비례 고정 피해를 줍니다 (최대 ${SCHEME_GLOOM.max}중첩, ${SCHEME_GLOOM.dur}초간 새로 쌓이지 않으면 사라짐).`,
+    tierDesc: [0, 1, 2, 3].map(schemeTier),
     member: (t) => {
-      const per = T(t, [0.04, 0.08, 0.15, 0.3]); // [암운] 1중첩 초당 피해 = 전술 위력 × per
+      const per = T(t, SCHEME_T.dps), G = SCHEME_GLOOM; // [암운] 1중첩 초당 피해 = 전술 위력 × per
+      // [암운] 부여: addStacks 로 직접 쌓는다 (applyStatus · onInflict 를 거치지 않아 되먹임이 없다)
+      const gloom = (b: Battle, u: CUnit, tgt: CUnit, n: number) => {
+        if (!n || !tgt.alive) return;
+        addStacks(b, u, tgt, 'gloom', t >= 4 ? n * G.mult : n, G.max, G.dur, (k) => ({ type: 'dot', elem: 'true', dps: b.tacPower(u) * per * k, syn: 'SCHEME' }), '암운');
+      };
       return {
-        stats: { effHit: T(t, [0.25, 0.5, 0.75, 1.0]) },
-        setup: (u) => { u.mem.tacPct = (u.mem.tacPct || 0) + T(t, [0.1, 0.25, 0.4, 0.8]); },
+        stats: { effHit: T(t, SCHEME_T.effHit) },
+        setup: (u) => { u.mem.tacPct = (u.mem.tacPct || 0) + T(t, SCHEME_T.tac); },
         hooks: {
+          // 해로운 효과 1회 부여당 1번: 기본 inflict 확률 (효과 명중 · 저항) + (4) · (6) 고정 확률 추가 중첩 (기본 판정 실패와 무관)
           onInflict(b, u, tgt, s) {
             if (tgt.side === u.side || !isHarmful(s) || s.key === 'gloom') return;
-            // 기본 1중첩은 효과 명중 · 저항 판정, 2 · 3단계 추가 중첩은 고정 확률 (기본 판정 실패와 무관)
-            let n = b.rng.chance(Math.min(1, 0.75 * (1 + b.S(u, 'effHit') - b.S(tgt, 'effRes')))) ? 1 : 0;
-            if (t >= 2 && b.rng.chance(0.5)) n += 1;
-            if (t >= 3 && b.rng.chance(0.25)) n += 2;
-            if (!n) return;
-            if (t >= 4) n *= 3;
-            addStacks(b, u, tgt, 'gloom', n, 99, 6, (k) => ({ type: 'dot', elem: 'true', dps: b.tacPower(u) * per * k, syn: 'SCHEME' }), '암운');
+            let n = baseRoll(b, u, tgt, G.inflict) ? 1 : 0;
+            if (t >= 2 && b.rng.chance(G.fix4.p)) n += G.fix4.n;
+            if (t >= 3 && b.rng.chance(G.fix6.p)) n += G.fix6.n;
+            gloom(b, u, tgt, n);
           },
-          // (4) 기본 공격, (6) 이상 기본 공격 · 기술: 대상 [암운] 1중첩당 전술 위력 비례 고정 피해 (적에게만)
-          onDeal: t >= 2 ? (b, u, tgt, r, o) => {
-            if ((o.tag !== 'basic' && (t < 3 || o.tag !== 'skill')) || r.amount <= 0 || !tgt.alive || tgt.side === u.side) return;
-            const g = tgt.statuses.find((x) => x.key === 'gloom')?.stacks || 0;
-            if (g) b.dealDamage(u, tgt, b.tacPower(u) * T(t, [0, 0.08, 0.1, 0.12]) * g, { elem: 'true', tag: 'proc', syn: 'SCHEME' });
-          } : undefined,
+          // 기본 공격 · 기술 적중: (4) 기본 공격, (6) 이상 기본 공격 · 기술은 대상 [암운] 1중첩당 전술 위력 비례 고정 피해 (적에게만),
+          // 이어서 기본 hit 확률 (효과 명중 · 저항) 로 [암운] 1중첩 (고정 확률 추가 중첩 없음). 추가 피해 · [암운] 지속 피해는 proc · dot 라 다시 걸리지 않는다
+          onDeal(b, u, tgt, r, o) {
+            if ((o.tag !== 'basic' && o.tag !== 'skill') || r.amount <= 0 || !tgt.alive || tgt.side === u.side) return;
+            const g = t >= 2 && (o.tag === 'basic' || t >= 3) ? tgt.statuses.find((x) => x.key === 'gloom')?.stacks || 0 : 0;
+            if (g) b.dealDamage(u, tgt, b.tacPower(u) * T(t, SCHEME_T.extra) * g, { elem: 'true', tag: 'proc', syn: 'SCHEME' });
+            if (!r.miss && baseRoll(b, u, tgt, G.hit)) gloom(b, u, tgt, 1); // 스침(빗나감 판정)은 적중이 아니다
+          },
         },
       };
     },
   },
   {
     id: 'DECOMP', name: '분해자', kind: 'trait', tiers: [2, 4, 6, 8], color: '#9bd13a', icon: '☣',
-    desc: '무엇이든 녹여 버리는 이들. 분해자가 기본 공격 · 기술로 적을 맞히면 자신 최대 체력 비례 화학 피해를 더하고, 반드시 [부식]을 쌓습니다. [부식] 1중첩당 대상이 받는 화학 피해 +10%p (8초).',
-    tierDesc: ['화학 피해 +10%, 추가 화학 피해 = 최대 체력 4%, [부식] 최대 5중첩', '화학 피해 +25%, [부식] 최대 7중첩, [부식] 걸린 적을 공격하면 피해의 10% 회복',
-      '화학 피해 +50%, 추가 화학 피해 8%, [부식] 최대 9중첩', '[완전 분해] 화학 피해 +100%, 추가 화학 피해 12%, [부식] 최대 13중첩'],
+    desc: `무엇이든 녹여 버리는 이들. 분해자가 기본 공격 · 기술로 적을 맞히면 자신 최대 체력 비례 화학 피해를 더하고, 기본 ${pct(DECOMP_T.chance[0])} 확률로 [부식]을 쌓습니다 (6명부터 기본 ${pct(DECOMP_T.chance[2])}). [부식] 1중첩당 대상이 받는 화학 피해 +${pct(DECOMP_DECAY.vuln)}p (${DECOMP_DECAY.dur}초).`,
+    tierDesc: [0, 1, 2, 3].map((i) => `${i === 3 ? '[완전 분해] ' : ''}화학 피해 +${pct(DECOMP_T.chem[i])}, 추가 화학 피해 = 최대 체력 ${pct(DECOMP_T.hp[i])}, [부식] 최대 ${DECOMP_T.max[i]}중첩${i === 2 ? `, [부식] 부여 기본 확률 ${pct(DECOMP_T.chance[i])}` : ''}${i === 1 ? `, [부식] 걸린 적을 공격하면 피해의 ${pct(DECOMP_DECAY.heal)} 회복` : ''}`),
     member: (t) => {
-      const extra = T(t, [0.04, 0.04, 0.08, 0.12]), max = T(t, [5, 7, 9, 13]);
+      const extra = T(t, DECOMP_T.hp), max = T(t, DECOMP_T.max), chance = T(t, DECOMP_T.chance);
       return {
-        mods: [inc('chem', T(t, [0.1, 0.25, 0.5, 1.0]))],
+        mods: [inc('chem', T(t, DECOMP_T.chem))],
         hooks: {
           onDeal(b, u, tgt, r, o) {
             if (r.amount <= 0 || o.tag === 'dot') return;
-            if (t >= 2 && tgt.statuses.some((x) => x.key === 'decay')) b.heal(u, u, r.amount * 0.1, true, 'DECOMP');
+            if (t >= 2 && tgt.statuses.some((x) => x.key === 'decay')) b.heal(u, u, r.amount * DECOMP_DECAY.heal, true, 'DECOMP');
             if ((o.tag !== 'basic' && o.tag !== 'skill') || !tgt.alive) return;
             b.dealDamage(u, tgt, b.S(u, 'maxHp') * extra, { elem: 'chem', tag: 'proc', syn: 'DECOMP' });
-            if (tgt.alive) addStacks(b, u, tgt, 'decay', 1, max + (u.mem.decayMax || 0), 8, (k) => ({ taken: [vuln('chem', 0.1 * k)] }), '부식');
+            if (tgt.alive && baseRoll(b, u, tgt, chance)) addStacks(b, u, tgt, 'decay', 1, max + (u.mem.decayMax || 0), DECOMP_DECAY.dur, (k) => ({ taken: [vuln('chem', DECOMP_DECAY.vuln * k)] }), '부식');
           },
         },
       };
@@ -594,21 +624,20 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'COND', name: '전도체', kind: 'trait', tiers: [2, 4, 6, 8], color: '#4fc3ff', icon: 'ϟ',
-    desc: '몸에 전류가 흐르는 이들.\n· 전도체가 기본 공격 · 기술로 적을 맞히면 30% 고정 확률로 [바운스]: n% 계수의 전기 속성 피해가 n칸 내의 적에게 최대 n회 바운스된다 (단계별 수치).\n· 계수는 사격 · 타격 · 기술 위력 중 가장 높은 값 기준.\n· 바운스는 아직 맞지 않은 적을 먼저 노리고, 새 대상이 없으면 바로 직전 대상만 빼고 적 사이를 왕복합니다 (적이 2명 이상일 때).',
-    tierDesc: ['전기 피해 +15%, 25% 계수의 전기 속성 피해가 1칸 내의 적에게 최대 1회 바운스된다', '전기 피해 +35%, 50% 계수의 전기 속성 피해가 2칸 내의 적에게 최대 3회 바운스된다, 명사수 · 지휘관 전도체 바운스 +1회, 전문가 · 돌격가 전도체는 피격 시 50% 확률로 바운스',
-      '전기 피해 +60%, 75% 계수의 전기 속성 피해가 3칸 내의 적에게 최대 6회 바운스된다', '[천둥 폭풍] 전기 피해 +100%, 100% 계수의 전기 속성 피해가 3칸 내의 적에게 최대 10회 바운스된다'],
+    desc: `몸에 전류가 흐르는 이들.\n· 전도체가 기본 공격 · 기술로 적을 맞히면 ${pct(COND_T.chance)} 고정 확률로 [바운스]: n% 계수의 전기 속성 피해가 n칸 내의 적에게 최대 n회 바운스된다 (단계별 수치).\n· 계수는 사격 · 타격 · 기술 위력 중 가장 높은 값 기준.\n· 바운스는 아직 맞지 않은 적을 먼저 노리고, 새 대상이 없으면 바로 직전 대상만 빼고 적 사이를 왕복합니다 (적이 2명 이상일 때).`,
+    tierDesc: [0, 1, 2, 3].map((i) => `${i === 3 ? '[천둥 폭풍] ' : ''}전기 피해 +${pct(COND_T.elec[i])}, ${pct(COND_T.k[i])} 계수의 전기 속성 피해가 ${COND_T.radius[i]}칸 내의 적에게 최대 ${COND_T.hops[i]}회 바운스된다${i === 1 ? `, 명사수 · 지휘관 전도체 바운스 +1회, 전문가 · 돌격가 전도체는 피격 시 ${pct(COND_T.hurt)} 확률로 바운스` : ''}`),
     member: (t) => {
-      const radius = T(t, [1, 2, 3, 3]), k = T(t, [0.25, 0.5, 0.75, 1.0]);
-      const hopsOf = (u: CUnit) => T(t, [1, 3, 6, 10]) + (t >= 2 && (u.ctype === 'MARK' || u.ctype === 'CMD') ? 1 : 0);
+      const radius = T(t, COND_T.radius), k = T(t, COND_T.k);
+      const hopsOf = (u: CUnit) => T(t, COND_T.hops) + (t >= 2 && (u.ctype === 'MARK' || u.ctype === 'CMD') ? 1 : 0);
       return {
-        mods: [inc('elec', T(t, [0.15, 0.35, 0.6, 1.0]))],
+        mods: [inc('elec', T(t, COND_T.elec))],
         hooks: {
           onDeal(b, u, tgt, r, o) {
-            if ((o.tag !== 'basic' && o.tag !== 'skill') || r.amount <= 0 || !b.rng.chance(0.3)) return;
+            if ((o.tag !== 'basic' && o.tag !== 'skill') || r.amount <= 0 || !b.rng.chance(COND_T.chance)) return;
             chainBolt(b, u, tgt, hopsOf(u), radius, k, true);
           },
           onHurt: t >= 2 ? (b, u, src, _r, o) => {
-            if (o.tag === 'dot' || o.tag === 'proc' || (u.ctype !== 'SPEC' && u.ctype !== 'VAN') || !src.alive || !b.rng.chance(0.5)) return;
+            if (o.tag === 'dot' || o.tag === 'proc' || (u.ctype !== 'SPEC' && u.ctype !== 'VAN') || !src.alive || !b.rng.chance(COND_T.hurt)) return;
             chainBolt(b, u, u, hopsOf(u), radius, k, false);
           } : undefined,
         },
@@ -676,12 +705,12 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'OCCULT', name: '신비학자', kind: 'trait', tiers: [2, 4, 6, 8], color: '#b07cff', icon: '✶',
-    desc: '금지된 지식을 다루는 이들. 처음 도달한 단계마다 신비학자 전용 개조부품 1개를 골라 받고 (단계마다 더 강력한 부품이 해금), 활성화되어 있으면 [전환] 갈림길에 [합성]이 열려 전용 소모품을 살 수 있습니다. 신비학자 기물은 효과 명중이 오릅니다.',
+    desc: '금지된 지식을 다루는 이들. 처음 도달한 단계마다 신비학자 전용 개조부품 1개를 골라 받고 (단계마다 더 강력한 부품이 해금), 활성화되어 있으면 [전환] 갈림길에 [합성]이 열려 전용 소모품을 살 수 있습니다. 신비학자 기물은 기술 위력이 오릅니다.',
     // 부품 이름은 OCCULT_MODS 에서 읽는다 (items.ts 와 서로 import 하므로 늦게 계산)
     get tierDesc() {
-      return OCCULT_HIT.map((h, i) => `${['', '', '[금지된 의식] ', '[금단의 계시] '][i]}효과 명중 +${pct(h)}p, ${i + 1}단계 부품 해금 (${occultModsOfTier(i + 1).map((id) => OCCULT_MODS[id].name).join(' · ')}), [합성] ${i ? `상품 +${i}` : '해금'}${OCCULT_SYNTH.disc[i] ? ` · 가격 -${pct(OCCULT_SYNTH.disc[i])}` : ''}`);
+      return OCCULT_TECH.map((h, i) => `${['', '', '[금지된 의식] ', '[금단의 계시] '][i]}기술 위력 +${pct(h)}, ${i + 1}단계 부품 해금 (${occultModsOfTier(i + 1).map((id) => OCCULT_MODS[id].name).join(' · ')}), [합성] ${i ? `상품 +${i}` : '해금'}${OCCULT_SYNTH.disc[i] ? ` · 가격 -${pct(OCCULT_SYNTH.disc[i])}` : ''}`);
     },
-    member: (t) => ({ stats: { effHit: T(t, OCCULT_HIT) } }),
+    member: (t) => ({ pct: { tech: T(t, OCCULT_TECH) } }),
   },
   {
     id: 'EXPLORER', name: '탐험가', kind: 'trait', tiers: [1], color: '#e6d27a', icon: '⚓',

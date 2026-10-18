@@ -316,7 +316,7 @@ export const ABIL_C: Record<string, AbilText> = {
         ['요리', '[g:cook] 배율 적용'],
       ],
     }),
-    trait: '전투 스킬 사용 후 모든 아군 [heal:0.2].',
+    trait: '전투 스킬 사용 후 모든 아군 [heal:0.2]. 엘베스타드 일가 아군에게 주는 회복량 +[p:1] (스킬 · 특성 모두, 보호막 제외).',
     augs: {
       broth: '가문의 스튜에 [shield:1.8] 추가.',
       bone: '가문의 스튜 방어도 +400.',

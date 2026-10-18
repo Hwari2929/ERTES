@@ -221,12 +221,12 @@ export const ROSTER_G: BaseUnit[] = [
     },
   },
   {
-    id: 'hana', name: '한아', title: '녹림의원 임시 원장 · 무당', factions: ['CHR'], traits: ['OCCULT', 'INFIL'], keywords: ['bio'],
+    id: 'hana', name: '한아', title: '녹림의원 임시 원장 · 무당', factions: ['CHR'], traits: ['OCCULT'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'psy', interval: 1.0 }, range: 2, base: B(5, 4, 10, 4, 7),
     sprite: 'robe', palette: tint('#1a1a24', '#e8e8f0', '#7fb8ff'), noBar: true,
     lore: '"녹림의원은 찾아온 손님을 거절하지 않아요. 범이라도요. 총부터 내리시죠, 사냥꾼 양반."',
     skill: {
-      name: '해주굿', tag: () => '광역 정신 공격 + 위치 교란', cd: 8, params: { mult: 1.7, radius: 2, swap: 0.35 },
+      name: '해주굿', tag: () => '광역 정신 공격 + 위치 교란', cd: 7, params: { mult: 1.7, radius: 2, swap: 0.35 },
       desc: (p) => `대상과 대상 주변 ${p.radius}칸 적에게 전술 위력 ${pct(p.mult)} 정신 피해. 맞은 적마다 ${pct(p.swap)} 확률로 그 범위 안 무작위 빈칸으로 옮기고 이로운 효과를 모두 없앤다.`,
       cast(b, u) {
         const t = pickEnemy(b, u, 'current');
@@ -251,7 +251,7 @@ export const ROSTER_G: BaseUnit[] = [
     },
   },
   {
-    id: 'gayoung', name: '가영', title: '임씨 가문 · 흰 옷의 무녀', factions: ['CHR'], traits: ['NAV'], keywords: ['bio'],
+    id: 'gayoung', name: '가영', title: '임씨 가문 · 흰 옷의 무녀', factions: ['CHR'], traits: ['NAV', 'INFIL'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'holy', interval: 0.8 }, range: 1, base: B(8, 8, 6, 6, 7),
     sprite: 'robe', palette: tint('#f0f0f0', '#c8303a', '#ffd84d'), noBar: true,
     lore: '"춤이 끝나면 칼이 들어가요. 순서가 바뀌면… 그건 춤이 아니라 그냥 칼부림이고요."',

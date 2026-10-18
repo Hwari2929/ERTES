@@ -1536,7 +1536,7 @@ const sumS = (b: Battle | null, s: CUnit, k: StatKey) => (b ? b.S(s, k) : s.st[k
 function bondNote(c: CUnit, m: SummonMade) {
   const syn = c.mem.bond ? `최고의 친구 단계 ${sumPc(c.mem.bond)}` : `기본 ${sumPc(CFG.bond.base)} (최고의 친구 시너지 꺼짐)`;
   const bonus = c.mem.bondBonus ? ` + 특성 · 증강 ${sumPc(c.mem.bondBonus)}p` : '';
-  const k = (m.extra ? CFG.bond.extra : 1) * (m.sd.rate || 1);
+  const k = (m.extra ? c.mem.extraRate ?? CFG.bond.extra : 1) * (m.sd.rate || 1);
   return `${syn}${bonus}${k !== 1 ? ` × ${+k.toFixed(2)}${m.extra ? ' (추가 소환)' : ''}` : ''}`;
 }
 /** 소환물 기본 공격 예상 DPS (치명타 기대값 포함, 방어도 · 속성 보정 · 명중 제외) */
@@ -1581,7 +1581,7 @@ function summonSection(d: UnitDef, b: Battle | null, c: CUnit | null, scope: str
     const pv = provMult(b, s);
     // 머리: 초상 (여러 기면 모서리에 수) | 이름 (여러 종류일 때만 — 한 종류면 섹션 머리에 이미 있다) · 전투 유형 · 분류 / 상속률 · 체력 · 위력 · 도발 칩
     const chips = `<div class="ab-chips sm-stats"><span class="abc sm-bond" title="${esc(`스탯 상속률: 주인의 체력 · 위력 · 방어도를 물려받는 비율 (명중 · 치명타 · 효과 명중 · 효과 저항 · 회피는 주인 값 그대로). ${bondNote(c, m)}`)}">${lineIcon('a.summon', 'li')}상속률 <b>${sumPc(m.rate)}</b></span>`
-      + (ex.length ? `<span class="abc" title="${esc(`추가로 불린 소환물 ${ex.length}기: 상속률 ×${CFG.bond.extra}`)}">추가 ${ex.length}기 <b>${sumPc(ex[0].rate)}</b></span>` : '')
+      + (ex.length ? `<span class="abc" title="${esc(`추가로 불린 소환물 ${ex.length}기: 상속률 ×${c.mem.extraRate ?? CFG.bond.extra}`)}">추가 ${ex.length}기 <b>${sumPc(ex[0].rate)}</b></span>` : '')
       + `<span class="abc" title="${hpLabel(s)}">${lineIcon('a.hp', 'li')}<b>${fmt(sumS(b, s, 'maxHp'))}</b></span>`
       + `<span class="abc" title="${pow === 'shoot' ? '사격' : '타격'} 위력">${lineIcon(`p.${pow}`, 'li')}<b>${fmt(sumS(b, s, pow))}</b></span>`
       + `<span class="abc" title="${esc(`도발 배율: 적이 이 소환물에게 쌓는 도발 수치에 곱해지는 값 (${ct ? `${CTYPE_NAME[ct]} 소환물` : '소환물'}). 돌격가 경계는 소환물에게 없다.`)}">${lineIcon('p.prov', 'li')}<b>×${+pv.toFixed(2)}</b></span></div>`;

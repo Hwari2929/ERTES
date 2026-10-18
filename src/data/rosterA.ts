@@ -5,6 +5,8 @@ import { cookPower, pickEnemy, strike, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type BaseUnit } from './unitkit';
 
 const DRONE = ['#0c0e12', '#5a7090', '#2a3040', '#9ab0c8', '#7fe3ff', '#40465a', '#e0f0ff'];
+/** 라르스: 공명 등급으로 늘어나는 추가 경호원은 첫 경호원 능력치의 50% (상속 스탯 · 주요 능력치 보너스 · 방어도 보너스) */
+export const LARS_EXTRA = 0.5;
 const BOT = ['#0c0c12', '#3a3f58', '#c8ccd8', '#9aa0b0', '#ff5a5a', '#2a2e40', '#ffffff'];
 
 export const ROSTER_A: BaseUnit[] = [
@@ -80,7 +82,7 @@ export const ROSTER_A: BaseUnit[] = [
     atk: { type: 'strike', elem: 'phys', interval: 0.9 }, range: 1, base: B(10, 7, 5, 8, 3),
     sprite: 'knight', palette: tint(PAL.PET, '#e07a1f', '#f0e0c0', '#7dff8a'), lore: '"행복은 잠깐이지만, 신용은 영원하죠"',
     skill: strike({
-      name: '실드 제너레이터', cd: 8, pow: 'strike', elem: 'phys', mult: 1.2, aroundSelf: true, params: { radius: 1, counter: 0.3, dur: 4 },
+      name: '실드 제너레이터', cd: 6.5, pow: 'strike', elem: 'phys', mult: 1.2, aroundSelf: true, params: { radius: 1, counter: 0.3, dur: 4 },
       desc: (p) => `팔목 방어막을 펼쳐 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해${p.stun ? ` + ${p.stun}초 기절` : ''}. ${p.dur}초간 받은 피해의 ${pct(p.counter)}를 카운터로 되돌려준다.`,
       after: (b, u, _t, _d, p) => { b.buff(u, u, 'lindiwe.guard', p.dur, { reflect: p.counter, label: '카운터' }); },
     }),
@@ -122,14 +124,14 @@ export const ROSTER_A: BaseUnit[] = [
     lore: '"좋습니다. 서로가 만족할 거래가 되었군요."',
     // 비무장: 폭력은 경호팀에게 아웃소싱했다
     passive: {
-      // 경호원: 기본 1명 + 공명 등급 4등급마다 1명 (4 · 8 · 12등급, 최대 4명)
-      setup: (u) => { u.noAttack = true; u.mem.extraSummon = (u.mem.extraSummon || 0) + Math.min(3, Math.floor((u.src?.rank || 1) / 4)); },
+      // 경호원: 기본 1명 + 공명 등급 4등급마다 1명 (4 · 8 · 12등급, 최대 4명). 추가 경호원은 첫 경호원 능력치의 LARS_EXTRA (build.ts makeSummons)
+      setup: (u) => { u.noAttack = true; u.mem.extraSummon = (u.mem.extraSummon || 0) + Math.min(3, Math.floor((u.src?.rank || 1) / 4)); u.mem.extraRate = LARS_EXTRA; },
       hooks: { takenMult: (b, u) => (summonsOf(b, u).length ? 0.75 : 1) },
     },
     skill: {
       // shield: 특성 [합리적인 거래]의 경호 계약 보호막 수치
       name: '거래 제안', tag: () => '강적 약화 · 경호원 공격', cd: 8, params: { shield: 1.5, mult: 2.0, weak: 0.2, dur: 4, vuln: 0 },
-      desc: (p) => `[비무장] 기본 공격을 하지 않는다. 경호원 2명을 데려오며, 경호원이 살아 있는 동안 피해량 경감 25%. 체력이 가장 높은 적에게 거래를 제안해 ${p.dur}초간 주는 피해 -${pct(p.weak)}${p.vuln ? `, 받는 피해 +${pct(p.vuln)}` : ''}. 경호원들이 그 적을 경호원 타격 위력 ${pct(p.mult)}로 공격한다.`,
+      desc: (p) => `[비무장] 기본 공격을 하지 않는다. 경호원을 데려오며 (기본 1명 + 공명 4등급마다 1명, 추가 경호원은 능력치 ${pct(LARS_EXTRA)}), 경호원이 살아 있는 동안 피해량 경감 25%. 체력이 가장 높은 적에게 거래를 제안해 ${p.dur}초간 주는 피해 -${pct(p.weak)}${p.vuln ? `, 받는 피해 +${pct(p.vuln)}` : ''}. 경호원들이 그 적을 경호원 타격 위력 ${pct(p.mult)}로 공격한다.`,
       cast(b, u) {
         const t = pickEnemy(b, u, 'strongest');
         if (!t) return false;

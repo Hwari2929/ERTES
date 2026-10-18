@@ -6,7 +6,8 @@ import { type CType, type Elem, type FaithId, FAITH_NAME, type Major, MAJORS, ty
 import { itemEffect } from './items';
 import { RELIC_BY_ID } from './relics';
 import { blinkTo, corrode, every, fear, gw, isHarmful, lineTargets, nth, pct, skillHit, summonsOf } from './kit';
-import { kairoSnipe } from './rosterB';
+import { LARS_EXTRA } from './rosterA';
+import { kairoSnipe, ZAHARA_ACE_STEAL } from './rosterB';
 import { monsterBuff } from './rosterE';
 import { pickEnemy } from './tpl';
 import { type BaseUnit, type ReworkDef, setSk, uaug } from './unitkit';
@@ -14,6 +15,8 @@ import { type BaseUnit, type ReworkDef, setSk, uaug } from './unitkit';
 const RACHEL = { heal: 0.15, extra: 0.2, finish: 0.35 };
 /** 에이든: 체력 비율 기준 · 재발동 대기 (초) */
 const AIDEN_RETREAT = { hp: 0.35, icd: 10 };
+/** 구닐라 [저택의 실세]: 엘베스타드 일가 아군에게 주는 회복량 증가 */
+export const GUNNIR_FAM_HEAL = 1;
 
 // ───────── 무기 헬퍼: G = 탄창형(사격), K = 콤보형(타격)
 const G = (name: string, elem: Elem, interval: number, range: number, mult: number, mag: number, reload: number, x: Partial<Weapon> = {}): Weapon =>
@@ -191,7 +194,7 @@ export const REWORK: Record<string, ReworkDef> = {
   // ───────────────────────── 주식회사 페트라
   lindiwe: {
     ctype: 'VAN', ttype: 'major', faith: 'index', weapon: K('방어막 건틀릿', 'phys', 0.9, 1, 0.8, 3),
-    factions: ['PET'], traits: ['SCHEME', 'GUARD'],
+    factions: ['PET'], traits: ['GUARD'],
     trait: {
       name: '특별경호팀', desc: '자신과 주변 1칸 아군의 피해량 경감 30%p. 주변 아군이 받는 피해의 절반은 린디웨가 나눠 받는다. 전투 스킬을 쓸 때 최대 체력 18% 보호막.',
       effect: { hooks: { onSkill(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.18); }, onTick(b, u, dt) {
@@ -218,7 +221,7 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   franze: {
     ctype: 'CMD', ttype: 'major', faith: 'index', weapon: K('에너지 블레이드', 'phys', 0.9, 1, 0.6, 4),
-    factions: ['PET', 'TIME', 'KAL'], traits: [],
+    factions: ['KAL', 'PET', 'TIME'], traits: [],
     trait: {
       name: '은하법 검사', desc: '흡혈 +10%p. 전투 스킬을 쓴 뒤 잃은 체력의 12.5%를 재생한다. 기본 공격이 맞은 적에게 5초간 [심판]: 그동안 아군이 준 피해의 20%를 기록하고, 끝날 때 기록의 100%를 고정 피해로 정산한다.',
       effect: {
@@ -244,9 +247,9 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   lars: {
     ctype: 'CMD', ttype: 'special', faith: 'index', weapon: { name: '비무장', kind: 'none', type: 'shoot', elem: 'phys', interval: 1, range: 3, mult: 0 },
-    factions: ['PET'], traits: ['BUDDY'],
+    factions: ['PET', 'FAM'], traits: ['BUDDY'],
     trait: {
-      name: '합리적인 거래', desc: '기본 공격을 하지 않는다. 라르스가 함께한 뒤 번 크레딧 10당 경호원 주요 능력치 +1 (100에서 상한 +10). 이자 상한 +2. [경호 계약] 8초마다 경호원 전원에게 기술 위력 150% 보호막.',
+      name: '합리적인 거래', desc: `기본 공격을 하지 않는다. 경호원은 기본 1명 + 공명 등급 4등급마다 1명 (최대 4명)이고, 추가 경호원은 첫 경호원 능력치의 ${pct(LARS_EXTRA)}. 라르스가 함께한 뒤 번 크레딧 10당 경호원 주요 능력치 +1 (100에서 상한 +10). 이자 상한 +2. [경호 계약] 8초마다 경호원 전원에게 기술 위력 150% 보호막.`,
       effect: {
         setup: (u) => { u.mem.summonMaj = Math.min(10, Math.floor(gv(u.src?.grow || {}, 'earn') / 10)); },
         hooks: { onTick(b, u, dt) {
@@ -397,14 +400,17 @@ export const REWORK: Record<string, ReworkDef> = {
   },
   zahara: {
     ctype: 'VAN', ttype: 'minor', faith: 'emperor', weapon: K('쌍곡도', 'phys', 0.8, 1, 0.7, 5),
-    factions: ['KAL'], traits: ['STAR', 'CHEF'],
+    factions: ['KAL'], traits: ['STAR', 'NAV'],
     trait: {
-      name: '복수자', desc: '피해를 받으면 공격자에게 타격 위력 150% 반격. 주변 1칸 아군이 맞았을 때도 50% 확률로 반격 (0.4초에 1회).',
+      name: '복수자', desc: '피해를 받으면 공격자에게 타격 위력 150% 반격. 주변 1칸 아군이 맞았을 때도 50% 확률로 반격 (0.4초에 1회). 항해자 에이스 파일럿이면 주변 아군 반격이 확정이고 반격 피해 일부를 흡혈.',
       effect: { hooks: {
         onHurt(b, u, src, r, o) { if (src.side !== u.side && src.alive && r.amount > 0 && o.tag !== 'dot' && icd(b, u, 'zIcd', 0.4)) proc(b, u, src, b.S(u, 'strike') * 1.5 * gw(u), 'phys', 'strike'); },
         onAllyHurt(b, u, ally, src, r) {
-          if (src.side === u.side || !src.alive || r.amount <= 0 || b.dist(u, ally) > 1 || !b.rng.chance(0.5) || !icd(b, u, 'zIcd', 0.4)) return;
-          proc(b, u, src, b.S(u, 'strike') * 1.5 * gw(u), 'phys', 'strike');
+          // 에이스 파일럿 [곁을 지키는 곡도] (mem.zAce = 항해자 단계 배율): 확률 없이 반격 + 반격 피해 흡혈. 0.4초 재발동 대기는 같이 써서 연쇄 반격을 막는다
+          const ace = u.mem.zAce || 0;
+          if (src.side === u.side || !src.alive || r.amount <= 0 || b.dist(u, ally) > 1 || (!ace && !b.rng.chance(0.5)) || !icd(b, u, 'zIcd', 0.4)) return;
+          const d = proc(b, u, src, b.S(u, 'strike') * 1.5 * gw(u), 'phys', 'strike');
+          if (ace && d.amount > 0 && u.alive) b.heal(u, u, d.amount * ZAHARA_ACE_STEAL * ace, true);
         },
       } },
     },
@@ -874,10 +880,12 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'SPEC', ttype: 'minor', faith: 'index', weapon: G('주방 칼 투척', 'phys', 1.0, 3, 0.8, 5, 2),
     factions: ['FAM'], traits: ['MED', 'CHEF'],
     trait: {
-      name: '저택의 실세', desc: '전투 스킬을 쓴 뒤 아군 전원을 기술 위력 20% 회복.',
-      effect: { hooks: { onSkill(b, u) {
-        for (const a of b.alliesOf(u)) b.heal(u, a, b.P(u, 'tech') * 0.2 * gw(u));
-      } } },
+      name: '저택의 실세', desc: `전투 스킬을 쓴 뒤 아군 전원을 기술 위력 20% 회복. 엘베스타드 일가 아군에게 주는 회복량 +${pct(GUNNIR_FAM_HEAL)}.`,
+      effect: { hooks: {
+        onSkill(b, u) { for (const a of b.alliesOf(u)) b.heal(u, a, b.P(u, 'tech') * 0.2 * gw(u)); },
+        // 엘베스타드 일가 (시그문드가 모셔 합류한 기물 포함) 회복량 +100%
+        healMult: (_b, _u, t) => (t.synergies.has('FAM') ? 1 + GUNNIR_FAM_HEAL : 1),
+      } },
     },
   },
   mingki: {

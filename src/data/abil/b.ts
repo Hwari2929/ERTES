@@ -1,6 +1,7 @@
 // 능력 설명 (통일 형식) — 그룹 b
 import type { AbilText, Area } from '../abiltext';
 import { CFG } from '../../config';
+import { ZAHARA_ACE_STEAL } from '../rosterB';
 
 /** 셰프 단계별 요리 배율 '×1.3 / ×2 / ×3.4 / ×4.6' (CFG.cookPower) */
 const COOK_MULT = CFG.cookPower.slice(1).map((x) => `×${x}`).join(' / ');
@@ -77,21 +78,14 @@ export const ABIL_B: Record<string, AbilText> = {
   },
   zahara: {
     skill: (p) => ({
-      tgt: `가장 강한 아군${cntTxt(p.count)}`, range: null, area: { k: 'one' },
+      tgt: '자신', range: 0, area: { k: 'self', r: p.radius || 1 },
       rows: [
-        ['회복', `[heal:${p.heal}]`],
-        ['버프', `[s:${p.dur}] 동안 피해 +[p:${p.dmg}]${p.as ? `, 공격 속도 +[p:${p.as}]` : ''}`],
-        ['배율', '[g:cook] 배율 적용'],
+        ['피해', `[dmg:strike:${p.mult}:phys${hitsTxt(p.hits)}]`],
+        ['출혈', `[st:bleed:4] 초당 [dmg:strike:${p.bleed}:phys]`],
       ],
     }),
     trait: '피해를 받으면 (지속 피해 제외) 공격자에게 [dmg:strike:1.5:phys] 반격. 주변 [t:1] 아군이 피해를 받으면 [p:0.5] 확률로 반격. 반격은 [s:0.4]에 1회.',
-    augs: {
-      tteok: '사라진 레시피 재현 피해 증가 [pp:0.45].',
-      spice: '사라진 레시피 재현 회복 [heal+:1.2].',
-      tea: '사라진 레시피 재현 대상 공격 속도 +[p:0.4].',
-      market: '사라진 레시피 재현 대상 +1명.',
-      camera: '전투 승리 시 명성 +2. 사라진 레시피 재현 피해 증가 [pp:0.25].',
-    },
+    ace: (k) => `주변 [t:1] 아군이 피해를 받으면 반격 확정 ([p:0.5] 확률 대신, [s:0.4]에 1회는 그대로). 그 반격 피해의 [p:${Math.round(ZAHARA_ACE_STEAL * k * 1000) / 1000}] 흡혈.`,
   },
   bianca: {
     skill: (p) => ({

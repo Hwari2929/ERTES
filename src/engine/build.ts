@@ -240,19 +240,22 @@ export function makeSummons(owner: CUnit, sd0: SummonDef): SummonMade[] {
   // 첫 소환물 n기 + 함께 소환되는 다른 소환물 (라스무스: 맥스 + 라라) 각 1기
   const list: { sd: SummonDef; i: number }[] = [...Array(Math.max(0, n)).keys()].map((i) => ({ sd: sd0, i }));
   if (n > 0) for (const x of sd0.also || []) list.push({ sd: x, i: 0 });
+  // 추가 소환물 배율: 기본 CFG.bond.extra, 주인이 따로 정하면 그 값 (라르스: 추가 경호원은 첫 경호원 능력치의 50% — 상속 스탯 · 주요 능력치 보너스 · 방어도 보너스 모두)
+  const own = owner.mem.extraRate;
   return list.map(({ sd, i }) => {
-    const r = (i === 0 ? base : base * CFG.bond.extra) * (sd.rate || 1); // 추가 소환물은 상속률 ×CFG.bond.extra
+    const r = (i === 0 ? base : base * (own ?? CFG.bond.extra)) * (sd.rate || 1); // 추가 소환물은 상속률 ×CFG.bond.extra
+    const flat = i > 0 && own !== undefined ? own : 1; // 고정 보너스도 같은 비율로
     const s = blankUnit(owner.side);
     const o = owner.st;
     const st = emptyStats();
     st.maxHp = o.maxHp * r * (sd.hpMul || 1);
     st.shoot = o.shoot * r; st.strike = o.strike * r; st.tech = o.tech * r;
-    st.armor = o.armor * r + (owner.mem.summonArmor || 0);
+    st.armor = o.armor * r + (owner.mem.summonArmor || 0) * flat;
     st.acc = o.acc; st.crit = o.crit; st.critDmg = o.critDmg; st.effHit = o.effHit; st.effRes = o.effRes; st.eva = o.eva;
     st.moveSpd = sd.moveSpd || 1.15; st.range = sd.range;
     st.maxHp *= (1 + (owner.mem.summonHpPct || 0)) * (owner.mem.summonHpMul || 1);
     // 라르스: 경호원 메이저 보너스
-    const gm = owner.mem.summonMaj || 0;
+    const gm = (owner.mem.summonMaj || 0) * flat;
     if (gm) for (const k of MAJORS) for (const [sk, per] of Object.entries(CFG.conv[k])) st[sk as keyof Stats] += (per as number) * gm;
     Object.assign(s, {
       defId: 'summon', name: sd.name, sprite: sd.sprite, palette: sd.palette, art: sd.art, st, atk: { ...sd.atk },
