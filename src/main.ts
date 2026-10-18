@@ -3379,6 +3379,33 @@ function followCamera(b: Battle) {
   }
   inner.style.top = `calc(${-top} * 100% / var(--h))`;
   inner.style.left = `calc(${-left} * 100% / var(--w))`;
+  offIndicators(inner.parentElement!, alive, left, top, viewW, viewH);
+}
+/** 화면 밖 기물 표시: 카메라 창 밖에 있는 아군 · 적의 방향을 창 가장자리 삼각형으로 (진영 색 · 인원 수). 장애물(반려 돌 등)은 세지 않는다.
+ *  위치는 그 방향 기물들의 평균 칸 (가장자리를 따라), 모서리 방향은 모서리에. 바뀔 때만 다시 그린다 */
+function offIndicators(view: HTMLElement, alive: CUnit[], left: number, top: number, viewW: number, viewH: number) {
+  let box = view.querySelector<HTMLElement>(':scope > .off-ind');
+  if (!box) { box = document.createElement('div'); box.className = 'off-ind'; box.setAttribute('aria-hidden', 'true'); view.appendChild(box); }
+  const groups = new Map<string, { side: number; dx: number; dy: number; xs: number[]; ys: number[] }>();
+  for (const u of alive) {
+    if (u.mem.inert) continue;
+    const dx = u.x < left ? -1 : u.x >= left + viewW ? 1 : 0, dy = u.y < top ? -1 : u.y >= top + viewH ? 1 : 0;
+    if (!dx && !dy) continue;
+    const side = u.side === 0 ? 0 : 1, k = `${side}:${dx}:${dy}`;
+    const g = groups.get(k) || { side, dx, dy, xs: [], ys: [] };
+    g.xs.push(u.x); g.ys.push(u.y); groups.set(k, g);
+  }
+  const clamp = (v: number) => Math.max(6, Math.min(94, v));
+  const avg = (l: number[]) => l.reduce((a, c) => a + c, 0) / l.length;
+  const html = [...groups.values()].map((g) => {
+    const px = g.dx ? (g.dx < 0 ? 0 : 100) : clamp(((avg(g.xs) - left + 0.5) / viewW) * 100);
+    const py = g.dy ? (g.dy < 0 ? 0 : 100) : clamp(((avg(g.ys) - top + 0.5) / viewH) * 100);
+    const deg = Math.round((Math.atan2(g.dy, g.dx) * 180) / Math.PI);
+    // 같은 가장자리 · 같은 자리에 아군 · 적이 겹치면 진영별로 조금 비켜 둔다
+    const nudge = g.side ? 7 : -7, ox = g.dx ? 0 : nudge, oy = g.dx && !g.dy ? nudge : 0;
+    return `<i class="oi s${g.side}" style="left:calc(${px}% + ${ox}px);top:calc(${py}% + ${oy}px);--oi-r:${deg}deg"><b>${g.xs.length}</b></i>`;
+  }).join('');
+  if (box.dataset.sig !== html) { box.dataset.sig = html; box.innerHTML = html; }
 }
 /** 전투 보드 끌어서 보기: 배치 구역이 기본 화면, 놓으면 가운데로 돌아온다 */
 function initBoardPan(view: HTMLElement) {

@@ -562,7 +562,8 @@ export class BattleView {
     const el = document.createElement('div');
     const card = hasPortrait(u);
     const turret = card && u.isSummon && u.defId === 'turret'; // 엔지니어 감시 포탑: 우측 상단 '기계' 배지
-    el.className = `u side${u.side}${card ? ' tkb' : ''}${turret ? ' has-cat' : ''}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
+    const neutral = u.side === 1 && !!u.mem.inert; // 전장 장애물 (유닉스 답례 투하의 반려 돌 · 묘석): 적이 아닌 중립 지형물로 보인다
+    el.className = `u ${neutral ? 'sideN inert' : `side${u.side}`}${card ? ' tkb' : ''}${turret ? ' has-cat' : ''}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
     el.style.width = `${100 / this.b.w}%`;
     el.style.height = `${100 / this.b.h}%`;
     el.dataset.a = 'bsel';
