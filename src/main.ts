@@ -10,6 +10,7 @@ import { FIELDS, fieldOf } from './data/battlefields';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
 import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isInjector, isLegendConsumable, isLocked, isMod, isOccultMod, isTurretItem, isTurretMod, itemInfo, TURRET_GEAR, turretSlots } from './data/items';
 import { aceTargetUid, OCCULT_SYNTH, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
+import { rowHtml, tierCmp } from './ui/tierdiff';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { withEmblemSummon } from './data/emblems';
 import { DIVINE_ACT, FAITH_DEF, MAJOR_AUGS, MINOR_TRAIT_GROW, recMajors } from './data/rework';
@@ -336,15 +337,24 @@ function synPopHtml(sid: string) {
   const sd = SYN_BY_ID[id];
   const run = app.run;
   let c = 0, head = '', mem = '';
+  const t = run ? tierOf(id, (c = synergyCounts(deployed(run), run)[id] || 0)) : 0;
+  const next = sd.tiers.find((need) => need > c);
   if (run) {
-    const counts = synergyCounts(deployed(run), run);
-    const raw = synergyCounts(deployed(run));
-    c = counts[id] || 0;
-    const t = tierOf(id, c);
-    const next = sd.tiers.find((need) => need > c);
-    const bonus = c - (raw[id] || 0);
-    head = `<span class="small">출전 <b>${c}</b>명${bonus > 0 ? ` <span class="accent">(문장 +${bonus})</span>` : ''} · ${t ? `${t}단계 활성` : '비활성'} · ${next ? `다음 단계까지 ${next - c}명` : '최고 단계'}</span>`;
+    // 머리 상태 줄: 출전 인원 · 단계 칸 · 지금 단계 · 다음 단계까지 (docs/UI.md 5. 상태 칩 1줄)
+    const bonus = c - (synergyCounts(deployed(run))[id] || 0);
+    const steps = sd.tiers.map((need, i) => `<span class="${c >= need ? 'on' : ''}${i === t - 1 ? ' cur' : ''}">${need}</span>`).join('');
+    head = `<div class="sp-st"><span class="sp-n">출전 <b>${c}</b>명${bonus > 0 ? ` <span class="accent">(문장 +${bonus})</span>` : ''}</span><span class="syn-steps">${steps}</span>`
+      + `<span class="sp-k${t ? ' on' : ''}">${t ? `${t}단계` : '미활성'}</span><span class="sp-k">${next ? `다음 단계까지 +${next - c}명` : '최대 단계'}</span></div>`;
   }
+  // 지금 → 다음 비교 (src/ui/tierdiff.ts): 바뀐 숫자는 a → b, 한쪽에만 있는 효과는 지금 / 다음 표시
+  const ni = next ? sd.tiers.indexOf(next) : -1;
+  const cmp = tierCmp(t ? sd.tierDesc[t - 1] : undefined, run && ni >= 0 ? sd.tierDesc[ni] : run ? undefined : sd.tierDesc[0]);
+  const lv = (k: string, need: number) => `<span class="sp-lv ${k === '지금' || k === '최대' ? 'cur' : 'nx'}">${k} <b>${need}</b></span>`;
+  const tag = cmp.nextTag ?? cmp.curTag;
+  const ch = t && ni >= 0 ? `${lv('지금', sd.tiers[t - 1])}<span class="td-ar">→</span>${lv('다음', next!)}` : t ? lv('최대', sd.tiers[t - 1]) : lv(run ? '다음' : '첫 단계', sd.tiers[0]);
+  const lab: Record<string, string> = { cur: '지금', add: '다음' };
+  const rows = cmp.rows.map((r) => `<li class="td-${r.k}">${lab[r.k] ? `<i class="td-l">${lab[r.k]}</i>` : ''}<span>${rowHtml(r, esc, statIc)}</span></li>`).join('');
+  const cmpHtml = `<div class="sp-cmp"><div class="sp-ch">${ch}${tag ? `<span class="td-tag">${esc(tag)}</span>` : ''}</div><ul class="td-rows">${rows}</ul></div>`;
   // 소속 기물 초상화: 출전 · 대기 · 미보유 (문장으로 합류한 보유 기물 포함)
   const own = new Map<string, boolean>();
   for (const u of run?.units || []) if (memberships(u).includes(id)) own.set(u.defId, own.get(u.defId) || !!u.pos);
@@ -354,11 +364,14 @@ function synPopHtml(sid: string) {
   const TAG = ['출전', '대기', '미보유'];
   mem = `<div class="sp-units">${pool.map((d) => `<span class="sp-u s${st(d)}" title="${esc(d.name)} · ${TAG[st(d)]}">${sprite(d, 'spr')}<i>${esc(d.name)}</i></span>`).join('')}</div>
     <div class="sp-legend small"><span class="s0">출전</span><span class="s1">대기</span><span class="s2">미보유</span></div>`;
-  const t = tierOf(id, c);
   const focus = run && (app.screen === 'prep' || app.screen === 'map') ? `<button class="btn tiny sp-focus" type="button" data-synfocus="${id}">${app.screen === 'map' ? '파티에서' : '보드에서'} 강조</button>` : '';
-  return `<b class="sp-t">${synIcon(id) || sd.icon}${esc(sd.name)}<small>${sd.kind === 'faction' ? '세력' : '특성'}</small></b>${head}${focus}<p>${esc(sd.desc).replace(/\n/g, '<br>')}</p>${mem}
-    <ol class="sp-tiers">${sd.tierDesc.map((d, i) => `<li class="${i === t - 1 ? 'cur' : ''}${c >= sd.tiers[i] ? ' on' : ''}"><b>${sd.tiers[i]}</b><span>${esc(d)}</span></li>`).join('')}</ol>`;
+  // 전체 단계표 · 설명은 접어서 아래에 (열림 상태는 이 세션 동안 기억)
+  const tiers = `<ol class="sp-tiers">${sd.tierDesc.map((d, i) => `<li class="${i === t - 1 ? 'cur' : ''}${c >= sd.tiers[i] ? ' on' : ''}"><b>${sd.tiers[i]}</b><span>${statIc(esc(d))}</span></li>`).join('')}</ol>`;
+  return `<b class="sp-t">${synIcon(id) || sd.icon}${esc(sd.name)}<small>${sd.kind === 'faction' ? '세력' : '특성'}</small></b>${head}${cmpHtml}${focus}${mem}
+    <details class="sp-more"${synMore || !run ? ' open' : ''}><summary>전체 단계 · 설명</summary>${tiers}<p class="sp-desc">${esc(sd.desc).replace(/\n/g, '<br>')}</p></details>`;
 }
+/** 시너지 팝업의 '전체 단계 · 설명' 접힘 상태 */
+let synMore = false;
 function synergyPanel(run: RunState) {
   const counts = synergyCounts(deployed(run), run);
   const benchN: Record<string, number> = {}; // 시너지별 대기 기물 수
@@ -572,7 +585,7 @@ function schoolOpt(id: string, i: number) {
 }
 /** 전투 기물의 학파 (엔진 필드) */
 const cSchool = (c: CUnit | null): SchoolId | null => ((c as { school?: SchoolId | null } | null)?.school ?? null);
-function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Battle | null = null, c: CUnit | null = null, live = false) {
+function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Battle | null = null, c: CUnit | null = null, live = false, rule = true) { // rule: 유형 공통 규칙 문장 (전체 상세는 접힌 칸으로 따로 보여 주므로 false)
   const tt = d.ttype;
   const rank = u?.rank || 1;
   const nx = u ? nextMilestone(tt, rank) : null;
@@ -645,7 +658,7 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
   }
   void f;
   return `<section class="abil tt-sec tt-${tt}"><div class="ab-head"><span class="ab-kind">전술 유형</span><b class="tt-name"><i class="tt-${tt}">${TTYPE_ICON(tt)}</i>${TTYPE_NAME[tt]}</b></div>
-    ${tt !== 'psionic' || app.detail ? `<p class="tt-rule small muted">${esc(TTYPE_RULE[tt])}</p>` : ''}${body.join('')}</section>`;
+    ${rule && (tt !== 'psionic' || app.detail) ? `<p class="tt-rule small muted">${esc(TTYPE_RULE[tt])}</p>` : ''}${body.join('')}</section>`;
 }
 /** 분류 표시 (아군 · 적 공통) */
 function categoryTag(cat: Category) {
@@ -1012,9 +1025,17 @@ function musterModal(run: RunState) {
       <span class="syn-dia"><i>${synIcon(s.id) || s.icon}</i></span><span class="ms-n">${n}</span></button>`;
   }).join('')}</div>`;
   const full = sel.length === CFG.musterPicks;
-  return `<h1>지정 소집</h1><p class="muted small">세력 · 특성 시너지를 정확히 ${CFG.musterPicks}개 고르면, 그중 하나라도 가진 기물만 후보로 나옵니다. 숫자는 후보 수, 밝은 테두리는 보유 중인 시너지.</p>
+  // 고른 시너지 칸 (musterPicks 칸, 누르면 빼기) + 후보 수: 아래 고정 줄에 둔다
+  const picks = [...Array(CFG.musterPicks).keys()].map((i) => {
+    const s = sel[i] ? SYN_BY_ID[sel[i] as SynergyId] : null;
+    return s ? `<button class="ms-pick on" style="--c:${s.color}" data-a="muster-tog" data-v="${s.id}" title="${esc(s.name)} 빼기"><span class="syn-dia"><i>${synIcon(s.id) || s.icon}</i></span><b>${esc(s.name)}</b></button>`
+      : `<span class="ms-pick" title="빈 칸 — 위에서 시너지를 고르세요"><span class="muted">${i + 1}</span></span>`;
+  }).join('');
+  return `<h1>지정 소집</h1>
+    <div class="ms-legend small muted"><span><i class="ms-syn ms-demo"><span class="ms-n">5</span></i>후보 수</span><span><i class="ms-syn ms-demo own" style="--c:var(--c-text)"></i>보유 중인 시너지</span></div>
     ${group('faction', '세력')}${group('trait', '특성')}
-    <div class="row-btns ms-foot"><span class="muted small">${sel.length}/${CFG.musterPicks} 선택${full ? ` · 후보 풀 ${pool.length}명` : ''}</span>
+    <div class="row-btns ms-foot"><div class="ms-state"><div class="ms-picks" aria-label="고른 시너지 ${sel.length}/${CFG.musterPicks}">${picks}</div>
+      ${kvChip('후보', sel.length ? `<b>${pool.length}</b>명` : '<b>—</b>', `고른 시너지 중 하나라도 가진 기물이 후보 (${CFG.musterPicks}개를 모두 골라야 소집)`, full ? '' : 'zero')}</div>
       <button class="btn" data-a="muster-cancel">취소</button>
       <button class="btn primary" data-a="muster-ok" ${full && pool.length ? '' : 'disabled'}>소집 ${CR}${R.musterCost(run)}</button></div>`;
 }
@@ -1331,10 +1352,24 @@ function turretDetail(run: RunState, i: number, bar: string) {
     <div class="t-gear">${tm
       ? `<div class="t-slot">${itemIcon(tm, `data-drag="tgear:${i}:-1" data-drop="tgear:${i}:-1"`)}<div><b>${esc(itemInfo(tm).name)}</b><div class="small muted">${esc(itemInfo(tm).desc)}</div></div><button class="btn tiny" data-a="tunequip" data-v="${i}:-1">해제</button></div>`
       : `<div class="t-slot empty">${turretModEmpty(`data-drop="tgear:${i}:-1"`)}<span class="muted small">빈 칸 — 보관함의 엔지니어 전용 개조부품을 끌어 놓으세요.</span></div>`}</div>
-    <p class="muted small">장비 칸: ${SYN_BY_ID.ENG.tiers.slice(0, 3).map((m, k) => `${k ? '' : '엔지니어 '}${m}명${k === 2 ? ' 이상' : ''} ${turretSlots(k + 1)}칸`).join(' · ')}. 포탑 전용 장비는 분기점의 [정비]에서 삽니다. 개조부품은 엔지니어 ${SYN_BY_ID.ENG.tiers.join(' · ')}명에 처음 닿을 때마다 1개씩 얻습니다. 일반 기물에게는 장착할 수 없고, 포탑 · 칸이 줄거나 엔지니어 시너지가 꺼지면 넘치는 장비 · 개조부품은 보관함으로 돌아옵니다.</p>
+    <p class="muted small">${TURRET_RULES.map((x) => `${x[0]}: ${x[1]}`).join('. ')}.</p>
   </div>`;
 }
 
+/** 무휼 성장 칸: 성장 상태 (단계 · 누적) | 다음 승리 수집량 | 수집 근거 (기본 몫 · 장비 몫 · 청라 배율). 수치는 chungra.ts (causalGain) */
+function kingCells(run: RunState, pts: number, n: number, hi: number, left: number, t: number, g: { total: number; gear: number; score: number }) {
+  const m = CAUSAL.mult[Math.min(CAUSAL.mult.length - 1, t)] || 0, chr = synergyCounts(deployed(run), run).CHR || 0;
+  const cell = (k: string, v: string, sub: string) => `<div class="kg-c"><span class="kg-k">${k}</span><b class="kg-v">${v}</b><span class="kg-s">${sub}</span></div>`;
+  return `<div class="kg-cells">
+    ${cell('성장 상태', n >= CAUSAL.max ? `${pts}` : `${pts}<small>/${hi}</small>`, n >= CAUSAL.max ? '누적 인과율 · 최고 단계' : `누적 인과율 · ${n + 1}단계까지 ${left}`)}
+    ${cell('다음 승리 수집량', m ? `+${g.total}` : '—', m ? '예상 · 이긴 전투마다' : `${SYN_BY_ID.CHR.name} ${SYN_BY_ID.CHR.tiers[0]}명 이상 출전 시`)}
+    <div class="kg-c kg-why"><span class="kg-k">수집 근거</span><div class="sh-row">
+      ${kvChip('기본 몫', `<b>+${g.total - g.gear}</b>`, `기본 ${CAUSAL.base} × 청라 배율`)}
+      ${kvChip('장비 몫', `<b>+${g.gear}</b>`, `출전 아군 장비 점수 ${g.score} ÷ ${CAUSAL.gearDiv} × 청라 배율 (재료 ${CAUSAL.gearPts.C} · 고급 ${CAUSAL.gearPts.G} · 희귀 ${CAUSAL.gearPts.A} · 전설 ${CAUSAL.gearPts.L})`)}
+      ${kvChip('청라 배율', `<b>×${m}</b>`, `${SYN_BY_ID.CHR.name} ${chr}명 (단계별 ${CAUSAL.mult.slice(1).map((x) => `×${x}`).join(' · ')})`, m ? '' : 'zero')}
+    </div></div>
+  </div>`;
+}
 /** 공왕 무휼 상세 (기물 상세 형식): 인과 단계 · 인과율 · 능력치 · 전용 장비 · 능력. 미리보기 전투에서 실제 수치를 읽는다 */
 function kingDetail(run: RunState, bar: string) {
   const d = UNIT_BY_ID.muhyul, vu = kingState(run);
@@ -1358,7 +1393,7 @@ function kingDetail(run: RunState, bar: string) {
     <div class="d-hero">${hero(d.id) || `<div class="hero none">${sprite(d, 'spr big')}</div>`}
       <div class="dh-name"><b>${esc(d.name)}</b><span class="dh-types"><i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i><i>공왕 · 소환</i></span></div></div>
     <div class="dh-rank king-rank"><span class="dh-r" title="공명 등급 대신 인과 단계">인과 ${n}단계</span><span class="xpbar" title="누적 인과율 ${pts}"><i style="width:${prog}%"></i></span><span class="small muted">${n >= CAUSAL.max ? '최고 단계' : `다음까지 ${left}`}</span></div>
-    <p class="small muted">누적 인과율 <b>${pts}</b> · 청라공국 ${counts.CHR || 0}명 (수집 ×${CAUSAL.mult[t] || 0})${t ? ` · 다음 승리 예상 +${g.total} (장비 점수 ${g.score} → +${g.gear})` : ' · 3명 이상이면 소환 · 수집'}</p>
+    ${kingCells(run, pts, n, hi, left, t, g)}
     ${kingOn(run) ? '' : '<p class="small warn">청라공국 기물이 3명 이상 출전해야 전투에 소환됩니다. 쌓은 인과율은 그대로 남습니다.</p>'}
     ${powRow(b, c, d, true)}
     <h3>인과 단계 효과</h3><p class="small">${esc(kingStageText(n))}</p>
@@ -1853,19 +1888,20 @@ function unitSummary(run: RunState, u: UnitState, d: UnitDef, b: Battle, c: CUni
   const blurb = unitBlurb(d);
   const sc = schoolOf(u);
   const cv = sc ? cantripView(sc, u.augments) : null, pv = sc ? passiveView(sc, u.augments) : null;
-  const changes: string[] = [];
-  if (cv?.transform) changes.push(`<b>◆ 현재 비술은 「${esc(cv.transform)}」으로 변형됨</b>`);
-  if (pv?.transform) changes.push(`<b>◆ 지속 능력이 「${esc(pv.transform)}」으로 변형됨</b>`);
-  const mods = [...new Set([...(cv?.mods || []), ...(pv?.mods || [])])];
-  if (mods.length) changes.push(`전공 증강 반영: ${mods.map(esc).join(' · ')}`);
-  const augs = (u.augments.filter((a) => !a.id.startsWith('school.')).map((a) => AUG_BY_ID[a.id]?.name).filter(Boolean) as string[]).filter((n) => !mods.includes(n) && n !== cv?.transform && n !== pv?.transform);
-  if (augs.length) changes.push(`증강 ${augs.length}개: ${augs.slice(0, 4).map(esc).join(' · ')}${augs.length > 4 ? ' …' : ''}`);
-  const items = u.items.filter(Boolean).length + (u.mod ? 1 : 0);
-  if (items) changes.push(`장비 ${items}개 장착`);
+  // 변형: 바뀐 능력 (상태 칩) · 증강: 아이콘 줄 (누르면 설명) · 장비: 작은 칸 줄 — 문장으로 잇지 않는다
+  const tf = [cv?.transform ? ['비술', cv.transform] : null, pv?.transform ? ['지속 능력', pv.transform] : null].filter((x): x is [string, string] => !!x);
+  const augs = u.augments.filter((a) => !a.id.startsWith('school.') && AUG_BY_ID[a.id]);
+  const slots = [...u.items, ...(u.mod ? [u.mod] : [])];
+  const gear = slots.some(Boolean);
   void run; void b; void c;
+  const grp = (k: string, body: string) => `<div class="us-g"><span class="us-gk">${k}</span>${body}</div>`;
   return `<section class="um-sum" aria-label="요약">
     ${blurb ? `<p class="us-blurb">${esc(blurb).replace(/「([^」]*)」/g, '<b>「$1」</b>')}</p>` : ''}
-    <div class="us-row us-build"><span class="us-k">이번 빌드</span><p>${changes.length ? changes.join('<br>') : '<span class="muted">기본 상태 (증강 · 장비 없음)</span>'}</p></div>
+    <div class="us-row us-build"><span class="us-k">이번 빌드</span>${tf.length || augs.length || gear ? `<div class="us-bd">
+      ${tf.length ? grp('변형', tf.map(([k, n]) => tchip('<span aria-hidden="true">◆</span>', `${k} → ${esc(n)}`, 'tf', `${k}이 「${n}」으로 변형됨`)).join('')) : ''}
+      ${augs.length ? grp(`증강 ${augs.length}`, `<div class="tt-icons">${augs.map((a) => `<button class="tt-ic ab-click${abilOn(`aug:${a.id}`)}" data-a="abil-pop" data-v="aug:${esc(a.id)}" title="${esc(augMark(a.id) + (AUG_BY_ID[a.id]?.name || a.id))}">${augIcon(a.id)}</button>`).join('')}</div>`) : ''}
+      ${gear ? grp('장비', `<span class="us-gear">${slots.map((id) => itemIcon(id)).join('')}</span>`) : ''}
+    </div>` : '<p class="muted">기본 상태 (증강 · 장비 없음)</p>'}</div>
   </section>`;
 }
 /** 기물 전체 상세 팝업. pv = 영입 전 미리보기 (복제한 런에 합류시킨 모습, 방출 · 경험치 구매 없음) */
@@ -1911,10 +1947,10 @@ function unitModal(run: RunState, pv = false) {
         ${unitSummary(run, u, d, b, c)}
         <div class="um-col um-c">
           <h3>전투 유형</h3>
-          <dl class="um-types">
-            <dt>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</dt><dd>${esc(CTYPE_DESC[d.ctype]?.[app.detail ? 1 : 0] || '')}</dd>
-            <dt>${CATEGORY_NAME[cat]}</dt><dd>${esc(CATEGORY_RULE[cat])}</dd>
-          </dl>
+          <div class="subs um-rules">
+            ${sub('um:ct', CTYPE_ICON(d.ctype), `ct-${d.ctype}`, CTYPE_NAME[d.ctype], '공통 규칙', `<p>${esc(CTYPE_DESC[d.ctype]?.[app.detail ? 1 : 0] || '')}</p>`)}
+            ${sub('um:cat', lineIcon(`k.${cat}`, 'li'), `cat-${cat}`, CATEGORY_NAME[cat], '분류 규칙', `<p>${esc(CATEGORY_RULE[cat])}</p>`)}
+          </div>
           <h3>전투 능력</h3>
           <div class="abils">
             ${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem, d.id)}
@@ -1928,12 +1964,10 @@ function unitModal(run: RunState, pv = false) {
           <h3>신앙</h3>
           <div class="abils">${faithAbil(d, u, run)}</div>
           <h3>전술 유형</h3>
-          <dl class="um-types">
-            <dt>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</dt><dd>${esc(TTYPE_RULE[d.ttype])}</dd>
-          </dl>
+          <div class="subs um-rules">${sub('um:tt', TTYPE_ICON(d.ttype), `tt-${d.ttype}`, TTYPE_NAME[d.ttype], '공통 규칙', `<p>${esc(TTYPE_RULE[d.ttype])}</p>`)}</div>
           <div class="abils">
             ${ultCard(d, b, c)}
-            ${ttSection(d, u, run, b, c)}${relicSection(d, u, run, c)}
+            ${ttSection(d, u, run, b, c, false, false)}${relicSection(d, u, run, c)}
           </div>
         </div>
       </div>
@@ -2304,10 +2338,62 @@ function summaryModal(run: RunState) {
 }
 
 // ───────────────────────── 화면: 상점
+/** 감시 포탑 장비 규칙 (포탑 상세 · 정비 도움말 공용): [항목, 내용] */
+const TURRET_RULES: [string, string][] = [
+  ['장비 칸', SYN_BY_ID.ENG.tiers.slice(0, 3).map((m, k) => `${k ? '' : '엔지니어 '}${m}명${k === 2 ? ' 이상' : ''} ${turretSlots(k + 1)}칸`).join(' · ')],
+  ['포탑 전용 장비', '분기점의 [정비]에서 구매 · 일반 기물에게는 장착할 수 없음'],
+  ['개조부품', `엔지니어 ${SYN_BY_ID.ENG.tiers.join(' · ')}명에 처음 닿을 때마다 1개`],
+  ['회수', '포탑 · 칸이 줄거나 엔지니어 시너지가 꺼지면 넘치는 장비 · 개조부품은 보관함으로'],
+];
+/** 상태 칩 (이름 + 값): 지도 노드 미리보기의 예상 수입 칸(.ah-in)과 같은 모양. 화면 머리의 상태 줄 공용 */
+const kvChip = (label: string, val: string, title = '', cls = '') => `<span class="ah-in kv ${cls}"${title ? ` title="${esc(title)}"` : ''}><small>${label}</small><span class="kv-v">${val}</span></span>`;
+/** 조건 칩 (확정 · 전용 등 켜진 규칙): 지도 노드 미리보기의 모디파이어 칸(.ah-md)과 같은 모양 */
+const modChip = (icon: string, txt: string, title = '', cls = '') => `<span class="ah-md tx ${cls}"${title ? ` title="${esc(title)}"` : ''}>${icon}<b>${txt}</b></span>`;
+/** 장비 조합법 (암시장 도움말): 재료 + 같은 재료 = 고급 · 재료 + 다른 재료 = 희귀 · 전설 합성 불가. 예시 장비 · 능력치는 데이터(combine · itemInfo)에서 */
+function combineHelp() {
+  const a = `C_${MAJORS[1]}`, b = `C_${MAJORS[2]}`;
+  const g = combine(a, a), r = combine(a, b);
+  if (!g || !r) return '';
+  const pts = (id: string) => Object.values(itemInfo(id).majors).reduce((x, y) => x + (y || 0), 0);
+  const it = (id: string) => `<span class="ask-it">${itemIcon(id)}<span>${esc(itemInfo(id).name)}</span></span>`;
+  const row = (k: string, eq: string, note: string) => `<div class="cmb-row"><span class="cmb-k">${k}</span><div class="ask-eq">${eq}</div><span class="cmb-v">${note}</span></div>`;
+  const lg = `L_${r.slice(2)}`;
+  return `<div class="cmb">
+    ${row('고급', `${it(a)}<b>+</b>${it(a)}<b>=</b>${it(g)}`, `능력치 <b>+${pts(g)}</b>`)}
+    ${row('희귀', `${it(a)}<b>+</b>${it(b)}<b>=</b>${it(r)}`, `능력치 <b>+${pts(r)}</b> + 고유 효과`)}
+    ${row('전설', it(lg), '합성 불가')}
+    <p class="muted small">같은 기물에 장착하거나 보관함에서 겹치면 합성</p></div>`;
+}
+/** 상점 머리: 제목 + 상태 칩 한 줄 (규칙은 접힌 도움말로) */
+function shopHead(run: RunState, stock: NonNullable<NonNullable<RunState['node']>['shop']>) {
+  const PART = lineIcon('r.part', 'li'), CONS = lineIcon('r.cons', 'li');
+  if (run.node?.maint) {
+    const free = stock.filter((s) => !s.price && !s.sold).length;
+    return `<div class="screen-head"><h1>정비</h1><div class="sh-row">
+      ${modChip(lineIcon('k.mech', 'li'), '감시 포탑 전용', '포탑 전용 장비는 감시 포탑에만 장착 (일반 기물 장착 불가)', 'cat-mech')}
+      ${free ? modChip(lineIcon('m.gift', 'li'), `보급형 ${free}개 무료`, '', 'good') : ''}
+    </div></div>`;
+  }
+  if (run.node?.synth) {
+    const t = R.occultTier(run), disc = OCCULT_SYNTH.disc[t - 1] || 0;
+    return `<div class="screen-head"><h1>합성 공방</h1><div class="sh-row">
+      ${t ? kvChip(SYN_BY_ID.OCCULT.name, `<b>${t}단계</b>`, '', 'syn') : ''}
+      ${kvChip('상품', `<b>${OCCULT_SYNTH.base + t}</b>`, `기본 ${OCCULT_SYNTH.base} + 신비학자 단계`)}
+      ${disc ? modChip('', `가격 −${pctTxt(disc)}`, `신비학자 ${t}단계 할인`, 'good') : ''}
+      <span class="muted small sh-hint">산 소모품은 보관함에서 기물 · 장비에 끌어 사용</span>
+    </div></div>`;
+  }
+  const S = CFG.shop;
+  return `<div class="screen-head"><h1>암시장 상점</h1><div class="sh-row">
+    ${run.phase >= S.gearFrom ? modChip(PART, '고급 · 희귀 1개 이상 확정', `${S.gearFrom}페이즈부터 고급 · 희귀 장비가 1개 이상 늘 진열됩니다`, 'good') : ''}
+    <span class="ah-in cons" title="소모품 1개 입고 확률">${CONS}<small>소모품</small><b>${pctTxt(S.cons)}</b></span>
+    <span class="ah-in emb" title="문장 1개 입고 확률 (출전 기물의 시너지 위주)">${PART}<small>문장</small><b>${pctTxt(S.emblem)}</b></span>
+  </div><div class="subs sh-help">${sub('help:combine', PART, 'g-C', '조합법', '', combineHelp())}</div></div>`;
+}
 function shopScreen(run: RunState) {
   const stock = run.node?.shop || [];
   return `<main class="wrap">
-    <div class="screen-head">${run.node?.maint ? `<h1>정비</h1><p class="muted">엔지니어의 정비 창고입니다. 포탑 전용 장비는 감시 포탑에만 장착할 수 있습니다 (일반 기물 장착 불가). 보급형 1개는 무료입니다. 보관함의 장비를 아래 포탑 칸에 끌어 놓거나, 편성 화면의 포탑에 끌어 놓으세요.</p>` : run.node?.synth ? `<h1>합성 공방</h1><p class="muted">신비학자의 비밀 공방입니다. 소모품은 보관함에 들어가며, 보관함에서 기물이나 장비에 끌어다 놓아 사용합니다.</p>` : `<h1>암시장 상점</h1><p class="muted">재료 2개를 같은 기물에 장착하거나 보관함에서 겹치면 합성됩니다. 같은 재료 → 고급 장비(능력치 +12), 서로 다른 재료 → 희귀 장비(능력치 +6 + 고유 효과). 전설 장비는 합성할 수 없습니다. 가끔 소모품이, 드물게 문장이 들어오고, ${CFG.shop.gearFrom}페이즈부터는 고급 · 희귀 장비가 1개 이상 늘 진열됩니다.</p>`}</div>
+    ${shopHead(run, stock)}
     <div class="shop">${stock.map((s, i) => {
       const it = itemInfo(s.item);
       return `<div class="shop-item t${isLegendConsumable(s.item) ? 'L' : it.tier} ${s.sold ? 'sold' : ''}">${itemIcon(s.item)}<div><b>${esc(it.name)}</b><div class="small muted">${statIc(esc(it.desc))}</div></div>
@@ -2322,10 +2408,10 @@ function shopScreen(run: RunState) {
 function maintTurrets(run: RunState) {
   const n = turretCount(run), slots = turretSlots(engTier(run));
   if (!n) return '<p class="muted small">엔지니어가 출전하지 않아 설치된 포탑이 없습니다.</p>';
-  return `<div class="maint-tur"><h3>감시 포탑 <span class="muted small">${n}기 · 포탑마다 장비 ${slots}칸 + 개조부품 1칸</span></h3><div class="mt-list">${[...Array(n).keys()].map((i) => {
+  return `<div class="maint-tur"><div class="mt-head"><h3>감시 포탑</h3>${kvChip('포탑', `<b>${n}</b>기`)}${kvChip('장비', `<b>${slots}</b>칸`, '포탑마다')}${kvChip('개조부품', '<b>1</b>칸', '포탑마다 · 엔지니어 전용')}<span class="muted small mt-hint">보관함 장비를 포탑 칸에 끌어 장착</span></div><div class="mt-list">${[...Array(n).keys()].map((i) => {
     const g = run.turretGear?.[i] || [], tm = run.turretMods?.[i];
     return `<div class="mt-row" data-drop="turret:${i}">${sprite(TURRET_SPR)}<b>포탑 ${i + 1}</b><span class="tag cat-mech">${lineIcon('k.mech', 'li')}기계</span><span class="mt-slots">${[...Array(slots).keys()].map((k) => g[k] ? itemIcon(g[k], `data-drag="tgear:${i}:${k}" data-drop="tgear:${i}:${k}"`) : itemIcon(null, `data-drop="tgear:${i}:${k}"`)).join('')}${tm ? itemIcon(tm, `data-drag="tgear:${i}:-1" data-drop="tgear:${i}:-1"`) : turretModEmpty(`data-drop="tgear:${i}:-1"`)}</span></div>`;
-  }).join('')}</div></div>`;
+  }).join('')}</div><div class="subs sh-help">${sub('help:turret', lineIcon('k.mech', 'li'), 'cat-mech', '포탑 장비 규칙', '', `<dl class="um-types">${TURRET_RULES.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`)}</div></div>`;
 }
 
 function newsScreen(run: RunState) {
@@ -2344,7 +2430,11 @@ function newsScreen(run: RunState) {
 function investScreen(run: RunState) {
   const offers = run.node?.invest || [];
   return `<main class="wrap">
-    <div class="screen-head"><h1>호이슌 투자 창구</h1><p class="muted">호이슌 홀딩스가 특별 상품을 내밀었습니다. 보유 ${CR}<b class="accent">${run.credits}</b> <span class="small" title="${esc(interestLines(run).tip)}">(다음 전투 이자 +${R.interestInfo(run).interest})</span>${run.fund ? ` · 다음 페이즈 정산 예정 <b>${run.fund}</b>` : ''}</p></div>
+    <div class="screen-head"><h1>호이슌 투자 창구</h1><div class="sh-row">
+      ${kvChip('보유', `${CR}<b>${run.credits}</b>`, '에너지 크레딧', 'cr')}
+      ${kvChip('다음 전투 이자', `<b>+${R.interestInfo(run).interest}</b>`, interestLines(run).tip, 'cr')}
+      ${kvChip('만기 정산', run.fund ? `${CR}<b>${run.fund}</b>` : '<b>—</b>', run.fund ? '다음 페이즈 시작에 돌려받는 크레딧 (호이슌 펀드)' : '맡긴 펀드 없음', run.fund ? 'cr' : 'zero')}
+    </div><p class="muted small">호이슌 홀딩스가 특별 상품을 내밀었습니다.</p></div>
     <div class="shop">${offers.map((o, i) => {
       const d = R.INVEST_OFFERS[o.id];
       return `<div class="shop-item ${o.sold ? 'sold' : ''}"><span class="item tA">${synIcon('HOI')}</span><div><b>${esc(d.name)}</b><div class="small muted">${ic(esc(d.desc(run, o)))}</div></div>
@@ -4936,6 +5026,7 @@ function showSyn(el: HTMLElement) {
   tip.innerHTML = synPopHtml(el.dataset.syn!);
   document.body.appendChild(tip);
   placeSyn(tip, el);
+  tip.querySelector('details.sp-more')?.addEventListener('toggle', (e) => { if (app.run) synMore = (e.target as HTMLDetailsElement).open; placeSyn(tip, el); });
   kwPinned = el;
   synFocus(el.dataset.syn!, 'pin');
 }

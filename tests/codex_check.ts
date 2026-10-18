@@ -16,6 +16,7 @@ import { SYNERGIES } from '../src/data/synergies';
 import { UNIT_BY_ID, UNITS } from '../src/data/units';
 import { ULTS } from '../src/data/ults';
 import { LORE, LORE_BY_ID, loreWords } from '../src/data/worldlore';
+import { splitFx, tagOf } from '../src/ui/tierdiff';
 import { codex2Body, codex2Detail, CX2, CX2_TABS, type Cx2Tab, type CxH, loreLinks } from '../src/ui/codex2';
 import { ELEM_NAME } from '../src/types';
 
@@ -88,7 +89,13 @@ for (const s of SYNERGIES) {
   const d = codex2Detail('syn', s.id, H);
   clean(`시너지 ${s.id} 상세`, d);
   if (!d.includes(esc(s.name))) fail(`시너지 ${s.id}: 상세에 이름이 없음`);
-  s.tierDesc.forEach((t, i) => { if (!d.includes(esc(t))) fail(`시너지 ${s.id}: ${i + 1}단계 효과가 상세에 없음`); });
+  // 단계표는 효과를 한 줄씩 나눠 그린다 (ui/tierdiff.ts) → 글자만 남긴 상세에 단계 이름표와 효과 조각이 모두 있는지
+  const dt = d.replace(/<[^>]+>/g, '');
+  s.tierDesc.forEach((t, i) => {
+    const { tag, rest } = tagOf(t);
+    const miss = [...(tag ? [tag] : []), ...splitFx(rest)].filter((x) => !dt.includes(esc(x)));
+    if (miss.length) fail(`시너지 ${s.id}: ${i + 1}단계 효과가 상세에 없음 (${miss.join(' / ')})`);
+  });
   for (const u of UNITS.filter((x) => ([...x.factions, ...x.traits] as string[]).includes(s.id))) if (!d.includes(`data-v="unit:${u.id}"`)) fail(`시너지 ${s.id}: 소속 기물 ${u.name} 이 상세에 없음`);
   if (EMBLEM_SYNS.includes(s.id) && !d.includes(`go:items:${emblemId(s.id)}`)) fail(`시너지 ${s.id}: 문장이 상세에 없음`);
 }

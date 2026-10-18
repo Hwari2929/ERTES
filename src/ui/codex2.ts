@@ -33,6 +33,7 @@ import { schoolCore, schoolWarnings } from './matchup';
 import { loadMeta } from './meta';
 import { artURL, bgURL } from './portraits';
 import { lineIcon, synIcon } from './synicons';
+import { tierCellHtml } from './tierdiff';
 
 /** main.ts 의 그림 조각 */
 export interface CxH {
@@ -465,7 +466,8 @@ function synDetail(H: CxH, sid: SynergyId): string {
   const mem = UNITS.filter((d) => memberOf(d, sid));
   const a: string[] = [], b: string[] = [];
   a.push(`<p class="cx2-lead">${br(s.desc)}</p>`);
-  a.push(`<h3>단계별 효과</h3><table class="cx-tbl cx2-tiers"><tbody>${s.tiers.map((need, i) => `<tr><th class="f-num">${need}명</th><td>${esc(s.tierDesc[i] ?? '')}</td></tr>`).join('')}</tbody></table>`);
+  // 단계별 효과: 효과 한 줄씩, 이전 단계보다 바뀐 숫자 강조 · 새로 붙은 효과 '+' (tierdiff.ts, 문구는 tierDesc 그대로)
+  a.push(`<h3>단계별 효과 <span class="cx-hn">바뀐 수치 강조 · + 새 효과</span></h3><table class="cx-tbl cx2-tiers" style="--c:${s.color}"><tbody>${s.tiers.map((need, i) => `<tr><th class="f-num">${need}명</th><td>${tierCellHtml(s.tierDesc[i - 1], s.tierDesc[i] ?? '', esc, H.statIc)}</td></tr>`).join('')}</tbody></table>`);
   b.push(`<h3>소속 기물 <span class="cx-hn">${mem.length}명</span></h3>${memberCards(H, mem)}`);
   if (EMBLEM_SYNS.includes(sid)) a.push(`<h3>문장</h3><ul class="cx2-rows"><li>${itemRow(H, emblemId(sid))}</li></ul>`);
   const gear = synGear(sid);
