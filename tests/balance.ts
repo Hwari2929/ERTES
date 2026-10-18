@@ -8,7 +8,8 @@ import { SYNERGIES, tierOf } from '../src/data/synergies';
 import { boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyCell, layout, memberships, synergyCounts } from '../src/engine/build';
 import { Battle, type CUnit, type DmgOpts, type DmgResult } from '../src/engine/combat';
 import * as R from '../src/engine/run';
-import { augChoice, forkChoice, manageItems, shopSynth, type Track, pilgrimBot } from './botlib';
+import { augChoice, forkChoice, manageItems, manageItemsFix, newIns, shopSynth, type BotIns, type Track, pilgrimBot } from './botlib';
+import { ALL_AREAS, Chulsu, DEFAULT_AREAS, DLog, pickStarters, type Area } from './chulsu';
 import { Rng } from '../src/rng';
 import { RELICS } from '../src/data/relics';
 import { FIELDS } from '../src/data/battlefields';
@@ -59,6 +60,15 @@ const POL_ADV = ADVPOL[0] || '', POL_CH = ADVPOL[1] || ADVPOL[0] || '';
 const ADVSTUDY = process.argv.includes('advstudy');
 /** 역경 계측에서 같은 상태 · 같은 조우로 다시 돌려 보는 배수 ('n' = 같은 칸 일반 전투 배수 1 + 0.04 × 칸) */
 const STUDY_MULTS: (number | 'n')[] = [1, 'n', 1.15, 1.2, 1.25, 1.3];
+/** bot=dumbi (기본, 예전 봇 그대로) · rara (덤비 + 장비 운용 결함 수정만) · chulsu (편성 · 장비 · 성장 판단, tests/chulsu). docs/BOT_CHULSU.md */
+const BOT = (process.argv.find((a) => a.startsWith('bot='))?.slice(4) || 'dumbi') as 'dumbi' | 'rara' | 'chulsu';
+if (!['dumbi', 'rara', 'chulsu'].includes(BOT)) throw new Error(`알 수 없는 봇: ${BOT}`);
+/** chulsu=form,gear,growth,start,recruit — 철수 판단 영역 (없으면 DEFAULT_AREAS = form,gear,growth,start). 꺼진 영역은 라라와 같다. start 는 계약 후보(pool) 안에서 고른다 */
+const CH_AREAS = new Set<Area>(BOT === 'chulsu' ? ((process.argv.find((a) => a.startsWith('chulsu='))?.slice(7).split(',').filter(Boolean) as Area[]) || DEFAULT_AREAS) : []);
+for (const a of CH_AREAS) if (!ALL_AREAS.includes(a)) throw new Error(`알 수 없는 철수 영역: ${a}`);
+/** instr: 런마다 계측 기록 (조우 진입 상태 · 장비 현황 · 실패 사유 · 실행 시간) → runs[].ins. dlog: 철수 판단 기록 → runs[].dlog. 둘 다 없으면 출력은 예전과 같다 */
+const INSTR = process.argv.includes('instr');
+const DLOG = process.argv.includes('dlog');
 
 // ───────── 역경 계측: 첫 아군 사망 · 첫 적 처치 시각 (전투 동작은 그대로, 시각만 기록)
 type Enc = NonNullable<NonNullable<RunState['node']>['enc']>;
@@ -184,16 +194,24 @@ const STARTERS = UNITS.filter((u) => !u.noStarter).map((u) => u.id);
 const runs: unknown[] = [];
 
 function playRun(seed: number) {
+  const t0 = performance.now();
   const bot = new Rng(seed * 7 + 1);
   let starters = bot.sample(STARTERS, CFG.startUnits);
-  if (POOL) { // 전장은 newRun 과 같은 추첨 (시드 첫 난수)
+  const startLog = new DLog({ phase: 0, step: 0 } as RunState, DLOG);
+  if (POOL || CH_AREAS.has('start')) { // 전장은 newRun 과 같은 추첨 (시드 첫 난수)
     const pr = new Rng(seed * 13 + 5), field = FORCE_FIELD || new Rng(seed).pick(FIELDS).id, syn = fieldSyn(field);
     const pool = starterPool(pr, field);
     const fav = pr.shuffle(pool.filter((id) => !!syn && ([...UNIT_BY_ID[id].factions, ...UNIT_BY_ID[id].traits] as string[]).includes(syn))).slice(0, CFG.starterFav);
     starters = [...fav, ...pr.sample(pool.filter((id) => !fav.includes(id)), CFG.startUnits - fav.length)];
+    if (CH_AREAS.has('start')) starters = pickStarters(seed, pool, field, DIFF, startLog); // 철수: 후보 8명 중 4명 조합을 모두 비교
   }
   if (CHR) { const pick = bot.sample(CHR_IDS, 2); starters = [...pick, ...starters.filter((x) => !pick.includes(x))].slice(0, CFG.startUnits); }
   const run = R.newRun(seed, starters, FORCE_FIELD, DIFF, OATH_SEL);
+  const INS: BotIns | undefined = INSTR || BOT !== 'dumbi' ? newIns() : undefined;
+  const CH = BOT === 'chulsu' ? new Chulsu(run, { areas: CH_AREAS, dlog: DLOG, ins: INS }) : null;
+  if (CH) CH.log.list.push(...startLog.list);
+  let dms = 0; // 봇 판단 시간 (manage · 선택지 처리, ms)
+  const encRec: number[][] = [], gearRec: number[][] = [];
   const synMax: Record<string, number> = {};
   const det: Record<string, [number, number]> = {}; // detail 모드: `키|페이즈:노드` → [전투, 승리]
   const relicSet = new Set<string>();
@@ -222,7 +240,7 @@ function playRun(seed: number) {
       else if (p.t === 'rankup') {
         const u = run.units.find((x) => x.uid === p.uid)!;
         const pref: Major[] = UNIT_BY_ID[u.defId].range <= 1 ? ['vit', 'pow'] : ['pow', 'mnd'];
-        if (!p.allocDone) R.allocRank(run, p, pref); // 대성공이면 같은 능력치 2배
+        if (!p.allocDone) R.allocRank(run, p, (!p.allocDone && CH?.alloc(p)) || pref); // 대성공이면 같은 능력치 2배. 철수 growth: 실제 계수 기준
         R.ensureRankupOptions(run, p);
         { const a = augChoice(p, (o) => bot.pick(o)); if (a) R.chooseAug(run, p.uid, a); }
       } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
@@ -231,7 +249,8 @@ function playRun(seed: number) {
         const have = new Map<string, number>();
         for (const u of run.units) { const d = UNIT_BY_ID[u.defId]; for (const x of [...d.factions, ...d.traits]) have.set(x, (have.get(x) || 0) + 1); }
         const score = (id: string) => { const d = UNIT_BY_ID[id]; return [...d.factions, ...d.traits].reduce((s2, x) => s2 + (have.get(x) || 0), 0) + bot.next() + (CHR && isFac(id) ? 20 : 0); };
-        const pick = p.options.slice().sort((x, y) => score(y) - score(x))[0];
+        // 철수 recruit: 영입 뒤 가능한 출전 편성의 팀 가치 비교 (덤비 점수는 동점 처리에만). 없으면 덤비 그대로 (정렬 비교마다 난수를 쓰는 예전 동작 유지)
+        const pick = (CH?.has('recruit') && CH.recruit(p.options, (id) => score(id))) || p.options.slice().sort((x, y) => score(y) - score(x))[0];
         for (const id of p.options) add('offer', id, { offered: 1, picked: id === pick ? 1 : 0 });
         R.recruit(run, pick);
       } else if (p.t === 'supply') R.flipAllSupply(run, p);
@@ -244,10 +263,13 @@ function playRun(seed: number) {
   };
   const track: Track = (id, what) => { add('cons', id, { [what]: 1 }); if (what === 'used') consUsed++; };
   const manage = () => {
-    manageItems(run, track);
+    const tm = performance.now();
+    if (CH) CH.manageItems(track);
+    else if (BOT === 'rara') manageItemsFix(run, track, INS);
+    else manageItems(run, track, INS);
     // 함대 확장: 출전 인원이 보유 기물보다 적으면 우선 구매 (예비 15 남김)
     for (let c = R.fleetCost(run); c !== null && run.units.length > R.deployCap(run) && run.credits >= c + 15; c = R.fleetCost(run)) R.buyFleet(run);
-    while (run.credits >= 30 + R.xpCost(run)) {
+    if (!CH?.buyXp()) while (run.credits >= 30 + R.xpCost(run)) {
       const u = run.units.filter((x) => x.pos && x.rank < CFG.maxRank).sort((a, b) => a.rank - b.rank)[0];
       if (!u || !R.buyXp(run, u.uid)) break;
     }
@@ -262,7 +284,8 @@ function playRun(seed: number) {
       if (!out) break;
       u.pos = out.pos; out.pos = null;
     }
-    R.autoPlace(run, CHR ? run.units.slice().sort((a, b) => +isFac(b.defId) - +isFac(a.defId)) : run.units);
+    if (!CH?.arrange()) R.autoPlace(run, CHR ? run.units.slice().sort((a, b) => +isFac(b.defId) - +isFac(a.defId)) : run.units);
+    dms += performance.now() - tm;
   };
 
   let n = 0, battles = 0;
@@ -293,6 +316,14 @@ function playRun(seed: number) {
     const dep = deployed(run);
     { const c = (crAt[ph] ??= [0, 0]); c[0] += run.credits; c[1]++; }
     const counts = synergyCounts(dep, run) as Record<string, number>;
+    if (INSTR) { // 조우 진입 상태: [페이즈, 노드(0 일반 · 1 역경 · 2 도전 · 3 보스), 칸, 체력, 크레딧, 평균 등급, 최고 등급, 출전 수, 활성 단계 합, 활성 시너지 수, 승(전투 뒤 채움)]
+      const rk = dep.filter((u) => !R.isRock(u)).map((u) => u.rank), act = SYNERGIES.map((s) => tierOf(s.id, counts[s.id] || 0)).filter((t) => t > 0);
+      encRec.push([ph, ['battle', 'adversity', 'challenge', 'boss'].indexOf(ntype), run.step, run.hp, run.credits, rk.length ? Math.round((rk.reduce((a, b) => a + b, 0) / rk.length) * 100) / 100 : 0, Math.max(0, ...rk), dep.length, act.reduce((a, b) => a + b, 0), act.length, -1]);
+      // 장비 현황: [보관함 장비, 출전 기물 장착(고유 제외), 대기 기물 장착, 출전 조합 장비(고급 · 희귀 · 전설), 출전 단일 재료, 보관함 재료, 분리 용제]
+      const g = (u: (typeof run.units)[number]) => u.items.filter((x) => x && !isLocked(x)) as string[];
+      const depG = dep.flatMap(g), benG = run.units.filter((u) => !u.pos).flatMap(g);
+      gearRec.push([run.inventory.filter((x) => /^[CGAL]_/.test(x)).length, depG.length, benG.length, depG.filter((x) => /^[GAL]_/.test(x)).length, depG.filter((x) => x[0] === 'C').length, run.inventory.filter((x) => /^C_/.test(x)).length, R.solventLeft(run)]);
+    }
     if (!czAt[ph]) czAt[ph] = [run.causal || 0, tierOf('CHR', counts.CHR || 0)];
     for (const s of SYNERGIES) { const t = tierOf(s.id, counts[s.id] || 0); if (t > (synMax[s.id] || 0)) synMax[s.id] = t; }
 
@@ -305,6 +336,7 @@ function playRun(seed: number) {
     b.runToEnd();
     const won = b.winner === 0;
     battles++;
+    if (INSTR) encRec[encRec.length - 1][10] = won ? 1 : 0;
     { const k2 = ntype === 'boss' ? 0 : 2; bw[k2]++; if (won) bw[k2 + 1]++; }
     const T = tap; tap = null;
     if (POL_ADV && ntype === 'battle') lastNorm = measure(b);
@@ -425,7 +457,9 @@ function playRun(seed: number) {
   const eco = { nb: rb.length, i: rb.reduce((s, x) => s + x.i, 0), cap: rb.reduce((s, x) => s + x.cap, 0), inc: rb.reduce((s, x) => s + x.c, 0), atCap: rb.filter((x) => x.cap > 0 && x.i >= x.cap).length,
     sp: run.rep?.sp || {}, crAt, end: run.credits, loan: run.loan || 0 };
   runs.push({ seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, causal: run.causal || 0, king: run.causal ? causalStage(run.causal) : 0, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems,
-    cz: czAt, kb: kbAt, chrMax: run.chrTier || 0, bw, diff: run.diff || 0, heat: run.oathHeat || 0, despairs: run.despairs || [], hp: run.hp, eco, ...(DETAIL ? { det } : {}), ...(ADVSTUDY ? { adv: advRecs, nb: nbRecs, maxHp: run.maxHp } : {}) });
+    cz: czAt, kb: kbAt, chrMax: run.chrTier || 0, bw, diff: run.diff || 0, heat: run.oathHeat || 0, despairs: run.despairs || [], hp: run.hp, eco, ...(DETAIL ? { det } : {}), ...(ADVSTUDY ? { adv: advRecs, nb: nbRecs, maxHp: run.maxHp } : {}),
+    ...(INSTR ? { ins: { bot: BOT, areas: [...CH_AREAS], enc: encRec, gear: gearRec, fail: INS!.fail, ev: INS!.ev, ms: Math.round(performance.now() - t0), dms: Math.round(dms), cms: Math.round(CH?.ms || 0), nb: battles } } : {}),
+    ...(DLOG && CH ? { dlog: CH.log.list } : {}) });
 }
 
 for (let i = 0; i < COUNT; i++) {
