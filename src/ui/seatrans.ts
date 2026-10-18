@@ -50,7 +50,7 @@ export const SEA = {
   pop: { island: 140, boat: 60, dur: 560, squash: 0.12 },
   sink: { stretch: 0.12 }, // 물결과 함께 잠기거나 떨어질 때: 위로 솟지 않고 바로 아래로 가속, 세로로 이만큼 늘어난다
   /** 출항 못 한 배: 2번 판이 내려가도 그 자리에 떠 있다가, 맨 앞(아래) 판이 내려가기 시작하고 delay 뒤에 아래로 빠르게 떨어진다 */
-  drop: { delay: 230, dur: 420 },
+  drop: { delay: 215, dur: 420, narrow: 0.24, tall: 0.06 }, // 떨어질 때 가로폭이 narrow 만큼 좁아지고 세로는 tall 만큼 늘어난다
   gulls: { count: 3, delay: 120, gap: 140, fall: 900 }, // 갈매기: 전환 시작 뒤 delay 부터 gap 간격으로 내려와 (fall ms) 맴돌고, 물결이 내려갈 때 함께 날아간다
   launch: { pop: 200, ignite: 140 }, // 엔진이 튀어나오는 시간 · 점화 뒤 출발까지
   /** 비행 궤적: dur 동안 진행도 p = (t/dur)^accel, x 는 앞쪽에서 빨리 나아가다 둔해지고 (turn), y 는 지수로 뒤로 갈수록 급상승 (climb) */
@@ -159,7 +159,7 @@ const gullPath = (f: number) => {
 interface Wave { g: SVGGElement; fill: SVGPathElement; crest: SVGPathElement | null; shade: SVGImageElement | null; glow: string; glints: SVGGElement; grad: SVGLinearGradientElement;
   ph: [number, number, number]; k: [number, number]; y: number; tx: number; ty: number; rot: number }
 interface Puff { el: SVGCircleElement; x: number; y: number; vx: number; vy: number; r0: number; r1: number; t: number; life: number }
-interface Gull { el: SVGPathElement; sh: SVGPathElement; x: number; y: number; tx: number; ty: number; t0: number; ph: number; rate: number; vx: number; vy: number; leaving: boolean }
+interface Gull { el: SVGPathElement; sh: SVGPathElement; x: number; y: number; tx: number; ty: number; t0: number; ph: number; rate: number; vx: number; vy: number; leaving: boolean; leaveT: number; fp: number; fr: number; ax: number }
 
 export interface SeaHandle {
   /** 화면을 다 덮었을 때 (이때 아래 화면을 바꾼다) */
@@ -183,7 +183,7 @@ export function seaTransition(): SeaHandle {
   root.appendChild(defs);
   const waves: Wave[] = [];
   const boatSlot = svg('g'), islandG = svg('g', {}, ISLAND_ART), boatG = svg('g', { class: 'ts-boat' }, BOAT_ART);
-  const fx = svg('g'), gullG = svg('g');
+  const fx = svg('g'), gullG = svg('g', { class: 'ts-gulls' });
   const hit = svg('circle', { class: 'ts-hit', r: 50, fill: 'transparent' });
   const K = C.sticker;
   sticker(islandG, K.line, K.shade, K.alpha, K.dy);
@@ -336,11 +336,11 @@ export function seaTransition(): SeaHandle {
 
   // ───────── 섬 · 배 (수면을 탄다)
   let bx = 0, by = 0, ba = 0, bvx = 0, bvy = 0; // 배 화면 위치 · 각도(도) · 속도 (비행 · 추락 중)
-  let flyT = -1, crashT = -1, launchT = -1, holdY = 0, holdA = 0, holdT = 0, bsq = 0, fly0: readonly [number, number] = [0, 0];
+  let flyT = -1, crashT = -1, launchT = -1, holdY = 0, holdA = 0, holdT = 0, bsq = 0, bnar = 0, fly0: readonly [number, number] = [0, 0];
   const boatX = () => W * (W < 600 ? 0.27 : 0.24), islandX = () => W * (W < 600 ? 0.74 : 0.77);
   const afloatAt = () => enterEnd(1) + C.pop.boat + C.pop.dur; // 배가 다 떠오른 시점
   /** 물체 놓기: sq = 세로 늘림 비율 (+ 늘어남 · - 눌림, 수면 기준점에서), 가로는 반대로 */
-  const place = (g: SVGGElement, x: number, y: number, a: number, s: number, sq = 0) => g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${a.toFixed(2)}) scale(${(s * (1 - sq * 0.7)).toFixed(3)} ${(s * (1 + sq)).toFixed(3)})`);
+  const place = (g: SVGGElement, x: number, y: number, a: number, s: number, sq = 0, sx = 1 - sq * 0.7, sy = 1 + sq) => g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${a.toFixed(2)}) scale(${(s * sx).toFixed(3)} ${(s * sy).toFixed(3)})`);
   /** 배 단위 좌표 → 화면 좌표 */
   const toScreen = (lx: number, ly: number) => { const r = (ba * Math.PI) / 180, s = U * C.objScale; return [bx + (lx * Math.cos(r) - ly * Math.sin(r)) * s, by + (lx * Math.sin(r) + ly * Math.cos(r)) * s] as const; };
   /** 그 판이 내려갈 때 물체가 물속으로 잠기는 정도 (판보다 조금 빨리) */
@@ -363,7 +363,7 @@ export function seaTransition(): SeaHandle {
       const sh = svg('path', { fill: C.sticker.shade, opacity: C.sticker.alpha * 1.5 }), el = svg('path', { fill: '#ffffff' }); // 아주 옅은 그림자 + 흰 날개
       gullG.append(sh, el);
       const tx = W * (0.36 + k * 0.17 + (Math.random() - 0.5) * 0.06), ty = H * (0.2 + Math.random() * 0.13);
-      gulls.push({ el, sh, x: tx + (k - 1) * 40 * U, y: -50 - k * 30, tx, ty, t0: t + k * C.gulls.gap, ph: Math.random() * 6.28, rate: 7 + Math.random() * 2.5, vx: 0, vy: 0, leaving: false });
+      gulls.push({ el, sh, x: tx + (k - 1) * 40 * U, y: -50 - k * 30, tx, ty, t0: t + k * C.gulls.gap, ph: Math.random() * 6.28, rate: 7 + Math.random() * 2.5, vx: 0, vy: 0, leaving: false, leaveT: 0, fp: Math.random() * 6.28, fr: 7, ax: 80 + Math.random() * 120 });
     }
   };
 
@@ -417,7 +417,7 @@ export function seaTransition(): SeaHandle {
         if (exitK(1, t) <= 0) { holdY = by; holdA = ba; holdT = t; }
         else { const h = (t - holdT) / 1000; by = holdY + Math.sin(h * 4) * 2 * U; ba = holdA + Math.sin(h * 3.4) * 1.5; }
         const dropAt = exitAt + exitDelay() + (N - 1) * C.exit.gap + C.drop.delay, k = clamp((t - dropAt) / C.drop.dur);
-        if (k > 0) { by += fall(k) * (H - holdY + 320 * U * C.objScale); bsq = C.sink.stretch * Math.min(1, k * 3); } // 각도는 그대로, 아래로만
+        if (k > 0) { by += fall(k) * (H - holdY + 320 * U * C.objScale); bnar = Math.min(1, k * 2.5); } // 각도는 그대로, 아래로만 · 가로폭이 좁아진다
         if (k >= 1) boat = 'gone';
       }
       if (boat === 'launching') {
@@ -452,7 +452,8 @@ export function seaTransition(): SeaHandle {
       if (by > H + 200 * U) boat = 'gone';
     }
     boatG.style.display = boat === 'hidden' || boat === 'gone' ? 'none' : '';
-    if (boat !== 'hidden' && boat !== 'gone') place(boatG, bx, by, ba, U * C.objScale, boat === 'floating' || boat === 'sinking' ? bsq : 0);
+    if (boat === 'sinking' && bnar > 0) place(boatG, bx, by, ba, U * C.objScale, 0, 1 - C.drop.narrow * bnar, 1 + C.drop.tall * bnar);
+    else if (boat !== 'hidden' && boat !== 'gone') place(boatG, bx, by, ba, U * C.objScale, boat === 'floating' || boat === 'sinking' ? bsq : 0);
     const [hx, hy] = toScreen(0, -30);
     hit.setAttribute('cx', hx.toFixed(1)); hit.setAttribute('cy', hy.toFixed(1)); hit.setAttribute('r', (64 * U * C.objScale).toFixed(1));
 
@@ -469,14 +470,21 @@ export function seaTransition(): SeaHandle {
     for (const g of gulls) {
       if (t < g.t0) { g.el.setAttribute('d', ''); g.sh.setAttribute('d', ''); continue; }
       const s = (t - g.t0) / 1000;
-      if (exitAt >= 0 && !g.leaving) { g.leaving = true; g.vx = 80 + Math.random() * 120; g.vy = -60; }
-      if (g.leaving) { g.vy -= 520 * dt; g.x += g.vx * U * dt; g.y += g.vy * U * dt; }
-      else {
-        const k = outQuart(clamp(s / (C.gulls.fall / 1000)));
+      // 맴돌기 → 떠나기를 끊김 없이: 맴돌던 속도를 그대로 이어받아 위 · 옆으로 서서히 가속하고, 날갯짓은 위상을 이어 가며 빨라진다
+      if (exitAt >= 0 && !g.leaving) { g.leaving = true; g.leaveT = t; }
+      if (g.leaving) {
+        const ramp = clamp((t - g.leaveT) / 450);
+        g.vx += (g.ax - g.vx) * clamp(dt * 2.5 * ramp); g.vy -= 560 * ramp * ramp * dt;
+        g.x += g.vx * U * dt; g.y += g.vy * U * dt;
+      } else {
+        const k = outQuart(clamp(s / (C.gulls.fall / 1000))), x0 = g.x, y0 = g.y;
         g.x += (g.tx + Math.sin(s * 0.9 + g.ph) * 36 * U - g.x) * clamp(dt * 2.4);
         g.y = -60 + (g.ty + Math.sin(s * 1.4 + g.ph) * 10 * U + 60) * k;
+        if (dt > 0) { g.vx = (g.x - x0) / dt / U; g.vy = (g.y - y0) / dt / U; }
       }
-      const flap = Math.sin(s * (g.leaving ? g.rate * 1.5 : g.rate) + g.ph);
+      g.fr += ((g.leaving ? g.rate * 1.5 : g.rate) - g.fr) * clamp(dt * 3);
+      g.fp += g.fr * dt;
+      const flap = Math.sin(g.fp);
       const d = gullPath(flap), sc = (U * C.gullScale).toFixed(3);
       g.el.setAttribute('d', d); g.sh.setAttribute('d', d);
       g.el.setAttribute('transform', `translate(${g.x.toFixed(1)} ${g.y.toFixed(1)}) scale(${sc})`);
