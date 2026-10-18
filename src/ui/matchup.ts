@@ -46,6 +46,15 @@ const catLine = (c: Category) => {
 };
 /** 보스 공통 면역 한 줄 (엔진 BOSS_CC_IMMUNE) */
 export const bossImmuneText = () => `보스: ${BOSS_CC_IMMUNE.map((k) => STATUS_NAME[k]).join('·')} 면역`;
+/** 전장의 주요 적 (토큰 줄용): 비중 30% 이상 분류 (최대 2) 의 비중 · 면역 · 취약 · 저항 + 보스 공통 면역 */
+export function fieldMatchup(fid: string) {
+  const ff = fieldFoes(fid);
+  return {
+    cats: ff.cats.filter((k) => k.share >= 0.3).slice(0, 2).map((x) => ({ c: x.c, share: x.share, ...categoryTraits(x.c) })),
+    bosses: ff.roster.filter((r) => r.boss).length,
+    bossImmune: BOSS_CC_IMMUNE.map((k) => STATUS_NAME[k]),
+  };
+}
 /** 요약 줄: 비중 30% 이상 분류 (최대 2) + 보스 면역 */
 export function matchupLines(fid: string): { cls: string; text: string }[] {
   const ff = fieldFoes(fid);

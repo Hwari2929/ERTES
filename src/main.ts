@@ -33,7 +33,7 @@ import { CAUSAL, causalGain, causalLeft, causalNeed, causalStage, gearScore, KIN
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
 import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from './types';
-import { encounterMatchup, matchupLines, matchupShort, schoolWarnings } from './ui/matchup';
+import { encounterMatchup, fieldMatchup, matchupShort, schoolWarnings } from './ui/matchup';
 import { computeStats, makeSummons, type SummonMade } from './engine/build';
 import { gradeCards, greatFlash } from './ui/revealfx';
 import { BattleView, DEATH_STYLES, fmt, FX, FX_DEFAULT, isDeathStyle, previewDeath, type DeathStyle, type MotionPreset, type UltCut } from './ui/battleview';
@@ -750,11 +750,22 @@ function pickCard(d: UnitDef, o: PickOpts) {
 const CAN_HOVER = typeof matchMedia !== 'undefined' && matchMedia('(hover: hover)').matches;
 
 // ───────────────────────── 출격 연출: 전장 추첨 → 난이도 → 계약 기물
-/** 전장 상성 요약 (적 풀 · 분류 규칙에서 자동 집계) */
-function matchupHtml(fid: string) {
-  const ls = matchupLines(fid);
-  return ls.length ? `<div class="mu-box"><span class="mu-k">이 전장의 주요 적</span>${ls.map((l) => `<span class="mu-l ${l.cls}">${esc(l.text)}</span>`).join('')}</div>` : '';
+/** 전장 상성 요약 (적 풀 · 분류 규칙에서 자동 집계): 편성 화면 '상성'과 같은 토큰 줄 (분류 아이콘 · 이름 · 비중 · 취약(초록) / 저항(빨강) / 면역 칩). head = 머리 글씨 */
+function matchupHtml(fid: string, head = true) {
+  const mu = fieldMatchup(fid);
+  const rows = [
+    ...mu.cats.map((x) => muRow(lineIcon(`k.${x.c}`, 'li'), CATEGORY_NAME[x.c], `${Math.round(x.share * 100)}%`, muTags(x), `cat-${x.c}`, '', `${CATEGORY_NAME[x.c]}: ${CATEGORY_RULE[x.c]} (적 풀 비중)`)),
+    mu.bosses ? muRow(NODE_ICON.boss, NODE_NAME.boss, '', muTag(`${mu.bossImmune.join('·')} 면역`, 'mute'), '', '--c:var(--c-bad)') : '',
+  ].join('');
+  return rows ? `<div class="mu-box">${head ? '<span class="mu-k">이 전장의 주요 적</span>' : ''}<ul class="pb-rows">${rows}</ul></div>` : '';
 }
+/** 상성 토큰 줄 (편성 화면 '상성' · 전장 상세 공용): 아이콘 · 이름 · 인원(비중) · 칩들 */
+function muRow(icon: string, name: string, cnt: string, tags: string, cls = '', st = '', title = '') {
+  return `<li class="pb-row"${title ? ` title="${esc(title)}"` : ''}><i class="pb-ri ${cls}"${st ? ` style="${st}"` : ''}>${icon}</i><b>${esc(name)}</b><span class="pb-cnt">${cnt}</span><span class="pb-tags">${tags}</span></li>`;
+}
+const muTag = (txt: string, tone: 'good' | 'bad' | 'mute') => tchip('', esc(txt), tone);
+/** 분류 하나의 취약 · 저항 · 면역 칩 */
+const muTags = (x: { weak: string[]; resist: string[]; immune: string[] }) => [x.weak.length ? muTag(`${x.weak.join('·')} 취약`, 'good') : '', x.resist.length ? muTag(`${x.resist.join('·')} 저항`, 'bad') : '', x.immune.length ? muTag(`${x.immune.join('·')} 면역`, 'mute') : ''].join('');
 /** 전장 정보: 적 유형 · 우세 속성 · 우세 시너지 */
 function fieldBrief(fid: string) {
   const f = fieldOf(fid);
@@ -2031,7 +2042,7 @@ function eqBox(u: UnitState) {
 const PREP_TIPS = '<p class="pb-tips small muted">기물을 누르면 스탯 · 스킬 · 증강 · 장비를 봅니다. 기물을 끌어 배치를 바꾸고(보드 ↔ 대기열), 장비를 기물에게 끌어 장착합니다.</p>';
 function prepBrief(run: RunState) {
   const enc = run.node?.enc;
-  if (!enc) return `<div class="detail pb"><h3>이 전장의 주요 적</h3>${matchupHtml(run.field) || '<p class="small muted">특별한 면역 · 취약 없음</p>'}${PREP_TIPS}</div>`;
+  if (!enc) return `<div class="detail pb"><h3>이 전장의 주요 적</h3>${matchupHtml(run.field, false) || '<p class="small muted">특별한 면역 · 취약 없음</p>'}${PREP_TIPS}</div>`;
   const type = run.node!.type;
   // 같은 적은 한 줄로 묶는다 (장비는 편성 보드의 적 카드에 보인다). 누르면 그 적의 첫 개체 상세
   const groups = new Map<string, { id: string; i: number; n: number; idx: number[] }>();
@@ -2061,13 +2072,11 @@ function prepBrief(run: RunState) {
       <span class="pb-sub">${rankChip(groupRank(x.e, x.idx))}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${x.e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}${atk}</span></button></li>`;
   };
   // 상성 · 아군 공격 속성: 같은 줄 토큰 (아이콘 · 이름 · 인원 · 유리(초록) / 불리(빨강) / 면역 칩)
-  const row = (icon: string, name: string, n: number, tags: string, cls = '', st = '') => `<li class="pb-row"><i class="pb-ri ${cls}"${st ? ` style="${st}"` : ''}>${icon}</i><b>${esc(name)}</b><span class="pb-cnt">${n}명</span><span class="pb-tags">${tags}</span></li>`;
-  const tag = (txt: string, tone: 'good' | 'bad' | 'mute') => tchip('', esc(txt), tone);
   const muRows = [
-    ...mu.cats.map((x) => row(lineIcon(`k.${x.c}`, 'li'), CATEGORY_NAME[x.c], x.n, [x.weak.length ? tag(`${x.weak.join('·')} 취약`, 'good') : '', x.resist.length ? tag(`${x.resist.join('·')} 저항`, 'bad') : '', x.immune.length ? tag(`${x.immune.join('·')} 면역`, 'mute') : ''].join(''), `cat-${x.c}`)),
-    mu.bosses ? row(NODE_ICON.boss, NODE_NAME.boss, mu.bosses, tag(`${mu.bossImmune.join('·')} 면역`, 'mute'), '', '--c:var(--c-bad)') : '',
+    ...mu.cats.map((x) => muRow(lineIcon(`k.${x.c}`, 'li'), CATEGORY_NAME[x.c], `${x.n}명`, muTags(x), `cat-${x.c}`)),
+    mu.bosses ? muRow(NODE_ICON.boss, NODE_NAME.boss, `${mu.bosses}명`, muTag(`${mu.bossImmune.join('·')} 면역`, 'mute'), '', '--c:var(--c-bad)') : '',
   ].join('');
-  const elRows = mu.elems.map((x) => row(lineIcon(`e.${x.e}`, 'li'), x.name, x.allies, `${x.weak ? tag(`적 ${x.weak}명 취약`, 'good') : ''}${x.resist ? tag(`적 ${x.resist}명 저항`, 'bad') : ''}`, '', `--c:var(--el-${x.e})`)).join('');
+  const elRows = mu.elems.map((x) => muRow(lineIcon(`e.${x.e}`, 'li'), x.name, `${x.allies}명`, `${x.weak ? muTag(`적 ${x.weak}명 취약`, 'good') : ''}${x.resist ? muTag(`적 ${x.resist}명 저항`, 'bad') : ''}`, '', `--c:var(--el-${x.e})`)).join('');
   return `<div class="detail pb" aria-label="이번 전투 적 구성">
     <div class="pb-head"><h3>이번 전투</h3><span class="pb-kind n-${type}">${esc(kind)}</span><span class="muted small">적 ${mu.foes}명 · 체력 ×${+enc.mult.toFixed(2)}</span>${diffAddChip(run, enc.phase ?? run.phase, enc.add || 0)}</div>
     <ul class="pb-foes">${rows.map(foe).join('')}</ul>
