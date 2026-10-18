@@ -15,6 +15,7 @@ import { FIELDS } from '../src/data/battlefields';
 import { fieldSyn, starterPool } from '../src/engine/starters';
 import { oathV } from '../src/data/oaths';
 import { causalStage } from '../src/data/chungra';
+import { isLocked } from '../src/data/items';
 import type { Major, RunState, SynergyId } from '../src/types';
 
 declare const process: { argv: string[]; stdout: { write(s: string): void }; stderr: { write(s: string): void } };
@@ -46,6 +47,72 @@ const CHR_IDS = UNITS.filter((u) => isFac(u.id) && !u.noStarter && !u.eventOnly)
 const SUPPLY = process.argv.includes('supply');
 const OATH_FROM = process.argv.find((a) => a.startsWith('oathfrom='));
 if (OATH_FROM) (CFG as { oathFrom: number }).oathFrom = +OATH_FROM.slice(9);
+/** adv=1.2: 역경 · 도전 조우 강도 CFG.adversityMult 를 바꿔 돌린다 (역경 배수 비교, docs/BALANCE_ADVERSITY.md) */
+const ADV_ARG = process.argv.find((a) => a.startsWith('adv='));
+if (ADV_ARG) (CFG as { adversityMult: number }).adversityMult = +ADV_ARG.slice(4);
+/** advpol=<역경>:<도전> — 역경 · 도전 진입 정책 (없으면 예전 봇 그대로).
+ *  역경: must (지도대로 늘 역경 = 실제 게임 규칙) · avoid (역경 칸을 일반 전투로 바꿈, 가상) · state (체력 > 60 이면 50%로 역경, 가상) · power (직전 일반전을 여유 있게 이겼고 체력이 넉넉하면 역경, 가상)
+ *  도전 (짝수 페이즈 전환): always · never · state · power (신비학자 합성 조건이면 예전처럼 합성). 정책 난수는 봇 난수와 따로 굴린다 */
+const ADVPOL = (process.argv.find((a) => a.startsWith('advpol='))?.slice(7) || '').split(':');
+const POL_ADV = ADVPOL[0] || '', POL_CH = ADVPOL[1] || ADVPOL[0] || '';
+/** advstudy: 역경 계측 — 역경 순서 · 전투 시간선 · 패배 양상 · 같은 상태에서 일반전 / 역경(배수별) 재전투 · 준비(배치 · 장비 · 징수기) 반사실 */
+const ADVSTUDY = process.argv.includes('advstudy');
+/** 역경 계측에서 같은 상태 · 같은 조우로 다시 돌려 보는 배수 ('n' = 같은 칸 일반 전투 배수 1 + 0.04 × 칸) */
+const STUDY_MULTS: (number | 'n')[] = [1, 'n', 1.15, 1.2, 1.25, 1.3];
+
+// ───────── 역경 계측: 첫 아군 사망 · 첫 적 처치 시각 (전투 동작은 그대로, 시각만 기록)
+type Enc = NonNullable<NonNullable<RunState['node']>['enc']>;
+const KT = new WeakMap<Battle, { fa: number; fe: number }>();
+if (ADVSTUDY || POL_ADV) {
+  const origKill = Battle.prototype.kill;
+  Battle.prototype.kill = function (this: Battle, u: CUnit, by: CUnit | null) {
+    if (u.alive && !u.isSummon && !u.mem.inert) {
+      let k = KT.get(this);
+      if (!k) KT.set(this, (k = { fa: -1, fe: -1 }));
+      if (u.side === 0 && k.fa < 0) k.fa = this.t;
+      if (u.side === 1 && k.fe < 0) k.fe = this.t;
+    }
+    return origKill.call(this, u, by);
+  };
+}
+const r2 = (x: number) => Math.round(x * 100) / 100;
+/** 전투 결과 요약: w 승리 · t 전투 시간 · fa 첫 아군 사망 · fe 첫 적 처치 (-1 = 없음) · aA/nA 살아남은 아군/출전 · aE/nE 남은 적/적 · aHp/eHp 남은 체력 비율 · to 시간 초과 패배 */
+interface FR { w: number; t: number; fa: number; fe: number; aA: number; nA: number; aE: number; nE: number; aHp: number; eHp: number; to: number }
+function measure(b: Battle): FR {
+  const k = KT.get(b) || { fa: -1, fe: -1 };
+  const side = (s: 0 | 1) => b.units.filter((u) => u.side === s && !u.isSummon && !u.mem.inert);
+  const A = side(0), E = side(1);
+  const frac = (us: CUnit[]) => { const m = us.reduce((s, u) => s + u.st.maxHp, 0); return m > 0 ? us.reduce((s, u) => s + (u.alive ? Math.max(0, u.hp) : 0), 0) / m : 0; };
+  const aA = A.filter((u) => u.alive).length, won = b.winner === 0;
+  return { w: won ? 1 : 0, t: r2(b.t), fa: r2(k.fa), fe: r2(k.fe), aA, nA: A.length, aE: E.filter((u) => u.alive).length, nE: E.length, aHp: r2(frac(A)), eHp: r2(frac(E)), to: !won && aA > 0 ? 1 : 0 };
+}
+/** 저장해 둔 상태(snap)를 복제해 조우 enc 를 실제 게임과 같은 경로(buildBattle)로 싸운다. 원래 런은 건드리지 않는다 */
+function sim(snap: RunState, enc: Enc, type: 'battle' | 'adversity' | 'challenge', edit?: (r: RunState) => void): FR {
+  const r = structuredClone(snap);
+  const e = structuredClone(enc);
+  r.node = { type, enc: e };
+  edit?.(r);
+  const b = buildBattle(r, e, false);
+  b.runToEnd();
+  return measure(b);
+}
+const withMult = (enc: Enc, m: number | 'n', step: number): Enc => ({ ...enc, mult: m === 'n' ? 1 + 0.04 * step : m });
+const withSeed = (enc: Enc, k: number): Enc => ({ ...enc, seed: (enc.seed + 7919 * k) % 2147483647 });
+/** 무작위 배치: 출전 기물을 폭 n × 3줄 칸에 무작위로 */
+const randPlace = (rng: Rng, n: number) => (r: RunState) => {
+  const dep = deployed(r);
+  const cells = rng.shuffle([...Array(n * 3).keys()]).slice(0, dep.length);
+  dep.forEach((u, i) => { u.pos = { c: cells[i] % n, r: Math.floor(cells[i] / n) }; });
+};
+/** 앞뒤 뒤집기: 근접 앞줄 · 원거리 뒷줄 배치를 거꾸로 */
+const flipPlace = (r: RunState) => { for (const u of deployed(r)) u.pos = { c: u.pos!.c, r: 2 - u.pos!.r }; };
+/** 장비 없음: 출전 기물의 일반 장비(고유 장비 제외) · 포탑 장비를 뺀다 (개조부품 · 문장은 그대로) */
+const noGear = (r: RunState) => { for (const u of deployed(r)) u.items = u.items.map((x) => (x && isLocked(x) ? x : null)); r.turretGear = []; };
+/** 주력 시너지: 활성 단계가 가장 높은 시너지 (같으면 인원이 많은 쪽) */
+function mainSyn(counts: Record<string, number>): { main: string; act: string } {
+  const act = SYNERGIES.map((s) => ({ id: s.id, t: tierOf(s.id, counts[s.id] || 0), c: counts[s.id] || 0 })).filter((x) => x.t > 0).sort((a, b) => b.t - a.t || b.c - a.c || a.id.localeCompare(b.id));
+  return { main: act[0] ? `${act[0].id}:${act[0].t}` : '-', act: act.map((x) => `${x.id}:${x.t}`).join(',') };
+}
 
 // ───────── 집계 저장소 (합으로만 누적 → 워커끼리 더하면 된다)
 type Acc = Record<string, number>;
@@ -130,6 +197,14 @@ function playRun(seed: number) {
   const synMax: Record<string, number> = {};
   const det: Record<string, [number, number]> = {}; // detail 모드: `키|페이즈:노드` → [전투, 승리]
   const relicSet = new Set<string>();
+  // 역경 계측 · 진입 정책 (봇 난수와 따로 굴려 기존 봇 선택을 흔들지 않는다)
+  const pol = new Rng(seed * 31 + 11), sr = new Rng(seed * 101 + 3);
+  let lastNorm: FR | null = null, advOrd = 0, consUsed = 0;
+  const advRecs: unknown[] = [], nbRecs: unknown[] = [];
+  const encPre = new WeakMap<object, Enc>(); // 노드 진입 직후(소모품 · 정비 전) 조우
+  /** 정책 판정: 직전 일반전을 여유 있게(남은 아군 체력 50% 이상) 이겼고 함대 체력이 최대의 60% 이상 */
+  const strong = () => !!lastNorm && lastNorm.w === 1 && lastNorm.aHp >= 0.5 && run.hp >= run.maxHp * 0.6;
+  const want = (p: string) => (p === 'always' || p === 'must' ? true : p === 'avoid' || p === 'never' ? false : p === 'state' ? run.hp > 60 && pol.chance(0.5) : p === 'power' ? strong() : false);
 
   const resolvePending = () => {
     while (run.pending.length) {
@@ -162,12 +237,12 @@ function playRun(seed: number) {
       } else if (p.t === 'supply') R.flipAllSupply(run, p);
       else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
       else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? SUPPLY && p.options.includes('supply') ? 'supply' : (run.units.length < 10 ? (['recruit', 'invest', 'pilgrim', 'shop'] as const) : (['invest', 'pilgrim', 'shop'] as const)).find((o) => p.options.includes(o))! : 'shop'); continue; }
-      else if (p.t === 'fork') { R.pickFork(run, forkChoice(run, () => bot.chance(0.5))); continue; }
+      else if (p.t === 'fork') { R.pickFork(run, POL_ADV ? (R.occultTier(run) && run.credits >= 20 ? 'synth' : want(POL_CH) ? 'challenge' : 'rest') : forkChoice(run, () => bot.chance(0.5))); continue; }
       else if (p.t === 'pilgrim') { pilgrimBot(run); run.pending.shift(); continue; }
       run.pending.shift();
     }
   };
-  const track: Track = (id, what) => add('cons', id, { [what]: 1 });
+  const track: Track = (id, what) => { add('cons', id, { [what]: 1 }); if (what === 'used') consUsed++; };
   const manage = () => {
     manageItems(run, track);
     // 함대 확장: 출전 인원이 보유 기물보다 적으면 우선 구매 (예비 15 남김)
@@ -197,11 +272,13 @@ function playRun(seed: number) {
   const kbAt: Record<number, number> = {}; // 청라공국: 페이즈 보스전 첫 진입 직전 무휼 인과율 (최종 보스 승리 뒤 성장분 제외용)
   const bw = [0, 0, 0, 0]; // [보스전 수, 보스 승리, 보스 외 전투 수, 보스 외 승리]
   while (!run.over && !run.cleared && n < 200) {
+    if (ADVSTUDY && run.node?.enc && !encPre.has(run.node.enc)) encPre.set(run.node.enc, structuredClone(run.node.enc));
     resolvePending(); manage(); resolvePending();
     if (run.node?.synth) { shopSynth(run, track); continue; }
     if (!run.node) {
       const opts = R.currentOptions(run);
-      R.enterNode(run, opts.includes('adversity') && run.hp > 60 && bot.chance(0.5) ? 'adversity' : opts[0]);
+      if (POL_ADV) R.enterNode(run, opts.includes('adversity') ? (want(POL_ADV) ? 'adversity' : 'battle') : opts[0]); // 역경 칸을 일반 전투로 바꾸는 것은 가상 정책 (실제 지도에서 역경은 필수)
+      else R.enterNode(run, opts.includes('adversity') && run.hp > 60 && bot.chance(0.5) ? 'adversity' : opts[0]);
       if (run.pending[0]?.t === 'branch') resolvePending();
       const t = (run.node as { type: string } | null)?.type;
       if (t === 'shop') for (let i = 0; i < 6; i++) if (run.credits >= 35) R.buyShop(run, i);
@@ -220,6 +297,8 @@ function playRun(seed: number) {
     for (const s of SYNERGIES) { const t = tierOf(s.id, counts[s.id] || 0); if (t > (synMax[s.id] || 0)) synMax[s.id] = t; }
 
     if (RANDREL) for (const u of run.units) if (UNIT_BY_ID[u.defId].ttype === 'divine' && !relicSet.has(u.uid)) { relicSet.add(u.uid); u.relic = RELICS[Math.floor(bot.next() * RELICS.length)].id; }
+    const snap = ADVSTUDY && ntype !== 'boss' ? structuredClone(run) : null; // 전투 직전 상태 (계측용 재전투는 이 복제본에서)
+    const hp0 = run.hp, cons0 = consUsed; consUsed = 0;
     tap = { pair: {}, evaded: new Map() };
     if (ntype === 'boss' && kbAt[ph] === undefined) kbAt[ph] = run.causal || 0; // 무휼: 페이즈 보스 첫 진입 직전 인과율
     const b = buildBattle(run, enc, false); // 실제 게임과 같은 경로 (포탑 · 무휼 자리, 포탑 장비 포함)
@@ -228,6 +307,30 @@ function playRun(seed: number) {
     battles++;
     { const k2 = ntype === 'boss' ? 0 : 2; bw[k2]++; if (won) bw[k2 + 1]++; }
     const T = tap; tap = null;
+    if (POL_ADV && ntype === 'battle') lastNorm = measure(b);
+    if (snap) {
+      const real = measure(b), step = run.step, ms = mainSyn(counts);
+      const sweep = (e: Enc, type: 'adversity' | 'challenge') => Object.fromEntries(STUDY_MULTS.map((m) => [String(m), sim(snap, withMult(e, m, step), type).w]));
+      if (ntype === 'adversity' || ntype === 'challenge') {
+        if (ntype === 'adversity') advOrd++;
+        const nEnc = R.genEncounter(structuredClone(snap), 'battle'); // 같은 칸 · 같은 상태의 일반 전투
+        const pre = encPre.get(enc);
+        const seized = !!pre && JSON.stringify(pre.enemies) !== JSON.stringify(enc.enemies);
+        advRecs.push({ ord: ntype === 'adversity' ? advOrd : 0, type: ntype, ph, step, hp0, maxHp: run.maxHp, mult: enc.mult, n: enc.n, nDep: dep.length, syn: ms.main, act: ms.act, cons: cons0, real,
+          norm: sim(snap, nEnc, 'battle'),
+          mult_w: sweep(enc, ntype),
+          seeds: [1, 2, 3, 4].map((k) => sim(snap, withSeed(enc, k), ntype).w),
+          rand: [0, 1, 2, 3, 4].map(() => sim(snap, enc, ntype, randPlace(sr, enc.n)).w),
+          flip: sim(snap, enc, ntype, flipPlace).w,
+          nogear: sim(snap, enc, ntype, noGear).w,
+          gear: dep.reduce((s, u) => s + u.items.filter((x) => x && !isLocked(x)).length, 0),
+          ...(seized ? { unseized: sim(snap, pre!, ntype).w } : {}) });
+      } else if (ntype === 'battle') {
+        const rec: Record<string, unknown> = { ph, step, hp0, nDep: dep.length, syn: ms.main, real };
+        if (ph <= 3) rec.adv = sweep(R.genEncounter(structuredClone(snap), 'adversity'), 'adversity'); // 같은 상태의 가상 역경 (배수별)
+        nbRecs.push(rec);
+      }
+    }
     for (const [k, v] of Object.entries(T.pair)) {
       const [side, kind, pair, f] = k.split('|');
       add(`mx_${side}_${kind}_${ph <= 2 ? 'early' : ph <= 4 ? 'mid' : 'late'}`, pair, { [f]: v });
@@ -322,7 +425,7 @@ function playRun(seed: number) {
   const eco = { nb: rb.length, i: rb.reduce((s, x) => s + x.i, 0), cap: rb.reduce((s, x) => s + x.cap, 0), inc: rb.reduce((s, x) => s + x.c, 0), atCap: rb.filter((x) => x.cap > 0 && x.i >= x.cap).length,
     sp: run.rep?.sp || {}, crAt, end: run.credits, loan: run.loan || 0 };
   runs.push({ seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, causal: run.causal || 0, king: run.causal ? causalStage(run.causal) : 0, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems,
-    cz: czAt, kb: kbAt, chrMax: run.chrTier || 0, bw, diff: run.diff || 0, heat: run.oathHeat || 0, despairs: run.despairs || [], hp: run.hp, eco, ...(DETAIL ? { det } : {}) });
+    cz: czAt, kb: kbAt, chrMax: run.chrTier || 0, bw, diff: run.diff || 0, heat: run.oathHeat || 0, despairs: run.despairs || [], hp: run.hp, eco, ...(DETAIL ? { det } : {}), ...(ADVSTUDY ? { adv: advRecs, nb: nbRecs, maxHp: run.maxHp } : {}) });
 }
 
 for (let i = 0; i < COUNT; i++) {
