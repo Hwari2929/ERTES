@@ -1,11 +1,13 @@
 // 테마 연출 (설정 → 테마 연출: 켜기 · 줄이기 · 끄기). 외부 이미지 없이 canvas · CSS 로만 그린다.
 //   · 갤럭시: 화면 뒤(본문 아래) 별빛 층 — 천천히 흐르는 별 3층 · 반짝임 · 가끔 유성
 //   · 호이슌: 화면 앞 벚꽃잎 — 흩날리는 꽃잎 · 1~2분마다 벚꽃 폭풍 · 누른 자리에서 흩날림 (꽃잎 상한 80)
-//   · 이타카: 큰 화면 전환에 물결이 쓸고 지나가며 다음 화면이 드러난다 (런 시작 룰렛 · 특권 선택은 CSS 쪽)
+//   · 이타카: 큰 화면 전환에 바다가 차올라 덮었다가 내려가며 다음 화면이 드러난다 (seatrans.ts, 줄이기는 물결 한 번 쓸기 · 런 시작 룰렛 · 특권 선택은 CSS 쪽)
 //   · 빈티지: CSS 만 (가죽 결 · 스티치, style.css [data-ui-theme="vintage"][data-tfx])
 // 움직임은 모두 Web Animations 의 transform · opacity 라 합성기에서 돌고 메인 스레드는 거의 쓰지 않는다
 // (별 타일은 시작할 때 canvas 로 한 번만 그린다). 모든 층은 pointer-events: none 이라 입력을 막지 않는다.
 // 움직임 줄이기 설정이면 정지 화면. 전투 중에는 별빛 층을 내리고, 꽃잎은 절반으로 줄인다 (onScreen).
+
+import { seaTransition, type SeaHandle } from './seatrans';
 
 export type FxLevel = 'on' | 'low' | 'off';
 
@@ -30,14 +32,48 @@ export function setThemeFx(theme: string, level: FxLevel) {
 }
 
 const BIG = new Set(['title', 'diffsel', 'newrun', 'map', 'prep', 'shop', 'news', 'invest', 'over', 'codex']);
+// 전투 진입은 '전투 개시' 배너, 출격 연출 · 바는 그림 연출이 따로 있으므로 큰 화면끼리만
+const bigMove = (prev: string, next: string) => cur.theme === 'ithaca' && cur.level !== 'off' && !!prev && prev !== next && BIG.has(next) && BIG.has(prev);
+let sea: { h: SeaHandle; ghost: HTMLElement | null; fresh: boolean } | null = null;
+/** render() 가 화면을 바꾸기 직전 (이타카 켜기): 지금 화면을 얼려 둔 사본 위로 바다가 차오르고, 다 덮으면 사본을 걷는다.
+ *  render 는 그대로 바로 새 화면을 그리므로 게임 흐름은 기다리지 않는다 (바다가 덮는 동안 입력만 막힌다) */
+export function beforeScreen(prev: string, next: string, app: HTMLElement) {
+  if (!bigMove(prev, next) || cur.level !== 'on' || reduced()) return;
+  endSea();
+  const ghost = document.createElement('div');
+  ghost.className = 'tfx-ghost';
+  ghost.setAttribute('aria-hidden', 'true');
+  const copy = app.cloneNode(true) as HTMLElement;
+  copy.removeAttribute('id');
+  copy.className = 'tfx-ghost-in';
+  copy.style.top = `${-scrollY}px`;
+  ghost.appendChild(copy);
+  const from = app.querySelectorAll('*'), to = copy.querySelectorAll('*');
+  document.body.appendChild(ghost);
+  from.forEach((el, k) => { if (el.scrollTop || el.scrollLeft) { to[k].scrollTop = el.scrollTop; to[k].scrollLeft = el.scrollLeft; } }); // 스크롤된 목록도 그 자리 그대로
+  const h = seaTransition();
+  sea = { h, ghost, fresh: true };
+  const mine = sea;
+  void h.covered.then(() => { mine.ghost?.remove(); mine.ghost = null; });
+  void h.done.then(() => { if (sea === mine) sea = null; });
+}
+function endSea() { if (!sea) return; sea.h.destroy(); sea.ghost?.remove(); sea = null; }
 /** render() 가 화면을 그린 뒤: 전투 여부 · (이타카) 큰 화면 전환 물결 */
 export function onScreen(prev: string, next: string) {
   const b = next === 'battle';
   if (b !== busy) { busy = b; cur.layer?.setBusy(b); }
-  if (cur.theme !== 'ithaca' || cur.level === 'off' || !prev || prev === next) return;
-  // 전투 진입은 '전투 개시' 배너, 출격 연출 · 바는 그림 연출이 따로 있으므로 큰 화면끼리만
-  if (!BIG.has(next) || !BIG.has(prev)) return;
-  if (document.querySelector('.adv, .pv-bg:not(.played)')) return; // 사건 장면은 그림 연출이, 특권 선택은 자체 물결 막이 있다
+  if (sea?.fresh) {
+    sea.fresh = false;
+    // 사건 장면은 그림 연출이, 특권 선택은 자체 물결 막이 있다 → 바다는 그리기 전에 거둔다
+    if (document.querySelector('.adv, .pv-bg:not(.played)')) { endSea(); return; }
+    // 로딩 = 새 화면의 그림이 다 받아질 때까지 (최대 4초)
+    const imgs = Array.from(document.querySelectorAll<HTMLImageElement>('#app img')).filter((im) => !im.complete);
+    const h = sea.h;
+    void Promise.race([Promise.all(imgs.map((im) => new Promise((r) => { im.addEventListener('load', r, { once: true }); im.addEventListener('error', r, { once: true }); }))), new Promise((r) => setTimeout(r, 4000))]).then(() => h.ready());
+    return;
+  }
+  if (!bigMove(prev, next)) return;
+  if (document.querySelector('.adv, .pv-bg:not(.played)')) return;
   wash(cur.level === 'low' || reduced());
 }
 
