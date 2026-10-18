@@ -62,7 +62,7 @@ import { fieldSyn, starterFavNeed, starterPool } from './engine/starters';
 const PREF_KEY = 'errantes.prefs.v1';
 /** 전투 배속 (단축키 1~6, Space 정지) */
 const SPEEDS = [0.25, 0.5, 1, 2, 4, 8];
-function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean; fxMs?: number; skillMs?: number; motion?: MotionPreset; death?: DeathStyle; ultCut?: UltCut; uiTheme?: string; uiFx?: string } {
+function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean; fxMs?: number; skillMs?: number; motion?: MotionPreset; death?: DeathStyle; ultCut?: UltCut; uiTheme?: string; uiFx?: string; fullscreen?: boolean } {
   try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}; } catch { return {}; }
 }
 /** 연출 설정을 전투 화면에 반영 */
@@ -104,6 +104,30 @@ function themePicker() {
 function savePref(k: string, v: unknown) {
   try { localStorage.setItem(PREF_KEY, JSON.stringify({ ...loadPrefs(), [k]: v })); } catch { /* 저장 불가 환경 */ }
 }
+
+// ───────────────────────── 전체 화면 (휴대폰: 주소창 · 상태 표시줄 · 내비게이션 바를 숨긴다). 브라우저 규칙상 누르는 순간에만 켤 수 있다
+type FsDoc = Document & { webkitFullscreenElement?: Element; webkitExitFullscreen?: () => void };
+type FsEl = HTMLElement & { webkitRequestFullscreen?: () => void };
+const isFullscreen = () => !!(document.fullscreenElement || (document as FsDoc).webkitFullscreenElement);
+const canFullscreen = () => !!((document.documentElement as FsEl).requestFullscreen || (document.documentElement as FsEl).webkitRequestFullscreen);
+function enterFullscreen(quiet = false) {
+  const el = document.documentElement as FsEl;
+  try {
+    const p = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) : (el.webkitRequestFullscreen?.(), undefined);
+    Promise.resolve(p).catch(() => { if (!quiet) toast('이 브라우저에서는 전체 화면을 켤 수 없습니다.'); });
+  } catch { if (!quiet) toast('이 브라우저에서는 전체 화면을 켤 수 없습니다.'); }
+}
+function toggleFullscreen() {
+  if (isFullscreen()) { const d = document as FsDoc; (d.exitFullscreen ? d.exitFullscreen() : d.webkitExitFullscreen?.()); savePref('fullscreen', false); return; }
+  savePref('fullscreen', true);
+  enterFullscreen();
+}
+/** '전체 화면 유지'가 켜져 있으면 페이지를 연 뒤 첫 터치 · 클릭에서 다시 켠다 (한 번만) */
+if (typeof window !== 'undefined' && loadPrefs().fullscreen && canFullscreen()) {
+  const once = (e: Event) => { if ((e.target as Element | null)?.closest?.('[data-a="fullscreen"]')) return; window.removeEventListener('pointerup', once, true); if (!isFullscreen()) enterFullscreen(true); };
+  window.addEventListener('pointerup', once, true);
+}
+const FS_SVG = (on: boolean) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${on ? 'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5' : 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'}"/></svg>`;
 
 type Screen = 'title' | 'intro' | 'diffsel' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'invest' | 'over' | 'codex' | 'bar' | 'oath';
 /** 화면을 가리지 않는 확인 팝업: anchor 선택자 중 처음 보이는 요소 옆에 (inv = 보관함 상자 왼쪽 · above = 위 · beside = 옆). ok 가 없으면 안내만 (닫기 버튼 하나) */
@@ -402,7 +426,7 @@ function titleScreen() {
           <button class="btn ts-btn ts-tile" data-a="bar"><b>에란테스 바</b><small>${auto ? '들렀다가 이어서 출격' : '단원 · 손님들의 잡담'}</small></button>
           <button class="btn ts-btn ts-tile" data-a="codex"><b>도감 · 기록</b><small>교범 · 기록 · 업적</small></button>
           <button class="btn ts-btn ts-tile ts-oath" data-a="oath"><b>절망 서약</b><small>${diffName(CFG.oathFrom) || `위험 ${CFG.oathFrom}`} 조건 · 절망 ${OATH.heatNow()}${OATH.effNow() > CFG.oathFrom ? ` (위험 ${OATH.effNow()})` : ''}</small></button></div>
-        <div class="ts-util" role="group" aria-label="저장 · 설정">${listTutSave() ? '<button class="btn ghost tiny" data-a="tutorial-restart">튜토리얼 처음부터</button>' : ''}<button class="btn ghost tiny" data-a="menu-import">저장 코드 불러오기</button><button class="btn ghost tiny" data-a="menu-tab" data-v="settings">설정 · 테마</button></div>
+        <div class="ts-util" role="group" aria-label="저장 · 설정">${listTutSave() ? '<button class="btn ghost tiny" data-a="tutorial-restart">튜토리얼 처음부터</button>' : ''}<button class="btn ghost tiny" data-a="menu-import">저장 코드 불러오기</button><button class="btn ghost tiny" data-a="menu-tab" data-v="settings">설정 · 테마</button>${canFullscreen() ? `<button class="btn ghost tiny" data-a="fullscreen" title="전체 화면 (주소창 · 상태 표시줄 숨김)">${FS_SVG(isFullscreen())} ${isFullscreen() ? '전체 화면 끄기' : '전체 화면'}</button>` : ''}</div>
       </nav>
       ${slots.length ? `<div class="slots">${slots.map((s) => `<button class="btn ghost" data-a="load" data-v="${s.slot}">${SLOT_NAME[s.slot]} · 페이즈 ${s.phase} · 기물 ${s.units}</button>`).join('')}</div>` : ''}
       ${m.runs ? `<p class="ts-meta"><span>의뢰 <b>${m.runs}</b></span><span>성공 <b>${m.clears}</b></span><span>위험 등급 <b>${m.maxDiff}</b></span></p>` : ''}
@@ -2732,6 +2756,9 @@ function menuModal(run: RunState | null) {
       ${themePicker()}
       <div class="pref"><span><b>테마 연출</b><br><span class="muted small">갤럭시 별빛 · 빈티지 가죽 결 · 이타카 물결 전환 · 호이슌 벚꽃. 줄이기: 입자를 줄이고 유성 · 폭풍 없이, 물결 대신 짧은 페이드</span></span>
         <span class="seg">${UI_FX.map(([k, l]) => `<button class="btn tiny ${uiFx() === k ? 'on' : ''}" data-a="pref-uifx" data-v="${k}" aria-pressed="${uiFx() === k}">${l}</button>`).join('')}</span></div>
+      ${canFullscreen() ? `<h3>화면</h3>
+      <div class="pref"><span><b>전체 화면</b><br><span class="muted small">주소창 · 휴대폰 상태 표시줄 · 내비게이션 바를 숨깁니다. 켜 두면 다음에 열 때 첫 터치에서 다시 전체 화면이 됩니다 (브라우저 규칙상 자동으로는 켜지지 않음). 뒤로 가기 · Esc 로 나옵니다.</span></span>
+        <button class="btn tiny ${isFullscreen() ? 'on' : ''}" data-a="fullscreen" aria-pressed="${isFullscreen()}">${FS_SVG(isFullscreen())} ${isFullscreen() ? '끄기' : '켜기'}</button></div>` : ''}
       <h3>전투</h3>
       <label class="pref"><input type="checkbox" data-a="pref-slow" ${app.slowDetail ? 'checked' : ''}><span><b>상세 정보 볼 때 느리게</b><br><span class="muted small">전투 중 기물을 눌러 상세 정보를 보는 동안 진행 속도에 ×0.25 를 곱합니다. 빈 보드를 누르거나 Esc 로 선택을 풀면 원래 속도로 돌아갑니다.</span></span></label>
       <label class="pref"><input type="checkbox" data-a="pref-zoom" ${app.zoomOut ? 'checked' : ''}><span><b>넓은 전장 전체 보기</b><br><span class="muted small">전투 화면을 축소해 바깥 테두리 칸까지 전장 전체를 한 번에 보여 줍니다. 끄면 배치 구역 크기로 보고, 카메라가 끝 기물을 따라갑니다.</span></span></label>
@@ -3068,6 +3095,8 @@ function layoutPanels() {
   pop.style.top = `${Math.max(r.top, (top?.offsetHeight || 0) + 10)}px`;
 }
 window.addEventListener('resize', () => layoutPanels());
+// 전체 화면이 켜지거나 꺼지면 (뒤로 가기 · Esc 포함) 단추 글씨를 맞춘다 — 전투 중에는 다시 그리지 않는다
+for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, () => { if (app.screen === 'title' || app.menu) render(); });
 window.addEventListener('scroll', () => { if (root.querySelector('.stat-pop, .ask-pop')) layoutPanels(); }, { passive: true });
 
 /** 스크롤된 요소 목록: [클래스 이름, 같은 클래스 중 순번, 위, 왼쪽, 창 안 여부] */
@@ -4350,6 +4379,7 @@ function act(a: string, v: string) {
     case 'save': if (run) { toast(saveRun(run, v) ? `${SLOT_NAME[v]}에 저장했습니다.` : '이 브라우저에서는 저장소를 쓸 수 없습니다. 저장 코드를 이용하세요.'); } break;
     case 'menu': app.menu = 'menu'; break;
     case 'menu-tab': app.menu = v as 'menu' | 'settings'; break;
+    case 'fullscreen': toggleFullscreen(); break;
     case 'pref-zoom': app.zoomOut = !app.zoomOut; savePref('zoomOut', app.zoomOut); break;
     case 'pref-motion': savePref('motion', v); applyFxPrefs(); break;
     case 'pref-death': savePref('death', v); applyFxPrefs(); render(); { const h = document.querySelector<HTMLElement>('.dpv'); if (h) previewDeath(h, FX.death); } return;
