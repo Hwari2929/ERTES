@@ -95,7 +95,8 @@ export function newRun(seed: number, starters: string[], field?: string, diff = 
 export function phaseMap(phase: number): NodeType[][] {
   // [실험] CFG.supply.p1: 1페이즈만 맨 앞 보급 + 첫 역경 → 보급 (항로 보급, 분기점 보급과 달리 재료 1장 확정 · 대박 없음)
   if (phase === 1 && CFG.supply.p1) return [['supply'], ['battle'], ['battle'], ['council'], ['event'], ['supply'], ['shop'], ['battle'], ['battle'], ['event'], ['adversity'], ['shop'], ['boss']];
-  return [['battle'], ['battle'], ['council'], ['event'], ['adversity'], ['shop'], [phase % 2 === 0 ? 'fork' : 'battle'], ['battle'], ['event'], ['adversity'], ['shop'], ['boss']];
+  const m: NodeType[][] = [['battle'], ['battle'], ['council'], ['event'], ['adversity'], ['shop'], [phase % 2 === 0 ? 'fork' : 'battle'], ['battle'], ['event'], ['adversity'], ['shop'], ['boss']];
+  return phase >= 2 && CFG.supply.front ? [['supply'], ...m] : m; // [실험] CFG.supply.front: 2페이즈부터 맨 앞 보급
 }
 
 // ───────────────────────── 특권 증강 (런 시작)

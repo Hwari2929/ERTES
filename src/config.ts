@@ -178,6 +178,8 @@ export const CFG = {
   supply: {
     /** [실험] 1페이즈 보급 노드: 항로 맨 앞에 보급 노드를 더하고 첫 역경을 같은 보급 노드로 바꾼다 (재료 1장 확정 · 나머지 무작위 · 대박 없음). 기본 꺼짐 */
     p1: false,
+    /** [실험] 2페이즈부터 모든 페이즈 항로 맨 앞에 같은 보급 노드 (p1 과 함께 쓰면 매 페이즈 맨 앞 보급). 기본 꺼짐 */
+    front: false,
     cards: 3, ratio: 0.8, spread: 0.12,
     floor: (phase: number) => 12 + phase,
     kindW: { credits: 1, xp: 1, gear: 1 } as Record<string, number>,
