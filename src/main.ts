@@ -8,7 +8,7 @@ import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
 import { STORIES } from './data/stories';
 import { FIELDS, fieldOf } from './data/battlefields';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
-import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isLegendConsumable, isLocked, isMod, isOccultMod, isTurretItem, isTurretMod, itemInfo, TURRET_GEAR, turretSlots } from './data/items';
+import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isInjector, isLegendConsumable, isLocked, isMod, isOccultMod, isTurretItem, isTurretMod, itemInfo, TURRET_GEAR, turretSlots } from './data/items';
 import { aceTargetUid, OCCULT_SYNTH, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { withEmblemSummon } from './data/emblems';
@@ -106,7 +106,7 @@ function savePref(k: string, v: unknown) {
 
 type Screen = 'title' | 'intro' | 'diffsel' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'invest' | 'over' | 'codex' | 'bar' | 'oath';
 /** 화면을 가리지 않는 확인 팝업: anchor 선택자 중 처음 보이는 요소 옆에 (inv = 보관함 상자 왼쪽 · above = 위 · beside = 옆). ok 가 없으면 안내만 (닫기 버튼 하나) */
-type Ask = { html: string; anchor: string[]; at: 'inv' | 'above' | 'beside'; ok?: () => void; okLabel?: string };
+type Ask = { html: string; anchor: string[]; at: 'inv' | 'above' | 'beside'; ok?: () => void; okLabel?: string; hl?: number[] }; // hl: 함께 강조할 보관함 칸 (조합 재료 둘)
 type Sel = { k: 'unit'; uid: string } | { k: 'turret'; i: number } | { k: 'king' } | { k: 'item'; idx: number } | { k: 'relic'; id: string } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
 
 const app = {
@@ -1383,14 +1383,14 @@ function invRail(run: RunState) {
   const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
   return `<div class="inv-rail" data-drop="inv" title="기물에게 끌어다 장착 · 재료끼리 겹치면 조합">
     <span class="ir-count">${run.inventory.length}/${CFG.inventoryMax}</span>
-    <div class="ir-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`, breadNote(run, i)).replace('class="item', `class="item${i === selIdx ? ' sel' : ''}`)).join('')}${run.inventory.length ? '' : '<span class="ir-empty muted">비어 있음</span>'}${relicInv(run)}</div>
+    <div class="ir-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`, breadNote(run, i)).replace('class="item', `class="item${i === selIdx || app.ask?.hl?.includes(i) ? ' sel' : ''}`)).join('')}${run.inventory.length ? '' : '<span class="ir-empty muted">비어 있음</span>'}${relicInv(run)}</div>
   </div>`;
 }
 /** 상점 등: 가로 보관 칸 */
 function inventoryPanel(run: RunState) {
   const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
   return `<div class="inv" data-drop="inv" title="재료끼리 겹치면 조합"><span class="ir-count">${run.inventory.length}/${CFG.inventoryMax}</span>
-    <div class="inv-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`, breadNote(run, i)).replace('class="item', `class="item${i === selIdx ? ' sel' : ''}`)).join('') || '<span class="muted small">비어 있음</span>'}${relicInv(run)}</div></div>${invDetail(run)}`;
+    <div class="inv-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`, breadNote(run, i)).replace('class="item', `class="item${i === selIdx || app.ask?.hl?.includes(i) ? ' sel' : ''}`)).join('') || '<span class="muted small">비어 있음</span>'}${relicInv(run)}</div></div>${invDetail(run)}`;
 }
 /** 보관 중인 성유물: 소모품처럼 보관 칸에 항상 표시. 디바인에게 끌어다 놓거나 선택 후 디바인을 누르면 장착 */
 function relicInv(run: RunState) {
@@ -2421,10 +2421,49 @@ function advSync(run: RunState | null) {
     playAdv(`nt:${p.title}:${run.pending.length}`, p.scene, { title: p.title, result: p.body, speaker: advSpeaker, fmt: (x) => ic(esc(x)), onDone: () => act('notice-ok', '') });
   } else if (advKey() && !advKey()!.startsWith('tu:') && !(app.screen === 'bar' && advKey()!.startsWith('bar:'))) closeAdv(); // 튜토리얼 장면은 튜토리얼이, 바 장면은 바가 닫는다
 }
+// ───────────────────────── 공명 주입기 연출 (편성 화면): 기물 토큰 위 작은 알림. 공명도 막대가 차오르고,
+//   등급이 오르면 막대가 끝에 닿는 순간 하얀 막이 왼쪽에서 밀려 들어오고 → 화살표 · 새 공명 등급이 반짝인 뒤 사라진다.
+//   알림은 root 밖(body)에 두어 다시 그려도 끊기지 않는다. 등급 상승 창(pending)은 injHold 동안 미룬다
+let injHold = false;
+let injTimers: number[] = [];
+function injectFx(uid: string, r0: number, x0: number, x1: number, r1: number) {
+  injTimers.forEach(clearTimeout); injTimers = [];
+  document.querySelector('.inj-fx')?.remove();
+  const done = () => { document.querySelector('.inj-fx')?.remove(); if (injHold) { injHold = false; render(); } };
+  const vis = (el: Element) => (el as HTMLElement).offsetParent !== null;
+  const tok = Array.from(root.querySelectorAll<HTMLElement>(`.board [data-drop="unit:${uid}"], .bench [data-drop="unit:${uid}"]`)).find(vis);
+  if (!tok) return done();
+  const pct = (r: number, x: number) => (r >= CFG.maxRank ? 100 : Math.min(100, (x / CFG.xpToNext(r)) * 100));
+  let gain = x1 - x0; // 오른 공명도 (등급이 오르면 지나간 등급의 필요량을 더한다)
+  for (let r = r0; r < r1; r++) gain += CFG.xpToNext(r);
+  const up = r1 > r0, amt = `+${gain}`;
+  const el = document.createElement('div');
+  el.className = 'inj-fx' + (up ? ' up' : '');
+  el.setAttribute('role', 'status');
+  el.innerHTML = `<span class="inj-wash" aria-hidden="true"></span><div class="inj-row"><span class="inj-rk">${rankLabel(r0)}</span><span class="inj-ar" aria-hidden="true">›</span><span class="inj-rk2">${rankLabel(r1)}</span><b class="inj-amt">공명도 ${amt}</b></div><div class="inj-bar"><i style="width:${pct(r0, x0)}%"></i></div>`;
+  document.body.appendChild(el);
+  const t = tok.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+  el.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, t.left + t.width / 2 - w / 2))}px`;
+  el.style.top = `${t.top - h - 8 >= 8 ? t.top - h - 8 : t.bottom + 8}px`;
+  tok.classList.add('inj-glow');
+  const at = (ms: number, f: () => void) => injTimers.push(window.setTimeout(f, ms));
+  const bar = el.querySelector<HTMLElement>('.inj-bar i')!;
+  at(30, () => { el.classList.add('in'); bar.style.width = `${up ? 100 : pct(r1, x1)}%`; });
+  if (up) {
+    at(30 + 620, () => el.classList.add('wash')); // 막대가 끝에 닿는 순간 하얀 막
+    at(30 + 620 + 240, () => { el.classList.add('ranked'); SND.sfx('rankUp'); }); // 화살표 → 새 등급 반짝
+    at(2300, () => el.classList.add('out'));
+    at(2600, done);
+  } else {
+    at(1500, () => el.classList.add('out'));
+    at(1800, done);
+  }
+}
+
 // ───────────────────────── 모달: 대기 중인 선택
 function pendingModal(run: RunState): string {
   const p = run.pending[0];
-  if (!p || app.screen === 'battle' || app.screen === 'over') return '';
+  if (!p || app.screen === 'battle' || app.screen === 'over' || injHold) return '';
   let body = '', mcls = '';
   if (p.t === 'global') {
     mcls = 'global';
@@ -2732,12 +2771,14 @@ function useModal(run: RunState) {
 }
 
 // ───────────────────────── 확인 팝업 (화면을 가리지 않음): 장비 조합 · 재구성 회로 · 분리 용제. ✕ = 취소 (Esc) · ✓ = 확인
+const ASK_X = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const ASK_V = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg>';
 function askPop() {
   const q = app.ask;
   if (!q) return '';
   return `<div class="ask-pop" role="dialog" aria-label="확인">${q.html}<div class="ask-btns">${q.ok
-    ? `<button class="btn ask-x" data-a="ask" data-v="no" title="취소 (Esc)" aria-label="취소">✕</button><button class="btn primary ask-v" data-a="ask" data-v="ok" title="${esc(q.okLabel || '확인')}" aria-label="${esc(q.okLabel || '확인')}">✓</button>`
-    : `<button class="btn ask-x" data-a="ask" data-v="no" title="닫기 (Esc)" aria-label="닫기">✕</button>`}</div></div>`;
+    ? `<button class="btn ask-x" data-a="ask" data-v="no" title="취소 (Esc)" aria-label="취소">${ASK_X}</button><button class="btn primary ask-v" data-a="ask" data-v="ok" title="${esc(q.okLabel || '확인')}" aria-label="${esc(q.okLabel || '확인')}">${ASK_V}</button>`
+    : `<button class="btn ask-x" data-a="ask" data-v="no" title="닫기 (Esc)" aria-label="닫기">${ASK_X}</button>`}</div></div>`;
 }
 const askItem = (id: string) => `<span class="ask-it">${itemIcon(id)}<span>${esc(itemInfo(id).name)}</span></span>`;
 const INV_BOX = ['.inv-rail', '.inv'];
@@ -2749,7 +2790,7 @@ function combineAsk(run: RunState, a: string, b: string, res: string, anchor: st
   const { stats, eff } = itemBrief(res);
   const ux = R.unixChance(run, res);
   app.ask = { anchor, at: 'inv', okLabel: '합성', ok,
-    html: `<b class="ask-t">장비 조합</b><div class="ask-eq">${askItem(a)}<b>+</b>${askItem(b)}<b>=</b><span class="ask-it ask-res" data-a="ask-info" role="button" tabindex="0" title="눌러서 설명 보기">${itemIcon(res)}<span>${esc(itemInfo(res).name)}</span></span></div><div class="ask-more">${stats}${eff ? `<p class="ip-eff">${statIc(esc(eff))}</p>` : ''}</div>${ux ? `<p class="ask-note warn">절망 증강 [${esc(DESPAIR_BY_ID['D.unix']?.name || '')}]: 합성하는 순간 ${pctTxt(ux)} 확률로 ${esc(itemInfo(CATWHEEL).name)}이 됩니다.</p>` : ''}${extra}` };
+    html: `<b class="ask-t">장비 조합</b><div class="ask-eq cb">${askItem(a)}<b>+</b>${askItem(b)}<b>=</b><span class="ask-it ask-res" data-a="ask-info" role="button" tabindex="0" title="눌러서 설명 보기">${itemIcon(res)}<span>${esc(itemInfo(res).name)}</span></span></div><div class="ask-more">${stats}${eff ? `<p class="ip-eff">${statIc(esc(eff))}</p>` : ''}</div>${ux ? `<p class="ask-note warn">절망 증강 [${esc(DESPAIR_BY_ID['D.unix']?.name || '')}]: 합성하는 순간 ${pctTxt(ux)} 확률로 ${esc(itemInfo(CATWHEEL).name)}이 됩니다.</p>` : ''}${extra}` };
 }
 /** 보관함 장비 둘: 조합되면 확인 팝업 (V = 조합). 조합할 수 없으면 false */
 function askCombineInv(run: RunState, i: number, j: number): boolean {
@@ -2761,6 +2802,7 @@ function askCombineInv(run: RunState, i: number, j: number): boolean {
     combinedToast(res, R.combineInv(run, i, j));
     app.sel = null; persist();
   });
+  app.ask!.hl = [i, j]; // 고른 두 장비 모두 선택 표시
   return true;
 }
 /** 보관함 장비 → 기물: 조합되면 확인 팝업 (보관함 왼쪽), 아니면 바로 장착. 다음 선택 상태 */
@@ -4207,7 +4249,15 @@ function act(a: string, v: string) {
     case 'use-k': {
       const u = app.useK;
       app.useK = null;
-      if (run && u && v === 'ok') { const k = run.inventory[u.i]; const r = R.useConsumable(run, u.i, u.tg); if (r.ok) ACH.achUse(run, k, u.tg); toast(r.msg); app.sel = null; persist(); }
+      if (run && u && v === 'ok') {
+        const k = run.inventory[u.i], tu = u.tg.k === 'unit' ? run.units.find((x) => x.uid === (u.tg as { uid: string }).uid) : undefined;
+        const r0 = tu?.rank ?? 0, x0 = tu?.xp ?? 0;
+        const r = R.useConsumable(run, u.i, u.tg);
+        if (r.ok) ACH.achUse(run, k, u.tg);
+        // 공명 주입기: 편성 화면이면 기물 위 작은 알림으로 (등급 상승 창은 연출 뒤로 미룬다), 아니면 보통 알림
+        if (r.ok && tu && isInjector(k) && app.screen === 'prep') { injHold = tu.rank > r0; requestAnimationFrame(() => injectFx(tu.uid, r0, x0, tu.xp, tu.rank)); } else toast(r.msg);
+        app.sel = null; persist();
+      }
       break;
     }
     case 'ask': app.ask = null; if (v === 'ok' && ask?.ok) ask.ok(); else app.sel = null; break; // ✓ 확인 · ✕ 취소 (선택도 푼다)

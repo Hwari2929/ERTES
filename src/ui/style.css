@@ -1211,7 +1211,11 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .ask-note { font-size: var(--fs-sm); }
 .ask-note.warn { color: var(--c-warn-ink); }
 .ask-btns { display: flex; justify-content: flex-end; gap: 8px; }
-.ask-btns .btn { min-width: 44px; padding-inline: 12px; font-size: var(--fs-md); }
+.ask-btns .btn { display: grid; place-items: center; width: 38px; height: 30px; padding: 0; }
+.ask-btns .btn svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+/* 장비 조합: 너비는 조합식에 맞춘다 (설명 · 안내는 그 너비 안에서 줄바꿈) */
+.ask-pop:has(.ask-eq.cb) { width: max-content; max-width: calc(100vw - 16px); }
+.ask-pop:has(.ask-eq.cb) > :is(.ask-more, .ask-note, p) { width: 0; min-width: 100%; }
 /* 장비 조합: 결과 아이콘을 누르면 결과 장비의 능력치 · 효과를 펼친다 */
 .ask-res { cursor: pointer; }
 .ask-res .item { box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-select) 55%, transparent); }
@@ -4035,3 +4039,35 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .king-ms { margin: 4px 0 8px; padding-left: 18px; }
 .king-ms li.on { color: var(--el-holy); }
 @media (max-width: 560px) { .pill.king-pill .kp-next, .pill.king-pill .kp-tx { display: none; } }
+
+/* 공명 주입기 연출 (편성 화면, main.ts injectFx): 기물 토큰 위 작은 알림 → 막대가 차오름 → (등급 상승) 하얀 막이 왼쪽에서 밀려 들어오고 › 새 등급 반짝 */
+.inj-fx { position: fixed; z-index: var(--z-toast); width: 156px; display: grid; gap: 5px; padding: 6px 9px 7px; overflow: hidden; pointer-events: none; background: var(--panel); border: 1px solid var(--c-info); border-radius: var(--r-md); box-shadow: 0 6px 18px color-mix(in srgb, var(--c-black) 45%, transparent), 0 0 12px color-mix(in srgb, var(--c-info) 35%, transparent); opacity: 0; transform: translateY(6px) scale(.92); transition: opacity .16s ease-out, transform .22s cubic-bezier(.2, 1.4, .4, 1); }
+.inj-fx.in { opacity: 1; transform: none; }
+.inj-fx.out { opacity: 0; transform: translateY(-6px); transition: opacity .28s ease-in, transform .28s ease-in; }
+.inj-row { position: relative; display: flex; align-items: center; gap: 5px; font-size: var(--fs-sm); line-height: 1.2; transition: color .15s; }
+.inj-rk, .inj-rk2 { font-family: var(--f-mono); font-weight: 800; }
+.inj-amt { margin-left: auto; color: var(--c-res); font-weight: 700; }
+.inj-ar, .inj-rk2 { display: none; }
+.inj-bar { position: relative; height: 6px; border-radius: var(--r-pill); background: var(--panel-2); overflow: hidden; }
+.inj-bar i { position: absolute; inset: 0 auto 0 0; border-radius: var(--r-pill); background: var(--c-info); box-shadow: 0 0 8px var(--c-info); transition: width .6s cubic-bezier(.3, .7, .3, 1); }
+/* 하얀 막: 왼쪽에서 밀려 들어와 알림 안쪽을 덮는다 (DOM 첫 자식이라 글씨 아래에 깔린다. 막대는 덮인 뒤 숨김) */
+.inj-wash { position: absolute; inset: 0; background: var(--c-white); transform: translateX(-101%); transition: transform .24s cubic-bezier(.5, 0, .2, 1); }
+.inj-fx.wash .inj-wash { transform: none; }
+.inj-fx.wash { border-color: var(--c-white); box-shadow: 0 6px 18px color-mix(in srgb, var(--c-black) 45%, transparent), 0 0 18px color-mix(in srgb, var(--c-white) 70%, transparent); }
+.inj-fx.wash .inj-row { color: color-mix(in srgb, var(--c-black) 85%, transparent); }
+.inj-fx.wash .inj-amt { display: none; }
+.inj-fx.wash .inj-bar { opacity: 0; transition: opacity .12s .12s; }
+.inj-fx.ranked .inj-row { justify-content: center; font-size: var(--fs-md); }
+.inj-fx.ranked .inj-ar { display: inline; animation: inj-ar .28s ease-out both; }
+.inj-fx.ranked .inj-rk2 { display: inline-block; color: var(--c-info); animation: inj-spark .9s cubic-bezier(.2, 1.5, .4, 1) .12s both; }
+.inj-fx.ranked .inj-rk { opacity: .55; }
+@keyframes inj-ar { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+@keyframes inj-spark {
+  0% { opacity: 0; transform: scale(.4); text-shadow: none; }
+  35% { opacity: 1; transform: scale(1.35); text-shadow: 0 0 10px var(--c-info), 0 0 2px var(--c-info); }
+  60% { transform: scale(.95); }
+  100% { opacity: 1; transform: none; text-shadow: 0 0 6px color-mix(in srgb, var(--c-info) 60%, transparent); }
+}
+/* 대상 기물 토큰: 공명도가 오르는 동안 한 번 빛난다 */
+.tk.inj-glow { animation: inj-glow 1.1s ease-out; }
+@keyframes inj-glow { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-info) 80%, transparent); } 40% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-info) 55%, transparent), 0 0 16px var(--c-info); } 100% { box-shadow: 0 0 0 0 transparent; } }
