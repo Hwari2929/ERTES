@@ -32,7 +32,11 @@ export const SEA = {
     /** 고정 색 (앞 → 뒤, [hue, sat, light]): 있으면 무작위 대신 이 순서대로, 전환마다 jitter [hue, sat, light] 범위 안에서 살짝 흔든다.
      *  기본: 청량 블루와 라군 터콰이즈 사이 — 가까운 바다는 진한 청록, 멀수록 밝은 하늘빛 */
     order: [[183, 64, 55], [186, 68, 63], [181, 66, 71], [189, 72, 78], [185, 66, 85], [194, 62, 92]] as [number, number, number][] | null,
-    jitter: [4, 4, 2.5] },
+    jitter: [4, 4, 2.5],
+    /** 계단 모드 (order 보다 우선): 색상 · 채도는 범위에서 무작위, 밝기는 맨 앞 light0 에서 시작해 판마다 step 만큼 반드시 밝아진다
+     *  → 이웃 판끼리 밝기 차가 늘 step[0] 이상이라 경계가 또렷하다 */
+    steps: null as { hue: number[]; sat: number[]; light0: number[]; step: number[]; hueStep: number } | null },
+  crest: { line: 0, color: '#ffffff' }, // 물마루 선 (스티커처럼 흰 선): 굵기 px (0 이면 없음)
   glow: { alpha: 0.15, reach: 34, blur: 13, light: 13 }, // 판 가장자리 위로 번지는 빛 띠 (드롭 섀도): 불투명도 · 수면 위로 뻗는 높이 px · 번짐 px · 판 색보다 밝게 %p.
   // 빛 띠는 판 모양을 만들 때 캔버스에 한 번만 그려 이미지로 붙인다 (매 프레임 필터 계산 없이 판과 함께 움직일 뿐)
   sway: { x: 14, y: 5, tilt: 0.7 }, // 판 흔들림: 좌우 px · 위아래 px · 기울기 도
@@ -148,7 +152,7 @@ function sticker(g: SVGGElement, line: number, shade: string, alpha: number, dy:
 const gullPath = (f: number) => { const y = -6 - 7 * f, c = -12 - 9 * f; return `M-20 ${y} Q-10 ${c} 0 0 Q10 ${c} 20 ${y}`; };
 
 /** 물결 판 하나: 모양(로컬 좌표, 수면 기준 y=0)은 고정, 매 프레임 판의 위치 · 흔들림만 바뀐다 */
-interface Wave { g: SVGGElement; fill: SVGPathElement; shade: SVGImageElement | null; glow: string; glints: SVGGElement; grad: SVGLinearGradientElement;
+interface Wave { g: SVGGElement; fill: SVGPathElement; crest: SVGPathElement | null; shade: SVGImageElement | null; glow: string; glints: SVGGElement; grad: SVGLinearGradientElement;
   ph: [number, number, number]; k: [number, number]; y: number; tx: number; ty: number; rot: number }
 interface Puff { el: SVGCircleElement; x: number; y: number; vx: number; vy: number; r0: number; r1: number; t: number; life: number }
 interface Gull { el: SVGPathElement; x: number; y: number; tx: number; ty: number; t0: number; ph: number; rate: number; vx: number; vy: number; leaving: boolean }
@@ -189,6 +193,14 @@ export function seaTransition(): SeaHandle {
   const hue = () => { let q = Math.random() * P.zones.reduce((a, z) => a + z[1], 0); for (const [r, w] of P.zones) { if ((q -= w) <= 0) return rr(r); } return rr(P.zones[0][0]); };
   const hues: [number, number, number][] = [];
   for (let i = 0; i < N; i++) {
+    const st = P.steps;
+    if (st) { // 계단: 밝기는 단조 증가 (step 이상), 색상은 이웃과 hueStep 이상 벌어지게 무작위
+      const q = hues[i - 1];
+      let h = rr(st.hue);
+      for (let k = 0; k < 12 && q && Math.abs(h - q[0]) < st.hueStep; k++) h = rr(st.hue);
+      hues.push([h, rr(st.sat), Math.min(95, q ? q[2] + rr(st.step) : rr(st.light0))]);
+      continue;
+    }
     const fixed = P.order?.[i % P.order.length];
     if (fixed) { const j = (k: number) => (Math.random() * 2 - 1) * P.jitter[k]; hues.push([fixed[0] + j(0), fixed[1] + j(1), fixed[2] + j(2)]); continue; }
     let c: [number, number, number] = [hue(), rr(P.sat), rr(P.light)];
@@ -213,11 +225,13 @@ export function seaTransition(): SeaHandle {
       g.appendChild(shade);
     }
     const fill = svg('path', { fill: `url(#${id}g${i})` });
+    const crest = C.crest.line > 0 && i < N - 1 ? svg('path', { fill: 'none', stroke: C.crest.color, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }) : null;
     const glints = svg('g', { fill: '#ffffff' });
     g.append(fill, glints);
+    if (crest) g.appendChild(crest);
     root.appendChild(g);
     const r = () => Math.random() * 6.283;
-    waves[i] = { g, fill, shade, glow: `hsl(${h.toFixed(0)}, ${Math.max(0, sa - 6).toFixed(0)}%, ${Math.min(97, l + C.glow.light).toFixed(0)}%)`, glints, grad, ph: [r(), r(), r()], k: [0.8 + Math.random() * 0.5, 0.6 + Math.random() * 0.5], y: 0, tx: 0, ty: 0, rot: 0 };
+    waves[i] = { g, fill, crest, shade, glow: `hsl(${h.toFixed(0)}, ${Math.max(0, sa - 6).toFixed(0)}%, ${Math.min(97, l + C.glow.light).toFixed(0)}%)`, glints, grad, ph: [r(), r(), r()], k: [0.8 + Math.random() * 0.5, 0.6 + Math.random() * 0.5], y: 0, tx: 0, ty: 0, rot: 0 };
   }
   root.append(fx, gullG, hit);
   const jet = boatG.querySelector<SVGGElement>('.ts-jet')!, flame = boatG.querySelector<SVGGElement>('.ts-flame')!;
@@ -263,6 +277,7 @@ export function seaTransition(): SeaHandle {
       }
       const close = `L${(W + pad).toFixed(1)} ${deep.toFixed(1)}L${(-pad).toFixed(1)} ${deep.toFixed(1)}Z`;
       wv.fill.setAttribute('d', d + close);
+      if (wv.crest) { wv.crest.setAttribute('d', d); wv.crest.setAttribute('stroke-width', (C.crest.line * U).toFixed(1)); }
       // 그라디언트: 물마루(위)에서 다음 판이 덮는 곳까지
       const a = w.amp * U, span = i ? (C.waves[i - 1].top - w.top) * H : H * 0.2;
       wv.grad.setAttribute('y1', (-a).toFixed(1)); wv.grad.setAttribute('y2', Math.max(40, span).toFixed(1));
