@@ -28,9 +28,9 @@ const freeCell = (run: RunState): { c: number; r: number } | null => {
 };
 
 /** 출전 편성: 빈 자리 채우기 → 교체 (팀 가치 V 가 FORM.swapGain 이상 오를 때만). 반려 돌은 그대로 둔다 */
-export function formation(run: RunState, log: DLog, extraBench: UnitState[] = []): number {
+export function formation(run: RunState, log: DLog, extraBench: UnitState[] = [], bias?: (us: UnitState[]) => number): number {
   const cap = R.deployCap(run);
-  const ev = (us: UnitState[]) => teamEval(run, us.filter((u) => !R.isRock(u)).map((u) => asEval(run, u))).v;
+  const ev = (us: UnitState[]) => teamEval(run, us.filter((u) => !R.isRock(u)).map((u) => asEval(run, u))).v * (bias ? bias(us) : 1); // bias: 2단계 build 영역 (대표 빌드 가중)
   const bench = () => [...run.units.filter((u) => !u.pos && R.canDeploy(run, u) && !R.isRock(u)), ...extraBench.filter((u) => !u.pos)];
   let cur = deployed(run);
   // 1. 빈 자리

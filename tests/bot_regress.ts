@@ -6,6 +6,10 @@ import * as R from '../src/engine/run';
 import type { RunState } from '../src/types';
 import { equipGear, equipGearFix, newIns, useConsumables, useConsumablesFix } from './botlib';
 import { Chulsu } from './chulsu';
+import * as A from './chulsu/aug';
+import * as E from './chulsu/econ';
+import * as H from './chulsu/hard';
+import { lossCost, reserve } from './chulsu/econ';
 
 declare const process: { exitCode: number; stdout: { write(s: string): void } };
 let fails = 0;
@@ -78,6 +82,56 @@ const u0 = (run: RunState) => run.units[0];
   c2.manageGear();
   ok(u0(g).items.includes('G_def'), `철수: 용제가 없으면 해제하지 않고 조합 가능한 재료를 단다 → ${JSON.stringify(u0(g).items)} · ${JSON.stringify(g.inventory)}`);
   ok(Object.keys(c2.ins.fail).length === 0, `철수: 실패 시도 없음 ${JSON.stringify(c2.ins.fail)}`);
+}
+
+// ── 5. 철수 2단계 econ: 남길 크레딧 (이자 구간 · 체력 위험) 과 함대 확장 우선 (대기 기물이 있으면 이자 구간 아래로도)
+{
+  const run = R.newRun(1, ['falcon', 'gebek', 'argon', 'romani'], 'waste', 7);
+  run.pending = [];
+  ok(reserve(run) === R.interestInfo(run).cap * CFG.interestPer, `econ: 체력이 넉넉하면 이자 상한 구간만큼 남긴다 (${reserve(run)})`);
+  run.hp = Math.floor(lossCost(run) * 2);
+  ok(reserve(run) === 0, `econ: 체력 ≤ 다음 패배 비용 × 2.5 면 남기지 않는다 (체력 ${run.hp}, 패배 비용 ${lossCost(run).toFixed(1)})`);
+  run.hp = run.maxHp;
+  R.recruit(run, 'kyle'); // 5번째 기물: 대기
+  run.credits = 25;
+  const c = new Chulsu(run, { areas: new Set(['econ']) });
+  c.spend();
+  ok(R.deployCap(run) === CFG.deployBase + 1, `econ: 대기 기물이 있으면 이자 구간(40) 아래로도 함대 확장 (출전 ${R.deployCap(run)} · 잔액 ${run.credits})`);
+}
+
+// ── 6. 철수 2단계 recruit2 · aug: 반려 돌은 영입하지 않고, 있으면 방출한다
+{
+  const run = R.newRun(1, ['falcon', 'gebek', 'argon', 'romani'], 'waste', 7);
+  run.pending = [];
+  const c = new Chulsu(run, { areas: new Set(['recruit2', 'form']) });
+  const pick = c.recruit2({ t: 'recruit', options: ['petrock', 'kyle', 'lindiwe'] });
+  ok(pick !== 'petrock', `recruit2: 반려 돌을 고르지 않는다 → ${pick}`);
+  ok(A.noRock(['petrock', 'kyle'], () => 0) === 'kyle', 'aug: 반려 돌을 뺀 후보에서 고른다');
+  R.recruit(run, 'petrock');
+  c.manageItems();
+  ok(!run.units.some((u) => u.defId === 'petrock'), `recruit2: 이미 있는 반려 돌은 방출 → ${run.units.map((u) => u.defId).join(',')}`);
+}
+
+// ── 7. 공정성: 사건 · 상점 평가는 복제 런에서만 굴리고 실제 런(런 난수 포함)을 바꾸지 않는다
+{
+  const run = R.newRun(3, ['falcon', 'gebek', 'argon', 'romani'], 'waste', 3);
+  run.pending = [{ t: 'event', id: 'volunteer' }];
+  const before = JSON.stringify(run);
+  const c = new Chulsu(run, { areas: new Set(['econ', 'gear', 'growth']) });
+  const i = E.event(run, run.pending[0] as never, c.plan, c.log, c.rng);
+  ok(i !== null && JSON.stringify(run) === before, `econ: 사건 평가 뒤에도 런 상태 · 런 난수 그대로 (고른 선택지 #${i})`);
+}
+
+// ── 8. hard: 강제 징수기는 일반 전투에 1개뿐이면 아낀다
+{
+  const run = R.newRun(1, ['falcon', 'gebek', 'argon', 'romani'], 'waste', 7);
+  run.pending = [];
+  R.enterNode(run, 'battle');
+  run.node!.enc!.enemies[0].items = ['A_pow_mnd'];
+  run.inventory = ['K_seize'];
+  ok(!H.seize(run, new Chulsu(run, { areas: new Set(['hard']) }).log) && run.inventory.includes('K_seize'), 'hard: 일반 전투에는 징수기 1개를 쓰지 않는다');
+  run.node!.type = 'adversity';
+  ok(H.seize(run, new Chulsu(run, { areas: new Set(['hard']) }).log) && !run.inventory.includes('K_seize'), 'hard: 역경에서는 희귀 장비를 단 적에게 쓴다');
 }
 
 process.stdout.write(fails ? `\n${fails}개 실패\n` : '\n모두 통과\n');

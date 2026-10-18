@@ -160,10 +160,10 @@ export function solventKeep(run: RunState): number {
   return Math.max(1, Math.min(4, c));
 }
 /** 소모품 (결함 수정판): 사용 실패는 그 물건만 건너뛰고 계속 · 위험 7 이상은 분리 용제를 전략 자원으로 남긴다 */
-export function useConsumablesFix(run: RunState, track?: Track, ins?: BotIns, opt: { noStrip?: boolean; xpPick?: () => UnitState | null } = {}) {
+export function useConsumablesFix(run: RunState, track?: Track, ins?: BotIns, opt: { noStrip?: boolean; noSeize?: boolean; xpPick?: () => UnitState | null } = {}) {
   const bad = new Set<string>();
   for (let guard = 0; guard < 40; guard++) {
-    const i = run.inventory.findIndex((x) => isConsumable(x) && !bad.has(x) && !(opt.noStrip && x === 'K_strip') && consumableTarget(run, x, opt.xpPick));
+    const i = run.inventory.findIndex((x) => isConsumable(x) && !bad.has(x) && !(opt.noStrip && x === 'K_strip') && !(opt.noSeize && x === 'K_seize') && consumableTarget(run, x, opt.xpPick));
     if (i < 0) break;
     const id = run.inventory[i];
     const tg = consumableTarget(run, id, opt.xpPick)!;

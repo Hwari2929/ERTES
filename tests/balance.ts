@@ -60,15 +60,30 @@ const POL_ADV = ADVPOL[0] || '', POL_CH = ADVPOL[1] || ADVPOL[0] || '';
 const ADVSTUDY = process.argv.includes('advstudy');
 /** 역경 계측에서 같은 상태 · 같은 조우로 다시 돌려 보는 배수 ('n' = 같은 칸 일반 전투 배수 1 + 0.04 × 칸) */
 const STUDY_MULTS: (number | 'n')[] = [1, 'n', 1.15, 1.2, 1.25, 1.3];
-/** bot=dumbi (기본, 예전 봇 그대로) · rara (덤비 + 장비 운용 결함 수정만) · chulsu (편성 · 장비 · 성장 판단, tests/chulsu). docs/BOT_CHULSU.md */
-const BOT = (process.argv.find((a) => a.startsWith('bot='))?.slice(4) || 'dumbi') as 'dumbi' | 'rara' | 'chulsu';
-if (!['dumbi', 'rara', 'chulsu'].includes(BOT)) throw new Error(`알 수 없는 봇: ${BOT}`);
-/** chulsu=form,gear,growth,start,recruit — 철수 판단 영역 (없으면 DEFAULT_AREAS = form,gear,growth,start). 꺼진 영역은 라라와 같다. start 는 계약 후보(pool) 안에서 고른다 */
+/** bot=dumbi (기본, 예전 봇 그대로) · rara (덤비 + 장비 운용 결함 수정만) · chulsu (편성 · 장비 · 성장 · 경제 · 증강 · 빌드 판단, tests/chulsu) · chulsu-search (+ 제한 탐색, 분석 전용). docs/BOT_CHULSU.md */
+const BOT0 = process.argv.find((a) => a.startsWith('bot='))?.slice(4) || 'dumbi';
+if (!['dumbi', 'rara', 'chulsu', 'chulsu-search'].includes(BOT0)) throw new Error(`알 수 없는 봇: ${BOT0}`);
+/** bot=chulsu-search: 철수 + 제한 탐색 (분석 전용, 대량 테스트 기본에서 뺀다) = bot=chulsu chulsu=<영역>,search */
+const BOT = (BOT0 === 'chulsu-search' ? 'chulsu' : BOT0) as 'dumbi' | 'rara' | 'chulsu';
+/** chulsu=form,gear,growth,start,econ,aug,hard,recruit2,build,recruit,search — 철수 판단 영역 (없으면 DEFAULT_AREAS = 1단계 4개 + econ,aug,hard,recruit2,build). 꺼진 영역은 라라와 같다. start 는 계약 후보(pool) 안에서 고른다 */
 const CH_AREAS = new Set<Area>(BOT === 'chulsu' ? ((process.argv.find((a) => a.startsWith('chulsu='))?.slice(7).split(',').filter(Boolean) as Area[]) || DEFAULT_AREAS) : []);
+if (BOT0 === 'chulsu-search') CH_AREAS.add('search');
+/** [조건부 실험] forcebuild=cmd|guard|med: 철수 build 영역의 빌드를 고정한다 (주어진 후보 · 자원만 쓰는 건 같다). 없으면 봇이 고른다 */
+const FORCE_BUILD = process.argv.find((a) => a.startsWith('forcebuild='))?.slice(11);
+/** [분석] augoff=priv,desp,glob,unit,loot: aug 영역의 일부만 끈다 (꺼진 부분은 덤비 규칙) — 증강 영역 안의 효과를 나눠 재는 용도 */
+const AUG_OFF = new Set((process.argv.find((a) => a.startsWith('augoff='))?.slice(7) || '').split(',').filter(Boolean));
 for (const a of CH_AREAS) if (!ALL_AREAS.includes(a)) throw new Error(`알 수 없는 철수 영역: ${a}`);
 /** instr: 런마다 계측 기록 (조우 진입 상태 · 장비 현황 · 실패 사유 · 실행 시간) → runs[].ins. dlog: 철수 판단 기록 → runs[].dlog. 둘 다 없으면 출력은 예전과 같다 */
 const INSTR = process.argv.includes('instr');
 const DLOG = process.argv.includes('dlog');
+/** [조건부 실험 · 측정표용] fpriv=<특권 id> · fdesp=<절망 증강 id> (출격 때 첫 절망 증강) · fglob=<전역 증강 id> (첫 항로 회의): 선택지와 무관하게 그것을 고른다.
+ *  철수 aug 영역의 실측 가치표(tests/chulsu/tables.ts)를 조정 시드에서 만들 때만 쓴다. 없으면 동작 그대로 */
+const F_PRIV = process.argv.find((a) => a.startsWith('fpriv='))?.slice(6);
+const F_DESP = process.argv.find((a) => a.startsWith('fdesp='))?.slice(6);
+const F_GLOB = process.argv.find((a) => a.startsWith('fglob='))?.slice(6);
+/** [보급안 실험] cfgp1: CFG.supply.p1 (1페이즈 항로 보급 2회) · cfgfront: CFG.supply.front (2페이즈부터 페이즈 맨 앞 항로 보급). CLI supply(분기점 보급 선택 정책)와 다르다 */
+if (process.argv.includes('cfgp1')) (CFG.supply as { p1: boolean }).p1 = true;
+if (process.argv.includes('cfgfront')) (CFG.supply as { front: boolean }).front = true;
 
 // ───────── 역경 계측: 첫 아군 사망 · 첫 적 처치 시각 (전투 동작은 그대로, 시각만 기록)
 type Enc = NonNullable<NonNullable<RunState['node']>['enc']>;
@@ -208,9 +223,10 @@ function playRun(seed: number) {
   if (CHR) { const pick = bot.sample(CHR_IDS, 2); starters = [...pick, ...starters.filter((x) => !pick.includes(x))].slice(0, CFG.startUnits); }
   const run = R.newRun(seed, starters, FORCE_FIELD, DIFF, OATH_SEL);
   const INS: BotIns | undefined = INSTR || BOT !== 'dumbi' ? newIns() : undefined;
-  const CH = BOT === 'chulsu' ? new Chulsu(run, { areas: CH_AREAS, dlog: DLOG, ins: INS }) : null;
+  const CH = BOT === 'chulsu' ? new Chulsu(run, { areas: CH_AREAS, dlog: DLOG, ins: INS, forceBuild: FORCE_BUILD, augOff: AUG_OFF }) : null;
   if (CH) CH.log.list.push(...startLog.list);
   let dms = 0; // 봇 판단 시간 (manage · 선택지 처리, ms)
+  let fGlobDone = false; // fglob= 실험: 첫 항로 회의만
   const encRec: number[][] = [], gearRec: number[][] = [];
   const synMax: Record<string, number> = {};
   const det: Record<string, [number, number]> = {}; // detail 모드: `키|페이즈:노드` → [전투, 승리]
@@ -227,8 +243,17 @@ function playRun(seed: number) {
   const resolvePending = () => {
     while (run.pending.length) {
       const p = run.pending[0];
-      if (p.t === 'privilege') { R.pickPrivilege(run, bot.int(0, p.options.length - 1)); continue; }
-      if (p.t === 'despair') { R.pickDespair(run, bot.int(0, p.options.length - 1)); continue; } // 고난: 절망 증강 무작위 (출격 · 페이즈 시작)
+      if (p.t === 'privilege') {
+        if (F_PRIV) { p.options = [{ id: F_PRIV, ...(F_PRIV === 'P.emblem' ? { param: CH?.emblemParam() || p.options.find((o) => o.id === 'P.emblem')?.param || 'UNI' } : {}) }]; R.pickPrivilege(run, 0); continue; } // 조건부 실험 (측정표)
+        if (CH?.augOn('priv')) { CH.privilege(p); continue; } // 철수 aug: 크레딧 환산 모형 + 새로고침 기대값
+        R.pickPrivilege(run, bot.int(0, p.options.length - 1)); continue;
+      }
+      if (p.t === 'despair') {
+        if (F_DESP && !p.phase) { p.options = [F_DESP]; R.pickDespair(run, 0); continue; } // 조건부 실험 (측정표)
+        if (CH?.augOn('desp')) { CH.despair(p); continue; } // 철수 aug: 지금 계획에 가장 덜 해로운 것
+        R.pickDespair(run, bot.int(0, p.options.length - 1)); continue; // 고난: 절망 증강 무작위 (출격 · 페이즈 시작)
+      }
+      if (p.t === 'event' && CH?.has('econ')) { CH.event(p); if (run.pending[0] === p) run.pending.shift(); continue; } // 철수 econ: 선택지마다 복제 상태에서 (다른 난수로) 결과를 굴려 상태 가치 비교
       if (p.t === 'event') {
         let done = false;
         for (const i of bot.shuffle([0, 1, 2])) if (R.chooseEvent(run, i) === null && run.pending[0] !== p) { done = true; break; }
@@ -236,26 +261,34 @@ function playRun(seed: number) {
         continue;
       }
       if (p.t === 'victory') run.endless = true;
-      if (p.t === 'global') R.pickGlobal(run, bot.pick(p.options));
+      if (p.t === 'global') {
+        if (F_GLOB && !fGlobDone && p.rerolls !== undefined) { fGlobDone = true; R.pickGlobal(run, F_GLOB); } // 조건부 실험: 첫 항로 회의
+        else if (CH?.augOn('glob')) CH.global(p); // 철수 aug (새로고침은 p.options 를 바꾼다)
+        else R.pickGlobal(run, bot.pick(p.options));
+      }
       else if (p.t === 'rankup') {
         const u = run.units.find((x) => x.uid === p.uid)!;
         const pref: Major[] = UNIT_BY_ID[u.defId].range <= 1 ? ['vit', 'pow'] : ['pow', 'mnd'];
         if (!p.allocDone) R.allocRank(run, p, (!p.allocDone && CH?.alloc(p)) || pref); // 대성공이면 같은 능력치 2배. 철수 growth: 실제 계수 기준
         R.ensureRankupOptions(run, p);
-        { const a = augChoice(p, (o) => bot.pick(o)); if (a) R.chooseAug(run, p.uid, a); }
-      } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
+        if (CH?.augOn('unit')) { const a = CH.aug(p); if (a) R.chooseAug(run, p.uid, a); } // 철수 aug: 실측 증강 가치 + 새로고침
+        else { const a = augChoice(p, (o) => bot.pick(o)); if (a) R.chooseAug(run, p.uid, a); }
+      } else if (p.t === 'itemPick') R.gainItem(run, (CH?.augOn('loot') && CH.itemPick(p.options)) || bot.pick(p.options));
       else if (p.t === 'recruit') {
         // 영입: 보유 기물과 시너지가 가장 많이 겹치는 기물 (+약간의 무작위)
         const have = new Map<string, number>();
         for (const u of run.units) { const d = UNIT_BY_ID[u.defId]; for (const x of [...d.factions, ...d.traits]) have.set(x, (have.get(x) || 0) + 1); }
         const score = (id: string) => { const d = UNIT_BY_ID[id]; return [...d.factions, ...d.traits].reduce((s2, x) => s2 + (have.get(x) || 0), 0) + bot.next() + (CHR && isFac(id) ? 20 : 0); };
         // 철수 recruit: 영입 뒤 가능한 출전 편성의 팀 가치 비교 (덤비 점수는 동점 처리에만). 없으면 덤비 그대로 (정렬 비교마다 난수를 쓰는 예전 동작 유지)
-        const pick = (CH?.has('recruit') && CH.recruit(p.options, (id) => score(id))) || p.options.slice().sort((x, y) => score(y) - score(x))[0];
+        const pick = (CH?.has('recruit2') && CH.recruit2(p)) || (CH?.has('recruit') && CH.recruit(p.options, (id) => score(id))) || (CH?.augOn('desp') && CH.noRock(p.options, (id) => score(id))) || p.options.slice().sort((x, y) => score(y) - score(x))[0];
+        if (pick === '-') { run.pending.shift(); continue; } // 철수 recruit2: 영입하지 않음 (보유 한도 · 반려 돌뿐)
         for (const id of p.options) add('offer', id, { offered: 1, picked: id === pick ? 1 : 0 });
         R.recruit(run, pick);
       } else if (p.t === 'supply') R.flipAllSupply(run, p);
       else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
+      else if (p.t === 'branch' && CH?.has('econ')) { R.pickBranch(run, CH.branch(p.options)); continue; } // 철수 econ: 지금 필요에 따라
       else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? SUPPLY && p.options.includes('supply') ? 'supply' : (run.units.length < 10 ? (['recruit', 'invest', 'pilgrim', 'shop'] as const) : (['invest', 'pilgrim', 'shop'] as const)).find((o) => p.options.includes(o))! : 'shop'); continue; }
+      else if (p.t === 'fork' && CH?.has('hard') && !POL_ADV) { R.pickFork(run, CH.fork()); continue; } // 철수 hard: 체력 · 전력 여유로 휴식 / 도전
       else if (p.t === 'fork') { R.pickFork(run, POL_ADV ? (R.occultTier(run) && run.credits >= 20 ? 'synth' : want(POL_CH) ? 'challenge' : 'rest') : forkChoice(run, () => bot.chance(0.5))); continue; }
       else if (p.t === 'pilgrim') { pilgrimBot(run); run.pending.shift(); continue; }
       run.pending.shift();
@@ -267,12 +300,14 @@ function playRun(seed: number) {
     if (CH) CH.manageItems(track);
     else if (BOT === 'rara') manageItemsFix(run, track, INS);
     else manageItems(run, track, INS);
-    // 함대 확장: 출전 인원이 보유 기물보다 적으면 우선 구매 (예비 15 남김)
-    for (let c = R.fleetCost(run); c !== null && run.units.length > R.deployCap(run) && run.credits >= c + 15; c = R.fleetCost(run)) R.buyFleet(run);
-    if (!CH?.buyXp()) while (run.credits >= 30 + R.xpCost(run)) {
+    // 함대 확장: 출전 인원이 보유 기물보다 적으면 우선 구매 (예비 15 남김). 철수 econ: 함대 확장 · 공명도 · 저축을 한 예산으로 (CH.spend)
+    if (CH?.has('econ')) CH.spend();
+    else for (let c = R.fleetCost(run); c !== null && run.units.length > R.deployCap(run) && run.credits >= c + 15; c = R.fleetCost(run)) R.buyFleet(run);
+    if (!CH?.has('econ') && !CH?.buyXp()) while (run.credits >= 30 + R.xpCost(run)) {
       const u = run.units.filter((x) => x.pos && x.rank < CFG.maxRank).sort((a, b) => a.rank - b.rank)[0];
       if (!u || !R.buyXp(run, u.uid)) break;
     }
+    CH?.buildStep(); // 철수 build: 빌드 유지 / 전환 · 지정 소집 (영입 선택은 다음 resolvePending)
     // 청라 우선: 아직 없는 청라 기물이 있으면 지정 소집 (청라 · 엔지니어 · 신비학자)
     if (CHR && !run.node && !run.pending.length && run.units.length < CFG.maxParty && CHR_IDS.some((id) => !run.units.some((u) => u.defId === id)) && run.credits >= R.musterCost(run) + 5) {
       if (R.openMuster(run) === null && R.confirmMuster(run, FAC === 'CHR' ? ['CHR', 'ENG', 'OCCULT'] : [FAC, ...['ENG', 'OCCULT', 'MED'].filter((x) => x !== FAC)].slice(0, 3)) !== null) R.cancelMuster(run);
@@ -297,13 +332,14 @@ function playRun(seed: number) {
   while (!run.over && !run.cleared && n < 200) {
     if (ADVSTUDY && run.node?.enc && !encPre.has(run.node.enc)) encPre.set(run.node.enc, structuredClone(run.node.enc));
     resolvePending(); manage(); resolvePending();
-    if (run.node?.synth) { shopSynth(run, track); continue; }
+    if (run.node?.synth) { if (CH?.has('econ')) { CH.synth(track); R.leaveShop(run); } else shopSynth(run, track); continue; }
     if (!run.node) {
       const opts = R.currentOptions(run);
       if (POL_ADV) R.enterNode(run, opts.includes('adversity') ? (want(POL_ADV) ? 'adversity' : 'battle') : opts[0]); // 역경 칸을 일반 전투로 바꾸는 것은 가상 정책 (실제 지도에서 역경은 필수)
       else R.enterNode(run, opts.includes('adversity') && run.hp > 60 && bot.chance(0.5) ? 'adversity' : opts[0]);
       if (run.pending[0]?.t === 'branch') resolvePending();
       const t = (run.node as { type: string } | null)?.type;
+      if (t === 'shop' && CH?.has('econ')) { CH.shop(); R.leaveShop(run); continue; } // 철수 econ: 지금 빌드에 쓸모 · 가격 대비 (정비 포함)
       if (t === 'shop') for (let i = 0; i < 6; i++) if (run.credits >= 35) R.buyShop(run, i);
       if (t === 'news') for (let i = 0; i < 6; i++) R.buyNews(run, i);
       if (t === 'invest') for (let i = 0; i < 5; i++) if (run.credits >= 30) R.buyInvest(run, i);
@@ -332,9 +368,11 @@ function playRun(seed: number) {
     const hp0 = run.hp, cons0 = consUsed; consUsed = 0;
     tap = { pair: {}, evaded: new Map() };
     if (ntype === 'boss' && kbAt[ph] === undefined) kbAt[ph] = run.causal || 0; // 무휼: 페이즈 보스 첫 진입 직전 인과율
+    if (CH?.has('search')) CH.search(); // 제한 탐색 (분석 전용): 보이는 조우를 다른 난수로 미리 싸워 편성 · 배치 후보 비교
     const b = buildBattle(run, enc, false); // 실제 게임과 같은 경로 (포탑 · 무휼 자리, 포탑 장비 포함)
     b.runToEnd();
     const won = b.winner === 0;
+    CH?.afterBattle(b, ntype);
     battles++;
     if (INSTR) encRec[encRec.length - 1][10] = won ? 1 : 0;
     { const k2 = ntype === 'boss' ? 0 : 2; bw[k2]++; if (won) bw[k2 + 1]++; }
@@ -458,7 +496,7 @@ function playRun(seed: number) {
     sp: run.rep?.sp || {}, crAt, end: run.credits, loan: run.loan || 0 };
   runs.push({ seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, causal: run.causal || 0, king: run.causal ? causalStage(run.causal) : 0, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems,
     cz: czAt, kb: kbAt, chrMax: run.chrTier || 0, bw, diff: run.diff || 0, heat: run.oathHeat || 0, despairs: run.despairs || [], hp: run.hp, eco, ...(DETAIL ? { det } : {}), ...(ADVSTUDY ? { adv: advRecs, nb: nbRecs, maxHp: run.maxHp } : {}),
-    ...(INSTR ? { ins: { bot: BOT, areas: [...CH_AREAS], enc: encRec, gear: gearRec, fail: INS!.fail, ev: INS!.ev, ms: Math.round(performance.now() - t0), dms: Math.round(dms), cms: Math.round(CH?.ms || 0), nb: battles } } : {}),
+    ...(INSTR ? { ins: { bot: BOT, areas: [...CH_AREAS], enc: encRec, gear: gearRec, fail: INS!.fail, ev: INS!.ev, ms: Math.round(performance.now() - t0), dms: Math.round(dms), cms: Math.round(CH?.ms || 0), nb: battles, ...(CH?.xb ? { xb: CH.xb, xms: Math.round(CH.xms) } : {}), ...(CH?.stage2() ? { ch: CH.rec } : {}) } } : {}),
     ...(DLOG && CH ? { dlog: CH.log.list } : {}) });
 }
 
