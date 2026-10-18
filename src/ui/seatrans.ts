@@ -1,7 +1,7 @@
 // 이타카 테마: 바다 화면 전환 (themefx.ts 가 큰 화면 전환에 부른다). 게임 코드와 독립된 SVG 오버레이.
 //   등장   물결 N겹이 아래에서 차례로 차올라 화면을 덮는다. 먼저 오는 물결일수록 낮게 멈추고 앞에 그린다 (원근: 앞 = 아래).
 //          물결은 무대 소품 골판지처럼 모양이 고정된 판이고, 판째로 좌우로 흔들리고 살짝 기울며 오르내린다.
-//          판마다 위 → 아래 그라디언트 + 가장자리 위로 번지는 밝은 옐로우 · 에메랄드 띠 (흰 선 없이 깊이감). 앞은 짙은 에메랄드, 뒤로 갈수록 노란 먼바다.
+//          판마다 위 → 아래 그라디언트 + 가장자리 위로 번지는 같은 색의 밝은 띠 (흰 선 없이 깊이감). 판 색은 전환마다 노랑 ~ 에메랄드 파스텔에서 무작위.
 //          섬은 1번 물결 뒤 · 배는 2번 물결 뒤에 끼어 있다가 그 물결이 닿으면 물 위로 솟는다 (아랫부분은 앞 물결에 가린다)
 //   대기   판들이 제각각 흔들리고, 배 · 섬은 자기 물결 수면을 타고 떠 있다. 오래 걸리면 갈매기 3마리가 내려온다
 //   출항   ready() 뒤: 배(이타카제 왕복선) 뒤에서 제트 엔진이 튀어나와 점화 → 거의 수평으로 가속하다 기수가 들리며 오른쪽 위로 솟구쳐 사라진다.
@@ -16,16 +16,19 @@ export type SeaPhase = 'entering' | 'waiting' | 'exiting' | 'completed';
 export type BoatPhase = 'hidden' | 'floating' | 'launching' | 'flying' | 'crashing' | 'sinking' | 'gone';
 
 export const SEA = {
-  /** 물결 판 (앞 → 뒤 = 등장 순서). top: 멈추는 높이 (화면 높이 비율, 마지막 판은 화면 위 끝을 넘겨 빈틈이 없게), amp: 물마루 높이 px,
-   *  len: 물결 길이 (화면 폭 비율), color: [위, 아래] 그라디언트, shade: 이 판 가장자리 위로 번지는 밝은 띠 색 (옅은 에메랄드 → 옐로우, 어둡게 하지 않는다) */
+  /** 물결 판 (앞 → 뒤 = 등장 순서). top: 멈추는 높이 (화면 높이 비율, 마지막 판은 화면 위 끝을 넘겨 빈틈이 없게), amp: 물마루 높이 px, len: 물결 길이 (화면 폭 비율) */
   waves: [
-    { top: 0.8, amp: 13, len: 0.36, color: ['#5fbc98', '#46a383'], shade: '#b6ecd2' },
-    { top: 0.645, amp: 12, len: 0.42, color: ['#82cc9c', '#69b98d'], shade: '#c6efc8' },
-    { top: 0.495, amp: 11, len: 0.33, color: ['#a8da9e', '#8fcb90'], shade: '#dcf3bd' },
-    { top: 0.35, amp: 10, len: 0.45, color: ['#cbe5a2', '#b5d993'], shade: '#eef5b8' },
-    { top: 0.205, amp: 9, len: 0.38, color: ['#e9ecad', '#dbe19c'], shade: '#fff6c4' },
-    { top: -0.08, amp: 8, len: 0.5, color: ['#f8f1cc', '#f1e8b5'], shade: '#fff6c4' },
+    { top: 0.8, amp: 13, len: 0.36 },
+    { top: 0.645, amp: 12, len: 0.42 },
+    { top: 0.495, amp: 11, len: 0.33 },
+    { top: 0.35, amp: 10, len: 0.45 },
+    { top: 0.205, amp: 9, len: 0.38 },
+    { top: -0.08, amp: 8, len: 0.5 },
   ],
+  /** 판 색: 전환마다 판마다 무작위 (HSL 파스텔). 색 띠는 [hue 범위, 뽑힐 비중] — 노랑 · 에메랄드 민트 위주, 연두는 가끔.
+   *  이웃 판과는 hueGap 도 · lightGap %p 중 하나 이상 벌어지게. 판 안은 위가 밝고 아래가 deep 만큼 짙은 그라디언트,
+   *  가장자리 위로 같은 색을 band 만큼 밝힌 띠가 번진다 */
+  palette: { zones: [[[45, 60], 0.32], [[140, 172], 0.53], [[95, 130], 0.15]] as [number[], number][], sat: [55, 76], light: [79, 89], hueGap: 22, lightGap: 4, deep: 6, band: 9 },
   shadow: { alpha: 0.5, reach: 18 }, // 판 가장자리 위로 번지는 밝은 띠 (불투명도 · 높이 px)
   sway: { x: 14, y: 5, tilt: 0.7 }, // 판 흔들림: 좌우 px · 위아래 px · 기울기 도
   glints: 3, // 판마다 물비늘 수
@@ -57,38 +60,47 @@ const svg = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string,
 let uid = 0;
 
 // ───────────────────────── 그림 (단위 좌표: 배 · 섬은 수면 가운데가 원점, 오른쪽이 뱃머리)
-/** 이타카제 하이엔드 왕복선: 투톤 선체 · 민트 형광 띠 · 창 띠 · 조종석 캐노피 · 세그먼트 날개 돛 · 안테나 · 항해등. 엔진(.ts-jet)은 고물 안에 숨어 있다 */
+/** 이타카제 하이엔드 왕복선 (테두리 없이 둥글고 통통하게, 면 음영 · 하이라이트만): 콩꼴 코랄 선체 · 크림 상갑판 · 민트 띠 · 동그란 창 · 물방울 캐노피 ·
+ *  통통한 날개 돛 · 안테나 구슬 · 항해등. 엔진(.ts-jet)은 고물 안에 숨어 있다 */
 const BOAT_ART = `
   <g class="ts-jet" transform="translate(-56 -12) scale(0)">
-    <g class="ts-flame"><path d="M-34 0 Q-62 -11 -78 0 Q-62 11 -34 0Z" fill="#f2846b"/><path d="M-34 0 Q-54 -7 -65 0 Q-54 7 -34 0Z" fill="#f7a85a"/><path d="M-34 0 Q-45 -4 -52 0 Q-45 4 -34 0Z" fill="#fbe08a"/></g>
-    <path d="M-35 -7 L-26 -10 V10 L-35 7Z" fill="#53606d"/>
-    <rect x="-28" y="-11" width="36" height="22" rx="11" fill="#34475b" stroke="#1f2e3d" stroke-width="2"/>
-    <rect x="-20" y="-11" width="4" height="22" fill="#6fd3c4"/>
-    <path d="M-10 -5 H3 M-10 0 H3 M-10 5 H3" stroke="#8aa0b4" stroke-width="1.5" stroke-linecap="round"/>
+    <g class="ts-flame"><path d="M-34 0 Q-64 -14 -80 0 Q-64 14 -34 0Z" fill="#ffa48c"/><path d="M-34 0 Q-55 -9 -67 0 Q-55 9 -34 0Z" fill="#ffc27a"/><path d="M-34 0 Q-46 -5 -53 0 Q-46 5 -34 0Z" fill="#fff0a6"/></g>
+    <path d="M-37 -8 Q-37 -11 -33 -11 L-25 -11 V11 L-33 11 Q-37 11 -37 8Z" fill="#7d8c9a"/>
+    <rect x="-28" y="-13" width="38" height="26" rx="13" fill="#56708a"/>
+    <rect x="-24" y="-13" width="30" height="9" rx="4.5" fill="#6d88a2"/>
+    <rect x="-19" y="-13" width="6" height="26" fill="#8fe6d4"/>
+    <circle cx="1" cy="0" r="4" fill="#ffd2c4"/>
   </g>
-  <path d="M-60 -6 L66 -6 Q76 -6 82 -13 L72 4 Q63 16 40 18 L-44 18 Q-58 14 -60 -6Z" fill="#ef8d77" stroke="#b9604c" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M-62 -6 L-57 -21 L50 -21 Q70 -21 84 -14 Q72 -6 62 -6Z" fill="#f7f1e6" stroke="#93a0ad" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M-59 -8 H68" stroke="#6fd3c4" stroke-width="2.6" stroke-linecap="round"/>
-  <rect x="-40" y="-18" width="64" height="6" rx="3" fill="#2f4256"/><path d="M-36 -16 H-12 M-4 -16 H6" stroke="#9fe0ee" stroke-width="1.6" stroke-linecap="round" opacity=".85"/>
-  <circle cx="79" cy="-14" r="2.4" fill="#ff9e7d"/><circle cx="-58" cy="-15" r="2.4" fill="#7fe0cf"/>
-  <rect x="-2.5" y="-100" width="5" height="70" rx="2.5" fill="#7b8794"/>
-  <path d="M0 -94 H13" stroke="#7b8794" stroke-width="2" stroke-linecap="round"/><circle cx="0" cy="-103" r="3.2" fill="#ef8d77"/>
-  <path d="M-5 -86 Q-29 -63 -35 -36 L-5 -36Z" fill="#bfe8da" stroke="#8fcab7" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M5 -94 Q37 -75 43 -36 L5 -36Z" fill="#fbf6ec" stroke="#b6c0ca" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M5 -94 Q21 -84 28 -75 L5 -75Z" fill="#ef8d77"/>
-  <path d="M5 -62 H37 M5 -49 H41" stroke="#d3dbe2" stroke-width="1.6"/>
-  <path d="M-26 -21 L-16 -34 L20 -34 Q32 -34 41 -21Z" fill="#f7f1e6" stroke="#93a0ad" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M-12 -31 L18 -31 Q27 -31 34 -23 L-18 -23Z" fill="#8fd2e3" stroke="#5f9fb3" stroke-width="1.4" stroke-linejoin="round"/>
-  <path d="M-6 -29.5 L5 -29.5 L-1 -24.5 L-11 -24.5Z" fill="#e6f7fb" opacity=".9"/>`;
+  <path d="M-64 -8 Q-66 20 -30 21 L44 21 Q80 20 82 -8Z" fill="#ffab95"/>
+  <path d="M-58 10 Q-44 21 -28 21 L44 21 Q72 20 79 4 Q40 15 -58 10Z" fill="#f4927b"/>
+  <path d="M-66 -9 Q-68 -27 -48 -27 L52 -27 Q84 -27 86 -11 Q86 -6 80 -6 L-61 -6 Q-66 -6 -66 -9Z" fill="#fffaf0"/>
+  <path d="M-52 -23 L46 -23" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" opacity=".9"/>
+  <rect x="-64" y="-10" width="148" height="6" rx="3" fill="#9de8d6"/>
+  <g fill="#5d84a0"><circle cx="-34" cy="-16" r="5.5"/><circle cx="-16" cy="-16" r="5.5"/><circle cx="2" cy="-16" r="5.5"/></g>
+  <g fill="#e6f6fb"><circle cx="-35.5" cy="-17.5" r="1.8"/><circle cx="-17.5" cy="-17.5" r="1.8"/><circle cx="0.5" cy="-17.5" r="1.8"/></g>
+  <circle cx="81" cy="-15" r="3.2" fill="#ffb199"/><circle cx="-62" cy="-17" r="3.2" fill="#8de9d6"/>
+  <rect x="-3.5" y="-104" width="7" height="80" rx="3.5" fill="#a9b5c1"/>
+  <circle cx="0" cy="-107" r="5" fill="#ff9f86"/><circle cx="-1.5" cy="-108.5" r="1.6" fill="#ffe1d8"/>
+  <path d="M-7 -92 Q-36 -66 -40 -44 Q-40 -38 -34 -38 L-7 -38Z" fill="#c2f0de"/>
+  <path d="M-7 -92 Q-22 -78 -28 -64 L-7 -64Z" fill="#d8f7ea"/>
+  <path d="M7 -100 Q50 -78 52 -46 Q52 -38 45 -38 L7 -38Z" fill="#fffaf0"/>
+  <path d="M7 -100 Q26 -90 35 -80 L7 -80Z" fill="#ffab95"/>
+  <path d="M7 -64 L46 -64 Q48 -60 49 -57 L7 -57Z" fill="#f3ead9"/>
+  <path d="M-24 -27 Q-22 -50 8 -50 Q36 -50 40 -27Z" fill="#a9e6f2"/>
+  <path d="M-10 -40 Q-6 -46 6 -46" stroke="#f2fcff" stroke-width="4" stroke-linecap="round" fill="none"/>`;
 const ISLAND_ART = `
-  <path d="M-84 14 Q-70 -26 -30 -30 Q-8 -50 26 -40 Q66 -34 84 14Z" fill="#f2deb4" stroke="#e1c48f" stroke-width="2.5" stroke-linejoin="round"/>
-  <path d="M-46 -24 Q-14 -54 22 -42 Q-4 -40 -24 -26Z" fill="#9fd4bd"/>
-  <path d="M14 -40 Q10 -78 30 -104" stroke="#b98557" stroke-width="7" stroke-linecap="round" fill="none"/>
-  <g fill="#5daf93" stroke="#4c9a80" stroke-width="1.5" stroke-linejoin="round">
-    <path d="M30 -104 Q4 -122 -18 -104 Q4 -110 30 -104Z"/><path d="M30 -104 Q58 -124 74 -100 Q52 -108 30 -104Z"/>
-    <path d="M30 -104 Q8 -96 -2 -76 Q14 -92 30 -104Z"/><path d="M30 -104 Q56 -98 62 -74 Q46 -92 30 -104Z"/><path d="M30 -104 Q30 -128 46 -136 Q36 -120 30 -104Z"/></g>
-  <circle cx="26" cy="-98" r="4" fill="#a5764e"/><circle cx="34" cy="-97" r="4" fill="#a5764e"/>
-  <g fill="#ee8f78"><circle cx="-52" cy="-14" r="4"/><circle cx="-45" cy="-19" r="3"/><circle cx="58" cy="-12" r="3.4"/></g>`;
+  <path d="M-88 16 Q-86 -30 -32 -37 Q0 -60 36 -45 Q86 -35 88 16Z" fill="#fbe7bc"/>
+  <path d="M-88 16 Q-60 2 0 5 Q60 2 88 16Z" fill="#f2d6a1"/>
+  <ellipse cx="-34" cy="-25" rx="20" ry="6" fill="#fff4da"/>
+  <path d="M-54 -26 Q-34 -60 6 -54 Q34 -50 30 -38 Q-8 -44 -54 -26Z" fill="#aee6c6"/>
+  <path d="M12 -44 Q4 -84 30 -108" stroke="#d3a273" stroke-width="11" stroke-linecap="round" fill="none"/>
+  <path d="M10 -58 Q8 -84 26 -102" stroke="#e3b88a" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+  <g fill="#72c9a1">
+    <path d="M30 -108 Q2 -132 -22 -110 Q-24 -102 -14 -102 Q6 -114 30 -108Z"/><path d="M30 -108 Q62 -134 80 -106 Q80 -98 70 -100 Q52 -114 30 -108Z"/>
+    <path d="M30 -108 Q4 -102 -6 -78 Q-2 -70 6 -76 Q14 -96 30 -108Z"/><path d="M30 -108 Q60 -102 66 -76 Q62 -68 54 -76 Q48 -96 30 -108Z"/></g>
+  <g fill="#94dcb8"><path d="M30 -108 Q8 -124 -10 -110 Q8 -116 30 -108Z"/><path d="M30 -108 Q56 -126 70 -106 Q52 -118 30 -108Z"/></g>
+  <circle cx="25" cy="-101" r="5.5" fill="#c08d62"/><circle cx="35" cy="-100" r="5.5" fill="#c08d62"/><circle cx="23.5" cy="-102.5" r="1.7" fill="#e2b791"/>
+  <g fill="#ffb3a8"><circle cx="-56" cy="-14" r="5"/><circle cx="-47" cy="-20" r="3.6"/><circle cx="60" cy="-12" r="4.2"/></g>`;
 /** 갈매기 날개: f = 날갯짓 (-1 아래 ~ 1 위) */
 const gullPath = (f: number) => { const y = -6 - 7 * f, c = -12 - 9 * f; return `M-20 ${y} Q-10 ${c} 0 0 Q10 ${c} 20 ${y}`; };
 
@@ -120,26 +132,40 @@ export function seaTransition(): SeaHandle {
   root.appendChild(defs);
   const waves: Wave[] = [];
   const boatSlot = svg('g'), islandG = svg('g', {}, ISLAND_ART), boatG = svg('g', { class: 'ts-boat' }, BOAT_ART);
-  const fx = svg('g'), gullG = svg('g', { fill: 'none', stroke: '#6b7b85', 'stroke-width': 3.2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+  const fx = svg('g'), gullG = svg('g', { fill: 'none', stroke: '#7d8c96', 'stroke-width': 4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
   const hit = svg('circle', { class: 'ts-hit', r: 50, fill: 'transparent' });
   boatSlot.appendChild(boatG);
   // 뒤 판부터 쌓는다: 배는 2번 판 바로 뒤, 섬은 1번 판 바로 뒤
+  // 판 색: 범위 안에서 무작위, 이웃 판과 너무 비슷하면 다시 뽑는다
+  const P = C.palette, rr = (r: number[]) => r[0] + Math.random() * (r[1] - r[0]);
+  const hue = () => { let q = Math.random() * P.zones.reduce((a, z) => a + z[1], 0); for (const [r, w] of P.zones) { if ((q -= w) <= 0) return rr(r); } return rr(P.zones[0][0]); };
+  const hues: [number, number, number][] = [];
+  for (let i = 0; i < N; i++) {
+    let c: [number, number, number] = [hue(), rr(P.sat), rr(P.light)];
+    for (let k = 0; k < 12 && i > 0; k++) {
+      const q = hues[i - 1];
+      if (Math.abs(c[0] - q[0]) >= P.hueGap || Math.abs(c[2] - q[2]) >= P.lightGap) break;
+      c = [hue(), rr(P.sat), rr(P.light)];
+    }
+    hues.push(c);
+  }
+  const hsl = (h: number, s: number, l: number) => `hsl(${h.toFixed(0)} ${s.toFixed(0)}% ${Math.min(96, l).toFixed(0)}%)`;
   for (let i = N - 1; i >= 0; i--) {
     if (i === 1) root.appendChild(boatSlot);
     if (i === 0) root.appendChild(islandG);
-    const w = C.waves[i], g = svg('g');
-    const grad = svg('linearGradient', { id: `${id}g${i}`, gradientUnits: 'userSpaceOnUse', x1: 0, x2: 0 }, `<stop offset="0" stop-color="${w.color[0]}"/><stop offset="1" stop-color="${w.color[1]}"/>`);
+    const [h, sa, l] = hues[i], g = svg('g');
+    const grad = svg('linearGradient', { id: `${id}g${i}`, gradientUnits: 'userSpaceOnUse', x1: 0, x2: 0 }, `<stop offset="0" stop-color="${hsl(h, sa, l)}"/><stop offset="1" stop-color="${hsl(h + 4, sa + 4, l - P.deep)}"/>`);
     defs.appendChild(grad);
     // 그림자 띠: 뒤 판이 있는 판만 (맨 뒤 판은 이전 화면 위로 그림자를 떨어뜨리지 않게)
     let shade: SVGPathElement | null = null, sgrad: SVGLinearGradientElement | null = null;
     if (i < N - 1) {
-      sgrad = svg('linearGradient', { id: `${id}s${i}`, gradientUnits: 'userSpaceOnUse', x1: 0, x2: 0 }, `<stop offset="0" stop-color="${w.shade}" stop-opacity="0"/><stop offset="1" stop-color="${w.shade}" stop-opacity="${C.shadow.alpha}"/>`);
+      sgrad = svg('linearGradient', { id: `${id}s${i}`, gradientUnits: 'userSpaceOnUse', x1: 0, x2: 0 }, `<stop offset="0" stop-color="${hsl(h, sa, l + P.band)}" stop-opacity="0"/><stop offset="1" stop-color="${hsl(h, sa, l + P.band)}" stop-opacity="${C.shadow.alpha}"/>`);
       defs.appendChild(sgrad);
       shade = svg('path', { fill: `url(#${id}s${i})` });
       g.appendChild(shade);
     }
     const fill = svg('path', { fill: `url(#${id}g${i})` });
-    const glints = svg('g', { fill: 'none', stroke: '#fffaf0', 'stroke-width': 2.5, 'stroke-linecap': 'round', opacity: 0.5 });
+    const glints = svg('g', { fill: 'none', stroke: '#ffffff', 'stroke-width': 3, 'stroke-linecap': 'round', opacity: 0.55 });
     g.append(fill, glints);
     root.appendChild(g);
     const r = () => Math.random() * 6.283;
@@ -289,7 +315,7 @@ export function seaTransition(): SeaHandle {
     if (boat === 'hidden' && t >= enterEnd(1) + C.pop.boat) boat = 'floating';
     if (boat === 'floating' || boat === 'launching' || boat === 'sinking') {
       const x = boatX(), bpop = clamp((t - enterEnd(1) - C.pop.boat) / C.pop.dur);
-      bx = x; by = surface(1, x) + 10 * U + ((1 - outBack(bpop)) + (boat === 'sinking' ? sinkOf(1, t) : 0)) * 200 * U * C.objScale;
+      bx = x; by = surface(1, x) - 3 * U + ((1 - outBack(bpop)) + (boat === 'sinking' ? sinkOf(1, t) : 0)) * 200 * U * C.objScale;
       ba = (Math.atan(slope(1, x)) * 180) / Math.PI * 0.9 + Math.sin(t / 620) * 2.2;
       if (boat === 'floating' && exitAt >= 0 && t >= exitAt) { boat = sinkBoat ? 'sinking' : 'launching'; launchT = t; }
       if (boat === 'sinking' && phase === 'completed') boat = 'gone';
