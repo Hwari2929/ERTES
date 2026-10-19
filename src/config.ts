@@ -3,10 +3,10 @@ import type { CType } from './types';
 export const CFG = {
   // ── 메이저 → 마이너 환산 [임시]
   conv: {
-    vit: { maxHp: 120, healEff: 0.02 },
+    vit: { maxHp: 138, healEff: 0.02 },
     pow: { shoot: 5, strike: 5, crit: 0.01 },
     mnd: { tech: 5, acc: 0.02, effHit: 0.03 },
-    def: { armor: 60, effRes: 0.03 },
+    def: { armor: 69, effRes: 0.03 },
     // 재장전 속도 1%p → 2%p: 재장전 중 기술 금지 · 제어 시 재장전 초기화로 탄창 무기 기물의 기술 횟수가 ~5.5% 줄어든 만큼 보정
     // (같은 시드 1600판: 보정 전 클리어 31.4% → 29.2%, 보정 후 32.2% · 평균 도달 페이즈 5.61 → 5.60)
     agi: { moveSpd: 0.048, eva: 0.01, atkSpd: 0.01, reloadSpd: 0.02 },
@@ -79,7 +79,7 @@ export const CFG = {
   // 고페이즈 보정 [임시]: lateFrom 페이즈부터 매 페이즈 체력 ×lateHp, 피해 ×lateAmp 추가 (8페이즈 누적 체력 -19%, 피해 +41%)
   lateFrom: 5, lateHp: 0.9, lateAmp: 1.05,
   phaseHpFactor: (p: number) => (p <= 5 ? 1.85 : Math.max(1.1, 1.85 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
-  adversityMult: 1.3, // 역경 · 도전 조우 강도 (위험 등급과 무관): 적 체력 ×이 값, 피해 ×encDmgMult(이 값) (예전 1.5)
+  adversityMult: 1.25, // 역경 · 도전 조우 강도 (위험 등급과 무관): 적 체력 ×이 값, 피해 ×encDmgMult(이 값) (예전 1.5)
   adversityReward: 1.5, // 역경 승리 보상 배율: 크레딧 · 공명도 풀 (도전 보상의 '남은 역경' 몫도 이 값)
   adversityLoss: 1.5, // 역경 패배 체력 피해 배율 (도전 패배도 역경 기준)
   enemyHpMul: 4.6, enemyPowMul: 2.25, // 적 기초 수치 전체 배율 (튜닝용)

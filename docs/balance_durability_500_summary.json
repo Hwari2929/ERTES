@@ -1,0 +1,440 @@
+{
+  "baseline": {
+    "n": 500,
+    "wins": 1,
+    "win_ci95": [
+      0.000353127309584542,
+      0.011240992747195207
+    ],
+    "mean_phase": 2.694,
+    "reach": [
+      500,
+      500,
+      308,
+      32,
+      6,
+      1
+    ],
+    "nodes": {
+      "battle": {
+        "n": 4336,
+        "wins": 3552,
+        "mean_seconds": 21.517147140221454,
+        "losses": 784,
+        "loss_le10": 5,
+        "legend_items": 0,
+        "foes": 20779
+      },
+      "adversity": {
+        "n": 1818,
+        "wins": 129,
+        "mean_seconds": 16.062843784378448,
+        "losses": 1689,
+        "loss_le10": 524,
+        "legend_items": 8714,
+        "foes": 11556
+      },
+      "challenge": {
+        "n": 34,
+        "wins": 0,
+        "mean_seconds": 8.922058823529417,
+        "losses": 34,
+        "loss_le10": 21,
+        "legend_items": 223,
+        "foes": 273
+      },
+      "boss": {
+        "n": 962,
+        "wins": 118,
+        "mean_seconds": 28.756548856548733,
+        "losses": 844,
+        "loss_le10": 30,
+        "legend_items": 917,
+        "foes": 4935
+      }
+    },
+    "first_boss": [
+      {
+        "phase": 1,
+        "n": 500,
+        "wins": 50
+      },
+      {
+        "phase": 2,
+        "n": 402,
+        "wins": 50
+      },
+      {
+        "phase": 3,
+        "n": 51,
+        "wins": 10
+      },
+      {
+        "phase": 4,
+        "n": 7,
+        "wins": 6
+      },
+      {
+        "phase": 5,
+        "n": 1,
+        "wins": 1
+      },
+      {
+        "phase": 6,
+        "n": 1,
+        "wins": 1
+      }
+    ],
+    "first_adv": [
+      {
+        "phase": 1,
+        "n": 500,
+        "wins": 43
+      },
+      {
+        "phase": 2,
+        "n": 496,
+        "wins": 32
+      },
+      {
+        "phase": 3,
+        "n": 242,
+        "wins": 15
+      },
+      {
+        "phase": 4,
+        "n": 21,
+        "wins": 2
+      },
+      {
+        "phase": 5,
+        "n": 6,
+        "wins": 0
+      },
+      {
+        "phase": 6,
+        "n": 1,
+        "wins": 0
+      }
+    ],
+    "short_adv_loss_runs": 309,
+    "synergy_reach": {
+      "GUARD": [
+        44,
+        1,
+        0,
+        0
+      ],
+      "MED": [
+        87,
+        3,
+        0,
+        0
+      ],
+      "UNI": [
+        34,
+        1,
+        0,
+        0
+      ],
+      "BUDDY": [
+        111,
+        4,
+        0,
+        0
+      ]
+    },
+    "deaths": [
+      {
+        "phase": 3,
+        "type": "adversity",
+        "n": 164
+      },
+      {
+        "phase": 2,
+        "type": "adversity",
+        "n": 94
+      },
+      {
+        "phase": 2,
+        "type": "boss",
+        "n": 94
+      },
+      {
+        "phase": 3,
+        "type": "battle",
+        "n": 93
+      },
+      {
+        "phase": 3,
+        "type": "boss",
+        "n": 19
+      },
+      {
+        "phase": 4,
+        "type": "adversity",
+        "n": 14
+      },
+      {
+        "phase": 4,
+        "type": "battle",
+        "n": 11
+      },
+      {
+        "phase": 5,
+        "type": "adversity",
+        "n": 5
+      },
+      {
+        "phase": 2,
+        "type": "battle",
+        "n": 4
+      },
+      {
+        "phase": 4,
+        "type": "boss",
+        "n": 1
+      }
+    ],
+    "fail": {},
+    "clear_seeds": [
+      52305
+    ],
+    "mean_ms": 359.746
+  },
+  "patched": {
+    "n": 500,
+    "wins": 1,
+    "win_ci95": [
+      0.000353127309584542,
+      0.011240992747195207
+    ],
+    "mean_phase": 2.978,
+    "reach": [
+      500,
+      500,
+      367,
+      92,
+      26,
+      4
+    ],
+    "nodes": {
+      "battle": {
+        "n": 4865,
+        "wins": 4140,
+        "mean_seconds": 22.559116135662933,
+        "losses": 725,
+        "loss_le10": 8,
+        "legend_items": 0,
+        "foes": 24653
+      },
+      "adversity": {
+        "n": 2098,
+        "wins": 504,
+        "mean_seconds": 24.22752621544328,
+        "losses": 1594,
+        "loss_le10": 104,
+        "legend_items": 0,
+        "foes": 13884
+      },
+      "challenge": {
+        "n": 58,
+        "wins": 2,
+        "mean_seconds": 16.96206896551726,
+        "losses": 56,
+        "loss_le10": 10,
+        "legend_items": 0,
+        "foes": 472
+      },
+      "boss": {
+        "n": 1111,
+        "wins": 191,
+        "mean_seconds": 32.923582358235606,
+        "losses": 920,
+        "loss_le10": 19,
+        "legend_items": 1051,
+        "foes": 6032
+      }
+    },
+    "first_boss": [
+      {
+        "phase": 1,
+        "n": 500,
+        "wins": 73
+      },
+      {
+        "phase": 2,
+        "n": 438,
+        "wins": 78
+      },
+      {
+        "phase": 3,
+        "n": 129,
+        "wins": 29
+      },
+      {
+        "phase": 4,
+        "n": 36,
+        "wins": 7
+      },
+      {
+        "phase": 5,
+        "n": 5,
+        "wins": 3
+      },
+      {
+        "phase": 6,
+        "n": 2,
+        "wins": 1
+      }
+    ],
+    "first_adv": [
+      {
+        "phase": 1,
+        "n": 500,
+        "wins": 164
+      },
+      {
+        "phase": 2,
+        "n": 498,
+        "wins": 109
+      },
+      {
+        "phase": 3,
+        "n": 305,
+        "wins": 55
+      },
+      {
+        "phase": 4,
+        "n": 72,
+        "wins": 12
+      },
+      {
+        "phase": 5,
+        "n": 21,
+        "wins": 3
+      },
+      {
+        "phase": 6,
+        "n": 2,
+        "wins": 1
+      }
+    ],
+    "short_adv_loss_runs": 79,
+    "synergy_reach": {
+      "GUARD": [
+        44,
+        4,
+        0,
+        0
+      ],
+      "MED": [
+        88,
+        5,
+        0,
+        0
+      ],
+      "UNI": [
+        32,
+        3,
+        0,
+        0
+      ],
+      "BUDDY": [
+        104,
+        3,
+        0,
+        0
+      ]
+    },
+    "deaths": [
+      {
+        "phase": 3,
+        "type": "adversity",
+        "n": 151
+      },
+      {
+        "phase": 3,
+        "type": "battle",
+        "n": 87
+      },
+      {
+        "phase": 2,
+        "type": "boss",
+        "n": 73
+      },
+      {
+        "phase": 2,
+        "type": "adversity",
+        "n": 57
+      },
+      {
+        "phase": 3,
+        "type": "boss",
+        "n": 37
+      },
+      {
+        "phase": 4,
+        "type": "adversity",
+        "n": 36
+      },
+      {
+        "phase": 4,
+        "type": "battle",
+        "n": 20
+      },
+      {
+        "phase": 5,
+        "type": "adversity",
+        "n": 14
+      },
+      {
+        "phase": 4,
+        "type": "boss",
+        "n": 10
+      },
+      {
+        "phase": 5,
+        "type": "battle",
+        "n": 7
+      },
+      {
+        "phase": 2,
+        "type": "battle",
+        "n": 3
+      },
+      {
+        "phase": 6,
+        "type": "battle",
+        "n": 2
+      },
+      {
+        "phase": 5,
+        "type": "boss",
+        "n": 1
+      },
+      {
+        "phase": 6,
+        "type": "boss",
+        "n": 1
+      }
+    ],
+    "fail": {},
+    "clear_seeds": [
+      52227
+    ],
+    "mean_ms": 461.874
+  },
+  "paired": {
+    "both_win": 0,
+    "baseline_only": 1,
+    "patched_only": 1,
+    "both_lose": 498,
+    "phase_delta": 0.284,
+    "phase_delta_ci95": [
+      0.23140299713652457,
+      0.3365970028634754
+    ],
+    "same_starter_set": 500
+  }
+}

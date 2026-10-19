@@ -76,7 +76,7 @@ for(const diff of [7,8,9]) for(const phase of [1,3,6])for(let seed=1;seed<=30;se
  const run=R.newRun(seed,['jaehwon'],'waste',diff);run.phase=phase;
  for(const e of R.genEncounter(run,'adversity').enemies){ok(e.items?.length===3,'hard adversity exact 3');for(const it of e.items!) grades.add(gearRank(it));enemies++;}
 }
-ok(grades.size===4,'all 4 equipment grades observed');
+ok(grades.size===3 && !grades.has(5),'three grades only, no legendary equipment');
 {
  const r=R.newRun(99,['jaehwon'],'waste',6);
  ok(R.genEncounter(r,'adversity').enemies.every(e=>(e.items?.length||0)<=1),'lower difficulty phase1 not forced 3');

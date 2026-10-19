@@ -337,6 +337,9 @@ export function provMult(b: Battle | null, a: CUnit): number {
   return m;
 }
 
+/** 수호자 4/6/8: 현재 도발 계수에 따른 모든 피해 경감. 공유 피해는 이미 경감되어 있으므로 다시 적용하지 않는다. */
+export const guardThreatTakenMult = (b: Battle | null, u: CUnit) => 1 - Math.min(CFG.reductionCap, Math.max(0, provMult(b, u)) * (u.mem.guardThreatRed || 0));
+
 export type BEvent =
   /** chain: 연쇄 탄환 (앞 탄환이 닿은 지점에서 이어서 출발) */
   | { k: 'atk'; from: number; to: number; elem: Elem; ranged: boolean; chain?: boolean }
@@ -1076,7 +1079,7 @@ export class Battle {
       const tags: DmgTag[] = ['all', o.elem, o.tag, ...(o.kind && o.tag !== 'dot' ? [o.kind] : []), ...(o.extra || [])];
       const selfPsy = o.key === 'reason'; // 저이성 정신 피해: 공격자 쪽 배율 없음
       if (!selfPsy) dmg *= modMult(allMods(src), tags) * src.phaseAmp;
-      dmg *= takenMult(allTaken(tgt), tags, isTrue);
+      dmg *= takenMult(allTaken(tgt), tags, isTrue) * guardThreatTakenMult(this, tgt);
       if (!selfPsy) for (const h of src.hooks) if (h.dmgMult) dmg *= h.dmgMult(this, src, tgt, o);
       for (const h of tgt.hooks) if (h.takenMult) dmg *= h.takenMult(this, tgt, src, o);
       const ot = CFG.overtimeStart - (this.ctx.otShift || 0); // 초침의 서약: 연장전을 앞당긴다
@@ -1153,7 +1156,7 @@ export class Battle {
 
   /** 방어를 무시하는 피해. 이미 계산된 공유 피해는 resolved=true 로 속성 배율 중복을 막는다. 훅 없음 */
   rawHit(src: CUnit, tgt: CUnit, amt: number, elem: Elem, resolved = false) {
-    if (!resolved) amt *= elementDamageMult(elem);
+    if (!resolved) amt *= elementDamageMult(elem) * guardThreatTakenMult(this, tgt);
     if (!tgt.alive || amt <= 0) return 0;
     if ((tgt.mem.invulnUntil || 0) > this.t) return 0;
     let left = amt, dsh = 0;

@@ -10,7 +10,7 @@ import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, isTurretItem, isTurretMod, TURRET_ADV, TURRET_BASIC, TURRET_MODS, TURRET_PRICE, turretModsOfTier, turretSlots } from '../data/items';
-import { OCCULT_SYNTH, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
+import { UNI_XP, OCCULT_SYNTH, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, recMajors } from '../data/rework';
 import { SCHOOL_AUGS, schoolPassives } from '../data/psionic';
@@ -757,7 +757,7 @@ function gearEnemies(run: RunState, r: Rng, enemies: EnemySpawn[], type: NodeTyp
     const tier = ENEMY_BY_ID[s.defId].tier;
     const items: string[] = [];
     if (type === 'adversity' && diffHas(run.diff, 7)) {
-      const grades = [ALL_COMPONENTS, ALL_GRADED, ALL_ADVANCED, legends];
+      const grades = [ALL_COMPONENTS, ALL_GRADED, ALL_ADVANCED];
       for (let i = 0; i < 3; i++) items.push(r.pick(r.pick(grades)));
     }
     if (!items.length && tier === 'boss' && diffHas(run.diff, 5) && r.chance(0.95)) items.push(r.pick(legends));
@@ -928,7 +928,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   pool = Math.round(pool);
   distributeXp(run, pool);
   lines.push(`공명도 풀 ${pool} 분배`);
-  if (uni) for (const u of dep) if (memberships(u).includes('UNI')) u.xp += [0, 1, 2, 3, 5][uni]; // 연합: 전투 후 추가 공명도
+  if (uni) for (const u of dep) if (memberships(u).includes('UNI')) u.xp += UNI_XP[uni]; // 연합: 전투 후 추가 공명도
   const killsOf = (u: UnitState) => b.units.find((c) => c.src === u)?.counters.kills || 0;
   for (const u of dep) for (const a of u.augments) AUG_BY_ID[a.id]?.after?.(run, u, won, killsOf(u), { c: b.units.find((c) => c.src === u), gain: (id) => gainItem(run, id, lines) });
   // 성직자: 승리 시 신앙 / 대스타: 승리 시 명성 + 대스타 처치 수

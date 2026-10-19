@@ -228,6 +228,7 @@ function playRun(seed: number) {
   let dms = 0; // 봇 판단 시간 (manage · 선택지 처리, ms)
   let fGlobDone = false; // fglob= 실험: 첫 항로 회의만
   const encRec: number[][] = [], gearRec: number[][] = [];
+  const trace: unknown[] = [];
   const synMax: Record<string, number> = {};
   const det: Record<string, [number, number]> = {}; // detail 모드: `키|페이즈:노드` → [전투, 승리]
   const relicSet = new Set<string>();
@@ -372,6 +373,10 @@ function playRun(seed: number) {
     const b = buildBattle(run, enc, false); // 실제 게임과 같은 경로 (포탑 · 무휼 자리, 포탑 장비 포함)
     b.runToEnd();
     const won = b.winner === 0;
+    if (INSTR) trace.push({ph, st:run.step, type:ntype, won, sec:b.t, counts:{...counts},
+      enemyLegends:enc.enemies.reduce((n,e)=>n+(e.items||[]).filter(i=>i.startsWith('L_')).length,0),
+      foes:enc.enemies.length, party:dep.filter(u=>!R.isRock(u)).map(u=>({id:u.defId,rank:u.rank})),
+      alive:b.units.filter(u=>u.side===0&&!u.isSummon&&u.alive).length});
     CH?.afterBattle(b, ntype);
     battles++;
     if (INSTR) encRec[encRec.length - 1][10] = won ? 1 : 0;
@@ -496,7 +501,7 @@ function playRun(seed: number) {
     sp: run.rep?.sp || {}, crAt, end: run.credits, loan: run.loan || 0 };
   runs.push({ seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, causal: run.causal || 0, king: run.causal ? causalStage(run.causal) : 0, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems,
     cz: czAt, kb: kbAt, chrMax: run.chrTier || 0, bw, diff: run.diff || 0, heat: run.oathHeat || 0, despairs: run.despairs || [], hp: run.hp, eco, ...(DETAIL ? { det } : {}), ...(ADVSTUDY ? { adv: advRecs, nb: nbRecs, maxHp: run.maxHp } : {}),
-    ...(INSTR ? { ins: { bot: BOT, areas: [...CH_AREAS], enc: encRec, gear: gearRec, fail: INS!.fail, ev: INS!.ev, ms: Math.round(performance.now() - t0), dms: Math.round(dms), cms: Math.round(CH?.ms || 0), nb: battles, ...(CH?.xb ? { xb: CH.xb, xms: Math.round(CH.xms) } : {}), ...(CH?.stage2() ? { ch: CH.rec } : {}) } } : {}),
+    ...(INSTR ? { trace, ins: { bot: BOT, areas: [...CH_AREAS], enc: encRec, gear: gearRec, fail: INS!.fail, ev: INS!.ev, ms: Math.round(performance.now() - t0), dms: Math.round(dms), cms: Math.round(CH?.ms || 0), nb: battles, ...(CH?.xb ? { xb: CH.xb, xms: Math.round(CH.xms) } : {}), ...(CH?.stage2() ? { ch: CH.rec } : {}) } } : {}),
     ...(DLOG && CH ? { dlog: CH.log.list } : {}) });
 }
 
