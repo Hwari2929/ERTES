@@ -58,8 +58,11 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'drone', palette: tint(PAL.HEL, '#f0f0f8', '#ff9de2', '#7fe3ff'),
     lore: '"여러분~ 이쪽입니다 ^^ 왼쪽에 보이시는 것이 바로 전장입니다 ^^"',
     skill: strike({
-      name: '관광 명소 소개', cd: 6.5, pow: 'shoot', elem: 'holy', mult: 1.6, params: { radius: 1, vuln: 0.15 },
-      desc: (p) => `안내 깃발로 대상 주변 ${p.radius}칸에 사격 위력 ${pct(p.mult)} 신성 피해, 4초간 받는 피해 +${pct(p.vuln)} (관광객의 시선 집중).`,
+      name: '관광 명소 소개', cd: 6.5, pow: 'shoot', elem: 'holy', mult: 1.6, params: { radius: 1, vuln: 0.15, vulnDur: 5, provPlus: 2.5 },
+      desc: (p) => `안내 깃발로 대상 주변 ${p.radius}칸에 사격 위력 ${pct(p.mult)} 신성 피해, 맞은 적은 5초간 받는 피해 +${pct(p.vuln)}. 주 대상은 5초간 도발 계수 +${p.provPlus} (관광객의 시선 집중).`,
+      after(b, u, t, _d, p) {
+        if (t.alive) b.applyStatus(u, t, { type: 'buff', key: 'fotini.attention', dur: 5, provPlus: p.provPlus, label: '시선 집중' });
+      },
     }),
   },
   {

@@ -756,7 +756,11 @@ function gearEnemies(run: RunState, r: Rng, enemies: EnemySpawn[], type: NodeTyp
   for (const s of enemies) {
     const tier = ENEMY_BY_ID[s.defId].tier;
     const items: string[] = [];
-    if (tier === 'boss' && diffHas(run.diff, 5) && r.chance(0.95)) items.push(r.pick(legends));
+    if (type === 'adversity' && diffHas(run.diff, 7)) {
+      const grades = [ALL_COMPONENTS, ALL_GRADED, ALL_ADVANCED, legends];
+      for (let i = 0; i < 3; i++) items.push(r.pick(r.pick(grades)));
+    }
+    if (!items.length && tier === 'boss' && diffHas(run.diff, 5) && r.chance(0.95)) items.push(r.pick(legends));
     const p = (big ? 0.25 : 0.08) * (tier === 'elite' ? 1.5 : tier === 'boss' ? 2 : 1); // 칸당 장착 확률
     for (let i = items.length; i < slots; i++) {
       if (!r.chance(p)) continue;

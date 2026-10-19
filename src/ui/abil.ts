@@ -1,7 +1,7 @@
 // 능력 설명 렌더러: 토큰 문장 → 아이콘 · 실제 수치, 사거리 · 범위 미니 격자, 좌측 상세 팝업
 import { CFG } from '../config';
 import { type Area, GLOSS, type SkillInfo } from '../data/abiltext';
-import type { Battle, CUnit } from '../engine/combat';
+import { elementDamageMult, type Battle, type CUnit } from '../engine/combat';
 import { type Elem, ELEM_NAME, type Weapon } from '../types';
 import { fmt } from './battleview';
 import { augKey, lineIcon } from './synicons';
@@ -36,6 +36,7 @@ export function powVal(ctx: AbilCtx, pow: Pow, tactical = false): number | null 
 /** 상세 보기: 예상 수치 대신 계수 (위력 × %) 로 표시 */
 export const ABOPT = { coef: false };
 export function powNum(ctx: AbilCtx, pow: Pow, mult: number, plus = false, tactical = false, elem?: Elem) {
+  mult *= elem ? elementDamageMult(elem) : 1;
   const k = powKey(ctx, pow, tactical);
   const v = ABOPT.coef ? null : powVal(ctx, pow, tactical);
   const txt = v === null ? `${POW_KO[k]} ${pct(mult)}` : fmt(v * mult);

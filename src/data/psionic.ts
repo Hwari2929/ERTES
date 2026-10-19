@@ -889,7 +889,7 @@ const PASSIVE_FX: Record<string, Effect> = {
     const bonded = b.enemiesOf(u).filter((e) => hasKey(e, 'bond'));
     const e = bonded.length ? b.nearest(u, bonded) : null;
     if (!e) return dmg;
-    b.rawHit(u, e, dmg * 0.3, o.elem);
+    b.rawHit(u, e, dmg * 0.3, o.elem, true);
     return dmg * 0.7;
   } } },
   // 공매도: 이성 0 미만이면 기본 공격 적중 시 주요 위력 20% (+임시 장비 1개당 5%) 추가 피해 (시장 개입과 별도)

@@ -4,6 +4,8 @@ import { PSI_STATUS, type SchoolId } from '../data/schools';
 import { CTYPE_NAME } from '../types';
 import type { Category, CType, DmgTag, Elem, FaithId, Keyword, Mod, Stats, StatKey, SynergyId, TakenMod, TType, UnitState, Weapon } from '../types';
 
+export const elementDamageMult = (elem: Elem): number => ['elec', 'chem', 'psy', 'holy'].includes(elem) ? 1.25 : 1;
+
 export type StatusType = 'stun' | 'fear' | 'shock' | 'dot' | 'buff';
 
 /** 분류별 받는 피해 배율 (아군 · 적 공통) */
@@ -59,6 +61,8 @@ export interface Status {
   label?: string;
   /** 받은 피해의 일부를 공격자에게 반사 */
   reflect?: number;
+  /** 이 상태가 유지되는 동안 도발 계수 가산 */
+  provPlus?: number;
   /** 고정 피해 반사 (방어도 무시) */
   reflectTrue?: number;
   /** 중첩 수 (부상 · 방어도 감소 등) */
@@ -326,6 +330,7 @@ export function provMult(b: Battle | null, a: CUnit): number {
   let m = a.mem.provBase ?? (a.ctype === 'VAN' ? PROV.van : 1); // provBase: 기본 도발 배율을 따로 정한 소환물 (반려 돌(인화성) 4.5)
   if (a.isSummon && a.ctype !== 'VAN' && !a.mem.typed && a.mem.provBase === undefined) m = a.immobile ? PROV.sumFixed : a.atk.type === 'strike' ? PROV.sumMelee : PROV.sumRanged;
   if (a.synergies?.has('GUARD') && !a.mem.guardOff) m += PROV.guard; // 수호자 혼자(시너지 꺼짐)면 가산 없음
+  m += a.statuses.reduce((sum, s) => sum + (s.provPlus || 0), 0);
   if (a.mem.provPlus) m += a.mem.provPlus; // 장비 가산 (위협 신호기)
   if (a.mem.provMul) m *= a.mem.provMul;
   if (b && (b.hidden(a) || a.statuses.some((x) => x.key === 'infil.ambush'))) m *= PROV.hide;
@@ -1030,7 +1035,7 @@ export class Battle {
   dealDamage(src: CUnit, tgt: CUnit, base: number, o: DmgOpts): DmgResult {
     const res: DmgResult = { amount: 0, crit: false, miss: false, graze: false, killed: false };
     if (!tgt.alive || base <= 0) return res;
-    let dmg = base;
+    let dmg = base * elementDamageMult(o.elem);
     // 제압: 다음 공격 피해 1
     if (o.tag !== 'dot' && o.tag !== 'proc' && src.statuses.some((s) => s.key === 'suppress')) {
       src.statuses = src.statuses.filter((s) => s.key !== 'suppress');
@@ -1049,9 +1054,9 @@ export class Battle {
         for (const h of tgt.hooks) h.onEvade?.(this, tgt, src);
       }
     }
-    // 치명타: 사격 · 타격 피해만 (기술 피해는 기술 치명 특성이 있을 때만, 지속 피해 없음)
+    // 전기 · 화학 · 정신 · 신성은 치명타 불가. 그 밖은 기존 사격 · 타격 / 기술 치명 허용 규칙을 따른다.
     // 기술 피해 치명: 기술 치명 허용(도노반 등) 또는 인과학파 저이성 (mem.lowTechCrit, data/psionic.ts)
-    const canCrit = o.tag !== 'dot' && (o.kind === 'shoot' || o.kind === 'strike' || (o.kind === 'tech' && (src.mem.techCrit || src.mem.lowTechCrit)));
+    const canCrit = elementDamageMult(o.elem) === 1 && o.tag !== 'dot' && (o.kind === 'shoot' || o.kind === 'strike' || (o.kind === 'tech' && (src.mem.techCrit || src.mem.lowTechCrit)));
     if (dmg > 0 && canCrit && !res.miss) {
       if (this.rng.next() < this.S(src, 'crit') + (o.critBonus || 0)) {
         res.crit = true;
@@ -1134,7 +1139,7 @@ export class Battle {
       if (bd) {
         const others = this.units.filter((x) => x.alive && x !== tgt && x.statuses.some((s) => s.key === 'bond' && s.grp === bd.grp));
         const div = bd.src?.mem['ps.mind.hive'] ? 1 : others.length; // ★ 집단 자아: 나누지 않고 각자 공유 비율만큼
-        for (const x of others) this.rawHit(bd.src || src, x, (dmg * bd.val!) / div, o.elem);
+        for (const x of others) this.rawHit(bd.src || src, x, (dmg * bd.val!) / div, o.elem, true);
       }
       // 공진 등: 피격 반응
       if (tgt.alive) for (const s of tgt.statuses.slice()) if (s.onHit && s.dur > 0) s.onHit(this, tgt, src, res, o, s);
@@ -1146,8 +1151,9 @@ export class Battle {
     return res;
   }
 
-  /** 이미 경감까지 계산된 피해를 그대로 준다 (결속 공유 · 자아 분리). 훅 없음 */
-  rawHit(src: CUnit, tgt: CUnit, amt: number, elem: Elem) {
+  /** 방어를 무시하는 피해. 이미 계산된 공유 피해는 resolved=true 로 속성 배율 중복을 막는다. 훅 없음 */
+  rawHit(src: CUnit, tgt: CUnit, amt: number, elem: Elem, resolved = false) {
+    if (!resolved) amt *= elementDamageMult(elem);
     if (!tgt.alive || amt <= 0) return 0;
     if ((tgt.mem.invulnUntil || 0) > this.t) return 0;
     let left = amt, dsh = 0;
