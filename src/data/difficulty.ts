@@ -2,6 +2,8 @@
 // 선택 화면의 세 단계: 쉬움 = 위험 3 · 모험 = 위험 6 · 고난 = 위험 7 (위험 6 + 절망 증강 · 빠른 증원). 적 증원은 CFG.diffAdd, 절망 증강은 CFG.despair.
 // 체계 판 2 (위험 7 = 절망 증강 삽입): 예전 위험 7 · 8 은 8 · 9 가 됐다 — 예전 기록 · 저장은 ui/meta.ts loadMeta · engine/run.ts migrate 에서 옮긴다.
 import { CFG } from '../config';
+const p1 = (x: number) => `${+(x * 100).toFixed(1)}%`;
+const FG = CFG.foeGear;
 import { despairRule } from './despair';
 import { oathHeat, type OathSel } from './oaths';
 
@@ -30,10 +32,10 @@ function addDesc(lvl: number): string {
 const BASE: DiffDef[] = [
   { lvl: 0, name: '표준 의뢰', desc: '추가 조건 없음.' },
   { lvl: 1, name: '위험 1', desc: '적 체력 +15%.' },
-  { lvl: 2, name: '위험 2', desc: '적 피해 +15%. 적이 낮은 확률로 장비 재료를 달고 나오고, 역경 · 보스전에서는 고급 장비도 장착합니다 (2페이즈마다 장비 칸 +1).' },
+  { lvl: 2, name: '위험 2', desc: `적 피해 +15%. 적이 장비 칸마다 ${p1(FG.slot)} 확률 (역경 · 보스전 ${p1(FG.big)}, 정예 ×${FG.elite} · 보스 ×${FG.boss})로 장비 재료를 달고, 역경 · 보스전에서는 그중 ${p1(FG.graded)}가 고급 장비입니다 (장비 칸은 1칸에서 2페이즈마다 +1, 최대 3).` },
   { lvl: 3, name: '위험 3', desc: '적 피해 ×1.25 (위험 2 대체). 시작 크레딧 0. 대신 승리 크레딧 ×1.25.' },
   { lvl: 4, name: '위험 4', desc: '보스 체력 +25%, 보스 호위 +1.' },
-  { lvl: 5, name: '위험 5', desc: '역경 적 +1, 일반 전투 정예 출현 확률 2배, 적 회피 +10%p. 적이 개조부품(문장 제외)을 달 수 있고, 보스는 거의 항상 전설 장비를 장착합니다.' },
+  { lvl: 5, name: '위험 5', desc: `역경 적 +1, 일반 전투 정예 출현 확률 2배, 적 회피 +10%p. 적이 개조부품(문장 제외)을 ${p1(FG.mod[0])} 확률 (정예 ${p1(FG.mod[1])} · 보스 ${p1(FG.mod[2])})로 달고, 보스는 ${p1(FG.bossLegend)} 확률로 전설 장비를 장착합니다.` },
   { lvl: 6, name: '위험 6', desc: '적 피해 ×1.5 (위험 3 대체). 이자 상한 -1. 승리 크레딧 ×1.5 (위험 3 대체). 1페이즈부터 모든 적이 장비 재료(역경 · 보스전은 고급 장비도)를 최소 1개 장착합니다.' },
   { lvl: 7, name: '위험 7', desc: `최대 플레이어 체력 -25. 절망 증강: ${despairRule()} 역경 적은 재료 · 고급 · 희귀 중 등급별 동일 확률로 뽑은 장비 3개를 확정 장착합니다 (전설 제외).` },
   { lvl: 8, name: '위험 8', desc: '적 방어도 +25%, 효과 저항 +15%p, 적 회피 +10%p 추가.' },

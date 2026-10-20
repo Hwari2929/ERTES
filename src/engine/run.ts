@@ -744,8 +744,8 @@ export function pickGlobal(run: RunState, id: string) {
 export const FOE_GEAR_DIFF = 2;
 export const foeGearOn = (run: RunState) => diffHas(run.diff, FOE_GEAR_DIFF);
 /**
- * 위험 등급 장비: (2)부터 적이 낮은 확률로 재료를 달고, 역경 · 보스전에서는 고급 장비도 단다 (희귀 · 전설처럼 추가 효과가 있는 장비는 없음).
- * (5)부터 개조부품(문장 제외)을 달 수 있고, 보스는 거의 항상 전설 장비(재생 외골격 제외)를 단다.
+ * 위험 등급 장비 (확률은 CFG.foeGear): (2)부터 적이 칸마다 확률로 재료를 달고, 역경 · 보스전에서는 고급 장비도 단다 (희귀 · 전설처럼 추가 효과가 있는 장비는 없음).
+ * (5)부터 개조부품(문장 제외)을 달 수 있고, 보스는 CFG.foeGear.bossLegend 확률로 전설 장비(재생 외골격 제외)를 단다.
  * 장비 칸 수 = 2페이즈마다 1칸 (최대 3). 칸마다 따로 굴리고, 장비는 왼쪽부터 채운다.
  */
 function gearEnemies(run: RunState, r: Rng, enemies: EnemySpawn[], type: NodeType, phase: number) {
@@ -761,16 +761,17 @@ function gearEnemies(run: RunState, r: Rng, enemies: EnemySpawn[], type: NodeTyp
       const grades = [ALL_COMPONENTS, ALL_GRADED, ALL_ADVANCED];
       for (let i = 0; i < 3; i++) items.push(r.pick(r.pick(grades)));
     }
-    if (!items.length && tier === 'boss' && diffHas(run.diff, 5) && r.chance(0.95)) items.push(r.pick(legends));
-    const p = (big ? 0.25 : 0.08) * (tier === 'elite' ? 1.5 : tier === 'boss' ? 2 : 1); // 칸당 장착 확률
+    const G = CFG.foeGear;
+    if (!items.length && tier === 'boss' && diffHas(run.diff, 5) && r.chance(G.bossLegend)) items.push(r.pick(legends));
+    const p = (big ? G.big : G.slot) * (tier === 'elite' ? G.elite : tier === 'boss' ? G.boss : 1); // 칸당 장착 확률
     for (let i = items.length; i < slots; i++) {
       if (!r.chance(p)) continue;
-      items.push(big && r.chance(0.5) ? r.pick(ALL_GRADED) : r.pick(ALL_COMPONENTS));
+      items.push(big && r.chance(G.graded) ? r.pick(ALL_GRADED) : r.pick(ALL_COMPONENTS));
     }
     // (6) 고난: 1페이즈부터 모든 적이 기본 장비를 최소 1개
-    if (!items.length && diffHas(run.diff, 6)) items.push(big && r.chance(0.5) ? r.pick(ALL_GRADED) : r.pick(ALL_COMPONENTS));
+    if (!items.length && diffHas(run.diff, 6)) items.push(big && r.chance(G.graded) ? r.pick(ALL_GRADED) : r.pick(ALL_COMPONENTS));
     if (items.length) s.items = items;
-    if (diffHas(run.diff, 5) && r.chance(tier === 'boss' ? 0.6 : tier === 'elite' ? 0.3 : 0.1)) s.mod = r.pick(mods);
+    if (diffHas(run.diff, 5) && r.chance(G.mod[tier === 'boss' ? 2 : tier === 'elite' ? 1 : 0])) s.mod = r.pick(mods);
   }
 }
 

@@ -4,6 +4,8 @@ import { CFG, encDmgMult } from '../config';
 import { DIFF_PRESETS, diffName } from './difficulty';
 import { DESPAIRS } from './despair';
 import { controlNames, fleeRule, RELOAD_RESET_LABEL, zocRule } from '../engine/combat';
+/** 확률 표기 (소수 1자리) */
+const p1 = (x: number) => `${+(x * 100).toFixed(1)}%`;
 import { CAUSAL, causalNeed } from './chungra';
 
 export interface GlossEntry { id: string; term: string; text: string; key: string }
@@ -52,8 +54,8 @@ export const GLOSSARY: GlossChapter[] = [
       { id: 'php', term: '플레이어 체력', key: 'ch2_intro', text: '화면 위쪽 하트, 용병단이 버틸 수 있는 힘. 전투에서 지면 3 + 2 × 페이즈 + 살아남은 적 수만큼 깎인다 (보스전은 10 + 3 × 페이즈). 0이 되면 의뢰 실패.' },
       { id: 'resonance', term: '공명도 · 공명 등급', key: 'ch2_xp', text: '공명도는 전투마다 파티 전체가 나눠 받는 경험치. 다음 등급까지 2 + 2 × 등급만큼 모이면 공명 등급이 오르고, 오를 때마다 모든 주요 능력치 +1. 기물 상세의 [경험치]로 4크레딧에 공명도 4를 살 수도 있다.' },
       { id: 'fleet', term: '함대 확장', key: 'ch2_xp', text: '지도의 함선 관리에서 출전 인원을 1명 늘린다. 첫 확장은 20크레딧, 이후 40 · 56 · 72 … 점점 비싸진다 (최대 14명).' },
-      { id: 'supply', term: '보급', key: 'ch2_supply', text: `뒷면 보급품 카드 ${CFG.supply.cards}장을 뒤집어 모두 받는다. 카드 1장은 에너지 크레딧 · 공명도(파티에 분배) · 장비 중 하나이고 같은 종류가 겹치기도 한다. ${CFG.supply.cards}장 합계 가치는 지금 영입할 기물을 바로 방출했을 때 받는 환급의 ${pc(CFG.supply.ratio)} 안팎이라 기물 등급이 오를수록 커진다 (초반에는 ${CFG.supply.floor(1)}크레딧어치부터). 장비는 카드 가치가 높을수록 재료보다 고급 · 희귀가, ${CFG.supply.legendFrom}페이즈부터는 대박 카드에서 전설도 나온다. 장마다 ${CFG.supply.jackpot.map(([x, p]) => `${pc(p)} 확률로 가치 ×${x}`).join(', ')}의 대박.` },
-      { id: 'shop', term: '상점', key: 'ch2_shop', text: `재료 장비 ${CFG.drop.shopParts}개는 늘 진열되고 희귀 · 고급 · 전설은 확률로 나온다 (${CFG.shop.gearFrom}페이즈부터는 고급 · 희귀 중 1개 이상 확정). 가끔 소모품, 드물게 문장도 들어온다. 기본가 재료 ${CFG.price.C} · 고급과 희귀 ${CFG.price.G} · 전설 ${CFG.price.L} · 문장 ${CFG.shop.price.emblem}, 전장에 따라 달라진다. 팔면 재료 ${CFG.sell.C} · 고급과 희귀 ${CFG.sell.G} · 소모품 ${CFG.sell.K}.` },
+      { id: 'supply', term: '보급', key: 'ch2_supply', text: `뒷면 보급품 카드 ${CFG.supply.cards}장을 뒤집어 모두 받는다. 카드 1장은 에너지 크레딧 · 공명도(파티에 분배) · 장비 중 하나이고 같은 종류가 겹치기도 한다. ${CFG.supply.cards}장 합계 가치는 지금 영입할 기물을 바로 방출했을 때 받는 환급의 ${pc(CFG.supply.ratio)} (카드마다 ±${pc(CFG.supply.spread)})라 기물 등급이 오를수록 커진다 (초반에는 ${CFG.supply.floor(1)}크레딧어치부터). 장비는 카드 가치가 높을수록 재료보다 고급 · 희귀가, ${CFG.supply.legendFrom}페이즈부터는 대박 카드에서 전설도 나온다. 장마다 대박 확률 ${(() => { let left = 1; return CFG.supply.jackpot.map(([x, p]) => { const q = left * p; left *= 1 - p; return `가치 ×${x} ${p1(q)}`; }).join(' · '); })()}. 항로에 놓인 보급 노드는 첫 장이 장비 재료로 확정이고 대박이 없다.` },
+      { id: 'shop', term: '상점', key: 'ch2_shop', text: `재료 장비 ${CFG.drop.shopParts}개는 늘 진열된다. 확률 입고: 희귀 1개 ${p1((1 - CFG.drop.shopAdv2) * CFG.drop.shopAdv)} · 2개 ${p1(CFG.drop.shopAdv2)}, 고급 ${p1(CFG.drop.shopGraded)}, 전설 ${p1(CFG.drop.shopLegend)} (${CFG.drop.shopLegendPhase}페이즈부터). ${CFG.shop.gearFrom}페이즈부터는 고급 · 희귀 중 1개 이상 확정. 소모품 ${p1(CFG.shop.cons)}, 문장 ${p1(CFG.shop.emblem)} (출전 기물의 시너지 문장일 확률 ${p1(CFG.shop.emblemOwn)}). 기본가 재료 ${CFG.price.C} · 고급과 희귀 ${CFG.price.G} · 전설 ${CFG.price.L} · 문장 ${CFG.shop.price.emblem}, 전장에 따라 달라진다. 장비 · 개조부품은 팔 수 없고, 소모품만 판다 (${CFG.sell.K}).` },
       { id: 'cons', term: '소모품', key: 'ch2_shop', text: `보관함의 육각형 칸. 쓸 곳에 끌어다 놓으면 한 번 쓰고 사라진다: 기물(공명 주입기 소형 +${CFG.inject.amount.K_xp} · 중형 +${CFG.inject.amount.K_xp2} · 대형 +${CFG.inject.amount.K_xp3} 공명도, 분리 용제), 기물 또는 장비 1개(재구성 회로 — 같은 등급의 다른 장비로 바꾸고, 장착한 장비였으면 보관함으로 해제), 편성 화면의 적(강제 징수기), 또는 [사용] 단추(갓 구운 빵 — 전투 ${CFG.chef.staleAfter}회 뒤 식으면 회복 −${CFG.chef.staleHeal}). 주입기는 ${CFG.inject.from.K_xp2}페이즈부터 중형, ${CFG.inject.from.K_xp3}페이즈부터 대형이 나오고 ${CFG.inject.smallTo + 1}페이즈부터는 소형이 나오지 않는다. 금색 테두리는 전설급이다. 전투 승리 보상 · 상점에서 얻는다. 쓸 수 없는 대상을 누르면 선택이 풀린다. 보관함에서 팔 수 있는 것은 소모품뿐이다 (장비 · 개조부품은 팔 수 없고, 보관함이 가득 찬 채로 얻으면 자동 판매).` },
     ],
   },
