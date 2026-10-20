@@ -531,13 +531,13 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'NAV', name: '항해자', kind: 'trait', tiers: [2, 4, 6, 8], color: '#7ab8ff', icon: '✈',
     desc: '항해자 1명을 [에이스 파일럿]으로 지정합니다 (기물 정보 창, 미지정 시 공명 등급이 가장 높은 항해자). 에이스는 기물마다 다른 추가 특성이 활성화되고, 단계가 오를수록 그 능력이 강해집니다.',
-    tierDesc: ['에이스 능력 ×1, 항해자 피해 +15%', '에이스 능력 ×1.8, 항해자 기동력 +5, 피해 +35%', '에이스 능력 ×3, 항해자 기동력 +10, 피해 +75%', '[전설의 항로] 에이스 능력 ×4.5, 항해자 기동력 +16, 피해 +120%'],
+    tierDesc: ['에이스 능력 ×1, 항해자 피해 +15%', '에이스 능력 ×2, 항해자 기동력 +5, 피해 +35%', '에이스 능력 ×4, 항해자 기동력 +10, 피해 +75%', '[전설의 항로] 에이스 능력 ×8, 항해자 기동력 +16, 피해 +120%'],
     member: (t, ctx) => {
       const agi = T(t, [0, 5, 10, 16]);
       const navDmg = [inc('all', T(t, [0.15, 0.35, 0.75, 1.2]))];
       const ace = ctx.run && ctx.unit && aceTargetUid(ctx.run) === ctx.unit.uid ? UNIT_BY_ID[ctx.unit.defId].ace : undefined;
       if (!ace) return { majors: { agi }, mods: navDmg };
-      const e = ace.effect(T(t, [1, 1.8, 3, 4.5]));
+      const e = ace.effect(T(t, [1, 2, 4, 8]));
       const prev = e.setup;
       return { ...e, mods: [...(e.mods || []), ...navDmg], majors: { ...(e.majors || {}), agi: (e.majors?.agi || 0) + agi }, setup: (u, b, c) => { u.mem.ace = 1; prev?.(u, b, c); } };
     },
@@ -676,13 +676,13 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'HUNTER', name: '사냥꾼', kind: 'trait', tiers: [2, 4, 6, 8], color: '#c98a4a', icon: '➶',
     desc: '사냥감을 끝까지 쫓는 이들. 사냥꾼 기물은 공격 속도와 치명타 피해가 크게 오르고 원거리 사냥꾼은 사거리가 1 늘며, (4)부터는 기본 공격 · 기술이 대상 최대 체력 비례 고정 피해를 더합니다 (사격 위력 일정 비율이 상한).',
-    tierDesc: ['공격 속도 +15%, 치명타 피해 +20%p, 원거리 사냥꾼 사거리 +1', '공격 속도 +30%, 치명타 피해 +45%p, 공격마다 대상 최대 체력 2% 고정 피해 (사격 위력 400% 상한)', '공격 속도 +50%, 치명타 피해 +80%p, 최대 체력 3% 고정 피해 (상한 600%)',
-      '[최상위 포식자] 공격 속도 +85%, 치명타 피해 +140%p, 최대 체력 5% 고정 피해 (상한 1000%)'],
+    tierDesc: ['공격 속도 +30%, 치명타 피해 +20%p, 원거리 사냥꾼 사거리 +1', '공격 속도 +60%, 치명타 피해 +45%p, 공격마다 대상 최대 체력 2% 고정 피해 (사격 위력 400% 상한)', '공격 속도 +100%, 치명타 피해 +80%p, 최대 체력 3% 고정 피해 (상한 600%)',
+      '[최상위 포식자] 공격 속도 +200%, 치명타 피해 +140%p, 최대 체력 5% 고정 피해 (상한 1000%)'],
     member: (t) => {
       const hp = T(t, [0, 0.02, 0.03, 0.05]), cap = T(t, [0, 4, 6, 10]);
       return {
         setup: (u) => { if (u.st.range > 1) u.st.range += 1; },
-        stats: { atkSpd: T(t, [0.15, 0.3, 0.5, 0.85]), critDmg: T(t, [0.2, 0.45, 0.8, 1.4]) },
+        stats: { atkSpd: T(t, [0.3, 0.6, 1.0, 2.0]), critDmg: T(t, [0.2, 0.45, 0.8, 1.4]) },
         hooks: hp ? {
           onDeal(b, u, tgt, r, o) {
             if ((o.tag !== 'basic' && o.tag !== 'skill') || r.amount <= 0 || !tgt.alive) return;
