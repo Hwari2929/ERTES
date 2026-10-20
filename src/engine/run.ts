@@ -592,10 +592,10 @@ export function useConsumable(run: RunState, kIdx: number, tg: UseTarget): { ok:
   const id = run.inventory[kIdx];
   const name = CONSUMABLES[id].name;
   let msg = '';
-  if (id === 'K_cp_purge' || id === 'K_cp_note') { // 캠페인 소모품: 정화 분무기 (다음 전투 화학 피해 -40%) · 선지급 어음 (지금 +15, 장 정산 -20)
+  if (id === 'K_cp_purge' || id === 'K_cp_note') { // 캠페인에서 들여온 소모품 (본편 · 캠페인 공용): 정화 분무기 (다음 전투 화학 피해 -40%) · 선지급 어음 (지금 +15, 장 정산 -20)
     run.inventory.splice(kIdx, 1);
     if (id === 'K_cp_purge') { run.flags.push('cp_purge'); msg = '다음 전투 동안 아군이 받는 화학 피해 -40%'; }
-    else { run.credits += 15; run.flags.push('cp_note'); msg = '크레딧 +15 (장 정산 때 -20)'; }
+    else { run.credits += 15; run.flags.push('cp_note'); msg = run.campaign ? '크레딧 +15 (장 정산 때 -20)' : '크레딧 +15 (이번 페이즈가 끝날 때 -20)'; }
     log(run, `${name}: ${msg}`);
     return { ok: true, msg };
   }
@@ -722,6 +722,8 @@ export function advance(run: RunState) {
   if (run.mods.nodeIncome) run.credits += run.mods.nodeIncome; // 분할 정산 등
   if (run.campaign && run.step >= run.map.length) { campNextChapter(run); run.picked = []; run.nodeUnits = {}; autoPlace(run); return; } // 캠페인: 다음 장
   if (run.step >= run.map.length) {
+    const notes = run.flags.filter((f) => f === 'cp_note').length; // 선지급 어음 (본편): 페이즈가 끝날 때 갚는다
+    if (notes) { run.flags = run.flags.filter((f) => f !== 'cp_note'); run.credits = Math.max(0, run.credits - 20 * notes); log(run, `선지급 어음 정산: 크레딧 -${20 * notes}`); }
     run.phase++;
     run.mods.divGain = 0; // 성인 기념일은 이번 페이즈만
     run.step = 0;
@@ -962,7 +964,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     if (fw) { income += fw; lines.push(`전장 조건 · 계약 정산 +${fw}`); }
     // 전투 보상 소모품: 분리 용제 · 재구성 회로 · 공명 주입기 (주입기 크기는 페이즈에 따라) 중 하나
     const uc = CFG.drop.utility[type] || 0;
-    if (uc && rng(run, (r) => r.chance(uc))) gainItem(run, rng(run, (r) => { const k = r.pick(['K_strip', 'K_reroll', 'inject']); return k === 'inject' ? pickInjector(r, p) : k; }), lines);
+    if (uc && rng(run, (r) => r.chance(uc))) gainItem(run, rng(run, (r) => { const k = r.pick(['K_strip', 'K_reroll', 'inject', 'K_cp_purge', 'K_cp_note']); return k === 'inject' ? pickInjector(r, p) : k; }), lines);
     // 전설 소모품 (따로 굴림): 강제 징수기 (적이 장비를 다는 위험 등급에서만) · 원초 공명석
     if (foeGearOn(run) && rng(run, (r) => r.chance(CFG.drop.seize[type] || 0))) gainItem(run, 'K_seize', lines);
     if (rng(run, (r) => r.chance(CFG.drop.rank3[type] || 0))) gainItem(run, 'K_rank3', lines);
@@ -1063,6 +1065,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
       lines.push(`페이즈 ${p}의 남은 노드를 건너뛰고 다음 페이즈로 넘어갑니다.`);
     }
   }
+  run.flags = run.flags.filter((f) => f !== 'cp_purge'); // 정화 분무기: 한 전투만
   if (run.campaign) campAfterBattle(run, b, won, type, counts, lines); // 계약 정산 · 장 정산 (보스 승리 = 장 끝)
   if (run.hp <= 0) { run.hp = 0; run.over = true; gameOver = true; }
   else if (run.over) gameOver = true; // 캠페인 장 끝 (검증판)
@@ -1529,7 +1532,7 @@ export function investedXp(rank: number, xp = 0) {
 /** 가치 환산 (크레딧 기준, CFG.supply 주석): 공명도 1 = 직접 구매 단가, 장비 = 상점 기본가 */
 export const XP_VALUE = CFG.buyXpCost / CFG.buyXpAmount;
 export const gearValue = (id: string) => CFG.price[itemInfo(id).tier] ?? CFG.price.C;
-export const supplyValue = (c: Pick<SupplyCard, 'credits' | 'xp' | 'items'>) => c.credits + c.xp * XP_VALUE + c.items.reduce((s, id) => s + gearValue(id), 0);
+export const supplyValue = (c: Pick<SupplyCard, 'credits' | 'xp' | 'items'>) => c.credits + c.xp * XP_VALUE + c.items.reduce((s, id) => s + (isInjector(id) ? injectAmount(id) * XP_VALUE : gearValue(id)), 0);
 /** 갓 영입한 rank 등급 기물을 바로 방출할 때 받는 환급 가치 (releaseValue 와 같은 식) */
 export function releaseGain(rank: number) {
   return CFG.release.base + CFG.release.perRank * rank + Math.round(investedXp(rank) * CFG.release.xpShare) * XP_VALUE;
@@ -1545,6 +1548,7 @@ function supplyGear(run: RunState, r: Rng, v: number, jackpot: boolean): string 
     if (v < steps[i][1]) { if (i > 0) t = r.chance((v - steps[i - 1][1]) / (steps[i][1] - steps[i - 1][1])) ? steps[i][0] : steps[i - 1][0]; break; }
     t = steps[i][0];
   }
+  if (t === 'C' && jackpot) return r.chance(S.jackpotInject) ? 'K_xp2' : r.chance(S.graded) ? r.pick(ALL_GRADED) : r.pick(ALL_ADVANCED); // 대박(×1.5 · ×2): 재료 대신 최소 고급 · 희귀 또는 중형 공명 주입기
   if (t === 'C') return r.pick(ALL_COMPONENTS);
   if (t === 'L') return 'L_' + r.pick(ALL_ADVANCED).slice(2);
   return r.chance(S.graded) ? r.pick(ALL_GRADED) : r.pick(ALL_ADVANCED);

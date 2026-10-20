@@ -121,7 +121,7 @@ export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, 
     for (const id of [...(run?.boons || []), ...(run?.phaseBoons || [])]) { const e = BOONS[id]?.effect; if (e) out.push(e); } // 사건 효과
     const fa = run && !run.campaign ? fieldOf(run.field).ally : undefined; // 전장 세력 보너스 (캠페인은 전용 시너지만)
     if (fa && mine.has(fa.syn)) out.push(fa.effect);
-    if (run?.campaign && run.flags.includes('cp_purge')) out.push({ taken: [red('chem', 0.4)] }); // 캠페인 소모품 정화 분무기: 다음 전투 화학 피해 -40%
+    if (run?.flags.includes('cp_purge')) out.push({ taken: [red('chem', 0.4)] }); // 소모품 정화 분무기 (캠페인에서 들여옴): 다음 전투 화학 피해 -40%
     const fall = run ? fieldOf(run.field).allyAll : undefined; // 전장: 모든 아군
     if (fall) out.push(fall);
   }

@@ -159,12 +159,12 @@ export const CFG = {
   foeGear: { slot: 0.08, big: 0.25, elite: 1.5, boss: 2, graded: 0.5, bossLegend: 0.95, mod: [0.1, 0.3, 0.6] as [number, number, number] },
   shop: {
     gearFrom: 3, gearAdv: 0.5, // 이 페이즈부터 고급 · 희귀 장비를 1개 이상 확정 진열 (확률 입고가 없으면 1개 추가: 희귀일 확률, 아니면 고급)
-    cons: 0.4, consW: { inject: 3, K_strip: 1, K_reroll: 1 } as Record<string, number>, // 소모품 1개 (종종): 공명 주입기(페이즈에 맞는 크기) · 분리 용제 · 재구성 회로
+    cons: 0.4, consW: { inject: 3, K_strip: 1, K_reroll: 1, K_cp_purge: 1, K_cp_note: 1 } as Record<string, number>, // 소모품 1개 (종종): 공명 주입기(페이즈에 맞는 크기) · 분리 용제 · 재구성 회로 · 정화 분무기 · 선지급 어음 (캠페인에서 들여옴)
     seize: 0.25, // 강제 징수기 (종종, 적이 장비를 다는 위험 등급에서만)
     rank3: 0.04, rank3From: 2, // 원초 공명석 (희귀): 입고 확률 · 시작 페이즈
     emblem: 0.06, emblemOwn: 0.6, // 문장 (희귀): 입고 확률 · 출전 기물이 가진 시너지 문장일 확률
     /** 가격 (크레딧, 전장 상점 배율 · 관세 적용 전). 소모품 판매가(sell.K)보다 비싸게 */
-    price: { K_xp: 6, K_xp2: 14, K_xp3: 26, K_strip: 6, K_reroll: 8, K_seize: 30, K_rank3: 40, emblem: 25 } as Record<string, number>,
+    price: { K_xp: 6, K_xp2: 14, K_xp3: 26, K_strip: 6, K_reroll: 8, K_seize: 30, K_rank3: 40, emblem: 25, K_cp_purge: 6, K_cp_note: 2 } as Record<string, number>,
   },
   inventoryMax: 32,
   /** 분리 용제 규칙: 이 위험 등급(고난) 이상이면 기물에 장착한 장비(개조부품 · 고유 장비 제외)를 떼어 보관함 · 다른 기물로 옮길 때 분리 용제(K_strip) 1개를 소모한다 (run.ts unequip).
@@ -188,6 +188,7 @@ export const CFG = {
     kindW: { credits: 1, xp: 1, gear: 1 } as Record<string, number>,
     jackpot: [[2, 0.025], [1.5, 0.09]] as [number, number][],
     graded: 0.3, legendFrom: 6,
+    jackpotInject: 0.35, // 대박 카드가 재료 등급으로 떨어졌을 때 중형 공명 주입기가 될 확률 (나머지는 고급 · 희귀 장비)
   },
 
   // ── 플레이어 체력 [임시]
