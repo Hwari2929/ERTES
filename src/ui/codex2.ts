@@ -697,7 +697,7 @@ function unitRowBtn(H: CxH, d: UnitDef, text: string) {
 
 // ═══════════════════════ 증강
 interface AugGroup { key: string; name: string; note: string; body: (H: CxH) => string; count: number }
-const POOL_NAME: Record<string, string> = { major: '메이저 공용', special: '스페셜 전용', school: '사이오닉 전공 선택', psionic: '사이오닉 전공 증강' };
+const POOL_NAME: Record<string, string> = { major: '메이저 공용', special: '스페셜 전용', school: '사이오닉 전공 선택', psionic: '사이오닉 전공 증강', oath: '디바인 서약 증강' };
 function augGroups(): AugGroup[] {
   const pools = [...new Set(ALL_AUGS.map((a) => a.pool))];
   const order = ['major', 'special', 'school', 'psionic', 'oath'];
@@ -724,9 +724,10 @@ function augGroups(): AugGroup[] {
     } else {
       if (pool === 'major') note = `${TTYPE_NAME.major} 기물이 ${milestones(CFG.growth.major, 'major')} 고릅니다.`;
       if (pool === 'school') note = `${TTYPE_NAME.psionic} 기물이 합류할 때 학파의 전공 ${Object.values(GROUPS)[0].majors.length}개 중 1개를 고릅니다 (학파가 없으면 ${SCHOOLS.length}개 중).`;
+      if (pool === 'oath') note = `${TTYPE_NAME.divine} 기물이 ${milestones(CFG.growth.oath, 'divine')}에 고릅니다 (최대 ${CFG.majorAugMax}개, ${TTYPE_NAME.divine} 기물끼리 같은 목록).`;
       body = (H) => `<ul class="augs cx2-augs">${list.map((a) => augLi(H, a)).join('')}</ul>`;
     }
-    out.push({ key: pool, name, note, body, count: list.length });
+    out.push({ key: pool === 'oath' ? 'vow' : pool, name, note, body, count: list.length }); // 서약 증강: 절망 서약 묶음(key 'oath')과 분류가 겹치지 않게
   }
   // 전역 · 특권 · 축복 · 절망: 기물이 아닌 함대 전체 증강 (icon: 줄마다 아이콘이 다를 때)
   const simple = (key: string, name: string, note: string, rows: { id: string; name: string; desc: string; tags: string[]; icon?: string }[]): AugGroup => ({

@@ -556,14 +556,19 @@ export class Battle {
     const g = Math.min(v * (1 + (u.mem.divBoost || 0)), u.divCap - u.divGot);
     u.divGot += g;
     u.div = Math.min(100, u.div + g);
-    if (u.div >= 100 && !u.divUsed) {
-      u.divUsed = true;
-      u.div = 0;
-      this.emit({ k: 'divact', id: u.id });
-      DIVINE_HOOK.act?.(this, u);
-      this.emit({ k: 'skillEnd', id: u.id });
-      for (const h of u.hooks) h.onDivine?.(this, u);
-    }
+    if (u.div >= 100 && this.divReady(u)) this.divineAct(u);
+  }
+  /** 신권 대행을 더 쓸 수 있는지: 전투당 1회 + 서약 증강의 추가 횟수 (mem.divExtra, data/oathaugs.ts) */
+  divReady(u: CUnit) { return u.div !== null && (u.mem.divActs || 0) < 1 + (u.mem.divExtra || 0); }
+  /** 신권 대행 발동 (신성력 100 · 서약 증강 [순교의 서약]). divUsed = 한 번이라도 썼는지 (권능 정산 · 게이지 표시) */
+  divineAct(u: CUnit) {
+    u.divUsed = true;
+    u.mem.divActs = (u.mem.divActs || 0) + 1;
+    u.div = 0;
+    this.emit({ k: 'divact', id: u.id });
+    DIVINE_HOOK.act?.(this, u);
+    this.emit({ k: 'skillEnd', id: u.id });
+    for (const h of u.hooks) h.onDivine?.(this, u);
   }
 
   // ───────── 조회

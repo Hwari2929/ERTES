@@ -1111,7 +1111,8 @@ const mainPow = (b: Battle, u: CUnit) => (u.ctype === 'MARK' ? b.S(u, 'shoot') :
 DIVINE_HOOK.act = (b, u) => {
   // 장착한 성유물이 신권 대행 (강화하면 다음 전투 한정 ×3). 성유물이 없으면 (성찬으로 깨어난 기물) 전투 유형 기본형
   const rel = u.relic ? RELIC_BY_ID[u.relic] : null;
-  if (rel) { rel.act(b, u, u.mem.enh || 1); return; }
+  // mem.divK = 서약 증강의 신권 대행 위력 가산 (data/oathaugs.ts)
+  if (rel) { rel.act(b, u, (u.mem.enh || 1) * (1 + (u.mem.divK || 0))); return; }
   switch (u.ctype) {
     case 'MARK':
       u.reloadT = 0; u.ammo = u.weapon?.mag || 1;
