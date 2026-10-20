@@ -15,7 +15,8 @@
     "bot-regress": "npx esbuild tests/bot_regress.ts --bundle --platform=node --log-level=error --outfile=dist/bot_regress.cjs && node dist/bot_regress.cjs",
     "chulsu-profile": "npx esbuild tests/chulsu/profile_gen.ts --bundle --platform=node --log-level=error --outfile=dist/chulsu_profile.cjs && node dist/chulsu_profile.cjs > tests/chulsu/profile.gen.ts",
     "css-baseline": "npx esbuild tests/css_check.ts --bundle --platform=node --log-level=error --outfile=dist/css_check.cjs && node dist/css_check.cjs --update",
-    "chulsu-augprofile": "npx esbuild tests/chulsu/augprofile_gen.ts --bundle --platform=node --log-level=error --outfile=dist/chulsu_augprofile.cjs && node dist/chulsu_augprofile.cjs > tests/chulsu/augprofile.gen.ts"
+    "chulsu-augprofile": "npx esbuild tests/chulsu/augprofile_gen.ts --bundle --platform=node --log-level=error --outfile=dist/chulsu_augprofile.cjs && node dist/chulsu_augprofile.cjs > tests/chulsu/augprofile.gen.ts",
+    "chulsu-synprofile": "npx esbuild tests/chulsu/synprofile_gen.ts --bundle --platform=node --log-level=error --outfile=dist/chulsu_synprofile.cjs && node dist/chulsu_synprofile.cjs > tests/chulsu/synprofile.gen.ts"
   },
   "devDependencies": {
     "esbuild": "0.25.10",

@@ -9,6 +9,8 @@ import { UNIT_BY_ID } from '../../src/data/units';
 import * as R from '../../src/engine/run';
 import type { Pending, RunState, UnitState } from '../../src/types';
 import { cloneUnit, teamEval } from './eval';
+import { thresholdCands } from './form';
+import { memberships } from '../../src/engine/build';
 import type { DLog } from './log';
 
 export const ROSTER = {
@@ -37,6 +39,22 @@ export function greedyPath(run: RunState, pool: UnitState[], cap: number, bias?:
   while (vs.length < 3) vs.push(vs[vs.length - 1] || 0);
   return { vs, order: team };
 }
+/** 3단계 multi: 크기 cap … cap+2 의 '계획 편성' 가치 — 탐욕 편성에 임계점 후보(완성 · 단독 유지, form.ts thresholdCands)를 더해 가장 큰 것.
+ *  영입 가치(지금 + 앞으로 조합)와 보관 가치(계획 편성에 드는가)가 같은 계획을 본다. only = 이 시너지들만 임계점 후보를 만든다 (계산 절약) */
+export function planPath(run: RunState, pool: UnitState[], cap: number, bias?: Bias, only?: Set<string>): { vs: number[]; keep: Set<UnitState>; plans: string[] } {
+  const g = greedyPath(run, pool, cap, bias);
+  const ev = (us: UnitState[]) => teamEval(run, us.map((x) => asEval(run, x))).v * (bias ? bias(us) : 1);
+  const keep = new Set(g.order), vs = g.vs.slice(), plans: string[] = [];
+  for (let k = 0; k < 3; k++) {
+    const team = g.order.slice(0, cap + k);
+    if (team.length < cap + k) break;
+    for (const c of thresholdCands(run, team, pool.filter((u) => !team.includes(u)), ev, only)) {
+      const v = ev(c.team);
+      if (v > vs[k]) { vs[k] = v; plans.push(`${cap + k}:${c.name}`); for (const u of c.team) keep.add(u); }
+    }
+  }
+  return { vs, keep, plans };
+}
 const candUnit = (id: string, rank: number): UnitState => {
   const d = UNIT_BY_ID[id];
   return { uid: `cand_${id}`, defId: id, rank, xp: 0, alloc: { vit: rank - 1, pow: rank - 1, mnd: rank - 1, def: rank - 1, agi: rank - 1 }, perm: { vit: 0, pow: 0, mnd: 0, def: 0, agi: 0 }, augments: [], items: [d.item || null, null, null], mod: null, pos: null, faith: d.faith, grow: {} };
@@ -45,14 +63,15 @@ const releaseCredits = (rank: number) => R.releaseGain(rank);
 
 /** 대표 빌드 가중 (build 영역, 없으면 1) */
 export type Bias = (us: UnitState[]) => number;
-export function pickRecruit2(run: RunState, p: Extract<Pending, { t: 'recruit' }>, log: DLog, bias?: Bias): string {
+export function pickRecruit2(run: RunState, p: Extract<Pending, { t: 'recruit' }>, log: DLog, bias?: Bias, multi = false): string {
   if (run.units.length >= CFG.maxParty) return '-';
   const cap = R.deployCap(run), rank = R.recruitRank(run);
   const pool0 = run.units.filter((u) => R.canDeploy(run, u) && !R.isRock(u));
-  const base = greedyPath(run, pool0, cap, bias).vs;
+  const base = multi ? planPath(run, pool0, cap, bias).vs : greedyPath(run, pool0, cap, bias).vs;
   const sc = p.options.filter((id) => !UNIT_BY_ID[id].inert).map((id) => {
     const c = candUnit(id, rank);
-    const path = greedyPath(run, [...pool0, c], cap, bias);
+    // 3단계 multi: 영입 가치 = 지금 + 앞으로(출전 +1 · +2)의 계획 편성 (후보가 들어가는 시너지의 임계점 완성 포함)
+    const path = multi ? (() => { const pp = planPath(run, [...pool0, c], cap, bias, new Set(memberships(c, run))); return { vs: pp.vs, order: [...pp.keep] }; })() : greedyPath(run, [...pool0, c], cap, bias);
     const gain = ROSTER.w.reduce((s, w, k) => s + w * (path.vs[k] / Math.max(1e-9, base[k]) - 1), 0);
     const inTeam = path.order.includes(c);
     // 편성(지금 + 2 까지)에 못 들면 방출 가치로 (영입 → 방출)
@@ -66,7 +85,7 @@ export function pickRecruit2(run: RunState, p: Extract<Pending, { t: 'recruit' }
 
 /** 편성(지금 출전 인원 + 2)에 들지 못하는 대기 기물을 방출한다 (benchKeep 명은 남긴다). 반려 돌은 언제나 방출 */
 let relSig = '';
-export function releaseBench(run: RunState, log: DLog, bias?: Bias): number {
+export function releaseBench(run: RunState, log: DLog, bias?: Bias, multi = false): number {
   let n = 0;
   // 같은 보유 상태면 다시 보지 않는다 (계산 절약)
   const sig = JSON.stringify([run.seed, run.units.map((u) => [u.uid, u.rank, !!u.pos, u.items, u.mod, u.augments.length]), R.deployCap(run), run.phase]);
@@ -75,12 +94,15 @@ export function releaseBench(run: RunState, log: DLog, bias?: Bias): number {
   const cap = R.deployCap(run);
   const pool = run.units.filter((u) => R.canDeploy(run, u) && !R.isRock(u));
   if (pool.length <= cap + ROSTER.benchKeep) { relSig = sig; return n; }
-  const keep = new Set(greedyPath(run, pool, cap, bias).order.map((u) => u.uid));
+  // 3단계 multi: 보관 가치 = 계획 편성(탐욕 + 임계점 완성 · 단독 유지)에 드는가
+  const keep = new Set((multi ? [...planPath(run, pool, cap, bias).keep] : greedyPath(run, pool, cap, bias).order).map((u) => u.uid));
   const out = run.units.filter((u) => !u.pos && !R.isRock(u) && R.canDeploy(run, u) && !keep.has(u.uid));
   const extra = out.length - ROSTER.benchKeep;
   if (extra <= 0) { relSig = sig; return n; }
   // 낮은 등급부터 (방출 가치는 등급에 비례하지만, 높은 등급은 다음 교체 후보로 남긴다)
   for (const u of out.sort((a, b) => a.rank - b.rank).slice(0, extra)) {
+    // 앞선 방출의 공명도 분배로 이 기물의 등급 상승 선택이 대기 중이면 남긴다 (방출하면 대기 중인 선택이 없는 기물을 가리킨다 — 3단계 기록의 실행 실패 1건)
+    if (run.pending.some((p) => p.t === 'rankup' && p.uid === u.uid)) continue;
     const v = R.releaseValue(run, u);
     if (R.releaseUnit(run, u.uid) === null) { n++; log.add('release', `방출 ${u.defId} (등급 ${u.rank})`, 0, 0, [`크레딧 ${v.credits} · 공명도 ${v.xp}`]); }
   }

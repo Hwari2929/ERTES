@@ -163,7 +163,19 @@ export function privilege(run: RunState, p: Extract<Pending, { t: 'privilege' }>
 
 // ───────────────────────── 절망 증강 (고난): 지금 계획에 가장 덜 해로운 것
 /** 해로움 = 실측표 + 상태 보정 (보정은 '해로움 배율 f' 를 0.2 × (f − 1) 페이즈로 더한다: 표값이 음수여도 방향이 맞게) */
-function despHarm(run: RunState, id: string): number {
+/** 3단계 boss: 보스가 벽인지 (보스전 패배 확률 어림 = 위험별 사전값을 지금까지 본 보스전 결과로 갱신). 결승전 특집(보스 체력 · 피해 +30%)의 구조적 해로움에 곱한다 */
+export const BOSS = {
+  prior: { d6: 0.5, d7: 0.65 } as Record<string, number>, // 보스전 패배율 사전값 (2단계 보류 결과: 모험 P1 61% · 고난 P1 70% 패배, 이후 50~65%)
+  priorW: 3, // 사전값의 무게 (보스전 수 환산)
+  finalHarm: 0.6, // 결승전 특집 구조적 해로움 (페이즈 단위) × 보스 패배율. 보스 체력 · 피해 ×1.3 = 보스전 전력 1/1.69, 6페이즈 보스는 클리어 조건
+};
+export function bossLossRate(run: RunState, hist?: { t: string; w: number }[]): number {
+  const pr = BOSS.prior[(run.diff || 0) >= 7 ? 'd7' : 'd6'];
+  const bs = (hist || []).filter((h) => h.t === 'boss');
+  return (pr * BOSS.priorW + bs.filter((h) => !h.w).length) / (BOSS.priorW + bs.length);
+}
+function despHarm(run: RunState, id: string, bossRisk?: number): number {
+  if (bossRisk !== undefined && id === 'D.final') return Math.max(DESP_HARM[id] ?? 0.1, BOSS.finalHarm * bossRisk * (run.phase >= CFG.victoryPhase ? 0.5 : 1));
   const h = DESP_HARM[id] ?? 0.1;
   const ph = run.phase, us = team(run);
   const t = us.length ? teamEval(run, us) : null;
@@ -180,13 +192,13 @@ function despHarm(run: RunState, id: string): number {
   }
   return h + 0.2 * (f - 1);
 }
-export function despair(run: RunState, p: Extract<Pending, { t: 'despair' }>, log: DLog, rng: Rng) {
+export function despair(run: RunState, p: Extract<Pending, { t: 'despair' }>, log: DLog, rng: Rng, bossRisk?: number) {
   for (let g = 0; g < 4; g++) {
-    const sc = p.options.map((id, i) => ({ i, id, h: despHarm(run, id) })).sort((a, b) => a.h - b.h);
+    const sc = p.options.map((id, i) => ({ i, id, h: despHarm(run, id, bossRisk) })).sort((a, b) => a.h - b.h);
     const pool = DESPAIRS.filter((d) => !(run.despairs || []).includes(d.id)).map((d) => d.id);
-    const sample = () => -Math.min(...rng.sample(pool, Math.min(CFG.despair.choices, pool.length)).map((id) => despHarm(run, id)));
+    const sample = () => -Math.min(...rng.sample(pool, Math.min(CFG.despair.choices, pool.length)).map((id) => despHarm(run, id, bossRisk)));
     if (!rerollWorth(-sc[0].h, p.rerolls, sample)) {
-      log.add('despair', `절망 ${sc[0].id}`, 0, -sc[0].h * 1000, sc.slice(1).map((x) => `${x.id} ${(-x.h * 1000).toFixed(0)}`));
+      log.add('despair', `절망 ${sc[0].id}`, 0, -sc[0].h * 1000, sc.slice(1).map((x) => `${x.id} ${(-x.h * 1000).toFixed(0)}`), bossRisk !== undefined ? `보스 패배율 어림 ${bossRisk.toFixed(2)}` : undefined);
       R.pickDespair(run, sc[0].i);
       return;
     }

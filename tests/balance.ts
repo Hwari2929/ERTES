@@ -10,6 +10,7 @@ import { Battle, type CUnit, type DmgOpts, type DmgResult } from '../src/engine/
 import * as R from '../src/engine/run';
 import { augChoice, forkChoice, manageItems, manageItemsFix, newIns, shopSynth, type BotIns, type Track, pilgrimBot } from './botlib';
 import { ALL_AREAS, Chulsu, DEFAULT_AREAS, DLog, pickStarters, type Area } from './chulsu';
+import { effTier, inactiveRange, setEvalMode } from './chulsu/syn';
 import { Rng } from '../src/rng';
 import { RELICS } from '../src/data/relics';
 import { FIELDS } from '../src/data/battlefields';
@@ -60,19 +61,22 @@ const POL_ADV = ADVPOL[0] || '', POL_CH = ADVPOL[1] || ADVPOL[0] || '';
 const ADVSTUDY = process.argv.includes('advstudy');
 /** 역경 계측에서 같은 상태 · 같은 조우로 다시 돌려 보는 배수 ('n' = 같은 칸 일반 전투 배수 1 + 0.04 × 칸) */
 const STUDY_MULTS: (number | 'n')[] = [1, 'n', 1.15, 1.2, 1.25, 1.3];
-/** bot=dumbi (기본, 예전 봇 그대로) · rara (덤비 + 장비 운용 결함 수정만) · chulsu (편성 · 장비 · 성장 · 경제 · 증강 · 빌드 판단, tests/chulsu) · chulsu-search (+ 제한 탐색, 분석 전용). docs/BOT_CHULSU.md */
+/** bot=dumbi (기본, 예전 봇 그대로) · rara (덤비 + 장비 운용 결함 수정만) · chulsu (편성 · 장비 · 성장 · 경제 · 증강 · 빌드 · 시너지 평가 판단, tests/chulsu) · chulsu-search (+ 제한 탐색, 분석 전용. 3단계 선별 탐색은 chulsu=…,search3). docs/BOT_CHULSU.md */
 const BOT0 = process.argv.find((a) => a.startsWith('bot='))?.slice(4) || 'dumbi';
 if (!['dumbi', 'rara', 'chulsu', 'chulsu-search'].includes(BOT0)) throw new Error(`알 수 없는 봇: ${BOT0}`);
 /** bot=chulsu-search: 철수 + 제한 탐색 (분석 전용, 대량 테스트 기본에서 뺀다) = bot=chulsu chulsu=<영역>,search */
 const BOT = (BOT0 === 'chulsu-search' ? 'chulsu' : BOT0) as 'dumbi' | 'rara' | 'chulsu';
-/** chulsu=form,gear,growth,start,econ,aug,hard,recruit2,build,recruit,search — 철수 판단 영역 (없으면 DEFAULT_AREAS = 1단계 4개 + econ,aug,hard,recruit2,build). 꺼진 영역은 라라와 같다. start 는 계약 후보(pool) 안에서 고른다 */
+/** chulsu=form,gear,growth,start,econ,aug,hard,recruit2,build,syn3,multi,build3,boss,recruit,search,search3 — 철수 판단 영역 (없으면 DEFAULT_AREAS = 2단계 기본 + syn3,multi,build3). 꺼진 영역은 라라와 같다. start 는 계약 후보(pool) 안에서 고른다 */
 const CH_AREAS = new Set<Area>(BOT === 'chulsu' ? ((process.argv.find((a) => a.startsWith('chulsu='))?.slice(7).split(',').filter(Boolean) as Area[]) || DEFAULT_AREAS) : []);
 if (BOT0 === 'chulsu-search') CH_AREAS.add('search');
-/** [조건부 실험] forcebuild=cmd|guard|med: 철수 build 영역의 빌드를 고정한다 (주어진 후보 · 자원만 쓰는 건 같다). 없으면 봇이 고른다 */
+/** [조건부 실험] forcebuild=cmd|guard|med|voyage|time: 철수 build 영역의 빌드를 고정한다 (주어진 후보 · 자원만 쓰는 건 같다). 없으면 봇이 고른다 */
 const FORCE_BUILD = process.argv.find((a) => a.startsWith('forcebuild='))?.slice(11);
 /** [분석] augoff=priv,desp,glob,unit,loot: aug 영역의 일부만 끈다 (꺼진 부분은 덤비 규칙) — 증강 영역 안의 효과를 나눠 재는 용도 */
 const AUG_OFF = new Set((process.argv.find((a) => a.startsWith('augoff='))?.slice(7) || '').split(',').filter(Boolean));
+/** [분석] bossoff=desp,place,reserve: 3단계 boss 영역의 일부만 끈다 (절망 증강 보스 위험 · 보스 배치 · 보스 전 투자) */
+const BOSS_OFF = new Set((process.argv.find((a) => a.startsWith('bossoff='))?.slice(8) || '').split(',').filter(Boolean));
 for (const a of CH_AREAS) if (!ALL_AREAS.includes(a)) throw new Error(`알 수 없는 철수 영역: ${a}`);
+setEvalMode(CH_AREAS.has('syn3')); // 3단계: 효과 단계 · 시너지 실측 잔차 평가 (tests/chulsu/syn.ts). 계약 기물 선택(pickStarters)부터 같은 평가를 쓴다
 /** instr: 런마다 계측 기록 (조우 진입 상태 · 장비 현황 · 실패 사유 · 실행 시간) → runs[].ins. dlog: 철수 판단 기록 → runs[].dlog. 둘 다 없으면 출력은 예전과 같다 */
 const INSTR = process.argv.includes('instr');
 const DLOG = process.argv.includes('dlog');
@@ -223,11 +227,13 @@ function playRun(seed: number) {
   if (CHR) { const pick = bot.sample(CHR_IDS, 2); starters = [...pick, ...starters.filter((x) => !pick.includes(x))].slice(0, CFG.startUnits); }
   const run = R.newRun(seed, starters, FORCE_FIELD, DIFF, OATH_SEL);
   const INS: BotIns | undefined = INSTR || BOT !== 'dumbi' ? newIns() : undefined;
-  const CH = BOT === 'chulsu' ? new Chulsu(run, { areas: CH_AREAS, dlog: DLOG, ins: INS, forceBuild: FORCE_BUILD, augOff: AUG_OFF }) : null;
+  const CH = BOT === 'chulsu' ? new Chulsu(run, { areas: CH_AREAS, dlog: DLOG, ins: INS, forceBuild: FORCE_BUILD, augOff: AUG_OFF, bossOff: BOSS_OFF }) : null;
   if (CH) CH.log.list.push(...startLog.list);
   let dms = 0; // 봇 판단 시간 (manage · 선택지 처리, ms)
   let fGlobDone = false; // fglob= 실험: 첫 항로 회의만
   const encRec: number[][] = [], gearRec: number[][] = [];
+  const synAt: Record<string, [number, number]> = {}; // 3단계 기록: 시너지 효과 단계에 처음 닿은 전투 [순번, 페이즈]
+  const bossRec: [number, string, number][] = []; // 3단계 기록: 보스전 [페이즈, 보스, 승]
   const synMax: Record<string, number> = {};
   const det: Record<string, [number, number]> = {}; // detail 모드: `키|페이즈:노드` → [전투, 승리]
   const relicSet = new Set<string>();
@@ -354,7 +360,14 @@ function playRun(seed: number) {
     const counts = synergyCounts(dep, run) as Record<string, number>;
     if (INSTR) { // 조우 진입 상태: [페이즈, 노드(0 일반 · 1 역경 · 2 도전 · 3 보스), 칸, 체력, 크레딧, 평균 등급, 최고 등급, 출전 수, 활성 단계 합, 활성 시너지 수, 승(전투 뒤 채움)]
       const rk = dep.filter((u) => !R.isRock(u)).map((u) => u.rank), act = SYNERGIES.map((s) => tierOf(s.id, counts[s.id] || 0)).filter((t) => t > 0);
-      encRec.push([ph, ['battle', 'adversity', 'challenge', 'boss'].indexOf(ntype), run.step, run.hp, run.credits, rk.length ? Math.round((rk.reduce((a, b) => a + b, 0) / rk.length) * 100) / 100 : 0, Math.max(0, ...rk), dep.length, act.reduce((a, b) => a + b, 0), act.length, -1]);
+      // 3단계 기록 [11~]: 출항기 출전 인원 · 실제 효과가 켜진 시너지 수 · 비활성 구간(2명 이상인데 효과 없음) 시너지 수 · 빈 출전 자리(출전 가능한 대기 기물이 있는데) · 출전 장착 장비 수 · 주력 피해 몫(%) · 주력 생존 (전투 뒤 채움) · 레이첼 출전
+      const benchOk = run.units.filter((u) => !u.pos && !R.isRock(u) && R.canDeploy(run, u)).length;
+      const effAct = SYNERGIES.filter((s) => s.tiers.length > 1 && effTier(s.id, counts[s.id] || 0) > 0).length;
+      const inact = SYNERGIES.filter((s) => inactiveRange(s.id, counts[s.id] || 0)).length;
+      encRec.push([ph, ['battle', 'adversity', 'challenge', 'boss'].indexOf(ntype), run.step, run.hp, run.credits, rk.length ? Math.round((rk.reduce((a, b) => a + b, 0) / rk.length) * 100) / 100 : 0, Math.max(0, ...rk), dep.length, act.reduce((a, b) => a + b, 0), act.length, -1,
+        counts.VOYAGE || 0, effAct, inact, Math.max(0, Math.min(benchOk, R.deployCap(run) - dep.length)), dep.reduce((a, u) => a + u.items.filter((x) => x && !isLocked(x)).length, 0), -1, -1, dep.some((u) => u.defId === 'rachel') ? 1 : 0]);
+      for (const s of SYNERGIES) { const t = effTier(s.id, counts[s.id] || 0); for (let k = 1; k <= t; k++) synAt[`${s.id}:${k}`] ??= [n, ph]; }
+      if (ntype === 'boss') bossRec.push([ph, enc.enemies.find((e) => ENEMY_BY_ID[e.defId]?.tier === 'boss')?.defId || '?', -1]);
       // 장비 현황: [보관함 장비, 출전 기물 장착(고유 제외), 대기 기물 장착, 출전 조합 장비(고급 · 희귀 · 전설), 출전 단일 재료, 보관함 재료, 분리 용제]
       const g = (u: (typeof run.units)[number]) => u.items.filter((x) => x && !isLocked(x)) as string[];
       const depG = dep.flatMap(g), benG = run.units.filter((u) => !u.pos).flatMap(g);
@@ -368,13 +381,27 @@ function playRun(seed: number) {
     const hp0 = run.hp, cons0 = consUsed; consUsed = 0;
     tap = { pair: {}, evaded: new Map() };
     if (ntype === 'boss' && kbAt[ph] === undefined) kbAt[ph] = run.causal || 0; // 무휼: 페이즈 보스 첫 진입 직전 인과율
-    if (CH?.has('search')) CH.search(); // 제한 탐색 (분석 전용): 보이는 조우를 다른 난수로 미리 싸워 편성 · 배치 후보 비교
+    if (CH?.has('search') || CH?.has('search3')) CH.search(); // 제한 탐색 (분석 전용): 보이는 조우를 다른 난수로 미리 싸워 편성 · 배치 후보 비교
     const b = buildBattle(run, enc, false); // 실제 게임과 같은 경로 (포탑 · 무휼 자리, 포탑 장비 포함)
     b.runToEnd();
     const won = b.winner === 0;
     CH?.afterBattle(b, ntype);
     battles++;
-    if (INSTR) encRec[encRec.length - 1][10] = won ? 1 : 0;
+    if (INSTR) {
+      const er = encRec[encRec.length - 1];
+      er[10] = won ? 1 : 0;
+      if (ntype === 'boss') bossRec[bossRec.length - 1][2] = won ? 1 : 0;
+      // 주력 = 출전 기물 중 공명 등급이 가장 높은 기물 (투자가 가장 많이 간 기물): 이 전투의 피해 몫 · 생존
+      const core = dep.filter((u) => !R.isRock(u)).sort((a, z) => z.rank - a.rank || z.xp - a.xp)[0];
+      if (core) {
+        const al = b.units.filter((c) => c.side === 0);
+        const own = (c: CUnit) => (c.isSummon && c.owner ? c.owner : c);
+        const tot = al.reduce((x, c) => x + c.counters.dmg, 0) || 1;
+        const mine = al.filter((c) => own(c).src?.uid === core.uid);
+        er[16] = Math.round((mine.reduce((x, c) => x + c.counters.dmg, 0) / tot) * 100);
+        er[17] = mine.some((c) => !c.isSummon && c.alive) ? 1 : 0;
+      }
+    }
     { const k2 = ntype === 'boss' ? 0 : 2; bw[k2]++; if (won) bw[k2 + 1]++; }
     const T = tap; tap = null;
     if (POL_ADV && ntype === 'battle') lastNorm = measure(b);
@@ -496,12 +523,14 @@ function playRun(seed: number) {
     sp: run.rep?.sp || {}, crAt, end: run.credits, loan: run.loan || 0 };
   runs.push({ seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, causal: run.causal || 0, king: run.causal ? causalStage(run.causal) : 0, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems,
     cz: czAt, kb: kbAt, chrMax: run.chrTier || 0, bw, diff: run.diff || 0, heat: run.oathHeat || 0, despairs: run.despairs || [], hp: run.hp, eco, ...(DETAIL ? { det } : {}), ...(ADVSTUDY ? { adv: advRecs, nb: nbRecs, maxHp: run.maxHp } : {}),
-    ...(INSTR ? { ins: { bot: BOT, areas: [...CH_AREAS], enc: encRec, gear: gearRec, fail: INS!.fail, ev: INS!.ev, ms: Math.round(performance.now() - t0), dms: Math.round(dms), cms: Math.round(CH?.ms || 0), nb: battles, ...(CH?.xb ? { xb: CH.xb, xms: Math.round(CH.xms) } : {}), ...(CH?.stage2() ? { ch: CH.rec } : {}) } } : {}),
+    ...(INSTR ? { ins: { bot: BOT, areas: [...CH_AREAS], enc: encRec, gear: gearRec, fail: INS!.fail, ev: INS!.ev, ms: Math.round(performance.now() - t0), dms: Math.round(dms), cms: Math.round(CH?.ms || 0), nb: battles, synAt, boss: bossRec, ...(n >= 200 ? { capped: 1 } : {}), ...(CH?.xb ? { xb: CH.xb, xms: Math.round(CH.xms) } : {}), ...(CH?.stage2() ? { ch: CH.rec } : {}) } } : {}),
     ...(DLOG && CH ? { dlog: CH.log.list } : {}) });
 }
 
 for (let i = 0; i < COUNT; i++) {
-  playRun(START + i);
+  // instr: 실행 실패도 기록한다 (3단계 신뢰성 지표). instr 가 없으면 예전처럼 그대로 멈춘다
+  if (INSTR) { try { playRun(START + i); } catch (e) { runs.push({ seed: START + i, err: String((e as Error)?.stack || e).slice(0, 400), cleared: false, phase: -1 }); } }
+  else playRun(START + i);
   if ((i + 1) % 25 === 0) process.stderr.write(`${START}: ${i + 1}/${COUNT}\n`);
 }
 process.stdout.write(JSON.stringify({ agg, runs }));

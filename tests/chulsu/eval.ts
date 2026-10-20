@@ -3,13 +3,17 @@
 //   팀 가치 V = (Σ 초당 피해) × (Σ 유효 체력 + τ × Σ 초당 회복) × (1 + α × Σ 활성 시너지 단계) × 전열 보정
 // 공개 정보만 쓴다: 기물 · 장비 · 시너지 정의와 지금 런 상태 (숨은 보상 · 난수는 읽지 않는다).
 import { CFG } from '../../src/config';
-import { computeStats, synergyCounts, unitEffects, type Counts } from '../../src/engine/build';
+import { computeStats, memberships, synergyCounts, unitEffects, type Counts } from '../../src/engine/build';
 import { SYNERGIES, tierOf } from '../../src/data/synergies';
 import { UNIT_BY_ID } from '../../src/data/units';
 import { isLocked } from '../../src/data/items';
 import type { Effect } from '../../src/engine/effects';
 import type { Major, RunState, Stats, UnitState } from '../../src/types';
 import { PROFILE } from './profile.gen';
+import { SYNPROF } from './synprofile.gen';
+import { EVM, SYN_KIND, effTier, shrink } from './syn';
+import { causalStage } from '../../src/data/chungra';
+import type { SynergyId } from '../../src/types';
 
 /** 평가 상수 (튜닝 시드에서 정함, docs/BOT_CHULSU.md) */
 export const EV = {
@@ -18,6 +22,8 @@ export const EV = {
   noFront: 0.88, // 전열(근접 · 돌격가 · 앞줄 기물)이 하나도 없을 때
   skillShareMinor: 0.5, // 마이너 기물 피해 · 회복 중 성장 배율(minorGrow)을 받는 몫
   backExposure: 0.6, // 뒷줄 기물 유효 체력의 무게 (적 대부분이 가까운 대상 · 도발 수치를 따른다, docs/TARGETING.md)
+  shareCap: 1.5, // 3단계 syn3: 구성원형 잔차를 지금 팀 구성원 몫으로 늘일 때 상한 (실측 팀 몫의 배수)
+  multFloor: 0.3, // 3단계 syn3: 시너지 하나의 잔차 배율 하한
 };
 
 type Prof = { d: number; h: number; sp: number; sm: number; hm: number; P: number; T: number };
@@ -63,7 +69,7 @@ export interface UEval { off: number; ehp: number; heal: number; front: boolean 
 const mainPow = (defId: string, st: Stats) => { const w = UNIT_BY_ID[defId].weapon; return w.tactical ? st.tech : w.type === 'shoot' ? st.shoot : st.strike; };
 
 /** 기물 1명 평가 (counts = 지금 가정하는 출전 시너지 인원, tac = 팀의 지휘관 전술 위력 — 지휘관 기술은 능력치 대신 이 값을 쓴다, combat.ts P) */
-export function unitEval(run: RunState | null, u: UnitState, counts: Counts, tac = 0): UEval {
+export function unitEval(run: RunState | null, u: UnitState, counts: Counts, tac = 0, mine?: SynergyId[]): UEval {
   const d = UNIT_BY_ID[u.defId];
   const front = isFront(u);
   if (d.inert) return { off: 0, ehp: 0, heal: 0, front: false };
@@ -95,6 +101,12 @@ export function unitEval(run: RunState | null, u: UnitState, counts: Counts, tac
   const ehp = (st.maxHp / Math.max(0.05, 1 - armor / (armor + CFG.armorK)) / Math.max(0.4, 1 - Math.min(0.6, st.eva)) / Math.max(0.2, 1 - Math.min(0.8, red))) * hEhp;
   const wH = Math.max(0, Math.min(1, (p.hm * T0) / 5));
   const heal = p.h * (wH * (st.tech / T0) + 1 - wH) * Math.max(0.3, 1 + st.healEff - ref.healEff) * grow;
+  // 3단계 syn3: 단독 출항 고유 능력은 기물 실측(혼자 = 출항기 1명)에 들어 있다 → 출항기 인원이 1명이 아니면 뺀다 (5명 이상은 팀 잔차 VOYAGE:2 가 다시 더한다)
+  if (EVM.syn3 && (counts.VOYAGE || 0) !== 1 && (mine || memberships(u, run)).includes('VOYAGE')) {
+    const g = profAt(run, `VOYAGE:solo:${u.defId}`);
+    // 실측은 팀 비율 → 기물 자신의 비율로: 고유 능력 몫 = (e^o − 1) ÷ (실측 팀에서 그 기물의 몫)
+    if (g) { const ko = 1 / (1 + Math.max(0, Math.exp(g.o) - 1) / Math.max(0.05, g.so)), kd = 1 / (1 + Math.max(0, Math.exp(g.d) - 1) / Math.max(0.05, g.sd)); return { off: off * ko, ehp: ehp * (front ? 1 : EV.backExposure) * kd, heal: heal * kd, front }; }
+  }
   return { off, ehp: ehp * (front ? 1 : EV.backExposure), heal, front };
 }
 
@@ -106,23 +118,76 @@ function tacOf(units: UnitState[], run: RunState | null, counts: Counts): number
   return Math.max(8, CFG.tacBase + CFG.tacPerUnit * (units.filter((u) => !UNIT_BY_ID[u.defId].inert).length - 4) + CFG.tacPerCmd * (cmds.length - 1) + cmds.reduce((s, c) => s + CFG.tacPerMnd * mnd(c), 0));
 }
 
-export interface TeamEval { v: number; off: number; ehp: number; heal: number; tiers: number; per: Map<string, UEval>; counts: Counts; tac: number }
-/** 팀 가치. units = 출전한다고 가정한 기물 (교체 후보 평가 때는 가상의 묶음) */
-export function teamEval(run: RunState | null, units: UnitState[]): TeamEval {
+export interface TeamEval { v: number; off: number; ehp: number; heal: number; tiers: number; per: Map<string, UEval>; counts: Counts; tac: number; mo: number; md: number }
+/** 3단계 syn3: 실측 시너지 잔차 한 칸 (없는 단계는 아래 단계, 청라공국은 인과 단계 1 · 4 · 7 실측 사이를 보간) */
+type PQ = { o: number; d: number; so: number; sd: number };
+/** 실측 한 칸 (잡음 줄임). 3페이즈 · 6페이즈 두 시점(키@3 · 키@6)을 지금 페이즈로 보간한다 (3 이하 = @3, 6 이상 = @6) */
+export function profAt(run: RunState | null, k: string): PQ | null {
+  const one = (x: string) => { const p = SYNPROF[x]; return p ? { o: shrink(p.o, p.oe), d: shrink(p.d, p.de), so: p.so, sd: p.sd } : null; };
+  const a = one(`${k}@3`), b = one(`${k}@6`);
+  if (!a || !b) return a || b || one(k);
+  const w = Math.max(0, Math.min(1, ((run?.phase || 1) - 3) / 3));
+  return { o: a.o + (b.o - a.o) * w, d: a.d + (b.d - a.d) * w, so: a.so + (b.so - a.so) * w, sd: a.sd + (b.sd - a.sd) * w };
+}
+export function synProf(run: RunState | null, id: string, t: number): PQ | null {
+  const get = (k: string) => profAt(run, k);
+  for (let k = t; k >= 1; k--) {
+    if (id === 'CHR') {
+      const n = causalStage(run?.causal || 0), st = [1, 4, 7];
+      const ps = st.map((x) => get(`CHR:${k}:${x}`));
+      if (ps.some((p) => !p)) continue;
+      const i = n >= 4 ? 1 : 0, a = ps[i]!, b = ps[i + 1]!, w = Math.max(0, Math.min(1.5, (n - st[i]) / (st[i + 1] - st[i])));
+      return { o: a.o + (b.o - a.o) * w, d: a.d + (b.d - a.d) * w, so: a.so, sd: a.sd };
+    }
+    const p = get(`${id}:${k}`);
+    if (p) return p;
+  }
+  return null;
+}
+/** 3단계 syn3: 켜진 시너지마다 실측 잔차를 곱한다 [피해 배율, 버틴 피해 배율].
+ *  구성원형(SYN_KIND member): 훅 몫이 구성원 전력에 비례 → 배율 = 1 + (e^o − 1) × (지금 팀 구성원 몫 ÷ 실측 팀 구성원 몫, 상한 EV.shareCap). 팀형: e^o 그대로 */
+function synMult(run: RunState | null, units: UnitState[], counts: Counts, per: Map<string, UEval>, mems: Map<string, SynergyId[]>, skip?: string): [number, number] {
+  let mo = 1, md = 1, offT = 0, durT = 0;
+  for (const u of units) { const e = per.get(u.uid)!; offT += e.off; durT += e.ehp + EV.tau * e.heal; }
+  for (const s of SYNERGIES) {
+    if (s.tiers.length < 2 || s.id === skip) continue;
+    const t = effTier(s.id, counts[s.id] || 0);
+    if (!t || (s.id === 'VOYAGE' && t === 1)) continue; // 단독 출항은 기물 실측에 이미 있다
+    const p = synProf(run, s.id, t);
+    if (!p) continue;
+    if (SYN_KIND[s.id] === 'member') {
+      let o = 0, d = 0;
+      for (const u of units) if (mems.get(u.uid)!.includes(s.id)) { const e = per.get(u.uid)!; o += e.off; d += e.ehp + EV.tau * e.heal; }
+      const ko = Math.min(EV.shareCap, o / Math.max(1e-9, offT) / Math.max(0.05, p.so)), kd = Math.min(EV.shareCap, d / Math.max(1e-9, durT) / Math.max(0.05, p.sd));
+      mo *= Math.max(EV.multFloor, 1 + (Math.exp(p.o) - 1) * ko); md *= Math.max(EV.multFloor, 1 + (Math.exp(p.d) - 1) * kd);
+    } else { mo *= Math.exp(p.o); md *= Math.exp(p.d); }
+  }
+  return [mo, md];
+}
+/** 팀 가치. units = 출전한다고 가정한 기물 (교체 후보 평가 때는 가상의 묶음). skipSyn = 그 시너지 잔차만 뺀다 (실측 생성용) */
+export function teamEval(run: RunState | null, units: UnitState[], skipSyn?: string): TeamEval {
   const counts = synergyCounts(units, run);
   const tac = tacOf(units, run, counts);
   const per = new Map<string, UEval>();
+  const mems = new Map<string, SynergyId[]>();
   let off = 0, ehp = 0, heal = 0, front = false;
   for (const u of units) {
-    const e = unitEval(run, u, counts, tac);
+    const mine = memberships(u, run);
+    mems.set(u.uid, mine);
+    const e = unitEval(run, u, counts, tac, mine);
     per.set(u.uid, e);
     off += e.off; ehp += e.ehp; heal += e.heal;
     if (e.front) front = true;
   }
   let tiers = 0;
-  for (const s of SYNERGIES) { if (s.id === 'KING') continue; tiers += tierOf(s.id, counts[s.id] || 0); }
-  const v = off * (ehp + EV.tau * heal) * (1 + EV.alpha * tiers) * (front || !units.length ? 1 : EV.noFront);
-  return { v, off, ehp, heal, tiers, per, counts, tac };
+  for (const s of SYNERGIES) { if (s.id === 'KING') continue; tiers += EVM.syn3 ? effTier(s.id, counts[s.id] || 0) : tierOf(s.id, counts[s.id] || 0); }
+  const fr = front || !units.length ? 1 : EV.noFront;
+  if (EVM.syn3) {
+    const [mo, md] = units.length ? synMult(run, units, counts, per, mems, skipSyn) : [1, 1];
+    return { v: off * mo * (ehp + EV.tau * heal) * md * fr, off, ehp, heal, tiers, per, counts, tac, mo, md };
+  }
+  const v = off * (ehp + EV.tau * heal) * (1 + EV.alpha * tiers) * fr;
+  return { v, off, ehp, heal, tiers, per, counts, tac, mo: 1, md: 1 };
 }
 /** 팀 평가와 같은 조건(시너지 인원 · 지휘관 전술 위력)으로 기물 1명을 다시 평가 (가상 변경) */
 export const unitIn = (t: TeamEval, run: RunState | null, u: UnitState) => unitEval(run, u, t.counts, t.tac);

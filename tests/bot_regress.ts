@@ -10,6 +10,13 @@ import * as A from './chulsu/aug';
 import * as E from './chulsu/econ';
 import * as H from './chulsu/hard';
 import { lossCost, reserve } from './chulsu/econ';
+import { teamEval } from './chulsu/eval';
+import { effTier, setEvalMode } from './chulsu/syn';
+import { formation, thresholdCands } from './chulsu/form';
+import { tierOf } from '../src/data/synergies';
+import { deployed, synergyCounts } from '../src/engine/build';
+import { emblemId } from '../src/data/items';
+import type { UnitState } from '../src/types';
 
 declare const process: { exitCode: number; stdout: { write(s: string): void } };
 let fails = 0;
@@ -132,6 +139,80 @@ const u0 = (run: RunState) => run.units[0];
   ok(!H.seize(run, new Chulsu(run, { areas: new Set(['hard']) }).log) && run.inventory.includes('K_seize'), 'hard: 일반 전투에는 징수기 1개를 쓰지 않는다');
   run.node!.type = 'adversity';
   ok(H.seize(run, new Chulsu(run, { areas: new Set(['hard']) }).log) && !run.inventory.includes('K_seize'), 'hard: 역경에서는 희귀 장비를 단 적에게 쓴다');
+}
+
+
+// ── 9. 3단계 syn3: 시너지 인원별 평가 (효과가 없는 인원 구간은 가산 없음 · 인원을 늘리며 잃는 효과)
+{
+  const eff = [0, 1, 2, 3, 4, 5, 6].map((n) => effTier('VOYAGE', n)).join(), raw = [0, 1, 2, 3, 4, 5, 6].map((n) => tierOf('VOYAGE', n)).join();
+  ok(eff === '0,1,0,0,0,2,2' && raw === '0,1,1,1,1,2,2', `syn3: 출항기 효과 단계 ${eff} (엔진 tierOf ${raw}: 2~4명도 1단계로 센다)`);
+  const run = R.newRun(1, ['rachel', 'nadir', 'temur', 'phyllis', 'vivian', 'kyle', 'argon', 'mirinae', 'juseong', 'falcon'], 'waste', 0);
+  run.pending = [];
+  const U = (id: string) => run.units.find((u) => u.defId === id)!;
+  const pads = ['kyle', 'argon', 'mirinae', 'juseong', 'falcon'].map(U);
+  const voy = ['rachel', 'nadir', 'temur', 'phyllis', 'vivian'].map(U);
+  const team = (n: number) => [...voy.slice(0, n), ...pads.slice(0, 5 - Math.min(5, n))]; // 늘 5명: 출항기 n명 + 비구성원
+  const rachel = U('rachel').uid;
+  setEvalMode(false);
+  const s1 = teamEval(run, team(1)), s2 = teamEval(run, team(2));
+  ok(s2.per.get(rachel)!.off === s1.per.get(rachel)!.off, `2단계 V (결함 재현): 출항기 2명이 돼도 레이첼 피해 몫이 그대로 (${s1.per.get(rachel)!.off.toFixed(1)} → ${s2.per.get(rachel)!.off.toFixed(1)})`);
+  setEvalMode(true);
+  const t1 = teamEval(run, team(1)), t2 = teamEval(run, team(2));
+  ok(t2.per.get(rachel)!.off < t1.per.get(rachel)!.off * 0.95, `syn3: 출항기 2명이면 레이첼 단독 출항 고유 능력 몫을 잃는다 (${t1.per.get(rachel)!.off.toFixed(1)} → ${t2.per.get(rachel)!.off.toFixed(1)})`);
+  // 출항기 시너지 몫만 (teamEval 의 VOYAGE 잔차를 뺀 값과의 비): 2~4명 = 1, 5명 > 1
+  const voyTerm = (n: number) => { const a = teamEval(run, team(n)), b = teamEval(run, team(n), 'VOYAGE'); return (a.mo * a.md) / (b.mo * b.md); };
+  const vt = [2, 3, 4, 5].map(voyTerm);
+  ok(vt.slice(0, 3).every((x) => Math.abs(x - 1) < 1e-9) && vt[3] > 1.2, `syn3: 출항기 시너지 배율 2~4명 ${vt.slice(0, 3).map((x) => x.toFixed(2)).join('/')} (가산 없음) · 5명 ${vt[3].toFixed(2)}`);
+  // 시간 여행자 2 → 3 → 4명: 회피 회복 · 부활 몫으로 버틴 피해 배율이 오른다
+  const t = R.newRun(2, ['franze', 'sarma', 'aiden', 'rachel', 'kyle', 'argon'], 'waste', 0);
+  t.pending = [];
+  const T = (ids: string[]) => ids.map((id) => t.units.find((u) => u.defId === id)!);
+  const md = (ids: string[]) => { const a = teamEval(t, T(ids)), b = teamEval(t, T(ids), 'TIME'); return a.md / b.md; };
+  const m2 = md(['franze', 'sarma', 'kyle', 'argon']), m3 = md(['franze', 'sarma', 'aiden', 'kyle']), m4 = md(['franze', 'sarma', 'aiden', 'rachel']);
+  ok(m2 < m3 && m3 < m4, `syn3: 시간 여행자 2 · 3 · 4명 버틴 피해 배율 ${m2.toFixed(2)} < ${m3.toFixed(2)} < ${m4.toFixed(2)}`);
+  setEvalMode(false);
+}
+
+// ── 10. 3단계 multi: 임계점 다중 교체 — 출항기 2명 출전 + 3명 · 비구성원 1명 대기면 완성(5명) · 단독(1명) 후보를 만들고, 편성 뒤 2~4명 구간에 남지 않는다
+{
+  setEvalMode(true);
+  const run = R.newRun(1, ['rachel', 'nadir', 'kyle', 'argon', 'mirinae', 'temur', 'phyllis', 'vivian', 'falcon'], 'waste', 0);
+  run.pending = [];
+  run.fleet = 1; // 출전 5명
+  for (const u of run.units) u.pos = null;
+  ['rachel', 'nadir', 'kyle', 'argon', 'mirinae'].forEach((id, i) => { run.units.find((u) => u.defId === id)!.pos = { c: i, r: 0 }; });
+  const cur = deployed(run), bench = run.units.filter((u) => !u.pos);
+  const ev = (us: UnitState[]) => teamEval(run, us).v;
+  const cands = thresholdCands(run, cur, bench, ev);
+  const full = cands.find((c) => c.name.startsWith('완성 VOYAGE')), solo = cands.find((c) => c.name.startsWith('단독 VOYAGE'));
+  ok(!!full && (synergyCounts(full.team, run).VOYAGE || 0) === 5 && !!solo && (synergyCounts(solo.team, run).VOYAGE || 0) === 1, `multi: 후보 ${cands.map((c) => c.name).join(' / ')}`);
+  const c = new Chulsu(run, { areas: new Set(['form', 'multi', 'syn3']) });
+  formation(run, c.log, [], undefined, true);
+  const n = synergyCounts(deployed(run), run).VOYAGE || 0;
+  ok(n === 1 || n >= 5, `multi: 편성 뒤 출항기 ${n}명 (2~4명 구간이 아니다) · 출전 ${deployed(run).map((u) => u.defId).join(',')}`);
+  // 실제 소속: 출항기 문장을 단 기물도 구성원으로 센다
+  const r2 = R.newRun(1, ['rachel', 'nadir', 'kyle', 'argon', 'mirinae', 'temur', 'phyllis'], 'waste', 0);
+  r2.pending = []; r2.fleet = 1;
+  for (const u of r2.units) u.pos = null;
+  ['rachel', 'nadir', 'kyle', 'argon', 'mirinae'].forEach((id, i) => { r2.units.find((u) => u.defId === id)!.pos = { c: i, r: 0 }; });
+  r2.units.find((u) => u.defId === 'kyle')!.mod = emblemId('VOYAGE');
+  const cands2 = thresholdCands(r2, deployed(r2), r2.units.filter((u) => !u.pos), (us) => teamEval(r2, us).v);
+  const f2 = cands2.find((x) => x.name.startsWith('완성 VOYAGE'));
+  ok(!!f2 && f2.name.includes('3→5') && (synergyCounts(f2.team, r2).VOYAGE || 0) === 5, `multi: 문장 소속 포함 출항기 3명 → 대기 2명으로 완성 (${f2?.name})`);
+  setEvalMode(false);
+}
+
+// ── 11. 3단계 boss: 보스가 벽이면 결승전 특집(보스 체력 · 피해 +30%)을 고르지 않는다 (2단계 절망표만 쓰면 고른다)
+{
+  const pick = (risk?: number) => {
+    const run = R.newRun(5, ['falcon', 'gebek', 'argon', 'romani'], 'waste', 7);
+    const p = { t: 'despair' as const, options: ['D.final', 'D.rival', 'D.tariff'], rerolls: 0 };
+    run.pending = [p];
+    A.despair(run, p, new Chulsu(run, { areas: new Set(['aug']) }).log, new Chulsu(run, { areas: new Set(['aug']) }).rng, risk);
+    return (run.despairs || []).slice(-1)[0];
+  };
+  const old = pick(), neu = pick(A.bossLossRate(R.newRun(5, ['falcon'], 'waste', 7), []));
+  ok(old === 'D.final' && neu !== 'D.final', `boss: 결승전 특집 · 경쟁 항로 · 관세 중 2단계 ${old} → 3단계 ${neu} (보스 패배율 사전값 ${A.BOSS.prior.d7})`);
 }
 
 process.stdout.write(fails ? `\n${fails}개 실패\n` : '\n모두 통과\n');

@@ -16,6 +16,7 @@ export const ECON = {
   dangerK: 2.5, // 체력 ≤ 패배 비용 × dangerK: 남기지 않는다 (전부 전력으로)
   cautionK: 5, // 체력 ≤ 패배 비용 × cautionK: 절반만 남긴다
   bigFight: 0.5, // 편성 화면의 조우가 역경 · 보스 · 도전이면 남길 크레딧 × 이 값
+  bossFight: 0.5, // 3단계 boss: 편성 화면의 조우가 보스면 남길 크레딧 × 이 값. 0 (보스 전에 전부 투자)은 조정 시드에서 고난 P1 보스 39 → 48% 였지만 모험 클리어 −12.0 ± 10.5%p (이자 손실) 라 2단계와 같은 0.5 로 둔다 (docs/BOT_CHULSU.md 3단계 4절)
   shopVsXp: 1, // 상점 물건은 '크레딧당 상승'이 공명도 구매의 이 배 이상이어야 산다
   dipK: 1.5, // 크레딧당 상승이 공명도 구매의 이 배 이상인 행동(함대 확장 · 좋은 물건)은 남길 크레딧 아래로 써도 된다 (이자 손실 ≈ 크레딧당 0.5)
   eventSamples: 3, // 사건 선택지마다 복제 상태에서 굴리는 횟수 (다른 난수)
@@ -35,14 +36,14 @@ export function lossCost(run: RunState): number {
 }
 const bigNode = (t: NodeType | undefined) => t === 'adversity' || t === 'boss' || t === 'challenge';
 /** 남길 크레딧: 이자 구간 · 체력 · 다음 조우 · 마지막 페이즈 */
-export function reserve(run: RunState): number {
+export function reserve(run: RunState, boss = false): number {
   if (run.phase >= CFG.victoryPhase) return 0; // 마지막 페이즈: 이자보다 지금 전력
   const ii = R.interestInfo(run);
   let r = ii.cap * CFG.interestPer * ECON.reserveFrac * (ii.myopic ? 0.6 : 1);
   const L = lossCost(run);
   if (run.hp <= L * ECON.dangerK) return 0;
   if (run.hp <= L * ECON.cautionK) r *= 0.5;
-  if (bigNode(run.node?.type)) r *= ECON.bigFight;
+  if (bigNode(run.node?.type)) r *= boss && run.node?.type === 'boss' ? ECON.bossFight : ECON.bigFight;
   return Math.round(r);
 }
 
@@ -74,9 +75,9 @@ function fleetGain(run: RunState): number {
 }
 
 /** 함대 확장 · 공명도 구매: 남길 크레딧 위의 돈을 크레딧당 상승이 큰 쪽부터 */
-export function spend(run: RunState, log: DLog) {
+export function spend(run: RunState, log: DLog, boss = false) {
   for (let g = 0; g < 80; g++) {
-    const R0 = reserve(run);
+    const R0 = reserve(run, boss);
     const opts: { k: 'xp' | 'fleet'; cost: number; g: number; u?: UnitState }[] = [];
     const fc = R.fleetCost(run);
     if (fc !== null && run.units.length > R.deployCap(run)) { const fg = fleetGain(run); if (fg > 0) opts.push({ k: 'fleet', cost: fc, g: fg / fc }); }
