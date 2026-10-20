@@ -752,6 +752,8 @@ export const SYNERGIES: SynDef[] = [
 ];
 
 export const SYN_BY_ID = Object.fromEntries(SYNERGIES.map((s) => [s.id, s])) as Record<SynergyId, SynDef>;
+/** 일반 시너지 표 밖의 시너지(캠페인 전용, data/campaign.ts)를 단계 계산 · 이름 조회용으로만 등록 */
+export function registerSyns(defs: SynDef[]) { for (const d of defs) SYN_BY_ID[d.id] = d; }
 
 /** 활성 단계 (0 = 비활성, 1 = 첫 단계 …) */
 export function tierOf(id: SynergyId, count: number): number {

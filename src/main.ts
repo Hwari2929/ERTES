@@ -25,7 +25,7 @@ import * as BAR from './ui/bar';
 import * as ACH from './ui/achieve';
 import * as TFX from './ui/themefx';
 import {
-  activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, chrTier, deployed, engTier, kingOn, kingState, enemyBaseMoveSpd, enemyCell, layout, memberships, PAD, synergyCounts, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
+  activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, chrTier, deployed, engTier, kingOn, kingState, enemyBaseMoveSpd, enemyCell, layout, memberships, PAD, synergyCounts, synList, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
 import { Battle, controlNames, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME, fleeShort, zocHoldFormula, zocHoldOf, zocRule, zocShort } from './engine/combat';
 import * as R from './engine/run';
@@ -35,6 +35,9 @@ import { Rng } from './rng';
 import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from './types';
 import { encounterMatchup, fieldMatchup, matchupShort, schoolWarnings } from './ui/matchup';
 import { computeStats, makeSummons, type SummonMade } from './engine/build';
+import { newCampaignRun } from './engine/campaignrun';
+import { campBoss } from './engine/campaign';
+import { chapterOf as campChapter, SETTLE as CAMP_SETTLE, TIME_COST as CAMP_TIME_COST } from './data/campaign';
 import { gradeCards, greatFlash } from './ui/revealfx';
 import { BattleView, DEATH_STYLES, fmt, FX, FX_DEFAULT, isDeathStyle, previewDeath, type DeathStyle, type MotionPreset, type UltCut } from './ui/battleview';
 import { ULTS } from './data/ults';
@@ -212,7 +215,7 @@ function persist() {
     const back = R.syncTurrets(app.run);
     if (back.length) toast(turretCount(app.run) ? `포탑 수 · 장비 칸이 줄어 장비 · 개조부품 ${back.length}개를 보관함으로 돌려보냈습니다.` : `엔지니어 시너지가 꺼져 포탑을 회수했습니다. 장비 · 개조부품 ${back.length}개는 보관함으로.`);
   }
-  if (app.run && !app.run.over) saveRun(app.run, app.run.tutorial ? TUT_SLOT : 'auto'); // 튜토리얼 런은 이어하기(자동 저장)를 덮지 않게 따로
+  if (app.run && !app.run.over) saveRun(app.run, app.run.tutorial ? TUT_SLOT : app.run.campaign ? CAMP_SLOT : 'auto'); // 튜토리얼 · 캠페인 런은 이어하기(자동 저장)를 덮지 않게 따로
 }
 
 // ───────────────────────── 공용 조각
@@ -330,7 +333,7 @@ function topbar() {
   ].filter(Boolean);
   // 활성 시너지 아이콘 줄 (모바일 전용, 아이콘만)
   const counts = synergyCounts(deployed(r), r);
-  const syns = SYNERGIES.filter((s) => (counts[s.id] || 0) > 0).sort((a, b) => tierOf(b.id, counts[b.id] || 0) - tierOf(a.id, counts[a.id] || 0) || (counts[b.id] || 0) - (counts[a.id] || 0));
+  const syns = synList(r).filter((s) => (counts[s.id] || 0) > 0).sort((a, b) => tierOf(b.id, counts[b.id] || 0) - tierOf(a.id, counts[a.id] || 0) || (counts[b.id] || 0) - (counts[a.id] || 0));
   const it = interestLines(r);
   return `<header class="top">
     <div class="brand">ERRANTEs</div>
@@ -405,8 +408,8 @@ let synMore = false;
 function synergyPanel(run: RunState) {
   const counts = synergyCounts(deployed(run), run);
   const benchN: Record<string, number> = {}; // 시너지별 대기 기물 수
-  for (const u of run.units) if (!u.pos) for (const sid of memberships(u)) benchN[sid] = (benchN[sid] || 0) + 1;
-  const list = SYNERGIES.filter((s) => counts[s.id] || benchN[s.id])
+  for (const u of run.units) if (!u.pos) for (const sid of memberships(u, run)) benchN[sid] = (benchN[sid] || 0) + 1;
+  const list = synList(run).filter((s) => counts[s.id] || benchN[s.id])
     .sort((a, b) => tierOf(b.id, counts[b.id] || 0) - tierOf(a.id, counts[a.id] || 0) || (counts[b.id] || 0) - (counts[a.id] || 0));
   if (!list.length) return `<div class="muted small">출전한 기물이 없습니다.</div>`;
   return list.map((s) => synToken(s.id, counts[s.id] || 0, counts[s.id] ? '' : ' benchonly')).join('');
@@ -438,7 +441,7 @@ function titleScreen() {
       ${slots.length ? `<div class="slots">${slots.map((s) => `<button class="btn ghost" data-a="load" data-v="${s.slot}">${SLOT_NAME[s.slot]} · 페이즈 ${s.phase} · 기물 ${s.units}</button>`).join('')}</div>` : ''}
       ${m.runs ? `<p class="ts-meta"><span>의뢰 <b>${m.runs}</b></span><span>성공 <b>${m.clears}</b></span><span>위험 등급 <b>${m.maxDiff}</b></span></p>` : ''}
       </div>
-      <button class="btn ts-btn ts-campaign" data-a="campaign"><span class="ts-cp-kick">CAMPAIGN</span><b>캠페인</b><small>에란테스 용병단의 이야기를 따라가는 의뢰</small><span class="ts-soon">준비 중</span></button>
+      ${(() => { const cs = loadRun(CAMP_SLOT); const go = cs?.campaign && !cs.over; return `<button class="btn ts-btn ts-campaign" data-a="campaign"><span class="ts-cp-kick">CAMPAIGN · 회수 계약</span><b>캠페인</b><small>${go ? `이어서 · ${esc(campChapter(cs!).name)} ${Math.min(cs!.step + 1, cs!.map.length)}/${cs!.map.length} · 계약 시간 ${cs!.campaign!.time}` : '베르타–산노디스 물류망 · 라르스의 의뢰 · 1장 TS-7 환적 정거장'}</small><span class="ts-soon">검증판 · 1장</span></button>`; })()}
       </div>
     </div>
     <p class="ts-foot">싱글 PvE · 오프라인 플레이 · 진행은 이 브라우저에 자동 저장됩니다.</p>
@@ -985,7 +988,7 @@ function mapScreen(run: RunState) {
       <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
     </aside>
     <section class="map-main${RM.routeMapOn(run) ? ' has-rmap' : ''}">
-      <div class="screen-head map-head"><h1>페이즈 ${p}</h1>${bossGoal(run)}</div>
+      <div class="screen-head map-head"><h1>${run.campaign ? esc(campChapter(run).name.split(' · ')[0]) : `페이즈 ${p}`}</h1>${run.campaign ? campTimeChip(run) : ''}${bossGoal(run)}</div>
       ${RM.routeMapOn(run) ? '<div class="rmap-host"></div>' : ''}<div class="tl"><ol class="tl-track">${track}</ol></div>
       <p class="map-scale" title="이번 페이즈 적 강도 (페이즈마다 누적)">${scale}</p>
       ${mapAhead(run, pick, enter)}
@@ -1019,6 +1022,13 @@ function mapScreen(run: RunState) {
     </aside>
     ${app.sel?.k === 'unit' ? statPopHtml(run) : ''}
   </main>`;
+}
+/** 캠페인 지도 머리: 계약 잔여 시간 (게이지 + 값) · 정산 구간 */
+function campTimeChip(run: RunState) {
+  const c = run.campaign!, ch = campChapter(run), st = CAMP_SETTLE[ch.ch] || [];
+  const next = st.find((s) => c.time >= s.from);
+  const tip = `계약 잔여 시간 ${c.time} / ${c.timeMax} — 고른 행동에만 든다. 장 정산: ${st.filter((s) => s.cr).map((s) => `${s.from} 이상 +${s.cr}`).join(' · ')}`;
+  return `<span class="camp-time${c.time < 8 ? ' low' : ''}" title="${esc(tip)}">${lineIcon('a.cd', 'li')}<span>계약 시간</span><b>${c.time}</b><small>/${c.timeMax}</small>${next?.cr ? `<em>정산 +${next.cr}</em>` : ''}</span>`;
 }
 /** 지도 환경 탭: 청라공국 · 인과율 (인과율이 있거나 청라가 켜져 있을 때) */
 function kingEnv(run: RunState) {
@@ -1067,7 +1077,7 @@ function musterModal(run: RunState) {
   const owned = new Set(run.units.flatMap((u) => [...UNIT_BY_ID[u.defId].factions, ...UNIT_BY_ID[u.defId].traits]));
   const group = (kind: string, title: string) => `<h3>${title}</h3><div class="ms-grid">${SYNERGIES.filter((s) => s.kind === kind && ok.includes(s.id) && R.musterPool(run, [s.id]).length).map((s) => {
     const on = sel.includes(s.id), n = R.musterPool(run, [s.id]).length;
-    return `<button class="ms-syn${on ? ' on' : ''}${owned.has(s.id) ? ' own' : ''}" style="--c:${s.color}" data-a="muster-tog" data-v="${s.id}" aria-pressed="${on}" title="${esc(s.name)}" aria-label="${esc(s.name)} ${n}명" ${!on && sel.length >= CFG.musterPicks ? 'disabled' : ''}>
+    return `<button class="ms-syn${on ? ' on' : ''}${owned.has(s.id as never) ? ' own' : ''}" style="--c:${s.color}" data-a="muster-tog" data-v="${s.id}" aria-pressed="${on}" title="${esc(s.name)}" aria-label="${esc(s.name)} ${n}명" ${!on && sel.length >= CFG.musterPicks ? 'disabled' : ''}>
       <span class="syn-dia"><i>${synIcon(s.id) || s.icon}</i></span><span class="ms-n">${n}</span></button>`;
   }).join('')}</div>`;
   const full = sel.length === CFG.musterPicks;
@@ -1099,7 +1109,7 @@ function nodeHint(o: NodeType) {
   } as Record<NodeType, string>)[o] || '';
 }
 /** 이번 페이즈 보스: 전장의 보스는 페이즈마다 순환한다 (조우 생성과 같은 규칙) */
-const phaseBoss = (run: RunState): EnemyDef | undefined => { const f = fieldOf(run.field); return ENEMY_BY_ID[f.bosses[(run.phase - 1) % f.bosses.length]]; };
+const phaseBoss = (run: RunState): EnemyDef | undefined => { if (run.campaign) return ENEMY_BY_ID[campBoss(run)]; const f = fieldOf(run.field); return ENEMY_BY_ID[f.bosses[(run.phase - 1) % f.bosses.length]]; };
 const FIGHT_NODES: NodeType[] = ['battle', 'adversity', 'challenge', 'boss'];
 /** 지도: 보스 칸까지 남은 전투 수 (지금 칸 포함, 보스 제외) · 남은 칸 · 전환 칸 수. 실제 지도(run.map)와 이미 고른 노드에서 센다 */
 function toBoss(run: RunState) {
@@ -1132,11 +1142,13 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   // 모디파이어 (현재 칸만, 둥근 칸 · 아이콘 + 값, 설명은 툴팁): 규칙 수치만 — 적 강화 배율 · 보상 배율 (설정값) · 위험 등급 적 증원 (해골 +n) · 정예 확정 (역경 · 도전). 적 개체(초상 · 이름)는 넣지 않는다
   const mod = (icon: string, val: string, title: string, cls = '') => `<span class="ah-md ${cls}" title="${esc(title)}">${icon}${val ? `<b>${val}</b>` : ''}</span>`;
   const mods = (o: NodeType) => {
-    if (!FIGHT_NODES.includes(o)) return '';
-    const m: string[] = [];
+    const tc = run.campaign ? CAMP_TIME_COST[o] || 0 : 0; // 캠페인: 이 칸에 드는 계약 시간
+    const tChip = tc ? mod(lineIcon('a.cd', 'li'), `-${tc}`, `계약 시간 -${tc} (남은 ${run.campaign!.time} → ${run.campaign!.time - tc})`, 'bad') : '';
+    if (!FIGHT_NODES.includes(o)) return tChip ? `<div class="ah-mods" aria-label="모디파이어"><span class="ah-sec">계약 시간</span>${tChip}</div>` : '';
+    const m: string[] = tChip ? [tChip] : [];
     const ph = o === 'challenge' ? run.phase + 1 : run.phase;
     if (o === 'adversity' || o === 'challenge') m.push(mod(lineIcon('m.up', 'li'), `×${CFG.adversityMult}`, `적 강화: 체력 ×${CFG.adversityMult} · 피해 ×${+encDmgMult(CFG.adversityMult).toFixed(2)}`, 'bad'));
-    const add = diffAddCount(run.diff, ph) + OATH.hordeAdd(run); // 위험 등급 증원 + 군세의 서약
+    const add = run.campaign ? 0 : diffAddCount(run.diff, ph) + OATH.hordeAdd(run); // 위험 등급 증원 + 군세의 서약 (캠페인은 없음)
     if (add > 0) m.push(mod(lineIcon('m.skull', 'li'), `+${add}`, `적 수량 +${add} — ${[diffAddRule(run.diff) && `위험 등급 ${run.diff} 적 증원: ${diffAddRule(run.diff)}`, OATH.hordeAdd(run) && `군세의 서약 +${OATH.hordeAdd(run)}`].filter(Boolean).join(' · ')}`, 'bad'));
     if ((o === 'adversity' || o === 'challenge') && f.elite) m.push(mod(lineIcon('m.elite', 'li'), '정예', `정예 확정: ${NODE_NAME[o]} 전투에는 이 전장의 정예가 반드시 나온다`, 'bad tx'));
     if (o === 'adversity') m.push(mod(lineIcon('m.gift', 'li'), `×${CFG.adversityReward}`, `보상 강화: 승리 크레딧 · 공명도 ×${CFG.adversityReward}`, 'good'));
@@ -3994,6 +4006,7 @@ function codexScreen() {
 // 진행 위치는 run.tutorial.i (TUTORIAL_FLOW). 장면은 지도에서, 안내는 각 화면 조건(TIP_GATE)이 맞으면 띄운다.
 // render() 끝과 0.3초 간격으로 tutSync() 를 불러 조건을 확인한다 (전투 시간 · 미연시 진행처럼 다시 그리지 않고 바뀌는 상태 때문)
 const TUT_SLOT = 'tut';
+const CAMP_SLOT = 'campaign'; // 캠페인 런 저장 칸 (일반 이어하기와 따로)
 /** 저장된 튜토리얼 런 (타이틀 버튼: 이어서) */
 function listTutSave(): { step: number } | null {
   const r = loadRun(TUT_SLOT);
@@ -4332,7 +4345,14 @@ function act(a: string, v: string) {
       if (!FIELDS.some((f) => f.id === app.introField)) app.introField = FIELDS[Math.floor(Math.random() * FIELDS.length)].id;
       break;
     case 'intro-field': if (app.introCustom && FIELDS.some((f) => f.id === v)) app.introField = v; break;
-    case 'campaign': toast('캠페인은 준비 중입니다.'); return;
+    case 'campaign': { // 캠페인 「회수 계약」: 저장이 있으면 이어서, 없으면 1장부터 (검증판 · 쉬움 고정)
+      if (app.view) { app.view.destroy(); app.view = null; }
+      const saved = loadRun(CAMP_SLOT);
+      app.tutAsk = false; app.menu = null; app.summary = null; app.sel = null; app.bigUnit = null; app.abilPop = null; app.mapTab = 0;
+      if (saved?.campaign && !saved.over) { app.run = saved; goPrepOrMap(); }
+      else { app.run = newCampaignRun(3); app.screen = 'map'; persist(); }
+      break;
+    }
     case 'intro-back': app.screen = 'intro'; app.introDone = true; break;
     case 'tutorial': case 'tutorial-restart': { // 튜토리얼: 저장이 있으면 이어서, 아니면 새로
       const saved = a === 'tutorial' ? loadRun(TUT_SLOT) : null;

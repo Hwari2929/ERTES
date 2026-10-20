@@ -57,7 +57,9 @@ export interface Weapon {
   /** 위력 대신 전술 위력을 쓴다 (아문센 등) */
   tactical?: boolean;
 }
-export type SynergyId = FactionId | TraitId;
+/** 캠페인 전용 시너지 (data/campaign.ts) — 캠페인 런에서만 집계되고, 일반 런의 시너지 표와 섞이지 않는다 */
+export type CampSynId = 'CP_VOY' | 'CP_PET' | 'CP_LAZY' | 'CP_CAMP' | 'CP_BNC' | 'CP_AGIT';
+export type SynergyId = FactionId | TraitId | CampSynId;
 
 /** 마이너 스탯 (전투에 실제 적용되는 값). 확률/비율은 0~1 소수. */
 export interface Stats {
@@ -161,6 +163,8 @@ export interface RunState {
   engTier?: number;
   /** 튜토리얼 런: 진행 순서(TUTORIAL_FLOW) 위치. 있으면 고정 항로 · 고정 조우 · 지는 일 없음 */
   tutorial?: { i: number };
+  /** 캠페인 런 (data/campaign.ts): 장 · 계약 잔여 시간. 있으면 시너지 · 출전 인원 · 항로 · 조우를 캠페인 규칙으로 */
+  campaign?: { id: string; ch: number; time: number; timeMax: number; spent: number };
   seed: number;
   rng: number;
   phase: number;

@@ -541,6 +541,13 @@ button { font: inherit; color: inherit; }
 .ts-campaign small { color: var(--c-text-2); }
 .ts-campaign .ts-soon { position: absolute; top: 14px; right: 14px; padding: 2px 8px; border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--fs-xs); color: var(--c-text-2); }
 @media (max-width: 760px) { .ts-body { grid-template-columns: minmax(0, 1fr); width: min(440px, 100%); } .ts-body .ts-campaign { min-height: 120px; } }
+/* 캠페인 지도 머리: 계약 잔여 시간 */
+.camp-time { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--panel); font-size: var(--fs-sm); color: var(--c-text-2); }
+.camp-time .li { width: 14px; height: 14px; color: var(--c-select); }
+.camp-time b { font: 700 var(--fs-md) var(--f-mono); color: var(--c-text); }
+.camp-time small { font-family: var(--f-mono); }
+.camp-time em { font-style: normal; color: var(--c-good); font-size: var(--fs-xs); }
+.camp-time.low b { color: var(--c-bad); }
 /* 지정 의뢰: 전장 고르기 */
 .in-pick { display: flex; flex-wrap: wrap; gap: 6px; }
 .in-pick .in-fp { display: inline-flex; align-items: center; gap: 6px; border-color: color-mix(in srgb, var(--c) 45%, var(--line)); }

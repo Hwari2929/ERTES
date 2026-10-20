@@ -26,6 +26,7 @@ import { causalGain, causalLeft, causalStage, KING_GEAR, KING_GEAR_NAME } from '
 import { EMB } from '../data/emblems';
 import type { Battle } from './combat';
 import { newRec, recBattle, recReroll, recSpend } from './report';
+import { campAfterBattle, campBoss, campDeploy, campEnter, campFoeCount } from './campaign';
 
 export const SAVE_VERSION = 6; // 6: 전술 유형 개편 (개별 증강 폐지)
 
@@ -228,7 +229,7 @@ export const canDeploy = (run: RunState, u: UnitState) => u.lock !== run.phase;
 
 /** 함대 확장 횟수 (구 세이브는 예전 페이즈 기준 출전 인원으로 환산) */
 const fleetOf = (run: RunState) => run.fleet ?? 0; // 함대 확장 구입 횟수 (구입 전에는 기본 인원 그대로)
-export const deployCap = (run: RunState) => CFG.deployBase + fleetOf(run) + (hasGlobal(run, 'G.squad') ? 1 : 0);
+export const deployCap = (run: RunState) => run.campaign ? campDeploy(run) : CFG.deployBase + fleetOf(run) + (hasGlobal(run, 'G.squad') ? 1 : 0); // 캠페인: 장마다 정한 인원
 
 // ───────────────────────── 함선 관리: 함대 확장 · 지정 소집
 /** 다음 함대 확장 비용 (최대면 null) */
@@ -327,6 +328,7 @@ export function battleRewardPreview(run: RunState, node: NodeType) {
 
 export function enterNode(run: RunState, type: NodeType) {
   run.picked[run.step] = type;
+  const campEv = run.campaign ? campEnter(run, type).event : undefined; // 캠페인: 계약 시간 차감 · 장별 고정 사건
   if (type !== 'battle' && type !== 'adversity' && type !== 'boss') run.fame += tierNow(run, 'STAR');
   if (type === 'pilgrim') {
     run.pending.push(genPilgrim(run));
@@ -341,7 +343,7 @@ export function enterNode(run: RunState, type: NodeType) {
   }
   if (type === 'invest') { run.node = { type, invest: genInvest(run) }; return; }
   if (type === 'event') {
-    const id = pickEvent(run);
+    const id = campEv || pickEvent(run);
     run.seenEvents.push(id);
     run.pending.push({ t: 'event', id, sub: pickSub(run, id) });
     advance(run);
@@ -529,6 +531,8 @@ export function useCheck(run: RunState, kIdx: number, tg: UseTarget): string | n
   if (c.target === 'run') {
     if (tg.k !== 'run') return WRONG_TARGET;
     if ((id === 'K_bread' || id === 'K_bread_stale') && run.hp >= run.maxHp) return '플레이어 체력이 가득 찼습니다';
+    if (id === 'K_cp_tape') return '격리 화물 사건의 선택지에서 씁니다';
+    if (id === 'K_cp_purge' && run.flags.includes('cp_purge')) return '이미 뿌려 두었습니다 (다음 전투에 적용)';
     return null;
   }
   if (c.target === 'foe') {
@@ -573,6 +577,13 @@ export function useConsumable(run: RunState, kIdx: number, tg: UseTarget): { ok:
   const id = run.inventory[kIdx];
   const name = CONSUMABLES[id].name;
   let msg = '';
+  if (id === 'K_cp_purge' || id === 'K_cp_note') { // 캠페인 소모품: 정화 분무기 (다음 전투 화학 피해 -40%) · 선지급 어음 (지금 +15, 장 정산 -20)
+    run.inventory.splice(kIdx, 1);
+    if (id === 'K_cp_purge') { run.flags.push('cp_purge'); msg = '다음 전투 동안 아군이 받는 화학 피해 -40%'; }
+    else { run.credits += 15; run.flags.push('cp_note'); msg = '크레딧 +15 (장 정산 때 -20)'; }
+    log(run, `${name}: ${msg}`);
+    return { ok: true, msg };
+  }
   if (id === 'K_bread' || id === 'K_bread_stale') { // 갓 구운 빵 · 식은 빵: 플레이어 체력 회복 (위험 등급별, 식은 빵은 덜)
     const h = Math.min(run.maxHp - run.hp, breadHeal(run.diff, id === 'K_bread_stale'));
     run.hp += h;
@@ -669,6 +680,7 @@ export function branchOptions(run: RunState): NodeType[] {
   // 속보 (명성 교환)는 은하 대스타가 활성화되어 있을 때만. 보스 직전 분기점이면 곧 속보 노드가 자동으로 붙으므로 분기점의 속보는 빼서 중복을 막는다
   const star = tierNow(run, 'STAR') > 0;
   const preBoss = !!run.map[run.step + 1]?.includes('boss');
+  if (run.campaign) return ['shop', 'supply']; // 캠페인: 고정 로스터 (모집 없음)
   const o: NodeType[] = star && !preBoss ? ['shop', 'supply', 'news', 'recruit'] : ['shop', 'supply', 'recruit'];
   if (tierNow(run, 'HOI') && !used.includes('invest')) o.push('invest');
   if (hasDivine(run) && !used.includes('pilgrim')) o.push('pilgrim');
@@ -786,19 +798,20 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
     const ids: string[] = [];
     const pool = f.pool.filter((id) => ENEMY_BY_ID[id].minPhase <= p);
     if (type === 'boss') {
-      const boss = f.bosses[(p - 1) % f.bosses.length];
+      const boss = run.campaign ? campBoss(run) : f.bosses[(p - 1) % f.bosses.length];
       ids.push(boss, ...(ENEMY_BY_ID[boss].escort || []));
-      const extra = Math.max(0, Math.min(4, p - 1)); // 보스 호위 추가 인원 (최대 4)
+      const extra = run.campaign ? 0 : Math.max(0, Math.min(4, p - 1)); // 보스 호위 추가 인원 (최대 4) · 캠페인은 장 보스 혼자 (포자를 쏟아 낸다)
       for (let i = 0; i < extra + (diffHas(run.diff, 4) ? 1 : 0) + oathV(run, 'titan', 'guard'); i++) ids.push(r.pick(pool)); // 거두의 서약: 호위 +
     } else {
       const late = run.step >= 5 ? 1 : 0; // 페이즈 후반 (항로 회의 이후 두 번째 전투부터)
-      const count = Math.min(rows * n - 2, 2 + p + late + (f.extraEnemies || 0) + (type === 'adversity' && diffHas(run.diff, 5) ? 1 : 0));
-      if (type === 'adversity' || ((p >= 2 || oathLv(run, 'elite')) && r.chance((diffHas(run.diff, 5) ? 0.6 : 0.3) + oathV(run, 'elite', 'chance')))) ids.push(f.elite); // 정예의 서약: 1페이즈부터 · 확률 +
+      const count = run.campaign ? campFoeCount(run) : Math.min(rows * n - 2, 2 + p + late + (f.extraEnemies || 0) + (type === 'adversity' && diffHas(run.diff, 5) ? 1 : 0));
+      if (run.campaign && run.flags.includes('cp_sample')) { ids.push('sw_spore', 'sw_spore'); run.flags = run.flags.filter((x) => x !== 'cp_sample'); } // 캠페인 격리 화물: 빠져나간 군체 표본
+      if (run.campaign) { /* 캠페인 1장: 정예 없음 */ } else if (type === 'adversity' || ((p >= 2 || oathLv(run, 'elite')) && r.chance((diffHas(run.diff, 5) ? 0.6 : 0.3) + oathV(run, 'elite', 'chance')))) ids.push(f.elite); // 정예의 서약: 1페이즈부터 · 확률 +
       while (ids.length < count) ids.push(r.pick(pool));
     }
     // 위험 등급 적 증원 (모험 · 고난, CFG.diffAdd): 보스전 포함 모든 전투. 이 조우에 이미 나온 일반 적(정예 · 보스 · 장애물 제외) 중에서 복제하고,
     // 없으면 전장 풀에서. 보드 칸(줄 × 폭 - 2)이 모자라면 들어가는 만큼만
-    const add = Math.max(0, Math.min(diffAddCount(run.diff, p) + oathV(run, 'horde', 'add'), rows * n - 2 - ids.length)); // + 군세의 서약
+    const add = run.campaign ? 0 : Math.max(0, Math.min(diffAddCount(run.diff, p) + oathV(run, 'horde', 'add'), rows * n - 2 - ids.length)); // + 군세의 서약 · 캠페인은 장별 인원 설계를 따른다
     if (add) {
       const same = ids.filter((id) => ENEMY_BY_ID[id].tier === 'minion' && !ENEMY_BY_ID[id].inert);
       for (let i = 0; i < add; i++) ids.push(r.pick(same.length ? same : pool));
@@ -843,7 +856,7 @@ export interface BattleSummary {
 }
 
 /** 이번 페이즈 보스가 '이겨야 넘어가는' 보스인지: 의뢰의 마지막 보스 (victoryPhase 이상 · 아직 의뢰 성공 전)만. 그 밖의 보스는 져도 다음 페이즈로 (무한 모드 보스 포함) */
-export const bossMustWin = (run: RunState) => !run.cleared && run.phase >= CFG.victoryPhase;
+export const bossMustWin = (run: RunState) => !run.cleared && (!!run.campaign || run.phase >= CFG.victoryPhase); // 캠페인: 장 보스는 이겨야 넘어간다
 
 export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   const staled = ageBread(run); // 갓 구운 빵: 이번 전투로 식는 것 (이번 전투에서 얻는 빵은 세지 않도록 먼저)
@@ -984,7 +997,9 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
       lines.push(`페이즈 ${p}의 남은 노드를 건너뛰고 다음 페이즈로 넘어갑니다.`);
     }
   }
+  if (run.campaign) campAfterBattle(run, b, won, type, counts, lines); // 계약 정산 · 장 정산 (보스 승리 = 장 끝)
   if (run.hp <= 0) { run.hp = 0; run.over = true; gameOver = true; }
+  else if (run.over) gameOver = true; // 캠페인 장 끝 (검증판)
   else if (won || type !== 'boss' || !bossMustWin(run)) advance(run); // 보스: 져도 다음 페이즈로 (의뢰의 마지막 보스만 다시)
   else run.node = { type: 'boss', enc: genEncounter(run, 'boss') };
   const gained = run.inventory.slice();

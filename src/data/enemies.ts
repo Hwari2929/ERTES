@@ -42,6 +42,8 @@ export interface EnemyDef {
   inert?: boolean;
   /** 그 밖의 전투 훅 (받는 피해 · 주는 피해 배율 등) */
   hooks?: Hooks;
+  /** 다른 적의 초상화를 빌려 쓴다 (portraits.gen 키, 예: 'en_sw_brood') */
+  art?: string;
 }
 
 /** 적 전투 유형 · 전술 유형: 지정값 우선, 없으면 공격 방식 · 키워드로 추정 */
@@ -221,6 +223,22 @@ export const ENEMIES: EnemyDef[] = [
       u.mem.spawnT = 0;
       const alive = b.units.filter((x) => x.alive && x.side === u.side && x.defId === 'sw_spore').length; // 포자 동시 생존 최대 6
       if (alive < 6) summonHook?.(b, u, 'sw_spore', Math.min(2, 6 - alive));
+    } },
+  // 캠페인 「회수 계약」 1장 보스: 하역 크레인에 엉겨 붙은 고정형 군집. 컨테이너에서 포자 살점을 쏟아 낸다 (비비안 조사 = 컨테이너 2개 봉인 → 간격 10 → 12초, b.ctx.campIntel).
+  // 시뮬(tests/campaign_sim.ts, 쉬움): 바로 돌파 시 보스 평균 2.2회 · 조사 시 1.5회
+  { id: 'cp_loader', name: '적재 군집', tend: 'counter', keywords: ['bio'], sprite: 'crawler', palette: SWARM_BOSS, art: 'en_sw_brood', tier: 'boss', minPhase: 99,
+    hp: 2600, power: 34, armor: 160, interval: 1.4, range: 2, immobile: true, atk: { type: 'strike', elem: 'chem' }, melee: true,
+    skill: {
+      name: '크레인 투척', cd: 9, params: {}, desc: () => '가장 가까운 적을 집어 던진다 (기술 위력 160% 물리 + 1.5초 기절)',
+      cast(b, u) { const t = b.nearest(u, b.enemiesOf(u)); if (!t) return false; b.fx(t.x, t.y, 0, 'phys'); skillHit(b, u, t, 'strike', 1.6, 'phys'); b.stun(u, t, 1.5, 0.8); return true; },
+    },
+    onTick: (b, u, dt) => {
+      const sealed = !!b.ctx.campIntel;
+      u.mem.spawnT = (u.mem.spawnT || 0) + dt;
+      if (u.mem.spawnT < (sealed ? 12 : 10)) return;
+      u.mem.spawnT = 0;
+      const cap = 4, alive = b.units.filter((x) => x.alive && x.side === u.side && x.defId === 'sw_spore').length;
+      if (alive < cap) summonHook?.(b, u, 'sw_spore', Math.min(2, cap - alive));
     } },
   { id: 'sw_queen', name: '군체 여왕', tend: 'counter', keywords: ['bio', 'phantom'], sprite: 'phantom', palette: SWARM_BOSS, tier: 'boss', minPhase: 1,
     hp: 3000, power: 46, armor: 180, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,

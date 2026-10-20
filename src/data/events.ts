@@ -60,7 +60,68 @@ const owns = (run: RunState, id: string) => run.units.some((u) => u.defId === id
 const full = (run: RunState) => (run.units.length >= 16 ? '보유 한도(16명)에 도달했습니다' : null);
 const top = (run: RunState) => run.units.slice().sort((a, b) => b.rank - a.rank)[0];
 
+/** 캠페인 「회수 계약」 사건 (전장 id '__camp' = 일반 런 추첨에 나오지 않음, 캠페인 장 정의가 칸마다 고정으로 부른다 — data/campaign.ts) */
+const CAMP = ['__camp'];
+const hasTape = (r: RunState) => r.inventory.includes('K_cp_tape');
+const useTape = (r: RunState) => { const i = r.inventory.indexOf('K_cp_tape'); if (i >= 0) r.inventory.splice(i, 1); };
+const phyllisOut = (r: RunState) => r.units.some((u) => u.defId === 'phyllis' && u.pos);
+const campTime = (r: RunState, n: number) => { if (r.campaign) { r.campaign.time -= n; r.campaign.spent += n; } };
+/** 격리 화물 선택지 (화물칸마다 공통): 신고 = 안전 · 직접 = 보상 + 위험 반반 · 테이프 = 위험 제거 · 필리스 = 정보 (시간을 쓰고 내용물을 본 뒤 다시 고른다) */
+const cargoChoices = (tag: string): EventChoice[] => [
+  { label: '격리팀에 신고한다', desc: '크레딧 -4. 격리팀이 안전하게 열어 준다: 고급 장비 1개.', block: (r) => (r.credits < 4 ? '크레딧이 부족합니다' : null),
+    apply: (r, api) => { r.credits -= 4; api.gain(api.randomItem('G')); return '격리팀이 컨테이너를 열었습니다. 고급 장비 1개.'; } },
+  { label: '직접 연다', desc: '희귀 장비 1개. 군체 표본이 섞여 있으면 다음 전투에 포자 살점 2마리가 더 나온다.',
+    apply: (r, api) => { api.gain(api.randomItem('A')); if (api.chance(0.5)) { api.flag('cp_sample'); return '희귀 장비를 꺼냈지만, 바닥에서 무언가 꿈틀거렸습니다 — 다음 전투에 포자 살점 +2.'; } return '깨끗한 화물이었습니다. 희귀 장비 1개.'; } },
+  { label: '봉인 테이프로 연다', desc: '격리 봉인 테이프 1개를 써서 위험은 봉인하고 희귀 장비 1개만 챙긴다.', block: (r) => (hasTape(r) ? null : '격리 봉인 테이프가 없습니다'),
+    apply: (r, api) => { useTape(r); api.gain(api.randomItem('A')); return '봉인 테이프로 입구를 감싸고 열었습니다. 희귀 장비 1개.'; } },
+  { label: '필리스가 먼저 들여다본다', desc: '계약 시간 -2. 열기 전에 안에 든 것이 깨끗한지 안다 (그다음 다시 고른다).', block: (r) => (phyllisOut(r) ? null : '필리스가 출전 중이어야 합니다'),
+    apply: (r, api) => { campTime(r, 2); const risky = api.chance(0.5); r.pending.push({ t: 'event', id: risky ? 'cp_peek_risky' : 'cp_peek_safe', sub: null }); void tag; return risky ? '필리스: "안에서 뭐가 꿈틀거려-."' : '필리스: "깨끗해-. 그냥 열어."'; } },
+];
+
 export const EVENTS: EventDef[] = [
+  // ───────── 캠페인 「회수 계약」 1장 · TS-7 환적 정거장
+  {
+    id: 'cp_phyllis', title: '긴급 조달 중', fields: CAMP, weight: 0,
+    text: '화물칸 B-2. 페트라 화물 상자 위에 고양이 귀가 하나 걸터앉아 있다. 필리스가 렌치로 상자 모서리를 따다가 고개를 든다. "아, 지휘관님-. 이거 긴급 조달이야."',
+    choices: [
+      { label: '같이 가자', desc: '필리스 합류. 필리스가 이미 판 물건 값: 크레딧 +4.', apply: (r, api) => { api.join('phyllis'); r.credits += 4; return '필리스가 합류했습니다. 출전은 여전히 2명 — 누구를 내보낼지 고르세요.'; } },
+      { label: '상자는 두고 와', desc: '필리스 합류. 상자 대신 주머니에 있던 격리 봉인 테이프 1개.', apply: (_r, api) => { api.join('phyllis'); api.gain('K_cp_tape', true); return '필리스가 합류했습니다. 상자는 두고 왔습니다 (테이프는 챙겼습니다). 출전은 2명.'; } },
+    ],
+  },
+  {
+    id: 'cp_cargo1', title: '격리 화물 — 화물칸 C-7', fields: CAMP, weight: 0,
+    text: '적요 번호가 긁혀 나간 컨테이너가 떠 있다. 격리팀 스티커 위로 회백색 포자 자국이 번졌다. 라르스(통신): "열지 말라고는 안 했습니다. 시간이 비용이라는 것만 기억하시죠."',
+    choices: cargoChoices('c7'),
+  },
+  {
+    id: 'cp_cargo2', title: '격리 화물 — 화물칸 D-1', fields: CAMP, weight: 0,
+    text: '의료 물자 표시가 붙은 냉동 컨테이너. 냉각기는 꺼졌는데 안쪽에서 온기가 올라온다. 비비안: "냄새가 이상해! 리키가 꼬리를 말았어."',
+    choices: cargoChoices('d1'),
+  },
+  {
+    id: 'cp_peek_safe', title: '필리스의 확인 — 깨끗함', fields: CAMP, weight: 0,
+    text: '필리스가 균열 틈으로 손만 넣어 상자 안을 더듬고 나온다. "부품이야. 반짝이는 거. 위험한 건 없어-."',
+    choices: [{ label: '연다', desc: '희귀 장비 1개.', apply: (_r, api) => { api.gain(api.randomItem('A')); return '희귀 장비 1개를 챙겼습니다.'; } }],
+  },
+  {
+    id: 'cp_peek_risky', title: '필리스의 확인 — 꿈틀거림', fields: CAMP, weight: 0,
+    text: '균열에서 손을 빼자 장갑 끝에 회백색 실이 묻어 나온다. 필리스: "좋은 부품이랑… 뭐가 같이 들어 있어. 살아 있는 거."',
+    choices: [
+      { label: '그래도 연다', desc: '희귀 장비 1개 + 다음 전투에 포자 살점 +2.', apply: (_r, api) => { api.gain(api.randomItem('A')); api.flag('cp_sample'); return '부품은 챙겼고, 표본이 빠져나갔습니다 — 다음 전투에 포자 살점 +2.'; } },
+      { label: '봉인 테이프로 연다', desc: '격리 봉인 테이프 1개를 써서 희귀 장비 1개만.', block: (r) => (hasTape(r) ? null : '격리 봉인 테이프가 없습니다'), apply: (r, api) => { useTape(r); api.gain(api.randomItem('A')); return '표본은 봉인하고 부품만 꺼냈습니다.'; } },
+      { label: '격리팀에 넘긴다', desc: '열지 않는다. 신고 포상금 크레딧 +3.', apply: (r) => { r.credits += 3; return '격리팀이 컨테이너를 통째로 가져갔습니다. 포상금 +3.'; } },
+    ],
+  },
+  {
+    id: 'cp_survey', title: '비비안의 둥지 조사', fields: CAMP, weight: 0,
+    text: '하역 크레인 쪽 화물칸에서 포자 살점이 줄줄이 쏟아져 나온다. 비비안이 리키의 목줄을 쥔다. "저기 둥지가 크레인을 껴안고 있어! 조금만 냄새 맡게 해 주면 어디가 입구인지 알 수 있어!"',
+    choices: [
+      { label: '조사한다', desc: '계약 시간 -4. 보스 [적재 군집]의 정체를 미리 알고, 컨테이너 2개를 봉인한 채 싸운다 (포자가 쏟아지는 간격 10초 → 12초). 리키에게 씌운 [리키용 진공 헬멧]도 남는다. 리키에게 씌운 [리키용 진공 헬멧]도 남는다.',
+        apply: (r, api) => { campTime(r, 4); api.flag('cp_intel'); api.gain('P_helmet', true); return '비비안: "크레인에 붙어서 못 움직여! 컨테이너 두 개는 리키가 막았어!" — 보스 정보 확보, 컨테이너 2개 봉인. [리키용 진공 헬멧] 획득.'; } },
+      { label: '바로 돌파한다', desc: '시간을 아낀다. 보스는 컨테이너 4개가 모두 열린 채로 맞는다.', apply: () => '비비안: "알았어, 대신 리키는 내 옆에 있을 거야!"' },
+    ],
+  },
+
   // ───────── 공용
   {
     id: 'volunteer', title: '자원 입대', weight: 1,

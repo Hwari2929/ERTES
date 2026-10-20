@@ -292,6 +292,9 @@ function sources(id: string): string[] {
       }
       out.push(`회복량 (위험 등급별): ${C.breadHeal.map(([l, h]) => `${diffName(l) || `위험 ${l}`} ${stale ? Math.max(1, h - C.staleHeal) : h}`).join(' · ')}`);
       out.push(`판매가 (난이도별): ${breadSellText(stale)}`);
+    } else if (id.startsWith('K_cp_')) { // 캠페인 「회수 계약」 전용 (일반 의뢰에서는 나오지 않음)
+      out.push(id === 'K_cp_tape' ? '캠페인 1장: 필리스 합류 사건에서 [상자는 두고 와]를 고르면 1개' : '캠페인 시작 때 라르스가 1개 보낸다');
+      out.push('일반 의뢰에서는 나오지 않는다');
     } else if (id === 'K_seize') {
       out.push(`상점 · ${S.price[id]} 크레딧 (${pctTxt(S.seize)} 확률 진열, ${foeGear})`);
       out.push(`전투 승리 보상 (${foeGear}): ${dropTxt(CFG.drop.seize)}`);

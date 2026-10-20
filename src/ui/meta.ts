@@ -151,6 +151,7 @@ export function metaBar(kind: 'seen' | 'talk' | 'heard', key: string) {
 }
 /** 의뢰 성공 (목표 페이즈 보스 격파): 다음 난이도 해금 */
 export function metaClear(run: RunState) {
+  if (run.campaign) return; // 캠페인은 의뢰 기록에 넣지 않는다
   const m = loadMeta();
   m.clears++;
   for (const id of run.despairs || []) ((m.despair ||= {})[id] ||= { runs: 0, clears: 0 }).clears++;
@@ -164,7 +165,7 @@ export function metaClear(run: RunState) {
 }
 /** 런 종료 (전멸 또는 의뢰 완료 후 귀환): 기용 횟수 · 누적 공명 등급 */
 export function metaRunEnd(run: RunState) {
-  if (run.recorded) return;
+  if (run.recorded || run.campaign) return;
   run.recorded = true;
   const m = loadMeta();
   m.runs++;

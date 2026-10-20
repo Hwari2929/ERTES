@@ -7,7 +7,8 @@ import { oathEnemy, oathV } from '../data/oaths';
 import { BOONS } from '../data/events';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
 import { emblemOf, isEmblem, isTurretGear, isTurretMod, itemEffect, turretSlots } from '../data/items';
-import { CHR_HOOK, ENG_HOOK, ENG_TUR, KAL_GUARD_RANK, KAL_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
+import { CHR_HOOK, ENG_HOOK, ENG_TUR, KAL_GUARD_RANK, KAL_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, type SynDef, tierOf } from '../data/synergies';
+import { CAMP_SYNERGIES, campMembers } from '../data/campaign';
 import { causalStage, KING, kingGearOf } from '../data/chungra';
 import { UNIT_BY_ID } from '../data/units';
 import { enableDivine, ENEMY_PSI, FAITH_DEF, sigmundTarget } from '../data/rework';
@@ -18,7 +19,7 @@ import type { SkillDef } from './combat';
 import { Rng } from '../rng';
 import { categoryOf, type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
 import { Battle, type CUnit } from './combat';
-import { applyLive, type Effect, type EffectCtx } from './effects';
+import { applyLive, type Effect, type EffectCtx, red } from './effects';
 
 export type Counts = Partial<Record<SynergyId, number>>;
 /** 마이너 성장으로 커지는 기술 계수 (위력 · 회복 · 보호막 · 출혈 · 1원칙 중첩) */
@@ -39,6 +40,7 @@ export function deployed(run: RunState) { return run.units.filter((u) => u.pos);
 
 /** 기물이 소속된 시너지 (세력 + 특성 + 증강으로 얻은 추가 소속) */
 export function memberships(u: UnitState, run?: RunState | null): SynergyId[] {
+  if (run?.campaign) return campMembers(u.defId); // 캠페인: 전용 소속표만 (증강 · 문장 추가 소속 없음)
   const d = UNIT_BY_ID[u.defId];
   const s = new Set<SynergyId>([...d.factions, ...d.traits]);
   if (run && sigmundTarget(run) === u.uid) s.add('FAM'); // 시그문드가 모시는 기물
@@ -59,7 +61,7 @@ export function synergyCounts(units: UnitState[], run?: RunState | null, raw = f
     seen.add(u.defId);
     for (const s of memberships(u, run)) c[s] = (c[s] || 0) + 1;
   }
-  if (run) {
+  if (run && !run.campaign) {
     // 연합 협정 / 전술 교범: 인원이 가장 많은 세력 / 특성 +1
     const top = (kind: 'faction' | 'trait') => SYNERGIES.filter((s) => s.kind === kind && s.tiers.length > 1 && (c[s.id] || 0) > 0)
       .sort((a, b2) => (c[b2.id] || 0) - (c[a.id] || 0))[0];
@@ -72,9 +74,12 @@ export function synergyCounts(units: UnitState[], run?: RunState | null, raw = f
   return c;
 }
 
-export function activeTiers(counts: Counts): Partial<Record<SynergyId, number>> {
+/** 이 런에서 쓰는 시너지 목록: 캠페인 런 = 캠페인 전용, 그 밖 = 일반 표 */
+export const synList = (run?: RunState | null): SynDef[] => (run?.campaign ? CAMP_SYNERGIES : SYNERGIES);
+
+export function activeTiers(counts: Counts, run?: RunState | null): Partial<Record<SynergyId, number>> {
   const t: Partial<Record<SynergyId, number>> = {};
-  for (const s of SYNERGIES) { const v = tierOf(s.id, counts[s.id] || 0); if (v) t[s.id] = v; }
+  for (const s of synList(run)) { const v = tierOf(s.id, counts[s.id] || 0); if (v) t[s.id] = v; }
   return t;
 }
 
@@ -102,7 +107,7 @@ export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, 
   if (onBoard) {
     const ctx = makeCtx(run, u, counts);
     const mine = new Set(memberships(u, run));
-    for (const s of SYNERGIES) {
+    for (const s of synList(run)) {
       if (s.special && mine.has(s.id)) { const e = s.special(counts[s.id] || 0, ctx); if (e) out.push(e); }
       const tier = tierOf(s.id, counts[s.id] || 0);
       if (!tier) continue;
@@ -112,8 +117,9 @@ export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, 
     for (const g of run?.globals || []) { const e = GLOBAL_BY_ID[g]?.team; if (e) out.push(e); }
     if (run?.blessing) { const e = BLESSING_BY_ID[run.blessing]?.team; if (e) out.push(e); }
     for (const id of [...(run?.boons || []), ...(run?.phaseBoons || [])]) { const e = BOONS[id]?.effect; if (e) out.push(e); } // 사건 효과
-    const fa = run ? fieldOf(run.field).ally : undefined; // 전장 세력 보너스
+    const fa = run && !run.campaign ? fieldOf(run.field).ally : undefined; // 전장 세력 보너스 (캠페인은 전용 시너지만)
     if (fa && mine.has(fa.syn)) out.push(fa.effect);
+    if (run?.campaign && run.flags.includes('cp_purge')) out.push({ taken: [red('chem', 0.4)] }); // 캠페인 소모품 정화 분무기: 다음 전투 화학 피해 -40%
     const fall = run ? fieldOf(run.field).allyAll : undefined; // 전장: 모든 아군
     if (fall) out.push(fall);
   }
@@ -333,7 +339,7 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   st.maxHp *= (1 - st.eva) / (1 - Math.min(0.9, eva0)); // 회피가 늘어난 만큼 체력을 줄여 유효 체력 유지
   const critTax = 1 / (1 + 2 * Math.max(0, st.crit - crit0)); // 치명타 1%p = 피해 2%
   Object.assign(c, {
-    defId: def.id, name: def.name, sprite: def.sprite, palette: def.palette, st, keywords: def.keywords.slice(),
+    defId: def.id, name: def.name, sprite: def.sprite, palette: def.palette, art: def.art, st, keywords: def.keywords.slice(),
     atk: { type: def.atk.type, elem: def.atk.elem, interval: def.interval }, skill: def.skill || null,
     sk: { ...(def.skill?.params || {}) }, cdMax: def.skill?.cd || 0, isBoss: def.tier === 'boss', big: def.tier !== 'minion',
     immobile: !!def.immobile, phaseAmp: phaseAmpMult(phase) * encDmgMult(mult) * critTax,
@@ -672,7 +678,7 @@ export function layout(run: RunState, n: number): Map<string, { x: number; y: nu
 
 export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): Battle {
   const dim = boardDims(enc.n);
-  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined, oaths: run.oaths, otShift: oathV(run, 'clock', 'sec') || undefined });
+  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined, oaths: run.oaths, otShift: oathV(run, 'clock', 'sec') || undefined, campIntel: run.campaign && run.flags.includes('cp_intel') ? true : undefined });
   b.keepEvents = keepEvents;
   const dep = deployed(run);
   const counts = synergyCounts(dep, run);

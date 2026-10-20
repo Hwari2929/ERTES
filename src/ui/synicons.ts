@@ -32,6 +32,13 @@ const P: Record<string, string> = {
   COND: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
   GUARD: '<path d="M12 2.5 20 5.5v6c0 5-3.4 8.7-8 10-4.6-1.3-8-5-8-10v-6z"/><path d="M12 7v10M8 11h8"/>',
   EXPLORER: '<circle cx="12" cy="5" r="2"/><path d="M12 7v14"/><path d="M8 11h8"/><path d="M4.5 13a7.5 7.5 0 0 0 15 0"/>',
+  // 캠페인 「회수 계약」 전용 (data/campaign.ts)
+  CP_VOY: '<path d="M3 17.5h18l-2.5 3.5h-13z"/><path d="M12 3v13"/><path d="M12 4.5 19 14.5h-7z"/><path d="M12 7 6.5 14.5H12"/>',
+  CP_PET: '<circle cx="12" cy="12" r="9"/><path d="M14.8 9.2A3 3 0 0 0 12 8c-1.7 0-3 .9-3 2s1.3 1.7 3 2 3 .9 3 2-1.3 2-3 2a3 3 0 0 1-2.8-1.2"/><path d="M12 6v2M12 16v2"/>',
+  CP_LAZY: '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/><path d="M15 4h4l-4 4h4"/>',
+  CP_CAMP: '<path d="M12 3 2.5 20h19z"/><path d="M12 3v17"/><path d="M9 20l3-5 3 5"/>',
+  CP_BNC: '<path d="M3 18 9 6l5 9 3-5 4 8"/><circle cx="9" cy="6" r="1.4"/><circle cx="17" cy="10" r="1.4"/>',
+  CP_AGIT: '<path d="M4 10v4h3l7 4V6L7 10z"/><path d="M17 9.5a3.5 3.5 0 0 1 0 5M19.5 7a7 7 0 0 1 0 10"/>',
   RFRIEND: '<circle cx="12" cy="12" r="9"/><path d="M10 16.5v-9h3a2.5 2.5 0 0 1 0 5h-3M12.8 12.5l2.4 4"/>',
 };
 export function synIcon(id: string, cls = 'si'): string {
