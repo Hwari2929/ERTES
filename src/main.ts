@@ -1414,24 +1414,24 @@ function startOverlay(run: RunState, bw: number, bh: number, ex: number) {
   const pts = p.path.map((q) => `${cx(q.x)},${cy(q.y)}`);
   const last = p.path[p.path.length - 1];
   const box = (x: number, y: number, cls: string) => `<rect class="${cls}" x="${cx(x) - 0.42}" y="${cy(y) - 0.42}" width="0.84" height="0.84" vector-effect="non-scaling-stroke"/>`;
-  const svg = `<svg class="sp-ovl" viewBox="0 0 ${bw} ${bh}" preserveAspectRatio="none" aria-hidden="true">
-    ${p.path.length > 1 ? `<polyline class="sp-path" points="${pts.join(' ')}" vector-effect="non-scaling-stroke"/>` : ''}
-    ${p.target ? `<line class="sp-aim" x1="${cx(last.x)}" y1="${cy(last.y)}" x2="${cx(p.target.x)}" y2="${cy(p.target.y)}" vector-effect="non-scaling-stroke"/>${box(p.target.x, p.target.y, 'sp-tgt')}` : ''}
-    ${p.waits.map((w) => box(w.x, w.y, 'sp-wait')).join('')}
+  const svg = `<svg class="fc-ovl" viewBox="0 0 ${bw} ${bh}" preserveAspectRatio="none" aria-hidden="true">
+    ${p.path.length > 1 ? `<polyline class="fc-path" points="${pts.join(' ')}" vector-effect="non-scaling-stroke"/>` : ''}
+    ${p.target ? `<line class="fc-aim" x1="${cx(last.x)}" y1="${cy(last.y)}" x2="${cx(p.target.x)}" y2="${cy(p.target.y)}" vector-effect="non-scaling-stroke"/>${box(p.target.x, p.target.y, 'fc-tgt')}` : ''}
+    ${p.waits.map((w) => box(w.x, w.y, 'fc-wait')).join('')}
   </svg>`;
   const tags = [
-    ...p.waits.map((w) => `<span class="sp-tag wait" style="${pct(w.x, w.y)}">병목 ${w.dur.toFixed(1)}초</span>`),
-    ...(p.target ? [`<span class="sp-tag tgt" style="${pct(p.target.x, p.target.y)}">첫 목표${p.firstAtk !== undefined ? ` ${p.firstAtk.toFixed(1)}초` : ''}</span>`] : []),
+    ...p.waits.map((w) => `<span class="fc-tag wait" style="${pct(w.x, w.y)}">병목 ${w.dur.toFixed(1)}초</span>`),
+    ...(p.target ? [`<span class="fc-tag tgt" style="${pct(p.target.x, p.target.y)}">첫 목표${p.firstAtk !== undefined ? ` ${p.firstAtk.toFixed(1)}초` : ''}</span>`] : []),
   ].join('');
-  return `<div class="sp-layer">${svg}${tags}</div>`;
+  return `<div class="fc-layer">${svg}${tags}</div>`;
 }
 /** 기물 상세의 개전 예측 칩 (이름 + 값) */
 function startChips(run: RunState) {
   const p = selPreview(run);
   if (!p) return '';
   const moves = p.path.length - 1, worst = p.waits.reduce((m, w) => Math.max(m, w.dur), 0);
-  const chip = (k: string, v: string, cls = '') => `<span class="sp-chip${cls ? ` ${cls}` : ''}"><small>${k}</small><b>${v}</b></span>`;
-  return `<div class="sp-chips" title="실제 전투와 같은 시드로 첫 ${8}초를 미리 돌린 결과 (보드에 경로 · 병목 · 첫 목표 표시)"><h3>개전 예측</h3>
+  const chip = (k: string, v: string, cls = '') => `<span class="fc-chip${cls ? ` ${cls}` : ''}"><small>${k}</small><b>${v}</b></span>`;
+  return `<div class="fc-chips" title="실제 전투와 같은 시드로 첫 ${8}초를 미리 돌린 결과 (보드에 경로 · 병목 · 첫 목표 표시)"><h3>개전 예측</h3>
     ${chip('첫 목표', p.target ? esc(p.target.name) : '없음', p.target ? 'tgt' : '')}${chip('첫 공격', p.firstAtk !== undefined ? `${p.firstAtk.toFixed(1)}초` : '8초 안에 없음')}${chip('이동', `${moves}칸`)}${chip('병목', p.waits.length ? `${p.waits.length}곳 · 최대 ${worst.toFixed(1)}초` : '없음', p.waits.length ? 'wait' : '')}</div>`;
 }
 /** 빈 포탑 개조부품 칸 (엔지니어 색 마름모) */

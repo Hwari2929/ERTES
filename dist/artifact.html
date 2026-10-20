@@ -1021,23 +1021,23 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .u.comp-tk.king-tk .tk-card { border-color: var(--c-select); border-style: solid; }
 .u.comp-tk.sel .tk-card { outline: 2px solid var(--c-select); }
 /* 개전 예측 (편성 화면, 선택한 기물): 경로 = 선택색 점선 · 병목 = 위험색 점선 칸 · 첫 목표 = 위험색 칸 + 조준선. 조작을 막지 않는다 */
-.sp-layer { position: absolute; inset: 0; pointer-events: none; z-index: var(--z-raise); overflow: hidden; }
-.sp-ovl { position: absolute; inset: 0; width: 100%; height: 100%; }
-.sp-path { fill: none; stroke: var(--c-select); stroke-width: 2.5; stroke-dasharray: 6 4; stroke-linecap: round; stroke-linejoin: round; animation: sp-march 1s linear infinite; }
-.sp-aim { stroke: var(--c-bad); stroke-width: 1.5; stroke-dasharray: 2 4; }
-.sp-tgt { fill: color-mix(in srgb, var(--c-bad) 14%, transparent); stroke: var(--c-bad); stroke-width: 2; }
-.sp-wait { fill: color-mix(in srgb, var(--c-select) 16%, transparent); stroke: var(--c-select); stroke-width: 1.5; stroke-dasharray: 3 3; }
-@keyframes sp-march { to { stroke-dashoffset: -20; } }
-.sp-tag { position: absolute; transform: translate(-50%, -150%); padding: 1px 6px; border-radius: var(--r-pill); background: var(--panel); border: 1px solid var(--line); font-size: var(--fs-xs); white-space: nowrap; color: var(--c-text); }
-.sp-tag.wait { border-color: var(--c-select); color: var(--c-select); }
-.sp-tag.tgt { border-color: var(--c-bad); color: var(--c-bad); }
-.sp-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
-.sp-chips h3 { width: 100%; margin: 0; }
-.sp-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 9px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--panel); }
-.sp-chip small { color: var(--c-text-2); font-size: var(--fs-xs); }
-.sp-chip.tgt b { color: var(--c-bad); }
-.sp-chip.wait b { color: var(--c-select); }
-@media (prefers-reduced-motion: reduce) { .sp-path { animation: none; } }
+.fc-layer { position: absolute; inset: 0; pointer-events: none; z-index: var(--z-raise); overflow: hidden; }
+.fc-ovl { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fc-path { fill: none; stroke: var(--c-select); stroke-width: 2.5; stroke-dasharray: 6 4; stroke-linecap: round; stroke-linejoin: round; animation: fc-march 1s linear infinite; }
+.fc-aim { stroke: var(--c-bad); stroke-width: 1.5; stroke-dasharray: 2 4; }
+.fc-tgt { fill: color-mix(in srgb, var(--c-bad) 14%, transparent); stroke: var(--c-bad); stroke-width: 2; }
+.fc-wait { fill: color-mix(in srgb, var(--c-select) 16%, transparent); stroke: var(--c-select); stroke-width: 1.5; stroke-dasharray: 3 3; }
+@keyframes fc-march { to { stroke-dashoffset: -20; } }
+.fc-tag { position: absolute; transform: translate(-50%, -150%); padding: 1px 6px; border-radius: var(--r-pill); background: var(--panel); border: 1px solid var(--line); font-size: var(--fs-xs); white-space: nowrap; color: var(--c-text); }
+.fc-tag.wait { border-color: var(--c-select); color: var(--c-select); }
+.fc-tag.tgt { border-color: var(--c-bad); color: var(--c-bad); }
+.fc-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
+.fc-chips h3 { width: 100%; margin: 0; }
+.fc-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 9px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--panel); }
+.fc-chip small { color: var(--c-text-2); font-size: var(--fs-xs); }
+.fc-chip.tgt b { color: var(--c-bad); }
+.fc-chip.wait b { color: var(--c-select); }
+@media (prefers-reduced-motion: reduce) { .fc-path { animation: none; } }
 .u.tk .tk-art { position: relative; flex: none; grid-column: 1; grid-row: 1; }
 .u.tk .tk-art img.pt, .u.tk .tk-card img.pt { display: block; width: 100%; height: auto; aspect-ratio: 1; flex: none; min-height: 0; object-fit: cover; border-radius: 2px; box-shadow: none; }
 .u.tk .tk-items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; flex: none; grid-column: 1; grid-row: 2; align-items: stretch; }
@@ -4795,11 +4795,11 @@ ${d.join(`
     ${R6(e)}
   </main>`}function c4(e){let t=Q[e.defId];return`<div class="tk-card"><div class="tk-art">${We(t,"")}${e.mod?`<span class="tk-mod" data-a="item-info" data-v="${e.uid}:-1" data-drag="eq:${e.uid}:-1" data-drop="eqitem:${e.uid}:-1" data-hold>${Qe(e.mod)}</span>`:""}</div>
         <span class="tk-side"><b class="tk-rank" title="\uACF5\uBA85 \uB4F1\uAE09 ${e.rank}">${e.rank}</b><i class="tt-${t.ttype}" title="${It[t.ttype]}">${is(t.ttype)}</i><i class="ct-${t.ctype}" title="${ut[t.ctype]}">${is(t.ctype)}</i></span>
-        <span class="tk-items">${e.items.map((s,a)=>s?`<span class="tk-it" data-a="item-info" data-v="${e.uid}:${a}" data-drag="eq:${e.uid}:${a}" data-drop="eqitem:${e.uid}:${a}" data-hold>${Qe(s)}</span>`:Qe(null)).join("")}</span></div>`}var Hb={sprite:"turret",palette:ag,art:"sm_turret"};function s6(e){let t=u.sel,s=e.node?.enc;if(t?.k!=="unit"||!s)return null;let a=e.units.find(n=>n.uid===t.uid);return a?.pos&&$v(e,s).get(a.uid)||null}function fI(e,t,s,a){let n=s6(e);if(!n)return"";let r=b=>b-Ie+a+.5,o=b=>b-Ie+.5,l=(b,g)=>`left:${r(b)/t*100}%;top:${o(g)/s*100}%`,c=n.path.map(b=>`${r(b.x)},${o(b.y)}`),d=n.path[n.path.length-1],m=(b,g,y)=>`<rect class="${y}" x="${r(b)-.42}" y="${o(g)-.42}" width="0.84" height="0.84" vector-effect="non-scaling-stroke"/>`,f=`<svg class="sp-ovl" viewBox="0 0 ${t} ${s}" preserveAspectRatio="none" aria-hidden="true">
-    ${n.path.length>1?`<polyline class="sp-path" points="${c.join(" ")}" vector-effect="non-scaling-stroke"/>`:""}
-    ${n.target?`<line class="sp-aim" x1="${r(d.x)}" y1="${o(d.y)}" x2="${r(n.target.x)}" y2="${o(n.target.y)}" vector-effect="non-scaling-stroke"/>${m(n.target.x,n.target.y,"sp-tgt")}`:""}
-    ${n.waits.map(b=>m(b.x,b.y,"sp-wait")).join("")}
-  </svg>`,A=[...n.waits.map(b=>`<span class="sp-tag wait" style="${l(b.x,b.y)}">\uBCD1\uBAA9 ${b.dur.toFixed(1)}\uCD08</span>`),...n.target?[`<span class="sp-tag tgt" style="${l(n.target.x,n.target.y)}">\uCCAB \uBAA9\uD45C${n.firstAtk!==void 0?` ${n.firstAtk.toFixed(1)}\uCD08`:""}</span>`]:[]].join("");return`<div class="sp-layer">${f}${A}</div>`}function uI(e){let t=s6(e);if(!t)return"";let s=t.path.length-1,a=t.waits.reduce((r,o)=>Math.max(r,o.dur),0),n=(r,o,l="")=>`<span class="sp-chip${l?` ${l}`:""}"><small>${r}</small><b>${o}</b></span>`;return`<div class="sp-chips" title="\uC2E4\uC81C \uC804\uD22C\uC640 \uAC19\uC740 \uC2DC\uB4DC\uB85C \uCCAB 8\uCD08\uB97C \uBBF8\uB9AC \uB3CC\uB9B0 \uACB0\uACFC (\uBCF4\uB4DC\uC5D0 \uACBD\uB85C \xB7 \uBCD1\uBAA9 \xB7 \uCCAB \uBAA9\uD45C \uD45C\uC2DC)"><h3>\uAC1C\uC804 \uC608\uCE21</h3>
+        <span class="tk-items">${e.items.map((s,a)=>s?`<span class="tk-it" data-a="item-info" data-v="${e.uid}:${a}" data-drag="eq:${e.uid}:${a}" data-drop="eqitem:${e.uid}:${a}" data-hold>${Qe(s)}</span>`:Qe(null)).join("")}</span></div>`}var Hb={sprite:"turret",palette:ag,art:"sm_turret"};function s6(e){let t=u.sel,s=e.node?.enc;if(t?.k!=="unit"||!s)return null;let a=e.units.find(n=>n.uid===t.uid);return a?.pos&&$v(e,s).get(a.uid)||null}function fI(e,t,s,a){let n=s6(e);if(!n)return"";let r=b=>b-Ie+a+.5,o=b=>b-Ie+.5,l=(b,g)=>`left:${r(b)/t*100}%;top:${o(g)/s*100}%`,c=n.path.map(b=>`${r(b.x)},${o(b.y)}`),d=n.path[n.path.length-1],m=(b,g,y)=>`<rect class="${y}" x="${r(b)-.42}" y="${o(g)-.42}" width="0.84" height="0.84" vector-effect="non-scaling-stroke"/>`,f=`<svg class="fc-ovl" viewBox="0 0 ${t} ${s}" preserveAspectRatio="none" aria-hidden="true">
+    ${n.path.length>1?`<polyline class="fc-path" points="${c.join(" ")}" vector-effect="non-scaling-stroke"/>`:""}
+    ${n.target?`<line class="fc-aim" x1="${r(d.x)}" y1="${o(d.y)}" x2="${r(n.target.x)}" y2="${o(n.target.y)}" vector-effect="non-scaling-stroke"/>${m(n.target.x,n.target.y,"fc-tgt")}`:""}
+    ${n.waits.map(b=>m(b.x,b.y,"fc-wait")).join("")}
+  </svg>`,A=[...n.waits.map(b=>`<span class="fc-tag wait" style="${l(b.x,b.y)}">\uBCD1\uBAA9 ${b.dur.toFixed(1)}\uCD08</span>`),...n.target?[`<span class="fc-tag tgt" style="${l(n.target.x,n.target.y)}">\uCCAB \uBAA9\uD45C${n.firstAtk!==void 0?` ${n.firstAtk.toFixed(1)}\uCD08`:""}</span>`]:[]].join("");return`<div class="fc-layer">${f}${A}</div>`}function uI(e){let t=s6(e);if(!t)return"";let s=t.path.length-1,a=t.waits.reduce((r,o)=>Math.max(r,o.dur),0),n=(r,o,l="")=>`<span class="fc-chip${l?` ${l}`:""}"><small>${r}</small><b>${o}</b></span>`;return`<div class="fc-chips" title="\uC2E4\uC81C \uC804\uD22C\uC640 \uAC19\uC740 \uC2DC\uB4DC\uB85C \uCCAB 8\uCD08\uB97C \uBBF8\uB9AC \uB3CC\uB9B0 \uACB0\uACFC (\uBCF4\uB4DC\uC5D0 \uACBD\uB85C \xB7 \uBCD1\uBAA9 \xB7 \uCCAB \uBAA9\uD45C \uD45C\uC2DC)"><h3>\uAC1C\uC804 \uC608\uCE21</h3>
     ${n("\uCCAB \uBAA9\uD45C",t.target?k(t.target.name):"\uC5C6\uC74C",t.target?"tgt":"")}${n("\uCCAB \uACF5\uACA9",t.firstAtk!==void 0?`${t.firstAtk.toFixed(1)}\uCD08`:"8\uCD08 \uC548\uC5D0 \uC5C6\uC74C")}${n("\uC774\uB3D9",`${s}\uCE78`)}${n("\uBCD1\uBAA9",t.waits.length?`${t.waits.length}\uACF3 \xB7 \uCD5C\uB300 ${a.toFixed(1)}\uCD08`:"\uC5C6\uC74C",t.waits.length?"wait":"")}</div>`}var Vb=(e="")=>`<span class="item tM empty" style="--sc:${fe.ENG.color}" title="\uD3EC\uD0D1 \uAC1C\uC870\uBD80\uD488 \uCE78 \u2014 \uC5D4\uC9C0\uB2C8\uC5B4 \uC804\uC6A9 \uAC1C\uC870\uBD80\uD488\uC744 \uB04C\uC5B4 \uC7A5\uCC29" ${e}></span>`;function AI(e,t,s){let a=e.node?.enc?.n||h.bossBoard,r=nl(e,{n:a,env:"",enemies:[],mult:1,seed:1},!1).units.find(m=>m.defId==="turret"&&m.mem.turretIdx===t),o=e.turretGear?.[t]||[],l=e.turretMods?.[t],c=_i(ao(e)),d=(m,f)=>`<dt>${m}</dt><dd>${f}</dd>`;return`<div class="detail">${s}
     ${wA("",We(Hb,"spr big"),`\uAC10\uC2DC \uD3EC\uD0D1 ${t+1}`,`<span class="tag cat-mech">${D("k.mech","li")}\uAE30\uACC4</span><span class="tag">\uAD6C\uC870\uBB3C</span><span class="tag">\uC5D4\uC9C0\uB2C8\uC5B4 \uC18C\uD658\uBB3C</span>`)}
     <div class="small muted">\uAE30\uACC4: ${k(pn.mech)}<br>\uAD6C\uC870\uBB3C: ${k(pn.struct)}</div>
