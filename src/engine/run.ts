@@ -12,7 +12,7 @@ import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBAL_ODDS, GLOB
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, isTurretItem, isTurretMod, TURRET_ADV, TURRET_BASIC, TURRET_MODS, TURRET_PRICE, turretModsOfTier, turretSlots } from '../data/items';
 import { UNI_XP, OCCULT_SYNTH, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
-import { OATH_AUGS } from '../data/oathaugs';
+import { OATH_AUGS, VOW_ENH_KEEP } from '../data/oathaugs';
 import { MAJOR_AUGS, recMajors } from '../data/rework';
 import { SCHOOL_AUGS, schoolPassives } from '../data/psionic';
 import { isLegendAug, majorsOf, schoolAugId, schoolOf, type SchoolId } from '../data/schools';
@@ -2055,6 +2055,7 @@ export function enhanceRelic(run: RunState, uid: string): string | null {
   if (run.power < rel.enh) return '권능 포인트가 부족합니다';
   run.power -= rel.enh;
   u.enh = true;
+  u.enhKept = false;
   return null;
 }
 
@@ -2073,8 +2074,11 @@ function settleGrowth(run: RunState, b: Battle, won: boolean, interest: number, 
     // 권능: 디바인 1명당 모은 신성력 ÷ 25, 신권 대행을 쓰면 +1
     if (c.div !== null && UNIT_BY_ID[u.defId]?.ttype === 'divine') pw += Math.floor(c.divGot / CFG.powerPerDiv) + (c.divUsed ? 1 : 0);
   }
-  // 강화 · 다음 전투 한정 효과는 이번 전투로 끝
-  for (const u of run.units) if (u.enh) u.enh = false;
+  // 강화 · 다음 전투 한정 효과는 이번 전투로 끝 (서약 증강 [축성의 서약]: 강화가 한 전투 더 남는다, data/oathaugs.ts)
+  for (const u of run.units) {
+    if (u.enh && !u.enhKept && u.augments.some((a) => a.id === VOW_ENH_KEEP)) u.enhKept = true;
+    else { u.enh = false; u.enhKept = false; }
+  }
   run.mods.divStart = 0;
   pw = Math.min(CFG.powerMax, pw);
   if (pw) { run.power += pw; lines.push(`권능 포인트 +${pw} (현재 ${run.power})`); }

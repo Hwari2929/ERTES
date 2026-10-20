@@ -108,6 +108,8 @@ export interface UnitState {
   grow?: Record<string, number>;
   /** 디바인: 장착한 성유물 (= 신권 대행) · 다음 전투 강화 여부 */
   relic?: string; enh?: boolean;
+  /** 서약 증강 [축성의 서약]: 강화를 한 전투 더 이어 가는 중 (engine/run.ts settleGrowth) */
+  enhKept?: boolean;
   pos: { c: number; r: number } | null; // r=0 이 아군 진영 가장 뒷줄
 }
 

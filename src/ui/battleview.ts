@@ -664,8 +664,9 @@ export class BattleView {
         e.ug = ring;
       }
       if (e.ug) {
-        const f = u.ult ? (u.ultG || 0) : u.div !== null ? (u.divUsed ? 1 : u.div / 100) : 0;
-        const st = u.ult ? (f >= 1 ? 'full' : '') : u.divUsed ? 'used' : f >= 1 ? 'full' : '';
+        const spent = u.divUsed && (u.mem.divActs || 0) >= 1 + (u.mem.divExtra || 0); // 서약 증강 [재림의 서약]: 횟수가 남았으면 다시 차오른다
+        const f = u.ult ? (u.ultG || 0) : u.div !== null ? (spent ? 1 : u.div / 100) : 0;
+        const st = u.ult ? (f >= 1 ? 'full' : '') : spent ? 'used' : f >= 1 ? 'full' : '';
         const sig = `${Math.round(f * 200)}|${st}|${alive ? 1 : 0}`;
         if (sig !== e.ugSig) {
           e.ugSig = sig;

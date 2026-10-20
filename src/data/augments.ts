@@ -24,6 +24,7 @@ export function augSource(a: AugDef): string {
   if (a.pool === 'special') return '스페셜';
   if (a.pool === 'psionic') return '사이오닉';
   if (a.pool === 'school') return '학파';
+  if (a.pool === 'oath') return '서약';
   if (a.pool === 'syn') return SYN_BY_ID[a.owner as SynergyId]?.name || '시너지';
   return '공용';
 }
