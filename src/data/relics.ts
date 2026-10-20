@@ -37,7 +37,7 @@ export const RELICS: RelicDef[] = [
     desc: (k) => `아군 전원 기술 쿨다운 즉시 -2초. 전투 끝까지 아군 전원 공격 속도 +${pct(0.2 * k)}, 이동 속도 +${pct(0.3 * k)}.`,
     act(b, u, k) {
       for (const a of b.alliesOf(u)) { a.cd = Math.max(0, a.cd - 2); b.buff(u, a, 'rel.sandals', FOREVER, { delta: { atkSpd: 0.2 * k, moveSpd: 0.3 * k }, label: '날개 신' }); }
-      b.fx(u.x, u.y, 0, 'holy', 'buff');
+      b.fx(u.x, u.y, 0, 'elec', 'buff');
     } },
   { id: 'bow', name: '귀환의 활', owner: 'odysseus', price: 25, enh: 30,
     desc: (k) => `체력 비율이 가장 낮은 적 3명에게 사격 위력 (지휘관이면 전술 위력 중 높은 쪽) ${pct(6 * k)} 신성 관통 화살. 전투 끝까지 자신의 치명타 확률 +${pct(0.15 * k)}p.`,

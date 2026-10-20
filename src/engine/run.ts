@@ -43,7 +43,7 @@ const GA = CFG.globalAug;
 /** 전설 [판돈 올리기]: 전투 승리 크레딧 · 공명도 풀 배율 */
 const stakesMul = (run: RunState) => (hasGlobal(run, 'G.l_stakes') ? GA.stakes : 1);
 /** 승리 크레딧에 더하는 전역 증강 몫 (전리품 회수) — 미리보기 · 정산 공용 */
-const globalWinAdd = (run: RunState) => (hasGlobal(run, 'G.salvage') ? GA.salvage : 0) - (hasDespair(run, 'D.lean') ? CFG.despair.lean : 0);
+const globalWinAdd = (run: RunState) => (hasGlobal(run, 'G.salvage') ? GA.salvage : 0) - (hasGlobal(run, 'G.l_midas') ? GA.midasLean : 0) - (hasDespair(run, 'D.lean') ? CFG.despair.lean : 0);
 /** 반려 돌 (절망 증강): 칸만 차지하는 짐. 늘 출전 · 공명도 · 장비 없음 */
 export const isRock = (u: UnitState) => !!UNIT_BY_ID[u.defId]?.inert;
 /** 절망 증강 [근시안적 투자안]: 이자 수입 감소 (내림) */
@@ -734,6 +734,8 @@ export function advance(run: RunState) {
     run.blessing = null;
     run.phaseBoons = [];
     log(run, `페이즈 ${run.phase} 진입. 적이 강해집니다.`);
+    if (hasGlobal(run, 'G.r_patron')) { run.credits += GA.patron; log(run, `부유한 후원자: 크레딧 +${GA.patron}`); }
+    if (hasGlobal(run, 'G.l_chaos')) { const opts = rollGlobals(run); if (opts[0]) { log(run, `혼돈의 주사위: ${GLOBAL_BY_ID[opts[0]].name}`); pickGlobal(run, opts[0]); } }
     if (despairAt(run.diff, run.phase, oathDespairEvery(run))) queueDespair(run, run.phase); // 고난: 절망 증강 1개 더 (영입보다 먼저, 심연의 서약이면 간격이 짧다)
     offerRecruit(run); // 페이즈 시작 영입
     if (run.fund) { run.credits += run.fund; log(run, `호이슌 투자 수익 +${run.fund}`); run.pending.push({ t: 'notice', title: '투자 수익 정산', body: `지난 페이즈에 맡긴 자금이 불어나 크레딧 +${run.fund}을 돌려받았습니다.` }); run.fund = 0; }
@@ -1067,6 +1069,9 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   }
   run.flags = run.flags.filter((f) => f !== 'cp_purge'); // 정화 분무기: 한 전투만
   if (run.campaign) campAfterBattle(run, b, won, type, counts, lines); // 계약 정산 · 장 정산 (보스 승리 = 장 끝)
+  if (run.hp <= 0 && hasGlobal(run, 'G.l_phoenix') && !run.flags.includes('g_phoenix')) { // 불사조 계약: 런마다 1회
+    run.flags.push('g_phoenix'); run.hp = Math.max(1, Math.round(run.maxHp * GA.phoenix)); lines.push(`불사조 계약 — 체력 ${run.hp}로 되살아났습니다`);
+  }
   if (run.hp <= 0) { run.hp = 0; run.over = true; gameOver = true; }
   else if (run.over) gameOver = true; // 캠페인 장 끝 (검증판)
   else if (won || type !== 'boss' || !bossMustWin(run)) advance(run); // 보스: 져도 다음 페이즈로 (의뢰의 마지막 보스만 다시)

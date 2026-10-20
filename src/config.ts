@@ -207,6 +207,9 @@ export const CFG = {
   globalAug: {
     medic: 3, salvage: 2, shieldwall: 0.08, tenacity: 0.2, tenacityHp: 0.35, discount: 0.15,
     glassDmg: 0.35, glassTaken: 0.2, overtime: 0.5, blitz: 0.6, blitzDur: 6, vamp: 0.08, bountyMax: 6, bond: 60, bondCap: 2,
+    firstShot: 2, regen: 0.006, fiber: 0.12, critDmg: 0.25, pen: 0.1, reload: 0.25, ult: 0.2, eva: 0.06, mindRes: 0.2, mindRed: 0.15, saving: 2, ration: 15, rationMax: 10,
+    chain: 0.8, thorns: 0.3, windAt: 0.3, wind: 0.25, execAt: 0.2, exec: 0.4, giant: 0.25, dblChance: 0.15, dbl: 0.5, patron: 15, tutor: 2, commission: 20, transfuse: 15,
+    berserkMax: 0.8, berserkHp: 0.15, goldAt: 100, gold: 0.3, goldCap: 3, odAt: 20, od: 0.6, odAs: 0.2, odSlow: 0.3, hydra: 0.2, midasLean: 2, loneMax: 3, lone: 0.6, loneRed: 0.25, phoenix: 0.5, phoenixCost: 20,
     stakes: 1.5, stakesFoe: 0.25, blood: 2, minkyRank: 2, petraPer: 3, ascend: 2, lastDmg: 0.4, lastRed: 0.15, sacrifice: 2,
   },
   despair: {

@@ -587,13 +587,13 @@ export const REWORK: Record<string, ReworkDef> = {
     },
   },
   iris: {
-    ctype: 'CMD', ttype: 'divine', faith: 'hermes', weapon: G('날개 단검 투척', 'holy', 0.9, 3, 0.6, 6, 1.5),
-    factions: ['HEL', 'STL'], traits: [],
+    ctype: 'CMD', ttype: 'divine', faith: 'hermes', weapon: G('날개 단검 투척', 'elec', 0.9, 3, 0.6, 6, 1.5), // 모든 피해 전기 (헤르메스 = 번개처럼 빠른 전령)
+    factions: ['HEL', 'STL'], traits: ['COND'],
     trait: {
-      name: '헤르메스의 날개', desc: '아군 전원 이동 속도 · 공격 속도 +25%p. 날개 단검이 5번 맞을 때마다 대상의 인지를 교란해 기술 위력 120% 신성 피해 + 50% 확률로 1.5초 공포.',
+      name: '헤르메스의 날개', desc: '아군 전원 이동 속도 · 공격 속도 +25%p. 날개 단검이 5번 맞을 때마다 대상의 인지를 교란해 기술 위력 120% 전기 피해 + 50% 확률로 1.5초 공포.',
       effect: { hooks: { onBasic(b, u, t, r) {
         if (r.amount <= 0 || !t.alive || !nth(u, 'irisN', 5)) return;
-        skillHit(b, u, t, 'tech', u.sk.jam ?? 1.2, 'holy', { noMiss: true });
+        skillHit(b, u, t, 'tech', u.sk.jam ?? 1.2, 'elec', { noMiss: true });
         if (t.alive) fear(b, u, t, 1.5, u.sk.fearChance ?? 0.5);
       }, onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'iris.wing', 999, { delta: { moveSpd: 0.25, atkSpd: 0.25 } }); } } },
     },

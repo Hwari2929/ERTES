@@ -159,8 +159,8 @@ export const ROSTER_B: BaseUnit[] = [
     }),
   },
   {
-    id: 'iris', name: '이리스', title: '이타카 헤르메스 사제', factions: ['HEL'], traits: [], keywords: ['bio'],
-    atk: { type: 'shoot', elem: 'holy', interval: 1.0 }, range: 3, base: B(6, 7, 9, 4, 5),
+    id: 'iris', name: '이리스', title: '이타카 헤르메스 사제', factions: ['HEL'], traits: ['COND'], keywords: ['bio'],
+    atk: { type: 'shoot', elem: 'elec', interval: 1.0 }, range: 3, base: B(6, 7, 9, 4, 5),
     sprite: 'medic', palette: tint(PAL.HEL, '#f0f0f0', '#d4a83a', '#ffd040'), lore: '"헤르메스 신도가 되는거 어떻게 생각하세요? 그- 일단 우리 헤르메스님이 엄청 잘생기셨거든요!"',
     skill: support({
       name: '헤르메스의 가속', cd: 7, target: 'commanded', params: { count: 2, as: 0.35, dur: 4, jam: 1.2, fearChance: 0.5 },
