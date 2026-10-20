@@ -312,7 +312,7 @@ export const STORY_B3_SCENES: Record<string, EventScene> = {
       SUB,
       S('yelena', '{pc}님, 바로 정리할게요. 회담을 지키면 깔끔하게 끝나요. 수당은 쥐꼬리고요.', { face: 'serious' }),
       S('yelena', '발전기를 끄면 큰돈이 들어와요. 들키면 양쪽 함대가 우릴 쫓고요.'),
-      S('yelena', '저 사람을 잡아서 넘기면 어느 쪽이든 고마워할 거예요. 근데 느낌이 안 좋아요. 저런 사람 품엔 보통 터지는 게 하나 있거든요.', { face: 'worried' }),
+      S('yelena', '저 사람을 잡아서 넘기면 어느 쪽이든 고마워할 거예요. 근데 느낌이 별로예요. 저런 사람 품엔 보통 터지는 게 하나 있거든요.', { face: 'worried' }),
       S('b_masked', '시간이 많지 않습니다. 해가 뜨면 서명 준비가 시작되니까요.'),
     ],
     subs: {

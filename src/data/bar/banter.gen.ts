@@ -372,7 +372,7 @@ export const BANTER: Banter[] = [
   {id:"12.16",t:11,sub:"지원",sit:"전투 중 간식",place:2,layer:"s",cast:["gunnir","rachel"],lines:[["gunnir","레이첼, 주먹밥. 배고프면 판단 못 해요."],["rachel","2개."]]},
   {id:"12.17",t:11,sub:"지원",sit:"치료 중",place:2,layer:"s",cast:["demiurgos","odysseus"],lines:[["demiurgos","괜찮아, 전에도 이랬잖아."],["odysseus","나 전에도 이랬어? 그럼 다음 수도 알지?"]]},
   {id:"12.18",t:11,sub:"지원",sit:"빵 투척 지원",place:2,layer:"s",cast:["doros","kyle"],lines:[["doros","카일 님, 빵 받으세요!"],["kyle","좋다. 기도하며 씹는다."]]},
-  {id:"12.19",t:11,sub:"지휘 · 신호",sit:"전투 중 지시",place:2,layer:"s",cast:["rachel","yelena"],lines:[["yelena","지휘관님, 느낌 안 좋아요. 왼쪽."],["rachel","그럼 왼쪽 부숴."]]},
+  {id:"12.19",t:11,sub:"지휘 · 신호",sit:"전투 중 지시",place:2,layer:"s",cast:["rachel","yelena"],lines:[["yelena","지휘관님, 느낌이 별로예요. 왼쪽."],["rachel","그럼 왼쪽 부숴."]]},
   {id:"12.20",t:11,sub:"지휘 · 신호",sit:"스파르타 시절 손발",place:2,layer:"s",cast:["odysseus","iris"],lines:[["odysseus","이리스, 왼쪽 상자."],["iris","빼돌렸어요! 헤르메스님 이름으로!"]]},
   {id:"12.21",t:11,sub:"지휘 · 신호",sit:"점괘와 항로",place:2,layer:"s",cast:["hiiro","zephyro"],lines:[["hiiro","오른쪽이 흐려요. 흉이네."],["zephyro","그럼 왼쪽 가. 원래 거기가 안전했어."]]},
   {id:"12.22",t:11,sub:"지휘 · 신호",sit:"전장 실황",place:2,layer:"s",cast:["reika","fotini"],lines:[["reika","여러분 지금 우리 위험해요~ 근데 이거 각이다!"],["fotini","오른쪽에서 날아오는 것은 포탄입니다 ^^ 고개 숙이세요 ^^"]]},
