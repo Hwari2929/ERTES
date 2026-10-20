@@ -436,5 +436,8 @@
       0.3365970028634754
     ],
     "same_starter_set": 500
-  }
+  },
+  "actual_bot": "dumbi",
+  "active_chulsu_areas": [],
+  "correction": "2026-10-20: prior Chulsu label was incorrect; bot=chulsu was omitted and all 1000 raw runs record dumbi."
 }
