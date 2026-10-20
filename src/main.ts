@@ -57,6 +57,7 @@ import { GLOSSARY, GLOSSARY_COUNT } from './data/glossary';
 import { NODE_DESC } from './data/nodes';
 import * as TUT from './engine/tutorial';
 import { fieldSyn, starterFavNeed, starterPool } from './engine/starters';
+import * as RM from './ui/routemap';
 
 // 편의 설정 (이 브라우저에만 저장): 전투 속도, 진형 속도 등
 const PREF_KEY = 'errantes.prefs.v1';
@@ -977,9 +978,9 @@ function mapScreen(run: RunState) {
     <aside class="side left">
       <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
     </aside>
-    <section class="map-main">
+    <section class="map-main${RM.routeMapOn(run) ? ' has-rmap' : ''}">
       <div class="screen-head map-head"><h1>페이즈 ${p}</h1>${bossGoal(run)}</div>
-      <div class="tl"><ol class="tl-track">${track}</ol></div>
+      ${RM.routeMapOn(run) ? '<div class="rmap-host"></div>' : ''}<div class="tl"><ol class="tl-track">${track}</ol></div>
       <p class="map-scale" title="이번 페이즈 적 강도 (페이즈마다 누적)">${scale}</p>
       ${mapAhead(run, pick, enter)}
       ${shipPanel(run, pet >= 2 ? `<button class="btn ship-loan" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 ${CR}+25 · 상환 30</button>` : '')}
@@ -3193,6 +3194,7 @@ function render() {
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
   umCompactBind();
   detailHeadBind();
+  RM.mountRouteMap(root.querySelector<HTMLElement>('.rmap-host'), app.screen === 'map' ? run : null, (el) => setTimeout(() => tlPop(el), 0)); // 항로도 (리빈 · 물류망). 팝오버는 누름으로 다시 그린 뒤에 연다 (항로도 DOM 은 그대로 옮겨지므로 el 이 유지된다)
   // 창 내용은 첫 그리기에서 채워질 수 있으므로 (선택지 생성 등) 그린 뒤의 키를 기억한다
   lastView.modal = modalKeyOf();
   scrollRestore(scrolled, newModal);

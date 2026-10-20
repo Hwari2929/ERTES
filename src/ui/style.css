@@ -623,6 +623,15 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
   .tl-step.cur .tl-node, .tl-step.tl-boss .tl-node { width: 28px; height: 28px; }
   .tl-step.cur .tl-node .li, .tl-step.tl-boss .tl-node .li { width: 16px; height: 16px; }
 }
+/* 항로도 (ui/routemap.ts · 리빈 낙원동 · 베르타–산노디스): 타임라인 대신 보인다. 타임라인은 숨겨 두고 단축키 · 고르기용으로만 남긴다 */
+.map-main.has-rmap .tl { display: none; }
+.rmap { position: relative; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; background: var(--bg); }
+.rmap .rm-stage { display: block; width: 100%; height: auto; cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; font-family: var(--f-mono); }
+.rmap.drag .rm-stage { cursor: grabbing; }
+.rmap .rm-ko { font-family: var(--f-body); }
+.rmap .rm-node { cursor: pointer; outline: none; }
+.rmap .rm-node:focus-visible circle { stroke-dasharray: 3 2; }
+.rmap .rm-recenter { position: absolute; left: 10px; top: 10px; }
 /* 타임라인 노드 팝오버 (main.ts tlPop) */
 .tl-pop { position: fixed; z-index: var(--z-kw); display: grid; gap: 3px; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-top: 2px solid var(--nc); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); font-size: var(--fs-base); line-height: 1.5; pointer-events: none; }
 .tl-pop b { display: inline-flex; align-items: center; gap: 6px; color: var(--c-text); }
