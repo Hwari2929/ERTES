@@ -112,6 +112,16 @@ const UNIQUE: Record<string, { name: string; icon: string; desc: string; effect:
       }
     } } },
   },
+  P_blackbox: {
+    name: '[캠페인] 블랙박스 백수정', icon: '◇', desc: 'A-117 관제실의 마지막 교대 기록. 장착한 기물이 처음 쓰러질 때 기록을 되감아 체력 50%로 일어난다 (전투당 1회).',
+    effect: { hooks: { onLethal(b, u) {
+      if (u.isSummon || u.mem.bbRev) return false;
+      u.mem.bbRev = 1;
+      u.hp = b.S(u, 'maxHp') * 0.5;
+      b.emit({ k: 'mark', id: u.id, name: '기록 되감기', style: 'revive' });
+      return true;
+    } } },
+  },
   // 공왕 무휼 전용 (청라공국 3 · 5 · 7명에 해금, 자동 장착 · 해제 불가 · 일반 기물 장착 불가). data/chungra.ts KING_GEAR
   U_mh_seal: {
     name: `[고유] ${KING_GEAR_NAME.U_mh_seal}`, icon: '印', desc: '무휼 전용 · 청라공국 3명에 해금. 모든 주요 능력치 +4, 피해량 경감 10%.',

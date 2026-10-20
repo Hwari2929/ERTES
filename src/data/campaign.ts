@@ -133,7 +133,7 @@ export const CAMP_MEMBERS: Record<string, CampSynId[]> = {
 };
 export const campMembers = (defId: string): SynergyId[] => CAMP_MEMBERS[defId] || [];
 
-// ───────────────────────── 장 정의 (검증판: 프롤로그 + 1장)
+// ───────────────────────── 장 정의 (검증판: 프롤로그 + 1 · 2장)
 export interface ChapterDef {
   ch: number; name: string; place: string;
   /** 출전 인원 상한 */
@@ -144,16 +144,27 @@ export interface ChapterDef {
   /** 사건 칸(지도 칸 번호) → 고정 사건 id (data/events.ts 의 캠페인 사건) */
   events: Record<number, string>;
   boss: string;
+  /** 적 성장 단계 (일반 런의 페이즈와 같은 배율). 캠페인은 출전 인원이 적어 기물이 빨리 자라므로 장 번호보다 높게 잡는다 */
+  phase: number;
+  /** 정예: 이 칸 번호부터 일반 전투에 1마리 */
+  elite?: { id: string; from: number };
 }
 /** 노드별 AH 비용 (고른 행동에만 든다 — 대화 · 설명을 읽는 시간은 들지 않는다) */
 export const TIME_COST: Partial<Record<NodeType, number>> = { battle: 6, adversity: 6, boss: 6, event: 3, maint: 2, supply: 2, shop: 1 };
 /** 1장 기본 경로 비용 = 전투 3 · 보스 · 사건 4 · 보급 · 분기점 = 39 → 시작 53 이면 14 남음 (정산 최고 단계).
  *  비비안 조사(-4) · 필리스 확인(-2)을 쓰면 단계가 내려간다 */
 export const CHAPTERS: ChapterDef[] = [
-  { ch: 1, name: '1장 · TS-7 환적 정거장', place: '환적 정거장 TS-7', deploy: 2, time: 53,
+  { ch: 1, name: '1장 · TS-7 환적 정거장', place: '환적 정거장 TS-7', deploy: 2, time: 53, phase: 1,
     map: [['battle'], ['event'], ['battle'], ['event'], ['supply'], ['event'], ['battle'], ['shop'], ['event'], ['boss']],
     events: { 1: 'cp_phyllis', 3: 'cp_cargo1', 5: 'cp_survey', 8: 'cp_cargo2' }, boss: 'cp_loader' },
+  // 2장 기본 경로 비용 = 전투 4 · 보스 · 사건 4 · 보급 · 분기점 = 45 → 시작 59 면 14 남음. 나디르 영사(-4) · 필리스 확인(-2) · 지름길(+2)
+  { ch: 2, name: '2장 · A-117 광석 하역장', place: '광석 소행성 하역장 A-117', deploy: 3, time: 59, phase: 3,
+    map: [['battle'], ['event'], ['battle'], ['event'], ['battle'], ['supply'], ['event'], ['battle'], ['shop'], ['event'], ['boss']],
+    events: { 1: 'cp2_nadir', 3: 'cp2_cargo3', 6: 'cp2_record', 9: 'cp2_cargo4' }, boss: 'cp_borer', elite: { id: 'sw_brood', from: 7 } },
 ];
 export const chapterOf = (run: RunState) => CHAPTERS.find((c) => c.ch === run.campaign?.ch) || CHAPTERS[0];
 /** 장 정산 보너스: 남은 시간 구간별 크레딧 (상한 있음 — 강한 편성이 돈까지 더 버는 순환을 막는다). 페트라 3단계면 한 단계 위 */
-export const SETTLE: Record<number, { from: number; cr: number }[]> = { 1: [{ from: 14, cr: 8 }, { from: 8, cr: 4 }, { from: -999, cr: 0 }] };
+export const SETTLE: Record<number, { from: number; cr: number }[]> = {
+  1: [{ from: 14, cr: 8 }, { from: 8, cr: 4 }, { from: -999, cr: 0 }],
+  2: [{ from: 14, cr: 10 }, { from: 8, cr: 5 }, { from: -999, cr: 0 }],
+};

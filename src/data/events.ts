@@ -65,6 +65,7 @@ const CAMP = ['__camp'];
 const hasTape = (r: RunState) => r.inventory.includes('K_cp_tape');
 const useTape = (r: RunState) => { const i = r.inventory.indexOf('K_cp_tape'); if (i >= 0) r.inventory.splice(i, 1); };
 const phyllisOut = (r: RunState) => r.units.some((u) => u.defId === 'phyllis' && u.pos);
+const nadirOut = (r: RunState) => r.units.some((u) => u.defId === 'nadir' && u.pos);
 const campTime = (r: RunState, n: number) => { if (r.campaign) { r.campaign.time -= n; r.campaign.spent += n; } };
 /** 격리 화물 선택지 (화물칸마다 공통): 신고 = 안전 · 직접 = 보상 + 위험 반반 · 테이프 = 위험 제거 · 필리스 = 정보 (시간을 쓰고 내용물을 본 뒤 다시 고른다) */
 const cargoChoices = (tag: string): EventChoice[] => [
@@ -95,17 +96,17 @@ export const EVENTS: EventDef[] = [
   },
   {
     id: 'cp_cargo2', title: '격리 화물 — 화물칸 D-1', fields: CAMP, weight: 0,
-    text: '의료 물자 표시가 붙은 냉동 컨테이너. 냉각기는 꺼졌는데 안쪽에서 온기가 올라온다. 비비안: "냄새가 이상해! 리키가 꼬리를 말았어."',
+    text: '의료 물자 표시가 붙은 냉동 컨테이너가 있다. 냉각기는 꺼져 있는데 안쪽에서 온기가 올라온다. 비비안: "냄새가 이상해! 리키가 꼬리를 말았어."',
     choices: cargoChoices('d1'),
   },
   {
     id: 'cp_peek_safe', title: '필리스의 확인 — 깨끗함', fields: CAMP, weight: 0,
-    text: '필리스가 균열 틈으로 손만 넣어 상자 안을 더듬고 나온다. "부품이야. 반짝이는 거. 위험한 건 없어-."',
+    text: '필리스가 균열 틈으로 손만 넣어 상자 안을 더듬고 나온다. "반짝이는 부품이야. 위험한 건 없어-."',
     choices: [{ label: '연다', desc: '희귀 장비 1개.', apply: (_r, api) => { api.gain(api.randomItem('A')); return '희귀 장비 1개를 챙겼습니다.'; } }],
   },
   {
     id: 'cp_peek_risky', title: '필리스의 확인 — 꿈틀거림', fields: CAMP, weight: 0,
-    text: '균열에서 손을 빼자 장갑 끝에 회백색 실이 묻어 나온다. 필리스: "좋은 부품이랑… 뭐가 같이 들어 있어. 살아 있는 거."',
+    text: '균열에서 손을 빼자 장갑 끝에 회백색 실이 묻어 나온다. 필리스: "좋은 부품이 있는데… 살아 있는 것도 같이 들어 있어."',
     choices: [
       { label: '그래도 연다', desc: '희귀 장비 1개 + 다음 전투에 포자 살점 +2.', apply: (_r, api) => { api.gain(api.randomItem('A')); api.flag('cp_sample'); return '부품은 챙겼고, 표본이 빠져나갔습니다 — 다음 전투에 포자 살점 +2.'; } },
       { label: '봉인 테이프로 연다', desc: '격리 봉인 테이프 1개를 써서 희귀 장비 1개만.', block: (r) => (hasTape(r) ? null : '격리 봉인 테이프가 없습니다'), apply: (r, api) => { useTape(r); api.gain(api.randomItem('A')); return '표본은 봉인하고 부품만 꺼냈습니다.'; } },
@@ -117,9 +118,38 @@ export const EVENTS: EventDef[] = [
     text: '하역 크레인 쪽 화물칸에서 포자 살점이 줄줄이 쏟아져 나온다. 비비안이 리키의 목줄을 쥔다. "저기 둥지가 크레인을 껴안고 있어! 조금만 냄새 맡게 해 주면 어디가 입구인지 알 수 있어!"',
     choices: [
       { label: '조사한다', desc: 'AH -4. 보스 [적재 군집]의 정체를 미리 알고, 컨테이너 2개를 봉인한 채 싸운다 (포자가 쏟아지는 간격 10초 → 12초). 리키에게 씌운 [리키용 진공 헬멧]도 남는다.',
-        apply: (r, api) => { campTime(r, 4); api.flag('cp_intel'); api.gain('P_helmet', true); return '비비안: "크레인에 붙어서 못 움직여! 컨테이너 두 개는 리키가 막았어!" — 보스 정보 확보, 컨테이너 2개 봉인. [리키용 진공 헬멧] 획득.'; } },
+        apply: (r, api) => { campTime(r, 4); api.flag('cp_intel'); api.gain('P_helmet', true); return '비비안: "크레인에 붙어서 못 움직여! 컨테이너 2개는 리키가 막았어!" — 보스 정보 확보, 컨테이너 2개 봉인. [리키용 진공 헬멧] 획득.'; } },
       { label: '바로 돌파한다', desc: '시간을 아낀다. 보스는 컨테이너 4개가 모두 열린 채로 맞는다.', apply: () => '비비안: "알았어, 대신 리키는 내 옆에 있을 거야!"' },
     ],
+  },
+
+  // ───────── 캠페인 「회수 계약」 2장 · A-117 광석 하역장
+  {
+    id: 'cp2_nadir', title: '갱도 입구의 백수정', fields: CAMP, weight: 0,
+    text: '하역장 갱도 입구는 조명이 절반쯤 나가 있다. 어둠 속에서 백수정 하나만 빛나고, 나디르가 그 옆에 바짝 붙어 앉아 있다. "왔어요?! 다행이다. 관제실 위치는 찾았는데 안쪽이 너무 깜깜해서요."',
+    choices: [
+      { label: '같이 들어가자', desc: '나디르 합류. 나디르가 나눠 준 비상식량: 플레이어 체력 +5.', apply: (r, api) => { api.join('nadir'); r.hp = Math.min(r.maxHp, r.hp + 5); return '나디르가 합류했습니다. 2장 출전은 3명입니다.'; } },
+      { label: '찾아 둔 길로 안내해', desc: '나디르 합류. 나디르가 표시해 둔 지름길로 간다: AH +2.', apply: (r, api) => { api.join('nadir'); if (r.campaign) r.campaign.time += 2; return '나디르가 합류했습니다. 지름길 덕분에 AH +2. 2장 출전은 3명입니다.'; } },
+    ],
+  },
+  {
+    id: 'cp2_cargo3', title: '격리 화물 — 광석 운반차 7호', fields: CAMP, weight: 0,
+    text: '레일 위에 멈춘 광석 운반차 안에 페트라 화물 상자가 하나 섞여 있다. 적요 번호를 적는 칸은 비어 있다. 나디르: "광석차에 왜 상자가 실려 있죠? 이거 여기 있으면 안 되는 물건 아니에요?"',
+    choices: cargoChoices('ore7'),
+  },
+  {
+    id: 'cp2_record', title: '관제실 블랙박스', fields: CAMP, weight: 0,
+    text: '관제실 콘솔 아래에 손바닥만 한 백수정이 박혀 있다. 3주 전 마지막 교대 근무가 여기에 기록돼 있다. 나디르: "이걸 영사하면 갱도 안쪽에 뭐가 있는지 볼 수 있어요. 대신 시간이 좀 걸려요."',
+    choices: [
+      { label: '영사한다', desc: 'AH -4. 보스 [골갑 굴착 기사]의 골갑 이음매를 미리 안다 (화학 외 받는 피해 감소 30% → 없음). 기록이 담긴 [블랙박스 백수정]도 챙긴다.', block: (r) => (nadirOut(r) ? null : '나디르가 출전 중이어야 합니다'),
+        apply: (r, api) => { campTime(r, 4); api.flag('cp_intel2'); api.gain('P_blackbox', true); return '영사 속 마지막 교대 근무: 인부들이 적요 번호가 없는 상자를 갱도 안쪽으로 옮기고 있다. 기록은 거기서 끊겼다. 나디르: "저 상자, 아까 광석차에 있던 거랑 똑같은데요?" — 보스 정보 확보. [블랙박스 백수정] 획득.'; } },
+      { label: '그냥 지나간다', desc: '시간을 아낀다. 보스는 골갑을 그대로 두른 채로 맞는다.', apply: () => '나디르: "아깝다… 그럼 나중에 꼭 다시 와요."' },
+    ],
+  },
+  {
+    id: 'cp2_cargo4', title: '격리 화물 — 갱도 대피소', fields: CAMP, weight: 0,
+    text: '갱도 대피소에 비상 물자 상자가 쌓여 있다. 맨 아래 상자만 겉면이 축축하다. 비비안: "리키가 저 상자만 계속 노려봐! 안에 뭐가 살아 있어."',
+    choices: cargoChoices('shelter'),
   },
 
   // ───────── 공용

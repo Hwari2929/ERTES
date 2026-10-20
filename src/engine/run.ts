@@ -26,7 +26,7 @@ import { causalGain, causalLeft, causalStage, KING_GEAR, KING_GEAR_NAME } from '
 import { EMB } from '../data/emblems';
 import type { Battle } from './combat';
 import { newRec, recBattle, recReroll, recSpend } from './report';
-import { campAfterBattle, campBoss, campDeploy, campEnter, campFoeCount } from './campaign';
+import { campAfterBattle, campBoss, campDeploy, campElite, campEnter, campFoeCount, campNextChapter } from './campaign';
 
 export const SAVE_VERSION = 6; // 6: 전술 유형 개편 (개별 증강 폐지)
 
@@ -705,6 +705,7 @@ export function advance(run: RunState) {
   run.step++;
   if (run.tutorial && run.step >= run.map.length) return; // 튜토리얼: 항로 끝 (다음 페이즈 없음)
   if (run.mods.nodeIncome) run.credits += run.mods.nodeIncome; // 분할 정산 등
+  if (run.campaign && run.step >= run.map.length) { campNextChapter(run); run.picked = []; run.nodeUnits = {}; autoPlace(run); return; } // 캠페인: 다음 장
   if (run.step >= run.map.length) {
     run.phase++;
     run.mods.divGain = 0; // 성인 기념일은 이번 페이즈만
@@ -806,7 +807,7 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
       const late = run.step >= 5 ? 1 : 0; // 페이즈 후반 (항로 회의 이후 두 번째 전투부터)
       const count = run.campaign ? campFoeCount(run) : Math.min(rows * n - 2, 2 + p + late + (f.extraEnemies || 0) + (type === 'adversity' && diffHas(run.diff, 5) ? 1 : 0));
       if (run.campaign && run.flags.includes('cp_sample')) { ids.push('sw_spore', 'sw_spore'); run.flags = run.flags.filter((x) => x !== 'cp_sample'); } // 캠페인 격리 화물: 빠져나간 군체 표본
-      if (run.campaign) { /* 캠페인 1장: 정예 없음 */ } else if (type === 'adversity' || ((p >= 2 || oathLv(run, 'elite')) && r.chance((diffHas(run.diff, 5) ? 0.6 : 0.3) + oathV(run, 'elite', 'chance')))) ids.push(f.elite); // 정예의 서약: 1페이즈부터 · 확률 +
+      if (run.campaign) { const el = campElite(run); if (el) ids.push(el); } // 캠페인: 장마다 정한 칸부터 정예 1마리 else if (type === 'adversity' || ((p >= 2 || oathLv(run, 'elite')) && r.chance((diffHas(run.diff, 5) ? 0.6 : 0.3) + oathV(run, 'elite', 'chance')))) ids.push(f.elite); // 정예의 서약: 1페이즈부터 · 확률 +
       while (ids.length < count) ids.push(r.pick(pool));
     }
     // 위험 등급 적 증원 (모험 · 고난, CFG.diffAdd): 보스전 포함 모든 전투. 이 조우에 이미 나온 일반 적(정예 · 보스 · 장애물 제외) 중에서 복제하고,
@@ -1518,6 +1519,7 @@ export const flipAllSupply = (run: RunState, p: Extract<Pending, { t: 'supply' }
 export function joinRank(run: RunState): number {
   const dep = run.units.filter((u) => u.pos && !isRock(u));
   const avg = dep.length ? dep.reduce((s, u) => s + u.rank, 0) / dep.length : 1;
+  if (run.campaign) return Math.min(CFG.maxRank, Math.max(1, Math.round(avg))); // 캠페인: 이야기로 합류하는 주연은 출전 평균 등급으로
   return Math.min(CFG.maxRank, Math.max(1, run.phase - 1, Math.round(avg * CFG.joinRankRatio)));
 }
 /** 지금 영입하면 합류할 공명 등급 (전역 증강 정찰망 +1) */

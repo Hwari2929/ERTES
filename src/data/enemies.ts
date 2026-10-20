@@ -240,6 +240,24 @@ export const ENEMIES: EnemyDef[] = [
       const cap = 4, alive = b.units.filter((x) => x.alive && x.side === u.side && x.defId === 'sw_spore').length;
       if (alive < cap) summonHook?.(b, u, 'sw_spore', Math.min(2, cap - alive));
     } },
+  // 캠페인 「회수 계약」 2장 보스: 갱도 깊이 버티는 군체 '기사' 계급. 골갑 = 화학 외 받는 피해 감소 (나디르 영사로 이음매를 알면 골갑이 듣지 않는다, b.ctx.campIntel2).
+  // [굴착 돌진] 바닥을 파고 들어가 체력 비율이 가장 낮은 적 곁으로 솟아오른다. 장 적 단계 3 (data/campaign.ts) · 2장엔 아군이 6~7등급이라 위력이 높다.
+  // 시뮬(tests/campaign_sim.ts, 40판): 바로 지나감 보스 평균 1.8회 · 영사 1.7회 · 1장과 비슷한 벽
+  { id: 'cp_borer', name: '골갑 굴착 기사', tend: 'charge', keywords: ['bio'], sprite: 'beast', palette: SWARM_BOSS, art: 'en_sw_hound', tier: 'boss', minPhase: 99,
+    hp: 6000, power: 215, armor: 200, effRes: 0.2, interval: 1.3, range: 1, moveSpd: 0.8, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    skill: {
+      name: '굴착 돌진', cd: 10, params: {}, desc: () => '땅을 파고 들어가 체력 비율이 가장 낮은 적 곁에서 솟아오른다 (기술 위력 180% 물리 + 주변 1칸 80% + 1초 기절)',
+      cast(b, u) {
+        const es = b.enemiesOf(u); if (!es.length) return false;
+        const t = es.slice().sort((a, c) => a.hp / b.S(a, 'maxHp') - c.hp / b.S(c, 'maxHp'))[0];
+        if (!blinkTo(b, u, t)) return false;
+        b.fx(t.x, t.y, 1, 'phys');
+        skillHit(b, u, t, 'strike', 1.8, 'phys'); b.stun(u, t, 1, 0.8);
+        for (const e of b.around(t, 1, es)) if (e !== t) skillHit(b, u, e, 'strike', 0.8, 'phys');
+        return true;
+      },
+    },
+    hooks: { takenMult: (b, _u, _src, o) => (o.elem === 'chem' || b.ctx.campIntel2 ? 1 : 0.7) } },
   { id: 'sw_queen', name: '군체 여왕', tend: 'counter', keywords: ['bio', 'phantom'], sprite: 'phantom', palette: SWARM_BOSS, tier: 'boss', minPhase: 1,
     hp: 3000, power: 46, armor: 180, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     escort: ['sw_hound', 'sw_spitter'],
