@@ -215,17 +215,19 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
 
   // ── 리빈 낙원동: 속 빈 구체의 내벽 단면. 인공 태양(중심)은 화면 위 바깥
   function ringScene() {
-    const W = 800, H = 450, R = 600, CX = 400, CY = 372 - R, STEP = 21; // 노드 간격 21° ≈ 220px
+    const W = 800, H = 450, R = 600, CX = 400, CY = 372 - R, STEP = 17; // 노드 간격 17° ≈ 165px
     const VB = narrow ? [180, 120, 440, 320] : [0, 92, W, 350], T0 = VB[1];
     stage.setAttribute('viewBox', VB.join(' ')); stage.style.aspectRatio = `${VB[2]} / ${VB[3]}`;
     el('rect', { x: -200, y: -200, width: W + 400, height: H + 400, fill: C.bg }, stage);
     const back = el('g', {}, stage), rotG = el('g', {}, stage), nodesG = el('g', {}, stage), top = el('g', {}, stage);
     const rnd = rng(7 + run.phase);
-    const span0 = -50, span1 = (N - 1) * STEP + 50;
+    const span0 = -50, span1 = (N - 1) * STEP + 70;
     const P = (deg: number, r: number) => [CX - r * Math.cos(deg * Math.PI / 180), CY + r * Math.sin(deg * Math.PI / 180)]; // 좌우 반전: 앞으로 올 노드가 오른쪽
     // 벽에 붙은 것은 회전 0 기준으로 놓고 rotG 전체를 돌린다 (지역 좌표: x = 벽을 따라, -y = 중심 쪽)
     const place = (g: Element, a: number, r = R) => { const [x, y] = P(90 + a, r); g.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${(-a).toFixed(2)})`); };
-    const rig = sweepRig(back, [90, 180, 270, 360], (r) => `${r * 10}m`); rig.g.setAttribute('transform', `translate(${CX} 372)`);
+    const rig = sweepRig(back, [90, 180, 270, 360], (r) => `${r * 10}m`); // 현재 노드 자리: 가운데가 아니라 화면 왼쪽에서 30% (앞으로 갈 길이 더 보이게). A0 = 그 자리의 벽 각도
+    const A0 = Math.asin((VB[0] + VB[2] * .3 - CX) / (R - 46)) * 180 / Math.PI;
+    { const [gx, gy] = [CX + R * Math.sin(A0 * Math.PI / 180), CY + R * Math.cos(A0 * Math.PI / 180)]; rig.g.setAttribute('transform', `translate(${gx.toFixed(1)} ${gy.toFixed(1)})`); }
     el('line', { x1: CX, y1: T0, x2: CX, y2: T0 + 24, stroke: C.t3, 'stroke-width': 1 }, back);
     txt(back, CX + 6, T0 + 36, '↑ ZENITH 000 · 인공 태양', { fill: C.t2, 'font-size': 9.5 });
 
@@ -302,11 +304,11 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     let kV = 0, kM = 0, kQ = 0;
     for (let i = -3; i <= N + 1; i++) {
       const a = (i + .5) * STEP + (rnd() - .5) * 3, type = GAP[(i + 3) % GAP.length];
-      if (type === 'mountain') { const g = at(a); mountain(g, 80 + rnd() * 30, 54 + rnd() * 22, ++kM); forest(g, 30, 4); }
-      else if (type === 'village') { const g = at(a); village(g, 4 + Math.floor(rnd() * 4), ++kV); farm(g, 36, 26); }
-      else if (type === 'forest') forest(at(a), -40, 11);
+      if (type === 'mountain') { const g = at(a); mountain(g, 66 + rnd() * 22, 48 + rnd() * 18, ++kM); forest(g, 26, 3); }
+      else if (type === 'village') { const g = at(a); village(g, 3 + Math.floor(rnd() * 3), ++kV); farm(g, 30, 20); }
+      else if (type === 'forest') forest(at(a), -34, 9);
       else if (type === 'post') { const g = at(a); post(g, ++kQ); forest(g, 26, 3); }
-      else { lake(at(a, R, lakeG), 64); forest(at(a), -46, 3); }
+      else { lake(at(a, R, lakeG), 52); forest(at(a), -40, 3); }
     }
     for (let i = 0; i < N; i++) if (rnd() < .6) farm(at(i * STEP + (rnd() - .5) * 4), -18, 36);
 
@@ -371,19 +373,19 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     corners(top, VB);
     titleBlock(top, VB, 'RV-1 PRESERVATION SPHERE · 內壁 단면 · SECTOR RIVIN', [`리빈-1 낙원동 · 페이즈 ${run.phase}`, `${N} NODES`, '거리환 900m 간격', 'REV.05 · 스코프']);
 
-    let rot = -cur * STEP; // 노드 i 의 각 = 90 + i·STEP + rot
+    let rot = A0 - cur * STEP; // 노드 i 의 각 = 90 + i·STEP + rot (현재 노드는 A0)
     const draw = () => {
       rotG.setAttribute('transform', `rotate(${(-rot).toFixed(3)} ${CX} ${CY})`);
       tokens.forEach((k, i) => { const [x, y] = P(90 + i * STEP + rot, RN); k.g.setAttribute('transform', `translate(${x} ${y})`); });
       const [cx, cy] = P(90 + cur * STEP + rot, R + 16); crew.setAttribute('transform', `translate(${cx} ${cy})`);
-      recenterBtn.hidden = homing || Math.abs(rot + cur * STEP) < 1.5;
+      recenterBtn.hidden = homing || Math.abs(rot - (A0 - cur * STEP)) < 1.5;
     };
     draw(); drawSegs(); paint(tokens, false);
-    const lo = -(N - 1) * STEP - 18, hi = 18;
+    const lo = A0 - (N - 1) * STEP - 18, hi = A0 + 18;
     const off = dragger((dx) => { rot = Math.max(lo, Math.min(hi, rot + (dx / R) * 180 / Math.PI)); draw(); });
     return {
       go() {
-        const from = rot, to = -cur * STEP, p0 = pos; paint(tokens, true); homing = true;
+        const from = rot, to = A0 - cur * STEP, p0 = pos; paint(tokens, true); homing = true;
         segs.forEach((g) => g.base.setAttribute('stroke-dashoffset', '0'));
         tween(900, (k) => { rot = from + (to - from) * k; pos = p0 + (cur - p0) * k; draw(); drawSegs(); }, () => { homing = false; pos = cur; draw(); drawSegs(); });
       },
