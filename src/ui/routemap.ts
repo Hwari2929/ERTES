@@ -363,13 +363,15 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         f.body.setAttribute('transform', `scale(${Math.sign(f.v)} ${.35 + .65 * Math.abs(Math.sin(t * .005 + f.ph))})`);
       }
       rig.set(mod(t * .045, 360));
+      const ph = Math.sin(t * .0035);
+      crewIn.setAttribute('transform', `translate(0 ${(ph * 2.5).toFixed(2)})`); crewIn.setAttribute('opacity', (.72 + .28 * ph).toFixed(2));
       const nx = segs[Math.floor(pos)]; if (nx) nx.base.setAttribute('stroke-dashoffset', (-t * .012).toFixed(1));
     };
 
     const tokens = tokensFor(nodesG);
-    const crew = el('g', {}, nodesG);
-    el('path', { d: 'M0 -7 6 3H-6Z', fill: C.sel }, crew);
-    txt(crew, 0, 16, '용병단', { 'text-anchor': 'middle', fill: C.sel, 'font-size': 10, 'font-weight': 800, class: 'rm-ko' });
+    // 위치 표시자: 현재 노드의 45° 조준 괄호 아래 꼭짓점(중심에서 30·√2·1.22 ≈ 52) 바로 밑에서 위를 가리키고, 살짝 오르내리며 숨쉰다
+    const crew = el('g', {}, nodesG), crewIn = el('g', {}, crew);
+    el('path', { d: 'M0 -5 6 5H-6Z', fill: C.sel }, crewIn);
     corners(top, VB);
     titleBlock(top, VB, 'RV-1 PRESERVATION SPHERE · 內壁 단면 · SECTOR RIVIN', [`리빈-1 낙원동 · 페이즈 ${run.phase}`, `${N} NODES`, '거리환 900m 간격', 'REV.05 · 스코프']);
 
@@ -377,7 +379,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     const draw = () => {
       rotG.setAttribute('transform', `rotate(${(-rot).toFixed(3)} ${CX} ${CY})`);
       tokens.forEach((k, i) => { const [x, y] = P(90 + i * STEP + rot, RN); k.g.setAttribute('transform', `translate(${x} ${y})`); });
-      const [cx, cy] = P(90 + cur * STEP + rot, R + 16); crew.setAttribute('transform', `translate(${cx} ${cy})`);
+      const [cx, cy] = P(90 + cur * STEP + rot, RN); crew.setAttribute('transform', `translate(${cx.toFixed(1)} ${(cy + 62).toFixed(1)})`);
       recenterBtn.hidden = homing || Math.abs(rot - (A0 - cur * STEP)) < 1.5;
     };
     draw(); drawSegs(); paint(tokens, false);
