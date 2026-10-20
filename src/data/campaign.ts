@@ -113,7 +113,7 @@ export const CAMP_SYNERGIES: SynDef[] = [
   {
     id: 'CP_AGIT', name: '선동가', kind: 'trait', tiers: [3], color: '#d4b24a', icon: '📣',
     desc: '판을 흔드는 말재주. 마감이 다가올수록 사람들을 더 세게 몰아붙입니다 (후반 전용).',
-    tierDesc: [`전투 승리 시 계약 잔여 시간 +${CAMP.agitTime} · 잔여 시간이 ${CAMP.agitBelow} 미만이면 아군 전원 주는 피해 +${CAMP.agitDmg * 100}%`],
+    tierDesc: [`전투 승리 시 AH +${CAMP.agitTime} · 남은 AH ${CAMP.agitBelow} 미만이면 아군 전원 주는 피해 +${CAMP.agitDmg * 100}%`],
     team: (_t, ctx) => ((ctx.run?.campaign?.time ?? 99) < CAMP.agitBelow ? { mods: [inc('all', CAMP.agitDmg)] } : null),
   },
 ];
@@ -138,14 +138,14 @@ export interface ChapterDef {
   ch: number; name: string; place: string;
   /** 출전 인원 상한 */
   deploy: number;
-  /** 장 시작 계약 잔여 시간 */
+  /** 장 시작 AH (접근시간) */
   time: number;
   map: NodeType[][];
   /** 사건 칸(지도 칸 번호) → 고정 사건 id (data/events.ts 의 캠페인 사건) */
   events: Record<number, string>;
   boss: string;
 }
-/** 노드별 계약 시간 비용 (고른 행동에만 든다 — 대화 · 설명을 읽는 시간은 들지 않는다) */
+/** 노드별 AH 비용 (고른 행동에만 든다 — 대화 · 설명을 읽는 시간은 들지 않는다) */
 export const TIME_COST: Partial<Record<NodeType, number>> = { battle: 6, adversity: 6, boss: 6, event: 3, maint: 2, supply: 2, shop: 1 };
 /** 1장 기본 경로 비용 = 전투 3 · 보스 · 사건 4 · 보급 · 분기점 = 39 → 시작 53 이면 14 남음 (정산 최고 단계).
  *  비비안 조사(-4) · 필리스 확인(-2)을 쓰면 단계가 내려간다 */

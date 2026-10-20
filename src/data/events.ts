@@ -74,7 +74,7 @@ const cargoChoices = (tag: string): EventChoice[] => [
     apply: (r, api) => { api.gain(api.randomItem('A')); if (api.chance(0.5)) { api.flag('cp_sample'); return '희귀 장비를 꺼냈지만, 바닥에서 무언가 꿈틀거렸습니다 — 다음 전투에 포자 살점 +2.'; } return '깨끗한 화물이었습니다. 희귀 장비 1개.'; } },
   { label: '봉인 테이프로 연다', desc: '격리 봉인 테이프 1개를 써서 위험은 봉인하고 희귀 장비 1개만 챙긴다.', block: (r) => (hasTape(r) ? null : '격리 봉인 테이프가 없습니다'),
     apply: (r, api) => { useTape(r); api.gain(api.randomItem('A')); return '봉인 테이프로 입구를 감싸고 열었습니다. 희귀 장비 1개.'; } },
-  { label: '필리스가 먼저 들여다본다', desc: '계약 시간 -2. 열기 전에 안에 든 것이 깨끗한지 안다 (그다음 다시 고른다).', block: (r) => (phyllisOut(r) ? null : '필리스가 출전 중이어야 합니다'),
+  { label: '필리스가 먼저 들여다본다', desc: 'AH -2. 열기 전에 안에 든 것이 깨끗한지 안다 (그다음 다시 고른다).', block: (r) => (phyllisOut(r) ? null : '필리스가 출전 중이어야 합니다'),
     apply: (r, api) => { campTime(r, 2); const risky = api.chance(0.5); r.pending.push({ t: 'event', id: risky ? 'cp_peek_risky' : 'cp_peek_safe', sub: null }); void tag; return risky ? '필리스: "안에서 뭐가 꿈틀거려-."' : '필리스: "깨끗해-. 그냥 열어."'; } },
 ];
 
@@ -116,7 +116,7 @@ export const EVENTS: EventDef[] = [
     id: 'cp_survey', title: '비비안의 둥지 조사', fields: CAMP, weight: 0,
     text: '하역 크레인 쪽 화물칸에서 포자 살점이 줄줄이 쏟아져 나온다. 비비안이 리키의 목줄을 쥔다. "저기 둥지가 크레인을 껴안고 있어! 조금만 냄새 맡게 해 주면 어디가 입구인지 알 수 있어!"',
     choices: [
-      { label: '조사한다', desc: '계약 시간 -4. 보스 [적재 군집]의 정체를 미리 알고, 컨테이너 2개를 봉인한 채 싸운다 (포자가 쏟아지는 간격 10초 → 12초). 리키에게 씌운 [리키용 진공 헬멧]도 남는다. 리키에게 씌운 [리키용 진공 헬멧]도 남는다.',
+      { label: '조사한다', desc: 'AH -4. 보스 [적재 군집]의 정체를 미리 알고, 컨테이너 2개를 봉인한 채 싸운다 (포자가 쏟아지는 간격 10초 → 12초). 리키에게 씌운 [리키용 진공 헬멧]도 남는다.',
         apply: (r, api) => { campTime(r, 4); api.flag('cp_intel'); api.gain('P_helmet', true); return '비비안: "크레인에 붙어서 못 움직여! 컨테이너 두 개는 리키가 막았어!" — 보스 정보 확보, 컨테이너 2개 봉인. [리키용 진공 헬멧] 획득.'; } },
       { label: '바로 돌파한다', desc: '시간을 아낀다. 보스는 컨테이너 4개가 모두 열린 채로 맞는다.', apply: () => '비비안: "알았어, 대신 리키는 내 옆에 있을 거야!"' },
     ],

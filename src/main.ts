@@ -441,7 +441,7 @@ function titleScreen() {
       ${slots.length ? `<div class="slots">${slots.map((s) => `<button class="btn ghost" data-a="load" data-v="${s.slot}">${SLOT_NAME[s.slot]} · 페이즈 ${s.phase} · 기물 ${s.units}</button>`).join('')}</div>` : ''}
       ${m.runs ? `<p class="ts-meta"><span>의뢰 <b>${m.runs}</b></span><span>성공 <b>${m.clears}</b></span><span>위험 등급 <b>${m.maxDiff}</b></span></p>` : ''}
       </div>
-      ${(() => { const cs = loadRun(CAMP_SLOT); const go = cs?.campaign && !cs.over; return `<button class="btn ts-btn ts-campaign" data-a="campaign"><span class="ts-cp-kick">CAMPAIGN · 회수 계약</span><b>캠페인</b><small>${go ? `이어서 · ${esc(campChapter(cs!).name)} ${Math.min(cs!.step + 1, cs!.map.length)}/${cs!.map.length} · 계약 시간 ${cs!.campaign!.time}` : '베르타–산노디스 물류망 · 라르스의 의뢰 · 1장 TS-7 환적 정거장'}</small><span class="ts-soon">검증판 · 1장</span></button>`; })()}
+      ${(() => { const cs = loadRun(CAMP_SLOT); const go = cs?.campaign && !cs.over; return `<button class="btn ts-btn ts-campaign" data-a="campaign"><span class="ts-cp-kick">CAMPAIGN · 회수 계약</span><b>캠페인</b><small>${go ? `이어서 · ${esc(campChapter(cs!).name)} ${Math.min(cs!.step + 1, cs!.map.length)}/${cs!.map.length} · AH ${cs!.campaign!.time}` : '베르타–산노디스 물류망 · 라르스의 의뢰 · 1장 TS-7 환적 정거장'}</small><span class="ts-soon">검증판 · 1장</span></button>`; })()}
       </div>
     </div>
     <p class="ts-foot">싱글 PvE · 오프라인 플레이 · 진행은 이 브라우저에 자동 저장됩니다.</p>
@@ -1023,12 +1023,12 @@ function mapScreen(run: RunState) {
     ${app.sel?.k === 'unit' ? statPopHtml(run) : ''}
   </main>`;
 }
-/** 캠페인 지도 머리: 계약 잔여 시간 (게이지 + 값) · 정산 구간 */
+/** 캠페인 지도 머리: 남은 AH(접근시간) · 정산 구간 */
 function campTimeChip(run: RunState) {
   const c = run.campaign!, ch = campChapter(run), st = CAMP_SETTLE[ch.ch] || [];
   const next = st.find((s) => c.time >= s.from);
-  const tip = `계약 잔여 시간 ${c.time} / ${c.timeMax} — 고른 행동에만 든다. 장 정산: ${st.filter((s) => s.cr).map((s) => `${s.from} 이상 +${s.cr}`).join(' · ')}`;
-  return `<span class="camp-time${c.time < 8 ? ' low' : ''}" title="${esc(tip)}">${lineIcon('a.cd', 'li')}<span>계약 시간</span><b>${c.time}</b><small>/${c.timeMax}</small>${next?.cr ? `<em>정산 +${next.cr}</em>` : ''}</span>`;
+  const tip = `AH(접근시간) ${c.time} / ${c.timeMax} — 고른 행동에만 든다. 장 정산: ${st.filter((s) => s.cr).map((s) => `${s.from} 이상 +${s.cr}`).join(' · ')}`;
+  return `<span class="camp-time${c.time < 8 ? ' low' : ''}" title="${esc(tip)}">${lineIcon('r.ah', 'li')}<span>AH</span><b>${c.time}</b><small>/${c.timeMax}</small>${next?.cr ? `<em>정산 +${next.cr}</em>` : ''}</span>`;
 }
 /** 지도 환경 탭: 청라공국 · 인과율 (인과율이 있거나 청라가 켜져 있을 때) */
 function kingEnv(run: RunState) {
@@ -1142,9 +1142,9 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   // 모디파이어 (현재 칸만, 둥근 칸 · 아이콘 + 값, 설명은 툴팁): 규칙 수치만 — 적 강화 배율 · 보상 배율 (설정값) · 위험 등급 적 증원 (해골 +n) · 정예 확정 (역경 · 도전). 적 개체(초상 · 이름)는 넣지 않는다
   const mod = (icon: string, val: string, title: string, cls = '') => `<span class="ah-md ${cls}" title="${esc(title)}">${icon}${val ? `<b>${val}</b>` : ''}</span>`;
   const mods = (o: NodeType) => {
-    const tc = run.campaign ? CAMP_TIME_COST[o] || 0 : 0; // 캠페인: 이 칸에 드는 계약 시간
-    const tChip = tc ? mod(lineIcon('a.cd', 'li'), `-${tc}`, `계약 시간 -${tc} (남은 ${run.campaign!.time} → ${run.campaign!.time - tc})`, 'bad') : '';
-    if (!FIGHT_NODES.includes(o)) return tChip ? `<div class="ah-mods" aria-label="모디파이어"><span class="ah-sec">계약 시간</span>${tChip}</div>` : '';
+    const tc = run.campaign ? CAMP_TIME_COST[o] || 0 : 0; // 캠페인: 이 칸에 드는 AH
+    const tChip = tc ? mod(lineIcon('r.ah', 'li'), `-${tc}`, `AH -${tc} (남은 ${run.campaign!.time} → ${run.campaign!.time - tc})`, 'bad') : '';
+    if (!FIGHT_NODES.includes(o)) return tChip ? `<div class="ah-mods" aria-label="모디파이어"><span class="ah-sec">AH</span>${tChip}</div>` : '';
     const m: string[] = tChip ? [tChip] : [];
     const ph = o === 'challenge' ? run.phase + 1 : run.phase;
     if (o === 'adversity' || o === 'challenge') m.push(mod(lineIcon('m.up', 'li'), `×${CFG.adversityMult}`, `적 강화: 체력 ×${CFG.adversityMult} · 피해 ×${+encDmgMult(CFG.adversityMult).toFixed(2)}`, 'bad'));
@@ -1236,9 +1236,9 @@ function unitRank(e: EnemyDef, c: CUnit) {
 const rankTip = (r: { lv: number; hpX: number }) => `공명 등급 ★${r.lv} 수준 (추정): 공격 위력이 장비 · 시너지 없는 ★${r.lv} 아군 평균과 비슷 · 체력은 그 아군의 ×${r.hpX >= 10 ? Math.round(r.hpX) : r.hpX.toFixed(1)}`;
 const rankChip = (r: { lv: number; hpX: number } | null) => (r ? `<span class="rank foe-rank" title="${esc(rankTip(r))}">${rankLabel(r.lv)}</span>` : ''); // 아군 공명 등급과 같은 흰 배지
 /** 자원 아이콘: 에너지 크레딧 · 공명도 */
-const CR = lineIcon('r.cr', 'li cr'), RES = lineIcon('r.res', 'li res');
+const CR = lineIcon('r.cr', 'li cr'), RES = lineIcon('r.res', 'li res'), AH = lineIcon('r.ah', 'li ah');
 /** 문장 속 '크레딧' · '공명도' 앞에 아이콘 (이미 escape 된 HTML 에만) */
-const ic = (html: string) => html.replace(/(에너지 크레딧|크레딧)/g, `${CR}$1`).replace(/공명도/g, `${RES}공명도`);
+const ic = (html: string) => html.replace(/(?<![A-Za-z])AH(?![A-Za-z])/g, `${AH}AH`).replace(/(에너지 크레딧|크레딧)/g, `${CR}$1`).replace(/공명도/g, `${RES}공명도`);
 /** 공명 등급 표기: 별 아이콘 + 숫자 */
 const RANK_STAR = '<svg class="rstar" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 17.4l-6.1 3.5 1.5-6.8-5.2-4.6 6.9-.7z"/></svg>';
 const rankLabel = (rank: number) => `${RANK_STAR}${rank}`;
@@ -2732,7 +2732,7 @@ function pendingModal(run: RunState): string {
     body = `<h1>순례 — 축복 선택</h1><p class="muted">축복은 이번 페이즈가 끝날 때까지 유지됩니다.</p>
       <div class="cards">${p.options.map((id) => { const d = BLESSING_BY_ID[id]; return `<button class="card" data-a="pick-blessing" data-v="${id}"><b>${esc(d.name)}</b><span>${ic(esc(d.desc))}</span></button>`; }).join('')}</div>`;
   } else if (p.t === 'notice') {
-    body = `<h1>${esc(p.title)}</h1>${p.scene?.length ? sceneHtml(p.scene) : ''}<p class="${p.scene?.length ? 'sc-result' : ''}">${ic(esc(p.body))}</p><button class="btn primary" data-a="notice-ok">확인</button>`;
+    body = `<h1>${esc(p.title)}</h1>${p.scene?.length ? sceneHtml(p.scene) : ''}<p class="${p.scene?.length ? 'sc-result' : ''}">${ic(esc(p.body))}</p>${p.rows?.length ? `<dl class="nt-rows">${p.rows.map(([k, v]) => `<dt>${ic(esc(k))}</dt><dd>${ic(esc(v))}</dd>`).join('')}</dl>` : ''}<button class="btn primary" data-a="notice-ok">확인</button>`;
   }
   SND.reveal(p); // 증강 · 보상 카드 공개음 (등급별 3단계, 같은 카드 묶음은 한 번)
   // 특권: 화면 전체를 덮는 막 (모달 바깥에 두어야 화면 기준으로 깔린다)

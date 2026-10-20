@@ -328,7 +328,7 @@ export function battleRewardPreview(run: RunState, node: NodeType) {
 
 export function enterNode(run: RunState, type: NodeType) {
   run.picked[run.step] = type;
-  const campEv = run.campaign ? campEnter(run, type).event : undefined; // 캠페인: 계약 시간 차감 · 장별 고정 사건
+  const campEv = run.campaign ? campEnter(run, type).event : undefined; // 캠페인: AH 차감 · 장별 고정 사건
   if (type !== 'battle' && type !== 'adversity' && type !== 'boss') run.fame += tierNow(run, 'STAR');
   if (type === 'pilgrim') {
     run.pending.push(genPilgrim(run));
