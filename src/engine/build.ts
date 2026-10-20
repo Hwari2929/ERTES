@@ -295,7 +295,53 @@ export function makeSummons(owner: CUnit, sd0: SummonDef): SummonMade[] {
   });
 }
 function spawnSummons(b: Battle, owner: CUnit, sd0: SummonDef) {
-  for (const m of makeSummons(owner, sd0)) b.spawn(m.unit, owner);
+  const at = COMP_AT.get(b), uid = owner.side === 0 ? owner.src?.uid : undefined;
+  makeSummons(owner, sd0).forEach((m, i) => {
+    const c = uid ? at?.get(`${uid}:${i}`) : undefined; // 편성 화면에서 정한 시작 칸 (companionCells)
+    if (!c || !b.inBounds(c.x, c.y) || b.unitAt(c.x, c.y)) { b.spawn(m.unit, owner); return; }
+    const u = m.unit;
+    u.x = u.px = c.x; u.y = u.py = c.y;
+    b.add(u);
+    for (const h of u.hooks) h.onStart?.(b, u);
+    b.emit({ k: 'spawn', id: u.id });
+  });
+}
+/** 전투별 소환물 시작 칸 (키 '주인 uid:번호' → 칸) */
+const COMP_AT = new WeakMap<Battle, Map<string, { x: number; y: number }>>();
+
+/** 편성 화면 · 전투 시작 공용: 출전 기물의 소환물과 공왕 무휼이 나타날 칸.
+ *  저장한 칸(run.summonPos)이 배치 구역 안이고 비어 있으면 그 칸, 아니면 무휼은 뒷줄 가운데부터 · 소환물은 주인에게 가장 가까운 빈칸 (배치 구역 안).
+ *  출전 기물 · 포탑 칸이 먼저이고, 무휼 → 소환물 순으로 칸을 잡는다 */
+export interface CompanionTok { key: string; owner?: string; king?: boolean; name: string; spr: { sprite: string; palette: string[]; art?: string }; x: number; y: number }
+export function companionCells(run: RunState, W: number): CompanionTok[] {
+  const lay = layout(run, W);
+  const used = new Set([...lay.values(), ...turretCells(run, W)].map((p) => `${p.x},${p.y}`));
+  const zone: { x: number; y: number }[] = [];
+  for (let y = ALLY_Y1; y >= ALLY_Y0; y--) for (let x = PAD; x < PAD + W; x++) zone.push({ x, y });
+  const saved = (key: string) => { const p = run.summonPos?.[key]; if (!p) return null; const q = boardPos(p, W); return used.has(`${q.x},${q.y}`) ? null : q; };
+  const near = (ox: number, oy: number) => zone.filter((p) => !used.has(`${p.x},${p.y}`)).sort((a, b) => Math.max(Math.abs(a.x - ox), Math.abs(a.y - oy)) - Math.max(Math.abs(b.x - ox), Math.abs(b.y - oy)) || Math.abs(a.x - ox) + Math.abs(a.y - oy) - Math.abs(b.x - ox) - Math.abs(b.y - oy))[0] || null;
+  const out: CompanionTok[] = [];
+  if (kingOn(run)) {
+    const def = UNIT_BY_ID.muhyul;
+    const c = saved('king') || kingCell(run, W);
+    if (c) { used.add(`${c.x},${c.y}`); out.push({ key: 'king', king: true, name: def.name, spr: def, x: c.x, y: c.y }); }
+  }
+  const b = new Battle(W + 2 * PAD, ALLY_Y1 + PAD + 1, new Rng(1), { phase: run.phase, credits: run.credits });
+  b.keepEvents = false;
+  const counts = synergyCounts(deployed(run), run);
+  for (const u of deployed(run)) {
+    const sd = UNIT_BY_ID[u.defId].summon, o = lay.get(u.uid);
+    if (!sd || !o) continue;
+    const owner = buildAlly(b, run, u, counts);
+    makeSummons(owner, sd).forEach((m, i) => {
+      const key = `${u.uid}:${i}`;
+      const c = saved(key) || near(o.x, o.y);
+      if (!c) return;
+      used.add(`${c.x},${c.y}`);
+      out.push({ key, owner: u.uid, name: m.unit.name, spr: { sprite: m.unit.sprite, palette: m.unit.palette, art: m.unit.art }, x: c.x, y: c.y });
+    });
+  }
+  return out;
 }
 
 /**
@@ -698,7 +744,10 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
     b.add(c);
   }
   TURRET_AT.set(b, turretCells(run, enc.n, 8));
-  KING_AT.set(b, kingCell(run, enc.n));
+  const comp = companionCells(run, enc.n);
+  const kc = comp.find((t) => t.king);
+  KING_AT.set(b, kc ? { x: kc.x, y: kc.y } : null);
+  COMP_AT.set(b, new Map(comp.filter((t) => !t.king).map((t) => [t.key, { x: t.x, y: t.y }])));
   TURRET_GEAR_AT.set(b, (run.turretGear || []).map((g) => g.slice()));
   TURRET_MOD_AT.set(b, (run.turretMods || []).slice());
   for (const s of enc.enemies) {

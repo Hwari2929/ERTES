@@ -155,6 +155,8 @@ export interface RunState {
   musters?: number;
   /** 엔지니어 감시 포탑 배치 (편성 화면에서 끌어 옮긴 자리, 순서대로). c = -1 / 99 는 양옆 가장자리 열 */
   turretPos?: { c: number; r: number }[];
+  /** 소환물 · 공왕 무휼 시작 칸 (편성 화면에서 끌어 정함). 키 = '주인 uid:번호' · 'king'. 좌표는 기물 pos 와 같은 규칙 (build.ts toPos) */
+  summonPos?: Record<string, { c: number; r: number }>;
   /** 엔지니어 감시 포탑 장비 (포탑 순서대로, 포탑마다 1~3칸). 포탑 전용 장비(T_)만 */
   turretGear?: (string | null)[][];
   /** 엔지니어 감시 포탑 개조부품 칸 (포탑 순서대로 1칸씩). 엔지니어 전용 개조부품(E_)만. 옛 세이브에는 없다 → 빈 칸 */
