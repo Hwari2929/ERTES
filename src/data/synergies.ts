@@ -33,11 +33,11 @@ const T = (tier: number, a: number[]) => a[Math.max(0, tier - 1)];
 /** 기본 확률 판정: base × (1 + 효과 명중 − 효과 저항) (applyStatus 와 같은 식) */
 const baseRoll = (b: Battle, u: CUnit, tgt: CUnit, base: number) => b.rng.chance(Math.min(1, base * (1 + b.S(u, 'effHit') - b.S(tgt, 'effRes'))));
 /** 엔지니어 (2 · 4 · 6 · 8명) 감시 포탑: 포탑 수 · 상속률 · 포탑 1기 장비 칸 · 기본 공격 속도 · 6명 이상 추가 공격 속도 · 8명 [오버클럭] 공격 속도 (%p) */
-export const ENG_TUR = { count: [2, 3, 4, 4], inherit: [1.2, 2.4, 4.0, 8.0], slots: [1, 2, 3, 3], as: 0.4, asHi: 0.8, asHiFrom: 3, over: 2.0 };
+export const ENG_TUR = { count: [2, 3, 4, 4], inherit: [0.8, 1.2, 2.0, 4.0], slots: [1, 2, 3, 3], as: 0.4, asHi: 0.8, asHiFrom: 3, over: 2.0 };
 /** 시리우스 성도회 (5명 이상): 전투당 부활 횟수 — 단계와 무관하게 1회 */
 const SIR_REVIVES = [0, 1, 1, 1];
 /** 최고의 친구 (2 · 4 · 6 · 8명): 소환물 스탯 상속률 · 소환물 피해 증가 · 소환물 모든 주요 능력치 */
-const BUDDY_BOND = [0.6, 1.0, 1.8, 3.0], BUDDY_AMP = [0.15, 0.4, 1.0, 2.5], BUDDY_MAJ = [0, 10, 20, 40];
+const BUDDY_BOND = [0.5, 0.75, 1.25, 2.0], BUDDY_AMP = [0.15, 0.4, 1.0, 2.5], BUDDY_MAJ = [0, 10, 20, 40];
 
 // ─────────────── 범은하 공동체: 기물마다 다른 선물
 type Gift = { name: string; text: string; stats?: Partial<Stats>; pct?: { armor?: number }; tag?: 'tech' | 'psy'; majors?: number };
@@ -132,7 +132,7 @@ const schemeTier = (i: number) => {
 export const DECOMP_T = { chem: [0.1, 0.25, 0.5, 1.0], hp: [0.02, 0.04, 0.06, 0.1], max: [5, 7, 9, 13], chance: [0.5, 0.5, 1.0, 1.0] };
 const DECOMP_DECAY = { vuln: 0.1, dur: 8, heal: 0.1 };
 /** 전도체 (2 · 4 · 6 · 8명): [바운스] 고정 확률 (효과 명중과 무관) · 단계별 전기 피해 증가 · 계수 · 칸 · 횟수 · (4) 이상 피격 바운스 고정 확률 */
-export const COND_T = { chance: 0.5, elec: [0.15, 0.35, 0.6, 1.0], k: [0.25, 0.5, 0.75, 1.0], radius: [1, 2, 3, 3], hops: [1, 3, 6, 10], hurt: 0.5 };
+export const COND_T = { chance: 0.5, elec: [0.15, 0.35, 0.6, 1.0], k: [0.5, 0.5, 0.75, 1.0], radius: [1, 2, 3, 3], hops: [1, 3, 6, 10], hurt: 0.5 };
 /** 엘베스타드 일가 (3 · 5 · 7 · 9명): 일가 기물 피해 독립 증폭 · 받는 피해 독립 감소 (둘 다 다른 증폭 · 감소와 합치지 않는 별도 배율, 고정 피해는 감소 제외) */
 export const FAM_T = { amp: [0.3, 0.75, 2.0, 4.0], red: [0.05, 0.1, 0.2, 0.4] };
 
