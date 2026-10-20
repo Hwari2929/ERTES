@@ -573,10 +573,10 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'VAN', ttype: 'divine', faith: 'selene', weapon: K('진혼 대검', 'phys', 1.1, 1, 0.85, 3),
     factions: ['HEL'], traits: ['MED', 'GUARD'],
     trait: {
-      name: '등대기사', desc: '주변 2칸 아군이 초당 최대 체력 1% 회복. 피니쉬가 주변 1칸 적 모두에게 타격 위력 50% 물리 피해 (달빛 베기).',
+      name: '등대기사', desc: '주변 2칸 아군이 초당 최대 체력 1% 회복. 피니쉬가 주변 1칸 적 모두에게 타격 위력 50% 물리 피해 (달빛 베기), 맞힌 적 하나당 기술 쿨다운 -0.5초.',
       effect: { hooks: { onBasic(b, u) {
         if (!u.mem.finished) return;
-        for (const e of b.around(u, 1, b.enemiesOf(u))) proc(b, u, e, b.S(u, 'strike') * 0.5, 'phys', 'strike');
+        for (const e of b.around(u, 1, b.enemiesOf(u))) { proc(b, u, e, b.S(u, 'strike') * 0.5, 'phys', 'strike'); u.cd = Math.max(0, u.cd - 0.5); }
       }, onTick(b, u, dt) {
         u.mem.lightT = (u.mem.lightT || 0) + dt;
         if (u.mem.lightT < 1) return;

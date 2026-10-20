@@ -341,11 +341,15 @@ function resonanceStatus(b: Battle, u: CUnit): Status {
       const c = s.src;
       if (!c || !icd(bb, v, 'resIcd', 0.5)) return;
       const k = (v.mem.standUntil || 0) > bb.t ? 2 : 1; // 정상파
+      const amt = (s.val || 0) * k;
       for (const e of bb.around(v, rad, bb.enemiesOf(c))) {
         if (e === v || !e.alive) continue;
-        bb.dealDamage(c, e, (s.val || 0) * k, { elem: 'elec', tag: 'proc', kind: pk(c) });
-        // ★ 공명 연쇄: 공진 피해를 받은 적에게도 공진이 옮겨 붙는다
-        if (e.alive && P(c, 'wave.cascade') && !hasKey(e, 'resonance')) bb.applyStatus(c, e, resonanceStatus(bb, c));
+        bb.dealDamage(c, e, amt, { elem: 'elec', tag: 'proc', kind: pk(c) });
+        // ★ 공명 연쇄: 공진 피해를 받은 적 주변 1칸에 같은 피해로 1회 여파 (적마다 1초에 1번, 공진은 옮기지 않아 더 번지지 않는다)
+        if (P(c, 'wave.cascade') && icd(bb, e, 'cascIcd', PSI.wave.cascadeIcd)) {
+          bb.fx(e.x, e.y, 1, 'elec');
+          for (const f of bb.around(e, 1, bb.enemiesOf(c))) if (f !== e && f.alive) bb.dealDamage(c, f, amt, { elem: 'elec', tag: 'proc', kind: pk(c) });
+        }
       }
     },
     // 정상파: 공진된 적이 기절(빙결 포함)하면 공진 갱신 + 3초간 공진 피해 2배
@@ -863,6 +867,18 @@ const PASSIVE_FX: Record<string, Effect> = {
     if (reasonOf(u) < 30) { u.mem.photoT = 0; return; }
     u.mem.photoT = (u.mem.photoT || 0) + dt;
     if (u.mem.photoT >= 1) { u.mem.photoT -= 1; b.heal(u, u, b.S(u, 'maxHp') * 0.015); }
+  } } },
+  // ★ 역병 개화: 내가 건 중독이 최대 중첩에 이르면 터뜨린다 (남은 중독 피해 전부 즉시 + 주변 1칸 중독 2중첩, 적마다 3초에 1번)
+  'seed.endless': { hooks: { onInflict(b, u, tgt, s) {
+    if (s.key !== 'poison' || b.sideOf(tgt) === b.sideOf(u)) return;
+    b.later(0, () => {
+      const p = tgt.statuses.find((x) => x.key === 'poison');
+      if (b.over || !u.alive || !tgt.alive || !p || (p.stacks || 0) < (p.maxStacks || Infinity) || !icd(b, tgt, 'bloomIcd', PSI.seed.bloomIcd)) return;
+      tgt.statuses.splice(tgt.statuses.indexOf(p), 1);
+      b.fx(tgt.x, tgt.y, 1, 'chem');
+      b.dealDamage(u, tgt, (p.dps || 0) * Math.max(0, p.dur), { elem: 'chem', tag: 'proc', kind: pk(u) });
+      for (const e of b.around(tgt, 1, b.enemiesOf(u))) if (e !== tgt && e.alive) b.applyStatus(u, e, poisonStatus(b, u, PSI.seed.bloomSpread));
+    });
   } } },
   // ★ 포자 군락: 중독된 적이 쓰러지면 그 자리에 아군 포자 군락 (8초, 1초마다 주변 1칸 적 중독 1중첩, 최대 3기)
   'seed.colony': { hooks: { onAnyDeath(b, u, dead) {

@@ -296,8 +296,8 @@ const HEL_ITEMS: Record<string, { name: string; icon: string; major: Major; desc
     effect: (k) => ({ hooks: { onInflict(_b, u, tgt, s) { if (tgt.side !== u.side) s.dur += 2 * k; } } }) },
   hellight: { name: '달빛 등대', icon: '☾', major: 'agi', desc: (k) => `회피하면 최대 체력 ${3 * k}% 회복.`,
     effect: (k) => ({ hooks: { onEvade(b, u) { b.heal(u, u, b.S(u, 'maxHp') * 0.03 * k, true); } } }) },
-  helrelic: { name: '올림푸스 성물', icon: '⚱', major: 'def', desc: (k) => `한 번에 최대 체력 ${35 / k}%를 넘는 피해를 받지 않음.`,
-    effect: (k) => ({ setup: (u) => { u.mem.hitCap = Math.min(u.mem.hitCap || 1, 0.35 / k); } }) },
+  helrelic: { name: '올림푸스 성물', icon: '⚱', major: 'def', desc: (k) => `한 번에 최대 체력 ${20 / k}%를 넘는 피해를 받지 않음.`,
+    effect: (k) => ({ setup: (u) => { u.mem.hitCap = Math.min(u.mem.hitCap || 1, 0.2 / k); } }) },
 };
 export const HEL_ITEM_IDS = ['A_helanchor', 'A_hellight', 'A_helrelic'];
 export const isHelItem = (id: string | null) => !!id && !!HEL_ITEMS[id.slice(2)];

@@ -131,10 +131,10 @@ const CANTRIP: Record<SchoolId, Build> = {
         ['적', '피해 · 중독 없음 (지속 능력 「대사」의 중독은 그대로)'],
       ] } };
     }
-    const conc = use('conc'), venom = use('venom'), endless = use('endless');
+    const conc = use('conc'), venom = use('venom');
     return { tf: false, info: { tgt: '현재 대상', range: null, area: { k: 'one' }, rows: [
       ['피해', `[dmg:main:${N.coef}:chem]`],
-      ['중독', `[g:poison] ${N.poison}중첩 ([s:${N.dur}], 중첩당 초당 [dmg:main:${venom ? N.venomPer : N.per}:chem], ${endless ? '중첩 제한 없음' : `최대 ${conc ? N.concMax : N.max}중첩`})`],
+      ['중독', `[g:poison] ${N.poison}중첩 ([s:${N.dur}], 중첩당 초당 [dmg:main:${venom ? N.venomPer : N.per}:chem], 최대 ${conc ? N.concMax : N.max}중첩)`],
     ] } };
   },
   mind(use) {
@@ -258,13 +258,13 @@ const PASSIVE: Record<SchoolId, PBuild> = {
     return { tf: attract, brief: `적중 시 ${Math.round(N.proc * 100)}% 공진 (피해 비례)`, rows: [
       ['발동', HIT_SCALED(N.proc)],
       ['효과', `[s:${N.resDur}] [g:resonance]: 피격될 때마다 주변 [t:${attract ? N.attractResR : N.resR}] 적에게 [dmg:main:${freq ? N.freqRes : N.res}:elec] (${N.resIcd}초에 1회)`],
-      ...(use('cascade') ? [['공명 연쇄', '공진 피해를 받은 적에게도 공진이 옮겨 붙는다']] as [string, string][] : []),
+      ...(use('cascade') ? [['공명 연쇄', '공진 피해 대상 주변 1칸 1회 여파 (더 번지지 않음)']] as [string, string][] : []),
     ] };
   },
   seed(use) {
     const N = PSI.seed;
     const rows: [string, string][] = [
-      ['발동', `평타 · 전투 스킬 · 비술 적중 시 [p:${N.proc}]`], ['효과', `[g:poison] 1중첩${use('venom') ? ` (중첩당 초당 [dmg:main:${N.venomPer}:chem])` : ''}`], ['중첩', use('endless') ? '제한 없음' : `최대 ${use('conc') ? N.concMax : N.max}`]];
+      ['발동', `평타 · 전투 스킬 · 비술 적중 시 [p:${N.proc}]`], ['효과', `[g:poison] 1중첩${use('venom') ? ` (중첩당 초당 [dmg:main:${N.venomPer}:chem])` : ''}`], ['중첩', `최대 ${use('conc') ? N.concMax : N.max}`], ...(use('endless') ? [['역병 개화', `최대 중첩에서 터짐 · 주변 1칸 중독 ${N.bloomSpread}중첩`]] as [string, string][] : [])];
     if (use('colony')) rows.push(['포자 군락', `중독된 적이 쓰러지면 아군 포자 군락 ([s:${N.colonyLife}], 1초마다 주변 [t:1] 적 중독 1중첩, 최대 ${N.colonyMax}기)`]);
     return { tf: false, brief: `적중 시 ${Math.round(N.proc * 100)}% 중독`, rows };
   },

@@ -178,7 +178,7 @@ export const ABIL_B: Record<string, AbilText> = {
         ...(p.armor ? [['방어도', `[s:4] 동안 방어도 +${p.armor}`] as Row] : []),
       ],
     }),
-    trait: '주변 [t:2] 아군 매초 최대 체력 [p:0.01] 회복. [g:finish] 적중 시 달빛 베기: 주변 [t:1] 적 모두에게 [dmg:strike:0.5:phys].',
+    trait: '주변 [t:2] 아군 매초 최대 체력 [p:0.01] 회복. [g:finish] 적중 시 달빛 베기: 주변 [t:1] 적 모두에게 [dmg:strike:0.5:phys], 맞힌 적 하나당 기술 쿨다운 -[s:0.5].',
     augs: {
       baklava: '달빛 진혼 보호막: [shield:1] 추가.',
       harp: '달빛 진혼 회복 [heal+:0.5].',

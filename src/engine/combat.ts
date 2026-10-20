@@ -300,6 +300,17 @@ export const zocHoldOf = (mult: number) => Math.max(0, CFG.zoc.hold + (mult - 1)
 export const zocHoldFormula = () => `${CFG.zoc.hold}초 + (도발 배율 − 1) × ${CFG.zoc.holdPerProv}초`;
 /** 교전 시간 예시 문구: '돌격가 ×3 → 1.5초, 수호자 시너지가 켜지면 ×4.5 → 1.875초' */
 const zocHoldExamples = () => `돌격가 ×${PROV.van} → ${+zocHoldOf(PROV.van).toFixed(3)}초, 수호자 시너지가 켜지면 ×${PROV.van + PROV.guard} → ${+zocHoldOf(PROV.van + PROV.guard).toFixed(3)}초`;
+/** 돌격가 경계 규칙 표 (상세 보기 · 전투 유형 공통 규칙): 이름 + 값 줄로 */
+export const zocRows = (): [string, string][] => [
+  ['경계 범위', `아군 돌격가 주변 ${CFG.zoc.r}칸 (편성 화면에서만 보임)`],
+  ['경계 효과', '들어온 적이 그 자리에 멈춘다 (공격 · 기술은 함) · 그 돌격가에게 도발 수치 누적'],
+  ['교전 시간', zocHoldFormula()],
+  ['예시', zocHoldExamples()],
+  ['겹친 경계', '긴 쪽 적용'],
+  ['경계 → 경계', '곧장 넘어갈 수 없음 (돌격가 사이 틈 차단)'],
+  ['암살형 적', `교전 시간 · 도발 ${xm(CFG.zoc.assassinMul)} (경계 → 경계 금지는 같음)`],
+  ['적 쪽 경계', '없음'],
+];
 /** 돌격가 경계 규칙 문구 (교범 · 전투 유형 설명): CFG.zoc · PROV 에서 읽는다 */
 export const zocRule = () => `아군 돌격가 주변 ${CFG.zoc.r}칸은 경계다. 적이 경계 칸에 들어오면 그 자리에서 멈춰 교전 시간 동안 움직이지 못하고 (공격 · 기술은 한다) 그 돌격가에게 도발 수치가 쌓인다. 교전 시간 = ${zocHoldFormula()}, 도발 배율은 그 경계를 만든 돌격가의 값이다 (${zocHoldExamples()}, 경계가 겹치면 긴 쪽). 경계 칸에서 다른 경계 칸으로 곧장 넘어갈 수 없어 돌격가 사이의 틈을 그냥 빠져나가지 못한다. 암살형 성향의 적도 경계에 걸리지만 교전 시간과 그 돌격가에게 쌓이는 도발 수치가 ${xm(CFG.zoc.assassinMul)}이다 (경계 → 경계 이동 금지는 똑같이 받는다). 적 쪽에는 경계가 없다. 경계 범위는 편성 화면에서만 보인다.`;
 /** 짧은 경계 문구 (편성 칸 툴팁 · 돌격가 한 줄 설명) */

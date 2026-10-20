@@ -697,10 +697,10 @@ function unitRowBtn(H: CxH, d: UnitDef, text: string) {
 
 // ═══════════════════════ 증강
 interface AugGroup { key: string; name: string; note: string; body: (H: CxH) => string; count: number }
-const POOL_NAME: Record<string, string> = { major: '메이저 공용', special: '스페셜 전용', school: '사이오닉 전공 선택', psionic: '사이오닉 전공 증강' };
+const POOL_NAME: Record<string, string> = { major: '(예전) 메이저 공용', special: '메이저 전용', school: '사이오닉 전공 선택', psionic: '사이오닉 전공 증강', oath: '디바인 서약' };
 function augGroups(): AugGroup[] {
   const pools = [...new Set(ALL_AUGS.map((a) => a.pool))];
-  const order = ['major', 'special', 'school', 'psionic', 'oath'];
+  const order = ['special', 'school', 'psionic', 'oath', 'major'];
   pools.sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
   const out: AugGroup[] = [];
   for (const pool of pools) {
@@ -709,7 +709,7 @@ function augGroups(): AugGroup[] {
     let note = '', body: AugGroup['body'];
     if (pool === 'special') {
       const owners = [...new Set(list.map((a) => a.owner || ''))];
-      note = `${TTYPE_NAME.special} 기물이 합류 시 + ${milestones(CFG.growth.special, 'special')}에 자기 전용 증강 중에서 고릅니다 (최대 ${msCount(CFG.growth.special, 'special') + 1}개).`;
+      note = `${TTYPE_NAME.major} 기물이 ${milestones(CFG.growth.special, 'major')}에 자기 전용 증강 중에서 고릅니다 (최대 ${CFG.majorAugMax}개, ★ = 전설).`;
       body = (H) => owners.map((o) => {
         const d = UNIT_BY_ID[o], l = list.filter((a) => (a.owner || '') === o);
         return grp('augs', ' cx2-sub-g', `<div class="cx2-uh">${d ? unitChip(H, d, `${esc(CTYPE_NAME[d.ctype])} · ${l.length}종`) : esc(o)}</div><ul class="augs cx2-augs">${l.map((a) => augLi(H, a, [], d?.name || '')).join('')}</ul>`);
@@ -722,7 +722,8 @@ function augGroups(): AugGroup[] {
         return grp('augs', ' cx2-sub-g', `<div class="cx2-uh">${s ? `<button class="cx2-sc" style="--c:${s.color}" ${go(`go:psi:${s.id}`)}>${lineIcon(`s.${s.id}`, 'li')}${esc(GROUPS[s.group].name)} · ${esc(s.name)} ›</button>` : esc(o)}</div><ul class="augs cx2-augs">${l.map((a) => augLi(H, a, [], s ? `${s.name} ${GROUPS[s.group].name}` : '')).join('')}</ul>`);
       }).join('');
     } else {
-      if (pool === 'major') note = `${TTYPE_NAME.major} 기물이 ${milestones(CFG.growth.major, 'major')} 고릅니다.`;
+      if (pool === 'major') note = '더는 고르지 않는 예전 메이저 공용 증강입니다 (예전 저장의 기물만 지님).';
+      if (pool === 'oath') note = `${TTYPE_NAME.divine} 기물이 ${milestones(CFG.growth.oath, 'divine')}에 디바인 공용 서약 증강 중에서 고릅니다.`;
       if (pool === 'school') note = `${TTYPE_NAME.psionic} 기물이 합류할 때 학파의 전공 ${Object.values(GROUPS)[0].majors.length}개 중 1개를 고릅니다 (학파가 없으면 ${SCHOOLS.length}개 중).`;
       body = (H) => `<ul class="augs cx2-augs">${list.map((a) => augLi(H, a)).join('')}</ul>`;
     }

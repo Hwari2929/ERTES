@@ -15,6 +15,7 @@ import { rowHtml, tierCmp } from './ui/tierdiff';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { withEmblemSummon } from './data/emblems';
 import { DIVINE_ACT, FAITH_DEF, MAJOR_AUGS, MINOR_TRAIT_GROW, recMajors } from './data/rework';
+import { OATH_AUGS } from './data/oathaugs';
 import { type AugList, cantripView, passiveView, SCHOOL_LINE, transformPreview } from './data/psiinfo';
 import { augReqState } from './data/augreq';
 import { GROUPS, SCHOOL_BY_ID, SCHOOL_PASSIVES, UNIT_GROUP, augMark, psiAugId, schoolOf, type SchoolId } from './data/schools';
@@ -28,7 +29,7 @@ import * as TFX from './ui/themefx';
 import {
   activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, chrTier, companionCells, deployed, engTier, kingOn, kingState, enemyBaseMoveSpd, enemyCell, layout, memberships, PAD, synergyCounts, synList, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
-import { Battle, controlNames, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME, fleeShort, zocHoldFormula, zocHoldOf, zocRule, zocShort } from './engine/combat';
+import { Battle, controlNames, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME, fleeShort, zocHoldFormula, zocHoldOf, zocRows, zocRule, zocShort } from './engine/combat';
 import * as R from './engine/run';
 import { CAUSAL, causalGain, causalLeft, causalNeed, causalStage, gearScore, KING, KING_GEAR, KING_GEAR_NAME, KING_MS_TEXT, kingStageText } from './data/chungra';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
@@ -255,7 +256,7 @@ function augIcon(id: string, cls = 'aug-ic') {
   let h = 2166136261;
   for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619) >>> 0;
   // 풀별 색: 스페셜 금 · 사이오닉 보라 · 메이저 회청 · 전용은 기물별
-  const hue = a?.pool === 'special' ? 42 : a?.pool === 'psionic' ? 275 : a?.pool === 'major' ? 210 : h % 360;
+  const hue = a?.pool === 'special' ? 42 : a?.pool === 'psionic' ? 275 : a?.pool === 'major' ? 210 : a?.pool === 'oath' ? 52 : h % 360;
   return `<span class="${cls}" style="--h:${hue}" aria-hidden="true">${lineIcon(augKey(`${a?.name || ''} ${a?.desc || ''}`))}</span>`;
 }
 
@@ -497,13 +498,23 @@ const CTYPE_DESC: Record<string, [string, string]> = {
   SPEC: ['기술로 싸운다. 기술 위력 · 효과 명중 · 쿨다운이 중요하다.', `주력: 기술 위력, 효과 명중, 쿨다운 감소 속도, 기술 범위. 기술 피해는 치명타가 없다 (일부 특성 예외).${fleeLine('SPEC')}`],
   CMD: ['아군이 함께 쓰는 전술 위력으로 스킬을 쓴다. 출전 인원이 많을수록, 지휘관이 많고 정신력이 높을수록 강하다.', `스킬은 전술 위력으로 계산한다. 전술 위력 = ${CFG.tacBase} (출전 4명 · 지휘관 1명 기준) + 출전 기물 1명당 ${CFG.tacPerUnit} + 지휘관 1명 추가당 ${CFG.tacPerCmd} + 지휘관 정신력 1당 ${CFG.tacPerMnd}.${fleeLine('CMD')}`],
 };
+/** 전투 유형 공통 규칙 본문: 돌격가는 이름 + 값 표 (주력 · 피니쉬 · 경계), 나머지는 문장 */
+function ctypeRuleHtml(ct: string, detail: boolean) {
+  if (ct !== 'VAN') return `<p>${esc(CTYPE_DESC[ct]?.[detail ? 1 : 0] || '')}</p>`;
+  const rows: [string, string][] = [
+    ['주력', detail ? '타격 위력 · 타격 속도 · 명중 · 콤보 · 피니쉬 피해량 · 치명 확률 · 치명 피해' : '타격 위력 · 콤보와 피니쉬 · 치명타'],
+    ['피니쉬', `무기별 N번째 공격 · 피해 ×${CFG.finishMult}`],
+    ...(detail ? zocRows() : zocRows().filter(([k]) => k === '경계 범위' || k === '교전 시간' || k === '암살형 적')),
+  ];
+  return `<dl class="um-types ct-rules">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
+}
 /** 전술 유형 공통 규칙: 공명 등급마다 모든 능력치 +1, 이정표 보상은 유형별 */
 const TTYPE_RULE: Record<TType, string> = {
-  major: `공명 등급마다 모든 주요 능력치 +1. 4등급마다 메이저 증강 1개. 고유 궁극기는 시간이 지나면 저절로 차오르며 (기본 약 ${CFG.ultTime}초, 전투 시작 ${Math.round(CFG.ultStart * 100)}%) 한 전투에 여러 번 쓸 수 있다.`,
+  major: `공명 등급마다 모든 주요 능력치 +1. 4등급마다 기물 전용 증강 1개 (최대 ${CFG.majorAugMax}개, 일반 12 · ★ 전설 2 중에서). 고유 궁극기는 시간이 지나면 저절로 차오르고 (기본 약 ${CFG.ultTime}초, 전투 시작 ${Math.round(CFG.ultStart * 100)}%), 기본 공격 · 전투 스킬 · 피격 때도 조금씩 찬다. 한 전투에 여러 번 쓸 수 있다.`,
   minor: '공명 등급마다 모든 주요 능력치 +1. 3등급마다 주요 능력치 2종 +3. 기술 계수와 특성 수치가 등급에 따라 자란다 (10등급 ×2, 20등급 ×3).',
-  special: '공명 등급마다 모든 주요 능력치 +1. 합류 · 5 · 10 · 15등급에 전용 증강 (최대 4개).',
+  special: `공명 등급마다 모든 주요 능력치 +1. 4등급마다 기물 전용 증강 1개 (최대 ${CFG.majorAugMax}개).`,
   psionic: '공명 등급마다 모든 주요 능력치 +1. 기물마다 학파가 정해져 있고, 합류할 때 그 학파의 전공을 고른다 (비술 + 지속 능력). 4 · 8 · 12 · 16등급에 전공 증강 (최대 4개, 16등급에 완성).',
-  divine: '공명 등급마다 모든 주요 능력치 +1. 고유 신앙이 깨어 있어 신성력을 모으고, 가득 차면 장착한 성유물의 신권 대행을 전투당 한 번 쓴다. 모은 신성력은 전투 후 권능 포인트가 된다.',
+  divine: '공명 등급마다 모든 주요 능력치 +1. 고유 신앙이 깨어 있어 신성력을 모으고, 가득 차면 장착한 성유물의 신권 대행을 쓴다. 5등급마다 서약 증강 1개 (디바인 공용 풀). 모은 신성력은 전투 후 권능 포인트가 된다.',
 };
 /** 특성 하위 항목 (접힘) */
 function sub(key: string, icon: string, cls: string, name: string, kind: string, body: string) {
@@ -518,10 +529,10 @@ function augRow(id: string, param?: string, b: Battle | null = null, c: CUnit | 
 /** 다음 이정표 등급 */
 function nextMilestone(tt: TType, rank: number): number | null {
   for (let r = rank + 1; r <= Math.min(CFG.maxRank, rank + 30); r++) {
-    if (tt === 'major' && CFG.growth.major(tt, r)) return r;
+    if ((tt === 'major' || tt === 'special') && CFG.growth.special('major', r)) return r;
     if (tt === 'minor' && CFG.growth.pick(tt, r)) return r;
-    if (tt === 'special' && CFG.growth.special(tt, r)) return r;
     if (tt === 'psionic' && CFG.growth.psionic(tt, r)) return r;
+    if (tt === 'divine' && CFG.growth.oath(tt, r)) return r;
   }
   return null;
 }
@@ -631,24 +642,25 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
   const f = u?.faith || d.faith;
   const owned = u?.augments || [];
   const body: string[] = [];
-  if (tt === 'major') {
+  if (tt === 'major' || tt === 'special') {
     if (live && c) body.push(`<div class="tt-row"><span class="tt-k">${lineIcon('a.battery', 'li')} 궁극기 게이지</span><b class="tt-big">${Math.round((c.ultG || 0) * 100)}%</b></div>`);
-    const mine = owned.filter((a) => MAJOR_AUGS.some((m) => m.id === a.id));
-    body.push(`<div class="tt-row"><span class="tt-k">메이저 증강</span><b>${mine.length}</b>${nx ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
-    body.push(mine.length ? `<div class="tt-icons">${mine.map((a) => `<button class="tt-ic ab-click${abilOn(`aug:${a.id}`)}" data-a="abil-pop" data-v="aug:${esc(a.id)}" title="${esc(AUG_BY_ID[a.id]?.name || a.id)}">${augIcon(a.id)}</button>`).join('')}</div>`
-      : `<p class="muted small">${u ? '4등급에 첫 메이저 증강을 고릅니다.' : `공용 풀 ${MAJOR_AUGS.length}종: 주요 · 상세 능력치 상승.`}</p>`);
+    const pool = d.specialAugs || [];
+    const mine = owned.filter((a) => pool.some((p) => p.id === a.id));
+    const max = CFG.majorAugMax;
+    body.push(`<div class="tt-row"><span class="tt-k">전용 증강</span><b class="tt-big">${mine.length}<small>/${max}</small></b>${nx && mine.length < max ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
+    if (mine.length) body.push(`<ul class="augs">${mine.map((a) => augRow(a.id, a.param, b, c)).join('')}</ul>`);
+    else if (u) body.push(`<p class="muted small">4등급에 첫 전용 증강을 고릅니다.</p>`);
+    if (!u) body.push(`<ul class="augs">${pool.map((a) => augRow(a.id, undefined, b, c)).join('')}</ul>`);
+    else if (app.detail) {
+      const rest = pool.filter((p) => !mine.some((m) => m.id === p.id));
+      if (rest.length) body.push(`<div class="ps-rest">${rest.map((a) => `<span class="pill ab-click" data-a="abil-pop" data-v="aug:${esc(a.id)}" role="button" tabindex="0" title="${esc(augDesc(a.id))}">${augMark(a.id)}${esc(a.name)}</span>`).join('')}</div>`);
+    }
   } else if (tt === 'minor') {
     const g = CFG.minorGrow(rank);
     const tl = MINOR_TRAIT_GROW[d.id];
     body.push(`<div class="tt-row"><span class="tt-k">성장 배율</span><b class="tt-big">×${g.toFixed(2)}</b><span class="muted small">${u ? `${rank}등급` : '1등급'} · 10등급 ×2 · 20등급 ×3</span></div>`);
     body.push(`<ul class="tt-list"><li>${lineIcon('p.tech', 'li')}기술 계수 ×${g.toFixed(2)}</li>${tl ? `<li>${lineIcon('a.power', 'li')}${esc(tl(g))}</li>` : ''}</ul>`);
     if (nx) body.push(`<p class="muted small">다음 능력치 선택: ${nx}등급</p>`);
-  } else if (tt === 'special') {
-    const pool = d.specialAugs || [];
-    const mine = owned.filter((a) => pool.some((p) => p.id === a.id));
-    body.push(`<div class="tt-row"><span class="tt-k">전용 증강</span><b class="tt-big">${mine.length}<small>/4</small></b>${nx && mine.length < 4 ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
-    if (mine.length) body.push(`<ul class="augs">${mine.map((a) => augRow(a.id, a.param, b, c)).join('')}</ul>`);
-    if (!u) body.push(`<ul class="augs">${pool.map((a) => augRow(a.id, undefined, b, c)).join('')}</ul>`);
   } else if (tt === 'psionic') {
     const sid = (u ? schoolOf(u) : null) || cSchool(c);
     const sc = sid ? SCHOOL_BY_ID[sid] : null;
@@ -694,6 +706,10 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
   } else {
     if (live && c && c.div !== null) body.push(`<div class="tt-row"><span class="tt-k">신성력</span><b class="tt-big">${c.divUsed ? '발동함' : Math.round(c.div)}</b><span class="muted small">수집 ${Math.round(c.divGot)} / ${c.divCap}</span></div>`);
     if (run) body.push(`<div class="tt-row"><span class="tt-k">권능 포인트</span><b>${run.power}</b><span class="muted small">전투 후 디바인이 모은 신성력 ÷ ${CFG.powerPerDiv}</span></div>`);
+    const vows = owned.filter((a) => AUG_BY_ID[a.id]?.pool === 'oath');
+    body.push(`<div class="tt-row"><span class="tt-k">서약 증강</span><b>${vows.length}</b>${nx ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
+    if (vows.length) body.push(`<ul class="augs">${vows.map((a) => augRow(a.id, a.param, b, c)).join('')}</ul>`);
+    else if (!u) body.push(`<p class="muted small">5등급마다 디바인 공용 서약 증강 ${OATH_AUGS.length}종 중 하나를 고른다.</p>`);
   }
   void f;
   return `<section class="abil tt-sec tt-${tt}"><div class="ab-head"><span class="ab-kind">전술 유형</span><b class="tt-name"><i class="tt-${tt}">${TTYPE_ICON(tt)}</i>${TTYPE_NAME[tt]}</b></div>
@@ -708,12 +724,11 @@ const enemyCategory = (e: EnemyDef) => categoryOf(e.keywords, !!e.immobile);
 /** 특성 블록: 고유 특성 + 전투 유형 · 전술 유형 · 고유 신앙 (접힘) */
 function traitGroup(d: UnitDef, u: UnitState | null, run: RunState | null, b: Battle | null = null, c: CUnit | null = null) {
   const k = (x: string) => `${d.id}:${x}`;
-  const ct = CTYPE_DESC[d.ctype];
   void u; void run;
   const tok = abTok(`trait.${d.id}`);
   return `<div class="abil ab-trait"><div class="ab-click${abilOn('trait')}${tok ? ' has-tok' : ''}" data-a="abil-pop" data-v="trait" role="button" tabindex="0">${tok}<div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, c)}</div>
     <div class="subs">
-      ${sub(k('ct'), CTYPE_ICON(d.ctype), `ct-${d.ctype}`, CTYPE_NAME[d.ctype], '전투 유형', `<p>${esc(app.detail ? ct[1] : ct[0])}</p>`)}
+      ${sub(k('ct'), CTYPE_ICON(d.ctype), `ct-${d.ctype}`, CTYPE_NAME[d.ctype], '전투 유형', ctypeRuleHtml(d.ctype, app.detail))}
     </div></div>`;
 }
 const AB_KIND = { weapon: '무기', trait: '특성', skill: '스킬', grow: '성장', psi: '이성', div: '신권', ult: '궁극기', act: '신권 대행' } as const;
@@ -736,6 +751,13 @@ function skillText(d: UnitDef, sk = d.skill.params) {
   return d.ctype === 'CMD' ? t.replace(/기술 위력/g, '전술 위력') : t;
 }
 const traitText = (d: UnitDef) => (app.detail ? d.trait.desc : BRIEF[d.id]?.trait || d.trait.desc);
+/** 위쪽 바 축성 단추 (편성 중 디바인 · 성유물 장착 시): 권능을 써서 다음 전투의 신권 대행 계수 ×3 (성유물 칸의 축성과 같은 동작) */
+function blessBtn(run: RunState, u: UnitState, d: UnitDef) {
+  if (d.ttype !== 'divine') return '';
+  const rel = u.relic ? RELIC_BY_ID[u.relic] : null;
+  if (!rel) return '';
+  return `<button class="btn tiny d-bless${u.enh ? ' done' : ''}" data-a="relic-enh" data-v="${u.uid}" title="권능 ${rel.enh}을 써서 다음 전투의 신권 대행 계수를 ×3으로 (보유 권능 ${run.power})" ${u.enh || run.power < rel.enh ? 'disabled' : ''}>${lineIcon('a.divact', 'li')}${u.enh ? '축성됨' : `축성 · 권능 ${rel.enh}`}</button>`;
+}
 /** 상세 창 상단 고정 바: 닫기(←) · [추가 버튼] · 상세 보기(돋보기) */
 function dBar(back: string, extra = '') {
   return `<div class="d-bar"><button class="btn d-back" data-a="${back}" data-v="" aria-label="상세 닫기" title="닫기 (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
@@ -1874,7 +1896,7 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     const id = key.slice(4);
     kind = '증강'; name = AUG_BY_ID[id]?.name || id;
     const pool = AUG_BY_ID[id]?.pool;
-    mech = pool === 'unit' ? '이 기물 전용 증강. 획득하면 영구 적용.' : pool === 'special' ? '스페셜 기물 합류 시 고르는 증강. 영구 적용.' : pool === 'psionic' ? '사이오닉 증강. 이성 규칙을 바꾼다. 영구 적용.' : '공용 증강. 영구 적용.';
+    mech = pool === 'unit' ? '이 기물 전용 증강. 획득하면 영구 적용.' : pool === 'special' ? '메이저 기물이 4등급마다 고르는 전용 증강. 영구 적용.' : pool === 'oath' ? '디바인 기물이 5등급마다 고르는 서약 증강. 영구 적용.' : pool === 'psionic' ? '사이오닉 증강. 이성 규칙을 바꾼다. 영구 적용.' : '공용 증강. 영구 적용.';
     body = `<p>${augText(id, c?.src?.augments.find((a) => a.id === id)?.param, b, c, gl)}</p>${augNotes(id, c?.src || app.run?.units.find((x) => x.defId === d.id) || null, true)}`;
     // ◆ 변형 증강: 바뀐 비술 · 지속 능력을 함께 (이 기물의 다른 전공 증강까지 반영)
     const tp = transformPreview(id);
@@ -2029,17 +2051,12 @@ function unitModal(run: RunState, pv = false) {
   const synRow = `<div class="pc-syn">${memberships(u, run).map((id) => synToken(id, cnt[id] || 0)).join('')}</div>`;
   return `<div class="um-back" data-a="big-close"></div>
   <section class="um" role="dialog" aria-modal="true" aria-label="${esc(d.name)} 전체 상세">
-    <header class="um-head">
-      <div class="um-id"><b>${esc(d.name)}</b><span class="muted small">${esc(d.title || '')}</span></div>
-      <span class="dh-types"><i>${typeIcon(d.ttype)}${TTYPE_NAME[d.ttype]}</i><i>${typeIcon(d.ctype)}${CTYPE_NAME[d.ctype]}</i>${categoryTag(cat)}</span>
-      <span class="um-tools">${detailToggle()}${pv ? '<span class="um-pv">영입 전 미리보기</span>' : `<button class="btn small danger-ghost" data-a="release" data-v="${u.uid}" ${run.units.length <= 1 ? 'disabled title="마지막 남은 기물은 방출할 수 없습니다"' : 'title="기물 방출 (확인 후 진행)"'} aria-expanded="${app.releaseConfirm === u.uid}">기물 방출</button><button class="btn" data-a="big-close" aria-label="닫기" title="닫기 (Esc)">✕</button>`}</span>
-    </header>
-    ${app.releaseConfirm === u.uid ? `<div class="um-release">${releaseBlock(run, u)}</div>` : ''}
     <div class="um-grid">
       <div class="um-col um-a">
-        <div class="um-sticky"><div class="um-sc" aria-hidden="true">${sprite(d, 'um-face')}<div class="um-sc-main">${rankRow}${synRow}</div></div></div>
+        <div class="um-sticky"><div class="um-sc" aria-hidden="true">${sprite(d, 'um-face')}<div class="um-sc-main"><b class="um-sc-name">${esc(d.name)}</b>${rankRow}${synRow}</div></div></div>
         <div class="um-art">${hero(d.id) || sprite(d, 'spr big')}</div>
-        <div class="um-idblk">${rankRow}
+        <div class="um-idblk"><div class="um-id"><b>${esc(d.name)}</b><span class="muted small">${esc(d.title || '')}</span></div>
+        ${rankRow}
         ${synRow}</div>
         <h3>장비</h3>${eqBox(u)}
         ${rel ? `<div class="um-relic">${relicTok(rel.id)}<span><b>${esc(rel.name)}</b><br><span class="muted small">성유물 · 신권 대행</span></span></div>` : ''}
@@ -2048,11 +2065,17 @@ function unitModal(run: RunState, pv = false) {
         <h3>상세 능력치</h3>${statLines(c, b)}
       </div>
       <div class="um-main">
+        <div class="um-top">
+          <header class="um-head">
+            <span class="um-tools">${pv ? '<span class="um-pv">영입 전 미리보기</span>' : blessBtn(run, u, d)}${detailToggle()}${pv ? '' : `<button class="btn small danger-ghost" data-a="release" data-v="${u.uid}" ${run.units.length <= 1 ? 'disabled title="마지막 남은 기물은 방출할 수 없습니다"' : 'title="기물 방출 (확인 후 진행)"'} aria-expanded="${app.releaseConfirm === u.uid}">기물 방출</button><button class="btn" data-a="big-close" aria-label="닫기" title="닫기 (Esc)">✕</button>`}</span>
+          </header>
+          ${app.releaseConfirm === u.uid ? `<div class="um-release">${releaseBlock(run, u)}</div>` : ''}
+        </div>
         ${unitSummary(run, u, d, b, c)}
         <div class="um-col um-c">
           <h3>전투 유형</h3>
           <div class="subs um-rules">
-            ${sub('um:ct', CTYPE_ICON(d.ctype), `ct-${d.ctype}`, CTYPE_NAME[d.ctype], '공통 규칙', `<p>${esc(CTYPE_DESC[d.ctype]?.[app.detail ? 1 : 0] || '')}</p>`)}
+            ${sub('um:ct', CTYPE_ICON(d.ctype), `ct-${d.ctype}`, CTYPE_NAME[d.ctype], '공통 규칙', ctypeRuleHtml(d.ctype, app.detail))}
             ${sub('um:cat', lineIcon(`k.${cat}`, 'li'), `cat-${cat}`, CATEGORY_NAME[cat], '분류 규칙', `<p>${esc(CATEGORY_RULE[cat])}</p>`)}
           </div>
           <h3>전투 능력</h3>
@@ -2065,14 +2088,14 @@ function unitModal(run: RunState, pv = false) {
           </div>
         </div>
         <div class="um-col um-r">
-          <h3>신앙</h3>
-          <div class="abils">${faithAbil(d, u, run)}</div>
           <h3>전술 유형</h3>
           <div class="subs um-rules">${sub('um:tt', TTYPE_ICON(d.ttype), `tt-${d.ttype}`, TTYPE_NAME[d.ttype], '공통 규칙', `<p>${esc(TTYPE_RULE[d.ttype])}</p>`)}</div>
           <div class="abils">
             ${ultCard(d, b, c)}
             ${ttSection(d, u, run, b, c, false, false)}${relicSection(d, u, run, c)}
           </div>
+          <h3>신앙</h3>
+          <div class="abils">${faithAbil(d, u, run)}</div>
         </div>
       </div>
     </div>${pop}
@@ -2234,7 +2257,7 @@ function detailPanel(run: RunState, extra = '') {
   const title = rankTitle(u.rank + effects.reduce((s, e) => s + (e.rankBonus || 0), 0)) + effects.reduce((s, e) => s + (e.title || 0), 0);
   const cost = R.xpCost(run);
   const synTok = (() => { const cnt = synergyCounts(deployed(run), run) as Record<string, number>; return memberships(u, run).map((id) => synToken(id, cnt[id] || 0)).join(''); })();
-  return `<div class="detail dp-unit">${dBar('desel', maxBtn(u.uid) + extra)}
+  return `<div class="detail dp-unit">${dBar('desel', blessBtn(run, u, d) + maxBtn(u.uid) + extra)}
     <div class="um-sticky dp-sticky"><div class="um-sc" aria-hidden="true">${sprite(d, 'um-face')}<div class="um-sc-main"><div class="um-rank">${rankLabel(u.rank)}${xpBar(u)}</div><div class="pc-syn">${synTok}</div></div></div></div>
     <div class="d-hero">${hero(d.id) || `<div class="hero none">${sprite(d, 'spr big')}</div>`}
       <div class="pc-syn dh-syn">${synTok}</div>
@@ -2260,8 +2283,8 @@ function detailPanel(run: RunState, extra = '') {
       ${skillCard(d, b, c)}
       ${summonSection(d, b, c, sumScope(u))}
       ${ultCard(d, b, c)}
-      ${faithAbil(d, u, run)}
       ${ttSection(d, u, run, b, c)}${relicSection(d, u, run, c)}
+      ${faithAbil(d, u, run)}
     </div>
     <p class="lore">${esc(d.lore)}</p>
     ${releaseBlock(run, u)}
@@ -2720,8 +2743,8 @@ function pendingModal(run: RunState): string {
       const opts = p.options || [];
       const pv = previewAlly(run, u);
       body = `${side}<div class="ru-main">
-        <div class="ru-head"><h1>${p.kind === 'school' ? '합류 · 사이오닉 전공' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 전공 증강` : `${p.rank}등급 달성 · 메이저 증강`}</h1>
-          <span class="muted small">${p.kind === 'school' ? `${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙고, 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}` : p.kind === 'special' ? '스페셜 기물은 합류할 때와 5 · 10 · 15등급에 전용 증강을 고릅니다 (최대 4개).' : p.kind === 'psionic' ? `사이오닉 기물은 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다 (최대 4개). 이번 ★ 전설 출현 확률 ${Math.round(R.psiLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.psiLegend.pity * 100)}%p)` : '메이저 기물은 4등급마다 메이저 증강을 고릅니다.'}</span>
+        <div class="ru-head"><h1>${p.kind === 'school' ? '합류 · 사이오닉 전공' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 전공 증강` : p.kind === 'oath' ? `${p.rank}등급 달성 · 서약 증강` : `${p.rank}등급 달성 · 증강`}</h1>
+          <span class="muted small">${p.kind === 'school' ? `${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙고, 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}` : p.kind === 'special' ? `메이저 기물은 4등급마다 전용 증강을 고릅니다 (최대 ${CFG.majorAugMax}개). 이번 ★ 전설 출현 확률 ${Math.round(R.majorLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.majorLegend.pity * 100)}%p)` : p.kind === 'oath' ? '디바인 기물은 5등급마다 서약 증강을 고릅니다 (디바인 공용 풀).' : p.kind === 'psionic' ? `사이오닉 기물은 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다 (최대 4개). 이번 ★ 전설 출현 확률 ${Math.round(R.psiLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.psiLegend.pity * 100)}%p)` : ''}</span>
           ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
         ${p.kind === 'school' ? `<p class="mu-short small">이 전장의 주요 적: ${esc(matchupShort(run.field))}</p>` : ''}
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {
@@ -3864,7 +3887,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
     const d = withEmblemSummon(UNIT_BY_ID[u.defId], u.src?.mod);
     const pv = provChip(b, u);
     head = heroHead(d.id, sprite(u, 'spr big'), d.name, allyTags(d)) + (pv ? `<div class="d-pows">${pv}</div>` : '');
-    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem, d.id)}<div class="abil ab-trait ab-click${abilOn('trait')} has-tok" data-a="abil-pop" data-v="trait" role="button" tabindex="0">${abTok(`trait.${d.id}`)}<div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${summonSection(d, b, u, '이번 전투')}${ultCard(d, b, u, true)}${faithAbil(d, u.src || null, app.run, u)}${ttSection(d, u.src || null, app.run, b, u, true)}${relicSection(d, u.src || null, app.run, u, true)}`;
+    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem, d.id)}<div class="abil ab-trait ab-click${abilOn('trait')} has-tok" data-a="abil-pop" data-v="trait" role="button" tabindex="0">${abTok(`trait.${d.id}`)}<div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${summonSection(d, b, u, '이번 전투')}${ultCard(d, b, u, true)}${ttSection(d, u.src || null, app.run, b, u, true)}${relicSection(d, u.src || null, app.run, u, true)}${faithAbil(d, u.src || null, app.run, u)}`;
     if (app.abilPop) pop = abilPopHtml(app.abilPop, d, b, u);
   } else if (u.side === 1 && ENEMY_BY_ID[u.defId]) {
     const e = ENEMY_BY_ID[u.defId];
@@ -3999,7 +4022,7 @@ function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
     </div>
     <h3>능력 <span class="cx-hn">1등급 · 장비 없음 기준</span></h3>
     <div class="cx-ud-abil"><div class="abils">${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem, d.id)}${traitGroup(d, null, null, b, c)}${skillCard(d, b, c)}${summonSection(d, b, c, sumScope(null))}${voyAbil(d, null, null)}</div>
-    <div class="abils">${ultCard(d, b, c)}${faithAbil(d, null, null)}${ttSection(d, null, null, b, c)}${relicSection(d, null, null, c)}</div></div>
+    <div class="abils">${ultCard(d, b, c)}${ttSection(d, null, null, b, c)}${relicSection(d, null, null, c)}${faithAbil(d, null, null)}</div></div>
     ${d.king ? `<div class="cx-ud-king">${CX2.kingSection(cxH(), true)}</div>` : ''}
     <div class="cx-ud-more"><div><h3>${d.king ? '장비' : '추천 장비'} <span class="cx-hn">${d.king ? '일반 장비 장착 불가 (전용 장비 자동 장착)' : CTYPE_NAME[d.ctype]}</span></h3>${d.king ? '' : `<ul class="rc-list">${reco}</ul>`}</div>
     <div><h3>이야기</h3>${STORIES[d.id] ? `<p class="small">${esc(STORIES[d.id])}</p>` : ''}<p class="lore">${esc(d.lore)}</p>${CX2.loreLinks(d.id)}</div></div>

@@ -70,10 +70,10 @@ export const RELICS: RelicDef[] = [
       b.fx(u.x, u.y, 0, 'holy', 'heal');
     } },
   { id: 'flag', name: '관광 명소 깃발', owner: 'fotini', price: 25, enh: 30,
-    // 스킬 한쪽 원칙: 적 취약만 (아군 피해 증가 제거, 취약 12 → 15%)
-    desc: (k) => `전투 끝까지 모든 적이 받는 피해 +${pct(0.15 * k)}.`,
+    // 스킬 한쪽 원칙: 적 취약만 (아군 피해 증가 제거, 취약 12 → 15 → 20%)
+    desc: (k) => `전투 끝까지 모든 적이 받는 피해 +${pct(0.2 * k)}.`,
     act(b, u, k) {
-      for (const e of b.enemiesOf(u)) b.applyStatus(u, e, { type: 'buff', key: 'rel.flag', dur: FOREVER, taken: [vuln('all', 0.15 * k)], label: '관광객의 시선' });
+      for (const e of b.enemiesOf(u)) b.applyStatus(u, e, { type: 'buff', key: 'rel.flag', dur: FOREVER, taken: [vuln('all', 0.2 * k)], label: '관광객의 시선' });
     } },
   { id: 'mic', name: '골든 마이크', owner: 'reika', price: 30, enh: 35,
     desc: (k) => `모든 적에게 주력 위력 ${pct(3.5 * k)} 전기 피해 + 2초 감전. 전투 끝까지 [시청자] 상한 +${10 * k}, 즉시 시청자 +${10 * k}.`,

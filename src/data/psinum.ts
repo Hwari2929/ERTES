@@ -81,6 +81,8 @@ export const PSI = {
     afterDelay: 1.5, afterCoef: 0.35,
     /** ★ 중력 붕괴: 끌어모으는 범위 */
     collapseR: 2,
+    /** ★ 공명 연쇄: 여파 (적마다) 내부 쿨다운 */
+    cascadeIcd: 1,
   },
   seed: {
     /** 포자 피해 · 거는 중독 */
@@ -95,6 +97,8 @@ export const PSI = {
     venomPer: 0.14,
     /** ★ 포자 군락: 지속 · 체력 (자신 최대 체력 비율) · 최대 수 */
     colonyLife: 8, colonyHp: 0.25, colonyMax: 3,
+    /** ★ 역병 개화: 옮기는 중독 · 적마다 내부 쿨다운 */
+    bloomSpread: 2, bloomIcd: 3,
   },
   mind: {
     /** 계시: 결속 인원 (집단 무의식) · 지속 · 받는 피해 · 공유 비율 (연결된 운명) */
@@ -161,7 +165,7 @@ export function psiStackCap(st: PsiStack, has: (k: string) => boolean): number {
     case 'burn': return has('pyro.wp') ? PSI.pyro.wpMax : PSI.pyro.max;
     case 'chill': return has('chrono.zero') ? PSI.chrono.zeroMax : PSI.chrono.chillMax;
     case 'conduct': return PSI.volt.max;
-    case 'poison': return has('seed.endless') ? Infinity : has('seed.conc') ? PSI.seed.concMax : PSI.seed.max; // ★ 끝없는 번식: 상한 없음
+    case 'poison': return has('seed.conc') ? PSI.seed.concMax : PSI.seed.max;
     case 'scent': return has('illusion.dense') ? PSI.illusion.denseMax : 1;
     case 'tempgear': return PSI.gold.max;
   }

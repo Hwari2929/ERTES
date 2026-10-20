@@ -154,7 +154,7 @@ export const ROSTER_B: BaseUnit[] = [
     atk: { type: 'strike', elem: 'phys', interval: 1.2 }, range: 1, base: B(10, 7, 5, 8, 1),
     sprite: 'knight', palette: tint(PAL.HEL, '#e8eef0', '#c0c8d0', '#a0e0ff'), lore: '"셀레네의 은총과 달빛이 우리 앞 길을 비추길-"',
     skill: support({
-      name: '달빛 진혼', cd: 8, target: 'aroundSelf', params: { radius: 1, shield: 1.0, heal: 0.5, armor: 0 },
+      name: '달빛 진혼', cd: 9, target: 'aroundSelf', params: { radius: 2, shield: 1.0, heal: 0.5, armor: 0 },
       desc: (p) => `달빛을 모아 자신과 주변 ${p.radius}칸 아군에게 기술 위력 ${pct(p.shield)} 보호막 + ${pct(p.heal)} 회복${p.armor ? `, 4초간 방어도 +${p.armor}` : ''}.`,
     }),
   },
