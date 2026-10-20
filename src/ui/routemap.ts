@@ -335,31 +335,34 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
 
     // 프리버드: 걷는 무리(어른 + 새끼) · 나는 것
     const lifeG = el('g', {}, rotG);
-    const walkers: { g: SVGElement; body: SVGElement; sc: number; a0: number; amp: number; w: number; ph: number; step: number }[] = [];
-    const flyers: { g: SVGElement; body: SVGElement; a0: number; v: number; h: number; ph: number }[] = [];
+    const walkers: { g: SVGElement; body: SVGElement; cg: SVGElement; cy: number; sc: number; a0: number; amp: number; w: number; ph: number; step: number }[] = [];
+    const flyers: { g: SVGElement; body: SVGElement; cg: SVGElement; a0: number; v: number; h: number; ph: number }[] = [];
     const WALK: [number, 'sauro' | 'thero', number][] = [[-1.55, 'sauro', 1], [-1.36, 'sauro', .58], [1.45, 'thero', .9], [3.42, 'thero', .85], [3.6, 'thero', .7], [5.55, 'sauro', 1], [7.45, 'thero', .9], [9.45, 'sauro', 1], [9.62, 'sauro', .55], [11.5, 'thero', .9], [12.65, 'sauro', 1]];
     WALK.filter(([u]) => u < N).forEach(([u, k, s], j) => {
       const g = el('g', {}, lifeG), body = el('g', {}, g);
       el('path', { d: DINO[k], fill: C.t2 }, body);
-      contact(g, `FB-${pad2(j + 1)}`, -20 * s - 4);
+      const cg = el('g', {}, g), cy = -20 * s - 4; contact(cg, `FB-${pad2(j + 1)}`, 0); // 접촉 표지는 벽 각도와 상관없이 똑바로 (tick 에서 역회전)
       const prev = walkers[walkers.length - 1], baby = s < .65 && prev; // 새끼는 앞 개체를 바짝 따라간다
-      walkers.push({ g, body, sc: s, a0: u * STEP, amp: baby ? prev.amp : 2 + rnd() * 2.5, w: baby ? prev.w : (k === 'sauro' ? .00008 : .00015) * (.8 + rnd() * .4), ph: baby ? prev.ph - .22 : rnd() * 6.28, step: k === 'sauro' ? .0035 : .0065 });
+      walkers.push({ g, body, cg, cy, sc: s, a0: u * STEP, amp: baby ? prev.amp : 2 + rnd() * 2.5, w: baby ? prev.w : (k === 'sauro' ? .00008 : .00015) * (.8 + rnd() * .4), ph: baby ? prev.ph - .22 : rnd() * 6.28, step: k === 'sauro' ? .0035 : .0065 });
     });
     for (let j = 0; j < 6; j++) {
       const g = el('g', {}, lifeG), body = el('g', {}, g);
       el('path', { d: DINO.ptero, fill: C.t2 }, body);
-      contact(g, `FB-${pad2(20 + j)}`, -14);
-      flyers.push({ g, body, a0: span0 + rnd() * (span1 - span0), v: (rnd() < .5 ? -1 : 1) * (.0005 + rnd() * .0005), h: 100 + rnd() * 60, ph: rnd() * 6.28 });
+      const cg = el('g', {}, g); contact(cg, `FB-${pad2(20 + j)}`, 0);
+      flyers.push({ g, body, cg, a0: span0 + rnd() * (span1 - span0), v: (rnd() < .5 ? -1 : 1) * (.0005 + rnd() * .0005), h: 100 + rnd() * 60, ph: rnd() * 6.28 });
     }
     tick = (t) => {
       for (const c of clouds) place(c.g, span0 + mod(c.a0 - span0 + t * c.v, span1 - span0), R - c.h);
       for (const d of walkers) {
         const ph = t * d.w + d.ph, a = d.a0 + d.amp * Math.sin(ph), dir = Math.cos(ph) >= 0 ? 1 : -1;
         place(d.g, a, R - Math.abs(Math.sin(t * d.step)) * .9);
+        d.cg.setAttribute('transform', `translate(0 ${d.cy.toFixed(1)}) rotate(${(a + rot).toFixed(2)})`);
         d.body.setAttribute('transform', `scale(${dir * d.sc} ${d.sc})`);
       }
       for (const f of flyers) {
-        place(f.g, span0 + mod(f.a0 - span0 + t * f.v, span1 - span0), R - f.h - 10 * Math.sin(t * .0006 + f.ph));
+        const fa = span0 + mod(f.a0 - span0 + t * f.v, span1 - span0);
+        place(f.g, fa, R - f.h - 10 * Math.sin(t * .0006 + f.ph));
+        f.cg.setAttribute('transform', `translate(0 -14) rotate(${(fa + rot).toFixed(2)})`);
         f.body.setAttribute('transform', `scale(${Math.sign(f.v)} ${.35 + .65 * Math.abs(Math.sin(t * .005 + f.ph))})`);
       }
       rig.set(mod(t * .045, 360));
