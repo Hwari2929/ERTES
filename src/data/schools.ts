@@ -187,7 +187,9 @@ export const psiAugId = (s: SchoolId, key: string) => `psi.${s}.${key}`;
 /** ◆ 변형 증강인지 */
 export const isTransformAug = (id: string) => { const [, s, k] = id.split('.'); return id.startsWith('psi.') && TRANSFORM_KEYS[s as SchoolId] === k; };
 /** ★ 전설 전공 증강인지 */
-export const isLegendAug = (id: string) => { const [, s, k] = id.split('.'); return id.startsWith('psi.') && !!LEGEND_KEYS[s as SchoolId]?.includes(k); };
+/** ★ 전설로 표시된 증강 id (메이저 전용 증강의 legend 플래그 — augments.ts 가 채운다) */
+export const LEGEND_AUG_IDS = new Set<string>();
+export const isLegendAug = (id: string) => { if (LEGEND_AUG_IDS.has(id)) return true; const [, s, k] = id.split('.'); return id.startsWith('psi.') && !!LEGEND_KEYS[s as SchoolId]?.includes(k); };
 /** 증강 이름 앞 표식: ★ 전설 · ◆ 변형 */
 export const augMark = (id: string) => (isLegendAug(id) ? '★ ' : isTransformAug(id) ? '◆ ' : '');
 /** 보유 증강에서 전공을 찾는다 */

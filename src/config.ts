@@ -27,15 +27,21 @@ export const CFG = {
   growth: {
     /** 마이너: 3등급마다 능력치 2종 +3 */
     pick: (tt: string, rank: number) => tt === 'minor' && rank % 3 === 0,
-    /** 메이저: 4등급마다 메이저 증강 */
-    major: (tt: string, rank: number) => tt === 'major' && rank % 4 === 0,
-    /** 스페셜: 합류(1등급) + 5 · 10 · 15등급에 전용 증강 (최대 4) */
-    special: (tt: string, rank: number) => tt === 'special' && (rank === 5 || rank === 10 || rank === 15),
+    /** (예전) 메이저 공용 증강: 쓰지 않는다 — 메이저는 아래 special(전용 증강)로 성장 */
+    major: (_tt: string, _rank: number) => false,
+    /** 메이저 (예전 메이저 + 스페셜): 4등급마다 기물 전용 증강 (14개 중, 최대 majorAugMax 개) */
+    special: (tt: string, rank: number) => tt === 'major' && rank % 4 === 0,
+    /** 디바인: 5등급마다 서약 증강 (디바인 공용 풀) */
+    oath: (tt: string, rank: number) => tt === 'divine' && rank % 5 === 0,
     /** 사이오닉: 4 · 8 · 12 · 16등급에 전공 증강 (최대 4, 16등급에 완성) */
     psionic: (tt: string, rank: number) => tt === 'psionic' && rank % 4 === 0 && rank <= 16,
   },
   /** 메이저 궁극기: 자연 충전 기준 시간(초, 충전 계수 1.0) · 전투 시작 게이지 */
   ultTime: 35, ultStart: 0.2,
+  /** 행동 충전: 기본 공격 · 전투 기술 · 피격 때 궁극기 게이지 + (충전 계수 · 궁극기 충전 스탯 적용) */
+  ultGain: { basic: 0.015, skill: 0.05, hurt: 0.008 },
+  /** 메이저 전용 증강: 최대 개수 · ★ 전설이 선택지에 섞일 확률 (기본 + 전설 없이 지나간 선택마다) */
+  majorAugMax: 5, majorLegend: { base: 0.12, pity: 0.08 },
   /** 마이너 성장 배율: 10등급 ×2, 20등급 ×3 (선형) */
   minorGrow: (rank: number) => (rank <= 10 ? 1 + (Math.max(1, rank) - 1) / 9 : 2 + (rank - 10) / 10),
   // 모든 기물 공통 기초 마이너 스탯 [임시]

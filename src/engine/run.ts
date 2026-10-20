@@ -12,6 +12,7 @@ import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBAL_ODDS, GLOB
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, isTurretItem, isTurretMod, TURRET_ADV, TURRET_BASIC, TURRET_MODS, TURRET_PRICE, turretModsOfTier, turretSlots } from '../data/items';
 import { UNI_XP, OCCULT_SYNTH, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
+import { OATH_AUGS } from '../data/oathaugs';
 import { MAJOR_AUGS, recMajors } from '../data/rework';
 import { SCHOOL_AUGS, schoolPassives } from '../data/psionic';
 import { isLegendAug, majorsOf, schoolAugId, schoolOf, type SchoolId } from '../data/schools';
@@ -1137,6 +1138,7 @@ function rankUp(run: RunState, u: UnitState) {
   if (CFG.growth.major(tt, R)) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, kind: 'major' });
   if (CFG.growth.special(tt, R) && augRoom(u, 'special')) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, kind: 'special' });
   if (CFG.growth.psionic(tt, R) && augRoom(u, 'psionic')) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, kind: 'psionic' });
+  if (CFG.growth.oath(tt, R) && augRoom(u, 'oath')) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, kind: 'oath' });
 }
 
 export function buyXp(run: RunState, uid: string): boolean {
@@ -1152,11 +1154,11 @@ export function buyXp(run: RunState, uid: string): boolean {
 export const xpCost = (run: RunState) => CFG.buyXpCost - (hasGlobal(run, 'G.study') ? 1 : 0) + (hasDespair(run, 'D.leak') ? CFG.despair.leak : 0);
 
 // ───────────────────────── 증강 선택
-export type AugKind = 'major' | 'special' | 'psionic' | 'school';
+export type AugKind = 'major' | 'special' | 'psionic' | 'school' | 'oath';
 /** 기물 유형이 받는 증강 종류 (마이너 · 디바인은 없음) */
 export function typeAugKind(u: UnitState): AugKind | null {
   const tt = UNIT_BY_ID[u.defId].ttype;
-  return tt === 'major' || tt === 'special' || tt === 'psionic' ? tt : null;
+  return tt === 'major' || tt === 'special' ? 'special' : tt === 'psionic' ? 'psionic' : tt === 'divine' ? 'oath' : null; // 메이저 = 전용 증강 · 디바인 = 서약 증강
 }
 /** 사이오닉: 보유 학파의 전공 증강 (학파가 없으면 빈 목록) */
 export const psiPool = (u: UnitState) => schoolPassives(schoolOf(u));
@@ -1165,9 +1167,9 @@ export function augRoom(u: UnitState, kind: AugKind) {
   if (kind === 'major') return true;
   if (kind === 'school') return UNIT_BY_ID[u.defId].ttype === 'psionic' && !schoolOf(u);
   if (kind === 'psionic' && !schoolOf(u)) return u.augments.filter((a) => a.id.startsWith('psi.')).length < 4; // 학파 선택 대기 중: 이정표는 남겨 둔다
-  const list = kind === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : psiPool(u);
+  const list = kind === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : kind === 'oath' ? OATH_AUGS : psiPool(u);
   const pool = new Set(list.map((a) => a.id));
-  if (u.augments.filter((a) => pool.has(a.id)).length >= 4) return false;
+  if (u.augments.filter((a) => pool.has(a.id)).length >= (kind === 'psionic' ? 4 : CFG.majorAugMax)) return false;
   return list.some((a) => !u.augments.some((p) => p.id === a.id)); // 고를 수 있는 증강이 남았는지
 }
 export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major'): AugPick[] {
@@ -1177,13 +1179,13 @@ export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major')
   if (!augRoom(u, kind)) return [];
   // 전공: 기물 학파의 전공 2개 (학파가 없는 레이첼은 8개 전부)
   if (kind === 'school') { const ok = majorsOf(def.id); return SCHOOL_AUGS.filter((a) => ok.includes(a.owner as SchoolId)).map((a) => ({ id: a.id })); }
-  const base = kind === 'special' ? def.specialAugs || [] : kind === 'psionic' ? psiPool(u) : MAJOR_AUGS;
+  const base = kind === 'special' ? def.specialAugs || [] : kind === 'oath' ? OATH_AUGS : kind === 'psionic' ? psiPool(u) : MAJOR_AUGS;
   const unitPool = base.filter((a) => avail(a));
-  if (kind === 'psionic') {
+  if (kind === 'psionic' || kind === 'special') {
     // 전공 증강: 기본 증강 3장, 확률(psiLegendChance)로 그중 1장이 ★ 전설
     const leg = unitPool.filter((a) => isLegendAug(a.id)).map((a) => a.id), norm = unitPool.filter((a) => !isLegendAug(a.id)).map((a) => a.id);
     return rng(run, (r) => {
-      const show = leg.length > 0 && r.chance(psiLegendChance(u));
+      const show = leg.length > 0 && r.chance(kind === 'special' ? majorLegendChance(u) : psiLegendChance(u));
       const out = show ? [...r.sample(norm, augN(run) - 1), r.pick(leg)] : r.sample(norm, augN(run));
       return r.shuffle(out).map((id) => ({ id }));
     });
@@ -1201,6 +1203,13 @@ export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major')
 /** 증강 선택지 수 (메이저 · 스페셜 · 전공 증강): 침묵의 서약이면 줄어든다 */
 const augN = (run: RunState) => Math.max(1, CFG.augmentChoices - oathV(run, 'augment', 'less'));
 /** ★ 전설 전공 증강이 이번 선택지에 섞일 확률: 기본 + 전설 없이 지나간 전공 증강 선택마다 보정, 전설을 한 번 얻으면 기본만 */
+/** ★ 전설 메이저 전용 증강이 선택지에 섞일 확률 (CFG.majorLegend): 전설을 아직 못 얻었으면 지나간 선택마다 보정 */
+export function majorLegendChance(u: UnitState): number {
+  const pool = new Set((UNIT_BY_ID[u.defId].specialAugs || []).map((a) => a.id));
+  const owned = u.augments.filter((a) => pool.has(a.id));
+  if (owned.some((a) => isLegendAug(a.id))) return CFG.majorLegend.base;
+  return Math.min(1, CFG.majorLegend.base + CFG.majorLegend.pity * owned.length);
+}
 export function psiLegendChance(u: UnitState): number {
   const owned = u.augments.filter((a) => a.id.startsWith('psi.'));
   if (owned.some((a) => isLegendAug(a.id))) return CFG.psiLegend.base;

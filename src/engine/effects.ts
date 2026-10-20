@@ -48,7 +48,9 @@ export interface AugDef {
   name: string;
   desc: string;
   /** school = 사이오닉 학파 (합류 시 1개), psionic = 학파 전공 */
-  pool: 'unit' | 'syn' | 'common' | 'major' | 'special' | 'psionic' | 'school';
+  pool: 'unit' | 'syn' | 'common' | 'major' | 'special' | 'psionic' | 'school' | 'oath';
+  /** ★ 전설 증강 (메이저 전용 증강 14개 중 2개): 선택지에 확률로 섞인다 (run.ts augOptions) */
+  legend?: boolean;
   owner?: string; // 기물 id 또는 시너지 id
   stack?: boolean;
   effect: (param?: string) => Effect;

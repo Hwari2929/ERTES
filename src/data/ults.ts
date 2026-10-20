@@ -3,6 +3,7 @@ import type { Battle, CUnit, Hooks, UltDef } from '../engine/combat';
 import { inc, red, vuln } from '../engine/effects';
 import { bleed, blinkTo, lineTargets, poison, shock } from './kit';
 import { ENG_HOOK } from './synergies';
+import { EXTRA_ULTS } from './majoraugs';
 
 /** 일정 시간 동안 주기적으로 실행 (궁극기 지속 효과). 끝나면 end 실행 */
 function channel(u: CUnit, dur: number, every: number, fn: (b: Battle, i: number) => void, end?: (b: Battle) => void) {
@@ -30,7 +31,7 @@ function densest(b: Battle, u: CUnit, r: number) {
   return es.length ? es.slice().sort((a, z) => b.around(z, r, es).length - b.around(a, r, es).length)[0] : null;
 }
 
-export const ULTS: Record<string, UltDef> = {
+const BASE_ULTS: Record<string, UltDef> = {
   mirinae: {
     id: 'mirinae', name: '신기루 종막', charge: 1.0, line: '캠핑 장비값은 이걸로 충당할게.',
     desc: '가장 체력이 높은 적의 배후로 이동해 사격 위력 1200% 물리 단발 (치명타 확정, 빗나가지 않음).',
@@ -313,3 +314,5 @@ export const ULTS: Record<string, UltDef> = {
     },
   },
 };
+/** 메이저 궁극기: 기본 + 예전 스페셜 기물에 새로 준 궁극기 (majoraugs) */
+export const ULTS: Record<string, UltDef> = { ...BASE_ULTS, ...EXTRA_ULTS };

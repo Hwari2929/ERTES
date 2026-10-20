@@ -7,6 +7,7 @@ import { ROSTER_E } from './rosterE';
 import { REWORK_F, ROSTER_F } from './rosterF';
 import { REWORK_G, ROSTER_G } from './rosterG';
 import type { BaseUnit, UnitDef } from './unitkit';
+import { MAJOR_EXTRA_AUGS } from './majoraugs';
 
 export type { UnitDef };
 
@@ -19,6 +20,8 @@ function merge(b: BaseUnit): UnitDef {
   if (t.s) for (const k of TUNE_KEYS) if (params[k]) params[k] = Math.round(params[k] * t.s * 100) / 100;
   return {
     ...b, ...r, weapon: w, skill: { ...b.skill, params },
+    ttype: r.ttype === 'special' ? 'major' : r.ttype, // 예전 스페셜 = 메이저 (전용 증강 + 궁극기)
+    specialAugs: [...(r.specialAugs || []), ...(MAJOR_EXTRA_AUGS[b.id] || [])],
     factions: r.factions || b.factions,
     traits: r.traits || b.traits,
     title: r.title || b.title,

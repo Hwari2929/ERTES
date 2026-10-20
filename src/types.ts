@@ -35,7 +35,8 @@ export type CType = 'MARK' | 'VAN' | 'SPEC' | 'CMD';
 export const CTYPE_NAME: Record<CType, string> = { MARK: '명사수', VAN: '돌격가', SPEC: '전문가', CMD: '지휘관' };
 /** 전술 유형: 성장 방식과 특수 체계 */
 export type TType = 'major' | 'minor' | 'special' | 'psionic' | 'divine';
-export const TTYPE_NAME: Record<TType, string> = { major: '메이저', minor: '마이너', special: '스페셜', psionic: '사이오닉', divine: '디바인' };
+/** 전술 유형 이름: 예전 '스페셜'은 메이저에 합쳤고 (데이터의 special 은 units.ts 에서 major 로 바뀐다), 예전 '마이너'를 '스페셜'로 부른다 */
+export const TTYPE_NAME: Record<TType, string> = { major: '메이저', minor: '스페셜', special: '메이저', psionic: '사이오닉', divine: '디바인' };
 export type FaithId = 'emperor' | 'athena' | 'hermes' | 'ares' | 'hades' | 'zeus' | 'selene' | 'human' | 'index' | 'science' | 'sirius';
 export const FAITH_NAME: Record<FaithId, string> = {
   emperor: '황제 숭배', athena: '아테나 신앙', hermes: '헤르메스 신앙', ares: '아레스 신앙', hades: '하데스 신앙', zeus: '제우스 신앙',
@@ -136,7 +137,7 @@ export type Pending =
   | { t: 'event'; id: string; sub?: string | null } // sub: 이번 사건의 동적 조연 (기물 id)
   | { t: 'privilege'; options: AugPick[]; rerolls: number }
   | { t: 'despair'; options: string[]; rerolls: number; phase?: number } // 절망 증강 (data/despair.ts): 반드시 1개 · phase: 페이즈 시작 때 더 고르는 것 (없으면 출격 때)
-  | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean; join?: boolean; kind?: 'major' | 'special' | 'psionic' | 'school'; great?: boolean } // school: 사이오닉 합류 시 학파 선택 · great: 마이너 능력치 대성공 (만들 때 굴림, 첫 확정 뒤 공개) · round: 대성공으로 두 번째 고르는 중
+  | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean; join?: boolean; kind?: 'major' | 'special' | 'psionic' | 'school' | 'oath'; great?: boolean } // school: 사이오닉 합류 시 학파 선택 · great: 마이너 능력치 대성공 (만들 때 굴림, 첫 확정 뒤 공개) · round: 대성공으로 두 번째 고르는 중
   | { t: 'pilgrim'; cards?: { id: string; cost: number; sold: boolean; faith?: FaithId }[]; relics?: { id: string; cost: number; sold: boolean }[] }
   | { t: 'itemPick'; options: string[]; title: string }
   | { t: 'recruit'; options: string[]; rerolls?: number; syns?: string[] } // rerolls 없음 = 1회, syns = 지정 소집 조건

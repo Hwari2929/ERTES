@@ -641,6 +641,11 @@ export class Battle {
     this.fr?.onStart?.(this);
     for (const u of this.units) u.hp = Math.min(u.hp, this.S(u, 'maxHp'));
   }
+  /** 궁극기 행동 충전 (CFG.ultGain): 기본 공격 · 전투 기술 · 피격. 충전 계수 · 궁극기 충전 스탯을 자연 충전과 같이 곱한다 */
+  ultGain(u: CUnit, k: number) {
+    if (!u.ult || (u.ultG || 0) >= 1) return;
+    u.ultG = Math.min(1, (u.ultG || 0) + k * u.ult.charge * Math.max(0.1, 1 + this.S(u, 'ultCharge')));
+  }
   /** 지금 행동 중인 기물 (보호막 제공자 집계용) */
   actor: CUnit | null = null;
 
@@ -816,6 +821,7 @@ export class Battle {
           // 연출 순서: 스킬명 → 효과. 시전 앞자리에 끼워 넣는다
           if (this.keepEvents) { this.events.splice(at, 0, { k: 'skill', id: u.id, name: sk.name, tag: sk.tag?.(u.sk) }); this.emit({ k: 'skillEnd', id: u.id }); }
           for (const h of u.hooks) h.onSkill?.(this, u);
+          this.ultGain(u, CFG.ultGain.skill);
           for (const a of this.alliesOf(u, false)) for (const h of a.hooks) h.onAllySkill?.(this, a, u);
           this.statusAct(u);
           if (this.over) return;
@@ -898,6 +904,7 @@ export class Battle {
     this.emit({ k: 'atk', from: u.id, to: tgt.id, elem, ranged: u.atk.type === 'shoot' });
     const r = this.dealDamage(u, tgt, pow * m, { elem, tag: 'basic', kind, canMiss: true, extra, pen: holy ? 1 : 0 });
     for (const h of u.hooks) h.onBasic?.(this, u, tgt, r);
+    this.ultGain(u, CFG.ultGain.basic);
     for (const a of this.alliesOf(u, false)) for (const h of a.hooks) h.onAllyBasic?.(this, a, u);
     if (u.alive) this.statusAct(u);
     return r;
@@ -1131,6 +1138,7 @@ export class Battle {
       if (ls > 0 && src.alive) this.heal(src, src, dmg * ls, true);
       for (const h of src.hooks) h.onDeal?.(this, src, tgt, res, o);
       if (tgt.alive) for (const h of tgt.hooks) h.onHurt?.(this, tgt, src, res, o);
+      if (tgt.alive && res.amount > 0 && o.tag !== 'dot') this.ultGain(tgt, CFG.ultGain.hurt);
       if (src !== tgt) for (const a of this.alliesOf(tgt, false)) for (const h of a.hooks) h.onAllyHurt?.(this, a, tgt, src, res);
       if (o.tag !== 'proc' && src.alive && src !== tgt) {
         let rf = 0, rt = 0;

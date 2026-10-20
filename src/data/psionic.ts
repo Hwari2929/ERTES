@@ -4,6 +4,7 @@
 // 계수 기준 = 주요 위력 (명사수 사격 · 돌격가 타격 · 전문가 기술 · 지휘관 전술) × CFG.psiPower.
 // 기본 지속 능력의 확률 발동은 기본 공격 · 전투 스킬 · 비술 적중에만 (지속 피해 · 소환물 · 부가 피해 제외).
 // 공통 규칙 (저이성 정신 피해 · 광폭 · 혼란 · 도발)은 engine/combat.ts 에 있다.
+import { PSI_EXTRA } from './psiextra';
 import type { Battle, Cantrip, CUnit, DmgOpts, DmgResult, Hooks, Status } from '../engine/combat';
 import { type AugDef, type AugReq, type Effect, type EffectCtx, applyLive, red, scaleEffect, vuln } from '../engine/effects';
 import { emptyStats, type Elem, type StatKey } from '../types';
@@ -970,4 +971,4 @@ export const PSI_AUGS: AugDef[] = SCHOOLS.flatMap((s) => SCHOOL_PASSIVES[s.id].m
   };
 }));
 /** 전공의 전공 증강 */
-export const schoolPassives = (s: SchoolId | null) => (s ? PSI_AUGS.filter((a) => a.owner === s) : []);
+export const schoolPassives = (s: SchoolId | null) => (s ? [...PSI_AUGS.filter((a) => a.owner === s), ...(PSI_EXTRA[s] || [])] : []);

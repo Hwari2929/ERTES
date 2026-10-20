@@ -700,7 +700,7 @@ interface AugGroup { key: string; name: string; note: string; body: (H: CxH) => 
 const POOL_NAME: Record<string, string> = { major: '메이저 공용', special: '스페셜 전용', school: '사이오닉 전공 선택', psionic: '사이오닉 전공 증강' };
 function augGroups(): AugGroup[] {
   const pools = [...new Set(ALL_AUGS.map((a) => a.pool))];
-  const order = ['major', 'special', 'school', 'psionic'];
+  const order = ['major', 'special', 'school', 'psionic', 'oath'];
   pools.sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
   const out: AugGroup[] = [];
   for (const pool of pools) {
