@@ -51,7 +51,7 @@ function applyRiders(b: Battle, u: CUnit, v: CUnit, p: Record<string, number>, p
   if (p.fear) fear(b, u, v, p.fear, p.fearChance || 0.5);
   if (p.slow) slow(b, u, v, p.slow, 3);
   if (p.corrode) corrode(b, u, v, 1 - p.corrode, 5);
-  if (p.vuln) b.applyStatus(u, v, { type: 'buff', key: `vuln.${u.defId}`, dur: 4, taken: [vuln('all', p.vuln)], label: '취약' });
+  if (p.vuln) b.applyStatus(u, v, { type: 'buff', key: `vuln.${u.defId}`, dur: p.vulnDur || 4, taken: [vuln('all', p.vuln)], label: '취약' });
 }
 
 const EL: Record<Elem, string> = { phys: '물리', chem: '화학', elec: '전기', psy: '정신', holy: '신성', true: '고정' };

@@ -4,6 +4,11 @@ import { PSI_STATUS, type SchoolId } from '../data/schools';
 import { CTYPE_NAME } from '../types';
 import type { Category, CType, DmgTag, Elem, FaithId, Keyword, Mod, Stats, StatKey, SynergyId, TakenMod, TType, UnitState, Weapon } from '../types';
 
+/** 비물리 4속성 (전기 · 화학 · 정신 · 신성): 치명타 불가 대신 아군 기물이 주는 피해의 계수 ×ELEM_AMP (적 · 전장 효과 · 체력 비례 직접 피해에는 없음) */
+export const ELEM_AMP = 1.25;
+export const isNonPhys = (elem: Elem) => elem === 'elec' || elem === 'chem' || elem === 'psy' || elem === 'holy';
+export const elementDamageMult = (elem: Elem): number => (isNonPhys(elem) ? ELEM_AMP : 1);
+
 export type StatusType = 'stun' | 'fear' | 'shock' | 'dot' | 'buff';
 
 /** 분류별 받는 피해 배율 (아군 · 적 공통) */
@@ -59,6 +64,8 @@ export interface Status {
   label?: string;
   /** 받은 피해의 일부를 공격자에게 반사 */
   reflect?: number;
+  /** 이 상태가 유지되는 동안 도발 계수 가산 */
+  provPlus?: number;
   /** 고정 피해 반사 (방어도 무시) */
   reflectTrue?: number;
   /** 중첩 수 (부상 · 방어도 감소 등) */
@@ -326,11 +333,15 @@ export function provMult(b: Battle | null, a: CUnit): number {
   let m = a.mem.provBase ?? (a.ctype === 'VAN' ? PROV.van : 1); // provBase: 기본 도발 배율을 따로 정한 소환물 (반려 돌(인화성) 4.5)
   if (a.isSummon && a.ctype !== 'VAN' && !a.mem.typed && a.mem.provBase === undefined) m = a.immobile ? PROV.sumFixed : a.atk.type === 'strike' ? PROV.sumMelee : PROV.sumRanged;
   if (a.synergies?.has('GUARD') && !a.mem.guardOff) m += PROV.guard; // 수호자 혼자(시너지 꺼짐)면 가산 없음
+  m += a.statuses.reduce((sum, s) => sum + (s.provPlus || 0), 0);
   if (a.mem.provPlus) m += a.mem.provPlus; // 장비 가산 (위협 신호기)
   if (a.mem.provMul) m *= a.mem.provMul;
   if (b && (b.hidden(a) || a.statuses.some((x) => x.key === 'infil.ambush'))) m *= PROV.hide;
   return m;
 }
+
+/** 수호자 4/6/8: 현재 도발 계수에 따른 모든 피해 경감 몫 (다른 '모든 피해' 경감과 합쳐 CFG.reductionCap 을 넘지 않는다). 공유 피해는 이미 경감되어 있으므로 다시 적용하지 않는다. */
+export const guardThreatRed = (b: Battle | null, u: CUnit) => Math.max(0, provMult(b, u)) * (u.mem.guardThreatRed || 0);
 
 export type BEvent =
   /** chain: 연쇄 탄환 (앞 탄환이 닿은 지점에서 이어서 출발) */
@@ -1030,7 +1041,7 @@ export class Battle {
   dealDamage(src: CUnit, tgt: CUnit, base: number, o: DmgOpts): DmgResult {
     const res: DmgResult = { amount: 0, crit: false, miss: false, graze: false, killed: false };
     if (!tgt.alive || base <= 0) return res;
-    let dmg = base;
+    let dmg = base * (src.side === 0 ? elementDamageMult(o.elem) : 1); // 비물리 4속성: 아군 기물의 계수만 ×ELEM_AMP
     // 제압: 다음 공격 피해 1
     if (o.tag !== 'dot' && o.tag !== 'proc' && src.statuses.some((s) => s.key === 'suppress')) {
       src.statuses = src.statuses.filter((s) => s.key !== 'suppress');
@@ -1049,9 +1060,9 @@ export class Battle {
         for (const h of tgt.hooks) h.onEvade?.(this, tgt, src);
       }
     }
-    // 치명타: 사격 · 타격 피해만 (기술 피해는 기술 치명 특성이 있을 때만, 지속 피해 없음)
+    // 전기 · 화학 · 정신 · 신성은 치명타 불가. 그 밖은 기존 사격 · 타격 / 기술 치명 허용 규칙을 따른다.
     // 기술 피해 치명: 기술 치명 허용(도노반 등) 또는 인과학파 저이성 (mem.lowTechCrit, data/psionic.ts)
-    const canCrit = o.tag !== 'dot' && (o.kind === 'shoot' || o.kind === 'strike' || (o.kind === 'tech' && (src.mem.techCrit || src.mem.lowTechCrit)));
+    const canCrit = !isNonPhys(o.elem) && o.tag !== 'dot' && (o.kind === 'shoot' || o.kind === 'strike' || (o.kind === 'tech' && (src.mem.techCrit || src.mem.lowTechCrit)));
     if (dmg > 0 && canCrit && !res.miss) {
       if (this.rng.next() < this.S(src, 'crit') + (o.critBonus || 0)) {
         res.crit = true;
@@ -1071,7 +1082,7 @@ export class Battle {
       const tags: DmgTag[] = ['all', o.elem, o.tag, ...(o.kind && o.tag !== 'dot' ? [o.kind] : []), ...(o.extra || [])];
       const selfPsy = o.key === 'reason'; // 저이성 정신 피해: 공격자 쪽 배율 없음
       if (!selfPsy) dmg *= modMult(allMods(src), tags) * src.phaseAmp;
-      dmg *= takenMult(allTaken(tgt), tags, isTrue);
+      dmg *= takenMult(allTaken(tgt), tags, isTrue, guardThreatRed(this, tgt));
       if (!selfPsy) for (const h of src.hooks) if (h.dmgMult) dmg *= h.dmgMult(this, src, tgt, o);
       for (const h of tgt.hooks) if (h.takenMult) dmg *= h.takenMult(this, tgt, src, o);
       const ot = CFG.overtimeStart - (this.ctx.otShift || 0); // 초침의 서약: 연장전을 앞당긴다
@@ -1134,7 +1145,7 @@ export class Battle {
       if (bd) {
         const others = this.units.filter((x) => x.alive && x !== tgt && x.statuses.some((s) => s.key === 'bond' && s.grp === bd.grp));
         const div = bd.src?.mem['ps.mind.hive'] ? 1 : others.length; // ★ 집단 자아: 나누지 않고 각자 공유 비율만큼
-        for (const x of others) this.rawHit(bd.src || src, x, (dmg * bd.val!) / div, o.elem);
+        for (const x of others) this.rawHit(bd.src || src, x, (dmg * bd.val!) / div, o.elem, true);
       }
       // 공진 등: 피격 반응
       if (tgt.alive) for (const s of tgt.statuses.slice()) if (s.onHit && s.dur > 0) s.onHit(this, tgt, src, res, o, s);
@@ -1146,8 +1157,9 @@ export class Battle {
     return res;
   }
 
-  /** 이미 경감까지 계산된 피해를 그대로 준다 (결속 공유 · 자아 분리). 훅 없음 */
-  rawHit(src: CUnit, tgt: CUnit, amt: number, elem: Elem) {
+  /** 방어를 무시하는 직접 피해 (체력 비례 · 전장 효과 등, 속성 배율 없음). 수호자 도발 경감만 받고, 이미 계산된 공유 피해는 resolved=true 로 중복 경감을 막는다. 훅 없음 */
+  rawHit(src: CUnit, tgt: CUnit, amt: number, elem: Elem, resolved = false) {
+    if (!resolved) amt *= 1 - Math.min(CFG.reductionCap, guardThreatRed(this, tgt));
     if (!tgt.alive || amt <= 0) return 0;
     if ((tgt.mem.invulnUntil || 0) > this.t) return 0;
     let left = amt, dsh = 0;
@@ -1396,12 +1408,15 @@ export function modMult(mods: Mod[], tags: DmgTag[]): number {
   }
   return m;
 }
-export function takenMult(mods: TakenMod[], tags: DmgTag[], ignoreRed: boolean): number {
+/** extraRed: '모든 피해' 경감에 더할 몫 (수호자 도발 경감) — 같은 상한 안에서 합산하고, 고정 피해(ignoreRed)에도 이 몫은 적용 */
+export function takenMult(mods: TakenMod[], tags: DmgTag[], ignoreRed: boolean, extraRed = 0): number {
   let m = 1;
   for (const tag of tags) {
     let vuln = 0, red = 0;
     for (const x of mods) if (x.tag === tag) { if (x.kind === 'vuln') vuln += x.v; else red += x.v; }
-    m *= (1 + vuln) * (ignoreRed ? 1 : 1 - Math.min(CFG.reductionCap, red));
+    if (ignoreRed) red = 0;
+    if (tag === 'all') red += extraRed;
+    m *= (1 + vuln) * (1 - Math.min(CFG.reductionCap, red));
   }
   return m;
 }

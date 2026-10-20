@@ -58,14 +58,15 @@ export const ABIL_F: Record<string, AbilText> = {
       tgt: '현재 대상', range: 'unit', area: aroundOr(p.radius),
       rows: [
         ['피해', `[dmg:shoot:${p.mult}:holy]`],
-        ...when(p.vuln, ['취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`]),
+        ...when(p.vuln, ['취약', `[st:vuln:5] 받는 피해 +[p:${p.vuln}]`]),
+        ['시선 집중', `주 대상 [s:5] 동안 도발 계수 +${p.provPlus}`],
       ],
     }),
     trait: '전투 시작 시 모든 아군 이동 속도 +[p:0.2] (전투 동안), [s:6] 동안 피해 +[p:0.15]. 자신은 [s:4] 동안 공격 속도 +[p:0.5], 결정타 시 [s:4]로 갱신.',
     augs: {
       tour: '관광 명소 소개 범위 +[t:1]. 피해 [dmg+:shoot:0.3:holy].',
       flag: '관광 명소 소개 피해 [dmg+:shoot:1.6:holy].',
-      photo: '[st:vuln:4] 받는 피해 [pp:0.3].',
+      photo: '[st:vuln:5] 받는 피해 [pp:0.3].',
       smile: '전투 시작 시 모든 아군에게 각자 최대 체력 [p:0.15] 보호막.',
       souvenir: '정신력 +9, 전투력 +6.',
     },

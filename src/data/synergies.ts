@@ -97,12 +97,17 @@ const CHEF_HP = [0, 0, 0.15, 0.25], CHEF_FEAST = 0.15;
  *  (8) [난공불락]: 추가 피해의 splashK 배가 대상 주변 splash 칸의 다른 적에게도, 수호자가 받는 피해 −red */
 const GUARD_T = { armor: [0.04, 0.08, 0.13, 0.22], hit: [0.1, 0.2, 0.4, 0.7] }, GUARD_WALL = { splash: 1, splashK: 0.5, red: 0.15 };
 /** 신비학자 (2 · 4 · 6 · 8명): 기술 위력 (%) · [합성] 상품 수 (base + 단계) · [합성] 가격 할인 */
+/** 수호자 (4) · (6) · (8): 수호자 자신의 도발 계수 1당 모든 피해 경감 (단계 인덱스, 다른 '모든 피해' 경감과 합쳐 상한 안) */
+const GUARD_THREAT = [0, 0.04, 0.04, 0.08];
 const OCCULT_TECH = [0.15, 0.3, 0.5, 0.8];
 export const OCCULT_SYNTH = { base: 2, disc: [0, 0, 0.3, 0.5] };
 
+/** 연합 전투 완료 후 출전 연합 기물 1명당 추가 공명도 (시너지 단계 인덱스). */
+export const UNI_XP = [0, 2, 3, 4, 10];
+
 /** 의무관 단계별 수치: 모든 아군 회복 효율 · 치료 계수 (기술 위력 배율) · 모든 아군 최대 체력.
  *  회복 효율은 성장 폭이 작아, 예전의 '치료 대상 다음 기본 공격 피해 +20%' 대신 단계마다 최대 체력을 올린다 */
-const MED = { eff: [0.2, 0.4, 0.75, 1.5], heal: [0.8, 1.5, 2.6, 4.5], hp: [0.06, 0.12, 0.18, 0.24] };
+const MED = { eff: [0.2, 0.4, 0.75, 1.5], heal: [0.8, 1.5, 2.6, 4.5], hp: [0.1, 0.2, 0.4, 0.6] };
 const medTier = (i: number) => `회복 효율 +${pct(MED.eff[i])}, ${i < 3 ? `치료 = 기술 위력 ${pct(MED.heal[i])}` : `3초마다 기술 위력 ${pct(MED.heal[i])} 치료 + 초과분 보호막`}${i === 2 ? ', 치료 대상에게 초과분까지 보호막' : ''}${i === 3 ? ', 치료할 때 해로운 효과 1개 제거' : ''}, 모든 아군 최대 체력 +${pct(MED.hp[i])}`;
 
 /** 모략가 (2 · 4 · 6 · 8명) [암운]: 기본 공격 · 기술 적중 시 기본 hit 확률, 적에게 해로운 효과를 걸 때 기본 inflict 확률로 1중첩
@@ -256,8 +261,8 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'UNI', name: '성간 인류 연합', kind: 'faction', tiers: [3, 5, 7, 9], color: '#3b6fd8', icon: '★',
     desc: '꾸준한 공명도 상승과 안정적인 전투력 증대.\n· 전투가 끝날 때마다 연합 기물이 추가 공명도를 얻습니다.\n· 연합 기물의 모든 주요 능력치가 크게 오릅니다.\n· (7) 이상: 출전한 연합 기물이 공명 등급이 더 높은 것처럼 싸웁니다 (등급당 모든 주요 능력치 +1, 위력 ×1.025, 작위).',
-    tierDesc: ['모든 주요 능력치 +4, 전투 후 공명도 +1', '모든 주요 능력치 +8, 전투 후 공명도 +2, 피해 +15%', '모든 주요 능력치 +12, 전투 후 공명도 +3, 피해 +30%, 공명 등급 +2 취급',
-      '[연합 총동원령] 모든 주요 능력치 +30, 전투 후 공명도 +5, 피해 +80%, 공명 등급 +5 취급, 모든 아군 모든 주요 능력치 +6'],
+    tierDesc: ['모든 주요 능력치 +4, 전투 후 공명도 +2', '모든 주요 능력치 +8, 전투 후 공명도 +3, 피해 +15%', '모든 주요 능력치 +12, 전투 후 공명도 +4, 피해 +30%, 공명 등급 +2 취급',
+      '[연합 총동원령] 모든 주요 능력치 +30, 전투 후 공명도 +10, 피해 +80%, 공명 등급 +5 취급, 모든 아군 모든 주요 능력치 +6'],
     member: (t) => {
       const rb = T(t, [0, 0, 2, 5]);
       const m = T(t, [4, 8, 12, 30]) + rb * CFG.rankAll;
@@ -646,14 +651,15 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'GUARD', name: '수호자', kind: 'trait', tiers: [2, 4, 6, 8], color: '#c9a86a', icon: '⛉',
-    desc: `앞에 서서 모두를 지키는 이들. 출전한 수호자 1명마다 모든 아군의 방어도가 오르고 (수호자 자신은 2배), 수호자의 기본 공격에는 자신 방어도에 비례한 물리 피해가 더해집니다. 시너지가 켜지면 (2명 이상) 수호자의 도발 배율이 +${PROV.guard} 올라 적이 수호자를 더 노립니다.`,
-    tierDesc: GUARD_T.armor.map((a, i) => `${['', '', '[철벽 방진] ', '[난공불락] '][i]}수호자 1명당 모든 아군 방어도 +${pct(a)} (수호자 +${pct(a * 2)}), 수호자 기본 공격 + 방어도 ${pct(GUARD_T.hit[i])} 물리 피해${i === 3 ? ` (대상 주변 ${GUARD_WALL.splash}칸의 다른 적에게도 그 ${pct(GUARD_WALL.splashK)}), 수호자가 받는 피해 -${pct(GUARD_WALL.red)}` : ''}`),
+    desc: `앞에 서서 모두를 지키는 이들. 출전한 수호자 1명마다 모든 아군의 방어도가 오르고 (수호자 자신은 2배), 수호자의 기본 공격에는 자신 방어도에 비례한 물리 피해가 더해집니다. 시너지가 켜지면 (2명 이상) 수호자의 도발 배율이 +${PROV.guard} 올라 적이 수호자를 더 노립니다. (4)부터 수호자는 자신의 도발 계수 1당 모든 피해를 ${pct(GUARD_THREAT[1])}, (8)은 ${pct(GUARD_THREAT[3])} 경감합니다 (다른 경감과 합쳐 상한 ${pct(CFG.reductionCap)}).`,
+    tierDesc: GUARD_T.armor.map((a, i) => `${['', '', '[철벽 방진] ', '[난공불락] '][i]}수호자 1명당 모든 아군 방어도 +${pct(a)} (수호자 +${pct(a * 2)}), 수호자 기본 공격 + 방어도 ${pct(GUARD_T.hit[i])} 물리 피해${i >= 1 ? `, 수호자는 도발 계수 1당 모든 피해 ${pct(GUARD_THREAT[i])} 경감 (다른 경감과 합쳐 상한 ${pct(CFG.reductionCap)})` : ''}${i === 3 ? ` (대상 주변 ${GUARD_WALL.splash}칸의 다른 적에게도 그 ${pct(GUARD_WALL.splashK)}), 수호자가 받는 피해 -${pct(GUARD_WALL.red)}` : ''}`),
     team: (t, ctx) => ({ pct: { armor: (ctx.counts.GUARD || 0) * T(t, GUARD_T.armor) } }),
     member: (t, ctx) => {
       const k = T(t, GUARD_T.hit);
       return {
         pct: { armor: (ctx.counts.GUARD || 0) * T(t, GUARD_T.armor) }, // 수호자 기물은 팀 효과를 한 번 더 받아 2배
         taken: t >= 4 ? [red('all', GUARD_WALL.red)] : undefined,
+        setup: (u) => { u.mem.guardThreatRed = T(t, GUARD_THREAT); },
         hooks: {
           onBasic(b, u, tgt, r) {
             if (r.miss || !tgt.alive) return;

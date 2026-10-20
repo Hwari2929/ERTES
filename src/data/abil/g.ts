@@ -54,11 +54,11 @@ export const ABIL_G: Record<string, AbilText> = {
     skill: (p) => ({
       tgt: '체력이 가장 낮은 적', range: null, area: { k: 'one' },
       rows: [
-        ['피해', `[dmg:shoot:${p.mult}:phys:${p.hits}]`],
+        ['피해', `[dmg:shoot:${p.mult}:elec:${p.hits}]`],
         ['환급', `도중에 대상이 쓰러지면 남은 사격을 멈추고 쿨다운 [p:${p.refund}] 환급`],
       ],
     }),
-    trait: '사격 [g:crit] 적중 시 전투 스킬 쿨다운 -[s:0.5]. 전투 스킬 치명타 확률 [pp:0.15].',
+    trait: '일반 공격 [g:crit] 적중 시 전투 스킬 쿨다운 -[s:1.25]. 전투 스킬 사용 후 [s:5] 동안 공격 속도 [pp:0.25] (최대 2중첩, 각 중첩 별도 만료).',
   },
   juseong: {
     skill: (p) => ({

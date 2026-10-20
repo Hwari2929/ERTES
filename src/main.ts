@@ -189,6 +189,10 @@ const app = {
 const root = document.getElementById('app')!;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const pctTxt = (x: number) => `${Math.round(x * 100)}%`;
+/** 확률 표기 (소수 1자리): 2.5% · 8.8% */
+const pct1 = (x: number) => `${+(x * 100).toFixed(1)}%`;
+/** 보급 대박: 장마다 앞에서부터 굴려 처음 걸린 배율 (CFG.supply.jackpot) → 배율별 실제 확률 */
+const jackpotTxt = () => { let left = 1; return CFG.supply.jackpot.map(([x, p]) => { const q = left * p; left *= 1 - p; return `×${x} ${pct1(q)}`; }).join(' · '); };
 
 function toast(msg: string) {
   SND.toastSfx(msg); // 입력 중에 뜬 오류 알림이면 그 입력의 소리를 오류음으로
@@ -523,7 +527,7 @@ function supplyHtml(p: Extract<Pending, { t: 'supply' }>) {
       : c.items.map((id) => `<span class="sup-ic">${itemIcon(id)}</span><b class="t${itemInfo(id).tier}">${esc(itemInfo(id).name)}</b><span>${statIc(esc(itemInfo(id).desc))}</span>`).join('');
     return `<div class="card sup-card open sup-${c.kind}${c.mult > 1 ? ' jp' : ''}" data-sup="${i}">${jp}${body}</div>`;
   };
-  return `<h1>보급</h1><p class="muted small">보급품 ${p.options.length}장을 모두 받습니다. 뒤집기 전에는 무엇이 들었는지 모릅니다 · 드물게 대박 (가치 ${CFG.supply.jackpot.map(([x]) => `×${x}`).join(' · ')}).</p>
+  return `<h1>보급</h1><p class="muted small">보급품 ${p.options.length}장을 모두 받습니다. 뒤집기 전에는 무엇이 들었는지 모릅니다 · ${p.route ? '항로 보급: 첫 장은 장비 재료 확정, 대박 없음' : `장마다 대박 확률 ${jackpotTxt()} (가치 배율)`}.</p>
     <div class="cards sup-cards">${p.options.map(face).join('')}</div>
     <div class="row-btns">${left ? `<button class="btn primary" data-a="supply-all">모두 뒤집기 (${left}장)</button>` : '<button class="btn primary" data-a="supply-done">계속</button>'}</div>`;
 }
@@ -1075,12 +1079,13 @@ function musterModal(run: RunState) {
       <button class="btn primary" data-a="muster-ok" ${full && pool.length ? '' : 'disabled'}>소집 ${CR}${R.musterCost(run)}</button></div>`;
 }
 /** 보급 미리보기: 카드 수 · 지금 기준 합계 가치 (run.ts supplyBase, 크레딧 환산) */
-const supplyHint = (run: RunState | null) => `보급품 ${CFG.supply.cards}장 모두 받기 (크레딧 · 공명도 · 장비 무작위)${run ? ` · 합계 가치 약 ${Math.round(R.supplyBase(run))} 크레딧어치` : ''} · 드물게 대박`;
+/** route: 항로에 놓인 보급 노드 (첫 장 재료 확정 · 대박 없음) / 아니면 분기점 보급 */
+const supplyHint = (run: RunState | null, route = false) => `보급품 ${CFG.supply.cards}장 모두 받기 (${route ? '첫 장 장비 재료 확정, 나머지 ' : ''}크레딧 · 공명도 · 장비 무작위)${run ? ` · 합계 가치 약 ${Math.round(R.supplyBase(run))} 크레딧어치` : ''}${route ? ' · 대박 없음' : ` · 장마다 대박 ${jackpotTxt()}`}`;
 function nodeHint(o: NodeType) {
   return ({
     battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 ${CFG.adversityReward}배 + 장비 재료 ${CFG.drop.advParts}개 확정`,
     council: `전역 증강 3장 중 택1 · 새로고침 ${CFG.globalRerolls}회`, shop: `분기점 — 상점 / 보급 / 모집 (+ ${SYN_BY_ID.STAR.name} 속보 · 호이슌 투자 · 순례)`,
-    supply: supplyHint(app.run), recruit: '새 동료 3명 중 택1', boss: `${app.run && R.bossMustWin(app.run) ? '의뢰의 마지막 보스 · 이길 때까지 다시 싸운다' : `승리 시 페이즈 클리어 · 패배해도 다음 페이즈로 (체력 -${CFG.bossLossDamage(app.run?.phase || 1)})`} · ${CFG.drop.bossAdvEvery}페이즈마다 희귀 장비`,
+    supply: supplyHint(app.run, true), recruit: '새 동료 3명 중 택1', boss: `${app.run && R.bossMustWin(app.run) ? '의뢰의 마지막 보스 · 이길 때까지 다시 싸운다' : `승리 시 페이즈 클리어 · 패배해도 다음 페이즈로 (체력 -${CFG.bossLossDamage(app.run?.phase || 1)})`} · ${CFG.drop.bossAdvEvery}페이즈마다 희귀 장비`,
     pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', invest: '호이슌 투자 상품 · 크레딧으로 문장 · 증강 · 다음 페이즈 수익', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
     fork: `갈림길 — 휴식(체력 +${CFG.forkRestHp} + 잃은 체력 ${Math.round(CFG.forkRestLost * 100)}%) 또는 도전(다음 페이즈 역경급 전투, 승리 시 다음 페이즈로)`,
     challenge: '다음 페이즈 역경 수준의 전투 · 승리 시 남은 노드 보상을 받고 다음 페이즈로',
@@ -2685,7 +2690,7 @@ function pendingModal(run: RunState): string {
         <button class="btn primary" data-a="pick-recruit" data-v="${pick || ''}" ${pick ? '' : 'disabled'}>영입</button></div>`;
   } else if (p.t === 'branch') {
     const BR: Partial<Record<NodeType, string>> = {
-      shop: `재료 ${CFG.drop.shopParts}개 확정 · 희귀 / 고급 장비${run.phase >= CFG.shop.gearFrom ? ' 1개 이상 확정' : ''} · 가끔 소모품 · 드물게 문장 · 전설`, supply: supplyHint(run),
+      shop: `재료 ${CFG.drop.shopParts}개 확정 · ${run.phase >= CFG.shop.gearFrom ? '희귀 / 고급 1개 이상 확정' : `희귀 ${pct1(CFG.drop.shopAdv2 + (1 - CFG.drop.shopAdv2) * CFG.drop.shopAdv)} · 고급 ${pct1(CFG.drop.shopGraded)}`} · 소모품 ${pct1(CFG.shop.cons)} · 문장 ${pct1(CFG.shop.emblem)}${run.phase >= CFG.drop.shopLegendPhase ? ` · 전설 ${pct1(CFG.drop.shopLegend)}` : ''}`, supply: supplyHint(run),
       news: `은하 속보: 명성 ${run.fame}을 보상으로 교환`, recruit: '기물 영입 기회 (후보 중 1명)',
       invest: '호이슌 투자 상품 (페이즈당 1회)', maint: '엔지니어 정비: 포탑 전용 장비 구매 (보급형 1개 무료)', pilgrim: `권능 +1 후 순례 (페이즈당 1회) · 보유 권능 ${run.power}`,
     };

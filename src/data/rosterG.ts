@@ -164,8 +164,8 @@ export const ROSTER_G: BaseUnit[] = [
     sprite: 'soldier', palette: tint('#4a3a2a', '#ff8ab0', '#ffd040'), noBar: true,
     lore: '"범이든 사람이든, 송향 냄새를 풍기면 쏜다. 그게 절멸파다."',
     skill: {
-      name: '절멸 사격', tag: () => '약한 적 5연사 물리 공격', cd: 8, params: { mult: 0.9, hits: 5, refund: 0.7 },
-      desc: (p) => `체력이 가장 낮은 적에게 사격 위력 ${pct(p.mult)} 물리 피해를 ${p.hits}번. 도중에 대상이 쓰러지면 남은 사격을 멈추고 쿨다운 ${pct(p.refund)} 환급.`,
+      name: '절멸 사격', tag: () => '약한 적 5연사 전기 공격', cd: 8, params: { mult: 0.9, hits: 5, refund: 0.7 },
+      desc: (p) => `체력이 가장 낮은 적에게 사격 위력 ${pct(p.mult * 1.25)} 전기 피해를 ${p.hits}번. 도중에 대상이 쓰러지면 남은 사격을 멈추고 쿨다운 ${pct(p.refund)} 환급.`,
       cast(b, u) {
         const es = b.targetable(u);
         if (!es.length) return false;
@@ -173,8 +173,8 @@ export const ROSTER_G: BaseUnit[] = [
         const p = u.sk;
         for (let i = 0; i < p.hits; i++) {
           if (!t.alive) break;
-          b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'phys', ranged: true });
-          const r = skillHit(b, u, t, 'shoot', p.mult, 'phys', { critBonus: u.mem.jhCrit || 0 });
+          b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'elec', ranged: true });
+          const r = skillHit(b, u, t, 'shoot', p.mult, 'elec');
           if (r.killed) { u.cd = Math.min(u.cd, u.cdMax * (1 - p.refund)); break; }
         }
         return true;
@@ -405,10 +405,18 @@ export const REWORK_G: Record<string, ReworkDef> = {
   jaehwon: {
     ctype: 'MARK', ttype: 'minor', faith: 'human', weapon: G('수렵총', 'phys', 1.2, 5, 1.3, 5, 2.2),
     trait: {
-      name: '절멸파 수장', desc: '사격(기본 공격 · 전투 스킬) 치명타가 적중하면 전투 스킬 쿨다운 -0.5초. 전투 스킬의 치명타 확률 +15%p.',
+      name: '절멸파 수장', desc: '일반 공격 치명타 적중 시 전투 스킬 쿨다운 -1.25초. 전투 스킬 사용 후 5초간 공격 속도 +25%p (최대 2중첩, 각 중첩은 별도로 만료).',
       effect: {
-        setup: (u) => { u.mem.jhCrit = 0.15 * gw(u); },
-        hooks: { onDeal(_b, u, _t, r, o) { if (r.crit && o.kind === 'shoot' && (o.tag === 'basic' || o.tag === 'skill')) u.cd = Math.max(0, u.cd - 0.5); } },
+        hooks: {
+          onDeal(_b, u, _t, r, o) {
+            if (r.amount > 0 && r.crit && o.tag === 'basic') u.cd = Math.max(0, u.cd - 1.25);
+          },
+          onSkill(b, u) {
+            const active = u.statuses.filter((s) => s.key.startsWith('jaehwon.haste.') && s.dur > 0);
+            const slot = active.length < 2 ? [0, 1].find((i) => !active.some((s) => s.key === `jaehwon.haste.${i}`))! : +active.reduce((a, s) => s.dur < a.dur ? s : a).key.slice(-1);
+            b.buff(u, u, `jaehwon.haste.${slot}`, 5, { delta: { atkSpd: 0.25 }, label: '절멸 가속' });
+          },
+        },
       },
     },
   },

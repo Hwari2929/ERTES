@@ -10,7 +10,7 @@ import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, isTurretItem, isTurretMod, TURRET_ADV, TURRET_BASIC, TURRET_MODS, TURRET_PRICE, turretModsOfTier, turretSlots } from '../data/items';
-import { OCCULT_SYNTH, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
+import { UNI_XP, OCCULT_SYNTH, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { MAJOR_AUGS, recMajors } from '../data/rework';
 import { SCHOOL_AUGS, schoolPassives } from '../data/psionic';
@@ -353,7 +353,8 @@ export function enterNode(run: RunState, type: NodeType) {
   } else if (type === 'shop') {
     run.pending.push({ t: 'branch', options: branchOptions(run) });
   } else if (type === 'supply') {
-    run.pending.push({ t: 'supply', options: genSupply(run, run.map[run.step]?.[0] === 'supply') }); // 항로에 놓인 보급 노드 (분기점 보급 아님)
+    const route = run.map[run.step]?.[0] === 'supply'; // 항로에 놓인 보급 노드 (분기점 보급 아님)
+    run.pending.push({ t: 'supply', options: genSupply(run, route), ...(route ? { route } : {}) });
     advance(run);
   } else if (type === 'recruit') {
     offerRecruit(run);
@@ -743,8 +744,8 @@ export function pickGlobal(run: RunState, id: string) {
 export const FOE_GEAR_DIFF = 2;
 export const foeGearOn = (run: RunState) => diffHas(run.diff, FOE_GEAR_DIFF);
 /**
- * 위험 등급 장비: (2)부터 적이 낮은 확률로 재료를 달고, 역경 · 보스전에서는 고급 장비도 단다 (희귀 · 전설처럼 추가 효과가 있는 장비는 없음).
- * (5)부터 개조부품(문장 제외)을 달 수 있고, 보스는 거의 항상 전설 장비(재생 외골격 제외)를 단다.
+ * 위험 등급 장비 (확률은 CFG.foeGear): (2)부터 적이 칸마다 확률로 재료를 달고, 역경 · 보스전에서는 고급 장비도 단다 (희귀 · 전설처럼 추가 효과가 있는 장비는 없음).
+ * (5)부터 개조부품(문장 제외)을 달 수 있고, 보스는 CFG.foeGear.bossLegend 확률로 전설 장비(재생 외골격 제외)를 단다.
  * 장비 칸 수 = 2페이즈마다 1칸 (최대 3). 칸마다 따로 굴리고, 장비는 왼쪽부터 채운다.
  */
 function gearEnemies(run: RunState, r: Rng, enemies: EnemySpawn[], type: NodeType, phase: number) {
@@ -756,16 +757,21 @@ function gearEnemies(run: RunState, r: Rng, enemies: EnemySpawn[], type: NodeTyp
   for (const s of enemies) {
     const tier = ENEMY_BY_ID[s.defId].tier;
     const items: string[] = [];
-    if (tier === 'boss' && diffHas(run.diff, 5) && r.chance(0.95)) items.push(r.pick(legends));
-    const p = (big ? 0.25 : 0.08) * (tier === 'elite' ? 1.5 : tier === 'boss' ? 2 : 1); // 칸당 장착 확률
+    if (type === 'adversity' && diffHas(run.diff, 7)) {
+      const grades = [ALL_COMPONENTS, ALL_GRADED, ALL_ADVANCED];
+      for (let i = 0; i < 3; i++) items.push(r.pick(r.pick(grades)));
+    }
+    const G = CFG.foeGear;
+    if (!items.length && tier === 'boss' && diffHas(run.diff, 5) && r.chance(G.bossLegend)) items.push(r.pick(legends));
+    const p = (big ? G.big : G.slot) * (tier === 'elite' ? G.elite : tier === 'boss' ? G.boss : 1); // 칸당 장착 확률
     for (let i = items.length; i < slots; i++) {
       if (!r.chance(p)) continue;
-      items.push(big && r.chance(0.5) ? r.pick(ALL_GRADED) : r.pick(ALL_COMPONENTS));
+      items.push(big && r.chance(G.graded) ? r.pick(ALL_GRADED) : r.pick(ALL_COMPONENTS));
     }
     // (6) 고난: 1페이즈부터 모든 적이 기본 장비를 최소 1개
-    if (!items.length && diffHas(run.diff, 6)) items.push(big && r.chance(0.5) ? r.pick(ALL_GRADED) : r.pick(ALL_COMPONENTS));
+    if (!items.length && diffHas(run.diff, 6)) items.push(big && r.chance(G.graded) ? r.pick(ALL_GRADED) : r.pick(ALL_COMPONENTS));
     if (items.length) s.items = items;
-    if (diffHas(run.diff, 5) && r.chance(tier === 'boss' ? 0.6 : tier === 'elite' ? 0.3 : 0.1)) s.mod = r.pick(mods);
+    if (diffHas(run.diff, 5) && r.chance(G.mod[tier === 'boss' ? 2 : tier === 'elite' ? 1 : 0])) s.mod = r.pick(mods);
   }
 }
 
@@ -924,7 +930,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   pool = Math.round(pool);
   distributeXp(run, pool);
   lines.push(`공명도 풀 ${pool} 분배`);
-  if (uni) for (const u of dep) if (memberships(u).includes('UNI')) u.xp += [0, 1, 2, 3, 5][uni]; // 연합: 전투 후 추가 공명도
+  if (uni) for (const u of dep) if (memberships(u).includes('UNI')) u.xp += UNI_XP[uni]; // 연합: 전투 후 추가 공명도
   const killsOf = (u: UnitState) => b.units.find((c) => c.src === u)?.counters.kills || 0;
   for (const u of dep) for (const a of u.augments) AUG_BY_ID[a.id]?.after?.(run, u, won, killsOf(u), { c: b.units.find((c) => c.src === u), gain: (id) => gainItem(run, id, lines) });
   // 성직자: 승리 시 신앙 / 대스타: 승리 시 명성 + 대스타 처치 수

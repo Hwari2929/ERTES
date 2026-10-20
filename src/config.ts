@@ -3,10 +3,10 @@ import type { CType } from './types';
 export const CFG = {
   // ── 메이저 → 마이너 환산 [임시]
   conv: {
-    vit: { maxHp: 120, healEff: 0.02 },
+    vit: { maxHp: 138, healEff: 0.02 },
     pow: { shoot: 5, strike: 5, crit: 0.01 },
     mnd: { tech: 5, acc: 0.02, effHit: 0.03 },
-    def: { armor: 60, effRes: 0.03 },
+    def: { armor: 69, effRes: 0.03 },
     // 재장전 속도 1%p → 2%p: 재장전 중 기술 금지 · 제어 시 재장전 초기화로 탄창 무기 기물의 기술 횟수가 ~5.5% 줄어든 만큼 보정
     // (같은 시드 1600판: 보정 전 클리어 31.4% → 29.2%, 보정 후 32.2% · 평균 도달 페이즈 5.61 → 5.60)
     agi: { moveSpd: 0.048, eva: 0.01, atkSpd: 0.01, reloadSpd: 0.02 },
@@ -79,7 +79,7 @@ export const CFG = {
   // 고페이즈 보정 [임시]: lateFrom 페이즈부터 매 페이즈 체력 ×lateHp, 피해 ×lateAmp 추가 (8페이즈 누적 체력 -19%, 피해 +41%)
   lateFrom: 5, lateHp: 0.9, lateAmp: 1.05,
   phaseHpFactor: (p: number) => (p <= 5 ? 1.85 : Math.max(1.1, 1.85 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
-  adversityMult: 1.3, // 역경 · 도전 조우 강도 (위험 등급과 무관): 적 체력 ×이 값, 피해 ×encDmgMult(이 값) (예전 1.5)
+  adversityMult: 1.25, // 역경 · 도전 조우 강도 (위험 등급과 무관): 적 체력 ×이 값, 피해 ×encDmgMult(이 값) (예전 1.5)
   adversityReward: 1.5, // 역경 승리 보상 배율: 크레딧 · 공명도 풀 (도전 보상의 '남은 역경' 몫도 이 값)
   adversityLoss: 1.5, // 역경 패배 체력 피해 배율 (도전 패배도 역경 기준)
   enemyHpMul: 4.6, enemyPowMul: 2.25, // 적 기초 수치 전체 배율 (튜닝용)
@@ -154,6 +154,9 @@ export const CFG = {
    *  smallTo 페이즈가 지나면 소형은 나오지 않고 그 가중치를 중형이 가져간다 (전투 보상 · 상점 공용) */
   inject: { amount: { K_xp: 8, K_xp2: 20, K_xp3: 40 } as Record<string, number>, w: { K_xp: 6, K_xp2: 3, K_xp3: 3 } as Record<string, number>, from: { K_xp: 1, K_xp2: 3, K_xp3: 6 } as Record<string, number>, smallTo: 4 },
   /** 상점 노드 (분기점의 상점, genShop): 재료 · 희귀 · 고급 · 전설은 drop.shop* 그대로, 아래는 그 밖의 진열 */
+  /** 위험 등급 적 장비 (run.ts gearEnemies, 위험 2 부터): 칸마다 장착 확률 slot (역경 · 보스전 big) × 정예 elite · 보스 boss 배율,
+   *  역경 · 보스전 장비는 graded 확률로 고급 (아니면 재료). (5): 보스 전설 bossLegend 확률 · 개조부품 mod [일반, 정예, 보스] */
+  foeGear: { slot: 0.08, big: 0.25, elite: 1.5, boss: 2, graded: 0.5, bossLegend: 0.95, mod: [0.1, 0.3, 0.6] as [number, number, number] },
   shop: {
     gearFrom: 3, gearAdv: 0.5, // 이 페이즈부터 고급 · 희귀 장비를 1개 이상 확정 진열 (확률 입고가 없으면 1개 추가: 희귀일 확률, 아니면 고급)
     cons: 0.4, consW: { inject: 3, K_strip: 1, K_reroll: 1 } as Record<string, number>, // 소모품 1개 (종종): 공명 주입기(페이즈에 맞는 크기) · 분리 용제 · 재구성 회로
@@ -176,8 +179,8 @@ export const CFG = {
    *  가치 환산 (크레딧 기준): 크레딧 1 = 1 · 공명도 1 = 직접 구매 단가 (buyXpCost ÷ buyXpAmount) · 장비 = 상점 기본가 CFG.price (재료 C · 고급 G · 희귀 A · 전설 L).
    *  장비 카드는 카드 가치를 가장 가까운 두 등급 사이에서 확률로 맞춘다 (가치가 높을수록 윗 등급, 기대 가치 = 카드 가치, 차이는 버림). 고급 · 희귀는 같은 값이라 graded 확률로 고급, 전설은 legendFrom 페이즈부터 대박 카드에서만 */
   supply: {
-    /** [실험] 1페이즈 보급 노드: 항로 맨 앞에 보급 노드를 더하고 첫 역경을 같은 보급 노드로 바꾼다 (재료 1장 확정 · 나머지 무작위 · 대박 없음). 기본 꺼짐 */
-    p1: false,
+    /** [실험] 1페이즈 보급 노드: 항로 맨 앞에 보급 노드를 더하고 첫 역경을 같은 보급 노드로 바꾼다 (재료 1장 확정 · 나머지 무작위 · 대박 없음). 이 시험판에서는 켜짐 */
+    p1: true,
     /** [실험] 2페이즈부터 모든 페이즈 항로 맨 앞에 같은 보급 노드 (p1 과 함께 쓰면 매 페이즈 맨 앞 보급). 기본 꺼짐 */
     front: false,
     cards: 3, ratio: 0.8, spread: 0.12,

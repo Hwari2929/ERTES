@@ -294,10 +294,10 @@ function sources(id: string): string[] {
       out.push(`판매가 (난이도별): ${breadSellText(stale)}`);
     } else if (id === 'K_seize') {
       out.push(`상점 · ${S.price[id]} 크레딧 (${pctTxt(S.seize)} 확률 진열, ${foeGear})`);
-      out.push(`전투 승리 보상 (매우 낮은 확률, ${foeGear}): ${dropTxt(CFG.drop.seize)}`);
+      out.push(`전투 승리 보상 (${foeGear}): ${dropTxt(CFG.drop.seize)}`);
     } else if (id === 'K_rank3') {
       out.push(`상점 · ${S.price[id]} 크레딧 (${S.rank3From}페이즈부터 ${pctTxt(S.rank3)} 확률 진열)`);
-      out.push(`전투 승리 보상 (극히 낮은 확률): ${dropTxt(CFG.drop.rank3)}`);
+      out.push(`전투 승리 보상: ${dropTxt(CFG.drop.rank3)}`);
     } else {
       const inj = INJECTORS.includes(id);
       out.push(`전투 승리 보상: ${dropTxt(CFG.drop.utility)} 확률로 소모품 1개 (분리 용제 · 재구성 회로 · 공명 주입기 중 하나${inj ? ', 주입기 크기는 페이즈에 따라' : ''})`);

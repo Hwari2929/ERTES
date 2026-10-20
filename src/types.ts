@@ -138,7 +138,7 @@ export type Pending =
   | { t: 'pilgrim'; cards?: { id: string; cost: number; sold: boolean; faith?: FaithId }[]; relics?: { id: string; cost: number; sold: boolean }[] }
   | { t: 'itemPick'; options: string[]; title: string }
   | { t: 'recruit'; options: string[]; rerolls?: number; syns?: string[] } // rerolls 없음 = 1회, syns = 지정 소집 조건
-  | { t: 'supply'; options: SupplyCard[] }
+  | { t: 'supply'; options: SupplyCard[]; route?: boolean } // route: 항로에 놓인 보급 노드 (첫 장 재료 확정 · 대박 없음)
   | { t: 'branch'; options: NodeType[] }
   | { t: 'fork' } // 전환: 휴식 / 도전
   | { t: 'muster' } // 지정 소집: 시너지 4개 선택 창
