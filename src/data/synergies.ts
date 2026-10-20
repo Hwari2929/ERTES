@@ -97,6 +97,8 @@ const CHEF_HP = [0, 0, 0.15, 0.25], CHEF_FEAST = 0.15;
  *  (8) [난공불락]: 추가 피해의 splashK 배가 대상 주변 splash 칸의 다른 적에게도, 수호자가 받는 피해 −red */
 const GUARD_T = { armor: [0.04, 0.08, 0.13, 0.22], hit: [0.1, 0.2, 0.4, 0.7] }, GUARD_WALL = { splash: 1, splashK: 0.5, red: 0.15 };
 /** 신비학자 (2 · 4 · 6 · 8명): 기술 위력 (%) · [합성] 상품 수 (base + 단계) · [합성] 가격 할인 */
+/** 수호자 (4) · (6) · (8): 수호자 자신의 도발 계수 1당 모든 피해 경감 (단계 인덱스, 다른 '모든 피해' 경감과 합쳐 상한 안) */
+const GUARD_THREAT = [0, 0.04, 0.04, 0.08];
 const OCCULT_TECH = [0.15, 0.3, 0.5, 0.8];
 export const OCCULT_SYNTH = { base: 2, disc: [0, 0, 0.3, 0.5] };
 
@@ -649,15 +651,15 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'GUARD', name: '수호자', kind: 'trait', tiers: [2, 4, 6, 8], color: '#c9a86a', icon: '⛉',
-    desc: `앞에 서서 모두를 지키는 이들. 출전한 수호자 1명마다 모든 아군의 방어도가 오르고 (수호자 자신은 2배), 수호자의 기본 공격에는 자신 방어도에 비례한 물리 피해가 더해집니다. 시너지가 켜지면 (2명 이상) 수호자의 도발 배율이 +${PROV.guard} 올라 적이 수호자를 더 노립니다. (4)부터 수호자는 자신의 도발 계수 1당 모든 피해를 5%, (8)은 10% 경감합니다 (기존 경감 상한 ${pct(CFG.reductionCap)}).`,
-    tierDesc: GUARD_T.armor.map((a, i) => `${['', '', '[철벽 방진] ', '[난공불락] '][i]}수호자 1명당 모든 아군 방어도 +${pct(a)} (수호자 +${pct(a * 2)}), 수호자 기본 공격 + 방어도 ${pct(GUARD_T.hit[i])} 물리 피해${i >= 1 ? `, 수호자는 도발 계수 1당 모든 피해 ${i === 3 ? 10 : 5}% 경감 (기존 경감 상한 ${pct(CFG.reductionCap)})` : ''}${i === 3 ? ` (대상 주변 ${GUARD_WALL.splash}칸의 다른 적에게도 그 ${pct(GUARD_WALL.splashK)}), 수호자가 받는 피해 -${pct(GUARD_WALL.red)}` : ''}`),
+    desc: `앞에 서서 모두를 지키는 이들. 출전한 수호자 1명마다 모든 아군의 방어도가 오르고 (수호자 자신은 2배), 수호자의 기본 공격에는 자신 방어도에 비례한 물리 피해가 더해집니다. 시너지가 켜지면 (2명 이상) 수호자의 도발 배율이 +${PROV.guard} 올라 적이 수호자를 더 노립니다. (4)부터 수호자는 자신의 도발 계수 1당 모든 피해를 ${pct(GUARD_THREAT[1])}, (8)은 ${pct(GUARD_THREAT[3])} 경감합니다 (다른 경감과 합쳐 상한 ${pct(CFG.reductionCap)}).`,
+    tierDesc: GUARD_T.armor.map((a, i) => `${['', '', '[철벽 방진] ', '[난공불락] '][i]}수호자 1명당 모든 아군 방어도 +${pct(a)} (수호자 +${pct(a * 2)}), 수호자 기본 공격 + 방어도 ${pct(GUARD_T.hit[i])} 물리 피해${i >= 1 ? `, 수호자는 도발 계수 1당 모든 피해 ${pct(GUARD_THREAT[i])} 경감 (다른 경감과 합쳐 상한 ${pct(CFG.reductionCap)})` : ''}${i === 3 ? ` (대상 주변 ${GUARD_WALL.splash}칸의 다른 적에게도 그 ${pct(GUARD_WALL.splashK)}), 수호자가 받는 피해 -${pct(GUARD_WALL.red)}` : ''}`),
     team: (t, ctx) => ({ pct: { armor: (ctx.counts.GUARD || 0) * T(t, GUARD_T.armor) } }),
     member: (t, ctx) => {
       const k = T(t, GUARD_T.hit);
       return {
         pct: { armor: (ctx.counts.GUARD || 0) * T(t, GUARD_T.armor) }, // 수호자 기물은 팀 효과를 한 번 더 받아 2배
         taken: t >= 4 ? [red('all', GUARD_WALL.red)] : undefined,
-        setup: (u) => { u.mem.guardThreatRed = t >= 4 ? 0.1 : t >= 2 ? 0.05 : 0; },
+        setup: (u) => { u.mem.guardThreatRed = T(t, GUARD_THREAT); },
         hooks: {
           onBasic(b, u, tgt, r) {
             if (r.miss || !tgt.alive) return;

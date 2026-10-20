@@ -29,15 +29,15 @@ for(const side of [0,1]) for(const kind of ['shoot','strike','tech'] as const) {
  plain(src);plain(tgt);src.mem.techCrit=1;src.mem.lowTechCrit=1;
  for(const elem of ['phys','elec','chem','psy','holy'] as Elem[]) {
   const r=b.dealDamage(src,tgt,100,{elem,tag:'skill',kind});
-  near(r.amount,elem==='phys'?200:125,`${side}/${kind}/${elem}`);
+  near(r.amount,elem==='phys'?200:side===0?125:100,`${side}/${kind}/${elem}`); // 비물리 ×1.25 는 아군 기물만
   ok(r.crit===(elem==='phys'),`crit gate ${elem}`);
  }
  src.st.crit=0;
  for(const elem of ['phys','elec','chem','psy','holy','true'] as Elem[]) {
-  const expected=['elec','chem','psy','holy'].includes(elem)?125:100;
+  const expected=side===0&&['elec','chem','psy','holy'].includes(elem)?125:100;
   near(b.dealDamage(src,tgt,100,{elem,tag:'dot',kind:'tech'}).amount,expected,`dot ${elem}`);
   near(b.dealDamage(src,tgt,100,{elem,tag:'proc',kind:'tech'}).amount,expected,`proc ${elem}`);
-  near(b.rawHit(src,tgt,100,elem),expected,`raw ${elem}`);
+  near(b.rawHit(src,tgt,100,elem),100,`raw ${elem} (직접 피해는 속성 배율 없음)`);
   near(b.rawHit(src,tgt,100,elem,true),100,`resolved raw ${elem} no double boost`);
  }
 }

@@ -36,7 +36,7 @@ export function powVal(ctx: AbilCtx, pow: Pow, tactical = false): number | null 
 /** 상세 보기: 예상 수치 대신 계수 (위력 × %) 로 표시 */
 export const ABOPT = { coef: false };
 export function powNum(ctx: AbilCtx, pow: Pow, mult: number, plus = false, tactical = false, elem?: Elem) {
-  mult *= elem ? elementDamageMult(elem) : 1;
+  if (elem && (!ctx.c || ctx.c.side === 0)) mult *= elementDamageMult(elem); // 비물리 4속성: 아군 기물의 계수만 ×1.25 (적 능력 표시는 그대로)
   const k = powKey(ctx, pow, tactical);
   const v = ABOPT.coef ? null : powVal(ctx, pow, tactical);
   const txt = v === null ? `${POW_KO[k]} ${pct(mult)}` : fmt(v * mult);

@@ -4,7 +4,10 @@ import { PSI_STATUS, type SchoolId } from '../data/schools';
 import { CTYPE_NAME } from '../types';
 import type { Category, CType, DmgTag, Elem, FaithId, Keyword, Mod, Stats, StatKey, SynergyId, TakenMod, TType, UnitState, Weapon } from '../types';
 
-export const elementDamageMult = (elem: Elem): number => ['elec', 'chem', 'psy', 'holy'].includes(elem) ? 1.25 : 1;
+/** 비물리 4속성 (전기 · 화학 · 정신 · 신성): 치명타 불가 대신 아군 기물이 주는 피해의 계수 ×ELEM_AMP (적 · 전장 효과 · 체력 비례 직접 피해에는 없음) */
+export const ELEM_AMP = 1.25;
+export const isNonPhys = (elem: Elem) => elem === 'elec' || elem === 'chem' || elem === 'psy' || elem === 'holy';
+export const elementDamageMult = (elem: Elem): number => (isNonPhys(elem) ? ELEM_AMP : 1);
 
 export type StatusType = 'stun' | 'fear' | 'shock' | 'dot' | 'buff';
 
@@ -337,8 +340,8 @@ export function provMult(b: Battle | null, a: CUnit): number {
   return m;
 }
 
-/** 수호자 4/6/8: 현재 도발 계수에 따른 모든 피해 경감. 공유 피해는 이미 경감되어 있으므로 다시 적용하지 않는다. */
-export const guardThreatTakenMult = (b: Battle | null, u: CUnit) => 1 - Math.min(CFG.reductionCap, Math.max(0, provMult(b, u)) * (u.mem.guardThreatRed || 0));
+/** 수호자 4/6/8: 현재 도발 계수에 따른 모든 피해 경감 몫 (다른 '모든 피해' 경감과 합쳐 CFG.reductionCap 을 넘지 않는다). 공유 피해는 이미 경감되어 있으므로 다시 적용하지 않는다. */
+export const guardThreatRed = (b: Battle | null, u: CUnit) => Math.max(0, provMult(b, u)) * (u.mem.guardThreatRed || 0);
 
 export type BEvent =
   /** chain: 연쇄 탄환 (앞 탄환이 닿은 지점에서 이어서 출발) */
@@ -1038,7 +1041,7 @@ export class Battle {
   dealDamage(src: CUnit, tgt: CUnit, base: number, o: DmgOpts): DmgResult {
     const res: DmgResult = { amount: 0, crit: false, miss: false, graze: false, killed: false };
     if (!tgt.alive || base <= 0) return res;
-    let dmg = base * elementDamageMult(o.elem);
+    let dmg = base * (src.side === 0 ? elementDamageMult(o.elem) : 1); // 비물리 4속성: 아군 기물의 계수만 ×ELEM_AMP
     // 제압: 다음 공격 피해 1
     if (o.tag !== 'dot' && o.tag !== 'proc' && src.statuses.some((s) => s.key === 'suppress')) {
       src.statuses = src.statuses.filter((s) => s.key !== 'suppress');
@@ -1059,7 +1062,7 @@ export class Battle {
     }
     // 전기 · 화학 · 정신 · 신성은 치명타 불가. 그 밖은 기존 사격 · 타격 / 기술 치명 허용 규칙을 따른다.
     // 기술 피해 치명: 기술 치명 허용(도노반 등) 또는 인과학파 저이성 (mem.lowTechCrit, data/psionic.ts)
-    const canCrit = elementDamageMult(o.elem) === 1 && o.tag !== 'dot' && (o.kind === 'shoot' || o.kind === 'strike' || (o.kind === 'tech' && (src.mem.techCrit || src.mem.lowTechCrit)));
+    const canCrit = !isNonPhys(o.elem) && o.tag !== 'dot' && (o.kind === 'shoot' || o.kind === 'strike' || (o.kind === 'tech' && (src.mem.techCrit || src.mem.lowTechCrit)));
     if (dmg > 0 && canCrit && !res.miss) {
       if (this.rng.next() < this.S(src, 'crit') + (o.critBonus || 0)) {
         res.crit = true;
@@ -1079,7 +1082,7 @@ export class Battle {
       const tags: DmgTag[] = ['all', o.elem, o.tag, ...(o.kind && o.tag !== 'dot' ? [o.kind] : []), ...(o.extra || [])];
       const selfPsy = o.key === 'reason'; // 저이성 정신 피해: 공격자 쪽 배율 없음
       if (!selfPsy) dmg *= modMult(allMods(src), tags) * src.phaseAmp;
-      dmg *= takenMult(allTaken(tgt), tags, isTrue) * guardThreatTakenMult(this, tgt);
+      dmg *= takenMult(allTaken(tgt), tags, isTrue, guardThreatRed(this, tgt));
       if (!selfPsy) for (const h of src.hooks) if (h.dmgMult) dmg *= h.dmgMult(this, src, tgt, o);
       for (const h of tgt.hooks) if (h.takenMult) dmg *= h.takenMult(this, tgt, src, o);
       const ot = CFG.overtimeStart - (this.ctx.otShift || 0); // 초침의 서약: 연장전을 앞당긴다
@@ -1154,9 +1157,9 @@ export class Battle {
     return res;
   }
 
-  /** 방어를 무시하는 피해. 이미 계산된 공유 피해는 resolved=true 로 속성 배율 중복을 막는다. 훅 없음 */
+  /** 방어를 무시하는 직접 피해 (체력 비례 · 전장 효과 등, 속성 배율 없음). 수호자 도발 경감만 받고, 이미 계산된 공유 피해는 resolved=true 로 중복 경감을 막는다. 훅 없음 */
   rawHit(src: CUnit, tgt: CUnit, amt: number, elem: Elem, resolved = false) {
-    if (!resolved) amt *= elementDamageMult(elem) * guardThreatTakenMult(this, tgt);
+    if (!resolved) amt *= 1 - Math.min(CFG.reductionCap, guardThreatRed(this, tgt));
     if (!tgt.alive || amt <= 0) return 0;
     if ((tgt.mem.invulnUntil || 0) > this.t) return 0;
     let left = amt, dsh = 0;
@@ -1405,12 +1408,15 @@ export function modMult(mods: Mod[], tags: DmgTag[]): number {
   }
   return m;
 }
-export function takenMult(mods: TakenMod[], tags: DmgTag[], ignoreRed: boolean): number {
+/** extraRed: '모든 피해' 경감에 더할 몫 (수호자 도발 경감) — 같은 상한 안에서 합산하고, 고정 피해(ignoreRed)에도 이 몫은 적용 */
+export function takenMult(mods: TakenMod[], tags: DmgTag[], ignoreRed: boolean, extraRed = 0): number {
   let m = 1;
   for (const tag of tags) {
     let vuln = 0, red = 0;
     for (const x of mods) if (x.tag === tag) { if (x.kind === 'vuln') vuln += x.v; else red += x.v; }
-    m *= (1 + vuln) * (ignoreRed ? 1 : 1 - Math.min(CFG.reductionCap, red));
+    if (ignoreRed) red = 0;
+    if (tag === 'all') red += extraRed;
+    m *= (1 + vuln) * (1 - Math.min(CFG.reductionCap, red));
   }
   return m;
 }

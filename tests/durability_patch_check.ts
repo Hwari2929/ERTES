@@ -1,7 +1,9 @@
 import { CFG } from '../src/config';
 import * as R from '../src/engine/run';
 import { buildBattle, computeStats } from '../src/engine/build';
-import { guardThreatTakenMult, provMult } from '../src/engine/combat';
+import { guardThreatRed, provMult } from '../src/engine/combat';
+import { red } from '../src/engine/effects';
+const guardThreatTakenMult=(b:Parameters<typeof guardThreatRed>[0],u:Parameters<typeof guardThreatRed>[1])=>1-Math.min(CFG.reductionCap,guardThreatRed(b,u));
 import { SYN_BY_ID, UNI_XP } from '../src/data/synergies';
 import type { EffectCtx } from '../src/engine/effects';
 let n=0;
@@ -38,7 +40,7 @@ for(const count of [2,4,6,8]){
  const ctx={run,unit:run.units[0],counts:{GUARD:count},phase:1,credits:0} as EffectCtx;
  SYN_BY_ID.GUARD.member!(count/2,ctx)!.setup!(u,b,ctx);
  near(provMult(b,u),4.5,'van + guard threat');
- const rate=count===8?0.1:count>=4?0.05:0;const f=1-4.5*rate;
+ const rate=count===8?0.08:count>=4?0.04:0;const f=1-4.5*rate;
  near(guardThreatTakenMult(b,u),f,`GUARD ${count} multiplier`);
  foe.hooks=[];foe.mods=[];foe.taken=[];foe.mem={};foe.phaseAmp=1;foe.st.crit=0;
  near(b.dealDamage(foe,u,100,{elem:'true',tag:'skill',kind:'shoot'}).amount,100*f,`GUARD ${count} true damage reduction`);
@@ -46,5 +48,10 @@ for(const count of [2,4,6,8]){
  near(b.rawHit(foe,u,100*f,'phys',true),100*f,`GUARD ${count} resolved transfer no double reduction`);
  u.mem.provPlus=2;near(guardThreatTakenMult(b,u),1-6.5*rate,'gear threat dynamic');
  u.mem.provPlus=100;near(guardThreatTakenMult(b,u),rate?1-CFG.reductionCap:1,'existing reduction cap');
+ // 다른 '모든 피해' 경감과 합쳐도 상한을 넘지 않는다 (경감 0.7 + 도발 경감 → 합계 상한)
+ u.mem.provPlus=0;u.taken=[red('all',0.7)];
+ const sum=Math.min(CFG.reductionCap,0.7+4.5*rate);
+ near(b.dealDamage(foe,u,100,{elem:'phys',tag:'skill',kind:'shoot'}).amount,100*(1-sum),`GUARD ${count} combined cap`);
+ u.taken=[];
 }
 console.log(JSON.stringify({passed:true,checks:n}));

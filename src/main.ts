@@ -523,7 +523,7 @@ function supplyHtml(p: Extract<Pending, { t: 'supply' }>) {
       : c.items.map((id) => `<span class="sup-ic">${itemIcon(id)}</span><b class="t${itemInfo(id).tier}">${esc(itemInfo(id).name)}</b><span>${statIc(esc(itemInfo(id).desc))}</span>`).join('');
     return `<div class="card sup-card open sup-${c.kind}${c.mult > 1 ? ' jp' : ''}" data-sup="${i}">${jp}${body}</div>`;
   };
-  return `<h1>보급</h1><p class="muted small">보급품 ${p.options.length}장을 모두 받습니다. 뒤집기 전에는 무엇이 들었는지 모릅니다 · 드물게 대박 (가치 ${CFG.supply.jackpot.map(([x]) => `×${x}`).join(' · ')}).</p>
+  return `<h1>보급</h1><p class="muted small">보급품 ${p.options.length}장을 모두 받습니다. 뒤집기 전에는 무엇이 들었는지 모릅니다 · ${p.route ? '항로 보급: 첫 장은 장비 재료 확정, 대박 없음' : `드물게 대박 (가치 ${CFG.supply.jackpot.map(([x]) => `×${x}`).join(' · ')})`}.</p>
     <div class="cards sup-cards">${p.options.map(face).join('')}</div>
     <div class="row-btns">${left ? `<button class="btn primary" data-a="supply-all">모두 뒤집기 (${left}장)</button>` : '<button class="btn primary" data-a="supply-done">계속</button>'}</div>`;
 }
@@ -1075,12 +1075,13 @@ function musterModal(run: RunState) {
       <button class="btn primary" data-a="muster-ok" ${full && pool.length ? '' : 'disabled'}>소집 ${CR}${R.musterCost(run)}</button></div>`;
 }
 /** 보급 미리보기: 카드 수 · 지금 기준 합계 가치 (run.ts supplyBase, 크레딧 환산) */
-const supplyHint = (run: RunState | null) => `보급품 ${CFG.supply.cards}장 모두 받기 (크레딧 · 공명도 · 장비 무작위)${run ? ` · 합계 가치 약 ${Math.round(R.supplyBase(run))} 크레딧어치` : ''} · 드물게 대박`;
+/** route: 항로에 놓인 보급 노드 (첫 장 재료 확정 · 대박 없음) / 아니면 분기점 보급 */
+const supplyHint = (run: RunState | null, route = false) => `보급품 ${CFG.supply.cards}장 모두 받기 (${route ? '첫 장 장비 재료 확정, 나머지 ' : ''}크레딧 · 공명도 · 장비 무작위)${run ? ` · 합계 가치 약 ${Math.round(R.supplyBase(run))} 크레딧어치` : ''}${route ? ' · 대박 없음' : ' · 드물게 대박'}`;
 function nodeHint(o: NodeType) {
   return ({
     battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 ${CFG.adversityReward}배 + 장비 재료 ${CFG.drop.advParts}개 확정`,
     council: `전역 증강 3장 중 택1 · 새로고침 ${CFG.globalRerolls}회`, shop: `분기점 — 상점 / 보급 / 모집 (+ ${SYN_BY_ID.STAR.name} 속보 · 호이슌 투자 · 순례)`,
-    supply: supplyHint(app.run), recruit: '새 동료 3명 중 택1', boss: `${app.run && R.bossMustWin(app.run) ? '의뢰의 마지막 보스 · 이길 때까지 다시 싸운다' : `승리 시 페이즈 클리어 · 패배해도 다음 페이즈로 (체력 -${CFG.bossLossDamage(app.run?.phase || 1)})`} · ${CFG.drop.bossAdvEvery}페이즈마다 희귀 장비`,
+    supply: supplyHint(app.run, true), recruit: '새 동료 3명 중 택1', boss: `${app.run && R.bossMustWin(app.run) ? '의뢰의 마지막 보스 · 이길 때까지 다시 싸운다' : `승리 시 페이즈 클리어 · 패배해도 다음 페이즈로 (체력 -${CFG.bossLossDamage(app.run?.phase || 1)})`} · ${CFG.drop.bossAdvEvery}페이즈마다 희귀 장비`,
     pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', invest: '호이슌 투자 상품 · 크레딧으로 문장 · 증강 · 다음 페이즈 수익', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
     fork: `갈림길 — 휴식(체력 +${CFG.forkRestHp} + 잃은 체력 ${Math.round(CFG.forkRestLost * 100)}%) 또는 도전(다음 페이즈 역경급 전투, 승리 시 다음 페이즈로)`,
     challenge: '다음 페이즈 역경 수준의 전투 · 승리 시 남은 노드 보상을 받고 다음 페이즈로',

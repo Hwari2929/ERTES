@@ -353,7 +353,8 @@ export function enterNode(run: RunState, type: NodeType) {
   } else if (type === 'shop') {
     run.pending.push({ t: 'branch', options: branchOptions(run) });
   } else if (type === 'supply') {
-    run.pending.push({ t: 'supply', options: genSupply(run, run.map[run.step]?.[0] === 'supply') }); // 항로에 놓인 보급 노드 (분기점 보급 아님)
+    const route = run.map[run.step]?.[0] === 'supply'; // 항로에 놓인 보급 노드 (분기점 보급 아님)
+    run.pending.push({ t: 'supply', options: genSupply(run, route), ...(route ? { route } : {}) });
     advance(run);
   } else if (type === 'recruit') {
     offerRecruit(run);
