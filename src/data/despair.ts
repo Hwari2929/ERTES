@@ -7,6 +7,7 @@
 //   unix      run.ts unixSwap (캣휠 'J_catwheel', items.ts) · petra build.ts buildEnemy · tariff run.ts genShop · genMaint · genSynth
 //   miracle   combat.ts heal · final build.ts buildEnemy · swarm run.ts resolveBattle · battleRewardPreview
 import { CFG } from '../config';
+import type { Effect } from '../engine/effects';
 
 export interface DespairDef {
   id: string;
@@ -19,6 +20,8 @@ export interface DespairDef {
   icon: string;
   /** 지도 현재 칸 카드의 모디파이어 값 (전투 칸에서 이 증강이 걸리면, boss = 보스전). 없으면 표시하지 않음 */
   mod?: (boss: boolean) => string | null;
+  /** 모든 출전 아군에게 거는 효과 (build.ts unitEffects) */
+  ally?: () => Effect;
 }
 
 const pc = (x: number) => `${Math.round(x * 100)}%`;
@@ -59,6 +62,35 @@ export const DESPAIRS: DespairDef[] = [
   { id: 'D.swarm', name: '군체 공명 간섭', icon: 'r.res',
     desc: () => `전투 후 공명도 풀 -${pc(D().xp)}.`, mod: () => `-${pc(D().xp)}`,
     quip: '먼 군집의 사이오닉장이 함대의 공명을 긁어 간다.' },
+  // ── 감수할 만한 디버프 (아래는 build.ts buildEnemy · unitEffects, run.ts resolveBattle · xpCost 에서 읽는다)
+  { id: 'D.fatigue', name: '피로 누적', icon: 'r.hp',
+    desc: () => `모든 아군 최대 체력 -${pc(D().fatigue)}.`, mod: () => `-${pc(D().fatigue)}`, ally: () => ({ pct: { maxHp: -D().fatigue } }),
+    quip: '휴가 결재는 다음 의뢰가 끝나면 난다고 했다. 지난번에도.' },
+  { id: 'D.rust', name: '정비 지연', icon: 'a.cd',
+    desc: () => `모든 아군 쿨다운 감소 속도 -${pc(D().rust)}.`, mod: () => `-${pc(D().rust)}`, ally: () => ({ stats: { cdr: -D().rust } }),
+    quip: '부품은 오고 있다. 송장에는 그렇게 적혀 있다.' },
+  { id: 'D.late', name: '늦은 출항', icon: 'a.speed',
+    desc: () => `전투 시작 후 ${D().lateDur}초 동안 모든 아군 공격 속도 -${pc(D().late)}.`,
+    ally: () => ({ hooks: { onStart(b, u) { b.buff(u, u, 'd.late', D().lateDur, { delta: { atkSpd: -D().late }, label: '늦은 출항' }); } } }),
+    quip: '출격 사이렌이 울릴 때 절반은 아직 식당에 있었다.' },
+  { id: 'D.plating', name: '두꺼운 장갑판', icon: 'a.shield',
+    desc: () => `모든 적 방어도 +${pc(D().plating)}.`, mod: () => `+${pc(D().plating)}`,
+    quip: '적 정비창이 이번 분기 예산을 전부 장갑에 썼다.' },
+  { id: 'D.hasty', name: '성급한 적', icon: 'a.speed',
+    desc: () => `모든 적 공격 속도 +${pc(D().hasty)}.`, mod: () => `+${pc(D().hasty)}`,
+    quip: '저쪽도 퇴근이 걸려 있는 모양이다.' },
+  { id: 'D.fog', name: '전장의 안개', icon: 'a.evade',
+    desc: () => `모든 적 회피 +${pc(D().fog)}p.`, mod: () => `+${pc(D().fog)}p`,
+    quip: '관측 위성이 하필 오늘 정기 점검이다.' },
+  { id: 'D.exposed', name: '급소 노출', icon: 'a.crit',
+    desc: () => `모든 적 치명타 확률 +${pc(D().exposed)}p.`, mod: () => `+${pc(D().exposed)}p`,
+    quip: '함대 설계도가 암시장에 돌았다. 다행히 구버전이다.' },
+  { id: 'D.lean', name: '긴축 예산', icon: 'a.credit',
+    desc: () => `전투 승리 보상 크레딧 -${D().lean}.`, mod: () => `-${D().lean}`,
+    quip: '경리팀이 탄약 영수증을 한 장씩 대조하기 시작했다.' },
+  { id: 'D.leak', name: '공명 누수', icon: 'r.reco',
+    desc: () => `공명도 구매 비용 +${D().leak}.`,
+    quip: '공명 주입 장치에서 새는 소리가 난다. 고칠 사람은 휴가 중이다.' },
 ];
 export const DESPAIR_BY_ID: Record<string, DespairDef> = Object.fromEntries(DESPAIRS.map((d) => [d.id, d]));
 export const despairName = (id: string | null | undefined) => (id && DESPAIR_BY_ID[id]?.name) || '';

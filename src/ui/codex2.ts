@@ -8,7 +8,7 @@ import { ABIL, augAbilText, GLOSS } from '../data/abiltext';
 import { augReqState } from '../data/augreq';
 import { FIELD_BY_ID, FIELDS } from '../data/battlefields';
 import { ALL_AUGS, augDesc, augSource } from '../data/augments';
-import { BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES } from '../data/globals';
+import { BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBAL_ODDS, GLOBAL_TIER_NAME, GLOBALS, PRIVILEGES } from '../data/globals';
 import { DESPAIR_BY_ID, DESPAIRS, despairRule } from '../data/despair';
 import { OATHS, oathHeatOf, oathMax } from '../data/oaths';
 import { diffName } from '../data/difficulty';
@@ -733,7 +733,7 @@ function augGroups(): AugGroup[] {
     body: () => `<ul class="augs cx2-augs${key === 'despair' || key === 'oath' ? ' cx2-despair' : ''}">${rows.map((r) => `<li class="aug-li" data-id="${esc(r.id)}"${qAttr('augs', `${r.name} ${r.desc} ${r.tags.join(' ')}`)}><span class="aug-ic" aria-hidden="true">${lineIcon(r.icon || (key === 'bless' ? 'a.divact' : key === 'priv' ? 'a.power' : 'n.council'), 'li')}</span><span><b>${esc(r.name)}</b>${r.tags.map((t) => ` <span class="cx2-note">${esc(t)}</span>`).join('')}<br><span class="muted">${esc(r.desc)}</span></span></li>`).join('')}</ul>`,
   });
   out.push(simple('global', '전역 증강', '런 시작과 매 페이즈 항로 회의에서 3개 중 1개. 함대 전체에 적용됩니다.',
-    GLOBALS.map((g) => ({ id: g.id, name: g.name, desc: g.desc, tags: [...(g.unique ? ['1회'] : []), ...(g.team ? ['모든 아군'] : []), ...(g.onPick ? ['즉시'] : [])] }))));
+    GLOBALS.map((g) => ({ id: g.id, name: g.name, desc: g.desc, tags: [`${GLOBAL_TIER_NAME[g.tier || 'N']} · 장마다 ${g.tier === 'L' ? `${pctTxt(GLOBAL_ODDS.L)}` : g.tier === 'R' ? `${pctTxt(GLOBAL_ODDS.R)}` : `${pctTxt(1 - GLOBAL_ODDS.L - GLOBAL_ODDS.R)}`}`, ...(g.unique ? ['1회'] : []), ...(g.team ? ['모든 아군'] : []), ...(g.onPick ? ['즉시'] : [])] }))));
   const wsum = PRIVILEGES.reduce((n, p) => n + p.w, 0);
   const PH = '(시너지)';
   out.push(simple('priv', '특권 증강', '런 시작 때 3개 중 1개 (새로고침 가능). 문장은 시작 기물의 시너지 위주로 나옵니다.',

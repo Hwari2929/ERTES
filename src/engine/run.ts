@@ -8,7 +8,7 @@ import { EVENT_BY_ID, EVENTS, type EventApi } from '../data/events';
 import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
-import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBALS, PRIVILEGES, synName } from '../data/globals';
+import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBAL_ODDS, GLOBALS, PRIVILEGES, synName } from '../data/globals';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, isTurretItem, isTurretMod, TURRET_ADV, TURRET_BASIC, TURRET_MODS, TURRET_PRICE, turretModsOfTier, turretSlots } from '../data/items';
 import { UNI_XP, OCCULT_SYNTH, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
@@ -39,6 +39,11 @@ export function rng<T>(run: RunState, f: (r: Rng) => T): T {
 const zeroMajors = (): Record<Major, number> => ({ vit: 0, pow: 0, mnd: 0, def: 0, agi: 0 });
 const log = (run: RunState, s: string) => { run.log.unshift(s); if (run.log.length > 60) run.log.length = 60; };
 export const hasGlobal = (run: RunState, id: string) => run.globals.includes(id);
+const GA = CFG.globalAug;
+/** 전설 [판돈 올리기]: 전투 승리 크레딧 · 공명도 풀 배율 */
+const stakesMul = (run: RunState) => (hasGlobal(run, 'G.l_stakes') ? GA.stakes : 1);
+/** 승리 크레딧에 더하는 전역 증강 몫 (전리품 회수) — 미리보기 · 정산 공용 */
+const globalWinAdd = (run: RunState) => (hasGlobal(run, 'G.salvage') ? GA.salvage : 0) - (hasDespair(run, 'D.lean') ? CFG.despair.lean : 0);
 /** 반려 돌 (절망 증강): 칸만 차지하는 짐. 늘 출전 · 공명도 · 장비 없음 */
 export const isRock = (u: UnitState) => !!UNIT_BY_ID[u.defId]?.inert;
 /** 절망 증강 [근시안적 투자안]: 이자 수입 감소 (내림) */
@@ -63,7 +68,8 @@ export function interestInfo(run: RunState, counts = synergyCounts(deployed(run)
     [`${SYN_BY_ID.PET.name} ${pet}단계`, petAdd], [GLOBAL_BY_ID['G.interest']?.name || '전역 증강', glob], [UNIT_BY_ID.lars?.name || '라르스', lars], [`${SYN_BY_ID.PET.name} 문장`, pemb],
   ] as [string, number][]).filter(([, v]) => v !== 0);
   const myopic = hasDespair(run, 'D.myopic');
-  return { interest: despairInterest(run, raw), raw, cap, per: CFG.interestPer, parts, floor: base < 0, myopic: myopic ? DESPAIR_BY_ID['D.myopic'].name : '' };
+  const direct = hasGlobal(run, 'G.l_petra'); // 전설 [페트라 직불 계약]: 이자 0
+  return { interest: direct ? 0 : despairInterest(run, raw), raw, cap, per: CFG.interestPer, parts, floor: base < 0, myopic: myopic ? DESPAIR_BY_ID['D.myopic'].name : '', direct: direct ? GLOBAL_BY_ID['G.l_petra'].name : '' };
 }
 /** 절망 증강 [군체 공명 간섭]: 전투 공명도 풀 배율 */
 const despairXp = (run: RunState) => (hasDespair(run, 'D.swarm') ? 1 - CFG.despair.xp : 1);
@@ -137,6 +143,13 @@ export function pickPrivilege(run: RunState, idx: number) {
     case 'P.global': next.push({ t: 'global', options: rollGlobals(run) }); break;
     case 'P.funds': run.credits += 40; break;
     case 'P.hp': run.maxHp += 40; run.hp += 40; break;
+    case 'P.relic': for (let i = 0; i < 2; i++) gainItem(run, rng(run, (r) => r.pick(ALL_ADVANCED)), undefined, true); break;
+    case 'P.supply': for (let i = 0; i < 3; i++) gainItem(run, rng(run, (r) => r.pick(ALL_CONSUMABLES)), undefined, true); break;
+    case 'P.trust': run.mods.interestCap += 3; run.credits += 15; break;
+    case 'P.scout': next.push({ t: 'recruit', options: recruitOptions(run, 5) }); break;
+    case 'P.gamble': run.credits += 90; run.maxHp = Math.max(1, run.maxHp - 25); run.hp = Math.min(run.hp, run.maxHp); break;
+    case 'P.rare': next.push({ t: 'global', options: rollGlobals(run, 'R') }); break;
+    case 'P.legend': gainItem(run, eventApi(run).randomItem('L'), undefined, true); break;
     case 'P.rank': {
       const before = run.pending.length;
       for (const u of run.units) for (let i = 0; i < 2; i++) rankUp(run, u);
@@ -229,7 +242,7 @@ export const canDeploy = (run: RunState, u: UnitState) => u.lock !== run.phase;
 
 /** 함대 확장 횟수 (구 세이브는 예전 페이즈 기준 출전 인원으로 환산) */
 const fleetOf = (run: RunState) => run.fleet ?? 0; // 함대 확장 구입 횟수 (구입 전에는 기본 인원 그대로)
-export const deployCap = (run: RunState) => run.campaign ? campDeploy(run) : CFG.deployBase + fleetOf(run) + (hasGlobal(run, 'G.squad') ? 1 : 0); // 캠페인: 장마다 정한 인원
+export const deployCap = (run: RunState) => run.campaign ? campDeploy(run) : CFG.deployBase + fleetOf(run) + (hasGlobal(run, 'G.squad') ? 1 : 0) - (hasGlobal(run, 'G.l_ascend') ? 1 : 0); // 캠페인: 장마다 정한 인원
 
 // ───────────────────────── 함선 관리: 함대 확장 · 지정 소집
 /** 다음 함대 확장 비용 (최대면 null) */
@@ -320,9 +333,10 @@ export function battleRewardPreview(run: RunState, node: NodeType) {
   if (type === 'adversity') c = Math.round(c * CFG.adversityReward);
   c = Math.round(c * CFG.diffWinMul(run.diff || 0) * oathWinMul(run)); // 박봉의 서약
   if (type === 'boss') c += 5;
+  c = Math.max(0, Math.round(c * stakesMul(run)) + globalWinAdd(run));
   const win = interest + c + CFG.streakBonus(Math.max(1, run.streak + 1)) + (pet >= 1 ? (pet >= 4 ? 3 : 1) : 0) + (fieldOf(run.field).winCredits || 0);
   const loss = interest + CFG.lossCredits + (pet >= 2 ? 6 : 0);
-  const pool = (won: boolean) => Math.round(CFG.xpPool(p) * (won ? 1 : 0.5) * (type === 'adversity' ? CFG.adversityReward : 1) * (hasGlobal(run, 'G.resonance') ? 1.35 : 1) * despairXp(run));
+  const pool = (won: boolean) => Math.round(CFG.xpPool(p) * (won ? 1 : 0.5) * (type === 'adversity' ? CFG.adversityReward : 1) * (hasGlobal(run, 'G.resonance') ? 1.35 : 1) * despairXp(run) * stakesMul(run));
   return { credits: { win, loss, interest }, xp: { win: pool(true), loss: pool(false) } };
 }
 
@@ -350,6 +364,7 @@ export function enterNode(run: RunState, type: NodeType) {
     return;
   }
   if (type === 'battle' || type === 'adversity' || type === 'boss') {
+    if (hasGlobal(run, 'G.l_petra')) { const n = synergyCounts(deployed(run), run).PET || 0; if (n) { run.credits += n * GA.petraPer; log(run, `페트라 직불 계약: 크레딧 +${n * GA.petraPer}`); } }
     run.node = { type, enc: genEncounter(run, type) };
     syncQuests(run);
   } else if (type === 'shop') {
@@ -728,9 +743,21 @@ export function advance(run: RunState) {
   }
 }
 
-function rollGlobals(run: RunState): string[] {
-  const pool = GLOBALS.filter((g) => !(g.unique && run.globals.includes(g.id))).map((g) => g.id);
-  return rng(run, (r) => r.sample(pool, 3));
+/** 전역 증강 선택지 3장: 장마다 전설 GLOBAL_ODDS.L · 희귀 GLOBAL_ODDS.R 확률로 그 등급 풀에서, 아니면 일반 풀에서 (겹치지 않게).
+ *  minTier 'R' = 희귀 이상만 (특권 [고급 작전 재량]) */
+export function rollGlobals(run: RunState, minTier?: 'R'): string[] {
+  const ok = (g: (typeof GLOBALS)[number]) => !(g.unique && run.globals.includes(g.id));
+  const byTier = (t: 'N' | 'R' | 'L') => GLOBALS.filter((g) => ok(g) && (g.tier || 'N') === t).map((g) => g.id);
+  return rng(run, (r) => {
+    const out: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const x = r.next();
+      let t: 'N' | 'R' | 'L' = x < GLOBAL_ODDS.L ? 'L' : x < GLOBAL_ODDS.L + GLOBAL_ODDS.R ? 'R' : 'N';
+      if (minTier && t === 'N') t = r.chance(0.15) ? 'L' : 'R';
+      for (const tt of [t, 'R', 'N'] as const) { const pool = byTier(tt).filter((id) => !out.includes(id)); if (pool.length) { out.push(r.pick(pool)); break; } }
+    }
+    return out;
+  });
 }
 export function rerollGlobal(run: RunState) {
   const p = run.pending[0];
@@ -741,7 +768,42 @@ export function rerollGlobal(run: RunState) {
 }
 export function pickGlobal(run: RunState, id: string) {
   run.globals.push(id);
-  GLOBAL_BY_ID[id].onPick?.(run);
+  GLOBAL_BY_ID[id].onPick?.(run, eventApi(run));
+  if (id === 'G.l_minky') { // 캣휠(ZI존)을 단 밍키 (출전 평균 공명 등급 + GA.minkyRank)
+    const dep = deployed(run).filter((u) => !isRock(u));
+    const want = Math.min(CFG.maxRank, Math.round(dep.length ? dep.reduce((n, u) => n + u.rank, 0) / dep.length : 1) + GA.minkyRank);
+    if (run.units.length < CFG.maxParty && !run.units.some((u) => u.defId === 'mingki')) {
+      const u = addUnit(run, 'mingki', want);
+      const slot = u.items.indexOf(null);
+      if (slot >= 0) u.items[slot] = CATWHEEL_ZI; else gainItem(run, CATWHEEL_ZI, undefined, true);
+      log(run, `ZI존 밍키 합류 (공명 등급 ${u.rank})`);
+    } else gainItem(run, CATWHEEL_ZI, undefined, true);
+  }
+  if (id === 'G.l_ascend') { // 등급 +2 · 출전 인원 -1: 넘치는 출전 기물은 등급이 낮은 쪽부터 대기석으로
+    for (const u of run.units) for (let i = 0; i < GA.ascend && u.rank < CFG.maxRank; i++) rankUp(run, u);
+    const dep = deployed(run).sort((a, b) => a.rank - b.rank);
+    while (dep.length > deployCap(run)) dep.shift()!.pos = null;
+  }
+  if (id === 'G.l_sacrifice' && run.units.length > 1) { // 가장 높은 등급 1명이 보상 없이 떠난다 (장비 · 개조부품은 보관함으로)
+    const top = run.units.filter((u) => !isRock(u)).sort((a, b) => b.rank - a.rank)[0];
+    if (top) {
+      for (const it of [...top.items, top.mod]) if (it && !isLocked(it)) gainItem(run, it, undefined, true, true);
+      run.units = run.units.filter((u) => u !== top);
+      if (run.staffTarget === top.uid) run.staffTarget = null;
+      if (run.aceTarget === top.uid) run.aceTarget = null;
+      for (const u of run.units) for (let i = 0; i < GA.sacrifice && u.rank < CFG.maxRank; i++) rankUp(run, u);
+      log(run, `희생 제의: ${UNIT_BY_ID[top.defId].name} 이(가) 떠났습니다`);
+    }
+  }
+  if (id === 'G.l_double') { // 희귀 이상 2개를 무작위로 (자기 자신 · 이미 가진 고유 제외)
+    for (let k = 0; k < 2; k++) {
+      const pool = GLOBALS.filter((g) => g.tier && g.id !== 'G.l_double' && !(g.unique && run.globals.includes(g.id))).map((g) => g.id);
+      if (!pool.length) break;
+      const pick = rng(run, (r) => r.pick(pool));
+      log(run, `이중 계약: ${GLOBAL_BY_ID[pick].name}`);
+      pickGlobal(run, pick);
+    }
+  }
   if (id === 'G.armory') for (let i = 0; i < 2; i++) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)));
   if (id === 'G.emblem') {
     const pool = [...new Set(deployed(run).flatMap((u) => memberships(u)))].filter((s) => EMBLEM_SYNS.includes(s));
@@ -888,8 +950,11 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     if (type === 'adversity') c = Math.round(c * CFG.adversityReward);
     c = Math.round(c * CFG.diffWinMul(run.diff || 0) * oathWinMul(run)); // 위험 3 ×1.25 · 위험 6 ×1.5 · 박봉의 서약
     if (type === 'boss') c += 5;
+    c = Math.max(0, Math.round(c * stakesMul(run)) + globalWinAdd(run)); // 판돈 올리기 · 전리품 회수
     income += c;
     lines.push(`승리 보상 +${c}`);
+    if (hasGlobal(run, 'G.r_bounty')) { const k = Math.min(GA.bountyMax, b.counters.kills); if (k) { income += k; lines.push(`현상금 +${k}`); } }
+    if (hasGlobal(run, 'G.medic') && run.hp < run.maxHp) { const h = Math.min(GA.medic, run.maxHp - run.hp); run.hp += h; lines.push(`야전 의무대 — 체력 +${h}`); }
     const sb = CFG.streakBonus(run.streak);
     if (sb) { income += sb; lines.push(`${run.streak}연승 보너스 +${sb}`); }
     if (pet >= 1) { const pb = pet >= 4 ? 3 : 1; income += pb; lines.push(`페트라 실적 +${pb}`); }
@@ -940,7 +1005,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   // 공명도
   const xpBefore = new Map(run.units.map((u) => [u.uid, u.xp + totalXpOf(u)]));
   const lvBefore = new Map(run.units.map((u) => [u.uid, { rank0: u.rank, xp0: u.xp }]));
-  let pool = CFG.xpPool(p) * (won ? 1 : 0.5) * (type === 'adversity' ? CFG.adversityReward : 1) * (hasGlobal(run, 'G.resonance') ? 1.35 : 1) * despairXp(run);
+  let pool = CFG.xpPool(p) * (won ? 1 : 0.5) * (type === 'adversity' ? CFG.adversityReward : 1) * (hasGlobal(run, 'G.resonance') ? 1.35 : 1) * despairXp(run) * stakesMul(run);
   pool = Math.round(pool);
   distributeXp(run, pool);
   lines.push(`공명도 풀 ${pool} 분배`);
@@ -1076,7 +1141,7 @@ export function buyXp(run: RunState, uid: string): boolean {
   settleXp(run, u);
   return true;
 }
-export const xpCost = (run: RunState) => CFG.buyXpCost - (hasGlobal(run, 'G.study') ? 1 : 0);
+export const xpCost = (run: RunState) => CFG.buyXpCost - (hasGlobal(run, 'G.study') ? 1 : 0) + (hasDespair(run, 'D.leak') ? CFG.despair.leak : 0);
 
 // ───────────────────────── 증강 선택
 export type AugKind = 'major' | 'special' | 'psionic' | 'school';
@@ -1226,7 +1291,7 @@ const pickInjector = (r: Rng, phase: number) => r.weighted(injectorWeights(phase
 function genShop(run: RunState) {
   return rng(run, (r) => {
     const stock: ShopSlot[] = [];
-    const mul = (fieldOf(run.field).shopMul || 1) * despairPrice(run);
+    const mul = (fieldOf(run.field).shopMul || 1) * despairPrice(run) * (hasGlobal(run, 'G.discount') ? 1 - GA.discount : 1);
     const pr = (g: string) => Math.round(CFG.price[g] * mul);
     const S = CFG.shop, sp = (id: string, key = id) => ({ item: id, price: Math.round(S.price[key] * mul), sold: false });
     // 재료 2개 확정 + 희귀(입고 행사면 2개) · 고급 · 후반 전설 확률

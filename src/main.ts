@@ -7,7 +7,7 @@ import { CATWHEEL, DESPAIR_BY_ID, DESPAIRS, despairDiff, despairPhases, despairs
 import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
 import { STORIES } from './data/stories';
 import { FIELDS, fieldOf } from './data/battlefields';
-import { BLESSING_BY_ID, GLOBAL_BY_ID } from './data/globals';
+import { BLESSING_BY_ID, GLOBAL_BY_ID, GLOBAL_TIER_NAME } from './data/globals';
 import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isInjector, isLegendConsumable, isLocked, isMod, isOccultMod, isTurretItem, isTurretMod, itemInfo, TURRET_GEAR, turretSlots } from './data/items';
 import { aceTargetUid, OCCULT_SYNTH, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
 import { rowHtml, tierCmp } from './ui/tierdiff';
@@ -309,13 +309,14 @@ function interestLines(r: RunState) {
   return {
     i,
     /** 한 줄 (투자 창구 · 눌렀을 때 알림) */
-    short: `다음 전투를 마치면 이자 +${i.interest} (크레딧 ${i.per}당 1, 상한 ${i.cap}${i.myopic ? ` · [${i.myopic}] −${Math.round(CFG.despair.interest * 100)}%` : ''})`,
+    short: `다음 전투를 마치면 이자 +${i.interest} (크레딧 ${i.per}당 1, 상한 ${i.cap}${i.myopic ? ` · [${i.myopic}] −${Math.round(CFG.despair.interest * 100)}%` : ''}${i.direct ? ` · [${i.direct}] 이자 없음` : ''})`,
     /** 툴팁: 계산식 · 상한 내역 · 다음 1까지 */
     tip: [
       `다음 전투를 마치면 이자 +${i.interest} — 승패와 상관없이, 정산 전 보유 크레딧 기준`,
       `계산: 크레딧 ${i.per}당 1, 상한 ${i.cap} → ${r.credits} ÷ ${i.per} = ${n}${n > i.cap ? ` → 상한 ${i.cap}` : ''}`,
       `상한 ${i.cap}: ${i.parts.map(([k, v], j) => `${k} ${j && v > 0 ? '+' : ''}${v}`).join(' · ')}${i.floor ? ' (줄어드는 몫은 0 에서 멈춤)' : ''}`,
       i.myopic ? `절망 증강 [${i.myopic}]: 이자 −${Math.round(CFG.despair.interest * 100)}% (내림) → +${i.interest}` : '',
+      i.direct ? `전설 전역 증강 [${i.direct}]: 이자 0 (대신 전투에 들어갈 때 페트라 기물 1명당 크레딧 +${CFG.globalAug.petraPer})` : '',
       next ? `크레딧 ${next}를 더 모으면 이자 +1` : `이자 상한 ${i.cap}에 닿음`,
     ].filter(Boolean).join('\n'),
   };
@@ -2615,9 +2616,9 @@ function pendingModal(run: RunState): string {
   if (p.t === 'global') {
     mcls = 'global';
     body = `<h1>${p.rerolls !== undefined ? '항로 회의 — ' : ''}전역 증강</h1><p class="muted small">런 끝까지 함대 전체에 적용됩니다. 한 장을 고르세요.</p>
-      <div class="gc-row">${p.options.map((id, i) => { const g = GLOBAL_BY_ID[id]; const h = [...id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7); return `<button class="gcard" style="--i:${i};--h:${h}" data-a="pick-global" data-v="${id}">
-        <i class="cback" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">✦</span>
-        <span class="gc-kind">${g.unique ? '고유 · ' : ''}전역</span><b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button>`; }).join('')}</div>
+      <div class="gc-row">${p.options.map((id, i) => { const g = GLOBAL_BY_ID[id]; const h = g.tier === 'L' ? 42 : g.tier === 'R' ? 150 : [...id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7); return `<button class="gcard${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i};--h:${h}" data-a="pick-global" data-v="${id}">
+        <i class="cback" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${g.tier === 'L' ? '✹' : g.tier === 'R' ? '✧' : '✦'}</span>
+        <span class="gc-kind">${g.tier ? `${GLOBAL_TIER_NAME[g.tier]} · ` : ''}${g.unique ? '고유 · ' : ''}전역</span><b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button>`; }).join('')}</div>
       ${p.rerolls !== undefined ? `<div class="row-btns"><button class="btn" data-a="reroll-global" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div>` : ''}`;
   } else if (p.t === 'event' || (p.t === 'notice' && p.scene?.length)) {
     return ''; // 미연시 화면 (advSync)

@@ -6,6 +6,7 @@ import { diffHas } from '../data/difficulty';
 import { oathEnemy, oathV } from '../data/oaths';
 import { BOONS } from '../data/events';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
+import { DESPAIR_BY_ID } from '../data/despair';
 import { emblemOf, isEmblem, isTurretGear, isTurretMod, itemEffect, turretSlots } from '../data/items';
 import { CHR_HOOK, ENG_HOOK, ENG_TUR, KAL_GUARD_RANK, KAL_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, type SynDef, tierOf } from '../data/synergies';
 import { CAMP_SYNERGIES, campMembers } from '../data/campaign';
@@ -115,6 +116,7 @@ export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, 
       if (s.member && mine.has(s.id)) { const e = s.member(tier, ctx); if (e) out.push(e); }
     }
     for (const g of run?.globals || []) { const e = GLOBAL_BY_ID[g]?.team; if (e) out.push(e); }
+    for (const d of run?.despairs || []) { const e = DESPAIR_BY_ID[d]?.ally?.(); if (e) out.push(e); } // 절망 증강: 아군 디버프
     if (run?.blessing) { const e = BLESSING_BY_ID[run.blessing]?.team; if (e) out.push(e); }
     for (const id of [...(run?.boons || []), ...(run?.phaseBoons || [])]) { const e = BOONS[id]?.effect; if (e) out.push(e); } // 사건 효과
     const fa = run && !run.campaign ? fieldOf(run.field).ally : undefined; // 전장 세력 보너스 (캠페인은 전용 시너지만)
@@ -370,7 +372,12 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   const dsp = b.ctx.despairs || [], DS = CFG.despair;
   if (dsp.includes('D.overclock')) st.cdr += DS.overclock;
   if (dsp.includes('D.final') && def.tier === 'boss') { st.maxHp *= 1 + DS.boss; c.phaseAmp *= 1 + DS.boss; }
+  if (dsp.includes('D.plating')) st.armor *= 1 + DS.plating;
+  if (dsp.includes('D.hasty')) st.atkSpd += DS.hasty;
+  if (dsp.includes('D.fog')) st.eva += DS.fog;
+  if (dsp.includes('D.exposed')) st.crit += DS.exposed;
   if (dsp.includes('D.petra')) c.hooks.push({ onStart(bb, u) { bb.shield(u, bb.S(u, 'maxHp') * DS.shield); } });
+  if (b.ctx.globals?.includes('G.l_stakes')) c.phaseAmp *= 1 + CFG.globalAug.stakesFoe; // 전설 전역 증강 [판돈 올리기]
   oathEnemy(b.ctx, st, c, def.tier); // 절망 서약 (data/oaths.ts · CFG.oath): 고난 런에서 켠 고정 조건
   // 적 장비 · 개조부품
   for (const it of [...(gear?.stripped ? [] : [...(def.items || []), def.mod || null]), ...(gear?.items || []), gear?.mod || null]) if (it) applyLive(c, itemEffect(it), b, makeCtx(null, null, {})); // stripped: 강제 징수기
@@ -678,7 +685,7 @@ export function layout(run: RunState, n: number): Map<string, { x: number; y: nu
 
 export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): Battle {
   const dim = boardDims(enc.n);
-  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined, oaths: run.oaths, otShift: oathV(run, 'clock', 'sec') || undefined, campIntel: run.campaign && run.flags.includes('cp_intel') ? true : undefined, campIntel2: run.campaign && run.flags.includes('cp_intel2') ? true : undefined });
+  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined, globals: run.globals.length ? [...run.globals] : undefined, oaths: run.oaths, otShift: oathV(run, 'clock', 'sec') || undefined, campIntel: run.campaign && run.flags.includes('cp_intel') ? true : undefined, campIntel2: run.campaign && run.flags.includes('cp_intel2') ? true : undefined });
   b.keepEvents = keepEvents;
   const dep = deployed(run);
   const counts = synergyCounts(dep, run);
