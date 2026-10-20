@@ -1648,6 +1648,7 @@ const abilOn = (k: string) => (app.abilPop === k ? ' on' : '');
 /** 능력 아이콘 토큰 (없으면 빈 문자열). 키: skill.<기물> · trait.<기물> · ult.<기물> · weapon.<기물> · cantrip/passive.<전공> · faith.<신앙> */
 function abTok(ic?: string) {
   const src = ic ? ABIL_ICONS[ic] : '';
+  if (!src && ic?.startsWith('ult.')) return '<span class="ab-tok ab-tok-ph" aria-hidden="true">✦</span>'; // 아이콘을 아직 뽑지 않은 궁극기: 임시 자리표시
   return src ? `<img class="ab-tok" src="${src}" alt="" draggable="false">` : '';
 }
 function abilCard(key: string, kind: keyof typeof AB_KIND, name: string, meta: string, body: string, extra = '', ic?: string) {

@@ -4256,3 +4256,4 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .agg-own { color: var(--c-text-2); font-size: var(--fs-xs); font-weight: 400; }
 .mrow.bond .mname, .btable tr.bond td:first-child { padding-left: 10px; }
 .ct-rules { grid-template-columns: max-content minmax(0, 1fr); align-items: baseline; } .ct-rules dd { line-height: 1.45; }
+.ab-tok-ph { display: grid; place-items: center; font-size: var(--fs-xl); color: var(--c-text-2); background: var(--panel-2); } /* 아이콘 없는 궁극기 임시 자리표시 */
