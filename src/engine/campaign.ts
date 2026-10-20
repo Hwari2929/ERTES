@@ -1,6 +1,6 @@
 // 캠페인 런 진행 (data/campaign.ts 의 장 정의를 run.ts 흐름에 끼운다).
 // run.ts 는 run.campaign 이 있을 때만 이 함수들을 부른다 — 일반 런 경로는 그대로.
-import { CAMP, CAMP_MEMBERS, CHAPTERS, chapterOf, SETTLE, TIME_COST } from '../data/campaign';
+import { CAMP, CAMP_MEMBERS, CAMP_NEXT, CHAPTERS, chapterOf, SETTLE, TIME_COST } from '../data/campaign';
 import { campChapterIntro } from '../data/scenes/campaign';
 import { UNIT_BY_ID } from '../data/units';
 import { tierOf } from '../data/synergies';
@@ -63,7 +63,7 @@ export function settleChapter(run: RunState, counts: Counts, lines: string[]) {
   c.bonus = bonus;
   lines.push(`${ch.name} 정산 — 남은 AH ${c.time}: 칼퇴 보너스 +${bonus}${debt ? ` · 선지급 어음 -${debt}` : ''}`);
   const next = CHAPTERS.find((x) => x.ch === ch.ch + 1);
-  run.pending.push({ t: 'notice', title: `${ch.name} — 정산`, body: next ? `항로 한 구간을 되찾았습니다. 다음은 ${next.place}입니다.` : '항로 한 구간을 더 되찾았습니다.\n검증판은 여기까지입니다. 다음 장(중계 위성 · 연구 정거장)은 플레이 감각을 확인한 뒤 이어서 만듭니다.', rows: [
+  run.pending.push({ t: 'notice', title: `${ch.name} — 정산`, body: next ? `항로 한 구간을 되찾았습니다. 다음은 ${next.place}입니다.` : `항로 한 구간을 더 되찾았습니다.\n검증판은 여기까지입니다. 다음은 ${CAMP_NEXT}입니다 (플레이 감각을 확인한 뒤 이어서 만듭니다).`, rows: [
     ['남은 AH', `${c.time} / ${c.timeMax}`],
     ['칼퇴 보너스', `크레딧 +${bonus}`],
     ...(debt ? [['선지급 어음', `크레딧 -${debt}`] as [string, string]] : []),

@@ -442,7 +442,7 @@ function titleScreen() {
       ${slots.length ? `<div class="slots">${slots.map((s) => `<button class="btn ghost" data-a="load" data-v="${s.slot}">${SLOT_NAME[s.slot]} · 페이즈 ${s.phase} · 기물 ${s.units}</button>`).join('')}</div>` : ''}
       ${m.runs ? `<p class="ts-meta"><span>의뢰 <b>${m.runs}</b></span><span>성공 <b>${m.clears}</b></span><span>위험 등급 <b>${m.maxDiff}</b></span></p>` : ''}
       </div>
-      ${(() => { const cs = loadRun(CAMP_SLOT); const go = cs?.campaign && !cs.over; return `<button class="btn ts-btn ts-campaign" data-a="campaign"><span class="ts-cp-kick">CAMPAIGN · 회수 계약</span><b>캠페인</b><small>${go ? `이어서 · ${esc(campChapter(cs!).name)} ${Math.min(cs!.step + 1, cs!.map.length)}/${cs!.map.length} · AH ${cs!.campaign!.time}` : '베르타–산노디스 물류망 · 라르스의 의뢰 · 1장 TS-7 환적 정거장'}</small><span class="ts-soon">검증판 · 2장</span></button>`; })()}
+      ${(() => { const cs = loadRun(CAMP_SLOT); const go = cs?.campaign && !cs.over; return `<button class="btn ts-btn ts-campaign" data-a="campaign"><span class="ts-cp-kick">CAMPAIGN · 회수 계약</span><b>캠페인</b><small>${go ? `이어서 · ${esc(campChapter(cs!).name)} ${Math.min(cs!.step + 1, cs!.map.length)}/${cs!.map.length} · AH ${cs!.campaign!.time}` : '베르타–산노디스 물류망 · 라르스의 의뢰 · 1장 TS-7 환적 정거장'}</small><span class="ts-soon">검증판 · 3장</span></button>`; })()}
       </div>
     </div>
     <p class="ts-foot">싱글 PvE · 오프라인 플레이 · 진행은 이 브라우저에 자동 저장됩니다.</p>

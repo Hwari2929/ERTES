@@ -1,6 +1,6 @@
-// 캠페인 「회수 계약」 검증판 시뮬: 1 · 2장을 끝까지 자동으로 돌려 흐름 오류 · 승률 · 장별 보스 시도 · 남은 AH 를 본다.
+// 캠페인 「회수 계약」 검증판 시뮬: 1 · 2 · 3장을 끝까지 자동으로 돌려 흐름 오류 · 승률 · 장별 보스 시도 · 남은 AH 를 본다.
 // 사용: npx esbuild tests/campaign_sim.ts --bundle --platform=node --outfile=dist/campaign_sim.cjs && node dist/campaign_sim.cjs [판수] [위험] [정책]
-//   정책: safe (신고 · 바로 돌파 · 지나감) / survey (조사 · 영사 + 신고) / greedy (직접 열기 · 조사 · 영사) / peek (필리스 확인 · 조사 · 영사)
+//   정책: safe (신고 · 바로 돌파 · 지나감 · 안테나 그대로) / survey (조사 · 영사 · 배전실 + 신고) / greedy (직접 열기 · 조사 · 영사 · 배전실) / peek (필리스 확인 · 조사 · 영사 · 배전실)
 import { CFG } from '../src/config';
 import { UNIT_BY_ID } from '../src/data/units';
 import { buildBattle, deployed, synergyCounts, activeTiers } from '../src/engine/build';
@@ -20,7 +20,7 @@ for (let s = 0; s < N; s++) {
   let run: ReturnType<typeof newCampaignRun>;
   try { run = newCampaignRun(DIFF); } catch (e) { out.errors.push(String(e)); continue; }
   out.runs++;
-  const order = POL === 'survey' ? ['조사한다', '영사한다', '같이 가자', '같이 들어가자', '격리팀에 신고한다', '직접 연다', '연다'] : POL === 'greedy' ? ['조사한다', '영사한다', '상자는 두고 와', '봉인 테이프로 연다', '직접 연다', '그래도 연다', '연다'] : POL === 'peek' ? ['조사한다', '영사한다', '상자는 두고 와', '필리스가 먼저 들여다본다', '봉인 테이프로 연다', '격리팀에 넘긴다', '연다'] : ['바로 돌파한다', '그냥 지나간다', '같이 가자', '같이 들어가자', '격리팀에 신고한다', '직접 연다', '연다'];
+  const order = POL === 'survey' ? ['조사한다', '영사한다', '배전실로 간다', '같이 가자', '같이 들어가자', 'AH로 받는다', '격리팀에 신고한다', '직접 연다', '연다'] : POL === 'greedy' ? ['조사한다', '영사한다', '배전실로 간다', '상자는 두고 와', '따뜻한 길로 안내해', '크레딧으로 받는다', '봉인 테이프로 연다', '직접 연다', '그래도 연다', '연다'] : POL === 'peek' ? ['조사한다', '영사한다', '배전실로 간다', '상자는 두고 와', '따뜻한 길로 안내해', 'AH로 받는다', '필리스가 먼저 들여다본다', '봉인 테이프로 연다', '격리팀에 넘긴다', '연다'] : ['바로 돌파한다', '그냥 지나간다', '안테나는 그대로 둔다', '같이 가자', '같이 들어가자', 'AH로 받는다', '격리팀에 신고한다', '직접 연다', '연다'];
   const resolve = () => {
     for (let g = 0; run.pending.length && g < 50; g++) {
       const p = run.pending[0];
@@ -69,8 +69,8 @@ for (let s = 0; s < N; s++) {
       if ((globalThis as { DBG?: number }).DBG && t === 'boss') { const bo = b.units.find((x) => x.side === 1); console.error('BOSS', run.campaign!.ch, run.phase, bo?.defId, Math.round(bo?.hp || 0), deployed(run).map((u) => u.defId + u.rank).join(',')); }
       if ((globalThis as { DBG?: number }).DBG && t === 'boss') (b as unknown as { keepEvents: boolean }).keepEvents = true;
       b.runToEnd();
-      if ((globalThis as { DBG?: number }).DBG && t === 'boss' && run.campaign!.ch === 2) { const by: Record<string, number> = {}; const nm = (id?: number) => { const u = b.units.find((x) => x.id === id); return u ? `${u.side}:${u.defId}` : '?'; }; for (const e of (b as unknown as { events: { k: string; id: number; src?: number; v: number; tag?: string; syn?: string; elem?: string }[] }).events) if (e.k === 'dmg') { const k = `${nm(e.src)}>${nm(e.id).split(':')[0]} ${e.syn || e.tag || ''} ${e.elem}`; by[k] = (by[k] || 0) + Math.round(e.v); } console.error(Object.entries(by).sort((x, y) => y[1] - x[1]).slice(0, 14)); }
-      if ((globalThis as { DBG?: number }).DBG && t === 'boss') { const bo = b.units.find((x) => x.side === 1 && x.defId.startsWith('cp_')); console.error('END', run.campaign!.ch, Math.round(b.t), b.winner, bo?.alive, Math.round(bo?.hp || 0), b.units.filter((x) => x.side === 0 && x.alive).length); }
+      if ((globalThis as { DBG?: number }).DBG && t === 'boss' && run.campaign!.ch === +((globalThis as { DBGCH?: number }).DBGCH || 2)) { const by: Record<string, number> = {}; const nm = (id?: number) => { const u = b.units.find((x) => x.id === id); return u ? `${u.side}:${u.defId}` : '?'; }; for (const e of (b as unknown as { events: { k: string; id: number; src?: number; v: number; tag?: string; syn?: string; elem?: string }[] }).events) if (e.k === 'dmg') { const k = `${nm(e.src)}>${nm(e.id).split(':')[0]} ${e.syn || e.tag || ''} ${e.elem}`; by[k] = (by[k] || 0) + Math.round(e.v); } console.error(Object.entries(by).sort((x, y) => y[1] - x[1]).slice(0, 14)); }
+      if ((globalThis as { DBG?: number }).DBG && t === 'boss') { const bo = b.units.find((x) => x.side === 1 && x.defId.startsWith('cp_')); console.error('END', run.campaign!.ch, Math.round(b.t), b.winner, bo?.alive, Math.round(bo?.hp || 0), b.units.filter((x) => x.side === 0 && x.alive).length, 'antenna', b.units.filter((x) => x.defId === 'cp_antenna').length); }
       out.battles++; if (b.winner === 0) out.wins++;
       const ch0 = run.campaign!.ch, t0 = run.campaign!.time;
       out.reach[ch0] = out.reach[ch0] || 0;

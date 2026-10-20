@@ -122,6 +122,10 @@ const UNIQUE: Record<string, { name: string; icon: string; desc: string; effect:
       return true;
     } } },
   },
+  P_fuse: {
+    name: '[캠페인] 중계 퓨즈', icon: '⌁', desc: 'RL-2 배전실에서 테무르가 맨손으로 뽑아 온 안테나 퓨즈. 아직 따뜻하다. 최대 체력 +8%, 받는 정신 피해 -30%.',
+    effect: { pct: { maxHp: 0.08 }, taken: [red('psy', 0.3)] },
+  },
   // 공왕 무휼 전용 (청라공국 3 · 5 · 7명에 해금, 자동 장착 · 해제 불가 · 일반 기물 장착 불가). data/chungra.ts KING_GEAR
   U_mh_seal: {
     name: `[고유] ${KING_GEAR_NAME.U_mh_seal}`, icon: '印', desc: '무휼 전용 · 청라공국 3명에 해금. 모든 주요 능력치 +4, 피해량 경감 10%.',

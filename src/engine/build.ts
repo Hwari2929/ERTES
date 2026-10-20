@@ -685,7 +685,7 @@ export function layout(run: RunState, n: number): Map<string, { x: number; y: nu
 
 export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): Battle {
   const dim = boardDims(enc.n);
-  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined, globals: run.globals.length ? [...run.globals] : undefined, oaths: run.oaths, otShift: oathV(run, 'clock', 'sec') || undefined, campIntel: run.campaign && run.flags.includes('cp_intel') ? true : undefined, campIntel2: run.campaign && run.flags.includes('cp_intel2') ? true : undefined });
+  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined, globals: run.globals.length ? [...run.globals] : undefined, oaths: run.oaths, otShift: oathV(run, 'clock', 'sec') || undefined, campIntel: run.campaign && run.flags.includes('cp_intel') ? true : undefined, campIntel2: run.campaign && run.flags.includes('cp_intel2') ? true : undefined, campIntel3: run.campaign && run.flags.includes('cp_intel3') ? true : undefined });
   b.keepEvents = keepEvents;
   const dep = deployed(run);
   const counts = synergyCounts(dep, run);
