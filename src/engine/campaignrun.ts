@@ -20,9 +20,9 @@ export function newCampaignRun(diff: number): RunState {
   run.log = [`캠페인 「회수 계약」 ${ch.name} 시작 · AH ${ch.time}`];
   // 라르스가 먼저 보낸 것: 통행증 · 정화 분무기 · 선지급 어음
   for (const id of LARS_KIT) R.gainItem(run, id);
-  // 프롤로그: 린디웨(페트라 창구)가 라르스의 의뢰를 중개하고 AH 를 설명한다. 일반 전장 도입(swarm)은 보지 않는다
+  // 프롤로그: 예레나가 라르스의 의뢰를 연결하고, 처음부터 동석한 페트라 창구 린디웨가 AH 를 설명한다. 일반 전장 도입(swarm)은 보지 않는다
   run.flags.push('field_intro');
-  run.pending.push({ t: 'notice', title: '의뢰 — 회수 계약', body: '의뢰인 라르스 (페트라 무역관세부장) · 중개 린디웨 (페트라 특별경호팀)', scene: CAMP_PROLOGUE });
+  run.pending.push({ t: 'notice', title: '의뢰 — 회수 계약', body: '의뢰인 라르스 (페트라 무역관세부장) · 페트라 창구 린디웨 (특별경호팀 협력팀장)', scene: CAMP_PROLOGUE });
   const settle = (SETTLE[ch.ch] || []).filter((s) => s.cr);
   run.pending.push({ t: 'notice', title: 'AH — 접근시간', body: 'AH(Access-Hour)는 정거장 설비 · 도킹 슬롯 · 항로 관제를 남보다 먼저 쓸 수 있는 권리를 시간으로 센 것입니다. 장마다 정해진 양이 있고, 고른 행동에만 듭니다 (대화 · 설명은 들지 않음). 남은 만큼은 장이 끝날 때 칼퇴 보너스로 정산합니다.', rows: [
     [`${ch.name.split(' · ')[0]} 시작`, `AH ${ch.time}`],
