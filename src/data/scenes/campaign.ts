@@ -41,6 +41,7 @@ export const CAMP_PROLOGUE: Beat[] = [
 
 /** 장 도입 장면 (장 번호 → 장면). 1장은 위 프롤로그가 대신한다. bonus = 지난 장 칼퇴 보너스 (0이면 정산 대사가 달라진다) */
 export function campChapterIntro(ch: number, bonus: number): Beat[] | null {
+  if (ch === 3) return campIntro3(bonus);
   if (ch !== 2) return null;
   const settle: Beat[] = bonus > 0 ? [
     S('lindiwe', 'TS-7 정산금은 보내 뒀어요. 남은 AH에 따른 보너스도 넣었고요. 라르스 부장님은 생각보다 빠르다고 하셨어요.', { at: 'R', name: '린디웨 (통신)', face: 'smile' }),
@@ -63,5 +64,35 @@ export function campChapterIntro(ch: number, bonus: number): Beat[] | null {
     S('phyllis', '약품은 내가 조달해 올게-.', { face: 'grin' }),
     S('rachel', '조달 말고 사 와.'),
     N('함선이 A-117 쪽으로 기수를 돌린다. 창밖에서 회색 소행성이 천천히 커진다.'),
+  ];
+}
+
+/** 3장 도입: A-117 정산 · RL-2 브리핑. 테무르는 먼저 도킹 포트를 열러 갔다 (cp3_temur 에서 합류) */
+function campIntro3(bonus: number): Beat[] {
+  const settle: Beat[] = bonus > 0 ? [
+    S('lindiwe', 'A-117 정산금은 보내 뒀어요. 남은 AH에 따른 보너스도 넣었고요.', { at: 'R', name: '린디웨 (통신)', face: 'smile' }),
+    S('rachel', '…아저씨 반응은?', { at: 'L', face: 'tired' }),
+    S('lindiwe', '생각보다 빠르다고 하셨어요. 그분한테는 그게 거의 박수예요.', { face: 'grin' }),
+  ] : [
+    S('lindiwe', 'A-117 정산금은 보내 뒀어요. 남은 AH가 빠듯해서 보너스는 못 넣었고요.', { at: 'R', name: '린디웨 (통신)', face: 'base' }),
+    S('rachel', '…밥값은 나오지?', { at: 'L', face: 'tired' }),
+    S('lindiwe', '밥값은 충분히 나와요. 디저트까지는 장담 못 하지만요.', { face: 'smile' }),
+  ];
+  return [
+    N('에란테스 함선 함교. A-117을 떠난 지 9시간이 지났다. 작전 탁자 위에 홀로그램 창 2개가 떠 있다.', { bg: 'tu_bridge', bgm: 'tu_brief' }),
+    ...settle,
+    S('lindiwe', '그리고 나디르 씨가 이상하다고 한 광석차 상자요. 적요 번호가 없어서 페트라 쪽에서는 조회가 안 돼요. 계속 찾아볼게요.', { face: 'serious', exit: true }),
+    S('yelena', '다음은 RL-2예요. 중계 위성에 연구 정거장을 붙여 놓은 곳인데, 연합에 편입되지 않은 민간 연구소예요.', { at: 'C', name: '예레나 (통신)', face: 'base' }),
+    S('yelena', '군체 표본을 연구하던 곳이에요. 2주 전부터 중계 안테나가 같은 신호만 계속 내보내고 있어요. 느낌이 별로예요.'),
+    S('vivian', '군체 표본실?! 거기 표본 엄청 많겠다! 아직 이름 없는 애도 있을까?!', { at: 'R', face: 'grin' }),
+    S('nadir', '…근데 거기 불은 켜져 있어요? 연락 끊긴 정거장은 보통 다 꺼져 있던데요.', { at: 'R', face: 'worried' }),
+    S('yelena', '전력은 살아 있어요. 안테나가 그 전력을 거의 다 끌어다 쓰고 있지만요.'),
+    S('nadir', '그럼 불은 꺼져 있다는 얘기잖아요?!', { face: 'surprise' }),
+    S('yelena', '그리고 도킹 포트가 얼어붙어서 손으로 열어야 해요. 그래서 테무르를 먼저 보냈어요.'),
+    S('phyllis', '테무르를? 지금쯤 코트 2벌 껴입고 떨고 있겠다-.', { at: 'R', face: 'smug' }),
+    S('yelena', '그래서 비상 히터랑 통조림을 넉넉하게 실어 보냈어요.'),
+    S('rachel', '…통조림, 내 것도 있어?'),
+    S('yelena', '테무르가 다 먹지만 않았으면요.', { exit: true }),
+    N('함선이 RL-2 쪽으로 기수를 돌린다. 창밖에서 안테나를 단 은색 위성이 천천히 커진다.'),
   ];
 }

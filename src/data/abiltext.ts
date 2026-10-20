@@ -341,6 +341,8 @@ export const ENEMY_ABIL: Record<string, { skill?: SkillInfo; trait?: string }> =
   sw_brood: { trait: '[s:14]마다 포자 살점 2기 [g:spawn] (동시 최대 6기).' },
   cp_loader: { trait: '[s:10]마다 포자 살점 2기 [g:spawn] (동시 최대 4기 · 봉인 시 [s:12]마다).' },
   cp_borer: { trait: '[골갑] 화학 외 받는 피해 -[p:0.3] (이음매를 알면 골갑이 듣지 않음).' },
+  cp_herald: { trait: '[중계 증폭] 중계 안테나가 하나라도 서 있으면 받는 피해 -[p:0.5] (전투 시작 시 안테나 2개 · 배전실에서 끄고 오면 1개).', skill: { tgt: '자신', range: 0, area: { k: 'self', r: 4 }, rows: [['피해', '[dmg:tech:1:psy]'], ['공포', '[st:fear:1.5:0.4]']] } },
+  cp_antenna: { trait: '공격하지 않는다. 서 있는 동안 중계탑이 받는 피해 -[p:0.5]. 중계탑이 쓰러지면 함께 꺼진다.' },
   pt_unixline: { trait: '[s:12]마다 유닉스 생산 로봇 [g:spawn]. 매번 수가 늘어남 (동시 최대 4기).' },
   trooper: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 1 }, rows: [['피해', '[dmg:strike:1:phys]'], ['기절', '[st:stun:1:0.7]']] } },
   sw_carrier: { skill: { tgt: '자신', range: 0, area: { k: 'self', r: 1 }, rows: [['피해', '[dmg:strike:1:phys]'], ['기절', '[st:stun:1:0.6]']] } },

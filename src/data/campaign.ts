@@ -133,7 +133,7 @@ export const CAMP_MEMBERS: Record<string, CampSynId[]> = {
 };
 export const campMembers = (defId: string): SynergyId[] => CAMP_MEMBERS[defId] || [];
 
-// ───────────────────────── 장 정의 (검증판: 프롤로그 + 1 · 2장)
+// ───────────────────────── 장 정의 (검증판: 프롤로그 + 1 · 2 · 3장)
 export interface ChapterDef {
   ch: number; name: string; place: string;
   /** 출전 인원 상한 */
@@ -161,10 +161,17 @@ export const CHAPTERS: ChapterDef[] = [
   { ch: 2, name: '2장 · A-117 광석 하역장', place: '광석 소행성 하역장 A-117', deploy: 3, time: 59, phase: 3,
     map: [['battle'], ['event'], ['battle'], ['event'], ['battle'], ['supply'], ['event'], ['battle'], ['shop'], ['event'], ['boss']],
     events: { 1: 'cp2_nadir', 3: 'cp2_cargo3', 6: 'cp2_record', 9: 'cp2_cargo4' }, boss: 'cp_borer', elite: { id: 'sw_brood', from: 7 } },
+  // 3장 기본 경로 비용 = 전투 5 · 보스 · 사건 4 · 보급 · 분기점 = 51 → 시작 65 면 14 남음. 배전실(-4) · 필리스 확인(-2) · 따뜻한 길(+2) · 라르스 보상 AH(+4)
+  { ch: 3, name: '3장 · RL-2 중계 위성', place: '중계 위성 RL-2 연구 정거장', deploy: 4, time: 65, phase: 4,
+    map: [['battle'], ['event'], ['battle'], ['event'], ['battle'], ['supply'], ['event'], ['battle'], ['event'], ['battle'], ['shop'], ['boss']],
+    events: { 1: 'cp3_temur', 3: 'cp3_cargo5', 6: 'cp3_relay', 8: 'cp3_vault' }, boss: 'cp_herald', elite: { id: 'sw_brood', from: 7 } },
 ];
+/** 검증판 마지막 장 다음에 올 장 (정산 알림에 이름만 보여 준다) */
+export const CAMP_NEXT = '4장 · 베르타-4 제4링 궤도 하역장';
 export const chapterOf = (run: RunState) => CHAPTERS.find((c) => c.ch === run.campaign?.ch) || CHAPTERS[0];
 /** 장 정산 보너스: 남은 시간 구간별 크레딧 (상한 있음 — 강한 편성이 돈까지 더 버는 순환을 막는다). 페트라 3단계면 한 단계 위 */
 export const SETTLE: Record<number, { from: number; cr: number }[]> = {
   1: [{ from: 14, cr: 8 }, { from: 8, cr: 4 }, { from: -999, cr: 0 }],
   2: [{ from: 14, cr: 10 }, { from: 8, cr: 5 }, { from: -999, cr: 0 }],
+  3: [{ from: 14, cr: 12 }, { from: 8, cr: 6 }, { from: -999, cr: 0 }],
 };

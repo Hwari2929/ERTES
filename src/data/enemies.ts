@@ -258,6 +258,30 @@ export const ENEMIES: EnemyDef[] = [
       },
     },
     hooks: { takenMult: (b, _u, _src, o) => (o.elem === 'chem' || b.ctx.campIntel2 ? 1 : 0.7) } },
+  // 캠페인 「회수 계약」 3장 보스: RL-2 중계 안테나에 자리 잡은 군체 '전도사' 변종. 전투가 시작되면 양옆에 중계 안테나 2개가 켜진다
+  // (배전실에서 1개를 미리 끄면 1개, b.ctx.campIntel3). [중계 증폭] 안테나가 하나라도 서 있으면 받는 피해 -50%. 탑이 쓰러지면 안테나도 꺼진다 (owner).
+  // [설교 방송] 4칸 안 모든 적에게 정신 피해 + 공포. 장 적 단계는 data/campaign.ts (3장 = 4).
+  // 시뮬(tests/campaign_sim.ts, 80판): 안테나 그대로 보스 평균 1.4회 · 배전실 1.8회 · 필리스 확인 1.7회 (3장에 도착한 판의 90% 이상 클리어)
+  { id: 'cp_herald', name: '전도사 중계탑', tend: 'sniper', keywords: ['bio'], sprite: 'phantom', palette: SWARM_BOSS, art: 'en_sw_queen', tier: 'boss', minPhase: 99,
+    hp: 5000, power: 120, armor: 220, effRes: 0.3, interval: 1.2, range: 4, immobile: true, atk: { type: 'shoot', elem: 'psy' }, melee: false,
+    skill: {
+      name: '설교 방송', cd: 9, params: {}, desc: () => '4칸 안 모든 적에게 정신 피해 (기술 위력 100%) + 40% 확률 1.5초 공포',
+      cast(b, u) {
+        const es = b.around(u, 4, b.enemiesOf(u)); if (!es.length) return false;
+        b.fx(u.x, u.y, 4, 'psy');
+        for (const e of es) { skillHit(b, u, e, 'tech', 1.0, 'psy', { noMiss: true }); fear(b, u, e, 1.5, 0.4); }
+        return true;
+      },
+    },
+    onTick: (b, u) => {
+      if (u.mem.relays) return;
+      u.mem.relays = 1;
+      const n = b.ctx.campIntel3 ? 1 : 2;
+      for (let i = 0; i < n; i++) { const a = ENEMY_RT.spawn?.(b, 'cp_antenna', { x: u.x + (i ? 1 : -1), y: u.y }, { summon: true }); if (a) a.owner = u; }
+    },
+    hooks: { takenMult: (b, u) => (b.units.some((x) => x.alive && x.owner === u && x.defId === 'cp_antenna') ? 0.5 : 1) } },
+  { id: 'cp_antenna', name: '중계 안테나', tend: 'counter', keywords: ['mech', 'struct'], sprite: 'turret', palette: SWARM2, art: 'en_turret', tier: 'minion', minPhase: 99,
+    hp: 900, power: 0, armor: 200, interval: 9, range: 0, immobile: true, atk: { type: 'strike', elem: 'phys' }, melee: false, noAttack: true },
   { id: 'sw_queen', name: '군체 여왕', tend: 'counter', keywords: ['bio', 'phantom'], sprite: 'phantom', palette: SWARM_BOSS, tier: 'boss', minPhase: 1,
     hp: 3000, power: 46, armor: 180, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     escort: ['sw_hound', 'sw_spitter'],
