@@ -174,6 +174,7 @@ const app = {
   diff: DIFF_PRESETS[0].lvl, // 새 런 난이도 = 위험 등급 (쉬움 3 · 모험 6 · 고난 7, data/difficulty.ts DIFF_PRESETS)
   introField: null as string | null, // 출격 연출: 이번 런 전장
   introDone: false, // 출격 연출을 끝까지 봤는지 (다시 그릴 때 연출 생략)
+  introCustom: false, // 지정 의뢰: 전장을 추첨 대신 직접 고른다
   introFoe: null as string | null, // 전장 브리핑에서 연 적 상세
   dsInfo: null as number | null, // 난이도 카드에서 펼친 세부 조건
   codexTab: 'units' as 'units' | CX2.Cx2Tab | 'enemies' | 'events' | 'manual' | 'records' | 'ach',
@@ -424,9 +425,10 @@ function titleScreen() {
       <span class="ts-kicker">에란테스 용병단 · 은하 순회 의뢰</span>
       <div class="logo">ERRANTEs</div>
       <p class="tagline">은하 용병단 오토배틀러 · 증강 도파민 MAX</p>
+      <div class="ts-body"><div class="ts-left">
       <nav class="title-actions" aria-label="메뉴">
         <div class="ts-main">${auto ? `<button class="btn primary ts-btn ts-hero" data-a="load" data-v="auto"><b>이어하기</b><small>페이즈 ${auto.phase} · 체력 ${auto.hp}</small></button>` : ''}
-          <button class="btn ${auto ? '' : 'primary ts-hero'} ts-btn" data-a="newrun"><b>새 계약</b>${auto ? '<small>진행 중인 의뢰는 덮어씁니다</small>' : '<small>전장 추첨 · 난이도 · 계약 기물 4명</small>'}</button></div>
+          <div class="ts-split"><button class="btn ${auto ? '' : 'primary ts-hero'} ts-btn" data-a="newrun"><b>새 계약</b>${auto ? '<small>진행 중인 의뢰는 덮어씁니다</small>' : '<small>전장 추첨 · 난이도 · 계약 기물 4명</small>'}</button><button class="btn ts-btn ts-custom" data-a="newrun-custom"><b>지정 의뢰</b><small>전장을 직접 고른다</small></button></div></div>
         <div class="ts-grid" role="group" aria-label="둘러보기">${tutButton()}
           <button class="btn ts-btn ts-tile" data-a="bar"><b>에란테스 바</b><small>${auto ? '들렀다가 이어서 출격' : '단원 · 손님들의 잡담'}</small></button>
           <button class="btn ts-btn ts-tile" data-a="codex"><b>도감 · 기록</b><small>교범 · 기록 · 업적</small></button>
@@ -435,6 +437,9 @@ function titleScreen() {
       </nav>
       ${slots.length ? `<div class="slots">${slots.map((s) => `<button class="btn ghost" data-a="load" data-v="${s.slot}">${SLOT_NAME[s.slot]} · 페이즈 ${s.phase} · 기물 ${s.units}</button>`).join('')}</div>` : ''}
       ${m.runs ? `<p class="ts-meta"><span>의뢰 <b>${m.runs}</b></span><span>성공 <b>${m.clears}</b></span><span>위험 등급 <b>${m.maxDiff}</b></span></p>` : ''}
+      </div>
+      <button class="btn ts-btn ts-campaign" data-a="campaign"><span class="ts-cp-kick">CAMPAIGN</span><b>캠페인</b><small>에란테스 용병단의 이야기를 따라가는 의뢰</small><span class="ts-soon">준비 중</span></button>
+      </div>
     </div>
     <p class="ts-foot">싱글 PvE · 오프라인 플레이 · 진행은 이 브라우저에 자동 저장됩니다.</p>
     ${app.tutAsk ? tutAskModal() : ''}
@@ -824,8 +829,9 @@ function introScreen() {
     <div class="in-bg" style="background-image:url('${bgURL(`field_${f.id}`)}'), linear-gradient(165deg, color-mix(in srgb, ${f.color} 40%, #0b0d14), #0b0d14 75%)"></div><div class="in-shade"></div>
     <div class="in-stars" aria-hidden="true">${Array.from({ length: 40 }, (_, i) => `<i style="--x:${(i * 37) % 100}%;--d:${(i % 7) * 0.6}s;--s:${3 + (i % 5)}s"></i>`).join('')}</div>
     <div class="in-curtain l" aria-hidden="true"></div><div class="in-curtain r" aria-hidden="true"></div>
-    <div class="in-slot"><span class="in-kicker">이번 의뢰의 전장</span><b class="in-name">${app.introDone ? esc(f.name) : '???'}</b><span class="in-region">${esc(f.region)}</span></div>
+    <div class="in-slot"><span class="in-kicker">${app.introCustom ? '지정 의뢰 · 전장 선택' : '이번 의뢰의 전장'}</span><b class="in-name">${app.introDone ? esc(f.name) : '???'}</b><span class="in-region">${esc(f.region)}</span></div>
     <section class="in-info" aria-live="polite">
+      ${app.introCustom ? `<div class="in-pick" role="group" aria-label="전장 고르기">${FIELDS.map((x) => `<button class="btn tiny in-fp${x.id === f.id ? ' on' : ''}" style="--c:${x.color}" data-a="intro-field" data-v="${x.id}" aria-pressed="${x.id === f.id}"><span aria-hidden="true">${x.icon}</span>${esc(x.name)}</button>`).join('')}</div>` : ''}
       <p class="in-desc">${esc(f.desc)}</p>
       ${fieldBrief(f.id)}
       <div class="in-act"><button class="btn ghost" data-a="to-title">돌아가기</button><button class="btn primary" data-a="intro-ok">확인</button></div>
@@ -4317,9 +4323,16 @@ function act(a: string, v: string) {
     case 'newrun': // 출격: 전장 추첨 연출부터
       if (app.screen === 'title' && !app.tutAsk && !tutOver() && !loadMeta().runs && !listTutSave()) { app.tutAsk = true; break; } // 첫 실행: 튜토리얼부터 볼지
       app.tutAsk = false;
-      app.screen = 'intro'; app.menu = null; app.introDone = false; app.introFoe = null; app.abilPop = null; preloadBgs();
+      app.screen = 'intro'; app.menu = null; app.introDone = false; app.introCustom = false; app.introFoe = null; app.abilPop = null; preloadBgs();
       app.introField = FIELDS[Math.floor(Math.random() * FIELDS.length)].id;
       break;
+    case 'newrun-custom': // 지정 의뢰: 추첨 연출 없이 전장을 직접 고른다
+      app.tutAsk = false;
+      app.screen = 'intro'; app.menu = null; app.introDone = true; app.introCustom = true; app.introFoe = null; app.abilPop = null; preloadBgs();
+      if (!FIELDS.some((f) => f.id === app.introField)) app.introField = FIELDS[Math.floor(Math.random() * FIELDS.length)].id;
+      break;
+    case 'intro-field': if (app.introCustom && FIELDS.some((f) => f.id === v)) app.introField = v; break;
+    case 'campaign': toast('캠페인은 준비 중입니다.'); return;
     case 'intro-back': app.screen = 'intro'; app.introDone = true; break;
     case 'tutorial': case 'tutorial-restart': { // 튜토리얼: 저장이 있으면 이어서, 아니면 새로
       const saved = a === 'tutorial' ? loadRun(TUT_SLOT) : null;

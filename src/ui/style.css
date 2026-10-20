@@ -515,7 +515,7 @@ button { font: inherit; color: inherit; }
 .ts-kicker { font-size: var(--fs-sm); letter-spacing: .32em; color: color-mix(in srgb, var(--c-brand) 75%, var(--c-white)); text-transform: uppercase; opacity: .85; }
 .title-screen .logo { filter: drop-shadow(0 0 28px rgb(240 170 60 / .28)); }
 .title-screen .tagline { color: #c9cbd3; text-shadow: 0 1px 6px var(--c-black); }
-.title-actions .ts-btn { display: grid; gap: 2px; padding: 12px 16px; backdrop-filter: blur(6px); }
+:is(.title-actions, .ts-body) .ts-btn { display: grid; gap: 2px; padding: 12px 16px; backdrop-filter: blur(6px); }
 .title-actions .ts-btn:not(.primary) { background: rgb(18 22 32 / .72); } /* 그림 위 어두운 유리 (라이트 테마도 그림 위 화면 규칙으로 밝은 글씨) */
 .title-actions .ts-btn b { font-size: var(--fs-lg); }
 .ts-meta { display: flex; gap: 14px; margin: 6px 0 0; font-size: var(--fs-sm); color: #aeb3c0; }
@@ -530,6 +530,22 @@ button { font: inherit; color: inherit; }
 /* 타이틀 메뉴 위계: 주 동작(이어하기 · 새 계약) 크게 → 둘러보기 2×2 칸(튜토리얼 · 바 · 도감 · 절망 서약) → 저장 · 설정은 글자 단추 줄 */
 .title-actions { width: min(440px, 100%); gap: 10px; }
 .ts-main { display: grid; gap: 8px; }
+/* 타이틀 본문: 왼쪽 = 메뉴 단추 묶음, 오른쪽 = 큰 캠페인 단추 (좁은 화면은 위아래) */
+.ts-body { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 360px); gap: 20px; justify-content: center; align-items: stretch; width: min(840px, 100%); margin-top: 12px; }
+.ts-left { display: grid; gap: 10px; align-content: start; }
+.ts-left :is(.title-actions, .slots) { width: 100%; margin-top: 0; }
+.ts-split { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 8px; }
+.ts-body .ts-campaign { position: relative; align-content: end; gap: 6px; min-height: 240px; padding: 22px; text-align: left; background: color-mix(in srgb, var(--panel) 72%, transparent); border-color: color-mix(in srgb, var(--c-brand) 55%, var(--line)); overflow: hidden; }
+.ts-campaign .ts-cp-kick { font: 600 var(--fs-xs) var(--f-mono); letter-spacing: .32em; color: var(--c-brand); }
+.ts-campaign b { font-family: var(--f-display); font-weight: 400; font-size: var(--fs-3xl); line-height: 1.1; }
+.ts-campaign small { color: var(--c-text-2); }
+.ts-campaign .ts-soon { position: absolute; top: 14px; right: 14px; padding: 2px 8px; border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--fs-xs); color: var(--c-text-2); }
+@media (max-width: 760px) { .ts-body { grid-template-columns: minmax(0, 1fr); width: min(440px, 100%); } .ts-body .ts-campaign { min-height: 120px; } }
+/* 지정 의뢰: 전장 고르기 */
+.in-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.in-pick .in-fp { display: inline-flex; align-items: center; gap: 6px; border-color: color-mix(in srgb, var(--c) 45%, var(--line)); }
+.in-pick .in-fp span { color: var(--c); }
+.in-pick .in-fp.on { border-color: var(--c); box-shadow: inset 0 0 0 1px var(--c); }
 .title-actions .ts-hero { padding: 16px; box-shadow: 0 10px 28px color-mix(in srgb, var(--c-black) 45%, transparent); }
 .title-actions .ts-hero b { font-size: var(--fs-xl); }
 .ts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
@@ -539,6 +555,8 @@ button { font: inherit; color: inherit; }
 .ts-util { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 4px; }
 .title-actions .ts-util .btn { background: transparent; border-color: transparent; color: var(--c-text-2); text-shadow: 0 1px 4px var(--c-black); }
 .title-actions .ts-util .btn:hover, .title-actions .ts-util .btn:focus-visible { color: var(--c-text); border-color: var(--line); }
+.title-actions .ts-util .btn { display: inline-flex; align-items: center; gap: 4px; }
+.title-actions .ts-util .btn svg { width: 14px; height: 14px; flex: none; } /* 전체 화면 아이콘: 크기를 안 주면 기본 300px 로 커진다 */
 
 /* ── 칩 / 스프라이트 */
 .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-block: 6px; }
