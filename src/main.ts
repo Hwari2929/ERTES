@@ -27,7 +27,7 @@ import * as BAR from './ui/bar';
 import * as ACH from './ui/achieve';
 import * as TFX from './ui/themefx';
 import {
-  activeTiers, encGeo, foeCell, runGeo, terrainCells, zoneAt, buildAlly, buildBattle, buildEnemy, chrTier, companionCells, deployed, engTier, kingOn, kingState, enemyBaseMoveSpd, layout, memberships, PAD, synergyCounts, synList, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
+  activeTiers, allyRoom, type CompanionTok, encGeo, foeCell, runGeo, terrainCells, zoneAt, buildAlly, buildBattle, buildEnemy, chrTier, companionCells, deployed, engTier, kingOn, kingState, enemyBaseMoveSpd, layout, memberships, PAD, synergyCounts, synList, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
 import { Battle, controlNames, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME, fleeShort, zocHoldFormula, zocHoldOf, zocRows, zocRule, zocShort } from './engine/combat';
 import * as R from './engine/run';
@@ -1457,7 +1457,8 @@ function prepScreen(run: RunState) {
         <span class="tk-side"><i class="cat-mech" title="기계 · 구조물: ${esc(CATEGORY_RULE.struct)}">${lineIcon('k.mech', 'li')}</i></span>
         <span class="tk-items">${slots}</span></div></div>`;
   });
-  for (const t of companionCells(run, n)) {
+  const noRoom: CompanionTok[] = []; // 배치 구역에 빈칸이 없어 시작 칸을 못 잡은 소환물 · 무휼
+  for (const t of companionCells(run, n, noRoom)) {
     const sel = t.king ? app.sel?.k === 'king' : app.sel?.k === 'unit' && app.sel.uid === t.owner;
     const owner = t.owner ? run.units.find((u) => u.uid === t.owner) : null;
     const tip = t.king ? `${t.name} · 청라공국 공왕 — 끌어서 시작 칸 옮기기` : `${t.name} · ${owner ? UNIT_BY_ID[owner.defId].name : ''}의 소환물 — 끌어서 시작 칸 옮기기`;
@@ -1475,7 +1476,7 @@ function prepScreen(run: RunState) {
   units += terrainIcons(tLay, cellBox);
   units += deviceTokens(run, n, (x, y, w = 1, h = 1) => `left:${((x - PAD + ex) / bw) * 100}%;top:${((y - PAD) / bh) * 100}%;width:${(100 * w) / bw}%;height:${(100 * h) / bh}%`);
   const bench = run.units.filter((u) => !u.pos);
-  const free = cap - deployed(run).length;
+  const free = Math.min(cap, allyRoom(run, n)) - deployed(run).length; // 출전 한도와 아군 진형 칸 (장치 칸 제외) 중 작은 쪽
   const canFill = bench.some((u) => R.canDeploy(run, u));
   const mapChip = node?.enc?.map && node.enc.map !== 'open' ? mapPill(node.enc.map) : '';
   const env = node?.enc ? `${node.enc.env} · 폭 ${n}칸${node.type === 'adversity' ? ' · 역경' : ''}${node.type === 'challenge' ? ` · 도전 (P${node.enc.phase} 역경급)` : ''}${node.type === 'boss' ? ' · 보스전' : ''}` : '편성 관리';
@@ -1484,7 +1485,7 @@ function prepScreen(run: RunState) {
       <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
     </aside>
     <section class="board-col">
-      <div class="board-head"><b>${esc(env)}</b>${mapChip}<span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${tacPill(run)}<span class="muted small">${geo.foe2 ? "가운데" : "아래"} ${ZONE}줄에 배치</span>
+      <div class="board-head"><b>${esc(env)}</b>${mapChip}<span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${tacPill(run)}<span class="muted small">${geo.foe2 ? "가운데" : "아래"} ${ZONE}줄에 배치</span>${noRoom.length ? `<span class="small warn" title="${esc(`배치 구역에 빈칸이 없음: ${noRoom.map((t) => t.name).join(' · ')} — 전투에서 가까운 빈칸에 나온다`)}">소환 자리 없음 ${noRoom.length}</span>` : ''}
         ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}</div>
       <div class="board-row"><div class="board" style="--w:${bw};--h:${bh}" data-bw="${bw}" data-bh="${bh}" data-ex="${ex}"><div class="cells">${cells}</div>${units}${startOverlay(run, bw, bh, ex)}</div>${invRail(run)}</div>
       <div class="bench" data-drop="bench">
@@ -4716,8 +4717,8 @@ function act(a: string, v: string) {
     case 'resume': goPrepOrMap(); break;
     case 'autofill': {
       if (!run) return;
-      const n = R.autoFill(run);
-      toast(n ? `${n}명을 배치했습니다.` : '배치할 수 있는 대기 기물이 없습니다.');
+      const n = R.autoFill(run), full = R.deployBlock(run), left = run.units.some((u) => !u.pos && R.canDeploy(run, u));
+      toast(n ? `${n}명을 배치했습니다.${full === R.ROOM_ERR && left ? ` ${full}.` : ''}` : left && full ? `${full}.` : '배치할 수 있는 대기 기물이 없습니다.');
       if (n) persist();
       break;
     }
@@ -4727,13 +4728,16 @@ function act(a: string, v: string) {
     case 'big-close': app.preview = null; app.bigUnit = null; app.abilPop = null; app.releaseConfirm = null; if (app.screen === 'map') app.sel = null; break;
     case 'manage': app.screen = 'prep'; app.sel = v ? { k: 'unit', uid: v } : null; break;
     case 'to-map': app.screen = run?.node?.type === 'shop' ? 'shop' : run?.node?.type === 'news' ? 'news' : run?.node?.type === 'invest' ? 'invest' : 'map'; break;
-    case 'fight':
+    case 'fight': {
       if (!run || !deployed(run).length) return;
+      const benched = R.fitDeploy(run); // 안전장치: 설 자리가 없는 출전 기물은 대기석으로 (전투에서 조용히 빠지지 않게) — 편성을 다시 보여 준다
+      if (benched.length) { toast(`${R.ROOM_ERR}: ${benched.join(' · ')} 대기석으로.`); persist(); break; }
       persist();
       app.summary = null;
       app.screen = 'battle';
       app.needMount = true; // render() 가 보드를 그린 뒤 전투 뷰를 붙인다
       break;
+    }
     case 'pause': app.paused = !app.paused; applySpeed(); return;
     case 'speed': app.paused = false; app.speed = +v; savePref('speed', app.speed); applySpeed(); document.querySelectorAll('.speed .btn').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.v === v)); return;
     case 'skip': app.view?.skip?.(); return;
@@ -5123,7 +5127,7 @@ function onDrop(src: string, dst: string) {
     if (!u || !q) return;
     if (q.x < PAD || q.x >= PAD + n) { toast('가장자리 칸에는 포탑만 둘 수 있습니다.'); render(); return; }
     if (!R.canDeploy(run, u)) { toast('이번 페이즈에는 배치할 수 없는 기물입니다.'); render(); return; }
-    if (!u.pos && deployed(run).length >= R.deployCap(run)) { toast(`출전 인원이 가득 찼습니다 (${R.deployCap(run)}명).`); render(); return; }
+    if (!u.pos) { const e = R.deployBlock(run); if (e) { toast(`${e}.`); render(); return; } }
     const from = layout(run, n).get(u.uid);
     const tp = tcs.map((c) => turretSavePos(c.x, c.y, n, G));
     if (from) tp[j] = turretSavePos(from.x, from.y, n, G);
@@ -5152,7 +5156,7 @@ function onDrop(src: string, dst: string) {
       if (other) {
         const mine = lay.get(u.uid);
         other.pos = mine ? toPos(mine.x, mine.y, G) : null;
-      } else if (!u.pos && deployed(run).length >= R.deployCap(run)) { toast(`출전 인원이 가득 찼습니다 (${R.deployCap(run)}명).`); render(); return; }
+      } else if (!u.pos) { const e = R.deployBlock(run); if (e) { toast(`${e}.`); render(); return; } }
       u.pos = toPos(x, y, G);
     } else if (dk === 'bench') {
       u.pos = null;

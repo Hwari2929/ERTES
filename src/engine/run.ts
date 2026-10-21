@@ -23,7 +23,7 @@ import { FAITHS,
   type AugPick, type Encounter, type InvestOffer, type FaithId, type EnemySpawn, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
   type Quest, type RunState, type ShopSlot, type SupplyCard, type SynergyId, type UnitState,
 } from '../types';
-import { deployed, encGeo, engTier, foeCell, layout, PAD, runGeo, terrainCells, toPos, memberships, playerRows, prepOccupied, synergyCounts, turretCount, zoneAt } from './build';
+import { allyRoom, companionCells, deployed, encGeo, engTier, foeCell, layout, PAD, runGeo, terrainCells, toPos, memberships, playerRows, prepOccupied, synergyCounts, turretCells, turretCount, ZONE, zoneAt } from './build';
 import { DEV, deviceCells, type Device, isPlaceable } from '../data/devices';
 import { MAPS, mapOf } from '../data/maps';
 import { causalGain, causalLeft, causalStage, KING_GEAR, KING_GEAR_NAME } from '../data/chungra';
@@ -258,6 +258,8 @@ export function buyFleet(run: RunState): string | null {
   run.credits -= c;
   recSpend(run, 'fleet', c);
   run.fleet = fleetOf(run) + 1;
+  const enc = run.node?.enc, nw = mapOf(enc?.map).narrow; // 통로 조우를 앞둔 편성 중이면 늘어난 인원만큼 통로 폭도 넓힌다 (적 칸 · 장치 칸은 그대로)
+  if (enc && nw) enc.n = Math.max(enc.n, narrowWidth(run, nw));
   autoPlace(run);
   log(run, `함대 확장: 출전 인원 ${deployCap(run)}명 (크레딧 -${c})`);
   return null;
@@ -293,26 +295,64 @@ export function confirmMuster(run: RunState, syns: string[]): string | null {
 }
 export function cancelMuster(run: RunState) { if (run.pending[0]?.t === 'muster') run.pending.shift(); }
 
+/** 이번 편성에서 출전 인원 한도: 출전 한도와 아군 진형에서 설 수 있는 칸 수 (장치 칸 제외) 중 작은 쪽 */
+export const deployRoom = (run: RunState) => Math.min(deployCap(run), allyRoom(run));
+/** 출전 기물을 하나 더 올릴 수 없는 까닭 (null = 올릴 수 있음): 출전 인원이 찼거나, 아군 진형에 설 자리가 없다 */
+export function deployBlock(run: RunState): string | null {
+  const n = deployed(run).length;
+  if (n >= deployCap(run)) return `출전 인원이 가득 찼습니다 (${deployCap(run)}명)`;
+  if (n >= allyRoom(run)) return ROOM_ERR;
+  return null;
+}
+export const ROOM_ERR = '출전 기물이 설 자리가 모자랍니다';
+/** 배치 폭 W 의 열 순서: 가운데부터 (W/2 내림 열 → 왼쪽 · 오른쪽 번갈아). 폭 7 = 3 · 2 · 4 · 1 · 5 · 0 · 6 */
+export const centerCols = (W: number) => [...Array(W).keys()].sort((a, b) => Math.abs(a - Math.floor(W / 2)) - Math.abs(b - Math.floor(W / 2)) || a - b);
+
+/** 빈 출전 자리에 order 순으로 기물을 올린다 (근접 · 앞줄 선호는 앞줄부터, 그 밖은 뒷줄부터). 지금 조우의 배치 폭 안에서 가운데 열부터,
+ *  장치 칸 · 다른 기물 칸은 건너뛰고 소환물 · 포탑 칸은 마지막에 쓴다 → 저장 칸 = 편성 화면에 보이는 칸 */
 export function autoPlace(run: RunState, order: UnitState[] = run.units) {
-  const cap = deployCap(run);
+  const limit = deployRoom(run);
   // 반려 돌 (절망 증강): 늘 출전. 자리가 없으면 공명 등급이 가장 낮은 출전 기물을 대기석으로
   const rock = run.units.find((u) => isRock(u) && !u.pos);
   if (rock) {
-    if (deployed(run).length >= cap) { const low = deployed(run).filter((u) => !isRock(u)).sort((a, b) => a.rank - b.rank)[0]; if (low) low.pos = null; }
+    if (deployed(run).length >= limit) { const low = deployed(run).filter((u) => !isRock(u)).sort((a, b) => a.rank - b.rank)[0]; if (low) low.pos = null; }
     order = [rock, ...order.filter((u) => u !== rock)];
   }
-  const used = new Set(run.units.filter((u) => u.pos).map((u) => `${u.pos!.c},${u.pos!.r}`));
-  const g = runGeo(run);
-  for (const d of run.node?.enc?.devices || []) for (const c of deviceCells(d)) { const p = toPos(c.x, c.y, g); used.add(`${p.c},${p.r}`); } // 편성 화면에 놓은 장치 칸
+  if (!order.some((u) => !u.pos && canDeploy(run, u)) || deployed(run).length >= limit) return;
+  const W = run.node?.enc?.n ?? CFG.bossBoard, g = runGeo(run, W);
+  const used = new Set([...layout(run, W).values()].map((p) => `${p.x},${p.y}`));
+  for (const d of run.node?.enc?.devices || []) for (const c of deviceCells(d)) used.add(`${c.x},${c.y}`); // 편성 화면에 놓은 장치 칸
+  const soft = new Set([...turretCells(run, W), ...companionCells(run, W)].map((p) => `${p.x},${p.y}`)); // 포탑 · 소환물 시작 칸 (비켜 주지만 기물이 먼저)
+  const cols = centerCols(W);
   for (const u of order) {
-    if (u.pos || deployed(run).length >= cap || !canDeploy(run, u)) continue;
+    if (u.pos || deployed(run).length >= limit || !canDeploy(run, u)) continue;
     const def = UNIT_BY_ID[u.defId];
     const rowsPref = def.range <= 1 || def.front ? [2, 1, 0] : [0, 1, 2];
-    outer: for (const r of rowsPref)
-      for (const c of [3, 2, 4, 1, 5, 0, 6]) {
-        if (!used.has(`${c},${r}`)) { u.pos = { c, r }; used.add(`${c},${r}`); break outer; }
-      }
+    outer: for (const avoid of [true, false])
+      for (const r of rowsPref)
+        for (const c of cols) {
+          const k = `${PAD + c},${g.ay1 - r}`;
+          if (used.has(k) || (avoid && soft.has(k))) continue;
+          u.pos = { c, r }; used.add(k); break outer;
+        }
   }
+}
+
+/** 안전장치 (전투 노드에 들어설 때 · 전투 시작 직전): 출전 기물이 아군 진형에서 설 수 있는 칸보다 많으면
+ *  공명 등급이 낮은 기물부터 대기석으로 내린다 (반려 돌은 남긴다). 편성 표시 · 시너지 집계 · 전투가 어긋나지 않게. 내린 기물 이름 */
+export function fitDeploy(run: RunState): string[] {
+  const dep = deployed(run), over = dep.length - allyRoom(run);
+  if (over <= 0) return [];
+  const out = dep.filter((u) => !isRock(u)).sort((a, b) => a.rank - b.rank || a.xp - b.xp).slice(0, over);
+  for (const u of out) u.pos = null;
+  const names = out.map((u) => UNIT_BY_ID[u.defId].name);
+  log(run, `출전 칸 부족: ${names.join(' · ')} 대기석으로`);
+  return names;
+}
+/** 전투 노드에 들어설 때: fitDeploy 로 내린 기물이 있으면 알림 */
+function fitDeployNotice(run: RunState) {
+  const names = fitDeploy(run);
+  if (names.length) run.pending.push({ t: 'notice', title: '출전 칸 부족', body: '이번 전장의 아군 진형에 설 자리가 모자라 공명 등급이 낮은 기물부터 대기석으로 옮겼습니다.', rows: [['대기석으로', names.join(' · ')], ['아군 진형 칸', `${allyRoom(run)}`]] });
 }
 
 /** 편의: 빈 출전 자리를 대기 기물 중 공명 등급이 높은 순으로 채운다 (근접은 앞줄, 원거리는 뒷줄) */
@@ -372,6 +412,7 @@ export function enterNode(run: RunState, type: NodeType) {
   if (type === 'battle' || type === 'adversity' || type === 'boss') {
     if (hasGlobal(run, 'G.l_petra')) { const n = synergyCounts(deployed(run), run).PET || 0; if (n) { run.credits += n * GA.petraPer; log(run, `페트라 직불 계약: 크레딧 +${n * GA.petraPer}`); } }
     run.node = { type, enc: genEncounter(run, type) };
+    fitDeployNotice(run);
     syncQuests(run);
   } else if (type === 'shop') {
     run.pending.push({ t: 'branch', options: branchOptions(run) });
@@ -433,6 +474,7 @@ export function pickFork(run: RunState, choice: 'rest' | 'challenge' | 'synth') 
   }
   run.picked[run.step] = 'challenge';
   run.node = { type: 'challenge', enc: genEncounter(run, 'adversity', run.phase + 1) };
+  fitDeployNotice(run);
   syncQuests(run);
   log(run, '전환: 도전');
 }
@@ -628,6 +670,8 @@ export function deviceErr(run: RunState, d: Device, skip?: Device): string | nul
     if (z === 'foe' && d.id !== 'K_decoy') return '적 진형에는 놓을 수 없습니다';
     if (occ.has(`${c.x},${c.y}`)) return '다른 기물 · 장치가 있는 칸입니다';
   }
+  const devs = [...(enc.devices || []).filter((x) => x !== skip), d];
+  if (allyRoom(run, enc.n, devs) < deployed(run).length) return ROOM_ERR; // 출전 기물이 설 칸은 남긴다
   return null;
 }
 /** 놓은 장치를 옮기거나 (바리케이드) 늘리기 · 줄이기: 새 모양이 맞으면 바꾼다. 오류 문구 또는 null */
@@ -1001,11 +1045,13 @@ function pickMap(run: RunState, type: NodeType, phase: number): string | undefin
   if (r.chance(CFG.maps.common)) return r.pick(common).id;
   return undefined;
 }
+/** 통로(narrow) 지형의 배치 폭: 지형 틀의 폭과, 출전 한도 + 1명이 아군 진형(ZONE 줄)에 다 서는 폭 중 큰 쪽 */
+export const narrowWidth = (run: RunState, narrow: number) => Math.max(narrow, Math.ceil((deployCap(run) + 1) / ZONE));
 export function genEncounter(run: RunState, type: NodeType, phase = run.phase): Encounter {
   const map = pickMap(run, type, phase);
   return rng(run, (r) => {
     const env = r.weighted(CFG.boardSizes, (x) => x.w);
-    const n = type === 'boss' ? CFG.bossBoard : mapOf(map).narrow ?? env.n;
+    const nw = mapOf(map).narrow, n = type === 'boss' ? CFG.bossBoard : nw ? narrowWidth(run, nw) : env.n;
     const rows = playerRows(n);
     const p = phase;
     const f = fieldOf(run.field);
@@ -1232,7 +1278,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   if (run.hp <= 0) { run.hp = 0; run.over = true; gameOver = true; }
   else if (run.over) gameOver = true; // 캠페인 장 끝 (검증판)
   else if (won || type !== 'boss' || !bossMustWin(run)) advance(run); // 보스: 져도 다음 페이즈로 (의뢰의 마지막 보스만 다시)
-  else run.node = { type: 'boss', enc: genEncounter(run, 'boss') };
+  else { run.node = { type: 'boss', enc: genEncounter(run, 'boss') }; fitDeployNotice(run); }
   const gained = run.inventory.slice();
   for (const id of inv0) { const i = gained.indexOf(id); if (i >= 0) gained.splice(i, 1); }
   return { won, lines, xp, hpLoss, gameOver, items: gained, causal };
