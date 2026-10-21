@@ -365,6 +365,19 @@ export function enemyBaseMoveSpd(def: EnemyDef): number {
   return (def.tend === 'assassin' ? M.assassin : M.base) * (def.moveSpd ?? 1);
 }
 
+/** 중립 구조물 (접이식 바리케이드 등): 어느 편도 아니고 (sideOf 2), 칸 · 탄도를 막는다. 표적 · 승패에서 빠지고, 길이 완전히 막히거나 탄이 지나가면 양쪽이 친다 */
+export function buildWall(b: Battle, x: number, y: number, hp: number, o: { name?: string; armor?: number; defId?: string } = {}): CUnit {
+  const c = blankUnit(1);
+  c.defId = o.defId || 'wall'; c.name = o.name || '바리케이드'; c.sprite = 'turret'; c.palette = WALL_PAL;
+  c.st.maxHp = hp; c.st.armor = o.armor ?? 0; c.hp = hp;
+  c.immobile = true; c.noAttack = true; c.keywords = ['struct']; c.category = 'struct';
+  c.mem.inert = 1; c.mem.neutral = 1; c.mem.wall = 1;
+  c.x = c.px = x; c.y = c.py = y;
+  b.add(c);
+  return c;
+}
+const WALL_PAL = ['#0e0e0e', '#9a7a4a', '#6a5232', '#d8c090', '#b89a62', '#3e2f1c', '#efe2c0'];
+
 export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number, gear?: { items?: string[]; mod?: string; stripped?: boolean }): CUnit {
   const c = blankUnit(1);
   const st = emptyStats();

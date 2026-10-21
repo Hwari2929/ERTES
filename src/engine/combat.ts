@@ -384,6 +384,11 @@ export type BEvent =
 
 export interface BattleCtx { phase: number; credits: number; field?: string; diff?: number; despairs?: string[]; oaths?: Record<string, number>; otShift?: number; campIntel?: boolean; campIntel2?: boolean; campIntel3?: boolean; campIntel4?: boolean; campAudit?: boolean; /** 전역 증강 id (적에게 걸리는 것: 판돈 올리기) */ globals?: string[] } // despairs: 이 런의 절망 증강 id 목록 (data/despair.ts) · oaths: 절망 서약 (data/oaths.ts) · otShift: 연장전 · 제한 시간을 앞당기는 초 (초침의 서약)
 
+/** 지형 칸 성질 (비트): 통행 불가 (물 · 수로 — 탄은 넘어간다) · 탄도 차단 (벽 · 탱크 · 닫힌 수문 — 보통 통행 불가와 함께) */
+export const T_NOWALK = 1, T_NOSHOT = 2;
+/** 중립 구조물 (바리케이드): 길이 완전히 막혔을 때만 부수러 가도록 경로 비용을 크게 */
+const WALL_PATH_COST = 1000;
+
 /** 전장 조건 훅: 전장(id)마다 하나. battlefields.ts 가 FIELD_RULES 에 등록하고, 전투 시작 때 ctx.field 로 붙는다 */
 export interface FieldRules {
   /** 기물 onStart 보다 먼저 (배치를 바꾸는 전장 규칙 — 침투자 순간이동 등보다 앞서야 할 때) */
@@ -587,13 +592,103 @@ export class Battle {
   get over() { return this.winner !== null; }
   living(side?: 0 | 1) { return this.units.filter((u) => u.alive && (side === undefined || u.side === side)); }
   /** 실제로 싸우는 편 (매혹된 기물은 시전자 편) */
-  sideOf(u: CUnit): 0 | 1 { return u.mem.charmTo ? ((u.mem.charmTo - 1) as 0 | 1) : u.side; }
+  /** 편: 매혹이면 시전자 편, 중립 구조물(바리케이드)은 2 — 어느 편과도 아군이 아니고, 범위 피해는 양쪽에서 받는다 */
+  sideOf(u: CUnit): 0 | 1 | 2 { return u.mem.neutral ? 2 : u.mem.charmTo ? ((u.mem.charmTo - 1) as 0 | 1) : u.side; }
   enemiesOf(u: CUnit) { const s = this.sideOf(u); return this.units.filter((x) => x.alive && this.sideOf(x) !== s); }
   /** 같은 편 (매혹된 기물은 원래 편과도, 시전자 편과도 아군이 아니다) */
   alliesOf(u: CUnit, includeSelf = true) { const s = this.sideOf(u); return this.units.filter((a) => a.alive && a.side === u.side && this.sideOf(a) === s && (includeSelf || a !== u)); }
   dist(a: { x: number; y: number }, b: { x: number; y: number }) { return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)); }
   unitAt(x: number, y: number) { return this.units.find((u) => u.alive && u.x === x && u.y === y) || null; }
-  inBounds(x: number, y: number) { return x >= 0 && y >= 0 && x < this.w && y < this.h; }
+  /** 기물이 설 수 있는 칸 범위 (전장 안 + 통행 불가 지형 아님). 순수 좌표 범위는 inRect */
+  inBounds(x: number, y: number) { return this.inRect(x, y) && !(this.terrain && this.terrain[y * this.w + x] & T_NOWALK); }
+  inRect(x: number, y: number) { return x >= 0 && y >= 0 && x < this.w && y < this.h; }
+
+  // ───────── 지형 · 중립 구조물
+  /** 칸별 지형 비트 (T_NOWALK · T_NOSHOT), 지형이 없는 전장은 null */
+  terrain: Uint8Array | null = null;
+  /** 탄도를 막는 칸 (지형 · 구조물) 기준 구역 번호. 구조물이 부서지거나 지형이 바뀌면 다시 계산 */
+  private region: Int32Array | null = null;
+  private regionDirty = true;
+  setTerrain(x: number, y: number, bits: number) {
+    if (!this.inRect(x, y)) return;
+    (this.terrain ||= new Uint8Array(this.w * this.h))[y * this.w + x] = bits;
+    this.regionDirty = true;
+  }
+  terrainAt(x: number, y: number) { return this.terrain && this.inRect(x, y) ? this.terrain[y * this.w + x] : 0; }
+  /** 이 칸의 살아 있는 중립 구조물 */
+  wallAt(x: number, y: number) { const u = this.unitAt(x, y); return u && u.mem.wall ? u : null; }
+  /** 이동 · 구역을 막는 칸 (탄도 차단 지형 또는 구조물) — 대각선으로 두 칸 사이를 비집지 못하게 */
+  private sealCell(x: number, y: number) { return !this.inRect(x, y) || !!(this.terrainAt(x, y) & T_NOSHOT) || !!this.wallAt(x, y); }
+  private stepCell(x: number, y: number) { return !this.inBounds(x, y) || !!this.wallAt(x, y); }
+  /** a → b 직선이 지나는 칸 (양 끝 제외, 칸 중심을 잇는 선을 촘촘히 따라가며) */
+  lineCells(a: { x: number; y: number }, b: { x: number; y: number }) {
+    const out: { x: number; y: number }[] = [];
+    const n = Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y)) * 4;
+    let lx = a.x, ly = a.y;
+    for (let i = 1; i < n; i++) {
+      const x = Math.round(a.x + ((b.x - a.x) * i) / n - 1e-6), y = Math.round(a.y + ((b.y - a.y) * i) / n - 1e-6);
+      if ((x === lx && y === ly) || (x === b.x && y === b.y)) continue;
+      lx = x; ly = y;
+      out.push({ x, y });
+    }
+    return out;
+  }
+  /** 시야: a → b 사이에 탄도 차단 지형이 없는지 (구조물은 시야를 막지 않는다 — 쏘면 구조물에 맞는다) */
+  los(a: { x: number; y: number }, b: { x: number; y: number }) {
+    if (!this.terrain) return true;
+    return !this.lineCells(a, b).some((c) => this.terrainAt(c.x, c.y) & T_NOSHOT);
+  }
+  /** a → b 사이에서 a 쪽부터 처음 만나는 중립 구조물 (탄도 차단: 기본 공격은 이것에 맞는다) */
+  lineWall(a: { x: number; y: number }, b: { x: number; y: number }) {
+    if (!this.mem.walls) return null;
+    for (const c of this.lineCells(a, b)) { const w = this.wallAt(c.x, c.y); if (w) return w; }
+    return null;
+  }
+  /** 두 칸이 탄도 차단 지형 · 구조물로 완전히 갈라져 있는지 (틈이 하나라도 있으면 false) — 전투 기술 · 상태이상도 넘지 못한다 */
+  sealed(a: { x: number; y: number }, b: { x: number; y: number }) {
+    if (!this.mem.walls && !this.terrain) return false;
+    if (this.regionDirty || !this.region) this.buildRegions();
+    const ra = this.region![a.y * this.w + a.x], rb = this.region![b.y * this.w + b.x];
+    return ra >= 0 && rb >= 0 && ra !== rb;
+  }
+  private buildRegions() {
+    const n = this.w, N = n * this.h, r = (this.region = new Int32Array(N).fill(-1));
+    this.regionDirty = false;
+    let id = 0;
+    const q: number[] = [];
+    for (let i = 0; i < N; i++) {
+      if (r[i] >= 0 || this.sealCell(i % n, (i / n) | 0)) continue;
+      r[i] = id; q.push(i);
+      while (q.length) {
+        const c = q.pop()!, cx = c % n, cy = (c / n) | 0;
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            const x = cx + dx, y = cy + dy;
+            if ((!dx && !dy) || this.sealCell(x, y)) continue;
+            if (dx && dy && this.sealCell(cx + dx, cy) && this.sealCell(cx, cy + dy)) continue;
+            const j = y * n + x;
+            if (r[j] < 0) { r[j] = id; q.push(j); }
+          }
+      }
+      id++;
+    }
+  }
+  /** 중립 구조물이 생기거나 부서졌을 때 */
+  wallsChanged() { this.mem.walls = this.units.filter((u) => u.alive && u.mem.wall).length; this.regionDirty = true; }
+  /** 중립 구조물이 받는 피해: 방어도 · 속성 상성만 (치명 · 훅 · 집계 없음) */
+  private hitWall(src: CUnit, w: CUnit, base: number, o: DmgOpts): DmgResult {
+    const res: DmgResult = { amount: 0, crit: false, miss: false, graze: false, killed: false };
+    if ((w.mem.invulnUntil || 0) > this.t) return res;
+    let dmg = base * (src.side === 0 ? elementDamageMult(o.elem) : 1);
+    if (o.elem !== 'true') { const armor = this.S(w, 'armor') * CFG.armorFactor[o.elem]; dmg *= 1 - armor / (armor + CFG.armorK); }
+    dmg *= categoryMult(w.category, o.elem);
+    const dhp = -Math.min(dmg, Math.max(0, w.hp));
+    w.hp -= dmg;
+    res.amount = dmg;
+    this.emit({ k: 'dmg', id: w.id, src: src.id, v: dmg, crit: false, miss: false, graze: false, elem: o.elem, tag: o.tag, dhp, dsh: 0 });
+    if (w.hp <= 0) { res.killed = true; this.kill(w, src); }
+    return res;
+  }
   nearest(from: CUnit, pool: CUnit[]) {
     let best: CUnit | null = null, bd = 1e9;
     for (const e of pool) {
@@ -624,7 +719,7 @@ export class Battle {
   emit(e: BEvent) { if (this.keepEvents) this.events.push(e); }
 
   // ───────── 생성
-  add(u: CUnit) { u.id = this.nextId++; this.units.push(u); return u; }
+  add(u: CUnit) { u.id = this.nextId++; this.units.push(u); if (u.mem.wall) this.wallsChanged(); return u; }
   spawn(u: CUnit, near: { x: number; y: number }) {
     const cell = this.freeCellNear(near.x, near.y);
     if (!cell) return null;
@@ -862,7 +957,7 @@ export class Battle {
     // 암살형 적에게 노려지는 아군: 그 적이 다가오면 1칸 물러난다 (공격이 준비돼 있고 사거리 안이면 공격 먼저)
     if (u.alive && !(t2.alive && !u.noAttack && d2 <= range && !fearOnly && u.atkTimer <= 0 && u.reloadT <= 0) && this.flee(u, frenzy || confused)) return;
     if (!t2.alive || u.noAttack || !u.alive) return;
-    if (d2 <= range) {
+    if (d2 <= range && this.los(u, t2)) {
       if (!fearOnly && u.atkTimer <= 0 && u.reloadT <= 0) {
         const tgt2 = u.mem.lowestFocus ? this.lowestEnemy(u) || t2 : t2;
         this.basicAttack(u, tgt2);
@@ -870,7 +965,13 @@ export class Battle {
         if (u.weapon?.kind === 'mag' && --u.ammo <= 0) this.startReload(u);
       }
     } else if (!u.immobile && !u.statuses.some((s) => s.key === 'root') && !((u.mem.zocUntil || 0) > this.t)) { // 돌격가 경계에 걸린 동안은 제자리
-      this.moveToward(u, t2, range);
+      const br = this.moveToward(u, t2, range);
+      // 길이 구조물로 완전히 막혔으면 앞을 막은 구조물을 친다
+      if (br && this.dist(u, br) <= range && this.los(u, br) && !fearOnly && u.atkTimer <= 0 && u.reloadT <= 0) {
+        this.basicAttack(u, br);
+        u.atkTimer = u.atk.interval;
+        if (u.weapon?.kind === 'mag' && --u.ammo <= 0) this.startReload(u);
+      }
     }
   }
 
@@ -911,6 +1012,7 @@ export class Battle {
   }
 
   basicAttack(u: CUnit, tgt: CUnit, coef = 1) {
+    if (!tgt.mem.wall) tgt = this.lineWall(u, tgt) || tgt; // 탄도 차단: 사이의 중립 구조물에 맞는다 (양쪽 모두)
     const w = u.weapon;
     const kind = u.atk.type;
     const pow = w?.tactical ? this.tacPower(u) : this.S(u, kind);
@@ -938,7 +1040,8 @@ export class Battle {
     return es.length ? es.reduce((a, c) => (this.hpPct(c) < this.hpPct(a) ? c : a)) : null;
   }
 
-  private moveToward(u: CUnit, tgt: CUnit, range: number) {
+  /** 반환: 길이 구조물로 완전히 막혀 먼저 부숴야 하는 구조물 (없으면 null) */
+  private moveToward(u: CUnit, tgt: CUnit, range: number): CUnit | null {
     // 최단 경로 (다익스트라): 대상이 사거리 안에 들어오는 가장 가까운 빈 칸으로.
     // 아군 칸은 지나갈 수 있지만 비용이 크다 (빈 길이 있으면 그쪽으로 돌아간다). 첫 걸음 · 도착 칸은 비어 있어야 하고 적은 항상 막는다.
     // 맴돌기 방지: 방금 떠나온 칸으로는 바로 되돌아가지 않고, 아군을 지나야 하는 길인데 첫 걸음이 대상에게 가까워지지 않으면 제자리에서 기다린다
@@ -955,7 +1058,7 @@ export class Battle {
       if (cur < 0) break;
       done[cur] = 1;
       const cx = cur % n, cy = (cur / n) | 0;
-      if (cur !== start && !this.unitAt(cx, cy) && this.dist({ x: cx, y: cy }, tgt) <= range) { goal = cur; break; }
+      if (cur !== start && !this.unitAt(cx, cy) && this.dist({ x: cx, y: cy }, tgt) <= range && this.los({ x: cx, y: cy }, tgt)) { goal = cur; break; }
       for (let dy = -1; dy <= 1; dy++)
         for (let dx = -1; dx <= 1; dx++) {
           if (!dx && !dy) continue;
@@ -963,19 +1066,28 @@ export class Battle {
           if (!this.inBounds(nx, ny)) continue;
           const id = ny * n + nx;
           if (done[id]) continue;
-          const occ = this.unitAt(nx, ny);
-          if (occ && (cur === start || occ.side !== u.side)) continue;
+          const occ = this.unitAt(nx, ny), wall = !!occ?.mem.wall;
+          if (occ && !wall && (cur === start || occ.side !== u.side)) continue;
+          if (dx && dy && this.stepCell(cx + dx, cy) && this.stepCell(cx, cy + dy)) continue; // 막힌 두 칸 사이를 대각선으로 비집지 못한다
           if (cur === start && id === back) continue; // 방금 떠나온 칸
           if (zoc && zoc[cur] && zoc[id]) continue; // 경계 칸에서 경계 칸으로 곧장 넘어가지 못한다
-          const c = bc + (occ ? 4 : 1) + (dx && dy ? 0.01 : 0) + (zoc && zoc[id] && !zoc[cur] ? CFG.zoc.pathCost : 0); // 아군 칸은 비싸게, 대각선은 아주 조금 비싸게 (직선 우선), 경계에 들어가면 멈추므로 그만큼
+          const c = bc + (wall ? WALL_PATH_COST : occ ? 4 : 1) + (dx && dy ? 0.01 : 0) + (zoc && zoc[id] && !zoc[cur] ? CFG.zoc.pathCost : 0); // 아군 칸은 비싸게, 대각선은 아주 조금 비싸게 (직선 우선), 경계에 들어가면 멈추므로 그만큼
           if (c < cost[id]) { cost[id] = c; prev[id] = cur; via[id] = via[cur] | (occ ? 1 : 0); }
         }
     }
     let next = -1;
     if (goal >= 0) {
       let c = goal;
-      while (prev[c] !== start) c = prev[c];
-      next = c;
+      const path: number[] = [];
+      while (c !== start) { path.push(c); c = prev[c]; }
+      path.reverse();
+      // 길에 구조물이 끼어 있으면 (돌아갈 길이 없음) 그 앞까지 가서 부순다
+      const wi = path.findIndex((i) => this.wallAt(i % n, (i / n) | 0));
+      if (wi >= 0) {
+        const w = this.wallAt(path[wi] % n, (path[wi] / n) | 0)!;
+        if (wi === 0 || this.dist(u, w) <= range) { u.mem.lastCell = -1; return w; }
+      }
+      next = path[0];
       // 아군 사이로 비집어야 하는 길: 첫 걸음이 대상에게 가까워지지 않으면 비켜 줄 때까지 기다린다
       if (via[goal] && this.dist({ x: next % n, y: (next / n) | 0 }, tgt) >= this.dist(u, tgt)) next = -1;
     } else {
@@ -985,18 +1097,20 @@ export class Battle {
         for (let dx = -1; dx <= 1; dx++) {
           const nx = u.x + dx, ny = u.y + dy;
           if (!this.inBounds(nx, ny) || this.unitAt(nx, ny)) continue;
+          if (dx && dy && this.stepCell(u.x + dx, u.y) && this.stepCell(u.x, u.y + dy)) continue;
           if (zoc && zoc[start] && zoc[ny * n + nx]) continue;
           const dd = this.dist({ x: nx, y: ny }, tgt);
           if (dd < best) { best = dd; next = ny * n + nx; }
         }
     }
-    if (next < 0) { u.mem.lastCell = -1; return; } // 기다렸으면 다음엔 되돌아가는 길도 허용
+    if (next < 0) { u.mem.lastCell = -1; return null; } // 기다렸으면 다음엔 되돌아가는 길도 허용
     u.mem.lastCell = start;
     u.px = u.x; u.py = u.y;
     u.x = next % n; u.y = (next / n) | 0;
     u.moveDur = u.moveT = CFG.moveTime / this.S(u, 'moveSpd');
     if (zoc && zoc[next] && !zoc[start]) this.zocCatch(u);
     for (const h of u.hooks) h.onMove?.(this, u);
+    return null;
   }
 
   /** 암살형 적에게 노려지는 아군의 도주 (CFG.flee): 자기를 표적으로 삼은 암살형 적이 r칸 안이면 그 적들에게서 더 먼 빈칸으로 1칸.
@@ -1072,6 +1186,12 @@ export class Battle {
   dealDamage(src: CUnit, tgt: CUnit, base: number, o: DmgOpts): DmgResult {
     const res: DmgResult = { amount: 0, crit: false, miss: false, graze: false, killed: false };
     if (!tgt.alive || base <= 0) return res;
+    if (tgt.mem.neutral) return this.hitWall(src, tgt, base, o);
+    // 탄도 차단 지형 · 구조물로 완전히 갈라진 적에게는 기술도 닿지 않는다 (사이의 구조물이 대신 맞는다)
+    if (o.tag !== 'dot' && src !== tgt && !src.mem.neutral && this.sideOf(src) !== this.sideOf(tgt) && this.sealed(src, tgt)) {
+      const w = this.lineWall(src, tgt);
+      return w ? this.hitWall(src, w, base, o) : res;
+    }
     let dmg = base * (src.side === 0 ? elementDamageMult(o.elem) : 1); // 비물리 4속성: 아군 기물의 계수만 ×ELEM_AMP
     // 제압: 다음 공격 피해 1
     if (o.tag !== 'dot' && o.tag !== 'proc' && src.statuses.some((s) => s.key === 'suppress')) {
@@ -1194,6 +1314,7 @@ export class Battle {
     if (!resolved) amt *= 1 - Math.min(CFG.reductionCap, guardThreatRed(this, tgt));
     if (!tgt.alive || amt <= 0) return 0;
     if ((tgt.mem.invulnUntil || 0) > this.t) return 0;
+    if (tgt.mem.neutral) return this.hitWall(src, tgt, amt, { elem, tag: 'proc' }).amount;
     let left = amt, dsh = 0;
     if (tgt.shield > 0) { const a = Math.min(tgt.shield, left); tgt.shield -= a; left -= a; dsh = -a; }
     const dhp = -Math.min(left, Math.max(0, tgt.hp));
@@ -1270,6 +1391,7 @@ export class Battle {
     u.hp = 0;
     if (u.mem.charmTo) u.mem.charmTo = 0; // 매혹 중 쓰러지면 원래 편으로 집계
     this.emit({ k: 'die', id: u.id, by: by?.id });
+    if (u.mem.neutral) { if (u.mem.wall) this.wallsChanged(); return; } // 중립 구조물: 처치 · 사망 훅 없음
     // 광폭으로 같은 편을 쓰러뜨린 것은 그 기물의 처치로 치지 않는다 (아군 사망은 그대로 패배 피해에 포함)
     const foe = !!by && this.sideOf(by) !== u.side;
     if (u.side === 1 && by) this.counters.kills++;
@@ -1284,7 +1406,7 @@ export class Battle {
   }
 
   heal(src: CUnit, tgt: CUnit, amt: number, raw = false, syn?: string) {
-    if (!tgt.alive || amt <= 0) return 0;
+    if (!tgt.alive || amt <= 0 || tgt.mem.neutral) return 0;
     if (this.consumeWound(tgt)) return 0;
     let a = amt;
     if (!raw) {
@@ -1318,7 +1440,7 @@ export class Battle {
   }
 
   shield(tgt: CUnit, amt: number, syn?: string) {
-    if (!tgt.alive || amt <= 0) return;
+    if (!tgt.alive || amt <= 0 || tgt.mem.neutral) return;
     if (this.consumeWound(tgt)) return;
     const giver0 = this.actor && this.actor.side === tgt.side ? this.actor : tgt;
     const before = tgt.shield;
@@ -1331,7 +1453,8 @@ export class Battle {
 
   /** 상태이상 부여. 확률 = 기본 × (1 + 효과명중 − 효과저항) */
   applyStatus(src: CUnit, tgt: CUnit, s: Status, baseChance = 1): boolean {
-    if (!tgt.alive) return false;
+    if (!tgt.alive || tgt.mem.neutral) return false;
+    if (src !== tgt && !src.mem.neutral && this.sideOf(src) !== this.sideOf(tgt) && this.sealed(src, tgt)) return false; // 완전히 갈라진 적
     if (categoryImmune(tgt.category, s)) return false;
     if ((s.type === 'stun' || s.type === 'fear') && (tgt.mem.ccImmuneUntil || 0) > this.t && src.side !== tgt.side) return false; // 궁극기 등 일시 면역 // 분류 면역 (기계: 출혈 · 중독, 구조물: 기절 · 공포 · 빙결, 영혼: 매혹)
     const cc = BOSS_CC_IMMUNE.includes(s.key);
