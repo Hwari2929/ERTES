@@ -72,18 +72,18 @@ const cargoChoices = (tag: string): EventChoice[] => [
   { label: '격리팀에 신고한다', desc: '크레딧 -4. 격리팀이 안전하게 열어 준다: 고급 장비 1개.', block: (r) => (r.credits < 4 ? '크레딧이 부족합니다' : null),
     apply: (r, api) => { r.credits -= 4; api.gain(api.randomItem('G')); return '격리팀이 컨테이너를 열었습니다. 고급 장비 1개.'; } },
   { label: '직접 연다', desc: '희귀 장비 1개. 군체 표본이 섞여 있으면 다음 전투에 포자 살점 2마리가 더 나온다.',
-    apply: (r, api) => { api.gain(api.randomItem('A')); if (api.chance(0.5)) { api.flag('cp_sample'); return '희귀 장비를 꺼냈지만, 바닥에서 무언가 꿈틀거렸습니다 — 다음 전투에 포자 살점 +2.'; } return '깨끗한 화물이었습니다. 희귀 장비 1개.'; } },
+    apply: (r, api) => { api.gain(api.randomItem('A')); if (api.chance(0.5)) { api.flag('cp_sample'); api.outcome('sample'); return '희귀 장비 1개. 군체 표본이 빠져나갔습니다 — 다음 전투에 포자 살점 +2.'; } api.outcome('clean'); return '깨끗한 화물이었습니다. 희귀 장비 1개.'; } },
   { label: '봉인 테이프로 연다', desc: '격리 봉인 테이프 1개를 써서 위험은 봉인하고 희귀 장비 1개만 챙긴다.', block: (r) => (hasTape(r) ? null : '격리 봉인 테이프가 없습니다'),
     apply: (r, api) => { useTape(r); api.gain(api.randomItem('A')); return '봉인 테이프로 입구를 감싸고 열었습니다. 희귀 장비 1개.'; } },
   { label: '필리스가 먼저 들여다본다', desc: 'AH -2. 열기 전에 안에 든 것이 깨끗한지 안다 (그다음 다시 고른다).', block: (r) => (phyllisOut(r) ? null : '필리스가 출전 중이어야 합니다'),
-    apply: (r, api) => { campTime(r, 2); const risky = api.chance(0.5); r.pending.push({ t: 'event', id: risky ? 'cp_peek_risky' : 'cp_peek_safe', sub: null }); void tag; return risky ? '필리스: "안에서 뭐가 꿈틀거려-."' : '필리스: "깨끗해-. 그냥 열어."'; } },
+    apply: (r, api) => { campTime(r, 2); const risky = api.chance(0.5); r.pending.push({ t: 'event', id: risky ? 'cp_peek_risky' : 'cp_peek_safe', sub: null }); void tag; return '필리스가 상자 안을 먼저 확인했습니다 (AH -2).'; } },
 ];
 
 export const EVENTS: EventDef[] = [
   // ───────── 캠페인 「회수 계약」 1장 · TS-7 환적 정거장
   {
     id: 'cp_phyllis', title: '긴급 조달 중', fields: CAMP, weight: 0,
-    text: '화물칸 B-2. 필리스가 페트라 화물 상자 위에 걸터앉아 렌치로 상자 모서리를 따고 있다. 발소리에 고양이 귀가 먼저 돌아가고, 필리스가 고개를 든다. "아, 지휘관님-. 이거 긴급 조달이야."',
+    text: '화물칸 B-2에서 필리스가 페트라 상자를 따고 있다. 꺼낸 부품을 챙겨 함께 가거나, 상자는 두고 테이프만 챙겨 함께 간다.', // 대사 장면: data/scenes/campaign_events.ts
     choices: [
       { label: '같이 가자', desc: '필리스 합류. 상자에서 이미 꺼낸 부품은 처분한다: 크레딧 +4.', apply: (r, api) => { api.join('phyllis'); r.credits += 4; return '필리스가 합류했습니다. 꺼내 둔 부품을 처분해 크레딧 +4. 출전은 여전히 2명 — 누구를 내보낼지 고르세요.'; } },
       { label: '상자는 두고 와', desc: '필리스 합류. 상자 대신 주머니에 있던 격리 봉인 테이프 1개.', apply: (_r, api) => { api.join('phyllis'); api.gain('K_cp_tape', true); return '필리스가 합류했습니다. 상자는 두고 왔습니다 (테이프는 챙겼습니다). 출전은 2명.'; } },
@@ -91,22 +91,22 @@ export const EVENTS: EventDef[] = [
   },
   {
     id: 'cp_cargo1', title: '격리 화물 — 화물칸 C-7', fields: CAMP, weight: 0,
-    text: '적요 번호가 긁혀 나간 컨테이너가 떠 있다. 격리팀 스티커 위로 회백색 포자 자국이 번졌다. 라르스(통신): "열지 말라고는 안 했습니다. 시간이 비용이라는 것만 기억하시죠."',
+    text: '적요 번호가 긁혀 나간 컨테이너에 포자 자국이 번져 있다. 라르스는 열지 말라고는 하지 않았다.', // 대사 장면: data/scenes/campaign_events.ts
     choices: cargoChoices('c7'),
   },
   {
     id: 'cp_cargo2', title: '격리 화물 — 화물칸 D-1', fields: CAMP, weight: 0,
-    text: '의료 물자 표시가 붙은 냉동 컨테이너가 있다. 냉각기는 꺼져 있는데 안쪽에서 온기가 올라온다. 비비안: "냄새가 이상해! 리키가 꼬리를 말았어."',
+    text: '냉각기가 꺼진 의료 물자 컨테이너 안쪽에서 온기가 올라온다. 리키가 꼬리를 말았다.', // 대사 장면: data/scenes/campaign_events.ts
     choices: cargoChoices('d1'),
   },
   {
     id: 'cp_peek_safe', title: '필리스의 확인 — 깨끗함', fields: CAMP, weight: 0,
-    text: '필리스가 균열 틈으로 손을 넣어 상자 안을 더듬다가 손을 뺀다. "반짝이는 부품이야. 위험한 건 없어-."',
+    text: '필리스가 균열 틈으로 상자 안을 더듬어 봤다. 위험한 것은 없다.', // 대사 장면: data/scenes/campaign_events.ts
     choices: [{ label: '연다', desc: '희귀 장비 1개.', apply: (_r, api) => { api.gain(api.randomItem('A')); return '희귀 장비 1개를 챙겼습니다.'; } }],
   },
   {
     id: 'cp_peek_risky', title: '필리스의 확인 — 꿈틀거림', fields: CAMP, weight: 0,
-    text: '균열에서 손을 빼자 장갑 끝에 회백색 실이 묻어 나온다. 필리스: "좋은 부품이 들어 있어. 근데 뭐가 같이 있어… 살아 있는 거."',
+    text: '필리스가 균열 틈으로 상자 안을 더듬어 봤다. 좋은 부품과 함께 살아 있는 무언가가 들어 있다.', // 대사 장면: data/scenes/campaign_events.ts
     choices: [
       { label: '그래도 연다', desc: '희귀 장비 1개 + 다음 전투에 포자 살점 +2.', apply: (_r, api) => { api.gain(api.randomItem('A')); api.flag('cp_sample'); return '부품은 챙겼고, 표본이 빠져나갔습니다 — 다음 전투에 포자 살점 +2.'; } },
       { label: '봉인 테이프로 연다', desc: '격리 봉인 테이프 1개를 써서 희귀 장비 1개만.', block: (r) => (hasTape(r) ? null : '격리 봉인 테이프가 없습니다'), apply: (r, api) => { useTape(r); api.gain(api.randomItem('A')); return '표본은 봉인하고 부품만 꺼냈습니다.'; } },
@@ -115,18 +115,18 @@ export const EVENTS: EventDef[] = [
   },
   {
     id: 'cp_survey', title: '비비안의 둥지 조사', fields: CAMP, weight: 0,
-    text: '하역 크레인 쪽 화물칸에서 포자 살점이 줄줄이 쏟아져 나온다. 비비안이 리키의 목줄을 쥔다. "저기 둥지가 크레인을 껴안고 있어! 조금만 냄새 맡게 해 주면 어디가 입구인지 알 수 있어!"',
+    text: '하역 크레인을 둥지가 껴안고 있다. 비비안과 리키가 시간을 들여 조사하면 둥지 입구를 알고 컨테이너 일부를 봉인할 수 있다.', // 대사 장면: data/scenes/campaign_events.ts
     choices: [
       { label: '조사한다', desc: 'AH -4. 보스 [적재 군집]의 정체를 미리 알고, 컨테이너 2개를 봉인한 채 싸운다 (포자가 쏟아지는 간격 10초 → 12초). 리키에게 씌운 [리키용 진공 헬멧]도 남는다.',
-        apply: (r, api) => { campTime(r, 4); api.flag('cp_intel'); api.gain('P_helmet', true); return '비비안: "둥지가 크레인에 붙어 있어서 못 움직여! 리키가 헬멧 쓰고 들어가서 컨테이너 2개를 막았어!" — 보스 정보 확보, 컨테이너 2개 봉인. [리키용 진공 헬멧] 획득.'; } },
-      { label: '바로 돌파한다', desc: '시간을 아낀다. 컨테이너 4개가 모두 열린 채로 보스와 싸운다.', apply: () => '비비안: "알았어, 대신 리키는 내 옆에 있을 거야!"' },
+        apply: (r, api) => { campTime(r, 4); api.flag('cp_intel'); api.gain('P_helmet', true); return '보스 정보 확보, 컨테이너 2개 봉인 (포자가 쏟아지는 간격 10초 → 12초). [리키용 진공 헬멧] 획득.'; } },
+      { label: '바로 돌파한다', desc: '시간을 아낀다. 컨테이너 4개가 모두 열린 채로 보스와 싸운다.', apply: () => '컨테이너 4개가 모두 열린 채로 보스와 싸운다.' },
     ],
   },
 
   // ───────── 캠페인 「회수 계약」 2장 · A-117 광석 하역장
   {
     id: 'cp2_nadir', title: '갱도 입구의 백수정', fields: CAMP, weight: 0,
-    text: '하역장 갱도 입구는 조명이 절반쯤 나가 있다. 어둠 속에서 백수정 하나만 빛나고, 나디르가 그 옆에 바짝 붙어 앉아 있다. "왔어요?! 다행이다. 관제실 위치는 지도에서 찾아 놨는데, 안쪽이 너무 깜깜해서요."',
+    text: '갱도 입구에서 나디르가 기다리고 있다. 남은 비상식량을 나눠 먹거나, 나디르가 표시해 둔 지름길로 간다.', // 대사 장면: data/scenes/campaign_events.ts
     choices: [
       { label: '같이 들어가자', desc: '나디르 합류. 나디르가 나눠 준 비상식량: 플레이어 체력 +5.', apply: (r, api) => { api.join('nadir'); r.hp = Math.min(r.maxHp, r.hp + 5); return '나디르가 합류했습니다. 2장 출전은 3명입니다.'; } },
       { label: '찾아 둔 길로 안내해', desc: '나디르 합류. 나디르가 표시해 둔 지름길로 간다: AH +2.', apply: (r, api) => { api.join('nadir'); if (r.campaign) r.campaign.time += 2; return '나디르가 합류했습니다. 지름길 덕분에 AH +2. 2장 출전은 3명입니다.'; } },
@@ -134,7 +134,7 @@ export const EVENTS: EventDef[] = [
   },
   {
     id: 'cp2_cargo3', title: '격리 화물 — 광석 운반차 7호', fields: CAMP, weight: 0,
-    text: '레일 위에 멈춘 광석 운반차 안에 페트라 화물 상자가 하나 섞여 있다. 적요 번호를 적는 칸은 비어 있다. 나디르: "광석차에 왜 상자가 실려 있죠? 이거 여기 있으면 안 되는 물건 아니에요?"',
+    text: '레일 위에 멈춘 광석 운반차에 적요 번호 없는 페트라 화물 상자가 섞여 있다.', // 대사 장면: data/scenes/campaign_events.ts
     choices: cargoChoices('ore7'),
   },
   {
@@ -149,22 +149,22 @@ export const EVENTS: EventDef[] = [
   },
   {
     id: 'cp2_cargo4', title: '격리 화물 — 갱도 대피소', fields: CAMP, weight: 0,
-    text: '갱도 대피소에 비상 물자 상자가 쌓여 있다. 맨 아래 상자만 겉면이 축축하다. 비비안: "리키가 저 상자만 계속 노려봐! 냄새가 좀 이상한가 봐."',
+    text: '갱도 대피소의 비상 물자 상자 중 맨 아래 하나만 겉면이 축축하다.', // 대사 장면: data/scenes/campaign_events.ts
     choices: cargoChoices('shelter'),
   },
 
   // ───────── 캠페인 「회수 계약」 3장 · RL-2 중계 위성 연구 정거장
   {
     id: 'cp3_temur', title: '도킹 포트의 테무르', fields: CAMP, weight: 0,
-    text: '중계 위성 RL-2의 도킹 포트. 난방이 꺼진 통로 벽에 성에가 끼어 있다. 모피 코트를 2벌 겹쳐 입은 테무르가 비상 히터 앞에 쪼그려 앉아 있고, 히터 위에서는 고깃국 통조림이 데워지고 있다. 테무르가 벌떡 일어난다. "주인님, 왜 이렇게 늦었어? 문은 내가 비틀어서 열어 놨어. 근데 여기 너무 추워서 손가락이 안 펴져." 테무르가 통로 벽을 따라 이어진 굵은 관을 턱으로 가리킨다. "저 관은 따뜻해. 몸 녹이려고 따라 걸어 봤는데, 관제동까지 바로 이어지더라."',
+    text: 'RL-2 도킹 포트에서 테무르가 비상 히터 앞에 앉아 기다리고 있다. 통조림을 나눠 먹거나, 테무르가 찾은 따뜻한 배관 길로 관제동까지 바로 간다.', // 대사 장면: data/scenes/campaign_events.ts
     choices: [
-      { label: '같이 가자', desc: '테무르 합류. 히터에 데워 둔 고깃국 통조림을 나눠 먹는다: 플레이어 체력 +5.', apply: (r, api) => { api.join('temur'); r.hp = Math.min(r.maxHp, r.hp + 5); return '테무르: "국물은 내 거야. 건더기는 나눠 줄게." 테무르가 합류했고, 통조림을 나눠 먹었습니다 (플레이어 체력 +5). 3장 출전은 4명입니다.'; } },
-      { label: '따뜻한 길로 안내해', desc: '테무르 합류. 테무르가 따라 걸어 본 난방 배관을 타고 관제동으로 바로 간다: AH +2.', apply: (r, api) => { api.join('temur'); if (r.campaign) r.campaign.time += 2; return '테무르: "봐, 따뜻한 데로 가면 길이 나온다니까." 테무르가 합류했고, 배관을 따라 관제동까지 바로 갔습니다 (AH +2). 3장 출전은 4명입니다.'; } },
+      { label: '같이 가자', desc: '테무르 합류. 히터에 데워 둔 고깃국 통조림을 나눠 먹는다: 플레이어 체력 +5.', apply: (r, api) => { api.join('temur'); r.hp = Math.min(r.maxHp, r.hp + 5); return '테무르가 합류했습니다. 플레이어 체력 +5. 3장 출전은 4명입니다.'; } },
+      { label: '따뜻한 길로 안내해', desc: '테무르 합류. 테무르가 따라 걸어 본 난방 배관을 타고 관제동으로 바로 간다: AH +2.', apply: (r, api) => { api.join('temur'); if (r.campaign) r.campaign.time += 2; return '테무르가 합류했습니다. 배관을 따라 관제동까지 바로 갔습니다 (AH +2). 3장 출전은 4명입니다.'; } },
     ],
   },
   {
     id: 'cp3_cargo5', title: '격리 화물 — 표본 냉동고', fields: CAMP, weight: 0,
-    text: '연구동 복도 끝, 표본 냉동고 옆에 페트라 화물 상자가 하나 놓여 있다. 적요 번호를 적는 칸은 이번에도 비어 있다. 테무르는 냉동고 쪽으로 가지 않으려고 반대편 벽에 등을 붙인다. "난 거기 안 가. 상자는 너희가 열어." 비비안: "리키가 상자 냄새를 계속 맡고 있어! 뭐가 들었는지는 열어 봐야 알겠다!"',
+    text: '연구동 표본 보관실 옆에 적요 번호 없는 페트라 화물 상자가 놓여 있다.', // 대사 장면: data/scenes/campaign_events.ts
     choices: cargoChoices('freezer'),
   },
   {

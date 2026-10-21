@@ -6,6 +6,10 @@ import { N, S } from './dsl';
 
 export const CAMP_EVENT_REG: SceneReg = {
   bgs: {
+    cp_ts7_hold: 'TS-7 화물칸 — 무중력 화물칸, 페트라 로고가 찍힌 컨테이너들이 천천히 떠다닌다',
+    cp_ts7_crane: 'TS-7 하역 크레인 구역 — 크레인 기둥을 회백색 둥지가 통째로 감싸고 있다',
+    cp_a117_shaft: 'A-117 갱도 — 조명이 절반쯤 나간 굴착 갱도, 레일 위에 멈춘 광석 운반차',
+    cp_rl2_dock: 'RL-2 도킹 포트 — 난방이 꺼진 통로, 벽에 성에, 비상 히터 하나',
     cp_rl2_vault: 'RL-2 연구동 금고 앞 — 서리 낀 지하 복도, 잠긴 금고 문 옆 벽에 사람 하나 지나갈 만한 균열',
     cp_a117_control: 'A-117 관제실 — 깨진 콘솔 화면들, 깜빡이는 비상등 하나, 창밖으로 내려다보이는 갱도 입구',
     cp_rl2_lab: 'RL-2 연구동 관제실 — 꺼진 모니터 사이로 연구 일지 화면 하나만 켜져 있다. 벽 너머 냉각 구역 문에 서리',
@@ -196,6 +200,196 @@ export const CAMP_EVENT_SCENES: Record<string, EventScene> = {
     after: [
       [S('lars', '좋습니다. 무역관세부 예산에서 바로 보내죠.', { ...LARS, at: 'C', face: 'base' }), ...vaultTail],
       [S('lars', '그럼 AH를 더 사 두겠습니다. 시간 값은 제가 치르죠.', { ...LARS, at: 'C', face: 'base' }), ...vaultTail],
+    ],
+  },
+};
+
+// ───────── 짧은 사건 (합류 · 격리 화물 · 조사): 상황 몇 줄 + 선택별 짧은 결과
+/** 격리 화물 공통 결과 (data/events.ts cargoChoices 순서): 신고 · 직접 연다(깨끗함 / 표본) · 봉인 테이프 · 필리스 확인(뒤따르는 사건이 이어 받는다) */
+const cargoAfter: EventScene['after'] = [
+  [
+    N('격리팀 드론 2대가 날아와 컨테이너를 감싼다. 잠시 뒤 뚜껑이 안전하게 열린다.', { sfx: 'servo' }),
+    S('lindiwe', '격리팀 출동비는 정산서에 따로 적어 둘게요. 안에서 나온 건 지휘관님 몫이에요.', { ...LIN, at: 'R', face: 'smile' }),
+  ],
+  {
+    clean: [
+      N('뚜껑을 비틀어 열자 부품 상자가 가지런히 들어 있다. 포자 자국은 겉에만 묻어 있었다.', { sfx: 'clank' }),
+      S('vivian', '깨끗해! 리키도 꼬리 폈어!', { at: 'L', face: 'grin' }),
+    ],
+    sample: [
+      N('뚜껑이 열리는 순간, 바닥에서 회백색 덩어리가 꿈틀거리더니 환기구로 미끄러져 사라진다.', { sfx: 'scrape', fx: 'shake' }),
+      S('vivian', '표본이 도망갔어! 다음에 싸울 때 또 나올 거야!', { at: 'L', face: 'surprise' }),
+      S('rachel', '…부품은?', { at: 'R', face: 'tired' }),
+      S('vivian', '부품은 챙겼어! 표본은… 이따 다시 만나겠지.', { face: 'worried' }),
+    ],
+  },
+  [
+    N('봉인 테이프를 상자 입구에 둘러 감고 연다. 안에서 무언가 툭툭 부딪히지만 테이프 밖으로는 나오지 못한다.'),
+    S('phyllis', '봉인 끝-. 부품만 쏙 빼 왔어.', { at: 'L', face: 'grin' }),
+  ],
+  null,
+];
+
+export const CAMP_SHORT_SCENES: Record<string, EventScene> = {
+  // 1장: 필리스 합류
+  cp_phyllis: {
+    cast: ['phyllis', 'vivian', 'rachel'],
+    scene: [
+      N('TS-7 화물칸 B-2. 페트라 로고가 찍힌 상자 위에 누군가 걸터앉아 렌치로 모서리를 따고 있다.', { bg: 'cp_ts7_hold', bgm: 'comic' }),
+      N('발소리가 나자 고양이 귀가 먼저 돌아가고, 얼굴은 그다음에 돌아본다.'),
+      S('phyllis', '아, 지휘관님-. 이거 훔치는 거 아니야. 잠깐 빌리는 거야.', { at: 'R', face: 'grin' }),
+      S('vivian', '린디웨 씨가 말한 귀 뾰족한 사람, 진짜 필리스였어!', { at: 'L', face: 'surprise' }),
+      S('phyllis', '린디웨가 벌써 일렀어? 빠르네-.', { face: 'smug' }),
+      S('rachel', '…그 안에 뭐 있는데?', { at: 'C', face: 'tired' }),
+      S('phyllis', '꺼낸 부품 몇 개. 아, 주머니엔 격리 테이프도 있어. 둥지 근처 가면 쓸 일 있을걸?'),
+    ],
+    after: [
+      [S('phyllis', '말 통하네-. 꺼낸 건 팔아서 나눠 갖자.', { at: 'R', face: 'grin' })],
+      [
+        S('phyllis', '에이-. 알았어, 상자는 두고 갈게.', { at: 'R', face: 'smug' }),
+        N('필리스가 주머니에서 격리 봉인 테이프 한 롤을 꺼내 흔든다.'),
+        S('phyllis', '이건 원래 내 주머니에 있던 거니까 괜찮지?'),
+      ],
+    ],
+  },
+  // 1장 · 2장 · 3장 격리 화물: 상자마다 다른 한두 마디, 결과는 공통
+  cp_cargo1: {
+    cast: ['vivian', 'lars', 'rachel'],
+    scene: [
+      N('TS-7 화물칸 C-7. 적요 번호가 긁혀 나간 컨테이너 하나가 떠 있다. 격리팀 스티커 위로 회백색 포자 자국이 번졌다.', { bg: 'cp_ts7_hold', bgm: 'eerie' }),
+      S('vivian', '포자 자국이야! 안에 군체 표본이 섞여 있을지도 몰라!', { at: 'L', face: 'surprise' }),
+      S('lars', '열지 말라고는 안 했습니다. 시간이 비용이라는 것만 기억하시죠.', { ...LARS, at: 'R', face: 'base' }),
+      S('rachel', '…그래서, 열어? 말아?', { at: 'C', face: 'tired' }),
+      S('lars', '격리팀을 부르면 안전하고, 직접 열면 빠릅니다. 계산은 지휘관이 하시죠.', LARS),
+    ],
+    after: cargoAfter,
+  },
+  cp_cargo2: {
+    cast: ['vivian', 'phyllis'],
+    scene: [
+      N('TS-7 화물칸 D-1. 의료 물자 표시가 붙은 냉각 컨테이너가 있다. 냉각기는 꺼져 있는데, 안쪽에서 온기가 올라온다.', { bg: 'cp_ts7_hold', bgm: 'eerie' }),
+      S('vivian', '냄새가 이상해! 리키가 꼬리를 말았어.', { at: 'L', face: 'worried' }),
+      S('phyllis', '의료 물자라며-. 약 냄새 아니야?', { at: 'R', face: 'base' }),
+      S('vivian', '약 냄새면 리키가 고개를 돌려. 꼬리를 마는 건 무서울 때야!'),
+    ],
+    after: cargoAfter,
+  },
+  cp2_cargo3: {
+    cast: ['nadir', 'vivian', 'phyllis'],
+    scene: [
+      N('갱도 레일 위에 광석 운반차 7호가 멈춰 있다. 광석 사이에 페트라 화물 상자가 하나 섞여 있다.', { bg: 'cp_a117_shaft', bgm: 'eerie' }),
+      S('nadir', '광석차에 왜 상자가 실려 있죠? 이거 여기 있으면 안 되는 물건 아니에요?', { at: 'R', face: 'worried' }),
+      S('vivian', '적요 번호 칸이 비어 있어! TS-7에서 본 상자도 이랬잖아!', { at: 'L', face: 'surprise' }),
+      S('phyllis', '번호 없는 상자가 원래 제일 재밌어-.', { at: 'C', face: 'smug' }),
+    ],
+    after: cargoAfter,
+  },
+  cp2_cargo4: {
+    cast: ['vivian', 'nadir'],
+    scene: [
+      N('갱도 대피소. 비상 물자 상자가 천장까지 쌓여 있다. 맨 아래 상자 하나만 겉면이 축축하다.', { bg: 'cp_a117_shaft', bgm: 'eerie' }),
+      S('vivian', '리키가 저 상자만 계속 노려봐! 냄새가 좀 이상한가 봐.', { at: 'L', face: 'worried' }),
+      S('nadir', '대피소 상자가 젖어 있는 것부터 이상해요. 여긴 물 들어올 데가 없잖아요.', { at: 'R', face: 'serious' }),
+    ],
+    after: cargoAfter,
+  },
+  cp3_cargo5: {
+    cast: ['temur', 'vivian'],
+    scene: [
+      N('연구동 복도 끝, 표본 보관실 문 옆에 페트라 화물 상자가 하나 놓여 있다. 문틈으로 찬 공기가 새어 나온다.', { bg: 'cp_rl2_lab', bgm: 'eerie' }),
+      N('적요 번호를 적는 칸은 이번에도 비어 있다.'),
+      S('temur', '난 저기 안 가. 상자는 너희가 열어.', { at: 'L', face: 'base' }),
+      N('테무르가 반대편 벽에 등을 붙이고 코트 깃을 세운다.'),
+      S('vivian', '리키가 상자 냄새를 계속 맡고 있어! 뭐가 들었는지는 열어 봐야 알겠다!', { at: 'R', face: 'grin' }),
+    ],
+    after: cargoAfter,
+  },
+  // 필리스가 먼저 들여다본 뒤
+  cp_peek_safe: {
+    cast: ['phyllis'],
+    scene: [
+      N('필리스가 균열 틈으로 손을 넣어 상자 안을 더듬다가, 손을 뺀다.', { bgm: 'calm' }),
+      S('phyllis', '반짝이는 부품이야. 위험한 건 없어-.', { at: 'R', face: 'grin' }),
+    ],
+    after: [[S('phyllis', '봐, 깨끗하댔지-. 확인비는 체리 하나로 받을게.', { at: 'R', face: 'smug' })]],
+  },
+  cp_peek_risky: {
+    cast: ['phyllis', 'vivian'],
+    scene: [
+      N('균열에서 손을 빼자 필리스의 장갑 끝에 회백색 실이 묻어 나온다.', { bgm: 'eerie' }),
+      S('phyllis', '좋은 부품이 들어 있어. 근데 뭐가 같이 있어… 살아 있는 거.', { at: 'R', face: 'worried' }),
+      S('vivian', '살아 있는 거?! 무슨 모양이었어? 다리? 촉수?', { at: 'L', face: 'surprise' }),
+      S('phyllis', '만져 본 거지, 본 건 아니야-.', { face: 'smug' }),
+    ],
+    after: [
+      [
+        N('뚜껑을 여는 순간, 회백색 덩어리가 바닥을 미끄러져 환기구로 사라진다.', { sfx: 'scrape', fx: 'shake' }),
+        S('vivian', '도망갔어! 다음 전투에 또 나올 거야!', { at: 'L', face: 'surprise' }),
+      ],
+      [S('phyllis', '테이프 감고, 부품만 쏙-. 산 건 안에 두고.', { at: 'R', face: 'grin' })],
+      [S('lindiwe', '격리팀이 통째로 가져갔어요. 신고 포상금도 정산서에 넣어 둘게요.', { ...LIN, at: 'R', face: 'smile' })],
+    ],
+  },
+  // 1장 둥지 조사: 비비안 — 기록해 두면 다음에도 쓸 수 있다
+  cp_survey: {
+    cast: ['vivian', 'phyllis', 'rachel'],
+    scene: [
+      N('하역 크레인 쪽 화물칸. 포자 살점이 줄줄이 쏟아져 나온다. 크레인 기둥을 회백색 덩어리가 통째로 감싸고 있다.', { bg: 'cp_ts7_crane', bgm: 'tense' }),
+      S('vivian', '저기 둥지가 크레인을 껴안고 있어! 리키한테 조금만 냄새 맡게 해 주면 어디가 입구인지 알 수 있어!', { at: 'L', face: 'grin' }),
+      S('phyllis', '그 조금이 얼마나 조금인데-?', { at: 'R', face: 'smug' }),
+      S('vivian', '음… 리키한테 진공 헬멧 씌우는 시간까지 하면… 꽤?', { face: 'worried' }),
+      S('vivian', '그래도 둥지 생긴 걸 기록해 두면, 다음 정거장에서도 어디부터 찾아야 할지 알 수 있어!', { face: 'serious' }),
+      S('rachel', '…돌파하면?', { at: 'C', face: 'tired' }),
+      S('vivian', '컨테이너가 다 열린 채로 싸우는 거지! 포자가 엄청 쏟아질 거야!', { face: 'surprise' }),
+    ],
+    after: [
+      [
+        N('헬멧을 쓴 리키가 둥지 틈으로 사라진다. 한참 뒤, 컨테이너 2개의 문이 쿵, 쿵 닫힌다.', { sfx: 'clank' }),
+        S('vivian', '둥지가 크레인에 붙어 있어서 못 움직여! 리키가 들어가서 컨테이너 2개를 막았어!', { at: 'L', face: 'grin' }),
+        N('비비안이 수첩에 둥지 모양을 빠르게 그려 넣는다. 그사이 리키가 헬멧을 쓴 채 꼬리를 흔들며 돌아온다.'),
+      ],
+      [
+        S('vivian', '알았어. 대신 리키는 내 옆에 있을 거야!', { at: 'L', face: 'serious' }),
+        S('phyllis', '그럼 나도 리키 옆-.', { at: 'R', face: 'grin' }),
+      ],
+    ],
+  },
+  // 2장: 나디르 합류
+  cp2_nadir: {
+    cast: ['nadir', 'phyllis', 'rachel'],
+    scene: [
+      N('하역장 갱도 입구. 조명이 절반쯤 나가 있다. 어둠 속에서 백수정 하나만 빛나고, 나디르가 그 옆에 바짝 붙어 앉아 있다.', { bg: 'cp_a117_shaft', bgm: 'calm' }),
+      S('nadir', '왔어요?! 다행이다…. 관제실 위치는 지도에서 찾아 놨는데, 안쪽이 너무 깜깜해서요.', { at: 'R', face: 'surprise' }),
+      S('phyllis', '혼자 기다리느라 무서웠지-?', { at: 'L', face: 'smug' }),
+      S('nadir', '아니거든요! …조금요.', { face: 'shy' }),
+      S('nadir', '기다리면서 먹던 비상식량이 좀 남았어요. 나눠 드릴까요? 아니면 제가 표시해 둔 지름길로 바로 가도 되고요.', { face: 'base' }),
+    ],
+    after: [
+      [
+        S('nadir', '데네브식 육포예요. 질기니까 오래 씹어요.', { at: 'R', face: 'smile' }),
+        S('rachel', '…맛있다. 더 있어?', { at: 'L', face: 'base' }),
+      ],
+      [
+        S('nadir', '이쪽이에요! 벽에 백수정 조각 박아 둔 데만 따라오면 돼요.', { at: 'R', face: 'grin' }),
+        N('나디르가 손을 대자 갱도 벽마다 박아 둔 작은 백수정이 차례로 빛난다.'),
+      ],
+    ],
+  },
+  // 3장: 테무르 합류
+  cp3_temur: {
+    cast: ['temur', 'phyllis'],
+    scene: [
+      N('중계 위성 RL-2의 도킹 포트. 난방이 꺼진 통로 벽에 성에가 끼어 있다.', { bg: 'cp_rl2_dock', bgm: 'calm' }),
+      N('모피 코트를 2벌 겹쳐 입은 테무르가 비상 히터 앞에 쪼그려 앉아 있다. 히터 위에서 고깃국 통조림이 데워지고 있다.'),
+      S('temur', '주인님, 왜 이렇게 늦었어? 문은 내가 비틀어서 열어 놨어.', { at: 'R', face: 'base' }),
+      S('temur', '근데 여기 너무 추워서 손가락이 안 펴져.'),
+      S('phyllis', '코트 2벌 껴입었을 거라고 내가 그랬지-.', { at: 'L', face: 'smug' }),
+      N('테무르가 통로 벽을 따라 이어진 굵은 관을 턱으로 가리킨다.'),
+      S('temur', '저 관은 따뜻해. 몸 녹이려고 따라 걸어 봤는데, 관제동까지 바로 이어지더라.'),
+    ],
+    after: [
+      [S('temur', '국물은 내 거야. 건더기는 나눠 줄게.', { at: 'R', face: 'smile' })],
+      [S('temur', '봐, 따뜻한 데로 가면 길이 나온다니까.', { at: 'R', face: 'smile' })],
     ],
   },
 };
