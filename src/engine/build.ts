@@ -36,10 +36,10 @@ export const boardDims = (W: number) => ({ w: W + 2 * PAD, h: 2 * ZONE + GAP + 2
 export const ALLY_Y0 = PAD + ZONE + GAP, ALLY_Y1 = ALLY_Y0 + ZONE - 1;
 /** 전장 칸 구조: 지형 틀(data/maps.ts)의 사이 줄 수 · 포위(아래 적 진형) · 통로 폭을 반영. 저장 배치 (c, r) 는 지형과 무관 (r = 아군 진형 뒷줄부터) */
 export function geoOf(n: number, map?: string): Geo {
-  const m = mapOf(map), gap = m.gap ?? GAP;
-  const ay0 = PAD + ZONE + gap, ay1 = ay0 + ZONE - 1;
+  const m = mapOf(map), gap = m.gap ?? GAP, rows = m.allyRows ?? ZONE;
+  const ay0 = PAD + ZONE + gap, ay1 = ay0 + rows - 1;
   const foe2 = m.surround ? ay1 + 1 + gap : 0;
-  return { n, w: n + 2 * PAD, h: (foe2 ? foe2 + ZONE : ay1 + 1) + PAD, x0: PAD, ay0, ay1, foe2, map: m.id };
+  return { n, w: n + 2 * PAD, h: (foe2 ? foe2 + ZONE : ay1 + 1) + PAD, x0: PAD, ay0, ay1, rows, foe2, map: m.id };
 }
 /** 이번 조우의 칸 구조 (조우가 없으면 기본 보드) */
 export const encGeo = (enc: Encounter | null | undefined, n = enc?.n ?? CFG.bossBoard) => geoOf(n, enc?.map);
@@ -187,7 +187,7 @@ export function computeStats(u: UnitState, effects: Effect[]): { st: Stats; majo
 
 /** 저장된 배치(c, r)를 배치 폭 W 전장의 실제 좌표로 */
 export function boardPos(pos: { c: number; r: number }, W: number, g?: Geo) {
-  return { x: PAD + Math.max(0, Math.min(pos.c, W - 1)), y: (g?.ay1 ?? ALLY_Y1) - Math.max(0, Math.min(pos.r, ZONE - 1)) };
+  return { x: PAD + Math.max(0, Math.min(pos.c, W - 1)), y: (g?.ay1 ?? ALLY_Y1) - Math.max(0, Math.min(pos.r, (g?.rows ?? ZONE) - 1)) };
 }
 
 /** 분류 확정 + 분류 기본 보정 (영혼 회피 +10%p, 구조물 방어도 ×1.3) */
@@ -484,7 +484,7 @@ export const TURRET_PAL = ['#0c0e12', '#7a8aa0', '#3a4458', '#c0c8d0', '#7fe3ff'
 /** 포탑 배치 저장값 (c, r): c = -1 왼쪽 가장자리 열, c = 99 오른쪽 가장자리 열, 그 밖은 배치 구역 열. r = 0 이 맨 뒷줄 */
 export type TurretPos = { c: number; r: number };
 const TURRET_DEFAULT: TurretPos[] = [{ c: -1, r: 1 }, { c: 99, r: 1 }, { c: -1, r: 0 }, { c: 99, r: 0 }, { c: -1, r: 2 }, { c: 99, r: 2 }];
-export const turretBoardCell = (p: TurretPos, W: number, g?: Geo) => ({ x: p.c < 0 ? 0 : p.c >= 99 ? W + 2 * PAD - 1 : PAD + Math.min(p.c, W - 1), y: (g?.ay1 ?? ALLY_Y1) - Math.max(0, Math.min(p.r, ZONE - 1)) });
+export const turretBoardCell = (p: TurretPos, W: number, g?: Geo) => ({ x: p.c < 0 ? 0 : p.c >= 99 ? W + 2 * PAD - 1 : PAD + Math.min(p.c, W - 1), y: (g?.ay1 ?? ALLY_Y1) - Math.max(0, Math.min(p.r, (g?.rows ?? ZONE) - 1)) });
 export const turretSavePos = (x: number, y: number, W: number, g?: Geo): TurretPos => ({ c: x < PAD ? -1 : x >= PAD + W ? 99 : x - PAD, r: (g?.ay1 ?? ALLY_Y1) - y });
 /** 엔지니어 단계 (출전 기준) */
 export const engTier = (run: RunState) => tierOf('ENG', synergyCounts(deployed(run), run).ENG || 0);
@@ -798,7 +798,7 @@ export function layout(run: RunState, n: number): Map<string, { x: number; y: nu
 export function allyRoom(run: RunState, n = run.node?.enc?.n ?? CFG.bossBoard, devices: Device[] = run.node?.enc?.devices || []): number {
   const g = runGeo(run, n), taken = new Set<string>();
   for (const d of devices) for (const c of deviceCells(d)) if (zoneAt(g, c.x, c.y) === 'ally') taken.add(`${c.x},${c.y}`);
-  return ZONE * n - taken.size;
+  return g.rows * n - taken.size;
 }
 
 /** 편성 화면에서 칸을 차지한 것: 출전 아군 · 포탑 · 소환물 · 공왕 · 적 · 이미 놓은 장치 ('x,y'). skip = 이 장치는 빼고 (다시 놓기 검사용) */

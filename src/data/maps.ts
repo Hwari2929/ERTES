@@ -24,6 +24,8 @@ export interface MapDef {
   surround?: boolean;
   /** 배치 폭을 이 값으로 (통로) */
   narrow?: number;
+  /** 아군 진형 줄 수 (기본 3). 저장 배치 r 이 이 줄 수까지 쓰인다 (다른 지형에서는 가까운 빈칸으로) */
+  allyRows?: number;
   /** 이 전장(FieldDef.id)에서만 나온다 (없으면 공용) */
   field?: string;
   /** 지형 칸 (전장 좌표) */
@@ -54,7 +56,7 @@ function pattern(rows: string[]) {
 export const MAPS: MapDef[] = [
   { id: 'open', name: '개활지', desc: '막힌 곳 없는 평지.' },
   // ── 공용 지형 틀
-  { id: 'corridor', name: '긴 통로', narrow: 4, gap: 5, desc: '좁고 긴 통로. 적이 줄지어 다가온다.' },
+  { id: 'corridor', name: '긴 통로', narrow: 4, allyRows: 4, gap: 5, desc: '좁고 긴 통로. 적이 줄지어 다가온다.' },
   { id: 'surround', name: '포위', surround: true, desc: '아군이 가운데, 적이 위아래에서 조여 온다.' },
   // ── 리빈 낙원동 (방역 시즌)
   { id: 'lv_gate', field: 'livin', name: '방역 수문', gap: 3, gateCycle: [8, 6],

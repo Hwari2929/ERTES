@@ -259,7 +259,7 @@ export function buyFleet(run: RunState): string | null {
   recSpend(run, 'fleet', c);
   run.fleet = fleetOf(run) + 1;
   const enc = run.node?.enc, nw = mapOf(enc?.map).narrow; // 통로 조우를 앞둔 편성 중이면 늘어난 인원만큼 통로 폭도 넓힌다 (적 칸 · 장치 칸은 그대로)
-  if (enc && nw) enc.n = Math.max(enc.n, narrowWidth(run, nw));
+  if (enc && nw) enc.n = Math.max(enc.n, narrowWidth(run, nw, mapOf(enc.map).allyRows));
   autoPlace(run);
   log(run, `함대 확장: 출전 인원 ${deployCap(run)}명 (크레딧 -${c})`);
   return null;
@@ -327,7 +327,7 @@ export function autoPlace(run: RunState, order: UnitState[] = run.units) {
   for (const u of order) {
     if (u.pos || deployed(run).length >= limit || !canDeploy(run, u)) continue;
     const def = UNIT_BY_ID[u.defId];
-    const rowsPref = def.range <= 1 || def.front ? [2, 1, 0] : [0, 1, 2];
+    const rowsUp = [...Array(g.rows).keys()], rowsPref = def.range <= 1 || def.front ? rowsUp.slice().reverse() : rowsUp; // 근접 · 앞줄 선호는 앞줄부터
     outer: for (const avoid of [true, false])
       for (const r of rowsPref)
         for (const c of cols) {
@@ -349,10 +349,22 @@ export function fitDeploy(run: RunState): string[] {
   log(run, `출전 칸 부족: ${names.join(' · ')} 대기석으로`);
   return names;
 }
-/** 전투 노드에 들어설 때: fitDeploy 로 내린 기물이 있으면 알림 */
+/** 대기석으로 옮긴 까닭 알림: 지형 틀 · 아군 진형 크기 · 장치가 차지한 칸 · 설 수 있는 칸 · 출전 인원 → 옮긴 기물 */
+export function roomNotice(run: RunState, names: string[]): Pending {
+  const enc = run.node?.enc, g = runGeo(run), room = allyRoom(run), taken = g.n * g.rows - room;
+  const rows: [string, string][] = [
+    ['전장', `${enc?.map ? mapOf(enc.map).name : '개활지'} · 아군 진형 ${g.n}×${g.rows} = ${g.n * g.rows}칸`],
+    ...(taken ? [['장치가 차지', `${taken}칸`] as [string, string]] : []),
+    ['설 수 있는 칸', `${room}칸`],
+    ['출전', `${room + names.length}명 → ${room}명`],
+    ['대기석으로', `${names.join(' · ')} (공명 등급 낮은 순)`],
+  ];
+  return { t: 'notice', title: '출전 칸 부족', body: '이번 전장은 아군 진형이 출전 인원보다 작습니다.', rows };
+}
+/** 전투 노드에 들어설 때: fitDeploy 로 내린 기물이 있으면 까닭과 함께 알림 */
 function fitDeployNotice(run: RunState) {
   const names = fitDeploy(run);
-  if (names.length) run.pending.push({ t: 'notice', title: '출전 칸 부족', body: '이번 전장의 아군 진형에 설 자리가 모자라 공명 등급이 낮은 기물부터 대기석으로 옮겼습니다.', rows: [['대기석으로', names.join(' · ')], ['아군 진형 칸', `${allyRoom(run)}`]] });
+  if (names.length) run.pending.push(roomNotice(run, names));
 }
 
 /** 편의: 빈 출전 자리를 대기 기물 중 공명 등급이 높은 순으로 채운다 (근접은 앞줄, 원거리는 뒷줄) */
@@ -1046,12 +1058,12 @@ function pickMap(run: RunState, type: NodeType, phase: number): string | undefin
   return undefined;
 }
 /** 통로(narrow) 지형의 배치 폭: 지형 틀의 폭과, 출전 한도 + 1명이 아군 진형(ZONE 줄)에 다 서는 폭 중 큰 쪽 */
-export const narrowWidth = (run: RunState, narrow: number) => Math.max(narrow, Math.ceil((deployCap(run) + 1) / ZONE));
+export const narrowWidth = (run: RunState, narrow: number, rows = ZONE) => Math.max(narrow, Math.ceil((deployCap(run) + 1) / rows)); // 아군 진형 줄 수 (긴 통로 4줄 → 폭 4 × 4줄 = 16칸, 출전 한도 15까지 그대로)
 export function genEncounter(run: RunState, type: NodeType, phase = run.phase): Encounter {
   const map = pickMap(run, type, phase);
   return rng(run, (r) => {
     const env = r.weighted(CFG.boardSizes, (x) => x.w);
-    const nw = mapOf(map).narrow, n = type === 'boss' ? CFG.bossBoard : nw ? narrowWidth(run, nw) : env.n;
+    const nw = mapOf(map).narrow, n = type === 'boss' ? CFG.bossBoard : nw ? narrowWidth(run, nw, mapOf(map).allyRows) : env.n;
     const rows = playerRows(n);
     const p = phase;
     const f = fieldOf(run.field);

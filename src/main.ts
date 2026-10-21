@@ -1485,7 +1485,7 @@ function prepScreen(run: RunState) {
       <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
     </aside>
     <section class="board-col">
-      <div class="board-head"><b>${esc(env)}</b>${mapChip}<span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${tacPill(run)}<span class="muted small">${geo.foe2 ? "가운데" : "아래"} ${ZONE}줄에 배치</span>${noRoom.length ? `<span class="small warn" title="${esc(`배치 구역에 빈칸이 없음: ${noRoom.map((t) => t.name).join(' · ')} — 전투에서 가까운 빈칸에 나온다`)}">소환 자리 없음 ${noRoom.length}</span>` : ''}
+      <div class="board-head"><b>${esc(env)}</b>${mapChip}<span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${tacPill(run)}<span class="muted small">${geo.foe2 ? "가운데" : "아래"} ${geo.rows}줄에 배치</span>${noRoom.length ? `<span class="small warn" title="${esc(`배치 구역에 빈칸이 없음: ${noRoom.map((t) => t.name).join(' · ')} — 전투에서 가까운 빈칸에 나온다`)}">소환 자리 없음 ${noRoom.length}</span>` : ''}
         ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}</div>
       <div class="board-row"><div class="board" style="--w:${bw};--h:${bh}" data-bw="${bw}" data-bh="${bh}" data-ex="${ex}"><div class="cells">${cells}</div>${units}${startOverlay(run, bw, bh, ex)}</div>${invRail(run)}</div>
       <div class="bench" data-drop="bench">
@@ -4747,7 +4747,7 @@ function act(a: string, v: string) {
     case 'fight': {
       if (!run || !deployed(run).length) return;
       const benched = R.fitDeploy(run); // 안전장치: 설 자리가 없는 출전 기물은 대기석으로 (전투에서 조용히 빠지지 않게) — 편성을 다시 보여 준다
-      if (benched.length) { toast(`${R.ROOM_ERR}: ${benched.join(' · ')} 대기석으로.`); persist(); break; }
+      if (benched.length) { run.pending.push(R.roomNotice(run, benched)); persist(); break; } // 까닭 (아군 진형 크기 · 장치 칸 · 출전 인원)을 알림 창으로
       persist();
       app.summary = null;
       app.screen = 'battle';

@@ -42,7 +42,7 @@ function fillDevices(run: RunState, enc: Encounter, max = 99) {
   }
 }
 /** skip = 일부러 넓은 폭 칸을 저장해 둔 기물 (예전 세이브) */
-function inWidth(run: RunState, n: number, skip?: unknown) { return deployed(run).every((u) => u === skip || (u.pos!.c >= 0 && u.pos!.c < n && u.pos!.r >= 0 && u.pos!.r < ZONE)); }
+function inWidth(run: RunState, n: number, skip?: unknown, rows = ZONE) { return deployed(run).every((u) => u === skip || (u.pos!.c >= 0 && u.pos!.c < n && u.pos!.r >= 0 && u.pos!.r < rows)); }
 
 const run = mkRun();
 check(R.deployCap(run) === CAP, `출전 한도 ${R.deployCap(run)} = ${CAP}`);
@@ -55,7 +55,8 @@ check(R.deployCap(run) === CAP, `출전 한도 ${R.deployCap(run)} = ${CAP}`);
     const enc = R.genEncounter(run, 'battle');
     if (enc.map !== 'corridor') continue;
     found++;
-    check(enc.n * ZONE >= CAP + 1 && enc.n === R.narrowWidth(run, 4), `통로 폭 ${enc.n} → 아군 진형 ${enc.n * ZONE}칸 ≥ 출전 한도 ${CAP} + 1`);
+    const rows = encGeo(enc).rows;
+    check(enc.n * rows >= CAP + 1 && enc.n === R.narrowWidth(run, 4, rows), `통로 폭 ${enc.n} × ${rows}줄 → 아군 진형 ${enc.n * rows}칸 ≥ 출전 한도 ${CAP} + 1`);
   }
   check(found > 0, `통로 조우를 찾았다 (${found})`);
   run.seed = 7; run.step = 0;
@@ -63,7 +64,7 @@ check(R.deployCap(run) === CAP, `출전 한도 ${R.deployCap(run)} = ${CAP}`);
 
 // ── 2. 모든 지형 틀 × 폭: autoPlace (폭 안) · 장치 · layout · buildBattle
 for (const m of MAPS) for (const n0 of [6, 7, 8]) {
-  const n = m.narrow ? R.narrowWidth(run, m.narrow) : n0;
+  const n = m.narrow ? R.narrowWidth(run, m.narrow, m.allyRows) : n0;
   const tag = `${m.id} 폭 ${n}`;
   run.units.forEach((u) => { u.pos = null; });
   const enc: Encounter = { n, env: '', enemies: [], mult: 1, seed: 3, devices: [], ...(m.id !== 'open' ? { map: m.id } : {}) };
@@ -73,7 +74,7 @@ for (const m of MAPS) for (const n0 of [6, 7, 8]) {
   R.autoPlace(run);
   const dep = deployed(run).length;
   check(dep === Math.min(CAP, allyRoom(run)), `${tag}: autoPlace 출전 ${dep}명`);
-  check(inWidth(run, n, run.units[0]), `${tag}: autoPlace 는 폭 밖 칸을 저장하지 않는다`);
+  check(inWidth(run, n, run.units[0], m.allyRows ?? ZONE), `${tag}: autoPlace 는 폭 · 줄 밖 칸을 저장하지 않는다`);
   // 일부를 대기석으로 내리고 장치를 채운 뒤 다시 자동 배치
   deployed(run).slice(-3).forEach((u) => { u.pos = null; });
   fillDevices(run, enc, 4);
@@ -95,24 +96,24 @@ for (const m of MAPS) for (const n0 of [6, 7, 8]) {
   run.node = null;
 }
 
-// ── 3. 안전장치: 좁은 폭 (예전 통로 4칸)에 14명이 올라가 있는 세이브
+// ── 3. 안전장치: 좁은 통로 (폭 3 × 4줄 = 12칸)에 14명이 올라가 있는 세이브
 {
   run.units.forEach((u) => { u.pos = null; });
   run.node = null;
   R.autoPlace(run); // 기본 보드 (폭 7)에서 14명
   check(deployed(run).length === CAP, `기본 보드 자동 배치 ${deployed(run).length}명`);
-  const enc: Encounter = { n: 4, env: '', enemies: [], mult: 1, seed: 3, devices: [], map: 'corridor' };
+  const enc: Encounter = { n: 3, env: '', enemies: [], mult: 1, seed: 3, devices: [], map: 'corridor' };
   run.node = { type: 'battle', enc };
-  const lay = layout(run, 4);
-  check(lay.size === CAP && sideAllies(run, enc) === CAP, `폭 4 · 14명: layout 이 빠뜨리지 않는다 (${lay.size}) · 전투 ${sideAllies(run, enc)}명`);
+  const lay = layout(run, 3), room = 3 * encGeo(enc).rows;
+  check(lay.size === CAP && sideAllies(run, enc) === CAP, `폭 3 · 14명: layout 이 빠뜨리지 않는다 (${lay.size}) · 전투 ${sideAllies(run, enc)}명`);
   check(R.deviceErr(run, { id: 'K_mine', x: PAD, y: encGeo(enc).ay0 - 3 }) === R.ROOM_ERR, '설 자리가 모자라면 장치를 놓을 수 없다');
   const ranks = deployed(run).map((u) => u.rank).sort((a, b) => a - b);
   const moved = R.fitDeploy(run);
-  check(moved.length === CAP - 4 * ZONE && deployed(run).length === 4 * ZONE, `fitDeploy: ${moved.length}명 대기석으로 → 출전 ${deployed(run).length}`);
+  check(moved.length === CAP - room && deployed(run).length === room, `fitDeploy: ${moved.length}명 대기석으로 → 출전 ${deployed(run).length}`);
   check(Math.min(...deployed(run).map((u) => u.rank)) >= ranks[moved.length - 1], 'fitDeploy: 공명 등급이 낮은 기물부터 내린다');
   check(R.deployBlock(run) === R.ROOM_ERR, `가득 찬 진형: 출전 막힘 (${R.deployBlock(run)})`);
   const lost: CompanionTok[] = [];
-  companionCells(run, 4, lost);
+  companionCells(run, 3, lost);
   const sumDep = deployed(run).some((u) => RECRUITABLE.find((d) => d.id === u.defId)?.summon);
   check(!sumDep || lost.length > 0, `가득 찬 진형: 시작 칸이 없는 소환물을 알린다 (${lost.map((t) => t.name).join(' · ')})`);
   run.node = null;
