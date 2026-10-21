@@ -1324,16 +1324,37 @@ function tacPill(run: RunState) {
 /** 배치형 소모품 팝업 본문: 성질 줄 (이름 + 값). 망원경은 모드 2칸 · 효과 범위 도식 · 사용 횟수 단계 */
 function devicePop(run: RunState, id: string) {
   const tiers = SYN_BY_ID.NAV.tiers;
+  if (id === 'K_decoy' || id === 'K_mine') return id === 'K_decoy' ? decoyPop() : minePop();
   if (id !== 'K_scope') return `<dl class="dev-spec">${deviceRows(id, tiers).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
   const S = DEV.scope, sc = run.scope, r = scopeR(tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0));
-  const grid = [...Array((2 * r + 1) ** 2).keys()].map((i) => `<i${i === ((2 * r + 1) ** 2 - 1) / 2 ? ' class="c"' : ''}></i>`).join('');
   const steps: [string, boolean][] = [[`처음 +${S.base}`, true], ...tiers.slice(1).map((n, i) => [`${n}명 +${S.tierBonus[i + 1]}`, (sc?.nav || 0) >= i + 2] as [string, boolean]), [`페이즈마다 +${S.perPhase}`, true]];
   return `<div class="sc-modes">
       <div class="sc-mode strike"><span class="sc-tg">적</span><b>지정 포격</b><small>전술 위력 비례 피해</small></div>
       <div class="sc-mode drop"><span class="sc-tg">아군 · 빈칸</span><b>항공 보급</b><small>고급 장비 1개씩</small></div>
     </div>
-    <div class="sc-row"><span class="sc-grid" style="--n:${2 * r + 1}" title="효과 범위">${grid}</span><span class="small">주변 <b>${r}칸</b>${r < S.r[2] ? ` <span class="muted">(항해자 ${tiers[2]}명부터 ${S.r[2]}칸)</span>` : ''}</span></div>
+    <div class="sc-row">${rangeGrid(r)}<span class="small">주변 <b>${r}칸</b>${r < S.r[2] ? ` <span class="muted">(항해자 ${tiers[2]}명부터 ${S.r[2]}칸)</span>` : ''}</span></div>
     <div class="sc-row"><b class="sc-n" title="남은 사용 횟수">${sc?.n ?? 0}</b><ol class="sc-steps">${steps.map(([t, on]) => `<li class="${on ? 'on' : ''}">${t}</li>`).join('')}</ol></div>`;
+}
+/** 놓을 수 있는 구역 도식: 적 진형 · 사이 · 아군 진형 세 띠 (놓을 수 있는 띠만 밝게) */
+const zoneMini = (foe: boolean) => `<span class="zm" title="놓을 수 있는 곳"><i class="${foe ? 'on' : ''}">적</i><i class="on">사이</i><i class="on">아군</i></span>`;
+/** 효과 범위 격자 (가운데 = 장치) */
+const rangeGrid = (r: number) => { const n = 2 * r + 1; return `<span class="sc-grid" style="--n:${n}">${[...Array(n * n).keys()].map((i) => `<i${i === (n * n - 1) / 2 ? ' class="c"' : ''}></i>`).join('')}</span>`; };
+/** 유인 신호기 팝업: 놓는 곳 · 도발 배율 비교 막대 · 무적 → 체력 1 시간 띠 */
+function decoyPop() {
+  const D = DEV.decoy, span = D.invuln * 2;
+  return `<div class="sc-row">${zoneMini(true)}<span class="small">아무 빈칸 · <b>적 진형도</b></span></div>
+    <div class="dv-bars" title="도발 배율 — 적이 표적을 고를 때의 무게">
+      <span>보통 기물</span><i style="--p:${100 / D.prov}%"></i><b>×1</b>
+      <span>신호기</span><i class="hot" style="--p:100%"></i><b>×${D.prov}</b>
+    </div>
+    <div class="dv-tl" title="전투 시작부터"><span class="on" style="flex:${D.invuln}">무적 ${D.invuln}초</span><span style="flex:${span - D.invuln}">체력 1</span></div>`;
+}
+/** 감전 지뢰 팝업: 놓는 곳 · 감지 · 폭발 범위 격자 · 발동 흐름 */
+function minePop() {
+  const M = DEV.mine;
+  return `<div class="sc-row">${zoneMini(false)}<span class="small">적 진형 밖 빈칸 · <b>늘 은신</b></span></div>
+    <div class="sc-row">${rangeGrid(M.r)}<span class="small">감지 · 폭발 <b>주변 ${M.r}칸</b></span></div>
+    <div class="dv-flow">${[['', '적 접근'], ['t', `${M.delay}초`], ['hot', '폭발 · 전기 피해'], ['hot', `감전 ${M.shock[0]}~${M.shock[1]}초`]].map(([c, t]) => `<span class="${c}">${t}</span>`).join('<i>→</i>')}</div>`;
 }
 /** 편성 화면에 놓은 장치: 바리케이드 · 신호기 · 지뢰는 칸 토큰, 그물 · 망원경은 효과 범위 테두리 + 누를 수 있는 표식 (누르면 회수 확인) */
 function deviceTokens(run: RunState, n: number, box: (x: number, y: number, w?: number, h?: number) => string) {
