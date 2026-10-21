@@ -1427,16 +1427,18 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .card.aug-unit { border-color: var(--c-text-2); }
 /* 보급 (main.ts supplyHtml): 뒷면(.cback) 카드를 뒤집으면 앞면 — 자원 아이콘 · 양 · 이름. 대박은 오른쪽 위 띠 (공개 연출은 revealfx 의 rv-2 · rv-3) */
 .modal.supply { width: min(900px, 100%); }
-.sup-cards { grid-template-columns: repeat(3, clamp(150px, 19vw, 250px)); justify-content: center; gap: 14px; }
-.card.sup-card { position: relative; aspect-ratio: 5 / 7; min-height: 0; justify-items: center; align-content: center; text-align: center; gap: 10px; padding: 18px 14px; }
+/* 4장 한 줄. 카드 크기는 화면 너비와 높이 중 작은 쪽으로 정해 세로로 넘치지 않게 하고, 높이는 내용(장비 설명 길이 · 뒷면/앞면)과 상관없이 고정 */
+.sup-cards { --sup-w: clamp(124px, min(19vw, 30vh), 190px); grid-template-columns: repeat(4, var(--sup-w)); justify-content: center; gap: 14px; }
+.card.sup-card { position: relative; height: calc(var(--sup-w) * 1.4); min-height: 0; overflow: hidden; justify-items: center; align-content: center; text-align: center; gap: 8px; padding: 16px 12px; }
+.card.sup-card span:not(.src):not(.sup-ic):not(.sup-jp) { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .sup-card:not(.open) .cback, .sup-card .cback.sup-hold { display: block; }
 .sup-card:not(.open):hover .cback { filter: brightness(1.3); }
 .card.sup-card.open { cursor: default; }
 .card.sup-card.open:hover { transform: none; border-color: var(--line); }
 .card.sup-card.jp { border-color: var(--g-L); }
 .sup-card .sup-ic { display: grid; place-items: center; }
-.sup-card .sup-ic .li { width: 56px; height: 56px; }
-.sup-card .sup-ic .item { width: 76px; height: 76px; cursor: default; }
+.sup-card .sup-ic .li { width: 48px; height: 48px; }
+.sup-card .sup-ic .item { width: 60px; height: 60px; cursor: default; }
 .card.sup-card b { font-size: var(--fs-2xl); }
 .card.sup-card b.tC, .card.sup-card b.tG, .card.sup-card b.tA, .card.sup-card b.tL { font-size: var(--fs-lg); }
 .sup-card b.tC { color: var(--g-C); } .sup-card b.tG { color: var(--g-G); } .sup-card b.tA { color: var(--g-A); } .sup-card b.tL { color: var(--g-L); }
@@ -1445,13 +1447,13 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .cback.sup-hold.jp { border-color: var(--g-L); background-color: color-mix(in srgb, var(--g-L) 14%, var(--panel)); }
 .sup-cards + .row-btns { justify-content: center; margin-top: 12px; }
 @media (max-width: 640px) {
-  .sup-cards { gap: 6px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .card.sup-card { padding: 10px 6px; gap: 6px; aspect-ratio: 3 / 5; }
+  .sup-cards { gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); } /* 좁은 화면: 2 × 2 */
+  .card.sup-card { padding: 10px 8px; gap: 6px; height: clamp(150px, 26vh, 200px); }
   .sup-card .sup-ic .li { width: 40px; height: 40px; }
   .sup-card .sup-ic .item { width: 52px; height: 52px; }
   .card.sup-card b { font-size: var(--fs-lg); word-break: keep-all; }
   .card.sup-card b.tC, .card.sup-card b.tG, .card.sup-card b.tA, .card.sup-card b.tL { font-size: var(--fs-md); }
-  .card.sup-card span:not(.src):not(.sup-ic):not(.sup-jp) { font-size: var(--fs-xs); display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+  .card.sup-card span:not(.src):not(.sup-ic):not(.sup-jp) { font-size: var(--fs-xs); -webkit-line-clamp: 3; }
   .card.sup-card .sup-jp { position: static; }
 }
 textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--c-text); border: 1px solid var(--line); border-radius: var(--r-md); padding: 8px; font: var(--fs-sm) var(--f-mono); }
