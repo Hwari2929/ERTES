@@ -500,6 +500,37 @@ function checkEng(run: RunState) {
   if (got.length) run.pending.push({ t: 'notice', title: `엔지니어 ${SYN_BY_ID.ENG.tiers[t - 1]}명 — 포탑 개조부품 ${got.length}개`, body: `엔지니어들이 감시 포탑 전용 개조부품을 만들어 냈습니다: ${got.join(' · ')}. 편성 화면에서 포탑의 개조부품 칸으로 옮길 수 있습니다.` });
 }
 
+/** 헬레니우스 · 신비학자 전용 장비를 지금 단계에 맞춘다: 단계가 내려가면 그 단계 장비를 회수 (run.synVault), 다시 닿으면 돌려준다.
+ *  헬레니우스 장비 k 는 k단계 이상에서, 전설판은 4단계에서만. 신비학자 개조부품은 그 부품의 단계 이상에서. 돌려받은 장비는 달고 있던 기물의 빈 칸 → 보관함 */
+export function syncSynGear(run: RunState): { out: string[]; back: string[] } {
+  const hel = tierNow(run, 'HEL'), occ = occultTier(run);
+  const helK = (x: string) => HEL_ITEM_IDS.findIndex((h) => h.slice(2) === x.slice(2)) + 1;
+  const allowed = (x: string) => (isHelItem(x) ? helK(x) <= Math.min(3, hel) : OCCULT_MODS[x] ? OCCULT_MODS[x].tier <= occ : true);
+  const grade = (x: string) => (isHelItem(x) ? (hel >= 4 ? 'L_' : 'A_') + x.slice(2) : x); // 4단계 = 전설판, 그 아래 = 희귀판
+  const vault = (run.synVault ||= []), out: string[] = [], back: string[] = [];
+  run.inventory = run.inventory.filter((x) => { if (x && !allowed(x)) { vault.push({ id: x }); out.push(x); return false; } return true; });
+  for (const u of run.units) {
+    u.items = u.items.map((x, slot) => { if (x && !allowed(x)) { vault.push({ id: x, uid: u.uid, slot }); out.push(x); return null; } return x; });
+    if (u.mod && !allowed(u.mod)) { vault.push({ id: u.mod, uid: u.uid, slot: -1 }); out.push(u.mod); u.mod = null; }
+  }
+  for (const v of [...vault]) {
+    if (!allowed(v.id)) continue;
+    vault.splice(vault.indexOf(v), 1);
+    const id = grade(v.id), u = v.uid ? run.units.find((w) => w.uid === v.uid) : undefined;
+    if (u && v.slot === -1 && !u.mod) u.mod = id;
+    else if (u && v.slot !== undefined && v.slot >= 0 && v.slot < u.items.length && !u.items[v.slot]) u.items[v.slot] = id;
+    else run.inventory.push(id); // 보관함이 가득 차도 돌려준다
+    back.push(id);
+  }
+  // 헬레니우스 단계가 4를 오르내리면 가진 동맹 장비의 등급도 맞춘다
+  const fix = (x: string | null) => (x && isHelItem(x) ? grade(x) : x);
+  run.inventory = run.inventory.map((x) => fix(x)!);
+  for (const u of run.units) u.items = u.items.map(fix);
+  if (!vault.length) delete run.synVault;
+  if (out.length) log(run, `시너지 단계 하락: 전용 장비 ${out.length}개 회수`);
+  if (back.length) log(run, `시너지 단계 회복: 전용 장비 ${back.length}개 반환`);
+  return { out, back };
+}
 export function checkOccult(run: RunState): boolean {
   checkHel(run);
   checkChef(run);
@@ -551,6 +582,12 @@ export function useCheck(run: RunState, kIdx: number, tg: UseTarget): string | n
     if (id === 'K_cp_tape') return '격리 화물 사건의 선택지에서 씁니다';
     if (id === 'K_cp_purge' && run.flags.includes('cp_purge')) return '이미 뿌려 두었습니다 (다음 전투에 적용)';
     return null;
+  }
+  if (id === 'K_strip' && tg.k === 'foe') { // 용제 밀수 (G.r_solvent): 분리 용제를 적에게 — 장비를 녹여 없앤다
+    if (!hasGlobal(run, 'G.r_solvent')) return WRONG_TARGET;
+    const s = run.node?.enc?.enemies[tg.i];
+    if (!s) return '전투를 앞둔 편성 화면에서 적에게 사용하세요';
+    return foeGearOf(s).length ? null : '장비를 달지 않은 적입니다';
   }
   if (c.target === 'foe') {
     if (tg.k !== 'foe') return WRONG_TARGET;
@@ -607,6 +644,16 @@ export function useConsumable(run: RunState, kIdx: number, tg: UseTarget): { ok:
     dropBread(run, kIdx);
     run.inventory.splice(kIdx, 1);
     msg = `플레이어 체력 +${h} (${run.hp}/${run.maxHp})`;
+    log(run, `${name}: ${msg}`);
+    return { ok: true, msg };
+  }
+  if (id === 'K_strip' && tg.k === 'foe') { // 용제 밀수: 적 장비를 모두 녹인다 (보관함으로 오지 않음)
+    const s = run.node!.enc!.enemies[tg.i];
+    const n = foeGearOf(s).length;
+    delete s.items; delete s.mod;
+    s.stripped = true;
+    run.inventory.splice(kIdx, 1);
+    msg = `${ENEMY_BY_ID[s.defId]?.name || '적'}의 장비 ${n}개를 녹였습니다`;
     log(run, `${name}: ${msg}`);
     return { ok: true, msg };
   }

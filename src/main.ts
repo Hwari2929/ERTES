@@ -216,6 +216,10 @@ function persist() {
     // 엔지니어 단계가 바뀌면 포탑 장비 칸을 맞추고, 시너지가 꺼지면 포탑 회수 (장비는 보관함으로)
     const back = R.syncTurrets(app.run);
     if (back.length) toast(turretCount(app.run) ? `포탑 수 · 장비 칸이 줄어 장비 · 개조부품 ${back.length}개를 보관함으로 돌려보냈습니다.` : `엔지니어 시너지가 꺼져 포탑을 회수했습니다. 장비 · 개조부품 ${back.length}개는 보관함으로.`);
+    // 헬레니우스 · 신비학자 단계가 내려가면 그 단계 전용 장비 회수, 다시 닿으면 반환
+    const sg = R.syncSynGear(app.run);
+    if (sg.out.length) toast(`시너지 단계가 내려가 전용 장비 ${sg.out.length}개를 회수했습니다. 그 단계에 다시 닿으면 돌려받습니다.`);
+    else if (sg.back.length) toast(`시너지 단계를 되찾아 전용 장비 ${sg.back.length}개를 돌려받았습니다.`);
   }
   if (app.run && !app.run.over) saveRun(app.run, app.run.tutorial ? TUT_SLOT : app.run.campaign ? CAMP_SLOT : 'auto'); // 튜토리얼 · 캠페인 런은 이어하기(자동 저장)를 덮지 않게 따로
 }

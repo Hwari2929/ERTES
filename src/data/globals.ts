@@ -5,6 +5,7 @@ import type { EventApi } from './events';
 import { CFG } from '../config';
 import { emblemText } from './emblems';
 import { skillHit } from './kit';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED } from './items';
 import { SYN_BY_ID, SYNERGIES, tierOf } from './synergies';
 
 /** 문장 대상이 될 수 있는 시너지 (전용 독립 시너지 제외) */
@@ -123,6 +124,19 @@ export const GLOBALS: GlobalDef[] = [
   { id: 'G.r_patron', tier: 'R', name: '부유한 후원자', desc: `페이즈가 시작될 때마다 크레딧 +${G.patron}.`, unique: true },
   { id: 'G.r_tutor', tier: 'R', name: '집중 육성', desc: `즉시 공명 등급이 가장 낮은 기물 2명의 공명 등급 +${G.tutor}.`,
     onPick: (r, api) => { for (const u of r.units.slice().sort((a, b) => a.rank - b.rank).slice(0, 2)) api.rankUp(u, G.tutor); } },
+  { id: 'G.r_solvent', tier: 'R', name: '용제 밀수', desc: `즉시 분리 용제 ${G.solventN}개. 이번 런 동안 분리 용제를 편성 화면에서 적 기물에게도 쓸 수 있습니다 — 그 적의 장비를 모두 녹여 없앱니다 (보관함으로 오지 않음).`, unique: true,
+    onPick: (_r, api) => { for (let i = 0; i < G.solventN; i++) api.gain('K_strip', true); } },
+  { id: 'G.l_overhaul', tier: 'L', name: '전면 재조달', desc: `가진 장비(보관함 · 장착)를 모두 같은 등급의 다른 장비로 바꾸고, 하나마다 ${pc(G.overhaulUp)} 확률로 한 단계 위 등급이 됩니다 (부품 → 고급 · 희귀 → 전설). 그다음 무작위 고급 장비 1개를 받습니다. 고유 · 동맹 · 포탑 장비와 개조부품은 그대로.`, unique: true,
+    onPick: (_r, api) => {
+      for (const x of api.allItems()) {
+        // 등급: 부품 0 · 고급 / 희귀 1 · 전설 2 (전설은 희귀 조합의 전설판만 — 동맹 · 고유 장비 등은 그대로)
+        const tier = ALL_COMPONENTS.includes(x.id) ? 0 : ALL_GRADED.includes(x.id) || ALL_ADVANCED.includes(x.id) ? 1 : /^L_/.test(x.id) && ALL_ADVANCED.includes('A_' + x.id.slice(2)) ? 2 : -1;
+        if (tier < 0) continue;
+        const up = tier < 2 && api.chance(G.overhaulUp) ? tier + 1 : tier;
+        api.setItem(x, api.randomItem((['C', api.chance(0.5) ? 'G' : 'A', 'L'] as const)[up]));
+      }
+      api.gain(api.randomItem('G'), true);
+    } },
   { id: 'G.r_commission', tier: 'R', name: '전설 의뢰품', desc: `즉시 무작위 전설 장비 1개. 크레딧 -${G.commission} (0 아래로는 내려가지 않음).`,
     onPick: (r, api) => { api.gain(api.randomItem('L'), true); r.credits = Math.max(0, r.credits - G.commission); } },
   { id: 'G.r_transfuse', tier: 'R', name: '응급 수혈', desc: `최대 플레이어 체력 +${G.transfuse}, 즉시 체력을 모두 회복.`,

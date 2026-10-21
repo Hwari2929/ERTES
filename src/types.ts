@@ -205,6 +205,8 @@ export interface RunState {
   causal?: number;
   chrTier?: number;
   kingPos?: { c: number; r: number };
+  /** 시너지 단계가 내려가 회수한 전용 장비 (헬레니우스 동맹 장비 · 신비학자 개조부품). 그 단계에 다시 닿으면 돌려준다 — uid · slot: 회수 전에 달고 있던 기물 · 칸 (비어 있으면 그 자리로) */
+  synVault?: { id: string; uid?: string; slot?: number }[];
   helTier?: number; // 헬레니우스: 지금까지 도달한 최고 단계 (전용 장비 지급 기록) // 신비학자: 지금까지 도달한 최고 단계 (전용 개조부품 지급 기록)
   privilege: AugPick | null; // 런 시작 특권 증강
   /** 절망 증강 id 목록 (data/despair.ts, 고른 순서). 고난 런에서 출격 때 특권 다음에 1개 + CFG.despair.every 페이즈마다 1개 */

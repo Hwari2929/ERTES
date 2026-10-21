@@ -216,6 +216,7 @@ export const CFG = {
   //   같은 시드 800판을 비교 — 기준 30.9% 대비 -3.6 ~ -7.5%p (반려 돌 · 캣휠 20% 는 지정값 그대로)
   // ── 전역 증강 수치 (src/data/globals.ts · 설명문도 여기서 읽는다)
   globalAug: {
+    solventN: 2, overhaulUp: 0.25, // 용제 밀수: 분리 용제 개수 · 전면 재조달: 장비마다 한 단계 위 확률
     medic: 3, salvage: 2, shieldwall: 0.08, tenacity: 0.2, tenacityHp: 0.35, discount: 0.15,
     glassDmg: 0.35, glassTaken: 0.2, overtime: 0.5, blitz: 0.6, blitzDur: 6, vamp: 0.08, bountyMax: 6, bond: 60, bondCap: 2,
     firstShot: 2, regen: 0.006, fiber: 0.12, critDmg: 0.25, pen: 0.1, reload: 0.25, ult: 0.2, eva: 0.06, mindRes: 0.2, mindRed: 0.15, saving: 2, ration: 15, rationMax: 10,
