@@ -1,4 +1,4 @@
-import { startPreview } from './engine/preview';
+import { PREVIEW_SECS, startPreview } from './engine/preview';
 import { CFG, encDmgMult, phaseAmpMult, phaseHpMult } from './config';
 import { AUG_BY_ID, augDesc } from './data/augments';
 import { ENEMIES, ENEMY_BY_ID, type EnemyDef } from './data/enemies';
@@ -36,7 +36,7 @@ import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
 import { type Category, type Encounter, type Geo, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from './types';
 import { encounterMatchup, fieldMatchup, matchupShort, schoolWarnings } from './ui/matchup';
-import { computeStats, makeSummons, type SummonMade } from './engine/build';
+import { computeStats, gateGroupState, gateState, type GateState, makeSummons, type SummonMade } from './engine/build';
 import { DEV, type Device, deviceCells, deviceRows, isPlaceable, scopeR, wallHp } from './data/devices';
 import { mapOf, TERRAIN, terrainBlocks, type TerrainGroup, terrainGroups } from './data/maps';
 import { newCampaignRun } from './engine/campaignrun';
@@ -1546,8 +1546,8 @@ function startChips(run: RunState) {
   if (!p) return '';
   const moves = p.path.length - 1, worst = p.waits.reduce((m, w) => Math.max(m, w.dur), 0);
   const chip = (k: string, v: string, cls = '') => `<span class="fc-chip${cls ? ` ${cls}` : ''}"><small>${k}</small><b>${v}</b></span>`;
-  return `<div class="fc-chips" title="실제 전투와 같은 시드로 첫 ${8}초를 미리 돌린 결과 (보드에 경로 · 병목 · 첫 목표 표시)"><h3>개전 예측</h3>
-    ${chip('첫 목표', p.target ? esc(p.target.name) : '없음', p.target ? 'tgt' : '')}${chip('첫 공격', p.firstAtk !== undefined ? `${p.firstAtk.toFixed(1)}초` : '8초 안에 없음')}${chip('이동', `${moves}칸`)}${chip('병목', p.waits.length ? `${p.waits.length}곳 · 최대 ${worst.toFixed(1)}초` : '없음', p.waits.length ? 'wait' : '')}</div>`;
+  return `<div class="fc-chips" title="실제 전투와 같은 시드로 첫 ${PREVIEW_SECS}초를 미리 돌린 결과 (보드에 경로 · 병목 · 첫 목표 표시)"><h3>개전 예측</h3>
+    ${chip('첫 목표', p.target ? esc(p.target.name) : '없음', p.target ? 'tgt' : '')}${chip('첫 공격', p.firstAtk !== undefined ? `${p.firstAtk.toFixed(1)}초` : `${PREVIEW_SECS}초 안에 없음`)}${chip('이동', `${moves}칸`)}${chip('병목', p.waits.length ? `${p.waits.length}곳 · 최대 ${worst.toFixed(1)}초` : '없음', p.waits.length ? 'wait' : '')}</div>`;
 }
 /** 빈 포탑 개조부품 칸 (엔지니어 색 마름모) */
 const turretModEmpty = (attrs = '') => `<span class="item tM empty" style="--sc:${SYN_BY_ID.ENG.color}" title="포탑 개조부품 칸 — 엔지니어 전용 개조부품을 끌어 장착" ${attrs}></span>`;
@@ -2421,19 +2421,34 @@ function terrainCell(l: TerrainLayer, x: number, y: number, act: string, selG: n
 /** 지형 지물 아이콘: 덩어리마다 1개, 무게중심에 (누름은 아래 칸이 받는다). box = 칸 1개 크기 자리 (소수 좌표 가능) */
 const terrainIcons = (l: TerrainLayer, box: (x: number, y: number) => string) =>
   l.groups.map((grp, i) => `<i class="tr-ic" style="${box(l.mid[i].x, l.mid[i].y)}">${lineIcon(TERRAIN[grp.k].icon, 'li')}</i>`).join('');
-/** 지형 지물 상세 (편성 · 전투 오른쪽 패널, 기물 상세와 같은 틀): 이름 + 성질 칩, 이름 + 값 줄. gateOpen = 전투 중 수문 상태 (편성 화면은 닫힌 채 시작) */
-function terrainDetail(g: Geo, grp: TerrainGroup, back: string, gateOpen = false) {
+/** 전투 중 수문 덩어리 상태 (칸마다 실제 지형 비트에서): 상태 · 다음 전환까지 남은 초 (전투 시간) · 폐쇄 대기 칸 수 */
+interface GateLive { state: GateState; left: number; pend: number }
+function gateLive(b: Battle, grp: TerrainGroup): GateLive {
+  return { state: gateGroupState(b, grp.cells), left: Math.max(0, Math.ceil((b.mem.gateNext ?? 0) - b.t - 1e-9)), pend: grp.cells.filter((c) => gateState(b, c.x, c.y) === 'pending').length };
+}
+const GATE_NAME: Record<GateState, string> = { open: '열림', shut: '닫힘', pending: '폐쇄 대기' };
+/** 지형 지물 상세 (편성 · 전투 오른쪽 패널, 기물 상세와 같은 틀): 이름 + 성질 칩, 이름 + 값 줄. live = 전투 중 수문 상태 (없으면 편성 화면: 닫힌 채 시작) */
+function terrainDetail(g: Geo, grp: TerrainGroup, back: string, live?: GateLive) {
   const t = TERRAIN[grp.k], m = mapOf(g.map), gate = grp.k === 'gate';
-  const bl = gate && gateOpen ? { walk: false, shot: false } : terrainBlocks(grp.k);
+  const [shut, open] = m.gateCycle || [0, 0];
+  const gs: GateState = live?.state ?? 'shut';
+  const bl = gate && gs === 'open' ? { walk: false, shot: false } : terrainBlocks(grp.k);
   const chip = (cls: string, icon: string, label: string, tip: string) => `<span class="tchip ${cls}" data-kw="foe" data-tt="${esc(label)}" data-td="${esc(tip)}" tabindex="0" role="button">${lineIcon(icon, 'li')}${label}</span>`;
   const chips = (bl.walk ? chip('bad', 'u.area', '통행 불가', '들어가거나 지나갈 수 없다') : chip('', 'u.area', '통행 가능', '지금은 길이다'))
     + (bl.shot ? chip('bad', 'a.range', '탄도 차단', '사이에 있으면 쏘지 못하고 자리를 옮긴다') : chip('', 'a.range', '탄도 통과', '너머로 쏠 수 있다'));
+  // 폐쇄 대기: 기물이 선 칸만 열려 있다 (비는 즉시 닫힘)
+  const via = gs === 'pending' ? `막음 · 대기 칸 ${live!.pend}칸 열림` : '';
   const rows: [string, string][] = [
     ['지형 틀', m.name],
     ['크기', `${grp.cells.length}칸`],
-    ...(gate ? [['상태', gateOpen ? '열림' : '닫힘'] as [string, string], ['주기', `닫힘 ${m.gateCycle?.[0] ?? 0}초 → 열림 ${m.gateCycle?.[1] ?? 0}초`] as [string, string]] : []),
-    ['이동', bl.walk ? '막음' : '통과'],
-    ['기본 공격', bl.shot ? '막음' : '통과'],
+    ...(gate ? [
+      ['상태', gs === 'pending' ? `${GATE_NAME.pending} (${live!.pend}칸)` : GATE_NAME[gs]],
+      ['다음 전환', live ? `${live.left}초 → ${gs === 'open' ? '닫힘' : '열림'}` : `${shut}초 → 열림`],
+      ['주기', `닫힘 ${shut}초 → 열림 ${open}초`],
+      ['예외', '통과 중에는 닫히지 않음'],
+    ] as [string, string][] : []),
+    ['이동', via || (bl.walk ? '막음' : '통과')],
+    ['기본 공격', via || (bl.shot ? '막음' : '통과')],
     ['기술 · 상태이상', bl.shot ? '틈 없이 갈라지면 막음' : '통과'],
     ['배치', '불가'],
   ];
@@ -4124,8 +4139,9 @@ function renderBattleUnit(b: Battle, force: boolean) {
   document.querySelectorAll<HTMLElement>('#bboard .cell[data-tg]').forEach((c) => c.classList.toggle('tr-sel', +c.dataset.tg! === app.battleTerrain));
   const grp = app.battleTerrain !== null && b.geo ? terrainGroups(b.geo)[app.battleTerrain] : undefined;
   if (grp && b.geo) {
-    const sig = `t${grp.id}:${b.mem.gateOpen || 0}`;
-    if (force || sig !== bunitFor) { bu.hidden = false; if (feed) feed.hidden = true; bu.innerHTML = terrainDetail(b.geo, grp, 'bdesel', !!b.mem.gateOpen); bunitFor = sig; layoutPanels(); }
+    const live = grp.k === 'gate' && b.mem.gateNext !== undefined ? gateLive(b, grp) : undefined;
+    const sig = `t${grp.id}:${live ? `${live.state}:${live.left}:${live.pend}` : ''}`; // 수문: 상태 · 남은 초가 바뀔 때만 다시 그린다
+    if (force || sig !== bunitFor) { bu.hidden = false; if (feed) feed.hidden = true; bu.innerHTML = terrainDetail(b.geo, grp, 'bdesel', live); bunitFor = sig; layoutPanels(); }
     return;
   }
   if (!u) { if (bunitFor !== 'none' || force) { bu.innerHTML = ''; bu.hidden = true; if (feed) feed.hidden = false; bunitFor = 'none'; } return; }

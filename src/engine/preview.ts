@@ -1,6 +1,6 @@
 // 개전 예측 (편성 화면 기물 상세): 실제 전투와 같은 시드 · 배치로 전투 첫 몇 초를 미리 돌려
 // 기물마다 예상 이동 경로 · 이동 중 멈춘 칸(병목) · 첫 공격 목표를 뽑는다. 전투는 시드가 같으면 같은 결과라 '예상'이 실제 시작과 맞는다.
-// (편성 · 장비가 바뀌면 다시 계산 — key 로 캐시)
+// (전투에 들어가는 것이 하나라도 바뀌면 다시 계산 — previewKey 로 캐시)
 import { CFG } from '../config';
 import type { Encounter, RunState } from '../types';
 import { buildBattle, deployed, encGeo, foeCell } from './build';
@@ -15,12 +15,20 @@ export interface StartPreview {
   firstAtk?: number;
 }
 const PREV = { secs: 8, wait: 0.6 };
+/** 미리 돌리는 시간 (초): 화면 문구도 이 값을 읽는다 */
+export const PREVIEW_SECS = PREV.secs;
+
+/** 캐시 키: buildBattle 이 읽는 것 전부 — 조우 전체 (적 · 벗긴 장비 · 장치 · 지형 틀 · 시드) + 런 전체 (기물 · 배치 · 소환물 · 포탑 · 전역 증강 · 서약 · 플래그 …).
+ *  골라 담으면 빠뜨린 값(예: 편성 화면에 놓은 장치)이 바뀌어도 낡은 예측을 보여 주므로 통째로 직렬화한다 (조우는 run.node 에서 한 번만) */
+export function previewKey(run: RunState, enc: Encounter): string {
+  const node = run.node && { ...run.node, enc: run.node.enc === enc ? undefined : run.node.enc };
+  return JSON.stringify([enc, { ...run, node }]);
+}
 
 let cacheKey = '', cache: Map<string, StartPreview> = new Map();
 
 export function startPreview(run: RunState, enc: Encounter): Map<string, StartPreview> {
-  const key = JSON.stringify([enc.seed, enc.n, run.units.map((u) => [u.uid, u.pos, u.items, u.mod, u.rank, u.augments.length]), run.summonPos, run.turretPos, run.globals.length]);
-  if (key === cacheKey) return cache;
+  if (previewKey(run, enc) === cacheKey) return cache;
   const out = new Map<string, StartPreview>();
   try {
     const b = buildBattle(run, enc, true);
@@ -62,6 +70,6 @@ export function startPreview(run: RunState, enc: Encounter): Map<string, StartPr
       out.set(u.src!.uid, s.p);
     }
   } catch { /* 미리보기는 실패해도 편성은 그대로 */ }
-  cacheKey = key; cache = out;
+  cacheKey = previewKey(run, enc); cache = out; // 만든 뒤의 키: 만드는 중에 런에 채워지는 값이 있어도 다음 호출은 캐시를 쓴다
   return out;
 }

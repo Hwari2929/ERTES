@@ -1,7 +1,8 @@
 // 지형 · 중립 구조물 검사: 탄도 차단 · 완전 차단 시 부수고 통과 · 틈이 있으면 우회 · 물 너머 사격 · 갈라진 적에게 기술 차단
 import { Battle, T_NOSHOT, T_NOWALK } from '../src/engine/combat';
-import { applyMap, buildEnemy, buildWall, geoOf, zoneAt } from '../src/engine/build';
-import { MAPS } from '../src/data/maps';
+import { applyMap, buildEnemy, buildWall, gateGroupState, gateState, geoOf, zoneAt } from '../src/engine/build';
+import { MAPS, mapOf, TERRAIN } from '../src/data/maps';
+import { CFG } from '../src/config';
 import { ENEMIES } from '../src/data/enemies';
 import { Rng } from '../src/rng';
 declare const process: { exit(code: number): never };
@@ -77,5 +78,50 @@ for (const m of MAPS) for (const n0 of [6, 7, 8]) {
   if (!reach || inZone) ok(false, `지형 틀 ${m.id} 폭 ${n}: 길 ${reach ? '있음' : '없음'} · 진형 안 지형 ${inZone ? '있음' : '없음'}`);
 }
 ok(true, `지형 틀 ${MAPS.length}종 × 폭 6 · 7 · 8: 아군 진형에서 모든 적 진형으로 길이 있다`);
+// 수문 (lv_gate): 닫힐 때 기물이 선 칸은 열린 채 '폐쇄 대기' → 기물이 떠나는 즉시 닫힘. 기물 위로는 절대 닫히지 않는다
+{
+  const m = mapOf('lv_gate'), [shut, open] = m.gateCycle!, g = geoOf(7, 'lv_gate');
+  const gates = m.terrain!(g).filter((c) => c.k === 'gate');
+  const b = new Battle(g.w, g.h, new Rng(5), { phase: 1, credits: 0 });
+  b.geo = g; applyMap(b, g);
+  const sitter = mk(b, melee, 0, 1, g.ay0); sitter.immobile = true; sitter.noAttack = true;
+  const far = mk(b, melee, 1, 1, 1); far.immobile = true; far.noAttack = true;
+  b.start();
+  const run = (until: number) => { while (b.t < until - 1e-9 && !b.over) { b.step(CFG.tick); b.events.length = 0; } };
+  ok(gates.length > 0 && gates.every((c) => gateState(b, c.x, c.y) === 'shut') && b.mem.gateNext === shut, `수문: 닫힌 채 시작 · 다음 전환 ${b.mem.gateNext}초`);
+  run(shut + CFG.tick);
+  ok(gates.every((c) => gateState(b, c.x, c.y) === 'open') && Math.abs(b.mem.gateNext - (shut + open)) < 1e-6, `수문: ${shut}초에 열림 · 다음 전환 ${b.mem.gateNext.toFixed(2)}초`);
+  // 열린 수문 칸 하나에 기물을 세워 두고 닫힘 시각을 넘긴다
+  const c0 = gates[0];
+  ok(b.relocate(sitter, sitter, c0.x, c0.y), '열린 수문 칸으로 들어간다');
+  run(shut + open + CFG.tick);
+  ok(gateState(b, c0.x, c0.y) === 'pending' && !(b.terrainAt(c0.x, c0.y) & T_NOWALK), '닫힘 주기: 기물이 선 칸은 열린 채 폐쇄 대기');
+  ok(gates.slice(1).every((c) => gateState(b, c.x, c.y) === 'shut'), '닫힘 주기: 빈 수문 칸은 닫힘');
+  ok(gateGroupState(b, gates) === 'pending', '수문 덩어리 상태 = 폐쇄 대기');
+  run(shut + open + 1);
+  ok(gateState(b, c0.x, c0.y) === 'pending', '기물이 서 있는 동안은 계속 폐쇄 대기 (닫히지 않음)');
+  // 떠나면 다음 틱에 닫힌다
+  ok(b.relocate(sitter, sitter, c0.x, c0.y + 1), '기물이 수문 칸을 떠난다');
+  b.step(CFG.tick);
+  ok(gateState(b, c0.x, c0.y) === 'shut' && (b.terrainAt(c0.x, c0.y) & TERRAIN.gate.bits) === TERRAIN.gate.bits, '떠난 다음 틱에 그 칸이 닫힌다');
+  ok(gateGroupState(b, gates) === 'shut' && Math.abs(b.mem.gateNext - (2 * shut + open)) < 1e-6, `수문 덩어리 닫힘 · 다음 전환 ${b.mem.gateNext.toFixed(2)}초`);
+}
+// 실제 싸움: 수문 지형 틀에서 양쪽 근접 기물이 싸우는 동안 매 틱 — 통행 불가 칸 위에 선 기물이 없다
+{
+  let bad = 0, pend = 0, ticks = 0;
+  for (const seed of [1, 2, 3]) {
+    const g = geoOf(7, 'lv_gate');
+    const b = new Battle(g.w, g.h, new Rng(seed), { phase: 1, credits: 0 });
+    b.geo = g; applyMap(b, g);
+    for (let c = 0; c < 7; c++) { mk(b, melee, 0, g.x0 + c, g.ay0 + (c % 2)); mk(b, c % 2 ? ranged : melee, 1, g.x0 + c, 1 + (c % 2)); }
+    b.start();
+    for (let i = 0; i < 2400 && !b.over; i++) {
+      b.step(CFG.tick); b.events.length = 0; ticks++;
+      for (const u of b.units) if (u.alive && b.terrainAt(u.x, u.y) & T_NOWALK) bad++;
+      if (!b.mem.gateOpen && b.terrain!.some((v, k) => !v && mapOf('lv_gate').terrain!(g).some((c) => c.k === 'gate' && c.y * g.w + c.x === k))) pend++;
+    }
+  }
+  ok(bad === 0, `수문 전투 ${ticks}틱: 닫힌 칸 위에 선 기물 없음 (폐쇄 대기 ${pend}틱)`);
+}
 if (fail) { console.log(`\n${fail}개 실패`); process.exit(1); }
 console.log('\n지형 검사 통과');
