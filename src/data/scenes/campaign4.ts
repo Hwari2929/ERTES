@@ -31,15 +31,17 @@ export const CAMP4_SCENES: Record<string, EventScene> = {
     cast: ['nadir', 'phyllis', 'rachel', 'vivian', 'temur', 'lindiwe', 'lars'],
     scene: [
       N('베르타-4 제4링 하역 대기실. 거대한 승강축이 오르내릴 때마다 바닥이 낮게 울린다. 창밖으로 링의 곡면이 끝없이 휘어 올라간다.', { bg: 'cp4_dock_lounge', bgm: 'calm' }),
-      N('통신 창은 꺼 두었다. 나디르가 탁자 위에 사진을 한꺼번에 쏟아 놓듯 띄운다. 3장 금고에서 비비안이 찍은 서류 사진이다.'),
-      S('nadir', '사진은 47장이에요! 원본 서류철은 금고에 그대로 있고요, 린디웨 씨가 회수 목록에 올려 놨어요. 아, 근데 맨 아래 장이 없어요. 서명 칸 있는 거요!', { at: 'C', face: 'surprise' }),
+      N('통신 창은 꺼 두었다. 나디르가 탁자 위에 서류 사진을 펼쳐 띄운다. RL-2 금고에서 비비안이 찍은 것이다.'),
+      S('nadir', '사진은 47장이에요. 원본 서류철은 금고에 그대로 있고, 린디웨 씨가 회수 목록에 올려 뒀어요.', { at: 'C', face: 'base' }),
+      N('사진을 넘기던 나디르의 손이 멈춘다.'),
+      S('nadir', '…어? 맨 아래 장이 없어요. 서명 칸 있는 거요.', { face: 'surprise' }),
       S('phyllis', '…여기 있어.', { at: 'R', face: 'smug' }),
       N('필리스가 주머니에서 접힌 종이 한 장을 꺼내 탁자 위로 민다. 서류철 맨 아래 장, 화물을 나른 인부들의 서명 칸이다.'),
       S('nadir', '그거 원본이잖아요?! 금고에서 그냥 들고 나왔어요?!'),
       S('phyllis', '서류철은 회수 목록에 올라갔잖아. 위에서 정리하다가 이 장 하나 빠지면, 여기 적힌 이름들도 같이 없어져-.', { face: 'base' }),
       S('phyllis', '그래서 이름 있는 장만 챙긴 거야.'),
       S('rachel', '…그래서, 이거 어떻게 해?', { at: 'L', face: 'tired' }),
-      S('nadir', '누구한테 주든 사진은 제가 백수정에 따로 떠 둘게요! 그건 무조건이에요!', { face: 'serious', exit: true }),
+      S('nadir', '누구한테 주든 사진은 제가 백수정에 따로 떠 둘게요. 그건 무조건이에요.', { face: 'serious', exit: true }),
       S('vivian', '다 보여 줘야지! 숨기면 다음 정거장에서 또 둥지가 생긴다고!', { at: 'C', face: 'surprise' }),
       S('phyllis', '누구한테? 위로 올리면 위에서 덮어. 그 도장 찍은 데가 바로 위잖아-.'),
       S('vivian', '그럼 린디웨 씨한테! 린디웨 씨는 덮을 사람 아니잖아.'),
@@ -79,8 +81,8 @@ export const CAMP4_SCENES: Record<string, EventScene> = {
       ],
       [
         S('phyllis', '좋아-. 그럼 서명 원본은 내 주머니로.', { at: 'R', face: 'grin' }),
-        N('필리스가 종이를 다시 접어 넣는다. 나디르는 백수정 하나를 꺼내 사진 47장을 허겁지겁 떠 넣는다.'),
-        S('nadir', '됐다! 사진은 여기 다 떴어요. 누가 지우라고 해도 저는 못 지워요!', { at: 'C', face: 'grin' }),
+        N('필리스가 종이를 다시 접어 넣는다. 나디르는 백수정 하나를 꺼내 사진 47장을 서둘러 떠 넣는다.'),
+        S('nadir', '다 떴어요. 누가 지우라고 해도 저는 못 지워요.', { at: 'C', face: 'serious' }),
         S('vivian', '…기록은 남기는 거잖아. 숨기는 거 아니잖아.', { at: 'L', face: 'worried' }),
         S('phyllis', '남기는 거 맞아. 꺼내는 때를 고르는 거지-.'),
         S('vivian', '…그때가 너무 늦으면?'),
@@ -95,7 +97,7 @@ export const CAMP4_SCENES: Record<string, EventScene> = {
     cast: ['nadir', 'vivian', 'temur', 'lindiwe', 'phyllis', 'rachel'],
     scene: [
       N('제4링 통관 기록실. 천장까지 닿는 서류 선반 사이로 기록 단말이 줄지어 서 있다. 사람은 없다.', { bg: 'cp4_archive', bgm: 'eerie' }),
-      N('기록실 앞에 린디웨가 서류 가방을 들고 서 있다. 회수 목록에서 꺼내 온 원본 서류철이다.', audit),
+      N('기록실 앞에 린디웨가 서류 가방을 들고 서 있다. 가방 안에는 회수 목록에서 꺼내 온 원본 서류철이 들어 있다.', audit),
       S('lindiwe', '서명 원본은 제가 받아 갈게요. 감사에는 원본이 들어가야 해요.', { at: 'R', face: 'serious', ...audit }),
       S('phyllis', '…이름은 지우지 마.', { at: 'L', face: 'base', ...audit }),
       S('lindiwe', '지우는 건 제 일이 아니에요.', audit),
@@ -104,13 +106,13 @@ export const CAMP4_SCENES: Record<string, EventScene> = {
       S('temur', '아저씨가 문을 열어 놨네. 볼 테면 보라는 거냐?', { at: 'R', face: 'base', ...lars }),
       N('잠긴 문 너머에서 필리스가 손을 흔든다. 벽에 사람 하나 지나갈 만한 균열이 나 있다.', quiet),
       S('phyllis', '먼저 와 있었어-. 문은 안 열었으니까 출입 기록도 안 남아.', { at: 'R', face: 'grin', ...quiet }),
-      S('nadir', '급송 통관은 따로 묶여 있을 거예요! 근데 선반 좀 봐요, 끝이 안 보여요. 다 뒤지려면 한참 걸려요!', { at: 'C', face: 'worried' }),
+      S('nadir', '급송 통관은 따로 묶여 있을 거예요. 근데 선반이 끝이 안 보여요. 다 뒤지려면 한참 걸려요.', { at: 'C', face: 'worried' }),
       S('vivian', '다 뒤지자! 이번엔 끝까지 보자!', { at: 'L', face: 'grin' }),
     ],
     after: [
       [
         N('한참 뒤, 선반 맨 아래에 엎드려 있던 나디르가 묶음 하나를 끌어낸다. 표지에 \'급송 통관 — 격리 검사 생략\'이라고 찍혀 있다.', { bg: 'cp4_archive', bgm: 'eerie' }),
-        S('nadir', '찾았다! 여기요, 여기! 승인 코드가… 무역관세부 물류 라인이에요!', { at: 'C', face: 'surprise' }),
+        S('nadir', '찾았다! 여기요, 여기! 승인 코드가… 무역관세부 물류 라인이에요.', { at: 'C', face: 'surprise' }),
         S('nadir', '사유는 \'산노디스 소등 대비, AH 절감.\' 용도는… \'제32시 건설 자재\'래요.', { face: 'serious' }),
         S('temur', '검사하는 시간을 아끼려고 안 열었다는 거네.', { at: 'R', face: 'base', if: '!cp_br_audit' }),
         S('lindiwe', '급송 통관은 원래 의료 물자 같은 데만 쓰는 절차예요. 이건 화물 전체에 걸려 있어요.', { at: 'R', face: 'serious', ...audit }),
@@ -139,7 +141,7 @@ export const CAMP4_SCENES: Record<string, EventScene> = {
     scene: [
       N('격리 검사 갑문 앞. 컨베이어가 멈춘 검사대 위에 먼지가 앉았다. 갑문 너머에서 무언가 숨 쉬듯 부풀었다 가라앉는다.', { bg: 'cp4_gate', bgm: 'tense' }),
       N('검사 기록 화면에는 \'급송 — 검사 생략\' 도장이 끝없이 이어진다.'),
-      S('nadir', '이거 다시 돌리면요! 갑문으로 넘어가는 컨테이너를 하나하나 다 볼 수 있어요! 셔터 제어도 이쪽으로 넘어오고요!', { at: 'C', face: 'grin' }),
+      S('nadir', '이거 다시 돌리면 갑문으로 넘어가는 컨테이너를 하나씩 다 볼 수 있어요. 셔터 제어도 이쪽으로 넘어오고요.', { at: 'C', face: 'serious' }),
       S('phyllis', '그거 다 기다리다간 둥지가 먼저 커진다-.', { at: 'R', face: 'smug' }),
       S('temur', '이거 상자 하나씩 다 열어 보는 거야? …오래 걸리겠네.', { at: 'L', face: 'base', exit: true }),
       S('lindiwe', '검사관 인장도 여기 있네요. 원래 상자마다 찍혀야 하는 도장이에요.', { at: 'L', face: 'serious', ...audit }),
@@ -150,7 +152,7 @@ export const CAMP4_SCENES: Record<string, EventScene> = {
         N('컨베이어가 덜컹거리며 다시 돈다. 나디르가 화면에 코를 박다시피 붙어 컨테이너 번호를 읽는다.', { bg: 'cp4_gate', bgm: 'tense', sfx: 'servo' }),
         S('nadir', 'C-1102 깨끗! C-1103 깨끗! C-1104… 으악, 봉인! 봉인이요!', { at: 'C', face: 'surprise' }),
         S('phyllis', '…이게 원래 하던 일이야? 지루하다-.', { at: 'R', face: 'tired' }),
-        S('nadir', '지루한 게 맞는 거예요!'),
+        S('nadir', '지루한 게 맞는 거예요.'),
         N('테무르가 검사관 인장을 집어 든다. 깨끗한 컨테이너마다 하나씩, 쾅, 쾅 찍는다.', { sfx: 'clank' }),
         S('temur', '이거 재밌네.', { at: 'L', face: 'grin' }),
         N('갑문 셔터 제어 화면에 초록 불이 들어온다.'),
@@ -163,7 +165,7 @@ export const CAMP4_SCENES: Record<string, EventScene> = {
   },
 
   // ④-감사: 버튼 하나 앞에서 라르스가 조건을 낸다 ('한 번이면 충분하다' · 554년 감사번호).
-  //   직접 보고 쪽: 승인 코드까지 나오면 '사고 처리'가 안 통한다 → 남이 쓰기 전에 자기가 범위를 정해 쓰는 게 싸다 (라르스의 계산)
+  //   직접 보고 쪽: 승인 코드까지 나오면 '사고 처리'가 안 통한다 → '승인 경위는 제가 먼저 정리해서 올리죠' (업무 명분. 속셈 — 책임 범위를 자기가 적는다 — 은 말하지 않고, 끝 장면에서 필리스가 그 한계를 확인한다)
   cp4_meet_audit: {
     cast: ['lindiwe', 'lars', 'nadir', 'rachel', 'vivian'],
     scene: [
@@ -198,7 +200,7 @@ export const CAMP4_SCENES: Record<string, EventScene> = {
       ],
       [
         S('lars', '…승인 코드와 사유까지 나왔으면, 이건 더 이상 사고로 처리되지 않습니다.', { ...LARS, at: 'C', face: 'base' }),
-        S('lars', '그렇다면 감사실이 쓰는 보고서보다 제가 쓰는 보고서가 쌉니다. 어디까지가 제 책임인지는 제가 적을 수 있으니까요.', LARS),
+        S('lars', '그렇다면 저희 라인의 승인 경위는 제가 먼저 정리해서 올리죠. 그게 순서입니다.', LARS),
         N('라르스가 손목시계를 본다. 17시 58분.', { sfx: 'tick' }),
         S('lars', '보고서는 제가 쓰죠. 오늘 안에.', LARS),
         S('lindiwe', '오늘요? 지금 퇴근 2분 전이신데요.', { at: 'R', face: 'surprise' }),
@@ -217,7 +219,7 @@ export const CAMP4_SCENES: Record<string, EventScene> = {
       S('lars', '17시 40분이군요. 20분이면 충분하겠죠.', { at: 'R', face: 'base' }),
       S('rachel', '금고에서 나온 서류, 아저씨 라인 거지?', { at: 'L', face: 'tired' }),
       S('lars', '네. 제 라인입니다.'),
-      S('nadir', '급송 통관 승인 기록도 찾았어요! 사유는 \'산노디스 소등 대비, AH 절감\'이요!', { at: 'C', face: 'angry', ...found }),
+      S('nadir', '급송 통관 승인 기록도 찾았어요. 사유는 \'산노디스 소등 대비, AH 절감\'이요.', { at: 'C', face: 'serious', ...found }),
       S('lars', '소등 예보가 당겨지면서 제32시 자재가 급했습니다. 검사를 다 하면 12시간, 급송이면 8시간이죠.', found),
       S('lars', '대신 검사 없이 보낸 컨테이너 가운데 10개 중 1개쯤은 문제가 생길 수 있다고 봤습니다. 그 정도는 감수하는 계산이었죠.', { ...found, exit: ['nadir'] }),
       S('temur', '그 10개 중 1개는 누가 열었는데?', { at: 'C', face: 'base', ...found }),
@@ -244,7 +246,7 @@ export const CAMP4_SCENES: Record<string, EventScene> = {
       [
         N('라르스가 나디르가 내민 승인 기록을 받아 든다. 한참 들여다본다.'),
         S('lars', '…승인 코드와 사유까지 나왔으면, 이건 더 이상 사고로 처리되지 않습니다.', { at: 'R', face: 'base' }),
-        S('lars', '그렇다면 감사실이 쓰는 보고서보다 제가 쓰는 보고서가 쌉니다. 어디까지가 제 책임인지는 제가 적을 수 있으니까요.'),
+        S('lars', '그렇다면 저희 라인의 승인 경위는 제가 먼저 정리해서 올리죠. 그게 순서입니다.'),
         S('phyllis', '…인부들 얘기도 적어?', { at: 'C', face: 'base' }),
         S('lars', '제 라인의 승인까지 적겠습니다. 그 아래는 감사실이 정하겠죠.'),
         N('라르스가 외투를 의자 등받이에 건다. 벽시계는 18시를 넘겼다.'),
@@ -267,7 +269,7 @@ export const CAMP4_SCENES: Record<string, EventScene> = {
       N('라르스가 바로 대답하지 않는다.', { sfx: 'tick' }),
       S('lars', '서류철은 회수 목록에 있으니 언제든 볼 수 있습니다. 그 목록 밖에 있는 원본은 그 1장뿐이군요.', LARS),
       S('lars', '…값을 매겨 보죠.', LARS),
-      S('nadir', '팔기 전에 이것도 보세요! 급송 통관 승인 기록이에요. 사유가 \'소등 대비 AH 절감\'이고요!', { at: 'C', face: 'angry', ...found }),
+      S('nadir', '팔기 전에 이것도 보세요. 급송 통관 승인 기록이에요. 사유가 \'소등 대비 AH 절감\'이고요.', { at: 'C', face: 'serious', ...found }),
       S('lars', '…그것까지 찾으셨군요.', found),
     ],
     after: [
@@ -285,9 +287,9 @@ export const CAMP4_SCENES: Record<string, EventScene> = {
       [
         S('rachel', '…아저씨가 직접 써.', { at: 'L', face: 'tired' }),
         S('lars', '…제가요?', { ...LARS, at: 'R', face: 'surprise' }),
-        S('nadir', '승인 코드도, 사유도, 서명 원본도 다 여기 있잖아요! 쓰기만 하면 돼요!', { at: 'C', face: 'angry' }),
+        S('nadir', '승인 코드도, 사유도, 서명 원본도 다 여기 있잖아요. 쓰기만 하면 돼요!', { at: 'C', face: 'angry' }),
         N('라르스가 손목시계를 본다. 18시가 넘었다.', { sfx: 'tick' }),
-        S('lars', '…승인 코드까지 나왔으면 사고로는 처리되지 않습니다. 그렇다면 남이 쓰기 전에 제가 쓰는 게 쌉니다.', { ...LARS, face: 'base' }),
+        S('lars', '…승인 코드까지 나왔으면 사고로는 처리되지 않습니다. 저희 라인의 승인 경위는 제가 먼저 정리해서 올리죠.', { ...LARS, face: 'base' }),
         S('lars', '보고서는 오늘 안에 쓰죠. 마지막 구간 AH는 제가 더 사 두겠습니다.', LARS),
       ],
     ],

@@ -227,7 +227,7 @@ export const EVENTS: EventDef[] = [
     choices: [
       { label: '그대로 제출한다', desc: '감사번호가 붙는다 (지울 수 없다). 격리팀 신고 포상금 크레딧 +6.', apply: (r, api) => { api.flag('cp4_filed'); r.credits += 6; return '제출했습니다. 크레딧 +6.'; } },
       { label: '원본은 린디웨가 쥐고 있는다', desc: '제출을 미룬다. 라르스가 이번 장 칼퇴 보너스를 2배로 쳐 준다 (장 정산 때).', apply: (_r, api) => { api.flag('cp4_held'); return '제출을 미뤘습니다. 이번 장 칼퇴 보너스 2배.'; } },
-      { label: '라르스가 직접 제출하게 한다', desc: '급송 승인 기록을 보여 주고, 라르스 본인이 보고서를 쓰게 한다 (책임 범위는 라르스가 적는다). AH +4.', block: (r) => (r.flags.includes('cp4_found') ? null : '통관 기록실에서 급송 승인 기록을 찾아야 합니다'),
+      { label: '라르스가 직접 제출하게 한다', desc: '급송 승인 기록을 보여 주고, 라르스 본인이 보고서를 쓰게 한다 (승인 경위는 라르스가 정리한다). AH +4.', block: (r) => (r.flags.includes('cp4_found') ? null : '통관 기록실에서 급송 승인 기록을 찾아야 합니다'),
         apply: (r, api) => { api.flag('cp4_lars_filed'); if (r.campaign) r.campaign.time += 4; return '라르스가 직접 보고서를 쓰기로 했습니다. AH +4.'; } },
     ],
   },
@@ -237,7 +237,7 @@ export const EVENTS: EventDef[] = [
     choices: [
       { label: '보상을 받고 끝낸다', desc: '라르스의 보상: 크레딧 +16. 서류 얘기는 여기서 덮는다.', apply: (r, api) => { api.flag('cp4_paid'); r.credits += 16; return '크레딧 +16.'; } },
       { label: '정보감사실에 넘기겠다고 말한다', desc: '라르스는 막지 않는다. 격리팀 신고 포상금 크레딧 +6.', apply: (r, api) => { api.flag('cp4_filed'); r.credits += 6; return '정보감사실에 넘겼습니다. 크레딧 +6.'; } },
-      { label: '직접 보고하라고 한다', desc: '급송 승인 기록을 내밀고, 라르스 본인이 보고서를 쓰게 한다 (책임 범위는 라르스가 적는다). AH +4.', block: (r) => (r.flags.includes('cp4_found') ? null : '통관 기록실에서 급송 승인 기록을 찾아야 합니다'),
+      { label: '직접 보고하라고 한다', desc: '급송 승인 기록을 내밀고, 라르스 본인이 보고서를 쓰게 한다 (승인 경위는 라르스가 정리한다). AH +4.', block: (r) => (r.flags.includes('cp4_found') ? null : '통관 기록실에서 급송 승인 기록을 찾아야 합니다'),
         apply: (r, api) => { api.flag('cp4_lars_filed'); if (r.campaign) r.campaign.time += 4; return '라르스가 직접 보고서를 쓰기로 했습니다. AH +4.'; } },
     ],
   },
@@ -247,7 +247,7 @@ export const EVENTS: EventDef[] = [
     choices: [
       { label: '서명 원본을 라르스에게 판다', desc: '라르스가 산다: 크레딧 +18. 서명 원본은 라르스에게 간다 (사진 기록은 남는다).', apply: (r, api) => { api.flag('cp4_sold'); r.credits += 18; return '서명 원본을 넘겼습니다. 크레딧 +18.'; } },
       { label: '서명 원본은 그대로 갖는다', desc: '팔지 않는다. 필리스가 아는 균열 지름길: AH +2.', apply: (r, api) => { api.flag('cp4_kept'); if (r.campaign) r.campaign.time += 2; return '서명 원본은 필리스가 그대로 갖고 있습니다. AH +2.'; } },
-      { label: '서명 원본을 내민다', desc: '급송 승인 기록과 서명 원본을 내밀고, 라르스 본인이 보고서를 쓰게 한다 (책임 범위는 라르스가 적는다). AH +4.', block: (r) => (r.flags.includes('cp4_found') ? null : '통관 기록실에서 급송 승인 기록을 찾아야 합니다'),
+      { label: '서명 원본을 내민다', desc: '급송 승인 기록과 서명 원본을 내밀고, 라르스 본인이 보고서를 쓰게 한다 (승인 경위는 라르스가 정리한다). AH +4.', block: (r) => (r.flags.includes('cp4_found') ? null : '통관 기록실에서 급송 승인 기록을 찾아야 합니다'),
         apply: (r, api) => { api.flag('cp4_lars_filed'); if (r.campaign) r.campaign.time += 4; return '라르스가 직접 보고서를 쓰기로 했습니다. AH +4.'; } },
     ],
   },
