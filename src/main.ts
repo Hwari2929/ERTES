@@ -2630,7 +2630,7 @@ function advSync(run: RunState | null) {
   const live = run && p && app.screen !== 'battle' && app.screen !== 'over';
   if (live && p.t === 'event') {
     const ev = EVENT_BY_ID[p.id];
-    playAdv(`ev:${p.id}:${run.pending.length}`, R.eventScene(p), {
+    playAdv(`ev:${p.id}:${run.pending.length}`, R.eventScene(p, run.flags), {
       title: ev.title, speaker: advSpeaker, fmt: (x) => ic(esc(x)),
       choices: ev.choices.map((c) => ({ label: c.label, desc: c.desc, why: c.block?.(run) || undefined })),
       onDone: (k) => act('event-choice', String(k)),

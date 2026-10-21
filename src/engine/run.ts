@@ -1947,7 +1947,7 @@ export function chooseEvent(run: RunState, idx: number): string | null {
   // 결과 장면: 연출의 after[선택지] (키별이면 outcome 키)
   const aft = EVENT_SCENES[ev.id]?.after?.[idx];
   const beats = !aft ? null : Array.isArray(aft) ? aft : aft[outKey] ?? aft.default ?? null;
-  const scene = beats ? resolveScene(beats, undefined, null, { ...sceneVars(p.sub), ...vars }) : undefined;
+  const scene = beats ? resolveScene(beats, undefined, null, { ...sceneVars(p.sub), ...vars }, run.flags) : undefined;
   run.pending.unshift({ t: 'notice', title: ev.title, body: `${c.label} — ${msg}`, scene }, ...follow);
   log(run, `사건: ${ev.title} — ${c.label}`);
   return null;
@@ -1964,11 +1964,11 @@ function pickSub(run: RunState, id: string): string | null {
   return pool.length ? rng(run, (r) => r.pick(pool)) : null;
 }
 const sceneVars = (sub: string | null | undefined): Record<string, string> => ({ pc: PC_NAME, sub: sub ? UNIT_BY_ID[sub]?.name || sub : '' });
-/** 사건 본문 장면 (연출이 없으면 text 를 서술 한 줄로) */
-export function eventScene(p: { id: string; sub?: string | null }): Beat[] {
+/** 사건 본문 장면 (연출이 없으면 text 를 서술 한 줄로). flags = 런 깃발 (앞선 조사를 기억하는 줄 · Beat.if) */
+export function eventScene(p: { id: string; sub?: string | null }, flags: readonly string[] = []): Beat[] {
   const sc = EVENT_SCENES[p.id];
   if (!sc) return [{ text: EVENT_BY_ID[p.id]?.text || '' }];
-  return resolveScene(sc.scene, sc.subs, p.sub, sceneVars(p.sub));
+  return resolveScene(sc.scene, sc.subs, p.sub, sceneVars(p.sub), flags);
 }
 
 // ───────────────────────── 기물 방출

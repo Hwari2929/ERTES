@@ -43,6 +43,8 @@ export interface Beat {
   /** 효과음 (SFXS 키) */
   sfx?: string;
   fx?: Fx;
+  /** 이 줄은 런 깃발이 있을 때만 (앞에 '!' = 없을 때만). 앞선 조사 · 선택을 뒤 장면이 기억하게 할 때 쓴다 */
+  if?: string;
 }
 export type ScriptLine = Beat | { slot: 'sub' };
 
@@ -112,12 +114,14 @@ export function fillText(s: string, vars: Record<string, string>): string {
   return s.replace(/\{(\w+)\}(?:(으로|을|를|이|가|은|는|과|와|아|야|로)(?![가-힣]))?/g, (m, k, j) => (k in vars ? vars[k] + (j ? josa(vars[k], j) : '') : m));
 }
 
-/** 조연 슬롯을 펼치고 치환까지 끝낸 대사 배열 */
-export function resolveScene(lines: ScriptLine[], subs: Record<string, Beat[]> | undefined, sub: string | null | undefined, vars: Record<string, string>): Beat[] {
+/** 깃발 조건(Beat.if)에 맞는 줄인가 */
+const meets = (b: Beat, flags: readonly string[]) => !b.if || (b.if[0] === '!' ? !flags.includes(b.if.slice(1)) : flags.includes(b.if));
+/** 조연 슬롯을 펼치고, 깃발 조건에 맞지 않는 줄을 빼고, 치환까지 끝낸 대사 배열 */
+export function resolveScene(lines: ScriptLine[], subs: Record<string, Beat[]> | undefined, sub: string | null | undefined, vars: Record<string, string>, flags: readonly string[] = []): Beat[] {
   const out: Beat[] = [];
   for (const l of lines) {
-    if (isSlot(l)) { if (sub && subs?.[sub]) out.push(...subs[sub]); continue; }
-    out.push(l);
+    if (isSlot(l)) { if (sub && subs?.[sub]) out.push(...subs[sub].filter((b) => meets(b, flags))); continue; }
+    if (meets(l, flags)) out.push(l);
   }
   return out.map((b) => ({ ...b, text: fillText(b.text, vars) }));
 }
