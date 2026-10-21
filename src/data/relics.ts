@@ -25,6 +25,8 @@ export const RELICS: RelicDef[] = [
     act(b, u, k) {
       for (const a of b.alliesOf(u)) b.heal(u, a, b.S(a, 'maxHp') * 0.12 * k);
       b.fx(u.x, u.y, 2, 'holy', 'heal');
+      if (u.mem.relLantern) return; // 다시 발동해도 (재림의 서약 등) 지속 회복은 겹치지 않는다
+      u.mem.relLantern = 1;
       u.hooks.push({ onTick(bb, self, dt) {
         self.mem.lanternT = (self.mem.lanternT || 0) + dt;
         if (self.mem.lanternT < 1) return;
@@ -116,10 +118,13 @@ export const RELICS: RelicDef[] = [
         b.heal(u, a, b.S(a, 'maxHp') * 0.12 * k);
       }
       b.buff(u, u, 'rel.bell', FOREVER, { mods: [inc('all', 0.2 * k)], label: '방울 소리' });
-      u.hooks.push({ onTick(bb, self) {
-        if (!self.alive) return;
-        for (const e of bb.around(self, 1, bb.enemiesOf(self))) bb.applyStatus(self, e, { type: 'buff', key: 'rel.bell.v', dur: 0.4, taken: [vuln('all', 0.1 * k)], label: '' });
-      } });
+      if (!u.mem.relBell) { // 다시 발동해도 주변 취약은 겹치지 않는다
+        u.mem.relBell = 1;
+        u.hooks.push({ onTick(bb, self) {
+          if (!self.alive) return;
+          for (const e of bb.around(self, 1, bb.enemiesOf(self))) bb.applyStatus(self, e, { type: 'buff', key: 'rel.bell.v', dur: 0.4, taken: [vuln('all', 0.1 * k)], label: '' });
+        } });
+      }
       b.fx(u.x, u.y, 1, 'holy', 'heal');
     } },
   // ── 순례 전용
@@ -151,6 +156,8 @@ export const RELICS: RelicDef[] = [
     desc: (k) => `전투 끝까지 자신의 피해 +${pct(0.35 * k)}, 공격이 주변 1칸 적에게 ${pct(0.3 * k)} 피해로 번진다.`,
     act(b, u, k) {
       b.buff(u, u, 'rel.helm', FOREVER, { mods: [inc('all', 0.35 * k)], label: '전쟁의 투구' });
+      if (u.mem.relHelm) return; // 다시 발동해도 번지는 피해는 겹치지 않는다
+      u.mem.relHelm = 1;
       u.hooks.push({ onBasic(bb, self, t, r) {
         if (r.amount <= 0) return;
         for (const e of bb.around(t, 1, bb.enemiesOf(self))) if (e !== t) bb.dealDamage(self, e, r.amount * 0.3 * k, { elem: 'phys', tag: 'proc', noHooks: true });

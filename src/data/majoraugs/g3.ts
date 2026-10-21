@@ -140,7 +140,7 @@ const ISSAC: AugDef[] = [
     if (r.amount > 0 && t.alive && b.rng.chance(0.25)) b.dealDamage(u, t, b.S(u, 'strike') * 0.5, { elem: 'chem', tag: 'proc', kind: 'strike' });
   } } }),
   mj('issac', 'patience', '참을성의 한계', '피격으로 차는 궁극기 게이지 2배.', { hooks: { onHurt(b, u, _s, r, o) {
-    if (o.tag !== 'dot' && r.amount > 0) b.ultGain(u, CFG.ultGain.hurt);
+    if (o.tag !== 'dot' && r.amount > 0 && u.mem.ultHurtAt === b.t) b.ultGain(u, CFG.ultGain.hurt, 'bonus'); // 이번 피격에 엔진 피격 충전이 들어갔을 때만 같은 양 한 번 더
   } } }),
   mj('issac', 'ornis', '오르니스 예법', '성간 인류 연합 시너지 기물 1명당 (자신 포함) 방어도 +6%.', { setup: (u, _b, ctx) => { u.st.armor *= 1 + 0.06 * (ctx.counts.UNI || 0); } }),
   mj('issac', 'hands', '녹빛 손', '처음으로 체력이 50% 이하가 되면 녹빛 손 2기가 떨어져 나와 싸운다 (돌격가 · 화학 근접, 능력치 상속률 = 최고의 친구 기본 상속률 × 1.5, 체력 ×0.8).', { hooks: { onHurt(b, u) {

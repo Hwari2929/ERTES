@@ -103,7 +103,7 @@ export const OATH_AUGS: AugDef[] = [
       b.fx(a.x, a.y, 0, 'holy', 'buff');
       rel.act(b, a, (u.mem.enh || 1) * (1 + (u.mem.divK || 0)) * VOW.echo);
     } } })),
-  V('share', '나눔의 서약', `자신이 얻은 신성력의 ${pc(VOW.share)}를 신성력이 있는 다른 아군도 얻는다 (나눠 받은 신성력은 다시 나누지 않는다). 신권 대행을 쓰면 다른 아군 전원의 궁극기 게이지 +${pc(VOW.shareUlt)}, 기술 쿨다운 -${VOW.shareCd}초.`,
+  V('share', '나눔의 서약', `자신이 얻은 신성력의 ${pc(VOW.share)}를 신성력이 있는 다른 아군도 얻는다 (나눠 받은 신성력은 다시 나누지 않는다). 신권 대행을 처음 쓸 때 (전투당 1번) 다른 아군 전원의 궁극기 게이지 +${pc(VOW.shareUlt)}, 기술 쿨다운 -${VOW.shareCd}초.`,
     () => ({ hooks: {
       onTick(b, u) {
         // 자기 몫으로 얻은 신성력 = 수집량 - 나눠 받은 양 (mem.divIn). 지난번 이후 늘어난 만큼 나눈다
@@ -119,8 +119,9 @@ export const OATH_AUGS: AugDef[] = [
         }
       },
       onDivine(b, u) {
+        if ((u.mem.divActs || 0) > 1) return; // 전투당 1번: 재림의 서약 등으로 다시 써도 궁극기 · 쿨다운 몫은 반복되지 않는다 (재림 + 열성 + 나눔 조합에서 아군 궁극기가 2배 넘게 돌았다)
         for (const a of b.alliesOf(u, false)) {
-          if (a.ult) a.ultG = Math.min(1, (a.ultG || 0) + VOW.shareUlt);
+          if (a.ult) { const g0 = a.ultG || 0; a.ultG = Math.min(1, g0 + VOW.shareUlt); a.mem['ug.bonus'] = (a.mem['ug.bonus'] || 0) + (a.ultG - g0); }
           a.cd = Math.max(0, a.cd - VOW.shareCd);
         }
         b.fx(u.x, u.y, 2, 'holy', 'buff');

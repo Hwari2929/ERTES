@@ -9,7 +9,7 @@ import { augChoice, forkChoice, manageItems, shopSynth, pilgrimBot } from './bot
 import { Rng } from '../src/rng';
 import { MAJORS, type Major, type RunState } from '../src/types';
 
-declare const process: { argv: string[] };
+declare const process: { argv: string[]; env: Record<string, string | undefined> };
 
 function resolvePending(run: RunState, bot: Rng) {
   while (run.pending.length) {
@@ -61,6 +61,8 @@ function manage(run: RunState) {
   R.autoPlace(run);
 }
 
+/** 전투 직후 계측 (모드 'ult' 등): 전투 결과를 정산하기 전에 부른다 */
+const onBattle: ((b: ReturnType<typeof buildBattle>, run: RunState) => void)[] = [];
 function playRun(seed: number, force?: string, field?: string) {
   const bot = new Rng(seed * 7 + 1);
   const starters = force ? [force, ...bot.sample(STARTERS.filter((x) => x !== force), CFG.startUnits - 1)] : bot.sample(STARTERS, CFG.startUnits);
@@ -85,6 +87,7 @@ function playRun(seed: number, force?: string, field?: string) {
     }
     const b = buildBattle(run, run.node.enc!, false);
     b.runToEnd();
+    for (const f of onBattle) f(b, run);
     battles++;
     const ph = run.phase;
     const key = run.node.type === 'boss' ? -ph : ph; // 음수 = 보스전
@@ -112,6 +115,47 @@ if (process.argv[3] === 'fields') {
     const rate = (k: number) => (wl[k] ? `${Math.round((wl[k].w / (wl[k].w + wl[k].l)) * 100)}%` : '-');
     console.log(`${f.name.padEnd(16)} 평균 ${(sum / N).toFixed(2)}  보스 P3 ${rate(-3)} P5 ${rate(-5)} P6 ${rate(-6)} P7 ${rate(-7)}  일반 P6 ${rate(6)} P7 ${rate(7)}`);
   }
+  throw 0;
+}
+if (process.argv[3] === 'ult') {
+  // SIM_ULTGAIN='{"basic":0,"skill":0,"hurt":0}' 처럼 행동 충전 계수를 바꿔 같은 시드로 비교한다
+  if (process.env.SIM_ULTGAIN) Object.assign(CFG.ultGain, JSON.parse(process.env.SIM_ULTGAIN));
+  // 궁극기 · 신권 대행 계측: 첫 궁극기 시각 · 전투당 사용 횟수 · 충전 출처 비중 (전투 유형별), 디바인 신권 대행 횟수 (서약 조합별)
+  const med = (a: number[]) => { const x = [...a].sort((p, q) => p - q); return x.length ? x[Math.floor(x.length / 2)] : NaN; };
+  const M = { durs: [] as number[], n: 0, uses: 0, first: [] as number[], src: {} as Record<string, number>, ct: {} as Record<string, { n: number; first: number[]; uses: number; hurt: number; tot: number }> };
+  const D: Record<string, { n: number; acts: number; first: number[]; multi: number }> = {};
+  const VOWS = ['vow.twice', 'vow.zeal', 'vow.share', 'vow.echo', 'vow.martyr'];
+  onBattle.push((b) => {
+    if (b.t < 3) return;
+    M.durs.push(b.t);
+    for (const c of b.units) {
+      if (c.side !== 0 || !c.src) continue;
+      const m = c.mem;
+      if (c.ult) {
+        M.n++; M.uses += m.ultN || 0; if (m.ultT1) M.first.push(m.ultT1);
+        const k = (M.ct[c.ctype || "?"] ||= { n: 0, first: [], uses: 0, hurt: 0, tot: 0 });
+        k.n++; k.uses += m.ultN || 0; if (m.ultT1) k.first.push(m.ultT1);
+        for (const s of ['time', 'basic', 'skill', 'hurt', 'bonus']) { const v = m[`ug.${s}`] || 0; M.src[s] = (M.src[s] || 0) + v; k.tot += v; if (s === 'hurt') k.hurt += v; }
+      }
+      if (UNIT_BY_ID[c.src.defId]?.ttype === 'divine' && c.div !== null) {
+        const own = VOWS.filter((v) => c.src!.augments.some((a) => a.id === v));
+        const keys = ['전체', own.length ? own.map((v) => v.slice(4)).sort().join('+') : '(조합 서약 없음)'];
+        if (own.includes('vow.twice') && own.includes('vow.zeal') && own.includes('vow.share')) keys.push('재림+열성+나눔');
+        for (const key of keys) {
+          const d = (D[key] ||= { n: 0, acts: 0, first: [], multi: 0 });
+          d.n++; d.acts += m.divActs || 0; if (m.divT1) d.first.push(m.divT1); if ((m.divActs || 0) >= 2) d.multi++;
+        }
+      }
+    }
+  });
+  for (let i = 1; i <= N; i++) playRun(i * 1013);
+  const tot = Object.values(M.src).reduce((a, b) => a + b, 0) || 1;
+  console.log(`전투 ${M.durs.length}회 · 전투 시간 중앙값 ${med(M.durs).toFixed(1)}초`);
+  console.log(`메이저 ${M.n}기-전투 · 첫 궁극기 중앙값 ${med(M.first).toFixed(1)}초 (쓴 비율 ${((M.first.length / M.n) * 100).toFixed(0)}%) · 전투당 ${(M.uses / M.n).toFixed(2)}회`);
+  console.log(`충전 출처: ${Object.entries(M.src).map(([k, v]) => `${k} ${((v / tot) * 100).toFixed(0)}%`).join(' · ')}`);
+  for (const [k, v] of Object.entries(M.ct)) console.log(`  ${k}: 첫 ${med(v.first).toFixed(1)}초 · 전투당 ${(v.uses / v.n).toFixed(2)}회 · 피격 비중 ${((v.hurt / (v.tot || 1)) * 100).toFixed(0)}%`);
+  console.log('디바인 신권 대행 (서약 조합별):');
+  for (const [k, d] of Object.entries(D).sort((a, b) => b[1].n - a[1].n)) console.log(`  ${k.padEnd(22)} n=${String(d.n).padStart(4)} · 전투당 ${(d.acts / d.n).toFixed(2)}회 · 2회 이상 ${((d.multi / d.n) * 100).toFixed(0)}% · 첫 발동 ${med(d.first).toFixed(1)}초`);
   throw 0;
 }
 if (process.argv[3] === 'units') {

@@ -8,9 +8,7 @@ import { CFG } from '../../src/config';
 import { DESPAIRS } from '../../src/data/despair';
 import { EMBLEM_SYNS, GLOBALS, PRIVILEGES } from '../../src/data/globals';
 import { emblemId } from '../../src/data/items';
-import { MAJOR_AUGS } from '../../src/data/rework';
 import { schoolPassives } from '../../src/data/psionic';
-import { schoolOf } from '../../src/data/schools';
 import { UNIT_BY_ID } from '../../src/data/units';
 import { SYNERGIES, tierOf } from '../../src/data/synergies';
 import { deployed, memberships } from '../../src/engine/build';
@@ -250,11 +248,10 @@ function schoolScore(run: RunState, u: UnitState, a: AugPick): number {
   const fut = schoolPassives(s as never).map((p) => augScore(run, x, { id: p.id })).sort((p, q) => q - p).slice(0, 4);
   return augScore(run, u, a) + AUG.schoolFuture * (fut.length ? fut.reduce((p, q) => p + q, 0) / fut.length : 0);
 }
-/** 새 뽑기 표본 풀 (공개 규칙: 메이저 = MAJOR_AUGS, 스페셜 = 전용 증강, 전공 = 학파 전공 증강, 보유 증강은 중첩 가능한 것만) */
+/** 새 뽑기 표본 풀 (공개 규칙 = 게임의 R.augPoolOf: 메이저 = 기물 전용 증강, 디바인 = 서약 증강, 사이오닉 = 학파 전공 증강, 보유 증강은 중첩 가능한 것만) */
 function augPool(u: UnitState, kind: string): AugPick[] {
   const owned = new Set(u.augments.map((a) => a.id));
-  const d = UNIT_BY_ID[u.defId];
-  const base = kind === 'special' ? d.specialAugs || [] : kind === 'psionic' ? schoolPassives(schoolOf(u)) : kind === 'major' ? MAJOR_AUGS : [];
+  const base = kind === 'school' ? [] : R.augPoolOf(u, kind as R.AugKind);
   return base.filter((a) => a.stack || !owned.has(a.id)).flatMap((a) => (a.roll ? (['vit', 'pow', 'mnd', 'def', 'agi'] as const).map((m) => ({ id: a.id, param: m })) : [{ id: a.id }]));
 }
 export function aug(run: RunState, p: Extract<Pending, { t: 'rankup' }>, log: DLog, rng: Rng): AugPick | null {

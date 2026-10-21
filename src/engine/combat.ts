@@ -575,6 +575,7 @@ export class Battle {
   divineAct(u: CUnit) {
     u.divUsed = true;
     u.mem.divActs = (u.mem.divActs || 0) + 1;
+    if (!u.mem.divT1) u.mem.divT1 = this.t; // 계측: 첫 신권 대행 시각
     u.div = 0;
     this.emit({ k: 'divact', id: u.id });
     DIVINE_HOOK.act?.(this, u);
@@ -657,10 +658,15 @@ export class Battle {
     this.fr?.onStart?.(this);
     for (const u of this.units) u.hp = Math.min(u.hp, this.S(u, 'maxHp'));
   }
-  /** 궁극기 행동 충전 (CFG.ultGain): 기본 공격 · 전투 기술 · 피격. 충전 계수 · 궁극기 충전 스탯을 자연 충전과 같이 곱한다 */
-  ultGain(u: CUnit, k: number) {
+  /** 궁극기 행동 충전 (CFG.ultGain): 기본 공격 · 전투 기술 · 피격. 충전 계수 · 궁극기 충전 스탯을 자연 충전과 같이 곱한다.
+   *  피격 충전은 기물마다 CFG.ultGain.hurtIcd 초에 1번 (다단 · 소환물 공격을 많이 받아도 충전 속도가 피격 횟수에 비례해 폭증하지 않게).
+   *  계측: u.mem['ug.<src>'] = 출처별 실제 충전량, ultN = 사용 횟수, ultT1 = 첫 사용 시각 */
+  ultGain(u: CUnit, k: number, src: 'basic' | 'skill' | 'hurt' | 'time' | 'bonus' = 'basic') {
     if (!u.ult || (u.ultG || 0) >= 1) return;
-    u.ultG = Math.min(1, (u.ultG || 0) + k * u.ult.charge * Math.max(0.1, 1 + this.S(u, 'ultCharge')));
+    if (src === 'hurt') { if ((u.mem.ultHurtT || 0) > this.t) return; u.mem.ultHurtT = this.t + CFG.ultGain.hurtIcd; u.mem.ultHurtAt = this.t; }
+    const g0 = u.ultG || 0;
+    u.ultG = Math.min(1, g0 + k * u.ult.charge * Math.max(0.1, 1 + this.S(u, 'ultCharge')));
+    u.mem[`ug.${src}`] = (u.mem[`ug.${src}`] || 0) + (u.ultG - g0);
   }
   /** 지금 행동 중인 기물 (보호막 제공자 집계용) */
   actor: CUnit | null = null;
@@ -686,7 +692,7 @@ export class Battle {
       this.actor = u;
       this.tickStatuses(u, dt);
       if (!u.alive) continue;
-      if (u.ult && (u.ultG || 0) < 1) u.ultG = Math.min(1, (u.ultG || 0) + (dt / CFG.ultTime) * u.ult.charge * Math.max(0.1, 1 + this.S(u, 'ultCharge')));
+      if (u.ult && (u.ultG || 0) < 1) this.ultGain(u, dt / CFG.ultTime, 'time');
       for (const h of u.hooks) h.onTick?.(this, u, dt);
       if (!u.alive || this.over) continue;
       this.act(u, dt);
@@ -816,6 +822,8 @@ export class Battle {
       const at = this.events.length;
       if (u.ult.cast(this, u)) {
         u.ultG = 0;
+        u.mem.ultN = (u.mem.ultN || 0) + 1;
+        if (!u.mem.ultT1) u.mem.ultT1 = this.t;
         if (u.side === 0) this.counters.skills++;
         if (this.keepEvents) { this.events.splice(at, 0, { k: 'ult', id: u.id, ult: u.ult.id }); this.emit({ k: 'skillEnd', id: u.id }); }
         if (this.over) return;
@@ -837,7 +845,7 @@ export class Battle {
           // 연출 순서: 스킬명 → 효과. 시전 앞자리에 끼워 넣는다
           if (this.keepEvents) { this.events.splice(at, 0, { k: 'skill', id: u.id, name: sk.name, tag: sk.tag?.(u.sk) }); this.emit({ k: 'skillEnd', id: u.id }); }
           for (const h of u.hooks) h.onSkill?.(this, u);
-          this.ultGain(u, CFG.ultGain.skill);
+          this.ultGain(u, CFG.ultGain.skill, 'skill');
           for (const a of this.alliesOf(u, false)) for (const h of a.hooks) h.onAllySkill?.(this, a, u);
           this.statusAct(u);
           if (this.over) return;
@@ -920,7 +928,7 @@ export class Battle {
     this.emit({ k: 'atk', from: u.id, to: tgt.id, elem, ranged: u.atk.type === 'shoot' });
     const r = this.dealDamage(u, tgt, pow * m, { elem, tag: 'basic', kind, canMiss: true, extra, pen: holy ? 1 : 0 });
     for (const h of u.hooks) h.onBasic?.(this, u, tgt, r);
-    this.ultGain(u, CFG.ultGain.basic);
+    this.ultGain(u, CFG.ultGain.basic, 'basic');
     for (const a of this.alliesOf(u, false)) for (const h of a.hooks) h.onAllyBasic?.(this, a, u);
     if (u.alive) this.statusAct(u);
     return r;
@@ -1154,7 +1162,7 @@ export class Battle {
       if (ls > 0 && src.alive) this.heal(src, src, dmg * ls, true);
       for (const h of src.hooks) h.onDeal?.(this, src, tgt, res, o);
       if (tgt.alive) for (const h of tgt.hooks) h.onHurt?.(this, tgt, src, res, o);
-      if (tgt.alive && res.amount > 0 && o.tag !== 'dot') this.ultGain(tgt, CFG.ultGain.hurt);
+      if (tgt.alive && res.amount > 0 && o.tag !== 'dot') this.ultGain(tgt, CFG.ultGain.hurt, 'hurt');
       if (src !== tgt) for (const a of this.alliesOf(tgt, false)) for (const h of a.hooks) h.onAllyHurt?.(this, a, tgt, src, res);
       if (o.tag !== 'proc' && src.alive && src !== tgt) {
         let rf = 0, rt = 0;

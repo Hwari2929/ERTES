@@ -211,5 +211,5 @@ export function rankedUp(u: UnitState): UnitState {
 export function milestone(u: UnitState, rank = u.rank + 1): boolean {
   const tt = UNIT_BY_ID[u.defId].ttype;
   const g = CFG.growth;
-  return g.pick(tt, rank) || g.major(tt, rank) || g.special(tt, rank) || g.psionic(tt, rank);
+  return g.pick(tt, rank) || g.major(tt, rank) || g.special(tt, rank) || g.psionic(tt, rank) || g.oath(tt, rank);
 }
