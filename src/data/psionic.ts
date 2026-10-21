@@ -333,22 +333,22 @@ function discharge(b: Battle, u: CUnit) {
 }
 
 // ───────────────────────── 파장: 밀쳐내기 · 공진
-function resonanceStatus(b: Battle, u: CUnit): Status {
+export function resonanceStatus(b: Battle, u: CUnit): Status {
   const rad = P(u, 'wave.attract') ? PSI.wave.attractResR : PSI.wave.resR;
   return {
     type: 'buff', key: 'resonance', dur: PSI.wave.resDur, val: mp(b, u) * (P(u, 'wave.freq') ? PSI.wave.freqRes : PSI.wave.res), label: LB('resonance'),
-    onHit(bb, v, _src, _r, _o, s) {
+    onHit(bb, v, _src, _r, o, s) {
       const c = s.src;
-      if (!c || !icd(bb, v, 'resIcd', 0.5)) return;
+      if (!c || o.key === 'resonance' || !icd(bb, v, 'resIcd', 0.5)) return; // 공진 · 공명 연쇄 피해는 다른 공진을 다시 터뜨리지 않는다 (다른 부가 효과는 그대로)
       const k = (v.mem.standUntil || 0) > bb.t ? 2 : 1; // 정상파
       const amt = (s.val || 0) * k;
       for (const e of bb.around(v, rad, bb.enemiesOf(c))) {
         if (e === v || !e.alive) continue;
-        bb.dealDamage(c, e, amt, { elem: 'elec', tag: 'proc', kind: pk(c) });
+        bb.dealDamage(c, e, amt, { elem: 'elec', tag: 'proc', kind: pk(c), key: 'resonance' });
         // ★ 공명 연쇄: 공진 피해를 받은 적 주변 1칸에 같은 피해로 1회 여파 (적마다 1초에 1번, 공진은 옮기지 않아 더 번지지 않는다)
         if (P(c, 'wave.cascade') && icd(bb, e, 'cascIcd', PSI.wave.cascadeIcd)) {
           bb.fx(e.x, e.y, 1, 'elec');
-          for (const f of bb.around(e, 1, bb.enemiesOf(c))) if (f !== e && f.alive) bb.dealDamage(c, f, amt, { elem: 'elec', tag: 'proc', kind: pk(c) });
+          for (const f of bb.around(e, 1, bb.enemiesOf(c))) if (f !== e && f.alive) bb.dealDamage(c, f, amt, { elem: 'elec', tag: 'proc', kind: pk(c), key: 'resonance' });
         }
       }
     },

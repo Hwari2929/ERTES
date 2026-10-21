@@ -14,7 +14,7 @@ import { aceTargetUid, OCCULT_SYNTH, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME
 import { rowHtml, tierCmp } from './ui/tierdiff';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
 import { withEmblemSummon } from './data/emblems';
-import { DIVINE_ACT, FAITH_DEF, MAJOR_AUGS, MINOR_TRAIT_GROW, recMajors } from './data/rework';
+import { DIVINE_ACT, FAITH_DEF, MINOR_TRAIT_GROW, recMajors } from './data/rework';
 import { OATH_AUGS } from './data/oathaugs';
 import { type AugList, cantripView, passiveView, SCHOOL_LINE, transformPreview } from './data/psiinfo';
 import { augReqState } from './data/augreq';

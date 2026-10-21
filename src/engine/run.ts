@@ -16,6 +16,7 @@ import { OATH_AUGS, VOW_ENH_KEEP } from '../data/oathaugs';
 import { MAJOR_AUGS, recMajors } from '../data/rework';
 import { SCHOOL_AUGS, schoolPassives } from '../data/psionic';
 import { isLegendAug, majorsOf, schoolAugId, schoolOf, type SchoolId } from '../data/schools';
+import type { AugDef } from './effects';
 import { DEFAULT_RELIC, RELIC_BY_ID, RELICS } from '../data/relics';
 import { Rng } from '../rng';
 import { FAITHS,
@@ -1162,12 +1163,16 @@ export function typeAugKind(u: UnitState): AugKind | null {
 }
 /** 사이오닉: 보유 학파의 전공 증강 (학파가 없으면 빈 목록) */
 export const psiPool = (u: UnitState) => schoolPassives(schoolOf(u));
+/** 유형 증강 풀 (메이저 전용 · 디바인 서약 · 사이오닉 전공 증강, 'major' = 예전 공용 풀: 예전 저장의 대기 선택만) — 성장 · 사건 · 호이슌 계약 공용 */
+export function augPoolOf(u: UnitState, kind: AugKind): readonly AugDef[] {
+  return kind === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : kind === 'oath' ? OATH_AUGS : kind === 'psionic' ? psiPool(u) : kind === 'major' ? MAJOR_AUGS : [];
+}
 /** 이 유형 증강을 더 받을 수 있는지 (스페셜 · 사이오닉은 최대 4개, 학파는 1개) */
 export function augRoom(u: UnitState, kind: AugKind) {
   if (kind === 'major') return true;
   if (kind === 'school') return UNIT_BY_ID[u.defId].ttype === 'psionic' && !schoolOf(u);
   if (kind === 'psionic' && !schoolOf(u)) return u.augments.filter((a) => a.id.startsWith('psi.')).length < 4; // 학파 선택 대기 중: 이정표는 남겨 둔다
-  const list = kind === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : kind === 'oath' ? OATH_AUGS : psiPool(u);
+  const list = augPoolOf(u, kind);
   const pool = new Set(list.map((a) => a.id));
   if (u.augments.filter((a) => pool.has(a.id)).length >= (kind === 'psionic' ? 4 : CFG.majorAugMax)) return false;
   return list.some((a) => !u.augments.some((p) => p.id === a.id)); // 고를 수 있는 증강이 남았는지
@@ -1179,7 +1184,7 @@ export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major')
   if (!augRoom(u, kind)) return [];
   // 전공: 기물 학파의 전공 2개 (학파가 없는 레이첼은 8개 전부)
   if (kind === 'school') { const ok = majorsOf(def.id); return SCHOOL_AUGS.filter((a) => ok.includes(a.owner as SchoolId)).map((a) => ({ id: a.id })); }
-  const base = kind === 'special' ? def.specialAugs || [] : kind === 'oath' ? OATH_AUGS : kind === 'psionic' ? psiPool(u) : MAJOR_AUGS;
+  const base = augPoolOf(u, kind);
   const unitPool = base.filter((a) => avail(a));
   if (kind === 'psionic' || kind === 'special') {
     // 전공 증강: 기본 증강 3장, 확률(psiLegendChance)로 그중 1장이 ★ 전설
@@ -1208,6 +1213,7 @@ export function majorLegendChance(u: UnitState): number {
   const pool = new Set((UNIT_BY_ID[u.defId].specialAugs || []).map((a) => a.id));
   const owned = u.augments.filter((a) => pool.has(a.id));
   if (owned.some((a) => isLegendAug(a.id))) return CFG.majorLegend.base;
+  if (owned.length >= CFG.majorAugMax - 1) return 1; // 마지막 선택: 전설을 한 번도 못 얻었으면 확정으로 섞는다
   return Math.min(1, CFG.majorLegend.base + CFG.majorLegend.pity * owned.length);
 }
 export function psiLegendChance(u: UnitState): number {
@@ -1745,12 +1751,11 @@ function genInvest(run: RunState): InvestOffer[] {
   return rng(run, (r) => order.map((id) => {
     const o: InvestOffer = { id, cost: Math.round(INVEST_OFFERS[id].cost * investPrice[t - 1]), sold: false };
     if (id === 'aug') {
-      // 유형별 증강 계약: 메이저 증강 · 스페셜 전용 증강 · 사이오닉 전공 (마이너 · 디바인은 대상 아님)
+      // 유형별 증강 계약: 메이저 전용 증강 · 사이오닉 전공 증강 · 디바인 서약 증강 (스페셜은 대상 아님). ★ 전설은 성장 선택으로만 얻는다
       const cands = run.units.flatMap((u) => {
         const k = typeAugKind(u);
         if (!k || !augRoom(u, k)) return [];
-        const pool = k === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : k === 'psionic' ? psiPool(u) : MAJOR_AUGS;
-        return pool.filter((a) => !a.roll && !u.augments.some((p) => p.id === a.id)).map((a) => ({ u, a }));
+        return augPoolOf(u, k).filter((a) => !a.roll && !isLegendAug(a.id) && !u.augments.some((p) => p.id === a.id)).map((a) => ({ u, a }));
       });
       if (cands.length) { const c = r.pick(cands); o.uid = c.u.uid; o.aug = c.a.id; } else o.sold = true;
     }

@@ -105,6 +105,7 @@ export const ABIL_G: Record<string, AbilText> = {
       ],
     }),
     trait: '적이 자신 · 아군의 효과로 [g:displace]되면 그 적에게 [dmg:tech:0.6:psy] + [st:fear:1.5:0.3] (대상당 [s:0.4]에 1번).',
+    ace: (k) => `해주굿 피해 +[p:${0.2 * k}]. 자신 · 아군의 효과로 [g:displace]된 적은 [s:3] 동안 받는 피해 +[p:${0.05 * k}].`,
   },
   gayoung: {
     skill: (p) => ({
@@ -116,7 +117,6 @@ export const ABIL_G: Record<string, AbilText> = {
       ],
     }),
     trait: '자신과 [t:1] 안에 붙은 적 회피 -[pp:0.15].',
-    ace: (k) => `백무 해원 피해 +[p:${0.2 * k}]. [g:blind] 상태의 적에게 주는 피해 +[p:${0.1 * k}].`,
   },
   gungo: {
     skill: (p) => ({

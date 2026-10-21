@@ -225,6 +225,14 @@ export const ROSTER_G: BaseUnit[] = [
     atk: { type: 'strike', elem: 'psy', interval: 1.0 }, range: 2, base: B(5, 4, 10, 4, 7),
     sprite: 'robe', palette: tint('#1a1a24', '#e8e8f0', '#7fb8ff'), noBar: true,
     lore: '"녹림의원은 찾아온 손님을 거절하지 않아요. 범이라도요. 총부터 내리시죠, 사냥꾼 양반."',
+    // 항해자 에이스: 위치 교란의 가치를 키운다 (해주굿 피해 + 강제 이동된 적 취약)
+    ace: {
+      name: '굿판의 주인', desc: (k) => `해주굿 피해 +${pct(0.2 * k)}. 자신 · 아군의 효과로 강제 이동된 적은 3초간 받는 피해 +${pct(0.05 * k)}.`,
+      effect: (k) => ({ mods: [inc('skill', 0.2 * k)], hooks: { onDisplace(b, u, v, src) {
+        if (!v.alive || b.sideOf(v) === b.sideOf(u) || b.sideOf(src) !== b.sideOf(u)) return;
+        b.applyStatus(u, v, { type: 'buff', key: 'hana.ace', dur: 3, taken: [vuln('all', 0.05 * k)], label: '굿판' });
+      } } }),
+    },
     skill: {
       name: '해주굿', tag: () => '광역 정신 공격 + 위치 교란', cd: 7, params: { mult: 1.7, radius: 2, swap: 0.35 },
       desc: (p) => `대상과 대상 주변 ${p.radius}칸 적에게 전술 위력 ${pct(p.mult)} 정신 피해. 맞은 적마다 ${pct(p.swap)} 확률로 그 범위 안 무작위 빈칸으로 옮기고 이로운 효과를 모두 없앤다.`,
@@ -255,10 +263,6 @@ export const ROSTER_G: BaseUnit[] = [
     atk: { type: 'strike', elem: 'holy', interval: 0.8 }, range: 1, base: B(8, 8, 6, 6, 7),
     sprite: 'robe', palette: tint('#f0f0f0', '#c8303a', '#ffd84d'), noBar: true,
     lore: '"춤이 끝나면 칼이 들어가요. 순서가 바뀌면… 그건 춤이 아니라 그냥 칼부림이고요."',
-    ace: {
-      name: '해원의 칼끝', desc: (k) => `백무 해원 피해 +${pct(0.2 * k)}, 실명한 적에게 주는 피해 +${pct(0.1 * k)}.`,
-      effect: (k) => ({ mods: [inc('skill', 0.2 * k)], hooks: { dmgMult: (_b, _u, t) => (t.statuses.some((s) => s.key === 'blind') ? 1 + 0.1 * k : 1) } }),
-    },
     skill: {
       name: '백무 해원', tag: () => '신성 공격 + 실명', cd: 7, params: { mult: 1.6, radius: 1, hp: 0.08, cap: 4, blind: 0.3, dur: 3 },
       desc: (p) => `대상과 대상 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 신성 피해 + 대상 최대 체력 ${pct(p.hp)} 신성 피해 (타격 위력 ${pct(p.cap)} 상한), ${p.dur}초간 [실명]: 명중 -${pct(p.blind)}p.`,
