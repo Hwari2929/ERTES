@@ -16,7 +16,7 @@ export const TERRAIN: Record<TerrainKind, { name: string; bits: number; desc: st
 /** 지형 칸이 막는 것: 이동 · 탄도 (bits 에서) */
 export const terrainBlocks = (k: TerrainKind) => ({ walk: !!(TERRAIN[k].bits & 1), shot: !!(TERRAIN[k].bits & 2) });
 
-/** 전장 지형 틀. 세로: 테두리 · 적 진형 · 사이 gap 줄 · 아군 진형 · (포위: 사이 gap 줄 · 아래 적 진형) · 테두리. 가로: 배치 폭 n (narrow 면 그 폭으로 줄인다) */
+/** 전장 지형 틀 (가로 지형 rot 은 아래 구조를 돌려 그린다). 세로: 테두리 · 적 진형 · 사이 gap 줄 · 아군 진형 · (포위: 사이 gap 줄 · 아래 적 진형) · 테두리. 가로: 배치 폭 n (narrow 면 그 폭으로 줄인다) */
 export interface MapDef {
   id: string;
   name: string;
@@ -40,6 +40,10 @@ export interface MapDef {
   gateCycle?: [number, number];
   /** 복합 지형: 이 런에서 같은 전장 전용 틀이 한 번 나온 뒤부터 나온다 (첫 노출은 단순한 틀로) */
   later?: boolean;
+  /** 가로 지형: 엔진에서는 세로 틀 그대로 (위 적 · 아래 아군), 화면에서만 시계 방향 90° 돌려 그린다 → 적은 오른쪽(포위면 양옆), 아군은 왼쪽(포위면 가운데) */
+  rot?: boolean;
+  /** 공용 틀 뽑기 무게 (기본 1) */
+  weight?: number;
 }
 
 /** 사이 줄(mid) 칸을 패턴으로: 문자열 한 줄 = mid 한 줄, 한 글자 = 배치 열 하나 (폭이 다르면 가운데 기준으로 늘이거나 자른다).
@@ -67,6 +71,8 @@ export const MAPS: MapDef[] = [
   { id: 'corridor', name: '긴 통로', narrow: 4, phaseW: (p) => 1 - wide5(p), allyRows: 4, gap: 5, desc: '좁고 긴 통로. 적이 줄지어 다가온다.' },
   { id: 'corridor5', name: '긴 통로', narrow: 5, phaseW: wide5, allyRows: 4, gap: 5, desc: '좁고 긴 통로. 적이 줄지어 다가온다.' },
   { id: 'surround', name: '포위', surround: true, desc: '아군이 가운데, 적이 위아래에서 조여 온다.' },
+  { id: 'hcorridor', name: '가로 통로', rot: true, narrow: 4, allyRows: 4, gap: 9, weight: 0.5, desc: '아주 긴 가로 통로. 적이 오른쪽 끝에서 줄지어 온다.' },
+  { id: 'hsurround', name: '가로 포위', rot: true, surround: true, narrow: 5, allyRows: 4, gap: 4, weight: 0.5, desc: '긴 전장 한가운데에 아군, 적이 양옆에서 조여 온다.' },
   // ── 리빈 낙원동 (방역 시즌)
   { id: 'lv_gate', field: 'livin', name: '방역 수문', gap: 3, gateCycle: [8, 6],
     desc: '방벽이 가운데를 가르고, 수문이 주기적으로 여닫힌다. 양 끝은 우회로.',

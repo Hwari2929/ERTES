@@ -20,7 +20,7 @@ export const LEGACY: Record<string, string> = {
 };
 /** JS(main.ts · battleview.ts 등)가 style="--x:…" / setProperty('--x') 로 주입하는 변수 */
 export const JS_VARS = [
-  '--c', '--sc', '--h', '--w', '--fw', '--fh', '--ox', '--i', '--x', '--y', '--s', '--d', '--n', '--o', '--p', '--v', '--mx', '--my', '--hc', '--top-h', '--a', '--k', '--dl', '--oi-r',
+  '--c', '--sc', '--h', '--w', '--fw', '--fh', '--ox', '--oy', '--i', '--x', '--y', '--s', '--d', '--n', '--o', '--p', '--v', '--mx', '--my', '--hc', '--top-h', '--a', '--k', '--dl', '--oi-r',
 ];
 
 interface Decl { sel: string; prop: string; value: string; line: number; root: boolean; important: boolean }

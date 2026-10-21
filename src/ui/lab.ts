@@ -138,7 +138,7 @@ function gearOptions() {
 function foesTab(run: RunState) {
   const enc = run.node?.enc;
   if (!enc) return '<p class="muted small">전투 칸이 아닙니다.</p>';
-  const lab = run.lab || {}, sur = !!encGeo(enc).foe2;
+  const lab = run.lab || {}, sur = !!encGeo(enc).foe2, [zUp, zDn] = encGeo(enc).rot ? ['오른쪽', '왼쪽'] : ['위', '아래']; // 가로 지형은 돌려 그린다 (위 진형 → 오른쪽)
   const head = kv('강도 페이즈', stepper('ephase', enc.phase ?? run.phase, 1, L.LAB_PHASE_MAX, 1, '적 강도 페이즈'))
     + kv('강도 배율', stepper('emult', +enc.mult.toFixed(2), 0.1, 20, 0.1, '적 체력 · 피해 배율'))
     + kv('다음 칸', seg('다음 칸 조우', [['same', '같은 구성'], ['fresh', '새 조우']], lab.fresh ? 'fresh' : 'same', 'next'))
@@ -149,7 +149,7 @@ function foesTab(run: RunState) {
     if (!e) return '';
     const gear = [...(s.stripped ? [] : (e.items || []).filter((x): x is string => !!x).map((id) => ({ id, slot: 'def' as const }))), ...(s.items || []).map((id, k) => ({ id, slot: k })), ...(s.mod ? [{ id: s.mod, slot: -1 }] : [])];
     return `<li class="lab-row foe">${spr(e)}<span class="lab-nm"><b>${esc(e.name)}</b><small class="tier-${e.tier}">${tierKo(e)}</small></span>
-      <span class="lab-cell"><select data-lab="foe-c:${i}" aria-label="열">${opt(enc.n, s.c)}</select><select data-lab="foe-r:${i}" aria-label="줄">${opt(ZONE, s.row, ROW_NAME)}</select>${sur ? `<select data-lab="foe-z:${i}" aria-label="진형"><option value="0"${s.flip ? '' : ' selected'}>위</option><option value="1"${s.flip ? ' selected' : ''}>아래</option></select>` : ''}</span>
+      <span class="lab-cell"><select data-lab="foe-c:${i}" aria-label="열">${opt(enc.n, s.c)}</select><select data-lab="foe-r:${i}" aria-label="줄">${opt(ZONE, s.row, ROW_NAME)}</select>${sur ? `<select data-lab="foe-z:${i}" aria-label="진형"><option value="0"${s.flip ? '' : ' selected'}>${zUp}</option><option value="1"${s.flip ? ' selected' : ''}>${zDn}</option></select>` : ''}</span>
       <span class="lab-gear">${gear.map((g) => `<button class="lab-gi" ${go(`foe-ungear:${i}:${g.slot}`)} title="${esc(`${itemInfo(g.id).name} — 눌러서 떼기${g.slot === 'def' ? ' (기본 장비 모두)' : ''}`)}">${D?.itemIcon(g.id) || ''}</button>`).join('')}<select class="lab-gsel" data-lab="foe-gear:${i}" aria-label="장비 달기"><option value="" selected>장비 +</option>${gearOptions()}</select></span>
       <button class="btn tiny ghost lab-del" ${go(`foe-del:${i}`)} aria-label="${esc(e.name)} 빼기">✕</button></li>`;
   }).join('');
@@ -159,7 +159,7 @@ function foesTab(run: RunState) {
   return `${head}
     ${grp('이번 조우', enc.enemies.length, `<ul class="lab-rows">${rows || '<li class="muted small">적이 없습니다.</li>'}</ul>`)}
     <section class="lab-add"><h4>추가 <span class="muted small">누르면 빈칸에 (근접은 앞줄부터)</span></h4>
-      <div class="lab-tools">${search('적 이름 검색')}${seg('분류', [['all', '전체'], ['field', '이 전장'], ['minion', '일반'], ['elite', '정예'], ['boss', '보스']], LS.ef, 'ef')}${sur ? seg('진형', [['auto', '자동'], ['up', '위'], ['down', '아래']], LS.zone, 'zone') : ''}</div>
+      <div class="lab-tools">${search('적 이름 검색')}${seg('분류', [['all', '전체'], ['field', '이 전장'], ['minion', '일반'], ['elite', '정예'], ['boss', '보스']], LS.ef, 'ef')}${sur ? seg('진형', [['auto', '자동'], ['up', zUp], ['down', zDn]], LS.zone, 'zone') : ''}</div>
       <div class="lab-grid">${tiles}</div></section>`;
 }
 

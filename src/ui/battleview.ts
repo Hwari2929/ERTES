@@ -13,6 +13,7 @@ import { cantripView } from '../data/psiinfo';
 import { lineIcon } from './synicons';
 import { SYN_BY_ID } from '../data/synergies';
 import { terrainGroups } from '../data/maps';
+import { fromScr, toScr } from '../engine/build';
 import { GLOSS } from '../data/abiltext';
 import { FeedList, type FeedItem } from './bfeed';
 import * as SND from './sound';
@@ -456,7 +457,12 @@ export class BattleView {
   /** 장비 아이콘 HTML (main 에서 주입) */
   itemHtml: (id: string) => string = () => '';
 
+  /** 화면 가로 · 세로 칸 수 (가로 지형 b.geo.rot 은 전장을 돌려 그린다: engine/build.ts toScr). 위치 · 크기 % 는 모두 이 값으로 */
+  private W: number;
+  private H: number;
   constructor(private board: HTMLElement, public b: Battle, private onTick: () => void, private onEnd: () => void) {
+    this.W = b.geo?.rot ? b.h : b.w;
+    this.H = b.geo?.rot ? b.w : b.h;
     this.fxLayer = document.createElement('div');
     this.fxLayer.className = 'fx-layer';
     board.appendChild(this.fxLayer);
@@ -470,7 +476,7 @@ export class BattleView {
     for (const tr of b.traps) {
       const el = document.createElement('div');
       el.className = 'trap-tok';
-      Object.assign(el.style, { ...this.pos(tr.x, tr.y), width: `${100 / b.w}%`, height: `${100 / b.h}%` });
+      Object.assign(el.style, { ...this.pos(tr.x, tr.y), width: `${100 / this.W}%`, height: `${100 / this.H}%` });
       el.title = '감전 지뢰 (은신)';
       board.appendChild(el);
       this.traps.set(tr, el);
@@ -478,10 +484,11 @@ export class BattleView {
     // 수문 전환 카운트다운: 수문 덩어리 가운데 칸 위쪽에 작은 배지 (전투 시간 b.t 기준, sync 에서 갱신)
     if (b.geo && b.mem.gateNext !== undefined) for (const grp of terrainGroups(b.geo)) {
       if (grp.k !== 'gate') continue;
-      const cx = grp.cells.reduce((a, c) => a + c.x, 0) / grp.cells.length, cy = Math.min(...grp.cells.map((c) => c.y));
+      const sc = grp.cells.map((c) => this.sc(c.x, c.y)); // 화면 칸 (가로 지형은 돌려서): 가운데 열 · 맨 위 줄
+      const cx = sc.reduce((a, c) => a + c.x, 0) / sc.length, cy = Math.min(...sc.map((c) => c.y));
       const el = document.createElement('div');
       el.className = 'gate-cd';
-      Object.assign(el.style, { ...this.pos(cx, cy), width: `${100 / b.w}%`, height: `${100 / b.h}%` });
+      Object.assign(el.style, { left: `${(cx / this.W) * 100}%`, top: `${(cy / this.H) * 100}%`, width: `${100 / this.W}%`, height: `${100 / this.H}%` });
       el.innerHTML = '<span><small></small><b></b></span>';
       board.appendChild(el);
       this.gateCd.push(el);
@@ -575,8 +582,11 @@ export class BattleView {
     setTimeout(() => this.onEnd(), 0);
   }
 
+  /** 전장 칸 → 화면 칸 (소수 가능) */
+  private sc(x: number, y: number) { return toScr(this.b.geo, x, y); }
   private pos(x: number, y: number) {
-    return { left: `${(x / this.b.w) * 100}%`, top: `${(y / this.b.h) * 100}%` };
+    const s = this.sc(x, y);
+    return { left: `${(s.x / this.W) * 100}%`, top: `${(s.y / this.H) * 100}%` };
   }
 
   private mount(u: CUnit) {
@@ -586,8 +596,8 @@ export class BattleView {
     const dev = u.mem.wall ? 'wall' : u.mem.decoy ? 'decoy' : ''; // 편성 화면에서 놓은 바리케이드 · 유인 신호기: 스프라이트 대신 장치 표식
     const neutral = u.side === 1 && !!u.mem.inert; // 전장 장애물 (유닉스 답례 투하의 반려 돌 · 묘석): 적이 아닌 중립 지형물로 보인다
     el.className = `u ${neutral ? 'sideN inert' : `side${u.side}`}${card ? ' tkb' : ''}${turret ? ' has-cat' : ''}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
-    el.style.width = `${100 / this.b.w}%`;
-    el.style.height = `${100 / this.b.h}%`;
+    el.style.width = `${100 / this.W}%`;
+    el.style.height = `${100 / this.H}%`;
     el.dataset.a = 'bsel';
     el.dataset.v = String(u.id);
     const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div>${dev ? `<span class="dev-face dev-${dev}">${lineIcon(`k.${dev === 'wall' ? 'barricade' : 'decoy'}`, 'li')}</span>` : `<img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}">`}<div class="cd"><i></i></div>${u.side === 0 && u.reason !== null ? `<div class="gx${schoolOfC(u) ? ` sc sc-${barOf(schoolOfC(u)!)}` : ''}"><i></i></div>` : ''}${schoolOfC(u) ? `<div class="cpi" style="--sc:${SCHOOL_BY_ID[schoolOfC(u) as SchoolId]?.color || '#b07cff'}" title="비술 준비"><i class="cpi-ring"></i>${lineIcon(`s.${schoolOfC(u)}`, 'li')}</div>` : ''}${turret ? `<span class="tk-cat cat-mech" title="기계 · 구조물">${lineIcon('k.mech', 'li')}</span>` : ''}<div class="sti sts deb"></div><div class="stc"></div><div class="stk sts buf"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
@@ -640,7 +650,8 @@ export class BattleView {
     const cells = this.board.querySelectorAll<HTMLElement>('.cells .cell');
     cells.forEach((el, i) => {
       if (!el.classList.contains('tr-gate')) return;
-      const open = !b.terrain![i];
+      const c = fromScr(b.geo, i % this.W, Math.floor(i / this.W)); // 칸은 화면 순서로 깔려 있다 (main.ts battleCells)
+      const open = !b.terrain![c.y * b.w + c.x];
       el.classList.toggle('open', open && !!b.mem.gateOpen);
       el.classList.toggle('pending', open && !b.mem.gateOpen);
     });
@@ -679,7 +690,7 @@ export class BattleView {
       e.el.style.left = p.left;
       e.el.style.top = p.top;
       // 전장 맨 왼쪽 · 오른쪽 열: 상태 줄 · 배지를 카드 안쪽으로 (화면 밖으로 잘리지 않게)
-      const edge = u.x <= 0 ? 'l' : u.x >= this.b.w - 1 ? 'r' : '';
+      const scx = this.sc(u.x, u.y).x, edge = scx <= 0 ? 'l' : scx >= this.W - 1 ? 'r' : '';
       if (e.el.dataset.edge !== edge) { e.el.dataset.edge = edge; e.el.classList.toggle('edge-l', edge === 'l'); e.el.classList.toggle('edge-r', edge === 'r'); }
       const max = this.b.S(u, 'maxHp');
       const hp = Math.max(0, Math.min(max, u.hp - (this.lagHp.get(id) || 0)));
@@ -780,13 +791,13 @@ export class BattleView {
     const t = u.target;
     if (t && t.alive) {
       const d = this.centerAt(t), side = `side${u.side}`;
-      const ring = `<circle class="fl-ring ${side}" cx="${d.x}" cy="${d.y}" r="${50 / this.b.w}" />`;
+      const ring = `<circle class="fl-ring ${side}" cx="${d.x}" cy="${d.y}" r="${50 / this.W}" />`;
       const fl = u.mem.wall || u.mem.decoy ? null : this.b.fireLine(u, t);
       const inRange = this.b.dist(u, t) <= this.b.S(u, 'range');
       const blk = fl && inRange && fl.block !== 'clear' && fl.at ? fl : null;
       if (blk) {
-        const m = { x: ((blk.at!.x + 0.5) / this.b.w) * 100, y: ((blk.at!.y + 0.5) / this.b.h) * 100 };
-        const kx = 22 / this.b.w, ky = 22 / this.b.h;
+        const bs = this.sc(blk.at!.x, blk.at!.y), m = { x: ((bs.x + 0.5) / this.W) * 100, y: ((bs.y + 0.5) / this.H) * 100 };
+        const kx = 22 / this.W, ky = 22 / this.H;
         const cross = `<path class="fl-x" d="M${m.x - kx} ${m.y - ky}L${m.x + kx} ${m.y + ky}M${m.x + kx} ${m.y - ky}L${m.x - kx} ${m.y + ky}" />`;
         s += blk.block === 'wall'
           ? `<line class="fl-tgt ${side}" x1="${c.x}" y1="${c.y}" x2="${m.x}" y2="${m.y}" /><line class="fl-rest" x1="${m.x}" y1="${m.y}" x2="${d.x}" y2="${d.y}" />${ring}${cross}`
@@ -799,7 +810,7 @@ export class BattleView {
     }
     if (u.moveT > 0) {
       const g = this.center(u);
-      s += `<rect class="fl-dest" x="${g.x - 40 / this.b.w}" y="${g.y - 40 / this.b.h}" width="${80 / this.b.w}" height="${80 / this.b.h}" />`;
+      s += `<rect class="fl-dest" x="${g.x - 40 / this.W}" y="${g.y - 40 / this.H}" width="${80 / this.W}" height="${80 / this.H}" />`;
     }
     if (s !== this.focusSig) { this.svg.innerHTML = s; this.focusSig = s; }
     this.setTag(tag);
@@ -821,15 +832,17 @@ export class BattleView {
   }
 
   /** 칸 중앙 (이동 목적지 기준) */
-  private center(u: CUnit) { return { x: ((u.x + 0.5) / this.b.w) * 100, y: ((u.y + 0.5) / this.b.h) * 100 }; }
+  private center(u: CUnit) { const s = this.sc(u.x, u.y); return { x: ((s.x + 0.5) / this.W) * 100, y: ((s.y + 0.5) / this.H) * 100 }; }
   /** 화면상 현재 위치 (이동 보간) */
   private centerAt(u: CUnit) {
     let x = u.x, y = u.y;
     if (u.moveT > 0 && u.moveDur > 0) { const t = motion().cell(1 - u.moveT / u.moveDur); x = u.px + (u.x - u.px) * t; y = u.py + (u.y - u.py) * t; }
-    return { x: ((x + 0.5) / this.b.w) * 100, y: ((y + 0.5) / this.b.h) * 100 };
+    const s = this.sc(x, y);
+    return { x: ((s.x + 0.5) / this.W) * 100, y: ((s.y + 0.5) / this.H) * 100 };
   }
+  /** 화면 방향 (가로 지형은 돌려서) */
   private dir(a: CUnit, t: CUnit) {
-    const dx = t.x - a.x, dy = t.y - a.y, l = Math.hypot(dx, dy) || 1;
+    const p = this.sc(a.x, a.y), q = this.sc(t.x, t.y), dx = q.x - p.x, dy = q.y - p.y, l = Math.hypot(dx, dy) || 1;
     return { x: dx / l, y: dy / l, d: Math.max(Math.abs(dx), Math.abs(dy)) };
   }
 
@@ -911,7 +924,7 @@ export class BattleView {
     const rel = !!o.rel;
     if (this.crowd(o.prio ?? 0, rel)) return null;
     this.retire(key);
-    const c = this.centerAt(u), cw = 100 / this.b.w, ch = 100 / this.b.h;
+    const c = this.centerAt(u), cw = 100 / this.W, ch = 100 / this.H;
     const m: Merge = { el: this.ftEl(this.ftCls(cls, rel), c.x + at[0] * cw, c.y + at[1] * ch), v, t0: this.rt, last: this.rt, n: 1, a: null, show };
     m.el.textContent = show(v);
     if (o.color) m.el.style.color = o.color;
@@ -947,7 +960,7 @@ export class BattleView {
   }
   /** 큰 글자: 치명타 · 피니쉬 · 처치 · 부활 같은 고유 표식 (위쪽 자리, 연달아 뜨면 좌우로 비킴). html 은 내부에서 만든 표식만 */
   private big(u: CUnit, text: string, cls: string, o: { color?: string; rel?: boolean; html?: string; key?: string; v?: number; f?: BigF } = {}) {
-    const c = this.centerAt(u), cw = 100 / this.b.w, ch = 100 / this.b.h;
+    const c = this.centerAt(u), cw = 100 / this.W, ch = 100 / this.H;
     const l = (this.bigLane.get(u.id) || 0) % 3;
     this.bigLane.set(u.id, l + 1);
     const at = SLOT.big[l];
@@ -964,13 +977,13 @@ export class BattleView {
     const rel = !!o.rel;
     if (this.crowd(o.prio ?? 2, rel)) return;
     // 칸이 작은 보드 (휴대폰 세로)는 글자 두 줄이 겹치므로 한 칸만
-    const n = this.board.clientWidth / this.b.w < 56 ? 1 : 2;
+    const n = this.board.clientWidth / this.W < 56 ? 1 : 2;
     const slots = this.wordSlots.get(u.id) || [null, null];
     this.wordSlots.set(u.id, slots);
     // 빈 칸 → 없으면 가장 오래된 칸을 비운다
     let i = slots.slice(0, n).findIndex((x) => !x || !x.el.isConnected);
     if (i < 0) { i = n === 1 || slots[0]!.t0 <= slots[1]!.t0 ? 0 : 1; const old = slots[i]!; old.a?.cancel(); old.el.remove(); }
-    const c = this.centerAt(u), cw = 100 / this.b.w, ch = 100 / this.b.h;
+    const c = this.centerAt(u), cw = 100 / this.W, ch = 100 / this.H;
     const at = SLOT.word[i];
     const m: Merge = { el: this.ftEl(this.ftCls(`word ${cls}`, rel), c.x + at[0] * cw, c.y + at[1] * ch), v: 1, t0: this.rt, last: this.rt, n: 1, a: null, show: (n) => (n > 1 ? `${text} ×${n}` : text) };
     m.el.textContent = text;
@@ -981,7 +994,7 @@ export class BattleView {
   /** 머리 위 작은 아이콘 점등 (회복 · 보호막 · 강화를 '누가' 했는지) */
   private casterIcon(u: CUnit, glyph: string, cls: string) {
     const c = this.centerAt(u);
-    this.spawnFx(`cic ${cls}`, c.x, c.y - 100 / this.b.h * 0.42, [{ transform: 'translate(-50%, -50%) scale(.4)', opacity: 0 }, { transform: 'translate(-50%, -50%) scale(1.15)', opacity: 1, offset: 0.3 }, { transform: 'translate(-50%, -80%) scale(1)', opacity: 0 }], 520, {}, glyph);
+    this.spawnFx(`cic ${cls}`, c.x, c.y - 100 / this.H * 0.42, [{ transform: 'translate(-50%, -50%) scale(.4)', opacity: 0 }, { transform: 'translate(-50%, -50%) scale(1.15)', opacity: 1, offset: 0.3 }, { transform: 'translate(-50%, -80%) scale(1)', opacity: 0 }], 520, {}, glyph);
   }
   /** 토큰 동작: 기물마다 한 번에 하나만. 우선순위가 낮은 동작은 진행 중인 높은 동작을 끊지 않는다
    *  (시전 4 > 근접 공격 3 > 회피 · 반동 2 > 피격 1). 빠르게 정점에 닿은 뒤 감속하며 돌아온다 */
@@ -1177,7 +1190,7 @@ export class BattleView {
     if (this.reduced || this._speed > 4) return;
     if (this.crowd(0, this.rel(e.from, e.to))) return;
     const p0 = start > this.vt ? this.center(a) : this.centerAt(a), p1 = this.center(t);
-    const ang = (Math.atan2((p1.y - p0.y) * this.b.h, (p1.x - p0.x) * this.b.w) * 180) / Math.PI;
+    const ang = (Math.atan2((p1.y - p0.y) * this.H, (p1.x - p0.x) * this.W) * 180) / Math.PI;
     const d = this.spawnFx(`proj2${this.rel(e.from, e.to) ? ' focus' : ''}`, p0.x, p0.y, [
       { left: `${p0.x}%`, top: `${p0.y}%`, opacity: 1 }, { left: `${p1.x}%`, top: `${p1.y}%`, opacity: 1 },
     ], fl * 1000, { delay: (start - this.vt) * 1000, easing: EASE_SHOT, fill: 'both', timed: true } as KeyframeAnimationOptions);
@@ -1303,7 +1316,7 @@ export class BattleView {
       if (!e.harm && src && src !== u && e.stype === 'buff') {
         // 버프: 얇은 파동 → 대상 머리 위에 아이콘 착지
         const c = this.center(u);
-        this.spawnFx('buffland', c.x, c.y - 100 / this.b.h * 0.42, [{ transform: 'translate(-50%,-180%)', opacity: 0 }, { transform: 'translate(-50%,-50%)', opacity: 1, offset: 0.5 }, { transform: 'translate(-50%,-50%)', opacity: 0 }], 600, {}, '▲');
+        this.spawnFx('buffland', c.x, c.y - 100 / this.H * 0.42, [{ transform: 'translate(-50%,-180%)', opacity: 0 }, { transform: 'translate(-50%,-50%)', opacity: 1, offset: 0.5 }, { transform: 'translate(-50%,-50%)', opacity: 0 }], 600, {}, '▲');
       }
       this.word(u, e.name, e.harm ? 'status harm' : 'status', { rel });
     });
@@ -1333,10 +1346,10 @@ export class BattleView {
     const at = this.skillCtx ? this.skillCtx.land : this.vt;
     this.later(at, () => {
       if (this.crowd(e.kind === 'aura' ? 0 : 1, false)) return;
-      const { w, h } = this.b;
+      const w = this.W, h = this.H, at = this.sc(e.x, e.y);
       const kind = e.kind || 'atk';
       const sw = ((2 * e.r + 1) / w) * 100, sh = ((2 * e.r + 1) / h) * 100;
-      const d = this.spawnFx(`area2 ${kind}`, ((e.x + 0.5) / w) * 100, ((e.y + 0.5) / h) * 100,
+      const d = this.spawnFx(`area2 ${kind}`, ((at.x + 0.5) / w) * 100, ((at.y + 0.5) / h) * 100,
         kind === 'aura' ? [{ transform: 'translate(-50%,-50%)', opacity: 0 }, { transform: 'translate(-50%,-50%)', opacity: 0.35, offset: 0.25 }, { transform: 'translate(-50%,-50%)', opacity: 0 }]
         : kind === 'buff' ? [{ transform: 'translate(-50%,-50%) scale(1.3) rotate(-30deg)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1) rotate(0)', opacity: 1, offset: 0.5 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 0 }]
           : kind === 'heal' ? [{ transform: 'translate(-50%,-50%) scale(.7)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 0.9, offset: 0.4 }, { transform: 'translate(-50%,-50%) scale(1.05)', opacity: 0 }]
@@ -1558,7 +1571,7 @@ export class BattleView {
     this.motion.get(u.id)?.a.cancel();
     if (this.reduced || !this.b.keepEvents) { hide(); return; }
     const c = this.center(u);
-    const cw = 100 / this.b.w, ch = 100 / this.b.h;
+    const cw = 100 / this.W, ch = 100 / this.H;
     if (this.executed.has(u.id)) {
       // 처형: 초상화가 사선으로 갈라져 양쪽으로 미끄러지고 해골이 떠오른다
       e.el.classList.add('dead', 'instant');
@@ -1578,7 +1591,7 @@ export class BattleView {
     }
     const finish = (a: Animation | null) => { if (a) { const f = () => hide(); a.finished.then(f, f); } else hide(); };
     const from = this.unit(this.lastHitFrom.get(u.id));
-    const sx = from ? Math.sign(u.x - from.x) || (u.side === 0 ? -1 : 1) : (u.side === 0 ? -1 : 1);
+    const sx = from ? Math.sign(this.sc(u.x, u.y).x - this.sc(from.x, from.y).x) || (u.side === 0 ? -1 : 1) : (u.side === 0 ? -1 : 1); // 화면 가로 방향
     const card = hasPortrait(u);
     const W = `${cw * (card ? 0.8 : 0.82)}%`, H = `${ch * (card ? 0.8 : 0.82)}%`;
     finish(deathFx(FX.death, {

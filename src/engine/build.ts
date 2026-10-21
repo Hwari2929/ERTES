@@ -39,8 +39,16 @@ export function geoOf(n: number, map?: string): Geo {
   const m = mapOf(map), gap = m.gap ?? GAP, rows = m.allyRows ?? ZONE;
   const ay0 = PAD + ZONE + gap, ay1 = ay0 + rows - 1;
   const foe2 = m.surround ? ay1 + 1 + gap : 0;
-  return { n, w: n + 2 * PAD, h: (foe2 ? foe2 + ZONE : ay1 + 1) + PAD, x0: PAD, ay0, ay1, rows, foe2, map: m.id };
+  return { n, w: n + 2 * PAD, h: (foe2 ? foe2 + ZONE : ay1 + 1) + PAD, x0: PAD, ay0, ay1, rows, foe2, map: m.id, ...(m.rot ? { rot: true } : {}) };
 }
+/** 화면 칸 ↔ 전장 칸 (UI 공용). 가로 지형(rot)은 전장을 시계 방향 90° 돌려 그린다: 전장 (x, y) → 화면 (h-1-y, x). 위 적 진형 → 오른쪽, 아래 → 왼쪽 */
+type RotG = { h: number; rot?: boolean } | null | undefined;
+export const toScr = (g: RotG, x: number, y: number) => (g?.rot ? { x: g.h - 1 - y, y: x } : { x, y });
+export const fromScr = (g: RotG, sx: number, sy: number) => (g?.rot ? { x: sy, y: g.h - 1 - sx } : { x: sx, y: sy });
+/** 전장 사각형 (왼쪽 위 x, y · 폭 w · 높이 h, 칸 단위) → 화면 사각형 */
+export const rectScr = (g: RotG, x: number, y: number, w: number, h: number) => (g?.rot ? { x: g.h - y - h, y: x, w: h, h: w } : { x, y, w, h });
+/** 화면 가로 · 세로 칸 수 */
+export const scrDims = (g: { w: number; h: number; rot?: boolean }) => (g.rot ? { w: g.h, h: g.w } : { w: g.w, h: g.h });
 /** 이번 조우의 칸 구조 (조우가 없으면 기본 보드) */
 export const encGeo = (enc: Encounter | null | undefined, n = enc?.n ?? CFG.bossBoard) => geoOf(n, enc?.map);
 export const runGeo = (run: RunState, n = run.node?.enc?.n ?? CFG.bossBoard) => geoOf(n, run.node?.enc?.map);
