@@ -12,6 +12,7 @@ import { SCHOOL_BY_ID, type SchoolId } from '../data/schools';
 import { cantripView } from '../data/psiinfo';
 import { lineIcon } from './synicons';
 import { SYN_BY_ID } from '../data/synergies';
+import { terrainGroups } from '../data/maps';
 import { GLOSS } from '../data/abiltext';
 import { FeedList, type FeedItem } from './bfeed';
 import * as SND from './sound';
@@ -474,6 +475,17 @@ export class BattleView {
       board.appendChild(el);
       this.traps.set(tr, el);
     }
+    // 수문 전환 카운트다운: 수문 덩어리 가운데 칸 위쪽에 작은 배지 (전투 시간 b.t 기준, sync 에서 갱신)
+    if (b.geo && b.mem.gateNext !== undefined) for (const grp of terrainGroups(b.geo)) {
+      if (grp.k !== 'gate') continue;
+      const cx = grp.cells.reduce((a, c) => a + c.x, 0) / grp.cells.length, cy = Math.min(...grp.cells.map((c) => c.y));
+      const el = document.createElement('div');
+      el.className = 'gate-cd';
+      Object.assign(el.style, { ...this.pos(cx, cy), width: `${100 / b.w}%`, height: `${100 / b.h}%` });
+      el.innerHTML = '<span><small></small><b></b></span>';
+      board.appendChild(el);
+      this.gateCd.push(el);
+    }
     this.sync();
     // 피니쉬 표시: 콤보 무기의 피니쉬 여부는 기본 공격 이벤트가 나가는 그 순간의 콤보 상태로만 알 수 있다 (이벤트에 없는 정보, 엔진은 그대로)
     const emit = b.emit.bind(b);
@@ -615,16 +627,42 @@ export class BattleView {
   }
 
   private traps = new Map<object, HTMLElement>();
-  private terrainVer = 0;
-  /** 지형이 바뀌면 (수문 열림 · 닫힘) 칸 색을 다시 칠한다: 수문 칸은 지형 비트가 0 이면 열림 */
+  private terrainSig = '';
+  private gateCd: HTMLElement[] = [];
+  private gateCdSig = '';
+  /** 지형이 바뀌면 (수문 열림 · 닫힘) 칸 색을 다시 칠한다: 수문 칸은 지형 비트가 0 이면 열림, 닫힘 주기인데 열려 있으면 폐쇄 대기 (기물이 서 있는 칸) */
   private syncTerrain() {
-    if (this.b.terrainVer === this.terrainVer || !this.b.terrain) return;
-    this.terrainVer = this.b.terrainVer;
+    const b = this.b;
+    if (!b.terrain) return;
+    const sig = `${b.terrainVer}:${b.mem.gateGen || 0}`;
+    if (sig === this.terrainSig) return;
+    this.terrainSig = sig;
     const cells = this.board.querySelectorAll<HTMLElement>('.cells .cell');
-    cells.forEach((el, i) => { if (el.classList.contains('tr-gate')) el.classList.toggle('open', !this.b.terrain![i]); });
+    cells.forEach((el, i) => {
+      if (!el.classList.contains('tr-gate')) return;
+      const open = !b.terrain![i];
+      el.classList.toggle('open', open && !!b.mem.gateOpen);
+      el.classList.toggle('pending', open && !b.mem.gateOpen);
+    });
+  }
+  /** 수문 배지: 다음 전환까지 남은 초 (올림) · 다음 상태 색 */
+  private syncGateCd() {
+    if (!this.gateCd.length) return;
+    const b = this.b, sec = Math.max(0, Math.ceil((b.mem.gateNext ?? 0) - b.t - 1e-9)), toOpen = !b.mem.gateOpen;
+    const sig = `${sec}:${toOpen ? 1 : 0}`;
+    if (sig === this.gateCdSig) return;
+    this.gateCdSig = sig;
+    for (const el of this.gateCd) {
+      el.classList.toggle('to-open', toOpen);
+      el.classList.toggle('to-shut', !toOpen);
+      el.querySelector('small')!.textContent = toOpen ? '열림' : '닫힘';
+      el.querySelector('b')!.textContent = `${sec}초`;
+      el.title = `${sec}초 뒤 ${toOpen ? '열림' : '닫힘'}`;
+    }
   }
   private sync() {
     this.syncTerrain();
+    this.syncGateCd();
     for (const [tr, el] of this.traps) if (!this.b.traps.includes(tr as Battle['traps'][number])) { el.remove(); this.traps.delete(tr); }
     const now = this.vt;
     const dvt = Math.max(0, now - this.syncVt); // 표시 시간 변화량 (정지 중 0, 주사율과 무관)

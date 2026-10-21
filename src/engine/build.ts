@@ -910,7 +910,8 @@ const DECOY_PAL = ['#0e0e0e', '#ff8a3d', '#c25a1c', '#ffd2a8', '#ffb070', '#5a2a
 export function terrainCells(g: Geo): Map<string, keyof typeof TERRAIN> {
   return new Map((mapOf(g.map).terrain?.(g) || []).map((c) => [`${c.x},${c.y}`, c.k]));
 }
-/** 지형 틀의 지형 칸을 전장에 깐다. 수문: 닫힌 채 시작해 gateCycle (닫힘 · 열림 초) 로 번갈아 (전장 이벤트로 알린다) */
+/** 지형 틀의 지형 칸을 전장에 깐다. 수문: 닫힌 채 시작해 gateCycle (닫힘 · 열림 초) 로 번갈아 (전장 이벤트로 알린다).
+ *  b.mem.gateOpen = 지금 주기 (1 열림 · 0 닫힘) · b.mem.gateNext = 다음 전환 시각 (전투 시간 b.t). 칸마다 실제로 막혔는지는 b.terrain 비트 (gateState) */
 export function applyMap(b: Battle, g: Geo) {
   const m = mapOf(g.map), cells = m.terrain?.(g) || [];
   for (const c of cells) b.setTerrain(c.x, c.y, TERRAIN[c.k].bits);
@@ -918,13 +919,38 @@ export function applyMap(b: Battle, g: Geo) {
   if (!gates.length || !m.gateCycle) return;
   const [shut, open] = m.gateCycle;
   b.mem.gateOpen = 0;
+  b.mem.gateNext = shut;
+  // 닫힘 주기에 아직 열린 칸 (닫힐 때 기물이 서 있던 칸 = 폐쇄 대기): 매 틱 살펴 비는 즉시 닫는다 (기물 위로는 닫지 않는다)
+  const seal = (gen: number) => {
+    if (b.mem.gateOpen || b.mem.gateGen !== gen) return; // 이미 열림 주기로 넘어갔거나 새 주기가 시작됨
+    let wait = false;
+    for (const c of gates) {
+      if (b.terrainAt(c.x, c.y)) continue;
+      if (b.unitAt(c.x, c.y)) wait = true;
+      else b.setTerrain(c.x, c.y, TERRAIN.gate.bits);
+    }
+    if (wait) b.later(0, () => seal(gen)); // 다음 틱에 다시
+  };
   const flip = () => {
     const opening = !b.mem.gateOpen;
-    // 닫힐 때 수문 칸에 기물이 서 있으면 그 칸은 열린 채로 둔다 (끼이지 않게)
-    for (const c of gates) b.setTerrain(c.x, c.y, opening || b.unitAt(c.x, c.y) ? 0 : TERRAIN.gate.bits);
     b.mem.gateOpen = opening ? 1 : 0;
+    b.mem.gateGen = (b.mem.gateGen || 0) + 1;
+    b.mem.gateNext += opening ? open : shut; // 예정 시각에서 이어 센다 (틱 단위로 늦게 불려도 주기가 밀리지 않게)
+    if (opening) for (const c of gates) b.setTerrain(c.x, c.y, 0);
+    else seal(b.mem.gateGen); // 서 있는 기물이 없는 칸은 바로 닫고, 있는 칸은 비는 대로
     b.emit({ k: 'fx', x: gates[0].x + (gates.length - 1) / 2, y: gates[0].y, r: 1, elem: 'phys', kind: 'aura' });
-    b.later(opening ? open : shut, flip);
+    b.later(b.mem.gateNext - b.t, flip);
   };
   b.later(shut, flip);
+}
+export type GateState = 'open' | 'shut' | 'pending';
+/** 수문 칸 하나의 실제 상태: 열림 · 닫힘 · 폐쇄 대기 (닫힘 주기인데 기물이 서 있어 아직 열린 칸) */
+export function gateState(b: Battle, x: number, y: number): GateState {
+  if (b.terrainAt(x, y)) return 'shut';
+  return b.mem.gateOpen ? 'open' : 'pending';
+}
+/** 수문 덩어리의 상태: 칸 하나라도 폐쇄 대기면 폐쇄 대기, 하나라도 열렸으면 열림 */
+export function gateGroupState(b: Battle, cells: { x: number; y: number }[]): GateState {
+  const st = cells.map((c) => gateState(b, c.x, c.y));
+  return st.includes('pending') ? 'pending' : st.includes('open') ? 'open' : 'shut';
 }
