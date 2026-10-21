@@ -1567,6 +1567,12 @@ function prepScreen(run: RunState) {
   if (devPv?.once) devPv.once = false; else if (!pv) devPv = null;
   units += `<div class="dev-pv-host">${pv ? devPvHtml(run, pv, ex) : ''}</div>`;
   units += surroundCue(run, geo, box);
+  // 창 가장자리 길잡이 (vpCueSync): 아군 진형 · 적 진형의 화면 사각형 (보이는 틀 기준 화면 칸) + 적 수. 아군 진형은 포탑 열까지
+  const zoneScr = (x: number, y: number, w: number, h: number) => { const r = rectScr(geo, x, y, w, h); return [r.x - fr.ox, r.y - fr.oy, r.w, r.h]; };
+  const foeN = (flip: boolean) => node?.enc?.enemies.filter((s) => !!s.flip === flip).length ?? 0;
+  const zones = [{ k: 'ally', r: zoneScr(PAD - ex, geo.ay0, n + 2 * ex, geo.rows), n: deployed(run).length },
+    ...(isBattle ? [{ k: 'foe0', r: zoneScr(PAD, PAD, n, ZONE), n: foeN(false) }] : []),
+    ...(isBattle && geo.foe2 ? [{ k: 'foe1', r: zoneScr(PAD, geo.foe2, n, ZONE), n: foeN(true) }] : [])];
   const bench = run.units.filter((u) => !u.pos);
   const free = Math.min(cap, allyRoom(run, n)) - deployed(run).length; // 출전 한도와 아군 진형 칸 (장치 칸 제외) 중 작은 쪽
   const canFill = bench.some((u) => R.canDeploy(run, u));
@@ -1581,7 +1587,7 @@ function prepScreen(run: RunState) {
     <section class="board-col">
       <div class="board-head"><b>${esc(env)}</b>${mapChip}<span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${tacPill(run)}<span class="muted small">${geo.foe2 ? '가운데' : geo.rot ? '왼쪽' : '아래'} ${geo.rows}줄에 배치</span>${noRoom.length ? `<span class="small warn" title="${esc(`배치 구역에 빈칸이 없음: ${noRoom.map((t) => t.name).join(' · ')} — 전투에서 가까운 빈칸에 나온다`)}">소환 자리 없음 ${noRoom.length}</span>` : ''}
         ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}</div>
-      <div class="board-row"><div class="board-vp"><div class="board${geo.rot ? ' rot' : ''}${placeSel >= 0 ? ' placing' : ''}"${placeSel >= 0 ? ` data-pidx="${placeSel}"` : ''} style="--w:${bw};--h:${bh}" data-bw="${bw}" data-bh="${bh}" data-ex="${ex}"><div class="cells">${cells}</div>${units}${startOverlay(run, geo, ex)}</div></div>${invRail(run)}</div>
+      <div class="board-row"><div class="board-vp"><div class="board${geo.rot ? ' rot' : ''}${placeSel >= 0 ? ' placing' : ''}"${placeSel >= 0 ? ` data-pidx="${placeSel}"` : ''} style="--w:${bw};--h:${bh}" data-bw="${bw}" data-bh="${bh}" data-ex="${ex}" data-zones='${JSON.stringify(zones)}'><div class="cells">${cells}</div>${units}${startOverlay(run, geo, ex)}</div></div><div class="vp-cues"></div>${invRail(run)}</div>
       <div class="bench" data-drop="bench">
         <span class="bench-label">대기 <b>${bench.length}</b></span>${prepZoomCtl()}
         ${bench.length ? bench.map((u) => {
@@ -3461,7 +3467,9 @@ function layoutPanels() {
   pop.style.left = `${Math.max(8, r.left - pop.offsetWidth - 16)}px`;
   pop.style.top = `${Math.max(r.top, (top?.offsetHeight || 0) + 10)}px`;
 }
-window.addEventListener('resize', () => { layoutPanels(); prepZoomSync(); if (app.view) followCamera(app.view.b); });
+window.addEventListener('resize', () => { layoutPanels(); prepZoomSync(undefined, prepVpMid()); if (app.view) followCamera(app.view.b); });
+/** 편성 보드 창 가운데 화면 점 (창 크기가 바뀌어도 보던 칸이 가운데에 남게) */
+function prepVpMid() { const r = root.querySelector<HTMLElement>('.prep .board-vp')?.getBoundingClientRect(); return r ? { x: r.left + r.width / 2, y: r.top + Math.min(r.height, innerHeight - r.top) / 2 } : undefined; }
 // ───────── 편성 보드 확대 · 축소: 보드는 .board-vp 창 안에서만 커지고 (가로 · 세로 스크롤), 화면(페이지) 배율은 그대로.
 // 보는 사람마다 errantes.prefs.v1 boardZoom = 칸 크기 / 최소 칸 크기 (CSS --cell-min), 0 = 전체 보기 (창에 보드 전체), 없으면 최소 칸 크기 (폭은 창 안)
 /** 대기석 위 확대 단추 묶음: [−] [전체 보기 ↔ 확대] [+] (상태 · 보이기는 prepZoomSync 가 실제 크기를 재서 맞춘다) */
@@ -3472,19 +3480,28 @@ function prepZoomCtl() {
     <button class="btn tiny bz-step" data-a="bzoom" data-v="in" title="확대 (Ctrl + 휠 · 두 손가락)" aria-label="확대">+</button>
   </span>`;
 }
-/** 편성 보드 창의 칸 크기 범위 (px): fit = 보드 전체가 창에 들어가는 크기 · min = CSS --cell-min · max = min 의 BZ_MAX 배 (fit 이 더 크면 fit) */
+/** 편성 보드 최대 칸 크기 (px): 기물 초상 · 장비 칸이 편히 읽히는 크기. 이보다 크면 한 화면에 보이는 칸만 줄어든다 */
+const PREP_CELL_MAX = 96;
+/** 긴 보드의 처음 칸 크기 상한 = 최소 칸 (CSS --cell-min) 의 이 배 (창에 여유가 있을 때만: 데스크톱 약 68px · 휴대폰 약 57px) */
+const PREP_CELL_DEF = 1.3;
+/** 편성 보드 창의 칸 크기 범위 (px): fit = 보드 전체가 창에 들어가는 크기 · min = CSS --cell-min
+ *  max = min(PREP_CELL_MAX, 아군 진형 (포탑 열 포함) 전체가 창에 들어가는 크기) — 끝까지 확대해도 내 배치 구역은 한눈에 (휴대폰 세로에서 넓은 보드는 거의 확대 없음).
+ *  단 max 는 min · fit 보다 작아지지 않는다 */
 function prepZoomRange(vp: HTMLElement, b: HTMLElement) {
   const row = vp.parentElement!, rs = getComputedStyle(row), rail = row.querySelector<HTMLElement>(':scope > .inv-rail');
   const availW = Math.max(120, row.clientWidth - (rs.flexDirection.startsWith('row') && rail ? rail.offsetWidth + (parseFloat(rs.columnGap) || 0) : 0));
   const availH = Math.max(160, parseFloat(getComputedStyle(vp).maxHeight) || innerHeight);
   const bw = +b.dataset.bw! || 1, bh = +b.dataset.bh! || 1, min = cellMinOf(vp), fit = Math.min(availW / bw, availH / bh);
-  return { bw, bh, availW, availH, fit, min, max: Math.max(fit, BZ_MAX * min) };
+  const az = vpZones(b).find((z) => z.k === 'ally'), allyFit = az ? Math.min(availW / az.r[2], availH / az.r[3]) : Infinity;
+  return { bw, bh, availW, availH, fit, min, max: Math.max(fit, min, Math.min(PREP_CELL_MAX, allyFit)) };
 }
 type PrepZoomRange = ReturnType<typeof prepZoomRange>;
 /** 저장한 확대 → 칸 크기 (px) */
 function prepCellOf(m: PrepZoomRange) {
   const p = loadPrefs(), z = p.boardZoom ?? (p.boardFit ? 0 : undefined); // 예전 '전체 보기' 설정 (boardFit) 도 읽는다
-  if (z === undefined) return Math.min(m.bw > m.bh ? m.availH / m.bh : m.availW / m.bw, Math.max(m.fit, m.min)); // 기본: 최소 칸 크기, 짧은 축은 창 안 (세로로 긴 보드는 폭, 가로로 긴 보드는 높이)
+  // 기본: 보드가 최소 칸 크기로 창에 다 들어가면 전체 (fit). 아니면 (긴 통로 · 포위) 짧은 축이 창을 채우는 만큼 키우되 최소 칸의 PREP_CELL_DEF 배까지
+  // (세로로 긴 보드는 폭, 가로로 긴 보드는 높이) — 긴 축은 창 안 스크롤, 처음 위치는 아군 진형 (prepViewInit)
+  if (z === undefined) return m.fit >= m.min ? m.fit : clampN(m.bw > m.bh ? m.availH / m.bh : m.availW / m.bw, m.min, Math.min(m.max, PREP_CELL_DEF * m.min));
   return z <= 0 ? m.fit : clampN(z * m.min, m.fit, m.max);
 }
 /** 보드 크기를 칸 크기 cell (없으면 저장값) 로 맞추고 단추 상태를 고친다. at = 그 자리에 머물 화면 점 (확대 · 축소 기준) */
@@ -3495,7 +3512,7 @@ function prepZoomSync(cell?: number, at?: { x: number; y: number }) {
   const r0 = at ? b.getBoundingClientRect() : null;
   b.style.width = `${c * m.bw}px`;
   vp.classList.toggle('scroll', c * m.bw > m.availW + 0.5 || c * m.bh > m.availH + 0.5); // 창보다 크면 창 안 스크롤 (아니면 넘침 허용: 보드 가장자리 화살표 · 이름표가 잘리지 않게)
-  vp.onscroll = () => vpMoreSync(vp);
+  vp.onscroll = () => { vpMoreSync(vp); if (prepView.key) { prepView.l = vp.scrollLeft; prepView.t = vp.scrollTop; } };
   if (at && r0) { // 가리킨 점 아래 칸이 그대로 있게 창을 민다
     const r1 = b.getBoundingClientRect(), fx = (at.x - r0.left) / r0.width, fy = (at.y - r0.top) / r0.height;
     vp.scrollLeft += r1.left + fx * r1.width - at.x;
@@ -3521,6 +3538,70 @@ function vpMoreSync(vp: HTMLElement) {
   const l = vp.scrollLeft, t = vp.scrollTop, on = vp.classList.contains('scroll'); // 클래스 대신 data-more (다시 그릴 때 스크롤 위치 복원은 클래스 이름으로 요소를 찾는다)
   const more = on ? [l > 1 && 'l', l + vp.clientWidth < vp.scrollWidth - 1 && 'r', t > 1 && 't', t + vp.clientHeight < vp.scrollHeight - 1 && 'b'].filter(Boolean).join(' ') : '';
   if (vp.dataset.more !== more) vp.dataset.more = more;
+  vpCueSync(vp);
+}
+// ───────── 편성 보드 창 길잡이: 처음에는 아군 진형을 보이고 (prepViewInit), 창 밖에 있는 적 진형은 창 가장자리 칩 [적 n →] 으로 알린다 (누르면 그쪽으로)
+/** 진형 (prepScreen 의 .board data-zones): k = ally · foe0 (위 · 가로 지형은 오른쪽) · foe1 (포위의 아래 · 왼쪽), r = 보이는 틀 기준 화면 칸 [x, y, w, h], n = 기물 · 적 수 */
+type VpZone = { k: string; r: [number, number, number, number]; n: number };
+function vpZones(b: HTMLElement): VpZone[] { try { return JSON.parse(b.dataset.zones || '[]'); } catch { return []; } }
+/** 진형 → 창 안 내용 좌표 사각형 (px, 스크롤 원점) */
+function vpZoneRect(vp: HTMLElement, b: HTMLElement, z: VpZone) {
+  const br = b.getBoundingClientRect(), vr = vp.getBoundingClientRect(), cw = br.width / (+b.dataset.bw! || 1), ch = br.height / (+b.dataset.bh! || 1);
+  const ox = br.left - vr.left - vp.clientLeft + vp.scrollLeft, oy = br.top - vr.top - vp.clientTop + vp.scrollTop;
+  return { l: ox + z.r[0] * cw, t: oy + z.r[1] * ch, w: z.r[2] * cw, h: z.r[3] * ch };
+}
+/** 첫 편성의 적 쪽 가장자리 깜빡임 길이 (ms) */
+const VP_PULSE_MS = 2400;
+/** 지금 조우의 편성 창: key = 조우 (런 · 조우 씨앗 · 지형 · 폭), t0 = 처음 연 시각, l · t = 마지막 창 스크롤 (맵에 다녀와도 그 자리로) */
+let prepView = { key: '', t0: 0, l: 0, t: 0 };
+const prepViewKey = (run: RunState | null) => { const e = run?.node?.enc; return run ? `${run.seed}:${e ? `${e.seed}:${e.map || ''}:${e.n}` : '-'}` : ''; };
+/** 진형 하나를 창 가운데로 (창 끝에서 멈춘다) */
+function prepCenterOn(k: string, smooth = false) {
+  const vp = root.querySelector<HTMLElement>('.prep .board-vp'), b = vp?.querySelector<HTMLElement>(':scope > .board'), z = b && vpZones(b).find((q) => q.k === k);
+  if (!vp || !b || !z) return;
+  const r = vpZoneRect(vp, b, z);
+  const left = clampN(r.l + r.w / 2 - vp.clientWidth / 2, 0, vp.scrollWidth - vp.clientWidth), top = clampN(r.t + r.h / 2 - vp.clientHeight / 2, 0, vp.scrollHeight - vp.clientHeight);
+  vp.scrollTo({ left, top, behavior: smooth && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'auto' });
+}
+/** 그린 뒤 편성 창 위치: 조우가 바뀌어 처음 열면 아군 진형을 가운데로 · 같은 조우에 다른 화면에서 돌아오면 마지막 자리로 (같은 화면을 다시 그릴 때는 scrollRestore 가 둔다) */
+function prepViewInit(sameView: boolean) {
+  const vp = root.querySelector<HTMLElement>('.prep .board-vp');
+  if (!vp) return;
+  const key = prepViewKey(app.run);
+  if (key !== prepView.key) { prepView = { key, t0: performance.now(), l: 0, t: 0 }; prepCenterOn('ally'); }
+  else if (!sameView) { vp.scrollLeft = prepView.l; vp.scrollTop = prepView.t; }
+  prepView.l = vp.scrollLeft; prepView.t = vp.scrollTop;
+  vpMoreSync(vp);
+}
+const CUE_ARR: Record<string, string> = { l: 'M19 12H5M11 6l-6 6 6 6', r: 'M5 12h14M13 6l6 6-6 6', t: 'M12 19V5M6 11l6-6 6 6', b: 'M12 5v14M6 13l6 6 6-6' };
+/** 창 가장자리 칩: 진형이 절반 넘게 창 밖이면 그쪽 가장자리에 [적 n →] · [아군 n ←] (적이 없는 진형은 빼고). 진형이 보이면 사라진다 */
+function vpCueSync(vp: HTMLElement) {
+  const host = vp.parentElement?.querySelector<HTMLElement>(':scope > .vp-cues'), b = vp.querySelector<HTMLElement>(':scope > .board');
+  if (!host || !b) return;
+  const st = `left:${vp.offsetLeft}px;top:${vp.offsetTop}px;width:${vp.offsetWidth}px;height:${vp.offsetHeight}px`;
+  if (host.getAttribute('style') !== st) host.setAttribute('style', st);
+  const sides: Record<string, string[]> = { l: [], r: [], t: [], b: [] }, W = vp.clientWidth, H = vp.clientHeight, x0 = vp.scrollLeft, y0 = vp.scrollTop;
+  const age = performance.now() - prepView.t0, pulse = age < VP_PULSE_MS && prepView.key === prepViewKey(app.run), delay = `animation-delay:-${Math.round(age)}ms`; // 다시 그려도 깜빡임은 이어서 (한 번만)
+  let key = '', edge = '';
+  if (vp.classList.contains('scroll')) for (const z of vpZones(b)) {
+    const ally = z.k === 'ally';
+    if (!ally && !z.n) continue;
+    const r = vpZoneRect(vp, b, z), ow = Math.max(0, Math.min(r.l + r.w, x0 + W) - Math.max(r.l, x0)), oh = Math.max(0, Math.min(r.t + r.h, y0 + H) - Math.max(r.t, y0));
+    if ((ow * oh) / Math.max(1, r.w * r.h) >= 0.5) continue;
+    const dx = (r.l + r.w / 2 - (x0 + W / 2)) / W, dy = (r.t + r.h / 2 - (y0 + H / 2)) / H;
+    const side = Math.abs(dx) >= Math.abs(dy) ? (dx < 0 ? 'l' : 'r') : dy < 0 ? 't' : 'b';
+    const arr = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${CUE_ARR[side]}"/></svg>`, txt = `<b>${ally ? '아군' : '적'}</b>${z.n ? `<span>${z.n}</span>` : ''}`;
+    const tip = ally ? `아군 진형으로 (출전 ${z.n})` : `적 진형으로 (적 ${z.n})`;
+    const pz = !ally && pulse;
+    sides[side][ally ? 'unshift' : 'push'](`<button class="vp-cue ${ally ? 'ally' : 'foe'}${pz ? ' pulse' : ''}" data-a="vp-cue" data-v="${z.k}" title="${tip}" aria-label="${tip}"${pz ? ` style="${delay}"` : ''}>${side === 'l' ? arr + txt : txt + arr}</button>`);
+    if (pz) edge += `<i class="vp-edge s-${side}" style="${delay}"></i>`; // 첫 편성: 적 쪽 가장자리가 한 번 빛난다
+    key += `${z.k}${side}${z.n};`;
+  }
+  if (pulse) key += 'p';
+  if (host.dataset.ck === key) return;
+  host.dataset.ck = key;
+  host.innerHTML = edge + Object.entries(sides).filter(([, a]) => a.length).map(([sd, a]) => `<div class="vp-cs s-${sd}">${a.join('')}</div>`).join('');
+  if (pulse) setTimeout(() => { const v = root.querySelector<HTMLElement>('.prep .board-vp'); if (v) vpCueSync(v); }, Math.max(0, VP_PULSE_MS - (performance.now() - prepView.t0)) + 30);
 }
 /** 편성 보드 확대 바꾸기 + 저장 (끄는 동안은 저장을 모아서) */
 let pzSaveT = 0;
@@ -3528,7 +3609,7 @@ function prepZoomTo(cell: number, at?: { x: number; y: number }) {
   const vp = root.querySelector<HTMLElement>('.prep .board-vp'), b = vp?.querySelector<HTMLElement>(':scope > .board');
   if (!vp || !b) return;
   const m = prepZoomRange(vp, b), c = clampN(cell, m.fit, m.max);
-  prepZoomSync(c, at ?? (() => { const r = vp.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + Math.min(r.height, innerHeight - r.top) / 2 }; })());
+  prepZoomSync(c, at ?? prepVpMid());
   clearTimeout(pzSaveT);
   pzSaveT = window.setTimeout(() => savePref('boardZoom', c <= m.fit + 0.5 ? 0 : +(c / m.min).toFixed(3)), 200);
 }
@@ -3545,7 +3626,7 @@ function prepZoomAct(kind: string) {
   const { m, c } = now;
   if (kind === 'fit') {
     if (c > m.fit + 0.5) { savePref('boardZoomLast', +(c / m.min).toFixed(3)); prepZoomTo(m.fit); }
-    else prepZoomTo(Math.max(m.min, (loadPrefs().boardZoomLast || 1) * m.min, m.fit * ZOOM_STEP));
+    else { prepZoomTo(Math.max(m.min, (loadPrefs().boardZoomLast || 1) * m.min, m.fit * ZOOM_STEP)); prepCenterOn('ally'); } // 확대하면 아군 진형부터
   } else prepZoomTo(kind === 'in' ? c * ZOOM_STEP : c / ZOOM_STEP);
 }
 /** 전투 창 ± 단추 */
@@ -3703,6 +3784,7 @@ function render() {
   topHSync();
   prepZoomSync(); // 보드 크기를 먼저 (창 안 스크롤 위치를 되살리려면 보드가 제 크기여야 한다)
   scrollRestore(scrolled, newModal);
+  if (app.screen === 'prep') prepViewInit(sameView); // 조우를 처음 열면 아군 진형부터 · 창 가장자리 길잡이
   restoredAt = performance.now();
   layoutPanels();
   advSync(run ?? null);
@@ -3912,7 +3994,7 @@ function bviewDims(view: HTMLElement) {
   const v = (k: string) => +view.style.getPropertyValue(k) || 0;
   return { W: v('--w'), H: v('--h'), FW: v('--fw'), FH: v('--fh'), ox: v('--ox'), oy: v('--oy') };
 }
-/** 칸 최소 크기 (CSS --cell-min) 의 BZ_MAX 배까지 확대 (편성 · 전투 공용) */
+/** 전투 창: 칸 최소 크기 (CSS --cell-min) 의 BZ_MAX 배까지 확대 (편성 보드는 prepZoomRange · PREP_CELL_MAX) */
 const BZ_MAX = 2;
 const cellMinOf = (el: Element) => parseFloat(getComputedStyle(el).getPropertyValue('--cell-min')) || 52;
 /** 전투 창 최대 배율: 칸이 최소 칸 크기의 BZ_MAX 배가 될 때까지 (작은 창 · 긴 가로 지형일수록 더 확대) */
@@ -5153,6 +5235,7 @@ function act(a: string, v: string) {
     case 'fold-r': savePref('prepFold', !loadPrefs().prepFold); break;
     case 'board-fit': prepZoomAct('fit'); return;
     case 'bzoom': prepZoomAct(v); return;
+    case 'vp-cue': prepCenterOn(v, true); return;
     case 'bzoom-b': battleZoomAct(v); return;
     case 'dev-sel': if (run?.node?.enc?.devices?.[+v]) {
       if (app.sel?.k === 'item' && isConsumable(run.inventory[app.sel.idx])) { toast('다른 장치가 있는 칸입니다.'); app.sel = null; break; }
