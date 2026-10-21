@@ -44,3 +44,30 @@ export const mineDmg = (phase: number) => Math.round(DEV.mine.dmg * Math.pow(pha
 export const strikeDmg = (tac: number, phase: number) => Math.round(tac * DEV.scope.k * Math.pow(phaseHpMult(phase), 0.85));
 /** 망원경 효과 반경: 항해자 단계 (0 = 꺼짐) */
 export const scopeR = (navTier: number) => DEV.scope.r[Math.max(0, navTier - 1)] ?? 1;
+
+/** 배치형 소모품 성질 (이름 + 값 줄): 보관함 팝업 · 도감이 같은 줄을 읽는다. navTiers = 항해자 단계 인원 (망원경 횟수 단계 표시) */
+export function deviceRows(id: string, navTiers: number[] = [2, 4, 6, 8]): [string, string][] {
+  const W = DEV.wall, D = DEV.decoy, M = DEV.mine, N = DEV.net, S = DEV.scope;
+  switch (id) {
+    case 'K_barricade': return [
+      ['놓는 곳', '적 진형 밖 빈칸'],
+      ['모양', `1칸 · 가로 · 세로 ${W.maxN}칸까지`],
+      ['내구도', `${W.hp} ÷ 칸 수 (× 페이즈 체력 배율)`],
+      ['막는 것', '이동 · 기본 공격 (양쪽)'],
+      ['틈 없이 갈라지면', '기술 · 상태이상도 막음'],
+      ['길이 막히면', '양쪽이 칸 단위로 부숨'],
+    ];
+    case 'K_decoy': return [['놓는 곳', '아무 빈칸 (적 진형 포함)'], ['체력', '1'], ['도발 배율', `×${D.prov}`], ['시작 무적', `${D.invuln}초`]];
+    case 'K_mine': return [['놓는 곳', '적 진형 밖 빈칸'], ['은신', '계속'], ['발동', `적이 ${M.r}칸 안 → ${M.delay}초 뒤`], ['폭발', `주변 ${M.r}칸 · 전기 피해`], ['감전', `${M.shock[0]}~${M.shock[1]}초`]];
+    case 'K_net': return [['범위', '2×2 (놓은 칸이 왼쪽 위)'], ['속박 확률', `${Math.round(N.chance * 100)}%`], ['속박', `${N.dur}초 − 효과 저항`]];
+    case 'K_scope': return [
+      ['적에게', '지정 포격 (전술 위력 비례 피해)'],
+      ['아군 · 빈칸에', '항공 보급 (이번 전투 고급 장비 1개씩)'],
+      ['효과 범위', `주변 ${S.r[0]}칸 · 항해자 ${navTiers[2]}명부터 ${S.r[2]}칸`],
+      ['사용 횟수', `처음 ${S.base} · ${navTiers.slice(1).map((n, i) => `${n}명 +${S.tierBonus[i + 1]}`).join(' · ')} · 페이즈마다 +${S.perPhase}`],
+      ['0회', '망원경은 남는다'],
+      ['항해자가 꺼지면', '회수 → 다시 켜지면 반환'],
+    ];
+  }
+  return [];
+}

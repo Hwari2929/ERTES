@@ -52,19 +52,19 @@ function pattern(rows: string[]) {
 }
 
 export const MAPS: MapDef[] = [
-  { id: 'open', name: '개활지', desc: '막힌 곳 없는 평지. 적 진형과 아군 진형 사이가 1줄.' },
+  { id: 'open', name: '개활지', desc: '막힌 곳 없는 평지.' },
   // ── 공용 지형 틀
-  { id: 'corridor', name: '긴 통로', narrow: 4, gap: 5, desc: '폭 4칸 · 사이 5줄의 좁고 긴 통로. 적이 길게 늘어서 다가오고, 원거리 기물이 오래 쏠 수 있다. 바리케이드 하나로도 길을 크게 막는다.' },
-  { id: 'surround', name: '포위', surround: true, desc: '아군 진형이 가운데, 적 진형이 위아래에 하나씩. 적의 절반이 아래에서 나와 양쪽에서 조여 온다.' },
+  { id: 'corridor', name: '긴 통로', narrow: 4, gap: 5, desc: '좁고 긴 통로. 적이 줄지어 다가온다.' },
+  { id: 'surround', name: '포위', surround: true, desc: '아군이 가운데, 적이 위아래에서 조여 온다.' },
   // ── 리빈 낙원동 (방역 시즌)
   { id: 'lv_gate', field: 'livin', name: '방역 수문', gap: 3, gateCycle: [8, 6],
-    desc: '가운데 줄을 방벽이 가로지르고, 한가운데 수문이 8초 닫혔다 6초 열린다 (닫힌 채 시작). 양 끝 1칸은 늘 열린 우회로.',
+    desc: '방벽이 가운데를 가르고, 수문이 주기적으로 여닫힌다. 양 끝은 우회로.',
     terrain: pattern(['.......', '.##=##.', '.......']) },
   { id: 'lv_lake', field: 'livin', name: '호수변 관측소', gap: 3,
-    desc: '가운데가 둥근 호수 (지나갈 수 없지만 탄과 기술은 넘어간다). 양 가장자리 뭍길로만 건너가고, 가운데 줄은 1칸으로 좁아진다 — 원거리 기물은 물 너머로 쏠 수 있다.',
+    desc: '호수를 사이에 두고 양쪽 뭍길로만 건넌다. 물 너머로는 쏠 수 있다.',
     terrain: pattern(['..~~~..', '.~~~~~.', '..~~~..']) },
   { id: 'lv_farm', field: 'livin', name: '격리 재배 구획', gap: 3,
-    desc: '유리 온실 (보이지만 못 지나감)과 배양 탱크 (못 지나가고 가림)가 사이를 나눈다. 입구가 좁아 지뢰 · 바리케이드로 막기 좋다.',
+    desc: '온실과 배양 탱크가 길을 나눈다. 입구가 좁다.',
     terrain: pattern(['gg.T.gg', '...T...', 'T..g..T']) },
 ];
 export const MAP_BY_ID: Record<string, MapDef> = Object.fromEntries(MAPS.map((m) => [m.id, m]));

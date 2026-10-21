@@ -13,6 +13,7 @@ import { DESPAIR_BY_ID, DESPAIRS, despairRule } from '../data/despair';
 import { OATHS, oathHeatOf, oathMax } from '../data/oaths';
 import { diffName } from '../data/difficulty';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, breadSellText, combine, CONSUMABLES, emblemId, injectorWeights, INJECTORS, isLegendConsumable, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, isTurretMod, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_MOD_IDS, TURRET_MODS, TURRET_PRICE, UNIQUE_IDS, isJunk, JUNK_IDS, CATWHEEL_ZI, isCatwheel } from '../data/items';
+import { deviceRows, isPlaceable } from '../data/devices';
 import { PSI_BRIEF } from '../data/brief';
 import { cantripView, passiveView, SCHOOL_LINE, transformPreview } from '../data/psiinfo';
 import { RELIC_BY_ID, RELICS } from '../data/relics';
@@ -236,7 +237,7 @@ function injectorShare(id: string): string {
 }
 /** 전투 승리 확률표: '일반 15% · 역경 30% · 보스 50%' */
 const dropTxt = (t: Record<string, number>) => [['battle', '일반'], ['adversity', '역경 · 도전'], ['boss', '보스']].filter(([k]) => t[k]).map(([k, n]) => `${n} ${pctTxt(t[k])}`).join(' · ');
-const USE_TXT: Record<string, string> = { place: '편성 화면에서 칸 · 적 · 아군에 끌어다 놓기 (전투가 시작되면 작동, 탭해서 회수)', unit: '기물에 끌어다 놓기', item: '장비에 끌어다 놓기', foe: '편성 화면에서 이번 전투의 적에게 끌어다 놓기 (적을 눌러도 됨)', run: '보관함에서 골라 [사용]' };
+const USE_TXT: Record<string, string> = { place: '편성 화면에서 칸 · 적 · 아군에 끌어다 놓기', unit: '기물에 끌어다 놓기', item: '장비에 끌어다 놓기', foe: '편성 화면에서 이번 전투의 적에게 끌어다 놓기 (적을 눌러도 됨)', run: '보관함에서 골라 [사용]' };
 
 /** 얻는 곳 (가격 · 확률 · 단계는 설정 · 데이터에서) */
 function sources(id: string): string[] {
@@ -296,6 +297,10 @@ function sources(id: string): string[] {
       if (id === 'K_cp_tape') out.push('캠페인 1장: 필리스 합류 사건에서 [상자는 두고 와]를 고르면 1개');
       else out.push(`상점 ${CFG.shop.price[id]} 크레딧 (가끔 진열) · 전투 보상 소모품 (확률)`, '캠페인 시작 때 라르스가 1개 보낸다');
       out.push('일반 의뢰에서는 나오지 않는다');
+    } else if (isPlaceable(id)) { // 편성 화면 배치형 (data/devices.ts): 성질 줄을 그대로
+      if (id === 'K_scope') out.push(`${SYN_BY_ID.NAV.name} 시너지가 처음 켜질 때 (${SYN_BY_ID.NAV.tiers[0]}명)`);
+      else out.push(`상점 · ${S.price[id]} 크레딧 (가끔 진열) · 전투 보상 소모품 (확률)`);
+      for (const [k, v] of deviceRows(id, SYN_BY_ID.NAV.tiers)) out.push(`${k}: ${v}`);
     } else if (id === 'K_seize') {
       out.push(`상점 · ${S.price[id]} 크레딧 (${pctTxt(S.seize)} 확률 진열, ${foeGear})`);
       out.push(`전투 승리 보상 (${foeGear}): ${dropTxt(CFG.drop.seize)}`);
@@ -304,7 +309,7 @@ function sources(id: string): string[] {
       out.push(`전투 승리 보상: ${dropTxt(CFG.drop.rank3)}`);
     } else {
       const inj = INJECTORS.includes(id);
-      out.push(`전투 승리 보상: ${dropTxt(CFG.drop.utility)} 확률로 소모품 1개 (분리 용제 · 재구성 회로 · 공명 주입기 중 하나${inj ? ', 주입기 크기는 페이즈에 따라' : ''})`);
+      out.push(`전투 승리 보상: ${dropTxt(CFG.drop.utility)} 확률로 소모품 1개${inj ? ' (주입기 크기는 페이즈에 따라)' : ''}`);
       out.push(`상점 · ${S.price[id]} 크레딧 (${pctTxt(S.cons)} 확률로 소모품 1개 진열)`);
       if (inj) out.push(`주입기 중 이 크기의 비중: ${injectorShare(id)}`);
     }

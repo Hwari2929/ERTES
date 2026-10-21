@@ -9,7 +9,6 @@ import { slow } from './kit';
 import { provMult } from '../engine/combat';
 import { KING_GEAR_NAME } from './chungra';
 import { emblemEffect, emblemText } from './emblems';
-import { DEV } from './devices';
 
 // 장비 등급: 재료(+3) → 고급(같은 재료 2개, 능력치 +12) / 희귀(서로 다른 재료 2개, 능력치 +6 + 특수 효과) · 전설(효과 3배, 조합 불가 · 이벤트 · 상점)
 export const COMPONENTS: { id: string; major: Major; name: string; icon: string }[] = [
@@ -270,11 +269,11 @@ export const CONSUMABLES: Record<string, { name: string; icon: string; target: '
   K_cp_tape: { name: '격리 봉인 테이프', icon: '▤', target: 'run', price: 0, drop: true, desc: '격리 화물 사건에서 쓴다: 위험한 화물을 열어도 위험은 봉인하고 보상만 챙긴다. 직접 사용할 수는 없다.' },
   K_bread_stale: { name: '식은 빵', icon: '◒', target: 'run', price: 0, drop: true, chef: true, get desc() { return `바로 사용: 플레이어 체력 회복 (위험 등급에 따라 ${breadHealText(true)}). 갓 구운 빵이 전투 ${CFG.chef.staleAfter}회를 지나 식었다. 회복량 −${CFG.chef.staleHeal} · 판매가 −${CFG.chef.staleSell}.`; } },
   // 편성 화면 배치 소모품 (data/devices.ts): 칸에 끌어다 놓거나 적 · 아군에게 지정하고, 전투가 시작되면 작동한다. 전투 전에는 탭해서 회수
-  K_barricade: { name: '접이식 바리케이드', icon: '▥', target: 'place', price: 0, drop: true, get desc() { return `편성 화면에서 적 구역 밖의 빈칸에 설치: 1칸으로 두거나 가로 · 세로 ${DEV.wall.maxN}칸까지 펼친다 (펼친 칸 수만큼 칸마다 내구도가 나뉜다). 어느 편도 아닌 구조물이라 양쪽의 이동과 탄을 막는다. 사이에 끼면 기본 공격이 바리케이드에 맞고, 틈 없이 갈라지면 전투 기술도 넘지 못한다. 길이 완전히 막히면 양쪽 모두 칸 단위로 부수며 나아간다.`; } },
-  K_decoy: { name: '유인 신호기', icon: '◎', target: 'place', price: 0, drop: true, get desc() { return `편성 화면에서 빈칸에 설치 (적 구역 가능): 체력 1, 도발 배율 ×${DEV.decoy.prov}. 전투가 시작되고 ${DEV.decoy.invuln}초 동안 피해를 받지 않는다. 적의 시선을 끄는 가짜 함대 신호를 쏜다.`; } },
-  K_mine: { name: '감전 지뢰', icon: '✱', target: 'place', price: 0, drop: true, get desc() { return `편성 화면에서 적 구역 밖의 빈칸에 설치: 계속 은신한다. 적이 ${DEV.mine.r}칸 안에 들어오면 ${DEV.mine.delay}초 뒤 터져 주변 ${DEV.mine.r}칸의 적에게 작은 전기 피해와 감전 ${DEV.mine.shock[0]}~${DEV.mine.shock[1]}초.`; } },
-  K_net: { name: '포획 그물', icon: '#', target: 'place', price: 0, drop: true, get desc() { return `편성 화면에서 2×2 칸을 지정 (적 · 칸에 끌어다 놓으면 그 칸이 왼쪽 위): 전투가 시작되면 그 안의 적이 ${Math.round(DEV.net.chance * 100)}% 확률로 속박 ${DEV.net.dur}초 (효과 저항만큼 짧아짐).`; } },
-  K_scope: { name: '표시 망원경', icon: '⌖', target: 'place', price: 0, get desc() { const t = SYN_BY_ID.NAV?.tiers || []; return `[항해자 전용] 편성 화면에서 적에게 쓰면 [지정 포격]: 그 적과 주변 적에게 전술 위력에 비례한 순간 피해. 아군 · 빈칸에 쓰면 [항공 보급]: 그 칸 주변 아군에게 이번 전투 동안 무작위 고급 장비 1개씩. 효과 범위 주변 ${DEV.scope.r[0]}칸 (항해자 ${t[2] ?? 6}명부터 ${DEV.scope.r[2]}칸). 쓸 때마다 사용 횟수가 줄고, 0이 되어도 망원경은 남는다. 처음 받을 때 ${DEV.scope.base}회, 항해자 ${t[1] ?? 4} · ${t[2] ?? 6} · ${t[3] ?? 8}명에 처음 닿으면 +${DEV.scope.tierBonus[1]} · +${DEV.scope.tierBonus[2]} · +${DEV.scope.tierBonus[3]}회, 페이즈마다 +${DEV.scope.perPhase}회. 항해자 시너지가 꺼지면 회수했다가 다시 켜지면 돌려준다.`; } },
+  K_barricade: { name: '접이식 바리케이드', icon: '▥', target: 'place', price: 0, drop: true, desc: '편성 화면에서 펼쳐 두는 중립 구조물. 양쪽의 길과 탄을 막는다.' },
+  K_decoy: { name: '유인 신호기', icon: '◎', target: 'place', price: 0, drop: true, desc: '적의 시선을 끄는 가짜 함대 신호를 쏜다.' },
+  K_mine: { name: '감전 지뢰', icon: '✱', target: 'place', price: 0, drop: true, desc: '숨겨 두면 다가온 적을 감전시킨다.' },
+  K_net: { name: '포획 그물', icon: '#', target: 'place', price: 0, drop: true, desc: '2×2 칸의 적을 묶는다.' },
+  K_scope: { name: '표시 망원경', icon: '⌖', target: 'place', price: 0, desc: '[항해자 전용] 적에게는 포격을, 아군에게는 보급을 부른다.' },
 };
 /** 합성 공방 상품 */
 export const ALL_CONSUMABLES = Object.keys(CONSUMABLES).filter((k) => !CONSUMABLES[k].drop);

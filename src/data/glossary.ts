@@ -7,8 +7,7 @@ import { controlNames, fleeRule, RELOAD_RESET_LABEL, zocRule } from '../engine/c
 /** 확률 표기 (소수 1자리) */
 const p1 = (x: number) => `${+(x * 100).toFixed(1)}%`;
 import { CAUSAL, causalNeed } from './chungra';
-import { MAPS, TERRAIN } from './maps';
-import { DEV } from './devices';
+import { MAPS } from './maps';
 
 export interface GlossEntry { id: string; term: string; text: string; key: string }
 export interface GlossChapter { ch: string; title: string; who: string; entries: GlossEntry[] }
@@ -75,8 +74,8 @@ export const GLOSSARY: GlossChapter[] = [
       { id: 'phase', term: '페이즈 · 항로', key: 'ch4_map', text: `의뢰 하나는 ${CFG.victoryPhase}페이즈. 한 페이즈는 12칸이고 한 칸씩 밟아 간다. 마지막 칸의 보스전을 치르면 (지더라도) 다음 페이즈, ${CFG.victoryPhase}페이즈 보스를 이기면 의뢰 성공.` },
       { id: 'nodes', term: '노드 종류', key: 'ch4_map', text: '전투, 역경, 사건, 보급(갈림길: 상점 · 보급 · 모집, 은하 대스타가 있으면 속보도), 전환(짝수 페이즈: 휴식 · 도전), 보스. 항로 회의에서는 의뢰 내내 함대 전체에 적용되는 전역 증강 셋 중 하나를 고른다. 2페이즈부터는 페이즈마다 영입 기회가 열린다.' },
       { id: 'field', term: '전장 · 전장 조건', key: 'ch4_brief', text: '의뢰마다 싸우는 전장이 정해진다. 전장 조건은 모든 전투에 붙고(적 증가, 가격 상승 등), 힘을 받는 세력도 따로 있다. 지도의 환경 탭에서 언제든 다시 본다.' },
-      { id: 'terrain', term: '지형 틀 · 지형 칸', key: 'ch4_brief', text: `일반 · 역경 전투는 가끔 개활지 대신 다른 지형 틀에서 벌어진다 (편성 화면 머리의 칩, 보스전은 늘 개활지). 공용 ${MAPS.filter((m) => !m.field && m.id !== 'open').map((m) => m.name).join(' · ')}, 전장 전용 ${MAPS.filter((m) => m.field).map((m) => m.name).join(' · ')}. 지형 칸: ${Object.values(TERRAIN).map((t) => `${t.name} — ${t.desc}`).join(' · ')}. 탄도를 막는 칸 사이에서는 사거리 안이어도 쏘지 못해 자리를 옮긴다.` },
-      { id: 'devices', term: '배치형 소모품 · 바리케이드', key: 'ch4_brief', text: `바리케이드 · 유인 신호기 · 감전 지뢰 · 포획 그물 (상점 · 전투 보상)과 항해자의 표시 망원경은 편성 화면에서 칸 · 적 · 아군에 끌어다 놓아 쓰고, 전투가 시작되면 작동한다. 놓은 장치를 누르면 전투 전에는 회수한다. 바리케이드는 어느 편도 아닌 구조물: 사이에 끼면 양쪽의 기본 공격이 바리케이드에 맞고, 틈 없이 갈라지면 전투 기술 · 상태이상도 넘지 못한다. 길이 완전히 막히면 양쪽 모두 앞을 막은 칸부터 부순다. 1칸 내구도 ${DEV.wall.hp} × 페이즈 체력 배율, 펼친 칸 수만큼 나뉜다.` },
+      { id: 'terrain', term: '지형 틀 · 지형 칸', key: 'ch4_brief', text: `일반 · 역경 전투는 가끔 개활지가 아닌 지형에서 벌어진다 (편성 화면 머리 칩). 지형 칸은 누르면 범위와 성질이 나온다. 물 · 온실은 길만 막고, 방벽 · 탱크는 탄까지 막는다. 공용 ${MAPS.filter((m) => !m.field && m.id !== 'open').map((m) => m.name).join(' · ')}, 전장 전용 ${MAPS.filter((m) => m.field).map((m) => m.name).join(' · ')}.` },
+      { id: 'devices', term: '배치형 소모품', key: 'ch4_brief', text: '바리케이드 · 신호기 · 지뢰 · 그물 · 망원경은 편성 화면에서 칸 · 적 · 아군에 끌어다 놓고, 전투가 시작되면 작동한다. 놓은 뒤 누르면 회수. 바리케이드는 어느 편도 아니라서 내 탄도 막는다 — 놓는 자리가 곧 전술이다.' },
       { id: 'ttype', term: '전술 유형', key: 'ch4_intro', text: '성장 방식. 메이저(궁극기 · 4등급마다 메이저 증강), 마이너(3등급마다 주요 능력치 2종 +3 · 기술이 등급 따라 자람), 스페셜(합류 · 5 · 10 · 15등급 전용 증강), 사이오닉(전공 · 이성 · 4 · 8 · 12 · 16등급 전공 증강), 디바인(신앙 · 신성력 · 성유물). 증강끼리 배타는 없다: 비술 · 기술을 바꾸는 변형 증강도 다른 증강과 함께 작동한다.' },
       { id: 'psileg', term: '★ 전설 전공 증강', key: 'ch4_intro', text: `사이오닉의 전공 증강은 전공마다 기본 8종에 ★ 전설 2종이 더 있다. 전설은 학파의 규칙 자체를 비튼다 (초신성 · 시간 정지 · 포자 군락 등). 전공 증강 선택지 ${CFG.augmentChoices}장 중 1장이 전설로 섞일 확률은 ${pc(CFG.psiLegend.base)}이고, 전설 없이 고를 때마다 +${pc(CFG.psiLegend.pity)}p씩 오른다 (4번째 선택에서는 반드시 나온다). 전설을 한 번 얻으면 다시 ${pc(CFG.psiLegend.base)}. 전설 카드는 가장 화려한 공개 연출로 나오고, ◆ 변형 증강은 그보다 한 단계 아래로 나온다.` },
       { id: 'great', term: '능력치 대성공', key: 'ch4_intro', text: `마이너 기물의 능력치 보상(3등급마다)은 확정할 때 ${pc(CFG.greatChance)} 확률로 대성공한다. 대성공이면 고른 주요 능력치 ${CFG.rankPicks}종이 각각 +${CFG.rankPoints * 2} (상승량 2배) — 고른 칸이 황금빛으로 반짝이고 창이 저절로 닫힌다.` },

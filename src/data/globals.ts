@@ -124,9 +124,9 @@ export const GLOBALS: GlobalDef[] = [
   { id: 'G.r_patron', tier: 'R', name: '부유한 후원자', desc: `페이즈가 시작될 때마다 크레딧 +${G.patron}.`, unique: true },
   { id: 'G.r_tutor', tier: 'R', name: '집중 육성', desc: `즉시 공명 등급이 가장 낮은 기물 2명의 공명 등급 +${G.tutor}.`,
     onPick: (r, api) => { for (const u of r.units.slice().sort((a, b) => a.rank - b.rank).slice(0, 2)) api.rankUp(u, G.tutor); } },
-  { id: 'G.r_solvent', tier: 'R', name: '용제 밀수', desc: `즉시 분리 용제 ${G.solventN}개. 이번 런 동안 분리 용제를 편성 화면에서 적 기물에게도 쓸 수 있습니다 — 그 적의 장비를 모두 녹여 없앱니다 (보관함으로 오지 않음).`, unique: true,
+  { id: 'G.r_solvent', tier: 'R', name: '용제 밀수', desc: `분리 용제 +${G.solventN}. 분리 용제를 적에게도 쓸 수 있다 (장비를 녹여 없앰).`, unique: true,
     onPick: (_r, api) => { for (let i = 0; i < G.solventN; i++) api.gain('K_strip', true); } },
-  { id: 'G.l_overhaul', tier: 'L', name: '전면 재조달', desc: `가진 장비(보관함 · 장착)를 모두 같은 등급의 다른 장비로 바꾸고, 하나마다 ${pc(G.overhaulUp)} 확률로 한 단계 위 등급이 됩니다 (부품 → 고급 · 희귀 → 전설). 그다음 무작위 고급 장비 1개를 받습니다. 고유 · 동맹 · 포탑 장비와 개조부품은 그대로.`, unique: true,
+  { id: 'G.l_overhaul', tier: 'L', name: '전면 재조달', desc: `고급 장비 +1. 가진 장비를 모두 다시 뽑는다 (하나마다 ${pc(G.overhaulUp)} 확률로 한 등급 위). 고유 · 동맹 · 포탑 장비 · 개조부품 제외.`, unique: true,
     onPick: (_r, api) => {
       for (const x of api.allItems()) {
         // 등급: 부품 0 · 고급 / 희귀 1 · 전설 2 (전설은 희귀 조합의 전설판만 — 동맹 · 고유 장비 등은 그대로)

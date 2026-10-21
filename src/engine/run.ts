@@ -548,7 +548,7 @@ function checkNav(run: RunState) {
   sc.n += add; sc.nav = t;
   if (first) gainItem(run, 'K_scope', undefined, true, true);
   const nm = CONSUMABLES.K_scope.name;
-  run.pending.push({ t: 'notice', title: `항해자 — ${nm}`, body: first ? `항해자들이 [${nm}]을 챙겼습니다 (사용 ${sc.n}회). 편성 화면에서 적에게 쓰면 지정 포격, 아군 · 빈칸에 쓰면 항공 보급입니다.` : `항해자 ${SYN_BY_ID.NAV.tiers[t - 1]}명: [${nm}] 사용 횟수 +${add} (남은 ${sc.n}회).` });
+  run.pending.push({ t: 'notice', title: `항해자 — ${nm}`, body: first ? `항해자들이 [${nm}]을 챙겼습니다.` : `항해자 ${SYN_BY_ID.NAV.tiers[t - 1]}명이 모였습니다.`, rows: first ? [['사용 횟수', `${sc.n}회`]] : [['사용 횟수', `+${add} → ${sc.n}회`]] });
 }
 
 export function checkOccult(run: RunState): boolean {
@@ -698,7 +698,7 @@ export function useConsumable(run: RunState, kIdx: number, tg: UseTarget): { ok:
     const d = placeDevice(run, id, tg).dev!;
     (run.node!.enc!.devices ||= []).push(d);
     if (id === 'K_scope') run.scope!.n--; else run.inventory.splice(kIdx, 1);
-    msg = id === 'K_scope' ? `${d.mode === 'strike' ? '지정 포격' : '항공 보급'} 지정 (남은 횟수 ${run.scope!.n})` : `${name} ${id === 'K_net' ? '지정' : '설치'}${d.n && d.n > 1 ? ` (${d.n}칸)` : ''} — 전투가 시작되면 작동합니다`;
+    msg = id === 'K_scope' ? `${d.mode === 'strike' ? '지정 포격' : '항공 보급'} · 남은 ${run.scope!.n}회` : `${name} ${id === 'K_net' ? '지정' : '설치'}${d.n && d.n > 1 ? ` · ${d.n}칸` : ''}`;
     log(run, `${name}: ${msg}`);
     return { ok: true, msg };
   }

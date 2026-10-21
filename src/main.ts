@@ -37,7 +37,7 @@ import { Rng } from './rng';
 import { type Category, type Encounter, type Geo, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from './types';
 import { encounterMatchup, fieldMatchup, matchupShort, schoolWarnings } from './ui/matchup';
 import { computeStats, makeSummons, type SummonMade } from './engine/build';
-import { DEV, deviceCells, isPlaceable, scopeR, wallHp } from './data/devices';
+import { DEV, deviceCells, deviceRows, isPlaceable, scopeR, wallHp } from './data/devices';
 import { mapOf, TERRAIN, terrainBlocks, type TerrainGroup, terrainGroups } from './data/maps';
 import { newCampaignRun } from './engine/campaignrun';
 import { campBoss } from './engine/campaign';
@@ -221,8 +221,8 @@ function persist() {
     if (back.length) toast(turretCount(app.run) ? `포탑 수 · 장비 칸이 줄어 장비 · 개조부품 ${back.length}개를 보관함으로 돌려보냈습니다.` : `엔지니어 시너지가 꺼져 포탑을 회수했습니다. 장비 · 개조부품 ${back.length}개는 보관함으로.`);
     // 헬레니우스 · 신비학자 단계가 내려가면 그 단계 전용 장비 회수, 다시 닿으면 반환
     const sg = R.syncSynGear(app.run);
-    if (sg.out.length) toast(`시너지 단계가 내려가 전용 장비 ${sg.out.length}개를 회수했습니다. 그 단계에 다시 닿으면 돌려받습니다.`);
-    else if (sg.back.length) toast(`시너지 단계를 되찾아 전용 장비 ${sg.back.length}개를 돌려받았습니다.`);
+    if (sg.out.length) toast(`전용 장비 ${sg.out.length}개 회수 (시너지 단계 하락)`);
+    else if (sg.back.length) toast(`전용 장비 ${sg.back.length}개 반환`);
   }
   if (app.run && !app.run.over) saveRun(app.run, app.run.tutorial ? TUT_SLOT : app.run.campaign ? CAMP_SLOT : 'auto'); // 튜토리얼 · 캠페인 런은 이어하기(자동 저장)를 덮지 않게 따로
 }
@@ -1321,6 +1321,20 @@ function tacPill(run: RunState) {
   const title = `전술 위력 ${v}\n${lines.join('\n')}\n지휘관의 스킬 · 전술 무기 · [암운]은 이 값을 위력으로 씁니다.`;
   return `<span class="tac-wrap"><button class="pill tac-pill${pop ? ' pop' : ''}" data-a="tac-info" title="${esc(title)}" aria-label="${esc(title)}" aria-expanded="${app.tacOpen}">${lineIcon('p.tac', 'li')}<b>${v}</b></button>${cmds.length ? `<span class="tac-cmd" title="출전 지휘관 수">지휘관 ${cmds.length}</span>` : ''}${app.tacOpen ? `<span class="tac-pop" role="note"><b>전술 위력 ${v}</b>${lines.map((l) => `<span>${esc(l)}</span>`).join('')}<span class="muted">지휘관의 스킬 · 전술 무기 · [암운]은 이 값을 위력으로 씁니다.</span></span>` : ''}</span>`;
 }
+/** 배치형 소모품 팝업 본문: 성질 줄 (이름 + 값). 망원경은 모드 2칸 · 효과 범위 도식 · 사용 횟수 단계 */
+function devicePop(run: RunState, id: string) {
+  const tiers = SYN_BY_ID.NAV.tiers;
+  if (id !== 'K_scope') return `<dl class="dev-spec">${deviceRows(id, tiers).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
+  const S = DEV.scope, sc = run.scope, r = scopeR(tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0));
+  const grid = [...Array((2 * r + 1) ** 2).keys()].map((i) => `<i${i === ((2 * r + 1) ** 2 - 1) / 2 ? ' class="c"' : ''}></i>`).join('');
+  const steps: [string, boolean][] = [[`처음 +${S.base}`, true], ...tiers.slice(1).map((n, i) => [`${n}명 +${S.tierBonus[i + 1]}`, (sc?.nav || 0) >= i + 2] as [string, boolean]), [`페이즈마다 +${S.perPhase}`, true]];
+  return `<div class="sc-modes">
+      <div class="sc-mode strike"><span class="sc-tg">적</span><b>지정 포격</b><small>전술 위력 비례 피해</small></div>
+      <div class="sc-mode drop"><span class="sc-tg">아군 · 빈칸</span><b>항공 보급</b><small>고급 장비 1개씩</small></div>
+    </div>
+    <div class="sc-row"><span class="sc-grid" style="--n:${2 * r + 1}" title="효과 범위">${grid}</span><span class="small">주변 <b>${r}칸</b>${r < S.r[2] ? ` <span class="muted">(항해자 ${tiers[2]}명부터 ${S.r[2]}칸)</span>` : ''}</span></div>
+    <div class="sc-row"><b class="sc-n" title="남은 사용 횟수">${sc?.n ?? 0}</b><ol class="sc-steps">${steps.map(([t, on]) => `<li class="${on ? 'on' : ''}">${t}</li>`).join('')}</ol></div>`;
+}
 /** 편성 화면에 놓은 장치: 바리케이드 · 신호기 · 지뢰는 칸 토큰, 그물 · 망원경은 효과 범위 테두리 + 누를 수 있는 표식 (누르면 회수 확인) */
 function deviceTokens(run: RunState, n: number, box: (x: number, y: number, w?: number, h?: number) => string) {
   const enc = run.node?.enc;
@@ -1418,6 +1432,7 @@ function prepScreen(run: RunState) {
         ? (() => { const cat = enemyCategory(e), td = TEND_NAME[e.tend], mod = s.mod || (s.stripped ? null : e.mod), its = [...(s.stripped ? [] : (e.items || []).filter((x): x is string => !!x)), ...(s.items || [])]; return `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${mod ? `<span class="tk-mod">${itemIcon(mod, `data-a="foe-item" data-v="${mod}"`)}</span>` : ''}</div><span class="tk-side">${e.tier === 'minion' ? '' : `<b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : 'E'}</b>`}<i class="cat-${cat}" title="${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}">${lineIcon(`k.${cat}`, 'li')}</i>${td ? `<i class="tk-tend" title="${esc(`${td.name}: ${td.desc}`)}">${lineIcon(`t.${e.tend}`, 'li')}</i>` : ''}</span><span class="tk-items">${[0, 1, 2].map((k) => (its[k] ? itemIcon(its[k], `data-a="foe-item" data-v="${its[k]}"`) : itemIcon(null))).join('')}</span></div>`; })()
         : sprite(e, '')}</div>`;
   });
+  units += terrainIcons(tLay, cellBox);
   units += deviceTokens(run, n, (x, y, w = 1, h = 1) => `left:${((x - PAD + ex) / bw) * 100}%;top:${((y - PAD) / bh) * 100}%;width:${(100 * w) / bw}%;height:${(100 * h) / bh}%`);
   const bench = run.units.filter((u) => !u.pos);
   const free = cap - deployed(run).length;
@@ -1614,10 +1629,11 @@ function invDetail(run: RunState) {
   if (app.ask) return ''; // 확인 팝업이 같은 자리(보관함 왼쪽)를 쓴다
   const it = itemInfo(sel);
   const TIER: Record<string, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '개조부품', K: isLegendConsumable(sel) ? '전설 소모품' : '소모품', U: '고유' };
-  const { stats, eff: eff1 } = itemBrief(sel);
+  const { stats: stats0, eff: eff1 } = itemBrief(sel);
+  const stats = isPlaceable(sel) ? stats0 + devicePop(run, sel) : stats0; // 배치형: 성질 줄 (망원경은 모드 · 범위 · 횟수 도식)
   const eff = eff1 + (breadNote(run, selIdx) ? ` — 이 빵: ${breadNote(run, selIdx)}` : '');
   const ct = isConsumable(sel) ? CONSUMABLES[sel].target : null;
-  const hint = ct === 'place' ? `<span class="muted small">${run.node?.enc ? (sel === 'K_scope' ? '적에게 끌어다 놓으면 지정 포격, 아군 · 빈칸이면 항공 보급' : sel === 'K_net' ? '칸 · 적에게 끌어다 놓으면 그 칸부터 2×2' : '빈칸에 끌어다 놓거나, 선택한 채로 칸을 누르면 설치') + ' (놓은 장치를 누르면 회수)' : '전투를 앞둔 편성 화면에서 칸 · 적 · 아군에 끌어다 놓아 사용'}</span>`
+  const hint = ct === 'place' ? `<span class="muted small">${run.node?.enc ? '끌어다 놓기 · 놓은 뒤 누르면 회수' : '전투 편성 화면에서 사용'}</span>`
     : ct === 'run' ? `<button class="btn small primary" data-a="use-self" data-v="${selIdx}">사용</button>`
     : ct === 'foe' ? `<span class="muted small">${run.node?.enc ? '이번 전투의 적에게 끌어다 놓거나, 선택한 채로 적을 누르면 사용' : '전투를 앞둔 편성 화면에서 적에게 끌어다 놓아 사용'}</span>`
     : ct ? `<span class="muted small">${CONSUMABLES[sel].alsoItem ? '기물 · 장비' : ct === 'unit' ? '기물' : '장비'}에 끌어다 놓거나, 선택한 채로 ${CONSUMABLES[sel].alsoItem ? '기물 · 장비를' : ct === 'unit' ? '기물을' : '장비를'} 누르면 사용</span>`
@@ -2341,52 +2357,54 @@ function battleCells(enc: Encounter) {
     const z = zoneAt(g, x, y);
     out += tLay.at.has(`${x},${y}`) ? terrainCell(tLay, x, y, 'data-a="bterrain"', -1) : `<div class="cell ${z === 'edge' ? 'pad' : z === 'ally' ? 'mine' : z}"></div>`;
   }
-  return out;
+  return out + terrainIcons(tLay, (x, y) => `left:${(x / w) * 100}%;top:${(y / h) * 100}%;width:${100 / w}%;height:${100 / h}%`);
 }
 // ───────── 지형 지물 (data/maps.ts terrainGroups): 칸마다 종류 무늬 + 덩어리 테두리, 덩어리 가운데 칸에 아이콘. 누르면 덩어리 전체 강조 + 상세
-interface TerrainLayer { groups: TerrainGroup[]; at: Map<string, { gid: number; edge: string; anchor: boolean }> }
+interface TerrainLayer { groups: TerrainGroup[]; at: Map<string, { gid: number; edge: string }>; mid: { x: number; y: number }[] }
 function terrainLayer(g: Geo): TerrainLayer {
-  const groups = terrainGroups(g), at = new Map<string, { gid: number; edge: string; anchor: boolean }>();
+  const groups = terrainGroups(g), at = new Map<string, { gid: number; edge: string }>();
   for (const grp of groups) {
     const has = (x: number, y: number) => grp.cells.some((c) => c.x === x && c.y === y);
-    const cx = grp.cells.reduce((a, c) => a + c.x, 0) / grp.cells.length, cy = grp.cells.reduce((a, c) => a + c.y, 0) / grp.cells.length;
-    const anchor = grp.cells.reduce((b, c) => (Math.hypot(c.x - cx, c.y - cy) < Math.hypot(b.x - cx, b.y - cy) ? c : b));
     for (const c of grp.cells) {
       const edge = [!has(c.x, c.y - 1) && 'e-t', !has(c.x + 1, c.y) && 'e-r', !has(c.x, c.y + 1) && 'e-b', !has(c.x - 1, c.y) && 'e-l'].filter(Boolean).join(' ');
-      at.set(`${c.x},${c.y}`, { gid: grp.id, edge, anchor: c === anchor });
+      at.set(`${c.x},${c.y}`, { gid: grp.id, edge });
     }
   }
-  return { groups, at };
+  // 덩어리 아이콘 자리: 칸들의 무게중심 (2칸 방벽이면 두 칸 사이)
+  const mid = groups.map((grp) => ({ x: grp.cells.reduce((a, c) => a + c.x, 0) / grp.cells.length, y: grp.cells.reduce((a, c) => a + c.y, 0) / grp.cells.length }));
+  return { groups, at, mid };
 }
 function terrainCell(l: TerrainLayer, x: number, y: number, act: string, selG: number) {
   const c = l.at.get(`${x},${y}`)!, k = l.groups[c.gid].k, t = TERRAIN[k];
-  return `<div class="cell tr tr-${k} ${c.edge}${c.gid === selG ? ' tr-sel' : ''}" ${act} data-v="${c.gid}" data-tg="${c.gid}" title="${esc(`${t.name} — ${t.desc}`)}">${c.anchor ? `<i class="tr-ic">${lineIcon(t.icon, 'li')}</i>` : ''}</div>`;
+  return `<div class="cell tr tr-${k} ${c.edge}${c.gid === selG ? ' tr-sel' : ''}" ${act} data-v="${c.gid}" data-tg="${c.gid}" title="${esc(`${t.name} — ${t.desc}`)}"></div>`;
 }
+/** 지형 지물 아이콘: 덩어리마다 1개, 무게중심에 (누름은 아래 칸이 받는다). box = 칸 1개 크기 자리 (소수 좌표 가능) */
+const terrainIcons = (l: TerrainLayer, box: (x: number, y: number) => string) =>
+  l.groups.map((grp, i) => `<i class="tr-ic" style="${box(l.mid[i].x, l.mid[i].y)}">${lineIcon(TERRAIN[grp.k].icon, 'li')}</i>`).join('');
 /** 지형 지물 상세 (편성 · 전투 오른쪽 패널, 기물 상세와 같은 틀): 이름 + 성질 칩, 이름 + 값 줄. gateOpen = 전투 중 수문 상태 (편성 화면은 닫힌 채 시작) */
 function terrainDetail(g: Geo, grp: TerrainGroup, back: string, gateOpen = false) {
   const t = TERRAIN[grp.k], m = mapOf(g.map), gate = grp.k === 'gate';
   const bl = gate && gateOpen ? { walk: false, shot: false } : terrainBlocks(grp.k);
   const chip = (cls: string, icon: string, label: string, tip: string) => `<span class="tchip ${cls}" data-kw="foe" data-tt="${esc(label)}" data-td="${esc(tip)}" tabindex="0" role="button">${lineIcon(icon, 'li')}${label}</span>`;
-  const chips = (bl.walk ? chip('bad', 'u.area', '통행 불가', '기물이 들어가거나 지나갈 수 없다') : chip('', 'u.area', '통행 가능', '지금은 길이다'))
-    + (bl.shot ? chip('bad', 'a.range', '탄도 차단', '사이에 있으면 사거리 안이어도 쏘지 못한다') : chip('', 'a.range', '탄도 통과', '탄과 기술이 넘어간다'));
+  const chips = (bl.walk ? chip('bad', 'u.area', '통행 불가', '들어가거나 지나갈 수 없다') : chip('', 'u.area', '통행 가능', '지금은 길이다'))
+    + (bl.shot ? chip('bad', 'a.range', '탄도 차단', '사이에 있으면 쏘지 못하고 자리를 옮긴다') : chip('', 'a.range', '탄도 통과', '너머로 쏠 수 있다'));
   const rows: [string, string][] = [
     ['지형 틀', m.name],
     ['크기', `${grp.cells.length}칸`],
-    ...(gate ? [['상태', gateOpen ? '열림' : '닫힘'] as [string, string], ['주기', `${m.gateCycle?.[0] ?? 0}초 닫힘 → ${m.gateCycle?.[1] ?? 0}초 열림 (닫힌 채 시작)`] as [string, string]] : []),
-    ['이동', bl.walk ? '지나갈 수 없음 — 돌아간다' : '지나갈 수 있음'],
-    ['기본 공격', bl.shot ? '막힘 — 사이에 있으면 쏘지 못하고 자리를 옮긴다' : '넘어감 — 물 · 유리 너머로 쏠 수 있다'],
-    ['전투 기술 · 상태이상', bl.shot ? '이 지형으로 틈 없이 갈라진 적에게는 닿지 않음' : '넘어감'],
-    ['배치', '기물 · 장치를 놓을 수 없음'],
+    ...(gate ? [['상태', gateOpen ? '열림' : '닫힘'] as [string, string], ['주기', `닫힘 ${m.gateCycle?.[0] ?? 0}초 → 열림 ${m.gateCycle?.[1] ?? 0}초`] as [string, string]] : []),
+    ['이동', bl.walk ? '막음' : '통과'],
+    ['기본 공격', bl.shot ? '막음' : '통과'],
+    ['기술 · 상태이상', bl.shot ? '틈 없이 갈라지면 막음' : '통과'],
+    ['배치', '불가'],
   ];
   return `<div class="detail dp-terrain">${dBar(back)}
     ${heroHead('', `<span class="tr-hero tr-${grp.k}">${lineIcon(t.icon, 'li')}</span>`, t.name, chips)}
     <p class="small foe-line">${esc(t.lore)}</p>
     <h3>성질</h3><dl class="um-types ct-rules">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
-    <p class="muted small">${esc(m.desc)}</p>
   </div>`;
 }
 /** 지형 틀 칩 (편성 · 전투 머리): 이름 + 규칙 툴팁 */
-const mapPill = (id: string) => { const m = mapOf(id); return `<span class="pill map-pill" title="${esc(`${m.name} — ${m.desc}`)}">${lineIcon('n.battle', 'li')}${esc(m.name)}</span>`; };
+const mapPill = (id: string) => { const m = mapOf(id); return `<span class="pill map-pill" title="${esc(m.desc)}">${lineIcon('n.battle', 'li')}${esc(m.name)}</span>`; };
 /** 실제 진행 속도: 상세 정보를 보는 중이면 ×0.25 (설정) */
 function applySpeed() {
   const slow = app.slowDetail && app.battleSel !== null && !app.view?.b.over;
@@ -3178,7 +3196,7 @@ function wallAsk(run: RunState, i: number, x: number, y: number) {
   }).join('');
   app.sel = null;
   app.ask = { anchor: [`.board [data-drop="cell:${x}:${y}"]`, `.board [data-drop="xcell:${x}:${y}"]`, '.board'], at: 'beside',
-    html: `<b class="ask-t">${itemIcon('K_barricade')} ${esc(CONSUMABLES.K_barricade.name)} — 펼칠 모양</b><div class="wall-opts">${opts}</div><p class="ask-note">펼친 칸 수만큼 칸마다 내구도가 나뉩니다. 양쪽의 이동과 탄을 막습니다.</p>` };
+    html: `<b class="ask-t">${itemIcon('K_barricade')} ${esc(CONSUMABLES.K_barricade.name)} — 펼칠 모양</b><div class="wall-opts">${opts}</div>` };
 }
 /** 재구성 회로 확인 팝업: 기물이면 기물 위, 장착 장비면 그 칸 옆, 보관함 장비면 보관함 왼쪽. 결과는 V 를 누른 뒤에 공개 (미리 보고 고를 수 없음) */
 function rerollAsk(run: RunState, i: number, tg: R.UseTarget) {
