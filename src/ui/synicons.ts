@@ -219,6 +219,12 @@ const L: Record<string, string> = {
   'k.purge': '<path d="M9 9h6v11a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z"/><path d="M10 9V6h4v3"/><path d="M14 6h3l1.5 1.5"/><path d="M20 4.5h.01M21.5 7h.01M20 9.5h.01"/><path d="M9 14h6"/>',
   'k.note': '<path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4"/><path d="M8 10h8M8 13h5"/><path d="M8 18c1-1.5 2-1.5 2.5 0s1.5 1.5 2.5-.5 2 0 3 .5"/>',
   'k.tape': '<circle cx="9" cy="10" r="6"/><circle cx="9" cy="10" r="2.2"/><path d="M15 10h5.5l-1 4.5h-4.5"/><path d="M9 16h6.5"/>',
+  // 전장 지형 칸 (data/maps.ts TERRAIN): 물 (물결) · 유리 온실 (박공 + 창살) · 방벽 (벽돌) · 배양 탱크 (원통) · 수문 (문짝 + 물)
+  'tr.water': '<path d="M3 8c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 13c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 18c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>',
+  'tr.glass': '<path d="M3 11l9-7 9 7v9H3z"/><path d="M12 4v16M3 15h18"/>',
+  'tr.wall': '<rect x="3" y="5" width="18" height="14"/><path d="M3 9.7h18M3 14.3h18M9 5v4.7M15 5v4.7M6 9.7v4.6M12 9.7v4.6M18 9.7v4.6M9 14.3V19M15 14.3V19"/>',
+  'tr.tank': '<ellipse cx="12" cy="5.5" rx="6" ry="2.5"/><path d="M6 5.5v13c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-13"/><path d="M9 11v5"/>',
+  'tr.gate': '<path d="M4 20V5h16v15"/><path d="M8 5v11M12 5v11M16 5v11"/><path d="M4 18.5c2-1.5 4-1.5 6 0s4 1.5 6 0 2.5-1 4 0"/>',
   // 편성 화면 배치 소모품: 접이식 바리케이드 (펼친 판 3장) · 유인 신호기 (안테나 + 파동) · 감전 지뢰 (원반 + 번개) · 포획 그물 (격자) · 표시 망원경 (경통 + 렌즈)
   'k.barricade': '<path d="M3 8h18v8H3z"/><path d="M9 8v8M15 8v8"/><path d="M5 16v4M19 16v4"/>',
   'k.decoy': '<path d="M12 11v10"/><path d="M8 21h8"/><circle cx="12" cy="9" r="2"/><path d="M7.5 4.5a6.5 6.5 0 0 0 0 9M16.5 4.5a6.5 6.5 0 0 1 0 9"/>',

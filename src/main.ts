@@ -34,11 +34,11 @@ import * as R from './engine/run';
 import { CAUSAL, causalGain, causalLeft, causalNeed, causalStage, gearScore, KING, KING_GEAR, KING_GEAR_NAME, KING_MS_TEXT, kingStageText } from './data/chungra';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
-import { type Category, type Encounter, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from './types';
+import { type Category, type Encounter, type Geo, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from './types';
 import { encounterMatchup, fieldMatchup, matchupShort, schoolWarnings } from './ui/matchup';
 import { computeStats, makeSummons, type SummonMade } from './engine/build';
 import { DEV, deviceCells, isPlaceable, scopeR, wallHp } from './data/devices';
-import { mapOf, TERRAIN } from './data/maps';
+import { mapOf, TERRAIN, terrainBlocks, type TerrainGroup, terrainGroups } from './data/maps';
 import { newCampaignRun } from './engine/campaignrun';
 import { campBoss } from './engine/campaign';
 import { chapterOf as campChapter, SETTLE as CAMP_SETTLE, TIME_COST as CAMP_TIME_COST } from './data/campaign';
@@ -140,7 +140,7 @@ const FS_SVG = (on: boolean) => `<svg viewBox="0 0 24 24" fill="none" stroke="cu
 type Screen = 'title' | 'intro' | 'diffsel' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'invest' | 'over' | 'codex' | 'bar' | 'oath';
 /** 화면을 가리지 않는 확인 팝업: anchor 선택자 중 처음 보이는 요소 옆에 (inv = 보관함 상자 왼쪽 · above = 위 · beside = 옆). ok 가 없으면 안내만 (닫기 버튼 하나) */
 type Ask = { html: string; anchor: string[]; at: 'inv' | 'above' | 'beside'; ok?: () => void; okLabel?: string; hl?: number[] }; // hl: 함께 강조할 보관함 칸 (조합 재료 둘)
-type Sel = { k: 'unit'; uid: string } | { k: 'turret'; i: number } | { k: 'king' } | { k: 'item'; idx: number } | { k: 'relic'; id: string } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
+type Sel = { k: 'unit'; uid: string } | { k: 'terrain'; g: number } | { k: 'turret'; i: number } | { k: 'king' } | { k: 'item'; idx: number } | { k: 'relic'; id: string } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
 
 const app = {
   screen: 'title' as Screen,
@@ -190,6 +190,7 @@ const app = {
   codexSel: null as string | null, // 도감 기물: 상세를 펼친 기물
   meterTab: 'dmg' as 'dmg' | 'taken' | 'support' | 'kills',
   battleSel: null as number | null, // 전투 중 선택한 기물 (아군 · 적)
+  battleTerrain: null as number | null, // 전투 중 선택한 지형 지물 (data/maps.ts terrainGroups 번호)
   bPick: null as string | null, // 상세 정보에서 고른 효과 (st:key) · 장비 (it:id)
   releaseConfirm: null as string | null,
   lastBattle: null as Battle | null,
@@ -1349,7 +1350,7 @@ function prepScreen(run: RunState) {
   const cap = R.deployCap(run);
   // 편성 화면은 배치 구역만 보여준다 (바깥 테두리 칸 제외). 좌표는 전장 좌표 그대로
   const geo = runGeo(run, n), { w: fw, h: fh } = geo;
-  const land = terrainCells(geo); // 지형 칸 (물 · 온실 · 방벽 · 배양 탱크 · 수문)
+  const land = terrainCells(geo), tLay = terrainLayer(geo); // 지형 칸 (물 · 온실 · 방벽 · 배양 탱크 · 수문)
   // 엔지니어 감시 포탑이 있으면 양옆 가장자리 열(포탑 전용)까지 보여 준다. 소환물 · 공왕 무휼은 시작 칸에 카드로 보이고 끌어서 옮긴다 (companionCells = 전투 시작 칸과 같음)
   const tcs = turretCells(run, n);
   const ex = tcs.length ? PAD : 0;
@@ -1376,7 +1377,7 @@ function prepScreen(run: RunState) {
       const tk = land.get(`${x},${y}`);
       const zc = zocCells.has(`${x},${y}`);
       if (x < PAD || x >= fw - PAD) { cells += mine ? `<div class="cell tpad${zc ? ' zoc' : ''}" data-drop="tcell:${x}:${y}" title="포탑 전용 칸${zc ? ` · ${esc(zocShort(zocCells.get(`${x},${y}`)))}` : ''}"></div>` : `<div class="cell edge${zc ? ' zoc' : ''}"${zc ? zocTip(x, y) : ''}></div>`; continue; }
-      if (tk) { cells += `<div class="cell tr tr-${tk}" title="${esc(`${TERRAIN[tk].name} — ${TERRAIN[tk].desc}`)}"></div>`; continue; } // 지형 칸: 배치 · 장치 불가
+      if (tk) { cells += terrainCell(tLay, x, y, `data-a="sel-terrain"`, app.sel?.k === 'terrain' ? app.sel.g : -1); continue; } // 지형 칸: 배치 · 장치 불가, 누르면 지형 지물 상세
       cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}${zc ? ' zoc' : ''}${devOk(x, y) ? ' dev-ok' : ''}" ${mine ? `data-drop="cell:${x}:${y}"` : isBattle ? `data-drop="xcell:${x}:${y}"` : ''}${placeSel >= 0 ? ` data-a="dev-cell" data-v="${x}:${y}"` : ''}${zc ? zocTip(x, y) : ''}></div>`;
     }
   let units = '';
@@ -2268,6 +2269,7 @@ function foeItemTip(el: HTMLElement, id: string) {
 function detailPanel(run: RunState, extra = '') {
   const sel = app.sel;
   const bar = dBar('desel', extra);
+  if (sel?.k === 'terrain') { const g = runGeo(run), grp = terrainGroups(g)[sel.g]; return grp ? terrainDetail(g, grp, 'desel') : ''; }
   if (sel?.k === 'enemy' && run.node?.enc) {
     const s = run.node.enc.enemies[sel.i];
     if (!s) return '';
@@ -2333,13 +2335,55 @@ function detailPanel(run: RunState, extra = '') {
 // ───────────────────────── 화면: 전투
 /** 전투 보드 칸 (테두리 · 적 진형 · 간격 · 아군 진형 색 구분) */
 function battleCells(enc: Encounter) {
-  const g = encGeo(enc), { w, h } = g, land = terrainCells(g);
+  const g = encGeo(enc), { w, h } = g, tLay = terrainLayer(g);
   let out = '';
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const z = zoneAt(g, x, y), tk = land.get(`${x},${y}`);
-    out += `<div class="cell ${z === 'edge' ? 'pad' : z === 'ally' ? 'mine' : z}${tk ? ` tr tr-${tk}` : ''}"></div>`;
+    const z = zoneAt(g, x, y);
+    out += tLay.at.has(`${x},${y}`) ? terrainCell(tLay, x, y, 'data-a="bterrain"', -1) : `<div class="cell ${z === 'edge' ? 'pad' : z === 'ally' ? 'mine' : z}"></div>`;
   }
   return out;
+}
+// ───────── 지형 지물 (data/maps.ts terrainGroups): 칸마다 종류 무늬 + 덩어리 테두리, 덩어리 가운데 칸에 아이콘. 누르면 덩어리 전체 강조 + 상세
+interface TerrainLayer { groups: TerrainGroup[]; at: Map<string, { gid: number; edge: string; anchor: boolean }> }
+function terrainLayer(g: Geo): TerrainLayer {
+  const groups = terrainGroups(g), at = new Map<string, { gid: number; edge: string; anchor: boolean }>();
+  for (const grp of groups) {
+    const has = (x: number, y: number) => grp.cells.some((c) => c.x === x && c.y === y);
+    const cx = grp.cells.reduce((a, c) => a + c.x, 0) / grp.cells.length, cy = grp.cells.reduce((a, c) => a + c.y, 0) / grp.cells.length;
+    const anchor = grp.cells.reduce((b, c) => (Math.hypot(c.x - cx, c.y - cy) < Math.hypot(b.x - cx, b.y - cy) ? c : b));
+    for (const c of grp.cells) {
+      const edge = [!has(c.x, c.y - 1) && 'e-t', !has(c.x + 1, c.y) && 'e-r', !has(c.x, c.y + 1) && 'e-b', !has(c.x - 1, c.y) && 'e-l'].filter(Boolean).join(' ');
+      at.set(`${c.x},${c.y}`, { gid: grp.id, edge, anchor: c === anchor });
+    }
+  }
+  return { groups, at };
+}
+function terrainCell(l: TerrainLayer, x: number, y: number, act: string, selG: number) {
+  const c = l.at.get(`${x},${y}`)!, k = l.groups[c.gid].k, t = TERRAIN[k];
+  return `<div class="cell tr tr-${k} ${c.edge}${c.gid === selG ? ' tr-sel' : ''}" ${act} data-v="${c.gid}" data-tg="${c.gid}" title="${esc(`${t.name} — ${t.desc}`)}">${c.anchor ? `<i class="tr-ic">${lineIcon(t.icon, 'li')}</i>` : ''}</div>`;
+}
+/** 지형 지물 상세 (편성 · 전투 오른쪽 패널, 기물 상세와 같은 틀): 이름 + 성질 칩, 이름 + 값 줄. gateOpen = 전투 중 수문 상태 (편성 화면은 닫힌 채 시작) */
+function terrainDetail(g: Geo, grp: TerrainGroup, back: string, gateOpen = false) {
+  const t = TERRAIN[grp.k], m = mapOf(g.map), gate = grp.k === 'gate';
+  const bl = gate && gateOpen ? { walk: false, shot: false } : terrainBlocks(grp.k);
+  const chip = (cls: string, icon: string, label: string, tip: string) => `<span class="tchip ${cls}" data-kw="foe" data-tt="${esc(label)}" data-td="${esc(tip)}" tabindex="0" role="button">${lineIcon(icon, 'li')}${label}</span>`;
+  const chips = (bl.walk ? chip('bad', 'u.area', '통행 불가', '기물이 들어가거나 지나갈 수 없다') : chip('', 'u.area', '통행 가능', '지금은 길이다'))
+    + (bl.shot ? chip('bad', 'a.range', '탄도 차단', '사이에 있으면 사거리 안이어도 쏘지 못한다') : chip('', 'a.range', '탄도 통과', '탄과 기술이 넘어간다'));
+  const rows: [string, string][] = [
+    ['지형 틀', m.name],
+    ['크기', `${grp.cells.length}칸`],
+    ...(gate ? [['상태', gateOpen ? '열림' : '닫힘'] as [string, string], ['주기', `${m.gateCycle?.[0] ?? 0}초 닫힘 → ${m.gateCycle?.[1] ?? 0}초 열림 (닫힌 채 시작)`] as [string, string]] : []),
+    ['이동', bl.walk ? '지나갈 수 없음 — 돌아간다' : '지나갈 수 있음'],
+    ['기본 공격', bl.shot ? '막힘 — 사이에 있으면 쏘지 못하고 자리를 옮긴다' : '넘어감 — 물 · 유리 너머로 쏠 수 있다'],
+    ['전투 기술 · 상태이상', bl.shot ? '이 지형으로 틈 없이 갈라진 적에게는 닿지 않음' : '넘어감'],
+    ['배치', '기물 · 장치를 놓을 수 없음'],
+  ];
+  return `<div class="detail dp-terrain">${dBar(back)}
+    ${heroHead('', `<span class="tr-hero tr-${grp.k}">${lineIcon(t.icon, 'li')}</span>`, t.name, chips)}
+    <p class="small foe-line">${esc(t.lore)}</p>
+    <h3>성질</h3><dl class="um-types ct-rules">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+    <p class="muted small">${esc(m.desc)}</p>
+  </div>`;
 }
 /** 지형 틀 칩 (편성 · 전투 머리): 이름 + 규칙 툴팁 */
 const mapPill = (id: string) => { const m = mapOf(id); return `<span class="pill map-pill" title="${esc(`${m.name} — ${m.desc}`)}">${lineIcon('n.battle', 'li')}${esc(m.name)}</span>`; };
@@ -4031,6 +4075,14 @@ function renderBattleUnit(b: Battle, force: boolean) {
   const u = b.units.find((x) => x.id === app.battleSel);
   // 고른 기물이 없으면 사건 피드 (battleview 가 채움), 고르면 그 기물 상세
   const feed = document.getElementById('bf-ev-wrap');
+  // 지형 지물: 덩어리 칸 강조 + 상세 (수문은 열림 · 닫힘이 바뀌면 다시 그린다)
+  document.querySelectorAll<HTMLElement>('#bboard .cell[data-tg]').forEach((c) => c.classList.toggle('tr-sel', +c.dataset.tg! === app.battleTerrain));
+  const grp = app.battleTerrain !== null && b.geo ? terrainGroups(b.geo)[app.battleTerrain] : undefined;
+  if (grp && b.geo) {
+    const sig = `t${grp.id}:${b.mem.gateOpen || 0}`;
+    if (force || sig !== bunitFor) { bu.hidden = false; if (feed) feed.hidden = true; bu.innerHTML = terrainDetail(b.geo, grp, 'bdesel', !!b.mem.gateOpen); bunitFor = sig; layoutPanels(); }
+    return;
+  }
   if (!u) { if (bunitFor !== 'none' || force) { bu.innerHTML = ''; bu.hidden = true; if (feed) feed.hidden = false; bunitFor = 'none'; } return; }
   const sig = `${u.id}:${app.statPop}:${app.abilPop}:${app.bPick?.startsWith('it:') ? app.bPick : ''}`;
   if (force || sig !== bunitFor) { bu.hidden = false; if (feed) feed.hidden = true; bu.innerHTML = battleUnitStatic(b, u); bunitFor = sig; layoutPanels(); }
@@ -4452,7 +4504,7 @@ function act(a: string, v: string) {
   const ask = app.ask;
   if (ask && a !== 'ask') app.ask = null; // 다른 동작을 하면 확인 팝업은 취소
   // 전투 중에는 속도 조절 / 결과 보기 / 계속만 받는다 (재렌더하면 전투 화면이 초기화됨)
-  if (app.screen === 'battle' && !['speed', 'pause', 'skip', 'after-battle', 'meter-tab', 'bsel', 'bdesel', 'bpick', 'stat-pop', 'abil-pop', 'toggle-detail'].includes(a)) return;
+  if (app.screen === 'battle' && !['speed', 'pause', 'skip', 'after-battle', 'meter-tab', 'bsel', 'bterrain', 'bdesel', 'bpick', 'stat-pop', 'abil-pop', 'toggle-detail'].includes(a)) return;
   if (a === 'map-tab') {
     // 슬라이드 전환: 다시 그리지 않고 트랙만 옮긴다
     setMapTab(+v || 0);
@@ -4665,6 +4717,9 @@ function act(a: string, v: string) {
     }
     case 'tunequip': if (run) { const [i, k] = v.split(':'); const e = R.unequipTurret(run, +i, +k); if (e) toast(e); persist(); } break;
     case 'sel-clear': app.sel = null; break;
+    case 'sel-terrain':
+      if (app.sel?.k === 'item' && run && isConsumable(run.inventory[app.sel.idx])) { toast(isPlaceable(run.inventory[app.sel.idx]) ? '지형 칸에는 놓을 수 없습니다.' : `${R.WRONG_TARGET}.`); app.sel = null; break; }
+      app.abilPop = null; app.sel = app.sel?.k === 'terrain' && app.sel.g === +v ? null : { k: 'terrain', g: +v }; break;
     case 'dev-cell': if (run && app.sel?.k === 'item') { const [x, y] = v.split(':').map(Number); tryUse(run, app.sel.idx, { k: 'cell', x, y }); } break;
     case 'wall-shape': if (run) { const [i, x, y, dir, n] = v.split(':'); app.ask = null; const r = R.useConsumable(run, +i, { k: 'cell', x: +x, y: +y, dir: dir as 'h' | 'v', n: +n }); toast(r.msg); if (r.ok) persist(); } break;
     case 'dev-sel': if (run?.node?.enc?.devices?.[+v]) {
@@ -4743,8 +4798,9 @@ function act(a: string, v: string) {
     case 'codex-sel': if (app.codexSel === v) CX2.CX2.focus = v; app.codexSel = app.codexSel === v ? null : v; app.abilPop = null; cxScroll = true; break;
     case 'codex-back': app.screen = app.run ? (app.run.over ? 'over' : 'map') : codexFrom === 'bar' ? 'bar' : 'title'; if (app.run && !app.run.over) goPrepOrMap(); break;
     case 'meter-tab': app.meterTab = v as typeof app.meterTab; document.querySelectorAll('.meter-tabs .btn').forEach((e) => e.classList.toggle('on', (e as HTMLElement).dataset.v === v)); updateMeter(true); return;
-    case 'bsel': app.bPick = null; app.abilPop = null; app.battleSel = app.battleSel === +v ? null : +v; applySpeed(); updateMeter(true); return;
-    case 'bdesel': if (app.battleSel !== null) { app.battleSel = null; app.bPick = null; app.abilPop = null; app.statPop = false; applySpeed(); updateMeter(true); } return;
+    case 'bsel': app.bPick = null; app.abilPop = null; app.battleTerrain = null; app.battleSel = app.battleSel === +v ? null : +v; applySpeed(); updateMeter(true); return;
+    case 'bterrain': app.bPick = null; app.abilPop = null; app.battleSel = null; app.battleTerrain = app.battleTerrain === +v ? null : +v; applySpeed(); updateMeter(true); return;
+    case 'bdesel': if (app.battleSel !== null || app.battleTerrain !== null) { app.battleSel = null; app.battleTerrain = null; app.bPick = null; app.abilPop = null; app.statPop = false; applySpeed(); updateMeter(true); } return;
     case 'bpick': app.bPick = app.bPick === v ? null : v; updateMeter(true); return;
     case 'release': app.releaseConfirm = app.releaseConfirm === v ? null : v; break; // 전체 상세 머리줄 버튼은 열고 닫기
     case 'release-cancel': app.releaseConfirm = null; break;
