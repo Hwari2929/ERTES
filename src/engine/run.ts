@@ -1064,7 +1064,7 @@ function pickMap(run: RunState, type: NodeType, phase: number): string | undefin
   const common = MAPS.filter((m) => !m.field && m.id !== 'open');
   const top = (ms: MapDef[]) => Math.max(0, ...ms.map((m) => w(m.id))); // 묶음 안에 최근이 아닌 틀이 있으면 1
   if (own.length && r.chance(CFG.maps.field * top(own))) return r.weighted(own, (m) => w(m.id)).id;
-  if (r.chance(CFG.maps.common * top(common))) return r.weighted(common, (m) => w(m.id)).id;
+  if (r.chance(CFG.maps.common * top(common))) return r.weighted(common, (m) => w(m.id) * (m.weight ?? 1)).id;
   return undefined;
 }
 /** 통로(narrow) 지형의 배치 폭: 지형 틀의 폭과, 출전 한도 + 1명이 아군 진형(ZONE 줄)에 다 서는 폭 중 큰 쪽 */

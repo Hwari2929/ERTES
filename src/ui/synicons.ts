@@ -240,6 +240,9 @@ const L: Record<string, string> = {
   // 항로도 전체 화면: 펼치기 (네 모서리 바깥으로) · 접기 (안으로)
   'u.expand': '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>',
   'u.shrink': '<path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/>',
+  // 맵 창 확대 · 축소 (돋보기 + · −): 편성 보드 · 전투 창
+  'u.zoomin': '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3L21 21M10.5 7.5v6M7.5 10.5h6"/>',
+  'u.zoomout': '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3L21 21M7.5 10.5h6"/>',
   // 적 성향 (도발 수치 가중치): 돌격 · 저격 · 반격 · 암살
   't.charge': '<path d="M4 5l7 7-7 7"/><path d="M12 5l7 7-7 7"/>',
   't.sniper': '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 7v2M12 15v2M7 12h2M15 12h2"/>',

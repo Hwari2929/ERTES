@@ -20,7 +20,7 @@ if (process.argv.includes('--syndoc')) {
     .replace('/*__CSS__*/', () => css)
     .replace('/*__JS__*/', () => js);
   // index.html: 그대로 열어서 오프라인 플레이 / artifact.html: 아티팩트 게시용 (문서 뼈대 없음)
-  const full = '<!doctype html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' + html + '</html>\n';
+  const full = '<!doctype html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">\n' + html + '</html>\n';
   writeFileSync('dist/index.html', full);
   writeFileSync('dist/artifact.html', html);
   // 스탠딩 일러스트: dist/art/<id>.webp (index.html 옆에 두면 오프라인에서도 보임, 없으면 도트로 대체)

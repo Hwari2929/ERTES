@@ -449,6 +449,7 @@ body:has(.bar, .adv) .tfx-petals { display: none; } /* 바(실내) · 사건 장
 .tfx-ghost { position: fixed; inset: 0; z-index: calc(var(--z-banner) - 1); overflow: hidden; pointer-events: none; background: var(--bg); }
 .tfx-ghost-in { position: relative; min-height: 100%; display: flex; flex-direction: column; }
 html, body { height: 100%; }
+html { touch-action: pan-x pan-y; } /* 화면(페이지) 두 손가락 확대 · 두 번 눌러 확대 막기 — 확대는 맵 창 안에서만 (main.ts 확대 제스처) */
 body { background: var(--bg); color: var(--c-text); font-family: var(--f-body); font-size: var(--fs-md); line-height: 1.5; }
 * { box-sizing: border-box; }
 #app { min-height: 100%; display: flex; flex-direction: column; }
@@ -2216,7 +2217,10 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 /* 전투 보드: 배치 구역만 보이는 창 + 전체 전장(테두리 포함)을 끌어서 보기 */
 .bview { overflow: hidden; border-radius: var(--r-md); touch-action: none; cursor: grab; }
 .bview.panning { cursor: grabbing; }
-.board-in { position: absolute; width: calc(var(--fw) / var(--w) * 100%); height: calc(var(--fh) / var(--h) * 100%); left: calc(-100% * var(--ox, 1) / var(--w)); top: calc(-100% / var(--h)); will-change: transform; transition: top .6s cubic-bezier(.4, 0, .2, 1), left .6s cubic-bezier(.4, 0, .2, 1); }
+.board-in { position: absolute; width: calc(var(--fw) / var(--w) * 100%); height: calc(var(--fh) / var(--h) * 100%); left: calc(-100% * var(--ox, 1) / var(--w)); top: calc(-100% * var(--oy, 1) / var(--h)); will-change: transform; transition: top .6s cubic-bezier(.4, 0, .2, 1), left .6s cubic-bezier(.4, 0, .2, 1); }
+/* 확대 (main.ts camApply): 창 안 보드 크기 · 위치를 px 로 맞추고, 창은 화면 아래 끝까지 세로로 는다 (camFrame). 확대 · 축소 중에는 이동 애니메이션 없이 (가리킨 점이 흔들리지 않게) */
+.bview.zoomed { aspect-ratio: auto; }
+.bview.zooming .board-in { transition: none; }
 .board-in .cells { grid-template-columns: repeat(var(--fw), 1fr); grid-template-rows: repeat(var(--fh), 1fr); }
 .bview .u { cursor: pointer; }
 /* 시너지 목록 한 단계 크게 */
@@ -4426,12 +4430,37 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .dw-cells { display: flex; gap: 1px; }
 .dw-cells i { width: 12px; height: 12px; border-radius: var(--r-sm); background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--cat-struct) 55%, var(--panel-2)) 0 3px, color-mix(in srgb, var(--cat-struct) 25%, var(--panel-2)) 3px 6px); border: 1px solid var(--cat-struct); }
 
-/* ── 편성 보드: 칸 최소 크기 (긴 통로 · 포위처럼 세로로 긴 보드도 칸이 --cell-min 아래로 줄지 않는다 → 화면이 세로로 스크롤).
-   '전체 보기'(.fit)를 누르면 예전처럼 화면 높이에 맞춘다. 단추는 두 크기가 다를 때만 보인다 (main.ts prepFitSync) */
-.prep { --cell-min: 52px; }
-@media (pointer: coarse), (max-width: 640px) { .prep { --cell-min: 44px; } }
-.prep .board:not(.fit) { width: min(100%, max(var(--fit), calc(var(--w) * var(--cell-min)))); }
-.board-fit-tog { margin-left: auto; }
+/* ── 편성 보드 창 (main.ts prepZoomSync): 보드는 .board-vp 창 안에서만 커지고 줄어든다 (Ctrl + 휠 · 두 손가락 · 대기석 위 ± 단추, 화면 배율은 그대로).
+   기본 칸 크기는 --cell-min (긴 통로 · 포위처럼 긴 보드도 칸이 이 아래로 줄지 않는다 → 창 안에서 스크롤), '전체 보기'는 보드 전체를 창에 맞춘다. 창 높이는 화면 높이에 맞춘다 (--vp-h) */
+.prep, .battle { --cell-min: 52px; }
+@media (pointer: coarse), (max-width: 640px) { .prep, .battle { --cell-min: 44px; } }
+.prep { --vp-h: max(220px, calc(100vh - var(--top-h, 70px) - var(--board-reserve, 150px))); }
+@media (max-width: 1100px) { .prep { --vp-h: max(220px, calc(100vh - var(--top-h, 44px) - 104px)); } }
+@media (orientation: landscape) and (max-height: 560px) { .prep { --vp-h: max(160px, calc(100vh - var(--top-h, 44px) - 104px)); } }
+.board-vp { position: relative; flex: 0 1 auto; min-width: 0; max-width: 100%; max-height: var(--vp-h); overflow: visible; overscroll-behavior: contain; touch-action: pan-x pan-y; scrollbar-width: thin; border-radius: var(--r-md); }
+.board-vp > .board { margin: 0 auto; max-width: none; flex: none; }
+/* 창 밖으로 칸이 더 있는 쪽 가장자리를 흐리게 (main.ts vpMoreSync) */
+.board-vp.scroll { overflow: auto; } /* 보드가 창보다 클 때만 창 안 스크롤 (main.ts prepZoomSync) */
+.board-vp.scroll { --fl: 0px; --fr: 0px; --ft: 0px; --fb: 0px;
+  -webkit-mask-image: linear-gradient(to right, transparent, var(--c-black) var(--fl), var(--c-black) calc(100% - var(--fr)), transparent), linear-gradient(to bottom, transparent, var(--c-black) var(--ft), var(--c-black) calc(100% - var(--fb)), transparent);
+  -webkit-mask-composite: source-in; mask-image: linear-gradient(to right, transparent, var(--c-black) var(--fl), var(--c-black) calc(100% - var(--fr)), transparent), linear-gradient(to bottom, transparent, var(--c-black) var(--ft), var(--c-black) calc(100% - var(--fb)), transparent); mask-composite: intersect; }
+.board-vp[data-more~="l"] { --fl: 28px; } .board-vp[data-more~="r"] { --fr: 28px; } .board-vp[data-more~="t"] { --ft: 28px; } .board-vp[data-more~="b"] { --fb: 28px; }
+/* 확대 단추 묶음: 편성 = 대기석 테두리 오른쪽 위 (이름표 '대기 n' 의 반대편) · 전투 = 창 오른쪽 아래 */
+.bz-ctl { display: inline-flex; align-items: center; gap: 4px; }
+.bz-ctl[hidden], .bz-ctl [hidden] { display: none; }
+.bz-ctl .btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 28px; line-height: 1.3; }
+.bz-ctl .btn:disabled { opacity: .4; cursor: default; }
+.bz-ctl .li { width: 16px; height: 16px; flex: none; }
+.bz-step { font-weight: 800; font-variant-numeric: tabular-nums; }
+.bz-prep { position: absolute; top: 0; right: 10px; transform: translateY(-50%); padding: 0 4px; border-radius: var(--r-sm); background: var(--bg); }
+.bz-bat { position: absolute; right: 6px; bottom: 6px; z-index: var(--z-raise); }
+.bz-bat .btn { padding: 4px; background: color-mix(in srgb, var(--panel) 82%, transparent); }
+/* 가로 지형 포위 첫 편성 (main.ts surroundCue · rot): 적 진형이 오른쪽 · 왼쪽, 화살표는 가운데 아군 쪽으로 */
+.sur-cue.rot .sur-arr.dn { bottom: auto; top: 50%; left: -15px; margin: -15px 0 0; }
+.sur-cue.rot .sur-arr.dn svg { transform: rotate(-90deg); animation: none; }
+.sur-cue.rot .sur-arr.up { top: 50%; left: auto; right: -15px; margin: -15px 0 0; }
+.sur-cue.rot .sur-arr.up svg { transform: rotate(90deg); animation: none; }
+.sur-cue.rot .sur-chip { top: 6px; left: 4px; transform: none; } /* 이름표는 왼쪽 적 진형 안쪽 위에서 보드 쪽으로 (확대한 창 위 가장자리에서 잘리지 않게) */
 /* 배치 미리보기 (main.ts devPvHtml): 놓으면 차지 · 영향을 주는 칸, 초록 = 놓을 수 있음 · 빨강 = 없음, 가리킨 칸 옆 이유 이름표 */
 .dev-pv-host { position: absolute; inset: 0; pointer-events: none; z-index: var(--z-raise); }
 .dev-pv { --pv: var(--c-good); }

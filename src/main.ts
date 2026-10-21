@@ -36,7 +36,7 @@ import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
 import { type Category, type Encounter, type Geo, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from './types';
 import { encounterMatchup, fieldMatchup, matchupShort, schoolWarnings } from './ui/matchup';
-import { computeStats, gateGroupState, gateState, type GateState, makeSummons, type SummonMade } from './engine/build';
+import { computeStats, fromScr, gateGroupState, gateState, type GateState, makeSummons, rectScr, scrDims, type SummonMade, toScr } from './engine/build';
 import { DEV, type Device, deviceCells, deviceRows, isPlaceable, netCells, scopeR, wallHp } from './data/devices';
 import { mapOf, TERRAIN, terrainBlocks, type TerrainGroup, terrainGroups } from './data/maps';
 import { newCampaignRun } from './engine/campaignrun';
@@ -71,7 +71,7 @@ import * as LAB from './ui/lab';
 const PREF_KEY = 'errantes.prefs.v1';
 /** 전투 배속 (단축키 1~6, Space 정지) */
 const SPEEDS = [0.25, 0.5, 1, 2, 4, 8];
-function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean; fxMs?: number; skillMs?: number; motion?: MotionPreset; death?: DeathStyle; ultCut?: UltCut; uiTheme?: string; uiFx?: string; fullscreen?: boolean; prepFold?: boolean; boardFit?: boolean } {
+function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean; fxMs?: number; skillMs?: number; motion?: MotionPreset; death?: DeathStyle; ultCut?: UltCut; uiTheme?: string; uiFx?: string; fullscreen?: boolean; prepFold?: boolean; boardFit?: boolean; boardZoom?: number; boardZoomLast?: number; battleZoom?: number } {
   try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}; } catch { return {}; }
 }
 /** 연출 설정을 전투 화면에 반영 */
@@ -1369,11 +1369,13 @@ function minePop() {
     <div class="sc-row">${rangeGrid(M.r)}<span class="small">감지 · 폭발 <b>주변 ${M.r}칸</b></span></div>
     <div class="dv-flow">${[['', '적 접근'], ['t', `${M.delay}초`], ['hot', '폭발 · 전기 피해'], ['hot', `감전 ${M.shock[0]}~${M.shock[1]}초`]].map(([c, t]) => `<span class="${c}">${t}</span>`).join('<i>→</i>')}</div>`;
 }
+/** 전장 방향 (위 t · 오른쪽 r · 아래 b · 왼쪽 l) → 화면 방향. 가로 지형은 시계 방향 90° (위 → 오른쪽) */
+const scrSide = (g: Geo, sd: string) => (g.rot ? ({ t: 'r', r: 'b', b: 'l', l: 't' } as Record<string, string>)[sd] || sd : sd);
 /** 편성 화면에 놓은 장치: 바리케이드 · 신호기 · 지뢰는 칸 토큰, 그물 · 망원경은 효과 범위 테두리 + 누를 수 있는 표식 (누르면 회수 확인) */
 function deviceTokens(run: RunState, n: number, box: (x: number, y: number, w?: number, h?: number) => string) {
   const enc = run.node?.enc;
   if (!enc?.devices?.length) return '';
-  const { w: fw, h: fh } = runGeo(run, n);
+  const g = runGeo(run, n), { w: fw, h: fh } = g;
   const navR = scopeR(tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0));
   const phase = enc.phase ?? run.phase;
   return enc.devices.map((d, i) => {
@@ -1388,19 +1390,24 @@ function deviceTokens(run: RunState, n: number, box: (x: number, y: number, w?: 
     const cells = deviceCells(d);
     if (d.id === 'K_barricade') { // 몸통 (끌면 옮기기 · 누르면 회수) + 끝단 화살표 (끌면 그 방향으로 늘리기 · 줄이기)
       const n1 = cells.length, v = d.dir === 'v' && n1 > 1, hpW = wallHp(phase, n1);
-      const sides = n1 === 1 ? ['t', 'r', 'b', 'l'] : v ? ['t', 'b'] : ['l', 'r'];
+      const sides = n1 === 1 ? ['t', 'r', 'b', 'l'] : v ? ['t', 'b'] : ['l', 'r']; // 전장 방향 (data-wall), 화살표 자리는 화면 방향 (scrSide)
       const canGrow = n1 < DEV.wall.maxN;
-      return `<div class="dev-wall2${v ? ' v' : ''}" style="${box(d.x, d.y, v ? 1 : n1, v ? n1 : 1)}" data-wallbox="${i}">
+      return `<div class="dev-wall2${n1 > 1 && v !== !!g.rot ? ' v' : ''}" style="${box(d.x, d.y, v ? 1 : n1, v ? n1 : 1)}" data-wallbox="${i}">
         <button class="dw-body" data-wall="move:${i}" data-a="dev-sel" data-v="${i}" data-dev="${i}" title="${esc(`${c.name} · 칸당 내구도 ${hpW} — 끌어서 옮기기 · 누르면 회수`)}">${cells.map(() => `<span class="dw-cell">${ic}</span>`).join('')}<span class="dev-hp">${hpW}</span></button>
-        ${sides.map((sd) => `<span class="dw-arr dw-${sd}${canGrow ? '' : ' max'}" data-wall="ext:${i}:${sd}" title="끌어서 늘리기 · 줄이기 (최대 ${DEV.wall.maxN}칸)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7-6 7 6M12 3v18"/></svg></span>`).join('')}
+        ${sides.map((sd) => `<span class="dw-arr dw-${scrSide(g, sd)}${canGrow ? '' : ' max'}" data-wall="ext:${i}:${sd}" title="끌어서 늘리기 · 줄이기 (최대 ${DEV.wall.maxN}칸)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7-6 7 6M12 3v18"/></svg></span>`).join('')}
       </div>`;
     }
     const hp = 0;
     return cells.map((p) => `<button class="dev-tok dev-${d.id === 'K_barricade' ? 'wall' : d.id === 'K_decoy' ? 'decoy' : 'mine'}" style="${box(p.x, p.y)}" data-a="dev-sel" data-v="${i}" data-dev="${i}" title="${esc(`${c.name}${hp ? ` · 칸당 내구도 ${hp}` : d.id === 'K_decoy' ? ` · 체력 1 · 도발 ×${DEV.decoy.prov}` : ' · 은신'} — 누르면 회수`)}">${ic}${hp ? `<span class="dev-hp">${hp}</span>` : ''}</button>`).join('');
   }).join('');
 }
-/** 편성 보드 칸 → 절대 위치 (left · top · 크기 %). bw · bh · ex = .board 의 data-bw · data-bh · data-ex */
-const boardBox = (bw: number, bh: number, ex: number) => (x: number, y: number, w = 1, h = 1) => `left:${((x - PAD + ex) / bw) * 100}%;top:${((y - PAD) / bh) * 100}%;width:${(100 * w) / bw}%;height:${(100 * h) / bh}%`;
+/** 편성 보드 화면 틀: 보이는 전장 칸 (바깥 테두리 제외 · 포탑 열 ex 포함)의 화면 원점 (ox, oy) · 화면 칸 수 (bw × bh). 가로 지형은 돌려서 (engine/build.ts toScr) */
+const prepFrame = (g: Geo, ex: number) => { const r = rectScr(g, PAD - ex, PAD, g.w - 2 * PAD + 2 * ex, g.h - 2 * PAD); return { ox: r.x, oy: r.y, bw: r.w, bh: r.h }; };
+/** 편성 보드: 전장 사각형 (x, y, 폭 w, 높이 h — 전장 좌표) → 절대 위치 (left · top · 크기 %). ex = .board 의 data-ex */
+const boardBox = (g: Geo, ex: number) => {
+  const f = prepFrame(g, ex);
+  return (x: number, y: number, w = 1, h = 1) => { const r = rectScr(g, x, y, w, h); return `left:${((r.x - f.ox) / f.bw) * 100}%;top:${((r.y - f.oy) / f.bh) * 100}%;width:${(100 * r.w) / f.bw}%;height:${(100 * r.h) / f.bh}%`; };
+};
 /** 배치 미리보기 (편성 화면): 고르거나 끄는 배치형 소모품을 가리킨 칸에 놓으면 차지 · 영향을 주는 칸 (놓을 수 있음 = 초록 · 없음 = 빨강) + 이유 이름표.
  *  판정은 엔진 그대로 (R.placeDevice → deviceErr). once = 끌어 놓기가 막힌 뒤 한 번 그릴 때만 (선택 없이) */
 let devPv: { idx: number; id: string; x: number; y: number; once?: boolean } | null = null;
@@ -1421,10 +1428,10 @@ function placeReason(run: RunState, err: string, x: number, y: number) {
   return err;
 }
 /** 미리보기 칸 + 이름표 HTML (prepScreen 과 끄는 · 가리키는 동안의 갱신 공용) */
-function devPvHtml(run: RunState, pv: NonNullable<typeof devPv>, box: ReturnType<typeof boardBox>) {
+function devPvHtml(run: RunState, pv: NonNullable<typeof devPv>, ex: number) {
   const enc = run.node?.enc;
   if (!enc) return '';
-  const g = runGeo(run), { id, x, y } = pv;
+  const g = runGeo(run), { id, x, y } = pv, box = boardBox(g, ex), fr = prepFrame(g, ex), sp = toScr(g, x, y);
   const r = R.placeDevice(run, id, { k: 'cell', x, y });
   const d: Device = r.dev ?? { id, x, y };
   const inside = (c: { x: number; y: number }) => c.x >= PAD && c.x < g.w - PAD && c.y >= PAD && c.y < g.h - PAD;
@@ -1433,7 +1440,7 @@ function devPvHtml(run: RunState, pv: NonNullable<typeof devPv>, box: ReturnType
   else if (id === 'K_scope') { const k = scopeR(tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0)); cells = []; for (let dy = -k; dy <= k; dy++) for (let dx = -k; dx <= k; dx++) cells.push({ x: x + dx, y: y + dy }); cells = cells.filter(inside); if (!cells.length) cells = [{ x, y }]; }
   else cells = r.dev ? deviceCells(d) : [{ x, y }];
   const lb = r.err ? placeReason(run, r.err, x, y) : id === 'K_scope' ? (d.mode === 'strike' ? '지정 포격' : '항공 보급') : '';
-  const side = x - PAD < (g.w - 2 * PAD) / 2 ? 'l' : 'r', below = y - PAD < 1 ? ' below' : '';
+  const side = sp.x - fr.ox < fr.bw / 2 ? 'l' : 'r', below = sp.y - fr.oy < 1 ? ' below' : ''; // 이름표는 화면 기준 (가로 지형도)
   return `<div class="dev-pv ${r.err ? 'bad' : 'ok'}">${cells.map((c) => `<i class="${c.x === x && c.y === y ? 'at' : ''}" style="${box(c.x, c.y)}"></i>`).join('')}${lb ? `<span class="dev-pv-at" style="${box(x, y)}"><b class="dev-pv-lb ${side}${below}" role="status">${esc(lb)}</b></span>` : ''}</div>`;
 }
 /** 가리키거나 끄는 칸이 바뀌면 보드의 미리보기만 다시 그린다 (화면 전체를 다시 그리지 않음) */
@@ -1443,7 +1450,7 @@ function devPvShow(board: HTMLElement, pv: typeof devPv) {
   const same = devPv && pv && devPv.idx === pv.idx && devPv.x === pv.x && devPv.y === pv.y;
   devPv = pv;
   if (same && host.firstChild) return;
-  host.innerHTML = pv ? devPvHtml(run, pv, boardBox(+board.dataset.bw!, +board.dataset.bh!, +board.dataset.ex!)) : '';
+  host.innerHTML = pv ? devPvHtml(run, pv, +board.dataset.ex!) : '';
 }
 /** 배치형 소모품을 이 칸에 (누르기 · 끌어 놓기 공용): 놓을 수 있으면 놓고, 없으면 그 칸 옆에 이유를 띄우고 고른 상태는 그대로 둔다 */
 function placeAt(run: RunState, idx: number, x: number, y: number, dragged = false) {
@@ -1457,16 +1464,17 @@ function placeAt(run: RunState, idx: number, x: number, y: number, dragged = fal
 /** 포위 지형 첫 편성: 위 · 아래 적 진형을 잠깐 강조 (런마다 한 번, run.flags 'ui_surround') */
 const SURROUND_FX_MS = 5200;
 let surroundFx: { key: string; t0: number } | null = null;
-function surroundCue(run: RunState, geo: ReturnType<typeof runGeo>, box: ReturnType<typeof boardBox>) {
+function surroundCue(run: RunState, geo: Geo, box: ReturnType<typeof boardBox>) {
   const enc = run.node?.enc;
   if (!enc || !geo.foe2) return '';
   if (!run.flags.includes('ui_surround')) { run.flags.push('ui_surround'); surroundFx = { key: `${run.seed}:${enc.seed}`, t0: performance.now() }; setTimeout(() => root.querySelectorAll('.sur-cue').forEach((e) => e.remove()), SURROUND_FX_MS); }
   const t = surroundFx?.key === `${run.seed}:${enc.seed}` ? performance.now() - surroundFx.t0 : Infinity;
   if (t >= SURROUND_FX_MS) return '';
   const zw = geo.w - 2 * PAD, delay = `animation-delay:-${Math.round(t)}ms`;
-  return `<div class="sur-cue" aria-hidden="true">
+  // 가로 지형(rot): 위 적 진형 → 오른쪽, 아래 → 왼쪽 (화살표 방향은 CSS .sur-cue.rot)
+  return `<div class="sur-cue${geo.rot ? ' rot' : ''}" aria-hidden="true">
     <span class="sur-zone top" style="${box(PAD, PAD, zw, ZONE)};${delay}"><b class="sur-arr dn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7-6 7 6M12 3v18"/></svg></b></span>
-    <span class="sur-zone bot" style="${box(PAD, geo.foe2, zw, ZONE)};${delay}"><b class="sur-arr up"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7-6 7 6M12 3v18"/></svg></b><span class="sur-chip">아래에서도 적이 온다</span></span>
+    <span class="sur-zone bot" style="${box(PAD, geo.foe2, zw, ZONE)};${delay}"><b class="sur-arr up"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7-6 7 6M12 3v18"/></svg></b><span class="sur-chip">${geo.rot ? '왼쪽' : '아래'}에서도 적이 온다</span></span>
   </div>`;
 }
 /** 오른쪽 상세 패널 접기 · 펼치기 (보는 사람마다 errantes.prefs.v1 prepFold). 접힌 채 무언가를 고르면 점으로 알린다 */
@@ -1486,8 +1494,8 @@ function prepScreen(run: RunState) {
   // 엔지니어 감시 포탑이 있으면 양옆 가장자리 열(포탑 전용)까지 보여 준다. 소환물 · 공왕 무휼은 시작 칸에 카드로 보이고 끌어서 옮긴다 (companionCells = 전투 시작 칸과 같음)
   const tcs = turretCells(run, n);
   const ex = tcs.length ? PAD : 0;
-  const bw = fw - 2 * PAD + 2 * ex, bh = fh - 2 * PAD;
-  const box = boardBox(bw, bh, ex), cellBox = (x: number, y: number) => box(x, y);
+  const fr = prepFrame(geo, ex), bw = fr.bw, bh = fr.bh; // 화면 칸 수 (가로 지형은 돌려서)
+  const box = boardBox(geo, ex), cellBox = (x: number, y: number) => box(x, y);
   // 돌격가 경계 (편성 화면에서만 표시): 출전한 아군 돌격가 주변 CFG.zoc.r 칸. 칸 툴팁 = 그 돌격가의 도발 배율로 계산한 교전 시간 (겹치면 긴 쪽)
   const zocCells = new Map<string, number>();
   const zocB = new Battle(fw, fh, new Rng(1), { phase: run.phase, credits: run.credits }), zocCounts = synergyCounts(deployed(run), run);
@@ -1502,8 +1510,9 @@ function prepScreen(run: RunState) {
   let cells = '';
   const placeSel = app.sel?.k === 'item' && isBattle && isPlaceable(run.inventory[app.sel.idx]) ? app.sel.idx : -1; // 배치형 소모품을 고른 채: 칸을 누르면 설치, 놓을 수 있는 칸 표시
   const devOk = (x: number, y: number) => placeSel >= 0 && !R.useCheck(run, placeSel, { k: 'cell', x, y });
-  for (let y = PAD; y < fh - PAD; y++)
-    for (let x = PAD - ex; x < fw - PAD + ex; x++) {
+  for (let sy = 0; sy < bh; sy++) // 화면 칸 순서 (줄 → 열)로 깔고, 칸마다 전장 좌표로 되짚는다
+    for (let sx = 0; sx < bw; sx++) {
+      const { x, y } = fromScr(geo, sx + fr.ox, sy + fr.oy);
       const mine = y >= geo.ay0 && y <= geo.ay1;
       const enemyZone = zoneAt(geo, x, y) === 'foe';
       const tk = land.get(`${x},${y}`);
@@ -1556,7 +1565,7 @@ function prepScreen(run: RunState) {
   // 배치 미리보기: 고른 배치형 소모품 (또는 막힌 끌어 놓기 직후 한 번)
   const pv = devPv && isBattle && devPv.id === run.inventory[devPv.idx] && (placeSel === devPv.idx || devPv.once) ? devPv : null;
   if (devPv?.once) devPv.once = false; else if (!pv) devPv = null;
-  units += `<div class="dev-pv-host">${pv ? devPvHtml(run, pv, box) : ''}</div>`;
+  units += `<div class="dev-pv-host">${pv ? devPvHtml(run, pv, ex) : ''}</div>`;
   units += surroundCue(run, geo, box);
   const bench = run.units.filter((u) => !u.pos);
   const free = Math.min(cap, allyRoom(run, n)) - deployed(run).length; // 출전 한도와 아군 진형 칸 (장치 칸 제외) 중 작은 쪽
@@ -1569,12 +1578,11 @@ function prepScreen(run: RunState) {
       <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
     </aside>
     <section class="board-col">
-      <div class="board-head"><b>${esc(env)}</b>${mapChip}<span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${tacPill(run)}<span class="muted small">${geo.foe2 ? "가운데" : "아래"} ${geo.rows}줄에 배치</span>${noRoom.length ? `<span class="small warn" title="${esc(`배치 구역에 빈칸이 없음: ${noRoom.map((t) => t.name).join(' · ')} — 전투에서 가까운 빈칸에 나온다`)}">소환 자리 없음 ${noRoom.length}</span>` : ''}
-        ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}
-        <button class="btn tiny board-fit-tog" data-a="board-fit" hidden aria-pressed="${boardFit}" title="${boardFit ? '칸을 크게 (보드를 내려 보며 배치)' : '보드 전체를 화면에 맞춰 보기'}">${boardFit ? '확대' : '전체 보기'}</button></div>
-      <div class="board-row"><div class="board${boardFit ? ' fit' : ''}${placeSel >= 0 ? ' placing' : ''}"${placeSel >= 0 ? ` data-pidx="${placeSel}"` : ''} style="--w:${bw};--h:${bh}" data-bw="${bw}" data-bh="${bh}" data-ex="${ex}"><div class="cells">${cells}</div>${units}${startOverlay(run, bw, bh, ex)}</div>${invRail(run)}</div>
+      <div class="board-head"><b>${esc(env)}</b>${mapChip}<span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${tacPill(run)}<span class="muted small">${geo.foe2 ? '가운데' : geo.rot ? '왼쪽' : '아래'} ${geo.rows}줄에 배치</span>${noRoom.length ? `<span class="small warn" title="${esc(`배치 구역에 빈칸이 없음: ${noRoom.map((t) => t.name).join(' · ')} — 전투에서 가까운 빈칸에 나온다`)}">소환 자리 없음 ${noRoom.length}</span>` : ''}
+        ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}</div>
+      <div class="board-row"><div class="board-vp"><div class="board${boardFit ? ' fit' : ''}${geo.rot ? ' rot' : ''}${placeSel >= 0 ? ' placing' : ''}"${placeSel >= 0 ? ` data-pidx="${placeSel}"` : ''} style="--w:${bw};--h:${bh}" data-bw="${bw}" data-bh="${bh}" data-ex="${ex}"><div class="cells">${cells}</div>${units}${startOverlay(run, geo, ex)}</div></div>${invRail(run)}</div>
       <div class="bench" data-drop="bench">
-        <span class="bench-label">대기 <b>${bench.length}</b></span>
+        <span class="bench-label">대기 <b>${bench.length}</b></span>${prepZoomCtl()}
         ${bench.length ? bench.map((u) => {
           const sel = app.sel?.k === 'unit' && app.sel.uid === u.uid;
           return `<div class="bench-u u side0 tk ${sel ? 'sel' : ''}" data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}" data-syns="${memberships(u, run).join(' ')}" title="${esc(UNIT_BY_ID[u.defId].name)} · 공명 등급 ${u.rank}">${allyCard(u)}</div>`;
@@ -1607,17 +1615,18 @@ function selPreview(run: RunState) {
   if (!u?.pos) return null;
   return startPreview(run, enc).get(u.uid) || null;
 }
-function startOverlay(run: RunState, bw: number, bh: number, ex: number) {
+function startOverlay(run: RunState, g: Geo, ex: number) {
   const p = selPreview(run);
   if (!p) return '';
-  const cx = (x: number) => x - PAD + ex + 0.5, cy = (y: number) => y - PAD + 0.5;
-  const pct = (x: number, y: number) => `left:${(cx(x) / bw) * 100}%;top:${(cy(y) / bh) * 100}%`;
-  const pts = p.path.map((q) => `${cx(q.x)},${cy(q.y)}`);
+  const { ox, oy, bw, bh } = prepFrame(g, ex);
+  const cx = (x: number, y: number) => toScr(g, x, y).x - ox + 0.5, cy = (x: number, y: number) => toScr(g, x, y).y - oy + 0.5; // 칸 중심 (화면 칸 단위)
+  const pct = (x: number, y: number) => `left:${(cx(x, y) / bw) * 100}%;top:${(cy(x, y) / bh) * 100}%`;
+  const pts = p.path.map((q) => `${cx(q.x, q.y)},${cy(q.x, q.y)}`);
   const last = p.path[p.path.length - 1];
-  const box = (x: number, y: number, cls: string) => `<rect class="${cls}" x="${cx(x) - 0.42}" y="${cy(y) - 0.42}" width="0.84" height="0.84" vector-effect="non-scaling-stroke"/>`;
+  const box = (x: number, y: number, cls: string) => `<rect class="${cls}" x="${cx(x, y) - 0.42}" y="${cy(x, y) - 0.42}" width="0.84" height="0.84" vector-effect="non-scaling-stroke"/>`;
   const svg = `<svg class="fc-ovl" viewBox="0 0 ${bw} ${bh}" preserveAspectRatio="none" aria-hidden="true">
     ${p.path.length > 1 ? `<polyline class="fc-path" points="${pts.join(' ')}" vector-effect="non-scaling-stroke"/>` : ''}
-    ${p.target ? `<line class="fc-aim" x1="${cx(last.x)}" y1="${cy(last.y)}" x2="${cx(p.target.x)}" y2="${cy(p.target.y)}" vector-effect="non-scaling-stroke"/>${box(p.target.x, p.target.y, 'fc-tgt')}` : ''}
+    ${p.target ? `<line class="fc-aim" x1="${cx(last.x, last.y)}" y1="${cy(last.x, last.y)}" x2="${cx(p.target.x, p.target.y)}" y2="${cy(p.target.x, p.target.y)}" vector-effect="non-scaling-stroke"/>${box(p.target.x, p.target.y, 'fc-tgt')}` : ''}
     ${p.waits.map((w) => box(w.x, w.y, 'fc-wait')).join('')}
   </svg>`;
   const tags = [
@@ -2478,13 +2487,13 @@ function detailPanel(run: RunState, extra = '') {
 // ───────────────────────── 화면: 전투
 /** 전투 보드 칸 (테두리 · 적 진형 · 간격 · 아군 진형 색 구분) */
 function battleCells(enc: Encounter) {
-  const g = encGeo(enc), { w, h } = g, tLay = terrainLayer(g);
+  const g = encGeo(enc), { w, h } = scrDims(g), tLay = terrainLayer(g); // 화면 칸 순서로 (가로 지형은 돌려서, BattleView.syncTerrain 도 이 순서)
   let out = '';
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const z = zoneAt(g, x, y);
+  for (let sy = 0; sy < h; sy++) for (let sx = 0; sx < w; sx++) {
+    const { x, y } = fromScr(g, sx, sy), z = zoneAt(g, x, y);
     out += tLay.at.has(`${x},${y}`) ? terrainCell(tLay, x, y, 'data-a="bterrain"', -1) : `<div class="cell ${z === 'edge' ? 'pad' : z === 'ally' ? 'mine' : z}"></div>`;
   }
-  return out + terrainIcons(tLay, (x, y) => `left:${(x / w) * 100}%;top:${(y / h) * 100}%;width:${100 / w}%;height:${100 / h}%`);
+  return out + terrainIcons(tLay, (x, y) => { const s = toScr(g, x, y); return `left:${(s.x / w) * 100}%;top:${(s.y / h) * 100}%;width:${100 / w}%;height:${100 / h}%`; });
 }
 // ───────── 지형 지물 (data/maps.ts terrainGroups): 칸마다 종류 무늬 + 덩어리 테두리, 덩어리 가운데 칸에 아이콘. 누르면 덩어리 전체 강조 + 상세
 interface TerrainLayer { groups: TerrainGroup[]; at: Map<string, { gid: number; edge: string }>; mid: { x: number; y: number }[] }
@@ -2559,6 +2568,14 @@ function applySpeed() {
 }
 /** 전투 화면 가로 여유 칸: 엔지니어 포탑이 있으면 편성 화면처럼 양옆 가장자리 열(포탑 칸)까지 보여 준다 */
 const bviewEx = (run: RunState) => (!app.zoomOut && turretCount(run) > 0 ? PAD : 0);
+/** 전투 보드 창: 기본 창 = 배치 구역 (테두리 제외 · 포탑 열 포함), 전체 보기면 전장 전체. 화면 칸 단위 (가로 지형은 돌려서):
+ *  --w · --h = 창 칸 수 (배율 1), --fw · --fh = 전장 칸 수, --ox · --oy = 기본 창의 왼쪽 위 칸, --bz = 확대 배율 (bcam) */
+function bviewHtml(run: RunState, enc: Encounter) {
+  const g = encGeo(enc), ex = bviewEx(run), S = scrDims(g), full = app.zoomOut;
+  const v = full ? { x: 0, y: 0, w: S.w, h: S.h } : rectScr(g, PAD - ex, PAD, g.w - 2 * PAD + 2 * ex, g.h - 2 * PAD);
+  const zb = (d: 'out' | 'in') => `<button class="btn tiny bz-b" data-a="bzoom-b" data-v="${d}" title="${d === 'in' ? '확대' : '축소'} (Ctrl + 휠 · 두 손가락)" aria-label="${d === 'in' ? '확대' : '축소'}">${lineIcon(d === 'in' ? 'u.zoomin' : 'u.zoomout', 'li')}</button>`;
+  return `<div class="board bview${full ? ' full' : ''}${g.rot ? ' rot' : ''}" data-a="bdesel" data-ex="${ex}" style="--ox:${v.x};--oy:${v.y};--w:${v.w};--h:${v.h};--fw:${S.w};--fh:${S.h}"><div class="board-in" id="bboard"><div class="cells">${battleCells(enc)}</div></div>${full ? '' : `<span class="bz-ctl bz-bat" hidden>${zb('out')}${zb('in')}</span>`}</div>`;
+}
 function battleScreen(run: RunState) {
   const enc = run.node!.enc!;
   return `<main class="wrap battle">
@@ -2571,7 +2588,7 @@ function battleScreen(run: RunState) {
       <div class="board-head"><b>${esc(enc.env)}</b>${enc.map && enc.map !== 'open' ? mapPill(enc.map) : ''}<span id="btime" class="mono">0.0초</span><span id="bslow" class="bslow" hidden title="상세 정보를 보는 중 · 설정에서 끌 수 있습니다">상세 보기 ×0.25</span>
         <span class="speed"><button class="btn tiny pause${app.paused ? ' on' : ''}" data-a="pause" title="일시 정지 (Space)" aria-label="일시 정지">${app.paused ? '▶' : '❚❚'}</button>${SPEEDS.map((s) => `<button class="btn tiny ${app.speed === s ? 'on' : ''}" data-a="speed" data-v="${s}">${s}×</button>`).join('')}
         <button class="btn tiny" data-a="skip">결과로</button></span></div>
-      <div class="board bview${app.zoomOut ? ' full' : ''}" data-a="bdesel" data-ex="${bviewEx(run)}" style="--ox:${PAD - bviewEx(run)};--w:${encGeo(enc).w - (app.zoomOut ? 0 : 2 * PAD - 2 * bviewEx(run))};--h:${encGeo(enc).h - (app.zoomOut ? 0 : 2 * PAD)};--fw:${encGeo(enc).w};--fh:${encGeo(enc).h}"><div class="board-in" id="bboard"><div class="cells">${battleCells(enc)}</div></div></div>
+      ${bviewHtml(run, enc)}
     </section>
     <aside class="side right">
       <section id="bf-ev-wrap" class="bf-wrap bf-ev" aria-label="전투 사건"><h4 class="bf-h">전투 사건<small>기물을 누르면 상세 정보</small></h4><ol id="bf-event" class="bfeed"></ol><p class="bf-empty muted small">궁극기 · 부활 · 쓰러짐 · 소환 · 시너지 발동이 여기에 쌓입니다.</p></section>
@@ -3419,9 +3436,14 @@ function placeUmPop() {
   const top = Math.max(56, Math.min(r.top - R0.top, R0.height - pop.offsetHeight - 8));
   pop.style.left = `${Math.max(8, left)}px`; pop.style.top = `${top}px`; pop.style.right = 'auto';
 }
-function layoutPanels() {
+/** 상단 바 높이 (CSS --top-h): 보드 · 패널 높이 계산의 기준 */
+function topHSync() {
   const top = root.querySelector<HTMLElement>('.top');
   document.documentElement.style.setProperty('--top-h', `${(top?.offsetHeight || 0) + 10}px`);
+}
+function layoutPanels() {
+  const top = root.querySelector<HTMLElement>('.top');
+  topHSync();
   placeInvPop();
   placeUmPop();
   placeAskPop();
@@ -3436,16 +3458,148 @@ function layoutPanels() {
   pop.style.left = `${Math.max(8, r.left - pop.offsetWidth - 16)}px`;
   pop.style.top = `${Math.max(r.top, (top?.offsetHeight || 0) + 10)}px`;
 }
-window.addEventListener('resize', () => { layoutPanels(); prepFitSync(); });
-/** 편성 보드 '전체 보기 · 확대' 단추: 칸 최소 크기 때문에 보드가 화면보다 길어질 때 (또는 전체 보기로 칸이 최소보다 작아질 때)만 보인다 */
-function prepFitSync() {
-  const b = root.querySelector<HTMLElement>('.prep .board'), t = root.querySelector<HTMLElement>('.board-fit-tog');
-  if (!b || !t) return;
-  const w0 = b.offsetWidth;
-  b.classList.toggle('fit');
-  const w1 = b.offsetWidth;
-  b.classList.toggle('fit');
-  t.hidden = Math.abs(w0 - w1) < 4;
+window.addEventListener('resize', () => { layoutPanels(); prepZoomSync(); if (app.view) followCamera(app.view.b); });
+// ───────── 편성 보드 확대 · 축소: 보드는 .board-vp 창 안에서만 커지고 (가로 · 세로 스크롤), 화면(페이지) 배율은 그대로.
+// 보는 사람마다 errantes.prefs.v1 boardZoom = 칸 크기 / 최소 칸 크기 (CSS --cell-min), 0 = 전체 보기 (창에 보드 전체), 없으면 최소 칸 크기 (폭은 창 안)
+/** 대기석 위 확대 단추 묶음: [−] [전체 보기 ↔ 확대] [+] (상태 · 보이기는 prepZoomSync 가 실제 크기를 재서 맞춘다) */
+function prepZoomCtl() {
+  return `<span class="bz-ctl bz-prep" hidden>
+    <button class="btn tiny bz-step" data-a="bzoom" data-v="out" title="축소 (Ctrl + 휠 · 두 손가락)" aria-label="축소">−</button>
+    <button class="btn tiny bz-fit" data-a="board-fit"></button>
+    <button class="btn tiny bz-step" data-a="bzoom" data-v="in" title="확대 (Ctrl + 휠 · 두 손가락)" aria-label="확대">+</button>
+  </span>`;
+}
+/** 편성 보드 창의 칸 크기 범위 (px): fit = 보드 전체가 창에 들어가는 크기 · min = CSS --cell-min · max = min 의 BZ_MAX 배 (fit 이 더 크면 fit) */
+function prepZoomRange(vp: HTMLElement, b: HTMLElement) {
+  const row = vp.parentElement!, rs = getComputedStyle(row), rail = row.querySelector<HTMLElement>(':scope > .inv-rail');
+  const availW = Math.max(120, row.clientWidth - (rs.flexDirection.startsWith('row') && rail ? rail.offsetWidth + (parseFloat(rs.columnGap) || 0) : 0));
+  const availH = Math.max(160, parseFloat(getComputedStyle(vp).maxHeight) || innerHeight);
+  const bw = +b.dataset.bw! || 1, bh = +b.dataset.bh! || 1, min = cellMinOf(vp), fit = Math.min(availW / bw, availH / bh);
+  return { bw, bh, availW, availH, fit, min, max: Math.max(fit, BZ_MAX * min) };
+}
+type PrepZoomRange = ReturnType<typeof prepZoomRange>;
+/** 저장한 확대 → 칸 크기 (px) */
+function prepCellOf(m: PrepZoomRange) {
+  const p = loadPrefs(), z = p.boardZoom ?? (p.boardFit ? 0 : undefined); // 예전 '전체 보기' 설정 (boardFit) 도 읽는다
+  if (z === undefined) return Math.min(m.bw > m.bh ? m.availH / m.bh : m.availW / m.bw, Math.max(m.fit, m.min)); // 기본: 최소 칸 크기, 짧은 축은 창 안 (세로로 긴 보드는 폭, 가로로 긴 보드는 높이)
+  return z <= 0 ? m.fit : clampN(z * m.min, m.fit, m.max);
+}
+/** 보드 크기를 칸 크기 cell (없으면 저장값) 로 맞추고 단추 상태를 고친다. at = 그 자리에 머물 화면 점 (확대 · 축소 기준) */
+function prepZoomSync(cell?: number, at?: { x: number; y: number }) {
+  const vp = root.querySelector<HTMLElement>('.prep .board-vp'), b = vp?.querySelector<HTMLElement>(':scope > .board');
+  if (!vp || !b) return;
+  const m = prepZoomRange(vp, b), c = clampN(cell ?? prepCellOf(m), m.fit, m.max);
+  const r0 = at ? b.getBoundingClientRect() : null;
+  b.style.width = `${c * m.bw}px`;
+  vp.classList.toggle('scroll', c * m.bw > m.availW + 0.5 || c * m.bh > m.availH + 0.5); // 창보다 크면 창 안 스크롤 (아니면 넘침 허용: 보드 가장자리 화살표 · 이름표가 잘리지 않게)
+  vp.onscroll = () => vpMoreSync(vp);
+  if (at && r0) { // 가리킨 점 아래 칸이 그대로 있게 창을 민다
+    const r1 = b.getBoundingClientRect(), fx = (at.x - r0.left) / r0.width, fy = (at.y - r0.top) / r0.height;
+    vp.scrollLeft += r1.left + fx * r1.width - at.x;
+    vp.scrollTop += r1.top + fy * r1.height - at.y;
+  }
+  vpMoreSync(vp);
+  const ctl = root.querySelector<HTMLElement>('.bz-prep');
+  if (!ctl) return;
+  const zoomed = c > m.fit + 0.5;
+  ctl.hidden = m.max - m.fit < 1;
+  ctl.querySelector<HTMLButtonElement>('[data-v="out"]')!.disabled = !zoomed;
+  ctl.querySelector<HTMLButtonElement>('[data-v="in"]')!.disabled = c >= m.max - 0.5;
+  // '전체 보기 · 확대' 전환: 보드가 최소 칸 크기로 창에 다 들어가지 않을 때 (또는 확대해 둔 동안)만
+  const fb = ctl.querySelector<HTMLButtonElement>('.bz-fit')!;
+  fb.hidden = !zoomed && m.fit >= m.min - 0.5;
+  const html = `${lineIcon(zoomed ? 'u.zoomout' : 'u.zoomin', 'li')}<span>${zoomed ? '전체 보기' : '확대'}</span>`;
+  if (fb.innerHTML !== html) fb.innerHTML = html;
+  fb.title = zoomed ? '보드 전체를 창에 맞춰 보기' : '칸을 크게 (창 안에서 끌어 보며 배치)';
+  fb.setAttribute('aria-pressed', String(!zoomed));
+}
+/** 편성 보드 창 가장자리 흐림: 그쪽으로 더 볼 칸이 있으면 (가로로 긴 지형 · 확대) */
+function vpMoreSync(vp: HTMLElement) {
+  const l = vp.scrollLeft, t = vp.scrollTop, on = vp.classList.contains('scroll'); // 클래스 대신 data-more (다시 그릴 때 스크롤 위치 복원은 클래스 이름으로 요소를 찾는다)
+  const more = on ? [l > 1 && 'l', l + vp.clientWidth < vp.scrollWidth - 1 && 'r', t > 1 && 't', t + vp.clientHeight < vp.scrollHeight - 1 && 'b'].filter(Boolean).join(' ') : '';
+  if (vp.dataset.more !== more) vp.dataset.more = more;
+}
+/** 편성 보드 확대 바꾸기 + 저장 (끄는 동안은 저장을 모아서) */
+let pzSaveT = 0;
+function prepZoomTo(cell: number, at?: { x: number; y: number }) {
+  const vp = root.querySelector<HTMLElement>('.prep .board-vp'), b = vp?.querySelector<HTMLElement>(':scope > .board');
+  if (!vp || !b) return;
+  const m = prepZoomRange(vp, b), c = clampN(cell, m.fit, m.max);
+  prepZoomSync(c, at ?? (() => { const r = vp.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + Math.min(r.height, innerHeight - r.top) / 2 }; })());
+  clearTimeout(pzSaveT);
+  pzSaveT = window.setTimeout(() => savePref('boardZoom', c <= m.fit + 0.5 ? 0 : +(c / m.min).toFixed(3)), 200);
+}
+/** 지금 편성 보드 칸 크기 (px) */
+function prepCellNow() {
+  const vp = root.querySelector<HTMLElement>('.prep .board-vp'), b = vp?.querySelector<HTMLElement>(':scope > .board');
+  return vp && b ? { m: prepZoomRange(vp, b), c: b.getBoundingClientRect().width / (+b.dataset.bw! || 1) } : null;
+}
+/** ± 단추 · 전환 단추 */
+const ZOOM_STEP = 1.25;
+function prepZoomAct(kind: string) {
+  const now = prepCellNow();
+  if (!now) return;
+  const { m, c } = now;
+  if (kind === 'fit') {
+    if (c > m.fit + 0.5) { savePref('boardZoomLast', +(c / m.min).toFixed(3)); prepZoomTo(m.fit); }
+    else prepZoomTo(Math.max(m.min, (loadPrefs().boardZoomLast || 1) * m.min, m.fit * ZOOM_STEP));
+  } else prepZoomTo(kind === 'in' ? c * ZOOM_STEP : c / ZOOM_STEP);
+}
+/** 전투 창 ± 단추 */
+function battleZoomAct(kind: string) { battleZoomTo(kind === 'in' ? bcam.bz * ZOOM_STEP : bcam.bz / ZOOM_STEP); }
+// ───────── 확대 제스처: 편성 보드 창 · 전투 창 안에서만 (Ctrl/⌘ + 휠 · 트랙패드 핀치 · 두 손가락). 그 밖에서는 브라우저 확대를 막는다 (아래 '브라우저 확대 막기')
+const zoomHost = (t: EventTarget | null) => {
+  const el = t instanceof Element ? t : null;
+  return el?.closest<HTMLElement>('.prep .board-vp') ? 'prep' : el?.closest<HTMLElement>('.bview:not(.full)') ? 'battle' : '';
+};
+function zoomBy(host: string, f: number, at: { x: number; y: number }) {
+  if (host === 'prep') { const now = prepCellNow(); if (now) prepZoomTo(now.c * f, at); }
+  else if (host === 'battle') battleZoomTo(bcam.bz * f, at);
+}
+root.addEventListener('wheel', (e) => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  const host = zoomHost(e.target);
+  if (!host) return;
+  e.preventDefault();
+  const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+  zoomBy(host, clampN(Math.exp(-dy * 0.0025), 0.7, 1.4), { x: e.clientX, y: e.clientY });
+}, { passive: false });
+/** 두 손가락 확대 (터치): 두 손가락 사이 거리 비율만큼, 가운데 점 기준. 편성 보드는 가운데 점이 움직이면 창도 민다 */
+let pinch: { host: string; d: number; mx: number; my: number } | null = null;
+const touchMid = (e: TouchEvent) => { const [a, b] = [e.touches[0], e.touches[1]]; return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2, d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) }; };
+root.addEventListener('touchstart', (e) => {
+  if (e.touches.length !== 2) return;
+  const host = zoomHost(e.touches[0].target) || zoomHost(e.touches[1].target);
+  if (!host) return;
+  const m = touchMid(e);
+  pinch = { host, d: Math.max(1, m.d), mx: m.x, my: m.y };
+  // 한 손가락으로 시작한 끌기 (기물 · 장비 · 바리케이드 · 전투 창 끌어 보기)는 멈춘다
+  if (drag?.ghost) { drag.ghost.remove(); drag.el.classList.remove('dragging'); }
+  drag = null; wallDrag = null; dragPt = null;
+  panStop?.();
+}, { passive: true });
+root.addEventListener('touchmove', (e) => {
+  if (!pinch || e.touches.length !== 2) return;
+  e.preventDefault();
+  const m = touchMid(e);
+  if (pinch.host === 'prep') { const vp = root.querySelector<HTMLElement>('.prep .board-vp'); if (vp) { vp.scrollLeft -= m.x - pinch.mx; vp.scrollTop -= m.y - pinch.my; } }
+  zoomBy(pinch.host, Math.max(1, m.d) / pinch.d, { x: m.x, y: m.y });
+  pinch.d = Math.max(1, m.d); pinch.mx = m.x; pinch.my = m.y;
+}, { passive: false });
+const pinchEnd = (e: TouchEvent) => { if (pinch && e.touches.length < 2) { pinch = null; suppressClick = true; setTimeout(() => (suppressClick = false), 60); } };
+root.addEventListener('touchend', pinchEnd);
+root.addEventListener('touchcancel', pinchEnd);
+// ───────── 브라우저 확대 막기: 화면(페이지) 배율은 늘 1 — 확대는 맵 창 안에서만 (위 제스처). 뷰포트 메타 (scripts/build.mjs) + 키 · 휠 · 사파리 제스처 · 두 손가락
+if (typeof document !== 'undefined') {
+  const vm = document.querySelector<HTMLMetaElement>('meta[name="viewport"]') || document.head.appendChild(Object.assign(document.createElement('meta'), { name: 'viewport' }));
+  vm.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'; // 아티팩트 게시본(문서 뼈대 없음)에도
+  document.addEventListener('wheel', (e) => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive: false });
+  window.addEventListener('keydown', (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    if (['+', '=', '-', '_', '0'].includes(e.key) || ['NumpadAdd', 'NumpadSubtract', 'Numpad0', 'Equal', 'Minus', 'Digit0'].includes(e.code)) e.preventDefault();
+  }, true);
+  for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
+  document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 }
 // 전체 화면이 켜지거나 꺼지면 (뒤로 가기 · Esc 포함) 단추 글씨를 맞춘다 — 전투 중에는 다시 그리지 않는다
 for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, () => { if (app.screen === 'title' || app.menu) render(); });
@@ -3543,10 +3697,11 @@ function render() {
   RM.mountRouteMap(root.querySelector<HTMLElement>('.rmap-host'), app.screen === 'map' ? run : null, (el) => setTimeout(() => tlPop(el), 0), (o) => { const boss = o === 'boss' && run ? phaseBoss(run) : undefined; return `${boss ? `<b>${esc(boss.name)}</b><br>` : ''}${ic(esc(nodeHint(o)))}`; }); // 항로도 (리빈 · 물류망). 팝오버는 누름으로 다시 그린 뒤에 연다 (항로도 DOM 은 그대로 옮겨지므로 el 이 유지된다)
   // 창 내용은 첫 그리기에서 채워질 수 있으므로 (선택지 생성 등) 그린 뒤의 키를 기억한다
   lastView.modal = modalKeyOf();
+  topHSync();
+  prepZoomSync(); // 보드 크기를 먼저 (창 안 스크롤 위치를 되살리려면 보드가 제 크기여야 한다)
   scrollRestore(scrolled, newModal);
   restoredAt = performance.now();
   layoutPanels();
-  prepFitSync();
   advSync(run ?? null);
   TFX.onScreen(prevScreen, app.screen); // 테마 연출: 전투 중 강도 낮춤 · (이타카) 큰 화면 전환 물결 (사건 장면이 떴는지 본 뒤)
   if (app.screen === 'bar') BAR.barMount();
@@ -3746,40 +3901,94 @@ function carStep(dir: number) {
 
 /** 카메라 가로 위치를 고를 때 적 1기의 무게 (아군 1) */
 const CAM_FOE_W = 1.01;
-/** 전투 카메라: 가장 아래쪽 기물이 화면 맨 아래 줄에 오도록 세로 위치를 맞춘다 (사거리 최대 4칸이라 교전은 화면 안) */
+/** 전투 카메라 (화면 칸 좌표, 가로 지형도 화면 기준): 창 왼쪽 위 칸 (x, y) · 확대 배율 bz (1 = 배치 구역 크기) · 수동 시점을 유지할 시각 hold (끌기 · 확대 뒤 잠깐 그 자리) */
+const bcam = { x: 0, y: 0, bz: 1, hold: 0 };
+const CAM_HOLD_MS = 4000;
+/** 전투 창 치수 (화면 칸): 배율 1 의 창 W × H · 전장 FW × FH · 기본 창 원점 */
+function bviewDims(view: HTMLElement) {
+  const v = (k: string) => +view.style.getPropertyValue(k) || 0;
+  return { W: v('--w'), H: v('--h'), FW: v('--fw'), FH: v('--fh'), ox: v('--ox'), oy: v('--oy') };
+}
+/** 칸 최소 크기 (CSS --cell-min) 의 BZ_MAX 배까지 확대 (편성 · 전투 공용) */
+const BZ_MAX = 2;
+const cellMinOf = (el: Element) => parseFloat(getComputedStyle(el).getPropertyValue('--cell-min')) || 52;
+/** 전투 창 최대 배율: 칸이 최소 칸 크기의 BZ_MAX 배가 될 때까지 (작은 창 · 긴 가로 지형일수록 더 확대) */
+function battleZoomMax(view: HTMLElement) {
+  const d = bviewDims(view), c1 = view.clientWidth / Math.max(1, d.W);
+  return c1 > 0 ? Math.max(1, (BZ_MAX * cellMinOf(view)) / c1) : 1;
+}
+const clampN = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(Math.max(lo, hi), v));
+/** 지금 배율의 창 크기 (px) · 칸 크기 · 보이는 칸 수. 확대하면 창은 화면 아래 끝까지 세로로 늘고, 그 뒤로는 잘라서 보인다 (짧고 긴 가로 지형도 확대해서 볼 수 있게) */
+function camFrame(view: HTMLElement) {
+  const d = bviewDims(view), wpx = view.clientWidth, base = (wpx * d.H) / Math.max(1, d.W), cell = (wpx * bcam.bz) / Math.max(1, d.W);
+  const hmax = Math.max(base, innerHeight - (view.getBoundingClientRect().top + scrollY) - 8); // 창 위쪽(머리줄 · 상단 바) 아래로 화면 끝까지
+  const hpx = bcam.bz <= 1.001 ? base : Math.min(d.H * cell, hmax);
+  return { d, cell, hpx, vw: d.W / bcam.bz, vh: hpx / cell };
+}
+/** 카메라를 창에 반영: 창 높이 · 창 안 보드(.board-in) 크기 = 전장 × 칸 크기, 위치 = -카메라 칸 (px) */
+function camApply(view: HTMLElement, inner: HTMLElement) {
+  const f = camFrame(view), { d, cell } = f;
+  bcam.x = clampN(bcam.x, 0, d.FW - f.vw);
+  bcam.y = clampN(bcam.y, 0, d.FH - f.vh);
+  view.style.height = bcam.bz <= 1.001 ? '' : `${f.hpx}px`;
+  view.classList.toggle('zoomed', bcam.bz > 1.001);
+  Object.assign(inner.style, { width: `${d.FW * cell}px`, height: `${d.FH * cell}px`, left: `${-bcam.x * cell}px`, top: `${-bcam.y * cell}px` });
+  const ctl = view.querySelector<HTMLElement>('.bz-bat');
+  if (ctl) {
+    const mx = battleZoomMax(view);
+    ctl.hidden = mx <= 1.01;
+    ctl.querySelector<HTMLButtonElement>('[data-v="out"]')!.disabled = bcam.bz <= 1.001;
+    ctl.querySelector<HTMLButtonElement>('[data-v="in"]')!.disabled = bcam.bz >= mx - 0.001;
+  }
+  return f;
+}
+/** 전투 카메라: 배율 1 이면 가장 뒤쪽 기물이 창 끝 줄에 오도록 (사거리 최대 4칸이라 교전은 창 안), 확대 중이면 기물들의 무게중심을 따라간다 (긴 가로 지형은 가로로).
+ *  계산은 전장 좌표, 반영은 화면 좌표 (rectScr). 끌거나 확대한 뒤 CAM_HOLD_MS 동안은 그 자리 */
 function followCamera(b: Battle) {
   const inner = document.querySelector<HTMLElement>('.bview:not(.full) .board-in');
   if (!inner) return;
+  const view = inner.parentElement!;
   // 중립 지형물 (유닉스 답례 투하의 반려 돌 · 묘석 = 적 쪽 장애물)은 카메라가 따라가지도, 세지도 않는다. 아군 반려 돌(인화성)은 아군이라 센다
   const alive = b.units.filter((u) => u.alive && !(u.side === 1 && u.mem.inert));
   if (!alive.length) return;
-  const ex = +(inner.parentElement?.dataset.ex || 0); // 포탑 가장자리 열을 함께 보이는 만큼
+  const ex = +(view.dataset.ex || 0); // 포탑 가장자리 열을 함께 보이는 만큼
   const viewH = b.h - 2 * PAD, viewW = b.w - 2 * PAD + 2 * ex;
-  const maxY = Math.max(...alive.map((u) => u.y));
-  const top = Math.max(0, Math.min(b.h - viewH, maxY - (viewH - 1)));
-  // 가로: 좌우 끝 기물을 따라가되, 양쪽에 다 있으면 더 많은 기물이 보이는 위치 (같으면 가운데). 적은 아군보다 살짝 무겁게 (같은 수면 적이 있는 쪽)
-  let left = PAD - ex, best = -1;
-  for (const c of [PAD - ex, 0, b.w - viewW]) {
-    const seen = alive.filter((u) => u.x >= c && u.x < c + viewW).reduce((a, u) => a + (u.side === 1 ? CAM_FOE_W : 1), 0);
-    if (seen > best + 1e-9) { best = seen; left = c; }
+  const f0 = camFrame(view), rot = !!b.geo?.rot;
+  let left = PAD - ex, top = 0, vw = viewW, vh = viewH;
+  if (bcam.bz <= 1.001) {
+    const maxY = Math.max(...alive.map((u) => u.y));
+    top = Math.max(0, Math.min(b.h - viewH, maxY - (viewH - 1)));
+    // 가로: 좌우 끝 기물을 따라가되, 양쪽에 다 있으면 더 많은 기물이 보이는 위치 (같으면 가운데). 적은 아군보다 살짝 무겁게 (같은 수면 적이 있는 쪽)
+    let best = -1;
+    for (const c of [PAD - ex, 0, b.w - viewW]) {
+      const seen = alive.filter((u) => u.x >= c && u.x < c + viewW).reduce((a, u) => a + (u.side === 1 ? CAM_FOE_W : 1), 0);
+      if (seen > best + 1e-9) { best = seen; left = c; }
+    }
+  } else {
+    vw = rot ? f0.vh : f0.vw; vh = rot ? f0.vw : f0.vh; // 보이는 칸 수 (전장 방향)
+    let sx = 0, sy = 0, sw = 0;
+    for (const u of alive) { const k = u.side === 1 ? CAM_FOE_W : 1; sx += (u.x + 0.5) * k; sy += (u.y + 0.5) * k; sw += k; }
+    left = clampN(sx / sw - vw / 2, 0, b.w - vw);
+    top = clampN(sy / sw - vh / 2, 0, b.h - vh);
   }
-  inner.style.top = `calc(${-top} * 100% / var(--h))`;
-  inner.style.left = `calc(${-left} * 100% / var(--w))`;
-  offIndicators(inner.parentElement!, alive, left, top, viewW, viewH);
+  if (performance.now() >= bcam.hold) { const r = rectScr(b.geo, left, top, vw, vh); bcam.x = r.x; bcam.y = r.y; }
+  const f = camApply(view, inner);
+  offIndicators(view, alive, b, bcam.x, bcam.y, f.vw, f.vh);
 }
 /** 화면 밖 기물 표시: 카메라 창 밖에 있는 아군 · 적의 방향을 창 가장자리 삼각형으로 (진영 색 · 인원 수). 장애물(반려 돌 등)은 세지 않는다.
- *  위치는 그 방향 기물들의 평균 칸 (가장자리를 따라), 모서리 방향은 모서리에. 바뀔 때만 다시 그린다 */
-function offIndicators(view: HTMLElement, alive: CUnit[], left: number, top: number, viewW: number, viewH: number) {
+ *  위치는 그 방향 기물들의 평균 칸 (가장자리를 따라), 모서리 방향은 모서리에. 바뀔 때만 다시 그린다. 창 · 좌표는 화면 칸 (가로 지형은 돌려서) */
+function offIndicators(view: HTMLElement, alive: CUnit[], b: Battle, left: number, top: number, viewW: number, viewH: number) {
   let box = view.querySelector<HTMLElement>(':scope > .off-ind');
   if (!box) { box = document.createElement('div'); box.className = 'off-ind'; box.setAttribute('aria-hidden', 'true'); view.appendChild(box); }
   const groups = new Map<string, { side: number; dx: number; dy: number; xs: number[]; ys: number[] }>();
   for (const u of alive) {
     if (u.mem.inert) continue;
-    const dx = u.x < left ? -1 : u.x >= left + viewW ? 1 : 0, dy = u.y < top ? -1 : u.y >= top + viewH ? 1 : 0;
+    const s = toScr(b.geo, u.x, u.y), cx = s.x + 0.5, cy = s.y + 0.5;
+    const dx = cx < left ? -1 : cx > left + viewW ? 1 : 0, dy = cy < top ? -1 : cy > top + viewH ? 1 : 0;
     if (!dx && !dy) continue;
     const side = u.side === 0 ? 0 : 1, k = `${side}:${dx}:${dy}`;
     const g = groups.get(k) || { side, dx, dy, xs: [], ys: [] };
-    g.xs.push(u.x); g.ys.push(u.y); groups.set(k, g);
+    g.xs.push(s.x); g.ys.push(s.y); groups.set(k, g);
   }
   const clamp = (v: number) => Math.max(6, Math.min(94, v));
   const avg = (l: number[]) => l.reduce((a, c) => a + c, 0) / l.length;
@@ -3793,36 +4002,83 @@ function offIndicators(view: HTMLElement, alive: CUnit[], left: number, top: num
   }).join('');
   if (box.dataset.sig !== html) { box.dataset.sig = html; box.innerHTML = html; }
 }
-/** 전투 보드 끌어서 보기: 배치 구역이 기본 화면, 놓으면 가운데로 돌아온다 */
+/** 전투 창 확대 · 축소 (Ctrl + 휠 · 두 손가락 · ± 단추): 가리킨 점(없으면 창 가운데)이 그 자리에 머물게. 보는 사람마다 errantes.prefs.v1 battleZoom = 칸 크기 / 최소 칸 크기 (0 = 배율 1) */
+let bzSaveT = 0;
+function battleZoomTo(bz: number, at?: { x: number; y: number }) {
+  const view = document.querySelector<HTMLElement>('.bview:not(.full)'), inner = view?.querySelector<HTMLElement>('.board-in');
+  if (!view || !inner) return;
+  const r = view.getBoundingClientRect(), f0 = camFrame(view);
+  const z1 = clampN(bz, 1, battleZoomMax(view));
+  if (Math.abs(z1 - bcam.bz) < 1e-4) return;
+  const ax = at ? at.x - r.left : r.width / 2, ay = at ? at.y - r.top : r.height / 2;
+  const cx = bcam.x + ax / f0.cell, cy = bcam.y + ay / f0.cell; // 가리킨 화면 칸
+  bcam.bz = z1;
+  const cell1 = (r.width * z1) / Math.max(1, f0.d.W);
+  bcam.x = cx - ax / cell1;
+  bcam.y = cy - ay / cell1;
+  bcam.hold = performance.now() + CAM_HOLD_MS;
+  zoomingFlag(view);
+  const f = camApply(view, inner);
+  if (app.view) offIndicators(view, app.view.b.units.filter((u) => u.alive && !(u.side === 1 && u.mem.inert)), app.view.b, bcam.x, bcam.y, f.vw, f.vh);
+  clearTimeout(bzSaveT);
+  bzSaveT = window.setTimeout(() => savePref('battleZoom', z1 <= 1.001 ? 0 : +(cell1 / cellMinOf(view)).toFixed(3)), 250);
+}
+/** 확대 중에는 창 안 보드의 이동 애니메이션을 끈다 (크기와 위치가 같이 바뀌어야 가리킨 점이 흔들리지 않는다) */
+const zoomingT = new WeakMap<HTMLElement, number>();
+function zoomingFlag(el: HTMLElement) {
+  el.classList.add('zooming');
+  clearTimeout(zoomingT.get(el));
+  zoomingT.set(el, window.setTimeout(() => el.classList.remove('zooming'), 220));
+}
+/** 전투 보드 끌어서 보기: 배율 1 이면 놓을 때 제자리로 (배치 구역이 기본 화면), 확대 중이면 카메라를 옮기고 CAM_HOLD_MS 동안 그 자리 */
+let panStop: (() => void) | null = null;
 function initBoardPan(view: HTMLElement) {
   const inner = view.querySelector<HTMLElement>('.board-in');
   if (!inner || view.classList.contains('full')) return;
-  let sx = 0, sy = 0, id = -1, moved = false;
+  // 시작 시점: 기본 창 + 저장한 배율 (칸 크기 기준이라 지형 · 화면 크기가 달라도 같은 칸 크기)
+  const d0 = bviewDims(view), pz = loadPrefs().battleZoom || 0;
+  bcam.x = d0.ox; bcam.y = d0.oy; bcam.hold = 0;
+  const c1 = view.clientWidth / Math.max(1, d0.W), cmin = cellMinOf(view);
+  // 저장한 배율이 없으면 1, 다만 칸이 아주 작으면 (휴대폰의 긴 가로 지형) 최소 칸 크기까지 키워서 시작
+  bcam.bz = clampN(pz > 0 ? (pz * cmin) / c1 : c1 < cmin * 0.6 ? cmin / c1 : 1, 1, battleZoomMax(view));
+  camApply(view, inner);
+  if (app.view) followCamera(app.view.b);
+  let sx = 0, sy = 0, id = -1, moved = false, manual = false, x0 = 0, y0 = 0;
   view.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || pinch || (e.target as HTMLElement).closest('.bz-ctl')) return;
     id = e.pointerId; sx = e.clientX; sy = e.clientY; moved = false;
-    inner.style.transition = 'top .6s cubic-bezier(.4, 0, .2, 1), left .6s cubic-bezier(.4, 0, .2, 1)';
+    manual = bcam.bz > 1.001; x0 = bcam.x; y0 = bcam.y;
+    inner.style.transition = manual ? 'none' : 'top .6s cubic-bezier(.4, 0, .2, 1), left .6s cubic-bezier(.4, 0, .2, 1)';
   });
   view.addEventListener('pointermove', (e) => {
     if (e.pointerId !== id) return;
     const dx = e.clientX - sx, dy = e.clientY - sy;
     if (!moved && Math.hypot(dx, dy) < 6) return;
     if (!moved) { moved = true; view.setPointerCapture(id); view.classList.add('panning'); }
+    const f = camFrame(view);
+    if (manual) { // 확대 중: 카메라를 손가락만큼 옮긴다
+      bcam.x = x0 - dx / f.cell;
+      bcam.y = y0 - dy / f.cell;
+      bcam.hold = performance.now() + CAM_HOLD_MS;
+      camApply(view, inner);
+      return;
+    }
     // 테두리 한 칸 + 조금 더까지만
-    const r = view.getBoundingClientRect();
-    const mx = (r.width / +getComputedStyle(view).getPropertyValue('--w')) * 1.3, my = (r.height / +getComputedStyle(view).getPropertyValue('--h')) * 1.3;
+    const mx = f.cell * 1.3, my = f.cell * 1.3;
     inner.style.transform = `translate(${Math.max(-mx, Math.min(mx, dx))}px, ${Math.max(-my, Math.min(my, dy))}px)`;
   });
-  const end = (e: PointerEvent) => {
-    if (e.pointerId !== id) return;
+  const end = (e: PointerEvent | null) => {
+    if (e && e.pointerId !== id) return;
     id = -1;
-    inner.style.transition = 'transform .35s cubic-bezier(.2, .8, .3, 1), top .6s cubic-bezier(.4, 0, .2, 1), left .6s cubic-bezier(.4, 0, .2, 1)';
+    inner.style.transition = manual ? '' : 'transform .35s cubic-bezier(.2, .8, .3, 1), top .6s cubic-bezier(.4, 0, .2, 1), left .6s cubic-bezier(.4, 0, .2, 1)';
     inner.style.transform = '';
     view.classList.remove('panning');
+    if (manual && moved) bcam.hold = performance.now() + CAM_HOLD_MS;
     if (moved) { suppressClick = true; setTimeout(() => { suppressClick = false; }, 60); }
   };
   view.addEventListener('pointerup', end);
   view.addEventListener('pointercancel', end);
+  panStop = () => { if (id >= 0) end(null); }; // 두 손가락 확대가 시작되면 끌기를 멈춘다
 }
 function mountBattleView(board: HTMLElement) {
   const run = app.run!;
@@ -4891,7 +5147,9 @@ function act(a: string, v: string) {
       app.abilPop = null; app.sel = app.sel?.k === 'terrain' && app.sel.g === +v ? null : { k: 'terrain', g: +v }; break;
     case 'dev-cell': if (run && app.sel?.k === 'item') { const [x, y] = v.split(':').map(Number); placeAt(run, app.sel.idx, x, y); } break;
     case 'fold-r': savePref('prepFold', !loadPrefs().prepFold); break;
-    case 'board-fit': savePref('boardFit', !loadPrefs().boardFit); break;
+    case 'board-fit': prepZoomAct('fit'); return;
+    case 'bzoom': prepZoomAct(v); return;
+    case 'bzoom-b': battleZoomAct(v); return;
     case 'dev-sel': if (run?.node?.enc?.devices?.[+v]) {
       if (app.sel?.k === 'item' && isConsumable(run.inventory[app.sel.idx])) { toast('다른 장치가 있는 칸입니다.'); app.sel = null; break; }
       const d = run.node.enc.devices[+v], nm = d.id === 'K_scope' ? (d.mode === 'strike' ? '지정 포격' : '항공 보급') : CONSUMABLES[d.id].name;
@@ -5095,26 +5353,35 @@ const HOLD_MS = 220;
 let drag: { src: string; x: number; y: number; ghost: HTMLElement | null; el: HTMLElement; t0: number; hold: boolean } | null = null;
 let suppressClick = false;
 /** 끄는 동안 손가락 · 커서가 화면 위 · 아래 가장자리에 머물면 창을 스크롤한다 (휴대폰 세로: 아래쪽 기물 상세의 장비를 보드 · 보관함까지 끌고 올라가기) */
-const DRAG_EDGE = 56, DRAG_SCROLL_MAX = 18;
+const DRAG_EDGE = 56, DRAG_SCROLL_MAX = 18, VP_EDGE = 36; // VP_EDGE = 확대한 보드 창 가장자리 폭
 let dragPt: { x: number; y: number } | null = null, dragScrollRaf = 0;
 function dragAutoScroll() {
   dragScrollRaf = 0;
   if ((!drag?.ghost && !wallDrag?.moved) || !dragPt) return; // 장비 · 기물 끌기 · 바리케이드 끌기 (긴 보드)
+  // 확대한 편성 보드 창 (.board-vp): 창 가장자리에 머물면 창 안을 민다
+  const vp = root.querySelector<HTMLElement>('.prep .board-vp'), r = vp?.getBoundingClientRect(), p = dragPt;
+  let vpMoved = false;
+  if (vp && r && p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom) {
+    const E = Math.min(VP_EDGE, r.width / 4, r.height / 4), sp = (d: number) => Math.min(DRAG_SCROLL_MAX, Math.ceil((E - d) / 2));
+    const vx = p.x - r.left < E ? -sp(p.x - r.left) : r.right - p.x < E ? sp(r.right - p.x) : 0;
+    const vy = p.y - r.top < E ? -sp(p.y - r.top) : r.bottom - p.y < E ? sp(r.bottom - p.y) : 0;
+    if (vx || vy) { const l0 = vp.scrollLeft, t0 = vp.scrollTop; vp.scrollBy(vx, vy); vpMoved = vp.scrollLeft !== l0 || vp.scrollTop !== t0; }
+  }
   const topH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--top-h')) || 0;
   const up = topH + DRAG_EDGE - dragPt.y, down = dragPt.y - (innerHeight - DRAG_EDGE);
   const dy = up > 0 ? -Math.min(DRAG_SCROLL_MAX, Math.ceil(up / 3)) : down > 0 ? Math.min(DRAG_SCROLL_MAX, Math.ceil(down / 3)) : 0;
-  if (!dy) return;
   const y0 = scrollY;
-  scrollBy(0, dy);
-  if (scrollY !== y0) dragScrollRaf = requestAnimationFrame(dragAutoScroll);
+  if (dy) scrollBy(0, dy);
+  if (scrollY !== y0 || vpMoved) dragScrollRaf = requestAnimationFrame(dragAutoScroll);
 }
 
 // ───────── 바리케이드 직접 조작 (편성 화면): 몸통을 끌면 옮기기, 끝단 화살표를 끌면 그 방향으로 늘리기 · 줄이기 (최대 DEV.wall.maxN칸).
 // 끄는 동안 모양을 바로 보여 주고 (놓을 수 없으면 붉게), 놓으면 확정. 움직이지 않고 떼면 보통 누름 (회수 확인)
 let wallDrag: null | { i: number; side: '' | 't' | 'r' | 'b' | 'l'; d0: Device; kx: number; ky: number; x: number; y: number; box: HTMLElement; board: HTMLElement; moved: boolean; cand: Device | null; err: string | null } = null;
+/** 편성 보드 위 화면 점 → 전장 칸 (확대 · 스크롤 · 가로 지형 모두: 보드의 실제 화면 사각형에서 화면 칸을 구해 전장 좌표로 되짚는다) */
 const wallCellAt = (board: HTMLElement, cx: number, cy: number) => {
-  const r = board.getBoundingClientRect(), bw = +board.dataset.bw!, bh = +board.dataset.bh!, ex = +board.dataset.ex!;
-  return { x: Math.floor(((cx - r.left) / r.width) * bw) + PAD - ex, y: Math.floor(((cy - r.top) / r.height) * bh) + PAD };
+  const r = board.getBoundingClientRect(), g = runGeo(app.run!), f = prepFrame(g, +board.dataset.ex!);
+  return fromScr(g, Math.floor(((cx - r.left) / r.width) * f.bw) + f.ox, Math.floor(((cy - r.top) / r.height) * f.bh) + f.oy);
 };
 /** 끄는 위치 → 새 바리케이드 모양: 옮기기는 잡은 칸 기준, 늘리기는 반대쪽 끝을 고정하고 끄는 쪽 끝이 그 칸까지 (축은 화살표 방향) */
 function wallShape(w: NonNullable<typeof wallDrag>, cx: number, cy: number): Device {
@@ -5149,9 +5416,9 @@ window.addEventListener('pointermove', (ev) => {
   const c = wallCellAt(w.board, ev.clientX, ev.clientY), cand = wallShape(w, c.x, c.y);
   if (w.cand && cand.x === w.cand.x && cand.y === w.cand.y && cand.n === w.cand.n && cand.dir === w.cand.dir) return;
   w.cand = cand; w.err = R.deviceErr(run, cand, w.d0);
-  const bw = +w.board.dataset.bw!, bh = +w.board.dataset.bh!, ex = +w.board.dataset.ex!, n = cand.n || 1, v = cand.dir === 'v';
-  Object.assign(w.box.style, { left: `${((cand.x - PAD + ex) / bw) * 100}%`, top: `${((cand.y - PAD) / bh) * 100}%`, width: `${(100 * (v ? 1 : n)) / bw}%`, height: `${(100 * (v ? n : 1)) / bh}%` });
-  w.box.classList.toggle('v', v && n > 1);
+  const g = runGeo(run), n = cand.n || 1, v = cand.dir === 'v';
+  w.box.style.cssText = boardBox(g, +w.board.dataset.ex!)(cand.x, cand.y, v ? 1 : n, v ? n : 1);
+  w.box.classList.toggle('v', n > 1 && v !== !!g.rot); // 화면에서 세로인지 (가로 지형은 돌려서)
   w.box.classList.toggle('bad', !!w.err);
   const body = w.box.querySelector('.dw-body');
   if (body) { const cell = body.querySelector('.dw-cell'); body.querySelectorAll('.dw-cell').forEach((x, k) => { if (k) x.remove(); }); for (let k = 1; k < n && cell; k++) body.insertBefore(cell.cloneNode(true), cell.nextSibling); }
