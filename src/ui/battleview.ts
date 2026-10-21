@@ -493,6 +493,23 @@ export class BattleView {
       board.appendChild(el);
       this.gateCd.push(el);
     }
+    // 광석 운반차: 선로 가운데 칸 위쪽에 카운트다운 배지 · 지나는 동안 선로를 따라 움직이는 운반차 토큰 (전투 시간 b.t 기준, sync 에서 갱신)
+    if (b.geo && b.mem.cartNext !== undefined) for (const grp of terrainGroups(b.geo)) {
+      if (grp.k !== 'rail') continue;
+      const sc = grp.cells.map((c) => this.sc(c.x, c.y)), cx = sc.reduce((a, c) => a + c.x, 0) / sc.length, cy = Math.min(...sc.map((c) => c.y));
+      const cd = document.createElement('div');
+      cd.className = 'gate-cd cart-cd';
+      Object.assign(cd.style, { left: `${(cx / this.W) * 100}%`, top: `${(cy / this.H) * 100}%`, width: `${100 / this.W}%`, height: `${100 / this.H}%` });
+      cd.innerHTML = '<span><small>운반차</small><b></b></span>';
+      board.appendChild(cd);
+      const tok = document.createElement('div');
+      tok.className = 'cart-tok';
+      tok.hidden = true;
+      tok.innerHTML = '<span><b></b></span>';
+      board.appendChild(tok);
+      this.cart = { cd, tok, xs: grp.cells.map((c) => c.x).sort((p, q) => p - q), y: grp.cells[0].y };
+      break;
+    }
     this.sync();
     // 피니쉬 표시: 콤보 무기의 피니쉬 여부는 기본 공격 이벤트가 나가는 그 순간의 콤보 상태로만 알 수 있다 (이벤트에 없는 정보, 엔진은 그대로)
     const emit = b.emit.bind(b);
@@ -671,9 +688,35 @@ export class BattleView {
       el.title = `${sec}초 뒤 ${toOpen ? '열림' : '닫힘'}`;
     }
   }
+  private cart: { cd: HTMLElement; tok: HTMLElement; xs: number[]; y: number } | null = null;
+  private cartSig = '';
+  /** 운반차: 배지 (남은 초 · 방향, warn 초 전부터 경고색) · 선로 경고 칸 · 지나는 동안 토큰 위치 (len 칸, 전투 시간으로 보간) */
+  private syncCart() {
+    const c = this.cart;
+    if (!c) return;
+    const b = this.b, C = CFG.maps.cart, run = !!b.mem.cartRun, d = b.mem.cartDir > 0 ? 1 : -1, arrow = d > 0 ? '→' : '←';
+    const left = b.mem.cartNext - b.t, sec = Math.max(0, Math.ceil(left - 1e-9)), warn = !run && left <= C.warn;
+    const sig = `${run ? 'r' : sec}:${d}:${warn ? 1 : 0}`;
+    if (sig !== this.cartSig) {
+      this.cartSig = sig;
+      c.cd.classList.toggle('warn', warn || run);
+      c.cd.querySelector('b')!.textContent = run ? `통과 ${arrow}` : `${sec}초 ${arrow}`;
+      c.cd.title = run ? `운반차 지나는 중 ${arrow}` : `${sec}초 뒤 운반차 ${arrow}`;
+      this.board.querySelectorAll<HTMLElement>('.cells .cell.tr-rail').forEach((el) => { el.classList.toggle('cart-warn', warn); el.classList.toggle('dir-r', d > 0); el.classList.toggle('dir-l', d < 0); });
+      c.tok.querySelector('b')!.textContent = arrow;
+    }
+    c.tok.hidden = !run;
+    if (!run) return;
+    // 머리 위치 (칸 단위, 진행 방향의 첫 칸 = 0): 0 → 칸 수 + len - 1 을 sweep 초에
+    const n = c.xs.length, last = n + C.len - 1, head = Math.min(last, ((b.t - b.mem.cartT0) / C.sweep) * last);
+    const x0 = d > 0 ? c.xs[0] + head - C.len + 1 : c.xs[n - 1] - head, s = this.sc(x0, c.y), s2 = this.sc(x0 + C.len - 1, c.y);
+    const lx = Math.min(s.x, s2.x), ly = Math.min(s.y, s2.y), w = Math.abs(s2.x - s.x) + 1, h = Math.abs(s2.y - s.y) + 1;
+    Object.assign(c.tok.style, { left: `${(lx / this.W) * 100}%`, top: `${(ly / this.H) * 100}%`, width: `${(w / this.W) * 100}%`, height: `${(h / this.H) * 100}%` });
+  }
   private sync() {
     this.syncTerrain();
     this.syncGateCd();
+    this.syncCart();
     for (const [tr, el] of this.traps) if (!this.b.traps.includes(tr as Battle['traps'][number])) { el.remove(); this.traps.delete(tr); }
     const now = this.vt;
     const dvt = Math.max(0, now - this.syncVt); // 표시 시간 변화량 (정지 중 0, 주사율과 무관)
@@ -1166,6 +1209,13 @@ export class BattleView {
         return;
       }
       case 'crash': this.crash(e.side); return;
+      case 'cart': { // 광석 운반차가 선로 위 기물을 쳐 냄: 사건 줄 하나 (맞은 아군 · 적 수)
+        const us = e.ids.map((id) => this.unit(id)).filter((u): u is CUnit => !!u && !u.mem.neutral), u0 = us[0];
+        if (!u0) return;
+        const a = us.filter((u) => u.side === 0).length, f = us.length - a;
+        this.eventLine({ kind: 'event', u: u0, label: '지형', title: `광석 운반차 ${e.dir > 0 ? '→' : '←'}`, sub: [a ? `아군 ${a}` : '', f ? `적 ${f}` : ''].filter(Boolean).join(' · ') + ' 피격', icon: lineIcon('tr.rail', 'li'), key: `cart|${this.b.t}` });
+        return;
+      }
     }
   }
 

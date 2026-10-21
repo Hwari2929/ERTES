@@ -23,9 +23,9 @@ import { FAITHS,
   type AugPick, type Encounter, type InvestOffer, type FaithId, type EnemySpawn, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
   type Quest, type RunState, type ShopSlot, type SupplyCard, type SynergyId, type UnitState,
 } from '../types';
-import { allyRoom, companionCells, deployed, encGeo, engTier, foeCell, layout, PAD, runGeo, terrainCells, toPos, memberships, playerRows, prepOccupied, synergyCounts, turretCells, turretCount, ZONE, zoneAt } from './build';
+import { allyRoom, companionCells, deployed, encGeo, engTier, geoOf, mapOptOf, terrainPathOk, foeCell, layout, PAD, runGeo, terrainCells, toPos, memberships, playerRows, prepOccupied, synergyCounts, turretCells, turretCount, ZONE, zoneAt } from './build';
 import { DEV, deviceCells, type Device, isPlaceable } from '../data/devices';
-import { MAPS, mapOf, type MapDef } from '../data/maps';
+import { type Bay, crateHomes, MAPS, mapOf, type MapDef, rectCells, terrainOf } from '../data/maps';
 import { causalGain, causalLeft, causalStage, KING_GEAR, KING_GEAR_NAME } from '../data/chungra';
 import { EMB } from '../data/emblems';
 import type { Battle } from './combat';
@@ -681,7 +681,7 @@ export function deviceErr(run: RunState, d: Device, skip?: Device): string | nul
   for (const c of deviceCells(d)) {
     const z = zoneAt(g, c.x, c.y);
     if (z === 'edge') return '전장 밖으로 펼칠 수 없습니다';
-    if (land.has(`${c.x},${c.y}`)) return '지형 칸에는 놓을 수 없습니다';
+    if ((land.get(`${c.x},${c.y}`)?.bits ?? 0) & 1) return '지형 칸에는 놓을 수 없습니다';
     if (z === 'foe' && d.id !== 'K_decoy') return '적 진형에는 놓을 수 없습니다';
     if (occ.has(`${c.x},${c.y}`)) return '다른 기물 · 장치가 있는 칸입니다';
   }
@@ -697,6 +697,80 @@ export function setDevice(run: RunState, idx: number, d: Device): string | null 
   if (err) return err;
   ds![idx] = d;
   return null;
+}
+// ───────── 전투 전 지형 선택 (편성 화면에서만, 전투 중 조작 없음): 연결교 접기 (도킹 연결부) · 크레인 (컨테이너 환적장)
+/** 칸 묶음 위에 서 있는 것: 장치 → '장치', 기물 · 적 → '기물' (없으면 null) */
+function cellsTaken(run: RunState, enc: Encounter, cells: { x: number; y: number }[]): string | null {
+  const key = (c: { x: number; y: number }) => `${c.x},${c.y}`, want = new Set(cells.map(key));
+  if ((enc.devices || []).some((d) => deviceCells(d).some((c) => want.has(key(c))))) return '장치가 있는 칸';
+  return [...prepOccupied(run, enc)].some((k) => want.has(k)) ? '기물이 있는 칸' : null;
+}
+/** 연결교 접기 · 펴기: 연결교 위에 장치가 있으면 접지 못한다. 오류 문구 또는 null */
+export function bridgeFoldErr(run: RunState): string | null {
+  const enc = run.node?.enc;
+  if (!enc) return '전투를 앞둔 편성 화면에서만';
+  const g = encGeo(enc), br = terrainOf(g).filter((c) => c.k === 'bridge');
+  if (!br.length) return '연결교가 없는 지형';
+  if (!enc.bridgeFold && cellsTaken(run, enc, br)) return '연결교 위에 장치가 있음';
+  if (!enc.bridgeFold && !terrainPathOk(geoOf(enc.n, enc.map, { ...mapOptOf(enc), fold: true }))) return '길이 모두 막힘';
+  return null;
+}
+export function setBridgeFold(run: RunState, fold: boolean): string | null {
+  const enc = run.node?.enc;
+  if (!enc || !!enc.bridgeFold === fold) return null;
+  const err = fold ? bridgeFoldErr(run) : null;
+  if (err) return err;
+  if (fold) enc.bridgeFold = true; else delete enc.bridgeFold;
+  return null;
+}
+/** 크레인: 이 컨테이너(번호)를 옮길 수 있는 적재칸 — 크기가 같은 적재칸만 (지금 있는 칸 제외). err = 못 옮기는 이유 (다른 컨테이너 · 장치 · 기물 · 길이 모두 막힘) */
+export function craneSlots(run: RunState, crate: number): { bay: number; at: Bay; err: string | null }[] {
+  const enc = run.node?.enc;
+  if (!enc) return [];
+  const m = mapOf(enc.map), g = encGeo(enc), bs = m.bays?.(g) || [];
+  const home = crateHomes(m.terrain?.(g) || []).find((c) => c.i === crate);
+  if (!home) return [];
+  const now = terrainOf(g), key = (c: { x: number; y: number }) => `${c.x},${c.y}`;
+  const others = new Set(now.filter((c) => c.crate !== crate).map(key)), mine = new Set(now.filter((c) => c.crate === crate).map(key));
+  const out: { bay: number; at: Bay; err: string | null }[] = [];
+  bs.forEach((b, bi) => {
+    if (b.w !== home.w || b.h !== home.h) return;
+    const cells = rectCells(b);
+    if (cells.every((c) => mine.has(key(c)))) return; // 지금 있는 자리
+    const err = cells.some((c) => others.has(key(c))) ? '다른 컨테이너'
+      : cellsTaken(run, enc, cells) || (terrainPathOk(geoOf(enc.n, enc.map, { ...mapOptOf(enc), crane: { ...enc.crane, [crate]: bi } })) ? null : '길이 모두 막힘');
+    out.push({ bay: bi, at: b, err });
+  });
+  return out;
+}
+/** 크레인으로 컨테이너를 적재칸으로 (bay = null 이면 원위치). 오류 문구 또는 null */
+export function craneMove(run: RunState, crate: number, bay: number | null): string | null {
+  const enc = run.node?.enc;
+  if (!enc) return '전투를 앞둔 편성 화면에서만';
+  if (bay !== null) {
+    const s = craneSlots(run, crate).find((x) => x.bay === bay);
+    if (!s) return '옮길 수 없는 자리';
+    if (s.err) return s.err;
+    enc.crane = { ...enc.crane, [crate]: bay };
+    return null;
+  }
+  const err = craneHomeErr(run, crate);
+  if (err) return err;
+  const rest = { ...enc.crane };
+  delete rest[crate];
+  if (Object.keys(rest).length) enc.crane = rest; else delete enc.crane;
+  return null;
+}
+/** 원위치로 돌릴 수 있는지: 원래 칸에 장치 · 기물이 없고 길이 남아야 (옮기지 않았으면 '이미 원위치') */
+export function craneHomeErr(run: RunState, crate: number): string | null {
+  const enc = run.node?.enc;
+  if (!enc) return '전투를 앞둔 편성 화면에서만';
+  if (enc.crane?.[crate] === undefined) return '이미 원위치';
+  const g = encGeo(enc), home = crateHomes(mapOf(enc.map).terrain?.(g) || []).find((c) => c.i === crate);
+  if (!home) return null;
+  const rest = { ...enc.crane };
+  delete rest[crate];
+  return cellsTaken(run, enc, home.cells) || (terrainPathOk(geoOf(enc.n, enc.map, { ...mapOptOf(enc), crane: rest })) ? null : '길이 모두 막힘');
 }
 /** 놓은 장치 회수 (전투 전): 소모품은 보관함으로 (가득 차도), 망원경은 사용 횟수 +1 */
 export function recallDevice(run: RunState, idx: number): string | null {

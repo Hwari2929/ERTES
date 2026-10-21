@@ -15,13 +15,13 @@ import { UNIT_BY_ID } from '../data/units';
 import { enableDivine, ENEMY_PSI, FAITH_DEF, sigmundTarget } from '../data/rework';
 import { DEFAULT_RELIC } from '../data/relics';
 import { DEV, deviceCells, type Device, mineDmg, netCells, scopeR, strikeDmg, wallCells, wallHp } from '../data/devices';
-import { mapOf, TERRAIN } from '../data/maps';
+import { mapOf, TERRAIN, type TCell, terrainOf } from '../data/maps';
 import { ULTS } from '../data/ults';
 import { SUMMON_RT, type SummonDef } from '../data/unitkit';
 import type { SkillDef } from './combat';
 import { Rng } from '../rng';
-import { categoryOf, type EnemySpawn, type Geo, type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
-import { Battle, type CUnit } from './combat';
+import { categoryOf, type EnemySpawn, type Geo, type MapOpt, type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
+import { Battle, type CUnit, T_NOSHOT } from './combat';
 import { applyLive, type Effect, type EffectCtx, red } from './effects';
 
 export type Counts = Partial<Record<SynergyId, number>>;
@@ -35,12 +35,15 @@ export const boardDims = (W: number) => ({ w: W + 2 * PAD, h: 2 * ZONE + GAP + 2
 /** 아군 진형 세로 범위 (전장 좌표) */
 export const ALLY_Y0 = PAD + ZONE + GAP, ALLY_Y1 = ALLY_Y0 + ZONE - 1;
 /** 전장 칸 구조: 지형 틀(data/maps.ts)의 사이 줄 수 · 포위(아래 적 진형) · 통로 폭을 반영. 저장 배치 (c, r) 는 지형과 무관 (r = 아군 진형 뒷줄부터) */
-export function geoOf(n: number, map?: string): Geo {
+export function geoOf(n: number, map?: string, opt?: MapOpt): Geo {
   const m = mapOf(map), gap = m.gap ?? GAP, rows = m.allyRows ?? ZONE;
   const ay0 = PAD + ZONE + gap, ay1 = ay0 + rows - 1;
   const foe2 = m.surround ? ay1 + 1 + gap : 0;
-  return { n, w: n + 2 * PAD, h: (foe2 ? foe2 + ZONE : ay1 + 1) + PAD, x0: PAD, ay0, ay1, rows, foe2, map: m.id, ...(m.rot ? { rot: true } : {}) };
+  return { n, w: n + 2 * PAD, h: (foe2 ? foe2 + ZONE : ay1 + 1) + PAD, x0: PAD, ay0, ay1, rows, foe2, map: m.id, ...(m.rot ? { rot: true } : {}), ...(opt ? { opt } : {}) };
 }
+/** 조우의 지형 선택 (편성 화면: 연결교 접기 · 크레인) → 칸 구조에 싣는다 (terrainOf 가 읽는다) */
+export const mapOptOf = (enc: Encounter | null | undefined): MapOpt | undefined =>
+  enc && (enc.bridgeFold || (enc.crane && Object.keys(enc.crane).length)) ? { ...(enc.bridgeFold ? { fold: true } : {}), ...(enc.crane ? { crane: { ...enc.crane } } : {}) } : undefined;
 /** 화면 칸 ↔ 전장 칸 (UI 공용). 가로 지형(rot)은 전장을 시계 방향 90° 돌려 그린다: 전장 (x, y) → 화면 (h-1-y, x). 위 적 진형 → 오른쪽, 아래 → 왼쪽 */
 type RotG = { h: number; rot?: boolean } | null | undefined;
 export const toScr = (g: RotG, x: number, y: number) => (g?.rot ? { x: g.h - 1 - y, y: x } : { x, y });
@@ -50,8 +53,8 @@ export const rectScr = (g: RotG, x: number, y: number, w: number, h: number) => 
 /** 화면 가로 · 세로 칸 수 */
 export const scrDims = (g: { w: number; h: number; rot?: boolean }) => (g.rot ? { w: g.h, h: g.w } : { w: g.w, h: g.h });
 /** 이번 조우의 칸 구조 (조우가 없으면 기본 보드) */
-export const encGeo = (enc: Encounter | null | undefined, n = enc?.n ?? CFG.bossBoard) => geoOf(n, enc?.map);
-export const runGeo = (run: RunState, n = run.node?.enc?.n ?? CFG.bossBoard) => geoOf(n, run.node?.enc?.map);
+export const encGeo = (enc: Encounter | null | undefined, n = enc?.n ?? CFG.bossBoard) => geoOf(n, enc?.map, mapOptOf(enc));
+export const runGeo = (run: RunState, n = run.node?.enc?.n ?? CFG.bossBoard) => geoOf(n, run.node?.enc?.map, mapOptOf(run.node?.enc));
 /** 적 배치(c, row) → 전장 좌표 (포위 지형의 아래 진형은 뒷줄 row 0 이 맨 아래) */
 export const enemyCell = (c: number, row: number, W: number, g?: Geo, flip?: boolean) => {
   const x = PAD + Math.min(c, W - 1), r = Math.min(row, ZONE - 1);
@@ -792,7 +795,7 @@ export function layout(run: RunState, n: number): Map<string, { x: number; y: nu
       if (!spill) {
         const land = terrainCells(g);
         spill = [];
-        for (let y = PAD; y < g.h - PAD; y++) for (let x = PAD; x < PAD + n; x++) if (zoneAt(g, x, y) === 'mid' && !land.has(`${x},${y}`)) spill.push({ x, y });
+        for (let y = PAD; y < g.h - PAD; y++) for (let x = PAD; x < PAD + n; x++) if (zoneAt(g, x, y) === 'mid' && !((land.get(`${x},${y}`)?.bits ?? 0) & 1)) spill.push({ x, y });
       }
       p = near(spill, want);
     }
@@ -826,7 +829,7 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
   const b = new Battle(g.w, g.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined, globals: run.globals.length ? [...run.globals] : undefined, oaths: run.oaths, otShift: oathV(run, 'clock', 'sec') || undefined, campIntel: run.campaign && run.flags.includes('cp_intel') ? true : undefined, campIntel2: run.campaign && run.flags.includes('cp_intel2') ? true : undefined, campIntel3: run.campaign && run.flags.includes('cp_intel3') ? true : undefined, campIntel4: run.campaign && run.flags.includes('cp_intel4') ? true : undefined, campAudit: run.campaign && run.flags.includes('cp_br_audit') ? true : undefined });
   b.keepEvents = keepEvents;
   b.geo = g;
-  applyMap(b, g, !!enc.gateOpen); // 지형 칸 · 수문 (시작 상태는 편성 화면에서)
+  applyMap(b, g, !!enc.gateOpen); // 지형 칸 · 수문 · 운반차 (수문 시작 상태 · 연결교 · 크레인은 편성 화면에서, g.opt)
   const dep = deployed(run);
   const counts = synergyCounts(dep, run);
   const lay = layout(run, enc.n);
@@ -915,14 +918,37 @@ function applyDevices(b: Battle, run: RunState, enc: Encounter, counts: Counts) 
 const DECOY_PAL = ['#0e0e0e', '#ff8a3d', '#c25a1c', '#ffd2a8', '#ffb070', '#5a2a0c', '#fff0e0'];
 
 /** 지형 칸 ('x,y' → 종류): 편성 화면 표시 · 배치 검사 */
-export function terrainCells(g: Geo): Map<string, keyof typeof TERRAIN> {
-  return new Map((mapOf(g.map).terrain?.(g) || []).map((c) => [`${c.x},${c.y}`, c.k]));
+export function terrainCells(g: Geo): Map<string, TCell & { bits: number }> {
+  return new Map(terrainOf(g).map((c) => [`${c.x},${c.y}`, { ...c, bits: c.bits ?? TERRAIN[c.k].bits }]));
+}
+/** 지형만 보고 (기물 · 장치 무시) 아군 진형에서 모든 적 진형 줄로 걸어갈 길이 있는지 (크레인 적재칸 · tests/terrain_check.ts) */
+export function terrainPathOk(g: Geo, land = terrainCells(g)): boolean {
+  const walk = (x: number, y: number) => x >= PAD && x < g.w - PAD && y >= PAD && y < g.h - PAD && !((land.get(`${x},${y}`)?.bits ?? 0) & 1);
+  const seen = new Set<string>(), q: [number, number][] = [];
+  for (let x = PAD; x < PAD + g.n; x++) for (let y = g.ay0; y <= g.ay1; y++) { q.push([x, y]); seen.add(`${x},${y}`); }
+  while (q.length) {
+    const [x, y] = q.pop()!;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const nx = x + dx, ny = y + dy, k = `${nx},${ny}`;
+      if (seen.has(k) || !walk(nx, ny)) continue;
+      if (dx && dy && !walk(x + dx, y) && !walk(x, y + dy)) continue;
+      seen.add(k); q.push([nx, ny]);
+    }
+  }
+  const foeRows = [PAD, PAD + 1, PAD + 2, ...(g.foe2 ? [g.foe2, g.foe2 + 1, g.foe2 + 2] : [])];
+  return foeRows.every((y) => [...Array(g.n).keys()].some((c) => seen.has(`${c + PAD},${y}`)));
 }
 /** 지형 틀의 지형 칸을 전장에 깐다. 수문: 닫힌 채 시작해 gateCycle (닫힘 · 열림 초) 로 번갈아 (전장 이벤트로 알린다).
  *  b.mem.gateOpen = 지금 주기 (1 열림 · 0 닫힘) · b.mem.gateNext = 다음 전환 시각 (전투 시간 b.t). 칸마다 실제로 막혔는지는 b.terrain 비트 (gateState) */
-export function applyMap(b: Battle, g: Geo, gateOpen = false) { // gateOpen: 수문이 열린 채 시작 (편성 화면에서 정함)
-  const m = mapOf(g.map), cells = m.terrain?.(g) || [];
-  for (const c of cells) b.setTerrain(c.x, c.y, TERRAIN[c.k].bits);
+export function applyMap(b: Battle, g: Geo, gateOpen = false) { // gateOpen: 수문이 열린 채 시작 (편성 화면에서 정함) · 연결교 접기 · 크레인은 g.opt (terrainOf)
+  const m = mapOf(g.map), cells = terrainOf(g);
+  for (const c of cells) {
+    b.setTerrain(c.x, c.y, c.bits ?? TERRAIN[c.k].bits);
+    const tk = TERRAIN[c.k].taken;
+    if (tk && !((c.bits ?? 0) & 1)) (b.cellTaken ||= new Float32Array(b.w * b.h))[c.y * b.w + c.x] = tk; // 연결교: 위에 선 기물이 받는 피해 +
+  }
+  const rail = cells.filter((c) => c.k === 'rail');
+  if (rail.length && m.cartDir) startCart(b, rail, m.cartDir);
   const gates = cells.filter((c) => c.k === 'gate');
   if (!gates.length || !m.gateCycle) return;
   const [shut, open] = m.gateCycle;
@@ -962,4 +988,51 @@ export function gateState(b: Battle, x: number, y: number): GateState {
 export function gateGroupState(b: Battle, cells: { x: number; y: number }[]): GateState {
   const st = cells.map((c) => gateState(b, c.x, c.y));
   return st.includes('pending') ? 'pending' : st.includes('open') ? 'open' : 'shut';
+}
+
+/** 광석 운반차 (선로 지형, CFG.maps.cart): first 초에 첫 통과, 이후 period 초마다. 방향은 지형 틀의 cartDir 부터 번갈아.
+ *  b.mem: cartNext = 다음 통과 시작 시각 · cartDir = 다음 (지나는 중이면 이번) 방향 · cartRun = 지나는 중 1 · cartT0 = 이번 통과 시작 · cartPass = 통과 수.
+ *  지나는 동안 운반차가 선 len 칸은 직선 사격을 막고 (T_NOSHOT), 그 칸의 기물 (아군 · 적 · 구조물 모두)은 통과마다 한 번 cartHit. 전투 중 조작은 없다 */
+function startCart(b: Battle, rail: TCell[], dir: 1 | -1) {
+  const C = CFG.maps.cart, y = rail[0].y, xs = rail.map((c) => c.x).sort((p, q) => p - q);
+  Object.assign(b.mem, { cartNext: C.first, cartDir: dir, cartRun: 0, cartPass: 0 });
+  const src = blankUnit(0);
+  src.name = '광석 운반차'; src.mem.neutral = 1; src.st.effHit = 9; src.x = src.px = xs[0]; src.y = src.py = y; // 피해 · 기절 출처 (전장에 없음, 어느 편도 아님)
+  const pass = () => {
+    const d = b.mem.cartDir > 0 ? 1 : -1, order = d > 0 ? xs : [...xs].reverse(), last = order.length + C.len - 1, gen = ++b.mem.cartPass;
+    b.mem.cartRun = 1; b.mem.cartT0 = b.t;
+    const hit: CUnit[] = [];
+    let on: number[] = [];
+    for (let i = 0; i <= last; i++) b.later((C.sweep * i) / last, () => {
+      const now = i < last ? order.slice(Math.max(0, i - C.len + 1), i + 1) : []; // 운반차가 선 칸 (머리 = order[i])
+      for (const x of on) if (!now.includes(x)) b.setTerrain(x, y, TERRAIN.rail.bits);
+      for (const x of now) if (!on.includes(x)) b.setTerrain(x, y, TERRAIN.rail.bits | T_NOSHOT);
+      on = now;
+      for (const x of now) { const u = b.unitAt(x, y); if (u && u.mem.cartHit !== gen) { u.mem.cartHit = gen; hit.push(u); cartHit(b, src, u, y); } }
+      if (i < last) return;
+      b.mem.cartRun = 0; b.mem.cartDir = -d; b.mem.cartNext += C.period;
+      if (hit.length) b.emit({ k: 'cart', ids: hit.map((u) => u.id), dir: d });
+      b.later(b.mem.cartNext - b.t, pass);
+    });
+  };
+  b.later(C.first, pass);
+}
+/** 운반차에 치인 기물: 최대 체력 dmg 몫 물리 피해 → 선로 밖으로 (밀쳐내기 면역 · 고정 기물 · 구조물은 그 자리) → 기절 */
+export function cartHit(b: Battle, src: CUnit, u: CUnit, railY: number) {
+  const C = CFG.maps.cart;
+  b.dealDamage(src, u, b.S(u, 'maxHp') * C.dmg, { elem: 'phys', tag: 'skill', kind: 'tech', noHooks: true });
+  if (!u.alive || u.mem.neutral) return;
+  const to = b.unmovable(u) ? null : cartOff(b, u, railY);
+  if (to && b.relocate(src, u, to.x, to.y, 'knock')) b.emit({ k: 'status', id: u.id, name: '밀쳐내기', src: src.id, harm: true, stype: 'knock' });
+  b.stun(src, u, C.stun);
+}
+/** 선로 밖 가까운 빈칸: 제 진형 쪽 (아군 아래 · 적 위) 1 · 2줄 → 반대쪽 1 · 2줄, 같은 열부터 좌우로 2칸까지. 통행 불가 지형 · 테두리 · 기물 칸은 고르지 않는다 (없으면 null = 그 자리) */
+export function cartOff(b: Battle, u: CUnit, railY: number): { x: number; y: number } | null {
+  const s = u.side === 1 ? -1 : 1;
+  for (const sg of [s, -s]) for (const dy of [1, 2]) for (const dx of [0, -1, 1, -2, 2]) {
+    const x = u.x + dx, y = railY + sg * dy;
+    if (x < PAD || x >= b.w - PAD || y < PAD || y >= b.h - PAD) continue;
+    if (b.inBounds(x, y) && !b.unitAt(x, y)) return { x, y };
+  }
+  return null;
 }
