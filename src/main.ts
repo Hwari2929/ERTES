@@ -1028,7 +1028,7 @@ function mapScreen(run: RunState) {
       ${RM.routeMapOn(run) ? '<div class="rmap-host"></div>' : ''}<div class="tl"><ol class="tl-track">${track}</ol></div>
       <p class="map-scale" title="이번 페이즈 적 강도 (페이즈마다 누적)">${scale}</p>
       ${mapAhead(run, pick, enter)}
-      ${shipPanel(run, pet >= 2 ? `<button class="btn ship-loan" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 ${CR}+25 · 상환 30</button>` : '')}
+      ${run.lab ? '' : shipPanel(run, pet >= 2 ? `<button class="btn ship-loan" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 ${CR}+25 · 상환 30</button>` : '')}
     </section>
     <aside class="side side-tabs${app.sel?.k === 'unit' || app.sel?.k === 'king' ? ' has-detail' : ''}">${mapDetail(run)}
       <div class="st-tabs" role="tablist">${['파티', '환경', '기록'].map((t, i) => `<button role="tab" class="st-tab" data-a="map-tab" data-v="${i}" aria-selected="${app.mapTab === i}">${t}</button>`).join('')}<span class="st-ink" style="--i:${app.mapTab}"></span></div>
@@ -1194,7 +1194,7 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   // 예상 수입 (현재 칸만, 네모 칸 · 아이콘 + 숫자): 승리 시 공명도 풀 · 크레딧 (엔진의 보상 계산 battleRewardPreview) + 장비 · 재료 · 소모품 (×n = 확정, % = 확률, 설정값 · 전장 배율)
   const inc = (icon: string, val: string, title: string, cls = '') => `<span class="ah-in ${cls}" title="${esc(title)}">${icon}<b>${val}</b></span>`;
   const income = (o: NodeType) => {
-    if (!FIGHT_NODES.includes(o)) return '';
+    if (!FIGHT_NODES.includes(o) || run.lab) return ''; // 훈련장: 보상이 없다
     const t: NodeType = o === 'challenge' ? 'adversity' : o; // 도전은 보상 · 전리품을 역경 기준으로
     const r = R.battleRewardPreview(run, o);
     const out = [inc(RES, String(r.xp.win), '공명도 풀 (승리 시) — 출전 · 대기 기물에게 나눠 줌'), inc(CR, `+${r.credits.win}`, `크레딧 수입 (승리 시) — 승리 보상 · 연승 · 이자 +${r.credits.interest} 등`)];
