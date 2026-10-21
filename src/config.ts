@@ -131,6 +131,8 @@ export const CFG = {
   benchXpWeight: 0.5, // 대기 기물의 공명도 분배 가중치 (출전 기물 대비)
   boardSizes: [ { n: 7, w: 70, env: '표준 전장' }, { n: 6, w: 15, env: '협소한 통로' }, { n: 8, w: 15, env: '개활지' } ],
   bossBoard: 7,
+  /** 전장 지형 틀 (data/maps.ts, run.ts pickMap): 일반 · 역경 · 도전 전투에서 그 전장 전용 틀 확률 · 아니면 공용 틀 (긴 통로 · 포위) 확률 */
+  maps: { field: 0.45, common: 0.2 },
   rarePhase: 3, // 아문센 · 데미우르고스가 영입 후보에 나오는 페이즈 (배치 제한은 없음)
   /** 최고의 친구 소환물 스탯 상속률 (build.ts spawnSummons): 시너지가 꺼져 있을 때의 기본값 · 추가로 불린 소환물(2번째부터)의 배율 · 상한 */
   bond: { base: 0.35, extra: 0.8, cap: 6 },

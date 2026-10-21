@@ -15,11 +15,12 @@ import { UNIT_BY_ID } from '../data/units';
 import { enableDivine, ENEMY_PSI, FAITH_DEF, sigmundTarget } from '../data/rework';
 import { DEFAULT_RELIC } from '../data/relics';
 import { DEV, deviceCells, type Device, mineDmg, netCells, scopeR, strikeDmg, wallCells, wallHp } from '../data/devices';
+import { mapOf, TERRAIN } from '../data/maps';
 import { ULTS } from '../data/ults';
 import { SUMMON_RT, type SummonDef } from '../data/unitkit';
 import type { SkillDef } from './combat';
 import { Rng } from '../rng';
-import { categoryOf, type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
+import { categoryOf, type EnemySpawn, type Geo, type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
 import { Battle, type CUnit } from './combat';
 import { applyLive, type Effect, type EffectCtx, red } from './effects';
 
@@ -33,16 +34,29 @@ export const playerRows = (_n?: number) => ZONE;
 export const boardDims = (W: number) => ({ w: W + 2 * PAD, h: 2 * ZONE + GAP + 2 * PAD });
 /** 아군 진형 세로 범위 (전장 좌표) */
 export const ALLY_Y0 = PAD + ZONE + GAP, ALLY_Y1 = ALLY_Y0 + ZONE - 1;
-/** 적 배치(c, row) → 전장 좌표 */
-export const enemyCell = (c: number, row: number, W: number) => ({ x: PAD + Math.min(c, W - 1), y: PAD + Math.min(row, ZONE - 1) });
+/** 전장 칸 구조: 지형 틀(data/maps.ts)의 사이 줄 수 · 포위(아래 적 진형) · 통로 폭을 반영. 저장 배치 (c, r) 는 지형과 무관 (r = 아군 진형 뒷줄부터) */
+export function geoOf(n: number, map?: string): Geo {
+  const m = mapOf(map), gap = m.gap ?? GAP;
+  const ay0 = PAD + ZONE + gap, ay1 = ay0 + ZONE - 1;
+  const foe2 = m.surround ? ay1 + 1 + gap : 0;
+  return { n, w: n + 2 * PAD, h: (foe2 ? foe2 + ZONE : ay1 + 1) + PAD, x0: PAD, ay0, ay1, foe2, map: m.id };
+}
+/** 이번 조우의 칸 구조 (조우가 없으면 기본 보드) */
+export const encGeo = (enc: Encounter | null | undefined, n = enc?.n ?? CFG.bossBoard) => geoOf(n, enc?.map);
+export const runGeo = (run: RunState, n = run.node?.enc?.n ?? CFG.bossBoard) => geoOf(n, run.node?.enc?.map);
+/** 적 배치(c, row) → 전장 좌표 (포위 지형의 아래 진형은 뒷줄 row 0 이 맨 아래) */
+export const enemyCell = (c: number, row: number, W: number, g?: Geo, flip?: boolean) => {
+  const x = PAD + Math.min(c, W - 1), r = Math.min(row, ZONE - 1);
+  return { x, y: flip && g?.foe2 ? g.foe2 + ZONE - 1 - r : PAD + r };
+};
+export const foeCell = (s: EnemySpawn, g: Geo) => enemyCell(s.c, s.row, g.n, g, s.flip);
 /** 전장 좌표 → 저장 배치 (c, r): r=0 이 맨 뒷줄 */
-export const toPos = (x: number, y: number) => ({ c: x - PAD, r: ALLY_Y1 - y });
+export const toPos = (x: number, y: number, g?: Geo) => ({ c: x - PAD, r: (g?.ay1 ?? ALLY_Y1) - y });
 
 /** 편성 칸 구역: 적 진형 · 아군 진형 · 사이 · 바깥 테두리 (배치형 소모품이 놓일 수 있는 곳을 가린다) */
-export function zoneAt(n: number, x: number, y: number): 'foe' | 'ally' | 'mid' | 'edge' {
-  const { w, h } = boardDims(n);
-  if (x < PAD || x >= w - PAD || y < PAD || y >= h - PAD) return 'edge';
-  return y < PAD + ZONE ? 'foe' : y >= ALLY_Y0 && y <= ALLY_Y1 ? 'ally' : 'mid';
+export function zoneAt(g: Geo, x: number, y: number): 'foe' | 'ally' | 'mid' | 'edge' {
+  if (x < PAD || x >= g.w - PAD || y < PAD || y >= g.h - PAD) return 'edge';
+  return y < PAD + ZONE || (g.foe2 && y >= g.foe2) ? 'foe' : y >= g.ay0 && y <= g.ay1 ? 'ally' : 'mid';
 }
 export function deployed(run: RunState) { return run.units.filter((u) => u.pos); }
 
@@ -172,8 +186,8 @@ export function computeStats(u: UnitState, effects: Effect[]): { st: Stats; majo
 }
 
 /** 저장된 배치(c, r)를 배치 폭 W 전장의 실제 좌표로 */
-export function boardPos(pos: { c: number; r: number }, W: number) {
-  return { x: PAD + Math.max(0, Math.min(pos.c, W - 1)), y: ALLY_Y1 - Math.max(0, Math.min(pos.r, ZONE - 1)) };
+export function boardPos(pos: { c: number; r: number }, W: number, g?: Geo) {
+  return { x: PAD + Math.max(0, Math.min(pos.c, W - 1)), y: (g?.ay1 ?? ALLY_Y1) - Math.max(0, Math.min(pos.r, ZONE - 1)) };
 }
 
 /** 분류 확정 + 분류 기본 보정 (영혼 회피 +10%p, 구조물 방어도 ×1.3) */
@@ -211,7 +225,7 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
   if (d.inert) { c.immobile = true; c.noAttack = true; c.skill = null; c.mem.inert = 1; c.mem.invulnUntil = Infinity; } // 반려 돌 (절망 증강): 공격 · 이동 · 기술 없이 칸만 차지 (표적 · 승패 판정에서 빠지고, 범위 피해도 받지 않음)
   applyCategory(c);
   if (d.weapon.kind === 'none') c.noAttack = true;
-  const p = boardPos(u.pos!, b.w - 2 * PAD);
+  const p = boardPos(u.pos!, b.w - 2 * PAD, b.geo);
   c.x = c.px = p.x; c.y = c.py = p.y;
   c.mem.title = rankTitle(u.rank + effects.reduce((s, e) => s + (e.rankBonus || 0), 0)) + effects.reduce((s, e) => s + (e.title || 0), 0);
   // 마이너: 공명 등급에 따라 기술 계수 · 특성 수치 성장 (특성은 gw(u) 로 참조)
@@ -321,11 +335,13 @@ const COMP_AT = new WeakMap<Battle, Map<string, { x: number; y: number }>>();
  *  출전 기물 · 포탑 칸이 먼저이고, 무휼 → 소환물 순으로 칸을 잡는다 */
 export interface CompanionTok { key: string; owner?: string; king?: boolean; name: string; spr: { sprite: string; palette: string[]; art?: string }; x: number; y: number }
 export function companionCells(run: RunState, W: number): CompanionTok[] {
+  const g = runGeo(run, W);
   const lay = layout(run, W);
   const used = new Set([...lay.values(), ...turretCells(run, W)].map((p) => `${p.x},${p.y}`));
+  for (const d of run.node?.enc?.devices || []) for (const c of deviceCells(d)) used.add(`${c.x},${c.y}`); // 편성 화면에 놓은 장치 칸
   const zone: { x: number; y: number }[] = [];
-  for (let y = ALLY_Y1; y >= ALLY_Y0; y--) for (let x = PAD; x < PAD + W; x++) zone.push({ x, y });
-  const saved = (key: string) => { const p = run.summonPos?.[key]; if (!p) return null; const q = boardPos(p, W); return used.has(`${q.x},${q.y}`) ? null : q; };
+  for (let y = g.ay1; y >= g.ay0; y--) for (let x = PAD; x < PAD + W; x++) zone.push({ x, y });
+  const saved = (key: string) => { const p = run.summonPos?.[key]; if (!p) return null; const q = boardPos(p, W, g); return used.has(`${q.x},${q.y}`) ? null : q; };
   const near = (ox: number, oy: number) => zone.filter((p) => !used.has(`${p.x},${p.y}`)).sort((a, b) => Math.max(Math.abs(a.x - ox), Math.abs(a.y - oy)) - Math.max(Math.abs(b.x - ox), Math.abs(b.y - oy)) || Math.abs(a.x - ox) + Math.abs(a.y - oy) - Math.abs(b.x - ox) - Math.abs(b.y - oy))[0] || null;
   const out: CompanionTok[] = [];
   if (kingOn(run)) {
@@ -333,7 +349,8 @@ export function companionCells(run: RunState, W: number): CompanionTok[] {
     const c = saved('king') || kingCell(run, W);
     if (c) { used.add(`${c.x},${c.y}`); out.push({ key: 'king', king: true, name: def.name, spr: def, x: c.x, y: c.y }); }
   }
-  const b = new Battle(W + 2 * PAD, ALLY_Y1 + PAD + 1, new Rng(1), { phase: run.phase, credits: run.credits });
+  const b = new Battle(g.w, g.h, new Rng(1), { phase: run.phase, credits: run.credits });
+  b.geo = g;
   b.keepEvents = false;
   const counts = synergyCounts(deployed(run), run);
   for (const u of deployed(run)) {
@@ -462,8 +479,8 @@ export const TURRET_PAL = ['#0c0e12', '#7a8aa0', '#3a4458', '#c0c8d0', '#7fe3ff'
 /** 포탑 배치 저장값 (c, r): c = -1 왼쪽 가장자리 열, c = 99 오른쪽 가장자리 열, 그 밖은 배치 구역 열. r = 0 이 맨 뒷줄 */
 export type TurretPos = { c: number; r: number };
 const TURRET_DEFAULT: TurretPos[] = [{ c: -1, r: 1 }, { c: 99, r: 1 }, { c: -1, r: 0 }, { c: 99, r: 0 }, { c: -1, r: 2 }, { c: 99, r: 2 }];
-export const turretBoardCell = (p: TurretPos, W: number) => ({ x: p.c < 0 ? 0 : p.c >= 99 ? W + 2 * PAD - 1 : PAD + Math.min(p.c, W - 1), y: ALLY_Y1 - Math.max(0, Math.min(p.r, ZONE - 1)) });
-export const turretSavePos = (x: number, y: number, W: number): TurretPos => ({ c: x < PAD ? -1 : x >= PAD + W ? 99 : x - PAD, r: ALLY_Y1 - y });
+export const turretBoardCell = (p: TurretPos, W: number, g?: Geo) => ({ x: p.c < 0 ? 0 : p.c >= 99 ? W + 2 * PAD - 1 : PAD + Math.min(p.c, W - 1), y: (g?.ay1 ?? ALLY_Y1) - Math.max(0, Math.min(p.r, ZONE - 1)) });
+export const turretSavePos = (x: number, y: number, W: number, g?: Geo): TurretPos => ({ c: x < PAD ? -1 : x >= PAD + W ? 99 : x - PAD, r: (g?.ay1 ?? ALLY_Y1) - y });
 /** 엔지니어 단계 (출전 기준) */
 export const engTier = (run: RunState) => tierOf('ENG', synergyCounts(deployed(run), run).ENG || 0);
 /** 편성에서 보일 포탑 수 = 엔지니어 단계별 포탑 수 (ENG_TUR.count, 0단계 = 0기) */
@@ -473,14 +490,16 @@ export function turretCount(run: RunState): number {
 }
 /** 보드 크기 W 에서 포탑 칸 (저장 위치 → 기본 위치 → 빈칸 순, 기물 · 다른 포탑과 겹치지 않게) */
 export function turretCells(run: RunState, W: number, count = turretCount(run)): { x: number; y: number }[] {
+  const g = runGeo(run, W);
   const used = new Set([...layout(run, W).values()].map((p) => `${p.x},${p.y}`));
+  for (const d of run.node?.enc?.devices || []) for (const c of deviceCells(d)) used.add(`${c.x},${c.y}`);
   const out: { x: number; y: number }[] = [];
   const free = (q: { x: number; y: number }) => !used.has(`${q.x},${q.y}`);
   for (let i = 0; i < count; i++) {
-    let q: { x: number; y: number } | null = run.turretPos?.[i] ? turretBoardCell(run.turretPos[i], W) : null;
+    let q: { x: number; y: number } | null = run.turretPos?.[i] ? turretBoardCell(run.turretPos[i], W, g) : null;
     if (q && !free(q)) q = null;
-    for (const d of TURRET_DEFAULT) { if (q) break; const c = turretBoardCell(d, W); if (free(c)) q = c; }
-    for (let y = ALLY_Y1; y >= ALLY_Y0 && !q; y--) for (let x = 0; x < W + 2 * PAD && !q; x++) if (free({ x, y })) q = { x, y };
+    for (const d of TURRET_DEFAULT) { if (q) break; const c = turretBoardCell(d, W, g); if (free(c)) q = c; }
+    for (let y = g.ay1; y >= g.ay0 && !q; y--) for (let x = 0; x < W + 2 * PAD && !q; x++) if (free({ x, y })) q = { x, y };
     if (!q) break;
     used.add(`${q.x},${q.y}`);
     out.push(q);
@@ -506,10 +525,12 @@ export function kingState(run: RunState, tier = chrTier(run)): UnitState {
  *  양옆 가장자리 열(포탑 칸)은 쓰지 않는다. 소환되지 않으면 null */
 export function kingCell(run: RunState, W: number): { x: number; y: number } | null {
   if (!kingOn(run)) return null;
+  const g = runGeo(run, W);
   const used = new Set([...layout(run, W).values(), ...turretCells(run, W)].map((p) => `${p.x},${p.y}`));
+  for (const d of run.node?.enc?.devices || []) for (const c of deviceCells(d)) used.add(`${c.x},${c.y}`);
   const mid = (W - 1) / 2;
   const cols = [...Array(W).keys()].sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid) || b - a).map((c) => PAD + c);
-  for (let y = ALLY_Y1; y >= ALLY_Y0; y--) for (const x of cols) if (!used.has(`${x},${y}`)) return { x, y };
+  for (let y = g.ay1; y >= g.ay0; y--) for (const x of cols) if (!used.has(`${x},${y}`)) return { x, y };
   return null;
 }
 /** 전투별 무휼 칸 */
@@ -522,7 +543,7 @@ CHR_HOOK.spawn = (b, lead, ctx, t) => {
   c.mem.tacOk = 1; c.mem.king = 1;
   let cell = KING_AT.get(b) || null; // 뒷줄 가운데 빈칸 (kingCell)
   if (cell && (!b.inBounds(cell.x, cell.y) || b.unitAt(cell.x, cell.y))) cell = null;
-  if (!cell) { const mid = Math.floor(b.w / 2); cell = b.freeCellNear(mid, ALLY_Y1); }
+  if (!cell) { const mid = Math.floor(b.w / 2); cell = b.freeCellNear(mid, b.geo?.ay1 ?? ALLY_Y1); }
   if (!cell) cell = b.freeCellNear(lead.x, lead.y);
   if (!cell) return;
   c.x = c.px = cell.x; c.y = c.py = cell.y;
@@ -584,7 +605,7 @@ ENG_HOOK.spawn = (b, lead, engs, n, first = 0) => {
     t.hp = t.st.maxHp;
     t.atkTimer = 0.4;
     // 전장 양옆 가장자리(배치 구역 바깥 열)부터, 대표 엔지니어와 가까운 줄에 번갈아 설치. 자리가 없으면 진영 안 빈칸
-    const mine = (y: number) => (lead.side === 0 ? y >= ALLY_Y0 && y <= ALLY_Y1 : y >= PAD && y < PAD + ZONE);
+    const mine = (y: number) => (lead.side === 0 ? y >= (b.geo?.ay0 ?? ALLY_Y0) && y <= (b.geo?.ay1 ?? ALLY_Y1) : y >= PAD && y < PAD + ZONE);
     const edges = (i % 2 === 0 ? [0, b.w - 1] : [b.w - 1, 0]);
     const rowsBy = [...Array(b.h).keys()].filter(mine).sort((a, c) => Math.abs(a - lead.y) - Math.abs(c - lead.y));
     let cell: { x: number; y: number } | null = null;
@@ -734,13 +755,15 @@ ENEMY_RT.borrow = (b, u, n) => {
 
 /** 보드 크기 n 에서의 실제 아군 배치 (크기가 바뀌어 겹치면 빈 칸으로 밀어낸다) */
 export function layout(run: RunState, n: number): Map<string, { x: number; y: number }> {
+  const g = runGeo(run, n);
   const used = new Set<string>();
+  for (const d of run.node?.enc?.devices || []) for (const c of deviceCells(d)) used.add(`${c.x},${c.y}`); // 편성 화면에 놓은 장치 칸은 비켜 간다
   const out = new Map<string, { x: number; y: number }>();
   for (const u of deployed(run)) {
-    let p: { x: number; y: number } | null = boardPos(u.pos!, n);
+    let p: { x: number; y: number } | null = boardPos(u.pos!, n, g);
     if (used.has(`${p.x},${p.y}`)) {
       p = null;
-      for (let y = ALLY_Y1; y >= ALLY_Y0 && !p; y--) for (let x = PAD; x < PAD + n && !p; x++) if (!used.has(`${x},${y}`)) p = { x, y };
+      for (let y = g.ay1; y >= g.ay0 && !p; y--) for (let x = PAD; x < PAD + n && !p; x++) if (!used.has(`${x},${y}`)) p = { x, y };
     }
     if (!p) continue;
     used.add(`${p.x},${p.y}`);
@@ -755,15 +778,18 @@ export function prepOccupied(run: RunState, enc: Encounter, skip?: Device): Set<
   for (const p of layout(run, n).values()) s.add(`${p.x},${p.y}`);
   for (const c of turretCells(run, n)) s.add(`${c.x},${c.y}`);
   for (const t of companionCells(run, n)) s.add(`${t.x},${t.y}`);
-  for (const e of enc.enemies) { const c = enemyCell(e.c, e.row, n); s.add(`${c.x},${c.y}`); }
+  const g = encGeo(enc);
+  for (const e of enc.enemies) { const c = foeCell(e, g); s.add(`${c.x},${c.y}`); }
   for (const d of enc.devices || []) if (d !== skip) for (const c of deviceCells(d)) s.add(`${c.x},${c.y}`);
   return s;
 }
 
 export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): Battle {
-  const dim = boardDims(enc.n);
-  const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined, globals: run.globals.length ? [...run.globals] : undefined, oaths: run.oaths, otShift: oathV(run, 'clock', 'sec') || undefined, campIntel: run.campaign && run.flags.includes('cp_intel') ? true : undefined, campIntel2: run.campaign && run.flags.includes('cp_intel2') ? true : undefined, campIntel3: run.campaign && run.flags.includes('cp_intel3') ? true : undefined, campIntel4: run.campaign && run.flags.includes('cp_intel4') ? true : undefined, campAudit: run.campaign && run.flags.includes('cp_br_audit') ? true : undefined });
+  const g = encGeo(enc);
+  const b = new Battle(g.w, g.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined, globals: run.globals.length ? [...run.globals] : undefined, oaths: run.oaths, otShift: oathV(run, 'clock', 'sec') || undefined, campIntel: run.campaign && run.flags.includes('cp_intel') ? true : undefined, campIntel2: run.campaign && run.flags.includes('cp_intel2') ? true : undefined, campIntel3: run.campaign && run.flags.includes('cp_intel3') ? true : undefined, campIntel4: run.campaign && run.flags.includes('cp_intel4') ? true : undefined, campAudit: run.campaign && run.flags.includes('cp_br_audit') ? true : undefined });
   b.keepEvents = keepEvents;
+  b.geo = g;
+  applyMap(b, g); // 지형 칸 · 수문
   const dep = deployed(run);
   const counts = synergyCounts(dep, run);
   const lay = layout(run, enc.n);
@@ -784,7 +810,7 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
   for (const s of enc.enemies) {
     const def = ENEMY_BY_ID[s.defId];
     const e = buildEnemy(b, def, enc.phase ?? run.phase, enc.mult, s);
-    const ec = enemyCell(s.c, s.row, enc.n);
+    const ec = foeCell(s, g);
     e.x = e.px = ec.x;
     e.y = e.py = ec.y;
     if (b.unitAt(e.x, e.y)) { const f = b.freeCellNear(e.x, e.y); if (!f) continue; e.x = e.px = f.x; e.y = e.py = f.y; }
@@ -850,3 +876,26 @@ function applyDevices(b: Battle, run: RunState, enc: Encounter, counts: Counts) 
   }
 }
 const DECOY_PAL = ['#0e0e0e', '#ff8a3d', '#c25a1c', '#ffd2a8', '#ffb070', '#5a2a0c', '#fff0e0'];
+
+/** 지형 칸 ('x,y' → 종류): 편성 화면 표시 · 배치 검사 */
+export function terrainCells(g: Geo): Map<string, keyof typeof TERRAIN> {
+  return new Map((mapOf(g.map).terrain?.(g) || []).map((c) => [`${c.x},${c.y}`, c.k]));
+}
+/** 지형 틀의 지형 칸을 전장에 깐다. 수문: 닫힌 채 시작해 gateCycle (닫힘 · 열림 초) 로 번갈아 (전장 이벤트로 알린다) */
+export function applyMap(b: Battle, g: Geo) {
+  const m = mapOf(g.map), cells = m.terrain?.(g) || [];
+  for (const c of cells) b.setTerrain(c.x, c.y, TERRAIN[c.k].bits);
+  const gates = cells.filter((c) => c.k === 'gate');
+  if (!gates.length || !m.gateCycle) return;
+  const [shut, open] = m.gateCycle;
+  b.mem.gateOpen = 0;
+  const flip = () => {
+    const opening = !b.mem.gateOpen;
+    // 닫힐 때 수문 칸에 기물이 서 있으면 그 칸은 열린 채로 둔다 (끼이지 않게)
+    for (const c of gates) b.setTerrain(c.x, c.y, opening || b.unitAt(c.x, c.y) ? 0 : TERRAIN.gate.bits);
+    b.mem.gateOpen = opening ? 1 : 0;
+    b.emit({ k: 'fx', x: gates[0].x + (gates.length - 1) / 2, y: gates[0].y, r: 1, elem: 'phys', kind: 'aura' });
+    b.later(opening ? open : shut, flip);
+  };
+  b.later(shut, flip);
+}

@@ -615,7 +615,16 @@ export class BattleView {
   }
 
   private traps = new Map<object, HTMLElement>();
+  private terrainVer = 0;
+  /** 지형이 바뀌면 (수문 열림 · 닫힘) 칸 색을 다시 칠한다: 수문 칸은 지형 비트가 0 이면 열림 */
+  private syncTerrain() {
+    if (this.b.terrainVer === this.terrainVer || !this.b.terrain) return;
+    this.terrainVer = this.b.terrainVer;
+    const cells = this.board.querySelectorAll<HTMLElement>('.cells .cell');
+    cells.forEach((el, i) => { if (el.classList.contains('tr-gate')) el.classList.toggle('open', !this.b.terrain![i]); });
+  }
   private sync() {
+    this.syncTerrain();
     for (const [tr, el] of this.traps) if (!this.b.traps.includes(tr as Battle['traps'][number])) { el.remove(); this.traps.delete(tr); }
     const now = this.vt;
     const dvt = Math.max(0, now - this.syncVt); // 표시 시간 변화량 (정지 중 0, 주사율과 무관)

@@ -35,8 +35,8 @@ export const EMB = {
 /** 최고의 친구 문장 소환물: 반려 돌(인화성). 상속률 = 최고의 친구 소환물 규칙(build.ts summonBond) × rate → 기본 EMB.BUDDY.rate */
 /** 반려 돌(인화성) 자리 (전장은 적 진형 · 가운데 1줄 · 아군 진형이 위아래로 대칭): 가운데 줄 한가운데 한 칸 → 차 있으면 적진 안으로 (가까운 줄부터, 각 줄은 가운데부터 좌우로) */
 function rockCell(b: Parameters<NonNullable<typeof SUMMON_RT.make>>[0], side: 0 | 1) {
-  const mid = Math.floor(b.h / 2), dir = side === 0 ? -1 : 1, cx = Math.floor(b.w / 2);
-  if (!b.unitAt(cx, mid)) return { x: cx, y: mid };
+  const mid = b.geo ? b.geo.ay0 - 1 : Math.floor(b.h / 2), dir = side === 0 ? -1 : 1, cx = Math.floor(b.w / 2); // 아군 진형 바로 앞줄 (지형 틀에 따라 다름)
+  if (b.inBounds(cx, mid) && !b.unitAt(cx, mid)) return { x: cx, y: mid };
   for (let y = mid + dir; y >= 0 && y < b.h; y += dir)
     for (let k = 0; k < b.w; k++) {
       const x = cx + (k % 2 ? (k + 1) / 2 : -k / 2);

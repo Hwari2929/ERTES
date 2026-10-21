@@ -3,7 +3,7 @@
 // (편성 · 장비가 바뀌면 다시 계산 — key 로 캐시)
 import { CFG } from '../config';
 import type { Encounter, RunState } from '../types';
-import { buildBattle, deployed, enemyCell } from './build';
+import { buildBattle, deployed, encGeo, foeCell } from './build';
 
 export interface StartPreview {
   /** 지나간 칸 (시작 칸 포함, 첫 공격 전까지) */
@@ -27,7 +27,7 @@ export function startPreview(run: RunState, enc: Encounter): Map<string, StartPr
     // 적 CUnit → 조우의 적 번호 (시작 칸으로 맞춘다)
     const foeIdx = new Map<number, number>(), foeAt = new Map<number, { x: number; y: number }>(); // 적 시작 칸 (편성 화면의 적 카드 자리)
     for (const e of b.units) if (e.side === 1) {
-      const i = enc.enemies.findIndex((s, k) => { const c = enemyCell(s.c, s.row, enc.n); return c.x === e.x && c.y === e.y && ![...foeIdx.values()].includes(k); });
+      const i = enc.enemies.findIndex((s, k) => { const c = foeCell(s, encGeo(enc)); return c.x === e.x && c.y === e.y && ![...foeIdx.values()].includes(k); });
       if (i >= 0) foeIdx.set(e.id, i);
       foeAt.set(e.id, { x: e.x, y: e.y });
     }

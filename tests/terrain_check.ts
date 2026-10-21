@@ -1,6 +1,7 @@
 // 지형 · 중립 구조물 검사: 탄도 차단 · 완전 차단 시 부수고 통과 · 틈이 있으면 우회 · 물 너머 사격 · 갈라진 적에게 기술 차단
 import { Battle, T_NOSHOT, T_NOWALK } from '../src/engine/combat';
-import { buildEnemy, buildWall } from '../src/engine/build';
+import { applyMap, buildEnemy, buildWall, geoOf, zoneAt } from '../src/engine/build';
+import { MAPS } from '../src/data/maps';
 import { ENEMIES } from '../src/data/enemies';
 import { Rng } from '../src/rng';
 declare const process: { exit(code: number): never };
@@ -51,8 +52,30 @@ function fight(setup: (b: Battle) => void) {
   ok(!b.applyStatus(a, e, { type: 'stun', key: 'stun', dur: 1 }), '완전히 갈라진 적: 상태이상도 닿지 않는다');
   const g = b.wallAt(0, 3)!; g.hp = 0; b.kill(g, null);
   ok(!b.sealed(a, e), '바리케이드 한 칸이 부서지면 틈이 생긴다');
-  ok(b.sideOf(w) === 2 && !b.alliesOf(a).includes(w) && !b.alliesOf(e).includes(w) && b.enemiesOf(a).includes(w) && b.enemiesOf(e).includes(w), '바리케이드는 중립: 양쪽의 적, 누구의 아군도 아님');
+  ok(b.sideOf(w) === 2 && !b.alliesOf(a).includes(w) && !b.alliesOf(e).includes(w) && !b.enemiesOf(a).includes(w) && !b.enemiesOf(e).includes(w), '바리케이드는 중립: 누구의 아군도, 기술이 고르는 적도 아님');
   ok(!b.fighters(0).includes(w) && !b.fighters(1).includes(w), '바리케이드는 승패 판정에서 빠진다');
 }
+// 지형 틀: 폭 6 · 7 · 8 (통로는 고정 폭)마다 아군 진형 → 모든 적 진형으로 걸어서 갈 길이 있고, 지형 칸이 진형 안에 없다
+for (const m of MAPS) for (const n0 of [6, 7, 8]) {
+  const n = m.narrow ?? n0, g = geoOf(n, m.id);
+  const b = new Battle(g.w, g.h, new Rng(1), { phase: 1, credits: 0 });
+  b.geo = g; applyMap(b, g);
+  const seen = new Set<string>(), q: [number, number][] = [];
+  for (let x = 1; x <= n; x++) { q.push([x, g.ay0]); seen.add(`${x},${g.ay0}`); }
+  while (q.length) {
+    const [x, y] = q.pop()!;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const nx = x + dx, ny = y + dy, k = `${nx},${ny}`;
+      if (seen.has(k) || !b.inBounds(nx, ny) || zoneAt(g, nx, ny) === 'edge') continue;
+      if (dx && dy && !b.inBounds(x + dx, y) && !b.inBounds(x, y + dy)) continue;
+      seen.add(k); q.push([nx, ny]);
+    }
+  }
+  const foeRows = [1, 2, 3, ...(g.foe2 ? [g.foe2, g.foe2 + 1, g.foe2 + 2] : [])];
+  const reach = foeRows.every((y) => [...Array(n).keys()].some((c) => seen.has(`${c + 1},${y}`)));
+  const inZone = [...Array(g.w * g.h).keys()].some((i) => b.terrain && b.terrain[i] && zoneAt(g, i % g.w, (i / g.w) | 0) !== 'mid');
+  if (!reach || inZone) ok(false, `지형 틀 ${m.id} 폭 ${n}: 길 ${reach ? '있음' : '없음'} · 진형 안 지형 ${inZone ? '있음' : '없음'}`);
+}
+ok(true, `지형 틀 ${MAPS.length}종 × 폭 6 · 7 · 8: 아군 진형에서 모든 적 진형으로 길이 있다`);
 if (fail) { console.log(`\n${fail}개 실패`); process.exit(1); }
 console.log('\n지형 검사 통과');

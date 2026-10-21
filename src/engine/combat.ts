@@ -2,7 +2,7 @@ import { CFG } from '../config';
 import { Rng } from '../rng';
 import { PSI_STATUS, type SchoolId } from '../data/schools';
 import { CTYPE_NAME } from '../types';
-import type { Category, CType, DmgTag, Elem, FaithId, Keyword, Mod, Stats, StatKey, SynergyId, TakenMod, TType, UnitState, Weapon } from '../types';
+import type { Category, CType, DmgTag, Elem, FaithId, Geo, Keyword, Mod, Stats, StatKey, SynergyId, TakenMod, TType, UnitState, Weapon } from '../types';
 
 /** 비물리 4속성 (전기 · 화학 · 정신 · 신성): 치명타 불가 대신 아군 기물이 주는 피해의 계수 ×ELEM_AMP (적 · 전장 효과 · 체력 비례 직접 피해에는 없음) */
 export const ELEM_AMP = 1.25;
@@ -606,9 +606,10 @@ export class Battle {
   get over() { return this.winner !== null; }
   living(side?: 0 | 1) { return this.units.filter((u) => u.alive && (side === undefined || u.side === side)); }
   /** 실제로 싸우는 편 (매혹된 기물은 시전자 편) */
-  /** 편: 매혹이면 시전자 편, 중립 구조물(바리케이드)은 2 — 어느 편과도 아군이 아니고, 범위 피해는 양쪽에서 받는다 */
+  /** 편: 매혹이면 시전자 편, 중립 구조물(바리케이드)은 2 — 어느 편과도 아군이 아니다 */
   sideOf(u: CUnit): 0 | 1 | 2 { return u.mem.neutral ? 2 : u.mem.charmTo ? ((u.mem.charmTo - 1) as 0 | 1) : u.side; }
-  enemiesOf(u: CUnit) { const s = this.sideOf(u); return this.units.filter((x) => x.alive && this.sideOf(x) !== s); }
+  /** 적 (중립 구조물 제외 — 기술이 바리케이드를 대상으로 고르지 않게. 바리케이드는 탄도 · 길막 · 갈라짐으로만 맞는다) */
+  enemiesOf(u: CUnit) { const s = this.sideOf(u); return this.units.filter((x) => x.alive && this.sideOf(x) !== s && !x.mem.neutral); }
   /** 같은 편 (매혹된 기물은 원래 편과도, 시전자 편과도 아군이 아니다) */
   alliesOf(u: CUnit, includeSelf = true) { const s = this.sideOf(u); return this.units.filter((a) => a.alive && a.side === u.side && this.sideOf(a) === s && (includeSelf || a !== u)); }
   dist(a: { x: number; y: number }, b: { x: number; y: number }) { return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)); }
@@ -618,8 +619,11 @@ export class Battle {
   inRect(x: number, y: number) { return x >= 0 && y >= 0 && x < this.w && y < this.h; }
 
   // ───────── 지형 · 중립 구조물
-  /** 칸별 지형 비트 (T_NOWALK · T_NOSHOT), 지형이 없는 전장은 null */
+  /** 칸별 지형 비트 (T_NOWALK · T_NOSHOT), 지형이 없는 전장은 null. terrainVer: 바뀔 때마다 +1 (전투 화면이 칸을 다시 칠한다) */
   terrain: Uint8Array | null = null;
+  terrainVer = 0;
+  /** 칸 구조 (지형 틀 · 아군 진형 줄): buildBattle 이 붙인다 */
+  geo?: Geo;
   /** 탄도를 막는 칸 (지형 · 구조물) 기준 구역 번호. 구조물이 부서지거나 지형이 바뀌면 다시 계산 */
   private region: Int32Array | null = null;
   private regionDirty = true;
@@ -627,6 +631,7 @@ export class Battle {
     if (!this.inRect(x, y)) return;
     (this.terrain ||= new Uint8Array(this.w * this.h))[y * this.w + x] = bits;
     this.regionDirty = true;
+    this.terrainVer++;
   }
   terrainAt(x: number, y: number) { return this.terrain && this.inRect(x, y) ? this.terrain[y * this.w + x] : 0; }
   /** 이 칸의 살아 있는 중립 구조물 */

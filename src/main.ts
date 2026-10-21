@@ -27,17 +27,18 @@ import * as BAR from './ui/bar';
 import * as ACH from './ui/achieve';
 import * as TFX from './ui/themefx';
 import {
-  activeTiers, ALLY_Y0, ALLY_Y1, boardDims, zoneAt, buildAlly, buildBattle, buildEnemy, chrTier, companionCells, deployed, engTier, kingOn, kingState, enemyBaseMoveSpd, enemyCell, layout, memberships, PAD, synergyCounts, synList, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
+  activeTiers, encGeo, foeCell, runGeo, terrainCells, zoneAt, buildAlly, buildBattle, buildEnemy, chrTier, companionCells, deployed, engTier, kingOn, kingState, enemyBaseMoveSpd, layout, memberships, PAD, synergyCounts, synList, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
 import { Battle, controlNames, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME, fleeShort, zocHoldFormula, zocHoldOf, zocRows, zocRule, zocShort } from './engine/combat';
 import * as R from './engine/run';
 import { CAUSAL, causalGain, causalLeft, causalNeed, causalStage, gearScore, KING, KING_GEAR, KING_GEAR_NAME, KING_MS_TEXT, kingStageText } from './data/chungra';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
-import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from './types';
+import { type Category, type Encounter, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from './types';
 import { encounterMatchup, fieldMatchup, matchupShort, schoolWarnings } from './ui/matchup';
 import { computeStats, makeSummons, type SummonMade } from './engine/build';
-import { DEV, deviceCells, isPlaceable, netCells, scopeR, wallHp } from './data/devices';
+import { DEV, deviceCells, isPlaceable, scopeR, wallHp } from './data/devices';
+import { mapOf, TERRAIN } from './data/maps';
 import { newCampaignRun } from './engine/campaignrun';
 import { campBoss } from './engine/campaign';
 import { chapterOf as campChapter, SETTLE as CAMP_SETTLE, TIME_COST as CAMP_TIME_COST } from './data/campaign';
@@ -1323,7 +1324,7 @@ function tacPill(run: RunState) {
 function deviceTokens(run: RunState, n: number, box: (x: number, y: number, w?: number, h?: number) => string) {
   const enc = run.node?.enc;
   if (!enc?.devices?.length) return '';
-  const { w: fw, h: fh } = boardDims(n);
+  const { w: fw, h: fh } = runGeo(run, n);
   const navR = scopeR(tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0));
   const phase = enc.phase ?? run.phase;
   return enc.devices.map((d, i) => {
@@ -1347,7 +1348,8 @@ function prepScreen(run: RunState) {
   const lay = layout(run, n);
   const cap = R.deployCap(run);
   // 편성 화면은 배치 구역만 보여준다 (바깥 테두리 칸 제외). 좌표는 전장 좌표 그대로
-  const { w: fw, h: fh } = boardDims(n);
+  const geo = runGeo(run, n), { w: fw, h: fh } = geo;
+  const land = terrainCells(geo); // 지형 칸 (물 · 온실 · 방벽 · 배양 탱크 · 수문)
   // 엔지니어 감시 포탑이 있으면 양옆 가장자리 열(포탑 전용)까지 보여 준다. 소환물 · 공왕 무휼은 시작 칸에 카드로 보이고 끌어서 옮긴다 (companionCells = 전투 시작 칸과 같음)
   const tcs = turretCells(run, n);
   const ex = tcs.length ? PAD : 0;
@@ -1369,10 +1371,12 @@ function prepScreen(run: RunState) {
   const devOk = (x: number, y: number) => placeSel >= 0 && !R.useCheck(run, placeSel, { k: 'cell', x, y });
   for (let y = PAD; y < fh - PAD; y++)
     for (let x = PAD - ex; x < fw - PAD + ex; x++) {
-      const mine = y >= ALLY_Y0 && y <= ALLY_Y1;
-      const enemyZone = y < PAD + ZONE;
+      const mine = y >= geo.ay0 && y <= geo.ay1;
+      const enemyZone = zoneAt(geo, x, y) === 'foe';
+      const tk = land.get(`${x},${y}`);
       const zc = zocCells.has(`${x},${y}`);
       if (x < PAD || x >= fw - PAD) { cells += mine ? `<div class="cell tpad${zc ? ' zoc' : ''}" data-drop="tcell:${x}:${y}" title="포탑 전용 칸${zc ? ` · ${esc(zocShort(zocCells.get(`${x},${y}`)))}` : ''}"></div>` : `<div class="cell edge${zc ? ' zoc' : ''}"${zc ? zocTip(x, y) : ''}></div>`; continue; }
+      if (tk) { cells += `<div class="cell tr tr-${tk}" title="${esc(`${TERRAIN[tk].name} — ${TERRAIN[tk].desc}`)}"></div>`; continue; } // 지형 칸: 배치 · 장치 불가
       cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}${zc ? ' zoc' : ''}${devOk(x, y) ? ' dev-ok' : ''}" ${mine ? `data-drop="cell:${x}:${y}"` : isBattle ? `data-drop="xcell:${x}:${y}"` : ''}${placeSel >= 0 ? ` data-a="dev-cell" data-v="${x}:${y}"` : ''}${zc ? zocTip(x, y) : ''}></div>`;
     }
   let units = '';
@@ -1408,7 +1412,7 @@ function prepScreen(run: RunState) {
   if (node?.enc) node.enc.enemies.forEach((s, i) => {
     const e = ENEMY_BY_ID[s.defId];
     const sel = app.sel?.k === 'enemy' && app.sel.i === i;
-    units += `<div class="u side1 placed${hasPortrait(e) ? ' tk' : ''} ${e.tier !== 'minion' && !hasPortrait(e) ? 'big' : ''} ${sel ? 'sel' : ''}" style="${(() => { const ec = enemyCell(s.c, s.row, n); return cellBox(ec.x, ec.y); })()}"
+    units += `<div class="u side1 placed${hasPortrait(e) ? ' tk' : ''} ${e.tier !== 'minion' && !hasPortrait(e) ? 'big' : ''} ${sel ? 'sel' : ''}" style="${(() => { const ec = foeCell(s, geo); return cellBox(ec.x, ec.y); })()}"
       data-a="sel-enemy" data-v="${i}" data-drop="foe:${i}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''} · ${tendText(e)}`)}">${hasPortrait(e)
         ? (() => { const cat = enemyCategory(e), td = TEND_NAME[e.tend], mod = s.mod || (s.stripped ? null : e.mod), its = [...(s.stripped ? [] : (e.items || []).filter((x): x is string => !!x)), ...(s.items || [])]; return `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${mod ? `<span class="tk-mod">${itemIcon(mod, `data-a="foe-item" data-v="${mod}"`)}</span>` : ''}</div><span class="tk-side">${e.tier === 'minion' ? '' : `<b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : 'E'}</b>`}<i class="cat-${cat}" title="${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}">${lineIcon(`k.${cat}`, 'li')}</i>${td ? `<i class="tk-tend" title="${esc(`${td.name}: ${td.desc}`)}">${lineIcon(`t.${e.tend}`, 'li')}</i>` : ''}</span><span class="tk-items">${[0, 1, 2].map((k) => (its[k] ? itemIcon(its[k], `data-a="foe-item" data-v="${its[k]}"`) : itemIcon(null))).join('')}</span></div>`; })()
         : sprite(e, '')}</div>`;
@@ -1417,13 +1421,14 @@ function prepScreen(run: RunState) {
   const bench = run.units.filter((u) => !u.pos);
   const free = cap - deployed(run).length;
   const canFill = bench.some((u) => R.canDeploy(run, u));
+  const mapChip = node?.enc?.map && node.enc.map !== 'open' ? mapPill(node.enc.map) : '';
   const env = node?.enc ? `${node.enc.env} · 폭 ${n}칸${node.type === 'adversity' ? ' · 역경' : ''}${node.type === 'challenge' ? ` · 도전 (P${node.enc.phase} 역경급)` : ''}${node.type === 'boss' ? ' · 보스전' : ''}` : '편성 관리';
   return `<main class="wrap prep">
     <aside class="side left">
       <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
     </aside>
     <section class="board-col">
-      <div class="board-head"><b>${esc(env)}</b><span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${tacPill(run)}<span class="muted small">아래 ${ZONE}줄에 배치</span>
+      <div class="board-head"><b>${esc(env)}</b>${mapChip}<span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${tacPill(run)}<span class="muted small">${geo.foe2 ? "가운데" : "아래"} ${ZONE}줄에 배치</span>
         ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}</div>
       <div class="board-row"><div class="board" style="--w:${bw};--h:${bh}"><div class="cells">${cells}</div>${units}${startOverlay(run, bw, bh, ex)}</div>${invRail(run)}</div>
       <div class="bench" data-drop="bench">
@@ -2327,15 +2332,17 @@ function detailPanel(run: RunState, extra = '') {
 
 // ───────────────────────── 화면: 전투
 /** 전투 보드 칸 (테두리 · 적 진형 · 간격 · 아군 진형 색 구분) */
-function battleCells(W: number) {
-  const { w, h } = boardDims(W);
+function battleCells(enc: Encounter) {
+  const g = encGeo(enc), { w, h } = g, land = terrainCells(g);
   let out = '';
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const pad = x < PAD || x >= w - PAD || y < PAD || y >= h - PAD;
-    out += `<div class="cell ${pad ? 'pad' : y >= ALLY_Y0 && y <= ALLY_Y1 ? 'mine' : y < PAD + ZONE ? 'foe' : 'mid'}"></div>`;
+    const z = zoneAt(g, x, y), tk = land.get(`${x},${y}`);
+    out += `<div class="cell ${z === 'edge' ? 'pad' : z === 'ally' ? 'mine' : z}${tk ? ` tr tr-${tk}` : ''}"></div>`;
   }
   return out;
 }
+/** 지형 틀 칩 (편성 · 전투 머리): 이름 + 규칙 툴팁 */
+const mapPill = (id: string) => { const m = mapOf(id); return `<span class="pill map-pill" title="${esc(`${m.name} — ${m.desc}`)}">${lineIcon('n.battle', 'li')}${esc(m.name)}</span>`; };
 /** 실제 진행 속도: 상세 정보를 보는 중이면 ×0.25 (설정) */
 function applySpeed() {
   const slow = app.slowDetail && app.battleSel !== null && !app.view?.b.over;
@@ -2357,10 +2364,10 @@ function battleScreen(run: RunState) {
       <section class="bf-wrap bf-sk" aria-label="스킬 사용"><h4 class="bf-h">스킬 사용</h4><ol id="bf-skill" class="bfeed"></ol></section>
     </aside>
     <section class="board-col">
-      <div class="board-head"><b>${esc(enc.env)}</b><span id="btime" class="mono">0.0초</span><span id="bslow" class="bslow" hidden title="상세 정보를 보는 중 · 설정에서 끌 수 있습니다">상세 보기 ×0.25</span>
+      <div class="board-head"><b>${esc(enc.env)}</b>${enc.map && enc.map !== 'open' ? mapPill(enc.map) : ''}<span id="btime" class="mono">0.0초</span><span id="bslow" class="bslow" hidden title="상세 정보를 보는 중 · 설정에서 끌 수 있습니다">상세 보기 ×0.25</span>
         <span class="speed"><button class="btn tiny pause${app.paused ? ' on' : ''}" data-a="pause" title="일시 정지 (Space)" aria-label="일시 정지">${app.paused ? '▶' : '❚❚'}</button>${SPEEDS.map((s) => `<button class="btn tiny ${app.speed === s ? 'on' : ''}" data-a="speed" data-v="${s}">${s}×</button>`).join('')}
         <button class="btn tiny" data-a="skip">결과로</button></span></div>
-      <div class="board bview${app.zoomOut ? ' full' : ''}" data-a="bdesel" data-ex="${bviewEx(run)}" style="--ox:${PAD - bviewEx(run)};--w:${boardDims(enc.n).w - (app.zoomOut ? 0 : 2 * PAD - 2 * bviewEx(run))};--h:${boardDims(enc.n).h - (app.zoomOut ? 0 : 2 * PAD)};--fw:${boardDims(enc.n).w};--fh:${boardDims(enc.n).h}"><div class="board-in" id="bboard"><div class="cells">${battleCells(enc.n)}</div></div></div>
+      <div class="board bview${app.zoomOut ? ' full' : ''}" data-a="bdesel" data-ex="${bviewEx(run)}" style="--ox:${PAD - bviewEx(run)};--w:${encGeo(enc).w - (app.zoomOut ? 0 : 2 * PAD - 2 * bviewEx(run))};--h:${encGeo(enc).h - (app.zoomOut ? 0 : 2 * PAD)};--fw:${encGeo(enc).w};--fh:${encGeo(enc).h}"><div class="board-in" id="bboard"><div class="cells">${battleCells(enc)}</div></div></div>
     </section>
     <aside class="side right">
       <section id="bf-ev-wrap" class="bf-wrap bf-ev" aria-label="전투 사건"><h4 class="bf-h">전투 사건<small>기물을 누르면 상세 정보</small></h4><ol id="bf-event" class="bfeed"></ol><p class="bf-empty muted small">궁극기 · 부활 · 쓰러짐 · 소환 · 시너지 발동이 여기에 쌓입니다.</p></section>
@@ -4922,7 +4929,7 @@ function onDrop(src: string, dst: string) {
   SND.uiAct('drop'); // 효과음: 배치 · 장착 (오류 알림이 뜨면 오류음)
   const [sk, ...sv] = src.split(':');
   const [dk, ...dv] = dst.split(':');
-  const n = run.node?.enc?.n || CFG.bossBoard;
+  const n = run.node?.enc?.n || CFG.bossBoard, G = runGeo(run, n);
   // 편성 화면에 놓은 장치 칸에는 기물 · 포탑 · 소환물을 옮길 수 없다 (장치를 눌러 회수한 뒤)
   if ((dk === 'cell' || dk === 'tcell') && sk !== 'item' && run.node?.enc?.devices?.some((d) => deviceCells(d).some((c) => c.x === +dv[0] && c.y === +dv[1]))) { toast('장치가 있는 칸입니다. 장치를 눌러 회수한 뒤 옮기세요.'); render(); return; }
   // 포탑 장비: 보관함 → 포탑 · 포탑 칸 → 보관함 / 다른 포탑 칸
@@ -4946,7 +4953,7 @@ function onDrop(src: string, dst: string) {
   if ((sk === 'eq' || sk === 'relic') && (dk === 'turret' || dk === 'tgear')) { toast('포탑에는 포탑 전용 장비 · 엔지니어 전용 개조부품만 장착할 수 있습니다.'); render(); return; }
   if (sk === 'comp') { // 소환물 · 무휼 시작 칸: 배치 구역 빈칸으로만 (기물 · 포탑 칸 위는 그대로)
     const key = sv.join(':');
-    if (dk === 'cell') { (run.summonPos ||= {})[key] = toPos(+dv[0], +dv[1]); persist(); }
+    if (dk === 'cell') { (run.summonPos ||= {})[key] = toPos(+dv[0], +dv[1], G); persist(); }
     else if (dk !== 'bench') toast('소환물 · 무휼은 배치 구역의 빈칸으로만 옮길 수 있습니다.');
     render(); return;
   }
@@ -4962,12 +4969,12 @@ function onDrop(src: string, dst: string) {
     if (!R.canDeploy(run, u)) { toast('이번 페이즈에는 배치할 수 없는 기물입니다.'); render(); return; }
     if (!u.pos && deployed(run).length >= R.deployCap(run)) { toast(`출전 인원이 가득 찼습니다 (${R.deployCap(run)}명).`); render(); return; }
     const from = layout(run, n).get(u.uid);
-    const tp = tcs.map((c) => turretSavePos(c.x, c.y, n));
-    if (from) tp[j] = turretSavePos(from.x, from.y, n);
+    const tp = tcs.map((c) => turretSavePos(c.x, c.y, n, G));
+    if (from) tp[j] = turretSavePos(from.x, from.y, n, G);
     else { tp.splice(j, 1); const g = run.turretGear; if (g?.[j]) g.push(...g.splice(j, 1)); } // 자리를 잃은 포탑은 맨 뒤로 (장비도 함께)
     run.turretPos = tp;
-    u.pos = toPos(q.x, q.y);
-    if (!from) run.turretPos = turretCells(run, n).map((c) => turretSavePos(c.x, c.y, n));
+    u.pos = toPos(q.x, q.y, G);
+    if (!from) run.turretPos = turretCells(run, n).map((c) => turretSavePos(c.x, c.y, n, G));
     app.sel = { k: 'unit', uid: u.uid };
     persist(); render(); return;
   }
@@ -4988,17 +4995,17 @@ function onDrop(src: string, dst: string) {
       if (other === u) return;
       if (other) {
         const mine = lay.get(u.uid);
-        other.pos = mine ? toPos(mine.x, mine.y) : null;
+        other.pos = mine ? toPos(mine.x, mine.y, G) : null;
       } else if (!u.pos && deployed(run).length >= R.deployCap(run)) { toast(`출전 인원이 가득 찼습니다 (${R.deployCap(run)}명).`); render(); return; }
-      u.pos = toPos(x, y);
+      u.pos = toPos(x, y, G);
     } else if (dk === 'bench') {
       u.pos = null;
     } else if (dk === 'unit') {
       const o = run.units.find((x) => x.uid === dv[0]);
       if (!o || o === u) return;
       const pu = lay.get(u.uid), po = lay.get(o.uid);
-      u.pos = po ? toPos(po.x, po.y) : null;
-      o.pos = pu ? toPos(pu.x, pu.y) : null;
+      u.pos = po ? toPos(po.x, po.y, G) : null;
+      o.pos = pu ? toPos(pu.x, pu.y, G) : null;
     }
     app.sel = { k: 'unit', uid: u.uid };
   } else if (sk === 'relic') {
@@ -5029,10 +5036,11 @@ function onDrop(src: string, dst: string) {
 
 /** 감시 포탑 끌어 옮기기: 기물이 없는 아군 칸 · 가장자리 칸으로만. 다른 포탑 위면 자리 교환. 판매 · 대기석 · 장비는 불가 */
 function turretDrop(run: RunState, n: number, i: number, dk: string, dv: string[]) {
+  const G = runGeo(run, n);
   if (i < 0) { toast('포탑에는 포탑 전용 장비만 장착할 수 있습니다.'); return; }
   const tcs = turretCells(run, n);
   if (!tcs[i]) return;
-  const tp = tcs.map((c) => turretSavePos(c.x, c.y, n));
+  const tp = tcs.map((c) => turretSavePos(c.x, c.y, n, G));
   if (dk === 'turret') {
     const j = +dv[0];
     if (j === i || !tp[j]) return;
@@ -5042,7 +5050,7 @@ function turretDrop(run: RunState, n: number, i: number, dk: string, dv: string[
     if ([...layout(run, n).values()].some((p) => p.x === x && p.y === y)) { toast('기물이 있는 칸에는 포탑을 둘 수 없습니다.'); return; }
     const j = tcs.findIndex((c) => c.x === x && c.y === y);
     if (j >= 0) [tp[i], tp[j]] = [tp[j], tp[i]];
-    else tp[i] = turretSavePos(x, y, n);
+    else tp[i] = turretSavePos(x, y, n, G);
   } else if (dk === 'bench' || dk === 'inv' || dk === 'invitem') { toast('포탑은 대기석으로 옮기거나 판매할 수 없습니다.'); return; }
   else if (dk === 'tgear') {
     const j = +dv[0];

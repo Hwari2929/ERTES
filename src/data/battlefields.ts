@@ -126,8 +126,8 @@ export const FIELDS: FieldDef[] = [
       // 침투자 순간이동보다 먼저 굴린다 (이웃이 먼저 뒷줄에 섞이고, 침투자는 그 뒤에 적진으로 뛴다)
       onPreStart(b) {
         if (b.units.some((u) => u.isBoss)) return;
-        const back = b.h - 2; // 아군 뒷줄
-        const cells = b.rng.shuffle([...Array(b.w - 2).keys()].map((i) => ({ x: i + 1, y: back })).filter((c) => !b.unitAt(c.x, c.y)));
+        const back = b.geo?.ay1 ?? b.h - 2; // 아군 뒷줄 (지형 틀에 따라 다름)
+        const cells = b.rng.shuffle([...Array(b.w - 2).keys()].map((i) => ({ x: i + 1, y: back })).filter((c) => b.inBounds(c.x, c.y) && !b.unitAt(c.x, c.y)));
         const foes = b.fighters(1).filter((u) => !u.isBoss && !u.elite && !u.immobile);
         const pick = [...b.rng.shuffle(foes.filter((u) => u.defId === 'cf_neighbor')), ...b.rng.shuffle(foes.filter((u) => u.defId !== 'cf_neighbor' && b.S(u, 'range') <= 1))];
         for (let i = 0; i < (b.ctx.phase >= 3 ? 2 : 1) && cells.length && pick[i]; i++) {
@@ -223,7 +223,7 @@ export const FIELDS: FieldDef[] = [
         if (b.mem.rockT < 10) return;
         b.mem.rockT = 0;
         const cells: { x: number; y: number }[] = [];
-        for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) if (!b.unitAt(x, y)) cells.push({ x, y });
+        for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) if (b.inBounds(x, y) && !b.unitAt(x, y)) cells.push({ x, y }); // 지형 칸 제외
         for (const c of b.rng.shuffle(cells).slice(0, 2)) petRock(b, c);
       },
     },

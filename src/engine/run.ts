@@ -23,8 +23,9 @@ import { FAITHS,
   type AugPick, type Encounter, type InvestOffer, type FaithId, type EnemySpawn, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
   type Quest, type RunState, type ShopSlot, type SupplyCard, type SynergyId, type UnitState,
 } from '../types';
-import { boardDims, deployed, engTier, enemyCell, layout, PAD, toPos, memberships, playerRows, prepOccupied, synergyCounts, turretCount, zoneAt } from './build';
+import { deployed, encGeo, engTier, foeCell, layout, PAD, runGeo, terrainCells, toPos, memberships, playerRows, prepOccupied, synergyCounts, turretCount, zoneAt } from './build';
 import { DEV, deviceCells, type Device, isPlaceable } from '../data/devices';
+import { MAPS, mapOf } from '../data/maps';
 import { causalGain, causalLeft, causalStage, KING_GEAR, KING_GEAR_NAME } from '../data/chungra';
 import { EMB } from '../data/emblems';
 import type { Battle } from './combat';
@@ -301,7 +302,8 @@ export function autoPlace(run: RunState, order: UnitState[] = run.units) {
     order = [rock, ...order.filter((u) => u !== rock)];
   }
   const used = new Set(run.units.filter((u) => u.pos).map((u) => `${u.pos!.c},${u.pos!.r}`));
-  for (const d of run.node?.enc?.devices || []) for (const c of deviceCells(d)) { const p = toPos(c.x, c.y); used.add(`${p.c},${p.r}`); } // 편성 화면에 놓은 장치 칸
+  const g = runGeo(run);
+  for (const d of run.node?.enc?.devices || []) for (const c of deviceCells(d)) { const p = toPos(c.x, c.y, g); used.add(`${p.c},${p.r}`); } // 편성 화면에 놓은 장치 칸
   for (const u of order) {
     if (u.pos || deployed(run).length >= cap || !canDeploy(run, u)) continue;
     const def = UNIT_BY_ID[u.defId];
@@ -596,25 +598,26 @@ export function placeDevice(run: RunState, id: string, tg: UseTarget): { dev?: D
   const enc = run.node?.enc;
   if (!enc) return { err: '전투를 앞둔 편성 화면에서 사용하세요' };
   if (id === 'K_scope' && !(run.scope && run.scope.n > 0)) return { err: '남은 사용 횟수가 없습니다' };
-  const n = enc.n;
+  const n = enc.n, g = encGeo(enc);
   // 대상 → 칸
   let x: number, y: number;
   if (tg.k === 'cell') ({ x, y } = tg);
-  else if (tg.k === 'foe') { const s = enc.enemies[tg.i]; if (!s) return { err: WRONG_TARGET }; ({ x, y } = enemyCell(s.c, s.row, n)); }
+  else if (tg.k === 'foe') { const s = enc.enemies[tg.i]; if (!s) return { err: WRONG_TARGET }; ({ x, y } = foeCell(s, g)); }
   else if (tg.k === 'unit' || tg.k === 'eq') { const p = layout(run, n).get(tg.uid); if (!p) return { err: '출전한 기물에게만 쓸 수 있습니다' }; ({ x, y } = p); }
   else return { err: WRONG_TARGET };
-  if (zoneAt(n, x, y) === 'edge') return { err: '전장 안쪽 칸에 놓으세요' };
+  if (zoneAt(g, x, y) === 'edge') return { err: '전장 안쪽 칸에 놓으세요' };
   const occ = prepOccupied(run, enc);
-  const foeAt = enc.enemies.some((s) => { const c = enemyCell(s.c, s.row, n); return c.x === x && c.y === y; });
+  const foeAt = enc.enemies.some((s) => { const c = foeCell(s, g); return c.x === x && c.y === y; });
+  const land = terrainCells(g); // 지형 칸 (물 · 온실 · 벽 · 수문)
   if (id === 'K_scope') return { dev: { id, x, y, mode: foeAt ? 'strike' : 'drop' }, err: null };
   if (id === 'K_net') { // 2×2 가 전장 안에 들어오게 (오른쪽 · 아래 끝이면 한 칸 당긴다)
-    const { w, h } = boardDims(n);
-    return { dev: { id, x: Math.max(PAD, Math.min(x, w - PAD - 2)), y: Math.max(PAD, Math.min(y, h - PAD - 2)) }, err: null };
+    return { dev: { id, x: Math.max(PAD, Math.min(x, g.w - PAD - 2)), y: Math.max(PAD, Math.min(y, g.h - PAD - 2)) }, err: null };
   }
   const d: Device = { id, x, y, ...(id === 'K_barricade' ? { dir: tg.k === 'cell' && tg.dir ? tg.dir : 'h', n: tg.k === 'cell' && tg.n ? Math.max(1, Math.min(DEV.wall.maxN, tg.n)) : 1 } : {}) };
   for (const c of deviceCells(d)) {
-    const z = zoneAt(n, c.x, c.y);
+    const z = zoneAt(g, c.x, c.y);
     if (z === 'edge') return { err: '전장 밖으로 펼칠 수 없습니다' };
+    if (land.has(`${c.x},${c.y}`)) return { err: '지형 칸 (물 · 온실 · 벽 · 수문)에는 놓을 수 없습니다' };
     if (z === 'foe' && id !== 'K_decoy') return { err: '적 진형에는 놓을 수 없습니다 (유인 신호기만 가능)' };
     if (occ.has(`${c.x},${c.y}`)) return { err: '다른 기물 · 장치가 있는 칸입니다' };
   }
@@ -972,10 +975,21 @@ function gearEnemies(run: RunState, r: Rng, enemies: EnemySpawn[], type: NodeTyp
   }
 }
 
+/** 전장 지형 틀 고르기 (data/maps.ts): 보스전 · 튜토리얼 · 캠페인은 개활지. 그 전장 전용 틀 CFG.maps.field 확률, 아니면 공용 틀 CFG.maps.common 확률.
+ *  런 난수와 따로 굴린다 (시드 · 페이즈 · 칸 · 종류에서) — 기존 조우 난수 흐름을 바꾸지 않게 */
+function pickMap(run: RunState, type: NodeType, phase: number): string | undefined {
+  if (type === 'boss' || run.tutorial || run.campaign) return undefined;
+  const r = new Rng(((run.seed * 31 + phase * 1009 + run.step * 7919 + (type === 'adversity' ? 104729 : 0)) >>> 0) || 1);
+  const own = MAPS.filter((m) => m.field && m.field === run.field), common = MAPS.filter((m) => !m.field && m.id !== 'open');
+  if (own.length && r.chance(CFG.maps.field)) return r.pick(own).id;
+  if (r.chance(CFG.maps.common)) return r.pick(common).id;
+  return undefined;
+}
 export function genEncounter(run: RunState, type: NodeType, phase = run.phase): Encounter {
+  const map = pickMap(run, type, phase);
   return rng(run, (r) => {
     const env = r.weighted(CFG.boardSizes, (x) => x.w);
-    const n = type === 'boss' ? CFG.bossBoard : env.n;
+    const n = type === 'boss' ? CFG.bossBoard : mapOf(map).narrow ?? env.n;
     const rows = playerRows(n);
     const p = phase;
     const f = fieldOf(run.field);
@@ -1015,9 +1029,11 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
         if (placed) break;
       }
     }
+    if (mapOf(map).surround) enemies.forEach((e, i) => { if (i % 2) e.flip = true; }); // 포위: 절반은 아래 적 진형에서
     gearEnemies(run, r, enemies, type, p);
     return {
-      n, env: type === 'boss' ? '보스 아레나' : env.env, enemies,
+      n, env: type === 'boss' ? '보스 아레나' : mapOf(map).narrow ? '좁은 전장' : env.env, enemies,
+      ...(map ? { map } : {}),
       mult: encounterMult(type, run.step),
       seed: r.int(1, 2 ** 31 - 1),
       ...(phase !== run.phase ? { phase } : {}),

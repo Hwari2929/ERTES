@@ -996,7 +996,8 @@ function romaniPull(b: Battle, u: CUnit) {
 }
 /** 자기 진영 맨 뒷줄 빈칸으로 물러난다 (없으면 한 줄 앞) */
 function retreat(b: Battle, u: CUnit) {
-  const rows = u.side === 0 ? [b.h - 2, b.h - 3, b.h - 4] : [1, 2, 3];
+  const ay1 = b.geo?.ay1 ?? b.h - 2; // 아군 진형 맨 뒷줄 (지형 틀에 따라 다름)
+  const rows = u.side === 0 ? [ay1, ay1 - 1, ay1 - 2] : [1, 2, 3];
   for (const y of rows) {
     const xs = [...Array(b.w).keys()].filter((x) => b.inBounds(x, y) && !b.unitAt(x, y)).sort((a, c) => Math.abs(a - u.x) - Math.abs(c - u.x));
     if (!xs.length) continue;
