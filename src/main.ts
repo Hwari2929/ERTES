@@ -3283,7 +3283,7 @@ function render() {
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
   umCompactBind();
   detailHeadBind();
-  RM.mountRouteMap(root.querySelector<HTMLElement>('.rmap-host'), app.screen === 'map' ? run : null, (el) => setTimeout(() => tlPop(el), 0)); // 항로도 (리빈 · 물류망). 팝오버는 누름으로 다시 그린 뒤에 연다 (항로도 DOM 은 그대로 옮겨지므로 el 이 유지된다)
+  RM.mountRouteMap(root.querySelector<HTMLElement>('.rmap-host'), app.screen === 'map' ? run : null, (el) => setTimeout(() => tlPop(el), 0), (o) => { const boss = o === 'boss' && run ? phaseBoss(run) : undefined; return `${boss ? `<b>${esc(boss.name)}</b><br>` : ''}${ic(esc(nodeHint(o)))}`; }); // 항로도 (리빈 · 물류망). 팝오버는 누름으로 다시 그린 뒤에 연다 (항로도 DOM 은 그대로 옮겨지므로 el 이 유지된다)
   // 창 내용은 첫 그리기에서 채워질 수 있으므로 (선택지 생성 등) 그린 뒤의 키를 기억한다
   lastView.modal = modalKeyOf();
   scrollRestore(scrolled, newModal);

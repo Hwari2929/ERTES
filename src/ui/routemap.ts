@@ -3,6 +3,7 @@
 // 시안: claude.ai 아티팩트 '전장별 항로 시안' (리빈 = 스코프, 물류망 = 스코프 · 대각).
 // 렌더마다 화면이 통째로 다시 그려지므로, 항로도 DOM 은 이 모듈이 들고 있다가 자리(.rmap-host)에 다시 끼운다.
 // 그래서 진행(노드 완료 뒤 지도로 돌아옴)마다 끝낸 노드가 옅어지고 다음 노드가 밝아지는 전환을 이어서 보여 줄 수 있다.
+// 조작: 가로로 끌기 · 가로 휠 = 항로만 이동 (페이지는 그대로), 세로로 끄는 터치 = 페이지 스크롤. 전체 화면 = 넓은 시야 + 노드 목록 · 범례 패널.
 import { NODE_NAME, type NodeType, type RunState } from '../types';
 import { lineIcon } from './synicons';
 
@@ -59,29 +60,56 @@ function rng(seed: number) { return () => { seed = (seed + 0x6D2B79F5) | 0; let 
 
 interface Scene { key: string; el: HTMLElement; sync(step: number): void; sleep(): void; wake(): void; destroy(): void }
 let S: Scene | null = null;
+/** 노드 설명 (HTML): 전체 화면 옆 패널에 쓴다 — 문구는 main 의 기존 팝오버와 같은 것 */
+type Hint = (t: NodeType, i: number) => string;
+let last: { host: HTMLElement; run: RunState; onNode: (el: HTMLElement) => void; hint: Hint } | null = null;
+// 전체 화면: 항로도를 body 위 덮개로 옮기고(브라우저 전체 화면은 되면 덤), 더 넓은 시야 + 옆 패널 (노드 목록 · 범례)
+let fs = false, fsNative = false, fsResize = 0;
+function setFs(on: boolean, remount = true) {
+  if (fs === on) return;
+  fs = on; fsNative = false;
+  document.documentElement.classList.toggle('rmap-fs-on', on);
+  if (on) document.documentElement.requestFullscreen?.().then(() => { fsNative = true; }, () => {});
+  else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  S?.destroy(); S = null;
+  if (remount && last) mountRouteMap(last.host, last.run, last.onNode, last.hint);
+}
+addEventListener('keydown', (e) => { if (fs && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setFs(false); } }, true);
+document.addEventListener('fullscreenchange', () => { if (fs && fsNative && !document.fullscreenElement) setFs(false); }); // 브라우저 Esc 는 전체 화면만 끄고 키는 넘겨 주지 않는다
+addEventListener('resize', () => { if (!fs) return; clearTimeout(fsResize); fsResize = window.setTimeout(() => { if (fs && last) { S?.destroy(); S = null; mountRouteMap(last.host, last.run, last.onNode, last.hint); } }, 200); });
 
 /** render() 뒤에 부른다: host 가 없으면(지도 화면이 아님) 움직임만 멈춘다 */
-export function mountRouteMap(host: HTMLElement | null, run: RunState | null, onNode: (el: HTMLElement) => void) {
-  if (!host || !run || !routeMapOn(run)) { S?.sleep(); return; }
+export function mountRouteMap(host: HTMLElement | null, run: RunState | null, onNode: (el: HTMLElement) => void, hint: Hint = () => '') {
+  if (!host || !run || !routeMapOn(run)) { if (fs) setFs(false, false); S?.sleep(); return; }
+  last = { host, run, onNode, hint };
   const narrow = matchMedia('(max-width: 600px)').matches;
   const types = run.map.map((o, i) => run.picked[i] || o[0]);
-  const key = [run.seed, run.phase, run.field, document.documentElement.dataset.uiTheme, narrow, types.join()].join('|');
-  if (!S || S.key !== key) { S?.destroy(); S = build(host, run, key, types, narrow, onNode); }
-  else host.appendChild(S.el);
+  const key = [run.seed, run.phase, run.field, document.documentElement.dataset.uiTheme, narrow, types.join(), fs].join('|');
+  const parent = fs ? document.body : host;
+  if (!S || S.key !== key) { S?.destroy(); S = build(parent, run, key, types, narrow, onNode, hint); }
+  else if (S.el.parentElement !== parent) parent.appendChild(S.el);
   S.wake();
   S.sync(run.step);
 }
 
-function build(host: HTMLElement, run: RunState, key: string, types: NodeType[], narrow: boolean, onNode: (el: HTMLElement) => void): Scene {
+function build(host: HTMLElement, run: RunState, key: string, types: NodeType[], narrow: boolean, onNode: (el: HTMLElement) => void, hint: Hint): Scene {
   const C = palette();
   const N = types.length, kind: Kind = FIELDS[run.field as keyof typeof FIELDS] as Kind;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const box = document.createElement('div');
-  box.className = `rmap rmap-${kind}`;
-  box.innerHTML = '<svg class="rm-stage" role="img" aria-label="항로도 — 좌우로 끌어서 둘러보기, 노드를 누르면 설명"></svg><button class="btn tiny rm-recenter" type="button" hidden>현재 노드로</button>';
+  box.className = `rmap rmap-${kind}${fs ? ' fs' : ''}`;
+  box.innerHTML = `<div class="rm-view"><svg class="rm-stage" role="img" aria-label="항로도 — 좌우로 끌어서 둘러보기, 노드를 누르면 설명"></svg><button class="btn tiny rm-recenter" type="button" hidden>현재 노드로</button><button class="btn tiny rm-fs" type="button" aria-pressed="${fs}">${lineIcon(fs ? 'u.shrink' : 'u.expand', 'li')}${fs ? '닫기' : '전체 화면'}</button></div>${fs ? '<aside class="rm-panel" aria-label="항로 상세"></aside>' : ''}`;
   host.appendChild(box); // 길이 계산(getTotalLength)은 문서에 붙은 뒤에
-  const stage = box.querySelector('svg')!, recenterBtn = box.querySelector<HTMLButtonElement>('.rm-recenter')!;
-  let cur = Math.min(run.step, N - 1), raf = 0, praf = 0, amb = 0, idleT = 0, homing = false, awake = false;
+  const stage = box.querySelector('svg')!, recenterBtn = box.querySelector<HTMLButtonElement>('.rm-recenter')!, panelEl = box.querySelector<HTMLElement>('.rm-panel');
+  box.querySelector('.rm-fs')!.addEventListener('click', () => setFs(!fs));
+  // 전체 화면 시야: 무대 칸의 비율에 맞춰 원래 시야보다 넓고 높게 (가운데는 그대로)
+  const sr = stage.getBoundingClientRect(), aspect = sr.height > 0 ? sr.width / sr.height : 0;
+  const fit = (v: number[]) => {
+    if (!fs || !aspect) return v;
+    const w = Math.min(Math.max(v[3] * 1.3 * aspect, v[2] * 1.2), v[2] * 2.2), h = Math.min(Math.max(w / aspect, v[3] * 1.15), v[3] * 2);
+    return [v[0] + v[2] / 2 - w / 2, v[1] + v[3] / 2 - h / 2, w, h];
+  };
+  let cur = Math.min(run.step, N - 1), raf = 0, praf = 0, amb = 0, idleT = 0, homing = false, awake = false, sel = cur;
   const colOf = (t: NodeType) => (t === 'council' || t === 'pilgrim' ? C.divine : t === 'adversity' || t === 'fork' ? C.streak : t === 'boss' || t === 'challenge' ? C.bad : C.text);
   const txt = (parent: Element, x: number, y: number, s: string, a: Attrs = {}) => { const t = el('text', { x, y, 'font-size': 9, fill: C.t3, ...a }, parent); t.textContent = s; return t; };
   const tween = (ms: number, step: (k: number) => void, done?: () => void) => {
@@ -141,32 +169,51 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     praf = requestAnimationFrame(f);
   }
 
-  // ── 끌기 · 관성. 손을 떼고 잠시 두면 현재 노드로. 거의 안 움직인 누름은 노드 설명 (기존 타임라인 팝오버)
+  // ── 끌기 · 관성. 손을 떼고 잠시 두면 현재 노드로 (전체 화면에서는 둘러보는 중이라 돌아가지 않는다). 거의 안 움직인 누름은 노드 설명
+  // 스크롤 잠금: 가로로 끄는 동안은 페이지가 위아래로 움직이지 않는다. 세로로 시작한 터치는 페이지 스크롤로 넘기고, 가로 휠 · Shift+휠은 항로만 민다
   let goNow = () => {};
-  const armReturn = () => { clearTimeout(idleT); idleT = window.setTimeout(() => { if (!recenterBtn.hidden) goNow(); }, 2200); };
+  const armReturn = () => { clearTimeout(idleT); if (fs) return; idleT = window.setTimeout(() => { if (!recenterBtn.hidden) goNow(); }, 2200); };
   let moved = 0, downNode: SVGElement | null = null; // 누른 노드 (포인터 캡처 뒤 click 대상은 무대 자체라 누를 때 기억)
   function dragger(onDelta: (dx: number) => void) {
-    let id = -1, lx = 0, v = 0, lt = 0, inert = 0;
+    let id = -1, lx = 0, ly = 0, v = 0, lt = 0, inert = 0, axis: '' | 'x' | 'y' = '', touch = false, wheelT = 0;
     const scale = () => stage.viewBox.baseVal.width / stage.getBoundingClientRect().width;
-    const down = (e: PointerEvent) => { if (e.button !== 0) return; downNode = (e.target as Element).closest<SVGElement>('.rm-node'); clearTimeout(idleT); homing = false; cancelAnimationFrame(raf); cancelAnimationFrame(inert); id = e.pointerId; lx = e.clientX; lt = performance.now(); v = 0; moved = 0; stage.setPointerCapture(id); box.classList.add('drag'); };
-    const move = (e: PointerEvent) => { if (e.pointerId !== id) return; const now = performance.now(), dx = (e.clientX - lx) * scale(); moved += Math.abs(e.clientX - lx); lx = e.clientX; v = dx / Math.max(1, now - lt); lt = now; onDelta(dx); };
+    const halt = () => { clearTimeout(idleT); homing = false; cancelAnimationFrame(raf); cancelAnimationFrame(inert); };
+    const down = (e: PointerEvent) => { if (e.button !== 0) return; downNode = (e.target as Element).closest<SVGElement>('.rm-node'); halt(); id = e.pointerId; lx = e.clientX; ly = e.clientY; lt = performance.now(); v = 0; moved = 0; axis = ''; touch = e.pointerType !== 'mouse'; try { stage.setPointerCapture(id); } catch { /* 합성 이벤트 */ } };
+    const move = (e: PointerEvent) => {
+      if (e.pointerId !== id) return;
+      const ddx = e.clientX - lx, ddy = e.clientY - ly;
+      moved += Math.abs(ddx) + Math.abs(ddy);
+      if (!axis && moved >= 6) { axis = Math.abs(ddx) >= Math.abs(ddy) ? 'x' : 'y'; if (axis === 'x') box.classList.add('drag'); }
+      if (!axis) return;
+      lx = e.clientX; ly = e.clientY;
+      if (axis === 'y') { if (touch && !fs) window.scrollBy(0, -ddy); return; }
+      const now = performance.now(), dx = ddx * scale(); v = dx / Math.max(1, now - lt); lt = now; onDelta(dx);
+    };
     const up = (e: PointerEvent) => {
       if (e.pointerId !== id) return; id = -1; box.classList.remove('drag');
-      if (reduce || moved < 6) { armReturn(); return; }
+      if (reduce || axis !== 'x') { armReturn(); return; }
       let last = performance.now();
       const glide = (now: number) => { const dt = now - last; last = now; v *= Math.pow(.992, dt); if (Math.abs(v) < .02) { armReturn(); return; } onDelta(v * dt); inert = requestAnimationFrame(glide); };
       inert = requestAnimationFrame(glide);
     };
+    const wheel = (e: WheelEvent) => {
+      const dx = e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX;
+      if (!fs && Math.abs(dx) <= Math.abs(e.deltaY) && !e.shiftKey) return; // 세로 휠은 페이지 몫
+      e.preventDefault(); halt();
+      onDelta(-(fs && Math.abs(dx) < Math.abs(e.deltaY) ? e.deltaY : dx) * (e.deltaMode === 1 ? 16 : 1) * scale());
+      clearTimeout(wheelT); wheelT = window.setTimeout(armReturn, 120);
+    };
     stage.addEventListener('pointerdown', down); stage.addEventListener('pointermove', move);
     stage.addEventListener('pointerup', up); stage.addEventListener('pointercancel', up);
-    return () => cancelAnimationFrame(inert);
+    stage.addEventListener('wheel', wheel, { passive: false });
+    return () => { cancelAnimationFrame(inert); clearTimeout(wheelT); };
   }
   stage.addEventListener('click', (e) => {
     const n = (e.target as Element).closest<SVGElement>('.rm-node') || downNode;
-    if (n && moved < 6) onNode(n as unknown as HTMLElement);
+    if (n && moved < 6) { if (fs) pick(+(n.dataset.step ?? cur)); else onNode(n as unknown as HTMLElement); }
     downNode = null;
   });
-  stage.addEventListener('keydown', (e) => { const n = (e.target as Element).closest<SVGElement>('.rm-node'); if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onNode(n as unknown as HTMLElement); } });
+  stage.addEventListener('keydown', (e) => { const n = (e.target as Element).closest<SVGElement>('.rm-node'); if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); if (fs) pick(+(n.dataset.step ?? cur)); else onNode(n as unknown as HTMLElement); } });
   recenterBtn.addEventListener('click', () => goNow());
 
   // ── 공통 장식
@@ -206,11 +253,32 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   const t0 = performance.now();
   const startAmb = () => { if (amb) return; const f = (now: number) => { tick(reduce ? 0 : now - t0); amb = requestAnimationFrame(f); }; amb = requestAnimationFrame(f); };
 
-  const sc = kind === 'ring' ? ringScene() : kind === 'orbit' ? orbitScene() : kind === 'stairs' ? stairsScene() : gridScene();
-  goNow = sc.go;
+  const sc: { go(): void; stop(): void; look?(i: number): void; name?: string; legend?: [string, string][] } = kind === 'ring' ? ringScene() : kind === 'orbit' ? orbitScene() : kind === 'stairs' ? stairsScene() : gridScene();
+  goNow = () => { sel = cur; sc.go(); panel(); };
+  // ── 전체 화면 옆 패널: 노드 목록 (상태 · 고른 노드의 설명) + 범례. 노드를 고르면 지도도 그 노드로
+  function pick(i: number) { sel = Math.max(0, Math.min(N - 1, i)); if (sel === cur) sc.go(); else sc.look?.(sel); panel(); }
+  function panel() {
+    if (!panelEl) return;
+    const left = N - 1 - cur, rows = types.map((t, i) => {
+      const far = i - cur, st = far < 0 ? '지남' : far === 0 ? '현재' : far === 1 ? '다음' : `${far}칸 뒤`, h = i === sel ? hint(t, i) : '';
+      return `<li class="${far < 0 ? 'past' : far === 0 ? 'cur' : 'next'}${i === sel ? ' on' : ''}"><button type="button" data-i="${i}" aria-pressed="${i === sel}"><span class="mono rp-n">${pad2(i + 1)}</span>${lineIcon(`n.${t}`, 'li')}<b>${NODE_NAME[t]}</b><small>${st}</small></button>${h ? `<p>${h}</p>` : ''}</li>`;
+    }).join('');
+    panelEl.innerHTML = `<header><b>${sc.name || ''}</b><span class="chip" style="--c:var(--c-bad)">보스까지 <b class="mono">${left}</b>칸</span></header>
+      <div class="rp-nav"><button class="btn tiny" type="button" data-go="-1"${sel ? '' : ' disabled'}>◀ 이전</button><button class="btn tiny" type="button" data-go="0">현재 노드</button><button class="btn tiny" type="button" data-go="1"${sel < N - 1 ? '' : ' disabled'}>다음 ▶</button></div>
+      <ol class="rp-list">${rows}</ol>
+      ${sc.legend ? `<h4>범례</h4><dl class="rp-legend">${sc.legend.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>` : ''}
+      <p class="rp-keys"><kbd>Esc</kbd> 닫기 · 끌기 · 휠로 둘러보기</p>`;
+    panelEl.querySelector<HTMLElement>('li.on')?.scrollIntoView({ block: 'nearest' });
+  }
+  panelEl?.addEventListener('click', (e) => {
+    const b = (e.target as Element).closest<HTMLButtonElement>('button'); if (!b) return;
+    if (b.dataset.i) pick(+b.dataset.i);
+    else if (b.dataset.go) pick(b.dataset.go === '0' ? cur : sel + +b.dataset.go);
+  });
+  panel();
   return {
     key, el: box,
-    sync(step: number) { const c = Math.min(step, N - 1); if (c === cur) return; cur = c; sc.go(); },
+    sync(step: number) { const c = Math.min(step, N - 1); if (c === cur) return; cur = c; goNow(); },
     sleep() { stopAmb(); clearTimeout(idleT); },
     wake() { if (!awake || !amb) { awake = true; startAmb(); } },
     destroy() { stopAmb(); cancelAnimationFrame(raf); cancelAnimationFrame(praf); clearTimeout(idleT); sc.stop(); box.remove(); },
@@ -219,9 +287,9 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   // ── 리빈 낙원동: 속 빈 구체의 내벽 단면. 인공 태양(중심)은 화면 위 바깥
   function ringScene() {
     const W = 800, H = 450, R = 600, CX = 400, CY = 372 - R, STEP = 17; // 노드 간격 17° ≈ 165px
-    const VB = narrow ? [180, 120, 440, 320] : [0, 92, W, 350], T0 = VB[1];
-    stage.setAttribute('viewBox', VB.join(' ')); stage.style.aspectRatio = `${VB[2]} / ${VB[3]}`;
-    el('rect', { x: -200, y: -200, width: W + 400, height: H + 400, fill: C.bg }, stage);
+    const VB = fit(narrow ? [180, 120, 440, 320] : [0, 92, W, 350]), T0 = VB[1];
+    stage.setAttribute('viewBox', VB.join(' ')); stage.style.aspectRatio = fs ? '' : `${VB[2]} / ${VB[3]}`;
+    el('rect', { x: -1200, y: -800, width: W + 2400, height: H + 1600, fill: C.bg }, stage);
     const back = el('g', {}, stage), rotG = el('g', {}, stage), nodesG = el('g', {}, stage), top = el('g', {}, stage);
     const rnd = rng(7 + run.phase);
     const span0 = -50, span1 = (N - 1) * STEP + 70;
@@ -246,6 +314,15 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     el('circle', { cx: CX, cy: CY, r: R + 31, fill: 'none', stroke: C.panel2, 'stroke-width': 62 }, rotG);
     el('circle', { cx: CX, cy: CY, r: R, fill: 'none', stroke: C.t2, 'stroke-width': 1.5 }, rotG);
     el('circle', { cx: CX, cy: CY, r: R + 62, fill: 'none', stroke: C.line, 'stroke-width': 1 }, rotG);
+    if (fs) { // 전체 화면의 높은 시야: 띠 바깥 = 구체 외피 (장갑층 · 배관층 단면)
+      el('circle', { cx: CX, cy: CY, r: R + 63 + 160, fill: 'none', stroke: C.panel, 'stroke-width': 320 }, rotG);
+      for (const [dr, w, dash] of [[30, 1, null], [34, 1, null], [78, 6, '2 10'], [120, 1, '6 4'], [170, 1, null]] as const) el('circle', { cx: CX, cy: CY, r: R + 62 + dr, fill: 'none', stroke: C.line, 'stroke-width': w, 'stroke-dasharray': dash }, rotG);
+      for (let k = 0, a = span0; a <= span1; k++, a += 12) { // 늑재 · 구획 번호
+        const [x0, y0] = P(90 + a, R + 92), [x1, y1] = P(90 + a, R + 232); el('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: C.line, 'stroke-width': .8 }, rotG);
+        if (k % 2) place(txt(rotG, 0, 0, `HULL-${pad2(k)}`, { 'font-size': 7, 'text-anchor': 'middle' }), a + 6, R + 104);
+      }
+      place(txt(rotG, 0, 0, '外殼 단면 · 장갑층 → 배관층 → 진공', { 'font-size': 8, fill: C.t2, 'text-anchor': 'middle', class: 'rm-ko' }), cur * STEP + 6, R + 150);
+    }
     for (let a = span0; a <= span1; a += 4) {
       const big = Math.round(a) % 20 === 0, len = big ? 14 : 7, [x0, y0] = P(90 + a, R), [x1, y1] = P(90 + a, R + len);
       el('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: big ? C.t2 : C.line, 'stroke-width': big ? 1.2 : 1 }, rotG);
@@ -392,6 +469,9 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     const lo = A0 - (N - 1) * STEP - 18, hi = A0 + 18;
     const off = dragger((dx) => { rot = Math.max(lo, Math.min(hi, rot + (dx / R) * 180 / Math.PI)); draw(); });
     return {
+      name: '리빈-1 낙원동 · 내벽 단면',
+      legend: [['항로', '내벽을 따라 도는 점선 · 지난 구간은 강조색'], ['TRN', '산지'], ['STR', '공동체 (집 · 급수탑)'], ['QRT', '방역 초소'], ['H2O', '호수'], ['FB', '프리버드 접촉 (걷는 무리 · 익룡)'], ['B000', '내벽 방위 (20° 마다)'], ['ZENITH', '인공 태양 방향 (화면 위 바깥)']],
+      look(i: number) { const from = rot, to = A0 - i * STEP; tween(700, (k) => { rot = from + (to - from) * k; draw(); }); },
       go() {
         const from = rot, to = A0 - cur * STEP, p0 = pos; paint(tokens, true); homing = true;
         segs.forEach((g) => g.base.setAttribute('stroke-dashoffset', '0'));
@@ -408,9 +488,9 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     const O = [120, 120];
     const L2W = (u: number, v: number) => [O[0] + u * ax[0] + v * nv[0], O[1] + u * ax[1] + v * nv[1]];
     const proj = (x: number, y: number) => (x - O[0]) * ax[0] + (y - O[1]) * ax[1];
-    const VB = narrow ? [180, 10, 440, 440] : [0, 0, W, H];
-    stage.setAttribute('viewBox', VB.join(' ')); stage.style.aspectRatio = `${VB[2]} / ${VB[3]}`;
-    el('rect', { x: -200, y: -200, width: W + 400, height: H + 400, fill: C.bg }, stage);
+    const VB = fit(narrow ? [180, 10, 440, 440] : [0, 0, W, H]);
+    stage.setAttribute('viewBox', VB.join(' ')); stage.style.aspectRatio = fs ? '' : `${VB[2]} / ${VB[3]}`;
+    el('rect', { x: -1200, y: -800, width: W + 2400, height: H + 1600, fill: C.bg }, stage);
     const defs = el('defs', {}, stage);
     const para = el('g', {}, stage), world = el('g', {}, stage), fixed = el('g', {}, stage);
     const rnd = rng(23 + run.phase);
@@ -581,6 +661,9 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     };
     const off = dragger((dx) => { uc = clampU(uc - dx / ax[0]); drawCam(); });
     return {
+      name: '베르타–산노디스 물류망',
+      legend: [['항로', '천체를 반 바퀴씩 감는 궤도 · 지난 구간은 강조색'], ['화물선', '항로 위 현재 위치'], ['NAV', '항로 표지 — 화물선이 지나면 복구'], ['천체', 'B-4 · TS-7 · A-117 · SN · RL-2 (이름은 항로 반대편)'], ['CVY', '수송선단 (진행축 양쪽)'], ['DEBRIS β', '소행성대'], ['PSR', '산-노디스 펄서 (8년 주기)'], ['AU', '진행축 거리 눈금']],
+      look(i: number) { const u0 = uc, want = ucFor(sAt(i)); tween(700, (k) => { uc = u0 + (want - u0) * k; drawCam(); }); },
       go() {
         paint(tokens, true);
         const s0 = sp, s1 = sAt(cur), u0 = uc; homing = true;
@@ -606,9 +689,9 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   // ── 라이덴 제34블록 봉쇄선: 고저 단면도. 층계참(노드)마다 높이가 크게 다르고 그 사이를 계단이 잇는다. 마지막 칸은 꼭대기 여우 신사 (천 개의 도리이)
   function stairsScene() {
     const W = 800, H = 450, STEP = 156, LH = 38, BASE = 290, PAR = .3, LAND = 32, EL = 12; // 1층 = 12m
-    const VB = narrow ? [180, 30, 440, 390] : [0, 0, W, H];
-    stage.setAttribute('viewBox', VB.join(' ')); stage.style.aspectRatio = `${VB[2]} / ${VB[3]}`;
-    el('rect', { x: -200, y: -200, width: W + 400, height: H + 400, fill: C.bg }, stage);
+    const VB = fit(narrow ? [180, 30, 440, 390] : [0, 0, W, H]);
+    stage.setAttribute('viewBox', VB.join(' ')); stage.style.aspectRatio = fs ? '' : `${VB[2]} / ${VB[3]}`;
+    el('rect', { x: -1200, y: -800, width: W + 2400, height: H + 1600, fill: C.bg }, stage);
     const para = el('g', {}, stage), mid = el('g', {}, stage), world = el('g', {}, stage), fixed = el('g', {}, stage);
     const rnd = rng(41 + run.phase);
     // 층 (높이): 계단이 많은 도심 — 한 칸마다 1~3층씩 크게 오르내리고, 마지막(보스)은 바로 앞 칸보다 3층 위 신사
@@ -767,9 +850,9 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   // ── 카운티폴 세피아 교외: 위에서 본 계획 도시 구획도. 같은 크기 구획 · 직각 가로망 · 마당 딸린 표준 주택, 항로는 가로를 따라 직각으로만 꺾인다
   function gridScene() {
     const W = 800, H = 450, G = 66, RD = 13, X0 = 150, Y0 = 228; // 구획 간격 · 도로 폭
-    const VB = narrow ? [180, 30, 440, 400] : [0, 0, W, H];
-    stage.setAttribute('viewBox', VB.join(' ')); stage.style.aspectRatio = `${VB[2]} / ${VB[3]}`;
-    el('rect', { x: -200, y: -200, width: W + 400, height: H + 400, fill: C.bg }, stage);
+    const VB = fit(narrow ? [180, 30, 440, 400] : [0, 0, W, H]);
+    stage.setAttribute('viewBox', VB.join(' ')); stage.style.aspectRatio = fs ? '' : `${VB[2]} / ${VB[3]}`;
+    el('rect', { x: -1200, y: -800, width: W + 2400, height: H + 1600, fill: C.bg }, stage);
     const world = el('g', {}, stage), sky = el('g', {}, stage), fixed = el('g', {}, stage);
     const rnd = rng(53 + run.phase);
     // 노드: 두 구획마다 교차로 하나. 행은 한 칸씩만 옮긴다 (단정한 가로망), 마지막(보스)은 행정 구역 광장 앞 대로(0행)

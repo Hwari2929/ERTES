@@ -224,6 +224,9 @@ const L: Record<string, string> = {
   'i.helmet': '<circle cx="12" cy="11" r="8"/><path d="M7 11a5 4 0 0 1 10 0v2H7z"/><path d="M6 19h12"/>',
   'i.blackbox': '<path d="M12 2.5l6 4.5-6 14.5-6-14.5z"/><path d="M6 7h12"/><path d="M10 12l2-2.5 2 2.5-2 2.5"/>',
   'i.fuse': '<rect x="7" y="7" width="10" height="10" rx="2"/><path d="M12 2v5M12 17v5"/><path d="M13 9.5l-2 3h2.5l-2 3"/>',
+  // 항로도 전체 화면: 펼치기 (네 모서리 바깥으로) · 접기 (안으로)
+  'u.expand': '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>',
+  'u.shrink': '<path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/>',
   // 적 성향 (도발 수치 가중치): 돌격 · 저격 · 반격 · 암살
   't.charge': '<path d="M4 5l7 7-7 7"/><path d="M12 5l7 7-7 7"/>',
   't.sniper': '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 7v2M12 15v2M7 12h2M15 12h2"/>',
