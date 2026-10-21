@@ -1,11 +1,12 @@
-// 지도 화면 항로도 (전술 스코프): 리빈 낙원동 = 구체 내벽 회전, 베르타–산노디스 물류망 = 대각 진행 원 궤도.
+// 지도 화면 항로도 (전술 스코프): 리빈 낙원동 = 구체 내벽 회전, 베르타–산노디스 물류망 = 대각 진행 원 궤도,
+// 라이덴 제34블록 = 계단 · 고저차 단면 (여우 신사로 오르는 천 개의 도리이), 카운티폴 세피아 교외 = 계획 도시 구획도 (직각 가로망).
 // 시안: claude.ai 아티팩트 '전장별 항로 시안' (리빈 = 스코프, 물류망 = 스코프 · 대각).
 // 렌더마다 화면이 통째로 다시 그려지므로, 항로도 DOM 은 이 모듈이 들고 있다가 자리(.rmap-host)에 다시 끼운다.
 // 그래서 진행(노드 완료 뒤 지도로 돌아옴)마다 끝낸 노드가 옅어지고 다음 노드가 밝아지는 전환을 이어서 보여 줄 수 있다.
 import { NODE_NAME, type NodeType, type RunState } from '../types';
 import { lineIcon } from './synicons';
 
-const FIELDS = { livin: 'ring', swarm: 'orbit' } as const;
+const FIELDS = { livin: 'ring', swarm: 'orbit', raiden: 'stairs', county: 'grid' } as const;
 type Kind = (typeof FIELDS)[keyof typeof FIELDS];
 const CODE: Partial<Record<NodeType, string>> = { supply: 'SUP', battle: 'BTL', council: 'CNL', event: 'EVT', shop: 'BRN', adversity: 'ADV', boss: 'BOS', recruit: 'RCT', fork: 'FRK', news: 'NWS', invest: 'INV', pilgrim: 'PLG', challenge: 'CHL', maint: 'MNT' };
 // 프리버드(공룡) 실루엣 — 오른쪽을 보고 발이 y=0
@@ -15,7 +16,7 @@ const DINO = {
   ptero: 'M-11 0Q-5 -6 0 -1Q5 -6 11 0Q5 -2 1 2L5 3L0 3Q-5 -2-11 0Z',
 };
 
-/** 이 런의 지도에 항로도를 쓰는가: 두 전장 · 튜토리얼 아님 · 모든 칸이 선택지 1개 (분기 고르기는 기존 타임라인) */
+/** 이 런의 지도에 항로도를 쓰는가: 항로도가 있는 전장 · 튜토리얼 아님 · 모든 칸이 선택지 1개 (분기 고르기는 기존 타임라인) */
 export function routeMapOn(run: RunState): boolean {
   return run.field in FIELDS && !run.tutorial && run.map.every((o) => o.length === 1);
 }
@@ -203,7 +204,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   const t0 = performance.now();
   const startAmb = () => { if (amb) return; const f = (now: number) => { tick(reduce ? 0 : now - t0); amb = requestAnimationFrame(f); }; amb = requestAnimationFrame(f); };
 
-  const sc = kind === 'ring' ? ringScene() : orbitScene();
+  const sc = kind === 'ring' ? ringScene() : kind === 'orbit' ? orbitScene() : kind === 'stairs' ? stairsScene() : gridScene();
   goNow = sc.go;
   return {
     key, el: box,
@@ -583,6 +584,318 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         const s0 = sp, s1 = sAt(cur), u0 = uc; homing = true;
         if (s1 < s0) syncBeacons(false);
         tween(1100, (k) => { sp = s0 + (s1 - s0) * k; drawShip(); syncBeacons(true); const want = ucFor(sp); uc = u0 + (want - u0) * Math.min(1, k * 1.3); drawCam(); }, () => { homing = false; syncBeacons(true); drawCam(); });
+      },
+      stop: off,
+    };
+  }
+  // ── 경로형 장면 공용 (라이덴 계단 · 카운티폴 구획): 구간 경로를 이어 붙이고, 노드 자리 = 구간 경계까지의 누적 길이
+  function track(parent: Element, start: number[], segs: string[]) {
+    const tmp = el('path', { fill: 'none' }, parent) as SVGGeometryElement, S = [0];
+    let d = `M${start[0]} ${start[1]}`;
+    for (const sg of segs) { d += sg; tmp.setAttribute('d', d); S.push(tmp.getTotalLength()); }
+    tmp.remove();
+    const route = el('path', { d, fill: 'none', stroke: C.t3, 'stroke-width': 1.4, 'stroke-dasharray': '3 4' }, parent) as SVGGeometryElement;
+    const done = el('path', { d, fill: 'none', stroke: C.sel, 'stroke-width': 2.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, parent);
+    const total = S[S.length - 1];
+    done.setAttribute('stroke-dasharray', `${total} ${total}`);
+    return { route, done, total, S };
+  }
+
+  // ── 라이덴 제34블록 봉쇄선: 고저 단면도. 층계참(노드)마다 높이가 크게 다르고 그 사이를 계단이 잇는다. 마지막 칸은 꼭대기 여우 신사 (천 개의 도리이)
+  function stairsScene() {
+    const W = 800, H = 450, STEP = 156, LH = 38, BASE = 290, PAR = .3, LAND = 32, EL = 12; // 1층 = 12m
+    const VB = narrow ? [180, 30, 440, 390] : [0, 0, W, H];
+    stage.setAttribute('viewBox', VB.join(' ')); stage.style.aspectRatio = `${VB[2]} / ${VB[3]}`;
+    el('rect', { x: -200, y: -200, width: W + 400, height: H + 400, fill: C.bg }, stage);
+    const para = el('g', {}, stage), mid = el('g', {}, stage), world = el('g', {}, stage), fixed = el('g', {}, stage);
+    const rnd = rng(41 + run.phase);
+    // 층 (높이): 계단이 많은 도심 — 한 칸마다 1~3층씩 크게 오르내리고, 마지막(보스)은 바로 앞 칸보다 3층 위 신사
+    const lv: number[] = [];
+    for (let i = 0, L = 0; i < N; i++) {
+      if (i === N - 1) L = Math.min(lv[i - 1] + 3, 6); // 신사는 바로 앞 칸보다 3층 위 (꼭대기)
+      else if (i) { let d = 0; while (!d) d = Math.round((rnd() * 2 - 1) * 3); L = Math.max(-3, Math.min(4, L + d)); }
+      lv.push(L);
+    }
+    const X = (i: number) => 150 + i * STEP, Y = (i: number) => BASE - lv[i] * LH;
+    const XN = X(N - 1);
+    const segs: string[] = [], stairs: { x0: number; x1: number; y0: number; y1: number; n: number }[] = [];
+    for (let i = 0; i < N - 1; i++) {
+      const x0 = X(i) + LAND, x1 = X(i + 1) - LAND, y0 = Y(i), y1 = Y(i + 1), n = Math.max(2, Math.round(Math.abs(y1 - y0) / 7));
+      const tr = (x1 - x0) / n, rs = (y1 - y0) / n;
+      let sg = ` H${x0}`;
+      for (let k = 0; k < n; k++) sg += rs < 0 ? ` v${rs.toFixed(2)} h${tr.toFixed(2)}` : ` h${tr.toFixed(2)} v${rs.toFixed(2)}`; // 오를 땐 챌면 먼저, 내릴 땐 디딤면 먼저
+      sg += ` H${X(i + 1)}`;
+      segs.push(sg); stairs.push({ x0, x1, y0, y1, n });
+    }
+    const yAt = (x: number) => { // 카메라가 따라갈 높이: 노드 사이 선형 보간
+      if (x <= X(0)) return Y(0);
+      for (let i = 0; i < N - 1; i++) if (x <= X(i + 1)) return Y(i) + (Y(i + 1) - Y(i)) * (x - X(i)) / STEP;
+      return Y(N - 1);
+    };
+
+    // 원경 (시차): 마천루 숲 · 꺼지지 않는 간판
+    const blink: { e: SVGElement; ph: number; w: number }[] = [];
+    const SIGN = ['TENGAI', 'NEKOMATSURI', 'AYAKASHI', '24H', 'HOISHUN', 'KAGEROU', 'SUB·T3'];
+    for (let x = -260; x < XN * PAR + 900; x += 26 + rnd() * 40) {
+      const w = 24 + rnd() * 46, h = 150 + rnd() * 230, top = 420 - h;
+      el('rect', { x, y: top, width: w, height: h + 200, fill: rnd() < .5 ? mix(C.panel, C.bg, .35) : mix(C.panel2, C.bg, .45) }, para); // 원경은 바탕 쪽으로 (지형 단면과 구분)
+      if (rnd() < .3) el('path', { d: `M${x + w / 2} ${top}v-${10 + rnd() * 22}`, stroke: C.line }, para); // 안테나
+      for (let wy = top + 8; wy < 440; wy += 9) for (let wx = x + 4; wx < x + w - 3; wx += 7) if (rnd() < .16) el('rect', { x: wx, y: wy, width: 2.2, height: 3, fill: C.line }, para);
+      if (rnd() < .28) {
+        const sx = x + w - 6, sy = top + 20 + rnd() * 60, word = SIGN[Math.floor(rnd() * SIGN.length)];
+        const g = el('g', {}, para);
+        el('rect', { x: sx - 1, y: sy - 4, width: 10, height: word.length * 7 + 6, fill: 'none', stroke: C.t3, 'stroke-width': .8 }, g);
+        word.split('').forEach((ch, k) => txt(g, sx + 4, sy + 6 + k * 7, ch, { 'text-anchor': 'middle', 'font-size': 6.5, fill: C.t2 }));
+        blink.push({ e: g, ph: rnd() * 6.28, w: .0012 + rnd() * .002 });
+      }
+    }
+    // 중경: 고가 모노레일
+    const RAIL = 96, railG = el('g', {}, mid);
+    el('line', { x1: -400, y1: RAIL, x2: XN * .6 + 1200, y2: RAIL, stroke: C.line, 'stroke-width': 2 }, railG);
+    for (let x = -380; x < XN * .6 + 1200; x += 90) el('path', { d: `M${x} ${RAIL}v${230}`, stroke: C.line, 'stroke-width': 1, 'stroke-dasharray': '2 3' }, railG);
+    const train = el('g', {}, railG);
+    for (let k = 0; k < 4; k++) { el('rect', { x: k * 25, y: RAIL - 9, width: 23, height: 8, rx: 2, fill: C.t3 }, train); el('path', { d: `M${k * 25 + 4} ${RAIL - 6}h15`, stroke: C.bg, 'stroke-width': 1.5, 'stroke-dasharray': '3 2' }, train); }
+    txt(train, 0, RAIL - 13, 'LINE-K 환상선', { 'font-size': 7, fill: C.t2 });
+
+    // 지형: 계단 단면 아래를 채운 덩어리 + 옹벽 기둥 + 층계참 표고
+    const edge = `M${X(0) - 420} ${Y(0)} H${X(0)}${segs.join('')} H${XN + 130} V${BASE + LH} H${XN + 420}`; // 신사 너머는 절벽으로 떨어진다
+    el('path', { d: `${edge} V${H + 700} H${X(0) - 420} Z`, fill: C.panel2 }, world);
+    el('path', { d: edge, fill: 'none', stroke: C.t2, 'stroke-width': 1.2 }, world);
+    for (let i = 0; i < N; i++) {
+      for (const dx of [-LAND + 4, LAND - 4]) el('path', { d: `M${X(i) + dx} ${Y(i) + 4}V${Y(i) + 300}`, stroke: C.line, 'stroke-dasharray': '1 4' }, world);
+      txt(world, X(i), Y(i) + 16, `${lv[i] >= 0 ? '+' : ''}${lv[i] * EL}m`, { 'text-anchor': 'middle', 'font-size': 7.5 });
+      txt(world, X(i), Y(i) + 27, `B34-${pad2(i + 1)}`, { 'text-anchor': 'middle', 'font-size': 6.5 });
+    }
+    // 계단 난간 (오르내리는 방향 표시 대신 손잡이 선)
+    for (const t of stairs) el('line', { x1: t.x0, y1: t.y0 - 9, x2: t.x1, y2: t.y1 - 9, stroke: C.line, 'stroke-width': .8 }, world);
+    // 봉쇄선: 출발점 뒤 바리케이드 + 중간 검문소
+    const barrier = (x: number, y: number, lab: string) => {
+      const g = el('g', { transform: `translate(${x} ${y})` }, world);
+      el('rect', { x: -16, y: -14, width: 32, height: 8, fill: C.bg, stroke: C.t2, 'stroke-width': .8 }, g);
+      for (let k = -14; k < 16; k += 6) el('path', { d: `M${k} -6l4 -8`, stroke: C.t2, 'stroke-width': 1.4 }, g);
+      el('path', { d: 'M-12 -6V0M12 -6V0', stroke: C.t2 }, g);
+      txt(g, 0, -20, lab, { 'text-anchor': 'middle', 'font-size': 7, fill: C.t2 });
+    };
+    barrier(X(0) - 70, Y(0), 'BLK-34 봉쇄선');
+
+    // 도리이 · 여우 신사
+    const torii = (g: Element, x: number, y: number, s: number, col = C.t2) => {
+      el('path', { d: `M${x - 9 * s} ${y}V${y - 19 * s}M${x + 9 * s} ${y}V${y - 19 * s}`, stroke: col, 'stroke-width': 1.6 * s }, g);
+      el('path', { d: `M${x - 14 * s} ${y - 22 * s}Q${x} ${y - 25 * s} ${x + 14 * s} ${y - 22 * s}`, stroke: col, 'stroke-width': 2.2 * s, fill: 'none' }, g); // 가사기
+      el('path', { d: `M${x - 11 * s} ${y - 16 * s}H${x + 11 * s}`, stroke: col, 'stroke-width': 1.1 * s }, g); // 누키
+    };
+    const last = stairs[stairs.length - 1];
+    if (last) { // 천 개의 도리이: 신사로 오르는 마지막 계단 위로 촘촘히
+      const gates = el('g', {}, world), n = Math.max(4, Math.round((last.x1 - last.x0) / 11));
+      for (let k = 0; k <= n; k++) { const t = k / n; torii(gates, last.x0 + (last.x1 - last.x0) * t, last.y0 + (last.y1 - last.y0) * t, .62 + .1 * t, k % 2 ? C.t3 : C.t2); }
+      txt(gates, (last.x0 + last.x1) / 2 - 18, Math.min(last.y0, last.y1) - 36, '千本鳥居 · 천 개의 도리이', { 'text-anchor': 'middle', 'font-size': 7.5, fill: C.t2 });
+    }
+    for (let i = 1; i < N - 1; i++) if (lv[i] > lv[i - 1] && lv[i] >= 2 && rnd() < .5) torii(world, X(i) - LAND + 6, Y(i), .6, C.t3); // 높은 층계참의 작은 도리이
+    const shrine = el('g', { transform: `translate(${XN + 64} ${Y(N - 1)})` }, world); // 본전은 마지막 노드 오른쪽 (노드 토큰과 겹치지 않게)
+    el('path', { d: 'M-40 -34H40L30 -44H-30Z', fill: C.panel, stroke: C.t2, 'stroke-width': .8 }, shrine); // 본전 지붕
+    el('rect', { x: -26, y: -34, width: 52, height: 34, fill: C.bg, stroke: C.t2, 'stroke-width': .8 }, shrine);
+    el('path', { d: 'M-20 -26h40M-20 -18h40', stroke: C.line }, shrine);
+    const lanterns: SVGElement[] = [];
+    for (const lx of [-34, 34]) { el('path', { d: `M${lx} 0v-10`, stroke: C.t3 }, shrine); lanterns.push(el('rect', { x: lx - 3, y: -16, width: 6, height: 7, rx: 1, fill: C.divine, opacity: .7 }, shrine)); }
+    const FOX = 'M0 0H10V-4Q10 -10 6 -12L7 -18L4 -15L2 -16L1 -19L-1 -14Q-3 -10-2 -4Q-6 -3-7 0Z'; // 앉은 여우 (오른쪽 봄)
+    for (const [fx, flip, fill, lab] of [[-50, 1, C.panel, '石 STONE'], [48, -1, C.t2, 'CHROME']] as [number, number, string, string][]) {
+      const f = el('g', { transform: `translate(${fx} 0) scale(${flip * 1.25} 1.25)` }, shrine);
+      el('rect', { x: -2, y: 0, width: 13, height: 4, fill: C.line }, f);
+      el('path', { d: FOX, fill, stroke: C.t2, 'stroke-width': .6 }, f);
+      txt(shrine, fx, -26, lab, { 'text-anchor': 'middle', 'font-size': 6.5 });
+    }
+    txt(shrine, 0, 40, '稲荷 · 여우 신사', { 'text-anchor': 'middle', 'font-size': 8.5, fill: C.t2, class: 'rm-ko' }); // 노드 이름표와 겹치지 않게 단면 아래
+
+    // 비 (화면 고정): 광공해 아래 가는 빗줄기
+    const rain: { e: SVGElement; x: number; y: number; v: number }[] = [];
+    for (let j = 0; j < 46; j++) rain.push({ e: el('line', { x1: 0, y1: 0, x2: -3, y2: 9, stroke: C.t3, 'stroke-width': .6, opacity: .55 }, fixed), x: VB[0] + rnd() * (VB[2] + 40), y: VB[1] + rnd() * VB[3], v: .18 + rnd() * .12 });
+    // 표고 자 (왼쪽 고정)
+    const ruler = el('g', {}, world);
+    for (let l = -4; l <= 8; l++) { const y = BASE - l * LH; el('path', { d: `M0 ${y}h${l % 2 ? 4 : 8}`, stroke: C.t3 }, ruler); if (!(l % 2)) txt(ruler, 11, y + 3, `EL ${l * EL >= 0 ? '+' : ''}${l * EL}`, { 'font-size': 7 }); }
+    el('path', { d: `M0 ${BASE - 8 * LH}V${BASE + 4 * LH}`, stroke: C.t3 }, ruler);
+
+    const { route, done, total, S } = track(world, [X(0), Y(0)], segs);
+    void route;
+    const marker = el('g', {}, world);
+    el('path', { d: 'M0 -7 5 1H-5Z', fill: C.sel, stroke: C.bg, 'stroke-width': 1.5, 'paint-order': 'stroke' }, marker);
+    const tokens = tokensFor(world);
+    tokens.forEach((k, i) => k.g.setAttribute('transform', `translate(${X(i)} ${Y(i) - 30})`)); // 노드는 층계참 위에 떠 있다 (말뚝 선으로 잇는다)
+    for (let i = 0; i < N; i++) el('path', { d: `M${X(i)} ${Y(i) - 10}V${Y(i)}`, stroke: C.t3, 'stroke-dasharray': '1 2' }, world);
+    corners(fixed, VB);
+    const hi = Math.max(...lv), lo = Math.min(...lv);
+    titleBlock(fixed, VB, 'RAIDEN MEGACITY · 제34블록 고저 단면도', [`라이덴 제34블록 · 페이즈 ${run.phase}`, `${N} NODES`, `고저차 ${(hi - lo) * EL}m`, 'REV.01 · 단면']);
+
+    let sp = S[cur], cx = 0;
+    const FOC = VB[0] + VB[2] * .3, MIDY = VB[1] + VB[3] * .55;
+    const cxFor = (x: number) => Math.max(X(0) - 60, Math.min(XN + 60, x)) - FOC;
+    const drawMarker = () => {
+      const p = route.getPointAtLength(Math.max(0, Math.min(total, sp)));
+      marker.setAttribute('transform', `translate(${p.x.toFixed(1)} ${(p.y - 3).toFixed(1)})`);
+      done.setAttribute('stroke-dashoffset', `${total - sp}`);
+    };
+    const drawCam = () => {
+      const cy = ((yAt(cx + FOC) + yAt(cx + FOC + STEP)) / 2 - MIDY) * .85; // 다음 칸 높이까지 미리 본다 (큰 오르막에서 앞이 잘리지 않게)
+      world.setAttribute('transform', `translate(${-cx} ${-cy})`);
+      mid.setAttribute('transform', `translate(${-cx * .6} ${-cy * .5})`);
+      para.setAttribute('transform', `translate(${-cx * PAR} ${-cy * .25})`);
+      ruler.setAttribute('transform', `translate(${cx + VB[0] + 10} 0)`);
+      recenterBtn.hidden = homing || Math.abs(cx - cxFor(X(cur))) < 4;
+    };
+    cx = cxFor(X(cur));
+    drawMarker(); drawCam(); paint(tokens, false);
+    let tx = -300;
+    tick = (t) => {
+      for (const b of blink) b.e.setAttribute('opacity', (Math.sin(t * b.w + b.ph) > -.6 ? 1 : .25).toString());
+      tx = mod(t * .05, XN * .6 + 1500) - 400; train.setAttribute('transform', `translate(${tx.toFixed(1)} 0)`);
+      for (const r of rain) { const y = mod(r.y + t * r.v, VB[3] + 20) + VB[1] - 10, x = mod(r.x - (y - VB[1]) * .33, VB[2] + 40) + VB[0] - 20; r.e.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); }
+      const fl = .55 + .35 * Math.abs(Math.sin(t * .003)) * (Math.sin(t * .021) > -.8 ? 1 : .3); // 등롱 흔들림
+      lanterns.forEach((l) => l.setAttribute('opacity', fl.toFixed(2)));
+    };
+    const off = dragger((dx) => { cx = Math.max(cxFor(-1e9), Math.min(cxFor(1e9), cx - dx)); drawCam(); });
+    return {
+      go() {
+        paint(tokens, true);
+        const s0 = sp, s1 = S[cur], c0 = cx, c1 = cxFor(X(cur)); homing = true;
+        tween(1200, (k) => { sp = s0 + (s1 - s0) * k; drawMarker(); cx = c0 + (c1 - c0) * k; drawCam(); }, () => { homing = false; drawCam(); });
+      },
+      stop: off,
+    };
+  }
+
+  // ── 카운티폴 세피아 교외: 위에서 본 계획 도시 구획도. 같은 크기 구획 · 직각 가로망 · 마당 딸린 표준 주택, 항로는 가로를 따라 직각으로만 꺾인다
+  function gridScene() {
+    const W = 800, H = 450, G = 66, RD = 13, X0 = 150, Y0 = 228; // 구획 간격 · 도로 폭
+    const VB = narrow ? [180, 30, 440, 400] : [0, 0, W, H];
+    stage.setAttribute('viewBox', VB.join(' ')); stage.style.aspectRatio = `${VB[2]} / ${VB[3]}`;
+    el('rect', { x: -200, y: -200, width: W + 400, height: H + 400, fill: C.bg }, stage);
+    const world = el('g', {}, stage), sky = el('g', {}, stage), fixed = el('g', {}, stage);
+    const rnd = rng(53 + run.phase);
+    // 노드: 두 구획마다 교차로 하나. 행은 한 칸씩만 옮긴다 (단정한 가로망), 마지막(보스)은 행정 구역 광장 앞 대로(0행)
+    const rows: number[] = [];
+    for (let i = 0, r = 0; i < N; i++) { if (i === N - 1) r = 0; else if (i && rnd() < .55) r = Math.max(-2, Math.min(2, r + (rnd() < .5 ? -1 : 1))); rows.push(r); }
+    const X = (i: number) => X0 + i * 2 * G, Y = (i: number) => Y0 + rows[i] * G, XN = X(N - 1);
+    const C0 = -5, C1 = 2 * (N - 1) + 9, R0 = -5, R1 = 5;
+    const gx = (c: number) => X0 + c * G, gy = (r: number) => Y0 + r * G;
+    // 땅 · 도로
+    el('rect', { x: gx(C0), y: gy(R0), width: (C1 - C0) * G, height: (R1 - R0) * G, fill: C.panel }, world);
+    const roads = el('g', {}, world);
+    for (let r = R0; r <= R1; r++) el('line', { x1: gx(C0), y1: gy(r), x2: gx(C1), y2: gy(r), stroke: C.panel2, 'stroke-width': r === 0 ? RD + 5 : RD }, roads);
+    for (let c = C0; c <= C1; c++) el('line', { x1: gx(c), y1: gy(R0), x2: gx(c), y2: gy(R1), stroke: C.panel2, 'stroke-width': c % 4 === 0 ? RD + 3 : RD }, roads);
+    el('line', { x1: gx(C0), y1: Y0, x2: gx(C1), y2: Y0, stroke: C.line, 'stroke-width': .7, 'stroke-dasharray': '6 5' }, roads); // 중앙 대로 차선
+    for (let c = C0; c < C1; c++) if (c % 2 === 0) txt(roads, gx(c) + 3, gy(R0) - 4, `AVE ${String.fromCharCode(65 + mod(c - C0, 26))}`, { 'font-size': 7 });
+    const ST = ['느릅나무로', '단풍나무로', '중앙대로', '참나무로', '자작나무로'];
+    for (let r = -2; r <= 2; r++) txt(roads, gx(C0) + 4, gy(r) - RD / 2 - 2, `${ST[r + 2]} · ST-${pad2(r + 3)}`, { 'font-size': 7, class: 'rm-ko' });
+    // 구획: 표준 모듈 (주택 2×2 · 공원 · 학교 · 상가). 노드 교차로를 둘러싼 칸과 보스 광장은 따로
+    const blocks = el('g', {}, world), inset = RD / 2 + 3;
+    const civC = 2 * (N - 1); // 보스 노드 열: 오른쪽 위 칸이 행정 구역
+    let kS = 0, kP = 0, kM = 0;
+    for (let c = C0; c < C1; c++) for (let r = R0; r < R1; r++) {
+      const x = gx(c) + inset, y = gy(r) + inset, w = G - 2 * inset, g = el('g', { transform: `translate(${x} ${y})` }, blocks);
+      if ((c === civC || c === civC + 1) && (r === -2 || r === -1)) continue; // 행정 구역 (아래에서 한 덩어리로)
+      if (c >= civC + 3 && r >= 2) continue; // 지구공항 (아래)
+      const u = rnd();
+      if (u < .1) { // 공원: 둘레 산책로 · 나무
+        kP++; el('rect', { width: w, height: w, fill: 'none', stroke: C.line, 'stroke-dasharray': '2 2' }, g);
+        el('path', { d: `M0 ${w / 2}H${w}M${w / 2} 0V${w}`, stroke: C.line, 'stroke-width': .6 }, g);
+        for (let k = 0; k < 7; k++) el('circle', { cx: 5 + rnd() * (w - 10), cy: 5 + rnd() * (w - 10), r: 2.2 + rnd() * 1.6, fill: C.line }, g);
+        txt(g, 2, w - 2, `PRK-${pad2(kP)}`, { 'font-size': 6 });
+      } else if (u < .16) { // 학교 모듈: 본관 + 운동장 트랙
+        kS++; el('rect', { x: 2, y: 2, width: w - 4, height: 12, fill: C.line }, g);
+        el('rect', { x: 6, y: 19, width: w - 12, height: w - 24, rx: (w - 24) / 2, fill: 'none', stroke: C.line }, g);
+        txt(g, 3, 11, `SCH-${pad2(kS)}`, { 'font-size': 6, fill: C.bg });
+      } else if (u < .22) { // 상가 모듈: 긴 동 + 주차 칸
+        kM++; el('rect', { x: 2, y: 2, width: w - 4, height: 14, fill: C.line }, g);
+        for (let k = 4; k < w - 4; k += 6) el('path', { d: `M${k} ${w - 12}v8`, stroke: C.line, 'stroke-width': .6 }, g);
+        txt(g, 3, 12, `MKT-${pad2(kM)}`, { 'font-size': 6, fill: C.bg });
+      } else { // 표준 주택 2×2: 집 · 마당 울타리 · 진입로
+        const q = w / 2;
+        for (const [qx, qy] of [[0, 0], [q, 0], [0, q], [q, q]]) {
+          el('rect', { x: qx + 1.5, y: qy + 1.5, width: q - 3, height: q - 3, fill: 'none', stroke: C.line, 'stroke-width': .5 }, g);
+          const top = qy === 0; // 위 줄 집은 위쪽 길을, 아래 줄은 아래쪽 길을 본다
+          el('rect', { x: qx + 4, y: top ? qy + 4 : qy + q - 13, width: q - 11, height: 9, fill: C.panel2, stroke: C.t3, 'stroke-width': .5 }, g);
+          el('path', { d: `M${qx + q - 5} ${top ? qy : qy + q}v${top ? 9 : -9}`, stroke: C.t3, 'stroke-width': 1.6 }, g); // 진입로 · 차고
+        }
+        if (rnd() < .3) txt(g, w / 2, w / 2 + 2.5, `R-${String.fromCharCode(65 + mod(c - C0, 26))}${pad2(r - R0 + 1)}`, { 'text-anchor': 'middle', 'font-size': 5.5 });
+      }
+    }
+    // 행정 구역 (보스 노드 오른쪽 위 2×2): 대칭 청사 · 분수 광장
+    { const x = gx(civC) + inset, y = gy(-2) + inset, w = 2 * G - 2 * inset, g = el('g', { transform: `translate(${x} ${y})` }, blocks);
+      el('rect', { width: w, height: w, fill: C.panel2, stroke: C.t3, 'stroke-width': .6 }, g);
+      el('rect', { x: w / 2 - 34, y: 10, width: 68, height: 30, fill: C.line, stroke: C.t2, 'stroke-width': .6 }, g);
+      el('rect', { x: w / 2 - 8, y: 4, width: 16, height: 10, fill: C.t3 }, g);
+      el('circle', { cx: w / 2, cy: w - 36, r: 13, fill: 'none', stroke: C.t2 }, g); el('circle', { cx: w / 2, cy: w - 36, r: 5, fill: C.line }, g);
+      el('path', { d: `M${w / 2} ${w}V${w - 23}M${w / 2} 49V40`, stroke: C.t3, 'stroke-width': 3 }, g);
+      txt(g, w / 2, 32, 'CIV-01', { 'text-anchor': 'middle', 'font-size': 7.5, fill: C.bg });
+      txt(g, w / 2, 56, '행정 구역 · 보안위원회 지부', { 'text-anchor': 'middle', 'font-size': 7, class: 'rm-ko' }); }
+    // 지구공항 활주로 (항로 끝 너머 오른쪽 아래)
+    { const x = gx(civC + 3) + inset, y = gy(2) + inset, w = (C1 - civC - 3) * G - 2 * inset, h = (R1 - 2) * G - 2 * inset, g = el('g', { transform: `translate(${x} ${y})` }, blocks);
+      el('rect', { width: w, height: h, fill: C.panel2 }, g);
+      el('rect', { x: 10, y: h / 2 - 12, width: w - 20, height: 24, fill: C.line }, g);
+      el('path', { d: `M24 ${h / 2}H${w - 24}`, stroke: C.bg, 'stroke-width': 1.5, 'stroke-dasharray': '10 8' }, g);
+      txt(g, 14, h / 2 - 18, 'CFX 카운티폴 지구공항 · RWY 09/27', { 'font-size': 7.5, fill: C.t2, class: 'rm-ko' }); }
+
+    // 항로: 교차로 i → 동쪽 한 구획 → 남북으로 행 맞춤 → 동쪽 한 구획 → 교차로 i+1 (직각으로만)
+    const segs: string[] = [];
+    for (let i = 0; i < N - 1; i++) segs.push(` H${X(i) + G} V${Y(i + 1)} H${X(i + 1)}`);
+    const rig = sweepRig(world, [G, 2 * G, 3 * G], (r) => `${Math.round(r / G) * 60}m`);
+    const { route, done, total, S } = track(world, [X(0), Y(0)], segs);
+    // 차량 (가로를 따라 같은 속도로): 단정한 교통
+    const cars: { g: SVGElement; hz: boolean; a: number; b: number; k: number; v: number; o: number }[] = [];
+    for (let j = 0; j < 22; j++) {
+      const hz = rnd() < .6, g = el('g', {}, world);
+      el('rect', { x: -3.5, y: -2, width: 7, height: 4, rx: 1.2, fill: C.t2 }, g);
+      if (hz) { const r = R0 + 1 + Math.floor(rnd() * (R1 - R0 - 1)), dir = rnd() < .5 ? 1 : -1; cars.push({ g, hz, a: gx(C0), b: gx(C1), k: gy(r) + dir * 3, v: .03 * dir, o: rnd() * 2000 }); }
+      else { const c = C0 + 1 + Math.floor(rnd() * (C1 - C0 - 1)), dir = rnd() < .5 ? 1 : -1; cars.push({ g, hz, a: gy(R0), b: gy(R1), k: gx(c) - dir * 3, v: .03 * dir, o: rnd() * 2000 }); }
+    }
+    // 보안위원회 순찰 드론 · 여객기 (그림자와 함께, 구름 없는 하늘을 가로지른다)
+    const drone = el('g', {}, world); el('circle', { r: 2.6, fill: C.t2 }, drone); contact(drone, 'SEC-03', -8);
+    const dc = [gx(2 * Math.floor(N / 2) + 1), gy(1)];
+    const plane = el('g', {}, sky), shadow = el('g', {}, sky);
+    const PL = 'M14 0L4 -2L-2 -12H-5L-1 -2H-9L-12 -6H-14L-12 0L-14 6H-12L-9 2H-1L-5 12H-2L4 2Z';
+    el('path', { d: PL, fill: C.line, opacity: .5 }, shadow); el('path', { d: PL, fill: C.t2 }, plane);
+    const marker = el('g', {}, world);
+    el('path', { d: 'M-7 -4 7 0-7 4-4 0Z', fill: C.sel, stroke: C.bg, 'stroke-width': 1.5, 'paint-order': 'stroke' }, marker);
+    const tokens = tokensFor(world);
+    tokens.forEach((k, i) => k.g.setAttribute('transform', `translate(${X(i)} ${Y(i)})`));
+    corners(fixed, VB);
+    titleBlock(fixed, VB, 'COUNTYFALL SEPIA SUBURB · 계획 도시 구획도', [`카운티폴 세피아 교외 · 페이즈 ${run.phase}`, `${N} NODES`, '표준 모듈 구획 60m', 'REV.01 · 구획도']);
+    txt(fixed, VB[0] + 32, VB[1] + 20, `CLEAR SKY · 맑음 ${312 + run.phase}일째`, { 'font-size': 7.5, fill: C.t2, class: 'rm-ko' });
+
+    let sp = S[cur], cx = 0;
+    const FOC = VB[0] + VB[2] * .3, MIDY = VB[1] + VB[3] * .52;
+    const cxFor = (x: number) => Math.max(X(0) - 40, Math.min(XN + 40, x)) - FOC;
+    const yAt = (x: number) => { if (x <= X(0)) return Y(0); for (let i = 0; i < N - 1; i++) if (x <= X(i + 1)) return Y(i) + (Y(i + 1) - Y(i)) * (x - X(i)) / (2 * G); return Y(N - 1); };
+    const drawMarker = () => {
+      const s1 = Math.max(0, Math.min(total, sp)), p = route.getPointAtLength(Math.max(0, s1 - 16)), q = route.getPointAtLength(Math.min(total, Math.max(0, s1 - 16) + 2));
+      marker.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${(Math.atan2(q.y - p.y, q.x - p.x) * 180 / Math.PI).toFixed(1)})`);
+      done.setAttribute('stroke-dashoffset', `${total - sp}`);
+      rig.g.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`);
+    };
+    let cy = 0;
+    const drawCam = () => {
+      cy = (yAt(cx + FOC) - MIDY) * .7;
+      world.setAttribute('transform', `translate(${-cx} ${-cy})`);
+      recenterBtn.hidden = homing || Math.abs(cx - cxFor(X(cur))) < 4;
+    };
+    cx = cxFor(X(cur));
+    drawMarker(); drawCam(); paint(tokens, false);
+    tick = (t) => {
+      for (const c of cars) {
+        const span = c.b - c.a, u = c.a + mod(c.o + t * c.v, span);
+        c.g.setAttribute('transform', c.hz ? `translate(${u.toFixed(1)} ${c.k})` : `translate(${c.k} ${u.toFixed(1)}) rotate(90)`);
+      }
+      const da = t * .0006; drone.setAttribute('transform', `translate(${(dc[0] + Math.cos(da) * G * .9).toFixed(1)} ${(dc[1] + Math.sin(da) * G * .6).toFixed(1)})`);
+      const pk = mod(t, 22000) / 22000, px = VB[0] - 60 + pk * (VB[2] + 160), py = VB[1] + VB[3] * .82 - pk * VB[3] * .6; // 22초마다 한 번, 화면을 비스듬히
+      plane.setAttribute('transform', `translate(${px.toFixed(1)} ${py.toFixed(1)}) rotate(-28)`);
+      shadow.setAttribute('transform', `translate(${(px + 26).toFixed(1)} ${(py + 34).toFixed(1)}) rotate(-28)`);
+      rig.set(mod(t * .04, 360));
+    };
+    const off = dragger((dx) => { cx = Math.max(cxFor(-1e9), Math.min(cxFor(1e9), cx - dx)); drawCam(); });
+    return {
+      go() {
+        paint(tokens, true);
+        const s0 = sp, s1 = S[cur], c0 = cx, c1 = cxFor(X(cur)); homing = true;
+        tween(1100, (k) => { sp = s0 + (s1 - s0) * k; drawMarker(); cx = c0 + (c1 - c0) * k; drawCam(); }, () => { homing = false; drawCam(); });
       },
       stop: off,
     };
