@@ -1521,8 +1521,9 @@ function prepScreen(run: RunState) {
       if (x < PAD || x >= fw - PAD) { cells += mine ? `<div class="cell tpad${zc ? ' zoc' : ''}" data-drop="tcell:${x}:${y}" title="포탑 전용 칸${zc ? ` · ${esc(zocShort(zocCells.get(`${x},${y}`)))}` : ''}"></div>` : `<div class="cell edge${zc ? ' zoc' : ''}"${zc ? zocTip(x, y) : ''}></div>`; continue; }
       if (tk) { // 지형 칸: 배치 불가, 누르면 지형 지물 상세. 걸어갈 수 있는 지형 (연결교 · 선로)에는 장치를 놓을 수 있다
         const walk = !(tk.bits & 1), selG = app.sel?.k === 'terrain' ? app.sel.g : -1;
-        cells += walk && placeSel >= 0 ? terrainCell(tLay, x, y, `data-a="dev-cell" data-v="${x}:${y}"${isBattle ? ` data-drop="xcell:${x}:${y}"` : ''}`, selG, false, devOk(x, y) ? 'dev-ok' : '')
-          : terrainCell(tLay, x, y, `data-a="sel-terrain" data-v="${tLay.at.get(`${x},${y}`)!.gid}"${walk && isBattle ? ` data-drop="xcell:${x}:${y}"` : ''}`, selG, !!node?.enc?.gateOpen);
+        const cdir = tk.k === 'rail' && geo.opt?.cart ? (geo.opt.cart > 0 ? 'cdir-r' : 'cdir-l') : ''; // 선로: 운반차 첫 방향 화살표 (조우마다 무작위)
+        cells += walk && placeSel >= 0 ? terrainCell(tLay, x, y, `data-a="dev-cell" data-v="${x}:${y}"${isBattle ? ` data-drop="xcell:${x}:${y}"` : ''}`, selG, false, [devOk(x, y) ? 'dev-ok' : '', cdir].filter(Boolean).join(' '))
+          : terrainCell(tLay, x, y, `data-a="sel-terrain" data-v="${tLay.at.get(`${x},${y}`)!.gid}"${walk && isBattle ? ` data-drop="xcell:${x}:${y}"` : ''}`, selG, !!node?.enc?.gateOpen, cdir);
         continue;
       }
       cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}${zc ? ' zoc' : ''}${devOk(x, y) ? ' dev-ok' : ''}" ${mine ? `data-drop="cell:${x}:${y}"` : isBattle ? `data-drop="xcell:${x}:${y}"` : ''}${placeSel >= 0 ? ` data-a="dev-cell" data-v="${x}:${y}"` : ''}${zc ? zocTip(x, y) : ''}></div>`;
@@ -2600,7 +2601,8 @@ function terrainDetail(g: Geo, grp: TerrainGroup, back: string, live?: { gate?: 
     ...(k === 'rail' ? [
       ...(cl ? [['다음 통과', cl.run ? `지나는 중 ${cartArrow(cl.dir)}` : `${cl.left}초 ${cartArrow(cl.dir)}`]] : []),
       ['운반차 통과', cartTimes()],
-      ['방향', `${cartArrow(m.cartDir || 1)} 부터 번갈아`],
+      ['첫 방향', `${cartArrow(g.opt?.cart ?? m.cartDir ?? 1)} (조우마다 무작위)`],
+      ['이후', '통과마다 반대로'],
       ['예고', `${C.warn}초 전`],
       ['피해', `최대 체력 ${Math.round(C.dmg * 100)}% (물리)`],
       ['기절', `${C.stun}초`],

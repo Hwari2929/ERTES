@@ -48,7 +48,7 @@ export interface MapDef {
   terrain?: (g: Geo) => TCell[];
   /** 크레인 적재칸 (컨테이너를 옮길 수 있는 빈 자리) */
   bays?: (g: Geo) => Bay[];
-  /** 광석 운반차: 첫 통과 방향 (1 = 오른쪽으로 · -1 = 왼쪽으로, 이후 번갈아). 시각 · 피해는 CFG.maps.cart */
+  /** 광석 운반차가 다니는 틀 (값 = 조우 정보가 없을 때의 첫 방향, 1 = 오른쪽으로). 실제 첫 방향은 조우마다 무작위 (build.ts cartDirOf → Geo.opt.cart), 이후 번갈아. 시각 · 피해는 CFG.maps.cart */
   cartDir?: 1 | -1;
   /** 수문: 닫힘 · 열림 주기 (초, 닫힌 채 시작) */
   gateCycle?: [number, number];

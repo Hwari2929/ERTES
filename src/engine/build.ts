@@ -42,8 +42,13 @@ export function geoOf(n: number, map?: string, opt?: MapOpt): Geo {
   return { n, w: n + 2 * PAD, h: (foe2 ? foe2 + ZONE : ay1 + 1) + PAD, x0: PAD, ay0, ay1, rows, foe2, map: m.id, ...(m.rot ? { rot: true } : {}), ...(opt ? { opt } : {}) };
 }
 /** 조우의 지형 선택 (편성 화면: 연결교 접기 · 크레인) → 칸 구조에 싣는다 (terrainOf 가 읽는다) */
-export const mapOptOf = (enc: Encounter | null | undefined): MapOpt | undefined =>
-  enc && (enc.bridgeFold || (enc.crane && Object.keys(enc.crane).length)) ? { ...(enc.bridgeFold ? { fold: true } : {}), ...(enc.crane ? { crane: { ...enc.crane } } : {}) } : undefined;
+export const mapOptOf = (enc: Encounter | null | undefined): MapOpt | undefined => {
+  if (!enc) return undefined;
+  const cart = mapOf(enc.map).cartDir ? cartDirOf(enc) : undefined;
+  return enc.bridgeFold || (enc.crane && Object.keys(enc.crane).length) || cart ? { ...(enc.bridgeFold ? { fold: true } : {}), ...(enc.crane ? { crane: { ...enc.crane } } : {}), ...(cart ? { cart } : {}) } : undefined;
+};
+/** 광석 운반차 첫 방향: 조우마다 무작위 (조우 seed 를 섞어서, 런 난수는 건드리지 않는다) */
+export const cartDirOf = (enc: Encounter): 1 | -1 => ((Math.imul(enc.seed | 0, 0x9e3779b1) >>> 16) & 1 ? -1 : 1);
 /** 화면 칸 ↔ 전장 칸 (UI 공용). 가로 지형(rot)은 전장을 시계 방향 90° 돌려 그린다: 전장 (x, y) → 화면 (h-1-y, x). 위 적 진형 → 오른쪽, 아래 → 왼쪽 */
 type RotG = { h: number; rot?: boolean } | null | undefined;
 export const toScr = (g: RotG, x: number, y: number) => (g?.rot ? { x: g.h - 1 - y, y: x } : { x, y });
@@ -948,7 +953,7 @@ export function applyMap(b: Battle, g: Geo, gateOpen = false) { // gateOpen: 수
     if (tk && !((c.bits ?? 0) & 1)) (b.cellTaken ||= new Float32Array(b.w * b.h))[c.y * b.w + c.x] = tk; // 연결교: 위에 선 기물이 받는 피해 +
   }
   const rail = cells.filter((c) => c.k === 'rail');
-  if (rail.length && m.cartDir) startCart(b, rail, m.cartDir);
+  if (rail.length && m.cartDir) startCart(b, rail, g.opt?.cart ?? m.cartDir);
   const gates = cells.filter((c) => c.k === 'gate');
   if (!gates.length || !m.gateCycle) return;
   const [shut, open] = m.gateCycle;

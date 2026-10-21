@@ -1,6 +1,6 @@
 // 지형 · 중립 구조물 검사: 탄도 차단 · 완전 차단 시 부수고 통과 · 틈이 있으면 우회 · 물 너머 사격 · 갈라진 적에게 기술 차단
 import { Battle, T_NOSHOT, T_NOWALK } from '../src/engine/combat';
-import { applyMap, buildBattle, buildEnemy, buildWall, encGeo, gateGroupState, gateState, geoOf, terrainPathOk, zoneAt } from '../src/engine/build';
+import { applyMap, buildBattle, cartDirOf, buildEnemy, buildWall, encGeo, gateGroupState, gateState, geoOf, terrainPathOk, zoneAt } from '../src/engine/build';
 import { crateHomes, MAPS, mapOf, rectCells, TERRAIN, terrainOf } from '../src/data/maps';
 import * as R from '../src/engine/run';
 import { UNITS } from '../src/data/units';
@@ -253,6 +253,19 @@ for (const n of [6, 7, 8]) {
   ok(shotBlock && warnSeen, '운반차: 예고 구간 · 지나는 동안 운반차 칸 사격 차단');
   ok(b.mem.cartDir === -(mapOf('sw_rail').cartDir || 1) && Math.abs(b.mem.cartNext - (C.first + C.period)) < 1e-6, `운반차: 다음 통과 ${b.mem.cartNext}초 · 방향 반대`);
   ok(![...Array(7).keys()].some((i) => b.terrainAt(g.x0 + i, ry)), '운반차: 지나간 뒤 선로는 다시 길');
+}
+// 운반차 첫 방향: 조우 seed 마다 무작위 (양쪽 다 나온다) · 편성 화면 칸 구조(Geo.opt.cart)와 전투가 같은 방향
+{
+  const dirs = [...Array(200).keys()].map((seed) => cartDirOf({ n: 7, env: '', enemies: [], mult: 1, seed, map: 'sw_rail' }));
+  const right = dirs.filter((d) => d > 0).length;
+  ok(right > 60 && right < 140, `운반차 첫 방향 무작위: 200조우 중 → ${right} · ← ${200 - right}`);
+  let same = true;
+  for (const seed of [3, 4, 5, 6]) {
+    const enc = { n: 7, env: '', enemies: [], mult: 1, seed, map: 'sw_rail' }, g = encGeo(enc), b = new Battle(g.w, g.h, new Rng(seed), { phase: 1, credits: 0 });
+    b.geo = g; applyMap(b, g);
+    if (g.opt?.cart !== cartDirOf(enc) || b.mem.cartDir !== cartDirOf(enc)) same = false;
+  }
+  ok(same, '운반차 첫 방향: 편성 화면(Geo.opt) = 전투 (b.mem.cartDir)');
 }
 // 실제 싸움: 운반차 선로에서 양쪽이 싸우는 동안 매 틱 — 통행 불가 칸 위 · 전장 밖 기물 없음, 운반차가 실제로 양쪽을 친다
 {

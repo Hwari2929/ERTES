@@ -123,7 +123,7 @@ export const NODE_NAME: Record<NodeType, string> = {
 /** 전장 칸 구조 (engine/build.ts geoOf): 배치 폭 n · 전장 w × h · 배치 구역 첫 열 x0 · 아군 진형 줄 ay0~ay1 · 아래 적 진형 첫 줄 (포위, 없으면 0) · 지형 틀 id */
 export interface Geo { n: number; w: number; h: number; x0: number; ay0: number; ay1: number; /** 아군 진형 줄 수 (보통 3, 긴 통로 4) */ rows: number; foe2: number; map: string; /** 가로 지형: 화면에 시계 방향 90° 돌려 그린다 (전장 위 → 화면 오른쪽). 엔진 좌표는 그대로 */ rot?: boolean; /** 편성 화면에서 정한 지형 상태 (연결교 접기 · 크레인 옮김) — encGeo · runGeo 가 조우에서 채운다 */ opt?: MapOpt }
 /** 지형 틀의 전투 전 선택 (data/maps.ts terrainOf): fold = 연결교를 접음 (진공 틈이 된다) · crane = 컨테이너 번호 → 적재칸 번호 */
-export interface MapOpt { fold?: boolean; crane?: Record<number, number> }
+export interface MapOpt { fold?: boolean; crane?: Record<number, number>; /** 광석 운반차 첫 방향 (조우 seed 로 무작위, 1 = 오른쪽으로) */ cart?: 1 | -1 }
 export interface EnemySpawn { defId: string; c: number; row: number; /** 포위 지형: 아래 적 진형에서 나온다 */ flip?: boolean; elite?: boolean; items?: string[]; mod?: string; stripped?: boolean } // items · mod: 위험 등급 장비 · stripped: 강제 징수기로 장비를 떼어 냄 (적 정의의 장비도 달지 않는다)
 export interface Encounter { n: number; env: string; enemies: EnemySpawn[]; mult: number; seed: number; phase?: number; add?: number; /** 편성 화면에서 배치한 소모품 (data/devices.ts) */ devices?: Device[]; /** 전장 지형 틀 (data/maps.ts, 없으면 개활지) */ map?: string; /** 수문이 열린 채 시작 (편성 화면에서 정함, 기본 닫힘) */ gateOpen?: boolean; /** 연결교를 접은 채 싸운다 (도킹 연결부, 편성 화면에서 정함) */ bridgeFold?: true; /** 크레인으로 옮긴 컨테이너: 컨테이너 번호 → 적재칸 번호 (컨테이너 환적장, 편성 화면에서 정함) */ crane?: Record<number, number> } // phase: 적 강도 기준 페이즈 (도전 = 다음 페이즈) · add: 위험 등급 적 증원으로 더한 수 (difficulty.ts)
 
