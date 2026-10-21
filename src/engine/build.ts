@@ -818,7 +818,7 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
   const b = new Battle(g.w, g.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined, globals: run.globals.length ? [...run.globals] : undefined, oaths: run.oaths, otShift: oathV(run, 'clock', 'sec') || undefined, campIntel: run.campaign && run.flags.includes('cp_intel') ? true : undefined, campIntel2: run.campaign && run.flags.includes('cp_intel2') ? true : undefined, campIntel3: run.campaign && run.flags.includes('cp_intel3') ? true : undefined, campIntel4: run.campaign && run.flags.includes('cp_intel4') ? true : undefined, campAudit: run.campaign && run.flags.includes('cp_br_audit') ? true : undefined });
   b.keepEvents = keepEvents;
   b.geo = g;
-  applyMap(b, g); // 지형 칸 · 수문
+  applyMap(b, g, !!enc.gateOpen); // 지형 칸 · 수문 (시작 상태는 편성 화면에서)
   const dep = deployed(run);
   const counts = synergyCounts(dep, run);
   const lay = layout(run, enc.n);
@@ -912,14 +912,15 @@ export function terrainCells(g: Geo): Map<string, keyof typeof TERRAIN> {
 }
 /** 지형 틀의 지형 칸을 전장에 깐다. 수문: 닫힌 채 시작해 gateCycle (닫힘 · 열림 초) 로 번갈아 (전장 이벤트로 알린다).
  *  b.mem.gateOpen = 지금 주기 (1 열림 · 0 닫힘) · b.mem.gateNext = 다음 전환 시각 (전투 시간 b.t). 칸마다 실제로 막혔는지는 b.terrain 비트 (gateState) */
-export function applyMap(b: Battle, g: Geo) {
+export function applyMap(b: Battle, g: Geo, gateOpen = false) { // gateOpen: 수문이 열린 채 시작 (편성 화면에서 정함)
   const m = mapOf(g.map), cells = m.terrain?.(g) || [];
   for (const c of cells) b.setTerrain(c.x, c.y, TERRAIN[c.k].bits);
   const gates = cells.filter((c) => c.k === 'gate');
   if (!gates.length || !m.gateCycle) return;
   const [shut, open] = m.gateCycle;
-  b.mem.gateOpen = 0;
-  b.mem.gateNext = shut;
+  b.mem.gateOpen = gateOpen ? 1 : 0;
+  b.mem.gateNext = gateOpen ? open : shut;
+  if (gateOpen) for (const c of gates) b.setTerrain(c.x, c.y, 0);
   // 닫힘 주기에 아직 열린 칸 (닫힐 때 기물이 서 있던 칸 = 폐쇄 대기): 매 틱 살펴 비는 즉시 닫는다 (기물 위로는 닫지 않는다)
   const seal = (gen: number) => {
     if (b.mem.gateOpen || b.mem.gateGen !== gen) return; // 이미 열림 주기로 넘어갔거나 새 주기가 시작됨
@@ -941,7 +942,7 @@ export function applyMap(b: Battle, g: Geo) {
     b.emit({ k: 'fx', x: gates[0].x + (gates.length - 1) / 2, y: gates[0].y, r: 1, elem: 'phys', kind: 'aura' });
     b.later(b.mem.gateNext - b.t, flip);
   };
-  b.later(shut, flip);
+  b.later(b.mem.gateNext, flip);
 }
 export type GateState = 'open' | 'shut' | 'pending';
 /** 수문 칸 하나의 실제 상태: 열림 · 닫힘 · 폐쇄 대기 (닫힘 주기인데 기물이 서 있어 아직 열린 칸) */

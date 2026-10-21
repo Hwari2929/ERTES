@@ -1509,7 +1509,7 @@ function prepScreen(run: RunState) {
       const tk = land.get(`${x},${y}`);
       const zc = zocCells.has(`${x},${y}`);
       if (x < PAD || x >= fw - PAD) { cells += mine ? `<div class="cell tpad${zc ? ' zoc' : ''}" data-drop="tcell:${x}:${y}" title="포탑 전용 칸${zc ? ` · ${esc(zocShort(zocCells.get(`${x},${y}`)))}` : ''}"></div>` : `<div class="cell edge${zc ? ' zoc' : ''}"${zc ? zocTip(x, y) : ''}></div>`; continue; }
-      if (tk) { cells += terrainCell(tLay, x, y, `data-a="sel-terrain"`, app.sel?.k === 'terrain' ? app.sel.g : -1); continue; } // 지형 칸: 배치 · 장치 불가, 누르면 지형 지물 상세
+      if (tk) { cells += terrainCell(tLay, x, y, `data-a="sel-terrain"`, app.sel?.k === 'terrain' ? app.sel.g : -1, !!node?.enc?.gateOpen); continue; } // 지형 칸: 배치 · 장치 불가, 누르면 지형 지물 상세
       cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}${zc ? ' zoc' : ''}${devOk(x, y) ? ' dev-ok' : ''}" ${mine ? `data-drop="cell:${x}:${y}"` : isBattle ? `data-drop="xcell:${x}:${y}"` : ''}${placeSel >= 0 ? ` data-a="dev-cell" data-v="${x}:${y}"` : ''}${zc ? zocTip(x, y) : ''}></div>`;
     }
   let units = '';
@@ -1563,7 +1563,8 @@ function prepScreen(run: RunState) {
   const canFill = bench.some((u) => R.canDeploy(run, u));
   const mapChip = node?.enc?.map && node.enc.map !== 'open' ? mapPill(node.enc.map) : '';
   const env = node?.enc ? `${node.enc.env} · 폭 ${n}칸${node.type === 'adversity' ? ' · 역경' : ''}${node.type === 'challenge' ? ` · 도전 (P${node.enc.phase} 역경급)` : ''}${node.type === 'boss' ? ' · 보스전' : ''}` : '편성 관리';
-  const foldR = !!loadPrefs().prepFold, boardFit = !!loadPrefs().boardFit;
+  const picked = !!app.sel && app.sel.k !== 'item' && app.sel.k !== 'relic'; // 상세가 있는 선택 (기물 · 적 · 지형 · 포탑 · 공왕)
+  const foldR = !!loadPrefs().prepFold && !picked, boardFit = !!loadPrefs().boardFit; // 접어 둔 패널도 무언가를 고르면 저절로 펼치고, 선택을 풀면 다시 접힌다
   return `<main class="wrap prep${foldR ? ' fold-r' : ''}">
     <aside class="side left">
       <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
@@ -2412,7 +2413,7 @@ function foeItemTip(el: HTMLElement, id: string) {
 function detailPanel(run: RunState, extra = '') {
   const sel = app.sel;
   const bar = dBar('desel', extra);
-  if (sel?.k === 'terrain') { const g = runGeo(run), grp = terrainGroups(g)[sel.g]; return grp ? terrainDetail(g, grp, 'desel') : ''; }
+  if (sel?.k === 'terrain') { const g = runGeo(run), grp = terrainGroups(g)[sel.g]; return grp ? terrainDetail(g, grp, 'desel', undefined, run.node?.enc ? !!run.node.enc.gateOpen : undefined) : ''; }
   if (sel?.k === 'enemy' && run.node?.enc) {
     const s = run.node.enc.enemies[sel.i];
     if (!s) return '';
@@ -2501,9 +2502,9 @@ function terrainLayer(g: Geo): TerrainLayer {
   const mid = groups.map((grp) => ({ x: grp.cells.reduce((a, c) => a + c.x, 0) / grp.cells.length, y: grp.cells.reduce((a, c) => a + c.y, 0) / grp.cells.length }));
   return { groups, at, mid };
 }
-function terrainCell(l: TerrainLayer, x: number, y: number, act: string, selG: number) {
+function terrainCell(l: TerrainLayer, x: number, y: number, act: string, selG: number, gateOpen = false) {
   const c = l.at.get(`${x},${y}`)!, k = l.groups[c.gid].k, t = TERRAIN[k];
-  return `<div class="cell tr tr-${k} ${c.edge}${c.gid === selG ? ' tr-sel' : ''}" ${act} data-v="${c.gid}" data-tg="${c.gid}" title="${esc(`${t.name} — ${t.desc}`)}"></div>`;
+  return `<div class="cell tr tr-${k} ${c.edge}${c.gid === selG ? ' tr-sel' : ''}${k === 'gate' && gateOpen ? ' open' : ''}" ${act} data-v="${c.gid}" data-tg="${c.gid}" title="${esc(`${t.name} — ${t.desc}`)}"></div>`;
 }
 /** 지형 지물 아이콘: 덩어리마다 1개, 무게중심에 (누름은 아래 칸이 받는다). box = 칸 1개 크기 자리 (소수 좌표 가능) */
 const terrainIcons = (l: TerrainLayer, box: (x: number, y: number) => string) =>
@@ -2515,10 +2516,11 @@ function gateLive(b: Battle, grp: TerrainGroup): GateLive {
 }
 const GATE_NAME: Record<GateState, string> = { open: '열림', shut: '닫힘', pending: '폐쇄 대기' };
 /** 지형 지물 상세 (편성 · 전투 오른쪽 패널, 기물 상세와 같은 틀): 이름 + 성질 칩, 이름 + 값 줄. live = 전투 중 수문 상태 (없으면 편성 화면: 닫힌 채 시작) */
-function terrainDetail(g: Geo, grp: TerrainGroup, back: string, live?: GateLive) {
+/** start = 편성 화면의 수문 시작 상태 (열림 true · 닫힘 false, undefined = 조우 밖) — 단추로 바꾼다 */
+function terrainDetail(g: Geo, grp: TerrainGroup, back: string, live?: GateLive, start?: boolean) {
   const t = TERRAIN[grp.k], m = mapOf(g.map), gate = grp.k === 'gate';
   const [shut, open] = m.gateCycle || [0, 0];
-  const gs: GateState = live?.state ?? 'shut';
+  const gs: GateState = live?.state ?? (start ? 'open' : 'shut');
   const bl = gate && gs === 'open' ? { walk: false, shot: false } : terrainBlocks(grp.k);
   const chip = (cls: string, icon: string, label: string, tip: string) => `<span class="tchip ${cls}" data-kw="foe" data-tt="${esc(label)}" data-td="${esc(tip)}" tabindex="0" role="button">${lineIcon(icon, 'li')}${label}</span>`;
   const chips = (bl.walk ? chip('bad', 'u.area', '통행 불가', '들어가거나 지나갈 수 없다') : chip('', 'u.area', '통행 가능', '지금은 길이다'))
@@ -2530,7 +2532,7 @@ function terrainDetail(g: Geo, grp: TerrainGroup, back: string, live?: GateLive)
     ['크기', `${grp.cells.length}칸`],
     ...(gate ? [
       ['상태', gs === 'pending' ? `${GATE_NAME.pending} (${live!.pend}칸)` : GATE_NAME[gs]],
-      ['다음 전환', live ? `${live.left}초 → ${gs === 'open' ? '닫힘' : '열림'}` : `${shut}초 → 열림`],
+      ['다음 전환', live ? `${live.left}초 → ${gs === 'open' ? '닫힘' : '열림'}` : start ? `${open}초 → 닫힘` : `${shut}초 → 열림`],
       ['주기', `닫힘 ${shut}초 → 열림 ${open}초`],
       ['예외', '통과 중에는 닫히지 않음'],
     ] as [string, string][] : []),
@@ -2542,6 +2544,7 @@ function terrainDetail(g: Geo, grp: TerrainGroup, back: string, live?: GateLive)
   return `<div class="detail dp-terrain">${dBar(back)}
     ${heroHead('', `<span class="tr-hero tr-${grp.k}">${lineIcon(t.icon, 'li')}</span>`, t.name, chips)}
     <p class="small foe-line">${esc(t.lore)}</p>
+    ${gate && !live && start !== undefined ? `<div class="gate-start"><span class="small muted">전투 시작 때</span><span class="seg">${[false, true].map((o) => `<button class="btn small${o === start ? ' on' : ''}" data-a="gate-start" data-v="${o ? 1 : 0}" aria-pressed="${o === start}">${o ? '열림' : '닫힘'}</button>`).join('')}</span></div>` : ''}
     <h3>성질</h3><dl class="um-types ct-rules">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
   </div>`;
 }
@@ -4886,6 +4889,7 @@ function act(a: string, v: string) {
     }
     case 'tunequip': if (run) { const [i, k] = v.split(':'); const e = R.unequipTurret(run, +i, +k); if (e) toast(e); persist(); } break;
     case 'sel-clear': app.sel = null; break;
+    case 'gate-start': if (run?.node?.enc) { run.node.enc.gateOpen = v === '1' || undefined; persist(); } break; // 수문 시작 상태 (편성 화면 지형 상세)
     case 'sel-terrain':
       if (app.sel?.k === 'item' && run && isConsumable(run.inventory[app.sel.idx])) { toast(isPlaceable(run.inventory[app.sel.idx]) ? '지형 칸에는 놓을 수 없습니다.' : `${R.WRONG_TARGET}.`); app.sel = null; break; }
       app.abilPop = null; app.sel = app.sel?.k === 'terrain' && app.sel.g === +v ? null : { k: 'terrain', g: +v }; break;

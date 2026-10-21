@@ -1,4 +1,8 @@
+import { CFG } from '../config';
 import type { Geo } from '../types';
+
+/** 긴 통로 폭 5칸 몫 (페이즈별, CFG.maps.wide5) */
+const wide5 = (p: number) => CFG.maps.wide5[Math.min(CFG.maps.wide5.length, Math.max(1, p)) - 1];
 
 /** 전투 지형 칸 (engine/combat.ts T_NOWALK · T_NOSHOT 비트와 같은 값): 물 = 통행 불가 (탄은 넘어감) · 유리 온실 = 통행 불가 (보이고 쏠 수 있음) · 벽 · 탱크 = 둘 다 막음 · 수문 = 닫히면 벽, 열리면 길 */
 export type TerrainKind = 'water' | 'glass' | 'wall' | 'tank' | 'gate';
@@ -24,6 +28,8 @@ export interface MapDef {
   surround?: boolean;
   /** 배치 폭을 이 값으로 (통로) */
   narrow?: number;
+  /** 공용 틀 안에서의 무게 배율 (페이즈에 따라, 기본 1) — 긴 통로 4칸 · 5칸이 한 자리를 나눠 가진다 */
+  phaseW?: (phase: number) => number;
   /** 아군 진형 줄 수 (기본 3). 저장 배치 r 이 이 줄 수까지 쓰인다 (다른 지형에서는 가까운 빈칸으로) */
   allyRows?: number;
   /** 이 전장(FieldDef.id)에서만 나온다 (없으면 공용) */
@@ -58,7 +64,8 @@ function pattern(rows: string[]) {
 export const MAPS: MapDef[] = [
   { id: 'open', name: '개활지', desc: '막힌 곳 없는 평지.' },
   // ── 공용 지형 틀
-  { id: 'corridor', name: '긴 통로', narrow: 4, allyRows: 4, gap: 5, desc: '좁고 긴 통로. 적이 줄지어 다가온다.' },
+  { id: 'corridor', name: '긴 통로', narrow: 4, phaseW: (p) => 1 - wide5(p), allyRows: 4, gap: 5, desc: '좁고 긴 통로. 적이 줄지어 다가온다.' },
+  { id: 'corridor5', name: '긴 통로', narrow: 5, phaseW: wide5, allyRows: 4, gap: 5, desc: '좁고 긴 통로. 적이 줄지어 다가온다.' },
   { id: 'surround', name: '포위', surround: true, desc: '아군이 가운데, 적이 위아래에서 조여 온다.' },
   // ── 리빈 낙원동 (방역 시즌)
   { id: 'lv_gate', field: 'livin', name: '방역 수문', gap: 3, gateCycle: [8, 6],

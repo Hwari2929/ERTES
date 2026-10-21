@@ -4533,3 +4533,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .lab-panel { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: min(54vh, 520px); border-radius: var(--r-lg) var(--r-lg) 0 0; border-bottom: 0; }
   .lab-fab { bottom: 72px; }
 }
+/* 수문 시작 상태 단추 (편성 화면 지형 상세) */
+.gate-start { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.gate-start .seg { display: inline-flex; gap: 2px; }
+.gate-start .btn.on { border-color: var(--c-select); background: color-mix(in srgb, var(--c-select) 18%, var(--panel-2)); }

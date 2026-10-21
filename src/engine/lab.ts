@@ -292,6 +292,9 @@ export function setLabEncMult(run: RunState, m: number) {
 function labResolve(run: RunState, b: Battle): R.BattleSummary {
   const won = b.winner === 0;
   const enc = run.node?.enc;
+  // 놓았던 장치는 전투 뒤 보관함으로 돌려받는다 (다음 칸에 저절로 다시 놓이지 않는다)
+  let back = 0;
+  if (enc?.devices?.length) { back = enc.devices.length; while (enc.devices.length) R.recallDevice(run, enc.devices.length - 1); }
   if (enc) (run.lab ||= {}).last = clone(enc);
   if (won) run.stats.wins++; else run.stats.losses++;
   run.stats.kills += b.counters.kills;
@@ -300,7 +303,7 @@ function labResolve(run: RunState, b: Battle): R.BattleSummary {
   log(run, `훈련 ${at}칸 ${won ? '승리' : '패배'}`);
   R.advance(run);
   enterLabNode(run);
-  return { won, lines: [`훈련 ${at}/${run.map.length}칸 ${won ? '승리' : '패배'}`, '훈련장: 보상 · 피해 · 기록 없음', run.lab?.fresh ? '다음 칸: 새 조우' : '다음 칸: 같은 구성'], xp: [], hpLoss: 0, gameOver: false, items: [] };
+  return { won, lines: [`훈련 ${at}/${run.map.length}칸 ${won ? '승리' : '패배'}`, '훈련장: 보상 · 피해 · 기록 없음', ...(back ? [`장치 ${back}개 회수 (보관함)`] : []), run.lab?.fresh ? '다음 칸: 새 조우' : '다음 칸: 같은 구성'], xp: [], hpLoss: 0, gameOver: false, items: [] };
 }
 R.LAB_HOOK.enc = labEncounter;
 R.LAB_HOOK.resolve = labResolve;

@@ -133,7 +133,9 @@ export const CFG = {
   bossBoard: 7,
   /** 전장 지형 틀 (data/maps.ts, run.ts pickMap): 일반 · 역경 · 도전 전투에서 그 전장 전용 틀 확률 · 아니면 공용 틀 (긴 통로 · 포위) 확률.
    *  repeat: 직전 · 그 전 전투와 같은 틀의 가중치 (연달아 같은 지형이 덜 나오게) */
-  maps: { field: 0.45, common: 0.2, repeat: [0.2, 0.5] as [number, number] },
+  maps: { field: 0.45, common: 0.2, repeat: [0.2, 0.5] as [number, number],
+    /** 긴 통로 중 폭 5칸 (corridor5) 이 나올 몫: 페이즈 1 · 2 · 3 · 4 · 5+ (나머지는 폭 4칸). 초반은 4칸 위주, 후반은 거의 5칸 */
+    wide5: [0.15, 0.35, 0.6, 0.85, 0.95] },
   rarePhase: 3, // 아문센 · 데미우르고스가 영입 후보에 나오는 페이즈 (배치 제한은 없음)
   /** 최고의 친구 소환물 스탯 상속률 (build.ts spawnSummons): 시너지가 꺼져 있을 때의 기본값 · 추가로 불린 소환물(2번째부터)의 배율 · 상한 */
   bond: { base: 0.35, extra: 0.8, cap: 6 },
