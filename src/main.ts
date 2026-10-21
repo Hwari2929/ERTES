@@ -292,6 +292,7 @@ const SPECIAL_GLYPH: Record<string, string> = {
   O_mirror: 'a.shield', O_echo: 'a.cd', O_soul: 'a.dmg', O_aegis: 'r.hp', O_void: 'a.crit', O_abyss: 'e.psy', O_grail: 'a.heal', O_codex: 'a.power',
   K_rank: 'r.res', K_morph: 'a.summon', K_legend: 'a.power', K_copy: 'a.reload', K_strip: 'u.area', K_reroll: 'a.cd', K_xp: 'k.inj1', K_xp2: 'k.inj2', K_xp3: 'k.inj3',
   K_seize: 'k.seize', K_rank3: 'k.rank3', K_bread: 'k.bread', K_bread_stale: 'k.bread_stale',
+  K_cp_purge: 'k.purge', K_cp_note: 'k.note', K_cp_tape: 'k.tape',
   E_gyro: 'a.range', E_ricochet: 'u.target', E_coolant: 'a.speed', E_projector: 'a.shield', E_shock: 'a.stun', E_reactive: 'a.hp', E_twin: 'u.mag', E_frag: 'u.area', E_nano: 'r.hp', E_rail: 'a.snipe', E_spin: 'a.reload', E_link: 'p.tac',
   T_cal: 'a.dmg', T_plate: 'a.hp', T_cryo: 's.chrono', T_ammo: 'u.mag', T_barrier: 'a.shield', T_selfd: 'u.area', T_rapid: 'a.speed', T_tesla: 'e.elec', T_flame: 's.pyro', T_snipe: 'a.snipe', T_mark: 'u.target',
 };
@@ -510,7 +511,7 @@ function ctypeRuleHtml(ct: string, detail: boolean) {
 }
 /** 전술 유형 공통 규칙: 공명 등급마다 모든 능력치 +1, 이정표 보상은 유형별 */
 const TTYPE_RULE: Record<TType, string> = {
-  major: `공명 등급마다 모든 주요 능력치 +1. 4등급마다 기물 전용 증강 1개 (최대 ${CFG.majorAugMax}개, 일반 12 · ★ 전설 2 중에서). 고유 궁극기는 시간이 지나면 저절로 차오르고 (기본 약 ${CFG.ultTime}초, 전투 시작 ${Math.round(CFG.ultStart * 100)}%), 기본 공격 · 전투 스킬 · 피격 때도 조금씩 찬다. 한 전투에 여러 번 쓸 수 있다.`,
+  major: `공명 등급마다 모든 주요 능력치 +1. 4등급마다 기물 전용 증강 1개 (최대 ${CFG.majorAugMax}개, 일반 12 · ★ 전설 2 중에서). 고유 궁극기는 시간이 지나면 저절로 차오르고 (기본 약 ${Math.round(CFG.ultTime * CFG.ultNeed)}초, 전투 시작 ${Math.round(CFG.ultStart * 100)}%), 기본 공격 · 전투 스킬 · 피격 때도 조금씩 찬다. 한 전투에 여러 번 쓸 수 있다.`,
   minor: '공명 등급마다 모든 주요 능력치 +1. 3등급마다 주요 능력치 2종 +3. 기술 계수와 특성 수치가 등급에 따라 자란다 (10등급 ×2, 20등급 ×3).',
   special: `공명 등급마다 모든 주요 능력치 +1. 4등급마다 기물 전용 증강 1개 (최대 ${CFG.majorAugMax}개).`,
   psionic: '공명 등급마다 모든 주요 능력치 +1. 기물마다 학파가 정해져 있고, 합류할 때 그 학파의 전공을 고른다 (비술 + 지속 능력). 4 · 8 · 12 · 16등급에 전공 증강 (최대 4개, 16등급에 완성).',
@@ -549,7 +550,7 @@ function supplyHtml(p: Extract<Pending, { t: 'supply' }>) {
       : c.items.map((id) => `<span class="sup-ic">${itemIcon(id)}</span><b class="t${itemInfo(id).tier}">${esc(itemInfo(id).name)}</b><span>${statIc(esc(itemInfo(id).desc))}</span>`).join('');
     return `<div class="card sup-card open sup-${c.kind}${c.mult > 1 ? ' jp' : ''}" data-sup="${i}">${jp}${body}</div>`;
   };
-  return `<h1>보급</h1><p class="muted small">보급품 ${p.options.length}장을 모두 받습니다. 뒤집기 전에는 무엇이 들었는지 모릅니다 · ${p.route ? '항로 보급: 첫 장은 장비 재료 확정, 대박 없음' : `장마다 대박 확률 ${jackpotTxt()} (가치 배율)`}.</p>
+  return `<h1>보급</h1><p class="muted small">보급품 ${p.options.length}장을 모두 받습니다. 뒤집기 전에는 무엇이 들었는지 모릅니다 · ${p.route ? '항로 보급: 첫 장은 장비 재료 확정, 대박 없음' : `장마다 대박 확률 ${jackpotTxt()} (가치 배율)`} · 마지막 장: ${app.run && R.solventOn(app.run) ? '분리 용제 또는 재구성 회로' : '재구성 회로 또는 공명도'}.</p>
     <div class="cards sup-cards">${p.options.map(face).join('')}</div>
     <div class="row-btns">${left ? `<button class="btn primary" data-a="supply-all">모두 뒤집기 (${left}장)</button>` : '<button class="btn primary" data-a="supply-done">계속</button>'}</div>`;
 }
@@ -1666,7 +1667,7 @@ function ultCard(d: UnitDef, b: Battle | null, c: CUnit | null, live = false) {
   const ul = ULTS[d.id];
   if (!ul || d.ttype !== 'major') return '';
   const eff = c && b ? b.S(c, 'ultCharge') : 0;
-  const sec = CFG.ultTime / (ul.charge * Math.max(0.1, 1 + eff));
+  const sec = (CFG.ultTime * CFG.ultNeed) / (ul.charge * Math.max(0.1, 1 + eff));
   const chips = `<div class="ab-chips"><span class="abc" title="자연 충전 주기">${lineIcon('a.cd', 'li')}${sec.toFixed(0)}초</span><span class="abc" title="전투 시작 게이지">${lineIcon('a.battery', 'li')}시작 ${Math.round((CFG.ultStart + (c?.mem.ultStart || 0)) * 100)}%</span>${live && c ? `<span class="abc v">${Math.round((c.ultG || 0) * 100)}%</span>` : ''}</div>`;
   return abilCard('ult', 'ult', ul.name, `약 ${sec.toFixed(0)}초`, `${chips}<p>${statIc(esc(ul.desc))}</p>`, '', `ult.${d.id}`);
 }
@@ -1839,7 +1840,7 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     body = info ? AB.skillBody(info, actx(b, c, true), b && c ? b.S(c, 'range') : d.range, cd, gl) : `<p>${esc(d.skill.desc(p))}</p><p class="muted small">쿨다운 ${cd.toFixed(1)}초</p>`;
   } else if (key === 'ult' && ULTS[d.id]) {
     const ul = ULTS[d.id];
-    const sec = CFG.ultTime / (ul.charge * Math.max(0.1, 1 + (c && b ? b.S(c, 'ultCharge') : 0)));
+    const sec = (CFG.ultTime * CFG.ultNeed) / (ul.charge * Math.max(0.1, 1 + (c && b ? b.S(c, 'ultCharge') : 0)));
     kind = '궁극기'; name = ul.name; mech = `시간이 지나면 저절로 차오른다 (약 ${sec.toFixed(0)}초, 전투 시작 ${Math.round(CFG.ultStart * 100)}%). 가득 차면 다음 행동에 기술보다 먼저 발동하고, 한 전투에 여러 번 쓸 수 있다. 충전 효율이 높을수록 빨리 찬다.`;
     body = `<p>${statIc(esc(ul.desc))}</p><p class="muted small">“${esc(ul.line)}”</p>`;
   } else if (key === 'cantrip') {

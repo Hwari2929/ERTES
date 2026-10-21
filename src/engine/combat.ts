@@ -665,7 +665,7 @@ export class Battle {
     if (!u.ult || (u.ultG || 0) >= 1) return;
     if (src === 'hurt') { if ((u.mem.ultHurtT || 0) > this.t) return; u.mem.ultHurtT = this.t + CFG.ultGain.hurtIcd; u.mem.ultHurtAt = this.t; }
     const g0 = u.ultG || 0;
-    u.ultG = Math.min(1, g0 + k * u.ult.charge * Math.max(0.1, 1 + this.S(u, 'ultCharge')));
+    u.ultG = Math.min(1, g0 + (k / CFG.ultNeed) * u.ult.charge * Math.max(0.1, 1 + this.S(u, 'ultCharge')));
     u.mem[`ug.${src}`] = (u.mem[`ug.${src}`] || 0) + (u.ultG - g0);
   }
   /** 지금 행동 중인 기물 (보호막 제공자 집계용) */

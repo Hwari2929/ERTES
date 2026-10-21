@@ -968,7 +968,14 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     if (fw) { income += fw; lines.push(`전장 조건 · 계약 정산 +${fw}`); }
     // 전투 보상 소모품: 분리 용제 · 재구성 회로 · 공명 주입기 (주입기 크기는 페이즈에 따라) 중 하나
     const uc = CFG.drop.utility[type] || 0;
-    if (uc && rng(run, (r) => r.chance(uc))) gainItem(run, rng(run, (r) => { const k = r.pick(['K_strip', 'K_reroll', 'inject', 'K_cp_purge', 'K_cp_note']); return k === 'inject' ? pickInjector(r, p) : k; }), lines);
+    if (uc && rng(run, (r) => r.chance(uc))) {
+      const k = rng(run, (r) => { const k = r.pick(['K_strip', 'K_reroll', 'inject', 'K_cp_purge', 'K_cp_note']); return k === 'inject' ? pickInjector(r, p) : k; });
+      if (k === 'K_strip' && !solventOn(run)) { // 분리 용제가 안 나오는 런: 같은 값의 공명도를 파티에 분배
+        const xp = Math.max(1, Math.round(CFG.shop.price.K_strip / XP_VALUE));
+        distributeXp(run, xp); run.units.forEach((u) => settleXp(run, u));
+        lines.push(`공명도 ${xp} 분배`);
+      } else gainItem(run, k, lines);
+    }
     // 전설 소모품 (따로 굴림): 강제 징수기 (적이 장비를 다는 위험 등급에서만) · 원초 공명석
     if (foeGearOn(run) && rng(run, (r) => r.chance(CFG.drop.seize[type] || 0))) gainItem(run, 'K_seize', lines);
     if (rng(run, (r) => r.chance(CFG.drop.rank3[type] || 0))) gainItem(run, 'K_rank3', lines);
@@ -1311,7 +1318,7 @@ export const sellPrice = (run: RunState, id: string) => (id === 'K_bread' || id 
 /** 공명 주입기 1개: 페이즈에 맞는 크기 (injectorWeights 가중치) */
 const pickInjector = (r: Rng, phase: number) => r.weighted(injectorWeights(phase), ([, w]) => w)[0];
 
-function genShop(run: RunState) {
+export function genShop(run: RunState) {
   return rng(run, (r) => {
     const stock: ShopSlot[] = [];
     const mul = (fieldOf(run.field).shopMul || 1) * despairPrice(run) * (hasGlobal(run, 'G.discount') ? 1 - GA.discount : 1);
@@ -1328,11 +1335,12 @@ function genShop(run: RunState) {
       if (r.chance(S.gearAdv)) stock.push({ item: r.pick(ALL_ADVANCED), price: pr('A'), sold: false });
       else stock.push({ item: r.pick(ALL_GRADED), price: pr('G'), sold: false });
     }
-    // 소모품 (종종): 공명 주입기 (페이즈에 맞는 크기) · 분리 용제 · 재구성 회로 중 하나
-    if (r.chance(S.cons)) {
-      const k = r.weighted(Object.keys(S.consW), (x) => S.consW[x]);
-      const id = k === 'inject' ? pickInjector(r, run.phase) : k;
-      stock.push(sp(id));
+    // 소모품: 서로 다른 종류 S.consMin 개 확정 (+ S.cons 확률로 1개 더). 공명 주입기는 페이즈에 맞는 크기, 분리 용제는 고난 이상 일반 런만
+    const ks = Object.keys(S.consW).filter((k) => k !== 'K_strip' || solventOn(run));
+    for (let n = S.consMin + (r.chance(S.cons) ? 1 : 0); n > 0 && ks.length; n--) {
+      const k = r.weighted(ks, (x) => S.consW[x]);
+      ks.splice(ks.indexOf(k), 1); // 가중치 비복원 추출: 서로 다른 종류
+      stock.push(sp(k === 'inject' ? pickInjector(r, run.phase) : k));
     }
     // 전설 소모품: 강제 징수기 (종종, 적이 장비를 다는 위험 등급에서만) · 원초 공명석 (희귀)
     if (foeGearOn(run) && r.chance(S.seize)) stock.push(sp('K_seize'));
@@ -1552,12 +1560,14 @@ export function investedXp(rank: number, xp = 0) {
 /** 가치 환산 (크레딧 기준, CFG.supply 주석): 공명도 1 = 직접 구매 단가, 장비 = 상점 기본가 */
 export const XP_VALUE = CFG.buyXpCost / CFG.buyXpAmount;
 export const gearValue = (id: string) => CFG.price[itemInfo(id).tier] ?? CFG.price.C;
-export const supplyValue = (c: Pick<SupplyCard, 'credits' | 'xp' | 'items'>) => c.credits + c.xp * XP_VALUE + c.items.reduce((s, id) => s + (isInjector(id) ? injectAmount(id) * XP_VALUE : gearValue(id)), 0);
+export const supplyValue = (c: Pick<SupplyCard, 'credits' | 'xp' | 'items'>) => c.credits + c.xp * XP_VALUE + c.items.reduce((s, id) => s + (isInjector(id) ? injectAmount(id) * XP_VALUE : CFG.shop.price[id] ?? gearValue(id)), 0);
+/** 분리 용제가 나오는 런인지: 고난(solventFrom) 이상 일반 런만. 모험 이하 · 캠페인은 분리 용제를 주지 않고 그 몫을 공명도로 준다 (보급 마지막 칸 · 전투 소모품 · 상점) */
+export const solventOn = (run: RunState) => !run.campaign && (run.diff || 0) >= CFG.solventFrom;
 /** 갓 영입한 rank 등급 기물을 바로 방출할 때 받는 환급 가치 (releaseValue 와 같은 식) */
 export function releaseGain(rank: number) {
   return CFG.release.base + CFG.release.perRank * rank + Math.round(investedXp(rank) * CFG.release.xpShare) * XP_VALUE;
 }
-/** 보급 3장 합계 기준 가치: max(페이즈 하한, 지금 영입할 기물을 바로 방출한 환급 × ratio) */
+/** 보급 기준 가치 (valueCards 장 합계): max(페이즈 하한, 지금 영입할 기물을 바로 방출한 환급 × ratio) */
 export const supplyBase = (run: RunState) => Math.max(CFG.supply.floor(run.phase), releaseGain(recruitRank(run)) * CFG.supply.ratio);
 /** 장비 카드: 가치 v 를 가장 가까운 두 등급(상점 기본가) 사이에서 확률로 (기대 가치 = v, 범위 밖이면 끝 등급). 전설은 대박 카드만 (legendFrom 페이즈부터) */
 function supplyGear(run: RunState, r: Rng, v: number, jackpot: boolean): string {
@@ -1573,13 +1583,22 @@ function supplyGear(run: RunState, r: Rng, v: number, jackpot: boolean): string 
   if (t === 'L') return 'L_' + r.pick(ALL_ADVANCED).slice(2);
   return r.chance(S.graded) ? r.pick(ALL_GRADED) : r.pick(ALL_ADVANCED);
 }
-/** 보급품 카드 (뒷면): 장마다 종류 무작위 (겹쳐도 됨), 가치 = 기준 ÷ 장 수 × (1 ± spread) × 대박 배율 */
+/** 보급품 카드 (뒷면): 장마다 종류 무작위 (겹쳐도 됨), 가치 = 기준 ÷ valueCards × (1 ± spread) × 대박 배율.
+ *  마지막 장은 장비 정비 소모품 확정: 분리 용제 · 재구성 회로 중 하나 (분리 용제가 안 나오는 런이면 그 몫은 공명도 카드) */
 export function genSupply(run: RunState, onMap = false): SupplyCard[] {
-  const S = CFG.supply, per = supplyBase(run) / S.cards;
+  const S = CFG.supply, per = supplyBase(run) / S.valueCards;
   const kinds = Object.keys(S.kindW) as SupplyCard['kind'][];
   const total = kinds.reduce((s, k) => s + S.kindW[k], 0);
   // 항로 보급 (onMap): 첫 장은 장비 재료 확정, 대박 없음
   return rng(run, (r) => Array.from({ length: S.cards }, (_, i): SupplyCard => {
+    if (i === S.cards - 1) {
+      const id = r.pick(['K_strip', 'K_reroll']);
+      const c: SupplyCard = id === 'K_strip' && !solventOn(run)
+        ? { kind: 'xp', xp: Math.max(1, Math.round(per / XP_VALUE)), credits: 0, items: [], value: 0, mult: 1 }
+        : { kind: 'gear', xp: 0, credits: 0, items: [id], value: 0, mult: 1 };
+      c.value = supplyValue(c);
+      return c;
+    }
     let roll = r.next() * total;
     const kind = onMap && i === 0 ? 'gear' : kinds.find((k) => (roll -= S.kindW[k]) < 0) ?? kinds[0];
     const mult = onMap ? 1 : S.jackpot.find(([, p]) => r.chance(p))?.[0] ?? 1;
