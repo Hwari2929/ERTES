@@ -56,7 +56,7 @@ export function settleChapter(run: RunState, counts: Counts, lines: string[]) {
   let i = tiers.findIndex((s) => c.time >= s.from);
   if (i < 0) i = tiers.length - 1;
   if (tierOf('CP_PET', counts.CP_PET || 0) >= 2) i = Math.max(0, i - 1);
-  const bonus = tiers[i].cr;
+  const bonus = tiers[i].cr * (ch.ch === 4 && run.flags.includes('cp4_held') ? 2 : 1); // 4장 감사 분기: 제출을 미룬 대가 (라르스)
   const debt = run.flags.filter((f) => f === 'cp_note').length * 20;
   run.flags = run.flags.filter((f) => f !== 'cp_note');
   run.credits = Math.max(0, run.credits + bonus - debt);
@@ -79,7 +79,7 @@ export function settleChapter(run: RunState, counts: Counts, lines: string[]) {
 function campEndRows(run: RunState): [string, string][] {
   const f = (k: string) => run.flags.includes(k);
   const route = f('cp_br_audit') ? '정보감사실에 넘겼다' : f('cp_br_lars') ? '라르스에게 직접 물었다' : '아무에게도 말하지 않았다';
-  const end = f('cp4_lars_filed') ? '라르스가 직접 보고했다' : f('cp4_filed') ? '감사번호가 붙었다' : f('cp4_held') ? '린디웨가 원본을 쥐고 있다' : f('cp4_sold') ? '사본을 라르스에게 팔았다' : f('cp4_kept') ? '사본은 필리스 주머니에' : f('cp4_paid') ? '보상을 받고 덮었다' : '—';
+  const end = f('cp4_lars_filed') ? '라르스가 직접 보고했다' : f('cp4_filed') ? '감사번호가 붙었다' : f('cp4_held') ? '린디웨가 원본을 쥐고 있다' : f('cp4_sold') ? '서명 원본을 라르스에게 팔았다' : f('cp4_kept') ? '서명 원본은 필리스 주머니에' : f('cp4_paid') ? '보상을 받고 덮었다' : '—';
   return [['금고 서류', route], ['결말', end], ['남은 AH', `${run.campaign?.time ?? 0}`]];
 }
 /** 마지막 알림까지 닫았는가 (런 끝) */
