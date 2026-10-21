@@ -142,7 +142,8 @@ export interface ChapterDef {
   time: number;
   map: NodeType[][];
   /** 사건 칸(지도 칸 번호) → 고정 사건 id (data/events.ts 의 캠페인 사건) */
-  events: Record<number, string>;
+  /** 분기 사건은 함수로: 런 깃발(앞선 선택)에 따라 다른 사건 id */
+  events: Record<number, string | ((run: RunState) => string)>;
   boss: string;
   /** 적 성장 단계 (일반 런의 페이즈와 같은 배율). 캠페인은 출전 인원이 적어 기물이 빨리 자라므로 장 번호보다 높게 잡는다 */
   phase: number;
@@ -165,13 +166,24 @@ export const CHAPTERS: ChapterDef[] = [
   { ch: 3, name: '3장 · RL-2 중계 위성', place: '중계 위성 RL-2 연구 정거장', deploy: 4, time: 65, phase: 4,
     map: [['battle'], ['event'], ['battle'], ['event'], ['battle'], ['supply'], ['event'], ['battle'], ['event'], ['battle'], ['shop'], ['boss']],
     events: { 1: 'cp3_temur', 3: 'cp3_cargo5', 6: 'cp3_relay', 8: 'cp3_vault' }, boss: 'cp_herald', elite: { id: 'sw_brood', from: 7 } },
+  // 4장 (1부 마지막): 합류 없이, 3장 금고 서류를 '누구에게 알릴지'로 갈린다 (1칸 사건 cp4_evidence → 깃발 cp_br_audit · cp_br_lars · cp_br_quiet).
+  // 기본 경로 비용 = 전투 5 · 보스 · 사건 4 · 보급 · 분기점 = 51 → 시작 65 면 14 남음. 감사(-6 · 린디웨 합류 · 격리팀 지원) · 라르스(+6) · 침묵(기록실 무료)
+  // 기록실 끝까지(-4, 만남 사건의 마지막 선택지가 열린다) · 검사대 재가동(-4, 보스 오염 컨테이너 봉인)
+  { ch: 4, name: '4장 · 베르타-4 제4링', place: '베르타-4 제4링 궤도 하역장', deploy: 5, time: 65, phase: 5,
+    map: [['battle'], ['event'], ['battle'], ['event'], ['battle'], ['supply'], ['event'], ['battle'], ['event'], ['battle'], ['shop'], ['boss']],
+    events: { 1: 'cp4_evidence', 3: 'cp4_manifest', 6: 'cp4_inspect', 8: (r) => (r.flags.includes('cp_br_audit') ? 'cp4_meet_audit' : r.flags.includes('cp_br_lars') ? 'cp4_meet_lars' : 'cp4_meet_quiet') },
+    boss: 'cp_gate', elite: { id: 'sw_brood', from: 7 } },
 ];
+/** 4장 분기 (3장 금고 서류를 누구에게 알렸나) */
+export type CampRoute = 'audit' | 'lars' | 'quiet';
+export const campRoute = (run: RunState): CampRoute | null => (run.flags.includes('cp_br_audit') ? 'audit' : run.flags.includes('cp_br_lars') ? 'lars' : run.flags.includes('cp_br_quiet') ? 'quiet' : null);
 /** 검증판 마지막 장 다음에 올 장 (정산 알림에 이름만 보여 준다) */
-export const CAMP_NEXT = '4장 · 베르타-4 제4링 궤도 하역장';
+export const CAMP_NEXT = '2부 · 황무지 접경 (준비 중)';
 export const chapterOf = (run: RunState) => CHAPTERS.find((c) => c.ch === run.campaign?.ch) || CHAPTERS[0];
 /** 장 정산 보너스: 남은 시간 구간별 크레딧 (상한 있음 — 강한 편성이 돈까지 더 버는 순환을 막는다). 페트라 3단계면 한 단계 위 */
 export const SETTLE: Record<number, { from: number; cr: number }[]> = {
   1: [{ from: 14, cr: 8 }, { from: 8, cr: 4 }, { from: -999, cr: 0 }],
   2: [{ from: 14, cr: 10 }, { from: 8, cr: 5 }, { from: -999, cr: 0 }],
   3: [{ from: 14, cr: 12 }, { from: 8, cr: 6 }, { from: -999, cr: 0 }],
+  4: [{ from: 14, cr: 14 }, { from: 8, cr: 7 }, { from: -999, cr: 0 }],
 };

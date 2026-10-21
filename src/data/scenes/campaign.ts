@@ -1,6 +1,7 @@
 // 캠페인 「회수 계약」 프롤로그: 예레나(에란테스 대외협력)가 라르스(페트라 무역관세부)의 의뢰를 연결하고,
 // 페트라 창구 린디웨가 처음부터 동석해 서류 · 정산과 AH(접근시간) 설명을 맡는다.
 // 지침: docs/SCENES.md 3차 지침 (주인공 = 레이첼, 속마음 0줄) · docs/VOICES.md. 수치(비용 · 정산)는 대사에 넣지 않고 다음 알림 표로 보여 준다
+import type { RunState } from '../../types';
 import type { Beat } from '../scene';
 import { N, S } from './dsl';
 
@@ -42,6 +43,7 @@ export const CAMP_PROLOGUE: Beat[] = [
 /** 장 도입 장면 (장 번호 → 장면). 1장은 위 프롤로그가 대신한다. bonus = 지난 장 칼퇴 보너스 (0이면 정산 대사가 달라진다) */
 export function campChapterIntro(ch: number, bonus: number): Beat[] | null {
   if (ch === 3) return campIntro3(bonus);
+  if (ch === 4) return campIntro4(bonus);
   if (ch !== 2) return null;
   const settle: Beat[] = bonus > 0 ? [
     S('lindiwe', 'TS-7 정산금은 보내 뒀어요. 남은 AH에 따른 보너스도 넣었고요. 라르스 부장님은 생각보다 빠르다고 하셨어요.', { at: 'R', name: '린디웨 (통신)', face: 'smile' }),
@@ -94,5 +96,80 @@ function campIntro3(bonus: number): Beat[] {
     S('rachel', '…통조림, 내 것도 있어?'),
     S('yelena', '테무르가 다 먹지만 않았으면요.', { exit: true }),
     N('함선이 RL-2 쪽으로 기수를 돌린다. 창밖에서 안테나를 단 은색 위성이 천천히 커진다.'),
+  ];
+}
+
+/** 4장 도입: RL-2 정산 · 제4링 브리핑. 금고 서류를 어디로 가져갈지는 4링에 내려서 정한다 (cp4_evidence) */
+function campIntro4(bonus: number): Beat[] {
+  const LIN = { name: '린디웨 (통신)' }, YEL = { name: '예레나 (통신)' };
+  const settle: Beat[] = bonus > 0 ? [
+    S('lindiwe', 'RL-2 정산금은 보내 뒀어요. 남은 AH에 따른 보너스도 넣었고요.', { ...LIN, at: 'R', face: 'smile' }),
+  ] : [
+    S('lindiwe', 'RL-2 정산금은 보내 뒀어요. 남은 AH가 빠듯해서 보너스는 못 넣었고요.', { ...LIN, at: 'R', face: 'base' }),
+  ];
+  return [
+    N('에란테스 함선 함교. RL-2를 떠난 지 11시간이 지났다. 작전 탁자 위에 홀로그램 창 2개가 떠 있다.', { bg: 'tu_bridge', bgm: 'tu_brief' }),
+    ...settle,
+    S('rachel', '…아저씨는?', { at: 'L', face: 'tired' }),
+    S('lindiwe', '부장님은 정산 서류에 서명만 하셨어요. 금고 얘기는… 오늘 한마디도 안 하셨고요.', { ...LIN, face: 'serious', exit: true }),
+    S('yelena', '마지막 구간이에요. 베르타-4 제4링 궤도 하역장.', { ...YEL, at: 'C', face: 'base' }),
+    S('yelena', '베르타에서 산노디스로 가는 화물은 전부 거기서 출발해요. 그 하역장의 격리 검사 갑문에 둥지가 들어앉았어요.', YEL),
+    S('yelena', '소등 예보도 또 당겨졌어요. 이번 구간을 못 열면 소등 전에 화물이 못 들어가요.', YEL),
+    S('nadir', '금고 서류는요? 사진은 다 갖고 있어요.', { at: 'R', face: 'worried' }),
+    S('yelena', '들었어요. 4링에 내리면 정해요. 어디로 가져갈지는 지휘관 몫이에요.', YEL),
+    S('yelena', '그리고 4링은 라르스 부장님 마당이에요. 느낌이 별로예요.', { ...YEL, exit: true }),
+    S('phyllis', '마당이면 뒷문도 있겠네-.', { at: 'C', face: 'smug' }),
+    N('함선이 베르타-4 쪽으로 기수를 돌린다. 창밖에서 4겹의 링이 천천히 커진다.'),
+  ];
+}
+
+/** 1부 끝 장면: 에란테스 바 2층 발코니 (프롤로그와 같은 자리). 4장 분기 · 만남 결과에 따라 가운데가 달라지고, 기록실을 끝까지 뒤졌으면 2부 갈고리가 붙는다 */
+export function campEnding(run: RunState): Beat[] {
+  const f = (k: string) => run.flags.includes(k);
+  const mid: Beat[] = f('cp4_lars_filed') ? [
+    N('계단에서 발소리가 난다. 라르스가 외투를 팔에 걸고 올라온다. 발코니 시계는 19시 20분이다.'),
+    S('lars', '이 시간에 여기 있는 건 처음이군요.', { at: 'R', face: 'base' }),
+    S('lars', '보고서는 냈습니다. 감사번호를 받았어요. 2번째군요.'),
+    S('rachel', '…그래서?'),
+    S('lars', '그래서 오늘 밥은 제가 사죠.'),
+    S('rachel', '…곱빼기로 2개.', { face: 'base' }),
+    S('lars', '하, 하. 좋습니다.', { face: 'smile' }),
+  ] : f('cp4_filed') ? [
+    S('lindiwe', '감사번호 붙었어요. 부장님 라인이랑, 제 접수 기록이랑 같이요.', { at: 'R', face: 'base' }),
+    S('lindiwe', '정산은 한 번 더 볼게요. …몇 번 더 볼 것 같아요.'),
+    N('린디웨가 정산서를 덮지 않고 손에 쥐고 있다.'),
+  ] : f('cp4_held') ? [
+    S('lindiwe', '원본은 제 서랍에 있어요. 언제 꺼낼지는 계약 끝나고 생각할게요.', { at: 'R', face: 'base' }),
+    S('vivian', '…이제 끝났잖아.', { at: 'C', face: 'worried' }),
+    S('lindiwe', '…그러네요.'),
+    N('린디웨가 대답 대신 정산서를 다시 넘긴다.'),
+  ] : f('cp4_sold') ? [
+    S('phyllis', '판 돈으로 오늘 밥은 내가 살까-?', { at: 'R', face: 'grin' }),
+    S('rachel', '…응.'),
+    S('phyllis', '인부들 이름은 안 팔았어. 다 외웠거든.', { face: 'base' }),
+  ] : f('cp4_kept') ? [
+    S('phyllis', '사본은 아직 여기 있어-.', { at: 'R', face: 'smug' }),
+    N('필리스가 주머니를 두드린다.'),
+    S('vivian', '언제 꺼낼 건데?', { at: 'C', face: 'worried' }),
+    S('phyllis', '필요할 때-.'),
+  ] : [
+    N('라르스의 보상은 오후에 들어왔다. 송금 메모 칸은 비어 있다.'),
+    S('nadir', '백수정엔 다 남아 있어요. 사진 47장.', { at: 'C', face: 'serious' }),
+    S('phyllis', '48장-.', { at: 'R', face: 'smug' }),
+  ];
+  return [
+    N('에란테스 바 2층 발코니. 저녁 7시. 거리 쪽 창 너머 하늘로 화물선 항적이 줄지어 지나간다.', { bg: 'erantes_bar', bgm: 'calm' }),
+    S('yelena', '산노디스에서 연락 왔어요. 소등 전에 마지막 화물선이 들어갔대요.', { at: 'C', face: 'base' }),
+    S('yelena', '보고서 마지막 줄은 제가 쓸게요. \'항로 회복 완료.\'', { face: 'smile' }),
+    S('rachel', '…밥은?', { at: 'L', face: 'tired' }),
+    S('yelena', '주문해 뒀어요. 곱빼기로.', { exit: true }),
+    ...mid,
+    ...(f('cp4_found') ? [
+      N('발코니 끝에서 비비안이 수첩을 펴 놓고 있다. 펼친 쪽에 나디르가 찍어 준 사진이 끼워져 있다. \'브샤크 궤도 잔해 회수품\'.', { exit: ['phyllis', 'lindiwe', 'lars', 'nadir'] }),
+      S('vivian', '리키, 다음엔 저기 가 볼까?', { at: 'C', face: 'base' }),
+      N('리키가 꼬리를 한 번 흔든다.'),
+    ] : []),
+    N('예레나의 단말에 새 의뢰 목록이 뜬다. 맨 위 칸: \'황무지 접경 회수 창고 — 회수품 조사\'.', { exit: ['vivian', 'phyllis', 'lindiwe', 'lars', 'nadir'] }),
+    S('yelena', '…다음 건이네요. 느낌이 별로예요.', { at: 'C', face: 'serious' }),
   ];
 }

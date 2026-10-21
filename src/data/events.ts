@@ -187,6 +187,71 @@ export const EVENTS: EventDef[] = [
     ],
   },
 
+  // ───────── 캠페인 「회수 계약」 4장 · 베르타-4 제4링 (1부 마지막) — 3장 금고 서류를 누구에게 알릴지로 갈린다
+  //   cp4_evidence → 깃발 cp_br_audit (정보감사실 · 린디웨 합류) / cp_br_lars (라르스에게 직접) / cp_br_quiet (아무에게도)
+  //   cp4_manifest 끝까지 찾으면 cp4_found → 만남 사건(cp4_meet_*)의 마지막 선택지 '라르스가 직접 보고' 가 열린다
+  //   만남 결과 깃발: cp4_filed · cp4_held · cp4_paid · cp4_sold · cp4_kept · cp4_lars_filed (끝 장면 · data/scenes/campaign.ts campEnding)
+  {
+    id: 'cp4_evidence', title: '서류철을 어디로', fields: CAMP, weight: 0,
+    text: '제4링 하역 대기실. 3장 금고에서 나온 서류 사진과, 필리스가 몰래 챙긴 한 장을 두고 동료들 생각이 갈린다. 정보감사실에 넘길지, 라르스에게 직접 물을지, 아무에게도 말하지 않을지 정한다.', // 대사 장면: data/scenes/campaign4.ts
+    choices: [
+      { label: '린디웨를 통해 정보감사실에 넘긴다', desc: 'AH -6 (감사가 시작되면 제4링 하역 설비 일부가 묶인다). 린디웨가 원본을 확인하러 직접 와서 합류한다 (이번 장 출전 +1). 보스전에서 격리팀이 오염 컨테이너를 봉인한다 (포자 살점 10초마다 2마리 → 15초마다 1마리).',
+        apply: (r, api) => { api.flag('cp_br_audit'); campTime(r, 6); api.join('lindiwe'); return '정보감사실 접수를 시작했습니다. 린디웨가 합류했습니다 (이번 장 출전 6명). AH -6.'; } },
+      { label: '라르스에게 직접 묻는다', desc: 'AH +6 (라르스가 제4링 하역 AH를 더 사 둔다). 라르스와 제4링에서 직접 만난다.',
+        apply: (r, api) => { api.flag('cp_br_lars'); if (r.campaign) r.campaign.time += 6; return '라르스와 제4링에서 만나기로 했습니다. AH +6.'; } },
+      { label: '아무에게도 말하지 않는다', desc: '사본은 필리스가 갖는다. 제4링 통관 기록실에는 필리스가 균열로 먼저 들어간다 (기록실을 끝까지 찾을 때 AH -4 → -2).',
+        apply: (_r, api) => { api.flag('cp_br_quiet'); return '서류는 우리만 알고 갑니다. 사본은 필리스가 갖고 있습니다.'; } },
+    ],
+  },
+  {
+    id: 'cp4_manifest', title: '제4링 통관 기록실', fields: CAMP, weight: 0,
+    text: '제4링 통관 기록실. 적요 번호 없이 통관된 화물의 원래 기록이 이곳 어딘가에 있다. 끝까지 찾으려면 시간이 든다.', // 대사 장면: data/scenes/campaign4.ts
+    choices: [
+      { label: '기록을 끝까지 찾는다', desc: 'AH -4 (아무에게도 말하지 않았으면 -2). 적요 번호 없는 화물이 어디서 와서 어떻게 통과했는지 찾는다. 라르스와 얽힌 마지막 사건에서 선택지가 하나 더 열린다.',
+        apply: (r, api) => { campTime(r, r.flags.includes('cp_br_quiet') ? 2 : 4); api.flag('cp4_found'); return '급송 통관 승인 기록과 화물 출처를 찾았습니다.'; } },
+      { label: '필요한 것만 보고 나온다', desc: '시간을 아낀다. 화물이 어디서 왔는지는 모르는 채로 간다.', apply: () => '기록실을 나왔습니다.' },
+    ],
+  },
+  {
+    id: 'cp4_inspect', title: '제4링 격리 검사대', fields: CAMP, weight: 0,
+    text: '격리 검사 갑문 앞의 검사대는 멈춰 있다. 검사 기록 화면에는 \'급송 — 검사 생략\' 도장이 줄지어 있다. 검사대를 다시 돌리면 갑문 제어를 되찾지만 시간이 든다.', // 대사 장면: data/scenes/campaign4.ts
+    choices: [
+      { label: '검사대를 다시 돌린다', desc: 'AH -4. 보스 [검역 갑문 둥지]의 셔터 제어를 되찾는다 (12초 중 갑문이 열려 있는 시간 4초 → 7초). [격리 검사 인장] 획득.',
+        apply: (r, api) => { campTime(r, 4); api.flag('cp_intel4'); api.gain('P_stamp', true); return '갑문 셔터 제어 확보 (열림 4초 → 7초). [격리 검사 인장] 획득.'; } },
+      { label: '그냥 지나간다', desc: '시간을 아낀다. 갑문은 12초 중 4초만 열린다.', apply: () => '검사대를 그대로 두고 지나갔습니다.' },
+    ],
+  },
+  {
+    id: 'cp4_meet_audit', title: '감사번호', fields: CAMP, weight: 0,
+    text: '정보감사실이 접수를 받았다. 린디웨가 마지막 제출만 누르면 라르스의 라인에 감사번호가 붙는다. 라르스가 통신으로 들어와 조건을 내건다.', // 대사 장면: data/scenes/campaign4.ts
+    choices: [
+      { label: '그대로 제출한다', desc: '감사번호가 붙는다 (지울 수 없다). 격리팀 신고 포상금 크레딧 +6.', apply: (r, api) => { api.flag('cp4_filed'); r.credits += 6; return '제출했습니다. 크레딧 +6.'; } },
+      { label: '원본은 린디웨가 쥐고 있는다', desc: '제출을 미룬다. 라르스가 이번 장 정산을 두 배로 얹는다: 크레딧 +14.', apply: (r, api) => { api.flag('cp4_held'); r.credits += 14; return '제출을 미뤘습니다. 크레딧 +14.'; } },
+      { label: '라르스가 직접 제출하게 한다', desc: '급송 승인 기록을 보여 주고, 라르스 본인이 보고서를 쓰게 한다. AH +4 · 크레딧 +6.', block: (r) => (r.flags.includes('cp4_found') ? null : '통관 기록실에서 급송 승인 기록을 찾아야 합니다'),
+        apply: (r, api) => { api.flag('cp4_lars_filed'); if (r.campaign) r.campaign.time += 4; r.credits += 6; return '라르스가 직접 보고서를 쓰기로 했습니다. AH +4 · 크레딧 +6.'; } },
+    ],
+  },
+  {
+    id: 'cp4_meet_lars', title: '17시 40분', fields: CAMP, weight: 0,
+    text: '라르스가 제4링 하역장 사무실로 직접 왔다. 퇴근까지 20분. 금고 서류에 대해 묻는다.', // 대사 장면: data/scenes/campaign4.ts
+    choices: [
+      { label: '보상을 받고 끝낸다', desc: '라르스의 보상: 크레딧 +16. 서류 얘기는 여기서 덮는다.', apply: (r, api) => { api.flag('cp4_paid'); r.credits += 16; return '크레딧 +16.'; } },
+      { label: '정보감사실에 넘기겠다고 말한다', desc: '라르스는 막지 않는다. 격리팀 신고 포상금 크레딧 +6.', apply: (r, api) => { api.flag('cp4_filed'); r.credits += 6; return '정보감사실에 넘겼습니다. 크레딧 +6.'; } },
+      { label: '직접 보고하라고 한다', desc: '급송 승인 기록을 내밀고, 라르스 본인이 보고서를 쓰게 한다. AH +4 · 크레딧 +6.', block: (r) => (r.flags.includes('cp4_found') ? null : '통관 기록실에서 급송 승인 기록을 찾아야 합니다'),
+        apply: (r, api) => { api.flag('cp4_lars_filed'); if (r.campaign) r.campaign.time += 4; r.credits += 6; return '라르스가 직접 보고서를 쓰기로 했습니다. AH +4 · 크레딧 +6.'; } },
+    ],
+  },
+  {
+    id: 'cp4_meet_quiet', title: '17시 58분의 통화', fields: CAMP, weight: 0,
+    text: '라르스가 통신으로 마지막 구간을 서두르라고 한다. 필리스의 주머니에는 금고 서류 사본이 있다.', // 대사 장면: data/scenes/campaign4.ts
+    choices: [
+      { label: '사본을 라르스에게 판다', desc: '라르스가 산다: 크레딧 +18. 사본은 라르스에게 간다.', apply: (r, api) => { api.flag('cp4_sold'); r.credits += 18; return '사본을 넘겼습니다. 크레딧 +18.'; } },
+      { label: '사본은 그대로 갖는다', desc: '아무것도 말하지 않는다. 필리스가 아는 균열 지름길: AH +2.', apply: (r, api) => { api.flag('cp4_kept'); if (r.campaign) r.campaign.time += 2; return '사본은 필리스가 그대로 갖고 있습니다. AH +2.'; } },
+      { label: '사본을 보여 준다', desc: '급송 승인 기록과 함께 사본을 보여 주고, 라르스 본인이 보고서를 쓰게 한다. AH +4 · 크레딧 +6.', block: (r) => (r.flags.includes('cp4_found') ? null : '통관 기록실에서 급송 승인 기록을 찾아야 합니다'),
+        apply: (r, api) => { api.flag('cp4_lars_filed'); if (r.campaign) r.campaign.time += 4; r.credits += 6; return '라르스가 직접 보고서를 쓰기로 했습니다. AH +4 · 크레딧 +6.'; } },
+    ],
+  },
+
   // ───────── 공용
   {
     id: 'volunteer', title: '자원 입대', weight: 1,

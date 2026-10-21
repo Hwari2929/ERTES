@@ -122,6 +122,10 @@ const UNIQUE: Record<string, { name: string; icon: string; desc: string; effect:
       return true;
     } } },
   },
+  P_stamp: {
+    name: '[캠페인] 격리 검사 인장', icon: '⊡', desc: '베르타-4 제4링 격리 검사대를 다시 돌리고 받아 온 검사관 인장. 원래 모든 상자에 찍혔어야 하는 도장이다. 받는 화학 피해 -30%, 최대 체력 +6%.',
+    effect: { pct: { maxHp: 0.06 }, taken: [red('chem', 0.3)] },
+  },
   P_fuse: {
     name: '[캠페인] 중계 퓨즈', icon: '⌁', desc: 'RL-2 배전실에서 테무르가 맨손으로 뽑아 온 안테나 퓨즈. 아직 따뜻하다. 최대 체력 +8%, 받는 정신 피해 -30%.',
     effect: { pct: { maxHp: 0.08 }, taken: [red('psy', 0.3)] },

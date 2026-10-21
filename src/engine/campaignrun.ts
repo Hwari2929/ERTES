@@ -30,7 +30,7 @@ export function newCampaignRun(diff: number): RunState {
     ...settle.map((s): [string, string] => [`정산 · 남은 AH ${s.from} 이상`, `크레딧 +${s.cr}`]),
   ] });
   run.pending.push({ t: 'notice', title: '회수 계약 — 편성', body: '이 캠페인에서는 일반 시너지 대신 캠페인 전용 시너지만 켜집니다. 출전 인원은 장마다 늘어납니다.', rows: [
-    ['출전 인원', `${ch.name.split(' · ')[0]} ${ch.deploy}명 → 마지막 장 6명`],
+    ['출전 인원', `${ch.name.split(' · ')[0]} ${ch.deploy}명 → 4장 5명`],
     ['시너지', CAMP_SYNERGIES.map((s) => s.name).join(' · ')],
     ['라르스가 보낸 물건', LARS_KIT.map((id) => (CONSUMABLES[id]?.name || itemInfo(id).name).replace(/^\[캠페인\] /, '')).join(' · ')],
   ] });

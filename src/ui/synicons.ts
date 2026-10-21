@@ -223,6 +223,7 @@ const L: Record<string, string> = {
   'i.pass': '<path d="M12 3l7 4v6c0 4-3 6.5-7 8-4-1.5-7-4-7-8V7z"/><path d="M12 8l2 3-2 3-2-3z"/>',
   'i.helmet': '<circle cx="12" cy="11" r="8"/><path d="M7 11a5 4 0 0 1 10 0v2H7z"/><path d="M6 19h12"/>',
   'i.blackbox': '<path d="M12 2.5l6 4.5-6 14.5-6-14.5z"/><path d="M6 7h12"/><path d="M10 12l2-2.5 2 2.5-2 2.5"/>',
+  'i.stamp': '<path d="M10 3h4v5l3 3H7l3-3z"/><path d="M5 14h14v3H5z"/><path d="M8 20.5h8"/>', // 격리 검사 인장
   'i.fuse': '<rect x="7" y="7" width="10" height="10" rx="2"/><path d="M12 2v5M12 17v5"/><path d="M13 9.5l-2 3h2.5l-2 3"/>',
   // 항로도 전체 화면: 펼치기 (네 모서리 바깥으로) · 접기 (안으로)
   'u.expand': '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>',

@@ -148,7 +148,7 @@ export type Pending =
   | { t: 'fork' } // 전환: 휴식 / 도전
   | { t: 'muster' } // 지정 소집: 시너지 4개 선택 창
   | { t: 'blessing'; options: string[] }
-  | { t: 'notice'; title: string; body: string; scene?: Beat[]; /** 이름 + 값 표 (규칙 · 수치는 문장 대신 여기에) */ rows?: [string, string][] };
+  | { t: 'notice'; title: string; body: string; scene?: Beat[]; /** 이름 + 값 표 (규칙 · 수치는 문장 대신 여기에) */ rows?: [string, string][]; /** 캠페인 마지막 알림: 닫으면 런이 끝난다 */ end?: boolean };
 
 export interface RunState {
   version: number;
@@ -169,7 +169,7 @@ export interface RunState {
   /** 튜토리얼 런: 진행 순서(TUTORIAL_FLOW) 위치. 있으면 고정 항로 · 고정 조우 · 지는 일 없음 */
   tutorial?: { i: number };
   /** 캠페인 런 (data/campaign.ts): 장 · 남은 AH(접근시간). 있으면 시너지 · 출전 인원 · 항로 · 조우를 캠페인 규칙으로 */
-  campaign?: { id: string; ch: number; time: number; timeMax: number; spent: number; /** 지난 장 칼퇴 보너스 (다음 장 도입 대사용) */ bonus?: number };
+  campaign?: { id: string; ch: number; time: number; timeMax: number; spent: number; /** 지난 장 칼퇴 보너스 (다음 장 도입 대사용) */ bonus?: number; /** 마지막 장 보스를 이겼다 (끝 장면 · 마지막 알림이 남아 있을 수 있음) */ done?: boolean };
   seed: number;
   rng: number;
   phase: number;

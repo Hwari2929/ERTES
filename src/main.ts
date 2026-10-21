@@ -445,7 +445,7 @@ function titleScreen() {
       ${slots.length ? `<div class="slots">${slots.map((s) => `<button class="btn ghost" data-a="load" data-v="${s.slot}">${SLOT_NAME[s.slot]} · 페이즈 ${s.phase} · 기물 ${s.units}</button>`).join('')}</div>` : ''}
       ${m.runs ? `<p class="ts-meta"><span>의뢰 <b>${m.runs}</b></span><span>성공 <b>${m.clears}</b></span><span>위험 등급 <b>${m.maxDiff}</b></span></p>` : ''}
       </div>
-      ${(() => { const cs = loadRun(CAMP_SLOT); const go = cs?.campaign && !cs.over; return `<button class="btn ts-btn ts-campaign" data-a="campaign"><span class="ts-cp-kick">CAMPAIGN · 회수 계약</span><b>캠페인</b><small>${go ? `이어서 · ${esc(campChapter(cs!).name)} ${Math.min(cs!.step + 1, cs!.map.length)}/${cs!.map.length} · AH ${cs!.campaign!.time}` : '베르타–산노디스 물류망 · 라르스의 의뢰 · 1장 TS-7 환적 정거장'}</small><span class="ts-soon">검증판 · 3장</span></button>`; })()}
+      ${(() => { const cs = loadRun(CAMP_SLOT); const go = cs?.campaign && !cs.over; return `<button class="btn ts-btn ts-campaign" data-a="campaign"><span class="ts-cp-kick">CAMPAIGN · 회수 계약</span><b>캠페인</b><small>${go ? `이어서 · ${esc(campChapter(cs!).name)} ${Math.min(cs!.step + 1, cs!.map.length)}/${cs!.map.length} · AH ${cs!.campaign!.time}` : '베르타–산노디스 물류망 · 라르스의 의뢰 · 1장 TS-7 환적 정거장'}</small><span class="ts-soon">1부 · 4장 완결</span></button>`; })()}
       </div>
     </div>
     <p class="ts-foot">싱글 PvE · 오프라인 플레이 · 진행은 이 브라우저에 자동 저장됩니다.</p>
@@ -3607,6 +3607,7 @@ function mountBattleView(board: HTMLElement) {
 
 function goPrepOrMap() {
   const run = app.run!;
+  if (!run.over && run.campaign?.done && !run.pending.length) run.over = true; // 캠페인 끝 알림을 다 닫은 뒤 다시 불러온 저장
   if (run.over) { app.screen = 'over'; metaRunEnd(run); recEnd(run); }
   else if (run.node?.enc) app.screen = 'prep';
   else if (run.node?.type === 'shop') app.screen = 'shop';
@@ -4761,7 +4762,7 @@ function act(a: string, v: string) {
     case 'reroll-recruit': if (run) { R.rerollRecruit(run); app.recruitPick = null; persist(); } break;
     case 'pick-supply': case 'supply-all': { const p = run?.pending[0]; if (run && p?.t === 'supply') { if (a === 'supply-all') R.flipAllSupply(run, p); else R.flipSupply(run, p, +v); persist(); } break; }
     case 'supply-done': { const p = run?.pending[0]; if (run && p?.t === 'supply' && p.options.every((c) => c.open)) { run.pending.shift(); persist(); } break; }
-    case 'notice-ok': run?.pending.shift(); persist(); break;
+    case 'notice-ok': { const p = run?.pending.shift(); if (run && p?.t === 'notice' && p.end) { run.over = true; goPrepOrMap(); } persist(); break; } // 캠페인 마지막 알림을 닫으면 런 끝
     default: return;
   }
   render();

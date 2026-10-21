@@ -1,0 +1,280 @@
+// 캠페인 「회수 계약」 4장 · 베르타-4 제4링 (1부 마지막) 사건 연출. 사건 정의 · 선택 효과는 data/events.ts 의 cp4_* 사건.
+// 지침: docs/SCENES.md '캠페인 사건' — 합류 대신 같은 증거를 두고 판단이 갈린다 · 증거와 단정을 구분한다 · 앞선 조사를 기억한다.
+// 분기 깃발 (cp4_evidence): cp_br_audit = 정보감사실 (린디웨가 현장에 온다) · cp_br_lars = 라르스에게 직접 · cp_br_quiet = 아무에게도.
+// cp4_found = 통관 기록실을 끝까지 뒤졌다 (급송 승인 · 화물 출처) · cp_intel4 = 검사대를 다시 돌렸다.
+import type { EventScene, SceneReg } from '../scene';
+import { N, S } from './dsl';
+
+export const CAMP4_REG: SceneReg = {
+  bgs: {
+    cp4_dock_lounge: '베르타-4 제4링 하역 대기실 — 승강축이 오르내릴 때마다 바닥이 울린다. 창밖으로 링의 곡면이 휘어 올라간다',
+    cp4_archive: '제4링 통관 기록실 — 천장까지 닿는 서류 선반과 줄지어 선 기록 단말',
+    cp4_gate: '제4링 격리 검사 갑문 — 멈춘 컨베이어 검사대, 갑문 너머에서 부풀었다 가라앉는 회백색 덩어리',
+    cp4_dock_office: '제4링 하역장 사무실 — 벽시계, 창밖으로 줄지어 대기 중인 화물선',
+  },
+};
+
+const LIN = { name: '린디웨 (통신)' };
+const LARS = { name: '라르스 (통신)' };
+const audit = { if: 'cp_br_audit' }, lars = { if: 'cp_br_lars' }, quiet = { if: 'cp_br_quiet' };
+const found = { if: 'cp4_found' }, notFound = { if: '!cp4_found' };
+
+export const CAMP4_SCENES: Record<string, EventScene> = {
+  // ① 서류철을 어디로: 통신을 끈 채, 같은 서류를 두고 다섯 명의 생각이 갈린다 (보존 · 공개 · 불신 · 직접 묻기)
+  cp4_evidence: {
+    cast: ['nadir', 'phyllis', 'rachel', 'vivian', 'temur', 'lindiwe', 'lars'],
+    scene: [
+      N('베르타-4 제4링 하역 대기실. 거대한 승강축이 오르내릴 때마다 바닥이 낮게 울린다. 창밖으로 링의 곡면이 끝없이 휘어 올라간다.', { bg: 'cp4_dock_lounge', bgm: 'calm' }),
+      N('통신 창은 꺼 두었다. 나디르가 탁자 위에 금고 서류 사진을 한 장씩 띄워 놓는다.'),
+      S('nadir', '금고 서류 사진은 47장이에요. 원본은 금고에 두고 왔고요.', { at: 'C', face: 'serious' }),
+      S('phyllis', '…48장.', { at: 'R', face: 'smug' }),
+      N('필리스가 주머니에서 접힌 종이 한 장을 꺼내 탁자 위로 민다. 금고 상자 맨 아래에 있던 장, 화물을 나른 인부들의 서명 칸이다.'),
+      S('nadir', '그걸 가져왔어요?!', { face: 'surprise' }),
+      S('phyllis', '응, 그냥 챙겼어-. 원본이 통째로 사라지면 곤란해질 사람이 있을 것 같아서.'),
+      S('rachel', '…그래서, 이거 어떻게 해?', { at: 'L', face: 'tired' }),
+      S('nadir', '누구한테 주든, 저는 백수정에 따로 떠 둘게요. 그건 그거고요.', { exit: true }),
+      S('vivian', '다 보여 줘야지! 숨기면 다음 정거장에서 또 둥지가 생긴다고!', { at: 'C', face: 'surprise' }),
+      S('phyllis', '누구한테? 위로 올리면 위에서 덮어. 그 도장 찍은 데가 바로 위잖아-.'),
+      S('vivian', '그럼 린디웨 씨한테! 린디웨 씨는 덮을 사람 아니잖아.'),
+      S('phyllis', '린디웨는 안 덮지. 근데 린디웨가 올리는 데는 정보감사실이야. 거기서 번호 붙이면 아무도 못 지운대.', { face: 'base' }),
+      S('vivian', '못 지우면 좋은 거 아니야? 기록이 남는 거잖아!'),
+      S('phyllis', '그 번호, 인부들 이름 옆에도 같이 붙을걸-.', { exit: ['vivian'] }),
+      S('temur', '그 아저씨한테 물어보면 되잖아. 돈 주는 사람이니까 대답도 하겠지.', { at: 'C', face: 'base' }),
+      S('phyllis', '대답 대신 돈을 주겠지-.', { face: 'smug' }),
+      S('temur', '돈 주면 좋지.'),
+      S('rachel', '…셋 다 귀찮아.'),
+      N('아무도 웃지 않는다. 승강축이 한 번 더 지나가며 바닥이 울린다.', { sfx: 'servo' }),
+      S('rachel', '…정할게.'),
+    ],
+    after: [
+      [
+        N('레이첼이 통신 창을 연다. 린디웨가 바로 받는다.', { bg: 'cp4_dock_lounge', bgm: 'tense', sfx: 'static' }),
+        S('lindiwe', '네, 지휘관님. 4링 도착하셨어요?', { ...LIN, at: 'R', face: 'smile' }),
+        S('rachel', '…금고 서류. 정보감사실에 넘기고 싶어.', { at: 'L', face: 'tired' }),
+        N('린디웨의 손이 멈춘다.'),
+        S('lindiwe', '…정보감사실은 한 번 번호를 붙이면 아무도 못 지워요. 부장님 라인에도, 접수한 저한테도 남고요.', { ...LIN, face: 'serious' }),
+        S('lindiwe', '감사가 시작되면 4링 하역 설비도 몇 개는 묶일 거예요. 그래도 할 거죠?', LIN),
+        S('rachel', '…응.'),
+        S('lindiwe', '그럼 원본은 제가 직접 봐야 해요. 4링으로 갈게요. 격리팀도 데려가고요.', LIN),
+        S('lindiwe', '아, 이번 출장비는 제 쪽에서 낼게요.', LIN),
+        S('phyllis', '린디웨가 돈을 낸다고?!', { at: 'C', face: 'surprise' }),
+        S('lindiwe', '…장부에는 \'업무상 판단\'으로 올릴 거예요.', { ...LIN, face: 'smile' }),
+      ],
+      [
+        N('레이첼이 통신 창을 연다. 17시 20분. 라르스는 외투를 입다 말고 화면을 본다.', { bg: 'cp4_dock_lounge', bgm: 'tense', sfx: 'static' }),
+        S('lars', '지휘관. 퇴근 40분 전이군요.', { ...LARS, at: 'R', face: 'base' }),
+        S('rachel', '…금고 서류. 직접 물어볼 게 있어.', { at: 'L', face: 'tired' }),
+        N('라르스가 외투 단추를 다시 푼다.'),
+        S('lars', '4링이면 제 사무실에서 승강축으로 20분입니다. 17시 40분에 하역장 사무실에서 뵙죠.', LARS),
+        S('lars', '기다리시는 동안 쓸 AH는 제가 더 사 두겠습니다.', { ...LARS, exit: true }),
+        S('temur', '봐, 물어보니까 대답하잖아.', { at: 'C', face: 'smile' }),
+        S('phyllis', '대답한 거 아니야-. 만나자고 한 거지.', { at: 'R', face: 'smug' }),
+      ],
+      [
+        S('phyllis', '좋아-. 그럼 이건 내 주머니로.', { at: 'R', face: 'grin' }),
+        N('필리스가 종이를 다시 접어 넣는다. 나디르는 백수정 하나를 꺼내 사진 47장을 차례로 떠 넣는다.'),
+        S('nadir', '사진은 여기 다 떴어요. 누가 지우라고 해도 저는 못 지워요.', { at: 'C', face: 'serious' }),
+        S('vivian', '…기록은 남기는 거잖아. 숨기는 거 아니잖아.', { at: 'L', face: 'worried' }),
+        S('phyllis', '남기는 거 맞아. 꺼내는 때를 고르는 거지-.'),
+        S('vivian', '…그때가 너무 늦으면?'),
+        N('필리스가 대답 대신 어깨를 으쓱한다.'),
+      ],
+    ],
+  },
+
+  // ② 통관 기록실: 분기마다 들어가는 방법이 다르다. 끝까지 뒤지면 급송 승인 · 화물 출처가 나오고, 비비안이 출처 앞에서 멈춘다
+  cp4_manifest: {
+    cast: ['nadir', 'vivian', 'temur', 'lindiwe', 'phyllis', 'rachel'],
+    scene: [
+      N('제4링 통관 기록실. 천장까지 닿는 서류 선반 사이로 기록 단말이 줄지어 서 있다. 사람은 없다.', { bg: 'cp4_archive', bgm: 'eerie' }),
+      S('lindiwe', '제 사원증으로 열려요. …오늘까지는요.', { at: 'R', face: 'serious', ...audit }),
+      N('린디웨가 사원증을 대자 단말들이 차례로 켜진다.', audit),
+      N('문 옆 단말에 라르스가 보낸 출입 코드가 이미 들어와 있다.', lars),
+      S('temur', '아저씨가 문을 열어 놨네. 볼 테면 보라는 거냐?', { at: 'R', face: 'base', ...lars }),
+      N('잠긴 문 너머에서 필리스가 손을 흔든다. 벽에 사람 하나 지나갈 만한 균열이 나 있다.', quiet),
+      S('phyllis', '먼저 와 있었어-. 문은 안 열었으니까 출입 기록도 안 남아.', { at: 'R', face: 'grin', ...quiet }),
+      S('nadir', '급송 통관 기록은 따로 묶여 있을 거예요. 근데 선반이 끝도 없어요. 다 뒤지려면 한참 걸려요.', { at: 'C', face: 'worried' }),
+      S('vivian', '다 뒤지자! 이번엔 끝까지 보자!', { at: 'L', face: 'grin' }),
+    ],
+    after: [
+      [
+        N('한참 뒤, 나디르가 선반 맨 아래에서 묶음 하나를 끌어낸다. 표지에 \'급송 통관 — 격리 검사 생략\'이라고 찍혀 있다.', { bg: 'cp4_archive', bgm: 'eerie' }),
+        S('nadir', '찾았어요. 승인 코드는 무역관세부 물류 라인이고, 사유는….', { at: 'C', face: 'serious' }),
+        S('nadir', '\'산노디스 소등 대비, AH 절감.\''),
+        S('temur', '검사하는 시간을 아끼려고 안 열었다는 거네.', { at: 'R', face: 'base', if: '!cp_br_audit' }),
+        S('lindiwe', '급송 통관은 원래 의료 물자 같은 데만 쓰는 절차예요. 이건 화물 전체에 걸려 있어요.', { at: 'R', face: 'serious', ...audit }),
+        N('나디르가 다음 장을 넘긴다. 출발지 칸이 이번엔 비어 있지 않다.'),
+        N('\'브샤크 궤도 잔해 회수품 — 황무지 접경 회수 창고 경유\''),
+        N('비비안의 손에서 수첩이 미끄러져 떨어진다.'),
+        S('vivian', '…브샤크네.', { at: 'L', face: 'blank' }),
+        N('리키가 비비안의 다리에 몸을 붙인다. 비비안은 수첩을 주워 펼치지만, 아무것도 적지 않는다.'),
+        S('vivian', '아, 리키 밥 시간이다! 리키 밥 먹여야 해! 잠깐만!', { face: 'grin' }),
+        N('나디르가 말없이 그 장을 사진으로 남긴다. 비비안 몫으로, 한 장 더.'),
+        S('nadir', '…근데 여기 적힌 건 \'검사 생략\' 승인까지예요. 둥지를 실어 왔다는 말은 어디에도 없어요.', { face: 'worried' }),
+        S('vivian', '그래도 브샤크에서 건진 거면, 군체가 묻어 왔을 수도 있어.', { face: 'serious', exit: ['temur', 'lindiwe'] }),
+        S('rachel', '…다 챙겨.', { at: 'R', face: 'tired' }),
+      ],
+      [
+        S('nadir', '필요한 것만 보면 돼요. …아깝긴 하지만요.', { at: 'C', face: 'sad' }),
+        N('기록실 문이 닫힌다. 선반 맨 아래 묶음은 그대로 남는다.', { sfx: 'clank' }),
+      ],
+    ],
+  },
+
+  // ③ 격리 검사대: 라르스의 라인이 아낀 시간이 바로 이 검사다. 다시 돌릴지, 같은 방식으로 지나갈지
+  cp4_inspect: {
+    cast: ['nadir', 'phyllis', 'temur', 'vivian', 'lindiwe', 'rachel'],
+    scene: [
+      N('격리 검사 갑문 앞. 컨베이어가 멈춘 검사대 위에 먼지가 앉았다. 갑문 너머에서 무언가 숨 쉬듯 부풀었다 가라앉는다.', { bg: 'cp4_gate', bgm: 'tense' }),
+      N('검사 기록 화면에는 \'급송 — 검사 생략\' 도장이 끝없이 이어진다.'),
+      S('nadir', '이거 다시 돌리면 갑문으로 넘어가는 컨테이너를 하나씩 확인할 수 있어요. 갑문 셔터 제어도 이쪽으로 돌아오고요.', { at: 'C', face: 'serious' }),
+      S('phyllis', '그거 다 기다리다간 둥지가 먼저 커진다-.', { at: 'R', face: 'smug' }),
+      S('temur', '아저씨가 아낀 시간이 이거구나.', { at: 'L', face: 'base', exit: true }),
+      S('lindiwe', '검사관 인장도 여기 있네요. 원래 상자마다 찍혀야 하는 도장이에요.', { at: 'L', face: 'serious', ...audit }),
+      S('vivian', '검사하자! 이번엔 우리가 하면 되잖아!', { at: 'L', face: 'grin', if: '!cp_br_audit' }),
+    ],
+    after: [
+      [
+        N('컨베이어가 덜컹거리며 다시 돈다. 나디르가 화면 앞에 붙어 컨테이너 번호를 하나씩 읽는다.', { bg: 'cp4_gate', bgm: 'tense', sfx: 'servo' }),
+        S('nadir', 'C-1102, 깨끗해요. C-1103, 깨끗. C-1104… 봉인할게요.', { at: 'C', face: 'serious' }),
+        S('phyllis', '…이게 원래 하던 일이야? 지루하다-.', { at: 'R', face: 'tired' }),
+        S('nadir', '지루한 게 맞는 거예요.'),
+        N('테무르가 검사관 인장을 집어 든다. 깨끗한 컨테이너마다 하나씩, 쾅, 쾅 찍는다.', { sfx: 'clank' }),
+        S('temur', '이거 재밌네.', { at: 'L', face: 'grin' }),
+        N('갑문 셔터 제어 화면에 초록 불이 들어온다.'),
+      ],
+      [
+        S('temur', '아저씨랑 똑같이 하는 거네.', { at: 'L', face: 'base' }),
+        S('rachel', '…알아.', { at: 'C', face: 'tired' }),
+      ],
+    ],
+  },
+
+  // ④-감사: 버튼 하나 앞에서 라르스가 조건을 낸다. 라르스는 '한 번이면 충분하다'고 말한다 (554년 감사번호)
+  cp4_meet_audit: {
+    cast: ['lindiwe', 'lars', 'nadir', 'rachel', 'vivian'],
+    scene: [
+      N('제4링 승강축 앞. 린디웨의 손목 단말에 정보감사실 회신이 떠 있다.', { bg: 'cp4_dock_lounge', bgm: 'tense' }),
+      N('\'접수 완료 — 최종 제출 시 감사번호 부여\''),
+      S('lindiwe', '버튼 하나만 누르면 돼요.', { at: 'R', face: 'serious' }),
+      N('누르기 전에 통신이 하나 들어온다. 라르스다.', { sfx: 'static' }),
+      S('lars', '린디웨 팀장. 접수하셨더군요.', { ...LARS, at: 'C', face: 'base' }),
+      S('lindiwe', '네.'),
+      S('lars', '번호가 붙으면 지워지지 않습니다. 팀장 접수 기록도 같이요.', LARS),
+      S('lindiwe', '알아요. 부장님 554년 번호는 누구나 조회할 수 있으니까요.'),
+      N('라르스가 잠깐 말이 없다.'),
+      S('lars', '그래서 하는 말입니다. 한 번이면 충분합니다.', LARS),
+      S('lars', '제출을 계약 끝날 때까지만 미뤄 주시죠. 이번 장 정산은 2배로 얹겠습니다.', LARS),
+      S('nadir', '급송 승인 기록도 있어요. 사유는 \'소등 대비 AH 절감\'이었고요.', { at: 'L', face: 'serious', ...found }),
+      S('lindiwe', '…부장님. 이건 사고라고만 하실 수는 없을 거예요.', found),
+      S('lindiwe', '…지휘관님이 정해 주세요.', { face: 'base', exit: ['nadir'] }),
+    ],
+    after: [
+      [
+        N('린디웨가 버튼을 누른다. 화면에 번호 하나가 뜬다.', { bg: 'cp4_dock_lounge', bgm: 'tense', sfx: 'tick' }),
+        S('lindiwe', '…붙었어요.', { at: 'R', face: 'serious' }),
+        S('lars', '그렇군요.', { ...LARS, at: 'C', face: 'base' }),
+        N('라르스는 그 말만 하고 통신을 끊는다. 화면 구석의 시계는 17시 58분이다.', { exit: ['lars'] }),
+        S('lindiwe', '포상금은 정산서에 넣어 둘게요. 격리팀 몫이랑 같이요.', { face: 'smile' }),
+      ],
+      [
+        S('lindiwe', '…원본은 제가 쥐고 있을게요. 계약 끝날 때까지요.', { at: 'R', face: 'base' }),
+        S('lars', '좋습니다. 서로 만족할 만하군요.', { ...LARS, at: 'C', face: 'smile', exit: true }),
+        S('vivian', '끝나면 꼭 내는 거지?', { at: 'L', face: 'worried' }),
+        S('lindiwe', '…그건 그때 장부 보고 정할게요.'),
+      ],
+      [
+        S('nadir', '부장님이 직접 쓰시면 되잖아요. 승인 코드도, 사유도 여기 다 있어요.', { at: 'L', face: 'serious' }),
+        S('lars', '…', { ...LARS, at: 'C', face: 'base' }),
+        N('라르스가 한참 화면을 본다. 손목시계를 본다. 17시 58분.', { sfx: 'tick' }),
+        S('lars', '…좋습니다. 보고서는 제가 쓰죠. 오늘 안에.', LARS),
+        S('lindiwe', '오늘요? 지금 퇴근 2분 전이신데요.', { at: 'R', face: 'surprise' }),
+        S('lars', '압니다.', LARS),
+        N('화면 속 라르스가 외투를 의자 등받이에 건다.'),
+        S('lars', '마지막 구간에 쓸 AH는 제가 더 사 두겠습니다. …끝까지 가시죠.', LARS),
+      ],
+    ],
+  },
+
+  // ④-라르스: 라르스가 직접 왔다. 대답 대신 계산을 말하고, 18시가 지나도 나가지 않는다
+  cp4_meet_lars: {
+    cast: ['lars', 'rachel', 'nadir', 'temur', 'vivian', 'phyllis'],
+    scene: [
+      N('제4링 하역장 사무실. 17시 40분, 문이 열리고 라르스가 들어온다. 외투를 팔에 걸쳤다.', { bg: 'cp4_dock_office', bgm: 'tense' }),
+      S('lars', '17시 40분이군요. 20분이면 충분하겠죠.', { at: 'R', face: 'base' }),
+      S('rachel', '…금고 상자. 아저씨 라인이지?', { at: 'L', face: 'tired' }),
+      S('lars', '네. 제 라인입니다.'),
+      S('nadir', '급송 통관 승인 기록도 찾았어요. 사유는 \'산노디스 소등 대비, AH 절감\'이요.', { at: 'C', face: 'serious', ...found }),
+      S('lars', '12시간 걸릴 검사를 8시간에 끝내고, 손실은 10% 정도 보는 거래였습니다. 늘 하던 계산이죠.', { ...found, exit: ['nadir'] }),
+      S('temur', '그 10%가 누구한테 떨어졌는데?', { at: 'C', face: 'base', ...found }),
+      S('lars', '검사 절차를 줄인 적은 있습니다. 시간이 비용이니까요.', notFound),
+      S('vivian', '그래서 둥지가 생긴 거야?!', { at: 'C', face: 'angry', ...notFound }),
+      S('lars', '그건 모릅니다. 저도, 여러분도요.', notFound),
+      N('라르스가 대답하지 않는다.', found),
+      N('벽시계가 18시를 가리킨다.', { sfx: 'tick' }),
+      N('라르스는 외투를 팔에 건 채 그대로 서 있다.', { exit: ['nadir', 'temur', 'vivian'] }),
+      S('phyllis', '…퇴근 안 해?', { at: 'C', face: 'surprise' }),
+      S('lars', '…계산이 아직 안 끝났습니다.'),
+    ],
+    after: [
+      [
+        S('lars', '좋습니다. 보상은 오늘 안에 보내죠.', { at: 'R', face: 'base' }),
+        N('라르스가 외투를 입고 나간다. 문이 닫힌다. 벽시계는 18시 6분이다.', { exit: ['lars'] }),
+        S('phyllis', '…덮었네-.', { at: 'C', face: 'base' }),
+      ],
+      [
+        S('rachel', '…정보감사실에 넘길 거야.', { at: 'L', face: 'tired' }),
+        S('lars', '막지 않겠습니다. 막을 방법도 없고요.', { at: 'R', face: 'base' }),
+        N('라르스가 외투를 입는다. 문 앞에서 한 번 멈췄다가, 그대로 나간다.', { exit: ['lars'] }),
+      ],
+      [
+        S('nadir', '아저씨가 직접 쓰면 되잖아요. 승인 코드도, 사유도 여기 다 있어요.', { at: 'C', face: 'serious' }),
+        N('라르스가 서류를 받아 든다. 한참 들여다본다.'),
+        S('lars', '…좋습니다. 보고서는 제가 쓰죠. 오늘 안에.', { at: 'R', face: 'base' }),
+        S('phyllis', '오늘 안에? 벌써 18시 넘었는데?', { at: 'L', face: 'surprise' }),
+        S('lars', '압니다.'),
+        N('라르스가 외투를 의자 등받이에 건다.'),
+        S('lars', '마지막 구간 AH는 제가 더 사 두겠습니다. …끝까지 가시죠.'),
+      ],
+    ],
+  },
+
+  // ④-침묵: 라르스가 서두르라고 전화한다. 필리스가 사본을 거래에 올린다
+  cp4_meet_quiet: {
+    cast: ['lars', 'phyllis', 'nadir', 'rachel', 'vivian'],
+    scene: [
+      N('제4링 화물 통로. 17시 58분, 통신 창이 열린다.', { bg: 'cp4_dock_lounge', bgm: 'tense', sfx: 'static' }),
+      S('lars', '지휘관. 마지막 구간이군요. 소등 예보가 또 당겨졌습니다. 서둘러 주시죠.', { ...LARS, at: 'R', face: 'base' }),
+      S('lars', '끝내 주시면 정산은 넉넉하게 얹겠습니다.', LARS),
+      N('필리스가 주머니 위에 손을 얹는다.'),
+      S('phyllis', '아저씨, 하나 팔 게 있는데-.', { at: 'L', face: 'smug' }),
+      S('lars', '…무엇을요?', LARS),
+      S('phyllis', '금고 맨 아래 장. 인부들 서명 있는 거.'),
+      N('라르스가 바로 대답하지 않는다.', { sfx: 'tick' }),
+      S('lars', '…값을 매겨 보죠.', LARS),
+      S('nadir', '팔기 전에 이것도 보세요. 급송 통관 승인 기록이에요. 사유는 \'소등 대비 AH 절감\'.', { at: 'C', face: 'serious', ...found }),
+      S('lars', '…그것까지 찾으셨군요.', found),
+    ],
+    after: [
+      [
+        S('lars', '좋습니다. 크레딧은 바로 보내죠.', { ...LARS, at: 'R', face: 'base' }),
+        N('필리스가 종이를 화물 기송관에 넣는다. 슉 소리와 함께 사라진다.', { sfx: 'scrape' }),
+        S('phyllis', '인부들 이름은 외웠어-. 그건 안 팔았어.', { at: 'L', face: 'grin' }),
+      ],
+      [
+        S('phyllis', '역시 안 팔래-. 값이 더 오를 것 같아서.', { at: 'L', face: 'grin' }),
+        S('lars', '…그것도 거래군요. 좋습니다.', { ...LARS, at: 'R', face: 'base', exit: true }),
+        S('vivian', '필리스, 그거 언제 꺼낼 거야?', { at: 'C', face: 'worried' }),
+        S('phyllis', '그건 내가 정해-.'),
+      ],
+      [
+        S('rachel', '…아저씨가 직접 써.', { at: 'L', face: 'tired' }),
+        S('lars', '…제가요?', { ...LARS, at: 'R', face: 'surprise' }),
+        S('nadir', '승인 코드도, 사유도 여기 다 있어요. 쓰기만 하면 돼요.', { at: 'C', face: 'serious' }),
+        N('라르스가 손목시계를 본다. 18시가 넘었다.', { sfx: 'tick' }),
+        S('lars', '…좋습니다. 보고서는 제가 쓰죠. 오늘 안에.', { ...LARS, face: 'base' }),
+        S('lars', '마지막 구간 AH는 제가 더 사 두겠습니다.', LARS),
+      ],
+    ],
+  },
+};

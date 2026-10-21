@@ -1,7 +1,7 @@
 // 캠페인 런 진행 (data/campaign.ts 의 장 정의를 run.ts 흐름에 끼운다).
 // run.ts 는 run.campaign 이 있을 때만 이 함수들을 부른다 — 일반 런 경로는 그대로.
 import { CAMP, CAMP_MEMBERS, CAMP_NEXT, CHAPTERS, chapterOf, SETTLE, TIME_COST } from '../data/campaign';
-import { campChapterIntro } from '../data/scenes/campaign';
+import { campChapterIntro, campEnding } from '../data/scenes/campaign';
 import { UNIT_BY_ID } from '../data/units';
 import { tierOf } from '../data/synergies';
 import type { Battle } from './combat';
@@ -11,15 +11,15 @@ import type { NodeType, RunState } from '../types';
 export const CAMP_ID = 'recover';
 export const CAMP_START = ['rachel', 'vivian'];
 
-/** 출전 인원 상한 (장마다) */
-export const campDeploy = (run: RunState) => chapterOf(run).deploy;
+/** 출전 인원 상한 (장마다). 4장 감사 분기에서 린디웨가 현장에 오면 1명 더 */
+export const campDeploy = (run: RunState) => chapterOf(run).deploy + (run.flags.includes('cp_br_audit') && run.units.some((u) => u.defId === 'lindiwe') ? 1 : 0);
 
 /** 노드에 들어갈 때: AH(접근시간)를 쓴다 (고른 행동에만). 사건 노드는 장마다 고정 사건 id 를 돌려준다 */
 export function campEnter(run: RunState, type: NodeType): { event?: string } {
   const c = run.campaign!;
   const cost = TIME_COST[type] || 0;
   if (cost) spendTime(run, cost, typeName(type));
-  if (type === 'event') return { event: chapterOf(run).events[run.step] };
+  if (type === 'event') { const e = chapterOf(run).events[run.step]; return { event: typeof e === 'function' ? e(run) : e }; }
   return {};
 }
 const typeName = (t: NodeType) => ({ battle: '전투', adversity: '역경', boss: '보스전', event: '사건', supply: '보급', shop: '분기점', maint: '정비' } as Record<string, string>)[t] || t;
@@ -63,15 +63,27 @@ export function settleChapter(run: RunState, counts: Counts, lines: string[]) {
   c.bonus = bonus;
   lines.push(`${ch.name} 정산 — 남은 AH ${c.time}: 칼퇴 보너스 +${bonus}${debt ? ` · 선지급 어음 -${debt}` : ''}`);
   const next = CHAPTERS.find((x) => x.ch === ch.ch + 1);
-  run.pending.push({ t: 'notice', title: `${ch.name} — 정산`, body: next ? `항로 한 구간을 되찾았습니다. 다음은 ${next.place}입니다.` : `항로 한 구간을 더 되찾았습니다.\n검증판은 여기까지입니다. 다음은 ${CAMP_NEXT}입니다 (플레이 감각을 확인한 뒤 이어서 만듭니다).`, rows: [
+  run.pending.push({ t: 'notice', title: `${ch.name} — 정산`, body: next ? `항로 한 구간을 되찾았습니다. 다음은 ${next.place}입니다.` : '베르타–산노디스 항로를 끝까지 되찾았습니다.', rows: [
     ['남은 AH', `${c.time} / ${c.timeMax}`],
     ['칼퇴 보너스', `크레딧 +${bonus}`],
     ...(debt ? [['선지급 어음', `크레딧 -${debt}`] as [string, string]] : []),
   ] });
   if (next) return; // 보스 승리 뒤 advance() → campNextChapter
+  // 마지막 장: 끝 장면(분기별) → 마지막 알림을 닫으면 런이 끝난다 (main 'notice-ok' · campDone). 바로 over 로 넘기면 알림이 보이지 않는다
   run.cleared = true;
-  run.over = true;
+  c.done = true;
+  run.pending.push({ t: 'notice', title: '회수 계약 — 끝', body: '베르타–산노디스 항로', scene: campEnding(run) });
+  run.pending.push({ t: 'notice', title: '1부 「회수 계약」 완료', body: `다음 이야기는 ${CAMP_NEXT}입니다.`, rows: campEndRows(run), end: true });
 }
+/** 마지막 알림의 표: 이번 캠페인에서 고른 것 */
+function campEndRows(run: RunState): [string, string][] {
+  const f = (k: string) => run.flags.includes(k);
+  const route = f('cp_br_audit') ? '정보감사실에 넘겼다' : f('cp_br_lars') ? '라르스에게 직접 물었다' : '아무에게도 말하지 않았다';
+  const end = f('cp4_lars_filed') ? '라르스가 직접 보고했다' : f('cp4_filed') ? '감사번호가 붙었다' : f('cp4_held') ? '린디웨가 원본을 쥐고 있다' : f('cp4_sold') ? '사본을 라르스에게 팔았다' : f('cp4_kept') ? '사본은 필리스 주머니에' : f('cp4_paid') ? '보상을 받고 덮었다' : '—';
+  return [['금고 서류', route], ['결말', end], ['남은 AH', `${run.campaign?.time ?? 0}`]];
+}
+/** 마지막 알림까지 닫았는가 (런 끝) */
+export const campDone = (run: RunState) => !!run.campaign?.done && !run.pending.length;
 
 /** 다음 장으로: 장 지도 · AH · 출전 인원을 바꾸고 장 도입 장면 · 조건 표를 띄운다 (run.ts advance 가 항로 끝에서 부른다) */
 export function campNextChapter(run: RunState) {

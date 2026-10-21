@@ -282,6 +282,31 @@ export const ENEMIES: EnemyDef[] = [
     hooks: { takenMult: (b, u) => (b.units.some((x) => x.alive && x.owner === u && x.defId === 'cp_antenna') ? 0.5 : 1) } },
   { id: 'cp_antenna', name: '중계 안테나', tend: 'counter', keywords: ['mech', 'struct'], sprite: 'turret', palette: SWARM2, art: 'en_turret', tier: 'minion', minPhase: 99,
     hp: 900, power: 0, armor: 200, interval: 9, range: 0, immobile: true, atk: { type: 'strike', elem: 'phys' }, melee: false, noAttack: true },
+  // 캠페인 「회수 계약」 4장 보스: 베르타-4 제4링 격리 검사 갑문에 뿌리내린 둥지. 적요 번호 없는 화물이 검사 없이 지나가던 바로 그 갑문이다.
+  // [격리 셔터] 12초 주기로 갑문이 열렸다 닫힌다 — 닫혀 있는 동안 받는 피해 -50%. 열린 시간은 4초, 검사대를 다시 돌리고 왔으면 7초 (b.ctx.campIntel4).
+  // [오염 컨테이너] 10초마다 포자 살점 2마리 (동시 최대 4마리). 감사 분기(b.ctx.campAudit)면 격리팀이 컨테이너를 봉인해 15초마다 1마리.
+  // [산성 방류] 3칸 안 모든 적에게 화학 피해. 장 적 단계는 data/campaign.ts (4장 = 5).
+  // 시뮬(tests/campaign_sim.ts, 분기 · 정책별 40판): 4장 보스 평균 시도 감사 1.0~1.1 · 라르스 1.6~1.9 · 침묵 1.4~1.6회. 감사는 쉬운 대신 AH -6 이라 정산이 줄고, 라르스는 AH 가 가장 많이 남는다
+  { id: 'cp_gate', name: '검역 갑문 둥지', tend: 'counter', keywords: ['bio'], sprite: 'crawler', palette: SWARM_BOSS, art: 'en_sw_brood', tier: 'boss', minPhase: 99,
+    hp: 5600, power: 125, armor: 220, effRes: 0.3, interval: 1.3, range: 2, immobile: true, atk: { type: 'strike', elem: 'chem' }, melee: true,
+    skill: {
+      name: '산성 방류', cd: 9, params: {}, desc: () => '3칸 안 모든 적에게 화학 피해 (기술 위력 110%)',
+      cast(b, u) {
+        const es = b.around(u, 3, b.enemiesOf(u)); if (!es.length) return false;
+        b.fx(u.x, u.y, 3, 'chem');
+        for (const e of es) skillHit(b, u, e, 'tech', 1.1, 'chem', { noMiss: true });
+        return true;
+      },
+    },
+    onTick: (b, u, dt) => {
+      const audit = !!b.ctx.campAudit;
+      u.mem.spawnT = (u.mem.spawnT || 0) + dt;
+      if (u.mem.spawnT < (audit ? 15 : 10)) return;
+      u.mem.spawnT = 0;
+      const cap = 4, alive = b.units.filter((x) => x.alive && x.side === u.side && x.defId === 'sw_spore').length;
+      if (alive < cap) summonHook?.(b, u, 'sw_spore', Math.min(audit ? 1 : 2, cap - alive));
+    },
+    hooks: { takenMult: (b) => (b.t % 12 < (b.ctx.campIntel4 ? 7 : 4) ? 1 : 0.5) } },
   { id: 'sw_queen', name: '군체 여왕', tend: 'counter', keywords: ['bio', 'phantom'], sprite: 'phantom', palette: SWARM_BOSS, tier: 'boss', minPhase: 1,
     hp: 3000, power: 46, armor: 180, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     escort: ['sw_hound', 'sw_spitter'],

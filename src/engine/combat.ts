@@ -382,7 +382,7 @@ export type BEvent =
   /** 사이오닉 소마법 시전 (to: 주 대상) */
   | { k: 'cantrip'; id: number; school: SchoolId; to?: number; name: string };
 
-export interface BattleCtx { phase: number; credits: number; field?: string; diff?: number; despairs?: string[]; oaths?: Record<string, number>; otShift?: number; campIntel?: boolean; campIntel2?: boolean; campIntel3?: boolean; /** 전역 증강 id (적에게 걸리는 것: 판돈 올리기) */ globals?: string[] } // despairs: 이 런의 절망 증강 id 목록 (data/despair.ts) · oaths: 절망 서약 (data/oaths.ts) · otShift: 연장전 · 제한 시간을 앞당기는 초 (초침의 서약)
+export interface BattleCtx { phase: number; credits: number; field?: string; diff?: number; despairs?: string[]; oaths?: Record<string, number>; otShift?: number; campIntel?: boolean; campIntel2?: boolean; campIntel3?: boolean; campIntel4?: boolean; campAudit?: boolean; /** 전역 증강 id (적에게 걸리는 것: 판돈 올리기) */ globals?: string[] } // despairs: 이 런의 절망 증강 id 목록 (data/despair.ts) · oaths: 절망 서약 (data/oaths.ts) · otShift: 연장전 · 제한 시간을 앞당기는 초 (초침의 서약)
 
 /** 전장 조건 훅: 전장(id)마다 하나. battlefields.ts 가 FIELD_RULES 에 등록하고, 전투 시작 때 ctx.field 로 붙는다 */
 export interface FieldRules {

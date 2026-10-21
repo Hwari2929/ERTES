@@ -1,5 +1,6 @@
-// 캠페인 「회수 계약」 검증판 시뮬: 1 · 2 · 3장을 끝까지 자동으로 돌려 흐름 오류 · 승률 · 장별 보스 시도 · 남은 AH 를 본다.
+// 캠페인 「회수 계약」 시뮬: 1 ~ 4장을 끝까지 자동으로 돌려 흐름 오류 · 승률 · 장별 보스 시도 · 남은 AH 를 본다.
 // 사용: npx esbuild tests/campaign_sim.ts --bundle --platform=node --outfile=dist/campaign_sim.cjs && node dist/campaign_sim.cjs [판수] [위험] [정책]
+//   4번째 인자 = 4장 분기 (audit · lars · quiet, 기본 audit)
 //   정책: safe (신고 · 바로 돌파 · 지나감 · 안테나 그대로) / survey (조사 · 영사 · 배전실 + 신고) / greedy (직접 열기 · 조사 · 영사 · 배전실) / peek (필리스 확인 · 조사 · 영사 · 배전실)
 import { CFG } from '../src/config';
 import { UNIT_BY_ID } from '../src/data/units';
@@ -12,7 +13,8 @@ import { augChoice, manageItems } from './botlib';
 import { EVENT_BY_ID } from '../src/data/events';
 
 declare const process: { argv: string[]; stdout: { write(s: string): void } };
-const N = +process.argv[2] || 50, DIFF = +process.argv[3] || 3, POL = process.argv[4] || 'safe';
+const N = +process.argv[2] || 50, DIFF = +process.argv[3] || 3, POL = process.argv[4] || 'safe', ROUTE = process.argv[5] || 'audit';
+const ROUTE_LABEL: Record<string, string> = { audit: '린디웨를 통해 정보감사실에 넘긴다', lars: '라르스에게 직접 묻는다', quiet: '아무에게도 말하지 않는다' };
 const out = { runs: 0, clear: 0, dead: 0, stuck: 0, battles: 0, wins: 0, bossTries: 0, timeLeft: [] as number[], credits: [] as number[], errors: [] as string[], tiers: {} as Record<string, number>, boss: {} as Record<number, number>, reach: {} as Record<number, number>, left: {} as Record<number, number[]> };
 
 for (let s = 0; s < N; s++) {
@@ -20,7 +22,10 @@ for (let s = 0; s < N; s++) {
   let run: ReturnType<typeof newCampaignRun>;
   try { run = newCampaignRun(DIFF); } catch (e) { out.errors.push(String(e)); continue; }
   out.runs++;
-  const order = POL === 'survey' ? ['조사한다', '영사한다', '배전실로 간다', '같이 가자', '같이 들어가자', 'AH로 받는다', '격리팀에 신고한다', '직접 연다', '연다'] : POL === 'greedy' ? ['조사한다', '영사한다', '배전실로 간다', '상자는 두고 와', '따뜻한 길로 안내해', '크레딧으로 받는다', '봉인 테이프로 연다', '직접 연다', '그래도 연다', '연다'] : POL === 'peek' ? ['조사한다', '영사한다', '배전실로 간다', '상자는 두고 와', '따뜻한 길로 안내해', 'AH로 받는다', '필리스가 먼저 들여다본다', '봉인 테이프로 연다', '격리팀에 넘긴다', '연다'] : ['바로 돌파한다', '그냥 지나간다', '안테나는 그대로 둔다', '같이 가자', '같이 들어가자', 'AH로 받는다', '격리팀에 신고한다', '직접 연다', '연다'];
+  const order0 = POL === 'survey' ? ['조사한다', '영사한다', '배전실로 간다', '같이 가자', '같이 들어가자', 'AH로 받는다', '격리팀에 신고한다', '직접 연다', '연다'] : POL === 'greedy' ? ['조사한다', '영사한다', '배전실로 간다', '상자는 두고 와', '따뜻한 길로 안내해', '크레딧으로 받는다', '봉인 테이프로 연다', '직접 연다', '그래도 연다', '연다'] : POL === 'peek' ? ['조사한다', '영사한다', '배전실로 간다', '상자는 두고 와', '따뜻한 길로 안내해', 'AH로 받는다', '필리스가 먼저 들여다본다', '봉인 테이프로 연다', '격리팀에 넘긴다', '연다'] : ['바로 돌파한다', '그냥 지나간다', '안테나는 그대로 둔다', '같이 가자', '같이 들어가자', 'AH로 받는다', '격리팀에 신고한다', '직접 연다', '연다'];
+  // 4장: 분기(ROUTE) · 조사 계열은 기록실 끝까지 · 검사대 재가동 · 라르스 직접 보고, safe 는 아끼는 쪽
+  const CH4 = POL === 'safe' ? ['필요한 것만 보고 나온다', '그냥 지나간다', '보상을 받고 끝낸다', '원본은 린디웨가 쥐고 있는다', '사본을 라르스에게 판다'] : ['기록을 끝까지 찾는다', '검사대를 다시 돌린다', '라르스가 직접 제출하게 한다', '직접 보고하라고 한다', '사본을 보여 준다'];
+  const order = [ROUTE_LABEL[ROUTE] || ROUTE_LABEL.audit, ...CH4, ...order0];
   const resolve = () => {
     for (let g = 0; run.pending.length && g < 50; g++) {
       const p = run.pending[0];
@@ -50,7 +55,7 @@ for (let s = 0; s < N; s++) {
   };
   try {
     resolve();
-    for (let guard = 0; guard < 200 && !run.over; guard++) {
+    for (let guard = 0; guard < 260 && !run.over && !(run.campaign?.done && !run.pending.length); guard++) {
       resolve();
       manageItems(run);
       while (run.credits >= 20 + R.xpCost(run)) { const u = run.units.filter((x) => x.pos && x.rank < CFG.maxRank).sort((a, b) => a.rank - b.rank)[0]; if (!u || !R.buyXp(run, u.uid)) break; }
