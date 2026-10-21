@@ -6,8 +6,10 @@
 import { NODE_NAME, type NodeType, type RunState } from '../types';
 import { lineIcon } from './synicons';
 
-const FIELDS = { livin: 'ring', swarm: 'orbit', raiden: 'stairs', county: 'grid' } as const;
-type Kind = (typeof FIELDS)[keyof typeof FIELDS];
+// 라이덴 (stairs) · 카운티폴 (grid) 은 시안 확정 전이라 게임에서는 끈다 (장면 코드는 아래에 그대로 둔다)
+const FIELDS = { livin: 'ring', swarm: 'orbit' } as const;
+const DRAFT_SCENES = ['stairs', 'grid'] as const;
+type Kind = (typeof FIELDS)[keyof typeof FIELDS] | (typeof DRAFT_SCENES)[number];
 const CODE: Partial<Record<NodeType, string>> = { supply: 'SUP', battle: 'BTL', council: 'CNL', event: 'EVT', shop: 'BRN', adversity: 'ADV', boss: 'BOS', recruit: 'RCT', fork: 'FRK', news: 'NWS', invest: 'INV', pilgrim: 'PLG', challenge: 'CHL', maint: 'MNT' };
 // 프리버드(공룡) 실루엣 — 오른쪽을 보고 발이 y=0
 const DINO = {
@@ -72,7 +74,7 @@ export function mountRouteMap(host: HTMLElement | null, run: RunState | null, on
 
 function build(host: HTMLElement, run: RunState, key: string, types: NodeType[], narrow: boolean, onNode: (el: HTMLElement) => void): Scene {
   const C = palette();
-  const N = types.length, kind: Kind = FIELDS[run.field as keyof typeof FIELDS];
+  const N = types.length, kind: Kind = FIELDS[run.field as keyof typeof FIELDS] as Kind;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const box = document.createElement('div');
   box.className = `rmap rmap-${kind}`;
