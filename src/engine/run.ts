@@ -42,6 +42,8 @@ export function rng<T>(run: RunState, f: (r: Rng) => T): T {
 }
 const zeroMajors = (): Record<Major, number> => ({ vit: 0, pow: 0, mnd: 0, def: 0, agi: 0 });
 const log = (run: RunState, s: string) => { run.log.unshift(s); if (run.log.length > 60) run.log.length = 60; };
+/** 에란테스 훈련장 (engine/lab.ts 가 채운다): 훈련장 런의 조우 만들기 · 전투 정산 (보상 · 피해 · 기록 없이 다음 칸으로) */
+export const LAB_HOOK: { enc?: (run: RunState) => Encounter; resolve?: (run: RunState, b: Battle) => BattleSummary } = {};
 export const hasGlobal = (run: RunState, id: string) => run.globals.includes(id);
 const GA = CFG.globalAug;
 /** 전설 [판돈 올리기]: 전투 승리 크레딧 · 공명도 풀 배율 */
@@ -246,7 +248,7 @@ export const canDeploy = (run: RunState, u: UnitState) => u.lock !== run.phase;
 
 /** 함대 확장 횟수 (구 세이브는 예전 페이즈 기준 출전 인원으로 환산) */
 const fleetOf = (run: RunState) => run.fleet ?? 0; // 함대 확장 구입 횟수 (구입 전에는 기본 인원 그대로)
-export const deployCap = (run: RunState) => run.campaign ? campDeploy(run) : CFG.deployBase + fleetOf(run) + (hasGlobal(run, 'G.squad') ? 1 : 0) - (hasGlobal(run, 'G.l_ascend') ? 1 : 0); // 캠페인: 장마다 정한 인원
+export const deployCap = (run: RunState) => run.lab?.cap ? run.lab.cap : run.campaign ? campDeploy(run) : CFG.deployBase + fleetOf(run) + (hasGlobal(run, 'G.squad') ? 1 : 0) - (hasGlobal(run, 'G.l_ascend') ? 1 : 0); // 캠페인: 장마다 정한 인원
 
 // ───────────────────────── 함선 관리: 함대 확장 · 지정 소집
 /** 다음 함대 확장 비용 (최대면 null) */
@@ -423,7 +425,7 @@ export function enterNode(run: RunState, type: NodeType) {
   }
   if (type === 'battle' || type === 'adversity' || type === 'boss') {
     if (hasGlobal(run, 'G.l_petra')) { const n = synergyCounts(deployed(run), run).PET || 0; if (n) { run.credits += n * GA.petraPer; log(run, `페트라 직불 계약: 크레딧 +${n * GA.petraPer}`); } }
-    run.node = { type, enc: genEncounter(run, type) };
+    run.node = { type, enc: run.lab && LAB_HOOK.enc ? LAB_HOOK.enc(run) : genEncounter(run, type) };
     fitDeployNotice(run);
     syncQuests(run);
   } else if (type === 'shop') {
@@ -561,6 +563,7 @@ function checkEng(run: RunState) {
 /** 헬레니우스 · 신비학자 전용 장비를 지금 단계에 맞춘다: 단계가 내려가면 그 단계 장비를 회수 (run.synVault), 다시 닿으면 돌려준다.
  *  헬레니우스 장비 k 는 k단계 이상에서, 전설판은 4단계에서만. 신비학자 개조부품은 그 부품의 단계 이상에서. 돌려받은 장비는 달고 있던 기물의 빈 칸 → 보관함 */
 export function syncSynGear(run: RunState): { out: string[]; back: string[] } {
+  if (run.lab) return { out: [], back: [] }; // 훈련장: 시너지 단계와 상관없이 전용 장비를 그대로 둔다
   const hel = tierNow(run, 'HEL'), occ = occultTier(run), nav = tierNow(run, 'NAV');
   const helK = (x: string) => HEL_ITEM_IDS.findIndex((h) => h.slice(2) === x.slice(2)) + 1;
   const allowed = (x: string) => (isHelItem(x) ? helK(x) <= Math.min(3, hel) : OCCULT_MODS[x] ? OCCULT_MODS[x].tier <= occ : x === 'K_scope' ? nav > 0 : true); // 표시 망원경: 항해자가 꺼지면 회수
@@ -910,6 +913,7 @@ const tierNow = (run: RunState, id: 'STAR' | 'HOI' | 'OCCULT' | 'HEL' | 'ENG' | 
 export function advance(run: RunState) {
   run.node = null;
   run.step++;
+  if (run.lab) { if (run.step >= run.map.length) { run.step = 0; run.picked = []; } return; } // 훈련장: 항로 끝이면 처음 칸으로 (페이즈는 훈련장 패널에서 정한다)
   if (run.tutorial && run.step >= run.map.length) return; // 튜토리얼: 항로 끝 (다음 페이즈 없음)
   if (run.mods.nodeIncome) run.credits += run.mods.nodeIncome; // 분할 정산 등
   if (run.campaign && run.step >= run.map.length) { campNextChapter(run); run.picked = []; run.nodeUnits = {}; autoPlace(run); return; } // 캠페인: 다음 장
@@ -1147,6 +1151,7 @@ export interface BattleSummary {
 export const bossMustWin = (run: RunState) => !run.cleared && (!!run.campaign || run.phase >= CFG.victoryPhase); // 캠페인: 장 보스는 이겨야 넘어간다
 
 export function resolveBattle(run: RunState, b: Battle): BattleSummary {
+  if (run.lab && LAB_HOOK.resolve) return LAB_HOOK.resolve(run, b);
   const staled = ageBread(run); // 갓 구운 빵: 이번 전투로 식는 것 (이번 전투에서 얻는 빵은 세지 않도록 먼저)
   const inv0 = run.inventory.slice(); // 결과 창: 새로 얻은 장비 표시용
   const node = run.node!.type;

@@ -186,8 +186,8 @@ export function unitsList(H: CxH, o: { group: UnitGroupBy; sel: string | null; k
 }
 
 // ═══════════════════════ 장비
-type IGrp = 'C' | 'G' | 'A' | 'L' | 'M' | 'X' | 'T' | 'K' | 'R';
-const IGRP_NAME: Record<IGrp, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '문장', X: '시너지 · 기물 전용', T: '포탑 전용', K: '소모품', R: '성유물' };
+export type IGrp = 'C' | 'G' | 'A' | 'L' | 'M' | 'X' | 'T' | 'K' | 'R';
+export const IGRP_NAME: Record<IGrp, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '문장', X: '시너지 · 기물 전용', T: '포탑 전용', K: '소모품', R: '성유물' };
 const RELIC_KEY = 'R:';
 const legendOf = (aId: string) => 'L_' + aId.slice(2);
 /** 장비 표 전체: 데이터의 목록 상수를 순회 (재료 · 고급 · 희귀 · 전설 · 문장 · 전용 · 소모품 · 성유물) */

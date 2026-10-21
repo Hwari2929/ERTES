@@ -19,7 +19,7 @@ const DINO = {
 
 /** 이 런의 지도에 항로도를 쓰는가: 항로도가 있는 전장 · 튜토리얼 아님 · 모든 칸이 선택지 1개 (분기 고르기는 기존 타임라인) */
 export function routeMapOn(run: RunState): boolean {
-  return run.field in FIELDS && !run.tutorial && run.map.every((o) => o.length === 1);
+  return run.field in FIELDS && !run.tutorial && !run.lab && run.map.every((o) => o.length === 1);
 }
 
 // ── 색: 테마 토큰을 읽어 #rrggbb 로 (섞기 · 보간용)

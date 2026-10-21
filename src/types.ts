@@ -176,6 +176,8 @@ export interface RunState {
   /** 튜토리얼 런: 진행 순서(TUTORIAL_FLOW) 위치. 있으면 고정 항로 · 고정 조우 · 지는 일 없음 */
   tutorial?: { i: number };
   /** 캠페인 런 (data/campaign.ts): 장 · 남은 AH(접근시간). 있으면 시너지 · 출전 인원 · 항로 · 조우를 캠페인 규칙으로 */
+  /** 에란테스 훈련장 (engine/lab.ts): 있으면 99칸 전투 항로 · 보상 · 피해 · 기록 없음 · 편성 화면 훈련장 패널. cap = 출전 한도 직접 지정 · last = 직전 전투 조우 (같은 구성 다시) · fresh = 다음 칸을 새 조우로 · manual = 등급 상승 선택 창을 직접 고른다 · map · n = 새 조우의 지형 틀 · 폭 */
+  lab?: { cap?: number; last?: Encounter; fresh?: boolean; manual?: boolean; map?: string; n?: number };
   campaign?: { id: string; ch: number; time: number; timeMax: number; spent: number; /** 지난 장 칼퇴 보너스 (다음 장 도입 대사용) */ bonus?: number; /** 마지막 장 보스를 이겼다 (끝 장면 · 마지막 알림이 남아 있을 수 있음) */ done?: boolean };
   seed: number;
   rng: number;
