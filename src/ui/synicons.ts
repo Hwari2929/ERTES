@@ -250,6 +250,8 @@ const L: Record<string, string> = {
   // 맵 창 확대 · 축소 (돋보기 + · −): 편성 보드 · 전투 창
   'u.zoomin': '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3L21 21M10.5 7.5v6M7.5 10.5h6"/>',
   'u.zoomout': '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3L21 21M7.5 10.5h6"/>',
+  // 편성 보드 확대 복구 (전체 보기 ↔ 마지막 확대): 네 모서리 틀 + 가운데 칸
+  'u.fit': '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><rect x="9" y="9" width="6" height="6" rx="1"/>',
   // 적 성향 (도발 수치 가중치): 돌격 · 저격 · 반격 · 암살
   't.charge': '<path d="M4 5l7 7-7 7"/><path d="M12 5l7 7-7 7"/>',
   't.sniper': '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 7v2M12 15v2M7 12h2M15 12h2"/>',
