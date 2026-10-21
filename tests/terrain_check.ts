@@ -3,6 +3,7 @@ import { Battle, T_NOSHOT, T_NOWALK } from '../src/engine/combat';
 import { buildEnemy, buildWall } from '../src/engine/build';
 import { ENEMIES } from '../src/data/enemies';
 import { Rng } from '../src/rng';
+declare const process: { exit(code: number): never };
 
 const melee = ENEMIES.find((e) => e.tier === 'minion' && e.melee && !e.skill && !e.inert && e.minPhase < 5)!;
 const ranged = ENEMIES.find((e) => e.tier === 'minion' && !e.melee && e.range >= 4 && !e.skill && !e.inert && e.minPhase < 5)!;

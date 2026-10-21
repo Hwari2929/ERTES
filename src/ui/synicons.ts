@@ -219,6 +219,12 @@ const L: Record<string, string> = {
   'k.purge': '<path d="M9 9h6v11a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z"/><path d="M10 9V6h4v3"/><path d="M14 6h3l1.5 1.5"/><path d="M20 4.5h.01M21.5 7h.01M20 9.5h.01"/><path d="M9 14h6"/>',
   'k.note': '<path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4"/><path d="M8 10h8M8 13h5"/><path d="M8 18c1-1.5 2-1.5 2.5 0s1.5 1.5 2.5-.5 2 0 3 .5"/>',
   'k.tape': '<circle cx="9" cy="10" r="6"/><circle cx="9" cy="10" r="2.2"/><path d="M15 10h5.5l-1 4.5h-4.5"/><path d="M9 16h6.5"/>',
+  // 편성 화면 배치 소모품: 접이식 바리케이드 (펼친 판 3장) · 유인 신호기 (안테나 + 파동) · 감전 지뢰 (원반 + 번개) · 포획 그물 (격자) · 표시 망원경 (경통 + 렌즈)
+  'k.barricade': '<path d="M3 8h18v8H3z"/><path d="M9 8v8M15 8v8"/><path d="M5 16v4M19 16v4"/>',
+  'k.decoy': '<path d="M12 11v10"/><path d="M8 21h8"/><circle cx="12" cy="9" r="2"/><path d="M7.5 4.5a6.5 6.5 0 0 0 0 9M16.5 4.5a6.5 6.5 0 0 1 0 9"/>',
+  'k.mine': '<ellipse cx="12" cy="16" rx="8" ry="3.5"/><path d="M4 16v-2.5C4 11.5 7.6 10 12 10s8 1.5 8 3.5V16"/><path d="M13 2.5l-2.5 4h3l-2.5 4"/>',
+  'k.net': '<path d="M4 4l16 16M4 12l8 8M12 4l8 8M20 4L4 20M12 4L4 12M20 12l-8 8"/><rect x="4" y="4" width="16" height="16" rx="2"/>',
+  'k.scope': '<path d="M3 14l11-7 2 3.5-11 7z"/><path d="M14 7l3-2 2.5 4-3 1.5"/><path d="M8 15.5L6 21M10 14.3l2 6.7"/>',
   // 캠페인 장비: 청금 통행증 (브로치) · 진공 헬멧 · 블랙박스 백수정 · 중계 퓨즈
   'i.pass': '<path d="M12 3l7 4v6c0 4-3 6.5-7 8-4-1.5-7-4-7-8V7z"/><path d="M12 8l2 3-2 3-2-3z"/>',
   'i.helmet': '<circle cx="12" cy="11" r="8"/><path d="M7 11a5 4 0 0 1 10 0v2H7z"/><path d="M6 19h12"/>',

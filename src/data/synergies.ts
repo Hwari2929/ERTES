@@ -4,6 +4,7 @@ import type { Effect, EffectCtx } from '../engine/effects';
 import { amp, applyLive, inc, red, vuln } from '../engine/effects';
 import { CFG } from '../config';
 import { type Major, MAJORS, type RunState, type Stats, type SynergyId } from '../types';
+import { DEV } from './devices';
 import { ALL_ADVANCED, breadSellText, itemEffect, itemInfo, OCCULT_MODS, occultModsOfTier } from './items';
 import { CAUSAL, KING, KING_GEAR, KING_GEAR_NAME } from './chungra';
 import { addStacks, blinkTo, harmfulCount, isDebuffed, isHarmful, pct } from './kit';
@@ -530,8 +531,8 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'NAV', name: '항해자', kind: 'trait', tiers: [2, 4, 6, 8], color: '#7ab8ff', icon: '✈',
-    desc: '항해자 1명을 [에이스 파일럿]으로 지정합니다 (기물 정보 창, 미지정 시 공명 등급이 가장 높은 항해자). 에이스는 기물마다 다른 추가 특성이 활성화되고, 단계가 오를수록 그 능력이 강해집니다.',
-    tierDesc: ['에이스 능력 ×1, 항해자 피해 +15%', '에이스 능력 ×2, 항해자 기동력 +5, 피해 +35%', '에이스 능력 ×4, 항해자 기동력 +10, 피해 +75%', '[전설의 항로] 에이스 능력 ×8, 항해자 기동력 +16, 피해 +120%'],
+    desc: `항해자 1명을 [에이스 파일럿]으로 지정합니다 (기물 정보 창, 미지정 시 공명 등급이 가장 높은 항해자). 에이스는 기물마다 다른 추가 특성이 활성화되고, 단계가 오를수록 그 능력이 강해집니다.\n· 처음 켜지면 [표시 망원경]을 받습니다 (사용 ${DEV.scope.base}회, 페이즈마다 +${DEV.scope.perPhase}회). 편성 화면에서 적에게 쓰면 지정 포격, 아군 · 빈칸에 쓰면 항공 보급. 시너지가 꺼지면 회수했다가 다시 켜지면 돌려줍니다.`,
+    tierDesc: ['에이스 능력 ×1, 항해자 피해 +15%, [표시 망원경] 지급', `에이스 능력 ×2, 항해자 기동력 +5, 피해 +35%, 망원경 +${DEV.scope.tierBonus[1]}회`, `에이스 능력 ×4, 항해자 기동력 +10, 피해 +75%, 망원경 +${DEV.scope.tierBonus[2]}회 · 효과 범위 ${DEV.scope.r[2]}칸`, `[전설의 항로] 에이스 능력 ×8, 항해자 기동력 +16, 피해 +120%, 망원경 +${DEV.scope.tierBonus[3]}회`],
     member: (t, ctx) => {
       const agi = T(t, [0, 5, 10, 16]);
       const navDmg = [inc('all', T(t, [0.15, 0.35, 0.75, 1.2]))];

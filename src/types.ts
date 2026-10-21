@@ -1,3 +1,4 @@
+import type { Device } from './data/devices';
 import type { Beat } from './data/scene';
 import type { RunRec } from './engine/report';
 export type Major = 'vit' | 'pow' | 'mnd' | 'def' | 'agi';
@@ -120,7 +121,7 @@ export const NODE_NAME: Record<NodeType, string> = {
 };
 
 export interface EnemySpawn { defId: string; c: number; row: number; elite?: boolean; items?: string[]; mod?: string; stripped?: boolean } // items · mod: 위험 등급 장비 · stripped: 강제 징수기로 장비를 떼어 냄 (적 정의의 장비도 달지 않는다)
-export interface Encounter { n: number; env: string; enemies: EnemySpawn[]; mult: number; seed: number; phase?: number; add?: number } // phase: 적 강도 기준 페이즈 (도전 = 다음 페이즈) · add: 위험 등급 적 증원으로 더한 수 (difficulty.ts)
+export interface Encounter { n: number; env: string; enemies: EnemySpawn[]; mult: number; seed: number; phase?: number; add?: number; /** 편성 화면에서 배치한 소모품 (data/devices.ts) */ devices?: Device[] } // phase: 적 강도 기준 페이즈 (도전 = 다음 페이즈) · add: 위험 등급 적 증원으로 더한 수 (difficulty.ts)
 
 export interface ShopSlot { item: string; price: number; sold: boolean }
 export interface NewsOffer { id: string; cost: number; sold: boolean }
@@ -206,6 +207,8 @@ export interface RunState {
   chrTier?: number;
   kingPos?: { c: number; r: number };
   /** 시너지 단계가 내려가 회수한 전용 장비 (헬레니우스 동맹 장비 · 신비학자 개조부품). 그 단계에 다시 닿으면 돌려준다 — uid · slot: 회수 전에 달고 있던 기물 · 칸 (비어 있으면 그 자리로) */
+  /** 항해자 표시 망원경: 남은 사용 횟수 · 지금까지 도달한 최고 항해자 단계 (단계 보너스 지급 기록) */
+  scope?: { n: number; nav: number };
   synVault?: { id: string; uid?: string; slot?: number }[];
   helTier?: number; // 헬레니우스: 지금까지 도달한 최고 단계 (전용 장비 지급 기록) // 신비학자: 지금까지 도달한 최고 단계 (전용 개조부품 지급 기록)
   privilege: AugPick | null; // 런 시작 특권 증강

@@ -7,13 +7,14 @@ import { oathEnemy, oathV } from '../data/oaths';
 import { BOONS } from '../data/events';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
 import { DESPAIR_BY_ID } from '../data/despair';
-import { emblemOf, isEmblem, isTurretGear, isTurretMod, itemEffect, turretSlots } from '../data/items';
+import { ALL_GRADED, emblemOf, isEmblem, isTurretGear, isTurretMod, itemEffect, turretSlots } from '../data/items';
 import { CHR_HOOK, ENG_HOOK, ENG_TUR, KAL_GUARD_RANK, KAL_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, type SynDef, tierOf } from '../data/synergies';
 import { CAMP_SYNERGIES, campMembers } from '../data/campaign';
 import { causalStage, KING, kingGearOf } from '../data/chungra';
 import { UNIT_BY_ID } from '../data/units';
 import { enableDivine, ENEMY_PSI, FAITH_DEF, sigmundTarget } from '../data/rework';
 import { DEFAULT_RELIC } from '../data/relics';
+import { DEV, deviceCells, type Device, mineDmg, netCells, scopeR, strikeDmg, wallCells, wallHp } from '../data/devices';
 import { ULTS } from '../data/ults';
 import { SUMMON_RT, type SummonDef } from '../data/unitkit';
 import type { SkillDef } from './combat';
@@ -37,6 +38,12 @@ export const enemyCell = (c: number, row: number, W: number) => ({ x: PAD + Math
 /** 전장 좌표 → 저장 배치 (c, r): r=0 이 맨 뒷줄 */
 export const toPos = (x: number, y: number) => ({ c: x - PAD, r: ALLY_Y1 - y });
 
+/** 편성 칸 구역: 적 진형 · 아군 진형 · 사이 · 바깥 테두리 (배치형 소모품이 놓일 수 있는 곳을 가린다) */
+export function zoneAt(n: number, x: number, y: number): 'foe' | 'ally' | 'mid' | 'edge' {
+  const { w, h } = boardDims(n);
+  if (x < PAD || x >= w - PAD || y < PAD || y >= h - PAD) return 'edge';
+  return y < PAD + ZONE ? 'foe' : y >= ALLY_Y0 && y <= ALLY_Y1 ? 'ally' : 'mid';
+}
 export function deployed(run: RunState) { return run.units.filter((u) => u.pos); }
 
 /** 기물이 소속된 시너지 (세력 + 특성 + 증강으로 얻은 추가 소속) */
@@ -742,6 +749,17 @@ export function layout(run: RunState, n: number): Map<string, { x: number; y: nu
   return out;
 }
 
+/** 편성 화면에서 칸을 차지한 것: 출전 아군 · 포탑 · 소환물 · 공왕 · 적 · 이미 놓은 장치 ('x,y'). skip = 이 장치는 빼고 (다시 놓기 검사용) */
+export function prepOccupied(run: RunState, enc: Encounter, skip?: Device): Set<string> {
+  const n = enc.n, s = new Set<string>();
+  for (const p of layout(run, n).values()) s.add(`${p.x},${p.y}`);
+  for (const c of turretCells(run, n)) s.add(`${c.x},${c.y}`);
+  for (const t of companionCells(run, n)) s.add(`${t.x},${t.y}`);
+  for (const e of enc.enemies) { const c = enemyCell(e.c, e.row, n); s.add(`${c.x},${c.y}`); }
+  for (const d of enc.devices || []) if (d !== skip) for (const c of deviceCells(d)) s.add(`${c.x},${c.y}`);
+  return s;
+}
+
 export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): Battle {
   const dim = boardDims(enc.n);
   const b = new Battle(dim.w, dim.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined, globals: run.globals.length ? [...run.globals] : undefined, oaths: run.oaths, otShift: oathV(run, 'clock', 'sec') || undefined, campIntel: run.campaign && run.flags.includes('cp_intel') ? true : undefined, campIntel2: run.campaign && run.flags.includes('cp_intel2') ? true : undefined, campIntel3: run.campaign && run.flags.includes('cp_intel3') ? true : undefined, campIntel4: run.campaign && run.flags.includes('cp_intel4') ? true : undefined, campAudit: run.campaign && run.flags.includes('cp_br_audit') ? true : undefined });
@@ -772,8 +790,63 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
     if (b.unitAt(e.x, e.y)) { const f = b.freeCellNear(e.x, e.y); if (!f) continue; e.x = e.px = f.x; e.y = e.py = f.y; }
     b.add(e);
   }
+  if (enc.devices?.length) applyDevices(b, run, enc, counts);
   b.start();
   return b;
 }
 
 export { SYN_BY_ID };
+
+/** 편성 화면에서 놓은 장치를 전장에 (전투 시작 전): 바리케이드 · 유인 신호기 · 감전 지뢰는 칸에, 항공 보급은 장비를 먼저 달고, 포격 · 그물은 첫 틱에 */
+function applyDevices(b: Battle, run: RunState, enc: Encounter, counts: Counts) {
+  const phase = enc.phase ?? run.phase;
+  const navR = scopeR(tierOf('NAV', counts.NAV || 0));
+  const dummy = (name: string, x: number, y: number) => { const c = blankUnit(0); c.name = name; c.x = c.px = x; c.y = c.py = y; c.st.effHit = 9; return c; }; // 장치의 피해 · 상태 출처 (전장에 없음)
+  const foesNear = (x: number, y: number, r: number) => b.units.filter((e) => e.alive && e.side === 1 && !e.mem.inert && b.dist(e, { x, y }) <= r);
+  for (const d of enc.devices || []) {
+    if (d.id === 'K_barricade') {
+      const cells = wallCells(d);
+      for (const c of cells) if (b.inBounds(c.x, c.y) && !b.unitAt(c.x, c.y)) buildWall(b, c.x, c.y, wallHp(phase, cells.length), { name: '바리케이드', armor: DEV.wall.armor * Math.pow(CFG.phaseArmor, phase - 1), defId: 'K_barricade' });
+    } else if (d.id === 'K_decoy') {
+      if (!b.inBounds(d.x, d.y) || b.unitAt(d.x, d.y)) continue;
+      const c = blankUnit(0);
+      Object.assign(c, { defId: 'K_decoy', name: '유인 신호기', sprite: 'turret', palette: DECOY_PAL, immobile: true, noAttack: true, isSummon: true, keywords: ['struct'], category: 'struct' as const });
+      c.st.maxHp = 1; c.hp = 1; c.x = c.px = d.x; c.y = c.py = d.y;
+      c.mem.decoy = 1; c.mem.provBase = DEV.decoy.prov; c.mem.invulnUntil = DEV.decoy.invuln; c.mem.typed = 1;
+      let next = 0;
+      c.hooks.push({ onTick(bb, self) { if (bb.t < next) return; next = bb.t + 1; for (const e of bb.enemiesOf(self)) if (!e.mem.inert) bb.provAdd(e, self, DEV.decoy.pulse); } }); // 매초 적 전체의 시선을 끈다
+      b.add(c);
+    } else if (d.id === 'K_mine') {
+      const src = dummy('감전 지뢰', d.x, d.y), dmg = mineDmg(phase), [s0, s1] = DEV.mine.shock;
+      b.traps.push({ x: d.x, y: d.y, side: 0, r: DEV.mine.r, delay: DEV.mine.delay, fire: (bb) => {
+        bb.emit({ k: 'fx', x: d.x, y: d.y, r: DEV.mine.r, elem: 'elec', kind: 'atk', side: 0 });
+        for (const e of foesNear(d.x, d.y, DEV.mine.r)) {
+          bb.dealDamage(src, e, dmg, { elem: 'elec', tag: 'skill', kind: 'tech', noHooks: true });
+          if (e.alive) bb.applyStatus(src, e, { type: 'shock', key: 'shock', dur: s0 + bb.rng.next() * (s1 - s0) });
+        }
+      } });
+    } else if (d.id === 'K_net') {
+      const src = dummy('포획 그물', d.x, d.y);
+      b.later(0, () => {
+        b.emit({ k: 'fx', x: d.x + 0.5, y: d.y + 0.5, r: 1, elem: 'phys', kind: 'aura', side: 0 });
+        for (const e of b.units.filter((u) => u.alive && u.side === 1 && !u.mem.inert && netCells(d).some((c) => c.x === u.x && c.y === u.y)))
+          if (b.rng.chance(DEV.net.chance)) b.applyStatus(src, e, { type: 'buff', key: 'root', dur: Math.max(DEV.net.min, DEV.net.dur * (1 - b.S(e, 'effRes'))), label: '그물' });
+      });
+    } else if (d.id === 'K_scope' && d.mode === 'strike') {
+      const src = dummy('지정 포격', d.x, d.y);
+      b.later(0, () => {
+        b.emit({ k: 'fx', x: d.x, y: d.y, r: navR, elem: 'phys', kind: 'atk', side: 0 });
+        const dmg = strikeDmg(b.tac[0], phase);
+        for (const e of foesNear(d.x, d.y, navR)) b.dealDamage(src, e, dmg, { elem: 'phys', tag: 'skill', kind: 'tech', noHooks: true });
+      });
+    } else if (d.id === 'K_scope') { // 항공 보급: 전투 시작 전에 달아 두어 체력 · 시작 효과까지 그대로
+      for (const a of b.units.filter((u) => u.side === 0 && !u.isSummon && !u.mem.inert && b.dist(u, d) <= navR)) {
+        const id = b.rng.pick(ALL_GRADED);
+        applyLive(a, itemEffect(id), b, makeCtx(run, a.src || null, counts));
+        a.tempItems = [...(a.tempItems || []), id];
+        b.emit({ k: 'gift', from: a.id, to: a.id, item: id });
+      }
+    }
+  }
+}
+const DECOY_PAL = ['#0e0e0e', '#ff8a3d', '#c25a1c', '#ffd2a8', '#ffb070', '#5a2a0c', '#fff0e0'];

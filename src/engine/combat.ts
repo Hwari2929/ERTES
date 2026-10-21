@@ -426,7 +426,21 @@ export class Battle {
     if (hold !== undefined) this.holds[hold]++;
   }
   /** 승패 판정에 세는 기물 (전장 장애물 inert 제외) */
-  fighters(side: 0 | 1) { return this.units.filter((u) => u.alive && u.side === side && !u.mem.inert); }
+  fighters(side: 0 | 1) { return this.units.filter((u) => u.alive && u.side === side && !u.mem.inert && !u.mem.decoy); } // 유인 신호기도 빠진다
+  /** 칸에 숨겨 둔 함정 (감전 지뢰): side 의 적이 r칸 안에 들어오면 delay 초 뒤 fire. 기물이 아니라 칸을 막지 않는다 */
+  traps: { x: number; y: number; side: 0 | 1; r: number; delay: number; at?: number; fire: (b: Battle) => void }[] = [];
+  private tickTraps() {
+    for (const tr of this.traps.slice()) {
+      if (tr.at === undefined) {
+        if (this.units.some((e) => e.alive && !e.mem.inert && !e.mem.neutral && this.sideOf(e) !== tr.side && this.dist(e, tr) <= tr.r)) tr.at = this.t + tr.delay;
+      } else if (this.t >= tr.at) {
+        this.traps.splice(this.traps.indexOf(tr), 1);
+        this.actor = null;
+        tr.fire(this);
+        if (this.over) return;
+      }
+    }
+  }
   checkEnd() {
     if (this.over) return;
     if (!this.fighters(0).length && !this.holds[0]) this.winner = 1;
@@ -781,6 +795,7 @@ export class Battle {
       }
     }
     if (this.fr?.onTick) { this.actor = null; this.fr.onTick(this, dt); if (this.over) return; }
+    if (this.traps.length) { this.tickTraps(); this.checkEnd(); if (this.over) return; }
     for (const u of this.units) {
       if (!u.alive) continue;
       if (u.prov?.size) { const k = Math.max(0, 1 - PROV.decay * dt); for (const [a, v] of u.prov) { if (!a.alive) u.prov.delete(a); else u.prov.set(a, v * k); } } // 도발 수치 감소

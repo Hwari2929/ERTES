@@ -1,3 +1,4 @@
+import { DEV } from '../data/devices';
 // 캠페인 런 진행 (data/campaign.ts 의 장 정의를 run.ts 흐름에 끼운다).
 // run.ts 는 run.campaign 이 있을 때만 이 함수들을 부른다 — 일반 런 경로는 그대로.
 import { CAMP, CAMP_MEMBERS, CAMP_NEXT, CHAPTERS, chapterOf, SETTLE, TIME_COST } from '../data/campaign';
@@ -87,6 +88,7 @@ export const campDone = (run: RunState) => !!run.campaign?.done && !run.pending.
 
 /** 다음 장으로: 장 지도 · AH · 출전 인원을 바꾸고 장 도입 장면 · 조건 표를 띄운다 (run.ts advance 가 항로 끝에서 부른다) */
 export function campNextChapter(run: RunState) {
+  if (run.scope) run.scope.n += DEV.scope.perPhase; // 표시 망원경: 장마다 +1 (페이즈 진입과 같이)
   const c = run.campaign!;
   const ch = CHAPTERS.find((x) => x.ch === c.ch + 1);
   if (!ch) return;

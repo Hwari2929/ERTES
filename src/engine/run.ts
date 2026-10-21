@@ -23,7 +23,8 @@ import { FAITHS,
   type AugPick, type Encounter, type InvestOffer, type FaithId, type EnemySpawn, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
   type Quest, type RunState, type ShopSlot, type SupplyCard, type SynergyId, type UnitState,
 } from '../types';
-import { deployed, engTier, memberships, playerRows, synergyCounts, turretCount } from './build';
+import { boardDims, deployed, engTier, enemyCell, layout, PAD, toPos, memberships, playerRows, prepOccupied, synergyCounts, turretCount, zoneAt } from './build';
+import { DEV, deviceCells, type Device, isPlaceable } from '../data/devices';
 import { causalGain, causalLeft, causalStage, KING_GEAR, KING_GEAR_NAME } from '../data/chungra';
 import { EMB } from '../data/emblems';
 import type { Battle } from './combat';
@@ -300,6 +301,7 @@ export function autoPlace(run: RunState, order: UnitState[] = run.units) {
     order = [rock, ...order.filter((u) => u !== rock)];
   }
   const used = new Set(run.units.filter((u) => u.pos).map((u) => `${u.pos!.c},${u.pos!.r}`));
+  for (const d of run.node?.enc?.devices || []) for (const c of deviceCells(d)) { const p = toPos(c.x, c.y); used.add(`${p.c},${p.r}`); } // 편성 화면에 놓은 장치 칸
   for (const u of order) {
     if (u.pos || deployed(run).length >= cap || !canDeploy(run, u)) continue;
     const def = UNIT_BY_ID[u.defId];
@@ -503,9 +505,9 @@ function checkEng(run: RunState) {
 /** 헬레니우스 · 신비학자 전용 장비를 지금 단계에 맞춘다: 단계가 내려가면 그 단계 장비를 회수 (run.synVault), 다시 닿으면 돌려준다.
  *  헬레니우스 장비 k 는 k단계 이상에서, 전설판은 4단계에서만. 신비학자 개조부품은 그 부품의 단계 이상에서. 돌려받은 장비는 달고 있던 기물의 빈 칸 → 보관함 */
 export function syncSynGear(run: RunState): { out: string[]; back: string[] } {
-  const hel = tierNow(run, 'HEL'), occ = occultTier(run);
+  const hel = tierNow(run, 'HEL'), occ = occultTier(run), nav = tierNow(run, 'NAV');
   const helK = (x: string) => HEL_ITEM_IDS.findIndex((h) => h.slice(2) === x.slice(2)) + 1;
-  const allowed = (x: string) => (isHelItem(x) ? helK(x) <= Math.min(3, hel) : OCCULT_MODS[x] ? OCCULT_MODS[x].tier <= occ : true);
+  const allowed = (x: string) => (isHelItem(x) ? helK(x) <= Math.min(3, hel) : OCCULT_MODS[x] ? OCCULT_MODS[x].tier <= occ : x === 'K_scope' ? nav > 0 : true); // 표시 망원경: 항해자가 꺼지면 회수
   const grade = (x: string) => (isHelItem(x) ? (hel >= 4 ? 'L_' : 'A_') + x.slice(2) : x); // 4단계 = 전설판, 그 아래 = 희귀판
   const vault = (run.synVault ||= []), out: string[] = [], back: string[] = [];
   run.inventory = run.inventory.filter((x) => { if (x && !allowed(x)) { vault.push({ id: x }); out.push(x); return false; } return true; });
@@ -531,8 +533,25 @@ export function syncSynGear(run: RunState): { out: string[]; back: string[] } {
   if (back.length) log(run, `시너지 단계 회복: 전용 장비 ${back.length}개 반환`);
   return { out, back };
 }
+/** 항해자: 처음 켜지면 표시 망원경 (사용 횟수 DEV.scope.base), 4 · 6 · 8명에 처음 닿을 때마다 횟수 추가 */
+function checkNav(run: RunState) {
+  if (run.tutorial) return;
+  const t = tierNow(run, 'NAV');
+  if (!t) return;
+  const first = !run.scope, had = run.scope?.nav || 0;
+  if (t <= had) return;
+  const sc = (run.scope ||= { n: DEV.scope.base, nav: 0 });
+  let add = 0;
+  for (let k = Math.max(2, had + 1); k <= t; k++) add += DEV.scope.tierBonus[k - 1] || 0;
+  sc.n += add; sc.nav = t;
+  if (first) gainItem(run, 'K_scope', undefined, true, true);
+  const nm = CONSUMABLES.K_scope.name;
+  run.pending.push({ t: 'notice', title: `항해자 — ${nm}`, body: first ? `항해자들이 [${nm}]을 챙겼습니다 (사용 ${sc.n}회). 편성 화면에서 적에게 쓰면 지정 포격, 아군 · 빈칸에 쓰면 항공 보급입니다.` : `항해자 ${SYN_BY_ID.NAV.tiers[t - 1]}명: [${nm}] 사용 횟수 +${add} (남은 ${sc.n}회).` });
+}
+
 export function checkOccult(run: RunState): boolean {
   checkHel(run);
+  checkNav(run);
   checkChef(run);
   checkEng(run);
   const t = occultTier(run), had = run.occultTier || 0;
@@ -553,7 +572,7 @@ function genSynth(run: RunState): NonNullable<NonNullable<RunState['node']>['sho
   });
 }
 /** 소모품 사용 대상: 기물 · 보관함 장비 · 장착 장비 · 이번 전투의 적 (편성 화면, enc.enemies 순번) · 함대 (바로 사용) */
-export type UseTarget = { k: 'unit'; uid: string } | { k: 'inv'; i: number } | { k: 'eq'; uid: string; slot: number } | { k: 'foe'; i: number } | { k: 'run' };
+export type UseTarget = { k: 'unit'; uid: string } | { k: 'inv'; i: number } | { k: 'eq'; uid: string; slot: number } | { k: 'foe'; i: number } | { k: 'run' } | { k: 'cell'; x: number; y: number; dir?: 'h' | 'v'; n?: number };
 /** 적 1명이 단 장비 · 개조부품: 적 정의 + 이번 조우의 위험 등급 장비 (강제 징수기로 떼어 낸 적은 정의 장비도 없음). 편성 보드 · 적 상세 · 징수기 공용 */
 export function foeGearOf(s: EnemySpawn): string[] {
   const d = ENEMY_BY_ID[s.defId];
@@ -571,11 +590,52 @@ function rerollPool(x: string | null | undefined): string[] | null {
 export const canReroll = (x: string | null | undefined) => !!rerollPool(x);
 /** 재구성 회로: 같은 등급의 다른 무작위 장비 */
 const rerollOne = (run: RunState, x: string) => { const opts = rerollPool(x)!.filter((y) => y !== x); return opts.length ? rng(run, (r) => r.pick(opts)) : x; };
+/** 배치형 소모품을 이 대상에 놓을 수 있는지 → 놓일 장치 (편성 화면, 전투 조우 중에만).
+ *  바리케이드 · 지뢰: 적 진형 밖의 빈칸 · 신호기: 아무 빈칸 (적 진형 포함) · 그물: 2×2 (적 · 칸이 왼쪽 위) · 망원경: 적 = 지정 포격, 아군 · 빈칸 = 항공 보급 */
+export function placeDevice(run: RunState, id: string, tg: UseTarget): { dev?: Device; err: string | null } {
+  const enc = run.node?.enc;
+  if (!enc) return { err: '전투를 앞둔 편성 화면에서 사용하세요' };
+  if (id === 'K_scope' && !(run.scope && run.scope.n > 0)) return { err: '남은 사용 횟수가 없습니다' };
+  const n = enc.n;
+  // 대상 → 칸
+  let x: number, y: number;
+  if (tg.k === 'cell') ({ x, y } = tg);
+  else if (tg.k === 'foe') { const s = enc.enemies[tg.i]; if (!s) return { err: WRONG_TARGET }; ({ x, y } = enemyCell(s.c, s.row, n)); }
+  else if (tg.k === 'unit' || tg.k === 'eq') { const p = layout(run, n).get(tg.uid); if (!p) return { err: '출전한 기물에게만 쓸 수 있습니다' }; ({ x, y } = p); }
+  else return { err: WRONG_TARGET };
+  if (zoneAt(n, x, y) === 'edge') return { err: '전장 안쪽 칸에 놓으세요' };
+  const occ = prepOccupied(run, enc);
+  const foeAt = enc.enemies.some((s) => { const c = enemyCell(s.c, s.row, n); return c.x === x && c.y === y; });
+  if (id === 'K_scope') return { dev: { id, x, y, mode: foeAt ? 'strike' : 'drop' }, err: null };
+  if (id === 'K_net') { // 2×2 가 전장 안에 들어오게 (오른쪽 · 아래 끝이면 한 칸 당긴다)
+    const { w, h } = boardDims(n);
+    return { dev: { id, x: Math.max(PAD, Math.min(x, w - PAD - 2)), y: Math.max(PAD, Math.min(y, h - PAD - 2)) }, err: null };
+  }
+  const d: Device = { id, x, y, ...(id === 'K_barricade' ? { dir: tg.k === 'cell' && tg.dir ? tg.dir : 'h', n: tg.k === 'cell' && tg.n ? Math.max(1, Math.min(DEV.wall.maxN, tg.n)) : 1 } : {}) };
+  for (const c of deviceCells(d)) {
+    const z = zoneAt(n, c.x, c.y);
+    if (z === 'edge') return { err: '전장 밖으로 펼칠 수 없습니다' };
+    if (z === 'foe' && id !== 'K_decoy') return { err: '적 진형에는 놓을 수 없습니다 (유인 신호기만 가능)' };
+    if (occ.has(`${c.x},${c.y}`)) return { err: '다른 기물 · 장치가 있는 칸입니다' };
+  }
+  return { dev: d, err: null };
+}
+/** 놓은 장치 회수 (전투 전): 소모품은 보관함으로 (가득 차도), 망원경은 사용 횟수 +1 */
+export function recallDevice(run: RunState, idx: number): string | null {
+  const ds = run.node?.enc?.devices, d = ds?.[idx];
+  if (!d) return null;
+  ds!.splice(idx, 1);
+  if (d.id === 'K_scope') { if (run.scope) run.scope.n++; }
+  else run.inventory.push(d.id);
+  return `${CONSUMABLES[d.id]?.name || d.id} 회수`;
+}
 /** 소모품 사용 대상이 맞는지 (null = 사용 가능). 종류가 맞지 않는 대상은 WRONG_TARGET */
 export function useCheck(run: RunState, kIdx: number, tg: UseTarget): string | null {
   const id = run.inventory[kIdx];
   const c = id ? CONSUMABLES[id] : undefined;
   if (!c) return WRONG_TARGET;
+  if (c.target === 'place') return placeDevice(run, id, tg).err;
+  if (tg.k === 'cell') return WRONG_TARGET;
   if (c.target === 'run') {
     if (tg.k !== 'run') return WRONG_TARGET;
     if ((id === 'K_bread' || id === 'K_bread_stale') && run.hp >= run.maxHp) return '플레이어 체력이 가득 찼습니다';
@@ -631,6 +691,14 @@ export function useConsumable(run: RunState, kIdx: number, tg: UseTarget): { ok:
   const id = run.inventory[kIdx];
   const name = CONSUMABLES[id].name;
   let msg = '';
+  if (isPlaceable(id)) { // 배치형: 이번 조우에 기록 (전투 시작 때 작동), 망원경은 사용 횟수만 줄고 남는다
+    const d = placeDevice(run, id, tg).dev!;
+    (run.node!.enc!.devices ||= []).push(d);
+    if (id === 'K_scope') run.scope!.n--; else run.inventory.splice(kIdx, 1);
+    msg = id === 'K_scope' ? `${d.mode === 'strike' ? '지정 포격' : '항공 보급'} 지정 (남은 횟수 ${run.scope!.n})` : `${name} ${id === 'K_net' ? '지정' : '설치'}${d.n && d.n > 1 ? ` (${d.n}칸)` : ''} — 전투가 시작되면 작동합니다`;
+    log(run, `${name}: ${msg}`);
+    return { ok: true, msg };
+  }
   if (id === 'K_cp_purge' || id === 'K_cp_note') { // 캠페인에서 들여온 소모품 (본편 · 캠페인 공용): 정화 분무기 (다음 전투 화학 피해 -40%) · 선지급 어음 (지금 +15, 장 정산 -20)
     run.inventory.splice(kIdx, 1);
     if (id === 'K_cp_purge') { run.flags.push('cp_purge'); msg = '다음 전투 동안 아군이 받는 화학 피해 -40%'; }
@@ -762,7 +830,7 @@ export function pickBranch(run: RunState, type: NodeType) {
 }
 
 export const hasDivine = (run: RunState) => run.units.some((u) => UNIT_BY_ID[u.defId].ttype === 'divine');
-const tierNow = (run: RunState, id: 'STAR' | 'HOI' | 'OCCULT' | 'HEL' | 'ENG' | 'CHEF') => tierOf(id, synergyCounts(deployed(run), run)[id] || 0);
+const tierNow = (run: RunState, id: 'STAR' | 'HOI' | 'OCCULT' | 'HEL' | 'ENG' | 'CHEF' | 'NAV') => tierOf(id, synergyCounts(deployed(run), run)[id] || 0);
 
 export function advance(run: RunState) {
   run.node = null;
@@ -774,6 +842,7 @@ export function advance(run: RunState) {
     const notes = run.flags.filter((f) => f === 'cp_note').length; // 선지급 어음 (본편): 페이즈가 끝날 때 갚는다
     if (notes) { run.flags = run.flags.filter((f) => f !== 'cp_note'); run.credits = Math.max(0, run.credits - 20 * notes); log(run, `선지급 어음 정산: 크레딧 -${20 * notes}`); }
     run.phase++;
+    if (run.scope) run.scope.n += DEV.scope.perPhase; // 표시 망원경: 페이즈마다 +1
     run.mods.divGain = 0; // 성인 기념일은 이번 페이즈만
     run.step = 0;
     run.map = phaseMap(run.phase);
@@ -1013,10 +1082,10 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     if (pet >= 1) { const pb = pet >= 4 ? 3 : 1; income += pb; lines.push(`페트라 실적 +${pb}`); }
     const fw = fieldOf(run.field).winCredits;
     if (fw) { income += fw; lines.push(`전장 조건 · 계약 정산 +${fw}`); }
-    // 전투 보상 소모품: 분리 용제 · 재구성 회로 · 공명 주입기 (주입기 크기는 페이즈에 따라) 중 하나
+    // 전투 보상 소모품: 분리 용제 · 재구성 회로 · 공명 주입기 (주입기 크기는 페이즈에 따라) · 캠페인 소모품 · 배치형 4종 중 하나
     const uc = CFG.drop.utility[type] || 0;
     if (uc && rng(run, (r) => r.chance(uc))) {
-      const k = rng(run, (r) => { const k = r.pick(['K_strip', 'K_reroll', 'inject', 'K_cp_purge', 'K_cp_note']); return k === 'inject' ? pickInjector(r, p) : k; });
+      const k = rng(run, (r) => { const k = r.pick(['K_strip', 'K_reroll', 'inject', 'K_cp_purge', 'K_cp_note', 'K_barricade', 'K_decoy', 'K_mine', 'K_net']); return k === 'inject' ? pickInjector(r, p) : k; });
       if (k === 'K_strip' && !solventOn(run)) { // 분리 용제가 안 나오는 런: 같은 값의 공명도를 파티에 분배
         const xp = Math.max(1, Math.round(CFG.shop.price.K_strip / XP_VALUE));
         distributeXp(run, xp); run.units.forEach((u) => settleXp(run, u));
@@ -1500,7 +1569,7 @@ export function buyShop(run: RunState, idx: number): string | null {
 /** 보관함 판매: 소모품만 (장비 · 개조부품은 팔 수 없다. 보관함이 가득 찬 채로 얻으면 gainItem 이 자동 판매) */
 export function sellItem(run: RunState, invIdx: number) {
   const id = run.inventory[invIdx];
-  if (!id || !isConsumable(id)) return;
+  if (!id || !isConsumable(id) || id === 'K_scope') return; // 표시 망원경은 항해자 전용 (팔 수 없음)
   run.credits += sellPrice(run, id);
   dropBread(run, invIdx);
   run.inventory.splice(invIdx, 1);

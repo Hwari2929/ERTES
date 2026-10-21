@@ -236,7 +236,7 @@ function injectorShare(id: string): string {
 }
 /** 전투 승리 확률표: '일반 15% · 역경 30% · 보스 50%' */
 const dropTxt = (t: Record<string, number>) => [['battle', '일반'], ['adversity', '역경 · 도전'], ['boss', '보스']].filter(([k]) => t[k]).map(([k, n]) => `${n} ${pctTxt(t[k])}`).join(' · ');
-const USE_TXT: Record<string, string> = { unit: '기물에 끌어다 놓기', item: '장비에 끌어다 놓기', foe: '편성 화면에서 이번 전투의 적에게 끌어다 놓기 (적을 눌러도 됨)', run: '보관함에서 골라 [사용]' };
+const USE_TXT: Record<string, string> = { place: '편성 화면에서 칸 · 적 · 아군에 끌어다 놓기 (전투가 시작되면 작동, 탭해서 회수)', unit: '기물에 끌어다 놓기', item: '장비에 끌어다 놓기', foe: '편성 화면에서 이번 전투의 적에게 끌어다 놓기 (적을 눌러도 됨)', run: '보관함에서 골라 [사용]' };
 
 /** 얻는 곳 (가격 · 확률 · 단계는 설정 · 데이터에서) */
 function sources(id: string): string[] {

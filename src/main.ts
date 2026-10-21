@@ -27,7 +27,7 @@ import * as BAR from './ui/bar';
 import * as ACH from './ui/achieve';
 import * as TFX from './ui/themefx';
 import {
-  activeTiers, ALLY_Y0, ALLY_Y1, boardDims, buildAlly, buildBattle, buildEnemy, chrTier, companionCells, deployed, engTier, kingOn, kingState, enemyBaseMoveSpd, enemyCell, layout, memberships, PAD, synergyCounts, synList, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
+  activeTiers, ALLY_Y0, ALLY_Y1, boardDims, zoneAt, buildAlly, buildBattle, buildEnemy, chrTier, companionCells, deployed, engTier, kingOn, kingState, enemyBaseMoveSpd, enemyCell, layout, memberships, PAD, synergyCounts, synList, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
 import { Battle, controlNames, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME, fleeShort, zocHoldFormula, zocHoldOf, zocRows, zocRule, zocShort } from './engine/combat';
 import * as R from './engine/run';
@@ -37,6 +37,7 @@ import { Rng } from './rng';
 import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from './types';
 import { encounterMatchup, fieldMatchup, matchupShort, schoolWarnings } from './ui/matchup';
 import { computeStats, makeSummons, type SummonMade } from './engine/build';
+import { DEV, deviceCells, isPlaceable, netCells, scopeR, wallHp } from './data/devices';
 import { newCampaignRun } from './engine/campaignrun';
 import { campBoss } from './engine/campaign';
 import { chapterOf as campChapter, SETTLE as CAMP_SETTLE, TIME_COST as CAMP_TIME_COST } from './data/campaign';
@@ -280,7 +281,8 @@ function itemIcon(id: string | null, attrs = '', note = '') { // note: 툴팁 �
   const it = itemInfo(id);
   const sc = isEmblem(id) ? SYN_BY_ID[emblemOf(id)]?.color : isOccultMod(id) ? SYN_BY_ID.OCCULT.color : isTurretMod(id) ? SYN_BY_ID.ENG.color : ''; // 문장: 시너지 색 · 신비 부품: 신비학자 색 · 포탑 개조부품: 엔지니어 색
   const hx = isConsumable(id) ? ` hex" style="--hc:${consColor(id)}` : ''; // 소모품: 육각형 (합성품 보라 · 전투 보상 청록 · 전설급 금색 · 셰프 주황)
-  return `<span class="item t${it.tier}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc + (note ? ` (${note})` : ''))}" ${attrs}>${itemGlyph(id) || it.icon}</span>`;
+  const uses = id === 'K_scope' && app.run?.scope ? `<b class="use-n" title="남은 사용 횟수">${app.run.scope.n}</b>` : ''; // 표시 망원경: 오른쪽 아래 원형 사용 횟수
+  return `<span class="item t${it.tier}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc + (note ? ` (${note})` : ''))}" ${attrs}>${itemGlyph(id) || it.icon}${uses}</span>`;
 }
 /** 보관함 칸 i 가 갓 구운 빵이면 '전투 n회 뒤 식음' (engine/run.ts breadLeft, 셰프 6명 이상이 켜져 있으면 덧붙임) */
 function breadNote(run: RunState, i: number) {
@@ -289,7 +291,7 @@ function breadNote(run: RunState, i: number) {
   return `전투 ${left}회 뒤 식음${tierOf('CHEF', synergyCounts(deployed(run), run).CHEF || 0) >= CFG.chef.noStaleTier ? ' · 지금은 셰프 덕에 식지 않음' : ''}`;
 }
 /** 소모품 육각형 테두리 색: 전설급 = 전설 장비 색 · 셰프 = 셰프 시너지 색 · 합성품 = 신비학자 색 · 그 밖 (전투 보상 · 상점) 청록 */
-const consColor = (id: string) => (isLegendConsumable(id) ? 'var(--g-L)' : id === 'K_bread_stale' ? '#8c8478' : CONSUMABLES[id]?.chef ? SYN_BY_ID.CHEF.color : CONSUMABLES[id]?.drop ? '#6fc3df' : SYN_BY_ID.OCCULT.color);
+const consColor = (id: string) => (id === 'K_scope' ? SYN_BY_ID.NAV.color : isLegendConsumable(id) ? 'var(--g-L)' : id === 'K_bread_stale' ? '#8c8478' : CONSUMABLES[id]?.chef ? SYN_BY_ID.CHEF.color : CONSUMABLES[id]?.drop ? '#6fc3df' : SYN_BY_ID.OCCULT.color);
 /** 신비 개조부품 · 소모품 아이콘 */
 const SPECIAL_GLYPH: Record<string, string> = {
   O_reach: 'a.range', O_feast: 'a.heal', O_ward_phys: 'e.phys', O_ward_psy: 'e.psy', O_ward_chem: 'e.chem', O_ward_elec: 'e.elec', O_ward_holy: 'e.holy',
@@ -297,6 +299,7 @@ const SPECIAL_GLYPH: Record<string, string> = {
   K_rank: 'r.res', K_morph: 'a.summon', K_legend: 'a.power', K_copy: 'a.reload', K_strip: 'u.area', K_reroll: 'a.cd', K_xp: 'k.inj1', K_xp2: 'k.inj2', K_xp3: 'k.inj3',
   K_seize: 'k.seize', K_rank3: 'k.rank3', K_bread: 'k.bread', K_bread_stale: 'k.bread_stale',
   K_cp_purge: 'k.purge', K_cp_note: 'k.note', K_cp_tape: 'k.tape',
+  K_barricade: 'k.barricade', K_decoy: 'k.decoy', K_mine: 'k.mine', K_net: 'k.net', K_scope: 'k.scope',
   E_gyro: 'a.range', E_ricochet: 'u.target', E_coolant: 'a.speed', E_projector: 'a.shield', E_shock: 'a.stun', E_reactive: 'a.hp', E_twin: 'u.mag', E_frag: 'u.area', E_nano: 'r.hp', E_rail: 'a.snipe', E_spin: 'a.reload', E_link: 'p.tac',
   T_cal: 'a.dmg', T_plate: 'a.hp', T_cryo: 's.chrono', T_ammo: 'u.mag', T_barrier: 'a.shield', T_selfd: 'u.area', T_rapid: 'a.speed', T_tesla: 'e.elec', T_flame: 's.pyro', T_snipe: 'a.snipe', T_mark: 'u.target',
 };
@@ -1316,6 +1319,27 @@ function tacPill(run: RunState) {
   const title = `전술 위력 ${v}\n${lines.join('\n')}\n지휘관의 스킬 · 전술 무기 · [암운]은 이 값을 위력으로 씁니다.`;
   return `<span class="tac-wrap"><button class="pill tac-pill${pop ? ' pop' : ''}" data-a="tac-info" title="${esc(title)}" aria-label="${esc(title)}" aria-expanded="${app.tacOpen}">${lineIcon('p.tac', 'li')}<b>${v}</b></button>${cmds.length ? `<span class="tac-cmd" title="출전 지휘관 수">지휘관 ${cmds.length}</span>` : ''}${app.tacOpen ? `<span class="tac-pop" role="note"><b>전술 위력 ${v}</b>${lines.map((l) => `<span>${esc(l)}</span>`).join('')}<span class="muted">지휘관의 스킬 · 전술 무기 · [암운]은 이 값을 위력으로 씁니다.</span></span>` : ''}</span>`;
 }
+/** 편성 화면에 놓은 장치: 바리케이드 · 신호기 · 지뢰는 칸 토큰, 그물 · 망원경은 효과 범위 테두리 + 누를 수 있는 표식 (누르면 회수 확인) */
+function deviceTokens(run: RunState, n: number, box: (x: number, y: number, w?: number, h?: number) => string) {
+  const enc = run.node?.enc;
+  if (!enc?.devices?.length) return '';
+  const { w: fw, h: fh } = boardDims(n);
+  const navR = scopeR(tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0));
+  const phase = enc.phase ?? run.phase;
+  return enc.devices.map((d, i) => {
+    const c = CONSUMABLES[d.id], ic = lineIcon(SPECIAL_GLYPH[d.id] || 'a.power', 'li');
+    if (d.id === 'K_net' || d.id === 'K_scope') {
+      const r = d.id === 'K_net' ? 0 : navR;
+      const x0 = Math.max(PAD, d.x - r), y0 = Math.max(PAD, d.y - r), x1 = d.id === 'K_net' ? d.x + 1 : Math.min(fw - PAD - 1, d.x + r), y1 = d.id === 'K_net' ? d.y + 1 : Math.min(fh - PAD - 1, d.y + r);
+      const kind = d.id === 'K_net' ? 'net' : d.mode === 'strike' ? 'strike' : 'drop';
+      const label = d.id === 'K_net' ? c.name : d.mode === 'strike' ? '지정 포격' : '항공 보급';
+      return `<div class="dev-area dev-${kind}" style="${box(x0, y0, x1 - x0 + 1, y1 - y0 + 1)}"></div><button class="dev-mark dev-${kind}" style="${box(d.x, d.y)}" data-a="dev-sel" data-v="${i}" data-dev="${i}" title="${esc(`${label} — 누르면 회수`)}">${ic}</button>`;
+    }
+    const cells = deviceCells(d);
+    const hp = d.id === 'K_barricade' ? wallHp(phase, cells.length) : 0;
+    return cells.map((p) => `<button class="dev-tok dev-${d.id === 'K_barricade' ? 'wall' : d.id === 'K_decoy' ? 'decoy' : 'mine'}" style="${box(p.x, p.y)}" data-a="dev-sel" data-v="${i}" data-dev="${i}" title="${esc(`${c.name}${hp ? ` · 칸당 내구도 ${hp}` : d.id === 'K_decoy' ? ` · 체력 1 · 도발 ×${DEV.decoy.prov}` : ' · 은신'} — 누르면 회수`)}">${ic}${hp ? `<span class="dev-hp">${hp}</span>` : ''}</button>`).join('');
+  }).join('');
+}
 function prepScreen(run: RunState) {
   const node = run.node;
   const isBattle = !!node?.enc;
@@ -1341,13 +1365,15 @@ function prepScreen(run: RunState) {
   }
   const zocTip = (x: number, y: number) => ` title="${esc(zocShort(zocCells.get(`${x},${y}`)))}"`;
   let cells = '';
+  const placeSel = app.sel?.k === 'item' && isBattle && isPlaceable(run.inventory[app.sel.idx]) ? app.sel.idx : -1; // 배치형 소모품을 고른 채: 칸을 누르면 설치, 놓을 수 있는 칸 표시
+  const devOk = (x: number, y: number) => placeSel >= 0 && !R.useCheck(run, placeSel, { k: 'cell', x, y });
   for (let y = PAD; y < fh - PAD; y++)
     for (let x = PAD - ex; x < fw - PAD + ex; x++) {
       const mine = y >= ALLY_Y0 && y <= ALLY_Y1;
       const enemyZone = y < PAD + ZONE;
       const zc = zocCells.has(`${x},${y}`);
       if (x < PAD || x >= fw - PAD) { cells += mine ? `<div class="cell tpad${zc ? ' zoc' : ''}" data-drop="tcell:${x}:${y}" title="포탑 전용 칸${zc ? ` · ${esc(zocShort(zocCells.get(`${x},${y}`)))}` : ''}"></div>` : `<div class="cell edge${zc ? ' zoc' : ''}"${zc ? zocTip(x, y) : ''}></div>`; continue; }
-      cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}${zc ? ' zoc' : ''}" ${mine ? `data-drop="cell:${x}:${y}"` : ''}${zc ? zocTip(x, y) : ''}></div>`;
+      cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}${zc ? ' zoc' : ''}${devOk(x, y) ? ' dev-ok' : ''}" ${mine ? `data-drop="cell:${x}:${y}"` : isBattle ? `data-drop="xcell:${x}:${y}"` : ''}${placeSel >= 0 ? ` data-a="dev-cell" data-v="${x}:${y}"` : ''}${zc ? zocTip(x, y) : ''}></div>`;
     }
   let units = '';
   for (const u of deployed(run)) {
@@ -1387,6 +1413,7 @@ function prepScreen(run: RunState) {
         ? (() => { const cat = enemyCategory(e), td = TEND_NAME[e.tend], mod = s.mod || (s.stripped ? null : e.mod), its = [...(s.stripped ? [] : (e.items || []).filter((x): x is string => !!x)), ...(s.items || [])]; return `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${mod ? `<span class="tk-mod">${itemIcon(mod, `data-a="foe-item" data-v="${mod}"`)}</span>` : ''}</div><span class="tk-side">${e.tier === 'minion' ? '' : `<b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : 'E'}</b>`}<i class="cat-${cat}" title="${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}">${lineIcon(`k.${cat}`, 'li')}</i>${td ? `<i class="tk-tend" title="${esc(`${td.name}: ${td.desc}`)}">${lineIcon(`t.${e.tend}`, 'li')}</i>` : ''}</span><span class="tk-items">${[0, 1, 2].map((k) => (its[k] ? itemIcon(its[k], `data-a="foe-item" data-v="${its[k]}"`) : itemIcon(null))).join('')}</span></div>`; })()
         : sprite(e, '')}</div>`;
   });
+  units += deviceTokens(run, n, (x, y, w = 1, h = 1) => `left:${((x - PAD + ex) / bw) * 100}%;top:${((y - PAD) / bh) * 100}%;width:${(100 * w) / bw}%;height:${(100 * h) / bh}%`);
   const bench = run.units.filter((u) => !u.pos);
   const free = cap - deployed(run).length;
   const canFill = bench.some((u) => R.canDeploy(run, u));
@@ -1584,12 +1611,13 @@ function invDetail(run: RunState) {
   const { stats, eff: eff1 } = itemBrief(sel);
   const eff = eff1 + (breadNote(run, selIdx) ? ` — 이 빵: ${breadNote(run, selIdx)}` : '');
   const ct = isConsumable(sel) ? CONSUMABLES[sel].target : null;
-  const hint = ct === 'run' ? `<button class="btn small primary" data-a="use-self" data-v="${selIdx}">사용</button>`
+  const hint = ct === 'place' ? `<span class="muted small">${run.node?.enc ? (sel === 'K_scope' ? '적에게 끌어다 놓으면 지정 포격, 아군 · 빈칸이면 항공 보급' : sel === 'K_net' ? '칸 · 적에게 끌어다 놓으면 그 칸부터 2×2' : '빈칸에 끌어다 놓거나, 선택한 채로 칸을 누르면 설치') + ' (놓은 장치를 누르면 회수)' : '전투를 앞둔 편성 화면에서 칸 · 적 · 아군에 끌어다 놓아 사용'}</span>`
+    : ct === 'run' ? `<button class="btn small primary" data-a="use-self" data-v="${selIdx}">사용</button>`
     : ct === 'foe' ? `<span class="muted small">${run.node?.enc ? '이번 전투의 적에게 끌어다 놓거나, 선택한 채로 적을 누르면 사용' : '전투를 앞둔 편성 화면에서 적에게 끌어다 놓아 사용'}</span>`
     : ct ? `<span class="muted small">${CONSUMABLES[sel].alsoItem ? '기물 · 장비' : ct === 'unit' ? '기물' : '장비'}에 끌어다 놓거나, 선택한 채로 ${CONSUMABLES[sel].alsoItem ? '기물 · 장비를' : ct === 'unit' ? '기물을' : '장비를'} 누르면 사용</span>`
     : run.inventory.some((x, j) => j !== selIdx && combine(sel, x)) ? '<span class="muted small">조합 가능한 장비를 누르면 조합</span>' : '';
   // 판매는 소모품만 (장비 · 개조부품은 팔 수 없다)
-  return pop(itemIcon(sel), TIER[sel.startsWith('U_') ? 'U' : it.tier] || '', it.name, stats, eff ? statIc(esc(eff)) : '', `${ct ? `<button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${R.sellPrice(run, sel)}</button>` : ''}${hint}`);
+  return pop(itemIcon(sel), TIER[sel.startsWith('U_') ? 'U' : it.tier] || '', it.name, stats, eff ? statIc(esc(eff)) : '', `${ct && sel !== 'K_scope' ? `<button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${R.sellPrice(run, sel)}</button>` : ''}${hint}`);
 }
 /** 물품 요약: 주요 능력치 줄 + 효과 문장 (설명에서 능력치 접두어를 뗀 것). 보관함 정보 팝업 · 조합 확인 팝업 공용 */
 function itemBrief(id: string) {
@@ -3084,7 +3112,22 @@ function moveEq(run: RunState, uid: string, slot: number, to: string | null) {
 function tryUse(run: RunState, i: number, tg: R.UseTarget) {
   const err = R.useCheck(run, i, tg);
   if (err) { toast(`${err}.`); app.sel = null; app.useK = null; return; }
-  if (run.inventory[i] === 'K_reroll') rerollAsk(run, i, tg); else app.useK = { i, tg };
+  if (run.inventory[i] === 'K_reroll') rerollAsk(run, i, tg);
+  else if (run.inventory[i] === 'K_barricade' && tg.k === 'cell') wallAsk(run, i, tg.x, tg.y);
+  else if (isPlaceable(run.inventory[i])) { const r = R.useConsumable(run, i, tg); toast(r.msg); app.sel = null; if (r.ok) persist(); } // 배치형: 바로 놓는다 (놓은 장치를 누르면 회수)
+  else app.useK = { i, tg };
+}
+/** 접이식 바리케이드: 펼칠 모양 고르기 (놓을 수 없는 모양은 흐리게). 칸당 내구도 = 1칸 내구도 ÷ 칸 수 */
+function wallAsk(run: RunState, i: number, x: number, y: number) {
+  const ph = run.node?.enc?.phase ?? run.phase;
+  const shapes: [('h' | 'v'), number, string][] = [['h', 1, '1칸'], ['h', 2, '가로 2칸 →'], ['h', 3, '가로 3칸 →'], ['v', 2, '세로 2칸 ↓'], ['v', 3, '세로 3칸 ↓']];
+  const opts = shapes.map(([dir, n, label]) => {
+    const err = R.useCheck(run, i, { k: 'cell', x, y, dir, n });
+    return `<button class="btn small wall-opt" data-a="wall-shape" data-v="${i}:${x}:${y}:${dir}:${n}" ${err ? `disabled title="${esc(err)}"` : ''}><b>${label}</b><span class="muted small">칸당 ${wallHp(ph, n)}</span></button>`;
+  }).join('');
+  app.sel = null;
+  app.ask = { anchor: [`.board [data-drop="cell:${x}:${y}"]`, `.board [data-drop="xcell:${x}:${y}"]`, '.board'], at: 'beside',
+    html: `<b class="ask-t">${itemIcon('K_barricade')} ${esc(CONSUMABLES.K_barricade.name)} — 펼칠 모양</b><div class="wall-opts">${opts}</div><p class="ask-note">펼친 칸 수만큼 칸마다 내구도가 나뉩니다. 양쪽의 이동과 탄을 막습니다.</p>` };
 }
 /** 재구성 회로 확인 팝업: 기물이면 기물 위, 장착 장비면 그 칸 옆, 보관함 장비면 보관함 왼쪽. 결과는 V 를 누른 뒤에 공개 (미리 보고 고를 수 없음) */
 function rerollAsk(run: RunState, i: number, tg: R.UseTarget) {
@@ -4615,6 +4658,14 @@ function act(a: string, v: string) {
     }
     case 'tunequip': if (run) { const [i, k] = v.split(':'); const e = R.unequipTurret(run, +i, +k); if (e) toast(e); persist(); } break;
     case 'sel-clear': app.sel = null; break;
+    case 'dev-cell': if (run && app.sel?.k === 'item') { const [x, y] = v.split(':').map(Number); tryUse(run, app.sel.idx, { k: 'cell', x, y }); } break;
+    case 'wall-shape': if (run) { const [i, x, y, dir, n] = v.split(':'); app.ask = null; const r = R.useConsumable(run, +i, { k: 'cell', x: +x, y: +y, dir: dir as 'h' | 'v', n: +n }); toast(r.msg); if (r.ok) persist(); } break;
+    case 'dev-sel': if (run?.node?.enc?.devices?.[+v]) {
+      if (app.sel?.k === 'item' && isConsumable(run.inventory[app.sel.idx])) { toast('다른 장치가 있는 칸입니다.'); app.sel = null; break; }
+      const d = run.node.enc.devices[+v], nm = d.id === 'K_scope' ? (d.mode === 'strike' ? '지정 포격' : '항공 보급') : CONSUMABLES[d.id].name;
+      app.ask = { anchor: [`[data-dev="${v}"]`, '.board'], at: 'beside', okLabel: '회수', html: `<b class="ask-t">${itemIcon(d.id)} ${esc(nm)}</b><p class="ask-note">${d.id === 'K_scope' ? '지정을 거두고 망원경 사용 횟수를 돌려받습니다.' : '장치를 거두어 보관함으로 돌려받습니다.'}</p>`,
+        ok: () => { const m = R.recallDevice(run, +v); if (m) { toast(m); persist(); } } };
+    } break;
     case 'sel-relic': app.sel = app.sel?.k === 'relic' && app.sel.id === v ? null : { k: 'relic', id: v }; break;
     case 'sel-enemy':
       app.abilPop = null;
@@ -4872,6 +4923,8 @@ function onDrop(src: string, dst: string) {
   const [sk, ...sv] = src.split(':');
   const [dk, ...dv] = dst.split(':');
   const n = run.node?.enc?.n || CFG.bossBoard;
+  // 편성 화면에 놓은 장치 칸에는 기물 · 포탑 · 소환물을 옮길 수 없다 (장치를 눌러 회수한 뒤)
+  if ((dk === 'cell' || dk === 'tcell') && sk !== 'item' && run.node?.enc?.devices?.some((d) => deviceCells(d).some((c) => c.x === +dv[0] && c.y === +dv[1]))) { toast('장치가 있는 칸입니다. 장치를 눌러 회수한 뒤 옮기세요.'); render(); return; }
   // 포탑 장비: 보관함 → 포탑 · 포탑 칸 → 보관함 / 다른 포탑 칸
   if (sk === 'item' && (dk === 'turret' || dk === 'tgear')) {
     const id = run.inventory[+sv[0]];
@@ -4954,7 +5007,7 @@ function onDrop(src: string, dst: string) {
     // 소모품: 기물 · 장비에 끌어다 놓으면 확인 창
     const i = +sv[0];
     const ct = CONSUMABLES[run.inventory[i]].target;
-    const tg: R.UseTarget | null = dk === 'foe' ? { k: 'foe', i: +dv[0] } : ct === 'run' && (dk === 'unit' || dk === 'eqitem' || (dk === 'invitem' && +dv[0] !== i)) ? { k: 'run' }
+    const tg: R.UseTarget | null = (dk === 'cell' || dk === 'xcell') ? (ct === 'place' ? { k: 'cell', x: +dv[0], y: +dv[1] } : null) : dk === 'foe' ? { k: 'foe', i: +dv[0] } : ct === 'run' && (dk === 'unit' || dk === 'eqitem' || (dk === 'invitem' && +dv[0] !== i)) ? { k: 'run' }
       : dk === 'unit' ? { k: 'unit', uid: dv[0] } : dk === 'invitem' && +dv[0] !== i ? { k: 'inv', i: +dv[0] }
       : dk === 'eqitem' ? (ct === 'unit' && !CONSUMABLES[run.inventory[i]].alsoItem ? { k: 'unit', uid: dv[0] } : { k: 'eq', uid: dv[0], slot: +dv[1] }) : null;
     if (tg) tryUse(run, i, tg);

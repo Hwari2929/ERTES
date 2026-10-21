@@ -4295,3 +4295,32 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .mrow.bond .mname, .btable tr.bond td:first-child { padding-left: 10px; }
 .ct-rules { grid-template-columns: max-content minmax(0, 1fr); align-items: baseline; } .ct-rules dd { line-height: 1.45; }
 .ab-tok-ph { display: grid; place-items: center; font-size: var(--fs-xl); color: var(--c-text-2); background: var(--panel-2); } /* 아이콘 없는 궁극기 임시 자리표시 */
+
+/* 편성 화면 배치형 소모품 (data/devices.ts): 바리케이드 · 신호기 · 지뢰 칸 토큰, 그물 · 망원경 효과 범위 + 표식. 누르면 회수 확인 */
+.prep .board .cell.dev-ok { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--c-select) 70%, transparent); cursor: pointer; }
+.dev-tok, .dev-mark { position: absolute; display: grid; place-items: center; padding: 0; margin: 0; border: 0; background: none; cursor: pointer; color: var(--c-text); }
+.dev-tok .li, .dev-mark .li { width: 58%; height: 58%; }
+.dev-tok { box-sizing: border-box; border-radius: var(--r-sm); border: 2px solid var(--dc); background: color-mix(in srgb, var(--dc) 28%, var(--panel)); }
+.dev-tok.dev-wall { --dc: var(--cat-struct); background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--dc) 45%, var(--panel)) 0 5px, color-mix(in srgb, var(--dc) 22%, var(--panel)) 5px 10px); }
+.dev-tok.dev-decoy { --dc: var(--c-warn-ink); border-radius: 50%; }
+.dev-tok.dev-mine { --dc: var(--el-elec); border-style: dashed; opacity: .75; }
+.dev-hp { position: absolute; bottom: 1px; right: 3px; font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; color: var(--c-text); }
+.dev-area { position: absolute; box-sizing: border-box; pointer-events: none; border: 2px dashed var(--dc); border-radius: var(--r-sm); background: color-mix(in srgb, var(--dc) 12%, transparent); }
+.dev-mark { justify-self: center; }
+.dev-mark .li { width: 40%; height: 40%; padding: 3px; border-radius: 50%; background: color-mix(in srgb, var(--dc) 75%, var(--panel)); }
+.dev-net { --dc: var(--c-info); }
+.dev-strike { --dc: var(--c-bad); }
+.dev-drop { --dc: var(--c-good); }
+.dev-area, .dev-tok, .dev-mark { z-index: var(--z-raise); }
+/* 표시 망원경: 오른쪽 아래 원형 사용 횟수 */
+.item .use-n { position: absolute; right: -4px; bottom: -4px; min-width: 15px; height: 15px; padding: 0 3px; box-sizing: border-box; display: grid; place-items: center; border-radius: var(--r-pill); background: var(--panel); border: 1px solid var(--hc, var(--c-steel)); font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; line-height: 1; color: var(--c-text); }
+.wall-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+.wall-opt { display: grid; gap: 2px; justify-items: center; }
+.item:has(.use-n) { position: relative; }
+/* 전투: 숨겨 둔 감전 지뢰 (아군에게만 보이는 흐린 표식) */
+.trap-tok { position: absolute; pointer-events: none; box-sizing: border-box; border: 2px dashed color-mix(in srgb, var(--el-elec) 60%, transparent); border-radius: 50%; transform: scale(.55); opacity: .7; }
+/* 전투: 바리케이드 · 유인 신호기 (스프라이트 대신 장치 표식) */
+.u .dev-face { width: 82%; height: 82%; display: grid; place-items: center; box-sizing: border-box; border-radius: var(--r-sm); border: 2px solid var(--dc); color: var(--c-text); background: color-mix(in srgb, var(--dc) 30%, var(--panel)); }
+.u .dev-face .li { width: 62%; height: 62%; }
+.u .dev-face.dev-wall { --dc: var(--cat-struct); background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--dc) 45%, var(--panel)) 0 5px, color-mix(in srgb, var(--dc) 22%, var(--panel)) 5px 10px); }
+.u .dev-face.dev-decoy { --dc: var(--c-warn-ink); border-radius: 50%; }

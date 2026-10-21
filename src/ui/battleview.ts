@@ -465,6 +465,15 @@ export class BattleView {
     this.svg.setAttribute('preserveAspectRatio', 'none');
     board.appendChild(this.svg);
     for (const u of b.units) this.mount(u);
+    // 숨겨 둔 함정 (감전 지뢰): 아군에게만 흐린 표식, 터지면 사라진다
+    for (const tr of b.traps) {
+      const el = document.createElement('div');
+      el.className = 'trap-tok';
+      Object.assign(el.style, { ...this.pos(tr.x, tr.y), width: `${100 / b.w}%`, height: `${100 / b.h}%` });
+      el.title = '감전 지뢰 (은신)';
+      board.appendChild(el);
+      this.traps.set(tr, el);
+    }
     this.sync();
     // 피니쉬 표시: 콤보 무기의 피니쉬 여부는 기본 공격 이벤트가 나가는 그 순간의 콤보 상태로만 알 수 있다 (이벤트에 없는 정보, 엔진은 그대로)
     const emit = b.emit.bind(b);
@@ -562,19 +571,20 @@ export class BattleView {
     const el = document.createElement('div');
     const card = hasPortrait(u);
     const turret = card && u.isSummon && u.defId === 'turret'; // 엔지니어 감시 포탑: 우측 상단 '기계' 배지
+    const dev = u.mem.wall ? 'wall' : u.mem.decoy ? 'decoy' : ''; // 편성 화면에서 놓은 바리케이드 · 유인 신호기: 스프라이트 대신 장치 표식
     const neutral = u.side === 1 && !!u.mem.inert; // 전장 장애물 (유닉스 답례 투하의 반려 돌 · 묘석): 적이 아닌 중립 지형물로 보인다
     el.className = `u ${neutral ? 'sideN inert' : `side${u.side}`}${card ? ' tkb' : ''}${turret ? ' has-cat' : ''}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
     el.style.width = `${100 / this.b.w}%`;
     el.style.height = `${100 / this.b.h}%`;
     el.dataset.a = 'bsel';
     el.dataset.v = String(u.id);
-    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div><img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}"><div class="cd"><i></i></div>${u.side === 0 && u.reason !== null ? `<div class="gx${schoolOfC(u) ? ` sc sc-${barOf(schoolOfC(u)!)}` : ''}"><i></i></div>` : ''}${schoolOfC(u) ? `<div class="cpi" style="--sc:${SCHOOL_BY_ID[schoolOfC(u) as SchoolId]?.color || '#b07cff'}" title="비술 준비"><i class="cpi-ring"></i>${lineIcon(`s.${schoolOfC(u)}`, 'li')}</div>` : ''}${turret ? `<span class="tk-cat cat-mech" title="기계 · 구조물">${lineIcon('k.mech', 'li')}</span>` : ''}<div class="sti sts deb"></div><div class="stc"></div><div class="stk sts buf"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
+    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div>${dev ? `<span class="dev-face dev-${dev}">${lineIcon(`k.${dev === 'wall' ? 'barricade' : 'decoy'}`, 'li')}</span>` : `<img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}">`}<div class="cd"><i></i></div>${u.side === 0 && u.reason !== null ? `<div class="gx${schoolOfC(u) ? ` sc sc-${barOf(schoolOfC(u)!)}` : ''}"><i></i></div>` : ''}${schoolOfC(u) ? `<div class="cpi" style="--sc:${SCHOOL_BY_ID[schoolOfC(u) as SchoolId]?.color || '#b07cff'}" title="비술 준비"><i class="cpi-ring"></i>${lineIcon(`s.${schoolOfC(u)}`, 'li')}</div>` : ''}${turret ? `<span class="tk-cat cat-mech" title="기계 · 구조물">${lineIcon('k.mech', 'li')}</span>` : ''}<div class="sti sts deb"></div><div class="stc"></div><div class="stk sts buf"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
     el.innerHTML = card ? `<div class="tk-card">${inner}</div>` : inner;
     this.board.appendChild(el);
     const q = <T extends HTMLElement>(s: string) => el.querySelector<T>(s)!;
     this.els.set(u.id, {
       ug: null, ugSig: '',
-      el, face: (el.querySelector<HTMLElement>('.tk-card') || q('img')), hp: q('.hp'), loss: q('.loss'), sh: q('.sh'), cd: q('.cd i'), gx: el.querySelector<HTMLElement>('.gx i'), cpi: el.querySelector<HTMLElement>('.cpi'),
+      el, face: (el.querySelector<HTMLElement>('.tk-card') || q('img, .dev-face')), hp: q('.hp'), loss: q('.loss'), sh: q('.sh'), cd: q('.cd i'), gx: el.querySelector<HTMLElement>('.gx i'), cpi: el.querySelector<HTMLElement>('.cpi'),
       sti: q('.sti'), stc: q('.stc'), stk: q('.stk'), rl: q('.rl'), u, dead: false, trail: 1, trailHold: 0, stiSig: '', stkSig: '', rlMax: 1,
     });
     if (u.ult || u.div !== null) {
@@ -604,7 +614,9 @@ export class BattleView {
     this.later(at, () => { add(this.lagHp, -dhp); add(this.lagSh, -dsh); add(this.pendN, -1); then?.(); });
   }
 
+  private traps = new Map<object, HTMLElement>();
   private sync() {
+    for (const [tr, el] of this.traps) if (!this.b.traps.includes(tr as Battle['traps'][number])) { el.remove(); this.traps.delete(tr); }
     const now = this.vt;
     const dvt = Math.max(0, now - this.syncVt); // 표시 시간 변화량 (정지 중 0, 주사율과 무관)
     this.syncVt = now;
