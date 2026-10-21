@@ -315,11 +315,14 @@ export function makeSummons(owner: CUnit, sd0: SummonDef): SummonMade[] {
     return { sd, unit: s, rate: r, extra: i > 0 };
   });
 }
+/** 소환물 · 공왕이 설 빈칸이 없어 나오지 못했을 때: 주인 머리 위에 알림 (조용히 사라지지 않게) */
+export const NO_ROOM_LABEL = '소환 자리 없음';
+const noRoom = (b: Battle, owner: CUnit) => b.emit({ k: 'status', id: owner.id, name: NO_ROOM_LABEL, harm: true });
 function spawnSummons(b: Battle, owner: CUnit, sd0: SummonDef) {
   const at = COMP_AT.get(b), uid = owner.side === 0 ? owner.src?.uid : undefined;
   makeSummons(owner, sd0).forEach((m, i) => {
     const c = uid ? at?.get(`${uid}:${i}`) : undefined; // 편성 화면에서 정한 시작 칸 (companionCells)
-    if (!c || !b.inBounds(c.x, c.y) || b.unitAt(c.x, c.y)) { b.spawn(m.unit, owner); return; }
+    if (!c || !b.inBounds(c.x, c.y) || b.unitAt(c.x, c.y)) { if (!b.spawn(m.unit, owner)) noRoom(b, owner); return; }
     const u = m.unit;
     u.x = u.px = c.x; u.y = u.py = c.y;
     b.add(u);
@@ -332,9 +335,10 @@ const COMP_AT = new WeakMap<Battle, Map<string, { x: number; y: number }>>();
 
 /** 편성 화면 · 전투 시작 공용: 출전 기물의 소환물과 공왕 무휼이 나타날 칸.
  *  저장한 칸(run.summonPos)이 배치 구역 안이고 비어 있으면 그 칸, 아니면 무휼은 뒷줄 가운데부터 · 소환물은 주인에게 가장 가까운 빈칸 (배치 구역 안).
- *  출전 기물 · 포탑 칸이 먼저이고, 무휼 → 소환물 순으로 칸을 잡는다 */
+ *  출전 기물 · 포탑 칸이 먼저이고, 무휼 → 소환물 순으로 칸을 잡는다.
+ *  missing 을 넘기면 배치 구역에 빈칸이 없어 시작 칸을 못 잡은 것을 담는다 (x · y = -1, 편성 화면 경고 칩. 전투에서는 가까운 빈칸 · 없으면 '소환 자리 없음') */
 export interface CompanionTok { key: string; owner?: string; king?: boolean; name: string; spr: { sprite: string; palette: string[]; art?: string }; x: number; y: number }
-export function companionCells(run: RunState, W: number): CompanionTok[] {
+export function companionCells(run: RunState, W: number, missing?: CompanionTok[]): CompanionTok[] {
   const g = runGeo(run, W);
   const lay = layout(run, W);
   const used = new Set([...lay.values(), ...turretCells(run, W)].map((p) => `${p.x},${p.y}`));
@@ -348,6 +352,7 @@ export function companionCells(run: RunState, W: number): CompanionTok[] {
     const def = UNIT_BY_ID.muhyul;
     const c = saved('king') || kingCell(run, W);
     if (c) { used.add(`${c.x},${c.y}`); out.push({ key: 'king', king: true, name: def.name, spr: def, x: c.x, y: c.y }); }
+    else missing?.push({ key: 'king', king: true, name: def.name, spr: def, x: -1, y: -1 });
   }
   const b = new Battle(g.w, g.h, new Rng(1), { phase: run.phase, credits: run.credits });
   b.geo = g;
@@ -360,7 +365,7 @@ export function companionCells(run: RunState, W: number): CompanionTok[] {
     makeSummons(owner, sd).forEach((m, i) => {
       const key = `${u.uid}:${i}`;
       const c = saved(key) || near(o.x, o.y);
-      if (!c) return;
+      if (!c) { missing?.push({ key, owner: u.uid, name: m.unit.name, spr: { sprite: m.unit.sprite, palette: m.unit.palette, art: m.unit.art }, x: -1, y: -1 }); return; }
       used.add(`${c.x},${c.y}`);
       out.push({ key, owner: u.uid, name: m.unit.name, spr: { sprite: m.unit.sprite, palette: m.unit.palette, art: m.unit.art }, x: c.x, y: c.y });
     });
@@ -545,7 +550,7 @@ CHR_HOOK.spawn = (b, lead, ctx, t) => {
   if (cell && (!b.inBounds(cell.x, cell.y) || b.unitAt(cell.x, cell.y))) cell = null;
   if (!cell) { const mid = Math.floor(b.w / 2); cell = b.freeCellNear(mid, b.geo?.ay1 ?? ALLY_Y1); }
   if (!cell) cell = b.freeCellNear(lead.x, lead.y);
-  if (!cell) return;
+  if (!cell) { noRoom(b, lead); return; }
   c.x = c.px = cell.x; c.y = c.py = cell.y;
   c.hp = b.S(c, 'maxHp');
   c.atkTimer = c.atk.interval * 0.5;
@@ -753,23 +758,47 @@ ENEMY_RT.borrow = (b, u, n) => {
   return got;
 };
 
-/** 보드 크기 n 에서의 실제 아군 배치 (크기가 바뀌어 겹치면 빈 칸으로 밀어낸다) */
+/** 보드 크기 n 에서의 실제 아군 배치. 저장 칸이 장치 · 다른 기물과 겹치면 (폭이 좁아져 잘린 경우 포함) 가장 가까운 아군 진형 빈칸으로 밀어낸다.
+ *  출전 기물은 하나도 빠뜨리지 않는다: 아군 진형이 장치로 가득 차면 (편성 화면이 막지만) 가까운 사이 줄 빈칸에 세운다 */
 export function layout(run: RunState, n: number): Map<string, { x: number; y: number }> {
   const g = runGeo(run, n);
   const used = new Set<string>();
   for (const d of run.node?.enc?.devices || []) for (const c of deviceCells(d)) used.add(`${c.x},${c.y}`); // 편성 화면에 놓은 장치 칸은 비켜 간다
+  const zone: { x: number; y: number }[] = [];
+  for (let y = g.ay1; y >= g.ay0; y--) for (let x = PAD; x < PAD + n; x++) zone.push({ x, y });
+  let spill: { x: number; y: number }[] | null = null; // 마지막 수단: 사이 줄 (지형 칸 제외)
+  const near = (cs: { x: number; y: number }[], o: { x: number; y: number }) => {
+    let best: { x: number; y: number } | null = null, bd = Infinity;
+    for (const c of cs) {
+      if (used.has(`${c.x},${c.y}`)) continue;
+      const d = Math.max(Math.abs(c.x - o.x), Math.abs(c.y - o.y)) * 100 + Math.abs(c.x - o.x) + Math.abs(c.y - o.y);
+      if (d < bd) { bd = d; best = c; }
+    }
+    return best;
+  };
   const out = new Map<string, { x: number; y: number }>();
   for (const u of deployed(run)) {
-    let p: { x: number; y: number } | null = boardPos(u.pos!, n, g);
-    if (used.has(`${p.x},${p.y}`)) {
-      p = null;
-      for (let y = g.ay1; y >= g.ay0 && !p; y--) for (let x = PAD; x < PAD + n && !p; x++) if (!used.has(`${x},${y}`)) p = { x, y };
+    const want = boardPos(u.pos!, n, g);
+    let p: { x: number; y: number } | null = used.has(`${want.x},${want.y}`) ? near(zone, want) : want;
+    if (!p) {
+      if (!spill) {
+        const land = terrainCells(g);
+        spill = [];
+        for (let y = PAD; y < g.h - PAD; y++) for (let x = PAD; x < PAD + n; x++) if (zoneAt(g, x, y) === 'mid' && !land.has(`${x},${y}`)) spill.push({ x, y });
+      }
+      p = near(spill, want);
     }
-    if (!p) continue;
+    if (!p) continue; // 전장 전체에 빈칸이 없음 (일어나지 않는다 — tests/deploy_check.ts)
     used.add(`${p.x},${p.y}`);
     out.set(u.uid, p);
   }
   return out;
+}
+/** 이번 조우 아군 진형에서 출전 기물이 설 수 있는 칸 수 (폭 × 줄 − 장치가 차지한 칸). 출전 인원은 이 수를 넘을 수 없다 (run.ts deployRoom · fitDeploy) */
+export function allyRoom(run: RunState, n = run.node?.enc?.n ?? CFG.bossBoard, devices: Device[] = run.node?.enc?.devices || []): number {
+  const g = runGeo(run, n), taken = new Set<string>();
+  for (const d of devices) for (const c of deviceCells(d)) if (zoneAt(g, c.x, c.y) === 'ally') taken.add(`${c.x},${c.y}`);
+  return ZONE * n - taken.size;
 }
 
 /** 편성 화면에서 칸을 차지한 것: 출전 아군 · 포탑 · 소환물 · 공왕 · 적 · 이미 놓은 장치 ('x,y'). skip = 이 장치는 빼고 (다시 놓기 검사용) */
