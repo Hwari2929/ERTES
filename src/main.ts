@@ -65,6 +65,7 @@ import { NODE_DESC } from './data/nodes';
 import * as TUT from './engine/tutorial';
 import { fieldSyn, starterFavNeed, starterPool } from './engine/starters';
 import * as RM from './ui/routemap';
+import * as LAB from './ui/lab';
 
 // 편의 설정 (이 브라우저에만 저장): 전투 속도, 진형 속도 등
 const PREF_KEY = 'errantes.prefs.v1';
@@ -224,7 +225,7 @@ function persist() {
     if (sg.out.length) toast(`전용 장비 ${sg.out.length}개 회수 (시너지 단계 하락)`);
     else if (sg.back.length) toast(`전용 장비 ${sg.back.length}개 반환`);
   }
-  if (app.run && !app.run.over) saveRun(app.run, app.run.tutorial ? TUT_SLOT : app.run.campaign ? CAMP_SLOT : 'auto'); // 튜토리얼 · 캠페인 런은 이어하기(자동 저장)를 덮지 않게 따로
+  if (app.run && !app.run.over) saveRun(app.run, app.run.lab ? LAB.LAB_SLOT : app.run.tutorial ? TUT_SLOT : app.run.campaign ? CAMP_SLOT : 'auto'); // 훈련장 · 튜토리얼 · 캠페인 런은 이어하기(자동 저장)를 덮지 않게 따로
 }
 
 // ───────────────────────── 공용 조각
@@ -448,7 +449,8 @@ function titleScreen() {
         <div class="ts-grid" role="group" aria-label="둘러보기">${tutButton()}
           <button class="btn ts-btn ts-tile" data-a="bar"><b>에란테스 바</b><small>${auto ? '들렀다가 이어서 출격' : '단원 · 손님들의 잡담'}</small></button>
           <button class="btn ts-btn ts-tile" data-a="codex"><b>도감 · 기록</b><small>교범 · 기록 · 업적</small></button>
-          <button class="btn ts-btn ts-tile ts-oath" data-a="oath"><b>절망 서약</b><small>${diffName(CFG.oathFrom) || `위험 ${CFG.oathFrom}`} 조건 · 절망 ${OATH.heatNow()}${OATH.effNow() > CFG.oathFrom ? ` (위험 ${OATH.effNow()})` : ''}</small></button></div>
+          <button class="btn ts-btn ts-tile ts-oath" data-a="oath"><b>절망 서약</b><small>${diffName(CFG.oathFrom) || `위험 ${CFG.oathFrom}`} 조건 · 절망 ${OATH.heatNow()}${OATH.effNow() > CFG.oathFrom ? ` (위험 ${OATH.effNow()})` : ''}</small></button>
+          ${(() => { const ls = LAB.labSaveInfo(); return `<button class="btn ts-btn ts-tile ts-lab" data-a="lab-enter"><b>에란테스 훈련장</b><small>${ls ? `이어서 · ${ls.step + 1}/${ls.len}칸` : '기물 · 장비 · 적을 불러 시험하는 실험실'}</small></button>`; })()}</div>
         <div class="ts-util" role="group" aria-label="저장 · 설정">${listTutSave() ? '<button class="btn ghost tiny" data-a="tutorial-restart">튜토리얼 처음부터</button>' : ''}<button class="btn ghost tiny" data-a="menu-import">저장 코드 불러오기</button><button class="btn ghost tiny" data-a="menu-tab" data-v="settings">설정 · 테마</button>${canFullscreen() ? `<button class="btn ghost tiny" data-a="fullscreen" title="전체 화면 (주소창 · 상태 표시줄 숨김)">${FS_SVG(isFullscreen())} ${isFullscreen() ? '전체 화면 끄기' : '전체 화면'}</button>` : ''}</div>
       </nav>
       ${slots.length ? `<div class="slots">${slots.map((s) => `<button class="btn ghost" data-a="load" data-v="${s.slot}">${SLOT_NAME[s.slot]} · 페이즈 ${s.phase} · 기물 ${s.units}</button>`).join('')}</div>` : ''}
@@ -1022,7 +1024,7 @@ function mapScreen(run: RunState) {
       <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
     </aside>
     <section class="map-main${RM.routeMapOn(run) ? ' has-rmap' : ''}">
-      <div class="screen-head map-head"><h1>${run.campaign ? esc(campChapter(run).name.split(' · ')[0]) : `페이즈 ${p}`}</h1>${run.campaign ? campTimeChip(run) : ''}${bossGoal(run)}</div>
+      <div class="screen-head map-head"><h1>${run.lab ? '에란테스 훈련장' : run.campaign ? esc(campChapter(run).name.split(' · ')[0]) : `페이즈 ${p}`}</h1>${run.campaign ? campTimeChip(run) : ''}${bossGoal(run)}</div>
       ${RM.routeMapOn(run) ? '<div class="rmap-host"></div>' : ''}<div class="tl"><ol class="tl-track">${track}</ol></div>
       <p class="map-scale" title="이번 페이즈 적 강도 (페이즈마다 누적)">${scale}</p>
       ${mapAhead(run, pick, enter)}
@@ -3421,7 +3423,7 @@ function render() {
   const kept = KEEP.map((q) => root.querySelector<HTMLElement>(q)?.scrollTop ?? 0);
   const media = app.screen === 'battle' || app.screen === 'bar' ? null : keepMedia();
   TFX.beforeScreen(prevScreen, app.screen, root); // 이타카: 바뀌기 전 화면을 덮는 바다 (그리기 전에 지금 화면을 얼려 둔다)
-  root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run ? askPop() : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${app.preview ? unitModal(app.preview.run, true) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
+  root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run ? askPop() : ''}${run ? LAB.labHtml(run, app.screen) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${app.preview ? unitModal(app.preview.run, true) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   media?.();
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
   umCompactBind();
@@ -3727,8 +3729,8 @@ function mountBattleView(board: HTMLElement) {
   app.view = new BattleView(board, b, updateMeter, () => {
     ACH.achBattle(run, b); // 업적: 보상 처리 전 (이 전투의 노드 · 페이즈 · 연승)
     app.summary = R.resolveBattle(run, b);
-    if (!run.tutorial) metaBattle(b); // 튜토리얼 전투는 도감 기록에서 뺀다
-    if (!run.tutorial && app.summary?.won) { const mv = pickMvp(b); if (mv) metaBarMvp(run.seed, mv.a.u.defId); } // 바 반응: 직전 런 MVP
+    if (!run.tutorial && !run.lab) metaBattle(b); // 튜토리얼 · 훈련장 전투는 도감 기록에서 뺀다
+    if (!run.tutorial && !run.lab && app.summary?.won) { const mv = pickMvp(b); if (mv) metaBarMvp(run.seed, mv.a.u.defId); } // 바 반응: 직전 런 MVP
     persist();
     // 보드는 그대로 두고 상단 바와 결과 창만 갱신
     const top = root.querySelector('header.top');
@@ -4576,6 +4578,11 @@ function act(a: string, v: string) {
       else { app.run = newCampaignRun(3); app.screen = 'map'; persist(); }
       break;
     }
+    case 'lab-enter': // 에란테스 훈련장: 저장이 있으면 이어서, 없으면 새로 (ui/lab.ts)
+      if (app.view) { app.view.destroy(); app.view = null; }
+      app.tutAsk = false; app.menu = null; app.summary = null; app.sel = null; app.bigUnit = null; app.abilPop = null; app.mapTab = 0;
+      app.run = LAB.labStart(); goPrepOrMap(); persist(); break;
+    case 'lab': if (run) { const r = LAB.labAct(run, v); if (r.run) { app.run = r.run; goPrepOrMap(); } if (r.msg) toast(r.msg); if (r.dirty || r.run) { app.sel = null; persist(); } } break;
     case 'intro-back': app.screen = 'intro'; app.introDone = true; break;
     case 'tutorial': case 'tutorial-restart': { // 튜토리얼: 저장이 있으면 이어서, 아니면 새로
       const saved = a === 'tutorial' ? loadRun(TUT_SLOT) : null;
@@ -5577,6 +5584,7 @@ root.addEventListener('click', (ev) => {
   act(el.dataset.a!, el.dataset.v || '');
 });
 SND.init({ prefs: loadPrefs, save: savePref, ranks: () => Object.fromEntries(app.run?.units.map((u) => [u.uid, u.rank]) ?? []) }); // 효과음 설정 (errantes.prefs.v1) · 등급 상승 판정
+LAB.labInit({ act: (v) => act('lab', v), itemIcon: (id) => itemIcon(id), relicTok: (id) => relicTok(id) }); // 훈련장 패널: 숫자 칸 · 고르기 입력 → 동작
 ACH.achBind(() => app.run); // 업적: 장면 건너뛰기 · 메타 기록 변화 지켜보기 · 도감 · 바 진열장 입력
 
 // 순례: 신앙 변경

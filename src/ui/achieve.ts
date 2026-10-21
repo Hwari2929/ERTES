@@ -33,6 +33,7 @@ export function achBind(getRun: () => RunState | null) {
 }
 /** 사실 하나를 판정해 새로 달성한 업적을 저장하고 배너를 띄운다 */
 function unlock(f: AchFact) {
+  if (runOf()?.lab) return; // 훈련장: 업적 판정 없음
   const ids = judge(f, got());
   if (!ids.length) return;
   const fresh = metaAchieve(ids, today());
