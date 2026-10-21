@@ -4371,6 +4371,43 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .tr-hero.tr-glass { background: color-mix(in srgb, var(--c-good) 18%, var(--panel-2)); }
 .tr-hero.tr-wall, .tr-hero.tr-tank { background: color-mix(in srgb, var(--c-steel) 45%, var(--panel-2)); }
 .tr-hero.tr-gate { background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--c-warn-ink) 40%, var(--panel-2)) 0 8px, color-mix(in srgb, var(--c-steel) 45%, var(--panel-2)) 8px 16px); }
+/* 물류망 지형: 진공 틈 (검은 우주 + 별 점) · 연결교 (가로 판자 + 양옆 난간 자리) · 접은 연결교 (진공 틈 무늬 + 점선 테두리) · 컨테이너 (골판, 번호마다 색 cr-0~2) · 선로 (침목 + 레일 2줄) · 광석 더미 (돌무더기) */
+.cell.tr-void, .cell.tr-bridge.folded, .tr-hero.tr-void, .tr-hero.tr-bridge.folded { --trc: var(--c-psi); background: radial-gradient(circle at 22% 30%, color-mix(in srgb, var(--c-white) 75%, transparent) 0 1px, transparent 1.6px), radial-gradient(circle at 72% 62%, color-mix(in srgb, var(--c-white) 55%, transparent) 0 1px, transparent 1.6px), radial-gradient(circle at 46% 86%, color-mix(in srgb, var(--c-info) 70%, transparent) 0 1px, transparent 1.6px), radial-gradient(circle at 86% 18%, color-mix(in srgb, var(--c-psi) 70%, transparent) 0 1px, transparent 1.6px), radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--c-psi) 16%, var(--c-black)) 0, color-mix(in srgb, var(--c-black) 88%, var(--cell-mid)) 75%); }
+.cell.tr-bridge { --trc: var(--c-warn-ink); background: linear-gradient(90deg, color-mix(in srgb, var(--c-steel) 75%, var(--cell-mid)) 0 3px, transparent 3px calc(100% - 3px), color-mix(in srgb, var(--c-steel) 75%, var(--cell-mid)) calc(100% - 3px)), repeating-linear-gradient(0deg, color-mix(in srgb, var(--c-steel) 52%, var(--cell-mid)) 0 7px, color-mix(in srgb, var(--c-black) 45%, var(--cell-mid)) 7px 9px); }
+.cell.tr-bridge.folded { border-style: dashed; }
+.cell.tr-container { --trc: var(--crc); --crc: var(--c-credit); background: linear-gradient(0deg, color-mix(in srgb, var(--c-black) 30%, transparent) 0 2px, transparent 2px calc(100% - 2px), color-mix(in srgb, var(--c-white) 14%, transparent) calc(100% - 2px)), repeating-linear-gradient(90deg, color-mix(in srgb, var(--crc) 52%, var(--cell-mid)) 0 3px, color-mix(in srgb, var(--crc) 34%, var(--cell-mid)) 3px 6px); }
+.cell.tr-container.cr-1 { --crc: var(--c-info); }
+.cell.tr-container.cr-2 { --crc: var(--c-bad); }
+.cell.tr-rail { --trc: var(--c-steel); background: linear-gradient(0deg, transparent 28%, color-mix(in srgb, var(--c-steel) 85%, var(--cell-mid)) 28% 35%, transparent 35% 65%, color-mix(in srgb, var(--c-steel) 85%, var(--cell-mid)) 65% 72%, transparent 72%), repeating-linear-gradient(90deg, color-mix(in srgb, var(--c-credit) 24%, var(--cell-mid)) 0 4px, var(--cell-mid) 4px 11px); }
+.cell.tr-ore { --trc: var(--c-credit); background: radial-gradient(16% 12% at 40% 34%, color-mix(in srgb, var(--c-credit) 55%, var(--c-steel)) 0 85%, transparent 100%), radial-gradient(24% 16% at 62% 52%, color-mix(in srgb, var(--c-steel) 70%, var(--c-black)) 0 85%, transparent 100%), radial-gradient(22% 15% at 30% 62%, color-mix(in srgb, var(--c-credit) 35%, var(--c-steel)) 0 85%, transparent 100%), radial-gradient(30% 16% at 72% 80%, color-mix(in srgb, var(--c-credit) 28%, var(--c-steel)) 0 85%, transparent 100%), radial-gradient(34% 18% at 28% 84%, color-mix(in srgb, var(--c-steel) 55%, var(--c-black)) 0 85%, transparent 100%), color-mix(in srgb, var(--c-steel) 22%, var(--cell-mid)); }
+.tr-hero.tr-bridge:not(.folded) { background: repeating-linear-gradient(0deg, color-mix(in srgb, var(--c-steel) 45%, var(--panel-2)) 0 14px, color-mix(in srgb, var(--c-black) 35%, var(--panel-2)) 14px 18px); }
+.tr-hero.tr-container { background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--c-credit) 40%, var(--panel-2)) 0 6px, color-mix(in srgb, var(--c-credit) 24%, var(--panel-2)) 6px 12px); }
+.tr-hero.tr-rail { background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--c-credit) 20%, var(--panel-2)) 0 8px, var(--panel-2) 8px 22px); }
+.tr-hero.tr-ore { background: color-mix(in srgb, var(--c-credit) 22%, var(--panel-2)); }
+/* 운반차 (전투): 통과 warn 초 전부터 선로가 깜빡이고, 지나는 동안 운반차 토큰이 선로를 따라 (위치는 battleview.ts 가 매 프레임) */
+.cell.tr-rail.cart-warn { outline: 2px dashed var(--c-bad); outline-offset: -4px; }
+.cell.tr-rail.cart-warn::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--c-bad) 42%, transparent) 0 7px, transparent 7px 14px); }
+.cell.tr-rail.cart-warn::before { content: '→'; position: relative; z-index: 1; color: var(--c-bad); font-size: var(--fs-xl); font-weight: 800; line-height: 1; text-shadow: 0 1px 3px var(--c-black); }
+.cell.tr-rail.cart-warn.dir-l::before { content: '←'; }
+@media (prefers-reduced-motion: no-preference) { .cell.tr-rail.cart-warn::after, .cell.tr-rail.cart-warn::before { animation: cart-warn .5s ease-in-out infinite alternate; } }
+@keyframes cart-warn { from { opacity: 1; } to { opacity: .35; } }
+.gate-cd.cart-cd { --gc: var(--c-steel); }
+.gate-cd.cart-cd.warn { --gc: var(--c-bad); }
+.cart-tok { position: absolute; display: grid; place-items: center; pointer-events: none; z-index: var(--z-raise); box-sizing: border-box; }
+.cart-tok > span { display: grid; place-items: center; width: 96%; height: 78%; box-sizing: border-box; border-radius: var(--r-sm); border: 2px solid var(--c-steel); background: linear-gradient(0deg, color-mix(in srgb, var(--c-black) 55%, var(--c-steel)) 0 28%, transparent 28%), radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--c-credit) 60%, var(--c-steel)) 0 18%, transparent 20%), radial-gradient(circle at 62% 26%, color-mix(in srgb, var(--c-steel) 70%, var(--c-black)) 0 20%, transparent 22%), color-mix(in srgb, var(--c-credit) 30%, var(--c-steel)); color: var(--c-text); box-shadow: 0 2px 8px color-mix(in srgb, var(--c-black) 55%, transparent); }
+.cart-tok b { font-size: var(--fs-sm); line-height: 1; padding: 1px 4px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--panel) 80%, transparent); }
+.cart-tok[hidden] { display: none; }
+/* 크레인 적재칸 (편성 화면, 컨테이너 환적장): 빈 적재칸은 흐린 점선. 크레인을 켜면 갈 수 있는 칸 = 초록 (누름) · 못 가는 칸 = 빨강 점선 + 이유 */
+.bay-host { position: absolute; inset: 0; pointer-events: none; }
+.bay-host.on { z-index: var(--z-raise); }
+.bay { position: absolute; box-sizing: border-box; display: grid; place-items: center; border: 2px dashed color-mix(in srgb, var(--c-credit) 40%, transparent); border-radius: var(--r-sm); background: transparent; padding: 0; color: var(--c-text); }
+.bay.home { border-style: dotted; border-color: color-mix(in srgb, var(--c-text-2) 55%, transparent); }
+.bay.ok { pointer-events: auto; cursor: pointer; border: 2px solid var(--c-good); background: color-mix(in srgb, var(--c-good) 24%, transparent); }
+.bay.ok:hover, .bay.ok:focus-visible { background: color-mix(in srgb, var(--c-good) 40%, transparent); }
+.bay.bad { border-color: color-mix(in srgb, var(--c-bad) 70%, transparent); background: color-mix(in srgb, var(--c-bad) 12%, transparent); }
+.bay-lb { padding: 1px 6px; border-radius: var(--r-pill); background: var(--panel); font-size: var(--fs-2xs); line-height: 1.35; white-space: nowrap; border: 1px solid currentColor; }
+.bay.ok .bay-lb { color: var(--c-good); }
+.bay.bad .bay-lb { color: var(--c-bad); }
 .map-pill .li { width: 14px; height: 14px; }
 /* 배치형 소모품 팝업: 성질 줄 · 망원경 도식 (모드 2칸 · 효과 범위 격자 · 사용 횟수 단계) */
 .dev-spec { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 6px 0 0; font-size: var(--fs-sm); }
@@ -4566,3 +4603,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .gate-start { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .gate-start .seg { display: inline-flex; gap: 2px; }
 .gate-start .btn.on { border-color: var(--c-select); background: color-mix(in srgb, var(--c-select) 18%, var(--panel-2)); }
+.gate-start .btn:disabled { opacity: .45; cursor: not-allowed; }
+.crane-ctl .btn { display: inline-flex; align-items: center; gap: 4px; }
+.crane-ctl .btn .li { width: 16px; height: 16px; }
+.gate-why { margin: 4px 0 0; }

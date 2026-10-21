@@ -111,6 +111,9 @@ const free = (run: RunState, enc: Encounter, x: number, y: number, decoy = false
   const base = k();
   const changed = (name: string, f: () => void, undo: () => void) => { f(); ok(k() !== base, `캐시 키: ${name}`); undo(); };
   changed('지형 틀', () => { enc.map = 'lv_gate'; }, () => { enc.map = 'open'; });
+  changed('수문 시작 상태', () => { enc.gateOpen = true; }, () => { delete enc.gateOpen; });
+  changed('연결교 접기', () => { enc.bridgeFold = true; }, () => { delete enc.bridgeFold; });
+  changed('크레인', () => { enc.crane = { 0: 1 }; }, () => { delete enc.crane; });
   const e0 = { ...enc.enemies[0] };
   changed('적 장비를 떼어 냄 (강제 징수기)', () => { enc.enemies[0].stripped = true; }, () => { enc.enemies[0] = { ...e0 }; });
   changed('적 장비', () => { enc.enemies[0].items = [...(e0.items || []), 'G_pow']; }, () => { enc.enemies[0] = { ...e0 }; });

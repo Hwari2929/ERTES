@@ -380,7 +380,9 @@ export type BEvent =
   /** 장비 지급 (필리스 배달 사고 등) */
   | { k: 'gift'; from: number; to: number; item: string }
   /** 사이오닉 소마법 시전 (to: 주 대상) */
-  | { k: 'cantrip'; id: number; school: SchoolId; to?: number; name: string };
+  | { k: 'cantrip'; id: number; school: SchoolId; to?: number; name: string }
+  /** 광석 운반차가 선로 위 기물을 쳐 냄 (ids: 맞은 기물 · dir: 1 오른쪽으로 · -1 왼쪽으로) */
+  | { k: 'cart'; ids: number[]; dir: 1 | -1 };
 
 export interface BattleCtx { phase: number; credits: number; field?: string; diff?: number; despairs?: string[]; oaths?: Record<string, number>; otShift?: number; campIntel?: boolean; campIntel2?: boolean; campIntel3?: boolean; campIntel4?: boolean; campAudit?: boolean; /** 전역 증강 id (적에게 걸리는 것: 판돈 올리기) */ globals?: string[] } // despairs: 이 런의 절망 증강 id 목록 (data/despair.ts) · oaths: 절망 서약 (data/oaths.ts) · otShift: 연장전 · 제한 시간을 앞당기는 초 (초침의 서약)
 
@@ -509,7 +511,7 @@ export class Battle {
   // ───────── 도발 수치
   /** 적 e 의 아군 a 에 대한 도발 수치 +v (a 의 도발 배율 적용) */
   provAdd(e: CUnit, a: CUnit, v: number) {
-    if (!e.prov || v <= 0 || !a.alive || this.sideOf(a) === this.sideOf(e)) return;
+    if (!e.prov || v <= 0 || !a.alive || a.mem.neutral || this.sideOf(a) === this.sideOf(e)) return; // 중립 (운반차 등 지형 피해 출처)은 표적 후보가 아니다
     e.prov.set(a, (e.prov.get(a) || 0) + v * provMult(this, a));
   }
   /** 도발: e 의 a 에 대한 도발 수치를 크게 올리고 lock 초 동안 표적을 고정한다 */
@@ -622,6 +624,8 @@ export class Battle {
   /** 칸별 지형 비트 (T_NOWALK · T_NOSHOT), 지형이 없는 전장은 null. terrainVer: 바뀔 때마다 +1 (전투 화면이 칸을 다시 칠한다) */
   terrain: Uint8Array | null = null;
   terrainVer = 0;
+  /** 칸별 받는 피해 증가 몫 (연결교 등, 지형이 정한다), 없으면 null */
+  cellTaken: Float32Array | null = null;
   /** 칸 구조 (지형 틀 · 아군 진형 줄): buildBattle 이 붙인다 */
   geo?: Geo;
   /** 탄도를 막는 칸 (지형 · 구조물) 기준 구역 번호. 구조물이 부서지거나 지형이 바뀌면 다시 계산 */
@@ -1265,6 +1269,7 @@ export class Battle {
       const selfPsy = o.key === 'reason'; // 저이성 정신 피해: 공격자 쪽 배율 없음
       if (!selfPsy) dmg *= modMult(allMods(src), tags) * src.phaseAmp;
       dmg *= takenMult(allTaken(tgt), tags, isTrue, guardThreatRed(this, tgt));
+      const ct = this.cellTaken?.[tgt.y * this.w + tgt.x]; if (ct) dmg *= 1 + ct; // 엄폐 없는 지형 칸 (연결교)
       if (!selfPsy) for (const h of src.hooks) if (h.dmgMult) dmg *= h.dmgMult(this, src, tgt, o);
       for (const h of tgt.hooks) if (h.takenMult) dmg *= h.takenMult(this, tgt, src, o);
       const ot = CFG.overtimeStart - (this.ctx.otShift || 0); // 초침의 서약: 연장전을 앞당긴다

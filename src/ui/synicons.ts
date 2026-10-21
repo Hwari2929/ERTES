@@ -225,6 +225,13 @@ const L: Record<string, string> = {
   'tr.wall': '<rect x="3" y="5" width="18" height="14"/><path d="M3 9.7h18M3 14.3h18M9 5v4.7M15 5v4.7M6 9.7v4.6M12 9.7v4.6M18 9.7v4.6M9 14.3V19M15 14.3V19"/>',
   'tr.tank': '<ellipse cx="12" cy="5.5" rx="6" ry="2.5"/><path d="M6 5.5v13c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-13"/><path d="M9 11v5"/>',
   'tr.gate': '<path d="M4 20V5h16v15"/><path d="M8 5v11M12 5v11M16 5v11"/><path d="M4 18.5c2-1.5 4-1.5 6 0s4 1.5 6 0 2.5-1 4 0"/>',
+  // 물류망 지형 칸: 진공 틈 (별 + 찢긴 선체 가장자리) · 연결교 (판자 다리) · 컨테이너 (골판 상자) · 선로 (침목 + 레일) · 광석 더미 (돌무더기) · 크레인 (지브 + 갈고리)
+  'tr.void': '<path d="M11 5l1.5 5 5 1.5-5 1.5-1.5 5-1.5-5-5-1.5 5-1.5z"/><circle cx="18.5" cy="5.5" r="1"/><circle cx="5.5" cy="19" r="1"/><path d="M19 17.5h.01"/>',
+  'tr.bridge': '<path d="M3 9h18M3 15h18"/><path d="M6 9v6M10 9v6M14 9v6M18 9v6"/><path d="M3 5v14M21 5v14"/>',
+  'tr.container': '<rect x="3" y="6" width="18" height="12" rx="1"/><path d="M7 6v12M11 6v12M15 6v12M19 6v12"/><path d="M3 9.5h2M3 14.5h2"/>',
+  'tr.rail': '<path d="M8 3v18M16 3v18"/><path d="M5 6h14M5 10.5h14M5 15h14M5 19.5h14"/>',
+  'tr.ore': '<path d="M3 20l3.5-6 3 2 3-6 3 3 2.5-2 3 9z"/><path d="M9.5 16l2 4M15.5 13l-1 7"/>',
+  'tr.crane': '<path d="M5 21V4h3v17"/><path d="M3 21h8"/><path d="M8 5l13 2v1.5L8 8"/><path d="M18 8v5"/><path d="M16.5 13h3l-.5 2.5c-.3 1-2 1-2 0"/>',
   // 편성 화면 배치 소모품: 접이식 바리케이드 (펼친 판 3장) · 유인 신호기 (안테나 + 파동) · 감전 지뢰 (원반 + 번개) · 포획 그물 (격자) · 표시 망원경 (경통 + 렌즈)
   'k.barricade': '<path d="M3 8h18v8H3z"/><path d="M9 8v8M15 8v8"/><path d="M5 16v4M19 16v4"/>',
   'k.decoy': '<path d="M12 11v10"/><path d="M8 21h8"/><circle cx="12" cy="9" r="2"/><path d="M7.5 4.5a6.5 6.5 0 0 0 0 9M16.5 4.5a6.5 6.5 0 0 1 0 9"/>',

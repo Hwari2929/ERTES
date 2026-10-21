@@ -9,7 +9,7 @@ import { buildBattle } from '../src/engine/build';
 import { Battle, type CUnit } from '../src/engine/combat';
 import * as R from '../src/engine/run';
 import { Rng } from '../src/rng';
-import type { NodeType } from '../src/types';
+import type { Encounter, NodeType } from '../src/types';
 
 declare const process: { argv: string[]; stdout: { write(s: string): void } };
 const arg = (k: string, d: string) => (process.argv.find((a) => a.startsWith(`--${k}=`)) || `--${k}=${d}`).split('=')[1];
@@ -59,31 +59,40 @@ function forceMap(id: string) {
   return () => { MAPS.forEach((m, i) => { [m.field, m.later] = saved[i]; }); Object.assign(CFG.maps, cfg); };
 }
 
-interface Acc { n: number; win: number; t: number; fa: number; faN: number; noAtk: number; move: number; idle: number; blocked: number; engaged: number; cc: number; total: number; sTry: number; sFail: number; preGate: number; preGateN: number }
-const acc = (): Acc => ({ n: 0, win: 0, t: 0, fa: 0, faN: 0, noAtk: 0, move: 0, idle: 0, blocked: 0, engaged: 0, cc: 0, total: 0, sTry: 0, sFail: 0, preGate: 0, preGateN: 0 });
+interface Acc { n: number; win: number; t: number; fa: number; faN: number; noAtk: number; move: number; idle: number; blocked: number; engaged: number; cc: number; total: number; sTry: number; sFail: number; preGate: number; preGateN: number; cart: [number, number] }
+const acc = (): Acc => ({ n: 0, win: 0, t: 0, fa: 0, faN: 0, noAtk: 0, move: 0, idle: 0, blocked: 0, engaged: 0, cc: 0, total: 0, sTry: 0, sFail: 0, preGate: 0, preGateN: 0, cart: [0, 0] });
 const res = new Map<string, Acc>();
 const get = (k: string) => res.get(k) || (res.set(k, acc()), res.get(k)!);
 
-function runOne(mapId: string, ids: string[], seed: number, keys: string[]) {
+/** 전투 전 지형 선택 변형 ('틀id+이름'): 연결교 접음 · 크레인 (A 2×2 → 적재칸 q = 가운데 위) */
+const VARIANTS: Record<string, { name: string; set: (enc: Encounter) => void }> = {
+  'sw_dock+fold': { name: '연결교 접음', set: (enc) => { enc.bridgeFold = true; } },
+  'sw_yard+craneA': { name: '크레인 A → 가운데', set: (enc) => { enc.crane = { 0: 1 }; } },
+};
+const mapName = (id: string) => `${mapOf(id.split('+')[0]).name}${VARIANTS[id] ? ` (${VARIANTS[id].name})` : ''}`;
+function runOne(mapKey: string, ids: string[], seed: number, keys: string[]) {
   const run = R.newRun(seed, ids, FIELD, 0);
   run.pending = [];
   run.phase = PHASE;
   if (RANK > 1) for (const u of run.units) u.rank = RANK;
   R.autoPlace(run);
+  const mapId = mapKey.split('+')[0];
   const undo = forceMap(mapId);
   run.mapHist = [];
   const enc = R.genEncounter(run, TYPE, PHASE);
   undo();
   if ((enc.map || 'open') !== mapId) throw new Error(`지형 틀 강제 실패: ${mapId} → ${enc.map}`);
+  VARIANTS[mapKey]?.set(enc);
   spawnStat.tries = spawnStat.fails = 0;
   run.node = { type: TYPE, enc }; // layout · 지형 칸 기준 (runGeo 가 run.node.enc.map 을 읽는다)
   const b = buildBattle(run, enc, false);
   const allies = b.units.filter((u) => u.side === 0 && !u.isSummon && !u.mem.wall && !u.mem.decoy);
   const tm = { move: 0, idle: 0, blocked: 0, engaged: 0, cc: 0 };
-  const dt = CFG.tick, maxT = CFG.timeLimit + 1;
+  const dt = CFG.tick, maxT = CFG.timeLimit + 1, cartSeen = new Map<number, number>(), cart: [number, number] = [0, 0];
   while (!b.over && b.t < maxT) {
     b.step(dt);
     b.events.length = 0;
+    if (b.mem.cartPass) for (const u of b.units) if (u.mem.cartHit && cartSeen.get(u.id) !== u.mem.cartHit) { cartSeen.set(u.id, u.mem.cartHit); if (!u.mem.neutral) cart[u.side]++; } // 운반차에 치인 횟수 (아군 · 적)
     for (const u of allies) {
       if (!u.alive) continue;
       const t = u.target && u.target.alive ? u.target : null;
@@ -104,10 +113,11 @@ function runOne(mapId: string, ids: string[], seed: number, keys: string[]) {
     const tot = tm.move + tm.idle + tm.blocked + tm.engaged + tm.cc;
     a.move += tm.move; a.idle += tm.idle; a.blocked += tm.blocked; a.engaged += tm.engaged; a.cc += tm.cc; a.total += tot;
     a.sTry += spawnStat.tries; a.sFail += spawnStat.fails;
+    a.cart[0] += cart[0]; a.cart[1] += cart[1];
   }
 }
 
-const maps = MAPS.filter((m) => !m.field || m.field === FIELD).map((m) => m.id);
+const maps = MAPS.filter((m) => !m.field || m.field === FIELD).map((m) => m.id).flatMap((id) => [id, ...Object.keys(VARIANTS).filter((k) => k.startsWith(`${id}+`))]);
 const out = (s: string) => process.stdout.write(s + '\n');
 out(`지형 틀 측정 · 전장 ${FIELD} · ${TYPE} · 페이즈 ${PHASE} · 공명 등급 ${RANK} · 출전 ${TEAM}명 · 편성 유형마다 표본 ${N}개 (지형 틀 ${maps.length}종 × ${COMPS.length}유형 × ${N} = ${maps.length * COMPS.length * N}전투)`);
 const realComp = new Map<string, number>();
@@ -123,14 +133,14 @@ const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : '-'
 const f1 = (x: number) => x.toFixed(1);
 const row = (cells: (string | number)[]) => `| ${cells.join(' | ')} |`;
 out('\n편성 유형 판정 (뽑은 유형 → 기물 정의로 판정한 유형): ' + [...realComp].map(([k, v]) => `${k} ${v}`).join(' · '));
-out('\n' + row(['지형 틀', '편성', '승률', '전투 시간', '첫 공격', '못 쏨', '이동', '대기', '막힘', '교전', '제어', '소환 실패', '수문 열리기 전 첫 공격']));
-out(row(Array(13).fill('---')));
+out('\n' + row(['지형 틀', '편성', '승률', '전투 시간', '첫 공격', '못 쏨', '이동', '대기', '막힘', '교전', '제어', '소환 실패', '수문 열리기 전 첫 공격', '운반차 피격 (아군 · 적 / 전투)']));
+out(row(Array(14).fill('---')));
 for (const m of maps)
   for (const c of ['all', ...COMPS.map((x) => x.id)]) {
     const a = res.get(`${m}|${c}`);
     if (!a) continue;
-    out(row([c === 'all' ? `**${mapOf(m).name}**` : '', c === 'all' ? '전체' : COMPS.find((x) => x.id === c)!.name, pct(a.win, a.n), `${f1(a.t / a.n)}초`, a.faN ? `${f1(a.fa / a.faN)}초` : '-', pct(a.noAtk, a.noAtk + a.faN),
+    out(row([c === 'all' ? `**${mapName(m)}**` : '', c === 'all' ? '전체' : COMPS.find((x) => x.id === c)!.name, pct(a.win, a.n), `${f1(a.t / a.n)}초`, a.faN ? `${f1(a.fa / a.faN)}초` : '-', pct(a.noAtk, a.noAtk + a.faN),
       pct(a.move, a.total), pct(a.idle, a.total), pct(a.blocked, a.total), pct(a.engaged, a.total), pct(a.cc, a.total),
-      a.sTry ? `${a.sFail}/${a.sTry}` : '-', a.preGateN ? pct(a.preGate, a.preGateN) : '-']));
+      a.sTry ? `${a.sFail}/${a.sTry}` : '-', a.preGateN ? pct(a.preGate, a.preGateN) : '-', a.cart[0] + a.cart[1] ? `${f1(a.cart[0] / a.n)} · ${f1(a.cart[1] / a.n)}` : '-']));
   }
 out('\n열: 첫 공격 = 아군(소환물 제외) 첫 기본 공격 시각 평균 · 못 쏨 = 한 번도 기본 공격을 못 한 아군 비율 · 이동/대기/막힘/교전/제어 = 아군 생존 시간 몫 (대기 = 사거리 안에 대상 없음, 막힘 = 사거리 안이지만 지형이 사선을 막음) · 소환 실패 = 아군 소환 자리 없음/시도');
