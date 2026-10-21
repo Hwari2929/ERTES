@@ -1145,6 +1145,18 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .focus-lines .fl-ring { fill: none; vector-effect: non-scaling-stroke; stroke-width: 2px; }
 .focus-lines .fl-ring.side0 { stroke: var(--c-select); } .focus-lines .fl-ring.side1 { stroke: var(--c-bad); }
 .focus-lines .fl-dest { fill: none; stroke: var(--c-text); stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; stroke-width: 1.5px; opacity: .7; }
+/* 사선: 지형에 막힘 (붉은 점선) · 바리케이드 너머 (흐린 점선) · 막힌 칸 × · 꼬리표 (사격 · 기술 따로) */
+.focus-lines .fl-tgt.fl-no { stroke: var(--c-bad); stroke-dasharray: 4 3; }
+.focus-lines .fl-rest { stroke: var(--c-text-2); stroke-dasharray: 1 3; vector-effect: non-scaling-stroke; stroke-width: 1.5px; opacity: .6; }
+.focus-lines .fl-x { fill: none; stroke: var(--c-bad); vector-effect: non-scaling-stroke; stroke-width: 3px; stroke-linecap: round; }
+.fl-tag { position: absolute; z-index: var(--z-sticky); pointer-events: none; transform: translate(-50%, calc(-100% - 10px)); display: flex; gap: 4px; white-space: nowrap; font-size: var(--fs-xs); line-height: 1.3; }
+.fl-tag.below { transform: translate(-50%, 12px); }
+.fl-tag.al { transform: translate(-16px, calc(-100% - 10px)); } .fl-tag.al.below { transform: translate(-16px, 12px); }
+.fl-tag.ar { transform: translate(calc(-100% + 16px), calc(-100% - 10px)); } .fl-tag.ar.below { transform: translate(calc(-100% + 16px), 12px); }
+.fl-tag[hidden] { display: none; }
+.fl-tag b { padding: 1px 5px; border-radius: var(--r-sm); background: var(--shade-2); font-weight: 600; }
+.fl-tag b.no { color: var(--c-bad); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-bad) 55%, transparent); }
+.fl-tag b.ok { color: var(--c-good); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-good) 45%, transparent); }
 .proj2 { position: absolute; width: 18px; height: 3px; border-radius: 2px; transform: translate(-50%, -50%) rotate(var(--a)); background: linear-gradient(90deg, transparent, var(--c) 70%, var(--c-white)); box-shadow: 0 0 6px var(--c); pointer-events: none; }
 .proj2.focus { height: 4px; width: 24px; }
 .impact { position: absolute; width: 4.5%; aspect-ratio: 1; border-radius: 50%; border: 2px solid var(--c); box-shadow: 0 0 8px var(--c); pointer-events: none; }

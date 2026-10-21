@@ -25,7 +25,7 @@ import { FAITHS,
 } from '../types';
 import { allyRoom, companionCells, deployed, encGeo, engTier, foeCell, layout, PAD, runGeo, terrainCells, toPos, memberships, playerRows, prepOccupied, synergyCounts, turretCells, turretCount, ZONE, zoneAt } from './build';
 import { DEV, deviceCells, type Device, isPlaceable } from '../data/devices';
-import { MAPS, mapOf } from '../data/maps';
+import { MAPS, mapOf, type MapDef } from '../data/maps';
 import { causalGain, causalLeft, causalStage, KING_GEAR, KING_GEAR_NAME } from '../data/chungra';
 import { EMB } from '../data/emblems';
 import type { Battle } from './combat';
@@ -1048,19 +1048,32 @@ function gearEnemies(run: RunState, r: Rng, enemies: EnemySpawn[], type: NodeTyp
 }
 
 /** 전장 지형 틀 고르기 (data/maps.ts): 보스전 · 튜토리얼 · 캠페인은 개활지. 그 전장 전용 틀 CFG.maps.field 확률, 아니면 공용 틀 CFG.maps.common 확률.
- *  런 난수와 따로 굴린다 (시드 · 페이즈 · 칸 · 종류에서) — 기존 조우 난수 흐름을 바꾸지 않게 */
+ *  런 난수와 따로 굴린다 (시드 · 페이즈 · 칸 · 종류에서) — 기존 조우 난수 흐름을 바꾸지 않게.
+ *  직전 · 그 전 전투의 틀(run.mapHist)은 가중치를 낮춘다 (CFG.maps.repeat, 고를 틀이 그것뿐이면 그 묶음 확률째로). later 틀은 같은 전장 전용 틀이 한 번 나온 뒤부터 */
 function pickMap(run: RunState, type: NodeType, phase: number): string | undefined {
   if (type === 'boss' || run.tutorial || run.campaign) return undefined;
   const r = new Rng(((run.seed * 31 + phase * 1009 + run.step * 7919 + (type === 'adversity' ? 104729 : 0)) >>> 0) || 1);
-  const own = MAPS.filter((m) => m.field && m.field === run.field), common = MAPS.filter((m) => !m.field && m.id !== 'open');
-  if (own.length && r.chance(CFG.maps.field)) return r.pick(own).id;
-  if (r.chance(CFG.maps.common)) return r.pick(common).id;
+  const hist = run.mapHist || [], seen = run.mapSeen || [];
+  const w = (id: string) => (id === hist[hist.length - 1] ? CFG.maps.repeat[0] : id === hist[hist.length - 2] ? CFG.maps.repeat[1] : 1);
+  const fieldMaps = MAPS.filter((m) => m.field && m.field === run.field);
+  const own = fieldMaps.filter((m) => !m.later || seen.some((id) => id !== m.id && fieldMaps.some((f) => f.id === id)));
+  const common = MAPS.filter((m) => !m.field && m.id !== 'open');
+  const top = (ms: MapDef[]) => Math.max(0, ...ms.map((m) => w(m.id))); // 묶음 안에 최근이 아닌 틀이 있으면 1
+  if (own.length && r.chance(CFG.maps.field * top(own))) return r.weighted(own, (m) => w(m.id)).id;
+  if (r.chance(CFG.maps.common * top(common))) return r.weighted(common, (m) => w(m.id)).id;
   return undefined;
 }
 /** 통로(narrow) 지형의 배치 폭: 지형 틀의 폭과, 출전 한도 + 1명이 아군 진형(ZONE 줄)에 다 서는 폭 중 큰 쪽 */
 export const narrowWidth = (run: RunState, narrow: number, rows = ZONE) => Math.max(narrow, Math.ceil((deployCap(run) + 1) / rows)); // 아군 진형 줄 수 (긴 통로 4줄 → 폭 4 × 4줄 = 16칸, 출전 한도 15까지 그대로)
+/** 고른 지형 틀 기록 (보스 · 튜토리얼 · 캠페인 제외): 최근 2개 · 이 런에서 나온 틀 */
+function noteMap(run: RunState, type: NodeType, map: string | undefined) {
+  if (type === 'boss' || run.tutorial || run.campaign) return;
+  run.mapHist = [...(run.mapHist || []), map || 'open'].slice(-2);
+  if (map && !(run.mapSeen ||= []).includes(map)) run.mapSeen.push(map);
+}
 export function genEncounter(run: RunState, type: NodeType, phase = run.phase): Encounter {
   const map = pickMap(run, type, phase);
+  noteMap(run, type, map);
   return rng(run, (r) => {
     const env = r.weighted(CFG.boardSizes, (x) => x.w);
     const nw = mapOf(map).narrow, n = type === 'boss' ? CFG.bossBoard : nw ? narrowWidth(run, nw, mapOf(map).allyRows) : env.n;

@@ -16,7 +16,8 @@
     "chulsu-profile": "npx esbuild tests/chulsu/profile_gen.ts --bundle --platform=node --log-level=error --outfile=dist/chulsu_profile.cjs && node dist/chulsu_profile.cjs > tests/chulsu/profile.gen.ts",
     "css-baseline": "npx esbuild tests/css_check.ts --bundle --platform=node --log-level=error --outfile=dist/css_check.cjs && node dist/css_check.cjs --update",
     "chulsu-augprofile": "npx esbuild tests/chulsu/augprofile_gen.ts --bundle --platform=node --log-level=error --outfile=dist/chulsu_augprofile.cjs && node dist/chulsu_augprofile.cjs > tests/chulsu/augprofile.gen.ts",
-    "chulsu-synprofile": "npx esbuild tests/chulsu/synprofile_gen.ts --bundle --platform=node --log-level=error --outfile=dist/chulsu_synprofile.cjs && node dist/chulsu_synprofile.cjs > tests/chulsu/synprofile.gen.ts"
+    "chulsu-synprofile": "npx esbuild tests/chulsu/synprofile_gen.ts --bundle --platform=node --log-level=error --outfile=dist/chulsu_synprofile.cjs && node dist/chulsu_synprofile.cjs > tests/chulsu/synprofile.gen.ts",
+    "map-metrics": "npx esbuild tests/map_metrics.ts --bundle --platform=node --log-level=error --outfile=dist/map_metrics.cjs && node dist/map_metrics.cjs"
   },
   "devDependencies": {
     "esbuild": "0.25.10",
