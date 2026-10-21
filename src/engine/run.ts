@@ -606,22 +606,38 @@ export function placeDevice(run: RunState, id: string, tg: UseTarget): { dev?: D
   else if (tg.k === 'unit' || tg.k === 'eq') { const p = layout(run, n).get(tg.uid); if (!p) return { err: '출전한 기물에게만 쓸 수 있습니다' }; ({ x, y } = p); }
   else return { err: WRONG_TARGET };
   if (zoneAt(g, x, y) === 'edge') return { err: '전장 안쪽 칸에 놓으세요' };
-  const occ = prepOccupied(run, enc);
   const foeAt = enc.enemies.some((s) => { const c = foeCell(s, g); return c.x === x && c.y === y; });
-  const land = terrainCells(g); // 지형 칸 (물 · 온실 · 벽 · 수문)
   if (id === 'K_scope') return { dev: { id, x, y, mode: foeAt ? 'strike' : 'drop' }, err: null };
   if (id === 'K_net') { // 2×2 가 전장 안에 들어오게 (오른쪽 · 아래 끝이면 한 칸 당긴다)
     return { dev: { id, x: Math.max(PAD, Math.min(x, g.w - PAD - 2)), y: Math.max(PAD, Math.min(y, g.h - PAD - 2)) }, err: null };
   }
   const d: Device = { id, x, y, ...(id === 'K_barricade' ? { dir: tg.k === 'cell' && tg.dir ? tg.dir : 'h', n: tg.k === 'cell' && tg.n ? Math.max(1, Math.min(DEV.wall.maxN, tg.n)) : 1 } : {}) };
+  const err = deviceErr(run, d);
+  return err ? { err } : { dev: d, err: null };
+}
+/** 장치가 차지할 칸이 맞는지 (null = 가능). skip = 옮기는 · 늘리는 중인 그 장치 (자기 칸은 비어 있는 것으로) */
+export function deviceErr(run: RunState, d: Device, skip?: Device): string | null {
+  const enc = run.node?.enc;
+  if (!enc) return '전투를 앞둔 편성 화면에서 사용하세요';
+  const g = encGeo(enc), occ = prepOccupied(run, enc, skip), land = terrainCells(g);
+  if (d.id === 'K_barricade' && ((d.n || 1) < 1 || (d.n || 1) > DEV.wall.maxN)) return `바리케이드는 ${DEV.wall.maxN}칸까지 펼칠 수 있습니다`;
   for (const c of deviceCells(d)) {
     const z = zoneAt(g, c.x, c.y);
-    if (z === 'edge') return { err: '전장 밖으로 펼칠 수 없습니다' };
-    if (land.has(`${c.x},${c.y}`)) return { err: '지형 칸 (물 · 온실 · 벽 · 수문)에는 놓을 수 없습니다' };
-    if (z === 'foe' && id !== 'K_decoy') return { err: '적 진형에는 놓을 수 없습니다 (유인 신호기만 가능)' };
-    if (occ.has(`${c.x},${c.y}`)) return { err: '다른 기물 · 장치가 있는 칸입니다' };
+    if (z === 'edge') return '전장 밖으로 펼칠 수 없습니다';
+    if (land.has(`${c.x},${c.y}`)) return '지형 칸에는 놓을 수 없습니다';
+    if (z === 'foe' && d.id !== 'K_decoy') return '적 진형에는 놓을 수 없습니다';
+    if (occ.has(`${c.x},${c.y}`)) return '다른 기물 · 장치가 있는 칸입니다';
   }
-  return { dev: d, err: null };
+  return null;
+}
+/** 놓은 장치를 옮기거나 (바리케이드) 늘리기 · 줄이기: 새 모양이 맞으면 바꾼다. 오류 문구 또는 null */
+export function setDevice(run: RunState, idx: number, d: Device): string | null {
+  const ds = run.node?.enc?.devices, old = ds?.[idx];
+  if (!old || old.id !== d.id) return WRONG_TARGET;
+  const err = deviceErr(run, d, old);
+  if (err) return err;
+  ds![idx] = d;
+  return null;
 }
 /** 놓은 장치 회수 (전투 전): 소모품은 보관함으로 (가득 차도), 망원경은 사용 횟수 +1 */
 export function recallDevice(run: RunState, idx: number): string | null {

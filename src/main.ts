@@ -37,7 +37,7 @@ import { Rng } from './rng';
 import { type Category, type Encounter, type Geo, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from './types';
 import { encounterMatchup, fieldMatchup, matchupShort, schoolWarnings } from './ui/matchup';
 import { computeStats, makeSummons, type SummonMade } from './engine/build';
-import { DEV, deviceCells, deviceRows, isPlaceable, scopeR, wallHp } from './data/devices';
+import { DEV, type Device, deviceCells, deviceRows, isPlaceable, scopeR, wallHp } from './data/devices';
 import { mapOf, TERRAIN, terrainBlocks, type TerrainGroup, terrainGroups } from './data/maps';
 import { newCampaignRun } from './engine/campaignrun';
 import { campBoss } from './engine/campaign';
@@ -1325,6 +1325,7 @@ function tacPill(run: RunState) {
 function devicePop(run: RunState, id: string) {
   const tiers = SYN_BY_ID.NAV.tiers;
   if (id === 'K_decoy' || id === 'K_mine') return id === 'K_decoy' ? decoyPop() : minePop();
+  if (id === 'K_barricade') return wallPop(run);
   if (id !== 'K_scope') return `<dl class="dev-spec">${deviceRows(id, tiers).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
   const S = DEV.scope, sc = run.scope, r = scopeR(tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0));
   const steps: [string, boolean][] = [[`처음 +${S.base}`, true], ...tiers.slice(1).map((n, i) => [`${n}명 +${S.tierBonus[i + 1]}`, (sc?.nav || 0) >= i + 2] as [string, boolean]), [`페이즈마다 +${S.perPhase}`, true]];
@@ -1339,6 +1340,15 @@ function devicePop(run: RunState, id: string) {
 const zoneMini = (foe: boolean) => `<span class="zm" title="놓을 수 있는 곳"><i class="${foe ? 'on' : ''}">적</i><i class="on">사이</i><i class="on">아군</i></span>`;
 /** 효과 범위 격자 (가운데 = 장치) */
 const rangeGrid = (r: number) => { const n = 2 * r + 1; return `<span class="sc-grid" style="--n:${n}">${[...Array(n * n).keys()].map((i) => `<i${i === (n * n - 1) / 2 ? ' class="c"' : ''}></i>`).join('')}</span>`; };
+/** 바리케이드 팝업: 놓는 곳 · 모양별 칸당 내구도 (지금 페이즈) · 막는 것 칩 · 조작 */
+function wallPop(run: RunState) {
+  const ph = run.node?.enc?.phase ?? run.phase, M = DEV.wall.maxN;
+  const shapes = [...Array(M).keys()].map((k) => `<span class="dw-shape"><span class="dw-cells">${'<i></i>'.repeat(k + 1)}</span><b>${wallHp(ph, k + 1)}</b></span>`).join('');
+  return `<div class="sc-row">${zoneMini(false)}<span class="small">적 진형 밖 빈칸</span></div>
+    <div class="dw-shapes" title="칸당 내구도 (이번 페이즈)">${shapes}</div>
+    <div class="dv-flow"><span class="hot">이동 막음</span><span class="hot">기본 공격 막음 · 양쪽</span><span class="t">틈 없으면 기술도</span></div>
+    <div class="dv-flow"><span>길이 막히면</span><i>→</i><span class="hot">칸 단위로 부숨</span></div>`;
+}
 /** 유인 신호기 팝업: 놓는 곳 · 도발 배율 비교 막대 · 무적 → 체력 1 시간 띠 */
 function decoyPop() {
   const D = DEV.decoy, span = D.invuln * 2;
@@ -1373,7 +1383,16 @@ function deviceTokens(run: RunState, n: number, box: (x: number, y: number, w?: 
       return `<div class="dev-area dev-${kind}" style="${box(x0, y0, x1 - x0 + 1, y1 - y0 + 1)}"></div><button class="dev-mark dev-${kind}" style="${box(d.x, d.y)}" data-a="dev-sel" data-v="${i}" data-dev="${i}" title="${esc(`${label} — 누르면 회수`)}">${ic}</button>`;
     }
     const cells = deviceCells(d);
-    const hp = d.id === 'K_barricade' ? wallHp(phase, cells.length) : 0;
+    if (d.id === 'K_barricade') { // 몸통 (끌면 옮기기 · 누르면 회수) + 끝단 화살표 (끌면 그 방향으로 늘리기 · 줄이기)
+      const n1 = cells.length, v = d.dir === 'v' && n1 > 1, hpW = wallHp(phase, n1);
+      const sides = n1 === 1 ? ['t', 'r', 'b', 'l'] : v ? ['t', 'b'] : ['l', 'r'];
+      const canGrow = n1 < DEV.wall.maxN;
+      return `<div class="dev-wall2${v ? ' v' : ''}" style="${box(d.x, d.y, v ? 1 : n1, v ? n1 : 1)}" data-wallbox="${i}">
+        <button class="dw-body" data-wall="move:${i}" data-a="dev-sel" data-v="${i}" data-dev="${i}" title="${esc(`${c.name} · 칸당 내구도 ${hpW} — 끌어서 옮기기 · 누르면 회수`)}">${cells.map(() => `<span class="dw-cell">${ic}</span>`).join('')}<span class="dev-hp">${hpW}</span></button>
+        ${sides.map((sd) => `<span class="dw-arr dw-${sd}${canGrow ? '' : ' max'}" data-wall="ext:${i}:${sd}" title="끌어서 늘리기 · 줄이기 (최대 ${DEV.wall.maxN}칸)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7-6 7 6M12 3v18"/></svg></span>`).join('')}
+      </div>`;
+    }
+    const hp = 0;
     return cells.map((p) => `<button class="dev-tok dev-${d.id === 'K_barricade' ? 'wall' : d.id === 'K_decoy' ? 'decoy' : 'mine'}" style="${box(p.x, p.y)}" data-a="dev-sel" data-v="${i}" data-dev="${i}" title="${esc(`${c.name}${hp ? ` · 칸당 내구도 ${hp}` : d.id === 'K_decoy' ? ` · 체력 1 · 도발 ×${DEV.decoy.prov}` : ' · 은신'} — 누르면 회수`)}">${ic}${hp ? `<span class="dev-hp">${hp}</span>` : ''}</button>`).join('');
   }).join('');
 }
@@ -1467,7 +1486,7 @@ function prepScreen(run: RunState) {
     <section class="board-col">
       <div class="board-head"><b>${esc(env)}</b>${mapChip}<span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${tacPill(run)}<span class="muted small">${geo.foe2 ? "가운데" : "아래"} ${ZONE}줄에 배치</span>
         ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}</div>
-      <div class="board-row"><div class="board" style="--w:${bw};--h:${bh}"><div class="cells">${cells}</div>${units}${startOverlay(run, bw, bh, ex)}</div>${invRail(run)}</div>
+      <div class="board-row"><div class="board" style="--w:${bw};--h:${bh}" data-bw="${bw}" data-bh="${bh}" data-ex="${ex}"><div class="cells">${cells}</div>${units}${startOverlay(run, bw, bh, ex)}</div>${invRail(run)}</div>
       <div class="bench" data-drop="bench">
         <span class="bench-label">대기 <b>${bench.length}</b></span>
         ${bench.length ? bench.map((u) => {
@@ -1654,7 +1673,7 @@ function invDetail(run: RunState) {
   const stats = isPlaceable(sel) ? stats0 + devicePop(run, sel) : stats0; // 배치형: 성질 줄 (망원경은 모드 · 범위 · 횟수 도식)
   const eff = eff1 + (breadNote(run, selIdx) ? ` — 이 빵: ${breadNote(run, selIdx)}` : '');
   const ct = isConsumable(sel) ? CONSUMABLES[sel].target : null;
-  const hint = ct === 'place' ? `<span class="muted small">${run.node?.enc ? '끌어다 놓기 · 놓은 뒤 누르면 회수' : '전투 편성 화면에서 사용'}</span>`
+  const hint = ct === 'place' ? `<span class="muted small">${run.node?.enc ? (sel === 'K_barricade' ? '끌어다 놓기 · 몸통 끌기 = 옮기기 · 화살표 끌기 = 늘리기 · 누르면 회수' : '끌어다 놓기 · 놓은 뒤 누르면 회수') : '전투 편성 화면에서 사용'}</span>`
     : ct === 'run' ? `<button class="btn small primary" data-a="use-self" data-v="${selIdx}">사용</button>`
     : ct === 'foe' ? `<span class="muted small">${run.node?.enc ? '이번 전투의 적에게 끌어다 놓거나, 선택한 채로 적을 누르면 사용' : '전투를 앞둔 편성 화면에서 적에게 끌어다 놓아 사용'}</span>`
     : ct ? `<span class="muted small">${CONSUMABLES[sel].alsoItem ? '기물 · 장비' : ct === 'unit' ? '기물' : '장비'}에 끌어다 놓거나, 선택한 채로 ${CONSUMABLES[sel].alsoItem ? '기물 · 장비를' : ct === 'unit' ? '기물을' : '장비를'} 누르면 사용</span>`
@@ -3203,21 +3222,8 @@ function tryUse(run: RunState, i: number, tg: R.UseTarget) {
   const err = R.useCheck(run, i, tg);
   if (err) { toast(`${err}.`); app.sel = null; app.useK = null; return; }
   if (run.inventory[i] === 'K_reroll') rerollAsk(run, i, tg);
-  else if (run.inventory[i] === 'K_barricade' && tg.k === 'cell') wallAsk(run, i, tg.x, tg.y);
   else if (isPlaceable(run.inventory[i])) { const r = R.useConsumable(run, i, tg); toast(r.msg); app.sel = null; if (r.ok) persist(); } // 배치형: 바로 놓는다 (놓은 장치를 누르면 회수)
   else app.useK = { i, tg };
-}
-/** 접이식 바리케이드: 펼칠 모양 고르기 (놓을 수 없는 모양은 흐리게). 칸당 내구도 = 1칸 내구도 ÷ 칸 수 */
-function wallAsk(run: RunState, i: number, x: number, y: number) {
-  const ph = run.node?.enc?.phase ?? run.phase;
-  const shapes: [('h' | 'v'), number, string][] = [['h', 1, '1칸'], ['h', 2, '가로 2칸 →'], ['h', 3, '가로 3칸 →'], ['v', 2, '세로 2칸 ↓'], ['v', 3, '세로 3칸 ↓']];
-  const opts = shapes.map(([dir, n, label]) => {
-    const err = R.useCheck(run, i, { k: 'cell', x, y, dir, n });
-    return `<button class="btn small wall-opt" data-a="wall-shape" data-v="${i}:${x}:${y}:${dir}:${n}" ${err ? `disabled title="${esc(err)}"` : ''}><b>${label}</b><span class="muted small">칸당 ${wallHp(ph, n)}</span></button>`;
-  }).join('');
-  app.sel = null;
-  app.ask = { anchor: [`.board [data-drop="cell:${x}:${y}"]`, `.board [data-drop="xcell:${x}:${y}"]`, '.board'], at: 'beside',
-    html: `<b class="ask-t">${itemIcon('K_barricade')} ${esc(CONSUMABLES.K_barricade.name)} — 펼칠 모양</b><div class="wall-opts">${opts}</div>` };
 }
 /** 재구성 회로 확인 팝업: 기물이면 기물 위, 장착 장비면 그 칸 옆, 보관함 장비면 보관함 왼쪽. 결과는 V 를 누른 뒤에 공개 (미리 보고 고를 수 없음) */
 function rerollAsk(run: RunState, i: number, tg: R.UseTarget) {
@@ -4760,7 +4766,6 @@ function act(a: string, v: string) {
       if (app.sel?.k === 'item' && run && isConsumable(run.inventory[app.sel.idx])) { toast(isPlaceable(run.inventory[app.sel.idx]) ? '지형 칸에는 놓을 수 없습니다.' : `${R.WRONG_TARGET}.`); app.sel = null; break; }
       app.abilPop = null; app.sel = app.sel?.k === 'terrain' && app.sel.g === +v ? null : { k: 'terrain', g: +v }; break;
     case 'dev-cell': if (run && app.sel?.k === 'item') { const [x, y] = v.split(':').map(Number); tryUse(run, app.sel.idx, { k: 'cell', x, y }); } break;
-    case 'wall-shape': if (run) { const [i, x, y, dir, n] = v.split(':'); app.ask = null; const r = R.useConsumable(run, +i, { k: 'cell', x: +x, y: +y, dir: dir as 'h' | 'v', n: +n }); toast(r.msg); if (r.ok) persist(); } break;
     case 'dev-sel': if (run?.node?.enc?.devices?.[+v]) {
       if (app.sel?.k === 'item' && isConsumable(run.inventory[app.sel.idx])) { toast('다른 장치가 있는 칸입니다.'); app.sel = null; break; }
       const d = run.node.enc.devices[+v], nm = d.id === 'K_scope' ? (d.mode === 'strike' ? '지정 포격' : '항공 보급') : CONSUMABLES[d.id].name;
@@ -4977,6 +4982,62 @@ function dragAutoScroll() {
   if (scrollY !== y0) dragScrollRaf = requestAnimationFrame(dragAutoScroll);
 }
 
+// ───────── 바리케이드 직접 조작 (편성 화면): 몸통을 끌면 옮기기, 끝단 화살표를 끌면 그 방향으로 늘리기 · 줄이기 (최대 DEV.wall.maxN칸).
+// 끄는 동안 모양을 바로 보여 주고 (놓을 수 없으면 붉게), 놓으면 확정. 움직이지 않고 떼면 보통 누름 (회수 확인)
+let wallDrag: null | { i: number; side: '' | 't' | 'r' | 'b' | 'l'; d0: Device; kx: number; ky: number; x: number; y: number; box: HTMLElement; board: HTMLElement; moved: boolean; cand: Device | null; err: string | null } = null;
+const wallCellAt = (board: HTMLElement, cx: number, cy: number) => {
+  const r = board.getBoundingClientRect(), bw = +board.dataset.bw!, bh = +board.dataset.bh!, ex = +board.dataset.ex!;
+  return { x: Math.floor(((cx - r.left) / r.width) * bw) + PAD - ex, y: Math.floor(((cy - r.top) / r.height) * bh) + PAD };
+};
+/** 끄는 위치 → 새 바리케이드 모양: 옮기기는 잡은 칸 기준, 늘리기는 반대쪽 끝을 고정하고 끄는 쪽 끝이 그 칸까지 (축은 화살표 방향) */
+function wallShape(w: NonNullable<typeof wallDrag>, cx: number, cy: number): Device {
+  const d = w.d0, n = d.n || 1, M = DEV.wall.maxN;
+  if (!w.side) return { ...d, x: cx - w.kx, y: cy - w.ky };
+  const horiz = w.side === 'l' || w.side === 'r';
+  const a0 = horiz ? d.x : d.y, a1 = a0 + n - 1; // 화살표는 바리케이드 축 방향에만 있다 (1칸이면 네 방향)
+  const p = horiz ? cx : cy;
+  let lo = a0, hi = a1;
+  if (w.side === 'r' || w.side === 'b') hi = Math.max(lo, Math.min(lo + M - 1, p)); else lo = Math.min(hi, Math.max(hi - M + 1, p));
+  return { ...d, x: horiz ? lo : d.x, y: horiz ? d.y : lo, dir: horiz ? 'h' : 'v', n: hi - lo + 1 };
+}
+root.addEventListener('pointerdown', (ev) => {
+  const h = (ev.target as HTMLElement).closest('[data-wall]') as HTMLElement | null, run = app.run;
+  if (!h || ev.button > 0 || !run?.node?.enc?.devices) return;
+  const [kind, i, side] = h.dataset.wall!.split(':'), d0 = run.node.enc.devices[+i];
+  const board = h.closest('.board') as HTMLElement | null, box = h.closest('[data-wallbox]') as HTMLElement | null;
+  if (!d0 || !board || !box) return;
+  const c = wallCellAt(board, ev.clientX, ev.clientY);
+  wallDrag = { i: +i, side: kind === 'ext' ? (side as 't' | 'r' | 'b' | 'l') : '', d0, kx: c.x - d0.x, ky: c.y - d0.y, x: ev.clientX, y: ev.clientY, box, board, moved: false, cand: null, err: null };
+  h.setPointerCapture?.(ev.pointerId);
+  ev.stopPropagation();
+}, true);
+window.addEventListener('pointermove', (ev) => {
+  const w = wallDrag, run = app.run;
+  if (!w || !run) return;
+  if (!w.moved && Math.hypot(ev.clientX - w.x, ev.clientY - w.y) < 6) return;
+  w.moved = true;
+  w.box.classList.add('dragging');
+  const c = wallCellAt(w.board, ev.clientX, ev.clientY), cand = wallShape(w, c.x, c.y);
+  if (w.cand && cand.x === w.cand.x && cand.y === w.cand.y && cand.n === w.cand.n && cand.dir === w.cand.dir) return;
+  w.cand = cand; w.err = R.deviceErr(run, cand, w.d0);
+  const bw = +w.board.dataset.bw!, bh = +w.board.dataset.bh!, ex = +w.board.dataset.ex!, n = cand.n || 1, v = cand.dir === 'v';
+  Object.assign(w.box.style, { left: `${((cand.x - PAD + ex) / bw) * 100}%`, top: `${((cand.y - PAD) / bh) * 100}%`, width: `${(100 * (v ? 1 : n)) / bw}%`, height: `${(100 * (v ? n : 1)) / bh}%` });
+  w.box.classList.toggle('v', v && n > 1);
+  w.box.classList.toggle('bad', !!w.err);
+  const body = w.box.querySelector('.dw-body');
+  if (body) { const cell = body.querySelector('.dw-cell'); body.querySelectorAll('.dw-cell').forEach((x, k) => { if (k) x.remove(); }); for (let k = 1; k < n && cell; k++) body.insertBefore(cell.cloneNode(true), cell.nextSibling); }
+  ev.preventDefault();
+}, { passive: false });
+window.addEventListener('pointerup', () => {
+  const w = wallDrag, run = app.run;
+  wallDrag = null;
+  if (!w || !w.moved || !run) return;
+  suppressClick = true;
+  setTimeout(() => (suppressClick = false), 50);
+  if (w.cand && !w.err) { R.setDevice(run, w.i, w.cand); persist(); }
+  else if (w.err) toast(`${w.err}.`);
+  render();
+});
 root.addEventListener('pointerdown', (ev) => {
   const el = (ev.target as HTMLElement).closest('[data-drag]') as HTMLElement | null;
   if (!el || ev.button > 0) return;
