@@ -663,6 +663,17 @@ export class Battle {
     for (const c of this.lineCells(a, b)) { const w = this.wallAt(c.x, c.y); if (w) return w; }
     return null;
   }
+  /** 사선 조회 (전투 화면 표시 · 측정용, 상태를 바꾸지 않는다): a → b 직선을 처음 막는 것.
+   *  'terrain' = 탄도 차단 지형 (쏘지 못하고 자리를 옮긴다) · 'wall' = 중립 구조물 (기본 공격이 대신 맞는다) · at = 그 칸. sealed = 완전히 갈라짐 (기술 · 상태이상도 막힘) */
+  fireLine(a: { x: number; y: number }, b: { x: number; y: number }): { block: 'clear' | 'terrain' | 'wall'; at?: { x: number; y: number }; sealed: boolean } {
+    const sealed = this.sealed(a, b);
+    if (!this.terrain && !this.mem.walls) return { block: 'clear', sealed };
+    const cells = this.lineCells(a, b);
+    const t = this.terrain ? cells.find((c) => this.terrainAt(c.x, c.y) & T_NOSHOT) : undefined;
+    if (t) return { block: 'terrain', at: t, sealed };
+    const w = this.lineWall(a, b);
+    return w ? { block: 'wall', at: { x: w.x, y: w.y }, sealed } : { block: 'clear', sealed };
+  }
   /** 두 칸이 탄도 차단 지형 · 구조물로 완전히 갈라져 있는지 (틈이 하나라도 있으면 false) — 전투 기술 · 상태이상도 넘지 못한다 */
   sealed(a: { x: number; y: number }, b: { x: number; y: number }) {
     if (!this.mem.walls && !this.terrain) return false;

@@ -30,6 +30,8 @@ export interface MapDef {
   terrain?: (g: Geo) => { x: number; y: number; k: TerrainKind }[];
   /** 수문: 닫힘 · 열림 주기 (초, 닫힌 채 시작) */
   gateCycle?: [number, number];
+  /** 복합 지형: 이 런에서 같은 전장 전용 틀이 한 번 나온 뒤부터 나온다 (첫 노출은 단순한 틀로) */
+  later?: boolean;
 }
 
 /** 사이 줄(mid) 칸을 패턴으로: 문자열 한 줄 = mid 한 줄, 한 글자 = 배치 열 하나 (폭이 다르면 가운데 기준으로 늘이거나 자른다).
@@ -63,7 +65,7 @@ export const MAPS: MapDef[] = [
   { id: 'lv_lake', field: 'livin', name: '호수변 관측소', gap: 3,
     desc: '호수를 사이에 두고 양쪽 뭍길로만 건넌다. 물 너머로는 쏠 수 있다.',
     terrain: pattern(['..~~~..', '.~~~~~.', '..~~~..']) },
-  { id: 'lv_farm', field: 'livin', name: '격리 재배 구획', gap: 3,
+  { id: 'lv_farm', field: 'livin', name: '격리 재배 구획', gap: 3, later: true,
     desc: '온실과 배양 탱크가 길을 나눈다. 입구가 좁다.',
     terrain: pattern(['gg.T.gg', '...T...', 'T..g..T']) },
 ];

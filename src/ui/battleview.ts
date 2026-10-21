@@ -728,23 +728,58 @@ export class BattleView {
     this.drawFocus();
   }
 
-  /** 선택 기물: 현재 대상 연결선 + 이동 목적지 */
+  /** 선택 기물: 현재 대상 사선 + 이동 목적지.
+   *  사선: 트인 선 · 바리케이드에서 끊긴 선 (× 표식, 기본 공격이 바리케이드에 맞는다) · 지형에 막힌 붉은 점선 (× 표식, 쏘지 못한다).
+   *  막혔으면 표식 옆 꼬리표: 사격 막힘 + 기술이 지나가는지 (틈 없이 갈라졌으면 기술도 막힘) */
   private focusSig = '';
+  private tagSig = '';
+  private flTag: HTMLElement | null = null;
   private drawFocus() {
     const u = this.selId !== null ? this.els.get(this.selId)?.u : undefined;
-    if (!u || !u.alive) { if (this.focusSig) { this.svg.innerHTML = ''; this.focusSig = ''; } return; }
+    if (!u || !u.alive) { if (this.focusSig) { this.svg.innerHTML = ''; this.focusSig = ''; } this.setTag(null); return; }
     const c = this.centerAt(u);
-    let s = '';
+    let s = '', tag: { x: number; y: number; below?: boolean; html: string } | null = null;
     const t = u.target;
     if (t && t.alive) {
-      const d = this.centerAt(t);
-      s += `<line class="fl-tgt side${u.side}" x1="${c.x}" y1="${c.y}" x2="${d.x}" y2="${d.y}" /><circle class="fl-ring side${u.side}" cx="${d.x}" cy="${d.y}" r="${50 / this.b.w}" />`;
+      const d = this.centerAt(t), side = `side${u.side}`;
+      const ring = `<circle class="fl-ring ${side}" cx="${d.x}" cy="${d.y}" r="${50 / this.b.w}" />`;
+      const fl = u.mem.wall || u.mem.decoy ? null : this.b.fireLine(u, t);
+      const inRange = this.b.dist(u, t) <= this.b.S(u, 'range');
+      const blk = fl && inRange && fl.block !== 'clear' && fl.at ? fl : null;
+      if (blk) {
+        const m = { x: ((blk.at!.x + 0.5) / this.b.w) * 100, y: ((blk.at!.y + 0.5) / this.b.h) * 100 };
+        const kx = 22 / this.b.w, ky = 22 / this.b.h;
+        const cross = `<path class="fl-x" d="M${m.x - kx} ${m.y - ky}L${m.x + kx} ${m.y + ky}M${m.x + kx} ${m.y - ky}L${m.x - kx} ${m.y + ky}" />`;
+        s += blk.block === 'wall'
+          ? `<line class="fl-tgt ${side}" x1="${c.x}" y1="${c.y}" x2="${m.x}" y2="${m.y}" /><line class="fl-rest" x1="${m.x}" y1="${m.y}" x2="${d.x}" y2="${d.y}" />${ring}${cross}`
+          : `<line class="fl-tgt fl-no" x1="${c.x}" y1="${c.y}" x2="${d.x}" y2="${d.y}" />${ring}${cross}`;
+        tag = { ...m, below: c.y > m.y, html: `<b class="no">${blk.block === 'wall' ? (blk.sealed ? '사격 막힘' : '사격만 막힘') : '사선 막힘'}</b><b class="${blk.sealed ? 'no' : 'ok'}">${blk.sealed ? '기술도 막힘' : '기술 통과'}</b>` };
+      } else {
+        s += `<line class="fl-tgt ${side}" x1="${c.x}" y1="${c.y}" x2="${d.x}" y2="${d.y}" />${ring}`;
+        if (fl?.sealed) tag = { x: (c.x + d.x) / 2, y: (c.y + d.y) / 2, html: `<b class="no">기술도 막힘</b>` }; // 사거리 밖이어도 완전히 갈라진 대상은 알린다
+      }
     }
     if (u.moveT > 0) {
       const g = this.center(u);
       s += `<rect class="fl-dest" x="${g.x - 40 / this.b.w}" y="${g.y - 40 / this.b.h}" width="${80 / this.b.w}" height="${80 / this.b.h}" />`;
     }
     if (s !== this.focusSig) { this.svg.innerHTML = s; this.focusSig = s; }
+    this.setTag(tag);
+  }
+  /** 사선 꼬리표 (막힌 칸 옆, 쏘는 쪽) */
+  private setTag(tag: { x: number; y: number; below?: boolean; html: string } | null) {
+    const sig = tag ? `${tag.x.toFixed(1)},${tag.y.toFixed(1)}|${tag.below ? 1 : 0}|${tag.html}` : '';
+    if (sig === this.tagSig) return;
+    this.tagSig = sig;
+    if (!tag) { if (this.flTag) this.flTag.hidden = true; return; }
+    if (!this.flTag) { this.flTag = document.createElement('div'); this.flTag.className = 'fl-tag'; this.board.appendChild(this.flTag); }
+    this.flTag.hidden = false;
+    this.flTag.innerHTML = tag.html;
+    this.flTag.style.left = `${tag.x}%`;
+    this.flTag.style.top = `${tag.y}%`;
+    this.flTag.classList.toggle('below', !!tag.below); // 쏘는 쪽에 (막힌 칸 위로 떠오르는 피해 숫자와 겹치지 않게)
+    this.flTag.classList.toggle('al', tag.x < 30); // 양 끝 열: 전장 밖으로 넘치지 않게 안쪽으로
+    this.flTag.classList.toggle('ar', tag.x > 70);
   }
 
   /** 칸 중앙 (이동 목적지 기준) */

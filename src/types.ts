@@ -157,6 +157,10 @@ export interface RunState {
   version: number;
   /** 함대 확장 횟수 (출전 인원 = 기본 + fleet). 없으면 구 세이브: 페이즈 기준으로 환산 */
   fleet?: number;
+  /** 최근 전투 지형 틀 (data/maps.ts id, 개활지 'open' 포함, 최근 2개 · 보스 제외): run.ts pickMap 이 연달아 같은 틀을 덜 고르게 */
+  mapHist?: string[];
+  /** 이 런에서 나온 지형 틀 (개활지 제외): 복합 지형(MapDef.later)은 같은 전장 전용 틀이 한 번 나온 뒤부터 */
+  mapSeen?: string[];
   /** 지정 소집 횟수 (가격 상승) */
   musters?: number;
   /** 엔지니어 감시 포탑 배치 (편성 화면에서 끌어 옮긴 자리, 순서대로). c = -1 / 99 는 양옆 가장자리 열 */

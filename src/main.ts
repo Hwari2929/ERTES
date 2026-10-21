@@ -1340,13 +1340,14 @@ function devicePop(run: RunState, id: string) {
 const zoneMini = (foe: boolean) => `<span class="zm" title="놓을 수 있는 곳"><i class="${foe ? 'on' : ''}">적</i><i class="on">사이</i><i class="on">아군</i></span>`;
 /** 효과 범위 격자 (가운데 = 장치) */
 const rangeGrid = (r: number) => { const n = 2 * r + 1; return `<span class="sc-grid" style="--n:${n}">${[...Array(n * n).keys()].map((i) => `<i${i === (n * n - 1) / 2 ? ' class="c"' : ''}></i>`).join('')}</span>`; };
-/** 바리케이드 팝업: 놓는 곳 · 모양별 칸당 내구도 (지금 페이즈) · 막는 것 칩 · 조작 */
+/** 바리케이드 팝업: 놓는 곳 · 모양별 칸당 내구도 (지금 페이즈) · 막는 것 (직선 사격 / 기술 따로) */
 function wallPop(run: RunState) {
   const ph = run.node?.enc?.phase ?? run.phase, M = DEV.wall.maxN;
   const shapes = [...Array(M).keys()].map((k) => `<span class="dw-shape"><span class="dw-cells">${'<i></i>'.repeat(k + 1)}</span><b>${wallHp(ph, k + 1)}</b></span>`).join('');
   return `<div class="sc-row">${zoneMini(false)}<span class="small">적 진형 밖 빈칸</span></div>
     <div class="dw-shapes" title="칸당 내구도 (이번 페이즈)">${shapes}</div>
-    <div class="dv-flow"><span class="hot">이동 막음</span><span class="hot">기본 공격 막음 · 양쪽</span><span class="t">틈 없으면 기술도</span></div>
+    <div class="dv-flow"><span class="hot">이동 막음</span><span class="hot">직선 사격 막음 · 양쪽</span></div>
+    <div class="dv-flow"><span>기술</span><i>→</i><span class="t">틈 없이 갈라질 때만 막음</span></div>
     <div class="dv-flow"><span>길이 막히면</span><i>→</i><span class="hot">칸 단위로 부숨</span></div>`;
 }
 /** 유인 신호기 팝업: 놓는 곳 · 도발 배율 비교 막대 · 무적 → 체력 1 시간 띠 */
@@ -2427,14 +2428,14 @@ function terrainDetail(g: Geo, grp: TerrainGroup, back: string, gateOpen = false
   const bl = gate && gateOpen ? { walk: false, shot: false } : terrainBlocks(grp.k);
   const chip = (cls: string, icon: string, label: string, tip: string) => `<span class="tchip ${cls}" data-kw="foe" data-tt="${esc(label)}" data-td="${esc(tip)}" tabindex="0" role="button">${lineIcon(icon, 'li')}${label}</span>`;
   const chips = (bl.walk ? chip('bad', 'u.area', '통행 불가', '들어가거나 지나갈 수 없다') : chip('', 'u.area', '통행 가능', '지금은 길이다'))
-    + (bl.shot ? chip('bad', 'a.range', '탄도 차단', '사이에 있으면 쏘지 못하고 자리를 옮긴다') : chip('', 'a.range', '탄도 통과', '너머로 쏠 수 있다'));
+    + (bl.shot ? chip('bad', 'a.range', '사격 차단', '직선 사격이 막힌다 · 기술은 틈 없이 갈라질 때만 막힌다') : chip('', 'a.range', '사격 통과', '너머로 쏠 수 있다'));
   const rows: [string, string][] = [
     ['지형 틀', m.name],
     ['크기', `${grp.cells.length}칸`],
     ...(gate ? [['상태', gateOpen ? '열림' : '닫힘'] as [string, string], ['주기', `닫힘 ${m.gateCycle?.[0] ?? 0}초 → 열림 ${m.gateCycle?.[1] ?? 0}초`] as [string, string]] : []),
     ['이동', bl.walk ? '막음' : '통과'],
-    ['기본 공격', bl.shot ? '막음' : '통과'],
-    ['기술 · 상태이상', bl.shot ? '틈 없이 갈라지면 막음' : '통과'],
+    ['직선 사격', bl.shot ? '막음' : '통과'],
+    ['기술 · 상태이상', bl.shot ? '틈 없이 갈라질 때만 막음' : '통과'],
     ['배치', '불가'],
   ];
   return `<div class="detail dp-terrain">${dBar(back)}
