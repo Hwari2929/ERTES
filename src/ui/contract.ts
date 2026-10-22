@@ -68,6 +68,8 @@ export const hooks = {
   foe: () => '',
   toast: (_msg: string) => {},
   roster: (_s: Signed) => {},
+  /** 전표가 화면 위 끝을 넘었을 때 (업적) */
+  receipt: (_riders: number) => {},
   leave: (_to: string) => {},
 };
 /** 서명한 계약: 명부 · 출격에 넘긴다 */
@@ -107,7 +109,12 @@ const offMenu = () => FIELDS.filter((f) => !CT.jobs.some((j) => j.field === f.id
 /** 그 전장 주문: 오늘 의뢰서에 있으면 그것(제철), 없으면 메뉴에 없는 의뢰 */
 const orderOf = (fid: string): Job => CT.jobs.find((j) => j.field === fid) || { field: fid, kind: 'custom', bonus: 0 };
 /** 차림표를 연다: 오늘의 의뢰서 3장 (모두 제철). list = 메뉴에 없는 의뢰 목록을 펼친 채로 */
-export function contractStart(from: string, list = false) {
+/** 바 화면을 뜬 것 (시선 전환용, 클릭 · 낭독 없이 그림으로만): <main> 을 <div> 로 바꿔 화면 판정에 걸리지 않게 */
+let barSnap = '';
+const snapOf = (html: string) => html.replace(/^<main\b/, '<div').replace(/<\/main>\s*$/, '</div>').replace(/\saria-live="[^"]*"/g, '');
+const barviewHtml = () => `<div class="ct-barview" aria-hidden="true" inert>${barSnap || `<div class="ct-barbg" style="background-image:url('${bgURL('erantes_bar')}')"></div>`}</div>`;
+export function contractStart(from: string, list = false, snap = '') {
+  barSnap = snap ? snapOf(snap) : '';
   clear();
   const n = deedCount();
   Object.assign(CT, { step: 'board', from, sel: null, list, vet: n > 0, lit: false, focus: '', last: '', stamp: '', intro: true, fromSeal: false, say: '오늘 들어온 의뢰서입니다. 제철이라 조금 더 쳐 드리죠.' });
@@ -165,7 +172,7 @@ function rows(): Row[] {
   const on = ridersOn() ? oathsOn(oathSel()) : [];
   if (on.length) {
     out.push({ l: '', k: 'div' }, { l: `특약 ${on.length}건`, r: `절망 ${heatNow()}`, k: 'b', g: 'rider' });
-    for (const x of on) out.push({ l: `${x.def.name} ${x.n}단계`, r: `+${oathHeatOf(x.def.id, x.n)}`, k: 'st', g: `rider:${x.def.id}` });
+    for (const x of on) out.push({ l: `${x.def.name} ${x.n}단계`, r: `+${oathHeatOf(x.def.id, x.n)}`, k: 'st', g: `rider:${x.def.id}` }, { l: x.def.lv(x.n), k: 's', g: `rider:${x.def.id}` });
   }
   if (j && p) {
     out.push({ l: '', k: 'div' }, { l: '보수', r: priceOf(j), k: 'tot' }, { l: '표기 위험', r: effDiffLabel(p.lvl, heatNow()), k: 'b' }, { l: '결제', r: CT.stamp === 'ok' ? '승인' : CT.stamp === 'void' ? '취소' : '벨을 누르면 승인', k: 'm' });
@@ -293,7 +300,7 @@ function boardHtml() {
   const leave = CT.from === 'bar' ? '바로 돌아가기' : '타이틀로';
   const n = rows().filter((r) => r.k !== 'div').length;
   return `<main class="ct ct-top${CT.intro && !reduced() ? ' intro' : ''}${CT.stamp ? ` st-${CT.stamp}` : ''}" style="--rot-bp:${CT.rot.bp}deg;--rot-mn:${CT.rot.mn}deg" aria-label="출격 계약 — 바 테이블 위 의뢰 차림표">
-    ${CT.intro ? `<div class="ct-barview" style="background-image:url('${bgURL('erantes_bar')}')" aria-hidden="true"></div>` : ''}
+    ${CT.intro ? barviewHtml() : ''}
     <div class="ct-table" aria-hidden="true">${prop('ct_table', '')}</div><div class="lp-grain" aria-hidden="true"></div>
     <button class="ct-leave lp-btn" data-a="ct-leave">${leave} ›</button>
     <p class="ct-voice${CT.say ? ' on' : ''}" aria-live="polite"><b>에이든</b><span>${esc(CT.say)}</span></p>
@@ -450,10 +457,11 @@ export function contractAct(a: string, v: string): boolean {
       clear();
       const ct = document.querySelector<HTMLElement>('main.ct');
       if (!ct || reduced() || CT.from !== 'bar') { hooks.leave(CT.from); return false; }
-      if (!ct.querySelector('.ct-barview')) { const bv = document.createElement('div'); bv.className = 'ct-barview'; bv.setAttribute('aria-hidden', 'true'); bv.style.backgroundImage = `url('${bgURL('erantes_bar')}')`; ct.prepend(bv); }
+      ct.querySelector('.ct-barview')?.remove();
+      ct.insertAdjacentHTML('afterbegin', barviewHtml());
       ct.classList.remove('intro'); ct.classList.add('outro');
       sfx('paper'); sfx('paper', { delay: 0.12, pitch: 0.9 });
-      later(1300, () => hooks.leave(CT.from));
+      later(1900, () => hooks.leave(CT.from)); // 종이 빠짐 0.45 → 테이블 · 바 1.0 → 세로 띠 튕겨 들어옴 0.5
       return false;
     }
   }
@@ -478,7 +486,7 @@ export function contractMount(root: HTMLElement) {
   const ct = root.querySelector<HTMLElement>('main.ct');
   if (!ct) return;
   if (CT.step === 'board') {
-    if (CT.intro) { CT.intro = false; if (!reduced()) { sfx('paper', { delay: 0.8 }); sfx('paper', { delay: 1.05, pitch: 0.9 }); } window.setTimeout(() => ct.querySelector('.ct-barview')?.remove(), 1400); }
+    if (CT.intro) { CT.intro = false; if (!reduced()) { sfx('paper', { delay: 0.8 }); sfx('paper', { delay: 1.05, pitch: 0.9 }); } window.setTimeout(() => ct.querySelector('.ct-barview')?.remove(), 1700); }
     const menu = ct.querySelector<HTMLElement>('.ct-menu');
     const point = (e: Event) => {
       const f = (e.target as HTMLElement).closest<HTMLElement>('[data-f]')?.dataset.f;
@@ -487,6 +495,8 @@ export function contractMount(root: HTMLElement) {
     menu?.addEventListener('mouseover', point);
     menu?.addEventListener('focusin', point);
     if (CT.last) later(1200, () => { CT.last = ''; });
+    // 전표가 화면 위 끝을 넘었는지 (줄이 밀려 올라온 뒤에 잰다)
+    later(700, () => { const sl = ct.querySelector<HTMLElement>('.ct-slip'); if (sl && sl.getBoundingClientRect().top < 0 && getComputedStyle(ct.querySelector('.ct-slipwrap')!).overflow !== 'hidden') hooks.receipt(ridersOn() ? oathsOn(oathSel()).length : 0); });
     if (CT.say) { const said = CT.say; later(CT.stamp ? 6000 : 4200, () => { if (CT.say === said) { CT.say = ''; ct.querySelector('.ct-voice')?.classList.remove('on'); } }); }
     return;
   }

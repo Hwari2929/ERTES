@@ -30,7 +30,9 @@ export type AchFact =
   /** 소모품 사용 성공. foe = 적에게 쓴 경우 그 적의 등급, got = 얻은 장비의 등급 */
   | { k: 'use'; item: string; foe?: 'minion' | 'elite' | 'boss'; got?: string }
   /** 메타 기록 (런 사이에 남는 기록): 성공 수 · 전장별 최고 실효 위험 등급 (절망 서약 반영, ui/meta.ts metaClear) · 겪은 사건 종류 · 바에서 본 만담 수 */
-  | { k: 'meta'; clears: number; fieldsCleared: string[]; bestDiff: number; events: number; barSeen: number };
+  | { k: 'meta'; clears: number; fieldsCleared: string[]; bestDiff: number; events: number; barSeen: number }
+  /** 출격 계약 전표가 화면 위 끝을 넘었다 (riders = 그때 붙은 특약 수) */
+  | { k: 'receipt'; riders: number };
 
 export interface AchDef {
   id: string;
@@ -151,6 +153,10 @@ export const ACHIEVEMENTS: AchDef[] = [
   { id: 'seize_boss', name: '강제 징수 집행', grade: 'gold', motif: 'li:k.seize',
     desc: () => `${jo(itemInfo('K_seize').name, '으로', '로')} 보스의 전설 장비를 떼어 낸다.`,
     test: (f) => f.k === 'use' && f.item === 'K_seize' && f.foe === 'boss' && !!f.got && itemInfo(f.got).tier === 'L' },
+  { id: 'receipt_long', name: '끝나지 않는 영수증', grade: 'bronze', motif: 'li:k.note', hidden: true,
+    hint: '에이든의 전표 출력기는 종이가 떨어진 적이 없다고 한다.',
+    desc: () => '출격 계약에서 특약을 잔뜩 붙여 전표가 화면 위로 넘어가게 한다.',
+    test: (f) => f.k === 'receipt' },
   { id: 'events_50', name: '항해일지 수집가', grade: 'gold', motif: 'li:n.event',
     desc: () => `서로 다른 사건 ${EVENT_GOAL}종을 겪는다.`,
     test: (f) => f.k === 'meta' && f.events >= EVENT_GOAL },

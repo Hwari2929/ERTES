@@ -143,6 +143,7 @@ for (const f of [
   ev('vault'), ev('faceless'), ev('sc_zeus', 0, 'jackpot'), ev('sa_amundsen_bar', 1, 'legend'), ev('sd_dice', 0, 'big'), ev('sd_ferry', 0, 'win'), ev('sa_mingki_throne'), ev('sc_argo_home'),
   clr({ skips: 0, losses: 0, hp: 1, units: ['petrock'] }),
   { k: 'use', item: 'K_seize', foe: 'boss', got: legend },
+  { k: 'receipt', riders: 16 },
 ] as AchFact[]) judge(f).forEach((id) => covered.add(id));
 for (const a of ACHIEVEMENTS) if (!covered.has(a.id)) errs.push(`업적 ${a.id}: 검사 사실 중 어느 것으로도 달성되지 않음 (판정이 늘 거짓?)`);
 

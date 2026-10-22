@@ -52,6 +52,8 @@ function sweep() {
 export const achBattle = (run: RunState, b: Battle) => unlock(battleFact(run, b));
 /** 사건 선택지를 확정한 뒤 */
 export const achEvent = (run: RunState, id: string, choice: number) => unlock(eventFact(run, id, choice, lastOutcome));
+/** 출격 계약 전표가 화면 위 끝을 넘었을 때 */
+export const achReceipt = (riders: number) => unlock({ k: 'receipt', riders });
 /** 의뢰 성공 (귀환 · 무한 모드 선택, metaClear 뒤) */
 export const achClear = (run: RunState) => unlock(clearFact(run));
 /** 튜토리얼이 끝났을 때 (종장까지 · 건너뜀) */

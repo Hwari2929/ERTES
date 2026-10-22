@@ -210,7 +210,7 @@ const jackpotTxt = () => { let left = 1; return CFG.supply.jackpot.map(([x, p]) 
 /** 출격 계약 차림표를 연다 (바 · 타이틀 · 결과 화면의 '새 계약'). list = 메뉴에 없는 의뢰 목록을 펼친 채로 */
 function openContract(list: boolean) {
   app.tutAsk = false;
-  CTR.contractStart(app.screen === 'bar' ? 'bar' : 'title', list);
+  CTR.contractStart(app.screen === 'bar' ? 'bar' : 'title', list, app.screen === 'bar' ? document.querySelector('main.bar')?.outerHTML || '' : ''); // 바 화면을 그대로 떠서 시선 전환에 쓴다 (인물 · 세로 띠가 갑자기 사라지지 않게)
   app.screen = 'contract'; app.menu = null; app.introFoe = null; app.abilPop = null;
 }
 function toast(msg: string) {
@@ -6461,6 +6461,7 @@ root.addEventListener('click', (ev) => {
 });
 // 출격 계약 (ui/contract.ts) 연결: 전장 브리핑 · 적 상세 창 · 서명 뒤 계약 기물 명부 · 나가기
 Object.assign(CTR.hooks, {
+  receipt: (n: number) => ACH.achReceipt(n), // 전표가 화면 위로 넘어가면 업적
   render, toast,
   brief: (fid: string) => fieldBrief(fid),
   foe: () => (app.introFoe ? foeModal(app.introFoe) : ''),

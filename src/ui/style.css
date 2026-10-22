@@ -5098,30 +5098,36 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct { position: fixed; inset: 0; overflow: hidden; isolation: isolate; color: var(--c-text); background: var(--ct-wood); }
 .ct-table { position: absolute; inset: 0; background: var(--grain), var(--ct-wood); background-blend-mode: overlay, normal; }
 .ct-table .ct-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.ct-barview { position: absolute; inset: 0; z-index: var(--z-sticky); background: center 40% / cover no-repeat; pointer-events: none; animation: ct-lookdown .9s cubic-bezier(.5, 0, .3, 1) forwards; } /* 바를 보던 시선이 테이블로 내려간다 */
-@keyframes ct-lookdown { to { translate: 0 -100%; } }
-/* 테이블은 바 그림의 아랫단(카운터)에서 높이가 자라며 펼쳐진다: 바 그림의 아래 끝과 테이블 위 끝이 같은 곡선으로 움직여 이음매가 맞는다 */
-.ct-table { transform-origin: 50% 100%; }
-.ct.intro .ct-table { animation: ct-tablein .9s cubic-bezier(.5, 0, .3, 1) both; }
-@keyframes ct-tablein { from { scale: 1 0; } to { scale: 1 1; } }
-/* 나가기 (바로 돌아가기 · 타이틀로): 같은 길을 거꾸로 — 종이 · 소품이 빠지고, 테이블이 낮아지며 바 그림이 다시 내려온다 */
-.ct.outro .ct-barview { animation: ct-lookup .9s .35s cubic-bezier(.5, 0, .3, 1) both; }
+.ct { --ct-in: cubic-bezier(.8, 0, .55, 1); --ct-out: cubic-bezier(.45, 0, .2, 1); } /* 시선 전환: 처음엔 느리게 버티다 휙 (나갈 때는 거꾸로 휙 들렸다가 천천히 내려앉는다) */
+/* 바 화면을 뜬 그림 (인물 · 세로 띠 그대로): 시선이 테이블로 내려가면 위로 빠진다 */
+.ct-barview { position: absolute; inset: 0; z-index: var(--z-sticky); overflow: hidden; pointer-events: none; animation: ct-lookdown 1s .4s var(--ct-in) both; box-shadow: 0 22px 34px var(--shade-3); } /* 바 그림 아래 끝 = 카운터 앞 가장자리: 테이블 위로 그늘을 드리운다 */
+.ct-barview > .bar { position: absolute; inset: 0; }
+.ct-barview > .bar :is(.bar-bub, .bar-hint) { display: none; }
+.ct-barbg { position: absolute; inset: 0; background: center 40% / cover no-repeat; }
+@keyframes ct-lookdown { from { translate: 0 0; } to { translate: 0 -100%; } }
+/* 테이블은 제자리에 있고 바 그림이 걷히며 아래부터 드러난다 (그림을 늘리지 않고, 두 층을 따로 움직이지 않아 이음매에 틈이 생기지 않는다) */
+/* 세로 띠: 들어갈 때 살짝 오른쪽으로 튕겼다가 왼쪽으로 빠진다 · 나갈 때는 거꾸로 (휴대폰은 아래 띠라 아래로) */
+.ct.intro .ct-barview .bar-nav { animation: ct-nav-out .5s cubic-bezier(.5, 0, .75, 0) both; }
+@keyframes ct-nav-out { 0% { translate: 0 0; } 35% { translate: 14px 0; } 100% { translate: -115% 0; } }
+.ct.outro .ct-barview .bar-nav { animation: ct-nav-in .5s 1.35s cubic-bezier(.25, 1, .5, 1) both; }
+@keyframes ct-nav-in { 0% { translate: -115% 0; } 65% { translate: 14px 0; } 100% { translate: 0 0; } }
+/* 나가기 (바로 돌아가기 · 타이틀로): 같은 길을 거꾸로 — 종이 · 소품이 빠지고, 테이블이 아래로 접히며 바 그림이 다시 내려온다 */
+.ct.outro .ct-barview { animation: ct-lookup 1s .35s var(--ct-out) both; }
 @keyframes ct-lookup { from { translate: 0 -100%; } to { translate: 0 0; } }
-.ct.outro .ct-table { animation: ct-tableout .9s .35s cubic-bezier(.5, 0, .3, 1) both; }
-@keyframes ct-tableout { from { scale: 1 1; } to { scale: 1 0; } }
 .ct.outro .ct-bp { animation: ct-drop-out .45s cubic-bezier(.5, 0, .8, .4) both; } /* 들어올 때와 다른 이름 (같은 이름이면 브라우저가 진행 중인 애니메이션으로 이어 붙여 한 번에 사라진다) */
 .ct.outro .ct-menu { animation: ct-rise-out .45s cubic-bezier(.5, 0, .8, .4) both; }
 .ct.outro :is(.ct-printer, .ct-desk, .ct-voice) { animation: ct-slide-out .4s cubic-bezier(.5, 0, .8, .4) both; }
 @keyframes ct-drop-out { to { translate: -3vw -110vh; rotate: -9deg; } }
 @keyframes ct-rise-out { to { translate: 2vw 110vh; rotate: 8deg; } }
 @keyframes ct-slide-out { to { translate: 45vw 6vh; } }
-.ct.intro .ct-bp { animation: ct-drop .7s .85s cubic-bezier(.2, .7, .3, 1) both; }
-.ct.intro .ct-menu { animation: ct-rise .75s 1.05s cubic-bezier(.2, .7, .3, 1) both; }
-.ct.intro :is(.ct-printer, .ct-desk) { animation: ct-slide .6s 1.3s cubic-bezier(.2, .7, .3, 1) both; }
-.ct.intro .ct-voice { transition-delay: 1.7s; }
+.ct.intro .ct-bp { animation: ct-drop .7s 1.25s cubic-bezier(.2, .7, .3, 1) both; }
+.ct.intro .ct-menu { animation: ct-rise .75s 1.45s cubic-bezier(.2, .7, .3, 1) both; }
+.ct.intro :is(.ct-printer, .ct-desk) { animation: ct-slide .6s 1.7s cubic-bezier(.2, .7, .3, 1) both; }
 @keyframes ct-drop { from { translate: -3vw -110vh; rotate: -9deg; } }
 @keyframes ct-rise { from { translate: 2vw 110vh; rotate: 8deg; } }
 @keyframes ct-slide { from { translate: 45vw 6vh; } }
+.ct.intro .ct-voice { transition-delay: 2.1s; }
+.ct-barview { z-index: var(--z-top); } /* 램프 빛 층보다 위 (바 그림은 바의 조명 그대로) */
 .ct { --lamp: .5; } /* 램프 세기: 그늘 층과 빛 층이 같은 값을 읽는다 */
 .ct-light, .ct-glow { position: absolute; inset: 0; z-index: var(--z-sticky); pointer-events: none; }
 .ct-light { mix-blend-mode: multiply; /* 램프 밖 난색 그늘: 테이블 · 종이 · 소품을 한 장으로 함께 (테이블 그림에는 굽지 않는다) */
@@ -5196,7 +5202,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-plan-stamp { position: absolute; right: 18px; top: 12px; padding: 2px 10px; border: 3px double var(--lp-stamp); color: var(--lp-stamp); font: 700 var(--fs-xl)/1.2 var(--f-serif); letter-spacing: .2em; rotate: -12deg; opacity: .85; pointer-events: none; text-shadow: none; }
 .ct-plan-stamp.lit { animation: ct-stampin .35s ease-out both; }
 /* 전표 출력기 (오른쪽 가운데 아래): 전표는 위쪽 슬릿에서 위로 나오고, 길수록 끝이 휘어 그림자가 진다 */
-.ct-printer { --pw: 236px; --ph: calc(var(--pw) * 1.507); position: absolute; right: 170px; bottom: 3vh; z-index: var(--z-sticky); width: var(--pw); } /* 세로로 선 출력기 (그림 art/ct_printer.webp: 위쪽 슬릿 = 가로 50% 중심 · 폭 72% · 높이 9%) */
+.ct-printer { --pw: 330px; --ph: calc(var(--pw) * .693); position: absolute; right: 150px; bottom: 1.5vh; z-index: var(--z-sticky); width: var(--pw); } /* 위에서 본 낮은 포스기 (그림 art/ct_printer.webp: 종이 슬릿 = 가로 26~75% · 높이 6~17%). 화면 아래 끝에 낮게 두어 전표가 길어져도 위로 뻗을 자리가 넓다 */
 .ct-pmach { position: relative; z-index: var(--z-raise); width: var(--pw); height: var(--ph); filter: drop-shadow(8px 12px 10px var(--shade-2)); }
 .ct-pmach > :is(svg, .ct-art), .ct-bell > :is(svg, .ct-art) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 :has(> .ct-art) > .ct-fb { display: none; } /* 그림이 있으면 면 그림을 숨긴다 (그림을 못 읽으면 img 가 지워져 면 그림이 돌아온다) */
@@ -5207,9 +5213,10 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-pmach .gap { fill: var(--c-black); }
 .ct-pmach .knob { fill: var(--lp-au); stroke: var(--lp-au-lo); stroke-width: 2; }
 .ct-pmach .plate { fill: none; stroke: var(--lp-au-lo); stroke-width: 1.5; }
-.ct-slipwrap { position: absolute; left: 50%; bottom: calc(100% - var(--ph) * .1 - 2px); z-index: 0; width: calc(var(--pw) * .74); translate: -50% 0; max-height: calc(97vh - var(--ph) - 6px); overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; filter: drop-shadow(6px 10px 8px var(--shade-2)); }
-.ct-slip { position: relative; flex: none; overflow: hidden; padding: 10px 12px 84px; display: grid; gap: 1px; transform-origin: 50% 0; transform: perspective(700px) rotateX(-9deg); border-top: 0; /* 하단부(출력기 슬릿 쪽)가 아래로 살짝 휘어 들어간다: 아래로 갈수록 멀어져 좁아 보이고 */
-  box-shadow: inset 0 -26px 18px -18px color-mix(in srgb, var(--c-black) 26%, transparent); } /* 휘는 곳에 그늘 */
+.ct-slipwrap { position: absolute; left: 50%; bottom: calc(100% - var(--ph) * .12); z-index: 0; width: calc(var(--pw) * .48); translate: -50% 0; display: flex; flex-direction: column; justify-content: flex-end; filter: drop-shadow(6px 10px 8px var(--shade-2)); } /* 높이 제한 없음: 특약을 끝없이 더하면 화면 위로 넘어간다 (업적 receipt_long) */
+.ct-slip { position: relative; flex: none; overflow: hidden; padding: 10px 10px 84px; display: grid; gap: 1px; border-top: 0; /* 하단부(슬릿으로 들어가는 쪽)만 아래로 휘어 들어간다: 아래 끝 18px 가 안쪽으로 좁아지고 그늘이 진다. 위쪽은 평평하게 (글자 그대로 읽히게) */
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 18px), 96% 100%, 4% 100%, 0 calc(100% - 18px));
+  box-shadow: inset 0 -22px 14px -14px color-mix(in srgb, var(--c-black) 32%, transparent); }
 .ct-printer.feed .ct-slip { animation: ct-rattle .42s steps(7) both; }
 .ct-stampmark { position: absolute; right: 14px; bottom: 40px; padding: 2px 12px; border: 3px double var(--lp-stamp); color: var(--lp-stamp); font: 700 var(--fs-xl)/1.2 var(--f-serif); letter-spacing: .2em; rotate: -14deg; text-shadow: none; animation: ct-stampin .3s ease-out both; }
 .ct-stampmark.void { right: auto; left: 50%; bottom: 38px; translate: -50% 0; font-size: var(--fs-2xl); }
@@ -5310,7 +5317,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .bp-two { grid-template-columns: minmax(0, 1fr); }
   .ct-bp { width: calc(100vw - 360px); }
   .ct-menu { width: calc(100vw - 360px); }
-  .ct-printer { --pw: 210px; right: 120px; }
+  .ct-printer { --pw: 290px; right: 118px; }
   .ct-slip { font-size: var(--fs-xs); padding-inline: 9px; }
   .ct-desk { right: 12px; bottom: 3vh; flex-direction: column-reverse; align-items: center; gap: 8px; }
   .ct-bell { width: 108px; height: 108px; }
@@ -5320,8 +5327,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-menu { right: 2vw; width: auto; height: 59vh; bottom: 2vh; }
   .ct-bp { width: calc(100vw - 320px); }
   .ct-menu { height: 52vh; }
-  .ct-printer { --pw: 190px; right: 104px; bottom: 55vh; }
-  .ct-slipwrap { max-height: calc(45vh - var(--ph) - 6px); }
+  .ct-printer { --pw: 270px; right: 96px; bottom: 56vh; }
   .ct-slip { font-size: var(--fs-xs); padding-inline: 8px; }
   .ct-desk { right: 10px; top: auto; bottom: 56vh; }
   .ct-bell { width: 84px; height: 84px; }
@@ -5349,9 +5355,9 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-col-rider .lp-row.lit { animation: none; }
   .lp-col::after { margin-top: 8px; }
   .ct-printer { position: fixed; left: 0; right: 0; top: auto; bottom: 0; width: auto; height: calc(130px + env(safe-area-inset-bottom)); background: var(--grain), var(--ct-wood-lo); background-blend-mode: overlay, normal; border-top: 1px solid var(--lp-au-lo); }
-  .ct-pmach { position: absolute; left: 30px; bottom: calc(6px + env(safe-area-inset-bottom)); width: 72px; height: 117px; }
-  .ct-slipwrap { left: 140px; right: 104px; bottom: calc(46px + env(safe-area-inset-bottom)); width: auto; translate: none; max-height: 78px; }
-  .ct-slip { transform: none; font-size: var(--fs-xs); padding: 8px 10px; }
+  .ct-pmach { position: absolute; left: 14px; bottom: calc(10px + env(safe-area-inset-bottom)); width: 116px; height: 80px; }
+  .ct-slipwrap { left: 140px; right: 104px; bottom: calc(46px + env(safe-area-inset-bottom)); width: auto; translate: none; max-height: 78px; overflow: hidden; } /* 휴대폰만: 아래 띠 안에서 (선택 항목을 가리지 않게) */
+  .ct-slip { clip-path: none; font-size: var(--fs-xs); padding: 8px 10px; }
   .ct-desk { position: fixed; right: 8px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: var(--z-top); flex-direction: row; gap: 8px; }
   .ct-cancel { position: fixed; left: 140px; bottom: calc(8px + env(safe-area-inset-bottom)); min-height: 30px; }
   .ct-bell { width: 84px; height: 84px; }
