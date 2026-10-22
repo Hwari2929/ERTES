@@ -1,4 +1,4 @@
-// 출격 계약 (에란테스 바 카운터의 의뢰 차림표, ui/contract.ts): 의뢰 · 약관 · 특약을 고르고 계산서에 서명하면 계약 기물 명부가 열린다.
+// 출격 계약 (에란테스 바 카운터의 의뢰 차림표, ui/contract.ts): 의뢰 · 약관 · 특약을 고르고 전표에 서명하면 계약 기물 명부가 열린다.
 //   의뢰 = 전장 (의뢰 제목 · 의뢰인은 data/scenes/fields.ts FIELD_INTROS) · 약관 = 난이도 (data/difficulty.ts DIFF_PRESETS 의 위험 등급, 조항 = DIFFS)
 //   특약 = 절망 서약 (data/oaths.ts, 담보 약관 = 위험 CFG.oathFrom 이상에만 붙는다) · 싯가 의뢰 = 서명 뒤에 전장 · 의뢰인 · 보수가 드러나는 봉인 의뢰서
 //   메뉴에 없는 의뢰 = 오늘 의뢰서에 없는 전장을 직접 주문 (보수 CFG.contract.customWin)
@@ -17,7 +17,7 @@ export interface PlanDef {
   short: string;
   /** 차림표 작은 글자: 약관을 낸 페트라 부서 */
   dept: string;
-  /** 계약 종류 (짧은 이름: 지도 상단 영수 증서 칩 · 계산서) */
+  /** 계약 종류 (짧은 이름: 지도 상단 영수 증서 칩 · 전표) */
   label: string;
   /** 한 줄 사연 (차림표 정보 판) */
   quip: string;

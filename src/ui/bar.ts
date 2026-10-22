@@ -520,7 +520,7 @@ function exitSeat(el: HTMLElement) {
   window.setTimeout(rm, reduced() ? 800 : 2800);
 }
 
-/** 바 안의 장소 (배경 그림 1216 × 832 좌표의 사각형): 황동 명판을 가리키면 그 사물이 밝아진다 */
+/** 바 안의 장소 (배경 그림 1216 × 832 좌표의 사각형): 세로 띠의 줄을 가리키면 그 사물이 밝아진다 */
 const PLACES: { id: string; box: [number, number, number, number] }[] = [
   { id: 'counter', box: [520, 300, 1216, 780] }, // 카운터 · 술병 진열장 (의뢰)
   { id: 'lounge', box: [0, 430, 410, 832] },     // 왼쪽 라운지 소파 (단원 · 도감)
@@ -536,24 +536,31 @@ export function barScreen(): string {
   const seenN = m.bar?.seen?.length || 0;
   const hasLog = !!awayPool().length || !!m.bar?.last;
   const achN = Object.keys(m.achieved || {}).length;
-  const plate = (p: string, act: string, kick: string, label: string, sub = '', extra = '') =>
-    `<button class="bp mk-brass" data-p="${p}" data-a="${act}"${extra}><span class="bp-k">${kick}</span><b>${label}</b>${sub ? `<small class="f-num">${sub}</small>` : ''}</button>`;
+  /** 세로 띠의 한 줄: 가리키면 그 사물(장소)이 밝아진다 */
+  const line = (p: string, act: string, label: string, sub = '', extra = '') =>
+    `<button class="bn${p === 'counter' ? ' pri' : ''}" data-p="${p}" data-a="${act}"${extra}><b>${label}</b>${sub ? `<small class="f-num">${sub}</small>` : ''}</button>`;
   return `<main class="bar${S.cur?.layer === 'r' ? ' late' : ''}" aria-label="에란테스 바">
     <div class="bar-scene">
       <div class="bar-bg" style="background-image:url('${bgURL('erantes_bar')}')"></div>
       ${PLACES.map((p) => `<i class="bar-glow" data-p="${p.id}" style="--x0:${p.box[0]};--y0:${p.box[1]};--x1:${p.box[2]};--y1:${p.box[3]}" aria-hidden="true"></i>`).join('')}
       ${barShowcaseHtml()}
     </div>
-    <div class="bar-shade"></div><div class="mk-light" aria-hidden="true"></div><div class="mk-grain" aria-hidden="true"></div>
+    <div class="bar-shade"></div><div class="lp-grain" aria-hidden="true"></div>
+    <aside class="bar-nav" aria-label="바 둘러보기">
+      <svg class="lp-stars" viewBox="0 0 120 40" aria-hidden="true"><circle cx="14" cy="22" r="1.2"/><circle cx="38" cy="9" r=".9"/><circle cx="61" cy="27" r="1.5"/><circle cx="84" cy="12" r=".9"/><circle cx="106" cy="24" r="1.1"/></svg>
+      <h1>에란테스 바</h1>
+      <i class="lp-rule" aria-hidden="true"></i>
+      <nav>
+        ${res && auto ? line('counter', 'load', '이어서 출격', `${esc(fieldName(res.field))} · 페이즈 ${auto.phase}`, ' data-v="auto"') : line('counter', 'newrun', '새 계약', '의뢰 차림표')}
+        ${line('lounge', 'codex', '도감', seenN ? `만담 ${seenN}` : '단원 · 만담', ' data-v="units"')}
+        ${line('balcony', 'codex', '기록 · 업적', achN ? `업적 ${achN}` : '', ' data-v="ach"')}
+        ${line('window', 'bar-x', '통신 기록', hasLog ? '지난 의뢰' : '의뢰를 마친 밤에', ` data-v="log"${hasLog ? '' : ' aria-disabled="true"'}`)}
+      </nav>
+      <span class="est">ERRANTES</span>
+    </aside>
     <header class="bar-top"><h1>에란테스 바</h1><p class="bar-sit f-ui" aria-live="polite">${S.cur?.sit ? `— ${esc(S.cur.sit)}` : ''}</p></header>
     <div class="bar-floor" data-n="${S.stage.length}">${floorHtml()}</div>
-    <nav class="bar-places" aria-label="바 둘러보기">
-      ${res && auto ? plate('counter', 'load', '카운터', '이어서 출격', `${esc(fieldName(res.field))} · 페이즈 ${auto.phase}`, ' data-v="auto"') : plate('counter', 'newrun', '카운터', '새 계약', '의뢰 차림표')}
-      ${plate('lounge', 'codex', '라운지', '도감', seenN ? `만담 ${seenN}` : '단원 · 만담', ' data-v="units"')}
-      ${plate('balcony', 'codex', '발코니', '기록 · 업적', achN ? `업적 ${achN}` : '', ' data-v="ach"')}
-      ${plate('window', 'bar-x', '창가', '통신 기록', hasLog ? '지난 의뢰' : '의뢰를 마친 밤에 통신이 들어옵니다', ` data-v="log"${hasLog ? '' : ' aria-disabled="true"'}`)}
-    </nav>
-    <button class="bar-door mk-tab" data-a="to-title">타이틀 ›</button>
+    <button class="bar-door lp-btn" data-a="to-title">타이틀 ›</button>
     <p class="bar-hint muted small">인물을 누르면 말을 겁니다. 빈 곳을 누르면 다음 대사로.</p>
   </main>`;
 }

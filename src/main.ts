@@ -5610,7 +5610,7 @@ function act(a: string, v: string) {
     }
     case 'victory-end': if (run) { run.pending.shift(); metaClear(run); ACH.achClear(run); run.over = true; goPrepOrMap(); } break;
     case 'victory-endless': if (run) { run.pending.shift(); metaClear(run); ACH.achClear(run); run.endless = true; toast('무한 모드: 적은 계속 강해집니다.'); persist(); } break;
-    case 'codex': codexFrom = app.screen === 'bar' ? 'bar' : ''; app.screen = 'codex'; app.menu = null; if (v) app.codexTab = v as typeof app.codexTab; break; // 바 장소 명판: 라운지 = 기물 · 발코니 = 업적
+    case 'codex': codexFrom = app.screen === 'bar' ? 'bar' : ''; app.screen = 'codex'; app.menu = null; if (v) app.codexTab = v as typeof app.codexTab; break; // 바 세로 띠: 라운지 = 기물 · 발코니 = 업적
     case 'oath': app.screen = 'oath'; app.menu = null; break; // 절망 서약 화면 (ui/oath.ts)
     case 'oath-back': app.screen = 'title'; break;
     case 'oath-set': case 'oath-clear': OATH.oathAct(a, v); break;

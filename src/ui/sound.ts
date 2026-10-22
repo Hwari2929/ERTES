@@ -295,9 +295,9 @@ for (const [s, as] of Object.entries({
   buy: 'buy buy-news buy-invest buyxp pil-card pil-relic fleet loan muster-open',
   sell: 'sell release-confirm',
   reroll: 'reroll reroll-recruit reroll-global reroll-privilege',
-  confirm: 'pick-aug pick-global pick-privilege pick-item pick-recruit pick-blessing supply-done alloc-ok muster-ok pick-branch pick-fork start-run diff-ok ct-take enter victory-end victory-endless relic-equip relic-enh event-choice',
+  confirm: 'pick-aug pick-global pick-privilege pick-item pick-recruit pick-blessing supply-done alloc-ok muster-ok pick-branch pick-fork start-run diff-ok enter victory-end victory-endless relic-equip relic-enh event-choice',
   place: 'drop autofill',
-  '': 'bdesel syn-peek item-info fight pick-supply supply-all ct-job ct-plan ct-rider ct-usual ct-bell ct-sign ct-tear ct-seal ct-skip', // 소리 없음 (전투 시작은 개시 연출에서 · 보급 뒤집기는 공개음 reveal)
+  '': 'bdesel syn-peek item-info fight pick-supply supply-all ct-job ct-plan ct-rider ct-usual ct-bell ct-sign ct-back-board ct-skip', // 소리 없음 (전투 시작은 개시 연출에서 · 보급 뒤집기는 공개음 reveal)
 })) for (const a of as.split(' ')) ACT[a] = s;
 /** UI 동작 직전에 부른다 (data-a 이름). 동작이 끝난 뒤(마이크로태스크) 결과에 맞는 소리를 낸다 */
 export function uiAct(a: string) {
