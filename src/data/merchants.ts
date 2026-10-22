@@ -15,7 +15,7 @@ export interface MerchantDef {
   name: string; title: string; shop: string;
   /** 스탠딩 그림 id (ui/portraits.ts standURL, 없으면 실루엣) · 이름표 색 */
   art: string; color: string;
-  /** 전용 상품: 이 상인의 상점에 늘 진열 (9칸 안) */
+  /** 전용 상품: 이 상인의 상점에 늘 진열 (진열 6~9개 안) */
   ex?: string;
   /** 전설 장비 진열 확률 (페이즈 무관). 없으면 공용 규칙 (CFG.drop.shopLegend · shopLegendPhase) */
   legend?: number;

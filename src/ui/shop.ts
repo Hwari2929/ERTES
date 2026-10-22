@@ -1,5 +1,5 @@
 // 상인 상점 덮개 (상단 바 아래 전체, docs/UI.md): 왼쪽 30% 상인 (스탠딩 · 이름 · 말풍선 · 고르곤 교환), 오른쪽 70% 진열대
-// (머리 = 상점 이름 + 상태 칩, 3×3 진열 · 고른 물품 상세 · 새로고침 · 편성 / 닫기 / 떠나기). 좁은 화면은 상인이 위쪽 띠, 상세는 하단 시트.
+// (머리 = 상점 이름 + 상태 칩, 3×3 진열대에 6~9개 (남는 칸은 빈 선반) · 고른 물품 상세 · 새로고침 · [지정 소집] (티켓) · 편성 / 닫기 / 떠나기). 좁은 화면은 상인이 위쪽 띠, 상세는 하단 시트.
 // 지정 소집 티켓을 들고 지도를 열면 지정 소집 단추 위에 페트라 광고판 (adHtml · adMount).
 // 엔진 규칙 (진열 · 할인 · 새로고침 · 교환 · 티켓)은 engine/run.ts, 상인 · 대사는 data/merchants.ts 에서 읽는다.
 import { CFG } from '../config';
@@ -136,9 +136,10 @@ export function shopOverlay(run: RunState): string {
     D.kvChip('보관함', `<b>${run.inventory.length}</b>/${CFG.inventoryMax}`, '산 물품이 들어가는 곳', `kv-inv${run.inventory.length >= CFG.inventoryMax ? ' full' : ''}`),
   ].join('');
   const sold = stock.filter((s) => s.sold).length;
-  const rf = R.refreshInfo(run), rfOff = rf.used || !!run.tutorial;
+  const rf = R.refreshInfo(run), rfOff = rf.used || !!run.tutorial, mul = R.shopMul(run);
   const rfWhy = run.tutorial ? '튜토리얼' : rf.used ? `이번 페이즈 사용함 · 다음 ${rf.cost ? `${rf.cost}` : '무료'}` : '';
-  const rfBtn = `<button class="btn small so-rf" data-a="shop-refresh"${rfOff ? ' aria-disabled="true"' : ''} title="${esc(`진열 9칸 · 할인을 모두 새로 (품절 칸 포함, 상인 그대로). 페이즈마다 1번 · 의뢰 첫 번 무료, 그다음 ${CFG.shop.refresh.base}부터 +${CFG.shop.refresh.step}`)}">${lineIcon('a.cd', 'li')}<span>새로고침</span>${rf.cost ? `<b>${D.CR}${rf.cost}</b>` : '<b class="free">무료</b>'}</button>`;
+  const rfCost = rf.cost ? `${rf.cost} 크레딧${Math.abs(mul - 1) > 1e-6 ? ` (${rf.base} × 상점 배율 ${+mul.toFixed(2)})` : ''}` : '무료';
+  const rfBtn = `<button class="btn small so-rf" data-a="shop-refresh"${rfOff ? ' aria-disabled="true"' : ''} title="${esc(`진열 수 (${CFG.shop.count[0][0]}~${CFG.shop.count[CFG.shop.count.length - 1][0]}개) · 물품 · 할인을 모두 새로 (품절 칸 포함, 상인 그대로). 페이즈마다 1번 · 의뢰 첫 번 무료, 그다음 ${CFG.shop.refresh.base}부터 +${CFG.shop.refresh.step} × 상점 배율 — 지금 ${rfCost}`)}">${lineIcon('a.cd', 'li')}<span>새로고침</span>${rf.cost ? `<b>${D.CR}${rf.cost}</b>` : '<b class="free">무료</b>'}</button>`;
   const cards = stock.map((s, i) => {
     const id = s.item, on = SHOP.sel === i;
     const err = SHOP.err?.i === i ? `<em class="sg-err" role="status">${esc(SHOP.err.msg)}</em>` : '';
@@ -147,7 +148,7 @@ export function shopOverlay(run: RunState): string {
       <b class="sg-name">${esc(itemInfo(id).name)}</b>${cardEff(id)}
       <span class="sg-foot">${tag(run, s, i, 'c')}${s.off && !s.sold ? `<i class="sg-off" title="할인">−${s.off}%</i>` : ''}</span>${err}
     </div>`;
-  }).join('');
+  }).join('') + '<div class="sg-card sg-empty" aria-hidden="true"></div>'.repeat(Math.max(0, CFG.shop.slots - stock.length)); // 진열하지 않은 칸 = 빈 선반 (품절과 다른 모양, 3×3 자리는 그대로)
   return `<div class="shop-ov" style="--c:${m.color}" role="region" aria-label="${esc(m.shop)}">
     <section class="so-npc" aria-label="${esc(m.name)}">
       ${artHtml(m)}
@@ -159,12 +160,12 @@ export function shopOverlay(run: RunState): string {
       <div class="so-hd"><h1>${esc(m.shop)}</h1><div class="sh-row">${chips}</div></div>
       <div class="so-body">
         <div class="so-shelf">
-          <div class="so-tools"><span class="so-cnt">진열 <b>${stock.length - sold}</b>/${stock.length}${sold ? ` · 품절 ${sold}` : ''}</span><span class="so-rfw">${rfWhy || SHOP.rfErr ? `<span class="so-why">${esc(SHOP.rfErr || rfWhy)}</span>` : ''}${rfBtn}</span></div>
+          <div class="so-tools"><span class="so-cnt">진열 <b>${stock.length}</b>${sold ? ` · 품절 <b>${sold}</b>` : ''}</span><span class="so-rfw">${rfWhy || SHOP.rfErr ? `<span class="so-why">${esc(SHOP.rfErr || rfWhy)}</span>` : ''}${rfBtn}</span></div>
           <div class="sg">${cards}</div>
         </div>
         ${detail(run, stock)}
       </div>
-      <div class="so-foot"><button class="btn" data-a="manage">편성 · 장비</button><button class="btn" data-a="shop-close" title="상점을 닫고 지도로 (이 칸은 그대로 — 지도에서 다시 열 수 있음)">닫기</button><button class="btn primary" data-a="leave-shop" title="이 상점을 떠나 다음 칸으로">떠나기</button></div>
+      <div class="so-foot">${musterBtn(run)}<button class="btn" data-a="manage">편성 · 장비</button><button class="btn" data-a="shop-close" title="상점을 닫고 지도로 (이 칸은 그대로 — 지도에서 다시 열 수 있음)">닫기</button><button class="btn primary" data-a="leave-shop" title="이 상점을 떠나 다음 칸으로">떠나기</button></div>
     </section>
   </div>`;
 }
@@ -191,10 +192,17 @@ function detail(run: RunState, stock: ShopSlot[]) {
     ${rules ? `<div class="sd-rules">${rules}</div>` : ''}
   </aside>`;
 }
+/** 상점 바닥 줄 [지정 소집]: 지정 소집 티켓이 있을 때만 (상점 칸에서는 티켓 소집만 — engine/run.ts musterBlock). 소집 · 영입 창은 상점 위에 뜨고, 닫으면 같은 상점으로 */
+function musterBtn(run: RunState) {
+  const tk = R.ticketCount(run);
+  if (!tk || run.tutorial) return ''; // 튜토리얼 상점은 안내 순서대로 (지도의 함선 관리에서는 된다)
+  const why = R.musterBlock(run);
+  return `<button class="btn so-mu" data-a="muster-open"${why ? ` aria-disabled="true" title="${esc(why)}"` : ` title="${esc(`지정 소집 — ${CONSUMABLES[R.TICKET].name} 1장 (크레딧 ${R.musterCost(run)} 대신). 소집이 끝나면 이 상점으로 돌아옵니다`)}"`}>${D.itemIcon(R.TICKET)}<span>지정 소집</span><small>×${tk}</small></button>`;
+}
 /** 지정 소집 티켓 규칙 (이름 + 값) */
 function ticketRules(run: RunState) {
   const rows: [string, string][] = [
-    ['쓰는 곳', '지도 · 함선 관리의 지정 소집'],
+    ['쓰는 곳', '지도 함선 관리 · 상점 바닥 줄의 지정 소집'],
     ['소집 비용', `${R.musterCost(run)} → 0 (티켓 1장)`],
     ['광고', `지도를 열 때마다 ${AD.ms / 1000}초 · ${AD.skip / 1000}초 뒤 건너뛰기`],
     ['직접 사용', '불가 · 판매 가능'],

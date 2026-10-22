@@ -152,6 +152,7 @@ const app = {
   shopShut: false, // 상인 상점을 [닫기]로 닫고 지도에 있다 (편성에 갔다 돌아오면 지도로. 아니면 같은 상점으로)
   run: null as RunState | null,
   sel: null as Sel,
+  popOff: '', // 배치형 소모품을 쥔 채 보관 물품 팝업만 닫음 ('칸 번호:물품 id', 쥔 도구는 그대로 → 보드 창 위 행동 칩이 대신 보인다). 같은 물품을 다시 누르면 팝업을 다시 연다
   starters: [] as string[],
   pool: [] as string[], // 시작 기물 후보 (CFG.starterPool 명, engine/starters.ts)
   poolRerolls: 0, // 시작 기물 후보 새로고침 남은 횟수
@@ -1096,18 +1097,20 @@ function mapDetail(run: RunState) {
     ${detailPanel(run, `<button class="btn tiny" data-a="manage" data-v="${u.uid}">편성 화면에서 보기</button>`).replace('data-a="desel"', 'data-a="map-unit"')}
   </aside>`;
 }
-/** 함선 관리: 함대 확장 (출전 인원) · 지정 소집 (시너지 지정 영입) */
+/** 함선 관리: 함대 확장 (출전 인원) · 지정 소집 (시너지 지정 영입).
+ *  칸 진행 중이면 둘 다 막힌다 — 단, 상점 칸을 닫고 나온 동안의 지정 소집은 티켓으로 할 수 있다 (R.musterBlock, 상인 · 진열은 그대로) */
 function shipPanel(run: RunState, extra = '') {
   const fc = R.fleetCost(run), mc = R.musterCost(run), busy = !!run.node || run.pending.length > 0, tk = R.ticketCount(run); // tk: 지정 소집 티켓 (유이 전용 상품) — 있으면 소집 비용 0
-  const full = run.units.length >= CFG.maxParty;
+  const full = run.units.length >= CFG.maxParty, mBlock = R.musterBlock(run), inShop = run.node?.type === 'shop' && !run.pending.length;
+  const mSub = full ? `보유 한도 ${CFG.maxParty}명` : inShop ? (tk ? '상점 중 · 티켓으로 소집' : '상점 중 · 티켓만 가능') : `시너지 ${CFG.musterPicks}개를 골라 그 안에서 영입`;
   return `<section class="ship" aria-labelledby="ship-h"><h2 id="ship-h">함선 관리</h2><div class="ship-grid">
-    <button class="ship-btn" data-a="fleet" ${fc === null || run.credits < fc || busy ? 'disabled' : ''}>
+    <button class="ship-btn" data-a="fleet" ${fc === null || run.credits < fc || busy ? 'disabled' : ''}${busy ? ` title="${esc(run.node ? '진행 중인 칸을 끝낸 뒤' : '진행 중인 선택을 먼저 끝내세요')}"` : ''}>
       <span class="sb-ic">${NODE_ICON.supply}</span><b>함대 확장</b>
       <span class="small muted">출전 인원 ${R.deployCap(run)} → ${fc === null ? '최대' : R.deployCap(run) + 1}명</span>
       <span class="sb-cost">${fc === null ? '최대 규모' : `${CR}${fc}`}</span></button>
-    <div class="ship-cell">${SHOP.adHtml(run)}<button class="ship-btn" data-a="muster-open" ${(run.credits < mc && !tk) || busy || full ? 'disabled' : ''}>
+    <div class="ship-cell">${SHOP.adHtml(run)}<button class="ship-btn" data-a="muster-open" ${mBlock ? `disabled title="${esc(mBlock)}"` : ''}>
       <span class="sb-ic">${NODE_ICON.recruit}</span><b>지정 소집</b>
-      <span class="small muted">${full ? `보유 한도 ${CFG.maxParty}명` : `시너지 ${CFG.musterPicks}개를 골라 그 안에서 영입`}</span>
+      <span class="small muted">${mSub}</span>
       <span class="sb-cost${tk ? ' tk' : ''}"${tk ? ` title="${esc(`${CONSUMABLES[R.TICKET].name} ${tk}장 — 크레딧 대신 1장`)}"` : ''}>${tk ? `${CR}<s>${mc}</s><b>0</b><small>${itemIcon(R.TICKET)}×${tk}</small>` : `${CR}${mc}`}</span></button></div>
   </div>${extra}</section>`;
 }
@@ -1779,7 +1782,7 @@ function prepScreen(run: RunState) {
   const bench = run.units.filter((u) => !u.pos);
   const free = Math.min(cap, allyRoom(run, n)) - deployed(run).length; // 출전 한도와 아군 진형 칸 (장치 칸 제외) 중 작은 쪽
   const canFill = bench.some((u) => R.canDeploy(run, u));
-  const pop = invDetail(run); // 보관 물품 팝업. 열려 있으면 쥔 도구 칩을 띄우지 않는다 (같은 정보, docs/UI.md 15) — 배치 · 크레인처럼 보드를 누르는 동안의 '하는 중' 표시만 보드 창 위에 겹쳐 남긴다
+  const pop = invDetail(run); // 보관 물품 팝업. 열려 있으면 쥔 도구 칩을 띄우지 않는다 (이름이 겹친다, docs/UI.md 15 — 놓기 취소는 팝업의 [취소] · Esc). 팝업을 닫고 계속 놓는 동안 · 크레인만 보드 창 위에 겹친 '하는 중' 칩
   const picked = !!app.sel && app.sel.k !== 'item' && app.sel.k !== 'relic'; // 상세가 있는 선택 (기물 · 적 · 지형 · 포탑 · 공왕)
   const foldR = !!loadPrefs().prepFold && !picked; // 접어 둔 패널도 무언가를 고르면 저절로 펼치고, 선택을 풀면 다시 접힌다
   const benchOff = !!loadPrefs().benchOff; // 대기석 숨김 (보는 사람마다): 대기석 상자 오른쪽 위 단추로 숨기기 · 보이기 (숨기면 같은 자리에 얇은 띠), 보드의 기물을 끄는 동안은 화면 아래 놓을 자리 (BENCH_DOCK)
@@ -1791,7 +1794,7 @@ function prepScreen(run: RunState) {
       <div class="board-head">${node?.enc ? boardTitle(node.enc, node.type) : '<span class="bh-title"><b class="bh-name">편성 관리</b></span>'}<span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${tacPill(run)}<span class="muted small bh-rows">${geo.foe2 ? '가운데' : geo.rot ? '왼쪽' : '아래'} ${geo.rows}줄에 배치</span>${noRoom.length ? `<span class="small warn" title="${esc(`배치 구역에 빈칸이 없음: ${noRoom.map((t) => t.name).join(' · ')} — 전투에서 가까운 빈칸에 나온다`)}">소환 자리 없음 ${noRoom.length}</span>` : ''}
         ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}</div>
       <div class="board-wrap">${prepZoomCtl()}<div class="board-main">
-      <div class="board-row"><div class="board-vp"><div class="board${geo.rot ? ' rot' : ''}${placeSel >= 0 ? ' placing' : ''}"${placeSel >= 0 ? ` data-pidx="${placeSel}"` : ''} style="--w:${bw};--h:${bh}" data-bw="${bw}" data-bh="${bh}" data-ex="${ex}" data-zones='${JSON.stringify(zones)}'><div class="cells">${cells}</div>${zone?.html ?? ''}${units}${startOverlay(run, geo, ex)}</div></div><div class="vp-cues"></div>${tool && (tool.k === 'place' || tool.k === 'crane' || (!pop && !app.ask)) ? `<div class="tool-ovl">${toolChip(run, tool)}</div>` : ''}${invRail(run)}</div>
+      <div class="board-row"><div class="board-vp"><div class="board${geo.rot ? ' rot' : ''}${placeSel >= 0 ? ' placing' : ''}"${placeSel >= 0 ? ` data-pidx="${placeSel}"` : ''} style="--w:${bw};--h:${bh}" data-bw="${bw}" data-bh="${bh}" data-ex="${ex}" data-zones='${JSON.stringify(zones)}'><div class="cells">${cells}</div>${zone?.html ?? ''}${units}${startOverlay(run, geo, ex)}</div></div><div class="vp-cues"></div>${tool && !pop && (tool.k === 'place' || tool.k === 'crane' || !app.ask) ? `<div class="tool-ovl">${toolChip(run, tool)}</div>` : ''}${invRail(run)}</div>
       </div></div>
       <div class="bench${benchOff ? ' off' : ''}" data-drop="bench">
         <span class="bench-label">대기석 <b>${bench.length}</b></span>${benchTog(benchOff)}
@@ -1800,14 +1803,13 @@ function prepScreen(run: RunState) {
           return `<div class="bench-u u side0 tk ${sel ? 'sel' : ''}" data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}" data-syns="${memberships(u, run).join(' ')}" title="${esc(UNIT_BY_ID[u.defId].name)} · 공명 등급 ${u.rank}">${allyCard(u)}</div>`;
         }).join('') : '<span class="muted small">기물을 여기로 끌어 출전에서 뺄 수 있습니다.</span>'}
       </div>
-      ${pop}
       <div class="sticky-actions">
         ${isBattle ? `<button class="btn ghost" data-a="to-map">맵으로</button><button class="btn primary" data-a="fight" title="단축키 Space" ${deployed(run).length ? '' : 'disabled'}>전투 시작</button>`
           : `<button class="btn primary" data-a="to-map">완료</button>`}
       </div>
     </section>
     <aside class="side right">${foldTog(foldR)}${foldR ? '' : detailPanel(run)}</aside>
-    ${statPopHtml(run)}${BENCH_DOCK}
+    ${statPopHtml(run)}${BENCH_DOCK}${pop}
   </main>`;
 }
 
@@ -1960,10 +1962,17 @@ function relicInv(run: RunState) {
   const sel = app.sel?.k === 'relic' ? app.sel.id : null;
   return `<span class="ir-sep" title="성유물"></span>${rs.map((id) => relicTok(id, `data-drag="relic:${id}" data-a="sel-relic" data-v="${id}"`, id === sel)).join('')}`; // 고른 성유물 = 쥔 도구 (디바인에게 장착): 장비와 같은 호박색 실선
 }
+/** 배치형 소모품을 놓는 중 (편성 화면 · 조우): 팝업의 ✕ 는 팝업만 닫고 (놓기는 계속, 행동 칩이 대신 보인다) 바닥 줄 [취소] = Esc = 놓기 취소 */
+const placingSel = (run: RunState) => app.screen === 'prep' && app.sel?.k === 'item' && !!run.node?.enc && isPlaceable(run.inventory[app.sel.idx]);
+const popKey = (run: RunState) => (app.sel?.k === 'item' ? `${app.sel.idx}:${run.inventory[app.sel.idx]}` : '');
 /** 고른 보관 물품: 설명 · 판매 */
 function invDetail(run: RunState) {
+  const placing = placingSel(run);
+  if (placing && app.popOff === popKey(run)) return ''; // 팝업만 닫아 둠 (쥔 배치 도구는 그대로)
+  const xBtn = placing ? '<button class="btn tiny ip-x" data-a="pop-off" title="팝업 닫기 — 놓기는 계속 (취소는 Esc)" aria-label="팝업 닫기 (놓기는 계속)">×</button>'
+    : '<button class="btn tiny ip-x" data-a="sel-clear" aria-label="닫기">×</button>';
   const pop = (icon: string, kind: string, name: string, stats: string, eff: string, foot: string) =>
-    `<div class="inv-pop" role="dialog" aria-label="${esc(name)}"><div class="ip-head">${icon}<div><span class="ip-kind">${kind}</span><b>${esc(name)}</b></div><button class="btn tiny ip-x" data-a="sel-clear" aria-label="닫기">×</button></div>${stats}${eff ? `<p class="ip-eff">${eff}</p>` : ''}${foot ? `<div class="ip-foot">${foot}</div>` : ''}</div>`;
+    `<div class="inv-pop" role="dialog" aria-label="${esc(name)}"><div class="ip-head">${icon}<div><span class="ip-kind">${kind}</span><b>${esc(name)}</b></div>${xBtn}</div>${stats}${eff ? `<p class="ip-eff">${eff}</p>` : ''}${foot ? `<div class="ip-foot">${foot}</div>` : ''}</div>`;
   if (app.sel?.k === 'relic') {
     const r = RELIC_BY_ID[app.sel.id];
     if (!r) return '';
@@ -1980,7 +1989,8 @@ function invDetail(run: RunState) {
   const stats = isPlaceable(sel) ? stats0 + devicePop(run, sel) : stats0; // 배치형: 성질 줄 (망원경은 모드 · 범위 · 횟수 도식)
   const eff = eff1 + (breadNote(run, selIdx) ? ` — 이 빵: ${breadNote(run, selIdx)}` : '');
   const ct = isConsumable(sel) ? CONSUMABLES[sel].target : null;
-  const hint = ct === 'place' ? `<span class="muted small">${run.node?.enc ? (sel === 'K_barricade' ? '칸 누르기 · 끌어다 놓기 · 몸통 끌기 = 옮기기 · 화살표 끌기 = 늘리기 · 누르면 회수' : '칸 누르기 · 끌어다 놓기 · 놓은 뒤 누르면 회수') : '전투 편성 화면에서 사용'}</span>${run.node?.enc ? '<button class="btn tiny ip-more" data-a="ip-more" aria-expanded="false">자세히</button>' : ''}`
+  // 놓는 중: 바닥 줄 = [판매] · [자세히] · [취소] 한 줄 + 조작 안내 한 줄 (ip-hint)
+  const hint = ct === 'place' ? `${run.node?.enc ? '<button class="btn tiny ip-more" data-a="ip-more" aria-expanded="false">자세히</button>' : ''}${placing ? '<button class="btn small ip-cancel" data-a="sel-clear" title="놓기 취소 (Esc)">취소</button>' : ''}<span class="muted small${placing ? ' ip-hint' : ''}">${run.node?.enc ? (sel === 'K_barricade' ? '칸 누르기 · 끌어다 놓기 · 몸통 끌기 = 옮기기 · 화살표 끌기 = 늘리기 · 누르면 회수' : '칸 누르기 · 끌어다 놓기 · 놓은 뒤 누르면 회수') : '전투 편성 화면에서 사용'}</span>`
     : ct === 'run' ? `<button class="btn small primary" data-a="use-self" data-v="${selIdx}">사용</button>`
     : ct === 'foe' ? `<span class="muted small">${run.node?.enc ? '이번 전투의 적에게 끌어다 놓거나, 선택한 채로 적을 누르면 사용' : '전투를 앞둔 편성 화면에서 적에게 끌어다 놓아 사용'}</span>`
     : ct ? `<span class="muted small">${CONSUMABLES[sel].alsoItem ? '기물 · 장비' : ct === 'unit' ? '기물' : '장비'}에 끌어다 놓거나, 선택한 채로 ${CONSUMABLES[sel].alsoItem ? '기물 · 장비를' : ct === 'unit' ? '기물을' : '장비를'} 누르면 사용</span>`
@@ -3672,6 +3682,14 @@ function placeAskPop() {
   const vis = (el: Element) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
   const a = q.anchor.map((sel) => Array.from(root.querySelectorAll<HTMLElement>(sel)).find((el) => vis(el) && !el.closest('.ask-pop'))).find(Boolean);
   const side = a && q.at === 'inv' ? invRailSide(a, p.offsetWidth) : null;
+  const dock = a && q.at === 'inv' && a.closest('.inv-rail') && !side ? railTopDock(a) : null;
+  p.style.maxHeight = '';
+  if (dock) { // 태블릿 세로: 보관 물품 팝업과 같은 머리 자리 (보관함 쪽 오른쪽 맞춤)
+    p.classList.remove('sheet'); p.classList.add('dock-top');
+    Object.assign(p.style, { left: 'auto', right: '8px', top: '8px', bottom: 'auto', maxHeight: `${dock.h}px` });
+    return;
+  }
+  p.classList.remove('dock-top');
   if (!a || innerWidth <= 700 || (q.at === 'inv' && a.closest('.inv-rail') && !side)) {
     p.classList.add('sheet');
     Object.assign(p.style, { left: '8px', right: '8px', top: 'auto', bottom: '8px' });
@@ -3702,11 +3720,24 @@ function placeAskPop() {
 /** 상단 바 높이 → 옆 패널 sticky 기준, 상세 능력치 창을 상세 보기 패널 왼쪽에 고정 */
 /** 편성 보관함 (세로 줄, 보드 오른쪽) 옆 팝업 자리 (docs/UI.md 15): 상자 바깥 오른쪽 = 보드 반대쪽 (상세 패널 위)이라 보드 칸을 가리지 않는다.
  *  자리가 모자라거나 (좁은 화면 · 보관함이 보드 아래 가로 줄) 세로 줄이 아니면 null → 화면 아래 시트 */
+const railVertical = (rail: HTMLElement | null) => !!rail && getComputedStyle(rail).flexDirection === 'column'; // 물품이 몇 개 없어 상자가 낮아도 세로 줄
 function invRailSide(a: HTMLElement, w: number) {
-  const box = a.closest<HTMLElement>('.inv-rail')?.getBoundingClientRect();
-  if (!box || innerWidth <= 700 || box.width >= box.height) return null;
+  const rail = a.closest<HTMLElement>('.inv-rail'), box = rail?.getBoundingClientRect();
+  if (!box || innerWidth <= 700 || !railVertical(rail)) return null;
   const room = innerWidth - 8 - (box.right + 10);
   return room >= Math.min(w, 220) ? { left: box.right + 10, w: Math.min(w, room) } : null;
+}
+/** 태블릿 세로 (보관함이 보드 옆 세로 줄인데 오른쪽 자리가 없을 때): 보드 위 머리 자리 (상단 바 · 보드 머리줄 — 둘 다 sticky · 불투명) 에 겹쳐 띄운다.
+ *  보드 칸을 가리지 않고, 보관함 바로 위라 누른 물품 옆이다. 높이 = 보드 창 위끝 (스크롤로 보드가 머리 밑에 들어가면 머리 아래끝) 까지 → 넘치면 팝업 안 스크롤.
+ *  세로 화면만 (가로 폰은 머리 자리가 낮아 예전처럼 하단 시트). 자리가 너무 낮으면 null */
+function railTopDock(a: HTMLElement): { h: number } | null {
+  const rail = a.closest<HTMLElement>('.inv-rail');
+  if (!railVertical(rail) || innerHeight <= innerWidth) return null;
+  const vp = root.querySelector<HTMLElement>('.prep .board-vp')?.getBoundingClientRect();
+  if (!vp) return null;
+  const tb = root.querySelector<HTMLElement>('header.top')?.getBoundingClientRect().bottom ?? 0, hb = root.querySelector<HTMLElement>('.prep .board-head')?.getBoundingClientRect().bottom ?? 0;
+  const h = Math.floor(Math.max(tb, hb, vp.top - 6)) - 8;
+  return h >= 96 ? { h } : null;
 }
 /** 하단 시트가 고른 칸을 가리면 페이지를 그만큼 올린다 (시트를 위로 옮겨 보드를 덮지 않는다). 같은 물품에 한 번만 (사용자 스크롤과 다투지 않게) */
 let sheetKey = '';
@@ -3723,7 +3754,9 @@ function placeInvPop() {
   const a = root.querySelector<HTMLElement>('.inv-rail .item.sel, .inv-rail .relic-tok.on, .inv .item.sel, .inv .relic-tok.on');
   const key = `${app.sel?.k === 'item' ? app.sel.idx : app.sel?.k === 'relic' ? app.sel.id : ''}`;
   if (a?.closest('.inv-rail')) {
-    const side = invRailSide(a, 260);
+    const side = invRailSide(a, 260), dock = side ? null : railTopDock(a);
+    if (dock) { p.classList.remove('sheet'); p.classList.add('dock-top'); p.style.cssText = `left:8px;right:8px;top:8px;bottom:auto;width:auto;max-height:${dock.h}px`; sheetKey = key; return; } // 태블릿 세로: 보드 위 머리 자리
+    p.classList.remove('dock-top');
     if (!side) { p.classList.add('sheet'); p.style.cssText = ''; sheetReveal(a, p, key); return; }
     p.classList.remove('sheet');
     p.style.cssText = `width:${side.w}px`;
@@ -4103,6 +4136,7 @@ function render() {
   AB.ABOPT.coef = app.detail; // 상세 보기: 피해 · 회복을 계수로
   if (app.screen !== 'battle' && app.view) { app.view.destroy(); app.view = null; }
   const run = app.run;
+  if (app.popOff && !(run && placingSel(run) && app.popOff === popKey(run))) app.popOff = ''; // 놓기가 끝나거나 다른 것을 고르면 닫아 둔 팝업 기록을 지운다
   if (run && app.screen === 'shop' && lastView.screen !== 'shop' && SHOP.onOpen(run)) // 상인 상점을 열 때 인사 (처음 · 다시 열 때). 처음 연 표시(met)는 바로 저장 (불러와도 재방문 인사)
     queueMicrotask(() => { if (app.run === run && !run.over) saveRun(run, run.lab ? LAB.LAB_SLOT : run.tutorial ? TUT_SLOT : run.campaign ? CAMP_SLOT : 'auto'); });
   if (run && app.screen === 'map' && lastView.screen !== 'map' && R.ticketCount(run)) SHOP.adStart(); // 지정 소집 티켓: 지도를 열 때마다 페트라 광고판
@@ -5646,8 +5680,11 @@ function act(a: string, v: string) {
       app.abilPop = null;
       if (app.sel?.k === 'item' && run && isConsumable(run.inventory[app.sel.idx])) { tryUse(run, app.sel.idx, { k: 'foe', i: +v }); break; } // 탭: 강제 징수기 → 적 (다른 소모품은 알림 후 선택 해제)
       app.sel = { k: 'enemy', i: +v }; break;
+    case 'pop-off': if (run && placingSel(run)) app.popOff = popKey(run); break; // 놓는 중 팝업만 닫기 (칩이 대신 보인다)
     case 'sel-item': {
       if (!run) return;
+      if (app.sel?.k === 'item' && app.sel.idx === +v && app.popOff && app.popOff === popKey(run)) { app.popOff = ''; break; } // 닫아 둔 팝업 다시 열기 (놓기는 그대로)
+      app.popOff = '';
       if (app.sel?.k === 'item' && app.sel.idx !== +v && isPlaceable(run.inventory[app.sel.idx])) { app.sel = { k: 'item', idx: +v }; break; } // 배치형 소모품은 칸에만 쓰므로 다른 물품을 누르면 그 물품으로 바꿔 고른다
       if (app.sel?.k === 'item' && app.sel.idx !== +v && isConsumable(run.inventory[app.sel.idx])) { tryUse(run, app.sel.idx, { k: 'inv', i: +v }); break; } // 탭: 소모품 → 장비 (맞지 않는 물품이면 알림 후 선택 해제)
       if (app.sel?.k === 'item' && app.sel.idx !== +v && askCombineInv(run, app.sel.idx, +v)) break; // 탭: 장비 → 조합되는 장비 = 조합 확인 팝업

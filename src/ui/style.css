@@ -1361,6 +1361,10 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .sg-card.on { border-color: var(--c-select); background: color-mix(in srgb, var(--c-select) 8%, var(--panel)); }
 .sg-card.sold { background: var(--bg); }
 .sg-card.sold > :not(.sg-foot) { opacity: calc(.4 + var(--op-lift)); }
+/* 진열하지 않은 칸 (상점마다 6~9개): 빈 선반 — 면 · 내용 · 강조 없이 옅은 테두리와 아래쪽 선반 줄만. 품절 (바탕 칸 + 흐린 내용 + 도장)과 다른 모양, 3×3 자리는 그대로 */
+.sg-card.sg-empty { cursor: default; background: transparent; border-color: var(--line-soft); }
+.sg-card.sg-empty:hover { border-color: var(--line-soft); }
+.sg-card.sg-empty::after { content: ''; position: absolute; left: 10%; right: 10%; bottom: 14px; height: 2px; border-radius: var(--r-sm); background: var(--line-soft); }
 .sg-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; }
 .sg-top .item { width: 38px; height: 38px; cursor: inherit; }
 .sg-top .item .ii { width: 22px; height: 22px; }
@@ -1409,6 +1413,10 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .sd-rules { border-top: 1px solid var(--line-soft); padding-top: 6px; }
 .sd-rules .sc-row:first-child { margin-top: 0; }
 .so-foot { position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; padding: 10px 0 12px; background: linear-gradient(transparent, var(--bg) 30%); }
+.so-mu { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; }
+.so-mu .item { width: 22px; height: 22px; cursor: inherit; }
+.so-mu .item .ii { width: 14px; height: 14px; }
+.so-mu small { font-family: var(--f-mono); color: var(--c-text-2); }
 .sb-pay { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; color: var(--c-credit); }
 .sb-pay .li { width: 14px; height: 14px; }
 .sb-pay b { font: 700 var(--fs-lg) var(--f-mono); }
@@ -1537,6 +1545,20 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 /* 보관 물품 정보 팝업 (스킬 상세처럼: 아이콘 · 능력치 · 효과) */
 .inv-pop { position: fixed; z-index: var(--z-pop); width: 260px; display: grid; gap: 8px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 8px 24px color-mix(in srgb, var(--c-black) 45%, transparent); font-size: var(--fs-base); }
 .inv-pop.sheet { left: 8px !important; right: 8px; bottom: 8px; top: auto !important; width: auto; } /* JS 가 넣은 인라인 left · top 을 이긴다 (하단 시트) */
+/* 태블릿 세로 (보관함 세로 줄 · 오른쪽 자리 없음, main.ts railTopDock): 보드 위 머리 자리 (상단 바 · 보드 머리줄)에 겹쳐 — 보드 칸을 가리지 않는다. 높이는 JS (max-height), 넘치면 안에서 스크롤.
+   넓은 띠라 머리 (아이콘 · 이름) 는 왼쪽 칸, 성질 · 효과 · 바닥 줄은 오른쪽 칸 */
+.inv-pop.dock-top { --ip-hw: min(220px, 32%); display: block; overflow-y: auto; overscroll-behavior: contain; } /* 자리 (left · right · top · max-height) 는 JS 인라인 */
+.inv-pop.dock-top > .ip-head { float: left; width: var(--ip-hw); }
+.inv-pop.dock-top > :not(.ip-head) { margin: 0 34px 6px calc(var(--ip-hw) + 14px); }
+.inv-pop.dock-top > :last-child { margin-bottom: 0; }
+.inv-pop.dock-top .ip-x { position: absolute; top: 8px; right: 8px; }
+.inv-pop.ip-placing.dock-top .ip-more { display: inline-block; margin-left: auto; }
+.inv-pop.ip-placing.dock-top .ip-more + .ip-cancel { margin-left: 0; }
+.inv-pop.ip-placing.dock-top:not(.more) > :not(.ip-head):not(.ip-foot) { display: none; }
+.ask-pop.dock-top { overflow-y: auto; overscroll-behavior: contain; }
+/* 놓는 중 바닥 줄: [판매] … [자세히] [취소] 한 줄, 조작 안내는 그 아래 한 줄 (행동 칩이 없는 동안 놓기 취소 = [취소] · Esc) */
+.ip-foot .ip-cancel { margin-left: auto; }
+.ip-foot .ip-hint { flex-basis: 100%; }
 .ip-head { display: flex; align-items: center; gap: 10px; } .ip-head > div { display: grid; min-width: 0; } .ip-head b { font-size: var(--fs-md); }
 .ip-kind { font-size: var(--fs-xs); color: var(--c-text-2); letter-spacing: .04em; }
 .ip-x { margin-left: auto; padding: 0 7px; }
@@ -4532,11 +4554,10 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .dev-zone i.z-b { border-bottom: 1px solid var(--zc); } .dev-zone i.z-l { border-left: 1px solid var(--zc); }
 .dev-zone i.z-t.z-l { border-top-left-radius: var(--r-sm); } .dev-zone i.z-t.z-r { border-top-right-radius: var(--r-sm); } .dev-zone i.z-b.z-l { border-bottom-left-radius: var(--r-sm); } .dev-zone i.z-b.z-r { border-bottom-right-radius: var(--r-sm); }
 /* 쥔 도구 칩 (main.ts toolChip): 아이콘 + 무엇을 · 무엇을 하는 중 + 남은 수 + 취소. 보관 물품 팝업이 열려 있으면 띄우지 않는다 (같은 정보, docs/UI.md 15) — 보드를 누르는 동안의 배치 · 크레인만 남긴다.
-   자리는 보드 창 위쪽 가장자리에 겹쳐 (.tool-ovl, absolute — 머리줄을 밀거나 줄을 바꾸지 않는다). 칩 몸통은 누름을 통과시키고 단추만 받는다 */
+   자리는 보드 창 위쪽 가장자리에 겹쳐 (.tool-ovl, absolute — 머리줄을 밀거나 줄을 바꾸지 않는다). 칩 전체가 누름을 받는다 (글자를 눌러도 밑의 칸에 놓이지 않게, docs/UI.md 15) — 칩 바깥 띠는 통과 */
 .board-row { position: relative; }
 .tool-ovl { position: absolute; left: 0; right: 0; top: 6px; z-index: var(--z-sticky); display: flex; justify-content: center; pointer-events: none; }
-.tool-ovl .tool-chip { max-width: calc(100% - 16px); box-shadow: 0 2px 10px color-mix(in srgb, var(--c-black) 50%, transparent); }
-.tool-ovl .tool-chip .btn { pointer-events: auto; }
+.tool-ovl .tool-chip { max-width: calc(100% - 16px); box-shadow: 0 2px 10px color-mix(in srgb, var(--c-black) 50%, transparent); pointer-events: auto; cursor: default; }
 .tool-chip { display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 1px 2px 1px 4px; box-sizing: border-box; border: 1px solid var(--c-select); border-radius: var(--r-pill); background: color-mix(in srgb, var(--c-select) 14%, var(--panel)); font-size: var(--fs-sm); white-space: nowrap; }
 .tool-chip .item, .tool-chip .relic-tok { width: 22px; height: 22px; font-size: var(--fs-sm); cursor: default; }
 .tool-chip .tc-ic { display: grid; place-items: center; width: 22px; height: 22px; color: var(--c-select); }
@@ -4831,9 +4852,11 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ip-more { display: none; }
 @media (max-width: 700px) {
   .inv-pop.ip-placing .ip-more { display: inline-block; margin-left: auto; }
+  .inv-pop.ip-placing .ip-more + .ip-cancel { margin-left: 0; }
   .inv-pop.ip-placing:not(.more) > :not(.ip-head):not(.ip-foot) { display: none; }
 }
-/* 보관함 팝업(.inv-pop, 보드 열 안)이 배치 중에 오른쪽 상세 패널 위로 뜰 수 있게: 넓은 화면에서 보드 열은 sticky 라 쌓임 맥락을 만든다 */
+/* 보드 열 안에서 떠 있는 것 (끌기 · 이름표)이 오른쪽 상세 패널 위로 뜰 수 있게: 넓은 화면에서 보드 열은 sticky 라 쌓임 맥락을 만든다.
+   보관함 팝업(.inv-pop)은 보드 열 밖 (.prep 의 마지막 자식) — 이 맥락에 갇히지 않아 태블릿 세로의 머리 자리 (상단 바 위)에도 뜬다 */
 .prep > .board-col { z-index: var(--z-raise); }
 /* ───────── 에란테스 훈련장 (ui/lab.ts): 편성 화면 오른쪽에 떠 있는 패널 · 좁은 화면은 아래 시트 */
 .title-actions .ts-lab { grid-column: 1 / -1; border-color: color-mix(in srgb, var(--c-info) 45%, var(--line)); }
