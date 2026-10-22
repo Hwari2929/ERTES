@@ -1409,9 +1409,20 @@ const boardBox = (g: Geo, ex: number) => {
   const f = prepFrame(g, ex);
   return (x: number, y: number, w = 1, h = 1) => { const r = rectScr(g, x, y, w, h); return `left:${((r.x - f.ox) / f.bw) * 100}%;top:${((r.y - f.oy) / f.bh) * 100}%;width:${(100 * r.w) / f.bw}%;height:${(100 * r.h) / f.bh}%`; };
 };
-/** 배치 미리보기 (편성 화면): 고르거나 끄는 배치형 소모품을 가리킨 칸에 놓으면 차지 · 영향을 주는 칸 (놓을 수 있음 = 초록 · 없음 = 빨강) + 이유 이름표.
- *  판정은 엔진 그대로 (R.placeDevice → deviceErr). once = 끌어 놓기가 막힌 뒤 한 번 그릴 때만 (선택 없이) */
-let devPv: { idx: number; id: string; x: number; y: number; once?: boolean } | null = null;
+/** 배치 미리보기 (편성 화면): 고르거나 끄는 배치형 소모품을 가리킨 칸 = 기준점 (장치 실루엣 + 조준 모서리) · 효과 범위 (점선 + 빗금) · 놓을 수 없으면 금지 + 이유.
+ *  판정은 엔진 그대로 (R.placeDevice → deviceErr). once = 끌어 놓기가 막힌 뒤 한 번 그릴 때만 (선택 없이) · cand = 터치 첫 탭의 후보 (같은 칸을 다시 누르면 확정) */
+let devPv: { idx: number; id: string; x: number; y: number; once?: boolean; cand?: boolean } | null = null;
+/** 범위 · 모드가 중요한 배치형 소모품: 터치에서는 첫 탭 = 후보 표시, 같은 칸 재탭 = 확정 (docs/UI.md 11). 바리케이드는 옮기기 · 회수가 쉬워 바로 놓는다 */
+const TWO_STEP = ['K_net', 'K_scope', 'K_decoy', 'K_mine'];
+/** 마지막 누름이 손가락인지 (터치 두 단계 배치 판정) */
+let touchPtr = false;
+/** 지형 덩어리를 새로 고른 그리기에서만 짧은 전환 (prepScreen) */
+let trSelLast = '';
+/** 쥔 도구 배지 (보관함 물품 · 든 컨테이너 오른쪽 위): 선택 (실선)과 모양이 다른 표시 */
+const ARM_BADGE = '<i class="arm-b" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="12" cy="12" r="6"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg></i>';
+window.addEventListener('pointerdown', (e) => { touchPtr = e.pointerType === 'touch'; }, { capture: true, passive: true });
+/** 금지 표시 (놓을 수 없는 칸 · 받을 수 없는 대상) */
+const NO_ICON = '<svg class="no-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M6 18L18 6"/></svg>';
 /** 엔진의 '놓을 수 없음' 문구 (run.ts placeDevice · deviceErr) → 짧은 이름표. 칸을 차지한 것은 장치 · 적 · 기물로 나눈다 */
 function placeReason(run: RunState, err: string, x: number, y: number) {
   if (err === R.ROOM_ERR) return '출전 자리 부족'; // 장치를 놓으면 출전 기물이 설 칸이 모자라다
@@ -1428,25 +1439,34 @@ function placeReason(run: RunState, err: string, x: number, y: number) {
   }
   return err;
 }
-/** 미리보기 칸 + 이름표 HTML (prepScreen 과 끄는 · 가리키는 동안의 갱신 공용) */
+/** 미리보기 HTML (prepScreen 과 끄는 · 가리키는 동안의 갱신 공용). docs/UI.md 10 — 세 겹을 서로 다른 표현으로:
+ *  효과 범위 = 장치 색 점선 + 빗금 (그물 2×2 · 망원경 반경 · 지뢰 발동 반경) · 기준점 = 놓일 장치 모습 그대로 + 조준 모서리 · 놓을 수 없음 = 그 칸에 금지 + 짧은 이유 */
 function devPvHtml(run: RunState, pv: NonNullable<typeof devPv>, ex: number) {
   const enc = run.node?.enc;
   if (!enc) return '';
   const g = runGeo(run), { id, x, y } = pv, box = boardBox(g, ex), fr = prepFrame(g, ex), sp = toScr(g, x, y);
   const r = R.placeDevice(run, id, { k: 'cell', x, y });
   const d: Device = r.dev ?? { id, x, y };
-  const inside = (c: { x: number; y: number }) => c.x >= PAD && c.x < g.w - PAD && c.y >= PAD && c.y < g.h - PAD;
-  let cells: { x: number; y: number }[];
-  if (id === 'K_net') cells = r.dev ? netCells(d) : [{ x, y }];
-  else if (id === 'K_scope') { const k = scopeR(tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0)); cells = []; for (let dy = -k; dy <= k; dy++) for (let dx = -k; dx <= k; dx++) cells.push({ x: x + dx, y: y + dy }); cells = cells.filter(inside); if (!cells.length) cells = [{ x, y }]; }
-  else cells = r.dev ? deviceCells(d) : [{ x, y }];
-  const lb = r.err ? placeReason(run, r.err, x, y) : id === 'K_scope' ? (d.mode === 'strike' ? '지정 포격' : '항공 보급') : '';
   const side = sp.x - fr.ox < fr.bw / 2 ? 'l' : 'r', below = sp.y - fr.oy < 1 ? ' below' : ''; // 이름표는 화면 기준 (가로 지형도)
-  const ghost = r.err ? '' : `<span class="dev-pv-ic" style="${box(x, y)}">${lineIcon(SPECIAL_GLYPH[id] || 'a.power', 'li')}</span>`; // 놓을 수 있으면 가리킨 칸에 흐린 장치 아이콘
-  return `<div class="dev-pv ${r.err ? 'bad' : 'ok'}">${cells.map((c) => `<i class="${c.x === x && c.y === y ? 'at' : ''}" style="${box(c.x, c.y)}"></i>`).join('')}${ghost}${lb ? `<span class="dev-pv-at" style="${box(x, y)}"><b class="dev-pv-lb ${side}${below}" role="status">${esc(lb)}</b></span>` : ''}</div>`;
+  const label = (t: string) => `<span class="dev-pv-at" style="${box(x, y)}"><b class="dev-pv-lb ${side}${below}" role="status">${t}</b></span>`;
+  if (r.err) return `<div class="dev-pv bad"><i class="pv-no" style="${box(x, y)}">${NO_ICON}</i>${label(esc(placeReason(run, r.err, x, y)))}</div>`;
+  // 효과 범위 (전장 안으로 자른 사각형 하나)
+  const rr = id === 'K_net' ? null : id === 'K_scope' ? scopeR(tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0)) : id === 'K_mine' ? DEV.mine.r : -1;
+  const [x0, y0, x1, y1] = id === 'K_net' ? [x, y, x + 1, y + 1] : [x - (rr ?? 0), y - (rr ?? 0), x + (rr ?? 0), y + (rr ?? 0)];
+  const cx0 = Math.max(PAD, x0), cy0 = Math.max(PAD, y0), cx1 = Math.min(g.w - PAD - 1, x1), cy1 = Math.min(g.h - PAD - 1, y1);
+  const kind = id === 'K_net' ? 'net' : id === 'K_scope' ? (d.mode === 'strike' ? 'strike' : 'drop') : id === 'K_mine' ? 'mine' : id === 'K_decoy' ? 'decoy' : 'wall';
+  const range = rr !== -1 && cx1 >= cx0 && cy1 >= cy0 ? `<i class="pv-range dev-${kind}" style="${box(cx0, cy0, cx1 - cx0 + 1, cy1 - cy0 + 1)}"></i>` : '';
+  // 기준점: 놓은 뒤와 같은 모습 (deviceTokens 와 같은 클래스, 누를 수 없음)
+  const ic = lineIcon(SPECIAL_GLYPH[id] || 'a.power', 'li');
+  const body = id === 'K_net' || id === 'K_scope' ? `<span class="dev-mark dev-${kind} pv-ghost" style="${box(x, y)}">${ic}</span>`
+    : deviceCells(d).map((c) => `<span class="dev-tok dev-${kind} pv-ghost" style="${box(c.x, c.y)}">${ic}</span>`).join('');
+  const aim = `<i class="pv-aim" style="${box(x, y)}"></i>`;
+  const what = id === 'K_scope' ? (d.mode === 'strike' ? '지정 포격' : '항공 보급') : id === 'K_decoy' ? `도발 ×${DEV.decoy.prov} · 적 전체` : '';
+  const lb = [what, pv.cand ? '다시 눌러 확정' : ''].filter(Boolean).join(' · ');
+  return `<div class="dev-pv ok${pv.cand ? ' cand' : ''}">${range}${body}${aim}${lb ? label(esc(lb)) : ''}</div>`;
 }
-/** 배치형 소모품을 놓을 수 있는 칸 (편성 보드 화면 틀 안, 판정은 엔진 R.useCheck) → ok = 전장 좌표 'x,y' 집합 · html = 한 덩어리 반투명 층
- *  (칸마다 <i> 를 칸 간격 없이 이어 붙이고, 덩어리 바깥 변에만 가는 선 z-t/r/b/l — docs/UI.md 10: 칸마다 굵은 테두리 대신 층 하나) */
+/** 배치형 소모품을 놓을 수 있는 칸 (편성 보드 화면 틀 안, 판정은 엔진 R.useCheck) → ok = 전장 좌표 'x,y' 집합 · html = 한 덩어리 약한 면 (정적)
+ *  (칸마다 <i> 를 칸 간격 없이 이어 붙이고, 덩어리 바깥 변에만 가는 선 z-t/r/b/l — docs/UI.md 10: 놓을 수 있는 영역 = 약한 면, 정적) */
 function devZone(run: RunState, idx: number, ex: number) {
   const g = runGeo(run), fr = prepFrame(g, ex), box = boardBox(g, ex), ok = new Set<string>(), on = new Set<string>(), at: { sx: number; sy: number; x: number; y: number }[] = [];
   for (let sy = 0; sy < fr.bh; sy++) for (let sx = 0; sx < fr.bw; sx++) {
@@ -1458,11 +1478,71 @@ function devZone(run: RunState, idx: number, ex: number) {
   const html = `<div class="dev-zone" aria-hidden="true">${at.map(({ sx, sy, x, y }) => `<i class="${[!has(sx, sy - 1) && 'z-t', !has(sx + 1, sy) && 'z-r', !has(sx, sy + 1) && 'z-b', !has(sx - 1, sy) && 'z-l'].filter(Boolean).join(' ')}" style="${box(x, y)}"></i>`).join('')}</div>`;
   return { ok, html };
 }
-/** 놓는 중 칩 (편성 보드 머리): 무엇을 놓는지 = 아이콘 + 이름 + 남은 수 (망원경은 사용 횟수) + 취소 (Esc 와 같음) */
-function placeChip(run: RunState, idx: number) {
-  const id = run.inventory[idx], it = itemInfo(id);
-  const [k, n] = id === 'K_scope' && run.scope ? ['횟수', run.scope.n] : ['보유', run.inventory.filter((x) => x === id).length];
-  return `<span class="place-chip" role="status">${itemIcon(id)}<b class="plc-name">${esc(it.name)}</b><span class="plc-n">${k} <b>${n}</b></span><button class="btn tiny plc-x" data-a="sel-clear" title="놓기 취소 (Esc)">취소</button></span>`;
+/** 쥔 도구 (docs/UI.md 11): 다음 누름에 쓰일 것 — 보관함에서 고른 장비 (장착) · 소모품 (사용 · 배치) · 성유물 (장착) · 크레인으로 든 컨테이너 (옮기기).
+ *  상세를 보려고 고른 대상 (기물 · 적 · 지형 · 포탑)은 쥔 도구가 아니다 (app.sel 은 그대로 두고 여기서 가른다) */
+type Tool = { k: 'place' | 'equip' | 'use'; idx: number; id: string } | { k: 'relic'; id: string } | { k: 'crane'; crate: number };
+function toolOf(run: RunState | null): Tool | null {
+  if (!run) return null;
+  const s = app.sel;
+  if (s?.k === 'relic') return { k: 'relic', id: s.id };
+  if (s?.k === 'item') {
+    const id = run.inventory[s.idx];
+    if (!id) return null;
+    if (isPlaceable(id)) return app.screen === 'prep' && run.node?.enc ? { k: 'place', idx: s.idx, id } : null; // 조우 밖에서는 놓을 곳이 없다 (보기만)
+    return { k: isConsumable(id) ? 'use' : 'equip', idx: s.idx, id };
+  }
+  const c = app.screen === 'prep' ? craneOn(run) : null;
+  return c === null ? null : { k: 'crane', crate: c };
+}
+const crateName = (c: number) => `컨테이너 ${String.fromCharCode(65 + c)}`;
+/** 쥔 도구 칩 (편성 보드 머리): 무엇을 쥐고 다음 누름이 무엇을 하는지 + 남은 수 + 취소 (Esc 와 같음).
+ *  '감전 지뢰 배치 중 · 보유 1' · '장비 장착 중: 이름' · '크레인: 컨테이너 B 옮기는 중' */
+function toolChip(run: RunState, t: Tool) {
+  const dot = '<i class="tc-dot" aria-hidden="true">·</i>';
+  const x = (a: string, v = '', tip = '취소 (Esc)') => `<button class="btn tiny plc-x" data-a="${a}"${v ? ` data-v="${v}"` : ''} title="${tip}">취소</button>`;
+  const chip = (cls: string, inner: string, cancel: string) => `<span class="tool-chip tc-${cls}" role="status">${inner}${cancel}</span>`;
+  if (t.k === 'crane') return chip('crane', `<span class="tc-ic">${lineIcon('tr.crane', 'li')}</span><span class="tc-do">크레인:</span><b class="plc-name">${crateName(t.crate)}</b><span class="tc-do">옮기는 중</span>`, x('crane-pick', String(t.crate), '옮기기 취소 (Esc)'));
+  if (t.k === 'relic') return chip('equip', `${relicTok(t.id)}<span class="tc-do">성유물 장착 중:</span><b class="plc-name">${esc(RELIC_BY_ID[t.id]?.name || '')}</b>`, x('sel-clear'));
+  const it = itemInfo(t.id), have = run.inventory.filter((y) => y === t.id).length;
+  if (t.k === 'equip') return chip('equip', `${itemIcon(t.id)}<span class="tc-do">${isMod(t.id) ? '개조부품' : isTurretItem(t.id) ? '포탑 장비' : '장비'} 장착 중:</span><b class="plc-name">${esc(it.name)}</b>`, x('sel-clear', '', '장착 취소 (Esc)'));
+  const [k, n] = t.id === 'K_scope' && run.scope ? ['횟수', run.scope.n] : ['보유', have];
+  const verb = t.k === 'place' ? (t.id === 'K_scope' ? '지정 중' : '배치 중') : '사용 중';
+  return chip(t.k, `${itemIcon(t.id)}<b class="plc-name">${esc(it.name)}</b><span class="tc-do">${verb}</span>${dot}<span class="plc-n">${k} <b>${n}</b></span>`, x('sel-clear', '', `${t.k === 'place' ? '놓기' : '사용'} 취소 (Esc)`));
+}
+/** 엔진 오류 문구 → 대상 옆 짧은 이유 */
+function whyShort(e: string) {
+  if (e === R.WRONG_TARGET) return '대상 아님';
+  for (const [k, v] of [['가득', '칸 가득'], ['반려 돌', '반려 돌'], ['문장', '이미 소속'], ['최고', '최고 등급'], ['포탑', '포탑 전용'], ['디바인', '디바인만'], ['공간', '보관함 부족'], ['장비가 없', '장비 없음'], ['바뀔 수 있는', '대상 없음']] as const) if (e.includes(k)) return v;
+  return '불가';
+}
+/** 쥔 도구의 대상 표시 (편성 화면, 그린 뒤 한 번): 받을 수 있는 기물 · 적 · 장착 장비 · 보관함 장비 = tg-ok + 다음 누름 결과 (장착 · 조합 · 교체 · 사용),
+ *  받을 수 없는 아군 = tg-no + 짧은 이유 (가리키면 이름표). 판정은 엔진 그대로 (equipCheck · useCheck · equipCombo · combinePreview) */
+function toolMark(run: RunState) {
+  const t = toolOf(run);
+  if (!t || t.k === 'place' || t.k === 'crane') return;
+  const mark = (el: Element, ok: boolean, lb: string) => { el.classList.add(ok ? 'tg-ok' : 'tg-no'); el.setAttribute('data-tgl', lb); };
+  const allies = root.querySelectorAll<HTMLElement>('.prep .u[data-a="sel-unit"]:not(.comp-tk)'), foes = root.querySelectorAll<HTMLElement>('.prep .u[data-a="sel-enemy"]');
+  const turrets = root.querySelectorAll<HTMLElement>('.prep .u[data-a="sel-turret"]'), inv = root.querySelectorAll<HTMLElement>('.prep .inv-rail .item[data-a="sel-item"]');
+  const unitOf = (el: HTMLElement) => run.units.find((u) => u.uid === el.dataset.v);
+  if (t.k === 'relic') { allies.forEach((el) => { const u = unitOf(el); if (u) mark(el, UNIT_BY_ID[u.defId].ttype === 'divine', UNIT_BY_ID[u.defId].ttype === 'divine' ? (u.relic ? '교체' : '장착') : '디바인만'); }); return; }
+  if (t.k === 'equip') {
+    const tur = isTurretItem(t.id);
+    allies.forEach((el) => { const u = unitOf(el); if (!u) return; const e = tur ? '포탑 전용' : R.equipCheck(run, t.id, u.uid); mark(el, !e, e ? whyShort(e) : isMod(t.id) ? (u.mod ? '교체' : '장착') : R.equipCombo(run, t.id, u.uid) ? '조합' : '장착'); });
+    turrets.forEach((el) => mark(el, tur, tur ? '장착' : '포탑 불가'));
+    if (!tur) inv.forEach((el) => { const j = +el.dataset.v!; if (j !== t.idx && R.combinePreview(run, t.idx, j)) mark(el, true, '조합'); });
+    return;
+  }
+  const c = CONSUMABLES[t.id];
+  if (!c || c.target === 'run') return; // 함대에 바로 쓰는 소모품은 '사용' 단추로
+  const use = (tg: R.UseTarget) => R.useCheck(run, t.idx, tg);
+  if (c.target === 'item') { // 장비에 쓰는 소모품: 장착 장비 칸 · 보관함 장비 (재구성 회로는 기물도)
+    root.querySelectorAll<HTMLElement>('.prep .tk-it[data-a="item-info"]').forEach((el) => { const [uid, k] = el.dataset.v!.split(':'); if (!use({ k: 'eq', uid, slot: +k })) mark(el, true, '사용'); });
+    inv.forEach((el) => { const j = +el.dataset.v!; if (j !== t.idx && !use({ k: 'inv', i: j })) mark(el, true, '사용'); });
+    if (c.alsoItem) allies.forEach((el) => { const u = unitOf(el); if (u && !use({ k: 'unit', uid: u.uid })) mark(el, true, '사용'); });
+    return;
+  }
+  if (c.target === 'unit') allies.forEach((el) => { const u = unitOf(el); if (!u) return; const e = use({ k: 'unit', uid: u.uid }); mark(el, !e, e ? whyShort(e) : '사용'); });
+  foes.forEach((el) => { const e = use({ k: 'foe', i: +el.dataset.v! }); if (!e) mark(el, true, '사용'); else if (c.target === 'foe') mark(el, false, whyShort(e)); });
 }
 /** 가리키거나 끄는 칸이 바뀌면 보드의 미리보기만 다시 그린다 (화면 전체를 다시 그리지 않음) */
 function devPvShow(board: HTMLElement, pv: typeof devPv) {
@@ -1473,11 +1553,14 @@ function devPvShow(board: HTMLElement, pv: typeof devPv) {
   if (same && host.firstChild) return;
   host.innerHTML = pv ? devPvHtml(run, pv, +board.dataset.ex!) : '';
 }
-/** 배치형 소모품을 이 칸에 (누르기 · 끌어 놓기 공용): 놓을 수 있으면 놓고, 없으면 그 칸 옆에 이유를 띄우고 고른 상태는 그대로 둔다 */
+/** 배치형 소모품을 이 칸에 (누르기 · 끌어 놓기 공용): 놓을 수 있으면 놓고, 없으면 그 칸 옆에 이유를 띄우고 고른 상태는 그대로 둔다.
+ *  터치로 누른 범위 · 모드 장치 (TWO_STEP): 첫 탭은 후보만 (기준점 · 범위 · 이유), 같은 칸을 다시 누르면 놓는다. 다른 칸을 누르면 후보가 옮겨 간다 */
 function placeAt(run: RunState, idx: number, x: number, y: number, dragged = false) {
   const id = run.inventory[idx];
   if (!isPlaceable(id)) return;
   const err = R.useCheck(run, idx, { k: 'cell', x, y });
+  const confirm = !!devPv?.cand && devPv.idx === idx && devPv.x === x && devPv.y === y;
+  if (!err && !dragged && touchPtr && TWO_STEP.includes(id) && !confirm) { devPv = { idx, id, x, y, cand: true }; return; }
   if (!err) { devPv = null; tryUse(run, idx, { k: 'cell', x, y }); return; }
   devPv = { idx, id, x, y, once: dragged };
   SND.toastSfx(err); // 오류음 (알림 대신 칸 옆 이름표)
@@ -1523,6 +1606,10 @@ function prepScreen(run: RunState) {
   let cells = '';
   const placeSel = app.sel?.k === 'item' && isBattle && isPlaceable(run.inventory[app.sel.idx]) ? app.sel.idx : -1; // 배치형 소모품을 고른 채: 칸을 누르면 설치, 놓을 수 있는 칸 표시
   const zone = placeSel >= 0 ? devZone(run, placeSel, ex) : null, devOk = (x: number, y: number) => !!zone?.ok.has(`${x},${y}`); // 놓을 수 있는 칸 (반투명 층 하나, 칸에는 누를 자리 표시만)
+  const tool = toolOf(run), lift = tool?.k === 'crane' ? tool.crate : -1; // 쥔 도구 (머리 칩) · 크레인으로 든 컨테이너
+  const selG = app.sel?.k === 'terrain' ? app.sel.g : -1, selKey = selG >= 0 ? `${node?.enc?.seed ?? ''}:${selG}` : '';
+  const trFresh = selKey !== trSelLast; // 지형 덩어리를 새로 고른 그리기에서만 짧은 전환 (다시 그릴 때마다 되풀이하지 않게)
+  trSelLast = selKey;
   for (let sy = 0; sy < bh; sy++) // 화면 칸 순서 (줄 → 열)로 깔고, 칸마다 전장 좌표로 되짚는다
     for (let sx = 0; sx < bw; sx++) {
       const { x, y } = fromScr(geo, sx + fr.ox, sy + fr.oy);
@@ -1532,10 +1619,11 @@ function prepScreen(run: RunState) {
       const zc = zocCells.has(`${x},${y}`);
       if (x < PAD || x >= fw - PAD) { cells += mine ? `<div class="cell tpad${zc ? ' zoc' : ''}" data-drop="tcell:${x}:${y}" title="포탑 전용 칸${zc ? ` · ${esc(zocShort(zocCells.get(`${x},${y}`)))}` : ''}"></div>` : `<div class="cell edge${zc ? ' zoc' : ''}"${zc ? zocTip(x, y) : ''}></div>`; continue; }
       if (tk) { // 지형 칸: 배치 불가, 누르면 지형 지물 상세. 걸어갈 수 있는 지형 (연결교 · 선로)에는 장치를 놓을 수 있다
-        const walk = !(tk.bits & 1), selG = app.sel?.k === 'terrain' ? app.sel.g : -1;
+        const walk = !(tk.bits & 1), gid = tLay.at.get(`${x},${y}`)!.gid;
         const cdir = tk.k === 'rail' && geo.opt?.cart ? (geo.opt.cart > 0 ? 'cdir-r' : 'cdir-l') : ''; // 선로: 운반차 첫 방향 화살표 (조우마다 무작위)
-        cells += walk && placeSel >= 0 ? terrainCell(tLay, x, y, `data-a="dev-cell" data-v="${x}:${y}"${isBattle ? ` data-drop="xcell:${x}:${y}"` : ''}`, selG, false, [devOk(x, y) ? 'dev-ok' : '', cdir].filter(Boolean).join(' '))
-          : terrainCell(tLay, x, y, `data-a="sel-terrain" data-v="${tLay.at.get(`${x},${y}`)!.gid}"${walk && isBattle ? ` data-drop="xcell:${x}:${y}"` : ''}`, selG, !!node?.enc?.gateOpen, cdir);
+        const st = [cdir, gid === selG && trFresh ? 'tr-in' : '', lift >= 0 && tLay.groups[gid].crate === lift ? 'tr-lift' : ''].filter(Boolean).join(' '); // 고른 순간만 짧은 전환 · 크레인으로 든 컨테이너
+        cells += walk && placeSel >= 0 ? terrainCell(tLay, x, y, `data-a="dev-cell" data-v="${x}:${y}"${isBattle ? ` data-drop="xcell:${x}:${y}"` : ''}`, selG, false, [devOk(x, y) ? 'dev-ok' : '', st].filter(Boolean).join(' '))
+          : terrainCell(tLay, x, y, `data-a="sel-terrain" data-v="${gid}"${walk && isBattle ? ` data-drop="xcell:${x}:${y}"` : ''}`, selG, !!node?.enc?.gateOpen, st);
         continue;
       }
       cells += `<div class="cell ${mine ? 'mine' : enemyZone ? 'foe' : 'mid'}${zc ? ' zoc' : ''}${devOk(x, y) ? ' dev-ok' : ''}" ${mine ? `data-drop="cell:${x}:${y}"` : isBattle ? `data-drop="xcell:${x}:${y}"` : ''}${placeSel >= 0 ? ` data-a="dev-cell" data-v="${x}:${y}"` : ''}${zc ? zocTip(x, y) : ''}></div>`;
@@ -1579,7 +1667,7 @@ function prepScreen(run: RunState) {
         ? (() => { const cat = enemyCategory(e), td = TEND_NAME[e.tend], mod = s.mod || (s.stripped ? null : e.mod), its = [...(s.stripped ? [] : (e.items || []).filter((x): x is string => !!x)), ...(s.items || [])]; return `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${mod ? `<span class="tk-mod">${itemIcon(mod, `data-a="foe-item" data-v="${mod}"`)}</span>` : ''}</div><span class="tk-side">${e.tier === 'minion' ? '' : `<b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : 'E'}</b>`}<i class="cat-${cat}" title="${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}">${lineIcon(`k.${cat}`, 'li')}</i>${td ? `<i class="tk-tend" title="${esc(`${td.name}: ${td.desc}`)}">${lineIcon(`t.${e.tend}`, 'li')}</i>` : ''}</span><span class="tk-items">${[0, 1, 2].map((k) => (its[k] ? itemIcon(its[k], `data-a="foe-item" data-v="${its[k]}"`) : itemIcon(null))).join('')}</span></div>`; })()
         : sprite(e, '')}</div>`;
   });
-  units += terrainIcons(tLay, cellBox);
+  units += terrainIcons(tLay, cellBox, lift);
   units += craneLayer(run, geo, box); // 컨테이너 환적장: 빈 적재칸 (흐리게) · 크레인으로 옮길 자리
   units += deviceTokens(run, n, box);
   // 배치 미리보기: 고른 배치형 소모품 (또는 막힌 끌어 놓기 직후 한 번)
@@ -1605,7 +1693,7 @@ function prepScreen(run: RunState) {
       <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
     </aside>
     <section class="board-col">
-      <div class="board-head"><b>${esc(env)}</b>${mapChip}<span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${benchTog(benchOff, bench.length)}${tacPill(run)}${placeSel >= 0 ? placeChip(run, placeSel) : ''}<span class="muted small bh-rows">${geo.foe2 ? '가운데' : geo.rot ? '왼쪽' : '아래'} ${geo.rows}줄에 배치</span>${noRoom.length ? `<span class="small warn" title="${esc(`배치 구역에 빈칸이 없음: ${noRoom.map((t) => t.name).join(' · ')} — 전투에서 가까운 빈칸에 나온다`)}">소환 자리 없음 ${noRoom.length}</span>` : ''}
+      <div class="board-head"><b>${esc(env)}</b>${mapChip}<span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${benchTog(benchOff, bench.length)}${tacPill(run)}${tool ? toolChip(run, tool) : ''}<span class="muted small bh-rows">${geo.foe2 ? '가운데' : geo.rot ? '왼쪽' : '아래'} ${geo.rows}줄에 배치</span>${noRoom.length ? `<span class="small warn" title="${esc(`배치 구역에 빈칸이 없음: ${noRoom.map((t) => t.name).join(' · ')} — 전투에서 가까운 빈칸에 나온다`)}">소환 자리 없음 ${noRoom.length}</span>` : ''}
         ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}</div>
       <div class="board-wrap">${prepZoomCtl()}<div class="board-main">
       <div class="board-row"><div class="board-vp"><div class="board${geo.rot ? ' rot' : ''}${placeSel >= 0 ? ' placing' : ''}"${placeSel >= 0 ? ` data-pidx="${placeSel}"` : ''} style="--w:${bw};--h:${bh}" data-bw="${bw}" data-bh="${bh}" data-ex="${ex}" data-zones='${JSON.stringify(zones)}'><div class="cells">${cells}</div>${zone?.html ?? ''}${units}${startOverlay(run, geo, ex)}</div></div><div class="vp-cues"></div>${invRail(run)}</div>
@@ -1758,10 +1846,10 @@ function kingDetail(run: RunState, bar: string) {
 
 /** 편성 표 오른쪽 세로 보관 칸 (장비 · 이후 소모품). 기물에게 끌어다 장착, 재료끼리 겹치면 조합 */
 function invRail(run: RunState) {
-  const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
+  const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1, armed = !!toolOf(run) && selIdx >= 0; // 쥔 도구 (장착 · 사용 · 배치): 선택 실선 대신 떨어진 점선 고리 + 배지
   return `<div class="inv-rail" data-drop="inv" title="기물에게 끌어다 장착 · 재료끼리 겹치면 조합">
     <span class="ir-count">${run.inventory.length}/${CFG.inventoryMax}</span>
-    <div class="ir-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`, breadNote(run, i)).replace('class="item', `class="item${i === selIdx || app.ask?.hl?.includes(i) ? ' sel' : ''}`)).join('')}${run.inventory.length ? '' : '<span class="ir-empty muted">비어 있음</span>'}${relicInv(run)}</div>
+    <div class="ir-items">${run.inventory.map((id, i) => { const h = itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`, breadNote(run, i)).replace('class="item', `class="item${i === selIdx || app.ask?.hl?.includes(i) ? ' sel' : ''}${armed && i === selIdx ? ' armed' : ''}`); return armed && i === selIdx ? h.replace(/<\/span>$/, `${ARM_BADGE}</span>`) : h; }).join('')}${run.inventory.length ? '' : '<span class="ir-empty muted">비어 있음</span>'}${relicInv(run)}</div>
   </div>`;
 }
 /** 상점 등: 가로 보관 칸 */
@@ -1775,7 +1863,7 @@ function relicInv(run: RunState) {
   const rs = run.relics || [];
   if (!rs.length) return '';
   const sel = app.sel?.k === 'relic' ? app.sel.id : null;
-  return `<span class="ir-sep" title="성유물"></span>${rs.map((id) => relicTok(id, `data-drag="relic:${id}" data-a="sel-relic" data-v="${id}"`, id === sel)).join('')}`;
+  return `<span class="ir-sep" title="성유물"></span>${rs.map((id) => { const h = relicTok(id, `data-drag="relic:${id}" data-a="sel-relic" data-v="${id}"`, id === sel); return id === sel ? h.replace(/(class="[^"]*relic-tok[^"]*)"/, '$1 armed"').replace(/<\/span>$/, `${ARM_BADGE}</span>`) : h; }).join('')}`; // 고른 성유물 = 쥔 도구 (디바인에게 장착)
 }
 /** 고른 보관 물품: 설명 · 판매 */
 function invDetail(run: RunState) {
@@ -2545,8 +2633,8 @@ function terrainCell(l: TerrainLayer, x: number, y: number, act: string, selG: n
   return `<div class="cell tr tr-${k} ${c.edge}${c.gid === selG ? ' tr-sel' : ''}${k === 'gate' && gateOpen ? ' open' : ''}${folded ? ' folded' : ''}${grp.crate !== undefined ? ` cr-${grp.crate % 3}` : ''}${cls ? ` ${cls}` : ''}" ${act}${act.includes('data-v=') ? '' : ` data-v="${c.gid}"`} data-tg="${c.gid}" title="${esc(`${t.name}${folded ? ' (접음)' : ''} — ${t.desc}`)}"></div>`;
 }
 /** 지형 지물 아이콘: 덩어리마다 1개, 무게중심에 (누름은 아래 칸이 받는다). box = 칸 1개 크기 자리 (소수 좌표 가능) */
-const terrainIcons = (l: TerrainLayer, box: (x: number, y: number) => string) =>
-  l.groups.map((grp, i) => `<i class="tr-ic" style="${box(l.mid[i].x, l.mid[i].y)}">${lineIcon(TERRAIN[grp.k].icon, 'li')}</i>`).join('');
+const terrainIcons = (l: TerrainLayer, box: (x: number, y: number) => string, lift = -1) => // lift = 크레인으로 든 컨테이너 번호 (쥔 도구 배지)
+  l.groups.map((grp, i) => `<i class="tr-ic${grp.crate !== undefined && grp.crate === lift ? ' armed' : ''}" style="${box(l.mid[i].x, l.mid[i].y)}">${lineIcon(TERRAIN[grp.k].icon, 'li')}${grp.crate !== undefined && grp.crate === lift ? ARM_BADGE : ''}</i>`).join('');
 /** 전투 중 수문 덩어리 상태 (칸마다 실제 지형 비트에서): 상태 · 다음 전환까지 남은 초 (전투 시간) · 폐쇄 대기 칸 수 */
 interface GateLive { state: GateState; left: number; pend: number }
 function gateLive(b: Battle, grp: TerrainGroup): GateLive {
@@ -2581,11 +2669,12 @@ function craneLayer(run: RunState, g: Geo, box: (x: number, y: number, w?: numbe
     return `<div class="bay-host">${m.bays(g).filter(empty).map((b) => `<i class="bay" style="${box(b.x, b.y, b.w, b.h)}"></i>`).join('')}${homes.map((h) => `<i class="bay home" style="${box(h.x, h.y, h.w, h.h)}" title="원래 자리"></i>`).join('')}</div>`;
   }
   return `<div class="bay-host on">${R.craneSlots(run, pick).map((s) => s.err
-    ? `<i class="bay bad" style="${box(s.at.x, s.at.y, s.at.w, s.at.h)}" title="${esc(s.err)}"><b class="bay-lb">${esc(s.err)}</b></i>`
-    : `<button class="bay ok" data-a="crane-drop" data-v="${s.bay}" style="${box(s.at.x, s.at.y, s.at.w, s.at.h)}" title="여기로 옮기기" aria-label="컨테이너를 여기로 옮기기"><b class="bay-lb">여기로</b></button>`).join('')}</div>`;
+    ? `<i class="bay bad" style="${box(s.at.x, s.at.y, s.at.w, s.at.h)}" title="${esc(s.err)}"><b class="bay-lb">${NO_ICON}${esc(s.err)}</b></i>`
+    : `<button class="bay ok cr-${pick % 3}" data-a="crane-drop" data-v="${s.bay}" style="${box(s.at.x, s.at.y, s.at.w, s.at.h)}" title="여기로 옮기기" aria-label="${crateName(pick)}를 여기로 옮기기"><b class="bay-lb">여기로</b></button>`).join('')}</div>`; // 갈 수 있는 칸 = 약한 면 · 가리키면 컨테이너 모습 (다음 누름 결과)
 }
-/** 지형 지물 상세 (편성 · 전투 오른쪽 패널, 기물 상세와 같은 틀): 이름 + 성질 칩, 이름 + 값 줄.
- *  live = 전투 중 상태 (수문 · 운반차), prep = 편성 화면의 런 (전투 전 선택 단추: 수문 시작 상태 · 연결교 접기 · 크레인). 둘 다 없으면 조우 밖 */
+/** 지형 지물 상세 (편성 · 전투 오른쪽 패널, 기물 상세와 같은 틀). docs/UI.md 12 순서: 이름 + 지금 상태 칩 → 핵심 성질 칩 (이동 · 직선 사격 · 기술 · 위험) 한 번
+ *  → 할 수 있는 행동 (수문 시작 상태 · 연결교 접기 · 크레인) → 세부 규칙 (주기 · 일정 · 예외 · 배치) → 소개 글. 같은 정보를 칩과 표로 되풀이하지 않는다.
+ *  live = 전투 중 상태 (수문 · 운반차), prep = 편성 화면의 런 (전투 전 선택 단추). 둘 다 없으면 조우 밖 */
 function terrainDetail(g: Geo, grp: TerrainGroup, back: string, live?: { gate?: GateLive; cart?: CartLive }, prep?: RunState) {
   const t = TERRAIN[grp.k], m = mapOf(g.map), k = grp.k, enc = prep?.node?.enc;
   const gate = k === 'gate', start = !!enc?.gateOpen;
@@ -2594,42 +2683,43 @@ function terrainDetail(g: Geo, grp: TerrainGroup, back: string, live?: { gate?: 
   const folded = k === 'bridge' && !!(grp.bits & 1);
   const bl = gate && gs === 'open' ? { walk: false, shot: false } : terrainBlocks(k, gate ? undefined : grp.bits);
   const chip = (cls: string, icon: string, label: string, tip: string) => `<span class="tchip ${cls}" data-kw="foe" data-tt="${esc(label)}" data-td="${esc(tip)}" tabindex="0" role="button">${lineIcon(icon, 'li')}${label}</span>`;
-  const chips = (bl.walk ? chip('bad', 'u.area', '통행 불가', '들어가거나 지나갈 수 없다') : chip('', 'u.area', '통행 가능', '지금은 길이다'))
-    + (bl.shot ? chip('bad', 'a.range', '사격 차단', '직선 사격이 막힌다 · 기술은 틈 없이 갈라질 때만 막힌다') : chip('', 'a.range', '사격 통과', '너머로 쏠 수 있다'))
-    + (t.taken && !folded ? chip('bad', 'a.shield', `받는 피해 +${Math.round(t.taken * 100)}%`, '위에 선 기물 (엄폐 없음)') : '');
-  // 폐쇄 대기: 기물이 선 칸만 열려 있다 (비는 즉시 닫힘)
-  const via = gs === 'pending' ? `막음 · 대기 칸 ${live!.gate!.pend}칸 열림` : '';
   const C = CFG.maps.cart, cl = live?.cart;
+  // 이름 옆: 지금 상태 (바뀌는 지형만) — 수문 · 연결교 · 컨테이너 · 선로
+  const stChip = (cls: string, label: string, tip: string) => `<span class="tchip tr-st ${cls}" title="${esc(tip)}">${esc(label)}</span>`;
+  const next = live?.gate ? live.gate.left : start ? open : shut; // 다음 전환까지 (편성 화면은 전투 시작 기준)
+  const state = gate ? stChip(gs === 'open' ? 'good' : gs === 'pending' ? 'bad' : '', gs === 'pending' ? `${GATE_NAME.pending} · ${live!.gate!.pend}칸 열림` : GATE_NAME[gs], '수문 상태') + stChip('mute', `${next}초 뒤 ${gs === 'open' ? '닫힘' : '열림'}`, live ? '다음 전환' : '전투 시작부터 첫 전환')
+    : k === 'bridge' ? stChip(folded ? 'bad' : '', folded ? '접음 (진공 틈)' : '펼침', '연결교 상태')
+    : k === 'container' && grp.crate !== undefined ? stChip('', `${crateName(grp.crate)} · ${g.opt?.crane?.[grp.crate] !== undefined ? '옮김' : '원위치'}`, '크레인')
+    : k === 'rail' ? (cl ? stChip(cl.run || cl.left <= C.warn ? 'bad' : '', cl.run ? `지나는 중 ${cartArrow(cl.dir)}` : `${cl.left}초 뒤 통과 ${cartArrow(cl.dir)}`, '광석 운반차') : stChip('', `첫 방향 ${cartArrow(g.opt?.cart ?? m.cartDir ?? 1)}`, '광석 운반차 첫 방향 (조우마다 무작위, 통과마다 반대로)'))
+    : '';
+  // 핵심 성질: 한 번만 (칩)
+  const core = (bl.walk ? chip('bad', 'u.area', '통행 불가', '들어가거나 지나갈 수 없다') : chip('', 'u.area', '통행 가능', '지금은 길이다'))
+    + (bl.shot ? chip('bad', 'a.range', '사격 차단', '직선 사격이 막힌다') : chip('', 'a.range', '사격 통과', '너머로 쏠 수 있다'))
+    + (bl.shot ? chip('bad', 'p.tech', '기술 일부 차단', '기술 · 상태이상은 틈 없이 갈라질 때만 막힌다') : chip('', 'p.tech', '기술 통과', '기술 · 상태이상이 넘어간다'))
+    + (t.taken && !folded ? chip('bad', 'a.shield', `받는 피해 +${Math.round(t.taken * 100)}%`, '위에 선 기물 (엄폐 없음)') : '')
+    + (k === 'rail' ? chip('bad', 'u.area', `운반차 피해 ${Math.round(C.dmg * 100)}%`, '최대 체력 비례 물리 피해 (선로 위 기물)') : '');
+  // 세부 규칙 (이름 + 값)
   const rows: [string, string][] = [
     ['지형 틀', m.name],
     ['크기', `${grp.cells.length}칸`],
     ...(gate ? [
-      ['상태', gs === 'pending' ? `${GATE_NAME.pending} (${live!.gate!.pend}칸)` : GATE_NAME[gs]],
-      ['다음 전환', live?.gate ? `${live.gate.left}초 → ${gs === 'open' ? '닫힘' : '열림'}` : start ? `${open}초 → 닫힘` : `${shut}초 → 열림`],
       ['주기', `닫힘 ${shut}초 → 열림 ${open}초`],
       ['예외', '통과 중에는 닫히지 않음'],
+      ...(gs === 'pending' ? [['폐쇄 대기', '기물이 선 칸만 열림 · 비면 바로 닫힘']] : []),
     ] as [string, string][] : []),
-    ...(k === 'bridge' ? [['상태', folded ? '접음 (진공 틈)' : '펼침'], ...(folded ? [] : [['받는 피해', `+${Math.round((t.taken || 0) * 100)}% (위에 선 기물)`]])] as [string, string][] : []),
-    ...(k === 'container' && grp.crate !== undefined ? [['크레인', g.opt?.crane?.[grp.crate] !== undefined ? '옮김' : '원위치'],
-      ...(enc && !live ? [['옮길 자리', `${R.craneSlots(prep!, grp.crate).filter((s) => !s.err).length}곳`]] : [])] as [string, string][] : []),
     ...(k === 'rail' ? [
-      ...(cl ? [['다음 통과', cl.run ? `지나는 중 ${cartArrow(cl.dir)}` : `${cl.left}초 ${cartArrow(cl.dir)}`]] : []),
       ['운반차 통과', cartTimes()],
-      ['첫 방향', `${cartArrow(g.opt?.cart ?? m.cartDir ?? 1)} (조우마다 무작위)`],
+      ...(cl ? [['첫 방향', `${cartArrow(g.opt?.cart ?? m.cartDir ?? 1)} (조우마다 무작위)`]] : []),
       ['이후', '통과마다 반대로'],
       ['예고', `${C.warn}초 전`],
-      ['피해', `최대 체력 ${Math.round(C.dmg * 100)}% (물리)`],
       ['기절', `${C.stun}초`],
       ['대상', '아군 · 적 모두 (구조물은 피해만)'],
       ['밀려남', '선로 밖 빈칸 (제 진형 쪽 먼저)'],
       ['지나는 동안', '운반차 칸 직선 사격 막음'],
     ] as [string, string][] : []),
-    ['이동', via || (bl.walk ? '막음' : '통과')],
-    ['직선 사격', via || (bl.shot ? '막음' : '통과')],
-    ['기술 · 상태이상', bl.shot ? '틈 없이 갈라질 때만 막음' : '통과'],
     ['배치', bl.walk || gate ? '불가' : k === 'rail' ? '장치 가능 (운반차에 맞음)' : '장치 가능'],
   ];
-  // 전투 전 선택 (편성 화면에서만): 수문 시작 상태 · 연결교 접기 · 크레인
+  // 할 수 있는 행동 (편성 화면에서만): 수문 시작 상태 · 연결교 접기 · 크레인 — 세부 규칙보다 앞
   const seg = (label: string, act: string, opts: [boolean, string][], cur: boolean, dis?: (o: boolean) => boolean) => `<div class="gate-start"><span class="small muted">${label}</span><span class="seg">${opts.map(([o, l]) => `<button class="btn small${o === cur ? ' on' : ''}" data-a="${act}" data-v="${o ? 1 : 0}" aria-pressed="${o === cur}"${dis?.(o) ? ' disabled' : ''}>${l}</button>`).join('')}</span></div>`;
   let ctl = '';
   if (enc && !live) {
@@ -2638,16 +2728,17 @@ function terrainDetail(g: Geo, grp: TerrainGroup, back: string, live?: { gate?: 
       const err = folded ? null : R.bridgeFoldErr(prep!);
       ctl = seg('연결교', 'bridge-fold', [[false, '펼침'], [true, '접음']], folded, (o) => o && !!err) + (err ? `<p class="small warn gate-why">접을 수 없음: ${esc(err)}</p>` : '');
     } else if (k === 'container' && grp.crate !== undefined) {
-      const on = craneOn(prep!) === grp.crate, hErr = R.craneHomeErr(prep!, grp.crate), moved = hErr !== '이미 원위치', none = !R.craneSlots(prep!, grp.crate).length;
-      ctl = `<div class="gate-start crane-ctl"><button class="btn small${on ? ' on' : ''}" data-a="crane-pick" data-v="${grp.crate}" aria-pressed="${on}"${none && !on ? ' disabled title="같은 크기의 빈 적재칸이 없음"' : ''}>${lineIcon('tr.crane', 'li')}${on ? '취소' : '크레인으로 옮기기'}</button>${moved ? `<button class="btn small" data-a="crane-home" data-v="${grp.crate}"${hErr ? ' disabled' : ''}>원위치</button>` : ''}</div>`
-        + (on ? '<p class="small muted gate-why">보드의 초록 적재칸을 누르면 옮긴다</p>' : '') + (moved && hErr ? `<p class="small warn gate-why">원위치 불가: ${esc(hErr)}</p>` : '');
+      const on = craneOn(prep!) === grp.crate, hErr = R.craneHomeErr(prep!, grp.crate), moved = hErr !== '이미 원위치', slots = R.craneSlots(prep!, grp.crate), n = slots.filter((s) => !s.err).length;
+      ctl = `<div class="gate-start crane-ctl"><button class="btn small${on ? ' on' : ''}" data-a="crane-pick" data-v="${grp.crate}" aria-pressed="${on}"${!slots.length && !on ? ' disabled title="같은 크기의 빈 적재칸이 없음"' : ''}>${lineIcon('tr.crane', 'li')}${on ? '취소' : '크레인으로 옮기기'}</button>${moved ? `<button class="btn small" data-a="crane-home" data-v="${grp.crate}"${hErr ? ' disabled' : ''}>원위치</button>` : ''}<span class="small muted">옮길 자리 <b>${n}</b>곳</span></div>`
+        + (on ? '<p class="small muted gate-why">보드에서 빈 적재칸을 누르면 옮긴다</p>' : '') + (moved && hErr ? `<p class="small warn gate-why">원위치 불가: ${esc(hErr)}</p>` : '');
     }
   }
   return `<div class="detail dp-terrain">${dBar(back)}
-    ${heroHead('', `<span class="tr-hero tr-${k}${folded ? ' folded' : ''}">${lineIcon(t.icon, 'li')}</span>`, t.name, chips)}
-    <p class="small foe-line">${esc(t.lore)}</p>
+    ${heroHead('', `<span class="tr-hero tr-${k}${folded ? ' folded' : ''}">${lineIcon(t.icon, 'li')}</span>`, t.name, state)}
+    <div class="tr-core">${core}</div>
     ${ctl}
-    <h3>성질</h3><dl class="um-types ct-rules">${rows.map(([kk, v]) => `<dt>${esc(kk)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+    <h3>세부 규칙</h3><dl class="um-types ct-rules">${rows.map(([kk, v]) => `<dt>${esc(kk)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+    <p class="small foe-line tr-lore">${esc(t.lore)}</p>
   </div>`;
 }
 /** 지형 틀 칩 (편성 · 전투 머리): 이름 + 규칙 툴팁 */
@@ -3910,6 +4001,7 @@ function render() {
   lastView.modal = modalKeyOf();
   topHSync();
   prepZoomSync(); // 보드 크기를 먼저 (창 안 스크롤 위치를 되살리려면 보드가 제 크기여야 한다)
+  if (app.screen === 'prep' && run) toolMark(run); // 쥔 도구의 대상 표시 (받을 수 있음 · 없음 + 다음 누름 결과)
   scrollRestore(scrolled, newModal);
   if (app.screen === 'prep') prepViewInit(sameView); // 조우를 처음 열면 아군 진형부터 · 창 가장자리 길잡이
   restoredAt = performance.now();
@@ -4704,7 +4796,7 @@ function renderBattleUnit(b: Battle, force: boolean) {
   // 고른 기물이 없으면 사건 피드 (battleview 가 채움), 고르면 그 기물 상세
   const feed = document.getElementById('bf-ev-wrap');
   // 지형 지물: 덩어리 칸 강조 + 상세 (수문은 열림 · 닫힘이 바뀌면 다시 그린다)
-  document.querySelectorAll<HTMLElement>('#bboard .cell[data-tg]').forEach((c) => c.classList.toggle('tr-sel', +c.dataset.tg! === app.battleTerrain));
+  document.querySelectorAll<HTMLElement>('#bboard .cell[data-tg]').forEach((c) => { const on = +c.dataset.tg! === app.battleTerrain; if (on !== c.classList.contains('tr-sel')) c.classList.toggle('tr-in', on); c.classList.toggle('tr-sel', on); }); // 새로 고른 덩어리만 짧은 전환 (tr-in)
   const grp = app.battleTerrain !== null && b.geo ? terrainGroups(b.geo)[app.battleTerrain] : undefined;
   if (grp && b.geo) {
     const gate = grp.k === 'gate' && b.mem.gateNext !== undefined ? gateLive(b, grp) : undefined, cart = grp.k === 'rail' ? cartLive(b) : undefined;
@@ -6182,6 +6274,7 @@ document.addEventListener('keydown', (e) => {
     else if (app.bigUnit) act('big-close', '');
     else if (app.menu) act('menu-close', '');
     else if (app.releaseConfirm) act('release-cancel', '');
+    else if (app.screen === 'prep' && app.run && craneOn(app.run) !== null) { app.crane = null; render(); } // 크레인만 내려놓고 컨테이너 상세는 그대로
     else if (app.sel && app.screen !== 'battle') { app.sel = null; render(); }
     else if (app.screen === 'battle' && app.battleSel !== null) { app.battleSel = null; app.bPick = null; applySpeed(); updateMeter(true); }
     return;
