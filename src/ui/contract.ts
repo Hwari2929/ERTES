@@ -1,6 +1,7 @@
 // 출격 계약: 에란테스 바 카운터를 내려다본 탑뷰. 바에서 [새 계약] → 시선이 바 테이블로 내려가고 → 위에서 청사진(도면)이, 아래에서 차림표(메뉴판)가 미끄러져 들어온다.
-// 차림표의 줄을 고르면 오른쪽 전표 출력기가 카본지 전표를 위로 한 줄씩 밀어 올리고 (길수록 끝이 휘며 그림자가 진다), 다 고르면 탁상 벨이 떨린다.
-// 나가기 = 같은 길을 거꾸로 (바로 돌아갈 때). 벨 = 전표에 '승인' 도장 → 그늘(체인 · 회중시계) → 계약 기물 명부 (main.ts newRunScreen). [의뢰 취소] = '취소' 도장 → 전표가 바깥으로 미끄러져 나가고 고른 것이 비워진다.
+// 차림표의 줄을 고르면 오른쪽 전표 출력기가 카본지 전표를 위로 한 줄씩 밀어 올리고 (길수록 끝이 휘며 그림자가 진다), 다 고르면 탁상 벨이 화면 위 가운데에서 한가운데로 밀려 들어온다 (끌어 옮길 수 있다).
+// 나가기 = 같은 길을 거꾸로 (바로 돌아갈 때): 위 화살표 · 화면을 위로 세게 쓸어 올리기 · 세게 굴리기. 벨 = 전표에 '승인' 도장 → 그늘(체인 · 회중시계) → 계약 기물 명부 (main.ts newRunScreen).
+// [의뢰 취소] 또는 벨을 화면 밖으로 끌어내기 = '취소' 도장 → 전표가 바깥으로 미끄러져 나가고 고른 것이 비워진다.
 // 의뢰 = 전장 (의뢰 제목 · 의뢰인 = data/scenes/fields.ts) · 약관 = 난이도 (data/contract.ts PLANS, 조항 = data/difficulty.ts DIFFS) · 특약 = 절망 서약 (data/oaths.ts, 담보 약관에만).
 // 에란테스의 의뢰는 모두 싯가: 오늘 들어온 의뢰서 3장 = 제철 의뢰 (보수 + CFG.contract.seasonWin), 메뉴에 없는 의뢰 = 직접 주문 (기본 보수).
 // 차림표 · 청사진에는 배율 숫자를 쓰지 않는다 (위험 눈금 · 감수 / 보상 아이콘만). 조항 수치는 출격 뒤 지도 환경 탭 '계약' (contractEnv).
@@ -51,6 +52,12 @@ const CT = {
   stamp: '' as '' | 'ok' | 'void',
   /** 바에서 시선이 테이블로 내려가는 연출 (연 직후 한 번) */
   intro: false,
+  /** 벨이 테이블 가운데에 나와 있는지 (다 고르면 위에서 밀려 들어오고, 고른 것이 비면 위로 빠진다) */
+  bell: false,
+  /** 벨을 끌어 옮겨 둔 자리 (가운데에서 떨어진 px). 벨이 빠지면 가운데로 */
+  bellAt: { x: 0, y: 0 },
+  /** 벨이 막 내려앉아 아직 누를 수 없음: 손(포인터)이 벨 밖에 한 번 있어야 깨어난다. 고르던 줄 위에 벨이 내려앉아도 그 누름이 벨을 울리지 않고 밑의 줄로 간다 */
+  bellCold: false,
   /** 도면 · 차림표가 놓인 각도 (열 때마다 조금씩 다르게) */
   rot: { bp: 0, mn: 0, pr: 0 },
   /** 카운터 너머 목소리 (잠깐 떴다 사라진다) */
@@ -117,7 +124,7 @@ export function contractStart(from: string, list = false, snap = '') {
   barSnap = snap ? snapOf(snap) : '';
   clear();
   const n = deedCount();
-  Object.assign(CT, { step: 'board', from, sel: null, list, vet: n > 0, lit: false, focus: '', last: '', stamp: '', intro: true, fromSeal: false, say: '오늘 들어온 의뢰서입니다. 제철이라 조금 더 쳐 드리죠.' });
+  Object.assign(CT, { step: 'board', from, sel: null, list, vet: n > 0, lit: false, focus: '', last: '', stamp: '', intro: true, bell: false, bellCold: false, fromSeal: false, say: '오늘 들어온 의뢰서입니다. 제철이라 조금 더 쳐 드리죠.' });
   CT.rot = { bp: rnd(-4, 4), mn: rnd(-3, 3), pr: rnd(-5, 5) };
   CT.no = n + 1;
   const d = new Date();
@@ -299,6 +306,8 @@ function usual() {
 const prop = (id: string, fallback: string) => `${fallback}<img class="ct-art" alt="" src="${artURL(`${id}.webp`)}" decoding="async" onerror="this.remove()">`;
 /** 탁상 벨 (위에서 본 놋쇠 돔 + 나무 받침) */
 const BELL_SVG = `<svg class="ct-fb" viewBox="0 0 120 120" aria-hidden="true"><circle cx="65" cy="67" r="50" class="sh"/><circle cx="60" cy="60" r="50" class="base"/><circle cx="60" cy="60" r="43" class="base2"/><circle cx="60" cy="60" r="34" class="dome"/><path d="M36 50a26 26 0 0 1 24-16" class="hl"/><circle cx="60" cy="60" r="9" class="btn"/><circle cx="57.5" cy="57.5" r="3" class="hl2"/></svg>`;
+/** 바로 돌아가기: 위로 (시선이 바로 올라간다) */
+const UP_SVG = `<svg class="ct-up" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg>`;
 /** 전표 출력기 (위에서 본 네이비 법랑 몸체 + 놋쇠 테 + 위쪽 슬릿) */
 const PRINTER_SVG = `<svg class="ct-fb" viewBox="0 0 100 154" aria-hidden="true"><rect x="10" y="6" width="84" height="146" rx="10" class="sh"/><rect x="4" y="2" width="84" height="146" rx="10" class="body"/><rect x="9" y="7" width="74" height="136" rx="7" class="rim"/><rect x="15" y="9" width="62" height="7" rx="2" class="slot"/><rect x="18" y="11.5" width="56" height="2" rx="1" class="gap"/></svg>`;
 
@@ -307,10 +316,14 @@ function boardHtml() {
   CT.lit = false;
   const leave = CT.from === 'bar' ? '바로 돌아가기' : '타이틀로';
   const n = rows().filter((r) => r.k !== 'div').length;
+  const on = ok && CT.stamp !== 'void', bellIn = on && !CT.bell, bellOut = !on && CT.bell;
+  CT.bell = on;
+  if (!on) CT.bellAt = { x: 0, y: 0 };
+  if (bellIn) CT.bellCold = true;
   return `<main class="ct ct-top${CT.intro && !reduced() ? ' intro' : ''}${CT.stamp ? ` st-${CT.stamp}` : ''}" style="--rot-bp:${CT.rot.bp}deg;--rot-mn:${CT.rot.mn}deg;--rot-pr:${CT.rot.pr}deg" aria-label="출격 계약 — 바 테이블 위 의뢰 차림표">
     ${CT.intro ? barviewHtml() : ''}
     <div class="ct-table" aria-hidden="true">${prop('ct_table', '')}</div><div class="lp-grain" aria-hidden="true"></div>
-    <button class="ct-leave lp-btn" data-a="ct-leave">${leave} ›</button>
+    <button class="ct-leave lp-btn" data-a="ct-leave" aria-label="${leave}" title="${leave} (화면을 위로 쓸어 올려도 된다)">${UP_SVG}</button>
     <p class="ct-voice${CT.say ? ' on' : ''}" aria-live="polite"><b>에이든</b><span>${esc(CT.say)}</span></p>
     <section class="ct-bp lp-bp" aria-live="polite" aria-label="의뢰 도면">${infoHtml()}</section>
     <div class="ct-menu">
@@ -332,8 +345,8 @@ function boardHtml() {
     </section>
     <div class="ct-desk">
       <button class="ct-cancel lp-btn" data-a="ct-cancel"${jobOf() && !CT.stamp ? '' : ' disabled'}>의뢰 취소</button>
-      <button class="ct-bell${ok && !CT.stamp ? ' ready' : ''}" data-a="ct-bell" aria-label="벨을 눌러 전표 승인"${ok && !CT.stamp ? '' : ' aria-disabled="true"'}>${prop('ct_bell', BELL_SVG)}</button>
     </div>
+    <button class="ct-bell${on ? ' on' : ''}${bellIn ? ' in' : ''}${bellOut ? ' out' : ''}${on && CT.bellCold ? ' cold' : ''}${ok && !CT.stamp ? ' ready' : ''}" data-a="ct-bell" style="--dx:${CT.bellAt.x}px;--dy:${CT.bellAt.y}px" aria-label="벨을 눌러 전표 승인 (끌어 옮길 수 있고, 화면 밖으로 끌어내면 의뢰 취소)"${on ? '' : ' tabindex="-1" aria-hidden="true"'}${ok && !CT.stamp ? '' : ' aria-disabled="true"'}>${prop('ct_bell', BELL_SVG)}</button>
     <div class="ct-light" aria-hidden="true"></div><div class="ct-glow" aria-hidden="true"></div>
     ${hooks.foe()}
   </main>`;
@@ -489,6 +502,89 @@ function finish() {
   hooks.roster(s);
 }
 
+/** 벨을 끌어 화면 가장자리 밖으로 내보내면 (벨 가운데가 가장자리에 닿거나, 끄는 손이 가장자리 끝에 닿으면) 의뢰 취소. 안쪽에 놓으면 그 자리에 둔다 (가린 줄을 누를 수 있게) */
+function bellDrag(ct: HTMLElement) {
+  const bell = ct.querySelector<HTMLElement>('.ct-bell.on');
+  if (!bell || CT.stamp) return;
+  if (CT.bellCold) { // 내려앉은 뒤에 손이 벨 밖에서 움직이거나 누르면 깨어난다
+    const landed = performance.now() + (bell.classList.contains('in') ? 800 : 0);
+    const wake = (e: PointerEvent) => {
+      if (performance.now() < landed) return;
+      const h = bell.offsetWidth / 2 + 8, cx = innerWidth / 2 + CT.bellAt.x, cy = innerHeight / 2 + CT.bellAt.y; // 내려앉을 자리 (밀려 들어오는 중의 자리가 아니라)
+      if (Math.abs(e.clientX - cx) <= h && Math.abs(e.clientY - cy) <= h) return;
+      CT.bellCold = false; bell.classList.remove('cold');
+      ct.removeEventListener('pointermove', wake); ct.removeEventListener('pointerdown', wake);
+    };
+    ct.addEventListener('pointermove', wake); ct.addEventListener('pointerdown', wake);
+  }
+  let x0 = 0, y0 = 0, px = 0, py = 0, id = -1, moved = false, bx = CT.bellAt.x, by = CT.bellAt.y;
+  const outside = () => {
+    const r = bell.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, m = r.width * 0.2, e = 8;
+    return cx < m || cx > innerWidth - m || cy < m || cy > innerHeight - m || px < e || px > innerWidth - e || py < e || py > innerHeight - e;
+  };
+  bell.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    x0 = e.clientX - CT.bellAt.x; y0 = e.clientY - CT.bellAt.y; id = e.pointerId; moved = false;
+    bell.setPointerCapture(id); // 손이 벨 밖으로 빨리 나가도 계속 따라오게
+  });
+  bell.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== id) return;
+    const dx = e.clientX - x0, dy = e.clientY - y0;
+    px = e.clientX; py = e.clientY;
+    if (!moved && Math.hypot(dx - CT.bellAt.x, dy - CT.bellAt.y) < 8) return;
+    if (!moved) { moved = true; bell.classList.add('drag'); bell.classList.remove('in'); }
+    bx = dx; by = dy;
+    bell.style.setProperty('--dx', `${dx}px`); bell.style.setProperty('--dy', `${dy}px`);
+    bell.classList.toggle('leaving', outside());
+  });
+  const end = (e: PointerEvent) => {
+    if (e.pointerId !== id) return;
+    id = -1;
+    if (!moved) return;
+    bell.classList.remove('drag');
+    if (outside() && jobOf()) { CT.bell = false; if (contractAct('ct-cancel', '')) hooks.render(); return; } // 이미 화면 밖이니 빠지는 연출 없이
+    bell.classList.remove('leaving');
+    CT.bellAt = { x: Math.round(bx), y: Math.round(by) };
+  };
+  bell.addEventListener('dragstart', (e) => e.preventDefault()); // 벨 그림(img)의 브라우저 기본 끌기가 pointercancel 로 끌기를 끊지 않게
+  bell.addEventListener('pointerup', end);
+  bell.addEventListener('pointercancel', end);
+  bell.addEventListener('click', (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }); // 끈 것은 누름이 아니다
+}
+/** el 에서 ct 까지 올라가며 dir 쪽 (1 = 내용이 아래로, -1 = 위로) 으로 더 스크롤할 칸이 있는지 */
+function canScroll(el: Element | null, ct: HTMLElement, dir: number) {
+  for (let n = el as HTMLElement | null; n && n !== ct.parentElement; n = n.parentElement) {
+    if (n.scrollHeight <= n.clientHeight + 1 || !/(auto|scroll)/.test(getComputedStyle(n).overflowY)) continue;
+    if (dir > 0 ? n.scrollTop + n.clientHeight < n.scrollHeight - 1 : n.scrollTop > 0) return true;
+  }
+  return false;
+}
+/** 바로 돌아가기 몸짓: 화면을 위로 세게 쓸어 올리거나 (터치) 세게 굴리면 (휠). 목록 · 도면이 아직 스크롤되는 동안은 스크롤만 한다 */
+function leaveGesture(ct: HTMLElement) {
+  const go = () => { if (CT.step === 'board' && !CT.stamp && !ct.classList.contains('outro')) contractAct('ct-leave', ''); };
+  let ty = 0, tx = 0, tt = 0, tScroll = true;
+  ct.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1 || (e.target as HTMLElement).closest('.ct-bell')) { tScroll = true; return; }
+    const t = e.touches[0]; ty = t.clientY; tx = t.clientX; tt = performance.now();
+    tScroll = canScroll(e.target as Element, ct, 1);
+  }, { passive: true });
+  ct.addEventListener('touchend', (e) => {
+    if (tScroll) return;
+    const t = e.changedTouches[0], dy = ty - t.clientY, dx = Math.abs(t.clientX - tx), ms = performance.now() - tt;
+    if (dy > 120 && dx < dy * 0.6 && dy / ms > 0.5) go();
+  }, { passive: true });
+  // 휠: 스크롤할 칸이 없는 데서 시작한 한 번의 세찬 굴림 (0.3초 쉬면 새 굴림). 목록을 굴리다 끝에 닿은 관성은 세지 않는다
+  let sum = 0, last = 0, dir = 0, dead = false;
+  ct.addEventListener('wheel', (e) => {
+    const now = performance.now(), d = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1), sd = Math.sign(d);
+    if (!sd) return;
+    if (now - last > 300 || sd !== dir) { sum = 0; dead = false; dir = sd; }
+    last = now;
+    if (dead || canScroll(e.target as Element, ct, sd)) { dead = true; return; }
+    sum += Math.abs(d);
+    if (sum > 900) { dead = true; go(); }
+  }, { passive: true });
+}
 /** 그린 뒤 (main.ts render): 등장 연출 · 가리키기 → 청사진 · 목소리 사라짐 · 그늘 연출 시간표 */
 export function contractMount(root: HTMLElement) {
   const ct = root.querySelector<HTMLElement>('main.ct');
@@ -502,6 +598,8 @@ export function contractMount(root: HTMLElement) {
     };
     menu?.addEventListener('mouseover', point);
     menu?.addEventListener('focusin', point);
+    bellDrag(ct);
+    leaveGesture(ct);
     if (CT.last) later(1200, () => { CT.last = ''; });
     // 전표가 화면 위 끝을 넘었는지 (줄이 밀려 올라온 뒤에 잰다)
     later(700, () => { // 특약 6건 이상으로 전표가 화면 위로 넘어가거나 (높이 제한 없는 배치에서), 큰 화면이라 안 넘어가도 12건 이상이면
