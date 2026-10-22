@@ -172,7 +172,7 @@ function rows(): Row[] {
   return out;
 }
 const rowHtml = (x: Row) => x.k === 'div' ? '<i class="ct-r div" aria-hidden="true"></i>'
-  : `<div class="ct-r ${x.k || ''}${x.g && x.g === CT.last ? ' new' : ''}"><span>${esc(x.l)}</span>${x.r ? `<span class="f-num">${esc(x.r)}</span>` : ''}</div>`;
+  : `<div class="ct-r ${x.k || ''}${x.g && x.g === CT.last ? ' new' : ''}"><span${x.k === 'h' ? ' class="ct-ribbon"' : ''}>${esc(x.l)}</span>${x.r ? `<span class="f-num">${esc(x.r)}</span>` : ''}</div>`;
 const slipHtml = () => rows().map(rowHtml).join('');
 
 // ───────── 차림표
@@ -275,7 +275,7 @@ function boardHtml() {
     <figure class="ct-aiden" aria-hidden="true">${standURL('aiden') ? `<img alt="" src="${standURL('aiden')}" style="${figStyle('aiden')}" decoding="async">` : ''}</figure>
     <p class="ct-say mk-lacquer" aria-live="polite"><b>에이든</b><span>${esc(aidenSay())}</span></p>
     <section class="ct-board mk-lacquer mk-frame" aria-label="의뢰 차림표">
-      <h1 class="ct-sign"><span class="mk-gold">의뢰 차림표</span></h1>
+      <h1 class="ct-sign"><span class="ct-ribbon mk-gold">의뢰 차림표</span></h1>
       ${u ? `<button class="ct-usual mk-brass" data-a="ct-usual" data-f="usual"><span>늘 하던 대로</span><small>「${esc(fieldTitle(u.job.field))}」 · ${esc(u.plan.short)}${u.job.kind === 'custom' ? ` · −${pct(-u.job.bonus)}` : ''}</small></button>` : ''}
       <div class="ct-cols${CT.list ? ' listing' : ''}">
         <div class="ct-col ct-col-job" role="group" aria-label="의뢰"><h2>의뢰 <small>${CT.list ? '메뉴에 없는 것' : '1건'}</small></h2><div class="ct-list">${jobCol()}</div></div>
@@ -307,7 +307,7 @@ function checkHtml() {
   const f = fieldOf(j.field), fi = fieldIntroOf(j.field), hid = hidden(j), on = ridersOn() ? oathsOn(oathSel()) : [];
   return `<div class="ct-check-bg" data-a="ct-check-close" aria-hidden="true"></div>
   <section class="ct-check mk-paper mk-frame" role="dialog" aria-label="계산서">
-    <header><b>계산서</b><span class="f-num">No.${pad(CT.no, 4)} · ${esc(CT.time)}</span></header>
+    <header><b class="ct-ribbon">계산서</b><span class="f-num">No.${pad(CT.no, 4)} · ${esc(CT.time)}</span></header>
     <dl class="ct-cs">
       <dt>의뢰</dt><dd class="${CT.signed && j.kind === 'sealed' ? 'reveal' : ''}">${hid ? '봉인 의뢰서 · 발신자 없음' : `「${esc(fi?.title || f.name)}」 · ${esc(f.name)}`}</dd>
       <dt>약관</dt><dd>${esc(p.code)} ${esc(p.name)}</dd>

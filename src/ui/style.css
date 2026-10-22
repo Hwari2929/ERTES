@@ -37,8 +37,11 @@
   /* 입자 (feTurbulence 노이즈): 벡터의 무한 선명함을 회화의 입자에 섞는다. grain = 회색 노이즈 (덮개용), grain-ink = 종이 위 잉크 반점 */
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   --grain-ink: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .78 0 0 0 0 .64 0 0 0 0 .4 0 0 0 .12 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"); /* 남색 전표 위 금가루 */
-  /* 금 장식 테두리 (border-image 9분할, 모서리 30px): 겹선 + 모서리 소용돌이. 판 · 계산서 · 증서가 같은 틀을 쓴다 */
-  --frame-gold: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120' fill='none' stroke='%23c8a467' stroke-linecap='round'%3E%3Crect x='3.5' y='3.5' width='113' height='113' stroke-width='1'/%3E%3Crect x='8.5' y='8.5' width='103' height='103' stroke-width='2.2'/%3E%3Cpath stroke-width='1.3' d='M14 28c0-8 6-14 14-14M14 28c6 0 9-3 9-9M106 28c0-8-6-14-14-14M106 28c-6 0-9-3-9-9M14 92c0 8 6 14 14 14M14 92c6 0 9 3 9 9M106 92c0 8-6 14-14 14M106 92c-6 0-9 3-9 9'/%3E%3Ccircle cx='21' cy='21' r='1.6' fill='%23f3dea4' stroke='none'/%3E%3Ccircle cx='99' cy='21' r='1.6' fill='%23f3dea4' stroke='none'/%3E%3Ccircle cx='21' cy='99' r='1.6' fill='%23f3dea4' stroke='none'/%3E%3Ccircle cx='99' cy='99' r='1.6' fill='%23f3dea4' stroke='none'/%3E%3C/svg%3E");
+  /* 유럽식 메뉴판 장식 (남색 + 금): 리본 제목 띠의 꼬리 · 섹션 머리 괘선 가운데의 플뢰롱 · 액자 모서리 필리그리 */
+  --ribbon-tail: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='40' viewBox='0 0 30 40'%3E%3Cpath d='M30 7H5l9 13-9 13h25' fill='%23111a30' stroke='%23c8a467' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M30 7v26' stroke='%235c4117' stroke-width='1.5'/%3E%3C/svg%3E");
+  --fleuron-gold: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='12' viewBox='0 0 32 12' fill='none' stroke='%23c8a467' stroke-width='1.2' stroke-linecap='round'%3E%3Cpath d='M1 6c4-6 9-6 13 0M31 6c-4-6-9-6-13 0M4 6c2 3 5 3 7 0M28 6c-2 3-5 3-7 0'/%3E%3Ccircle cx='16' cy='6' r='1.8' fill='%23f3dea4' stroke='none'/%3E%3C/svg%3E");
+  /* 금 장식 테두리 (border-image 9분할, 모서리 30px): 겹선 + 모서리 필리그리. 판 · 계산서 · 증서가 같은 틀을 쓴다 */
+  --frame-gold: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120' fill='none' stroke='%23c8a467' stroke-linecap='round'%3E%3Crect x='3.5' y='3.5' width='113' height='113' stroke-width='1'/%3E%3Crect x='8.5' y='8.5' width='103' height='103' stroke-width='2.2'/%3E%3Cpath stroke-width='1.3' d='M14 30c0-9 7-16 16-16M14 30c7 0 10-3 10-10M16 16c3 0 5 2 5 5M30 14c-3 0-5-2-5-5M106 30c0-9-7-16-16-16M106 30c-7 0-10-3-10-10M104 16c-3 0-5 2-5 5M90 14c3 0 5-2 5-5M14 90c0 9 7 16 16 16M14 90c7 0 10 3 10 10M16 104c3 0 5-2 5-5M30 106c-3 0-5 2-5 5M106 90c0 9-7 16-16 16M106 90c-7 0-10 3-10 10M104 104c-3 0-5-2-5-5M90 106c3 0 5 2 5 5'/%3E%3Ccircle cx='21' cy='21' r='1.6' fill='%23f3dea4' stroke='none'/%3E%3Ccircle cx='99' cy='21' r='1.6' fill='%23f3dea4' stroke='none'/%3E%3Ccircle cx='21' cy='99' r='1.6' fill='%23f3dea4' stroke='none'/%3E%3Ccircle cx='99' cy='99' r='1.6' fill='%23f3dea4' stroke='none'/%3E%3C/svg%3E");
   /* 전투 종료 보고서 영향력 축 (ui/report.ts): 전투 · 회복 · 서포팅. 테마별 값을 따라간다 */
   --ax-dmg: var(--st-power); --ax-heal: var(--c-good); --ax-sup: var(--st-buff);
   /* 상태 이상 팔레트: 버프 = 파랑 테두리, 디버프 = 빨강 테두리, 아이콘 색은 종류별 */
@@ -5021,15 +5024,23 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-usual small { font-size: var(--fs-2xs); font-weight: 700; }
 .ct-usual:hover { filter: brightness(1.1); }
 .ct-usual:focus-visible { outline: 2px solid var(--c-select); outline-offset: 2px; }
-.ct-sign { flex: none; margin: 0 0 8px; display: flex; align-items: center; gap: 14px; font: 400 var(--fs-2xl)/1.2 var(--f-serif); letter-spacing: .26em; }
-.ct-sign::before, .ct-sign::after { content: ''; flex: 1; border-top: 1px solid var(--brass); box-shadow: 0 2px 0 var(--brass-lo); }
-.ct-cols { flex: 1 1 auto; min-height: 0; display: flex; gap: 0 18px; } /* 판은 세로 flex: max-height 에 걸리면 목록이 줄어 스크롤된다 (fr 트랙은 max-height 아래에서 줄지 않는다) */
+.ct-sign { flex: none; margin: 0 0 12px; display: flex; align-items: center; gap: 30px; font: 400 var(--fs-2xl)/1.2 var(--f-serif); letter-spacing: .26em; }
+.ct-sign::before, .ct-sign::after { content: ''; flex: 1; height: 12px; background: var(--fleuron-gold) center / 32px 12px no-repeat, linear-gradient(var(--brass), var(--brass)) center / 100% 1px no-repeat; } /* 양옆 괘선 가운데에 플뢰롱 */
+.ct-ribbon { position: relative; display: inline-block; padding: 3px 18px 4px; background: var(--lacquer); border-top: 1.5px solid var(--brass); border-bottom: 1.5px solid var(--brass); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--brass-hi) 40%, transparent); } /* 리본 띠: 양 끝이 접힌 꼬리 */
+.ct-ribbon::before, .ct-ribbon::after { content: ''; position: absolute; top: 50%; width: 30px; height: 40px; margin-top: -20px; background: var(--ribbon-tail) center / 30px 40px no-repeat; z-index: -1; }
+.ct-ribbon::before { left: -26px; }
+.ct-ribbon::after { right: -26px; scale: -1 1; }
+.ct-cols { flex: 1 1 auto; min-height: 0; display: flex; gap: 0; } /* 판은 세로 flex: max-height 에 걸리면 목록이 줄어 스크롤된다 (fr 트랙은 max-height 아래에서 줄지 않는다) */
 .ct-col { min-width: 0; min-height: 0; display: flex; flex-direction: column; flex: none; }
+.ct-col + .ct-col { margin-left: 16px; padding-left: 16px; border-left: 1px solid color-mix(in srgb, var(--brass) 35%, transparent); } /* 열 사이 가는 금 괘선 */
+.ct-col-rider.off { border-left: 0; margin-left: 0; padding-left: 0; }
+.ct-col::after { content: ''; flex: none; margin-top: auto; height: 12px; background: var(--fleuron-gold) center / 32px 12px no-repeat; opacity: .7; } /* 열 끝 장식: 짧은 열도 바닥까지 메뉴판처럼 마감된다 */
 .ct-col-job { width: 250px; }
 .ct-col-plan { width: 200px; }
-.ct-col-rider { width: 196px; overflow: hidden; transition: width .3s ease, opacity .3s ease; }
-.ct-col-rider.off { width: 0; opacity: 0; margin-left: -18px; } /* 담보 약관 전에는 접혀 있다 (판이 내용 크기로 줄어든다) */
-.ct-col h2 { flex: none; margin: 0 0 4px; padding-bottom: 5px; border-bottom: 1px solid var(--brass); box-shadow: 0 1px 0 var(--brass-lo); font: 400 var(--fs-lg) var(--f-serif); letter-spacing: .14em; color: var(--brass); display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+.ct-col-rider { width: 196px; overflow: hidden; transition: width .3s ease, opacity .3s ease, padding .3s ease, margin .3s ease; }
+.ct-col-rider.off { width: 0; opacity: 0; } /* 담보 약관 전에는 접혀 있다 (판이 내용 크기로 줄어든다) */
+.ct-col h2 { flex: none; position: relative; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--brass); font: 700 var(--fs-lg) var(--f-serif); letter-spacing: .22em; color: var(--brass-ink); display: flex; align-items: baseline; gap: 8px; white-space: nowrap; text-shadow: 0 0 8px color-mix(in srgb, var(--brass) 40%, transparent); }
+.ct-col h2::after { content: ''; position: absolute; left: 50%; bottom: -7px; width: 32px; height: 12px; margin-left: -16px; background: var(--lacquer) var(--fleuron-gold) center / 32px 12px no-repeat; } /* 괘선 가운데 플뢰롱 */
 .ct-col h2 small { font: 400 var(--fs-xs) var(--f-body); letter-spacing: 0; color: var(--c-text-2); }
 .ct-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; display: grid; align-content: start; }
 .ct-row { display: flex; gap: 10px; align-items: flex-start; width: 100%; padding: 7px 2px; border: 0; border-bottom: 1px dotted color-mix(in srgb, var(--brass-lo) 70%, transparent); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
@@ -5040,7 +5051,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-nm { min-width: 0; font-weight: 700; color: var(--c-text); }
 .ct-dots { flex: 1 1 12px; min-width: 12px; border-bottom: 1px dotted color-mix(in srgb, var(--brass) 55%, transparent); translate: 0 -4px; }
 .ct-pr { flex: none; font: 700 var(--fs-sm) var(--f-mono); font-style: normal; color: var(--brass-ink); text-shadow: 0 0 8px color-mix(in srgb, var(--brass) 45%, transparent); }
-.ct-row small { font-size: var(--fs-xs); line-height: 1.4; color: var(--c-text-2); }
+.ct-row small { font-size: var(--fs-xs); line-height: 1.4; color: var(--c-text-2); font-family: var(--f-paper); } /* 품목 설명은 바탕체 (메뉴판의 작은 이탤릭 자리) */
 .ct-row.on .ct-nm { color: var(--c-select); }
 /* 의뢰 (주 메뉴): 큰 글자 · 넉넉한 행간 · 큰 단추 */
 .ct-jobrow { padding-block: 11px; }
@@ -5125,7 +5136,9 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-r { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .ct-r > span:first-child { min-width: 0; }
 .ct-r .f-num { flex: none; font-family: inherit; white-space: nowrap; }
-.ct-r.h { justify-content: center; font-weight: 700; font-size: var(--fs-md); letter-spacing: .3em; color: var(--brass-ink); text-shadow: 0 0 10px color-mix(in srgb, var(--brass) 55%, transparent); }
+.ct-r.h { justify-content: center; margin: 4px 0 8px; font-weight: 700; font-size: var(--fs-md); letter-spacing: .3em; color: var(--brass-ink); text-shadow: 0 0 10px color-mix(in srgb, var(--brass) 55%, transparent); }
+.ct-r.h .ct-ribbon { padding: 2px 14px 3px; }
+.ct-r.hs { display: block; margin-bottom: 6px; padding-bottom: 14px; text-align: center; background: var(--fleuron-gold) bottom center / 32px 12px no-repeat; } /* 소제목 아래 플뢰롱 */
 .ct-r.hs { justify-content: center; color: var(--paper-ink-2); letter-spacing: .2em; }
 .ct-r.m { color: var(--paper-ink-2); }
 .ct-r.b { font-weight: 700; }
@@ -5141,7 +5154,10 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   padding: 30px 34px 28px; box-shadow: 0 2px 0 var(--shade-hard), 0 24px 48px var(--shade-2); animation: ct-check .45s cubic-bezier(.2, .9, .3, 1.1) both; }
 @keyframes ct-check { from { translate: -50% 20%; opacity: 0; } }
 .ct-check header { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 6px; border-bottom: 1px solid var(--paper-ink); }
-.ct-check header b { font: 400 var(--fs-xl) var(--f-serif); letter-spacing: .2em; color: var(--brass-ink); text-shadow: 0 0 10px color-mix(in srgb, var(--brass) 55%, transparent); }
+.ct-check header { border-bottom: 0; padding-bottom: 0; position: relative; }
+.ct-check header b { font: 400 var(--fs-xl)/1.2 var(--f-serif); letter-spacing: .2em; color: var(--brass-ink); text-shadow: 0 0 10px color-mix(in srgb, var(--brass) 55%, transparent); margin-left: 26px; }
+.ct-check header::after { content: ''; position: absolute; left: 0; right: 0; bottom: -10px; height: 12px; background: var(--fleuron-gold) center / 32px 12px no-repeat, linear-gradient(var(--brass), var(--brass)) center / 100% 1px no-repeat; }
+.ct-cs { margin-top: 10px; }
 .ct-check header span { font-size: var(--fs-sm); color: var(--paper-ink-2); }
 .ct-cs { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; font-size: var(--fs-md); }
 .ct-cs dt { color: var(--paper-ink-2); }
@@ -5171,7 +5187,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 @keyframes ct-tear-r { 18% { translate: 6px 2px; rotate: 2deg; } to { translate: 90px 70vh; rotate: 20deg; opacity: 0; } }
 .ct-deed-side { position: relative; z-index: 1; width: 280px; padding: 20px; display: grid; gap: 12px; border-radius: 0; transition: opacity .3s; }
 .ct-deed-side.gone { opacity: 0; }
-.ct-deed-side h1 { margin: 0; font: 400 var(--fs-2xl)/1.3 var(--f-serif); color: var(--brass-ink); text-shadow: 0 0 10px color-mix(in srgb, var(--brass) 55%, transparent); }
+.ct-deed-side h1 { margin: 0; padding: 16px 0; font: 400 var(--fs-2xl)/1.3 var(--f-serif); color: var(--brass-ink); text-shadow: 0 0 10px color-mix(in srgb, var(--brass) 55%, transparent); text-align: center; background: var(--fleuron-gold) top center / 32px 12px no-repeat, var(--fleuron-gold) bottom center / 32px 12px no-repeat; } /* 표지의 카르투슈: 위아래 플뢰롱 */
 .ct-deed-side h1 span { display: block; font-size: var(--fs-md); color: var(--c-text-2); }
 .ct-deed-side p { margin: 0; font-size: var(--fs-md); line-height: 1.6; color: var(--c-text-2); }
 .ct-tear-btn small { margin-left: 6px; font-size: var(--fs-xs); color: var(--c-text-2); font-weight: 400; }
@@ -5270,7 +5286,8 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-sign { font-size: var(--fs-xl); }
   .ct-cols { display: block; }
   .ct-col, .ct-list { display: block; overflow: visible; width: auto; }
-  .ct-col + .ct-col { margin-top: 16px; }
+  .ct-col + .ct-col { margin: 16px 0 0; padding-left: 0; border-left: 0; }
+  .ct-col::after { margin-top: 8px; }
   .ct-col-rider.off { display: none; }
   .ct-info { overflow: visible; }
   .ct-printer { display: block; }
