@@ -3,12 +3,80 @@
   "base": "top-down view, overhead shot, bird's-eye view, orthographic, no humans, warm lamp light from upper left, soft shadow toward lower right, best quality, masterpiece, highres, year2026, ::1.2::painterly::, ::1.1::flat color::",
   "negative": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, ui, frame, border, multiple views, split screen, perspective view, side view, isometric, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts",
   "props": {
-    "ct_table_a": { "w": 1216, "h": 832, "prompt": "empty dark walnut wooden bar counter surface filling the whole frame, long polished wood planks running horizontally, subtle wood grain, glossy lacquer, faint ring stains, warm amber light pool, vintage bar, cozy, nothing on the table" },
-    "ct_table_b": { "w": 1216, "h": 832, "prompt": "empty mahogany bar counter top filling the whole frame, single wide wooden slab with rich grain, thin brass trim strip along the bottom edge, polished surface reflecting warm lamp light, vintage bar, nothing on the table" },
-    "ct_table_c": { "w": 1216, "h": 832, "prompt": "empty dark oak bar table surface filling the whole frame, worn wooden planks, small scratches and patina, deep green leather inlay panel in the center with brass studs, warm lamp light, vintage bar, nothing on the table" },
-    "ct_bell_a": { "w": 1024, "h": 1024, "prompt": "single brass service desk bell seen from directly above, round polished brass dome with small push button on top, round dark wooden base, warm reflections, centered object, white background, simple background, isolated object" },
-    "ct_bell_b": { "w": 1024, "h": 1024, "prompt": "single antique hotel reception bell seen from directly above, aged gold brass dome with engraved floral ring, black enamel base, small plunger on top, centered object, white background, simple background, isolated object" },
-    "ct_printer_a": { "w": 1024, "h": 1024, "prompt": "single vintage receipt printer seen from directly above, compact dark navy enamel metal body with brass trim and rounded corners, paper slot on the top edge with a blank paper roll inside, small brass knob, centered object, white background, simple background, isolated object" },
-    "ct_printer_b": { "w": 1024, "h": 1024, "prompt": "single antique ticket printing machine seen from directly above, black lacquered cast iron body with gold pinstripe, narrow paper slot on the top edge, small crank handle on the side, centered object, white background, simple background, isolated object" }
+    "ct_table_a": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "empty dark walnut wooden bar counter surface filling the whole frame, long polished wood planks running horizontally, subtle wood grain, glossy lacquer, faint ring stains, warm amber light pool, vintage bar, cozy, nothing on the table"
+    },
+    "ct_table_b": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "empty mahogany bar counter top filling the whole frame, single wide wooden slab with rich grain, thin brass trim strip along the bottom edge, polished surface reflecting warm lamp light, vintage bar, nothing on the table"
+    },
+    "ct_table_c": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "empty dark oak bar table surface filling the whole frame, worn wooden planks, small scratches and patina, deep green leather inlay panel in the center with brass studs, warm lamp light, vintage bar, nothing on the table"
+    },
+    "ct_bell_a": {
+      "w": 1024,
+      "h": 1024,
+      "prompt": "single brass service desk bell seen from directly above, round polished brass dome with small push button on top, round dark wooden base, warm reflections, centered object, white background, simple background, isolated object"
+    },
+    "ct_bell_b": {
+      "w": 1024,
+      "h": 1024,
+      "prompt": "single antique hotel reception bell seen from directly above, aged gold brass dome with engraved floral ring, black enamel base, small plunger on top, centered object, white background, simple background, isolated object"
+    },
+    "ct_printer_a": {
+      "w": 1024,
+      "h": 1024,
+      "prompt": "single vintage receipt printer seen from directly above, compact dark navy enamel metal body with brass trim and rounded corners, paper slot on the top edge with a blank paper roll inside, small brass knob, centered object, white background, simple background, isolated object"
+    },
+    "ct_printer_b": {
+      "w": 1024,
+      "h": 1024,
+      "prompt": "single antique ticket printing machine seen from directly above, black lacquered cast iron body with gold pinstripe, narrow paper slot on the top edge, small crank handle on the side, centered object, white background, simple background, isolated object"
+    },
+    "ct_printer_c": {
+      "w": 1024,
+      "h": 1024,
+      "prompt": "single receipt printer seen from directly above, perfectly top-down orthographic view, flat plan view, front-facing and axis-aligned, not tilted, not rotated, bilaterally symmetrical, rectangular outline, narrow paper slot along the top edge, centered object, white background, simple background, isolated object, dark navy enamel metal body with thin brass trim, rounded corners"
+    },
+    "ct_printer_d": {
+      "w": 1024,
+      "h": 1024,
+      "prompt": "single receipt printer seen from directly above, perfectly top-down orthographic view, flat plan view, front-facing and axis-aligned, not tilted, not rotated, bilaterally symmetrical, rectangular outline, narrow paper slot along the top edge, centered object, white background, simple background, isolated object, black lacquered body with gold pinstripe border, small brass knob at the lower right"
+    },
+    "ct_printer_e": {
+      "w": 1024,
+      "h": 1024,
+      "prompt": "single receipt printer seen from directly above, perfectly top-down orthographic view, flat plan view, front-facing and axis-aligned, not tilted, not rotated, bilaterally symmetrical, rectangular outline, narrow paper slot along the top edge, centered object, white background, simple background, isolated object, navy blue enamel casing with brass corner caps and a small brass nameplate"
+    },
+    "ct_printer_f": {
+      "w": 1024,
+      "h": 1024,
+      "prompt": "single receipt printer seen from directly above, perfectly top-down orthographic view, flat plan view, front-facing and axis-aligned, not tilted, not rotated, bilaterally symmetrical, rectangular outline, narrow paper slot along the top edge, centered object, white background, simple background, isolated object, vintage cast iron body painted deep navy, brass rim, two small round brass feet visible at the corners"
+    },
+    "ct_printer_g": {
+      "w": 1024,
+      "h": 1024,
+      "prompt": "single receipt printer seen from directly above, perfectly top-down orthographic view, flat plan view, front-facing and axis-aligned, not tilted, not rotated, bilaterally symmetrical, rectangular outline, narrow paper slot along the top edge, centered object, white background, simple background, isolated object, art deco style dark blue body with stepped brass bands"
+    },
+    "ct_printer_h": {
+      "w": 1024,
+      "h": 1024,
+      "prompt": "single receipt printer seen from directly above, perfectly top-down orthographic view, flat plan view, front-facing and axis-aligned, not tilted, not rotated, bilaterally symmetrical, rectangular outline, narrow paper slot along the top edge, centered object, white background, simple background, isolated object, compact black and brass ticket printer, brass grille below the slot"
+    },
+    "ct_printer_i": {
+      "w": 1024,
+      "h": 1024,
+      "prompt": "single receipt printer seen from directly above, perfectly top-down orthographic view, flat plan view, front-facing and axis-aligned, not tilted, not rotated, bilaterally symmetrical, rectangular outline, narrow paper slot along the top edge, centered object, white background, simple background, isolated object, dark navy enamel body, a short blank paper strip coming out of the top slot"
+    },
+    "ct_printer_j": {
+      "w": 1024,
+      "h": 1024,
+      "prompt": "single receipt printer seen from directly above, perfectly top-down orthographic view, flat plan view, front-facing and axis-aligned, not tilted, not rotated, bilaterally symmetrical, rectangular outline, narrow paper slot along the top edge, centered object, white background, simple background, isolated object, antique bakelite black body with polished brass slot plate and a small dial"
+    }
   }
 }

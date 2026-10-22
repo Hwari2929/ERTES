@@ -281,7 +281,7 @@ function usual() {
 }
 
 // ───────── 소품 (탑뷰 · 왼쪽 위 광원): 그림(art/ct_*.webp)이 있으면 그림, 없으면 같은 광원의 면 그림
-const prop = (id: string, fallback: string) => `${fallback}<img class="ct-art" alt="" src="${artURL(`${id}.webp`)}" decoding="async" onload="this.parentNode.classList.add('has-art')" onerror="this.remove()">`;
+const prop = (id: string, fallback: string) => `${fallback}<img class="ct-art" alt="" src="${artURL(`${id}.webp`)}" decoding="async" onerror="this.remove()">`;
 /** 탁상 벨 (위에서 본 놋쇠 돔 + 나무 받침) */
 const BELL_SVG = `<svg class="ct-fb" viewBox="0 0 120 120" aria-hidden="true"><circle cx="65" cy="67" r="50" class="sh"/><circle cx="60" cy="60" r="50" class="base"/><circle cx="60" cy="60" r="43" class="base2"/><circle cx="60" cy="60" r="34" class="dome"/><path d="M36 50a26 26 0 0 1 24-16" class="hl"/><circle cx="60" cy="60" r="9" class="btn"/><circle cx="57.5" cy="57.5" r="3" class="hl2"/></svg>`;
 /** 전표 출력기 (위에서 본 네이비 법랑 몸체 + 놋쇠 테 + 위쪽 슬릿) */
