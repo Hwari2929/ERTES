@@ -1,5 +1,5 @@
-// 상점 · 상인 검사 (npm run check): 진열 9칸 · 상인 전용 상품 · 할인 분포 · 새로고침 · 이자 지키며 쓸 수 있음 · 지정 소집 티켓 ·
-// 고르곤 교환 · 만찬 백수정 연쇄 회복 · 다시 열어도 같은 진열.
+// 상점 · 상인 검사 (npm run check): 진열 6~9개 (3×3 진열대, 개수 분포) · 상인 전용 상품 · 할인 분포 · 새로고침 (비용 × 상점 배율 · 개수도 다시) ·
+// 이자 지키며 쓸 수 있음 · 지정 소집 티켓 (상점 칸이 열린 채로도) · 고르곤 교환 · 만찬 백수정 연쇄 회복 · 다시 열어도 같은 진열.
 import { CFG } from '../src/config';
 import * as R from '../src/engine/run';
 import { buildBattle, encGeo, PAD } from '../src/engine/build';
@@ -14,6 +14,8 @@ declare const process: { exitCode?: number };
 let fails = 0, passed = 0;
 const ok = (c: boolean, msg: string) => { if (c) passed++; else { fails++; console.log(`FAIL ${msg}`); } };
 const STARTERS = RECRUITABLE.slice(0, 4).map((d) => d.id);
+const CNT = CFG.shop.count, CMIN = Math.min(...CNT.map(([n]) => n)), CMAX = Math.max(...CNT.map(([n]) => n));
+const inRange = (n: number) => n >= CMIN && n <= CMAX && n <= CFG.shop.slots;
 function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   const run = R.newRun(seed, STARTERS, field, diff);
   run.pending = [];
@@ -21,7 +23,7 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   return run;
 }
 
-// ── 1. 진열 9칸 · 서로 다름 · 전용 상품 · 가격 · 고르곤 전설 확률
+// ── 1. 진열 6~9개 · 서로 다름 · 전용 상품 · 가격 · 고르곤 전설 확률
 {
   let n = 0, bad = 0, exMiss = 0, badPrice = 0;
   const legend: Record<string, [number, number]> = {};
@@ -31,13 +33,13 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
     const shop = R.genShop(run, m.id);
     n++;
     const ids = shop.map((x) => x.item);
-    if (ids.length !== CFG.shop.slots || new Set(ids).size !== ids.length) { bad++; if (bad < 4) console.log('  진열', m.id, phase, JSON.stringify(ids)); }
+    if (!inRange(ids.length) || new Set(ids).size !== ids.length) { bad++; if (bad < 4) console.log('  진열', m.id, phase, JSON.stringify(ids)); }
     if (m.ex && !shop.some((x) => x.item === m.ex && x.ex)) exMiss++;
     if (shop.some((x) => !(x.price > 0) || !Number.isFinite(x.price) || (x.base !== undefined && !(x.base > x.price)))) badPrice++;
     const k = `${m.id}:${phase === 1 ? 'p1' : phase === 6 ? 'p6' : 'p3'}`;
     const l = (legend[k] ||= [0, 0]); l[1]++; if (ids.some((x) => x.startsWith('L_'))) l[0]++;
   }
-  ok(bad === 0, `진열 ${n}개 상점 모두 ${CFG.shop.slots}칸 · 같은 물품 없음 (어긋남 ${bad})`);
+  ok(bad === 0, `진열 ${n}개 상점 모두 ${CMIN}~${CMAX}개 (진열대 ${CFG.shop.slots}칸 이하) · 같은 물품 없음 (어긋남 ${bad})`);
   ok(exMiss === 0, `상인 전용 상품 늘 진열 (빠짐 ${exMiss})`);
   ok(badPrice === 0, `가격은 양수 · 할인 칸은 원래 가격 > 할인가 (어긋남 ${badPrice})`);
   const rate = (k: string) => legend[k][0] / legend[k][1];
@@ -46,13 +48,17 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   ok(rate('yui:p6') > 0 && rate('yui:p6') < 0.15, `다른 상인 6페이즈 전설 ≈ ${CFG.drop.shopLegend} (${rate('yui:p6').toFixed(3)})`);
 }
 
-// ── 2. 할인 분포 (많은 시드)
+// ── 2. 할인 분포 · 진열 개수 분포 (많은 시드)
 {
   const cnt = [0, 0, 0, 0];
-  let sales = 0, rare = 0, badPct = 0;
+  const len: Record<number, number> = {};
+  let sales = 0, rare = 0, badPct = 0, exMiss = 0;
   const N = 4000;
   for (let s = 0; s < N; s++) {
-    const shop = R.genShop(mk(10007 + s * 31), MERCHANTS[s % MERCHANTS.length].id);
+    const m = MERCHANTS[s % MERCHANTS.length];
+    const shop = R.genShop(mk(10007 + s * 31, 'waste', 0, 1 + (s % 8)), m.id);
+    len[shop.length] = (len[shop.length] || 0) + 1;
+    if (m.ex && !shop.some((x) => x.item === m.ex && x.ex)) exMiss++;
     const d = shop.filter((x) => x.off);
     cnt[Math.min(3, d.length)]++;
     for (const x of d) { sales++; if (x.off === CFG.shop.sale.rare) rare++; else if (!CFG.shop.sale.pct.includes(x.off!)) badPct++; }
@@ -61,6 +67,25 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   ok(CFG.shop.sale.n.every((q, k) => Math.abs(p[k] - q) < 0.03), `할인 칸 수 0 · 1 · 2 · 3 분포 ${p.map((x) => x.toFixed(3)).join(' · ')} ≈ ${CFG.shop.sale.n.join(' · ')}`);
   ok(badPct === 0, '할인율은 설정값 중 하나');
   ok(Math.abs(rare / sales - CFG.shop.sale.rareP) < 0.015, `${CFG.shop.sale.rare}% 할인 비율 ${(rare / sales).toFixed(3)} ≈ ${CFG.shop.sale.rareP}`);
+  ok(Object.keys(len).every((k) => inRange(+k)), `진열 개수는 ${CMIN}~${CMAX} (${Object.keys(len).join(' · ')})`);
+  ok(CNT.every(([k, q]) => Math.abs((len[k] || 0) / N - q) < 0.03), `진열 개수 분포 ${CNT.map(([k]) => `${k}개 ${((len[k] || 0) / N).toFixed(3)}`).join(' · ')} ≈ ${CNT.map(([k, q]) => `${k}개 ${q}`).join(' · ')}`);
+  ok(exMiss === 0, `몇 개를 진열하든 전용 상품 (빠짐 ${exMiss})`);
+  // 6개 상점에서도 굴린 전설은 남는다 (고르곤, 전용 다음 순서): 같은 씨앗을 9개로 굴린 것과 전설 유무가 같다
+  const c0 = CFG.shop.count;
+  const setCount = (c: [number, number][]) => { (CFG.shop as { count: [number, number][] }).count = c; };
+  let g6 = 0, g6L = 0, g6miss = 0;
+  for (let s = 0; s < 400; s++) {
+    setCount([[CMIN, 1]]);
+    const shop = R.genShop(mk(70001 + s * 13, 'waste', 0, 1 + (s % 8)), 'gorgon');
+    setCount([[CFG.shop.slots, 1]]);
+    const full = R.genShop(mk(70001 + s * 13, 'waste', 0, 1 + (s % 8)), 'gorgon');
+    setCount(c0);
+    g6++;
+    const L6 = shop.some((x) => x.item.startsWith('L_')), L9 = full.some((x) => x.item.startsWith('L_'));
+    if (L6) g6L++;
+    if (L6 !== L9 || shop.length !== CMIN) g6miss++;
+  }
+  ok(g6miss === 0 && g6L > 40, `고르곤 ${CMIN}개 상점: 전설 굴림이 잘리지 않는다 (${g6}개 중 전설 ${g6L} · 어긋남 ${g6miss})`);
 }
 
 // ── 3. 상인 풀 · 상점 열기 · 다시 열어도 같은 진열 (노드 · 저장에 기록)
@@ -75,30 +100,59 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   const snap = JSON.stringify(run.node);
   const back = JSON.parse(JSON.stringify(run)) as RunState;
   ok(JSON.stringify(back.node) === snap, '저장 · 불러오기 뒤에도 같은 상인 · 같은 진열');
+  const n0 = run.node!.shop!.length;
   R.buyShop(run, run.node!.shop!.findIndex((x) => x.price <= run.credits));
-  ok(run.node!.shop!.length === CFG.shop.slots, '산 칸은 품절로 남는다 (채우지 않음)');
+  ok(run.node!.shop!.length === n0 && run.node!.shop!.filter((x) => x.sold).length === 1, '산 칸은 품절로 남는다 (채우지 않음 · 개수 그대로)');
 }
 
-// ── 4. 새로고침: 페이즈마다 1번 · 첫 번 무료 · 그다음 base, +step
+// ── 4. 새로고침: 페이즈마다 1번 · 첫 번 무료 · 그다음 (base, +step) × 상점 배율 (진열 가격과 같은 shopMul: 전장 · 관세 · 단골 할인) · 진열 개수도 다시
 {
-  const run = mk(9);
-  run.credits = 100;
+  const RF = CFG.shop.refresh;
+  const cases: [string, boolean, boolean, number][] = [['swarm', false, false, 1], ['waste', false, false, 1.25], ['livin', false, false, 1.15], ['waste', true, false, 1.25 * (1 + CFG.despair.tariff)], ['waste', true, true, 1.25 * (1 + CFG.despair.tariff) * (1 - CFG.globalAug.discount)], ['swarm', false, true, 1 - CFG.globalAug.discount]];
+  for (const [field, tariff, discount, expMul] of cases) {
+    const run = mk(9, field);
+    if (tariff) run.despairs = [...(run.despairs || []), 'D.tariff'];
+    if (discount) run.globals.push('G.discount');
+    const mul = R.shopMul(run), want = (b: number) => Math.max(1, Math.round(b * mul)), lab = `${field}${tariff ? ' · 관세' : ''}${discount ? ' · 단골 할인' : ''} ×${+mul.toFixed(4)}`;
+    ok(Math.abs(mul - expMul) < 1e-9, `[${lab}] 상점 배율 = ${+expMul.toFixed(4)}`);
+    run.credits = 100;
+    R.openShop(run);
+    const m = run.node!.merchant!;
+    ok(R.refreshInfo(run).cost === 0 && !R.refreshInfo(run).used, `[${lab}] 첫 새로고침 무료`);
+    ok(R.refreshShop(run) === null && run.credits === 100, `[${lab}] 무료 새로고침 성공`);
+    ok(run.node!.merchant === m && inRange(run.node!.shop!.length), `[${lab}] 새로고침: 상인 그대로 · ${CMIN}~${CMAX}개`);
+    ok(!!R.refreshShop(run) && R.refreshInfo(run).used, `[${lab}] 같은 페이즈 두 번째는 막힘`);
+    run.phase = 2;
+    const c1 = R.refreshInfo(run).cost;
+    ok(R.refreshInfo(run).base === RF.base && c1 === want(RF.base), `[${lab}] 다음 페이즈 비용 ${RF.base} × 배율 = ${c1}`);
+    R.refreshShop(run);
+    ok(run.credits === 100 - c1, `[${lab}] 배율 적용 비용 차감 (−${c1})`);
+    run.phase = 3;
+    const c2 = R.refreshInfo(run).cost;
+    ok(c2 === want(RF.base + RF.step), `[${lab}] 그다음 (${RF.base} + ${RF.step}) × 배율 = ${c2}`);
+    run.credits = c2 - 1;
+    ok(R.refreshShop(run) === '크레딧 부족', `[${lab}] 크레딧이 모자라면 막힘`);
+    const ex = MERCHANT_BY_ID[m].ex;
+    ok(!ex || run.node!.shop!.some((x) => x.item === ex), `[${lab}] 새로고침 뒤에도 전용 상품`);
+  }
+  // 배율이 1이 아니면 숫자가 실제로 바뀐다 (황무지 ×1.25: 6 → 8 · 10 → 13)
+  const rw = mk(9, 'waste');
+  rw.shopRf = { n: 1, ph: 0 };
+  ok(R.refreshInfo(rw).cost === Math.round(RF.base * 1.25) && R.refreshInfo(rw).cost !== RF.base, `황무지 유료 첫 새로고침 ${RF.base} → ${R.refreshInfo(rw).cost}`);
+  // 새로고침은 진열 개수도 다시 뽑는다 (유이 티켓은 늘)
+  const lens = new Set<number>();
+  let exMiss = 0;
+  const run = mk(19);
   R.openShop(run);
-  const m = run.node!.merchant!;
-  ok(R.refreshInfo(run).cost === 0 && !R.refreshInfo(run).used, '첫 새로고침 무료');
-  ok(R.refreshShop(run) === null && run.credits === 100, '무료 새로고침 성공');
-  ok(run.node!.merchant === m && run.node!.shop!.length === CFG.shop.slots, '새로고침: 상인 그대로 · 9칸');
-  ok(!!R.refreshShop(run) && R.refreshInfo(run).used, '같은 페이즈 두 번째는 막힘');
-  run.phase = 2;
-  ok(R.refreshInfo(run).cost === CFG.shop.refresh.base, `다음 페이즈 비용 ${CFG.shop.refresh.base}`);
-  R.refreshShop(run);
-  ok(run.credits === 100 - CFG.shop.refresh.base, '비용 차감');
-  run.phase = 3;
-  ok(R.refreshInfo(run).cost === CFG.shop.refresh.base + CFG.shop.refresh.step, `그다음 +${CFG.shop.refresh.step}`);
-  run.credits = 0;
-  ok(R.refreshShop(run) === '크레딧 부족', '크레딧이 모자라면 막힘');
-  const ex = MERCHANT_BY_ID[m].ex;
-  ok(!ex || run.node!.shop!.some((x) => x.item === ex), '새로고침 뒤에도 전용 상품');
+  run.node!.merchant = 'yui';
+  for (let i = 0; i < 80; i++) {
+    run.phase = 1 + i; run.credits = 999;
+    if (R.refreshShop(run)) break;
+    lens.add(run.node!.shop!.length);
+    if (!run.node!.shop!.some((x) => x.item === R.TICKET && x.ex)) exMiss++;
+  }
+  ok(lens.size >= 3 && [...lens].every(inRange), `새로고침마다 진열 개수가 바뀐다 (${[...lens].sort().join(' · ')})`);
+  ok(exMiss === 0, '새로고침 뒤에도 유이 티켓');
 }
 
 // ── 5. 이자 지키며 쓸 수 있음
@@ -126,6 +180,51 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   ok(R.useCheck({ ...run, inventory: [R.TICKET] } as RunState, 0, { k: 'run' }) !== null, '티켓은 직접 사용 불가');
   const r1 = mk(4), t0 = R.ticketPrice(r1), r2 = mk(4); r2.musters = 2;
   ok(R.ticketPrice(r2) > t0 && t0 === Math.round(CFG.musterCost * CFG.shop.ticket * R.shopMul(r1)), `티켓 가격 = 지정 소집 비용 × ${CFG.shop.ticket} × 상점 배율 (${t0})`);
+}
+
+// ── 6b. 상점 칸이 열린 채 지정 소집: 티켓이 있으면 허용 (크레딧 소집은 막힘), 상인 · 진열 · 품절은 그대로
+{
+  const run = mk(41);
+  run.credits = 200;
+  R.openShop(run);
+  run.node!.met = true;
+  R.buyShop(run, run.node!.shop!.findIndex((x) => !x.ex && x.price <= run.credits));
+  const snap = JSON.stringify(run.node);
+  ok(R.openMuster(run) === R.SHOP_TICKET_ONLY && R.musterBlock(run) === R.SHOP_TICKET_ONLY && !run.pending.length, '상점 칸 + 티켓 없음: 크레딧이 넉넉해도 소집 막힘 (티켓만)');
+  run.inventory.push(R.TICKET, R.TICKET);
+  ok(R.musterBlock(run) === null && R.openMuster(run) === null && run.pending[0]?.t === 'muster', '상점 칸 + 티켓: 소집 창이 열린다');
+  ok(R.musterBlock(run) !== null, '소집 창이 떠 있는 동안 다시 열 수 없다');
+  R.cancelMuster(run);
+  ok(!run.pending.length && JSON.stringify(run.node) === snap, '소집 취소: 상점 그대로');
+  R.openMuster(run);
+  const syns = R.musterSyns().filter((s) => R.musterPool(run, [s]).length).slice(0, CFG.musterPicks);
+  const cr0 = run.credits, mu0 = run.musters || 0;
+  ok(R.confirmMuster(run, syns) === null && run.pending[0]?.t === 'recruit', '상점 칸에서 티켓으로 소집 확정 → 영입 창');
+  ok(run.credits === cr0 && R.ticketCount(run) === 1 && run.musters === mu0 + 1, '크레딧 그대로 · 티켓 1장 소모 · 소집 횟수 +1');
+  const p = run.pending[0] as { t: 'recruit'; options: string[] };
+  R.recruit(run, p.options[0]);
+  run.pending.shift();
+  ok(run.units.some((u) => u.defId === p.options[0]), '영입 완료');
+  ok(run.node?.type === 'shop' && JSON.stringify(run.node) === snap, '소집 · 영입 뒤에도 같은 상인 · 같은 진열 · 같은 품절');
+  const back = JSON.parse(JSON.stringify(run)) as RunState;
+  ok(JSON.stringify(back.node) === snap, '저장 · 불러오기 뒤에도 같은 상점');
+  // 그사이 티켓이 없어지면 확정을 막는다 (상점 칸에서는 크레딧으로 넘어가지 않는다)
+  R.openMuster(run);
+  run.inventory = run.inventory.filter((x) => x !== R.TICKET);
+  ok(R.confirmMuster(run, syns) === R.SHOP_TICKET_ONLY && run.pending[0]?.t === 'muster', '상점 칸: 티켓이 없어지면 막힘');
+  R.cancelMuster(run);
+  // 상점이 아닌 칸 (전투 편성 중)은 티켓이 있어도 막힘
+  const r2 = mk(42);
+  r2.inventory.push(R.TICKET);
+  r2.node = { type: 'battle', enc: R.genEncounter(r2, 'battle') };
+  ok(!!R.openMuster(r2) && R.musterBlock(r2) !== R.SHOP_TICKET_ONLY && !r2.pending.length, '전투 칸은 티켓이 있어도 막힘');
+  // 상점을 떠난 뒤 (칸 없음)는 크레딧 소집 그대로
+  const r3 = mk(43);
+  r3.credits = 200;
+  R.openShop(r3);
+  R.leaveShop(r3);
+  r3.pending = [];
+  ok(R.openMuster(r3) === null, '상점을 떠나면 크레딧 소집 가능');
 }
 
 // ── 7. 고르곤 교환

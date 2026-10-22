@@ -283,10 +283,19 @@ export const musterPool = (run: RunState, syns: string[]) =>
 /** 지정 소집 티켓 (유이 전용 상품): 들고 있으면 지정 소집을 크레딧 대신 티켓 1장으로 한다 */
 export const TICKET = 'K_muster_ticket';
 export const ticketCount = (run: RunState) => run.inventory.filter((x) => x === TICKET).length;
-export function openMuster(run: RunState): string | null {
-  if (run.pending.length || run.node) return '진행 중인 일을 먼저 끝내세요';
+/** 상점 칸 (상인 상점 · 정비 · 합성 공방)이 열려 있는 동안의 지정 소집은 티켓으로만 (크레딧 소집 · 함대 확장은 칸을 끝낸 뒤). 상인 · 진열은 그대로 남는다 */
+export const SHOP_TICKET_ONLY = '상점에서는 지정 소집 티켓으로만 소집할 수 있습니다';
+/** 지정 소집을 지금 열 수 없는 까닭 (null = 열 수 있음): 진행 중인 선택 · 칸 (상점 칸은 티켓이 있으면 허용) · 보유 한도 · 크레딧 */
+export function musterBlock(run: RunState): string | null {
+  if (run.pending.length) return '진행 중인 선택을 먼저 끝내세요';
+  if (run.node && !(run.node.type === 'shop' && ticketCount(run))) return run.node.type === 'shop' ? SHOP_TICKET_ONLY : '진행 중인 일을 먼저 끝내세요';
   if (run.units.length >= CFG.maxParty) return `보유 한도(${CFG.maxParty}명)에 도달했습니다`;
   if (!ticketCount(run) && run.credits < musterCost(run)) return `크레딧이 부족합니다 (${musterCost(run)} 필요)`;
+  return null;
+}
+export function openMuster(run: RunState): string | null {
+  const err = musterBlock(run);
+  if (err) return err;
   run.pending.unshift({ t: 'muster' });
   return null;
 }
@@ -296,6 +305,7 @@ export function confirmMuster(run: RunState, syns: string[]): string | null {
   const pool = musterPool(run, syns);
   if (!pool.length) return '조건에 맞는 기물이 없습니다';
   const c = musterCost(run), ticket = ticketCount(run) > 0;
+  if (!ticket && run.node) return SHOP_TICKET_ONLY; // 상점 칸에서 연 소집 창: 그사이 티켓이 없어졌으면 막는다
   if (!ticket && run.credits < c) return `크레딧이 부족합니다 (${c} 필요)`;
   if (ticket) run.inventory.splice(run.inventory.indexOf(TICKET), 1); // 티켓이 있으면 크레딧 대신 (소집 횟수는 그대로 센다)
   else { run.credits -= c; recSpend(run, 'muster', c); }
@@ -1643,21 +1653,22 @@ export function shopKind(id: string): 'L' | 'A' | 'G' | 'M' | 'C' | 'KL' | 'K' {
 const SHOP_ORDER = ['L', 'A', 'G', 'M', 'C', 'KL', 'K'];
 /** 이 상점에 나올 상인 (공용 상인 + 전장 특별 상인 중 균등). 튜토리얼 상점은 engine/tutorial.ts 가 정한다 */
 export const pickMerchant = (run: RunState) => rng(run, (r) => r.pick(merchantPool(fieldOf(run.field))));
-/** 상점 노드 열기: 상인 1명 + 진열 9칸 (노드에 기록 → 다시 열거나 불러와도 같은 상인 · 같은 진열) */
+/** 상점 노드 열기: 상인 1명 + 진열 6~9개 (노드에 기록 → 다시 열거나 불러와도 같은 상인 · 같은 진열) */
 export function openShop(run: RunState) {
   const merchant = pickMerchant(run);
   run.node = { type: 'shop', shop: genShop(run, merchant), merchant };
 }
 
-/** 상점 진열 (3×3 = 서로 다른 물품 CFG.shop.slots 개).
+/** 상점 진열 (3×3 진열대에 서로 다른 물품 n 개, n = CFG.shop.count 확률로 6~9 — 남는 칸은 빈 선반).
  *  1) 예전 진열 규칙을 그대로 굴린다: 재료 2 확정 · 희귀 (1 · 2) · 고급 · 전설 (6페이즈부터, 고르곤은 페이즈 무관 20%) · 3페이즈부터 고급 · 희귀 1개 이상 · 소모품 2~3 · 강제 징수기 · 원초 공명석 · 문장.
- *  2) 상인 전용 상품은 늘 넣는다 (9칸 안). 넘치면 분류 순서 (전용 > 전설 > … > 소모품 > 재료) 로 자른다.
+ *  2) 상인 전용 상품은 늘 넣는다 (n 개 안). 넘치면 분류 순서 (전용 > 전설 > 희귀 > 고급 > 문장 > 재료 > 전설 소모품 > 소모품) 로 자른다 — 전용 · 굴린 전설은 남는다.
  *  3) 모자라는 칸은 CFG.shop.fill 가중치로 분류를 골라 그 분류의 아직 없는 물품으로 채운다 (재료 · 소모품 · 고급 · 희귀 · 문장).
  *  4) 할인: 칸 수 CFG.shop.sale.n 확률 · 할인율 sale.pct 균등 (드물게 sale.rare) */
 export function genShop(run: RunState, merchant?: string): ShopSlot[] {
   return rng(run, (r) => {
     const S = CFG.shop, D = CFG.drop, m = merchant ? MERCHANT_BY_ID[merchant] : undefined;
     const mul = shopMul(run);
+    const slots = Math.min(S.slots, r.weighted(S.count, ([, w]) => w)[0]); // 이번 진열 수 (진열대 칸 수 이하)
     const pr = (g: string) => Math.round(CFG.price[g] * mul);
     const sp = (key: string) => Math.round(S.price[key] * mul);
     const out: ShopSlot[] = [];
@@ -1696,7 +1707,7 @@ export function genShop(run: RunState, merchant?: string): ShopSlot[] {
     if (r.chance(S.emblem)) add(emblem(EMBLEM_SYNS), sp('emblem'));
     // 넘치면 자른다: 전용 > 분류 순서 (SHOP_ORDER) — 같은 분류 안에서는 먼저 들어온 것부터
     const rank = (x: ShopSlot) => (x.ex ? -1 : SHOP_ORDER.indexOf(shopKind(x.item)));
-    if (out.length > S.slots) { const keep = out.map((x, i) => ({ x, i })).sort((a, b) => rank(a.x) - rank(b.x) || a.i - b.i).slice(0, S.slots).map((y) => y.x); out.length = 0; out.push(...keep); }
+    if (out.length > slots) { const keep = out.map((x, i) => ({ x, i })).sort((a, b) => rank(a.x) - rank(b.x) || a.i - b.i).slice(0, slots).map((y) => y.x); out.length = 0; out.push(...keep); }
     // 모자라는 칸 채우기 (분류 가중치 S.fill, 같은 물품 없이)
     const pools: Record<string, () => string[]> = {
       C: () => ALL_COMPONENTS.filter((id) => !has(id)),
@@ -1705,7 +1716,7 @@ export function genShop(run: RunState, merchant?: string): ShopSlot[] {
       K: () => ks.filter((k) => (k === 'inject' ? injectorWeights(run.phase).some(([id]) => !has(id)) : !has(k))),
       M: () => EMBLEM_SYNS.filter((s) => !has(emblemId(s))).map(emblemId),
     };
-    for (let guard = 0; out.length < S.slots && guard < 40; guard++) {
+    for (let guard = 0; out.length < slots && guard < 40; guard++) {
       const cats = Object.keys(S.fill).filter((c) => S.fill[c] > 0 && pools[c]?.().length);
       if (!cats.length) break;
       const c = r.weighted(cats, (x) => S.fill[x]);
@@ -1733,12 +1744,14 @@ export function genShop(run: RunState, merchant?: string): ShopSlot[] {
     return out;
   });
 }
-/** 진열 새로고침 상태: 이번 페이즈에 이미 썼는지 · 다음 비용 (의뢰 첫 번은 무료, 그다음 base, 유료 1번마다 +step) */
+/** 진열 새로고침 상태: 이번 페이즈에 이미 썼는지 · 다음 비용 (의뢰 첫 번은 무료, 그다음 base, 유료 1번마다 +step) × 상점 배율 (진열 가격과 같은 shopMul).
+ *  base = 배율 전 비용 (설명용) */
 export function refreshInfo(run: RunState) {
   const rf = run.shopRf || { n: 0, ph: 0 }, R0 = CFG.shop.refresh;
-  return { used: rf.ph === run.phase, n: rf.n, cost: rf.n ? R0.base + R0.step * (rf.n - 1) : 0 };
+  const base = rf.n ? R0.base + R0.step * (rf.n - 1) : 0;
+  return { used: rf.ph === run.phase, n: rf.n, base, cost: base ? Math.max(1, Math.round(base * shopMul(run))) : 0 };
 }
-/** 진열 새로고침: 품절 칸까지 9칸 · 할인을 모두 새로 (상인 그대로 · 전용 상품 다시 진열). 오류 문구 또는 null */
+/** 진열 새로고침: 진열 수 (6~9) · 품절 칸까지 모든 물품 · 할인을 새로 (상인 그대로 · 전용 상품 다시 진열). 오류 문구 또는 null */
 export function refreshShop(run: RunState): string | null {
   const nd = run.node;
   if (nd?.type !== 'shop' || !nd.merchant || !nd.shop) return '상점이 아닙니다';
