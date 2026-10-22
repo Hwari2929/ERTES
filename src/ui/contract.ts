@@ -283,13 +283,13 @@ const SWASH = "<path d='M6 50C6 22 20 8 50 6'/><path d='M12 46C12 26 24 14 46 12
 const CORNERS = ['tl', 'tr', 'bl', 'br'].map((k) => gold(SWASH, '0 0 56 56', `ct-co ${k}`)).join('');
 const FLEURON = gold("<path d='M4 8H40M64 8H100'/><path d='M52 1 59 8 52 15 45 8Z'/><circle cx='42' cy='8' r='1.4'/><circle cx='62' cy='8' r='1.4'/>", '0 0 104 16', 'ct-fl');
 const CONST = `<svg class="ct-const" viewBox="0 0 120 44" aria-hidden="true"><polyline points="14,30 34,13 54,24 76,9 100,20"/><circle cx="14" cy="30" r="1.6"/><circle cx="34" cy="13" r="1.2"/><circle cx="54" cy="24" r="1.9"/><circle cx="76" cy="9" r="1.1"/><circle cx="100" cy="20" r="1.5"/><circle cx="110" cy="34" r=".9"/></svg>`;
-/** 표지: 네이비 바탕 + 금 액자 · 세로 간판 '에란테스' (정보는 속지 · 전표에) */
+/** 표지: 네이비 바탕 + 금 액자 · 동판 필기체 'Errantes' 를 90도 돌려 세운 간판 (정보는 속지 · 전표에) */
 function coverHtml() {
   return `<section class="ct-cover lp-band" aria-label="에란테스 바 — 의뢰 차림표">
     ${CORNERS}${CONST}
-    <span class="ct-cv-k">ERRANTES</span>
+    <span class="ct-cv-k">· BAR ·</span>
     ${FLEURON}
-    <h1 class="ct-signboard">에란테스</h1>
+    <h1 class="ct-signboard" lang="la" aria-label="에란테스">Errantes</h1>
     ${FLEURON}
     <span class="ct-cv-k">의뢰 차림표</span>
   </section>`;

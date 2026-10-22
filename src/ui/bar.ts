@@ -548,7 +548,7 @@ export function barScreen(): string {
     <div class="bar-shade"></div><div class="lp-grain" aria-hidden="true"></div>
     <aside class="bar-nav" aria-label="바 둘러보기">
       <svg class="lp-stars" viewBox="0 0 120 40" aria-hidden="true"><circle cx="14" cy="22" r="1.2"/><circle cx="38" cy="9" r=".9"/><circle cx="61" cy="27" r="1.5"/><circle cx="84" cy="12" r=".9"/><circle cx="106" cy="24" r="1.1"/></svg>
-      <h1>에란테스 바</h1>
+      <h1 lang="la" aria-label="에란테스 바">Errantes</h1>
       <i class="lp-rule" aria-hidden="true"></i>
       <nav>
         ${res && auto ? line('counter', 'load', '이어서 출격', `${esc(fieldName(res.field))} · 페이즈 ${auto.phase}`, ' data-v="auto"') : line('counter', 'newrun', '새 계약', '의뢰 차림표')}

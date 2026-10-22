@@ -1,7 +1,7 @@
 <title>ERRANTEs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@800&text=%EC%97%90%EB%9E%80%ED%85%8C%EC%8A%A4%EB%B0%94&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pinyon+Script&text=Erantes&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gothic+A1:wght@400;600;800&family=IBM+Plex+Mono:wght@500;700&family=Gowun+Batang:wght@400;700&family=Nanum+Pen+Script&family=Nanum+Gothic+Coding:wght@400;700&display=swap">
 <style>/* 용병단 전술 단말기: 잉크빛 남색 바탕 + 계약서 호박색 강조. 단일 다크 룩. */
 :root {
@@ -75,7 +75,7 @@
   --f-serif: 'Gowun Batang', 'Nanum Myeongjo', 'AppleMyungjo', serif;
   --f-paper: 'Gowun Batang', 'Nanum Myeongjo', 'AppleMyungjo', serif;
   --f-pen: 'Nanum Pen Script', 'Segoe Script', cursive;
-  --f-sign: 'Nanum Myeongjo', 'Gowun Batang', serif; /* 간판 글씨 (에란테스 세로 간판 · 바 세로 띠 제목, index.html 에서 그 글자만 받는다) */
+  --f-sign: 'Pinyon Script', 'Snell Roundhand', 'Gowun Batang', cursive; /* 간판 글씨: 동판 필기체 'Errantes' (계약 표지 · 바 세로 띠, index.html 에서 그 글자만 받는다) */
   --f-slip: 'Nanum Gothic Coding', var(--f-mono); /* 전표 · 영수 증서: 한글도 같은 폭으로 찍히는 고정폭 */
   --fs-2xs: .625rem;   /* 10px  배지 숫자 · 아주 작은 표식 */
   --fs-xs: .6875rem;   /* 11px  메타 · 단위 · 칩 */
@@ -88,8 +88,8 @@
   --fs-3xl: 1.75rem;   /* 28px  큰 제목 (h1 · 결과) */
   --fs-meta: var(--fs-sm);
   --fs-banner: clamp(1.8rem, 4vw, 2.6rem); /* 결과 · 전환 큰 글자 */
-  --fs-sign: 2.75rem;  /* 44px  세로 간판 (계약 차림표 표지) */
-  --fs-sign-s: 2.1rem; /* 34px  세로 간판 (태블릿) */
+  --fs-sign: 4.4rem;   /* 70px  필기체 간판 (계약 차림표 표지) */
+  --fs-sign-s: 3.3rem; /* 53px  필기체 간판 (태블릿 · 휴대폰 · 바 세로 띠) */
 
   /* ── 모서리 둥글기 3단계 */
   --r-sm: 4px;   /* 칩 · 배지 · 작은 칸 */
@@ -4451,7 +4451,7 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .bar-nav { position: absolute; left: 0; top: 0; bottom: 0; z-index: var(--z-raise); width: 150px; display: flex; flex-direction: column; align-items: center; padding: max(16px, env(safe-area-inset-top)) 0 calc(16px + env(safe-area-inset-bottom, 0px));
   background: var(--lp-navy); color: var(--lp-cw); border-right: 1px solid var(--lp-au-lo); box-shadow: inset -1px 0 0 color-mix(in srgb, var(--lp-au) 40%, transparent), 10px 0 30px var(--shade-2); }
 .bar-nav .lp-stars { width: 120px; height: 40px; flex: none; }
-.bar-nav h1 { margin: 10px 0 14px; writing-mode: vertical-rl; text-orientation: upright; font: 800 var(--fs-2xl)/1 var(--f-sign); letter-spacing: .3em; color: var(--lp-au); text-shadow: 0 2px 0 var(--lp-au-lo); }
+.bar-nav h1 { margin: 6px 0 10px; writing-mode: vertical-rl; white-space: nowrap; font: 400 var(--fs-sign-s)/1.25 var(--f-sign); color: var(--lp-au); -webkit-text-stroke: .5px var(--lp-au); text-shadow: 1px 2px 0 var(--lp-au-lo); }
 .bar-nav .lp-rule { width: 70px; }
 .bar-nav nav { display: grid; width: 112px; margin-top: 14px; }
 .bn { position: relative; padding: 8px 4px 8px 16px; border: 0; border-top: 1px dotted color-mix(in srgb, var(--lp-cw) 35%, transparent); background: none; color: var(--lp-cw); text-align: left; font: inherit; cursor: pointer; }
@@ -5114,7 +5114,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-const polyline { fill: none; stroke: var(--lp-au); stroke-width: .6; opacity: .6; }
 .ct-fl { width: 96px; height: 14px; flex: none; }
 .ct-cv-k { font: 700 var(--fs-2xs)/1.3 var(--f-serif); letter-spacing: .32em; color: var(--lp-cw); white-space: nowrap; }
-.ct-signboard { flex: 1 1 auto; min-height: 0; margin: 0; display: grid; place-items: center; writing-mode: vertical-rl; text-orientation: upright; white-space: nowrap; font: 800 var(--fs-sign)/1 var(--f-sign); letter-spacing: .06em; color: var(--lp-au); text-shadow: 0 2px 0 var(--lp-au-lo); } /* 금 두 톤 간판 (빛 번짐 없음) */
+.ct-signboard { flex: 1 1 auto; min-height: 0; margin: 0; display: grid; place-items: center; writing-mode: vertical-rl; white-space: nowrap; font: 400 var(--fs-sign)/1.25 var(--f-sign); color: var(--lp-au); -webkit-text-stroke: .6px var(--lp-au); text-shadow: 1px 2px 0 var(--lp-au-lo); } /* 가로로 쓴 필기체를 90도 돌려 세운다 (금 두 톤, 빛 번짐 없음) */
 .ct-page { flex: 0 1 690px; min-width: 0; padding: 16px 20px; display: flex; flex-direction: column; min-height: 0; box-shadow: 0 24px 48px var(--shade-2), inset 0 0 36px color-mix(in srgb, var(--lp-ink) 22%, transparent), inset 6px 0 10px -6px color-mix(in srgb, var(--c-black) 35%, transparent); }
 .ct-page:has(.ct-col-rider.off) { flex-basis: 490px; } /* 특약 칸이 접히면 속지도 좁다 */
 .ct-page .lp-cols { flex: 1 1 auto; }
@@ -5242,7 +5242,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-cover, .ct-page, .ct-leaf { width: auto; }
   .ct-cover { padding: 18px 16px; flex-direction: row; justify-content: center; gap: 10px; } /* 휴대폰: 표지는 가로 간판 띠 */
   .ct-cover .ct-const, .ct-cover .ct-cv-k { display: none; }
-  .ct-signboard { writing-mode: horizontal-tb; font-size: var(--fs-3xl); flex: none; }
+  .ct-signboard { writing-mode: horizontal-tb; font-size: var(--fs-sign-s); flex: none; }
   .ct-fl { width: 56px; }
   .ct-co { width: 32px; height: 32px; }
   .ct-page { display: block; margin-top: 10px; }
@@ -5425,7 +5425,7 @@ ${GI}`,tierDesc:jb.map(e=>`\uBAA8\uB4E0 \uC120\uBB3C \xD7${e} (\uACF5\uB3D9\uCCB
     <div class="bar-shade"></div><div class="lp-grain" aria-hidden="true"></div>
     <aside class="bar-nav" aria-label="\uBC14 \uB458\uB7EC\uBCF4\uAE30">
       <svg class="lp-stars" viewBox="0 0 120 40" aria-hidden="true"><circle cx="14" cy="22" r="1.2"/><circle cx="38" cy="9" r=".9"/><circle cx="61" cy="27" r="1.5"/><circle cx="84" cy="12" r=".9"/><circle cx="106" cy="24" r="1.1"/></svg>
-      <h1>\uC5D0\uB780\uD14C\uC2A4 \uBC14</h1>
+      <h1 lang="la" aria-label="\uC5D0\uB780\uD14C\uC2A4 \uBC14">Errantes</h1>
       <i class="lp-rule" aria-hidden="true"></i>
       <nav>
         ${e&&t?o("counter","load","\uC774\uC5B4\uC11C \uCD9C\uACA9",`${ma(a8(e.field))} \xB7 \uD398\uC774\uC988 ${t.phase}`,' data-v="auto"'):o("counter","newrun","\uC0C8 \uACC4\uC57D","\uC758\uB8B0 \uCC28\uB9BC\uD45C")}
@@ -5467,9 +5467,9 @@ ${GI}`,tierDesc:jb.map(e=>`\uBAA8\uB4E0 \uC120\uBB3C \xD7${e} (\uACF5\uB3D9\uCCB
       <ol class="lp-lv">${Array.from({length:Hi(a.id)},(i,o)=>o+1).map(i=>`<li class="${i===n?"on":""}"><b>${i}\uB2E8\uACC4</b><span>${Xt(a.lv(i))}</span><em class="f-num">\uC808\uB9DD +${mo(a.id,i)}</em></li>`).join("")}</ol>`}return`${Rd("\uC758\uB8B0 \uCC28\uB9BC\uD45C",`\uC624\uB298\uC758 \uC758\uB8B0\uC11C ${ne.jobs.length}\uC7A5`)}
     <p class="lp-ip">\uC904\uC744 \uB204\uB974\uBA74 \uADF8 \uC904\uC774 \uC804\uD45C\uC5D0 \uCC0D\uD799\uB2C8\uB2E4. \uC758\uB8B0\uC640 \uC57D\uAD00\uC744 \uACE0\uB974\uBA74 \uBCA8\uC744 \uB20C\uB7EC \uC804\uD45C\uB97C \uBC1B\uC2B5\uB2C8\uB2E4.</p>`}function B8(){let e=Pl(),t=PA(),[s,a]=S0();return ne.signed&&e?e.kind==="sealed"?`\uBD09\uC778\uC744 \uB72F\uC5C8\uC2B5\uB2C8\uB2E4. \u300C${EA(e.field)}\u300D, \uC758\uB8B0\uC778\uC740 ${L8(md(e.field)?.client)||"\uC5C6\uC74C"}. \uC2EF\uAC00\uB294 ${eh(e.bonus)}\uD560 \uB354 \uCCD0 \uB4DC\uB9AC\uC8E0.`:"\uC11C\uBA85 \uD655\uC778\uD588\uC2B5\uB2C8\uB2E4. \uBA85\uBD80\uB97C \uD3BC\uCE58\uC8E0.":ne.signing?"\uC544\uB798 \uC11C\uBA85\uB780\uC5D0 \uC11C\uBA85\uD558\uC2DC\uC8E0. \uB9CC\uB144\uD544\uC740 \uC81C \uAC83\uC744 \uC4F0\uC154\uB3C4 \uB429\uB2C8\uB2E4.":ne.say==="usual"&&e?e.kind==="custom"?`\uB298 \uD558\uC2DC\uB358 \uAC78\uB85C\uC694. \uC624\uB298 \uBA54\uB274\uC5D0\uB294 \uC5C6\uC5B4\uC11C ${eh(e.bonus)}\uD560 \uB35C \uCCD0 \uB4DC\uB9BD\uB2C8\uB2E4.`:"\uB298 \uD558\uC2DC\uB358 \uAC78\uB85C\uC694. \uB9C8\uCE68 \uC624\uB298 \uBA54\uB274\uC5D0 \uC788\uC2B5\uB2C8\uB2E4.":CA()?"\uB2E4 \uACE0\uB974\uC168\uC73C\uBA74 \uBCA8\uC744 \uB204\uB974\uC2DC\uC8E0. \uC804\uD45C\uB294 \uBC14\uB85C \uC62C\uB824 \uB4DC\uB9BD\uB2C8\uB2E4.":e&&Ed(e)?`\uC2EF\uAC00\uB294 \uBCF4\uD1B5 ${eh(s)}~${eh(a)}\uD560 \uB354 \uCCD0 \uB4DC\uB9BD\uB2C8\uB2E4. \uACC4\uC0B0\uC740 \uC11C\uBA85\uC73C\uB85C \uBC1B\uC8E0.`:ne.list?`\uBA54\uB274\uC5D0 \uC5C6\uB294 \uAC83\uB3C4 \uB429\uB2C8\uB2E4. \uB300\uC2E0 ${eh(ru())}\uD560 \uB35C \uCCD0 \uB4DC\uB9AC\uC8E0.`:t&&Kr()?"\uB2F4\uBCF4 \uC57D\uAD00\uC774\uC694. \uD2B9\uC57D \uCE78\uC5D0 \uBD88\uC774 \uB4E4\uC5B4\uC654\uC2B5\uB2C8\uB2E4.":"\uC624\uB298 \uB4E4\uC5B4\uC628 \uC758\uB8B0\uC11C\uC785\uB2C8\uB2E4. \uC2EF\uAC00\uB294 \uC11C\uBA85\uD558\uC154\uC57C \uC54C\uB824 \uB4DC\uB9AC\uC8E0."}function y2(){let e=yv(),t=e?Ac[e.plan]:null;return!e||!t||!Os.some(s=>s.id===e.field)?null:{job:LA(e.field),plan:t}}var D8="\uB808\uC774\uCCBC",vQ=(()=>{let e='<path d="M45 13v7"/><circle cx="45" cy="9" r="4"/><path d="M14 56C14 36 28 22 45 22s31 14 31 34"/><path d="M8 56h74"/><path d="M12 57c0 7 10 12 33 12s33-5 33-12"/>';return`<svg viewBox="0 0 90 80" aria-hidden="true"><g class="lp-lo">${e}</g><g class="lp-hi">${e}</g></svg>`})(),U8=(e,t,s)=>`<svg class="${s}" viewBox="${t}" aria-hidden="true"><g class="lp-lo">${e}</g><g class="lp-hi">${e}</g></svg>`,wQ="<path d='M6 50C6 22 20 8 50 6'/><path d='M12 46C12 26 24 14 46 12'/><path d='M14 30c0-7 9-7 9 0 0 5-7 5-7 0'/><path d='M30 14c-7 0-7 9 0 9 5 0 5-7 0-7'/>",xQ=["tl","tr","bl","br"].map(e=>U8(wQ,"0 0 56 56",`ct-co ${e}`)).join(""),b8=U8("<path d='M4 8H40M64 8H100'/><path d='M52 1 59 8 52 15 45 8Z'/><circle cx='42' cy='8' r='1.4'/><circle cx='62' cy='8' r='1.4'/>","0 0 104 16","ct-fl"),SQ='<svg class="ct-const" viewBox="0 0 120 44" aria-hidden="true"><polyline points="14,30 34,13 54,24 76,9 100,20"/><circle cx="14" cy="30" r="1.6"/><circle cx="34" cy="13" r="1.2"/><circle cx="54" cy="24" r="1.9"/><circle cx="76" cy="9" r="1.1"/><circle cx="100" cy="20" r="1.5"/><circle cx="110" cy="34" r=".9"/></svg>';function MQ(){return`<section class="ct-cover lp-band" aria-label="\uC5D0\uB780\uD14C\uC2A4 \uBC14 \u2014 \uC758\uB8B0 \uCC28\uB9BC\uD45C">
     ${xQ}${SQ}
-    <span class="ct-cv-k">ERRANTES</span>
+    <span class="ct-cv-k">\xB7 BAR \xB7</span>
     ${b8}
-    <h1 class="ct-signboard">\uC5D0\uB780\uD14C\uC2A4</h1>
+    <h1 class="ct-signboard" lang="la" aria-label="\uC5D0\uB780\uD14C\uC2A4">Errantes</h1>
     ${b8}
     <span class="ct-cv-k">\uC758\uB8B0 \uCC28\uB9BC\uD45C</span>
   </section>`}function CQ(){let e=Pl(),t=ne.signed&&e&&e.kind!=="open"?`<span class="lp-stamp">${e.kind==="sealed"?`\uC2EF\uAC00 +${Zi(e.bonus)}`:`\uBA54\uB274 \uC678 \u2212${Zi(-e.bonus)}`}</span>`:"";return`<div class="ct-sigbox">

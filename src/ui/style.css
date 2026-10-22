@@ -70,7 +70,7 @@
   --f-serif: 'Gowun Batang', 'Nanum Myeongjo', 'AppleMyungjo', serif;
   --f-paper: 'Gowun Batang', 'Nanum Myeongjo', 'AppleMyungjo', serif;
   --f-pen: 'Nanum Pen Script', 'Segoe Script', cursive;
-  --f-sign: 'Nanum Myeongjo', 'Gowun Batang', serif; /* 간판 글씨 (에란테스 세로 간판 · 바 세로 띠 제목, index.html 에서 그 글자만 받는다) */
+  --f-sign: 'Pinyon Script', 'Snell Roundhand', 'Gowun Batang', cursive; /* 간판 글씨: 동판 필기체 'Errantes' (계약 표지 · 바 세로 띠, index.html 에서 그 글자만 받는다) */
   --f-slip: 'Nanum Gothic Coding', var(--f-mono); /* 전표 · 영수 증서: 한글도 같은 폭으로 찍히는 고정폭 */
   --fs-2xs: .625rem;   /* 10px  배지 숫자 · 아주 작은 표식 */
   --fs-xs: .6875rem;   /* 11px  메타 · 단위 · 칩 */
@@ -83,8 +83,8 @@
   --fs-3xl: 1.75rem;   /* 28px  큰 제목 (h1 · 결과) */
   --fs-meta: var(--fs-sm);
   --fs-banner: clamp(1.8rem, 4vw, 2.6rem); /* 결과 · 전환 큰 글자 */
-  --fs-sign: 2.75rem;  /* 44px  세로 간판 (계약 차림표 표지) */
-  --fs-sign-s: 2.1rem; /* 34px  세로 간판 (태블릿) */
+  --fs-sign: 4.4rem;   /* 70px  필기체 간판 (계약 차림표 표지) */
+  --fs-sign-s: 3.3rem; /* 53px  필기체 간판 (태블릿 · 휴대폰 · 바 세로 띠) */
 
   /* ── 모서리 둥글기 3단계 */
   --r-sm: 4px;   /* 칩 · 배지 · 작은 칸 */
@@ -4446,7 +4446,7 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .bar-nav { position: absolute; left: 0; top: 0; bottom: 0; z-index: var(--z-raise); width: 150px; display: flex; flex-direction: column; align-items: center; padding: max(16px, env(safe-area-inset-top)) 0 calc(16px + env(safe-area-inset-bottom, 0px));
   background: var(--lp-navy); color: var(--lp-cw); border-right: 1px solid var(--lp-au-lo); box-shadow: inset -1px 0 0 color-mix(in srgb, var(--lp-au) 40%, transparent), 10px 0 30px var(--shade-2); }
 .bar-nav .lp-stars { width: 120px; height: 40px; flex: none; }
-.bar-nav h1 { margin: 10px 0 14px; writing-mode: vertical-rl; text-orientation: upright; font: 800 var(--fs-2xl)/1 var(--f-sign); letter-spacing: .3em; color: var(--lp-au); text-shadow: 0 2px 0 var(--lp-au-lo); }
+.bar-nav h1 { margin: 6px 0 10px; writing-mode: vertical-rl; white-space: nowrap; font: 400 var(--fs-sign-s)/1.25 var(--f-sign); color: var(--lp-au); -webkit-text-stroke: .5px var(--lp-au); text-shadow: 1px 2px 0 var(--lp-au-lo); }
 .bar-nav .lp-rule { width: 70px; }
 .bar-nav nav { display: grid; width: 112px; margin-top: 14px; }
 .bn { position: relative; padding: 8px 4px 8px 16px; border: 0; border-top: 1px dotted color-mix(in srgb, var(--lp-cw) 35%, transparent); background: none; color: var(--lp-cw); text-align: left; font: inherit; cursor: pointer; }
@@ -5109,7 +5109,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-const polyline { fill: none; stroke: var(--lp-au); stroke-width: .6; opacity: .6; }
 .ct-fl { width: 96px; height: 14px; flex: none; }
 .ct-cv-k { font: 700 var(--fs-2xs)/1.3 var(--f-serif); letter-spacing: .32em; color: var(--lp-cw); white-space: nowrap; }
-.ct-signboard { flex: 1 1 auto; min-height: 0; margin: 0; display: grid; place-items: center; writing-mode: vertical-rl; text-orientation: upright; white-space: nowrap; font: 800 var(--fs-sign)/1 var(--f-sign); letter-spacing: .06em; color: var(--lp-au); text-shadow: 0 2px 0 var(--lp-au-lo); } /* 금 두 톤 간판 (빛 번짐 없음) */
+.ct-signboard { flex: 1 1 auto; min-height: 0; margin: 0; display: grid; place-items: center; writing-mode: vertical-rl; white-space: nowrap; font: 400 var(--fs-sign)/1.25 var(--f-sign); color: var(--lp-au); -webkit-text-stroke: .6px var(--lp-au); text-shadow: 1px 2px 0 var(--lp-au-lo); } /* 가로로 쓴 필기체를 90도 돌려 세운다 (금 두 톤, 빛 번짐 없음) */
 .ct-page { flex: 0 1 690px; min-width: 0; padding: 16px 20px; display: flex; flex-direction: column; min-height: 0; box-shadow: 0 24px 48px var(--shade-2), inset 0 0 36px color-mix(in srgb, var(--lp-ink) 22%, transparent), inset 6px 0 10px -6px color-mix(in srgb, var(--c-black) 35%, transparent); }
 .ct-page:has(.ct-col-rider.off) { flex-basis: 490px; } /* 특약 칸이 접히면 속지도 좁다 */
 .ct-page .lp-cols { flex: 1 1 auto; }
@@ -5237,7 +5237,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-cover, .ct-page, .ct-leaf { width: auto; }
   .ct-cover { padding: 18px 16px; flex-direction: row; justify-content: center; gap: 10px; } /* 휴대폰: 표지는 가로 간판 띠 */
   .ct-cover .ct-const, .ct-cover .ct-cv-k { display: none; }
-  .ct-signboard { writing-mode: horizontal-tb; font-size: var(--fs-3xl); flex: none; }
+  .ct-signboard { writing-mode: horizontal-tb; font-size: var(--fs-sign-s); flex: none; }
   .ct-fl { width: 56px; }
   .ct-co { width: 32px; height: 32px; }
   .ct-page { display: block; margin-top: 10px; }
