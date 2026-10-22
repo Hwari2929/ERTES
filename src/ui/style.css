@@ -5202,7 +5202,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-plan-stamp { position: absolute; right: 18px; top: 12px; padding: 2px 10px; border: 3px double var(--lp-stamp); color: var(--lp-stamp); font: 700 var(--fs-xl)/1.2 var(--f-serif); letter-spacing: .2em; rotate: -12deg; opacity: .85; pointer-events: none; text-shadow: none; }
 .ct-plan-stamp.lit { animation: ct-stampin .35s ease-out both; }
 /* 전표 출력기 (오른쪽 가운데 아래): 전표는 위쪽 슬릿에서 위로 나오고, 길수록 끝이 휘어 그림자가 진다 */
-.ct-printer { --pw: 330px; --ph: calc(var(--pw) * .693); position: absolute; right: 150px; bottom: 1.5vh; z-index: var(--z-sticky); width: var(--pw); } /* 위에서 본 낮은 포스기 (그림 art/ct_printer.webp: 종이 슬릿 = 가로 26~75% · 높이 6~17%). 화면 아래 끝에 낮게 두어 전표가 길어져도 위로 뻗을 자리가 넓다 */
+.ct-printer { --pw: 300px; --ph: calc(var(--pw) * .743); position: absolute; right: 150px; bottom: 1.5vh; z-index: var(--z-sticky); width: var(--pw); } /* 위에서 본 낮은 포스기 (그림 art/ct_printer.webp: 놋쇠 슬릿 판 = 가로 14~85% · 홈 높이 28%). 화면 아래 끝에 낮게 두어 전표가 길어져도 위로 뻗을 자리가 넓다 */
 .ct-pmach { position: relative; z-index: var(--z-raise); width: var(--pw); height: var(--ph); filter: drop-shadow(8px 12px 10px var(--shade-2)); }
 .ct-pmach > :is(svg, .ct-art), .ct-bell > :is(svg, .ct-art) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 :has(> .ct-art) > .ct-fb { display: none; } /* 그림이 있으면 면 그림을 숨긴다 (그림을 못 읽으면 img 가 지워져 면 그림이 돌아온다) */
@@ -5213,7 +5213,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-pmach .gap { fill: var(--c-black); }
 .ct-pmach .knob { fill: var(--lp-au); stroke: var(--lp-au-lo); stroke-width: 2; }
 .ct-pmach .plate { fill: none; stroke: var(--lp-au-lo); stroke-width: 1.5; }
-.ct-slipwrap { position: absolute; left: 50%; bottom: calc(100% - var(--ph) * .12); z-index: 0; width: calc(var(--pw) * .48); translate: -50% 0; display: flex; flex-direction: column; justify-content: flex-end; filter: drop-shadow(6px 10px 8px var(--shade-2)); } /* 높이 제한 없음: 특약을 끝없이 더하면 화면 위로 넘어간다 (업적 receipt_long) */
+.ct-slipwrap { position: absolute; left: 49.3%; bottom: calc(100% - var(--ph) * .28); z-index: var(--z-sticky); width: calc(var(--pw) * .6); translate: -50% 0; display: flex; flex-direction: column; justify-content: flex-end; filter: drop-shadow(6px 10px 8px var(--shade-2)); } /* 높이 제한 없음: 특약을 끝없이 더하면 화면 위로 넘어간다 (업적 receipt_long) */
 .ct-slip { position: relative; flex: none; overflow: hidden; padding: 10px 10px 84px; display: grid; gap: 1px; border-top: 0; /* 하단부(슬릿으로 들어가는 쪽)만 아래로 휘어 들어간다: 아래 끝 18px 가 안쪽으로 좁아지고 그늘이 진다. 위쪽은 평평하게 (글자 그대로 읽히게) */
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 18px), 96% 100%, 4% 100%, 0 calc(100% - 18px));
   box-shadow: inset 0 -22px 14px -14px color-mix(in srgb, var(--c-black) 32%, transparent); }
@@ -5317,7 +5317,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .bp-two { grid-template-columns: minmax(0, 1fr); }
   .ct-bp { width: calc(100vw - 360px); }
   .ct-menu { width: calc(100vw - 360px); }
-  .ct-printer { --pw: 290px; right: 118px; }
+  .ct-printer { --pw: 270px; right: 124px; }
   .ct-slip { font-size: var(--fs-xs); padding-inline: 9px; }
   .ct-desk { right: 12px; bottom: 3vh; flex-direction: column-reverse; align-items: center; gap: 8px; }
   .ct-bell { width: 108px; height: 108px; }
@@ -5327,7 +5327,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-menu { right: 2vw; width: auto; height: 59vh; bottom: 2vh; }
   .ct-bp { width: calc(100vw - 320px); }
   .ct-menu { height: 52vh; }
-  .ct-printer { --pw: 270px; right: 96px; bottom: 56vh; }
+  .ct-printer { --pw: 250px; right: 100px; bottom: 56vh; }
   .ct-slip { font-size: var(--fs-xs); padding-inline: 8px; }
   .ct-desk { right: 10px; top: auto; bottom: 56vh; }
   .ct-bell { width: 84px; height: 84px; }
@@ -5355,7 +5355,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-col-rider .lp-row.lit { animation: none; }
   .lp-col::after { margin-top: 8px; }
   .ct-printer { position: fixed; left: 0; right: 0; top: auto; bottom: 0; width: auto; height: calc(130px + env(safe-area-inset-bottom)); background: var(--grain), var(--ct-wood-lo); background-blend-mode: overlay, normal; border-top: 1px solid var(--lp-au-lo); }
-  .ct-pmach { position: absolute; left: 14px; bottom: calc(10px + env(safe-area-inset-bottom)); width: 116px; height: 80px; }
+  .ct-pmach { position: absolute; left: 14px; bottom: calc(10px + env(safe-area-inset-bottom)); width: 110px; height: 82px; }
   .ct-slipwrap { left: 140px; right: 104px; bottom: calc(46px + env(safe-area-inset-bottom)); width: auto; translate: none; max-height: 78px; overflow: hidden; } /* 휴대폰만: 아래 띠 안에서 (선택 항목을 가리지 않게) */
   .ct-slip { clip-path: none; font-size: var(--fs-xs); padding: 8px 10px; }
   .ct-desk { position: fixed; right: 8px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: var(--z-top); flex-direction: row; gap: 8px; }
