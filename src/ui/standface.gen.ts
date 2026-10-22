@@ -63,7 +63,7 @@ export const STAND_FACE: Record<string, [number, number, number]> = {
   d_hunter: [0.639, 0.060, 0.109],
   c_medic: [0.611, 0.076, 0.141],
   scrapper: [0.631, 0.069, 0.122],
-  b_headhunter: [0.564, 0.078, 0.150],
+  b_headhunter: [0.672, 0.072, 0.140],
   b_ithacan: [0.529, 0.063, 0.121],
   c_sales: [0.668, 0.085, 0.151],
   b_collector: [0.497, 0.057, 0.108],
@@ -97,4 +97,6 @@ export const STAND_FACE: Record<string, [number, number, number]> = {
   gayoung: [0.410, 0.214, 0.274],
   muhyul: [0.497, 0.126, 0.169],
   gungo: [0.523, 0.107, 0.151],
+  m_laila: [0.493, 0.074, 0.144],
+  m_gorgon: [0.513, 0.100, 0.172],
 };
