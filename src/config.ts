@@ -58,9 +58,8 @@ export const CFG = {
    *  쉬움(3) 없음 · 모험(6) 3페이즈마다 · 고난(7) 2페이즈마다. 페이즈 p 의 증원 = ⌊p ÷ 간격⌋ (difficulty.ts diffAddCount) */
   diffAdd: [[6, 3], [7, 2]] as [number, number][],
   /** 출격 계약 (ui/contract.ts · data/contract.ts) [임시]
-   *  sealedWin: 싯가 의뢰(봉인 의뢰서)의 승리 크레딧 가산 범위 [최소, 최대] — 의뢰서를 받을 때 뽑고 서명하면 드러난다
-   *  customWin: 메뉴에 없는 의뢰(오늘 의뢰서에 없는 전장을 직접 주문)의 승리 크레딧 가감 */
-  contract: { sealedWin: [0.1, 0.3] as [number, number], customWin: -0.1 },
+   *  seasonWin: 제철 의뢰(오늘 바에 들어온 의뢰서 3장)의 승리 크레딧 가산. 메뉴에 없는 의뢰(직접 주문)는 가산 없이 기본 보수 */
+  contract: { seasonWin: 0.15 },
   baseHit: 0.8,
   minHit: 0.15, // 최저 명중률 (회피 과다 누적 방지) [임시]
   grazeBase: 0.3, grazeAccK: 0.5, grazeChanceMax: 0.8,

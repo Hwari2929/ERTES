@@ -972,7 +972,7 @@ function mapScreen(run: RunState) {
       ${run.quests.length ? `<h2>헬레니우스 퀘스트</h2><ul class="quests">${run.quests.map((q) =>
         `<li class="${q.done ? 'done' : ''}">${esc(R.questText(q))} <span class="muted">${Math.min(q.progress, q.target)}/${q.target} · 보상 ${R.questRewardText(q)}</span></li>`).join('')}</ul>` : ''}
       ${run.privilege ? `<h2>특권</h2><ul class="globals"><li><b>${esc(R.privilegeName(run.privilege))}</b> <span class="muted">${esc(R.privilegeDesc(run.privilege))}</span></li></ul>` : ''}
-      ${despairEnv(run)}${OATH.oathEnv(run)}
+      ${CTR.contractEnv(run)}${despairEnv(run)}${OATH.oathEnv(run)}
       ${run.boons.length || run.phaseBoons.length || run.mods.nodeIncome || run.mods.interestCap ? `<h2>사건 효과</h2><ul class="globals">${run.boons.map((id) => `<li><b>${esc(BOONS[id]?.name || id)}</b> <span class="muted">영구</span></li>`).join('')}${run.phaseBoons.map((id) => `<li><b>${esc(BOONS[id]?.name || id)}</b> <span class="muted">이번 페이즈</span></li>`).join('')}${run.mods.nodeIncome ? `<li><b>분할 정산</b> <span class="muted">노드마다 크레딧 +${run.mods.nodeIncome}, 이자 상한 ${run.mods.interestCap}</span></li>` : ''}</ul>` : ''}
       ${run.globals.length ? `<h2>전역 증강</h2><ul class="globals">${run.globals.map((g) => `<li><b>${esc(GLOBAL_BY_ID[g].name)}</b> <span class="muted">${ic(esc(GLOBAL_BY_ID[g].desc))}</span></li>`).join('')}</ul>` : ''}
       </section>
@@ -1744,11 +1744,12 @@ function allyCard(u: UnitState, fixed = false) {
         <span class="tk-side"><b class="tk-rank" title="공명 등급 ${u.rank}">${u.rank}</b><i class="tt-${d.ttype}" title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i><i class="ct-${d.ctype}" title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i></span>
         <span class="tk-items">${(fixed ? [...u.items, null, null, null].slice(0, Math.max(3, u.items.length)) : u.items).map((it, k) => slot(it, k)).join('')}</span></div>`; // 무휼: 해금 전 전용 장비 칸도 빈칸으로 (기물과 같은 3칸)
 }
-/** 편성 보드 소환물 토큰: 기물 토큰과 같은 틀에서 장비 칸만 뺀다 (공명 등급 칸 자리 = 소환물 표시) */
+/** 편성 보드 소환물 토큰: 기물 토큰과 같은 틀 · 같은 높이, 장비 칸은 보이지 않는다 (공명 등급 칸 자리 = 소환물 표시) */
 function summonCard(t: CompanionTok) {
   const ty = (k?: string) => (k && (TTYPE_NAME as Record<string, string>)[k] ? `<i class="tt-${k}" title="${(TTYPE_NAME as Record<string, string>)[k]}">${typeIcon(k as never)}</i>` : k && (CTYPE_NAME as Record<string, string>)[k] ? `<i class="ct-${k}" title="${(CTYPE_NAME as Record<string, string>)[k]}">${typeIcon(k as never)}</i>` : '');
   return `<div class="tk-card"><div class="tk-art">${sprite(t.spr, '')}</div>
-        <span class="tk-side"><i class="tk-summon" title="소환물">${lineIcon('a.summon', 'li')}</i>${ty(t.ttype)}${ty(t.ctype)}</span></div>`;
+        <span class="tk-side"><i class="tk-summon" title="소환물">${lineIcon('a.summon', 'li')}</i>${ty(t.ttype)}${ty(t.ctype)}</span>
+        <span class="tk-items tk-none" aria-hidden="true">${itemIcon(null)}${itemIcon(null)}${itemIcon(null)}</span></div>`; // 장비 칸 자리는 비워 두되 높이는 기물 토큰과 같게
 }
 const TURRET_SPR = { sprite: 'turret', palette: TURRET_PAL, art: 'sm_turret' };
 /** 개전 예측 (편성 화면, 선택한 출전 기물): 예상 이동 경로 · 병목 칸 · 첫 공격 목표를 보드 위에 (engine/preview.ts) */
