@@ -271,11 +271,11 @@ function boardHtml() {
   CT.lit = false;
   return `<main class="ct ct-board-step" aria-label="출격 계약 — 의뢰 차림표">
     <div class="ct-bg" style="background-image:url('${bgURL('erantes_bar')}')" aria-hidden="true"></div><div class="mk-light" aria-hidden="true"></div><div class="mk-grain" aria-hidden="true"></div>
-    <button class="ct-leave mk-leather" data-a="ct-leave">‹ ${leave}</button>
+    <button class="ct-leave mk-tab" data-a="ct-leave">‹ ${leave}</button>
     <figure class="ct-aiden" aria-hidden="true">${standURL('aiden') ? `<img alt="" src="${standURL('aiden')}" style="${figStyle('aiden')}" decoding="async">` : ''}</figure>
-    <p class="ct-say mk-wood" aria-live="polite"><b>에이든</b><span>${esc(aidenSay())}</span></p>
-    <section class="ct-board mk-wood" aria-label="의뢰 차림표">
-      <h1 class="ct-sign"><span>의뢰 차림표</span></h1>
+    <p class="ct-say mk-lacquer" aria-live="polite"><b>에이든</b><span>${esc(aidenSay())}</span></p>
+    <section class="ct-board mk-lacquer mk-frame" aria-label="의뢰 차림표">
+      <h1 class="ct-sign"><span class="mk-gold">의뢰 차림표</span></h1>
       ${u ? `<button class="ct-usual mk-brass" data-a="ct-usual" data-f="usual"><span>늘 하던 대로</span><small>「${esc(fieldTitle(u.job.field))}」 · ${esc(u.plan.short)}${u.job.kind === 'custom' ? ` · −${pct(-u.job.bonus)}` : ''}</small></button>` : ''}
       <div class="ct-cols${CT.list ? ' listing' : ''}">
         <div class="ct-col ct-col-job" role="group" aria-label="의뢰"><h2>의뢰 <small>${CT.list ? '메뉴에 없는 것' : '1건'}</small></h2><div class="ct-list">${jobCol()}</div></div>
@@ -290,7 +290,7 @@ function boardHtml() {
     </div>
     <section class="ct-printer" aria-label="의뢰 전표">
       <div class="ct-roll"><div class="ct-slip mk-paper">${slipHtml()}</div></div>
-      <div class="ct-slot mk-wood" aria-hidden="true"><i></i></div>
+      <div class="ct-slot mk-lacquer" aria-hidden="true"><i></i></div>
       <div class="ct-sum">
         <span class="ct-chip mk-brass"><i>승리 크레딧</i><b class="f-num">${ok ? winText() : '—'}</b></span>
         <span class="ct-chip mk-brass"><i>표기 위험</i><b class="f-num">${planOf() ? effDiffLabel(CT.plan, heat) : '—'}</b></span>
@@ -306,7 +306,7 @@ function checkHtml() {
   if (!j || !p) return '';
   const f = fieldOf(j.field), fi = fieldIntroOf(j.field), hid = hidden(j), on = ridersOn() ? oathsOn(oathSel()) : [];
   return `<div class="ct-check-bg" data-a="ct-check-close" aria-hidden="true"></div>
-  <section class="ct-check mk-paper" role="dialog" aria-label="계산서">
+  <section class="ct-check mk-paper mk-frame" role="dialog" aria-label="계산서">
     <header><b>계산서</b><span class="f-num">No.${pad(CT.no, 4)} · ${esc(CT.time)}</span></header>
     <dl class="ct-cs">
       <dt>의뢰</dt><dd class="${CT.signed && j.kind === 'sealed' ? 'reveal' : ''}">${hid ? '봉인 의뢰서 · 발신자 없음' : `「${esc(fi?.title || f.name)}」 · ${esc(f.name)}`}</dd>
@@ -324,8 +324,8 @@ function checkHtml() {
 function reviewHtml() {
   return `<main class="ct ct-review" aria-label="영수 증서">
     <div class="ct-bg" style="background-image:url('${bgURL('erantes_bar')}')" aria-hidden="true"></div><div class="mk-light" aria-hidden="true"></div><div class="mk-grain" aria-hidden="true"></div>
-    <div class="ct-deed-wrap"><div class="ct-deed mk-paper">${slipHtml()}<div class="ct-deed-sig"><span>서명</span><i class="ct-sig">${SIG}</i></div></div></div>
-    <aside class="ct-deed-side mk-wood">
+    <div class="ct-deed-wrap"><div class="ct-deed mk-paper mk-frame">${slipHtml()}<div class="ct-deed-sig"><span>서명</span><i class="ct-sig">${SIG}</i></div></div></div>
+    <aside class="ct-deed-side mk-lacquer">
       <h1>영수 증서 <span class="f-num">제${pad(CT.no, 4)}호</span></h1>
       <p>불을 켠 줄이 모두 여기 찍혔다. 계약은 이 한 장이 전부다.</p>
       <button class="btn primary" data-a="ct-seal">증서를 놓아 보낸다</button>

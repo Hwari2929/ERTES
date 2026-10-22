@@ -553,7 +553,7 @@ export function barScreen(): string {
       ${plate('balcony', 'codex', '발코니', '기록 · 업적', achN ? `업적 ${achN}` : '', ' data-v="ach"')}
       ${plate('window', 'bar-x', '창가', '통신 기록', hasLog ? '지난 의뢰' : '의뢰를 마친 밤에 통신이 들어옵니다', ` data-v="log"${hasLog ? '' : ' aria-disabled="true"'}`)}
     </nav>
-    <button class="bar-door mk-leather" data-a="to-title">타이틀 ›</button>
+    <button class="bar-door mk-tab" data-a="to-title">타이틀 ›</button>
     <p class="bar-hint muted small">인물을 누르면 말을 겁니다. 빈 곳을 누르면 다음 대사로.</p>
   </main>`;
 }
