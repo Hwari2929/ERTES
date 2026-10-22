@@ -7,6 +7,7 @@ import { guard, anlas, pause } from './nai_guard.mjs';
 
 const cfg = JSON.parse(readFileSync('art/nai.config.json', 'utf8'));
 const P = JSON.parse(readFileSync('art/prop_prompts.json', 'utf8'));
+const NEG_LIGHT = 'light pool, spotlight, lamp, light source, glare, reflection, shadow, vignette, gradient lighting, ';
 const args = process.argv.slice(2);
 const keys = args.includes('--all') ? Object.keys(P.props) : args.filter((a) => !a.startsWith('--'));
 const STEPS = 29; // 무료 범위(28 이하)를 벗어나 유료로만
@@ -23,14 +24,14 @@ function unzipFirst(buf) {
   return method === 8 ? inflateRawSync(data) : data;
 }
 async function gen(key, seed) {
-  const p = P.props[key], input = `${p.prompt}, ${P.base}`;
+  const p = P.props[key], input = p.noBase ? `${p.prompt}, no humans, best quality, masterpiece, highres, year2026, ::1.1::painterly::` : `${p.prompt}, ${P.base}`; // noBase: 알베도 (광원 문구 없이)
   const body = {
     input, model: cfg.model, action: 'generate',
     parameters: {
       params_version: 3, width: p.w, height: p.h, scale: cfg.scale, sampler: cfg.sampler, steps: STEPS, n_samples: 1, ucPreset: 0, qualityToggle: false, seed,
-      noise_schedule: cfg.noise_schedule, negative_prompt: P.negative, cfg_rescale: 0, sm: false, sm_dyn: false, dynamic_thresholding: false, legacy: false, add_original_image: true,
+      noise_schedule: cfg.noise_schedule, negative_prompt: (p.noBase ? NEG_LIGHT : '') + P.negative, cfg_rescale: 0, sm: false, sm_dyn: false, dynamic_thresholding: false, legacy: false, add_original_image: true,
       v4_prompt: { caption: { base_caption: input, char_captions: [] }, use_coords: false, use_order: true },
-      v4_negative_prompt: { caption: { base_caption: P.negative, char_captions: [] }, legacy_uc: false },
+      v4_negative_prompt: { caption: { base_caption: (p.noBase ? NEG_LIGHT : '') + P.negative, char_captions: [] }, legacy_uc: false },
     },
   };
   for (let attempt = 0; attempt < 4; attempt++) {

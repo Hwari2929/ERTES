@@ -117,6 +117,55 @@
       "w": 1216,
       "h": 832,
       "prompt": "top-down view of an empty bar counter surface filling the whole frame, seen from directly above, flat plan view, large empty uncluttered center area, nothing in the middle, vintage bar at night, warm lamp light from the upper left, dark walnut with a thin gold pinstripe border inset around the whole edge, art deco style, glossy"
+    },
+    "ct_albedo_a1": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "seamless wood texture, albedo map, diffuse color texture, flat even lighting, unlit, no shadows, no light pool, no lamp, no hotspot, no vignette, no reflections, uniform brightness across the whole image, top-down orthographic, pattern only, filling the whole frame, game texture, dark walnut planks running horizontally, fine straight grain",
+      "noBase": true
+    },
+    "ct_albedo_a2": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "seamless wood texture, albedo map, diffuse color texture, flat even lighting, unlit, no shadows, no light pool, no lamp, no hotspot, no vignette, no reflections, uniform brightness across the whole image, top-down orthographic, pattern only, filling the whole frame, game texture, rich mahogany wide boards, flowing cathedral grain",
+      "noBase": true
+    },
+    "ct_albedo_a3": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "seamless wood texture, albedo map, diffuse color texture, flat even lighting, unlit, no shadows, no light pool, no lamp, no hotspot, no vignette, no reflections, uniform brightness across the whole image, top-down orthographic, pattern only, filling the whole frame, game texture, dark oak planks with subtle knots and patina",
+      "noBase": true
+    },
+    "ct_albedo_a4": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "seamless wood texture, albedo map, diffuse color texture, flat even lighting, unlit, no shadows, no light pool, no lamp, no hotspot, no vignette, no reflections, uniform brightness across the whole image, top-down orthographic, pattern only, filling the whole frame, game texture, deep brown rosewood with tight dark streaks",
+      "noBase": true
+    },
+    "ct_albedo_a5": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "seamless wood texture, albedo map, diffuse color texture, flat even lighting, unlit, no shadows, no light pool, no lamp, no hotspot, no vignette, no reflections, uniform brightness across the whole image, top-down orthographic, pattern only, filling the whole frame, game texture, aged dark cherry wood planks, warm reddish brown",
+      "noBase": true
+    },
+    "ct_albedo_a6": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "seamless wood texture, albedo map, diffuse color texture, flat even lighting, unlit, no shadows, no light pool, no lamp, no hotspot, no vignette, no reflections, uniform brightness across the whole image, top-down orthographic, pattern only, filling the whole frame, game texture, smoked walnut single wide slab, wavy grain",
+      "noBase": true
+    },
+    "ct_albedo_a7": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "seamless wood texture, albedo map, diffuse color texture, flat even lighting, unlit, no shadows, no light pool, no lamp, no hotspot, no vignette, no reflections, uniform brightness across the whole image, top-down orthographic, pattern only, filling the whole frame, game texture, dark teak planks with fine parallel grooves between boards",
+      "noBase": true
+    },
+    "ct_albedo_a8": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "seamless wood texture, albedo map, diffuse color texture, flat even lighting, unlit, no shadows, no light pool, no lamp, no hotspot, no vignette, no reflections, uniform brightness across the whole image, top-down orthographic, pattern only, filling the whole frame, game texture, ebonized dark brown oak, very subtle low contrast grain",
+      "noBase": true
     }
-  }
+  },
+  "_albedo_note": "ct_albedo_*: 조명 없는 알베도 전용. base 의 광원 문구를 쓰지 않는다 (nai_prop.mjs 가 noBase 로 읽음)"
 }

@@ -5113,6 +5113,8 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 @keyframes ct-drop { from { translate: -3vw -110vh; rotate: -9deg; } }
 @keyframes ct-rise { from { translate: 2vw 110vh; rotate: 8deg; } }
 @keyframes ct-slide { from { translate: 45vw 6vh; } }
+.ct-light { position: absolute; inset: 0; z-index: var(--z-sticky); pointer-events: none; mix-blend-mode: soft-light; /* 빛 웅덩이: 테이블 · 종이 · 소품을 한 장으로 함께 비춘다 (테이블 그림에는 굽지 않는다). 옅게 */
+  background: radial-gradient(70% 80% at 18% 8%, color-mix(in srgb, var(--lp-cream) 38%, transparent), transparent 70%), radial-gradient(120% 120% at 50% 40%, transparent 55%, color-mix(in srgb, var(--c-black) 30%, transparent)); }
 .ct-leave { position: absolute; right: 16px; top: max(12px, env(safe-area-inset-top)); z-index: var(--z-top); min-height: 34px; padding: 0 14px; font-size: var(--fs-sm); }
 /* 카운터 너머 목소리: 화면 위 바깥에서 들려오는 게임 말풍선 (인물 그림 없음) */
 .ct-voice { position: absolute; left: 70%; top: 12px; z-index: var(--z-top); max-width: min(440px, 60vw); margin: 0; padding: 8px 12px 10px; display: grid; gap: 2px; translate: -50% -8px; font-size: var(--fs-md); line-height: 1.45; color: var(--c-text); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); opacity: 0; pointer-events: none; transition: opacity .3s, translate .3s; }
@@ -5575,6 +5577,7 @@ ${VI}`,tierDesc:Qb.map(e=>`\uBAA8\uB4E0 \uC120\uBB3C \xD7${e} (\uACF5\uB3D9\uCCB
       <button class="ct-cancel lp-btn" data-a="ct-cancel"${vp()&&!$.stamp?"":" disabled"}>\uC758\uB8B0 \uCDE8\uC18C</button>
       <button class="ct-bell${e&&!$.stamp?" ready":""}" data-a="ct-bell" aria-label="\uBCA8\uC744 \uB20C\uB7EC \uC804\uD45C \uC2B9\uC778"${e&&!$.stamp?"":' aria-disabled="true"'}>${RA("ct_bell",vz)}</button>
     </div>
+    <div class="ct-light" aria-hidden="true"></div>
     ${Bo.foe()}
   </main>`}var I8=(e,t,s)=>`<svg class="${s}" viewBox="${t}" aria-hidden="true"><g class="lp-lo">${e}</g><g class="lp-hi">${e}</g></svg>`,Sz="<path d='M6 50C6 22 20 8 50 6'/><path d='M12 46C12 26 24 14 46 12'/><path d='M14 30c0-7 9-7 9 0 0 5-7 5-7 0'/><path d='M30 14c-7 0-7 9 0 9 5 0 5-7 0-7'/>",Mz=["tl","tr","bl","br"].map(e=>I8(Sz,"0 0 56 56",`ct-co ${e}`)).join(""),b8=I8("<path d='M4 8H40M64 8H100'/><path d='M52 1 59 8 52 15 45 8Z'/><circle cx='42' cy='8' r='1.4'/><circle cx='62' cy='8' r='1.4'/>","0 0 104 16","ct-fl"),Cz='<svg class="ct-const" viewBox="0 0 120 44" aria-hidden="true"><polyline points="14,30 34,13 54,24 76,9 100,20"/><circle cx="14" cy="30" r="1.6"/><circle cx="34" cy="13" r="1.2"/><circle cx="54" cy="24" r="1.9"/><circle cx="76" cy="9" r="1.1"/><circle cx="100" cy="20" r="1.5"/><circle cx="110" cy="34" r=".9"/></svg>';function Rz(){return`<section class="ct-cover lp-band" aria-label="\uC5D0\uB780\uD14C\uC2A4 \uBC14 \u2014 \uC758\uB8B0 \uCC28\uB9BC\uD45C">
     ${Mz}${Cz}
