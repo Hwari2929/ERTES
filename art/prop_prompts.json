@@ -77,6 +77,46 @@
       "w": 1024,
       "h": 1024,
       "prompt": "single receipt printer seen from directly above, perfectly top-down orthographic view, flat plan view, front-facing and axis-aligned, not tilted, not rotated, bilaterally symmetrical, rectangular outline, narrow paper slot along the top edge, centered object, white background, simple background, isolated object, antique bakelite black body with polished brass slot plate and a small dial"
+    },
+    "ct_table_d": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view of an empty bar counter surface filling the whole frame, seen from directly above, flat plan view, large empty uncluttered center area, nothing in the middle, vintage bar at night, warm lamp light from the upper left, dark walnut planks running horizontally, deep glossy lacquer, soft reflections"
+    },
+    "ct_table_e": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view of an empty bar counter surface filling the whole frame, seen from directly above, flat plan view, large empty uncluttered center area, nothing in the middle, vintage bar at night, warm lamp light from the upper left, rich mahogany wide slab with flowing grain, thin brass inlay line near the bottom edge"
+    },
+    "ct_table_f": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view of an empty bar counter surface filling the whole frame, seen from directly above, flat plan view, large empty uncluttered center area, nothing in the middle, vintage bar at night, warm lamp light from the upper left, ebony black wood with subtle grain, polished brass rail along the bottom edge, cool blue starlight reflection from a window on the right"
+    },
+    "ct_table_g": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view of an empty bar counter surface filling the whole frame, seen from directly above, flat plan view, large empty uncluttered center area, nothing in the middle, vintage bar at night, warm lamp light from the upper left, dark oak planks with patina and faint ring stains near the edges, a folded white napkin in the top right corner"
+    },
+    "ct_table_h": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view of an empty bar counter surface filling the whole frame, seen from directly above, flat plan view, large empty uncluttered center area, nothing in the middle, vintage bar at night, warm lamp light from the upper left, cherry wood with marquetry border of lighter wood around the edges, glossy finish"
+    },
+    "ct_table_i": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view of an empty bar counter surface filling the whole frame, seen from directly above, flat plan view, large empty uncluttered center area, nothing in the middle, vintage bar at night, warm lamp light from the upper left, dark wood bar top with a deep navy leather rail along the bottom edge and brass studs"
+    },
+    "ct_table_j": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view of an empty bar counter surface filling the whole frame, seen from directly above, flat plan view, large empty uncluttered center area, nothing in the middle, vintage bar at night, warm lamp light from the upper left, weathered dark wood planks running diagonally, warm amber light pool, a faint reflection of a pendant lamp"
+    },
+    "ct_table_k": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view of an empty bar counter surface filling the whole frame, seen from directly above, flat plan view, large empty uncluttered center area, nothing in the middle, vintage bar at night, warm lamp light from the upper left, dark walnut with a thin gold pinstripe border inset around the whole edge, art deco style, glossy"
     }
   }
 }

@@ -5181,8 +5181,8 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-plan-stamp { position: absolute; right: 18px; top: 12px; padding: 2px 10px; border: 3px double var(--lp-stamp); color: var(--lp-stamp); font: 700 var(--fs-xl)/1.2 var(--f-serif); letter-spacing: .2em; rotate: -12deg; opacity: .85; pointer-events: none; text-shadow: none; }
 .ct-plan-stamp.lit { animation: ct-stampin .35s ease-out both; }
 /* 전표 출력기 (오른쪽 가운데 아래): 전표는 위쪽 슬릿에서 위로 나오고, 길수록 끝이 휘어 그림자가 진다 */
-.ct-printer { position: absolute; right: 13vw; top: 56vh; z-index: var(--z-sticky); width: 220px; }
-.ct-pmach { position: relative; z-index: var(--z-raise); width: 220px; height: 165px; }
+.ct-printer { --pw: 236px; --ph: calc(var(--pw) * 1.507); position: absolute; right: 170px; bottom: 3vh; z-index: var(--z-sticky); width: var(--pw); } /* 세로로 선 출력기 (그림 art/ct_printer.webp: 위쪽 슬릿 = 가로 50% 중심 · 폭 72% · 높이 9%) */
+.ct-pmach { position: relative; z-index: var(--z-raise); width: var(--pw); height: var(--ph); filter: drop-shadow(8px 12px 10px var(--shade-2)); }
 .ct-pmach > :is(svg, .ct-art), .ct-bell > :is(svg, .ct-art) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 :has(> .ct-art) > .ct-fb { display: none; } /* 그림이 있으면 면 그림을 숨긴다 (그림을 못 읽으면 img 가 지워져 면 그림이 돌아온다) */
 .ct-fb .sh { fill: color-mix(in srgb, var(--c-black) 45%, transparent); }
@@ -5192,7 +5192,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-pmach .gap { fill: var(--c-black); }
 .ct-pmach .knob { fill: var(--lp-au); stroke: var(--lp-au-lo); stroke-width: 2; }
 .ct-pmach .plate { fill: none; stroke: var(--lp-au-lo); stroke-width: 1.5; }
-.ct-slipwrap { position: absolute; left: 50%; bottom: calc(100% - 34px); z-index: 0; width: 196px; translate: -50% 0; max-height: calc(56vh - 30px); overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; filter: drop-shadow(6px 10px 8px var(--shade-2)); }
+.ct-slipwrap { position: absolute; left: 50%; bottom: calc(100% - var(--ph) * .1 - 2px); z-index: 0; width: calc(var(--pw) * .74); translate: -50% 0; max-height: calc(97vh - var(--ph) - 6px); overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; filter: drop-shadow(6px 10px 8px var(--shade-2)); }
 .ct-slip { --curl: min(var(--n), 26); position: relative; flex: none; overflow: hidden; padding: 10px 12px 84px; display: grid; gap: 1px; transform-origin: 50% 100%; transform: perspective(800px) rotateX(calc(var(--curl) * .42deg));
   box-shadow: inset 0 22px 16px -16px color-mix(in srgb, var(--c-black) calc(var(--curl) * 1.6%), transparent); border-top: 0; } /* 위쪽 끝이 테이블 쪽으로 처지며 그늘 */
 .ct-printer.feed .ct-slip { animation: ct-rattle .42s steps(7) both; }
@@ -5202,7 +5202,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 @keyframes ct-throw { to { translate: 60vw -8vh; rotate: 22deg; opacity: 0; } }
 .ct.st-ok .ct-bell { animation: ct-ring .4s ease-out; }
 /* 탁상 벨 · 의뢰 취소 (오른쪽 아래) */
-.ct-desk { position: absolute; right: 3vw; bottom: 4vh; z-index: var(--z-sticky); display: flex; align-items: flex-end; gap: 14px; }
+.ct-desk { position: absolute; right: 2vw; bottom: 4vh; z-index: var(--z-sticky); display: flex; flex-direction: column-reverse; align-items: center; gap: 10px; }
 .ct-bell { position: relative; width: 128px; height: 128px; padding: 0; border: 0; background: none; cursor: pointer; filter: drop-shadow(6px 10px 8px var(--shade-2)); }
 .ct-bell .base { fill: var(--ct-wood-lo); stroke: var(--c-black); stroke-width: 1; }
 .ct-bell .base2 { fill: var(--ct-wood-hi); }
@@ -5293,19 +5293,22 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .lp-lv li { grid-template-columns: 3.4em minmax(0, 1fr); }
   .lp-lv em { grid-column: 2; }
   .bp-two { grid-template-columns: minmax(0, 1fr); }
-  .ct-printer { right: 64px; top: 42vh; width: 190px; }
-  .ct-pmach { width: 190px; height: 143px; }
-  .ct-slipwrap { width: 178px; max-height: calc(42vh - 30px); bottom: calc(100% - 30px); }
-  .ct-desk { right: 14px; bottom: 3vh; flex-direction: column-reverse; align-items: center; gap: 8px; }
+  .ct-bp { width: calc(100vw - 360px); }
+  .ct-menu { width: calc(100vw - 360px); }
+  .ct-printer { --pw: 210px; right: 120px; }
+  .ct-slip { font-size: var(--fs-xs); padding-inline: 9px; }
+  .ct-desk { right: 12px; bottom: 3vh; flex-direction: column-reverse; align-items: center; gap: 8px; }
   .ct-bell { width: 108px; height: 108px; }
 }
 @media (max-width: 900px) and (min-width: 761px) { /* 세로 태블릿: 차림표는 아래 전체 폭, 도면은 위 왼쪽, 출력기 · 벨은 위 오른쪽 (차림표를 가리지 않게) */
   .ct-bp { width: calc(100vw - 300px); height: 31vh; }
   .ct-menu { right: 2vw; width: auto; height: 59vh; bottom: 2vh; }
-  .ct-printer { right: 96px; top: 22vh; width: 160px; }
-  .ct-pmach { width: 160px; height: 120px; }
-  .ct-slipwrap { width: 150px; max-height: calc(22vh - 40px); bottom: calc(100% - 26px); }
-  .ct-desk { right: 10px; top: 24vh; bottom: auto; }
+  .ct-bp { width: calc(100vw - 320px); }
+  .ct-menu { height: 52vh; }
+  .ct-printer { --pw: 190px; right: 104px; bottom: 55vh; }
+  .ct-slipwrap { max-height: calc(45vh - var(--ph) - 6px); }
+  .ct-slip { font-size: var(--fs-xs); padding-inline: 8px; }
+  .ct-desk { right: 10px; top: auto; bottom: 56vh; }
   .ct-bell { width: 84px; height: 84px; }
   .ct-voice { left: 50%; top: auto; bottom: 62vh; }
 }
@@ -5331,7 +5334,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-col-rider .lp-row.lit { animation: none; }
   .lp-col::after { margin-top: 8px; }
   .ct-printer { position: fixed; left: 0; right: 0; top: auto; bottom: 0; width: auto; height: calc(130px + env(safe-area-inset-bottom)); background: var(--grain), var(--ct-wood-lo); background-blend-mode: overlay, normal; border-top: 1px solid var(--lp-au-lo); }
-  .ct-pmach { position: absolute; left: 10px; bottom: calc(6px + env(safe-area-inset-bottom)); width: 120px; height: 90px; }
+  .ct-pmach { position: absolute; left: 30px; bottom: calc(6px + env(safe-area-inset-bottom)); width: 72px; height: 117px; }
   .ct-slipwrap { left: 140px; right: 104px; bottom: calc(46px + env(safe-area-inset-bottom)); width: auto; translate: none; max-height: 78px; }
   .ct-slip { transform: none; font-size: var(--fs-xs); padding: 8px 10px; }
   .ct-desk { position: fixed; right: 8px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: var(--z-top); flex-direction: row; gap: 8px; }
@@ -5545,7 +5548,7 @@ ${VI}`,tierDesc:Qb.map(e=>`\uBAA8\uB4E0 \uC120\uBB3C \xD7${e} (\uACF5\uB3D9\uCCB
       <div class="bp-two">${SA("cost","m.skull","\uAC10\uC218",mz(a.lvl))}${SA("gain","m.up","\uBCF4\uC0C1",w8(a.lvl))}</div>
       <p class="bp-foot">${H("k.note","li")}\uC870\uD56D ${k8(a.lvl)}\uAC74 \xB7 \uC218\uCE58\uB294 \uCD9C\uACA9 \uB4A4 \uC9C0\uB3C4 \uD658\uACBD \uD0ED '\uACC4\uC57D'</p>`:""}if(e==="rider"){let a=si.find(i=>i.id===s);if(!a)return"";let n=Ir({oaths:bc()},a.id);return`${kp(`${H(a.icon,"li")}${Jt(a.name)}`,`\uD2B9\uC57D \xB7 \uC808\uB9DD \uC11C\uC57D${Ml()?"":" \xB7 \uB2F4\uBCF4 \uC57D\uAD00\uC5D0\uB9CC \uBD99\uB294\uB2E4"}`)}
       <ol class="lp-lv">${Array.from({length:Hi(a.id)},(i,o)=>o+1).map(i=>`<li class="${i===n?"on":""}"><b>${i}\uB2E8\uACC4</b><span>${Jt(a.lv(i))}</span><em class="f-num">\uC808\uB9DD +${oo(a.id,i)}</em></li>`).join("")}</ol>`}return`${kp("\uC758\uB8B0 \uB3C4\uBA74",`\uC624\uB298\uC758 \uC758\uB8B0\uC11C ${$.jobs.length}\uC7A5 \xB7 \uBAA8\uB450 \uC81C\uCCA0`)}
-    <ol class="bp-steps"><li>${H("r.flag","li")}<b>\uC758\uB8B0</b><span>\uC5B4\uB514\uB85C</span></li><li>${H("k.seize","li")}<b>\uC57D\uAD00</b><span>\uC5BC\uB9C8\uB098 \uC704\uD5D8\uD558\uAC8C</span></li><li>${H("m.skull","li")}<b>\uD2B9\uC57D</b><span>\uB2F4\uBCF4\uC77C \uB54C\uB9CC</span></li><li>${yz}<b>\uBCA8</b><span>\uC804\uD45C \uC2B9\uC778</span></li></ol>`}function kz(e){let t=vp();return e==="usual"&&t?t.kind==="custom"?"\uB298 \uD558\uC2DC\uB358 \uAC78\uB85C\uC694. \uC624\uB298\uC740 \uC81C\uCCA0\uC774 \uC544\uB2C8\uB77C \uAE30\uBCF8\uC73C\uB85C \uCCD0 \uB4DC\uB9BD\uB2C8\uB2E4.":"\uB298 \uD558\uC2DC\uB358 \uAC78\uB85C\uC694. \uB9C8\uCE68 \uC624\uB298 \uC81C\uCCA0\uC785\uB2C8\uB2E4.":e==="collateral"?"\uB2F4\uBCF4 \uC57D\uAD00\uC774\uC694. \uD568\uB300\uB97C \uB9E1\uAE30\uC2DC\uB294 \uAC81\uB2C8\uB2E4. \uB3CC\uC544\uC624\uB294 \uAE38\uC740 \uC7A5\uB2F4 \uBABB \uD569\uB2C8\uB2E4.":e==="ready"?"\uB2E4 \uACE0\uB974\uC168\uC73C\uBA74 \uBCA8\uC744 \uB204\uB974\uC2DC\uC8E0.":e==="ok"?"\uC2B9\uC778\uD588\uC2B5\uB2C8\uB2E4. \uC88B\uC740 \uBC24 \uB418\uC2DC\uAE38.":e==="void"?"\uC5C6\uB358 \uAC78\uB85C \uD558\uC8E0. \uB2E4\uC2DC \uACE0\uB974\uC2DC\uBA74 \uB429\uB2C8\uB2E4.":""}function b2(){let e=gv(),t=e?rd[e.plan]:null;return!e||!t||!Ks.some(s=>s.id===e.field)?null:{job:PA(e.field),plan:t}}var RA=(e,t)=>`${t}<img class="ct-art" alt="" src="${Ji(`${e}.webp`)}" decoding="async" onerror="this.remove()">`,vz='<svg class="ct-fb" viewBox="0 0 120 120" aria-hidden="true"><circle cx="65" cy="67" r="50" class="sh"/><circle cx="60" cy="60" r="50" class="base"/><circle cx="60" cy="60" r="43" class="base2"/><circle cx="60" cy="60" r="34" class="dome"/><path d="M36 50a26 26 0 0 1 24-16" class="hl"/><circle cx="60" cy="60" r="9" class="btn"/><circle cx="57.5" cy="57.5" r="3" class="hl2"/></svg>',wz='<svg class="ct-fb" viewBox="0 0 200 150" aria-hidden="true"><rect x="16" y="20" width="176" height="124" rx="16" class="sh"/><rect x="10" y="12" width="176" height="124" rx="16" class="body"/><rect x="18" y="20" width="160" height="108" rx="11" class="rim"/><rect x="30" y="22" width="136" height="14" rx="4" class="slot"/><rect x="38" y="27" width="120" height="4" rx="2" class="gap"/><circle cx="158" cy="104" r="9" class="knob"/><rect x="34" y="96" width="80" height="16" rx="3" class="plate"/></svg>';function xz(){let e=CA(),t=d2(),s=$.lit,a=E8();$.lit=!1;let n=$.from==="bar"?"\uBC14\uB85C \uB3CC\uC544\uAC00\uAE30":"\uD0C0\uC774\uD2C0\uB85C",i=A2().filter(o=>o.k!=="div").length;return`<main class="ct ct-top${$.intro&&!th()?" intro":""}${$.stamp?` st-${$.stamp}`:""}" style="--rot-bp:${$.rot.bp}deg;--rot-mn:${$.rot.mn}deg" aria-label="\uCD9C\uACA9 \uACC4\uC57D \u2014 \uBC14 \uD14C\uC774\uBE14 \uC704 \uC758\uB8B0 \uCC28\uB9BC\uD45C">
+    <ol class="bp-steps"><li>${H("r.flag","li")}<b>\uC758\uB8B0</b><span>\uC5B4\uB514\uB85C</span></li><li>${H("k.seize","li")}<b>\uC57D\uAD00</b><span>\uC5BC\uB9C8\uB098 \uC704\uD5D8\uD558\uAC8C</span></li><li>${H("m.skull","li")}<b>\uD2B9\uC57D</b><span>\uB2F4\uBCF4\uC77C \uB54C\uB9CC</span></li><li>${yz}<b>\uBCA8</b><span>\uC804\uD45C \uC2B9\uC778</span></li></ol>`}function kz(e){let t=vp();return e==="usual"&&t?t.kind==="custom"?"\uB298 \uD558\uC2DC\uB358 \uAC78\uB85C\uC694. \uC624\uB298\uC740 \uC81C\uCCA0\uC774 \uC544\uB2C8\uB77C \uAE30\uBCF8\uC73C\uB85C \uCCD0 \uB4DC\uB9BD\uB2C8\uB2E4.":"\uB298 \uD558\uC2DC\uB358 \uAC78\uB85C\uC694. \uB9C8\uCE68 \uC624\uB298 \uC81C\uCCA0\uC785\uB2C8\uB2E4.":e==="collateral"?"\uB2F4\uBCF4 \uC57D\uAD00\uC774\uC694. \uD568\uB300\uB97C \uB9E1\uAE30\uC2DC\uB294 \uAC81\uB2C8\uB2E4. \uB3CC\uC544\uC624\uB294 \uAE38\uC740 \uC7A5\uB2F4 \uBABB \uD569\uB2C8\uB2E4.":e==="ready"?"\uB2E4 \uACE0\uB974\uC168\uC73C\uBA74 \uBCA8\uC744 \uB204\uB974\uC2DC\uC8E0.":e==="ok"?"\uC2B9\uC778\uD588\uC2B5\uB2C8\uB2E4. \uC88B\uC740 \uBC24 \uB418\uC2DC\uAE38.":e==="void"?"\uC5C6\uB358 \uAC78\uB85C \uD558\uC8E0. \uB2E4\uC2DC \uACE0\uB974\uC2DC\uBA74 \uB429\uB2C8\uB2E4.":""}function b2(){let e=gv(),t=e?rd[e.plan]:null;return!e||!t||!Ks.some(s=>s.id===e.field)?null:{job:PA(e.field),plan:t}}var RA=(e,t)=>`${t}<img class="ct-art" alt="" src="${Ji(`${e}.webp`)}" decoding="async" onerror="this.remove()">`,vz='<svg class="ct-fb" viewBox="0 0 120 120" aria-hidden="true"><circle cx="65" cy="67" r="50" class="sh"/><circle cx="60" cy="60" r="50" class="base"/><circle cx="60" cy="60" r="43" class="base2"/><circle cx="60" cy="60" r="34" class="dome"/><path d="M36 50a26 26 0 0 1 24-16" class="hl"/><circle cx="60" cy="60" r="9" class="btn"/><circle cx="57.5" cy="57.5" r="3" class="hl2"/></svg>',wz='<svg class="ct-fb" viewBox="0 0 100 154" aria-hidden="true"><rect x="10" y="6" width="84" height="146" rx="10" class="sh"/><rect x="4" y="2" width="84" height="146" rx="10" class="body"/><rect x="9" y="7" width="74" height="136" rx="7" class="rim"/><rect x="15" y="9" width="62" height="7" rx="2" class="slot"/><rect x="18" y="11.5" width="56" height="2" rx="1" class="gap"/></svg>';function xz(){let e=CA(),t=d2(),s=$.lit,a=E8();$.lit=!1;let n=$.from==="bar"?"\uBC14\uB85C \uB3CC\uC544\uAC00\uAE30":"\uD0C0\uC774\uD2C0\uB85C",i=A2().filter(o=>o.k!=="div").length;return`<main class="ct ct-top${$.intro&&!th()?" intro":""}${$.stamp?` st-${$.stamp}`:""}" style="--rot-bp:${$.rot.bp}deg;--rot-mn:${$.rot.mn}deg" aria-label="\uCD9C\uACA9 \uACC4\uC57D \u2014 \uBC14 \uD14C\uC774\uBE14 \uC704 \uC758\uB8B0 \uCC28\uB9BC\uD45C">
     ${$.intro?`<div class="ct-barview" style="background-image:url('${Nr("erantes_bar")}')" aria-hidden="true"></div>`:""}
     <div class="ct-table" aria-hidden="true">${RA("ct_table","")}</div><div class="lp-grain" aria-hidden="true"></div>
     <button class="ct-leave lp-btn" data-a="ct-leave">${n} \u203A</button>

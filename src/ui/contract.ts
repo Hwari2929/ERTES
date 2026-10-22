@@ -285,7 +285,7 @@ const prop = (id: string, fallback: string) => `${fallback}<img class="ct-art" a
 /** 탁상 벨 (위에서 본 놋쇠 돔 + 나무 받침) */
 const BELL_SVG = `<svg class="ct-fb" viewBox="0 0 120 120" aria-hidden="true"><circle cx="65" cy="67" r="50" class="sh"/><circle cx="60" cy="60" r="50" class="base"/><circle cx="60" cy="60" r="43" class="base2"/><circle cx="60" cy="60" r="34" class="dome"/><path d="M36 50a26 26 0 0 1 24-16" class="hl"/><circle cx="60" cy="60" r="9" class="btn"/><circle cx="57.5" cy="57.5" r="3" class="hl2"/></svg>`;
 /** 전표 출력기 (위에서 본 네이비 법랑 몸체 + 놋쇠 테 + 위쪽 슬릿) */
-const PRINTER_SVG = `<svg class="ct-fb" viewBox="0 0 200 150" aria-hidden="true"><rect x="16" y="20" width="176" height="124" rx="16" class="sh"/><rect x="10" y="12" width="176" height="124" rx="16" class="body"/><rect x="18" y="20" width="160" height="108" rx="11" class="rim"/><rect x="30" y="22" width="136" height="14" rx="4" class="slot"/><rect x="38" y="27" width="120" height="4" rx="2" class="gap"/><circle cx="158" cy="104" r="9" class="knob"/><rect x="34" y="96" width="80" height="16" rx="3" class="plate"/></svg>`;
+const PRINTER_SVG = `<svg class="ct-fb" viewBox="0 0 100 154" aria-hidden="true"><rect x="10" y="6" width="84" height="146" rx="10" class="sh"/><rect x="4" y="2" width="84" height="146" rx="10" class="body"/><rect x="9" y="7" width="74" height="136" rx="7" class="rim"/><rect x="15" y="9" width="62" height="7" rx="2" class="slot"/><rect x="18" y="11.5" width="56" height="2" rx="1" class="gap"/></svg>`;
 
 function boardHtml() {
   const ok = payable(), heat = heatNow(), lit = CT.lit, nn = newCount();
