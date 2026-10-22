@@ -14,6 +14,7 @@ import { OATHS, oathHeatOf, oathMax } from '../data/oaths';
 import { diffName } from '../data/difficulty';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, breadSellText, combine, CONSUMABLES, emblemId, injectorWeights, INJECTORS, isLegendConsumable, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, isTurretMod, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_MOD_IDS, TURRET_MODS, TURRET_PRICE, UNIQUE_IDS, isJunk, JUNK_IDS, CATWHEEL_ZI, isCatwheel } from '../data/items';
 import { deviceRows, isPlaceable } from '../data/devices';
+import { exMerchantOf, PETRA_AD } from '../data/merchants';
 import { PSI_BRIEF } from '../data/brief';
 import { cantripView, passiveView, SCHOOL_LINE, transformPreview } from '../data/psiinfo';
 import { RELIC_BY_ID, RELICS } from '../data/relics';
@@ -297,6 +298,12 @@ function sources(id: string): string[] {
       if (id === 'K_cp_tape') out.push('캠페인 1장: 필리스 합류 사건에서 [상자는 두고 와]를 고르면 1개');
       else out.push(`상점 ${CFG.shop.price[id]} 크레딧 (가끔 진열) · 전투 보상 소모품 (확률)`, '캠페인 시작 때 라르스가 1개 보낸다');
       out.push('일반 의뢰에서는 나오지 않는다');
+    } else if (exMerchantOf(id)) { // 상인 전용 상품 (data/merchants.ts): 그 상인의 상점에만 늘 진열
+      const m = exMerchantOf(id)!;
+      out.push(`상인 [${m.name}]의 상점에 늘 진열 (${m.title})`);
+      out.push(id === 'K_muster_ticket' ? `가격: 지금 지정 소집 기본 비용 × ${pctTxt(CFG.shop.ticket)} (상점 가격 배율 적용)` : `가격: ${CFG.shop.price[id]} 크레딧 (상점 가격 배율 적용)`);
+      if (id === 'K_muster_ticket') out.push('지정 소집을 확정할 때 크레딧 대신 1장 (소집 횟수 · 다음 비용 상승은 그대로)', `들고 있으면 지도를 열 때마다 페트라 광고판 (${PETRA_AD.ms / 1000}초, ${PETRA_AD.skip / 1000}초 뒤 건너뛰기)`);
+      for (const [k, v] of deviceRows(id, SYN_BY_ID.NAV.tiers)) out.push(`${k}: ${v}`);
     } else if (isPlaceable(id)) { // 편성 화면 배치형 (data/devices.ts): 성질 줄을 그대로
       if (id === 'K_scope') out.push(`${SYN_BY_ID.NAV.name} 시너지가 처음 켜질 때 (${SYN_BY_ID.NAV.tiers[0]}명)`);
       else out.push(`상점 · ${S.price[id]} 크레딧 (가끔 진열) · 전투 보상 소모품 (확률)`);

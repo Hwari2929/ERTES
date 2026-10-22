@@ -37,7 +37,7 @@ import { Rng } from './rng';
 import { type Category, type Encounter, type Geo, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from './types';
 import { encounterMatchup, fieldMatchup, matchupShort, schoolWarnings } from './ui/matchup';
 import { computeStats, fromScr, gateGroupState, gateState, type GateState, makeSummons, rectScr, scrDims, type SummonMade, toScr } from './engine/build';
-import { DEV, type Device, deviceCells, deviceRows, isPlaceable, netCells, scopeR, wallHp } from './data/devices';
+import { DEV, type Device, deviceCells, deviceRows, feastChain, feastHp, feastPct, isPlaceable, netCells, scopeR, wallHp } from './data/devices';
 import { crateHomes, mapOf, TERRAIN, terrainBlocks, type TerrainGroup, terrainGroups, terrainOf } from './data/maps';
 import { newCampaignRun } from './engine/campaignrun';
 import { campBoss } from './engine/campaign';
@@ -66,6 +66,7 @@ import * as TUT from './engine/tutorial';
 import { fieldSyn, starterFavNeed, starterPool } from './engine/starters';
 import * as RM from './ui/routemap';
 import * as LAB from './ui/lab';
+import * as SHOP from './ui/shop';
 
 // 편의 설정 (이 브라우저에만 저장): 전투 속도, 진형 속도 등
 const PREF_KEY = 'errantes.prefs.v1';
@@ -140,7 +141,7 @@ const FS_SVG = (on: boolean) => `<svg viewBox="0 0 24 24" fill="none" stroke="cu
 
 type Screen = 'title' | 'intro' | 'diffsel' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'invest' | 'over' | 'codex' | 'bar' | 'oath';
 /** 화면을 가리지 않는 확인 팝업: anchor 선택자 중 처음 보이는 요소 옆에 (inv = 보관함 상자 왼쪽 · above = 위 · beside = 옆). ok 가 없으면 안내만 (닫기 버튼 하나) */
-type Ask = { html: string; anchor: string[]; at: 'inv' | 'above' | 'beside'; ok?: () => void; okLabel?: string; hl?: number[] }; // hl: 함께 강조할 보관함 칸 (조합 재료 둘)
+type Ask = { html: string; anchor: string[]; at: 'inv' | 'above' | 'beside' | 'below'; ok?: () => void; okLabel?: string; hl?: number[] }; // hl: 함께 강조할 보관함 칸 (조합 재료 둘)
 type Sel = { k: 'unit'; uid: string } | { k: 'terrain'; g: number } | { k: 'turret'; i: number } | { k: 'king' } | { k: 'item'; idx: number } | { k: 'relic'; id: string } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
 
 const app = {
@@ -148,6 +149,7 @@ const app = {
   tacOpen: false, // 편성 표: 전술 위력 내역 펼침
   mapTab: 0, // 메인 화면 우측 패널 탭: 0 파티 · 1 환경 · 2 기록
   musterSel: [] as string[], // 지정 소집에서 고른 시너지
+  shopShut: false, // 상인 상점을 [닫기]로 닫고 지도에 있다 (편성에 갔다 돌아오면 지도로. 아니면 같은 상점으로)
   run: null as RunState | null,
   sel: null as Sel,
   starters: [] as string[],
@@ -303,7 +305,7 @@ const SPECIAL_GLYPH: Record<string, string> = {
   K_rank: 'r.res', K_morph: 'a.summon', K_legend: 'a.power', K_copy: 'a.reload', K_strip: 'u.area', K_reroll: 'a.cd', K_xp: 'k.inj1', K_xp2: 'k.inj2', K_xp3: 'k.inj3',
   K_seize: 'k.seize', K_rank3: 'k.rank3', K_bread: 'k.bread', K_bread_stale: 'k.bread_stale',
   K_cp_purge: 'k.purge', K_cp_note: 'k.note', K_cp_tape: 'k.tape',
-  K_barricade: 'k.barricade', K_decoy: 'k.decoy', K_mine: 'k.mine', K_net: 'k.net', K_scope: 'k.scope',
+  K_barricade: 'k.barricade', K_decoy: 'k.decoy', K_mine: 'k.mine', K_net: 'k.net', K_scope: 'k.scope', K_feast: 'k.feast', K_muster_ticket: 'k.ticket',
   E_gyro: 'a.range', E_ricochet: 'u.target', E_coolant: 'a.speed', E_projector: 'a.shield', E_shock: 'a.stun', E_reactive: 'a.hp', E_twin: 'u.mag', E_frag: 'u.area', E_nano: 'r.hp', E_rail: 'a.snipe', E_spin: 'a.reload', E_link: 'p.tac',
   T_cal: 'a.dmg', T_plate: 'a.hp', T_cryo: 's.chrono', T_ammo: 'u.mag', T_barrier: 'a.shield', T_selfd: 'u.area', T_rapid: 'a.speed', T_tesla: 'e.elec', T_flame: 's.pyro', T_snipe: 'a.snipe', T_mark: 'u.target',
 };
@@ -1014,7 +1016,9 @@ function mapScreen(run: RunState) {
     }).join('');
     return `<li class="tl-step ${state}${opts2.includes('boss') ? ' tl-boss' : ''}"><span class="tl-num">${i + 1}</span><div class="tl-nodes">${nodes}</div></li>`;
   }).join('');
-  const enter = run.node
+  const enter = run.node?.type === 'shop' // 상점 칸 진행 중 (닫고 나왔거나 불러옴): 다시 열기 · 이 칸 끝내기
+    ? `<button class="btn primary tl-go" data-a="resume" title="같은 상인 · 같은 진열로 다시 엽니다">${run.node.maint ? '정비 열기' : run.node.synth ? '합성 공방 열기' : '상점 열기'}</button><button class="btn tl-leave" data-a="leave-shop" title="이 칸을 끝내고 다음 칸으로">떠나기</button>`
+    : run.node
     ? `<button class="btn primary tl-go" data-a="resume" title="${esc(NODE_NAME[run.node.type])} 계속하기">계속하기</button>`
     : pick ? `<button class="btn primary tl-go" data-a="enter" data-v="${pick}" title="단축키 Enter">${FIGHT_NODES.includes(pick) ? (pick === 'boss' ? '보스전 진입' : '전투 진입') : `${esc(NODE_NAME[pick])} 진입`}</button>`
     : '<button class="btn primary tl-go" disabled>항로 끝</button>'; // 튜토리얼: 보스 뒤
@@ -1094,17 +1098,17 @@ function mapDetail(run: RunState) {
 }
 /** 함선 관리: 함대 확장 (출전 인원) · 지정 소집 (시너지 지정 영입) */
 function shipPanel(run: RunState, extra = '') {
-  const fc = R.fleetCost(run), mc = R.musterCost(run), busy = !!run.node || run.pending.length > 0;
+  const fc = R.fleetCost(run), mc = R.musterCost(run), busy = !!run.node || run.pending.length > 0, tk = R.ticketCount(run); // tk: 지정 소집 티켓 (유이 전용 상품) — 있으면 소집 비용 0
   const full = run.units.length >= CFG.maxParty;
   return `<section class="ship" aria-labelledby="ship-h"><h2 id="ship-h">함선 관리</h2><div class="ship-grid">
     <button class="ship-btn" data-a="fleet" ${fc === null || run.credits < fc || busy ? 'disabled' : ''}>
       <span class="sb-ic">${NODE_ICON.supply}</span><b>함대 확장</b>
       <span class="small muted">출전 인원 ${R.deployCap(run)} → ${fc === null ? '최대' : R.deployCap(run) + 1}명</span>
       <span class="sb-cost">${fc === null ? '최대 규모' : `${CR}${fc}`}</span></button>
-    <button class="ship-btn" data-a="muster-open" ${run.credits < mc || busy || full ? 'disabled' : ''}>
+    <div class="ship-cell">${SHOP.adHtml(run)}<button class="ship-btn" data-a="muster-open" ${(run.credits < mc && !tk) || busy || full ? 'disabled' : ''}>
       <span class="sb-ic">${NODE_ICON.recruit}</span><b>지정 소집</b>
       <span class="small muted">${full ? `보유 한도 ${CFG.maxParty}명` : `시너지 ${CFG.musterPicks}개를 골라 그 안에서 영입`}</span>
-      <span class="sb-cost">${CR}${mc}</span></button>
+      <span class="sb-cost${tk ? ' tk' : ''}"${tk ? ` title="${esc(`${CONSUMABLES[R.TICKET].name} ${tk}장 — 크레딧 대신 1장`)}"` : ''}>${tk ? `${CR}<s>${mc}</s><b>0</b><small>${itemIcon(R.TICKET)}×${tk}</small>` : `${CR}${mc}`}</span></button></div>
   </div>${extra}</section>`;
 }
 function musterModal(run: RunState) {
@@ -1130,7 +1134,7 @@ function musterModal(run: RunState) {
     <div class="row-btns ms-foot"><div class="ms-state"><div class="ms-picks" aria-label="고른 시너지 ${sel.length}/${CFG.musterPicks}">${picks}</div>
       ${kvChip('후보', sel.length ? `<b>${pool.length}</b>명` : '<b>—</b>', `고른 시너지 중 하나라도 가진 기물이 후보 (${CFG.musterPicks}개를 모두 골라야 소집)`, full ? '' : 'zero')}</div>
       <button class="btn" data-a="muster-cancel">취소</button>
-      <button class="btn primary" data-a="muster-ok" ${full && pool.length ? '' : 'disabled'}>소집 ${CR}${R.musterCost(run)}</button></div>`;
+      <button class="btn primary" data-a="muster-ok" ${full && pool.length ? '' : 'disabled'}>소집 ${R.ticketCount(run) ? `${CR}<s>${R.musterCost(run)}</s> 0 · 티켓 1장` : `${CR}${R.musterCost(run)}`}</button></div>`;
 }
 /** 보급 미리보기: 카드 수 · 지금 기준 합계 가치 (run.ts supplyBase, 크레딧 환산) */
 /** route: 항로에 놓인 보급 노드 (첫 장 재료 확정 · 대박 없음) / 아니면 분기점 보급 */
@@ -1233,7 +1237,8 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
     const e = o === 'boss' ? phaseBoss(run) : undefined;
     if (e) return bossCard(i, e, cur);
     const note = cur && run.node ? '<span class="ah-hint">진행 중</span>' : '';
-    return `<li class="ah-card n-${o}${cur ? ' cur tl-info' : ''}">${act(cur)}<span class="ah-lead"><i class="ah-ic">${NODE_ICON[o]}</i>${step(i)}</span><div class="ah-body"><b>${esc(NODE_NAME[o])}</b>${cur ? `${about(o)}${income(o)}${mods(o)}` : desc(nodeHint(o))}${note}</div></li>`;
+    const mc = cur ? SHOP.merchantOf(run) : null; // 진행 중인 상점: 상인 이름
+    return `<li class="ah-card n-${o}${cur ? ' cur tl-info' : ''}">${act(cur)}<span class="ah-lead"><i class="ah-ic">${NODE_ICON[o]}</i>${step(i)}</span><div class="ah-body"><b>${esc(NODE_NAME[o])}${mc ? ` · ${esc(mc.name)}` : ''}</b>${cur ? `${about(o)}${income(o)}${mods(o)}` : desc(nodeHint(o))}${note}</div></li>`;
   };
   // 현재 칸 (진입 단추 포함, 강조) → 다음 칸들: 같은 카드 토큰으로 한 흐름
   const cur = pick ? nodeCard(run.step, pick, true)
@@ -1329,6 +1334,7 @@ function devicePop(run: RunState, id: string) {
   const tiers = SYN_BY_ID.NAV.tiers;
   if (id === 'K_decoy' || id === 'K_mine') return id === 'K_decoy' ? decoyPop() : minePop();
   if (id === 'K_barricade') return wallPop(run);
+  if (id === 'K_feast') return feastPop(run);
   if (id !== 'K_scope') return `<dl class="dev-spec">${deviceRows(id, tiers).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
   const S = DEV.scope, sc = run.scope, r = scopeR(tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0));
   const steps: [string, boolean][] = [[`처음 +${S.base}`, true], ...tiers.slice(1).map((n, i) => [`${n}명 +${S.tierBonus[i + 1]}`, (sc?.nav || 0) >= i + 2] as [string, boolean]), [`페이즈마다 +${S.perPhase}`, true]];
@@ -1340,7 +1346,7 @@ function devicePop(run: RunState, id: string) {
     <div class="sc-row"><b class="sc-n" title="남은 사용 횟수">${sc?.n ?? 0}</b><ol class="sc-steps">${steps.map(([t, on]) => `<li class="${on ? 'on' : ''}">${t}</li>`).join('')}</ol></div>`;
 }
 /** 놓을 수 있는 구역 도식: 적 진형 · 사이 · 아군 진형 세 띠 (놓을 수 있는 띠만 밝게) */
-const zoneMini = (foe: boolean) => `<span class="zm" title="놓을 수 있는 곳"><i class="${foe ? 'on' : ''}">적</i><i class="on">사이</i><i class="on">아군</i></span>`;
+const zoneMini = (foe: boolean, mid = true) => `<span class="zm" title="놓을 수 있는 곳"><i class="${foe ? 'on' : ''}">적</i><i class="${mid ? 'on' : ''}">사이</i><i class="on">아군</i></span>`;
 /** 효과 범위 격자 (가운데 = 장치) */
 const rangeGrid = (r: number) => { const n = 2 * r + 1; return `<span class="sc-grid" style="--n:${n}">${[...Array(n * n).keys()].map((i) => `<i${i === (n * n - 1) / 2 ? ' class="c"' : ''}></i>`).join('')}</span>`; };
 /** 바리케이드 팝업: 놓는 곳 · 모양별 칸당 내구도 (지금 페이즈) · 막는 것 (직선 사격 / 기술 따로) */
@@ -1362,6 +1368,15 @@ function decoyPop() {
       <span>신호기</span><i class="hot" style="--p:100%"></i><b>×${D.prov}</b>
     </div>
     <div class="dv-tl" title="전투 시작부터"><span class="on" style="flex:${D.invuln}">무적 ${D.invuln}초</span><span style="flex:${span - D.invuln}">체력 1</span></div>`;
+}
+/** 만찬 백수정 팝업 (미리암 라일라 전용): 놓는 곳 (아군 진형만) · 연쇄 회복 도식 (수정 → 1 → 2 → 3, 최대 체력 대비) · 주기 · 내구도 (이번 페이즈) */
+function feastPop(run: RunState) {
+  const F = DEV.feast, ph = run.node?.enc?.phase ?? run.phase;
+  const hop = feastChain().map((k, i) => `<i>→</i><span class="fc-hop" title="${i + 1}번째 대상"><b>${feastPct(k)}</b><small>${i + 1}</small></span>`).join('');
+  return `<div class="sc-row">${zoneMini(false, false)}<span class="small">아군 진형 빈칸 · <b>아군 구조물</b></span></div>
+    <div class="dv-chain" title="${F.every}초마다: 체력 비율이 가장 낮은 다친 아군부터 겹치지 않게">${lineIcon('k.feast', 'li fc-src')}${hop}</div>
+    <div class="dv-flow"><span class="t">${F.every}초마다</span><span>체력 비율 낮은 아군부터 ${F.n}명</span></div>
+    <div class="dv-bars" title="내구도 (이번 페이즈)"><span>내구도</span><i style="--p:100%"></i><b>${feastHp(ph)}</b></div>`;
 }
 /** 감전 지뢰 팝업: 놓는 곳 · 감지 · 폭발 범위 격자 · 발동 흐름 */
 function minePop() {
@@ -1398,8 +1413,8 @@ function deviceTokens(run: RunState, n: number, box: (x: number, y: number, w?: 
         ${sides.map((sd) => `<span class="dw-arr dw-${scrSide(g, sd)}${canGrow ? '' : ' max'}" data-wall="ext:${i}:${sd}" title="끌어서 늘리기 · 줄이기 (최대 ${DEV.wall.maxN}칸)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7-6 7 6M12 3v18"/></svg></span>`).join('')}
       </div>`;
     }
-    const hp = 0;
-    return cells.map((p) => `<button class="dev-tok dev-${d.id === 'K_barricade' ? 'wall' : d.id === 'K_decoy' ? 'decoy' : 'mine'}" style="${box(p.x, p.y)}" data-a="dev-sel" data-v="${i}" data-dev="${i}" title="${esc(`${c.name}${hp ? ` · 칸당 내구도 ${hp}` : d.id === 'K_decoy' ? ` · 체력 1 · 도발 ×${DEV.decoy.prov}` : ' · 은신'} — 누르면 회수`)}">${ic}${hp ? `<span class="dev-hp">${hp}</span>` : ''}</button>`).join('');
+    const hp = d.id === 'K_feast' ? feastHp(phase) : 0;
+    return cells.map((p) => `<button class="dev-tok dev-${d.id === 'K_barricade' ? 'wall' : d.id === 'K_decoy' ? 'decoy' : d.id === 'K_feast' ? 'feast' : 'mine'}" style="${box(p.x, p.y)}" data-a="dev-sel" data-v="${i}" data-dev="${i}" title="${esc(`${c.name}${d.id === 'K_feast' ? ` · 내구도 ${hp} · ${DEV.feast.every}초마다 연쇄 회복` : d.id === 'K_decoy' ? ` · 체력 1 · 도발 ×${DEV.decoy.prov}` : ' · 은신'} — 누르면 회수`)}">${ic}${hp ? `<span class="dev-hp">${hp}</span>` : ''}</button>`).join('');
   }).join('');
 }
 /** 편성 보드 화면 틀: 보이는 전장 칸 (바깥 테두리 제외 · 포탑 열 ex 포함)의 화면 원점 (ox, oy) · 화면 칸 수 (bw × bh). 가로 지형은 돌려서 (engine/build.ts toScr) */
@@ -1430,6 +1445,7 @@ function placeReason(run: RunState, err: string, x: number, y: number) {
   if (err.includes('전장')) return '전장 밖';
   if (err.includes('지형')) return '지형';
   if (err.includes('적 진형')) return '적 진형';
+  if (err.includes('아군 진형에만')) return '아군 진형만';
   if (err.includes('횟수')) return '횟수 없음';
   if (err.includes('기물') || err.includes('장치')) {
     const enc = run.node?.enc, g = runGeo(run), at = (c: { x: number; y: number }) => c.x === x && c.y === y;
@@ -1454,7 +1470,7 @@ function devPvHtml(run: RunState, pv: NonNullable<typeof devPv>, ex: number) {
   const rr = id === 'K_net' ? null : id === 'K_scope' ? scopeR(tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0)) : id === 'K_mine' ? DEV.mine.r : -1;
   const [x0, y0, x1, y1] = id === 'K_net' ? [x, y, x + 1, y + 1] : [x - (rr ?? 0), y - (rr ?? 0), x + (rr ?? 0), y + (rr ?? 0)];
   const cx0 = Math.max(PAD, x0), cy0 = Math.max(PAD, y0), cx1 = Math.min(g.w - PAD - 1, x1), cy1 = Math.min(g.h - PAD - 1, y1);
-  const kind = id === 'K_net' ? 'net' : id === 'K_scope' ? (d.mode === 'strike' ? 'strike' : 'drop') : id === 'K_mine' ? 'mine' : id === 'K_decoy' ? 'decoy' : 'wall';
+  const kind = id === 'K_net' ? 'net' : id === 'K_scope' ? (d.mode === 'strike' ? 'strike' : 'drop') : id === 'K_mine' ? 'mine' : id === 'K_decoy' ? 'decoy' : id === 'K_feast' ? 'feast' : 'wall';
   const range = rr !== -1 && cx1 >= cx0 && cy1 >= cy0 ? `<i class="pv-range dev-${kind}" style="${box(cx0, cy0, cx1 - cx0 + 1, cy1 - cy0 + 1)}"></i>` : '';
   // 기준점: 놓은 뒤와 같은 모습 (deviceTokens 와 같은 클래스, 누를 수 없음)
   const ic = lineIcon(SPECIAL_GLYPH[id] || 'a.power', 'li');
@@ -2966,6 +2982,7 @@ function shopHead(run: RunState, stock: NonNullable<NonNullable<RunState['node']
   </div><div class="subs sh-help">${sub('help:combine', PART, 'g-C', '조합법', '', combineHelp())}</div></div>`;
 }
 function shopScreen(run: RunState) {
+  if (SHOP.merchantOf(run)) return `<main class="wrap shop-host">${SHOP.shopOverlay(run)}</main>`; // 상인 상점: 상단 바 아래 전체를 덮는 상점 (ui/shop.ts). 정비 · 합성 공방은 아래 진열대
   const stock = run.node?.shop || [];
   return `<main class="wrap">
     ${shopHead(run, stock)}
@@ -3571,6 +3588,9 @@ function placeAskPop() {
   if (q.at === 'above') {
     left = r.left + r.width / 2 - w / 2; top = r.top - h - 8;
     if (top < 8) top = r.bottom + 8;
+  } else if (q.at === 'below') { // 대상 바로 아래, 왼쪽 맞춤 (상점 가격표: 고른 칸을 가리지 않게). 아래 자리가 없으면 위
+    left = r.left; top = r.bottom + 6;
+    if (top + h > innerHeight - 8) top = r.top - h - 6;
   } else {
     const box = (q.at === 'inv' ? a.closest<HTMLElement>('.inv-rail, .inv') || a : a).getBoundingClientRect();
     left = box.left - w - 10; top = r.top;
@@ -3958,6 +3978,9 @@ function render() {
   AB.ABOPT.coef = app.detail; // 상세 보기: 피해 · 회복을 계수로
   if (app.screen !== 'battle' && app.view) { app.view.destroy(); app.view = null; }
   const run = app.run;
+  if (run && app.screen === 'shop' && lastView.screen !== 'shop' && SHOP.onOpen(run)) // 상인 상점을 열 때 인사 (처음 · 다시 열 때). 처음 연 표시(met)는 바로 저장 (불러와도 재방문 인사)
+    queueMicrotask(() => { if (app.run === run && !run.over) saveRun(run, run.lab ? LAB.LAB_SLOT : run.tutorial ? TUT_SLOT : run.campaign ? CAMP_SLOT : 'auto'); });
+  if (run && app.screen === 'map' && lastView.screen !== 'map' && R.ticketCount(run)) SHOP.adStart(); // 지정 소집 티켓: 지도를 열 때마다 페트라 광고판
   let body = '';
   if (app.screen === 'codex') body = codexScreen();
   else if (app.screen === 'bar') body = BAR.barScreen();
@@ -3987,7 +4010,7 @@ function render() {
   const prevScreen = lastView.screen;
   lastView.screen = app.screen;
   // 다시 그려도 스크롤 위치 유지 (상세 패널 · 전체 상세 팝업)
-  const KEEP = ['.um-grid', '.um-a', '.um-c', '.um-r', '.um-main', '.side.right', '.map-detail', '.detail'];
+  const KEEP = ['.um-grid', '.um-a', '.um-c', '.um-r', '.um-main', '.side.right', '.map-detail', '.detail', '.shop-ov', '.so-body', '.shop-ov .sd'];
   const kept = KEEP.map((q) => root.querySelector<HTMLElement>(q)?.scrollTop ?? 0);
   const media = app.screen === 'battle' || app.screen === 'bar' ? null : keepMedia();
   TFX.beforeScreen(prevScreen, app.screen, root); // 이타카: 바뀌기 전 화면을 덮는 바다 (그리기 전에 지금 화면을 얼려 둔다)
@@ -4007,6 +4030,8 @@ function render() {
   restoredAt = performance.now();
   layoutPanels();
   advSync(run ?? null);
+  SHOP.shopMount(root); // 상인 말풍선 연출 · 혼잣말 시계
+  SHOP.adMount(root); // 페트라 광고판 초읽기 · 자동 닫힘
   TFX.onScreen(prevScreen, app.screen); // 테마 연출: 전투 중 강도 낮춤 · (이타카) 큰 화면 전환 물결 (사건 장면이 떴는지 본 뒤)
   if (app.screen === 'bar') BAR.barMount();
   if (app.screen === 'intro' && !app.introDone) introAnim();
@@ -4428,7 +4453,7 @@ function goPrepOrMap() {
   if (!run.over && run.campaign?.done && !run.pending.length) run.over = true; // 캠페인 끝 알림을 다 닫은 뒤 다시 불러온 저장
   if (run.over) { app.screen = 'over'; metaRunEnd(run); recEnd(run); }
   else if (run.node?.enc) app.screen = 'prep';
-  else if (run.node?.type === 'shop') app.screen = 'shop';
+  else if (run.node?.type === 'shop') { app.screen = 'shop'; app.shopShut = false; } // 상점을 다시 연다 (닫기 기록 지움)
   else if (run.node?.type === 'news') app.screen = 'news';
   else if (run.node?.type === 'invest') app.screen = 'invest';
   else app.screen = 'map';
@@ -5011,11 +5036,11 @@ function tipSteps(key: string, run: RunState | null): Partial<CoachStep>[] {
       return [{ target: '.modal .sup-cards', pend: true }, { target: '.modal [data-a="supply-all"]', pend: true, until: () => !sp()?.options.some((c) => !c.open) },
         { target: '.modal [data-a="supply-done"]', pend: true, until: () => !sp() }];
     }
-    case 'ch2_shop': return [
-      { target: '.shop .shop-item.tC' }, { target: '.shop .shop-item.tA' },
-      { target: '.shop .shop-item.tC', need: true, until: () => !!r.node?.shop?.some((x) => x.sold) },
-      { target: '.top .pill.cr' }, { target: '.inv' },
-      { target: '[data-a="leave-shop"]', need: true, until: () => app.screen !== 'shop' },
+    case 'ch2_shop': return [ // 상인 상점 (ui/shop.ts): 재료 칸 · 희귀 칸 → 재료 가격표 (누르면 아래에 ✕ / ✓ 확인) → 이자 지키며 쓸 수 있음 · 보관함 칩 → 떠나기
+      { target: '.sg .sg-card.tC' }, { target: '.sg .sg-card.tA' },
+      { target: '.sg .sg-card.tC .sg-tag', need: true, until: () => !!r.node?.shop?.some((x) => x.sold) }, // 확인 팝업이 뜨면 안내는 잠시 숨는다 (tutCoach hold)
+      { target: ['.shop-ov .kv-keep', '.top .pill.cr'] }, { target: '.shop-ov .kv-inv' },
+      { target: '.shop-ov [data-a="leave-shop"]', need: true, until: () => app.screen !== 'shop' },
     ];
     case 'ch2_xp': {
       let c0 = r.credits;
@@ -5231,6 +5256,7 @@ function act(a: string, v: string) {
     setMapTab(+v || 0);
     return;
   }
+  if (SHOP.shopAct(run, a, v)) { render(); return; } // 상인 상점 (ui/shop.ts): 고르기 · 구매 확인 · 새로고침 · 고르곤 교환
   switch (a) {
     case 'newrun': // 출격: 전장 추첨 연출부터
       if (app.screen === 'title' && !app.tutAsk && !tutOver() && !loadMeta().runs && !listTutSave()) { app.tutAsk = true; break; } // 첫 실행: 튜토리얼부터 볼지
@@ -5395,6 +5421,8 @@ function act(a: string, v: string) {
       break;
     }
     case 'resume': goPrepOrMap(); break;
+    case 'shop-close': if (run) { SHOP.farewell(run, 'close'); app.shopShut = true; app.screen = 'map'; app.sel = null; persist(); } break; // 상인 상점 닫기: 이 칸은 그대로 (지도의 [상점 열기] · [떠나기])
+    case 'ad-skip': SHOP.adStop(); return;
     case 'autofill': {
       if (!run) return;
       const n = R.autoFill(run), full = R.deployBlock(run), left = run.units.some((u) => !u.pos && R.canDeploy(run, u));
@@ -5407,7 +5435,7 @@ function act(a: string, v: string) {
     case 'big-open': app.bigUnit = v; app.sel = { k: 'unit', uid: v }; app.statPop = false; app.abilPop = null; break;
     case 'big-close': app.preview = null; app.bigUnit = null; app.abilPop = null; app.releaseConfirm = null; if (app.screen === 'map') app.sel = null; break;
     case 'manage': app.screen = 'prep'; app.sel = v ? { k: 'unit', uid: v } : null; break;
-    case 'to-map': app.screen = run?.node?.type === 'shop' ? 'shop' : run?.node?.type === 'news' ? 'news' : run?.node?.type === 'invest' ? 'invest' : 'map'; break;
+    case 'to-map': app.screen = run?.node?.type === 'shop' && !app.shopShut ? 'shop' : run?.node?.type === 'news' ? 'news' : run?.node?.type === 'invest' ? 'invest' : 'map'; break; // 상점에서 편성에 갔다 돌아오면 같은 상점 (닫고 나왔으면 지도)
     case 'fight': {
       if (!run || !deployed(run).length) return;
       const benched = R.fitDeploy(run); // 안전장치: 설 자리가 없는 출전 기물은 대기석으로 (전투에서 조용히 빠지지 않게) — 편성을 다시 보여 준다
@@ -5499,7 +5527,7 @@ function act(a: string, v: string) {
     case 'relic-equip': if (run) { const [uid, id] = v.split(':'); const e = R.equipRelic(run, uid, id); if (e) toast(e); persist(); } break;
     case 'relic-enh': if (run) { const e = R.enhanceRelic(run, v); if (e) toast(e); else toast('다음 전투의 신권 대행이 강화됩니다 (계수 ×3)'); persist(); } break;
     case 'pilgrim-done': if (run?.pending.some((x) => x.t === 'pilgrim')) { run.pending = run.pending.filter((x) => x.t !== 'pilgrim'); persist(); } break;
-    case 'leave-shop': if (run) { R.leaveShop(run); app.screen = 'map'; persist(); } break;
+    case 'leave-shop': if (run) { if (run.node?.type === 'shop') SHOP.farewell(run, 'leave'); R.leaveShop(run); app.shopShut = false; app.screen = 'map'; persist(); } break;
     case 'loan': if (run) { toast(R.takeLoan(run) ? '대출 실행: 크레딧 +25' : '대출할 수 없습니다.'); persist(); } break;
     // 대기 선택
     case 'reroll-global': if (run) { R.rerollGlobal(run); persist(); } break;
@@ -6275,6 +6303,7 @@ document.addEventListener('keydown', (e) => {
     else if (app.menu) act('menu-close', '');
     else if (app.releaseConfirm) act('release-cancel', '');
     else if (app.screen === 'prep' && app.run && craneOn(app.run) !== null) { app.crane = null; render(); } // 크레인만 내려놓고 컨테이너 상세는 그대로
+    else if (app.screen === 'shop' && SHOP.shopEscape()) render(); // 상인 상점: 교환 창 · 물품 상세
     else if (app.sel && app.screen !== 'battle') { app.sel = null; render(); }
     else if (app.screen === 'battle' && app.battleSel !== null) { app.battleSel = null; app.bPick = null; applySpeed(); updateMeter(true); }
     return;
@@ -6353,6 +6382,11 @@ root.addEventListener('click', (ev) => {
 });
 SND.init({ prefs: loadPrefs, save: savePref, ranks: () => Object.fromEntries(app.run?.units.map((u) => [u.uid, u.rank]) ?? []) }); // 효과음 설정 (errantes.prefs.v1) · 등급 상승 판정
 LAB.labInit({ act: (v) => act('lab', v), itemIcon: (id) => itemIcon(id), relicTok: (id) => relicTok(id) }); // 훈련장 패널: 숫자 칸 · 고르기 입력 → 동작
+SHOP.shopInit({ // 상인 상점 덮개 (ui/shop.ts): main 의 그림 조각 · 확인 팝업 · 알림
+  run: () => app.run, itemIcon: (id, attrs) => itemIcon(id, attrs), itemBrief, statIc, devicePop, kvChip, CR,
+  ask: (anchor, html, okLabel, ok) => { app.ask = { anchor, at: 'below', html, okLabel, ok }; },
+  toast: (m) => toast(m), persist: () => persist(), sfx: (n) => SND.sfx(n),
+});
 ACH.achBind(() => app.run); // 업적: 장면 건너뛰기 · 메타 기록 변화 지켜보기 · 도감 · 바 진열장 입력
 
 // 순례: 신앙 변경

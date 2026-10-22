@@ -24,6 +24,8 @@ export interface FieldDef {
   winCredits?: number; // 전투 승리 크레딧 추가
   dropMul?: number; // 전투 재료 드랍 확률 배율
   shopMul?: number; // 상점 가격 배율
+  /** 이 전장의 상점에만 더 나오는 특별 상인 id (data/merchants.ts). 공용 상인 풀에 더해진다 (상인 쪽 fields 로 전장을 묶을 수도 있다) */
+  merchants?: string[];
   extraEnemies?: number; // 일반 전투 적 수 추가
   /** 모든 아군 기물에게 (세력 무관) */
   allyAll?: Effect;

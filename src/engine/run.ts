@@ -25,6 +25,7 @@ import { FAITHS,
 } from '../types';
 import { allyRoom, companionCells, deployed, encGeo, engTier, geoOf, mapOptOf, terrainPathOk, foeCell, layout, PAD, runGeo, terrainCells, toPos, memberships, playerRows, prepOccupied, synergyCounts, turretCells, turretCount, ZONE, zoneAt } from './build';
 import { DEV, deviceCells, type Device, isPlaceable } from '../data/devices';
+import { MERCHANT_BY_ID, merchantPool } from '../data/merchants';
 import { type Bay, crateHomes, MAPS, mapOf, type MapDef, rectCells, terrainOf } from '../data/maps';
 import { causalGain, causalLeft, causalStage, KING_GEAR, KING_GEAR_NAME } from '../data/chungra';
 import { EMB } from '../data/emblems';
@@ -76,6 +77,13 @@ export function interestInfo(run: RunState, counts = synergyCounts(deployed(run)
   const myopic = hasDespair(run, 'D.myopic');
   const direct = hasGlobal(run, 'G.l_petra'); // 전설 [페트라 직불 계약]: 이자 0
   return { interest: direct ? 0 : despairInterest(run, raw), raw, cap, per: CFG.interestPer, parts, floor: base < 0, myopic: myopic ? DESPAIR_BY_ID['D.myopic'].name : '', direct: direct ? GLOBAL_BY_ID['G.l_petra'].name : '' };
+}
+/** 이자를 지키며 쓸 수 있는 크레딧 (상점 머리): 지금 이자 단계(크레딧 per 당 1, 상한까지)를 유지하는 선에서 쓸 수 있는 몫 · 그때 지켜지는 이자.
+ *  after(cost) = 그만큼 쓴 뒤의 이자 (구매 확인 팝업) */
+export function interestKeep(run: RunState) {
+  const i = interestInfo(run);
+  const tiers = i.direct ? 0 : i.raw;
+  return { spend: Math.max(0, run.credits - i.per * tiers), keep: i.interest, per: i.per, after: (cost: number) => interestInfo({ ...run, credits: run.credits - cost }).interest };
 }
 /** 절망 증강 [군체 공명 간섭]: 전투 공명도 풀 배율 */
 const despairXp = (run: RunState) => (hasDespair(run, 'D.swarm') ? 1 - CFG.despair.xp : 1);
@@ -272,10 +280,13 @@ export const musterCost = (run: RunState) => Math.round((CFG.musterCost + CFG.mu
 export const musterSyns = () => SYNERGIES.filter((s) => RECRUITABLE.filter((d) => ([...d.factions, ...d.traits] as string[]).includes(s.id)).length > 1).map((s) => s.id as string);
 export const musterPool = (run: RunState, syns: string[]) =>
   RECRUITABLE.filter((d) => d.id !== 'amundsen' && !run.units.some((u) => u.defId === d.id) && [...d.factions, ...d.traits].some((s) => syns.includes(s))).map((d) => d.id); // 아문센은 지정 소집으로 부를 수 없다 (일반 영입에서만 드물게)
+/** 지정 소집 티켓 (유이 전용 상품): 들고 있으면 지정 소집을 크레딧 대신 티켓 1장으로 한다 */
+export const TICKET = 'K_muster_ticket';
+export const ticketCount = (run: RunState) => run.inventory.filter((x) => x === TICKET).length;
 export function openMuster(run: RunState): string | null {
   if (run.pending.length || run.node) return '진행 중인 일을 먼저 끝내세요';
   if (run.units.length >= CFG.maxParty) return `보유 한도(${CFG.maxParty}명)에 도달했습니다`;
-  if (run.credits < musterCost(run)) return `크레딧이 부족합니다 (${musterCost(run)} 필요)`;
+  if (!ticketCount(run) && run.credits < musterCost(run)) return `크레딧이 부족합니다 (${musterCost(run)} 필요)`;
   run.pending.unshift({ t: 'muster' });
   return null;
 }
@@ -284,15 +295,15 @@ export function confirmMuster(run: RunState, syns: string[]): string | null {
   if (syns.length !== CFG.musterPicks || new Set(syns).size !== syns.length || syns.some((x) => !musterSyns().includes(x))) return `시너지를 ${CFG.musterPicks}개 고르세요`;
   const pool = musterPool(run, syns);
   if (!pool.length) return '조건에 맞는 기물이 없습니다';
-  const c = musterCost(run);
-  if (run.credits < c) return `크레딧이 부족합니다 (${c} 필요)`;
-  run.credits -= c;
-  recSpend(run, 'muster', c);
+  const c = musterCost(run), ticket = ticketCount(run) > 0;
+  if (!ticket && run.credits < c) return `크레딧이 부족합니다 (${c} 필요)`;
+  if (ticket) run.inventory.splice(run.inventory.indexOf(TICKET), 1); // 티켓이 있으면 크레딧 대신 (소집 횟수는 그대로 센다)
+  else { run.credits -= c; recSpend(run, 'muster', c); }
   run.musters = (run.musters || 0) + 1;
   run.pending.shift();
   const k = 4 + (hasGlobal(run, 'G.scout') ? 1 : 0) + (hasGlobal(run, 'G.network') ? 1 : 0); // 지정 소집: 선택지 +1, 리롤 없음
   run.pending.unshift({ t: 'recruit', options: recruitOptions(run, k, pool), syns, rerolls: 0 });
-  log(run, `지정 소집 (크레딧 -${c}): ${syns.map((s) => SYN_BY_ID[s as SynergyId]?.name || s).join(' · ')}`);
+  log(run, `지정 소집 (${ticket ? CONSUMABLES[TICKET].name : `크레딧 -${c}`}): ${syns.map((s) => SYN_BY_ID[s as SynergyId]?.name || s).join(' · ')}`);
   return null;
 }
 export function cancelMuster(run: RunState) { if (run.pending[0]?.t === 'muster') run.pending.shift(); }
@@ -683,6 +694,7 @@ export function deviceErr(run: RunState, d: Device, skip?: Device): string | nul
     if (z === 'edge') return '전장 밖으로 펼칠 수 없습니다';
     if ((land.get(`${c.x},${c.y}`)?.bits ?? 0) & 1) return '지형 칸에는 놓을 수 없습니다';
     if (z === 'foe' && d.id !== 'K_decoy') return '적 진형에는 놓을 수 없습니다';
+    if (d.id === 'K_feast' && z !== 'ally') return '아군 진형에만 놓을 수 있습니다';
     if (occ.has(`${c.x},${c.y}`)) return '다른 기물 · 장치가 있는 칸입니다';
   }
   const devs = [...(enc.devices || []).filter((x) => x !== skip), d];
@@ -792,6 +804,7 @@ export function useCheck(run: RunState, kIdx: number, tg: UseTarget): string | n
     if (tg.k !== 'run') return WRONG_TARGET;
     if ((id === 'K_bread' || id === 'K_bread_stale') && run.hp >= run.maxHp) return '플레이어 체력이 가득 찼습니다';
     if (id === 'K_cp_tape') return '격리 화물 사건의 선택지에서 씁니다';
+    if (id === TICKET) return '지도의 지정 소집에서 크레딧 대신 씁니다';
     if (id === 'K_cp_purge' && run.flags.includes('cp_purge')) return '이미 뿌려 두었습니다 (다음 전투에 적용)';
     return null;
   }
@@ -975,7 +988,7 @@ export function pickBranch(run: RunState, type: NodeType) {
   const p = run.pending[0];
   if (p?.t !== 'branch' || !p.options.includes(type)) return;
   run.pending.shift();
-  if (type === 'shop') { run.node = { type, shop: genShop(run) }; return; }
+  if (type === 'shop') { openShop(run); return; }
   if (type === 'maint') { run.picked[run.step] = 'maint'; run.node = { type: 'shop', shop: genMaint(run), maint: true }; log(run, '분기점: 정비'); return; }
   run.fame -= tierNow(run, 'STAR'); // 분기점 진입 때 이미 받음
   enterNode(run, type);
@@ -1616,40 +1629,160 @@ export const sellPrice = (run: RunState, id: string) => (id === 'K_bread' || id 
 /** 공명 주입기 1개: 페이즈에 맞는 크기 (injectorWeights 가중치) */
 const pickInjector = (r: Rng, phase: number) => r.weighted(injectorWeights(phase), ([, w]) => w)[0];
 
-export function genShop(run: RunState) {
+/** 상점 가격 배율: 전장 상점 배율 × 관세 (절망 증강) × 전역 증강 [할인] */
+export const shopMul = (run: RunState) => (fieldOf(run.field).shopMul || 1) * despairPrice(run) * (hasGlobal(run, 'G.discount') ? 1 - GA.discount : 1);
+/** 지정 소집 티켓 가격 (유이 전용): 지금 지정 소집 기본 비용 (관세 전) × CFG.shop.ticket × 상점 배율 */
+export const ticketPrice = (run: RunState) => Math.round((CFG.musterCost + CFG.musterStep * (run.musters || 0)) * CFG.shop.ticket * shopMul(run));
+/** 진열 분류 (칸 표시 · 대사 · 정렬): 상인 전용 · 전설 · 희귀 · 고급 · 문장 · 재료 · 전설급 소모품 · 소모품 */
+export function shopKind(id: string): 'L' | 'A' | 'G' | 'M' | 'C' | 'KL' | 'K' {
+  if (isConsumable(id)) return CONSUMABLES[id]?.legend ? 'KL' : 'K';
+  if (isEmblem(id)) return 'M';
+  const t = id[0];
+  return t === 'L' || t === 'A' || t === 'G' || t === 'C' ? t : 'A';
+}
+const SHOP_ORDER = ['L', 'A', 'G', 'M', 'C', 'KL', 'K'];
+/** 이 상점에 나올 상인 (공용 상인 + 전장 특별 상인 중 균등). 튜토리얼 상점은 engine/tutorial.ts 가 정한다 */
+export const pickMerchant = (run: RunState) => rng(run, (r) => r.pick(merchantPool(fieldOf(run.field))));
+/** 상점 노드 열기: 상인 1명 + 진열 9칸 (노드에 기록 → 다시 열거나 불러와도 같은 상인 · 같은 진열) */
+export function openShop(run: RunState) {
+  const merchant = pickMerchant(run);
+  run.node = { type: 'shop', shop: genShop(run, merchant), merchant };
+}
+
+/** 상점 진열 (3×3 = 서로 다른 물품 CFG.shop.slots 개).
+ *  1) 예전 진열 규칙을 그대로 굴린다: 재료 2 확정 · 희귀 (1 · 2) · 고급 · 전설 (6페이즈부터, 고르곤은 페이즈 무관 20%) · 3페이즈부터 고급 · 희귀 1개 이상 · 소모품 2~3 · 강제 징수기 · 원초 공명석 · 문장.
+ *  2) 상인 전용 상품은 늘 넣는다 (9칸 안). 넘치면 분류 순서 (전용 > 전설 > … > 소모품 > 재료) 로 자른다.
+ *  3) 모자라는 칸은 CFG.shop.fill 가중치로 분류를 골라 그 분류의 아직 없는 물품으로 채운다 (재료 · 소모품 · 고급 · 희귀 · 문장).
+ *  4) 할인: 칸 수 CFG.shop.sale.n 확률 · 할인율 sale.pct 균등 (드물게 sale.rare) */
+export function genShop(run: RunState, merchant?: string): ShopSlot[] {
   return rng(run, (r) => {
-    const stock: ShopSlot[] = [];
-    const mul = (fieldOf(run.field).shopMul || 1) * despairPrice(run) * (hasGlobal(run, 'G.discount') ? 1 - GA.discount : 1);
+    const S = CFG.shop, D = CFG.drop, m = merchant ? MERCHANT_BY_ID[merchant] : undefined;
+    const mul = shopMul(run);
     const pr = (g: string) => Math.round(CFG.price[g] * mul);
-    const S = CFG.shop, sp = (id: string, key = id) => ({ item: id, price: Math.round(S.price[key] * mul), sold: false });
-    // 재료 2개 확정 + 희귀(입고 행사면 2개) · 고급 · 후반 전설 확률
-    for (let i = 0; i < CFG.drop.shopParts; i++) { const id = r.pick(ALL_COMPONENTS); stock.push({ item: id, price: pr('C'), sold: false }); }
-    const rares = r.chance(CFG.drop.shopAdv2) ? 2 : r.chance(CFG.drop.shopAdv) ? 1 : 0;
-    for (const id of r.sample(ALL_ADVANCED, rares)) stock.push({ item: id, price: pr('A'), sold: false });
-    if (r.chance(CFG.drop.shopGraded)) stock.push({ item: r.pick(ALL_GRADED), price: pr('G'), sold: false });
-    if (run.phase >= CFG.drop.shopLegendPhase && r.chance(CFG.drop.shopLegend)) stock.push({ item: 'L_' + r.pick(ALL_ADVANCED).slice(2), price: pr('L'), sold: false });
+    const sp = (key: string) => Math.round(S.price[key] * mul);
+    const out: ShopSlot[] = [];
+    const has = (id: string) => out.some((x) => x.item === id);
+    const add = (item: string, price: number, ex = false) => { if (!has(item)) out.push({ item, price, sold: false, ...(ex ? { ex: true } : {}) }); };
+    // 상인 전용 상품
+    if (m?.ex === 'K_muster_ticket') add(m.ex, ticketPrice(run), true);
+    else if (m?.ex) add(m.ex, sp(m.ex), true);
+    // 예전 진열 규칙: 재료 2개 확정 (서로 다르게) + 희귀(입고 행사면 2개) · 고급 · 전설 확률
+    for (const id of r.sample(ALL_COMPONENTS, D.shopParts)) add(id, pr('C'));
+    const rares = r.chance(D.shopAdv2) ? 2 : r.chance(D.shopAdv) ? 1 : 0;
+    for (const id of r.sample(ALL_ADVANCED, rares)) add(id, pr('A'));
+    if (r.chance(D.shopGraded)) add(r.pick(ALL_GRADED), pr('G'));
+    const legend = m?.legend !== undefined ? r.chance(m.legend) : run.phase >= D.shopLegendPhase && r.chance(D.shopLegend);
+    if (legend) add('L_' + r.pick(ALL_ADVANCED).slice(2), pr('L'));
     // 3페이즈부터: 고급 · 희귀 장비 1개 이상 확정 (확률 입고로 하나도 없으면 하나 더)
-    if (run.phase >= S.gearFrom && !stock.some((x) => x.item[0] === 'G' || x.item[0] === 'A')) {
-      if (r.chance(S.gearAdv)) stock.push({ item: r.pick(ALL_ADVANCED), price: pr('A'), sold: false });
-      else stock.push({ item: r.pick(ALL_GRADED), price: pr('G'), sold: false });
+    if (run.phase >= S.gearFrom && !out.some((x) => x.item[0] === 'G' || x.item[0] === 'A')) {
+      if (r.chance(S.gearAdv)) add(r.pick(ALL_ADVANCED), pr('A'));
+      else add(r.pick(ALL_GRADED), pr('G'));
     }
     // 소모품: 서로 다른 종류 S.consMin 개 확정 (+ S.cons 확률로 1개 더). 공명 주입기는 페이즈에 맞는 크기, 분리 용제는 고난 이상 일반 런만
     const ks = Object.keys(S.consW).filter((k) => k !== 'K_strip' || solventOn(run));
+    const consId = (k: string) => (k === 'inject' ? pickInjector(r, run.phase) : k);
     for (let n = S.consMin + (r.chance(S.cons) ? 1 : 0); n > 0 && ks.length; n--) {
       const k = r.weighted(ks, (x) => S.consW[x]);
       ks.splice(ks.indexOf(k), 1); // 가중치 비복원 추출: 서로 다른 종류
-      stock.push(sp(k === 'inject' ? pickInjector(r, run.phase) : k));
+      const id = consId(k);
+      add(id, sp(id));
     }
     // 전설 소모품: 강제 징수기 (종종, 적이 장비를 다는 위험 등급에서만) · 원초 공명석 (희귀)
-    if (foeGearOn(run) && r.chance(S.seize)) stock.push(sp('K_seize'));
-    if (run.phase >= S.rank3From && r.chance(S.rank3)) stock.push(sp('K_rank3'));
+    if (foeGearOn(run) && r.chance(S.seize)) add('K_seize', sp('K_seize'));
+    if (run.phase >= S.rank3From && r.chance(S.rank3)) add('K_rank3', sp('K_rank3'));
     // 문장 (희귀): 출전 기물이 가진 시너지 위주
-    if (r.chance(S.emblem)) {
-      const own = [...new Set(deployed(run).flatMap((u) => memberships(u)))].filter((x) => EMBLEM_SYNS.includes(x));
-      stock.push(sp(emblemId(r.pick(own.length && r.chance(S.emblemOwn) ? own : EMBLEM_SYNS)), 'emblem'));
+    const own = [...new Set(deployed(run).flatMap((u) => memberships(u)))].filter((x) => EMBLEM_SYNS.includes(x));
+    const emblem = (pool: SynergyId[]) => emblemId(r.pick(own.filter((x) => pool.includes(x)).length && r.chance(S.emblemOwn) ? own.filter((x) => pool.includes(x)) : pool));
+    if (r.chance(S.emblem)) add(emblem(EMBLEM_SYNS), sp('emblem'));
+    // 넘치면 자른다: 전용 > 분류 순서 (SHOP_ORDER) — 같은 분류 안에서는 먼저 들어온 것부터
+    const rank = (x: ShopSlot) => (x.ex ? -1 : SHOP_ORDER.indexOf(shopKind(x.item)));
+    if (out.length > S.slots) { const keep = out.map((x, i) => ({ x, i })).sort((a, b) => rank(a.x) - rank(b.x) || a.i - b.i).slice(0, S.slots).map((y) => y.x); out.length = 0; out.push(...keep); }
+    // 모자라는 칸 채우기 (분류 가중치 S.fill, 같은 물품 없이)
+    const pools: Record<string, () => string[]> = {
+      C: () => ALL_COMPONENTS.filter((id) => !has(id)),
+      G: () => ALL_GRADED.filter((id) => !has(id)),
+      A: () => ALL_ADVANCED.filter((id) => !has(id)),
+      K: () => ks.filter((k) => (k === 'inject' ? injectorWeights(run.phase).some(([id]) => !has(id)) : !has(k))),
+      M: () => EMBLEM_SYNS.filter((s) => !has(emblemId(s))).map(emblemId),
+    };
+    for (let guard = 0; out.length < S.slots && guard < 40; guard++) {
+      const cats = Object.keys(S.fill).filter((c) => S.fill[c] > 0 && pools[c]?.().length);
+      if (!cats.length) break;
+      const c = r.weighted(cats, (x) => S.fill[x]);
+      const ids = pools[c]();
+      if (c === 'C') add(r.pick(ids), pr('C'));
+      else if (c === 'G') add(r.pick(ids), pr('G'));
+      else if (c === 'A') add(r.pick(ids), pr('A'));
+      else if (c === 'M') add(emblem(ids.map(emblemOf)), sp('emblem'));
+      else {
+        const k = r.weighted(ids, (x) => S.consW[x]);
+        const inj = injectorWeights(run.phase).filter(([id]) => !has(id));
+        const id = k === 'inject' ? r.weighted(inj, ([, w]) => w)[0] : k;
+        add(id, sp(id));
+      }
     }
-    return stock;
+    out.sort((a, b) => rank(a) - rank(b));
+    // 할인 칸 (가격이 있는 칸 중)
+    const nSale = r.weighted([0, 1, 2, 3].filter((k) => k < S.sale.n.length), (k) => S.sale.n[k]);
+    for (const x of r.sample(out.filter((y) => y.price >= 2), nSale)) { // 1 크레딧짜리는 깎지 않는다 · 깎으면 1 이상 싸진다
+      const off = r.chance(S.sale.rareP) ? S.sale.rare : r.pick(S.sale.pct);
+      x.base = x.price;
+      x.off = off;
+      x.price = Math.max(1, Math.min(x.price - 1, Math.round(x.price * (1 - off / 100))));
+    }
+    return out;
   });
+}
+/** 진열 새로고침 상태: 이번 페이즈에 이미 썼는지 · 다음 비용 (의뢰 첫 번은 무료, 그다음 base, 유료 1번마다 +step) */
+export function refreshInfo(run: RunState) {
+  const rf = run.shopRf || { n: 0, ph: 0 }, R0 = CFG.shop.refresh;
+  return { used: rf.ph === run.phase, n: rf.n, cost: rf.n ? R0.base + R0.step * (rf.n - 1) : 0 };
+}
+/** 진열 새로고침: 품절 칸까지 9칸 · 할인을 모두 새로 (상인 그대로 · 전용 상품 다시 진열). 오류 문구 또는 null */
+export function refreshShop(run: RunState): string | null {
+  const nd = run.node;
+  if (nd?.type !== 'shop' || !nd.merchant || !nd.shop) return '상점이 아닙니다';
+  if (run.tutorial) return '튜토리얼 상점은 새로고침할 수 없습니다';
+  const inf = refreshInfo(run);
+  if (inf.used) return '이번 페이즈에 이미 새로고침했습니다';
+  if (run.credits < inf.cost) return '크레딧 부족';
+  run.credits -= inf.cost;
+  recSpend(run, 'shop', inf.cost);
+  recReroll(run);
+  run.shopRf = { n: inf.n + 1, ph: run.phase };
+  nd.shop = genShop(run, nd.merchant);
+  log(run, `상점 새로고침${inf.cost ? ` (크레딧 -${inf.cost})` : ' (무료)'}`);
+  return null;
+}
+/** 고르곤 교환에 낼 수 있는 보관함 장비 (고급 · 희귀, 장착한 것 제외) → 보관함 칸 번호 */
+export const tradeOptions = (run: RunState) => run.inventory.flatMap((id, i) => (ALL_GRADED.includes(id) || ALL_ADVANCED.includes(id) ? [i] : []));
+/** 교환으로 돌려받는 재료: 조합법 재료 (고급 = 같은 재료 2개 · 희귀 = 서로 다른 재료 2개) + 무작위 1개. 조합법이 없는 희귀는 무작위 3개 */
+export function tradeYield(id: string): { fixed: string[]; rand: number } {
+  if (ALL_GRADED.includes(id)) { const c = `C_${id.slice(2)}`; return { fixed: [c, c], rand: 1 }; }
+  for (const a of ALL_COMPONENTS) for (const b of ALL_COMPONENTS) if (combine(a, b) === id) return { fixed: [a, b], rand: 1 };
+  return { fixed: [], rand: 3 };
+}
+/** 교환할 수 없는 까닭 (null = 가능): 상인 · 이미 교환 · 낼 장비 · 보관함 자리 (1개 내고 3개 받음) */
+export function tradeErr(run: RunState, invIdx?: number): string | null {
+  const nd = run.node;
+  if (nd?.type !== 'shop' || !nd.merchant || !MERCHANT_BY_ID[nd.merchant]?.trade) return '교환할 수 있는 상인이 없습니다';
+  if (nd.traded) return '이 상점에서는 이미 교환했습니다';
+  if (!tradeOptions(run).length) return '교환할 고급 · 희귀 장비가 없습니다';
+  if (invIdx !== undefined && !tradeOptions(run).includes(invIdx)) return '고급 · 희귀 장비만 교환할 수 있습니다';
+  if (run.inventory.length - 1 + 3 > CFG.inventoryMax) return '보관함 공간이 부족합니다';
+  return null;
+}
+/** 고르곤 교환: 보관함 장비 1개 → 재료 3개 (상점마다 1번). 받은 재료 또는 오류 */
+export function gorgonTrade(run: RunState, invIdx: number): { got?: string[]; err?: string } {
+  const err = tradeErr(run, invIdx);
+  if (err) return { err };
+  const id = run.inventory[invIdx], y = tradeYield(id);
+  const got = [...y.fixed, ...rng(run, (r) => [...Array(y.rand)].map(() => r.pick(ALL_COMPONENTS)))];
+  run.inventory.splice(invIdx, 1);
+  run.inventory.push(...got);
+  run.node!.traded = true;
+  log(run, `고르곤 교환: ${itemInfo(id).name} → ${got.map((x) => itemInfo(x).name).join(' · ')}`);
+  return { got };
 }
 
 /** 정비 (엔지니어): 포탑 전용 장비. 보급형 1개 무료 + 보급형 2 · 고급형 2 (가격은 상점 등급 기준) */

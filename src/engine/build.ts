@@ -14,7 +14,7 @@ import { causalStage, KING, kingGearOf } from '../data/chungra';
 import { UNIT_BY_ID } from '../data/units';
 import { enableDivine, ENEMY_PSI, FAITH_DEF, sigmundTarget } from '../data/rework';
 import { DEFAULT_RELIC } from '../data/relics';
-import { DEV, deviceCells, type Device, mineDmg, netCells, scopeR, strikeDmg, wallCells, wallHp } from '../data/devices';
+import { DEV, deviceCells, type Device, feastChain, feastHp, mineDmg, netCells, scopeR, strikeDmg, wallCells, wallHp } from '../data/devices';
 import { mapOf, TERRAIN, type TCell, terrainOf } from '../data/maps';
 import { ULTS } from '../data/ults';
 import { SUMMON_RT, type SummonDef } from '../data/unitkit';
@@ -887,6 +887,15 @@ function applyDevices(b: Battle, run: RunState, enc: Encounter, counts: Counts) 
       let next = 0;
       c.hooks.push({ onTick(bb, self) { if (bb.t < next) return; next = bb.t + 1; for (const e of bb.enemiesOf(self)) if (!e.mem.inert) bb.provAdd(e, self, DEV.decoy.pulse); } }); // 매초 적 전체의 시선을 끈다
       b.add(c);
+    } else if (d.id === 'K_feast') { // 만찬 백수정: 아군 구조물 + DEV.feast.every 초마다 연쇄 회복 (부서지면 멈춤)
+      if (!b.inBounds(d.x, d.y) || b.unitAt(d.x, d.y)) continue;
+      const c = blankUnit(0);
+      Object.assign(c, { defId: 'K_feast', name: '만찬 백수정', sprite: 'turret', palette: FEAST_PAL, immobile: true, noAttack: true, isSummon: true, keywords: ['struct'], category: 'struct' as const });
+      c.st.maxHp = feastHp(phase); c.hp = c.st.maxHp; c.x = c.px = d.x; c.y = c.py = d.y;
+      c.mem.feast = 1; c.mem.typed = 1;
+      b.add(c);
+      const loop = () => { if (!c.alive || b.over) return; feastPulse(b, c); b.later(DEV.feast.every, loop); };
+      b.later(DEV.feast.every, loop);
     } else if (d.id === 'K_mine') {
       const src = dummy('감전 지뢰', d.x, d.y), dmg = mineDmg(phase), [s0, s1] = DEV.mine.shock;
       b.traps.push({ x: d.x, y: d.y, side: 0, r: DEV.mine.r, delay: DEV.mine.delay, fire: (bb) => {
@@ -921,6 +930,27 @@ function applyDevices(b: Battle, run: RunState, enc: Encounter, counts: Counts) 
   }
 }
 const DECOY_PAL = ['#0e0e0e', '#ff8a3d', '#c25a1c', '#ffd2a8', '#ffb070', '#5a2a0c', '#fff0e0'];
+const FEAST_PAL = ['#0e0e0e', '#e8e4f4', '#a89cc8', '#ffffff', '#d8ccff', '#4a3a6a', '#fff8e8'];
+/** 만찬 백수정 연쇄 회복 1번: 체력 비율이 가장 낮은 다친 아군 (구조물 · 장애물 제외)부터 DEV.feast.n 명, 겹치지 않게.
+ *  k번째 대상은 최대 체력의 feastChain()[k] 만큼 (회복 효율 무시, 부패 · 절망 증강은 그대로). 연쇄 탄으로 이어 보인다. 회복한 대상 수 */
+export function feastPulse(b: Battle, self: CUnit): number {
+  const frac = (u: CUnit) => u.hp / Math.max(1, b.S(u, 'maxHp'));
+  const pool = b.units.filter((u) => u.alive && u.side === 0 && u !== self && !u.mem.inert && !u.mem.neutral && u.category !== 'struct' && u.hp < b.S(u, 'maxHp') - 0.5);
+  pool.sort((x, y) => frac(x) - frac(y) || x.id - y.id);
+  const tgts = pool.slice(0, DEV.feast.n);
+  if (!tgts.length) return 0;
+  b.emit({ k: 'skill', id: self.id, name: '만찬 백수정', tag: '연쇄 회복' });
+  const ks = feastChain();
+  let from = self;
+  tgts.forEach((t, k) => {
+    b.emit({ k: 'atk', from: from.id, to: t.id, elem: 'holy', ranged: true, chain: k > 0 });
+    b.emit({ k: 'fx', x: t.x, y: t.y, r: 0, elem: 'holy', kind: 'heal', side: 0 });
+    b.heal(self, t, b.S(t, 'maxHp') * ks[k], true);
+    from = t;
+  });
+  b.emit({ k: 'skillEnd', id: self.id });
+  return tgts.length;
+}
 
 /** 지형 칸 ('x,y' → 종류): 편성 화면 표시 · 배치 검사 */
 export function terrainCells(g: Geo): Map<string, TCell & { bits: number }> {

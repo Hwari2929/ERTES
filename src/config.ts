@@ -183,8 +183,19 @@ export const CFG = {
     seize: 0.25, // 강제 징수기 (종종, 적이 장비를 다는 위험 등급에서만)
     rank3: 0.04, rank3From: 2, // 원초 공명석 (희귀): 입고 확률 · 시작 페이즈
     emblem: 0.06, emblemOwn: 0.6, // 문장 (희귀): 입고 확률 · 출전 기물이 가진 시너지 문장일 확률
-    /** 가격 (크레딧, 전장 상점 배율 · 관세 적용 전). 소모품 판매가(sell.K)보다 비싸게 */
-    price: { K_xp: 6, K_xp2: 14, K_xp3: 26, K_strip: 6, K_reroll: 8, K_seize: 30, K_rank3: 40, emblem: 25, K_cp_purge: 6, K_cp_note: 2, K_barricade: 8, K_decoy: 6, K_mine: 7, K_net: 9 } as Record<string, number>,
+    /** 가격 (크레딧, 전장 상점 배율 · 관세 적용 전). 소모품 판매가(sell.K)보다 비싸게. K_feast = 미리암 라일라 전용 (만찬 백수정) */
+    price: { K_xp: 6, K_xp2: 14, K_xp3: 26, K_strip: 6, K_reroll: 8, K_seize: 30, K_rank3: 40, emblem: 25, K_cp_purge: 6, K_cp_note: 2, K_barricade: 8, K_decoy: 6, K_mine: 7, K_net: 9, K_feast: 14 } as Record<string, number>,
+    /** 진열 칸 수 (3×3, 서로 다른 물품). 위 확률 진열을 굴린 뒤 모자라는 칸은 fill 가중치로 분류를 골라 채운다 (재료 · 소모품 · 고급 · 희귀 · 문장, 겹치지 않게) */
+    slots: 9,
+    fill: { C: 3, K: 3, G: 1, A: 1, M: 0.25 } as Record<string, number>,
+    /** 할인: 상점마다 할인 칸 수 0 · 1 · 2 · 3 의 확률 · 할인율(%) 균등 · 드물게 rare% (할인 1칸마다 rareP) */
+    sale: { n: [0.3, 0.4, 0.2, 0.1], pct: [15, 20, 25, 30, 35, 40, 45], rare: 50, rareP: 0.04 },
+    /** 진열 새로고침: 페이즈마다 1번 (상점끼리 공유). 의뢰의 첫 새로고침은 무료, 그다음 base, 유료 1번마다 +step */
+    refresh: { base: 6, step: 4 },
+    /** 유이 전용 지정 소집 티켓 가격 = 지금 지정 소집 기본 비용 (관세 전) × ticket × 상점 배율 */
+    ticket: 0.6,
+    /** 고르곤: 전설 장비 진열 확률 (페이즈 무관, 다른 상인은 drop.shopLegend · shopLegendPhase) · 교환 = 상점마다 1번 */
+    gorgonLegend: 0.2,
   },
   inventoryMax: 32,
   /** 분리 용제 규칙: 이 위험 등급(고난) 이상이면 기물에 장착한 장비(개조부품 · 고유 장비 제외)를 떼어 보관함 · 다른 기물로 옮길 때 분리 용제(K_strip) 1개를 소모한다 (run.ts unequip).
