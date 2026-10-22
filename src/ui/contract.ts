@@ -319,7 +319,7 @@ function boardHtml() {
       <button class="ct-cancel lp-btn" data-a="ct-cancel"${jobOf() && !CT.stamp ? '' : ' disabled'}>의뢰 취소</button>
       <button class="ct-bell${ok && !CT.stamp ? ' ready' : ''}" data-a="ct-bell" aria-label="벨을 눌러 전표 승인"${ok && !CT.stamp ? '' : ' aria-disabled="true"'}>${prop('ct_bell', BELL_SVG)}</button>
     </div>
-    <div class="ct-light" aria-hidden="true"></div>
+    <div class="ct-light" aria-hidden="true"></div><div class="ct-glow" aria-hidden="true"></div>
     ${hooks.foe()}
   </main>`;
 }
