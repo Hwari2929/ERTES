@@ -551,7 +551,7 @@ export function barScreen(): string {
       ${res && auto ? plate('counter', 'load', '카운터', '이어서 출격', `${esc(fieldName(res.field))} · 페이즈 ${auto.phase}`, ' data-v="auto"') : plate('counter', 'newrun', '카운터', '새 계약', '의뢰 차림표')}
       ${plate('lounge', 'codex', '라운지', '도감', seenN ? `만담 ${seenN}` : '단원 · 만담', ' data-v="units"')}
       ${plate('balcony', 'codex', '발코니', '기록 · 업적', achN ? `업적 ${achN}` : '', ' data-v="ach"')}
-      ${plate('window', 'bar-x', '창가', '통신 기록', hasLog ? '지난 의뢰' : '의뢰를 마치면 열림', ` data-v="log"${hasLog ? '' : ' aria-disabled="true"'}`)}
+      ${plate('window', 'bar-x', '창가', '통신 기록', hasLog ? '지난 의뢰' : '의뢰를 마친 밤에 통신이 들어옵니다', ` data-v="log"${hasLog ? '' : ' aria-disabled="true"'}`)}
     </nav>
     <button class="bar-door mk-leather" data-a="to-title">타이틀 ›</button>
     <p class="bar-hint muted small">인물을 누르면 말을 겁니다. 빈 곳을 누르면 다음 대사로.</p>

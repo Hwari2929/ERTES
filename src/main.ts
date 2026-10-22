@@ -49,7 +49,7 @@ import { ULTS } from './data/ults';
 import { VOICE, voicePick } from './data/voicelines';
 import { DEFAULT_RELIC, RELIC_BY_ID } from './data/relics';
 import { deleteSave, exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
-import { loadMeta, metaBarMvp, metaBattle, metaClear, metaEvent, metaRunEnd, metaTutEnd, metaTutSeen, tutMeta, tutOver } from './ui/meta';
+import { loadMeta, metaBarMvp, metaBattle, metaClear, metaDeed, metaEvent, metaRunEnd, metaTutEnd, metaTutSeen, tutMeta, tutOver } from './ui/meta';
 import { artURL, bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg, standURL } from './ui/portraits';
 import { advKey, closeAdv, playAdv } from './ui/adv';
 import * as SND from './ui/sound';
@@ -207,10 +207,10 @@ const pct1 = (x: number) => `${+(x * 100).toFixed(1)}%`;
 /** 보급 대박: 장마다 앞에서부터 굴려 처음 걸린 배율 (CFG.supply.jackpot) → 배율별 실제 확률 */
 const jackpotTxt = () => { let left = 1; return CFG.supply.jackpot.map(([x, p]) => { const q = left * p; left *= 1 - p; return `×${x} ${pct1(q)}`; }).join(' · '); };
 
-/** 출격 계약 차림표를 연다 (바 · 타이틀 · 결과 화면의 '새 계약', 타이틀 '지정 의뢰') */
-function openContract(custom: boolean) {
+/** 출격 계약 차림표를 연다 (바 · 타이틀 · 결과 화면의 '새 계약'). list = 메뉴에 없는 의뢰 목록을 펼친 채로 */
+function openContract(list: boolean) {
   app.tutAsk = false;
-  CTR.contractStart(app.screen === 'bar' ? 'bar' : 'title', custom);
+  CTR.contractStart(app.screen === 'bar' ? 'bar' : 'title', list);
   app.screen = 'contract'; app.menu = null; app.introFoe = null; app.abilPop = null;
 }
 function toast(msg: string) {
@@ -453,7 +453,7 @@ function titleScreen() {
       <div class="ts-body"><div class="ts-left">
       <nav class="title-actions" aria-label="메뉴">
         <div class="ts-main">${auto ? `<button class="btn primary ts-btn ts-hero" data-a="load" data-v="auto"><b>이어하기</b><small>페이즈 ${auto.phase} · 체력 ${auto.hp}</small></button>` : ''}
-          <div class="ts-split"><button class="btn ${auto ? '' : 'primary ts-hero'} ts-btn" data-a="newrun"><b>새 계약</b>${auto ? '<small>진행 중인 의뢰는 덮어씁니다</small>' : '<small>바 카운터 · 의뢰 · 약관 · 계약 기물 4명</small>'}</button><button class="btn ts-btn ts-custom" data-a="newrun-custom"><b>지정 의뢰</b><small>전장을 직접 고른다</small></button></div></div>
+          <div class="ts-split one"><button class="btn ${auto ? '' : 'primary ts-hero'} ts-btn" data-a="newrun"><b>새 계약</b>${auto ? '<small>진행 중인 의뢰는 덮어씁니다</small>' : '<small>바 카운터 · 의뢰 · 약관 · 계약 기물 4명</small>'}</button></div></div>
         <div class="ts-grid" role="group" aria-label="둘러보기">${tutButton()}
           <button class="btn ts-btn ts-tile" data-a="bar"><b>에란테스 바</b><small>${auto ? '들렀다가 이어서 출격' : '단원 · 손님들의 잡담'}</small></button>
           <button class="btn ts-btn ts-tile" data-a="codex"><b>도감 · 기록</b><small>교범 · 기록 · 업적</small></button>
@@ -5334,7 +5334,7 @@ function act(a: string, v: string) {
     case 'newrun': // 출격 계약: 에란테스 바 카운터의 의뢰 차림표부터 (ui/contract.ts)
       if (app.screen === 'title' && !app.tutAsk && !tutOver() && !loadMeta().runs && !listTutSave()) { app.tutAsk = true; break; } // 첫 실행: 튜토리얼부터 볼지
       openContract(false); break;
-    case 'newrun-custom': openContract(true); break; // 지정 의뢰: 모든 전장이 의뢰서로 (싯가 의뢰 없음)
+    case 'newrun-custom': openContract(true); break; // 옛 '지정 의뢰' (타이틀 단추는 없어졌다): 차림표의 '메뉴에 없는 의뢰' 목록을 펼친 채로
     case 'campaign': { // 캠페인 「회수 계약」: 저장이 있으면 이어서, 없으면 1장부터 (검증판 · 쉬움 고정)
       if (app.view) { app.view.destroy(); app.view = null; }
       const saved = loadRun(CAMP_SLOT);
@@ -5390,7 +5390,7 @@ function act(a: string, v: string) {
     case 'start-run':
       if (app.starters.length !== CFG.startUnits) return;
       app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, app.introField || undefined, Math.min(app.diff, MAX_DIFF), OATH.sel()); // 절망 서약: 고난 이상일 때만 옮긴다
-      { const sc = CTR.signedContract(); if (sc && sc.field === app.introField) app.run.contract = sc.contract; } // 영수 증서 (상단 바 칩 · 싯가 의뢰 보수 가산)
+      { const sc = CTR.signedContract(); if (sc && sc.field === app.introField) { app.run.contract = sc.contract; metaDeed(sc.field, sc.diff); } } // 영수 증서 (상단 바 칩 · 보수 가감) · 전표 번호 · 늘 하던 대로
       { const fi = fieldIntroPending(app.run); if (fi) app.run.pending.unshift(fi); } // 전장 도입 이야기 → 특권 증강 → (고난) 절망 증강
       app.screen = 'map'; app.sel = null; persist(); break;
     case 'load': {

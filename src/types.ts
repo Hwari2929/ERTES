@@ -158,8 +158,9 @@ export type Pending =
 
 export interface RunState {
   version: number;
-  /** 출격 계약 (에란테스 바 카운터에서 서명한 영수 증서, ui/contract.ts): 전표 번호 · 의뢰 제목 · 계약 종류 · 싯가 의뢰 보수 가산 (승리 크레딧 +). 지정 의뢰 · 캠페인 · 튜토리얼은 없음 */
-  contract?: { no: number; title: string; plan: string; sealed?: number };
+  /** 출격 계약 (에란테스 바 카운터에서 서명한 영수 증서, ui/contract.ts): 전표 번호 · 의뢰 제목 · 계약 종류 · 보수 가감 (승리 크레딧, 싯가 의뢰 + / 메뉴에 없는 의뢰 −) · 의뢰서 종류.
+   *  sealed = 첫 판 저장의 싯가 가산 (bonus 이전 이름). 캠페인 · 튜토리얼 · 훈련장은 없음 */
+  contract?: { no: number; title: string; plan: string; bonus?: number; kind?: 'sealed' | 'custom'; sealed?: number };
   /** 함대 확장 횟수 (출전 인원 = 기본 + fleet). 없으면 구 세이브: 페이즈 기준으로 환산 */
   fleet?: number;
   /** 최근 전투 지형 틀 (data/maps.ts id, 개활지 'open' 포함, 최근 2개 · 보스 제외): run.ts pickMap 이 연달아 같은 틀을 덜 고르게 */

@@ -29,6 +29,8 @@ export interface Meta {
   showcase?: string[];
   /** 절망 서약 (data/oaths.ts): 지금 설정 (서약 id → 단계) · 전장별 최고 절망 수치 성공 (고난 이상 의뢰 성공 때의 총 절망 수치) */
   oath?: { sel?: Record<string, number>; best?: Record<string, number> };
+  /** 출격 계약 (ui/contract.ts): 서명하고 출격한 영수 증서 수 (전표 번호 · 두 번째부터 짧은 의식) · 직전 계약 (늘 하던 대로) */
+  deeds?: { n: number; last?: { field: string; plan: number } };
 }
 /** 직전 런 요약: 바 반응 대사가 읽는다 */
 export interface BarLast { run: number; field: string; cleared: boolean; phase: number; diff: number; mvp?: string; units: string[]; newEvents: string[] }
@@ -209,6 +211,14 @@ export function metaTutEnd(kind: 'done' | 'skipped') {
   const m = loadMeta();
   const t = (m.tut ||= {});
   t[kind] = true;
+  save();
+}
+// ───────── 출격 계약: 서명하고 출격한 영수 증서 (번호가 쌓이고, 직전 계약을 '늘 하던 대로'가 읽는다)
+export const deedCount = () => loadMeta().deeds?.n || 0;
+export const lastDeed = () => loadMeta().deeds?.last || null;
+export function metaDeed(field: string, plan: number) {
+  const m = loadMeta();
+  m.deeds = { n: (m.deeds?.n || 0) + 1, last: { field, plan } };
   save();
 }
 // ───────── 절망 서약 (data/oaths.ts): 타이틀 [절망 서약] 화면의 설정 (고난 이상으로 출격할 때 런에 옮긴다)
