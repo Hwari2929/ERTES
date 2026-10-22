@@ -1506,11 +1506,11 @@
   "notes": "시안(미채택) · 근거 pilot.ts scrapper · 성별 근거 없음(VOICES: 중년 추정) → 남성으로 정함. 고물 시장 호객꾼."
  },
  "b_headhunter": {
-  "name": "헤드헌터",
+  "name": "유이 (헤드헌터)",
   "subject": "1girl",
-  "tags": "adult female, late 20s, corporate headhunter, recruiter, bright cheerful smile, wavy brown hair, shoulder-length hair, stylish grey pantsuit, orange scarf, orange accents, holding fan of business cards, business card case, high heels, full body, standing, looking at viewer",
+  "tags": "adult female, late 20s, corporate headhunter, talent scout, confident playful smile, brown hair, high ponytail, sunglasses on head, trendy tailored suit, cropped blazer, charcoal suit with orange accents, orange lining, wide-leg trousers, holding a business card between two fingers, smartwatch, high heels, full body, standing, looking at viewer",
   "source": "npc",
-  "notes": "시안(미채택) · 근거 story_b3.ts b_headhunter · 성별 근거 약함(\"어머\", 낯선 향수 냄새) → 여성. 페트라 인재 영입팀(페트라 = 주황 포인트)."
+  "notes": "유이 = 페트라 자산관리부 헤드헌터 (사건 sb_headhunt 의 b_headhunter 와 같은 인물). 상점 상인. 사용자 지정 외모: 갈색 포니테일 · 머리 위 선글라스 · 트렌디한 페트라 풍 정장 (페트라 = 주황 포인트)."
  },
  "b_ithacan": {
   "name": "이타카 함장",
@@ -1795,5 +1795,19 @@
   "source": "derived",
   "notes": "최고의 친구 문장 소환물. 반려 돌 그림에 붉은 색조를 입힌 파생본.",
   "object": true
+ },
+ "m_laila": {
+  "name": "미리암 라일라",
+  "subject": "1girl",
+  "tags": "young adult female, arab woman, tan skin, short purple hair, bob cut, half-lidded eyes, sly mysterious smile, information broker, crystal merchant, white gothic, layered white and violet robes, embroidered shawl, gold jewelry, earrings, holding a glowing milky white crystal, small ledger hanging from belt, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "상점 상인. lore/지역/제국/세피르.md 라일라 흑정상회 감정사 · 정보 중개인. 사용자 지정: 짧은 보라 머리 아랍 상인 여성. 세피르 = 화이트 고딕 · 유백색 수정."
+ },
+ "m_gorgon": {
+  "name": "고르곤",
+  "subject": "no humans",
+  "tags": "robot, mechanical blacksmith, four arms, multiple arms, bulky bronze and dark iron plating, glowing ember furnace core in chest, single glowing visor eye, leather smith apron, holding forge hammer, holding tongs, greek key pattern engravings, soot stains, sparks, full body, standing, looking at viewer",
+  "source": "npc",
+  "notes": "상점 상인. 키프로스(헬레니우스 동맹 화롯불 단조장) 출신 네 팔 로봇 대장장이. 사용자 지정."
  }
 }
