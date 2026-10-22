@@ -92,7 +92,7 @@ function knownSet(): Set<string> {
   for (const id of k) if (UNIT_BY_ID[id]?.inert || UNIT_BY_ID[id]?.noBar) k.delete(id); // 반려 돌(절망 증강) · 바 대본이 아직 없는 기물은 바에 오지 않는다
   return k;
 }
-let resumeCache: { t: number; v: ReactCtx['resume'] | null } = { t: 0, v: null };
+let resumeCache: { t: number; v: ReactCtx['resume'] | null } = { t: -Infinity, v: null }; // 처음엔 비어 있음 (t: 0 이면 페이지를 연 뒤 2초 안에 바에 들어오면 저장이 있어도 '이어서 출격'이 빠졌다)
 /** 자동 저장된 진행 중 런 */
 function resumeInfo() {
   if (performance.now() - resumeCache.t < 2000) return resumeCache.v;
@@ -530,6 +530,7 @@ const PLACES: { id: string; box: [number, number, number, number] }[] = [
 export function barScreen(): string {
   S.known = knownSet();
   if (!S.stage.length) firstStage();
+  resumeCache.t = -Infinity; // 바를 그릴 때는 저장을 새로 읽는다 (페이지를 연 직후 비어 있던 값이 남아 '이어서 출격'이 빠지던 것)
   const res = resumeInfo();
   const auto = listSaves().find((x) => x.slot === 'auto');
   const m = loadMeta();
@@ -538,7 +539,7 @@ export function barScreen(): string {
   const achN = Object.keys(m.achieved || {}).length;
   /** 세로 띠의 한 줄: 가리키면 그 사물(장소)이 밝아진다 */
   const line = (p: string, act: string, label: string, sub = '', extra = '') =>
-    `<button class="bn${p === 'counter' ? ' pri' : ''}" data-p="${p}" data-a="${act}"${extra}><b>${label}</b>${sub ? `<small class="f-num">${sub}</small>` : ''}</button>`;
+    `<button class="bn${p === 'counter' && !extra.includes('data-sub') ? ' pri' : ''}" data-p="${p}" data-a="${act}"${extra}><b>${label}</b>${sub ? `<small class="f-num">${sub}</small>` : ''}</button>`;
   return `<main class="bar${S.cur?.layer === 'r' ? ' late' : ''}" aria-label="에란테스 바">
     <div class="bar-scene">
       <div class="bar-bg" style="background-image:url('${bgURL('erantes_bar')}')"></div>
@@ -551,7 +552,8 @@ export function barScreen(): string {
       <h1 lang="la" aria-label="에란테스 바">Errantes</h1>
       <i class="lp-rule" aria-hidden="true"></i>
       <nav>
-        ${res && auto ? line('counter', 'load', '이어서 출격', `${esc(fieldName(res.field))} · 페이즈 ${auto.phase}`, ' data-v="auto"') : line('counter', 'newrun', '새 계약', '의뢰 차림표')}
+        ${res && auto ? line('counter', 'load', '이어서 출격', `${esc(fieldName(res.field))}<br>페이즈 ${auto.phase}`, ' data-v="auto"') : ''}
+        ${line('counter', 'newrun', '새 계약', res && auto ? '진행 중인 의뢰는 덮어씁니다' : '의뢰 차림표', res && auto ? ' data-sub="1"' : '')}
         ${line('lounge', 'codex', '도감', seenN ? `만담 ${seenN}` : '단원 · 만담', ' data-v="units"')}
         ${line('balcony', 'codex', '기록 · 업적', achN ? `업적 ${achN}` : '', ' data-v="ach"')}
         ${line('window', 'bar-x', '통신 기록', hasLog ? '지난 의뢰' : '의뢰를 마친 밤에', ` data-v="log"${hasLog ? '' : ' aria-disabled="true"'}`)}

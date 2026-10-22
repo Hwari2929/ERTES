@@ -8,7 +8,7 @@ import { BOONS } from '../data/events';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
 import { DESPAIR_BY_ID } from '../data/despair';
 import { ALL_GRADED, emblemOf, isEmblem, isTurretGear, isTurretMod, itemEffect, turretSlots } from '../data/items';
-import { CHR_HOOK, ENG_HOOK, ENG_TUR, KAL_GUARD_RANK, KAL_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, type SynDef, tierOf } from '../data/synergies';
+import { CHR_HOOK, ENG_HOOK, ENG_TUR, KAL_GUARD_RANK, KAL_GUARDS, KAL_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, type SynDef, tierOf } from '../data/synergies';
 import { CAMP_SYNERGIES, campMembers } from '../data/campaign';
 import { causalStage, KING, kingGearOf } from '../data/chungra';
 import { UNIT_BY_ID } from '../data/units';
@@ -353,7 +353,7 @@ const COMP_AT = new WeakMap<Battle, Map<string, { x: number; y: number }>>();
  *  저장한 칸(run.summonPos)이 배치 구역 안이고 비어 있으면 그 칸, 아니면 무휼은 뒷줄 가운데부터 · 소환물은 주인에게 가장 가까운 빈칸 (배치 구역 안).
  *  출전 기물 · 포탑 칸이 먼저이고, 무휼 → 소환물 순으로 칸을 잡는다.
  *  missing 을 넘기면 배치 구역에 빈칸이 없어 시작 칸을 못 잡은 것을 담는다 (x · y = -1, 편성 화면 경고 칩. 전투에서는 가까운 빈칸 · 없으면 '소환 자리 없음') */
-export interface CompanionTok { key: string; owner?: string; king?: boolean; name: string; spr: { sprite: string; palette: string[]; art?: string }; x: number; y: number }
+export interface CompanionTok { key: string; owner?: string; king?: boolean; name: string; spr: { sprite: string; palette: string[]; art?: string }; x: number; y: number; ctype?: string; ttype?: string; syn?: string }
 export function companionCells(run: RunState, W: number, missing?: CompanionTok[]): CompanionTok[] {
   const g = runGeo(run, W);
   const lay = layout(run, W);
@@ -381,10 +381,22 @@ export function companionCells(run: RunState, W: number, missing?: CompanionTok[
     makeSummons(owner, sd).forEach((m, i) => {
       const key = `${u.uid}:${i}`;
       const c = saved(key) || near(o.x, o.y);
-      if (!c) { missing?.push({ key, owner: u.uid, name: m.unit.name, spr: { sprite: m.unit.sprite, palette: m.unit.palette, art: m.unit.art }, x: -1, y: -1 }); return; }
+      const tok = { key, owner: u.uid, name: m.unit.name, spr: { sprite: m.unit.sprite, palette: m.unit.palette, art: m.unit.art }, ctype: m.unit.ctype, ttype: m.unit.ttype };
+      if (!c) { missing?.push({ ...tok, x: -1, y: -1 }); return; }
       used.add(`${c.x},${c.y}`);
-      out.push({ key, owner: u.uid, name: m.unit.name, spr: { sprite: m.unit.sprite, palette: m.unit.palette, art: m.unit.art }, x: c.x, y: c.y });
+      out.push({ ...tok, x: c.x, y: c.y });
     });
+  }
+  // 칼리토 제국 (5 · 7 · 9): 근위기사 — 대표 제국 기물(출전 순서 첫 번째) 앞쪽 빈칸부터 (KAL_HOOK.spawn 과 같은 순서)
+  const kt = tierOf('KAL', counts.KAL || 0), kn = kt >= 2 ? KAL_GUARDS[kt - 1] : 0;
+  const lead = kn ? deployed(run).find((u) => lay.has(u.uid) && memberships(u, run).includes('KAL')) : undefined;
+  const lo = lead ? lay.get(lead.uid)! : null;
+  for (let i = 0; lo && i < kn; i++) {
+    const key = `kal:${i}`, c = saved(key) || near(lo.x + (i % 2 ? 1 : -1) * Math.ceil(i / 2), lo.y - 1);
+    const tok = { key, owner: lead!.uid, syn: 'KAL', name: '근위기사', spr: { sprite: 'knight', palette: KNIGHT_PAL, art: 'sm_kalguard' }, ctype: 'VAN', ttype: 'major' };
+    if (!c) { missing?.push({ ...tok, x: -1, y: -1 }); continue; }
+    used.add(`${c.x},${c.y}`);
+    out.push({ ...tok, x: c.x, y: c.y });
   }
   return out;
 }
@@ -703,9 +715,10 @@ KAL_HOOK.spawn = (b, lead, n) => {
   for (let i = 0; i < n; i++) {
     const k = buildKnight(b, lead.side, rank, titles);
     k.mem.kalBonus = titles;
-    // 대표 제국 기물 앞쪽(적 방향) 빈칸부터
+    // 편성 화면에서 정한 시작 칸 (companionCells 'kal:i') → 없으면 대표 제국 기물 앞쪽(적 방향) 빈칸부터
     const fwd = lead.side === 0 ? -1 : 1;
-    const want = { x: lead.x + (i % 2 ? 1 : -1) * Math.ceil(i / 2), y: lead.y + fwd };
+    const set = lead.side === 0 ? COMP_AT.get(b)?.get(`kal:${i}`) : undefined;
+    const want = set || { x: lead.x + (i % 2 ? 1 : -1) * Math.ceil(i / 2), y: lead.y + fwd };
     const cell = b.inBounds(want.x, want.y) && !b.unitAt(want.x, want.y) ? want : b.freeCellNear(lead.x, lead.y);
     if (!cell) return;
     k.x = k.px = cell.x; k.y = k.py = cell.y;

@@ -1674,9 +1674,10 @@ function prepScreen(run: RunState) {
   for (const t of companionCells(run, n, noRoom)) {
     const sel = t.king ? app.sel?.k === 'king' : app.sel?.k === 'unit' && app.sel.uid === t.owner;
     const owner = t.owner ? run.units.find((u) => u.uid === t.owner) : null;
-    const tip = t.king ? `${t.name} · 청라공국 공왕 — 끌어서 시작 칸 옮기기` : `${t.name} · ${owner ? UNIT_BY_ID[owner.defId].name : ''}의 소환물 — 끌어서 시작 칸 옮기기`;
+    const tip = t.king ? `${t.name} · 청라공국 공왕 — 끌어서 시작 칸 옮기기` : t.syn ? `${t.name} · 칼리토 제국 시너지 소환물 — 끌어서 시작 칸 옮기기` : `${t.name} · ${owner ? UNIT_BY_ID[owner.defId].name : ''}의 소환물 — 끌어서 시작 칸 옮기기`;
+    // 무휼 = 기물 토큰 그대로 (전용 장비 칸 포함, 장비는 옮길 수 없다) · 소환물 = 같은 기물 토큰에서 장비 칸만 뺀 것
     units += `<div class="u side0 tk placed comp-tk${t.king ? ' king-tk' : ''}${sel ? ' sel' : ''}" style="${cellBox(t.x, t.y)}" data-drag="comp:${t.key}" data-drop="cell:${t.x}:${t.y}" data-a="${t.king ? 'sel-king' : 'sel-unit'}" data-v="${t.owner || ''}" title="${esc(tip)}">
-      <div class="tk-card"><div class="tk-art">${sprite(t.spr, '')}</div><span class="tk-side">${t.king ? `<b class="tk-rank" title="공왕">王</b>` : `<i title="소환물">${lineIcon('a.summon', 'li')}</i>`}</span></div></div>`;
+      ${t.king ? allyCard(kingState(run), true) : summonCard(t)}</div>`;
   }
   if (node?.enc) node.enc.enemies.forEach((s, i) => {
     const e = ENEMY_BY_ID[s.defId];
@@ -1734,11 +1735,20 @@ function prepScreen(run: RunState) {
 }
 
 /** 편성 아군 카드형 토큰 (보드 · 대기석 공용): [초상화 + 개조부품 / 장비 3칸] | [공명 등급 · 전술 유형 · 전투 유형]. 장비 · 개조부품은 꾹 눌러 끌기 */
-function allyCard(u: UnitState) {
+/** 편성 보드 기물 토큰. fixed = 장비를 옮길 수 없는 기물 (공왕 무휼의 전용 장비: 칸은 보이되 끌기 · 놓기 없음) */
+function allyCard(u: UnitState, fixed = false) {
   const d = UNIT_BY_ID[u.defId];
-  return `<div class="tk-card"><div class="tk-art">${sprite(d, '')}${u.mod ? `<span class="tk-mod" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-drop="eqitem:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : ''}</div>
+  const slot = (it: string | null, k: number) => (!it ? itemIcon(null) : fixed ? `<span class="tk-it" title="${esc(`${itemInfo(it).name} — ${itemInfo(it).desc}`)}">${itemIcon(it)}</span>`
+    : `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-drop="eqitem:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>`);
+  return `<div class="tk-card"><div class="tk-art">${sprite(d, '')}${u.mod && !fixed ? `<span class="tk-mod" data-a="item-info" data-v="${u.uid}:-1" data-drag="eq:${u.uid}:-1" data-drop="eqitem:${u.uid}:-1" data-hold>${itemIcon(u.mod)}</span>` : ''}</div>
         <span class="tk-side"><b class="tk-rank" title="공명 등급 ${u.rank}">${u.rank}</b><i class="tt-${d.ttype}" title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i><i class="ct-${d.ctype}" title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i></span>
-        <span class="tk-items">${u.items.map((it, k) => (it ? `<span class="tk-it" data-a="item-info" data-v="${u.uid}:${k}" data-drag="eq:${u.uid}:${k}" data-drop="eqitem:${u.uid}:${k}" data-hold>${itemIcon(it)}</span>` : itemIcon(null))).join('')}</span></div>`;
+        <span class="tk-items">${(fixed ? [...u.items, null, null, null].slice(0, Math.max(3, u.items.length)) : u.items).map((it, k) => slot(it, k)).join('')}</span></div>`; // 무휼: 해금 전 전용 장비 칸도 빈칸으로 (기물과 같은 3칸)
+}
+/** 편성 보드 소환물 토큰: 기물 토큰과 같은 틀에서 장비 칸만 뺀다 (공명 등급 칸 자리 = 소환물 표시) */
+function summonCard(t: CompanionTok) {
+  const ty = (k?: string) => (k && (TTYPE_NAME as Record<string, string>)[k] ? `<i class="tt-${k}" title="${(TTYPE_NAME as Record<string, string>)[k]}">${typeIcon(k as never)}</i>` : k && (CTYPE_NAME as Record<string, string>)[k] ? `<i class="ct-${k}" title="${(CTYPE_NAME as Record<string, string>)[k]}">${typeIcon(k as never)}</i>` : '');
+  return `<div class="tk-card"><div class="tk-art">${sprite(t.spr, '')}</div>
+        <span class="tk-side"><i class="tk-summon" title="소환물">${lineIcon('a.summon', 'li')}</i>${ty(t.ttype)}${ty(t.ctype)}</span></div>`;
 }
 const TURRET_SPR = { sprite: 'turret', palette: TURRET_PAL, art: 'sm_turret' };
 /** 개전 예측 (편성 화면, 선택한 출전 기물): 예상 이동 경로 · 병목 칸 · 첫 공격 목표를 보드 위에 (engine/preview.ts) */

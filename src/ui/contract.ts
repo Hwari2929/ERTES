@@ -311,7 +311,7 @@ function boardHtml() {
     <div class="ct-bg" style="background-image:url('${bgURL('erantes_bar')}')" aria-hidden="true"></div><div class="ct-vig" aria-hidden="true"></div><div class="lp-grain" aria-hidden="true"></div>
     <button class="ct-leave lp-btn" data-a="ct-leave">‹ ${leave}</button>
     <figure class="ct-aiden" aria-hidden="true">${standURL('aiden') ? `<img alt="" src="${standURL('aiden')}" style="${figStyle('aiden')}" decoding="async">` : ''}</figure>
-    <p class="ct-say lp-paper" aria-live="polite"><b>에이든</b><span>${esc(aidenSay())}</span></p>
+    <p class="ct-say" aria-live="polite"><b>에이든</b><span>${esc(aidenSay())}</span></p>
     <div class="ct-fold">
       ${coverHtml()}
       <section class="ct-page lp-paper lp-frame" aria-label="의뢰 차림표">
