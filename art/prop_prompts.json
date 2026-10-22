@@ -165,6 +165,36 @@
       "h": 832,
       "prompt": "seamless wood texture, albedo map, diffuse color texture, flat even lighting, unlit, no shadows, no light pool, no lamp, no hotspot, no vignette, no reflections, uniform brightness across the whole image, top-down orthographic, pattern only, filling the whole frame, game texture, ebonized dark brown oak, very subtle low contrast grain",
       "noBase": true
+    },
+    "ct_printer_k": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "compact receipt printer seen from directly above, perfectly top-down orthographic view, flat plan view, low wide rectangular footprint much wider than tall, point of sale terminal style, matte finish, no glossy highlights, no specular reflections, soft flat even lighting, paper slot along the top edge, axis-aligned, symmetrical, centered object, white background, simple background, isolated object, matte dark navy body with thin brass trim"
+    },
+    "ct_printer_l": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "compact receipt printer seen from directly above, perfectly top-down orthographic view, flat plan view, low wide rectangular footprint much wider than tall, point of sale terminal style, matte finish, no glossy highlights, no specular reflections, soft flat even lighting, paper slot along the top edge, axis-aligned, symmetrical, centered object, white background, simple background, isolated object, matte charcoal grey body, small brass feed button at the lower right"
+    },
+    "ct_printer_m": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "compact receipt printer seen from directly above, perfectly top-down orthographic view, flat plan view, low wide rectangular footprint much wider than tall, point of sale terminal style, matte finish, no glossy highlights, no specular reflections, soft flat even lighting, paper slot along the top edge, axis-aligned, symmetrical, centered object, white background, simple background, isolated object, matte dark navy body, brass slot plate, tiny round status light"
+    },
+    "ct_printer_n": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "compact receipt printer seen from directly above, perfectly top-down orthographic view, flat plan view, low wide rectangular footprint much wider than tall, point of sale terminal style, matte finish, no glossy highlights, no specular reflections, soft flat even lighting, paper slot along the top edge, axis-aligned, symmetrical, centered object, white background, simple background, isolated object, vintage matte black POS printer, brass corner caps"
+    },
+    "ct_printer_o": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "compact receipt printer seen from directly above, perfectly top-down orthographic view, flat plan view, low wide rectangular footprint much wider than tall, point of sale terminal style, matte finish, no glossy highlights, no specular reflections, soft flat even lighting, paper slot along the top edge, axis-aligned, symmetrical, centered object, white background, simple background, isolated object, matte navy blue body with a recessed brass tear bar at the slot"
+    },
+    "ct_printer_p": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "compact receipt printer seen from directly above, perfectly top-down orthographic view, flat plan view, low wide rectangular footprint much wider than tall, point of sale terminal style, matte finish, no glossy highlights, no specular reflections, soft flat even lighting, paper slot along the top edge, axis-aligned, symmetrical, centered object, white background, simple background, isolated object, matte dark slate body, simple minimal design, thin gold pinstripe border"
     }
   },
   "_albedo_note": "ct_albedo_*: 조명 없는 알베도 전용. base 의 광원 문구를 쓰지 않는다 (nai_prop.mjs 가 noBase 로 읽음)"

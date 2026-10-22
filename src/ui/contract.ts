@@ -1,6 +1,6 @@
 // 출격 계약: 에란테스 바 카운터를 내려다본 탑뷰. 바에서 [새 계약] → 시선이 바 테이블로 내려가고 → 위에서 청사진(도면)이, 아래에서 차림표(메뉴판)가 미끄러져 들어온다.
 // 차림표의 줄을 고르면 오른쪽 전표 출력기가 카본지 전표를 위로 한 줄씩 밀어 올리고 (길수록 끝이 휘며 그림자가 진다), 다 고르면 탁상 벨이 떨린다.
-// 벨 = 전표에 '승인' 도장 → 그늘(체인 · 회중시계) → 계약 기물 명부 (main.ts newRunScreen). [의뢰 취소] = '취소' 도장 → 전표가 바깥으로 미끄러져 나가고 고른 것이 비워진다.
+// 나가기 = 같은 길을 거꾸로 (바로 돌아갈 때). 벨 = 전표에 '승인' 도장 → 그늘(체인 · 회중시계) → 계약 기물 명부 (main.ts newRunScreen). [의뢰 취소] = '취소' 도장 → 전표가 바깥으로 미끄러져 나가고 고른 것이 비워진다.
 // 의뢰 = 전장 (의뢰 제목 · 의뢰인 = data/scenes/fields.ts) · 약관 = 난이도 (data/contract.ts PLANS, 조항 = data/difficulty.ts DIFFS) · 특약 = 절망 서약 (data/oaths.ts, 담보 약관에만).
 // 에란테스의 의뢰는 모두 싯가: 오늘 들어온 의뢰서 3장 = 제철 의뢰 (보수 + CFG.contract.seasonWin), 메뉴에 없는 의뢰 = 직접 주문 (기본 보수).
 // 차림표 · 청사진에는 배율 숫자를 쓰지 않는다 (위험 눈금 · 감수 / 보상 아이콘만). 조항 수치는 출격 뒤 지도 환경 탭 '계약' (contractEnv).
@@ -446,7 +446,16 @@ export function contractAct(a: string, v: string): boolean {
       return true;
     }
     case 'ct-skip': finish(); return false;
-    case 'ct-leave': clear(); hooks.leave(CT.from); return false;
+    case 'ct-leave': { // 나가기: 들어올 때의 길을 거꾸로 (종이 · 소품이 빠지고 → 테이블이 낮아지며 바 그림이 다시 내려온다) 뒤에 바 · 타이틀로
+      clear();
+      const ct = document.querySelector<HTMLElement>('main.ct');
+      if (!ct || reduced() || CT.from !== 'bar') { hooks.leave(CT.from); return false; }
+      if (!ct.querySelector('.ct-barview')) { const bv = document.createElement('div'); bv.className = 'ct-barview'; bv.setAttribute('aria-hidden', 'true'); bv.style.backgroundImage = `url('${bgURL('erantes_bar')}')`; ct.prepend(bv); }
+      ct.classList.remove('intro'); ct.classList.add('outro');
+      sfx('paper'); sfx('paper', { delay: 0.12, pitch: 0.9 });
+      later(1300, () => hooks.leave(CT.from));
+      return false;
+    }
   }
   return false;
 }

@@ -5100,8 +5100,21 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-table .ct-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .ct-barview { position: absolute; inset: 0; z-index: var(--z-sticky); background: center 40% / cover no-repeat; pointer-events: none; animation: ct-lookdown .9s cubic-bezier(.5, 0, .3, 1) forwards; } /* 바를 보던 시선이 테이블로 내려간다 */
 @keyframes ct-lookdown { to { translate: 0 -100%; } }
+/* 테이블은 바 그림의 아랫단(카운터)에서 높이가 자라며 펼쳐진다: 바 그림의 아래 끝과 테이블 위 끝이 같은 곡선으로 움직여 이음매가 맞는다 */
+.ct-table { transform-origin: 50% 100%; }
 .ct.intro .ct-table { animation: ct-tablein .9s cubic-bezier(.5, 0, .3, 1) both; }
-@keyframes ct-tablein { from { translate: 0 60%; } }
+@keyframes ct-tablein { from { scale: 1 0; } to { scale: 1 1; } }
+/* 나가기 (바로 돌아가기 · 타이틀로): 같은 길을 거꾸로 — 종이 · 소품이 빠지고, 테이블이 낮아지며 바 그림이 다시 내려온다 */
+.ct.outro .ct-barview { animation: ct-lookup .9s .35s cubic-bezier(.5, 0, .3, 1) both; }
+@keyframes ct-lookup { from { translate: 0 -100%; } to { translate: 0 0; } }
+.ct.outro .ct-table { animation: ct-tableout .9s .35s cubic-bezier(.5, 0, .3, 1) both; }
+@keyframes ct-tableout { from { scale: 1 1; } to { scale: 1 0; } }
+.ct.outro .ct-bp { animation: ct-drop-out .45s cubic-bezier(.5, 0, .8, .4) both; } /* 들어올 때와 다른 이름 (같은 이름이면 브라우저가 진행 중인 애니메이션으로 이어 붙여 한 번에 사라진다) */
+.ct.outro .ct-menu { animation: ct-rise-out .45s cubic-bezier(.5, 0, .8, .4) both; }
+.ct.outro :is(.ct-printer, .ct-desk, .ct-voice) { animation: ct-slide-out .4s cubic-bezier(.5, 0, .8, .4) both; }
+@keyframes ct-drop-out { to { translate: -3vw -110vh; rotate: -9deg; } }
+@keyframes ct-rise-out { to { translate: 2vw 110vh; rotate: 8deg; } }
+@keyframes ct-slide-out { to { translate: 45vw 6vh; } }
 .ct.intro .ct-bp { animation: ct-drop .7s .85s cubic-bezier(.2, .7, .3, 1) both; }
 .ct.intro .ct-menu { animation: ct-rise .75s 1.05s cubic-bezier(.2, .7, .3, 1) both; }
 .ct.intro :is(.ct-printer, .ct-desk) { animation: ct-slide .6s 1.3s cubic-bezier(.2, .7, .3, 1) both; }
@@ -5195,8 +5208,8 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-pmach .knob { fill: var(--lp-au); stroke: var(--lp-au-lo); stroke-width: 2; }
 .ct-pmach .plate { fill: none; stroke: var(--lp-au-lo); stroke-width: 1.5; }
 .ct-slipwrap { position: absolute; left: 50%; bottom: calc(100% - var(--ph) * .1 - 2px); z-index: 0; width: calc(var(--pw) * .74); translate: -50% 0; max-height: calc(97vh - var(--ph) - 6px); overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; filter: drop-shadow(6px 10px 8px var(--shade-2)); }
-.ct-slip { --curl: min(var(--n), 26); position: relative; flex: none; overflow: hidden; padding: 10px 12px 84px; display: grid; gap: 1px; transform-origin: 50% 100%; transform: perspective(800px) rotateX(calc(var(--curl) * .42deg));
-  box-shadow: inset 0 22px 16px -16px color-mix(in srgb, var(--c-black) calc(var(--curl) * 1.6%), transparent); border-top: 0; } /* 위쪽 끝이 테이블 쪽으로 처지며 그늘 */
+.ct-slip { position: relative; flex: none; overflow: hidden; padding: 10px 12px 84px; display: grid; gap: 1px; transform-origin: 50% 0; transform: perspective(700px) rotateX(-9deg); border-top: 0; /* 하단부(출력기 슬릿 쪽)가 아래로 살짝 휘어 들어간다: 아래로 갈수록 멀어져 좁아 보이고 */
+  box-shadow: inset 0 -26px 18px -18px color-mix(in srgb, var(--c-black) 26%, transparent); } /* 휘는 곳에 그늘 */
 .ct-printer.feed .ct-slip { animation: ct-rattle .42s steps(7) both; }
 .ct-stampmark { position: absolute; right: 14px; bottom: 40px; padding: 2px 12px; border: 3px double var(--lp-stamp); color: var(--lp-stamp); font: 700 var(--fs-xl)/1.2 var(--f-serif); letter-spacing: .2em; rotate: -14deg; text-shadow: none; animation: ct-stampin .3s ease-out both; }
 .ct-stampmark.void { right: auto; left: 50%; bottom: 38px; translate: -50% 0; font-size: var(--fs-2xl); }
@@ -5343,7 +5356,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-cancel { position: fixed; left: 140px; bottom: calc(8px + env(safe-area-inset-bottom)); min-height: 30px; }
   .ct-bell { width: 84px; height: 84px; }
 }
-@media (prefers-reduced-motion: reduce) { /* 움직임 줄이기: 등장 · 떨림 없이 바로 놓이고, 그늘 연출은 ui/contract.ts 가 0.9초 뒤 바로 명부로 넘긴다 */
-  .ct-r.new, .ct-printer.feed .ct-slip, .ct-fly, .ct-sway, .ct-swing, .ct-twist, .ct-hand, .ct-bell.ready, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-terms, .ct-col-rider .lp-row.lit, .ct-barview, .nr.from-seal::after { animation: none; }
+@media (prefers-reduced-motion: reduce) { /* 움직임 줄이기: 등장 · 나가기 · 떨림 없이 바로 놓이고, 그늘 연출은 ui/contract.ts 가 0.9초 뒤 바로 명부로 넘긴다 */
+  .ct-r.new, .ct-printer.feed .ct-slip, .ct-fly, .ct-sway, .ct-swing, .ct-twist, .ct-hand, .ct-bell.ready, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-terms, .ct-col-rider .lp-row.lit, .ct-barview, .ct.outro *, .nr.from-seal::after { animation: none; }
   .ct-col-rider, .ct-voice { transition: none; }
 }
