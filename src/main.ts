@@ -1418,7 +1418,7 @@ const TWO_STEP = ['K_net', 'K_scope', 'K_decoy', 'K_mine'];
 let touchPtr = false;
 /** 지형 덩어리를 새로 고른 그리기에서만 짧은 전환 (prepScreen) */
 let trSelLast = '';
-/** 쥔 도구 배지 (보관함 물품 · 든 컨테이너 오른쪽 위): 선택 (실선)과 모양이 다른 표시 */
+/** 크레인으로 든 컨테이너 배지 (덩어리 아이콘 오른쪽 위): 지형 상세 선택 (선택색 경계 · 옅은 면)과 '옮기는 중' 을 나눈다. 보관함 물품 · 성유물은 호박색 실선만 (docs/UI.md 13) */
 const ARM_BADGE = '<i class="arm-b" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="12" cy="12" r="6"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg></i>';
 window.addEventListener('pointerdown', (e) => { touchPtr = e.pointerType === 'touch'; }, { capture: true, passive: true });
 /** 금지 표시 (놓을 수 없는 칸 · 받을 수 없는 대상) */
@@ -1515,35 +1515,114 @@ function whyShort(e: string) {
   for (const [k, v] of [['가득', '칸 가득'], ['반려 돌', '반려 돌'], ['문장', '이미 소속'], ['최고', '최고 등급'], ['포탑', '포탑 전용'], ['디바인', '디바인만'], ['공간', '보관함 부족'], ['장비가 없', '장비 없음'], ['바뀔 수 있는', '대상 없음']] as const) if (e.includes(k)) return v;
   return '불가';
 }
-/** 쥔 도구의 대상 표시 (편성 화면, 그린 뒤 한 번): 받을 수 있는 기물 · 적 · 장착 장비 · 보관함 장비 = tg-ok + 다음 누름 결과 (장착 · 조합 · 교체 · 사용),
- *  받을 수 없는 아군 = tg-no + 짧은 이유 (가리키면 이름표). 판정은 엔진 그대로 (equipCheck · useCheck · equipCombo · combinePreview) */
-function toolMark(run: RunState) {
-  const t = toolOf(run);
-  if (!t || t.k === 'place' || t.k === 'crane') return;
-  const mark = (el: Element, ok: boolean, lb: string) => { el.classList.add(ok ? 'tg-ok' : 'tg-no'); el.setAttribute('data-tgl', lb); };
-  const allies = root.querySelectorAll<HTMLElement>('.prep .u[data-a="sel-unit"]:not(.comp-tk)'), foes = root.querySelectorAll<HTMLElement>('.prep .u[data-a="sel-enemy"]');
-  const turrets = root.querySelectorAll<HTMLElement>('.prep .u[data-a="sel-turret"]'), inv = root.querySelectorAll<HTMLElement>('.prep .inv-rail .item[data-a="sel-item"]');
+/** 끄는 것 → 쥔 도구 (누르기와 같은 표현, docs/UI.md 14): 보관함 물품 · 성유물 · 기물에 단 장비. 기물 · 포탑 · 소환물 · 장치 끌기는 도구가 아니다 */
+type HeldTool = Tool | { k: 'move'; uid: string; slot: number; id: string };
+function dragTool(run: RunState, src: string): HeldTool | null {
+  const [k, a, b] = src.split(':');
+  if (k === 'relic') return { k: 'relic', id: a };
+  if (k === 'item') {
+    const id = run.inventory[+a];
+    if (!id) return null;
+    return isPlaceable(id) ? (run.node?.enc ? { k: 'place', idx: +a, id } : null) : { k: isConsumable(id) ? 'use' : 'equip', idx: +a, id };
+  }
+  if (k === 'eq') { const u = run.units.find((x) => x.uid === a), id = u ? (+b < 0 ? u.mod : u.items[+b]) : null; return u && id ? { k: 'move', uid: a, slot: +b, id } : null; }
+  return null;
+}
+/** 쥔 도구가 받을 곳 표시 (편성 화면 · docs/UI.md 14): 누르기 (그린 뒤 한 번)와 끌기 (끌기 시작할 때)가 같은 함수.
+ *  받을 수 없는 것 (적 · 받을 수 없는 아군 · 포탑 · 소환물 · 장치 · 지형 · 조합 안 되는 보관함 물품 · 소모품 · 성유물) = tg-no (포탑처럼 흐리게).
+ *  받을 수 있는 것 = tg-ok (밝기 그대로, 새 테두리 없음) + data-tgl = 가리키거나 끌어 올렸을 때만 그 위에 보이는 결과 (장착 · 조합 → 이름 · 교체 · 사용).
+ *  흐린 아군은 가리키면 '⊘ 이유'. 판정은 엔진 그대로 (equipCheck · equipCombo · combinePreview · useCheck) */
+function toolMark(run: RunState, t: HeldTool | null = toolOf(run)) {
+  toolMarkClear();
+  if (!t || t.k === 'crane') return;
+  const q = (s: string) => Array.from(root.querySelectorAll<HTMLElement>(`.prep ${s}`));
+  const mark = (el: Element, ok: boolean, lb = '') => { el.classList.add(ok ? 'tg-ok' : 'tg-no'); if (lb) el.setAttribute('data-tgl', lb); };
   const unitOf = (el: HTMLElement) => run.units.find((u) => u.uid === el.dataset.v);
-  if (t.k === 'relic') { allies.forEach((el) => { const u = unitOf(el); if (u) mark(el, UNIT_BY_ID[u.defId].ttype === 'divine', UNIT_BY_ID[u.defId].ttype === 'divine' ? (u.relic ? '교체' : '장착') : '디바인만'); }); return; }
+  const allies = q('.u[data-a="sel-unit"]:not(.comp-tk)'), foes = q('.u[data-a="sel-enemy"]'), turrets = q('.u[data-a="sel-turret"]');
+  const held = t.k === 'relic' ? -2 : t.k === 'move' ? -1 : t.idx; // 쥔 보관함 칸 (흐리지 않는다)
+  const inv = q('.inv-rail .item[data-a="sel-item"]').filter((el) => +el.dataset.v! !== held), relics = q('.inv-rail .relic-tok[data-a="sel-relic"]').filter((el) => t.k !== 'relic' || el.dataset.v !== t.id);
+  // 어느 도구도 받지 않는 것: 소환물 · 무휼 · 놓은 장치 · 지형 (배치형 소모품이 놓일 수 있는 걷는 지형 칸은 놓을 수 있는 영역 표시가 따로 있다)
+  q('.u.comp-tk').forEach((el) => mark(el, false));
+  q('.board :is(.dev-tok, .dev-mark, .dev-wall2)').forEach((el) => mark(el, false));
+  q('.board .tr-ic').forEach((el) => mark(el, false));
+  q('.board .cell.tr').forEach((el) => { if (!el.classList.contains('dev-ok')) mark(el, false); });
+  relics.forEach((el) => mark(el, false));
+  const combo = (res: string) => `조합 → ${itemInfo(res).name}`;
+  if (t.k === 'relic') {
+    allies.forEach((el) => { const u = unitOf(el), div = !!u && UNIT_BY_ID[u.defId].ttype === 'divine'; mark(el, div, div ? (u!.relic ? '교체' : '장착') : '디바인만'); });
+    [...foes, ...turrets, ...inv].forEach((el) => mark(el, false));
+    return;
+  }
+  if (t.k === 'move') { // 기물에 단 장비를 다른 기물 · 보관함으로 (moveEq)
+    allies.forEach((el) => { const u = unitOf(el); if (!u) return; if (u.uid === t.uid) return; const e = R.equipCheck(run, t.id, u.uid), cb = e ? null : R.equipCombo(run, t.id, u.uid); mark(el, !e, e ? whyShort(e) : cb ? combo(cb.res) : isMod(t.id) && u.mod ? '교체' : '장착'); });
+    [...foes, ...turrets].forEach((el) => mark(el, false));
+    inv.forEach((el) => mark(el, true, '해제'));
+    return;
+  }
   if (t.k === 'equip') {
     const tur = isTurretItem(t.id);
-    allies.forEach((el) => { const u = unitOf(el); if (!u) return; const e = tur ? '포탑 전용' : R.equipCheck(run, t.id, u.uid); mark(el, !e, e ? whyShort(e) : isMod(t.id) ? (u.mod ? '교체' : '장착') : R.equipCombo(run, t.id, u.uid) ? '조합' : '장착'); });
-    turrets.forEach((el) => mark(el, tur, tur ? '장착' : '포탑 불가'));
-    if (!tur) inv.forEach((el) => { const j = +el.dataset.v!; if (j !== t.idx && R.combinePreview(run, t.idx, j)) mark(el, true, '조합'); });
+    allies.forEach((el) => { const u = unitOf(el); if (!u) return; const e = tur ? '포탑 전용' : R.equipCheck(run, t.id, u.uid), cb = e ? null : R.equipCombo(run, t.id, u.uid); mark(el, !e, e ? whyShort(e) : cb ? combo(cb.res) : isMod(t.id) && u.mod ? '교체' : '장착'); });
+    turrets.forEach((el) => { const i = +el.dataset.v!, full = isTurretMod(t.id) ? !!run.turretMods?.[i] : !(run.turretGear?.[i] || []).includes(null); mark(el, tur, tur ? (full ? '교체' : '장착') : '포탑 불가'); });
+    foes.forEach((el) => mark(el, false));
+    inv.forEach((el) => { const res = tur ? null : R.combinePreview(run, t.idx, +el.dataset.v!); mark(el, !!res, res ? combo(res) : ''); });
     return;
   }
+  // 소모품: 배치형 = 칸에만 (놓을 수 있는 영역은 devZone), 함대 = 아군을 눌러도 쓴다 (sel-unit · onDrop), 그 밖 = 대상 판정 그대로
   const c = CONSUMABLES[t.id];
-  if (!c || c.target === 'run') return; // 함대에 바로 쓰는 소모품은 '사용' 단추로
   const use = (tg: R.UseTarget) => R.useCheck(run, t.idx, tg);
-  if (c.target === 'item') { // 장비에 쓰는 소모품: 장착 장비 칸 · 보관함 장비 (재구성 회로는 기물도)
-    root.querySelectorAll<HTMLElement>('.prep .tk-it[data-a="item-info"]').forEach((el) => { const [uid, k] = el.dataset.v!.split(':'); if (!use({ k: 'eq', uid, slot: +k })) mark(el, true, '사용'); });
-    inv.forEach((el) => { const j = +el.dataset.v!; if (j !== t.idx && !use({ k: 'inv', i: j })) mark(el, true, '사용'); });
-    if (c.alsoItem) allies.forEach((el) => { const u = unitOf(el); if (u && !use({ k: 'unit', uid: u.uid })) mark(el, true, '사용'); });
+  [...turrets, ...inv].forEach((el) => mark(el, false));
+  if (!c || t.k === 'place') { [...allies, ...foes].forEach((el) => mark(el, false)); return; }
+  if (c.target === 'run') { const e = use({ k: 'run' }); allies.forEach((el) => mark(el, !e, e ? whyShort(e) : '사용')); foes.forEach((el) => mark(el, false)); return; }
+  if (c.target === 'item') { // 장비에 쓰는 소모품: 받을 수 있는 장착 장비 칸 · 보관함 장비는 밝게, 기물 카드는 그 칸만 남기고 흐리게 (재구성 회로는 기물도)
+    const slotOk = (el: HTMLElement) => { const [uid, k] = el.dataset.v!.split(':'); return !use({ k: 'eq', uid, slot: +k }); };
+    allies.forEach((el) => {
+      const u = unitOf(el);
+      if (u && c.alsoItem && !use({ k: 'unit', uid: u.uid })) { mark(el, true, '사용'); return; }
+      const slots = Array.from(el.querySelectorAll<HTMLElement>('.tk-it[data-a="item-info"]'));
+      slots.forEach((s) => { if (slotOk(s)) mark(s, true, '사용'); }); // 못 받는 칸은 카드와 함께 흐린다 (tg-part)
+      el.classList.add(slots.some((s) => s.classList.contains('tg-ok')) ? 'tg-part' : 'tg-no');
+    });
+    inv.forEach((el) => { const ok = !use({ k: 'inv', i: +el.dataset.v! }); el.classList.remove('tg-no'); mark(el, ok, ok ? '사용' : ''); });
+    foes.forEach((el) => mark(el, false));
     return;
   }
-  if (c.target === 'unit') allies.forEach((el) => { const u = unitOf(el); if (!u) return; const e = use({ k: 'unit', uid: u.uid }); mark(el, !e, e ? whyShort(e) : '사용'); });
-  foes.forEach((el) => { const e = use({ k: 'foe', i: +el.dataset.v! }); if (!e) mark(el, true, '사용'); else if (c.target === 'foe') mark(el, false, whyShort(e)); });
+  allies.forEach((el) => { const u = unitOf(el); if (!u) return; const e = c.target === 'unit' ? use({ k: 'unit', uid: u.uid }) : R.WRONG_TARGET; mark(el, !e, e ? (c.target === 'unit' ? whyShort(e) : '') : '사용'); });
+  foes.forEach((el) => { const e = use({ k: 'foe', i: +el.dataset.v! }); mark(el, !e, e ? (c.target === 'foe' ? whyShort(e) : '') : '사용'); });
 }
+function toolMarkClear() {
+  root.querySelectorAll('.prep :is(.tg-ok, .tg-no, .tg-part, .tg-at)').forEach((el) => { el.classList.remove('tg-ok', 'tg-no', 'tg-part', 'tg-at'); el.removeAttribute('data-tgl'); });
+  tgTip(null);
+}
+/** 끄는 동안 손가락 · 마우스 아래 받는 대상 (tg-at): 그 위에만 결과 이름표 (마우스로 가리킬 때와 같은 tgTip) */
+function toolMarkAt(x: number, y: number) {
+  const el = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest<HTMLElement>('.tg-ok, .tg-no');
+  const cur = root.querySelector('.prep .tg-at');
+  if (cur === el) return;
+  cur?.classList.remove('tg-at');
+  el?.classList.add('tg-at');
+  tgTip(el ?? null);
+}
+/** 쥔 도구 결과 이름표 (가리킨 · 끌어 올린 대상 하나 위에만): 화면에 떠 있는 한 장 (보관함 · 보드 창의 스크롤 영역에 잘리지 않게).
+ *  받는 대상 = '장착' · '조합 → 이름' · '교체' · '사용', 흐린 아군 = '⊘ 이유' */
+function tgTip(el: HTMLElement | null) {
+  let tip = document.querySelector<HTMLElement>('body > .tg-tip');
+  const lb = el && app.screen === 'prep' && el.isConnected ? el.dataset.tgl : '';
+  if (!lb || !el) { if (tip) tip.hidden = true; return; }
+  if (!tip) { tip = document.createElement('div'); tip.className = 'tg-tip'; tip.setAttribute('role', 'status'); document.body.appendChild(tip); }
+  const no = el.classList.contains('tg-no');
+  tip.classList.toggle('no', no);
+  tip.textContent = no ? `\u2298 ${lb}` : lb;
+  tip.hidden = false;
+  const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = `${Math.round(Math.max(4, Math.min(innerWidth - w - 4, r.left + r.width / 2 - w / 2)))}px`;
+  tip.style.top = `${Math.round(r.top - h - 4 >= 4 ? r.top - h - 4 : r.bottom + 4)}px`;
+}
+// 마우스로 가리키면 그 대상의 결과 이름표 (끄는 동안은 toolMarkAt 이 맡는다)
+root.addEventListener('pointerover', (ev) => {
+  if (ev.pointerType !== 'mouse' || drag?.ghost) return;
+  tgTip((ev.target as HTMLElement).closest<HTMLElement>('.prep :is(.tg-ok, .tg-no[data-tgl])'));
+});
+root.addEventListener('pointerleave', () => { if (!drag?.ghost) tgTip(null); });
 /** 가리키거나 끄는 칸이 바뀌면 보드의 미리보기만 다시 그린다 (화면 전체를 다시 그리지 않음) */
 function devPvShow(board: HTMLElement, pv: typeof devPv) {
   const run = app.run, host = board.querySelector<HTMLElement>('.dev-pv-host');
@@ -1570,11 +1649,12 @@ function foldTog(folded: boolean) {
   const icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16${folded ? 'M10 9l-3 3 3 3' : 'M7 9l3 3-3 3'}"/></svg>`;
   return `<div class="side-fold-row"><button class="btn tiny side-fold" data-a="fold-r" aria-expanded="${!folded}" title="${folded ? '상세 패널 펼치기' : '상세 패널 접기 (보드를 넓게)'}">${icon}<span>${folded ? '상세' : '접기'}</span>${folded && app.sel ? '<i class="side-fold-dot" title="고른 대상의 상세가 있음"></i>' : ''}</button></div>`;
 }
-/** 대기석 숨기기 · 보이기 (보는 사람마다 errantes.prefs.v1 benchOff): 보드 머리의 '대기 n' 칩 하나 (출전 칩 옆).
- *  docs/UI.md 9 — 두 상태 모두 같은 자리 · 같은 글자 (화살표 방향만 바뀜)라 누른 자리에서 다시 누르면 되돌아온다. 머리는 sticky (스크롤해도 보임) */
-function benchTog(off: boolean, n: number) {
-  const icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${off ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'}"/></svg>`;
-  return `<button class="pill bench-tog${off ? ' off' : ''}" data-a="bench-tog" aria-expanded="${!off}" title="${off ? '대기석 보이기' : '대기석 숨기기 (보드를 크게)'}">대기 <b>${n}</b>${icon}</button>`;
+/** 대기석 숨기기 · 보이기 (보는 사람마다 errantes.prefs.v1 benchOff): 대기석 상자 오른쪽 위 테두리에 붙은 단추 하나 (docs/UI.md 16).
+ *  docs/UI.md 9 — 숨기면 상자가 같은 자리에서 얇은 띠로 접히고, 단추는 같은 자리 · 같은 크기 (글자 수 같음, 화살표만 바뀜)라 누른 자리에서 다시 누르면 되돌아온다.
+ *  숨겨도 보드 크기는 바꾸지 않는다 (바꾸면 띠 · 단추가 밀려난다) */
+function benchTog(off: boolean) {
+  const icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${off ? 'M6 9l6 6 6-6' : 'M6 15l6-6 6 6'}"/></svg>`;
+  return `<button class="bench-tog" data-a="bench-tog" aria-expanded="${!off}" title="${off ? '대기석 보이기' : '대기석 숨기기'}">${off ? '보이기' : '숨기기'}${icon}</button>`;
 }
 /** 보드의 기물을 끄는 동안만 화면 아래에 붙는 대기석 놓을 자리 (대기석을 숨겼거나 스크롤로 화면 밖이어도 페이지를 굴리지 않고 놓는다) */
 const BENCH_DOCK = `<div class="bench-dock" data-drop="bench" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><b>대기석으로</b></div>`;
@@ -1606,7 +1686,7 @@ function prepScreen(run: RunState) {
   let cells = '';
   const placeSel = app.sel?.k === 'item' && isBattle && isPlaceable(run.inventory[app.sel.idx]) ? app.sel.idx : -1; // 배치형 소모품을 고른 채: 칸을 누르면 설치, 놓을 수 있는 칸 표시
   const zone = placeSel >= 0 ? devZone(run, placeSel, ex) : null, devOk = (x: number, y: number) => !!zone?.ok.has(`${x},${y}`); // 놓을 수 있는 칸 (반투명 층 하나, 칸에는 누를 자리 표시만)
-  const tool = toolOf(run), lift = tool?.k === 'crane' ? tool.crate : -1; // 쥔 도구 (머리 칩) · 크레인으로 든 컨테이너
+  const tool = toolOf(run), lift = tool?.k === 'crane' ? tool.crate : -1; // 쥔 도구 (팝업이 없으면 보드 창 위 칩) · 크레인으로 든 컨테이너
   const selG = app.sel?.k === 'terrain' ? app.sel.g : -1, selKey = selG >= 0 ? `${node?.enc?.seed ?? ''}:${selG}` : '';
   const trFresh = selKey !== trSelLast; // 지형 덩어리를 새로 고른 그리기에서만 짧은 전환 (다시 그릴 때마다 되풀이하지 않게)
   trSelLast = selKey;
@@ -1683,29 +1763,28 @@ function prepScreen(run: RunState) {
   const bench = run.units.filter((u) => !u.pos);
   const free = Math.min(cap, allyRoom(run, n)) - deployed(run).length; // 출전 한도와 아군 진형 칸 (장치 칸 제외) 중 작은 쪽
   const canFill = bench.some((u) => R.canDeploy(run, u));
-  const mapChip = node?.enc?.map && node.enc.map !== 'open' ? mapPill(node.enc.map) : '';
-  const env = node?.enc ? `${node.enc.env} · 폭 ${n}칸${node.type === 'adversity' ? ' · 역경' : ''}${node.type === 'challenge' ? ` · 도전 (P${node.enc.phase} 역경급)` : ''}${node.type === 'boss' ? ' · 보스전' : ''}` : '편성 관리';
+  const pop = invDetail(run); // 보관 물품 팝업. 열려 있으면 쥔 도구 칩을 띄우지 않는다 (같은 정보, docs/UI.md 15) — 배치 · 크레인처럼 보드를 누르는 동안의 '하는 중' 표시만 보드 창 위에 겹쳐 남긴다
   const picked = !!app.sel && app.sel.k !== 'item' && app.sel.k !== 'relic'; // 상세가 있는 선택 (기물 · 적 · 지형 · 포탑 · 공왕)
   const foldR = !!loadPrefs().prepFold && !picked; // 접어 둔 패널도 무언가를 고르면 저절로 펼치고, 선택을 풀면 다시 접힌다
-  const benchOff = !!loadPrefs().benchOff; // 대기석 숨김 (보는 사람마다): 보드 머리의 '대기 n' 칩으로 숨기기 · 보이기, 보드의 기물을 끄는 동안은 화면 아래 놓을 자리 (BENCH_DOCK)
-  return `<main class="wrap prep${foldR ? ' fold-r' : ''}${benchOff ? ' bench-off' : ''}">
+  const benchOff = !!loadPrefs().benchOff; // 대기석 숨김 (보는 사람마다): 대기석 상자 오른쪽 위 단추로 숨기기 · 보이기 (숨기면 같은 자리에 얇은 띠), 보드의 기물을 끄는 동안은 화면 아래 놓을 자리 (BENCH_DOCK)
+  return `<main class="wrap prep${foldR ? ' fold-r' : ''}">
     <aside class="side left">
       <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
     </aside>
-    <section class="board-col">
-      <div class="board-head"><b>${esc(env)}</b>${mapChip}<span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${benchTog(benchOff, bench.length)}${tacPill(run)}${tool ? toolChip(run, tool) : ''}<span class="muted small bh-rows">${geo.foe2 ? '가운데' : geo.rot ? '왼쪽' : '아래'} ${geo.rows}줄에 배치</span>${noRoom.length ? `<span class="small warn" title="${esc(`배치 구역에 빈칸이 없음: ${noRoom.map((t) => t.name).join(' · ')} — 전투에서 가까운 빈칸에 나온다`)}">소환 자리 없음 ${noRoom.length}</span>` : ''}
+    <section class="board-col"${benchOff && benchPadB ? ` style="padding-bottom:${benchPadB}px"` : ''}>
+      <div class="board-head">${node?.enc ? boardTitle(node.enc, node.type) : '<span class="bh-title"><b class="bh-name">편성 관리</b></span>'}<span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${tacPill(run)}<span class="muted small bh-rows">${geo.foe2 ? '가운데' : geo.rot ? '왼쪽' : '아래'} ${geo.rows}줄에 배치</span>${noRoom.length ? `<span class="small warn" title="${esc(`배치 구역에 빈칸이 없음: ${noRoom.map((t) => t.name).join(' · ')} — 전투에서 가까운 빈칸에 나온다`)}">소환 자리 없음 ${noRoom.length}</span>` : ''}
         ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}</div>
       <div class="board-wrap">${prepZoomCtl()}<div class="board-main">
-      <div class="board-row"><div class="board-vp"><div class="board${geo.rot ? ' rot' : ''}${placeSel >= 0 ? ' placing' : ''}"${placeSel >= 0 ? ` data-pidx="${placeSel}"` : ''} style="--w:${bw};--h:${bh}" data-bw="${bw}" data-bh="${bh}" data-ex="${ex}" data-zones='${JSON.stringify(zones)}'><div class="cells">${cells}</div>${zone?.html ?? ''}${units}${startOverlay(run, geo, ex)}</div></div><div class="vp-cues"></div>${invRail(run)}</div>
+      <div class="board-row"><div class="board-vp"><div class="board${geo.rot ? ' rot' : ''}${placeSel >= 0 ? ' placing' : ''}"${placeSel >= 0 ? ` data-pidx="${placeSel}"` : ''} style="--w:${bw};--h:${bh}" data-bw="${bw}" data-bh="${bh}" data-ex="${ex}" data-zones='${JSON.stringify(zones)}'><div class="cells">${cells}</div>${zone?.html ?? ''}${units}${startOverlay(run, geo, ex)}</div></div><div class="vp-cues"></div>${tool && (tool.k === 'place' || tool.k === 'crane' || (!pop && !app.ask)) ? `<div class="tool-ovl">${toolChip(run, tool)}</div>` : ''}${invRail(run)}</div>
       </div></div>
-      ${benchOff ? '' : `<div class="bench" data-drop="bench">
-        <span class="bench-label">대기석</span>
-        ${bench.length ? bench.map((u) => {
+      <div class="bench${benchOff ? ' off' : ''}" data-drop="bench">
+        <span class="bench-label">대기석 <b>${bench.length}</b></span>${benchTog(benchOff)}
+        ${benchOff ? '' : bench.length ? bench.map((u) => {
           const sel = app.sel?.k === 'unit' && app.sel.uid === u.uid;
           return `<div class="bench-u u side0 tk ${sel ? 'sel' : ''}" data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}" data-syns="${memberships(u, run).join(' ')}" title="${esc(UNIT_BY_ID[u.defId].name)} · 공명 등급 ${u.rank}">${allyCard(u)}</div>`;
         }).join('') : '<span class="muted small">기물을 여기로 끌어 출전에서 뺄 수 있습니다.</span>'}
-      </div>`}
-      ${invDetail(run)}
+      </div>
+      ${pop}
       <div class="sticky-actions">
         ${isBattle ? `<button class="btn ghost" data-a="to-map">맵으로</button><button class="btn primary" data-a="fight" title="단축키 Space" ${deployed(run).length ? '' : 'disabled'}>전투 시작</button>`
           : `<button class="btn primary" data-a="to-map">완료</button>`}
@@ -1846,10 +1925,10 @@ function kingDetail(run: RunState, bar: string) {
 
 /** 편성 표 오른쪽 세로 보관 칸 (장비 · 이후 소모품). 기물에게 끌어다 장착, 재료끼리 겹치면 조합 */
 function invRail(run: RunState) {
-  const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1, armed = !!toolOf(run) && selIdx >= 0; // 쥔 도구 (장착 · 사용 · 배치): 선택 실선 대신 떨어진 점선 고리 + 배지
+  const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1; // 고른 (쥔) 물품 = 토큰에 붙은 호박색 실선 (docs/UI.md 13), 받을 수 없는 것은 toolMark 가 흐린다
   return `<div class="inv-rail" data-drop="inv" title="기물에게 끌어다 장착 · 재료끼리 겹치면 조합">
     <span class="ir-count">${run.inventory.length}/${CFG.inventoryMax}</span>
-    <div class="ir-items">${run.inventory.map((id, i) => { const h = itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`, breadNote(run, i)).replace('class="item', `class="item${i === selIdx || app.ask?.hl?.includes(i) ? ' sel' : ''}${armed && i === selIdx ? ' armed' : ''}`); return armed && i === selIdx ? h.replace(/<\/span>$/, `${ARM_BADGE}</span>`) : h; }).join('')}${run.inventory.length ? '' : '<span class="ir-empty muted">비어 있음</span>'}${relicInv(run)}</div>
+    <div class="ir-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`, breadNote(run, i)).replace('class="item', `class="item${i === selIdx || app.ask?.hl?.includes(i) ? ' sel' : ''}`)).join('')}${run.inventory.length ? '' : '<span class="ir-empty muted">비어 있음</span>'}${relicInv(run)}</div>
   </div>`;
 }
 /** 상점 등: 가로 보관 칸 */
@@ -1863,7 +1942,7 @@ function relicInv(run: RunState) {
   const rs = run.relics || [];
   if (!rs.length) return '';
   const sel = app.sel?.k === 'relic' ? app.sel.id : null;
-  return `<span class="ir-sep" title="성유물"></span>${rs.map((id) => { const h = relicTok(id, `data-drag="relic:${id}" data-a="sel-relic" data-v="${id}"`, id === sel); return id === sel ? h.replace(/(class="[^"]*relic-tok[^"]*)"/, '$1 armed"').replace(/<\/span>$/, `${ARM_BADGE}</span>`) : h; }).join('')}`; // 고른 성유물 = 쥔 도구 (디바인에게 장착)
+  return `<span class="ir-sep" title="성유물"></span>${rs.map((id) => relicTok(id, `data-drag="relic:${id}" data-a="sel-relic" data-v="${id}"`, id === sel)).join('')}`; // 고른 성유물 = 쥔 도구 (디바인에게 장착): 장비와 같은 호박색 실선
 }
 /** 고른 보관 물품: 설명 · 판매 */
 function invDetail(run: RunState) {
@@ -1878,7 +1957,7 @@ function invDetail(run: RunState) {
   const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
   const sel = selIdx >= 0 ? run.inventory[selIdx] : null;
   if (!sel) return '';
-  if (app.ask) return ''; // 확인 팝업이 같은 자리(보관함 왼쪽)를 쓴다
+  if (app.ask) return ''; // 확인 팝업이 같은 자리(보관함 오른쪽)를 쓴다
   const it = itemInfo(sel);
   const TIER: Record<string, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '개조부품', K: isLegendConsumable(sel) ? '전설 소모품' : '소모품', U: '고유' };
   const { stats: stats0, eff: eff1 } = itemBrief(sel);
@@ -1892,7 +1971,7 @@ function invDetail(run: RunState) {
     : run.inventory.some((x, j) => j !== selIdx && combine(sel, x)) ? '<span class="muted small">조합 가능한 장비를 누르면 조합</span>' : '';
   // 판매는 소모품만 (장비 · 개조부품은 팔 수 없다)
   const html = pop(itemIcon(sel), TIER[sel.startsWith('U_') ? 'U' : it.tier] || '', it.name, stats, eff ? statIc(esc(eff)) : '', `${ct && sel !== 'K_scope' ? `<button class="btn small" data-a="sell" data-v="${selIdx}">판매 +${R.sellPrice(run, sel)}</button>` : ''}${hint}`);
-  return ct === 'place' && run.node?.enc ? html.replace('class="inv-pop"', 'class="inv-pop ip-placing"') : html; // 놓는 중: 보드를 가리지 않게 (좁은 화면은 머리 · 바닥만, 넓은 화면은 보관함 오른쪽)
+  return ct === 'place' && run.node?.enc ? html.replace('class="inv-pop"', 'class="inv-pop ip-placing"') : html; // 놓는 중: 좁은 화면 하단 시트는 머리 · 바닥 줄만 (보드를 덜 가리게)
 }
 /** 물품 요약: 주요 능력치 줄 + 효과 문장 (설명에서 능력치 접두어를 뗀 것). 보관함 정보 팝업 · 조합 확인 팝업 공용 */
 function itemBrief(id: string) {
@@ -2504,6 +2583,7 @@ function prepBrief(run: RunState) {
   const elRows = mu.elems.map((x) => muRow(lineIcon(`e.${x.e}`, 'li'), x.name, `${x.allies}명`, `${x.weak ? muTag(`적 ${x.weak}명 취약`, 'good') : ''}${x.resist ? muTag(`적 ${x.resist}명 저항`, 'bad') : ''}`, '', `--c:var(--el-${x.e})`)).join('');
   return `<div class="detail pb" aria-label="이번 전투 적 구성">
     <div class="pb-head"><h3>이번 전투</h3><span class="pb-kind n-${type}">${esc(kind)}</span><span class="muted small">적 ${mu.foes}명 · 체력 ×${+enc.mult.toFixed(2)}</span>${diffAddChip(run, enc.phase ?? run.phase, enc.add || 0)}</div>
+    <div class="pb-map">${lineIcon('n.battle', 'li')}<b>${esc(encName(enc))}</b><span>${esc(mapOf(enc.map).desc)}</span></div>
     <ul class="pb-foes">${rows.map(foe).join('')}</ul>
     <h3>상성</h3>
     <ul class="pb-rows">${muRows || '<li class="pb-row muted">특별한 면역 · 취약 없음</li>'}</ul>
@@ -2741,8 +2821,19 @@ function terrainDetail(g: Geo, grp: TerrainGroup, back: string, live?: { gate?: 
     <p class="small foe-line tr-lore">${esc(t.lore)}</p>
   </div>`;
 }
-/** 지형 틀 칩 (편성 · 전투 머리): 이름 + 규칙 툴팁 */
-const mapPill = (id: string) => { const m = mapOf(id); return `<span class="pill map-pill" title="${esc(m.desc)}">${lineIcon('n.battle', 'li')}${esc(m.name)}</span>`; };
+/** 이름 없이 폭만 말하는 전장 이름 (config boardSizes · 좁은 지형 틀): 머리에 '폭 n칸' 이 따로 있어 쓰지 않는다 */
+const PLAIN_ENV = new Set([...CFG.boardSizes.map((b) => b.env), '좁은 전장']);
+/** 이번 전장 이름: 지형 틀 이름 (개활지 · 광석 운반차 선로 …). 개활지인데 조우가 따로 이름을 가지면 (보스 아레나 · 튜토리얼 장소) 그 이름 */
+function encName(enc: Encounter) {
+  const m = mapOf(enc.map);
+  return m.id === 'open' && enc.env && !PLAIN_ENV.has(enc.env) ? enc.env : m.name;
+}
+/** 편성 · 전투 보드 머리 제목 (docs/UI.md 17): 전장 이름 = 제목 글자 + 흐린 '폭 n칸 · 역경'. 이름은 칩이 아니고, 같은 것을 두 번 쓰지 않는다 (지형 설명은 오른쪽 '이번 전투') */
+function boardTitle(enc: Encounter, type?: string) {
+  const name = encName(enc);
+  const meta = [`폭 ${enc.n}칸`, type === 'adversity' ? '역경' : '', type === 'challenge' ? `도전 (P${enc.phase} 역경급)` : '', type === 'boss' && name !== '보스 아레나' ? '보스전' : ''].filter(Boolean).join(' · ');
+  return `<span class="bh-title"><b class="bh-name">${esc(name)}</b><span class="bh-meta">${esc(meta)}</span></span>`;
+}
 /** 실제 진행 속도: 상세 정보를 보는 중이면 ×0.25 (설정) */
 function applySpeed() {
   const slow = app.slowDetail && app.battleSel !== null && !app.view?.b.over;
@@ -2772,7 +2863,7 @@ function battleScreen(run: RunState) {
       <section class="bf-wrap bf-sk" aria-label="스킬 사용"><h4 class="bf-h">스킬 사용</h4><ol id="bf-skill" class="bfeed"></ol></section>
     </aside>
     <section class="board-col">
-      <div class="board-head"><b>${esc(enc.env)}</b>${enc.map && enc.map !== 'open' ? mapPill(enc.map) : ''}<span id="btime" class="mono">0.0초</span><span id="bslow" class="bslow" hidden title="상세 정보를 보는 중 · 설정에서 끌 수 있습니다">상세 보기 ×0.25</span>
+      <div class="board-head">${boardTitle(enc, run.node?.type)}<span id="btime" class="mono">0.0초</span><span id="bslow" class="bslow" hidden title="상세 정보를 보는 중 · 설정에서 끌 수 있습니다">상세 보기 ×0.25</span>
         <span class="speed"><button class="btn tiny pause${app.paused ? ' on' : ''}" data-a="pause" title="일시 정지 (Space)" aria-label="일시 정지">${app.paused ? '▶' : '❚❚'}</button>${SPEEDS.map((s) => `<button class="btn tiny ${app.speed === s ? 'on' : ''}" data-a="speed" data-v="${s}">${s}×</button>`).join('')}
         <button class="btn tiny" data-a="skip">결과로</button></span></div>
       ${bviewHtml(run, enc)}
@@ -3340,6 +3431,10 @@ function menuModal(run: RunState | null) {
 
 // ───────────────────────── 렌더
 const lastView = { screen: '' as string, modal: '' };
+/** 대기석을 접는 그리기 (benchKeep = 접기 전 단추 화면 높이 · 대기석 높이): 페이지를 내려 둔 채 접으면 문서가 짧아져 스크롤이 끌려 올라가거나
+ *  (넓은 화면) 보드 열이 sticky 로 붙어 단추가 밀린다 → 단추가 움직였으면 접힌 만큼 보드 열 아래에 빈 여백 (benchPadB)을 두어 높이를 그대로 둔다.
+ *  다시 펼치면 대기석이 그만큼 자라므로 여백을 지운다 (docs/UI.md 9 · 16) */
+let benchKeep: { y: number; h: number } | null = null, benchPadB = 0;
 let lastPhase = 0;
 /** 화면 전환 연출: 전투 개시 · 보스전 · 페이즈 전환 */
 function banner(kind: 'battle' | 'boss' | 'phase' | 'adversity', title: string, sub = '') {
@@ -3553,20 +3648,23 @@ function rerollAsk(run: RunState, i: number, tg: R.UseTarget) {
       if (r.ok) persist();
     } };
 }
-/** 확인 팝업 위치: anchor 중 처음 보이는 요소 기준 (inv = 보관함 상자 왼쪽, 자리가 없으면 오른쪽 · 아래 / above = 위 / beside = 왼쪽 · 오른쪽). 좁은 화면은 하단 시트 */
+/** 확인 팝업 위치: anchor 중 처음 보이는 요소 기준 (inv = 편성 보관함은 상자 오른쪽 · 보드 반대쪽, 가로 보관함은 상자 왼쪽 → 오른쪽 · 아래 / above = 위 / beside = 왼쪽 · 오른쪽). 좁은 화면은 하단 시트 */
 function placeAskPop() {
   const p = root.querySelector<HTMLElement>('.ask-pop'), q = app.ask;
   if (!p || !q) return;
   const vis = (el: Element) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
   const a = q.anchor.map((sel) => Array.from(root.querySelectorAll<HTMLElement>(sel)).find((el) => vis(el) && !el.closest('.ask-pop'))).find(Boolean);
-  if (!a || innerWidth <= 700) {
+  const side = a && q.at === 'inv' ? invRailSide(a, p.offsetWidth) : null;
+  if (!a || innerWidth <= 700 || (q.at === 'inv' && a.closest('.inv-rail') && !side)) {
     p.classList.add('sheet');
     Object.assign(p.style, { left: '8px', right: '8px', top: 'auto', bottom: '8px' });
+    if (q.at === 'inv') sheetReveal(a || null, p, `ask:${q.anchor[0]}`);
     return;
   }
   p.classList.remove('sheet');
   Object.assign(p.style, { right: 'auto', bottom: 'auto' });
   const w = p.offsetWidth, h = p.offsetHeight, r = a.getBoundingClientRect();
+  if (side) { p.style.left = `${Math.max(8, Math.min(side.left, innerWidth - w - 8))}px`; p.style.top = `${Math.max(8, Math.min(innerHeight - h - 8, r.top - 12))}px`; return; }
   let left: number, top: number;
   if (q.at === 'above') {
     left = r.left + r.width / 2 - w / 2; top = r.top - h - 8;
@@ -3582,16 +3680,42 @@ function placeAskPop() {
 }
 
 /** 상단 바 높이 → 옆 패널 sticky 기준, 상세 능력치 창을 상세 보기 패널 왼쪽에 고정 */
-/** 보관 물품 정보 팝업: 고른 물품의 왼쪽에 붙인다 (좁은 화면은 아래 시트) */
+/** 편성 보관함 (세로 줄, 보드 오른쪽) 옆 팝업 자리 (docs/UI.md 15): 상자 바깥 오른쪽 = 보드 반대쪽 (상세 패널 위)이라 보드 칸을 가리지 않는다.
+ *  자리가 모자라거나 (좁은 화면 · 보관함이 보드 아래 가로 줄) 세로 줄이 아니면 null → 화면 아래 시트 */
+function invRailSide(a: HTMLElement, w: number) {
+  const box = a.closest<HTMLElement>('.inv-rail')?.getBoundingClientRect();
+  if (!box || innerWidth <= 700 || box.width >= box.height) return null;
+  const room = innerWidth - 8 - (box.right + 10);
+  return room >= Math.min(w, 220) ? { left: box.right + 10, w: Math.min(w, room) } : null;
+}
+/** 하단 시트가 고른 칸을 가리면 페이지를 그만큼 올린다 (시트를 위로 옮겨 보드를 덮지 않는다). 같은 물품에 한 번만 (사용자 스크롤과 다투지 않게) */
+let sheetKey = '';
+function sheetReveal(a: HTMLElement | null, p: HTMLElement, key: string) {
+  if (key === sheetKey) return;
+  sheetKey = key;
+  const over = a ? a.getBoundingClientRect().bottom - (innerHeight - p.offsetHeight - 16) : 0;
+  if (over > 0) scrollBy(0, over);
+}
+/** 보관 물품 정보 팝업: 편성 보관함은 상자 오른쪽 (보드 반대쪽), 상점 등 가로 보관함은 상자 왼쪽 · 오른쪽 · 아래. 자리가 없거나 좁은 화면은 아래 시트 */
 function placeInvPop() {
   const p = root.querySelector<HTMLElement>('.inv-pop');
-  if (!p) return;
+  if (!p) { sheetKey = ''; return; }
   const a = root.querySelector<HTMLElement>('.inv-rail .item.sel, .inv-rail .relic-tok.on, .inv .item.sel, .inv .relic-tok.on');
-  // 좁은 화면: 하단 시트. 누른 칸이 시트에 가려지는 높이면 위쪽(상단 바 밑)에 띄운다
-  const placing = p.classList.contains('ip-placing');
+  const key = `${app.sel?.k === 'item' ? app.sel.idx : app.sel?.k === 'relic' ? app.sel.id : ''}`;
+  if (a?.closest('.inv-rail')) {
+    const side = invRailSide(a, 260);
+    if (!side) { p.classList.add('sheet'); p.style.cssText = ''; sheetReveal(a, p, key); return; }
+    p.classList.remove('sheet');
+    p.style.cssText = `width:${side.w}px`;
+    const r = a.getBoundingClientRect(), h = p.offsetHeight;
+    p.style.left = `${side.left}px`;
+    p.style.top = `${Math.max(8, Math.min(innerHeight - h - 8, r.top - 12))}px`;
+    return;
+  }
+  // 가로 보관함 (상점 등) · 좁은 화면: 하단 시트. 누른 칸이 시트에 가려지는 높이면 위쪽(상단 바 밑)에 띄운다
   if (!a || innerWidth <= 700) {
     p.classList.add('sheet'); p.style.cssText = '';
-    if (a && !placing && a.getBoundingClientRect().bottom > innerHeight - p.offsetHeight - 16) { // 배치형 소모품은 아래에 둔다 (위쪽 보드를 가리지 않게)
+    if (a && a.getBoundingClientRect().bottom > innerHeight - p.offsetHeight - 16) {
       p.style.setProperty('top', `${Math.max(8, (root.querySelector('header.top')?.getBoundingClientRect().bottom ?? 0) + 8)}px`, 'important');
       p.style.bottom = 'auto';
     }
@@ -3599,10 +3723,9 @@ function placeInvPop() {
   }
   // 넓은 화면: 보관함 상자 바깥 왼쪽에 (같은 보관함의 다른 칸 · 누른 칸을 가리지 않게). 자리가 없으면 오른쪽, 그래도 없으면 상자 아래 · 위
   p.classList.remove('sheet');
-  const r = a.getBoundingClientRect(), box = a.closest<HTMLElement>('.inv-rail, .inv')?.getBoundingClientRect() || r;
+  const r = a.getBoundingClientRect(), box = a.closest<HTMLElement>('.inv')?.getBoundingClientRect() || r;
   const w = p.offsetWidth, h = p.offsetHeight;
   let left = box.left - w - 10, top = Math.min(innerHeight - h - 8, Math.max(8, r.top));
-  if (placing && a.closest('.inv-rail') && box.right + 10 + w <= innerWidth - 8) left = box.right + 10; // 배치형 소모품: 보드 쪽(왼쪽) 대신 오른쪽 (상세 패널 위)
   if (left < 8) left = box.right + 10 + w <= innerWidth - 8 ? box.right + 10 : -1;
   if (left < 0) { left = Math.max(8, Math.min(innerWidth - w - 8, r.left)); top = box.bottom + 8 + h <= innerHeight - 8 ? box.bottom + 8 : Math.max(8, box.top - h - 8); }
   p.style.left = `${left}px`;
@@ -3762,6 +3885,8 @@ function vpCueSync(vp: HTMLElement) {
   if (!host || !b) return;
   const st = `left:${vp.offsetLeft}px;top:${vp.offsetTop}px;width:${vp.offsetWidth}px;height:${vp.offsetHeight}px`;
   if (host.getAttribute('style') !== st) host.setAttribute('style', st);
+  const ovl = vp.parentElement?.querySelector<HTMLElement>(':scope > .tool-ovl'), os = `left:${vp.offsetLeft}px;top:${vp.offsetTop + 6}px;width:${vp.offsetWidth}px;right:auto`; // 쥔 도구 칩: 보드 창 위쪽 가장자리 가운데
+  if (ovl && ovl.getAttribute('style') !== os) ovl.setAttribute('style', os);
   const sides: Record<string, string[]> = { l: [], r: [], t: [], b: [] }, W = vp.clientWidth, H = vp.clientHeight, x0 = vp.scrollLeft, y0 = vp.scrollTop;
   const age = performance.now() - prepView.t0, pulse = age < VP_PULSE_MS && prepView.key === prepViewKey(app.run), delay = `animation-delay:-${Math.round(age)}ms`; // 다시 그려도 깜빡임은 이어서 (한 번만)
   const zones = vpZones(b), sur = pulse && zones.some((z) => z.k === 'foe1'); // 포위 첫 편성: 적 진형 양쪽 모두
@@ -4001,7 +4126,7 @@ function render() {
   lastView.modal = modalKeyOf();
   topHSync();
   prepZoomSync(); // 보드 크기를 먼저 (창 안 스크롤 위치를 되살리려면 보드가 제 크기여야 한다)
-  if (app.screen === 'prep' && run) toolMark(run); // 쥔 도구의 대상 표시 (받을 수 있음 · 없음 + 다음 누름 결과)
+  if (app.screen === 'prep' && run) toolMark(run); else tgTip(null); // 쥔 도구: 받을 수 없는 것을 흐리고, 받는 대상에 다음 누름 결과 (가리키면 보임)
   scrollRestore(scrolled, newModal);
   if (app.screen === 'prep') prepViewInit(sameView); // 조우를 처음 열면 아군 진형부터 · 창 가장자리 길잡이
   restoredAt = performance.now();
@@ -4024,7 +4149,17 @@ function render() {
   if (sameView) {
     for (const [sel, top] of keep) { const el = root.querySelector(sel); if (el && top) el.scrollTop = top; }
     if (winY) window.scrollTo(0, winY);
+    const col = benchKeep && app.screen === 'prep' ? root.querySelector<HTMLElement>('.prep > .board-col') : null, tg = col?.querySelector<HTMLElement>('.bench-tog'), bn = col?.querySelector<HTMLElement>('.bench');
+    if (benchKeep && col && tg && bn && Math.abs(tg.getBoundingClientRect().top - benchKeep.y) > 0.5) {
+      benchPadB = Math.max(0, Math.round(benchKeep.h - bn.offsetHeight));
+      col.style.paddingBottom = `${benchPadB}px`;
+      window.scrollTo(0, winY);
+      const d = tg.getBoundingClientRect().top - benchKeep.y;
+      if (Math.abs(d) > 0.5) window.scrollBy(0, d);
+    }
   }
+  benchKeep = null;
+  if (app.screen !== 'prep' || !loadPrefs().benchOff) benchPadB = 0;
   const md = root.querySelector('.modal');
   if (md && modalTop) md.scrollTop = modalTop;
   if (md && newModal) md.classList.add('enter');
@@ -4390,7 +4525,7 @@ function mountBattleView(board: HTMLElement) {
   const enc = run.node!.enc!;
   if (nt === 'boss') banner('boss', 'BOSS', ENEMY_BY_ID[enc.enemies.find((e) => ENEMY_BY_ID[e.defId].tier === 'boss')?.defId || '']?.name || '보스전');
   else if (nt === 'challenge') banner('adversity', '도전', `페이즈 ${enc.phase} 역경 수준`);
-  else banner(nt === 'adversity' ? 'adversity' : 'battle', nt === 'adversity' ? '역경 전투' : '전투 개시', enc.env);
+  else banner(nt === 'adversity' ? 'adversity' : 'battle', nt === 'adversity' ? '역경 전투' : '전투 개시', encName(enc));
   SND.sfx('start', { boss: nt === 'boss' }); // 전투 개시음 (보스는 낮게)
   const b = buildBattle(run, run.node!.enc!);
   app.lastBattle = b;
@@ -5073,7 +5208,7 @@ function tipSteps(key: string, run: RunState | null): Partial<CoachStep>[] {
       { target: '.adv .adv-end:not([hidden]) .adv-choice[disabled]', pend: true, wait: true },
     ];
     case 'ch4_adversity': return [
-      { target: '.prep .board-head b' }, { target: foeTok(r, 'warlord') }, { target: foeTok(r, 'wraith') }, { target: foeTok(r, 'turret') },
+      { target: '.prep .board-head .bh-title' }, { target: foeTok(r, 'warlord') }, { target: foeTok(r, 'wraith') }, { target: foeTok(r, 'turret') },
       { target: foeTok(r, 'warlord', 'wraith', 'turret'), until: () => app.sel?.k === 'enemy' },
     ];
     case 'ch4_boss': return [
@@ -5461,7 +5596,13 @@ function act(a: string, v: string) {
     case 'crane-home': if (run) { const e = R.craneMove(run, +v, null); if (e) toast(`${e}.`); else { app.crane = null; app.sel = { k: 'terrain', g: crateGroup(runGeo(run), +v) }; persist(); } } break;
     case 'dev-cell': if (run && app.sel?.k === 'item') { const [x, y] = v.split(':').map(Number); placeAt(run, app.sel.idx, x, y); } break;
     case 'fold-r': savePref('prepFold', !loadPrefs().prepFold); break;
-    case 'bench-tog': savePref('benchOff', !loadPrefs().benchOff); break;
+    case 'bench-tog': {
+      const off = !loadPrefs().benchOff, tg = root.querySelector<HTMLElement>('.prep .bench-tog'), bn = root.querySelector<HTMLElement>('.prep .bench');
+      savePref('benchOff', off);
+      benchKeep = off && tg && bn ? { y: tg.getBoundingClientRect().top, h: bn.offsetHeight } : null;
+      if (!off) benchPadB = 0;
+      break;
+    }
     case 'board-fit': prepZoomAct('fit'); return;
     case 'bzoom': prepZoomAct(v); return;
     case 'vp-cue': prepCenterOn(v, true); return;
@@ -5666,7 +5807,7 @@ function itemTip(el: HTMLElement, key: string) {
 // ───────────────────────── 드래그 앤 드롭 (마우스 + 터치 공용)
 /** data-hold 요소는 길게 눌러야(HOLD_MS) 끌기가 시작된다. 그 전에 움직이면 끌기 취소 */
 const HOLD_MS = 220;
-let drag: { src: string; x: number; y: number; ghost: HTMLElement | null; el: HTMLElement; t0: number; hold: boolean } | null = null;
+let drag: { src: string; x: number; y: number; ghost: HTMLElement | null; el: HTMLElement; t0: number; hold: boolean; marked?: boolean } | null = null;
 let suppressClick = false;
 /** 끄는 동안 손가락 · 커서가 화면 위 · 아래 가장자리에 머물면 창을 스크롤한다 (휴대폰 세로: 아래쪽 기물 상세의 장비를 보드 · 보관함까지 끌고 올라가기). 보드에서 끄는 것은 페이지를 굴리지 않는다 (아래 dragAutoScroll) */
 const DRAG_EDGE = 56, DRAG_SCROLL_MAX = 18, VP_EDGE = 36; // VP_EDGE = 확대한 보드 창 가장자리 폭
@@ -5774,7 +5915,11 @@ window.addEventListener('pointermove', (ev) => {
     document.body.appendChild(g);
     drag.ghost = g;
     drag.el.classList.add('dragging');
+    // 끄는 것이 장비 · 소모품 · 성유물이면 누를 때와 같은 표시: 받을 수 없는 것을 흐리고, 끌어 올린 대상에만 결과 이름표 (docs/UI.md 14)
+    const run = app.run, t = run && app.screen === 'prep' ? dragTool(run, drag.src) : null;
+    if (run && t) { toolMark(run, t); drag.marked = true; }
   }
+  if (drag.marked) toolMarkAt(ev.clientX, ev.clientY);
   drag.ghost.style.left = `${ev.clientX}px`;
   drag.ghost.style.top = `${ev.clientY}px`;
   dragPt = { x: ev.clientX, y: ev.clientY };
@@ -5804,8 +5949,14 @@ window.addEventListener('pointerup', (ev) => {
   const tgt = under?.closest('[data-drop]') as HTMLElement | null;
   if (tgt) onDrop(d.src, tgt.dataset.drop!);
   else if (pi >= 0) render(); // 끄는 동안 붙인 미리보기 · 놓을 수 있는 칸 표시 지우기
+  else if (d.marked && app.run && app.screen === 'prep') toolMark(app.run); // 끄는 동안의 흐림 → 고른 도구 기준 (없으면 지움)
 });
-window.addEventListener('pointercancel', () => { const pi = drag?.ghost ? dragPlaceIdx() : -1; if (drag?.ghost) { drag.ghost.remove(); drag.el.classList.remove('dragging'); } drag = null; if (pi >= 0) { devPv = null; render(); } });
+window.addEventListener('pointercancel', () => {
+  const pi = drag?.ghost ? dragPlaceIdx() : -1, marked = !!drag?.marked;
+  if (drag?.ghost) { drag.ghost.remove(); drag.el.classList.remove('dragging'); }
+  drag = null;
+  if (pi >= 0) { devPv = null; render(); } else if (marked && app.run && app.screen === 'prep') toolMark(app.run);
+});
 /** 보관함에서 끄는 것이 배치형 소모품이면 그 보관함 순번 (편성 화면 · 전투 조우 중), 아니면 -1 */
 function dragPlaceIdx() {
   const run = app.run, m = drag ? /^item:(\d+)$/.exec(drag.src) : null;
