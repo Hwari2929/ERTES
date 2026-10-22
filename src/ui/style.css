@@ -3405,7 +3405,7 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
 .ds-card.info .ds-despair { opacity: 0; }
 /* ───────── 절망 서약 (data/oaths.ts · ui/oath.ts): 타이틀에서 따로 여는 고난 전용 조건 화면. 절망 증강의 어두운 진홍 토큰을 그대로 쓴다 */
 .title-actions .ts-oath { border-color: color-mix(in srgb, var(--c-despair) 55%, var(--line)); }
-.oath { padding-bottom: 32px; }
+.wrap.oath { padding-bottom: 32px; } /* 절망 서약 화면만 (리본의 서약 칩 .pill.oath 에 아래 여백이 붙어 글 · 아이콘이 칩 위로 삐져나오던 것) */
 .oh-top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 16px; padding: 18px 20px; border-radius: var(--r-lg); border: 1px solid color-mix(in srgb, var(--c-despair) 45%, var(--line)); background: linear-gradient(170deg, var(--c-despair-deep), var(--panel) 75%); }
 .oh-title { display: grid; gap: 6px; max-width: 760px; }
 .oh-title h1 { margin: 0; display: flex; align-items: center; gap: 8px; letter-spacing: .08em; }
