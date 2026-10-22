@@ -3,7 +3,8 @@
 - 알베도에 남은 큰 밝기 변화(조명 흔적)는 큰 반경 블러로 나눠 평평하게 한다.
 - 높이 = 밝기의 고주파 성분 (나뭇결 · 판자 이음), 노멀 = 높이의 기울기.
 - 빛 = 왼쪽 위 한 방향 (모든 소품 · 종이 그림자와 같은 방향). 평평한 면의 밝기를 1로 맞춰 평균 밝기는 그대로 둔다.
-- 빛 웅덩이는 여기서 굽지 않는다 (화면 맨 위 한 장 .ct-light 가 종이까지 함께 비춘다)."""
+- 빛 웅덩이는 여기서 굽지 않는다 (화면 맨 위 한 장 .ct-light 가 종이까지 함께 비춘다).
+- --bright B --contrast C: 굽고 난 뒤 명도(평균 밝기 배율) · 대비(평균에서 떨어진 정도 배율)를 낮춘다 (종이 밑에서 무늬가 시끄럽지 않게)."""
 import sys
 import numpy as np
 from PIL import Image, ImageFilter
@@ -11,6 +12,12 @@ from PIL import Image, ImageFilter
 LIGHT = np.array([-1.0, -1.0, 1.6]); LIGHT /= np.linalg.norm(LIGHT)
 STRENGTH = 2.2   # 결 요철 세기
 MIX = 0.55       # 음영 섞는 비율
+
+def tone(img, bright=1.0, contrast=1.0):
+    a = np.asarray(img).astype(np.float32) / 255
+    m = a.mean(axis=(0, 1), keepdims=True)
+    a = (m + (a - m) * contrast) * bright
+    return Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8))
 
 def bake(path):
     im = Image.open(path).convert('RGB')
@@ -35,5 +42,7 @@ def bake(path):
 if __name__ == '__main__':
     src, dst = sys.argv[1], sys.argv[2]
     img, nrm = bake(src)
+    opt = lambda f, d: float(sys.argv[sys.argv.index(f) + 1]) if f in sys.argv else d
+    img = tone(img, opt('--bright', 1.0), opt('--contrast', 1.0))
     img.save(dst, 'WEBP', quality=84, method=6)
     if '--normal' in sys.argv: nrm.save(sys.argv[sys.argv.index('--normal') + 1])
