@@ -82,6 +82,10 @@ const R: Record<string, (o: SfxOpts) => L[]> = {
   alarm: () => [0, 0.3, 0.6].flatMap((t) => [tone('t', 660, 0.12, 0.06, { t, h: 0.02 }), tone('t', 880, 0.12, 0.06, { t: t + 0.15, h: 0.02 })]),
   strum: () => [52, 57, 62, 67, 71].map((n, i) => tone('w', m(n), 0.7, 0.04, { t: i * 0.028, p: 'l', c: 2200, c2: 700, a: 0.003 })),
   twang: () => [tone('t', 180, 0.25, 0.11, { e: 150, a: 0.003 }), ...knock(0.22)],
+  print: () => [...Array.from({ length: 8 }, (_, i) => noise(0.01, 0.05, 'b', 2100 + rnd() * 700, { t: i * 0.032, q: 3, a: 0.001 })), tone('q', 140, 0.24, 0.012, { p: 'l', c: 500 })], // 전표 인쇄기 (도트)
+  heart: () => [tone('s', 64, 0.16, 0.24, { e: 42, a: 0.006 }), noise(0.05, 0.05, 'l', 220, { a: 0.002 }), tone('s', 58, 0.22, 0.19, { e: 38, t: 0.26, a: 0.006 }), noise(0.05, 0.04, 'l', 200, { t: 0.26, a: 0.002 })], // 심장 박동 2번 (그늘)
+  chain: () => Array.from({ length: 7 }, (_, i) => at(i * 0.08 + rnd() * 0.05, bar(1100 + rnd() * 600, 0.012))).flat(), // 금 체인이 흔들리는 소리
+  tear: () => [noise(0.32, 0.09, 'b', 1700, { c2: 3800, a: 0.02, q: 0.9 }), noise(0.08, 0.05, 'h', 4200, { t: 0.24 })], // 종이 찢기
   paper: () => [noise(0.12, 0.06, 'b', 2600, { a: 0.03, q: 1.2, c2: 1800 }), noise(0.05, 0.04, 'h', 4000, { t: 0.1 })],
   bubble: () => Array.from({ length: 10 }, () => { const f = 300 + rnd() * 400; return tone('s', f, 0.04, 0.045, { e: f * 1.7, t: rnd() * 0.8 }); }),
   beep: () => [tone('q', 880, 0.05, 0.03, { h: 0.04, p: 'l', c: 2200 }), tone('q', 1175, 0.05, 0.026, { t: 0.12, h: 0.04, p: 'l', c: 2200 })],
@@ -291,9 +295,9 @@ for (const [s, as] of Object.entries({
   buy: 'buy buy-news buy-invest buyxp pil-card pil-relic fleet loan muster-open',
   sell: 'sell release-confirm',
   reroll: 'reroll reroll-recruit reroll-global reroll-privilege',
-  confirm: 'pick-aug pick-global pick-privilege pick-item pick-recruit pick-blessing supply-done alloc-ok muster-ok pick-branch pick-fork start-run diff-ok enter victory-end victory-endless relic-equip relic-enh event-choice',
+  confirm: 'pick-aug pick-global pick-privilege pick-item pick-recruit pick-blessing supply-done alloc-ok muster-ok pick-branch pick-fork start-run diff-ok ct-take enter victory-end victory-endless relic-equip relic-enh event-choice',
   place: 'drop autofill',
-  '': 'bdesel syn-peek item-info fight pick-supply supply-all', // 소리 없음 (전투 시작은 개시 연출에서 · 보급 뒤집기는 공개음 reveal)
+  '': 'bdesel syn-peek item-info fight pick-supply supply-all ct-job ct-plan ct-rider ct-bell ct-sign ct-tear ct-seal ct-skip', // 소리 없음 (전투 시작은 개시 연출에서 · 보급 뒤집기는 공개음 reveal)
 })) for (const a of as.split(' ')) ACT[a] = s;
 /** UI 동작 직전에 부른다 (data-a 이름). 동작이 끝난 뒤(마이크로태스크) 결과에 맞는 소리를 낸다 */
 export function uiAct(a: string) {

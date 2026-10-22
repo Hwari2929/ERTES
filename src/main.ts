@@ -24,6 +24,7 @@ import { ABIL, augAbilText, ENEMY_ABIL, GLOSS } from './data/abiltext';
 import * as AB from './ui/abil';
 import * as CX2 from './ui/codex2';
 import * as BAR from './ui/bar';
+import * as CTR from './ui/contract';
 import * as ACH from './ui/achieve';
 import * as TFX from './ui/themefx';
 import {
@@ -139,7 +140,7 @@ if (typeof window !== 'undefined' && loadPrefs().fullscreen && canFullscreen()) 
 }
 const FS_SVG = (on: boolean) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${on ? 'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5' : 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'}"/></svg>`;
 
-type Screen = 'title' | 'intro' | 'diffsel' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'invest' | 'over' | 'codex' | 'bar' | 'oath';
+type Screen = 'title' | 'contract' | 'newrun' | 'map' | 'prep' | 'battle' | 'shop' | 'news' | 'invest' | 'over' | 'codex' | 'bar' | 'oath';
 /** 화면을 가리지 않는 확인 팝업: anchor 선택자 중 처음 보이는 요소 옆에 (inv = 보관함 상자 왼쪽 · above = 위 · beside = 옆). ok 가 없으면 안내만 (닫기 버튼 하나) */
 type Ask = { html: string; anchor: string[]; at: 'inv' | 'above' | 'beside' | 'below'; ok?: () => void; okLabel?: string; hl?: number[] }; // hl: 함께 강조할 보관함 칸 (조합 재료 둘)
 type Sel = { k: 'unit'; uid: string } | { k: 'terrain'; g: number } | { k: 'turret'; i: number } | { k: 'king' } | { k: 'item'; idx: number } | { k: 'relic'; id: string } | { k: 'enemy'; i: number } | { k: 'def'; id: string } | null;
@@ -184,10 +185,7 @@ const app = {
   needMount: false,
   diff: DIFF_PRESETS[0].lvl, // 새 런 난이도 = 위험 등급 (쉬움 3 · 모험 6 · 고난 7, data/difficulty.ts DIFF_PRESETS)
   introField: null as string | null, // 출격 연출: 이번 런 전장
-  introDone: false, // 출격 연출을 끝까지 봤는지 (다시 그릴 때 연출 생략)
-  introCustom: false, // 지정 의뢰: 전장을 추첨 대신 직접 고른다
   introFoe: null as string | null, // 전장 브리핑에서 연 적 상세
-  dsInfo: null as number | null, // 난이도 카드에서 펼친 세부 조건
   codexTab: 'units' as 'units' | CX2.Cx2Tab | 'enemies' | 'events' | 'manual' | 'records' | 'ach',
   tutAsk: false, // 첫 실행: 새 계약을 누르면 튜토리얼부터 볼지 묻는다
   codexGroup: 'none' as 'none' | 'faction' | 'trait' | 'ctype' | 'ttype', // 도감 기물: 모아보기 기준
@@ -209,6 +207,12 @@ const pct1 = (x: number) => `${+(x * 100).toFixed(1)}%`;
 /** 보급 대박: 장마다 앞에서부터 굴려 처음 걸린 배율 (CFG.supply.jackpot) → 배율별 실제 확률 */
 const jackpotTxt = () => { let left = 1; return CFG.supply.jackpot.map(([x, p]) => { const q = left * p; left *= 1 - p; return `×${x} ${pct1(q)}`; }).join(' · '); };
 
+/** 출격 계약 차림표를 연다 (바 · 타이틀 · 결과 화면의 '새 계약', 타이틀 '지정 의뢰') */
+function openContract(custom: boolean) {
+  app.tutAsk = false;
+  CTR.contractStart(app.screen === 'bar' ? 'bar' : 'title', custom);
+  app.screen = 'contract'; app.menu = null; app.introFoe = null; app.abilPop = null;
+}
 function toast(msg: string) {
   SND.toastSfx(msg); // 입력 중에 뜬 오류 알림이면 그 입력의 소리를 오류음으로
   app.toast = msg;
@@ -359,7 +363,7 @@ function topbar() {
       ${r.campaign ? `<span class="pill" title="장 · 노드"><b>${r.campaign.ch}</b>장 · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>` : `<span class="pill" title="페이즈 · 노드">P<b>${r.phase}</b> · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>`}
       <span class="pill hp" title="체력">${lineIcon('r.hp', 'li')}<b>${r.hp}</b>/${r.maxHp}</span>
       <button class="pill cr" data-a="interest-info" title="${esc(`에너지 크레딧 ${r.credits}\n${it.tip}`)}">${CR}<b>${r.credits}</b>${r.over ? '' : `<span class="cr-int${it.i.interest ? '' : ' zero'}${it.i.raw >= it.i.cap ? ' max' : ''}">+${it.i.interest}<span class="cr-int-tx"> 이자</span></span>`}</button>
-      ${despairPill(r)}${OATH.oathPill(r)}${kingPill(r)}
+      ${CTR.contractPill(r)}${despairPill(r)}${OATH.oathPill(r)}${kingPill(r)}
       ${extra.length ? `<details class="pill more"><summary title="기타 자원">${lineIcon('r.more', 'li')}<span class="more-tx">기타</span></summary><ul class="more-list">${extra.join('')}</ul></details>` : ''}
     </div>
     ${app.screen === 'battle' ? '' : `<button class="btn ghost menu-btn" data-a="menu" title="메뉴" aria-label="메뉴">${lineIcon('r.menu', 'li')}</button>`}
@@ -449,7 +453,7 @@ function titleScreen() {
       <div class="ts-body"><div class="ts-left">
       <nav class="title-actions" aria-label="메뉴">
         <div class="ts-main">${auto ? `<button class="btn primary ts-btn ts-hero" data-a="load" data-v="auto"><b>이어하기</b><small>페이즈 ${auto.phase} · 체력 ${auto.hp}</small></button>` : ''}
-          <div class="ts-split"><button class="btn ${auto ? '' : 'primary ts-hero'} ts-btn" data-a="newrun"><b>새 계약</b>${auto ? '<small>진행 중인 의뢰는 덮어씁니다</small>' : '<small>전장 추첨 · 난이도 · 계약 기물 4명</small>'}</button><button class="btn ts-btn ts-custom" data-a="newrun-custom"><b>지정 의뢰</b><small>전장을 직접 고른다</small></button></div></div>
+          <div class="ts-split"><button class="btn ${auto ? '' : 'primary ts-hero'} ts-btn" data-a="newrun"><b>새 계약</b>${auto ? '<small>진행 중인 의뢰는 덮어씁니다</small>' : '<small>바 카운터 · 의뢰 · 약관 · 계약 기물 4명</small>'}</button><button class="btn ts-btn ts-custom" data-a="newrun-custom"><b>지정 의뢰</b><small>전장을 직접 고른다</small></button></div></div>
         <div class="ts-grid" role="group" aria-label="둘러보기">${tutButton()}
           <button class="btn ts-btn ts-tile" data-a="bar"><b>에란테스 바</b><small>${auto ? '들렀다가 이어서 출격' : '단원 · 손님들의 잡담'}</small></button>
           <button class="btn ts-btn ts-tile" data-a="codex"><b>도감 · 기록</b><small>교범 · 기록 · 업적</small></button>
@@ -865,23 +869,6 @@ function fieldBrief(fid: string) {
     return `<button class="fb-foe-ic tier-${e.tier}" data-a="intro-foe" data-v="${id}" title="${esc(e.name)}">${sprite(e, '')}${tag ? `<em>${tag}</em>` : ''}<i>${esc(e.name)}</i></button>`;
   }).join('')}</div>`;
 }
-function introScreen() {
-  const f = fieldOf(app.introField);
-  const done = app.introDone ? ' landed opened' : '';
-  return `<main class="intro${done}" style="--c:${f.color}">
-    <div class="in-bg" style="background-image:url('${bgURL(`field_${f.id}`)}'), linear-gradient(165deg, color-mix(in srgb, ${f.color} 40%, #0b0d14), #0b0d14 75%)"></div><div class="in-shade"></div>
-    <div class="in-stars" aria-hidden="true">${Array.from({ length: 40 }, (_, i) => `<i style="--x:${(i * 37) % 100}%;--d:${(i % 7) * 0.6}s;--s:${3 + (i % 5)}s"></i>`).join('')}</div>
-    <div class="in-curtain l" aria-hidden="true"></div><div class="in-curtain r" aria-hidden="true"></div>
-    <div class="in-slot"><span class="in-kicker">${app.introCustom ? '지정 의뢰 · 전장 선택' : '이번 의뢰의 전장'}</span><b class="in-name">${app.introDone ? esc(f.name) : '???'}</b><span class="in-region">${esc(f.region)}</span></div>
-    <section class="in-info" aria-live="polite">
-      ${app.introCustom ? `<div class="in-pick" role="group" aria-label="전장 고르기">${FIELDS.map((x) => `<button class="btn tiny in-fp${x.id === f.id ? ' on' : ''}" style="--c:${x.color}" data-a="intro-field" data-v="${x.id}" aria-pressed="${x.id === f.id}"><span aria-hidden="true">${x.icon}</span>${esc(x.name)}</button>`).join('')}</div>` : ''}
-      <p class="in-desc">${esc(f.desc)}</p>
-      ${fieldBrief(f.id)}
-      <div class="in-act"><button class="btn ghost" data-a="to-title">돌아가기</button><button class="btn primary" data-a="intro-ok">확인</button></div>
-    </section>
-    ${app.introFoe ? foeModal(app.introFoe) : ''}
-  </main>`;
-}
 /** 전장 브리핑: 적 초상화를 누르면 1페이즈 기준 상세 (능력 카드 · 설명) */
 function foeModal(id: string) {
   const e = ENEMY_BY_ID[id];
@@ -897,84 +884,17 @@ function foeModal(id: string) {
     <div class="row-btns"><button class="btn primary" data-a="intro-foe" data-v="">닫기</button></div>
   </div></div>`;
 }
-/** 출격 연출 동안 전장 · 난이도 배경을 미리 받아 둔다 */
-let bgWarm = false;
 /** 특권 커튼 연출을 이미 보여 준 런 (시드) */
 let pvPlayed: number | null = null;
 /** 절망 증강 막을 이미 보여 준 선택 (시드:이미 고른 수) */
 let dpPlayed: string | null = null;
-function preloadBgs() {
-  if (bgWarm) return;
-  bgWarm = true;
-  for (const k of [...FIELDS.map((f) => `field_${f.id}`), 'diff_easy', 'diff_adventure', 'diff_challenge']) { const im = new Image(); im.decoding = 'async'; im.src = bgURL(k); }
-}
-/** 별 무리 → 커튼 갈라짐 → 슬롯 회전 → 착지 (DOM 만 조작하고 끝나면 introDone) */
-let introTimer = 0;
-function introAnim() {
-  const el = root.querySelector<HTMLElement>('.intro');
-  const name = el?.querySelector<HTMLElement>('.in-name'), region = el?.querySelector<HTMLElement>('.in-region');
-  if (!el || !name || !region) return;
-  clearTimeout(introTimer);
-  const target = fieldOf(app.introField);
-  const names = FIELDS.map((f) => f);
-  let i = 0, delay = 60, elapsed = 0;
-  const spin = () => {
-    const f = names[i++ % names.length];
-    name.textContent = f.name; region.textContent = f.region;
-    el.style.setProperty('--c', f.color);
-    elapsed += delay;
-    if (elapsed > 1900 && f.id === target.id) {
-      el.classList.add('landed');
-      app.introDone = true;
-      return;
-    }
-    if (elapsed > 1100) delay = Math.min(320, delay * 1.18);
-    introTimer = window.setTimeout(spin, delay);
-  };
-  introTimer = window.setTimeout(() => { el.classList.add('opened'); introTimer = window.setTimeout(spin, 650); }, 900);
-}
-/** 난이도 카드: 등급 · 이름은 difficulty.ts DIFF_PRESETS (쉬움 3 · 모험 6 · 고난 7), 증원 간격 · 보상 배율 · 절망 증강 횟수는 설정값에서 읽는다.
- *  배경 키(diff_easy · diff_adventure · diff_challenge)는 그림 파일 이름이라 카드 순서대로 그대로 쓴다 */
-const DIFF_BG = ['diff_easy', 'diff_adventure', 'diff_challenge'];
-/** 난이도 카드 한 줄 설명: 쉬움(가장 낮은 선택지)을 기준으로 달라지는 점만 (승리 크레딧도 쉬움 대비 배율) */
-const diffLine = (lvl: number) => {
-  const add = diffAddEvery(lvl), cr = CFG.diffWinMul(lvl) / CFG.diffWinMul(DIFF_PRESETS[0].lvl);
-  const parts: string[] = [];
-  if (despairDiff(lvl)) parts.push('함대 체력 감소', '절망 증강');
-  if (lvl >= 6) parts.push('모든 적 장비');
-  if (add) parts.push(`${add}페이즈마다 적 +1`);
-  if (cr > 1) parts.push(`승리 크레딧 ×${+cr.toFixed(2)}`);
-  return parts.length ? parts.join(' · ') : '처음 출격하는 용병단을 위한 기본 항로';
-};
-const DIFF_PICKS = DIFF_PRESETS.map((x, i) => ({ lvl: x.lvl, name: x.name, sub: `위험 등급 ${x.lvl}`, bg: DIFF_BG[i] || DIFF_BG[DIFF_BG.length - 1], line: diffLine(x.lvl) }));
-/** 절망 증강 안내 (고난 카드 위 띠): 고르는 횟수만 짧게. 자세한 방식은 ⓘ 세부 조건 (difficulty.ts 위험 7) */
-function despairNote(lvl: number) {
-  if (!despairDiff(lvl)) return '';
-  const ph = despairPhases();
-  return `절망 증강: 출격 때 1개${ph.length ? ` + ${ph.map((p) => `${p}페이즈`).join(' · ')} 시작 때 1개씩` : ''} (의뢰 중 ${1 + ph.length}개)`;
-}
-function diffScreen() {
-  return `<main class="diffsel${lastView.screen !== 'diffsel' ? ' enter' : ''}"><h1 class="ds-title">난이도 설정</h1>
-    <div class="ds-row">${DIFF_PICKS.map((d) => {
-      const on = app.diff === d.lvl;
-      const conds = DIFFS.filter((x) => x.lvl >= 1 && x.lvl <= d.lvl).map((x) => x.desc).concat(OATH.applies(d.lvl) ? OATH.oathConds() : []);
-return `<button class="ds-card${on ? ' on' : ''}${app.dsInfo === d.lvl ? ' info' : ''}" data-a="diff" data-v="${d.lvl}" aria-pressed="${on}">
-        <span class="ds-bg" style="background-image:url('${bgURL(d.bg)}')"></span><span class="ds-shade"></span>
-        <span class="ds-info-btn" data-a="ds-info" data-v="${d.lvl}" role="button" aria-label="${d.name} 세부 조건" title="세부 조건">i</span>
-        <span class="ds-pop">${conds.length ? `<b>세부 조건</b><ul>${conds.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : '<b>세부 조건</b><span>추가 조건 없음</span>'}</span>
-        <span class="ds-body"><span class="ds-sub">${(() => { const e = OATH.applies(d.lvl) ? OATH.effNow(d.lvl) : d.lvl; return e > d.lvl ? `위험 등급 ${e}<span class="ds-sub-x" title="${esc(OATH.effRule())}"> (${d.lvl} + 절망 서약 ${e - d.lvl})</span>` : d.sub; })()}</span><b class="ds-name">${d.name}</b><span class="ds-line">${d.line}</span></span>
-        ${despairDiff(d.lvl) || OATH.applies(d.lvl) ? `<span class="ds-despair open">${despairDiff(d.lvl) ? `${lineIcon('k.soul', 'li')}<span>${esc(despairNote(d.lvl))}</span>` : ''}${OATH.applies(d.lvl) ? OATH.oathCardNote() : ''}</span>` : ''}</button>`; // 고난: 절망 증강 + 절망 서약 (지금 절망 수치)
-    }).join('')}</div>
-    <div class="ds-act"><button class="btn ghost" data-a="intro-back">전장 다시 보기</button><button class="btn primary" data-a="diff-ok">출격 준비</button></div>
-  </main>`;
-}
 
 function newRunScreen() {
-  const n = app.starters.length;
-  return `<main class="wrap nr">
+  const n = app.starters.length, sc = CTR.signedContract();
+  return `<main class="wrap nr roster${CTR.takeFromSeal() ? ' from-seal' : ''}">
     <div class="nr-head">
       <div class="nr-title"><h1>계약 기물 선택</h1>
-        <div class="nr-meta"><span class="nr-cnt">후보 ${app.pool.length}명 중 <b>${CFG.startUnits}명</b></span>${(() => { const syn = fieldSyn(app.introField), k = starterFavNeed(app.introField); return syn && k ? `<span class="nr-fav" title="${esc(`전장 [${fieldOf(app.introField).name}]의 우세 시너지 기물이 후보에 ${k}명 이상 섞여 있습니다`)}">${esc(fieldOf(app.introField).name)} 우세 ${chip(syn)} <b>${k}명+</b></span>` : ''; })()}</div>
+        <div class="nr-meta">${sc ? `<span class="nr-deed" title="영수 증서 — 서명한 계약">${lineIcon('k.note', 'li')}<span class="f-num">No.${String(sc.contract.no).padStart(4, '0')}</span> 「${esc(sc.contract.title)}」 · ${esc(sc.contract.plan)}</span>` : ''}<span class="nr-cnt">후보 ${app.pool.length}명 중 <b>${CFG.startUnits}명</b></span>${(() => { const syn = fieldSyn(app.introField), k = starterFavNeed(app.introField); return syn && k ? `<span class="nr-fav" title="${esc(`전장 [${fieldOf(app.introField).name}]의 우세 시너지 기물이 후보에 ${k}명 이상 섞여 있습니다`)}">${esc(fieldOf(app.introField).name)} 우세 ${chip(syn)} <b>${k}명+</b></span>` : ''; })()}</div>
         <p class="nr-hint">${CAN_HOVER ? '누르면 선택 · 마우스를 올리면 설명' : '누르면 선택 · 카드 하단을 끌어올리면 설명'}</p></div>
       ${detailToggle()}
     </div>
@@ -989,7 +909,7 @@ function newRunScreen() {
     <div class="nr-foot">
       <div class="picked">${app.starters.map((id) => `<button class="picked-u" data-a="pick-starter" data-v="${id}" title="${esc(UNIT_BY_ID[id].name)} 빼기">${sprite(UNIT_BY_ID[id], 'spr')}</button>`).join('')}${'<span class="picked-u empty"></span>'.repeat(CFG.startUnits - n)}</div>
       <div class="nr-syn syn-list">${(() => { const cnt = teamCount(app.starters); const ids = SYNERGIES.map((x) => x.id).filter((id) => cnt(id) > 0).sort((x, y) => cnt(y) - cnt(x)); return ids.map((id) => synToken(id, cnt(id))).join(''); })()}</div>
-      <button class="btn ghost" data-a="to-title">뒤로</button>
+      <button class="btn ghost" data-a="ct-back" title="차림표로 돌아가 의뢰 · 약관을 다시 고릅니다 (서명은 무릅니다)">뒤로</button>
       <button class="btn ghost" data-a="random-starters">무작위</button>
       <button class="btn ghost" data-a="reroll-starters" title="고른 기물을 모두 해제하고 후보 ${app.pool.length}명을 새로 뽑습니다. 직전 후보와 겹치지 않게 뽑고, 우세 시너지 기물 보장은 그대로입니다 (단축키 R)" ${app.poolRerolls > 0 ? '' : 'disabled'}>새로고침 (${app.poolRerolls}회)</button>
       <button class="btn primary" data-a="start-run" ${n === CFG.startUnits ? '' : 'disabled'}>출격 (${n}/${CFG.startUnits})</button>
@@ -4143,9 +4063,8 @@ function render() {
   let body = '';
   if (app.screen === 'codex') body = codexScreen();
   else if (app.screen === 'bar') body = BAR.barScreen();
-  else if (app.screen === 'intro') body = introScreen();
-  else if (app.screen === 'diffsel') body = diffScreen();
   else if (app.screen === 'oath') body = OATH.oathScreen();
+  else if (app.screen === 'contract') body = CTR.contractScreen();
   else if (app.screen === 'title' || !run) body = app.screen === 'newrun' ? newRunScreen() : titleScreen();
   else if (app.screen === 'newrun') body = newRunScreen();
   else if (app.screen === 'map') body = mapScreen(run);
@@ -4155,7 +4074,7 @@ function render() {
   else if (app.screen === 'news') body = newsScreen(run);
   else if (app.screen === 'invest') body = investScreen(run);
   else if (app.screen === 'over') body = overScreen(run);
-  const showTop = run && app.screen !== 'title' && app.screen !== 'newrun' && app.screen !== 'codex';
+  const showTop = run && app.screen !== 'title' && app.screen !== 'contract' && app.screen !== 'newrun' && app.screen !== 'codex';
   // 다시 그려도 같은 화면 · 같은 창이면 스크롤 위치를 유지한다
   const modalKeyOf = () => (run?.pending[0] ? JSON.stringify([run.pending[0].t, (run.pending[0] as { uid?: string }).uid, (run.pending[0] as { allocDone?: boolean }).allocDone, (run.pending[0] as { options?: unknown }).options, (run.pending[0] as { round?: number }).round]) : app.menu || '');
   const modalKey = modalKeyOf();
@@ -4193,7 +4112,7 @@ function render() {
   SHOP.adMount(root); // 페트라 광고판 초읽기 · 자동 닫힘
   TFX.onScreen(prevScreen, app.screen); // 테마 연출: 전투 중 강도 낮춤 · (이타카) 큰 화면 전환 물결 (사건 장면이 떴는지 본 뒤)
   if (app.screen === 'bar') BAR.barMount();
-  if (app.screen === 'intro' && !app.introDone) introAnim();
+  if (app.screen === 'contract') CTR.contractMount(root);
   // 리본 시너지 줄: 넘치면 오른쪽 끝에 '더 있음' 표시 (끝까지 밀면 사라짐)
   const ts = root.querySelector<HTMLElement>('.top-syns');
   if (ts) {
@@ -4653,22 +4572,6 @@ const despairNames = (run: RunState) => despairsOf(run).map((d) => `[${esc(d.nam
 /** 위험 등급 적 증원 칩 (지도 미리보기 · 편성 적 구성): 그 페이즈 전투에 더해지는 적 수. n 을 주면 조우에 실제로 더한 수 (보드 칸 상한 반영) */
 function diffAddChip(run: RunState, phase: number, n = diffAddCount(run.diff, phase)) {
   return n > 0 ? tchip('', `적 +${n}`, 'bad', `위험 등급 ${run.diff} 적 증원: ${diffAddRule(run.diff)} — 페이즈 ${phase} 전투마다 적 +${n}`) : '';
-}
-/** 한 줄 위험 등급 선택 (조건은 툴팁) */
-function diffMini() {
-  const max = MAX_DIFF; // 모든 위험 등급을 처음부터 고를 수 있다
-  const d = Math.min(app.diff, max);
-  const conds = DIFFS.filter((x) => x.lvl >= 1 && x.lvl <= d).map((x) => x.desc);
-  return `<div class="diff-mini"><b>위험 등급</b><div class="diff-row">${DIFFS.map((x) => `<button class="btn tiny ${x.lvl === d ? 'on' : ''}" data-a="diff" data-v="${x.lvl}" ${x.lvl > max ? 'disabled' : ''}>${x.lvl === 0 ? '표준' : x.lvl}</button>`).join('')}</div>
-    <span class="small muted" title="${esc(conds.join('\n') || '추가 조건 없음')}">${d ? `추가 조건 ${conds.length}개 ⓘ` : `${CFG.victoryPhase}페이즈 보스 격파 시 의뢰 성공`}</span></div>`;
-}
-function diffPicker() {
-  const max = MAX_DIFF; // 모든 위험 등급을 처음부터 고를 수 있다
-  const d = Math.min(app.diff, max);
-  return `<div class="diff-picker"><b>위험 등급</b>
-    <div class="diff-row">${DIFFS.map((x) => `<button class="btn tiny ${x.lvl === d ? 'on' : ''}" data-a="diff" data-v="${x.lvl}" ${x.lvl > max ? 'disabled' : ''}>${x.lvl === 0 ? '표준' : x.lvl}</button>`).join('')}</div>
-    <ul class="small muted">${d === 0 ? '<li>추가 조건 없음.</li>' : DIFFS.filter((x) => x.lvl >= 1 && x.lvl <= d).map((x) => `<li>${esc(x.desc)}</li>`).join('')}</ul>
-    <p class="small muted">${CFG.victoryPhase}페이즈 보스를 이기면 의뢰 성공. 성공하면 다음 위험 등급이 해금됩니다.</p></div>`;
 }
 
 // ───────────────────────── 기물 방출
@@ -5426,19 +5329,12 @@ function act(a: string, v: string) {
     return;
   }
   if (SHOP.shopAct(run, a, v)) { render(); return; } // 상인 상점 (ui/shop.ts): 고르기 · 구매 확인 · 새로고침 · 고르곤 교환
+  if (a.startsWith('ct-') && a !== 'ct-back') { if (CTR.contractAct(a, v)) render(); return; } // 출격 계약 (ui/contract.ts)
   switch (a) {
-    case 'newrun': // 출격: 전장 추첨 연출부터
+    case 'newrun': // 출격 계약: 에란테스 바 카운터의 의뢰 차림표부터 (ui/contract.ts)
       if (app.screen === 'title' && !app.tutAsk && !tutOver() && !loadMeta().runs && !listTutSave()) { app.tutAsk = true; break; } // 첫 실행: 튜토리얼부터 볼지
-      app.tutAsk = false;
-      app.screen = 'intro'; app.menu = null; app.introDone = false; app.introCustom = false; app.introFoe = null; app.abilPop = null; preloadBgs();
-      app.introField = FIELDS[Math.floor(Math.random() * FIELDS.length)].id;
-      break;
-    case 'newrun-custom': // 지정 의뢰: 추첨 연출 없이 전장을 직접 고른다
-      app.tutAsk = false;
-      app.screen = 'intro'; app.menu = null; app.introDone = true; app.introCustom = true; app.introFoe = null; app.abilPop = null; preloadBgs();
-      if (!FIELDS.some((f) => f.id === app.introField)) app.introField = FIELDS[Math.floor(Math.random() * FIELDS.length)].id;
-      break;
-    case 'intro-field': if (app.introCustom && FIELDS.some((f) => f.id === v)) app.introField = v; break;
+      openContract(false); break;
+    case 'newrun-custom': openContract(true); break; // 지정 의뢰: 모든 전장이 의뢰서로 (싯가 의뢰 없음)
     case 'campaign': { // 캠페인 「회수 계약」: 저장이 있으면 이어서, 없으면 1장부터 (검증판 · 쉬움 고정)
       if (app.view) { app.view.destroy(); app.view = null; }
       const saved = loadRun(CAMP_SLOT);
@@ -5452,7 +5348,6 @@ function act(a: string, v: string) {
       app.tutAsk = false; app.menu = null; app.summary = null; app.sel = null; app.bigUnit = null; app.abilPop = null; app.mapTab = 0;
       app.run = LAB.labStart(); goPrepOrMap(); persist(); break;
     case 'lab': if (run) { const r = LAB.labAct(run, v); if (r.run) { app.run = r.run; goPrepOrMap(); } if (r.msg) toast(r.msg); if (r.dirty || r.run) { app.sel = null; persist(); } } break;
-    case 'intro-back': app.screen = 'intro'; app.introDone = true; break;
     case 'tutorial': case 'tutorial-restart': { // 튜토리얼: 저장이 있으면 이어서, 아니면 새로
       const saved = a === 'tutorial' ? loadRun(TUT_SLOT) : null;
       if (app.view) { app.view.destroy(); app.view = null; }
@@ -5466,16 +5361,7 @@ function act(a: string, v: string) {
     case 'tut-ask-close': app.tutAsk = false; break;
     case 'tut-quit': tutFinish('skipped'); return;
     case 'intro-foe': app.introFoe = v || null; app.abilPop = null; break;
-    case 'ds-info': { // 난이도 세부 조건: 다시 그리지 않고 펼침만
-      app.dsInfo = app.dsInfo === +v ? null : +v;
-      root.querySelectorAll<HTMLElement>('.ds-card').forEach((c) => c.classList.toggle('info', +(c.dataset.v || 0) === app.dsInfo));
-      return;
-    }
-    case 'intro-ok': app.screen = 'diffsel'; if (!DIFF_PRESETS.some((x) => x.lvl === app.diff)) app.diff = DIFF_PRESETS[0].lvl; break;
-    case 'diff-ok':
-      app.starters = []; app.screen = 'newrun'; app.menu = null; carX = null; app.cardOpen = null;
-      app.pool = starterPool(new Rng((Date.now() ^ (Math.random() * 1e9)) | 0), app.introField); app.poolRerolls = CFG.starterRerolls; // 전장 우세 시너지 기물 보장
-      break;
+    case 'ct-back': CTR.contractBack(); app.screen = 'contract'; break; // 명부 '뒤로' → 차림표 (서명은 무른다)
     case 'car-prev': case 'car-next': carStep(a === 'car-next' ? 1 : -1); return;
     case 'syn-peek': return; // 시너지 아이콘 탭: 이름만 보여준다 (클릭 핸들러에서 처리)
     case 'card-tap': return act('pick-starter', v); // 카드를 누르면 선택 · 해제
@@ -5504,6 +5390,7 @@ function act(a: string, v: string) {
     case 'start-run':
       if (app.starters.length !== CFG.startUnits) return;
       app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, app.introField || undefined, Math.min(app.diff, MAX_DIFF), OATH.sel()); // 절망 서약: 고난 이상일 때만 옮긴다
+      { const sc = CTR.signedContract(); if (sc && sc.field === app.introField) app.run.contract = sc.contract; } // 영수 증서 (상단 바 칩 · 싯가 의뢰 보수 가산)
       { const fi = fieldIntroPending(app.run); if (fi) app.run.pending.unshift(fi); } // 전장 도입 이야기 → 특권 증강 → (고난) 절망 증강
       app.screen = 'map'; app.sel = null; persist(); break;
     case 'load': {
@@ -5723,14 +5610,7 @@ function act(a: string, v: string) {
     }
     case 'victory-end': if (run) { run.pending.shift(); metaClear(run); ACH.achClear(run); run.over = true; goPrepOrMap(); } break;
     case 'victory-endless': if (run) { run.pending.shift(); metaClear(run); ACH.achClear(run); run.endless = true; toast('무한 모드: 적은 계속 강해집니다.'); persist(); } break;
-    case 'diff':
-      app.diff = +v;
-      if (app.screen === 'diffsel') { // 다시 그리지 않고 클래스만 바꿔 폭 변화가 부드럽게 이어지게
-        root.querySelectorAll<HTMLElement>('.ds-card').forEach((c) => { const on = +(c.dataset.v || 0) === app.diff; c.classList.toggle('on', on); c.setAttribute('aria-pressed', String(on)); });
-        return;
-      }
-      break;
-    case 'codex': codexFrom = app.screen === 'bar' ? 'bar' : ''; app.screen = 'codex'; app.menu = null; break;
+    case 'codex': codexFrom = app.screen === 'bar' ? 'bar' : ''; app.screen = 'codex'; app.menu = null; if (v) app.codexTab = v as typeof app.codexTab; break; // 바 장소 명판: 라운지 = 기물 · 발코니 = 업적
     case 'oath': app.screen = 'oath'; app.menu = null; break; // 절망 서약 화면 (ui/oath.ts)
     case 'oath-back': app.screen = 'title'; break;
     case 'oath-set': case 'oath-clear': OATH.oathAct(a, v); break;
@@ -6567,6 +6447,19 @@ root.addEventListener('click', (ev) => {
   }
   SND.uiAct(el.dataset.a!); // 효과음: 동작이 끝난 뒤 결과에 맞춰 (클릭 · 구매 · 판매 · 리롤 · 확정 · 오류)
   act(el.dataset.a!, el.dataset.v || '');
+});
+// 출격 계약 (ui/contract.ts) 연결: 전장 브리핑 · 적 상세 창 · 서명 뒤 계약 기물 명부 · 나가기
+Object.assign(CTR.hooks, {
+  render, toast,
+  brief: (fid: string) => fieldBrief(fid),
+  foe: () => (app.introFoe ? foeModal(app.introFoe) : ''),
+  roster: (s: CTR.Signed) => { // 그늘 연출 끝: 서명한 의뢰의 전장 · 약관으로 후보를 뽑고 명부를 연다 (전장 우세 시너지 기물 보장)
+    app.introField = s.field; app.diff = s.diff; app.introFoe = null;
+    app.starters = []; app.screen = 'newrun'; app.menu = null; carX = null; app.cardOpen = null;
+    app.pool = starterPool(new Rng((Date.now() ^ (Math.random() * 1e9)) | 0), app.introField); app.poolRerolls = CFG.starterRerolls;
+    render();
+  },
+  leave: (to: string) => act(to === 'bar' ? 'bar' : 'to-title', ''),
 });
 SND.init({ prefs: loadPrefs, save: savePref, ranks: () => Object.fromEntries(app.run?.units.map((u) => [u.uid, u.rank]) ?? []) }); // 효과음 설정 (errantes.prefs.v1) · 등급 상승 판정
 LAB.labInit({ act: (v) => act('lab', v), itemIcon: (id) => itemIcon(id), relicTok: (id) => relicTok(id) }); // 훈련장 패널: 숫자 칸 · 고르기 입력 → 동작

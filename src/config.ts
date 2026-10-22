@@ -57,6 +57,8 @@ export const CFG = {
   /** 난이도별 적 증원: [위험 등급, 간격(페이즈)] — 그 등급부터 간격 페이즈마다 조우의 적 +1 (높은 등급이 대체).
    *  쉬움(3) 없음 · 모험(6) 3페이즈마다 · 고난(7) 2페이즈마다. 페이즈 p 의 증원 = ⌊p ÷ 간격⌋ (difficulty.ts diffAddCount) */
   diffAdd: [[6, 3], [7, 2]] as [number, number][],
+  /** 출격 계약 (ui/contract.ts · data/contract.ts): 싯가 의뢰(봉인 의뢰서)의 승리 크레딧 가산 범위 [최소, 최대] — 의뢰서를 받을 때 뽑고 서명하면 드러난다 [임시] */
+  contract: { sealedWin: [0.1, 0.3] as [number, number] },
   baseHit: 0.8,
   minHit: 0.15, // 최저 명중률 (회피 과다 누적 방지) [임시]
   grazeBase: 0.3, grazeAccK: 0.5, grazeChanceMax: 0.8,

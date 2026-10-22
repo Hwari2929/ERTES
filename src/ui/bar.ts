@@ -459,7 +459,7 @@ const spotOf = (i: number, n: number) => SPOTS[Math.min(Math.max(n, 1), 3) - 1][
 /** 허리 위 구도: 스탠딩은 전신이라 얼굴 위치표(standface.gen.ts)로 맞춘다. 얼굴 가운데를 자리 가운데에, 턱을 칸 위에서 CHIN_AT 높이에,
  *  얼굴(눈썹~턱)을 칸 높이의 FACE_AT 로 (그림마다 얼굴 크기 · 위치가 조금씩 달라서). 칸 아래(허리)부터는 마스크로 흐려 자른다 */
 const CHIN_AT = 0.36, FACE_AT = 0.126;
-function figStyle(f: string) {
+export function figStyle(f: string) {
   const [fx, brow, chin] = STAND_FACE[f] || [0.5, 0.099, 0.152];
   const r = Math.min(2.8, Math.max(1.9, FACE_AT / Math.max(0.01, chin - brow))); // 그림 높이 ÷ 칸 높이
   return `--fx:${fx};--fy:${(CHIN_AT / r - chin).toFixed(3)};--fr:${r.toFixed(3)};--cut:${(chin + (1 - CHIN_AT) / r).toFixed(3)}`;
@@ -520,6 +520,13 @@ function exitSeat(el: HTMLElement) {
   window.setTimeout(rm, reduced() ? 800 : 2800);
 }
 
+/** 바 안의 장소 (배경 그림 1216 × 832 좌표의 사각형): 황동 명판을 가리키면 그 사물이 밝아진다 */
+const PLACES: { id: string; box: [number, number, number, number] }[] = [
+  { id: 'counter', box: [520, 300, 1216, 780] }, // 카운터 · 술병 진열장 (의뢰)
+  { id: 'lounge', box: [0, 430, 410, 832] },     // 왼쪽 라운지 소파 (단원 · 도감)
+  { id: 'balcony', box: [440, 0, 1216, 345] },   // 2층 발코니 · 액자 (기록 · 업적)
+  { id: 'window', box: [0, 0, 540, 500] },       // 창가 · 성운 (통신 기록)
+];
 export function barScreen(): string {
   S.known = knownSet();
   if (!S.stage.length) firstStage();
@@ -528,17 +535,25 @@ export function barScreen(): string {
   const m = loadMeta();
   const seenN = m.bar?.seen?.length || 0;
   const hasLog = !!awayPool().length || !!m.bar?.last;
+  const achN = Object.keys(m.achieved || {}).length;
+  const plate = (p: string, act: string, kick: string, label: string, sub = '', extra = '') =>
+    `<button class="bp mk-brass" data-p="${p}" data-a="${act}"${extra}><span class="bp-k">${kick}</span><b>${label}</b>${sub ? `<small class="f-num">${sub}</small>` : ''}</button>`;
   return `<main class="bar${S.cur?.layer === 'r' ? ' late' : ''}" aria-label="에란테스 바">
-    <div class="bar-bg" style="background-image:url('${bgURL('erantes_bar')}')"></div><div class="bar-shade"></div>
-    ${barShowcaseHtml()}
-    <header class="bar-top"><h1 class="f-title">에란테스 바</h1><p class="bar-sit f-ui" aria-live="polite">${S.cur?.sit ? `— ${esc(S.cur.sit)}` : ''}</p></header>
+    <div class="bar-scene">
+      <div class="bar-bg" style="background-image:url('${bgURL('erantes_bar')}')"></div>
+      ${PLACES.map((p) => `<i class="bar-glow" data-p="${p.id}" style="--x0:${p.box[0]};--y0:${p.box[1]};--x1:${p.box[2]};--y1:${p.box[3]}" aria-hidden="true"></i>`).join('')}
+      ${barShowcaseHtml()}
+    </div>
+    <div class="bar-shade"></div><div class="mk-light" aria-hidden="true"></div><div class="mk-grain" aria-hidden="true"></div>
+    <header class="bar-top"><h1>에란테스 바</h1><p class="bar-sit f-ui" aria-live="polite">${S.cur?.sit ? `— ${esc(S.cur.sit)}` : ''}</p></header>
     <div class="bar-floor" data-n="${S.stage.length}">${floorHtml()}</div>
-    <nav class="bar-acts" aria-label="바 메뉴">
-      ${res && auto ? `<button class="btn primary" data-a="load" data-v="auto"><b>이어서 출격</b><small class="f-num">${esc(fieldName(res.field))} · 페이즈 ${auto.phase}</small></button>` : '<button class="btn primary" data-a="newrun"><b>새 계약</b></button>'}
-      <button class="btn" data-a="bar-x" data-v="log" ${hasLog ? '' : 'disabled title="의뢰를 한 번 마치면 열립니다"'}><b>통신 기록</b></button>
-      <button class="btn ghost" data-a="codex"><b>도감</b>${seenN ? `<small class="f-num">만담 ${seenN}</small>` : ''}</button>
-      <button class="btn ghost" data-a="to-title"><b>타이틀</b></button>
+    <nav class="bar-places" aria-label="바 둘러보기">
+      ${res && auto ? plate('counter', 'load', '카운터', '이어서 출격', `${esc(fieldName(res.field))} · 페이즈 ${auto.phase}`, ' data-v="auto"') : plate('counter', 'newrun', '카운터', '새 계약', '의뢰 차림표')}
+      ${plate('lounge', 'codex', '라운지', '도감', seenN ? `만담 ${seenN}` : '단원 · 만담', ' data-v="units"')}
+      ${plate('balcony', 'codex', '발코니', '기록 · 업적', achN ? `업적 ${achN}` : '', ' data-v="ach"')}
+      ${plate('window', 'bar-x', '창가', '통신 기록', hasLog ? '지난 의뢰' : '의뢰를 마치면 열림', ` data-v="log"${hasLog ? '' : ' aria-disabled="true"'}`)}
     </nav>
+    <button class="bar-door mk-leather" data-a="to-title">타이틀 ›</button>
     <p class="bar-hint muted small">인물을 누르면 말을 겁니다. 빈 곳을 누르면 다음 대사로.</p>
   </main>`;
 }
@@ -634,6 +649,19 @@ export function barMount() {
   if (!root.dataset.bound) {
     root.dataset.bound = '1';
     root.addEventListener('click', (e) => { if (!(e.target as HTMLElement).closest('button, a')) barNext(); });
+    // 미세 시차: 마우스를 따라 배경(장소 · 진열장 포함)은 조금, 인물은 조금 더 움직인다 (움직임 줄이기면 없음)
+    if (!reduced() && matchMedia('(hover: hover)').matches) {
+      let raf = 0;
+      root.addEventListener('pointermove', (e) => {
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          raf = 0;
+          const r = root.getBoundingClientRect();
+          root.style.setProperty('--mx', (((e.clientX - r.left) / r.width) * 2 - 1).toFixed(3));
+          root.style.setProperty('--my', (((e.clientY - r.top) / r.height) * 2 - 1).toFixed(3));
+        });
+      });
+    }
   }
   // 다시 그려졌으면 지금 줄부터 다시 보여 준다
   if (S.li > 0) S.li--;
@@ -807,7 +835,7 @@ function playLog() {
 export function barAct(v: string): boolean {
   const [k, id] = v.split(':');
   if (k === 'talk' && id) { stop(); talk(id); return false; }
-  if (k === 'log') { stop(); playLog(); return false; }
+  if (k === 'log') { if (!awayPool().length && !loadMeta().bar?.last) return false; stop(); playLog(); return false; } // 의뢰를 한 번 마치기 전에는 열리지 않는다 (창가 명판이 흐림)
   if (k === 'next') { barNext(); return false; }
   return false;
 }

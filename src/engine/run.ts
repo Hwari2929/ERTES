@@ -3,6 +3,7 @@ import { AUG_BY_ID } from '../data/augments';
 import { FIELDS, fieldOf } from '../data/battlefields';
 import { diffAddCount, diffHas } from '../data/difficulty';
 import { CATWHEEL, DESPAIR_BY_ID, DESPAIRS, despairAt, despairDiff, hasDespair, PETROCK } from '../data/despair';
+import { contractWinMul } from '../data/contract';
 import { OATH_BY_ID, oathDespairEvery, oathHeat, oathLv, oathsFor, oathV, oathWinMul, type OathSel } from '../data/oaths';
 import { EVENT_BY_ID, EVENTS, type EventApi } from '../data/events';
 import { PC_NAME, resolveScene, type Beat } from '../data/scene';
@@ -412,7 +413,7 @@ export function battleRewardPreview(run: RunState, node: NodeType) {
   const { interest } = interestInfo(run, counts);
   let c = CFG.winCredits(p);
   if (type === 'adversity') c = Math.round(c * CFG.adversityReward);
-  c = Math.round(c * CFG.diffWinMul(run.diff || 0) * oathWinMul(run)); // 박봉의 서약
+  c = Math.round(c * CFG.diffWinMul(run.diff || 0) * oathWinMul(run) * contractWinMul(run)); // 박봉의 서약
   if (type === 'boss') c += 5;
   c = Math.max(0, Math.round(c * stakesMul(run)) + globalWinAdd(run));
   const win = interest + c + CFG.streakBonus(Math.max(1, run.streak + 1)) + (pet >= 1 ? (pet >= 4 ? 3 : 1) : 0) + (fieldOf(run.field).winCredits || 0);
@@ -1275,7 +1276,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     run.stats.wins++;
     let c = CFG.winCredits(p);
     if (type === 'adversity') c = Math.round(c * CFG.adversityReward);
-    c = Math.round(c * CFG.diffWinMul(run.diff || 0) * oathWinMul(run)); // 위험 3 ×1.25 · 위험 6 ×1.5 · 박봉의 서약
+    c = Math.round(c * CFG.diffWinMul(run.diff || 0) * oathWinMul(run) * contractWinMul(run)); // 위험 3 ×1.25 · 위험 6 ×1.5 · 박봉의 서약
     if (type === 'boss') c += 5;
     c = Math.max(0, Math.round(c * stakesMul(run)) + globalWinAdd(run)); // 판돈 올리기 · 전리품 회수
     income += c;

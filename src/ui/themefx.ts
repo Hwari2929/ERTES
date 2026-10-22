@@ -31,7 +31,7 @@ export function setThemeFx(theme: string, level: FxLevel) {
   cur.layer?.start();
 }
 
-const BIG = new Set(['title', 'diffsel', 'newrun', 'map', 'prep', 'shop', 'news', 'invest', 'over', 'codex']);
+const BIG = new Set(['title', 'diffsel', 'contract', 'newrun', 'map', 'prep', 'shop', 'news', 'invest', 'over', 'codex']);
 // 전투 진입은 '전투 개시' 배너, 출격 연출 · 바는 그림 연출이 따로 있으므로 큰 화면끼리만
 const bigMove = (prev: string, next: string) => cur.theme.startsWith('ithaca') && // 이타카 · 이타카 무역항
    cur.level !== 'off' && !!prev && prev !== next && BIG.has(next) && BIG.has(prev);
