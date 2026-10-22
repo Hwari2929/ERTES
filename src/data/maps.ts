@@ -30,7 +30,7 @@ export interface Bay { x: number; y: number; w: number; h: number }
 export interface MapDef {
   id: string;
   name: string;
-  /** 편성 화면 머리 칩 툴팁 · 교범 */
+  /** 편성 화면 '이번 전투' 지형 설명 줄 · 교범 */
   desc: string;
   /** 적 진형과 아군 진형 사이 줄 수 (기본 1) */
   gap?: number;

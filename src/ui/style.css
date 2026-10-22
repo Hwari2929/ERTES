@@ -36,12 +36,12 @@
   --shadow-pop: 0 10px 26px var(--shade-2);  /* 떠 있는 창 · 팝업 */
   /* 데이터 색 (예외: 속성 · 희귀도. 세력 · 시너지 · 전공은 JS 가 --c · --sc 로 넣는다) */
   --el-phys: #eceae4; --el-chem: #9be15d; --el-elec: #62d6ff; --el-psy: #d48cff; --el-holy: #ffd866; --el-true: #ff7a7a;
-  --g-C: #eef0f4; --g-G: #6cb6ff; --g-A: #63d297; --g-L: #f2a93b; --g-T: #9fd0e8;
+  --g-C: #eef0f4; --g-G: #6cb6ff; --g-A: #63d297; --g-L: #ff4f7b; --g-T: #9fd0e8; /* 전설 = 붉은 계열 (선택 호박색 · 위험 산호색과 다른 장밋빛 진홍) */
   /* 업적 메달 금속 (ui/achieve.ts): 1 빛 받는 면 · 2 바탕 · 3 그늘 · ink 새긴 문양. 전설은 --g-L 테 + 짙은 법랑 면(en) + 문양에 --g-L 빛 */
   --ach-bz-1: #f7cba2; --ach-bz-2: #c27a46; --ach-bz-3: #6b391b; --ach-bz-ink: #46200b;
   --ach-ag-1: #ffffff; --ach-ag-2: #bcc6d2; --ach-ag-3: #63707f; --ach-ag-ink: #2c3542;
   --ach-au-1: #fff4c4; --ach-au-2: #e5b03d; --ach-au-3: #8c5d0a; --ach-au-ink: #4f3203;
-  --ach-lg-1: #ffe7b4; --ach-lg-2: var(--g-L); --ach-lg-3: #6e3803; --ach-lg-ink: var(--g-L);
+  --ach-lg-1: #ffd3de; --ach-lg-2: var(--g-L); --ach-lg-3: #6b0f2a; --ach-lg-ink: var(--g-L);
   --ach-en-1: #3b2862; --ach-en-2: #0e0a1c; --ach-edge: rgb(0 0 0 / .5);
   /* 옛 이름 (별칭: 새 코드에서 쓰지 않는다 · tests/css_check.ts 가 사용 횟수를 막는다) */
   --accent: var(--c-select); --accent-ink: var(--c-select-ink);
@@ -201,7 +201,7 @@
   /* 라이트 보정: 어두운 바탕용 데이터 색 중 밝은 모래색 위에서 읽기 어려운 값만 짙게 */
   --c-divine: #9a7408; --c-occult: #8448c8; --c-psi: #7442c4; --c-ult: #2a6fc0; --c-steel: #566a7e; --fame: #b0447f; --staff: #7d6a3a;
   --el-phys: #554d44; --el-chem: #4a8a1c; --el-elec: #1a7fa8; --el-psy: #9246c8; --el-holy: #9a7408; --el-true: #c03a3a;
-  --g-C: #857e70; --g-G: #2a6fc0; --g-A: #23794f; --g-L: #b8680a; --g-T: #3a7e9c;
+  --g-C: #857e70; --g-G: #2a6fc0; --g-A: #23794f; --g-L: #b0245a; --g-T: #3a7e9c;
   --st-buff: #2a7fc0; --st-buff-ink: #1f6aa8; --st-debuff: #c0392e; --st-debuff-ink: #b03a2e; --st-chip: #fbf6ec;
   --st-bleed: #c0352e; --st-dot: #b85a1e; --st-corrode: #946a1a; --st-slow: #2f6ab8; --st-wound: #b83a52; --st-vuln: #b8424a;
   --st-suppress: #5e6170; --st-gloom: #7a52b8; --st-burn: #c2481a; --st-conduct: #1a86a8; --st-chill: #2a7aa8; --st-teal: #1a8a78;
@@ -252,7 +252,7 @@
   /* 라이트 보정: 어두운 바탕용 데이터 색 중 밝은 모래색 위에서 읽기 어려운 값만 짙게 */
   --c-divine: #9a7408; --c-occult: #8448c8; --c-psi: #7442c4; --c-ult: #2a6fc0; --c-steel: #566a7e; --fame: #b0447f; --staff: #7d6a3a;
   --el-phys: #554d44; --el-chem: #4a8a1c; --el-elec: #1a7fa8; --el-psy: #9246c8; --el-holy: #9a7408; --el-true: #c03a3a;
-  --g-C: #857e70; --g-G: #2a6fc0; --g-A: #23794f; --g-L: #b8680a; --g-T: #3a7e9c;
+  --g-C: #857e70; --g-G: #2a6fc0; --g-A: #23794f; --g-L: #b0245a; --g-T: #3a7e9c;
   --st-buff: #2a7fc0; --st-buff-ink: #1f6aa8; --st-debuff: #c0392e; --st-debuff-ink: #b03a2e; --st-chip: #f6f9fb;
   --st-bleed: #c0352e; --st-dot: #b85a1e; --st-corrode: #946a1a; --st-slow: #2f6ab8; --st-wound: #b83a52; --st-vuln: #b8424a;
   --st-suppress: #5e6170; --st-gloom: #7a52b8; --st-burn: #c2481a; --st-conduct: #1a86a8; --st-chill: #2a7aa8; --st-teal: #1a8a78;
@@ -319,6 +319,7 @@
   --c-ink: rgb(17 9 25);
   --c-brand: #ff8fbd;
   --c-credit: #e0bc4a;
+  --g-L: #ff5a36;                      /* 전설: 선택(분홍) · 위험(진홍 분홍)과 갈리게 주홍 쪽 붉은색 */
   --cell-mine: #221b36;
   --cell-foe: #2f1727;
   --cell-mid: #1b1427;
@@ -924,7 +925,11 @@ html.rmap-fs-on, html.rmap-fs-on body { overflow: hidden; }
 .battle { display: grid; grid-template-columns: 250px minmax(0, 1fr) 320px; gap: 20px; align-items: start; --board-reserve: 80px; }
 .board-col { min-width: 0; }
 .board-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
-.prep .board-head { position: sticky; top: calc(var(--top-h, 10px) - 10px); z-index: var(--z-sticky); padding-block: 4px; margin-top: -4px; background: var(--bg); } /* 대기 칩 · 놓는 중 칩이 스크롤해도 보이게 (docs/UI.md 9) */
+.prep .board-head { position: sticky; top: calc(var(--top-h, 10px) - 10px); z-index: var(--z-sticky); padding-block: 4px; margin-top: -4px; background: var(--bg); } /* 출전 · 전술 칩이 스크롤해도 보이게 */
+/* 머리 제목 (main.ts boardTitle, docs/UI.md 17): 전장 이름 = 제목 글자 (칩 아님) + 흐린 폭 · 노드 종류 */
+.bh-title { display: inline-flex; align-items: baseline; gap: 4px 8px; flex-wrap: wrap; min-width: 0; }
+.bh-name { font-size: var(--fs-lg); font-weight: 800; color: var(--c-text); }
+.bh-meta { font-size: var(--fs-sm); color: var(--c-text-2); white-space: nowrap; }
 .board-head .speed { margin-left: auto; display: flex; gap: 4px; }
 .board-head .pill { box-sizing: border-box; min-height: 26px; }
 /* 좌우로 최대한 넓히되, 세로가 화면을 넘으면 높이에 맞춰 폭을 줄인다.
@@ -994,11 +999,13 @@ html.rmap-fs-on, html.rmap-fs-on body { overflow: hidden; }
   background: var(--panel); border: 1px dashed var(--line); border-radius: var(--r-lg); padding: 12px 10px 8px; }
 .bench-label { position: absolute; top: 0; left: 12px; transform: translateY(-50%); padding: 0 6px; border-radius: var(--r-sm); background: var(--bg); font-size: var(--fs-xs); line-height: 1.6; color: var(--c-text-2); } /* 테두리 위 이름표 */
 .bench-label b { color: var(--c-text); font-variant-numeric: tabular-nums; }
-/* 대기석 숨기기 · 보이기 (main.ts benchTog, prefs benchOff): 보드 머리 출전 칩 옆 '대기 n' 칩 하나 — 두 상태 모두 같은 자리 · 같은 크기 (docs/UI.md 9), 화살표만 뒤집힌다 */
-.pill.bench-tog { cursor: pointer; font: inherit; line-height: 1; color: var(--c-text-2); }
-.pill.bench-tog svg { width: 14px; height: 14px; flex: none; transition: transform .15s; }
-.pill.bench-tog:hover { color: var(--c-text); border-color: var(--c-text-2); }
-.pill.bench-tog.off { border-style: dashed; }
+/* 대기석 숨기기 · 보이기 (main.ts benchTog, prefs benchOff): 상자 오른쪽 위 테두리에 붙은 단추 — 이름표 (대기석 n)와 같은 줄.
+   숨기면 상자가 같은 자리에서 얇은 띠로 접히고 (위 테두리 · 이름표 · 단추는 그대로), 두 상태 모두 같은 자리 · 같은 크기 (docs/UI.md 9 · 16) */
+.bench-tog { position: absolute; top: 0; right: 12px; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 3px; height: 22px; padding: 0 6px 0 8px; box-sizing: border-box;
+  border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--bg); color: var(--c-text-2); font: 600 var(--fs-xs)/1 var(--f-body); cursor: pointer; }
+.bench-tog svg { width: 13px; height: 13px; flex: none; }
+.bench-tog:hover { color: var(--c-text); border-color: var(--c-text-2); }
+.bench.off { min-height: 0; height: 16px; padding: 0; }
 /* 보드의 기물을 끄는 동안만: 화면 아래에 붙는 대기석 놓을 자리 (main.ts BENCH_DOCK). 대기석을 숨겼거나 화면 밖이어도 페이지를 굴리지 않고 놓는다 */
 .bench-dock { display: none; position: fixed; z-index: var(--z-float); left: 50%; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(420px, calc(100vw - 32px)); height: 52px; box-sizing: border-box;
   align-items: center; justify-content: center; gap: 8px; border: 1px dashed var(--c-select); border-radius: var(--r-lg); background: color-mix(in srgb, var(--c-select) 14%, var(--panel)); color: var(--c-text); box-shadow: 0 4px 16px color-mix(in srgb, var(--c-black) 55%, transparent); }
@@ -1023,6 +1030,9 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .pb h3 { margin: 14px 0 6px; font-size: var(--fs-lg); }
 .pb-head { display: flex; align-items: baseline; gap: 6px 8px; flex-wrap: wrap; }
 .pb-head h3 { margin: 0; }
+.pb-map { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 6px; align-items: center; margin-top: 8px; font-size: var(--fs-sm); } /* 이번 전장 이름 + 지형 설명 (머리 칩 툴팁 대신, 터치에서도 읽힌다) */
+.pb-map .li { width: 14px; height: 14px; color: var(--c-text-2); }
+.pb-map > span { grid-column: 2; color: var(--c-text-2); line-height: 1.45; }
 .pb-kind { padding: 0 6px; border: 1px solid color-mix(in srgb, var(--nc) 55%, var(--line)); border-radius: var(--r-sm); font-size: var(--fs-xs); font-weight: 700; color: color-mix(in srgb, var(--nc) var(--data-mix), var(--c-text)); }
 .pb-kind.n-battle { --nc: var(--c-text-2); }
 .pb-foes, .pb-rows { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
@@ -1323,11 +1333,12 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .item.hex::before, .item.hex::after { content: ''; position: absolute; inset: 0; clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%); } /* 소모품: 테두리 색은 --hc */
 .item.hex::before { background: var(--hc, var(--g-C)); }
 .item.hex::after { inset: 1.5px; background: var(--panel-2); clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%); }
-.item.sel { position: relative; z-index: var(--z-raise); outline: 2px solid var(--c-select); outline-offset: 1px; } /* 고른 칸을 위로 · 모양 (사각 · 마름모 · 육각) 모두 같은 실선 고리 */
-/* 쥔 도구 (main.ts toolOf · docs/UI.md 11): 보는 선택 (실선)과 모양이 다르게 — 떨어진 점선 고리 + 오른쪽 위 조준 배지 (ARM_BADGE) */
-.item.sel.armed, .relic-tok.on.armed { outline: 2px dashed var(--c-select); outline-offset: 3px; }
-.relic-tok.armed { position: relative; }
-.item > i.arm-b, .relic-tok > i.arm-b, .tr-ic > i.arm-b { position: absolute; top: -8px; right: -8px; z-index: var(--z-raise); width: 16px; height: 16px; display: grid; place-items: center; box-sizing: border-box; border-radius: 50%; background: var(--c-select); color: var(--c-select-ink); box-shadow: 0 1px 3px color-mix(in srgb, var(--c-black) 60%, transparent); pointer-events: none; }
+/* 고른 (쥔) 장비 · 소모품 = 토큰 바로 바깥에 붙은 호박색 실선 (docs/UI.md 13: 간격 없이, 이 표시만 굵게 · 점선은 범위 · 미리보기 전용). 끄는 동안 (.dragging)도 같은 모양.
+   사각 = 바깥선, 마름모 (개조부품) · 육각 (소모품) = 모양을 따라 두르는 겹 그림자 (바깥선은 네모라 모양에서 뜬다) */
+.item.sel, .inv-rail .item.dragging { position: relative; z-index: var(--z-raise); outline: 2px solid var(--c-select); outline-offset: 0; }
+.item.sel:is(.tM, .hex), .inv-rail .item.dragging:is(.tM, .hex) { outline: none; filter: drop-shadow(1.5px 0 0 var(--c-select)) drop-shadow(-1.5px 0 0 var(--c-select)) drop-shadow(0 1.5px 0 var(--c-select)) drop-shadow(0 -1.5px 0 var(--c-select)); }
+.inv-rail .relic-tok.dragging { box-shadow: 0 0 0 2px var(--c-select); }
+.tr-ic > i.arm-b { position: absolute; top: -8px; right: -8px; z-index: var(--z-raise); width: 16px; height: 16px; display: grid; place-items: center; box-sizing: border-box; border-radius: 50%; background: var(--c-select); color: var(--c-select-ink); box-shadow: 0 1px 3px color-mix(in srgb, var(--c-black) 60%, transparent); pointer-events: none; }
 .arm-b svg { width: 11px; height: 11px; }
 /* 장비 설명 말풍선: 왼쪽 띠 = 희귀도 색 */
 .item-tip { --c: var(--line); position: absolute; z-index: var(--z-tip); max-width: 240px; display: grid; gap: 2px; padding: 8px 10px; background: var(--panel-2); border: 1px solid var(--c); border-left: 3px solid var(--c); border-radius: var(--r-md); box-shadow: 0 6px 18px color-mix(in srgb, var(--c-black) 50%, transparent); font-size: var(--fs-base); }
@@ -2327,7 +2338,7 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
   background: radial-gradient(circle at var(--x) var(--y), color-mix(in srgb, var(--rv-c) 55%, transparent), color-mix(in srgb, var(--rv-c) 14%, transparent) 45%, transparent 75%); }
 @media (prefers-reduced-motion: reduce) { .rv-shine, .rv-rays, .rv-flash { display: none; } }
 /* ═════════ 업적 (ui/achieve.ts · data/achievements.ts): 메달 · 달성 배너 · 도감 '업적' 탭 · 바 카운터 뒤 진열장
-   · 배너 색은 전설 증강 공개 연출과 같은 --g-L (.rv-3 의 --rv-c). 입력을 막지 않는다 (pointer-events: none). 움직임 줄이기면 나타났다 사라지기만
+   · 배너 색은 금 메달 금속색 (--ach-au-2), 전설 업적만 전설 증강 공개 연출과 같은 --g-L (.rv-3 의 --rv-c). 입력을 막지 않는다 (pointer-events: none). 움직임 줄이기면 나타났다 사라지기만
    · 메달 금속 색은 :root 의 --ach-* 토큰 (테마 공통 — 그림 같은 물건이라 테마에 따라 바꾸지 않는다) */
 .ach-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .ach-medal { --am-1: var(--ach-au-1); --am-2: var(--ach-au-2); --am-3: var(--ach-au-3); --am-ink: var(--ach-au-ink); display: block; width: 100%; height: auto; overflow: visible; }
@@ -2353,11 +2364,11 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 /* 달성 배너: 화면 하단 가운데, 차례로 하나씩 (입력은 그대로 통과) */
 .ach-toasts { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); translate: -50% 0; z-index: var(--z-toast); width: min(470px, calc(100vw - 24px)); display: grid; pointer-events: none; }
 body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inset-top, 0px)); } /* 사건 장면(미연시) 중에는 아래 대사창을 가리지 않게 위로 */
-.ach-toast { --ac: var(--g-L); grid-area: 1 / 1; position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-columns: 76px 1fr; align-items: center; gap: 2px 14px; padding: 12px 18px 12px 10px; color: var(--c-text); opacity: 0;
+.ach-toast { --ac: var(--ach-au-2); grid-area: 1 / 1; position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-columns: 76px 1fr; align-items: center; gap: 2px 14px; padding: 12px 18px 12px 10px; color: var(--c-text); opacity: 0;
   background: linear-gradient(100deg, color-mix(in srgb, var(--ac) 20%, var(--panel)), var(--panel) 48%);
   border: 1px solid color-mix(in srgb, var(--ac) 75%, var(--line)); border-radius: var(--r-lg);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ac) 22%, transparent), 0 14px 34px var(--shade-2), 0 0 28px color-mix(in srgb, var(--ac) 34%, transparent); }
-.ach-toast.g-legend { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ac) 40%, transparent), 0 14px 34px var(--shade-2), 0 0 46px color-mix(in srgb, var(--ac) 55%, transparent); }
+.ach-toast.g-legend { --ac: var(--g-L); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ac) 40%, transparent), 0 14px 34px var(--shade-2), 0 0 46px color-mix(in srgb, var(--ac) 55%, transparent); }
 .ach-t-medal { position: relative; z-index: 0; width: 76px; height: 76px; display: grid; place-items: center; }
 .ach-t-medal .ach-medal { width: 66px; filter: drop-shadow(0 3px 6px var(--shade-2)); }
 .ach-t-rays { position: absolute; inset: -26px; z-index: -1; border-radius: 50%; opacity: 0; pointer-events: none;
@@ -2397,7 +2408,7 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
 .ach-cx { display: grid; gap: 6px; padding-bottom: 24px; }
 .ach-cx-head, .ach-cx-case { display: grid; gap: 8px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); }
 .ach-cx-case h2 { margin: 0; font-size: var(--fs-lg); }
-.ach-cx-prog { margin: 0; font-size: var(--fs-lg); } .ach-cx-prog b { font-size: var(--fs-2xl); color: color-mix(in srgb, var(--g-L) var(--data-mix), var(--c-text)); }
+.ach-cx-prog { margin: 0; font-size: var(--fs-lg); } .ach-cx-prog b { font-size: var(--fs-2xl); color: color-mix(in srgb, var(--ach-au-2) var(--data-mix), var(--c-text)); }
 .ach-cx-grades { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 0; list-style: none; }
 .ach-cx-grades li { display: flex; align-items: center; gap: 6px; font-size: var(--fs-md); }
 .ach-mini { width: 24px; }
@@ -2432,13 +2443,13 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
   bottom: calc(100cqh - (100cqh - 832 * var(--vs)) * .4 - 442 * var(--vs));
   background: linear-gradient(180deg, color-mix(in srgb, var(--c-white) 18%, transparent), color-mix(in srgb, var(--c-white) 5%, transparent) 35%, color-mix(in srgb, var(--c-black) 22%, transparent));
   border: 1px solid color-mix(in srgb, var(--ach-au-1) 45%, transparent); border-radius: var(--r-sm);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ach-au-3) 70%, transparent), 0 10px 20px var(--shade-2), inset 0 0 16px color-mix(in srgb, var(--g-L) 20%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ach-au-3) 70%, transparent), 0 10px 20px var(--shade-2), inset 0 0 16px color-mix(in srgb, var(--ach-au-2) 20%, transparent);
   -webkit-backdrop-filter: blur(1.5px) brightness(1.1); backdrop-filter: blur(1.5px) brightness(1.1); }
 .bar-vitrine::before, .bar-vitrine::after { content: ''; position: absolute; left: -4px; right: -4px; border-radius: var(--r-sm); background: linear-gradient(180deg, var(--ach-au-1), var(--ach-au-2) 45%, var(--ach-au-3)); box-shadow: 0 2px 4px var(--shade-2); }
 .bar-vitrine::before { top: -6px; height: 6px; } /* 황동 머리 몰딩 */
 .bar-vitrine::after { bottom: -5px; height: 5px; } /* 받침 */
 .bar-vitrine-tier { display: grid; place-items: center; height: calc(var(--vm) + 8px); border-bottom: 2px solid color-mix(in srgb, var(--ach-au-2) 75%, transparent);
-  background: radial-gradient(ellipse 70% 45% at 50% 100%, color-mix(in srgb, var(--g-L) 34%, transparent), transparent); }
+  background: radial-gradient(ellipse 70% 45% at 50% 100%, color-mix(in srgb, var(--ach-au-2) 34%, transparent), transparent); }
 .bar-vitrine-tier:last-child { border-bottom: 0; }
 .bar-vitrine-m { width: var(--vm); height: var(--vm); padding: 0; background: none; border: 0; border-radius: 50%; cursor: pointer; filter: drop-shadow(0 2px 3px var(--shade-2)); transition: scale .2s, filter .2s; }
 .bar-vitrine-m:hover, .bar-vitrine-m:focus-visible, .bar-vitrine-m.on { scale: 1.14; filter: drop-shadow(0 0 7px color-mix(in srgb, var(--am-c) 80%, transparent)); }
@@ -4338,8 +4349,13 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .dev-zone i.z-t { border-top: 1px solid var(--zc); } .dev-zone i.z-r { border-right: 1px solid var(--zc); }
 .dev-zone i.z-b { border-bottom: 1px solid var(--zc); } .dev-zone i.z-l { border-left: 1px solid var(--zc); }
 .dev-zone i.z-t.z-l { border-top-left-radius: var(--r-sm); } .dev-zone i.z-t.z-r { border-top-right-radius: var(--r-sm); } .dev-zone i.z-b.z-l { border-bottom-left-radius: var(--r-sm); } .dev-zone i.z-b.z-r { border-bottom-right-radius: var(--r-sm); }
-/* 쥔 도구 칩 (main.ts toolChip): 보드 머리에 아이콘 + 무엇을 · 무엇을 하는 중 + 남은 수 + 취소. 쥔 도구 배지와 같은 점선 테두리 */
-.tool-chip { display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 1px 2px 1px 4px; box-sizing: border-box; border: 1px dashed var(--c-select); border-radius: var(--r-pill); background: color-mix(in srgb, var(--c-select) 14%, var(--panel)); font-size: var(--fs-sm); white-space: nowrap; }
+/* 쥔 도구 칩 (main.ts toolChip): 아이콘 + 무엇을 · 무엇을 하는 중 + 남은 수 + 취소. 보관 물품 팝업이 열려 있으면 띄우지 않는다 (같은 정보, docs/UI.md 15) — 보드를 누르는 동안의 배치 · 크레인만 남긴다.
+   자리는 보드 창 위쪽 가장자리에 겹쳐 (.tool-ovl, absolute — 머리줄을 밀거나 줄을 바꾸지 않는다). 칩 몸통은 누름을 통과시키고 단추만 받는다 */
+.board-row { position: relative; }
+.tool-ovl { position: absolute; left: 0; right: 0; top: 6px; z-index: var(--z-sticky); display: flex; justify-content: center; pointer-events: none; }
+.tool-ovl .tool-chip { max-width: calc(100% - 16px); box-shadow: 0 2px 10px color-mix(in srgb, var(--c-black) 50%, transparent); }
+.tool-ovl .tool-chip .btn { pointer-events: auto; }
+.tool-chip { display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 1px 2px 1px 4px; box-sizing: border-box; border: 1px solid var(--c-select); border-radius: var(--r-pill); background: color-mix(in srgb, var(--c-select) 14%, var(--panel)); font-size: var(--fs-sm); white-space: nowrap; }
 .tool-chip .item, .tool-chip .relic-tok { width: 22px; height: 22px; font-size: var(--fs-sm); cursor: default; }
 .tool-chip .tc-ic { display: grid; place-items: center; width: 22px; height: 22px; color: var(--c-select); }
 .tool-chip .tc-ic .li { width: 16px; height: 16px; }
@@ -4350,20 +4366,20 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .tool-chip .plc-n b { color: var(--c-select); }
 .tool-chip .plc-x { border-radius: var(--r-pill); }
 .tool-chip .item .use-n { display: none; } /* 망원경 횟수는 칩의 '횟수 n' 으로 */
-.board-head:has(.tool-chip) .bh-rows { display: none; } /* 도구를 쥔 동안은 배치 줄 안내 대신 칩 */
-@media (max-width: 640px) { .tool-chip { white-space: normal; flex-wrap: wrap; } }
-/* 쥔 도구의 대상 (main.ts toolMark): 받을 수 있음 = 초록 점선 테두리 + 오른쪽 위 '+' 배지 · 받을 수 없음 = 흐리게.
-   가리키면 다음 누름 결과 (장착 · 조합 · 교체 · 사용) 또는 금지 + 짧은 이유를 그 위에 */
-.prep .u.tg-ok .tk-card { border: 1px dashed var(--c-good); }
-.prep .u.tg-ok:hover .tk-card { border-style: solid; background: color-mix(in srgb, var(--c-good) 16%, var(--panel)); }
-.prep .u.tg-no .tk-card { opacity: .42; }
-.prep .u.tg-ok::before, .prep .tk-it.tg-ok::before { content: '+'; position: absolute; top: -3px; right: 2%; z-index: var(--z-raise); width: 15px; height: 15px; display: grid; place-items: center; border-radius: 50%; background: var(--c-good); color: var(--c-black); font: 800 var(--fs-xs)/1 var(--f-body); pointer-events: none; }
-.prep .tk-it.tg-ok, .prep .inv-rail .item.tg-ok { position: relative; outline: 1px dashed var(--c-good); outline-offset: 1px; }
-.prep .tk-it.tg-ok::before { top: -6px; right: -6px; width: 12px; height: 12px; }
-.prep :is(.u, .tk-it):is(.tg-ok, .tg-no):hover::after { content: attr(data-tgl); position: absolute; bottom: calc(100% + 2px); left: 50%; transform: translateX(-50%); z-index: var(--z-pop); padding: 1px 7px; border-radius: var(--r-pill); border: 1px solid var(--tgc); background: var(--panel); color: var(--tgc); font: 700 var(--fs-xs)/1.35 var(--f-body); white-space: nowrap; pointer-events: none; box-shadow: 0 2px 6px color-mix(in srgb, var(--c-black) 50%, transparent); }
-.prep .tg-ok { --tgc: var(--c-good); }
-.prep .tg-no { --tgc: var(--c-bad); cursor: not-allowed; }
-.prep .u.tg-no:hover::after { content: '\2298  ' attr(data-tgl); }
+.tool-chip .plc-name { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+/* 쥔 도구의 대상 (main.ts toolMark · docs/UI.md 14): 누를 때와 끌 때 같은 표시. 받을 수 없는 것 (tg-no) = 흐리게 (포탑과 같은 투명도),
+   받을 수 있는 것 (tg-ok) = 밝기 그대로 · 새 테두리 없음. 결과 이름표 (장착 · 조합 → 이름 · 교체 · 사용)는 가리키거나 (마우스) 끌어 올린 (tg-at) 대상 위에서만.
+   흐린 아군은 가리키면 '⊘ 이유'. 장비에 쓰는 소모품은 기물 카드에서 받는 장비 칸만 밝게 (tg-part) */
+.prep { --tg-dim: .42; }
+.prep .u.tg-no .tk-card, .prep .u.tg-no:not(.tk) > *, .prep :is(.inv-rail .item, .relic-tok, .dev-tok, .dev-mark, .dev-wall2, .tr-ic).tg-no { opacity: var(--tg-dim); }
+.prep .u.tg-part .tk-card > :not(.tk-items), .prep .u.tg-part .tk-items > :not(.tg-ok) { opacity: var(--tg-dim); }
+.prep .cell.tr.tg-no { opacity: var(--tg-dim); } /* 지형 칸도 같은 투명도 (밝은 테마에서는 옅게, 어두운 테마에서는 어둡게 — 바탕으로 물러난다) */
+.prep .tg-no { cursor: not-allowed; }
+/* 결과 이름표 (main.ts tgTip): 가리킨 · 끌어 올린 대상 하나 위에 떠 있는 한 장 (보관함 · 보드 창 스크롤에 잘리지 않게 body 에 붙는다) */
+.tg-tip { --tgc: var(--c-text); position: fixed; z-index: var(--z-drag); padding: 1px 7px; border-radius: var(--r-pill); border: 1px solid var(--tgc); background: var(--panel); color: var(--tgc); font: 700 var(--fs-xs)/1.35 var(--f-body); white-space: nowrap; pointer-events: none; box-shadow: 0 2px 6px color-mix(in srgb, var(--c-black) 50%, transparent); }
+.tg-tip.no { --tgc: var(--c-bad); }
+.tg-tip[hidden] { display: none; }
+.prep .u.tg-ok.tg-at .tk-card, .prep .u.tg-ok:hover .tk-card { background: color-mix(in srgb, var(--c-text) 10%, var(--panel)); } /* 끌어 올린 · 가리킨 대상만 살짝 밝게 */
 .dev-tok, .dev-mark { position: absolute; display: grid; place-items: center; padding: 0; margin: 0; border: 0; background: none; cursor: pointer; color: var(--c-text); }
 .dev-tok .li, .dev-mark .li { width: 58%; height: 58%; }
 .dev-tok { box-sizing: border-box; border-radius: var(--r-sm); border: 2px solid var(--dc); background: color-mix(in srgb, var(--dc) 28%, var(--panel)); }
@@ -4401,9 +4417,9 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .cell.tr.tr-sel::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: color-mix(in srgb, var(--c-select) 26%, transparent); }
 @media (prefers-reduced-motion: no-preference) { .cell.tr.tr-sel.tr-in::after { animation: tr-sel-in .2s ease-out; } }
 @keyframes tr-sel-in { from { opacity: 0; } }
-/* 크레인으로 든 컨테이너 (쥔 도구, main.ts tr-lift): 점선 경계 + 흐리게 (덩어리 아이콘에 쥔 도구 배지) */
-.cell.tr.tr-lift { border-style: dashed; opacity: .55; }
-.tr-ic.armed .li { outline: 2px dashed var(--c-select); outline-offset: 2px; }
+/* 크레인으로 든 컨테이너 (쥔 도구, main.ts tr-lift): 흐리게 (떠난 자리) + 덩어리 아이콘에 붙은 호박색 실선 · 쥔 도구 배지 */
+.cell.tr.tr-lift { opacity: .55; }
+.tr-ic.armed .li { outline: 2px solid var(--c-select); outline-offset: 0; }
 /* 지형 지물 아이콘: 덩어리 무게중심에 칸 1개 크기 자리, 가운데 원 (누름은 아래 칸으로) */
 .tr-ic { position: absolute; display: grid; place-items: center; pointer-events: none; }
 .tr-ic .li { width: 52%; height: 52%; padding: 7%; box-sizing: border-box; border-radius: 50%; background: color-mix(in srgb, var(--panel) 72%, transparent); color: var(--c-text); }
@@ -4472,15 +4488,14 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .bay.ok { pointer-events: auto; cursor: pointer; border: 1px solid color-mix(in srgb, var(--c-select) 55%, transparent); background: color-mix(in srgb, var(--c-select) 15%, transparent); --crc: var(--c-credit); }
 .bay.ok.cr-1 { --crc: var(--c-info); } .bay.ok.cr-2 { --crc: var(--c-bad); }
 .bay.ok .bay-lb { display: none; }
-.bay.ok:hover, .bay.ok:focus-visible { border: 1px solid var(--c-good); background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--crc) 52%, var(--cell-mid)) 0 3px, color-mix(in srgb, var(--crc) 34%, var(--cell-mid)) 3px 6px); }
+.bay.ok:hover, .bay.ok:focus-visible { border: 1px solid var(--c-select); background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--crc) 52%, var(--cell-mid)) 0 3px, color-mix(in srgb, var(--crc) 34%, var(--cell-mid)) 3px 6px); }
 .bay.ok:hover .bay-lb, .bay.ok:focus-visible .bay-lb { display: block; }
 @media (hover: none) { .bay.ok .bay-lb { display: block; } }
 .bay-lb .no-ic { width: 11px; height: 11px; margin-right: 3px; vertical-align: -1px; }
 .bay.bad { border-color: color-mix(in srgb, var(--c-bad) 70%, transparent); background: color-mix(in srgb, var(--c-bad) 12%, transparent); }
 .bay-lb { padding: 1px 6px; border-radius: var(--r-pill); background: var(--panel); font-size: var(--fs-2xs); line-height: 1.35; white-space: nowrap; border: 1px solid currentColor; }
-.bay.ok .bay-lb { color: var(--c-good); }
+.bay.ok .bay-lb { color: var(--c-text); } /* 받는 자리의 결과 이름표: 쥔 도구 대상 (tg-ok)과 같은 무채색 — 초록은 희귀 등급색 (docs/UI.md 13) */
 .bay.bad .bay-lb { color: var(--c-bad); }
-.map-pill .li { width: 14px; height: 14px; }
 /* 배치형 소모품 팝업: 성질 줄 · 망원경 도식 (모드 2칸 · 효과 범위 격자 · 사용 횟수 단계) */
 .dev-spec { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 6px 0 0; font-size: var(--fs-sm); }
 .dev-spec dt { color: var(--c-text-2); }
@@ -4542,7 +4557,6 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .prep, .battle { --cell-min: 52px; }
 @media (pointer: coarse), (max-width: 640px) { .prep, .battle { --cell-min: 44px; } }
 .prep { --vp-h: max(220px, calc(100vh - var(--top-h, 70px) - var(--board-reserve, 150px))); }
-.prep.bench-off { --board-reserve: 134px; } /* 대기석을 숨기면 (main.ts benchTog) 그만큼 보드 창을 높게 */
 @media (max-width: 1100px) { .prep { --vp-h: max(220px, calc(100vh - var(--top-h, 44px) - 104px)); } }
 @media (orientation: landscape) and (max-height: 560px) { .prep { --vp-h: max(160px, calc(100vh - var(--top-h, 44px) - 104px)); } }
 .board-vp { position: relative; flex: 0 1 auto; min-width: 0; max-width: 100%; max-height: var(--vp-h); overflow: visible; overscroll-behavior: contain; touch-action: pan-x pan-y; scrollbar-width: thin; border-radius: var(--r-md); }
