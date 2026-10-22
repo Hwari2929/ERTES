@@ -5257,18 +5257,18 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 @keyframes ct-throw { to { translate: 60vw -8vh; rotate: 22deg; opacity: 0; } }
 /* 의뢰 취소 (오른쪽 아래) */
 .ct-desk { position: absolute; right: 16px; bottom: 4vh; z-index: var(--z-sticky); display: flex; flex-direction: column-reverse; align-items: center; gap: 10px; }
-/* 탁상 벨: 다 고르면 화면 위 가운데에서 한가운데로 밀려 들어온다. 고른 것이 비면 위로 빠진다. 끌어 옮길 수 있고, 화면 가장자리 밖으로 끌어내면 의뢰 취소 */
-.ct-bell { --bs: 128px; --dx: 0px; --dy: 0px; position: fixed; left: 50%; top: 50%; z-index: var(--z-top); width: var(--bs); height: var(--bs); padding: 0; border: 0; background: none; cursor: pointer; filter: drop-shadow(6px 10px 8px var(--shade-2)); touch-action: none;
-  translate: -50% calc(-50vh - 100%); visibility: hidden; pointer-events: none; }
-.ct-bell.on { translate: calc(-50% + var(--dx)) calc(-50% + var(--dy)); visibility: visible; pointer-events: auto; }
-.ct-bell.on.in { animation: ct-bell-in .75s cubic-bezier(.2, .7, .3, 1) both; }
-.ct-bell.on.in.ready { animation: ct-bell-in .75s cubic-bezier(.2, .7, .3, 1) both, ct-jingle 3.2s 1.2s ease-in-out infinite; }
-.ct-bell.out { animation: ct-bell-out .45s cubic-bezier(.5, 0, .8, .4) both; }
-.ct-bell.on.cold { pointer-events: none; } /* 막 내려앉은 벨: 손이 벨 밖으로 한 번 나가기 전까지 누름이 밑의 줄로 간다 (ui/contract.ts bellCold) */
+/* 탁상 벨: 다 고르면 테이블 오른쪽 끝 밖에서 튀어나와 끝단에 놓인다. 고른 것이 비면 다시 오른쪽으로 들어간다. 끌어서 화면 밖으로 내보내면 의뢰 취소, 안쪽에서 놓으면 제자리로 */
+.ct-bell { --bs: 150px; --br: 14px; --bt: -50%; --dx: 0px; --dy: 0px; position: fixed; right: var(--br); top: 50%; z-index: var(--z-top); width: var(--bs); height: var(--bs); padding: 0; border: 0; background: none; cursor: pointer; filter: drop-shadow(6px 10px 8px var(--shade-2)); touch-action: none;
+  translate: calc(100% + var(--br) + 24px) var(--bt); visibility: hidden; pointer-events: none; }
+.ct-bell.on { translate: var(--dx) calc(var(--bt) + var(--dy)); visibility: visible; pointer-events: auto; }
+.ct-bell.on.in { animation: ct-bell-in .6s cubic-bezier(.2, 1.25, .4, 1) both; } /* 살짝 넘쳤다가 멈춘다 (튀어나옴) */
+.ct-bell.on.in.ready { animation: ct-bell-in .6s cubic-bezier(.2, 1.25, .4, 1) both, ct-jingle 3.2s 1s ease-in-out infinite; }
+.ct-bell.out { animation: ct-bell-out .4s cubic-bezier(.5, 0, .8, .4) both; }
 .ct-bell.drag { cursor: grabbing; scale: 1.06; animation: none; }
 .ct-bell.drag.leaving { opacity: .55; } /* 여기서 놓으면 의뢰 취소 */
-@keyframes ct-bell-in { from { translate: -50% calc(-50vh - 100%); } }
-@keyframes ct-bell-out { from { translate: -50% -50%; visibility: visible; } to { translate: -50% calc(-50vh - 100%); visibility: visible; } }
+.ct-bell.back { transition: translate .35s cubic-bezier(.2, .7, .3, 1); }
+@keyframes ct-bell-in { from { translate: calc(100% + var(--br) + 24px) var(--bt); } }
+@keyframes ct-bell-out { from { translate: 0 var(--bt); visibility: visible; } to { translate: calc(100% + var(--br) + 24px) var(--bt); visibility: visible; } }
 .ct.st-ok .ct-bell { animation: ct-ring .4s ease-out; }
 .ct-bell .base { fill: var(--ct-wood-lo); stroke: var(--c-black); stroke-width: 1; }
 .ct-bell .base2 { fill: var(--ct-wood-hi); }
@@ -5281,7 +5281,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-bell.on.ready:not(.in, .drag) { animation: ct-jingle 3.2s .4s ease-in-out infinite; } /* 다 고르면 벨이 가끔 떨린다 */
 @keyframes ct-jingle { 0%, 14%, 100% { rotate: 0deg; } 2% { rotate: -6deg; } 4% { rotate: 5deg; } 6% { rotate: -4deg; } 8% { rotate: 3deg; } 10% { rotate: -1deg; } }
 @keyframes ct-ring { 30% { scale: .94; } }
-.ct.outro .ct-bell.on { animation: ct-bell-out .4s cubic-bezier(.5, 0, .8, .4) both; } /* 나가기: 벨도 위로 (떨림 규칙보다 뒤에 둔다) */
+.ct.outro .ct-bell.on { animation: ct-bell-out .4s cubic-bezier(.5, 0, .8, .4) both; } /* 나가기: 벨도 오른쪽으로 (떨림 규칙보다 뒤에 둔다) */
 .ct-bell:focus-visible { outline: 2px solid var(--c-select); outline-offset: 4px; border-radius: var(--r-pill); }
 .ct-cancel { min-height: 34px; padding: 0 12px; font-size: var(--fs-sm); color: var(--lp-ink); background: var(--grain), var(--lp-paper); background-blend-mode: overlay, normal; border-color: var(--lp-ink); }
 /* 그늘: 전표가 종이처럼 날아가고 → 바가 네이비 어둠에 잠기며 금 체인 · 회중시계가 돌며 내려오고 → 눈높이에서 심장 박동 → 반동 뒤 끌려 올라간다 */
@@ -5365,7 +5365,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-printer { --pw: 270px; right: 100px; }
   .ct-slip { font-size: var(--fs-xs); padding-inline: 9px; }
   .ct-desk { right: 10px; bottom: 3vh; }
-  .ct-bell { --bs: 108px; }
+  .ct-bell { --bs: 128px; --br: 10px; }
 }
 @media (max-width: 1180px) { .bp-col .lp-ip, .lp-bp .fb-rules { font-size: var(--fs-xs); } .bp-cols { gap: 10px; } .bp-cols > * + * { padding-left: 10px; } }
 @media (max-width: 900px) { .bp-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .bp-cols > :nth-child(3) { grid-column: 1 / -1; padding-left: 0; border-left: 0; padding-top: 8px; border-top: 1px dashed color-mix(in srgb, var(--lp-cw) 32%, transparent); } }
@@ -5379,7 +5379,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-slip { font-size: var(--fs-xs); padding-inline: 8px; }
   .ct-slipwrap { max-height: calc(44vh - var(--ph) * .72 - 8px); overflow: hidden; } /* 출력기가 위쪽이라 위로 넘칠 자리가 없다: 아래 (합계) 부터 보이고 위는 잘린다 */
   .ct-desk { right: 10px; top: auto; bottom: 56vh; }
-  .ct-bell { --bs: 96px; }
+  .ct-bell { --bs: 112px; --br: 10px; top: 30%; } /* 세로 태블릿: 차림표가 아래 전체 폭이라 출력기 옆 위쪽 */
   .ct-voice { left: 50%; top: auto; bottom: 62vh; }
 }
 /* 휴대폰 (최소): 도면 · 차림표를 세로로 쌓아 읽을 크기를 지키고, 출력기 · 벨은 아래 띠에 (항목을 가리지 않게 띠 높이만큼 비운다) */
@@ -5405,11 +5405,11 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .lp-col::after { margin-top: 8px; }
   .ct-printer { position: fixed; left: 0; right: 0; top: auto; bottom: 0; width: auto; height: calc(130px + env(safe-area-inset-bottom)); background: var(--grain), var(--ct-wood-lo); background-blend-mode: overlay, normal; border-top: 1px solid var(--lp-au-lo); }
   .ct-pmach { position: absolute; left: 14px; bottom: calc(10px + env(safe-area-inset-bottom)); width: 110px; height: 82px; }
-  .ct-slipwrap { left: 140px; right: 12px; bottom: calc(46px + env(safe-area-inset-bottom)); width: auto; translate: none; max-height: 78px; overflow: hidden; } /* 휴대폰만: 아래 띠 안에서 (선택 항목을 가리지 않게) */
+  .ct-slipwrap { left: 140px; right: 116px; bottom: calc(46px + env(safe-area-inset-bottom)); width: auto; translate: none; max-height: 78px; overflow: hidden; } /* 휴대폰만: 아래 띠 안에서 (선택 항목을 가리지 않게) */
   .ct-slip { clip-path: none; font-size: var(--fs-xs); padding: 8px 10px; }
   .ct-desk { position: fixed; right: 8px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: var(--z-top); }
   .ct-cancel { position: fixed; left: 140px; bottom: calc(8px + env(safe-area-inset-bottom)); min-height: 30px; }
-  .ct-bell { --bs: 96px; }
+  .ct-bell { --bs: 100px; --br: 8px; --bt: 0%; top: auto; bottom: calc(14px + env(safe-area-inset-bottom)); } /* 휴대폰: 아래 띠 오른쪽 끝 */
 }
 @media (prefers-reduced-motion: reduce) { /* 움직임 줄이기: 등장 · 나가기 · 떨림 없이 바로 놓이고, 그늘 연출은 ui/contract.ts 가 0.9초 뒤 바로 명부로 넘긴다 */
   .ct-r.new, .ct-printer.feed .ct-slip, .ct-fly, .ct-sway, .ct-swing, .ct-twist, .ct-hand, .ct-bell.on, .ct-bell.out, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-terms, .ct-col-rider .lp-row.lit, .ct-barview, .ct.outro *, .nr.from-seal::after { animation: none; }
