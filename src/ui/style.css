@@ -93,6 +93,7 @@
   --r-pill: 999px;
 
   /* ── 쌓임 층 (z-index). 실제 쓰임에서 뽑은 층 이름 · 값. 카드 · 토큰 안쪽 순서(0 ~ 6)는 지역 쌓임이라 숫자 그대로 */
+  --top-pill-h: 26px;  /* 런 리본 칩 높이 (리본 두께 고정) */
   --z-raise: 3;        /* 같은 목록 안에서 고른 칸을 한 단 위로 */
   --z-sticky: 5;       /* 화면 하단 버튼 줄 */
   --z-sticky-head: 6;  /* 상세 패널 머리 바 */
@@ -510,8 +511,12 @@ button { font: inherit; color: inherit; }
   padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
 .brand { font-family: var(--f-display); font-size: var(--fs-2xl); color: var(--c-brand); letter-spacing: .04em; }
 .stat-row { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+/* 런 리본의 칩 줄: 높이를 고정하고 한 줄만 쓴다. 칩이 늘어나도 (절망 서약 · 절망 증강 · 영수 증서 · 인과) 리본이 두꺼워지지 않고 옆으로 밀어 본다 */
+.top .stat-row { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; align-items: center; height: var(--top-pill-h); overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; }
+.top .stat-row::-webkit-scrollbar { display: none; }
 .pill { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-pill); padding: 2px 10px; font-size: var(--fs-base); font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 3px; }
-.top .pill { white-space: nowrap; flex: none; } /* 리본 칩은 안에서 줄바꿈하지 않는다 (절망 서약 등이 두 줄이 되어 리본이 두꺼워지던 것) */
+.top .pill { white-space: nowrap; flex: none; height: var(--top-pill-h); box-sizing: border-box; overflow: hidden; } /* 리본 칩: 높이 고정 · 안에서 줄바꿈 없음 */
+.top .pill.more { overflow: visible; }
 @media (max-width: 1180px) { .top .pill.oath .oh-pl { display: none; } }
 .pill b { color: var(--c-text); }
 .pill.hp b { color: var(--c-bad); }
@@ -2500,7 +2505,7 @@ div.pref.pref-death { display: grid; grid-template-columns: minmax(0, 1fr) 128px
 .pill.streak { border-color: var(--c-streak); color: var(--c-streak); }
 .pill.streak b { color: inherit; }
 .pill.more { position: relative; padding: 0; }
-.pill.more summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; }
+.pill.more summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; height: 100%; box-sizing: border-box; }
 .pill.more summary::-webkit-details-marker { display: none; }
 .pill.more[open] summary { color: var(--c-select); }
 .more-list { position: absolute; top: calc(100% + 6px); left: 0; z-index: var(--z-pop); min-width: 170px; margin: 0; padding: 6px; list-style: none; display: grid; gap: 4px;
@@ -2719,7 +2724,7 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
 .menu-btn .li { width: 20px; height: 20px; }
 @media (max-width: 860px) {
   
-  .top .stat-row { flex-wrap: nowrap; min-width: 0; gap: 4px; }
+  .top .stat-row { gap: 4px; }
   .top .pill { flex: none; padding: 1px 7px; }
   .pill.more summary { padding: 1px 7px; }
   .pill.more .more-tx { display: none; }
@@ -2742,7 +2747,7 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
 @media (orientation: landscape) and (max-height: 560px) {
   .wrap { padding-inline: 12px; padding-block: 8px 0; }
   .top { flex-wrap: nowrap; padding-block: 4px; gap: 8px; }
-  .top .stat-row { flex: none; }
+  .top .stat-row { flex: 0 1 auto; }
   .brand { display: none; }
   .top-syns-wrap { display: block; position: relative; flex: 1 1 0; min-width: 0; order: 0; }
   .top-syns { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 8px; padding: 2px 4px; scrollbar-width: none; position: static; }
@@ -3381,7 +3386,7 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
 @media (max-width: 700px) { .dp-row { grid-template-columns: 1fr; } .dp-card { min-height: 0; } }
 @media (prefers-reduced-motion: reduce) { .modal-bg.dp-bg, .dp-veil i, .dp-body, .dp-card { animation: none; } }
 /* 런 내내: 상단 바 표시 (누르면 설명) · 환경 탭 · 지도 현재 칸 모디파이어 · 도감 */
-.pill.despair { border-color: color-mix(in srgb, var(--c-despair) 70%, transparent); background: color-mix(in srgb, var(--c-despair-deep) 80%, var(--panel-2)); color: var(--c-text); cursor: pointer; font: inherit; }
+.pill.despair { border-color: color-mix(in srgb, var(--c-despair) 70%, transparent); background: color-mix(in srgb, var(--c-despair-deep) 80%, var(--panel-2)); color: var(--c-text); cursor: pointer; font: inherit; line-height: 1.2; }
 .pill.despair .li { color: var(--c-despair); }
 @media (max-width: 860px) { .top .pill.despair b { display: none; } }
 .ah-md.despair { --tc: var(--c-despair); }
@@ -3438,15 +3443,14 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
 .oh-rec li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line-soft); }
 .oh-act { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 /* 런 중 상단 바 (누르면 목록) · 난이도 선택 고난 카드의 지금 절망 수치 */
-.pill.oath { border-color: color-mix(in srgb, var(--c-despair) 70%, transparent); background: color-mix(in srgb, var(--c-despair-deep) 80%, var(--panel-2)); color: var(--c-text); cursor: pointer; font: inherit; }
+.pill.oath { border-color: color-mix(in srgb, var(--c-despair) 70%, transparent); background: color-mix(in srgb, var(--c-despair-deep) 80%, var(--panel-2)); color: var(--c-text); cursor: pointer; font: inherit; line-height: 1.2; } /* 버튼이라 본문 줄 높이를 물려받아 리본이 두꺼워지던 것: 줄 높이를 다른 칩과 맞춘다 (높이 고정은 .top .pill) */
 .pill.oath .li { color: var(--c-despair); }
 @media (max-width: 860px) { .top .pill.oath .oh-pl { display: none; } }
 /* 좁은 화면: 서약 표시는 표기 위험 등급만 (절망 수치 · 아이콘은 누르면 알림 · 환경 탭), 예상 이자는 크레딧 칸 모서리 배지 '+n' (누르면 알림) */
 @media (max-width: 860px) {
   .top .pill.oath .li, .top .pill.oath b { display: none; }
   .top .pill.oath .oh-dl { color: var(--c-text); }
-  .top .pill.cr { position: relative; }
-  .top .pill.cr .cr-int { position: absolute; top: -10px; right: -6px; padding: 0 4px; border-radius: var(--r-pill); background: var(--panel); border: 1px solid color-mix(in srgb, var(--c-credit) 55%, transparent); font-size: var(--fs-xs); line-height: 1.2; opacity: 1; }
+  .top .pill.cr .cr-int { margin-left: 2px; padding: 0 4px; border-radius: var(--r-pill); border: 1px solid color-mix(in srgb, var(--c-credit) 55%, transparent); font-size: var(--fs-xs); line-height: 1.2; opacity: 1; } /* 칩 안 작은 배지 (리본 밖으로 튀어나오지 않게) */
   .top .pill.cr .cr-int-tx { display: none; }
 }
 .ds-despair { flex-wrap: wrap; }
