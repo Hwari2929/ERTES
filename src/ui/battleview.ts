@@ -48,6 +48,7 @@ export interface ActLine { t: number; key: string; text: string; v?: number; ids
 const T_MELEE = 0.08; // 근접: 기울기 정점에서 적중
 const T_SKILL = 0.12; // 스킬명 → 효과
 const T_SUPPORT = 0.22; // 회복 · 보호막 표식 이동
+const GATE_SOON = 3; // 수문 전환 배지가 깜빡이기 시작하는 남은 초
 /** 효과 색: 아군이 준 피해 흰색 · 적이 준 피해 빨강 (속성색은 숫자에만) */
 const sideColor = (side: 0 | 1 | undefined) => (side === 1 ? 'var(--bad)' : '#f2f4f8');
 /** 상태 아이콘 (SVG, 상자 크기에 맞춰 늘어남) */
@@ -683,6 +684,7 @@ export class BattleView {
     for (const el of this.gateCd) {
       el.classList.toggle('to-open', toOpen);
       el.classList.toggle('to-shut', !toOpen);
+      el.classList.toggle('soon', sec <= GATE_SOON); // 곧 바뀜: 배지가 깜빡인다 (시간에 따른 위험 · docs/UI.md 10)
       el.querySelector('small')!.textContent = toOpen ? '열림' : '닫힘';
       el.querySelector('b')!.textContent = `${sec}초`;
       el.title = `${sec}초 뒤 ${toOpen ? '열림' : '닫힘'}`;
