@@ -1123,12 +1123,15 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 @media (prefers-reduced-motion: reduce) { .fc-path { animation: none; } }
 .u.tk .tk-art { position: relative; flex: none; grid-column: 1; grid-row: 1; }
 .u.tk .tk-art img.pt, .u.tk .tk-card img.pt { display: block; width: 100%; height: auto; aspect-ratio: 1; flex: none; min-height: 0; object-fit: cover; border-radius: 2px; box-shadow: none; }
-.u.tk .tk-items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; flex: none; grid-column: 1; grid-row: 2; align-items: stretch; }
-.u.tk .tk-items > * { aspect-ratio: 1; min-width: 0; display: flex; overflow: hidden; }
-.u.tk .tk-items > .item, .u.tk .tk-it .item { display: grid; place-items: center; line-height: 0; margin: 0; width: 100%; height: 100%; font-size: 7px; border-radius: 2px; cursor: inherit; border-width: 1px; }
+/* 장비 칸 3개: 빈 칸은 .item 이 바로, 장착 칸은 .tk-it 래퍼 안에 .item 이 든다. 정사각형은 어느 쪽이든 .item 자신이 만든다
+   (칸 너비 100% + aspect-ratio, 높이 auto). 래퍼에 aspect-ratio 를 주고 .item 을 height:100% 로 채우면, 세 칸이 모두 래퍼일 때
+   줄 높이를 정해 줄 빈 칸이 없어 엔진에 따라 래퍼 높이 · 퍼센트 높이가 풀리지 않고 칸이 점처럼 줄며 토큰 높이가 달라진다 */
+.u.tk .tk-items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; flex: none; grid-column: 1; grid-row: 2; align-items: start; }
+.u.tk .tk-items > * { width: 100%; min-width: 0; display: grid; overflow: hidden; }
+.u.tk .tk-items > .item, .u.tk .tk-it .item { display: grid; place-items: center; line-height: 0; margin: 0; width: 100%; height: auto; aspect-ratio: 1; font-size: 7px; border-radius: 2px; cursor: inherit; border-width: 1px; }
 .u.tk .tk-items > .item.tT, .u.tk .tk-it .item.tT { border-width: 2px; }
 .u.tk .tk-it { min-width: 0; min-height: 0; cursor: pointer; touch-action: none; -webkit-touch-callout: none; user-select: none; }
-.u.tk .item .ii { width: 75%; height: 75%; }
+.u.tk .item .ii { width: 75%; height: auto; aspect-ratio: 1; }
 .u.tk .ubadge { left: 1px; right: auto; bottom: 1px; }
 .u.tk .tk-mod { position: absolute; left: 0; top: 0; display: grid; width: 26%; aspect-ratio: 1; cursor: pointer; touch-action: none; -webkit-touch-callout: none; }
 .u.tk .tk-mod .item { width: 100%; height: 100%; font-size: 7px; background: color-mix(in srgb, var(--c-ink) 75%, transparent); border-width: 1px; }
