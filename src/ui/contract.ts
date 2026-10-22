@@ -1,8 +1,8 @@
-// 출격 계약: 에란테스 바 카운터 위에 펼친 세 쪽 접이 차림표 (표지 · 속지 · 청사진). 속지의 줄을 고르면 오른쪽 인쇄기에서 카본지 전표가 한 줄씩 덜그럭 밀려 나오고,
+// 출격 계약: 에란테스 바 카운터 위에 펼친 세 쪽 접이 차림표 (네이비 표지 · 속지 · 청사진). 속지의 줄을 고르면 오른쪽 인쇄기에서 카본지 전표가 한 줄씩 덜그럭 밀려 나오고,
 // 탁상 벨을 누르면 차림표가 카운터 아래로 내려가고 전표만 올라와 전부 보인다 → 아래 서명란에 만년필 서명 → 전표가 날아가고 금 체인과 그늘(회중시계)이 내려왔다 올라가며 → 계약 기물 명부 (main.ts newRunScreen).
 // 의뢰 = 전장 (의뢰 제목 · 의뢰인 = data/scenes/fields.ts) · 약관 = 난이도 (data/contract.ts PLANS, 조항 = data/difficulty.ts DIFFS) · 특약 = 절망 서약 (data/oaths.ts, 담보 약관에만).
-// 단골 경로: 두 번째 계약부터 표지에 '지난 계약 · 늘 하던 대로' · 그늘 연출 압축 (의식은 처음에만 길다). 전표 번호는 서명하고 출격한 수 (ui/meta.ts deeds).
-// 이름 · 수치는 그릴 때마다 데이터 · 설정에서 읽는다. 재료는 청사진 레터프레스 키트 (style.css .lp-*, docs/UI.md 19): 한색 종이 · 네이비 띠 · 청사진 · 카본지 · 금 괘선.
+// 단골 경로: 두 번째 계약부터 의뢰 칸 맨 위에 '늘 하던 대로'(지난 계약) · 그늘 연출 압축 (의식은 처음에만 길다). 전표 번호는 서명하고 출격한 수 (ui/meta.ts deeds).
+// 이름 · 수치는 그릴 때마다 데이터 · 설정에서 읽는다. 재료는 청사진 레터프레스 키트 (style.css .lp-*, docs/UI.md 19): 네이비 표지 · 한색 종이 · 청사진 · 카본지 · 금 괘선.
 import { CFG } from '../config';
 import { FIELDS, fieldOf } from '../data/battlefields';
 import { customWin, PLAN_BY_LVL, PLANS, rollSealed, sealedRange } from '../data/contract';
@@ -191,11 +191,13 @@ function jobRow(j: Job, v: string, small = false) {
   const ds = hid ? `발신자 없음 · 보수 ${sealedRangeText()} · 전장은 서명 뒤 공개` : `${esc(f.name)}${fi ? ` · ${esc(clientShort(fi.client))}` : ''}`;
   return row(small ? 'sm' : '', `data-a="ct-job" data-v="${v}" data-f="job:${v}"`, hid ? '봉인 의뢰서' : `「${esc(fi?.title || f.name)}」`, hid ? '싯가' : j.kind === 'sealed' ? `+${pct(j.bonus)}` : j.kind === 'custom' ? `−${pct(-j.bonus)}` : '정가', [ds], on);
 }
-/** 의뢰 칸: 오늘의 의뢰서 3장 + '메뉴에 없는 의뢰' 한 줄 (누르면 다른 전장 목록) */
+/** 의뢰 칸: (단골) 늘 하던 대로 + 오늘의 의뢰서 3장 + '메뉴에 없는 의뢰' 한 줄 (누르면 다른 전장 목록) */
 function jobCol() {
   const custom = CT.sel?.kind === 'custom' ? CT.sel : null;
   if (CT.list) return `<button class="lp-row bk" data-a="ct-off" data-f="off">‹ 오늘의 의뢰서로</button>${offMenu().map((f) => jobRow(orderOf(f.id), `c:${f.id}`, true)).join('')}`;
-  return `${CT.jobs.map((j, i) => jobRow(j, `d${i}`)).join('')}${custom ? jobRow(custom, `c:${custom.field}`) : ''}
+  const u = CT.vet ? usual() : null, l = lastDeed();
+  const us = u && l ? row('us', 'data-a="ct-usual" data-f="usual"', '늘 하던 대로', u.job.kind === 'custom' ? `−${pct(-u.job.bonus)}` : '정가', [`지난 계약 「${esc(fieldTitle(l.field))}」 · ${esc(u.plan.short)}`], false) : '';
+  return `${us}${CT.jobs.map((j, i) => jobRow(j, `d${i}`)).join('')}${custom ? jobRow(custom, `c:${custom.field}`) : ''}
     ${row('', 'data-a="ct-off" data-f="off"', '메뉴에 없는 의뢰', `−${pct(-customWin())}`, [`다른 전장을 직접 주문 · ${offMenu().length}곳`], false)}`;
 }
 /** 약관 줄: 큰 글자 = 고르는 말(표준 · 성과급 · 담보), 작은 글자 = 세계의 말(부서 · 난이도 · 위험 등급) + 대표 조항 1개 (전문은 전표 · 청사진) */
@@ -272,22 +274,24 @@ function usual() {
 }
 /** 지휘관 서명 (만년필 한글 필기) */
 const SIG = '레이첼';
-/** 네이비 띠 안의 작은 금 별점 (흰 별 금지 · 띠 안에만) */
-const STARS = (w: number, h: number, pts: [number, number, number][]) => `<svg class="lp-stars" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${pts.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}"/>`).join('')}</svg>`;
+
 /** 탁상 벨 (금 선 그림 두 겹) */
 const BELL = (() => { const d = '<path d="M45 13v7"/><circle cx="45" cy="9" r="4"/><path d="M14 56C14 36 28 22 45 22s31 14 31 34"/><path d="M8 56h74"/><path d="M12 57c0 7 10 12 33 12s33-5 33-12"/>'; return `<svg viewBox="0 0 90 80" aria-hidden="true"><g class="lp-lo">${d}</g><g class="lp-hi">${d}</g></svg>`; })();
-/** 표지: 세로 네이비 띠 · 가게 이름 띠 · 전표 번호 · 시각 · (단골) 지난 계약 · 늘 하던 대로 */
+/** 표지 장식 (금 선 그림 두 겹): 모서리 스와시 · 가운데 마름모 괘선 · 별자리 */
+const gold = (d: string, vb: string, cls: string) => `<svg class="${cls}" viewBox="${vb}" aria-hidden="true"><g class="lp-lo">${d}</g><g class="lp-hi">${d}</g></svg>`;
+const SWASH = "<path d='M6 50C6 22 20 8 50 6'/><path d='M12 46C12 26 24 14 46 12'/><path d='M14 30c0-7 9-7 9 0 0 5-7 5-7 0'/><path d='M30 14c-7 0-7 9 0 9 5 0 5-7 0-7'/>";
+const CORNERS = ['tl', 'tr', 'bl', 'br'].map((k) => gold(SWASH, '0 0 56 56', `ct-co ${k}`)).join('');
+const FLEURON = gold("<path d='M4 8H40M64 8H100'/><path d='M52 1 59 8 52 15 45 8Z'/><circle cx='42' cy='8' r='1.4'/><circle cx='62' cy='8' r='1.4'/>", '0 0 104 16', 'ct-fl');
+const CONST = `<svg class="ct-const" viewBox="0 0 120 44" aria-hidden="true"><polyline points="14,30 34,13 54,24 76,9 100,20"/><circle cx="14" cy="30" r="1.6"/><circle cx="34" cy="13" r="1.2"/><circle cx="54" cy="24" r="1.9"/><circle cx="76" cy="9" r="1.1"/><circle cx="100" cy="20" r="1.5"/><circle cx="110" cy="34" r=".9"/></svg>`;
+/** 표지: 네이비 바탕 + 금 액자 · 세로 간판 '에란테스' (정보는 속지 · 전표에) */
 function coverHtml() {
-  const u = CT.vet ? usual() : null, l = lastDeed();
-  return `<section class="ct-cover lp-paper" aria-label="차림표 표지">
-    <div class="lp-band v" aria-hidden="true">${STARS(32, 400, [[8, 40, 1.2], [22, 120, 0.9], [12, 250, 1.4], [25, 330, 0.9], [9, 380, 1]])}<span>의뢰 차림표</span></div>
-    <div class="lp-band t">ERRANTES BAR</div>
-    <div class="ct-est f-num"><span>No. ${pad(CT.no, 4)}</span><span>${esc(CT.time)}</span></div>
-    <i class="lp-rule" aria-hidden="true"></i>
-    ${u && l ? `<div class="ct-last"><span class="k">지난 계약</span><b>「${esc(fieldTitle(l.field))}」</b><span class="f-num">${esc(u.plan.short)} · No.${pad(deedCount(), 4)}</span></div>
-    ${row('sm', 'data-a="ct-usual" data-f="usual"', '늘 하던 대로', u.job.kind === 'custom' ? `−${pct(-u.job.bonus)}` : '정가', [`「${esc(fieldTitle(u.job.field))}」 · ${esc(u.plan.short)}`], false)}
-    <i class="lp-rule-thin" aria-hidden="true"></i>` : `<div class="ct-last"><span class="k">오늘의 의뢰서</span><b>${CT.jobs.length}장</b><span class="f-num">정가 ${CT.jobs.filter((j) => j.kind === 'open').length} · 싯가 ${CT.jobs.filter((j) => j.kind === 'sealed').length}</span></div><i class="lp-rule-thin" aria-hidden="true"></i>`}
-    <span class="lp-lbl foot">싯가 = 서명 뒤 공개</span>
+  return `<section class="ct-cover lp-band" aria-label="에란테스 바 — 의뢰 차림표">
+    ${CORNERS}${CONST}
+    <span class="ct-cv-k">ERRANTES</span>
+    ${FLEURON}
+    <h1 class="ct-signboard">에란테스</h1>
+    ${FLEURON}
+    <span class="ct-cv-k">의뢰 차림표</span>
   </section>`;
 }
 /** 전표 아래 서명란 (벨을 누른 뒤에만 보인다): 서명 · 도장 · [돌아가기] [만년필로 서명] */
