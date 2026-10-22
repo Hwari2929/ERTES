@@ -428,7 +428,7 @@ export class Battle {
     if (hold !== undefined) this.holds[hold]++;
   }
   /** 승패 판정에 세는 기물 (전장 장애물 inert 제외) */
-  fighters(side: 0 | 1) { return this.units.filter((u) => u.alive && u.side === side && !u.mem.inert && !u.mem.decoy); } // 유인 신호기도 빠진다
+  fighters(side: 0 | 1) { return this.units.filter((u) => u.alive && u.side === side && !u.mem.inert && !u.mem.decoy && !u.mem.feast); } // 유인 신호기 · 만찬 백수정도 빠진다
   /** 칸에 숨겨 둔 함정 (감전 지뢰): side 의 적이 r칸 안에 들어오면 delay 초 뒤 fire. 기물이 아니라 칸을 막지 않는다 */
   traps: { x: number; y: number; side: 0 | 1; r: number; delay: number; at?: number; fire: (b: Battle) => void }[] = [];
   private tickTraps() {

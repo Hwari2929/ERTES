@@ -53,9 +53,15 @@ export function tutEnterNode(run: RunState, type: NodeType) {
     R.advance(run);
     return;
   }
-  if (type === 'shop') {
-    const pr = (g: string) => Math.round(CFG.price[g] * (fieldOf(run.field).shopMul || 1));
-    run.node = { type: 'shop', shop: [{ item: 'C_pow', price: pr('C'), sold: false }, { item: 'C_mnd', price: pr('C'), sold: false }, { item: 'A_vit_def', price: pr('A'), sold: false }] };
+  if (type === 'shop') { // 상인 유이 · 고정 진열 9칸 (재료 3 · 고급 1 · 희귀 1 · 소모품 3 + 유이 전용 지정 소집 티켓), 할인 · 새로고침 없음
+    const mul = fieldOf(run.field).shopMul || 1;
+    const pr = (g: string) => Math.round(CFG.price[g] * mul), sp = (id: string) => Math.round(CFG.shop.price[id] * mul);
+    const slot = (item: string, price: number, ex = false) => ({ item, price, sold: false, ...(ex ? { ex: true } : {}) });
+    run.node = { type: 'shop', merchant: 'yui', shop: [
+      slot('K_muster_ticket', R.ticketPrice(run), true), slot('A_vit_def', pr('A')), slot('G_vit', pr('G')),
+      slot('C_pow', pr('C')), slot('C_mnd', pr('C')), slot('C_def', pr('C')),
+      slot('K_xp', sp('K_xp')), slot('K_barricade', sp('K_barricade')), slot('K_cp_purge', sp('K_cp_purge')),
+    ] };
     return;
   }
   if (type === 'recruit') { run.pending.push({ t: 'recruit', options: ['phyllis'], rerolls: 0 }); R.advance(run); return; }

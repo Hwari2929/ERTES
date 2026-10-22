@@ -22,9 +22,12 @@ export const DEV = {
   net: { chance: 0.7, dur: 5, min: 1 },
   /** 표시 망원경 (항해자): 처음 받을 때 사용 횟수 · 항해자 단계별로 처음 닿을 때 더하는 횟수 · 페이즈 진입마다 · 포격 계수 (전술 위력 × 페이즈 체력 배율^0.85) · 효과 반경 (항해자 단계별) */
   scope: { base: 2, tierBonus: [0, 3, 5, 99], perPhase: 1, k: 3, r: [1, 1, 2, 2] },
+  /** 만찬 백수정 (미리암 라일라 전용): 아군 진형에 놓는 아군 구조물. 내구도 (페이즈 체력 배율을 곱한다) · every 초마다 연쇄 회복:
+   *  체력 비율이 가장 낮은 다친 아군이 최대 체력의 heal 만큼 회복 → 다음으로 낮은 다친 아군에게 옮겨 가며 (겹치지 않게, 모두 n명) 한 번 옮길 때마다 decay 만큼 줄어든다 */
+  feast: { hp: 300, every: 5, heal: 0.08, n: 3, decay: 0.2 },
 };
 /** 배치형 소모품 id */
-export const PLACE_IDS = ['K_barricade', 'K_decoy', 'K_mine', 'K_net', 'K_scope'];
+export const PLACE_IDS = ['K_barricade', 'K_decoy', 'K_mine', 'K_net', 'K_scope', 'K_feast'];
 export const isPlaceable = (id: string | null | undefined) => !!id && PLACE_IDS.includes(id);
 /** 바리케이드가 차지하는 칸 */
 export function wallCells(d: Device): { x: number; y: number }[] {
@@ -34,7 +37,7 @@ export function wallCells(d: Device): { x: number; y: number }[] {
 /** 장치가 칸을 차지하는지 (바리케이드 · 신호기 · 지뢰). 그물 · 망원경은 효과 범위만 */
 export function deviceCells(d: Device): { x: number; y: number }[] {
   if (d.id === 'K_barricade') return wallCells(d);
-  if (d.id === 'K_decoy' || d.id === 'K_mine') return [{ x: d.x, y: d.y }];
+  if (d.id === 'K_decoy' || d.id === 'K_mine' || d.id === 'K_feast') return [{ x: d.x, y: d.y }];
   return [];
 }
 /** 그물 2×2 칸 */
@@ -42,12 +45,17 @@ export const netCells = (d: Device) => [{ x: d.x, y: d.y }, { x: d.x + 1, y: d.y
 export const wallHp = (phase: number, n: number) => Math.round((DEV.wall.hp * phaseHpMult(phase)) / Math.max(1, n));
 export const mineDmg = (phase: number) => Math.round(DEV.mine.dmg * Math.pow(phaseHpMult(phase), 0.9));
 export const strikeDmg = (tac: number, phase: number) => Math.round(tac * DEV.scope.k * Math.pow(phaseHpMult(phase), 0.85));
+export const feastHp = (phase: number) => Math.round(DEV.feast.hp * phaseHpMult(phase));
+/** 만찬 백수정 연쇄 회복: 대상 순서별 최대 체력 대비 회복 몫 (8% → 6.4% → 5.12%) */
+export const feastChain = () => [...Array(DEV.feast.n).keys()].map((k) => DEV.feast.heal * Math.pow(1 - DEV.feast.decay, k));
+/** 백분율 표기 (소수 첫째 자리까지, 0 은 떼어 냄): 0.0512 → '5.1%' */
+export const feastPct = (x: number) => `${+(x * 100).toFixed(1)}%`;
 /** 망원경 효과 반경: 항해자 단계 (0 = 꺼짐) */
 export const scopeR = (navTier: number) => DEV.scope.r[Math.max(0, navTier - 1)] ?? 1;
 
 /** 배치형 소모품 성질 (이름 + 값 줄): 보관함 팝업 · 도감이 같은 줄을 읽는다. navTiers = 항해자 단계 인원 (망원경 횟수 단계 표시) */
 export function deviceRows(id: string, navTiers: number[] = [2, 4, 6, 8]): [string, string][] {
-  const W = DEV.wall, D = DEV.decoy, M = DEV.mine, N = DEV.net, S = DEV.scope;
+  const W = DEV.wall, D = DEV.decoy, M = DEV.mine, N = DEV.net, S = DEV.scope, F = DEV.feast;
   switch (id) {
     case 'K_barricade': return [
       ['놓는 곳', '적 진형 밖 빈칸'],
@@ -60,6 +68,14 @@ export function deviceRows(id: string, navTiers: number[] = [2, 4, 6, 8]): [stri
     ];
     case 'K_decoy': return [['놓는 곳', '아무 빈칸 (적 진형 포함)'], ['체력', '1'], ['도발 배율', `×${D.prov}`], ['시작 무적', `${D.invuln}초`]];
     case 'K_mine': return [['놓는 곳', '적 진형 밖 빈칸'], ['은신', '계속'], ['발동', `적이 ${M.r}칸 안 → ${M.delay}초 뒤`], ['폭발', `주변 ${M.r}칸 · 전기 피해`], ['감전', `${M.shock[0]}~${M.shock[1]}초`]];
+    case 'K_feast': return [
+      ['놓는 곳', '아군 진형 빈칸'],
+      ['편', '아군 구조물 (적이 노린다)'],
+      ['내구도', `${F.hp} (× 페이즈 체력 배율)`],
+      ['연쇄 회복', `${F.every}초마다 · ${feastChain().map(feastPct).join(' → ')} (최대 체력 대비)`],
+      ['대상', `체력 비율이 가장 낮은 다친 아군부터 ${F.n}명 · 겹치지 않음`],
+      ['전투 뒤', '사라짐'],
+    ];
     case 'K_net': return [['범위', '2×2 (놓은 칸이 왼쪽 위)'], ['속박 확률', `${Math.round(N.chance * 100)}%`], ['속박', `${N.dur}초 − 효과 저항`]];
     case 'K_scope': return [
       ['적에게', '지정 포격 (전술 위력 비례 피해)'],

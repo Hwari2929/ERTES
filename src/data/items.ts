@@ -274,6 +274,9 @@ export const CONSUMABLES: Record<string, { name: string; icon: string; target: '
   K_mine: { name: '감전 지뢰', icon: '✱', target: 'place', price: 0, drop: true, desc: '숨겨 두면 다가온 적을 감전시킨다.' },
   K_net: { name: '포획 그물', icon: '#', target: 'place', price: 0, drop: true, desc: '2×2 칸의 적을 묶는다.' },
   K_scope: { name: '표시 망원경', icon: '⌖', target: 'place', price: 0, desc: '[항해자 전용] 적에게는 포격을, 아군에게는 보급을 부른다.' },
+  // 상인 전용 상품 (data/merchants.ts): 그 상인의 상점에만 늘 진열된다
+  K_feast: { name: '만찬 백수정', icon: '◇', target: 'place', price: 0, drop: true, desc: '세피르 연회 한 자리의 맛을 담은 백수정. 아군 진형에 놓으면 지친 아군부터 차례로 돌본다.' },
+  K_muster_ticket: { name: '지정 소집 티켓', icon: '▣', target: 'run', price: 0, drop: true, desc: '페트라 자산관리부 협찬. 지정 소집을 크레딧 대신 이 티켓 1장으로 한다 (지도에서 소집을 확정할 때 자동으로 쓰인다). 직접 사용할 수는 없다.' },
 };
 /** 합성 공방 상품 */
 export const ALL_CONSUMABLES = Object.keys(CONSUMABLES).filter((k) => !CONSUMABLES[k].drop);

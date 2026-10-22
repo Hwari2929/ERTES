@@ -238,6 +238,9 @@ const L: Record<string, string> = {
   'k.mine': '<ellipse cx="12" cy="16" rx="8" ry="3.5"/><path d="M4 16v-2.5C4 11.5 7.6 10 12 10s8 1.5 8 3.5V16"/><path d="M13 2.5l-2.5 4h3l-2.5 4"/>',
   'k.net': '<path d="M4 4l16 16M4 12l8 8M12 4l8 8M20 4L4 20M12 4L4 12M20 12l-8 8"/><rect x="4" y="4" width="16" height="16" rx="2"/>',
   'k.scope': '<path d="M3 14l11-7 2 3.5-11 7z"/><path d="M14 7l3-2 2.5 4-3 1.5"/><path d="M8 15.5L6 21M10 14.3l2 6.7"/>',
+  // 상인 전용 상품: 만찬 백수정 (받침 위 수정 + 김 세 줄) · 지정 소집 티켓 (절취선 표 + 사람 머리)
+  'k.feast': '<path d="M12 3l4 5-4 9-4-9z"/><path d="M8 8h8"/><path d="M5 20h14"/><path d="M7 20l1.5-3h7L17 20"/><path d="M4.5 9c-.8-1 .8-2 0-3M19.5 9c-.8-1 .8-2 0-3"/>',
+  'k.ticket': '<path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z"/><path d="M15 7v10" stroke-dasharray="1.5 2"/><circle cx="9" cy="10.5" r="1.8"/><path d="M6 15c.6-1.6 1.7-2.3 3-2.3s2.4.7 3 2.3"/>',
   // 캠페인 장비: 청금 통행증 (브로치) · 진공 헬멧 · 블랙박스 백수정 · 중계 퓨즈
   'i.pass': '<path d="M12 3l7 4v6c0 4-3 6.5-7 8-4-1.5-7-4-7-8V7z"/><path d="M12 8l2 3-2 3-2-3z"/>',
   'i.helmet': '<circle cx="12" cy="11" r="8"/><path d="M7 11a5 4 0 0 1 10 0v2H7z"/><path d="M6 19h12"/>',

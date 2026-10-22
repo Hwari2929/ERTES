@@ -11,6 +11,7 @@ const FILES: string[] = [
   ...fs.readdirSync('docs/banter').filter((f) => f.endsWith('.md')).map((f) => `docs/banter/${f}`),
   ...fs.readdirSync('src/data/scenes').filter((f) => f.endsWith('.ts')).map((f) => `src/data/scenes/${f}`),
   'src/data/voicelines.ts',
+  'src/data/merchants.ts', // 상점 상인 대사 · 페트라 광고
   'src/data/achievements.ts', // 업적 이름 · 설명 · 귀띔
 ];
 /** 수량이 아닌 관용 표현 · 고유 표현 (줄에 이 문자열이 있으면 그 부분은 건너뛴다) */

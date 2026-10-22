@@ -611,14 +611,14 @@ export class BattleView {
     const el = document.createElement('div');
     const card = hasPortrait(u);
     const turret = card && u.isSummon && u.defId === 'turret'; // 엔지니어 감시 포탑: 우측 상단 '기계' 배지
-    const dev = u.mem.wall ? 'wall' : u.mem.decoy ? 'decoy' : ''; // 편성 화면에서 놓은 바리케이드 · 유인 신호기: 스프라이트 대신 장치 표식
+    const dev = u.mem.wall ? 'wall' : u.mem.decoy ? 'decoy' : u.mem.feast ? 'feast' : ''; // 편성 화면에서 놓은 바리케이드 · 유인 신호기 · 만찬 백수정: 스프라이트 대신 장치 표식
     const neutral = u.side === 1 && !!u.mem.inert; // 전장 장애물 (유닉스 답례 투하의 반려 돌 · 묘석): 적이 아닌 중립 지형물로 보인다
     el.className = `u ${neutral ? 'sideN inert' : `side${u.side}`}${card ? ' tkb' : ''}${turret ? ' has-cat' : ''}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
     el.style.width = `${100 / this.W}%`;
     el.style.height = `${100 / this.H}%`;
     el.dataset.a = 'bsel';
     el.dataset.v = String(u.id);
-    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div>${dev ? `<span class="dev-face dev-${dev}">${lineIcon(`k.${dev === 'wall' ? 'barricade' : 'decoy'}`, 'li')}</span>` : `<img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}">`}<div class="cd"><i></i></div>${u.side === 0 && u.reason !== null ? `<div class="gx${schoolOfC(u) ? ` sc sc-${barOf(schoolOfC(u)!)}` : ''}"><i></i></div>` : ''}${schoolOfC(u) ? `<div class="cpi" style="--sc:${SCHOOL_BY_ID[schoolOfC(u) as SchoolId]?.color || '#b07cff'}" title="비술 준비"><i class="cpi-ring"></i>${lineIcon(`s.${schoolOfC(u)}`, 'li')}</div>` : ''}${turret ? `<span class="tk-cat cat-mech" title="기계 · 구조물">${lineIcon('k.mech', 'li')}</span>` : ''}<div class="sti sts deb"></div><div class="stc"></div><div class="stk sts buf"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
+    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div>${dev ? `<span class="dev-face dev-${dev}">${lineIcon(`k.${dev === 'wall' ? 'barricade' : dev}`, 'li')}</span>` : `<img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}">`}<div class="cd"><i></i></div>${u.side === 0 && u.reason !== null ? `<div class="gx${schoolOfC(u) ? ` sc sc-${barOf(schoolOfC(u)!)}` : ''}"><i></i></div>` : ''}${schoolOfC(u) ? `<div class="cpi" style="--sc:${SCHOOL_BY_ID[schoolOfC(u) as SchoolId]?.color || '#b07cff'}" title="비술 준비"><i class="cpi-ring"></i>${lineIcon(`s.${schoolOfC(u)}`, 'li')}</div>` : ''}${turret ? `<span class="tk-cat cat-mech" title="기계 · 구조물">${lineIcon('k.mech', 'li')}</span>` : ''}<div class="sti sts deb"></div><div class="stc"></div><div class="stk sts buf"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
     el.innerHTML = card ? `<div class="tk-card">${inner}</div>` : inner;
     this.board.appendChild(el);
     const q = <T extends HTMLElement>(s: string) => el.querySelector<T>(s)!;
@@ -837,7 +837,7 @@ export class BattleView {
     if (t && t.alive) {
       const d = this.centerAt(t), side = `side${u.side}`;
       const ring = `<circle class="fl-ring ${side}" cx="${d.x}" cy="${d.y}" r="${50 / this.W}" />`;
-      const fl = u.mem.wall || u.mem.decoy ? null : this.b.fireLine(u, t);
+      const fl = u.mem.wall || u.mem.decoy || u.mem.feast ? null : this.b.fireLine(u, t);
       const inRange = this.b.dist(u, t) <= this.b.S(u, 'range');
       const blk = fl && inRange && fl.block !== 'clear' && fl.at ? fl : null;
       if (blk) {

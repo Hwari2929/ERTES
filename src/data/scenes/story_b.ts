@@ -21,7 +21,7 @@ export const STORY_B_REG: SceneReg = {
     b_herald: { name: '투기장 전령', color: '#e0b050', desc: '황제 탄신 검투 대회의 전령. 목소리가 휘장 끝까지 닿는다.' },
     b_clerk: { name: '검문소 관료', color: '#a0a090', desc: '연합 검문소 심사 창구의 관료. 한숨 한 번에 서류 더미가 기운다.' },
     b_masked: { name: '얼굴 가린 사내', color: '#707078', desc: '정전 회담 전날 밤 나타난 사내. 말투는 연합식, 신발 굽은 제국식.' },
-    b_headhunter: { name: '헤드헌터', color: '#c8a8d8', desc: '페트라 자산관리부 인재 영입팀 소속. 명함첩을 절대 주머니 밖으로 꺼내지 않는다.' },
+    b_headhunter: { name: '유이', color: '#c8a8d8', desc: '페트라 자산관리부 인재 영입팀의 헤드헌터. 명함첩을 절대 주머니 밖으로 꺼내지 않는다. 상점 칸에서는 페트라 출장 매장을 연다.' },
     b_seer: { name: '델포이 무녀', color: '#f0e0a0', desc: '이타카 연회에 온 델포이 신전의 무녀. 이방인에게도 신탁을 내린다. 값은 싸지 않다.' },
   },
   bgs: {
