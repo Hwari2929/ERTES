@@ -1442,7 +1442,27 @@ function devPvHtml(run: RunState, pv: NonNullable<typeof devPv>, ex: number) {
   else cells = r.dev ? deviceCells(d) : [{ x, y }];
   const lb = r.err ? placeReason(run, r.err, x, y) : id === 'K_scope' ? (d.mode === 'strike' ? '지정 포격' : '항공 보급') : '';
   const side = sp.x - fr.ox < fr.bw / 2 ? 'l' : 'r', below = sp.y - fr.oy < 1 ? ' below' : ''; // 이름표는 화면 기준 (가로 지형도)
-  return `<div class="dev-pv ${r.err ? 'bad' : 'ok'}">${cells.map((c) => `<i class="${c.x === x && c.y === y ? 'at' : ''}" style="${box(c.x, c.y)}"></i>`).join('')}${lb ? `<span class="dev-pv-at" style="${box(x, y)}"><b class="dev-pv-lb ${side}${below}" role="status">${esc(lb)}</b></span>` : ''}</div>`;
+  const ghost = r.err ? '' : `<span class="dev-pv-ic" style="${box(x, y)}">${lineIcon(SPECIAL_GLYPH[id] || 'a.power', 'li')}</span>`; // 놓을 수 있으면 가리킨 칸에 흐린 장치 아이콘
+  return `<div class="dev-pv ${r.err ? 'bad' : 'ok'}">${cells.map((c) => `<i class="${c.x === x && c.y === y ? 'at' : ''}" style="${box(c.x, c.y)}"></i>`).join('')}${ghost}${lb ? `<span class="dev-pv-at" style="${box(x, y)}"><b class="dev-pv-lb ${side}${below}" role="status">${esc(lb)}</b></span>` : ''}</div>`;
+}
+/** 배치형 소모품을 놓을 수 있는 칸 (편성 보드 화면 틀 안, 판정은 엔진 R.useCheck) → ok = 전장 좌표 'x,y' 집합 · html = 한 덩어리 반투명 층
+ *  (칸마다 <i> 를 칸 간격 없이 이어 붙이고, 덩어리 바깥 변에만 가는 선 z-t/r/b/l — docs/UI.md 10: 칸마다 굵은 테두리 대신 층 하나) */
+function devZone(run: RunState, idx: number, ex: number) {
+  const g = runGeo(run), fr = prepFrame(g, ex), box = boardBox(g, ex), ok = new Set<string>(), on = new Set<string>(), at: { sx: number; sy: number; x: number; y: number }[] = [];
+  for (let sy = 0; sy < fr.bh; sy++) for (let sx = 0; sx < fr.bw; sx++) {
+    const { x, y } = fromScr(g, sx + fr.ox, sy + fr.oy);
+    if (x < PAD || x >= g.w - PAD || R.useCheck(run, idx, { k: 'cell', x, y })) continue;
+    ok.add(`${x},${y}`); on.add(`${sx},${sy}`); at.push({ sx, sy, x, y });
+  }
+  const has = (sx: number, sy: number) => on.has(`${sx},${sy}`);
+  const html = `<div class="dev-zone" aria-hidden="true">${at.map(({ sx, sy, x, y }) => `<i class="${[!has(sx, sy - 1) && 'z-t', !has(sx + 1, sy) && 'z-r', !has(sx, sy + 1) && 'z-b', !has(sx - 1, sy) && 'z-l'].filter(Boolean).join(' ')}" style="${box(x, y)}"></i>`).join('')}</div>`;
+  return { ok, html };
+}
+/** 놓는 중 칩 (편성 보드 머리): 무엇을 놓는지 = 아이콘 + 이름 + 남은 수 (망원경은 사용 횟수) + 취소 (Esc 와 같음) */
+function placeChip(run: RunState, idx: number) {
+  const id = run.inventory[idx], it = itemInfo(id);
+  const [k, n] = id === 'K_scope' && run.scope ? ['횟수', run.scope.n] : ['보유', run.inventory.filter((x) => x === id).length];
+  return `<span class="place-chip" role="status">${itemIcon(id)}<b class="plc-name">${esc(it.name)}</b><span class="plc-n">${k} <b>${n}</b></span><button class="btn tiny plc-x" data-a="sel-clear" title="놓기 취소 (Esc)">취소</button></span>`;
 }
 /** 가리키거나 끄는 칸이 바뀌면 보드의 미리보기만 다시 그린다 (화면 전체를 다시 그리지 않음) */
 function devPvShow(board: HTMLElement, pv: typeof devPv) {
@@ -1467,12 +1487,14 @@ function foldTog(folded: boolean) {
   const icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16${folded ? 'M10 9l-3 3 3 3' : 'M7 9l3 3-3 3'}"/></svg>`;
   return `<div class="side-fold-row"><button class="btn tiny side-fold" data-a="fold-r" aria-expanded="${!folded}" title="${folded ? '상세 패널 펼치기' : '상세 패널 접기 (보드를 넓게)'}">${icon}<span>${folded ? '상세' : '접기'}</span>${folded && app.sel ? '<i class="side-fold-dot" title="고른 대상의 상세가 있음"></i>' : ''}</button></div>`;
 }
-/** 대기석 숨기기 · 보이기 (보는 사람마다 errantes.prefs.v1 benchOff). 숨기면 이 단추 '대기 n' 만 남는다 */
+/** 대기석 숨기기 · 보이기 (보는 사람마다 errantes.prefs.v1 benchOff): 보드 머리의 '대기 n' 칩 하나 (출전 칩 옆).
+ *  docs/UI.md 9 — 두 상태 모두 같은 자리 · 같은 글자 (화살표 방향만 바뀜)라 누른 자리에서 다시 누르면 되돌아온다. 머리는 sticky (스크롤해도 보임) */
 function benchTog(off: boolean, n: number) {
   const icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${off ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'}"/></svg>`;
-  return off ? `<button class="btn tiny bench-tog show" data-a="bench-tog" aria-expanded="false" title="대기석 보이기">${icon}<span>대기</span><b>${n}</b></button>`
-    : `<button class="btn tiny bench-tog" data-a="bench-tog" aria-expanded="true" title="대기석 숨기기 (보드를 크게)">${icon}<span>숨기기</span></button>`;
+  return `<button class="pill bench-tog${off ? ' off' : ''}" data-a="bench-tog" aria-expanded="${!off}" title="${off ? '대기석 보이기' : '대기석 숨기기 (보드를 크게)'}">대기 <b>${n}</b>${icon}</button>`;
 }
+/** 보드의 기물을 끄는 동안만 화면 아래에 붙는 대기석 놓을 자리 (대기석을 숨겼거나 스크롤로 화면 밖이어도 페이지를 굴리지 않고 놓는다) */
+const BENCH_DOCK = `<div class="bench-dock" data-drop="bench" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><b>대기석으로</b></div>`;
 function prepScreen(run: RunState) {
   const node = run.node;
   const isBattle = !!node?.enc;
@@ -1500,7 +1522,7 @@ function prepScreen(run: RunState) {
   const zocTip = (x: number, y: number) => ` title="${esc(zocShort(zocCells.get(`${x},${y}`)))}"`;
   let cells = '';
   const placeSel = app.sel?.k === 'item' && isBattle && isPlaceable(run.inventory[app.sel.idx]) ? app.sel.idx : -1; // 배치형 소모품을 고른 채: 칸을 누르면 설치, 놓을 수 있는 칸 표시
-  const devOk = (x: number, y: number) => placeSel >= 0 && !R.useCheck(run, placeSel, { k: 'cell', x, y });
+  const zone = placeSel >= 0 ? devZone(run, placeSel, ex) : null, devOk = (x: number, y: number) => !!zone?.ok.has(`${x},${y}`); // 놓을 수 있는 칸 (반투명 층 하나, 칸에는 누를 자리 표시만)
   for (let sy = 0; sy < bh; sy++) // 화면 칸 순서 (줄 → 열)로 깔고, 칸마다 전장 좌표로 되짚는다
     for (let sx = 0; sx < bw; sx++) {
       const { x, y } = fromScr(geo, sx + fr.ox, sy + fr.oy);
@@ -1577,19 +1599,19 @@ function prepScreen(run: RunState) {
   const env = node?.enc ? `${node.enc.env} · 폭 ${n}칸${node.type === 'adversity' ? ' · 역경' : ''}${node.type === 'challenge' ? ` · 도전 (P${node.enc.phase} 역경급)` : ''}${node.type === 'boss' ? ' · 보스전' : ''}` : '편성 관리';
   const picked = !!app.sel && app.sel.k !== 'item' && app.sel.k !== 'relic'; // 상세가 있는 선택 (기물 · 적 · 지형 · 포탑 · 공왕)
   const foldR = !!loadPrefs().prepFold && !picked; // 접어 둔 패널도 무언가를 고르면 저절로 펼치고, 선택을 풀면 다시 접힌다
-  const benchOff = !!loadPrefs().benchOff; // 대기석 숨김 (보는 사람마다): '대기 n' 단추만 남고, 보드의 기물을 끄는 동안은 놓을 자리로 펼쳐진다 (CSS .bench.folded)
+  const benchOff = !!loadPrefs().benchOff; // 대기석 숨김 (보는 사람마다): 보드 머리의 '대기 n' 칩으로 숨기기 · 보이기, 보드의 기물을 끄는 동안은 화면 아래 놓을 자리 (BENCH_DOCK)
   return `<main class="wrap prep${foldR ? ' fold-r' : ''}${benchOff ? ' bench-off' : ''}">
     <aside class="side left">
       <h2>시너지</h2><div class="syn-list">${synergyPanel(run)}</div>
     </aside>
     <section class="board-col">
-      <div class="board-wrap">${prepZoomCtl()}<div class="board-main">
-      <div class="board-head"><b>${esc(env)}</b>${mapChip}<span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${tacPill(run)}<span class="muted small">${geo.foe2 ? '가운데' : geo.rot ? '왼쪽' : '아래'} ${geo.rows}줄에 배치</span>${noRoom.length ? `<span class="small warn" title="${esc(`배치 구역에 빈칸이 없음: ${noRoom.map((t) => t.name).join(' · ')} — 전투에서 가까운 빈칸에 나온다`)}">소환 자리 없음 ${noRoom.length}</span>` : ''}
+      <div class="board-head"><b>${esc(env)}</b>${mapChip}<span class="pill dep-pill" title="출전 인원 / 출전 한도">출전 <b>${deployed(run).length}</b>/${cap}</span>${benchTog(benchOff, bench.length)}${tacPill(run)}${placeSel >= 0 ? placeChip(run, placeSel) : ''}<span class="muted small bh-rows">${geo.foe2 ? '가운데' : geo.rot ? '왼쪽' : '아래'} ${geo.rows}줄에 배치</span>${noRoom.length ? `<span class="small warn" title="${esc(`배치 구역에 빈칸이 없음: ${noRoom.map((t) => t.name).join(' · ')} — 전투에서 가까운 빈칸에 나온다`)}">소환 자리 없음 ${noRoom.length}</span>` : ''}
         ${free > 0 && canFill ? `<span class="small warn">빈 자리 ${free}</span><button class="btn tiny" data-a="autofill" title="단축키 A">자동 배치</button>` : ''}</div>
-      <div class="board-row"><div class="board-vp"><div class="board${geo.rot ? ' rot' : ''}${placeSel >= 0 ? ' placing' : ''}"${placeSel >= 0 ? ` data-pidx="${placeSel}"` : ''} style="--w:${bw};--h:${bh}" data-bw="${bw}" data-bh="${bh}" data-ex="${ex}" data-zones='${JSON.stringify(zones)}'><div class="cells">${cells}</div>${units}${startOverlay(run, geo, ex)}</div></div><div class="vp-cues"></div>${invRail(run)}</div>
+      <div class="board-wrap">${prepZoomCtl()}<div class="board-main">
+      <div class="board-row"><div class="board-vp"><div class="board${geo.rot ? ' rot' : ''}${placeSel >= 0 ? ' placing' : ''}"${placeSel >= 0 ? ` data-pidx="${placeSel}"` : ''} style="--w:${bw};--h:${bh}" data-bw="${bw}" data-bh="${bh}" data-ex="${ex}" data-zones='${JSON.stringify(zones)}'><div class="cells">${cells}</div>${zone?.html ?? ''}${units}${startOverlay(run, geo, ex)}</div></div><div class="vp-cues"></div>${invRail(run)}</div>
       </div></div>
-      ${benchOff ? `<div class="bench folded" data-drop="bench">${benchTog(true, bench.length)}<span class="bench-drop">여기에 놓으면 대기석으로</span></div>` : `<div class="bench" data-drop="bench">
-        <span class="bench-label">대기 <b>${bench.length}</b></span>${benchTog(false, bench.length)}
+      ${benchOff ? '' : `<div class="bench" data-drop="bench">
+        <span class="bench-label">대기석</span>
         ${bench.length ? bench.map((u) => {
           const sel = app.sel?.k === 'unit' && app.sel.uid === u.uid;
           return `<div class="bench-u u side0 tk ${sel ? 'sel' : ''}" data-drag="unit:${u.uid}" data-drop="unit:${u.uid}" data-a="sel-unit" data-v="${u.uid}" data-syns="${memberships(u, run).join(' ')}" title="${esc(UNIT_BY_ID[u.defId].name)} · 공명 등급 ${u.rank}">${allyCard(u)}</div>`;
@@ -1602,7 +1624,7 @@ function prepScreen(run: RunState) {
       </div>
     </section>
     <aside class="side right">${foldTog(foldR)}${foldR ? '' : detailPanel(run)}</aside>
-    ${statPopHtml(run)}
+    ${statPopHtml(run)}${BENCH_DOCK}
   </main>`;
 }
 
@@ -3537,11 +3559,11 @@ window.addEventListener('resize', () => { layoutPanels(); prepZoomSync(undefined
 function prepVpMid() { const r = root.querySelector<HTMLElement>('.prep .board-vp')?.getBoundingClientRect(); return r ? { x: r.left + r.width / 2, y: r.top + Math.min(r.height, innerHeight - r.top) / 2 } : undefined; }
 // ───────── 편성 보드 확대 · 축소: 보드는 .board-vp 창 안에서만 커지고 (가로 · 세로 스크롤), 화면(페이지) 배율은 그대로.
 // 보는 사람마다 errantes.prefs.v1 boardZoom = 칸 크기 / 최소 칸 크기 (CSS --cell-min), 0 = 전체 보기 (창에 보드 전체), 없으면 최소 칸 크기 (폭은 창 안)
-/** 보드 왼쪽 세로 확대 단추 줄 (위 → 아래): [+] [복구 (전체 보기 ↔ 마지막 확대)] [−]. 상태 · 보이기는 prepZoomSync 가 실제 크기를 재서 맞춘다 */
+/** 보드 왼쪽 세로 확대 단추 줄 (위 → 아래): [+] [전체 ↔ 확대 (전체 보기 ↔ 마지막 확대)] [−]. 가운데 단추의 아이콘 · 이름 · 상태 · 보이기는 prepZoomSync 가 실제 크기를 재서 맞춘다 */
 function prepZoomCtl() {
   return `<div class="bz-ctl bz-prep" role="group" aria-label="보드 확대" hidden>
     <button class="btn tiny bz-step" data-a="bzoom" data-v="in" title="확대 (Ctrl + 휠 · 두 손가락)" aria-label="확대">${lineIcon('u.zoomin', 'li')}</button>
-    <button class="btn tiny bz-fit" data-a="board-fit">${lineIcon('u.fit', 'li')}<span>복구</span></button>
+    <button class="btn tiny bz-fit" data-a="board-fit">${lineIcon('u.zoomin', 'li')}<span>확대</span></button>
     <button class="btn tiny bz-step" data-a="bzoom" data-v="out" title="축소 (Ctrl + 휠 · 두 손가락)" aria-label="축소">${lineIcon('u.zoomout', 'li')}</button>
   </div>`;
 }
@@ -3593,10 +3615,11 @@ function prepZoomSync(cell?: number, at?: { x: number; y: number }) {
   const zoomed = c > m.fit + 0.5;
   ctl.querySelector<HTMLButtonElement>('[data-v="out"]')!.disabled = !zoomed;
   ctl.querySelector<HTMLButtonElement>('[data-v="in"]')!.disabled = c >= m.max - 0.5;
-  // 복구: 확대해 둔 동안 = 전체 보기 · 전체 보기 = 마지막 확대로 (보드가 최소 칸 크기로 창에 다 들어가고 돌아갈 확대도 없으면 꺼 둔다)
+  // 가운데 단추: 확대해 둔 동안 = [축소 아이콘 · 전체] (전체 보기로) · 전체 보기 = [확대 아이콘 · 확대] (마지막 확대로). 보드가 최소 칸 크기로 창에 다 들어가고 돌아갈 확대도 없으면 꺼 둔다
   const fb = ctl.querySelector<HTMLButtonElement>('.bz-fit')!, last = (loadPrefs().boardZoomLast || 0) * m.min;
   fb.disabled = !zoomed && m.fit >= m.min - 0.5 && Math.min(last, m.max) <= m.fit + 0.5;
-  fb.title = zoomed ? '복구: 보드 전체를 창에 맞춰 보기' : '복구: 마지막 확대로 (아군 진형부터)';
+  if (fb.dataset.z !== String(zoomed)) { fb.dataset.z = String(zoomed); fb.innerHTML = `${lineIcon(zoomed ? 'u.zoomout' : 'u.zoomin', 'li')}<span>${zoomed ? '전체' : '확대'}</span>`; }
+  fb.title = zoomed ? '전체: 보드 전체를 창에 맞춰 보기' : '확대: 마지막 확대로 (아군 진형부터)';
   fb.setAttribute('aria-label', fb.title);
   fb.setAttribute('aria-pressed', String(!zoomed));
 }
@@ -5553,21 +5576,26 @@ function itemTip(el: HTMLElement, key: string) {
 const HOLD_MS = 220;
 let drag: { src: string; x: number; y: number; ghost: HTMLElement | null; el: HTMLElement; t0: number; hold: boolean } | null = null;
 let suppressClick = false;
-/** 끄는 동안 손가락 · 커서가 화면 위 · 아래 가장자리에 머물면 창을 스크롤한다 (휴대폰 세로: 아래쪽 기물 상세의 장비를 보드 · 보관함까지 끌고 올라가기) */
+/** 끄는 동안 손가락 · 커서가 화면 위 · 아래 가장자리에 머물면 창을 스크롤한다 (휴대폰 세로: 아래쪽 기물 상세의 장비를 보드 · 보관함까지 끌고 올라가기). 보드에서 끄는 것은 페이지를 굴리지 않는다 (아래 dragAutoScroll) */
 const DRAG_EDGE = 56, DRAG_SCROLL_MAX = 18, VP_EDGE = 36; // VP_EDGE = 확대한 보드 창 가장자리 폭
 let dragPt: { x: number; y: number } | null = null, dragScrollRaf = 0;
 function dragAutoScroll() {
   dragScrollRaf = 0;
   if ((!drag?.ghost && !wallDrag?.moved) || !dragPt) return; // 장비 · 기물 끌기 · 바리케이드 끌기 (긴 보드)
-  // 확대한 편성 보드 창 (.board-vp): 창 가장자리에 머물면 창 안을 민다
+  // 확대한 편성 보드 창 (.board-vp): 창 가장자리에 머물면 창 안을 민다 (화면 아래 대기석 놓을 자리 위는 제외)
   const vp = root.querySelector<HTMLElement>('.prep .board-vp'), r = vp?.getBoundingClientRect(), p = dragPt;
+  const dock = root.querySelector<HTMLElement>('.prep .bench-dock'), dr = dock && dock.offsetParent ? dock.getBoundingClientRect() : null;
+  const onDock = !!dr && p.x >= dr.left && p.x < dr.right && p.y >= dr.top && p.y < dr.bottom;
   let vpMoved = false;
-  if (vp && r && p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom) {
+  if (vp && r && !onDock && p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom) {
     const E = Math.min(VP_EDGE, r.width / 4, r.height / 4), sp = (d: number) => Math.min(DRAG_SCROLL_MAX, Math.ceil((E - d) / 2));
     const vx = p.x - r.left < E ? -sp(p.x - r.left) : r.right - p.x < E ? sp(r.right - p.x) : 0;
     const vy = p.y - r.top < E ? -sp(p.y - r.top) : r.bottom - p.y < E ? sp(r.bottom - p.y) : 0;
     if (vx || vy) { const l0 = vp.scrollLeft, t0 = vp.scrollTop; vp.scrollBy(vx, vy); vpMoved = vp.scrollLeft !== l0 || vp.scrollTop !== t0; }
   }
+  // 보드에서 끄는 것 (기물 · 소환물 · 포탑 · 바리케이드)은 페이지를 굴리지 않는다: 대기석은 화면 아래 놓을 자리로, 보드 안은 창 가장자리로 (빠르게 아래로 끌어도 화면이 밀리지 않게)
+  const fromBoard = !!wallDrag || !!drag?.el.closest('.board');
+  if (fromBoard) { if (vpMoved) dragScrollRaf = requestAnimationFrame(dragAutoScroll); return; }
   const topH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--top-h')) || 0;
   const up = topH + DRAG_EDGE - dragPt.y, down = dragPt.y - (innerHeight - DRAG_EDGE);
   const dy = up > 0 ? -Math.min(DRAG_SCROLL_MAX, Math.ceil(up / 3)) : down > 0 ? Math.min(DRAG_SCROLL_MAX, Math.ceil(down / 3)) : 0;
@@ -5697,7 +5725,10 @@ function dragPv(cx: number, cy: number) {
   if (i < 0 || !run || !board) return;
   if (board.dataset.pidx !== String(i)) { // 놓을 수 있는 칸 표시는 끄는 그 물품 기준으로 (다른 물품을 고른 채 끌어도)
     board.classList.add('placing'); board.dataset.pidx = String(i);
-    board.querySelectorAll<HTMLElement>('.cell[data-drop]').forEach((el) => { const [k, x, y] = el.dataset.drop!.split(':'); if (k === 'cell' || k === 'xcell') el.classList.toggle('dev-ok', !R.useCheck(run, i, { k: 'cell', x: +x, y: +y })); });
+    const z = devZone(run, i, +board.dataset.ex!);
+    board.querySelector('.dev-zone')?.remove();
+    board.querySelector('.cells')?.insertAdjacentHTML('afterend', z.html);
+    board.querySelectorAll<HTMLElement>('.cell[data-drop]').forEach((el) => { const [k, x, y] = el.dataset.drop!.split(':'); if (k === 'cell' || k === 'xcell') el.classList.toggle('dev-ok', z.ok.has(`${x},${y}`)); });
   }
   const r = board.getBoundingClientRect();
   if (cx < r.left || cx >= r.right || cy < r.top || cy >= r.bottom) { devPvShow(board, null); return; }
