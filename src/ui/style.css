@@ -5202,7 +5202,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-plan-stamp { position: absolute; right: 18px; top: 12px; padding: 2px 10px; border: 3px double var(--lp-stamp); color: var(--lp-stamp); font: 700 var(--fs-xl)/1.2 var(--f-serif); letter-spacing: .2em; rotate: -12deg; opacity: .85; pointer-events: none; text-shadow: none; }
 .ct-plan-stamp.lit { animation: ct-stampin .35s ease-out both; }
 /* 전표 출력기 (오른쪽 가운데 아래): 전표는 위쪽 슬릿에서 위로 나오고, 길수록 끝이 휘어 그림자가 진다 */
-.ct-printer { --pw: 300px; --ph: calc(var(--pw) * .743); position: absolute; right: 150px; bottom: 1.5vh; z-index: var(--z-sticky); width: var(--pw); } /* 위에서 본 낮은 포스기 (그림 art/ct_printer.webp: 놋쇠 슬릿 판 = 가로 14~85% · 홈 높이 28%). 화면 아래 끝에 낮게 두어 전표가 길어져도 위로 뻗을 자리가 넓다 */
+.ct-printer { --pw: 300px; --ph: calc(var(--pw) * .743); position: absolute; right: 150px; bottom: 1.5vh; z-index: var(--z-sticky); width: var(--pw); rotate: var(--rot-pr, 0deg); transform-origin: 50% 70%; } /* 위에서 본 낮은 포스기 (그림 art/ct_printer.webp: 놋쇠 슬릿 판 = 가로 14~85% · 홈 높이 28%). 화면 아래 끝에 낮게 두어 전표가 길어져도 위로 뻗을 자리가 넓다 */
 .ct-pmach { position: relative; z-index: var(--z-raise); width: var(--pw); height: var(--ph); filter: drop-shadow(8px 12px 10px var(--shade-2)); }
 .ct-pmach > :is(svg, .ct-art), .ct-bell > :is(svg, .ct-art) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 :has(> .ct-art) > .ct-fb { display: none; } /* 그림이 있으면 면 그림을 숨긴다 (그림을 못 읽으면 img 가 지워져 면 그림이 돌아온다) */
@@ -5214,12 +5214,12 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-pmach .knob { fill: var(--lp-au); stroke: var(--lp-au-lo); stroke-width: 2; }
 .ct-pmach .plate { fill: none; stroke: var(--lp-au-lo); stroke-width: 1.5; }
 .ct-slipwrap { position: absolute; left: 49.3%; bottom: calc(100% - var(--ph) * .28); z-index: var(--z-sticky); width: calc(var(--pw) * .6); translate: -50% 0; display: flex; flex-direction: column; justify-content: flex-end; filter: drop-shadow(6px 10px 8px var(--shade-2)); } /* 높이 제한 없음: 특약을 끝없이 더하면 화면 위로 넘어간다 (업적 receipt_long) */
-.ct-slip { position: relative; flex: none; overflow: hidden; padding: 10px 10px 84px; display: grid; gap: 1px; border-top: 0; /* 하단부(슬릿으로 들어가는 쪽)만 아래로 휘어 들어간다: 아래 끝 18px 가 안쪽으로 좁아지고 그늘이 진다. 위쪽은 평평하게 (글자 그대로 읽히게) */
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 18px), 96% 100%, 4% 100%, 0 calc(100% - 18px));
-  box-shadow: inset 0 -22px 14px -14px color-mix(in srgb, var(--c-black) 32%, transparent); }
+.ct-slip { position: relative; flex: none; overflow: hidden; padding: 10px 10px 22px; display: grid; gap: 1px; border-top: 0; /* 하단부(슬릿으로 들어가는 쪽)만 아래로 휘어 들어간다: 아래 끝 9px 가 안쪽으로 좁아지고 그늘이 진다. 위쪽은 평평하게 (글자 그대로 읽히게) */
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), 97% 100%, 3% 100%, 0 calc(100% - 9px));
+  box-shadow: inset 0 -12px 8px -8px color-mix(in srgb, var(--c-black) 34%, transparent); }
 .ct-printer.feed .ct-slip { animation: ct-rattle .42s steps(7) both; }
-.ct-stampmark { position: absolute; right: 14px; bottom: 40px; padding: 2px 12px; border: 3px double var(--lp-stamp); color: var(--lp-stamp); font: 700 var(--fs-xl)/1.2 var(--f-serif); letter-spacing: .2em; rotate: -14deg; text-shadow: none; animation: ct-stampin .3s ease-out both; }
-.ct-stampmark.void { right: auto; left: 50%; bottom: 38px; translate: -50% 0; font-size: var(--fs-2xl); }
+.ct-stampmark { position: absolute; right: 12px; bottom: 16px; padding: 2px 12px; border: 3px double var(--lp-stamp); color: var(--lp-stamp); font: 700 var(--fs-xl)/1.2 var(--f-serif); letter-spacing: .2em; rotate: -14deg; text-shadow: none; animation: ct-stampin .3s ease-out both; }
+.ct-stampmark.void { right: auto; left: 50%; bottom: 30%; translate: -50% 0; font-size: var(--fs-2xl); }
 .ct.st-void .ct-slipwrap { animation: ct-throw .6s .55s cubic-bezier(.5, 0, .9, .5) both; } /* 취소: 도장이 찍히면 전표가 바깥으로 */
 @keyframes ct-throw { to { translate: 60vw -8vh; rotate: 22deg; opacity: 0; } }
 .ct.st-ok .ct-bell { animation: ct-ring .4s ease-out; }

@@ -52,7 +52,7 @@ const CT = {
   /** 바에서 시선이 테이블로 내려가는 연출 (연 직후 한 번) */
   intro: false,
   /** 도면 · 차림표가 놓인 각도 (열 때마다 조금씩 다르게) */
-  rot: { bp: 0, mn: 0 },
+  rot: { bp: 0, mn: 0, pr: 0 },
   /** 카운터 너머 목소리 (잠깐 떴다 사라진다) */
   say: '',
   no: 0,
@@ -118,7 +118,7 @@ export function contractStart(from: string, list = false, snap = '') {
   clear();
   const n = deedCount();
   Object.assign(CT, { step: 'board', from, sel: null, list, vet: n > 0, lit: false, focus: '', last: '', stamp: '', intro: true, fromSeal: false, say: '오늘 들어온 의뢰서입니다. 제철이라 조금 더 쳐 드리죠.' });
-  CT.rot = { bp: rnd(-4, 4), mn: rnd(-3, 3) };
+  CT.rot = { bp: rnd(-4, 4), mn: rnd(-3, 3), pr: rnd(-5, 5) };
   CT.no = n + 1;
   const d = new Date();
   CT.time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -299,7 +299,7 @@ function boardHtml() {
   CT.lit = false;
   const leave = CT.from === 'bar' ? '바로 돌아가기' : '타이틀로';
   const n = rows().filter((r) => r.k !== 'div').length;
-  return `<main class="ct ct-top${CT.intro && !reduced() ? ' intro' : ''}${CT.stamp ? ` st-${CT.stamp}` : ''}" style="--rot-bp:${CT.rot.bp}deg;--rot-mn:${CT.rot.mn}deg" aria-label="출격 계약 — 바 테이블 위 의뢰 차림표">
+  return `<main class="ct ct-top${CT.intro && !reduced() ? ' intro' : ''}${CT.stamp ? ` st-${CT.stamp}` : ''}" style="--rot-bp:${CT.rot.bp}deg;--rot-mn:${CT.rot.mn}deg;--rot-pr:${CT.rot.pr}deg" aria-label="출격 계약 — 바 테이블 위 의뢰 차림표">
     ${CT.intro ? barviewHtml() : ''}
     <div class="ct-table" aria-hidden="true">${prop('ct_table', '')}</div><div class="lp-grain" aria-hidden="true"></div>
     <button class="ct-leave lp-btn" data-a="ct-leave">${leave} ›</button>
