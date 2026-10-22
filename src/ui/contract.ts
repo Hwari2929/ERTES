@@ -250,22 +250,30 @@ function infoHtml(): string {
     const j = v.startsWith('c:') ? orderOf(v.slice(2)) : CT.jobs[+v.slice(1)];
     if (!j) return '';
     const f = fieldOf(j.field), fi = fieldIntroOf(j.field);
+    // 전장 브리핑(main.ts fieldBrief)을 세 칸으로 나눈다: 의뢰 | 전장 (분류 · 속성 · 시너지 · 규칙) | 주요 적 (상성 · 초상)
+    const b = hooks.brief(j.field), at = (k: string) => { const i = b.indexOf(k); return i < 0 ? b.length : i; };
+    const iMu = at('<div class="mu-box">'), iRules = at('<ul class="fb-rules">'), iFoes = at('<div class="fb-foes">');
+    const field = b.slice(0, Math.min(iMu, iRules)) + b.slice(iRules, iFoes), foes = b.slice(iMu, iRules).replace(/<span class="mu-k">[^<]*<\/span>/, '') + b.slice(iFoes);
+    const col = (icon: string, t: string, body: string) => `<section class="bp-col"><h3 class="bp-h">${lineIcon(icon, 'li')}${t}</h3>${body}</section>`;
     return `${bh(`「${esc(fi?.title || f.name)}」`, `${esc(f.name)} · ${esc(f.region)}`)}
-      <div class="lp-kv"><span><i>의뢰인</i><b>${esc(fi?.client || '—')}</b></span><span><i>보수</i><b>${esc(priceOf(j))}</b>${fi?.reward ? `<small>${esc(fi.reward)}</small>` : ''}</span></div>
-      ${fi?.brief ? `<p class="lp-ip">${esc(fi.brief)}</p>` : ''}${hooks.brief(j.field)}`;
+      <div class="bp-cols">
+        ${col('k.note', '의뢰', `<div class="lp-kv"><span><i>의뢰인</i><b>${esc(fi?.client || '—')}</b></span><span><i>보수</i><b>${esc(priceOf(j))}</b>${fi?.reward ? `<small>${esc(fi.reward)}</small>` : ''}</span></div>${fi?.brief ? `<p class="lp-ip">${esc(fi.brief)}</p>` : ''}`)}
+        ${col('r.flag', '전장', field)}
+        ${col('m.skull', '주요 적', foes)}
+      </div>`;
   }
   if (k === 'plan') {
     const p = PLAN_BY_LVL[+v];
     if (!p) return '';
     return `${bh(`${esc(p.short)} ${pipsHtml(p.pips, collateral(p.lvl))}`, `${esc(p.code)} ${esc(p.name)} · ${esc(diffName(p.lvl))}`)}
-      <div class="bp-two">${sect('cost', 'm.skull', '감수', costsOf(p.lvl))}${sect('gain', 'm.up', '보상', gainsOf(p.lvl))}</div>
-      <p class="bp-foot">${lineIcon('k.note', 'li')}조항 ${clauseN(p.lvl)}건 · 수치는 출격 뒤 지도 환경 탭 '계약'</p>`;
+      <div class="bp-cols plan">${sect('cost', 'm.skull', '감수', costsOf(p.lvl))}<div class="bp-col">${sect('gain', 'm.up', '보상', gainsOf(p.lvl))}${sect('', 'k.note', '조항', [{ icon: 'k.note', text: `위험 1~${p.lvl} 조항 ${clauseN(p.lvl)}건`, sub: '수치는 출격 뒤 지도 환경 탭 \'계약\'' }, ...(collateral(p.lvl) ? [{ icon: 'n.adversity', text: '담보 조항', sub: `${collateralTerms(p.lvl).despair} · ${collateralTerms(p.lvl).when}` }] : []), ...(oathDiff(p.lvl) ? [{ icon: 'm.up', text: '특약을 붙일 수 있다', sub: '절망 서약' }] : [])])}</div></div>`;
   }
   if (k === 'rider') {
     const d = OATHS.find((o) => o.id === v);
     if (!d) return '';
     const n = oathLv({ oaths: oathSel() }, d.id);
     return `${bh(`${lineIcon(d.icon, 'li')}${esc(d.name)}`, `특약 · 절망 서약${ridersOn() ? '' : ' · 담보 약관에만 붙는다'}`)}
+      <p class="bp-quip">${esc(d.quip)}</p>
       <ol class="lp-lv">${Array.from({ length: oathMax(d.id) }, (_, i) => i + 1).map((k2) => `<li class="${k2 === n ? 'on' : ''}"><b>${k2}단계</b><span>${esc(d.lv(k2))}</span><em class="f-num">절망 +${oathHeatOf(d.id, k2)}</em></li>`).join('')}</ol>`;
   }
   return `${bh('의뢰 도면', `오늘의 의뢰서 ${CT.jobs.length}장 · 모두 제철`)}
@@ -496,7 +504,11 @@ export function contractMount(root: HTMLElement) {
     menu?.addEventListener('focusin', point);
     if (CT.last) later(1200, () => { CT.last = ''; });
     // 전표가 화면 위 끝을 넘었는지 (줄이 밀려 올라온 뒤에 잰다)
-    later(700, () => { const sl = ct.querySelector<HTMLElement>('.ct-slip'); if (sl && sl.getBoundingClientRect().top < 0 && getComputedStyle(ct.querySelector('.ct-slipwrap')!).overflow !== 'hidden') hooks.receipt(ridersOn() ? oathsOn(oathSel()).length : 0); });
+    later(700, () => { // 특약 6건 이상으로 전표가 화면 위로 넘어가거나 (높이 제한 없는 배치에서), 큰 화면이라 안 넘어가도 12건 이상이면
+      const sl = ct.querySelector<HTMLElement>('.ct-slip'), n = ridersOn() ? oathsOn(oathSel()).length : 0;
+      const over = !!sl && sl.getBoundingClientRect().top < 0 && getComputedStyle(ct.querySelector('.ct-slipwrap')!).overflow !== 'hidden';
+      if ((over && n >= 6) || n >= 12) hooks.receipt(n);
+    });
     if (CT.say) { const said = CT.say; later(CT.stamp ? 6000 : 4200, () => { if (CT.say === said) { CT.say = ''; ct.querySelector('.ct-voice')?.classList.remove('on'); } }); }
     return;
   }
