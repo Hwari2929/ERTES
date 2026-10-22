@@ -924,6 +924,7 @@ html.rmap-fs-on, html.rmap-fs-on body { overflow: hidden; }
 .battle { display: grid; grid-template-columns: 250px minmax(0, 1fr) 320px; gap: 20px; align-items: start; --board-reserve: 80px; }
 .board-col { min-width: 0; }
 .board-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.prep .board-head { position: sticky; top: calc(var(--top-h, 10px) - 10px); z-index: var(--z-sticky); padding-block: 4px; margin-top: -4px; background: var(--bg); } /* 대기 칩 · 놓는 중 칩이 스크롤해도 보이게 (docs/UI.md 9) */
 .board-head .speed { margin-left: auto; display: flex; gap: 4px; }
 .board-head .pill { box-sizing: border-box; min-height: 26px; }
 /* 좌우로 최대한 넓히되, 세로가 화면을 넘으면 높이에 맞춰 폭을 줄인다.
@@ -993,19 +994,19 @@ html.rmap-fs-on, html.rmap-fs-on body { overflow: hidden; }
   background: var(--panel); border: 1px dashed var(--line); border-radius: var(--r-lg); padding: 12px 10px 8px; }
 .bench-label { position: absolute; top: 0; left: 12px; transform: translateY(-50%); padding: 0 6px; border-radius: var(--r-sm); background: var(--bg); font-size: var(--fs-xs); line-height: 1.6; color: var(--c-text-2); } /* 테두리 위 이름표 */
 .bench-label b { color: var(--c-text); font-variant-numeric: tabular-nums; }
-/* 대기석 숨기기 · 보이기 (main.ts benchTog, prefs benchOff): 펼친 대기석은 테두리 오른쪽 위 [숨기기], 숨기면 '대기 n' 단추만 */
-.bench-tog { display: inline-flex; align-items: center; gap: 3px; color: var(--c-text-2); }
-.bench-tog svg { width: 14px; height: 14px; flex: none; }
-.bench-tog:hover { color: var(--c-text); }
-.bench:not(.folded) > .bench-tog { position: absolute; top: 0; right: 10px; transform: translateY(-50%); padding: 1px 6px; font-size: var(--fs-xs); background: var(--bg); }
-.bench-tog.show b { color: var(--c-text); font-variant-numeric: tabular-nums; }
-.bench.folded { min-height: 0; margin-top: 8px; padding: 0; border: 0; background: none; }
-.bench.folded .bench-drop { display: none; }
-/* 숨긴 채 보드의 기물을 끄는 동안: 놓을 자리로 펼친다 (끌어 대기석으로 빼기는 그대로) */
-.prep:has(.board [data-drag^="unit:"].dragging) .bench.folded { min-height: 64px; margin-top: 18px; padding: 12px 10px 8px; border: 1px dashed var(--c-select); background: color-mix(in srgb, var(--c-select) 10%, var(--panel)); }
-.prep:has(.board [data-drag^="unit:"].dragging) .bench.folded .bench-drop { display: block; flex: 1; text-align: center; color: var(--c-text); font-weight: 700; }
-.prep:has(.board [data-drag^="unit:"].dragging) .sticky-actions { pointer-events: none; opacity: .3; } /* 낮은 화면: 아래 단추 줄이 대기석 위에 떠 있어도 놓을 수 있게 */
-.prep:has(.board [data-drag^="unit:"].dragging) .bench.folded .bench-tog { position: absolute; top: 0; left: 12px; transform: translateY(-50%); background: var(--bg); }
+/* 대기석 숨기기 · 보이기 (main.ts benchTog, prefs benchOff): 보드 머리 출전 칩 옆 '대기 n' 칩 하나 — 두 상태 모두 같은 자리 · 같은 크기 (docs/UI.md 9), 화살표만 뒤집힌다 */
+.pill.bench-tog { cursor: pointer; font: inherit; line-height: 1; color: var(--c-text-2); }
+.pill.bench-tog svg { width: 14px; height: 14px; flex: none; transition: transform .15s; }
+.pill.bench-tog:hover { color: var(--c-text); border-color: var(--c-text-2); }
+.pill.bench-tog.off { border-style: dashed; }
+/* 보드의 기물을 끄는 동안만: 화면 아래에 붙는 대기석 놓을 자리 (main.ts BENCH_DOCK). 대기석을 숨겼거나 화면 밖이어도 페이지를 굴리지 않고 놓는다 */
+.bench-dock { display: none; position: fixed; z-index: var(--z-float); left: 50%; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(420px, calc(100vw - 32px)); height: 52px; box-sizing: border-box;
+  align-items: center; justify-content: center; gap: 8px; border: 1px dashed var(--c-select); border-radius: var(--r-lg); background: color-mix(in srgb, var(--c-select) 14%, var(--panel)); color: var(--c-text); box-shadow: 0 4px 16px color-mix(in srgb, var(--c-black) 55%, transparent); }
+.bench-dock svg { width: 20px; height: 20px; flex: none; color: var(--c-select); pointer-events: none; }
+.bench-dock b { pointer-events: none; }
+.prep:has(.board [data-drag^="unit:"].dragging) .bench-dock { display: flex; }
+.prep .bench-dock:hover { border-style: solid; background: color-mix(in srgb, var(--c-select) 26%, var(--panel)); }
+.prep:has(.board [data-drag^="unit:"].dragging) .sticky-actions { pointer-events: none; opacity: .3; } /* 아래 단추 줄이 놓을 자리와 겹쳐도 놓을 수 있게 */
 .prep .sticky-actions { margin-top: 18px; }
 /* 대기 기물: 보드와 같은 카드형 토큰 (.u.tk, main.ts allyCard)을 대기석 줄 크기에 맞춘다 (보드 칸처럼 절대 배치하지 않음) */
 .bench-u.u.tk { position: relative; flex: none; width: clamp(54px, 13vw, 64px); cursor: grab; touch-action: none; }
@@ -4326,7 +4327,27 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .ab-tok-ph { display: grid; place-items: center; font-size: var(--fs-xl); color: var(--c-text-2); background: var(--panel-2); } /* 아이콘 없는 궁극기 임시 자리표시 */
 
 /* 편성 화면 배치형 소모품 (data/devices.ts): 바리케이드 · 신호기 · 지뢰 칸 토큰, 그물 · 망원경 효과 범위 + 표식. 누르면 회수 확인 */
-.prep .board .cell.dev-ok { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--c-select) 70%, transparent); cursor: pointer; }
+.prep .board .cell.dev-ok { cursor: pointer; }
+/* 놓을 수 있는 칸 (main.ts devZone): 칸마다 테두리 대신 한 덩어리 반투명 층 (칸 간격까지 이어 칠하고 바깥 변만 1px), 불투명도가 천천히 오르내린다 (docs/UI.md 10) */
+.dev-zone { position: absolute; inset: 0; pointer-events: none; opacity: .8; }
+.dev-zone i { position: absolute; box-sizing: border-box; background: color-mix(in srgb, var(--c-select) 24%, transparent); }
+.dev-zone i.z-t { border-top: 1px solid color-mix(in srgb, var(--c-select) 70%, transparent); } .dev-zone i.z-r { border-right: 1px solid color-mix(in srgb, var(--c-select) 70%, transparent); }
+.dev-zone i.z-b { border-bottom: 1px solid color-mix(in srgb, var(--c-select) 70%, transparent); } .dev-zone i.z-l { border-left: 1px solid color-mix(in srgb, var(--c-select) 70%, transparent); }
+.dev-zone i.z-t.z-l { border-top-left-radius: var(--r-sm); } .dev-zone i.z-t.z-r { border-top-right-radius: var(--r-sm); } .dev-zone i.z-b.z-l { border-bottom-left-radius: var(--r-sm); } .dev-zone i.z-b.z-r { border-bottom-right-radius: var(--r-sm); }
+@media (prefers-reduced-motion: no-preference) { .dev-zone { animation: dz-pulse 2.2s ease-in-out infinite alternate; } }
+@keyframes dz-pulse { from { opacity: .45; } to { opacity: 1; } }
+/* 놓는 중 칩 (main.ts placeChip): 보드 머리에 아이콘 + 이름 + 남은 수 + 취소 */
+.place-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 1px 2px 1px 4px; box-sizing: border-box; border: 1px solid var(--c-select); border-radius: var(--r-pill); background: color-mix(in srgb, var(--c-select) 14%, var(--panel)); font-size: var(--fs-sm); white-space: nowrap; }
+.place-chip .item { width: 22px; height: 22px; font-size: var(--fs-sm); cursor: default; }
+.place-chip .plc-name { color: var(--c-text); }
+.place-chip .plc-n { color: var(--c-text-2); font-variant-numeric: tabular-nums; }
+.place-chip .plc-n b { color: var(--c-select); }
+.place-chip .plc-x { border-radius: var(--r-pill); }
+.place-chip .item .use-n { display: none; } /* 망원경 횟수는 칩의 '횟수 n' 으로 */
+.board-head:has(.place-chip) .bh-rows { display: none; } /* 놓는 동안은 배치 줄 안내 대신 칩 */
+/* 놓는 중인 보관함 물품: 고른 칸 위에 같은 숨쉬는 층 */
+.board-row:has(.board.placing) .inv-rail .item.sel::after { content: ''; position: absolute; inset: -4px; border-radius: inherit; pointer-events: none; background: color-mix(in srgb, var(--c-select) 30%, transparent); }
+@media (prefers-reduced-motion: no-preference) { .board-row:has(.board.placing) .inv-rail .item.sel::after { animation: dz-pulse 2.2s ease-in-out infinite alternate; } }
 .dev-tok, .dev-mark { position: absolute; display: grid; place-items: center; padding: 0; margin: 0; border: 0; background: none; cursor: pointer; color: var(--c-text); }
 .dev-tok .li, .dev-mark .li { width: 58%; height: 58%; }
 .dev-tok { box-sizing: border-box; border-radius: var(--r-sm); border: 2px solid var(--dc); background: color-mix(in srgb, var(--dc) 28%, var(--panel)); }
@@ -4334,7 +4355,7 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .dev-tok.dev-decoy { --dc: var(--c-warn-ink); border-radius: 50%; }
 .dev-tok.dev-mine { --dc: var(--el-elec); border-style: dashed; opacity: .75; }
 .dev-hp { position: absolute; bottom: 1px; right: 3px; font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; color: var(--c-text); }
-.dev-area { position: absolute; box-sizing: border-box; pointer-events: none; border: 2px dashed var(--dc); border-radius: var(--r-sm); background: color-mix(in srgb, var(--dc) 12%, transparent); }
+.dev-area { position: absolute; box-sizing: border-box; pointer-events: none; border: 1px dashed var(--dc); border-radius: var(--r-sm); background: color-mix(in srgb, var(--dc) 12%, transparent); }
 .dev-mark { justify-self: center; }
 .dev-mark .li { width: 40%; height: 40%; padding: 3px; border-radius: 50%; background: color-mix(in srgb, var(--dc) 75%, var(--panel)); }
 .dev-net { --dc: var(--c-info); }
@@ -4355,7 +4376,22 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .u .dev-face.dev-decoy { --dc: var(--c-warn-ink); border-radius: 50%; }
 /* 전장 지형 칸 (data/maps.ts): 종류별 무늬 (물결 · 유리 창살 · 벽돌 · 탱크 원통 · 수문 창살) + 지형 지물(이어진 덩어리) 바깥 테두리 (e-t/r/b/l), 덩어리 가운데 칸에 아이콘. 누르면 tr-sel */
 .cell.tr { position: relative; display: grid; place-items: center; cursor: pointer; --trc: var(--c-steel); box-sizing: border-box; }
-.cell.tr.e-t { border-top: 2px solid var(--trc); } .cell.tr.e-r { border-right: 2px solid var(--trc); } .cell.tr.e-b { border-bottom: 2px solid var(--trc); } .cell.tr.e-l { border-left: 2px solid var(--trc); }
+.cell.tr.e-t { border-top: 1px solid var(--trc); } .cell.tr.e-r { border-right: 1px solid var(--trc); } .cell.tr.e-b { border-bottom: 1px solid var(--trc); } .cell.tr.e-l { border-left: 1px solid var(--trc); }
+/* 지형 덩어리 강조 층 (docs/UI.md 10 — 굵기가 아니라 층으로): 테두리는 1px, 그 위에 덩어리 바깥쪽 가장자리에서 안으로 번지는 반투명 빛 (--gt/r/b/l = 그 변이 바깥이면 지형 색)을
+   얹고 불투명도를 천천히 바꾼다. 고른 덩어리 (tr-sel) 는 같은 층이 선택색 · 면 전체 엷은 칠 · 더 진하게. 움직임 줄이기면 고정 */
+.cell.tr { --gt: transparent; --gr: transparent; --gb: transparent; --gl: transparent; --tro: .45; }
+.cell.tr.e-t { --gt: var(--trc); } .cell.tr.e-r { --gr: var(--trc); } .cell.tr.e-b { --gb: var(--trc); } .cell.tr.e-l { --gl: var(--trc); }
+.cell.tr::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; opacity: var(--tro);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--gt) 85%, transparent), transparent 9px), linear-gradient(to left, color-mix(in srgb, var(--gr) 85%, transparent), transparent 9px),
+    linear-gradient(to top, color-mix(in srgb, var(--gb) 85%, transparent), transparent 9px), linear-gradient(to right, color-mix(in srgb, var(--gl) 85%, transparent), transparent 9px); }
+.cell.tr.tr-sel { --trc: var(--c-select); --tro: .8; }
+.cell.tr.tr-sel::after { background: linear-gradient(to bottom, var(--gt), transparent 12px), linear-gradient(to left, var(--gr), transparent 12px), linear-gradient(to top, var(--gb), transparent 12px), linear-gradient(to right, var(--gl), transparent 12px), color-mix(in srgb, var(--c-select) 22%, transparent); }
+@media (prefers-reduced-motion: no-preference) {
+  .cell.tr::after { animation: tr-breath 2.8s ease-in-out infinite alternate; }
+  .cell.tr.tr-sel::after { animation: tr-sel-breath 2.2s ease-in-out infinite alternate; }
+}
+@keyframes tr-breath { from { opacity: .2; } to { opacity: .65; } }
+@keyframes tr-sel-breath { from { opacity: .45; } to { opacity: 1; } }
 /* 지형 지물 아이콘: 덩어리 무게중심에 칸 1개 크기 자리, 가운데 원 (누름은 아래 칸으로) */
 .tr-ic { position: absolute; display: grid; place-items: center; pointer-events: none; }
 .tr-ic .li { width: 52%; height: 52%; padding: 7%; box-sizing: border-box; border-radius: 50%; background: color-mix(in srgb, var(--panel) 72%, transparent); color: var(--c-text); }
@@ -4366,7 +4402,7 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .cell.tr-gate { --trc: var(--c-warn-ink); background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--c-warn-ink) 45%, var(--cell-mid)) 0 4px, color-mix(in srgb, var(--c-steel) 55%, var(--cell-mid)) 4px 8px); }
 .cell.tr-gate.open { background: var(--cell-mid); border-style: dashed; }
 /* 수문 폐쇄 대기: 닫힘 주기인데 기물이 서 있어 아직 열린 칸 (비는 즉시 닫힘) — 경고색 점선 안쪽 테두리 */
-.cell.tr-gate.pending { background: color-mix(in srgb, var(--c-warn-ink) 12%, var(--cell-mid)); border-style: dashed; outline: 2px dashed var(--c-warn-ink); outline-offset: -5px; }
+.cell.tr-gate.pending { background: color-mix(in srgb, var(--c-warn-ink) 12%, var(--cell-mid)); border-style: dashed; outline: 1px dashed var(--c-warn-ink); outline-offset: -5px; }
 /* 수문 전환 카운트다운 배지 (전투): 가운데 칸 위쪽 가장자리, 다음 상태 색 */
 .gate-cd { position: absolute; display: grid; justify-items: center; align-items: start; pointer-events: none; z-index: var(--z-raise); }
 .gate-cd > span { display: inline-flex; align-items: baseline; gap: 3px; transform: translateY(-60%); padding: 1px 5px; border-radius: var(--r-pill); white-space: nowrap; font-size: var(--fs-2xs); line-height: 1.3; background: var(--panel); border: 1px solid var(--gc, var(--line)); color: var(--c-text); }
@@ -4374,8 +4410,6 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .gate-cd b { font-variant-numeric: tabular-nums; }
 .gate-cd.to-open { --gc: var(--c-good); }
 .gate-cd.to-shut { --gc: var(--c-warn-ink); }
-.cell.tr.tr-sel { --trc: var(--c-select); filter: brightness(1.18); box-shadow: inset 0 0 0 100vmax color-mix(in srgb, var(--c-select) 14%, transparent); }
-.cell.tr.tr-sel.e-t, .cell.tr.tr-sel.e-r, .cell.tr.tr-sel.e-b, .cell.tr.tr-sel.e-l { border-width: 3px; }
 /* 지형 지물 상세: 일러스트 자리에 지형 무늬 타일 + 아이콘 */
 .tr-hero { display: grid; place-items: center; width: 100%; height: 100%; min-height: 150px; color: var(--c-text); }
 .tr-hero .li { width: 48px; height: 48px; flex: none; padding: 12px; border-radius: 50%; background: color-mix(in srgb, var(--panel) 72%, transparent); }
@@ -4404,8 +4438,8 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 @media (prefers-reduced-motion: no-preference) { .cell.tr-rail.cdir-r::before { animation: cdir-r 1.6s ease-in-out infinite; } .cell.tr-rail.cdir-l::before { animation: cdir-l 1.6s ease-in-out infinite; } }
 @keyframes cdir-r { 0% { transform: translateX(-25%); opacity: 0; } 40%, 60% { opacity: .85; } 100% { transform: translateX(25%); opacity: 0; } }
 @keyframes cdir-l { 0% { transform: translateX(25%); opacity: 0; } 40%, 60% { opacity: .85; } 100% { transform: translateX(-25%); opacity: 0; } }
-.cell.tr-rail.cart-warn { outline: 2px dashed var(--c-bad); outline-offset: -4px; }
-.cell.tr-rail.cart-warn::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--c-bad) 42%, transparent) 0 7px, transparent 7px 14px); }
+.cell.tr-rail.cart-warn { outline: 1px dashed var(--c-bad); outline-offset: -4px; }
+.cell.tr-rail.cart-warn::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 1; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--c-bad) 42%, transparent) 0 7px, transparent 7px 14px); }
 .cell.tr-rail.cart-warn::before { content: '→'; position: relative; z-index: 1; color: var(--c-bad); font-size: var(--fs-xl); font-weight: 800; line-height: 1; text-shadow: 0 1px 3px var(--c-black); }
 .cell.tr-rail.cart-warn.dir-l::before { content: '←'; }
 @media (prefers-reduced-motion: no-preference) { .cell.tr-rail.cart-warn::after, .cell.tr-rail.cart-warn::before { animation: cart-warn .5s ease-in-out infinite alternate; } }
@@ -4491,7 +4525,7 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .prep, .battle { --cell-min: 52px; }
 @media (pointer: coarse), (max-width: 640px) { .prep, .battle { --cell-min: 44px; } }
 .prep { --vp-h: max(220px, calc(100vh - var(--top-h, 70px) - var(--board-reserve, 150px))); }
-.prep.bench-off { --board-reserve: 94px; } /* 대기석을 숨기면 (main.ts benchTog) 그만큼 보드 창을 높게 ('대기 n' 단추 줄만 남긴다) */
+.prep.bench-off { --board-reserve: 134px; } /* 대기석을 숨기면 (main.ts benchTog) 그만큼 보드 창을 높게 */
 @media (max-width: 1100px) { .prep { --vp-h: max(220px, calc(100vh - var(--top-h, 44px) - 104px)); } }
 @media (orientation: landscape) and (max-height: 560px) { .prep { --vp-h: max(160px, calc(100vh - var(--top-h, 44px) - 104px)); } }
 .board-vp { position: relative; flex: 0 1 auto; min-width: 0; max-width: 100%; max-height: var(--vp-h); overflow: visible; overscroll-behavior: contain; touch-action: pan-x pan-y; scrollbar-width: thin; border-radius: var(--r-md); }
@@ -4545,8 +4579,10 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .dev-pv-host { position: absolute; inset: 0; pointer-events: none; z-index: var(--z-raise); }
 .dev-pv { --pv: var(--c-good); }
 .dev-pv.bad { --pv: var(--c-bad); }
-.dev-pv i { position: absolute; box-sizing: border-box; border: 2px solid var(--pv); border-radius: var(--r-sm); background: color-mix(in srgb, var(--pv) 22%, transparent); }
-.dev-pv i.at { border-width: 3px; background: color-mix(in srgb, var(--pv) 34%, transparent); }
+.dev-pv i { position: absolute; box-sizing: border-box; border: 1px solid var(--pv); border-radius: var(--r-sm); background: color-mix(in srgb, var(--pv) 18%, transparent); }
+.dev-pv i.at { background: color-mix(in srgb, var(--pv) 30%, transparent); }
+.dev-pv-ic { position: absolute; display: grid; place-items: center; color: var(--c-text); opacity: .6; }
+.dev-pv-ic .li { width: 50%; height: 50%; }
 .dev-pv-at { position: absolute; }
 .dev-pv-lb { position: absolute; bottom: calc(100% + 4px); left: 0; white-space: nowrap; padding: 2px 8px; border-radius: var(--r-pill); border: 1px solid var(--pv); background: var(--panel); color: var(--pv); font: 700 var(--fs-sm)/1.35 var(--f-body); box-shadow: 0 2px 8px color-mix(in srgb, var(--c-black) 50%, transparent); }
 .dev-pv-lb.r { left: auto; right: 0; }
