@@ -5111,7 +5111,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct.outro .ct-barview { animation: ct-lookup 1s .35s var(--ct-out) both; }
 @keyframes ct-lookup { from { translate: 0 -100%; } to { translate: 0 0; } }
 .ct.outro .ct-bp { animation: ct-drop-out .45s cubic-bezier(.5, 0, .8, .4) both; } /* 들어올 때와 다른 이름 (같은 이름이면 브라우저가 진행 중인 애니메이션으로 이어 붙여 한 번에 사라진다) */
-.ct.outro :is(.ct-menu, .ct-riders) { animation: ct-rise-out .45s cubic-bezier(.5, 0, .8, .4) both; }
+.ct.outro :is(.ct-menu, .ct-riders, .ct-offsheet, .ct-flyer) { animation: ct-rise-out .45s cubic-bezier(.5, 0, .8, .4) both; }
 .ct.outro :is(.ct-printer, .ct-desk, .ct-voice) { animation: ct-slide-out .4s cubic-bezier(.5, 0, .8, .4) both; }
 @keyframes ct-drop-out { to { translate: -3vw -110vh; rotate: -9deg; } }
 @keyframes ct-rise-out { to { translate: 2vw 110vh; rotate: 8deg; } }
@@ -5212,6 +5212,34 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-riders.in { animation: ct-rise .7s cubic-bezier(.2, .7, .3, 1) both; }
 .ct-riders.out { visibility: hidden; pointer-events: none; animation: ct-sheet-out .45s cubic-bezier(.5, 0, .8, .4) both; }
 @keyframes ct-sheet-out { from { visibility: visible; } to { translate: 2vw 110vh; rotate: 8deg; visibility: visible; } }
+/* 아래에서 튀어나오는 종이 (메뉴에 없는 의뢰 · 페트라 전단): 손잡이를 누르거나 아래로 쓸어 내리면 빠진다 (ui/contract.ts swipeDown) */
+.ct-offsheet, .ct-flyer { position: absolute; z-index: var(--z-raise); touch-action: none; filter: drop-shadow(8px 12px 12px var(--shade-2)); }
+:is(.ct-offsheet, .ct-flyer).in { animation: ct-pop .55s cubic-bezier(.2, .9, .3, 1.08) both; }
+@keyframes ct-pop { from { translate: 0 105vh; } }
+:is(.ct-offsheet, .ct-flyer).out { visibility: hidden; pointer-events: none; animation: ct-pop-out .4s cubic-bezier(.5, 0, .8, .4) both; }
+@keyframes ct-pop-out { from { translate: 0 var(--y0, 0px); visibility: visible; } to { translate: 0 105vh; visibility: visible; } }
+:is(.ct-offsheet, .ct-flyer).drag { cursor: grabbing; }
+.ct.intro .ct-offsheet.in { animation-delay: 1.9s; }
+.ct-grip { position: absolute; left: 50%; top: 2px; translate: -50% 0; width: 72px; height: 18px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }
+.ct-grip i { width: 40px; height: 4px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--lp-ink) 35%, transparent); }
+.ct-grip:hover i { background: color-mix(in srgb, var(--lp-ink) 60%, transparent); }
+.ct-grip:focus-visible { outline: 2px solid var(--c-select); outline-offset: 2px; }
+/* 메뉴에 없는 의뢰: 표지 · 의뢰 칸을 덮는 조금 넓은 종이 (오른쪽 끝이 약관 칸에 거의 닿지 않게, 그래서 왼쪽으로 치우친다) */
+.ct-offsheet { left: -.6vw; bottom: 2.5vh; width: calc(var(--mw) * .66 + 1vw); height: 50vh; padding: 24px 20px 16px; display: flex; flex-direction: column; min-height: 0; rotate: var(--rot-ls, 0deg); box-shadow: inset 0 0 36px color-mix(in srgb, var(--lp-ink) 22%, transparent); }
+.ct-offsheet > .lp-h2 { flex: none; }
+.ct-offsheet .lp-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; }
+/* 페트라 자산관리부 전단: 담보 조건 · 보전 내역 · 특약 가입 권고 (약관 칸 아래쪽 위에 놓인다) */
+.ct-flyer { left: calc(.5vw + var(--mw) * .56); bottom: 2vh; width: min(21vw, 300px); padding: 22px 16px 14px; display: grid; gap: 8px; rotate: var(--rot-fl, 0deg); }
+.ct-fl-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 -16px; padding: 6px 16px; background: var(--lp-navy); color: var(--lp-cw); }
+.ct-fl-h b { font: 700 var(--fs-md)/1 var(--f-serif); letter-spacing: .4em; color: var(--lp-au); }
+.ct-fl-h span { font-size: var(--fs-2xs); letter-spacing: .08em; }
+.ct-fl-t { margin: 0; font: 700 var(--fs-lg)/1.25 var(--f-serif); letter-spacing: .06em; }
+.ct-fl-no { margin: -6px 0 0; font-size: var(--fs-2xs); opacity: .7; }
+.ct-fl-lead { margin: 0; font-size: var(--fs-xs); line-height: 1.5; }
+.ct-fl-ad { display: flex; gap: 6px; align-items: flex-start; margin: 0; padding: 8px 10px; border: 1px solid var(--lp-ink); font-size: var(--fs-xs); line-height: 1.45; }
+.ct-fl-ad .li { flex: none; width: 14px; height: 14px; }
+.ct-fl-ad small { display: block; font-size: var(--fs-2xs); opacity: .75; }
+.ct-fl-fine { margin: 0; font-size: var(--fs-2xs); line-height: 1.4; opacity: .6; }
 /* 위험 눈금 · 담보 봉인 · 담보 조항 */
 .ct-pips { display: inline-flex; gap: 2px; margin-left: 4px; vertical-align: 0; }
 .ct-pips b { width: 9px; height: 6px; border: 1px solid currentColor; }
@@ -5223,9 +5251,6 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-wax svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: var(--lp-stamp); }
 .ct-wax span { position: relative; font: 700 var(--fs-2xs)/1 var(--f-serif); color: var(--lp-cream); letter-spacing: -.02em; }
 .lp-row.hot:not(.on) .lp-nm { color: var(--lp-stamp); }
-.ct-terms { display: grid; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 2px solid var(--lp-stamp); }
-.ct-terms.lit { animation: ct-unfold .5s .1s ease-out both; }
-@keyframes ct-unfold { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
 .ct-tm h3 { display: flex; align-items: center; gap: 5px; margin: 0 0 4px; font: 700 var(--fs-xs)/1.2 var(--f-body); letter-spacing: .14em; }
 .ct-tm h3 .li { width: 13px; height: 13px; }
 .ct-tm.cost h3 { color: var(--lp-stamp); }
@@ -5368,6 +5393,9 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct { --mw: calc((100vw - 360px) * .71); }
   .ct-menu { width: var(--mw); }
   .ct-riders { width: calc((100vw - 360px) * .29); height: 52vh; bottom: 3.5vh; padding: 14px 12px; }
+  .ct-offsheet .lp-list { grid-template-columns: minmax(0, 1fr); }
+  .ct-flyer { left: calc(.5vw + var(--mw) * .5); width: 240px; padding-inline: 12px; }
+  .ct-fl-h { margin-inline: -12px; padding-inline: 12px; }
   .ct-printer { --pw: 270px; right: calc(100px + 1.05vw); }
   .ct-slip { font-size: var(--fs-xs); padding-inline: 9px; }
   .ct-desk { right: 10px; bottom: 3vh; }
@@ -5382,6 +5410,8 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-bp { width: calc(100vw - 320px); }
   .ct-menu { height: 52vh; }
   .ct-riders { left: auto; right: 2vw; width: 32vw; height: 50vh; bottom: 2.5vh; }
+  .ct-offsheet { left: -1vw; width: 44vw; height: 50vh; }
+  .ct-flyer { left: 30vw; width: 38vw; }
   .ct-printer { --pw: 250px; right: 100px; bottom: 56vh; }
   .ct-slip { font-size: var(--fs-xs); padding-inline: 8px; }
   .ct-slipwrap { max-height: calc(44vh - var(--ph) * .72 - 8px); overflow: hidden; } /* 출력기가 위쪽이라 위로 넘칠 자리가 없다: 아래 (합계) 부터 보이고 위는 잘린다 */
@@ -5401,6 +5431,8 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct { padding-bottom: calc(140px + env(safe-area-inset-bottom)); } /* 아래 띠(출력기 · 벨) 만큼 비운다 */
   .ct-riders { position: relative; left: auto; bottom: auto; width: auto; height: auto; rotate: none; margin: 10px; display: block; filter: none; }
   .ct-riders .lp-list { display: block; overflow: visible; }
+  .ct-offsheet, .ct-flyer { position: fixed; left: 0; right: 0; bottom: calc(130px + env(safe-area-inset-bottom)); width: auto; height: auto; max-height: calc(86vh - 130px); rotate: none; z-index: var(--z-top); overflow: hidden; } /* 아래 띠(출력기 · 벨) 바로 위에서 올라온다 (전표가 찍히는 게 보이게) */
+  .ct-offsheet .lp-list { display: grid; grid-template-columns: minmax(0, 1fr); overflow: visible; }
   .ct-cover { width: auto; padding: 16px; flex-direction: row; justify-content: center; gap: 10px; }
   .ct-cover .ct-const, .ct-cover .ct-cv-k { display: none; }
   .ct-signboard { writing-mode: horizontal-tb; rotate: none; font-size: var(--fs-sign-s); flex: none; }
@@ -5420,6 +5452,6 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-bell { --bs: 100px; --br: 8px; --bt: 0%; top: auto; bottom: calc(14px + env(safe-area-inset-bottom)); } /* 휴대폰: 아래 띠 오른쪽 끝 */
 }
 @media (prefers-reduced-motion: reduce) { /* 움직임 줄이기: 등장 · 나가기 · 떨림 없이 바로 놓이고, 그늘 연출은 ui/contract.ts 가 0.9초 뒤 바로 명부로 넘긴다 */
-  .ct-printer.run .ct-pmach, .ct-fly, .ct-sway, .ct-swing, .ct-twist, .ct-hand, .ct-bell.on, .ct-bell.out, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-terms, .ct-riders.in, .ct-riders.out, .ct-barview, .ct.outro *, .nr.from-seal::after { animation: none; }
+  .ct-printer.run .ct-pmach, .ct-fly, .ct-sway, .ct-swing, .ct-twist, .ct-hand, .ct-bell.on, .ct-bell.out, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-riders.in, .ct-riders.out, .ct-offsheet.in, .ct-offsheet.out, .ct-flyer.in, .ct-flyer.out, .ct-barview, .ct.outro *, .nr.from-seal::after { animation: none; }
   .ct-voice { transition: none; }
 }

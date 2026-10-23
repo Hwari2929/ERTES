@@ -54,10 +54,11 @@ const CT = {
   intro: false,
   /** 벨이 테이블 오른쪽 끝에 나와 있는지 (다 고르면 오른쪽 밖에서 튀어나오고, 고른 것이 비면 다시 들어간다) */
   bell: false,
-  /** 특약 차림표(담보 전용 종이)가 테이블에 나와 있는지 (담보 약관을 고르면 밀려 들어오고, 풀면 빠진다) */
-  sheet: false,
+  /** 페트라 자산관리부 전단 (담보 약관을 고르면 아래에서 튀어나온다 · 아래로 쓸어 내리면 빠진다) */
+  flyer: false,
   /** 도면 · 차림표가 놓인 각도 (열 때마다 조금씩 다르게) */
-  rot: { bp: 0, mn: 0, pr: 0, rd: 0 },
+  /** 놓인 각도: 도면 · 차림표 · 출력기 · 특약 차림표 · 메뉴에 없는 의뢰 · 전단 */
+  rot: { bp: 0, mn: 0, pr: 0, rd: 0, ls: 0, fl: 0 },
   /** 카운터 너머 목소리 (잠깐 떴다 사라진다) */
   say: '',
   no: 0,
@@ -116,14 +117,25 @@ const orderOf = (fid: string): Job => CT.jobs.find((j) => j.field === fid) || { 
 /** 차림표를 연다: 오늘의 의뢰서 3장 (모두 제철). list = 메뉴에 없는 의뢰 목록을 펼친 채로 */
 /** 바 화면을 뜬 것 (시선 전환용, 클릭 · 낭독 없이 그림으로만): <main> 을 <div> 로 바꿔 화면 판정에 걸리지 않게 */
 let barSnap = '';
+/** 테이블에 올라온 종이 (특약 차림표 rd · 메뉴에 없는 의뢰 ls · 전단 fl): 막 나오면 ' in', 막 빠지면 ' out' (빠지는 동안 한 번 더 그린다), 없으면 null */
+const shown: Record<string, boolean> = {};
+/** 쓸어 내리다 놓은 자리 (빠지는 연출이 거기서 이어진다) */
+const dragY: Record<string, number> = {};
+function sheetCls(k: string, on: boolean): string | null {
+  const was = !!shown[k];
+  shown[k] = on;
+  if (on) return was ? '' : ' in';
+  return was ? ' out' : null;
+}
 const snapOf = (html: string) => html.replace(/^<main\b/, '<div').replace(/<\/main>\s*$/, '</div>').replace(/\saria-live="[^"]*"/g, '');
 const barviewHtml = () => `<div class="ct-barview" aria-hidden="true" inert>${barSnap || `<div class="ct-barbg" style="background-image:url('${bgURL('erantes_bar')}')"></div>`}</div>`;
 export function contractStart(from: string, list = false, snap = '') {
   barSnap = snap ? snapOf(snap) : '';
   clear();
   const n = deedCount();
-  Object.assign(CT, { step: 'board', from, sel: null, list, vet: n > 0, lit: false, focus: '', last: '', stamp: '', intro: true, bell: false, sheet: false, fromSeal: false, say: '오늘 들어온 의뢰서입니다. 제철이라 조금 더 쳐 드리죠.' });
-  CT.rot = { bp: rnd(-4, 4), mn: rnd(-3, 3), pr: rnd(-3, 3), rd: rnd(-3, 3) };
+  Object.assign(CT, { step: 'board', from, sel: null, list, vet: n > 0, lit: false, focus: '', last: '', stamp: '', intro: true, bell: false, flyer: false, fromSeal: false, say: '오늘 들어온 의뢰서입니다. 제철이라 조금 더 쳐 드리죠.' });
+  CT.rot = { bp: rnd(-4, 4), mn: rnd(-3, 3), pr: rnd(-3, 3), rd: rnd(-3, 3), ls: rnd(-2, 2), fl: rnd(-4, 4) };
+  for (const k in shown) delete shown[k];
   paper.rows = []; paper.run = null; paper.token++;
   CT.no = n + 1;
   const d = new Date();
@@ -261,7 +273,6 @@ function jobRow(j: Job, v: string, small = false) {
 /** 의뢰 칸: (단골) 늘 하던 대로 + 오늘의 의뢰서 3장 + '메뉴에 없는 의뢰' 한 줄 */
 function jobCol() {
   const custom = CT.sel?.kind === 'custom' ? CT.sel : null;
-  if (CT.list) return `<button class="lp-row bk" data-a="ct-off" data-f="off">‹ 오늘의 의뢰서로</button>${offMenu().map((f) => jobRow(orderOf(f.id), `c:${f.id}`, true)).join('')}`;
   const u = CT.vet ? usual() : null, l = lastDeed();
   const us = u && l ? row('us', 'data-a="ct-usual" data-f="usual"', '늘 하던 대로', u.job.kind === 'season' ? '제철' : '', [`지난 계약 「${esc(fieldTitle(l.field))}」 · ${esc(u.plan.short)}`], false) : '';
   return `${us}${CT.jobs.map((j, i) => jobRow(j, `d${i}`)).join('')}${custom ? jobRow(custom, `c:${custom.field}`) : ''}
@@ -276,16 +287,31 @@ function planRow(lvl: number) {
   const p = PLAN_BY_LVL[lvl], hot = collateral(lvl);
   return row(hot ? 'hot' : '', `data-a="ct-plan" data-v="${lvl}" data-f="plan:${lvl}"`, esc(p.short), hot ? WAX : '', [`${esc(p.dept)} · ${esc(diffName(lvl))} ${pipsHtml(p.pips, hot)}`], CT.plan === lvl);
 }
-/** 담보를 고르면 약관 칸 아래로 펼쳐지는 담보 조항: 감수 / 보상을 나눠 아이콘으로 */
-function collateralHtml(lit: boolean) {
-  if (!collateral(CT.plan)) return '';
-  const t = collateralTerms(CT.plan);
-  return `<div class="ct-terms${lit ? ' lit' : ''}" aria-label="담보 조항">
-    <section class="ct-tm cost"><h3>${lineIcon('m.skull', 'li')}감수</h3>
+/** 담보를 고르면 아래에서 튀어나오는 페트라 자산관리부 전단: 담보 조건(감수) · 보전 내역(보상) · 특약 가입 권고 */
+function flyerHtml(cls: string) {
+  const t = collateralTerms(CT.plan), p = PLAN_BY_LVL[CT.plan];
+  return `<section class="ct-flyer lp-paper${cls}" style="--y0:${dragY.fl || 0}px" aria-label="페트라 자산관리부 전단 — 담보 조건"${cls === ' out' ? ' aria-hidden="true" inert' : ''}>
+    <button class="ct-grip" data-a="ct-flyer" aria-label="전단 내리기 (아래로 쓸어 내려도 된다)"><i></i></button>
+    <header class="ct-fl-h"><b>PETRA</b><span>주식회사 페트라 · 자산관리부</span></header>
+    <h3 class="ct-fl-t">담보 계정 편입 안내</h3>
+    <p class="ct-fl-no f-num">적요 ${esc(p?.code || '')}-${pad(CT.no, 4)}</p>
+    <p class="ct-fl-lead">이번 계약 기간 동안 귀 함대는 당사 담보 계정에 계상됩니다.</p>
+    <section class="ct-tm cost"><h3>${lineIcon('m.skull', 'li')}담보 조건</h3>
       <p>${lineIcon('r.hp', 'li')}<span>${esc(t.hp)}</span></p><p>${lineIcon('n.adversity', 'li')}<span>${esc(t.despair)}<small>${esc(t.when)}</small></span></p></section>
-    <section class="ct-tm gain"><h3>${lineIcon('m.up', 'li')}보상</h3>
+    <section class="ct-tm gain"><h3>${lineIcon('m.up', 'li')}보전 내역</h3>
       ${gainsOf(CT.plan).map((g) => `<p>${lineIcon(g.icon, 'li')}<span>${esc(g.text)}</span></p>`).join('')}</section>
-  </div>`;
+    <p class="ct-fl-ad">${lineIcon('k.note', 'li')}<span>보장을 늘리시려면 <b>특약</b> 가입을 권고드립니다.<small>특약 차림표 · 절망 서약</small></span></p>
+    <p class="ct-fl-fine">본 안내는 체결 전 고지 의무에 따라 교부됩니다. 상각 시 보상금은 지급되지 않습니다.</p>
+  </section>`;
+}
+/** 메뉴에 없는 의뢰: 차림표의 의뢰 칸을 덮는 조금 넓은 종이 (약관 칸은 거의 덮지 않는다). 고른 뒤에도 남고, 아래로 쓸어 내리면 빠진다 */
+function offSheetHtml(cls: string) {
+  const fs = offMenu();
+  return `<section class="ct-offsheet lp-paper lp-frame${cls}" style="--y0:${dragY.ls || 0}px" role="group" aria-label="메뉴에 없는 의뢰 — 직접 주문"${cls === ' out' ? ' aria-hidden="true" inert' : ''}>
+    <button class="ct-grip" data-a="ct-off" aria-label="오늘의 차림표로 (아래로 쓸어 내려도 된다)"><i></i></button>
+    <h2 class="lp-h2">메뉴에 없는 의뢰 <small>직접 주문 · ${fs.length}곳</small></h2>
+    <div class="lp-list">${fs.map((f) => jobRow(orderOf(f.id), `c:${f.id}`, true)).join('')}</div>
+  </section>`;
 }
 /** 특약 줄: 이름 ‥ 절망 가산, 아래 단계 · 효과. 누를 때마다 단계가 오르고 마지막 다음은 끄기 */
 function riderRow(id: OathId) {
@@ -372,10 +398,11 @@ function boardHtml() {
   const n = rows().filter((r) => r.k !== 'div').length;
   const on = ok && CT.stamp !== 'void', bellIn = on && !CT.bell, bellOut = !on && CT.bell;
   CT.bell = on;
-  const rOn = ridersOn(), sheetIn = rOn && !CT.sheet, sheetOut = !rOn && CT.sheet;
-  if (sheetIn) CT.rot.rd = rnd(-3, 3); // 놓일 때마다 조금씩 다른 각도
-  CT.sheet = rOn;
-  return `<main class="ct ct-top${CT.intro && !reduced() ? ' intro' : ''}${CT.stamp ? ` st-${CT.stamp}` : ''}" style="--rot-bp:${CT.rot.bp}deg;--rot-mn:${CT.rot.mn}deg;--rot-pr:${CT.rot.pr}deg;--rot-rd:${CT.rot.rd}deg" aria-label="출격 계약 — 바 테이블 위 의뢰 차림표">
+  const rOn = ridersOn(), rd = sheetCls('rd', rOn), ls = sheetCls('ls', CT.list), fl = sheetCls('fl', CT.flyer && collateral(CT.plan));
+  if (rd === ' in') CT.rot.rd = rnd(-3, 3); // 놓일 때마다 조금씩 다른 각도
+  if (ls === ' in') { CT.rot.ls = rnd(-2, 2); dragY.ls = 0; }
+  if (fl === ' in') { CT.rot.fl = rnd(-4, 4); dragY.fl = 0; }
+  return `<main class="ct ct-top${CT.intro && !reduced() ? ' intro' : ''}${CT.stamp ? ` st-${CT.stamp}` : ''}" style="--rot-bp:${CT.rot.bp}deg;--rot-mn:${CT.rot.mn}deg;--rot-pr:${CT.rot.pr}deg;--rot-rd:${CT.rot.rd}deg;--rot-ls:${CT.rot.ls}deg;--rot-fl:${CT.rot.fl}deg" aria-label="출격 계약 — 바 테이블 위 의뢰 차림표">
     ${CT.intro ? barviewHtml() : ''}
     <div class="ct-table" aria-hidden="true">${prop('ct_table', '')}</div><div class="lp-grain" aria-hidden="true"></div>
     <button class="ct-leave lp-btn" data-a="ct-leave" aria-label="${leave}" title="${leave} (화면을 위로 쓸어 올려도 된다)">${UP_SVG}</button>
@@ -384,16 +411,18 @@ function boardHtml() {
     <div class="ct-menu">
       ${coverHtml()}
       <section class="ct-page lp-paper lp-frame" aria-label="의뢰 차림표">
-        <div class="lp-cols${CT.list ? ' listing' : ''}">
-          <div class="lp-col ct-col-job" role="group" aria-label="의뢰"><h2 class="lp-h2">의뢰 <small>${CT.list ? '메뉴에 없는 것' : '모두 싯가'}</small></h2><div class="lp-list">${jobCol()}</div></div>
-          <div class="lp-col ct-col-plan" role="group" aria-label="약관"><h2 class="lp-h2">약관 <small>난이도</small></h2><div class="lp-list">${PLANS.map((p) => planRow(p.lvl)).join('')}${collateralHtml(lit)}</div></div>
+        <div class="lp-cols">
+          <div class="lp-col ct-col-job" role="group" aria-label="의뢰"><h2 class="lp-h2">의뢰 <small>모두 싯가</small></h2><div class="lp-list">${jobCol()}</div></div>
+          <div class="lp-col ct-col-plan" role="group" aria-label="약관"><h2 class="lp-h2">약관 <small>난이도</small></h2><div class="lp-list">${PLANS.map((p) => planRow(p.lvl)).join('')}</div></div>
         </div>
         ${collateral(CT.plan) ? `<i class="ct-plan-stamp${lit ? ' lit' : ''}" aria-hidden="true">담보</i>` : ''}
       </section>
     </div>
-    ${rOn || sheetOut ? `<section class="ct-riders lp-paper lp-frame${sheetIn ? ' in' : ''}${sheetOut ? ' out' : ''}" role="group" aria-label="특약 차림표 (담보 약관 전용)"${sheetOut ? ' aria-hidden="true" inert' : ''}>
+    ${rd !== null ? `<section class="ct-riders lp-paper lp-frame${rd}" role="group" aria-label="특약 차림표 (담보 약관 전용)"${rd === ' out' ? ' aria-hidden="true" inert' : ''}>
       <h2 class="lp-h2">특약 <small>절망 ${heat}</small></h2><div class="lp-list">${OATHS.map((o) => riderRow(o.id)).join('')}</div>
     </section>` : ''}
+    ${ls !== null ? offSheetHtml(ls) : ''}
+    ${fl !== null ? flyerHtml(fl) : ''}
     <section class="ct-printer" aria-label="의뢰 전표">
       <div class="ct-slipwrap" style="--n:${n}">
         <div class="ct-slip lp-carbon${n ? '' : ' empty'}">${slipHtml()}${CT.stamp ? `<i class="ct-stampmark ${CT.stamp}" aria-hidden="true">${CT.stamp === 'ok' ? '승인' : '취소'}</i>` : ''}</div>
@@ -475,11 +504,11 @@ export function contractAct(a: string, v: string): boolean {
       if (!j) return false;
       const same = !!CT.sel && CT.sel.kind === j.kind && CT.sel.field === j.field;
       CT.sel = same ? null : j; CT.focus = `job:${v}`; CT.say = '';
-      if (v.startsWith('c:')) CT.list = false;
       if (CT.sel) printed('job'); else CT.last = '';
       return after(true);
     }
-    case 'ct-off': CT.list = !CT.list; CT.focus = 'off'; CT.last = ''; CT.say = ''; return true;
+    case 'ct-off': CT.list = !CT.list; CT.focus = CT.list ? 'off' : ''; CT.last = ''; CT.say = ''; return true;
+    case 'ct-flyer': CT.flyer = false; return true;
     case 'ct-usual': {
       const u = usual();
       if (!u) return false;
@@ -494,6 +523,7 @@ export function contractAct(a: string, v: string): boolean {
       const was = collateral(CT.plan);
       CT.lit = !ridersOn() && oathDiff(+v); // 담보 약관을 켜는 순간 특약 칸 · 담보 조항에 불이 들어온다
       CT.plan = +v; CT.focus = `plan:${v}`; CT.say = '';
+      CT.flyer = collateral(+v) && (CT.flyer || !was); // 담보를 새로 고르면 페트라 전단이 튀어나온다
       if (collateral(+v) && !was) { say('collateral'); sfx('knock', { pitch: 0.7 }); sfx('despair', { delay: 0.15 }); }
       printed('plan');
       return after(true);
@@ -592,6 +622,31 @@ function bellDrag(ct: HTMLElement) {
   bell.addEventListener('pointercancel', end);
   bell.addEventListener('click', (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }); // 끈 것은 누름이 아니다
 }
+/** 종이를 아래로 쓸어 내리면 빠진다: 손을 따라 내려가다가, 1/4 넘게 내리거나 세게 내리면 빠지고 아니면 제자리로. 누름과 구분하려고 8px 넘게 움직인 뒤부터 끈다 */
+function swipeDown(ct: HTMLElement, sel: string, k: string, close: () => void) {
+  const el = ct.querySelector<HTMLElement>(`${sel}:not(.out)`);
+  if (!el) return;
+  let y0 = 0, t0 = 0, id = -1, dy = 0, moved = false;
+  el.addEventListener('pointerdown', (e) => { if (e.button !== 0 || CT.stamp) return; y0 = e.clientY; t0 = performance.now(); id = e.pointerId; dy = 0; moved = false; });
+  el.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== id) return;
+    dy = e.clientY - y0;
+    if (!moved && Math.abs(dy) < 8) return;
+    if (!moved) { moved = true; el.setPointerCapture(id); el.classList.remove('in'); el.classList.add('drag'); }
+    el.style.translate = `0 ${dy > 0 ? dy : dy / 4}px`; // 위로는 조금만 (끌려 올라가지 않는다)
+  });
+  const end = (e: PointerEvent) => {
+    if (e.pointerId !== id) return;
+    id = -1;
+    if (!moved) return;
+    el.classList.remove('drag');
+    if (dy > el.offsetHeight / 4 || (dy > 30 && dy / (performance.now() - t0) > 0.6)) { dragY[k] = Math.max(0, dy); close(); hooks.render(); return; }
+    el.style.translate = '';
+  };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  el.addEventListener('click', (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true); // 끈 것은 누름이 아니다 (줄 위에서 시작해도)
+}
 /** el 에서 ct 까지 올라가며 dir 쪽 (1 = 내용이 아래로, -1 = 위로) 으로 더 스크롤할 칸이 있는지 */
 function canScroll(el: Element | null, ct: HTMLElement, dir: number) {
   for (let n = el as HTMLElement | null; n && n !== ct.parentElement; n = n.parentElement) {
@@ -637,7 +692,9 @@ export function contractMount(root: HTMLElement) {
       const f = (e.target as HTMLElement).closest<HTMLElement>('[data-f]')?.dataset.f;
       if (f && f !== CT.focus) { CT.focus = f; refreshInfo(); }
     };
-    for (const el of [menu, ct.querySelector<HTMLElement>('.ct-riders')]) { el?.addEventListener('mouseover', point); el?.addEventListener('focusin', point); }
+    for (const el of [menu, ...Array.from(ct.querySelectorAll<HTMLElement>(':is(.ct-riders, .ct-offsheet):not(.out)'))]) { el?.addEventListener('mouseover', point); el?.addEventListener('focusin', point); }
+    swipeDown(ct, '.ct-offsheet', 'ls', () => { CT.list = false; CT.focus = ''; });
+    swipeDown(ct, '.ct-flyer', 'fl', () => { CT.flyer = false; });
     bellDrag(ct);
     leaveGesture(ct);
     if (CT.last) later(1200, () => { CT.last = ''; });
