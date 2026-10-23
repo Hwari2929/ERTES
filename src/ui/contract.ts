@@ -473,11 +473,12 @@ function coverHtml() {
 let flyFrom: { x: number; y: number; w: number } | null = null;
 function sealHtml() {
   const f = flyFrom, fw = Math.min(380, innerWidth * 0.8);
-  const from = f ? `--fx:${Math.round(f.x - innerWidth / 2)}px;--fy:${Math.round(f.y - innerHeight * 0.12)}px;--fs:${(f.w / fw).toFixed(3)}` : '--fx:0px;--fy:0px;--fs:1';
+  const from = f ? `${Math.round(f.x - innerWidth / 2)} ${Math.round(f.y - innerHeight * 0.12)} ${(f.w / fw).toFixed(3)}` : '0 0 1';
   return `<main class="ct ct-seal${CT.vet ? ' quick' : ''}" data-a="ct-skip" aria-label="그늘 — 누르면 넘깁니다">
     <div class="ct-table" aria-hidden="true">${prop('ct_table', '')}</div><div class="ct-dark" aria-hidden="true"></div><div class="lp-grain" aria-hidden="true"></div>
     <div class="ct-sky" aria-hidden="true"></div>
-    <div class="ct-fly lp-carbon" style="${from}" aria-hidden="true">${slipHtml()}<i class="ct-stampmark ok">승인</i><i class="ct-tail"></i></div>
+    <i class="ct-tail lp-carbon" aria-hidden="true"><i class="ct-glow"></i></i>
+    <div class="ct-fly lp-carbon" data-from="${from}" aria-hidden="true">${slipHtml()}<i class="ct-stampmark ok">승인</i><i class="ct-glow"></i></div>
     <i class="ct-glint" aria-hidden="true"></i>
     <canvas class="ct-chains" aria-hidden="true"></canvas>
     <div class="ct-watch" aria-hidden="true">
@@ -496,6 +497,37 @@ function sealHtml() {
     <p class="ct-skip-k">누르면 넘깁니다</p>
     <div class="ct-beat" aria-hidden="true"></div>
   </main>`;
+}
+
+/** 날아가는 전표: 출력기 자리에서 떠올라 가운데로 확대된 뒤, 하염없이 올라가며 위쪽 소실점으로 줄어들어 한 줄기 빛이 된다.
+ *  전표 아래 종이(꼬리)는 따로 두고 매 프레임 전표 밑변에서 화면 아래까지 같은 너비로 잇는다 — 축소에 딸려 짧아지지 않고 곧게 끝없이 이어진다.
+ *  한 곡선(크기는 지수로 줄여 처음 · 끝 빠르기가 같게 느껴지게)을 rAF 로 그린다: 구간 키프레임을 이어 붙이면 꺾이는 데마다 툭툭 끊겨 보인다 */
+function flyUp(fly: HTMLElement, tail: HTMLElement, quick: boolean) {
+  const [fx, fy, fs] = (fly.dataset.from || '0 0 1').split(' ').map(Number);
+  const IN = quick ? 0.35 : 0.6, UP0 = quick ? 0.4 : 0.7, UP = quick ? 0.85 : 1.9, S0 = 1.3, S1 = 0.02;
+  const glows = [fly, tail].map((e) => e.querySelector<HTMLElement>('.ct-glow'));
+  const top = fly.offsetTop, h = fly.offsetHeight, rise = innerHeight * 0.04;
+  tail.style.width = `${fly.offsetWidth}px`;
+  tail.style.height = `${innerHeight + 2}px`;
+  const smooth = (x: number) => { const c = Math.min(1, Math.max(0, x)); return c * c * (3 - 2 * c); };
+  const t0 = performance.now();
+  const frame = (now: number) => {
+    if (!fly.isConnected) return;
+    const t = (now - t0) / 1000;
+    let x = 0, y = 0, s = S0, glow = 0, op = 1;
+    if (t < IN) { const k = 1 - (1 - t / IN) ** 3; x = fx * (1 - k); y = fy * (1 - k); s = fs + (S0 - fs) * k; }
+    else if (t > UP0) {
+      const p = Math.min(1, (t - UP0) / UP), g = p * 0.55 + smooth(p) * 0.45;
+      s = S0 * (S1 / S0) ** g; y = -rise * g;
+      glow = smooth((p - 0.2) / 0.7); op = 1 - smooth((p - 0.82) / 0.18);
+    }
+    fly.style.transform = `translate(calc(-50% + ${x}px), ${y}px) scale(${s})`;
+    tail.style.transform = `translate(calc(-50% + ${x}px), ${top + y + h * s - 1}px) scale(${s}, 1)`;
+    fly.style.opacity = tail.style.opacity = String(op);
+    glows.forEach((e) => { if (e) e.style.opacity = String(glow); });
+    if (t < UP0 + UP) requestAnimationFrame(frame);
+  };
+  frame(t0); // 첫 그림부터 출력기 자리에서 (확대된 모습이 한 번 비치지 않게)
 }
 
 /** 그늘 장면의 은하 하늘: 에란테스 갤럭시 테마의 바탕색 + 별빛 층과 같은 별무리 (지금 테마 · 연출 설정과 상관없이) */
@@ -805,7 +837,9 @@ export function contractMount(root: HTMLElement) {
   const sc = cv ? chainScene(cv, ct.querySelector<HTMLCanvasElement>('canvas.ct-chains.front'), ct.querySelector<HTMLElement>('.ct-watch'), CT.vet
     ? { win: [1.2, 1.55], wout: [2.3, 2.75], watchIn: 1.25, watchOut: 2.5 }
     : { win: [2.5, 3.4], wout: [4.9, 5.7], watchIn: 2.7, watchOut: 5.3 }) : null;
-  later(CT.vet ? 1150 : 2250, () => sfx('despair', { pitch: 1.4 })); // 섬광
+  later(CT.vet ? 1150 : 2400, () => sfx('despair', { pitch: 1.4 })); // 섬광
+  const fly = ct.querySelector<HTMLElement>('.ct-fly'), tail = ct.querySelector<HTMLElement>('.ct-tail');
+  if (fly && tail) flyUp(fly, tail, CT.vet);
   sfx('paper');
   later(t[0], () => sfx('chain'));
   later(t[1], () => { ct.classList.add('beat'); sc?.pulse(); sfx('heart'); sfx('despair'); });
