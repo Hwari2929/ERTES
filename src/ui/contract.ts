@@ -17,7 +17,7 @@ import { fieldIntroOf } from '../data/scenes/fields';
 import type { RunState } from '../types';
 import { deedCount, lastDeed, metaOath, oathSel } from './meta';
 import { artURL, bgURL } from './portraits';
-import { chainScene } from './chains';
+import { chainScene, paintSky } from './chains';
 import { sfx } from './sound';
 import { lineIcon } from './synicons';
 
@@ -477,7 +477,9 @@ function sealHtml() {
   const from = f ? `--fx:${Math.round(f.x - innerWidth / 2)}px;--fy:${Math.round(f.y - innerHeight * 0.12)}px;--fs:${(f.w / fw).toFixed(3)}` : '--fx:0px;--fy:0px;--fs:1';
   return `<main class="ct ct-seal${CT.vet ? ' quick' : ''}" data-a="ct-skip" aria-label="그늘 — 누르면 넘깁니다">
     <div class="ct-table" aria-hidden="true">${prop('ct_table', '')}</div><div class="ct-dark" aria-hidden="true"></div><div class="lp-grain" aria-hidden="true"></div>
+    <canvas class="ct-sky" aria-hidden="true"></canvas>
     <div class="ct-fly lp-carbon" style="${from}" aria-hidden="true">${slipHtml()}<i class="ct-stampmark ok">승인</i><div class="ct-sigline"><i class="lp-sig">${SIG}</i></div><i class="ct-tail"></i></div>
+    <i class="ct-beam" aria-hidden="true"></i><i class="ct-shot" aria-hidden="true"></i><i class="ct-flash" aria-hidden="true"></i>
     <canvas class="ct-chains" aria-hidden="true"></canvas>
     <div class="ct-watch" aria-hidden="true">
       <svg viewBox="0 0 140 150" aria-hidden="true">
@@ -491,6 +493,7 @@ function sealHtml() {
         </g>
       </svg>
     </div>
+    <canvas class="ct-chains front" aria-hidden="true"></canvas>
     <p class="ct-load"><span>계약 기물 명부를 펼치는 중</span><i>.</i><i>.</i><i>.</i></p>
     <p class="ct-skip-k">누르면 넘깁니다</p>
     <div class="ct-beat" aria-hidden="true"></div>
@@ -783,15 +786,18 @@ export function contractMount(root: HTMLElement) {
   if (CT.step !== 'seal') return;
   clear();
   if (reduced()) { later(900, finish); return; }
-  // 처음: 0 전표가 출력기 자리에서 떠올라 가운데로 확대 → 0.75 끝없이 위로 올라가고 테이블이 어둠에 잠긴다 → 1.0~1.35 체인 · 회중시계가 확 떨어진다 (진자 운동)
-  //   → 2.8 심장 박동 → 4.2 반동 뒤 끌려 올라간다 → 5.2 명부
-  // 두 번째부터 (CSS .quick): 같은 순서를 2.4초로 압축 — 의식은 처음에만 길다
-  const t = CT.vet ? [450, 1300, 1700, 2400] : [1000, 2800, 4200, 5200];
+  // 처음: 0 전표가 출력기 자리에서 떠올라 가운데로 확대 → 0.75 끝없이 위로 올라가며 테이블이 어둠에 잠긴다 → 1.5 빛기둥이 위로 쏘아 올려진다
+  //   → 1.9 은하 하늘로 바뀐다 → 2.2~3.2 체인 · 회중시계가 내려온다 → 3.9 심장 박동 → 4.7~5.5 끌려 올라간다 → 6.2 명부 (카드)
+  // 두 번째부터 (CSS .quick): 같은 순서를 3초로 압축 — 의식은 처음에만 길다
+  const t = CT.vet ? [1100, 1900, 2300, 3000] : [2300, 3900, 5200, 6200];
+  const sky = ct.querySelector<HTMLCanvasElement>('canvas.ct-sky');
+  if (sky) paintSky(sky);
   // 체인 · 회중시계는 물리로 (ui/chains.ts): 체인마다 무작위 순서 · 시각에 나타나고, 무작위 시각에 끌려 올라간다
-  const cv = ct.querySelector<HTMLCanvasElement>('canvas.ct-chains');
-  const sc = cv ? chainScene(cv, ct.querySelector<HTMLElement>('.ct-watch'), CT.vet
-    ? { win: [0.3, 0.8], wout: [1.4, 2.0], watchIn: 0.45, watchOut: 1.7 }
-    : { win: [0.85, 2.1], wout: [3.5, 4.7], watchIn: 1.2, watchOut: 4.2 }) : null;
+  const cv = ct.querySelector<HTMLCanvasElement>('canvas.ct-chains:not(.front)');
+  const sc = cv ? chainScene(cv, ct.querySelector<HTMLCanvasElement>('canvas.ct-chains.front'), ct.querySelector<HTMLElement>('.ct-watch'), CT.vet
+    ? { win: [1.0, 1.5], wout: [2.2, 2.7], watchIn: 1.15, watchOut: 2.4 }
+    : { win: [2.2, 3.2], wout: [4.7, 5.6], watchIn: 2.5, watchOut: 5.2 }) : null;
+  later(CT.vet ? 700 : 1500, () => sfx('despair', { pitch: 1.4 })); // 빛기둥
   sfx('paper');
   later(t[0], () => sfx('chain'));
   later(t[1], () => { ct.classList.add('beat'); sc?.pulse(); sfx('heart'); sfx('despair'); });

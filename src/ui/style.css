@@ -5325,8 +5325,21 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-bell:focus-visible { outline: 2px solid var(--c-select); outline-offset: 4px; border-radius: var(--r-pill); }
 .ct-cancel { min-height: 34px; padding: 0 12px; font-size: var(--fs-sm); color: var(--lp-ink); background: var(--grain), var(--lp-paper); background-blend-mode: overlay, normal; border-color: var(--lp-ink); }
 /* 그늘: 전표가 종이처럼 날아가고 → 바가 네이비 어둠에 잠기며 금 체인 · 회중시계가 돌며 내려오고 → 눈높이에서 심장 박동 → 반동 뒤 끌려 올라간다 */
-.ct-seal { cursor: pointer; background: var(--lp-navy); }
-.ct-dark { position: absolute; inset: 0; background: var(--lp-navy); opacity: 0; animation: ct-darken 2s ease-in forwards; }
+.ct-seal { cursor: pointer; background: var(--bg); }
+.ct-dark { position: absolute; inset: 0; background: var(--bg); opacity: 0; animation: ct-darken 1.8s ease-in forwards; }
+/* 빛기둥: 전표가 끝없이 올라가는 길을 따라 빛이 아래에서 위로 쏘아 올려지고 (화면이 한 번 환해지고), 그 뒤 은하 하늘로 바뀐다 */
+.ct-sky { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; animation: ct-sky-in .7s 1.9s ease-out forwards; }
+@keyframes ct-sky-in { to { opacity: 1; } }
+.ct-beam { position: absolute; left: 50%; bottom: 0; width: min(56vw, 640px); height: 100%; translate: -50% 0; /* 전표 앞을 지나며 종이도 빛에 물든다 */ transform-origin: 50% 100%; scale: 1 0; opacity: 0; mix-blend-mode: screen; pointer-events: none;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--lp-cream) 55%, transparent) 38%, var(--c-white) 50%, color-mix(in srgb, var(--lp-cream) 55%, transparent) 62%, transparent); animation: ct-beam .75s 1.5s cubic-bezier(.3, .6, .4, 1) both; }
+@keyframes ct-beam { 0% { scale: .6 0; opacity: 1; } 40% { scale: 1 1; opacity: 1; } 100% { scale: .15 1; opacity: 0; } }
+.ct-shot { position: absolute; left: 50%; top: 0; width: 22px; height: 55vh; margin-left: -11px; border-radius: var(--r-pill); opacity: 0; pointer-events: none; mix-blend-mode: screen;
+  background: linear-gradient(to top, transparent, var(--c-white) 55%, var(--lp-cream) 80%, transparent); box-shadow: 0 0 24px 10px color-mix(in srgb, var(--lp-cream) 45%, transparent); animation: ct-shot .5s 1.5s cubic-bezier(.5, 0, .9, .6) both; } /* 아래에서 위로 쏘아 올려지는 빛 머리 */
+@keyframes ct-shot { 0% { translate: 0 100vh; opacity: 1; } 85% { opacity: 1; } 100% { translate: 0 -60vh; opacity: 0; } }
+.ct-seal.quick .ct-shot { animation-delay: .7s; animation-duration: .4s; }
+.ct-flash { position: absolute; inset: 0; background: var(--lp-cream); opacity: 0; mix-blend-mode: screen; pointer-events: none; animation: ct-flash .6s 1.65s ease-out both; }
+@keyframes ct-flash { 0% { opacity: 0; } 20% { opacity: .55; } 100% { opacity: 0; } }
+.ct-chains.front { filter: blur(3px); } /* 맨 앞 겹: 화면 앞을 지나는 크고 흐린 체인 (시계보다 위) */
 @keyframes ct-darken { to { opacity: .92; } }
 /* 날아가는 전표: 벨을 누른 순간 출력기 자리(--fx · --fy · --fs)에서 떠올라 가운데로 확대되고, 끝없이 위로 올라간다 (아래로 긴 빈 종이 꼬리) */
 .ct-fly { position: absolute; left: 50%; top: 12%; width: min(380px, 80vw); translate: -50% 0; padding: 16px 18px; transform-origin: 50% 0; animation: ct-fly-in .6s cubic-bezier(.3, .7, .3, 1) both, ct-fly-up 2.2s .75s cubic-bezier(.55, 0, .9, .45) forwards; } /* 오르기는 forwards 만 (both 면 기다리는 동안 확대 연출을 덮는다) */
@@ -5357,7 +5370,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-beat { position: absolute; inset: 0; z-index: var(--z-raise); background: var(--lp-navy); opacity: 0; pointer-events: none; }
 .ct-seal.beat .ct-beat { animation: ct-beat .6s linear; }
 @keyframes ct-beat { 6% { opacity: .92; } 18% { opacity: 0; } 38% { opacity: .7; } 52% { opacity: 0; } }
-.ct-load { position: absolute; left: 0; right: 0; bottom: 9%; margin: 0; text-align: center; font: 400 var(--fs-xl) var(--f-serif); letter-spacing: .16em; color: var(--lp-cw); animation: ct-fade .6s 2.4s both; }
+.ct-load { position: absolute; left: 0; right: 0; bottom: 9%; margin: 0; text-align: center; font: 400 var(--fs-xl) var(--f-serif); letter-spacing: .16em; color: var(--lp-cw); animation: ct-fade .6s 3.4s both; }
 .ct-load i { font-style: normal; animation: ct-dot 1.2s infinite; }
 .ct-load i:nth-of-type(2) { animation-delay: .2s; }
 .ct-load i:nth-of-type(3) { animation-delay: .4s; }
@@ -5365,6 +5378,9 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 @keyframes ct-dot { 0%, 20%, 100% { opacity: .2; } 50% { opacity: 1; } }
 .ct-seal.lift .ct-load { opacity: 0; transition: opacity .4s; }
 .ct-seal.quick .ct-dark { animation-duration: .7s; }
+.ct-seal.quick .ct-beam { animation-duration: .5s; animation-delay: .7s; }
+.ct-seal.quick .ct-flash { animation-delay: .8s; }
+.ct-seal.quick .ct-sky { animation-duration: .4s; animation-delay: .9s; }
 .ct-seal.quick .ct-fly { animation-duration: .35s, 1.2s; animation-delay: 0s, .4s; }
 .ct-seal.quick .ct-load, .ct-seal.quick .ct-skip-k { display: none; }
 .ct-skip-k { position: absolute; right: 16px; bottom: max(12px, env(safe-area-inset-bottom)); margin: 0; font-size: var(--fs-xs); color: color-mix(in srgb, var(--lp-cw) 60%, transparent); }
@@ -5447,6 +5463,6 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-bell { --bs: 100px; --br: 8px; --bt: 0%; top: auto; bottom: calc(14px + env(safe-area-inset-bottom)); } /* 휴대폰: 아래 띠 오른쪽 끝 */
 }
 @media (prefers-reduced-motion: reduce) { /* 움직임 줄이기: 등장 · 나가기 · 떨림 없이 바로 놓이고, 그늘 연출은 ui/contract.ts 가 0.9초 뒤 바로 명부로 넘긴다 */
-  .ct-printer.run .ct-pmach, .ct-fly, .ct-hand, .ct-bell.on, .ct-bell.out, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-riders.in, .ct-riders.out, .ct-offsheet.in, .ct-offsheet.out, .ct.intro .ct-bp-scr, .ct-barview, .ct.outro *, .nr.from-seal::after { animation: none; }
+  .ct-printer.run .ct-pmach, .ct-fly, .ct-hand, .ct-beam, .ct-shot, .ct-flash, .ct-bell.on, .ct-bell.out, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-riders.in, .ct-riders.out, .ct-offsheet.in, .ct-offsheet.out, .ct.intro .ct-bp-scr, .ct-barview, .ct.outro *, .nr.from-seal::after { animation: none; }
   .ct-voice { transition: none; }
 }
