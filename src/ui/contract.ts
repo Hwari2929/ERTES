@@ -17,6 +17,7 @@ import { fieldIntroOf } from '../data/scenes/fields';
 import type { RunState } from '../types';
 import { deedCount, lastDeed, metaOath, oathSel } from './meta';
 import { artURL, bgURL } from './portraits';
+import { noteHtml, type Note } from './briefing';
 import { sfx } from './sound';
 import { lineIcon } from './synicons';
 
@@ -534,9 +535,19 @@ function handTake(ct: HTMLElement): number {
   later(IN + TAK + HOLD, () => sfx('paper', { pitch: 1.2 }));
   return T;
 }
+/** 표시기 화면 위에 예레나의 알림 카드를 띄운다 (브리핑 화면의 같은 카드로 이어진다) */
+function tabletNote() {
+  const bp = document.querySelector<HTMLElement>('main.ct.ct-top .ct-bp'), j = jobOf();
+  if (!bp || !j || CT.stamp !== 'ok' || bp.querySelector('.tnote')) return;
+  bp.insertAdjacentHTML('beforeend', noteHtml(fieldTitle(j.field), ' ct-tnote'));
+  requestAnimationFrame(() => bp.querySelector('.tnote')?.classList.add('in'));
+  sfx('beep', { pitch: 1.4, gain: 0.6 });
+}
+let sealNote: Note | null = null;
+export function takeSealNote() { const n = sealNote; sealNote = null; return n; }
 function startSeal(ct: HTMLElement) {
   CT.step = 'seal';
-  sealGrid = null;
+  sealGrid = null; sealNote = null;
   const scr = ct.querySelector<HTMLElement>('.ct-bp-scr');
   if (reduced() || !scr) { finish(); return; }
   const W = innerWidth, H = innerHeight, r = scr.getBoundingClientRect(), rot = (CT.rot.bp * Math.PI) / 180;
@@ -553,6 +564,8 @@ function startSeal(ct: HTMLElement) {
     if (CT.step !== 'seal') return;
     const q = scr.getBoundingClientRect(), bw = parseFloat(getComputedStyle(scr).borderLeftWidth) || 0;
     sealGrid = { x: q.left + bw * Z, y: q.top + bw * Z, s: 16 * Z }; // .lp-bp 모눈: 테두리 안쪽 원점 · 16px 간격
+    const nt = ct.querySelector<HTMLElement>('.ct-tnote.in');
+    if (nt) { const b = nt.getBoundingClientRect(); sealNote = { x: b.left, y: b.top, w: nt.offsetWidth, s: Z }; } // 알림 카드도 같은 자리 · 같은 크기에서 이어진다
     finish();
   }).catch(() => {});
 }
@@ -650,6 +663,7 @@ function actOn(a: string, v: string): boolean {
         later(t ? t - 260 : 0, () => { if (CT.stamp === 'ok') startSeal(ct); });
       };
       later(600, go); // 도장 → 출력기가 전표를 짧게 밀어낸다 (서명의 결과물이 손에 들어온 감각) → 에이든의 손 → 카메라
+      later(750, tabletNote); // 그 사이 표시기에 예레나의 브리핑 알림이 뜬다 (카메라가 그 화면 속으로 들어간다)
       return true;
     }
     case 'ct-cancel': { // 의뢰 취소: '취소' 도장 → 전표가 바깥으로 미끄러져 나가고 고른 것이 비워진다 (테이블은 그대로)
