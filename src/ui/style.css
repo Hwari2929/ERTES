@@ -5143,7 +5143,9 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-barview { z-index: var(--z-top); } /* 램프 빛 층보다 위 (바 그림은 바의 조명 그대로) */
 .ct { --lamp: .5; } /* 램프 세기: 그늘 층과 빛 층이 같은 값을 읽는다 */
 .ct-mug { position: absolute; left: calc(3vw + min(56vw, 860px) + 2.4vw); top: 10vh; z-index: var(--z-raise); width: clamp(150px, 14vw, 220px); height: auto; pointer-events: none; } /* 레이첼의 핫초코 곱빼기: 표시기 오른쪽 옆 (그림자는 그림에 구워 둠, scripts/mug_cut.py) */
-@media (max-width: 1180px) { .ct-mug { display: none; } } /* 태블릿 · 휴대폰 배치에는 자리가 없다 */
+@media (max-width: 1180px) { .ct-mug { left: calc(2vw + 100vw - 340px + 8px); top: 96px; width: 150px; } } /* 좁은 배치: 표시기 오른쪽 옆, 에이든 말풍선 밑 (전표가 조금 덮어도 된다) */
+@media (max-width: 900px) and (min-width: 761px) { .ct-mug { left: auto; right: -26px; top: 64px; width: 130px; } } /* 세로 태블릿: 전표 오른쪽 화면 끝 (오른쪽이 조금 잘려도 된다) */
+@media (max-width: 760px) { .ct-mug { left: auto; right: 14px; top: -46px; width: 112px; } } /* 휴대폰: 맨 위 오른쪽, 아래 반만 (표시기 모서리에 살짝 걸친다) */
 .ct-hand { position: absolute; left: 0; top: 0; max-width: none; height: auto; pointer-events: none; visibility: hidden; } /* 에이든의 손 (ui/contract.ts handTake) */
 .ct-hand.sh { z-index: var(--z-float); translate: 11px 16px; filter: brightness(0) blur(3px); opacity: .5; } /* 그림자: 전표 · 테이블 · 벨 위, 엄지 · 손 밑 (DOM 이 둘보다 앞). 손에 붙어 있고 거의 또렷하다. 따로 한 장 (앞 층에 그림자를 달면 엄지 구멍으로 비친다) */
 .ct-hand-thb { position: absolute; inset: 0; z-index: var(--z-float); pointer-events: none; } /* 엄지 끝: 손과 같은 층 (램프 그늘 · 벨 위 — 아래 층이면 엄지만 어두워진다). 전표 사각형만큼은 JS 가 clip-path 로 잘라 전표 밑처럼 보인다 */
@@ -5392,29 +5394,30 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .nr.brief .nr-band-shade { opacity: 0; }
 .nr.brief .nr-band-tx { left: 50%; top: 40%; width: min(640px, 88vw); translate: -50% -100%; justify-content: center; text-align: center; color: var(--c-text); }
 .nr.brief .nr-band .nr-band-t { font-size: var(--fs-3xl); line-height: 1.25; }
-.nr.brief .nr-band .nr-band-t small { font-size: var(--fs-lg); color: var(--c-text-2); }
+.nr.brief .nr-band .nr-band-t small { font-size: var(--fs-lg); color: color-mix(in srgb, var(--c-text) 82%, transparent); }
 .nr.brief :is(.nr-band-tx, .nr-brief) { opacity: 0; }
 .nr.brief.settle :is(.nr-band-tx, .nr-brief) { opacity: 1; transition: opacity .35s .15s; }
 .nr-brief { position: absolute; left: 50%; top: calc(40% + 22px); translate: -50% 0; width: min(640px, 86vw); display: grid; gap: 14px; color: var(--c-text); }
 .nr-brief-bar { height: 4px; background: color-mix(in srgb, var(--c-text) 18%, transparent); } /* 진행 = 상태문 줄 수 (줄마다 한 칸) */
 .nr-brief-bar i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: var(--c-text); transition: width .45s ease-out; }
 .nr-brief-bar.slow i { transition-duration: .85s; }
-.nr-brief-tk { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; justify-content: flex-end; height: calc(3 * 1.6em); overflow: hidden; font: var(--fs-lg)/1.6 var(--f-body); text-align: left; } /* 티커: 새 줄이 아래에 붙고 오래된 줄은 위로 밀려 옅어진다 */
-.nr-brief-tk li { display: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nr-brief-tk { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; justify-content: flex-end; height: calc(2 * 1.6em); overflow: hidden; font: var(--fs-lg)/1.6 var(--f-body); text-align: left; } /* 티커: 새 줄이 아래에 붙고 오래된 줄은 위로 밀려 옅어진다 */
+.nr-brief-tk li { display: none; flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* flex: none — 높이가 모자라도 줄끼리 눌려 겹치지 않고 위로 밀려 잘린다 */
 .nr-brief-tk li.on { display: block; animation: ct-fade .3s both; }
 .nr-brief-tk li.on:has(+ li.on) { opacity: .55; }
-/* 태블릿 알림 카드 (예레나의 브리핑 알림): 보드의 표시기 위에 떴다가, 카메라가 들어간 브리핑 화면에서 같은 자리 · 같은 크기로 이어져 위 가운데로 자리 잡는다. 게임 토큰 (원칙 31) */
-.tnote { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r-lg); background: color-mix(in srgb, var(--panel) 94%, transparent); color: var(--c-text); font: var(--fs-sm)/1.35 var(--f-body); box-shadow: 0 6px 18px var(--shade-2); }
-.tn-av { grid-row: 1 / 3; width: 30px; height: 30px; border-radius: 50%; object-fit: cover; object-position: 50% 12%; background: var(--panel-2); }
-.tn-who { font-size: var(--fs-sm); }
-.tn-at { grid-column: 3; grid-row: 1; color: var(--c-text-2); font-size: var(--fs-xs); }
+/* 태블릿 알림 토스트 (예레나의 브리핑 알림): 보드의 표시기 위에 작게 흔들리며 떴다가, 카메라가 태블릿 속으로 들어가면 사라진다. 게임 토큰 (원칙 31) */
+.tnote { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; column-gap: 7px; align-items: center; padding: 5px 9px; border: 1px solid var(--line); border-radius: var(--r-md); background: color-mix(in srgb, var(--panel) 94%, transparent); color: var(--c-text); font: var(--fs-2xs)/1.35 var(--f-body); box-shadow: 0 4px 12px var(--shade-2); }
+.tn-av { grid-row: 1 / 3; width: 22px; height: 22px; border-radius: 50%; object-fit: cover; object-position: 50% 12%; background: var(--panel-2); }
+.tn-who { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-xs); }
+.tn-bell { width: 11px; height: 11px; fill: var(--c-select); transform-origin: 50% 10%; }
+.tn-at { grid-column: 3; grid-row: 1; color: var(--c-text-2); font-size: var(--fs-2xs); }
 .tn-msg { grid-column: 2 / 4; color: var(--c-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ct-tnote { position: absolute; left: 50%; top: 18px; z-index: var(--z-raise); width: min(320px, 56%); translate: -50% -10px; opacity: 0; transition: opacity .2s, translate .3s cubic-bezier(.2, .9, .3, 1.2); }
-.ct-tnote.in { opacity: 1; translate: -50% 0; }
-.nr-tnote { position: absolute; left: 50%; top: 44px; z-index: var(--z-raise); width: min(380px, 86vw); translate: -50% 0; opacity: 0; transform-origin: 0 0; }
-.nr.brief.settle .nr-tnote { opacity: 1; transition: opacity .35s .1s; }
-.nr-tnote.cut { left: var(--nx); top: var(--ny); width: var(--nw); translate: 0 0; scale: var(--ns); opacity: 1; } /* 컷 순간: 표시기 위 카드가 있던 그대로 */
-.nr.brief.settle .nr-tnote.cut { left: 50%; top: 44px; width: min(380px, 86vw); translate: -50% 0; scale: 1; transition: left .55s cubic-bezier(.2, .7, .3, 1), top .55s cubic-bezier(.2, .7, .3, 1), width .55s cubic-bezier(.2, .7, .3, 1), translate .55s cubic-bezier(.2, .7, .3, 1), scale .55s cubic-bezier(.2, .7, .3, 1); }
+.ct-tnote { position: absolute; left: 50%; top: 16px; z-index: var(--z-raise); width: min(210px, 42%); translate: -50% -8px; opacity: 0; transition: opacity .18s, translate .25s cubic-bezier(.2, .9, .3, 1.2); }
+.ct-tnote.in { opacity: 1; translate: -50% 0; animation: tn-shake .5s .15s ease-in-out; }
+.ct-tnote.in .tn-bell { animation: tn-ring .7s .1s ease-in-out; }
+@keyframes tn-shake { 15%, 55% { rotate: -2.5deg; } 35%, 75% { rotate: 2.5deg; } 100% { rotate: 0deg; } }
+@keyframes tn-ring { 12%, 44% { rotate: -22deg; } 28%, 60% { rotate: 22deg; } 76% { rotate: -8deg; } 100% { rotate: 0deg; } }
+.ct.sealing .ct-tnote { opacity: 0; transition: opacity .25s; } /* 토스트: 태블릿 속으로 들어가면 사라진다 */
 /* 태블릿 상태줄: 시각 · 와이파이 · 배터리 (브리핑 동안만) */
 .nr-tab { position: absolute; left: 0; right: 0; top: 0; z-index: var(--z-raise); display: flex; justify-content: space-between; align-items: center; padding: max(8px, env(safe-area-inset-top, 0px)) 18px 0; color: var(--c-text); font: 600 var(--fs-sm)/1 var(--f-body); opacity: 0; }
 .nr.brief.settle .nr-tab { opacity: .9; transition: opacity .4s .15s; }
@@ -5423,7 +5426,13 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .nr-tab-bat { position: relative; display: inline-block; width: 24px; height: 12px; border: 1.5px solid currentColor; border-radius: var(--r-sm); padding: 1.5px; }
 .nr-tab-bat::after { content: ''; position: absolute; right: -4px; top: 3px; width: 2px; height: 4px; background: currentColor; }
 .nr-tab-bat > i { display: block; width: 87%; height: 100%; background: currentColor; }
-.nr.brief.reveal :is(.nr-tab, .nr-tnote) { opacity: 0; transition: opacity .3s; } /* 브리핑 준비가 끝나면 태블릿 것들이 걷힌다 */
+.nr.brief.reveal .nr-tab { opacity: 0; transition: opacity .3s; } /* 브리핑 준비가 끝나면 태블릿 것들이 걷힌다 */
+/* 밝은 전장 그림 위에서도 제목이 읽히게: 제목 뒤에만 옅은 어둠 (그림 전체는 덮지 않는다) + 글자 그늘 */
+.nr.brief .nr-band-tx > * { position: relative; }
+.nr.brief .nr-band-tx::before { content: ''; position: absolute; inset: -60px -120px; background: radial-gradient(closest-side, color-mix(in srgb, var(--bg) 50%, transparent) 30%, transparent); pointer-events: none; transition: opacity .4s; }
+.nr.brief .nr-band-tx { text-shadow: 0 1px 2px var(--shade-3), 0 0 14px var(--shade-2); }
+.nr.brief.docking .nr-band-tx::before { opacity: 0; }
+.nr.brief .nr-brief { text-shadow: 0 1px 2px var(--shade-3); }
 /* 걷힘: 브리핑이 끝나면 청사진 · 진행 바 · 상태문이 걷히고 화면 가득한 전장 그림만 (노이즈가 마저 걷힌 뒤 잠깐 보여 주고 도킹) */
 .nr.brief.reveal .nr-band-bp { opacity: 0; transition: opacity .45s; }
 .nr.brief.reveal .nr-band-art { filter: blur(0); transition: filter .3s; }
@@ -5433,7 +5442,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .nr.brief.docking .nr-band-art { filter: blur(0); transition: filter .6s; }
 .nr.brief.docking .nr-band-bp { opacity: 0; transition: opacity .5s; }
 .nr.brief.docking .nr-band-shade { opacity: 1; transition: opacity .6s .1s; }
-.nr.brief.docking .nr-band-tx { left: var(--tx, 16px); top: var(--ty, 16px); width: var(--tw, auto); translate: 0 0; color: var(--c-text); transition: left .7s cubic-bezier(.45, 0, .2, 1), top .7s cubic-bezier(.45, 0, .2, 1), width .7s cubic-bezier(.45, 0, .2, 1), translate .7s cubic-bezier(.45, 0, .2, 1), color .5s; } /* 머리 첫 줄(.nr-field) 자리로 내려앉는다 */
+.nr.brief.docking .nr-band-tx { left: var(--tx, 16px); top: var(--ty, 16px); width: var(--tw, auto); translate: 0 0; justify-content: flex-start; text-align: left; color: var(--c-text); transition: left .7s cubic-bezier(.45, 0, .2, 1), top .7s cubic-bezier(.45, 0, .2, 1), width .7s cubic-bezier(.45, 0, .2, 1), translate .7s cubic-bezier(.45, 0, .2, 1), color .5s; } /* 머리 첫 줄(.nr-field) 자리로 내려앉는다 */
 .nr.brief.docking .nr-band .nr-band-t { font-size: var(--fs-xl); transition: font-size .7s cubic-bezier(.45, 0, .2, 1); }
 .nr.brief.docking .nr-brief { opacity: 0; transition: opacity .25s; }
 .nr.brief.docking .nr-band-k { display: none; } /* 제목은 아래 끝이 붙어 있어 kicker 를 빼도 움직이지 않는다 */
@@ -5531,7 +5540,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-bell { --bs: 100px; --br: 8px; --bt: 0%; top: auto; bottom: calc(14px + env(safe-area-inset-bottom)); } /* 휴대폰: 아래 띠 오른쪽 끝 */
 }
 @media (prefers-reduced-motion: reduce) { /* 움직임 줄이기: 등장 · 나가기 · 떨림 없이 바로 놓이고, 그늘 연출은 ui/contract.ts 가 0.9초 뒤 바로 명부로 넘긴다 */
-  .ct-printer.run .ct-pmach, .ct-bell.on, .ct-bell.out, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-riders.in, .ct-riders.out, .ct-offsheet.in, .ct-offsheet.out, .ct.intro .ct-bp-scr, .ct-barview, .ct.outro *, .nr.drop .pslot, .nr.drop :is(.nr-title > h1, .nr-side, .nr-foot), .nr-brief-tk li, .nr-band-k > span, .nr-rx b { animation: none; }
+  .ct-printer.run .ct-pmach, .ct-bell.on, .ct-bell.out, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-riders.in, .ct-riders.out, .ct-offsheet.in, .ct-offsheet.out, .ct.intro .ct-bp-scr, .ct-barview, .ct.outro *, .nr.drop .pslot, .nr.drop :is(.nr-title > h1, .nr-side, .nr-foot), .nr-brief-tk li, .nr-band-k > span, .nr-rx b, .ct-tnote.in, .ct-tnote.in .tn-bell { animation: none; }
   .nr.brief.docking .nr-band, .nr.brief.docking .nr-band *, .nr.brief.reveal .nr-band *, .ct-tnote, .nr.brief.settle .nr-band-bp, .nr.brief.settle :is(.nr-band-tx, .nr-brief), .nr-brief-bar i { transition: none; } /* 브리핑: 모눈이 가라앉거나 띠가 올라오는 움직임 없이 바로 */
   .ct-voice { transition: none; }
 }

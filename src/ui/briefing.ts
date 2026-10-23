@@ -2,8 +2,8 @@
 // 진행 바는 시간이 아니라 상태문 줄 수에 묶는다 — 줄마다 한 칸, 마지막 줄이 끝나면 100% (누르면 남은 줄이 한꺼번에 찬다).
 // 상태문의 인물 = 이번 후보 기물(app.pool) = 곧 떨어질 카드. 끝나면 전장 그림의 높이가 줄어 명부 위쪽 배경이 되고(도킹) 카드가 떨어진다.
 // 전장 그림은 확산 모델이 단계를 밟아 그림을 추정하듯 노이즈가 걷히며 드러난다 (브리핑 줄마다 몇 단계 → 브리핑이 끝나면 화면 가득 끝까지 걷히고 잠깐 보여 준 뒤 도킹).
-// 태블릿스러운 것들: 상태줄(시각 · 배터리)과 예레나의 알림 카드가 보드에서 이어져 브리핑 동안 보이다가, 준비가 끝나면(걷힘) 사라진다.
-// 첫 계약 3초 안쪽 (5줄), 단골 1줄 1초. 태블릿 모눈과 같은 간격 · 같은 자리에서 시작해 16px 로 가라앉는다 (카메라 컷의 이음새).
+// 태블릿스러운 것: 상태줄(시각 · 와이파이 · 배터리)이 브리핑 동안 보이다가, 준비가 끝나면(걷힘) 사라진다.
+// 첫 계약 2줄 약 1초, 단골 1줄. 태블릿 모눈과 같은 간격 · 같은 자리에서 시작해 16px 로 가라앉는다 (카메라 컷의 이음새).
 import { BRIEF_LINES } from '../data/briefing';
 import { UNIT_BY_ID } from '../data/units';
 import { artURL } from './portraits';
@@ -13,26 +13,25 @@ const reduced = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-
 
 /** 태블릿 모눈이 컷 순간 화면에 놓인 자리 (원점 · 간격 px) */
 export interface Grid { x: number; y: number; s: number }
-/** 태블릿 알림 카드가 컷 순간 화면에 놓인 자리 (왼쪽 위 · 확대 전 폭 · 배율) */
-export interface Note { x: number; y: number; w: number; s: number }
-/** 태블릿 알림 카드 (계약 보드의 표시기 · 브리핑 화면 공용): 예레나가 보낸 의뢰 브리핑 */
+/** 태블릿 알림 토스트 (계약 보드의 표시기 위): 예레나가 보낸 의뢰 브리핑. 카메라가 태블릿 속으로 들어갈 때 사라진다 */
+const BELL = '<svg class="tn-bell" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6zM9.5 19a2.5 2.5 0 0 0 5 0z"/></svg>';
 export function noteHtml(title: string, cls = '') {
-  return `<div class="tnote${cls}" role="status"><img class="tn-av" alt="" src="${artURL('yelena.bust.webp')}" decoding="async" onerror="this.remove()"><b class="tn-who">예레나</b><span class="tn-msg">의뢰 브리핑 「${esc(title)}」</span><small class="tn-at">지금</small></div>`;
+  return `<div class="tnote${cls}" role="status"><img class="tn-av" alt="" src="${artURL('yelena.bust.webp')}" decoding="async" onerror="this.remove()"><b class="tn-who">${BELL}예레나</b><span class="tn-msg">의뢰 브리핑 「${esc(title)}」</span><small class="tn-at">지금</small></div>`;
 }
 const hhmm = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 /** 지금 브리핑: 켜짐 · 상태문 · 보인 줄 수 · 모눈 · 단골 · 타이머 시작 여부 */
-export const BR = { on: false, lines: [] as string[], shown: 0, grid: null as Grid | null, note: null as Note | null, vet: false, started: false };
+export const BR = { on: false, lines: [] as string[], shown: 0, grid: null as Grid | null, vet: false, started: false };
 const timers: number[] = [];
 /** 노이즈 해소: 전체 단계 · 브리핑이 끝날 때까지 밟는 단계 · 한 번에 밟는 단계 · 간격(ms) — 0.12초마다 2단계 */
 const DN = { n: 20, brief: 4, per: 2, ms: 120 };
 let dn: { cv: HTMLCanvasElement; img: HTMLImageElement; k: number; goal: number; tick: number; done?: () => void } | null = null;
-const T = { first: 380, step: 520, tail: 420, vetFirst: 150, vetTail: 850, dock: 720, hold: 700, vetHold: 450 }; // ms (hold: 다 걷힌 전장 그림을 보여 주는 시간)
+const T = { first: 300, step: 450, tail: 300, vetFirst: 150, vetTail: 550, dock: 720, hold: 500, vetHold: 350 }; // ms (hold: 다 걷힌 전장 그림을 보여 주는 시간)
 
 /** 브리핑을 준비한다 (명부를 그리기 전에): 후보 기물마다 상태문 한 줄씩, 같은 브리핑에서 같은 줄 · 같은 인물을 되풀이하지 않는다 */
-export function briefBegin(pool: string[], vet: boolean, grid: Grid | null, note: Note | null = null) {
+export function briefBegin(pool: string[], vet: boolean, grid: Grid | null) {
   const ids = [...pool];
   for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }
-  const n = vet ? 1 : Math.min(5, ids.length), lines: string[] = [];
+  const n = vet ? 1 : Math.min(2, ids.length), lines: string[] = []; // 한두 줄만 (누가 뭘 하는지 다 보여 줄 필요는 없다)
   for (const id of ids) {
     if (lines.length >= n) break;
     const u = UNIT_BY_ID[id], opts = BRIEF_LINES[id] || [];
@@ -42,7 +41,7 @@ export function briefBegin(pool: string[], vet: boolean, grid: Grid | null, note
   timers.forEach((t) => clearTimeout(t));
   timers.length = 0;
   dnStop();
-  Object.assign(BR, { on: lines.length > 0, lines, shown: 0, grid: reduced() ? null : grid, note: reduced() ? null : note, vet, started: false });
+  Object.assign(BR, { on: lines.length > 0, lines, shown: 0, grid: reduced() ? null : grid, vet, started: false });
 }
 
 /** 명부 배경 띠 (전장 그림 · 화면 위쪽을 가로질러 카드 윗단까지 내려오고 아래로 옅어진다). 브리핑 중이면 화면을 가득 채운 '태블릿 속'이고, 끝나면 높이가 줄어 이 자리에 내려앉는다.
@@ -58,7 +57,7 @@ export function bandHtml(o: { art: string; color: string; title: string; place: 
     : '';
   return `<div class="nr-bandslot" aria-hidden="${BR.on ? 'false' : 'true'}"><header class="nr-band" style="--fc:${o.color}${g}">
     <i class="nr-band-art" style="background-image:url('${o.art}')" aria-hidden="true"></i><i class="nr-band-shade" aria-hidden="true"></i><i class="nr-band-bp" aria-hidden="true"></i>
-    ${BR.on ? `<div class="nr-tab" aria-hidden="true"><span class="f-num">${hhmm()}</span><span class="nr-tab-r"><i class="nr-tab-wifi"></i><span class="f-num">87%</span><i class="nr-tab-bat"><i></i></i></span></div>${noteHtml(o.title, ` nr-tnote${BR.note ? ' cut' : ''}`).replace('class="tnote', `style="${BR.note ? `--nx:${BR.note.x.toFixed(1)}px;--ny:${BR.note.y.toFixed(1)}px;--nw:${BR.note.w.toFixed(1)}px;--ns:${BR.note.s.toFixed(3)}` : ''}" class="tnote`)}` : ''}
+    ${BR.on ? `<div class="nr-tab" aria-hidden="true"><span class="f-num">${hhmm()}</span><span class="nr-tab-r"><i class="nr-tab-wifi"></i><span class="f-num">87%</span><i class="nr-tab-bat"><i></i></i></span></div>` : ''}
     ${BR.on ? `<div class="nr-band-tx"><span class="nr-band-k"><i class="nr-rx" aria-hidden="true"><b></b><b></b><b></b></i><span>브리핑 수신</span></span><h2 class="nr-band-t">「${esc(o.title)}」 <small>${esc(o.place)}</small></h2></div>` : ''}
     ${brief}
   </header></div>`;
