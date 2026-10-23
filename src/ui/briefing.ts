@@ -49,7 +49,7 @@ export function bandHtml(o: { art: string; color: string; title: string; place: 
     : '';
   return `<div class="nr-bandslot" aria-hidden="${BR.on ? 'false' : 'true'}"><header class="nr-band" style="--fc:${o.color}${g}">
     <i class="nr-band-art" style="background-image:url('${o.art}')" aria-hidden="true"></i><i class="nr-band-shade" aria-hidden="true"></i><i class="nr-band-bp" aria-hidden="true"></i>
-    ${BR.on ? `<div class="nr-band-tx"><span class="nr-band-k">브리핑 수신</span><h2 class="nr-band-t">「${esc(o.title)}」 <small>${esc(o.place)}</small></h2></div>` : ''}
+    ${BR.on ? `<div class="nr-band-tx"><span class="nr-band-k"><i class="nr-rx" aria-hidden="true"><b></b><b></b><b></b></i><span>브리핑 수신</span></span><h2 class="nr-band-t">「${esc(o.title)}」 <small>${esc(o.place)}</small></h2></div>` : ''}
     ${brief}
   </header></div>`;
 }
