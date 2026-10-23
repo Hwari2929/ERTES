@@ -17,7 +17,8 @@ import { fieldIntroOf } from '../data/scenes/fields';
 import type { RunState } from '../types';
 import { deedCount, lastDeed, metaOath, oathSel } from './meta';
 import { artURL, bgURL } from './portraits';
-import { chainScene, paintSky } from './chains';
+import { chainScene } from './chains';
+import { starField } from './themefx';
 import { sfx } from './sound';
 import { lineIcon } from './synicons';
 
@@ -468,8 +469,6 @@ function coverHtml() {
     <span class="ct-cv-k">의뢰 차림표</span>
   </section>`;
 }
-/** 지휘관 서명 (날아가는 전표에만) */
-const SIG = '레이첼';
 /** 벨을 누른 순간 전표가 있던 자리 (날아가는 전표가 거기서 떠올라 가운데로 확대된다) */
 let flyFrom: { x: number; y: number; w: number } | null = null;
 function sealHtml() {
@@ -477,19 +476,18 @@ function sealHtml() {
   const from = f ? `--fx:${Math.round(f.x - innerWidth / 2)}px;--fy:${Math.round(f.y - innerHeight * 0.12)}px;--fs:${(f.w / fw).toFixed(3)}` : '--fx:0px;--fy:0px;--fs:1';
   return `<main class="ct ct-seal${CT.vet ? ' quick' : ''}" data-a="ct-skip" aria-label="그늘 — 누르면 넘깁니다">
     <div class="ct-table" aria-hidden="true">${prop('ct_table', '')}</div><div class="ct-dark" aria-hidden="true"></div><div class="lp-grain" aria-hidden="true"></div>
-    <canvas class="ct-sky" aria-hidden="true"></canvas>
-    <div class="ct-fly lp-carbon" style="${from}" aria-hidden="true">${slipHtml()}<i class="ct-stampmark ok">승인</i><div class="ct-sigline"><i class="lp-sig">${SIG}</i></div><i class="ct-tail"></i></div>
-    <i class="ct-beam" aria-hidden="true"></i><i class="ct-shot" aria-hidden="true"></i><i class="ct-flash" aria-hidden="true"></i>
+    <div class="ct-sky" aria-hidden="true"></div>
+    <div class="ct-fly lp-carbon" style="${from}" aria-hidden="true">${slipHtml()}<i class="ct-stampmark ok">승인</i><i class="ct-tail"></i></div>
+    <i class="ct-glint" aria-hidden="true"></i>
     <canvas class="ct-chains" aria-hidden="true"></canvas>
     <div class="ct-watch" aria-hidden="true">
       <svg viewBox="0 0 140 150" aria-hidden="true">
         <g transform="translate(10 0)">
-          <circle class="ct-bow" cx="60" cy="10" r="9"/><circle class="ct-bow hi" cx="60" cy="9.4" r="9"/>
-          <circle class="ct-case" cx="60" cy="84" r="60"/><circle class="ct-rim" cx="60" cy="84" r="56"/><circle class="ct-rim2" cx="60" cy="83.4" r="56"/>
+          <circle class="ct-bow" cx="60" cy="10" r="9"/>
+          <circle class="ct-case" cx="60" cy="84" r="60"/><circle class="ct-rim" cx="60" cy="84" r="56"/>
           <circle class="ct-enamel-o" cx="60" cy="84" r="51"/><circle class="ct-enamel" cx="60" cy="84" r="41"/>
           ${Array.from({ length: 12 }, (_, i) => { const a = (i * Math.PI) / 6, r1 = i % 3 ? 45 : 42; return `<line class="ct-tick" x1="${(60 + Math.sin(a) * r1).toFixed(1)}" y1="${(84 - Math.cos(a) * r1).toFixed(1)}" x2="${(60 + Math.sin(a) * 49).toFixed(1)}" y2="${(84 - Math.cos(a) * 49).toFixed(1)}"/>`; }).join('')}
           <line class="ct-hh" x1="60" y1="84" x2="78" y2="72"/><g class="ct-hand"><line class="ct-mh" x1="60" y1="84" x2="60" y2="40"/></g><circle class="ct-pin" cx="60" cy="84" r="4"/>
-          <path class="ct-glass" d="M 26 62 A 41 41 0 0 1 70 44"/>
         </g>
       </svg>
     </div>
@@ -500,6 +498,16 @@ function sealHtml() {
   </main>`;
 }
 
+/** 그늘 장면의 은하 하늘: 에란테스 갤럭시 테마의 바탕색 + 별빛 층과 같은 별무리 (지금 테마 · 연출 설정과 상관없이) */
+function galaxySky(el: HTMLElement) {
+  const probe = document.createElement('i');
+  probe.setAttribute('data-ui-theme', 'galaxy');
+  probe.hidden = true;
+  document.body.appendChild(probe);
+  el.style.background = getComputedStyle(probe).getPropertyValue('--bg').trim();
+  probe.remove();
+  starField(el);
+}
 export function contractScreen(): string {
   if (CT.step === 'seal') return sealHtml();
   return boardHtml();
@@ -786,18 +794,18 @@ export function contractMount(root: HTMLElement) {
   if (CT.step !== 'seal') return;
   clear();
   if (reduced()) { later(900, finish); return; }
-  // 처음: 0 전표가 출력기 자리에서 떠올라 가운데로 확대 → 0.75 끝없이 위로 올라가며 테이블이 어둠에 잠긴다 → 1.5 빛기둥이 위로 쏘아 올려진다
-  //   → 1.9 은하 하늘로 바뀐다 → 2.2~3.2 체인 · 회중시계가 내려온다 → 3.9 심장 박동 → 4.7~5.5 끌려 올라간다 → 6.2 명부 (카드)
-  // 두 번째부터 (CSS .quick): 같은 순서를 3초로 압축 — 의식은 처음에만 길다
-  const t = CT.vet ? [1100, 1900, 2300, 3000] : [2300, 3900, 5200, 6200];
-  const sky = ct.querySelector<HTMLCanvasElement>('canvas.ct-sky');
-  if (sky) paintSky(sky);
+  // 처음: 0 전표(원본 그대로)가 출력기 자리에서 떠올라 가운데로 확대 → 0.75 하염없이 올라가며 점점 작아지고 빛에 물들어 한 줄기 빛이 된다 (테이블은 어둠에)
+  //   → 1.8 은하 하늘 → 2.3 빛 줄기가 사라지는 자리에서 섬광 → 2.5~3.4 체인 · 회중시계가 살랑이며 내려온다 → 4.1 심장 박동 → 4.9~5.7 끌려 올라간다 → 6.4 명부 (카드)
+  // 두 번째부터 (CSS .quick): 같은 순서를 3.1초로 압축 — 의식은 처음에만 길다
+  const t = CT.vet ? [1200, 2000, 2500, 3100] : [2500, 4100, 5300, 6400];
+  const sky = ct.querySelector<HTMLElement>('.ct-sky');
+  if (sky) galaxySky(sky);
   // 체인 · 회중시계는 물리로 (ui/chains.ts): 체인마다 무작위 순서 · 시각에 나타나고, 무작위 시각에 끌려 올라간다
   const cv = ct.querySelector<HTMLCanvasElement>('canvas.ct-chains:not(.front)');
   const sc = cv ? chainScene(cv, ct.querySelector<HTMLCanvasElement>('canvas.ct-chains.front'), ct.querySelector<HTMLElement>('.ct-watch'), CT.vet
-    ? { win: [1.0, 1.5], wout: [2.2, 2.7], watchIn: 1.15, watchOut: 2.4 }
-    : { win: [2.2, 3.2], wout: [4.7, 5.6], watchIn: 2.5, watchOut: 5.2 }) : null;
-  later(CT.vet ? 700 : 1500, () => sfx('despair', { pitch: 1.4 })); // 빛기둥
+    ? { win: [1.2, 1.55], wout: [2.3, 2.75], watchIn: 1.25, watchOut: 2.5 }
+    : { win: [2.5, 3.4], wout: [4.9, 5.7], watchIn: 2.7, watchOut: 5.3 }) : null;
+  later(CT.vet ? 1150 : 2250, () => sfx('despair', { pitch: 1.4 })); // 섬광
   sfx('paper');
   later(t[0], () => sfx('chain'));
   later(t[1], () => { ct.classList.add('beat'); sc?.pulse(); sfx('heart'); sfx('despair'); });

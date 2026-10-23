@@ -113,6 +113,18 @@ function starTile(w: number, h: number, ns: number[], glint: boolean) {
   } });
   return c.toDataURL();
 }
+/** 갤럭시 별무리를 el 안에 깐다 (계약 그늘 장면처럼 테마 연출 설정과 상관없이 갤럭시 배경이 필요한 곳). 별빛 층과 같은 타일 · 같은 흐름 · 같은 반짝임 */
+export function starField(el: HTMLElement) {
+  const still = reduced();
+  for (const [w, h, ns, v, tw] of STAR_TILES) {
+    const i = document.createElement('i');
+    i.style.cssText = `position:absolute;left:${-w}px;top:${-h}px;width:calc(100% + ${w}px);height:calc(100% + ${h}px);background:url(${starTile(w, h, ns, tw > 0)}) 0 0/${w}px ${h}px`;
+    el.appendChild(i);
+    if (still) continue;
+    i.animate([{ transform: 'translate(0, 0)' }, { transform: `translate(${w}px, ${h}px)` }], { duration: (w / v) * 1000, iterations: Infinity });
+    if (tw) i.animate([{ opacity: 0.1 }, { opacity: 1 }], { duration: tw, iterations: Infinity, direction: 'alternate', easing: 'ease-in-out' });
+  }
+}
 function starLayer(level: FxLevel): Layer {
   const el = layerEl('tfx-stars');
   const anims: Animation[] = [];

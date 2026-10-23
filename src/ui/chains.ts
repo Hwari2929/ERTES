@@ -5,7 +5,7 @@
 
 interface Pt { x: number; y: number; px: number; py: number; w: number } // w = 1 / 질량 (0 = 고정점)
 interface Anchor { i: number; x: number; y0: number; y1: number }
-interface Chain { pts: Pt[]; L: number; alpha: number; front: boolean; anchors: Anchor[]; tIn: number; tOut: number; outDur: number; wind: number; ph: number; damp: number }
+interface Chain { pts: Pt[]; L: number; alpha: number; front: boolean; anchors: Anchor[]; tIn: number; inDur: number; tOut: number; outDur: number; wind: number; wf: number; ph: number; damp: number }
 
 export interface ChainOpts {
   /** 체인이 나타나는 시각 범위 · 사라지는 시각 범위 (초) */
@@ -15,11 +15,12 @@ export interface ChainOpts {
 }
 
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
-const easeIn = (k: number) => k * k * k; // 천천히 들리다 확 끌려 올라간다
+const easeIn = (k: number) => k * k * k; // 천천히 들리다 끌려 올라간다
+const easeOut = (k: number) => 1 - (1 - k) ** 3; // 내려오다 부드럽게 멈춘다
 const G = 2000; // 중력 (px/s²)
 const STEP = 1 / 120;
 const VMAX = 1100; // 떨어지는 최고 속도 (px/s, 공기 저항): 너무 빨리 떨어지다 멈추면 채찍처럼 휘청인다
-const BEND = 1.6; // 이음새가 접힐 수 있는 한계 (1.6 L ≈ 이음새 하나가 최대 약 75° 꺾임)
+const BEND = 1.85; // 이음새가 접힐 수 있는 한계 (1.85 L ≈ 이음새 하나가 최대 약 45° 꺾임: 바닥에서 고리가 지그재그로 뭉치지 않게)
 
 /** 그늘 장면을 시작한다. 반환값: pulse() = 심장 박동에 맞춰 모든 체인이 한 번 출렁인다 */
 export function chainScene(cv: HTMLCanvasElement, fcv: HTMLCanvasElement | null, watch: HTMLElement | null, o: ChainOpts) {
@@ -28,11 +29,11 @@ export function chainScene(cv: HTMLCanvasElement, fcv: HTMLCanvasElement | null,
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const W = cv.clientWidth, H = cv.clientHeight;
   for (const c of [cv, fcv]) if (c) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
-  const css = getComputedStyle(cv), AU = css.getPropertyValue('--lp-au').trim(), LO = css.getPropertyValue('--lp-au-lo').trim();
+  const AU = getComputedStyle(cv).getPropertyValue('--lp-au').trim();
   const k = Math.max(0.6, Math.min(1.25, H / 900)); // 화면 크기에 맞춘 고리 크기
 
   const chains: Chain[] = [];
-  const base = (L: number, alpha: number, front: boolean): Omit<Chain, 'pts' | 'anchors'> => ({ L, alpha, front, tIn: rnd(o.win[0], o.win[1]), tOut: rnd(o.wout[0], o.wout[1]), outDur: rnd(0.6, 0.9), wind: rnd(10, 22), ph: rnd(0, Math.PI * 2), damp: 0.99 });
+  const base = (L: number, alpha: number, front: boolean): Omit<Chain, 'pts' | 'anchors'> => ({ L, alpha, front, tIn: rnd(o.win[0], o.win[1]), inDur: rnd(0.9, 1.3), tOut: rnd(o.wout[0], o.wout[1]), outDur: rnd(0.8, 1.1), wind: rnd(26, 42), wf: rnd(0.45, 0.8), ph: rnd(0, Math.PI * 2), damp: 0.986 });
   /** 곧게 드리운 체인: 위 끝 하나가 고정점 */
   const drop = (x: number, len: number, s: number, alpha: number, front: boolean) => {
     const L = 14 * s * k, n = Math.max(3, Math.round(len / L)), y0 = -n * L - 60;
@@ -67,33 +68,29 @@ export function chainScene(cv: HTMLCanvasElement, fcv: HTMLCanvasElement | null,
   let wc: Chain | null = null;
   const ww = 150 * k, bx = ww * (70 / 140), by = ww * (10 / 140);
   if (watch) {
-    const L = 13 * k, n = Math.round((H * 0.42) / L), th = rnd(26, 34) * (Math.random() < 0.5 ? -1 : 1) * (Math.PI / 180), x = W / 2, y0 = -n * L * Math.cos(th) - 160;
+    const L = 13 * k, n = Math.round((H * 0.42) / L), th = rnd(18, 24) * (Math.random() < 0.5 ? -1 : 1) * (Math.PI / 180), x = W / 2, y0 = -n * L * Math.cos(th) - 160;
     const pts = Array.from({ length: n + 1 }, (_, i) => { const px = x + Math.sin(th) * i * L, py = y0 + Math.cos(th) * i * L; return { x: px, y: py, px, py, w: i === 0 ? 0 : i === n ? 0.12 : 1 }; });
-    wc = { L, alpha: 1, front: false, tIn: o.watchIn, tOut: o.watchOut, outDur: 0.75, wind: 0, ph: 0, damp: 0.9993, pts, anchors: [{ i: 0, x, y0, y1: -L * 0.5 }] };
+    wc = { L, alpha: 1, front: false, tIn: o.watchIn, inDur: 0.9, tOut: o.watchOut, outDur: 0.9, wind: 0, wf: 0, ph: 0, damp: 0.998, pts, anchors: [{ i: 0, x, y0, y1: -L * 0.5 }] };
     watch.style.width = `${ww}px`;
     watch.style.transformOrigin = `${bx}px ${by}px`;
   }
   const all = wc ? [...chains, wc] : chains;
 
+  /** 위 끝: 부드럽게 감속하며 내려와 멈추고 (자유 낙하 뒤 탁 멈추면 고무줄처럼 출렁인다), 나갈 때는 천천히 들리다 끌려 올라간다 */
   const anchorY = (c: Chain, a: Anchor, t: number) => {
     if (t >= c.tOut) return a.y1 + (a.y0 - 400 - a.y1) * easeIn(Math.min(1, (t - c.tOut) / c.outDur));
     if (t <= c.tIn) return a.y0;
-    // 위 끝도 체인과 같이 (중력 + 최고 속도) 떨어지다가 제자리에서 멈춘다: 체인이 밀려 뭉치지 않고, 멈출 때 끝까지 당겨지며 흔들린다
-    const dt = t - c.tIn, t1 = VMAX / G, d = dt < t1 ? 0.5 * G * dt * dt : 0.5 * G * t1 * t1 + VMAX * (dt - t1);
-    return Math.min(a.y1, a.y0 + d);
+    return a.y0 + (a.y1 - a.y0) * easeOut(Math.min(1, (t - c.tIn) / c.inDur));
   };
-  /** 위 끝이 제자리에 닿는 시각 (닿은 뒤 잠깐 더 감쇠해서 휘청임을 가라앉힌다) */
-  const stopAt = (c: Chain) => { const h = c.anchors[0].y1 - c.anchors[0].y0, t1 = VMAX / G, d1 = 0.5 * G * t1 * t1; return c.tIn + (h <= d1 ? Math.sqrt((2 * h) / G) : t1 + (h - d1) / VMAX); };
-  const stops = new Map(all.map((c) => [c, stopAt(c)] as const));
   const step = (c: Chain, t: number) => {
-    const n = c.pts.length - 1, wx = c.wind * Math.sin(t * 0.9 + c.ph), dt2 = STEP * STEP, vm = VMAX * STEP;
-    const st = stops.get(c) ?? 0, damp = c !== wc && t > st && t < st + 1.2 ? 0.975 : c.damp; // 멈춘 직후 1.2초는 더 무겁게 가라앉힌다
+    // 바람: 느린 두 물결을 겹쳐 살랑살랑 (아래쪽 · U자 가운데일수록 크게)
+    const n = c.pts.length - 1, wx = c.wind * (Math.sin(t * c.wf + c.ph) + 0.45 * Math.sin(t * c.wf * 2.3 + c.ph * 1.7)), dt2 = STEP * STEP, vm = VMAX * STEP, damp = c.damp, two = c.anchors.length > 1;
     for (let i = 0; i <= n; i++) {
       const p = c.pts[i];
       if (!p.w) continue;
       const vx = (p.x - p.px) * damp, vy = Math.min(vm, (p.y - p.py) * damp);
       p.px = p.x; p.py = p.y;
-      p.x += vx + wx * (i / n) * dt2; p.y += vy + G * dt2;
+      p.x += vx + wx * (two ? Math.sin((Math.PI * i) / n) : i / n) * dt2; p.y += vy + G * dt2;
     }
     for (const a of c.anchors) { const p = c.pts[a.i]; p.px = p.x; p.py = p.y; p.x = a.x; p.y = anchorY(c, a, t); }
     for (let it = 0; it < 16; it++) {
@@ -121,7 +118,7 @@ export function chainScene(cv: HTMLCanvasElement, fcv: HTMLCanvasElement | null,
       }
     }
   };
-  /** 고리: 이음새마다 정면 고리(구멍 뚫린 타원)와 옆면 고리(막대)가 번갈아 이어진다 */
+  /** 고리: 이음새마다 정면 고리(타원 테)와 옆면 고리(막대)가 번갈아 이어진다. 한 색, 명암 없음 */
   const draw = (c: Chain) => {
     const L = c.L, n = c.pts.length - 1, ctx = c.front && fctx ? fctx : ctx0;
     ctx.save();
@@ -134,17 +131,10 @@ export function chainScene(cv: HTMLCanvasElement, fcv: HTMLCanvasElement | null,
         if (a.y < -L * 2 && b.y < -L * 2) continue;
         ctx.setTransform(dpr, 0, 0, dpr, ((a.x + b.x) / 2) * dpr, ((a.y + b.y) / 2) * dpr);
         ctx.rotate(Math.atan2(b.y - a.y, b.x - a.x));
-        if (pass === 0) {
-          ctx.beginPath(); ctx.ellipse(0, 0, L * 0.64, L * 0.34, 0, 0, Math.PI * 2);
-          ctx.lineWidth = L * 0.22; ctx.strokeStyle = LO; ctx.stroke();
-          ctx.beginPath(); ctx.ellipse(0, -L * 0.03, L * 0.6, L * 0.3, 0, Math.PI * 1.05, Math.PI * 1.95);
-          ctx.lineWidth = L * 0.08; ctx.strokeStyle = AU; ctx.stroke();
-        } else {
-          ctx.beginPath(); ctx.moveTo(-L * 0.6, 0); ctx.lineTo(L * 0.6, 0);
-          ctx.lineWidth = L * 0.2; ctx.strokeStyle = LO; ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(-L * 0.52, -L * 0.03); ctx.lineTo(L * 0.52, -L * 0.03);
-          ctx.lineWidth = L * 0.08; ctx.strokeStyle = AU; ctx.stroke();
-        }
+        // 명암 없이 한 색 (밝은 줄 · 어두운 줄 두 겹으로 반을 가르지 않는다): 정면 고리 = 타원 테, 옆면 고리 = 막대
+        ctx.strokeStyle = AU;
+        if (pass === 0) { ctx.beginPath(); ctx.ellipse(0, 0, L * 0.62, L * 0.32, 0, 0, Math.PI * 2); ctx.lineWidth = L * 0.18; ctx.stroke(); }
+        else { ctx.beginPath(); ctx.moveTo(-L * 0.58, 0); ctx.lineTo(L * 0.58, 0); ctx.lineWidth = L * 0.17; ctx.stroke(); }
       }
     }
     ctx.restore();
@@ -175,45 +165,7 @@ export function chainScene(cv: HTMLCanvasElement, fcv: HTMLCanvasElement | null,
   requestAnimationFrame(frame);
   return {
     /** 심장 박동: 모든 체인을 위로 한 번 툭 친다 */
-    pulse: () => { for (const c of all) for (const p of c.pts) if (p.w) p.py += 5 * (c === wc ? 0.5 : 1); },
+    pulse: () => { for (const c of all) for (const p of c.pts) if (p.w) p.py += 1.6 * (c === wc ? 0.5 : 1); },
   };
 }
 
-/** 그늘 장면의 은하 하늘: 에란테스 갤럭시(기본 테마) 바탕색에 옅은 성운 몇 덩이와 별을 한 번만 그린다 (테마를 바꿔도 이 장면은 갤럭시 색) */
-export function paintSky(cv: HTMLCanvasElement) {
-  const ctx = cv.getContext('2d');
-  if (!ctx) return;
-  const dpr = Math.min(2, window.devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight;
-  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const probe = document.createElement('i');
-  probe.setAttribute('data-ui-theme', 'galaxy');
-  probe.style.display = 'none';
-  document.body.appendChild(probe);
-  const cs = getComputedStyle(probe), v = (n: string) => cs.getPropertyValue(n).trim();
-  const bg = v('--bg'), info = v('--c-info'), brand = v('--c-brand'), chalk = v('--c-chalk');
-  probe.remove();
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-  // 성운: 정보 파랑 · 브랜드 호박을 아주 옅게 (가운데 띠를 따라)
-  for (let i = 0; i < 7; i++) {
-    const x = rnd(0.05, 0.95) * W, y = H * (0.25 + 0.5 * (x / W)) + rnd(-0.18, 0.18) * H, r = rnd(0.18, 0.42) * Math.max(W, H);
-    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    ctx.globalAlpha = rnd(0.05, 0.11);
-    g.addColorStop(0, i % 3 === 2 ? brand : info); g.addColorStop(1, bg);
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  }
-  // 별: 작은 별 다수 + 밝은 별 몇 개 (십자 반짝임)
-  ctx.fillStyle = chalk;
-  for (let i = 0; i < Math.round((W * H) / 2600); i++) {
-    ctx.globalAlpha = rnd(0.15, 0.75);
-    ctx.beginPath(); ctx.arc(rnd(0, W), rnd(0, H), rnd(0.35, 1.1), 0, Math.PI * 2); ctx.fill();
-  }
-  ctx.strokeStyle = chalk; ctx.lineCap = 'round';
-  for (let i = 0; i < 14; i++) {
-    const x = rnd(0, W), y = rnd(0, H), r = rnd(4, 9);
-    ctx.globalAlpha = rnd(0.35, 0.8); ctx.lineWidth = 0.8;
-    ctx.beginPath(); ctx.moveTo(x - r, y); ctx.lineTo(x + r, y); ctx.moveTo(x, y - r); ctx.lineTo(x, y + r); ctx.stroke();
-    ctx.beginPath(); ctx.arc(x, y, 1.4, 0, Math.PI * 2); ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-}
