@@ -446,7 +446,7 @@ function boardHtml() {
       <button class="ct-cancel lp-btn" data-a="ct-cancel"${jobOf() && !CT.stamp ? '' : ' disabled'}>의뢰 취소</button>
     </div>
     <button class="ct-bell${on ? ' on' : ''}${bellIn ? ' in' : ''}${bellOut ? ' out' : ''}${ok && !CT.stamp ? ' ready' : ''}" data-a="ct-bell" aria-label="벨을 눌러 전표 승인 (화면 밖으로 끌어내면 의뢰 취소)"${on ? '' : ' tabindex="-1" aria-hidden="true"'}${ok && !CT.stamp ? '' : ' aria-disabled="true"'}>${prop('ct_bell', BELL_SVG)}</button>
-    <img class="ct-hand th" alt="" aria-hidden="true" src="${artURL('ct_hand_thumb.webp')}" decoding="async"><img class="ct-hand sh" alt="" aria-hidden="true" src="${artURL('ct_hand.webp')}" decoding="async"><img class="ct-hand fr" alt="" aria-hidden="true" src="${artURL('ct_hand.webp')}" decoding="async">
+    <img class="ct-hand sh" alt="" aria-hidden="true" src="${artURL('ct_hand.webp')}" decoding="async"><div class="ct-hand-thb" aria-hidden="true"><img class="ct-hand th" alt="" src="${artURL('ct_hand_thumb.webp')}" decoding="async"></div><img class="ct-hand fr" alt="" aria-hidden="true" src="${artURL('ct_hand.webp')}" decoding="async">
     <div class="ct-light" aria-hidden="true"></div><div class="ct-glow" aria-hidden="true"></div>
     ${hooks.foe()}
   </main>`;
@@ -483,7 +483,7 @@ let sealGrid: { x: number; y: number; s: number } | null = null;
 export function takeSealGrid() { const g = sealGrid; sealGrid = null; return g; }
 /** 두 번째 계약부터 (브리핑을 1줄로 줄인다) */
 export const contractVet = () => CT.vet;
-/** 에이든의 손 (ct_hand · ct_hand_thumb, 임시본 scripts/hand_layers.py): 오른쪽 위에서 비스듬히 들어와 전표 오른쪽 끝을 집고(검지 · 중지는 종이 위, 엄지 끝은 종이 밑) 위로 끌어 간다.
+/** 에이든의 손 (ct_hand · ct_hand_thumb, 임시본 scripts/hand_layers.py): 오른쪽 위에서 비스듬히 들어와 전표 오른쪽 끝을 집고(검지 · 중지는 종이 위, 엄지 끝은 종이 밑 = 전표 사각형만큼 잘라 냄) 위로 끌어 간다.
  *  두 층은 같은 크기 · 같은 원점, 그림 폭 1354px 기준 검지 끝 (13, 842) · 손목~검지 끝 565px. 손 크기 = 표시기 화면 높이의 80%.
  *  움직임: 스윽 들어와 살짝 지나쳤다 제자리 → 탁 눌러 집고(그림자가 붙는다) → 스윽 끌어 간다. 걸리는 ms 를 돌려준다 (못 하면 0) */
 const HAND = { w: 1354, tipX: 13, tipY: 842, thumb: [175, 824], len: 565, rot: -16, grip: [14, 40], arm: Math.atan2(-842, 1341) }; // thumb: 엄지 끝 (그림 px) · grip: 엄지 끝 자리 = 전표 오른쪽 끝에서 안쪽 14 · 위에서 40 (전표 폭 204px 기준)
@@ -513,12 +513,22 @@ function handTake(ct: HTMLElement): number {
   ];
   for (const el of [fr, th]) { el.classList.add('on'); el.animate(keys, { duration: T, fill: 'forwards' }); }
   // 그림자: 들어올 때는 조금 떨어져 있다가, 탁 누를 때 손에 붙고, 들어 올리면 다시 조금 떨어진다
-  const far = '11px 16px', near = '4px 6px'; // 손이 테이블 바로 위에 있으니 그림자는 손에 붙어 있다
+  // 그림자는 전표 · 벨 위, 엄지 · 손 밑 (DOM 순서). 손이 테이블 바로 위에 있으니 손에 붙어 있다
+  const off = (i: number) => (i === 3 ? '4px 6px' : i === 2 || i === 4 ? '6px 9px' : '11px 16px');
   sh.classList.add('on');
-  sh.animate(keys.map((kf, i) => ({ ...kf, translate: i === 3 ? near : i === 2 || i === 4 ? '6px 9px' : far })), { duration: T, fill: 'forwards' });
+  sh.animate(keys.map((kf, i) => ({ ...kf, translate: off(i) })), { duration: T, fill: 'forwards' });
   // 전표: 집은 뒤 손과 같은 길로 (출력기가 기운 만큼 되돌려 출력기 안 좌표로)
   const pr = (-CT.rot.pr * Math.PI) / 180, lx = ex * Math.cos(pr) - ey * Math.sin(pr), ly = ex * Math.sin(pr) + ey * Math.cos(pr);
   wrap.animate([{ transform: 'none', offset: 0 }, { transform: 'none', offset: o(IN + TAK + HOLD), easing: YANK }, { transform: `translate(${lx}px, ${ly}px)`, offset: 1 }], { duration: T, fill: 'forwards' });
+  // 엄지 끝은 손과 같은 층(램프 · 벨 위)에 두고, 전표가 있는 사각형만 잘라 낸다 (전표 밑으로 들어간 것처럼). 전표가 끌려가는 동안에도 매 프레임 따라간다
+  const thb = th.parentElement as HTMLElement, t0 = performance.now();
+  const cut = () => {
+    if (!thb.isConnected || CT.step === 'seal') { thb.style.clipPath = ''; return; }
+    const c = ct.getBoundingClientRect(), q = slip.getBoundingClientRect(), x1 = q.left - c.left, y1 = q.top - c.top, x2 = q.right - c.left, y2 = q.bottom - c.top;
+    thb.style.clipPath = `polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, ${x1}px ${y1}px, ${x2}px ${y1}px, ${x2}px ${y2}px, ${x1}px ${y2}px, ${x1}px ${y1}px)`;
+    if (performance.now() - t0 < T + 100) requestAnimationFrame(cut);
+  };
+  cut();
   later(IN, () => sfx('knock', { pitch: 1.6, gain: 0.5 }));
   later(IN + TAK + HOLD, () => sfx('paper', { pitch: 1.2 }));
   return T;

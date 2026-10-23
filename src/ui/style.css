@@ -5143,11 +5143,11 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-barview { z-index: var(--z-top); } /* 램프 빛 층보다 위 (바 그림은 바의 조명 그대로) */
 .ct { --lamp: .5; } /* 램프 세기: 그늘 층과 빛 층이 같은 값을 읽는다 */
 .ct-hand { position: absolute; left: 0; top: 0; max-width: none; height: auto; pointer-events: none; visibility: hidden; } /* 에이든의 손 (ui/contract.ts handTake) */
-.ct-hand.sh { z-index: var(--z-float); translate: 11px 16px; filter: brightness(0) blur(3px); opacity: .5; } /* 그림자: 전표 · 테이블 · 벨 위, 손 밑 (DOM 이 손 앞). 손에 붙어 있고 거의 또렷하다. 따로 한 장 (앞 층에 그림자를 달면 엄지 구멍으로 비친다) */
-.ct-hand.th { z-index: var(--z-raise); } /* 엄지 끝: 출력기 · 전표 밑 */
+.ct-hand.sh { z-index: var(--z-float); translate: 11px 16px; filter: brightness(0) blur(3px); opacity: .5; } /* 그림자: 전표 · 테이블 · 벨 위, 엄지 · 손 밑 (DOM 이 둘보다 앞). 손에 붙어 있고 거의 또렷하다. 따로 한 장 (앞 층에 그림자를 달면 엄지 구멍으로 비친다) */
+.ct-hand-thb { position: absolute; inset: 0; z-index: var(--z-float); pointer-events: none; } /* 엄지 끝: 손과 같은 층 (램프 그늘 · 벨 위 — 아래 층이면 엄지만 어두워진다). 전표 사각형만큼은 JS 가 clip-path 로 잘라 전표 밑처럼 보인다 */
 .ct-hand.fr { z-index: var(--z-float); } /* 손 · 검지 · 중지: 전표 · 벨 위 (벨 바로 위로 지나간다. 램프 톤은 그림에 구워 둠 — scripts/hand_tone.py) */
 .ct-hand.on { visibility: visible; }
-@media (max-width: 760px) { .ct-hand { display: none; } }
+@media (max-width: 760px) { .ct-hand, .ct-hand-thb { display: none; } }
 .ct-light, .ct-glow { position: absolute; inset: 0; z-index: var(--z-sticky); pointer-events: none; }
 .ct-light { mix-blend-mode: multiply; /* 램프 밖 난색 그늘: 테이블 · 종이 · 소품을 한 장으로 함께 (테이블 그림에는 굽지 않는다) */
   background: radial-gradient(85% 95% at 34% 42%, var(--c-white) 30%, color-mix(in srgb, var(--ct-lamp-lo) calc(var(--lamp) * 90%), var(--c-white)) 100%); }
