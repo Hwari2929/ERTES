@@ -135,6 +135,7 @@ export function contractStart(from: string, list = false, snap = '') {
   CT.rot = { bp: rnd(-4, 4), mn: rnd(-3, 3), pr: rnd(-3, 3), rd: rnd(-3, 3), ls: rnd(-2, 2) };
   for (const k in shown) delete shown[k];
   paper.rows = []; paper.run = null; paper.token++;
+  scr.last = ''; scr.hits = [];
   CT.no = n + 1;
   const d = new Date();
   CT.time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -376,7 +377,9 @@ const UP_SVG = `<svg class="ct-up" viewBox="0 0 24 24" aria-hidden="true"><path 
 const PRINTER_SVG = `<svg class="ct-fb" viewBox="0 0 100 154" aria-hidden="true"><rect x="10" y="6" width="84" height="146" rx="10" class="sh"/><rect x="4" y="2" width="84" height="146" rx="10" class="body"/><rect x="9" y="7" width="74" height="136" rx="7" class="rim"/><rect x="15" y="9" width="62" height="7" rx="2" class="slot"/><rect x="18" y="11.5" width="56" height="2" rx="1" class="gap"/></svg>`;
 
 function boardHtml() {
-  const ok = payable(), heat = heatNow(), lit = CT.lit;
+  const ok = payable(), heat = heatNow(), lit = CT.lit, info = infoHtml();
+  scr.blink = !!scr.last && info !== scr.last && !CT.intro; // 도면 내용이 바뀌면 그린 뒤 화면이 한 번 꺼졌다 켜진다
+  scr.last = info;
   CT.lit = false;
   const leave = CT.from === 'bar' ? '바로 돌아가기' : '타이틀로';
   const n = rows().filter((r) => r.k !== 'div').length;
@@ -390,7 +393,7 @@ function boardHtml() {
     <div class="ct-table" aria-hidden="true">${prop('ct_table', '')}</div><div class="lp-grain" aria-hidden="true"></div>
     <button class="ct-leave lp-btn" data-a="ct-leave" aria-label="${leave}" title="${leave} (화면을 위로 쓸어 올려도 된다)">${UP_SVG}</button>
     <p class="ct-voice${CT.say ? ' on' : ''}" aria-live="polite"><b>에이든</b><span>${esc(CT.say)}</span></p>
-    <section class="ct-bp" aria-label="의뢰 도면 (표시기)"><div class="ct-bp-scr lp-bp" aria-live="polite">${infoHtml()}</div><i class="ct-led" aria-hidden="true"></i></section>
+    <section class="ct-bp" aria-label="의뢰 도면 (표시기)"><div class="ct-bp-scr lp-bp" aria-live="polite">${info}</div><i class="ct-blank" aria-hidden="true"><img class="ct-mk" alt="" src="${artURL('mingki.bust.webp')}" decoding="async" onerror="this.remove()"></i><i class="ct-led" aria-hidden="true"></i></section>
     <div class="ct-menu">
       ${coverHtml()}
       <section class="ct-page lp-paper lp-frame" aria-label="의뢰 차림표">
@@ -563,8 +566,26 @@ export function contractAct(a: string, v: string): boolean {
 }
 /** 청사진만 바꾼다 (가리키기) */
 function refreshInfo() {
-  const el = document.querySelector<HTMLElement>('.ct-bp-scr');
-  if (el) el.innerHTML = infoHtml();
+  const el = document.querySelector<HTMLElement>('.ct-bp-scr'), h = infoHtml();
+  if (!el || h === scr.last) return;
+  scr.last = h; el.innerHTML = h;
+  blink();
+}
+/** 도면 표시기: 마지막으로 띄운 내용 · 그린 뒤 깜빡일지 · 최근 전환 시각 (자주 바꾸면 이스터에그) · 마지막 이스터에그 시각 */
+const scr = { last: '', blink: false, hits: [] as number[], egg: 0 };
+/** 내용이 바뀔 때 화면이 한 번 검게 꺼졌다 켜진다. 4초 안에 7번 넘게 바꿔 대면 가끔 꺼진 검은 화면에 밍키 얼굴이 비친다 */
+function blink() {
+  const bp = document.querySelector<HTMLElement>('.ct-bp');
+  if (!bp || reduced()) return;
+  const now = performance.now();
+  scr.hits = scr.hits.filter((t) => now - t < 4000);
+  scr.hits.push(now);
+  const egg = scr.hits.length >= 7 && now - scr.egg > 8000 && Math.random() < 0.35;
+  if (egg) { scr.egg = now; scr.hits = []; }
+  bp.classList.remove('blink', 'mk');
+  void bp.offsetWidth; // 같은 애니메이션을 다시 건다
+  bp.classList.add('blink');
+  if (egg) bp.classList.add('mk');
 }
 /** 그늘 연출 끝 → 명부 */
 function finish() {
@@ -696,6 +717,7 @@ export function contractMount(root: HTMLElement) {
     };
     for (const el of [menu, ...Array.from(ct.querySelectorAll<HTMLElement>(':is(.ct-riders, .ct-offsheet):not(.out)'))]) { el?.addEventListener('mouseover', point); el?.addEventListener('focusin', point); }
     escSheets();
+    if (scr.blink) { scr.blink = false; blink(); }
     swipeDown(ct, '.ct-offsheet', 'ls', () => { CT.list = false; CT.focus = ''; });
     bellDrag(ct);
     leaveGesture(ct);
