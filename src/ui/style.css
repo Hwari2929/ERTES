@@ -5106,7 +5106,11 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 /* 바 화면을 뜬 그림 (인물 · 세로 띠 그대로): 시선이 테이블로 내려가면 위로 빠진다 */
 .ct-barview { position: absolute; inset: 0; z-index: var(--z-sticky); overflow: hidden; pointer-events: none; animation: ct-lookdown 1s .4s var(--ct-in) both; box-shadow: 0 22px 34px var(--shade-3); } /* 바 그림 아래 끝 = 카운터 앞 가장자리: 테이블 위로 그늘을 드리운다 */
 .ct-barview > .bar { position: absolute; inset: 0; }
-.ct-barview > .bar :is(.bar-bub, .bar-hint) { display: none; }
+.ct:not(.intro) .ct-barview > .bar :is(.bar-bub, .bar-hint) { display: none; } /* 돌아갈 때 (바 화면이 새로 그려지며 다시 나온다) */
+.ct.intro .ct-barview > .bar :is(.bar-bub, .bar-hint, .bar-sit, .bar-door) { animation: ct-fade-out .35s ease-in both; } /* 들어올 때: 바의 말풍선 · 상황 줄 · 단추가 툭 사라지지 않고 옅어진다 */
+@keyframes ct-fade-out { to { opacity: 0; } }
+.ct.intro .ct-voice.on { animation: ct-fade .4s 2.1s both; } /* 에이든의 계약 대사 · 나가기 단추는 시선이 테이블로 내려간 뒤에 (바 말풍선 · 단추와 겹쳐 바뀌지 않게) */
+.ct.intro .ct-leave { animation: ct-fade .4s 1.5s both; }
 .ct-barbg { position: absolute; inset: 0; background: center 40% / cover no-repeat; }
 @keyframes ct-lookdown { from { translate: 0 0; } to { translate: 0 -100%; } }
 /* 테이블은 제자리에 있고 바 그림이 걷히며 아래부터 드러난다 (그림을 늘리지 않고, 두 층을 따로 움직이지 않아 이음매에 틈이 생기지 않는다) */
@@ -5134,7 +5138,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 @keyframes ct-slide { from { translate: 45vw 6vh; } }
 .ct.intro .ct-voice { transition-delay: 2.1s; }
 .ct-barview { z-index: var(--z-top); } /* 램프 빛 층보다 위 (바 그림은 바의 조명 그대로) */
-.ct { --lamp: .5; } /* 램프 세기: 그늘 층과 빛 층이 같은 값을 읽는다 */
+.ct { --lamp: .5; --sc: 1; } /* 램프 세기: 그늘 층과 빛 층이 같은 값을 읽는다 */
 .ct-light, .ct-glow { position: absolute; inset: 0; z-index: var(--z-sticky); pointer-events: none; }
 .ct-light { mix-blend-mode: multiply; /* 램프 밖 난색 그늘: 테이블 · 종이 · 소품을 한 장으로 함께 (테이블 그림에는 굽지 않는다) */
   background: radial-gradient(85% 95% at 34% 42%, var(--c-white) 30%, color-mix(in srgb, var(--ct-lamp-lo) calc(var(--lamp) * 90%), var(--c-white)) 100%); }
@@ -5326,54 +5330,51 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-cancel { min-height: 34px; padding: 0 12px; font-size: var(--fs-sm); color: var(--lp-ink); background: var(--grain), var(--lp-paper); background-blend-mode: overlay, normal; border-color: var(--lp-ink); }
 /* 그늘: 전표가 종이처럼 날아가고 → 바가 네이비 어둠에 잠기며 금 체인 · 회중시계가 돌며 내려오고 → 눈높이에서 심장 박동 → 반동 뒤 끌려 올라간다 */
 .ct-seal { cursor: pointer; background: var(--bg); }
-.ct-dark { position: absolute; inset: 0; background: var(--bg); opacity: 0; animation: ct-darken 1.8s ease-in forwards; }
-/* 빛 줄기가 된 전표가 소실점(가운데 위)에서 십자 섬광으로 사라진다 (화면 전체를 번쩍이지 않는다). 그 사이 은하 하늘로 바뀐다 */
-.ct-sky { position: absolute; inset: 0; overflow: hidden; opacity: 0; animation: ct-sky-in .8s 1.8s ease-out forwards; }
+.ct-sealfx { position: absolute; inset: 0; z-index: var(--z-sticky); cursor: pointer; } /* 그늘 연출 층: 보드 위 · 램프 빛 층 아래 (전표가 램프 빛 속에서 떠오른다). --sc = 시간 배율 (단골 0.7) */
+.ct.sealing .ct-light, .ct.sealing .ct-glow { opacity: 0; transition: opacity calc(1.1s * var(--sc)) calc(.2s * var(--sc)) ease-in; } /* 램프가 서서히 꺼진다 */
+.ct.sealing :is(.ct-bell, .ct-leave) { opacity: 0; pointer-events: none; transition: opacity .4s; }
+.ct.sealing .ct-voice { opacity: 0; transition: opacity .5s calc(.9s * var(--sc)); }
+.ct-dark { position: absolute; inset: 0; background: var(--bg); opacity: 0; animation: ct-darken calc(1.2s * var(--sc)) calc(.15s * var(--sc)) ease-in forwards; } /* 바가 어둠에 잠긴다 (메뉴판 · 도면 · 출력기는 그 자리에 있다가) */
+.ct-sky { position: absolute; inset: 0; overflow: hidden; opacity: 0; animation: ct-sky-in calc(.8s * var(--sc)) calc(1.8s * var(--sc)) ease-out forwards; }
 @keyframes ct-sky-in { to { opacity: 1; } }
-.ct-glint { position: absolute; left: 50%; top: 8vh; width: 0; height: 0; pointer-events: none; opacity: 0; } /* 섬광: 십자 빛살 + 빛 알갱이. 전표가 빠져나가는 자리 · 순간에 JS 가 .on (flyUp) */
-.ct-glint.on { animation: ct-glint .7s ease-out both; }
-.ct-glint::before, .ct-glint::after { content: ''; position: absolute; left: -22vw; top: -1px; width: 44vw; height: 2px; border-radius: var(--r-pill); background: linear-gradient(90deg, transparent, var(--c-white), transparent); box-shadow: 0 0 10px 2px color-mix(in srgb, var(--lp-cream) 60%, transparent); }
-.ct-glint::after { rotate: 90deg; scale: .45 1; }
-@keyframes ct-glint { 0% { opacity: 0; scale: .1; } 18% { opacity: 1; scale: 1; } 100% { opacity: 0; scale: .6 .2; } }
 .ct-chains.front { filter: blur(3px); } /* 맨 앞 겹: 화면 앞을 지나는 크고 흐린 체인 (시계보다 위) */
-@keyframes ct-darken { to { opacity: .92; } }
+@keyframes ct-darken { to { opacity: .96; } }
 /* 날아가는 전표: 벨을 누른 순간 출력기 자리(--fx · --fy · --fs)에서 떠올라 가운데로 확대되고, 끝없이 위로 올라간다 (아래로 긴 빈 종이 꼬리) */
-.ct-fly { position: absolute; left: 50%; top: 12%; transform-origin: 50% 0; transform: translate(-50%, 0); } /* 움직임 · 폭은 JS (contract.ts flyUp: 출력한 전표와 같은 폭) */
+.ct-fly { position: absolute; left: 0; top: 0; transform-origin: 0 0; } /* 움직임 · 폭은 JS (contract.ts flyUp: 출력한 전표 그대로, 그 자리 · 그 각도에서) */
 .ct-fly .ct-slip { border-bottom: 0; box-shadow: none; } /* 아래 종이(꼬리)와 끊김 없이 */
-.ct-tail { position: absolute; left: 50%; top: 0; transform-origin: 50% 0; transform: translate(-50%, 100vh); will-change: transform, opacity; border: 0; box-shadow: none; pointer-events: none; overflow: hidden; } /* 전표 아래로 화면 끝까지 곧게 이어지는 종이 */
-.ct-glow { position: absolute; inset: 0; background: var(--c-white); opacity: 0; pointer-events: none; } /* 빛에 물든다 (불투명도만) */
+.ct-tail { position: absolute; inset: 0; border: 0; box-shadow: none; pointer-events: none; overflow: hidden; clip-path: polygon(0 0, 0 0, 0 0); } /* 전표 밑변과 출력기 슬롯을 잇는 종이 (JS 가 clip-path 로 모양을 잡는다) */
+.ct-shine { position: absolute; inset: 0; background: var(--c-white); opacity: 0; pointer-events: none; } /* 빛에 물든다 (불투명도만) */
 .ct-pulse { position: absolute; left: 0; right: 0; top: 0; height: calc(100% + 180px); opacity: 0; pointer-events: none; will-change: transform, opacity; background: repeating-linear-gradient(to bottom, transparent 0 110px, var(--c-white) 150px, transparent 180px); } /* 빛 마디: 줄기를 타고 위로 (180px 마다 하나, JS 가 옮긴다) */
 .ct-defs { position: absolute; }
 /* 체인 · 회중시계: 캔버스 물리 (ui/chains.ts). 시계는 체인 끝점에 맞춰 JS 가 옮기고 돌린다 */
+.ct-chainfx { position: fixed; inset: 0; z-index: var(--z-banner); pointer-events: none; } /* 체인 · 회중시계: 화면 위 별도 층 (명부로 넘어간 뒤에도 그 위에서 끌려 올라가며 사라진다) */
 .ct-chains { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .ct-watch { position: absolute; left: 0; top: 0; width: 150px; transform: translate(-9999px, 0); will-change: transform; }
 .ct-watch svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.ct-hand { transform-box: fill-box; transform-origin: 50% 100%; animation: ct-tick 6s steps(12) infinite; }
+.ct-hand { transform-box: fill-box; transform-origin: 50% 100%; animation: ct-tick 6s linear infinite; } /* 끊김 없이 부드럽게 돈다 */
 .ct-au-lo { fill: var(--lp-au-lo); } /* 체인 고리 두 겹 (면): 어두운 금 아래 + 밝은 금 위 */
 .ct-au-hi { fill: var(--lp-au); }
-.ct-case { fill: var(--lp-au-lo); }
-.ct-rim { fill: none; stroke: var(--lp-au-lo); stroke-width: 7; }
-.ct-bow { fill: none; stroke: var(--lp-au-lo); stroke-width: 3.5; }
-.ct-enamel-o { fill: color-mix(in srgb, var(--lp-cream) 80%, var(--lp-au-lo)); } /* 법랑 문자판: 유일하게 크림이 면으로 허용되는 곳 */
+.ct-case { fill: var(--c-brand); } /* 시계 · 체인 = 런의 강조 호박색 */
+.ct-rim { fill: none; stroke: var(--c-brand); stroke-width: 7; }
+.ct-bow { fill: none; stroke: var(--c-brand); stroke-width: 3.5; }
+.ct-enamel-o { fill: color-mix(in srgb, var(--lp-cream) 82%, var(--c-brand)); } /* 법랑 문자판: 유일하게 크림이 면으로 허용되는 곳 */
 .ct-enamel { fill: var(--lp-cream); }
 .ct-tick { stroke: var(--lp-ink); stroke-width: 2; }
 .ct-hh { stroke: var(--lp-ink); stroke-width: 3.5; stroke-linecap: round; }
-.ct-mh { stroke: var(--lp-stamp); stroke-width: 2; stroke-linecap: round; }
+.ct-mh { fill: none; stroke: var(--lp-stamp); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; } /* 끝이 닻 모양 */
 .ct-pin { fill: var(--lp-ink); }
 @keyframes ct-tick { to { rotate: 360deg; } }
 .ct-beat { position: absolute; inset: 0; z-index: var(--z-raise); background: var(--lp-navy); opacity: 0; pointer-events: none; }
-.ct-seal.beat .ct-beat { animation: ct-beat .6s linear; }
+.ct-sealfx.beat .ct-beat { animation: ct-beat .6s linear; }
 @keyframes ct-beat { 6% { opacity: .92; } 18% { opacity: 0; } 38% { opacity: .7; } 52% { opacity: 0; } }
-.ct-load { position: absolute; left: 0; right: 0; bottom: 9%; margin: 0; text-align: center; font: 400 var(--fs-xl) var(--f-serif); letter-spacing: .16em; color: var(--lp-cw); animation: ct-fade .6s 3.4s both; }
+.ct-load { position: absolute; left: 0; right: 0; bottom: 9%; margin: 0; text-align: center; font: 400 var(--fs-xl) var(--f-serif); letter-spacing: .16em; color: var(--lp-cw); animation: ct-fade .6s calc(3.4s * var(--sc)) both; }
 .ct-load i { font-style: normal; animation: ct-dot 1.2s infinite; }
 .ct-load i:nth-of-type(2) { animation-delay: .2s; }
 .ct-load i:nth-of-type(3) { animation-delay: .4s; }
 @keyframes ct-fade { from { opacity: 0; } }
 @keyframes ct-dot { 0%, 20%, 100% { opacity: .2; } 50% { opacity: 1; } }
-.ct-seal.lift .ct-load { opacity: 0; transition: opacity .4s; }
-.ct-seal.quick .ct-dark { animation-duration: .7s; }
-.ct-seal.quick .ct-sky { animation-duration: .4s; animation-delay: .85s; }
-.ct-seal.quick .ct-load, .ct-seal.quick .ct-skip-k { display: none; }
+.ct-sealfx.lift .ct-load { opacity: 0; transition: opacity .4s; }
+.ct-sealfx.quick .ct-load, .ct-sealfx.quick .ct-skip-k { display: none; }
 .ct-skip-k { position: absolute; right: 16px; bottom: max(12px, env(safe-area-inset-bottom)); margin: 0; font-size: var(--fs-xs); color: color-mix(in srgb, var(--lp-cw) 60%, transparent); }
 /* 명부 · 지도는 게임 토큰 그대로. 계약의 흔적은 카본 영수 증서 칩 하나 (그늘이 걷히듯 어둠에서 밝아진다) */
 .nr.from-seal::after { content: ''; position: fixed; inset: 0; z-index: var(--z-banner); background: var(--lp-navy); pointer-events: none; animation: ct-unveil 1.1s ease-out forwards; }
@@ -5454,6 +5455,6 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-bell { --bs: 100px; --br: 8px; --bt: 0%; top: auto; bottom: calc(14px + env(safe-area-inset-bottom)); } /* 휴대폰: 아래 띠 오른쪽 끝 */
 }
 @media (prefers-reduced-motion: reduce) { /* 움직임 줄이기: 등장 · 나가기 · 떨림 없이 바로 놓이고, 그늘 연출은 ui/contract.ts 가 0.9초 뒤 바로 명부로 넘긴다 */
-  .ct-printer.run .ct-pmach, .ct-hand, .ct-glint, .ct-bell.on, .ct-bell.out, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-riders.in, .ct-riders.out, .ct-offsheet.in, .ct-offsheet.out, .ct.intro .ct-bp-scr, .ct-barview, .ct.outro *, .nr.from-seal::after { animation: none; }
+  .ct-printer.run .ct-pmach, .ct-hand, .ct-bell.on, .ct-bell.out, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-riders.in, .ct-riders.out, .ct-offsheet.in, .ct-offsheet.out, .ct.intro .ct-bp-scr, .ct-barview, .ct.outro *, .nr.from-seal::after { animation: none; }
   .ct-voice { transition: none; }
 }

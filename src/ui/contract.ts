@@ -469,90 +469,124 @@ function coverHtml() {
     <span class="ct-cv-k">의뢰 차림표</span>
   </section>`;
 }
-/** 벨을 누른 순간 전표가 있던 자리 (날아가는 전표가 거기서 떠올라 가운데로 확대된다) */
-let flyFrom: { x: number; y: number; w: number; ow: number; html: string } | null = null;
+/** 회중시계 (그늘): 케이스 · 테 · 고리 = 런의 강조 호박색, 법랑 문자판, 시침 + 끝이 닻 모양인 분침 (끊김 없이 돈다) */
+const WATCH_SVG = `<svg viewBox="0 0 140 150" aria-hidden="true">
+  <g transform="translate(10 0)">
+    <circle class="ct-bow" cx="60" cy="10" r="9"/>
+    <circle class="ct-case" cx="60" cy="84" r="60"/><circle class="ct-rim" cx="60" cy="84" r="56"/>
+    <circle class="ct-enamel-o" cx="60" cy="84" r="51"/><circle class="ct-enamel" cx="60" cy="84" r="41"/>
+    ${Array.from({ length: 12 }, (_, i) => { const a = (i * Math.PI) / 6, r1 = i % 3 ? 45 : 42; return `<line class="ct-tick" x1="${(60 + Math.sin(a) * r1).toFixed(1)}" y1="${(84 - Math.cos(a) * r1).toFixed(1)}" x2="${(60 + Math.sin(a) * 49).toFixed(1)}" y2="${(84 - Math.cos(a) * 49).toFixed(1)}"/>`; }).join('')}
+    <line class="ct-hh" x1="60" y1="84" x2="78" y2="72"/><g class="ct-hand"><path class="ct-mh" d="M60 84V41M51.5 46.5Q52.5 40.6 60 40Q67.5 40.6 68.5 46.5M49.4 44.2L51.5 46.5L54.4 45.6M70.6 44.2L68.5 46.5L65.6 45.6"/></g><circle class="ct-pin" cx="60" cy="84" r="4"/>
+  </g>
+</svg>`;
+/** 그늘 도중에 화면을 다시 그려야 할 때의 대체 화면 (보통은 보드 위에서 그대로 이어진다 — startSeal) */
 function sealHtml() {
-  // 출력한 전표 그대로 (같은 줄 · 같은 폭): 벨을 누른 순간 종이에 찍혀 있던 내용과 폭을 옮겨 온다
-  const f = flyFrom, ow = f?.ow || 204;
-  const from = f ? `${Math.round(f.x - innerWidth / 2)} ${Math.round(f.y - innerHeight * 0.12)} ${(f.w / ow).toFixed(3)}` : '0 0 1';
-  const body = f?.html || `${slipHtml()}<i class="ct-stampmark ok">승인</i>`;
-  return `<main class="ct ct-seal${CT.vet ? ' quick' : ''}" data-a="ct-skip" aria-label="그늘 — 누르면 넘깁니다">
-    <div class="ct-table" aria-hidden="true">${prop('ct_table', '')}</div><div class="ct-dark" aria-hidden="true"></div><div class="lp-grain" aria-hidden="true"></div>
-    <div class="ct-sky" aria-hidden="true"></div>
-    <i class="ct-tail lp-carbon" aria-hidden="true"><i class="ct-glow"></i><i class="ct-pulse"></i></i>
-    <div class="ct-fly" data-from="${from}" style="width:${ow}px" aria-hidden="true"><div class="ct-slip lp-carbon">${body}</div><i class="ct-glow"></i></div>
-    <i class="ct-glint" aria-hidden="true"></i>
-    <canvas class="ct-chains" aria-hidden="true"></canvas>
-    <div class="ct-watch" aria-hidden="true">
-      <svg viewBox="0 0 140 150" aria-hidden="true">
-        <g transform="translate(10 0)">
-          <circle class="ct-bow" cx="60" cy="10" r="9"/>
-          <circle class="ct-case" cx="60" cy="84" r="60"/><circle class="ct-rim" cx="60" cy="84" r="56"/>
-          <circle class="ct-enamel-o" cx="60" cy="84" r="51"/><circle class="ct-enamel" cx="60" cy="84" r="41"/>
-          ${Array.from({ length: 12 }, (_, i) => { const a = (i * Math.PI) / 6, r1 = i % 3 ? 45 : 42; return `<line class="ct-tick" x1="${(60 + Math.sin(a) * r1).toFixed(1)}" y1="${(84 - Math.cos(a) * r1).toFixed(1)}" x2="${(60 + Math.sin(a) * 49).toFixed(1)}" y2="${(84 - Math.cos(a) * 49).toFixed(1)}"/>`; }).join('')}
-          <line class="ct-hh" x1="60" y1="84" x2="78" y2="72"/><g class="ct-hand"><line class="ct-mh" x1="60" y1="84" x2="60" y2="40"/></g><circle class="ct-pin" cx="60" cy="84" r="4"/>
-        </g>
-      </svg>
-    </div>
-    <canvas class="ct-chains front" aria-hidden="true"></canvas>
+  return `<main class="ct ct-seal" data-a="ct-skip" aria-label="그늘 — 누르면 넘깁니다"></main>`;
+}
+/** 지금 그늘의 체인 장면 (명부로 넘어간 뒤에도 씬 위에서 끌려 올라가며 사라진다) */
+let sealChains: { pulse(): void; lift(): void } | null = null;
+
+/** 벨 → 그늘: 화면을 갈아 끼우지 않고 보드 위에서 이어진다. 메뉴판 · 도면 · 출력기는 그 자리에 있고 램프가 서서히 꺼지며 어둠에 잠긴다.
+ *  출력한 전표(같은 내용 · 같은 폭 · 같은 종이)가 그 자리 · 그 각도에서 떠오르고, 아래 종이는 출력기 슬롯에서 계속 끌려 나온다.
+ *  연출 층(.ct-sealfx)은 램프 빛 층 아래에 끼워 넣어, 전표가 램프 빛 속에서 떠오른다. 체인 · 회중시계는 화면 위 별도 층(.ct-chainfx)에 */
+function startSeal(ct: HTMLElement) {
+  const slip = ct.querySelector<HTMLElement>('.ct-slip');
+  CT.step = 'seal';
+  if (reduced() || !slip) { later(reduced() ? 600 : 0, finish); return; }
+  const SC = CT.vet ? 0.8 : 1; // 두 번째부터는 같은 순서를 0.8배 시간으로 (약 4.5초) — 의식은 처음에만 길다
+  const r = slip.getBoundingClientRect(), ow = slip.offsetWidth, oh = slip.offsetHeight, rot = (CT.rot.pr * Math.PI) / 180;
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const geo: FlyGeo = { top: { x: cx + (Math.sin(rot) * oh) / 2, y: cy - (Math.cos(rot) * oh) / 2 }, slot: { x: cx - (Math.sin(rot) * oh) / 2, y: cy + (Math.cos(rot) * oh) / 2 }, rot, ow, oh };
+  ct.style.setProperty('--sc', String(SC));
+  ct.querySelector('.ct-light')?.insertAdjacentHTML('beforebegin', `<div class="ct-sealfx${CT.vet ? ' quick' : ''}" data-a="ct-skip" role="button" aria-label="그늘 — 누르면 넘깁니다">
+    <div class="ct-dark" aria-hidden="true"></div><div class="ct-sky" aria-hidden="true"></div>
+    <i class="ct-tail lp-carbon" aria-hidden="true"><i class="ct-shine"></i><i class="ct-pulse"></i></i>
+    <div class="ct-fly" style="width:${ow}px" aria-hidden="true"><div class="ct-slip lp-carbon">${slipRows().join('')}<i class="ct-stampmark ok">승인</i></div><i class="ct-shine"></i></div>
     <p class="ct-load"><span>계약 기물 명부를 펼치는 중</span><i>.</i><i>.</i><i>.</i></p>
     <p class="ct-skip-k">누르면 넘깁니다</p>
     <div class="ct-beat" aria-hidden="true"></div>
-  </main>`;
+  </div>`);
+  const fx = ct.querySelector<HTMLElement>('.ct-sealfx');
+  if (!fx) { finish(); return; }
+  slip.style.visibility = 'hidden'; // 출력기 위의 전표가 그대로 떠오른다 (같은 자리에 겹쳐 놓은 것과 바꿔치기)
+  ct.classList.add('sealing');
+  const sky = fx.querySelector<HTMLElement>('.ct-sky');
+  if (sky) galaxySky(sky);
+  // 체인 · 회중시계 (ui/chains.ts): 화면 위 별도 층. 명부로 넘어간 뒤에도 끌려 올라가며 사라진 뒤 걷힌다
+  document.querySelector('.ct-chainfx')?.remove();
+  const cf = document.createElement('div');
+  cf.className = 'ct-chainfx';
+  cf.setAttribute('aria-hidden', 'true');
+  cf.innerHTML = `<canvas class="ct-chains"></canvas><div class="ct-watch">${WATCH_SVG}</div><canvas class="ct-chains front"></canvas>`;
+  document.body.appendChild(cf);
+  const k = (x: number) => x * SC;
+  sealChains = chainScene(cf.querySelector('canvas.ct-chains:not(.front)')!, cf.querySelector('canvas.ct-chains.front'), cf.querySelector('.ct-watch'),
+    { win: [k(2.65), k(3.5)], wout: [k(4.9), k(5.7)], watchIn: k(2.5), watchOut: k(5.3) }, () => cf.remove()); // 전표가 빠져나간 뒤 회중시계가 먼저 → 체인
+  const fly = fx.querySelector<HTMLElement>('.ct-fly'), tail = fx.querySelector<HTMLElement>('.ct-tail');
+  if (fly && tail) flyUp(fly, tail, geo, SC, () => sfx('despair', { pitch: 1.4 }));
+  sfx('paper');
+  // 0 전표가 그 자리에서 떠올라 클로즈업 (램프는 서서히 꺼지고 바는 어둠에) → 0.95 위로 끌려 올라가 화면 밖으로 → 1.3 카메라가 뒤늦게 따라붙으며 줌 아웃 (한 줄기 빛)
+  //   → 1.8 은하 하늘 → 2.1 미친 듯이 가속해 빠져나간다 → 2.5 회중시계 · 2.65~3.5 체인 → 4.1 심장 박동 → 4.9~5.7 끌려 올라가기 시작 → 5.65 명부 (체인은 그 위에서 마저 올라간다)
+  const t = [2500, 4100, 5000, 5650].map(k); // 명부는 체인이 끌려 올라가는 도중에 (체인은 그 위에서 마저 올라간다)
+  later(t[0], () => sfx('chain'));
+  later(t[1], () => { fx.classList.add('beat'); sealChains?.pulse(); sfx('heart'); sfx('despair'); });
+  later(t[2], () => { fx.classList.add('lift'); sfx('chain'); });
+  later(t[3], finish);
 }
 
-/** 날아가는 전표 (카메라 연출). 출력한 전표 그대로 (같은 줄 · 같은 폭):
- *  ① 클로즈업: 출력기 자리에서 떠올라 가운데로 확대된다.
- *  ② 종이가 위로 끝없이 끌려 올라간다 — 느리게 시작해 점점 빨라져 전표가 화면 위로 완전히 빠져나간다 (아래 종이는 계속 지나간다).
- *  ③ 카메라가 뒤늦게 따라붙으며 빠르게 줌 아웃 → 전표가 위에서 작게 다시 들어오고, 종이는 얇은 빛줄기가 된다. 멀어진 만큼 느리게 올라간다.
- *  ④ 마지막에 미친 듯이 가속해 화면 위로 빠져나간다. 그동안에도 줌 아웃이 이어져 전표 · 종이가 긴 선처럼 가늘어진다 → 빠져나가는 자리에서 섬광 (onFlash).
- *  꼬리는 매 프레임 전표 밑변에서 화면 아래 끝까지 같은 너비로 잇는다 (곧게 끊김 없이).
- *  매 프레임 시각의 함수로 한 번에 계산한다 (프레임이 밀려도 같은 곡선). 단골은 같은 연출을 0.48배 시간으로 */
-function flyUp(fly: HTMLElement, tail: HTMLElement, glint: HTMLElement | null, quick: boolean, onFlash: () => void) {
-  const [fx, fy, fs] = (fly.dataset.from || '0 0 1').split(' ').map(Number);
-  const H = innerHeight, ow = fly.offsetWidth, top = fly.offsetTop, h = fly.offsetHeight;
-  const WC = Math.min(494, innerWidth * 0.8), WMIN = 10, WLINE = 3; // 화면에 보이는 폭: 클로즈업 · 줌 아웃 뒤 · 마지막 선
-  const SC = quick ? 0.48 : 1, S0 = WC / ow;
-  const IN = 0.75, RISE = 0.8, ZOOM = 1.2, BURST = 2.0, LATE = 2.75; // 시각 (초, 단골은 × SC)
-  const glows = [fly, tail].map((e) => e.querySelector<HTMLElement>('.ct-glow')), pulse = tail.querySelector<HTMLElement>('.ct-pulse');
-  tail.style.width = `${ow}px`;
-  tail.style.height = `${H * 3}px`; // 전표가 화면 위로 멀리 나가도 꼬리가 화면 아래 끝까지 닿게
+interface FlyGeo { top: { x: number; y: number }; slot: { x: number; y: number }; rot: number; ow: number; oh: number }
+/** 날아가는 전표 (카메라 연출):
+ *  ① 클로즈업: 출력기 위 그 자리 · 그 각도에서 떠올라 똑바로 서며 가운데로 확대된다 (슬롯 위에 다 들어오는 만큼만).
+ *  ② 종이가 위로 끌려 올라간다 — 느리게 시작해 점점 빨라져 전표가 화면 위로 완전히 빠져나간다. 아래 종이는 출력기 슬롯에서 계속 끌려 나온다.
+ *  ③ 카메라가 뒤늦게 따라붙으며 빠르게 줌 아웃 (처음 빠르게, 점점 느리게) → 전표가 위에서 작게 다시 들어오고 종이는 얇은 빛줄기가 된다. 출력기는 화면 아래로 멀어진다.
+ *  ④ 멀어진 만큼 느리게 올라가다, 마지막에 미친 듯이 가속해 화면 위로 빠져나간다. 그동안에도 줌 아웃이 이어져 긴 선이 되고, 종이 끝까지 다 빠져나간다.
+ *  종이(꼬리)는 전표 밑변과 슬롯을 잇는 사각형 (clip-path). 매 프레임 시각의 함수로 계산한다 (프레임이 밀려도 같은 곡선) */
+function flyUp(fly: HTMLElement, tail: HTMLElement, g: FlyGeo, SC: number, onExit: () => void) {
+  const W = innerWidth, H = innerHeight, top0 = H * 0.12;
+  const S0 = Math.max(1, Math.min(Math.min(494, W * 0.8) / g.ow, (g.slot.y - top0 - 36) / g.oh)); // 클로즈업 배율
+  const WC = g.ow * S0, WMIN = 10, WLINE = 3; // 화면에 보이는 폭: 클로즈업 · 줌 아웃 뒤 · 마지막 선
+  const IN = 0.9, RISE = 0.95, ZOOM = 1.3, BURST = 2.1; // 시각 (초, × SC)
+  const shines = [fly, tail].map((e) => e.querySelector<HTMLElement>('.ct-shine')), pulse = tail.querySelector<HTMLElement>('.ct-pulse');
   const smooth = (x: number) => { const c = Math.min(1, Math.max(0, x)); return c * c * (3 - 2 * c); };
-  /** ② 종이가 끌려 올라간 거리 (px): 0.3초 동안 점점 빨라져 2600px/초, 그 뒤로도 조금씩 더 빨라진다 */
+  const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
+  /** ② 종이가 끌려 올라간 거리 (전표 기준 px): 0.3초 동안 점점 빨라져 2600px/초, 그 뒤로도 조금씩 더 빨라진다 */
   const pulled = (t: number) => { const u = t - RISE; if (u <= 0) return 0; if (u < 0.3) return (2600 * u ** 3) / 0.27; const w = u - 0.3; return 260 + 2600 * w + 800 * w * w; };
   /** ③ 줌 아웃 뒤 전표의 화면 높이: 위에서 내려와 자리를 잡고, 멀어진 만큼 느리게 올라간다 */
   const after = (u: number) => H * (0.32 - 0.155 * u - 0.035 * u * u);
   /** ④ 마지막 가속: 지수로 (0.075초마다 e배) */
   const burst = (t: number) => (t < BURST ? 0 : 2.2 * (Math.exp((t - BURST) / 0.075) - 1));
-  const y0 = top - S0 * pulled(ZOOM); // 줌 아웃이 시작될 때 전표 자리 (화면 위 밖)
-  let flash = 0;
+  const y0 = top0 - S0 * pulled(ZOOM);
+  const rotp = (r: number, a: number, b: number) => [a * Math.cos(r) - b * Math.sin(r), a * Math.sin(r) + b * Math.cos(r)];
+  let exited = false;
   const t0 = performance.now();
   const frame = (now: number) => {
     if (!fly.isConnected) return;
     const t = (now - t0) / 1000 / SC;
-    let x = 0, hy = top, w = WC;
-    if (t < IN) { const k = t / IN, e = k * k * (3 - 2 * k); x = fx * (1 - e); hy = top + fy * (1 - e); w = ow * (fs + (S0 - fs) * e); } // ① 클로즈업
-    else if (t < ZOOM) hy = top - S0 * pulled(t); // ② 카메라는 그대로, 종이만 위로
-    else { // ③④ 줌 아웃 (④ 동안 더 가늘게)
+    let px = W / 2, hy = top0, r = 0, w = WC;
+    if (t < IN) { const e = smooth(t / IN); px = lerp(g.top.x, W / 2, e); hy = lerp(g.top.y, top0, e); r = g.rot * (1 - e); w = g.ow * lerp(1, S0, e); } // ①
+    else if (t < ZOOM) hy = top0 - S0 * pulled(t); // ② 카메라는 그대로, 종이만 위로
+    else { // ③④
       const u = t - ZOOM, floor = t < BURST ? WMIN : WLINE + (WMIN - WLINE) * Math.exp(-(t - BURST) / 0.12);
       w = floor + (WC - WMIN) * Math.exp(-u / 0.17);
       hy = after(u) + (y0 - after(0)) * Math.exp(-u / 0.13) - burst(t);
     }
-    if (t >= RISE) fly.style.willChange = 'transform, opacity'; // 클로즈업까지는 매 프레임 다시 그려 글자가 또렷하게 (확대한 그림을 늘리면 흐려진다)
-    if (!flash && (t > BURST && hy < H * 0.06 || t > LATE)) { // 빠져나가는 자리에서 섬광
-      flash = t;
-      if (glint) { glint.style.top = `${Math.max(16, Math.min(H * 0.06, hy))}px`; glint.classList.add('on'); }
-      onFlash();
-    }
-    const z = w / ow, g = Math.log(WC / w) / Math.log(WC / WMIN), glow = 0.62 * smooth((g - 0.35) / 0.55), op = flash ? 1 - smooth((t - flash) / 0.3) : 1;
-    fly.style.transform = `translate(calc(-50% + ${x}px), ${hy - top}px) scale(${z})`;
-    tail.style.transform = `translate(calc(-50% + ${x}px), ${Math.max(-H, hy + h * z - 1)}px) scale(${z}, 1)`;
-    fly.style.opacity = tail.style.opacity = String(op);
-    glows.forEach((e) => { if (e) e.style.opacity = String(glow); });
-    if (pulse) { pulse.style.opacity = String(smooth((g - 0.5) / 0.4)); pulse.style.transform = `translateY(${-((t * 720) % 180)}px)`; } // 빛 마디가 줄기를 타고 올라간다
-    if (!flash || t < flash + 0.32) requestAnimationFrame(frame);
+    const z = w / g.ow;
+    // 슬롯 (종이가 끌려 나오는 곳): 카메라가 따라 올라가며 물러나면 화면 아래로 멀어지고 · 마지막에는 종이 끝이 전표를 따라 빠져나간다
+    let sx = g.slot.x, sy = g.slot.y, sw = g.ow, sr = g.rot;
+    if (t >= ZOOM) { const k = smooth((t - ZOOM) / 0.45); sx = lerp(g.slot.x, W / 2, k); sy = lerp(g.slot.y, H * 1.8, k * k); sw = lerp(g.ow, w, k); sr = g.rot * (1 - k); }
+    sy -= burst(t);
+    const [ax, ay] = rotp(r, -w / 2, g.oh * z), [bx, by] = rotp(r, w / 2, g.oh * z), [cx, cy] = rotp(sr, sw / 2, 0);
+    fly.style.transform = `translate(${px}px, ${hy}px) rotate(${r}rad) scale(${z}) translate(-50%, 0)`;
+    tail.style.clipPath = `polygon(${px + ax}px ${hy + ay}px, ${px + bx}px ${hy + by}px, ${sx + cx}px ${sy + cy}px, ${sx - cx}px ${sy - cy}px)`;
+    if (t >= RISE) fly.style.willChange = 'transform'; // 클로즈업까지는 매 프레임 다시 그려 글자가 또렷하게 (확대한 그림을 늘리면 흐려진다)
+    const gl = Math.log(WC / w) / Math.log(WC / WMIN);
+    shines.forEach((e) => { if (e) e.style.opacity = String(0.62 * smooth((gl - 0.35) / 0.55)); }); // 빛에 물든다
+    if (pulse) { pulse.style.opacity = String(smooth((gl - 0.5) / 0.4)); pulse.style.transform = `translateY(${-((t * 720) % 180)}px)`; } // 빛 마디가 줄기를 타고 올라간다
+    if (!exited && t > BURST && hy + g.oh * z < 0) { exited = true; onExit(); }
+    if (sy > -20) requestAnimationFrame(frame);
+    else fly.style.display = tail.style.display = 'none'; // 종이 끝까지 다 빠져나갔다
   };
-  frame(t0); // 첫 그림부터 출력기 자리에서 (확대된 모습이 한 번 비치지 않게)
+  frame(t0); // 첫 그림은 출력기 위 그 자리 그대로
 }
 
 /** 그늘 장면의 은하 하늘: 에란테스 갤럭시 테마의 바탕색 + 별빛 층과 같은 별무리 (지금 테마 · 연출 설정과 상관없이) */
@@ -649,14 +683,13 @@ function actOn(a: string, v: string): boolean {
       clear();
       CT.stamp = 'ok'; CT.last = ''; say('ok');
       sfx('bell'); sfx('knock', { delay: 0.25, pitch: 0.8 });
-      later(reduced() ? 400 : CT.vet ? 900 : 1300, () => {
+      const go = () => {
         if (CT.stamp !== 'ok') return;
-        const el = document.querySelector<HTMLElement>('.ct-slip'), sl = el?.getBoundingClientRect();
-        let html = el?.innerHTML || '';
-        if (html && !html.includes('ct-stampmark')) html += '<i class="ct-stampmark ok">승인</i>';
-        flyFrom = el && sl && sl.width ? { x: sl.left + sl.width / 2, y: Math.max(0, sl.top), w: sl.width, ow: el.offsetWidth, html } : null;
-        CT.step = 'seal'; hooks.render();
-      });
+        if (paper.run) { later(120, go); return; } // 전표를 다 찍은 뒤에 (되감는 도중이면 반쯤 찍힌 종이가 날아간다)
+        const ct = document.querySelector<HTMLElement>('main.ct.ct-top');
+        if (ct) startSeal(ct); else { CT.step = 'seal'; finish(); }
+      };
+      later(reduced() ? 400 : CT.vet ? 900 : 1300, go);
       return true;
     }
     case 'ct-cancel': { // 의뢰 취소: '취소' 도장 → 전표가 바깥으로 미끄러져 나가고 고른 것이 비워진다 (테이블은 그대로)
@@ -708,6 +741,8 @@ function blink() {
 /** 그늘 연출 끝 → 명부 */
 function finish() {
   clear();
+  sealChains?.lift(); // 체인 · 시계는 다음 화면 위에서 마저 끌려 올라간다
+  sealChains = null;
   const s = signedContract();
   if (!s) { contractBack(); hooks.render(); return; }
   CT.fromSeal = true;
@@ -851,24 +886,6 @@ export function contractMount(root: HTMLElement) {
     return;
   }
   if (CT.step !== 'seal') return;
-  clear();
-  if (reduced()) { later(900, finish); return; }
-  // 처음: 0 전표(원본 그대로)가 출력기 자리에서 떠올라 가운데로 확대 → 0.8 위로 끌려 올라가 1.15 화면 밖으로 → 1.2 카메라가 뒤늦게 따라붙으며 빠르게 줌 아웃 (한 줄기 빛, 느리게 올라간다) → 2.0 미친 듯이 가속해 빠져나가며 섬광 (flyUp)
-  //   → 1.8 은하 하늘 → 2.3 빛 줄기가 사라지는 자리에서 섬광 → 2.5~3.4 체인 · 회중시계가 살랑이며 내려온다 → 4.1 심장 박동 → 4.9~5.7 끌려 올라간다 → 6.4 명부 (카드)
-  // 두 번째부터 (CSS .quick): 같은 순서를 3.1초로 압축 — 의식은 처음에만 길다
-  const t = CT.vet ? [1200, 2000, 2500, 3100] : [2500, 4100, 5300, 6400];
-  const sky = ct.querySelector<HTMLElement>('.ct-sky');
-  if (sky) galaxySky(sky);
-  // 체인 · 회중시계는 물리로 (ui/chains.ts): 체인마다 무작위 순서 · 시각에 나타나고, 무작위 시각에 끌려 올라간다
-  const cv = ct.querySelector<HTMLCanvasElement>('canvas.ct-chains:not(.front)');
-  const sc = cv ? chainScene(cv, ct.querySelector<HTMLCanvasElement>('canvas.ct-chains.front'), ct.querySelector<HTMLElement>('.ct-watch'), CT.vet
-    ? { win: [1.27, 1.68], wout: [2.3, 2.75], watchIn: 1.2, watchOut: 2.5 }
-    : { win: [2.65, 3.5], wout: [4.9, 5.7], watchIn: 2.5, watchOut: 5.3 }) : null; // 섬광 → 회중시계가 먼저 → 체인
-  const fly = ct.querySelector<HTMLElement>('.ct-fly'), tail = ct.querySelector<HTMLElement>('.ct-tail');
-  if (fly && tail) flyUp(fly, tail, ct.querySelector<HTMLElement>('.ct-glint'), CT.vet, () => sfx('despair', { pitch: 1.4 }));
-  sfx('paper');
-  later(t[0], () => sfx('chain'));
-  later(t[1], () => { ct.classList.add('beat'); sc?.pulse(); sfx('heart'); sfx('despair'); });
-  later(t[2], () => { ct.classList.add('lift'); sfx('chain'); });
-  later(t[3], finish);
+  clear(); // 그늘 도중에 다시 그려졌다 (대체 화면) → 바로 명부로
+  later(300, finish);
 }
