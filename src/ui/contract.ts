@@ -187,7 +187,9 @@ function rows(): Row[] {
 /** 전표 줄 HTML (한 줄씩: 출력기가 지금 종이와 줄 단위로 비교한다) */
 const slipRows = () => rows().map((x) => x.k === 'div' ? '<i class="ct-r div" aria-hidden="true"></i>'
   : `<div class="ct-r ${x.k || ''}"><span>${esc(x.l)}</span>${x.r ? `<span class="f-num">${esc(x.r)}</span>` : ''}</div>`);
-const slipHtml = () => slipRows().join('');
+/** 말려 들어가는 끝단의 그늘 (슬롯 자리에 머문다 · feedSlip 이 종이와 반대로 움직인다) */
+const CURL = '<i class="ct-curl" aria-hidden="true"></i>';
+const slipHtml = () => slipRows().join('') + CURL;
 
 // ───────── 출력기: 종이는 재활용된다. 줄이 바뀌면 바뀐 첫 줄이 인쇄 머리(슬롯)에 닿을 때까지 종이를 거꾸로 빨아들이고, 그 자리부터 새로 찍으며 밀어낸다
 /** 지금 종이에 찍혀 있는 줄 · 움직이는 중이면 그 기록 (연타하면 지금 위치에서 이어받는다) · 오래된 연쇄를 끊는 표 */
@@ -210,10 +212,11 @@ function feedSlip(ct: HTMLElement, done: () => void) {
   if (!slip) return;
   const same = want.length === paper.rows.length && want.every((h, i) => h === paper.rows[i]);
   if (CT.stamp || reduced() || (same && off0 <= 0)) { paper.rows = want; done(); return; } // 도장은 종이 위에 찍는 것 (출력기가 아니다)
-  const html = (rs: string[]) => { slip.innerHTML = rs.join(''); slip.classList.toggle('empty', !rs.length); };
-  const at = (y: number) => { slip.style.translate = y ? `0 ${y}px` : ''; };
+  const html = (rs: string[]) => { slip.innerHTML = rs.join('') + CURL; slip.classList.toggle('empty', !rs.length); };
+  const curl = () => slip.querySelector<HTMLElement>('.ct-curl');
+  const at = (y: number) => { slip.style.translate = y ? `0 ${y}px` : ''; const c = curl(); if (c) c.style.translate = y ? `0 ${-y}px` : ''; };
   /** i 번째 줄의 윗변 (줄 끝 = 마지막 줄 아래, 아래 여백 앞) */
-  const topOf = (i: number) => { const el = slip.children[i] as HTMLElement | undefined; return el ? el.offsetTop : slip.offsetHeight - parseFloat(getComputedStyle(slip).paddingBottom); };
+  const topOf = (i: number) => { const el = slip.querySelectorAll<HTMLElement>(':scope > .ct-r')[i]; return el ? el.offsetTop : slip.offsetHeight - parseFloat(getComputedStyle(slip).paddingBottom); };
   const go = (from: number, to: number, back: boolean, then: () => void) => {
     const dist = Math.abs(to - from);
     if (dist < 1) { at(to); then(); return; }
@@ -223,7 +226,9 @@ function feedSlip(ct: HTMLElement, done: () => void) {
     pr?.classList.add('run');
     const ticks = Math.min(14, Math.max(1, Math.round(ms / 110)));
     for (let i = 0; i < ticks; i++) sfx('print', { delay: i * ms / ticks / 1000, pitch: back ? 0.72 + (i % 2) * 0.03 : 1 + (i % 2) * 0.04 });
-    slip.animate([{ translate: `0 ${from}px` }, { translate: `0 ${to}px` }], { duration: ms, easing: steps ? `steps(${steps}, end)` : 'linear' }).onfinish = () => {
+    const tm = { duration: ms, easing: steps ? `steps(${steps}, end)` : 'linear' };
+    curl()?.animate([{ translate: `0 ${-from}px` }, { translate: `0 ${-to}px` }], tm); // 끝단 그늘은 슬롯 자리에 머문다
+    slip.animate([{ translate: `0 ${from}px` }, { translate: `0 ${to}px` }], tm).onfinish = () => {
       if (tok !== paper.token) return;
       paper.run = null; pr?.classList.remove('run'); then();
     };
