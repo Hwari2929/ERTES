@@ -486,33 +486,35 @@ function sealHtml() {
 /** 지금 그늘의 체인 장면 (명부로 넘어간 뒤에도 씬 위에서 끌려 올라가며 사라진다) */
 let sealChains: { pulse(): void; lift(): void } | null = null;
 
-/** 벨 → 그늘: 화면을 갈아 끼우지 않고 보드 위에서 이어진다. 메뉴판 · 도면 · 출력기는 그 자리에 있고 램프가 서서히 꺼지며 어둠에 잠긴다.
- *  출력한 전표(같은 내용 · 같은 폭 · 같은 종이)가 그 자리 · 그 각도에서 떠오르고, 아래 종이는 출력기 슬롯에서 계속 끌려 나온다.
- *  연출 층(.ct-sealfx)은 램프 빛 층 아래에 끼워 넣어, 전표가 램프 빛 속에서 떠오른다. 체인 · 회중시계는 화면 위 별도 층(.ct-chainfx)에 */
+/** 벨 → 그늘: 화면을 갈아 끼우지 않고 보드 위에서 이어진다 (카메라 연출).
+ *  보드(main.ct) 한 장을 세계로 삼아 카메라처럼 움직인다: 출력기 쪽으로 다가가 전표를 똑바로 세우고 (밀어 들어감),
+ *  종이는 출력기 슬롯에서 곧게 끌려 나와 위로 빠져나가고, 카메라가 뒤늦게 따라 올라가며 물러난다 (줌 아웃).
+ *  그동안 종이 말고는 모두(메뉴판 · 도면 · 출력기 몸체 · 램프 빛) 서서히 옅어져 뒤의 어둠 → 은하 하늘(.ct-sealbg, body 맨 뒤)이 드러난다.
+ *  체인 · 회중시계는 화면 위 별도 층(.ct-chainfx) — 명부로 넘어간 뒤에도 그 위에서 끌려 올라가며 사라진다 */
 function startSeal(ct: HTMLElement) {
-  const slip = ct.querySelector<HTMLElement>('.ct-slip');
+  const slip = ct.querySelector<HTMLElement>('.ct-slip'), wrap = slip?.closest<HTMLElement>('.ct-slipwrap');
   CT.step = 'seal';
-  if (reduced() || !slip) { later(reduced() ? 600 : 0, finish); return; }
+  if (reduced() || !slip || !wrap) { later(reduced() ? 600 : 0, finish); return; }
   const SC = CT.vet ? 0.8 : 1; // 두 번째부터는 같은 순서를 0.8배 시간으로 (약 4.5초) — 의식은 처음에만 길다
   const r = slip.getBoundingClientRect(), ow = slip.offsetWidth, oh = slip.offsetHeight, rot = (CT.rot.pr * Math.PI) / 180;
   const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-  const geo: FlyGeo = { top: { x: cx + (Math.sin(rot) * oh) / 2, y: cy - (Math.cos(rot) * oh) / 2 }, slot: { x: cx - (Math.sin(rot) * oh) / 2, y: cy + (Math.cos(rot) * oh) / 2 }, rot, ow, oh };
+  const geo: SealGeo = { slot: { x: cx - (Math.sin(rot) * oh) / 2, y: cy + (Math.cos(rot) * oh) / 2 }, rot, ow, oh };
   ct.style.setProperty('--sc', String(SC));
-  ct.querySelector('.ct-light')?.insertAdjacentHTML('beforebegin', `<div class="ct-sealfx${CT.vet ? ' quick' : ''}" data-a="ct-skip" role="button" aria-label="그늘 — 누르면 넘깁니다">
-    <div class="ct-dark" aria-hidden="true"></div><div class="ct-sky" aria-hidden="true"></div>
-    <i class="ct-tail lp-carbon" aria-hidden="true"><i class="ct-shine"></i><i class="ct-pulse"></i></i>
-    <div class="ct-fly" style="width:${ow}px" aria-hidden="true"><div class="ct-slip lp-carbon">${slipRows().join('')}<i class="ct-stampmark ok">승인</i></div><i class="ct-shine"></i></div>
-    <p class="ct-load"><span>계약 기물 명부를 펼치는 중</span><i>.</i><i>.</i><i>.</i></p>
-    <p class="ct-skip-k">누르면 넘깁니다</p>
-    <div class="ct-beat" aria-hidden="true"></div>
-  </div>`);
-  const fx = ct.querySelector<HTMLElement>('.ct-sealfx');
-  if (!fx) { finish(); return; }
-  slip.style.visibility = 'hidden'; // 출력기 위의 전표가 그대로 떠오른다 (같은 자리에 겹쳐 놓은 것과 바꿔치기)
-  ct.classList.add('sealing');
-  const sky = fx.querySelector<HTMLElement>('.ct-sky');
+  // 보드(main.ct) 자체가 세계: 다시 그리지도 옮겨 담지도 않으니 종이 · 각도 · 체크 표시 · 조명이 그대로다. 뒤의 어둠 · 하늘과 맨 위 안내 층은 보드 밖(body)에
+  document.querySelectorAll('.ct-sealbg, .ct-sealtop').forEach((el) => el.remove());
+  document.body.insertAdjacentHTML('afterbegin', '<div class="ct-sealbg" aria-hidden="true"><div class="ct-sky"></div></div>');
+  document.body.insertAdjacentHTML('beforeend', `<div class="ct-sealtop${CT.vet ? ' quick' : ''}" data-a="ct-skip" role="button" aria-label="그늘 — 누르면 넘깁니다" style="--sc:${SC}">
+    <p class="ct-load"><span>계약 기물 명부를 펼치는 중</span><i>.</i><i>.</i><i>.</i></p><p class="ct-skip-k">누르면 넘깁니다</p></div>`);
+  const world = ct;
+  document.querySelector('.ct-sealtop')?.addEventListener('click', () => { if (CT.step === 'seal') finish(); }); // 앱 밖(body) 층이라 누름을 직접 받는다
+  // 슬롯 아래로 이어진 빈 종이 (전표와 함께 끌려 나온다) · 빛에 물드는 층
+  wrap.insertAdjacentHTML('beforeend', '<i class="ct-feed lp-carbon" aria-hidden="true"><i class="ct-shine"></i></i>');
+  slip.insertAdjacentHTML('beforeend', '<i class="ct-shine" aria-hidden="true"></i>');
+  ct.classList.add('sealing', 'seal-0');
+  void ct.offsetWidth;
+  ct.classList.remove('seal-0'); // 둘레 테이블은 보이는 채로 시작해 함께 어둠에 잠긴다
+  const sky = document.querySelector<HTMLElement>('.ct-sealbg .ct-sky');
   if (sky) galaxySky(sky);
-  // 체인 · 회중시계 (ui/chains.ts): 화면 위 별도 층. 명부로 넘어간 뒤에도 끌려 올라가며 사라진 뒤 걷힌다
   document.querySelector('.ct-chainfx')?.remove();
   const cf = document.createElement('div');
   cf.className = 'ct-chainfx';
@@ -521,72 +523,72 @@ function startSeal(ct: HTMLElement) {
   document.body.appendChild(cf);
   const k = (x: number) => x * SC;
   sealChains = chainScene(cf.querySelector('canvas.ct-chains:not(.front)')!, cf.querySelector('canvas.ct-chains.front'), cf.querySelector('.ct-watch'),
-    { win: [k(2.65), k(3.5)], wout: [k(4.9), k(5.7)], watchIn: k(2.5), watchOut: k(5.3) }, () => cf.remove()); // 전표가 빠져나간 뒤 회중시계가 먼저 → 체인
-  const fly = fx.querySelector<HTMLElement>('.ct-fly'), tail = fx.querySelector<HTMLElement>('.ct-tail');
-  if (fly && tail) flyUp(fly, tail, geo, SC, () => sfx('despair', { pitch: 1.4 }));
+    { win: [k(2.65), k(3.5)], wout: [k(4.9), k(5.7)], watchIn: k(2.5), watchOut: k(5.3) }, () => cf.remove()); // 종이가 빠져나간 뒤 회중시계가 먼저 → 체인
+  const feed = wrap.querySelector<HTMLElement>('.ct-feed');
+  if (feed) camera(world, slip, feed, geo, SC, () => sfx('despair', { pitch: 1.4 }));
   sfx('paper');
-  // 0 전표가 그 자리에서 떠올라 클로즈업 (램프는 서서히 꺼지고 바는 어둠에) → 0.95 위로 끌려 올라가 화면 밖으로 → 1.3 카메라가 뒤늦게 따라붙으며 줌 아웃 (한 줄기 빛)
-  //   → 1.8 은하 하늘 → 2.1 미친 듯이 가속해 빠져나간다 → 2.5 회중시계 · 2.65~3.5 체인 → 4.1 심장 박동 → 4.9~5.7 끌려 올라가기 시작 → 5.65 명부 (체인은 그 위에서 마저 올라간다)
-  const t = [2500, 4100, 5000, 5650].map(k); // 명부는 체인이 끌려 올라가는 도중에 (체인은 그 위에서 마저 올라간다)
+  // 0 출력기 쪽으로 다가가 전표를 세운다 (램프는 서서히 꺼지고 바는 어둠에) → 0.95 종이가 곧게 끌려 올라가 화면 밖으로 → 1.3 카메라가 뒤늦게 따라 올라가며 물러난다 (한 줄기 빛)
+  //   → 1.8 은하 하늘 → 2.1 미친 듯이 가속해 종이 끝까지 빠져나간다 → 2.5 회중시계 · 2.65~3.5 체인 → 4.1 심장 박동 → 4.9~5.7 끌려 올라가기 시작 → 5.65 명부 (체인은 그 위에서 마저 올라간다)
+  const t = [2500, 4100, 5000, 5650].map(k);
   later(t[0], () => sfx('chain'));
-  later(t[1], () => { fx.classList.add('beat'); sealChains?.pulse(); sfx('heart'); sfx('despair'); });
-  later(t[2], () => { fx.classList.add('lift'); sfx('chain'); });
+  later(t[1], () => { sealChains?.pulse(); sfx('heart'); sfx('despair'); });
+  later(t[2], () => { document.querySelector('.ct-sealtop')?.classList.add('lift'); sfx('chain'); });
   later(t[3], finish);
 }
 
-interface FlyGeo { top: { x: number; y: number }; slot: { x: number; y: number }; rot: number; ow: number; oh: number }
-/** 날아가는 전표 (카메라 연출):
- *  ① 클로즈업: 출력기 위 그 자리 · 그 각도에서 떠올라 똑바로 서며 가운데로 확대된다 (슬롯 위에 다 들어오는 만큼만).
- *  ② 종이가 위로 끌려 올라간다 — 느리게 시작해 점점 빨라져 전표가 화면 위로 완전히 빠져나간다. 아래 종이는 출력기 슬롯에서 계속 끌려 나온다.
- *  ③ 카메라가 뒤늦게 따라붙으며 빠르게 줌 아웃 (처음 빠르게, 점점 느리게) → 전표가 위에서 작게 다시 들어오고 종이는 얇은 빛줄기가 된다. 출력기는 화면 아래로 멀어진다.
- *  ④ 멀어진 만큼 느리게 올라가다, 마지막에 미친 듯이 가속해 화면 위로 빠져나간다. 그동안에도 줌 아웃이 이어져 긴 선이 되고, 종이 끝까지 다 빠져나간다.
- *  종이(꼬리)는 전표 밑변과 슬롯을 잇는 사각형 (clip-path). 매 프레임 시각의 함수로 계산한다 (프레임이 밀려도 같은 곡선) */
-function flyUp(fly: HTMLElement, tail: HTMLElement, g: FlyGeo, SC: number, onExit: () => void) {
-  const W = innerWidth, H = innerHeight, top0 = H * 0.12;
-  const S0 = Math.max(1, Math.min(Math.min(494, W * 0.8) / g.ow, (g.slot.y - top0 - 36) / g.oh)); // 클로즈업 배율
-  const WC = g.ow * S0, WMIN = 10, WLINE = 3; // 화면에 보이는 폭: 클로즈업 · 줌 아웃 뒤 · 마지막 선
-  const IN = 0.9, RISE = 0.95, ZOOM = 1.3, BURST = 2.1; // 시각 (초, × SC)
-  const shines = [fly, tail].map((e) => e.querySelector<HTMLElement>('.ct-shine')), pulse = tail.querySelector<HTMLElement>('.ct-pulse');
+interface SealGeo { slot: { x: number; y: number }; rot: number; ow: number; oh: number }
+/** 카메라 연출. 세계 좌표 = 벨을 누른 순간의 화면 좌표. 종이는 전표 축(출력기 각도) 위에서만 움직인다 (곧게 끌려 나온다):
+ *  ① 0~0.9 밀어 들어감: 슬롯을 화면 아래쪽 가운데로 데려오며 전표를 똑바로 세우고 전표가 화면에 차도록 확대한다.
+ *  ② 0.95~ 종이가 위로 끌려 나온다 — 느리게 시작해 점점 빨라져 전표가 화면 위로 완전히 빠져나간다 (카메라는 그대로).
+ *  ③ 1.3~ 카메라가 뒤늦게 따라 올라가며 빠르게 물러난다 (처음 빠르게, 점점 느리게): 전표가 위에서 작게 다시 들어오고, 슬롯(출력기)은 화면 아래로 멀어지며 종이는 얇은 빛줄기가 된다.
+ *  ④ 2.1~ 멀어진 만큼 느리게 오르던 전표가 미친 듯이 가속해 빠져나가고 (그동안에도 더 물러나 긴 선이 된다), 끌려 나온 종이 끝까지 화면 위로 사라진다.
+ *  매 프레임 시각의 함수로 계산한다 (프레임이 밀려도 같은 곡선) */
+function camera(world: HTMLElement, slip: HTMLElement, feed: HTMLElement, g: SealGeo, SC: number, onExit: () => void) {
+  const W = innerWidth, H = innerHeight, PY = H * 0.84; // 밀어 들어간 뒤 슬롯이 놓이는 화면 높이
+  const Z0 = Math.max(1, Math.min(Math.min(494, W * 0.8) / g.ow, (PY - H * 0.1) / g.oh)); // 밀어 들어간 배율: 전표가 화면에 차되 슬롯은 보이게
+  const WMIN = 10, WLINE = 3; // 줌 아웃 뒤 · 마지막에 화면에 보이는 종이 폭 (px)
+  const IN = 0.9, RISE = 0.95, ZOOM = 1.3, BURST = 2.1;
+  const shines = [slip, feed].map((e) => e.querySelector<HTMLElement>(':scope > .ct-shine'));
   const smooth = (x: number) => { const c = Math.min(1, Math.max(0, x)); return c * c * (3 - 2 * c); };
   const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
-  /** ② 종이가 끌려 올라간 거리 (전표 기준 px): 0.3초 동안 점점 빨라져 2600px/초, 그 뒤로도 조금씩 더 빨라진다 */
+  /** ② 끌려 나온 길이 (세계 px): 0.3초 동안 점점 빨라져 2600px/초 */
   const pulled = (t: number) => { const u = t - RISE; if (u <= 0) return 0; if (u < 0.3) return (2600 * u ** 3) / 0.27; const w = u - 0.3; return 260 + 2600 * w + 800 * w * w; };
-  /** ③ 줌 아웃 뒤 전표의 화면 높이: 위에서 내려와 자리를 잡고, 멀어진 만큼 느리게 올라간다 */
+  /** ③ 줌 아웃 뒤 전표 머리의 화면 높이: 위에서 내려와 자리를 잡고, 멀어진 만큼 느리게 올라간다 */
   const after = (u: number) => H * (0.32 - 0.155 * u - 0.035 * u * u);
-  /** ④ 마지막 가속: 지수로 (0.075초마다 e배) */
+  /** ④ 마지막 가속 (화면 px): 0.075초마다 e배 */
   const burst = (t: number) => (t < BURST ? 0 : 2.2 * (Math.exp((t - BURST) / 0.075) - 1));
-  const y0 = top0 - S0 * pulled(ZOOM);
-  const rotp = (r: number, a: number, b: number) => [a * Math.cos(r) - b * Math.sin(r), a * Math.sin(r) + b * Math.cos(r)];
-  let exited = false;
+  const y0 = PY - (g.oh + pulled(ZOOM)) * Z0; // 줌 아웃이 시작될 때 전표 머리의 화면 높이 (화면 위 밖)
+  let d = 0, cut = 0, exited = false;
   const t0 = performance.now();
   const frame = (now: number) => {
-    if (!fly.isConnected) return;
+    if (!world.isConnected || CT.step !== 'seal') return;
     const t = (now - t0) / 1000 / SC;
-    let px = W / 2, hy = top0, r = 0, w = WC;
-    if (t < IN) { const e = smooth(t / IN); px = lerp(g.top.x, W / 2, e); hy = lerp(g.top.y, top0, e); r = g.rot * (1 - e); w = g.ow * lerp(1, S0, e); } // ①
-    else if (t < ZOOM) hy = top0 - S0 * pulled(t); // ② 카메라는 그대로, 종이만 위로
-    else { // ③④
+    let px = W / 2, py = PY, cr = -g.rot, z = Z0, c = 0; // 화면 기준점 (px, py) 에 세계의 '슬롯에서 축 위로 c 만큼' 점이 놓인다
+    if (t < IN) { const e = smooth(t / IN); px = lerp(g.slot.x, W / 2, e); py = lerp(g.slot.y, PY, e); cr = -g.rot * e; z = lerp(1, Z0, e); }
+    if (t < ZOOM) d = pulled(t);
+    else {
       const u = t - ZOOM, floor = t < BURST ? WMIN : WLINE + (WMIN - WLINE) * Math.exp(-(t - BURST) / 0.12);
-      w = floor + (WC - WMIN) * Math.exp(-u / 0.17);
-      hy = after(u) + (y0 - after(0)) * Math.exp(-u / 0.13) - burst(t);
+      z = (floor + (g.ow * Z0 - WMIN) * Math.exp(-u / 0.17)) / g.ow;
+      const hy = after(u) + (y0 - after(0)) * Math.exp(-u / 0.13) - burst(t); // 전표 머리
+      const sy = lerp(PY, H * 1.3, smooth(u / 0.35)); // 슬롯은 화면 아래 밖으로 멀어진다 (카메라가 따라 올라가니까)
+      d = Math.max(d, (sy - hy) / z - g.oh); // 끌려 나온 길이 (머리와 슬롯 사이)
+      c = (sy - PY) / z;
+      if (t >= BURST && !cut) cut = d + 60; // 가속하는 순간 종이가 끊겨 끝까지 따라 빠져나간다
+      if (!exited && t > BURST && hy + g.oh * z < 0) { exited = true; onExit(); }
     }
-    const z = w / g.ow;
-    // 슬롯 (종이가 끌려 나오는 곳): 카메라가 따라 올라가며 물러나면 화면 아래로 멀어지고 · 마지막에는 종이 끝이 전표를 따라 빠져나간다
-    let sx = g.slot.x, sy = g.slot.y, sw = g.ow, sr = g.rot;
-    if (t >= ZOOM) { const k = smooth((t - ZOOM) / 0.45); sx = lerp(g.slot.x, W / 2, k); sy = lerp(g.slot.y, H * 1.8, k * k); sw = lerp(g.ow, w, k); sr = g.rot * (1 - k); }
-    sy -= burst(t);
-    const [ax, ay] = rotp(r, -w / 2, g.oh * z), [bx, by] = rotp(r, w / 2, g.oh * z), [cx, cy] = rotp(sr, sw / 2, 0);
-    fly.style.transform = `translate(${px}px, ${hy}px) rotate(${r}rad) scale(${z}) translate(-50%, 0)`;
-    tail.style.clipPath = `polygon(${px + ax}px ${hy + ay}px, ${px + bx}px ${hy + by}px, ${sx + cx}px ${sy + cy}px, ${sx - cx}px ${sy - cy}px)`;
-    if (t >= RISE) fly.style.willChange = 'transform'; // 클로즈업까지는 매 프레임 다시 그려 글자가 또렷하게 (확대한 그림을 늘리면 흐려진다)
-    const gl = Math.log(WC / w) / Math.log(WC / WMIN);
-    shines.forEach((e) => { if (e) e.style.opacity = String(0.62 * smooth((gl - 0.35) / 0.55)); }); // 빛에 물든다
-    if (pulse) { pulse.style.opacity = String(smooth((gl - 0.5) / 0.4)); pulse.style.transform = `translateY(${-((t * 720) % 180)}px)`; } // 빛 마디가 줄기를 타고 올라간다
-    if (!exited && t > BURST && hy + g.oh * z < 0) { exited = true; onExit(); }
-    if (sy > -20) requestAnimationFrame(frame);
-    else fly.style.display = tail.style.display = 'none'; // 종이 끝까지 다 빠져나갔다
+    // 세계 → 화면: 기준점으로 옮기고 · 전표 축이 똑바로 서게 돌리고 · 확대하고 · 슬롯에서 축 위로 c 만큼 간 점을 원점으로
+    const ux = Math.sin(g.rot), uy = -Math.cos(g.rot);
+    world.style.transform = `translate(${px}px, ${py}px) rotate(${cr}rad) scale(${z}) translate(${-(g.slot.x + ux * c)}px, ${-(g.slot.y + uy * c)}px)`;
+    slip.style.translate = feed.style.translate = `0 ${-d}px`;
+    feed.style.height = `${cut || d + 60}px`;
+    if (t >= RISE) world.style.willChange = 'transform'; // 밀어 들어가는 동안은 매 프레임 다시 그려 글자가 또렷하게
+    const gl = Math.log((g.ow * Z0) / (z * g.ow)) / Math.log((g.ow * Z0) / WMIN);
+    shines.forEach((e) => { if (e) e.style.opacity = String(0.62 * smooth((gl - 0.35) / 0.55)); }); // 멀어질수록 빛에 물든다
+    const endY = cut ? PY + c * z - (d - cut) * z + 0 : H; // 끊긴 종이 끝의 화면 높이 (슬롯 아래에서 따라 올라온다)
+    if (!cut || endY > -40) requestAnimationFrame(frame);
+    else { const w = world.querySelector<HTMLElement>('.ct-slipwrap'); if (w) w.style.visibility = 'hidden'; } // 종이 끝까지 다 빠져나갔다
   };
-  frame(t0); // 첫 그림은 출력기 위 그 자리 그대로
+  frame(t0);
 }
 
 /** 그늘 장면의 은하 하늘: 에란테스 갤럭시 테마의 바탕색 + 별빛 층과 같은 별무리 (지금 테마 · 연출 설정과 상관없이) */
@@ -743,6 +745,7 @@ function finish() {
   clear();
   sealChains?.lift(); // 체인 · 시계는 다음 화면 위에서 마저 끌려 올라간다
   sealChains = null;
+  document.querySelectorAll('.ct-sealbg, .ct-sealtop').forEach((el) => el.remove());
   const s = signedContract();
   if (!s) { contractBack(); hooks.render(); return; }
   CT.fromSeal = true;
