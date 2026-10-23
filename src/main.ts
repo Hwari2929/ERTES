@@ -6487,7 +6487,7 @@ Object.assign(CTR.hooks, {
     app.introField = s.field; app.diff = s.diff; app.introFoe = null;
     app.starters = []; app.screen = 'newrun'; app.menu = null; carX = null; app.cardOpen = null;
     app.pool = starterPool(new Rng((Date.now() ^ (Math.random() * 1e9)) | 0), app.introField); app.poolRerolls = CFG.starterRerolls;
-    BRF.briefBegin(app.pool, CTR.contractVet(), CTR.takeSealGrid()); // 태블릿 속 브리핑 수신: 상태문의 인물 = 이번 후보 (곧 떨어질 카드)
+    BRF.briefBegin(app.pool, CTR.contractVet(), CTR.takeSealGrid(), CTR.takeSealNote()); // 태블릿 속 브리핑 수신: 상태문의 인물 = 이번 후보 (곧 떨어질 카드)
     render();
   },
   leave: (to: string) => act(to === 'bar' ? 'bar' : 'to-title', ''),

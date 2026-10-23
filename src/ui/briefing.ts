@@ -13,14 +13,16 @@ const reduced = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-
 
 /** 태블릿 모눈이 컷 순간 화면에 놓인 자리 (원점 · 간격 px) */
 export interface Grid { x: number; y: number; s: number }
-/** 태블릿 알림 토스트 (계약 보드의 표시기 위): 예레나가 보낸 의뢰 브리핑. 카메라가 태블릿 속으로 들어갈 때 사라진다 */
+/** 태블릿 알림 토스트가 컷 순간 화면에 놓인 자리 (왼쪽 위 · 확대 전 폭 · 배율) */
+export interface Note { x: number; y: number; w: number; s: number }
+/** 태블릿 알림 토스트 (계약 보드의 표시기 위): 예레나가 보낸 의뢰 브리핑. 카메라를 따라 커진 그대로 태블릿 화면에 1.2초 남았다가 사라진다 */
 const BELL = '<svg class="tn-bell" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6zM9.5 19a2.5 2.5 0 0 0 5 0z"/></svg>';
 export function noteHtml(title: string, cls = '') {
   return `<div class="tnote${cls}" role="status"><img class="tn-av" alt="" src="${artURL('yelena.bust.webp')}" decoding="async" onerror="this.remove()"><b class="tn-who">${BELL}예레나</b><span class="tn-msg">의뢰 브리핑 「${esc(title)}」</span><small class="tn-at">지금</small></div>`;
 }
 const hhmm = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 /** 지금 브리핑: 켜짐 · 상태문 · 보인 줄 수 · 모눈 · 단골 · 타이머 시작 여부 */
-export const BR = { on: false, lines: [] as string[], shown: 0, grid: null as Grid | null, vet: false, started: false };
+export const BR = { on: false, lines: [] as string[], shown: 0, grid: null as Grid | null, note: null as Note | null, vet: false, started: false };
 const timers: number[] = [];
 /** 노이즈 해소: 전체 단계 · 브리핑이 끝날 때까지 밟는 단계 · 한 번에 밟는 단계 · 간격(ms) — 0.12초마다 2단계 */
 const DN = { n: 20, brief: 4, per: 2, ms: 120 };
@@ -28,7 +30,7 @@ let dn: { cv: HTMLCanvasElement; img: HTMLImageElement; k: number; goal: number;
 const T = { first: 300, step: 450, tail: 300, vetFirst: 150, vetTail: 550, dock: 720, hold: 500, vetHold: 350 }; // ms (hold: 다 걷힌 전장 그림을 보여 주는 시간)
 
 /** 브리핑을 준비한다 (명부를 그리기 전에): 후보 기물마다 상태문 한 줄씩, 같은 브리핑에서 같은 줄 · 같은 인물을 되풀이하지 않는다 */
-export function briefBegin(pool: string[], vet: boolean, grid: Grid | null) {
+export function briefBegin(pool: string[], vet: boolean, grid: Grid | null, note: Note | null = null) {
   const ids = [...pool];
   for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }
   const n = vet ? 1 : Math.min(2, ids.length), lines: string[] = []; // 한두 줄만 (누가 뭘 하는지 다 보여 줄 필요는 없다)
@@ -41,7 +43,7 @@ export function briefBegin(pool: string[], vet: boolean, grid: Grid | null) {
   timers.forEach((t) => clearTimeout(t));
   timers.length = 0;
   dnStop();
-  Object.assign(BR, { on: lines.length > 0, lines, shown: 0, grid: reduced() ? null : grid, vet, started: false });
+  Object.assign(BR, { on: lines.length > 0, lines, shown: 0, grid: reduced() ? null : grid, note: reduced() ? null : note, vet, started: false });
 }
 
 /** 명부 배경 띠 (전장 그림 · 화면 위쪽을 가로질러 카드 윗단까지 내려오고 아래로 옅어진다). 브리핑 중이면 화면을 가득 채운 '태블릿 속'이고, 끝나면 높이가 줄어 이 자리에 내려앉는다.
@@ -57,7 +59,7 @@ export function bandHtml(o: { art: string; color: string; title: string; place: 
     : '';
   return `<div class="nr-bandslot" aria-hidden="${BR.on ? 'false' : 'true'}"><header class="nr-band" style="--fc:${o.color}${g}">
     <i class="nr-band-art" style="background-image:url('${o.art}')" aria-hidden="true"></i><i class="nr-band-shade" aria-hidden="true"></i><i class="nr-band-bp" aria-hidden="true"></i>
-    ${BR.on ? `<div class="nr-tab" aria-hidden="true"><span class="f-num">${hhmm()}</span><span class="nr-tab-r"><i class="nr-tab-wifi"></i><span class="f-num">87%</span><i class="nr-tab-bat"><i></i></i></span></div>` : ''}
+    ${BR.on ? `<div class="nr-tab" aria-hidden="true"><span class="f-num">${hhmm()}</span><span class="nr-tab-r"><i class="nr-tab-wifi"></i><span class="f-num">87%</span><i class="nr-tab-bat"><i></i></i></span></div>${BR.note && !BR.started ? noteHtml(o.title, ' nr-tnote').replace('class="tnote', `style="--nx:${BR.note.x.toFixed(1)}px;--ny:${BR.note.y.toFixed(1)}px;--nw:${BR.note.w.toFixed(1)}px;--ns:${BR.note.s.toFixed(3)}" class="tnote`) : ''}` : ''}
     ${BR.on ? `<div class="nr-band-tx"><span class="nr-band-k"><i class="nr-rx" aria-hidden="true"><b></b><b></b><b></b></i><span>브리핑 수신</span></span><h2 class="nr-band-t">「${esc(o.title)}」 <small>${esc(o.place)}</small></h2></div>` : ''}
     ${brief}
   </header></div>`;
@@ -68,6 +70,7 @@ export function briefMount(root: HTMLElement) {
   const nr = root.querySelector<HTMLElement>('main.nr.brief');
   if (!nr || !BR.on) return;
   nr.addEventListener('click', skip);
+  fitTitle(nr);
   requestAnimationFrame(() => nr.classList.add('settle')); // 태블릿 모눈 간격에서 16px 로 가라앉고, 흐린 전장 그림이 비쳐 든다
   dnAttach(nr);
   if (BR.started) { paint(); return; }
@@ -127,13 +130,26 @@ function dock() {
     nr.querySelector('.nr-bandslot')?.setAttribute('aria-hidden', 'true');
   };
   if (!band || !slot || reduced()) { done(); return; }
-  const r = slot.getBoundingClientRect(), f = nr.querySelector('.nr-field')?.getBoundingClientRect();
-  if (f) { band.style.setProperty('--tx', `${f.left}px`); band.style.setProperty('--ty', `${f.top}px`); band.style.setProperty('--tw', `${Math.ceil(f.width)}px`); } // 제목이 내려앉을 자리 = 머리 첫 줄
+  const r = slot.getBoundingClientRect(), f = fieldBox(nr);
+  if (f) { band.style.setProperty('--tx', `${f.left}px`); band.style.setProperty('--ty', `${f.top}px`); band.style.setProperty('--tw', `${f.width}px`); } // 제목이 내려앉을 자리 = 머리 첫 줄의 글자
   nr.classList.add('docking');
   Object.assign(band.style, { top: `${r.top}px`, left: `${r.left}px`, width: `${r.width}px`, height: `${r.height}px` });
   timers.push(window.setTimeout(done, T.dock));
 }
 
+/** 머리 첫 줄(.nr-field) 글자가 놓인 상자: 왼쪽 = 글자 시작, 폭 = 글자 폭 (줄바꿈하면 줄 폭), 위 = 줄 상자 위 */
+function fieldBox(nr: HTMLElement) {
+  const f = nr.querySelector<HTMLElement>('.nr-field');
+  if (!f) return null;
+  const rg = document.createRange(); rg.selectNodeContents(f);
+  const t = rg.getBoundingClientRect(), b = f.getBoundingClientRect();
+  return { left: t.left, top: b.top, width: Math.ceil(t.width) + 1 };
+}
+/** 브리핑 제목 상자를 머리 첫 줄 글자와 같은 폭으로 (줄바꿈이 끝까지 같게) */
+function fitTitle(nr: HTMLElement) {
+  const band = nr.querySelector<HTMLElement>('.nr-band'), f = fieldBox(nr);
+  if (band && f) band.style.setProperty('--tw', `${f.width}px`);
+}
 /** 노이즈 해소 캔버스를 띠의 전장 그림 바로 위에 붙인다 (다시 그려져도 같은 캔버스 · 같은 단계로 이어 간다) */
 function dnAttach(nr: HTMLElement) {
   const art = nr.querySelector<HTMLElement>('.nr-band-art');
