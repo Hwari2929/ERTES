@@ -1,11 +1,11 @@
 // 그늘 연출의 체인 · 회중시계 (ui/contract.ts 그늘 단계): 고리를 점으로 이은 간단한 물리 (베를레 적분 + 고리 길이 제약).
-// 체인마다 나타나는 순서 · 시각과 사라지는 시각이 무작위다. 고리는 늘어나지 않고(스프링 느낌 없이) 이음새만 관절처럼 꺾이며, 멈춘 뒤에도 바람에 날리듯 조금씩 흔들린다.
+// 체인마다 나타나는 순서 · 시각과 사라지는 시각이 무작위다. 고리는 늘어나지 않고 이음새만 관절처럼 꺾인다. 떨어지듯 내려와 멈추는 순간 곧은 체인은 살짝 되튀고, 그 뒤로 바람에 살랑살랑 흔들린다.
 // 원근 여섯 겹: 멀수록 작고 옅게, 맨 앞 겹은 화면 앞을 지나는 크고 흐린 체인 (따로 앞 캔버스 + CSS blur, 시계보다 위).
-// 회중시계는 무거운 끝점에 매달려 내려오는 순간부터 진자 운동을 한다 (.ct-watch 를 끝점 위치 · 마지막 고리 각도에 맞춰 돌린다).
+// 회중시계는 무거운 끝점에 매달려 내려오는 순간부터 진자 운동을 한다 (팽팽한 곧은 줄 끝의 진자. .ct-watch 를 끝점 위치 · 줄 각도에 맞춰 돌린다).
 
 interface Pt { x: number; y: number; px: number; py: number; w: number } // w = 1 / 질량 (0 = 고정점)
 interface Anchor { i: number; x: number; y0: number; y1: number }
-interface Chain { pts: Pt[]; L: number; alpha: number; front: boolean; anchors: Anchor[]; tIn: number; inDur: number; tOut: number; outDur: number; wind: number; wf: number; ph: number; damp: number; vy?: number }
+interface Chain { pts: Pt[]; L: number; alpha: number; front: boolean; anchors: Anchor[]; tIn: number; inDur: number; tOut: number; outDur: number; wind: number; wf: number; ph: number; damp: number; bounce: number; vy?: number }
 
 export interface ChainOpts {
   /** 체인이 나타나는 시각 범위 · 사라지는 시각 범위 (초) */
@@ -32,7 +32,7 @@ export function chainScene(cv: HTMLCanvasElement, fcv: HTMLCanvasElement | null,
   const k = Math.max(0.6, Math.min(1.25, H / 900)); // 화면 크기에 맞춘 고리 크기
 
   const chains: Chain[] = [];
-  const base = (L: number, alpha: number, front: boolean): Omit<Chain, 'pts' | 'anchors'> => ({ L, alpha, front, tIn: rnd(o.win[0], o.win[1]), inDur: rnd(0.38, 0.55), tOut: rnd(o.wout[0], o.wout[1]), outDur: rnd(0.8, 1.1), wind: rnd(26, 42), wf: rnd(0.45, 0.8), ph: rnd(0, Math.PI * 2), damp: 0.988 });
+  const base = (L: number, alpha: number, front: boolean): Omit<Chain, 'pts' | 'anchors'> => ({ L, alpha, front, tIn: rnd(o.win[0], o.win[1]), inDur: rnd(0.38, 0.55), tOut: rnd(o.wout[0], o.wout[1]), outDur: rnd(0.8, 1.1), wind: rnd(220, 340), wf: rnd(1.1, 1.8), ph: rnd(0, Math.PI * 2), damp: 0.997, bounce: 0.35 });
   /** 곧게 드리운 체인: 위 끝 하나가 고정점 */
   const drop = (x: number, len: number, s: number, alpha: number, front: boolean) => {
     const L = 14 * s * k, n = Math.max(3, Math.round(len / L)), y0 = -n * L - 60;
@@ -70,8 +70,8 @@ export function chainScene(cv: HTMLCanvasElement, fcv: HTMLCanvasElement | null,
   const ww = 150 * k, bx = ww * (70 / 140), by = ww * (10 / 140);
   if (watch) {
     const L = 13 * k, n = Math.round((H * 0.42) / L), th = rnd(18, 24) * (Math.random() < 0.5 ? -1 : 1) * (Math.PI / 180), x = W / 2, y0 = -n * L * Math.cos(th) - 160;
-    const pts = Array.from({ length: n + 1 }, (_, i) => { const px = x + Math.sin(th) * i * L, py = y0 + Math.cos(th) * i * L; return { x: px, y: py, px, py, w: i === 0 ? 0 : i === n ? 0.12 : 1 }; });
-    wc = { L, alpha: 1, front: false, tIn: o.watchIn, inDur: 0.5, tOut: o.watchOut, outDur: 0.9, wind: 0, wf: 0, ph: 0, damp: 0.998, pts, anchors: [{ i: 0, x, y0, y1: -L * 0.5 }] };
+    const pts = Array.from({ length: n + 1 }, (_, i) => { const px = x + Math.sin(th) * i * L, py = y0 + Math.cos(th) * i * L; return { x: px, y: py, px, py, w: i === 0 ? 0 : i === n ? 0.05 : 1 }; });
+    wc = { L, alpha: 1, front: false, tIn: o.watchIn, inDur: 0.5, tOut: o.watchOut, outDur: 0.9, wind: 0, wf: 0, ph: 0, damp: 0.9993, bounce: 0.22, pts, anchors: [{ i: 0, x, y0, y1: -L * 0.5 }] };
     watch.style.width = `${ww}px`;
     watch.style.transformOrigin = `${bx}px ${by}px`;
   }
@@ -83,16 +83,30 @@ export function chainScene(cv: HTMLCanvasElement, fcv: HTMLCanvasElement | null,
     if (t <= c.tIn) return a.y0;
     return a.y0 + (a.y1 - a.y0) * fall(Math.min(1, (t - c.tIn) / c.inDur));
   };
+  /** 회중시계: 무거운 시계가 체인을 팽팽히 당기는 진자. 시계(끝점)만 움직이고 고리는 위 끝 ~ 시계 사이 곧은 줄 위에 놓는다
+   *  (고리마다 따로 움직이면 가벼운 체인이 시계보다 먼저 휘둘려 채찍처럼 휘고, 시계가 체인과 따로 꺾여 보인다) */
+  const stepWatch = (c: Chain, t: number) => {
+    const n = c.pts.length - 1, a = c.pts[0], e = c.pts[n], R = n * c.L, stop = c.tIn + c.inDur;
+    const ay = anchorY(c, c.anchors[0], t), dy = ay - a.y;
+    if (t > c.tIn && t < stop && dy > 0) { e.y += dy; e.py += dy; c.vy = dy; } // 내려오는 동안 같이 실어 내린다 (비스듬히 들린 채 → 처음부터 크게 흔들린다)
+    else if (c.vy) { e.py += c.vy * c.bounce; c.vy = 0; } // 멈추는 순간 살짝 튀어 오른다
+    a.x = c.anchors[0].x; a.y = ay;
+    const vx = (e.x - e.px) * c.damp, vy = (e.y - e.py) * c.damp;
+    e.px = e.x; e.py = e.y; e.x += vx; e.y += vy + G * STEP * STEP;
+    const dx = e.x - a.x, dyy = e.y - a.y, d = Math.hypot(dx, dyy);
+    if (d > R) { e.x = a.x + (dx * R) / d; e.y = a.y + (dyy * R) / d; } // 줄은 늘어나지 않는다 (당겨진 만큼 속도도 사라진다)
+    for (let i = 1; i < n; i++) { const p = c.pts[i]; p.x = p.px = a.x + ((e.x - a.x) * i) / n; p.y = p.py = a.y + ((e.y - a.y) * i) / n; }
+  };
   const step = (c: Chain, t: number) => {
+    if (c === wc) { stepWatch(c, t); return; }
     // 바람: 느린 두 물결을 겹쳐 살랑살랑 (아래쪽 · U자 가운데일수록 크게)
     const n = c.pts.length - 1, wx = c.wind * (Math.sin(t * c.wf + c.ph) + 0.45 * Math.sin(t * c.wf * 2.3 + c.ph * 1.7)), dt2 = STEP * STEP, two = c.anchors.length > 1;
-    // 멈춘 직후 0.7초는 감쇠를 세게 (묵직하게 툭 멈추고 고무줄처럼 되튀지 않게)
-    const stop = c.tIn + c.inDur, damp = c !== wc && t > stop && t < stop + 0.7 ? 0.955 : c.damp;
+    const stop = c.tIn + c.inDur, damp = c.damp;
     // 위 끝이 내려오는 만큼 체인 전체를 같이 실어 내린다 (위 끝이 고리를 밀어 뭉치지 않게). 옮기기만 하고 속도는 건드리지 않다가
     // 위 끝이 멈추는 순간 그때 빠르기를 고리들에 한 번 넘긴다 → 곧게 드리운 체인 · 시계는 그 기세로 아래로 쏠렸다가 늘어나지 않는 고리에 걸려 묵직하게 선다
     const a0 = c.anchors[0], dy = anchorY(c, a0, t) - c.pts[a0.i].y;
     if (t > c.tIn && t < stop && dy > 0) { for (const p of c.pts) if (p.w) { p.y += dy; p.py += dy; } c.vy = dy; }
-    else if (c.vy) { if (!two) for (const p of c.pts) if (p.w) p.py = p.y - c.vy; c.vy = 0; } // U자는 넘기지 않는다 (양 끝에 걸린 바닥이 접혀 매듭처럼 뭉친다)
+    else if (c.vy) { const v = two ? 0 : c.vy * c.bounce; c.pts.forEach((p, i) => { if (p.w) p.py += v * (i / n); }); c.vy = 0; } // U자는 되튀지 않는다 (느슨해진 바닥이 접혀 뭉친다)
     for (let i = 0; i <= n; i++) {
       const p = c.pts[i];
       if (!p.w) continue;
@@ -152,7 +166,7 @@ export function chainScene(cv: HTMLCanvasElement, fcv: HTMLCanvasElement | null,
   };
   const placeWatch = () => {
     if (!wc || !watch) return;
-    const e = wc.pts[wc.pts.length - 1], p = wc.pts[wc.pts.length - 2];
+    const e = wc.pts[wc.pts.length - 1], p = wc.pts[0];
     const ang = -Math.atan2(e.x - p.x, e.y - p.y);
     watch.style.transform = `translate(${e.x - bx}px, ${e.y - by}px) rotate(${ang}rad)`;
     watch.style.visibility = t >= wc.tIn - 0.02 ? '' : 'hidden'; // 내려올 차례 전에는 위 끝에 비치지 않게
@@ -163,7 +177,7 @@ export function chainScene(cv: HTMLCanvasElement, fcv: HTMLCanvasElement | null,
   const frame = (now: number) => {
     if (!cv.isConnected) return;
     acc += Math.min(0.2, (now - last) / 1000); last = now; // 밀린 프레임은 한 칸씩 따라잡는다 (연출 시각표와 어긋나지 않게)
-    while (acc >= STEP) { t += STEP; for (const c of all) step(c, t); acc -= STEP; }
+    while (acc >= STEP) { t += STEP; for (const c of all) if (c !== wc || t >= c.tIn) step(c, t); acc -= STEP; } // 시계는 내려오기 전까지 처음 모양 그대로 (비스듬히 들린 채 내려와야 크게 흔들린다). 체인은 위 밖에서 미리 늘어진 모양을 잡는다
     for (const x of [ctx0, fctx]) if (x) { x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cv.width, cv.height); }
     const shown = (c: Chain) => t >= c.tIn - 0.02; // 나타날 시각 전에는 그리지 않는다 (위 밖에 걸려 있어도 끝이 비치지 않게)
     for (const c of chains.filter((x) => !x.front && shown(x)).sort((a, b) => a.L - b.L)) draw(c); // 먼 것부터

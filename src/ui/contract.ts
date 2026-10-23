@@ -499,12 +499,13 @@ function sealHtml() {
   </main>`;
 }
 
-/** 날아가는 전표: 출력기 자리에서 떠올라 가운데로 확대된 뒤, 하염없이 올라가며 위쪽 소실점으로 줄어들어 한 줄기 빛이 된다.
+/** 날아가는 전표: 출력기 자리에서 처음엔 느리게 떠오르다 점점 빨라지며 가운데로 확대되고(클로즈업),
+ *  그 기세를 그대로 이어 카메라가 빠르게 물러난다 — 처음 빠르고 점점 느려지며 위쪽 소실점으로 줄어들어 한 줄 빛이 된다.
  *  전표 아래 종이(꼬리)는 따로 두고 매 프레임 전표 밑변에서 화면 아래까지 같은 너비로 잇는다 — 축소에 딸려 짧아지지 않고 곧게 끝없이 이어진다.
- *  한 곡선(크기는 지수로 줄여 처음 · 끝 빠르기가 같게 느껴지게)을 rAF 로 그린다: 구간 키프레임을 이어 붙이면 꺾이는 데마다 툭툭 끊겨 보인다 */
+ *  한 곡선(크기는 지수로 줄인다)을 rAF 로 그린다: 구간 키프레임을 이어 붙이면 꺾이는 데마다 툭툭 끊겨 보인다 */
 function flyUp(fly: HTMLElement, tail: HTMLElement, quick: boolean) {
   const [fx, fy, fs] = (fly.dataset.from || '0 0 1').split(' ').map(Number);
-  const IN = quick ? 0.35 : 0.6, UP0 = quick ? 0.4 : 0.7, UP = quick ? 0.85 : 1.9, S0 = 1.3, S1 = 0.02;
+  const IN = quick ? 0.4 : 0.75, UP = quick ? 0.85 : 1.85, S0 = 1.3, S1 = 0.02;
   const glows = [fly, tail].map((e) => e.querySelector<HTMLElement>('.ct-glow'));
   const top = fly.offsetTop, h = fly.offsetHeight, rise = innerHeight * 0.04;
   tail.style.width = `${fly.offsetWidth}px`;
@@ -515,17 +516,17 @@ function flyUp(fly: HTMLElement, tail: HTMLElement, quick: boolean) {
     if (!fly.isConnected) return;
     const t = (now - t0) / 1000;
     let x = 0, y = 0, s = S0, glow = 0, op = 1;
-    if (t < IN) { const k = 1 - (1 - t / IN) ** 3; x = fx * (1 - k); y = fy * (1 - k); s = fs + (S0 - fs) * k; }
-    else if (t > UP0) {
-      const p = Math.min(1, (t - UP0) / UP), g = p * 0.55 + smooth(p) * 0.45;
+    if (t < IN) { const k = (t / IN) ** 2.4; x = fx * (1 - k); y = fy * (1 - k); s = fs + (S0 - fs) * k; } // 느리게 → 빠르게 솟는다
+    else {
+      const p = Math.min(1, (t - IN) / UP), g = 1 - (1 - p) ** 3; // 빠르게 → 느리게 물러난다
       s = S0 * (S1 / S0) ** g; y = -rise * g;
-      glow = smooth((p - 0.2) / 0.7); op = 1 - smooth((p - 0.82) / 0.18);
+      glow = smooth((g - 0.35) / 0.55); op = 1 - smooth((p - 0.82) / 0.18);
     }
     fly.style.transform = `translate(calc(-50% + ${x}px), ${y}px) scale(${s})`;
     tail.style.transform = `translate(calc(-50% + ${x}px), ${top + y + h * s - 1}px) scale(${s}, 1)`;
     fly.style.opacity = tail.style.opacity = String(op);
     glows.forEach((e) => { if (e) e.style.opacity = String(glow); });
-    if (t < UP0 + UP) requestAnimationFrame(frame);
+    if (t < IN + UP) requestAnimationFrame(frame);
   };
   frame(t0); // 첫 그림부터 출력기 자리에서 (확대된 모습이 한 번 비치지 않게)
 }
