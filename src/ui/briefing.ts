@@ -13,9 +13,9 @@ const reduced = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-
 
 /** 태블릿 모눈이 컷 순간 화면에 놓인 자리 (원점 · 간격 px) */
 export interface Grid { x: number; y: number; s: number }
-/** 태블릿 알림 토스트가 컷 순간 화면에 놓인 자리 (왼쪽 위 · CSS 폭 · 화면에 보이는 배율). 브리핑 화면은 이 배율을 zoom 으로 다시 그린다 (scale 로 늘리면 흐려진다) */
+/** 태블릿 알림 토스트가 컷 순간 화면에 놓인 자리 (왼쪽 위 · --k 1 기준 폭 · 화면에 보이는 배율). 브리핑 화면은 이 배율을 --k 로 받아 실제 치수로 다시 그린다 (scale · zoom 은 흐리거나 브라우저마다 다르다) */
 export interface Note { x: number; y: number; w: number; s: number }
-/** 태블릿 알림 토스트 (계약 보드의 표시기 위): 예레나가 보낸 의뢰 브리핑. 카메라를 따라 커진 그대로 태블릿 화면에 0.85초 남았다가 사라진다 */
+/** 태블릿 알림 토스트 (계약 보드의 표시기 위): 예레나가 보낸 의뢰 브리핑. 카메라를 따라 커진 그대로 태블릿 화면에 0.7초 남았다가 사라진다 */
 const BELL = '<svg class="tn-bell" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6zM9.5 19a2.5 2.5 0 0 0 5 0z"/></svg>';
 export function noteHtml(title: string, cls = '') {
   return `<div class="tnote${cls}" role="status"><img class="tn-av" alt="" src="${artURL('yelena.bust.webp')}" decoding="async" onerror="this.remove()"><b class="tn-who">${BELL}예레나</b><span class="tn-msg">의뢰 브리핑 「${esc(title)}」</span><small class="tn-at">지금</small></div>`;

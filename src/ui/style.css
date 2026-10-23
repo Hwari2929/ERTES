@@ -5405,20 +5405,20 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .nr-brief-tk li.on { display: block; animation: ct-fade .3s both; }
 .nr-brief-tk li.on:has(+ li.on) { opacity: .55; }
 /* 태블릿 알림 토스트 (예레나의 브리핑 알림): 보드의 표시기 위에 작게 흔들리며 떴다가, 카메라가 태블릿 속으로 들어가면 사라진다. 게임 토큰 (원칙 31) */
-.tnote { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; column-gap: 7px; align-items: center; padding: 5px 9px; border: 1px solid var(--line); border-radius: var(--r-md); background: color-mix(in srgb, var(--panel) 94%, transparent); color: var(--c-text); font: var(--fs-2xs)/1.35 var(--f-body); box-shadow: 0 4px 12px var(--shade-2); }
-.tn-av { grid-row: 1 / 3; width: 22px; height: 22px; border-radius: 50%; object-fit: cover; object-position: 50% 12%; background: var(--panel-2); }
-.tn-who { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-xs); }
-.tn-bell { width: 11px; height: 11px; fill: var(--c-select); transform-origin: 50% 10%; }
-.tn-at { grid-column: 3; grid-row: 1; color: var(--c-text-2); font-size: var(--fs-2xs); }
+.tnote { --k: 1; display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; column-gap: calc(7px * var(--k)); align-items: center; padding: calc(5px * var(--k)) calc(9px * var(--k)); border: max(1px, calc(1px * var(--k))) solid var(--line); border-radius: calc(var(--r-md) * var(--k)); background: color-mix(in srgb, var(--panel) 94%, transparent); color: var(--c-text); font: calc(var(--fs-2xs) * var(--k))/1.35 var(--f-body); box-shadow: 0 calc(4px * var(--k)) calc(12px * var(--k)) var(--shade-2); } /* 모든 치수가 --k 하나로 (브리핑 화면 = 컷 순간 보이던 배율). 늘릴 때 zoom · scale 을 쓰지 않아 어느 브라우저에서도 같은 모양 · 또렷한 글자 (보드에서 줄일 때만 scale .82 — 줄이는 건 흐려지지 않고, 아주 작은 글자 크기의 줄 높이 반올림도 피한다) */
+.tn-av { grid-row: 1 / 3; width: calc(22px * var(--k)); height: calc(22px * var(--k)); border-radius: 50%; object-fit: cover; object-position: 50% 12%; background: var(--panel-2); }
+.tn-who { display: inline-flex; align-items: center; gap: calc(4px * var(--k)); font-size: calc(var(--fs-xs) * var(--k)); }
+.tn-bell { width: calc(11px * var(--k)); height: calc(11px * var(--k)); fill: var(--c-select); transform-origin: 50% 10%; }
+.tn-at { grid-column: 3; grid-row: 1; color: var(--c-text-2); font-size: calc(var(--fs-2xs) * var(--k)); }
 .tn-msg { grid-column: 2 / 4; color: var(--c-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ct-tnote { position: absolute; left: 50%; top: 14px; z-index: var(--z-raise); width: min(200px, 46%); zoom: .82; translate: -50% -8px; opacity: 0; transition: opacity .18s, translate .25s cubic-bezier(.2, .9, .3, 1.2); }
+.ct-tnote { position: absolute; left: 50%; top: 14px; z-index: var(--z-raise); width: min(200px, 46%); scale: .82; transform-origin: 50% 0; translate: -50% -8px; opacity: 0; transition: opacity .18s, translate .25s cubic-bezier(.2, .9, .3, 1.2); }
 .ct-tnote.in { opacity: 1; translate: -50% 0; animation: tn-shake .5s .15s ease-in-out; }
 .ct-tnote.in .tn-bell { animation: tn-ring .7s .1s ease-in-out; }
 @keyframes tn-shake { 15%, 55% { rotate: -2.5deg; } 35%, 75% { rotate: 2.5deg; } 100% { rotate: 0deg; } }
 @keyframes tn-ring { 12%, 44% { rotate: -22deg; } 28%, 60% { rotate: 22deg; } 76% { rotate: -8deg; } 100% { rotate: 0deg; } }
 .ct.sealing .ct-tnote { animation: none; rotate: 0deg; } /* 카메라를 따라 커진다 (흔들림은 멈춘다) */
-.nr-tnote { position: absolute; left: var(--nx); top: var(--ny); z-index: var(--z-raise); animation: nr-toast-out .35s .85s ease-in forwards; } /* 브리핑 화면: 컷 순간 그 자리 · 그 크기 그대로 0.85초 남았다가 사라진다 */
-.nr-tnote > .tnote { width: var(--nw); zoom: var(--ns); } /* 크기는 zoom 으로 다시 그린다 (scale 은 작은 그림을 늘려 글자가 흐려진다) */
+.nr-tnote { position: absolute; left: var(--nx); top: var(--ny); z-index: var(--z-raise); animation: nr-toast-out .35s .7s ease-in forwards; } /* 브리핑 화면: 컷 순간 그 자리 · 그 크기 그대로 0.7초 남았다가 사라진다 */
+.nr-tnote > .tnote { --k: var(--ns); width: calc(var(--nw) * var(--ns)); } /* 컷 순간 그 크기 그대로 실제 치수로 다시 그린다 (scale · zoom 없음) */
 @keyframes nr-toast-out { to { opacity: 0; translate: 0 -6px; } }
 /* 태블릿 상태줄: 시각 · 와이파이 · 배터리 (브리핑 동안만) */
 .nr-tab { position: absolute; left: 0; right: 0; top: 0; z-index: var(--z-raise); display: flex; justify-content: space-between; align-items: center; padding: max(8px, env(safe-area-inset-top, 0px)) 18px 0; color: var(--c-text); font: 600 var(--fs-sm)/1 var(--f-body); opacity: 0; }

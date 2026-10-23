@@ -80,7 +80,7 @@ function fontShorthandSize(v: string): string | null {
   const m = /(?:^|\s)((?:clamp|calc|min|max)\((?:[^()]|\([^()]*\))*\)|var\([^)]*\)|[\d.]+(?:px|rem|em|%|cqw|vw))(?:\/\S+)?\s+(?:var\(|['"a-zA-Z])/.exec(v);
   return m ? m[1] : null;
 }
-const isTokenOnly = (v: string) => /^var\(--[\w-]+\)$/.test(v.trim());
+const isTokenOnly = (v: string) => /^var\(--[\w-]+\)$/.test(v.trim()) || /^calc\(var\(--(?:fs|r)-[\w-]+\) \* var\(--[\w-]+\)\)$/.test(v.trim()); // 토큰 × 배율 변수 (화면을 따라 커지는 조각을 실제 치수로 다시 그릴 때: 예레나 토스트 --k)
 /** 크기 · 둥글기 값 중 토큰이 아닌 리터럴 (0 · 50% · inherit 같은 모양 값은 제외) */
 function literalOf(prop: string, v: string): string | null {
   if (isTokenOnly(v) || /^(inherit|initial|unset|0|50%|auto|100%)$/.test(v.trim())) return null;
