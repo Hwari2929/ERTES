@@ -19,7 +19,7 @@ const easeIn = (k: number) => k * k * k; // 천천히 들리다 끌려 올라간
 const fall = (k: number) => k ** 1.6; // 떨어지듯 점점 빨라지다 끝에서 탁 멈춘다 (체인은 그 기세로 아래로 쏠렸다가 걸린다)
 const G = 3600; // 중력 (px/s²): 묵직하게
 const STEP = 1 / 120;
-const BEND = 1.85; // 이음새가 접힐 수 있는 한계 (1.85 L ≈ 이음새 하나가 최대 약 45° 꺾임: 바닥에서 고리가 지그재그로 뭉치지 않게)
+const BEND = 1.93; // 이음새가 접힐 수 있는 한계 (1.93 L ≈ 이음새 하나가 최대 약 30° 꺾임: 고리가 지그재그로 꼬이지 않고 부드러운 곡선으로 휜다)
 
 /** 그늘 장면을 시작한다. 반환값: pulse() = 심장 박동에 맞춰 모든 체인이 한 번 출렁인다 */
 export function chainScene(cv: HTMLCanvasElement, fcv: HTMLCanvasElement | null, watch: HTMLElement | null, o: ChainOpts) {
@@ -32,21 +32,29 @@ export function chainScene(cv: HTMLCanvasElement, fcv: HTMLCanvasElement | null,
   const k = Math.max(0.6, Math.min(1.25, H / 900)); // 화면 크기에 맞춘 고리 크기
 
   const chains: Chain[] = [];
-  const base = (L: number, alpha: number, front: boolean): Omit<Chain, 'pts' | 'anchors'> => ({ L, alpha, front, tIn: rnd(o.win[0], o.win[1]), inDur: rnd(0.38, 0.55), tOut: rnd(o.wout[0], o.wout[1]), outDur: rnd(0.8, 1.1), wind: rnd(220, 340), wf: rnd(1.1, 1.8), ph: rnd(0, Math.PI * 2), damp: 0.997, bounce: 0.35 });
-  /** 곧게 드리운 체인: 위 끝 하나가 고정점 */
-  const drop = (x: number, len: number, s: number, alpha: number, front: boolean) => {
-    const L = 14 * s * k, n = Math.max(3, Math.round(len / L)), y0 = -n * L - 60;
+  const base = (L: number, alpha: number, front: boolean): Omit<Chain, 'pts' | 'anchors'> => ({ L, alpha, front, tIn: rnd(o.win[0], o.win[1]), inDur: rnd(0.38, 0.55), tOut: rnd(o.wout[0], o.wout[1]), outDur: rnd(0.8, 1.1), wind: rnd(200, 300) * Math.min(1, Math.max(0.35, L / (14 * k) / 0.9)), wf: rnd(0.8, 1.3), ph: rnd(0, Math.PI * 2), damp: 0.997, bounce: 0.22 });
+  /** 체인 절반쯤은 화면 위 밖으로 길게 이어진다 (보이는 만큼 더 길게 숨긴다): 천장이 고정점이 아니라 더 위에 걸려 있어, 보이는 윗부분까지 흔들림이 전해진다 */
+  const hidden = (len: number) => (Math.random() < 0.5 ? len * rnd(0.8, 1.1) : 0);
+  /** 곧게 드리운 체인: 위 끝 하나가 고정점 (hide = 화면 위 밖에 숨은 길이) */
+  const drop = (x: number, vis: number, s: number, alpha: number, front: boolean, hide = hidden(vis)) => {
+    const L = 14 * s * k, len = vis + hide, n = Math.max(3, Math.round(len / L)), y0 = -n * L - 60;
     const pts = Array.from({ length: n + 1 }, (_, i) => { const px = x + rnd(-1, 1) * i * 0.2; return { x: px, y: y0 + i * L, px, py: y0 + i * L, w: i ? 1 : 0 }; });
-    chains.push({ ...base(L, alpha, front), pts, anchors: [{ i: 0, x, y0, y1: -L * 0.5 }] });
+    chains.push({ ...base(L, alpha, front), pts, anchors: [{ i: 0, x, y0, y1: -hide - L * 0.5 }] });
   };
-  /** 늘어진 U자 체인: 양 끝이 화면 위 밖의 고정점 */
-  const swag = (x1: number, x2: number, sag: number, s: number, alpha: number, front: boolean) => {
-    const L = 14 * s * k, span = x2 - x1;
-    let len = 0;
-    for (let i = 1; i <= 200; i++) { const a = (i - 1) / 200, b = i / 200; len += Math.hypot(span / 200, 4 * sag * (b * (1 - b) - a * (1 - a))); } // 포물선 길이 그대로 (남는 고리가 바닥에서 뭉치지 않게)
-    const n = Math.max(4, Math.round(len / L)), y0 = -sag - 90;
-    const pts = Array.from({ length: n + 1 }, (_, i) => { const t = i / n, x = x1 + span * t, y = y0 + 4 * sag * t * (1 - t); return { x, y, px: x, py: y, w: i && i < n ? 1 : 0 }; });
-    chains.push({ ...base(L, alpha, front), pts, anchors: [{ i: 0, x: x1, y0, y1: -L * 0.5 }, { i: n, x: x2, y0, y1: -L * 0.5 }] });
+  /** 늘어진 U자 체인: 양 끝이 화면 위 밖의 고정점. 숨은 길이가 있으면 더 깊고 넓은 U자의 바닥만 보인다 (보이는 폭은 그대로).
+   *  처음 모양은 현수선 (체인이 실제로 늘어지는 모양): 포물선 따위로 놓으면 남는 길이가 바닥에 몰려, 이음새 한계(BEND) 때문에 동그랗게 매듭진 채 굳는다 */
+  const swag = (x1: number, x2: number, vis: number, s: number, alpha: number, front: boolean, hide = hidden(vis)) => {
+    const sag = vis + hide, wide = Math.sqrt(sag / vis), mid = (x1 + x2) / 2;
+    x1 = mid - (mid - x1) * wide; x2 = mid + (x2 - mid) * wide;
+    const L = 14 * s * k, hs = (x2 - x1) / 2;
+    /** 단조 함수 f(a) = want 를 만족하는 현수선 매개변수 a (f 는 a 가 클수록 작아진다) */
+    const solve = (f: (a: number) => number, want: number) => { let lo = hs / 40, hi = hs * 1e4; for (let i = 0; i < 80; i++) { const m = Math.sqrt(lo * hi); if (f(m) > want) lo = m; else hi = m; } return Math.sqrt(lo * hi); };
+    const a0 = solve((a) => a * (Math.cosh(hs / a) - 1), sag), len0 = 2 * a0 * Math.sinh(hs / a0); // 바라는 깊이의 현수선 길이
+    const n = Math.max(4, Math.round(len0 / L)), c = solve((a) => 2 * a * Math.sinh(hs / a), n * L), depth = c * (Math.cosh(hs / c) - 1);
+    const y0 = -depth - 90;
+    const pts = Array.from({ length: n + 1 }, (_, i) => { const t = -n * L / 2 + i * L, x = mid + c * Math.asinh(t / c), y = y0 + depth - (Math.sqrt(c * c + t * t) - c); return { x, y, px: x, py: y, w: i && i < n ? 1 : 0 }; });
+    pts[0].x = x1; pts[n].x = x2; pts[0].y = pts[n].y = y0; pts[0].px = x1; pts[n].px = x2; pts[0].py = pts[n].py = y0;
+    chains.push({ ...base(L, alpha, front), pts, anchors: [{ i: 0, x: x1, y0, y1: -hide - L * 0.5 }, { i: n, x: x2, y0, y1: -hide - L * 0.5 }] });
   };
   /** 원근 여섯 겹: [고리 크기, 줄 수, 진하기]. 멀수록 작고 옅게 (그만큼 짧게), 맨 앞 겹은 앞 캔버스에 크고 흐리게 가장자리로만 (시계 · 가운데를 가리지 않게) */
   const DEPTH: [number, number, number][] = [[0.3, 5, 0.18], [0.42, 4, 0.28], [0.58, 3, 0.42], [0.8, 3, 0.62], [1.05, 2, 0.88]];
@@ -101,7 +109,7 @@ export function chainScene(cv: HTMLCanvasElement, fcv: HTMLCanvasElement | null,
     if (c === wc) { stepWatch(c, t); return; }
     // 바람: 느린 두 물결을 겹쳐 살랑살랑 (아래쪽 · U자 가운데일수록 크게)
     const n = c.pts.length - 1, wx = c.wind * (Math.sin(t * c.wf + c.ph) + 0.45 * Math.sin(t * c.wf * 2.3 + c.ph * 1.7)), dt2 = STEP * STEP, two = c.anchors.length > 1;
-    const stop = c.tIn + c.inDur, damp = c.damp;
+    const stop = c.tIn + c.inDur, damp = t < c.tIn ? 0.95 : c.damp; // 나타나기 전 (화면 위 밖)에는 늘어진 모양으로 얌전히 가라앉혀 둔다
     // 위 끝이 내려오는 만큼 체인 전체를 같이 실어 내린다 (위 끝이 고리를 밀어 뭉치지 않게). 옮기기만 하고 속도는 건드리지 않다가
     // 위 끝이 멈추는 순간 그때 빠르기를 고리들에 한 번 넘긴다 → 곧게 드리운 체인 · 시계는 그 기세로 아래로 쏠렸다가 늘어나지 않는 고리에 걸려 묵직하게 선다
     const a0 = c.anchors[0], dy = anchorY(c, a0, t) - c.pts[a0.i].y;
@@ -112,7 +120,7 @@ export function chainScene(cv: HTMLCanvasElement, fcv: HTMLCanvasElement | null,
       if (!p.w) continue;
       const vx = (p.x - p.px) * damp, vy = (p.y - p.py) * damp;
       p.px = p.x; p.py = p.y;
-      p.x += vx + wx * (two ? Math.sin((Math.PI * i) / n) : i / n) * dt2; p.y += vy + G * dt2;
+      p.x += vx + wx * (two ? 0.75 * Math.sin((Math.PI * i) / n) : Math.sqrt(i / n)) * dt2; // 곧은 체인은 끝만이 아니라 위쪽까지 바람을 받는다. U자는 약하게 (바닥이 옆으로 크게 쏠리면 한쪽 팔이 느슨해져 고리가 엉킨다) p.y += vy + G * dt2;
     }
     for (const a of c.anchors) { const p = c.pts[a.i]; p.px = p.x; p.py = p.y; p.x = a.x; p.y = anchorY(c, a, t); }
     for (let it = 0; it < 16; it++) {

@@ -5330,14 +5330,16 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 /* 빛 줄기가 된 전표가 소실점(가운데 위)에서 십자 섬광으로 사라진다 (화면 전체를 번쩍이지 않는다). 그 사이 은하 하늘로 바뀐다 */
 .ct-sky { position: absolute; inset: 0; overflow: hidden; opacity: 0; animation: ct-sky-in .8s 1.8s ease-out forwards; }
 @keyframes ct-sky-in { to { opacity: 1; } }
-.ct-glint { position: absolute; left: 50%; top: 8vh; width: 0; height: 0; pointer-events: none; animation: ct-glint .7s 2.4s ease-out both; opacity: 0; } /* 섬광: 십자 빛살 + 빛 알갱이 */
+.ct-glint { position: absolute; left: 50%; top: 8vh; width: 0; height: 0; pointer-events: none; opacity: 0; } /* 섬광: 십자 빛살 + 빛 알갱이. 전표가 빠져나가는 자리 · 순간에 JS 가 .on (flyUp) */
+.ct-glint.on { animation: ct-glint .7s ease-out both; }
 .ct-glint::before, .ct-glint::after { content: ''; position: absolute; left: -22vw; top: -1px; width: 44vw; height: 2px; border-radius: var(--r-pill); background: linear-gradient(90deg, transparent, var(--c-white), transparent); box-shadow: 0 0 10px 2px color-mix(in srgb, var(--lp-cream) 60%, transparent); }
 .ct-glint::after { rotate: 90deg; scale: .45 1; }
 @keyframes ct-glint { 0% { opacity: 0; scale: .1; } 18% { opacity: 1; scale: 1; } 100% { opacity: 0; scale: .6 .2; } }
 .ct-chains.front { filter: blur(3px); } /* 맨 앞 겹: 화면 앞을 지나는 크고 흐린 체인 (시계보다 위) */
 @keyframes ct-darken { to { opacity: .92; } }
 /* 날아가는 전표: 벨을 누른 순간 출력기 자리(--fx · --fy · --fs)에서 떠올라 가운데로 확대되고, 끝없이 위로 올라간다 (아래로 긴 빈 종이 꼬리) */
-.ct-fly { position: absolute; left: 50%; top: 12%; width: min(380px, 80vw); padding: 16px 18px; transform-origin: 50% 0; transform: translate(-50%, 0) scale(1.3); will-change: transform, opacity; border-bottom: 0; box-shadow: none; } /* 움직임은 JS (contract.ts flyUp) */
+.ct-fly { position: absolute; left: 50%; top: 12%; transform-origin: 50% 0; transform: translate(-50%, 0); } /* 움직임 · 폭은 JS (contract.ts flyUp: 출력한 전표와 같은 폭) */
+.ct-fly .ct-slip { border-bottom: 0; box-shadow: none; } /* 아래 종이(꼬리)와 끊김 없이 */
 .ct-tail { position: absolute; left: 50%; top: 0; transform-origin: 50% 0; transform: translate(-50%, 100vh); will-change: transform, opacity; border: 0; box-shadow: none; pointer-events: none; overflow: hidden; } /* 전표 아래로 화면 끝까지 곧게 이어지는 종이 */
 .ct-glow { position: absolute; inset: 0; background: var(--c-white); opacity: 0; pointer-events: none; } /* 빛에 물든다 (불투명도만) */
 .ct-pulse { position: absolute; left: 0; right: 0; top: 0; height: calc(100% + 180px); opacity: 0; pointer-events: none; will-change: transform, opacity; background: repeating-linear-gradient(to bottom, transparent 0 110px, var(--c-white) 150px, transparent 180px); } /* 빛 마디: 줄기를 타고 위로 (180px 마다 하나, JS 가 옮긴다) */
@@ -5371,7 +5373,6 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-seal.lift .ct-load { opacity: 0; transition: opacity .4s; }
 .ct-seal.quick .ct-dark { animation-duration: .7s; }
 .ct-seal.quick .ct-sky { animation-duration: .4s; animation-delay: .85s; }
-.ct-seal.quick .ct-glint { animation-delay: 1.15s; }
 .ct-seal.quick .ct-load, .ct-seal.quick .ct-skip-k { display: none; }
 .ct-skip-k { position: absolute; right: 16px; bottom: max(12px, env(safe-area-inset-bottom)); margin: 0; font-size: var(--fs-xs); color: color-mix(in srgb, var(--lp-cw) 60%, transparent); }
 /* 명부 · 지도는 게임 토큰 그대로. 계약의 흔적은 카본 영수 증서 칩 하나 (그늘이 걷히듯 어둠에서 밝아진다) */
