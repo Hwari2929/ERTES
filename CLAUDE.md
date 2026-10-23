@@ -15,6 +15,7 @@
 - **NovelAI 생성은 사용자가 요청한 분량만, 유료(Anlas)로만 돌린다.** 무료 생성 자동화로 무료 생성이 영구 제한됐다 (ToS 9.1.6). 스크립트(scripts/nai_guard.mjs)가 1회 실행 최대 8장 · 동시 실행 금지 · 장 사이 무작위 6~15초 휴식을 강제하고, 무료 범위를 벗어나도록 29스텝으로 생성한다. 에이전트가 스스로 판단해 생성을 시작하지 않는다.
 - 배경 · 스탠딩 일러스트는 넣기 전에 반드시 사용자 확인을 받는다 (시안을 보여 주고 고르게 한다).
 - 아티팩트는 그림을 `art/<id>.webp` 별도 파일로 보관한다 (artifact.html 에 내장되지 않음). public/art 에 그림을 새로 넣거나 바꾸면 아티팩트 게시 때 `files` 로 `art/<id>.webp` · `art/<id>.bust.webp` 를 함께 올린다. 안 올리면 게임에서 실루엣 · 옛 그림이 나온다.
+- 자동으로 오리기 어려운 투명화(배경 · 그려진 종이 지우기 · 층 나누기)는 사용자가 붓으로 칠하게 한다: `tools/mask-paint.html` 아티팩트 → `scripts/mask_apply.py` (사용법 `tools/mask-paint.md`). 점 찍기 방식은 쓰지 않는다.
 - 능력 아이콘: art/icon_prompts.json → scripts/nai_icon.mjs → art/icons/raw → `python3 scripts/icons_build.py` → src/ui/abilicons.gen.ts. 다시 뽑을 때는 프롬프트를 바꾼 시안 3개를 보여 준다. 물리 계열 스킬 · 무기는 흰 배경(light).
 
 ## 사건 연출
