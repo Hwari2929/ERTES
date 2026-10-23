@@ -33,6 +33,7 @@
   --lp-au: #c8ad74; --lp-au-lo: #7a5f2c;          /* 금 두 톤: 밝은 가는 선 + 어두운 굵은 선 (단색 금은 골판지) · 가라앉힌 값 */
   --lp-carbon: #a9bcc8; --lp-cink: #3a2f6b;       /* 청색 카본지 · 보랏빛 먹지 잉크 (전표 = 영수 증서) */
   --lp-stamp: #8a2f22;                            /* 도장 (싯가 · 특약) — 한색 위에서 튀므로 면적 최소 */
+  --lp-flash: #2747ff;                            /* 청남색 비비드 조명: 태블릿 속으로 들어갈 때 빠르게 점멸 (그 순간에만) */
   --lp-cream: #efe3c8;
   --ct-lamp: #f0a24a; --ct-lamp-lo: #4a2a18; /* 바 테이블 위 램프 빛 (난색) · 램프 밖 그늘 (난색 어둠). .ct-light 가 --lamp 세기로 곱한다 */
   --ct-wood: #3a2418; --ct-wood-hi: #5b3a24; --ct-wood-lo: #24150d; /* 탑뷰 바 테이블 (그림이 없을 때 바탕 · 소품 받침) */                            /* 빛의 끝: 회중시계 법랑 문자판 · 별점 중심 (색이 아니라 빛) */
@@ -5331,9 +5332,11 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-seal { cursor: pointer; background: var(--bg); } /* 그늘 도중 다시 그려졌을 때의 대체 화면 */
 .ct.sealing { transform-origin: 0 0; pointer-events: none; }
 .ct.sealing :is(.ct-voice, .ct-bell, .ct-leave) { opacity: 0; transition: opacity .3s; } /* 말풍선 · 단추는 카메라를 따라가지 않게 바로 옅어진다 */
-.ct-tv { position: fixed; inset: 0; z-index: var(--z-banner); background: var(--c-black); opacity: 0; cursor: pointer; animation: ct-tv-off .6s .82s steps(1, end) both; } /* 표시기가 꺼진다: 검은 화면이 두어 번 점멸하고 남는다 */
-@keyframes ct-tv-off { 0% { opacity: 1; } 14% { opacity: 0; } 26% { opacity: 1; } 42% { opacity: .35; } 52%, 100% { opacity: 1; } } /* 툭툭 끊어지며 (단계로) */
-.ct-tv .ct-sky { position: absolute; inset: 0; overflow: hidden; opacity: 0; animation: ct-fade-in .55s 1.33s ease-out forwards; } /* 은하 하늘 (에란테스 갤럭시 바탕 · 별무리) */
+.ct-tv { position: fixed; inset: 0; z-index: var(--z-banner); cursor: pointer; animation: ct-tv-hold .01s 1s forwards; } /* 태블릿 속: 빨려 들어가는 끝에 청남색 조명이 점멸하고, 다 들어가면 네이비 어둠 → 은하 하늘 */
+@keyframes ct-tv-hold { from { background: transparent; } to { background: var(--lp-navy); } }
+.ct-tv::before { content: ''; position: absolute; inset: 0; z-index: 1; background: var(--lp-flash); opacity: 0; animation: ct-tv-flash .5s .72s steps(1, end) forwards; } /* 비비드한 청남색 빛이 빠르게 점멸 (툭툭 끊어지며) */
+@keyframes ct-tv-flash { 0% { opacity: 0; } 3% { opacity: .9; } 14% { opacity: 0; } 24% { opacity: 1; } 36% { opacity: .15; } 46% { opacity: .85; } 58% { opacity: 0; } 68% { opacity: .75; } 82%, 100% { opacity: 0; } } /* 첫 칸은 꺼짐 (기다리는 동안 켜진 채로 보이지 않게) */
+.ct-tv .ct-sky { position: absolute; inset: 0; overflow: hidden; opacity: 0; animation: ct-fade-in .55s 1.2s ease-out forwards; } /* 은하 하늘 (에란테스 갤럭시 바탕 · 별무리) */
 @keyframes ct-fade-in { to { opacity: 1; } }
 @keyframes ct-fade { from { opacity: 0; } }
 .ct-tv.out { animation: ct-tv-out .6s ease-out both; pointer-events: none; }
@@ -5418,6 +5421,6 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-bell { --bs: 100px; --br: 8px; --bt: 0%; top: auto; bottom: calc(14px + env(safe-area-inset-bottom)); } /* 휴대폰: 아래 띠 오른쪽 끝 */
 }
 @media (prefers-reduced-motion: reduce) { /* 움직임 줄이기: 등장 · 나가기 · 떨림 없이 바로 놓이고, 그늘 연출은 ui/contract.ts 가 0.9초 뒤 바로 명부로 넘긴다 */
-  .ct-printer.run .ct-pmach, .ct-bell.on, .ct-bell.out, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-riders.in, .ct-riders.out, .ct-offsheet.in, .ct-offsheet.out, .ct.intro .ct-bp-scr, .ct-barview, .ct.outro *, .nr.from-seal .pslot, .nr.from-seal :is(.nr-head, .nr-foot), .ct-tv { animation: none; }
+  .ct-printer.run .ct-pmach, .ct-bell.on, .ct-bell.out, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-riders.in, .ct-riders.out, .ct-offsheet.in, .ct-offsheet.out, .ct.intro .ct-bp-scr, .ct-barview, .ct.outro *, .nr.from-seal .pslot, .nr.from-seal :is(.nr-head, .nr-foot), .ct-tv, .ct-tv::before { animation: none; }
   .ct-voice { transition: none; }
 }

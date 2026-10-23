@@ -473,24 +473,25 @@ function sealHtml() {
   return `<main class="ct ct-seal" data-a="ct-skip" aria-label="넘어가는 중 — 누르면 넘깁니다"></main>`;
 }
 
-/** 벨 → 명부: 시선이 태블릿(의뢰 도면 표시기)으로 옮겨 가 화면이 시야를 채우고 → 표시기가 검게 점멸하며 꺼졌다가 → 은하 하늘로 바뀌고 → 명부의 초기 기물 카드가 떨어져 놓인다.
- *  보드(main.ct)를 다시 그리지 않고 카메라처럼 옮긴다 (WAAPI: 합성기에서 돌아 매끄럽고, 확대한 글자도 또렷하다). 검은 화면 · 은하는 보드 밖(body)의 한 층(.ct-tv) — 명부로 넘어간 뒤 옅어진다.
+/** 벨 → 명부: 카메라가 한 바퀴 돌며 태블릿(의뢰 도면 표시기) 화면 속으로 빨려 들어가고 → 청남색 빛이 빠르게 점멸하고 → 은하 하늘 → 명부의 초기 기물 카드가 떨어져 놓인다.
+ *  보드(main.ct)를 다시 그리지 않고 카메라처럼 옮긴다 (WAAPI: 합성기에서 돌아 매끄럽다). 점멸 · 은하는 보드 밖(body)의 한 층(.ct-tv) — 명부로 넘어간 뒤 옅어진다.
  *  이전 연출(전표 카메라 · 체인 · 회중시계)은 archive/seal_v361 에 보관 */
-const TV = { zoom: 900, blink: 820, sky: 1330, roster: 1950 }; // ms
+const TV = { dive: 1150, blink: 720, roster: 1950 }; // ms (빛 · 은하 시각은 style.css .ct-tv 와 맞춘다)
 function startSeal(ct: HTMLElement) {
   CT.step = 'seal';
   const scr = ct.querySelector<HTMLElement>('.ct-bp-scr');
   if (reduced() || !scr) { later(reduced() ? 400 : 0, finish); return; }
   const W = innerWidth, H = innerHeight, r = scr.getBoundingClientRect(), rot = (CT.rot.bp * Math.PI) / 180;
-  const cx = r.left + r.width / 2, cy = r.top + r.height / 2, Z = Math.max(W / scr.offsetWidth, H / scr.offsetHeight) * 1.06; // 표시기 화면이 시야를 덮도록
-  const ease = (k: number) => (k < 0.5 ? 4 * k ** 3 : 1 - (2 - 2 * k) ** 3 / 2);
-  // 화면 가운데로 · 똑바로 · 확대 (표시기 가운데가 곧은 길로 오도록 매 구간을 미리 계산해 이어 붙인다)
-  const keys = Array.from({ length: 31 }, (_, i) => {
-    const e = ease(i / 30), z = Math.exp(Math.log(Z) * e);
-    return { transform: `translate(${cx + (W / 2 - cx) * e}px, ${cy + (H / 2 - cy) * e}px) rotate(${-rot * e}rad) scale(${z}) translate(${-cx}px, ${-cy}px)` };
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const Z = Math.max(W / scr.offsetWidth, H / scr.offsetHeight) * 3.2; // 화면을 덮고도 더 들어간다 (화면 속으로)
+  const spin = (k: number) => k * k * (3 - 2 * k), dive = (k: number) => k ** 2.2; // 회전은 부드럽게 한 바퀴, 확대는 끝으로 갈수록 빨려 들어가듯
+  // 태블릿 가운데가 화면 가운데로 곧게 오며, 한 바퀴 돌아 똑바로 서고, 점점 빠르게 확대된다 (매 구간을 미리 계산해 이어 붙인다)
+  const keys = Array.from({ length: 49 }, (_, i) => {
+    const k = i / 48, m = spin(Math.min(1, k * 1.15)), z = Math.exp(Math.log(Z) * dive(k));
+    return { transform: `translate(${cx + (W / 2 - cx) * m}px, ${cy + (H / 2 - cy) * m}px) rotate(${-rot * m + 2 * Math.PI * spin(k)}rad) scale(${z}) translate(${-cx}px, ${-cy}px)` };
   });
   ct.classList.add('sealing');
-  ct.animate(keys, { duration: TV.zoom, easing: 'linear', fill: 'forwards' });
+  ct.animate(keys, { duration: TV.dive, easing: 'linear', fill: 'forwards' });
   document.querySelectorAll('.ct-tv').forEach((el) => el.remove());
   document.body.insertAdjacentHTML('beforeend', '<div class="ct-tv" role="button" aria-label="누르면 넘깁니다"><div class="ct-sky"></div></div>');
   const tv = document.querySelector<HTMLElement>('.ct-tv');
@@ -498,7 +499,7 @@ function startSeal(ct: HTMLElement) {
   const sky = tv?.querySelector<HTMLElement>('.ct-sky');
   if (sky) galaxySky(sky);
   sfx('paper');
-  later(TV.blink, () => sfx('knock', { pitch: 0.55 })); // 표시기가 꺼지는 소리
+  later(TV.blink, () => sfx('knock', { pitch: 0.55 })); // 화면 속으로 들어가는 순간
   later(TV.roster, finish);
 }
 
