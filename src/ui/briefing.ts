@@ -1,6 +1,6 @@
 // 브리핑 수신 (계약 서명 → 명부): 카메라가 태블릿 화면 속으로 들어간 뒤의 화면. 흐린 전장 그림 · 의뢰 제목 · 진행 바 · 상태문 티커.
 // 진행 바는 시간이 아니라 상태문 줄 수에 묶는다 — 줄마다 한 칸, 마지막 줄이 끝나면 100% (누르면 남은 줄이 한꺼번에 찬다).
-// 상태문의 인물 = 이번 후보 기물(app.pool) = 곧 떨어질 카드. 끝나면 전장 그림이 위로 올라가 명부 머리 띠가 되고(도킹) 카드가 떨어진다.
+// 상태문의 인물 = 이번 후보 기물(app.pool) = 곧 떨어질 카드. 끝나면 전장 그림의 높이가 줄어 명부 위쪽 배경이 되고(도킹) 카드가 떨어진다.
 // 전장 그림은 확산 모델이 단계를 밟아 그림을 추정하듯 노이즈가 걷히며 드러난다 (브리핑 줄마다 몇 단계, 도킹하며 끝까지).
 // 첫 계약 3초 안쪽 (5줄), 단골 1줄 1초. 태블릿 모눈과 같은 간격 · 같은 자리에서 시작해 16px 로 가라앉는다 (카메라 컷의 이음새).
 import { BRIEF_LINES } from '../data/briefing';
@@ -36,8 +36,9 @@ export function briefBegin(pool: string[], vet: boolean, grid: Grid | null) {
   Object.assign(BR, { on: lines.length > 0, lines, shown: 0, grid: reduced() ? null : grid, vet, started: false });
 }
 
-/** 명부 머리 띠 (전장 그림 · 의뢰 제목 · 자주 나오는 적 · 유리한 시너지). 머리 줄 오른쪽 칸. 브리핑 중이면 화면을 가득 채운 '태블릿 속' 이고, 끝나면 이 자리로 올라와 붙는다 */
-export function bandHtml(o: { art: string; color: string; title: string; place: string; info: string }) {
+/** 명부 배경 띠 (전장 그림 · 화면 위쪽을 가로질러 카드 윗단까지 내려오고 아래로 옅어진다). 브리핑 중이면 화면을 가득 채운 '태블릿 속'이고, 끝나면 높이가 줄어 이 자리에 내려앉는다.
+ *  제목(「의뢰」 전장)은 브리핑 동안 띠 가운데에 있다가 도킹하며 명부 머리 첫 줄(.nr-field) 자리로 내려가 그 줄과 바뀐다 */
+export function bandHtml(o: { art: string; color: string; title: string; place: string }) {
   const g = BR.on && BR.grid ? `;--gx:${BR.grid.x.toFixed(1)}px;--gy:${BR.grid.y.toFixed(1)}px;--gs:${BR.grid.s.toFixed(2)}px` : '';
   const n = BR.lines.length;
   const brief = BR.on
@@ -46,10 +47,9 @@ export function bandHtml(o: { art: string; color: string; title: string; place: 
         <ol class="nr-brief-tk">${BR.lines.map((l, i) => `<li${i < BR.shown ? ' class="on"' : ''}>${esc(l)}</li>`).join('')}</ol>
       </div>`
     : '';
-  return `<div class="nr-bandslot"><header class="nr-band" style="--fc:${o.color}${g}">
+  return `<div class="nr-bandslot" aria-hidden="${BR.on ? 'false' : 'true'}"><header class="nr-band" style="--fc:${o.color}${g}">
     <i class="nr-band-art" style="background-image:url('${o.art}')" aria-hidden="true"></i><i class="nr-band-shade" aria-hidden="true"></i><i class="nr-band-bp" aria-hidden="true"></i>
-    <div class="nr-band-info">${o.info}</div>
-    <div class="nr-band-tx">${BR.on ? '<span class="nr-band-k">브리핑 수신</span>' : ''}<h2 class="nr-band-t">「${esc(o.title)}」 <small>${esc(o.place)}</small></h2></div>
+    ${BR.on ? `<div class="nr-band-tx"><span class="nr-band-k">브리핑 수신</span><h2 class="nr-band-t">「${esc(o.title)}」 <small>${esc(o.place)}</small></h2></div>` : ''}
     ${brief}
   </header></div>`;
 }
@@ -88,7 +88,7 @@ function skip() {
   show(BR.lines.length);
   timers.push(window.setTimeout(dock, 260));
 }
-/** 도킹: 화면을 채운 띠가 명부 머리 자리로 올라와 붙는다 (노이즈가 걷히고 폭이 준다) → 카드가 떨어진다 */
+/** 도킹: 화면을 채운 띠의 높이가 줄어 명부 위쪽 배경이 된다 (노이즈가 걷히고 제목이 머리 첫 줄로 내려앉는다) → 카드가 떨어진다 */
 function dock() {
   const nr = document.querySelector<HTMLElement>('main.nr.brief');
   if (!nr) { BR.on = false; return; }
@@ -100,10 +100,12 @@ function dock() {
     nr.classList.add('drop');
     if (band) Object.assign(band.style, { top: '', left: '', width: '', height: '' });
     nr.querySelector('.nr-brief')?.remove();
-    nr.querySelector('.nr-band-k')?.remove();
+    nr.querySelector('.nr-band-tx')?.remove(); // 같은 자리의 머리 첫 줄이 이어받는다
+    nr.querySelector('.nr-bandslot')?.setAttribute('aria-hidden', 'true');
   };
   if (!band || !slot || reduced()) { done(); return; }
-  const r = slot.getBoundingClientRect();
+  const r = slot.getBoundingClientRect(), f = nr.querySelector('.nr-field')?.getBoundingClientRect();
+  if (f) { band.style.setProperty('--tx', `${f.left}px`); band.style.setProperty('--ty', `${f.top}px`); band.style.setProperty('--tw', `${Math.ceil(f.width)}px`); } // 제목이 내려앉을 자리 = 머리 첫 줄
   nr.classList.add('docking');
   Object.assign(band.style, { top: `${r.top}px`, left: `${r.left}px`, width: `${r.width}px`, height: `${r.height}px` });
   timers.push(window.setTimeout(done, T.dock));

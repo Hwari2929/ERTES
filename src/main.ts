@@ -904,14 +904,13 @@ function newRunScreen() {
   const n = app.starters.length, sc = CTR.signedContract();
   const fld = fieldOf(app.introField);
   CTR.takeFromSeal();
-  // 머리 띠 = 의뢰한 전장 (브리핑 수신 중에는 화면을 채운 태블릿 속, 끝나면 이 자리로 올라와 붙는다 · ui/briefing.ts)
+  // 전장 그림 = 화면 위쪽을 가로지르는 배경 (브리핑 수신 중에는 화면을 채운 태블릿 속, 끝나면 높이가 줄어 이 자리에 내려앉는다 · ui/briefing.ts)
+  const title = sc ? sc.contract.title : fld.name;
   return `<main class="wrap nr roster${BRF.BR.on ? ' brief' : ''}">
+    ${BRF.bandHtml({ art: bgURL(`field_${fld.id}`), color: fld.color, title, place: fld.name })}
     <div class="nr-head">
-      <div class="nr-title"><h1>계약 기물 선택</h1>
-        <div class="nr-meta"><span class="nr-cnt">후보 ${app.pool.length}명 중 <b>${CFG.startUnits}명</b></span></div>
-        <p class="nr-hint">${CAN_HOVER ? '누르면 선택 · 마우스를 올리면 설명' : '누르면 선택 · 카드 하단을 끌어올리면 설명'}</p></div>
-      ${detailToggle()}
-      ${BRF.bandHtml({ art: bgURL(`field_${fld.id}`), color: fld.color, title: sc ? sc.contract.title : fld.name, place: fld.name, info: fieldBandInfo(fld.id) })}
+      <div class="nr-title"><h2 class="nr-band-t nr-field">「${esc(title)}」 <small>${esc(fld.name)}</small></h2><h1>계약 기물 ${CFG.startUnits}명을 선택하세요</h1></div>
+      <div class="nr-side"><div class="nr-band-info">${fieldBandInfo(fld.id)}</div>${detailToggle()}</div>
     </div>
     <div class="carousel">
       <button class="car-btn prev" data-a="car-prev" aria-label="이전 기물">‹</button>
