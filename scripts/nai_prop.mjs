@@ -24,14 +24,15 @@ function unzipFirst(buf) {
   return method === 8 ? inflateRawSync(data) : data;
 }
 async function gen(key, seed) {
-  const p = P.props[key], input = p.noBase ? `${p.prompt}, no humans, best quality, masterpiece, highres, year2026, ::1.1::painterly::` : `${p.prompt}, ${P.base}`; // noBase: 알베도 (광원 문구 없이)
+  const p = P.props[key], input = p.raw ? `${p.prompt}, best quality, masterpiece, highres, year2026, ::1.2::painterly::` : p.noBase ? `${p.prompt}, no humans, best quality, masterpiece, highres, year2026, ::1.1::painterly::` : `${p.prompt}, ${P.base}`; // noBase: 알베도 (광원 문구 없이) · raw: 'no humans' 없이 (에이든의 손처럼 신체 일부)
+  const neg = (p.noBase ? NEG_LIGHT : '') + (p.neg || P.negative); // neg: 소품별 부정 프롬프트 (손은 'hands' 를 빼야 한다)
   const body = {
     input, model: cfg.model, action: 'generate',
     parameters: {
       params_version: 3, width: p.w, height: p.h, scale: cfg.scale, sampler: cfg.sampler, steps: STEPS, n_samples: 1, ucPreset: 0, qualityToggle: false, seed,
-      noise_schedule: cfg.noise_schedule, negative_prompt: (p.noBase ? NEG_LIGHT : '') + P.negative, cfg_rescale: 0, sm: false, sm_dyn: false, dynamic_thresholding: false, legacy: false, add_original_image: true,
+      noise_schedule: cfg.noise_schedule, negative_prompt: neg, cfg_rescale: 0, sm: false, sm_dyn: false, dynamic_thresholding: false, legacy: false, add_original_image: true,
       v4_prompt: { caption: { base_caption: input, char_captions: [] }, use_coords: false, use_order: true },
-      v4_negative_prompt: { caption: { base_caption: (p.noBase ? NEG_LIGHT : '') + P.negative, char_captions: [] }, legacy_uc: false },
+      v4_negative_prompt: { caption: { base_caption: neg, char_captions: [] }, legacy_uc: false },
     },
   };
   for (let attempt = 0; attempt < 4; attempt++) {

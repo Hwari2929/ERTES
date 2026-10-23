@@ -195,6 +195,110 @@
       "w": 1216,
       "h": 832,
       "prompt": "compact receipt printer seen from directly above, perfectly top-down orthographic view, flat plan view, low wide rectangular footprint much wider than tall, point of sale terminal style, matte finish, no glossy highlights, no specular reflections, soft flat even lighting, paper slot along the top edge, axis-aligned, symmetrical, centered object, white background, simple background, isolated object, matte dark slate body, simple minimal design, thin gold pinstripe border"
+    },
+    "rc_mug_a": {
+      "w": 1024,
+      "h": 1024,
+      "prompt": "a large mug of hot chocolate seen from directly above, top-down, round ceramic mug with a handle on the right side, thick dark brown hot cocoa filling the cup, dark navy blue glazed mug, thin ring of light foam along the rim, warm, centered object, white background, simple background, isolated object"
+    },
+    "rc_mug_b": {
+      "w": 1024,
+      "h": 1024,
+      "prompt": "a large mug of hot chocolate seen from directly above, top-down, round ceramic mug with a handle on the right side, thick dark brown hot cocoa filling the cup, dark navy blue glazed mug, small swirl of whipped cream dusted with cocoa powder, warm, centered object, white background, simple background, isolated object"
+    },
+    "rc_mug_c": {
+      "w": 1024,
+      "h": 1024,
+      "prompt": "a large mug of hot chocolate seen from directly above, top-down, round ceramic mug with a handle on the right side, thick dark brown hot cocoa filling the cup, cream white enamel camping mug with a dark blue rim, glossy cocoa surface with a faint steam swirl, warm, centered object, white background, simple background, isolated object"
+    },
+    "rc_mug_d": {
+      "w": 1024,
+      "h": 1024,
+      "prompt": "a large mug of hot chocolate seen from directly above, top-down, round ceramic mug with a handle on the right side, thick dark brown hot cocoa filling the cup, charcoal grey stoneware mug, a few small marshmallows floating on the cocoa, warm, centered object, white background, simple background, isolated object"
+    },
+    "ad_hand_a": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view, seen from directly above, a single male right hand and forearm reaching diagonally into the frame from the upper right corner toward the lower left, thumb and index finger pinched together as if picking up a thin paper slip, other fingers gently curled, pale fair skin, long slender elegant fingers, neat short nails, crisp white dress shirt sleeve with a silver cufflink at the wrist, the sleeve continues out of the frame at the upper right corner, no paper, no objects, solid plain dark grey background, simple background, isolated, warm lamp light from upper left, soft shadow toward lower right",
+      "raw": true,
+      "neg": "1girl, people, character, face, text, watermark, signature, logo, letters, numbers, ui, frame, border, multiple views, split screen, perspective view, side view, isometric, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, face, head, body, torso, two hands, extra fingers, missing fingers, fused fingers, deformed hand, glove, ring, watch, paper, card"
+    },
+    "ad_hand_b": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view, seen from directly above, a single male right hand and forearm reaching diagonally into the frame from the upper right corner toward the lower left, fingertips about to pinch, thumb and index finger slightly apart, palm facing down, pale fair skin, long slender elegant fingers, neat short nails, crisp white dress shirt sleeve with a silver cufflink at the wrist, the sleeve continues out of the frame at the upper right corner, no paper, no objects, solid plain dark grey background, simple background, isolated, warm lamp light from upper left, soft shadow toward lower right",
+      "raw": true,
+      "neg": "1girl, people, character, face, text, watermark, signature, logo, letters, numbers, ui, frame, border, multiple views, split screen, perspective view, side view, isometric, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, face, head, body, torso, two hands, extra fingers, missing fingers, fused fingers, deformed hand, glove, ring, watch, paper, card"
+    },
+    "ad_hand_c": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view, seen from directly above, a single male right hand and forearm reaching diagonally into the frame from the upper right corner toward the lower left, delicate pinch grip between thumb and index finger, middle finger extended alongside, back of the hand visible, pale fair skin, long slender elegant fingers, neat short nails, crisp white dress shirt sleeve with a silver cufflink at the wrist, the sleeve continues out of the frame at the upper right corner, no paper, no objects, solid plain dark grey background, simple background, isolated, warm lamp light from upper left, soft shadow toward lower right",
+      "raw": true,
+      "neg": "1girl, people, character, face, text, watermark, signature, logo, letters, numbers, ui, frame, border, multiple views, split screen, perspective view, side view, isometric, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, face, head, body, torso, two hands, extra fingers, missing fingers, fused fingers, deformed hand, glove, ring, watch, paper, card"
+    },
+    "ad_hand_d": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view, seen from directly above, a single male right hand and forearm reaching diagonally into the frame from the upper right corner toward the lower left, elegant butler gesture, thumb and index finger lightly pinched, wrist slightly bent, back of the hand facing the viewer, pale fair skin, long slender elegant fingers, neat short nails, crisp white dress shirt sleeve with a silver cufflink at the wrist, the sleeve continues out of the frame at the upper right corner, no paper, no objects, solid plain dark grey background, simple background, isolated, warm lamp light from upper left, soft shadow toward lower right",
+      "raw": true,
+      "neg": "1girl, people, character, face, text, watermark, signature, logo, letters, numbers, ui, frame, border, multiple views, split screen, perspective view, side view, isometric, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, face, head, body, torso, two hands, extra fingers, missing fingers, fused fingers, deformed hand, glove, ring, watch, paper, card"
+    },
+    "ad_hand_e": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view, seen from directly above, a single male right hand and forearm reaching diagonally into the frame from the upper right corner toward the lower left, thumb and index finger about to pinch together, fingertips nearly touching, other fingers gently curled, palm facing down, pale fair skin, long slender elegant fingers, neat short nails, crisp white dress shirt sleeve with a silver cufflink at the wrist, the sleeve continues out of the frame at the upper right corner, lit by a single warm amber desk lamp from the upper left, the upper left side of the hand and fingers brightly lit, the lower right side in soft warm shade, no cast shadow, no paper, no objects, solid plain dark grey background, simple background, isolated",
+      "raw": true,
+      "neg": "1girl, people, character, face, text, watermark, signature, logo, letters, numbers, ui, frame, border, multiple views, split screen, perspective view, side view, isometric, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, face, head, body, torso, two hands, extra fingers, missing fingers, fused fingers, deformed hand, glove, ring, watch, paper, card, strong shadow, cast shadow, light from the right, backlight, rim light"
+    },
+    "ad_hand_f": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view, seen from directly above, a single male right hand and forearm reaching diagonally into the frame from the upper right corner toward the lower left, delicate pinch, thumb and index fingertip touching as if holding a thin slip, other fingers relaxed and curled, back of the hand facing up, pale fair skin, long slender elegant fingers, neat short nails, crisp white dress shirt sleeve with a silver cufflink at the wrist, the sleeve continues out of the frame at the upper right corner, lit by a single warm amber desk lamp from the upper left, the upper left side of the hand and fingers brightly lit, the lower right side in soft warm shade, no cast shadow, no paper, no objects, solid plain dark grey background, simple background, isolated",
+      "raw": true,
+      "neg": "1girl, people, character, face, text, watermark, signature, logo, letters, numbers, ui, frame, border, multiple views, split screen, perspective view, side view, isometric, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, face, head, body, torso, two hands, extra fingers, missing fingers, fused fingers, deformed hand, glove, ring, watch, paper, card, strong shadow, cast shadow, light from the right, backlight, rim light"
+    },
+    "ad_hand_g": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view, seen from directly above, a single male right hand and forearm reaching diagonally into the frame from the upper right corner toward the lower left, thumb and index finger slightly apart ready to pick something up, wrist relaxed, back of the hand facing up, pale fair skin, long slender elegant fingers, neat short nails, crisp white dress shirt sleeve with a silver cufflink at the wrist, the sleeve continues out of the frame at the upper right corner, lit by a single warm amber desk lamp from the upper left, the upper left side of the hand and fingers brightly lit, the lower right side in soft warm shade, no cast shadow, no paper, no objects, solid plain dark grey background, simple background, isolated",
+      "raw": true,
+      "neg": "1girl, people, character, face, text, watermark, signature, logo, letters, numbers, ui, frame, border, multiple views, split screen, perspective view, side view, isometric, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, face, head, body, torso, two hands, extra fingers, missing fingers, fused fingers, deformed hand, glove, ring, watch, paper, card, strong shadow, cast shadow, light from the right, backlight, rim light"
+    },
+    "ad_hand_h": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view, seen from directly above, a single male right hand and forearm reaching diagonally into the frame from the upper right corner toward the lower left, precise pinch grip between thumb and index finger, middle finger resting just behind, back of the hand facing up, pale fair skin, long slender elegant fingers, neat short nails, crisp white dress shirt sleeve with a silver cufflink at the wrist, the sleeve continues out of the frame at the upper right corner, lit by a single warm amber desk lamp from the upper left, the upper left side of the hand and fingers brightly lit, the lower right side in soft warm shade, no cast shadow, no paper, no objects, solid plain dark grey background, simple background, isolated",
+      "raw": true,
+      "neg": "1girl, people, character, face, text, watermark, signature, logo, letters, numbers, ui, frame, border, multiple views, split screen, perspective view, side view, isometric, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, face, head, body, torso, two hands, extra fingers, missing fingers, fused fingers, deformed hand, glove, ring, watch, paper, card, strong shadow, cast shadow, light from the right, backlight, rim light"
+    },
+    "ad_hand_i": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view, camera looking straight down at a flat table surface, a single male right hand and forearm reaching into the frame from the upper right corner toward the lower left, palm facing down toward the table, the back of the hand faces the camera, fingers pointing forward toward the lower left, thumb and index fingertip pressed together at the front edge, both fingertips touching the table surface, as if picking up a flat paper receipt lying on the table, pale fair skin, long slender elegant fingers, neat short nails, crisp white dress shirt sleeve with a silver cufflink at the wrist, the white shirt sleeve and forearm continue a long way toward the upper right corner and out of the frame, lit by a single warm amber desk lamp from the upper left, the upper left side of the hand brightly lit, the lower right side in soft warm shade, no cast shadow, no paper, no objects, solid plain dark grey background, simple background, isolated",
+      "raw": true,
+      "neg": "1girl, people, character, face, text, watermark, signature, logo, letters, numbers, ui, frame, border, multiple views, split screen, perspective view, side view, isometric, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, face, head, body, torso, two hands, extra fingers, missing fingers, fused fingers, deformed hand, glove, ring, watch, paper, card, strong shadow, cast shadow, light from the right, backlight, rim light, side view of the hand, palm visible, palm facing camera, fingers pointing up, OK sign, circle gesture"
+    },
+    "ad_hand_j": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view, camera looking straight down at a flat table surface, a single male right hand and forearm reaching into the frame from the upper right corner toward the lower left, palm facing down toward the table, the back of the hand faces the camera, index finger extended forward and thumb tucked beside it, their tips meeting flat on the table, middle ring and little fingers lightly curled behind, as if picking up a flat paper receipt lying on the table, pale fair skin, long slender elegant fingers, neat short nails, crisp white dress shirt sleeve with a silver cufflink at the wrist, the sleeve continues out of the frame at the upper right corner, lit by a single warm amber desk lamp from the upper left, the upper left side of the hand brightly lit, the lower right side in soft warm shade, no cast shadow, no paper, no objects, solid plain dark grey background, simple background, isolated",
+      "raw": true,
+      "neg": "1girl, people, character, face, text, watermark, signature, logo, letters, numbers, ui, frame, border, multiple views, split screen, perspective view, side view, isometric, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, face, head, body, torso, two hands, extra fingers, missing fingers, fused fingers, deformed hand, glove, ring, watch, paper, card, strong shadow, cast shadow, light from the right, backlight, rim light, side view of the hand, palm visible, palm facing camera, fingers pointing up, OK sign, circle gesture"
+    },
+    "ad_hand_k": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view, camera looking straight down at a flat table surface, a single male right hand and forearm reaching into the frame from the upper right corner toward the lower left, palm facing down toward the table, the back of the hand faces the camera, fingertips gathered forward at the table surface, thumb and index finger pinching flat against the table, wrist slightly raised, as if picking up a flat paper receipt lying on the table, pale fair skin, long slender elegant fingers, neat short nails, crisp white dress shirt sleeve with a silver cufflink at the wrist, the sleeve continues out of the frame at the upper right corner, lit by a single warm amber desk lamp from the upper left, the upper left side of the hand brightly lit, the lower right side in soft warm shade, no cast shadow, no paper, no objects, solid plain dark grey background, simple background, isolated",
+      "raw": true,
+      "neg": "1girl, people, character, face, text, watermark, signature, logo, letters, numbers, ui, frame, border, multiple views, split screen, perspective view, side view, isometric, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, face, head, body, torso, two hands, extra fingers, missing fingers, fused fingers, deformed hand, glove, ring, watch, paper, card, strong shadow, cast shadow, light from the right, backlight, rim light, side view of the hand, palm visible, palm facing camera, fingers pointing up, OK sign, circle gesture"
+    },
+    "ad_hand_l": {
+      "w": 1216,
+      "h": 832,
+      "prompt": "top-down view, camera looking straight down at a flat table surface, a single male right hand and forearm reaching into the frame from the upper right corner toward the lower left, palm facing down toward the table, the back of the hand faces the camera, a gentle flat pinch at the table surface between the thumb tip and the index fingertip, fingers pointing forward, knuckles visible from above, as if picking up a flat paper receipt lying on the table, pale fair skin, long slender elegant fingers, neat short nails, crisp white dress shirt sleeve with a silver cufflink at the wrist, the sleeve continues out of the frame at the upper right corner, lit by a single warm amber desk lamp from the upper left, the upper left side of the hand brightly lit, the lower right side in soft warm shade, no cast shadow, no paper, no objects, solid plain dark grey background, simple background, isolated",
+      "raw": true,
+      "neg": "1girl, people, character, face, text, watermark, signature, logo, letters, numbers, ui, frame, border, multiple views, split screen, perspective view, side view, isometric, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, face, head, body, torso, two hands, extra fingers, missing fingers, fused fingers, deformed hand, glove, ring, watch, paper, card, strong shadow, cast shadow, light from the right, backlight, rim light, side view of the hand, palm visible, palm facing camera, fingers pointing up, OK sign, circle gesture"
     }
   },
   "_albedo_note": "ct_albedo_*: 조명 없는 알베도 전용. base 의 광원 문구를 쓰지 않는다 (nai_prop.mjs 가 noBase 로 읽음)"
