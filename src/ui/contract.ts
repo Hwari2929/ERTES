@@ -17,6 +17,7 @@ import { fieldIntroOf } from '../data/scenes/fields';
 import type { RunState } from '../types';
 import { deedCount, lastDeed, metaOath, oathSel } from './meta';
 import { artURL, bgURL } from './portraits';
+import { chainScene } from './chains';
 import { sfx } from './sound';
 import { lineIcon } from './synicons';
 
@@ -471,33 +472,16 @@ function coverHtml() {
 const SIG = '레이첼';
 /** 벨을 누른 순간 전표가 있던 자리 (날아가는 전표가 거기서 떠올라 가운데로 확대된다) */
 let flyFrom: { x: number; y: number; w: number } | null = null;
-/** 체인 한 줄: 경로를 따라 고리를 긋는다. 정면 고리 = 굵은 대시 + 가운데 구멍, 옆면 고리 = 고리 사이를 잇는 가는 막대. s = 고리 굵기 (원근: 멀수록 작다) */
-function chainPath(d: string, s: number) {
-  const a = (k: number) => +(k * s).toFixed(1);
-  return `<path d="${d}" class="lk" style="stroke-width:${s}px;stroke-dasharray:${a(2)} ${a(1.2)}"/>`
-    + `<path d="${d}" class="lh" style="stroke-width:${a(0.38)}px;stroke-dasharray:${a(1.3)} ${a(1.9)};stroke-dashoffset:${-a(0.35)}"/>`
-    + `<path d="${d}" class="le" style="stroke-width:${a(0.34)}px;stroke-dasharray:${a(1.6)} ${a(1.6)};stroke-dashoffset:${-a(1.8)}"/>`;
-}
-/** 늘어진 U자 체인 (양 끝은 화면 위 밖) · 곧게 드리운 체인. 직선은 위 끝을 축으로 흔들린다 */
-const swag = (x1: number, x2: number, sag: number, s: number) => `<g class="bob">${chainPath(`M${x1} -30 Q${(x1 + x2) / 2} ${sag * 2} ${x2} -30`, s)}</g>`;
-const drop = (x: number, len: number, s: number) => `<g class="sw" style="transform-origin:${x}px 0px">${chainPath(`M${x} -30 L${x} ${len}`, s)}</g>`;
-/** 세 겹 원근: 먼 체인은 가늘고 흐리게 먼저, 가까운 체인은 굵게 나중에 (1600 × 1000 화폭, 위 가운데 기준으로 잘라 채운다) */
-const CHAINS = `<svg class="ct-chains" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
-  <g class="ly far">${swag(80, 600, 260, 6)}${swag(1000, 1520, 235, 6)}${drop(470, 380, 6)}${drop(1135, 320, 6)}</g>
-  <g class="ly mid">${swag(-60, 560, 350, 10)}${swag(1050, 1680, 320, 10)}${drop(300, 560, 10)}${drop(1320, 480, 10)}</g>
-  <g class="ly near">${swag(-220, 380, 450, 17)}${drop(1490, 760, 17)}</g>
-</svg>`;
 function sealHtml() {
   const f = flyFrom, fw = Math.min(380, innerWidth * 0.8);
   const from = f ? `--fx:${Math.round(f.x - innerWidth / 2)}px;--fy:${Math.round(f.y - innerHeight * 0.12)}px;--fs:${(f.w / fw).toFixed(3)}` : '--fx:0px;--fy:0px;--fs:1';
   return `<main class="ct ct-seal${CT.vet ? ' quick' : ''}" data-a="ct-skip" aria-label="그늘 — 누르면 넘깁니다">
     <div class="ct-table" aria-hidden="true">${prop('ct_table', '')}</div><div class="ct-dark" aria-hidden="true"></div><div class="lp-grain" aria-hidden="true"></div>
     <div class="ct-fly lp-carbon" style="${from}" aria-hidden="true">${slipHtml()}<i class="ct-stampmark ok">승인</i><div class="ct-sigline"><i class="lp-sig">${SIG}</i></div><i class="ct-tail"></i></div>
-    ${CHAINS}
-    <div class="ct-watch" aria-hidden="true"><div class="ct-swing">
-      <svg viewBox="0 0 140 600" aria-hidden="true">
-        ${chainPath('M70 -10 L70 432', 11)}
-        <g transform="translate(10 426)">
+    <canvas class="ct-chains" aria-hidden="true"></canvas>
+    <div class="ct-watch" aria-hidden="true">
+      <svg viewBox="0 0 140 150" aria-hidden="true">
+        <g transform="translate(10 0)">
           <circle class="ct-bow" cx="60" cy="10" r="9"/><circle class="ct-bow hi" cx="60" cy="9.4" r="9"/>
           <circle class="ct-case" cx="60" cy="84" r="60"/><circle class="ct-rim" cx="60" cy="84" r="56"/><circle class="ct-rim2" cx="60" cy="83.4" r="56"/>
           <circle class="ct-enamel-o" cx="60" cy="84" r="51"/><circle class="ct-enamel" cx="60" cy="84" r="41"/>
@@ -506,7 +490,7 @@ function sealHtml() {
           <path class="ct-glass" d="M 26 62 A 41 41 0 0 1 70 44"/>
         </g>
       </svg>
-    </div></div>
+    </div>
     <p class="ct-load"><span>계약 기물 명부를 펼치는 중</span><i>.</i><i>.</i><i>.</i></p>
     <p class="ct-skip-k">누르면 넘깁니다</p>
     <div class="ct-beat" aria-hidden="true"></div>
@@ -803,9 +787,14 @@ export function contractMount(root: HTMLElement) {
   //   → 2.8 심장 박동 → 4.2 반동 뒤 끌려 올라간다 → 5.2 명부
   // 두 번째부터 (CSS .quick): 같은 순서를 2.4초로 압축 — 의식은 처음에만 길다
   const t = CT.vet ? [450, 1300, 1700, 2400] : [1000, 2800, 4200, 5200];
+  // 체인 · 회중시계는 물리로 (ui/chains.ts): 체인마다 무작위 순서 · 시각에 나타나고, 무작위 시각에 끌려 올라간다
+  const cv = ct.querySelector<HTMLCanvasElement>('canvas.ct-chains');
+  const sc = cv ? chainScene(cv, ct.querySelector<HTMLElement>('.ct-watch'), CT.vet
+    ? { win: [0.3, 0.8], wout: [1.4, 2.0], watchIn: 0.45, watchOut: 1.7 }
+    : { win: [0.85, 2.1], wout: [3.5, 4.7], watchIn: 1.2, watchOut: 4.2 }) : null;
   sfx('paper');
   later(t[0], () => sfx('chain'));
-  later(t[1], () => { ct.classList.add('beat'); sfx('heart'); sfx('despair'); });
+  later(t[1], () => { ct.classList.add('beat'); sc?.pulse(); sfx('heart'); sfx('despair'); });
   later(t[2], () => { ct.classList.add('lift'); sfx('chain'); });
   later(t[3], finish);
 }
