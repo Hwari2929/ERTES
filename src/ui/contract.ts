@@ -54,8 +54,10 @@ const CT = {
   intro: false,
   /** 벨이 테이블 오른쪽 끝에 나와 있는지 (다 고르면 오른쪽 밖에서 튀어나오고, 고른 것이 비면 다시 들어간다) */
   bell: false,
+  /** 특약 차림표(담보 전용 종이)가 테이블에 나와 있는지 (담보 약관을 고르면 밀려 들어오고, 풀면 빠진다) */
+  sheet: false,
   /** 도면 · 차림표가 놓인 각도 (열 때마다 조금씩 다르게) */
-  rot: { bp: 0, mn: 0, pr: 0 },
+  rot: { bp: 0, mn: 0, pr: 0, rd: 0 },
   /** 카운터 너머 목소리 (잠깐 떴다 사라진다) */
   say: '',
   no: 0,
@@ -120,8 +122,8 @@ export function contractStart(from: string, list = false, snap = '') {
   barSnap = snap ? snapOf(snap) : '';
   clear();
   const n = deedCount();
-  Object.assign(CT, { step: 'board', from, sel: null, list, vet: n > 0, lit: false, focus: '', last: '', stamp: '', intro: true, bell: false, fromSeal: false, say: '오늘 들어온 의뢰서입니다. 제철이라 조금 더 쳐 드리죠.' });
-  CT.rot = { bp: rnd(-4, 4), mn: rnd(-3, 3), pr: rnd(-5, 5) };
+  Object.assign(CT, { step: 'board', from, sel: null, list, vet: n > 0, lit: false, focus: '', last: '', stamp: '', intro: true, bell: false, sheet: false, fromSeal: false, say: '오늘 들어온 의뢰서입니다. 제철이라 조금 더 쳐 드리죠.' });
+  CT.rot = { bp: rnd(-4, 4), mn: rnd(-3, 3), pr: rnd(-3, 3), rd: rnd(-3, 3) };
   paper.rows = []; paper.run = null; paper.token++;
   CT.no = n + 1;
   const d = new Date();
@@ -286,9 +288,9 @@ function collateralHtml(lit: boolean) {
   </div>`;
 }
 /** 특약 줄: 이름 ‥ 절망 가산, 아래 단계 · 효과. 누를 때마다 단계가 오르고 마지막 다음은 끄기 */
-function riderRow(id: OathId, i: number, lit: boolean) {
+function riderRow(id: OathId) {
   const d = OATHS.find((o) => o.id === id)!, n = oathLv({ oaths: oathSel() }, id), max = oathMax(id);
-  return row(`sm${lit ? ' lit' : ''}`, `style="--i:${i}" data-a="ct-rider" data-v="${id}" data-f="rider:${id}" title="${esc(n >= max ? '누르면 끄기' : `누르면 ${n + 1}단계`)}"`, esc(d.name), `+${oathHeatOf(id, Math.max(1, n))}`, [`${n ? `${n}단계 · ` : ''}${esc(d.lv(Math.max(1, n)))}`], n > 0);
+  return row('sm', `data-a="ct-rider" data-v="${id}" data-f="rider:${id}" title="${esc(n >= max ? '누르면 끄기' : `누르면 ${n + 1}단계`)}"`, esc(d.name), `+${oathHeatOf(id, Math.max(1, n))}`, [`${n ? `${n}단계 · ` : ''}${esc(d.lv(Math.max(1, n)))}`], n > 0);
 }
 
 // ───────── 청사진 (도면): 가리킨 · 고른 줄의 내용을 아이콘 · 구획으로 (줄글 없이)
@@ -370,7 +372,10 @@ function boardHtml() {
   const n = rows().filter((r) => r.k !== 'div').length;
   const on = ok && CT.stamp !== 'void', bellIn = on && !CT.bell, bellOut = !on && CT.bell;
   CT.bell = on;
-  return `<main class="ct ct-top${CT.intro && !reduced() ? ' intro' : ''}${CT.stamp ? ` st-${CT.stamp}` : ''}" style="--rot-bp:${CT.rot.bp}deg;--rot-mn:${CT.rot.mn}deg;--rot-pr:${CT.rot.pr}deg" aria-label="출격 계약 — 바 테이블 위 의뢰 차림표">
+  const rOn = ridersOn(), sheetIn = rOn && !CT.sheet, sheetOut = !rOn && CT.sheet;
+  if (sheetIn) CT.rot.rd = rnd(-3, 3); // 놓일 때마다 조금씩 다른 각도
+  CT.sheet = rOn;
+  return `<main class="ct ct-top${CT.intro && !reduced() ? ' intro' : ''}${CT.stamp ? ` st-${CT.stamp}` : ''}" style="--rot-bp:${CT.rot.bp}deg;--rot-mn:${CT.rot.mn}deg;--rot-pr:${CT.rot.pr}deg;--rot-rd:${CT.rot.rd}deg" aria-label="출격 계약 — 바 테이블 위 의뢰 차림표">
     ${CT.intro ? barviewHtml() : ''}
     <div class="ct-table" aria-hidden="true">${prop('ct_table', '')}</div><div class="lp-grain" aria-hidden="true"></div>
     <button class="ct-leave lp-btn" data-a="ct-leave" aria-label="${leave}" title="${leave} (화면을 위로 쓸어 올려도 된다)">${UP_SVG}</button>
@@ -382,11 +387,13 @@ function boardHtml() {
         <div class="lp-cols${CT.list ? ' listing' : ''}">
           <div class="lp-col ct-col-job" role="group" aria-label="의뢰"><h2 class="lp-h2">의뢰 <small>${CT.list ? '메뉴에 없는 것' : '모두 싯가'}</small></h2><div class="lp-list">${jobCol()}</div></div>
           <div class="lp-col ct-col-plan" role="group" aria-label="약관"><h2 class="lp-h2">약관 <small>난이도</small></h2><div class="lp-list">${PLANS.map((p) => planRow(p.lvl)).join('')}${collateralHtml(lit)}</div></div>
-          <div class="lp-col ct-col-rider${ridersOn() ? '' : ' off'}" role="group" aria-label="특약"><h2 class="lp-h2">특약 <small>${ridersOn() ? `절망 ${heat}` : '담보 전용'}</small></h2><div class="lp-list">${ridersOn() ? OATHS.map((o, i) => riderRow(o.id, i, lit)).join('') : ''}</div></div>
         </div>
         ${collateral(CT.plan) ? `<i class="ct-plan-stamp${lit ? ' lit' : ''}" aria-hidden="true">담보</i>` : ''}
       </section>
     </div>
+    ${rOn || sheetOut ? `<section class="ct-riders lp-paper lp-frame${sheetIn ? ' in' : ''}${sheetOut ? ' out' : ''}" role="group" aria-label="특약 차림표 (담보 약관 전용)"${sheetOut ? ' aria-hidden="true" inert' : ''}>
+      <h2 class="lp-h2">특약 <small>절망 ${heat}</small></h2><div class="lp-list">${OATHS.map((o) => riderRow(o.id)).join('')}</div>
+    </section>` : ''}
     <section class="ct-printer" aria-label="의뢰 전표">
       <div class="ct-slipwrap" style="--n:${n}">
         <div class="ct-slip lp-carbon${n ? '' : ' empty'}">${slipHtml()}${CT.stamp ? `<i class="ct-stampmark ${CT.stamp}" aria-hidden="true">${CT.stamp === 'ok' ? '승인' : '취소'}</i>` : ''}</div>
@@ -630,8 +637,7 @@ export function contractMount(root: HTMLElement) {
       const f = (e.target as HTMLElement).closest<HTMLElement>('[data-f]')?.dataset.f;
       if (f && f !== CT.focus) { CT.focus = f; refreshInfo(); }
     };
-    menu?.addEventListener('mouseover', point);
-    menu?.addEventListener('focusin', point);
+    for (const el of [menu, ct.querySelector<HTMLElement>('.ct-riders')]) { el?.addEventListener('mouseover', point); el?.addEventListener('focusin', point); }
     bellDrag(ct);
     leaveGesture(ct);
     if (CT.last) later(1200, () => { CT.last = ''; });

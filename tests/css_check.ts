@@ -19,7 +19,7 @@ export const LEGACY: Record<string, string> = {
   '--good': '--c-good', '--bad': '--c-bad', '--info': '--c-info',
 };
 /** JS(main.ts · battleview.ts 등)가 style="--x:…" / setProperty('--x') 로 주입하는 변수 */
-export const JS_VARS = ['--rot-bp', '--rot-mn', '--rot-pr', // ui/contract.ts: 도면 · 차림표가 놓인 각도
+export const JS_VARS = ['--rot-bp', '--rot-mn', '--rot-pr', '--rot-rd', // ui/contract.ts: 도면 · 차림표가 놓인 각도
  
   '--c', '--sc', '--h', '--w', '--fw', '--fh', '--ox', '--oy', '--i', '--x', '--y', '--s', '--d', '--n', '--o', '--p', '--v', '--mx', '--my', '--hc', '--top-h', '--a', '--k', '--dl', '--oi-r',
 ];
