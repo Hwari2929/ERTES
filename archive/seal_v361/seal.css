@@ -1,0 +1,45 @@
+/* 그늘: 전표가 종이처럼 날아가고 → 바가 네이비 어둠에 잠기며 금 체인 · 회중시계가 돌며 내려오고 → 눈높이에서 심장 박동 → 반동 뒤 끌려 올라간다 */
+.ct-seal { cursor: pointer; background: var(--bg); }
+.ct.sealing { background: none; overflow: visible; transform-origin: 0 0; } /* 그늘: 보드 한 장이 세계 (카메라가 움직인다 · contract.ts camera). 종이는 보드 밖까지 끌려 나간다. --sc = 시간 배율 (단골 0.8) */
+.ct-sealbg { position: fixed; inset: 0; z-index: -1; background: var(--bg); } /* 보드 뒤(body 맨 뒤)의 어둠 → 은하 하늘: 보드가 옅어지며 드러난다 */
+.ct.sealing::before { content: ''; position: absolute; inset: -150vmax; z-index: -1; background: var(--grain), var(--ct-wood); background-blend-mode: overlay, normal; opacity: 0; transition: opacity calc(1.2s * var(--sc)) calc(.15s * var(--sc)) ease-in; } /* 테이블은 화면 밖까지 이어진다 (출력기 쪽으로 다가가도 보드 가장자리가 보이지 않게) — 시작은 보이게: 아래 sealing-in */
+.ct.sealing.seal-0::before { opacity: 1; transition: none; }
+.ct.sealing > :not(.ct-printer), .ct.sealing .ct-pmach { opacity: 0; pointer-events: none; transition: opacity calc(1.2s * var(--sc)) calc(.15s * var(--sc)) ease-in; } /* 종이 말고는 모두 (테이블 · 메뉴판 · 도면 · 출력기 몸체 · 램프 빛) 서서히 어둠에 잠긴다 */
+.ct.sealing :is(.ct-bell, .ct-leave) { transition-duration: .4s; transition-delay: 0s; }
+.ct.sealing .ct-voice { transition-duration: .3s; transition-delay: 0s; } /* 말풍선은 카메라를 따라가지 않게 바로 옅어진다 (승인 대사는 벨을 누른 뒤 1초 넘게 떠 있었다) */
+.ct.sealing .ct-slipwrap { filter: none; clip-path: polygon(-80px -100000px, calc(100% + 80px) -100000px, calc(100% + 80px) calc(100% - 9px), 100% calc(100% - 9px), 97% 100%, 3% 100%, 0 calc(100% - 9px), -80px calc(100% - 9px)); } /* 종이가 위로 한없이 끌려 나간다 (슬롯 아래는 출력기 안) */
+.ct.sealing .ct-curl { display: none; }
+.ct-feed { position: absolute; left: 0; right: 0; top: 100%; border: 0; box-shadow: none; pointer-events: none; } /* 슬롯 아래로 이어진 빈 종이: 전표와 함께 곧게 끌려 나온다 */
+.ct-sealtop { position: fixed; inset: 0; z-index: var(--z-top); cursor: pointer; } /* 누르면 넘김 · 안내 글 (보드 밖, 카메라와 상관없이 화면에 붙어 있다) */
+.ct-sky { position: absolute; inset: 0; overflow: hidden; opacity: 0; animation: ct-sky-in calc(.8s * var(--sc)) calc(1.8s * var(--sc)) ease-out forwards; }
+@keyframes ct-sky-in { to { opacity: 1; } }
+.ct-chains.front { filter: blur(3px); } /* 맨 앞 겹: 화면 앞을 지나는 크고 흐린 체인 (시계보다 위) */
+.ct-shine { position: absolute; inset: 0; background: var(--c-white); opacity: 0; pointer-events: none; } /* 빛에 물든다 (불투명도만) */
+.ct-defs { position: absolute; }
+/* 체인 · 회중시계: 캔버스 물리 (ui/chains.ts). 시계는 체인 끝점에 맞춰 JS 가 옮기고 돌린다 */
+.ct-chainfx { position: fixed; inset: 0; z-index: var(--z-banner); pointer-events: none; } /* 체인 · 회중시계: 화면 위 별도 층 (명부로 넘어간 뒤에도 그 위에서 끌려 올라가며 사라진다) */
+.ct-chains { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.ct-watch { position: absolute; left: 0; top: 0; width: 150px; transform: translate(-9999px, 0); will-change: transform; }
+.ct-watch svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.ct-hand { transform-box: fill-box; transform-origin: 50% 100%; animation: ct-tick 6s linear infinite; } /* 끊김 없이 부드럽게 돈다 */
+.ct-au-lo { fill: var(--lp-au-lo); } /* 체인 고리 두 겹 (면): 어두운 금 아래 + 밝은 금 위 */
+.ct-au-hi { fill: var(--lp-au); }
+.ct-case { fill: var(--c-brand); } /* 시계 · 체인 = 런의 강조 호박색 */
+.ct-rim { fill: none; stroke: var(--c-brand); stroke-width: 7; }
+.ct-bow { fill: none; stroke: var(--c-brand); stroke-width: 3.5; }
+.ct-enamel-o { fill: color-mix(in srgb, var(--lp-cream) 82%, var(--c-brand)); } /* 법랑 문자판: 유일하게 크림이 면으로 허용되는 곳 */
+.ct-enamel { fill: var(--lp-cream); }
+.ct-tick { stroke: var(--lp-ink); stroke-width: 2; }
+.ct-hh { stroke: var(--lp-ink); stroke-width: 3.5; stroke-linecap: round; }
+.ct-mh { fill: none; stroke: var(--lp-stamp); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; } /* 끝이 닻 모양 */
+.ct-pin { fill: var(--lp-ink); }
+@keyframes ct-tick { to { rotate: 360deg; } }
+.ct-load { position: absolute; left: 0; right: 0; bottom: 9%; margin: 0; text-align: center; font: 400 var(--fs-xl) var(--f-serif); letter-spacing: .16em; color: var(--lp-cw); animation: ct-fade .6s calc(3.4s * var(--sc)) both; }
+.ct-load i { font-style: normal; animation: ct-dot 1.2s infinite; }
+.ct-load i:nth-of-type(2) { animation-delay: .2s; }
+.ct-load i:nth-of-type(3) { animation-delay: .4s; }
+@keyframes ct-fade { from { opacity: 0; } }
+@keyframes ct-dot { 0%, 20%, 100% { opacity: .2; } 50% { opacity: 1; } }
+.ct-sealtop.lift .ct-load { opacity: 0; transition: opacity .4s; }
+.ct-sealtop.quick .ct-load, .ct-sealtop.quick .ct-skip-k { display: none; }
+.ct-skip-k { position: absolute; right: 16px; bottom: max(12px, env(safe-area-inset-bottom)); margin: 0; font-size: var(--fs-xs); color: color-mix(in srgb, var(--lp-cw) 60%, transparent); }
