@@ -13,9 +13,9 @@ const reduced = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-
 
 /** 태블릿 모눈이 컷 순간 화면에 놓인 자리 (원점 · 간격 px) */
 export interface Grid { x: number; y: number; s: number }
-/** 태블릿 알림 토스트가 컷 순간 화면에 놓인 자리 (왼쪽 위 · 확대 전 폭 · 배율) */
+/** 태블릿 알림 토스트가 컷 순간 화면에 놓인 자리 (왼쪽 위 · CSS 폭 · 화면에 보이는 배율). 브리핑 화면은 이 배율을 zoom 으로 다시 그린다 (scale 로 늘리면 흐려진다) */
 export interface Note { x: number; y: number; w: number; s: number }
-/** 태블릿 알림 토스트 (계약 보드의 표시기 위): 예레나가 보낸 의뢰 브리핑. 카메라를 따라 커진 그대로 태블릿 화면에 1.2초 남았다가 사라진다 */
+/** 태블릿 알림 토스트 (계약 보드의 표시기 위): 예레나가 보낸 의뢰 브리핑. 카메라를 따라 커진 그대로 태블릿 화면에 0.85초 남았다가 사라진다 */
 const BELL = '<svg class="tn-bell" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6zM9.5 19a2.5 2.5 0 0 0 5 0z"/></svg>';
 export function noteHtml(title: string, cls = '') {
   return `<div class="tnote${cls}" role="status"><img class="tn-av" alt="" src="${artURL('yelena.bust.webp')}" decoding="async" onerror="this.remove()"><b class="tn-who">${BELL}예레나</b><span class="tn-msg">의뢰 브리핑 「${esc(title)}」</span><small class="tn-at">지금</small></div>`;
@@ -59,7 +59,7 @@ export function bandHtml(o: { art: string; color: string; title: string; place: 
     : '';
   return `<div class="nr-bandslot" aria-hidden="${BR.on ? 'false' : 'true'}"><header class="nr-band" style="--fc:${o.color}${g}">
     <i class="nr-band-art" style="background-image:url('${o.art}')" aria-hidden="true"></i><i class="nr-band-shade" aria-hidden="true"></i><i class="nr-band-bp" aria-hidden="true"></i>
-    ${BR.on ? `<div class="nr-tab" aria-hidden="true"><span class="f-num">${hhmm()}</span><span class="nr-tab-r"><i class="nr-tab-wifi"></i><span class="f-num">87%</span><i class="nr-tab-bat"><i></i></i></span></div>${BR.note && !BR.started ? noteHtml(o.title, ' nr-tnote').replace('class="tnote', `style="--nx:${BR.note.x.toFixed(1)}px;--ny:${BR.note.y.toFixed(1)}px;--nw:${BR.note.w.toFixed(1)}px;--ns:${BR.note.s.toFixed(3)}" class="tnote`) : ''}` : ''}
+    ${BR.on ? `<div class="nr-tab" aria-hidden="true"><span class="f-num">${hhmm()}</span><span class="nr-tab-r"><i class="nr-tab-wifi"></i><span class="f-num">87%</span><i class="nr-tab-bat"><i></i></i></span></div>${BR.note && !BR.started ? `<div class="nr-tnote" style="--nx:${BR.note.x.toFixed(1)}px;--ny:${BR.note.y.toFixed(1)}px;--nw:${BR.note.w.toFixed(1)}px;--ns:${BR.note.s.toFixed(3)}">${noteHtml(o.title)}</div>` : ''}` : ''}
     ${BR.on ? `<div class="nr-band-tx"><span class="nr-band-k"><i class="nr-rx" aria-hidden="true"><b></b><b></b><b></b></i><span>브리핑 수신</span></span><h2 class="nr-band-t">「${esc(o.title)}」 <small>${esc(o.place)}</small></h2></div>` : ''}
     ${brief}
   </header></div>`;

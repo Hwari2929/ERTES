@@ -5411,13 +5411,14 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .tn-bell { width: 11px; height: 11px; fill: var(--c-select); transform-origin: 50% 10%; }
 .tn-at { grid-column: 3; grid-row: 1; color: var(--c-text-2); font-size: var(--fs-2xs); }
 .tn-msg { grid-column: 2 / 4; color: var(--c-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ct-tnote { position: absolute; left: 50%; top: 16px; z-index: var(--z-raise); width: min(210px, 42%); translate: -50% -8px; opacity: 0; transition: opacity .18s, translate .25s cubic-bezier(.2, .9, .3, 1.2); }
+.ct-tnote { position: absolute; left: 50%; top: 14px; z-index: var(--z-raise); width: min(200px, 46%); zoom: .82; translate: -50% -8px; opacity: 0; transition: opacity .18s, translate .25s cubic-bezier(.2, .9, .3, 1.2); }
 .ct-tnote.in { opacity: 1; translate: -50% 0; animation: tn-shake .5s .15s ease-in-out; }
 .ct-tnote.in .tn-bell { animation: tn-ring .7s .1s ease-in-out; }
 @keyframes tn-shake { 15%, 55% { rotate: -2.5deg; } 35%, 75% { rotate: 2.5deg; } 100% { rotate: 0deg; } }
 @keyframes tn-ring { 12%, 44% { rotate: -22deg; } 28%, 60% { rotate: 22deg; } 76% { rotate: -8deg; } 100% { rotate: 0deg; } }
 .ct.sealing .ct-tnote { animation: none; rotate: 0deg; } /* 카메라를 따라 커진다 (흔들림은 멈춘다) */
-.nr-tnote { position: absolute; left: var(--nx); top: var(--ny); z-index: var(--z-raise); width: var(--nw); scale: var(--ns); transform-origin: 0 0; animation: nr-toast-out .35s 1.2s ease-in forwards; } /* 브리핑 화면: 컷 순간 그 자리 · 그 크기 그대로 1.2초 남았다가 사라진다 (비율이 바뀌지 않는다) */
+.nr-tnote { position: absolute; left: var(--nx); top: var(--ny); z-index: var(--z-raise); animation: nr-toast-out .35s .85s ease-in forwards; } /* 브리핑 화면: 컷 순간 그 자리 · 그 크기 그대로 0.85초 남았다가 사라진다 */
+.nr-tnote > .tnote { width: var(--nw); zoom: var(--ns); } /* 크기는 zoom 으로 다시 그린다 (scale 은 작은 그림을 늘려 글자가 흐려진다) */
 @keyframes nr-toast-out { to { opacity: 0; translate: 0 -6px; } }
 /* 태블릿 상태줄: 시각 · 와이파이 · 배터리 (브리핑 동안만) */
 .nr-tab { position: absolute; left: 0; right: 0; top: 0; z-index: var(--z-raise); display: flex; justify-content: space-between; align-items: center; padding: max(8px, env(safe-area-inset-top, 0px)) 18px 0; color: var(--c-text); font: 600 var(--fs-sm)/1 var(--f-body); opacity: 0; }

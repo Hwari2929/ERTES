@@ -542,7 +542,7 @@ function handTake(ct: HTMLElement): number {
   later(IN + TAK + HOLD, () => sfx('paper', { pitch: 1.2 }));
   return T;
 }
-/** 표시기 화면 위에 예레나의 알림 토스트를 띄운다 (흔들리며 뜨고, 카메라를 따라 커진 그대로 브리핑 화면에 1.2초 남았다가 사라진다) */
+/** 표시기 화면 위에 예레나의 알림 토스트를 띄운다 (흔들리며 뜨고, 카메라를 따라 커진 그대로 브리핑 화면에 0.85초 남았다가 사라진다) */
 function tabletNote() {
   const bp = document.querySelector<HTMLElement>('main.ct.ct-top .ct-bp'), j = jobOf();
   if (!bp || !j || CT.stamp !== 'ok' || bp.querySelector('.tnote')) return;
@@ -572,7 +572,7 @@ function startSeal(ct: HTMLElement) {
     const q = scr.getBoundingClientRect(), bw = parseFloat(getComputedStyle(scr).borderLeftWidth) || 0;
     sealGrid = { x: q.left + bw * Z, y: q.top + bw * Z, s: 16 * Z }; // .lp-bp 모눈: 테두리 안쪽 원점 · 16px 간격
     const nt = ct.querySelector<HTMLElement>('.ct-tnote.in');
-    if (nt) { const b = nt.getBoundingClientRect(); sealNote = { x: b.left, y: b.top, w: nt.offsetWidth, s: Z }; } // 알림 토스트: 커진 그대로 같은 자리에 남긴다
+    if (nt) { const b = nt.getBoundingClientRect(), w = parseFloat(getComputedStyle(nt).width) || nt.offsetWidth; sealNote = { x: b.left, y: b.top, w, s: b.width / w }; } // 알림 토스트: 화면에 보이는 그대로 (자체 zoom × 카메라 배율) 같은 자리에 남긴다
     finish();
   }).catch(() => {});
 }
