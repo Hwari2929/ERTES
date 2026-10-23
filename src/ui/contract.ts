@@ -17,7 +17,6 @@ import { fieldIntroOf } from '../data/scenes/fields';
 import type { RunState } from '../types';
 import { deedCount, lastDeed, metaOath, oathSel } from './meta';
 import { artURL, bgURL } from './portraits';
-import { starField } from './themefx';
 import { sfx } from './sound';
 import { lineIcon } from './synicons';
 
@@ -473,46 +472,39 @@ function sealHtml() {
   return `<main class="ct ct-seal" data-a="ct-skip" aria-label="넘어가는 중 — 누르면 넘깁니다"></main>`;
 }
 
-/** 벨 → 명부: 카메라가 한 바퀴 돌며 태블릿(의뢰 도면 표시기) 화면 속으로 빨려 들어가고 → 청남색 빛이 빠르게 점멸하고 → 은하 하늘 → 명부의 초기 기물 카드가 떨어져 놓인다.
- *  보드(main.ct)를 다시 그리지 않고 카메라처럼 옮긴다 (WAAPI: 합성기에서 돌아 매끄럽다). 점멸 · 은하는 보드 밖(body)의 한 층(.ct-tv) — 명부로 넘어간 뒤 옅어진다.
+/** 벨 → 브리핑 → 명부: 도장 → 출력기가 전표를 짧게 밀어낸 뒤(0.6초) 카메라가 태블릿(의뢰 도면 표시기)으로 락인한다 —
+ *  기운 만큼(2~3°)만 돌려 정면으로 세우고, 화면이 시야를 덮을 때까지 들어간다 (--ct-in: 버티다 휙). 들어가는 동안 표시기 글자 · 램프 빛은 옅어져 청사진 모눈만 남는다.
+ *  다 들어간 순간 모눈이 놓인 자리 · 간격을 넘겨 주고 명부(브리핑 수신, ui/briefing.ts)로 컷 — 같은 모눈에서 이어진다 (크로스 디졸브 없음).
+ *  보드(main.ct)는 다시 그리지 않고 카메라처럼 옮긴다 (WAAPI). 줄이기 설정이면 회전 · 줌 없이 바로 컷.
  *  이전 연출(전표 카메라 · 체인 · 회중시계)은 archive/seal_v361 에 보관 */
-const TV = { dive: 1150, blink: 720, roster: 1950 }; // ms (빛 · 은하 시각은 style.css .ct-tv 와 맞춘다)
+let sealGrid: { x: number; y: number; s: number } | null = null;
+/** 컷 순간 태블릿 모눈의 화면 자리 (브리핑이 같은 모눈에서 시작한다) — 한 번 읽으면 지운다 */
+export function takeSealGrid() { const g = sealGrid; sealGrid = null; return g; }
+/** 두 번째 계약부터 (브리핑을 1줄로 줄인다) */
+export const contractVet = () => CT.vet;
 function startSeal(ct: HTMLElement) {
   CT.step = 'seal';
+  sealGrid = null;
   const scr = ct.querySelector<HTMLElement>('.ct-bp-scr');
-  if (reduced() || !scr) { later(reduced() ? 400 : 0, finish); return; }
+  if (reduced() || !scr) { finish(); return; }
   const W = innerWidth, H = innerHeight, r = scr.getBoundingClientRect(), rot = (CT.rot.bp * Math.PI) / 180;
-  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-  const Z = Math.max(W / scr.offsetWidth, H / scr.offsetHeight) * 3.2; // 화면을 덮고도 더 들어간다 (화면 속으로)
-  const spin = (k: number) => k * k * (3 - 2 * k), dive = (k: number) => k ** 2.2; // 회전은 부드럽게 한 바퀴, 확대는 끝으로 갈수록 빨려 들어가듯
-  // 태블릿 가운데가 화면 가운데로 곧게 오며, 한 바퀴 돌아 똑바로 서고, 점점 빠르게 확대된다 (매 구간을 미리 계산해 이어 붙인다)
-  const keys = Array.from({ length: 49 }, (_, i) => {
-    const k = i / 48, m = spin(Math.min(1, k * 1.15)), z = Math.exp(Math.log(Z) * dive(k));
-    return { transform: `translate(${cx + (W / 2 - cx) * m}px, ${cy + (H / 2 - cy) * m}px) rotate(${-rot * m + 2 * Math.PI * spin(k)}rad) scale(${z}) translate(${-cx}px, ${-cy}px)` };
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2, Z = Math.max(W / scr.offsetWidth, H / scr.offsetHeight) * 1.002; // 표시기 화면이 시야를 꼭 덮는 배율
+  // 진행도 e (0~1) 마다: 표시기 가운데가 화면 가운데로 곧게 · 기운 만큼 돌려 세우고 · 고르게 확대 (시간 곡선은 --ct-in 이 맡는다)
+  const keys = Array.from({ length: 25 }, (_, i) => {
+    const e = i / 24;
+    return { transform: `translate(${cx + (W / 2 - cx) * e}px, ${cy + (H / 2 - cy) * e}px) rotate(${-rot * e}rad) scale(${Math.exp(Math.log(Z) * e)}) translate(${-cx}px, ${-cy}px)` };
   });
   ct.classList.add('sealing');
-  ct.animate(keys, { duration: TV.dive, easing: 'linear', fill: 'forwards' });
-  document.querySelectorAll('.ct-tv').forEach((el) => el.remove());
-  document.body.insertAdjacentHTML('beforeend', '<div class="ct-tv" role="button" aria-label="누르면 넘깁니다"><div class="ct-sky"></div></div>');
-  const tv = document.querySelector<HTMLElement>('.ct-tv');
-  tv?.addEventListener('click', () => { if (CT.step === 'seal') finish(); }); // 앱 밖(body) 층이라 누름을 직접 받는다
-  const sky = tv?.querySelector<HTMLElement>('.ct-sky');
-  if (sky) galaxySky(sky);
-  sfx('paper');
-  later(TV.blink, () => sfx('knock', { pitch: 0.55 })); // 화면 속으로 들어가는 순간
-  later(TV.roster, finish);
+  const cam = ct.animate(keys, { duration: 950, easing: 'cubic-bezier(.8, 0, .55, 1)', fill: 'forwards' });
+  sfx('paper', { pitch: 0.8 });
+  cam.finished.then(() => {
+    if (CT.step !== 'seal') return;
+    const q = scr.getBoundingClientRect(), bw = parseFloat(getComputedStyle(scr).borderLeftWidth) || 0;
+    sealGrid = { x: q.left + bw * Z, y: q.top + bw * Z, s: 16 * Z }; // .lp-bp 모눈: 테두리 안쪽 원점 · 16px 간격
+    finish();
+  }).catch(() => {});
 }
 
-/** 그늘 장면의 은하 하늘: 에란테스 갤럭시 테마의 바탕색 + 별빛 층과 같은 별무리 (지금 테마 · 연출 설정과 상관없이) */
-function galaxySky(el: HTMLElement) {
-  const probe = document.createElement('i');
-  probe.setAttribute('data-ui-theme', 'galaxy');
-  probe.hidden = true;
-  document.body.appendChild(probe);
-  el.style.background = getComputedStyle(probe).getPropertyValue('--bg').trim();
-  probe.remove();
-  starField(el);
-}
 export function contractScreen(): string {
   if (CT.step === 'seal') return sealHtml();
   return boardHtml();
@@ -603,7 +595,7 @@ function actOn(a: string, v: string): boolean {
         const ct = document.querySelector<HTMLElement>('main.ct.ct-top');
         if (ct) startSeal(ct); else { CT.step = 'seal'; finish(); }
       };
-      later(reduced() ? 400 : CT.vet ? 900 : 1300, go);
+      later(600, go); // 도장 → 출력기가 전표를 짧게 밀어낸다 (서명의 결과물이 손에 들어온 감각) → 카메라
       return true;
     }
     case 'ct-cancel': { // 의뢰 취소: '취소' 도장 → 전표가 바깥으로 미끄러져 나가고 고른 것이 비워진다 (테이블은 그대로)
@@ -655,8 +647,6 @@ function blink() {
 /** 그늘 연출 끝 → 명부 */
 function finish() {
   clear();
-  const tv = document.querySelector<HTMLElement>('.ct-tv'); // 은하 하늘이 옅어지며 명부가 드러난다 (카드는 떨어져 놓인다)
-  if (tv) { tv.classList.add('out'); window.setTimeout(() => tv.remove(), 700); }
   const s = signedContract();
   if (!s) { contractBack(); hooks.render(); return; }
   CT.fromSeal = true;

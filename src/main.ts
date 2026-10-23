@@ -25,6 +25,7 @@ import * as AB from './ui/abil';
 import * as CX2 from './ui/codex2';
 import * as BAR from './ui/bar';
 import * as CTR from './ui/contract';
+import * as BRF from './ui/briefing';
 import * as ACH from './ui/achieve';
 import * as TFX from './ui/themefx';
 import {
@@ -891,10 +892,14 @@ let dpPlayed: string | null = null;
 
 function newRunScreen() {
   const n = app.starters.length, sc = CTR.signedContract();
-  return `<main class="wrap nr roster${CTR.takeFromSeal() ? ' from-seal' : ''}">
+  const fld = fieldOf(app.introField), deed = sc ? `<span class="nr-deed" title="영수 증서 — 서명한 계약">${lineIcon('k.note', 'li')}<span class="f-num">No.${String(sc.contract.no).padStart(4, '0')}</span> ${esc(sc.contract.plan)}</span>` : '';
+  CTR.takeFromSeal();
+  // 머리 띠 = 의뢰한 전장 (브리핑 수신 중에는 화면을 채운 태블릿 속, 끝나면 이 자리로 올라와 붙는다 · ui/briefing.ts)
+  return `<main class="wrap nr roster${BRF.BR.on ? ' brief' : ''}">
+    ${BRF.bandHtml({ art: bgURL(`field_${fld.id}`), color: fld.color, title: sc ? sc.contract.title : fld.name, place: fld.name, deed })}
     <div class="nr-head">
       <div class="nr-title"><h1>계약 기물 선택</h1>
-        <div class="nr-meta">${sc ? `<span class="nr-deed" title="영수 증서 — 서명한 계약">${lineIcon('k.note', 'li')}<span class="f-num">No.${String(sc.contract.no).padStart(4, '0')}</span> 「${esc(sc.contract.title)}」 · ${esc(sc.contract.plan)}</span>` : ''}<span class="nr-cnt">후보 ${app.pool.length}명 중 <b>${CFG.startUnits}명</b></span>${(() => { const syn = fieldSyn(app.introField), k = starterFavNeed(app.introField); return syn && k ? `<span class="nr-fav" title="${esc(`전장 [${fieldOf(app.introField).name}]의 우세 시너지 기물이 후보에 ${k}명 이상 섞여 있습니다`)}">${esc(fieldOf(app.introField).name)} 우세 ${chip(syn)} <b>${k}명+</b></span>` : ''; })()}</div>
+        <div class="nr-meta"><span class="nr-cnt">후보 ${app.pool.length}명 중 <b>${CFG.startUnits}명</b></span>${(() => { const syn = fieldSyn(app.introField), k = starterFavNeed(app.introField); return syn && k ? `<span class="nr-fav" title="${esc(`전장 [${fieldOf(app.introField).name}]의 우세 시너지 기물이 후보에 ${k}명 이상 섞여 있습니다`)}">${esc(fieldOf(app.introField).name)} 우세 ${chip(syn)} <b>${k}명+</b></span>` : ''; })()}</div>
         <p class="nr-hint">${CAN_HOVER ? '누르면 선택 · 마우스를 올리면 설명' : '누르면 선택 · 카드 하단을 끌어올리면 설명'}</p></div>
       ${detailToggle()}
     </div>
@@ -4124,6 +4129,7 @@ function render() {
   TFX.onScreen(prevScreen, app.screen); // 테마 연출: 전투 중 강도 낮춤 · (이타카) 큰 화면 전환 물결 (사건 장면이 떴는지 본 뒤)
   if (app.screen === 'bar') BAR.barMount();
   if (app.screen === 'contract') CTR.contractMount(root);
+  if (app.screen === 'newrun') BRF.briefMount(root);
   // 리본 시너지 줄: 넘치면 오른쪽 끝에 '더 있음' 표시 (끝까지 밀면 사라짐)
   const ts = root.querySelector<HTMLElement>('.top-syns');
   if (ts) {
@@ -6469,6 +6475,7 @@ Object.assign(CTR.hooks, {
     app.introField = s.field; app.diff = s.diff; app.introFoe = null;
     app.starters = []; app.screen = 'newrun'; app.menu = null; carX = null; app.cardOpen = null;
     app.pool = starterPool(new Rng((Date.now() ^ (Math.random() * 1e9)) | 0), app.introField); app.poolRerolls = CFG.starterRerolls;
+    BRF.briefBegin(app.pool, CTR.contractVet(), CTR.takeSealGrid()); // 태블릿 속 브리핑 수신: 상태문의 인물 = 이번 후보 (곧 떨어질 카드)
     render();
   },
   leave: (to: string) => act(to === 'bar' ? 'bar' : 'to-title', ''),
