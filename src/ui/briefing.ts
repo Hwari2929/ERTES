@@ -1,7 +1,7 @@
 // 브리핑 수신 (계약 서명 → 명부): 카메라가 태블릿 화면 속으로 들어간 뒤의 화면. 흐린 전장 그림 · 의뢰 제목 · 진행 바 · 상태문 티커.
 // 진행 바는 시간이 아니라 상태문 줄 수에 묶는다 — 줄마다 한 칸, 마지막 줄이 끝나면 100% (누르면 남은 줄이 한꺼번에 찬다).
 // 상태문의 인물 = 이번 후보 기물(app.pool) = 곧 떨어질 카드. 끝나면 전장 그림의 높이가 줄어 명부 위쪽 배경이 되고(도킹) 카드가 떨어진다.
-// 전장 그림은 확산 모델이 단계를 밟아 그림을 추정하듯 노이즈가 걷히며 드러난다 (브리핑 줄마다 몇 단계, 도킹하며 끝까지).
+// 전장 그림은 확산 모델이 단계를 밟아 그림을 추정하듯 노이즈가 걷히며 드러난다 (브리핑 줄마다 몇 단계 → 브리핑이 끝나면 화면 가득 끝까지 걷히고 잠깐 보여 준 뒤 도킹).
 // 첫 계약 3초 안쪽 (5줄), 단골 1줄 1초. 태블릿 모눈과 같은 간격 · 같은 자리에서 시작해 16px 로 가라앉는다 (카메라 컷의 이음새).
 import { BRIEF_LINES } from '../data/briefing';
 import { UNIT_BY_ID } from '../data/units';
@@ -14,10 +14,10 @@ export interface Grid { x: number; y: number; s: number }
 /** 지금 브리핑: 켜짐 · 상태문 · 보인 줄 수 · 모눈 · 단골 · 타이머 시작 여부 */
 export const BR = { on: false, lines: [] as string[], shown: 0, grid: null as Grid | null, vet: false, started: false };
 const timers: number[] = [];
-/** 노이즈 해소: 전체 단계 · 브리핑이 끝날 때까지 밟는 단계 · 한 단계 간격(ms) */
-const DN = { n: 20, brief: 4, ms: 90 };
-let dn: { cv: HTMLCanvasElement; img: HTMLImageElement; k: number; goal: number; tick: number } | null = null;
-const T = { first: 380, step: 520, tail: 420, vetFirst: 150, vetTail: 850, dock: 720 }; // ms
+/** 노이즈 해소: 전체 단계 · 브리핑이 끝날 때까지 밟는 단계 · 한 번에 밟는 단계 · 간격(ms) — 0.12초마다 2단계 */
+const DN = { n: 20, brief: 4, per: 2, ms: 120 };
+let dn: { cv: HTMLCanvasElement; img: HTMLImageElement; k: number; goal: number; tick: number; done?: () => void } | null = null;
+const T = { first: 380, step: 520, tail: 420, vetFirst: 150, vetTail: 850, dock: 720, hold: 700, vetHold: 450 }; // ms (hold: 다 걷힌 전장 그림을 보여 주는 시간)
 
 /** 브리핑을 준비한다 (명부를 그리기 전에): 후보 기물마다 상태문 한 줄씩, 같은 브리핑에서 같은 줄 · 같은 인물을 되풀이하지 않는다 */
 export function briefBegin(pool: string[], vet: boolean, grid: Grid | null) {
@@ -65,7 +65,20 @@ export function briefMount(root: HTMLElement) {
   BR.started = true;
   const n = BR.lines.length, first = BR.vet ? T.vetFirst : T.first, step = BR.vet ? 0 : T.step;
   for (let k = 1; k <= n; k++) timers.push(window.setTimeout(() => show(k), first + (k - 1) * step));
-  timers.push(window.setTimeout(dock, first + (n - 1) * step + (BR.vet ? T.vetTail : T.tail)));
+  timers.push(window.setTimeout(reveal, first + (n - 1) * step + (BR.vet ? T.vetTail : T.tail)));
+}
+/** 브리핑이 끝나면: 청사진 · 진행 바 · 상태문이 걷히고, 화면 가득한 전장 그림의 노이즈가 마저 걷힌 뒤 잠깐 보여 주고 도킹한다 */
+function reveal() {
+  const nr = document.querySelector<HTMLElement>('main.nr.brief');
+  if (!nr) { BR.on = false; return; }
+  if (nr.classList.contains('reveal')) return;
+  nr.classList.add('reveal');
+  let gone = false;
+  const go = () => { if (gone) return; gone = true; timers.push(window.setTimeout(dock, BR.vet ? T.vetHold : T.hold)); };
+  if (dn && !reduced()) {
+    dn.goal = DN.n; dn.done = go;
+    timers.push(window.setTimeout(go, (Math.ceil((DN.n - dn.k) / DN.per) + 4) * DN.ms + 400)); // 그림이 늦게 오면 기다리지 않는다
+  } else go();
 }
 /** k 줄까지 보이기 (진행 바도 k/n) */
 function show(k: number) { BR.shown = k; paint(); }
@@ -86,14 +99,15 @@ function skip() {
   timers.forEach((t) => clearTimeout(t));
   timers.length = 0;
   show(BR.lines.length);
-  timers.push(window.setTimeout(dock, 260));
+  timers.push(window.setTimeout(reveal, 200));
 }
 /** 도킹: 화면을 채운 띠의 높이가 줄어 명부 위쪽 배경이 된다 (노이즈가 걷히고 제목이 머리 첫 줄로 내려앉는다) → 카드가 떨어진다 */
 function dock() {
   const nr = document.querySelector<HTMLElement>('main.nr.brief');
   if (!nr) { BR.on = false; return; }
+  if (nr.classList.contains('docking')) return;
   const band = nr.querySelector<HTMLElement>('.nr-band'), slot = nr.querySelector<HTMLElement>('.nr-bandslot');
-  if (dn) dn.goal = DN.n; // 남은 단계를 마저 밟는다 (도킹 · 카드 낙하와 함께, 끝나면 스스로 걷힌다)
+  if (dn) dn.goal = DN.n; // (보통은 이미 다 걷혔다)
   const done = () => {
     BR.on = false;
     nr.classList.remove('brief', 'settle', 'docking');
@@ -128,15 +142,16 @@ function dnAttach(nr: HTMLElement) {
   }
   if (!dn.cv.isConnected) art.after(dn.cv);
 }
-/** 한 단계: 목표 단계까지 하나씩 밟고, 끝 단계를 그린 뒤에는 옅어지며 걷힌다 */
+/** 한 번: 목표 단계까지 DN.per 단계씩 밟고, 끝 단계를 그린 뒤에는 옅어지며 걷힌다 (걷히면 done) */
 function dnStep() {
   if (!dn || !dn.img.complete || !dn.img.naturalWidth) return;
-  if (dn.k < dn.goal) { dn.k++; dnDraw(); return; }
+  if (dn.k < dn.goal) { dn.k = Math.min(dn.goal, dn.k + DN.per); dnDraw(); return; }
   if (dn.k >= DN.n) {
-    const cv = dn.cv;
+    const cv = dn.cv, done = dn.done;
     dnStop();
     cv.classList.add('gone');
     window.setTimeout(() => cv.remove(), 300);
+    done?.();
   }
 }
 function dnStop() {

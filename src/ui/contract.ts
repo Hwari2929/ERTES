@@ -419,6 +419,7 @@ function boardHtml() {
   return `<main class="ct ct-top${CT.intro && !reduced() ? ' intro' : ''}${CT.stamp ? ` st-${CT.stamp}` : ''}${swEl < SWAP && !reduced() ? ' swapping' : ''}" style="--sw-el:${Math.min(swEl, SWAP)}ms;--rot-bp:${CT.rot.bp}deg;--rot-mn:${CT.rot.mn}deg;--rot-pr:${CT.rot.pr}deg;--rot-rd:${CT.rot.rd}deg;--rot-ls:${CT.rot.ls}deg" aria-label="출격 계약 — 바 테이블 위 의뢰 차림표">
     ${CT.intro ? barviewHtml() : ''}
     <div class="ct-table" aria-hidden="true">${prop('ct_table', '')}</div><div class="lp-grain" aria-hidden="true"></div>
+    <img class="ct-mug" alt="" aria-hidden="true" src="${artURL('ct_mug.webp')}" decoding="async" onerror="this.remove()">
     <button class="ct-leave lp-btn" data-a="ct-leave" aria-label="${leave}" title="${leave} (화면을 위로 쓸어 올려도 된다)">${UP_SVG}</button>
     <p class="ct-voice${CT.say ? ' on' : ''}" aria-live="polite"><b>에이든</b><span>${esc(CT.say)}</span></p>
     <section class="ct-bp" aria-label="의뢰 도면 (표시기)"><div class="ct-bp-scr lp-bp" aria-live="polite">${info}</div><i class="ct-blank" aria-hidden="true"><img class="ct-mk" alt="" src="${artURL('mingki.bust.webp')}" decoding="async" onerror="this.remove()"></i><i class="ct-led" aria-hidden="true"></i></section>

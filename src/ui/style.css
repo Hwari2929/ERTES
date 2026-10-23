@@ -5142,6 +5142,8 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct.intro .ct-voice { transition-delay: 2.1s; }
 .ct-barview { z-index: var(--z-top); } /* 램프 빛 층보다 위 (바 그림은 바의 조명 그대로) */
 .ct { --lamp: .5; } /* 램프 세기: 그늘 층과 빛 층이 같은 값을 읽는다 */
+.ct-mug { position: absolute; left: calc(3vw + min(56vw, 860px) + 2.4vw); top: 10vh; z-index: var(--z-raise); width: clamp(150px, 14vw, 220px); height: auto; pointer-events: none; } /* 레이첼의 핫초코 곱빼기: 표시기 오른쪽 옆 (그림자는 그림에 구워 둠, scripts/mug_cut.py) */
+@media (max-width: 1180px) { .ct-mug { display: none; } } /* 태블릿 · 휴대폰 배치에는 자리가 없다 */
 .ct-hand { position: absolute; left: 0; top: 0; max-width: none; height: auto; pointer-events: none; visibility: hidden; } /* 에이든의 손 (ui/contract.ts handTake) */
 .ct-hand.sh { z-index: var(--z-float); translate: 11px 16px; filter: brightness(0) blur(3px); opacity: .5; } /* 그림자: 전표 · 테이블 · 벨 위, 엄지 · 손 밑 (DOM 이 둘보다 앞). 손에 붙어 있고 거의 또렷하다. 따로 한 장 (앞 층에 그림자를 달면 엄지 구멍으로 비친다) */
 .ct-hand-thb { position: absolute; inset: 0; z-index: var(--z-float); pointer-events: none; } /* 엄지 끝: 손과 같은 층 (램프 그늘 · 벨 위 — 아래 층이면 엄지만 어두워진다). 전표 사각형만큼은 JS 가 clip-path 로 잘라 전표 밑처럼 보인다 */
@@ -5399,6 +5401,10 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .nr-brief-tk li { display: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nr-brief-tk li.on { display: block; animation: ct-fade .3s both; }
 .nr-brief-tk li.on:has(+ li.on) { opacity: .55; }
+/* 걷힘: 브리핑이 끝나면 청사진 · 진행 바 · 상태문이 걷히고 화면 가득한 전장 그림만 (노이즈가 마저 걷힌 뒤 잠깐 보여 주고 도킹) */
+.nr.brief.reveal .nr-band-bp { opacity: 0; transition: opacity .45s; }
+.nr.brief.reveal .nr-band-art { filter: blur(0); transition: filter .3s; }
+.nr.brief.reveal :is(.nr-brief, .nr-band-k) { opacity: 0; transition: opacity .3s; }
 /* 도킹: 화면을 채운 띠가 명부 머리 자리로 올라와 붙는다 — 흐림이 걷히고 폭이 줄며 제목이 띠 안에 남는다 */
 .nr.brief.docking .nr-band { transition: top .7s cubic-bezier(.45, 0, .2, 1), left .7s cubic-bezier(.45, 0, .2, 1), width .7s cubic-bezier(.45, 0, .2, 1), height .7s cubic-bezier(.45, 0, .2, 1); }
 .nr.brief.docking .nr-band-art { filter: blur(0); transition: filter .6s; }
@@ -5503,6 +5509,6 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 }
 @media (prefers-reduced-motion: reduce) { /* 움직임 줄이기: 등장 · 나가기 · 떨림 없이 바로 놓이고, 그늘 연출은 ui/contract.ts 가 0.9초 뒤 바로 명부로 넘긴다 */
   .ct-printer.run .ct-pmach, .ct-bell.on, .ct-bell.out, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-riders.in, .ct-riders.out, .ct-offsheet.in, .ct-offsheet.out, .ct.intro .ct-bp-scr, .ct-barview, .ct.outro *, .nr.drop .pslot, .nr.drop :is(.nr-title > h1, .nr-side, .nr-foot), .nr-brief-tk li, .nr-band-k > span, .nr-rx b { animation: none; }
-  .nr.brief.docking .nr-band, .nr.brief.docking .nr-band *, .nr.brief.settle .nr-band-bp, .nr.brief.settle :is(.nr-band-tx, .nr-brief), .nr-brief-bar i { transition: none; } /* 브리핑: 모눈이 가라앉거나 띠가 올라오는 움직임 없이 바로 */
+  .nr.brief.docking .nr-band, .nr.brief.docking .nr-band *, .nr.brief.reveal .nr-band *, .nr.brief.settle .nr-band-bp, .nr.brief.settle :is(.nr-band-tx, .nr-brief), .nr-brief-bar i { transition: none; } /* 브리핑: 모눈이 가라앉거나 띠가 올라오는 움직임 없이 바로 */
   .ct-voice { transition: none; }
 }
