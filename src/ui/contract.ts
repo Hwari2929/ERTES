@@ -54,6 +54,8 @@ const CT = {
   intro: false,
   /** 벨이 테이블 오른쪽 끝에 나와 있는지 (다 고르면 오른쪽 밖에서 튀어나오고, 고른 것이 비면 다시 들어간다) */
   bell: false,
+  /** 펜 체크가 바뀌는 중에 연타하면 에이든이 핀잔을 주며 차림표를 새 것으로 바꾼 시각 */
+  swapAt: -1e9,
   /** 도면 · 차림표가 놓인 각도 (열 때마다 조금씩 다르게) */
   /** 놓인 각도: 도면 · 차림표 · 출력기 · 특약 차림표 · 메뉴에 없는 의뢰 */
   rot: { bp: 0, mn: 0, pr: 0, rd: 0, ls: 0 },
@@ -131,11 +133,12 @@ export function contractStart(from: string, list = false, snap = '') {
   barSnap = snap ? snapOf(snap) : '';
   clear();
   const n = deedCount();
-  Object.assign(CT, { step: 'board', from, sel: null, list, vet: n > 0, lit: false, focus: '', last: '', stamp: '', intro: true, bell: false, fromSeal: false, say: '오늘 들어온 의뢰서입니다. 제철이라 조금 더 쳐 드리죠.' });
+  Object.assign(CT, { step: 'board', from, sel: null, list, vet: n > 0, lit: false, focus: '', last: '', stamp: '', intro: true, bell: false, swapAt: -1e9, fromSeal: false, say: '오늘 들어온 의뢰서입니다. 제철이라 조금 더 쳐 드리죠.' });
   CT.rot = { bp: rnd(-4, 4), mn: rnd(-3, 3), pr: rnd(-3, 3), rd: rnd(-3, 3), ls: rnd(-2, 2) };
   for (const k in shown) delete shown[k];
   paper.rows = []; paper.run = null; paper.token++;
   scr.last = ''; scr.hits = [];
+  for (const k in marks) delete marks[k];
   CT.no = n + 1;
   const d = new Date();
   CT.time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -263,11 +266,33 @@ function feedSlip(ct: HTMLElement, done: () => void) {
 // ───────── 차림표
 const clientShort = (c?: string) => (c || '').replace(/\s*\(.*\)$/, '');
 /** 항목 한 줄: 이름 ‥‥ 가격, 아래 작은 설명 (고르면 네이비 띠로 반전) */
-const row = (cls: string, attrs: string, nm: string, pr: string, ds: string[], on: boolean) =>
-  `<button class="lp-row${on ? ' on' : ''}${cls ? ` ${cls}` : ''}" ${attrs} aria-pressed="${on}"><span class="lp-rt"><b class="lp-nm">${nm}</b><i class="lp-dots" aria-hidden="true"></i><em class="lp-pr">${pr}</em></span>${ds.map((d) => `<small class="lp-ds">${d}</small>`).join('')}</button>`;
+const row = (cls: string, attrs: string, nm: string, pr: string, ds: string[], on: boolean, ck = '') =>
+  `<button class="lp-row${on ? ' on' : ''}${cls ? ` ${cls}` : ''}" ${attrs} aria-pressed="${on}"><span class="lp-rt"><b class="lp-nm">${nm}</b><i class="lp-dots" aria-hidden="true"></i>${pr ? `<em class="lp-pr">${pr}</em>` : ''}${ck}</span>${ds.map((d) => `<small class="lp-ds">${d}</small>`).join('')}</button>`;
+
+// ───────── 펜 체크: 고른 줄은 바탕을 칠하지 않고 체크칸에 네이비 펜으로 체크한다. 고른 것을 바꾸면 앞 체크를 지운 뒤 새 칸에 긋는다
+/** 손으로 그은 듯한 체크 한 획 (pathLength 1 → 그리기 · 지우기) */
+const PEN = '<svg viewBox="0 0 20 20" aria-hidden="true"><path pathLength="1" d="M3.4 10.6c1.6 1.4 3.1 3 4.6 5.2 2.6-4.6 5.7-8.8 9.7-12.6"/></svg>';
+const PEN_OUT = 220, PEN_IN = 320, SWAP = 1100;
+/** 묶음(job · plan · rd:id)마다 지금 체크된 값 · 직전 값 · 바뀐 시각 (다시 그려도 연출이 이어지게) */
+const marks: Record<string, { cur: string; prev: string; t0: number }> = {};
+function mark(g: string, cur: string) {
+  const m = marks[g];
+  if (!m) { marks[g] = { cur, prev: '', t0: 0 }; return; }
+  if (m.cur !== cur) { m.prev = m.cur; m.cur = cur; m.t0 = performance.now(); }
+}
+const penBusy = () => { const now = performance.now(); return Object.values(marks).some((m) => now - m.t0 < PEN_OUT + PEN_IN); };
+/** 체크칸: 지금 값이면 체크 (막 바뀌었으면 앞 체크를 지운 뒤 긋는다), 직전 값이면 지우는 중 */
+function box(g: string, key: string, cls = 'ct-box') {
+  const m = marks[g], now = performance.now(), el = m ? Math.round(now - m.t0) : 1e9, quiet = reduced() || now - CT.swapAt < SWAP;
+  let c = cls, st = '';
+  if (m && m.cur && key === m.cur) { c += ' on'; if (el < PEN_OUT + PEN_IN && !quiet) { c += ' draw'; st = ` style="--el:${el}ms;--d:${m.prev ? PEN_OUT : 0}ms"`; } }
+  else if (m && key === m.prev && el < PEN_OUT && !quiet) { c += ' erase'; st = ` style="--el:${el}ms"`; }
+  return `<i class="${c}"${st} aria-hidden="true">${PEN}</i>`;
+}
+const jobKey = (j: Job | null) => j ? `${j.kind}:${j.field}` : '';
 function jobRow(j: Job, v: string, small = false) {
   const f = fieldOf(j.field), fi = fieldIntroOf(j.field), on = !!CT.sel && CT.sel.kind === j.kind && CT.sel.field === j.field;
-  return row(small ? 'sm' : '', `data-a="ct-job" data-v="${v}" data-f="job:${v}"`, `「${esc(fi?.title || f.name)}」`, j.kind === 'season' ? '제철' : '', [`${esc(f.name)}${fi ? ` · ${esc(clientShort(fi.client))}` : ''}`], on);
+  return row(small ? 'sm' : '', `data-a="ct-job" data-v="${v}" data-f="job:${v}"`, `「${esc(fi?.title || f.name)}」`, '', [`${esc(f.name)}${fi ? ` · ${esc(clientShort(fi.client))}` : ''}`], on, box('job', jobKey(j))); // 전장 이름 ‥ 체크칸 (제철은 머리 '모두 싯가' · 도면 · 전표에)
 }
 /** 의뢰 칸: (단골) 늘 하던 대로 + 오늘의 의뢰서 3장 + '메뉴에 없는 의뢰' 한 줄 */
 function jobCol() {
@@ -284,7 +309,7 @@ const RISK = () => `<i class="ct-risk" title="담보 — 함대를 담보로 잡
 /** 약관 줄: 큰 글자 = 고르는 말, 작은 글자 = 부서 · 난이도 + 위험 눈금 (배율 숫자 없음) */
 function planRow(lvl: number) {
   const p = PLAN_BY_LVL[lvl], hot = collateral(lvl);
-  return row(hot ? 'hot' : '', `data-a="ct-plan" data-v="${lvl}" data-f="plan:${lvl}"`, esc(p.short), hot ? RISK() : '', [`${esc(p.dept)} · ${esc(diffName(lvl))} ${pipsHtml(p.pips, hot)}`], CT.plan === lvl);
+  return row(hot ? 'hot' : '', `data-a="ct-plan" data-v="${lvl}" data-f="plan:${lvl}"`, esc(p.short), hot ? RISK() : '', [`${esc(p.dept)} · ${esc(diffName(lvl))} ${pipsHtml(p.pips, hot)}`], CT.plan === lvl, box('plan', String(lvl)));
 }
 /** 메뉴에 없는 의뢰: 차림표의 의뢰 칸을 덮는 조금 넓은 종이 (약관 칸은 거의 덮지 않는다). 고른 뒤에도 남고, 아래로 쓸어 내리면 빠진다 */
 function offSheetHtml(cls: string) {
@@ -297,10 +322,10 @@ function offSheetHtml(cls: string) {
 /** 특약 줄: 환경 조건 이름 + 한 줄 설명 (수치는 도면) + 단계 체크칸 (지금 단계에 체크). 이름을 누르면 단계가 하나씩 오르고, 칸을 누르면 그 단계로 (같은 칸 = 끄기) */
 function riderRow(id: OathId) {
   const d = OATHS.find((o) => o.id === id)!, n = oathLv({ oaths: oathSel() }, id), max = oathMax(id);
-  const box = (k: number) => `<button class="ct-ck${k === n ? ' on' : ''}" data-a="ct-rlv" data-v="${id}:${k}" aria-pressed="${k === n}" aria-label="${esc(d.env)} ${k}단계${k === n ? ' (누르면 끄기)' : ''}"><i aria-hidden="true"></i>${k}단계</button>`;
+  const lvBox = (k: number) => `<button class="ct-ck${k === n ? ' on' : ''}" data-a="ct-rlv" data-v="${id}:${k}" aria-pressed="${k === n}" aria-label="${esc(d.env)} ${k}단계${k === n ? ' (누르면 끄기)' : ''}">${box(`rd:${id}`, String(k), 'ct-box sm')}${k}단계</button>`;
   return `<div class="lp-row sm ct-rd${n ? ' on' : ''}" data-f="rider:${id}">
     <button class="ct-rd-nm" data-a="ct-rider" data-v="${id}" title="${esc(n >= max ? '누르면 끄기' : `누르면 ${n + 1}단계`)}"><b class="lp-nm">${esc(d.env)}</b></button>
-    <span class="ct-rd-ln"><small class="lp-ds">${esc(d.brief)}</small><span class="ct-cks" role="group" aria-label="단계">${Array.from({ length: max }, (_, i) => box(i + 1)).join('')}</span></span>
+    <span class="ct-rd-ln"><small class="lp-ds">${esc(d.brief)}</small><span class="ct-cks" role="group" aria-label="단계">${Array.from({ length: max }, (_, i) => lvBox(i + 1)).join('')}</span></span>
   </div>`;
 }
 
@@ -359,6 +384,7 @@ function sayFor(a: string): string {
   if (a === 'ready') return '다 고르셨으면 벨을 누르시죠.';
   if (a === 'ok') return '승인했습니다. 좋은 밤 되시길.';
   if (a === 'void') return '없던 걸로 하죠. 다시 고르시면 됩니다.';
+  if (a === 'spam') return '펜 자국이 겹치면 저도 못 읽습니다. 새 차림표로 드리죠.';
   return '';
 }
 function usual() {
@@ -377,7 +403,9 @@ const UP_SVG = `<svg class="ct-up" viewBox="0 0 24 24" aria-hidden="true"><path 
 const PRINTER_SVG = `<svg class="ct-fb" viewBox="0 0 100 154" aria-hidden="true"><rect x="10" y="6" width="84" height="146" rx="10" class="sh"/><rect x="4" y="2" width="84" height="146" rx="10" class="body"/><rect x="9" y="7" width="74" height="136" rx="7" class="rim"/><rect x="15" y="9" width="62" height="7" rx="2" class="slot"/><rect x="18" y="11.5" width="56" height="2" rx="1" class="gap"/></svg>`;
 
 function boardHtml() {
-  const ok = payable(), heat = heatNow(), lit = CT.lit, info = infoHtml();
+  mark('job', jobKey(CT.sel)); mark('plan', String(CT.plan));
+  for (const o of OATHS) mark(`rd:${o.id}`, String(oathLv({ oaths: oathSel() }, o.id)));
+  const ok = payable(), heat = heatNow(), lit = CT.lit, info = infoHtml(), swEl = Math.round(performance.now() - CT.swapAt);
   scr.blink = !!scr.last && info !== scr.last && !CT.intro; // 도면 내용이 바뀌면 그린 뒤 화면이 한 번 꺼졌다 켜진다
   scr.last = info;
   CT.lit = false;
@@ -388,7 +416,7 @@ function boardHtml() {
   const rOn = ridersOn(), rd = sheetCls('rd', rOn), ls = sheetCls('ls', CT.list);
   if (rd === ' in') CT.rot.rd = rnd(-3, 3); // 놓일 때마다 조금씩 다른 각도
   if (ls === ' in') { CT.rot.ls = rnd(-2, 2); dragY.ls = 0; }
-  return `<main class="ct ct-top${CT.intro && !reduced() ? ' intro' : ''}${CT.stamp ? ` st-${CT.stamp}` : ''}" style="--rot-bp:${CT.rot.bp}deg;--rot-mn:${CT.rot.mn}deg;--rot-pr:${CT.rot.pr}deg;--rot-rd:${CT.rot.rd}deg;--rot-ls:${CT.rot.ls}deg" aria-label="출격 계약 — 바 테이블 위 의뢰 차림표">
+  return `<main class="ct ct-top${CT.intro && !reduced() ? ' intro' : ''}${CT.stamp ? ` st-${CT.stamp}` : ''}${swEl < SWAP && !reduced() ? ' swapping' : ''}" style="--sw-el:${Math.min(swEl, SWAP)}ms;--rot-bp:${CT.rot.bp}deg;--rot-mn:${CT.rot.mn}deg;--rot-pr:${CT.rot.pr}deg;--rot-rd:${CT.rot.rd}deg;--rot-ls:${CT.rot.ls}deg" aria-label="출격 계약 — 바 테이블 위 의뢰 차림표">
     ${CT.intro ? barviewHtml() : ''}
     <div class="ct-table" aria-hidden="true">${prop('ct_table', '')}</div><div class="lp-grain" aria-hidden="true"></div>
     <button class="ct-leave lp-btn" data-a="ct-leave" aria-label="${leave}" title="${leave} (화면을 위로 쓸어 올려도 된다)">${UP_SVG}</button>
@@ -479,7 +507,22 @@ export function contractScreen(): string {
 function printed(group: string) { CT.last = group; }
 const say = (a: string) => { const t = sayFor(a); if (t) CT.say = t; };
 /** data-a="ct-*" 처리. 다시 그려야 하면 true */
+/** 펜 체크가 바뀌는 중에 고르기를 연타한 시각 (1.5초 안에 3번이면 핀잔 + 새 차림표) */
+let spam: number[] = [];
 export function contractAct(a: string, v: string): boolean {
+  const pick = ['ct-job', 'ct-plan', 'ct-rider', 'ct-rlv', 'ct-usual'].includes(a) && !CT.stamp;
+  let swap = false;
+  if (pick && penBusy()) {
+    const now = performance.now();
+    spam = spam.filter((t) => now - t < 1500);
+    spam.push(now);
+    if (spam.length >= 3 && now - CT.swapAt > SWAP) { swap = true; spam = []; CT.swapAt = now; }
+  }
+  const r = actOn(a, v);
+  if (swap) { CT.say = sayFor('spam'); sfx('paper'); sfx('paper', { delay: 0.55, pitch: 0.9 }); return true; } // 차림표가 아래로 빠졌다가 새 것으로 올라온다
+  return r;
+}
+function actOn(a: string, v: string): boolean {
   if (CT.stamp && a !== 'ct-leave' && a !== 'ct-skip') return false; // 도장이 찍히는 동안은 테이블을 만지지 않는다
   const wasReady = payable();
   const after = (r: boolean) => { if (r && !wasReady && payable() && !CT.say) say('ready'); return r; };
@@ -712,6 +755,7 @@ export function contractMount(root: HTMLElement) {
     if (CT.intro) { CT.intro = false; if (!reduced()) { sfx('paper', { delay: 0.8 }); sfx('paper', { delay: 1.05, pitch: 0.9 }); } window.setTimeout(() => ct.querySelector('.ct-barview')?.remove(), 1700); }
     const menu = ct.querySelector<HTMLElement>('.ct-menu');
     const point = (e: Event) => {
+      if (e.type === 'focusin' && !(e.target as HTMLElement).matches(':focus-visible')) return; // 다시 그린 뒤 되돌아온 초점(터치 · 클릭)이 도면을 옛 줄로 되돌리지 않게
       const f = (e.target as HTMLElement).closest<HTMLElement>('[data-f]')?.dataset.f;
       if (f && f !== CT.focus) { CT.focus = f; refreshInfo(); }
     };
