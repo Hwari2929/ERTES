@@ -446,7 +446,7 @@ function boardHtml() {
       <button class="ct-cancel lp-btn" data-a="ct-cancel"${jobOf() && !CT.stamp ? '' : ' disabled'}>의뢰 취소</button>
     </div>
     <button class="ct-bell${on ? ' on' : ''}${bellIn ? ' in' : ''}${bellOut ? ' out' : ''}${ok && !CT.stamp ? ' ready' : ''}" data-a="ct-bell" aria-label="벨을 눌러 전표 승인 (화면 밖으로 끌어내면 의뢰 취소)"${on ? '' : ' tabindex="-1" aria-hidden="true"'}${ok && !CT.stamp ? '' : ' aria-disabled="true"'}>${prop('ct_bell', BELL_SVG)}</button>
-    <img class="ct-hand sh" alt="" aria-hidden="true" src="${artURL('ct_hand.webp')}" decoding="async"><img class="ct-hand th" alt="" aria-hidden="true" src="${artURL('ct_hand_thumb.webp')}" decoding="async"><img class="ct-hand fr" alt="" aria-hidden="true" src="${artURL('ct_hand.webp')}" decoding="async">
+    <img class="ct-hand th" alt="" aria-hidden="true" src="${artURL('ct_hand_thumb.webp')}" decoding="async"><img class="ct-hand sh" alt="" aria-hidden="true" src="${artURL('ct_hand.webp')}" decoding="async"><img class="ct-hand fr" alt="" aria-hidden="true" src="${artURL('ct_hand.webp')}" decoding="async">
     <div class="ct-light" aria-hidden="true"></div><div class="ct-glow" aria-hidden="true"></div>
     ${hooks.foe()}
   </main>`;
@@ -510,9 +510,9 @@ function handTake(ct: HTMLElement): number {
   ];
   for (const el of [fr, th]) { el.classList.add('on'); el.animate(keys, { duration: T, fill: 'forwards' }); }
   // 그림자: 떠 있을 땐 멀고, 탁 누를 때 손에 붙었다가, 들어 올리면 다시 멀어진다
-  const far = '22px 32px', near = '6px 9px';
+  const far = '26px 38px', near = '10px 15px';
   sh.classList.add('on');
-  sh.animate(keys.map((kf, i) => ({ ...kf, translate: i === 3 ? near : i === 2 || i === 4 ? '10px 14px' : far })), { duration: T, fill: 'forwards' });
+  sh.animate(keys.map((kf, i) => ({ ...kf, translate: i === 3 ? near : i === 2 || i === 4 ? '14px 20px' : far })), { duration: T, fill: 'forwards' });
   // 전표: 집은 뒤 손과 같은 길로 (출력기가 기운 만큼 되돌려 출력기 안 좌표로)
   const pr = (-CT.rot.pr * Math.PI) / 180, lx = ex * Math.cos(pr) - ey * Math.sin(pr), ly = ex * Math.sin(pr) + ey * Math.cos(pr);
   wrap.animate([{ transform: 'none', offset: 0 }, { transform: 'none', offset: o(IN + TAK + HOLD), easing: YANK }, { transform: `translate(${lx}px, ${ly}px)`, offset: 1 }], { duration: T, fill: 'forwards' });
