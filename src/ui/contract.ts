@@ -200,8 +200,8 @@ function paperOff() {
   if (r.steps) p = Math.floor(p * r.steps) / r.steps;
   return r.from + (r.to - r.from) * p;
 }
-/** 움직일 거리 → 시간: 거의 일정한 속도, 길면 조금씩 빨라진다 (600px 에서 1.6배). 되감기는 1.5배 빠르게 */
-const feedMs = (dist: number, back: boolean) => Math.round(dist / (0.36 * (1 + 0.6 * Math.min(1, dist / 600)) * (back ? 1.5 : 1)));
+/** 움직일 거리 → 시간: 거의 일정한 속도 (0.18px/ms), 길면 조금씩 빨라진다 (600px 에서 1.6배). 되감기는 1.5배 빠르게 */
+const feedMs = (dist: number, back: boolean) => Math.round(dist / (0.18 * (1 + 0.6 * Math.min(1, dist / 600)) * (back ? 1.5 : 1)));
 /** 그린 뒤: 종이(지금 찍힌 줄)를 새 줄로 맞춘다. 끝나면 done */
 function feedSlip(ct: HTMLElement, done: () => void) {
   const slip = ct.querySelector<HTMLElement>('.ct-slip'), pr = ct.querySelector<HTMLElement>('.ct-printer');
@@ -221,7 +221,7 @@ function feedSlip(ct: HTMLElement, done: () => void) {
     paper.run = { from, to, t0: performance.now(), ms, steps };
     at(to);
     pr?.classList.add('run');
-    const ticks = Math.min(8, Math.max(1, Math.round(ms / 110)));
+    const ticks = Math.min(14, Math.max(1, Math.round(ms / 110)));
     for (let i = 0; i < ticks; i++) sfx('print', { delay: i * ms / ticks / 1000, pitch: back ? 0.72 + (i % 2) * 0.03 : 1 + (i % 2) * 0.04 });
     slip.animate([{ translate: `0 ${from}px` }, { translate: `0 ${to}px` }], { duration: ms, easing: steps ? `steps(${steps}, end)` : 'linear' }).onfinish = () => {
       if (tok !== paper.token) return;
