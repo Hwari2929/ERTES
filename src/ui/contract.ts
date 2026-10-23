@@ -1,5 +1,5 @@
 // 출격 계약: 에란테스 바 카운터를 내려다본 탑뷰. 바에서 [새 계약] → 시선이 바 테이블로 내려가고 → 위에서 청사진(도면)이, 아래에서 차림표(메뉴판)가 미끄러져 들어온다.
-// 차림표의 줄을 고르면 오른쪽 전표 출력기가 카본지 전표를 위로 한 줄씩 밀어 올리고 (길수록 끝이 휘며 그림자가 진다), 다 고르면 탁상 벨이 테이블 오른쪽 끝에서 튀어나와 그 자리에 놓인다.
+// 차림표의 줄을 고르면 오른쪽 전표 출력기가 카본지 전표를 찍어 위로 밀어 올리고 (길수록 끝이 휘며 그림자가 진다). 고른 것을 바꾸면 출력기가 바뀐 첫 줄까지 종이를 되감아 그 자리부터 다시 찍는다 (종이 재활용 · feedSlip), 다 고르면 탁상 벨이 테이블 오른쪽 끝에서 튀어나와 그 자리에 놓인다.
 // 나가기 = 같은 길을 거꾸로 (바로 돌아갈 때): 위 화살표 · 화면을 위로 세게 쓸어 올리기 · 세게 굴리기. 벨 = 전표에 '승인' 도장 → 그늘(체인 · 회중시계) → 계약 기물 명부 (main.ts newRunScreen).
 // [의뢰 취소] 또는 벨을 화면 밖으로 끌어내기 = '취소' 도장 → 전표가 바깥으로 미끄러져 나가고 고른 것이 비워진다.
 // 의뢰 = 전장 (의뢰 제목 · 의뢰인 = data/scenes/fields.ts) · 약관 = 난이도 (data/contract.ts PLANS, 조항 = data/difficulty.ts DIFFS) · 특약 = 절망 서약 (data/oaths.ts, 담보 약관에만).
@@ -122,6 +122,7 @@ export function contractStart(from: string, list = false, snap = '') {
   const n = deedCount();
   Object.assign(CT, { step: 'board', from, sel: null, list, vet: n > 0, lit: false, focus: '', last: '', stamp: '', intro: true, bell: false, fromSeal: false, say: '오늘 들어온 의뢰서입니다. 제철이라 조금 더 쳐 드리죠.' });
   CT.rot = { bp: rnd(-4, 4), mn: rnd(-3, 3), pr: rnd(-5, 5) };
+  paper.rows = []; paper.run = null; paper.token++;
   CT.no = n + 1;
   const d = new Date();
   CT.time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -162,6 +163,7 @@ export function contractEnv(r: RunState) {
 interface Row { l: string; r?: string; k?: string; g?: string }
 function rows(): Row[] {
   const j = jobOf(), p = planOf(), out: Row[] = [];
+  if (!j) return out; // 의뢰를 고르기 전에는 종이가 출력기 안에 있다
   out.push({ l: 'ERRANTES BAR', k: 'h' }, { l: '의뢰 전표', k: 'hs' }, { l: `No.${pad(CT.no, 4)}`, r: CT.time, k: 'm' }, { l: '', k: 'div' });
   if (j) {
     const f = fieldOf(j.field), fi = fieldIntroOf(j.field);
@@ -182,14 +184,63 @@ function rows(): Row[] {
   }
   return out;
 }
-/** 방금 찍힌 묶음(rider:id 는 특약 머리줄도 함께)의 줄에 .new — --i 로 한 줄씩 밀려 올라온다 */
-const isNew = (x: Row) => !!x.g && !!CT.last && (x.g === CT.last || (CT.last.startsWith('rider:') && x.g === 'rider'));
-function slipHtml() {
-  let i = 0;
-  return rows().map((x) => x.k === 'div' ? '<i class="ct-r div" aria-hidden="true"></i>'
-    : `<div class="ct-r ${x.k || ''}${isNew(x) ? ` new" style="--i:${i++}` : ''}"><span>${esc(x.l)}</span>${x.r ? `<span class="f-num">${esc(x.r)}</span>` : ''}</div>`).join('');
+/** 전표 줄 HTML (한 줄씩: 출력기가 지금 종이와 줄 단위로 비교한다) */
+const slipRows = () => rows().map((x) => x.k === 'div' ? '<i class="ct-r div" aria-hidden="true"></i>'
+  : `<div class="ct-r ${x.k || ''}"><span>${esc(x.l)}</span>${x.r ? `<span class="f-num">${esc(x.r)}</span>` : ''}</div>`);
+const slipHtml = () => slipRows().join('');
+
+// ───────── 출력기: 종이는 재활용된다. 줄이 바뀌면 바뀐 첫 줄이 인쇄 머리(슬롯)에 닿을 때까지 종이를 거꾸로 빨아들이고, 그 자리부터 새로 찍으며 밀어낸다
+/** 지금 종이에 찍혀 있는 줄 · 움직이는 중이면 그 기록 (연타하면 지금 위치에서 이어받는다) · 오래된 연쇄를 끊는 표 */
+const paper = { rows: [] as string[], run: null as null | { from: number; to: number; t0: number; ms: number; steps: number }, token: 0 };
+/** 종이가 슬롯 안으로 들어가 있는 길이 (px) */
+function paperOff() {
+  const r = paper.run;
+  if (!r) return 0;
+  let p = Math.min(1, Math.max(0, (performance.now() - r.t0) / r.ms));
+  if (r.steps) p = Math.floor(p * r.steps) / r.steps;
+  return r.from + (r.to - r.from) * p;
 }
-const newCount = () => rows().filter(isNew).length;
+/** 움직일 거리 → 시간: 거의 일정한 속도, 길면 조금씩 빨라진다 (600px 에서 1.6배). 되감기는 1.5배 빠르게 */
+const feedMs = (dist: number, back: boolean) => Math.round(dist / (0.36 * (1 + 0.6 * Math.min(1, dist / 600)) * (back ? 1.5 : 1)));
+/** 그린 뒤: 종이(지금 찍힌 줄)를 새 줄로 맞춘다. 끝나면 done */
+function feedSlip(ct: HTMLElement, done: () => void) {
+  const slip = ct.querySelector<HTMLElement>('.ct-slip'), pr = ct.querySelector<HTMLElement>('.ct-printer');
+  const want = slipRows(), tok = ++paper.token, off0 = paperOff();
+  paper.run = null;
+  if (!slip) return;
+  const same = want.length === paper.rows.length && want.every((h, i) => h === paper.rows[i]);
+  if (CT.stamp || reduced() || (same && off0 <= 0)) { paper.rows = want; done(); return; } // 도장은 종이 위에 찍는 것 (출력기가 아니다)
+  const html = (rs: string[]) => { slip.innerHTML = rs.join(''); slip.classList.toggle('empty', !rs.length); };
+  const at = (y: number) => { slip.style.translate = y ? `0 ${y}px` : ''; };
+  /** i 번째 줄의 윗변 (줄 끝 = 마지막 줄 아래, 아래 여백 앞) */
+  const topOf = (i: number) => { const el = slip.children[i] as HTMLElement | undefined; return el ? el.offsetTop : slip.offsetHeight - parseFloat(getComputedStyle(slip).paddingBottom); };
+  const go = (from: number, to: number, back: boolean, then: () => void) => {
+    const dist = Math.abs(to - from);
+    if (dist < 1) { at(to); then(); return; }
+    const ms = feedMs(dist, back), steps = back ? 0 : Math.max(2, Math.round(dist / 7)); // 찍을 때는 한 칸씩 (모터 스텝), 되감을 때는 매끈하게
+    paper.run = { from, to, t0: performance.now(), ms, steps };
+    at(to);
+    pr?.classList.add('run');
+    const ticks = Math.min(8, Math.max(1, Math.round(ms / 110)));
+    for (let i = 0; i < ticks; i++) sfx('print', { delay: i * ms / ticks / 1000, pitch: back ? 0.72 + (i % 2) * 0.03 : 1 + (i % 2) * 0.04 });
+    slip.animate([{ translate: `0 ${from}px` }, { translate: `0 ${to}px` }], { duration: ms, easing: steps ? `steps(${steps}, end)` : 'linear' }).onfinish = () => {
+      if (tok !== paper.token) return;
+      paper.run = null; pr?.classList.remove('run'); then();
+    };
+  };
+  const print = (start: number) => { paper.rows = want; go(start, 0, false, () => { at(0); done(); }); };
+  if (same) { at(off0); print(off0); return; } // 찍던 중에 다시 그려졌으면 이어서 밀어낸다
+  if (!paper.rows.length) { html(want); print(slip.offsetHeight); return; } // 빈 출력기: 머리말부터 새로 찍는다
+  let d = 0;
+  while (d < want.length && d < paper.rows.length && want[d] === paper.rows[d]) d++;
+  html(paper.rows); at(off0);
+  const h = slip.offsetHeight, top = want.length ? topOf(d) : 0;
+  go(off0, Math.max(off0, h - top), true, () => { // ① 바뀐 첫 줄이 인쇄 머리에 닿을 때까지 빨아들인다 (다 비우면 끝까지)
+    html(want);
+    if (!want.length) { paper.rows = []; at(0); done(); return; }
+    print(slip.offsetHeight - top); // ② 그 자리부터 새로 찍으며 밀어낸다
+  });
+}
 
 // ───────── 차림표
 const clientShort = (c?: string) => (c || '').replace(/\s*\(.*\)$/, '');
@@ -308,7 +359,7 @@ const UP_SVG = `<svg class="ct-up" viewBox="0 0 24 24" aria-hidden="true"><path 
 const PRINTER_SVG = `<svg class="ct-fb" viewBox="0 0 100 154" aria-hidden="true"><rect x="10" y="6" width="84" height="146" rx="10" class="sh"/><rect x="4" y="2" width="84" height="146" rx="10" class="body"/><rect x="9" y="7" width="74" height="136" rx="7" class="rim"/><rect x="15" y="9" width="62" height="7" rx="2" class="slot"/><rect x="18" y="11.5" width="56" height="2" rx="1" class="gap"/></svg>`;
 
 function boardHtml() {
-  const ok = payable(), heat = heatNow(), lit = CT.lit, nn = newCount();
+  const ok = payable(), heat = heatNow(), lit = CT.lit;
   CT.lit = false;
   const leave = CT.from === 'bar' ? '바로 돌아가기' : '타이틀로';
   const n = rows().filter((r) => r.k !== 'div').length;
@@ -331,9 +382,9 @@ function boardHtml() {
         ${collateral(CT.plan) ? `<i class="ct-plan-stamp${lit ? ' lit' : ''}" aria-hidden="true">담보</i>` : ''}
       </section>
     </div>
-    <section class="ct-printer${nn ? ' feed' : ''}" aria-label="의뢰 전표">
+    <section class="ct-printer" aria-label="의뢰 전표">
       <div class="ct-slipwrap" style="--n:${n}">
-        <div class="ct-slip lp-carbon">${slipHtml()}${CT.stamp ? `<i class="ct-stampmark ${CT.stamp}" aria-hidden="true">${CT.stamp === 'ok' ? '승인' : '취소'}</i>` : ''}</div>
+        <div class="ct-slip lp-carbon${n ? '' : ' empty'}">${slipHtml()}${CT.stamp ? `<i class="ct-stampmark ${CT.stamp}" aria-hidden="true">${CT.stamp === 'ok' ? '승인' : '취소'}</i>` : ''}</div>
       </div>
       <div class="ct-pmach" aria-hidden="true">${prop('ct_printer', PRINTER_SVG)}</div>
     </section>
@@ -398,12 +449,8 @@ export function contractScreen(): string {
 }
 
 // ───────── 동작
-/** 전표 한 묶음을 찍는다: 인쇄음은 줄마다 (최대 4번) */
-function printed(group: string) {
-  CT.last = group;
-  const n = Math.min(4, Math.max(1, newCount()));
-  for (let i = 0; i < n; i++) sfx('print', { delay: i * 0.11, pitch: 1 + (i % 2) * 0.04 });
-}
+/** 전표 한 묶음을 고쳐 찍는다 (되감기 · 인쇄 연출과 소리는 그린 뒤 feedSlip) */
+function printed(group: string) { CT.last = group; }
 const say = (a: string) => { const t = sayFor(a); if (t) CT.say = t; };
 /** data-a="ct-*" 처리. 다시 그려야 하면 true */
 export function contractAct(a: string, v: string): boolean {
@@ -464,7 +511,7 @@ export function contractAct(a: string, v: string): boolean {
       clear();
       CT.stamp = 'void'; CT.last = ''; say('void');
       sfx('knock', { pitch: 0.75 }); sfx('paper', { delay: 0.45 });
-      later(reduced() ? 300 : 1200, () => { Object.assign(CT, { stamp: '', sel: null, focus: '', last: '', list: false }); hooks.render(); });
+      later(reduced() ? 300 : 1200, () => { Object.assign(CT, { stamp: '', sel: null, focus: '', last: '', list: false }); paper.rows = []; hooks.render(); }); // 던진 종이는 출력기에 없다
       return true;
     }
     case 'ct-skip': finish(); return false;
@@ -583,8 +630,8 @@ export function contractMount(root: HTMLElement) {
     bellDrag(ct);
     leaveGesture(ct);
     if (CT.last) later(1200, () => { CT.last = ''; });
-    // 전표가 화면 위 끝을 넘었는지 (줄이 밀려 올라온 뒤에 잰다)
-    later(700, () => { // 특약 6건 이상으로 전표가 화면 위로 넘어가거나 (높이 제한 없는 배치에서), 큰 화면이라 안 넘어가도 12건 이상이면
+    // 전표를 고쳐 찍고, 다 밀려 나온 뒤 화면 위 끝을 넘었는지 잰다 (특약 6건 이상으로 넘기거나 (높이 제한 없는 배치에서), 큰 화면이라 안 넘어가도 12건 이상이면)
+    feedSlip(ct, () => {
       const sl = ct.querySelector<HTMLElement>('.ct-slip'), n = ridersOn() ? oathsOn(oathSel()).length : 0;
       const over = !!sl && sl.getBoundingClientRect().top < 0 && getComputedStyle(ct.querySelector('.ct-slipwrap')!).overflow !== 'hidden';
       if ((over && n >= 6) || n >= 12) hooks.receipt(n);

@@ -5076,9 +5076,6 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-r.st { padding-left: 1.2em; color: var(--lp-stamp); font-weight: 700; font-size: var(--fs-2xs); }
 .ct-r.tot { font-weight: 800; font-size: var(--fs-base); }
 .ct-r.div { display: block; margin: 9px 0; border-top: 1px dashed color-mix(in srgb, var(--lp-cink) 60%, transparent); }
-.ct-r.new { animation: ct-feed .42s steps(5) both; } /* 새로 찍힌 줄: 종이가 덜그럭 밀려 나온다 */
-@keyframes ct-feed { from { translate: 0 18px; opacity: .25; } }
-.ct-feed .ct-slip { animation: ct-rattle .42s steps(7) both; }
 @keyframes ct-rattle { 0% { translate: 1px 0; } 25% { translate: -1px 1px; } 50% { translate: 1px 0; } 75% { translate: -1px 0; } 100% { translate: 0 0; } }
 .lp-stamp { display: inline-block; margin-left: 8px; padding: 0 6px; border: 2px solid var(--lp-stamp); color: var(--lp-stamp); font: 700 var(--fs-sm)/1.4 var(--f-slip); rotate: -5deg; animation: ct-stampin .4s ease-out; }
 @keyframes ct-stampin { from { scale: 1.8; opacity: 0; } }
@@ -5246,11 +5243,12 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-pmach .gap { fill: var(--c-black); }
 .ct-pmach .knob { fill: var(--lp-au); stroke: var(--lp-au-lo); stroke-width: 2; }
 .ct-pmach .plate { fill: none; stroke: var(--lp-au-lo); stroke-width: 1.5; }
-.ct-slipwrap { position: absolute; left: 49.3%; bottom: calc(100% - var(--ph) * .28); z-index: var(--z-sticky); width: calc(var(--pw) * .68); translate: -50% 0; display: flex; flex-direction: column; justify-content: flex-end; filter: drop-shadow(6px 10px 8px var(--shade-2)); } /* 높이 제한 없음: 특약을 끝없이 더하면 화면 위로 넘어간다 (업적 receipt_long) */
+.ct-slipwrap { position: absolute; left: 49.3%; bottom: calc(100% - var(--ph) * .28); z-index: var(--z-sticky); width: calc(var(--pw) * .68); translate: -50% 0; display: flex; flex-direction: column; justify-content: flex-end; filter: drop-shadow(6px 10px 8px var(--shade-2));  clip-path: inset(-300vh -80px 0 -80px);} /* 높이 제한 없음: 특약을 끝없이 더하면 화면 위로 넘어간다 (업적 receipt_long) */
 .ct-slip { position: relative; flex: none; overflow: hidden; padding: 12px 11px 22px; display: grid; gap: 0; border-top: 0; /* 하단부(슬릿으로 들어가는 쪽)만 아래로 휘어 들어간다: 아래 끝 9px 가 안쪽으로 좁아지고 그늘이 진다. 위쪽은 평평하게 (글자 그대로 읽히게) */
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), 97% 100%, 3% 100%, 0 calc(100% - 9px));
   box-shadow: inset 0 -12px 8px -8px color-mix(in srgb, var(--c-black) 34%, transparent); }
-.ct-printer.feed .ct-slip { animation: ct-rattle .42s steps(7) both; }
+.ct-printer.run .ct-pmach { animation: ct-rattle .16s steps(4) infinite; } /* 종이를 찍거나 되감는 동안 출력기가 떤다 */
+.ct-slip.empty { visibility: hidden; } /* 종이가 출력기 안에 있다 */
 .ct-stampmark { position: absolute; right: 12px; bottom: 16px; padding: 2px 12px; border: 3px double var(--lp-stamp); color: var(--lp-stamp); font: 700 var(--fs-xl)/1.2 var(--f-serif); letter-spacing: .2em; rotate: -14deg; text-shadow: none; animation: ct-stampin .3s ease-out both; }
 .ct-stampmark.void { right: auto; left: 50%; bottom: 30%; translate: -50% 0; font-size: var(--fs-2xl); }
 .ct.st-void .ct-slipwrap { animation: ct-throw .6s .55s cubic-bezier(.5, 0, .9, .5) both; } /* 취소: 도장이 찍히면 전표가 바깥으로 */
@@ -5412,6 +5410,6 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-bell { --bs: 100px; --br: 8px; --bt: 0%; top: auto; bottom: calc(14px + env(safe-area-inset-bottom)); } /* 휴대폰: 아래 띠 오른쪽 끝 */
 }
 @media (prefers-reduced-motion: reduce) { /* 움직임 줄이기: 등장 · 나가기 · 떨림 없이 바로 놓이고, 그늘 연출은 ui/contract.ts 가 0.9초 뒤 바로 명부로 넘긴다 */
-  .ct-r.new, .ct-printer.feed .ct-slip, .ct-fly, .ct-sway, .ct-swing, .ct-twist, .ct-hand, .ct-bell.on, .ct-bell.out, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-terms, .ct-col-rider .lp-row.lit, .ct-barview, .ct.outro *, .nr.from-seal::after { animation: none; }
+  .ct-printer.run .ct-pmach, .ct-fly, .ct-sway, .ct-swing, .ct-twist, .ct-hand, .ct-bell.on, .ct-bell.out, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-terms, .ct-col-rider .lp-row.lit, .ct-barview, .ct.outro *, .nr.from-seal::after { animation: none; }
   .ct-col-rider, .ct-voice { transition: none; }
 }
