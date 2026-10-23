@@ -54,11 +54,9 @@ const CT = {
   intro: false,
   /** 벨이 테이블 오른쪽 끝에 나와 있는지 (다 고르면 오른쪽 밖에서 튀어나오고, 고른 것이 비면 다시 들어간다) */
   bell: false,
-  /** 페트라 자산관리부 전단 (담보 약관을 고르면 아래에서 튀어나온다 · 아래로 쓸어 내리면 빠진다) */
-  flyer: false,
   /** 도면 · 차림표가 놓인 각도 (열 때마다 조금씩 다르게) */
-  /** 놓인 각도: 도면 · 차림표 · 출력기 · 특약 차림표 · 메뉴에 없는 의뢰 · 전단 */
-  rot: { bp: 0, mn: 0, pr: 0, rd: 0, ls: 0, fl: 0 },
+  /** 놓인 각도: 도면 · 차림표 · 출력기 · 특약 차림표 · 메뉴에 없는 의뢰 */
+  rot: { bp: 0, mn: 0, pr: 0, rd: 0, ls: 0 },
   /** 카운터 너머 목소리 (잠깐 떴다 사라진다) */
   say: '',
   no: 0,
@@ -117,7 +115,7 @@ const orderOf = (fid: string): Job => CT.jobs.find((j) => j.field === fid) || { 
 /** 차림표를 연다: 오늘의 의뢰서 3장 (모두 제철). list = 메뉴에 없는 의뢰 목록을 펼친 채로 */
 /** 바 화면을 뜬 것 (시선 전환용, 클릭 · 낭독 없이 그림으로만): <main> 을 <div> 로 바꿔 화면 판정에 걸리지 않게 */
 let barSnap = '';
-/** 테이블에 올라온 종이 (특약 차림표 rd · 메뉴에 없는 의뢰 ls · 전단 fl): 막 나오면 ' in', 막 빠지면 ' out' (빠지는 동안 한 번 더 그린다), 없으면 null */
+/** 테이블에 올라온 종이 (특약 차림표 rd · 메뉴에 없는 의뢰 ls): 막 나오면 ' in', 막 빠지면 ' out' (빠지는 동안 한 번 더 그린다), 없으면 null */
 const shown: Record<string, boolean> = {};
 /** 쓸어 내리다 놓은 자리 (빠지는 연출이 거기서 이어진다) */
 const dragY: Record<string, number> = {};
@@ -133,8 +131,8 @@ export function contractStart(from: string, list = false, snap = '') {
   barSnap = snap ? snapOf(snap) : '';
   clear();
   const n = deedCount();
-  Object.assign(CT, { step: 'board', from, sel: null, list, vet: n > 0, lit: false, focus: '', last: '', stamp: '', intro: true, bell: false, flyer: false, fromSeal: false, say: '오늘 들어온 의뢰서입니다. 제철이라 조금 더 쳐 드리죠.' });
-  CT.rot = { bp: rnd(-4, 4), mn: rnd(-3, 3), pr: rnd(-3, 3), rd: rnd(-3, 3), ls: rnd(-2, 2), fl: rnd(-4, 4) };
+  Object.assign(CT, { step: 'board', from, sel: null, list, vet: n > 0, lit: false, focus: '', last: '', stamp: '', intro: true, bell: false, fromSeal: false, say: '오늘 들어온 의뢰서입니다. 제철이라 조금 더 쳐 드리죠.' });
+  CT.rot = { bp: rnd(-4, 4), mn: rnd(-3, 3), pr: rnd(-3, 3), rd: rnd(-3, 3), ls: rnd(-2, 2) };
   for (const k in shown) delete shown[k];
   paper.rows = []; paper.run = null; paper.token++;
   CT.no = n + 1;
@@ -191,7 +189,7 @@ function rows(): Row[] {
   const on = ridersOn() ? oathsOn(oathSel()) : [];
   if (on.length) {
     out.push({ l: '', k: 'div' }, { l: `특약 ${on.length}건`, r: `절망 ${heatNow()}`, k: 'b', g: 'rider' });
-    for (const x of on) out.push({ l: `${x.def.name} ${x.n}단계`, r: `+${oathHeatOf(x.def.id, x.n)}`, k: 'st', g: `rider:${x.def.id}` }, { l: x.def.lv(x.n), k: 's', g: `rider:${x.def.id}` });
+    for (const x of on) out.push({ l: `${x.def.env} ${x.n}단계`, r: `+${oathHeatOf(x.def.id, x.n)}`, k: 'st', g: `rider:${x.def.id}` }, { l: x.def.lv(x.n), k: 's', g: `rider:${x.def.id}` });
   }
   if (j && p) {
     out.push({ l: '', k: 'div' }, { l: '보수', r: priceOf(j), k: 'tot' }, { l: '표기 위험', r: effDiffLabel(p.lvl, heatNow()), k: 'b' }, { l: '결제', r: CT.stamp === 'ok' ? '승인' : CT.stamp === 'void' ? '취소' : '벨을 누르면 승인', k: 'm' });
@@ -280,30 +278,12 @@ function jobCol() {
 }
 /** 위험 눈금: 칸 3개 중 n개 (담보 = 도장 색) */
 const pipsHtml = (n: number, hot = false) => `<i class="ct-pips${hot ? ' hot' : ''}" role="img" aria-label="위험 ${n}/3">${[1, 2, 3].map((k) => `<b class="${k <= n ? 'on' : ''}"></b>`).join('')}</i>`;
-/** 담보 봉인: 고르기 전에도 다른 약관과 다른 붉은 밀랍 도장 */
-const WAX = `<i class="ct-wax" title="담보 — 함대를 담보로 잡는 약관" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2l2.3 2.1 3-.6.9 2.9 2.9.9-.6 3L22 12l-2.1 2.3.6 3-2.9.9-.9 2.9-3-.6L12 22l-2.3-2.1-3 .6-.9-2.9-2.9-.9.6-3L2 12l2.1-2.3-.6-3 2.9-.9.9-2.9 3 .6z"/></svg><span>담보</span></i>`;
+/** 담보 위험 표식: 고르기 전에도 다른 약관과 다르게 (해골 + 위험, 도장 색) */
+const RISK = () => `<i class="ct-risk" title="담보 — 함대를 담보로 잡는 약관">${lineIcon('m.skull', 'li')}<span>위험</span></i>`;
 /** 약관 줄: 큰 글자 = 고르는 말, 작은 글자 = 부서 · 난이도 + 위험 눈금 (배율 숫자 없음) */
 function planRow(lvl: number) {
   const p = PLAN_BY_LVL[lvl], hot = collateral(lvl);
-  return row(hot ? 'hot' : '', `data-a="ct-plan" data-v="${lvl}" data-f="plan:${lvl}"`, esc(p.short), hot ? WAX : '', [`${esc(p.dept)} · ${esc(diffName(lvl))} ${pipsHtml(p.pips, hot)}`], CT.plan === lvl);
-}
-/** 담보를 고르면 아래에서 튀어나오는 페트라 자산관리부 전단: 담보 조건(감수) · 보전 내역(보상) · 특약 가입 권고 */
-function flyerHtml(cls: string) {
-  const t = collateralTerms(CT.plan), p = PLAN_BY_LVL[CT.plan];
-  return `<section class="ct-flyer lp-paper${cls}" style="--y0:${dragY.fl || 0}px" aria-label="페트라 자산관리부 전단 — 담보 조건"${cls === ' out' ? ' aria-hidden="true" inert' : ''}>
-    <header class="ct-fl-h"><b>PETRA</b><span>주식회사 페트라 · 자산관리부</span></header>
-    <h3 class="ct-fl-t">담보 계정 편입 안내</h3>
-    <p class="ct-fl-no f-num">적요 ${esc(p?.code || '')}-${pad(CT.no, 4)}</p>
-    <p class="ct-fl-lead">이번 계약 기간 동안 귀 함대는 당사 담보 계정에 계상됩니다.</p>
-    <section class="ct-tm cost"><h3>${lineIcon('m.skull', 'li')}담보 조건</h3>
-      <p>${lineIcon('r.hp', 'li')}<span>${esc(t.hp)}</span></p><p>${lineIcon('n.adversity', 'li')}<span>${esc(t.despair)}<small>${esc(t.when)}</small></span></p></section>
-    <section class="ct-tm gain"><h3>${lineIcon('m.up', 'li')}약정 보수</h3>
-      ${gainsOf(CT.plan).map((g) => `<p>${lineIcon(g.icon, 'li')}<span>${esc(g.text)}</span></p>`).join('')}</section>
-    <section class="ct-tm cost"><h3>${lineIcon('n.adversity', 'li')}특약 고지</h3>
-      <p>${lineIcon('m.skull', 'li')}<span>특약은 위험 가산 조항입니다<small>붙일 때마다 적이 강해집니다 · 절망 서약</small></span></p></section>
-    <p class="ct-fl-ad">${lineIcon('k.note', 'li')}<span>편입 전 상각 보험 가입을 권고드립니다.<small>단, 담보 계정에 편입된 자산은 인수 대상에서 제외됩니다.</small></span></p>
-    <p class="ct-fl-fine">본 안내는 체결 전 고지 의무에 따라 교부됩니다. 상각 시 보상금은 지급되지 않습니다.</p>
-  </section>`;
+  return row(hot ? 'hot' : '', `data-a="ct-plan" data-v="${lvl}" data-f="plan:${lvl}"`, esc(p.short), hot ? RISK() : '', [`${esc(p.dept)} · ${esc(diffName(lvl))} ${pipsHtml(p.pips, hot)}`], CT.plan === lvl);
 }
 /** 메뉴에 없는 의뢰: 차림표의 의뢰 칸을 덮는 조금 넓은 종이 (약관 칸은 거의 덮지 않는다). 고른 뒤에도 남고, 아래로 쓸어 내리면 빠진다 */
 function offSheetHtml(cls: string) {
@@ -313,10 +293,14 @@ function offSheetHtml(cls: string) {
     <div class="lp-list">${fs.map((f) => jobRow(orderOf(f.id), `c:${f.id}`, true)).join('')}</div>
   </section>`;
 }
-/** 특약 줄: 이름 ‥ 절망 가산, 아래 단계 · 효과. 누를 때마다 단계가 오르고 마지막 다음은 끄기 */
+/** 특약 줄: 환경 조건 이름 + 한 줄 설명 (수치는 도면) + 단계 체크칸 (지금 단계에 체크). 이름을 누르면 단계가 하나씩 오르고, 칸을 누르면 그 단계로 (같은 칸 = 끄기) */
 function riderRow(id: OathId) {
   const d = OATHS.find((o) => o.id === id)!, n = oathLv({ oaths: oathSel() }, id), max = oathMax(id);
-  return row('sm', `data-a="ct-rider" data-v="${id}" data-f="rider:${id}" title="${esc(n >= max ? '누르면 끄기' : `누르면 ${n + 1}단계`)}"`, esc(d.name), `+${oathHeatOf(id, Math.max(1, n))}`, [`${n ? `${n}단계 · ` : ''}${esc(d.lv(Math.max(1, n)))}`], n > 0);
+  const box = (k: number) => `<button class="ct-ck${k === n ? ' on' : ''}" data-a="ct-rlv" data-v="${id}:${k}" aria-pressed="${k === n}" aria-label="${esc(d.env)} ${k}단계${k === n ? ' (누르면 끄기)' : ''}"><i aria-hidden="true"></i>${k}단계</button>`;
+  return `<div class="lp-row sm ct-rd${n ? ' on' : ''}" data-f="rider:${id}">
+    <button class="ct-rd-nm" data-a="ct-rider" data-v="${id}" title="${esc(n >= max ? '누르면 끄기' : `누르면 ${n + 1}단계`)}"><b class="lp-nm">${esc(d.env)}</b></button>
+    <span class="ct-rd-ln"><small class="lp-ds">${esc(d.brief)}</small><span class="ct-cks" role="group" aria-label="단계">${Array.from({ length: max }, (_, i) => box(i + 1)).join('')}</span></span>
+  </div>`;
 }
 
 // ───────── 청사진 (도면): 가리킨 · 고른 줄의 내용을 아이콘 · 구획으로 (줄글 없이)
@@ -359,7 +343,7 @@ function infoHtml(): string {
     const d = OATHS.find((o) => o.id === v);
     if (!d) return '';
     const n = oathLv({ oaths: oathSel() }, d.id);
-    return `${bh(`${lineIcon(d.icon, 'li')}${esc(d.name)}`, `특약 · 절망 서약${ridersOn() ? '' : ' · 담보 약관에만 붙는다'}`)}
+    return `${bh(`${lineIcon(d.icon, 'li')}${esc(d.env)}`, `특약 · ${esc(d.name)}${ridersOn() ? '' : ' · 담보 약관에만 붙는다'}`)}
       <p class="bp-quip">${esc(d.quip)}</p>
       <ol class="lp-lv">${Array.from({ length: oathMax(d.id) }, (_, i) => i + 1).map((k2) => `<li class="${k2 === n ? 'on' : ''}"><b>${k2}단계</b><span>${esc(d.lv(k2))}</span><em class="f-num">절망 +${oathHeatOf(d.id, k2)}</em></li>`).join('')}</ol>`;
   }
@@ -398,16 +382,15 @@ function boardHtml() {
   const n = rows().filter((r) => r.k !== 'div').length;
   const on = ok && CT.stamp !== 'void', bellIn = on && !CT.bell, bellOut = !on && CT.bell;
   CT.bell = on;
-  const rOn = ridersOn(), rd = sheetCls('rd', rOn), ls = sheetCls('ls', CT.list), fl = sheetCls('fl', CT.flyer && collateral(CT.plan));
+  const rOn = ridersOn(), rd = sheetCls('rd', rOn), ls = sheetCls('ls', CT.list);
   if (rd === ' in') CT.rot.rd = rnd(-3, 3); // 놓일 때마다 조금씩 다른 각도
   if (ls === ' in') { CT.rot.ls = rnd(-2, 2); dragY.ls = 0; }
-  if (fl === ' in') { CT.rot.fl = rnd(-4, 4); dragY.fl = 0; }
-  return `<main class="ct ct-top${CT.intro && !reduced() ? ' intro' : ''}${CT.stamp ? ` st-${CT.stamp}` : ''}" style="--rot-bp:${CT.rot.bp}deg;--rot-mn:${CT.rot.mn}deg;--rot-pr:${CT.rot.pr}deg;--rot-rd:${CT.rot.rd}deg;--rot-ls:${CT.rot.ls}deg;--rot-fl:${CT.rot.fl}deg" aria-label="출격 계약 — 바 테이블 위 의뢰 차림표">
+  return `<main class="ct ct-top${CT.intro && !reduced() ? ' intro' : ''}${CT.stamp ? ` st-${CT.stamp}` : ''}" style="--rot-bp:${CT.rot.bp}deg;--rot-mn:${CT.rot.mn}deg;--rot-pr:${CT.rot.pr}deg;--rot-rd:${CT.rot.rd}deg;--rot-ls:${CT.rot.ls}deg" aria-label="출격 계약 — 바 테이블 위 의뢰 차림표">
     ${CT.intro ? barviewHtml() : ''}
     <div class="ct-table" aria-hidden="true">${prop('ct_table', '')}</div><div class="lp-grain" aria-hidden="true"></div>
     <button class="ct-leave lp-btn" data-a="ct-leave" aria-label="${leave}" title="${leave} (화면을 위로 쓸어 올려도 된다)">${UP_SVG}</button>
     <p class="ct-voice${CT.say ? ' on' : ''}" aria-live="polite"><b>에이든</b><span>${esc(CT.say)}</span></p>
-    <section class="ct-bp lp-bp" aria-live="polite" aria-label="의뢰 도면">${infoHtml()}</section>
+    <section class="ct-bp" aria-label="의뢰 도면 (표시기)"><div class="ct-bp-scr lp-bp" aria-live="polite">${infoHtml()}</div><i class="ct-led" aria-hidden="true"></i></section>
     <div class="ct-menu">
       ${coverHtml()}
       <section class="ct-page lp-paper lp-frame" aria-label="의뢰 차림표">
@@ -422,7 +405,6 @@ function boardHtml() {
     ${rd !== null ? `<section class="ct-riders lp-paper lp-frame${rd}" role="group" aria-label="특약 차림표 (담보 약관 전용)"${rd === ' out' ? ' aria-hidden="true" inert' : ''}>
       <h2 class="lp-h2">특약 <small>절망 ${heat}</small></h2><div class="lp-list">${OATHS.map((o) => riderRow(o.id)).join('')}</div>
     </section>` : ''}
-    ${fl !== null ? flyerHtml(fl) : ''}
     <section class="ct-printer" aria-label="의뢰 전표">
       <div class="ct-slipwrap" style="--n:${n}">
         <div class="ct-slip lp-carbon${n ? '' : ' empty'}">${slipHtml()}${CT.stamp ? `<i class="ct-stampmark ${CT.stamp}" aria-hidden="true">${CT.stamp === 'ok' ? '승인' : '취소'}</i>` : ''}</div>
@@ -508,7 +490,6 @@ export function contractAct(a: string, v: string): boolean {
       return after(true);
     }
     case 'ct-off': CT.list = !CT.list; CT.focus = CT.list ? 'off' : ''; CT.last = ''; CT.say = ''; return true;
-    case 'ct-flyer': CT.flyer = false; return true;
     case 'ct-usual': {
       const u = usual();
       if (!u) return false;
@@ -523,7 +504,6 @@ export function contractAct(a: string, v: string): boolean {
       const was = collateral(CT.plan);
       CT.lit = !ridersOn() && oathDiff(+v); // 담보 약관을 켜는 순간 특약 칸 · 담보 조항에 불이 들어온다
       CT.plan = +v; CT.focus = `plan:${v}`; CT.say = '';
-      CT.flyer = collateral(+v) && (CT.flyer || !was); // 담보를 새로 고르면 페트라 전단이 튀어나온다
       if (collateral(+v) && !was) { say('collateral'); sfx('knock', { pitch: 0.7 }); sfx('despair', { delay: 0.15 }); }
       printed('plan');
       return after(true);
@@ -537,6 +517,16 @@ export function contractAct(a: string, v: string): boolean {
       s[d.id] = n >= oathMax(d.id) ? 0 : n + 1;
       metaOath(s);
       CT.say = '';
+      if (s[d.id]) printed(`rider:${d.id}`); else CT.last = '';
+      return true;
+    }
+    case 'ct-rlv': { // 특약 단계 칸: 그 단계로 (지금 단계 칸이면 끄기)
+      const [id, k] = v.split(':'), d = OATHS.find((o) => o.id === id);
+      if (!d || !ridersOn()) return false;
+      const s = oathSel(), n = oathLv({ oaths: s }, d.id), to = Math.max(0, Math.min(oathMax(d.id), +k || 0));
+      s[d.id] = n === to ? 0 : to;
+      metaOath(s);
+      CT.focus = `rider:${d.id}`; CT.say = '';
       if (s[d.id]) printed(`rider:${d.id}`); else CT.last = '';
       return true;
     }
@@ -573,7 +563,7 @@ export function contractAct(a: string, v: string): boolean {
 }
 /** 청사진만 바꾼다 (가리키기) */
 function refreshInfo() {
-  const el = document.querySelector<HTMLElement>('.ct-bp');
+  const el = document.querySelector<HTMLElement>('.ct-bp-scr');
   if (el) el.innerHTML = infoHtml();
 }
 /** 그늘 연출 끝 → 명부 */
@@ -622,16 +612,15 @@ function bellDrag(ct: HTMLElement) {
   bell.addEventListener('pointercancel', end);
   bell.addEventListener('click', (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }); // 끈 것은 누름이 아니다
 }
-/** Esc: 맨 위에 덮인 종이부터 내린다 (전단 → 메뉴에 없는 의뢰). 문서에 한 번만 건다 */
+/** Esc: 덮인 종이(메뉴에 없는 의뢰)를 내린다. 문서에 한 번만 건다 */
 let escOn = false;
 function escSheets() {
   if (escOn) return;
   escOn = true;
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || CT.step !== 'board' || CT.stamp || !document.querySelector('main.ct')) return;
-    if (document.querySelector('.ct-flyer:not(.out)')) CT.flyer = false;
-    else if (document.querySelector('.ct-offsheet:not(.out)')) { CT.list = false; CT.focus = ''; }
-    else return;
+    if (!document.querySelector('.ct-offsheet:not(.out)')) return;
+    CT.list = false; CT.focus = '';
     hooks.render();
   });
 }
@@ -708,7 +697,6 @@ export function contractMount(root: HTMLElement) {
     for (const el of [menu, ...Array.from(ct.querySelectorAll<HTMLElement>(':is(.ct-riders, .ct-offsheet):not(.out)'))]) { el?.addEventListener('mouseover', point); el?.addEventListener('focusin', point); }
     escSheets();
     swipeDown(ct, '.ct-offsheet', 'ls', () => { CT.list = false; CT.focus = ''; });
-    swipeDown(ct, '.ct-flyer', 'fl', () => { CT.flyer = false; });
     bellDrag(ct);
     leaveGesture(ct);
     if (CT.last) later(1200, () => { CT.last = ''; });

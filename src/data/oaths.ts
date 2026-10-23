@@ -13,6 +13,10 @@ export type OathSel = Record<string, number>;
 export interface OathDef {
   id: OathId;
   name: string;
+  /** 계약 차림표에서 부르는 이름: 전장 환경 조건 (의뢰 · 약관 줄과 같은 말투) */
+  env: string;
+  /** 차림표 한 줄 설명 (수치 없이, 자세한 값은 도면) */
+  brief: string;
   /** 선 아이콘 키 (ui/synicons.ts) */
   icon: string;
   /** 한 줄 사연 (서약 화면 · 도감) */
@@ -28,37 +32,37 @@ const O = () => CFG.oath;
 const at = (a: readonly number[], n: number) => a[Math.max(0, Math.min(a.length, n) - 1)] || 0;
 
 export const OATHS: OathDef[] = [
-  { id: 'grit', name: '강철의 서약', icon: 'a.hp', quip: '적 함대도 같은 정비창에서 장갑을 덧댄다.',
+  { id: 'grit', name: '강철의 서약', env: '강건한 보급창', brief: '적의 체력이 증가합니다', icon: 'a.hp', quip: '적 함대도 같은 정비창에서 장갑을 덧댄다.',
     lv: (n) => `적 최대 체력 +${pc(at(O().grit.hp, n))}` },
-  { id: 'pain', name: '칼날의 서약', icon: 'a.dmg', quip: '포문의 안전장치를 모두 풀어 둔 상대와 싸우겠다고 서명한다.',
+  { id: 'pain', name: '칼날의 서약', env: '풀린 안전장치', brief: '적이 주는 피해가 증가합니다', icon: 'a.dmg', quip: '포문의 안전장치를 모두 풀어 둔 상대와 싸우겠다고 서명한다.',
     lv: (n) => `적이 주는 피해 +${pc(at(O().pain.dmg, n))}` },
-  { id: 'plate', name: '장갑의 서약', icon: 'r.helm', quip: '보험 약관 대신 장갑판을 두껍게 바른 상대들.',
+  { id: 'plate', name: '장갑의 서약', env: '두꺼운 장갑판', brief: '적의 방어도와 효과 저항이 증가합니다', icon: 'r.helm', quip: '보험 약관 대신 장갑판을 두껍게 바른 상대들.',
     lv: (n) => `적 방어도 +${pc(at(O().plate.armor, n))}, 효과 저항 +${pp(at(O().plate.res, n))}` },
-  { id: 'frenzy', name: '질주의 서약', icon: 'a.speed', quip: '적 포수들이 각성제를 정량보다 2배 받았다.',
+  { id: 'frenzy', name: '질주의 서약', env: '각성제 배급', brief: '적의 공격 속도가 증가합니다', icon: 'a.speed', quip: '적 포수들이 각성제를 정량보다 2배 받았다.',
     lv: (n) => `적 공격 속도 +${pc(at(O().frenzy.atkSpd, n))}` },
-  { id: 'horde', name: '군세의 서약', icon: 'm.skull', quip: '의뢰서의 적 규모 칸에 \'대략\'이라는 말이 붙었다.',
+  { id: 'horde', name: '군세의 서약', env: '불어난 적 규모', brief: '전투마다 적이 늘어납니다', icon: 'm.skull', quip: '의뢰서의 적 규모 칸에 \'대략\'이라는 말이 붙었다.',
     lv: (n) => `모든 전투의 적 +${at(O().horde.add, n)} (보드 칸이 남는 만큼)` },
-  { id: 'elite', name: '정예의 서약', icon: 'm.elite', quip: '상대도 이번만큼은 가장 좋은 전력을 내보낸다.',
+  { id: 'elite', name: '정예의 서약', env: '정예 출격', brief: '정예가 더 자주, 더 강하게 나옵니다', icon: 'm.elite', quip: '상대도 이번만큼은 가장 좋은 전력을 내보낸다.',
     lv: (n) => `일반 전투에 정예가 나올 확률 +${pp(at(O().elite.chance, n))} (1페이즈부터), 정예 체력 · 피해 +${pc(at(O().elite.buff, n))}` },
-  { id: 'titan', name: '거두의 서약', icon: 'n.boss', quip: '우두머리가 호위함을 더 끌고 나온다. 중계진만 신이 났다.',
+  { id: 'titan', name: '거두의 서약', env: '우두머리의 호위함', brief: '보스가 강해지고 호위가 붙습니다', icon: 'n.boss', quip: '우두머리가 호위함을 더 끌고 나온다. 중계진만 신이 났다.',
     lv: (n) => `보스 체력 +${pc(at(O().titan.hp, n))}, 보스 호위 +${at(O().titan.guard, n)}` },
-  { id: 'clock', name: '초침의 서약', icon: 's.chrono', quip: '작전 시간은 무역관세부 시계로 잰다. 그 시계는 늘 빠르다.',
+  { id: 'clock', name: '초침의 서약', env: '빠른 시계', brief: '연장전과 제한 시간이 앞당겨집니다', icon: 's.chrono', quip: '작전 시간은 무역관세부 시계로 잰다. 그 시계는 늘 빠르다.',
     lv: (n) => { const s = at(O().clock.sec, n); return `연장전 · 전투 제한 시간 ${s}초 앞당김 (연장전 ${CFG.overtimeStart - s}초부터, 제한 ${CFG.timeLimit - s}초)`; } },
-  { id: 'pay', name: '박봉의 서약', icon: 'r.cr', quip: '성공 보수는 추후 협의. 협의는 오지 않는다.',
+  { id: 'pay', name: '박봉의 서약', env: '깎인 성공 보수', brief: '전투 승리 크레딧이 줄어듭니다', icon: 'r.cr', quip: '성공 보수는 추후 협의. 협의는 오지 않는다.',
     lv: (n) => `전투 승리 크레딧 -${pc(at(O().pay.win, n))} (반올림)` },
-  { id: 'vault', name: '동결의 서약', icon: 'r.dividend', quip: '의뢰주가 이번 의뢰 기간 동안 함대 계좌의 한도를 묶었다.',
+  { id: 'vault', name: '동결의 서약', env: '묶인 계좌', brief: '이자 상한이 줄어듭니다', icon: 'r.dividend', quip: '의뢰주가 이번 의뢰 기간 동안 함대 계좌의 한도를 묶었다.',
     lv: (n) => `이자 상한 -${at(O().vault.cap, n)}` },
-  { id: 'wound', name: '패전의 서약', icon: 'a.bleed', quip: '지면 그만큼 더 잃는다. 보험사는 이미 연락을 끊었다.',
+  { id: 'wound', name: '패전의 서약', env: '끊긴 보험', brief: '패배할 때 함대 피해가 증가합니다', icon: 'a.bleed', quip: '지면 그만큼 더 잃는다. 보험사는 이미 연락을 끊었다.',
     lv: (n) => `패배할 때 함대 체력 피해 +${pc(at(O().wound.loss, n))}` },
-  { id: 'hull', name: '균열의 서약', icon: 'r.hp', quip: '기함 장갑의 균열을 땜질하지 않은 채 출항한다.',
+  { id: 'hull', name: '균열의 서약', env: '땜질 안 한 균열', brief: '함대 최대 체력이 줄어듭니다', icon: 'r.hp', quip: '기함 장갑의 균열을 땜질하지 않은 채 출항한다.',
     lv: (n) => `함대 최대 체력 -${at(O().hull.hp, n)}` },
-  { id: 'recruit', name: '고립의 서약', icon: 'n.recruit', quip: '이번 항로에 함께하겠다는 용병이 드물다.',
+  { id: 'recruit', name: '고립의 서약', env: '한산한 용병 시장', brief: '모집 영입 선택지가 줄어듭니다', icon: 'n.recruit', quip: '이번 항로에 함께하겠다는 용병이 드물다.',
     lv: (n) => `페이즈 시작 · 모집 영입 선택지 -${at(O().recruit.less, n)} (최소 1, 지정 소집 · 특권 제외)` },
-  { id: 'augment', name: '침묵의 서약', icon: 's.mind', quip: '공명의 노래가 1소절 짧아진다.',
+  { id: 'augment', name: '침묵의 서약', env: '짧아진 공명', brief: '증강 선택지가 줄어듭니다', icon: 's.mind', quip: '공명의 노래가 1소절 짧아진다.',
     lv: (n) => `메이저 · 스페셜 · 전공 증강 선택지 ${CFG.augmentChoices}장 → ${Math.max(1, CFG.augmentChoices - at(O().augment.less, n))}장` },
-  { id: 'abyss', name: '심연의 서약', icon: 'k.soul', quip: '절망을 더 일찍, 더 자주 들이마신다.',
+  { id: 'abyss', name: '심연의 서약', env: '깊어진 심연', brief: '절망 증강이 늘어납니다', icon: 'k.soul', quip: '절망을 더 일찍, 더 자주 들이마신다.',
     lv: (n) => { const ev = at(O().abyss.every, n); return `출격 때 절망 증강 ${1 + at(O().abyss.start, n)}개${ev ? `, 추가로 고르는 간격 ${CFG.despair.every} → ${ev}페이즈` : ''}`; } },
-  { id: 'strip', name: '박탈의 서약', icon: 'a.power', quip: '후원사들이 특전 목록을 회수해 갔다.',
+  { id: 'strip', name: '박탈의 서약', env: '회수된 특전', brief: '특권 증강 새로고침이 줄어듭니다', icon: 'a.power', quip: '후원사들이 특전 목록을 회수해 갔다.',
     lv: (n) => { const k = at(O().strip.choices, n), r = at(O().strip.rerolls, n); return `특권 증강 새로고침 ${r ? `${r}회` : '없음'}${k ? `, 선택지 ${k}장` : ''}`; } },
 ];
 export const OATH_BY_ID: Record<string, OathDef> = Object.fromEntries(OATHS.map((o) => [o.id, o]));
