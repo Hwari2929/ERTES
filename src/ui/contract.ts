@@ -446,6 +446,7 @@ function boardHtml() {
       <button class="ct-cancel lp-btn" data-a="ct-cancel"${jobOf() && !CT.stamp ? '' : ' disabled'}>의뢰 취소</button>
     </div>
     <button class="ct-bell${on ? ' on' : ''}${bellIn ? ' in' : ''}${bellOut ? ' out' : ''}${ok && !CT.stamp ? ' ready' : ''}" data-a="ct-bell" aria-label="벨을 눌러 전표 승인 (화면 밖으로 끌어내면 의뢰 취소)"${on ? '' : ' tabindex="-1" aria-hidden="true"'}${ok && !CT.stamp ? '' : ' aria-disabled="true"'}>${prop('ct_bell', BELL_SVG)}</button>
+    <img class="ct-hand sh" alt="" aria-hidden="true" src="${artURL('ct_hand.webp')}" decoding="async"><img class="ct-hand th" alt="" aria-hidden="true" src="${artURL('ct_hand_thumb.webp')}" decoding="async"><img class="ct-hand fr" alt="" aria-hidden="true" src="${artURL('ct_hand.webp')}" decoding="async">
     <div class="ct-light" aria-hidden="true"></div><div class="ct-glow" aria-hidden="true"></div>
     ${hooks.foe()}
   </main>`;
@@ -482,6 +483,32 @@ let sealGrid: { x: number; y: number; s: number } | null = null;
 export function takeSealGrid() { const g = sealGrid; sealGrid = null; return g; }
 /** 두 번째 계약부터 (브리핑을 1줄로 줄인다) */
 export const contractVet = () => CT.vet;
+/** 에이든의 손 (ct_hand · ct_hand_thumb, 임시본 scripts/hand_layers.py): 오른쪽 위에서 비스듬히 들어와 전표 윗단을 집고(검지 · 중지는 종이 위, 엄지 끝은 종이 밑)
+ *  같은 길로 끌어 간다. 두 층은 같은 크기 · 같은 원점이고, 검지 끝이 그림 (13, 842)px (폭 1354px 기준). 끝나는 데 걸리는 ms 를 돌려준다 (못 하면 0) */
+const HAND = { w: 1354, tipX: 13, tipY: 842, slipW: 204, rot: -20, at: [4, 100], arm: Math.atan2(-842, 1341) }; // at: 검지 끝이 놓일 곳 (전표 왼쪽 위에서, 전표 폭 204px 기준) — 엄지 끝이 전표 안쪽 밑으로 들어가는 자리
+function handTake(ct: HTMLElement): number {
+  const fr = ct.querySelector<HTMLImageElement>('.ct-hand.fr'), th = ct.querySelector<HTMLImageElement>('.ct-hand.th'), sh = ct.querySelector<HTMLImageElement>('.ct-hand.sh');
+  const wrap = ct.querySelector<HTMLElement>('.ct-slipwrap'), slip = wrap?.querySelector<HTMLElement>('.ct-slip');
+  if (!fr || !th || !sh || !wrap || !slip || reduced() || matchMedia('(max-width: 760px)').matches || !fr.naturalWidth || !th.naturalWidth) return 0;
+  const cr = ct.getBoundingClientRect(), r = slip.getBoundingClientRect(), k = r.width / HAND.slipW;
+  const ax = r.left - cr.left + HAND.at[0] * k, ay = r.top - cr.top + HAND.at[1] * k;
+  const a = HAND.arm + (HAND.rot * Math.PI) / 180, D = Math.hypot(innerWidth, innerHeight) * 0.9, dx = Math.cos(a) * D, dy = Math.sin(a) * D;
+  for (const el of [fr, th, sh]) Object.assign(el.style, { width: `${HAND.w * k}px`, left: `${ax - HAND.tipX * k}px`, top: `${ay - HAND.tipY * k}px`, transformOrigin: `${HAND.tipX * k}px ${HAND.tipY * k}px` });
+  const at = (s: number) => `translate(${dx * s}px, ${dy * s}px) rotate(${HAND.rot}deg)`;
+  const IN = 420, HOLD = 140, OUT = 460, T = IN + HOLD + OUT;
+  const keys = [
+    { transform: at(1), offset: 0, easing: 'cubic-bezier(.2, .7, .3, 1)' },
+    { transform: at(0), offset: IN / T },
+    { transform: at(0), offset: (IN + HOLD) / T, easing: 'cubic-bezier(.55, 0, .85, .45)' },
+    { transform: at(1), offset: 1 },
+  ];
+  for (const el of [fr, th, sh]) { el.classList.add('on'); el.animate(keys, { duration: T, fill: 'forwards' }); }
+  // 전표: 집은 뒤 손과 같은 길로 (출력기가 기운 만큼 되돌려 출력기 안 좌표로)
+  const pr = (-CT.rot.pr * Math.PI) / 180, lx = dx * Math.cos(pr) - dy * Math.sin(pr), ly = dx * Math.sin(pr) + dy * Math.cos(pr);
+  wrap.animate([{ transform: 'none', offset: 0 }, { transform: 'none', offset: (IN + HOLD) / T, easing: 'cubic-bezier(.55, 0, .85, .45)' }, { transform: `translate(${lx}px, ${ly}px)`, offset: 1 }], { duration: T, fill: 'forwards' });
+  later(IN - 40, () => sfx('paper', { pitch: 1.2 }));
+  return T;
+}
 function startSeal(ct: HTMLElement) {
   CT.step = 'seal';
   sealGrid = null;
@@ -593,9 +620,11 @@ function actOn(a: string, v: string): boolean {
         if (CT.stamp !== 'ok') return;
         if (paper.run) { later(120, go); return; } // 전표를 다 찍은 뒤에 (되감는 도중이면 반쯤 찍힌 종이가 날아간다)
         const ct = document.querySelector<HTMLElement>('main.ct.ct-top');
-        if (ct) startSeal(ct); else { CT.step = 'seal'; finish(); }
+        if (!ct) { CT.step = 'seal'; finish(); return; }
+        const t = handTake(ct); // 에이든이 전표를 집어 간다 → 손이 빠져나가는 동안 카메라가 표시기로
+        later(t ? t - 380 : 0, () => { if (CT.stamp === 'ok') startSeal(ct); });
       };
-      later(600, go); // 도장 → 출력기가 전표를 짧게 밀어낸다 (서명의 결과물이 손에 들어온 감각) → 카메라
+      later(600, go); // 도장 → 출력기가 전표를 짧게 밀어낸다 (서명의 결과물이 손에 들어온 감각) → 에이든의 손 → 카메라
       return true;
     }
     case 'ct-cancel': { // 의뢰 취소: '취소' 도장 → 전표가 바깥으로 미끄러져 나가고 고른 것이 비워진다 (테이블은 그대로)
