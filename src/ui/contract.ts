@@ -483,30 +483,41 @@ let sealGrid: { x: number; y: number; s: number } | null = null;
 export function takeSealGrid() { const g = sealGrid; sealGrid = null; return g; }
 /** 두 번째 계약부터 (브리핑을 1줄로 줄인다) */
 export const contractVet = () => CT.vet;
-/** 에이든의 손 (ct_hand · ct_hand_thumb, 임시본 scripts/hand_layers.py): 오른쪽 위에서 비스듬히 들어와 전표 윗단을 집고(검지 · 중지는 종이 위, 엄지 끝은 종이 밑)
- *  같은 길로 끌어 간다. 두 층은 같은 크기 · 같은 원점이고, 검지 끝이 그림 (13, 842)px (폭 1354px 기준). 끝나는 데 걸리는 ms 를 돌려준다 (못 하면 0) */
-const HAND = { w: 1354, tipX: 13, tipY: 842, slipW: 204, rot: -20, at: [4, 100], arm: Math.atan2(-842, 1341) }; // at: 검지 끝이 놓일 곳 (전표 왼쪽 위에서, 전표 폭 204px 기준) — 엄지 끝이 전표 안쪽 밑으로 들어가는 자리
+/** 에이든의 손 (ct_hand · ct_hand_thumb, 임시본 scripts/hand_layers.py): 오른쪽 위에서 비스듬히 들어와 전표를 집고(검지 · 중지는 종이 위, 엄지 끝은 종이 밑) 위로 끌어 간다.
+ *  두 층은 같은 크기 · 같은 원점, 그림 폭 1354px 기준 검지 끝 (13, 842) · 손목~검지 끝 565px. 손 크기 = 표시기 화면 높이의 80%.
+ *  움직임: 스윽 들어와 살짝 지나쳤다 제자리 → 탁 눌러 집고(그림자가 붙는다) → 스윽 끌어 간다. 걸리는 ms 를 돌려준다 (못 하면 0) */
+const HAND = { w: 1354, tipX: 13, tipY: 842, len: 565, rot: -16, at: [26, 62], arm: Math.atan2(-842, 1341) }; // at: 검지 끝 자리 (전표 왼쪽 위에서, 전표 폭 204px 기준)
 function handTake(ct: HTMLElement): number {
   const fr = ct.querySelector<HTMLImageElement>('.ct-hand.fr'), th = ct.querySelector<HTMLImageElement>('.ct-hand.th'), sh = ct.querySelector<HTMLImageElement>('.ct-hand.sh');
-  const wrap = ct.querySelector<HTMLElement>('.ct-slipwrap'), slip = wrap?.querySelector<HTMLElement>('.ct-slip');
-  if (!fr || !th || !sh || !wrap || !slip || reduced() || matchMedia('(max-width: 760px)').matches || !fr.naturalWidth || !th.naturalWidth) return 0;
-  const cr = ct.getBoundingClientRect(), r = slip.getBoundingClientRect(), k = r.width / HAND.slipW;
-  const ax = r.left - cr.left + HAND.at[0] * k, ay = r.top - cr.top + HAND.at[1] * k;
-  const a = HAND.arm + (HAND.rot * Math.PI) / 180, D = Math.hypot(innerWidth, innerHeight) * 0.9, dx = Math.cos(a) * D, dy = Math.sin(a) * D;
+  const wrap = ct.querySelector<HTMLElement>('.ct-slipwrap'), slip = wrap?.querySelector<HTMLElement>('.ct-slip'), scr = ct.querySelector<HTMLElement>('.ct-bp-scr');
+  if (!fr || !th || !sh || !wrap || !slip || !scr || reduced() || matchMedia('(max-width: 760px)').matches || !fr.naturalWidth || !th.naturalWidth) return 0;
+  const cr = ct.getBoundingClientRect(), r = slip.getBoundingClientRect(), ks = r.width / 204, k = (scr.offsetHeight * 0.8) / HAND.len;
+  const ax = r.left - cr.left + HAND.at[0] * ks, ay = r.top - cr.top + HAND.at[1] * ks;
+  const a = HAND.arm + (HAND.rot * Math.PI) / 180, D = Math.hypot(innerWidth, innerHeight) * 0.75, dx = Math.cos(a) * D, dy = Math.sin(a) * D;
+  const b = (-86 * Math.PI) / 180, ex = Math.cos(b) * D, ey = Math.sin(b) * D; // 끌어 갈 때는 거의 곧장 위로 (오른쪽 벨 위로 지나가지 않게)
   for (const el of [fr, th, sh]) Object.assign(el.style, { width: `${HAND.w * k}px`, left: `${ax - HAND.tipX * k}px`, top: `${ay - HAND.tipY * k}px`, transformOrigin: `${HAND.tipX * k}px ${HAND.tipY * k}px` });
-  const at = (s: number) => `translate(${dx * s}px, ${dy * s}px) rotate(${HAND.rot}deg)`;
-  const IN = 420, HOLD = 140, OUT = 460, T = IN + HOLD + OUT;
+  const at = (s: number, z = 1, out = false) => `translate(${(out ? ex : dx) * s}px, ${(out ? ey : dy) * s}px) rotate(${HAND.rot}deg) scale(${z})`;
+  const IN = 300, TAK = 70, HOLD = 90, OUT = 380, T = IN + TAK + HOLD + OUT, o = (ms: number) => ms / T;
+  const SNAP = 'cubic-bezier(.1, .9, .2, 1)', YANK = 'cubic-bezier(.5, 0, .8, .2)';
   const keys = [
-    { transform: at(1), offset: 0, easing: 'cubic-bezier(.2, .7, .3, 1)' },
-    { transform: at(0), offset: IN / T },
-    { transform: at(0), offset: (IN + HOLD) / T, easing: 'cubic-bezier(.55, 0, .85, .45)' },
-    { transform: at(1), offset: 1 },
+    { transform: at(1), offset: 0, easing: SNAP }, // 스윽
+    { transform: at(-0.012), offset: o(IN * 0.8), easing: 'ease-out' }, // 살짝 지나쳤다
+    { transform: at(0), offset: o(IN), easing: 'ease-in' },
+    { transform: at(0, 0.985), offset: o(IN + TAK * 0.5), easing: 'ease-out' }, // 탁 (눌러 집는다)
+    { transform: at(0), offset: o(IN + TAK) },
+    { transform: at(0, 1.01), offset: o(IN + TAK + HOLD), easing: YANK }, // 들어 올리며
+    { transform: at(1, 1.01, true), offset: 1 }, // 스윽 끌어 간다
   ];
-  for (const el of [fr, th, sh]) { el.classList.add('on'); el.animate(keys, { duration: T, fill: 'forwards' }); }
+  for (const el of [fr, th]) { el.classList.add('on'); el.animate(keys, { duration: T, fill: 'forwards' }); }
+  // 그림자: 떠 있을 땐 멀고, 탁 누를 때 손에 붙었다가, 들어 올리면 다시 멀어진다
+  const far = '22px 32px', near = '6px 9px';
+  sh.classList.add('on');
+  sh.animate(keys.map((kf, i) => ({ ...kf, translate: i === 3 ? near : i === 2 || i === 4 ? '10px 14px' : far })), { duration: T, fill: 'forwards' });
   // 전표: 집은 뒤 손과 같은 길로 (출력기가 기운 만큼 되돌려 출력기 안 좌표로)
-  const pr = (-CT.rot.pr * Math.PI) / 180, lx = dx * Math.cos(pr) - dy * Math.sin(pr), ly = dx * Math.sin(pr) + dy * Math.cos(pr);
-  wrap.animate([{ transform: 'none', offset: 0 }, { transform: 'none', offset: (IN + HOLD) / T, easing: 'cubic-bezier(.55, 0, .85, .45)' }, { transform: `translate(${lx}px, ${ly}px)`, offset: 1 }], { duration: T, fill: 'forwards' });
-  later(IN - 40, () => sfx('paper', { pitch: 1.2 }));
+  const pr = (-CT.rot.pr * Math.PI) / 180, lx = ex * Math.cos(pr) - ey * Math.sin(pr), ly = ex * Math.sin(pr) + ey * Math.cos(pr);
+  wrap.animate([{ transform: 'none', offset: 0 }, { transform: 'none', offset: o(IN + TAK + HOLD), easing: YANK }, { transform: `translate(${lx}px, ${ly}px)`, offset: 1 }], { duration: T, fill: 'forwards' });
+  later(IN, () => sfx('knock', { pitch: 1.6, gain: 0.5 }));
+  later(IN + TAK + HOLD, () => sfx('paper', { pitch: 1.2 }));
   return T;
 }
 function startSeal(ct: HTMLElement) {
@@ -622,7 +633,7 @@ function actOn(a: string, v: string): boolean {
         const ct = document.querySelector<HTMLElement>('main.ct.ct-top');
         if (!ct) { CT.step = 'seal'; finish(); return; }
         const t = handTake(ct); // 에이든이 전표를 집어 간다 → 손이 빠져나가는 동안 카메라가 표시기로
-        later(t ? t - 380 : 0, () => { if (CT.stamp === 'ok') startSeal(ct); });
+        later(t ? t - 260 : 0, () => { if (CT.stamp === 'ok') startSeal(ct); });
       };
       later(600, go); // 도장 → 출력기가 전표를 짧게 밀어낸다 (서명의 결과물이 손에 들어온 감각) → 에이든의 손 → 카메라
       return true;
