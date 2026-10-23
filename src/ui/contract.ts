@@ -66,6 +66,8 @@ const CT = {
   time: '',
   timers: [] as number[],
   fromSeal: false,
+  /** 런을 마치고 돌아오는 길: 태블릿 화면을 가득 채운 채로 시작해 줌 아웃 → 바로 (그릴 때 한 번) */
+  ret: false,
 };
 
 /** main.ts 가 채우는 연결: 다시 그리기 · 전장 브리핑 · 적 상세 창 · 알림 · 명부 열기 · 나가기 */
@@ -144,6 +146,11 @@ export function contractStart(from: string, list = false, snap = '') {
   const d = new Date();
   CT.time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   CT.jobs = shuffle(FIELDS.map((f) => f.id)).slice(0, 3).map((field) => ({ field, kind: 'season' as const, bonus: seasonWin() }));
+}
+/** 런을 마치고 바로 돌아가는 길: 계약 보드를 태블릿 화면이 시야를 채운 모습으로 그리고, 줌 아웃해 테이블이 보이면 바로 올라간다 (contractMount → returnZoom) */
+export function contractReturn() {
+  contractStart('bar');
+  Object.assign(CT, { intro: false, ret: !reduced(), say: '' });
 }
 /** 명부에서 '뒤로': 차림표로 (고른 것은 그대로, 도장은 무른다) */
 export function contractBack() { clear(); Object.assign(CT, { step: 'board', stamp: '', say: '', last: '', intro: false, fromSeal: false }); }
@@ -830,9 +837,29 @@ function leaveGesture(ct: HTMLElement) {
   }, { passive: true });
 }
 /** 그린 뒤 (main.ts render): 등장 연출 · 가리키기 → 청사진 · 목소리 사라짐 · 그늘 연출 시간표 */
+/** 카메라를 그늘 연출의 끝(표시기 화면이 시야를 채운 자리)에 두고 거꾸로 물러난다 → 잠깐 테이블 → 바로 올라간다 */
+function returnZoom(ct: HTMLElement) {
+  const scr = ct.querySelector<HTMLElement>('.ct-bp-scr');
+  if (!scr) { contractAct('ct-leave', ''); return; }
+  const W = innerWidth, H = innerHeight, r = scr.getBoundingClientRect(), rot = (CT.rot.bp * Math.PI) / 180;
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2, Z = Math.max(W / scr.offsetWidth, H / scr.offsetHeight) * 1.002;
+  const keys = Array.from({ length: 25 }, (_, i) => {
+    const e = 1 - i / 24;
+    return { transform: `translate(${cx + (W / 2 - cx) * e}px, ${cy + (H / 2 - cy) * e}px) rotate(${-rot * e}rad) scale(${Math.exp(Math.log(Z) * e)}) translate(${-cx}px, ${-cy}px)` };
+  });
+  ct.classList.add('sealing', 'returning');
+  const cam = ct.animate(keys, { duration: 1000, easing: 'cubic-bezier(.3, 0, .2, 1)', fill: 'forwards' });
+  sfx('paper', { pitch: 0.7 });
+  cam.finished.then(() => {
+    if (!ct.isConnected) return;
+    cam.cancel(); ct.classList.remove('sealing', 'returning');
+    later(450, () => contractAct('ct-leave', '')); // 테이블을 잠깐 보여 주고 바로 (들어올 때의 길을 거꾸로)
+  }).catch(() => {});
+}
 export function contractMount(root: HTMLElement) {
   const ct = root.querySelector<HTMLElement>('main.ct');
   if (!ct) return;
+  if (CT.ret) { CT.ret = false; returnZoom(ct); }
   if (CT.step === 'board') {
     if (CT.intro) { CT.intro = false; if (!reduced()) { sfx('paper', { delay: 0.8 }); sfx('paper', { delay: 1.05, pitch: 0.9 }); } window.setTimeout(() => ct.querySelector('.ct-barview')?.remove(), 1700); }
     const menu = ct.querySelector<HTMLElement>('.ct-menu');

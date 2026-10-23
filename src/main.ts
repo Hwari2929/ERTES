@@ -3088,7 +3088,7 @@ function overScreen(run: RunState) {
   const summary = `${run.cleared ? `${esc(fieldOf(run.field).name)} 의뢰 완료${run.endless ? ` · 무한 모드 페이즈 ${run.phase}에서 귀환 불가` : ''}.` : `ERRANTEs 는 페이즈 ${run.phase}에서 무너졌습니다.`}${run.diff ? ` ${esc(risk)}.` : ''}${despairsOf(run).length ? ` 절망 증강 ${despairNames(run)}.` : ''}${OATH.oathResult(run, false)}`;
   return REPORT.reportScreen(run, {
     risk, summary, rank: rankLabel, roster: run.units.map(rosterRow).join(''),
-    actions: '<button class="btn primary" data-a="newrun">새 계약</button><button class="btn" data-a="bar">에란테스 바</button><button class="btn" data-a="codex">도감</button><button class="btn" data-a="to-title">타이틀</button>',
+    actions: '<button class="btn primary" data-a="newrun">새 계약</button><button class="btn" data-a="ret-bar">에란테스 바</button><button class="btn" data-a="codex">도감</button><button class="btn" data-a="to-title">타이틀</button>',
   });
 }
 
@@ -5640,6 +5640,10 @@ function act(a: string, v: string) {
     case 'oath-back': app.screen = 'title'; break;
     case 'oath-set': case 'oath-clear': OATH.oathAct(a, v); break;
     case 'oath-info': { const t = OATH.oathToast(run); if (t) toast(t); if (t && app.screen === 'map') setMapTab(1); return; }
+    case 'ret-bar': // 런 결과 → 에란테스 바: 태블릿 화면에서 줌 아웃해 테이블로 빠져나온 뒤 바로 (ui/contract.ts contractReturn)
+      if (app.view) { app.view.destroy(); app.view = null; }
+      Object.assign(app, { run: null, menu: null, summary: null, sel: null, bigUnit: null, abilPop: null, statPop: false, introFoe: null });
+      CTR.contractReturn(); app.screen = 'contract'; break;
     case 'bar': // 에란테스 바: 진행 중인 런은 자동 저장해 두고 나온다 (바에서 '이어서 출격')
       if (run && !run.over && !run.tutorial) persist();
       if (run?.tutorial) tutAway();

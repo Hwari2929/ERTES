@@ -5341,6 +5341,8 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 /* 벨 → 브리핑 (contract.ts startSeal): 보드가 카메라처럼 태블릿(도면 표시기)으로 락인 — 기운 만큼 세우고 화면이 시야를 덮을 때까지. 표시기 글자 · 램프 빛은 옅어져 청사진 모눈만 남는다 */
 .ct-seal { cursor: pointer; background: var(--bg); } /* 그늘 도중 다시 그려졌을 때의 대체 화면 */
 .ct.sealing { transform-origin: 0 0; pointer-events: none; }
+.ct.returning :is(.ct-voice, .ct-bell, .ct-leave) { transition: none; } /* 돌아오는 길: 말풍선 · 단추는 처음부터 숨긴 채 */
+.ct.returning .ct-bp-scr > * { transition: none; }
 .ct.sealing :is(.ct-voice, .ct-bell, .ct-leave) { opacity: 0; transition: opacity .3s; } /* 말풍선 · 단추는 카메라를 따라가지 않게 바로 옅어진다 */
 .ct.sealing :is(.ct-light, .ct-glow) { opacity: 0; transition: opacity .6s; } /* 램프 빛이 걷혀 표시기 화면이 제 색 (브리핑 바탕과 같은 청사진) */
 .ct.sealing .ct-bp-scr > * { opacity: 0; transition: opacity .45s; }
