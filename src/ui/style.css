@@ -5143,9 +5143,9 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-barview { z-index: var(--z-top); } /* 램프 빛 층보다 위 (바 그림은 바의 조명 그대로) */
 .ct { --lamp: .5; } /* 램프 세기: 그늘 층과 빛 층이 같은 값을 읽는다 */
 .ct-hand { position: absolute; left: 0; top: 0; max-width: none; height: auto; pointer-events: none; visibility: hidden; } /* 에이든의 손 (ui/contract.ts handTake) */
-.ct-hand.sh { z-index: var(--z-sticky); translate: 26px 38px; filter: brightness(0) blur(7px); opacity: .55; } /* 그림자: 전표 · 테이블 위, 손 밑 (DOM 이 손 앞). 떠 있을 땐 멀고 흐리다. 따로 한 장 (앞 층에 그림자를 달면 엄지 구멍으로 비친다) */
+.ct-hand.sh { z-index: var(--z-float); translate: 11px 16px; filter: brightness(0) blur(3px); opacity: .5; } /* 그림자: 전표 · 테이블 · 벨 위, 손 밑 (DOM 이 손 앞). 손에 붙어 있고 거의 또렷하다. 따로 한 장 (앞 층에 그림자를 달면 엄지 구멍으로 비친다) */
 .ct-hand.th { z-index: var(--z-raise); } /* 엄지 끝: 출력기 · 전표 밑 */
-.ct-hand.fr { z-index: var(--z-sticky); } /* 손 · 검지 · 중지: 전표 위, 램프 그늘 밑 (DOM 이 .ct-light 앞) */
+.ct-hand.fr { z-index: var(--z-float); } /* 손 · 검지 · 중지: 전표 · 벨 위 (벨 바로 위로 지나간다. 램프 톤은 그림에 구워 둠 — scripts/hand_tone.py) */
 .ct-hand.on { visibility: visible; }
 @media (max-width: 760px) { .ct-hand { display: none; } }
 .ct-light, .ct-glow { position: absolute; inset: 0; z-index: var(--z-sticky); pointer-events: none; }

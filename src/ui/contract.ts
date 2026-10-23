@@ -483,16 +483,19 @@ let sealGrid: { x: number; y: number; s: number } | null = null;
 export function takeSealGrid() { const g = sealGrid; sealGrid = null; return g; }
 /** 두 번째 계약부터 (브리핑을 1줄로 줄인다) */
 export const contractVet = () => CT.vet;
-/** 에이든의 손 (ct_hand · ct_hand_thumb, 임시본 scripts/hand_layers.py): 오른쪽 위에서 비스듬히 들어와 전표를 집고(검지 · 중지는 종이 위, 엄지 끝은 종이 밑) 위로 끌어 간다.
+/** 에이든의 손 (ct_hand · ct_hand_thumb, 임시본 scripts/hand_layers.py): 오른쪽 위에서 비스듬히 들어와 전표 오른쪽 끝을 집고(검지 · 중지는 종이 위, 엄지 끝은 종이 밑) 위로 끌어 간다.
  *  두 층은 같은 크기 · 같은 원점, 그림 폭 1354px 기준 검지 끝 (13, 842) · 손목~검지 끝 565px. 손 크기 = 표시기 화면 높이의 80%.
  *  움직임: 스윽 들어와 살짝 지나쳤다 제자리 → 탁 눌러 집고(그림자가 붙는다) → 스윽 끌어 간다. 걸리는 ms 를 돌려준다 (못 하면 0) */
-const HAND = { w: 1354, tipX: 13, tipY: 842, len: 565, rot: -16, at: [26, 62], arm: Math.atan2(-842, 1341) }; // at: 검지 끝 자리 (전표 왼쪽 위에서, 전표 폭 204px 기준)
+const HAND = { w: 1354, tipX: 13, tipY: 842, thumb: [175, 824], len: 565, rot: -16, grip: [14, 40], arm: Math.atan2(-842, 1341) }; // thumb: 엄지 끝 (그림 px) · grip: 엄지 끝 자리 = 전표 오른쪽 끝에서 안쪽 14 · 위에서 40 (전표 폭 204px 기준)
 function handTake(ct: HTMLElement): number {
   const fr = ct.querySelector<HTMLImageElement>('.ct-hand.fr'), th = ct.querySelector<HTMLImageElement>('.ct-hand.th'), sh = ct.querySelector<HTMLImageElement>('.ct-hand.sh');
   const wrap = ct.querySelector<HTMLElement>('.ct-slipwrap'), slip = wrap?.querySelector<HTMLElement>('.ct-slip'), scr = ct.querySelector<HTMLElement>('.ct-bp-scr');
   if (!fr || !th || !sh || !wrap || !slip || !scr || reduced() || matchMedia('(max-width: 760px)').matches || !fr.naturalWidth || !th.naturalWidth) return 0;
   const cr = ct.getBoundingClientRect(), r = slip.getBoundingClientRect(), ks = r.width / 204, k = (scr.offsetHeight * 0.8) / HAND.len;
-  const ax = r.left - cr.left + HAND.at[0] * ks, ay = r.top - cr.top + HAND.at[1] * ks;
+  // 엄지 끝을 전표 오른쪽 끝 밑에 두고, 검지 끝은 그만큼 왼쪽 위 (그림의 검지→엄지 거리를 손 크기 · 각도대로)
+  const rr = (HAND.rot * Math.PI) / 180, vx = (HAND.thumb[0] - HAND.tipX) * k, vy = (HAND.thumb[1] - HAND.tipY) * k;
+  const tx = r.right - cr.left - HAND.grip[0] * ks, ty = r.top - cr.top + HAND.grip[1] * ks;
+  const ax = tx - (vx * Math.cos(rr) - vy * Math.sin(rr)), ay = ty - (vx * Math.sin(rr) + vy * Math.cos(rr));
   const a = HAND.arm + (HAND.rot * Math.PI) / 180, D = Math.hypot(innerWidth, innerHeight) * 0.75, dx = Math.cos(a) * D, dy = Math.sin(a) * D;
   const b = (-86 * Math.PI) / 180, ex = Math.cos(b) * D, ey = Math.sin(b) * D; // 끌어 갈 때는 거의 곧장 위로 (오른쪽 벨 위로 지나가지 않게)
   for (const el of [fr, th, sh]) Object.assign(el.style, { width: `${HAND.w * k}px`, left: `${ax - HAND.tipX * k}px`, top: `${ay - HAND.tipY * k}px`, transformOrigin: `${HAND.tipX * k}px ${HAND.tipY * k}px` });
@@ -509,10 +512,10 @@ function handTake(ct: HTMLElement): number {
     { transform: at(1, 1.01, true), offset: 1 }, // 스윽 끌어 간다
   ];
   for (const el of [fr, th]) { el.classList.add('on'); el.animate(keys, { duration: T, fill: 'forwards' }); }
-  // 그림자: 떠 있을 땐 멀고, 탁 누를 때 손에 붙었다가, 들어 올리면 다시 멀어진다
-  const far = '26px 38px', near = '10px 15px';
+  // 그림자: 들어올 때는 조금 떨어져 있다가, 탁 누를 때 손에 붙고, 들어 올리면 다시 조금 떨어진다
+  const far = '11px 16px', near = '4px 6px'; // 손이 테이블 바로 위에 있으니 그림자는 손에 붙어 있다
   sh.classList.add('on');
-  sh.animate(keys.map((kf, i) => ({ ...kf, translate: i === 3 ? near : i === 2 || i === 4 ? '14px 20px' : far })), { duration: T, fill: 'forwards' });
+  sh.animate(keys.map((kf, i) => ({ ...kf, translate: i === 3 ? near : i === 2 || i === 4 ? '6px 9px' : far })), { duration: T, fill: 'forwards' });
   // 전표: 집은 뒤 손과 같은 길로 (출력기가 기운 만큼 되돌려 출력기 안 좌표로)
   const pr = (-CT.rot.pr * Math.PI) / 180, lx = ex * Math.cos(pr) - ey * Math.sin(pr), ly = ex * Math.sin(pr) + ey * Math.cos(pr);
   wrap.animate([{ transform: 'none', offset: 0 }, { transform: 'none', offset: o(IN + TAK + HOLD), easing: YANK }, { transform: `translate(${lx}px, ${ly}px)`, offset: 1 }], { duration: T, fill: 'forwards' });
