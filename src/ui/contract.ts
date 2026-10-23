@@ -160,7 +160,7 @@ export function contractPill(r: RunState) {
   if (!c) return '';
   const b = c.bonus ?? c.sealed ?? 0, bt = b ? `${b > 0 ? '+' : '−'}${pct(Math.abs(b))}` : '';
   const tip = `영수 증서 No.${pad(c.no, 4)} — 의뢰 「${c.title}」 · ${c.plan}${b ? ` · ${c.kind === 'season' ? '제철 의뢰' : '보수 가감'} 승리 크레딧 ${bt}` : ''}`;
-  return `<span class="pill ct-pill" title="${esc(tip)}" aria-label="${esc(tip)}"><span class="f-num">No.${pad(c.no, 4)}</span>${bt ? `<em>${bt}</em>` : ''}</span>`;
+  return `<span class="pill ct-pill" title="${esc(tip)}" aria-label="${esc(tip)}"><span class="f-num">No.${pad(c.no, 4)}</span>${bt ? `<em${b < 0 ? ' class="dn"' : ''}>${bt}</em>` : ''}</span>`;
 }
 /** 지도 환경 탭 '계약': 차림표에서 뺀 수치 (조항 전문 · 보수 배율) */
 export function contractEnv(r: RunState) {
