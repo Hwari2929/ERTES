@@ -291,16 +291,17 @@ function planRow(lvl: number) {
 function flyerHtml(cls: string) {
   const t = collateralTerms(CT.plan), p = PLAN_BY_LVL[CT.plan];
   return `<section class="ct-flyer lp-paper${cls}" style="--y0:${dragY.fl || 0}px" aria-label="페트라 자산관리부 전단 — 담보 조건"${cls === ' out' ? ' aria-hidden="true" inert' : ''}>
-    <button class="ct-grip" data-a="ct-flyer" aria-label="전단 내리기 (아래로 쓸어 내려도 된다)"><i></i></button>
     <header class="ct-fl-h"><b>PETRA</b><span>주식회사 페트라 · 자산관리부</span></header>
     <h3 class="ct-fl-t">담보 계정 편입 안내</h3>
     <p class="ct-fl-no f-num">적요 ${esc(p?.code || '')}-${pad(CT.no, 4)}</p>
     <p class="ct-fl-lead">이번 계약 기간 동안 귀 함대는 당사 담보 계정에 계상됩니다.</p>
     <section class="ct-tm cost"><h3>${lineIcon('m.skull', 'li')}담보 조건</h3>
       <p>${lineIcon('r.hp', 'li')}<span>${esc(t.hp)}</span></p><p>${lineIcon('n.adversity', 'li')}<span>${esc(t.despair)}<small>${esc(t.when)}</small></span></p></section>
-    <section class="ct-tm gain"><h3>${lineIcon('m.up', 'li')}보전 내역</h3>
+    <section class="ct-tm gain"><h3>${lineIcon('m.up', 'li')}약정 보수</h3>
       ${gainsOf(CT.plan).map((g) => `<p>${lineIcon(g.icon, 'li')}<span>${esc(g.text)}</span></p>`).join('')}</section>
-    <p class="ct-fl-ad">${lineIcon('k.note', 'li')}<span>보장을 늘리시려면 <b>특약</b> 가입을 권고드립니다.<small>특약 차림표 · 절망 서약</small></span></p>
+    <section class="ct-tm cost"><h3>${lineIcon('n.adversity', 'li')}특약 고지</h3>
+      <p>${lineIcon('m.skull', 'li')}<span>특약은 위험 가산 조항입니다<small>붙일 때마다 적이 강해집니다 · 절망 서약</small></span></p></section>
+    <p class="ct-fl-ad">${lineIcon('k.note', 'li')}<span>편입 전 상각 보험 가입을 권고드립니다.<small>단, 담보 계정에 편입된 자산은 인수 대상에서 제외됩니다.</small></span></p>
     <p class="ct-fl-fine">본 안내는 체결 전 고지 의무에 따라 교부됩니다. 상각 시 보상금은 지급되지 않습니다.</p>
   </section>`;
 }
@@ -308,7 +309,6 @@ function flyerHtml(cls: string) {
 function offSheetHtml(cls: string) {
   const fs = offMenu();
   return `<section class="ct-offsheet lp-paper lp-frame${cls}" style="--y0:${dragY.ls || 0}px" role="group" aria-label="메뉴에 없는 의뢰 — 직접 주문"${cls === ' out' ? ' aria-hidden="true" inert' : ''}>
-    <button class="ct-grip" data-a="ct-off" aria-label="오늘의 차림표로 (아래로 쓸어 내려도 된다)"><i></i></button>
     <h2 class="lp-h2">메뉴에 없는 의뢰 <small>직접 주문 · ${fs.length}곳</small></h2>
     <div class="lp-list">${fs.map((f) => jobRow(orderOf(f.id), `c:${f.id}`, true)).join('')}</div>
   </section>`;
@@ -418,10 +418,10 @@ function boardHtml() {
         ${collateral(CT.plan) ? `<i class="ct-plan-stamp${lit ? ' lit' : ''}" aria-hidden="true">담보</i>` : ''}
       </section>
     </div>
+    ${ls !== null ? offSheetHtml(ls) : ''}
     ${rd !== null ? `<section class="ct-riders lp-paper lp-frame${rd}" role="group" aria-label="특약 차림표 (담보 약관 전용)"${rd === ' out' ? ' aria-hidden="true" inert' : ''}>
       <h2 class="lp-h2">특약 <small>절망 ${heat}</small></h2><div class="lp-list">${OATHS.map((o) => riderRow(o.id)).join('')}</div>
     </section>` : ''}
-    ${ls !== null ? offSheetHtml(ls) : ''}
     ${fl !== null ? flyerHtml(fl) : ''}
     <section class="ct-printer" aria-label="의뢰 전표">
       <div class="ct-slipwrap" style="--n:${n}">
@@ -622,6 +622,19 @@ function bellDrag(ct: HTMLElement) {
   bell.addEventListener('pointercancel', end);
   bell.addEventListener('click', (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }); // 끈 것은 누름이 아니다
 }
+/** Esc: 맨 위에 덮인 종이부터 내린다 (전단 → 메뉴에 없는 의뢰). 문서에 한 번만 건다 */
+let escOn = false;
+function escSheets() {
+  if (escOn) return;
+  escOn = true;
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || CT.step !== 'board' || CT.stamp || !document.querySelector('main.ct')) return;
+    if (document.querySelector('.ct-flyer:not(.out)')) CT.flyer = false;
+    else if (document.querySelector('.ct-offsheet:not(.out)')) { CT.list = false; CT.focus = ''; }
+    else return;
+    hooks.render();
+  });
+}
 /** 종이를 아래로 쓸어 내리면 빠진다: 손을 따라 내려가다가, 1/4 넘게 내리거나 세게 내리면 빠지고 아니면 제자리로. 누름과 구분하려고 8px 넘게 움직인 뒤부터 끈다 */
 function swipeDown(ct: HTMLElement, sel: string, k: string, close: () => void) {
   const el = ct.querySelector<HTMLElement>(`${sel}:not(.out)`);
@@ -693,6 +706,7 @@ export function contractMount(root: HTMLElement) {
       if (f && f !== CT.focus) { CT.focus = f; refreshInfo(); }
     };
     for (const el of [menu, ...Array.from(ct.querySelectorAll<HTMLElement>(':is(.ct-riders, .ct-offsheet):not(.out)'))]) { el?.addEventListener('mouseover', point); el?.addEventListener('focusin', point); }
+    escSheets();
     swipeDown(ct, '.ct-offsheet', 'ls', () => { CT.list = false; CT.focus = ''; });
     swipeDown(ct, '.ct-flyer', 'fl', () => { CT.flyer = false; });
     bellDrag(ct);
