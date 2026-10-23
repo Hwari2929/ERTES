@@ -1,9 +1,9 @@
-// docs/FIELD_STORIES.md 생성: npx esbuild tests/fielddoc.ts --bundle --platform=node --log-level=error --outfile=dist/fielddoc.cjs && node dist/fielddoc.cjs > docs/FIELD_STORIES.md
-import { FIELD_BY_ID } from '../src/data/battlefields';
-import { NPCS, PC_NAME } from '../src/data/scene';
-import { UNIT_BY_ID } from '../src/data/units';
-import { FIELD_INTRO_ALIAS, FIELD_INTROS } from '../src/data/scenes/fields';
-import '../src/data/scenes/index';
+// FIELD_STORIES.md 생성기 (보관본, 경로는 이 폴더 기준). 원래 자리는 tests/fielddoc.ts 였다.
+import { FIELD_BY_ID } from '../../src/data/battlefields';
+import { NPCS, PC_NAME } from '../../src/data/scene';
+import { UNIT_BY_ID } from '../../src/data/units';
+import { FIELD_INTRO_ALIAS, FIELD_INTROS } from './fields';
+import '../../src/data/scenes/index';
 
 const back: Record<string, string> = Object.fromEntries(Object.entries(FIELD_INTRO_ALIAS).map(([a, b]) => [b, a]));
 const who = (id: string, name?: string) => name || (id === 'pc' ? PC_NAME : UNIT_BY_ID[id]?.name || NPCS[id]?.name || id);

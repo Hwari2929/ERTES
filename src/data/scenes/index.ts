@@ -3,7 +3,6 @@ import { BGMS, BGS, NPCS, SFXS, type EventScene, type SceneReg } from '../scene'
 import { CAMP_EVENT_REG, CAMP_EVENT_SCENES, CAMP_SHORT_SCENES } from './campaign_events';
 import { CAMP4_REG, CAMP4_SCENES } from './campaign4';
 import { COMMON_REG, COMMON_SCENES } from './common';
-import { FIELD_REG } from './fields';
 import { PILOT_SCENES } from './pilot';
 import { STORY_A_REG, STORY_A_SCENES } from './story_a';
 import { STORY_B_REG, STORY_B_SCENES } from './story_b';
@@ -15,7 +14,7 @@ import { STORY_D_REG, STORY_D_SCENES } from './story_d';
 import { TUTORIAL_EVENT_SCENE, TUTORIAL_REG } from './tutorial';
 
 // 묶음별 등록부(NPC · 배경 · 배경음 · 효과음)를 공용 등록부에 합친다
-for (const r of [CAMP_EVENT_REG, CAMP4_REG, COMMON_REG, STORY_A_REG, STORY_B_REG, STORY_B2_REG, STORY_B3_REG, STORY_C_REG, STORY_C2_REG, STORY_D_REG, TUTORIAL_REG, FIELD_REG] as SceneReg[]) {
+for (const r of [CAMP_EVENT_REG, CAMP4_REG, COMMON_REG, STORY_A_REG, STORY_B_REG, STORY_B2_REG, STORY_B3_REG, STORY_C_REG, STORY_C2_REG, STORY_D_REG, TUTORIAL_REG] as SceneReg[]) {
   Object.assign(NPCS, r.npcs || {});
   Object.assign(BGS, r.bgs || {});
   Object.assign(BGMS, r.bgms || {});

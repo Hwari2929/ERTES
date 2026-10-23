@@ -61,7 +61,6 @@ import { ABIL_ICONS } from './ui/abilicons.gen';
 import { augKey, lineIcon, synIcon, typeIcon } from './ui/synicons';
 import { closeCoach, coachKey, startCoach, type CoachStep } from './ui/coach';
 import { TUTORIAL_FLOW, TUTORIAL_SCENES, TUTORIAL_TIPS } from './data/scenes/tutorial';
-import { fieldIntroPending } from './data/scenes/fields';
 import { GLOSSARY, GLOSSARY_COUNT } from './data/glossary';
 import { NODE_DESC } from './data/nodes';
 import * as TUT from './engine/tutorial';
@@ -818,10 +817,11 @@ function pickCard(d: UnitDef, o: PickOpts) {
   return `<div class="pslot" style="--i:${Math.min(o.i ?? 0, 7)}"><div class="pcard ${on ? 'sel' : ''} ${app.cardOpen === d.id && !clone ? 'open' : ''}" data-a="${o.tapAct}" data-v="${d.id}" ${clone ? 'aria-hidden="true"' : 'tabindex="0" role="button"'} aria-label="${esc(d.name)}">
     <i class="cback" aria-hidden="true"></i>
     <div class="pc-art">${standImg(d.id, 'stand') || sprite(d, 'spr big')}</div>
+    <button class="btn pc-full" data-a="card-max" data-v="${d.id}" ${clone ? 'tabindex="-1"' : ''} title="전체 상세 (확대)" aria-label="${esc(d.name)} 전체 상세 열기">${MAX_SVG}</button>
     ${on ? `<span class="pc-check">✓${o.badge ? ` ${o.badge}` : ''}</span>` : ''}
     <div class="pc-syn">${[...d.factions, ...d.traits].map((id) => synToken(id, o.synCount ? o.synCount(id) : 0)).join('')}</div>
     <div class="pc-panel">
-      <div class="pc-top">${clone ? '' : `<button class="btn d-mag pc-max" data-a="card-max" data-v="${d.id}" title="전체 상세 (확대)" aria-label="${esc(d.name)} 전체 상세 열기">${MAX_SVG}</button>`}<div class="pc-nm"><b class="pc-name">${esc(d.name)}</b>${o.nameExtra || ''}</div>${roleTag(d)}${unitBlurb(d) ? `<span class="pc-blurb">${esc(unitBlurb(d))}</span>` : ''}${o.extra || ''}
+      <div class="pc-top"><div class="pc-nm"><b class="pc-name">${esc(d.name)}</b>${o.nameExtra || ''}</div>${roleTag(d)}${unitBlurb(d) ? `<span class="pc-blurb">${esc(unitBlurb(d))}</span>` : ''}${o.extra || ''}
         <div class="chips">${[...d.factions, ...d.traits].map(o.chipFn || chip).join('')}</div>
         <button class="pc-more" data-a="card-open" data-v="${d.id}" ${clone ? 'tabindex="-1"' : ''}>${app.cardOpen === d.id && !clone ? '접기 ▼' : '상세 보기 ▲'}</button></div>
       <div class="pc-desc" data-a="noop">${unitInfo(d)}
@@ -902,7 +902,7 @@ let dpPlayed: string | null = null;
 
 function newRunScreen() {
   const n = app.starters.length, sc = CTR.signedContract();
-  const fld = fieldOf(app.introField), deed = sc ? `<span class="nr-deed" title="영수 증서 — 서명한 계약">${lineIcon('k.note', 'li')}<span class="f-num">No.${String(sc.contract.no).padStart(4, '0')}</span> ${esc(sc.contract.plan)}</span>` : '';
+  const fld = fieldOf(app.introField);
   CTR.takeFromSeal();
   // 머리 띠 = 의뢰한 전장 (브리핑 수신 중에는 화면을 채운 태블릿 속, 끝나면 이 자리로 올라와 붙는다 · ui/briefing.ts)
   return `<main class="wrap nr roster${BRF.BR.on ? ' brief' : ''}">
@@ -911,7 +911,7 @@ function newRunScreen() {
         <div class="nr-meta"><span class="nr-cnt">후보 ${app.pool.length}명 중 <b>${CFG.startUnits}명</b></span></div>
         <p class="nr-hint">${CAN_HOVER ? '누르면 선택 · 마우스를 올리면 설명' : '누르면 선택 · 카드 하단을 끌어올리면 설명'}</p></div>
       ${detailToggle()}
-      ${BRF.bandHtml({ art: bgURL(`field_${fld.id}`), color: fld.color, title: sc ? sc.contract.title : fld.name, place: fld.name, deed, info: fieldBandInfo(fld.id) })}
+      ${BRF.bandHtml({ art: bgURL(`field_${fld.id}`), color: fld.color, title: sc ? sc.contract.title : fld.name, place: fld.name, info: fieldBandInfo(fld.id) })}
     </div>
     <div class="carousel">
       <button class="car-btn prev" data-a="car-prev" aria-label="이전 기물">‹</button>
@@ -2427,7 +2427,7 @@ function unitModal(run: RunState, pv = false) {
       <div class="um-main">
         <div class="um-top">
           <header class="um-head">
-            <span class="um-tools">${pv ? '<span class="um-pv">영입 전 미리보기</span>' : blessBtn(run, u, d)}${detailToggle()}${pv ? '' : `<button class="btn small danger-ghost" data-a="release" data-v="${u.uid}" ${run.units.length <= 1 ? 'disabled title="마지막 남은 기물은 방출할 수 없습니다"' : 'title="기물 방출 (확인 후 진행)"'} aria-expanded="${app.releaseConfirm === u.uid}">기물 방출</button><button class="btn" data-a="big-close" aria-label="닫기" title="닫기 (Esc)">✕</button>`}</span>
+            <span class="um-tools">${pv ? '<span class="um-pv">영입 전 미리보기</span>' : blessBtn(run, u, d)}${detailToggle()}${pv ? '' : `<button class="btn small danger-ghost" data-a="release" data-v="${u.uid}" ${run.units.length <= 1 ? 'disabled title="마지막 남은 기물은 방출할 수 없습니다"' : 'title="기물 방출 (확인 후 진행)"'} aria-expanded="${app.releaseConfirm === u.uid}">기물 방출</button>`}<button class="btn" data-a="big-close" aria-label="닫기" title="닫기 (Esc)">✕</button></span>
           </header>
           ${app.releaseConfirm === u.uid ? `<div class="um-release">${releaseBlock(run, u)}</div>` : ''}
         </div>
@@ -5418,7 +5418,6 @@ function act(a: string, v: string) {
       if (app.starters.length !== CFG.startUnits) return;
       app.run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, app.starters, app.introField || undefined, Math.min(app.diff, MAX_DIFF), OATH.sel()); // 절망 서약: 고난 이상일 때만 옮긴다
       { const sc = CTR.signedContract(); if (sc && sc.field === app.introField) { app.run.contract = sc.contract; metaDeed(sc.field, sc.diff); } } // 영수 증서 (상단 바 칩 · 보수 가감) · 전표 번호 · 늘 하던 대로
-      { const fi = fieldIntroPending(app.run); if (fi) app.run.pending.unshift(fi); } // 전장 도입 이야기 → 특권 증강 → (고난) 절망 증강
       app.screen = 'map'; app.sel = null; persist(); break;
     case 'load': {
       const r = loadRun(v);
