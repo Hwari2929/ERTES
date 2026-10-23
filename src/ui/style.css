@@ -1958,7 +1958,9 @@ kbd { font-family: var(--f-mono); font-size: .75em; border: 1px solid var(--line
 /* 시작 기물 선택: 화면 고정, 후보 줄만 가로 스크롤 */
 body:has(.nr) { overflow: hidden; margin: 0; }
 .nr { box-sizing: border-box; height: 100dvh; display: flex; flex-direction: column; gap: 10px; overflow: hidden; padding-bottom: 12px; }
-.nr-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 16px; }
+.nr-head { display: flex; align-items: stretch; gap: 8px 16px; } /* 왼쪽 = 기물 선택 제목 · 설명, 오른쪽 = 의뢰한 전장 띠 (한 줄: 카드 칸을 누르지 않게) */
+.nr-head > .nr-title { flex: none; align-self: flex-end; }
+.nr-head > .d-mag-solo { align-self: flex-end; }
 .nr-head p { margin: 2px 0 0; }
 .nr-title { display: grid; gap: 4px; min-width: 0; }
 .nr-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -5337,19 +5339,32 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 @keyframes ct-fade { from { opacity: 0; } }
 /* 명부 · 지도는 게임 토큰 그대로. 계약의 흔적은 머리 띠(의뢰한 전장)와 카본 영수 증서 칩 하나 */
 /* 명부 머리 띠 = 의뢰한 전장 (ui/briefing.ts). 브리핑 수신 중에는 화면을 채운 '태블릿 속'(청사진 모눈 · 흐린 전장 그림 · 제목 · 진행 바 · 상태문) → 끝나면 위로 올라와 이 자리에 붙고(도킹) 영수 증서 칩이 찍힌다 */
-.nr-bandslot { position: relative; flex: none; height: 104px; }
+.nr-bandslot { position: relative; flex: 1 1 0; min-width: 0; min-height: 112px; }
+.nr-band-info { position: absolute; right: 14px; top: 10px; display: grid; justify-items: end; gap: 6px; max-width: 62%; } /* 전장 그림 위: 자주 나오는 적 · 유리한 시너지 */
+.nr-bi-row { display: flex; align-items: center; gap: 8px; padding: 3px 8px; border-radius: var(--r-md); background: color-mix(in srgb, var(--bg) 72%, transparent); }
+.nr-bi-k { font-size: var(--fs-xs); color: var(--c-text-2); white-space: nowrap; }
+.nr-bi-v { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.nr-bi-cat { display: inline-flex; align-items: center; gap: 3px; font-style: normal; font-size: var(--fs-sm); color: var(--c-text); white-space: nowrap; }
+.nr-bi-cat .li { width: 14px; height: 14px; }
+.nr-bi-face { display: inline-grid; width: 26px; height: 26px; border-radius: 50%; overflow: hidden; border: 1px solid var(--line); background: var(--panel-2); }
+.nr-bi-face > * { width: 100%; height: 100%; }
+.nr-bi-n { font-size: var(--fs-xs); color: var(--c-text-2); white-space: nowrap; }
+.nr-bi-n b { color: var(--c-text); }
+.nr-band-info .chip { margin: 0; }
+.nr.brief .nr-band-info { opacity: 0; } /* 브리핑 중에는 숨기고, 도킹하며 드러난다 */
+.nr.brief.docking .nr-band-info { opacity: 1; transition: opacity .4s .35s; }
 .nr-band { position: absolute; inset: 0; z-index: var(--z-raise); overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--fc, var(--panel)); }
 .nr-band-art { position: absolute; inset: -16px; background: center 42% / cover no-repeat; }
 .nr-band-shade { position: absolute; inset: 0; background: linear-gradient(90deg, color-mix(in srgb, var(--bg) 88%, transparent), color-mix(in srgb, var(--bg) 45%, transparent) 55%, transparent); } /* 글자 쪽만 어둡게 (그림을 덮지 않는다) */
 .nr-band-bp { position: absolute; inset: 0; opacity: 0;
   background: linear-gradient(color-mix(in srgb, var(--lp-cw) 6%, transparent) 1px, transparent 1px) var(--gx, 0) var(--gy, 0) / var(--gs, 16px) var(--gs, 16px),
     linear-gradient(90deg, color-mix(in srgb, var(--lp-cw) 6%, transparent) 1px, transparent 1px) var(--gx, 0) var(--gy, 0) / var(--gs, 16px) var(--gs, 16px), var(--lp-bp); } /* 태블릿 화면과 같은 청사진 모눈 (.lp-bp) */
-.nr-band-tx { position: absolute; left: 20px; top: calc(100% - 12px); width: calc(100% - 40px); translate: 0 -100%; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; color: var(--c-text); }
+.nr-band-tx { position: absolute; left: 20px; top: calc(100% - 12px); width: calc(100% - 40px); translate: 0 -100%; pointer-events: none; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; color: var(--c-text); }
 .nr-band-t { margin: 0; font-size: var(--fs-xl); line-height: 1.3; text-wrap: balance; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; } /* 두 줄까지 (20번) */
 .nr-band-t small { font-size: var(--fs-sm); color: var(--c-text-2); }
 .nr-band-k { flex-basis: 100%; margin-bottom: 6px; font: 700 var(--fs-sm)/1 var(--f-paper); letter-spacing: .3em; color: var(--lp-cw); }
 /* 브리핑 수신: 화면을 채운 태블릿 속. 컷 순간엔 태블릿과 같은 모눈(같은 자리 · 같은 간격)의 청사진만 → 모눈이 16px 로 가라앉으며 흐린 전장 그림 · 제목 · 진행 바가 비쳐 든다 */
-.nr.brief > :not(.nr-bandslot) { visibility: hidden; }
+.nr.brief > :not(.nr-head), .nr.brief .nr-head > :not(.nr-bandslot) { visibility: hidden; } /* 띠는 머리 줄 안에 있다 */
 .nr.brief .nr-band { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; z-index: var(--z-modal); border-color: transparent; border-radius: 0; cursor: pointer; }
 .nr.brief .nr-band-bp { opacity: 1; }
 .nr.brief.settle .nr-band-bp { opacity: .84; background-size: 16px 16px, 16px 16px; background-position: 0 0, 0 0; transition: opacity .6s .1s, background-size .5s cubic-bezier(.2, .7, .3, 1), background-position .5s cubic-bezier(.2, .7, .3, 1); }
@@ -5382,9 +5397,14 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 @keyframes nr-stamp { from { opacity: 0; scale: 1.7; rotate: -8deg; } }
 .nr.drop .pslot { animation: nr-drop .55s cubic-bezier(.2, .85, .3, 1.15) both; animation-delay: calc(.12s + var(--i, 0) * 70ms); }
 @keyframes nr-drop { from { opacity: 0; translate: 0 -48px; } to { opacity: 1; translate: 0 0; } }
-.nr.drop :is(.nr-head, .nr-foot) { animation: ct-fade .4s both; }
+.nr.drop :is(.nr-head > :not(.nr-bandslot), .nr-foot) { animation: ct-fade .4s both; }
 @media (max-width: 760px) {
-  .nr-bandslot { height: 84px; }
+  .nr-head { flex-wrap: wrap; }
+  .nr-head > .nr-title { flex: 1 1 auto; }
+  .nr-bandslot { flex: 1 1 100%; min-height: 118px; order: -1; } /* 휴대폰: 띠가 맨 위 한 줄, 적 · 시너지는 띠 윗줄 · 제목은 아랫줄 (겹치지 않게) */
+  .nr-band-info { left: 8px; right: 8px; top: 6px; max-width: none; display: flex; gap: 4px; justify-content: flex-start; }
+  .nr-bi-row { padding: 2px 6px; }
+  .nr-bi-k, .nr-bi-face { display: none; }
   .nr-band-t { font-size: var(--fs-lg); }
   .nr.brief .nr-band-t { font-size: var(--fs-xl); }
   .nr-brief-tk { height: 1.6em; } /* 휴대폰: 한 줄 티커 */
@@ -5465,7 +5485,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .ct-bell { --bs: 100px; --br: 8px; --bt: 0%; top: auto; bottom: calc(14px + env(safe-area-inset-bottom)); } /* 휴대폰: 아래 띠 오른쪽 끝 */
 }
 @media (prefers-reduced-motion: reduce) { /* 움직임 줄이기: 등장 · 나가기 · 떨림 없이 바로 놓이고, 그늘 연출은 ui/contract.ts 가 0.9초 뒤 바로 명부로 넘긴다 */
-  .ct-printer.run .ct-pmach, .ct-bell.on, .ct-bell.out, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-riders.in, .ct-riders.out, .ct-offsheet.in, .ct-offsheet.out, .ct.intro .ct-bp-scr, .ct-barview, .ct.outro *, .nr.drop .pslot, .nr.drop :is(.nr-head, .nr-foot), .nr.drop .nr-deed, .nr-brief-tk li { animation: none; }
+  .ct-printer.run .ct-pmach, .ct-bell.on, .ct-bell.out, .ct.st-ok .ct-bell, .ct.st-void .ct-slipwrap, .lp-sig, .lp-stamp, .ct-stampmark, .ct-plan-stamp, .ct-riders.in, .ct-riders.out, .ct-offsheet.in, .ct-offsheet.out, .ct.intro .ct-bp-scr, .ct-barview, .ct.outro *, .nr.drop .pslot, .nr.drop :is(.nr-head > :not(.nr-bandslot), .nr-foot), .nr.drop .nr-deed, .nr-brief-tk li { animation: none; }
   .nr.brief.docking .nr-band, .nr.brief.docking .nr-band *, .nr.brief.settle .nr-band-bp, .nr.brief.settle :is(.nr-band-tx, .nr-brief), .nr-brief-bar i { transition: none; } /* 브리핑: 모눈이 가라앉거나 띠가 올라오는 움직임 없이 바로 */
   .ct-voice { transition: none; }
 }

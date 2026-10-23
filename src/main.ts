@@ -870,6 +870,16 @@ function fieldBrief(fid: string) {
     return `<button class="fb-foe-ic tier-${e.tier}" data-a="intro-foe" data-v="${id}" title="${esc(e.name)}">${sprite(e, '')}${tag ? `<em>${tag}</em>` : ''}<i>${esc(e.name)}</i></button>`;
   }).join('')}</div>`;
 }
+/** 명부 머리 띠 위 전장 정보: 자주 나오는 적 (분류 · 얼굴) · 유리한 시너지 (후보 보장 수). 전장 그림 위에 얹는다 */
+function fieldBandInfo(fid: string) {
+  const f = fieldOf(fid), ct: Record<string, number> = {};
+  for (const [id, w] of [...f.pool.map((id) => [id, 1] as const), [f.elite, 2] as const]) { const e = ENEMY_BY_ID[id]; if (e) ct[enemyCategory(e)] = (ct[enemyCategory(e)] || 0) + w; }
+  const cats = Object.entries(ct).sort((a, b) => b[1] - a[1]).slice(0, 2).map((x) => x[0] as Category);
+  const faces = f.pool.slice(0, 4).map((id) => ENEMY_BY_ID[id]).filter(Boolean).map((e) => `<i class="nr-bi-face" title="${esc(e.name)}">${sprite(e, '')}</i>`).join('');
+  const syn = fieldSyn(fid), k = starterFavNeed(fid);
+  return `<div class="nr-bi-row"><span class="nr-bi-k">자주 나오는 적</span><span class="nr-bi-v">${cats.map((c) => `<i class="nr-bi-cat cat-${c}" title="${esc(CATEGORY_RULE[c])}">${lineIcon(`k.${c}`, 'li')}${CATEGORY_NAME[c]}</i>`).join('')}${faces}</span></div>
+    ${syn ? `<div class="nr-bi-row"><span class="nr-bi-k">유리한 시너지</span><span class="nr-bi-v">${chip(syn)}${k ? `<span class="nr-bi-n" title="${esc(`우세 시너지 기물이 후보에 ${k}명 이상 섞여 있습니다`)}">후보 <b>${k}명+</b></span>` : ''}</span></div>` : ''}`;
+}
 /** 전장 브리핑: 적 초상화를 누르면 1페이즈 기준 상세 (능력 카드 · 설명) */
 function foeModal(id: string) {
   const e = ENEMY_BY_ID[id];
@@ -896,12 +906,12 @@ function newRunScreen() {
   CTR.takeFromSeal();
   // 머리 띠 = 의뢰한 전장 (브리핑 수신 중에는 화면을 채운 태블릿 속, 끝나면 이 자리로 올라와 붙는다 · ui/briefing.ts)
   return `<main class="wrap nr roster${BRF.BR.on ? ' brief' : ''}">
-    ${BRF.bandHtml({ art: bgURL(`field_${fld.id}`), color: fld.color, title: sc ? sc.contract.title : fld.name, place: fld.name, deed })}
     <div class="nr-head">
       <div class="nr-title"><h1>계약 기물 선택</h1>
-        <div class="nr-meta"><span class="nr-cnt">후보 ${app.pool.length}명 중 <b>${CFG.startUnits}명</b></span>${(() => { const syn = fieldSyn(app.introField), k = starterFavNeed(app.introField); return syn && k ? `<span class="nr-fav" title="${esc(`전장 [${fieldOf(app.introField).name}]의 우세 시너지 기물이 후보에 ${k}명 이상 섞여 있습니다`)}">${esc(fieldOf(app.introField).name)} 우세 ${chip(syn)} <b>${k}명+</b></span>` : ''; })()}</div>
+        <div class="nr-meta"><span class="nr-cnt">후보 ${app.pool.length}명 중 <b>${CFG.startUnits}명</b></span></div>
         <p class="nr-hint">${CAN_HOVER ? '누르면 선택 · 마우스를 올리면 설명' : '누르면 선택 · 카드 하단을 끌어올리면 설명'}</p></div>
       ${detailToggle()}
+      ${BRF.bandHtml({ art: bgURL(`field_${fld.id}`), color: fld.color, title: sc ? sc.contract.title : fld.name, place: fld.name, deed, info: fieldBandInfo(fld.id) })}
     </div>
     <div class="carousel">
       <button class="car-btn prev" data-a="car-prev" aria-label="이전 기물">‹</button>

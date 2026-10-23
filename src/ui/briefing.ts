@@ -31,8 +31,8 @@ export function briefBegin(pool: string[], vet: boolean, grid: Grid | null) {
   Object.assign(BR, { on: lines.length > 0, lines, shown: 0, grid: reduced() ? null : grid, vet, started: false });
 }
 
-/** 명부 머리 띠 (전장 그림 · 의뢰 제목 · 영수 증서 칩). 브리핑 중이면 화면을 가득 채운 '태블릿 속' 이고, 끝나면 이 자리로 올라와 붙는다 */
-export function bandHtml(o: { art: string; color: string; title: string; place: string; deed: string }) {
+/** 명부 머리 띠 (전장 그림 · 의뢰 제목 · 영수 증서 칩 · 자주 나오는 적 · 유리한 시너지). 머리 줄 오른쪽 칸. 브리핑 중이면 화면을 가득 채운 '태블릿 속' 이고, 끝나면 이 자리로 올라와 붙는다 */
+export function bandHtml(o: { art: string; color: string; title: string; place: string; deed: string; info: string }) {
   const g = BR.on && BR.grid ? `;--gx:${BR.grid.x.toFixed(1)}px;--gy:${BR.grid.y.toFixed(1)}px;--gs:${BR.grid.s.toFixed(2)}px` : '';
   const n = BR.lines.length;
   const brief = BR.on
@@ -43,6 +43,7 @@ export function bandHtml(o: { art: string; color: string; title: string; place: 
     : '';
   return `<div class="nr-bandslot"><header class="nr-band" style="--fc:${o.color}${g}">
     <i class="nr-band-art" style="background-image:url('${o.art}')" aria-hidden="true"></i><i class="nr-band-shade" aria-hidden="true"></i><i class="nr-band-bp" aria-hidden="true"></i>
+    <div class="nr-band-info">${o.info}</div>
     <div class="nr-band-tx">${BR.on ? '<span class="nr-band-k">브리핑 수신</span>' : ''}<h2 class="nr-band-t">「${esc(o.title)}」 <small>${esc(o.place)}</small></h2>${o.deed}</div>
     ${brief}
   </header></div>`;
