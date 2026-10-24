@@ -1434,16 +1434,16 @@ function settleCausal(run: RunState, won: boolean, tier: number, lines: string[]
 
 function totalXpOf(u: UnitState) { let t = 0; for (let r = 1; r < u.rank; r++) t += CFG.xpToNext(r); return t; }
 
-/** 공명도 풀 분배. 집중 육성(run.focus) 기물이 있으면 풀의 CFG.focusXpShare 를 그 기물들이 똑같이 나눠 받고, 나머지는 다른 기물에게 무작위.
+/** 공명도 풀 분배. 집중 육성(run.focus) 기물이 있으면 풀의 CFG.focusXpShare 를 그 기물들이 똑같이 나눠 받고, 나머지는 보유 기물 전체(집중 육성 기물 포함)가 무작위로.
  *  무작위 몫: 출전 기물은 최소 1 보장, 출전 · 대기 같은 가중치 (대기 감소 가중치 없음) */
 export function distributeXp(run: RunState, pool: number) {
   const all = run.units.filter((u) => !isRock(u)); // 반려 돌은 공명도를 받지 않는다
   if (!all.length) return;
   const fs = new Set(run.focus || []);
-  const focus = all.filter((u) => fs.has(u.uid)), rest0 = all.filter((u) => !fs.has(u.uid));
-  const fPool = focus.length ? (rest0.length ? Math.round(pool * CFG.focusXpShare) : pool) : 0;
+  const focus = all.filter((u) => fs.has(u.uid));
+  const fPool = focus.length ? Math.round(pool * CFG.focusXpShare) : 0;
   focus.forEach((u, i) => { u.xp += Math.floor(fPool / focus.length) + (i < fPool % focus.length ? 1 : 0); });
-  const us = rest0, left = pool - fPool;
+  const us = all, left = pool - fPool;
   if (!us.length || left <= 0) return;
   rng(run, (r) => {
     const base = (u: UnitState) => (u.pos ? 1 : 0);

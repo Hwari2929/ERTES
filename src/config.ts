@@ -131,7 +131,7 @@ export const CFG = {
   deployBase: 4, // 기본 출전 인원. 함대 확장으로 늘린다
   fleetCosts: [20, 40, 56, 72, 90, 108, 128, 160, 200, 256], // 함대 확장 n번째 비용 (출전 5 → 14명)
   musterCost: 16, musterStep: 8, musterPicks: 3, // 지정 소집: 기본 가격, 회당 상승, 고르는 시너지 수
-  /** 집중 육성: 지정한 기물들이 공명도 풀의 이 몫을 나눠 받고, 나머지는 다른 기물에게 무작위 (run.ts distributeXp) */
+  /** 집중 육성: 지정한 기물들이 공명도 풀의 이 몫을 먼저 나눠 받고, 나머지는 보유 기물 전체가 무작위로 (run.ts distributeXp) */
   focusXpShare: 0.4,
   boardSizes: [ { n: 7, w: 70, env: '표준 전장' }, { n: 6, w: 15, env: '협소한 통로' }, { n: 8, w: 15, env: '개활지' } ],
   bossBoard: 7,

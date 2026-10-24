@@ -1230,7 +1230,7 @@ function rosterTile(u: UnitState) {
   const on = app.screen === 'map' && app.sel?.k === 'unit' && app.sel.uid === u.uid;
   const fo = !!run?.focus?.includes(u.uid) && !R.isRock(u);
   // 집중 육성 단추 (초상화 왼쪽 위): 지정한 기물들이 공명도 풀의 CFG.focusXpShare 를 나눠 받는다 (run.ts distributeXp). 단추 안의 단추가 될 수 없어 span
-  const fb = run && !R.isRock(u) ? `<span class="rt-focus${fo ? ' on' : ''}" role="button" tabindex="0" data-a="focus" data-v="${u.uid}" aria-pressed="${fo}" title="${fo ? '집중 육성 해제' : `집중 육성 — 지정한 기물들이 공명도 풀의 ${Math.round(CFG.focusXpShare * 100)}%를 나눠 받습니다`}" aria-label="집중 육성">${lineIcon('u.target', 'li')}</span>` : '';
+  const fb = run && !R.isRock(u) ? `<span class="rt-focus${fo ? ' on' : ''}" role="button" tabindex="0" data-a="focus" data-v="${u.uid}" aria-pressed="${fo}" title="${fo ? '집중 육성 해제' : `집중 육성 — 지정한 기물들이 공명도 풀의 ${Math.round(CFG.focusXpShare * 100)}%를 먼저 나눠 받고, 나머지는 모든 기물이 함께 나눕니다`}" aria-label="집중 육성">${lineIcon('u.target', 'li')}</span>` : '';
   return `<button class="rt${u.pos ? '' : ' rt-off'}${on ? ' on' : ''}${fo ? ' rt-fo' : ''}" data-a="${app.screen === 'map' ? 'map-unit' : 'manage'}" data-v="${u.uid}" data-syns="${memberships(u, run).join(' ')}" aria-pressed="${on}" title="${esc(tip)}" aria-label="${esc(tip)}">
     <span class="rt-art">${sprite(d)}${fb}${u.mod ? `<span class="rt-mod">${itemIcon(u.mod)}</span>` : ''}
       <span class="rt-type" aria-hidden="true"><i title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i><i title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i></span>
