@@ -453,7 +453,7 @@ function titleScreen() {
       <div class="ts-body"><div class="ts-left">
       <nav class="title-actions" aria-label="메뉴">
         <div class="ts-main">${auto ? `<button class="btn primary ts-btn ts-hero" data-a="load" data-v="auto"><b>이어하기</b><small>페이즈 ${auto.phase} · 체력 ${auto.hp}</small></button>` : ''}
-          <div class="ts-split one"><button class="btn ${auto ? '' : 'primary ts-hero'} ts-btn" data-a="newrun"><b>새 계약</b>${auto ? '<small>진행 중인 의뢰는 덮어씁니다</small>' : '<small>바 카운터 · 의뢰 · 약관 · 계약 기물 4명</small>'}</button></div></div>
+          <div class="ts-split one"><button class="btn ${auto ? '' : 'primary ts-hero'} ts-btn" data-a="newrun"><b>새 계약</b>${auto ? '<small>진행 중인 의뢰는 덮어씁니다</small>' : '<small>바 카운터 · 의뢰 · 약관 · 계약 기물 ${CFG.startUnits}명</small>'}</button></div></div>
         <div class="ts-grid" role="group" aria-label="둘러보기">${tutButton()}
           <button class="btn ts-btn ts-tile" data-a="bar"><b>에란테스 바</b><small>${auto ? '들렀다가 이어서 출격' : '단원 · 손님들의 잡담'}</small></button>
           <button class="btn ts-btn ts-tile" data-a="codex"><b>도감 · 기록</b><small>교범 · 기록 · 업적</small></button>
@@ -1228,8 +1228,11 @@ function rosterTile(u: UnitState) {
   const locked = !!run && u.lock === run.phase;
   const tip = `${d.name} · 공명 등급 ${u.rank}${u.pos ? '' : ' · 대기'}${locked ? ' · 이번 페이즈 출전 불가' : ''}`;
   const on = app.screen === 'map' && app.sel?.k === 'unit' && app.sel.uid === u.uid;
-  return `<button class="rt${u.pos ? '' : ' rt-off'}${on ? ' on' : ''}" data-a="${app.screen === 'map' ? 'map-unit' : 'manage'}" data-v="${u.uid}" data-syns="${memberships(u, run).join(' ')}" aria-pressed="${on}" title="${esc(tip)}" aria-label="${esc(tip)}">
-    <span class="rt-art">${sprite(d)}${u.mod ? `<span class="rt-mod">${itemIcon(u.mod)}</span>` : ''}
+  const fo = !!run?.focus?.includes(u.uid) && !R.isRock(u);
+  // 집중 육성 단추 (초상화 왼쪽 위): 지정한 기물들이 공명도 풀의 CFG.focusXpShare 를 나눠 받는다 (run.ts distributeXp). 단추 안의 단추가 될 수 없어 span
+  const fb = run && !R.isRock(u) ? `<span class="rt-focus${fo ? ' on' : ''}" role="button" tabindex="0" data-a="focus" data-v="${u.uid}" aria-pressed="${fo}" title="${fo ? '집중 육성 해제' : `집중 육성 — 지정한 기물들이 공명도 풀의 ${Math.round(CFG.focusXpShare * 100)}%를 나눠 받습니다`}" aria-label="집중 육성">${lineIcon('u.target', 'li')}</span>` : '';
+  return `<button class="rt${u.pos ? '' : ' rt-off'}${on ? ' on' : ''}${fo ? ' rt-fo' : ''}" data-a="${app.screen === 'map' ? 'map-unit' : 'manage'}" data-v="${u.uid}" data-syns="${memberships(u, run).join(' ')}" aria-pressed="${on}" title="${esc(tip)}" aria-label="${esc(tip)}">
+    <span class="rt-art">${sprite(d)}${fb}${u.mod ? `<span class="rt-mod">${itemIcon(u.mod)}</span>` : ''}
       <span class="rt-type" aria-hidden="true"><i title="${TTYPE_NAME[d.ttype]}">${typeIcon(d.ttype)}</i><i title="${CTYPE_NAME[d.ctype]}">${typeIcon(d.ctype)}</i></span>
       <span class="rt-rank">${rankLabel(u.rank)}</span>${locked ? '<span class="rt-lock" aria-hidden="true">⛓</span>' : ''}</span>
     <span class="rt-items">${u.items.map((i) => itemIcon(i)).join('')}</span>
@@ -5528,6 +5531,7 @@ function act(a: string, v: string) {
       break;
     }
     case 'tac-info': app.tacOpen = !app.tacOpen; break;
+    case 'focus': if (run) { const f = new Set(run.focus || []); if (f.has(v)) f.delete(v); else f.add(v); run.focus = [...f].filter((id) => run.units.some((u) => u.uid === id)); persist(); } break; // 집중 육성 지정 · 해제
     case 'map-unit': app.sel = v ? { k: 'unit', uid: v } : null; app.bigUnit = v || null; app.statPop = false; app.abilPop = null; break;
     case 'big-open': app.bigUnit = v; app.sel = { k: 'unit', uid: v }; app.statPop = false; app.abilPop = null; break;
     case 'big-close': app.preview = null; app.bigUnit = null; app.abilPop = null; app.releaseConfirm = null; if (app.screen === 'map') app.sel = null; break;

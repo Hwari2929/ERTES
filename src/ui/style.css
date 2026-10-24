@@ -885,7 +885,11 @@ html.rmap-fs-on, html.rmap-fs-on body { overflow: hidden; }
 .rt-art { position: relative; display: block; aspect-ratio: 1; border-radius: var(--r-md); overflow: hidden; }
 .rt-art .spr { display: block; width: 100%; height: 100%; border-radius: var(--r-md); }
 .rt-rank { position: absolute; left: 3px; bottom: 3px; display: inline-flex; align-items: center; gap: 1px; min-width: 16px; padding: 0 4px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--c-chalk) 92%, transparent); color: var(--c-chalk-ink); font-family: var(--f-mono); font-size: var(--fs-xs); font-weight: 700; line-height: 15px; text-align: center; box-shadow: 0 1px 3px color-mix(in srgb, var(--c-black) 60%, transparent); }
-.rt-mod { position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; }
+.rt-mod { position: absolute; left: 3px; top: 26px; width: 20px; height: 20px; } /* 왼쪽 위는 집중 육성 단추, 개조부품은 그 아래 */
+.rt-focus { position: absolute; left: 3px; top: 3px; z-index: var(--z-raise); display: grid; place-items: center; width: 20px; height: 20px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--c-ink) 70%, transparent); color: var(--c-text-2); border: 1px solid transparent; cursor: pointer; } /* 집중 육성: 꺼짐 = 흐린 표적, 켜짐 = 호박색 실선 (선택 표시, docs/UI.md 13) */
+.rt-focus .li { width: 13px; height: 13px; }
+.rt-focus:hover { color: var(--c-text); }
+.rt-focus.on { color: var(--c-select); border-color: var(--c-select); background: color-mix(in srgb, var(--c-select) 22%, var(--c-ink)); }
 .rt-mod .item { width: 100%; height: 100%; font-size: 9px; cursor: inherit; background: color-mix(in srgb, var(--c-ink) 75%, transparent); box-shadow: 0 1px 3px color-mix(in srgb, var(--c-black) 60%, transparent); }
 .rt-mod .item .ii { width: 13px; height: 13px; }
 .rt-type { position: absolute; right: 3px; top: 3px; display: grid; gap: 2px; }

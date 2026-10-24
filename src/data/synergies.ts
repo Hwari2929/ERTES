@@ -5,7 +5,7 @@ import { amp, applyLive, inc, red, vuln } from '../engine/effects';
 import { CFG } from '../config';
 import { type Major, MAJORS, type RunState, type Stats, type SynergyId } from '../types';
 import { DEV } from './devices';
-import { ALL_ADVANCED, breadSellText, itemEffect, itemInfo, OCCULT_MODS, occultModsOfTier } from './items';
+import { ALL_ADVANCED, breadSellText, HEL_ITEM_IDS, itemEffect, itemInfo, OCCULT_MODS, occultModsOfTier } from './items';
 import { CAUSAL, KING, KING_GEAR, KING_GEAR_NAME } from './chungra';
 import { addStacks, blinkTo, harmfulCount, isDebuffed, isHarmful, pct } from './kit';
 import { UNIT_BY_ID } from './units';
@@ -38,7 +38,11 @@ export const ENG_TUR = { count: [2, 3, 4, 4], inherit: [0.8, 1.2, 2.0, 4.0], slo
 /** 시리우스 성도회 (5명 이상): 전투당 부활 횟수 — 단계와 무관하게 1회 */
 const SIR_REVIVES = [0, 1, 1, 1];
 /** 최고의 친구 (2 · 4 · 6 · 8명): 소환물 스탯 상속률 · 소환물 피해 증가 · 소환물 모든 주요 능력치 */
-const BUDDY_BOND = [0.5, 0.75, 1.25, 2.0], BUDDY_AMP = [0.15, 0.4, 1.0, 2.5], BUDDY_MAJ = [0, 10, 20, 40];
+/** 항해자: 에이스 · 다른 항해자의 고유 능력 배율 (단계별, 다른 항해자는 (4) 부터) */
+const NAV_ACE = [1, 2, 4, 8], NAV_CREW = [0, 0.5, 1, 2];
+/** 사냥꾼: 치명타 확률 100% 초과분 → 치명타 피해 배율 (combat.ts 치명타 판정) */
+const HUNTER_OVER = 4;
+const BUDDY_BOND = [0.75, 1.0, 1.5, 2.0], BUDDY_AMP = [0.15, 0.4, 1.0, 2.5], BUDDY_MAJ = [0, 10, 20, 40];
 
 // ─────────────── 범은하 공동체: 기물마다 다른 선물
 type Gift = { name: string; text: string; stats?: Partial<Stats>; pct?: { armor?: number }; tag?: 'tech' | 'psy'; majors?: number };
@@ -105,6 +109,10 @@ export const OCCULT_SYNTH = { base: 2, disc: [0, 0, 0.3, 0.5] };
 
 /** 연합 전투 완료 후 출전 연합 기물 1명당 추가 공명도 (시너지 단계 인덱스). */
 export const UNI_XP = [0, 2, 3, 4, 10];
+/** 주식회사 페트라 (3 · 5 · 7 · 9명): 전투를 마치면 받는 실적 크레딧 (승리 시 2배, run.ts petraPay) · 보유 크레딧 10당 주요 위력 % · 그 상한 */
+export const PETRA_PAY = [1, 1, 2, 5], PETRA_POW = [0, 0.05, 0.1, 0.2], PETRA_POW_MAX = [0, 0.5, 1.5, 3.0];
+/** 성간 인류 연합: 연합 기물 모든 주요 능력치 · 공명 등급 보정 (단계별) */
+const UNI_MAJ = [5, 10, 15, 30], UNI_RANK = [0, 0, 2, 5];
 
 /** 의무관 단계별 수치: 모든 아군 회복 효율 · 치료 계수 (기술 위력 배율) · 모든 아군 최대 체력.
  *  회복 효율은 성장 폭이 작아, 예전의 '치료 대상 다음 기본 공격 피해 +20%' 대신 단계마다 최대 체력을 올린다 */
@@ -215,16 +223,10 @@ export const VOYAGE_SPECIAL: Record<string, { who: string; name: string; text: s
     effect: { setup: (u) => { u.mem.voyViv = 1; } } },
 };
 
-/** 시간 여행자 (3) 이상: 회피 회복 계수 (주요 위력 대비, 단계별 [-, 3명, 4명, 5명]) · 내부 재사용 대기 */
-const TIME_HEAL = [0, 0.3, 0.6, 1.0];
-const TIME_ICD = 0.3;
+/** 시간 여행자 (2 · 3 · 4 · 5명): 쓰러지기 직전 체력 1로 버티고 무적 (전투당 1회) 지속 시간 · (3) 이상 전투 기술을 쓸 때마다 최대 체력 회복 비율 */
+const TIME_INV = [3, 5, 7, 12], TIME_SKHEAL = [0, 0.05, 0.1, 0.2];
 /** 주요 위력: 명사수 사격 · 돌격가 타격 · 전문가 기술 · 지휘관 전술 위력 */
 export const mainPower = (b: Battle, u: CUnit) => (u.ctype === 'MARK' ? b.S(u, 'shoot') : u.ctype === 'VAN' ? b.S(u, 'strike') : b.P(u, 'tech'));
-const timeEvade = (k: number) => (b: Battle, u: CUnit) => {
-  if ((u.mem.timeIcd || 0) > b.t) return;
-  u.mem.timeIcd = b.t + TIME_ICD;
-  b.heal(u, u, mainPower(b, u) * k, false, 'TIME');
-};
 
 /** 보안위원회 (6) [합동 격리]: 주기 · 기본 계수 · 해로운 효과 1개당 계수 · 셀 수 있는 해로운 효과 상한 (전술 위력 대비) */
 /** base · per: 단계별 [-, 4명, 6명] */
@@ -242,10 +244,9 @@ function secQuarantine(b: Battle, u: CUnit, t: number) {
   b.emit({ k: 'skillEnd', id: u.id });
 }
 
-/** 청라공국: 청라 기물 피해 증가 (단계별). 무휼은 청라 인원이 아니라 받지 않는다 (무휼은 인과 단계로 성장). 봇 sim (청라 우선 정책) 클리어율을 다른 대형 세력 우선 정책과 맞추려 넣은 몫 */
-export const CHR_DMG = [0.15, 0.4, 0.7, 1.2];
-/** 청라공국: 청라 기물 모든 주요 능력치 (단계별) */
-export const CHR_MAJ = [3, 6, 10, 20];
+/** 청라공국 (3 · 5 · 7 · 9명): 아군 전술 위력 고정 가산 · [지휘] 배율 (청라 기물이 주요 위력으로 계산하는 모든 효과에 전술 위력 × 배율을 더한다, combat.ts S · tacPower).
+ *  무휼은 청라 인원이 아니라 [지휘]를 받지 않는다 (무휼은 인과 단계로 성장) */
+export const CHR_TAC = [30, 60, 100, 300], CHR_CMD = [0.5, 1, 2, 4];
 /** 칼리토 제국 (5 · 7 · 9): 전투 시작 시 [근위기사] 소환 수 · 공명 등급 비율 */
 export const KAL_GUARDS = [0, 1, 2, 3];
 export const KAL_GUARD_RANK = 0.65;
@@ -263,14 +264,12 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'UNI', name: '성간 인류 연합', kind: 'faction', tiers: [3, 5, 7, 9], color: '#3b6fd8', icon: '★',
     desc: '꾸준한 공명도 상승과 안정적인 전투력 증대.\n· 전투가 끝날 때마다 연합 기물이 추가 공명도를 얻습니다.\n· 연합 기물의 모든 주요 능력치가 크게 오릅니다.\n· (7) 이상: 출전한 연합 기물이 공명 등급이 더 높은 것처럼 싸웁니다 (등급당 모든 주요 능력치 +1, 위력 ×1.025, 작위).',
-    tierDesc: ['모든 주요 능력치 +4, 전투 후 공명도 +2', '모든 주요 능력치 +8, 전투 후 공명도 +3, 피해 +15%', '모든 주요 능력치 +12, 전투 후 공명도 +4, 피해 +30%, 공명 등급 +2 취급',
-      '[연합 총동원령] 모든 주요 능력치 +30, 전투 후 공명도 +10, 피해 +80%, 공명 등급 +5 취급, 모든 아군 모든 주요 능력치 +6'],
+    tierDesc: UNI_MAJ.map((m, i) => `${i === 3 ? '[연합 총동원령] ' : ''}연합 기물 모든 주요 능력치 +${m}, 전투 후 공명도 +${UNI_XP[i + 1]}${UNI_RANK[i] ? `, 공명 등급 +${UNI_RANK[i]} 취급` : ''}`),
     member: (t) => {
-      const rb = T(t, [0, 0, 2, 5]);
-      const m = T(t, [4, 8, 12, 30]) + rb * CFG.rankAll;
-      return { majors: { vit: m, pow: m, mnd: m, def: m, agi: m }, mods: t >= 2 ? [inc('all', T(t, [0, 0.15, 0.3, 0.8]))] : [], rankBonus: rb };
+      const rb = T(t, UNI_RANK);
+      const m = T(t, UNI_MAJ) + rb * CFG.rankAll;
+      return { majors: { vit: m, pow: m, mnd: m, def: m, agi: m }, rankBonus: rb };
     },
-    team: (t) => (t >= 4 ? { majors: { vit: 6, pow: 6, mnd: 6, def: 6, agi: 6 } } : null),
   },
   {
     id: 'KAL', name: '칼리토 제국', kind: 'faction', tiers: [3, 5, 7, 9], color: '#c0303a', icon: '♛',
@@ -297,22 +296,23 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'HEL', name: '헬레니우스 동맹', kind: 'faction', tiers: [3, 5, 7, 9], color: '#2fa39a', icon: '⚑',
-    desc: '시너지 단계에 따라 매 페이즈 퀘스트가 주어지고, 완료하면 보상을 받습니다.\n· 동맹 기물은 전투력이 오릅니다.\n· 1 · 2 · 3단계에 처음 도달하면 동맹 전용 희귀 장비를 하나씩 받습니다.\n· 4단계에 도달하면 그 장비들이 전설로 바뀌어 효과가 2배가 됩니다.\n· 단계가 내려가면 그 단계 장비는 회수, 다시 닿으면 반환.\n\n[동맹 전용 장비]\n· 성운 정박기: 정신력 +6, 해로운 효과를 걸 때 지속 +2초\n· 달빛 등대: 기동력 +6, 회피하면 최대 체력 3% 회복\n· 올림푸스 성물: 방어력 +6, 한 번에 최대 체력 20%를 넘는 피해를 받지 않음 (전설 10%)',
-    tierDesc: ['전투력 +5, 피해 +15%, 페이즈마다 퀘스트 2개, [성운 정박기] 지급', '전투력 +11, 피해 +55%, 상태이상 걸린 적에게 피해 +30%, 퀘스트 3개, 보상 1.5배, [달빛 등대] 지급', '전투력 +18, 피해 +80%, 상태이상 걸린 적에게 피해 +50%, 퀘스트 4개, 보상 2배, 완료 시 동맹 기물 영구 주요 능력치 +2, [올림푸스 성물] 지급',
-      '[동맹 대함대] 전투력 +30, 피해 +150%, 상태이상 걸린 적에게 피해 +60%, 퀘스트 5개, 보상 3배, 완료 시 영구 주요 능력치 +3, 동맹 장비 전설 승격 (효과 2배)'],
-    member: (t) => ({
-      majors: { pow: T(t, [5, 11, 18, 30]) }, mods: [inc('all', T(t, [0.15, 0.55, 0.8, 1.5]))],
-      hooks: t >= 2 ? { dmgMult: (_b, _u, tg) => (isDebuffed(tg) ? 1 + T(t, [0, 0.3, 0.5, 0.6]) : 1) } : undefined,
-    }),
+    get desc() { return `시너지 단계에 따라 매 페이즈 퀘스트가 주어지고, 완료하면 보상을 받습니다.\n· 동맹 기물은 전투력이 오릅니다.\n· 1 · 2 · 3단계에 처음 도달하면 동맹 전용 희귀 장비를 하나씩 받습니다 (${HEL_ITEM_IDS.map((x) => itemInfo(x).name).join(' → ')}).\n· 4단계에 도달하면 그 장비들이 전설로 바뀌어 효과가 2배가 됩니다.\n· 단계가 내려가면 그 단계 장비는 회수, 다시 닿으면 반환.\n\n[동맹 전용 장비]\n${HEL_ITEM_IDS.map((x) => `· ${itemInfo(x).name}: ${itemInfo(x).desc}`).join('\n')}`; }, // items.ts 와 순환 import: 처음 읽을 때 계산
+    get tierDesc() { return [`전투력 +5, 페이즈마다 퀘스트 2개, [${itemInfo(HEL_ITEM_IDS[0]).name}] 지급`, `전투력 +11, 퀘스트 3개, 보상 1.5배, [${itemInfo(HEL_ITEM_IDS[1]).name}] 지급`, `전투력 +18, 퀘스트 4개, 보상 2배, 완료 시 동맹 기물 영구 주요 능력치 +2, [${itemInfo(HEL_ITEM_IDS[2]).name}] 지급`,
+      '[동맹 대함대] 전투력 +30, 퀘스트 5개, 보상 3배, 완료 시 영구 주요 능력치 +3, 동맹 장비 전설 승격 (효과 2배)']; },
+    member: (t) => ({ majors: { pow: T(t, [5, 11, 18, 30]) } }),
   },
   {
     id: 'PET', name: '주식회사 페트라', kind: 'faction', tiers: [3, 5, 7, 9], color: '#e07a1f', icon: '¤',
-    desc: '에너지 크레딧 스노우볼. 이자 상한 증가, 보험, 대출, 그리고 보유 크레딧에 비례한 전투력.',
-    tierDesc: ['이자 상한 +3, 전투 승리 시 크레딧 +1, 페트라 기물 피해 +15%', '보험(패배 시 크레딧 +6, 체력 피해 -50%), 대출 해금, 피해 +35%, 크레딧 10당 피해 +5% (최대 +50%)', '이자 상한 +6, 피해 +60%, 페트라 기물 피해 증폭 = 크레딧 10당 +12% (최대 200%)',
-      '[적대적 인수합병] 이자 상한 +10, 승리 시 크레딧 +3, 피해 +60%, 피해 증폭 = 크레딧 10당 +15% (최대 300%)'],
-    member: (t, ctx) => ({
-      mods: [inc('all', T(t, [0.15, 0.35, 0.6, 0.6]) + (t === 2 ? Math.min(0.5, Math.floor(ctx.credits / 10) * 0.05) : 0)), ...(t >= 3 ? [amp('all', Math.min(t >= 4 ? 3 : 2, Math.floor(ctx.credits / 10) * (t >= 4 ? 0.15 : 0.12)))] : [])],
-    }),
+    desc: '에너지 크레딧 스노우볼. 이자 상한 증가, 보험, 대출, 전투 실적 크레딧, 그리고 보유 크레딧에 비례한 주요 위력 (명사수 사격 · 돌격가 타격 · 전문가 · 지휘관 기술 위력).',
+    tierDesc: [0, 1, 2, 3].map((i) => [
+      i === 3 ? '[적대적 인수합병]' : '', ['이자 상한 +3', '보험(패배 시 크레딧 +6, 체력 피해 -50%), 대출 해금', '이자 상한 +6', '이자 상한 +10'][i],
+      `전투를 마치면 크레딧 +${PETRA_PAY[i]} (승리 시 +${PETRA_PAY[i] * 2})`,
+      PETRA_POW[i] ? `페트라 기물 주요 위력 = 보유 크레딧 10당 +${pct(PETRA_POW[i])}p (최대 +${pct(PETRA_POW_MAX[i])}p)` : '',
+    ].filter(Boolean).join(', ').replace('], ', '] ')),
+    member: (t, ctx) => {
+      const k = Math.min(T(t, PETRA_POW_MAX), Math.floor(ctx.credits / 10) * T(t, PETRA_POW));
+      return k ? { setup: (u) => { u.mem.petPow = k; } } : null;
+    },
   },
   {
     id: 'SIR', name: '시리우스 성도회', kind: 'faction', tiers: [3, 5, 7, 9], color: '#e8e2c8', icon: '✧',
@@ -414,40 +414,37 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'TIME', name: '시간 여행자', kind: 'faction', tiers: [2, 3, 4, 5], color: '#c8a0ff', icon: '⌛',
-    desc: `시간의 틈을 걷는 이들.\n· 기술 쿨다운이 빨리 돌아오고 공격을 잘 피합니다.\n· (3) 이상: 회피할 때마다 주요 위력(명사수 사격 · 돌격가 타격 · 전문가 기술 · 지휘관 전술 위력)에 비례해 체력을 회복합니다 (${TIME_ICD}초에 1번).\n· (4) 이상: 쓰러져도 시간을 되감아 다시 일어섭니다.`,
-    tierDesc: ['쿨다운 감소 속도 +40%, 회피 +8%p', `쿨다운 감소 속도 +75%, 회피 +13%p, 전투 기술 피해 +20%, 회피하면 주요 위력 ${pct(TIME_HEAL[1])} 회복`, `쿨다운 감소 속도 +120%, 회피 +18%p, 전투 기술 피해 +35%, 회피하면 주요 위력 ${pct(TIME_HEAL[2])} 회복, 처음 쓰러질 때 최대 체력 70%로 부활`,
-      `[시간 역행] 쿨다운 감소 속도 +220%, 회피 +28%p, 전투 기술 피해 +50%, 회피하면 주요 위력 ${pct(TIME_HEAL[3])} 회복, 처음 쓰러질 때 부활 (체력 70%) + 전투 기술을 4번 쓸 때마다 부활 기회 1회 추가 (전투당 최대 3번 부활)`],
+    desc: `시간의 틈을 걷는 이들.\n· 기술 쿨다운이 빨리 돌아옵니다.\n· 쓰러질 피해를 받으면 전투당 1번, 체력 1로 버티고 잠시 무적이 됩니다 (단계별 지속 시간).\n· (3) 이상: 전투 기술을 쓸 때마다 최대 체력의 일부를 회복합니다.`,
+    tierDesc: [0, 1, 2, 3].map((i) => [i === 3 ? '[시간 역행]' : '', `쿨다운 감소 속도 +${pct([0.4, 0.75, 1.2, 2.2][i])}`, i ? `전투 기술 피해 +${pct([0, 0.2, 0.35, 0.5][i])}` : '', `쓰러지기 직전 체력 1 · 무적 ${TIME_INV[i]}초 (전투당 1회)`, TIME_SKHEAL[i] ? `전투 기술을 쓸 때마다 최대 체력 ${pct(TIME_SKHEAL[i])} 회복` : ''].filter(Boolean).join(', ').replace('], ', '] ')),
     member: (t) => ({
-      stats: { cdr: T(t, [0.4, 0.75, 1.2, 2.2]), eva: T(t, [0.08, 0.13, 0.18, 0.28]) },
+      stats: { cdr: T(t, [0.4, 0.75, 1.2, 2.2]) },
       mods: t >= 2 ? [inc('skill', T(t, [0, 0.2, 0.35, 0.5]))] : undefined,
-      hooks: t === 2 ? { onEvade: timeEvade(TIME_HEAL[1]) } : t >= 3 ? {
-        onEvade: timeEvade(T(t, TIME_HEAL)),
-        onSkill(_b, u) { u.mem.timeSk = (u.mem.timeSk || 0) + 1; },
+      hooks: {
+        onSkill: t >= 2 ? (b, u) => { b.heal(u, u, b.S(u, 'maxHp') * T(t, TIME_SKHEAL), false, 'TIME'); } : undefined,
         onLethal(b, u) {
-          const allowed = t >= 4 ? Math.min(3, 1 + Math.floor((u.mem.timeSk || 0) / 4)) : 1;
-          if ((u.mem.timeRev || 0) >= allowed) return false;
-          u.mem.timeRev = (u.mem.timeRev || 0) + 1;
-          u.hp = b.S(u, 'maxHp') * 0.7;
-          b.emit({ k: 'mark', id: u.id, name: '시간 역행', style: 'rewind' });
+          if (u.mem.timeRev) return false;
+          u.mem.timeRev = 1;
+          u.hp = 1;
+          const dur = T(t, TIME_INV);
+          u.mem.invulnUntil = Math.max(u.mem.invulnUntil || 0, b.t + dur);
+          b.buff(u, u, 'time.halt', dur, { label: '시간 정지' });
+          b.emit({ k: 'mark', id: u.id, name: '시간 정지', style: 'rewind' });
           b.fx(u.x, u.y, 0, 'psy');
           return true;
         },
-      } : undefined,
+      },
     }),
   },
 
   {
     id: 'CHR', name: '청라공국', kind: 'faction', tiers: [3, 5, 7, 9], color: '#3fa8b8', icon: '靑',
-    desc: `필서 속에 기록된 고대 공국. 공명도가 아닌 인과율로 공왕을 키운다.\n· 3명 이상이면 전투 시작 시 [공왕 무휼]을 소환합니다. 무휼은 출전 칸을 차지하지 않고, 편성 화면에 놓지 않습니다. 전투가 시작되면 아군 진영 뒷줄 가운데 빈칸(없으면 가까운 빈칸)에 바로 나타납니다 (판매 · 대기석 불가).\n· 무휼은 공명도를 받지 않습니다. 이긴 전투마다 인과율을 모아 인과 단계 1~${CAUSAL.max}로 성장합니다.\n· 인과율 1회 수집량 = (${CAUSAL.base} + 장비 점수 ÷ ${CAUSAL.gearDiv}) × 단계 배율. 장비 점수 = 출전 아군이 장착한 장비 (재료 ${CAUSAL.gearPts.C} · 고급 · 희귀 ${CAUSAL.gearPts.A} · 전설 ${CAUSAL.gearPts.L}, 개조부품 · 포탑 장비 · 무휼 전용 장비 제외).\n· 청라 기물이 3명 아래로 줄어도 쌓은 인과율은 남습니다.\n· 3 · 5 · 7명에 처음 닿으면 무휼 전용 장비가 해금되어 자동으로 장착됩니다 (일반 장비는 장착할 수 없지만 장비 점수에는 셉니다).`,
-    tierDesc: [
-      `청라 기물 모든 주요 능력치 +${CHR_MAJ[0]} · 피해 +${pct(CHR_DMG[0])}, 전투 시작 시 공왕 무휼 소환, 인과율 수집 ×${CAUSAL.mult[1]}, 무휼 전용 장비 [${KING_GEAR_NAME[KING_GEAR[0]]}] 해금`,
-      `청라 기물 모든 주요 능력치 +${CHR_MAJ[1]} · 피해 +${pct(CHR_DMG[1])}, 인과율 수집 ×${CAUSAL.mult[2]}, 무휼 전용 장비 [${KING_GEAR_NAME[KING_GEAR[1]]}] 해금`,
-      `청라 기물 모든 주요 능력치 +${CHR_MAJ[2]} · 피해 +${pct(CHR_DMG[2])}, 인과율 수집 ×${CAUSAL.mult[3]}, 무휼 전용 장비 [${KING_GEAR_NAME[KING_GEAR[2]]}] 해금`,
-      `[필서 개봉] 인과율 수집 ×${CAUSAL.mult[4]}, 청라 기물 모든 주요 능력치 +${CHR_MAJ[3]} · 피해 +${pct(CHR_DMG[3])}`,
-    ],
-    member: (t, ctx) => ({ majors: { vit: T(t, CHR_MAJ), pow: T(t, CHR_MAJ), mnd: T(t, CHR_MAJ), def: T(t, CHR_MAJ), agi: T(t, CHR_MAJ) }, mods: [inc('all', T(t, CHR_DMG))], hooks: { onStart(b, u) {
+    desc: `필서 속에 기록된 고대 공국. 공명도가 아닌 인과율로 공왕을 키운다.\n· [지휘]: 청라 기물이 주요 위력(명사수 사격 · 돌격가 타격 · 전문가 기술 · 지휘관 전술 위력)으로 계산하는 모든 효과에 아군 전술 위력 × [지휘] 배율을 더합니다. 단계마다 아군 전술 위력도 고정값만큼 오릅니다.\n· 3명 이상이면 전투 시작 시 [공왕 무휼]을 소환합니다. 무휼은 출전 칸을 차지하지 않고, 편성 화면에 놓지 않습니다. 전투가 시작되면 아군 진영 뒷줄 가운데 빈칸(없으면 가까운 빈칸)에 바로 나타납니다 (판매 · 대기석 불가).\n· 무휼은 공명도를 받지 않습니다. 이긴 전투마다 인과율을 모아 인과 단계 1~${CAUSAL.max}로 성장합니다.\n· 인과율 1회 수집량 = (${CAUSAL.base} + 장비 점수 ÷ ${CAUSAL.gearDiv}) × 단계 배율. 장비 점수 = 출전 아군이 장착한 장비 (재료 ${CAUSAL.gearPts.C} · 고급 · 희귀 ${CAUSAL.gearPts.A} · 전설 ${CAUSAL.gearPts.L}, 개조부품 · 포탑 장비 · 무휼 전용 장비 제외).\n· 청라 기물이 3명 아래로 줄어도 쌓은 인과율은 남습니다.\n· 3 · 5 · 7명에 처음 닿으면 무휼 전용 장비가 해금되어 자동으로 장착됩니다 (일반 장비는 장착할 수 없지만 장비 점수에는 셉니다).`,
+    tierDesc: [0, 1, 2, 3].map((i) => `${i === 3 ? '[필서 개봉] ' : ''}아군 전술 위력 +${CHR_TAC[i]}, 청라 기물 [지휘] ×${CHR_CMD[i]}${i === 0 ? ', 전투 시작 시 공왕 무휼 소환' : ''}, 인과율 수집 ×${CAUSAL.mult[i + 1]}${i < 3 ? `, 무휼 전용 장비 [${KING_GEAR_NAME[KING_GEAR[i]]}] 해금` : ''}`),
+    member: (t, ctx) => ({ setup: (u) => { u.mem.command = T(t, CHR_CMD); }, hooks: { onStart(b, u) {
       const chr = b.alliesOf(u).filter((a) => !a.isSummon && a.synergies.has('CHR'));
-      if (chr[0] !== u) return; // 대표 청라 기물 1명만 소환
+      if (chr[0] !== u) return; // 대표 청라 기물 1명만: 무휼 소환 · 전술 위력 가산
+      u.mem.tacBonus = (u.mem.tacBonus || 0) + T(t, CHR_TAC);
+      b.computeTac();
       CHR_HOOK.spawn?.(b, u, ctx, t);
     } } }),
   },
@@ -533,15 +530,16 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'NAV', name: '항해자', kind: 'trait', tiers: [2, 4, 6, 8], color: '#7ab8ff', icon: '✈',
     desc: `항해자 1명을 [에이스 파일럿]으로 지정합니다 (기물 정보 창, 미지정 시 공명 등급이 가장 높은 항해자). 에이스는 기물마다 다른 추가 특성이 활성화되고, 단계가 오를수록 그 능력이 강해집니다.\n· 처음 켜지면 [표시 망원경]을 받습니다.`,
-    tierDesc: ['에이스 능력 ×1, 항해자 피해 +15%, [표시 망원경] 지급', `에이스 능력 ×2, 항해자 기동력 +5, 피해 +35%, 망원경 +${DEV.scope.tierBonus[1]}회`, `에이스 능력 ×4, 항해자 기동력 +10, 피해 +75%, 망원경 +${DEV.scope.tierBonus[2]}회 · 범위 ${DEV.scope.r[2]}칸`, `[전설의 항로] 에이스 능력 ×8, 항해자 기동력 +16, 피해 +120%, 망원경 +${DEV.scope.tierBonus[3]}회`],
+    tierDesc: ['에이스 능력 ×1, [표시 망원경] 지급', `에이스 능력 ×2 · 다른 항해자 ×${NAV_CREW[1]}, 항해자 기동력 +5, 망원경 +${DEV.scope.tierBonus[1]}회`, `에이스 능력 ×4 · 다른 항해자 ×${NAV_CREW[2]}, 항해자 기동력 +10, 망원경 +${DEV.scope.tierBonus[2]}회 · 범위 ${DEV.scope.r[2]}칸`, `[전설의 항로] 에이스 능력 ×8 · 다른 항해자 ×${NAV_CREW[3]}, 항해자 기동력 +16, 망원경 +${DEV.scope.tierBonus[3]}회`],
     member: (t, ctx) => {
       const agi = T(t, [0, 5, 10, 16]);
-      const navDmg = [inc('all', T(t, [0.15, 0.35, 0.75, 1.2]))];
-      const ace = ctx.run && ctx.unit && aceTargetUid(ctx.run) === ctx.unit.uid ? UNIT_BY_ID[ctx.unit.defId].ace : undefined;
-      if (!ace) return { majors: { agi }, mods: navDmg };
-      const e = ace.effect(T(t, [1, 2, 4, 8]));
+      const isAce = !!ctx.run && !!ctx.unit && aceTargetUid(ctx.run) === ctx.unit.uid;
+      const own = ctx.unit ? UNIT_BY_ID[ctx.unit.defId].ace : undefined;
+      const k = isAce ? T(t, NAV_ACE) : T(t, NAV_CREW); // (4) 부터 에이스가 아닌 항해자도 자기 에이스 능력을 낮은 배율로
+      if (!own || !k) return { majors: { agi } };
+      const e = own.effect(k);
       const prev = e.setup;
-      return { ...e, mods: [...(e.mods || []), ...navDmg], majors: { ...(e.majors || {}), agi: (e.majors?.agi || 0) + agi }, setup: (u, b, c) => { u.mem.ace = 1; prev?.(u, b, c); } };
+      return { ...e, majors: { ...(e.majors || {}), agi: (e.majors?.agi || 0) + agi }, setup: (u, b, c) => { if (isAce) u.mem.ace = 1; prev?.(u, b, c); } };
     },
   },
   {
@@ -640,7 +638,10 @@ export const SYNERGIES: SynDef[] = [
         mods: [inc('elec', T(t, COND_T.elec))],
         hooks: {
           onDeal(b, u, tgt, r, o) {
-            if ((o.tag !== 'basic' && o.tag !== 'skill') || r.amount <= 0 || !b.rng.chance(COND_T.chance)) return;
+            if ((o.tag !== 'basic' && o.tag !== 'skill') || r.amount <= 0) return;
+            if (u.mem.condT === b.t) return; // 광역 공격: 같은 순간 여러 적을 맞혀도 바운스 판정은 한 번 (처음 맞은 대상에서)
+            u.mem.condT = b.t;
+            if (!b.rng.chance(COND_T.chance)) return;
             chainBolt(b, u, tgt, hopsOf(u), radius, k, true);
           },
           onHurt: t >= 2 ? (b, u, src, _r, o) => {
@@ -677,14 +678,14 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'HUNTER', name: '사냥꾼', kind: 'trait', tiers: [2, 4, 6, 8], color: '#c98a4a', icon: '➶',
-    desc: '사냥감을 끝까지 쫓는 이들. 사냥꾼 기물은 공격 속도와 치명타 피해가 크게 오르고 원거리 사냥꾼은 사거리가 1 늘며, (4)부터는 기본 공격 · 기술이 대상 최대 체력 비례 고정 피해를 더합니다 (사격 위력 일정 비율이 상한).',
-    tierDesc: ['공격 속도 +30%, 치명타 피해 +20%p, 원거리 사냥꾼 사거리 +1', '공격 속도 +60%, 치명타 피해 +45%p, 공격마다 대상 최대 체력 2% 고정 피해 (사격 위력 400% 상한)', '공격 속도 +100%, 치명타 피해 +80%p, 최대 체력 3% 고정 피해 (상한 600%)',
-      '[최상위 포식자] 공격 속도 +200%, 치명타 피해 +140%p, 최대 체력 5% 고정 피해 (상한 1000%)'],
+    desc: `사냥감을 끝까지 쫓는 이들. 사냥꾼 기물은 공격 속도와 치명타 확률이 크게 오르고, 치명타 확률이 100%를 넘으면 넘는 몫의 ${HUNTER_OVER}배만큼 치명타 피해가 오릅니다 (치명타 확률은 그대로). (4)부터는 기본 공격 · 기술이 대상 최대 체력 비례 고정 피해를 더합니다 (사격 위력 일정 비율이 상한).`,
+    tierDesc: ['공격 속도 +30%, 치명타 확률 +10%p, 치명타 확률 100% 초과분 ×4 = 치명타 피해', '공격 속도 +60%, 치명타 확률 +22.5%p, 공격마다 대상 최대 체력 2% 고정 피해 (사격 위력 400% 상한)', '공격 속도 +100%, 치명타 확률 +40%p, 최대 체력 3% 고정 피해 (상한 600%)',
+      '[최상위 포식자] 공격 속도 +200%, 치명타 확률 +70%p, 최대 체력 5% 고정 피해 (상한 1000%)'],
     member: (t) => {
       const hp = T(t, [0, 0.02, 0.03, 0.05]), cap = T(t, [0, 4, 6, 10]);
       return {
-        setup: (u) => { if (u.st.range > 1) u.st.range += 1; },
-        stats: { atkSpd: T(t, [0.3, 0.6, 1.0, 2.0]), critDmg: T(t, [0.2, 0.45, 0.8, 1.4]) },
+        setup: (u) => { u.mem.critOver = HUNTER_OVER; },
+        stats: { atkSpd: T(t, [0.3, 0.6, 1.0, 2.0]), crit: T(t, [0.1, 0.225, 0.4, 0.7]) }, // 치명타 피해 +20 · 45 · 80 · 140%p 를 절반 계수의 치명타 확률로
         hooks: hp ? {
           onDeal(b, u, tgt, r, o) {
             if ((o.tag !== 'basic' && o.tag !== 'skill') || r.amount <= 0 || !tgt.alive) return;
@@ -697,14 +698,14 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'VOYAGE', name: '우리의 출항기!', kind: 'faction', tiers: [1, 5], color: '#4fc3c8', icon: '⛵',
     desc: '한 배를 탄 다섯 동료. 혼자 나가거나 다섯이 다 모였을 때만 힘을 냅니다.\n· 단독 출항 (정확히 1명): 출전한 구성원이 고유 능력을 얻습니다.\n· 완전체 (5명): 구성원 전원이 고유 능력을 얻고, 전투력 · 정신력이 오르며, 전투 기술을 쓰면 체력을 회복하고, 연장전에 피해 증폭이 크게 늘어납니다.\n· 2~4명일 때는 효과가 없습니다.\n고유 능력은 기물마다 다릅니다 (기물 상세 · 도감에서 확인).',
-    tierDesc: ['[단독 출항] 정확히 1명 출전 시 고유 능력 (2~4명이면 효과 없음)', '[완전체] 구성원 전원 고유 능력, 전투력 +12, 정신력 +12, 기술 사용 후 최대 체력 9% 회복, 연장전 피해 증폭 +250%'],
+    tierDesc: ['[단독 출항] 정확히 1명 출전 시 고유 능력 (2~4명이면 효과 없음)', '[완전체] 구성원 전원 고유 능력, 전투력 +12, 정신력 +12, 매초 최대 체력 2.5% 회복, 연장전 피해 증폭 +250%'],
     member: (t) => {
       if (t < 2) return null; // 1단계(단독 출항)는 고유 능력만 (special)
-      const heal = 0.09, ot = 1 + 2.5;
+      const regen = 0.025, ot = 1 + 2.5;
       return {
         majors: { pow: 12, mnd: 12 },
         hooks: {
-          onSkill(b, u) { b.heal(u, u, b.S(u, 'maxHp') * heal, false, 'VOYAGE'); },
+          onTick(b, u, dt) { if (u.alive && u.hp < b.S(u, 'maxHp')) b.heal(u, u, b.S(u, 'maxHp') * regen * dt, false, 'VOYAGE'); },
           dmgMult: (b) => (b.t > CFG.overtimeStart - (b.ctx.otShift || 0) ? ot : 1), // 연장전 (초침의 서약이면 앞당겨짐)
         },
       };
@@ -723,7 +724,7 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'EXPLORER', name: '탐험가', kind: 'trait', tiers: [1], color: '#e6d27a', icon: '⚓',
     desc: `아문센 전용. ${CFG.rarePhase}페이즈부터 영입 후보에 나옵니다. 고유 전설 장비 [그늘]을 장착한 채 합류합니다 (해제 불가).`,
-    tierDesc: ['[그늘]: 기술 쿨다운 감소 속도 +150%, 모든 아군 회피·치명타 확률 +10%p'],
+    tierDesc: ['[그늘]: 기술 쿨다운 감소 속도 +200%, 모든 아군 회피·치명타 확률 +20%p'],
   },
   {
     id: 'RFRIEND', name: '당신의 친구, R', kind: 'trait', tiers: [1], color: '#ff7aa8', icon: 'R',

@@ -11,7 +11,7 @@ import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBAL_ODDS, GLOBALS, PRIVILEGES, synName } from '../data/globals';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, isTurretItem, isTurretMod, TURRET_ADV, TURRET_BASIC, TURRET_MODS, TURRET_PRICE, turretModsOfTier, turretSlots } from '../data/items';
-import { UNI_XP, OCCULT_SYNTH, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
+import { UNI_XP, OCCULT_SYNTH, PETRA_PAY, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { OATH_AUGS, VOW_ENH_KEEP } from '../data/oathaugs';
 import { MAJOR_AUGS, recMajors } from '../data/rework';
@@ -403,6 +403,16 @@ export function autoFill(run: RunState) {
 export function currentOptions(run: RunState): NodeType[] { return run.map[run.step] || []; }
 /** 조우 강도 배율 (적 체력 · 피해): 역경은 설정값, 그 밖은 페이즈 안에서 진행한 칸에 따라 조금씩 (genEncounter · 지도 미리보기 공용) */
 export const encounterMult = (type: NodeType, step: number) => (type === 'adversity' ? CFG.adversityMult : 1 + 0.04 * step);
+/** 전투 보상 크레딧 (승리 기준): 페이즈 기본 × 역경 · 위험 등급 · 서약 · 계약 배율 (+보스 5) × 판돈 + 전역 증강 가산. 패배는 이것의 CFG.lossShare */
+function battleCredits(run: RunState, type: NodeType): number {
+  let c = CFG.winCredits(run.phase);
+  if (type === 'adversity') c = Math.round(c * CFG.adversityReward);
+  c = Math.round(c * CFG.diffWinMul(run.diff || 0) * oathWinMul(run) * contractWinMul(run)); // 위험 3 ×1.25 · 위험 6 ×1.5 · 박봉의 서약
+  if (type === 'boss') c += 5;
+  return Math.max(0, Math.round(c * stakesMul(run)) + globalWinAdd(run)); // 판돈 올리기 · 전리품 회수
+}
+/** 주식회사 페트라 실적: 전투를 마치면 (단계별) · 이기면 그 2배 (PETRA_PAY) */
+const petraPay = (pet: number, won: boolean) => (pet ? PETRA_PAY[pet - 1] * (won ? 2 : 1) : 0);
 /** 지도 미리보기: 전투 한 번의 예상 크레딧 수입 · 공명도 풀 (승리 / 패배). resolveBattle 과 같은 식 · 같은 설정값.
  *  이자는 지금 보유 크레딧 기준, 연승은 이번에 이긴다고 보고 센다 (대출 상환 · 퀘스트 · 장비 드랍 · 성장 특성은 빼고) */
 export function battleRewardPreview(run: RunState, node: NodeType) {
@@ -411,14 +421,10 @@ export function battleRewardPreview(run: RunState, node: NodeType) {
   const counts = synergyCounts(deployed(run), run);
   const pet = tierOf('PET', counts.PET || 0);
   const { interest } = interestInfo(run, counts);
-  let c = CFG.winCredits(p);
-  if (type === 'adversity') c = Math.round(c * CFG.adversityReward);
-  c = Math.round(c * CFG.diffWinMul(run.diff || 0) * oathWinMul(run) * contractWinMul(run)); // 박봉의 서약
-  if (type === 'boss') c += 5;
-  c = Math.max(0, Math.round(c * stakesMul(run)) + globalWinAdd(run));
-  const win = interest + c + CFG.streakBonus(Math.max(1, run.streak + 1)) + (pet >= 1 ? (pet >= 4 ? 3 : 1) : 0) + (fieldOf(run.field).winCredits || 0);
-  const loss = interest + CFG.lossCredits + (pet >= 2 ? 6 : 0);
-  const pool = (won: boolean) => Math.round(CFG.xpPool(p) * (won ? 1 : 0.5) * (type === 'adversity' ? CFG.adversityReward : 1) * (hasGlobal(run, 'G.resonance') ? 1.35 : 1) * despairXp(run) * stakesMul(run));
+  const c = battleCredits(run, type);
+  const win = interest + c + CFG.streakBonus(Math.max(1, run.streak + 1)) + petraPay(pet, true) + (fieldOf(run.field).winCredits || 0);
+  const loss = interest + Math.round(c * CFG.lossShare) + petraPay(pet, false) + (pet >= 2 ? 6 : 0);
+  const pool = (won: boolean) => Math.round(CFG.xpPool(p) * (won ? 1 : CFG.lossShare) * (type === 'adversity' ? CFG.adversityReward : 1) * (hasGlobal(run, 'G.resonance') ? 1.35 : 1) * despairXp(run) * stakesMul(run));
   return { credits: { win, loss, interest }, xp: { win: pool(true), loss: pool(false) } };
 }
 
@@ -1189,7 +1195,7 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
     if (type === 'boss') {
       const boss = run.campaign ? campBoss(run) : f.bosses[(p - 1) % f.bosses.length];
       ids.push(boss, ...(ENEMY_BY_ID[boss].escort || []));
-      const extra = run.campaign ? 0 : Math.max(0, Math.min(4, p - 1)); // 보스 호위 추가 인원 (최대 4) · 캠페인은 장 보스 혼자 (포자를 쏟아 낸다)
+      const extra = run.campaign ? 0 : Math.max(0, p - 1); // 보스 호위 추가 인원 = 페이즈 - 1 (상한 없음) · 캠페인은 장 보스 혼자 (포자를 쏟아 낸다)
       for (let i = 0; i < extra + (diffHas(run.diff, 4) ? 1 : 0) + oathV(run, 'titan', 'guard'); i++) ids.push(r.pick(pool)); // 거두의 서약: 호위 +
     } else {
       const late = run.step >= 5 ? 1 : 0; // 페이즈 후반 (항로 회의 이후 두 번째 전투부터)
@@ -1275,18 +1281,14 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   if (won) {
     run.streak = Math.max(1, run.streak + 1);
     run.stats.wins++;
-    let c = CFG.winCredits(p);
-    if (type === 'adversity') c = Math.round(c * CFG.adversityReward);
-    c = Math.round(c * CFG.diffWinMul(run.diff || 0) * oathWinMul(run) * contractWinMul(run)); // 위험 3 ×1.25 · 위험 6 ×1.5 · 박봉의 서약
-    if (type === 'boss') c += 5;
-    c = Math.max(0, Math.round(c * stakesMul(run)) + globalWinAdd(run)); // 판돈 올리기 · 전리품 회수
+    const c = battleCredits(run, type);
     income += c;
     lines.push(`승리 보상 +${c}`);
     if (hasGlobal(run, 'G.r_bounty')) { const k = Math.min(GA.bountyMax, b.counters.kills); if (k) { income += k; lines.push(`현상금 +${k}`); } }
     if (hasGlobal(run, 'G.medic') && run.hp < run.maxHp) { const h = Math.min(GA.medic, run.maxHp - run.hp); run.hp += h; lines.push(`야전 의무대 — 체력 +${h}`); }
     const sb = CFG.streakBonus(run.streak);
     if (sb) { income += sb; lines.push(`${run.streak}연승 보너스 +${sb}`); }
-    if (pet >= 1) { const pb = pet >= 4 ? 3 : 1; income += pb; lines.push(`페트라 실적 +${pb}`); }
+    if (pet >= 1) { const pb = petraPay(pet, true); income += pb; lines.push(`페트라 실적 +${pb}`); }
     const fw = fieldOf(run.field).winCredits;
     if (fw) { income += fw; lines.push(`전장 조건 · 계약 정산 +${fw}`); }
     // 전투 보상 소모품: 분리 용제 · 재구성 회로 · 공명 주입기 (주입기 크기는 페이즈에 따라) · 캠페인 소모품 · 배치형 4종 중 하나
@@ -1319,7 +1321,9 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   } else {
     run.streak = 0;
     run.stats.losses++;
-    income += CFG.lossCredits;
+    const lc = Math.round(battleCredits(run, type) * CFG.lossShare);
+    if (lc) { income += lc; lines.push(`패배 보상 +${lc} (승리 보상의 ${Math.round(CFG.lossShare * 100)}%)`); }
+    if (pet >= 1) { const pb = petraPay(pet, false); income += pb; lines.push(`페트라 실적 +${pb}`); }
     const survivors = b.fighters(1).length;
     hpLoss = (type === 'boss' ? CFG.bossLossDamage(p) : CFG.lossDamage(p, survivors) * (type === 'adversity' ? CFG.adversityLoss : 1)) * (1 + oathV(run, 'wound', 'loss')); // 패전의 서약
     if (pet >= 2) { hpLoss *= 0.5; income += 6; lines.push('페트라 보험금 +6, 체력 피해 50% 감소'); }
@@ -1341,7 +1345,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
   // 공명도
   const xpBefore = new Map(run.units.map((u) => [u.uid, u.xp + totalXpOf(u)]));
   const lvBefore = new Map(run.units.map((u) => [u.uid, { rank0: u.rank, xp0: u.xp }]));
-  let pool = CFG.xpPool(p) * (won ? 1 : 0.5) * (type === 'adversity' ? CFG.adversityReward : 1) * (hasGlobal(run, 'G.resonance') ? 1.35 : 1) * despairXp(run) * stakesMul(run);
+  let pool = CFG.xpPool(p) * (won ? 1 : CFG.lossShare) * (type === 'adversity' ? CFG.adversityReward : 1) * (hasGlobal(run, 'G.resonance') ? 1.35 : 1) * despairXp(run) * stakesMul(run);
   pool = Math.round(pool);
   distributeXp(run, pool);
   lines.push(`공명도 풀 ${pool} 분배`);
@@ -1430,17 +1434,23 @@ function settleCausal(run: RunState, won: boolean, tier: number, lines: string[]
 
 function totalXpOf(u: UnitState) { let t = 0; for (let r = 1; r < u.rank; r++) t += CFG.xpToNext(r); return t; }
 
-/** 공명도 풀을 파티 전체에 무작위 분배 (최소 1pt 보정) */
+/** 공명도 풀 분배. 집중 육성(run.focus) 기물이 있으면 풀의 CFG.focusXpShare 를 그 기물들이 똑같이 나눠 받고, 나머지는 다른 기물에게 무작위.
+ *  무작위 몫: 출전 기물은 최소 1 보장, 출전 · 대기 같은 가중치 (대기 감소 가중치 없음) */
 export function distributeXp(run: RunState, pool: number) {
-  // 출전 기물은 최소 1 보장, 대기 기물은 가중치를 낮춰 나눠 받는다
-  const us = run.units.filter((u) => !isRock(u)); // 반려 돌은 공명도를 받지 않는다
-  if (!us.length) return;
+  const all = run.units.filter((u) => !isRock(u)); // 반려 돌은 공명도를 받지 않는다
+  if (!all.length) return;
+  const fs = new Set(run.focus || []);
+  const focus = all.filter((u) => fs.has(u.uid)), rest0 = all.filter((u) => !fs.has(u.uid));
+  const fPool = focus.length ? (rest0.length ? Math.round(pool * CFG.focusXpShare) : pool) : 0;
+  focus.forEach((u, i) => { u.xp += Math.floor(fPool / focus.length) + (i < fPool % focus.length ? 1 : 0); });
+  const us = rest0, left = pool - fPool;
+  if (!us.length || left <= 0) return;
   rng(run, (r) => {
     const base = (u: UnitState) => (u.pos ? 1 : 0);
     const share = new Map(us.map((u) => [u.uid, base(u)]));
-    const minSum = us.reduce((s, u) => s + base(u), 0);
-    let rest = Math.max(0, pool - minSum);
-    const w = us.map((u) => (0.15 + r.next()) * (u.pos ? 1 : CFG.benchXpWeight));
+    const minSum = Math.min(left, us.reduce((s, u) => s + base(u), 0));
+    let rest = Math.max(0, left - minSum);
+    const w = us.map(() => 0.15 + r.next());
     const tw = w.reduce((a, b) => a + b, 0);
     us.forEach((u, i) => { const g = Math.floor((rest * w[i]) / tw); share.set(u.uid, share.get(u.uid)! + g); });
     rest -= [...share.values()].reduce((a, b) => a + b, 0) - minSum;
@@ -2029,13 +2039,16 @@ function supplyGear(run: RunState, r: Rng, v: number, jackpot: boolean): string 
   if (t === 'L') return 'L_' + r.pick(ALL_ADVANCED).slice(2);
   return r.chance(S.graded) ? r.pick(ALL_GRADED) : r.pick(ALL_ADVANCED);
 }
+/** 런의 첫 보급 카드 순서 (마지막 장은 정비 소모품) */
+const FIRST_ORDER: SupplyCard['kind'][] = ['gear', 'credits', 'xp'];
 /** 보급품 카드 (뒷면): 장마다 종류 무작위 (겹쳐도 됨), 가치 = 기준 ÷ valueCards × (1 ± spread) × 대박 배율.
  *  마지막 장은 장비 정비 소모품 확정: 분리 용제 · 재구성 회로 중 하나 (분리 용제가 안 나오는 런이면 그 몫은 공명도 카드) */
 export function genSupply(run: RunState, onMap = false): SupplyCard[] {
   const S = CFG.supply, per = supplyBase(run) / S.valueCards;
   const kinds = Object.keys(S.kindW) as SupplyCard['kind'][];
   const total = kinds.reduce((s, k) => s + S.kindW[k], 0);
-  // 항로 보급 (onMap): 첫 장은 장비 재료 확정, 대박 없음
+  // 항로 보급 (onMap): 첫 장은 장비 재료 확정, 대박 없음. 런의 첫 보급(1페이즈 항로 보급)은 순서 고정 + 크레딧 카드 +firstCredits
+  const first = onMap && run.phase === 1;
   return rng(run, (r) => Array.from({ length: S.cards }, (_, i): SupplyCard => {
     if (i === S.cards - 1) {
       const id = r.pick(['K_strip', 'K_reroll']);
@@ -2046,11 +2059,11 @@ export function genSupply(run: RunState, onMap = false): SupplyCard[] {
       return c;
     }
     let roll = r.next() * total;
-    const kind = onMap && i === 0 ? 'gear' : kinds.find((k) => (roll -= S.kindW[k]) < 0) ?? kinds[0];
+    const kind = first ? FIRST_ORDER[i] : onMap && i === 0 ? 'gear' : kinds.find((k) => (roll -= S.kindW[k]) < 0) ?? kinds[0];
     const mult = onMap ? 1 : S.jackpot.find(([, p]) => r.chance(p))?.[0] ?? 1;
     const v = per * (1 + (r.next() * 2 - 1) * S.spread) * mult;
     const c: SupplyCard = { kind, xp: 0, credits: 0, items: [], value: 0, mult };
-    if (kind === 'credits') c.credits = Math.max(1, Math.round(v));
+    if (kind === 'credits') c.credits = Math.max(1, Math.round(v)) + (first ? S.firstCredits : 0);
     else if (kind === 'xp') c.xp = Math.max(1, Math.round(v / XP_VALUE));
     else c.items = [onMap && i === 0 ? r.pick(ALL_COMPONENTS) : supplyGear(run, r, v, mult > 1)];
     c.value = supplyValue(c);

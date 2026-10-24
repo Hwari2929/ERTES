@@ -105,6 +105,8 @@ export interface Status {
   onOther?(b: Battle, u: CUnit, s: Status, added: Status): void;
 }
 
+/** 주요 위력 능력치: 명사수 사격 · 돌격가 타격 · 그 밖은 기술 (지휘관은 P() 가 전술 위력으로 바꾼다) */
+const mainKey = (u: CUnit): StatKey => (u.ctype === 'MARK' ? 'shoot' : u.ctype === 'VAN' ? 'strike' : 'tech');
 export interface DmgOpts {
   elem: Elem;
   /** 시너지 자체 효과: 기물이 아닌 시너지 몫으로 집계 */
@@ -469,7 +471,9 @@ export class Battle {
   tacPower(u: CUnit): number {
     const side = u.side;
     const boost = this.has(u, 'buff', 'div.oracle') || (this.mem[`oracle${side}`] || 0) > this.t ? 2 : 1;
-    return Math.max(1, this.tac[side]) * boost * (1 + (u.mem.tacPct || 0));
+    const base = Math.max(1, this.tac[side]) * boost;
+    // 지휘관의 주요 위력 = 전술 위력: 페트라 (보유 크레딧 비례 %) · 청라 [지휘] (전술 위력 × 배율을 더한다)
+    return base * (1 + (u.mem.tacPct || 0) + (u.mem.petPow || 0)) + (u.mem.command ? base * u.mem.command : 0);
   }
   computeTac() {
     for (const side of [0, 1] as const) {
@@ -740,6 +744,10 @@ export class Battle {
   S(u: CUnit, k: StatKey): number {
     let v = u.st[k];
     for (const s of u.statuses) if (s.delta && s.delta[k] !== undefined) v += s.delta[k]!;
+    if ((u.mem.petPow || u.mem.command) && u.ctype !== 'CMD' && k === mainKey(u)) { // 주요 위력: 페트라 (보유 크레딧 비례 %) · 청라 [지휘] (아군 전술 위력 × 배율을 더한다)
+      v *= 1 + (u.mem.petPow || 0);
+      if (u.mem.command) v += Math.max(0, this.tac[u.side] || 0) * u.mem.command;
+    }
     if (k === 'armor') {
       for (const s of u.statuses) if (s.armorMul !== undefined) v *= s.armorMul;
       v = Math.max(0, v);
@@ -1253,6 +1261,7 @@ export class Battle {
       if (this.rng.next() < this.S(src, 'crit') + (o.critBonus || 0)) {
         res.crit = true;
         let cm = this.S(src, 'critDmg') + tgt.statuses.reduce((a, s) => a + (s.critVuln || 0), 0);
+        if (src.mem.critOver) cm += Math.max(0, this.S(src, 'crit') - 1) * src.mem.critOver; // 사냥꾼: 치명타 확률 100% 초과분 × 배율 = 치명타 피해
         if (tgt.mem.critRed) cm = Math.max(1, cm * (1 - tgt.mem.critRed)); // 인과학파 고이성: 받는 치명타 피해 감소
         dmg *= cm;
         if (src.side === 0) this.counters.crits++;

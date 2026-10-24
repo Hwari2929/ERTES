@@ -198,6 +198,8 @@ export interface RunState {
   hp: number; maxHp: number;
   credits: number;
   streak: number;
+  /** 집중 육성 기물 uid (공명도 풀의 CFG.focusXpShare 를 이 기물들이 나눠 받는다, run.ts distributeXp) */
+  focus?: string[];
   units: UnitState[];
   inventory: string[];
   globals: string[];

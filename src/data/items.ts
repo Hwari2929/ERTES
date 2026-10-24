@@ -90,10 +90,10 @@ const ADV_BY_ID = Object.fromEntries(ADV.map((a) => [a.id, a]));
 
 const UNIQUE: Record<string, { name: string; icon: string; desc: string; effect: Effect }> = {
   U_shade: {
-    name: '[고유] 그늘', icon: '☂', desc: '아문센 전용 · 해제 불가. 기술 쿨다운 감소 속도 +150%, 모든 아군 회피 및 치명타 확률 +10%p.',
+    name: '[고유] 그늘', icon: '☂', desc: '아문센 전용 · 해제 불가. 기술 쿨다운 감소 속도 +200%, 모든 아군 회피 및 치명타 확률 +20%p.',
     effect: {
-      stats: { cdr: 1.5 },
-      hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'item.shade', 999, { delta: { eva: 0.1, crit: 0.1 }, label: '그늘' }); } },
+      stats: { cdr: 2.0 },
+      hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'item.shade', 999, { delta: { eva: 0.2, crit: 0.2 }, label: '그늘' }); } },
     },
   },
   // 캠페인 「회수 계약」 장비 (보상 전용 · 해제 가능 — 잠금은 U_ 접두사만)
@@ -309,10 +309,10 @@ const HEL_ITEMS: Record<string, { name: string; icon: string; major: Major; desc
     effect: (k) => ({ hooks: { onInflict(_b, u, tgt, s) { if (tgt.side !== u.side) s.dur += 2 * k; } } }) },
   hellight: { name: '달빛 등대', icon: '☾', major: 'agi', desc: (k) => `회피하면 최대 체력 ${3 * k}% 회복.`,
     effect: (k) => ({ hooks: { onEvade(b, u) { b.heal(u, u, b.S(u, 'maxHp') * 0.03 * k, true); } } }) },
-  helrelic: { name: '올림푸스 성물', icon: '⚱', major: 'def', desc: (k) => `한 번에 최대 체력 ${20 / k}%를 넘는 피해를 받지 않음.`,
-    effect: (k) => ({ setup: (u) => { u.mem.hitCap = Math.min(u.mem.hitCap || 1, 0.2 / k); } }) },
+  helrelic: { name: '올림푸스 성물', icon: '⚱', major: 'def', desc: (k) => `한 번에 최대 체력 ${10 / k}%를 넘는 피해를 받지 않음.`,
+    effect: (k) => ({ setup: (u) => { u.mem.hitCap = Math.min(u.mem.hitCap || 1, 0.1 / k); } }) },
 };
-export const HEL_ITEM_IDS = ['A_helanchor', 'A_hellight', 'A_helrelic'];
+export const HEL_ITEM_IDS = ['A_helrelic', 'A_helanchor', 'A_hellight']; // 동맹 1 · 2 · 3단계 선물 순서 (올림푸스 성물 → 성운 정박기 → 달빛 등대)
 export const isHelItem = (id: string | null) => !!id && !!HEL_ITEMS[id.slice(2)];
 
 // ── 엔지니어 포탑 전용 장비 (T_): 포탑 장비 칸에만 장착. 일반 기물 · 일반 장비 풀 · 재구성과 섞이지 않는다

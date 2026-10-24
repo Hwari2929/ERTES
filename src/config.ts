@@ -88,9 +88,9 @@ export const CFG = {
   // ── 무한 모드 페이즈 스케일링 (확정, 복리)
   phaseArmor: 1.25, phaseAmp: 1.28,
   // 체력 배율: 5페이즈까지 ×2.05, 6페이즈부터 ×1.9, ×1.8 … (하한 ×1.1 [임시])
-  // 고페이즈 보정 [임시]: lateFrom 페이즈부터 매 페이즈 체력 ×lateHp, 피해 ×lateAmp 추가 (8페이즈 누적 체력 -19%, 피해 +41%)
-  lateFrom: 5, lateHp: 0.9, lateAmp: 1.05,
-  phaseHpFactor: (p: number) => (p <= 5 ? 1.85 : Math.max(1.1, 1.85 - 0.1 * (p - 5))) * (p >= CFG.lateFrom ? CFG.lateHp : 1),
+  // 고페이즈 보정 [임시]: lateFrom 페이즈부터 매 페이즈 피해 ×lateAmp 추가 (체력 ×0.9 약화 보정은 없앴다)
+  lateFrom: 5, lateAmp: 1.05,
+  phaseHpFactor: (p: number) => (p <= 5 ? 1.85 : Math.max(1.1, 1.85 - 0.1 * (p - 5))), // 후반 체력 약화 보정(×0.9) 제거
   adversityMult: 1.25, // 역경 · 도전 조우 강도 (위험 등급과 무관): 적 체력 ×이 값, 피해 ×encDmgMult(이 값) (예전 1.5)
   adversityReward: 1.5, // 역경 승리 보상 배율: 크레딧 · 공명도 풀 (도전 보상의 '남은 역경' 몫도 이 값)
   adversityLoss: 1.5, // 역경 패배 체력 피해 배율 (도전 패배도 역경 기준)
@@ -126,12 +126,13 @@ export const CFG = {
   challengeXp: 4.5, // 도전 승리: 공명도 = 전투 1회 풀 × k
   amundsenRecruitW: 0.08, // 아문센 · 데미우르고스 영입 후보 가중치 (다른 기물 = 1)
   joinRankRatio: 0.7, // 영입 · 합류 등급 = max(페이즈 - 1, 출전 기물 평균 등급 × k)
-  startUnits: 4, maxParty: 16, // 출전 최대 10 + 대기 6
+  startUnits: 5, maxParty: 16, // 계약 기물: 후보 8명 중 5명 (출전 한도 deployBase 4 — 1명은 대기) // 출전 최대 10 + 대기 6
   starterPool: 8, starterFav: 2, starterRerolls: 1, // 계약 기물 선택 (engine/starters.ts): 후보 수 · 그중 전장 우세 시너지(FieldDef.ally.syn, 전장 브리핑의 '우세 시너지') 기물 최소 수 · 후보 새로고침 횟수
   deployBase: 4, // 기본 출전 인원. 함대 확장으로 늘린다
   fleetCosts: [20, 40, 56, 72, 90, 108, 128, 160, 200, 256], // 함대 확장 n번째 비용 (출전 5 → 14명)
   musterCost: 16, musterStep: 8, musterPicks: 3, // 지정 소집: 기본 가격, 회당 상승, 고르는 시너지 수
-  benchXpWeight: 0.5, // 대기 기물의 공명도 분배 가중치 (출전 기물 대비)
+  /** 집중 육성: 지정한 기물들이 공명도 풀의 이 몫을 나눠 받고, 나머지는 다른 기물에게 무작위 (run.ts distributeXp) */
+  focusXpShare: 0.4,
   boardSizes: [ { n: 7, w: 70, env: '표준 전장' }, { n: 6, w: 15, env: '협소한 통로' }, { n: 8, w: 15, env: '개활지' } ],
   bossBoard: 7,
   /** 전장 지형 틀 (data/maps.ts, run.ts pickMap): 일반 · 역경 · 도전 전투에서 그 전장 전용 틀 확률 · 아니면 공용 틀 (긴 통로 · 포위) 확률.
@@ -146,7 +147,7 @@ export const CFG = {
     cart: { first: 6, period: 10, warn: 2, sweep: 0.6, len: 2, dmg: 0.12, stun: 0.5 } },
   rarePhase: 3, // 아문센 · 데미우르고스가 영입 후보에 나오는 페이즈 (배치 제한은 없음)
   /** 최고의 친구 소환물 스탯 상속률 (build.ts spawnSummons): 시너지가 꺼져 있을 때의 기본값 · 추가로 불린 소환물(2번째부터)의 배율 · 상한 */
-  bond: { base: 0.35, extra: 0.8, cap: 6 },
+  bond: { base: 0.5, extra: 0.8, cap: 6 },
   cookPower: [1, 1.3, 2.0, 3.4, 4.6], // 셰프 단계별 요리 위력 배율 (0단계 = 미발동, 2 · 4 · 6 · 8명). 갓 구운 빵을 얻는 대신 단계마다 10%p 낮춤 (예전 1.4 · 2.1 · 3.5)
   /** 셰프: 갓 구운 빵 (소모품 K_bread, 플레이어 체력 회복). 셰프 시너지가 처음 켜질 때 1개 + 전투 승리마다 단계별 확률로 1개 (breadWin = 셰프 1 · 2 · 3 · 4단계).
    *  회복량은 위험 등급 기준 [등급, 회복량]: 런의 위험 등급 이하에서 가장 높은 등급의 값, 그보다 낮은 등급은 첫 값.
@@ -161,7 +162,7 @@ export const CFG = {
   // ── 경제 [임시]
   startCredits: 6,
   winCredits: (phase: number) => Math.floor(2.5 + phase / 2), // 노드가 늘어 이자가 쌓이므로 노드당 2~3 감소 (P1 3 · P3 4 · P6 5)
-  lossCredits: 2,
+  lossShare: 0.5, // 패배 시 승리 보상 크레딧의 몫 (공명도 풀도 같은 몫: xpPool × lossShare)
   interestPer: 10, interestMax: 5,
   streakBonus: (streak: number) => (streak >= 6 ? 3 : streak >= 4 ? 2 : streak >= 2 ? 1 : 0),
   price: { C: 7, G: 16, A: 16, L: 60 } as Record<string, number>,
@@ -221,6 +222,8 @@ export const CFG = {
     front: false,
     /** 카드 수 · 가치 기준 장 수 (기준 가치 ÷ valueCards 가 한 장 값: 4장이면 3장 몫 + 마지막 정비 소모품 칸) */
     cards: 4, valueCards: 3, ratio: 0.8, spread: 0.12,
+    /** 런의 첫 보급 (1페이즈 항로 보급): 순서 고정 (장비 재료 · 에너지 크레딧 · 공명도 · 소모품) · 크레딧 카드 +firstCredits */
+    firstCredits: 10,
     floor: (phase: number) => 12 + phase,
     kindW: { credits: 1, xp: 1, gear: 1 } as Record<string, number>,
     jackpot: [[2, 0.025], [1.5, 0.09]] as [number, number][],
