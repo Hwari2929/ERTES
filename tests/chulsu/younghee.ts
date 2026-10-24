@@ -16,7 +16,7 @@ import { deployed, memberships, synergyCounts, turretCount } from '../../src/eng
 import * as R from '../../src/engine/run';
 import type { NodeType, RunState, SynergyId, UnitState } from '../../src/types';
 import { bossLossRate } from './aug';
-import { BUILDS, buildTarget } from './build';
+import { BUILDS, bestMusterSyns, buildTarget } from './build';
 import { fleetGain, xpBest } from './econ';
 import { milestone, teamEval } from './eval';
 import type { Hist } from './hard';
@@ -83,9 +83,7 @@ export function nearSyns(run: RunState): { s: string; n: number; need: number }[
 export function nearMusterSyns(run: RunState): string[] | null {
   const near = nearSyns(run).map((x) => x.s);
   if (!near.length) return null;
-  const cnt = synergyCounts(owned(run), run) as Record<string, number>;
-  const fill = R.musterSyns().filter((s) => !near.includes(s)).sort((a, b) => (cnt[b] || 0) - (cnt[a] || 0)); // 모자라면 보유 인원이 많은 시너지로 채운다
-  return [...near, ...fill].slice(0, CFG.musterPicks);
+  return bestMusterSyns(run, R.musterPool(run, near)); // 다음 단계 시너지 기물이 선택지에 나올 확률이 가장 높은 3개 (build.ts)
 }
 
 // ───────────────────────── ③ 공명도: 필요할 때만

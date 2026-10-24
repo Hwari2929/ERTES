@@ -7,7 +7,7 @@ import { type Major, MAJORS, type RunState, type Stats, type SynergyId } from '.
 import { DEV } from './devices';
 import { ALL_ADVANCED, breadSellText, HEL_ITEM_IDS, itemEffect, itemInfo, OCCULT_MODS, occultModsOfTier } from './items';
 import { CAUSAL, KING, KING_GEAR, KING_GEAR_NAME } from './chungra';
-import { addStacks, blinkTo, harmfulCount, isDebuffed, isHarmful, pct } from './kit';
+import { addStacks, blinkTo, harmfulCount, isDebuffed, isHarmful, pct, pp } from './kit';
 import { UNIT_BY_ID } from './units';
 
 export interface SynDef {
@@ -35,7 +35,7 @@ const T = (tier: number, a: number[]) => a[Math.max(0, tier - 1)];
 const baseRoll = (b: Battle, u: CUnit, tgt: CUnit, base: number) => b.rng.chance(Math.min(1, base * (1 + b.S(u, 'effHit') - b.S(tgt, 'effRes'))));
 /** 엔지니어 (2 · 4 · 6 · 8명) 감시 포탑: 포탑 수 · 상속률 (엔지니어 능력치 평균 × 이 값, 명중 · 치명타 포함) · 포탑 모든 주요 능력치 가산 ·
  *  포탑 1기 장비 칸 · 8명 [오버클럭] 모든 포탑 공격 속도 (%p) · 포탑 전용 장비 1개당 포탑 모든 주요 능력치 (보급형 · 고급형) */
-export const ENG_TUR = { count: [2, 3, 4, 4], inherit: [0.6, 1.0, 1.5, 2.5], maj: [5, 10, 20, 40], slots: [1, 2, 3, 3], over: 1.5, gearMaj: { basic: 5, adv: 10 } };
+export const ENG_TUR = { count: [2, 3, 4, 4], inherit: [1.0, 1.5, 2.0, 3.0], maj: [5, 10, 20, 40], slots: [1, 2, 3, 3], over: 1.5, gearMaj: { basic: 5, adv: 10 } };
 /** 시리우스 성도회 (5명 이상): 전투당 부활 횟수 — 단계와 무관하게 1회 */
 const SIR_REVIVES = [0, 1, 1, 1];
 /** 최고의 친구 (2 · 4 · 6 · 8명): 소환물 스탯 상속률 · 소환물 피해 증가 · 소환물 모든 주요 능력치 */
@@ -43,6 +43,10 @@ const SIR_REVIVES = [0, 1, 1, 1];
 const NAV_ACE = [1, 2, 4, 8], NAV_CREW = [0, 0.5, 1, 2];
 /** 사냥꾼: 치명타 확률 100% 초과분 → 치명타 피해 배율 (combat.ts 치명타 판정) */
 const HUNTER_OVER = 4;
+/** 사냥꾼 (2 · 4 · 6 · 8명): 사냥꾼 기물 치명타 확률 (%p) */
+const HUNTER_CRIT = [0.2, 0.4, 0.8, 2.0];
+/** 침투자 (2 · 4 · 6 · 8명): 침투자 기물 회피 (%p) */
+const INFIL_EVA = [0.15, 0.3, 0.5, 0.8];
 const BUDDY_BOND = [0.75, 1.0, 1.5, 2.0], BUDDY_AMP = [0.15, 0.4, 1.0, 2.5], BUDDY_MAJ = [0, 10, 20, 40];
 
 // ─────────────── 범은하 공동체: 기물마다 다른 선물
@@ -117,7 +121,7 @@ const UNI_MAJ = [5, 10, 15, 30], UNI_RANK = [0, 0, 2, 5];
 
 /** 의무관 단계별 수치: 모든 아군 회복 효율 · 치료 계수 (기술 위력 배율) · 모든 아군 최대 체력.
  *  회복 효율은 성장 폭이 작아, 예전의 '치료 대상 다음 기본 공격 피해 +20%' 대신 단계마다 최대 체력을 올린다 */
-const MED = { eff: [0.2, 0.4, 0.75, 1.5], heal: [0.8, 1.5, 2.6, 4.5], hp: [0.1, 0.2, 0.4, 0.6] };
+const MED = { eff: [0.2, 0.4, 0.75, 1.5], heal: [0.8, 1.5, 2.6, 4.5], hp: [0.1, 0.25, 0.5, 1.0] };
 const medTier = (i: number) => `회복 효율 +${pct(MED.eff[i])}, ${i < 3 ? `치료 = 기술 위력 ${pct(MED.heal[i])}` : `3초마다 기술 위력 ${pct(MED.heal[i])} 치료 + 초과분 보호막`}${i === 2 ? ', 치료 대상에게 초과분까지 보호막' : ''}${i === 3 ? ', 치료할 때 해로운 효과 1개 제거' : ''}, 모든 아군 최대 체력 +${pct(MED.hp[i])}`;
 
 /** 모략가 (2 · 4 · 6 · 8명) [암운]: 기본 공격 · 기술 적중 시 기본 hit 확률, 적에게 해로운 효과를 걸 때 기본 inflict 확률로 1중첩
@@ -139,7 +143,7 @@ const schemeTier = (i: number) => {
   ].filter(Boolean).join(', ');
 };
 /** 분해자 (2 · 4 · 6 · 8명): 화학 피해 증가 · 추가 화학 피해 (자신 최대 체력 배율) · [부식] 최대 중첩 · [부식] 부여 기본 확률 (효과 명중 · 저항 판정) */
-export const DECOMP_T = { chem: [0.1, 0.25, 0.5, 1.0], hp: [0.02, 0.04, 0.06, 0.1], max: [5, 7, 9, 13], chance: [0.5, 0.5, 1.0, 1.0] };
+export const DECOMP_T = { chem: [0.1, 0.25, 0.5, 1.0], hp: [0.03, 0.06, 0.1, 0.2], max: [5, 7, 9, 13], chance: [0.5, 0.5, 1.0, 1.0] };
 const DECOMP_DECAY = { vuln: 0.1, dur: 8, heal: 0.1 };
 /** 전도체 (2 · 4 · 6 · 8명): [바운스] 고정 확률 (효과 명중과 무관) · 단계별 전기 피해 증가 · 계수 · 칸 · 횟수 · (4) 이상 피격 바운스 고정 확률 */
 export const COND_T = { chance: 0.5, elec: [0.15, 0.35, 0.6, 1.0], k: [0.5, 0.5, 0.75, 1.0], radius: [2, 2, 3, 3], hops: [2, 3, 4, 8], hurt: 0.5, killHops: 4 };
@@ -499,13 +503,13 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'INFIL', name: '침투자', kind: 'trait', tiers: [2, 4, 6, 8], color: '#9a8cff', icon: '☾',
     desc: '전투가 시작되면 적 후방으로 순간이동해 기습합니다. 회피가 오르고, 착지 직후 잠시 피해가 크게 증가합니다. 침투자에게 맞은 적은 남은 체력이 일정 비율 이하면 [처형]됩니다 (즉사). 보스는 처형되지 않는 대신, 침투자가 주는 피해가 처형 비율의 4배만큼 별도 증폭됩니다.',
-    tierDesc: ['회피 +10%p, 기습 3초 피해 +50%, [처형] 체력 8% 이하 (보스 피해 +32%)', '회피 +20%p, 기습 4초 피해 +110%, 처치 시 기습 재발동, [처형] 15% (보스 피해 +60%)', '회피 +35%p, 기습 6초 피해 +220%, 처치 시 기습 재발동, [처형] 25% (보스 피해 +100%)',
-      '[그림자 숙청] 회피 +50%p, 기습이 전투 내내 유지 · 피해 +500%, 처치 시 최대 체력 15% 회복, [처형] 40% (보스 피해 +160%)'],
+    tierDesc: [`회피 +${pp(INFIL_EVA[0])}, 기습 3초 피해 +50%, [처형] 체력 8% 이하 (보스 피해 +32%)`, `회피 +${pp(INFIL_EVA[1])}, 기습 4초 피해 +110%, 처치 시 기습 재발동, [처형] 15% (보스 피해 +60%)`, `회피 +${pp(INFIL_EVA[2])}, 기습 6초 피해 +220%, 처치 시 기습 재발동, [처형] 25% (보스 피해 +100%)`,
+      `[그림자 숙청] 회피 +${pp(INFIL_EVA[3])}, 기습이 전투 내내 유지 · 피해 +500%, 처치 시 최대 체력 15% 회복, [처형] 40% (보스 피해 +160%)`],
     member: (t) => {
       const ambush = T(t, [0.5, 1.1, 2.2, 5.0]), dur = T(t, [3, 4, 6, 9999]);
       const exec = T(t, [0.08, 0.15, 0.25, 0.4]);
       return {
-        stats: { eva: T(t, [0.1, 0.2, 0.35, 0.5]) },
+        stats: { eva: T(t, INFIL_EVA) },
         hooks: {
           // [처형]: 맞은 적의 남은 체력이 기준 이하면 즉사. 보스는 처형 대신 피해 별도 증폭 (처형 비율 × 4)
           onDeal(b, u, tgt, r, o) {
@@ -680,13 +684,13 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'HUNTER', name: '사냥꾼', kind: 'trait', tiers: [2, 4, 6, 8], color: '#c98a4a', icon: '➶',
     desc: `사냥감을 끝까지 쫓는 이들. 사냥꾼 기물은 공격 속도와 치명타 확률이 크게 오르고, 치명타 확률이 100%를 넘으면 넘는 몫의 ${HUNTER_OVER}배만큼 치명타 피해가 오릅니다 (치명타 확률은 그대로). (4)부터는 기본 공격 · 기술이 대상 최대 체력 비례 고정 피해를 더합니다 (사격 위력 일정 비율이 상한).`,
-    tierDesc: ['공격 속도 +30%, 치명타 확률 +10%p, 치명타 확률 100% 초과분 ×4 = 치명타 피해', '공격 속도 +60%, 치명타 확률 +22.5%p, 공격마다 대상 최대 체력 2% 고정 피해 (사격 위력 400% 상한)', '공격 속도 +100%, 치명타 확률 +40%p, 최대 체력 3% 고정 피해 (상한 600%)',
-      '[최상위 포식자] 공격 속도 +200%, 치명타 확률 +70%p, 최대 체력 5% 고정 피해 (상한 1000%)'],
+    tierDesc: [`공격 속도 +30%, 치명타 확률 +${pp(HUNTER_CRIT[0])}, 치명타 확률 100% 초과분 ×${HUNTER_OVER} = 치명타 피해`, `공격 속도 +60%, 치명타 확률 +${pp(HUNTER_CRIT[1])}, 공격마다 대상 최대 체력 2% 고정 피해 (사격 위력 400% 상한)`, `공격 속도 +100%, 치명타 확률 +${pp(HUNTER_CRIT[2])}, 최대 체력 3% 고정 피해 (상한 600%)`,
+      `[최상위 포식자] 공격 속도 +200%, 치명타 확률 +${pp(HUNTER_CRIT[3])}, 최대 체력 5% 고정 피해 (상한 1000%)`],
     member: (t) => {
       const hp = T(t, [0, 0.02, 0.03, 0.05]), cap = T(t, [0, 4, 6, 10]);
       return {
         setup: (u) => { u.mem.critOver = HUNTER_OVER; },
-        stats: { atkSpd: T(t, [0.3, 0.6, 1.0, 2.0]), crit: T(t, [0.1, 0.225, 0.4, 0.7]) }, // 치명타 피해 +20 · 45 · 80 · 140%p 를 절반 계수의 치명타 확률로
+        stats: { atkSpd: T(t, [0.3, 0.6, 1.0, 2.0]), crit: T(t, HUNTER_CRIT) },
         hooks: hp ? {
           onDeal(b, u, tgt, r, o) {
             if ((o.tag !== 'basic' && o.tag !== 'skill') || r.amount <= 0 || !tgt.alive) return;

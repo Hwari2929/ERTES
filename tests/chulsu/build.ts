@@ -73,6 +73,27 @@ export function bias(run: RunState, id: string | null, v3 = false): ((us: UnitSt
   }
   return (us) => 1 + BUILD.gamma * Math.min(b.target, us.filter((u) => b.member(u, run)).length);
 }
+/** 지정 소집 시너지 3개 고르기: 후보 풀 = 고른 시너지 중 하나라도 가진 미보유 기물, 선택지 k장을 풀에서 고르게 뽑는다 (run.ts confirmMuster).
+ *  원하는 기물(want)이 선택지에 1명 이상 나올 확률이 가장 높은 3개를 모든 조합에서 찾는다 — 원하는 기물이 든 시너지에, 풀을 거의 늘리지 않는
+ *  인원 적은 시너지 · 이미 겹치는 시너지를 섞어 거의 확정으로 뽑는 요령. 같으면 기대 인원이 많고 풀이 작은 쪽. 원하는 기물이 풀에 없으면 null */
+export function bestMusterSyns(run: RunState, want: string[]): string[] | null {
+  const W = new Set(want);
+  const syns = R.musterSyns();
+  const pools = new Map(syns.map((s) => [s, R.musterPool(run, [s])]));
+  const k = 4 + (R.hasGlobal(run, 'G.scout') ? 1 : 0) + (R.hasGlobal(run, 'G.network') ? 1 : 0);
+  let best: { syns: string[]; hit: number; exp: number; n: number } | null = null;
+  for (let i = 0; i < syns.length; i++) for (let j = i + 1; j < syns.length; j++) for (let l = j + 1; l < syns.length; l++) {
+    const tri = [syns[i], syns[j], syns[l]];
+    const pool = new Set(tri.flatMap((s) => pools.get(s) || []));
+    const n = pool.size, w = [...pool].filter((id) => W.has(id)).length;
+    if (!w) continue;
+    let miss = 1;
+    for (let d = 0; d < Math.min(k, n); d++) miss *= Math.max(0, n - w - d) / (n - d);
+    const hit = 1 - miss, exp = (Math.min(k, n) * w) / n;
+    if (!best || hit > best.hit + 1e-9 || (Math.abs(hit - best.hit) <= 1e-9 && (exp > best.exp + 1e-9 || (Math.abs(exp - best.exp) <= 1e-9 && n < best.n)))) best = { syns: tri, hit, exp, n };
+  }
+  return best ? best.syns : null;
+}
 /** 지정 소집: 빌드 구성원이 목표보다 모자라고, 남길 크레딧 위로 비용이 있으면 (페이즈당 musterPerPhase 번) */
 /** floor · perPhase: 영희(younghee.ts)용 — 남길 크레딧을 reserve 대신 고정 바닥으로, 페이즈당 횟수. 없으면 철수 그대로 */
 export function muster(run: RunState, id: string | null, used: number, log: DLog, v3 = false, floor?: number, perPhase = BUILD.musterPerPhase): boolean {
@@ -85,9 +106,8 @@ export function muster(run: RunState, id: string | null, used: number, log: DLog
   // 시너지 3개: 빌드 시너지 + 아직 없는 구성원을 가장 많이 담은 시너지 (지휘관 빌드는 지휘관이 많은 시너지)
   const want = memberDefs(b).filter((d) => !run.units.some((u) => u.defId === d.id) && d.id !== 'amundsen').map((d) => d.id);
   if (!want.length) return false;
-  const ok = R.musterSyns().filter((s) => s !== b.syn);
-  const cnt = (s: string) => want.filter((id) => ([...UNIT_BY_ID[id].factions, ...UNIT_BY_ID[id].traits] as string[]).includes(s)).length;
-  const syns = [...(b.syn ? [b.syn] : []), ...ok.sort((x, y) => cnt(y) - cnt(x))].slice(0, CFG.musterPicks);
+  const syns = bestMusterSyns(run, want); // 빌드 구성원이 선택지에 나올 확률이 가장 높은 시너지 3개
+  if (!syns) return false;
   if (R.openMuster(run) !== null) return false;
   if (R.confirmMuster(run, syns) !== null) { R.cancelMuster(run); return false; }
   log.add('muster', `지정 소집 ${syns.join(',')} (${cost})`, 0, 0, [`빌드 ${b.id} 구성원 ${have}/${b.target}`]);
