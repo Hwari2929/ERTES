@@ -383,6 +383,10 @@ function playRun(seed: number) {
     tap = { pair: {}, evaded: new Map() };
     if (ntype === 'boss' && kbAt[ph] === undefined) kbAt[ph] = run.causal || 0; // 무휼: 페이즈 보스 첫 진입 직전 인과율
     if (CH?.has('search') || CH?.has('search3')) CH.search(); // 제한 탐색 (분석 전용): 보이는 조우를 다른 난수로 미리 싸워 편성 · 배치 후보 비교
+    if (INSTR) for (const s of enc.enemies) { // 적 장비 분포 (위험 등급 장비 s.items · 개조부품 s.mod, 적 정의 고유 장비 제외 · 전투 직전 = 징수기 뒤): 노드|페이즈|등급(normal · elite · boss)
+      const it = s.items || [], tr = ENEMY_BY_ID[s.defId]?.tier || '?';
+      add('foegear', `${ntype}|${ph}|${tr}`, { n: 1, [`k${Math.min(3, it.length)}`]: 1, items: it.length, C: it.filter((x) => x.startsWith('C_')).length, G: it.filter((x) => x.startsWith('G_')).length, A: it.filter((x) => x.startsWith('A_')).length, L: it.filter((x) => x.startsWith('L_')).length, mod: s.mod ? 1 : 0, strip: s.stripped ? 1 : 0 });
+    }
     const b = buildBattle(run, enc, false); // 실제 게임과 같은 경로 (포탑 · 무휼 자리, 포탑 장비 포함)
     b.runToEnd();
     const won = b.winner === 0;
@@ -528,7 +532,8 @@ function playRun(seed: number) {
     sp: run.rep?.sp || {}, crAt, end: run.credits, loan: run.loan || 0 };
   runs.push({ seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, causal: run.causal || 0, king: run.causal ? causalStage(run.causal) : 0, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems,
     cz: czAt, kb: kbAt, chrMax: run.chrTier || 0, bw, diff: run.diff || 0, heat: run.oathHeat || 0, despairs: run.despairs || [], hp: run.hp, eco, ...(DETAIL ? { det } : {}), ...(ADVSTUDY ? { adv: advRecs, nb: nbRecs, maxHp: run.maxHp } : {}),
-    ...(INSTR ? { trace, ins: { bot: BOT, areas: [...CH_AREAS], enc: encRec, gear: gearRec, fail: INS!.fail, ev: INS!.ev, ms: Math.round(performance.now() - t0), dms: Math.round(dms), cms: Math.round(CH?.ms || 0), nb: battles, synAt, boss: bossRec, ...(n >= 200 ? { capped: 1 } : {}), ...(CH?.xb ? { xb: CH.xb, xms: Math.round(CH.xms) } : {}), ...(CH?.stage2() ? { ch: CH.rec } : {}) } } : {}),
+    ...(INSTR ? { trace, ins: { bot: BOT, areas: [...CH_AREAS], enc: encRec, gear: gearRec, fail: INS!.fail, ev: INS!.ev, ms: Math.round(performance.now() - t0), dms: Math.round(dms), cms: Math.round(CH?.ms || 0), nb: battles, synAt, boss: bossRec, ...(n >= 200 ? { capped: 1 } : {}), ...(CH?.xb ? { xb: CH.xb, xms: Math.round(CH.xms) } : {}), ...(CH?.stage2() ? { ch: CH.rec } : {}),
+      glob: [...(run.globals || [])], uaug: run.units.map((u) => [u.defId, u.augments.map((g) => g.id)]) } } : {}),
     ...(DLOG && CH ? { dlog: CH.log.list } : {}) });
 }
 
