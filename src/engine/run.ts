@@ -1119,33 +1119,34 @@ export const FOE_GEAR_DIFF = 2;
 export const foeGearOn = (run: RunState) => diffHas(run.diff, FOE_GEAR_DIFF);
 /**
  * 위험 등급 장비 (확률은 CFG.foeGear): (2)부터 적이 칸마다 확률로 재료를 달고, 역경 · 보스전에서는 고급 장비도 단다 (희귀 · 전설처럼 추가 효과가 있는 장비는 없음).
- * (5)부터 개조부품(문장 제외)을 달 수 있고, 보스는 CFG.foeGear.bossLegend 확률로 전설 장비(재생 외골격 제외)를 단다.
+ * 보스도 다른 적과 같은 규칙 (보스 배율 · 전설 장비 없음). 적은 개조부품을 달지 않는다.
+ * (7) 고난 역경: 장비 hardN 번을 hard 확률로 따로 굴려, 재료 · 고급 · 희귀 중 등급별 같은 확률로 단다 (재생 외골격 · 수호자 판금 · 반응 장갑 제외).
  * 장비 칸 수 = 2페이즈마다 1칸 (최대 3). 칸마다 따로 굴리고, 장비는 왼쪽부터 채운다.
  */
+export const FOE_GEAR_BAN = ['vit_vit', 'vit_def', 'def_agi']; // 재생 외골격 · 수호자 판금 · 반응 장갑: 적이 달면 너무 단단해진다
 function gearEnemies(run: RunState, r: Rng, enemies: EnemySpawn[], type: NodeType, phase: number) {
   if (!foeGearOn(run)) return;
   const slots = Math.min(3, 1 + Math.floor((phase - 1) / 2));
   const big = type === 'adversity' || type === 'boss';
-  const legends = ALL_ADVANCED.filter((x) => x !== 'A_vit_vit').map((x) => 'L_' + x.slice(2));
-  const mods = Object.keys(OCCULT_MODS).filter((k) => OCCULT_MODS[k].tier <= 3); // 4단계 (신비학자 8명 완성 보상) 부품은 적이 달지 않는다
+  const hard = type === 'adversity' && diffHas(run.diff, 7);
+  const adv = ALL_ADVANCED.filter((x) => !FOE_GEAR_BAN.includes(x.slice(2)));
+  const G = CFG.foeGear;
   for (const s of enemies) {
     const tier = ENEMY_BY_ID[s.defId].tier;
     const items: string[] = [];
-    if (type === 'adversity' && diffHas(run.diff, 7)) {
-      const grades = [ALL_COMPONENTS, ALL_GRADED, ALL_ADVANCED];
-      for (let i = 0; i < 3; i++) items.push(r.pick(r.pick(grades)));
-    }
-    const G = CFG.foeGear;
-    if (!items.length && tier === 'boss' && diffHas(run.diff, 5) && r.chance(G.bossLegend)) items.push(r.pick(legends));
-    const p = (big ? G.big : G.slot) * (tier === 'elite' ? G.elite : tier === 'boss' ? G.boss : 1); // 칸당 장착 확률
-    for (let i = items.length; i < slots; i++) {
-      if (!r.chance(p)) continue;
-      items.push(big && r.chance(G.graded) ? r.pick(ALL_GRADED) : r.pick(ALL_COMPONENTS));
+    if (hard) {
+      const grades = [ALL_COMPONENTS, ALL_GRADED, adv];
+      for (let i = 0; i < G.hardN; i++) if (r.chance(G.hard)) items.push(r.pick(r.pick(grades)));
+    } else {
+      const p = (big ? G.big : G.slot) * (tier === 'elite' ? G.elite : 1); // 칸당 장착 확률
+      for (let i = 0; i < slots; i++) {
+        if (!r.chance(p)) continue;
+        items.push(big && r.chance(G.graded) ? r.pick(ALL_GRADED) : r.pick(ALL_COMPONENTS));
+      }
     }
     // (6) 고난: 1페이즈부터 모든 적이 기본 장비를 최소 1개
     if (!items.length && diffHas(run.diff, 6)) items.push(big && r.chance(G.graded) ? r.pick(ALL_GRADED) : r.pick(ALL_COMPONENTS));
     if (items.length) s.items = items;
-    if (diffHas(run.diff, 5) && r.chance(G.mod[tier === 'boss' ? 2 : tier === 'elite' ? 1 : 0])) s.mod = r.pick(mods);
   }
 }
 

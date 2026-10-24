@@ -176,9 +176,9 @@ export const CFG = {
    *  smallTo 페이즈가 지나면 소형은 나오지 않고 그 가중치를 중형이 가져간다 (전투 보상 · 상점 공용) */
   inject: { amount: { K_xp: 8, K_xp2: 20, K_xp3: 40 } as Record<string, number>, w: { K_xp: 6, K_xp2: 3, K_xp3: 3 } as Record<string, number>, from: { K_xp: 1, K_xp2: 3, K_xp3: 6 } as Record<string, number>, smallTo: 4 },
   /** 상점 노드 (분기점의 상점, genShop): 재료 · 희귀 · 고급 · 전설은 drop.shop* 그대로, 아래는 그 밖의 진열 */
-  /** 위험 등급 적 장비 (run.ts gearEnemies, 위험 2 부터): 칸마다 장착 확률 slot (역경 · 보스전 big) × 정예 elite · 보스 boss 배율,
-   *  역경 · 보스전 장비는 graded 확률로 고급 (아니면 재료). (5): 보스 전설 bossLegend 확률 · 개조부품 mod [일반, 정예, 보스] */
-  foeGear: { slot: 0.08, big: 0.25, elite: 1.5, boss: 2, graded: 0.5, bossLegend: 0.95, mod: [0.1, 0.3, 0.6] as [number, number, number] },
+  /** 위험 등급 적 장비 (run.ts gearEnemies, 위험 2 부터): 칸마다 장착 확률 slot (역경 · 보스전 big) × 정예 elite 배율 (보스도 다른 적과 같은 규칙),
+   *  역경 · 보스전 장비는 graded 확률로 고급 (아니면 재료). (7) 고난 역경: hardN 번 hard 확률로 재료 · 고급 · 희귀 중 등급별 같은 확률. 적은 개조부품을 달지 않는다 */
+  foeGear: { slot: 0.08, big: 0.25, elite: 1.5, graded: 0.5, hard: 0.6, hardN: 3 },
   shop: {
     gearFrom: 3, gearAdv: 0.5, // 이 페이즈부터 고급 · 희귀 장비를 1개 이상 확정 진열 (확률 입고가 없으면 1개 추가: 희귀일 확률, 아니면 고급)
     consMin: 2, // 소모품은 서로 다른 종류로 최소 2개 진열 (+ cons 확률로 1개 더)

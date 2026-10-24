@@ -133,7 +133,7 @@ const schemeTier = (i: number) => {
 export const DECOMP_T = { chem: [0.1, 0.25, 0.5, 1.0], hp: [0.02, 0.04, 0.06, 0.1], max: [5, 7, 9, 13], chance: [0.5, 0.5, 1.0, 1.0] };
 const DECOMP_DECAY = { vuln: 0.1, dur: 8, heal: 0.1 };
 /** 전도체 (2 · 4 · 6 · 8명): [바운스] 고정 확률 (효과 명중과 무관) · 단계별 전기 피해 증가 · 계수 · 칸 · 횟수 · (4) 이상 피격 바운스 고정 확률 */
-export const COND_T = { chance: 0.5, elec: [0.15, 0.35, 0.6, 1.0], k: [0.5, 0.5, 0.75, 1.0], radius: [1, 2, 3, 3], hops: [1, 3, 5, 10], hurt: 0.5 };
+export const COND_T = { chance: 0.5, elec: [0.15, 0.35, 0.6, 1.0], k: [0.5, 0.5, 0.75, 1.0], radius: [2, 2, 3, 3], hops: [2, 3, 4, 8], hurt: 0.5, killHops: 4 };
 /** 엘베스타드 일가 (3 · 5 · 7 · 9명): 일가 기물 피해 독립 증폭 · 받는 피해 독립 감소 (둘 다 다른 증폭 · 감소와 합치지 않는 별도 배율, 고정 피해는 감소 제외) */
 export const FAM_T = { amp: [0.3, 0.75, 2.0, 4.0], red: [0.05, 0.1, 0.2, 0.4] };
 
@@ -144,15 +144,16 @@ function chainBolt(b: Battle, u: CUnit, from: CUnit, hops: number, radius: numbe
   const hit = new Set<CUnit>(skipFrom ? [from] : []);
   let at: { x: number; y: number } = from;
   let last: CUnit | null = skipFrom ? from : null;
-  for (let i = 0; i < hops; i++) {
-    const near = b.around(at, radius, b.enemiesOf(u)).filter((e) => e !== last);
+  for (let left = hops; left > 0; left--) {
+    const near = b.around(at, radius, b.enemiesOf(u)).filter((e) => e !== last && e.alive);
     const fresh = near.filter((e) => !hit.has(e));
     const next = b.nearest(at as CUnit, fresh.length ? fresh : near);
     if (!next) break;
     hit.add(next);
     b.emit({ k: 'atk', from: (last || u).id, to: next.id, elem: 'elec', ranged: true, chain: true });
     b.fx(next.x, next.y, 0, 'elec');
-    b.dealDamage(u, next, dmg, { elem: 'elec', tag: 'proc', kind: 'tech', syn: 'COND' });
+    const r = b.dealDamage(u, next, dmg, { elem: 'elec', tag: 'proc', kind: 'tech', syn: 'COND' });
+    if (r.killed) left += COND_T.killHops; // 바운스 도중 결정타: 남은 횟수 회복 (적이 줄어드니 끝이 있다)
     at = next; last = next;
   }
 }
@@ -630,7 +631,7 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'COND', name: '전도체', kind: 'trait', tiers: [2, 4, 6, 8], color: '#4fc3ff', icon: 'ϟ',
-    desc: `몸에 전류가 흐르는 이들.\n· 전도체가 기본 공격 · 기술로 적을 맞히면 ${pct(COND_T.chance)} 고정 확률로 [바운스]: n% 계수의 전기 속성 피해가 n칸 내의 적에게 최대 n회 바운스된다 (단계별 수치).\n· 계수는 사격 · 타격 · 기술 위력 중 가장 높은 값 기준.\n· 바운스는 아직 맞지 않은 적을 먼저 노리고, 새 대상이 없으면 바로 직전 대상만 빼고 적 사이를 왕복합니다 (적이 2명 이상일 때).`,
+    desc: `몸에 전류가 흐르는 이들.\n· 전도체가 기본 공격 · 기술로 적을 맞히면 ${pct(COND_T.chance)} 고정 확률로 [바운스]: n% 계수의 전기 속성 피해가 n칸 내의 적에게 최대 n회 바운스된다 (단계별 수치).\n· 계수는 사격 · 타격 · 기술 위력 중 가장 높은 값 기준.\n· 바운스는 아직 맞지 않은 적을 먼저 노리고, 새 대상이 없으면 바로 직전 대상만 빼고 적 사이를 왕복합니다 (적이 2명 이상일 때).\n· 바운스 도중 결정타를 내면 남은 바운스 횟수 +${COND_T.killHops}회.`,
     tierDesc: [0, 1, 2, 3].map((i) => `${i === 3 ? '[천둥 폭풍] ' : ''}전기 피해 +${pct(COND_T.elec[i])}, ${pct(COND_T.k[i])} 계수의 전기 속성 피해가 ${COND_T.radius[i]}칸 내의 적에게 최대 ${COND_T.hops[i]}회 바운스된다${i === 1 ? `, 명사수 · 지휘관 전도체 바운스 +1회, 전문가 · 돌격가 전도체는 피격 시 ${pct(COND_T.hurt)} 확률로 바운스` : ''}`),
     member: (t) => {
       const radius = T(t, COND_T.radius), k = T(t, COND_T.k);
