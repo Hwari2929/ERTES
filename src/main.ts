@@ -2821,7 +2821,9 @@ const bviewEx = (run: RunState) => (!app.zoomOut && turretCount(run) > 0 ? PAD :
  *  --w · --h = 창 칸 수 (배율 1), --fw · --fh = 전장 칸 수, --ox · --oy = 기본 창의 왼쪽 위 칸, --bz = 확대 배율 (bcam) */
 function bviewHtml(run: RunState, enc: Encounter) {
   const g = encGeo(enc), ex = bviewEx(run), S = scrDims(g), full = app.zoomOut;
-  const v = full ? { x: 0, y: 0, w: S.w, h: S.h } : rectScr(g, PAD - ex, PAD, g.w - 2 * PAD + 2 * ex, g.h - 2 * PAD);
+  const v0 = full ? { x: 0, y: 0, w: S.w, h: S.h } : rectScr(g, PAD - ex, PAD, g.w - 2 * PAD + 2 * ex, g.h - 2 * PAD);
+  // 창은 언제나 정사각 (긴 지형도 크게 · 궁극기 컷인 등 창을 채우는 연출이 지형 비율에 따라 찌그러지지 않게): 긴 변 칸 수로 맞추고, 짧은 쪽은 가운데 두고 전장 밖은 빈 바탕
+  const sq = Math.max(v0.w, v0.h), v = { x: v0.x - (sq - v0.w) / 2, y: v0.y - (sq - v0.h) / 2, w: sq, h: sq };
   const zb = (d: 'out' | 'in') => `<button class="btn tiny bz-b" data-a="bzoom-b" data-v="${d}" title="${d === 'in' ? '확대' : '축소'} (Ctrl + 휠 · 두 손가락)" aria-label="${d === 'in' ? '확대' : '축소'}">${lineIcon(d === 'in' ? 'u.zoomin' : 'u.zoomout', 'li')}</button>`;
   return `<div class="board bview${full ? ' full' : ''}${g.rot ? ' rot' : ''}" data-a="bdesel" data-ex="${ex}" style="--ox:${v.x};--oy:${v.y};--w:${v.w};--h:${v.h};--fw:${S.w};--fh:${S.h}"><div class="board-in" id="bboard"><div class="cells">${battleCells(enc)}</div></div>${full ? '' : `<span class="bz-ctl bz-bat" hidden>${zb('out')}${zb('in')}</span>`}</div>`;
 }
@@ -4361,18 +4363,17 @@ function battleZoomMax(view: HTMLElement) {
   return c1 > 0 ? Math.max(1, (BZ_MAX * cellMinOf(view)) / c1) : 1;
 }
 const clampN = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(Math.max(lo, hi), v));
-/** 지금 배율의 창 크기 (px) · 칸 크기 · 보이는 칸 수. 확대하면 창은 화면 아래 끝까지 세로로 늘고, 그 뒤로는 잘라서 보인다 (짧고 긴 가로 지형도 확대해서 볼 수 있게) */
+/** 지금 배율의 창 크기 (px) · 칸 크기 · 보이는 칸 수. 창은 늘 정사각이고, 확대하면 그 안에서 잘라서 보인다 */
 function camFrame(view: HTMLElement) {
   const d = bviewDims(view), wpx = view.clientWidth, base = (wpx * d.H) / Math.max(1, d.W), cell = (wpx * bcam.bz) / Math.max(1, d.W);
-  const hmax = Math.max(base, innerHeight - (view.getBoundingClientRect().top + scrollY) - 8); // 창 위쪽(머리줄 · 상단 바) 아래로 화면 끝까지
-  const hpx = bcam.bz <= 1.001 ? base : Math.min(d.H * cell, hmax);
+  const hpx = base; // 창은 확대해도 정사각 그대로 (bviewHtml): 확대는 창 안을 잘라 보일 뿐
   return { d, cell, hpx, vw: d.W / bcam.bz, vh: hpx / cell };
 }
 /** 카메라를 창에 반영: 창 높이 · 창 안 보드(.board-in) 크기 = 전장 × 칸 크기, 위치 = -카메라 칸 (px) */
 function camApply(view: HTMLElement, inner: HTMLElement) {
   const f = camFrame(view), { d, cell } = f;
-  bcam.x = clampN(bcam.x, 0, d.FW - f.vw);
-  bcam.y = clampN(bcam.y, 0, d.FH - f.vh);
+  bcam.x = d.FW >= f.vw ? clampN(bcam.x, 0, d.FW - f.vw) : (d.FW - f.vw) / 2; // 전장이 창보다 좁은 쪽은 가운데 (정사각 창)
+  bcam.y = d.FH >= f.vh ? clampN(bcam.y, 0, d.FH - f.vh) : (d.FH - f.vh) / 2;
   view.style.height = bcam.bz <= 1.001 ? '' : `${f.hpx}px`;
   view.classList.toggle('zoomed', bcam.bz > 1.001);
   Object.assign(inner.style, { width: `${d.FW * cell}px`, height: `${d.FH * cell}px`, left: `${-bcam.x * cell}px`, top: `${-bcam.y * cell}px` });
@@ -4399,20 +4400,35 @@ function followCamera(b: Battle) {
   const f0 = camFrame(view), rot = !!b.geo?.rot;
   let left = PAD - ex, top = 0, vw = viewW, vh = viewH;
   if (bcam.bz <= 1.001) {
+    // 정사각 창 (bviewHtml): 한 변 sq 칸. 전장보다 넓은 쪽은 가운데, 좁은 쪽은 기물을 따라간다
+    const sq = Math.max(viewW, viewH);
+    vw = vh = sq;
     const maxY = Math.max(...alive.map((u) => u.y));
-    top = Math.max(0, Math.min(b.h - viewH, maxY - (viewH - 1)));
+    top = sq >= b.h ? (b.h - sq) / 2 : Math.max(0, Math.min(b.h - sq, maxY - (sq - 1)));
     // 가로: 좌우 끝 기물을 따라가되, 양쪽에 다 있으면 더 많은 기물이 보이는 위치 (같으면 가운데). 적은 아군보다 살짝 무겁게 (같은 수면 적이 있는 쪽)
-    let best = -1;
-    for (const c of [PAD - ex, 0, b.w - viewW]) {
-      const seen = alive.filter((u) => u.x >= c && u.x < c + viewW).reduce((a, u) => a + (u.side === 1 ? CAM_FOE_W : 1), 0);
-      if (seen > best + 1e-9) { best = seen; left = c; }
+    if (sq >= b.w) left = (b.w - sq) / 2;
+    else {
+      let best = -1;
+      for (const c of [(b.w - sq) / 2, 0, b.w - sq]) {
+        const seen = alive.filter((u) => u.x >= c && u.x < c + sq).reduce((a, u) => a + (u.side === 1 ? CAM_FOE_W : 1), 0);
+        if (seen > best + 1e-9) { best = seen; left = c; }
+      }
     }
   } else {
     vw = rot ? f0.vh : f0.vw; vh = rot ? f0.vw : f0.vh; // 보이는 칸 수 (전장 방향)
     let sx = 0, sy = 0, sw = 0;
     for (const u of alive) { const k = u.side === 1 ? CAM_FOE_W : 1; sx += (u.x + 0.5) * k; sy += (u.y + 0.5) * k; sw += k; }
-    left = clampN(sx / sw - vw / 2, 0, b.w - vw);
-    top = clampN(sy / sw - vh / 2, 0, b.h - vh);
+    let cx = sx / sw, cy = sy / sw;
+    // 아군 · 적이 멀리 떨어져 무게중심 창에 아군이 하나도 없으면 (긴 통로 개전 등) 빈 사이를 비추지 말고 아군 쪽에서 가장 가까운 적 방향으로 창 끝까지만 민다
+    const ally = alive.filter((u) => u.side === 0), foes = alive.filter((u) => u.side === 1);
+    if (ally.length && !ally.some((u) => Math.abs(u.x + 0.5 - cx) < vw / 2 && Math.abs(u.y + 0.5 - cy) < vh / 2)) {
+      const ax = ally.reduce((t, u) => t + u.x + 0.5, 0) / ally.length, ay = ally.reduce((t, u) => t + u.y + 0.5, 0) / ally.length;
+      const e = foes.sort((p, q) => Math.hypot(p.x - ax, p.y - ay) - Math.hypot(q.x - ax, q.y - ay))[0];
+      const mx = Math.max(0, vw / 2 - 1.5), my = Math.max(0, vh / 2 - 1.5);
+      cx = ax + (e ? clampN(e.x + 0.5 - ax, -mx, mx) : 0); cy = ay + (e ? clampN(e.y + 0.5 - ay, -my, my) : 0);
+    }
+    left = clampN(cx - vw / 2, 0, b.w - vw);
+    top = clampN(cy - vh / 2, 0, b.h - vh);
   }
   if (performance.now() >= bcam.hold) { const r = rectScr(b.geo, left, top, vw, vh); bcam.x = r.x; bcam.y = r.y; }
   const f = camApply(view, inner);
