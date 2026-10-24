@@ -247,6 +247,8 @@ function playRun(seed: number) {
   const strong = () => !!lastNorm && lastNorm.w === 1 && lastNorm.aHp >= 0.5 && run.hp >= run.maxHp * 0.6;
   const want = (p: string) => (p === 'always' || p === 'must' ? true : p === 'avoid' || p === 'never' ? false : p === 'state' ? run.hp > 60 && pol.chance(0.5) : p === 'power' ? strong() : false);
 
+  // 경로 · 상점 계측 (instr, 읽기만): 갈림길 [페이즈, 선택지, 고른 것] · 지도 칸 진입 [페이즈, 선택지, 들어간 노드] · 상점 구매 [페이즈, 장비, 가격, 구매 직전 크레딧]
+  const brRec: [number, string, string][] = [], routeRec: [number, string, string][] = [], buyRec: [number, string, number, number][] = [];
   const resolvePending = () => {
     while (run.pending.length) {
       const p = run.pending[0];
@@ -293,7 +295,7 @@ function playRun(seed: number) {
         R.recruit(run, pick);
       } else if (p.t === 'supply') R.flipAllSupply(run, p);
       else if (p.t === 'blessing') R.pickBlessing(run, bot.pick(p.options));
-      else if (p.t === 'branch' && CH?.has('econ')) { R.pickBranch(run, CH.branch(p.options)); continue; } // 철수 econ: 지금 필요에 따라
+      else if (p.t === 'branch' && CH?.has('econ')) { const c = CH.branch(p.options); if (INSTR) brRec.push([run.phase, p.options.join(','), c]); R.pickBranch(run, c); continue; } // 철수 econ: 지금 필요에 따라
       else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? SUPPLY && p.options.includes('supply') ? 'supply' : (run.units.length < 10 ? (['recruit', 'invest', 'pilgrim', 'shop'] as const) : (['invest', 'pilgrim', 'shop'] as const)).find((o) => p.options.includes(o))! : 'shop'); continue; }
       else if (p.t === 'fork' && CH?.has('hard') && !POL_ADV) { R.pickFork(run, CH.fork()); continue; } // 철수 hard: 체력 · 전력 여유로 휴식 / 도전
       else if (p.t === 'fork') { R.pickFork(run, POL_ADV ? (R.occultTier(run) && run.credits >= 20 ? 'synth' : want(POL_CH) ? 'challenge' : 'rest') : forkChoice(run, () => bot.chance(0.5))); continue; }
@@ -346,7 +348,13 @@ function playRun(seed: number) {
       else R.enterNode(run, opts.includes('adversity') && run.hp > 60 && bot.chance(0.5) ? 'adversity' : opts[0]);
       if (run.pending[0]?.t === 'branch') resolvePending();
       const t = (run.node as { type: string } | null)?.type;
-      if (t === 'shop' && CH?.has('econ')) { CH.shop(); R.leaveShop(run); continue; } // 철수 econ: 지금 빌드에 쓸모 · 가격 대비 (정비 포함)
+      if (INSTR) routeRec.push([run.phase, opts.join(','), t || '-']);
+      if (t === 'shop' && CH?.has('econ')) {
+        const sh = (run.node as { shop?: { item: string; price: number; sold?: boolean }[] } | null)?.shop || [], was = sh.map((x) => !!x.sold), cr0 = run.credits;
+        CH.shop();
+        if (INSTR) sh.forEach((x, i) => { if (x.sold && !was[i]) buyRec.push([run.phase, x.item, x.price, cr0]); });
+        R.leaveShop(run); continue;
+      } // 철수 econ: 지금 빌드에 쓸모 · 가격 대비 (정비 포함)
       if (t === 'shop') for (let i = 0; i < 6; i++) if (run.credits >= 35) R.buyShop(run, i);
       if (t === 'news') for (let i = 0; i < 6; i++) R.buyNews(run, i);
       if (t === 'invest') for (let i = 0; i < 5; i++) if (run.credits >= 30) R.buyInvest(run, i);
@@ -533,7 +541,7 @@ function playRun(seed: number) {
   runs.push({ seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, causal: run.causal || 0, king: run.causal ? causalStage(run.causal) : 0, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems,
     cz: czAt, kb: kbAt, chrMax: run.chrTier || 0, bw, diff: run.diff || 0, heat: run.oathHeat || 0, despairs: run.despairs || [], hp: run.hp, eco, ...(DETAIL ? { det } : {}), ...(ADVSTUDY ? { adv: advRecs, nb: nbRecs, maxHp: run.maxHp } : {}),
     ...(INSTR ? { trace, ins: { bot: BOT, areas: [...CH_AREAS], enc: encRec, gear: gearRec, fail: INS!.fail, ev: INS!.ev, ms: Math.round(performance.now() - t0), dms: Math.round(dms), cms: Math.round(CH?.ms || 0), nb: battles, synAt, boss: bossRec, ...(n >= 200 ? { capped: 1 } : {}), ...(CH?.xb ? { xb: CH.xb, xms: Math.round(CH.xms) } : {}), ...(CH?.stage2() ? { ch: CH.rec } : {}),
-      glob: [...(run.globals || [])], uaug: run.units.map((u) => [u.defId, u.augments.map((g) => g.id)]) } } : {}),
+      glob: [...(run.globals || [])], uaug: run.units.map((u) => [u.defId, u.augments.map((g) => g.id)]), br: brRec, route: routeRec, buy: buyRec } } : {}),
     ...(DLOG && CH ? { dlog: CH.log.list } : {}) });
 }
 
