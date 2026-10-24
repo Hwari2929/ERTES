@@ -127,8 +127,8 @@ const UNI_MAJ = [5, 10, 15, 30], UNI_RANK = [0, 0, 2, 5];
 /** 의무관 단계별 수치: 모든 아군 회복 효율 · 치료 계수 (기술 위력 배율) · 모든 아군 최대 체력.
  *  회복 효율은 성장 폭이 작아, 예전의 '치료 대상 다음 기본 공격 피해 +20%' 대신 단계마다 최대 체력을 올린다 */
 const MED = { eff: [0.2, 0.4, 0.75, 1.5], heal: [0.8, 1.5, 2.6, 4.5], hp: [0.1, 0.25, 0.5, 1.0] };
-/** 의무관 (4명부터) [괴사]: 의무관이 준 회복량의 rate 만큼 기록 → 다음 기본 공격에 기록량만큼 화학 피해, 기록은 keep 만 남기고 초기화 (남은 몫이 누적) */
-const MED_NEC = { rate: [0, 0.2, 0.5, 1.0], keep: [0, 0, 0.1, 0.25] };
+/** 의무관 (4명부터) [괴사]: 의무관이 준 회복량(초과 회복량은 over 효율)의 rate 만큼 기록 → 다음 기본 공격에 기록량만큼 화학 피해, 기록은 keep 만 남기고 초기화 (남은 몫이 누적) */
+const MED_NEC = { rate: [0, 0.2, 0.5, 1.0], keep: [0, 0, 0.1, 0.25], over: 0.5 };
 const medTier = (i: number) => `회복 효율 +${pct(MED.eff[i])}, ${i < 3 ? `치료 = 기술 위력 ${pct(MED.heal[i])}` : `3초마다 기술 위력 ${pct(MED.heal[i])} 치료 + 초과분 보호막`}${i === 2 ? ', 치료 대상에게 초과분까지 보호막' : ''}${i === 3 ? ', 치료할 때 해로운 효과 1개 제거' : ''}, 모든 아군 최대 체력 +${pct(MED.hp[i])}${MED_NEC.rate[i] ? `, [괴사] 기록 ${pct(MED_NEC.rate[i])} · 발산 후 ${pct(1 - MED_NEC.keep[i])} 초기화${MED_NEC.keep[i] ? ` (${pct(MED_NEC.keep[i])}씩 누적)` : ''}` : ''}`;
 
 /** 모략가 (2 · 4 · 6 · 8명) [암운]: 기본 공격 · 기술 적중 시 기본 hit 확률, 적에게 해로운 효과를 걸 때 기본 inflict 확률로 1중첩
@@ -464,7 +464,7 @@ export const SYNERGIES: SynDef[] = [
   // ═══════════════ 특성
   {
     id: 'MED', name: '의무관', kind: 'trait', tiers: [2, 4, 6, 8], color: '#5ad08a', icon: '✚',
-    desc: '모든 아군의 회복 효율과 최대 체력이 단계마다 오르고, 의무관은 4초마다 체력 비율이 가장 낮은 아군을 치료합니다.\n· (4)부터 [괴사]: 의무관이 준 회복량의 일정 비율을 기록해 두었다가, 다음 기본 공격에 기록량만큼 화학 피해를 더하고 기록을 초기화합니다 (6명 · 8명은 일부가 남아 누적).',
+    desc: `모든 아군의 회복 효율과 최대 체력이 단계마다 오르고, 의무관은 4초마다 체력 비율이 가장 낮은 아군을 치료합니다.\n· (4)부터 [괴사]: 의무관이 준 회복량의 일정 비율을 기록해 두었다가 (초과 회복량은 ${pct(MED_NEC.over)} 효율), 다음 기본 공격에 기록량만큼 화학 피해를 더하고 기록을 초기화합니다 (6명 · 8명은 일부가 남아 누적).`,
     tierDesc: [0, 1, 2, 3].map((i) => (i === 3 ? `[기적의 병동] ${medTier(i)}` : medTier(i))),
     team: (t) => ({ stats: { healEff: T(t, MED.eff) }, pct: { maxHp: T(t, MED.hp) } }),
     member: (t) => {
@@ -474,7 +474,7 @@ export const SYNERGIES: SynDef[] = [
         hooks: {
           ...(nec ? {
             // [괴사]: 이 의무관이 준 실제 회복량 기록 → 다음 기본 공격에 화학 피해로 발산
-            onHealDone(_b, u, _tgt, amount) { if (amount > 0) u.mem.necro = (u.mem.necro || 0) + amount * nec; },
+            onHealDone(_b, u, _tgt, amount, over) { const v = amount + Math.max(0, over) * MED_NEC.over; if (v > 0) u.mem.necro = (u.mem.necro || 0) + v * nec; },
             onBasic(b, u, tgt, r) {
               const v = u.mem.necro || 0;
               if (v < 1 || r.amount <= 0 || !tgt.alive) return;

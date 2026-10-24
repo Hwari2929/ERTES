@@ -252,8 +252,8 @@ export function pilgrimBot(run: RunState) {
   if (dv[0] && !dv[0].enh) R.enhanceRelic(run, dv[0].uid);
 }
 
-/** 봇의 포탑 장비 선호 순서 (엔지니어 2 · 4 · 6명 고르기): 선택지 중 앞선 것 */
-export const TURRET_PREF = ['T_rapid', 'T_cal', 'T_snipe', 'T_tesla', 'T_mark', 'T_ammo', 'T_flame', 'T_plate', 'T_barrier', 'T_cryo', 'T_selfd'];
+/** 포탑 장비 선호 순서: 포탑을 앞줄 탱커로 쓰므로 (tests/chulsu/form.ts place) 버티는 장비 → 화력 순 */
+export const TURRET_PREF = ['T_plate', 'T_barrier', 'T_cal', 'T_rapid', 'T_mark', 'T_cryo', 'T_tesla', 'T_ammo', 'T_snipe', 'T_flame', 'T_selfd'];
 /** 대기 중인 포탑 장비 고르기 하나를 선호 순서대로 확정 (pickTurretMod 가 대기열에서 빼고, 모자라면 다음 고르기를 맨 앞에 넣는다) */
 export function turretPickBot(run: RunState) {
   const p = run.pending[0];

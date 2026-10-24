@@ -3,7 +3,7 @@ import { CFG } from '../../src/config';
 import { ENEMY_BY_ID } from '../../src/data/enemies';
 import { isLocked } from '../../src/data/items';
 import { UNIT_BY_ID } from '../../src/data/units';
-import { deployed, memberships, synergyCounts } from '../../src/engine/build';
+import { deployed, memberships, synergyCounts, turretCount } from '../../src/engine/build';
 import { SYNERGIES } from '../../src/data/synergies';
 import { effTier, inactiveRange } from './syn';
 import * as R from '../../src/engine/run';
@@ -159,6 +159,10 @@ export function place(run: RunState, log: DLog, bossRule = false) {
   const put = (u: UnitState, rows: number[], order: number[]) => {
     for (const r of rows) for (const c of order) if (!used.has(`${c},${r}`)) { used.add(`${c},${r}`); u.pos = { c, r }; return; }
   };
+  // 감시 포탑 = 전방 탱커: 앞줄 가운데 열부터 포탑 자리를 먼저 잡고 (run.turretPos), 전열 기물은 남은 앞줄 · 그 뒷줄로
+  const tn = turretCount(run), tpos: { c: number; r: number }[] = [];
+  for (const c of cols) { if (tpos.length >= tn) break; used.add(`${c},2`); tpos.push({ c, r: 2 }); }
+  run.turretPos = tn ? tpos : run.turretPos;
   for (const u of fronts) put(u, [2, 1, 0], cols);
   // 3단계 boss: 보스 성향(공개 정보)별 — 저격형(피해를 많이 준 아군을 노린다, 거리 감쇠) · 돌격형은 주력을 보스 열에서 가장 먼 열 뒷줄에 (전열은 보스 열 앞).
   //   암살형(뒤쪽 · 체력 낮은 아군)은 2단계 규칙 그대로 (가운데 줄)
@@ -166,7 +170,7 @@ export function place(run: RunState, log: DLog, bossRule = false) {
   // 주력 보호: 암살형이 있으면 뒷줄 대신 가운데 줄부터 (전열 바로 뒤)
   for (const u of backs) put(u, assassin ? [1, 0, 2] : [0, 1, 2], far || cols);
   for (const u of rock) put(u, [0, 1, 2], cols.slice().reverse());
-  log.add('place', `중심 열 ${cx.toFixed(1)}${assassin ? ` · 암살형 ${assassin}` : ''}${far ? ` · 보스(${boss!.tend}) 열 ${boss!.c} 반대편에 주력` : ''} · 전열 ${fronts.map((u) => u.defId).join(',')} · 주력 ${backs.slice(0, 2).map((u) => u.defId).join(',')}`, t.v, t.v, []);
+  log.add('place', `중심 열 ${cx.toFixed(1)}${tn ? ` · 포탑 ${tn}기 앞줄` : ''}${assassin ? ` · 암살형 ${assassin}` : ''}${far ? ` · 보스(${boss!.tend}) 열 ${boss!.c} 반대편에 주력` : ''} · 전열 ${fronts.map((u) => u.defId).join(',')} · 주력 ${backs.slice(0, 2).map((u) => u.defId).join(',')}`, t.v, t.v, []);
 }
 
 /** 영입: 후보마다 '영입 뒤 가능한 최선의 출전 편성' 팀 가치를 비교 (영입 등급 = recruitRank, 문장 등 바뀐 소속 반영) */
