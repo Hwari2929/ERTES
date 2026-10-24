@@ -12,7 +12,7 @@ import { BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBAL_ODDS, GLOBAL_TIER_NAME, GL
 import { DESPAIR_BY_ID, DESPAIRS, despairRule } from '../data/despair';
 import { OATHS, oathHeatOf, oathMax } from '../data/oaths';
 import { diffName } from '../data/difficulty';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, breadSellText, combine, CONSUMABLES, emblemId, injectorWeights, INJECTORS, isLegendConsumable, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, isTurretMod, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_MOD_IDS, TURRET_MODS, TURRET_PRICE, UNIQUE_IDS, isJunk, JUNK_IDS, CATWHEEL_ZI, isCatwheel } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, breadSellText, combine, CONSUMABLES, emblemId, injectorWeights, INJECTORS, isLegendConsumable, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_PRICE, UNIQUE_IDS, isJunk, JUNK_IDS, CATWHEEL_ZI, isCatwheel } from '../data/items';
 import { deviceRows, isPlaceable } from '../data/devices';
 import { exMerchantOf, PETRA_AD } from '../data/merchants';
 import { PSI_BRIEF } from '../data/brief';
@@ -200,7 +200,7 @@ export function itemCatalog(): [IGrp, string[]][] {
     ['L', ALL_ADVANCED.map(legendOf)],
     ['M', EMBLEM_SYNS.map(emblemId)],
     ['X', [...HEL_ITEM_IDS.flatMap((x) => [x, legendOf(x)]), ...Object.keys(OCCULT_MODS), ...UNIQUE_IDS, ...JUNK_IDS, CATWHEEL_ZI]],
-    ['T', [...TURRET_GEAR_IDS, ...TURRET_MOD_IDS]],
+    ['T', TURRET_GEAR_IDS.slice()],
     ['K', Object.keys(CONSUMABLES)],
     ['R', RELICS.map((r) => RELIC_KEY + r.id)],
   ];
@@ -209,7 +209,7 @@ export function itemCatalog(): [IGrp, string[]][] {
 function gearSyn(id: string): SynergyId | null {
   if (isHelItem(id)) return 'HEL';
   if (isKingGear(id)) return 'CHR';
-  if (isTurretGear(id) || isTurretMod(id)) return 'ENG';
+  if (isTurretGear(id)) return 'ENG';
   if (isOccultMod(id) || (CONSUMABLES[id] && !CONSUMABLES[id].drop)) return 'OCCULT';
   if (CONSUMABLES[id]?.chef) return 'CHEF';
   const owner = UNITS.find((d) => d.item === id);
@@ -222,7 +222,7 @@ function synGear(sid: SynergyId): string[] {
 function itemName(id: string) { return id.startsWith(RELIC_KEY) ? RELIC_BY_ID[id.slice(2)]?.name || id : itemInfo(id).name; }
 function itemDescText(id: string) { return id.startsWith(RELIC_KEY) ? RELIC_BY_ID[id.slice(2)]?.desc(1) || '' : itemInfo(id).desc; }
 function itemIc(H: CxH, id: string) { return id.startsWith(RELIC_KEY) ? H.relicTok(id.slice(2)) : H.itemIcon(id); }
-const tierLabel = (g: IGrp, id: string) => (g === 'T' ? (isTurretMod(id) ? `포탑 개조부품 · ${TURRET_MODS[id].tier}단계` : `포탑 전용 · ${TURRET_GEAR[id]?.grade === 'adv' ? '고급형' : '보급형'}`) : g === 'X' ? (isHelItem(id) ? (id[0] === 'L' ? '동맹 전용 · 전설' : '동맹 전용 · 희귀') : isOccultMod(id) ? `신비 부품 ${OCCULT_MODS[id].tier}단계` : isJunk(id) ? '유닉스제 · 절망 증강' : id === CATWHEEL_ZI ? '유닉스제 · 전설' : '고유') : g === 'K' ? consLabel(id) : IGRP_NAME[g]);
+const tierLabel = (g: IGrp, id: string) => (g === 'T' ? `포탑 전용 · ${TURRET_GEAR[id]?.grade === 'adv' ? '고급형' : '보급형'}` : g === 'X' ? (isHelItem(id) ? (id[0] === 'L' ? '동맹 전용 · 전설' : '동맹 전용 · 희귀') : isOccultMod(id) ? `신비 부품 ${OCCULT_MODS[id].tier}단계` : isJunk(id) ? '유닉스제 · 절망 증강' : id === CATWHEEL_ZI ? '유닉스제 · 전설' : '고유') : g === 'K' ? consLabel(id) : IGRP_NAME[g]);
 /** 소모품 분류: 합성 · 셰프 · 전설 · 전투 보상 · 상점 */
 const consLabel = (id: string) => { const c = CONSUMABLES[id]; return !c?.drop ? '소모품 · 합성' : c.chef ? `소모품 · ${SYN_BY_ID.CHEF.name}` : isLegendConsumable(id) ? '전설 소모품' : '소모품 · 전투 보상 · 상점'; };
 /** 공명 주입기의 페이즈별 비중: '1~2페이즈 100% · 3~4페이즈 66.7%' (CFG.inject, 의뢰 페이즈 + 무한 모드 2페이즈까지 보고 마지막 구간은 '이후') */
@@ -267,12 +267,7 @@ function sources(id: string): string[] {
     const g = TURRET_GEAR[id], s = SYN_BY_ID.ENG;
     out.push(`${s.name} 출전 중 분기점의 [정비] · ${TURRET_PRICE[g.grade]} 크레딧${g.grade === 'basic' ? ' (보급형 1개는 무료)' : ''}`);
     out.push('감시 포탑의 장비 칸에만 장착 (일반 기물 장착 불가 · 일반 상점 · 전리품 · 재구성에 나오지 않음)');
-    return out;
-  }
-  if (isTurretMod(id)) {
-    const m = TURRET_MODS[id], s = SYN_BY_ID.ENG;
-    out.push(`${s.name} ${m.tier}단계 (${s.tiers[m.tier - 1]}명) 첫 도달 시 그 단계 부품 중 아직 없는 것 1개를 무작위로 지급 (빈 포탑 개조부품 칸이 있으면 바로 장착)`);
-    out.push('감시 포탑의 개조부품 칸에만 장착 (일반 기물 장착 불가 · 상점 · 전리품에 나오지 않음)');
+    out.push(`${s.name} 시너지가 꺼지거나 포탑 · 장비 칸이 줄면 숨겨 둠 (보관함 칸을 차지하지 않음 · 다시 늘면 그대로)`);
     return out;
   }
   if (isOccultMod(id)) {
@@ -487,7 +482,7 @@ function synDetail(H: CxH, sid: SynergyId): string {
   b.push(`<h3>소속 기물 <span class="cx-hn">${mem.length}명</span></h3>${memberCards(H, mem)}`);
   if (EMBLEM_SYNS.includes(sid)) a.push(`<h3>문장</h3><ul class="cx2-rows"><li>${itemRow(H, emblemId(sid))}</li></ul>`);
   const gear = synGear(sid);
-  if (gear.length) a.push(`<h3>${sid === 'ENG' ? '포탑 전용 장비 · 개조부품' : '전용 장비 · 상품'} <span class="cx-hn">${gear.length}종</span></h3><ul class="cx2-rows">${gear.map((id) => `<li>${itemRow(H, id, isHelItem(id) ? (id[0] === 'L' ? '전설' : '희귀') : isOccultMod(id) ? `${OCCULT_MODS[id].tier}단계` : CONSUMABLES[id] ? (CONSUMABLES[id].chef ? '소모품' : `합성 · ${CONSUMABLES[id].price}`) : isTurretGear(id) ? `${TURRET_GEAR[id].grade === 'adv' ? '고급형' : '보급형'} · ${TURRET_PRICE[TURRET_GEAR[id].grade]}` : isTurretMod(id) ? `개조부품 · ${TURRET_MODS[id].tier}단계` : '')}</li>`).join('')}</ul>`);
+  if (gear.length) a.push(`<h3>${sid === 'ENG' ? '포탑 전용 장비' : '전용 장비 · 상품'} <span class="cx-hn">${gear.length}종</span></h3><ul class="cx2-rows">${gear.map((id) => `<li>${itemRow(H, id, isHelItem(id) ? (id[0] === 'L' ? '전설' : '희귀') : isOccultMod(id) ? `${OCCULT_MODS[id].tier}단계` : CONSUMABLES[id] ? (CONSUMABLES[id].chef ? '소모품' : `합성 · ${CONSUMABLES[id].price}`) : isTurretGear(id) ? `${TURRET_GEAR[id].grade === 'adv' ? '고급형' : '보급형'} · ${TURRET_PRICE[TURRET_GEAR[id].grade]}` : '')}</li>`).join('')}</ul>`);
   if (sid === 'KAL') {
     const k = KAL_GUARD_TEXT;
     const counts = s.tiers.map((need, i) => (KAL_GUARDS[i] ? `(${need}) ${KAL_GUARDS[i]}기` : '')).filter(Boolean).join(' · ');

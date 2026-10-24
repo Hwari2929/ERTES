@@ -7,7 +7,7 @@ import { oathEnemy, oathV } from '../data/oaths';
 import { BOONS } from '../data/events';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
 import { DESPAIR_BY_ID } from '../data/despair';
-import { ALL_GRADED, emblemOf, isEmblem, isTurretGear, isTurretMod, itemEffect, turretSlots } from '../data/items';
+import { ALL_GRADED, emblemOf, isEmblem, isTurretGear, itemEffect, turretGearMaj, turretSlots } from '../data/items';
 import { CHR_HOOK, ENG_HOOK, ENG_TUR, KAL_GUARD_RANK, KAL_GUARDS, KAL_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, type SynDef, tierOf } from '../data/synergies';
 import { CAMP_SYNERGIES, campMembers } from '../data/campaign';
 import { causalStage, KING, kingGearOf } from '../data/chungra';
@@ -597,9 +597,8 @@ SUMMON_RT.make = (b, owner, sd) => {
 
 /** 전투별 포탑 설치 칸 (buildBattle 이 편성 위치를 넘긴다) */
 const TURRET_AT = new WeakMap<Battle, { x: number; y: number }[]>();
-/** 전투별 포탑 장비 · 개조부품 (포탑 순서대로) */
+/** 전투별 포탑 장비 (포탑 순서대로). 숨긴 장비(지금 단계의 포탑 수 · 칸 수 밖)는 spawn 이 잘라 낸다 */
 const TURRET_GEAR_AT = new WeakMap<Battle, (string | null)[][]>();
-const TURRET_MOD_AT = new WeakMap<Battle, (string | null)[]>();
 ENG_HOOK.spawn = (b, lead, engs, n, first = 0) => {
   const avg = (k: keyof Stats) => engs.reduce((s, e) => s + b.S(e, k), 0) / engs.length;
   const hpBonus = engs.reduce((s, e) => s + (e.mem.turretHp || 0), 0);
@@ -607,27 +606,33 @@ ENG_HOOK.spawn = (b, lead, engs, n, first = 0) => {
   const tier = lead.mem.eng || 1;
   const ti = Math.min(ENG_TUR.inherit.length, tier) - 1;
   const inherit = ENG_TUR.inherit[ti]; // 엔지니어 단계별 상속률
-  // 기본 공격 속도 +40%, 6명 이상 추가, 8명 [오버클럭] 추가
-  const asBonus = ENG_TUR.as + engs.reduce((s, e) => s + (e.mem.turretAs || 0), 0) + (tier >= ENG_TUR.asHiFrom ? ENG_TUR.asHi : 0) + (tier >= ENG_TUR.count.length ? ENG_TUR.over : 0);
+  // 공격 속도: 엔지니어 특성 · 증강 가산 (mem.turretAs) + 8명 [오버클럭]
+  const asBonus = engs.reduce((s, e) => s + (e.mem.turretAs || 0), 0) + (tier >= ENG_TUR.count.length ? ENG_TUR.over : 0);
   const gearAll = lead.side === 0 ? TURRET_GEAR_AT.get(b) : undefined;
-  const modAll = lead.side === 0 ? TURRET_MOD_AT.get(b) : undefined;
+  const shown = ENG_TUR.count[ti]; // 장비를 다는 포탑 = 이 단계의 포탑 수까지 (특성 · 증강으로 더 놓인 포탑은 장비 없음)
   for (let i = first; i < first + n; i++) {
     const t = blankUnit(lead.side);
+    // 포탑 전용 장비 (편성 화면에서 장착, 포탑 순서대로)
+    const gear = i < shown ? (gearAll?.[i] || []).slice(0, turretSlots(tier)).filter((x): x is string => isTurretGear(x)) : [];
     const st = emptyStats();
-    st.maxHp = avg('maxHp') * inherit * (1 + hpBonus) * (1 + maxHpBonus);
+    st.maxHp = avg('maxHp') * inherit;
     st.shoot = st.strike = st.tech = Math.max(avg('shoot'), avg('tech')) * inherit;
-    st.armor = avg('armor') * inherit * (1 + hpBonus);
-    st.acc = avg('acc') * 0.5; st.crit = avg('crit') * 0.5; st.critDmg = 1.5; st.effRes = avg('effRes') * 0.5;
+    st.armor = avg('armor') * inherit;
+    st.acc = avg('acc') * inherit; st.crit = avg('crit') * inherit;
+    st.critDmg = Math.max(CFG.baseMinor.critDmg, avg('critDmg') * inherit); // 치명타 피해도 상속 (기본값 아래로는 내려가지 않음)
+    st.effRes = avg('effRes') * 0.5;
     st.atkSpd = asBonus; st.range = 4; st.moveSpd = 1;
+    // 모든 주요 능력치 가산: 엔지니어 단계 + 포탑 전용 장비 (보급형 · 고급형). 기물과 같은 환산 (CFG.conv)
+    const maj = ENG_TUR.maj[ti] + gear.reduce((s, id) => s + turretGearMaj(id), 0);
+    for (const k of MAJORS) for (const [sk, per] of Object.entries(CFG.conv[k])) st[sk as keyof Stats] += (per as number) * maj;
+    st.maxHp *= (1 + hpBonus) * (1 + maxHpBonus);
+    st.armor *= 1 + hpBonus;
+    t.mem.turretMaj = maj; // 포탑 상세 표시용
     Object.assign(t, {
       defId: 'turret', name: '감시 포탑', sprite: 'turret', palette: TURRET_PAL, art: 'sm_turret', st, atk: { type: 'shoot', elem: 'phys', interval: 1.0 },
       keywords: ['mech', 'struct'], isSummon: true, immobile: true,
     });
     applyCategory(t);
-    // 포탑 전용 장비 · 엔지니어 전용 개조부품 (편성 화면에서 장착, 포탑 순서대로)
-    const gear = (gearAll?.[i] || []).slice(0, turretSlots(tier)).filter((x): x is string => isTurretGear(x));
-    const mod = modAll?.[i];
-    if (mod && isTurretMod(mod)) gear.push(mod);
     if (gear.length) {
       const ctx = makeCtx(null, null, {});
       for (const id of gear) applyLive(t, itemEffect(id), b, ctx);
@@ -864,7 +869,6 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
   KING_AT.set(b, kc ? { x: kc.x, y: kc.y } : null);
   COMP_AT.set(b, new Map(comp.filter((t) => !t.king).map((t) => [t.key, { x: t.x, y: t.y }])));
   TURRET_GEAR_AT.set(b, (run.turretGear || []).map((g) => g.slice()));
-  TURRET_MOD_AT.set(b, (run.turretMods || []).slice());
   for (const s of enc.enemies) {
     const def = ENEMY_BY_ID[s.defId];
     const e = buildEnemy(b, def, enc.phase ?? run.phase, enc.mult, s);

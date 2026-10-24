@@ -9,17 +9,16 @@
 //   so · sd = 실측 팀에서 S 구성원의 피해 · 버틴 피해 몫 (평가 함수, 끈 상태) — 평가 때 지금 팀의 구성원 몫으로 늘이고 줄인다 (syn.ts SYN_KIND).
 //   VOYAGE:solo:<기물> = 출항기 기물 1명의 단독 출항 고유 능력 (1명 vs 0명), VOYAGE:2 = 완전체 (5명 vs 0명, 고유 능력 5개 + 완전체 효과),
 //   CHR:<단계>:<인과 단계> = 공왕 무휼 포함 (인과 단계 1 · 4 · 7).
-//   엔지니어 포탑은 실제 게임처럼 단계마다 전용 개조부품을 1개씩 단다 (TMODS, 시드마다 무작위). 포탑 장비(정비 노드에서 사는 T_)는 달지 않는다 (경제 판단 몫).
+//   엔지니어 포탑에는 포탑 장비(정비 노드에서 사는 T_)를 달지 않는다 (경제 판단 몫).
 import { buildAlly, buildEnemy, boardDims, deployed, enemyCell, layout, makeCtx, synergyCounts, type Counts } from '../../src/engine/build';
 import { Battle } from '../../src/engine/combat';
 import * as R from '../../src/engine/run';
 import { Rng } from '../../src/rng';
 import { UNITS, UNIT_BY_ID } from '../../src/data/units';
 import { ENEMY_BY_ID } from '../../src/data/enemies';
-import { ENG_HOOK, SYNERGIES } from '../../src/data/synergies';
+import { SYNERGIES } from '../../src/data/synergies';
 import { causalNeed } from '../../src/data/chungra';
-import { emblemId, itemEffect, turretModsOfTier } from '../../src/data/items';
-import { applyLive } from '../../src/engine/effects';
+import { emblemId } from '../../src/data/items';
 import { EMBLEM_SYNS } from '../../src/data/globals';
 import { MAJORS, type RunState, type SynergyId } from '../../src/types';
 import { EV, isFront, teamEval, unitEval } from './eval';
@@ -45,26 +44,6 @@ function team(seed: number, ids: string[]): RunState {
   for (const u of run.units) { u.rank = RANK; for (const k of MAJORS) u.alloc[k] += RANK - 1; }
   return run;
 }
-/** 엔지니어 전용 포탑 개조부품: 실제 게임은 엔지니어 2 · 4 · 6 · 8명에 처음 닿을 때 그 단계 부품을 1개씩 무작위로 얻어 빈 포탑 개조부품 칸(포탑 순서)에 단다
- *  (run.ts checkEng · 공개 규칙). fight 는 buildBattle 을 거치지 않아 포탑에 부품이 없으므로, 시드마다 단계별로 1개씩 뽑아 둔 부품(TMODS)을
- *  지금 엔지니어 단계만큼 포탑 순서대로 단다 (build.ts ENG_HOOK.spawn 이 장비를 다는 것과 같은 효과 적용). 시너지를 끈 전투에는 포탑이 없다 */
-let TMODS: string[] = [];
-const spawn0 = ENG_HOOK.spawn!;
-ENG_HOOK.spawn = (b, lead, engs, n, first = 0) => {
-  const before = new Set(b.units);
-  spawn0(b, lead, engs, n, first);
-  if (lead.side !== 0) return;
-  const mods = TMODS.slice(0, Math.min(TMODS.length, lead.mem.eng || 1));
-  for (const t of b.units) {
-    const id = !before.has(t) && t.defId === 'turret' ? mods[t.mem.turretIdx] : undefined;
-    if (!id) continue;
-    const h0 = t.hooks.length, hp0 = t.st.maxHp;
-    applyLive(t, itemEffect(id), b, makeCtx(null, null, {}));
-    if (t.st.maxHp !== hp0) t.hp = t.st.maxHp;
-    t.tempItems = [...(t.tempItems || []), id];
-    for (const h of t.hooks.slice(h0)) h.onStart?.(b, t);
-  }
-};
 /** balance.ts makeBattle 과 같다: 시너지 인원을 덮어쓴 전투 (포탑 · 무휼 자리는 기본 자리) */
 function fight(run: RunState, enc: ReturnType<typeof R.genEncounter>, counts: Counts) {
   const dim = boardDims(enc.n);
@@ -122,8 +101,6 @@ function measure(S: string, n: number, opts: { fixed?: string[]; causal?: number
     const N = Math.min(10, Math.max(6, n + 2));
     const pad = rng.sample(pads, N - mem.length);
     const run = team(4001 + s * 17, [...mem, ...pad]);
-    const mr = new Rng(7001 + s * 31 + n); // 묶음 뽑기 난수와 따로 (예전 실측과 같은 묶음)
-    TMODS = [1, 2, 3, 4].map((k) => mr.pick(turretModsOfTier(k)));
     for (let k = 0; k < nEmb; k++) { const u = run.units.find((x) => x.defId === pad[k])!; u.mod = emblemId(S as SynergyId); }
     if (opts.causal !== undefined) run.causal = opts.causal;
     const on = synergyCounts(deployed(run), run);

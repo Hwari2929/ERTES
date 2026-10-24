@@ -165,7 +165,7 @@ export const CFG = {
   interestPer: 10, interestMax: 5,
   streakBonus: (streak: number) => (streak >= 6 ? 3 : streak >= 4 ? 2 : streak >= 2 ? 1 : 0),
   price: { C: 7, G: 16, A: 16, L: 60 } as Record<string, number>,
-  sell: { C: 3, G: 7, A: 7, L: 20, M: 6, O: 8, K: 4, T: 5, E: 8, J: 1 } as Record<string, number>, // J: 유닉스제 잡동사니 (캣휠) · E: 엔지니어 전용 포탑 개조부품
+  sell: { C: 3, G: 7, A: 7, L: 20, M: 6, O: 8, K: 4, T: 5, J: 1 } as Record<string, number>, // J: 유닉스제 잡동사니 (캣휠)
   // 장비 드랍 [임시]
   // advParts: 역경(· 도전) 승리 시 무작위 장비 재료 확정 개수 (예전: 확률 50%)
   drop: { battle: 0.1, advParts: 1, bossAdvEvery: 3, bossPart: 0.5, shopParts: 2, shopAdv: 0.4, shopAdv2: 0.1, shopGraded: 0.15, shopLegend: 0.05, shopLegendPhase: 6, utility: { battle: 0.15, adversity: 0.3, boss: 0.5 } as Record<string, number>,
