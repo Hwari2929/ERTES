@@ -150,7 +150,12 @@ function fieldBox(nr: HTMLElement) {
 /** 브리핑 제목 상자를 머리 첫 줄 글자와 같은 폭으로 (줄바꿈이 끝까지 같게) */
 function fitTitle(nr: HTMLElement) {
   const band = nr.querySelector<HTMLElement>('.nr-band'), f = fieldBox(nr);
-  if (band && f) band.style.setProperty('--tw', `${f.width}px`);
+  if (!band || !f) return;
+  band.style.setProperty('--tw', `${f.width}px`);
+  // 키운 제목(× --tk)이 화면 폭 92% 를 넘지 않게 (한 줄 그대로 · 긴 제목 · 좁은 화면)
+  band.style.removeProperty('--tk');
+  const tk = parseFloat(getComputedStyle(band).getPropertyValue('--tk')) || 1;
+  if (f.width * tk > innerWidth * 0.92) band.style.setProperty('--tk', (Math.max(1, (innerWidth * 0.92) / f.width)).toFixed(3));
 }
 /** 노이즈 해소 캔버스를 띠의 전장 그림 바로 위에 붙인다 (다시 그려져도 같은 캔버스 · 같은 단계로 이어 간다) */
 function dnAttach(nr: HTMLElement) {
