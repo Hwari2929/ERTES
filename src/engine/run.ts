@@ -1060,6 +1060,11 @@ export function pickGlobal(run: RunState, id: string) {
       log(run, `ZI존 밍키 합류 (공명 등급 ${u.rank})`);
     } else gainItem(run, CATWHEEL_ZI, undefined, true);
   }
+  if (id === 'G.l_amundsen') for (const d of ['amundsen', PETROCK]) { // 공명 등급 1 아문센 + 단장의 반려 돌 (자리 · 중복 확인)
+    if (run.units.length >= CFG.maxParty || run.units.some((u) => u.defId === d)) continue;
+    const u = addUnit(run, d, 1);
+    log(run, `${UNIT_BY_ID[d].name} 합류 (공명 등급 ${u.rank})`);
+  }
   if (id === 'G.l_ascend') { // 등급 +2 · 출전 인원 -1: 넘치는 출전 기물은 등급이 낮은 쪽부터 대기석으로
     for (const u of run.units) for (let i = 0; i < GA.ascend && u.rank < CFG.maxRank; i++) rankUp(run, u);
     const dep = deployed(run).sort((a, b) => a.rank - b.rank);

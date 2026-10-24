@@ -87,6 +87,7 @@ export const GLOBALS: GlobalDef[] = [
   { id: 'G.l_blood', tier: 'L', name: '피로 쓴 수표', desc: `플레이어 체력을 1까지 깎고, 깎인 체력 ×${G.blood}만큼 크레딧을 받습니다.`,
     onPick: (r) => { const cut = Math.max(0, r.hp - 1); r.hp = 1; r.credits += cut * G.blood; } },
   { id: 'G.l_minky', tier: 'L', name: 'ZI존 밍키', desc: `[캣휠(ZI존)]을 단 밍키가 출전 평균 공명 등급 +${G.minkyRank}으로 합류합니다 (자리가 없으면 캣휠(ZI존)만).`, unique: true },
+  { id: 'G.l_amundsen', tier: 'L', name: '단장과 반려 돌', desc: '공명 등급 1의 아문센이 [단장의 반려 돌]과 함께 합류합니다. 반려 돌은 시너지가 없고 싸우지 않으며, 늘 출전해 출전 칸 하나를 차지합니다 (보유 한도가 모자라면 들어갈 수 있는 만큼, 이미 있는 쪽은 빠집니다).', unique: true },
   { id: 'G.l_petra', tier: 'L', name: '페트라 직불 계약', desc: `이자 수입이 0이 됩니다. 그 대신 전투에 들어갈 때마다 출전 중인 페트라 시너지 기물 1명당 크레딧 +${G.petraPer}.`, unique: true },
   { id: 'G.l_ascend', tier: 'L', name: '승천 계약', desc: `즉시 보유 기물 전원 공명 등급 +${G.ascend}. 출전 인원은 영구히 -1.`, unique: true },
   { id: 'G.l_double', tier: 'L', name: '이중 계약', desc: '희귀 이상 전역 증강 2개를 무작위로 즉시 얻습니다 (고르지 않음).' },

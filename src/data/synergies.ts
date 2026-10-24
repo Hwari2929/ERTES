@@ -45,6 +45,9 @@ const NAV_ACE = [1, 2, 4, 8], NAV_CREW = [0, 0.5, 1, 2];
 const HUNTER_OVER = 4;
 /** 사냥꾼 (2 · 4 · 6 · 8명): 사냥꾼 기물 치명타 확률 (%p) */
 const HUNTER_CRIT = [0.2, 0.4, 0.8, 2.0];
+/** 사냥꾼 [상흔]: 치명타가 적중하면 100% 1중첩. 중첩당 받는 물리 피해 +per (최대 max 중첩, dur 초), 중첩과 무관하게 이동 속도 -slow · 회피 -eva (%p) */
+const HUNTER_SCAR = { per: [0.02, 0.03, 0.04, 0.06], max: [5, 8, 10, 15], dur: 5, slow: [0.15, 0.2, 0.3, 0.5], eva: [0.1, 0.15, 0.2, 0.3] };
+const scarText = (i: number) => `[상흔] 중첩당 받는 물리 피해 +${pct(HUNTER_SCAR.per[i])} (최대 ${HUNTER_SCAR.max[i]}중첩), 이동 속도 -${pp(HUNTER_SCAR.slow[i])} · 회피 -${pp(HUNTER_SCAR.eva[i])}`;
 /** 침투자 (2 · 4 · 6 · 8명): 침투자 기물 회피 (%p) */
 const INFIL_EVA = [0.15, 0.3, 0.5, 0.8];
 const BUDDY_BOND = [0.75, 1.0, 1.5, 2.0], BUDDY_AMP = [0.15, 0.4, 1.0, 2.5], BUDDY_MAJ = [0, 10, 20, 40];
@@ -122,7 +125,9 @@ const UNI_MAJ = [5, 10, 15, 30], UNI_RANK = [0, 0, 2, 5];
 /** 의무관 단계별 수치: 모든 아군 회복 효율 · 치료 계수 (기술 위력 배율) · 모든 아군 최대 체력.
  *  회복 효율은 성장 폭이 작아, 예전의 '치료 대상 다음 기본 공격 피해 +20%' 대신 단계마다 최대 체력을 올린다 */
 const MED = { eff: [0.2, 0.4, 0.75, 1.5], heal: [0.8, 1.5, 2.6, 4.5], hp: [0.1, 0.25, 0.5, 1.0] };
-const medTier = (i: number) => `회복 효율 +${pct(MED.eff[i])}, ${i < 3 ? `치료 = 기술 위력 ${pct(MED.heal[i])}` : `3초마다 기술 위력 ${pct(MED.heal[i])} 치료 + 초과분 보호막`}${i === 2 ? ', 치료 대상에게 초과분까지 보호막' : ''}${i === 3 ? ', 치료할 때 해로운 효과 1개 제거' : ''}, 모든 아군 최대 체력 +${pct(MED.hp[i])}`;
+/** 의무관 (4명부터) [괴사]: 의무관이 준 회복량의 rate 만큼 기록 → 다음 기본 공격에 기록량만큼 화학 피해, 기록은 keep 만 남기고 초기화 (남은 몫이 누적) */
+const MED_NEC = { rate: [0, 0.2, 0.5, 1.0], keep: [0, 0, 0.1, 0.25] };
+const medTier = (i: number) => `회복 효율 +${pct(MED.eff[i])}, ${i < 3 ? `치료 = 기술 위력 ${pct(MED.heal[i])}` : `3초마다 기술 위력 ${pct(MED.heal[i])} 치료 + 초과분 보호막`}${i === 2 ? ', 치료 대상에게 초과분까지 보호막' : ''}${i === 3 ? ', 치료할 때 해로운 효과 1개 제거' : ''}, 모든 아군 최대 체력 +${pct(MED.hp[i])}${MED_NEC.rate[i] ? `, [괴사] 기록 ${pct(MED_NEC.rate[i])} · 발산 후 ${pct(1 - MED_NEC.keep[i])} 초기화${MED_NEC.keep[i] ? ` (${pct(MED_NEC.keep[i])}씩 누적)` : ''}` : ''}`;
 
 /** 모략가 (2 · 4 · 6 · 8명) [암운]: 기본 공격 · 기술 적중 시 기본 hit 확률, 적에게 해로운 효과를 걸 때 기본 inflict 확률로 1중첩
  *  (둘 다 효과 명중 · 저항 판정, 한 행동이 둘 다 하면 2번 판정). (4) 이상 고정 fix4.p 확률로 +fix4.n, (6) 이상 고정 fix6.p 확률로 +fix6.n 은
@@ -457,13 +462,25 @@ export const SYNERGIES: SynDef[] = [
   // ═══════════════ 특성
   {
     id: 'MED', name: '의무관', kind: 'trait', tiers: [2, 4, 6, 8], color: '#5ad08a', icon: '✚',
-    desc: '모든 아군의 회복 효율과 최대 체력이 단계마다 오르고, 의무관은 4초마다 체력 비율이 가장 낮은 아군을 치료합니다.',
+    desc: '모든 아군의 회복 효율과 최대 체력이 단계마다 오르고, 의무관은 4초마다 체력 비율이 가장 낮은 아군을 치료합니다.\n· (4)부터 [괴사]: 의무관이 준 회복량의 일정 비율을 기록해 두었다가, 다음 기본 공격에 기록량만큼 화학 피해를 더하고 기록을 초기화합니다 (6명 · 8명은 일부가 남아 누적).',
     tierDesc: [0, 1, 2, 3].map((i) => (i === 3 ? `[기적의 병동] ${medTier(i)}` : medTier(i))),
     team: (t) => ({ stats: { healEff: T(t, MED.eff) }, pct: { maxHp: T(t, MED.hp) } }),
     member: (t) => {
       const k = T(t, MED.heal), every = t >= 4 ? 3 : 4;
+      const nec = T(t, MED_NEC.rate), keep = T(t, MED_NEC.keep);
       return {
         hooks: {
+          ...(nec ? {
+            // [괴사]: 이 의무관이 준 실제 회복량 기록 → 다음 기본 공격에 화학 피해로 발산
+            onHealDone(_b, u, _tgt, amount) { if (amount > 0) u.mem.necro = (u.mem.necro || 0) + amount * nec; },
+            onBasic(b, u, tgt, r) {
+              const v = u.mem.necro || 0;
+              if (v < 1 || r.amount <= 0 || !tgt.alive) return;
+              u.mem.necro = v * keep;
+              b.emit({ k: 'mark', id: tgt.id, name: '괴사', style: 'execute' });
+              b.dealDamage(u, tgt, v, { elem: 'chem', tag: 'proc', syn: 'MED' });
+            },
+          } : {}),
           onTick(b, u, dt) {
             u.mem.medT = (u.mem.medT || 0) + dt;
             if (u.mem.medT >= every) {
@@ -683,20 +700,24 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'HUNTER', name: '사냥꾼', kind: 'trait', tiers: [2, 4, 6, 8], color: '#c98a4a', icon: '➶',
-    desc: `사냥감을 끝까지 쫓는 이들. 사냥꾼 기물은 공격 속도와 치명타 확률이 크게 오르고, 치명타 확률이 100%를 넘으면 넘는 몫의 ${HUNTER_OVER}배만큼 치명타 피해가 오릅니다 (치명타 확률은 그대로). (4)부터는 기본 공격 · 기술이 대상 최대 체력 비례 고정 피해를 더합니다 (사격 위력 일정 비율이 상한).`,
-    tierDesc: [`공격 속도 +30%, 치명타 확률 +${pp(HUNTER_CRIT[0])}, 치명타 확률 100% 초과분 ×${HUNTER_OVER} = 치명타 피해`, `공격 속도 +60%, 치명타 확률 +${pp(HUNTER_CRIT[1])}, 공격마다 대상 최대 체력 2% 고정 피해 (사격 위력 400% 상한)`, `공격 속도 +100%, 치명타 확률 +${pp(HUNTER_CRIT[2])}, 최대 체력 3% 고정 피해 (상한 600%)`,
-      `[최상위 포식자] 공격 속도 +200%, 치명타 확률 +${pp(HUNTER_CRIT[3])}, 최대 체력 5% 고정 피해 (상한 1000%)`],
+    desc: `사냥감을 끝까지 쫓는 이들. 사냥꾼 기물은 치명타 확률이 크게 오르고, 치명타 확률이 100%를 넘으면 넘는 몫의 ${HUNTER_OVER}배만큼 치명타 피해가 오릅니다 (치명타 확률은 그대로).\n· 사냥꾼의 치명타가 적중하면 100% 확률로 [상흔]을 1중첩합니다 (${HUNTER_SCAR.dur}초): 중첩마다 받는 물리 피해가 늘고, 중첩과 무관하게 이동 속도 · 회피가 줄어듭니다.\n· (4)부터는 기본 공격 · 기술이 대상 최대 체력 비례 고정 피해를 더합니다 (사격 위력 일정 비율이 상한).`,
+    tierDesc: [`치명타 확률 +${pp(HUNTER_CRIT[0])}, 치명타 확률 100% 초과분 ×${HUNTER_OVER} = 치명타 피해, ${scarText(0)}`, `치명타 확률 +${pp(HUNTER_CRIT[1])}, ${scarText(1)}, 공격마다 대상 최대 체력 2% 고정 피해 (사격 위력 400% 상한)`, `치명타 확률 +${pp(HUNTER_CRIT[2])}, ${scarText(2)}, 최대 체력 3% 고정 피해 (상한 600%)`,
+      `[최상위 포식자] 치명타 확률 +${pp(HUNTER_CRIT[3])}, ${scarText(3)}, 최대 체력 5% 고정 피해 (상한 1000%)`],
     member: (t) => {
       const hp = T(t, [0, 0.02, 0.03, 0.05]), cap = T(t, [0, 4, 6, 10]);
+      const per = T(t, HUNTER_SCAR.per), max = T(t, HUNTER_SCAR.max), slowV = T(t, HUNTER_SCAR.slow), evaV = T(t, HUNTER_SCAR.eva);
       return {
         setup: (u) => { u.mem.critOver = HUNTER_OVER; },
-        stats: { atkSpd: T(t, [0.3, 0.6, 1.0, 2.0]), crit: T(t, HUNTER_CRIT) },
-        hooks: hp ? {
+        stats: { crit: T(t, HUNTER_CRIT) },
+        hooks: {
           onDeal(b, u, tgt, r, o) {
-            if ((o.tag !== 'basic' && o.tag !== 'skill') || r.amount <= 0 || !tgt.alive) return;
+            if (r.amount <= 0 || !tgt.alive || o.tag === 'dot' || tgt.side === u.side) return;
+            // [상흔]: 치명타 적중마다 1중첩 — 중첩당 받는 물리 피해 증가, 이동 속도 · 회피 감소는 중첩과 무관
+            if (r.crit) addStacks(b, u, tgt, 'hunter.scar', 1, max, HUNTER_SCAR.dur, (k) => ({ taken: [vuln('phys', per * k)], delta: { moveSpd: -slowV, eva: -evaV } }), '상흔');
+            if (!hp || (o.tag !== 'basic' && o.tag !== 'skill') || !tgt.alive) return;
             b.dealDamage(u, tgt, Math.min(b.S(tgt, 'maxHp') * hp, b.S(u, 'shoot') * cap), { elem: 'true', tag: 'proc', syn: 'HUNTER' });
           },
-        } : undefined,
+        },
       };
     },
   },
