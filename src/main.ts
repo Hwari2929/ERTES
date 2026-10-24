@@ -159,6 +159,7 @@ const app = {
   poolRerolls: 0, // 시작 기물 후보 새로고침 남은 횟수
   detail: !!loadPrefs().detail, // 상세 보기: 계수 · 메커니즘 표시
   recruitPick: null as string | null, // 영입 창에서 고른 기물 (확정 전)
+  recruitAway: null as string | null, // 영입 · 지정 소집 창에서 잠시 나감: 그 창의 후보 목록 (후보가 바뀌거나 영입하면 다시 열린다)
   recoFor: null as string | null, // 추천 장비 창을 연 기물 uid
   useK: null as null | { i: number; tg: R.UseTarget }, // 소모품 사용 확인 창
   ask: null as null | Ask, // 보관함 · 기물 옆 확인 팝업 (장비 조합 · 재구성 회로 · 분리 용제)
@@ -669,10 +670,6 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
     if (mine.length) body.push(`<ul class="augs">${mine.map((a) => augRow(a.id, a.param, b, c)).join('')}</ul>`);
     else if (u) body.push(`<p class="muted small">4등급에 첫 전용 증강을 고릅니다.</p>`);
     if (!u) body.push(`<ul class="augs">${pool.map((a) => augRow(a.id, undefined, b, c)).join('')}</ul>`);
-    else if (app.detail) {
-      const rest = pool.filter((p) => !mine.some((m) => m.id === p.id));
-      if (rest.length) body.push(`<div class="ps-rest">${rest.map((a) => `<span class="pill ab-click" data-a="abil-pop" data-v="aug:${esc(a.id)}" role="button" tabindex="0" title="${esc(augDesc(a.id))}">${augMark(a.id)}${esc(a.name)}</span>`).join('')}</div>`);
-    }
   } else if (tt === 'minor') {
     const g = CFG.minorGrow(rank);
     const tl = MINOR_TRAIT_GROW[d.id];
@@ -711,7 +708,7 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
         return `<span class="ps-slot" title="${[5, 10, 15, 20][i]}등급">${[5, 10, 15, 20][i]}</span>`;
       }).join('');
       body.push(`<div class="tt-row ps-augs"><span class="tt-k">전공 증강</span><div class="tt-icons">${slots}</div></div>`);
-      if (!u || app.detail) {
+      if (!u) { // 보유 기물은 고른 증강만 (남은 후보 목록은 상세 보기에서도 띄우지 않는다)
         const rest = SCHOOL_PASSIVES[sc.id].filter(([k]) => !mine.some((m) => m.id === psiAugId(sc.id, k)));
         if (rest.length) body.push(`<div class="ps-rest">${rest.map(([k, n, dsc]) => `<span class="pill" title="${esc(dsc)}">${augMark(psiAugId(sc.id, k))}${esc(n)}</span>`).join('')}</div>`);
       }
@@ -786,6 +783,12 @@ function magToggle(cls = '') {
   return `<button class="btn d-mag${cls}${app.detail ? ' on' : ''}" data-a="toggle-detail" aria-pressed="${app.detail}" aria-label="상세 보기 ${app.detail ? '끄기' : '켜기'}" title="상세 보기: 계수 · 세부 규칙 표시 (단축키 D) · ${app.detail ? 'ON' : 'OFF'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M10.5 8v5M8 10.5h5"/></svg></button>`;
 }
 function detailToggle() { return magToggle(' d-mag-solo'); }
+/** 집중 육성 단추 (전체 상세 머리, 상세 보기 단추 옆): 파티 창 초상화의 표적 단추(.rt-focus)와 같은 동작 · 켜면 선택색 */
+function focusBtn(run: RunState, u: UnitState) {
+  if (R.isRock(u)) return '';
+  const on = !!run.focus?.includes(u.uid);
+  return `<button class="btn d-mag-solo d-focus${on ? ' on' : ''}" data-a="focus" data-v="${u.uid}" aria-pressed="${on}" aria-label="집중 육성 ${on ? '해제' : '지정'}" title="${on ? '집중 육성 해제' : `집중 육성 — 지정한 기물들이 공명도 풀의 ${Math.round(CFG.focusXpShare * 100)}%를 먼저 나눠 받고, 나머지는 모든 기물이 함께 나눕니다`}">${lineIcon('u.target', 'li')}</button>`;
+}
 function unitCard(d: UnitDef, opts: { selected?: boolean; action?: string; rank?: number; clone?: boolean } = {}) {
   return `<button class="ucard ${opts.selected ? 'sel' : ''}" ${opts.clone ? 'aria-hidden="true" tabindex="-1"' : ''} data-a="${opts.action || 'pick-starter'}" data-v="${d.id}">
     ${hero(d.id, 'hero sm')}<div class="ucard-head">${sprite(d, 'spr big')}${nameBlock(d, [...d.factions, ...d.traits], opts.rank, opts.action === 'pick-recruit' ? ownedChip(d.id) : chip)}</div>
@@ -908,7 +911,7 @@ function newRunScreen() {
     ${BRF.bandHtml({ art: bgURL(`field_${fld.id}`), color: fld.color, title, place: fld.name })}
     <div class="nr-head">
       <div class="nr-title"><h2 class="nr-band-t nr-field">「${esc(title)}」 <small>${esc(fld.name)}</small></h2><h1>계약 기물 ${CFG.startUnits}명을 선택하세요</h1></div>
-      <div class="nr-side"><div class="nr-band-info">${fieldBandInfo(fld.id)}</div>${detailToggle()}</div>
+      <div class="nr-side"><div class="nr-band-info">${fieldBandInfo(fld.id)}</div></div>
     </div>
     <div class="carousel">
       <button class="car-btn prev" data-a="car-prev" aria-label="이전 기물">‹</button>
@@ -2420,7 +2423,7 @@ function unitModal(run: RunState, pv = false) {
       <div class="um-main">
         <div class="um-top">
           <header class="um-head">
-            <span class="um-tools">${pv ? '<span class="um-pv">영입 전 미리보기</span>' : blessBtn(run, u, d)}${detailToggle()}${pv ? '' : `<button class="btn small danger-ghost" data-a="release" data-v="${u.uid}" ${run.units.length <= 1 ? 'disabled title="마지막 남은 기물은 방출할 수 없습니다"' : 'title="기물 방출 (확인 후 진행)"'} aria-expanded="${app.releaseConfirm === u.uid}">기물 방출</button>`}<button class="btn" data-a="big-close" aria-label="닫기" title="닫기 (Esc)">✕</button></span>
+            <span class="um-tools">${pv ? '<span class="um-pv">영입 전 미리보기</span>' : blessBtn(run, u, d)}${pv ? '' : focusBtn(run, u)}${detailToggle()}${pv ? '' : `<button class="btn small danger-ghost" data-a="release" data-v="${u.uid}" ${run.units.length <= 1 ? 'disabled title="마지막 남은 기물은 방출할 수 없습니다"' : 'title="기물 방출 (확인 후 진행)"'} aria-expanded="${app.releaseConfirm === u.uid}">기물 방출</button>`}<button class="btn" data-a="big-close" aria-label="닫기" title="닫기 (Esc)">✕</button></span>
           </header>
           ${app.releaseConfirm === u.uid ? `<div class="um-release">${releaseBlock(run, u)}</div>` : ''}
         </div>
@@ -3269,11 +3272,13 @@ function pendingModal(run: RunState): string {
   } else if (p.t === 'itemPick') {
     body = `<h1>${esc(p.title)}</h1><div class="cards">${p.options.map((id, i) => { const it = itemInfo(id); return `<button class="card" data-a="pick-item" data-v="${i}">${itemIcon(id)}<b>${esc(it.name)}</b><span>${statIc(esc(it.desc))}</span></button>`; }).join('')}</div>`;
   } else if (p.t === 'recruit') {
+    // 잠시 나감: 창을 접고 아래 화면(지도 · 파티 · 기물 상세)을 보다가 같은 자리 단추로 돌아온다 (고른 후보 · 새로고침 횟수 유지)
+    if (app.recruitAway === p.options.join(',')) return `<button class="btn primary rc-back" data-a="rc-back">${p.syns ? '지정 소집' : '기물 영입'}으로 돌아가기</button>`;
     const rank = R.recruitRank(run);
     const rr = p.rerolls ?? 1;
     mcls = 'recruit';
     const pick = app.recruitPick && p.options.includes(app.recruitPick) ? app.recruitPick : null;
-    body = `<div class="rc-head"><div><h1>${p.syns ? '지정 소집' : '기물 영입'}</h1><p class="muted small">${p.syns ? `${p.syns.map((s) => esc(SYN_BY_ID[s as SynergyId]?.name || s)).join(' · ')} 중에서 ` : ''}새 동료 한 명을 고르세요. 공명 등급 ${rank}로 합류합니다. 보유 ${run.units.length}/${CFG.maxParty} (출전 최대 ${R.deployCap(run)}명)</p><p class="mu-short small" title="사이오닉 전공은 합류할 때 정해집니다">이 전장의 주요 적: ${esc(matchupShort(run.field))}</p></div>${detailToggle()}</div>
+    body = `<div class="rc-head"><div><h1>${p.syns ? '지정 소집' : '기물 영입'}</h1><p class="muted small">${p.syns ? `${p.syns.map((s) => esc(SYN_BY_ID[s as SynergyId]?.name || s)).join(' · ')} 중에서 ` : ''}새 동료 한 명을 고르세요. 공명 등급 ${rank}로 합류합니다. 보유 ${run.units.length}/${CFG.maxParty} (출전 최대 ${R.deployCap(run)}명)</p><p class="mu-short small" title="사이오닉 전공은 합류할 때 정해집니다">이 전장의 주요 적: ${esc(matchupShort(run.field))}</p></div><span class="rc-tools"><button class="btn" data-a="rc-away" title="창을 접고 지도 · 파티를 확인합니다 (고른 후보는 그대로)">잠시 나가기</button>${detailToggle()}</span></div>
       <div class="rc-track">${p.options.map((id, i) => pickCard(UNIT_BY_ID[id], { i, on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), nameExtra: `<span class="rc-rank" title="공명 등급 ${rank}">${rankLabel(rank)}</span>` })).join('')}</div>
       <div class="rc-foot">${pick ? (() => {
         // 영입하면 바뀌는 시너지: 보유 기물 + 이 기물 기준 인원, 단계가 오르면 강조
@@ -5740,7 +5745,9 @@ function act(a: string, v: string) {
     case 'skip-aug': app.augPick = null; run?.pending.shift(); persist(); break;
     case 'pick-item': { const p = run?.pending[0]; if (run && p?.t === 'itemPick') { const got = R.gainItem(run, p.options[+v]); if (got === CATWHEEL && p.options[+v] !== CATWHEEL) toast(`유닉스제 대량 생산 — ${itemInfo(p.options[+v]).name} 대신 캣휠이 들어왔습니다.`); run.pending.shift(); persist(); } break; }
     case 'rc-tap': app.recruitPick = app.recruitPick === v ? null : v; break;
-    case 'pick-recruit': if (run && v && run.pending[0]?.t === 'recruit') { R.recruit(run, v); run.pending.shift(); app.recruitPick = null; app.cardOpen = null; persist(); } break;
+    case 'rc-away': { const p = run?.pending[0]; if (p?.t === 'recruit') app.recruitAway = p.options.join(','); app.cardOpen = null; break; }
+    case 'rc-back': app.recruitAway = null; break;
+    case 'pick-recruit': if (run && v && run.pending[0]?.t === 'recruit') { R.recruit(run, v); run.pending.shift(); app.recruitPick = null; app.recruitAway = null; app.cardOpen = null; persist(); } break;
     case 'pick-branch': if (run && run.pending[0]?.t === 'branch') { R.pickBranch(run, v as NodeType); goPrepOrMap(); persist(); } break;
     case 'fleet': if (run) { const err = R.buyFleet(run); toast(err || `함대 확장 — 출전 인원 ${R.deployCap(run)}명`); persist(); } break;
     case 'muster-open': if (run) { const err = R.openMuster(run); if (err) toast(err); else app.musterSel = []; persist(); } break;
