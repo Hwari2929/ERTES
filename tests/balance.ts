@@ -63,9 +63,11 @@ const ADVSTUDY = process.argv.includes('advstudy');
 const STUDY_MULTS: (number | 'n')[] = [1, 'n', 1.15, 1.2, 1.25, 1.3];
 /** bot=dumbi (기본, 예전 봇 그대로) · rara (덤비 + 장비 운용 결함 수정만) · chulsu (편성 · 장비 · 성장 · 경제 · 증강 · 빌드 · 시너지 평가 판단, tests/chulsu) · chulsu-search (+ 제한 탐색, 분석 전용. 3단계 선별 탐색은 chulsu=…,search3). docs/BOT_CHULSU.md */
 const BOT0 = process.argv.find((a) => a.startsWith('bot='))?.slice(4) || 'dumbi';
-if (!['dumbi', 'rara', 'chulsu', 'chulsu-search'].includes(BOT0)) throw new Error(`알 수 없는 봇: ${BOT0}`);
+if (!['dumbi', 'rara', 'chulsu', 'chulsu-search', 'younghee', 'younghee-last'].includes(BOT0)) throw new Error(`알 수 없는 봇: ${BOT0}`);
+/** bot=younghee: 철수 영역 전체 + 경제 판단만 영희 (tests/chulsu/younghee.ts, docs/BOT_YOUNGHEE.md) · younghee-last: 영희 + 마지막 페이즈에 바닥 40 을 푼다 */
+const YH_MODE = BOT0 === 'younghee' ? 'yh' : BOT0 === 'younghee-last' ? 'yh_last' : undefined;
 /** bot=chulsu-search: 철수 + 제한 탐색 (분석 전용, 대량 테스트 기본에서 뺀다) = bot=chulsu chulsu=<영역>,search */
-const BOT = (BOT0 === 'chulsu-search' ? 'chulsu' : BOT0) as 'dumbi' | 'rara' | 'chulsu';
+const BOT = (BOT0 === 'chulsu-search' || YH_MODE ? 'chulsu' : BOT0) as 'dumbi' | 'rara' | 'chulsu';
 /** chulsu=form,gear,growth,start,econ,aug,hard,recruit2,build,syn3,multi,build3,boss,recruit,search,search3 — 철수 판단 영역 (없으면 DEFAULT_AREAS = 2단계 기본 + syn3,multi,build3). 꺼진 영역은 라라와 같다. start 는 계약 후보(pool) 안에서 고른다 */
 const CH_AREAS = new Set<Area>(BOT === 'chulsu' ? ((process.argv.find((a) => a.startsWith('chulsu='))?.slice(7).split(',').filter(Boolean) as Area[]) || DEFAULT_AREAS) : []);
 if (BOT0 === 'chulsu-search') CH_AREAS.add('search');
@@ -227,7 +229,7 @@ function playRun(seed: number) {
   if (CHR) { const pick = bot.sample(CHR_IDS, 2); starters = [...pick, ...starters.filter((x) => !pick.includes(x))].slice(0, CFG.startUnits); }
   const run = R.newRun(seed, starters, FORCE_FIELD, DIFF, OATH_SEL);
   const INS: BotIns | undefined = INSTR || BOT !== 'dumbi' ? newIns() : undefined;
-  const CH = BOT === 'chulsu' ? new Chulsu(run, { areas: CH_AREAS, dlog: DLOG, ins: INS, forceBuild: FORCE_BUILD, augOff: AUG_OFF, bossOff: BOSS_OFF }) : null;
+  const CH = BOT === 'chulsu' ? new Chulsu(run, { areas: CH_AREAS, dlog: DLOG, ins: INS, forceBuild: FORCE_BUILD, augOff: AUG_OFF, bossOff: BOSS_OFF, econ: YH_MODE }) : null;
   if (CH) CH.log.list.push(...startLog.list);
   let dms = 0; // 봇 판단 시간 (manage · 선택지 처리, ms)
   let fGlobDone = false; // fglob= 실험: 첫 항로 회의만
@@ -357,7 +359,8 @@ function playRun(seed: number) {
       } // 철수 econ: 지금 빌드에 쓸모 · 가격 대비 (정비 포함)
       if (t === 'shop') for (let i = 0; i < 6; i++) if (run.credits >= 35) R.buyShop(run, i);
       if (t === 'news') for (let i = 0; i < 6; i++) R.buyNews(run, i);
-      if (t === 'invest') for (let i = 0; i < 5; i++) if (run.credits >= 30) R.buyInvest(run, i);
+      if (t === 'invest' && YH_MODE && CH) CH.invest(); // 영희: 바닥 40 위에서 문장 · 인재 · 펀드 · 전략 자금
+      else if (t === 'invest') for (let i = 0; i < 5; i++) if (run.credits >= 30) R.buyInvest(run, i);
       if (t === 'shop' || t === 'news' || t === 'invest') R.leaveShop(run);
       continue;
     }
@@ -540,7 +543,7 @@ function playRun(seed: number) {
     sp: run.rep?.sp || {}, crAt, end: run.credits, loan: run.loan || 0 };
   runs.push({ seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, causal: run.causal || 0, king: run.causal ? causalStage(run.causal) : 0, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems,
     cz: czAt, kb: kbAt, chrMax: run.chrTier || 0, bw, diff: run.diff || 0, heat: run.oathHeat || 0, despairs: run.despairs || [], hp: run.hp, eco, ...(DETAIL ? { det } : {}), ...(ADVSTUDY ? { adv: advRecs, nb: nbRecs, maxHp: run.maxHp } : {}),
-    ...(INSTR ? { trace, ins: { bot: BOT, areas: [...CH_AREAS], enc: encRec, gear: gearRec, fail: INS!.fail, ev: INS!.ev, ms: Math.round(performance.now() - t0), dms: Math.round(dms), cms: Math.round(CH?.ms || 0), nb: battles, synAt, boss: bossRec, ...(n >= 200 ? { capped: 1 } : {}), ...(CH?.xb ? { xb: CH.xb, xms: Math.round(CH.xms) } : {}), ...(CH?.stage2() ? { ch: CH.rec } : {}),
+    ...(INSTR ? { trace, ins: { bot: BOT, ...(YH_MODE ? { econ: YH_MODE } : {}), areas: [...CH_AREAS], enc: encRec, gear: gearRec, fail: INS!.fail, ev: INS!.ev, ms: Math.round(performance.now() - t0), dms: Math.round(dms), cms: Math.round(CH?.ms || 0), nb: battles, synAt, boss: bossRec, ...(n >= 200 ? { capped: 1 } : {}), ...(CH?.xb ? { xb: CH.xb, xms: Math.round(CH.xms) } : {}), ...(CH?.stage2() ? { ch: CH.rec } : {}),
       glob: [...(run.globals || [])], uaug: run.units.map((u) => [u.defId, u.augments.map((g) => g.id)]), br: brRec, route: routeRec, buy: buyRec } } : {}),
     ...(DLOG && CH ? { dlog: CH.log.list } : {}) });
 }

@@ -5,7 +5,8 @@ import { CFG } from '../src/config';
 import * as R from '../src/engine/run';
 import type { RunState } from '../src/types';
 import { equipGear, equipGearFix, newIns, useConsumables, useConsumablesFix } from './botlib';
-import { Chulsu } from './chulsu';
+import { Chulsu, DEFAULT_AREAS } from './chulsu';
+import * as Y from './chulsu/younghee';
 import * as A from './chulsu/aug';
 import * as E from './chulsu/econ';
 import * as H from './chulsu/hard';
@@ -213,6 +214,64 @@ const u0 = (run: RunState) => run.units[0];
   };
   const old = pick(), neu = pick(A.bossLossRate(R.newRun(5, ['falcon'], 'waste', 7), []));
   ok(old === 'D.final' && neu !== 'D.final', `boss: 결승전 특집 · 경쟁 항로 · 관세 중 2단계 ${old} → 3단계 ${neu} (보스 패배율 사전값 ${A.BOSS.prior.d7})`);
+}
+
+// ── 12. 영희 (younghee): 바닥 40 — 함대 확장 · 지정 소집 · 공명도 · 상점 지출 뒤에도 전투 직전 보유 크레딧 ≥ 40 (yh_last 는 마지막 페이즈에 바닥을 푼다)
+{
+  const mk7 = (credits: number, extra: string[] = []) => {
+    const run = R.newRun(1, ['falcon', 'gebek', 'argon', 'romani', ...extra], 'waste', 7);
+    run.pending = [];
+    run.credits = credits;
+    return run;
+  };
+  const yh = (run: RunState, econ: Y.YhMode = 'yh') => new Chulsu(run, { areas: new Set(DEFAULT_AREAS), econ });
+  // 함대 확장: 대기 기물이 있어도 40 아래로는 사지 않는다 (철수는 5절처럼 25 에서도 산다)
+  const a = mk7(45, ['kyle']);
+  yh(a).spend();
+  ok(R.deployCap(a) === CFG.deployBase && a.credits === 45, `영희: 잔액 45 · 함대 확장 20 → 사지 않는다 (출전 ${R.deployCap(a)} · 잔액 ${a.credits})`);
+  const b = mk7(60, ['kyle']);
+  yh(b).spend();
+  ok(R.deployCap(b) === CFG.deployBase + 1 && b.credits >= Y.YH.floor, `영희: 잔액 60 → 함대 확장 뒤 ${b.credits} (≥ 40)`);
+  // 공명도: 일반 전투 편성 화면 · 이정표 근처 주력 없음 → 사지 않는다
+  const c = mk7(80);
+  R.enterNode(c, 'battle');
+  for (const u of c.units) { u.rank = 2; u.xp = 0; } // 다음 등급 3: 이정표 아님 (메이저 · 사이오닉은 4등급마다)
+  yh(c).spend();
+  ok(c.credits === 80 && !(c.rep?.sp?.xp), `영희: 필요 없으면 공명도를 사지 않는다 (잔액 ${c.credits})`);
+  // 이정표 근처: 주력이 공명도 1번(4)이면 4등급(전용 증강) → 그만큼만
+  const d = mk7(50);
+  R.enterNode(d, 'battle');
+  for (const u of d.units) { u.rank = 3; u.xp = CFG.xpToNext(3) - 4; }
+  yh(d).spend();
+  ok(d.credits === 50 - R.xpCost(d) && d.credits >= Y.YH.floor, `영희: 이정표 근처 주력에 공명도 1번 (잔액 ${d.credits})`);
+  // 보스 편성 화면 · 보스 패배율 어림이 높다 → 바닥 위 전부를 공명도로, 바닥 40 은 지킨다
+  const e = mk7(75);
+  R.enterNode(e, 'boss');
+  for (const u of e.units) { u.rank = 2; u.xp = 0; }
+  yh(e).spend();
+  ok(e.credits >= Y.YH.floor && e.credits < Y.YH.floor + R.xpCost(e), `영희: 보스 전 전력 부족 → 공명도를 사도 전투 직전 ${e.credits} (≥ 40)`);
+  // yh_last: 마지막 페이즈 보스 앞에서는 바닥을 풀고 다 쓴다 · yh 는 마지막 페이즈에도 40
+  const f = mk7(75); f.phase = CFG.victoryPhase;
+  R.enterNode(f, 'boss');
+  yh(f, 'yh_last').spend();
+  const g = mk7(75); g.phase = CFG.victoryPhase;
+  R.enterNode(g, 'boss');
+  yh(g).spend();
+  ok(f.credits < R.xpCost(f) && g.credits >= Y.YH.floor, `영희_last: 마지막 페이즈 보스 전 잔액 ${f.credits} (다 씀) · 영희 ${g.credits} (≥ 40)`);
+  // 상점: 철수 상점 판단을 쓰되 바닥 40 아래로는 사지 않는다
+  const h = mk7(46);
+  R.openShop(h);
+  const ch = yh(h);
+  ch.shop();
+  const i2 = mk7(90);
+  R.openShop(i2);
+  yh(i2).shop();
+  ok(h.credits >= Y.YH.floor && i2.credits >= Y.YH.floor && !ch.rec.yhBreach, `영희: 상점 뒤 잔액 46 → ${h.credits} · 90 → ${i2.credits} (≥ 40)`);
+  // 갈림길: 여유가 크면 보급 대신 상점 (철수 점수식은 이 상태에서 보급 · 영입을 고르는 일이 많았다)
+  const j = mk7(100, ['kyle']);
+  R.buyFleet(j); j.credits = 100; // 대기 없음 (출전 5 = 보유 5)
+  const pick = Y.branch(j, ['shop', 'supply', 'recruit'], yh(j).log, 'yh', null, true);
+  ok(pick === 'shop', `영희: 여유 60 이면 갈림길에서 상점 → ${pick}`);
 }
 
 process.stdout.write(fails ? `\n${fails}개 실패\n` : '\n모두 통과\n');

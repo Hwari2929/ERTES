@@ -74,13 +74,14 @@ export function bias(run: RunState, id: string | null, v3 = false): ((us: UnitSt
   return (us) => 1 + BUILD.gamma * Math.min(b.target, us.filter((u) => b.member(u, run)).length);
 }
 /** 지정 소집: 빌드 구성원이 목표보다 모자라고, 남길 크레딧 위로 비용이 있으면 (페이즈당 musterPerPhase 번) */
-export function muster(run: RunState, id: string | null, used: number, log: DLog, v3 = false): boolean {
+/** floor · perPhase: 영희(younghee.ts)용 — 남길 크레딧을 reserve 대신 고정 바닥으로, 페이즈당 횟수. 없으면 철수 그대로 */
+export function muster(run: RunState, id: string | null, used: number, log: DLog, v3 = false, floor?: number, perPhase = BUILD.musterPerPhase): boolean {
   const b = BUILDS.find((x) => x.id === id);
-  if (!b || used >= BUILD.musterPerPhase || run.node || run.pending.length || run.units.length >= CFG.maxParty) return false;
+  if (!b || used >= perPhase || run.node || run.pending.length || run.units.length >= CFG.maxParty) return false;
   const have = run.units.filter((u) => b.member(u, run)).length;
   if (have >= (v3 ? buildTarget(run, b) : b.target + 1)) return false;
   const cost = R.musterCost(run);
-  if (run.credits - cost < reserve(run)) return false;
+  if (run.credits - cost < (floor ?? reserve(run))) return false;
   // 시너지 3개: 빌드 시너지 + 아직 없는 구성원을 가장 많이 담은 시너지 (지휘관 빌드는 지휘관이 많은 시너지)
   const want = memberDefs(b).filter((d) => !run.units.some((u) => u.defId === d.id) && d.id !== 'amundsen').map((d) => d.id);
   if (!want.length) return false;

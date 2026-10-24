@@ -10,6 +10,7 @@ import * as H from './hard';
 import * as RS from './roster';
 import * as B from './build';
 import * as S from './search';
+import * as Y from './younghee';
 import * as R from '../../src/engine/run';
 import { equipGearFix, equipMods, newIns, useConsumablesFix, type BotIns, type Track } from '../botlib';
 import { planGear } from './gear';
@@ -18,6 +19,7 @@ import { allocPicks, buyXp, xpTarget } from './growth';
 import { DLog } from './log';
 import * as A from './aug';
 import { Rng } from '../../src/rng';
+import { CFG } from '../../src/config';
 
 export type Area = 'start' | 'form' | 'gear' | 'growth' | 'recruit' | 'aug' | 'econ' | 'hard' | 'recruit2' | 'build' | 'search' | 'syn3' | 'multi' | 'build3' | 'boss' | 'search3';
 /** 3단계 영역: syn3 (평가 정확성: 효과 단계 · 잃는 효과 · 시너지 실측 잔차), multi (영입 · 보관 · 출전 분리, 임계점 다중 교체), build3 (빌드 임계점 · 포기 조건),
@@ -28,7 +30,8 @@ export const ALL_AREAS: Area[] = ['form', 'gear', 'growth', 'start', 'recruit', 
  *  절망 증강이 일반 전투를 어렵게 했다) 선택 영역으로 둔다 (docs/BOT_CHULSU.md 3단계). search · search3 는 분석 전용.
  *  2단계 기본을 재현하려면 chulsu=form,gear,growth,start,econ,aug,hard,recruit2,build · 1단계 기본은 chulsu=form,gear,growth,start */
 export const DEFAULT_AREAS: Area[] = ['form', 'gear', 'growth', 'start', 'econ', 'aug', 'hard', 'recruit2', 'build', 'syn3', 'multi', 'build3'];
-export interface ChulsuOpts { areas: Set<Area>; dlog?: boolean; ins?: BotIns; forceBuild?: string; augOff?: Set<string>; bossOff?: Set<string> }
+/** econ: 경제 판단 교체 — 'yh' = 영희 (바닥 40 · 함대 확장 → 시너지 → 필요할 때만 공명도, younghee.ts) · 'yh_last' = 영희 + 마지막 페이즈에 바닥을 풀고 다 쓴다. 없으면 철수 */
+export interface ChulsuOpts { areas: Set<Area>; dlog?: boolean; ins?: BotIns; forceBuild?: string; augOff?: Set<string>; bossOff?: Set<string>; econ?: Y.YhMode }
 
 export class Chulsu {
   ins: BotIns;
@@ -123,10 +126,53 @@ export class Chulsu {
     planGear({ run: r, ins, log });
     E.equipTurrets(r);
   };
-  spend() { this.time(() => E.spend(this.run, this.log, this.bossOn('reserve')), 'spend'); }
-  shop(track?: Track) { this.time(() => { E.shop(this.run, this.plan, this.log, track ? (id) => track(id, 'bought') : undefined); E.equipTurrets(this.run); }, 'shop'); }
+  spend() {
+    const m = this.o.econ;
+    if (m) { this.time(() => Y.spend(this.run, this.log, this.hist, m, (f) => this.yhMuster(f), () => this.count('yhBreach')), 'spend'); return; }
+    this.time(() => E.spend(this.run, this.log, this.bossOn('reserve')), 'spend');
+  }
+  shop(track?: Track) {
+    const m = this.o.econ;
+    this.time(() => {
+      const c0 = this.run.credits;
+      E.shop(this.run, this.plan, this.log, track ? (id) => track(id, 'bought') : undefined, m ? { floor: Y.lowFloor(this.run, m).floor, vsXp: Y.YH.shopVsXp } : undefined);
+      E.equipTurrets(this.run);
+      if (m && this.run.credits < c0 && this.run.credits < Y.floorOf(this.run, m)) this.count('yhBreach'); // 영희: 상점 지출로 바닥 아래 (있으면 안 된다)
+    }, 'shop');
+  }
   synth(track?: Track) { this.shop(track); }
-  branch(options: NodeType[]): NodeType { return this.time(() => E.branch(this.run, options, this.log), 'branch'); }
+  branch(options: NodeType[]): NodeType {
+    const m = this.o.econ;
+    if (m) return this.time(() => Y.branch(this.run, options, this.log, m, this.buildId, this.has('build3')), 'branch');
+    return this.time(() => E.branch(this.run, options, this.log), 'branch');
+  }
+  /** 영희: 투자 노드 (철수 · 덤비는 tests/balance.ts 의 기본 규칙) */
+  invest() { const m = this.o.econ!; this.time(() => Y.invest(this.run, this.log, m, () => this.count('yhBreach')), 'invest'); }
+  /** 영희 ② 시너지 확보: 지정 소집 (목표 빌드가 모자라면 build.ts muster, 아니면 지금 시너지의 다음 단계). 페이즈당 Y.YH.musterPerPhase 번 */
+  private yhPhase = 0; private yhMusters = 0;
+  private yhMuster(F: number): 'done' | 'save' | 'none' {
+    const run = this.run, m = this.o.econ!, F0 = Y.floorOf(run, m);
+    if (run.node || run.pending.length || run.units.length >= CFG.maxParty) return 'none';
+    if (this.has('build')) this.pickBuild();
+    if (this.yhPhase !== run.phase) { this.yhPhase = run.phase; this.yhMusters = 0; }
+    if (this.yhMusters >= Y.YH.musterPerPhase) return 'none';
+    const cost = R.musterCost(run), v3 = this.has('build3');
+    const bWant = this.has('build') && Y.buildShort(run, this.buildId, v3);
+    const near = Y.nearMusterSyns(run);
+    if (!bWant && !near) return 'none';
+    if (!R.ticketCount(run) && run.credits - cost < F) return 'save';
+    let ok = bWant && B.muster(run, this.buildId, 0, this.log, v3, F, 1);
+    if (!ok && near) {
+      if (R.openMuster(run) === null) {
+        if (R.confirmMuster(run, near) !== null) R.cancelMuster(run);
+        else { ok = true; this.log.add('muster', `지정 소집 ${near.join(',')} (${cost})`, 0, 0, Y.nearSyns(run).map((x) => `${x.s} ${x.n}+${x.need}`), '지금 시너지 다음 단계'); }
+      }
+    }
+    if (!ok) return 'none';
+    this.yhMusters++; this.count('muster');
+    if (run.credits < F0) this.count('yhBreach');
+    return 'done';
+  }
   event(p: Extract<Pending, { t: 'event' }>) {
     const i = this.time(() => E.event(this.run, p, this.plan, this.log, this.rng), 'event');
     if (i !== null) R.chooseEvent(this.run, i);
@@ -141,14 +187,17 @@ export class Chulsu {
   buildStep() {
     if (!this.has('build')) return;
     this.time(() => {
-      if (this.buildPhase !== this.run.phase) {
-        const prev = this.buildId;
-        this.buildId = B.chooseBuild(this.run, this.buildId, this.log, this.o.forceBuild, this.has('build3'));
-        if (prev && prev !== this.buildId) this.count('buildSwitch');
-        this.buildPhase = this.run.phase; this.musters = 0;
-      }
+      this.pickBuild();
+      if (this.o.econ) return; // 영희: 지정 소집은 spend 의 ② 에서 (yhMuster)
       if (B.muster(this.run, this.buildId, this.musters, this.log, this.has('build3'))) { this.musters++; this.count('muster'); }
     }, 'build');
+  }
+  private pickBuild() {
+    if (this.buildPhase === this.run.phase) return;
+    const prev = this.buildId;
+    this.buildId = B.chooseBuild(this.run, this.buildId, this.log, this.o.forceBuild, this.has('build3'));
+    if (prev && prev !== this.buildId) this.count('buildSwitch');
+    this.buildPhase = this.run.phase; this.musters = 0;
   }
   /** 제한 탐색 (search.ts): 편성 화면의 조우를 다른 난수로 미리 싸워 대안 비교 */
   private lastMulti = 0;

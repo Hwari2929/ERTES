@@ -66,7 +66,7 @@ export function xpBest(run: RunState): { u: UnitState; g: number } | null {
 export const xpRate = (run: RunState) => Math.max(1e-5, xpBest(run)?.g || 0);
 
 /** 함대 확장: 대기 기물 중 가장 좋은 1명을 더 출전시켰을 때의 상대 상승 (출전 가능한 대기 기물이 없으면 0) */
-function fleetGain(run: RunState): number {
+export function fleetGain(run: RunState): number {
   const us = team(run);
   const bench = run.units.filter((u) => !u.pos && !R.isRock(u) && R.canDeploy(run, u));
   if (!bench.length || !us.length) return 0;
@@ -114,11 +114,14 @@ function flatValue(run: RunState, id: string): number {
   if (isTurretGear(id) || isTurretMod(id)) return engTier(run) ? (TURRET_ADV.includes(id) ? 16 : 9) : 0;
   return 0;
 }
-export function shop(run: RunState, plan: Plan, log: DLog, track?: (id: string, w: 'bought') => void) {
+/** 상점 판단의 경제 조건만 바꾸는 선택 인자 (영희 tests/chulsu/younghee.ts): floor = 남길 크레딧 고정 (reserve 대신, 이자 구간 아래로 쓰는 예외 없음) · vsXp = ECON.shopVsXp 대신. 없으면 철수 그대로 */
+export interface ShopOpt { floor?: number; vsXp?: number }
+export function shop(run: RunState, plan: Plan, log: DLog, track?: (id: string, w: 'bought') => void, so?: ShopOpt) {
   const stock = run.node?.shop || [];
   const maint = !!run.node?.maint;
+  const fixed = so?.floor !== undefined, vsXp = so?.vsXp ?? ECON.shopVsXp;
   for (let g = 0; g < 8; g++) {
-    const R0 = reserve(run);
+    const R0 = fixed ? so!.floor! : reserve(run);
     const rate = xpRate(run);
     const v0 = valueAfter(run, plan);
     const sc = stock.map((s, i) => ({ s, i })).filter(({ s }) => !s.sold && s.price <= run.credits && run.inventory.length < CFG.inventoryMax).map(({ s, i }) => {
@@ -126,8 +129,8 @@ export function shop(run: RunState, plan: Plan, log: DLog, track?: (id: string, 
       const dv = fv ? fv * rate : valueAfter(run, plan, (r) => { r.inventory.push(s.item); }) / Math.max(1e-9, v0) - 1;
       return { i, id: s.item, price: s.price, g: s.price > 0 ? dv / s.price : dv > 0 ? 1 : 0, dv };
     }).filter((x) => x.dv > 0).sort((a, b) => b.g - a.g);
-    const best = sc.find((x) => x.g >= rate * ECON.shopVsXp && (run.credits - x.price >= R0 || x.price === 0 || x.g >= rate * ECON.dipK));
-    if (!best) break;
+    const best = sc.find((x) => x.g >= rate * vsXp && (run.credits - x.price >= R0 || x.price === 0 || (!fixed && x.g >= rate * ECON.dipK)));
+    if (!best) { if (!g) log.add('shop', `${maint ? '정비' : '구매'} 없음`, 0, 0, sc.slice(0, 3).map((x) => `${x.id} ${x.price} ${(x.g / rate).toFixed(2)}`), `잔액 ${run.credits} · 남김 ${R0} · 진열 ${stock.filter((s) => !s.sold).length}`); break; }
     if (R.buyShop(run, best.i) !== null) break;
     track?.(best.id, 'bought');
     log.add('shop', `${maint ? '정비' : '구매'} ${best.id} (${best.price})`, 0, best.dv * 1e4, sc.filter((x) => x !== best).slice(0, 3).map((x) => `${x.id} ${(x.g / rate).toFixed(2)}`), `공명도 대비 ${(best.g / rate).toFixed(2)} · 잔액 ${run.credits}`);
