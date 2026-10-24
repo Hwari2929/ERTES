@@ -1,6 +1,6 @@
 """에이든 손 톤 맞추기: 노멀(모양 + 결)로 왼쪽 위 한 방향 빛을 굽고, 바 테이블처럼 한색 필터를 건다.
   python3 scripts/hand_tone.py <출력 폴더> --cool K [--normal M] [--bright B] [--sat S] [--src public/art]
-- 입력: <src>/ct_hand.webp · ct_hand_thumb.webp (scripts/hand_layers.py 결과, 같은 크기 · 같은 원점)
+- 입력: <src>/ct_hand.webp · ct_hand_thumb.webp (scripts/hand_layers.py 결과, 같은 크기 · 같은 원점 — 톤 굽기 전 원본은 art/hand_untoned)
 - 모양 노멀: 두 층을 합친 알파의 거리 변환 → √ 로 둥근 높이 (손가락 · 손등이 부풀어 보이게)
   결 노멀: 밝기의 고주파 (주름 · 마디). 둘을 더해 노멀을 만들고, 장면 빛(왼쪽 위)을 손이 돌아간 만큼(장면에서 −16°) 되돌려 비춘다.
 - --normal M: 음영 섞는 비율 (0~1) · --cool K: table_bake 와 같은 한색 필터 (채도 K×0.6 빼고 같은 밝기의 남색 K 섞기)

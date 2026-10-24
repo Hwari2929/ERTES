@@ -5151,7 +5151,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-hand { position: absolute; left: 0; top: 0; max-width: none; height: auto; pointer-events: none; visibility: hidden; } /* 에이든의 손 (ui/contract.ts handTake) */
 .ct-hand.sh { z-index: var(--z-float); translate: 11px 16px; filter: brightness(0) blur(3px); opacity: .5; } /* 그림자: 전표 · 테이블 · 벨 위, 엄지 · 손 밑 (DOM 이 둘보다 앞). 손에 붙어 있고 거의 또렷하다. 따로 한 장 (앞 층에 그림자를 달면 엄지 구멍으로 비친다) */
 .ct-hand-thb { position: absolute; inset: 0; z-index: var(--z-float); pointer-events: none; } /* 엄지 끝: 손과 같은 층 (램프 그늘 · 벨 위 — 아래 층이면 엄지만 어두워진다). 전표 사각형만큼은 JS 가 clip-path 로 잘라 전표 밑처럼 보인다 */
-.ct-hand.fr { z-index: var(--z-float); } /* 손 · 검지 · 중지: 전표 · 벨 위 (벨 바로 위로 지나간다. 램프 톤은 그림에 구워 둠 — scripts/hand_tone.py) */
+.ct-hand.fr { z-index: var(--z-float); } /* 손 · 검지 · 중지: 전표 · 벨 위 (벨 바로 위로 지나간다. 램프 톤은 그림에 구워 둠 — python3 scripts/hand_tone.py public/art --src art/hand_untoned --cool 0.24 --normal 0.5 --sat 0.82 --bright 0.95 · 톤 E) */
 .ct-hand.on { visibility: visible; }
 @media (max-width: 760px) { .ct-hand, .ct-hand-thb { display: none; } }
 .ct-light, .ct-glow { position: absolute; inset: 0; z-index: var(--z-sticky); pointer-events: none; }
@@ -5416,7 +5416,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ct-os { position: absolute; left: var(--ox, 0); top: var(--oy, 0); width: var(--ow, 100vw); height: var(--oh, 100vh); scale: var(--oz, .4); transform-origin: 0 0; overflow: hidden; pointer-events: none; } /* 표시기 OS 층: 시야 크기로 그리고 카메라 배율만큼 줄인다 (ui/contract.ts osFit) — 상태줄 · 알림이 브리핑 화면의 것과 같은 치수 */
 .ct-os .nr-tab { opacity: .9; }
 .ct.intro .ct-os { animation: ct-power .5s 1.6s steps(3) both; }
-.ct-tnote { position: absolute; left: 50%; top: 30px; z-index: var(--z-raise); width: 232px; translate: -50% -8px; opacity: 0; transition: opacity .18s, translate .25s cubic-bezier(.2, .9, .3, 1.2); }
+.ct-tnote { --k: 1.25; position: absolute; left: 50%; top: 30px; z-index: var(--z-raise); width: calc(232px * var(--k)); translate: -50% -8px; opacity: 0; transition: opacity .18s, translate .25s cubic-bezier(.2, .9, .3, 1.2); }
 .ct-tnote.in { opacity: 1; translate: -50% 0; animation: tn-shake .5s .15s ease-in-out; }
 .ct-tnote.in .tn-bell { animation: tn-ring .7s .1s ease-in-out; }
 @keyframes tn-shake { 15%, 55% { rotate: -2.5deg; } 35%, 75% { rotate: 2.5deg; } 100% { rotate: 0deg; } }
