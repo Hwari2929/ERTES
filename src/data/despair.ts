@@ -4,7 +4,7 @@
 // 수치는 전부 CFG.despair 에서 읽는다 (설명문도 그릴 때마다 읽음). 효과가 실제로 걸리는 곳:
 //   rock      run.ts recruitOptions · recruit · autoPlace (반려 돌 기물 'petrock', rosterE.ts)
 //   overclock build.ts buildEnemy · rival run.ts recruitOptions · myopic run.ts despairInterest
-//   unix      run.ts unixSwap (캣휠 'J_catwheel', items.ts) · petra build.ts buildEnemy · tariff run.ts genShop · genMaint · genSynth
+//   unix      run.ts unixSwap (캣휠 'J_catwheel', items.ts) · petra build.ts buildEnemy · tariff run.ts genShop · genSynth
 //   miracle   combat.ts heal · final build.ts buildEnemy · swarm run.ts resolveBattle · battleRewardPreview
 import { CFG } from '../config';
 import type { Effect } from '../engine/effects';

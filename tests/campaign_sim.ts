@@ -9,7 +9,7 @@ import { newCampaignRun } from '../src/engine/campaignrun';
 import * as R from '../src/engine/run';
 import { Rng } from '../src/rng';
 import type { Major } from '../src/types';
-import { augChoice, manageItems } from './botlib';
+import { augChoice, manageItems, turretPickBot } from './botlib';
 import { EVENT_BY_ID } from '../src/data/events';
 
 declare const process: { argv: string[]; stdout: { write(s: string): void } };
@@ -48,6 +48,7 @@ for (let s = 0; s < N; s++) {
         continue;
       }
       if (p.t === 'supply') R.flipAllSupply(run, p);
+      else if (p.t === 'turretPick') { turretPickBot(run); continue; } 
       else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
       else if (p.t === 'branch') { R.pickBranch(run, 'shop'); continue; }
       run.pending.shift();

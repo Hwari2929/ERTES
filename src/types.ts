@@ -114,10 +114,10 @@ export interface UnitState {
   pos: { c: number; r: number } | null; // r=0 이 아군 진영 가장 뒷줄
 }
 
-export type NodeType = 'battle' | 'adversity' | 'shop' | 'supply' | 'recruit' | 'boss' | 'pilgrim' | 'news' | 'event' | 'invest' | 'fork' | 'challenge' | 'council' | 'maint';
+export type NodeType = 'battle' | 'adversity' | 'shop' | 'supply' | 'recruit' | 'boss' | 'pilgrim' | 'news' | 'event' | 'invest' | 'fork' | 'challenge' | 'council';
 export const NODE_NAME: Record<NodeType, string> = {
   battle: '일반 전투', adversity: '역경', shop: '상점', supply: '보급', recruit: '기물 영입', boss: '보스',
-  pilgrim: '순례', news: '속보', event: '사건', invest: '투자', fork: '전환', challenge: '도전', council: '항로 회의', maint: '정비',
+  pilgrim: '순례', news: '속보', event: '사건', invest: '투자', fork: '전환', challenge: '도전', council: '항로 회의',
 };
 
 /** 전장 칸 구조 (engine/build.ts geoOf): 배치 폭 n · 전장 w × h · 배치 구역 첫 열 x0 · 아군 진형 줄 ay0~ay1 · 아래 적 진형 첫 줄 (포위, 없으면 0) · 지형 틀 id */
@@ -148,6 +148,7 @@ export type Pending =
   | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean; join?: boolean; kind?: 'major' | 'special' | 'psionic' | 'school' | 'oath'; great?: boolean } // school: 사이오닉 합류 시 학파 선택 · great: 마이너 능력치 대성공 (만들 때 굴림, 첫 확정 뒤 공개) · round: 대성공으로 두 번째 고르는 중
   | { t: 'pilgrim'; cards?: { id: string; cost: number; sold: boolean; faith?: FaithId }[]; relics?: { id: string; cost: number; sold: boolean }[] }
   | { t: 'itemPick'; options: string[]; title: string }
+  | { t: 'turretPick'; options: string[]; tier: number } // 엔지니어 포탑 장비 (T_) 1개 선택 · tier = 몇 번째 고르기 (1 ~ ENG_TUR.picks, engine/run.ts syncTurretPick)
   | { t: 'recruit'; options: string[]; rerolls?: number; syns?: string[] } // rerolls 없음 = 1회, syns = 지정 소집 조건
   | { t: 'supply'; options: SupplyCard[]; route?: boolean } // route: 항로에 놓인 보급 노드 (첫 장 재료 확정 · 대박 없음)
   | { t: 'branch'; options: NodeType[] }
@@ -173,9 +174,9 @@ export interface RunState {
   turretPos?: { c: number; r: number }[];
   /** 소환물 · 공왕 무휼 시작 칸 (편성 화면에서 끌어 정함). 키 = '주인 uid:번호' · 'king'. 좌표는 기물 pos 와 같은 규칙 (build.ts toPos) */
   summonPos?: Record<string, { c: number; r: number }>;
-  /** 엔지니어 감시 포탑 장비 (포탑 순서대로, 포탑마다 1~3칸). 포탑 전용 장비(T_)만.
-   *  지금 단계의 포탑 수 · 칸 수 밖에 있는 장비는 숨겨 둔다 (보관함 칸을 차지하지 않고, 엔지니어 단계가 다시 오르면 그대로 보인다: engine/run.ts syncTurrets) */
-  turretGear?: (string | null)[][];
+  /** 엔지니어 포탑 장비 (T_, 고른 순서대로 최대 ENG_TUR.picks 개): 엔지니어 2 · 4 · 6명에 처음 닿을 때 1개씩 골라 모든 포탑에 공통 적용.
+   *  엔지니어 단계가 내려가도 지우지 않는다 (포탑이 있을 때만 작동: engine/build.ts ENG_HOOK.spawn) */
+  turretMods?: string[];
   /** 튜토리얼 런: 진행 순서(TUTORIAL_FLOW) 위치. 있으면 고정 항로 · 고정 조우 · 지는 일 없음 */
   tutorial?: { i: number };
   /** 캠페인 런 (data/campaign.ts): 장 · 남은 AH(접근시간). 있으면 시너지 · 출전 인원 · 항로 · 조우를 캠페인 규칙으로 */
@@ -188,8 +189,8 @@ export interface RunState {
   step: number;
   map: NodeType[][];
   picked: (NodeType | null)[];
-  /** shop 노드: merchant = 상인 id (data/merchants.ts, 정비 · 합성은 없음) · met = 이 상점을 한 번 열었다 (다시 열면 재방문 인사) · traded = 고르곤 교환을 했다 */
-  node: { type: NodeType; enc?: Encounter; shop?: ShopSlot[]; synth?: boolean; maint?: boolean; merchant?: string; met?: boolean; traded?: boolean; news?: NewsOffer[]; invest?: InvestOffer[] } | null;
+  /** shop 노드: merchant = 상인 id (data/merchants.ts, 합성 공방은 없음) · met = 이 상점을 한 번 열었다 (다시 열면 재방문 인사) · traded = 고르곤 교환을 했다 */
+  node: { type: NodeType; enc?: Encounter; shop?: ShopSlot[]; synth?: boolean; merchant?: string; met?: boolean; traded?: boolean; news?: NewsOffer[]; invest?: InvestOffer[] } | null;
   /** 상점 진열 새로고침: 이 런에서 한 횟수 n (첫 번은 무료) · 마지막으로 쓴 페이즈 ph (페이즈마다 1번, 상점끼리 공유) */
   shopRf?: { n: number; ph: number };
   hp: number; maxHp: number;

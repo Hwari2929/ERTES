@@ -801,7 +801,7 @@ html.rmap-fs-on, html.rmap-fs-on body { overflow: hidden; }
 .ah-md .li { width: 14px; height: 14px; flex: none; }
 .ah-md b { font: 700 var(--fs-sm) var(--f-mono); line-height: 1; }
 .ah-md.tx b { font-family: var(--f-body); } /* 글자 값 (정예 확정) */
-/* 화면 머리 상태 줄 (상점 · 정비 · 합성 · 투자 창구): 지도 미리보기의 예상 수입 칸(.ah-in) = 이름 + 값, 모디파이어 칸(.ah-md) = 켜진 조건 */
+/* 화면 머리 상태 줄 (상점 · 합성 · 투자 창구): 지도 미리보기의 예상 수입 칸(.ah-in) = 이름 + 값, 모디파이어 칸(.ah-md) = 켜진 조건 */
 .sh-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
 .ah-in small { color: var(--c-text-2); font-size: var(--fs-xs); white-space: nowrap; }
 .ah-in.cr b { color: var(--c-credit); }
@@ -824,9 +824,6 @@ html.rmap-fs-on, html.rmap-fs-on body { overflow: hidden; }
 .cmb-v { font-size: var(--fs-sm); color: var(--c-text-2); }
 .cmb-v b { color: var(--c-text); font-family: var(--f-mono); }
 .cmb p { margin: 0; }
-.mt-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-bottom: 6px; }
-.maint-tur .mt-head h3 { margin: 0 4px 0 0; }
-.mt-hint { margin-left: auto; }
 .ah-body > .ah-chips { margin-top: 2px; }
 .foe-rank { align-self: center; display: inline-flex; align-items: center; min-height: 20px; padding: 0 7px; border-radius: var(--r-pill); } /* 다른 칩(분류 · 성향)과 같은 둥글기 */
 .ah-boss { flex: 2 1 300px; }
@@ -1334,7 +1331,7 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .as-log { margin: 2px 0 6px; padding-left: 1.3em; font-size: var(--fs-sm); display: grid; gap: 2px; } .as-log li:first-child { color: var(--c-text); }
 
 
-/* ── 상점 · 정비 · 합성 공방 + 장비 칸 (보관함 · 장비 아이콘 · 장비 말풍선 · 보관 물품 팝업 공용)
+/* ── 상점 · 합성 공방 + 장비 칸 (보관함 · 장비 아이콘 · 장비 말풍선 · 보관 물품 팝업 공용)
    장비 색은 희귀도(--g-*) 데이터 색, 개조부품은 시너지 색(--sc). 호박색은 고른 칸에만 */
 .shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
 .shop-item { display: flex; gap: 10px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 10px; }
@@ -1528,13 +1525,10 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 @keyframes ad-scroll { to { transform: translateX(-50%); } }
 @media (prefers-reduced-motion: reduce) { .ad-track { display: none; } .ad-one { display: block; } .ad-scr { mask-image: none; } }
 .ah-act .tl-leave { height: 36px; padding: 0 14px; margin-left: 6px; white-space: nowrap; } /* 진행 중인 상점 칸: [상점 열기] 옆 [떠나기] (Enter 는 상점 열기) */
-/* 정비: 포탑별 장비 칸 */
-.maint-tur { margin: 10px 0; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--c-steel) 45%, var(--line)); border-radius: var(--r-lg); }
-.maint-tur h3 { margin: 0 0 6px; }
-.mt-list { display: flex; flex-wrap: wrap; gap: 8px; }
-.mt-row { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: var(--r-md); background: color-mix(in srgb, var(--c-steel) 10%, transparent); }
-.mt-row .spr { width: 32px; height: 32px; }
-.mt-slots { display: flex; gap: 4px; }
+/* 엔지니어 포탑 장비 고르기 (대기 중인 선택 창): 머리 = 제목 + 고른 수 칩, 카드 = 아이콘 · 이름 · 효과 · 능력치 칩 */
+.tp-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-bottom: 10px; }
+.tp-head h1 { margin: 0; }
+.tp-card .ah-in { justify-self: start; }
 .t-gear { display: grid; gap: 6px; margin: 4px 0 8px; }
 .t-slot { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px; border: 1px solid var(--line); border-radius: var(--r-md); background: color-mix(in srgb, var(--g-T) 6%, transparent); }
 .t-slot.empty { grid-template-columns: auto minmax(0, 1fr); border-style: dashed; }

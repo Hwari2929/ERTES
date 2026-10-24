@@ -11,7 +11,7 @@ import { SYNERGIES, tierOf } from '../src/data/synergies';
 import { boardDims, buildAlly, buildEnemy, deployed, enemyCell, layout, synergyCounts } from '../src/engine/build';
 import { Battle, DIVINE_HOOK, type CUnit, type DmgOpts, type DmgResult, type Status } from '../src/engine/combat';
 import * as R from '../src/engine/run';
-import { manageItems, shopSynth, type Track, pilgrimBot, forkChoice } from './botlib';
+import { manageItems, shopSynth, type Track, pilgrimBot, forkChoice, turretPickBot } from './botlib';
 import { Rng } from '../src/rng';
 import { RELICS } from '../src/data/relics';
 import { ULTS } from '../src/data/ults';
@@ -325,7 +325,7 @@ function playRun(seed: number) {
         if (!p.allocDone) R.allocRank(run, p, pref); // 대성공이면 같은 능력치 2배
         R.ensureRankupOptions(run, p);
         { const a = augChoiceP(p, u, bot, alt); if (a) R.chooseAug(run, p.uid, a); }
-      } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
+      } else if (p.t === 'turretPick') { turretPickBot(run); continue; } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
       else if (p.t === 'recruit') {
         const have = new Map<string, number>();
         for (const u of run.units) { const d = UNIT_BY_ID[u.defId]; for (const x of [...d.factions, ...d.traits]) have.set(x, (have.get(x) || 0) + 1); }

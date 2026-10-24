@@ -23,7 +23,7 @@ export function campEnter(run: RunState, type: NodeType): { event?: string } {
   if (type === 'event') { const e = chapterOf(run).events[run.step]; return { event: typeof e === 'function' ? e(run) : e }; }
   return {};
 }
-const typeName = (t: NodeType) => ({ battle: '전투', adversity: '역경', boss: '보스전', event: '사건', supply: '보급', shop: '분기점', maint: '정비' } as Record<string, string>)[t] || t;
+const typeName = (t: NodeType) => ({ battle: '전투', adversity: '역경', boss: '보스전', event: '사건', supply: '보급', shop: '분기점' } as Record<string, string>)[t] || t;
 export function spendTime(run: RunState, n: number, why: string) {
   const c = run.campaign!;
   c.time -= n; c.spent += n;

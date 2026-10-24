@@ -173,7 +173,7 @@ const BASE_ULTS: Record<string, UltDef> = {
     cast(b, u) {
       if (!b.enemiesOf(u).length) return false;
       for (const a of b.alliesOf(u)) b.shield(a, b.P(u, 'tech') * 2);
-      ENG_HOOK.spawn?.(b, u, [u], 1, 99); // 편성 장비 · 개조부품이 없는 추가 포탑 (포탑 번호 99)
+      ENG_HOOK.spawn?.(b, u, [u], 1, 99); // 추가 포탑 (포탑 번호 99, 고른 포탑 장비는 공통 적용)
       for (const t of b.alliesOf(u).filter((x) => x.defId === 'turret')) b.buff(u, t, 'yup.over', 8, { delta: { atkSpd: 0.6 }, label: '과부하' });
       return true;
     },

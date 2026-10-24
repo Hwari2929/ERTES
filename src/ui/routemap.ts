@@ -9,7 +9,7 @@ import { lineIcon } from './synicons';
 
 const FIELDS = { livin: 'ring', swarm: 'orbit', raiden: 'stairs', county: 'grid' } as const;
 type Kind = (typeof FIELDS)[keyof typeof FIELDS];
-const CODE: Partial<Record<NodeType, string>> = { supply: 'SUP', battle: 'BTL', council: 'CNL', event: 'EVT', shop: 'BRN', adversity: 'ADV', boss: 'BOS', recruit: 'RCT', fork: 'FRK', news: 'NWS', invest: 'INV', pilgrim: 'PLG', challenge: 'CHL', maint: 'MNT' };
+const CODE: Partial<Record<NodeType, string>> = { supply: 'SUP', battle: 'BTL', council: 'CNL', event: 'EVT', shop: 'BRN', adversity: 'ADV', boss: 'BOS', recruit: 'RCT', fork: 'FRK', news: 'NWS', invest: 'INV', pilgrim: 'PLG', challenge: 'CHL' };
 // 프리버드(공룡) 실루엣 — 오른쪽을 보고 발이 y=0
 const DINO = {
   sauro: 'M-14 -3Q-9 -5-5 -8Q0 -10 5 -8L9 -15Q10 -17 13 -16L13 -15L10 -14L7 -6Q6 -3 4 -3V0H2V-3H-3V0H-5V-3Q-9 -2-14 -3Z',

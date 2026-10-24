@@ -9,7 +9,7 @@
 //   so · sd = 실측 팀에서 S 구성원의 피해 · 버틴 피해 몫 (평가 함수, 끈 상태) — 평가 때 지금 팀의 구성원 몫으로 늘이고 줄인다 (syn.ts SYN_KIND).
 //   VOYAGE:solo:<기물> = 출항기 기물 1명의 단독 출항 고유 능력 (1명 vs 0명), VOYAGE:2 = 완전체 (5명 vs 0명, 고유 능력 5개 + 완전체 효과),
 //   CHR:<단계>:<인과 단계> = 공왕 무휼 포함 (인과 단계 1 · 4 · 7).
-//   엔지니어 포탑에는 포탑 장비(정비 노드에서 사는 T_)를 달지 않는다 (경제 판단 몫).
+//   엔지니어 포탑은 포탑 장비(엔지니어 2 · 4 · 6명에서 고르는 T_, 모든 포탑 공통) 없이 잰다 (장비 몫은 따로 · buildBattle 을 거치지 않아 run.turretMods 가 붙지 않는다).
 import { buildAlly, buildEnemy, boardDims, deployed, enemyCell, layout, makeCtx, synergyCounts, type Counts } from '../../src/engine/build';
 import { Battle } from '../../src/engine/combat';
 import * as R from '../../src/engine/run';

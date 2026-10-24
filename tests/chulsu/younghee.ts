@@ -1,6 +1,6 @@
 // 영희 (younghee): 철수와 판단이 같고 경제(크레딧 운용)만 '장기투자형'으로 바꾼 봇. docs/BOT_YOUNGHEE.md
 //   사용자 플레이: "40크레딧 이상을 필수로 유지하면서 공명도에는 필요할 때만 투자하고, 보통 함대 확장 후 시너지 확보에 대부분의 크레딧을 사용한다."
-//   1. 바닥 40 (YH.floor): 보유 크레딧을 40 아래로 내리는 지출(함대 확장 · 지정 소집 · 공명도 · 상점 · 정비 · 합성 · 투자)을 하지 않는다 (이자 상한 구간 유지).
+//   1. 바닥 40 (YH.floor): 보유 크레딧을 40 아래로 내리는 지출(함대 확장 · 지정 소집 · 공명도 · 상점 · 합성 · 투자)을 하지 않는다 (이자 상한 구간 유지).
 //      변형 yh_last: 의뢰 마지막 페이즈(CFG.victoryPhase)에서는 바닥을 풀고 남은 크레딧을 다 쓴다.
 //   2. 우선순위 (바닥 위 여유분): ① 함대 확장 → ② 시너지 확보 (목표 빌드 · 지금 시너지의 다음 단계: 지정 소집 · 상점 문장 · 장비 · 갈림길 영입/상점) → ③ 공명도.
 //      위 순위의 지출을 아직 못 하면 (돈이 모자라면) 아래 순위에 쓰지 않고 모은다.
@@ -12,7 +12,7 @@
 //   쓰는 정보: 지금 런 상태 · 공개 규칙(CFG · 비용 · 시너지 단계) · 지금까지 본 전투 결과. 숨은 보상 · 런 난수는 읽지 않는다 (철수 원칙).
 import { CFG } from '../../src/config';
 import { SYN_BY_ID } from '../../src/data/synergies';
-import { deployed, memberships, synergyCounts, turretCount } from '../../src/engine/build';
+import { deployed, memberships, synergyCounts } from '../../src/engine/build';
 import * as R from '../../src/engine/run';
 import type { NodeType, RunState, SynergyId, UnitState } from '../../src/types';
 import { bossLossRate } from './aug';
@@ -178,8 +178,6 @@ export function branch(run: RunState, options: NodeType[], log: DLog, mode: YhMo
       case 'recruit': v = full ? 0 : openSlot || fleetBlocked ? sup * 1.6 : synShort ? sup * 1.3 : run.units.length < 8 ? sup * 1.05 : sup * 0.5; break;
       // 상점: 바닥 위 여유분으로 시너지 장비 · 문장을 산다 (여유 16 이상부터 보급보다 높다) · 시너지 목표가 있으면 문장 몫 가산
       case 'shop': v = spare >= 7 ? sup * (0.7 + Math.min(spare, 60) / 50 + (synShort ? 0.15 : 0)) : 0; break;
-      // 정비: 엔지니어 포탑의 빈 칸 (기본 포탑 장비 1개는 무료) — 빈 칸 1개 · 여유 20 이면 영입(1.6)보다 높다
-      case 'maint': { const g = R.turretView(run); const empty = run.turretGear?.length ? g.reduce((s, x) => s + x.filter((y) => !y).length, 0) : turretCount(run); v = empty ? sup * (1 + 0.3 * Math.min(empty, 3) + Math.min(spare, 30) / 50) : 0; break; }
       // 투자 (장기투자): 호이슌 펀드(다음 페이즈 ×1.5~2.5) · 문장 매입(시너지) · 인재 영입 — 여유 20 이상이면 같은 여유의 상점보다 높다 (페이즈당 1번만 열린다)
       case 'invest': v = spare >= 20 ? sup * (0.95 + Math.min(spare, 60) / 50 + (synShort ? 0.15 : 0)) : 0; break;
       // 순례: 크레딧이 아니라 권능 포인트를 쓴다 (모아 둔 권능이 많을수록)

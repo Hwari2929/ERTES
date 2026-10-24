@@ -151,7 +151,7 @@ export interface ChapterDef {
   elite?: { id: string; from: number };
 }
 /** 노드별 AH 비용 (고른 행동에만 든다 — 대화 · 설명을 읽는 시간은 들지 않는다) */
-export const TIME_COST: Partial<Record<NodeType, number>> = { battle: 6, adversity: 6, boss: 6, event: 3, maint: 2, supply: 2, shop: 1 };
+export const TIME_COST: Partial<Record<NodeType, number>> = { battle: 6, adversity: 6, boss: 6, event: 3, supply: 2, shop: 1 };
 /** 1장 기본 경로 비용 = 전투 3 · 보스 · 사건 4 · 보급 · 분기점 = 39 → 시작 53 이면 14 남음 (정산 최고 단계).
  *  비비안 조사(-4) · 필리스 확인(-2)을 쓰면 단계가 내려간다 */
 export const CHAPTERS: ChapterDef[] = [

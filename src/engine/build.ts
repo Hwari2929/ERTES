@@ -7,7 +7,7 @@ import { oathEnemy, oathV } from '../data/oaths';
 import { BOONS } from '../data/events';
 import { BLESSING_BY_ID, GLOBAL_BY_ID } from '../data/globals';
 import { DESPAIR_BY_ID } from '../data/despair';
-import { ALL_GRADED, emblemOf, isEmblem, isTurretGear, itemEffect, turretGearMaj, turretSlots } from '../data/items';
+import { ALL_GRADED, emblemOf, isEmblem, isTurretGear, itemEffect } from '../data/items';
 import { CHR_HOOK, ENG_HOOK, ENG_TUR, KAL_GUARD_RANK, KAL_GUARDS, KAL_HOOK, rankTitle, SYN_BY_ID, SYNERGIES, type SynDef, tierOf } from '../data/synergies';
 import { CAMP_SYNERGIES, campMembers } from '../data/campaign';
 import { causalStage, KING, kingGearOf } from '../data/chungra';
@@ -597,8 +597,8 @@ SUMMON_RT.make = (b, owner, sd) => {
 
 /** 전투별 포탑 설치 칸 (buildBattle 이 편성 위치를 넘긴다) */
 const TURRET_AT = new WeakMap<Battle, { x: number; y: number }[]>();
-/** 전투별 포탑 장비 (포탑 순서대로). 숨긴 장비(지금 단계의 포탑 수 · 칸 수 밖)는 spawn 이 잘라 낸다 */
-const TURRET_GEAR_AT = new WeakMap<Battle, (string | null)[][]>();
+/** 전투별 포탑 장비 (run.turretMods, 고른 순서대로): 아군 포탑 모두에 공통 적용 */
+const TURRET_MODS_AT = new WeakMap<Battle, string[]>();
 ENG_HOOK.spawn = (b, lead, engs, n, first = 0) => {
   const avg = (k: keyof Stats) => engs.reduce((s, e) => s + b.S(e, k), 0) / engs.length;
   const hpBonus = engs.reduce((s, e) => s + (e.mem.turretHp || 0), 0);
@@ -608,12 +608,10 @@ ENG_HOOK.spawn = (b, lead, engs, n, first = 0) => {
   const inherit = ENG_TUR.inherit[ti]; // 엔지니어 단계별 상속률
   // 공격 속도: 엔지니어 특성 · 증강 가산 (mem.turretAs) + 8명 [오버클럭]
   const asBonus = engs.reduce((s, e) => s + (e.mem.turretAs || 0), 0) + (tier >= ENG_TUR.count.length ? ENG_TUR.over : 0);
-  const gearAll = lead.side === 0 ? TURRET_GEAR_AT.get(b) : undefined;
-  const shown = ENG_TUR.count[ti]; // 장비를 다는 포탑 = 이 단계의 포탑 수까지 (특성 · 증강으로 더 놓인 포탑은 장비 없음)
+  // 포탑 장비: 모든 아군 포탑 공통 (특성 · 증강 · 궁극기로 더 놓인 포탑 포함)
+  const gear = lead.side === 0 ? (TURRET_MODS_AT.get(b) || []).filter((x) => isTurretGear(x)) : [];
   for (let i = first; i < first + n; i++) {
     const t = blankUnit(lead.side);
-    // 포탑 전용 장비 (편성 화면에서 장착, 포탑 순서대로)
-    const gear = i < shown ? (gearAll?.[i] || []).slice(0, turretSlots(tier)).filter((x): x is string => isTurretGear(x)) : [];
     const st = emptyStats();
     st.maxHp = avg('maxHp') * inherit;
     st.shoot = st.strike = st.tech = Math.max(avg('shoot'), avg('tech')) * inherit;
@@ -622,8 +620,8 @@ ENG_HOOK.spawn = (b, lead, engs, n, first = 0) => {
     st.critDmg = Math.max(CFG.baseMinor.critDmg, avg('critDmg') * inherit); // 치명타 피해도 상속 (기본값 150% 아래로는 내려가지 않음)
     st.effRes = avg('effRes') * inherit; // 효과 저항도 같은 계수로 상속
     st.atkSpd = asBonus; st.range = 4; st.moveSpd = 1;
-    // 모든 주요 능력치 가산: 엔지니어 단계 + 포탑 전용 장비 (보급형 · 고급형). 기물과 같은 환산 (CFG.conv)
-    const maj = ENG_TUR.maj[ti] + gear.reduce((s, id) => s + turretGearMaj(id), 0);
+    // 모든 주요 능력치 가산: 엔지니어 단계 + 포탑 장비 1개당 ENG_TUR.modMaj. 기물과 같은 환산 (CFG.conv)
+    const maj = ENG_TUR.maj[ti] + gear.length * ENG_TUR.modMaj;
     for (const k of MAJORS) for (const [sk, per] of Object.entries(CFG.conv[k])) st[sk as keyof Stats] += (per as number) * maj;
     st.maxHp *= (1 + hpBonus) * (1 + maxHpBonus);
     st.armor *= 1 + hpBonus;
@@ -637,7 +635,7 @@ ENG_HOOK.spawn = (b, lead, engs, n, first = 0) => {
       const ctx = makeCtx(null, null, {});
       for (const id of gear) applyLive(t, itemEffect(id), b, ctx);
       if (t.mem.tFlame) t.st.range = Math.max(1, t.st.range - 2); // 화염 방사기: 사거리 -2
-      t.tempItems = gear;
+      t.tempItems = gear.slice();
     }
     t.mem.turretIdx = i;
     t.hp = t.st.maxHp;
@@ -868,7 +866,7 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
   const kc = comp.find((t) => t.king);
   KING_AT.set(b, kc ? { x: kc.x, y: kc.y } : null);
   COMP_AT.set(b, new Map(comp.filter((t) => !t.king).map((t) => [t.key, { x: t.x, y: t.y }])));
-  TURRET_GEAR_AT.set(b, (run.turretGear || []).map((g) => g.slice()));
+  TURRET_MODS_AT.set(b, (run.turretMods || []).slice());
   for (const s of enc.enemies) {
     const def = ENEMY_BY_ID[s.defId];
     const e = buildEnemy(b, def, enc.phase ?? run.phase, enc.mult, s);
