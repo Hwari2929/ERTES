@@ -20,6 +20,8 @@ const BELL = '<svg class="tn-bell" viewBox="0 0 24 24" aria-hidden="true"><path 
 export function noteHtml(title: string, cls = '') {
   return `<div class="tnote${cls}" role="status"><img class="tn-av" alt="" src="${artURL('yelena.bust.webp')}" decoding="async" onerror="this.remove()"><b class="tn-who">${BELL}예레나</b><span class="tn-msg">의뢰 브리핑 「${esc(title)}」</span><small class="tn-at">지금</small></div>`;
 }
+/** 태블릿 상태줄 (시각 · 와이파이 · 배터리): 계약 보드의 표시기에도 처음부터 같은 치수로 그려 두고(카메라 배율만큼 줄여), 브리핑 화면은 컷 순간 그 자리 그대로 이어받는다 */
+export const tabHtml = (cls = '') => `<div class="nr-tab${cls}" aria-hidden="true"><span class="f-num">${hhmm()}</span><span class="nr-tab-r"><i class="nr-tab-wifi"></i><span class="f-num">87%</span><i class="nr-tab-bat"><i></i></i></span></div>`;
 const hhmm = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 /** 지금 브리핑: 켜짐 · 상태문 · 보인 줄 수 · 모눈 · 단골 · 타이머 시작 여부 */
 export const BR = { on: false, lines: [] as string[], shown: 0, grid: null as Grid | null, note: null as Note | null, vet: false, started: false };
@@ -59,7 +61,7 @@ export function bandHtml(o: { art: string; color: string; title: string; place: 
     : '';
   return `<div class="nr-bandslot" aria-hidden="${BR.on ? 'false' : 'true'}"><header class="nr-band" style="--fc:${o.color}${g}">
     <i class="nr-band-art" style="background-image:url('${o.art}')" aria-hidden="true"></i><i class="nr-band-shade" aria-hidden="true"></i><i class="nr-band-bp" aria-hidden="true"></i>
-    ${BR.on ? `<div class="nr-tab" aria-hidden="true"><span class="f-num">${hhmm()}</span><span class="nr-tab-r"><i class="nr-tab-wifi"></i><span class="f-num">87%</span><i class="nr-tab-bat"><i></i></i></span></div>${BR.note && !BR.started ? `<div class="nr-tnote" style="--nx:${BR.note.x.toFixed(1)}px;--ny:${BR.note.y.toFixed(1)}px;--nw:${BR.note.w.toFixed(1)}px;--ns:${BR.note.s.toFixed(3)}">${noteHtml(o.title)}</div>` : ''}` : ''}
+    ${BR.on ? `${tabHtml(BR.grid ? ' cont' : '')}${BR.note && !BR.started ? `<div class="nr-tnote" style="--nx:${BR.note.x.toFixed(1)}px;--ny:${BR.note.y.toFixed(1)}px;--nw:${BR.note.w.toFixed(1)}px;--ns:${BR.note.s.toFixed(3)}">${noteHtml(o.title)}</div>` : ''}` : ''}
     ${BR.on ? `<div class="nr-band-tx"><span class="nr-band-k"><i class="nr-rx" aria-hidden="true"><b></b><b></b><b></b></i><span>브리핑 수신</span></span><h2 class="nr-band-t">「${esc(o.title)}」 <small>${esc(o.place)}</small></h2></div>` : ''}
     ${brief}
   </header></div>`;

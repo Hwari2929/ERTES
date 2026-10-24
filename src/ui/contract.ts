@@ -17,7 +17,7 @@ import { fieldIntroOf } from '../data/scenes/fields';
 import type { RunState } from '../types';
 import { deedCount, lastDeed, metaOath, oathSel } from './meta';
 import { artURL, bgURL } from './portraits';
-import { noteHtml, type Note } from './briefing';
+import { noteHtml, tabHtml, type Note } from './briefing';
 import { sfx } from './sound';
 import { lineIcon } from './synicons';
 
@@ -57,6 +57,8 @@ const CT = {
   bell: false,
   /** 펜 체크가 바뀌는 중에 연타하면 에이든이 핀잔을 주며 차림표를 새 것으로 바꾼 시각 */
   swapAt: -1e9,
+  /** 핫초코가 미끄러져 들어오기 시작하는 시각 (열 때 소품이 다 놓인 뒤 · 다시 그려도 이어서 움직인다) */
+  mugAt: -1e9,
   /** 도면 · 차림표가 놓인 각도 (열 때마다 조금씩 다르게) */
   /** 놓인 각도: 도면 · 차림표 · 출력기 · 특약 차림표 · 메뉴에 없는 의뢰 */
   rot: { bp: 0, mn: 0, pr: 0, rd: 0, ls: 0 },
@@ -136,7 +138,7 @@ export function contractStart(from: string, list = false, snap = '') {
   barSnap = snap ? snapOf(snap) : '';
   clear();
   const n = deedCount();
-  Object.assign(CT, { step: 'board', from, sel: null, list, vet: n > 0, lit: false, focus: '', last: '', stamp: '', intro: true, bell: false, swapAt: -1e9, fromSeal: false, say: '오늘 들어온 의뢰서입니다. 제철이라 조금 더 쳐 드리죠.' });
+  Object.assign(CT, { step: 'board', from, sel: null, list, vet: n > 0, lit: false, focus: '', last: '', stamp: '', intro: true, bell: false, swapAt: -1e9, mugAt: performance.now() + MUG_AT, fromSeal: false, say: '오늘 들어온 의뢰서입니다. 제철이라 조금 더 쳐 드리죠.' });
   CT.rot = { bp: rnd(-4, 4), mn: rnd(-3, 3), pr: rnd(-3, 3), rd: rnd(-3, 3), ls: rnd(-2, 2) };
   for (const k in shown) delete shown[k];
   paper.rows = []; paper.run = null; paper.token++;
@@ -150,7 +152,7 @@ export function contractStart(from: string, list = false, snap = '') {
 /** 런을 마치고 바로 돌아가는 길: 계약 보드를 태블릿 화면이 시야를 채운 모습으로 그리고, 줌 아웃해 테이블이 보이면 바로 올라간다 (contractMount → returnZoom) */
 export function contractReturn() {
   contractStart('bar');
-  Object.assign(CT, { intro: false, ret: !reduced(), say: '' });
+  Object.assign(CT, { intro: false, ret: !reduced(), say: '', mugAt: -1e9 });
 }
 /** 명부에서 '뒤로': 차림표로 (고른 것은 그대로, 도장은 무른다) */
 export function contractBack() { clear(); Object.assign(CT, { step: 'board', stamp: '', say: '', last: '', intro: false, fromSeal: false }); }
@@ -281,6 +283,8 @@ const row = (cls: string, attrs: string, nm: string, pr: string, ds: string[], o
 /** 손으로 그은 듯한 체크 한 획 (pathLength 1 → 그리기 · 지우기) */
 const PEN = '<svg viewBox="0 0 20 20" aria-hidden="true"><path pathLength="1" d="M3.4 10.6c1.6 1.4 3.1 3 4.6 5.2 2.6-4.6 5.7-8.8 9.7-12.6"/></svg>';
 const PEN_OUT = 220, PEN_IN = 320, SWAP = 1100;
+/** 핫초코: 도면 · 차림표 · 출력기 · 말풍선이 다 나온 뒤 (2.5초) 에이든 쪽 (화면 위)에서 밀려 내려와 밑 부분만 보인다 */
+const MUG_AT = 2700, MUG_MS = 900;
 /** 묶음(job · plan · rd:id)마다 지금 체크된 값 · 직전 값 · 바뀐 시각 (다시 그려도 연출이 이어지게) */
 const marks: Record<string, { cur: string; prev: string; t0: number }> = {};
 function mark(g: string, cur: string) {
@@ -338,8 +342,7 @@ function riderRow(id: OathId) {
 }
 
 // ───────── 청사진 (도면): 가리킨 · 고른 줄의 내용을 아이콘 · 구획으로 (줄글 없이)
-const DRAW = `<svg class="lp-draw" viewBox="0 0 110 60" aria-hidden="true"><ellipse cx="55" cy="30" rx="50" ry="14"/><ellipse cx="55" cy="30" rx="30" ry="26" transform="rotate(-28 55 30)"/><circle cx="55" cy="30" r="4"/><circle cx="100" cy="23" r="2"/><line x1="55" y1="4" x2="55" y2="56" stroke-dasharray="2 3"/></svg>`;
-const bh = (t: string, s: string) => `${DRAW}<header class="lp-bh"><b>${t}</b><span>${s}</span></header>`;
+const bh = (t: string, s: string) => `<header class="lp-bh"><b>${t}</b><span>${s}</span></header>`;
 /** 구획: 아이콘 머리 + 아이콘 줄 */
 const sect = (cls: string, icon: string, title: string, items: { icon: string; text: string; sub?: string }[]) =>
   `<section class="bp-sec ${cls}"><h3>${lineIcon(icon, 'li')}${esc(title)}</h3><ul>${items.map((x) => `<li>${lineIcon(x.icon, 'li')}<span>${esc(x.text)}${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span></li>`).join('')}</ul></section>`;
@@ -413,7 +416,7 @@ const PRINTER_SVG = `<svg class="ct-fb" viewBox="0 0 100 154" aria-hidden="true"
 function boardHtml() {
   mark('job', jobKey(CT.sel)); mark('plan', String(CT.plan));
   for (const o of OATHS) mark(`rd:${o.id}`, String(oathLv({ oaths: oathSel() }, o.id)));
-  const ok = payable(), heat = heatNow(), lit = CT.lit, info = infoHtml(), swEl = Math.round(performance.now() - CT.swapAt);
+  const ok = payable(), heat = heatNow(), lit = CT.lit, info = infoHtml(), swEl = Math.round(performance.now() - CT.swapAt), mugEl = Math.round(performance.now() - CT.mugAt);
   scr.blink = !!scr.last && info !== scr.last && !CT.intro; // 도면 내용이 바뀌면 그린 뒤 화면이 한 번 꺼졌다 켜진다
   scr.last = info;
   CT.lit = false;
@@ -427,10 +430,10 @@ function boardHtml() {
   return `<main class="ct ct-top${CT.intro && !reduced() ? ' intro' : ''}${CT.stamp ? ` st-${CT.stamp}` : ''}${swEl < SWAP && !reduced() ? ' swapping' : ''}" style="--sw-el:${Math.min(swEl, SWAP)}ms;--rot-bp:${CT.rot.bp}deg;--rot-mn:${CT.rot.mn}deg;--rot-pr:${CT.rot.pr}deg;--rot-rd:${CT.rot.rd}deg;--rot-ls:${CT.rot.ls}deg" aria-label="출격 계약 — 바 테이블 위 의뢰 차림표">
     ${CT.intro ? barviewHtml() : ''}
     <div class="ct-table" aria-hidden="true">${prop('ct_table', '')}</div><div class="lp-grain" aria-hidden="true"></div>
-    <img class="ct-mug" alt="" aria-hidden="true" src="${artURL('ct_mug.webp')}" decoding="async" onerror="this.remove()">
+    <img class="ct-mug${mugEl < MUG_MS && !reduced() ? ` in" style="animation-delay:${-mugEl}ms` : ''}" alt="" aria-hidden="true" src="${artURL('ct_mug.webp')}" decoding="async" onerror="this.remove()">
     <button class="ct-leave lp-btn" data-a="ct-leave" aria-label="${leave}" title="${leave} (화면을 위로 쓸어 올려도 된다)">${UP_SVG}</button>
     <p class="ct-voice${CT.say ? ' on' : ''}" aria-live="polite"><b>에이든</b><span>${esc(CT.say)}</span></p>
-    <section class="ct-bp" aria-label="의뢰 도면 (표시기)"><div class="ct-bp-scr lp-bp" aria-live="polite">${info}</div><i class="ct-blank" aria-hidden="true"><img class="ct-mk" alt="" src="${artURL('mingki.bust.webp')}" decoding="async" onerror="this.remove()"></i><i class="ct-led" aria-hidden="true"></i></section>
+    <section class="ct-bp" aria-label="의뢰 도면 (표시기)"><div class="ct-bp-scr lp-bp" aria-live="polite">${info}</div><div class="ct-os">${tabHtml()}</div><i class="ct-blank" aria-hidden="true"><img class="ct-mk" alt="" src="${artURL('mingki.bust.webp')}" decoding="async" onerror="this.remove()"></i><i class="ct-led" aria-hidden="true"></i></section>
     <div class="ct-menu">
       ${coverHtml()}
       <section class="ct-page lp-paper lp-frame" aria-label="의뢰 차림표">
@@ -544,12 +547,28 @@ function handTake(ct: HTMLElement): number {
 }
 /** 표시기 화면 위에 예레나의 알림 토스트를 띄운다 (흔들리며 뜨고, 카메라를 따라 커진 그대로 브리핑 화면에 0.7초 남았다가 사라진다) */
 function tabletNote() {
-  const bp = document.querySelector<HTMLElement>('main.ct.ct-top .ct-bp'), j = jobOf();
+  const bp = document.querySelector<HTMLElement>('main.ct.ct-top .ct-os'), j = jobOf();
   if (!bp || !j || CT.stamp !== 'ok' || bp.querySelector('.tnote')) return;
   bp.insertAdjacentHTML('beforeend', noteHtml(fieldTitle(j.field), ' ct-tnote'));
   requestAnimationFrame(() => bp.querySelector('.tnote')?.classList.add('in'));
   sfx('beep', { pitch: 1.4, gain: 0.6 });
 }
+/** 카메라가 표시기 화면 속으로 들어갈 때의 시야: 화면이 시야를 꼭 덮는 배율 Z, 시야가 되는 영역(화면 가로 가운데 · 위쪽 끝)의 화면 안 자리, 그 가운데의 페이지 좌표, 실제 기운 각 (휴대폰은 rotate: none) */
+function camOf(scr: HTMLElement) {
+  const W = innerWidth, H = innerHeight, sw = scr.offsetWidth, sh = scr.offsetHeight, Z = Math.max(W / sw, H / sh) * 1.002;
+  const r = scr.getBoundingClientRect(), bp = scr.parentElement!, rot = ((parseFloat(getComputedStyle(bp).rotate) || 0) * Math.PI) / 180;
+  const dy = H / Z / 2 - sh / 2; // 화면 가운데 → 시야 영역 가운데 (화면 좌표, 기운 각만큼 돌려 페이지로)
+  return { W, H, Z, rot, ox: (sw - W / Z) / 2, cx: r.left + r.width / 2 - dy * Math.sin(rot), cy: r.top + r.height / 2 + dy * Math.cos(rot) };
+}
+/** 표시기 OS 층 (상태줄 · 알림): 카메라가 화면 속으로 들어갔을 때 시야가 되는 영역을 시야 크기 그대로 그리고 카메라 배율만큼 줄여 둔다.
+ *  그래서 상태줄 · 토스트는 보드에서는 아주 작고(멀리서 보면 흔들림만 보인다), 컷 순간 브리핑 화면의 같은 것과 자리 · 크기가 같다 (startSeal 과 같은 camOf) */
+function osFit(ct: HTMLElement) {
+  const scr = ct.querySelector<HTMLElement>('.ct-bp-scr'), os = ct.querySelector<HTMLElement>('.ct-os');
+  if (!scr || !os || !scr.offsetWidth) return;
+  const c = camOf(scr);
+  os.style.cssText = `--ow:${c.W}px;--oh:${c.H}px;--oz:${(1 / c.Z).toFixed(5)};--ox:${(scr.offsetLeft + c.ox).toFixed(2)}px;--oy:${scr.offsetTop}px`;
+}
+let osResize = false;
 let sealNote: Note | null = null;
 export function takeSealNote() { const n = sealNote; sealNote = null; return n; }
 function startSeal(ct: HTMLElement) {
@@ -557,8 +576,7 @@ function startSeal(ct: HTMLElement) {
   sealGrid = null; sealNote = null;
   const scr = ct.querySelector<HTMLElement>('.ct-bp-scr');
   if (reduced() || !scr) { finish(); return; }
-  const W = innerWidth, H = innerHeight, r = scr.getBoundingClientRect(), rot = (CT.rot.bp * Math.PI) / 180;
-  const cx = r.left + r.width / 2, cy = r.top + r.height / 2, Z = Math.max(W / scr.offsetWidth, H / scr.offsetHeight) * 1.002; // 표시기 화면이 시야를 꼭 덮는 배율
+  const { W, H, Z, rot, cx, cy } = camOf(scr); // 표시기 화면이 시야를 꼭 덮는 배율 · 시야가 될 영역의 가운데
   // 진행도 e (0~1) 마다: 표시기 가운데가 화면 가운데로 곧게 · 기운 만큼 돌려 세우고 · 고르게 확대 (시간 곡선은 --ct-in 이 맡는다)
   const keys = Array.from({ length: 25 }, (_, i) => {
     const e = i / 24;
@@ -841,8 +859,7 @@ function leaveGesture(ct: HTMLElement) {
 function returnZoom(ct: HTMLElement) {
   const scr = ct.querySelector<HTMLElement>('.ct-bp-scr');
   if (!scr) { contractAct('ct-leave', ''); return; }
-  const W = innerWidth, H = innerHeight, r = scr.getBoundingClientRect(), rot = (CT.rot.bp * Math.PI) / 180;
-  const cx = r.left + r.width / 2, cy = r.top + r.height / 2, Z = Math.max(W / scr.offsetWidth, H / scr.offsetHeight) * 1.002;
+  const { W, H, Z, rot, cx, cy } = camOf(scr);
   const keys = Array.from({ length: 25 }, (_, i) => {
     const e = 1 - i / 24;
     return { transform: `translate(${cx + (W / 2 - cx) * e}px, ${cy + (H / 2 - cy) * e}px) rotate(${-rot * e}rad) scale(${Math.exp(Math.log(Z) * e)}) translate(${-cx}px, ${-cy}px)` };
@@ -859,16 +876,19 @@ function returnZoom(ct: HTMLElement) {
 export function contractMount(root: HTMLElement) {
   const ct = root.querySelector<HTMLElement>('main.ct');
   if (!ct) return;
+  osFit(ct);
+  if (!osResize) { osResize = true; addEventListener('resize', () => { const c = document.querySelector<HTMLElement>('main.ct.ct-top'); if (c && !c.classList.contains('sealing')) osFit(c); }, { passive: true }); }
   if (CT.ret) { CT.ret = false; returnZoom(ct); }
   if (CT.step === 'board') {
     if (CT.intro) { CT.intro = false; if (!reduced()) { sfx('paper', { delay: 0.8 }); sfx('paper', { delay: 1.05, pitch: 0.9 }); } window.setTimeout(() => ct.querySelector('.ct-barview')?.remove(), 1700); }
     const menu = ct.querySelector<HTMLElement>('.ct-menu');
     const point = (e: Event) => {
+      if (e.type === 'pointerover' && (e as PointerEvent).pointerType !== 'mouse') return; // 터치 · 펜은 미리보기 없이 바로 누름 (iPad Safari 는 첫 탭에 화면이 바뀌면 그 탭을 '호버'로 삼아 두 번 눌러야 한다)
       if (e.type === 'focusin' && !(e.target as HTMLElement).matches(':focus-visible')) return; // 다시 그린 뒤 되돌아온 초점(터치 · 클릭)이 도면을 옛 줄로 되돌리지 않게
       const f = (e.target as HTMLElement).closest<HTMLElement>('[data-f]')?.dataset.f;
       if (f && f !== CT.focus) { CT.focus = f; refreshInfo(); }
     };
-    for (const el of [menu, ...Array.from(ct.querySelectorAll<HTMLElement>(':is(.ct-riders, .ct-offsheet):not(.out)'))]) { el?.addEventListener('mouseover', point); el?.addEventListener('focusin', point); }
+    for (const el of [menu, ...Array.from(ct.querySelectorAll<HTMLElement>(':is(.ct-riders, .ct-offsheet):not(.out)'))]) { el?.addEventListener('pointerover', point); el?.addEventListener('focusin', point); }
     escSheets();
     if (scr.blink) { scr.blink = false; blink(); }
     swipeDown(ct, '.ct-offsheet', 'ls', () => { CT.list = false; CT.focus = ''; });
