@@ -173,12 +173,9 @@ export interface RunState {
   turretPos?: { c: number; r: number }[];
   /** 소환물 · 공왕 무휼 시작 칸 (편성 화면에서 끌어 정함). 키 = '주인 uid:번호' · 'king'. 좌표는 기물 pos 와 같은 규칙 (build.ts toPos) */
   summonPos?: Record<string, { c: number; r: number }>;
-  /** 엔지니어 감시 포탑 장비 (포탑 순서대로, 포탑마다 1~3칸). 포탑 전용 장비(T_)만 */
+  /** 엔지니어 감시 포탑 장비 (포탑 순서대로, 포탑마다 1~3칸). 포탑 전용 장비(T_)만.
+   *  지금 단계의 포탑 수 · 칸 수 밖에 있는 장비는 숨겨 둔다 (보관함 칸을 차지하지 않고, 엔지니어 단계가 다시 오르면 그대로 보인다: engine/run.ts syncTurrets) */
   turretGear?: (string | null)[][];
-  /** 엔지니어 감시 포탑 개조부품 칸 (포탑 순서대로 1칸씩). 엔지니어 전용 개조부품(E_)만. 옛 세이브에는 없다 → 빈 칸 */
-  turretMods?: (string | null)[];
-  /** 엔지니어: 지금까지 도달한 최고 단계 (전용 개조부품 지급 기록) */
-  engTier?: number;
   /** 튜토리얼 런: 진행 순서(TUTORIAL_FLOW) 위치. 있으면 고정 항로 · 고정 조우 · 지는 일 없음 */
   tutorial?: { i: number };
   /** 캠페인 런 (data/campaign.ts): 장 · 남은 AH(접근시간). 있으면 시너지 · 출전 인원 · 항로 · 조우를 캠페인 규칙으로 */

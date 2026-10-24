@@ -181,7 +181,7 @@ export function branch(run: RunState, options: NodeType[], log: DLog, mode: YhMo
       // 상점: 바닥 위 여유분으로 시너지 장비 · 문장을 산다 (여유 16 이상부터 보급보다 높다) · 시너지 목표가 있으면 문장 몫 가산
       case 'shop': v = spare >= 7 ? sup * (0.7 + Math.min(spare, 60) / 50 + (synShort ? 0.15 : 0)) : 0; break;
       // 정비: 엔지니어 포탑의 빈 칸 (기본 포탑 장비 1개는 무료) — 빈 칸 1개 · 여유 20 이면 영입(1.6)보다 높다
-      case 'maint': { const g = run.turretGear || []; const empty = g.length ? g.reduce((s, x) => s + x.filter((y) => !y).length, 0) : turretCount(run); v = empty ? sup * (1 + 0.3 * Math.min(empty, 3) + Math.min(spare, 30) / 50) : 0; break; }
+      case 'maint': { const g = R.turretView(run); const empty = run.turretGear?.length ? g.reduce((s, x) => s + x.filter((y) => !y).length, 0) : turretCount(run); v = empty ? sup * (1 + 0.3 * Math.min(empty, 3) + Math.min(spare, 30) / 50) : 0; break; }
       // 투자 (장기투자): 호이슌 펀드(다음 페이즈 ×1.5~2.5) · 문장 매입(시너지) · 인재 영입 — 여유 20 이상이면 같은 여유의 상점보다 높다 (페이즈당 1번만 열린다)
       case 'invest': v = spare >= 20 ? sup * (0.95 + Math.min(spare, 60) / 50 + (synShort ? 0.15 : 0)) : 0; break;
       // 순례: 크레딧이 아니라 권능 포인트를 쓴다 (모아 둔 권능이 많을수록)

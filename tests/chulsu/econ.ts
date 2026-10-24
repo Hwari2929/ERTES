@@ -3,7 +3,7 @@
 //   상점 물건 · 사건 선택지는 복제한 런에서 사 보고 / 골라 보고 (사건은 런 난수 대신 다른 난수로 여러 번), 장비 계획까지 굴린 뒤 비교한다.
 //   쓰는 정보: 지금 런 상태 · 보이는 진열대 · 공개 규칙(CFG · 이자 · 보급 기준값). 숨은 보상 · 런 난수는 읽지 않는다.
 import { CFG } from '../../src/config';
-import { isTurretGear, isTurretMod, TURRET_ADV } from '../../src/data/items';
+import { isTurretGear, TURRET_ADV } from '../../src/data/items';
 import { deployed, engTier, turretCount } from '../../src/engine/build';
 import * as R from '../../src/engine/run';
 import { Rng } from '../../src/rng';
@@ -111,7 +111,7 @@ function valueAfter(run: RunState, plan: Plan, f?: (r: RunState) => void): numbe
 /** 가치를 크레딧으로 쳐 주는 물건 (V 에 안 잡히는 것): 강제 징수기 · 포탑 장비 */
 function flatValue(run: RunState, id: string): number {
   if (id === 'K_seize') return (run.diff || 0) >= CFG.solventFrom ? 18 : 8;
-  if (isTurretGear(id) || isTurretMod(id)) return engTier(run) ? (TURRET_ADV.includes(id) ? 16 : 9) : 0;
+  if (isTurretGear(id)) return engTier(run) ? (TURRET_ADV.includes(id) ? 16 : 9) : 0;
   return 0;
 }
 /** 상점 판단의 경제 조건만 바꾸는 선택 인자 (영희 tests/chulsu/younghee.ts): floor = 남길 크레딧 고정 (reserve 대신, 이자 구간 아래로 쓰는 예외 없음) · vsXp = ECON.shopVsXp 대신. 없으면 철수 그대로 */
@@ -137,18 +137,15 @@ export function shop(run: RunState, plan: Plan, log: DLog, track?: (id: string, 
     plan(run); // 산 물건을 바로 반영 (장비 계획 · 포탑)
   }
 }
-/** 포탑 장비 · 엔지니어 개조부품: 보관함에 있으면 빈 포탑 칸에 */
+/** 포탑 장비: 보관함에 있으면 보이는 포탑의 빈 칸에 */
 export function equipTurrets(run: RunState) {
   const n = turretCount(run);
   if (!n) return;
   R.syncTurrets(run);
   for (let g = 0; g < 12; g++) {
-    const i = run.inventory.findIndex((x) => isTurretGear(x) || isTurretMod(x));
+    const i = run.inventory.findIndex((x) => isTurretGear(x));
     if (i < 0) return;
-    const id = run.inventory[i];
-    let ti = -1;
-    if (isTurretMod(id)) ti = (run.turretMods || []).findIndex((m) => !m);
-    else ti = (run.turretGear || []).findIndex((s) => s.includes(null));
+    const ti = R.turretView(run).findIndex((s) => s.includes(null));
     if (ti < 0) return;
     if (R.equipTurret(run, i, ti) !== null) return;
   }
@@ -166,7 +163,7 @@ export function branch(run: RunState, options: NodeType[], log: DLog): NodeType 
       case 'supply': v = sup; break;
       case 'recruit': v = run.units.length >= CFG.maxParty ? 0 : openSlot ? sup * 1.6 : run.units.length < 8 ? sup * 1.05 : sup * 0.5; break;
       case 'shop': v = 4 + 0.45 * Math.min(spare, 40) + ((run.diff || 0) >= CFG.solventFrom && R.solventLeft(run) < 1 ? 4 : 0); break;
-      case 'maint': { const g = run.turretGear || []; const empty = g.reduce((s, x) => s + x.filter((y) => !y).length, 0) || turretCount(run); v = empty ? 10 + Math.min(spare, 20) * 0.4 : 3; break; }
+      case 'maint': { const empty = R.turretView(run).reduce((s, x) => s + x.filter((y) => !y).length, 0) || turretCount(run); v = empty ? 10 + Math.min(spare, 20) * 0.4 : 3; break; }
       case 'invest': v = run.credits >= 20 ? 6 + 0.5 * Math.min(spare, 30) : 0; break;
       case 'pilgrim': v = sup * 0.9; break;
       case 'news': v = Math.min(20, run.fame); break;
