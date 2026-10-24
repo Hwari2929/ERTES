@@ -1,6 +1,6 @@
 // 철수 봇: 기물별 실제 기여 · 계수 측정 (공개 정보 = 기물 정의만 사용). 결과 → tests/chulsu/profile.gen.ts
 // 실행: npm run -s chulsu-profile   (기물 · 전투 수치가 바뀌면 다시 돌린다. 없는 기물은 eval.ts 기본값)
-// 방법: 기준 아군 3명(REFS, 시너지가 겹치지 않는 둘 중 X 가 없는 쪽) + 기물 X 를 2페이즈 일반 조우 SEEDS 개와 싸우게 한다.
+// 방법: 기준 아군 3명(refs.ts refsFor: 묶음 안 · X 와 시너지 단계가 바뀌지 않는 묶음, 2 ~ 5묶음 전부) + 기물 X 를 2페이즈 일반 조우 SEEDS 개와 싸우게 한다 (묶음 × 시드 평균).
 //   같은 시드에서 X 자리를 반려 돌(아무것도 하지 않는 짐)로 바꾼 전투와 비교해 '팀 초당 피해 · 회복(보호막 포함) 기여'를 잰다
 //   (자기 피해 + 소환물 + 아군 강화 · 지휘관 전술 위력 몫까지 들어간다). 모두 공명 1, 생명력 +60 · 방어력 +40 보강 (오래 싸워 처리량을 잰다).
 //  - d · h: X 의 팀 초당 피해 · 회복 기여 (하한 1 · 0)
@@ -11,11 +11,11 @@ import * as R from '../../src/engine/run';
 import { UNITS } from '../../src/data/units';
 import { PETROCK } from '../../src/data/despair';
 import type { Major } from '../../src/types';
+import { checkRefs, refsFor } from './refs';
 
 declare const process: { stdout: { write(s: string): void } };
 const SEEDS = 8, ADD = 10;
-/** 기준 아군 (지휘관 아님 · 서로 시너지가 겹치지 않게) */
-export const REFS = [['juseong', 'falcon', 'gebek'], ['kyle', 'argon', 'mirinae']];
+checkRefs();
 const ids = UNITS.filter((u) => !u.king && !u.inert).map((u) => u.id);
 
 function fight(team: string[], seed: number, xi: number, add: Partial<Record<Major, number>>) {
@@ -39,9 +39,9 @@ function fight(team: string[], seed: number, xi: number, add: Partial<Record<Maj
 const out: Record<string, unknown> = {};
 const baseCache = new Map<string, { d: number; h: number }>();
 for (const id of ids) {
-  const refs = REFS.find((r) => !r.includes(id))!;
   let d0 = 0, h0 = 0, dp = 0, dm = 0, hmS = 0;
-  for (let s = 1; s <= SEEDS; s++) {
+  const sets = refsFor(id), N = sets.length * SEEDS;
+  for (const refs of sets) for (let s = 1; s <= SEEDS; s++) {
     const seed = s * 97;
     const bk = `${refs.join()}|${seed}`;
     let base = baseCache.get(bk);
@@ -50,7 +50,7 @@ for (const id of ids) {
     const a = fight(team, seed, 1, {}), p = fight(team, seed, 1, { pow: ADD }), m = fight(team, seed, 1, { mnd: ADD });
     d0 += a.d - base.d; h0 += a.h - base.h; dp += p.d - a.d; dm += m.d - a.d; hmS += m.h - a.h;
   }
-  d0 /= SEEDS; h0 /= SEEDS; dp /= SEEDS; dm /= SEEDS; hmS /= SEEDS;
+  d0 /= N; h0 /= N; dp /= N; dm /= N; hmS /= N;
   const dd = Math.max(1, d0), hh = Math.max(0, h0);
   const run = R.newRun(1, [id], 'waste', 0);
   const u = run.units[0];
