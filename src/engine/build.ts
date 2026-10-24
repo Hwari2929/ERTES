@@ -619,8 +619,8 @@ ENG_HOOK.spawn = (b, lead, engs, n, first = 0) => {
     st.shoot = st.strike = st.tech = Math.max(avg('shoot'), avg('tech')) * inherit;
     st.armor = avg('armor') * inherit;
     st.acc = avg('acc') * inherit; st.crit = avg('crit') * inherit;
-    st.critDmg = Math.max(CFG.baseMinor.critDmg, avg('critDmg') * inherit); // 치명타 피해도 상속 (기본값 아래로는 내려가지 않음)
-    st.effRes = avg('effRes') * 0.5;
+    st.critDmg = Math.max(CFG.baseMinor.critDmg, avg('critDmg') * inherit); // 치명타 피해도 상속 (기본값 150% 아래로는 내려가지 않음)
+    st.effRes = avg('effRes') * inherit; // 효과 저항도 같은 계수로 상속
     st.atkSpd = asBonus; st.range = 4; st.moveSpd = 1;
     // 모든 주요 능력치 가산: 엔지니어 단계 + 포탑 전용 장비 (보급형 · 고급형). 기물과 같은 환산 (CFG.conv)
     const maj = ENG_TUR.maj[ti] + gear.reduce((s, id) => s + turretGearMaj(id), 0);
