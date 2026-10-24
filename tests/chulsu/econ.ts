@@ -1,10 +1,10 @@
-// 철수 봇 2단계: 경제 판단 (econ 영역) — 저축(이자) · 공명도 · 함대 확장 · 상점 · 분기 · 사건 · 합성 · 정비.
+// 철수 봇 2단계: 경제 판단 (econ 영역) — 저축(이자) · 공명도 · 함대 확장 · 상점 · 분기 · 사건 · 합성.
 //   한 예산으로 비교한다: '크레딧 1 당 팀 가치 V 상대 상승'(함대 확장 · 공명도 · 상점 물건)과 '남길 크레딧'(이자 구간 · 체력 · 다음 조우 · 패배 비용).
 //   상점 물건 · 사건 선택지는 복제한 런에서 사 보고 / 골라 보고 (사건은 런 난수 대신 다른 난수로 여러 번), 장비 계획까지 굴린 뒤 비교한다.
 //   쓰는 정보: 지금 런 상태 · 보이는 진열대 · 공개 규칙(CFG · 이자 · 보급 기준값). 숨은 보상 · 런 난수는 읽지 않는다.
 import { CFG } from '../../src/config';
-import { isTurretGear, TURRET_ADV } from '../../src/data/items';
-import { deployed, engTier, turretCount } from '../../src/engine/build';
+import { deployed } from '../../src/engine/build';
+import { turretPickBot } from '../botlib';
 import * as R from '../../src/engine/run';
 import { Rng } from '../../src/rng';
 import type { NodeType, Pending, RunState, UnitState } from '../../src/types';
@@ -99,7 +99,7 @@ export function spend(run: RunState, log: DLog, boss = false) {
   }
 }
 
-// ───────────────────────── 상점 · 합성 · 정비: 복제본에서 사 보고 장비 계획까지 굴린 뒤 크레딧당 상승
+// ───────────────────────── 상점 · 합성: 복제본에서 사 보고 장비 계획까지 굴린 뒤 크레딧당 상승
 export interface Plan { (r: RunState): void }
 function valueAfter(run: RunState, plan: Plan, f?: (r: RunState) => void): number {
   const r = structuredClone(run);
@@ -108,17 +108,15 @@ function valueAfter(run: RunState, plan: Plan, f?: (r: RunState) => void): numbe
   try { plan(r); } catch { /* 평가 실패 = 그대로 */ }
   return V(r);
 }
-/** 가치를 크레딧으로 쳐 주는 물건 (V 에 안 잡히는 것): 강제 징수기 · 포탑 장비 */
+/** 가치를 크레딧으로 쳐 주는 물건 (V 에 안 잡히는 것): 강제 징수기 */
 function flatValue(run: RunState, id: string): number {
   if (id === 'K_seize') return (run.diff || 0) >= CFG.solventFrom ? 18 : 8;
-  if (isTurretGear(id)) return engTier(run) ? (TURRET_ADV.includes(id) ? 16 : 9) : 0;
   return 0;
 }
 /** 상점 판단의 경제 조건만 바꾸는 선택 인자 (영희 tests/chulsu/younghee.ts): floor = 남길 크레딧 고정 (reserve 대신, 이자 구간 아래로 쓰는 예외 없음) · vsXp = ECON.shopVsXp 대신. 없으면 철수 그대로 */
 export interface ShopOpt { floor?: number; vsXp?: number }
 export function shop(run: RunState, plan: Plan, log: DLog, track?: (id: string, w: 'bought') => void, so?: ShopOpt) {
   const stock = run.node?.shop || [];
-  const maint = !!run.node?.maint;
   const fixed = so?.floor !== undefined, vsXp = so?.vsXp ?? ECON.shopVsXp;
   for (let g = 0; g < 8; g++) {
     const R0 = fixed ? so!.floor! : reserve(run);
@@ -130,28 +128,15 @@ export function shop(run: RunState, plan: Plan, log: DLog, track?: (id: string, 
       return { i, id: s.item, price: s.price, g: s.price > 0 ? dv / s.price : dv > 0 ? 1 : 0, dv };
     }).filter((x) => x.dv > 0).sort((a, b) => b.g - a.g);
     const best = sc.find((x) => x.g >= rate * vsXp && (run.credits - x.price >= R0 || x.price === 0 || (!fixed && x.g >= rate * ECON.dipK)));
-    if (!best) { if (!g) log.add('shop', `${maint ? '정비' : '구매'} 없음`, 0, 0, sc.slice(0, 3).map((x) => `${x.id} ${x.price} ${(x.g / rate).toFixed(2)}`), `잔액 ${run.credits} · 남김 ${R0} · 진열 ${stock.filter((s) => !s.sold).length}`); break; }
+    if (!best) { if (!g) log.add('shop', '구매 없음', 0, 0, sc.slice(0, 3).map((x) => `${x.id} ${x.price} ${(x.g / rate).toFixed(2)}`), `잔액 ${run.credits} · 남김 ${R0} · 진열 ${stock.filter((s) => !s.sold).length}`); break; }
     if (R.buyShop(run, best.i) !== null) break;
     track?.(best.id, 'bought');
-    log.add('shop', `${maint ? '정비' : '구매'} ${best.id} (${best.price})`, 0, best.dv * 1e4, sc.filter((x) => x !== best).slice(0, 3).map((x) => `${x.id} ${(x.g / rate).toFixed(2)}`), `공명도 대비 ${(best.g / rate).toFixed(2)} · 잔액 ${run.credits}`);
-    plan(run); // 산 물건을 바로 반영 (장비 계획 · 포탑)
-  }
-}
-/** 포탑 장비: 보관함에 있으면 보이는 포탑의 빈 칸에 */
-export function equipTurrets(run: RunState) {
-  const n = turretCount(run);
-  if (!n) return;
-  R.syncTurrets(run);
-  for (let g = 0; g < 12; g++) {
-    const i = run.inventory.findIndex((x) => isTurretGear(x));
-    if (i < 0) return;
-    const ti = R.turretView(run).findIndex((s) => s.includes(null));
-    if (ti < 0) return;
-    if (R.equipTurret(run, i, ti) !== null) return;
+    log.add('shop', `구매 ${best.id} (${best.price})`, 0, best.dv * 1e4, sc.filter((x) => x !== best).slice(0, 3).map((x) => `${x.id} ${(x.g / rate).toFixed(2)}`), `공명도 대비 ${(best.g / rate).toFixed(2)} · 잔액 ${run.credits}`);
+    plan(run); // 산 물건을 바로 반영 (장비 계획)
   }
 }
 
-// ───────────────────────── 분기점: 보급 · 상점 · 모집 · 정비 · 투자 · 순례 (지금 필요한 것)
+// ───────────────────────── 분기점: 보급 · 상점 · 모집 · 투자 · 순례 (지금 필요한 것)
 export function branch(run: RunState, options: NodeType[], log: DLog): NodeType {
   const sup = R.supplyBase(run); // 보급 카드 3장 합계 기준값 (공개 규칙)
   const spare = Math.max(0, run.credits - reserve(run));
@@ -163,7 +148,6 @@ export function branch(run: RunState, options: NodeType[], log: DLog): NodeType 
       case 'supply': v = sup; break;
       case 'recruit': v = run.units.length >= CFG.maxParty ? 0 : openSlot ? sup * 1.6 : run.units.length < 8 ? sup * 1.05 : sup * 0.5; break;
       case 'shop': v = 4 + 0.45 * Math.min(spare, 40) + ((run.diff || 0) >= CFG.solventFrom && R.solventLeft(run) < 1 ? 4 : 0); break;
-      case 'maint': { const empty = R.turretView(run).reduce((s, x) => s + x.filter((y) => !y).length, 0) || turretCount(run); v = empty ? 10 + Math.min(spare, 20) * 0.4 : 3; break; }
       case 'invest': v = run.credits >= 20 ? 6 + 0.5 * Math.min(spare, 30) : 0; break;
       case 'pilgrim': v = sup * 0.9; break;
       case 'news': v = Math.min(20, run.fame); break;
@@ -185,6 +169,7 @@ export function stateW(run: RunState, plan: Plan, rate: number, hpK: number): nu
     if (p.t === 'recruit') { extra += R.supplyBase(r) * 0.8; r.pending.shift(); }
     else if (p.t === 'global') { extra += 12; r.pending.shift(); }
     else if (p.t === 'itemPick') { R.gainItem(r, p.options[0]); r.pending.shift(); }
+    else if (p.t === 'turretPick') turretPickBot(r);
     else if (p.t === 'rankup') { if (!p.allocDone) R.allocRank(r, p, ['pow', 'vit']); R.ensureRankupOptions(r, p); if (p.options?.[0]) R.chooseAug(r, p.uid, p.options[0]); else r.pending.shift(); if (r.pending[0] === p) r.pending.shift(); }
     else r.pending.shift();
   }

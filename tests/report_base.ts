@@ -9,7 +9,7 @@ import * as R from '../src/engine/run';
 import { fieldSyn, starterPool } from '../src/engine/starters';
 import { Rng } from '../src/rng';
 import type { Major, RunState } from '../src/types';
-import { augChoice, forkChoice, manageItems, pilgrimBot, shopSynth } from './botlib';
+import { augChoice, forkChoice, manageItems, pilgrimBot, shopSynth, turretPickBot } from './botlib';
 
 declare const process: { argv: string[]; stdout: { write(s: string): void } };
 const N = +process.argv[2] || 200;
@@ -36,7 +36,7 @@ function resolvePending(run: RunState, bot: Rng) {
       if (!p.allocDone) R.allocRank(run, p, pref);
       R.ensureRankupOptions(run, p);
       { const a = augChoice(p, (o) => bot.pick(o)); if (a) R.chooseAug(run, p.uid, a); }
-    } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
+    } else if (p.t === 'turretPick') { turretPickBot(run); continue; } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
     else if (p.t === 'recruit') {
       const have = new Map<string, number>();
       for (const u of run.units) { const d = UNIT_BY_ID[u.defId]; for (const x of [...d.factions, ...d.traits]) have.set(x, (have.get(x) || 0) + 1); }

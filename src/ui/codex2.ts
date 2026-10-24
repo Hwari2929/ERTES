@@ -12,14 +12,14 @@ import { BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBAL_ODDS, GLOBAL_TIER_NAME, GL
 import { DESPAIR_BY_ID, DESPAIRS, despairRule } from '../data/despair';
 import { OATHS, oathHeatOf, oathMax } from '../data/oaths';
 import { diffName } from '../data/difficulty';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, breadSellText, combine, CONSUMABLES, emblemId, injectorWeights, INJECTORS, isLegendConsumable, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR, TURRET_GEAR_IDS, TURRET_PRICE, UNIQUE_IDS, isJunk, JUNK_IDS, CATWHEEL_ZI, isCatwheel } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, breadSellText, combine, CONSUMABLES, emblemId, injectorWeights, INJECTORS, isLegendConsumable, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR_IDS, UNIQUE_IDS, isJunk, JUNK_IDS, CATWHEEL_ZI, isCatwheel } from '../data/items';
 import { deviceRows, isPlaceable } from '../data/devices';
 import { exMerchantOf, PETRA_AD } from '../data/merchants';
 import { PSI_BRIEF } from '../data/brief';
 import { cantripView, passiveView, SCHOOL_LINE, transformPreview } from '../data/psiinfo';
 import { RELIC_BY_ID, RELICS } from '../data/relics';
 import { augMark, GROUPS, type GroupId, isLegendAug, isTransformAug, PSI_STATUS, SCHOOL_BY_ID, SCHOOLS, type SchoolId, UNIT_GROUP } from '../data/schools';
-import { KAL_GUARD_TEXT, KAL_GUARDS, SYN_BY_ID, SYNERGIES, VOYAGE_SPECIAL } from '../data/synergies';
+import { ENG_TUR, KAL_GUARD_TEXT, KAL_GUARDS, SYN_BY_ID, SYNERGIES, VOYAGE_SPECIAL } from '../data/synergies';
 import { KNIGHT_PAL } from '../engine/build';
 import { CAUSAL, causalNeed, isKingGear, KING_GEAR, KING_MS_TEXT, kingStageText } from '../data/chungra';
 import { BOSS_CC_IMMUNE, categoryImmune, categoryMult, REASON_HI, REASON_LO } from '../engine/combat';
@@ -188,7 +188,7 @@ export function unitsList(H: CxH, o: { group: UnitGroupBy; sel: string | null; k
 
 // ═══════════════════════ 장비
 export type IGrp = 'C' | 'G' | 'A' | 'L' | 'M' | 'X' | 'T' | 'K' | 'R';
-export const IGRP_NAME: Record<IGrp, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '문장', X: '시너지 · 기물 전용', T: '포탑 전용', K: '소모품', R: '성유물' };
+export const IGRP_NAME: Record<IGrp, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '문장', X: '시너지 · 기물 전용', T: '포탑 장비', K: '소모품', R: '성유물' };
 const RELIC_KEY = 'R:';
 const legendOf = (aId: string) => 'L_' + aId.slice(2);
 /** 장비 표 전체: 데이터의 목록 상수를 순회 (재료 · 고급 · 희귀 · 전설 · 문장 · 전용 · 소모품 · 성유물) */
@@ -222,7 +222,7 @@ function synGear(sid: SynergyId): string[] {
 function itemName(id: string) { return id.startsWith(RELIC_KEY) ? RELIC_BY_ID[id.slice(2)]?.name || id : itemInfo(id).name; }
 function itemDescText(id: string) { return id.startsWith(RELIC_KEY) ? RELIC_BY_ID[id.slice(2)]?.desc(1) || '' : itemInfo(id).desc; }
 function itemIc(H: CxH, id: string) { return id.startsWith(RELIC_KEY) ? H.relicTok(id.slice(2)) : H.itemIcon(id); }
-const tierLabel = (g: IGrp, id: string) => (g === 'T' ? `포탑 전용 · ${TURRET_GEAR[id]?.grade === 'adv' ? '고급형' : '보급형'}` : g === 'X' ? (isHelItem(id) ? (id[0] === 'L' ? '동맹 전용 · 전설' : '동맹 전용 · 희귀') : isOccultMod(id) ? `신비 부품 ${OCCULT_MODS[id].tier}단계` : isJunk(id) ? '유닉스제 · 절망 증강' : id === CATWHEEL_ZI ? '유닉스제 · 전설' : '고유') : g === 'K' ? consLabel(id) : IGRP_NAME[g]);
+const tierLabel = (g: IGrp, id: string) => (g === 'T' ? '포탑 장비 · 모든 포탑 공통' : g === 'X' ? (isHelItem(id) ? (id[0] === 'L' ? '동맹 전용 · 전설' : '동맹 전용 · 희귀') : isOccultMod(id) ? `신비 부품 ${OCCULT_MODS[id].tier}단계` : isJunk(id) ? '유닉스제 · 절망 증강' : id === CATWHEEL_ZI ? '유닉스제 · 전설' : '고유') : g === 'K' ? consLabel(id) : IGRP_NAME[g]);
 /** 소모품 분류: 합성 · 셰프 · 전설 · 전투 보상 · 상점 */
 const consLabel = (id: string) => { const c = CONSUMABLES[id]; return !c?.drop ? '소모품 · 합성' : c.chef ? `소모품 · ${SYN_BY_ID.CHEF.name}` : isLegendConsumable(id) ? '전설 소모품' : '소모품 · 전투 보상 · 상점'; };
 /** 공명 주입기의 페이즈별 비중: '1~2페이즈 100% · 3~4페이즈 66.7%' (CFG.inject, 의뢰 페이즈 + 무한 모드 2페이즈까지 보고 마지막 구간은 '이후') */
@@ -264,10 +264,10 @@ function sources(id: string): string[] {
     return out;
   }
   if (isTurretGear(id)) {
-    const g = TURRET_GEAR[id], s = SYN_BY_ID.ENG;
-    out.push(`${s.name} 출전 중 분기점의 [정비] · ${TURRET_PRICE[g.grade]} 크레딧${g.grade === 'basic' ? ' (보급형 1개는 무료)' : ''}`);
-    out.push('감시 포탑의 장비 칸에만 장착 (일반 기물 장착 불가 · 일반 상점 · 전리품 · 재구성에 나오지 않음)');
-    out.push(`${s.name} 시너지가 꺼지거나 포탑 · 장비 칸이 줄면 숨겨 둠 (보관함 칸을 차지하지 않음 · 다시 늘면 그대로)`);
+    const s = SYN_BY_ID.ENG;
+    out.push(`${s.name} ${s.tiers.slice(0, ENG_TUR.picks).join(' · ')}명에 처음 닿을 때 포탑 장비 ${ENG_TUR.offer}개 중 1개 선택 (최대 ${ENG_TUR.picks}개)`);
+    out.push(`고른 장비는 모든 포탑에 공통 적용 · 장비마다 모든 포탑 모든 주요 능력치 +${ENG_TUR.modMaj} (일반 기물 장착 불가 · 상점 · 전리품 · 재구성에 나오지 않음)`);
+    out.push(`${s.name} 단계가 내려가도 고른 장비는 남음 (포탑이 있을 때만 작동)`);
     return out;
   }
   if (isOccultMod(id)) {
@@ -482,7 +482,7 @@ function synDetail(H: CxH, sid: SynergyId): string {
   b.push(`<h3>소속 기물 <span class="cx-hn">${mem.length}명</span></h3>${memberCards(H, mem)}`);
   if (EMBLEM_SYNS.includes(sid)) a.push(`<h3>문장</h3><ul class="cx2-rows"><li>${itemRow(H, emblemId(sid))}</li></ul>`);
   const gear = synGear(sid);
-  if (gear.length) a.push(`<h3>${sid === 'ENG' ? '포탑 전용 장비' : '전용 장비 · 상품'} <span class="cx-hn">${gear.length}종</span></h3><ul class="cx2-rows">${gear.map((id) => `<li>${itemRow(H, id, isHelItem(id) ? (id[0] === 'L' ? '전설' : '희귀') : isOccultMod(id) ? `${OCCULT_MODS[id].tier}단계` : CONSUMABLES[id] ? (CONSUMABLES[id].chef ? '소모품' : `합성 · ${CONSUMABLES[id].price}`) : isTurretGear(id) ? `${TURRET_GEAR[id].grade === 'adv' ? '고급형' : '보급형'} · ${TURRET_PRICE[TURRET_GEAR[id].grade]}` : '')}</li>`).join('')}</ul>`);
+  if (gear.length) a.push(`<h3>${sid === 'ENG' ? '포탑 장비' : '전용 장비 · 상품'} <span class="cx-hn">${gear.length}종</span></h3><ul class="cx2-rows">${gear.map((id) => `<li>${itemRow(H, id, isHelItem(id) ? (id[0] === 'L' ? '전설' : '희귀') : isOccultMod(id) ? `${OCCULT_MODS[id].tier}단계` : CONSUMABLES[id] ? (CONSUMABLES[id].chef ? '소모품' : `합성 · ${CONSUMABLES[id].price}`) : isTurretGear(id) ? '모든 포탑' : '')}</li>`).join('')}</ul>`);
   if (sid === 'KAL') {
     const k = KAL_GUARD_TEXT;
     const counts = s.tiers.map((need, i) => (KAL_GUARDS[i] ? `(${need}) ${KAL_GUARDS[i]}기` : '')).filter(Boolean).join(' · ');

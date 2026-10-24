@@ -76,7 +76,6 @@ export class Chulsu {
         if (this.has('gear')) this.gear();
         else equipGearFix(run, this.ins);
       }
-      if (this.has('econ')) E.equipTurrets(run);
     }, 'items');
   }
   /** 장비 계획만 (회귀 테스트용) */
@@ -119,12 +118,11 @@ export class Chulsu {
     const hp = m > 0 ? A0.reduce((s, u) => s + (u.alive ? Math.max(0, u.hp) : 0), 0) / m : 0;
     this.hist.push({ t: type, w: b.winner === 0 ? 1 : 0, hp });
   }
-  /** 복제 런에서 쓰는 '살 뒤 · 고른 뒤의 정리' (평가 모형): 소모품 · 장비 계획 · 포탑 */
+  /** 복제 런에서 쓰는 '살 뒤 · 고른 뒤의 정리' (평가 모형): 소모품 · 장비 계획 */
   plan = (r: RunState) => {
     const ins = newIns(), log = new DLog(r, false);
     useConsumablesFix(r, undefined, ins, { noStrip: true, noSeize: true, xpPick: () => xpTarget(r) });
     planGear({ run: r, ins, log });
-    E.equipTurrets(r);
   };
   spend() {
     const m = this.o.econ;
@@ -136,7 +134,6 @@ export class Chulsu {
     this.time(() => {
       const c0 = this.run.credits;
       E.shop(this.run, this.plan, this.log, track ? (id) => track(id, 'bought') : undefined, m ? { floor: Y.lowFloor(this.run, m).floor, vsXp: Y.YH.shopVsXp } : undefined);
-      E.equipTurrets(this.run);
       if (m && this.run.credits < c0 && this.run.credits < Y.floorOf(this.run, m)) this.count('yhBreach'); // 영희: 상점 지출로 바닥 아래 (있으면 안 된다)
     }, 'shop');
   }

@@ -10,7 +10,7 @@ import { isJunk } from '../src/data/items';
 import { UNITS, UNIT_BY_ID } from '../src/data/units';
 import { buildBattle } from '../src/engine/build';
 import * as R from '../src/engine/run';
-import { augChoice, forkChoice, manageItems, shopSynth, pilgrimBot } from './botlib';
+import { augChoice, forkChoice, manageItems, shopSynth, pilgrimBot, turretPickBot } from './botlib';
 import { Rng } from '../src/rng';
 import type { Major, RunState } from '../src/types';
 
@@ -41,7 +41,7 @@ function resolvePending(run: RunState, bot: Rng) {
       if (!p.allocDone) R.applyRankPicks(run, p.uid, pref, p.points);
       R.ensureRankupOptions(run, p);
       { const a = augChoice(p, (o) => bot.pick(o)); if (a) R.chooseAug(run, p.uid, a); }
-    } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
+    } else if (p.t === 'turretPick') { turretPickBot(run); continue; } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
     else if (p.t === 'recruit') {
       // sim.ts 와 같음: 파티와 시너지가 가장 많이 겹치는 기물. 반려 돌은 고르지 않는다
       const have = new Map<string, number>();

@@ -315,39 +315,47 @@ const HEL_ITEMS: Record<string, { name: string; icon: string; major: Major; desc
 export const HEL_ITEM_IDS = ['A_helrelic', 'A_helanchor', 'A_hellight']; // 동맹 1 · 2 · 3단계 선물 순서 (올림푸스 성물 → 성운 정박기 → 달빛 등대)
 export const isHelItem = (id: string | null) => !!id && !!HEL_ITEMS[id.slice(2)];
 
-// ── 엔지니어 포탑 전용 장비 (T_): 포탑 장비 칸에만 장착. 일반 기물 · 일반 장비 풀 · 재구성과 섞이지 않는다
-export interface TurretGear { name: string; icon: string; grade: 'basic' | 'adv'; desc: string; effect: Effect }
-/** 포탑 장비 가격 (정비 노드): 보급형 = 재료~고급 사이, 고급형 = 희귀와 같은 급 */
-export const TURRET_PRICE = { basic: 9, adv: 18 } as const;
+// ── 엔지니어 포탑 장비 (T_): 엔지니어 2 · 4 · 6명 달성 때 3개 중 1개를 골라 모든 포탑에 공통 적용 (run.turretMods, engine/run.ts syncTurretPick).
+//    일반 기물 · 일반 장비 풀 · 재구성과 섞이지 않는다. 장비마다 모든 포탑 모든 주요 능력치 +ENG_TUR.modMaj (engine/build.ts ENG_HOOK.spawn)
+export interface TurretGear { name: string; icon: string; desc: string; effect: Effect }
 const tPow = (b: import('../engine/combat').Battle, u: import('../engine/combat').CUnit) => b.S(u, 'shoot');
 /** 테슬라 코일 바운스 계수 (사격 위력 비례, 50 → 40%: 포탑 장비 독주 완화) */
 const TESLA_K = 0.4;
+/** 포탑 장비 수치 (설명 문구와 효과가 같은 값을 읽는다) */
+const TG = {
+  cal: 0.8, plate: { hp: 1.0, armor: 1.0 },
+  cryo: { dur: 3, slow: 0.4, dmg: 0.3 },
+  ammo: { as: 0.6, every: 2 },
+  barrier: { start: 0.6, per: 0.3, every: 6 },
+  selfd: { r: 2, dmg: 1.5, stun: 2 },
+};
+const tp = (x: number) => `${Math.round(x * 100)}%`;
 export const TURRET_GEAR: Record<string, TurretGear> = {
-  T_cal: { name: '대구경 포신', icon: '◉', grade: 'basic', desc: '포탑 피해 +35%.', effect: { mods: [inc('all', 0.35)] } },
-  T_plate: { name: '증가 장갑', icon: '⛊', grade: 'basic', desc: '포탑 최대 체력 +50%, 방어도 +50%.', effect: { pct: { maxHp: 0.5, armor: 0.5 } } },
-  T_cryo: { name: '냉각탄', icon: '❄', grade: 'basic', desc: '기본 공격이 대상을 2초간 둔화 (공격 · 이동 속도 -25%p).',
-    effect: { hooks: { onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) slow(b, u, t, 0.25, 2); } } } },
-  T_ammo: { name: '탄약 증설', icon: '⁂', grade: 'basic', desc: '공격 속도 +30%p. 기본 공격 3번째마다 같은 대상에게 한 발 더 쏩니다 (사격 위력 100%).',
-    effect: { stats: { atkSpd: 0.3 }, hooks: { onBasic(b, u, t) {
+  T_cal: { name: '대구경 포신', icon: '◉', desc: `포탑 피해 +${tp(TG.cal)}.`, effect: { mods: [inc('all', TG.cal)] } },
+  T_plate: { name: '증가 장갑', icon: '⛊', desc: `포탑 최대 체력 +${tp(TG.plate.hp)}, 방어도 +${tp(TG.plate.armor)}.`, effect: { pct: { maxHp: TG.plate.hp, armor: TG.plate.armor } } },
+  T_cryo: { name: '냉각탄', icon: '❄', desc: `포탑 피해 +${tp(TG.cryo.dmg)}. 기본 공격이 대상을 ${TG.cryo.dur}초간 둔화 (공격 · 이동 속도 -${tp(TG.cryo.slow)}p).`,
+    effect: { mods: [inc('all', TG.cryo.dmg)], hooks: { onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) slow(b, u, t, TG.cryo.slow, TG.cryo.dur); } } } },
+  T_ammo: { name: '탄약 증설', icon: '⁂', desc: `공격 속도 +${tp(TG.ammo.as)}p. 기본 공격 ${TG.ammo.every}번째마다 같은 대상에게 한 발 더 쏩니다 (사격 위력 100%).`,
+    effect: { stats: { atkSpd: TG.ammo.as }, hooks: { onBasic(b, u, t) {
       u.mem.tAmmo = (u.mem.tAmmo || 0) + 1;
-      if (u.mem.tAmmo % 3 === 0 && t.alive) { b.emit({ k: 'atk', from: u.id, to: t.id, elem: u.atk.elem, ranged: true }); b.dealDamage(u, t, tPow(b, u), { elem: u.atk.elem, tag: 'proc', kind: 'shoot', canMiss: true }); }
+      if (u.mem.tAmmo % TG.ammo.every === 0 && t.alive) { b.emit({ k: 'atk', from: u.id, to: t.id, elem: u.atk.elem, ranged: true }); b.dealDamage(u, t, tPow(b, u), { elem: u.atk.elem, tag: 'proc', kind: 'shoot', canMiss: true }); }
     } } } },
-  T_barrier: { name: '방벽 모듈', icon: '⬡', grade: 'basic', desc: '전투 시작 시 포탑 최대 체력 40% 보호막, 이후 10초마다 최대 체력 20% 보호막.',
+  T_barrier: { name: '방벽 모듈', icon: '⬡', desc: `전투 시작 시 포탑 최대 체력 ${tp(TG.barrier.start)} 보호막, 이후 ${TG.barrier.every}초마다 최대 체력 ${tp(TG.barrier.per)} 보호막.`,
     effect: { hooks: {
-      onStart(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.4); },
-      onTick(b, u, dt) { u.mem.tBar = (u.mem.tBar || 0) + dt; if (u.mem.tBar >= 10) { u.mem.tBar = 0; b.shield(u, b.S(u, 'maxHp') * 0.2); } },
+      onStart(b, u) { b.shield(u, b.S(u, 'maxHp') * TG.barrier.start); },
+      onTick(b, u, dt) { u.mem.tBar = (u.mem.tBar || 0) + dt; if (u.mem.tBar >= TG.barrier.every) { u.mem.tBar = 0; b.shield(u, b.S(u, 'maxHp') * TG.barrier.per); } },
     } } },
-  T_selfd: { name: '자폭 회로', icon: '✸', grade: 'basic', desc: '포탑이 파괴되면 주변 2칸 적에게 포탑 최대 체력 60% 물리 피해 + 1초 기절.',
+  T_selfd: { name: '자폭 회로', icon: '✸', desc: `포탑이 파괴되면 주변 ${TG.selfd.r}칸 적에게 포탑 최대 체력 ${tp(TG.selfd.dmg)} 물리 피해 + ${TG.selfd.stun}초 기절.`,
     effect: { hooks: { onLethal(b, u) {
       if (u.mem.tBoom) return false;
       u.mem.tBoom = 1;
-      b.fx(u.x, u.y, 2, 'phys');
+      b.fx(u.x, u.y, TG.selfd.r, 'phys');
       b.emit({ k: 'status', id: u.id, name: '자폭!' });
-      for (const e of b.around(u, 2, b.enemiesOf(u))) { b.dealDamage(u, e, b.S(u, 'maxHp') * 0.6, { elem: 'phys', tag: 'proc' }); if (e.alive) b.stun(u, e, 1); }
+      for (const e of b.around(u, TG.selfd.r, b.enemiesOf(u))) { b.dealDamage(u, e, b.S(u, 'maxHp') * TG.selfd.dmg, { elem: 'phys', tag: 'proc' }); if (e.alive) b.stun(u, e, TG.selfd.stun); }
       return false;
     } } } },
-  T_rapid: { name: '과급 급탄기', icon: '≫', grade: 'adv', desc: '포탑 공격 속도 +100%p.', effect: { stats: { atkSpd: 1.0 } } },
-  T_tesla: { name: '테슬라 코일', icon: 'ϟ', grade: 'adv', desc: `기본 공격이 전기 피해로 바뀌고, 맞히면 사격 위력 ${Math.round(TESLA_K * 100)}% 계수의 전기 속성 피해가 2칸 내의 적에게 최대 2회 바운스된다.`,
+  T_rapid: { name: '과급 급탄기', icon: '≫', desc: '포탑 공격 속도 +100%p.', effect: { stats: { atkSpd: 1.0 } } },
+  T_tesla: { name: '테슬라 코일', icon: 'ϟ', desc: `기본 공격이 전기 피해로 바뀌고, 맞히면 사격 위력 ${Math.round(TESLA_K * 100)}% 계수의 전기 속성 피해가 2칸 내의 적에게 최대 2회 바운스된다.`,
     effect: {
       setup: (u) => { u.atk = { ...u.atk, elem: 'elec' }; },
       hooks: { onBasic(b, u, t, r) {
@@ -362,7 +370,7 @@ export const TURRET_GEAR: Record<string, TurretGear> = {
         }
       } },
     } },
-  T_flame: { name: '화염 방사기', icon: '♨', grade: 'adv', desc: '사거리가 2로 줄어드는 대신, 기본 공격이 대상 주변 1칸 다른 적도 관통해 같은 피해를 주고 맞은 적마다 [연소] 1중첩 (중첩당 초당 사격 위력 12% 물리 피해, 최대 5중첩, 5초).',
+  T_flame: { name: '화염 방사기', icon: '♨', desc: '사거리가 2로 줄어드는 대신, 기본 공격이 대상 주변 1칸 다른 적도 관통해 같은 피해를 주고 맞은 적마다 [연소] 1중첩 (중첩당 초당 사격 위력 12% 물리 피해, 최대 5중첩, 5초).',
     effect: {
       setup: (u) => { u.mem.tFlame = 1; },
       hooks: { onBasic(b, u, t, r) {
@@ -375,21 +383,15 @@ export const TURRET_GEAR: Record<string, TurretGear> = {
         }
       } },
     } },
-  T_snipe: { name: '저격 포신', icon: '⌖', grade: 'adv', desc: '포탑 사거리 +2, 치명타 확률 +30%p, 치명타 피해 +60%p.', effect: { stats: { range: 2, crit: 0.3, critDmg: 0.6 } } },
-  T_mark: { name: '표적 지시기', icon: '◎', grade: 'adv', desc: '포탑이 맞힌 적은 4초간 받는 모든 피해 +12% (중첩 안 됨).',
+  T_snipe: { name: '저격 포신', icon: '⌖', desc: '포탑 사거리 +2, 치명타 확률 +30%p, 치명타 피해 +60%p.', effect: { stats: { range: 2, crit: 0.3, critDmg: 0.6 } } },
+  T_mark: { name: '표적 지시기', icon: '◎', desc: '포탑이 맞힌 적은 4초간 받는 모든 피해 +12% (중첩 안 됨).',
     effect: { hooks: { onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) b.applyStatus(u, t, { type: 'buff', key: 'tmark', dur: 4, taken: [vuln('all', 0.12)], label: '표적 지정' }); } } } },
 };
 export const TURRET_GEAR_IDS = Object.keys(TURRET_GEAR);
-export const TURRET_BASIC = TURRET_GEAR_IDS.filter((k) => TURRET_GEAR[k].grade === 'basic');
-export const TURRET_ADV = TURRET_GEAR_IDS.filter((k) => TURRET_GEAR[k].grade === 'adv');
 export const isTurretGear = (id: string | null | undefined) => !!id && id.startsWith('T_') && !!TURRET_GEAR[id];
-/** 포탑 1기의 장비 칸 수: 엔지니어 단계별 (data/synergies.ts ENG_TUR.slots: 2명 1칸 · 4명 2칸 · 6명 이상 3칸). 0단계 = 0칸 */
-export const turretSlots = (engTier: number) => (engTier > 0 ? ENG_TUR.slots[Math.min(ENG_TUR.slots.length, engTier) - 1] : 0);
-/** 포탑 전용 장비 1개가 더하는 포탑 모든 주요 능력치 (보급형 · 고급형, data/synergies.ts ENG_TUR.gearMaj). 포탑 능력치는 engine/build.ts ENG_HOOK.spawn 이 더한다 */
-export const turretGearMaj = (id: string) => (isTurretGear(id) ? ENG_TUR.gearMaj[TURRET_GEAR[id].grade] : 0);
 
 export function itemInfo(id: string): ItemInfo {
-  if (isTurretGear(id)) { const g = TURRET_GEAR[id], k = turretGearMaj(id); return { id, tier: 'T', name: g.name, icon: g.icon, majors: allMajors(k), desc: `[포탑 전용 · ${g.grade === 'adv' ? '고급형' : '보급형'}] 모든 주요 능력치 +${k}. ${g.desc}` }; }
+  if (isTurretGear(id)) { const g = TURRET_GEAR[id], k = ENG_TUR.modMaj; return { id, tier: 'T', name: g.name, icon: g.icon, majors: allMajors(k), desc: `[포탑 장비] 모든 포탑 모든 주요 능력치 +${k}. ${g.desc}` }; }
   if (isHelItem(id)) {
     const h = HEL_ITEMS[id.slice(2)], k = id[0] === 'L' ? 2 : 1;
     return { id, tier: id[0] === 'L' ? 'L' : 'A', name: (k === 2 ? '[전설] ' : '') + h.name, icon: h.icon, majors: { [h.major]: 6 * k }, desc: `[동맹 전용] ${MAJOR_NAME[h.major]} +${6 * k}. ${h.desc(k)}` };

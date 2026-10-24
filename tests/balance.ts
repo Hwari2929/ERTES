@@ -8,7 +8,7 @@ import { SYNERGIES, tierOf } from '../src/data/synergies';
 import { boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyCell, layout, memberships, synergyCounts } from '../src/engine/build';
 import { Battle, type CUnit, type DmgOpts, type DmgResult } from '../src/engine/combat';
 import * as R from '../src/engine/run';
-import { augChoice, forkChoice, manageItems, manageItemsFix, newIns, shopSynth, type BotIns, type Track, pilgrimBot } from './botlib';
+import { augChoice, forkChoice, manageItems, manageItemsFix, newIns, shopSynth, type BotIns, type Track, pilgrimBot, turretPickBot } from './botlib';
 import { ALL_AREAS, Chulsu, DEFAULT_AREAS, DLog, pickStarters, type Area } from './chulsu';
 import { effTier, inactiveRange, setEvalMode } from './chulsu/syn';
 import { Rng } from '../src/rng';
@@ -138,7 +138,7 @@ const randPlace = (rng: Rng, n: number) => (r: RunState) => {
 /** 앞뒤 뒤집기: 근접 앞줄 · 원거리 뒷줄 배치를 거꾸로 */
 const flipPlace = (r: RunState) => { for (const u of deployed(r)) u.pos = { c: u.pos!.c, r: 2 - u.pos!.r }; };
 /** 장비 없음: 출전 기물의 일반 장비(고유 장비 제외) · 포탑 장비를 뺀다 (개조부품 · 문장은 그대로) */
-const noGear = (r: RunState) => { for (const u of deployed(r)) u.items = u.items.map((x) => (x && isLocked(x) ? x : null)); r.turretGear = []; };
+const noGear = (r: RunState) => { for (const u of deployed(r)) u.items = u.items.map((x) => (x && isLocked(x) ? x : null)); r.turretMods = []; };
 /** 주력 시너지: 활성 단계가 가장 높은 시너지 (같으면 인원이 많은 쪽) */
 function mainSyn(counts: Record<string, number>): { main: string; act: string } {
   const act = SYNERGIES.map((s) => ({ id: s.id, t: tierOf(s.id, counts[s.id] || 0), c: counts[s.id] || 0 })).filter((x) => x.t > 0).sort((a, b) => b.t - a.t || b.c - a.c || a.id.localeCompare(b.id));
@@ -284,7 +284,7 @@ function playRun(seed: number) {
         R.ensureRankupOptions(run, p);
         if (CH?.augOn('unit')) { const a = CH.aug(p); if (a) R.chooseAug(run, p.uid, a); } // 철수 aug: 실측 증강 가치 + 새로고침
         else { const a = augChoice(p, (o) => bot.pick(o)); if (a) R.chooseAug(run, p.uid, a); }
-      } else if (p.t === 'itemPick') R.gainItem(run, (CH?.augOn('loot') && CH.itemPick(p.options)) || bot.pick(p.options));
+      } else if (p.t === 'turretPick') { turretPickBot(run); continue; } else if (p.t === 'itemPick') R.gainItem(run, (CH?.augOn('loot') && CH.itemPick(p.options)) || bot.pick(p.options));
       else if (p.t === 'recruit') {
         // 영입: 보유 기물과 시너지가 가장 많이 겹치는 기물 (+약간의 무작위)
         const have = new Map<string, number>();

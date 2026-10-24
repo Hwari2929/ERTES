@@ -10,8 +10,8 @@ import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBAL_ODDS, GLOBALS, PRIVILEGES, synName } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_ADV, TURRET_BASIC, TURRET_PRICE, turretSlots } from '../data/items';
-import { UNI_XP, OCCULT_SYNTH, PETRA_PAY, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_GEAR, TURRET_GEAR_IDS } from '../data/items';
+import { ENG_TUR, UNI_XP, OCCULT_SYNTH, PETRA_PAY, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { OATH_AUGS, VOW_ENH_KEEP } from '../data/oathaugs';
 import { MAJOR_AUGS, recMajors } from '../data/rework';
@@ -456,6 +456,7 @@ export function enterNode(run: RunState, type: NodeType) {
     run.node = { type, enc: run.lab && LAB_HOOK.enc ? LAB_HOOK.enc(run) : genEncounter(run, type) };
     fitDeployNotice(run);
     syncQuests(run);
+    syncTurretPick(run); // 엔지니어 2 · 4 · 6명: 전투 전에 포탑 장비 고르기
   } else if (type === 'shop') {
     run.pending.push({ t: 'branch', options: branchOptions(run) });
   } else if (type === 'supply') {
@@ -974,7 +975,6 @@ export function branchOptions(run: RunState): NodeType[] {
   const o: NodeType[] = star && !preBoss ? ['shop', 'supply', 'news', 'recruit'] : ['shop', 'supply', 'recruit'];
   if (tierNow(run, 'HOI') && !used.includes('invest')) o.push('invest');
   if (hasDivine(run) && !used.includes('pilgrim')) o.push('pilgrim');
-  if (tierNow(run, 'ENG')) o.push('maint'); // 엔지니어 출전 중: 정비 (포탑 전용 장비)
   return o;
 }
 export function pickBranch(run: RunState, type: NodeType) {
@@ -982,7 +982,6 @@ export function pickBranch(run: RunState, type: NodeType) {
   if (p?.t !== 'branch' || !p.options.includes(type)) return;
   run.pending.shift();
   if (type === 'shop') { openShop(run); return; }
-  if (type === 'maint') { run.picked[run.step] = 'maint'; run.node = { type: 'shop', shop: genMaint(run), maint: true }; log(run, '분기점: 정비'); return; }
   run.fame -= tierNow(run, 'STAR'); // 분기점 진입 때 이미 받음
   enterNode(run, type);
 }
@@ -1786,68 +1785,31 @@ export function gorgonTrade(run: RunState, invIdx: number): { got?: string[]; er
   return { got };
 }
 
-/** 정비 (엔지니어): 포탑 전용 장비. 보급형 1개 무료 + 보급형 2 · 고급형 2 (가격은 상점 등급 기준) */
-function genMaint(run: RunState) {
-  return rng(run, (r) => {
-    const mul = (fieldOf(run.field).shopMul || 1) * despairPrice(run);
-    const basic = r.sample(TURRET_BASIC, 3), adv = r.sample(TURRET_ADV, 2);
-    return [
-      { item: basic[0], price: 0, sold: false },
-      ...basic.slice(1).map((id) => ({ item: id, price: Math.round(TURRET_PRICE.basic * mul), sold: false })),
-      ...adv.map((id) => ({ item: id, price: Math.round(TURRET_PRICE.adv * mul), sold: false })),
-    ];
-  });
+/** 엔지니어 포탑 장비 고르기: 지금 엔지니어 단계(출전 기준)가 고른 장비 수보다 높고 아직 ENG_TUR.picks 개 미만이면
+ *  turretPick 하나를 대기열에 넣는다 (이미 대기 중이면 그대로). 한 번에 하나씩 — 고른 뒤 다시 불러 모자란 만큼 이어서 뜬다.
+ *  단계가 내려가도 고른 장비는 지우지 않는다. 튜토리얼은 없음 */
+export function syncTurretPick(run: RunState, front = false): boolean {
+  if (run.tutorial || run.over) return false;
+  const mods = run.turretMods || [];
+  if (mods.length >= ENG_TUR.picks || engTier(run) <= mods.length) return false;
+  if (run.pending.some((p) => p.t === 'turretPick')) return false;
+  const pool = TURRET_GEAR_IDS.filter((id) => !mods.includes(id));
+  if (!pool.length) return false;
+  const p: Pending = { t: 'turretPick', options: rng(run, (r) => r.sample(pool, Math.min(ENG_TUR.offer, pool.length))), tier: mods.length + 1 };
+  if (front) run.pending.unshift(p); else run.pending.push(p);
+  return true;
 }
-
-/** 포탑 장비 칸을 엔지니어 단계에 맞춘다: 보이는 포탑(turretCount)마다 보이는 칸(turretSlots)만큼 자리를 만든다.
- *  포탑 수 · 칸 수가 줄거나 엔지니어 시너지가 꺼져도 run.turretGear 를 줄이지 않는다 — 밖으로 밀린 장비는 숨겨 둘 뿐 보관함으로 보내지 않으며
- *  (보관함 칸을 차지하지 않음), 단계가 다시 오르면 같은 포탑 · 같은 칸에 그대로 보인다. 포탑 배치(run.turretPos)도 그대로 둔다 */
-export function syncTurrets(run: RunState) {
-  const n = turretCount(run), slots = turretSlots(engTier(run));
-  if (!n) return;
-  const g = (run.turretGear ||= []);
-  for (let i = 0; i < n; i++) { g[i] ||= []; while (g[i].length < slots) g[i].push(null); }
-}
-/** 지금 보이는 포탑 장비 칸 (포탑 순서대로, 포탑마다 칸 수만큼). 숨긴 장비는 빠진다 */
-export function turretView(run: RunState): (string | null)[][] {
-  const n = turretCount(run), slots = turretSlots(engTier(run)), g = run.turretGear || [];
-  return [...Array(n).keys()].map((i) => [...Array(slots).keys()].map((k) => g[i]?.[k] ?? null));
-}
-/** 보이는 칸인지 (포탑 ti 의 칸 k) */
-const turretSlotOk = (run: RunState, ti: number, k: number) => ti >= 0 && ti < turretCount(run) && k >= 0 && k < turretSlots(engTier(run));
-/** 보관함의 포탑 장비를 포탑 ti 의 칸에 (slot 생략 = 빈 칸, 없으면 첫 칸과 맞교환). 보이는 칸에만 */
-export function equipTurret(run: RunState, invIdx: number, ti: number, slot?: number): string | null {
-  const id = run.inventory[invIdx];
-  if (!id) return '대상 없음';
-  if (!isTurretGear(id)) return '포탑에는 포탑 전용 장비만 장착할 수 있습니다';
-  syncTurrets(run);
-  const g = run.turretGear?.[ti];
-  if (!g || !turretSlotOk(run, ti, 0)) return '포탑이 없습니다';
-  const slots = turretSlots(engTier(run));
-  let k = slot !== undefined && turretSlotOk(run, ti, slot) ? slot : g.slice(0, slots).indexOf(null);
-  if (k < 0) k = 0;
-  run.inventory.splice(invIdx, 1);
-  if (g[k]) run.inventory.push(g[k]!);
-  g[k] = id;
+/** 포탑 장비 확정 (대기 중인 turretPick 의 선택지 중 하나). 오류 문구 또는 null */
+export function pickTurretMod(run: RunState, id: string): string | null {
+  const p = run.pending[0];
+  if (p?.t !== 'turretPick') return '고를 포탑 장비가 없습니다';
+  if (!p.options.includes(id) || !isTurretGear(id)) return '선택지에 없는 장비입니다';
+  const mods = (run.turretMods ||= []);
+  run.pending.shift();
+  if (!mods.includes(id) && mods.length < ENG_TUR.picks) mods.push(id);
+  log(run, `포탑 장비: ${TURRET_GEAR[id].name} (${mods.length}/${ENG_TUR.picks})`);
+  syncTurretPick(run, true); // 아직 모자라면 다음 고르기가 바로 이어서
   return null;
-}
-export function unequipTurret(run: RunState, ti: number, slot: number): string | null {
-  if (!turretSlotOk(run, ti, slot)) return null;
-  const cur = run.turretGear?.[ti]?.[slot];
-  if (!cur) return null;
-  if (run.inventory.length >= CFG.inventoryMax) return '인벤토리 가득 참';
-  run.inventory.push(cur);
-  run.turretGear![ti][slot] = null;
-  return null;
-}
-/** 포탑 장비를 다른 포탑 칸으로 (그 칸 장비와 맞교환). 보이는 칸끼리만 */
-export function moveTurretGear(run: RunState, from: [number, number], to: [number, number]) {
-  if (!turretSlotOk(run, from[0], from[1]) || !turretSlotOk(run, to[0], to[1])) return;
-  syncTurrets(run);
-  const g = run.turretGear || [];
-  const a = g[from[0]], b = g[to[0]];
-  if (!a || !b) return;
-  [a[from[1]], b[to[1]]] = [b[to[1]], a[from[1]]];
 }
 
 export function buyShop(run: RunState, idx: number): string | null {
@@ -2277,8 +2239,23 @@ export function migrate(run: RunState): RunState {
   run.rankLog ??= Object.fromEntries(run.units.map((u) => [u.defId, u.rank]));
   // 포탑 개조부품(E_) 폐지: 포탑 개조부품 칸 · 지급 기록 · 보관함 · 진열 · 회수 보관 · 고르기 대기에 남은 것을 조용히 버린다
   const gone = (x: string | null | undefined) => typeof x === 'string' && x.startsWith('E_');
-  const old = run as RunState & { turretMods?: unknown; engTier?: unknown };
-  delete old.turretMods; delete old.engTier;
+  const old = run as RunState & { turretMods?: unknown; engTier?: unknown; turretGear?: unknown };
+  if (!Array.isArray(old.turretMods) || old.turretMods.some((x) => typeof x !== 'string' || !isTurretGear(x))) delete old.turretMods; // 옛 포탑 개조부품 기록 (E_ 시절의 다른 모양)
+  delete old.engTier;
+  // 포탑 장비 칸 · 정비 폐지: 포탑에 달았던 장비(먼저) · 보관함의 포탑 장비에서 서로 다른 것을 엔지니어 단계만큼 (최대 ENG_TUR.picks) 공통 장비로 옮긴다.
+  // 보관함 · 진열의 포탑 장비는 지우고, 열려 있던 정비 상점은 떠난 것으로 닫는다 (picked 의 '정비'는 분기점으로)
+  {
+    const tg = Array.isArray(old.turretGear) ? (old.turretGear as unknown[]).flat() : [];
+    const had = [...tg, ...run.inventory].filter((x): x is string => typeof x === 'string' && isTurretGear(x));
+    const mods = run.turretMods || [];
+    if (had.length) { const cap = Math.min(ENG_TUR.picks, Math.max(mods.length, engTier(run))); for (const id of had) if (mods.length < cap && !mods.includes(id)) mods.push(id); }
+    if (mods.length) run.turretMods = mods;
+    delete old.turretGear;
+    run.inventory = run.inventory.filter((x) => !isTurretGear(x));
+    run.picked = run.picked.map((x) => ((x as string) === 'maint' ? 'shop' : x));
+    const nd = run.node as (RunState['node'] & { maint?: boolean }) | null;
+    if (nd?.maint) leaveShop(run);
+  }
   run.inventory = run.inventory.filter((x) => !gone(x));
   for (const u of run.units) { u.items = u.items.map((x) => (gone(x) ? null : x)); if (gone(u.mod)) u.mod = null; }
   if (run.node?.shop) run.node.shop = run.node.shop.filter((x) => !gone(x.item));

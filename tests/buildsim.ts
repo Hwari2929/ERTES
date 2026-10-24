@@ -13,7 +13,7 @@ import { SYNERGIES, tierOf } from '../src/data/synergies';
 import { deployed, synergyCounts, buildBattle } from '../src/engine/build';
 import { Battle, type CUnit, type DmgOpts, type DmgResult } from '../src/engine/combat';
 import * as R from '../src/engine/run';
-import { manageItems, shopSynth, pilgrimBot, forkChoice } from './botlib';
+import { manageItems, shopSynth, pilgrimBot, forkChoice, turretPickBot } from './botlib';
 import { Rng } from '../src/rng';
 import type { AugPick, Major, RunState, NodeType } from '../src/types';
 
@@ -126,7 +126,7 @@ function calibRun(seed: number, out: Record<string, Record<string, number>>) {
         R.ensureRankupOptions(run, p);
         const o = p.options || [];
         if (o.length) R.chooseAug(run, p.uid, p.kind === 'school' ? o[0] : bot.pick(o));
-      } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
+      } else if (p.t === 'turretPick') { turretPickBot(run); continue; } else if (p.t === 'itemPick') R.gainItem(run, bot.pick(p.options));
       else if (p.t === 'recruit') {
         const have = new Map<string, number>();
         for (const u of run.units) { const d = UNIT_BY_ID[u.defId]; for (const x of [...d.factions, ...d.traits]) have.set(x, (have.get(x) || 0) + 1); }
@@ -186,7 +186,7 @@ function calibRun(seed: number, out: Record<string, Record<string, number>>) {
 
 // ═════════ comps: 고정 조합 전투
 /** causal: 청라공국 조합의 무휼 인과율 (페이즈 → 누적 인과율, 없으면 0 = 인과 1단계) */
-interface Comp { id: string; units: string[]; items?: Record<string, string[]>; pos?: Record<string, [number, number]>; turretGear?: (string | null)[][]; mods?: Record<string, string>; causal?: Record<string, number> }
+interface Comp { id: string; units: string[]; items?: Record<string, string[]>; pos?: Record<string, [number, number]>; turretMods?: string[]; mods?: Record<string, string>; causal?: Record<string, number> }
 /** 기본 장비: 근접 탱커 = 수호자 판금 + 요새 장갑, 원거리 사격 = 조준 보조 AI + 고속 연사, 기술 = 사이오닉 증폭기 + 예지 회로, 근접 딜러 = 광전사 + 과출력 */
 function defaultItems(id: string): string[] {
   const d = UNIT_BY_ID[id];
@@ -220,7 +220,7 @@ function buildRun(comp: Comp, field: string, phase: number, rank: number, seed: 
   const helItems = ['A_helanchor', 'A_hellight', 'A_helrelic'].slice(0, hel.length >= 7 ? 3 : hel.length >= 5 ? 2 : hel.length >= 3 ? 1 : 0);
   for (const it of helItems) { const t = hel.find((u) => u.items.includes(null)); if (t) t.items[t.items.indexOf(null)] = it; }
   if (comp.causal) run.causal = comp.causal[String(phase)] ?? 0; // 청라공국: 페이즈별 무휼 인과율 (봇 청라 런 기준)
-  if (comp.turretGear) run.turretGear = comp.turretGear.map((g) => g.slice()); // 포탑 전용 장비 (포탑 순서대로)
+  if (comp.turretMods) run.turretMods = comp.turretMods.slice(); // 포탑 장비 (모든 포탑 공통, 고른 순서대로)
   // 배치: 근접 = 앞줄(r=2), 원거리 = 뒷줄(r=0), 지정 좌표 우선
   const used = new Set<string>();
   const ord = run.units.slice().sort((a, b) => UNIT_BY_ID[a.defId].range - UNIT_BY_ID[b.defId].range);

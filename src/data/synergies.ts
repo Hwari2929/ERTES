@@ -33,9 +33,11 @@ export const rankTitle = (rank: number) => (rank >= 30 ? 6 : rank >= 20 ? 5 : ra
 const T = (tier: number, a: number[]) => a[Math.max(0, tier - 1)];
 /** 기본 확률 판정: base × (1 + 효과 명중 − 효과 저항) (applyStatus 와 같은 식) */
 const baseRoll = (b: Battle, u: CUnit, tgt: CUnit, base: number) => b.rng.chance(Math.min(1, base * (1 + b.S(u, 'effHit') - b.S(tgt, 'effRes'))));
+/** 엔지니어 시너지 인원 단계 */
+const ENG_TIERS = [2, 4, 6, 8];
 /** 엔지니어 (2 · 4 · 6 · 8명) 감시 포탑: 포탑 수 · 상속률 (엔지니어 능력치 평균 × 이 값, 명중 · 치명타 포함) · 포탑 모든 주요 능력치 가산 ·
- *  포탑 1기 장비 칸 · 8명 [오버클럭] 모든 포탑 공격 속도 (%p) · 포탑 전용 장비 1개당 포탑 모든 주요 능력치 (보급형 · 고급형) */
-export const ENG_TUR = { count: [2, 3, 4, 4], inherit: [1.0, 1.5, 2.0, 3.0], maj: [5, 10, 20, 40], slots: [1, 2, 3, 3], over: 1.5, gearMaj: { basic: 5, adv: 10 } };
+ *  8명 [오버클럭] 모든 포탑 공격 속도 (%p) · 포탑 장비: 앞 picks 단계마다 offer 개 중 1개 선택 (최대 picks 개, 모든 포탑 공통) · 장비 1개당 모든 포탑 모든 주요 능력치 */
+export const ENG_TUR = { count: [2, 3, 4, 4], inherit: [1.0, 1.5, 2.0, 3.0], maj: [5, 10, 20, 40], over: 1.5, picks: 3, offer: 3, modMaj: 10 };
 /** 시리우스 성도회 (5명 이상): 전투당 부활 횟수 — 단계와 무관하게 1회 */
 const SIR_REVIVES = [0, 1, 1, 1];
 /** 최고의 친구 (2 · 4 · 6 · 8명): 소환물 스탯 상속률 · 소환물 피해 증가 · 소환물 모든 주요 능력치 */
@@ -562,9 +564,9 @@ export const SYNERGIES: SynDef[] = [
     team: (t) => (CHEF_HP[t - 1] ? { pct: { maxHp: CHEF_HP[t - 1] } } : null),
   },
   {
-    id: 'ENG', name: '엔지니어', kind: 'trait', tiers: [2, 4, 6, 8], color: '#a0b4c8', icon: '⚙',
-    desc: `감시 포탑(기계 · 구조물)을 아군 진영에 설치합니다.\n· 포탑은 움직이지 않고, 출전한 엔지니어 능력치 평균을 단계별 비율(상속)로 물려받은 뒤 단계별 모든 주요 능력치 가산을 더합니다 (사격 위력 = 엔지니어 사격 · 기술 위력 중 높은 쪽 × 상속, 명중 · 치명타 확률 · 치명타 피해 · 효과 저항도 같은 비율 · 치명타 피해는 기본값 ${pct(CFG.baseMinor.critDmg)} 아래로 내려가지 않음).\n· 편성 화면에서 끌어 옮길 수 있고 (판매 · 대기석 불가), 배치와 장비는 다음 전투에도 유지됩니다.\n\n[포탑 장비]\n· 포탑마다 장비 칸: ${ENG_TUR.slots.slice(0, 3).map((k, i) => `${i ? '' : '엔지니어 '}${[2, 4, 6][i]}명${i === 2 ? ' 이상' : ''} ${k}칸`).join(' · ')}, 포탑 전용 장비만 장착 (일반 기물 장착 불가).\n· 포탑 전용 장비는 저마다의 효과에 더해 포탑 모든 주요 능력치를 올립니다: 보급형 +${ENG_TUR.gearMaj.basic} · 고급형 +${ENG_TUR.gearMaj.adv}.\n· 엔지니어가 출전한 동안 분기점에 [정비]가 나와 포탑 전용 장비를 삽니다 (보급형 1개 무료).\n· 엔지니어 시너지가 꺼지거나 포탑 · 장비 칸이 줄면, 그 포탑 · 칸의 장비는 숨겨 둡니다 (보관함 칸을 차지하지 않고, 다시 늘면 그대로 돌아옵니다).`,
-    tierDesc: ENG_TUR.count.map((n, i) => `${i === 3 ? '[오버클럭] ' : ''}감시 포탑 ${n}기 (장비 ${ENG_TUR.slots[i]}칸), 상속 ${pct(ENG_TUR.inherit[i])}, 포탑 모든 주요 능력치 +${ENG_TUR.maj[i]}${i === 3 ? `, 모든 포탑 공격 속도 +${pct(ENG_TUR.over)}p${ENG_TUR.count[3] === ENG_TUR.count[2] ? ' (포탑은 늘지 않음)' : ''}` : ''}`),
+    id: 'ENG', name: '엔지니어', kind: 'trait', tiers: ENG_TIERS, color: '#a0b4c8', icon: '⚙',
+    desc: `감시 포탑(기계 · 구조물)을 아군 진영에 설치합니다.\n· 포탑은 움직이지 않고, 출전한 엔지니어 능력치 평균을 단계별 비율(상속)로 물려받은 뒤 단계별 모든 주요 능력치 가산을 더합니다 (사격 위력 = 엔지니어 사격 · 기술 위력 중 높은 쪽 × 상속, 명중 · 치명타 확률 · 치명타 피해 · 효과 저항도 같은 비율 · 치명타 피해는 기본값 ${pct(CFG.baseMinor.critDmg)} 아래로 내려가지 않음).\n· 편성 화면에서 끌어 옮길 수 있고 (판매 · 대기석 불가), 배치는 다음 전투에도 유지됩니다.\n\n[포탑 장비]\n· 엔지니어 ${ENG_TIERS.slice(0, ENG_TUR.picks).join(' · ')}명에 처음 닿으면 포탑 장비 ${ENG_TUR.offer}개 중 1개를 고릅니다 (최대 ${ENG_TUR.picks}개).\n· 고른 장비는 모든 포탑(특성 · 증강으로 더 놓인 포탑 포함)에 공통으로 적용되고, 장비마다 모든 포탑 모든 주요 능력치 +${ENG_TUR.modMaj}.\n· 고른 장비는 런 끝까지 남습니다 (엔지니어 단계가 내려가도 사라지지 않고, 포탑이 있을 때만 작동).`,
+    tierDesc: ENG_TUR.count.map((n, i) => `${i === 3 ? '[오버클럭] ' : ''}감시 포탑 ${n}기, 상속 ${pct(ENG_TUR.inherit[i])}, 포탑 모든 주요 능력치 +${ENG_TUR.maj[i]}${i < ENG_TUR.picks ? `, 포탑 장비 ${ENG_TUR.offer}개 중 1개 선택 (${i + 1}/${ENG_TUR.picks}, 모든 포탑 모든 주요 능력치 +${ENG_TUR.modMaj})` : ''}${i === 3 ? `, 모든 포탑 공격 속도 +${pct(ENG_TUR.over)}p${ENG_TUR.count[3] === ENG_TUR.count[2] ? ' (포탑은 늘지 않음)' : ''}` : ''}`),
     member: (t) => ({
       setup: (u) => { u.mem.eng = t; },
       hooks: {
