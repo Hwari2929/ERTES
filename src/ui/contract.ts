@@ -285,6 +285,8 @@ const PEN = '<svg viewBox="0 0 20 20" aria-hidden="true"><path pathLength="1" d=
 const PEN_OUT = 220, PEN_IN = 320, SWAP = 1100;
 /** 핫초코: 도면 · 차림표 · 출력기 · 말풍선이 다 나온 뒤 (2.5초) 에이든 쪽 (화면 위)에서 밀려 내려와 밑 부분만 보인다 */
 const MUG_AT = 2700, MUG_MS = 900;
+/** 알림이 뜬 뒤 카메라가 표시기로 들어가기까지 */
+const NOTE_WAIT = 250;
 /** 묶음(job · plan · rd:id)마다 지금 체크된 값 · 직전 값 · 바뀐 시각 (다시 그려도 연출이 이어지게) */
 const marks: Record<string, { cur: string; prev: string; t0: number }> = {};
 function mark(g: string, cur: string) {
@@ -512,7 +514,7 @@ function handTake(ct: HTMLElement): number {
   const b = (-86 * Math.PI) / 180, ex = Math.cos(b) * D, ey = Math.sin(b) * D; // 끌어 갈 때는 거의 곧장 위로 (오른쪽 벨 위로 지나가지 않게)
   for (const el of [fr, th, sh]) Object.assign(el.style, { width: `${HAND.w * k}px`, left: `${ax - HAND.tipX * k}px`, top: `${ay - HAND.tipY * k}px`, transformOrigin: `${HAND.tipX * k}px ${HAND.tipY * k}px` });
   const at = (s: number, z = 1, out = false) => `translate(${(out ? ex : dx) * s}px, ${(out ? ey : dy) * s}px) rotate(${HAND.rot}deg) scale(${z})`;
-  const IN = 300, TAK = 70, HOLD = 90, OUT = 380, T = IN + TAK + HOLD + OUT, o = (ms: number) => ms / T;
+  const IN = 300, TAK = 70, HOLD = 200, OUT = 380, T = IN + TAK + HOLD + OUT, o = (ms: number) => ms / T;
   const SNAP = 'cubic-bezier(.1, .9, .2, 1)', YANK = 'cubic-bezier(.5, 0, .8, .2)';
   const keys = [
     { transform: at(1), offset: 0, easing: SNAP }, // 스윽
@@ -684,11 +686,11 @@ function actOn(a: string, v: string): boolean {
         if (paper.run) { later(120, go); return; } // 전표를 다 찍은 뒤에 (되감는 도중이면 반쯤 찍힌 종이가 날아간다)
         const ct = document.querySelector<HTMLElement>('main.ct.ct-top');
         if (!ct) { CT.step = 'seal'; finish(); return; }
-        const t = handTake(ct); // 에이든이 전표를 집어 간다 → 손이 빠져나가는 동안 카메라가 표시기로
-        later(t ? t - 260 : 0, () => { if (CT.stamp === 'ok') startSeal(ct); });
+        const t = handTake(ct); // 에이든이 전표를 집고 0.2초 멈췄다가 들고 간다
+        later(t, tabletNote); // 손이 빠져나가면 표시기에 예레나의 브리핑 알림 (토스트: 카메라를 따라 커진 채 태블릿 화면에 잠깐 남는다)
+        later(t + NOTE_WAIT, () => { if (CT.stamp === 'ok') startSeal(ct); }); // 알림을 잠깐 보여 준 뒤 카메라가 표시기로
       };
-      later(600, go); // 도장 → 출력기가 전표를 짧게 밀어낸다 (서명의 결과물이 손에 들어온 감각) → 에이든의 손 → 카메라
-      later(750, tabletNote); // 그 사이 표시기에 예레나의 브리핑 알림이 뜬다 (토스트: 카메라를 따라 커진 채 태블릿 화면에 잠깐 남는다)
+      later(600, go); // 도장 → 출력기가 전표를 짧게 밀어낸다 (서명의 결과물이 손에 들어온 감각) → 에이든의 손 → 알림 → 카메라
       return true;
     }
     case 'ct-cancel': { // 의뢰 취소: '취소' 도장 → 전표가 바깥으로 미끄러져 나가고 고른 것이 비워진다 (테이블은 그대로)
