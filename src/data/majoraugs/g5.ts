@@ -317,8 +317,8 @@ export const ULTS_X: Record<string, UltDef> = {
   amundsen: {
     id: 'amundsen', name: '7703 전탄 발사', charge: 1.0, line: '7703, 아직 날 수 있겠나?',
     brief: '무작위 적들에게 여러 번 포격해 주변까지 피해를 주고 느리게 만듭니다.',
-    text: `무작위 적을 ${AMU.shells}회 지정해 각각 대상으로부터 [t:1] 이내의 적들에게 [pw:shoot:${AMU.mult}:phys] 피해를 가합니다.\n공격은 [s:${AMU.every}] 간격으로 이어집니다.\n이 공격은 대상의 방어도를 [p:${AMU.pen}] 무시합니다.\n이어서 [s:${AMU.slowDur}]간 대상의 공격 속도와 이동 속도를 [pv:${AMU.slow}] 줄입니다.`,
-    desc: `7703이 ${AMU.every}초마다 무작위 적에게 포탄을 ${AMU.shells}발 떨어뜨린다: 포탄마다 대상과 주변 1칸 적에게 전술 위력 ${pct(AMU.mult)} 물리 피해 (방어도 관통 ${pct(AMU.pen)}) + ${AMU.slowDur}초 둔화 ${pct(AMU.slow)}.`,
+    text: `무작위 적을 ${AMU.shells}회 지정해 각각 대상으로부터 [t:1] 이내의 적들에게 [pw:shoot:${AMU.mult}:phys] 피해를 가합니다.\n공격은 [s:${AMU.every}] 간격으로 이어집니다.\n이 공격은 대상의 방어도를 [p:${AMU.pen}] 무시합니다.\n공격이 적중하면 [s:${AMU.slowDur}]간 대상의 공격 속도와 이동 속도를 [pv:${AMU.slow}] 감소시킵니다.`,
+    desc: `7703이 ${AMU.every}초마다 무작위 적에게 포탄을 ${AMU.shells}발 떨어뜨린다: 포탄마다 대상과 주변 1칸 적에게 전술 위력 ${pct(AMU.mult)} 물리 피해 (방어도 관통 ${pct(AMU.pen)}) + ${AMU.slowDur}초 둔화 ${pct(AMU.slow)}p.`,
     theme: { pat: 'shells', c1: '#e0b040', c2: '#1a1a22', txt: 'slide' },
     cast(b, u) {
       if (!b.targetable(u).length) return false;
@@ -330,8 +330,8 @@ export const ULTS_X: Record<string, UltDef> = {
         const t = bb.rng.pick(es);
         bb.fx(t.x, t.y, 1, 'phys');
         for (const e of bb.around(t, 1, bb.enemiesOf(u))) {
-          bb.dealDamage(u, e, bb.P(u, 'shoot') * AMU.mult, { elem: 'phys', tag: 'proc', kind: 'shoot', canMiss: false, pen: AMU.pen });
-          if (e.alive) slow(bb, u, e, AMU.slow, AMU.slowDur);
+          const r = bb.dealDamage(u, e, bb.P(u, 'shoot') * AMU.mult, { elem: 'phys', tag: 'proc', kind: 'shoot', canMiss: false, pen: AMU.pen });
+          if (!r.miss && e.alive) slow(bb, u, e, AMU.slow, AMU.slowDur);
         }
       });
       return true;
@@ -340,8 +340,8 @@ export const ULTS_X: Record<string, UltDef> = {
   bjorn: {
     id: 'bjorn', name: '북해 구조 작전', charge: 1.0, line: '다친 놈 먼저! 한 명도 두고 안 간다.',
     brief: '가장 다친 아군들을 치료 · 정화하고, 아군 전체에게 보호막을 줍니다.',
-    text: `체력 비율이 가장 낮은 아군 2명의 해로운 효과를 모두 제거하고, [pw:shoot:1.5]만큼 회복시킵니다.\n아군 전체에게 [pw:shoot:2]만큼 보호막을 부여합니다.\n[s:5]간 아군 전체가 받는 피해를 [p:0.2] 줄입니다.`,
-    desc: '체력 비율이 가장 낮은 아군 2명의 해로운 효과를 모두 없애고 사격 위력 150% 회복. 아군 전원에게 사격 위력 200% 보호막, 5초간 피해량 경감 20%.',
+    text: `체력 비율이 가장 낮은 아군 2명의 해로운 효과를 모두 제거하고, [pw:shoot:1.5]만큼 회복시킵니다.\n아군 전체에게 [pw:shoot:2]만큼 보호막을 부여합니다.\n[s:5]간 아군 전체가 받는 피해를 [pv:0.2] 감소시킵니다.`,
+    desc: '체력 비율이 가장 낮은 아군 2명의 해로운 효과를 모두 없애고 사격 위력 150% 회복. 아군 전원에게 사격 위력 200% 보호막, 5초간 피해량 경감 20%p.',
     theme: { pat: 'sea', c1: '#ffd84d', c2: '#14202a', txt: 'shake' },
     cast(b, u) {
       if (!b.enemiesOf(u).length) return false;
@@ -357,9 +357,9 @@ export const ULTS_X: Record<string, UltDef> = {
   },
   winter: {
     id: 'winter', name: '격리 병동', charge: 1.0, line: '다들 움직이지 마세요. 소독 들어갑니다.',
-    brief: '아군 전체를 치료 · 정화하고, 잠시 받는 피해를 줄이며 받는 회복을 늘립니다.',
-    text: `아군 전체의 해로운 효과를 모두 제거하고, [pw:tech:2.5]만큼 회복시킵니다.\n[s:6]간 아군 전체가 받는 피해를 [p:0.2] 줄이고, 받는 회복량을 [p:0.3] 늘립니다.`,
-    desc: '아군 전원의 해로운 효과를 모두 없애고 기술 위력 250% 회복. 6초간 아군 전원 받는 피해 -20%, 받는 회복 +30%.',
+    brief: '아군 전체를 치료 · 정화하고, 잠시 받는 피해를 감소시키고 받는 회복량을 증가시킵니다.',
+    text: `아군 전체의 해로운 효과를 모두 제거하고, [pw:tech:2.5]만큼 회복시킵니다.\n[s:6]간 아군 전체가 받는 피해를 [pv:0.2] 감소시키고, 받는 회복량을 [pv:0.3] 증가시킵니다.`,
+    desc: '아군 전원의 해로운 효과를 모두 없애고 기술 위력 250% 회복. 6초간 아군 전원 받는 피해 -20%p, 받는 회복 +30%p.',
     theme: { pat: 'hex', c1: '#9ad0ff', c2: '#e8eef0', txt: 'mist' },
     cast(b, u) {
       if (!b.enemiesOf(u).length) return false;
@@ -375,8 +375,8 @@ export const ULTS_X: Record<string, UltDef> = {
   mao: {
     id: 'mao', name: '라스트 오더', charge: 1.0, line: '오늘 밤은 제가 사죠. 서명은 내일 받을게요.',
     brief: '아군 전체를 치료하고 잠시 강화하며, 다른 아군의 스킬을 앞당깁니다.',
-    text: `아군 전체를 [pw:tech:2]만큼 회복시킵니다.\n이 회복에는 [g:cook] 배율이 적용됩니다.\n[s:8]간 아군 전체가 가하는 피해를 [p:0.4] 늘리고, 공격 속도를 [pv:0.3] 높입니다.\n다른 아군의 스킬 쿨다운을 [s:3] 줄입니다.`,
-    desc: '아군 전원을 전술 위력 200% × 요리 배율 회복, 8초간 피해 +40% · 공격 속도 +30%. 다른 아군의 기술 쿨다운 즉시 -3초.',
+    text: `아군 전체를 [pw:tech:2]만큼 회복시킵니다.\n이 회복에는 [g:cook] 배율이 적용됩니다.\n[s:8]간 아군 전체가 가하는 피해를 [pv:0.4] 증가시키고, 공격 속도를 [pv:0.3] 증가시킵니다.\n다른 아군의 스킬 쿨다운을 [s:3] 감소시킵니다.`,
+    desc: '아군 전원을 전술 위력 200% × 요리 배율 회복, 8초간 피해 +40%p · 공격 속도 +30%p. 다른 아군의 기술 쿨다운 즉시 -3초.',
     theme: { pat: 'haze', c1: '#ff4d9a', c2: '#1c1c24', txt: 'spark' },
     cast(b, u) {
       if (!b.enemiesOf(u).length) return false;
@@ -392,8 +392,8 @@ export const ULTS_X: Record<string, UltDef> = {
   siu: {
     id: 'siu', name: '쏟아지는 별무리', charge: 1.0, line: '이번 장은 제가 고쳐 쓸게요.',
     brief: '모든 적에게 화학 피해를 주고, 잠시 화학 피해에 약하게 만듭니다.',
-    text: `적 전체에게 [pw:tech:2.2:chem] 피해를 가합니다.\n이어서 [s:6]간 대상이 받는 [el:chem] 피해를 [p:0.2] 늘립니다.`,
-    desc: '모든 적에게 기술 위력 220% 화학 피해, 맞은 적은 6초간 받는 화학 피해 +20%.',
+    text: `적 전체에게 [pw:tech:2.2:chem] 피해를 가합니다.\n공격이 적중하면 [s:6]간 대상이 받는 [el:chem] 피해를 [pv:0.2] 증가시킵니다.`,
+    desc: '모든 적에게 기술 위력 220% 화학 피해, 맞은 적은 6초간 받는 화학 피해 +20%p.',
     theme: { pat: 'vortex', c1: '#5ad08a', c2: '#0c1430', txt: 'reverse' },
     cast(b, u) {
       const es = b.enemiesOf(u);
@@ -401,8 +401,8 @@ export const ULTS_X: Record<string, UltDef> = {
       u.mem.siuUlt = 1; // ★ 은하수 필사: 궁극기 피해는 [필사]를 남기지 않는다
       for (const e of es) {
         b.emit({ k: 'atk', from: u.id, to: e.id, elem: 'chem', ranged: true });
-        b.dealDamage(u, e, b.P(u, 'tech') * 2.2, { elem: 'chem', tag: 'skill', kind: 'tech', canMiss: false });
-        if (e.alive) b.applyStatus(u, e, { type: 'buff', key: 'siu.ult', dur: 6, taken: [vuln('chem', 0.2)], label: '별의 눈물' });
+        const r = b.dealDamage(u, e, b.P(u, 'tech') * 2.2, { elem: 'chem', tag: 'skill', kind: 'tech', canMiss: false });
+        if (!r.miss && e.alive) b.applyStatus(u, e, { type: 'buff', key: 'siu.ult', dur: 6, taken: [vuln('chem', 0.2)], label: '별의 눈물' });
       }
       u.mem.siuUlt = 0;
       return true;
@@ -411,7 +411,7 @@ export const ULTS_X: Record<string, UltDef> = {
   clover: {
     id: 'clover', name: '전량 소각 처분', charge: 1.0, line: '유통 체계 위반을 확인했습니다. 전량 소각합니다.',
     brief: '적이 모인 곳의 적들에게 피해를 주고 [연소]를 겁니다.',
-    text: `적이 가장 많이 모인 곳의 적을 지정해 대상으로부터 [t:2] 이내의 적들에게 [pw:shoot:3:phys] 피해를 가합니다.\n공격이 적중하면 대상에게 반드시 [g:burn] 효과를 3중첩 부여합니다.\n[g:burn] 효과는 중첩당 1초마다 [pw:main:${PSI.pyro.dps}:phys] 피해를 가하며, [s:${PSI.pyro.dur}] 지속되고, 최대 ${PSI.pyro.max}회 중첩됩니다.`,
+    text: `적이 가장 많이 모인 곳의 적을 지정해 대상으로부터 [t:2] 이내의 적들에게 [pw:shoot:3:phys] 피해를 가합니다.\n공격이 적중하면 대상에게 반드시 [fx:burn:${PSI.pyro.dur}:main:${PSI.pyro.dps}:${PSI.pyro.max}] 효과를 3중첩 부여합니다.`,
     desc: '적이 가장 많이 모인 곳 주변 2칸에 사격 위력 300% 물리 피해 + 연소 3중첩.',
     theme: { pat: 'blueprint', c1: '#9af0a0', c2: '#1a3a1a', txt: 'type' },
     cast(b, u) {
@@ -420,16 +420,16 @@ export const ULTS_X: Record<string, UltDef> = {
       b.fx(c.x, c.y, 2, 'phys');
       for (const e of b.around(c, 2, b.enemiesOf(u))) {
         const r = b.dealDamage(u, e, b.P(u, 'shoot') * 3, { elem: 'phys', tag: 'skill', kind: 'shoot', canMiss: false });
-        if (r.amount > 0 && e.alive) addBurn(b, u, e, 3);
+        if (!r.miss && e.alive) addBurn(b, u, e, 3);
       }
       return true;
     },
   },
   mingki: {
     id: 'mingki', name: '한밤의 우다다', charge: 1.0, line: '…냐아.',
-    brief: '잠시 무작위 적들에게 여러 번 뛰어들어 피해를 주고, 그동안 받는 피해가 줄어듭니다.',
-    text: `무작위 적을 6회 지정해 각각 대상에게 이동해 [pw:strike:1.4:phys] 피해를 가합니다.\n공격은 [s:0.4] 간격으로 이어집니다.\n[s:2.5]간 자신이 받는 피해를 [p:0.3] 줄입니다.`,
-    desc: '0.4초마다 무작위 적에게 뛰어들어 타격 위력 140% 물리 피해 (6회). 2.5초간 받는 피해 -30%.',
+    brief: '잠시 무작위 적들에게 여러 번 뛰어들어 피해를 주고, 그동안 받는 피해가 감소합니다.',
+    text: `무작위 적을 6회 지정해 각각 대상에게 이동해 [pw:strike:1.4:phys] 피해를 가합니다.\n공격은 [s:0.4] 간격으로 이어집니다.\n[s:2.5]간 자신이 받는 피해를 [pv:0.3] 감소시킵니다.`,
+    desc: '0.4초마다 무작위 적에게 뛰어들어 타격 위력 140% 물리 피해 (6회). 2.5초간 받는 피해 -30%p.',
     theme: { pat: 'moon', c1: '#c8b8d8', c2: '#0c0a10', txt: 'roar' },
     cast(b, u) {
       if (!b.targetable(u).length) return false;

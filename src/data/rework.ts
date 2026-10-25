@@ -1113,8 +1113,8 @@ export const DIVINE_ACT: Record<CType, { name: string; desc: string; brief: stri
     brief: '전투 스킬을 곧바로 연달아 씁니다.',
     text: '전투 스킬을 즉시 2회 연속으로 사용합니다.' },
   CMD: { name: '신탁', desc: '6초간 아군 전술 위력 ×2',
-    brief: '잠시 아군의 전술 위력을 크게 높입니다.',
-    text: '[s:6]간 아군의 [g:tac]을 2배로 높입니다.' },
+    brief: '잠시 아군의 전술 위력을 크게 증가시킵니다.',
+    text: '[s:6]간 아군의 [g:tac]이 2배가 됩니다.' },
 };
 const mainPow = (b: Battle, u: CUnit) => (u.ctype === 'MARK' ? b.S(u, 'shoot') : u.ctype === 'VAN' ? b.S(u, 'strike') : b.P(u, 'tech'));
 
