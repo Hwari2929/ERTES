@@ -1101,11 +1101,20 @@ export const FAITH_DEF: Record<FaithId, FaithDef> = {
     passive: { mods: [inc('holy', 0.2)], taken: [red('holy', 0.2)] } },
 };
 /** 신권 대행 기본형 (전투 유형별) */
-export const DIVINE_ACT: Record<CType, { name: string; desc: string }> = {
-  MARK: { name: '심판의 탄환', desc: '탄창을 즉시 채우고, 다음 탄창 전부 신성 관통탄' },
-  VAN: { name: '성전 돌입', desc: '대상 옆으로 돌입해 2초 무적, 주변 1칸 적에게 타격 위력 300% 신성 피해' },
-  SPEC: { name: '기적', desc: '전투 스킬을 즉시 2회 연속 시전' },
-  CMD: { name: '신탁', desc: '6초간 아군 전술 위력 ×2' },
+/** brief = 상세 보기 꺼짐 한 줄 (수치 없음) · text = 상세 문장 (docs/ABILITY_TEXT.md, 토큰) */
+export const DIVINE_ACT: Record<CType, { name: string; desc: string; brief: string; text: string }> = {
+  MARK: { name: '심판의 탄환', desc: '탄창을 즉시 채우고, 다음 탄창 전부 신성 관통탄',
+    brief: '탄창을 바로 채우고, 그 탄창의 기본 공격을 방어도를 무시하는 신성 피해로 바꿉니다.',
+    text: '탄창을 즉시 가득 채웁니다.\n그 탄창을 다 쓸 때까지 기본 공격이 [el:holy] 피해로 바뀌고, 대상의 방어도를 [p:1] 무시합니다.' },
+  VAN: { name: '성전 돌입', desc: '대상 옆으로 돌입해 2초 무적, 주변 1칸 적에게 타격 위력 300% 신성 피해',
+    brief: '대상 곁으로 뛰어들어 잠시 피해를 받지 않고, 주변 적에게 신성 피해를 줍니다.',
+    text: '현재 대상 옆으로 이동하고, [s:2]간 받는 피해가 0이 됩니다.\n자신으로부터 [t:1] 이내의 적들에게 [pw:strike:3:holy] 피해를 가합니다.' },
+  SPEC: { name: '기적', desc: '전투 스킬을 즉시 2회 연속 시전',
+    brief: '전투 스킬을 곧바로 연달아 씁니다.',
+    text: '전투 스킬을 즉시 2회 연속으로 사용합니다.' },
+  CMD: { name: '신탁', desc: '6초간 아군 전술 위력 ×2',
+    brief: '잠시 아군의 전술 위력을 크게 높입니다.',
+    text: '[s:6]간 아군의 [g:tac]을 2배로 높입니다.' },
 };
 const mainPow = (b: Battle, u: CUnit) => (u.ctype === 'MARK' ? b.S(u, 'shoot') : u.ctype === 'VAN' ? b.S(u, 'strike') : b.P(u, 'tech'));
 

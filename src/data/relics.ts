@@ -13,13 +13,17 @@ export interface RelicDef {
   price: number; enh: number;
   /** 신권 대행 설명 (k = 강화 배율) */
   desc: (k: number) => string;
+  /** 상세 보기 꺼짐 한 줄 (수치 없음, docs/ABILITY_TEXT.md 1절) */
+  brief: string;
+  /** 상세 문장 (토큰, 줄마다 한 문장, k = 강화 배율) */
+  text: (k: number) => string;
   act: (b: Battle, u: CUnit, k: number) => void;
 }
 
 const FOREVER = 9999;
 const mainPow = (b: Battle, u: CUnit) => (u.ctype === 'MARK' ? b.S(u, 'shoot') : u.ctype === 'VAN' ? b.S(u, 'strike') : b.P(u, 'tech'));
 
-export const RELICS: RelicDef[] = [
+const RELICS_BASE: Omit<RelicDef, 'brief' | 'text'>[] = [
   { id: 'lantern', name: '달무리 등불', owner: 'eleni', price: 20, enh: 25,
     desc: (k) => `아군 전원 최대 체력 ${pct(0.12 * k)} 회복. 전투 끝까지 주변 2칸 아군이 초당 최대 체력 ${pct(0.008 * k)} 회복.`,
     act(b, u, k) {
@@ -164,6 +168,41 @@ export const RELICS: RelicDef[] = [
       } });
     } },
 ];
+const END = '전투가 끝날 때까지';
+/** 성유물 설명 두 벌: brief (상세 보기 꺼짐) · text (상세 문장). 수치는 act 와 같은 값 */
+const RELIC_TX: Record<string, Pick<RelicDef, 'brief' | 'text'>> = {
+  lantern: { brief: '아군 전체를 회복시키고, 전투 끝까지 주변 아군을 계속 회복시킵니다.',
+    text: (k) => `아군 전체를 각자 최대 체력의 [p:${0.12 * k}]만큼 회복시킵니다.\n${END} 1초마다 자신으로부터 [t:2] 이내의 아군을 각자 최대 체력의 [p:${0.008 * k}]만큼 회복시킵니다.` },
+  sandals: { brief: '아군 전체의 스킬을 앞당기고, 전투 끝까지 아군을 빠르게 합니다.',
+    text: (k) => `아군 전체의 스킬 쿨다운을 [s:2] 줄입니다.\n${END} 아군 전체의 공격 속도를 [p:${0.2 * k}]p, 이동 속도를 [p:${0.3 * k}]p 높입니다.` },
+  bow: { brief: '가장 다친 적들에게 방어도를 무시하는 신성 피해를 주고, 전투 끝까지 치명타 확률을 높입니다.',
+    text: (k) => `체력 비율이 가장 낮은 적 3명에게 각각 [pw:shoot:${6 * k}:holy] 피해를 가합니다.\n지휘관이면 사격 위력과 전술 위력 중 높은 쪽으로 계산합니다.\n이 공격은 대상의 방어도를 [p:1] 무시합니다.\n${END} 자신의 치명타 확률을 [p:${0.15 * k}]p 높입니다.` },
+  spear: { brief: '적이 모인 곳에 뛰어들어 신성 피해를 주고 [기절]시키며, 전투 끝까지 받는 피해를 줄입니다.',
+    text: (k) => `적이 가장 많이 모인 곳으로 이동하고, [s:2]간 받는 피해가 0이 됩니다.\n자신으로부터 [t:2] 이내의 적들에게 [pw:strike:${4 * k}:holy] 피해를 가합니다.\n이어서 대상에게 반드시 [g:stun] 효과를 부여합니다.\n[g:stun] 효과는 대상이 이동 · 공격 · 스킬을 쓰지 못하게 하며, [s:1.5] 지속됩니다.\n${END} 자신이 받는 피해를 [p:${Math.min(0.6, 0.15 * k)}] 줄입니다.` },
+  platter: { brief: '아군 전체를 치료 · 정화하고, 전투 끝까지 아군이 가하는 피해를 높입니다.',
+    text: (k) => `아군 전체를 각자 최대 체력의 [p:${0.15 * k}]만큼 회복시키고, 해로운 효과를 모두 제거합니다.\n${END} 아군 전체가 가하는 피해를 [p:${0.1 * k}] 늘립니다.` },
+  flag: { brief: '전투 끝까지 모든 적이 받는 피해를 늘립니다.',
+    text: (k) => `${END} 적 전체가 받는 피해를 [p:${0.2 * k}] 늘립니다.` },
+  mic: { brief: '모든 적에게 전기 피해를 주고 [감전]시키며, 시청자를 늘립니다.',
+    text: (k) => `적 전체에게 [pw:prime:${3.5 * k}:elec] 피해를 가합니다.\n이어서 대상에게 반드시 [g:shock] 효과를 부여합니다.\n[g:shock] 효과는 대상의 스킬 쿨다운이 줄지 않게 하며, [s:2] 지속됩니다.\n${END} 시청자 상한을 ${10 * k} 늘리고, 시청자를 바로 ${10 * k} 얻습니다.` },
+  dividend: { brief: '체력이 가장 많은 적에게 보유 크레딧에 비례한 고정 피해를 주고, 크레딧을 얻습니다.',
+    text: (k) => `체력이 가장 많은 적에게 보유 크레딧 1당 [pw:prime:${0.06 * k}] [el:true] 피해를 가합니다.\n크레딧을 3 얻습니다.\n${END} 자신이 가하는 피해를 [p:${0.1 * k}] 늘립니다.` },
+  aspis: { brief: '주변 아군이 잠시 피해를 받지 않게 하고, 전투 끝까지 아군 전체가 받는 피해를 줄입니다.',
+    text: (k) => `[s:3]간 자신으로부터 [t:2] 이내의 아군이 받는 피해가 0이 됩니다.\n${END} 아군 전체가 받는 피해를 [p:${Math.min(0.5, 0.1 * k)}] 줄입니다.` },
+  gauge: { brief: '모든 적에게 신성 피해를 주고 잠시 [속박]하며, 전투 끝까지 포탑을 빠르게 합니다.',
+    text: (k) => `적 전체에게 [pw:prime:${2.5 * k}:holy] 피해를 가합니다.\n이어서 대상에게 반드시 [g:root] 효과를 부여합니다.\n[g:root] 효과는 대상이 이동하지 못하게 하며, [s:2] 지속됩니다.\n${END} 아군 포탑의 공격 속도를 [p:${0.4 * k}]p 높입니다.` },
+  bell: { brief: '아군 전체를 정화 · 회복시키고, 전투 끝까지 자신의 피해와 주변 적이 받는 피해를 늘립니다.',
+    text: (k) => `아군 전체의 해로운 효과를 모두 제거하고, 각자 최대 체력의 [p:${0.12 * k}]만큼 회복시킵니다.\n${END} 자신이 가하는 피해를 [p:${0.2 * k}] 늘립니다.\n${END} 자신으로부터 [t:1] 이내의 적이 받는 피해를 [p:${0.1 * k}] 늘립니다.` },
+  key: { brief: '쓰러진 아군을 되살리고, 전투 끝까지 아군 전체에 흡혈을 줍니다.',
+    text: (k) => `쓰러진 아군 1명을 체력 [p:${Math.min(1, 0.5 * k)}]로 되살립니다.\n쓰러진 아군이 없으면 아군 전체에게 각자 최대 체력의 [p:${0.18 * k}]만큼 보호막을 부여합니다.\n${END} 아군 전체의 [g:lifesteal]을 [p:${0.05 * k}]p 높입니다.` },
+  bolt: { brief: '무작위 적들에게 전기 피해를 주고, 전투 끝까지 치명타 확률을 높입니다.',
+    text: (k) => `무작위 적 5명에게 각각 [pw:prime:${3 * k}:elec] 피해를 가합니다.\n${END} 자신의 치명타 확률을 [p:${0.1 * k}]p 높입니다.` },
+  aegis: { brief: '전투 끝까지 아군 전체가 받는 피해를 줄이고 효과 저항을 높입니다.',
+    text: (k) => `${END} 아군 전체가 받는 피해를 [p:${Math.min(0.5, 0.12 * k)}] 줄이고, 효과 저항을 [p:${0.25 * k}]p 높입니다.` },
+  helm: { brief: '전투 끝까지 자신의 피해를 높이고, 기본 공격이 주변 적에게 번집니다.',
+    text: (k) => `${END} 자신이 가하는 피해를 [p:${0.35 * k}] 늘립니다.\n${END} 기본 공격이 적중하면 대상으로부터 [t:1] 이내의 다른 적들에게 그 피해의 [p:${0.3 * k}]만큼 [el:phys] 피해를 가합니다.` },
+};
+export const RELICS: RelicDef[] = RELICS_BASE.map((r) => ({ ...r, ...RELIC_TX[r.id] }));
 export const RELIC_BY_ID: Record<string, RelicDef> = Object.fromEntries(RELICS.map((r) => [r.id, r]));
 /** 디바인의 기본 성유물 */
 export const DEFAULT_RELIC: Record<string, string> = Object.fromEntries(RELICS.filter((r) => r.owner).map((r) => [r.owner!, r.id]));

@@ -5560,3 +5560,8 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 .ab-dt { display: flex; flex-direction: column; gap: 3px; }
 .ab-dt p { margin: 0; }
 .pw .pw-v { font-size: var(--fs-xs); color: var(--c-text-2); margin-left: 1px; }
+/* 상세 보기: 사이오닉 비술 · 지속 카드는 문장이 길어 한 줄에 하나씩 · 도감 기물 능력 머리의 상세 보기 단추 */
+.ps-cards.dt { grid-template-columns: minmax(0, 1fr); }
+.ps-card .ab-dt { gap: 2px; }
+.cx-ud-ab { display: flex; align-items: center; gap: 8px; }
+.cx-ud-ab .d-mag-solo { margin-left: auto; }
