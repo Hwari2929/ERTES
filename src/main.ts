@@ -452,7 +452,7 @@ function titleScreen() {
       <div class="ts-body"><div class="ts-left">
       <nav class="title-actions" aria-label="메뉴">
         <div class="ts-main">${auto ? `<button class="btn primary ts-btn ts-hero" data-a="load" data-v="auto"><b>이어하기</b><small>페이즈 ${auto.phase} · 체력 ${auto.hp}</small></button>` : ''}
-          <div class="ts-split one"><button class="btn ${auto ? '' : 'primary ts-hero'} ts-btn" data-a="newrun"><b>새 계약</b>${auto ? '<small>진행 중인 의뢰는 덮어씁니다</small>' : '<small>바 카운터 · 의뢰 · 약관 · 계약 기물 ${CFG.startUnits}명</small>'}</button></div></div>
+          <div class="ts-split one"><button class="btn ${auto ? '' : 'primary ts-hero'} ts-btn" data-a="newrun"><b>새 계약</b>${auto ? '<small>진행 중인 의뢰는 덮어씁니다</small>' : `<small>바 카운터 · 의뢰 · 약관 · 계약 기물 ${CFG.startUnits}명</small>`}</button></div></div>
         <div class="ts-grid" role="group" aria-label="둘러보기">${tutButton()}
           <button class="btn ts-btn ts-tile" data-a="bar"><b>에란테스 바</b><small>${auto ? '들렀다가 이어서 출격' : '단원 · 손님들의 잡담'}</small></button>
           <button class="btn ts-btn ts-tile" data-a="codex"><b>도감 · 기록</b><small>교범 · 기록 · 업적</small></button>
@@ -473,7 +473,7 @@ function titleScreen() {
 /** 타이틀: 튜토리얼 칸 (끝내기 전에는 NEW, 진행 중이면 이어서 — '처음부터'는 아래 보조 줄) */
 function tutButton() {
   const saved = listTutSave();
-  return `<button class="btn ts-btn ts-tile ts-tut" data-a="tutorial" title="튜토리얼 — 당직 근무: 새벽 두 시, 에란테스 바에서 지휘를 배운다"><b>튜토리얼</b>${saved ? `<small>이어서 · 항로 ${Math.min(saved.step + 1, TUT.TUT_MAP.length)}/${TUT.TUT_MAP.length}칸</small>` : '<small>당직 근무 · 지휘 배우기</small>'}${tutMeta().done ? '' : '<span class="ts-new">NEW</span>'}</button>`;
+  return `<button class="btn ts-btn ts-tile ts-tut" data-a="tutorial" title="튜토리얼 — 당직 근무: 새벽 2시, 에란테스 바에서 지휘를 배운다"><b>튜토리얼</b>${saved ? `<small>이어서 · 항로 ${Math.min(saved.step + 1, TUT.TUT_MAP.length)}/${TUT.TUT_MAP.length}칸</small>` : '<small>당직 근무 · 지휘 배우기</small>'}${tutMeta().done ? '' : '<span class="ts-new">NEW</span>'}</button>`;
 }
 /** 첫 실행: 튜토리얼부터 / 건너뛰기 */
 function tutAskModal() {
@@ -5141,6 +5141,7 @@ function tipSteps(key: string, run: RunState | null): Partial<CoachStep>[] {
         { target: '.map .party .rt', until: () => !!app.bigUnit },
         { target: '.um-a > .um-rank [data-a="buyxp"]', need: true, until: () => r.credits < c0, enter: () => { c0 = r.credits; if (!app.bigUnit) { app.bigUnit = r.units[0].uid; app.sel = { k: 'unit', uid: r.units[0].uid }; render(); } } },
         { target: '.um .um-rank' },
+        { target: '.um .d-focus' }, // 집중 육성 단추 (전체 상세 머리)
         { target: '.map .ship-btn[data-a="fleet"]', need: true, until: () => (r.fleet || 0) >= 1, enter: () => {
           // 린디웨 예산(20)으로 반드시 살 수 있게: 다른 데 썼으면 모자란 만큼 채운다
           const cost = R.fleetCost(r) ?? 0;

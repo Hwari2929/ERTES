@@ -48,7 +48,7 @@ export const SHOP = {
   idleT: 0,
 };
 
-/** 상인이 있는 상점 노드 (정비 · 합성 공방은 예전 진열대) */
+/** 상인이 있는 상점 노드 (합성 공방은 예전 진열대) */
 export const merchantOf = (run: RunState | null): MerchantDef | null => (run?.node?.type === 'shop' && run.node.merchant ? MERCHANT_BY_ID[run.node.merchant] || null : null);
 const nodeKey = (run: RunState) => `${run.phase}:${run.step}:${run.node?.merchant}`;
 function sync(run: RunState) {

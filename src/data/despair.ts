@@ -51,7 +51,7 @@ export const DESPAIRS: DespairDef[] = [
     desc: () => `모든 적이 전투 시작 때 최대 체력 ${pc(D().shield)} 보호막을 두릅니다.`, mod: () => pc(D().shield),
     quip: '페트라는 모든 세력에 똑같이 납품한다. 이번 상대에게도.' },
   { id: 'D.tariff', name: '무역관세부 특별 관세', icon: 'n.shop',
-    desc: () => `상점 · 정비 · 합성 가격과 함대 확장 · 지정 소집 비용 +${pc(D().tariff)} (반올림).`,
+    desc: () => `상점 · 합성 공방 가격과 함대 확장 · 지정 소집 비용 +${pc(D().tariff)} (반올림).`,
     quip: '관세는 협상하는 것이 아니라, 협상했다고 믿게 하는 것이다.' },
   { id: 'D.miracle', name: '기적 정기 휴무', icon: 'a.heal',
     desc: () => `아군이 받는 모든 회복 -${pc(D().heal)}.`, mod: () => `-${pc(D().heal)}`,

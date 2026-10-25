@@ -88,7 +88,7 @@ export function interestKeep(run: RunState) {
 }
 /** 절망 증강 [군체 공명 간섭]: 전투 공명도 풀 배율 */
 const despairXp = (run: RunState) => (hasDespair(run, 'D.swarm') ? 1 - CFG.despair.xp : 1);
-/** 절망 증강 [무역관세부 특별 관세]: 상점 · 정비 · 합성 가격, 함대 확장 · 지정 소집 비용 배율 */
+/** 절망 증강 [무역관세부 특별 관세]: 상점 · 합성 공방 가격, 함대 확장 · 지정 소집 비용 배율 */
 const despairPrice = (run: RunState) => (hasDespair(run, 'D.tariff') ? 1 + CFG.despair.tariff : 1);
 
 // ───────────────────────── 런 생성
@@ -284,7 +284,7 @@ export const musterPool = (run: RunState, syns: string[]) =>
 /** 지정 소집 티켓 (유이 전용 상품): 들고 있으면 지정 소집을 크레딧 대신 티켓 1장으로 한다 */
 export const TICKET = 'K_muster_ticket';
 export const ticketCount = (run: RunState) => run.inventory.filter((x) => x === TICKET).length;
-/** 상점 칸 (상인 상점 · 정비 · 합성 공방)이 열려 있는 동안의 지정 소집은 티켓으로만 (크레딧 소집 · 함대 확장은 칸을 끝낸 뒤). 상인 · 진열은 그대로 남는다 */
+/** 상점 칸 (상인 상점 · 합성 공방)이 열려 있는 동안의 지정 소집은 티켓으로만 (크레딧 소집 · 함대 확장은 칸을 끝낸 뒤). 상인 · 진열은 그대로 남는다 */
 export const SHOP_TICKET_ONLY = '상점에서는 지정 소집 티켓으로만 소집할 수 있습니다';
 /** 지정 소집을 지금 열 수 없는 까닭 (null = 열 수 있음): 진행 중인 선택 · 칸 (상점 칸은 티켓이 있으면 허용) · 보유 한도 · 크레딧 */
 export function musterBlock(run: RunState): string | null {
