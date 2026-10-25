@@ -61,7 +61,7 @@ export const ABIL_A: Record<string, AbilText> = {
         ['피해', `[dmg:tech:${p.mult}:phys]`],
         ['치명타', `[g:crit] 확률 [pp:${p.crit}]`],
         ...opt(p.bleed, '출혈', `[st:bleed:4] 초당 [dmg:tech:${p.bleed}:phys]`),
-        ...opt(p.vuln, '취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`),
+        ...opt(p.vuln, '취약', `[st:vuln:4] 받는 피해 +[pv:${p.vuln}]`),
         ...opt(p.shock, '감전', `[st:shock:${p.shock}:${p.shockChance || 0.7}]`),
         ['소환', '까악이가 같은 대상을 노림'],
       ],
@@ -80,7 +80,7 @@ export const ABIL_A: Record<string, AbilText> = {
         tgt: '도노반의 스킬 대상', range: 'unit', area: { k: 'one' },
         rows: [
           ['연계', '도노반이 스킬을 쓰면 그 대상을 함께 노림'],
-          ['해킹 지원', '공격 속도 +[p:0.3] (도노반 특성)'],
+          ['해킹 지원', '공격 속도 +[pv:0.3] (도노반 특성)'],
         ],
         text: ['도노반이 자안의 사수를 쓰면 그 대상을 함께 노립니다.', '도노반의 특성으로 공격 속도가 [pv:0.3] 증가합니다.'].join('\n'),
       }),
@@ -177,8 +177,8 @@ export const ABIL_A: Record<string, AbilText> = {
       rows: [
         ['회복', `[heal:${p.heal}]`],
         ...opt(p.shield, '보호막', `[shield:${p.shield}]`),
-        ['버프', `공격 속도 +[p:${p.as}] ([s:${p.dur}])`],
-        ...opt(p.dmg, '피해', `주는 피해 +[p:${p.dmg}] ([s:${p.dur}])`),
+        ['버프', `공격 속도 +[pv:${p.as}] ([s:${p.dur}])`],
+        ...opt(p.dmg, '피해', `주는 피해 +[pv:${p.dmg}] ([s:${p.dur}])`),
         ...opt(p.red, '피해량 경감', `[g:red] [p:${p.red}] ([s:${p.dur}])`),
         ...opt(p.cleanse, '정화', '[g:cleanse]'),
         ['요리', '[g:cook] 배율 적용'],
@@ -239,7 +239,7 @@ export const ABIL_A: Record<string, AbilText> = {
       rows: [
         ['피해', `[dmg:strike:${p.mult}:phys]`],
         ['기절', `[st:stun:${p.stun}]`],
-        ...opt(p.vuln, '취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`),
+        ...opt(p.vuln, '취약', `[st:vuln:4] 받는 피해 +[pv:${p.vuln}]`),
       ],
       text: [
         `자신으로부터 [t:${p.radius || 1}] 이내의 적들에게 [pw:strike:${p.mult}:phys] 피해를 가합니다.`,
@@ -271,7 +271,7 @@ export const ABIL_A: Record<string, AbilText> = {
       tgt: '최대 체력이 가장 높은 적', range: null, area: { k: 'one' },
       rows: [
         ['약화', `[g:weak] [p:${p.weak}] ([s:${p.dur}])`],
-        ...opt(p.vuln, '취약', `[g:vuln] 받는 피해 +[p:${p.vuln}] ([s:${p.dur}])`),
+        ...opt(p.vuln, '취약', `[g:vuln] 받는 피해 +[pv:${p.vuln}] ([s:${p.dur}])`),
         ['피해', `경호원이 대상을 공격. 인접한 경호원은 즉시 경호원 타격 위력의 [p:${p.mult}] 물리 피해`],
       ],
       text: [

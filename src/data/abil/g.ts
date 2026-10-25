@@ -24,7 +24,7 @@ export const ABIL_G: Record<string, AbilText> = {
       rows: [
         ['피해', `[dmg:shoot:${p.mult * (p.final ? 1.5 : 1)}:phys${p.hits > 1 ? `:${p.hits}` : ''}]`],
         ...when(p.hits > 1, ['연사', `두 번째부터 [p:${p.second}] 피해`]),
-        ['기록', `[g:record] [s:6] 받는 피해 +[p:${p.vuln}]`],
+        ['기록', `[g:record] [s:6] 받는 피해 +[pv:${p.vuln}]`],
         ...when(p.refund, ['환급', `[g:record] 대상이 쓰러지면 쿨다운 [p:${p.refund}] 환급`]),
       ],
       text: L(

@@ -104,7 +104,7 @@ export const ABIL_F: Record<string, AbilText> = {
       tgt: '현재 대상', range: 'unit', area: aroundOr(p.radius),
       rows: [
         ['피해', `[dmg:shoot:${p.mult}:holy]`],
-        ...when(p.vuln, ['취약', `[st:vuln:5] 받는 피해 +[p:${p.vuln}]`]),
+        ...when(p.vuln, ['취약', `[st:vuln:5] 받는 피해 +[pv:${p.vuln}]`]),
         ['시선 집중', `주 대상 [s:5] 동안 도발 계수 +${p.provPlus}`],
       ],
       text: lines(
@@ -128,7 +128,7 @@ export const ABIL_F: Record<string, AbilText> = {
       rows: [
         ['피해', `[dmg:tech:${p.mult}:elec]`],
         ['감전', `[st:shock:${p.shock}:${Math.min(1, p.shockChance || 0.7)}]`],
-        ...when(p.vuln, ['취약', `[st:vuln:${p.vulnDur || 4}] 받는 피해 +[p:${p.vuln}]`]),
+        ...when(p.vuln, ['취약', `[st:vuln:${p.vulnDur || 4}] 받는 피해 +[pv:${p.vuln}]`]),
       ],
       text: lines(
         atTarget(p, `[pw:tac:${p.mult}:elec]`),
@@ -223,7 +223,7 @@ export const ABIL_F: Record<string, AbilText> = {
       rows: [
         ['피해', `[dmg:shoot:${p.mult}:chem${hitsTxt(p.hits)}]`],
         ['강화 해제', `맞은 적마다 [p:${p.strip}] 확률로 이로운 효과 ${p.stripN}종 제거`],
-        ...when(p.vuln, ['취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`]),
+        ...when(p.vuln, ['취약', `[st:vuln:4] 받는 피해 +[pv:${p.vuln}]`]),
       ],
       text: lines(
         atTarget(p, `[pw:tac:${p.mult}:chem]`),
@@ -265,7 +265,7 @@ export const ABIL_F: Record<string, AbilText> = {
       tgt: (p.count || 1) > 1 ? `피해 기여가 가장 큰 아군 ${p.count}명` : '피해 기여가 가장 큰 아군', range: null, area: { k: 'one' },
       rows: [
         ['회복', `[heal:${p.heal}]`],
-        ['버프', `[s:${p.dur}] 동안 피해 +[p:${p.dmg}], 공격 속도 +[p:${p.as}]`],
+        ['버프', `[s:${p.dur}] 동안 피해 +[pv:${p.dmg}], 공격 속도 +[pv:${p.as}]`],
         ...when(p.red, ['피해량 경감', `[g:red] [p:${p.red}] ([s:${p.dur}])`]),
         ['요리', '[g:cook] 배율이 모든 효과에 적용'],
       ],
@@ -358,7 +358,7 @@ export const ABIL_F: Record<string, AbilText> = {
       rows: [
         ['피해', `[dmg:tech:${p.mult}:psy] (빗나가지 않음)`],
         ['공포', `[st:fear:${p.fear}:${Math.min(1, p.fearChance)}]`],
-        ...when(p.vuln, ['취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`]),
+        ...when(p.vuln, ['취약', `[st:vuln:4] 받는 피해 +[pv:${p.vuln}]`]),
       ],
       text: lines(
         `적 전체에게 [pw:tech:${p.mult}:psy] 피해를 가합니다.`,
@@ -425,7 +425,7 @@ export const ABIL_F: Record<string, AbilText> = {
       rows: [
         ['피해', `[dmg:strike:${p.mult}:phys${hitsTxt(p.hits)}]`],
         ...when(p.stun, ['기절', `[st:stun:${p.stun}]`]),
-        ['버프', `사용할 때마다 피해 +[p:${p.growth}] (전투 동안 중첩)`],
+        ['버프', `사용할 때마다 피해 +[pv:${p.growth}] (전투 동안 중첩)`],
       ],
       text: lines(
         `자신으로부터 [t:${p.radius || 1}] 이내의 적들에게 [pw:strike:${p.mult}:phys] 피해를${times(p)} 가합니다.`,

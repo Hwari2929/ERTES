@@ -120,10 +120,10 @@ export const ABIL_C: Record<string, AbilText> = {
       tgt: '현재 대상', range: 'unit', area: aroundOr(p.radius),
       rows: [
         ['피해', `[dmg:shoot:${p.mult}:phys${hitsTxt(p.hits)}]`],
-        ['둔화', `[st:slow:3] 공격 · 이동 속도 -[p:${p.slow}]`],
+        ['둔화', `[st:slow:3] 공격 · 이동 속도 -[pv:${p.slow}]`],
         ...opt(p.pen, '관통', `[g:pen] [p:${p.pen}]`),
         ...opt(p.stun, '기절', `[st:stun:${p.stun}]`),
-        ...opt(p.vuln, '취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`),
+        ...opt(p.vuln, '취약', `[st:vuln:4] 받는 피해 +[pv:${p.vuln}]`),
       ],
       text: L(
         p.radius ? `[rng] 이내의 적을 지정해 대상으로부터 [t:${p.radius}] 이내의 적들에게 [pw:shoot:${p.mult}:phys] 피해를 가합니다.` : `[rng] 이내의 적에게 [pw:shoot:${p.mult}:phys] 피해를 가합니다.`,
@@ -183,7 +183,7 @@ export const ABIL_C: Record<string, AbilText> = {
       rows: [
         ['회복', `[heal:${p.heal}]`],
         ...opt(p.cleanse, '정화', '[g:cleanse]'),
-        ['버프', `피해 +[p:${p.dmg}] ([s:${p.dur}])`],
+        ['버프', `피해 +[pv:${p.dmg}] ([s:${p.dur}])`],
         ...opt(p.shield, '보호막', `[shield:${p.shield}]`),
         ...opt(p.splash, '주변', '대상 주변 [t:1] 아군에게 [p:0.5] 효과'),
         ['요리', '[g:cook] 배율 적용'],
@@ -276,7 +276,7 @@ export const ABIL_C: Record<string, AbilText> = {
       rows: [
         ['피해', `리키가 대상 옆으로 이동해 리키 타격 위력의 [p:${p.mult}] 물리 피해`],
         ['기절', `[st:stun:${p.stun}]`],
-        ...opt(p.vuln, '취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`),
+        ...opt(p.vuln, '취약', `[st:vuln:4] 받는 피해 +[pv:${p.vuln}]`),
         ['리키 없을 때', '비비안이 직접 [dmg:shoot:1.5:phys]'],
       ],
       text: L(
@@ -296,7 +296,7 @@ export const ABIL_C: Record<string, AbilText> = {
         rows: [
           ['피해', `[dmg:strike:${p.mult}:phys]`],
           ['기절', `[st:stun:${p.stun}] (비비안이 건다)`],
-          ...opt(p.vuln, '취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`),
+          ...opt(p.vuln, '취약', `[st:vuln:4] 받는 피해 +[pv:${p.vuln}]`),
           ['생태 분석', '기본 공격 적중 시 대상 방어도 -[p:0.1] (중첩, 최대 3, [s:5])'],
         ],
         text: L(
@@ -359,7 +359,7 @@ export const ABIL_C: Record<string, AbilText> = {
         ['피해', `[dmg:tech:${p.mult}:psy${hitsTxt(p.hits)}]`],
         ['공포', `[st:fear:${p.fear}:${p.fearChance}]`],
         ...opt(p.noMiss, '명중', '빗나가지 않음'),
-        ...opt(p.vuln, '취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`),
+        ...opt(p.vuln, '취약', `[st:vuln:4] 받는 피해 +[pv:${p.vuln}]`),
       ],
       text: L(
         p.radius ? `[rng] 이내의 적을 지정해 대상으로부터 [t:${p.radius}] 이내의 적들에게 [pw:tech:${p.mult}:psy] 피해를 가합니다.` : `[rng] 이내의 적에게 [pw:tech:${p.mult}:psy] 피해를 가합니다.`,
@@ -471,7 +471,7 @@ export const ABIL_C: Record<string, AbilText> = {
     skill: (p) => ({
       tgt: `모시는 아군 · 피해 기여가 가장 큰 아군 ${p.count}명`, range: null, area: { k: 'one' },
       rows: [
-        ['버프', `피해 +[p:${p.dmg}], 공격 속도 +[p:${p.as}] ([s:${p.dur}])`],
+        ['버프', `피해 +[pv:${p.dmg}], 공격 속도 +[pv:${p.as}] ([s:${p.dur}])`],
         ...opt(p.red, '피해량 경감', `[g:red] [p:${p.red}] ([s:${p.dur}])`),
         ['주요 위력', `보좌 대상의 주요 위력 + 시그문드 [g:tac] [p:${p.mainUp}] ([s:${p.dur}])`],
         ['보호막', `엘베스타드 아군 전원에게 [shield:${p.famShield}]`],
