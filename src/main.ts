@@ -2143,11 +2143,11 @@ const traitHtml = (d: UnitDef, b: Battle | null, c: CUnit | null) => {
   const t = ABIL[d.id]?.trait;
   const bt = ABIL[d.id]?.brief?.trait || BRIEF[d.id]?.trait;
   if (!app.detail && bt) return `<p>${esc(bt)}</p>`; // 상세 보기 꺼짐: 한 줄 설명
-  return t ? (t.includes('\n') ? statIc(AB.detailText(t, actx(b, c, false, d), new Set())) : `<p>${statIc(AB.tok(t, actx(b, c, false, d), new Set()))}</p>`) : `<p>${esc(traitText(d))}</p>`;
+  return t ? (t.includes('\n') ? statIc(AB.detailText(t, actx(b, c, false, d), new Set())) : `${statIc(AB.detailText(t, actx(b, c, false, d), new Set()))}`) : `<p>${esc(traitText(d))}</p>`;
 };
 function augText(id: string, param: string | undefined, b: Battle | null, c: CUnit | null, gl = new Set<string>()) {
   const t = augAbilText(id);
-  return t ? statIc(AB.tok(t, actx(b, c, AUG_BY_ID[id]?.pool === 'unit'), gl)) : esc(augDesc(id, param)); // 기물 전용 증강은 대부분 스킬 강화
+  return t ? statIc(AB.detailText(t, actx(b, c, AUG_BY_ID[id]?.pool === 'unit'), gl)) : esc(augDesc(id, param)); // 기물 전용 증강은 대부분 스킬 강화
 }
 /** 메커니즘 한 줄 설명 */
 function weaponMech(w: Weapon, ctx: AB.AbilCtx) {
@@ -2248,11 +2248,11 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
   } else if (key === 'trait') {
     kind = '특성'; name = d.trait.name; mech = '전투 내내 적용되는 이 기물의 고유 효과.';
     const t = ABIL[d.id]?.trait;
-    body = `<p>${t ? statIc(AB.tok(t, ctx, gl)) : esc(d.trait.desc)}</p>`;
+    body = `${t ? statIc(AB.detailText(t, ctx, gl)) : `<p>${esc(d.trait.desc)}</p>`}`;
   } else if (key === 'ace' && d.ace) {
     kind = '에이스'; name = d.ace.name; mech = '항해자 시너지 활성 시, 에이스 파일럿으로 지정한 출전 기물에게만 발동. 항해자 단계가 오를수록 강해짐.';
     const t = ABIL[d.id]?.ace?.(aceK);
-    body = `<p>${t ? statIc(AB.tok(t, ctx, gl)) : esc(d.ace.desc(aceK))}</p>`;
+    body = t ? statIc(AB.detailText(t, ctx, gl)) : `<p>${esc(d.ace.desc(aceK))}</p>`;
   } else if (key === 'voy' && VOYAGE_SPECIAL[d.id]) {
     const v = VOYAGE_SPECIAL[d.id];
     kind = '출항'; name = v.name; mech = '우리의 출항기! 구성원이 정확히 1명 또는 5명 출전하면, 출전한 구성원 전원에게 발동.';
@@ -2305,7 +2305,7 @@ function enemyAbilCards(e: EnemyDef, b: Battle, c: CUnit) {
   const ab = ENEMY_ABIL[e.id];
   const w = { ...c.weapon!, name: '기본 공격' };
   const range = b.S(c, 'range');
-  const trait = ab?.trait ? abilCard('trait', 'trait', '특성', '', `<p>${statIc(AB.tok(ab.trait, actx(b, c), new Set()))}</p>`) : '';
+  const trait = ab?.trait ? abilCard('trait', 'trait', '특성', '', `${statIc(AB.detailText(ab.trait, actx(b, c), new Set()))}`) : '';
   const skill = e.skill ? abilCard('skill', 'skill', e.skill.name, ab?.skill ? '' : `${e.skill.cd}초`,
     ab?.skill ? `<div class="ab-chips">${AB.skillChips(ab.skill, actx(b, c), range, e.skill.cd)}</div>` : `<p>${esc(e.skill.desc(c.sk))}</p>`) : '';
   return `${weaponCard(w, b, c, e.atk.elem)}${trait}${skill}`;
@@ -2323,7 +2323,7 @@ function enemyAbilPop(key: string, e: EnemyDef, b: Battle, c: CUnit) {
     body = ab?.skill ? AB.skillBody(ab.skill, ctx, b.S(c, 'range'), e.skill.cd, gl) : `<p>${esc(e.skill.desc(c.sk))}</p>`;
   } else if (key === 'trait' && ab?.trait) {
     kind = '특성'; name = '특성'; mech = '전투 내내 적용되는 이 적의 고유 효과.';
-    body = `<p>${statIc(AB.tok(ab.trait, ctx, gl))}</p>`;
+    body = `${statIc(AB.detailText(ab.trait, ctx, gl))}`;
   } else return '';
   return `<div class="stat-pop abil-pop"><div class="sp-head"><span class="ab-kind">${kind}</span><b>${esc(name)}</b><button class="btn tiny" data-a="abil-pop" data-v="">닫기</button></div>${mech ? `<p class="ap-mech">${mech}</p>` : ''}${body}</div>`;
 }
@@ -2348,7 +2348,7 @@ function aceAbil(run: RunState, u: UnitState) {
   const ctl = !nav || !u.pos ? '<span class="muted small">항해자 시너지가 활성화된 출전 기물만 지정할 수 있습니다.</span>'
     : on ? '<span class="small staff-on">✈ 지정됨</span>' : `<button class="btn tiny" data-a="ace-target" data-v="${u.uid}">✈ 에이스 파일럿으로 지정</button>`;
   const t = ABIL[d.id]?.ace?.(k);
-  return `<div class="ab-ace-wrap${on ? ' on' : ''}">${abilCard('ace', 'skill', d.ace.name, on ? '활성' : '비활성', `<p>${t ? statIc(AB.tok(t, actx(null, null), new Set())) : esc(d.ace.desc(k))}</p>`).replace('ab-skill', 'ab-ace')}${ctl}</div>`;
+  return `<div class="ab-ace-wrap${on ? ' on' : ''}">${abilCard('ace', 'skill', d.ace.name, on ? '활성' : '비활성', (t ? statIc(AB.detailText(t, actx(null, null), new Set())) : `<p>${esc(d.ace.desc(k))}</p>`)).replace('ab-skill', 'ab-ace')}${ctl}</div>`;
 }
 
 /** 상세 보기: 전투 유형에 따른 주요 위력 (+ 무기가 다른 위력을 쓰면 함께). 전술 위력은 지금 출전 구성 기준 실시간 값 */

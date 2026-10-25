@@ -195,7 +195,9 @@ export const ROSTER_B: BaseUnit[] = [
           if (!es.length) break;
           const t = b.rng.pick(es);
           b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'chem', ranged: true });
-          const r = skillHit(b, u, t, 'shoot', p.mult, 'chem', { critBonus: p.crit });
+          // 물리 절반 + 화학 절반 (화학 몫은 물리 몫이 맞아야)
+          const r = skillHit(b, u, t, 'shoot', p.mult * 0.5, 'phys', { critBonus: p.crit });
+          if (!r.miss && t.alive) skillHit(b, u, t, 'shoot', p.mult * 0.5, 'chem', { noMiss: true });
           if (p.shock && !r.miss && t.alive) b.applyStatus(u, t, { type: 'shock', key: 'shock', dur: 1.5 }, p.shock);
         }
         return true;

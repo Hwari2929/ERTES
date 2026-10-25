@@ -604,7 +604,7 @@ export const REWORK: Record<string, ReworkDef> = {
     trait: { name: '귀환자의 눈', desc: '체력 비율이 가장 낮은 적을 노린다. 치명타 확률 +25%p.', effect: { stats: { crit: 0.25 }, setup: (u) => { u.mem.lowestFocus = 1; } } },
   },
   argon: {
-    ctype: 'MARK', ttype: 'major', faith: 'hades', weapon: G('선상 작살총', 'chem', 0.9, 4, 1.1, 2, 2.5),
+    ctype: 'MARK', ttype: 'major', faith: 'hades', weapon: G('선상 작살총', 'phys', 0.9, 4, 1.1, 2, 2.5, { mix: 'chem' }),
     factions: ['HEL'], traits: ['NAV', 'DECOMP'],
     trait: { name: '망자의 뱃사공', desc: '다른 기물이 주는 이로운 버프를 받지 않는다. 효과 저항 +40%p.', effect: { stats: { effRes: 0.4 }, setup: (u) => { u.mem.noBless = 1; } } },
   },

@@ -521,7 +521,7 @@ function synTab(H: CxH) {
 const NO_CTX: AB.AbilCtx = { b: null, c: null, p: {} };
 export function augHtml(H: CxH, id: string, param?: string, gl = new Set<string>()) {
   const t = augAbilText(id);
-  return t ? H.statIc(AB.tok(t, NO_CTX, gl)) : esc(augDesc(id, param));
+  return t ? H.statIc(AB.detailText(t, NO_CTX, gl)) : esc(augDesc(id, param));
 }
 /** ◆ 변형 증강: 변형 후 비술 · 지속 능력 한 줄 요약 (psiinfo 에서 읽음) */
 function tfLine(H: CxH, id: string) {
@@ -640,7 +640,7 @@ function psiAugRow(H: CxH, sid: SchoolId, a: AugDef, gl: Set<string>) {
   const tf = isTransformAug(a.id), lg = isLegendAug(a.id);
   const hit = [c.transform || c.mods.length ? '비술' : '', p.transform || p.mods.length ? '지속 능력' : ''].filter(Boolean);
   const t = augAbilText(a.id);
-  const text = t ? H.statIc(AB.tok(t, NO_CTX, gl)) : esc(a.desc);
+  const text = t ? H.statIc(AB.detailText(t, NO_CTX, gl)) : esc(a.desc);
   return `<div class="pa${tf ? ' tf' : ''}" data-id="${esc(a.id)}"><div class="pa-n">${H.augIcon(a.id)}<span><b>${augMark(a.id)}${esc(a.name)}</b><small>${tf ? '변형 · ' : lg ? '전설 · ' : ''}${hit.length ? `${hit.join(' · ')} 변경` : '추가 효과'}</small></span></div><div class="pa-t">${text}${reqLine(a.id, 'p')}</div></div>`;
 }
 /** 상성: 핵심 상태 · 피해 속성이 적 분류마다 어떻게 받는지 (엔진 규칙에서) + 전장별 경고 (matchup.ts) */

@@ -40,6 +40,26 @@ export interface AbilText {
   augs?: Record<string, string>;
 }
 
+/** 상태 효과 설명 문장 (docs/ABILITY_TEXT.md 2.3): 상세 문장에 [fx:키:지속(:추가 인자)] 를 쓰면 그 자리는 [키워드]로 보이고,
+ *  설명 문장은 능력 설명 끝에 한 번만 자동으로 붙는다. 지속 · 계수만 능력마다 다르다.
+ *  a = [지속 초, …] — 지속 피해: [지속, 위력, 계수(, 최대 중첩)] */
+const fxEnd = (d: string, max?: string) => (max ? `[s:${d}] 지속되고, 최대 ${max}회 중첩됩니다.` : `[s:${d}] 지속됩니다.`);
+const fxDot = (key: string, elem: string) => (a: string[]) => `[g:${key}] 효과가 부여된 적은 ${a[3] ? '중첩당 ' : ''}매초 [pw:${a[1]}:${a[2]}:${elem}] 피해를 받으며, ${fxEnd(a[0], a[3])}`;
+export const STATUS_FX: Record<string, (a: string[]) => string> = {
+  stun: (a) => `[g:stun] 효과가 부여된 적은 이동 · 공격 · 스킬 사용이 불가능하며, ${fxEnd(a[0])}`,
+  freeze: (a) => `[g:freeze] 효과가 부여된 적은 이동 · 공격 · 스킬 사용이 불가능하며, ${fxEnd(a[0])}`,
+  fear: (a) => `[g:fear] 효과가 부여된 적은 공격과 스킬 사용이 불가능하며, ${fxEnd(a[0])}`,
+  shock: (a) => `[g:shock] 효과가 부여된 적은 스킬 쿨다운이 감소하지 않으며, ${fxEnd(a[0])}`,
+  root: (a) => `[g:root] 효과가 부여된 적은 이동할 수 없으며, ${fxEnd(a[0])}`,
+  confuse: (a) => `[g:confuse] 효과가 부여된 적은 같은 편을 포함해 가장 가까운 대상을 공격하고 스킬을 쓸 수 없으며, ${fxEnd(a[0])}`,
+  charm: (a) => `[g:charm] 효과가 부여된 적은 시전자 편으로 싸우며, ${fxEnd(a[0])}`,
+  suppress: (a) => `[g:suppress] 효과가 부여된 적은 다음 공격의 피해가 1이 되며, ${fxEnd(a[0])}`,
+  taunt: (a) => `[g:taunt] 효과가 부여된 적은 시전자만 공격하며, ${fxEnd(a[0])}`,
+  bleed: fxDot('bleed', 'phys'),
+  poison: fxDot('poison', 'chem'),
+  burn: fxDot('burn', 'phys'),
+};
+
 /** 용어 설명: 문장 끝에 --- 아래로 모아 보여준다 */
 export const GLOSS: Record<string, { name: string; desc: string }> = {
   stun: { name: '기절', desc: '이동 · 공격 · 스킬 사용 불가. 보스는 지속 시간 절반. 제어 효과: 재장전이 멈추고, 재장전 중이었으면 처음부터 다시.' },

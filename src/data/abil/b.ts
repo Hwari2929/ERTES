@@ -306,12 +306,13 @@ export const ABIL_B: Record<string, AbilText> = {
     skill: (p) => ({
       tgt: '무작위 적 (발마다)', range: null, area: { k: 'one' },
       rows: [
-        ['피해', `[dmg:shoot:${p.mult}:chem${hitsTxt(p.shots)}]`],
+        ['피해', `[dmg:shoot:${p.mult / 2}:phys${hitsTxt(p.shots)}] + [dmg:shoot:${p.mult / 2}:chem]`],
         ...(p.crit ? [['치명타', `[g:crit] 확률 [pp:${p.crit}]`] as Row] : []),
         ...(p.shock ? [['감전', `적중 시 [st:shock:1.5:${p.shock}]`] as Row] : []),
       ],
       text: [
-        `무작위 적을 ${p.shots}회 지정해 각각 [pw:shoot:${p.mult}:chem] 피해를 가합니다.`,
+        `무작위 적을 ${p.shots}회 지정해 각각 [pw:shoot:${p.mult / 2}:phys] 피해와 [pw:shoot:${p.mult / 2}:chem] 피해를 가합니다.`,
+        '화학 피해는 물리 피해가 적중해야 가해집니다.',
         ...(p.crit ? [`이 공격은 치명타 확률이 [pv:${p.crit}] 상승 적용됩니다.`] : []),
         ...(p.shock ? [`공격이 적중하면 대상에게 [p:${p.shock}] 기본 확률로 [g:shock] 효과를 부여합니다.`, '[g:shock] 효과는 대상의 스킬 쿨다운이 줄지 않게 하며, [s:1.5] 지속됩니다.'] : []),
       ].join('\n'),

@@ -143,9 +143,9 @@ const BASE_ULTS: Record<string, UltDef> = {
   },
   argon: {
     id: 'argon', name: '망자의 항로', charge: 1.0, line: '…늦더라도, 반드시 도착한다.',
-    brief: '무작위 적들에게 화학 피해를 여러 번 주고, 맞은 적이 받는 피해를 늘립니다.',
-    text: '[s:1.5]간 무작위 적을 12회 지정해 각각 [pw:shoot:0.9:chem] 피해를 가합니다.\n공격이 적중하면 [s:4]간 대상이 받는 피해를 [p:0.15] 늘립니다.',
-    desc: '1.5초 동안 무작위 적에게 작살 12회 (사격 위력 90% 화학). 맞은 적은 4초간 받는 피해 +15%.',
+    brief: '무작위 적들에게 작살을 여러 번 쏘고, 맞은 적이 받는 피해를 증가시킵니다.',
+    text: '[s:1.5]간 무작위 적을 12회 지정해 각각 [pw:shoot:0.45:phys] 피해와 [pw:shoot:0.45:chem] 피해를 가합니다.\n공격이 적중하면 [s:4]간 대상이 받는 피해를 [p:0.15] 늘립니다.',
+    desc: '1.5초 동안 무작위 적에게 작살 12회 (사격 위력 45% 물리 + 45% 화학). 맞은 적은 4초간 받는 피해 +15%p.',
     theme: { pat: 'sea', c1: '#3ad0c0', c2: '#0a1418', txt: 'mist' },
     cast(b, u) {
       if (!b.enemiesOf(u).length) return false;
@@ -153,7 +153,8 @@ const BASE_ULTS: Record<string, UltDef> = {
         const es = bb.enemiesOf(u);
         if (!es.length) return;
         const t = bb.rng.pick(es);
-        const r = shot(bb, u, t, 0.9, 'chem');
+        const r = shot(bb, u, t, 0.45, 'phys'); // 작살: 물리 절반 + 화학 절반 (화학 몫은 물리 몫이 맞아야)
+        if (!r.miss && t.alive) { const r2 = bb.dealDamage(u, t, S(bb, u, 'shoot') * 0.45, { elem: 'chem', tag: 'skill', kind: 'shoot', canMiss: false }); r.amount += r2.amount; }
         if (r.amount > 0 && t.alive) bb.applyStatus(u, t, { type: 'buff', key: 'argon.mark', dur: 4, taken: [vuln('all', 0.15)], label: '망자의 표식' });
       });
       return true;

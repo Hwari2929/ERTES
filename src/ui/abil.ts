@@ -1,6 +1,6 @@
 // 능력 설명 렌더러: 토큰 문장 → 아이콘 · 실제 수치, 사거리 · 범위 미니 격자, 좌측 상세 팝업
 import { CFG } from '../config';
-import { type Area, GLOSS, type SkillInfo } from '../data/abiltext';
+import { type Area, GLOSS, type SkillInfo, STATUS_FX } from '../data/abiltext';
 import { elementDamageMult, type Battle, type CUnit } from '../engine/combat';
 import { type Elem, ELEM_NAME, type Weapon } from '../types';
 import { fmt } from './battleview';
@@ -11,7 +11,7 @@ const pct = (x: number) => `${Math.round(x * 1000) / 10}%`;
 
 /** 수치를 계산할 기물 (없으면 계수로 표시) */
 /** skill: 스킬 문맥 (지휘관이면 전술 위력으로 계산) — 무기 · 특성 · 패시브는 적힌 위력 그대로 */
-export interface AbilCtx { b: Battle | null; c: CUnit | null; p: Record<string, number>; skill?: boolean; /** 이 능력의 사거리 (칸, [rng] 토큰) */ range?: number }
+export interface AbilCtx { b: Battle | null; c: CUnit | null; p: Record<string, number>; skill?: boolean; /** 이 능력의 사거리 (칸, [rng] 토큰) */ range?: number; /** [fx] 상태 효과 설명 모음 (detailText 가 끝에 붙인다) */ fx?: Map<string, string> }
 /** main = 사이오닉 주요 위력 (명사수 사격 · 돌격가 타격 · 전문가 기술 · 지휘관 전술) × CFG.psiPower */
 /** prime = 성유물 · 신권 대행의 주력 위력 (main 과 같은 종류, psiPower 배율 없음) */
 type Pow = 'shoot' | 'strike' | 'tech' | 'main' | 'prime';
@@ -54,7 +54,13 @@ export function powCoef(ctx: AbilCtx, pow: Pow, mult: number, elem?: Elem) {
 }
 export const elemWord = (e: Elem) => `<span class="pw el-t-${e}">${lineIcon(`e.${e}`, 'li')}${ELEM_NAME[e]}</span>`;
 /** 상세 문장 묶음: 줄마다 한 문장 (docs/ABILITY_TEXT.md) */
-export const detailText = (text: string, ctx: AbilCtx, gl: Set<string>) => `<div class="ab-dt">${text.split('\n').map((l) => `<p>${tok(l, ctx, gl)}</p>`).join('')}</div>`;
+export function detailText(text: string, ctx: AbilCtx, gl: Set<string>) {
+  const fx = new Map<string, string>(), c = { ...ctx, fx };
+  const lines = text.split('\n').map((l) => `<p>${tok(l, c, gl)}</p>`).join('');
+  // [fx] 로 부여한 상태 효과의 설명 문장: 능력 설명 끝에 한 번씩 (docs/ABILITY_TEXT.md 2.3)
+  const fxs = [...fx.values()].map((l) => `<p class="ab-fx">${tok(l, ctx, gl)}</p>`).join('');
+  return `<div class="ab-dt">${lines}${fxs}</div>`;
+}
 /** 피해 유형: 위력 아이콘 + 이름 */
 export function powType(ctx: AbilCtx, pow: Pow, tactical = false) {
   const k = powKey(ctx, pow, tactical);
@@ -109,6 +115,7 @@ export function tok(text: string, ctx: AbilCtx, gl: Set<string>): string {
       case 'pw': return powCoef(ctx, a[0] as Pow, num(a[1], ctx), a[2] as Elem | undefined);
       case 'el': return elemWord(a[0] as Elem);
       case 'rng': return `<span class="tln">${lineIcon('u.range', 'li')}${ctx.range ?? '?'}칸</span>`;
+      case 'fx': { const f = STATUS_FX[a[0]]; if (f && ctx.fx) ctx.fx.set(rest, f(a.slice(1))); return kw(a[0], gl); }
       case 'g': return kw(a[0], gl);
       case 't': return `<span class="tln">${lineIcon('u.range', 'li')}${num(a[0], ctx)}칸</span>`;
       case 's': return `${num(a[0], ctx)}초`;
@@ -159,7 +166,7 @@ export function weaponRows(w: Weapon, ctx: AbilCtx, elem: Elem, gl: Set<string>)
   if (tac) gl.add('tac');
   const atkSpd = b && c ? Math.max(0.2, 1 + b.S(c, 'atkSpd')) : 1;
   const aps = atkSpd / w.interval;
-  const rows: [string, string][] = [['피해 유형', powType(ctx, pow, tac)], ['피해', powNum(ctx, pow, w.mult, false, tac, elem)],
+  const rows: [string, string][] = [['피해 유형', powType(ctx, pow, tac)], ['피해', w.mix ? `${powNum(ctx, pow, w.mult * 0.5, false, tac, elem)} + ${powNum(ctx, pow, w.mult * 0.5, false, tac, w.mix)}` : powNum(ctx, pow, w.mult, false, tac, elem)],
     ['공격 속도', `${aps.toFixed(2)}회/초 <span class="muted">(${(w.interval / atkSpd).toFixed(2)}초)</span>`]];
   if (w.type === 'shoot') rows.push(['RPM', `${Math.round(aps * 60)}발/분`]);
   if (w.kind === 'mag') {
@@ -194,7 +201,7 @@ export function weaponChips(w: Weapon, ctx: AbilCtx, range: number, elem: Elem) 
   const pow: Pow = w.type === 'shoot' ? 'shoot' : 'strike';
   if (w.kind === 'none') return '';
   const dps = weaponDps(w, ctx);
-  return [chip('u.range', `${range}칸`, '사거리'), powNum(ctx, pow, w.mult, false, !!w.tactical, elem),
+  return [chip('u.range', `${range}칸`, '사거리'), w.mix ? `${powNum(ctx, pow, w.mult * 0.5, false, !!w.tactical, elem)}${powNum(ctx, pow, w.mult * 0.5, false, !!w.tactical, w.mix)}` : powNum(ctx, pow, w.mult, false, !!w.tactical, elem),
     w.kind === 'mag' ? chip('u.mag', `${w.mag}발`, '탄창') : chip('u.combo', `${w.combo}단`, '콤보'),
     dps !== null ? `<span class="abc" title="예상 DPS">DPS <b>${fmt(dps)}</b></span>` : ''].join('');
 }

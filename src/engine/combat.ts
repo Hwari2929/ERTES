@@ -1077,7 +1077,9 @@ export class Battle {
     if (holy) u.mem.holyShots--;
     const elem = holy ? 'holy' : u.atk.elem;
     this.emit({ k: 'atk', from: u.id, to: tgt.id, elem, ranged: u.atk.type === 'shoot' });
-    const r = this.dealDamage(u, tgt, pow * m, { elem, tag: 'basic', kind, canMiss: true, extra, pen: holy ? 1 : 0 });
+    const mix = !holy && w?.mix ? w.mix : null; // 혼합 속성 무기: 계수를 반씩 두 속성으로 (두 번째 몫은 첫 몫이 맞아야)
+    const r = this.dealDamage(u, tgt, pow * m * (mix ? 0.5 : 1), { elem, tag: 'basic', kind, canMiss: true, extra, pen: holy ? 1 : 0 });
+    if (mix && !r.miss && tgt.alive) { const r2 = this.dealDamage(u, tgt, pow * m * 0.5, { elem: mix, tag: 'basic', kind, canMiss: false }); r.amount += r2.amount; r.killed ||= r2.killed; }
     if (r.miss) this.missed.add(tgt); // 빗나간 기본 공격: 특성 · 장비 훅이 거는 해로운 상태 효과는 들어가지 않는다
     for (const h of u.hooks) h.onBasic?.(this, u, tgt, r);
     this.missed.delete(tgt);

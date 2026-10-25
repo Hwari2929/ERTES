@@ -58,6 +58,8 @@ export interface Weapon {
   combo?: number;
   /** 위력 대신 전술 위력을 쓴다 (아문센 등) */
   tactical?: boolean;
+  /** 혼합 속성: 계수 절반은 elem, 절반은 이 속성으로 (아르곤 작살총 = 물리 + 화학). 두 번째 몫은 첫 몫이 적중해야 들어간다 */
+  mix?: Elem;
 }
 /** 캠페인 전용 시너지 (data/campaign.ts) — 캠페인 런에서만 집계되고, 일반 런의 시너지 표와 섞이지 않는다 */
 export type CampSynId = 'CP_VOY' | 'CP_PET' | 'CP_LAZY' | 'CP_CAMP' | 'CP_BNC' | 'CP_AGIT';
