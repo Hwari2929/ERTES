@@ -29,6 +29,8 @@ export interface SkillInfo {
   text?: string;
 }
 export interface AbilText {
+  /** 상세 보기 꺼짐의 한 줄 설명 (docs/ABILITY_TEXT.md 1절). 없으면 brief.ts BRIEF */
+  brief?: { skill?: string; trait?: string };
   skill?: (p: Record<string, number>) => SkillInfo;
   trait?: string;
   ace?: (k: number) => string;
@@ -72,6 +74,7 @@ const hitsTxt = (n: number) => (n > 1 ? `:${n}` : '');
 
 const ABIL_PILOT: Record<string, AbilText> = {
   yelena: {
+    brief: { skill: '대상에게 정신 피해를 주고, 스킬을 늦추고 약하게 만들며, 가끔 [공포]에 빠뜨립니다.', trait: '기본 공격이 정신 피해로 바뀌고, 맞은 적의 스킬을 늦춥니다.' },
     skill: (p) => ({
       tgt: '현재 대상', range: 'unit', area: aroundOr(p.radius),
       rows: [
@@ -83,18 +86,17 @@ const ABIL_PILOT: Record<string, AbilText> = {
       ],
       text: [
         p.radius ? `[rng] 이내의 적을 지정해 대상으로부터 [t:${p.radius}] 이내의 적들에게 [pw:tech:${p.mult}:psy] 피해를 가합니다.` : `[rng] 이내의 적에게 [pw:tech:${p.mult}:psy] 피해를 가합니다.`,
-        `공격이 적중하면 대상에게 [g:forget] 효과와 [g:weak] 효과${p.vuln ? ', [g:vuln] 효과' : ''}를 부여하고, [p:${p.fearChance}] 기본 확률로 [g:fear] 효과를 부여합니다.`,
-        `[g:forget] 효과는 대상의 스킬 쿨다운을 [s:${p.forget}] 늘립니다.`,
-        `[g:weak] 효과는 대상이 가하는 피해를 [p:${p.weak}] 줄이며, [s:${p.weakDur}] 지속됩니다.`,
-        ...(p.vuln ? [`[g:vuln] 효과는 대상이 받는 피해를 [p:${p.vuln}] 늘리며, [s:4] 지속됩니다.`] : []),
+        `공격이 적중하면 대상의 스킬 쿨다운을 [s:${p.forget}] 늘리고, [s:${p.weakDur}]간 대상이 가하는 피해를 [p:${p.weak}] 줄입니다.`,
+        ...(p.vuln ? [`[s:4]간 대상이 받는 피해를 [p:${p.vuln}] 늘립니다.`] : []),
+        `공격이 적중하면 대상에게 [p:${p.fearChance}] 기본 확률로 [g:fear] 효과를 부여합니다.`,
         `[g:fear] 효과는 대상이 공격과 스킬을 쓰지 못하게 하며, [s:${p.fear}] 지속됩니다.`,
       ].join('\n'),
     }),
     trait: '기본 공격이 [el:psy] 피해로 바뀌고, 기본 공격 피해가 [p:0.25] 감소합니다.\n[el:psy] 피해를 받은 적은 스킬 쿨다운이 [s:1] 늘어납니다 (대상마다 1초에 1번).',
     augs: {
       wide: '항밈 소거가 대상으로부터 [t:1] 이내의 적들에게도 피해를 가하고, 피해가 [pw:tech:0.3:psy]만큼 증가합니다.',
-      deep: '[g:forget] 효과가 스킬 쿨다운을 [s:3] 더 늘리고, [g:fear] 효과의 기본 확률이 [pp:0.25] 증가합니다.',
-      delta: '항밈 소거가 적중하면 대상에게 [g:vuln] 효과를 부여합니다. [g:vuln] 효과는 받는 피해를 [p:0.3] 늘리며, [s:4] 지속됩니다.',
+      deep: '항밈 소거가 늘리는 스킬 쿨다운이 [s:3] 더 길어지고, [g:fear] 효과의 기본 확률이 [pp:0.25] 증가합니다.',
+      delta: '항밈 소거가 적중하면 [s:4]간 대상이 받는 피해를 [p:0.3] 늘립니다.',
       report: '항밈 소거의 피해가 [pw:tech:1.6:psy]만큼 증가합니다.',
       hoodie: '정신력 +9, 기동력 +6.',
     },

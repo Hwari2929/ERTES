@@ -761,11 +761,11 @@ function weaponAbil(w: Weapon, elem = w.elem) {
 }
 /** 지휘관 스킬은 전술 위력으로 계산된다 */
 function skillText(d: UnitDef, sk = d.skill.params) {
-  if (!app.detail) return BRIEF[d.id]?.skill || d.skill.desc(sk);
+  if (!app.detail) return ABIL[d.id]?.brief?.skill || BRIEF[d.id]?.skill || d.skill.desc(sk);
   const t = d.skill.desc(sk);
   return d.ctype === 'CMD' ? t.replace(/기술 위력/g, '전술 위력') : t;
 }
-const traitText = (d: UnitDef) => (app.detail ? d.trait.desc : BRIEF[d.id]?.trait || d.trait.desc);
+const traitText = (d: UnitDef) => (app.detail ? d.trait.desc : ABIL[d.id]?.brief?.trait || BRIEF[d.id]?.trait || d.trait.desc);
 /** 위쪽 바 축성 단추 (편성 중 디바인 · 성유물 장착 시): 권능을 써서 다음 전투의 신권 대행 계수 ×3 (성유물 칸의 축성과 같은 동작) */
 function blessBtn(run: RunState, u: UnitState, d: UnitDef) {
   if (d.ttype !== 'divine') return '';
@@ -2131,7 +2131,8 @@ function skillCard(d: UnitDef, b: Battle | null, c: CUnit | null) {
 }
 const traitHtml = (d: UnitDef, b: Battle | null, c: CUnit | null) => {
   const t = ABIL[d.id]?.trait;
-  if (!app.detail && BRIEF[d.id]?.trait) return `<p>${esc(BRIEF[d.id].trait)}</p>`; // 상세 보기 꺼짐: 한 줄 설명
+  const bt = ABIL[d.id]?.brief?.trait || BRIEF[d.id]?.trait;
+  if (!app.detail && bt) return `<p>${esc(bt)}</p>`; // 상세 보기 꺼짐: 한 줄 설명
   return t ? (t.includes('\n') ? statIc(AB.detailText(t, actx(b, c, false, d), new Set())) : `<p>${statIc(AB.tok(t, actx(b, c, false, d), new Set()))}</p>`) : `<p>${esc(traitText(d))}</p>`;
 };
 function augText(id: string, param: string | undefined, b: Battle | null, c: CUnit | null, gl = new Set<string>()) {
