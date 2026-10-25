@@ -690,9 +690,11 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
       const cv = cantripView(sc.id, pa), pv = passiveView(sc.id, pa);
       const cd = psiCd(b, c, cv.cd);
       const chips = AB.skillChips(cv.info, actx(b, c, true), b && c ? b.S(c, 'range') : d.range, cd) + AB.chip('a.reason', `-${cv.cost}`, '이성 소모');
-      body.push(`<div class="ps-cards" style="--sc:${sc.color}">
-        <div class="ps-card ab-click${abilOn('cantrip')} has-tok" data-a="abil-pop" data-v="cantrip" role="button" tabindex="0">${abTok(`cantrip.${sc.id}`)}<div class="ab-head"><span class="ab-kind">비술</span><b>${esc(cv.name)}</b>${psiTfTag(cv.transform)}</div><div class="ab-chips">${chips}</div></div>
-        <div class="ps-card ab-click${abilOn('psipass')} has-tok" data-a="abil-pop" data-v="psipass" role="button" tabindex="0">${abTok(`passive.${sc.id}`)}<div class="ab-head"><span class="ab-kind">지속</span><b>${esc(sc.passive.name)}</b>${psiTfTag(pv.transform)}</div><span class="small">${esc(pv.brief)}</span></div>
+      // 설명: 상세 보기 = 상세 문장 (docs/ABILITY_TEXT.md), 아니면 한 줄 (수치 없음)
+      const psiTx = (text: string | undefined, brief: string) => (app.detail && text ? `<div class="small">${detailHtml(text, actx(b, c, true))}</div>` : `<span class="small">${esc(brief)}</span>`);
+      body.push(`<div class="ps-cards${app.detail ? ' dt' : ''}" style="--sc:${sc.color}">
+        <div class="ps-card ab-click${abilOn('cantrip')} has-tok" data-a="abil-pop" data-v="cantrip" role="button" tabindex="0">${abTok(`cantrip.${sc.id}`)}<div class="ab-head"><span class="ab-kind">비술</span><b>${esc(cv.name)}</b>${psiTfTag(cv.transform)}</div><div class="ab-chips">${chips}</div>${psiTx(cv.info.text, cv.brief)}</div>
+        <div class="ps-card ab-click${abilOn('psipass')} has-tok" data-a="abil-pop" data-v="psipass" role="button" tabindex="0">${abTok(`passive.${sc.id}`)}<div class="ab-head"><span class="ab-kind">지속</span><b>${esc(sc.passive.name)}</b>${psiTfTag(pv.transform)}</div>${psiTx(pv.text, pv.brief)}</div>
       </div>`);
       // 이성: 양 끝에 효과, 가운데 0 (누르면 규칙 상세)
       const r = live && c && c.reason !== null ? c.reason : null;
@@ -766,6 +768,14 @@ function skillText(d: UnitDef, sk = d.skill.params) {
   return d.ctype === 'CMD' ? t.replace(/기술 위력/g, '전술 위력') : t;
 }
 const traitText = (d: UnitDef) => (app.detail ? d.trait.desc : ABIL[d.id]?.brief?.trait || BRIEF[d.id]?.trait || d.trait.desc);
+/** 상세 문장 (docs/ABILITY_TEXT.md): 줄마다 한 문장, 능력치 아이콘 치환 */
+const detailHtml = (text: string, ctx: AB.AbilCtx, gl = new Set<string>()) => statIc(AB.detailText(text, ctx, gl));
+/** 영입 · 계약 카드의 스킬 블록: 상세 보기 = 상세 문장 (없으면 옛 설명), 아니면 한 줄. 전투 기물이 없으니 전투 유형만 담은 자리표시로 위력 이름(지휘관 = 전술 위력)을 고른다 */
+function unitSkillAbil(d: UnitDef) {
+  const info = app.detail ? ABIL[d.id]?.skill?.(d.skill.params) : undefined;
+  if (!info?.text) return abil('skill', d.skill.name, app.detail ? `${d.skill.cd}초` : '', skillText(d));
+  return `<div class="abil ab-skill"><div class="ab-head"><span class="ab-kind">${AB_KIND.skill}</span><b>${esc(d.skill.name)}</b><span class="ab-meta">${d.skill.cd}초</span></div>${detailHtml(info.text, { b: null, c: { ctype: d.ctype, side: 0, isSummon: false, mem: {} } as unknown as CUnit, p: d.skill.params, skill: true, range: d.range })}</div>`;
+}
 /** 위쪽 바 축성 단추 (편성 중 디바인 · 성유물 장착 시): 권능을 써서 다음 전투의 신권 대행 계수 ×3 (성유물 칸의 축성과 같은 동작) */
 function blessBtn(run: RunState, u: UnitState, d: UnitDef) {
   if (d.ttype !== 'divine') return '';
@@ -799,7 +809,7 @@ function unitCard(d: UnitDef, opts: { selected?: boolean; action?: string; rank?
 function unitInfo(d: UnitDef) {
   return `${weaponAbil(d.weapon)}
     ${traitGroup(d, null, app.run)}
-    ${abil('skill', d.skill.name, app.detail ? `${d.skill.cd}초` : '', skillText(d))}
+    ${unitSkillAbil(d)}
     <div class="majors-mini">${MAJORS.map((m) => `<span title="${MAJOR_NAME[m]}">${majorIcon(m)}<b>${d.base[m]}</b></span>`).join('')}</div>`;
 }
 /** 역할: 전투 유형 · 전술 유형 (아이콘 + 이름) */
@@ -2016,19 +2026,19 @@ function ultCard(d: UnitDef, b: Battle | null, c: CUnit | null, live = false) {
   const eff = c && b ? b.S(c, 'ultCharge') : 0;
   const sec = (CFG.ultTime * CFG.ultNeed) / (ul.charge * Math.max(0.1, 1 + eff));
   const chips = `<div class="ab-chips"><span class="abc" title="자연 충전 주기">${lineIcon('a.cd', 'li')}${sec.toFixed(0)}초</span><span class="abc" title="전투 시작 게이지">${lineIcon('a.battery', 'li')}시작 ${Math.round((CFG.ultStart + (c?.mem.ultStart || 0)) * 100)}%</span>${live && c ? `<span class="abc v">${Math.round((c.ultG || 0) * 100)}%</span>` : ''}</div>`;
-  const body = app.detail ? (ul.text ? statIc(AB.detailText(ul.text, actx(b, c, true), new Set())) : `<p>${statIc(esc(ul.desc))}</p>`) : `<p>${esc(ul.brief || ul.desc)}</p>`;
+  const body = app.detail ? (ul.text ? detailHtml(ul.text, actx(b, c, true)) : `<p>${statIc(esc(ul.desc))}</p>`) : `<p>${esc(ul.brief || ul.desc)}</p>`;
   return abilCard('ult', 'ult', ul.name, `약 ${sec.toFixed(0)}초`, `${chips}${body}`, '', `ult.${d.id}`);
 }
 /** 디바인 신권 대행 카드: 장착한 성유물 */
 /** 성유물 섹션: 장착 슬롯 + 종속 하위 능력(신권 대행) */
-function relicSection(d: UnitDef, u: UnitState | null, run: RunState | null, c: CUnit | null, live = false) {
+function relicSection(d: UnitDef, u: UnitState | null, run: RunState | null, c: CUnit | null, live = false, b0: Battle | null = null) {
   if (d.ttype !== 'divine') {
     // 성찬(도로스)으로 깨어난 기물: 성유물이 없으므로 전투 유형 기본형 신권 대행 (전투 중) · 깨어날 수 있으면 미리보기 (편성)
     const woke = live && awakened(d, c);
     if (!woke && !dorosReady(d, run)) return '';
     const da = DIVINE_ACT[d.ctype];
     const chips = `<div class="ab-chips"><span class="abc" title="신성력이 가득 차면 발동">${lineIcon('a.divact', 'li')}신성력 100</span><span class="abc">전투당 1회</span>${woke && c ? `<span class="abc v">${c.divUsed ? '발동함' : Math.round(c.div || 0)}</span>` : '<span class="abc">성찬을 받으면</span>'}</div>`;
-    return `<section class="abil ab-relic"><div class="rl-act ab-click${abilOn('divact')}" data-a="abil-pop" data-v="divact" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">신권 대행 · 성찬</span><b>${lineIcon('a.divact', 'li ab-ic')}${esc(da.name)}</b></div>${chips}<p>${esc(da.desc)}. 성유물이 없어 ${esc(CTYPE_NAME[d.ctype])} 기본형을 쓴다.</p></div></section>`;
+    return `<section class="abil ab-relic"><div class="rl-act ab-click${abilOn('divact')}" data-a="abil-pop" data-v="divact" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">신권 대행 · 성찬</span><b>${lineIcon('a.divact', 'li ab-ic')}${esc(da.name)}</b></div>${chips}${app.detail ? detailHtml(da.text, actx(b0, c)) : `<p>${esc(da.brief)}</p>`}<p class="small muted">성유물이 없어 ${esc(CTYPE_NAME[d.ctype])} 기본형을 쓴다.</p></div></section>`;
   }
   const rid = u?.relic || c?.relic || DEFAULT_RELIC[d.id];
   const rel = rid ? RELIC_BY_ID[rid] : null;
@@ -2039,7 +2049,7 @@ function relicSection(d: UnitDef, u: UnitState | null, run: RunState | null, c: 
   if (rel) {
     const k = (live ? c?.mem.enh : u?.enh ? 3 : 1) || 1;
     const chips = `<div class="ab-chips"><span class="abc" title="신성력이 가득 차면 발동">${lineIcon('a.divact', 'li')}신성력 100</span><span class="abc">전투당 1회</span>${k > 1 ? '<span class="abc v">강화 ×3</span>' : ''}${live && c && c.div !== null ? `<span class="abc v">${c.divUsed ? '발동함' : Math.round(c.div)}</span>` : ''}</div>`;
-    act = `<div class="rl-act ab-click${abilOn('divact')}" data-a="abil-pop" data-v="divact" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">신권 대행</span><b>${lineIcon('a.divact', 'li ab-ic')}${esc(rel.name)}</b></div>${chips}<p>${statIc(esc(rel.desc(k)))}</p></div>`;
+    act = `<div class="rl-act ab-click${abilOn('divact')}" data-a="abil-pop" data-v="divact" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">신권 대행</span><b>${lineIcon('a.divact', 'li ab-ic')}${esc(rel.name)}</b></div>${chips}${app.detail ? detailHtml(rel.text(k), actx(b0, c)) : `<p>${esc(rel.brief)}</p>`}</div>`;
   }
   return `<section class="abil ab-relic">${head}${slot}${act ? `<hr class="rl-sep">${act}` : ''}</section>`;
 }
@@ -2189,12 +2199,13 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     const info = ABIL[d.id]?.skill?.(p);
     const cd = c?.cdMax ?? d.skill.cd;
     kind = '스킬'; name = d.skill.name; mech = skillMech(info?.range ?? 'unit', d.ctype === 'CMD', (c?.weapon || d.weapon).kind === 'mag');
-    body = info ? AB.skillBody(info, actx(b, c, true), b && c ? b.S(c, 'range') : d.range, cd, gl) : `<p>${esc(d.skill.desc(p))}</p><p class="muted small">쿨다운 ${cd.toFixed(1)}초</p>`;
+    const range = b && c ? b.S(c, 'range') : d.range;
+    body = info ? (info.text ? detailHtml(info.text, { ...actx(b, c, true), range }, gl) : '') + AB.skillBody(info, actx(b, c, true), range, cd, gl) : `<p>${esc(d.skill.desc(p))}</p><p class="muted small">쿨다운 ${cd.toFixed(1)}초</p>`;
   } else if (key === 'ult' && ULTS[d.id]) {
     const ul = ULTS[d.id];
     const sec = (CFG.ultTime * CFG.ultNeed) / (ul.charge * Math.max(0.1, 1 + (c && b ? b.S(c, 'ultCharge') : 0)));
     kind = '궁극기'; name = ul.name; mech = `시간이 지나면 저절로 차오른다 (약 ${sec.toFixed(0)}초, 전투 시작 ${Math.round(CFG.ultStart * 100)}%). 가득 차면 다음 행동에 기술보다 먼저 발동하고, 한 전투에 여러 번 쓸 수 있다. 충전 효율이 높을수록 빨리 찬다.`;
-    body = `<p>${statIc(esc(ul.desc))}</p><p class="muted small">“${esc(ul.line)}”</p>`;
+    body = `${ul.text ? detailHtml(ul.text, actx(b, c, true), gl) : `<p>${statIc(esc(ul.desc))}</p>`}<p class="muted small">“${esc(ul.line)}”</p>`;
   } else if (key === 'cantrip') {
     const ru = app.run?.units.find((x) => x.defId === d.id);
     const sid = forcedSchool || cSchool(c) || (ru ? schoolOf(ru) : null);
@@ -2205,7 +2216,7 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
       // 전공 선택 미리보기(forcedSchool)는 기본형, 그 밖에는 보유 증강을 반영한 실제 비술
       const cv = cantripView(sc.id, forcedSchool ? [] : psiAugsFor(d, c));
       const cd = psiCd(b, c, cv.cd);
-      body = psiTfNote(cv.transform, cv.mods, sc.cantrip.name) + AB.skillBody(cv.info, ctx, b && c ? b.S(c, 'range') : d.range, cd, gl) + AB.rowsHtml([['이성 소모', `${lineIcon('a.reason', 'li')}-${cv.cost}`]]);
+      body = psiTfNote(cv.transform, cv.mods, sc.cantrip.name) + (cv.info.text ? detailHtml(cv.info.text, actx(b, c, true), gl) : '') + AB.skillBody(cv.info, ctx, b && c ? b.S(c, 'range') : d.range, cd, gl) + AB.rowsHtml([['이성 소모', `${lineIcon('a.reason', 'li')}-${cv.cost}`]]);
     }
   } else if (key === 'psipass') {
     const ru = app.run?.units.find((x) => x.defId === d.id);
@@ -2214,7 +2225,7 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     kind = '지속 능력'; name = sc?.passive.name || '지속 능력';
     mech = '전투 내내 적용된다. 확률 발동은 평타 · 전투 스킬 · 비술이 적중할 때만 판정하고, 지속 피해 · 소환물 공격은 판정하지 않는다.';
     const pv = sc ? passiveView(sc.id, forcedSchool ? [] : psiAugsFor(d, c)) : null;
-    body = sc && pv ? psiTfNote(pv.transform, pv.mods, sc.passive.name) + AB.rowsHtml(pv.rows.map(([k, v]) => [k, statIc(AB.tok(v, ctx, gl))] as [string, string])) : '';
+    body = sc && pv ? psiTfNote(pv.transform, pv.mods, sc.passive.name) + detailHtml(pv.text, actx(b, c, true), gl) + AB.rowsHtml(pv.rows.map(([k, v]) => [k, statIc(AB.tok(v, ctx, gl))] as [string, string])) : '';
   } else if (key === 'reason') {
     const ru = app.run?.units.find((x) => x.defId === d.id);
     const sid = cSchool(c) || (ru ? schoolOf(ru) : null);
@@ -2233,7 +2244,7 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     const da = DIVINE_ACT[d.ctype];
     kind = '신권 대행'; name = rel?.name || da.name; mech = rel ? '고유 신앙에 맞는 행동으로 신성력을 모아 100이 되면 전투당 한 번 발동. 장착한 성유물에 따라 효과가 바뀌고, 지속 효과는 전투가 끝날 때까지 유지된다. 권능으로 강화하면 다음 전투 한정 계수 ×3.'
       : `고유 신앙에 맞는 행동으로 신성력을 모아 100이 되면 전투당 한 번 발동. 성유물이 없으면 (도로스의 [성찬]으로 깨어난 기물 등) ${CTYPE_NAME[d.ctype]} 기본형을 쓴다.`;
-    body = rel ? `<p>${statIc(esc(rel.desc(c?.mem.enh || 1)))}</p><p class="muted small">강화 비용 권능 ${rel.enh}</p>` : `<p>${esc(da.desc)}.</p>`;
+    body = rel ? `${detailHtml(rel.text(c?.mem.enh || 1), ctx, gl)}<p class="muted small">강화 비용 권능 ${rel.enh}</p>` : detailHtml(da.text, ctx, gl);
   } else if (key === 'trait') {
     kind = '특성'; name = d.trait.name; mech = '전투 내내 적용되는 이 기물의 고유 효과.';
     const t = ABIL[d.id]?.trait;
@@ -2446,7 +2457,7 @@ function unitModal(run: RunState, pv = false) {
           <div class="subs um-rules">${sub('um:tt', TTYPE_ICON(d.ttype), `tt-${d.ttype}`, TTYPE_NAME[d.ttype], '공통 규칙', `<p>${esc(TTYPE_RULE[d.ttype])}</p>`)}</div>
           <div class="abils">
             ${ultCard(d, b, c)}
-            ${ttSection(d, u, run, b, c, false, false)}${relicSection(d, u, run, c)}
+            ${ttSection(d, u, run, b, c, false, false)}${relicSection(d, u, run, c, false, b)}
           </div>
           <h3>신앙</h3>
           <div class="abils">${faithAbil(d, u, run)}</div>
@@ -2639,7 +2650,7 @@ function detailPanel(run: RunState, extra = '') {
       ${skillCard(d, b, c)}
       ${summonSection(d, b, c, sumScope(u))}
       ${ultCard(d, b, c)}
-      ${ttSection(d, u, run, b, c)}${relicSection(d, u, run, c)}
+      ${ttSection(d, u, run, b, c)}${relicSection(d, u, run, c, false, b)}
       ${faithAbil(d, u, run)}
     </div>
     <p class="lore">${esc(d.lore)}</p>
@@ -4831,7 +4842,7 @@ function battleUnitStatic(b: Battle, u: CUnit) {
     const d = withEmblemSummon(UNIT_BY_ID[u.defId], u.src?.mod);
     const pv = provChip(b, u);
     head = heroHead(d.id, sprite(u, 'spr big'), d.name, allyTags(d)) + (pv ? `<div class="d-pows">${pv}</div>` : '');
-    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem, d.id)}<div class="abil ab-trait ab-click${abilOn('trait')} has-tok" data-a="abil-pop" data-v="trait" role="button" tabindex="0">${abTok(`trait.${d.id}`)}<div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${summonSection(d, b, u, '이번 전투')}${ultCard(d, b, u, true)}${ttSection(d, u.src || null, app.run, b, u, true)}${relicSection(d, u.src || null, app.run, u, true)}${faithAbil(d, u.src || null, app.run, u)}`;
+    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem, d.id)}<div class="abil ab-trait ab-click${abilOn('trait')} has-tok" data-a="abil-pop" data-v="trait" role="button" tabindex="0">${abTok(`trait.${d.id}`)}<div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${summonSection(d, b, u, '이번 전투')}${ultCard(d, b, u, true)}${ttSection(d, u.src || null, app.run, b, u, true)}${relicSection(d, u.src || null, app.run, u, true, b)}${faithAbil(d, u.src || null, app.run, u)}`;
     if (app.abilPop) pop = abilPopHtml(app.abilPop, d, b, u);
   } else if (u.side === 1 && ENEMY_BY_ID[u.defId]) {
     const e = ENEMY_BY_ID[u.defId];
@@ -4973,9 +4984,9 @@ function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
         <h3>시너지</h3><div class="cx-syns">${syn}</div>
       </div>
     </div>
-    <h3>능력 <span class="cx-hn">1등급 · 장비 없음 기준</span></h3>
+    <h3 class="cx-ud-ab">능력 <span class="cx-hn">1등급 · 장비 없음 기준</span>${detailToggle()}</h3>
     <div class="cx-ud-abil"><div class="abils">${weaponCard(c.weapon || d.weapon, b, c, c.atk.elem, d.id)}${traitGroup(d, null, null, b, c)}${skillCard(d, b, c)}${summonSection(d, b, c, sumScope(null))}${voyAbil(d, null, null)}</div>
-    <div class="abils">${ultCard(d, b, c)}${ttSection(d, null, null, b, c)}${relicSection(d, null, null, c)}${faithAbil(d, null, null)}</div></div>
+    <div class="abils">${ultCard(d, b, c)}${ttSection(d, null, null, b, c)}${relicSection(d, null, null, c, false, b)}${faithAbil(d, null, null)}</div></div>
     ${d.king ? `<div class="cx-ud-king">${CX2.kingSection(cxH(), true)}</div>` : ''}
     <div class="cx-ud-more"><div><h3>${d.king ? '장비' : '추천 장비'} <span class="cx-hn">${d.king ? '일반 장비 장착 불가 (전용 장비 자동 장착)' : CTYPE_NAME[d.ctype]}</span></h3>${d.king ? '' : `<ul class="rc-list">${reco}</ul>`}</div>
     <div><h3>이야기</h3>${STORIES[d.id] ? `<p class="small">${esc(STORIES[d.id])}</p>` : ''}<p class="lore">${esc(d.lore)}</p>${CX2.loreLinks(d.id)}</div></div>

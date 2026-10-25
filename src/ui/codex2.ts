@@ -374,7 +374,8 @@ function itemDetail(H: CxH, id: string): string {
   const a: string[] = [], b: string[] = [];
   if (id.startsWith(RELIC_KEY)) {
     const r = RELIC_BY_ID[id.slice(2)];
-    a.push(`<p class="cx2-lead">${H.statIc(esc(r.desc(1)))}</p>`, `<h3>축성 시 <span class="cx-hn">계수 ×3</span></h3><p class="small">${H.statIc(esc(r.desc(3)))}</p>`);
+    // 도감은 참조 자리: 상세 문장 (docs/ABILITY_TEXT.md) 그대로
+    a.push(`<p class="cx2-lead">${esc(r.brief)}</p>${H.statIc(AB.detailText(r.text(1), NO_CTX, new Set()))}`, `<h3>축성 시 <span class="cx-hn">계수 ×3</span></h3><div class="small">${H.statIc(AB.detailText(r.text(3), NO_CTX, new Set()))}</div>`);
     if (r.owner && UNIT_BY_ID[r.owner]) b.push(`<h3>기본 장착</h3><div class="cx2-mem">${unitChip(H, UNIT_BY_ID[r.owner])}</div>`);
     const div = UNITS.filter((d) => d.ttype === 'divine');
     a.push(`<p class="muted small">${esc(TTYPE_NAME.divine)} 기물 ${div.length}명이 장착할 수 있습니다. 장착한 성유물이 신권 대행이 됩니다.</p>`);
@@ -691,12 +692,12 @@ function psiDetail(H: CxH, sid: SchoolId) {
 function cantripCard(H: CxH, sid: SchoolId, augs: string[], gl: Set<string>) {
   const cv = cantripView(sid, augs);
   return `<div class="abil cx2-ab has-tok">${H.abTok(`cantrip.${sid}`)}<div class="ab-head"><span class="ab-kind">비술</span><b>${esc(cv.name)}</b>${cv.transform ? `<span class="psi-tf-tag">◆ 변형: ${esc(cv.transform)}</span>` : ''}<span class="ab-meta">${lineIcon('a.cd', 'li')}${cv.cd}초 · ${lineIcon('a.reason', 'li')}이성 -${cv.cost}</span></div>
-    <div class="cx2-body">${AB.skillBody(cv.info, NO_CTX, 0, cv.cd, gl)}${AB.rowsHtml([['이성 소모', `${lineIcon('a.reason', 'li')}-${cv.cost}`]])}</div></div>`;
+    <div class="cx2-body">${cv.info.text ? H.statIc(AB.detailText(cv.info.text, NO_CTX, gl)) : ''}${AB.skillBody(cv.info, NO_CTX, 0, cv.cd, gl)}${AB.rowsHtml([['이성 소모', `${lineIcon('a.reason', 'li')}-${cv.cost}`]])}</div></div>`;
 }
 function passiveCard(H: CxH, sid: SchoolId, augs: string[], gl: Set<string>) {
   const s = SCHOOL_BY_ID[sid], pv = passiveView(sid, augs);
   return `<div class="abil cx2-ab has-tok">${H.abTok(`passive.${sid}`)}<div class="ab-head"><span class="ab-kind">지속</span><b>${esc(s.passive.name)}</b>${pv.transform ? `<span class="psi-tf-tag">◆ 변형: ${esc(pv.transform)}</span>` : ''}</div>
-    <div class="cx2-body">${AB.rowsHtml(pv.rows.map(([k, v]) => [k, H.statIc(AB.tok(v, NO_CTX, gl))] as [string, string]))}</div></div>`;
+    <div class="cx2-body">${H.statIc(AB.detailText(pv.text, NO_CTX, gl))}${AB.rowsHtml(pv.rows.map(([k, v]) => [k, H.statIc(AB.tok(v, NO_CTX, gl))] as [string, string]))}</div></div>`;
 }
 function unitRowBtn(H: CxH, d: UnitDef, text: string) {
   return `<button class="cx2-row" ${go(`unit:${d.id}`)}>${H.sprite(d)}<span><b>${esc(d.name)}</b> <span class="muted small">${UNIT_GROUP[d.id] ? esc(GROUPS[UNIT_GROUP[d.id]].name) : '학파 없음'}</span>${text ? `<p class="muted">${esc(text)}</p>` : ''}</span></button>`;

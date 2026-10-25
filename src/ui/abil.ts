@@ -13,13 +13,14 @@ const pct = (x: number) => `${Math.round(x * 1000) / 10}%`;
 /** skill: 스킬 문맥 (지휘관이면 전술 위력으로 계산) — 무기 · 특성 · 패시브는 적힌 위력 그대로 */
 export interface AbilCtx { b: Battle | null; c: CUnit | null; p: Record<string, number>; skill?: boolean; /** 이 능력의 사거리 (칸, [rng] 토큰) */ range?: number }
 /** main = 사이오닉 주요 위력 (명사수 사격 · 돌격가 타격 · 전문가 기술 · 지휘관 전술) × CFG.psiPower */
-type Pow = 'shoot' | 'strike' | 'tech' | 'main';
-const POW_KO: Record<Pow | 'tac', string> = { shoot: '사격 위력', strike: '타격 위력', tech: '기술 위력', tac: '전술 위력', main: '주요 위력' };
+/** prime = 성유물 · 신권 대행의 주력 위력 (main 과 같은 종류, psiPower 배율 없음) */
+type Pow = 'shoot' | 'strike' | 'tech' | 'main' | 'prime';
+const POW_KO: Record<Pow | 'tac', string> = { shoot: '사격 위력', strike: '타격 위력', tech: '기술 위력', tac: '전술 위력', main: '주요 위력', prime: '주력 위력' };
 
 export function powKey(ctx: AbilCtx, pow: Pow, tactical = false): Pow | 'tac' {
-  if (pow === 'main') {
+  if (pow === 'main' || pow === 'prime') {
     const c = ctx.c;
-    if (!c) return 'main';
+    if (!c) return pow;
     if (c.ctype === 'MARK') return 'shoot';
     if (c.ctype === 'VAN') return 'strike';
     return c.ctype === 'CMD' && (!c.isSummon || c.mem.tacOk) ? 'tac' : 'tech';
@@ -48,7 +49,8 @@ export function powNum(ctx: AbilCtx, pow: Pow, mult: number, plus = false, tacti
 export function powCoef(ctx: AbilCtx, pow: Pow, mult: number, elem?: Elem) {
   if (elem && (!ctx.c || ctx.c.side === 0)) mult *= elementDamageMult(elem); // 비물리 4속성: 아군 기물의 계수만 ×1.25
   const k = powKey(ctx, pow), v = powVal(ctx, pow);
-  return `<span class="pw pw-${k}">${lineIcon(`p.${k}`, 'li')}<b>${POW_KO[k]}의 ${pct(mult)}</b>${v === null ? '' : `<small class="pw-v">(${fmt(v * mult)})</small>`}</span>${elem ? ` ${elemWord(elem)}` : ''}`;
+  const shown = pow === 'main' && k !== 'main' ? mult * CFG.psiPower : mult; // 주요 위력을 실제 위력 이름으로 풀면 사이오닉 배율까지 곱해 보인다 (값과 맞게)
+  return `<span class="pw pw-${k}">${lineIcon(`p.${k}`, 'li')}<b>${POW_KO[k]}의 ${pct(shown)}</b>${v === null ? '' : `<small class="pw-v">(${fmt(v * mult)})</small>`}</span>${elem ? ` ${elemWord(elem)}` : ''}`;
 }
 export const elemWord = (e: Elem) => `<span class="pw el-t-${e}">${lineIcon(`e.${e}`, 'li')}${ELEM_NAME[e]}</span>`;
 /** 상세 문장 묶음: 줄마다 한 문장 (docs/ABILITY_TEXT.md) */

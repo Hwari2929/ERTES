@@ -77,7 +77,7 @@ for (const r of RELICS) {
   if (!listed('items', key)) { fail(`성유물 ${r.id} (${r.name}): 장비 탭 목록에 없음`); continue; }
   const d = codex2Detail('items', key, H);
   clean(`성유물 ${r.id} 상세`, d);
-  if (!d.includes(esc(r.name)) || !d.includes(esc(r.desc(1)))) fail(`성유물 ${r.id}: 상세에 이름 · 설명이 없음`);
+  if (!d.includes(esc(r.name)) || !d.includes(esc(r.brief))) fail(`성유물 ${r.id}: 상세에 이름 · 설명이 없음`);
   if (r.owner && !UNIT_BY_ID[r.owner]) fail(`성유물 ${r.id}: 주인 기물 ${r.owner} 없음`);
 }
 
