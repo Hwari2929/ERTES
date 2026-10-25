@@ -2,6 +2,7 @@
 
 > 측정: 고난(위험 7) 500판 · 시드 10001–10500 · `pool instr detail` · 4 프로세스. 비교 기준 = 같은 시드 철수 (커밋 252193b, 같은 계측, docs/BALANCE_CHULSU_ROUTE.md).
 > 집계 `python3 tests/balance_chulsu_route.py compare …` (아래 재현 절).
+> **2026-10-25 메모**: 아래 결과 · 지출 표는 측정 당시 규칙 (정비 노드 · 포탑 장비 구매가 있던 때) 기준이다. 그 뒤 바뀐 것은 1절 표에 반영했다: 정비 노드 폐지 (포탑 장비는 엔지니어 단계에서 `turretPickBot` 선호 순서로), `nearNeed` 1 → 2 (282ac7e), 지정 소집 시너지 3개를 `bestMusterSyns` 로 (7d87c10), 감시 포탑 앞줄 배치 (철수와 같음). 개편 뒤 영희 · 철수 시너지 단계별 비교는 `docs/BALANCE_SYNERGY_LIFT.md`.
 
 ## 요약
 
@@ -25,11 +26,11 @@
 
 | 사용자 규칙 | 코드 (tests/chulsu/younghee.ts) | 값 |
 |---|---|---|
-| 바닥 40 | `floorOf` — 모든 크레딧 지출 (함대 확장 · 지정 소집 · 공명도 · 상점 · 정비 · 합성 · 투자) 뒤 잔액 ≥ 바닥. 예외 없음 | `YH.floor` 40 (고난 이자 상한 4 × 10) |
+| 바닥 40 | `floorOf` — 모든 크레딧 지출 (함대 확장 · 지정 소집 · 공명도 · 상점 · 합성 · 투자) 뒤 잔액 ≥ 바닥. 예외 없음 | `YH.floor` 40 (고난 이자 상한 4 × 10) |
 | 변형 yh_last | `floorOf` = 0 (페이즈 ≥ `CFG.victoryPhase`), 공명도도 '필요' 조건 없이 | `bot=younghee-last` |
 | ① 함대 확장 | `fleetWant`: 출전 가능한 대기 기물이 있고 1명 더 내보내면 팀 가치(V) 상승. 바닥 위로 살 수 있으면 산다 | — |
 | ① 모으기 | `lowFloor`: 함대 확장이 `saveGap` 이하로 모자라면 ② · ③ 에 쓰지 않는다 | `YH.saveGap` 25 |
-| ② 시너지 · 지정 소집 | `Chulsu.yhMuster`: 목표 빌드(철수 build/build3 판단)가 목표 임계점 아래면 `build.ts muster` (바닥 인자), 아니면 `nearSyns` (1명만 더 모으면 다음 효과 단계가 켜지는 시너지 3개) | 페이즈당 `YH.musterPerPhase` 2 (철수 1) |
+| ② 시너지 · 지정 소집 | `Chulsu.yhMuster`: 목표 빌드(철수 build/build3 판단)가 목표 임계점 아래면 `build.ts muster` (바닥 인자), 아니면 `nearSyns` (`YH.nearNeed` 2명 이하만 더 모으면 다음 효과 단계가 켜지는 시너지 — 3명 진영도 5명 단계를 노린다). 시너지 3개는 그 시너지 기물이 선택지에 나올 확률이 가장 높은 조합 (`build.ts bestMusterSyns`) | 페이즈당 `YH.musterPerPhase` 2 (철수 1) |
 | ② 상점 | 철수 `E.shop` 그대로 + 바닥 `lowFloor` · 이자 구간 아래 예외 끔 · 공명도 비교 기준 `YH.shopVsXp` 0 | 철수 평가에서 장비는 공명도의 0.04~0.3배라 기준 1 이면 거의 안 산다 |
 | ② 투자 노드 | `invest`: 문장 매입 → 인재 영입(출전 기물) → 펀드 → 전략 자금(호이슌 출전 2명 이상), 바닥 위만 | 철수 · 덤비는 balance.ts 기본 규칙 |
 | ③ 공명도 '필요할 때' | `xpNeed` (아래 표). 그 밖에는 사지 않는다 | — |
