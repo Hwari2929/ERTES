@@ -232,7 +232,7 @@ export const ABIL_B: Record<string, AbilText> = {
       ],
       text: [
         `무작위 적을 ${p.shots}회 지정해 각각 [pw:shoot:${p.mult}:chem] 피해를 가합니다.`,
-        ...(p.crit ? [`이 피해는 치명타 확률이 [pp:${p.crit}] 높습니다.`] : []),
+        ...(p.crit ? [`이 공격은 치명타 확률이 [pp:${p.crit}] 높습니다.`] : []),
         ...(p.shock ? [`공격이 적중하면 대상에게 [p:${p.shock}] 기본 확률로 [g:shock] 효과를 부여합니다.`, '[g:shock] 효과는 대상의 스킬 쿨다운이 줄지 않게 하며, [s:1.5] 지속됩니다.'] : []),
       ].join('\n'),
     }),

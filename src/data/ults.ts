@@ -35,7 +35,7 @@ const BASE_ULTS: Record<string, UltDef> = {
   mirinae: {
     id: 'mirinae', name: '신기루 종막', charge: 1.0, line: '캠핑 장비값은 이걸로 충당할게.',
     brief: '가장 튼튼한 적의 뒤로 돌아가 치명적인 한 발을 쏩니다.',
-    text: '체력이 가장 높은 적의 뒤로 이동해 [pw:shoot:12:phys] 피해를 가합니다.\n이 피해는 치명타 확률과 명중 확률이 [pp:1] 상승 적용됩니다.',
+    text: '체력이 가장 높은 적의 뒤로 이동해 [pw:shoot:12:phys] 피해를 가합니다.\n이 공격은 치명타 확률과 명중 확률이 [pp:1] 상승 적용됩니다.',
     desc: '가장 체력이 높은 적의 배후로 이동해 사격 위력 1200% 물리 단발 (치명타 확정, 빗나가지 않음).',
     theme: { pat: 'haze', c1: '#ffb46a', c2: '#5a3a1a', txt: 'heat' },
     cast(b, u) {
