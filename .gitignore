@@ -11,3 +11,4 @@ dist/ERRANTEs-offline.html
 art/icons/raw/
 art/faces_raw/
 art/expr_stage/
+.cache/
