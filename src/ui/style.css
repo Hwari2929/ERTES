@@ -5559,4 +5559,4 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 /* 능력 상세 문장 (docs/ABILITY_TEXT.md): 줄마다 한 문장, 계수 뒤 지금 값은 작게 */
 .ab-dt { display: flex; flex-direction: column; gap: 3px; }
 .ab-dt p { margin: 0; }
-.pw .pw-v { font-size: .86em; color: var(--c-text-2); margin-left: 1px; }
+.pw .pw-v { font-size: var(--fs-xs); color: var(--c-text-2); margin-left: 1px; }
