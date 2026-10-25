@@ -25,6 +25,8 @@ export interface SkillInfo {
   area: Area;
   /** [항목, 값] — 값은 토큰 문장 */
   rows: [string, string][];
+  /** 상세 보기 문장 (docs/ABILITY_TEXT.md 문형, 줄마다 한 문장, 토큰 [pw] · [el] · [t] · [s] · [p] · [pp] · [g]) */
+  text?: string;
 }
 export interface AbilText {
   skill?: (p: Record<string, number>) => SkillInfo;
@@ -79,13 +81,21 @@ const ABIL_PILOT: Record<string, AbilText> = {
         ['공포', `[st:fear:${p.fear}:${p.fearChance}]`],
         ...(p.vuln ? [['취약', `[st:vuln:4] 받는 피해 +[p:${p.vuln}]`] as [string, string]] : []),
       ],
+      text: [
+        p.radius ? `[rng] 이내의 적을 지정해 대상으로부터 [t:${p.radius}] 이내의 적들에게 [pw:tech:${p.mult}:psy] 피해를 가합니다.` : `[rng] 이내의 적에게 [pw:tech:${p.mult}:psy] 피해를 가합니다.`,
+        `공격이 적중하면 대상에게 [g:forget] 효과와 [g:weak] 효과${p.vuln ? ', [g:vuln] 효과' : ''}를 부여하고, [p:${p.fearChance}] 기본 확률로 [g:fear] 효과를 부여합니다.`,
+        `[g:forget] 효과는 대상의 스킬 쿨다운을 [s:${p.forget}] 늘립니다.`,
+        `[g:weak] 효과는 대상이 가하는 피해를 [p:${p.weak}] 줄이며, [s:${p.weakDur}] 지속됩니다.`,
+        ...(p.vuln ? [`[g:vuln] 효과는 대상이 받는 피해를 [p:${p.vuln}] 늘리며, [s:4] 지속됩니다.`] : []),
+        `[g:fear] 효과는 대상이 공격과 스킬을 쓰지 못하게 하며, [s:${p.fear}] 지속됩니다.`,
+      ].join('\n'),
     }),
-    trait: '기본 공격이 [g:psy]로 바뀐다. 기본 공격 피해 [pp:-0.25]. 정신 피해를 받은 적: 스킬 쿨다운 +[s:1] (대상당 1초에 1회).',
+    trait: '기본 공격이 [el:psy] 피해로 바뀌고, 기본 공격 피해가 [p:0.25] 감소합니다.\n[el:psy] 피해를 받은 적은 스킬 쿨다운이 [s:1] 늘어납니다 (대상마다 1초에 1번).',
     augs: {
-      wide: '항밈 소거 범위: 대상 주변 [t:1]. 피해 [dmg+:tech:0.3:psy].',
-      deep: '[g:forget] +[s:3]. 공포 확률 [pp:0.25].',
-      delta: '맞은 적에게 [st:vuln:4]: 받는 피해 +[p:0.3].',
-      report: '항밈 소거 피해 [dmg+:tech:1.6:psy].',
+      wide: '항밈 소거가 대상으로부터 [t:1] 이내의 적들에게도 피해를 가하고, 피해가 [pw:tech:0.3:psy]만큼 증가합니다.',
+      deep: '[g:forget] 효과가 스킬 쿨다운을 [s:3] 더 늘리고, [g:fear] 효과의 기본 확률이 [pp:0.25] 증가합니다.',
+      delta: '항밈 소거가 적중하면 대상에게 [g:vuln] 효과를 부여합니다. [g:vuln] 효과는 받는 피해를 [p:0.3] 늘리며, [s:4] 지속됩니다.',
+      report: '항밈 소거의 피해가 [pw:tech:1.6:psy]만큼 증가합니다.',
       hoodie: '정신력 +9, 기동력 +6.',
     },
   },
@@ -96,8 +106,12 @@ const ABIL_PILOT: Record<string, AbilText> = {
         ['피해', `[dmg:shoot:${p.mult}:phys${hitsTxt(p.hits)}]`],
         ...(p.corrode ? [['침식', `[st:corrode:5] 방어도 -[p:${p.corrode}]`] as [string, string]] : []),
       ],
+      text: [
+        `[rng] 이내의 적을 지정해 대상으로부터 [t:${p.radius}] 이내의 적들에게 [pw:shoot:${p.mult}:phys] 피해를 ${p.hits}회 가합니다.`,
+        ...(p.corrode ? ['공격이 적중하면 대상에게 [g:corrode] 효과를 부여합니다.', `[g:corrode] 효과는 대상의 방어도를 [p:${p.corrode}] 줄이며, [s:5] 지속됩니다.`] : []),
+      ].join('\n'),
     }),
-    trait: '기본 공격 적중 시 [p:0.25] 확률로 [g:suppress].',
+    trait: '기본 공격이 적중하면 대상에게 [p:0.25] 기본 확률로 [g:suppress] 효과를 부여합니다.\n[g:suppress] 효과는 대상의 다음 공격 피해를 1로 만들며, [s:10] 지속됩니다.',
     augs: {
       drum: '헤비 버니 화망 타수 +3.',
       zirgon: '헤비 버니 화망 발당 피해 [dmg+:shoot:0.4:phys].',

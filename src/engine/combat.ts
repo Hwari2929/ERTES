@@ -191,6 +191,10 @@ export interface UltDef {
   line: string;
   /** 효과 설명 (상세 창) */
   desc: string;
+  /** 기본 한 줄 설명 (상세 보기 꺼짐, docs/ABILITY_TEXT.md 1절) */
+  brief?: string;
+  /** 상세 문장 (상세 보기 켜짐, docs/ABILITY_TEXT.md 2절 · 토큰) */
+  text?: string;
   /** 컷인 디자인: 배경 패턴 · 주색 · 보조색 · 글자 연출 */
   theme: { pat: string; c1: string; c2: string; txt: string };
   /** 성공하면 true (대상이 없으면 false → 게이지 유지) */

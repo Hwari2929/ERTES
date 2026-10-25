@@ -230,6 +230,11 @@ export const ABIL_B: Record<string, AbilText> = {
         ...(p.crit ? [['치명타', `[g:crit] 확률 [pp:${p.crit}]`] as Row] : []),
         ...(p.shock ? [['감전', `적중 시 [st:shock:1.5:${p.shock}]`] as Row] : []),
       ],
+      text: [
+        `무작위 적을 ${p.shots}회 지정해 각각 [pw:shoot:${p.mult}:chem] 피해를 가합니다.`,
+        ...(p.crit ? [`이 피해는 치명타 확률이 [pp:${p.crit}] 높습니다.`] : []),
+        ...(p.shock ? [`공격이 적중하면 대상에게 [p:${p.shock}] 기본 확률로 [g:shock] 효과를 부여합니다.`, '[g:shock] 효과는 대상의 스킬 쿨다운이 줄지 않게 하며, [s:1.5] 지속됩니다.'] : []),
+      ].join('\n'),
     }),
     trait: '다른 기물이 거는 강화 효과를 받지 않음 (회복 · 보호막은 받음). 효과 저항 [pp:0.4].',
     ace: (k) => `피해 +[p:${0.25 * k}], 치명타 확률 [pp:${0.075 * k}].`,

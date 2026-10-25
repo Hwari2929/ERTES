@@ -11,7 +11,7 @@ const pct = (x: number) => `${Math.round(x * 1000) / 10}%`;
 
 /** 수치를 계산할 기물 (없으면 계수로 표시) */
 /** skill: 스킬 문맥 (지휘관이면 전술 위력으로 계산) — 무기 · 특성 · 패시브는 적힌 위력 그대로 */
-export interface AbilCtx { b: Battle | null; c: CUnit | null; p: Record<string, number>; skill?: boolean }
+export interface AbilCtx { b: Battle | null; c: CUnit | null; p: Record<string, number>; skill?: boolean; /** 이 능력의 사거리 (칸, [rng] 토큰) */ range?: number }
 /** main = 사이오닉 주요 위력 (명사수 사격 · 돌격가 타격 · 전문가 기술 · 지휘관 전술) × CFG.psiPower */
 type Pow = 'shoot' | 'strike' | 'tech' | 'main';
 const POW_KO: Record<Pow | 'tac', string> = { shoot: '사격 위력', strike: '타격 위력', tech: '기술 위력', tac: '전술 위력', main: '주요 위력' };
@@ -44,6 +44,15 @@ export function powNum(ctx: AbilCtx, pow: Pow, mult: number, plus = false, tacti
   const icon = elem ? `e.${elem}` : `p.${k}`;
   return `<span class="${cls}" title="${POW_KO[k]} × ${pct(mult)}${elem ? ` · ${ELEM_NAME[elem]}` : ''}">${lineIcon(icon, 'li')}<b>${plus ? '+' : ''}${txt}</b></span>`;
 }
+/** 상세 문장 (docs/ABILITY_TEXT.md): '사격 위력의 180%(324) 물리' — 계수 + 지금 값 (기물이 없으면 값 생략) + 속성 이름 */
+export function powCoef(ctx: AbilCtx, pow: Pow, mult: number, elem?: Elem) {
+  if (elem && (!ctx.c || ctx.c.side === 0)) mult *= elementDamageMult(elem); // 비물리 4속성: 아군 기물의 계수만 ×1.25
+  const k = powKey(ctx, pow), v = powVal(ctx, pow);
+  return `<span class="pw pw-${k}">${lineIcon(`p.${k}`, 'li')}<b>${POW_KO[k]}의 ${pct(mult)}</b>${v === null ? '' : `<small class="pw-v">(${fmt(v * mult)})</small>`}</span>${elem ? ` ${elemWord(elem)}` : ''}`;
+}
+export const elemWord = (e: Elem) => `<span class="pw el-t-${e}">${lineIcon(`e.${e}`, 'li')}${ELEM_NAME[e]}</span>`;
+/** 상세 문장 묶음: 줄마다 한 문장 (docs/ABILITY_TEXT.md) */
+export const detailText = (text: string, ctx: AbilCtx, gl: Set<string>) => `<div class="ab-dt">${text.split('\n').map((l) => `<p>${tok(l, ctx, gl)}</p>`).join('')}</div>`;
 /** 피해 유형: 위력 아이콘 + 이름 */
 export function powType(ctx: AbilCtx, pow: Pow, tactical = false) {
   const k = powKey(ctx, pow, tactical);
@@ -79,7 +88,7 @@ function num(x: string, ctx: AbilCtx): number {
 
 /** 토큰 문장 → HTML (등장한 용어는 gl 에 모은다) */
 export function tok(text: string, ctx: AbilCtx, gl: Set<string>): string {
-  return esc(text).replace(/\[([a-z+]+):([^\]]*)\]/g, (_m, k: string, rest: string) => {
+  return esc(text).replace(/\[([a-z+]+)(?::([^\]]*))?\]/g, (_m, k: string, rest = '') => {
     const a = rest.split(':');
     switch (k) {
       case 'dmg': {
@@ -95,6 +104,9 @@ export function tok(text: string, ctx: AbilCtx, gl: Set<string>): string {
         const ch = a[2] ? num(a[2], ctx) : 1;
         return `${ch < 1 ? `${pct(ch)} 확률로 ` : ''}${num(a[1], ctx)}초 ${kw(a[0], gl)}`;
       }
+      case 'pw': return powCoef(ctx, a[0] as Pow, num(a[1], ctx), a[2] as Elem | undefined);
+      case 'el': return elemWord(a[0] as Elem);
+      case 'rng': return `<span class="tln">${lineIcon('u.range', 'li')}${ctx.range ?? '?'}칸</span>`;
       case 'g': return kw(a[0], gl);
       case 't': return `<span class="tln">${lineIcon('u.range', 'li')}${num(a[0], ctx)}칸</span>`;
       case 's': return `${num(a[0], ctx)}초`;

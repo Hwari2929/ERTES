@@ -76,6 +76,10 @@ export const ABIL_A: Record<string, AbilText> = {
         ['회복', `[heal:${p.heal}]`],
         ['정화', '[g:cleanse]'],
       ],
+      text: [
+        p.radius ? `체력 비율이 가장 낮은 아군을 지정해 대상으로부터 [t:${p.radius}] 이내의 아군들을 [pw:tech:${p.heal}]만큼 회복시킵니다.` : `체력 비율이 가장 낮은 아군을 지정해 [pw:tech:${p.heal}]만큼 회복시킵니다.`,
+        '회복시킨 아군의 해로운 효과를 모두 제거합니다.',
+      ].join('\n'),
     }),
     trait: '기본 공격 적중 시 [st:poison:4]: 초당 [dmg:tech:0.25:chem]. 다트 6번째 적중마다 항밈 수면제: 대상 [st:stun:2:0.5]. 회복 시 대상의 해로운 효과 1개 제거.',
     augs: {

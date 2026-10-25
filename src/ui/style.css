@@ -5555,3 +5555,8 @@ html:has(main.prep) { scrollbar-gutter: stable; }
   .nr.brief.docking .nr-band, .nr.brief.docking .nr-band *, .nr.brief.reveal .nr-band *, .ct-tnote, .nr.brief.settle .nr-band-bp, .nr.brief.settle :is(.nr-band-tx, .nr-brief), .nr-brief-bar i { transition: none; } /* 브리핑: 모눈이 가라앉거나 띠가 올라오는 움직임 없이 바로 */
   .ct-voice { transition: none; }
 }
+
+/* 능력 상세 문장 (docs/ABILITY_TEXT.md): 줄마다 한 문장, 계수 뒤 지금 값은 작게 */
+.ab-dt { display: flex; flex-direction: column; gap: 3px; }
+.ab-dt p { margin: 0; }
+.pw .pw-v { font-size: .86em; color: var(--c-text-2); margin-left: 1px; }

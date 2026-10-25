@@ -2016,7 +2016,8 @@ function ultCard(d: UnitDef, b: Battle | null, c: CUnit | null, live = false) {
   const eff = c && b ? b.S(c, 'ultCharge') : 0;
   const sec = (CFG.ultTime * CFG.ultNeed) / (ul.charge * Math.max(0.1, 1 + eff));
   const chips = `<div class="ab-chips"><span class="abc" title="자연 충전 주기">${lineIcon('a.cd', 'li')}${sec.toFixed(0)}초</span><span class="abc" title="전투 시작 게이지">${lineIcon('a.battery', 'li')}시작 ${Math.round((CFG.ultStart + (c?.mem.ultStart || 0)) * 100)}%</span>${live && c ? `<span class="abc v">${Math.round((c.ultG || 0) * 100)}%</span>` : ''}</div>`;
-  return abilCard('ult', 'ult', ul.name, `약 ${sec.toFixed(0)}초`, `${chips}<p>${statIc(esc(ul.desc))}</p>`, '', `ult.${d.id}`);
+  const body = app.detail ? (ul.text ? statIc(AB.detailText(ul.text, actx(b, c, true), new Set())) : `<p>${statIc(esc(ul.desc))}</p>`) : `<p>${esc(ul.brief || ul.desc)}</p>`;
+  return abilCard('ult', 'ult', ul.name, `약 ${sec.toFixed(0)}초`, `${chips}${body}`, '', `ult.${d.id}`);
 }
 /** 디바인 신권 대행 카드: 장착한 성유물 */
 /** 성유물 섹션: 장착 슬롯 + 종속 하위 능력(신권 대행) */
@@ -2124,11 +2125,14 @@ function skillCard(d: UnitDef, b: Battle | null, c: CUnit | null) {
   const info = ABIL[d.id]?.skill?.(p);
   const cd = c?.cdMax ?? d.skill.cd;
   const range = b && c ? b.S(c, 'range') : d.range;
-  return abilCard('skill', 'skill', d.skill.name, info ? '' : `${cd.toFixed(1)}초`, info ? `<div class="ab-chips">${AB.skillChips(info, actx(b, c, true), range, cd)}</div>` : `<p>${esc(skillText(d, p))}</p>`, '', `skill.${d.id}`);
+  // 칩(사거리 · 범위 · 쿨다운) + 설명: 상세 보기 = 문형 문장 (info.text), 아니면 한 줄 설명 (BRIEF) — docs/ABILITY_TEXT.md
+  const body = app.detail && info?.text ? statIc(AB.detailText(info.text, { ...actx(b, c, true), range }, new Set())) : `<p>${esc(skillText(d, p))}</p>`;
+  return abilCard('skill', 'skill', d.skill.name, info ? '' : `${cd.toFixed(1)}초`, `${info ? `<div class="ab-chips">${AB.skillChips(info, actx(b, c, true), range, cd)}</div>` : ''}${body}`, '', `skill.${d.id}`);
 }
 const traitHtml = (d: UnitDef, b: Battle | null, c: CUnit | null) => {
   const t = ABIL[d.id]?.trait;
-  return t ? `<p>${statIc(AB.tok(t, actx(b, c, false, d), new Set()))}</p>` : `<p>${esc(traitText(d))}</p>`;
+  if (!app.detail && BRIEF[d.id]?.trait) return `<p>${esc(BRIEF[d.id].trait)}</p>`; // 상세 보기 꺼짐: 한 줄 설명
+  return t ? (t.includes('\n') ? statIc(AB.detailText(t, actx(b, c, false, d), new Set())) : `<p>${statIc(AB.tok(t, actx(b, c, false, d), new Set()))}</p>`) : `<p>${esc(traitText(d))}</p>`;
 };
 function augText(id: string, param: string | undefined, b: Battle | null, c: CUnit | null, gl = new Set<string>()) {
   const t = augAbilText(id);
