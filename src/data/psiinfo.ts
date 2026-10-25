@@ -203,35 +203,35 @@ const CANTRIP: Record<SchoolId, Build> = {
 type Tx = { brief: string; text: string };
 const L = (...l: (string | false | null | undefined)[]) => l.filter(Boolean).join('\n');
 /** 이번 적중 피해에 비례하는 확률 (시공 · 파장) */
-const SCALE_LINE = `이 확률은 이번 피해에 비례하며, 피해가 주요 위력의 ${Math.round(PSI_HIT.ref * 100)}%일 때가 기준이고 최대 ${PSI_HIT.max}배까지 오릅니다.`;
+const SCALE_LINE = `이 확률은 이번 피해에 비례하며, 피해가 주요 위력의 ${Math.round(PSI_HIT.ref * 100)}%일 때가 기준이고 최대 ${PSI_HIT.max}배까지 증가합니다.`;
 const ONCE_LINE = `같은 대상에게는 [s:${PSI_ICD}]에 1번만 판정합니다.`;
-const burnLine = (use: (k: string) => boolean) => `[g:burn] 효과는 중첩당 1초마다 [pw:main:${PSI.pyro.dps}:phys] 피해를 가하며, [s:${use('kindle') ? PSI.pyro.kindleDur : PSI.pyro.dur}] 지속되고, 최대 ${use('wp') ? PSI.pyro.wpMax : PSI.pyro.max}회 중첩됩니다.`;
-const chillLine = (use: (k: string) => boolean) => `[g:chill] 효과는 중첩당 1초마다 [pw:main:${PSI.chrono.chillDps}:phys] 피해를 가하고 이동 속도와 공격 속도를 [pv:${PSI.chrono.chillSlow}] 줄이며, [s:5] 지속되고, 최대 ${use('zero') ? PSI.chrono.zeroMax : PSI.chrono.chillMax}회 중첩됩니다.`;
-const freezeLines = (use: (k: string) => boolean) => [
-  `대상의 [g:chill] 1중첩마다 [g:freeze] 확률이 [pv:${PSI.chrono.freezePerChill}] 높아집니다.`,
-  `[g:freeze] 효과는 대상이 행동하지 못하게 하며, [s:${use('perma') ? PSI.chrono.permaDur : PSI.chrono.freezeDur}] 지속됩니다.`,
+/** 비술이 지속 능력과 같은 상태 효과를 다시 걸 때 가리키는 출처 (docs/ABILITY_TEXT.md 2.3) */
+const SRC = (sid: SchoolId) => `"지속 능력 - ${SCHOOL_BY_ID[sid].passive.name}"의`;
+type Use = (k: string) => boolean;
+// [fx] 상태 효과 토큰 (설명 문장은 STATUS_FX 가 능력 설명 끝에 붙인다). 수치는 엔진과 같은 표
+const burnFx = (use: Use) => `[fx:burn:${use('kindle') ? PSI.pyro.kindleDur : PSI.pyro.dur}:main:${PSI.pyro.dps}:${use('wp') ? PSI.pyro.wpMax : PSI.pyro.max}]`;
+const chillFx = (use: Use) => `[fx:chill:5:main:${PSI.chrono.chillDps}:${PSI.chrono.chillSlow}:${use('zero') ? PSI.chrono.zeroMax : PSI.chrono.chillMax}]`;
+const freezeFx = (use: Use) => `[fx:freeze:${use('perma') ? PSI.chrono.permaDur : PSI.chrono.freezeDur}]`;
+const freezeLines = (use: Use) => [
+  `대상의 [g:chill] 1중첩마다 [g:freeze] 확률이 [pv:${PSI.chrono.freezePerChill}] 증가합니다.`,
   use('perma') ? '[g:freeze]을 걸어도 [g:chill]이 사라지지 않습니다.' : '[g:freeze]이 걸리면 대상의 [g:chill]이 모두 사라집니다.',
 ];
-const conductLine = (use: (k: string) => boolean, ally: boolean) => {
+const conductFx = (use: Use, ally: boolean) => {
   const N = PSI.volt, hv = use('hv');
   const per = ally ? (hv ? N.reverseHvPer : N.reversePer) : hv ? N.hvPer : N.per;
-  return ally
-    ? `아군에게 걸린 [g:conduct] 효과는 그 아군이 행동할 때마다 그 아군으로부터 [t:${hv ? N.hvR : N.r}] 이내의 적들에게 중첩당 [pw:main:${per}:elec] 피해를 가하며, [s:${N.dur}] 지속되고, 최대 ${N.max}회 중첩됩니다.`
-    : `[g:conduct] 효과는 대상이 기본 공격이나 스킬을 쓸 때마다 대상으로부터 [t:${hv ? N.hvR : N.r}] 이내의 다른 적들에게 중첩당 [pw:main:${per}:elec] 피해를 가하며, [s:${N.dur}] 지속되고, 최대 ${N.max}회 중첩됩니다.`;
+  return `[fx:conduct:${N.dur}:main:${per}:${hv ? N.hvR : N.r}:${N.max}${ally ? ':ally' : ''}]`;
 };
-const CONDUCT_SNAP_LINE = `중첩당 피해는 [g:conduct]를 건 공격의 피해가 주요 위력의 ${Math.round(CONDUCT_SNAP.ref * 100)}%일 때가 기준이며, 그 피해에 비례해 최대 ${CONDUCT_SNAP.max}배까지 커집니다.`;
-const resLine = (use: (k: string) => boolean) => `[g:resonance] 효과는 대상이 피해를 받을 때마다 대상으로부터 [t:${use('attract') ? PSI.wave.attractResR : PSI.wave.resR}] 이내의 다른 적들에게 [pw:main:${use('freq') ? PSI.wave.freqRes : PSI.wave.res}:elec] 피해를 가하며, [s:${PSI.wave.resDur}] 지속됩니다.\n[g:resonance]의 피해는 대상마다 [s:${PSI.wave.resIcd}]에 1번만 일어납니다.`;
-const poisonLine = (use: (k: string) => boolean) => `[g:poison] 효과는 중첩당 1초마다 [pw:main:${use('venom') ? PSI.seed.venomPer : PSI.seed.per}:chem] 피해를 가하며, [s:${PSI.seed.dur}] 지속되고, 최대 ${use('conc') ? PSI.seed.concMax : PSI.seed.max}회 중첩됩니다.`;
-const confuseLine = (dur: number) => `[g:confuse] 효과는 대상이 같은 편을 포함해 가까운 아무나 공격하고 스킬을 쓰지 못하게 하며, [s:${dur}] 지속됩니다.`;
+const CONDUCT_SNAP_LINE = `중첩당 피해는 [g:conduct]를 건 공격의 피해가 주요 위력의 ${Math.round(CONDUCT_SNAP.ref * 100)}%일 때가 기준이며, 그 피해에 비례해 최대 ${CONDUCT_SNAP.max}배까지 증가합니다.`;
+const resFx = (use: Use) => `[fx:resonance:${PSI.wave.resDur}:main:${use('freq') ? PSI.wave.freqRes : PSI.wave.res}:${use('attract') ? PSI.wave.attractResR : PSI.wave.resR}:${PSI.wave.resIcd}]`;
+const poisonFx = (use: Use) => `[fx:poison:${PSI.seed.dur}:main:${use('venom') ? PSI.seed.venomPer : PSI.seed.per}:${use('conc') ? PSI.seed.concMax : PSI.seed.max}]`;
 
-const CANTRIP_TX: Record<SchoolId, (use: (k: string) => boolean) => Tx> = {
+const CANTRIP_TX: Record<SchoolId, (use: Use) => Tx> = {
   pyro: (use) => ({
     brief: '연소가 가장 많이 쌓인 적과 주변 적에게 피해를 주고, 쌓인 [연소]를 터뜨립니다.',
     text: L(
       `[g:burn] 중첩이 가장 많은 적(없으면 현재 대상)을 지정해 대상으로부터 [t:${PSI.pyro.splashR}] 이내의 적들에게 [pw:main:${PSI.pyro.splash}:phys] 피해를 가합니다.`,
       `대상에게 [g:burn]가 있었으면 모두 제거하고, 제거한 중첩마다 [pw:main:${use('wp') ? PSI.pyro.wpPer : PSI.pyro.per}:phys] 피해를 가합니다.`,
-      `대상에게 [g:burn]가 없었으면 대신 [g:burn] 효과를 ${use('kindle') ? PSI.pyro.kindleSeed : PSI.pyro.seed}중첩 부여합니다.`,
-      burnLine(use)),
+      `대상에게 [g:burn]가 없었으면 대신 대상에게 반드시 ${SRC('pyro')} [g:burn] 효과를 ${use('kindle') ? PSI.pyro.kindleSeed : PSI.pyro.seed}중첩 부여합니다.`),
   }),
   chrono: (use) => {
     const N = PSI.chrono, storm = use('storm');
@@ -240,8 +240,8 @@ const CANTRIP_TX: Record<SchoolId, (use: (k: string) => boolean) => Tx> = {
       return {
         brief: '아군 몇 명을 빠르게 하고, 그 아군의 다음 기본 공격에 [빙결]을 싣습니다.',
         text: L(
-          `아군 ${n}명을 지정해 [s:${N.hasteDur}]간 공격 속도를 [pv:${storm ? N.hasteStormAtkSpd : N.hasteAtkSpd}] 높입니다.`,
-          `[s:${N.hasteDur}] 안에 지정한 아군의 다음 기본 공격이 적중하면 대상에게 [p:${N.freezeP}] 기본 확률로 [g:freeze] 효과를 부여합니다.`,
+          `아군 ${n}명을 지정해 [s:${N.hasteDur}]간 공격 속도를 [pv:${storm ? N.hasteStormAtkSpd : N.hasteAtkSpd}] 증가시킵니다.`,
+          `[s:${N.hasteDur}] 안에 지정한 아군의 다음 기본 공격이 적중하면 대상에게 [p:${N.freezeP}] 기본 확률로 ${freezeFx(use)} 효과를 부여합니다.`,
           ...freezeLines(use)),
       };
     }
@@ -251,7 +251,7 @@ const CANTRIP_TX: Record<SchoolId, (use: (k: string) => boolean) => Tx> = {
       text: L(
         `서로 다른 적 ${n}명을 지정해 각각 [pw:main:${storm ? N.stormCoef : N.coef}:phys] 피해를 가합니다.`,
         `적이 ${n}명보다 적으면 같은 적을 다시 지정합니다.`,
-        `이어서 대상에게 [p:${N.freezeP}] 기본 확률로 [g:freeze] 효과를 부여합니다.`,
+        `공격이 적중하면 대상에게 [p:${N.freezeP}] 기본 확률로 ${freezeFx(use)} 효과를 부여합니다.`,
         ...freezeLines(use)),
     };
   },
@@ -260,16 +260,14 @@ const CANTRIP_TX: Record<SchoolId, (use: (k: string) => boolean) => Tx> = {
     if (use('reverse')) return {
       brief: '가까운 아군에게 [전도]를 걸어, 그 아군이 행동할 때마다 주변 적에게 피해를 줍니다.',
       text: L(
-        `현재 대상과 가장 가까운 아군(자신 포함)에게 [g:conduct] 효과를 ${N.reverseN}중첩 부여합니다.`,
-        conductLine(use, true),
+        `현재 대상과 가장 가까운 아군(자신 포함)에게 반드시 ${SRC('volt')} [g:conduct] 효과를 ${N.reverseN}중첩 부여합니다.`,
         '적에게는 직접 피해를 가하지 않습니다.'),
     };
     return {
       brief: '대상에게 전기 피해를 주고 [전도]를 겁니다.',
       text: L(
         `현재 대상에게 [pw:main:${N.coef}:elec] 피해를 가합니다.`,
-        `이어서 대상에게 반드시 [g:conduct] 효과를 ${N.conduct}중첩 부여합니다.`,
-        conductLine(use, false), CONDUCT_SNAP_LINE),
+        `공격이 적중하면 대상에게 반드시 ${SRC('volt')} [g:conduct] 효과를 ${N.conduct}중첩 부여합니다.`),
     };
   },
   wave: (use) => {
@@ -281,42 +279,35 @@ const CANTRIP_TX: Record<SchoolId, (use: (k: string) => boolean) => Tx> = {
         `현재 대상에게 [pw:main:${N.coef}:elec] 피해를 가합니다.`,
         attract ? `${who} 자신 앞 칸으로 끌어당깁니다.` : `${who} 1칸 밀어냅니다.`,
         attract ? '보스와 고정된 적은 끌려오지 않습니다.' : '보스와 고정된 적은 밀려나지 않습니다.',
-        `${amp ? '그 적들' : '대상'}에게 반드시 [g:resonance] 효과를 부여합니다.`,
-        resLine(use)),
+        `${amp ? '그 적들' : '대상'}에게 반드시 ${SRC('wave')} [g:resonance] 효과를 부여합니다.`),
     };
   },
   seed: (use) => {
     const N = PSI.seed;
     if (use('regen')) return {
       brief: '가장 다친 아군에게 [지속 회복]을 겁니다.',
-      text: L(
-        '적이 있으면 체력 비율이 가장 낮은 아군에게 반드시 [g:regen] 효과를 부여합니다.',
-        `[g:regen] 효과는 1초마다 [pw:main:${N.regenHps}]만큼 회복시키며, [s:${N.regenDur}] 지속됩니다.`),
+      text: `적이 있으면 체력 비율이 가장 낮은 아군에게 반드시 [fx:regen:${N.regenDur}:main:${N.regenHps}] 효과를 부여합니다.`,
     };
     return {
       brief: '대상에게 화학 피해를 주고 [중독]을 쌓습니다.',
       text: L(
         `현재 대상에게 [pw:main:${N.coef}:chem] 피해를 가합니다.`,
-        `이어서 대상에게 반드시 [g:poison] 효과를 ${N.poison}중첩 부여합니다.`,
-        poisonLine(use)),
+        `공격이 적중하면 대상에게 반드시 ${SRC('seed')} [g:poison] 효과를 ${N.poison}중첩 부여합니다.`),
     };
   },
   mind: (use) => {
     const N = PSI.mind;
     const n = use('collective') ? N.collectiveN : N.n, share = use('fate') ? N.fateShare : N.share, asc = use('ascend');
-    const bond = [
-      `현재 대상과 대상으로부터 [t:1] 이내의 적 중 가까운 순서로 최대 ${n}명에게 반드시 [g:bond] 효과를 부여합니다.`,
-      `[g:bond] 효과는 대상이 받는 피해를 [p:${N.bondVuln}] 늘리고 받은 피해의 [p:${share}]를 다른 [g:bond] 대상들이 ${use('hive') ? '각각' : '나눠'} 받게 하며, [s:${N.bondDur}] 지속됩니다.`,
-    ];
+    const bond = `현재 대상과 대상으로부터 [t:1] 이내의 적 중 가까운 순서로 최대 ${n}명에게 반드시 [fx:bond:${N.bondDur}:${N.bondVuln}:${share}${use('hive') ? ':each' : ''}] 효과를 부여합니다.`;
     if (use('hypno')) return {
       brief: '대상 무리를 [결속]으로 묶고 [혼란]에 빠뜨립니다.',
-      text: L(...bond, '[g:bond]된 적 전원에게 반드시 [g:confuse] 효과를 부여합니다.', confuseLine(N.hypno + (asc ? N.ascendPlus : 0))),
+      text: L(bond, `[g:bond]된 적 전원에게 반드시 [fx:confuse:${N.hypno + (asc ? N.ascendPlus : 0)}] 효과를 부여합니다.`),
     };
+    const charm = `[fx:charm:${N.charm + (asc ? N.ascendPlus : 0)}]`;
     return {
       brief: '대상 무리를 [결속]으로 묶고, 대상을 [매혹]합니다.',
-      text: L(...bond,
-        asc ? '대상이 보스가 아니면 반드시 [g:charm] 효과를 부여합니다 (엘리트는 지속 시간 절반).' : '대상이 보스나 엘리트가 아니면 반드시 [g:charm] 효과를 부여합니다.',
-        `[g:charm] 효과는 대상이 잠시 아군 편으로 싸우게 하며, [s:${N.charm + (asc ? N.ascendPlus : 0)}] 지속됩니다.`),
+      text: L(bond,
+        asc ? `대상이 보스가 아니면 반드시 ${charm} 효과를 부여합니다 (엘리트는 지속 시간 절반).` : `대상이 보스나 엘리트가 아니면 반드시 ${charm} 효과를 부여합니다.`),
     };
   },
   gold: (use) => {
@@ -325,7 +316,7 @@ const CANTRIP_TX: Record<SchoolId, (use: (k: string) => boolean) => Tx> = {
     return {
       brief: div ? '확률로 다른 아군들에게 임시 장비를 나눠 주고, 실패하면 보호막을 줍니다.' : '확률로 임시 장비를 얻고, 실패하면 가장 다친 아군에게 보호막을 줍니다.',
       text: L(
-        use('hedge') ? '언제나 성공과 실패가 함께 일어납니다.' : `성공 확률은 [p:${N.base}]${use('insider') ? `에 [p:${N.insider}]p를 더한 값` : ''}이며, 이성의 절댓값에 비례해 최대 [pv:${N.perReason}] 더 높아집니다.`,
+        use('hedge') ? '언제나 성공과 실패가 함께 일어납니다.' : `성공 확률은 [p:${N.base}]${use('insider') ? `에 [pv:${N.insider}]를 더한 값` : ''}이며, 이성의 절댓값에 비례해 최대 [pv:${N.perReason}] 증가합니다.`,
         div ? `성공하면 다른 아군 최대 ${N.divN}명에게 무작위 재료 장비를 1개씩 [g:tempgear]합니다.` : '성공하면 무작위 재료 장비 1개를 [g:tempgear]합니다.',
         div ? `나눠 주기는 ${N.divMax}번 성공할 때까지 일어납니다.` : `[g:tempgear]한 장비가 ${N.max}개면 더 받지 않습니다.`,
         use('hedge') ? `그와 함께 언제나 ${fail}` : use('leverage') ? `실패하면 자신이 최대 체력의 [p:${N.leverageSelf}]만큼 [el:true] 피해를 받고, 성공했지만 더 장착할 수 없으면 ${fail}` : `실패하거나 더 장착할 수 없으면 ${fail}`,
@@ -445,27 +436,27 @@ const PASSIVE: Record<SchoolId, PBuild> = {
   },
 };
 const HIT = '기본 공격 · 스킬 · 비술이 적중하면';
-const PASSIVE_TX: Record<SchoolId, (use: (k: string) => boolean) => Tx> = {
+const PASSIVE_TX: Record<SchoolId, (use: Use) => Tx> = {
   pyro: (use) => {
     const N = PSI.pyro, run = use('runaway');
     if (use('beacon')) return {
       brief: '아군의 기본 공격이 가끔 [연소]를 겁니다.',
-      text: L(`아군 전체의 기본 공격이 적중하면 대상에게 [p:${N.beacon}] 기본 확률로 [g:burn] 효과를 1중첩 부여합니다.`,
+      text: L(`아군 전체의 기본 공격이 적중하면 대상에게 [p:${N.beacon}] 기본 확률로 ${burnFx(use)} 효과를 1중첩 부여합니다.`,
         run && `[g:reason]이 0 미만이면 이 확률이 ${N.runawayProc}배가 됩니다.`,
-        '자신의 기본 공격 · 스킬 · 비술로는 [g:burn]를 걸지 않습니다.', burnLine(use)),
+        '자신의 기본 공격 · 스킬 · 비술로는 [g:burn]를 걸지 않습니다.'),
     };
     return {
       brief: '공격이 적중하면 가끔 [연소]를 겁니다.',
-      text: L(`${HIT} 대상에게 [p:${N.proc}] 기본 확률로 [g:burn] 효과를 1중첩 부여합니다.`,
-        run && `[g:reason]이 0 미만이면 이 확률이 ${N.runawayProc}배가 됩니다.`, burnLine(use)),
+      text: L(`${HIT} 대상에게 [p:${N.proc}] 기본 확률로 ${burnFx(use)} 효과를 1중첩 부여합니다.`,
+        run && `[g:reason]이 0 미만이면 이 확률이 ${N.runawayProc}배가 됩니다.`),
     };
   },
   chrono: (use) => {
     const N = PSI.chrono;
     return {
       brief: '공격이 적중하면 가끔 [오한]을 쌓고, 큰 피해일수록 잘 겁니다.',
-      text: L(`${HIT} 대상에게 [p:${N.proc}] 기본 확률로 [g:chill] 효과를 1중첩 부여합니다.`, SCALE_LINE, chillLine(use),
-        use('zero') && `[g:chill]이 ${N.zeroMax}중첩인 적에게 다음 공격이 적중하면 반드시 [g:freeze] 효과를 부여합니다.`,
+      text: L(`${HIT} 대상에게 [p:${N.proc}] 기본 확률로 ${chillFx(use)} 효과를 1중첩 부여합니다.`, SCALE_LINE,
+        use('zero') && `[g:chill]이 ${N.zeroMax}중첩인 적에게 다음 공격이 적중하면 반드시 ${freezeFx(use)} 효과를 부여합니다.`,
         use('rime') && `자신을 공격한 적에게 [g:chill] 효과를 1중첩 부여합니다 (같은 적에게 [s:${N.rimeIcd}]에 1번).`),
     };
   },
@@ -473,39 +464,39 @@ const PASSIVE_TX: Record<SchoolId, (use: (k: string) => boolean) => Tx> = {
     const N = PSI.volt, proc = use('static') ? N.staticProc : N.proc;
     if (use('reverse')) return {
       brief: '공격이 적중하면 가끔 가까운 아군에게 [전도]를 겁니다.',
-      text: L(`${HIT} [p:${proc}] 확률로 대상과 가장 가까운 아군에게 [g:conduct] 효과를 1중첩 부여합니다.`, conductLine(use, true)),
+      text: L(`${HIT} [p:${proc}] 확률로 대상과 가장 가까운 아군에게 ${conductFx(use, true)} 효과를 1중첩 부여합니다.`),
     };
     return {
       brief: '공격이 적중하면 가끔 [전도]를 겁니다.',
-      text: L(`${HIT} 대상에게 [p:${proc}] 기본 확률로 [g:conduct] 효과를 1중첩 부여합니다.`, conductLine(use, false), CONDUCT_SNAP_LINE),
+      text: L(`${HIT} 대상에게 [p:${proc}] 기본 확률로 ${conductFx(use, false)} 효과를 1중첩 부여합니다.`, CONDUCT_SNAP_LINE),
     };
   },
   wave: (use) => ({
     brief: '공격이 적중하면 가끔 [공진]을 걸고, 큰 피해일수록 잘 겁니다.',
-    text: L(`${HIT} 대상에게 [p:${PSI.wave.proc}] 기본 확률로 [g:resonance] 효과를 부여합니다.`, SCALE_LINE, resLine(use)),
+    text: L(`${HIT} 대상에게 [p:${PSI.wave.proc}] 기본 확률로 ${resFx(use)} 효과를 부여합니다.`, SCALE_LINE),
   }),
   seed: (use) => ({
     brief: '공격이 적중하면 가끔 [중독]을 쌓습니다.',
-    text: L(`${HIT} 대상에게 [p:${PSI.seed.proc}] 기본 확률로 [g:poison] 효과를 1중첩 부여합니다.`, poisonLine(use)),
+    text: L(`${HIT} 대상에게 [p:${PSI.seed.proc}] 기본 확률로 ${poisonFx(use)} 효과를 1중첩 부여합니다.`),
   }),
   mind: (use) => {
     const N = PSI.mind, er = use('erode');
     return {
       brief: '공격이 적중하면 가끔 [혼란]에 빠뜨립니다.',
-      text: L(`${HIT} 대상에게 [p:${er ? N.erodeProc : N.proc}] 기본 확률로 [g:confuse] 효과를 부여합니다.`, ONCE_LINE, confuseLine(er ? N.erodeConfuse : N.confuse)),
+      text: L(`${HIT} 대상에게 [p:${er ? N.erodeProc : N.proc}] 기본 확률로 [fx:confuse:${er ? N.erodeConfuse : N.confuse}] 효과를 부여합니다.`, ONCE_LINE),
     };
   },
+  // 임시 장비 보정은 따로 곱하는 배율 (dmgMult · takenMult 훅)이라 % (가산 %p 아님)
   gold: (use) => ({
-    brief: '임시 장비가 많을수록 가하는 피해가 늘고 받는 피해가 줄어듭니다.',
-    text: L(`[g:tempgear]한 장비 1개마다 자신이 가하는 피해가 [p:${PSI.gold.perDmg}] 늘고, 받는 피해가 [p:${PSI.gold.perRed}] 줄어듭니다.`,
+    brief: '임시 장비가 많을수록 가하는 피해가 증가하고 받는 피해가 감소합니다.',
+    text: L(`[g:tempgear]한 장비 1개마다 자신이 가하는 피해가 [p:${PSI.gold.perDmg}] 증가하고, 받는 피해가 [p:${PSI.gold.perRed}] 감소합니다.`,
       use('dividend') && `나눠 준 장비는 성공 횟수와 자신이 받은 장비를 더해 최대 ${PSI.gold.max}개로 셉니다.`),
   }),
   illusion: (use) => {
     const N = PSI.illusion;
     return {
       brief: '공격이 적중하면 가끔 [향취]를 겁니다.',
-      text: L(`${HIT} 대상에게 [p:${N.proc}] 기본 확률로 [g:scent] 효과를 부여합니다.`, ONCE_LINE,
-        `[g:scent] 효과는 대상의 회피를 [pv:${N.scentEva}] 줄이고 받는 피해를 [p:${N.scentVuln}] 늘리며, ${use('dense') ? `[s:${N.scentDur}] 지속되고, 최대 ${N.denseMax}회 중첩됩니다.` : `[s:${N.scentDur}] 지속됩니다.`}`),
+      text: L(`${HIT} 대상에게 [p:${N.proc}] 기본 확률로 [fx:scent:${N.scentDur}:${N.scentEva}:${N.scentVuln}${use('dense') ? `:${N.denseMax}` : ''}] 효과를 부여합니다.`, ONCE_LINE),
     };
   },
 };

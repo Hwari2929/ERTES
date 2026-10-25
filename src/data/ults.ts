@@ -50,7 +50,7 @@ const BASE_ULTS: Record<string, UltDef> = {
   gebek: {
     id: 'gebek', name: '헤비 버니 풀오토', charge: 0.9, line: '유리야, 아빠 일 좀 하고 갈게.',
     brief: '대상 주변의 적들에게 잠시 여러 번 피해를 주고, 가끔 [제압]합니다.',
-    text: '현재 대상을 지정해 [s:2]간 그 위치로부터 [t:2] 이내의 무작위 적에게 [pw:shoot:0.6:phys] 피해를 20회 가합니다.\n공격이 적중하면 대상에게 [p:0.5] 기본 확률로 [g:suppress] 효과를 부여합니다.\n[g:suppress] 효과는 대상의 다음 공격 피해를 1로 만들며, [s:10] 지속됩니다.',
+    text: '현재 대상을 지정해 [s:2]간 그 위치로부터 [t:2] 이내의 무작위 적에게 [pw:shoot:0.6:phys] 피해를 20회 가합니다.\n공격이 적중하면 대상에게 [p:0.5] 기본 확률로 [fx:suppress:10] 효과를 부여합니다.',
     desc: '2초 동안 대상 주변 2칸에 사격 위력 60% 물리 20연사. 맞은 적은 50% 확률로 [제압] (다음 공격 피해 1).',
     theme: { pat: 'shells', c1: '#c8b46a', c2: '#3a3a22', txt: 'shake' },
     cast(b, u) {
@@ -62,7 +62,7 @@ const BASE_ULTS: Record<string, UltDef> = {
         if (!vs.length) return;
         const v = bb.rng.pick(vs);
         const r = shot(bb, u, v, 0.6);
-        if (r.amount > 0 && v.alive && bb.rng.chance(0.5)) bb.applyStatus(u, v, { type: 'buff', key: 'suppress', dur: 10, label: '제압' });
+        if (!r.miss && v.alive) bb.applyStatus(u, v, { type: 'buff', key: 'suppress', dur: 10, label: '제압' }, 0.5); // 적중한 대상만 (기본 확률 50%)
       });
       return true;
     },
@@ -70,9 +70,9 @@ const BASE_ULTS: Record<string, UltDef> = {
   lindiwe: {
     id: 'lindiwe', name: '신용 보증', charge: 1.0, line: '보증 서드리죠. 이자는 나중에.',
     brief: '아군 전체에게 보호막을 주고, 잠시 다른 아군이 받는 피해를 나눠 받습니다.',
-    text: '아군 전체에게 각자 최대 체력의 [p:0.15]만큼 보호막을 부여합니다.\n[s:6]간 다른 아군이 받는 피해의 [p:0.5]를 대신 받습니다.\n[s:6]간 다른 아군이 받는 피해를 [p:0.15] 줄이고, 자신이 직접 받는 피해를 [p:0.5] 줄입니다.',
+    text: '아군 전체에게 각자 최대 체력의 [p:0.15]만큼 보호막을 부여합니다.\n[s:6]간 다른 아군이 받는 피해의 [p:0.5]를 대신 받습니다.\n[s:6]간 다른 아군이 받는 피해를 [pv:0.15] 감소시키고, 자신이 직접 받는 피해를 [pv:0.5] 감소시킵니다.',
     // 스킬 한쪽 원칙: 아군 보호 전용 (예전의 '끝날 때 적에게 되돌리기'는 제거, 대신 아군 전원 피해량 경감)
-    desc: '아군 전원에게 각자 최대 체력 15% 보호막. 6초간 다른 아군이 받는 피해의 절반을 대신 받고, 그동안 다른 아군 피해량 경감 15% · 자신이 직접 받는 피해 -50%.',
+    desc: '아군 전원에게 각자 최대 체력 15% 보호막. 6초간 다른 아군이 받는 피해의 절반을 대신 받고, 그동안 다른 아군 피해량 경감 15%p · 자신이 직접 받는 피해 -50%p.',
     theme: { pat: 'hex', c1: '#5ad8c8', c2: '#c8a040', txt: 'stamp' },
     cast(b, u) {
       if (!b.enemiesOf(u).length) return false;
@@ -85,7 +85,7 @@ const BASE_ULTS: Record<string, UltDef> = {
   franze: {
     id: 'franze', name: '판결 선고', charge: 1.0, line: '본 법정은 피고에게 유죄를 선고합니다.',
     brief: '모든 적에게 [판결]을 내려, 아군이 준 피해를 모았다가 고정 피해로 터뜨립니다.',
-    text: '적 전체에게 반드시 [g:verdict] 효과를 부여합니다.\n[g:verdict] 효과는 아군이 대상에게 가한 피해의 [p:0.4]를 기록하고 끝날 때 기록한 값의 [p:1.5]만큼 [el:true] 피해를 가하며, [s:4] 지속됩니다.',
+    text: '적 전체에게 반드시 [fx:verdict:4:0.4:1.5] 효과를 부여합니다.',
     desc: '모든 적에게 4초간 [판결]: 그동안 아군이 준 피해의 40%를 기록하고, 끝날 때 기록의 150%를 고정 피해로 정산한다.',
     theme: { pat: 'law', c1: '#e04050', c2: '#e8d8b0', txt: 'type' },
     cast(b, u) {
@@ -98,10 +98,10 @@ const BASE_ULTS: Record<string, UltDef> = {
   },
   grenholm: {
     id: 'grenholm', name: '7중 방호 전면 전개', charge: 0.9, line: '이 양식 다시 써 와. 살아서.',
-    brief: '자신과 아군 전체에게 보호막을 주고, 잠시 방어도를 크게 높입니다.',
-    text: '자신에게 최대 체력의 [p:0.5]만큼 보호막을 부여합니다.\n다른 아군 전체에게 각자 최대 체력의 [p:0.15]만큼 보호막을 부여합니다.\n[s:6]간 아군 전체의 방어도를 300 높이고, 받는 피해를 [p:0.15] 줄입니다.',
+    brief: '자신과 아군 전체에게 보호막을 주고, 잠시 방어도를 크게 증가시킵니다.',
+    text: '자신에게 최대 체력의 [p:0.5]만큼 보호막을 부여합니다.\n다른 아군 전체에게 각자 최대 체력의 [p:0.15]만큼 보호막을 부여합니다.\n[s:6]간 아군 전체의 방어도를 300 증가시키고, 받는 피해를 [pv:0.15] 감소시킵니다.',
     // 스킬 한쪽 원칙: 방호 전용 (주변 적 피해 · 기절 제거, 대신 아군 전원 보호막)
-    desc: '자신에게 최대 체력 50% 보호막, 다른 아군 전원에게 각자 최대 체력 15% 보호막. 6초간 아군 전원 방어도 +300, 피해량 경감 15%.',
+    desc: '자신에게 최대 체력 50% 보호막, 다른 아군 전원에게 각자 최대 체력 15% 보호막. 6초간 아군 전원 방어도 +300, 피해량 경감 15%p.',
     theme: { pat: 'form', c1: '#c8ccd4', c2: '#d03838', txt: 'stamp' },
     cast(b, u) {
       if (!b.enemiesOf(u).length) return false;
@@ -144,7 +144,7 @@ const BASE_ULTS: Record<string, UltDef> = {
   argon: {
     id: 'argon', name: '망자의 항로', charge: 1.0, line: '…늦더라도, 반드시 도착한다.',
     brief: '무작위 적들에게 작살을 여러 번 쏘고, 맞은 적이 받는 피해를 증가시킵니다.',
-    text: '[s:1.5]간 무작위 적을 12회 지정해 각각 [pw:shoot:0.45:phys] 피해와 [pw:shoot:0.45:chem] 피해를 가합니다.\n공격이 적중하면 [s:4]간 대상이 받는 피해를 [p:0.15] 늘립니다.',
+    text: '[s:1.5]간 무작위 적을 12회 지정해 각각 [pw:shoot:0.45:phys] 피해와 [pw:shoot:0.45:chem] 피해를 가합니다.\n공격이 적중하면 [s:4]간 대상이 받는 피해를 [pv:0.15] 증가시킵니다.',
     desc: '1.5초 동안 무작위 적에게 작살 12회 (사격 위력 45% 물리 + 45% 화학). 맞은 적은 4초간 받는 피해 +15%p.',
     theme: { pat: 'sea', c1: '#3ad0c0', c2: '#0a1418', txt: 'mist' },
     cast(b, u) {
@@ -155,7 +155,7 @@ const BASE_ULTS: Record<string, UltDef> = {
         const t = bb.rng.pick(es);
         const r = shot(bb, u, t, 0.45, 'phys'); // 작살: 물리 절반 + 화학 절반 (화학 몫은 물리 몫이 맞아야)
         if (!r.miss && t.alive) { const r2 = bb.dealDamage(u, t, S(bb, u, 'shoot') * 0.45, { elem: 'chem', tag: 'skill', kind: 'shoot', canMiss: false }); r.amount += r2.amount; }
-        if (r.amount > 0 && t.alive) bb.applyStatus(u, t, { type: 'buff', key: 'argon.mark', dur: 4, taken: [vuln('all', 0.15)], label: '망자의 표식' });
+        if (!r.miss && t.alive) bb.applyStatus(u, t, { type: 'buff', key: 'argon.mark', dur: 4, taken: [vuln('all', 0.15)], label: '망자의 표식' });
       });
       return true;
     },
@@ -188,8 +188,8 @@ const BASE_ULTS: Record<string, UltDef> = {
   yupito: {
     id: 'yupito', name: '비장의 한 수', charge: 1.0, line: '공학자는 언제나 비장의 한 수가 있지.',
     brief: '아군 전체에게 보호막을 주고, 포탑을 더 세우고 모든 포탑을 빠르게 합니다.',
-    text: '아군 전체에게 [pw:tech:2]만큼 보호막을 부여합니다.\n[g:turret] 1기를 추가로 설치합니다.\n[s:8]간 모든 포탑의 공격 속도를 [pv:0.6] 높입니다.',
-    desc: '아군 전원에게 기술 위력 200% 보호막. 감시 포탑 1기를 추가로 설치하고, 8초간 모든 포탑 공격 속도 +60%.',
+    text: '아군 전체에게 [pw:tech:2]만큼 보호막을 부여합니다.\n[g:turret] 1기를 추가로 설치합니다.\n[s:8]간 모든 포탑의 공격 속도를 [pv:0.6] 증가시킵니다.',
+    desc: '아군 전원에게 기술 위력 200% 보호막. 감시 포탑 1기를 추가로 설치하고, 8초간 모든 포탑 공격 속도 +60%p.',
     theme: { pat: 'blueprint', c1: '#4a9cff', c2: '#ff9a3a', txt: 'spark' },
     cast(b, u) {
       if (!b.enemiesOf(u).length) return false;
@@ -202,7 +202,7 @@ const BASE_ULTS: Record<string, UltDef> = {
   oliver: {
     id: 'oliver', name: '막차 급행', charge: 1.05, line: '다음 역은— 종점입니다~!',
     brief: '가장 뒤쪽 적까지 돌진해 경로의 모든 적에게 피해를 주고 [기절]시킵니다.',
-    text: '가장 뒤쪽에 있는 적에게 돌진해 지나는 경로의 폭 3칸 안의 모든 적에게 [pw:tech:3.5:phys] 피해를 가합니다.\n이어서 대상에게 반드시 [g:stun] 효과를 부여하고, 대상을 1칸 밀어냅니다.\n[g:stun] 효과는 대상이 이동 · 공격 · 스킬을 쓰지 못하게 하며, [s:1] 지속됩니다.\n보스와 고정된 적은 밀려나지 않습니다.',
+    text: '가장 뒤쪽에 있는 적에게 돌진해 지나는 경로의 폭 3칸 안의 모든 적에게 [pw:tech:3.5:phys] 피해를 가합니다.\n공격이 적중하면 대상에게 반드시 [fx:stun:1] 효과를 부여하고, 대상을 1칸 밀어냅니다.\n보스와 고정된 적은 밀려나지 않습니다.',
     desc: '가장 뒤쪽 적까지 3줄 폭으로 돌진해 경로의 모든 적에게 기술 위력 350% 물리 피해 + 1초 기절, 1칸 밀쳐낸다.',
     theme: { pat: 'metro', c1: '#ffd23a', c2: '#141414', txt: 'slide' },
     cast(b, u) {
@@ -217,8 +217,8 @@ const BASE_ULTS: Record<string, UltDef> = {
       });
       blinkTo(b, u, t);
       for (const e of hit) {
-        b.dealDamage(u, e, b.P(u, 'tech') * 3.5, { elem: 'phys', tag: 'skill', kind: 'tech', canMiss: false });
-        if (!e.alive) continue;
+        const r = b.dealDamage(u, e, b.P(u, 'tech') * 3.5, { elem: 'phys', tag: 'skill', kind: 'tech', canMiss: false });
+        if (r.miss || !e.alive) continue; // 기절 · 밀쳐내기는 적중한 대상만
         b.stun(u, e, 1);
         const nx = e.x + Math.sign(dx), ny = e.y + Math.sign(dy);
         if (!e.immobile && !e.isBoss && b.inBounds(nx, ny) && !b.unitAt(nx, ny)) { e.px = e.x; e.py = e.y; e.x = nx; e.y = ny; e.moveT = e.moveDur = 0.2; b.displaced(u, e, 'knock'); }
@@ -229,7 +229,7 @@ const BASE_ULTS: Record<string, UltDef> = {
   kaburaya: {
     id: 'kaburaya', name: '정시 퇴근', charge: 1.0, line: '18시입니다. 퇴근하겠습니다.',
     brief: '모든 적에게 전기 피해를 주고 [감전]시킵니다.',
-    text: '적 전체에게 [pw:tech:3:elec] 피해를 가합니다.\n이어서 대상에게 반드시 [g:shock] 효과를 부여합니다.\n[g:shock] 효과는 대상의 스킬 쿨다운이 줄지 않게 하며, [s:2] 지속됩니다.',
+    text: '적 전체에게 [pw:tech:3:elec] 피해를 가합니다.\n공격이 적중하면 대상에게 반드시 [fx:shock:2] 효과를 부여합니다.',
     // 스킬 한쪽 원칙: 적 전용 (아군 쿨다운 감소 제거, 피해 250 → 300%)
     desc: '모든 적에게 전술 위력 300% 전기 피해 + 2초 감전.',
     theme: { pat: 'office', c1: '#e8e05a', c2: '#2a2c30', txt: 'bored' },
@@ -237,8 +237,8 @@ const BASE_ULTS: Record<string, UltDef> = {
       const es = b.enemiesOf(u);
       if (!es.length) return false;
       for (const e of es) {
-        b.dealDamage(u, e, b.P(u, 'tech') * 3, { elem: 'elec', tag: 'skill', kind: 'tech', canMiss: false });
-        if (e.alive) shock(b, u, e, 2, 1);
+        const r = b.dealDamage(u, e, b.P(u, 'tech') * 3, { elem: 'elec', tag: 'skill', kind: 'tech', canMiss: false });
+        if (!r.miss && e.alive) shock(b, u, e, 2, 1);
       }
       return true;
     },
@@ -246,8 +246,8 @@ const BASE_ULTS: Record<string, UltDef> = {
   issac: {
     id: 'issac', name: '실험체 해방', charge: 0.9, line: '실례하겠습니다. 잠시… 예의를 벗겠습니다.',
     brief: '잠시 크게 강해지고 재생하며, 기본 공격이 주변 적에게 [중독]을 퍼뜨립니다.',
-    text: '[s:8]간 자신이 가하는 피해를 [p:0.5] 늘리고, 받는 피해를 [p:0.3] 줄입니다.\n[s:8]간 1초마다 최대 체력의 [p:0.03]만큼 회복합니다.\n[s:8]간 기본 공격을 할 때마다 대상으로부터 [t:1] 이내의 다른 적들에게 [pw:strike:0.6:chem] 피해를 가하고, 반드시 [g:poison] 효과를 부여합니다.\n[g:poison] 효과는 1초마다 [pw:strike:0.2:chem] 피해를 가하며, [s:3] 지속됩니다.',
-    desc: '8초간 주는 피해 +50%, 피해량 경감 30%, 초당 최대 체력 3% 재생. 기본 공격이 주변 1칸 적에게도 타격 위력 60% 화학 피해 + 중독.',
+    text: '[s:8]간 자신이 가하는 피해를 [pv:0.5] 증가시키고, 받는 피해를 [pv:0.3] 감소시킵니다.\n[s:8]간 1초마다 최대 체력의 [p:0.03]만큼 회복합니다.\n[s:8]간 기본 공격을 할 때마다 대상으로부터 [t:1] 이내의 다른 적들에게 [pw:strike:0.6:chem] 피해를 가합니다.\n이 공격이 적중하면 그 적들에게 반드시 [fx:poison:3:strike:0.2] 효과를 부여합니다.',
+    desc: '8초간 주는 피해 +50%p, 피해량 경감 30%p, 초당 최대 체력 3% 재생. 기본 공격이 주변 1칸 적에게도 타격 위력 60% 화학 피해 + 중독.',
     theme: { pat: 'tape', c1: '#7aff6a', c2: '#f4f4f0', txt: 'unwrap' },
     cast(b, u) {
       if (!b.enemiesOf(u).length) return false;
@@ -258,8 +258,8 @@ const BASE_ULTS: Record<string, UltDef> = {
         if (!h.onBasic || bb.t > until) { h.onBasic = undefined; return; }
         for (const e of bb.around(t, 1, bb.enemiesOf(self))) {
           if (e === t) continue;
-          bb.dealDamage(self, e, bb.S(self, 'strike') * 0.6, { elem: 'chem', tag: 'proc', kind: 'strike' });
-          if (e.alive) poison(bb, self, e, bb.S(self, 'strike') * 0.2, 3, 1);
+          const r = bb.dealDamage(self, e, bb.S(self, 'strike') * 0.6, { elem: 'chem', tag: 'proc', kind: 'strike' });
+          if (!r.miss && e.alive) poison(bb, self, e, bb.S(self, 'strike') * 0.2, 3, 1);
         }
       } };
       u.hooks.push(h);
@@ -269,7 +269,7 @@ const BASE_ULTS: Record<string, UltDef> = {
   exile: {
     id: 'exile', name: '혈월', charge: 1.0, line: '피는 덜 흘리겠다 했지. 내 피 말이네.',
     brief: '체력이 낮은 적들에게 차례로 이동해 베고 [출혈]을 겁니다.',
-    text: '체력 비율이 가장 낮은 적 3명에게 차례로 이동해 각각 [pw:strike:3:phys] 피해를 가합니다.\n이어서 대상에게 반드시 [g:bleed] 효과를 부여합니다.\n[g:bleed] 효과는 1초마다 [pw:strike:0.3:phys] 피해를 가하며, [s:4] 지속됩니다.',
+    text: '체력 비율이 가장 낮은 적 3명에게 차례로 이동해 각각 [pw:strike:3:phys] 피해를 가합니다.\n공격이 적중하면 대상에게 반드시 [fx:bleed:4:strike:0.3] 효과를 부여합니다.',
     desc: '체력 비율이 가장 낮은 적 3명에게 차례로 순간이동해 타격 위력 300% 물리 피해 + 4초 출혈 (초당 타격 위력 30%).',
     theme: { pat: 'moon', c1: '#e02040', c2: '#120408', txt: 'smear' },
     cast(b, u) {
@@ -278,8 +278,8 @@ const BASE_ULTS: Record<string, UltDef> = {
       for (const e of es) {
         if (!e.alive) continue;
         blinkTo(b, u, e);
-        slash(b, u, e, 3);
-        if (e.alive) bleed(b, u, e, b.S(u, 'strike') * 0.3, 4);
+        const r = slash(b, u, e, 3);
+        if (!r.miss && e.alive) bleed(b, u, e, b.S(u, 'strike') * 0.3, 4);
       }
       return true;
     },
@@ -303,17 +303,17 @@ const BASE_ULTS: Record<string, UltDef> = {
   // 청라공국: 공왕 무휼 (지휘관이면 전술 위력, 명사수면 사격 위력 — b.P)
   muhyul: {
     id: 'muhyul', name: '귀허의 섬광', charge: 0.9, line: '본좌는 마땅히 있어야 할 곳으로 돌아가겠다!',
-    brief: '적이 모인 곳에 큰 피해를 주고 [기절]시키며, 맞은 적이 받는 피해를 늘립니다.',
-    text: '적이 가장 많이 모인 곳의 적을 지정해 대상으로부터 [t:2] 이내의 적들에게 [pw:shoot:3.8:phys] 피해를 가합니다.\n이어서 대상에게 반드시 [g:stun] 효과를 부여하고, [s:6]간 대상이 받는 피해를 [p:0.15] 늘립니다.\n[g:stun] 효과는 대상이 이동 · 공격 · 스킬을 쓰지 못하게 하며, [s:1] 지속됩니다.',
-    desc: '적이 가장 많이 모인 곳 주변 2칸에 기억의 유성을 떨어뜨려 전술 위력 380% 물리 피해 + 1초 기절, 맞은 적에게 [기록] (6초, 받는 피해 +15%).',
+    brief: '적이 모인 곳에 큰 피해를 주고 [기절]시키며, 맞은 적에게 [기록]을 남깁니다.',
+    text: '적이 가장 많이 모인 곳의 적을 지정해 대상으로부터 [t:2] 이내의 적들에게 [pw:shoot:3.8:phys] 피해를 가합니다.\n공격이 적중하면 대상에게 반드시 [fx:stun:1] 효과와 [fx:record:6:0.15] 효과를 부여합니다.',
+    desc: '적이 가장 많이 모인 곳 주변 2칸에 기억의 유성을 떨어뜨려 전술 위력 380% 물리 피해 + 1초 기절, 맞은 적에게 [기록] (6초, 받는 피해 +15%p).',
     theme: { pat: 'rail', c1: '#7fe3ff', c2: '#c8303a', txt: 'glitch' },
     cast(b, u) {
       const c = densest(b, u, 2);
       if (!c) return false;
       b.fx(c.x, c.y, 2, 'phys');
       for (const e of b.around(c, 2, b.enemiesOf(u))) {
-        b.dealDamage(u, e, b.P(u, 'shoot') * 3.8, { elem: 'phys', tag: 'skill', kind: 'shoot', canMiss: false });
-        if (!e.alive) continue;
+        const r = b.dealDamage(u, e, b.P(u, 'shoot') * 3.8, { elem: 'phys', tag: 'skill', kind: 'shoot', canMiss: false });
+        if (r.miss || !e.alive) continue; // 기절 · 기록은 적중한 대상만
         b.stun(u, e, 1);
         b.applyStatus(u, e, { type: 'buff', key: 'king.rec', dur: 6, taken: [vuln('all', Math.max(0.15, u.sk.vuln || 0))], label: '기록' });
       }
@@ -323,14 +323,14 @@ const BASE_ULTS: Record<string, UltDef> = {
   juseong: {
     id: 'juseong', name: '월하 호위', charge: 1.0, line: '왕자는 뒤로. 여기서부터는 통행료 받는다.',
     brief: '주변 적들을 베어 [기절]시키고, 자신에게 보호막을 두릅니다.',
-    text: '자신으로부터 [t:2] 이내의 적들에게 [pw:strike:3.2:phys] 피해를 가합니다.\n이어서 대상에게 반드시 [g:stun] 효과를 부여합니다.\n[g:stun] 효과는 대상이 이동 · 공격 · 스킬을 쓰지 못하게 하며, [s:1] 지속됩니다.\n자신에게 최대 체력의 [p:0.25]만큼 보호막을 부여합니다.',
+    text: '자신으로부터 [t:2] 이내의 적들에게 [pw:strike:3.2:phys] 피해를 가합니다.\n공격이 적중하면 대상에게 반드시 [fx:stun:1] 효과를 부여합니다.\n자신에게 최대 체력의 [p:0.25]만큼 보호막을 부여합니다.',
     desc: '주변 2칸 적에게 타격 위력 320% 물리 피해 + 1초 기절, 자신에게 최대 체력 25% 보호막.',
     theme: { pat: 'shells', c1: '#5ad08a', c2: '#14201a', txt: 'shake' },
     cast(b, u) {
       const es = b.around(u, 2, b.enemiesOf(u));
       if (!es.length) return false;
       b.fx(u.x, u.y, 2, 'phys');
-      for (const e of es) { slash(b, u, e, 3.2); if (e.alive) b.stun(u, e, 1); }
+      for (const e of es) { const r = slash(b, u, e, 3.2); if (!r.miss && e.alive) b.stun(u, e, 1); }
       b.shield(u, b.S(u, 'maxHp') * 0.25);
       return true;
     },
@@ -339,14 +339,14 @@ const BASE_ULTS: Record<string, UltDef> = {
   kal_guard: {
     id: 'kal_guard', name: '제국의 검', charge: 0.8, line: '황제 폐하의 이름으로!',
     brief: '대상과 그 주변 적들을 베어 [기절]시킵니다.',
-    text: '[t:2] 이내의 현재 대상을 지정해 대상으로부터 [t:1] 이내의 적들에게 [pw:strike:3:phys] 피해를 가합니다.\n이어서 대상에게 반드시 [g:stun] 효과를 부여합니다.\n[g:stun] 효과는 대상이 이동 · 공격 · 스킬을 쓰지 못하게 하며, [s:1] 지속됩니다.',
+    text: '[t:2] 이내의 현재 대상을 지정해 대상으로부터 [t:1] 이내의 적들에게 [pw:strike:3:phys] 피해를 가합니다.\n공격이 적중하면 대상에게 반드시 [fx:stun:1] 효과를 부여합니다.',
     desc: '대상과 주변 1칸 적에게 타격 위력 300% 물리 피해 + 1초 기절.',
     theme: { pat: 'shells', c1: '#e0b040', c2: '#5a1018', txt: 'shake' },
     cast(b, u) {
       const t = u.target?.alive && b.dist(u, u.target) <= 2 ? u.target : null;
       if (!t) return false;
       b.fx(t.x, t.y, 1, 'phys');
-      for (const e of b.around(t, 1, b.enemiesOf(u))) { slash(b, u, e, 3); if (e.alive) b.stun(u, e, 1); }
+      for (const e of b.around(t, 1, b.enemiesOf(u))) { const r = slash(b, u, e, 3); if (!r.miss && e.alive) b.stun(u, e, 1); }
       return true;
     },
   },

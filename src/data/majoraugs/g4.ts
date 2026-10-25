@@ -509,8 +509,8 @@ export const ULTS_X: Record<string, UltDef> = {
   lars: {
     id: 'lars', name: '최종 제안', charge: 1.0, line: '17시 58분이군요. 2분 안에 정리하죠.',
     brief: '모든 적을 잠시 약하게 만들고, 경호원들이 가장 튼튼한 적을 덮칩니다.',
-    text: `적 전체에게 [s:${LARS.ultDur}]간 대상이 가하는 피해를 [p:${LARS.ultWeak}] 줄이고, 대상이 받는 피해를 [p:${LARS.ultVuln}] 늘립니다.\n경호원이 없으면 이 효과가 [s:${LARS.ultDurSolo}] 지속됩니다.\n경호원 전원이 최대 체력이 가장 높은 적에게 이동해 각각 경호원 타격 위력의 ${pct(LARS.ultHit)} [el:phys] 피해를 가합니다.`,
-    desc: `모든 적에게 ${LARS.ultDur}초간 [최종 제안]: 주는 피해 -${pct(LARS.ultWeak)}, 받는 피해 +${pct(LARS.ultVuln)}. 경호원 전원이 최대 체력이 가장 높은 적에게 달려들어 경호원 타격 위력 ${pct(LARS.ultHit)} 물리 피해. 경호원이 없으면 [최종 제안]이 ${LARS.ultDurSolo}초.`,
+    text: `적 전체에게 [s:${LARS.ultDur}]간 대상이 가하는 피해를 [pv:${LARS.ultWeak}] 감소시키고, 대상이 받는 피해를 [pv:${LARS.ultVuln}] 증가시킵니다.\n경호원이 없으면 이 효과가 [s:${LARS.ultDurSolo}] 지속됩니다.\n경호원 전원이 최대 체력이 가장 높은 적에게 이동해 각각 경호원 타격 위력의 ${pct(LARS.ultHit)} [el:phys] 피해를 가합니다.`,
+    desc: `모든 적에게 ${LARS.ultDur}초간 [최종 제안]: 주는 피해 -${pct(LARS.ultWeak)}p, 받는 피해 +${pct(LARS.ultVuln)}p. 경호원 전원이 최대 체력이 가장 높은 적에게 달려들어 경호원 타격 위력 ${pct(LARS.ultHit)} 물리 피해. 경호원이 없으면 [최종 제안]이 ${LARS.ultDurSolo}초.`,
     theme: { pat: 'form', c1: '#d4a83a', c2: '#16161c', txt: 'stamp' },
     cast(b, u) {
       const es = b.enemiesOf(u);
@@ -552,8 +552,8 @@ export const ULTS_X: Record<string, UltDef> = {
   bianca: {
     id: 'bianca', name: '긴급 수술', charge: 0.95, line: '수술 시작합니다. 베헤모스, 가.',
     brief: '아군 전체를 치료 · 정화하고, 베헤모스를 회복시켜 잠시 강하게 만듭니다.',
-    text: `아군 전체를 [pw:tech:${BIA.ult}]만큼 회복시키고, 해로운 효과를 모두 제거합니다.\n베헤모스의 체력을 모두 회복시키고, [s:${BIA.ultDur}]간 베헤모스가 가하는 피해를 [p:${BIA.ultDmg}] 늘리고 공격 속도를 [pv:${BIA.ultAs}] 높입니다.\n베헤모스가 없으면 체력 비율이 가장 낮은 아군이 대신 이 강화를 받습니다.`,
-    desc: `아군 전원을 기술 위력 ${pct(BIA.ult)} 회복하고 해로운 상태이상을 없앤다. 베헤모스는 체력을 모두 회복하고 ${BIA.ultDur}초간 주는 피해 +${pct(BIA.ultDmg)}, 공격 속도 +${pct(BIA.ultAs)}. 베헤모스가 없으면 체력 비율이 가장 낮은 아군이 대신 그 강화를 받는다.`,
+    text: `아군 전체를 [pw:tech:${BIA.ult}]만큼 회복시키고, 해로운 효과를 모두 제거합니다.\n베헤모스의 체력을 모두 회복시킵니다.\n[s:${BIA.ultDur}]간 베헤모스가 가하는 피해를 [pv:${BIA.ultDmg}] 증가시키고, 공격 속도를 [pv:${BIA.ultAs}] 증가시킵니다.\n베헤모스가 없으면 체력 비율이 가장 낮은 아군이 대신 이 강화를 받습니다.`,
+    desc: `아군 전원을 기술 위력 ${pct(BIA.ult)} 회복하고 해로운 상태이상을 없앤다. 베헤모스는 체력을 모두 회복하고 ${BIA.ultDur}초간 주는 피해 +${pct(BIA.ultDmg)}p, 공격 속도 +${pct(BIA.ultAs)}p. 베헤모스가 없으면 체력 비율이 가장 낮은 아군이 대신 그 강화를 받는다.`,
     theme: { pat: 'hex', c1: '#80c0ff', c2: '#6a1020', txt: 'unwrap' },
     cast(b, u) {
       if (!b.enemiesOf(u).length) return false;
@@ -589,16 +589,16 @@ export const ULTS_X: Record<string, UltDef> = {
   aiden: {
     id: 'aiden', name: '마감 시간입니다', charge: 1.0, line: '마감 시간입니다, 손님들. 계산은 이쪽으로.',
     brief: '주변 적들에게 피해를 주고 자신을 노리게 하며, 가끔 [공포]에 빠뜨립니다.',
-    text: `자신으로부터 [t:2] 이내의 적들에게 [pw:strike:${AID.ult}:phys] 피해를 가합니다.\n그 적들은 [s:${AID.ultTaunt}]간 자신을 공격합니다.\n이어서 그 적들에게 [p:${AID.ultFearChance}] 기본 확률로 [g:fear] 효과를 부여합니다.\n[g:fear] 효과는 대상이 공격과 스킬을 쓰지 못하게 하며, [s:${AID.ultFear}] 지속됩니다.\n[s:${AID.ultDur}]간 자신의 회피를 [pv:0.15], 공격 속도를 [pv:0.3] 높이고, 받는 피해를 [p:${AID.ultRed}] 줄입니다.`,
-    desc: `주변 2칸 적에게 타격 위력 ${pct(AID.ult)} 물리 피해 + ${pct(AID.ultFearChance)} 확률로 ${AID.ultFear}초 공포, 맞은 적을 ${AID.ultTaunt}초간 도발한다. 자신은 ${AID.ultDur}초간 고양이 형태가 되고 피해량 경감 ${pct(AID.ultRed)}.`,
+    text: `자신으로부터 [t:2] 이내의 적들에게 [pw:strike:${AID.ult}:phys] 피해를 가합니다.\n공격이 적중하면 대상에게 [p:${AID.ultFearChance}] 기본 확률로 [fx:fear:${AID.ultFear}] 효과를 부여하고, 반드시 [fx:taunt:${AID.ultTaunt}] 효과를 부여합니다.\n[s:${AID.ultDur}]간 자신의 회피를 [pv:0.15], 공격 속도를 [pv:0.3] 증가시키고, 받는 피해를 [pv:${AID.ultRed}] 감소시킵니다.`,
+    desc: `주변 2칸 적에게 타격 위력 ${pct(AID.ult)} 물리 피해 + ${pct(AID.ultFearChance)} 확률로 ${AID.ultFear}초 공포, 맞은 적을 ${AID.ultTaunt}초간 도발한다. 자신은 ${AID.ultDur}초간 고양이 형태가 되고 피해량 경감 ${pct(AID.ultRed)}p.`,
     theme: { pat: 'haze', c1: '#7fe3ff', c2: '#1a1a22', txt: 'mist' },
     cast(b, u) {
       const es = b.around(u, 2, b.enemiesOf(u));
       if (!es.length) return false;
       b.fx(u.x, u.y, 2, 'phys');
       for (const e of es) {
-        b.dealDamage(u, e, b.S(u, 'strike') * AID.ult, { elem: 'phys', tag: 'skill', kind: 'strike', canMiss: false });
-        if (!e.alive) continue;
+        const r = b.dealDamage(u, e, b.S(u, 'strike') * AID.ult, { elem: 'phys', tag: 'skill', kind: 'strike', canMiss: false });
+        if (r.miss || !e.alive) continue; // 공포 · 도발은 적중한 대상만
         fear(b, u, e, AID.ultFear, AID.ultFearChance);
         b.provoke(e, u, AID.ultTaunt);
       }
