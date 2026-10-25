@@ -30,8 +30,7 @@ export const ABIL_G: Record<string, AbilText> = {
       text: L(
         `${p.radius ? `최대 체력이 가장 높은 적을 지정해 대상으로부터 [t:${p.radius}] 이내의 적들에게` : '최대 체력이 가장 높은 적에게'} [pw:shoot:${p.mult * (p.final ? 1.5 : 1)}:phys] 피해를 ${p.hits > 1 ? `${p.hits}회 ` : ''}가합니다.`,
         p.hits > 1 && `2번째부터의 피해는 [p:${p.second}]로 감소합니다.`,
-        '공격이 적중하면 대상에게 반드시 [g:record] 효과를 부여합니다.',
-        `[g:record] 효과가 부여된 적은 받는 피해가 [pv:${p.vuln}] 증가하며, [s:6] 지속됩니다.`,
+        `공격이 적중하면 대상에게 반드시 [fx:record:6:${p.vuln}] 효과를 부여합니다.`,
         p.refund && `이 공격으로 적을 쓰러뜨리면 스킬 쿨다운의 [p:${p.refund}]를 돌려받습니다.`,
       ),
     }),

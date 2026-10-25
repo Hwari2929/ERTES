@@ -330,8 +330,7 @@ export const ABIL_F: Record<string, AbilText> = {
       ),
     }),
     trait: lines(
-      '체력이 처음으로 [p:@monsterAt] 이하가 되면 [g:monster] 효과를 얻습니다.',
-      '[g:monster] 효과가 부여된 대상은 가하는 피해가 [pv:0.8], 공격 속도가 [pv:0.5] 증가하며, 전투가 끝날 때까지 지속됩니다.',
+      '체력이 처음으로 [p:@monsterAt] 이하가 되면 자신에게 [fx:monster] 효과를 부여합니다.',
       '전투 스킬을 쓰면 최대 체력의 [p:@heal]만큼 회복합니다.',
     ),
     augs: {
@@ -391,7 +390,7 @@ export const ABIL_F: Record<string, AbilText> = {
       'mj.deep': '혈검의 [g:bleed] 피해가 초당 [pw:strike:0.3:phys] 피해만큼 증가합니다.',
       'mj.vital': '혈검은 치명타 확률이 [pv:0.3] 상승 적용됩니다.',
       'mj.thirst': '혈족의 갈증의 회복량이 준 피해의 [pv:0.15] 증가합니다.',
-      'mj.cloak': '전투가 시작되면 [s:4]간 [g:stealth] 효과를 얻고, 공격 속도가 [pv:0.3] 증가합니다. [g:stealth] 효과가 부여된 대상은 적의 대상으로 지정될 수 없으며, [s:4] 지속됩니다.',
+      'mj.cloak': '전투가 시작되면 자신에게 [fx:stealth:4] 효과를 부여하고, [s:4]간 공격 속도가 [pv:0.3] 증가합니다.',
       'mj.apology': '혈검 · 혈월로 피해를 주면 [s:3]간 대상이 가하는 피해를 [pv:0.2] 감소시킵니다.',
       'mj.evade': '체력이 [p:0.5] 이하이면 회피가 [pv:0.15] 증가합니다.',
       'mj.noble': '칼리토 작위 +1, 치명타 피해 [pp:0.2].',

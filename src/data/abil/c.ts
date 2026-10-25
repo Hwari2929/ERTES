@@ -18,8 +18,6 @@ const when = (on: unknown, ...xs: string[]) => (on ? xs : []);
 
 // ───────── 공용 문장
 // 기절 · 공포 · 출혈 · 도발 · 감전의 설명 문장은 [fx:키:지속(:인자)] 토큰이 능력 설명 끝에 자동으로 붙인다 (STATUS_FX)
-/** [부상]: STATUS_FX 에 없는 상태라 설명 문장을 직접 쓴다 (docs/ABILITY_TEXT.md 2.3 문형) */
-const WOUND = '[g:wound] 효과가 부여된 적은 회복이나 보호막을 받을 때 1중첩을 소모해 그 효과가 무효가 되며, [s:6] 지속되고, 최대 5회 중첩됩니다.';
 /** 다단: 2번째부터는 계수 × second (tpl.ts strike) */
 const moreHits = (p: P, pow: string, elem: string, second = p.second ?? 0.6) =>
   when(p.hits > 1, `이어서 같은 대상에게 [pw:${pow}:${n(p.mult * second)}:${elem}] 피해를 ${p.hits - 1}회 더 가합니다.`);
@@ -458,8 +456,7 @@ export const ABIL_C: Record<string, AbilText> = {
       ),
     }),
     trait: L(
-      '라스무스 · 맥스 · 라라의 기본 공격이 적중하면 대상에게 [g:wound] 효과를 1중첩 부여합니다.',
-      WOUND,
+      '라스무스 · 맥스 · 라라의 기본 공격이 적중하면 대상에게 [fx:wound:6:5] 효과를 1중첩 부여합니다.',
     ),
     summon: { 맥스: rasmusDog, 라라: rasmusDog },
   },
