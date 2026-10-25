@@ -35,7 +35,7 @@ const BASE_ULTS: Record<string, UltDef> = {
   mirinae: {
     id: 'mirinae', name: '신기루 종막', charge: 1.0, line: '캠핑 장비값은 이걸로 충당할게.',
     brief: '가장 튼튼한 적의 뒤로 돌아가 치명적인 한 발을 쏩니다.',
-    text: '체력이 가장 높은 적의 뒤로 이동해 [pw:shoot:12:phys] 피해를 가합니다.\n이 공격은 치명타 확률과 명중 확률이 [pp:1] 상승 적용됩니다.',
+    text: '체력이 가장 높은 적의 뒤로 이동해 [pw:shoot:12:phys] 피해를 가합니다.\n이 공격은 치명타 확률과 명중 확률이 [pv:1] 상승 적용됩니다.',
     desc: '가장 체력이 높은 적의 배후로 이동해 사격 위력 1200% 물리 단발 (치명타 확정, 빗나가지 않음).',
     theme: { pat: 'haze', c1: '#ffb46a', c2: '#5a3a1a', txt: 'heat' },
     cast(b, u) {
@@ -115,7 +115,7 @@ const BASE_ULTS: Record<string, UltDef> = {
   falcon: {
     id: 'falcon', name: '시험 사격 1,205회차', charge: 0.85, line: '사고 보고서는… 나중에 쓸게요.',
     brief: '직선 위의 모든 적에게 방어도를 무시하는 큰 피해를 주지만, 가끔 자신도 다칩니다.',
-    text: '현재 대상을 향해 직선 위의 모든 적에게 [pw:shoot:11:phys] 피해를 가합니다.\n이 공격은 명중 확률이 [pp:1] 상승 적용됩니다.\n이 공격은 대상의 방어도를 [p:1] 무시합니다.\n[p:0.3] 확률로 자신이 최대 체력의 [p:0.1]만큼 [el:true] 피해를 받습니다.',
+    text: '현재 대상을 향해 직선 위의 모든 적에게 [pw:shoot:11:phys] 피해를 가합니다.\n이 공격은 명중 확률이 [pv:1] 상승 적용됩니다.\n이 공격은 대상의 방어도를 [p:1] 무시합니다.\n[p:0.3] 확률로 자신이 최대 체력의 [p:0.1]만큼 [el:true] 피해를 받습니다.',
     desc: '대상 방향 직선 위 모든 적에게 사격 위력 1100% 물리 피해 (방어도 완전 관통). 30% 확률로 사고: 자신이 최대 체력 10% 고정 피해.',
     theme: { pat: 'rail', c1: '#6ae8ff', c2: '#ffffff', txt: 'glitch' },
     cast(b, u) {
@@ -187,7 +187,7 @@ const BASE_ULTS: Record<string, UltDef> = {
   yupito: {
     id: 'yupito', name: '비장의 한 수', charge: 1.0, line: '공학자는 언제나 비장의 한 수가 있지.',
     brief: '아군 전체에게 보호막을 주고, 포탑을 더 세우고 모든 포탑을 빠르게 합니다.',
-    text: '아군 전체에게 [pw:tech:2]만큼 보호막을 부여합니다.\n[g:turret] 1기를 추가로 설치합니다.\n[s:8]간 모든 포탑의 공격 속도를 [p:0.6]p 높입니다.',
+    text: '아군 전체에게 [pw:tech:2]만큼 보호막을 부여합니다.\n[g:turret] 1기를 추가로 설치합니다.\n[s:8]간 모든 포탑의 공격 속도를 [pv:0.6] 높입니다.',
     desc: '아군 전원에게 기술 위력 200% 보호막. 감시 포탑 1기를 추가로 설치하고, 8초간 모든 포탑 공격 속도 +60%.',
     theme: { pat: 'blueprint', c1: '#4a9cff', c2: '#ff9a3a', txt: 'spark' },
     cast(b, u) {

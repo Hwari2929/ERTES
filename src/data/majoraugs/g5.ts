@@ -317,7 +317,7 @@ export const ULTS_X: Record<string, UltDef> = {
   amundsen: {
     id: 'amundsen', name: '7703 전탄 발사', charge: 1.0, line: '7703, 아직 날 수 있겠나?',
     brief: '무작위 적들에게 여러 번 포격해 주변까지 피해를 주고 느리게 만듭니다.',
-    text: `무작위 적을 ${AMU.shells}회 지정해 각각 대상으로부터 [t:1] 이내의 적들에게 [pw:shoot:${AMU.mult}:phys] 피해를 가합니다.\n공격은 [s:${AMU.every}] 간격으로 이어집니다.\n이 공격은 대상의 방어도를 [p:${AMU.pen}] 무시합니다.\n이어서 [s:${AMU.slowDur}]간 대상의 공격 속도와 이동 속도를 [p:${AMU.slow}]p 줄입니다.`,
+    text: `무작위 적을 ${AMU.shells}회 지정해 각각 대상으로부터 [t:1] 이내의 적들에게 [pw:shoot:${AMU.mult}:phys] 피해를 가합니다.\n공격은 [s:${AMU.every}] 간격으로 이어집니다.\n이 공격은 대상의 방어도를 [p:${AMU.pen}] 무시합니다.\n이어서 [s:${AMU.slowDur}]간 대상의 공격 속도와 이동 속도를 [pv:${AMU.slow}] 줄입니다.`,
     desc: `7703이 ${AMU.every}초마다 무작위 적에게 포탄을 ${AMU.shells}발 떨어뜨린다: 포탄마다 대상과 주변 1칸 적에게 전술 위력 ${pct(AMU.mult)} 물리 피해 (방어도 관통 ${pct(AMU.pen)}) + ${AMU.slowDur}초 둔화 ${pct(AMU.slow)}.`,
     theme: { pat: 'shells', c1: '#e0b040', c2: '#1a1a22', txt: 'slide' },
     cast(b, u) {
@@ -375,7 +375,7 @@ export const ULTS_X: Record<string, UltDef> = {
   mao: {
     id: 'mao', name: '라스트 오더', charge: 1.0, line: '오늘 밤은 제가 사죠. 서명은 내일 받을게요.',
     brief: '아군 전체를 치료하고 잠시 강화하며, 다른 아군의 스킬을 앞당깁니다.',
-    text: `아군 전체를 [pw:tech:2]만큼 회복시킵니다.\n이 회복에는 [g:cook] 배율이 적용됩니다.\n[s:8]간 아군 전체가 가하는 피해를 [p:0.4] 늘리고, 공격 속도를 [p:0.3]p 높입니다.\n다른 아군의 스킬 쿨다운을 [s:3] 줄입니다.`,
+    text: `아군 전체를 [pw:tech:2]만큼 회복시킵니다.\n이 회복에는 [g:cook] 배율이 적용됩니다.\n[s:8]간 아군 전체가 가하는 피해를 [p:0.4] 늘리고, 공격 속도를 [pv:0.3] 높입니다.\n다른 아군의 스킬 쿨다운을 [s:3] 줄입니다.`,
     desc: '아군 전원을 전술 위력 200% × 요리 배율 회복, 8초간 피해 +40% · 공격 속도 +30%. 다른 아군의 기술 쿨다운 즉시 -3초.',
     theme: { pat: 'haze', c1: '#ff4d9a', c2: '#1c1c24', txt: 'spark' },
     cast(b, u) {
