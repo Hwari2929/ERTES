@@ -3,6 +3,7 @@
 > 적이 누구를 때릴지 정하는 규칙. 커밋 128ae30 에서 '가장 가까운 대상' 규칙을 도발 수치 + 성향 규칙으로 바꿨고, 이 문서는 그 정식 보고서다. 4장의 H_VOY5_MED 분석 뒤 수호자 가산을 '수호자 시너지가 켜졌을 때만'으로 고쳤다 (5장).
 > 코드: `src/engine/combat.ts` (`PROV` · `provMult` · `Battle.provAdd / provoke / provScore / provPick / provSupport` · `act` 의 표적 고르기), `src/engine/build.ts` (`buildEnemy` 성향 · 도발 수치 초기화, `buildAlly` 수호자 시너지 꺼짐 표시), `src/data/enemies.ts` (`tend`).
 > 용어는 언제나 **도발 수치**다 ('위협' · '어그로'라고 쓰지 않는다).
+> 규칙 · 계수(1 · 3장)는 2026-10-25 코드와 같다. 기물 · 적 명단과 종 수(1-1 · 2장)와 측정(4장 이후)은 2026-10-16 기준이다 (지금 돌격가 19명 · 적 98종, 명단은 `docs/SYNERGY_TABLE.md` · 도감).
 
 ## 1. 규칙
 
