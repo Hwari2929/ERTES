@@ -1525,7 +1525,7 @@ export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major')
   });
 }
 
-/** 증강 선택지 수 (메이저 · 스페셜 · 전공 증강): 침묵의 서약이면 줄어든다 */
+/** 증강 선택지 수 (메이저 전용 · 사이오닉 전공 · 디바인 서약 증강): 침묵의 서약이면 줄어든다 */
 const augN = (run: RunState) => Math.max(1, CFG.augmentChoices - oathV(run, 'augment', 'less'));
 /** ★ 전설 전공 증강이 이번 선택지에 섞일 확률: 기본 + 전설 없이 지나간 전공 증강 선택마다 보정, 전설을 한 번 얻으면 기본만 */
 /** ★ 전설 메이저 전용 증강이 선택지에 섞일 확률 (CFG.majorLegend): 전설을 아직 못 얻었으면 지나간 선택마다 보정 */
@@ -1970,7 +1970,7 @@ export function genSupply(run: RunState, onMap = false): SupplyCard[] {
   const kinds = Object.keys(S.kindW) as SupplyCard['kind'][];
   const total = kinds.reduce((s, k) => s + S.kindW[k], 0);
   // 항로 보급 (onMap): 첫 장은 장비 재료 확정, 대박 없음. 런의 첫 보급(1페이즈 항로 보급)은 순서 고정 + 크레딧 카드 +firstCredits
-  const first = onMap && run.phase === 1;
+  const first = onMap && run.phase === 1 && !run.picked.slice(0, run.step).includes('supply'); // 1페이즈 항로 보급 중 맨 앞 1곳만
   return rng(run, (r) => Array.from({ length: S.cards }, (_, i): SupplyCard => {
     if (i === S.cards - 1) {
       const id = r.pick(['K_strip', 'K_reroll']);

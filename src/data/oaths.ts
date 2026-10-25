@@ -59,7 +59,7 @@ export const OATHS: OathDef[] = [
   { id: 'recruit', name: '고립의 서약', env: '한산한 용병 시장', brief: '모집 영입 선택지가 줄어듭니다', icon: 'n.recruit', quip: '이번 항로에 함께하겠다는 용병이 드물다.',
     lv: (n) => `페이즈 시작 · 모집 영입 선택지 -${at(O().recruit.less, n)} (최소 1, 지정 소집 · 특권 제외)` },
   { id: 'augment', name: '침묵의 서약', env: '짧아진 공명', brief: '증강 선택지가 줄어듭니다', icon: 's.mind', quip: '공명의 노래가 1소절 짧아진다.',
-    lv: (n) => `메이저 · 스페셜 · 전공 증강 선택지 ${CFG.augmentChoices}장 → ${Math.max(1, CFG.augmentChoices - at(O().augment.less, n))}장` },
+    lv: (n) => `메이저 전용 · 사이오닉 전공 · 디바인 서약 증강 선택지 ${CFG.augmentChoices}장 → ${Math.max(1, CFG.augmentChoices - at(O().augment.less, n))}장` },
   { id: 'abyss', name: '심연의 서약', env: '깊어진 심연', brief: '절망 증강이 늘어납니다', icon: 'k.soul', quip: '절망을 더 일찍, 더 자주 들이마신다.',
     lv: (n) => { const ev = at(O().abyss.every, n); return `출격 때 절망 증강 ${1 + at(O().abyss.start, n)}개${ev ? `, 추가로 고르는 간격 ${CFG.despair.every} → ${ev}페이즈` : ''}`; } },
   { id: 'strip', name: '박탈의 서약', env: '회수된 특전', brief: '특권 증강 새로고침이 줄어듭니다', icon: 'a.power', quip: '후원사들이 특전 목록을 회수해 갔다.',
