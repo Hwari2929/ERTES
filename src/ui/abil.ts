@@ -111,6 +111,7 @@ export function tok(text: string, ctx: AbilCtx, gl: Set<string>): string {
       case 't': return `<span class="tln">${lineIcon('u.range', 'li')}${num(a[0], ctx)}칸</span>`;
       case 's': return `${num(a[0], ctx)}초`;
       case 'p': return pct(num(a[0], ctx));
+      case 'pv': return `${pct(Math.abs(num(a[0], ctx)))}p`; // 증감 동사와 함께 쓰는 %p (부호 없이: '30%p 높입니다')
       case 'pp': { const v = num(a[0], ctx); return `${v >= 0 ? '+' : '-'}${pct(Math.abs(v))}p`; }
     }
     return _m;
