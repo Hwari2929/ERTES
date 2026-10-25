@@ -419,6 +419,8 @@ export class Battle {
   units: CUnit[] = [];
   events: BEvent[] = [];
   keepEvents = true;
+  /** 빗나간 공격의 대상: 그 공격에 딸린 효과(기본 공격 훅 · 스킬 부가 효과)가 처리되는 동안 해로운 상태 효과를 받지 않는다 */
+  missed = new Set<CUnit>();
   winner: 0 | 1 | null = null;
   nextId = 1;
   counters = { crits: 0, statuses: 0, skills: 0, kills: 0, allyDeaths: 0, bestHit: 0 };
@@ -1076,7 +1078,9 @@ export class Battle {
     const elem = holy ? 'holy' : u.atk.elem;
     this.emit({ k: 'atk', from: u.id, to: tgt.id, elem, ranged: u.atk.type === 'shoot' });
     const r = this.dealDamage(u, tgt, pow * m, { elem, tag: 'basic', kind, canMiss: true, extra, pen: holy ? 1 : 0 });
+    if (r.miss) this.missed.add(tgt); // 빗나간 기본 공격: 특성 · 장비 훅이 거는 해로운 상태 효과는 들어가지 않는다
     for (const h of u.hooks) h.onBasic?.(this, u, tgt, r);
+    this.missed.delete(tgt);
     this.ultGain(u, CFG.ultGain.basic, 'basic');
     for (const a of this.alliesOf(u, false)) for (const h of a.hooks) h.onAllyBasic?.(this, a, u);
     if (u.alive) this.statusAct(u);
@@ -1510,6 +1514,7 @@ export class Battle {
     if (cc && tgt.isBoss) return false; // 보스: 빙결 · 매혹 · 혼란 면역
     const hostile = this.sideOf(src) !== this.sideOf(tgt);
     if (hostile && tgt.category === 'bio' && s.dps && (s.key === 'bleed' || s.key === 'poison')) { s.dps *= 1.25; if (s.perDps) s.perDps *= 1.25; } // 생체: 출혈 · 중독 강화
+    if (hostile && this.missed.has(tgt)) return false; // 공격이 빗나간 대상
     if (hostile) {
       const p = baseChance * (1 + this.S(src, 'effHit') - this.S(tgt, 'effRes'));
       if (this.rng.next() >= p) return false;

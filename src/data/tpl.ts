@@ -100,6 +100,7 @@ export function strike(o: StrikeOpts): SkillDef {
       if (p.radius || o.aroundSelf) b.fx(t.x, t.y, o.aroundSelf ? p.radius || 1 : p.radius, o.elem);
       let dealt = 0;
       const results: DmgResult[] = [];
+      const hit = new Set<CUnit>(); // 한 번이라도 적중한 대상: 부가 효과는 대상마다 첫 적중에 1번 (빗나가면 걸리지 않는다)
       for (let h = 0; h < p.hits; h++) {
         for (const v of victims) {
           if (!v.alive) continue;
@@ -109,11 +110,15 @@ export function strike(o: StrikeOpts): SkillDef {
           });
           dealt += r.amount;
           results.push(r);
-          if (h === 0) applyRiders(b, u, v, p, o.pow);
+          if (!r.miss && !hit.has(v)) { hit.add(v); applyRiders(b, u, v, p, o.pow); }
           if (r.killed && p.resetOnKill) u.cd = Math.min(u.cd, u.cdMax * (1 - p.resetOnKill));
         }
       }
+      // 추가 효과 (after): 한 번도 맞지 않은 대상에게는 해로운 상태 효과가 걸리지 않는다
+      const miss = victims.filter((v) => !hit.has(v));
+      for (const v of miss) b.missed.add(v);
       o.after?.(b, u, t, dealt, p, results);
+      for (const v of miss) b.missed.delete(v);
       return true;
     },
   };
