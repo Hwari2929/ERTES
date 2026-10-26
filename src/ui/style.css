@@ -4684,7 +4684,8 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .item:has(.use-n) { position: relative; }
 /* 제련 단계 (고급 모듈 · 전설 장비): 아이콘 아래 가운데 별 n개. 장비 등급색 그대로, 바탕색 테로 테두리와 갈린다 */
 .item .rf-st { position: absolute; left: -2px; right: -2px; bottom: -3px; display: flex; justify-content: center; gap: 0; pointer-events: none; line-height: 0; }
-.item .rf-st svg { width: min(7px, 20%); height: auto; aspect-ratio: 1; flex: none; fill: currentColor; stroke: var(--panel); stroke-width: 1.6px; paint-order: stroke; overflow: visible; } /* 5개가 칸 너비 안에 들어가게 (작은 장비 칸에서는 줄어든다) */
+.item .rf-st svg { width: min(10px, 26%); height: auto; aspect-ratio: 1; flex: none; fill: currentColor; stroke: var(--panel); stroke-width: 1.1px; paint-order: stroke; overflow: visible; } /* 크게 · 촘촘하게: 5개가 칸 너비 안에 들어가게 (작은 장비 칸에서는 줄어든다) */
+.item .rf-st svg + svg { margin-left: -1px; }
 .item:has(.rf-st) { position: relative; }
 /* 전투: 숨겨 둔 감전 지뢰 (아군에게만 보이는 흐린 표식) */
 .trap-tok { position: absolute; pointer-events: none; box-sizing: border-box; border: 2px dashed color-mix(in srgb, var(--el-elec) 60%, transparent); border-radius: 50%; transform: scale(.55); opacity: .7; }

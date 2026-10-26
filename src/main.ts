@@ -315,8 +315,8 @@ const SPECIAL_GLYPH: Record<string, string> = {
   K_barricade: 'k.barricade', K_decoy: 'k.decoy', K_mine: 'k.mine', K_net: 'k.net', K_scope: 'k.scope', K_feast: 'k.feast', K_muster_ticket: 'k.ticket',
   T_cal: 'a.dmg', T_plate: 'a.hp', T_cryo: 's.chrono', T_ammo: 'u.mag', T_barrier: 'a.shield', T_selfd: 'u.area', T_rapid: 'a.speed', T_tesla: 'e.elec', T_flame: 's.pyro', T_snipe: 'a.snipe', T_mark: 'u.target',
 };
-/** 제련 별 (아이콘 아래 가운데, 단계마다 1개) */
-const RF_STAR = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 .6l1.3 2.9 3.1.3-2.4 2.1.7 3.1L5 7.4 2.3 9l.7-3.1L.6 3.8l3.1-.3z"/></svg>';
+/** 제련 별 (아이콘 아래 가운데, 단계마다 1개): 네 모서리 별 */
+const RF_STAR = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 .3l1.3 3.4L9.7 5 6.3 6.3 5 9.7 3.7 6.3.3 5l3.4-1.3z"/></svg>';
 /** 합성 재료 아이콘 */
 const MAT_GLYPH: Record<string, string> = { S_dust: 'm.dust', S_shard: 'm.shard', S_crystal: 'm.crystal' };
 /** 장비 아이콘: 재료 · 고급 = 메이저 아이콘, 희귀 · 전설 = 고유 아이콘, 문장 = 시너지 아이콘 */
