@@ -3,7 +3,7 @@
 //   비용: 위험 CFG.solventFrom 이상에서 장착 장비를 떼면 분리 용제 1개 (run.ts unequip). 용제가 없으면 그 행동은 후보에서 뺀다.
 //   실행: 보관함 칸 번호를 기억하지 않고 id 로 그때그때 찾는다. 해제 · 장착 · 조합 결과를 확인하고, 실패한 행동은 이번 바퀴에서 건너뛴다.
 import { CFG } from '../../src/config';
-import { combine, gearRank, isLocked, isMod, isOccultMod } from '../../src/data/items';
+import { combine, gearRank, isLocked, isMat, isMod, isOccultMod } from '../../src/data/items';
 import { deployed } from '../../src/engine/build';
 import * as R from '../../src/engine/run';
 import type { RunState, UnitState } from '../../src/types';
@@ -22,8 +22,9 @@ const isGearId = (x: string) => /^[CGAL]_/.test(x);
 /** 엔진 equip 과 같은 규칙으로 장비 칸을 바꾼다 (equipCombo: 빈 칸이 있으면 같은 기물의 재료끼리, 없으면 조합되는 장비와) */
 export function virtEquip(items: (string | null)[], id: string): (string | null)[] | null {
   const it = items.slice();
-  const k = it.includes(null) ? it.findIndex((x) => x && x[0] === 'C' && id[0] === 'C') : it.findIndex((x) => x && combine(x, id));
+  const k = it.includes(null) && !isMat(id) ? it.findIndex((x) => x && x[0] === 'C' && id[0] === 'C') : it.findIndex((x) => x && combine(x, id));
   if (k >= 0) { it[k] = combine(it[k]!, id); return it; }
+  if (isMat(id)) return null; // 합성 재료는 조합만 (빈 칸에 달지 않는다)
   const e = it.indexOf(null);
   if (e < 0) return null;
   it[e] = id;

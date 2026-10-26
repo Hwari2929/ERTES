@@ -10,7 +10,7 @@ import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBAL_ODDS, GLOBALS, PRIVILEGES, synName } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_GEAR, TURRET_GEAR_IDS } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, DUST, isGraded, isMat, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_GEAR, TURRET_GEAR_IDS } from '../data/items';
 import { ENG_TUR, UNI_XP, OCCULT_SYNTH, PETRA_PAY, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { OATH_AUGS, VOW_ENH_KEEP } from '../data/oathaugs';
@@ -1291,6 +1291,8 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     // 전설 소모품 (따로 굴림): 강제 징수기 (적이 장비를 다는 위험 등급에서만) · 원초 공명석
     if (foeGearOn(run) && rng(run, (r) => r.chance(CFG.drop.seize[type] || 0))) gainItem(run, 'K_seize', lines);
     if (rng(run, (r) => r.chance(CFG.drop.rank3[type] || 0))) gainItem(run, 'K_rank3', lines);
+    // 합성 재료: 재료 드롭과 따로 굴린다 (CFG.craft.drop)
+    if (rng(run, (r) => r.chance(CFG.craft.drop[type] || 0))) gainItem(run, rng(run, (r) => pickMat(r)), lines);
     // 셰프: 갓 구운 빵 (셰프 단계별 확률)
     const chef = tierOf('CHEF', counts.CHEF || 0);
     if (chef && rng(run, (r) => r.chance(CFG.chef.breadWin[chef - 1] || 0))) gainItem(run, 'K_bread', lines);
@@ -1638,6 +1640,8 @@ function ageBread(run: RunState): number {
 /** 보관함 물품 판매가: 빵은 위험 등급 기준 (CFG.chef.breadSell, 식은 빵 −staleSell), 그 밖은 CFG.sell */
 export const sellPrice = (run: RunState, id: string) => (id === 'K_bread' || id === 'K_bread_stale' ? breadSell(run.diff, id === 'K_bread_stale') : CFG.sell[id[0]]);
 
+/** 합성 재료 1개: 성운 가루 : 백수정 조각 = CFG.craft.w (백수정은 CFG.craft.crystal 이 켜져야) */
+export const pickMat = (r: Rng) => r.weighted(Object.keys(CFG.craft.w).filter((k) => k !== 'S_crystal' || CFG.craft.crystal), (k) => CFG.craft.w[k]);
 /** 공명 주입기 1개: 페이즈에 맞는 크기 (injectorWeights 가중치) */
 const pickInjector = (r: Rng, phase: number) => r.weighted(injectorWeights(phase), ([, w]) => w)[0];
 
@@ -1646,13 +1650,14 @@ export const shopMul = (run: RunState) => (fieldOf(run.field).shopMul || 1) * de
 /** 지정 소집 티켓 가격 (유이 전용): 지금 지정 소집 기본 비용 (관세 전) × CFG.shop.ticket × 상점 배율 */
 export const ticketPrice = (run: RunState) => Math.round((CFG.musterCost + CFG.musterStep * (run.musters || 0)) * CFG.shop.ticket * shopMul(run));
 /** 진열 분류 (칸 표시 · 대사 · 정렬): 상인 전용 · 전설 · 희귀 · 고급 · 문장 · 재료 · 전설급 소모품 · 소모품 */
-export function shopKind(id: string): 'L' | 'A' | 'G' | 'M' | 'C' | 'KL' | 'K' {
+export function shopKind(id: string): 'L' | 'A' | 'G' | 'M' | 'S' | 'C' | 'KL' | 'K' {
   if (isConsumable(id)) return CONSUMABLES[id]?.legend ? 'KL' : 'K';
   if (isEmblem(id)) return 'M';
+  if (isMat(id)) return 'S';
   const t = id[0];
   return t === 'L' || t === 'A' || t === 'G' || t === 'C' ? t : 'A';
 }
-const SHOP_ORDER = ['L', 'A', 'G', 'M', 'C', 'KL', 'K'];
+const SHOP_ORDER = ['L', 'A', 'G', 'M', 'S', 'C', 'KL', 'K'];
 /** 이 상점에 나올 상인 (공용 상인 + 전장 특별 상인 중 균등). 튜토리얼 상점은 engine/tutorial.ts 가 정한다 */
 export const pickMerchant = (run: RunState) => rng(run, (r) => r.pick(merchantPool(fieldOf(run.field))));
 /** 상점 노드 열기: 상인 1명 + 진열 6~9개 (노드에 기록 → 다시 열거나 불러와도 같은 상인 · 같은 진열) */
@@ -1684,6 +1689,7 @@ export function genShop(run: RunState, merchant?: string): ShopSlot[] {
     const rares = r.chance(D.shopAdv2) ? 2 : r.chance(D.shopAdv) ? 1 : 0;
     for (const id of r.sample(ALL_ADVANCED, rares)) add(id, pr('A'));
     if (r.chance(D.shopGraded)) add(r.pick(ALL_GRADED), pr('G'));
+    if (r.chance(CFG.craft.shop)) add(pickMat(r), pr('S')); // 합성 재료 (상인들이 자주 들여놓는다)
     const legend = m?.legend !== undefined ? r.chance(m.legend) : run.phase >= D.shopLegendPhase && r.chance(D.shopLegend);
     if (legend) add('L_' + r.pick(ALL_ADVANCED).slice(2), pr('L'));
     // 3페이즈부터: 고급 · 희귀 장비 1개 이상 확정 (확률 입고로 하나도 없으면 하나 더)
@@ -1770,10 +1776,10 @@ export function refreshShop(run: RunState): string | null {
   return null;
 }
 /** 고르곤 교환에 낼 수 있는 보관함 장비 (고급 · 희귀, 장착한 것 제외) → 보관함 칸 번호 */
-export const tradeOptions = (run: RunState) => run.inventory.flatMap((id, i) => (ALL_GRADED.includes(id) || ALL_ADVANCED.includes(id) ? [i] : []));
-/** 교환으로 돌려받는 재료: 조합법 재료 (고급 = 같은 재료 2개 · 희귀 = 서로 다른 재료 2개) + 무작위 1개. 조합법이 없는 희귀는 무작위 3개 */
+export const tradeOptions = (run: RunState) => run.inventory.flatMap((id, i) => (isGraded(id) || ALL_ADVANCED.includes(id) ? [i] : []));
+/** 교환으로 돌려받는 재료: 조합법 재료 (고급 모듈 = 성운 가루 + 재료 · 희귀 = 재료 2개) + 무작위 1개. 조합법이 없는 희귀는 무작위 3개. 제련 단계는 돌려받지 않는다 */
 export function tradeYield(id: string): { fixed: string[]; rand: number } {
-  if (ALL_GRADED.includes(id)) { const c = `C_${id.slice(2)}`; return { fixed: [c, c], rand: 1 }; }
+  if (isGraded(id)) { const c = `C_${id.slice(2).split('+')[0]}`; return { fixed: [DUST, c], rand: 1 }; }
   for (const a of ALL_COMPONENTS) for (const b of ALL_COMPONENTS) if (combine(a, b) === id) return { fixed: [a, b], rand: 1 };
   return { fixed: [], rand: 3 };
 }
@@ -1869,6 +1875,7 @@ export function equipCheck(run: RunState, id: string | null | undefined, uid: st
   if (isRock(u)) return '반려 돌은 장비를 달 수 없습니다';
   if (isConsumable(id)) return '소모품은 장착할 수 없습니다';
   if (isTurretGear(id)) return '포탑 전용 장비는 감시 포탑에만 장착할 수 있습니다';
+  if (isMat(id)) return equipCombo(run, id, uid) ? null : '합성 재료는 장착할 수 없습니다 (같은 기물의 장비와 합성만)';
   if (isMod(id)) return isEmblem(id) && memberships(u).includes(emblemOf(id)) && u.mod !== id ? '이미 소속된 시너지의 문장입니다' : null;
   if (!u.items.includes(null) && !equipCombo(run, id, uid)) return '장비 슬롯이 가득 찼습니다 (3칸)';
   return null;
@@ -1877,7 +1884,7 @@ export function equipCheck(run: RunState, id: string | null | undefined, uid: st
 export function equipCombo(run: RunState, id: string, uid: string): { slot: number; res: string } | null {
   const u = run.units.find((x) => x.uid === uid);
   if (!u || isMod(id) || isRock(u)) return null;
-  const k = u.items.includes(null) ? u.items.findIndex((x) => x && x[0] === 'C' && id[0] === 'C') : u.items.findIndex((x) => x && combine(x, id));
+  const k = u.items.includes(null) && !isMat(id) ? u.items.findIndex((x) => x && x[0] === 'C' && id[0] === 'C') : u.items.findIndex((x) => x && combine(x, id)); // 합성 재료는 빈 칸이 있어도 조합만
   const res = k >= 0 ? combine(u.items[k]!, id) : null;
   return res ? { slot: k, res } : null;
 }

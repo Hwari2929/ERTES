@@ -53,7 +53,7 @@
   --shadow-pop: 0 10px 26px var(--shade-2);  /* 떠 있는 창 · 팝업 */
   /* 데이터 색 (예외: 속성 · 희귀도. 세력 · 시너지 · 전공은 JS 가 --c · --sc 로 넣는다) */
   --el-phys: #eceae4; --el-chem: #9be15d; --el-elec: #62d6ff; --el-psy: #d48cff; --el-holy: #ffd866; --el-true: #ff7a7a;
-  --g-C: #eef0f4; --g-G: #6cb6ff; --g-A: #63d297; --g-L: #ff4f7b; --g-T: #9fd0e8; /* 전설 = 붉은 계열 (선택 호박색 · 위험 산호색과 다른 장밋빛 진홍) */
+  --g-C: #eef0f4; --g-G: #6cb6ff; --g-A: #63d297; --g-L: #ff4f7b; --g-T: #9fd0e8; --g-S: #aaa6ff; /* S = 합성 재료 (성운 가루 · 별무리 파편 · 백수정 조각) */ /* 전설 = 붉은 계열 (선택 호박색 · 위험 산호색과 다른 장밋빛 진홍) */
   /* 업적 메달 금속 (ui/achieve.ts): 1 빛 받는 면 · 2 바탕 · 3 그늘 · ink 새긴 문양. 전설은 --g-L 테 + 짙은 법랑 면(en) + 문양에 --g-L 빛 */
   --ach-bz-1: #f7cba2; --ach-bz-2: #c27a46; --ach-bz-3: #6b391b; --ach-bz-ink: #46200b;
   --ach-ag-1: #ffffff; --ach-ag-2: #bcc6d2; --ach-ag-3: #63707f; --ach-ag-ink: #2c3542;
@@ -228,7 +228,7 @@
   /* 라이트 보정: 어두운 바탕용 데이터 색 중 밝은 모래색 위에서 읽기 어려운 값만 짙게 */
   --c-divine: #9a7408; --c-occult: #8448c8; --c-psi: #7442c4; --c-ult: #2a6fc0; --c-steel: #566a7e; --fame: #b0447f; --staff: #7d6a3a;
   --el-phys: #554d44; --el-chem: #4a8a1c; --el-elec: #1a7fa8; --el-psy: #9246c8; --el-holy: #9a7408; --el-true: #c03a3a;
-  --g-C: #857e70; --g-G: #2a6fc0; --g-A: #23794f; --g-L: #b0245a; --g-T: #3a7e9c;
+  --g-C: #857e70; --g-G: #2a6fc0; --g-A: #23794f; --g-L: #b0245a; --g-T: #3a7e9c; --g-S: #5a50b8;
   --st-buff: #2a7fc0; --st-buff-ink: #1f6aa8; --st-debuff: #c0392e; --st-debuff-ink: #b03a2e; --st-chip: #fbf6ec;
   --st-bleed: #c0352e; --st-dot: #b85a1e; --st-corrode: #946a1a; --st-slow: #2f6ab8; --st-wound: #b83a52; --st-vuln: #b8424a;
   --st-suppress: #5e6170; --st-gloom: #7a52b8; --st-burn: #c2481a; --st-conduct: #1a86a8; --st-chill: #2a7aa8; --st-teal: #1a8a78;
@@ -279,7 +279,7 @@
   /* 라이트 보정: 어두운 바탕용 데이터 색 중 밝은 모래색 위에서 읽기 어려운 값만 짙게 */
   --c-divine: #9a7408; --c-occult: #8448c8; --c-psi: #7442c4; --c-ult: #2a6fc0; --c-steel: #566a7e; --fame: #b0447f; --staff: #7d6a3a;
   --el-phys: #554d44; --el-chem: #4a8a1c; --el-elec: #1a7fa8; --el-psy: #9246c8; --el-holy: #9a7408; --el-true: #c03a3a;
-  --g-C: #857e70; --g-G: #2a6fc0; --g-A: #23794f; --g-L: #b0245a; --g-T: #3a7e9c;
+  --g-C: #857e70; --g-G: #2a6fc0; --g-A: #23794f; --g-L: #b0245a; --g-T: #3a7e9c; --g-S: #5a50b8;
   --st-buff: #2a7fc0; --st-buff-ink: #1f6aa8; --st-debuff: #c0392e; --st-debuff-ink: #b03a2e; --st-chip: #f6f9fb;
   --st-bleed: #c0352e; --st-dot: #b85a1e; --st-corrode: #946a1a; --st-slow: #2f6ab8; --st-wound: #b83a52; --st-vuln: #b8424a;
   --st-suppress: #5e6170; --st-gloom: #7a52b8; --st-burn: #c2481a; --st-conduct: #1a86a8; --st-chill: #2a7aa8; --st-teal: #1a8a78;
@@ -818,9 +818,10 @@ html.rmap-fs-on, html.rmap-fs-on body { overflow: hidden; }
 .cmb { display: grid; gap: 8px; padding: 8px 10px; border-radius: var(--r-md); background: var(--panel-2); }
 .cmb-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
 .cmb-k { width: 32px; flex: none; font-size: var(--fs-sm); font-weight: 700; }
-.cmb-row:nth-child(1) .cmb-k { color: color-mix(in srgb, var(--g-G) var(--data-mix), var(--c-text)); }
-.cmb-row:nth-child(2) .cmb-k { color: color-mix(in srgb, var(--g-A) var(--data-mix), var(--c-text)); }
-.cmb-row:nth-child(3) .cmb-k { color: color-mix(in srgb, var(--g-L) var(--data-mix), var(--c-text)); }
+.cmb-row.tG .cmb-k { color: color-mix(in srgb, var(--g-G) var(--data-mix), var(--c-text)); }
+.cmb-row.tA .cmb-k { color: color-mix(in srgb, var(--g-A) var(--data-mix), var(--c-text)); }
+.cmb-row.tL .cmb-k { color: color-mix(in srgb, var(--g-L) var(--data-mix), var(--c-text)); }
+.cmb-row.tS .cmb-k { color: color-mix(in srgb, var(--g-S) var(--data-mix), var(--c-text)); }
 .cmb-v { font-size: var(--fs-sm); color: var(--c-text-2); }
 .cmb-v b { color: var(--c-text); font-family: var(--f-mono); }
 .cmb p { margin: 0; }
@@ -1337,7 +1338,7 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .shop-item { display: flex; gap: 10px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 10px; }
 .shop-item > div { flex: 1; min-width: 0; }
 .shop-item.sold { opacity: .4; }
-.shop-item.tC b { color: var(--g-C); } .shop-item.tG b { color: var(--g-G); } .shop-item.tA b { color: var(--g-A); } .shop-item.tL b { color: var(--g-L); } .shop-item.tT b { color: var(--g-T); }
+.shop-item.tS b { color: var(--g-S); } .shop-item.tC b { color: var(--g-C); } .shop-item.tG b { color: var(--g-G); } .shop-item.tA b { color: var(--g-A); } .shop-item.tL b { color: var(--g-L); } .shop-item.tT b { color: var(--g-T); }
 
 /* ═════ 상인 상점 덮개 (src/ui/shop.ts): 상단 바 아래 전체. 왼쪽 30% 상인 (스탠딩 · 말풍선 · 이름), 오른쪽 진열대 (머리 칩 · 3×3 · 상세 · 단추)
    --c = 상인 색 (data/merchants.ts). 고른 칸 = 호박 실선 + 옅은 면 (정적), 할인 = 분홍 꼬리표 (모양 따로), 품절 = 흐림 + 도장 */
@@ -1421,7 +1422,7 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .kv-int .kv-v { gap: 3px; }
 .kv-int .kv-v small { color: var(--c-text-2); font-size: var(--fs-xs); }
 .ask-pop:has(.sb-pay) { width: 250px; }
-.sg-card.tC .sg-name, .sd-name.tC { color: var(--g-C); } .sg-card.tG .sg-name, .sd-name.tG { color: var(--g-G); } .sg-card.tA .sg-name, .sd-name.tA { color: var(--g-A); } .sg-card.tL .sg-name, .sd-name.tL { color: var(--g-L); }
+.sg-card.tS .sg-name, .sd-name.tS { color: var(--g-S); } .sg-card.tC .sg-name, .sd-name.tC { color: var(--g-C); } .sg-card.tG .sg-name, .sd-name.tG { color: var(--g-G); } .sg-card.tA .sg-name, .sd-name.tA { color: var(--g-A); } .sg-card.tL .sg-name, .sd-name.tL { color: var(--g-L); }
 .sg-foot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 30px; }
 .sg-tag { display: inline-flex; align-items: center; gap: 3px; height: 30px; padding: 0 9px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel-2); color: var(--c-credit); cursor: pointer; }
 .sg-tag:hover { border-color: var(--c-select); }
@@ -1541,6 +1542,7 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .item.empty { border-style: dashed; cursor: default; }
 .item.tC { border-color: color-mix(in srgb, var(--g-C) 55%, var(--line)); color: var(--g-C); }
 .item.tG { border-color: var(--g-G); color: var(--g-G); }
+.item.tS { border-color: color-mix(in srgb, var(--g-S) 70%, var(--line)); color: var(--g-S); } /* 합성 재료 (장착하지 않음 · 조합에만) */
 .item.tA { border-color: var(--g-A); color: var(--g-A); }
 .item.tL { border-color: var(--g-L); color: var(--g-L); box-shadow: 0 0 8px var(--g-L); }
 .item.tM { border-color: var(--sc, var(--c-occult)); color: color-mix(in srgb, var(--sc, var(--c-occult)) var(--data-mix), var(--c-text)); }
@@ -4680,6 +4682,9 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .wall-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
 .wall-opt { display: grid; gap: 2px; justify-items: center; }
 .item:has(.use-n) { position: relative; }
+/* 고급 모듈 제련 단계: 오른쪽 아래 '+n' (망원경 횟수와 같은 자리 · 모양) */
+.item .rf-n { position: absolute; right: -4px; bottom: -4px; min-width: 15px; height: 15px; padding: 0 3px; box-sizing: border-box; display: grid; place-items: center; border-radius: var(--r-pill); background: var(--panel); border: 1px solid var(--g-G); font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; line-height: 1; color: var(--c-text); }
+.item:has(.rf-n) { position: relative; }
 /* 전투: 숨겨 둔 감전 지뢰 (아군에게만 보이는 흐린 표식) */
 .trap-tok { position: absolute; pointer-events: none; box-sizing: border-box; border: 2px dashed color-mix(in srgb, var(--el-elec) 60%, transparent); border-radius: 50%; transform: scale(.55); opacity: .7; }
 /* 전투: 바리케이드 · 유인 신호기 (스프라이트 대신 장치 표식) */

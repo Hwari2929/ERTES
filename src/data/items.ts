@@ -10,7 +10,8 @@ import { provMult } from '../engine/combat';
 import { KING_GEAR_NAME } from './chungra';
 import { emblemEffect, emblemText } from './emblems';
 
-// 장비 등급: 재료(+3) → 고급(같은 재료 2개, 능력치 +12) / 희귀(서로 다른 재료 2개, 능력치 +6 + 특수 효과) · 전설(효과 3배, 조합 불가 · 이벤트 · 상점)
+// 장비 등급: 재료(+3) → 고급 모듈(성운 가루 + 재료, 능력치 +12) / 희귀(재료 2개, 능력치 +6 + 특수 효과) · 전설(효과 3배, 조합 불가 · 이벤트 · 상점)
+// 합성 재료 (S_): 성운 가루 2개 = 별무리 파편 · 별무리 파편 + 고급 모듈 = 제련 (단계당 기본 능력치의 50% 증가, 최대 5단계)
 export const COMPONENTS: { id: string; major: Major; name: string; icon: string }[] = [
   { id: 'C_vit', major: 'vit', name: '강화 섬유', icon: '❤' },
   { id: 'C_pow', major: 'pow', name: '출력 코어', icon: '⚔' },
@@ -19,9 +20,9 @@ export const COMPONENTS: { id: string; major: Major; name: string; icon: string 
   { id: 'C_agi', major: 'agi', name: '추진 모듈', icon: '➶' },
 ];
 const COMP_PTS = 3;
-const GRADE_PTS = 12; // 고급: 같은 재료 2개
+const GRADE_PTS = 12; // 고급 모듈: 성운 가루 + 재료
 
-/** craft: false = 조합식 없음 (상점 · 보급 · 전리품 등에서만, 같은 재료 희귀처럼) */
+/** craft: false = 조합식 없음 (상점 · 보급 · 전리품 등에서만) */
 interface AdvDef { id: string; a: Major; b: Major; craft?: false; name: string; desc: (k: number) => string; effect: (k: number) => Effect }
 /** 위협 신호기: 도발 배율 1당 받는 피해 감소 · 상한 (고정 피해 제외) */
 const TAUNT_RED = 0.03, TAUNT_CAP = 0.3;
@@ -84,7 +85,26 @@ const ADV: AdvDef[] = [
 // stats/pct/mods/taken 기반 효과는 scaleEffect 로 배율 적용, 훅 기반은 k 를 직접 받는다
 const HOOK_SCALED = new Set(['vit_vit', 'vit_pow', 'vit_def', 'vit_agi', 'pow_def', 'mnd_def', 'def_agi', 'agi_agi', 'taunt']);
 
-export interface ItemInfo { id: string; tier: 'C' | 'G' | 'A' | 'L' | 'M' | 'K' | 'T' | 'J'; name: string; icon: string; majors: Partial<Record<Major, number>>; desc: string; recipe?: [string, string] }
+export interface ItemInfo { id: string; tier: 'C' | 'G' | 'A' | 'L' | 'M' | 'K' | 'T' | 'J' | 'S'; name: string; icon: string; majors: Partial<Record<Major, number>>; desc: string; recipe?: [string, string]; /** 고급 모듈 제련 단계 (0~5) */ refine?: number }
+
+// ── 합성 재료 (S_): 장착할 수 없고, 조합에만 쓴다
+export const DUST = 'S_dust', SHARD = 'S_shard', CRYSTAL = 'S_crystal';
+export const MATS: Record<string, { name: string; icon: string; desc: string }> = {
+  [DUST]: { name: '성운 가루', icon: '✧', desc: '[합성 재료] 장비 재료와 합성하면 같은 능력치의 고급 모듈이 됩니다. 성운 가루 2개를 합성하면 별무리 파편이 됩니다.' },
+  [SHARD]: { name: '별무리 파편', icon: '✦', desc: `[희귀 합성 재료] 고급 모듈과 합성하면 모듈을 1단계 제련합니다. 제련 단계마다 모듈의 능력치가 기본값의 ${Math.round(CFG.craft.refineStep * 100)}%만큼 증가하며, 모듈 하나는 최대 ${CFG.craft.refineMax}회 제련할 수 있습니다.` },
+  [CRYSTAL]: { name: '백수정 조각', icon: '⬡', desc: '[합성 재료] 투명한 결정 속에 빛이 갇혀 있습니다. 쓰임새는 아직 밝혀지지 않았습니다.' },
+};
+export const isMat = (id: string | null | undefined) => !!id && !!MATS[id];
+export const ALL_MATS = Object.keys(MATS);
+/** 고급 모듈 제련 단계: 'G_pow+3' → 3 */
+export const refineLv = (id: string) => (id[0] === 'G' ? +(id.split('+')[1] || 0) : 0);
+/** 제련 단계를 뗀 고급 모듈 id */
+export const refineBase = (id: string) => (id[0] === 'G' ? id.split('+')[0] : id);
+export const withRefine = (id: string, lv: number) => (lv > 0 ? `${refineBase(id)}+${lv}` : refineBase(id));
+/** 고급 모듈인지 (제련 단계 무관) */
+export const isGraded = (id: string | null | undefined) => !!id && ALL_GRADED.includes(refineBase(id));
+/** 고급 모듈 능력치: 기본값 × (1 + 제련 단계 × 50%) */
+export const gradedPts = (lv: number) => Math.round(GRADE_PTS * (1 + CFG.craft.refineStep * lv));
 
 const ADV_BY_ID = Object.fromEntries(ADV.map((a) => [a.id, a]));
 
@@ -401,6 +421,7 @@ export function itemInfo(id: string): ItemInfo {
     const Z = CFG.despair;
     return { id, tier: 'L', name: '캣휠(ZI존)', icon: '◎', majors: allMajors(Z.ziMajors), desc: `[유닉스제 · 전설] 캣휠 ${Z.zi}개가 저절로 맞물려 성계 하나를 통째로 가리는 물건이 되었다. 모든 주요 능력치 +${Z.ziMajors}. 고양이라면 더더욱 모르겠다.` };
   }
+  if (MATS[id]) { const m = MATS[id]; return { id, tier: 'S', name: m.name, icon: m.icon, majors: {}, desc: m.desc, recipe: id === SHARD ? [DUST, DUST] : undefined }; }
   if (CONSUMABLES[id]) { const c = CONSUMABLES[id]; return { id, tier: 'K', name: c.name, icon: c.icon, majors: {}, desc: `[소모품] ${c.desc}` }; }
   if (OCCULT_MODS[id]) { const o = OCCULT_MODS[id]; return { id, tier: 'M', name: o.name, icon: o.icon, majors: {}, desc: `[신비 개조부품] ${o.desc}` }; }
   if (UNIQUE[id]) return { id, tier: 'L', name: UNIQUE[id].name, icon: UNIQUE[id].icon, majors: {}, desc: UNIQUE[id].desc };
@@ -415,8 +436,9 @@ export function itemInfo(id: string): ItemInfo {
     return { id, tier, name: c.name, icon: c.icon, majors: { [c.major]: COMP_PTS }, desc: `${MAJOR_NAME[c.major]} +${COMP_PTS}` };
   }
   if (tier === 'G') {
-    const c = COMPONENTS.find((x) => x.major === rest)!;
-    return { id, tier, name: `고급 ${c.name}`, icon: c.icon, majors: { [c.major]: GRADE_PTS }, desc: `${MAJOR_NAME[c.major]} +${GRADE_PTS}`, recipe: [c.id, c.id] };
+    const lv = refineLv(id), c = COMPONENTS.find((x) => x.major === rest.split('+')[0])!, pts = gradedPts(lv);
+    return { id, tier, name: `고급 ${c.name}${lv ? ` +${lv}` : ''}`, icon: c.icon, majors: { [c.major]: pts },
+      desc: `${MAJOR_NAME[c.major]} +${pts}${lv ? ` (제련 ${lv}단계 · 기본 +${GRADE_PTS})` : ''}`, recipe: lv ? [withRefine(id, lv - 1), SHARD] : [DUST, c.id], refine: lv };
   }
   const a = ADV_BY_ID[rest];
   const k = tier === 'L' ? 3 : 1;
@@ -426,7 +448,7 @@ export function itemInfo(id: string): ItemInfo {
   const mtxt = Object.entries(majors).map(([m, v]) => `${MAJOR_NAME[m as Major]} +${v}`).join(', ');
   return {
     id, tier, name: (tier === 'L' ? '[전설] ' : '') + a.name, icon: COMPONENTS.find((c) => c.major === a.a)!.icon,
-    majors, desc: `${mtxt}. ${a.desc(k)}`, recipe: tier === 'A' && a.a !== a.b && a.craft !== false ? [`C_${a.a}`, `C_${a.b}`] : undefined,
+    majors, desc: `${mtxt}. ${a.desc(k)}`, recipe: tier === 'A' && a.craft !== false ? [`C_${a.a}`, `C_${a.b}`] : undefined,
   };
 }
 
@@ -439,7 +461,7 @@ export function itemEffect(id: string, owner?: string): Effect {
   if (UNIQUE[id]) return UNIQUE[id].effect;
   if (OCCULT_MODS[id]) return OCCULT_MODS[id].effect;
   if (isEmblem(id)) return emblemEffect(emblemOf(id)); // 문장 고유 효과 (data/emblems.ts)
-  if (isMod(id) || isConsumable(id)) return {};
+  if (isMod(id) || isConsumable(id) || isMat(id)) return {};
   const info = itemInfo(id);
   if (info.tier === 'C' || info.tier === 'G') return { majors: info.majors };
   const a = ADV_BY_ID[id.slice(2)];
@@ -450,9 +472,16 @@ export function itemEffect(id: string, owner?: string): Effect {
 
 export function combine(x: string, y: string): string | null {
   if (isLocked(x) || isLocked(y) || isMod(x) || isMod(y) || isConsumable(x) || isConsumable(y) || isTurretGear(x) || isTurretGear(y) || isJunk(x) || isJunk(y)) return null;
-  // 같은 재료 2개 → 고급, 서로 다른 재료 2개 → 희귀. 전설은 조합 불가
+  // 합성 재료: 성운 가루 + 재료 = 고급 모듈 · 성운 가루 2개 = 별무리 파편 · 별무리 파편 + 고급 모듈 = 제련 1단계 (최대 5). 백수정 조각은 아직 쓰임새 없음
+  if (isMat(x) || isMat(y)) {
+    const [m, o] = isMat(x) ? [x, y] : [y, x];
+    if (m === DUST && o === DUST) return SHARD;
+    if (m === DUST && o[0] === 'C' && ALL_COMPONENTS.includes(o)) return `G_${o.slice(2)}`;
+    if (m === SHARD && isGraded(o) && refineLv(o) < CFG.craft.refineMax) return withRefine(o, refineLv(o) + 1);
+    return null;
+  }
+  // 재료 2개 → 희귀 (같은 재료 2개는 같은 재료 희귀). 전설은 조합 불가
   if (x[0] === 'C' && y[0] === 'C') {
-    if (x === y) return `G_${x.slice(2)}`;
     const ma = x.slice(2), mb = y.slice(2);
     const order = ['vit', 'pow', 'mnd', 'def', 'agi'];
     const [p, q] = order.indexOf(ma) <= order.indexOf(mb) ? [ma, mb] : [mb, ma];

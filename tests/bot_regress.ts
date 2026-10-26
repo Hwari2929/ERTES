@@ -51,7 +51,7 @@ const u0 = (run: RunState) => run.units[0];
   ok(f.inventory.includes('C_def') && !f.inventory.includes('K_strip'), `라라: 해제된 재료는 보관함, 용제 1개 소모 → ${JSON.stringify(f.inventory)}`);
 }
 
-// ── 2. 해제 실패 무시 + 첫 실패에서 중단: 위험 7 · 용제 없음. 희귀 장비는 자리가 없고, 뒤의 재료는 같은 재료와 고급 조합이 가능하다
+// ── 2. 해제 실패 무시 + 첫 실패에서 중단: 위험 7 · 용제 없음. 희귀 장비는 자리가 없고, 뒤의 재료는 같은 재료와 조합(같은 재료 희귀)이 가능하다
 {
   const items = ['G_vit', 'G_pow', 'C_def'];
   const d = mk(CFG.solventFrom, items, ['A_pow_mnd', 'C_def']);
@@ -62,7 +62,7 @@ const u0 = (run: RunState) => run.units[0];
   const f = mk(CFG.solventFrom, items, ['A_pow_mnd', 'C_def']);
   const fi = newIns();
   equipGearFix(f, fi);
-  ok(u0(f).items.includes('G_def') && f.inventory.join() === 'A_pow_mnd', `라라: 실패한 조합만 건너뛰고 재료를 고급 조합 → ${JSON.stringify(u0(f).items)} · ${JSON.stringify(f.inventory)}`);
+  ok(u0(f).items.includes('A_def_def') && f.inventory.join() === 'A_pow_mnd', `라라: 실패한 조합만 건너뛰고 같은 재료를 조합 → ${JSON.stringify(u0(f).items)} · ${JSON.stringify(f.inventory)}`);
 }
 
 // ── 3. 위험 7 분리 용제 보존: 덤비는 1개만 남기고 판다 (보관함이 절반을 넘으면 전부). 라라는 교체 예정 수 + 1 까지 남긴다
@@ -88,7 +88,7 @@ const u0 = (run: RunState) => run.units[0];
   const g = mk(CFG.solventFrom, ['G_vit', 'G_pow', 'C_def'], ['A_pow_mnd', 'C_def']);
   const c2 = new Chulsu(g, { areas: new Set(['gear']) });
   c2.manageGear();
-  ok(u0(g).items.includes('G_def'), `철수: 용제가 없으면 해제하지 않고 조합 가능한 재료를 단다 → ${JSON.stringify(u0(g).items)} · ${JSON.stringify(g.inventory)}`);
+  ok(u0(g).items.includes('A_def_def'), `철수: 용제가 없으면 해제하지 않고 조합 가능한 재료를 단다 → ${JSON.stringify(u0(g).items)} · ${JSON.stringify(g.inventory)}`);
   ok(Object.keys(c2.ins.fail).length === 0, `철수: 실패 시도 없음 ${JSON.stringify(c2.ins.fail)}`);
 }
 

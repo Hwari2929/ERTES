@@ -12,7 +12,7 @@ import * as B from './build';
 import * as S from './search';
 import * as Y from './younghee';
 import * as R from '../../src/engine/run';
-import { equipGearFix, equipMods, newIns, useConsumablesFix, type BotIns, type Track } from '../botlib';
+import { equipGearFix, equipMods, newIns, useConsumablesFix, useMats, type BotIns, type Track } from '../botlib';
 import { planGear } from './gear';
 import { formation, pickRecruit, place } from './form';
 import { allocPicks, buyXp, xpTarget } from './growth';
@@ -69,6 +69,7 @@ export class Chulsu {
       const xpPick = this.has('growth') ? () => xpTarget(run) : undefined;
       if (this.has('recruit2') && !run.node) { const n = RS.releaseBench(run, this.log, this.bias(), this.has('multi')); if (n) this.count('released', n); }
       if (this.has('form')) this.form();
+      useMats(run); // 합성 재료 (성운 가루 · 별무리 파편)
       if (!this.has('gear')) equipMods(run);
       if (this.has('hard') && H.seize(run, this.log)) this.count('seize');
       for (let k = 0; k < 2; k++) {

@@ -1,6 +1,6 @@
 // 시뮬 봇 공용: 장비 · 개조부품 · 소모품 운용 (sim.ts · balance.ts 공용)
 import { CFG } from '../src/config';
-import { breadHeal, CONSUMABLES, gearRank, isConsumable, isEmblem, isInjector, isLocked, isOccultMod } from '../src/data/items';
+import { breadHeal, CONSUMABLES, DUST, gearRank, isConsumable, isEmblem, isGraded, isInjector, isLocked, isOccultMod, refineLv, SHARD } from '../src/data/items';
 import { memberships } from '../src/engine/build';
 import * as R from '../src/engine/run';
 import type { AugPick, RunState, UnitState } from '../src/types';
@@ -118,6 +118,33 @@ export function equipMods(run: RunState) {
   }
 }
 
+/** 합성 재료 (모든 봇 공용, 장비 운용 전에): 별무리 파편 → 출전 기물이 단 고급 모듈 중 제련이 가장 낮은 것 (보관함 고급 모듈이 있으면 그것),
+ *  성운 가루 → 출전 기물이 단 재료 (없으면 보관함 재료와 조합해 고급 모듈), 재료가 없고 고급 모듈이 있으면 성운 가루 2개 → 별무리 파편 */
+export function useMats(run: RunState) {
+  const dep = deployedByRank(run).filter((u) => !R.isRock(u));
+  const MAX = CFG.craft.refineMax;
+  for (let guard = 0; guard < 30; guard++) {
+    const sh = run.inventory.indexOf(SHARD);
+    if (sh >= 0) {
+      const t = dep.map((u) => ({ u, k: u.items.findIndex((x) => !!x && isGraded(x) && refineLv(x) < MAX) })).filter((x) => x.k >= 0)
+        .sort((a, b) => refineLv(a.u.items[a.k]!) - refineLv(b.u.items[b.k]!))[0];
+      if (t && !R.equip(run, sh, t.u.uid)) continue;
+      const g = run.inventory.findIndex((x) => isGraded(x) && refineLv(x) < MAX);
+      if (g >= 0 && R.combineInv(run, sh, g)) continue;
+    }
+    const d = run.inventory.indexOf(DUST);
+    if (d < 0) break;
+    const withC = dep.find((u) => u.items.some((x) => x && x[0] === 'C'));
+    if (withC && !R.equip(run, d, withC.uid)) continue;
+    const c = run.inventory.findIndex((x) => x[0] === 'C');
+    if (c >= 0 && R.combineInv(run, d, c)) continue;
+    const d2 = run.inventory.indexOf(DUST, d + 1);
+    const hasG = dep.some((u) => u.items.some((x) => !!x && isGraded(x) && refineLv(x) < MAX)) || run.inventory.some((x) => isGraded(x) && refineLv(x) < MAX);
+    if (d2 >= 0 && hasG && R.combineInv(run, d, d2)) continue;
+    break;
+  }
+}
+
 /** 일반 장비: 재료는 같은 재료 든 기물(고급 조합) → 빈 칸, 칸이 차면 재료 하나를 빼고 더 좋은 장비로 */
 export function equipGear(run: RunState, ins?: BotIns) {
   const sorted = deployedByRank(run);
@@ -144,6 +171,7 @@ export function equipGear(run: RunState, ins?: BotIns) {
 /** 장비 운용 한 바퀴 (신비학자 부품 지급 확인 포함) */
 export function manageItems(run: RunState, track?: Track, ins?: BotIns) {
   R.checkOccult(run);
+  useMats(run);
   equipMods(run);
   useConsumables(run, track, ins);
   equipGear(run, ins);
@@ -214,6 +242,7 @@ export function equipGearFix(run: RunState, ins?: BotIns) {
 /** 라라: 장비 운용 한 바퀴 (덤비와 같은 순서) */
 export function manageItemsFix(run: RunState, track?: Track, ins?: BotIns) {
   R.checkOccult(run);
+  useMats(run);
   equipMods(run);
   useConsumablesFix(run, track, ins);
   equipGearFix(run, ins);

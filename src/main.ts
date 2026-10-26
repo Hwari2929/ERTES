@@ -9,7 +9,7 @@ import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
 import { STORIES } from './data/stories';
 import { FIELDS, fieldOf } from './data/battlefields';
 import { BLESSING_BY_ID, GLOBAL_BY_ID, GLOBAL_TIER_NAME } from './data/globals';
-import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isInjector, isLegendConsumable, isLocked, isMod, isOccultMod, isTurretGear, itemInfo, TURRET_GEAR } from './data/items';
+import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isInjector, isLegendConsumable, isLocked, isMat, isMod, refineLv, DUST, SHARD, isOccultMod, isTurretGear, itemInfo, TURRET_GEAR } from './data/items';
 import { aceTargetUid, ENG_TUR, OCCULT_SYNTH, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
 import { rowHtml, tierCmp } from './ui/tierdiff';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
@@ -293,7 +293,9 @@ function itemIcon(id: string | null, attrs = '', note = '') { // note: 툴팁 �
   const sc = isEmblem(id) ? SYN_BY_ID[emblemOf(id)]?.color : isOccultMod(id) ? SYN_BY_ID.OCCULT.color : ''; // 문장: 시너지 색 · 신비 부품: 신비학자 색
   const hx = isConsumable(id) ? ` hex" style="--hc:${consColor(id)}` : ''; // 소모품: 육각형 (합성품 보라 · 전투 보상 청록 · 전설급 금색 · 셰프 주황)
   const uses = id === 'K_scope' && app.run?.scope ? `<b class="use-n" title="남은 사용 횟수">${app.run.scope.n}</b>` : ''; // 표시 망원경: 오른쪽 아래 원형 사용 횟수
-  return `<span class="item t${it.tier}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc + (note ? ` (${note})` : ''))}" ${attrs}>${itemGlyph(id) || it.icon}${uses}</span>`;
+  const rf = refineLv(id);
+  const refine = rf ? `<b class="rf-n" title="제련 ${rf}단계">+${rf}</b>` : ''; // 고급 모듈 제련 단계
+  return `<span class="item t${it.tier}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc + (note ? ` (${note})` : ''))}" ${attrs}>${itemGlyph(id) || it.icon}${uses}${refine}</span>`;
 }
 /** 보관함 칸 i 가 갓 구운 빵이면 '전투 n회 뒤 식음' (engine/run.ts breadLeft, 셰프 6명 이상이 켜져 있으면 덧붙임) */
 function breadNote(run: RunState, i: number) {
@@ -313,12 +315,15 @@ const SPECIAL_GLYPH: Record<string, string> = {
   K_barricade: 'k.barricade', K_decoy: 'k.decoy', K_mine: 'k.mine', K_net: 'k.net', K_scope: 'k.scope', K_feast: 'k.feast', K_muster_ticket: 'k.ticket',
   T_cal: 'a.dmg', T_plate: 'a.hp', T_cryo: 's.chrono', T_ammo: 'u.mag', T_barrier: 'a.shield', T_selfd: 'u.area', T_rapid: 'a.speed', T_tesla: 'e.elec', T_flame: 's.pyro', T_snipe: 'a.snipe', T_mark: 'u.target',
 };
+/** 합성 재료 아이콘 */
+const MAT_GLYPH: Record<string, string> = { S_dust: 'm.dust', S_shard: 'm.shard', S_crystal: 'm.crystal' };
 /** 장비 아이콘: 재료 · 고급 = 메이저 아이콘, 희귀 · 전설 = 고유 아이콘, 문장 = 시너지 아이콘 */
 function itemGlyph(id: string) {
   if (isEmblem(id)) return synIcon(emblemOf(id), 'ii');
   if (isMod(id) || isConsumable(id) || isTurretGear(id)) return lineIcon(SPECIAL_GLYPH[id] || 'a.power', 'ii');
   if (id.startsWith('U_')) return lineIcon(`i.${id}`, 'ii');
-  if (id.startsWith('C_') || id.startsWith('G_')) return majorIcon(id.slice(2) as Major, 'ii mi');
+  if (isMat(id)) return lineIcon(MAT_GLYPH[id] || 'm.dust', 'ii');
+  if (id.startsWith('C_') || id.startsWith('G_')) return majorIcon(id.slice(2).split('+')[0] as Major, 'ii mi'); // 고급 모듈: 제련 단계 '+n' 은 떼고
   return lineIcon(`i.${id.slice(2)}`, 'ii');
 }
 
@@ -1929,7 +1934,7 @@ function invDetail(run: RunState) {
   if (!sel) return '';
   if (app.ask) return ''; // 확인 팝업이 같은 자리(보관함 오른쪽)를 쓴다
   const it = itemInfo(sel);
-  const TIER: Record<string, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '개조부품', K: isLegendConsumable(sel) ? '전설 소모품' : '소모품', U: '고유' };
+  const TIER: Record<string, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', S: '합성 재료', M: '개조부품', K: isLegendConsumable(sel) ? '전설 소모품' : '소모품', U: '고유' };
   const { stats: stats0, eff: eff1 } = itemBrief(sel);
   const stats = isPlaceable(sel) ? stats0 + devicePop(run, sel) : stats0; // 배치형: 성질 줄 (망원경은 모드 · 범위 · 횟수 도식)
   const eff = eff1 + (breadNote(run, selIdx) ? ` — 이 빵: ${breadNote(run, selIdx)}` : '');
@@ -2994,19 +2999,23 @@ const TURRET_RULES: [string, string][] = [
 const kvChip = (label: string, val: string, title = '', cls = '') => `<span class="ah-in kv ${cls}"${title ? ` title="${esc(title)}"` : ''}><small>${label}</small><span class="kv-v">${val}</span></span>`;
 /** 조건 칩 (확정 · 전용 등 켜진 규칙): 지도 노드 미리보기의 모디파이어 칸(.ah-md)과 같은 모양 */
 const modChip = (icon: string, txt: string, title = '', cls = '') => `<span class="ah-md tx ${cls}"${title ? ` title="${esc(title)}"` : ''}>${icon}<b>${txt}</b></span>`;
-/** 장비 조합법 (암시장 도움말): 재료 + 같은 재료 = 고급 · 재료 + 다른 재료 = 희귀 · 전설 합성 불가. 예시 장비 · 능력치는 데이터(combine · itemInfo)에서 */
+/** 장비 조합법 (상점 도움말): 재료 2개 = 희귀 · 성운 가루 + 재료 = 고급 모듈 · 성운 가루 2개 = 별무리 파편 · 별무리 파편 + 고급 모듈 = 제련 · 전설 합성 불가.
+ *  예시 장비 · 능력치는 데이터(combine · itemInfo)에서 */
 function combineHelp() {
   const a = `C_${MAJORS[1]}`, b = `C_${MAJORS[2]}`;
-  const g = combine(a, a), r = combine(a, b);
-  if (!g || !r) return '';
+  const r = combine(a, b), rr = combine(a, a), g = combine(DUST, a), sh = combine(DUST, DUST), g1 = g && combine(SHARD, g);
+  if (!g || !r || !rr || !sh || !g1) return '';
   const pts = (id: string) => Object.values(itemInfo(id).majors).reduce((x, y) => x + (y || 0), 0);
   const it = (id: string) => `<span class="ask-it">${itemIcon(id)}<span>${esc(itemInfo(id).name)}</span></span>`;
-  const row = (k: string, eq: string, note: string) => `<div class="cmb-row"><span class="cmb-k">${k}</span><div class="ask-eq">${eq}</div><span class="cmb-v">${note}</span></div>`;
+  const row = (t: string, k: string, eq: string, note: string) => `<div class="cmb-row t${t}"><span class="cmb-k">${k}</span><div class="ask-eq">${eq}</div><span class="cmb-v">${note}</span></div>`;
   const lg = `L_${r.slice(2)}`;
   return `<div class="cmb">
-    ${row('고급', `${it(a)}<b>+</b>${it(a)}<b>=</b>${it(g)}`, `능력치 <b>+${pts(g)}</b>`)}
-    ${row('희귀', `${it(a)}<b>+</b>${it(b)}<b>=</b>${it(r)}`, `능력치 <b>+${pts(r)}</b> + 고유 효과`)}
-    ${row('전설', it(lg), '합성 불가')}
+    ${row('A', '희귀', `${it(a)}<b>+</b>${it(b)}<b>=</b>${it(r)}`, `능력치 <b>+${pts(r)}</b> + 고유 효과`)}
+    ${row('A', '희귀', `${it(a)}<b>+</b>${it(a)}<b>=</b>${it(rr)}`, '같은 재료 2개')}
+    ${row('G', '고급', `${it(DUST)}<b>+</b>${it(a)}<b>=</b>${it(g)}`, `능력치 <b>+${pts(g)}</b>`)}
+    ${row('S', '파편', `${it(DUST)}<b>+</b>${it(DUST)}<b>=</b>${it(sh)}`, '')}
+    ${row('G', '제련', `${it(SHARD)}<b>+</b>${it(g)}<b>=</b>${it(g1)}`, `단계당 <b>+${pts(g1) - pts(g)}</b> · 최대 <b>${CFG.craft.refineMax}</b>단계`)}
+    ${row('L', '전설', it(lg), '합성 불가')}
     <p class="muted small">같은 기물에 장착하거나 보관함에서 겹치면 합성</p></div>`;
 }
 /** 상점 머리: 제목 + 상태 칩 한 줄 (규칙은 접힌 도움말로) */
@@ -3475,7 +3484,7 @@ function recoModal(run: RunState) {
   }).join('');
   return `<div class="modal-bg" data-a="reco" data-v=""><div class="modal reco">
     <h1>추천 장비 <span class="muted small">${esc(d.name)} · ${CTYPE_NAME[d.ctype]}</span></h1>
-    <p class="muted small">전투 유형에 맞는 희귀 장비입니다. 서로 다른 재료 2개를 겹치면 만들 수 있습니다 (같은 유형 조합처럼 조합식이 없는 장비는 상점 · 보급 · 사건에서만).</p>
+    <p class="muted small">전투 유형에 맞는 희귀 장비입니다. 재료 2개를 겹치면 만들 수 있습니다 (조합식이 없는 장비는 상점 · 보급 · 사건에서만).</p>
     <ul class="rc-list">${rows}</ul>
     <div class="row-btns"><button class="btn primary" data-a="reco" data-v="">닫기</button></div>
   </div></div>`;

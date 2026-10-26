@@ -90,7 +90,7 @@ export function onOpen(run: RunState): boolean {
 }
 
 // ───────── 진열 분류 · 표시
-const KIND: Record<string, string> = { L: '전설', A: '희귀', G: '고급', M: '문장', C: '재료', KL: '전설 소모품', K: '소모품' };
+const KIND: Record<string, string> = { L: '전설', A: '희귀', G: '고급', M: '문장', S: '합성 재료', C: '재료', KL: '전설 소모품', K: '소모품' };
 export const kindName = (id: string) => (isPlaceable(id) ? '배치 소모품' : KIND[R.shopKind(id)]);
 /** 고른 칸에 맞는 말: 품절 · 전용 · 전설 · 할인 · 분류 */
 function selTalk(s: ShopSlot): TalkKey {

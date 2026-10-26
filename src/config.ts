@@ -165,8 +165,13 @@ export const CFG = {
   lossShare: 0.5, // 패배 시 승리 보상 크레딧의 몫 (공명도 풀도 같은 몫: xpPool × lossShare)
   interestPer: 10, interestMax: 5,
   streakBonus: (streak: number) => (streak >= 6 ? 3 : streak >= 4 ? 2 : streak >= 2 ? 1 : 0),
-  price: { C: 7, G: 16, A: 16, L: 60 } as Record<string, number>,
-  sell: { C: 3, G: 7, A: 7, L: 20, M: 6, O: 8, K: 4, T: 5, J: 1 } as Record<string, number>, // J: 유닉스제 잡동사니 (캣휠)
+  price: { C: 7, G: 16, A: 16, L: 60, S: 8 } as Record<string, number>, // S: 합성 재료 (성운 가루 · 백수정 조각)
+  sell: { C: 3, G: 7, A: 7, L: 20, M: 6, O: 8, K: 4, T: 5, J: 1, S: 3 } as Record<string, number>,
+  /** 장비 합성 재료 (data/items.ts MATS): 성운 가루 + 재료 = 고급 모듈 · 성운 가루 2개 = 별무리 파편 · 별무리 파편 + 고급 모듈 = 제련.
+   *  drop: 승리 시 재료 드롭과 따로 굴리는 합성 재료 확률 · w: 성운 가루 : 백수정 조각 비율 (crystal = false 면 백수정은 아직 나오지 않음 — 쓰임새를 넣을 때 켠다).
+   *  shop: 상점마다 합성 재료 1개를 진열할 확률 · refineStep: 제련 1단계마다 고급 모듈 능력치 증가 (기본값 대비) · refineMax: 최대 제련 단계 */
+  craft: { drop: { battle: 0.15, adversity: 0.5, boss: 1 } as Record<string, number>, w: { S_dust: 3, S_crystal: 1 } as Record<string, number>, crystal: false,
+    shop: 0.75, refineStep: 0.5, refineMax: 5 }, // J: 유닉스제 잡동사니 (캣휠)
   // 장비 드랍 [임시]
   // advParts: 역경(· 도전) 승리 시 무작위 장비 재료 확정 개수 (예전: 확률 50%)
   drop: { battle: 0.1, advParts: 1, bossAdvEvery: 3, bossPart: 0.5, shopParts: 2, shopAdv: 0.4, shopAdv2: 0.1, shopGraded: 0.15, shopLegend: 0.05, shopLegendPhase: 6, utility: { battle: 0.15, adversity: 0.3, boss: 0.5 } as Record<string, number>,

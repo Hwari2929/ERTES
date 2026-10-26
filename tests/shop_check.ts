@@ -5,10 +5,11 @@ import * as R from '../src/engine/run';
 import { buildBattle, encGeo, PAD } from '../src/engine/build';
 import { FIELDS } from '../src/data/battlefields';
 import { MERCHANT_BY_ID, MERCHANTS, merchantPool } from '../src/data/merchants';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, CONSUMABLES } from '../src/data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, CONSUMABLES, CRYSTAL, DUST, itemEffect, itemInfo, SHARD } from '../src/data/items';
 import { DEV, type Device, feastChain } from '../src/data/devices';
 import { RECRUITABLE } from '../src/data/units';
 import type { RunState } from '../src/types';
+import { Rng } from '../src/rng';
 declare const process: { exitCode?: number };
 
 let fails = 0, passed = 0;
@@ -234,7 +235,7 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   ok(R.tradeErr(run) === '교환할 고급 · 희귀 장비가 없습니다', '낼 장비가 없으면 막힘');
   run.inventory = ['G_pow'];
   let r = R.gorgonTrade(run, 0);
-  ok(!!r.got && r.got.length === 3 && r.got.filter((x) => x === 'C_pow').length >= 2 && r.got.every((x) => ALL_COMPONENTS.includes(x)), `고급 → 같은 재료 2 + 무작위 1 (${r.got})`);
+  ok(!!r.got && r.got.length === 3 && r.got[0] === 'S_dust' && r.got[1] === 'C_pow' && ALL_COMPONENTS.includes(r.got[2]), `고급 모듈 → 성운 가루 + 같은 재료 + 무작위 재료 1 (${r.got})`);
   ok(run.inventory.length === 3 && !run.inventory.includes('G_pow') && !!run.node!.traded, '보관함: 1개 내고 3개 받음 · 교환 기록');
   run.inventory.push('A_pow_mnd');
   ok(!!R.gorgonTrade(run, run.inventory.length - 1).err, '상점마다 1번');
@@ -297,6 +298,29 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   ok(!!CONSUMABLES.K_feast && !!CONSUMABLES.K_muster_ticket, '전용 상품은 소모품 표에 있다 (도감)');
   ok(MERCHANTS.every((m) => (['greet', 'again', 'buy', 'poor', 'full', 'refresh', 'norefresh', 'close', 'leave', 'idle', 'selC', 'selA'] as const).every((k) => m.lines[k].length >= 2)), '상인마다 상황별 대사 2줄 이상');
   ok(MERCHANT_BY_ID.gorgon.lines.tradeDone.length >= 2 && MERCHANT_BY_ID.yui.lines.pitch.length >= 2 && MERCHANT_BY_ID.laila.lines.pitch.length >= 2, '교환 · 권유 대사');
+}
+
+// ── 8. 합성 재료 (성운 가루 · 별무리 파편 · 백수정 조각) · 제련
+{
+  ok(combine(DUST, 'C_pow') === 'G_pow' && combine('C_pow', DUST) === 'G_pow', '성운 가루 + 재료 = 고급 모듈 (순서 무관)');
+  ok(combine('C_pow', 'C_pow') === 'A_pow_pow' && combine('C_vit', 'C_pow') === 'A_vit_pow', '재료 2개 = 희귀 (같은 재료 → 같은 재료 희귀)');
+  ok(combine(DUST, DUST) === SHARD, '성운 가루 2개 = 별무리 파편');
+  ok(combine(SHARD, 'G_pow') === 'G_pow+1' && combine('G_pow+4', SHARD) === 'G_pow+5' && combine(SHARD, 'G_pow+5') === null, '별무리 파편 + 고급 모듈 = 제련 1단계 (최대 5)');
+  ok(combine(SHARD, 'C_pow') === null && combine(DUST, 'G_pow') === null && combine(SHARD, 'A_pow_mnd') === null && combine(CRYSTAL, 'C_pow') === null && combine(SHARD, SHARD) === null, '그 밖의 조합은 불가 (백수정 조각 포함)');
+  const pts = (id: string) => itemEffect(id).majors?.pow || 0;
+  ok(pts('G_pow') === 12 && pts('G_pow+1') === 18 && pts('G_pow+5') === 42, `제련 능력치: 12 → 18 … 42 (${pts('G_pow')} · ${pts('G_pow+1')} · ${pts('G_pow+5')})`);
+  ok(itemInfo('G_pow+2').name.endsWith('+2') && itemInfo('G_pow+2').refine === 2, '제련 단계가 이름 · 정보에 표시');
+  const run = mk(3);
+  const u = run.units[0];
+  u.items = ['C_pow', null, null]; run.inventory = [DUST];
+  ok(!R.equipCheck(run, DUST, u.uid) && !R.equip(run, 0, u.uid) && u.items[0] === 'G_pow', '성운 가루를 재료 든 기물에 주면 그 칸에서 고급 모듈');
+  u.items = ['A_pow_mnd', null, null]; run.inventory = [SHARD];
+  ok(!!R.equipCheck(run, SHARD, u.uid) && run.inventory.length === 1, '합성할 장비가 없으면 합성 재료는 장착되지 않음');
+  u.items = ['G_vit+1', null, null]; run.inventory = [SHARD];
+  ok(!R.equip(run, 0, u.uid) && u.items[0] === 'G_vit+2', '별무리 파편을 고급 모듈 든 기물에 주면 제련');
+  ok(R.tradeOptions({ ...run, inventory: ['G_pow+3'] } as RunState).length === 1, '제련한 고급 모듈도 교환 가능');
+  const rg = new Rng(7), draws = [...Array(400)].map(() => R.pickMat(rg));
+  ok(CFG.craft.crystal ? draws.includes(CRYSTAL) && draws.includes(DUST) : draws.every((x) => x === DUST), `합성 재료 드롭: 백수정 조각 ${CFG.craft.crystal ? '켜짐 (3 : 1)' : '꺼짐 → 성운 가루만'}`);
 }
 
 if (fails) { console.log(`상점 검사 실패 ${fails}건 (통과 ${passed})`); process.exitCode = 1; }
