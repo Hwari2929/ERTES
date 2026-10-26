@@ -10,8 +10,8 @@ import { provMult } from '../engine/combat';
 import { KING_GEAR_NAME } from './chungra';
 import { emblemEffect, emblemText } from './emblems';
 
-// 장비 등급: 재료(+3) → 고급 모듈(성운 가루 + 재료, 능력치 +12) / 희귀(재료 2개, 능력치 +6 + 특수 효과) · 전설(효과 3배, 조합 불가 · 이벤트 · 상점)
-// 합성 재료 (S_): 성운 가루 2개 = 별무리 파편 · 별무리 파편 + 고급 모듈 = 제련 (단계당 기본 능력치의 50% 증가, 최대 5단계)
+// 장비 등급: 재료(+3) → 고급 모듈(성운 가루 + 재료, 능력치 +6, 제련 단계마다 +6) / 희귀(재료 2개, 능력치 +6 + 특수 효과) · 전설(효과 3배, 조합 불가 · 이벤트 · 상점)
+// 합성 재료 (S_): 성운 가루 2개 = 별무리 파편 · 별무리 파편 + 고급 모듈 = 제련 (단계당 주요 능력치 +6, 최대 5단계)
 export const COMPONENTS: { id: string; major: Major; name: string; icon: string }[] = [
   { id: 'C_vit', major: 'vit', name: '강화 섬유', icon: '❤' },
   { id: 'C_pow', major: 'pow', name: '출력 코어', icon: '⚔' },
@@ -20,7 +20,7 @@ export const COMPONENTS: { id: string; major: Major; name: string; icon: string 
   { id: 'C_agi', major: 'agi', name: '추진 모듈', icon: '➶' },
 ];
 const COMP_PTS = 3;
-const GRADE_PTS = 12; // 고급 모듈: 성운 가루 + 재료
+const GRADE_PTS = 6; // 고급 모듈: 성운 가루 + 재료 (제련 전 기본값)
 
 /** craft: false = 조합식 없음 (상점 · 보급 · 전리품 등에서만) */
 interface AdvDef { id: string; a: Major; b: Major; craft?: false; name: string; desc: (k: number) => string; effect: (k: number) => Effect }
@@ -91,7 +91,7 @@ export interface ItemInfo { id: string; tier: 'C' | 'G' | 'A' | 'L' | 'M' | 'K' 
 export const DUST = 'S_dust', SHARD = 'S_shard', CRYSTAL = 'S_crystal';
 export const MATS: Record<string, { name: string; icon: string; desc: string }> = {
   [DUST]: { name: '성운 가루', icon: '✧', desc: '[합성 재료] 장비 재료와 합성하면 같은 능력치의 고급 모듈이 됩니다. 성운 가루 2개를 합성하면 별무리 파편이 됩니다.' },
-  [SHARD]: { name: '별무리 파편', icon: '✦', desc: `[희귀 합성 재료] 고급 모듈과 합성하면 모듈을 1단계 제련합니다. 제련 단계마다 모듈의 능력치가 기본값의 ${Math.round(CFG.craft.refineStep * 100)}%만큼 증가하며, 모듈 하나는 최대 ${CFG.craft.refineMax}회 제련할 수 있습니다.` },
+  [SHARD]: { name: '별무리 파편', icon: '✦', desc: `[희귀 합성 재료] 고급 모듈과 합성하면 모듈을 1단계 제련합니다. 제련 단계마다 모듈의 주요 능력치가 +${CFG.craft.refinePts} 증가하며, 모듈 하나는 최대 ${CFG.craft.refineMax}회 제련할 수 있습니다.` },
   [CRYSTAL]: { name: '백수정 조각', icon: '⬡', desc: '[합성 재료] 투명한 결정 속에 빛이 갇혀 있습니다. 쓰임새는 아직 밝혀지지 않았습니다.' },
 };
 export const isMat = (id: string | null | undefined) => !!id && !!MATS[id];
@@ -103,8 +103,8 @@ export const refineBase = (id: string) => (id[0] === 'G' ? id.split('+')[0] : id
 export const withRefine = (id: string, lv: number) => (lv > 0 ? `${refineBase(id)}+${lv}` : refineBase(id));
 /** 고급 모듈인지 (제련 단계 무관) */
 export const isGraded = (id: string | null | undefined) => !!id && ALL_GRADED.includes(refineBase(id));
-/** 고급 모듈 능력치: 기본값 × (1 + 제련 단계 × 50%) */
-export const gradedPts = (lv: number) => Math.round(GRADE_PTS * (1 + CFG.craft.refineStep * lv));
+/** 고급 모듈 능력치: 기본 +6 + 제련 단계 × 6 */
+export const gradedPts = (lv: number) => GRADE_PTS + CFG.craft.refinePts * lv;
 
 const ADV_BY_ID = Object.fromEntries(ADV.map((a) => [a.id, a]));
 

@@ -308,7 +308,7 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   ok(combine(SHARD, 'G_pow') === 'G_pow+1' && combine('G_pow+4', SHARD) === 'G_pow+5' && combine(SHARD, 'G_pow+5') === null, '별무리 파편 + 고급 모듈 = 제련 1단계 (최대 5)');
   ok(combine(SHARD, 'C_pow') === null && combine(DUST, 'G_pow') === null && combine(SHARD, 'A_pow_mnd') === null && combine(CRYSTAL, 'C_pow') === null && combine(SHARD, SHARD) === null, '그 밖의 조합은 불가 (백수정 조각 포함)');
   const pts = (id: string) => itemEffect(id).majors?.pow || 0;
-  ok(pts('G_pow') === 12 && pts('G_pow+1') === 18 && pts('G_pow+5') === 42, `제련 능력치: 12 → 18 … 42 (${pts('G_pow')} · ${pts('G_pow+1')} · ${pts('G_pow+5')})`);
+  ok(pts('G_pow') === 6 && pts('G_pow+1') === 12 && pts('G_pow+3') === 24 && pts('G_pow+5') === 36, `제련 능력치: 6 → 12 · 24 · 36 (${pts('G_pow')} · ${pts('G_pow+1')} · ${pts('G_pow+3')} · ${pts('G_pow+5')})`);
   ok(itemInfo('G_pow+2').name.endsWith('+2') && itemInfo('G_pow+2').refine === 2, '제련 단계가 이름 · 정보에 표시');
   const run = mk(3);
   const u = run.units[0];
