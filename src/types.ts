@@ -143,7 +143,7 @@ export interface SupplyCard { kind: 'credits' | 'xp' | 'gear'; xp: number; credi
 export type Pending =
   | { t: 'global'; options: string[]; rerolls?: number } // rerolls: 항로 회의 전역 증강 새로고침
   | { t: 'field' }
-  | { t: 'victory' }
+  | { t: 'victory'; /** 무한 모드로 계속할 때만 고르는 보스 전리품 */ loot?: Extract<Pending, { t: 'itemPick' }> }
   | { t: 'event'; id: string; sub?: string | null } // sub: 이번 사건의 동적 조연 (기물 id)
   | { t: 'privilege'; options: AugPick[]; rerolls: number }
   | { t: 'despair'; options: string[]; rerolls: number; phase?: number } // 절망 증강 (data/despair.ts): 반드시 1개 · phase: 페이즈 시작 때 더 고르는 것 (없으면 출격 때)

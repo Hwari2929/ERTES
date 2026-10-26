@@ -271,7 +271,7 @@ function playRun(seed: number) {
         if (!done) run.pending.shift();
         continue;
       }
-      if (p.t === 'victory') run.endless = true;
+      if (p.t === 'victory') { R.continueEndless(run); continue; }
       if (p.t === 'global') {
         if (F_GLOB && !fGlobDone && p.rerolls !== undefined) { fGlobDone = true; R.pickGlobal(run, F_GLOB); } // 조건부 실험: 첫 항로 회의
         else if (CH?.augOn('glob')) CH.global(p); // 철수 aug (새로고침은 p.options 를 바꾼다)

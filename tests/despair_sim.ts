@@ -32,7 +32,7 @@ function resolvePending(run: RunState, bot: Rng) {
       if (!done) run.pending.shift();
       continue;
     }
-    if (p.t === 'victory') { run.endless = true; }
+    if (p.t === 'victory') { R.continueEndless(run); continue; }
     if (p.t === 'global') R.pickGlobal(run, bot.pick(p.options));
     else if (p.t === 'rankup') {
       const u = run.units.find((x) => x.uid === p.uid)!;

@@ -28,7 +28,7 @@ function resolvePending(run: RunState, bot: Rng) {
       if (!done) run.pending.shift();
       continue;
     }
-    if (p.t === 'victory') run.endless = true; // 무한 모드로 계속 (후반 페이즈 표본)
+    if (p.t === 'victory') { R.continueEndless(run); continue; } // 무한 모드로 계속 (후반 페이즈 표본)
     if (p.t === 'global') R.pickGlobal(run, bot.pick(p.options));
     else if (p.t === 'rankup') {
       const u = run.units.find((x) => x.uid === p.uid)!;

@@ -1233,6 +1233,13 @@ export interface BattleSummary {
 }
 
 /** 이번 페이즈 보스가 '이겨야 넘어가는' 보스인지: 의뢰의 마지막 보스 (victoryPhase 이상 · 아직 의뢰 성공 전)만. 그 밖의 보스는 져도 다음 페이즈로 (무한 모드 보스 포함) */
+/** 의뢰 성공 화면에서 무한 모드로 계속: 미뤄 둔 보스 전리품을 바로 고르게 한다 */
+export function continueEndless(run: RunState) {
+  const v = run.pending[0];
+  run.pending.shift();
+  run.endless = true;
+  if (v?.t === 'victory' && v.loot) run.pending.unshift(v.loot);
+}
 export const bossMustWin = (run: RunState) => !run.cleared && (!!run.campaign || run.phase >= CFG.victoryPhase); // 캠페인: 장 보스는 이겨야 넘어간다
 
 export function resolveBattle(run: RunState, b: Battle): BattleSummary {
@@ -1293,10 +1300,13 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
       if (rng(run, (r) => r.chance(CFG.drop.battle * (fieldOf(run.field).dropMul || 1)))) gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
     } else if (type === 'boss') {
       // 보스 전리품: n 페이즈마다 희귀 장비, 그 외에는 확률로 재료 3개 중 1개
-      if (p % CFG.drop.bossAdvEvery === 0) run.pending.push({ t: 'itemPick', title: '보스 전리품 — 희귀 장비 1개 선택', options: rng(run, (r) => r.sample(ALL_ADVANCED, 3)) });
-      else if (rng(run, (r) => r.chance(CFG.drop.bossPart))) run.pending.push({ t: 'itemPick', title: '보스 전리품 — 장비 재료 1개 선택', options: rng(run, (r) => r.sample(ALL_COMPONENTS, 3)) });
+      let loot: Extract<Pending, { t: 'itemPick' }> | undefined;
+      if (p % CFG.drop.bossAdvEvery === 0) loot = { t: 'itemPick', title: '보스 전리품 — 희귀 장비 1개 선택', options: rng(run, (r) => r.sample(ALL_ADVANCED, 3)) };
+      else if (rng(run, (r) => r.chance(CFG.drop.bossPart))) loot = { t: 'itemPick', title: '보스 전리품 — 장비 재료 1개 선택', options: rng(run, (r) => r.sample(ALL_COMPONENTS, 3)) };
       lines.push(`페이즈 ${p} 클리어!`);
-      if (p >= CFG.victoryPhase && !run.cleared) { run.cleared = true; run.pending.push({ t: 'victory' }); }
+      // 의뢰 성공: 귀환 / 무한 모드부터 고르고, 전리품은 무한 모드로 계속할 때만 (continueEndless)
+      if (p >= CFG.victoryPhase && !run.cleared) { run.cleared = true; run.pending.push({ t: 'victory', ...(loot ? { loot } : {}) }); }
+      else if (loot) run.pending.push(loot);
     }
   } else {
     run.streak = 0;
