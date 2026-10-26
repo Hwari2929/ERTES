@@ -240,9 +240,9 @@ const L: Record<string, string> = {
   // 상인 전용 상품: 만찬 백수정 (받침 위 수정 + 김 세 줄) · 지정 소집 티켓 (절취선 표 + 사람 머리)
   'k.feast': '<path d="M12 3l4 5-4 9-4-9z"/><path d="M8 8h8"/><path d="M5 20h14"/><path d="M7 20l1.5-3h7L17 20"/><path d="M4.5 9c-.8-1 .8-2 0-3M19.5 9c-.8-1 .8-2 0-3"/>',
   'k.ticket': '<path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z"/><path d="M15 7v10" stroke-dasharray="1.5 2"/><circle cx="9" cy="10.5" r="1.8"/><path d="M6 15c.6-1.6 1.7-2.3 3-2.3s2.4.7 3 2.3"/>',
-  // 합성 재료: 성운 가루 (소용돌이 + 흩어진 알갱이) · 별무리 파편 (깨진 결정 + 작은 별 둘) · 백수정 조각 (육각 기둥 결정)
-  'm.dust': '<path d="M12 12a2 2 0 1 1 2.5 1.9A4.5 4.5 0 0 1 8 10.5a6.5 6.5 0 0 1 12 2.5"/><circle cx="5" cy="17" r=".9"/><circle cx="9" cy="20" r=".9"/><circle cx="17.5" cy="18.5" r=".9"/><circle cx="4.5" cy="7" r=".9"/>',
-  'm.shard': '<path d="M10 3l5 6-3 12-6-9z"/><path d="M6 12l6-3 3 0"/><path d="M18.5 3v4M16.5 5h4"/><path d="M19 14v3M17.5 15.5h3"/>',
+  // 합성 재료: 성운 가루 (흩날리는 별가루: 반짝임 둘 + 알갱이) · 별무리 파편 (마름모 결정 속 별) · 백수정 조각 (육각 기둥 결정)
+  'm.dust': '<path d="M15 3.5l1.2 3.3 3.3 1.2-3.3 1.2L15 12.5l-1.2-3.3L10.5 8l3.3-1.2z"/><path d="M7.5 11.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/><circle cx="12.5" cy="16.5" r="1.15" fill="currentColor" stroke="none"/><circle cx="5" cy="20" r="1.15" fill="currentColor" stroke="none"/><circle cx="16" cy="20.5" r="1.15" fill="currentColor" stroke="none"/><circle cx="19.5" cy="16" r="1.15" fill="currentColor" stroke="none"/>',
+  'm.shard': '<path d="M12 2.5l6.5 9.5-6.5 9.5L5.5 12z"/><path d="M12 8.2l1.1 2.7 2.7 1.1-2.7 1.1L12 15.8l-1.1-2.7L8.2 12l2.7-1.1z"/>',
   'm.crystal': '<path d="M12 2.5l4.5 3.5v12L12 21.5 7.5 18V6z"/><path d="M7.5 6L12 9.5 16.5 6M12 9.5v12"/>',
   // 캠페인 장비: 청금 통행증 (브로치) · 진공 헬멧 · 블랙박스 백수정 · 중계 퓨즈
   'i.pass': '<path d="M12 3l7 4v6c0 4-3 6.5-7 8-4-1.5-7-4-7-8V7z"/><path d="M12 8l2 3-2 3-2-3z"/>',

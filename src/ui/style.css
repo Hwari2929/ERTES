@@ -4682,9 +4682,10 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .wall-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
 .wall-opt { display: grid; gap: 2px; justify-items: center; }
 .item:has(.use-n) { position: relative; }
-/* 고급 모듈 제련 단계: 오른쪽 아래 '+n' (망원경 횟수와 같은 자리 · 모양) */
-.item .rf-n { position: absolute; right: -4px; bottom: -4px; min-width: 15px; height: 15px; padding: 0 3px; box-sizing: border-box; display: grid; place-items: center; border-radius: var(--r-pill); background: var(--panel); border: 1px solid var(--g-G); font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; line-height: 1; color: var(--c-text); }
-.item:has(.rf-n) { position: relative; }
+/* 제련 단계 (고급 모듈 · 전설 장비): 아이콘 아래 가운데 별 n개. 장비 등급색 그대로, 바탕색 테로 테두리와 갈린다 */
+.item .rf-st { position: absolute; left: -2px; right: -2px; bottom: -3px; display: flex; justify-content: center; gap: 0; pointer-events: none; line-height: 0; }
+.item .rf-st svg { width: min(7px, 20%); height: auto; aspect-ratio: 1; flex: none; fill: currentColor; stroke: var(--panel); stroke-width: 1.6px; paint-order: stroke; overflow: visible; } /* 5개가 칸 너비 안에 들어가게 (작은 장비 칸에서는 줄어든다) */
+.item:has(.rf-st) { position: relative; }
 /* 전투: 숨겨 둔 감전 지뢰 (아군에게만 보이는 흐린 표식) */
 .trap-tok { position: absolute; pointer-events: none; box-sizing: border-box; border: 2px dashed color-mix(in srgb, var(--el-elec) 60%, transparent); border-radius: 50%; transform: scale(.55); opacity: .7; }
 /* 전투: 바리케이드 · 유인 신호기 (스프라이트 대신 장치 표식) */

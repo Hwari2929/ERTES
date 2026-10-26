@@ -12,7 +12,7 @@ import { BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBAL_ODDS, GLOBAL_TIER_NAME, GL
 import { DESPAIR_BY_ID, DESPAIRS, despairRule } from '../data/despair';
 import { OATHS, oathHeatOf, oathMax } from '../data/oaths';
 import { diffName } from '../data/difficulty';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, ALL_MATS, DUST, SHARD, CRYSTAL, gradedPts, withRefine, breadSellText, combine, CONSUMABLES, emblemId, injectorWeights, INJECTORS, isLegendConsumable, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR_IDS, UNIQUE_IDS, isJunk, JUNK_IDS, CATWHEEL_ZI, isCatwheel } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, ALL_MATS, DUST, SHARD, CRYSTAL, isForgeLegend, withRefine, breadSellText, combine, CONSUMABLES, emblemId, injectorWeights, INJECTORS, isLegendConsumable, emblemOf, HEL_ITEM_IDS, isEmblem, isHelItem, isLocked, isOccultMod, isTurretGear, itemInfo, OCCULT_MODS, TURRET_GEAR_IDS, UNIQUE_IDS, isJunk, JUNK_IDS, CATWHEEL_ZI, isCatwheel } from '../data/items';
 import { deviceRows, isPlaceable } from '../data/devices';
 import { exMerchantOf, PETRA_AD } from '../data/merchants';
 import { PSI_BRIEF } from '../data/brief';
@@ -355,13 +355,14 @@ function sources(id: string): string[] {
     }
     return out;
   }
-  if (t === 'G') out.push('성운 가루 + 장비 재료 조합', `별무리 파편으로 제련 (최대 ${CFG.craft.refineMax}단계)`, `상점 · ${P.G} 크레딧 (${pctTxt(D.shopGraded)} 확률 입고 · ${CFG.shop.gearFrom}페이즈부터는 고급 · 희귀 중 1개 이상 확정)`, supGear('G'));
+  if (t === 'G') out.push('성운 가루 + 장비 재료 조합', `성운 가루로 제련 (최대 ${CFG.craft.refineMax}단계)`, `상점 · ${P.G} 크레딧 (${pctTxt(D.shopGraded)} 확률 입고 · ${CFG.shop.gearFrom}페이즈부터는 고급 · 희귀 중 1개 이상 확정)`, supGear('G'));
   if (t === 'A') {
     out.push(itemInfo(id).recipe ? (id.split('_')[1] === id.split('_')[2] ? '같은 재료 2개 조합' : '서로 다른 재료 2개 조합') : '조합 불가 (상점 · 보급 · 전리품으로만)');
     out.push(`상점 · ${P.A} 크레딧 (${pctTxt(D.shopAdv)} 확률 입고 · ${CFG.shop.gearFrom}페이즈부터는 고급 · 희귀 중 1개 이상 확정)`, `도전 · ${D.bossAdvEvery}페이즈마다 보스 전리품 (희귀 3개 중 1개)`, supGear('A'));
     if (NEWS_OFFERS.sponsor) out.push(`${SYN_BY_ID.STAR.name} 속보 [${NEWS_OFFERS.sponsor.name}] (무작위)`);
   }
   if (t === 'L') {
+    if (isForgeLegend(id)) out.push(`별무리 파편으로 제련 (최대 ${CFG.craft.refineMax}단계)`);
     out.push(`상점 · ${P.L} 크레딧 (${D.shopLegendPhase}페이즈부터 ${pctTxt(D.shopLegend)} 확률 입고)`, supGear('L'));
     if (hall) out.push(`${SYN_BY_ID.STAR.name} 속보 [${hall.name}] · 명성 ${hall.cost} (3개 중 1개)`);
     if (legendK) out.push(`소모품 [${legendK.name}] 사용`);
@@ -397,14 +398,16 @@ function itemDetail(H: CxH, id: string): string {
     if (maj.length) a.push(`<div class="cx2-maj">${maj.map(([m, v]) => `<span>${H.majorIcon(m)}${esc(MAJOR_NAME[m])} <b class="f-num">+${v}</b></span>`).join('')}</div>`);
     if (it.recipe) a.push(`<h3>조합</h3><div class="cx2-recipe">${it.recipe.map((x) => `${H.itemIcon(x)}<span class="small">${esc(itemInfo(x).name)}</span>`).join('<b>+</b>')}<b>=</b>${H.itemIcon(id)}</div>`);
     if (g === 'S' || g === 'C') {
-      const rows = [...ALL_COMPONENTS, ...ALL_MATS, ...ALL_GRADED].map((y) => [y, combine(id, y)] as const).filter(([, r]) => r);
+      const rows = [...ALL_COMPONENTS, ...ALL_MATS, ...ALL_GRADED, ...ALL_ADVANCED.map(legendOf).slice(0, 2)].map((y) => [y, combine(id, y)] as const).filter(([, r]) => r); // 전설은 예시 2개 (집중형 · 분산형)
       if (!rows.length) b.push('<h3>조합 결과</h3><p class="muted small">아직 쓰임새가 없습니다.</p>');
       else
       b.push(`<h3>조합 결과 <span class="cx-hn">${rows.length}종</span></h3><ul class="cx2-rows">${rows.map(([y, r]) => `<li class="cx2-mix"><b>+</b>${H.itemIcon(y)}<b>=</b>${itemRow(H, r!)}</li>`).join('')}</ul>`);
     }
-    if (g === 'G') { // 제련 단계별 능력치 (별무리 파편 1개 = 1단계)
-      const m = Object.keys(it.majors)[0] as Major;
-      a.push(`<h3>제련 <span class="cx-hn">최대 ${CFG.craft.refineMax}단계</span></h3><div class="cx2-maj">${[...Array(CFG.craft.refineMax + 1).keys()].map((lv) => `<span>${H.itemIcon(withRefine(id, lv))}${lv ? '' : '기본 '}<b class="f-num">+${gradedPts(lv)}</b></span>`).join('')}</div><p class="muted small">${esc(MAJOR_NAME[m])} · 별무리 파편 1개로 1단계</p>`);
+    if (g === 'G' || (g === 'L' && isForgeLegend(id))) { // 제련 단계별 능력치 (고급 모듈 = 성운 가루 · 전설 = 별무리 파편, 1개 = 1단계)
+      const lvs = [...Array(CFG.craft.refineMax + 1).keys()];
+      const val = (lv: number) => Object.values(itemInfo(withRefine(id, lv)).majors).map((v) => `+${v}`).join(' · ');
+      const tool = itemInfo(g === 'G' ? DUST : SHARD).name;
+      a.push(`<h3>제련 <span class="cx-hn">최대 ${CFG.craft.refineMax}단계</span></h3><div class="cx2-maj">${lvs.map((lv) => `<span>${H.itemIcon(withRefine(id, lv))}${lv ? '' : '기본 '}<b class="f-num">${val(lv)}</b></span>`).join('')}</div><p class="muted small">${(Object.keys(it.majors) as Major[]).map((m) => esc(MAJOR_NAME[m])).join(' · ')} · ${esc(tool)} 1개로 1단계</p>`);
     }
     if (g === 'A' || (g === 'X' && isHelItem(id) && id[0] === 'A')) a.push(`<h3>전설 등급</h3><ul class="cx2-rows"><li>${itemRow(H, legendOf(id))}</li></ul>`);
     if (g === 'L' || (g === 'X' && isHelItem(id) && id[0] === 'L')) a.push(`<h3>희귀 등급</h3><ul class="cx2-rows"><li>${itemRow(H, 'A_' + id.slice(2))}</li></ul>`);
