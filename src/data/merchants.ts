@@ -4,9 +4,9 @@
 import { CFG } from '../config';
 import { DEV } from './devices';
 
-/** 말풍선 상황: 첫 인사 · 다시 열 때 · 물품 고름 (분류별 — selS = 합성 재료 · 할인 · 전용) · 전용 상품 권유 · 구매 · 크레딧 부족 · 보관함 가득 · 새로고침 · 새로고침 불가 ·
+/** 말풍선 상황: 첫 인사 · 다시 열 때 · 물품 고름 (분류별 — selS = 성운 가루 · selCr = 백수정 조각 · 할인 · 전용) · 전용 상품 권유 · 구매 · 크레딧 부족 · 보관함 가득 · 새로고침 · 새로고침 불가 ·
  *  닫기 · 떠나기 · 가만히 있을 때 · 품절 칸 · (고르곤) 교환 권유 · 교환 완료 · 녹일 것 없음 · 이미 교환함 */
-export type TalkKey = 'greet' | 'again' | 'selC' | 'selS' | 'selG' | 'selA' | 'selL' | 'selK' | 'selM' | 'sale' | 'ex' | 'pitch' | 'buy' | 'poor' | 'full'
+export type TalkKey = 'greet' | 'again' | 'selC' | 'selS' | 'selCr' | 'selG' | 'selA' | 'selL' | 'selK' | 'selM' | 'sale' | 'ex' | 'pitch' | 'buy' | 'poor' | 'full'
   | 'refresh' | 'norefresh' | 'close' | 'leave' | 'idle' | 'sold' | 'tradeOffer' | 'tradeDone' | 'tradeNone' | 'tradeUsed';
 
 export interface MerchantDef {
@@ -54,6 +54,10 @@ export const MERCHANTS: MerchantDef[] = [
       selS: [
         '성운 가루예요. 재료에 섞으면 고급 모듈이 되고, 2개 모으면 별무리 파편이 돼요.',
         '혼자서는 아무것도 못 하는 재료예요. 그런데 붙는 순간 몸값이 뛰죠. 인재 시장이랑 똑같아요.',
+      ],
+      selCr: [
+        '백수정 조각이에요. 희귀나 전설 장비에 쓰면 숨은 능력이 열려요. 잠재력 있는 인재를 알아보는 거랑 같죠.',
+        '이미 다 열린 장비에 쓰면 처음부터 다시 뽑아요. 재평가 시즌이라고 생각하세요.',
       ],
       selG: [
         '고급 장비예요. 한 분한테 몰아주는 집중 투자용이죠.',
@@ -168,6 +172,10 @@ export const MERCHANTS: MerchantDef[] = [
         '성운 가루예요. 재료에 한 줌 섞으면 성질이 달라지지요.',
         '별빛을 갈아 만든 가루라고들 해요. 정말인지는 저도 몰라요. 값은 정말이고요.',
       ],
+      selCr: [
+        '백수정 조각이에요. 장비가 감춰 둔 재주를 꺼내 주지요.',
+        '다 꺼낸 장비에 또 쓰면 전부 새로 섞여요. 그걸 즐기는 손님도 있더군요.',
+      ],
       selG: [
         '손질이 잘 된 물건이에요. 전 주인 얘기는 따로 값을 받아요.',
         '재료 하나에 성운 가루로 공을 들인 물건이지요. 한 가지만 파고드는 사람은 무서운 법이에요.',
@@ -280,6 +288,10 @@ export const MERCHANTS: MerchantDef[] = [
       selS: [
         '성운 가루다. 쇠에 먹이면 단단해진다.',
         '고급에 바로 먹여도 된다. 2개면 파편이 되고, 파편은 전설을 두들긴다. 5번까지.',
+      ],
+      selCr: [
+        '백수정이다. 희귀나 전설에 박으면 숨은 힘이 나온다.',
+        '다 열린 데 또 박으면 처음부터 다시다. 각오하고 써라.',
       ],
       selG: [
         '고급이다. 쇠에 성운 가루를 먹여서 한 번 더 두들겼다.',

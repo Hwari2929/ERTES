@@ -92,23 +92,69 @@ export const DUST = 'S_dust', SHARD = 'S_shard', CRYSTAL = 'S_crystal';
 export const MATS: Record<string, { name: string; icon: string; desc: string }> = {
   [DUST]: { name: '성운 가루', icon: '✧', desc: `[합성 재료] 장비 재료와 합성하면 같은 능력치의 고급 모듈이 됩니다. 고급 모듈과 합성하면 모듈을 1단계 제련해 주요 능력치가 +${CFG.craft.refinePts} 증가합니다 (최대 ${CFG.craft.refineMax}단계). 성운 가루 2개를 합성하면 별무리 파편이 됩니다.` },
   [SHARD]: { name: '별무리 파편', icon: '✦', desc: `[희귀 합성 재료] 전설 장비와 합성하면 1단계 제련합니다. 주요 능력치가 하나인 전설은 +${CFG.craft.legendPts.focus}, 둘인 전설은 각각 +${CFG.craft.legendPts.split} 증가합니다 (최대 ${CFG.craft.refineMax}단계).` },
-  [CRYSTAL]: { name: '백수정 조각', icon: '⬡', desc: '[합성 재료] 투명한 결정 속에 빛이 갇혀 있습니다. 쓰임새는 아직 밝혀지지 않았습니다.' },
+  [CRYSTAL]: { name: '백수정 조각', icon: '⬡', desc: `[합성 재료] 희귀 · 전설 장비와 합성하면 잠재능력 1개를 무작위로 개방합니다 (희귀 최대 ${CFG.craft.potSlots.A}개 · 전설 최대 ${CFG.craft.potSlots.L}개). 잠재능력은 장비를 만든 재료에 따라 정해집니다. 잠재능력이 다 열린 장비에 쓰면 붙어 있던 잠재능력을 모두 다시 뽑습니다.` },
 };
 export const isMat = (id: string | null | undefined) => !!id && !!MATS[id];
 export const ALL_MATS = Object.keys(MATS);
+// 장비 id 꼬리: '+n' = 제련 단계 · '#키.키' = 잠재능력 (예: 'L_pow_mnd+2#pow1.agi3'). '?' = 아직 굴리지 않은 잠재능력 (백수정 조각 합성 확인 중)
 /** 제련 단계 (고급 모듈 · 전설 장비): 'G_pow+3' · 'L_pow_mnd+2' → 3 · 2 */
-export const refineLv = (id: string) => (id[0] === 'G' || id[0] === 'L' ? +(id.split('+')[1] || 0) : 0);
-/** 제련 단계를 뗀 id */
-export const refineBase = (id: string) => (id[0] === 'G' || id[0] === 'L' ? id.split('+')[0] : id);
-export const withRefine = (id: string, lv: number) => (lv > 0 ? `${refineBase(id)}+${lv}` : refineBase(id));
+export const refineLv = (id: string) => { const m = /\+(\d+)/.exec(id); return m ? +m[1] : 0; };
+/** 제련 단계 · 잠재능력을 뗀 id */
+export const refineBase = (id: string) => id.replace(/[+#].*$/, '');
+/** 잠재능력 키 목록 */
+export const potsOf = (id: string) => { const i = id.indexOf('#'); return i < 0 ? [] : id.slice(i + 1).split('.').filter(Boolean); };
+const makeGear = (base: string, lv: number, pots: string[]) => base + (lv > 0 ? `+${lv}` : '') + (pots.length ? `#${pots.join('.')}` : '');
+export const withRefine = (id: string, lv: number) => makeGear(refineBase(id), lv, potsOf(id));
+export const withPots = (id: string, pots: string[]) => makeGear(refineBase(id), refineLv(id), pots);
 /** 고급 모듈인지 (제련 단계 무관) */
 export const isGraded = (id: string | null | undefined) => !!id && ALL_GRADED.includes(refineBase(id));
 /** 고급 모듈 능력치: 기본 +6 + 제련 단계 × 3 */
 export const gradedPts = (lv: number) => GRADE_PTS + CFG.craft.refinePts * lv;
+/** 잠재능력 칸 수: 희귀 1 · 전설 2 (희귀 조합 장비만 — 동맹 · 고유 장비 제외), 그 밖 0 */
+export const potSlots = (id: string | null | undefined) => (!id ? 0 : ALL_ADVANCED.includes(refineBase(id)) ? CFG.craft.potSlots.A : isForgeLegend(id) ? CFG.craft.potSlots.L : 0);
+/** 장비의 잠재능력 후보: 조합 재료(주요 능력치 둘)의 잠재능력 (같은 재료면 4개) */
+export const potPool = (id: string): string[] => { const a = ADV_BY_ID[refineBase(id).slice(2)]; return a ? [...new Set([a.a, a.b])].flatMap((m) => POT_KEYS.filter((k) => POTS[k].major === m)) : []; };
 /** 별무리 파편으로 제련할 수 있는 전설 장비 (희귀 조합의 전설판 — 동맹 · 고유 장비 제외, 제련 단계 무관) */
 export const isForgeLegend = (id: string | null | undefined) => !!id && id[0] === 'L' && !!ADV_BY_ID[refineBase(id).slice(2)];
 
 const ADV_BY_ID = Object.fromEntries(ADV.map((a) => [a.id, a]));
+
+// ── 잠재능력 (백수정 조각으로 희귀 · 전설 장비에 개방): 조합 재료(주요 능력치)마다 4종, 수치 고정.
+//    희귀 1칸 · 전설 2칸 (CFG.craft.potSlots). 칸이 다 차 있으면 백수정 조각을 쓸 때 붙은 잠재능력을 모두 다시 뽑는다.
+//    주 위력: 장착한 기물의 전투 유형에 맞춰 (명사수 = 사격 · 돌격가 = 타격 · 그 밖 = 기술)
+export interface PotDef { major: Major; name: string; desc: string; /** 도감 덧붙임 */ note?: string; effect: (ctype?: string) => Effect }
+const mainKey = (ctype?: string): 'shoot' | 'strike' | 'tech' => (ctype === 'MARK' ? 'shoot' : ctype === 'VAN' ? 'strike' : 'tech');
+export const POTS: Record<string, PotDef> = {
+  vit1: { major: 'vit', name: '강인함', desc: '최대 체력 +15%p', effect: () => ({ pct: { maxHp: 0.15 } }) },
+  vit2: { major: 'vit', name: '재생 촉진', desc: '회복 효율 +25%p', effect: () => ({ stats: { healEff: 0.25 } }) },
+  vit3: { major: 'vit', name: '면역 강화', desc: '효과 저항 +20%p', effect: () => ({ stats: { effRes: 0.2 } }) },
+  vit4: { major: 'vit', name: '해독 체질', desc: '받는 지속 피해 -30%p', effect: () => ({ taken: [red('dot', 0.3)] }) },
+  pow1: { major: 'pow', name: '출력 집중', desc: '주 위력 +15%p', note: '장착한 기물의 전투 유형에 따라 사격 · 타격 · 기술 위력 중 하나', effect: (c) => ({ pct: { [mainKey(c)]: 0.15 } }) },
+  pow2: { major: 'pow', name: '장갑 파쇄', desc: '방어도 관통 +20%p', effect: () => ({ stats: { armorPen: 0.2 } }) },
+  pow3: { major: 'pow', name: '급소 강타', desc: '치명타 피해 +30%p', effect: () => ({ stats: { critDmg: 0.3 } }) },
+  pow4: { major: 'pow', name: '약점 포착', desc: '치명타 확률 +10%p', effect: () => ({ stats: { crit: 0.1 } }) },
+  mnd1: { major: 'mnd', name: '기술 숙련', desc: '스킬 피해 +15%p', effect: () => ({ mods: [inc('skill', 0.15)] }) },
+  mnd2: { major: 'mnd', name: '정밀 간섭', desc: '효과 명중 +20%p', effect: () => ({ stats: { effHit: 0.2 } }) },
+  mnd3: { major: 'mnd', name: '사고 가속', desc: '쿨다운 감소 속도 +15%p', effect: () => ({ stats: { cdr: 0.15 } }) },
+  mnd4: { major: 'mnd', name: '공명 증폭', desc: '궁극기 충전 효율 +20%p', effect: () => ({ stats: { ultCharge: 0.2 } }) },
+  def1: { major: 'def', name: '중장갑', desc: '방어도 +25%p', effect: () => ({ pct: { armor: 0.25 } }) },
+  def2: { major: 'def', name: '충격 분산', desc: '받는 피해 -8%p', effect: () => ({ taken: [red('all', 0.08)] }) },
+  def3: { major: 'def', name: '방탄 처리', desc: '받는 물리 피해 -12%p', effect: () => ({ taken: [red('phys', 0.12)] }) },
+  def4: { major: 'def', name: '위압', desc: '도발 배율 +1', effect: () => ({ setup: (u) => { u.mem.provPlus = (u.mem.provPlus || 0) + 1; } }) },
+  agi1: { major: 'agi', name: '경쾌함', desc: '이동 속도 +10%p, 회피 +10%p', effect: () => ({ stats: { moveSpd: 0.1, eva: 0.1 } }) },
+  agi2: { major: 'agi', name: '연속 동작', desc: '공격 속도 +15%p', effect: () => ({ stats: { atkSpd: 0.15 } }) },
+  agi3: { major: 'agi', name: '흘려 내기', desc: '받는 찰과상 피해 -30%p', effect: () => ({ setup: (u) => { u.mem.grazeRed = (u.mem.grazeRed || 0) + 0.3; } }) },
+  agi4: { major: 'agi', name: '조준 보정', desc: '명중 +15%p', effect: () => ({ stats: { acc: 0.15 } }) },
+};
+export const POT_KEYS = Object.keys(POTS);
+/** 효과 둘을 하나로 (잠재능력을 장비 효과에 더할 때): 수치는 더하고, 목록은 잇고, setup 은 차례로 */
+function addEffect(a: Effect, b: Effect): Effect {
+  const sum = <T extends Record<string, number | undefined>>(x?: T, y?: T) => { if (!x) return y; if (!y) return x; const o: Record<string, number> = { ...(x as Record<string, number>) }; for (const [k, v] of Object.entries(y)) o[k] = (o[k] || 0) + (v || 0); return o as T; };
+  const setup = a.setup && b.setup ? (u: Parameters<NonNullable<Effect['setup']>>[0], bt: Parameters<NonNullable<Effect['setup']>>[1], ctx: Parameters<NonNullable<Effect['setup']>>[2]) => { a.setup!(u, bt, ctx); b.setup!(u, bt, ctx); } : a.setup || b.setup;
+  return { ...a, stats: sum(a.stats, b.stats), pct: sum(a.pct, b.pct), mods: [...(a.mods || []), ...(b.mods || [])], taken: [...(a.taken || []), ...(b.taken || [])], ...(setup ? { setup } : {}) };
+}
+/** 잠재능력 한 줄 (이름 + 값) */
+export const potText = (k: string) => (POTS[k] ? `${POTS[k].name} (${POTS[k].desc})` : '잠재능력 (합성할 때 결정)');
 
 const UNIQUE: Record<string, { name: string; icon: string; desc: string; effect: Effect }> = {
   U_shade: {
@@ -438,12 +484,12 @@ export function itemInfo(id: string): ItemInfo {
     return { id, tier, name: c.name, icon: c.icon, majors: { [c.major]: COMP_PTS }, desc: `${MAJOR_NAME[c.major]} +${COMP_PTS}` };
   }
   if (tier === 'G') {
-    const lv = refineLv(id), c = COMPONENTS.find((x) => x.major === rest.split('+')[0])!, pts = gradedPts(lv);
+    const lv = refineLv(id), c = COMPONENTS.find((x) => x.major === refineBase(id).slice(2))!, pts = gradedPts(lv);
     return { id, tier, name: `고급 ${c.name}${lv ? ` +${lv}` : ''}`, icon: c.icon, majors: { [c.major]: pts },
       desc: `${MAJOR_NAME[c.major]} +${pts}${lv ? ` (제련 ${lv}단계 · 기본 +${GRADE_PTS})` : ''}`, recipe: lv ? [withRefine(id, lv - 1), DUST] : [DUST, c.id], refine: lv };
   }
   const lv = tier === 'L' ? refineLv(id) : 0;
-  const a = ADV_BY_ID[rest.split('+')[0]];
+  const a = ADV_BY_ID[refineBase(id).slice(2)];
   const k = tier === 'L' ? 3 : 1;
   const majors: Partial<Record<Major, number>> = {};
   // 전설 제련 (별무리 파편): 주요 능력치 하나(+18)면 단계마다 +6, 둘(+9 · +9)이면 각각 +3
@@ -453,12 +499,12 @@ export function itemInfo(id: string): ItemInfo {
   const mtxt = Object.entries(majors).map(([m, v]) => `${MAJOR_NAME[m as Major]} +${v}`).join(', ');
   return {
     id, tier, name: (tier === 'L' ? '[전설] ' : '') + a.name + (lv ? ` +${lv}` : ''), icon: COMPONENTS.find((c) => c.major === a.a)!.icon,
-    majors, desc: `${mtxt}${lv ? ` (제련 ${lv}단계)` : ''}. ${a.desc(k)}`, recipe: tier === 'A' && a.craft !== false ? [`C_${a.a}`, `C_${a.b}`] : lv ? [withRefine(id, lv - 1), SHARD] : undefined, refine: lv || undefined,
+    majors, desc: `${mtxt}${lv ? ` (제련 ${lv}단계)` : ''}. ${a.desc(k)}${potsOf(id).length ? ` 잠재능력: ${potsOf(id).map(potText).join(' · ')}.` : ''}`, recipe: tier === 'A' && a.craft !== false ? [`C_${a.a}`, `C_${a.b}`] : lv ? [withRefine(id, lv - 1), SHARD] : undefined, refine: lv || undefined,
   };
 }
 
 /** owner: 장착한 기물 id (캣휠 · 밍키처럼 기물에 따라 달라지는 장비) */
-export function itemEffect(id: string, owner?: string): Effect {
+export function itemEffect(id: string, owner?: string, ctype?: string): Effect {
   if (JUNK[id]) { const k = JUNK[id].cat && owner === 'mingki' ? CFG.despair.catwheelMajors : 0; return k ? { majors: Object.fromEntries(MAJORS.map((m) => [m, k])) } : {}; }
   if (id === CATWHEEL_ZI) return { majors: allMajors(CFG.despair.ziMajors + (owner === 'mingki' ? CFG.despair.catwheelMajors : 0)) }; // 밍키: 캣휠 보너스도 그대로
   if (isTurretGear(id)) return TURRET_GEAR[id].effect;
@@ -472,18 +518,21 @@ export function itemEffect(id: string, owner?: string): Effect {
   const a = ADV_BY_ID[refineBase(id).slice(2)];
   const k = info.tier === 'L' ? 3 : 1;
   const e = HOOK_SCALED.has(a.id) ? a.effect(k) : scaleEffect(a.effect(1), k);
-  return { ...e, majors: info.majors };
+  const pe = potsOf(id).filter((p) => POTS[p]).reduce((acc, p) => addEffect(acc, POTS[p].effect(ctype)), { ...e } as Effect); // 잠재능력
+  return { ...pe, majors: info.majors };
 }
 
 export function combine(x: string, y: string): string | null {
   if (isLocked(x) || isLocked(y) || isMod(x) || isMod(y) || isConsumable(x) || isConsumable(y) || isTurretGear(x) || isTurretGear(y) || isJunk(x) || isJunk(y)) return null;
-  // 합성 재료: 성운 가루 + 재료 = 고급 모듈 · 성운 가루 + 고급 모듈 = 제련 1단계 · 성운 가루 2개 = 별무리 파편 · 별무리 파편 + 전설 장비 = 제련 1단계 (모두 최대 5). 백수정 조각은 아직 쓰임새 없음
+  // 합성 재료: 성운 가루 + 재료 = 고급 모듈 · 성운 가루 + 고급 모듈 = 제련 1단계 · 성운 가루 2개 = 별무리 파편 · 별무리 파편 + 전설 장비 = 제련 1단계 (모두 최대 5) · 백수정 조각 + 희귀 · 전설 = 잠재능력
   if (isMat(x) || isMat(y)) {
     const [m, o] = isMat(x) ? [x, y] : [y, x];
     if (m === DUST && o === DUST) return SHARD;
     if (m === DUST && o[0] === 'C' && ALL_COMPONENTS.includes(o)) return `G_${o.slice(2)}`;
     if (m === DUST && isGraded(o) && refineLv(o) < CFG.craft.refineMax) return withRefine(o, refineLv(o) + 1);
     if (m === SHARD && isForgeLegend(o) && refineLv(o) < CFG.craft.refineMax) return withRefine(o, refineLv(o) + 1);
+    // 백수정 조각 + 희귀 · 전설 = 빈 잠재능력 칸 하나 개방, 다 차 있으면 모두 다시 뽑기. 결과는 합성하는 순간 굴린다 ('?' → engine/run.ts rollPots)
+    if (m === CRYSTAL && potSlots(o) && !potsOf(o).includes('?')) { const ps = potsOf(o); return withPots(o, ps.length < potSlots(o) ? [...ps, '?'] : ps.map(() => '?')); }
     return null;
   }
   // 재료 2개 → 희귀 (같은 재료 2개는 같은 재료 희귀). 전설은 조합 불가

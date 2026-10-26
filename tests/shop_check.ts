@@ -5,7 +5,7 @@ import * as R from '../src/engine/run';
 import { buildBattle, encGeo, PAD } from '../src/engine/build';
 import { FIELDS } from '../src/data/battlefields';
 import { MERCHANT_BY_ID, MERCHANTS, merchantPool } from '../src/data/merchants';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, CONSUMABLES, CRYSTAL, DUST, itemEffect, itemInfo, SHARD } from '../src/data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, CONSUMABLES, CRYSTAL, DUST, itemEffect, itemInfo, potPool, POTS, potsOf, SHARD } from '../src/data/items';
 import { DEV, type Device, feastChain } from '../src/data/devices';
 import { RECRUITABLE } from '../src/data/units';
 import type { RunState } from '../src/types';
@@ -328,6 +328,31 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   ok(R.tradeOptions({ ...run, inventory: ['G_pow+3'] } as RunState).length === 1, '제련한 고급 모듈도 교환 가능');
   const rg = new Rng(7), draws = [...Array(400)].map(() => R.pickMat(rg));
   ok(CFG.craft.crystal ? draws.includes(CRYSTAL) && draws.includes(DUST) : draws.every((x) => x === DUST), `합성 재료 드롭: 백수정 조각 ${CFG.craft.crystal ? '켜짐 (3 : 1)' : '꺼짐 → 성운 가루만'}`);
+}
+
+// ── 9. 잠재능력 (백수정 조각)
+{
+  ok(combine(CRYSTAL, 'A_pow_mnd') === 'A_pow_mnd#?' && combine('L_pow_mnd#pow1', CRYSTAL) === 'L_pow_mnd#pow1.?', '백수정 조각: 빈 칸 하나 개방 (희귀 1 · 전설 2칸)');
+  ok(combine(CRYSTAL, 'A_pow_mnd#pow1') === 'A_pow_mnd#?' && combine(CRYSTAL, 'L_pow_mnd+2#pow1.mnd2') === 'L_pow_mnd+2#?.?', '다 열린 장비: 모두 다시 뽑기 (제련 단계는 유지)');
+  ok(combine(CRYSTAL, 'G_pow') === null && combine(CRYSTAL, 'L_helanchor') === null && combine(CRYSTAL, 'A_pow_mnd#?') === null && combine(CRYSTAL, 'C_pow') === null, '고급 · 동맹 전설 · 재료에는 쓸 수 없음');
+  ok(potPool('A_pow_mnd').length === 8 && potPool('L_pow_pow').length === 4 && potPool('A_pow_mnd').every((k) => ['pow', 'mnd'].includes(POTS[k].major)), '후보: 장비 재료의 잠재능력 (같은 재료면 4종)');
+  const run = mk(5);
+  let allIn = true, distinct = true, changed = true;
+  for (let i = 0; i < 60; i++) {
+    const r1 = R.rollPots(run, 'L_pow_mnd#?.?'), p1 = potsOf(r1);
+    allIn &&= p1.every((k) => potPool('L_pow_mnd').includes(k)); distinct &&= p1.length === 2 && p1[0] !== p1[1];
+    const r2 = R.rollPots(run, 'A_vit_vit#?', 'A_vit_vit#vit1'); changed &&= potsOf(r2)[0] !== 'vit1';
+  }
+  ok(allIn && distinct, '굴린 잠재능력: 후보 안에서 · 겹치지 않게');
+  ok(changed, '다시 뽑기: 적어도 하나는 바뀜');
+  ok((itemEffect('A_pow_pow#pow2').stats?.armorPen || 0) === 0.2 && (itemEffect('A_pow_mnd#pow1', 'x', 'MARK').pct?.shoot || 0) === 0.15 && (itemEffect('A_pow_mnd#pow1', 'x', 'VAN').pct?.strike || 0) === 0.15, '잠재능력 효과 · 주 위력은 전투 유형을 따름');
+  const u = run.units[0];
+  u.items = ['A_vit_pow', null, null]; run.inventory = [CRYSTAL];
+  ok(!R.equip(run, 0, u.uid) && potsOf(u.items[0]!).length === 1 && !u.items[0]!.includes('?'), `기물에 단 희귀에 백수정 조각 → 바로 개방 (${u.items[0]})`);
+  run.inventory = [CRYSTAL, 'A_def_agi'];
+  const got = R.combineInv(run, 0, 1);
+  ok(!!got && potsOf(got).length === 1 && !got.includes('?') && run.inventory.length === 1, `보관함 합성 → 개방 (${got})`);
+  ok(itemInfo('L_pow_mnd+1#pow1.mnd3').desc.includes(POTS.pow1.name) && itemInfo('L_pow_mnd+1#pow1.mnd3').refine === 1, '설명에 잠재능력 · 제련 단계');
 }
 
 if (fails) { console.log(`상점 검사 실패 ${fails}건 (통과 ${passed})`); process.exitCode = 1; }

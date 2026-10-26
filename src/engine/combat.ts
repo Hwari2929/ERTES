@@ -1260,6 +1260,7 @@ export class Battle {
         if (this.rng.next() < gc) {
           res.graze = true;
           dmg *= Math.min(CFG.grazeDmgMax, CFG.grazeDmgBase + acc * CFG.grazeDmgAccK);
+          if (tgt.mem.grazeRed) dmg *= Math.max(0, 1 - tgt.mem.grazeRed); // 잠재능력 [흘려 내기]: 받는 찰과상 피해 감소
         } else dmg = 0;
         for (const h of tgt.hooks) h.onEvade?.(this, tgt, src);
       }

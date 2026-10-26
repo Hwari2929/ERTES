@@ -1,6 +1,6 @@
 // 시뮬 봇 공용: 장비 · 개조부품 · 소모품 운용 (sim.ts · balance.ts 공용)
 import { CFG } from '../src/config';
-import { breadHeal, CONSUMABLES, DUST, gearRank, isConsumable, isEmblem, isForgeLegend, isGraded, isInjector, isLocked, isOccultMod, refineLv, SHARD } from '../src/data/items';
+import { breadHeal, CONSUMABLES, CRYSTAL, DUST, gearRank, potsOf, potSlots, isConsumable, isEmblem, isForgeLegend, isGraded, isInjector, isLocked, isOccultMod, refineLv, SHARD } from '../src/data/items';
 import { memberships } from '../src/engine/build';
 import * as R from '../src/engine/run';
 import type { AugPick, RunState, UnitState } from '../src/types';
@@ -129,6 +129,15 @@ export function useMats(run: RunState) {
   const lowest = (ok: (x: string | null) => boolean) => dep.map((u) => ({ u, k: u.items.findIndex(ok) })).filter((x) => x.k >= 0)
     .sort((a, b) => refineLv(a.u.items[a.k]!) - refineLv(b.u.items[b.k]!))[0]?.u;
   for (let guard = 0; guard < 30; guard++) {
+    // 백수정 조각: 잠재능력 칸이 빈 희귀 · 전설 (전설 먼저, 출전 기물 → 보관함). 다 열렸으면 다시 뽑지 않고 둔다
+    const cr = run.inventory.indexOf(CRYSTAL);
+    if (cr >= 0) {
+      const room = (x: string | null) => !!x && potsOf(x).length < potSlots(x);
+      const t = dep.find((u) => u.items.some((x) => room(x) && x![0] === 'L')) || dep.find((u) => u.items.some(room));
+      if (t && !R.equip(run, cr, t.uid)) continue;
+      const g = run.inventory.findIndex(room);
+      if (g >= 0 && R.combineInv(run, cr, g)) continue;
+    }
     const sh = run.inventory.indexOf(SHARD);
     if (sh >= 0) {
       const t = lowest(canL);

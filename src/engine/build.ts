@@ -140,7 +140,7 @@ export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, 
     out.push({ majors: { vit: m, pow: m, mnd: m, def: m, agi: m } });
   }
   for (const a of u.augments) { const d = AUG_BY_ID[a.id]; if (d) out.push(d.effect(a.param)); }
-  for (const it of u.items) if (it) out.push(itemEffect(it, u.defId));
+  for (const it of u.items) if (it) out.push(itemEffect(it, u.defId, d.ctype)); // 전투 유형: 잠재능력 '주 위력'
   if (u.mod) out.push(itemEffect(u.mod)); // 신비 개조부품 · 문장 (고유 효과, data/emblems.ts)
   if (onBoard) {
     const ctx = makeCtx(run, u, counts);

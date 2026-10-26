@@ -168,10 +168,11 @@ export const CFG = {
   price: { C: 7, G: 16, A: 16, L: 60, S: 8 } as Record<string, number>, // S: 합성 재료 (성운 가루 · 백수정 조각)
   sell: { C: 3, G: 7, A: 7, L: 20, M: 6, O: 8, K: 4, T: 5, J: 1, S: 3 } as Record<string, number>,
   /** 장비 합성 재료 (data/items.ts MATS): 성운 가루 + 재료 = 고급 모듈 · 성운 가루 2개 = 별무리 파편 · 별무리 파편 + 고급 모듈 = 제련.
-   *  drop: 승리 시 재료 드롭과 따로 굴리는 합성 재료 확률 · w: 성운 가루 : 백수정 조각 비율 (crystal = false 면 백수정은 아직 나오지 않음 — 쓰임새를 넣을 때 켠다).
+   *  drop: 승리 시 재료 드롭과 따로 굴리는 합성 재료 확률 · w: 성운 가루 : 백수정 조각 비율 (crystal = false 면 백수정 조각은 나오지 않음).
    *  shop: 상점마다 합성 재료 1개를 진열할 확률 · refinePts: 성운 가루 제련 1단계마다 고급 모듈 주요 능력치 증가 (기본 +6 → 5단계 +21) · legendPts: 별무리 파편 제련 1단계마다 전설 장비 능력치 증가 (focus = 주요 능력치 하나 +18 짜리 · split = 둘에 +9 씩 짜리, 각각) · refineMax: 최대 제련 단계 */
-  craft: { drop: { battle: 0.15, adversity: 0.5, boss: 1 } as Record<string, number>, w: { S_dust: 3, S_crystal: 1 } as Record<string, number>, crystal: false,
-    shop: 0.75, refinePts: 3, legendPts: { focus: 6, split: 3 }, refineMax: 5 }, // J: 유닉스제 잡동사니 (캣휠)
+  craft: { drop: { battle: 0.15, adversity: 0.5, boss: 1 } as Record<string, number>, w: { S_dust: 3, S_crystal: 1 } as Record<string, number>, crystal: true,
+    shop: 0.75, refinePts: 3, legendPts: { focus: 6, split: 3 }, refineMax: 5,
+    /** 잠재능력 칸 (백수정 조각): 희귀 · 전설 */ potSlots: { A: 1, L: 2 } }, // J: 유닉스제 잡동사니 (캣휠)
   // 장비 드랍 [임시]
   // advParts: 역경(· 도전) 승리 시 무작위 장비 재료 확정 개수 (예전: 확률 50%)
   drop: { battle: 0.1, advParts: 1, bossAdvEvery: 3, bossPart: 0.5, shopParts: 2, shopAdv: 0.4, shopAdv2: 0.1, shopGraded: 0.15, shopLegend: 0.05, shopLegendPhase: 6, utility: { battle: 0.15, adversity: 0.3, boss: 0.5 } as Record<string, number>,

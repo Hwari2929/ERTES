@@ -9,7 +9,7 @@ import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
 import { STORIES } from './data/stories';
 import { FIELDS, fieldOf } from './data/battlefields';
 import { BLESSING_BY_ID, GLOBAL_BY_ID, GLOBAL_TIER_NAME } from './data/globals';
-import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isInjector, isLegendConsumable, isLocked, isMat, isMod, refineLv, refineBase, DUST, SHARD, isOccultMod, isTurretGear, itemInfo, TURRET_GEAR } from './data/items';
+import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isInjector, isLegendConsumable, isLocked, isMat, isMod, refineLv, refineBase, potsOf, potSlots, potPool, POTS, DUST, SHARD, CRYSTAL, isOccultMod, isTurretGear, itemInfo, TURRET_GEAR } from './data/items';
 import { aceTargetUid, ENG_TUR, OCCULT_SYNTH, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
 import { rowHtml, tierCmp } from './ui/tierdiff';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
@@ -295,7 +295,9 @@ function itemIcon(id: string | null, attrs = '', note = '') { // note: 툴팁 �
   const uses = id === 'K_scope' && app.run?.scope ? `<b class="use-n" title="남은 사용 횟수">${app.run.scope.n}</b>` : ''; // 표시 망원경: 오른쪽 아래 원형 사용 횟수
   const rf = refineLv(id);
   const refine = rf ? `<span class="rf-st" title="제련 ${rf}단계" aria-label="제련 ${rf}단계">${RF_STAR.repeat(rf)}</span>` : ''; // 제련 단계: 아이콘 아래 가운데 별 n개
-  return `<span class="item t${it.tier}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc + (note ? ` (${note})` : ''))}" ${attrs}>${itemGlyph(id) || it.icon}${uses}${refine}</span>`;
+  const np = potsOf(id).length, ns = potSlots(id);
+  const potPips = np ? `<span class="pot-pips" aria-label="잠재능력 ${np}/${ns}">${[...Array(ns).keys()].map((i) => `<i class="${i < np ? 'on' : ''}">${POT_PIP}</i>`).join('')}</span>` : ''; // 잠재능력: 하나라도 열렸을 때만, 아이콘 위 가운데
+  return `<span class="item t${it.tier}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc + (note ? ` (${note})` : ''))}" ${attrs}>${itemGlyph(id) || it.icon}${uses}${refine}${potPips}</span>`;
 }
 /** 보관함 칸 i 가 갓 구운 빵이면 '전투 n회 뒤 식음' (engine/run.ts breadLeft, 셰프 6명 이상이 켜져 있으면 덧붙임) */
 function breadNote(run: RunState, i: number) {
@@ -315,6 +317,8 @@ const SPECIAL_GLYPH: Record<string, string> = {
   K_barricade: 'k.barricade', K_decoy: 'k.decoy', K_mine: 'k.mine', K_net: 'k.net', K_scope: 'k.scope', K_feast: 'k.feast', K_muster_ticket: 'k.ticket',
   T_cal: 'a.dmg', T_plate: 'a.hp', T_cryo: 's.chrono', T_ammo: 'u.mag', T_barrier: 'a.shield', T_selfd: 'u.area', T_rapid: 'a.speed', T_tesla: 'e.elec', T_flame: 's.pyro', T_snipe: 'a.snipe', T_mark: 'u.target',
 };
+/** 잠재능력 점 (아이콘 위 가운데, 칸마다 1개 · 열린 칸은 채움) */
+const POT_PIP = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 1l4 4-4 4-4-4z"/></svg>';
 /** 제련 별 (아이콘 아래 가운데, 단계마다 1개): 네 모서리 별 */
 const RF_STAR = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 .3l1.3 3.4L9.7 5 6.3 6.3 5 9.7 3.7 6.3.3 5l3.4-1.3z"/></svg>';
 /** 합성 재료 아이콘 */
@@ -1521,7 +1525,7 @@ function toolMark(run: RunState, t: HeldTool | null = toolOf(run)) {
   q('.board .tr-ic').forEach((el) => mark(el, false));
   q('.board .cell.tr').forEach((el) => { if (!el.classList.contains('dev-ok')) mark(el, false); });
   relics.forEach((el) => mark(el, false));
-  const combo = (res: string) => `조합 → ${itemInfo(res).name}`;
+  const combo = (res: string) => (res.includes('?') ? '잠재능력 개방' : `조합 → ${itemInfo(res).name}`); // 백수정 조각: 결과는 합성한 뒤 공개
   if (t.k === 'relic') {
     allies.forEach((el) => { const u = unitOf(el), div = !!u && UNIT_BY_ID[u.defId].ttype === 'divine'; mark(el, div, div ? (u!.relic ? '교체' : '장착') : '디바인만'); });
     [...foes, ...turrets, ...inv].forEach((el) => mark(el, false));
@@ -1955,9 +1959,15 @@ function invDetail(run: RunState) {
 function itemBrief(id: string) {
   const it = itemInfo(id);
   const ms = Object.entries(it.majors || {}) as [Major, number][];
-  const stats = ms.length ? `<div class="ip-stats">${ms.map(([m, v]) => `<span>${majorIcon(m)}${MAJOR_NAME[m]} <b>+${v}</b></span>`).join('')}</div>` : '';
-  // 능력치 줄(ip-stats)로 따로 보여 주는 '생명력 +6, 방어력 +6.' 접두어만 뗀다 — 능력치가 없는 소모품 · 개조부품 · 포탑 장비는 설명 전체 ('공명도 +8.' 등)
-  const eff0 = it.desc.replace(/^\[[^\]]+\]\s*/, ''), eff = ms.length ? eff0.replace(/^([^.,]+ \+\d+(, )?)+\.?\s*/, '') : eff0;
+  const rf = refineLv(id), pots = potsOf(id), slots = potSlots(id);
+  const rfChip = rf ? `<span>${RF_STAR}제련 <b>${rf}</b>단계</span>` : ''; // 제련 단계: 능력치 줄 끝에
+  const statRow = ms.length ? `<div class="ip-stats">${ms.map(([m, v]) => `<span>${majorIcon(m)}${MAJOR_NAME[m]} <b>+${v}</b></span>`).join('')}${rfChip}</div>` : '';
+  // 잠재능력 칸: 열린 것 = 이름 + 값, 남은 칸 = 빈 칸 (희귀 · 전설만)
+  const potRow = slots ? `<div class="ip-pots">${pots.map((k) => `<span class="ip-pot">${POT_PIP}<b>${esc(POTS[k]?.name || '?')}</b>${esc(POTS[k]?.desc || '합성할 때 결정')}</span>`).join('')}${slots > pots.length ? `<span class="ip-pot empty">${POT_PIP}<span>빈 잠재능력 칸 ${slots - pots.length}개 · ${esc(itemInfo(CRYSTAL).name)}로 개방</span></span>` : ''}</div>` : '';
+  const stats = statRow + potRow;
+  // 능력치 줄(ip-stats)로 따로 보여 주는 '생명력 +6, 방어력 +6.' 접두어 · 제련 단계 · 잠재능력만 뗀다 — 능력치가 없는 소모품 · 개조부품 · 포탑 장비는 설명 전체 ('공명도 +8.' 등)
+  const eff0 = it.desc.replace(/^\[[^\]]+\]\s*/, '');
+  const eff = ms.length ? eff0.replace(/^([^.,]+ \+\d+(, )?)+/, '').replace(/^\s*\(제련 \d+단계[^)]*\)/, '').replace(/^\.?\s*/, '').replace(/\s*잠재능력: .*$/, '') : eff0;
   return { stats, eff };
 }
 
@@ -3527,9 +3537,23 @@ const askItem = (id: string) => `<span class="ask-it">${itemIcon(id)}<span>${esc
 const INV_BOX = ['.inv-rail', '.inv'];
 const invCell = (i: number) => [`.inv-rail [data-drag="item:${i}"]`, `.inv [data-drag="item:${i}"]`, ...INV_BOX];
 /** 조합 결과 알림: 유닉스제 대량 생산으로 바뀌었으면 그 사실도 */
-const combinedToast = (res: string, got: string | null | undefined) => toast(!got ? '조합할 수 없습니다.' : got === res ? `조합 완료: ${itemInfo(got).name}` : `유닉스제 대량 생산 — ${itemInfo(res).name} 대신 ${itemInfo(got).name}이 들어왔습니다.`);
+const combinedToast = (res: string, got: string | null | undefined) => toast(!got ? '조합할 수 없습니다.'
+  : potsOf(res).includes('?') ? `잠재능력: ${potsOf(got).map((k) => POTS[k]?.name || k).join(' · ')} (${itemInfo(got).name})` // 백수정 조각: 굴린 결과를 공개
+  : got === res ? `조합 완료: ${itemInfo(got).name}` : `유닉스제 대량 생산 — ${itemInfo(res).name} 대신 ${itemInfo(got).name}이 들어왔습니다.`);
 /** 조합 확인: [A] + [B] = [결과] · 결과 능력치 · 효과 (보관함 왼쪽). 유닉스제 대량 생산은 확률만 알리고 합성할 때 정한다 (미리 굴리지 않음). extra = 덧붙일 안내 */
 function combineAsk(run: RunState, a: string, b: string, res: string, anchor: string[], ok: () => void, extra = '') {
+  const gear = a === CRYSTAL ? b : b === CRYSTAL ? a : null;
+  if (gear) { // 백수정 조각: 결과는 무작위라 합성한 뒤에 공개 (후보만 보여 준다). 다 열린 장비면 다시 뽑기 경고
+    const have = potsOf(gear), full = have.length >= potSlots(gear);
+    const cand = potPool(gear).filter((k) => full || !have.includes(k));
+    const chip = (k: string) => `<span class="ip-pot">${POT_PIP}<b>${esc(POTS[k].name)}</b>${esc(POTS[k].desc)}</span>`;
+    app.ask = { anchor, at: 'inv', okLabel: full ? '다시 뽑기' : '개방', ok,
+      html: `<b class="ask-t">${full ? '잠재능력 다시 뽑기' : '잠재능력 개방'}</b><div class="ask-eq cb">${askItem(a)}<b>+</b>${askItem(b)}</div>`
+        + (full ? `<p class="ask-note warn">잠재능력이 모두 열려 있습니다. 합성하면 ${have.length > 1 ? `붙어 있는 잠재능력 ${have.length}개를 모두 다시 뽑습니다 (적어도 하나는 바뀝니다)` : '붙어 있는 잠재능력을 다른 것으로 다시 뽑습니다'}.</p><div class="ip-pots">${have.map(chip).join('')}</div>`
+          : `<p class="ask-note">아래 후보 중 1개가 무작위로 열립니다 (${have.length + 1}/${potSlots(gear)}칸).</p><div class="ip-pots cand">${cand.map(chip).join('')}</div>`)
+        + extra };
+    return;
+  }
   const { stats, eff } = itemBrief(res);
   const ux = R.unixChance(run, res);
   app.ask = { anchor, at: 'inv', okLabel: '합성', ok,

@@ -10,7 +10,7 @@ import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBAL_ODDS, GLOBALS, PRIVILEGES, synName } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, DUST, isGraded, isMat, refineBase, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_GEAR, TURRET_GEAR_IDS } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, DUST, isGraded, isMat, potPool, potsOf, refineBase, withPots, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_GEAR, TURRET_GEAR_IDS } from '../data/items';
 import { ENG_TUR, UNI_XP, OCCULT_SYNTH, PETRA_PAY, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { OATH_AUGS, VOW_ENH_KEEP } from '../data/oathaugs';
@@ -842,7 +842,7 @@ export function useCheck(run: RunState, kIdx: number, tg: UseTarget): string | n
 }
 const useItemId = (run: RunState, tg: UseTarget) => tg.k === 'inv' ? run.inventory[tg.i] : tg.k === 'eq' ? (tg.slot === -1 ? run.units.find((x) => x.uid === tg.uid)?.mod : run.units.find((x) => x.uid === tg.uid)?.items[tg.slot]) ?? null : null;
 const morphPool = (run: RunState) => RECRUITABLE.filter((d) => !d.traits.includes('EXPLORER') && !run.units.some((u) => u.defId === d.id)).map((d) => d.id);
-const toLegend = (it: string) => { const b = refineBase(it); return b[0] === 'A' ? `L_${b.slice(2)}` : `L_${b.slice(2)}_${b.slice(2)}`; }; // 고급 모듈 제련 단계는 넘어가지 않는다
+const toLegend = (it: string) => { const b = refineBase(it); return b[0] === 'A' ? withPots(`L_${b.slice(2)}`, potsOf(it)) : `L_${b.slice(2)}_${b.slice(2)}`; }; // 희귀의 잠재능력은 이어받고 (전설 칸이 하나 더 열림), 고급 모듈 제련 단계는 넘어가지 않는다
 /** 소모품 사용. 결과 문구 또는 오류 */
 export function useConsumable(run: RunState, kIdx: number, tg: UseTarget): { ok: boolean; msg: string } {
   const err = useCheck(run, kIdx, tg);
@@ -1776,11 +1776,11 @@ export function refreshShop(run: RunState): string | null {
   return null;
 }
 /** 고르곤 교환에 낼 수 있는 보관함 장비 (고급 · 희귀, 장착한 것 제외) → 보관함 칸 번호 */
-export const tradeOptions = (run: RunState) => run.inventory.flatMap((id, i) => (isGraded(id) || ALL_ADVANCED.includes(id) ? [i] : []));
+export const tradeOptions = (run: RunState) => run.inventory.flatMap((id, i) => (isGraded(id) || ALL_ADVANCED.includes(refineBase(id)) ? [i] : [])); // 잠재능력은 돌려받지 않는다
 /** 교환으로 돌려받는 재료: 조합법 재료 (고급 모듈 = 성운 가루 + 재료 · 희귀 = 재료 2개) + 무작위 1개. 조합법이 없는 희귀는 무작위 3개. 제련 단계는 돌려받지 않는다 */
 export function tradeYield(id: string): { fixed: string[]; rand: number } {
   if (isGraded(id)) { const c = `C_${id.slice(2).split('+')[0]}`; return { fixed: [DUST, c], rand: 1 }; }
-  for (const a of ALL_COMPONENTS) for (const b of ALL_COMPONENTS) if (combine(a, b) === id) return { fixed: [a, b], rand: 1 };
+  for (const a of ALL_COMPONENTS) for (const b of ALL_COMPONENTS) if (combine(a, b) === refineBase(id)) return { fixed: [a, b], rand: 1 };
   return { fixed: [], rand: 3 };
 }
 /** 교환할 수 없는 까닭 (null = 가능): 상인 · 이미 교환 · 낼 장비 · 보관함 자리 (1개 내고 3개 받음) */
@@ -1858,11 +1858,27 @@ export function combineInv(run: RunState, i: number, j: number): string | null {
   const a = run.inventory[i], b = run.inventory[j];
   const made = a && b ? combine(a, b) : null;
   if (!made) return null;
-  const res = unixSwap(run, made);
+  const res = rollPots(run, unixSwap(run, made), isMat(a) ? b : a);
   run.inventory = run.inventory.filter((_, k) => k !== i && k !== j);
   run.inventory.push(res);
   mergeCatwheels(run);
   return res;
+}
+/** 백수정 조각 합성: 결과의 '?' 칸을 굴린다 (후보 = 장비 재료의 잠재능력, 겹치지 않게). before = 합성 전 장비 — 모두 다시 뽑기면 적어도 하나는 바뀌게 */
+export function rollPots(run: RunState, res: string, before?: string | null): string {
+  const ps = potsOf(res);
+  if (!ps.includes('?')) return res;
+  const keep = ps.filter((p) => p !== '?'), old = before ? potsOf(before) : [];
+  const reroll = !keep.length && old.length === ps.length;
+  const left = potPool(res).filter((k) => !keep.includes(k));
+  return rng(run, (r) => {
+    let out = keep;
+    for (let t = 0; t < 20; t++) {
+      out = [...keep, ...r.sample(left, ps.length - keep.length)];
+      if (!reroll || out.slice().sort().join() !== old.slice().sort().join()) break;
+    }
+    return withPots(res, out);
+  });
 }
 /** 보관함 칸 둘을 조합하면 나올 장비 (조합 불가면 null). 유닉스제 대체 전 결과 — 확률은 unixChance */
 export const combinePreview = (run: RunState, i: number, j: number) => (i !== j && run.inventory[i] && run.inventory[j] ? combine(run.inventory[i], run.inventory[j]) : null);
@@ -1902,7 +1918,7 @@ export function equip(run: RunState, invIdx: number, uid: string): string | null
   }
   // 조합되는 장비가 있으면 그 칸에서 조합 (빈 칸이 없을 때 · 같은 기물의 재료끼리), 아니면 빈 칸에
   const cb = equipCombo(run, id, uid);
-  if (cb) u.items[cb.slot] = unixSwap(run, cb.res);
+  if (cb) u.items[cb.slot] = rollPots(run, unixSwap(run, cb.res), u.items[cb.slot]!);
   else u.items[u.items.indexOf(null)] = id;
   run.inventory.splice(invIdx, 1);
   mergeCatwheels(run);

@@ -99,7 +99,7 @@ function selTalk(s: ShopSlot): TalkKey {
   const k = R.shopKind(s.item);
   if (k === 'L') return 'selL';
   if (s.off) return 'sale';
-  return k === 'KL' ? 'selK' : (`sel${k}` as TalkKey);
+  return k === 'KL' ? 'selK' : s.item === 'S_crystal' ? 'selCr' : (`sel${k}` as TalkKey);
 }
 const tierCls = (id: string) => (CONSUMABLES[id]?.legend ? 'L' : itemInfo(id).tier);
 /** 칸의 짧은 성질 한 줄 (넓은 화면만): 능력치 줄이 있으면 그것, 없으면 효과 문장 */
