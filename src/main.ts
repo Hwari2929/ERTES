@@ -527,7 +527,7 @@ const CTYPE_DESC: Record<string, [string, string]> = {
   MARK: [`사격으로 싸운다. 1초마다 사거리 안에서 체력 비율이 가장 낮은 적을 다시 노린다. 사격 위력 · 공격 속도 · 재장전 · 명중 · 치명타가 중요하다.`, `마무리 사격: 1초마다 사거리 안에서 체력 비율이 가장 낮은 적으로 대상을 바꾼다. 주력: 사격 위력, 사격 속도, 재장전 속도, 명중, 치명 확률 · 피해. 탄창을 다 쓰면 재장전하는 동안 기본 공격을 못 한다 (스킬은 가능).${fleeLine('MARK')}`],
   VAN: [`근접 타격으로 싸운다. 타격 위력 · 콤보와 피니쉬 · 치명타가 중요하다. 주변 ${CFG.zoc.r}칸은 경계 — 들어온 적이 ${zocHoldFormula()} 멈춰 선다 (암살형은 ×${+CFG.zoc.assassinMul.toFixed(2)}).`, `주력: 타격 위력, 타격 속도, 명중, 콤보 · 피니쉬 피해량, 치명 확률 · 피해. 무기별 N번째 공격이 피니쉬 (×${CFG.finishMult}). ${zocRule()}`],
   SPEC: ['기술로 싸운다. 기술 위력 · 효과 명중 · 쿨다운이 중요하다.', `주력: 기술 위력, 효과 명중, 쿨다운 감소 속도, 기술 범위. 기술 피해는 치명타가 없다 (일부 특성 예외).${fleeLine('SPEC')}`],
-  CMD: ['아군이 함께 쓰는 전술 위력으로 스킬을 쓴다. 출전 인원이 많을수록, 지휘관이 많고 정신력이 높을수록 강하다.', `스킬은 전술 위력으로 계산한다. 전술 위력 = ${CFG.tacBase} (출전 4명 · 지휘관 1명 기준) + 출전 기물 1명당 ${CFG.tacPerUnit} + 지휘관 1명 추가당 ${CFG.tacPerCmd} + 지휘관 정신력 1당 ${CFG.tacPerMnd}.${fleeLine('CMD')}`],
+  CMD: ['아군이 함께 쓰는 전술 위력으로 스킬을 쓴다. 출전 인원이 많을수록, 지휘관이 많고 정신력이 높을수록 강하다.', `스킬은 전술 위력으로 계산한다. 전술 위력 = ${CFG.tacBase - CFG.tacPerCmd} + 출전 기물 1명당 ${CFG.tacPerUnit} (4명 기준) + 지휘관마다 (${CFG.tacPerCmd} + 정신력 × ${CFG.tacPerMnd}) 을 높은 순으로 100% · ${Math.round(CFG.tacDecay * 100)}% · ${Math.round(CFG.tacDecay ** 2 * 100)}% … 더한 값.${fleeLine('CMD')}`],
 };
 /** 전투 유형 공통 규칙 본문: 돌격가는 이름 + 값 표 (주력 · 피니쉬 · 경계), 나머지는 문장 */
 function ctypeRuleHtml(ct: string, detail: boolean) {
@@ -1283,9 +1283,12 @@ function tacPill(run: RunState) {
   const pop = show && !tacShownPrev;
   tacShownPrev = show;
   if (!b || !show) return '';
-  const lines = [`기본 ${CFG.tacBase} (출전 4명 · 지휘관 1명 기준)`, `출전 ${allies.length}명: ${allies.length >= 4 ? '+' : ''}${CFG.tacPerUnit * (allies.length - 4)}`];
-  if (cmds.length !== 1) lines.push(`지휘관 ${cmds.length}명: ${cmds.length > 1 ? '+' : ''}${CFG.tacPerCmd * (cmds.length - 1)}`);
-  for (const c of cmds) lines.push(`${c.name} 정신력 ${c.mem.mnd || 0}: +${CFG.tacPerMnd * (c.mem.mnd || 0)}`);
+  const lines = [`기본 ${CFG.tacBase - CFG.tacPerCmd}`, `출전 ${allies.length}명: ${allies.length >= 4 ? '+' : ''}${CFG.tacPerUnit * (allies.length - 4)}`];
+  // 지휘관 기여: 지휘관 몫 + 정신력 × 3, 높은 순으로 100% · 50% · 25% … (combat.ts computeTac 이 기록)
+  for (const c of cmds.slice().sort((x, y) => (y.mem.tacW || 0) - (x.mem.tacW || 0))) {
+    const w = c.mem.tacW ?? 1, k = CFG.tacPerCmd + CFG.tacPerMnd * (c.mem.mnd || 0);
+    lines.push(`${c.name} (정신력 ${c.mem.mnd || 0}): +${Math.round(k * w)}${w < 1 ? ` (기여 ${Math.round(w * 100)}%)` : ''}`);
+  }
   const extra = allies.reduce((sum, u) => sum + (u.mem.tacBonus || 0), 0);
   if (extra) lines.push(`기타 보정 +${extra}`);
   const v = b.tac[0];

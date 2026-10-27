@@ -484,12 +484,18 @@ export class Battle {
   computeTac() {
     for (const side of [0, 1] as const) {
       const us = this.units.filter((x) => x.side === side && !x.isSummon && x.alive && !x.mem.inert); // 반려 돌은 세지 않는다
-      // 아군 (위력 단위, 출전 4명 · 지휘관 1명 = CFG.tacBase): 출전 기물 1명당 tacPerUnit, 지휘관 1명 추가당 tacPerCmd, 지휘관 정신력 1당 tacPerMnd
+      // 아군 (위력 단위, 출전 4명 · 지휘관 1명 = CFG.tacBase): 출전 기물 1명당 tacPerUnit, 지휘관 기여 (tacPerCmd + 정신력 × tacPerMnd) 는 높은 순으로 100% · 50% · 25% … (tacDecay)
       // 적: 기존 규칙을 위력 단위로 (8 × (20 - 2×인원 + 지휘관 2))
       const cmds = us.filter((c) => c.ctype === 'CMD');
-      let v = side === 0
-        ? CFG.tacBase + CFG.tacPerUnit * (us.length - 4) + CFG.tacPerCmd * (cmds.length - 1) + cmds.reduce((s, c) => s + CFG.tacPerMnd * (c.mem.mnd || 0), 0)
-        : 8 * (20 - 2 * us.length + 2 * cmds.length);
+      let v: number;
+      if (side === 0) {
+        v = CFG.tacBase - CFG.tacPerCmd + CFG.tacPerUnit * (us.length - 4);
+        cmds.map((c) => ({ c, k: CFG.tacPerCmd + CFG.tacPerMnd * (c.mem.mnd || 0) })).sort((a, b) => b.k - a.k).forEach((x, i) => {
+          const w = Math.pow(CFG.tacDecay, i);
+          x.c.mem.tacShare = x.k * w; x.c.mem.tacW = w; // 내역 툴팁 · 전투 기록 (영향력)
+          v += x.k * w;
+        });
+      } else v = 8 * (20 - 2 * us.length + 2 * cmds.length);
       for (const c of us) v += c.mem.tacBonus || 0;
       this.tac[side] = Math.max(8, Math.round(v));
     }

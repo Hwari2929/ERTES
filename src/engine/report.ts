@@ -102,7 +102,7 @@ export function recBattle(run: RunState, b: Battle, o: { interest: number; cap: 
     if (c === root) {
       u.n++;
       u.taken += k.taken;
-      if (usesTac) u.tac += (c.ctype === 'CMD' ? CFG.tacPerMnd * (c.mem.mnd || 0) : 0) + (c.mem.tacBonus || 0);
+      if (usesTac) u.tac += (c.ctype === 'CMD' ? c.mem.tacShare || 0 : 0) + (c.mem.tacBonus || 0); // 지휘관 기여 (감쇠 반영, combat.ts computeTac)
     }
   }
   for (const x of Object.values(b.synStats)) if (x.side === 0) { r.syn.dmg += x.dmg; r.syn.heal += x.healed; r.syn.shield += x.shield; }

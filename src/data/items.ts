@@ -121,7 +121,7 @@ const ADV_BY_ID = Object.fromEntries(ADV.map((a) => [a.id, a]));
 
 // ── 잠재능력 (백수정 조각으로 희귀 · 전설 장비에 개방): 조합 재료(주요 능력치)마다 4종, 수치 고정.
 //    희귀 1칸 · 전설 2칸 (CFG.craft.potSlots). 칸이 다 차 있으면 백수정 조각을 쓸 때 붙은 잠재능력을 모두 다시 뽑는다.
-//    주 위력: 장착한 기물의 전투 유형에 맞춰 (명사수 = 사격 · 돌격가 = 타격 · 그 밖 = 기술)
+//    주 위력: 장착한 기물의 전투 유형에 맞춰 (명사수 = 사격 · 돌격가 = 타격 · 지휘관 = 자신이 쓰는 전술 위력 · 그 밖 = 기술)
 export interface PotDef { major: Major; name: string; desc: string; /** 도감 덧붙임 */ note?: string; effect: (ctype?: string) => Effect }
 const mainKey = (ctype?: string): 'shoot' | 'strike' | 'tech' => (ctype === 'MARK' ? 'shoot' : ctype === 'VAN' ? 'strike' : 'tech');
 export const POTS: Record<string, PotDef> = {
@@ -129,7 +129,7 @@ export const POTS: Record<string, PotDef> = {
   vit2: { major: 'vit', name: '재생 촉진', desc: '회복 효율 +25%p', effect: () => ({ stats: { healEff: 0.25 } }) },
   vit3: { major: 'vit', name: '면역 강화', desc: '효과 저항 +20%p', effect: () => ({ stats: { effRes: 0.2 } }) },
   vit4: { major: 'vit', name: '해독 체질', desc: '받는 지속 피해 -30%p', effect: () => ({ taken: [red('dot', 0.3)] }) },
-  pow1: { major: 'pow', name: '출력 집중', desc: '주 위력 +15%p', note: '장착한 기물의 전투 유형에 따라 사격 · 타격 · 기술 위력 중 하나', effect: (c) => ({ pct: { [mainKey(c)]: 0.15 } }) },
+  pow1: { major: 'pow', name: '출력 집중', desc: '주 위력 +15%p', note: '장착한 기물의 전투 유형에 따라 사격 · 타격 · 기술 위력 중 하나, 지휘관은 자신이 쓰는 전술 위력', effect: (c) => (c === 'CMD' ? { setup: (u) => { u.mem.tacPct = (u.mem.tacPct || 0) + 0.15; } } : { pct: { [mainKey(c)]: 0.15 } }) },
   pow2: { major: 'pow', name: '장갑 파쇄', desc: '방어도 관통 +20%p', effect: () => ({ stats: { armorPen: 0.2 } }) },
   pow3: { major: 'pow', name: '급소 강타', desc: '치명타 피해 +30%p', effect: () => ({ stats: { critDmg: 0.3 } }) },
   pow4: { major: 'pow', name: '약점 포착', desc: '치명타 확률 +10%p', effect: () => ({ stats: { crit: 0.1 } }) },

@@ -115,7 +115,7 @@ export const GLOSS: Record<string, { name: string; desc: string }> = {
   camp: { name: '임시 장비', desc: '캠핑 러버: 전투마다 장비 칸을 쓰지 않는 무작위 장비를 받음.' },
   bounce: { name: '바운스', desc: '피해가 맞은 적에서 정해진 칸 안의 다른 적에게 차례로 옮겨 가며 다시 맞힌다. 바로 직전에 맞은 적에게는 다시 가지 않는다.' },
   turret: { name: '포탑', desc: '엔지니어 시너지로 전투 시작 시 배치되는 감시 포탑 (기계 · 구조물). 엔지니어 단계에서 고른 포탑 장비가 모든 포탑에 공통으로 붙는다.' },
-  tac: { name: '전술 위력', desc: `지휘관 전용 위력 (사격 · 타격 · 기술 위력과 같은 단위, 출전 4명 · 지휘관 1명 기준 ${CFG.tacBase}). 출전 기물 1명당 +${CFG.tacPerUnit}, 지휘관 1명 추가당 +${CFG.tacPerCmd}, 지휘관 정신력 1당 +${CFG.tacPerMnd}. 지휘관의 스킬은 사격 · 타격 · 기술 위력 대신 이 값을 씀.` },
+  tac: { name: '전술 위력', desc: `지휘관 전용 위력 (사격 · 타격 · 기술 위력과 같은 단위, 출전 4명 · 지휘관 1명 기준 ${CFG.tacBase}). 출전 기물 1명당 +${CFG.tacPerUnit}. 지휘관마다 기여 (${CFG.tacPerCmd} + 정신력 × ${CFG.tacPerMnd}) 를 높은 순으로 100% · ${Math.round(CFG.tacDecay * 100)}% · ${Math.round(CFG.tacDecay ** 2 * 100)}% … 로 더함. 지휘관의 스킬은 사격 · 타격 · 기술 위력 대신 이 값을 씀.` },
   combo: { name: '콤보', desc: '정해진 횟수째 공격이 피니쉬로 강화됨.' },
   finish: { name: '피니쉬', desc: `콤보 마지막 공격. 기본 피해 ×${CFG.finishMult}.` },
   mag: { name: '탄창', desc: `다 쓰면 재장전하는 동안 공격 · 스킬 사용 불가 (스킬 쿨다운은 계속 돈다). 재장전 중 제어 효과(${controlNames()})를 받으면 재장전이 처음부터 다시.` },
