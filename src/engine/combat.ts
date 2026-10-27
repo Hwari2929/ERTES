@@ -148,6 +148,8 @@ export interface Hooks {
   onAllyHurt?(b: Battle, self: CUnit, ally: CUnit, src: CUnit, r: DmgResult): void;
   /** 다른 아군이 전투 스킬을 썼을 때 */
   onAllySkill?(b: Battle, self: CUnit, caster: CUnit): void;
+  /** 자신의 보호막이 공격으로 모두 깨졌을 때 */
+  onShieldBreak?(b: Battle, self: CUnit, src: CUnit): void;
   /** 다른 아군이 궁극기를 썼을 때 */
   onAllyUlt?(b: Battle, self: CUnit, caster: CUnit): void;
   /** 적이 건 해로운 효과를 받았을 때 (저항 판정을 통과한 뒤) */
@@ -1336,9 +1338,11 @@ export class Battle {
     let dsh = 0, dhp = 0;
     if (dmg > 0) {
       let left = dmg;
+      const broke = tgt.shield > 0 && tgt.shield <= left; // 이번 피해로 보호막이 다 깨짐 (전자전 모듈)
       if (tgt.shield > 0) { const a = Math.min(tgt.shield, left); tgt.shield -= a; left -= a; dsh = -a; }
       dhp = -Math.min(left, Math.max(0, tgt.hp));
       tgt.hp -= left;
+      if (broke && src !== tgt && !o.noHooks) for (const h of tgt.hooks) h.onShieldBreak?.(this, tgt, src);
       const cs = o.syn ? this.synStat(o.syn, src.side) : src.counters;
       cs.dmg += dmg;
       cs.elem[o.elem] = (cs.elem[o.elem] || 0) + dmg;

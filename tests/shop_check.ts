@@ -309,7 +309,7 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   ok(combine(SHARD, 'L_pow_pow') === 'L_pow_pow+1' && combine('L_vit_pow+4', SHARD) === 'L_vit_pow+5' && combine(SHARD, 'L_vit_pow+5') === null, '별무리 파편 + 전설 = 제련 1단계 (최대 5)');
   ok(combine(SHARD, 'C_pow') === null && combine(SHARD, 'G_pow') === null && combine(DUST, 'L_pow_pow') === null && combine(SHARD, 'A_pow_mnd') === null && combine(SHARD, 'L_helanchor') === null && combine(CRYSTAL, 'C_pow') === null && combine(SHARD, SHARD) === null, '그 밖의 조합은 불가 (동맹 전설 · 백수정 조각 포함)');
   const pts = (id: string) => itemEffect(id).majors?.pow || 0;
-  ok(pts('G_pow') === 6 && pts('G_pow+1') === 9 && pts('G_pow+5') === 21, `고급 모듈 제련: 6 → 9 … 21 (${pts('G_pow')} · ${pts('G_pow+1')} · ${pts('G_pow+5')})`);
+  ok(pts('G_pow') === 9 && pts('G_pow+1') === 12 && pts('G_pow+5') === 24, `고급 모듈 제련: 9 → 12 … 24 (${pts('G_pow')} · ${pts('G_pow+1')} · ${pts('G_pow+5')})`);
   ok(pts('L_pow_pow') === 18 && pts('L_pow_pow+1') === 24 && pts('L_pow_pow+5') === 48, `전설 집중형 제련: 18 → 24 … 48 (${pts('L_pow_pow')} · ${pts('L_pow_pow+5')})`);
   const lm = itemEffect('L_pow_mnd+5').majors || {};
   ok(lm.pow === 24 && lm.mnd === 24 && (itemEffect('L_pow_mnd').majors || {}).pow === 9, `전설 분산형 제련: 각각 9 → 24 (${lm.pow} · ${lm.mnd})`);
@@ -332,8 +332,8 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
 
 // ── 9. 잠재능력 (백수정 조각)
 {
-  ok(combine(CRYSTAL, 'A_pow_mnd') === 'A_pow_mnd#?' && combine('L_pow_mnd#pow1', CRYSTAL) === 'L_pow_mnd#pow1.?', '백수정 조각: 빈 칸 하나 개방 (희귀 1 · 전설 2칸)');
-  ok(combine(CRYSTAL, 'A_pow_mnd#pow1') === 'A_pow_mnd#?' && combine(CRYSTAL, 'L_pow_mnd+2#pow1.mnd2') === 'L_pow_mnd+2#?.?', '다 열린 장비: 모두 다시 뽑기 (제련 단계는 유지)');
+  ok(combine(CRYSTAL, 'A_pow_mnd') === 'A_pow_mnd#?' && combine('L_pow_mnd#pow1', CRYSTAL) === 'L_pow_mnd#pow1.?', '백수정 조각: 빈 칸 하나 개방');
+  ok(combine(CRYSTAL, 'A_pow_mnd#pow1') === 'A_pow_mnd#pow1.?' && combine(CRYSTAL, 'A_pow_mnd#pow1.mnd2') === 'A_pow_mnd#?.?' && combine(CRYSTAL, 'L_pow_mnd+2#pow1.mnd2.pow3') === 'L_pow_mnd+2#?.?.?', '희귀 2칸 · 전설 3칸, 다 열린 장비: 모두 다시 뽑기 (제련 단계는 유지)');
   ok(combine(CRYSTAL, 'G_pow') === null && combine(CRYSTAL, 'L_helanchor') === null && combine(CRYSTAL, 'A_pow_mnd#?') === null && combine(CRYSTAL, 'C_pow') === null, '고급 · 동맹 전설 · 재료에는 쓸 수 없음');
   ok(potPool('A_pow_mnd').length === 8 && potPool('L_pow_pow').length === 4 && potPool('A_pow_mnd').every((k) => ['pow', 'mnd'].includes(POTS[k].major)), '후보: 장비 재료의 잠재능력 (같은 재료면 4종)');
   const run = mk(5);
@@ -376,7 +376,7 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
     }
   }
   ok(jg > 0 && jbad === 0 && j2 > 0, `보급 대박 ×${CFG.supply.jackpotLegend} 장비 카드 = 전설 확정 (${jg}장 · ×2 ${j2}장)`);
-  ok(itemInfo('A_def_agi').desc.includes('방어도의 50%') && itemInfo('L_def_agi').desc.includes('방어도의 150%'), '반응 장갑: 방어도의 50% (전설 150%)');
+  ok(itemInfo('A_def_agi').desc.includes('방어도의 75%') && itemInfo('L_def_agi').desc.includes('방어도의 150%'), '반응 장갑: 방어도의 75% (전설 ×2 = 150%)');
   let cp = 0, seize = 0;
   for (let sd = 1; sd <= 300; sd++) {
     const r = mk(sd, 'waste', 7, 3);

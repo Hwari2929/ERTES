@@ -10,7 +10,7 @@ import { provMult } from '../engine/combat';
 import { KING_GEAR_NAME } from './chungra';
 import { emblemEffect, emblemText } from './emblems';
 
-// 장비 등급: 재료(+3) → 고급 모듈(성운 가루 + 재료, 능력치 +6, 성운 가루 제련 단계마다 +3) / 희귀(재료 2개, 능력치 +6 + 특수 효과) · 전설(효과 3배, 조합 불가 · 이벤트 · 상점)
+// 장비 등급: 재료(+3) → 고급 모듈(성운 가루 + 재료, 능력치 +9, 성운 가루 제련 단계마다 +3) / 희귀(재료 2개, 능력치 +6 + 특수 효과) · 전설(능력치 3배 · 부가 효과 2배 LEGEND_FX, 조합 불가 · 이벤트 · 상점)
 // 합성 재료 (S_): 성운 가루 + 고급 모듈 = 제련 (단계당 +3) · 성운 가루 2개 = 별무리 파편 · 별무리 파편 + 전설 장비 = 제련 (단계당 +6 또는 각각 +3). 모두 최대 5단계
 export const COMPONENTS: { id: string; major: Major; name: string; icon: string }[] = [
   { id: 'C_vit', major: 'vit', name: '강화 섬유', icon: '❤' },
@@ -20,7 +20,9 @@ export const COMPONENTS: { id: string; major: Major; name: string; icon: string 
   { id: 'C_agi', major: 'agi', name: '추진 모듈', icon: '➶' },
 ];
 const COMP_PTS = 3;
-const GRADE_PTS = 6; // 고급 모듈: 성운 가루 + 재료 (제련 전 기본값)
+const GRADE_PTS = 9; // 고급 모듈: 성운 가루 + 재료 (제련 전 기본값)
+/** 전설 장비 부가 효과 배율 (희귀 원형 대비, 주요 능력치는 3배 그대로) */
+const LEGEND_FX = 2;
 
 /** craft: false = 조합식 없음 (상점 · 보급 · 전리품 등에서만) */
 interface AdvDef { id: string; a: Major; b: Major; craft?: false; name: string; desc: (k: number) => string; effect: (k: number) => Effect }
@@ -34,6 +36,8 @@ const PLATE_SHIELD = 0.24;
  *  추가 (bb84837 대비 같은 시드 400판, 위험 0): 클리어 44.75% → 44.50% (성공→실패 6 · 실패→성공 5, 차이 없음), 페이즈 보정 장착 승률 +1.3 → +1.7%p
  *  (희귀 17종 중 16위 → 14위). 위험 7 400판도 +5.0 → +5.9%p (11위). 상위권을 넘지 않아 보호막 24% 그대로 둔다 */
 const PLATE_TAKEN = 0.9, PLATE_TAKEN_L = 0.8;
+/** 전자전 모듈: 보호막이 깨질 때 주변 1칸 적에게 주는 전기 피해 (자신 방어도 비례, 전설은 LEGEND_FX 배) */
+const EW_ARMOR = 1;
 const plateTaken = (k: number) => (k > 1 ? PLATE_TAKEN_L : PLATE_TAKEN);
 
 const ADV: AdvDef[] = [
@@ -61,14 +65,14 @@ const ADV: AdvDef[] = [
     effect: () => ({ stats: { atkSpd: 0.3 } }) },
   { id: 'mnd_mnd', a: 'mnd', b: 'mnd', name: '사이오닉 증폭기', desc: (k) => `기술 위력 +${30 * k}%, 효과 명중 +${20 * k}%p, 기술 피해 +${10 * k}%, 회복 효율 +${15 * k}%.`,
     effect: () => ({ pct: { tech: 0.3 }, stats: { effHit: 0.2, healEff: 0.15 }, mods: [inc('tech', 0.1)] }) },
-  { id: 'mnd_def', a: 'mnd', b: 'def', name: '전자전 모듈', desc: (k) => `기본 공격 시 ${Math.min(100, 20 * k)}% 확률로 대상 2초 감전.`,
-    effect: (k) => ({ hooks: { onBasic(bt, u, t) { if (t.alive && bt.rng.chance(0.2 * k)) bt.applyStatus(u, t, { type: 'shock', key: 'shock', dur: 2 }); } } }) },
+  { id: 'mnd_def', a: 'mnd', b: 'def', name: '전자전 모듈', desc: (k) => `보호막이 파괴되면 주변 1칸 적에게 방어도의 ${Math.round(EW_ARMOR * 100 * k)}%만큼 전기 피해.`,
+    effect: (k) => ({ hooks: { onShieldBreak(bt, u) { const d = bt.S(u, 'armor') * EW_ARMOR * k; if (d <= 0) return; bt.fx(u.x, u.y, 1, 'elec'); for (const e of bt.around(u, 1, bt.enemiesOf(u))) bt.dealDamage(u, e, d, { elem: 'elec', tag: 'proc', kind: 'tech', canMiss: false }); } } }) },
   { id: 'mnd_agi', a: 'mnd', b: 'agi', name: '예지 회로', desc: (k) => `쿨다운 감소 속도 +${30 * k}%.`,
     effect: () => ({ stats: { cdr: 0.3 } }) },
   { id: 'def_def', a: 'def', b: 'def', name: '요새 장갑', desc: (k) => `받는 피해 -${Math.min(80, 15 * k)}%.`,
     effect: () => ({ taken: [red('all', 0.15)] }) },
-  { id: 'def_agi', a: 'def', b: 'agi', name: '반응 장갑', desc: (k) => `공격을 받으면 (지속 피해 제외) 자신 방어도의 ${50 * k}%만큼 공격자에게 고정 피해.`,
-    effect: (k) => ({ hooks: { onStart(bt, u) { bt.buff(u, u, 'item.reactive', 999, { reflectArmor: 0.5 * k, label: '' }); } } }) },
+  { id: 'def_agi', a: 'def', b: 'agi', name: '반응 장갑', desc: (k) => `공격을 받으면 (지속 피해 제외) 자신 방어도의 ${75 * k}%만큼 공격자에게 고정 피해.`,
+    effect: (k) => ({ hooks: { onStart(bt, u) { bt.buff(u, u, 'item.reactive', 999, { reflectArmor: 0.75 * k, label: '' }); } } }) },
   { id: 'agi_agi', a: 'agi', b: 'agi', name: '위상 이동기', desc: (k) => `회피 +${7.5 * k}%p. 회피할 때마다 공격 속도 +${5 * k}% (최대 10중첩).`,
     effect: (k) => ({
       stats: { eva: 0.075 },
@@ -108,7 +112,7 @@ export const withRefine = (id: string, lv: number) => makeGear(refineBase(id), l
 export const withPots = (id: string, pots: string[]) => makeGear(refineBase(id), refineLv(id), pots);
 /** 고급 모듈인지 (제련 단계 무관) */
 export const isGraded = (id: string | null | undefined) => !!id && ALL_GRADED.includes(refineBase(id));
-/** 고급 모듈 능력치: 기본 +6 + 제련 단계 × 3 */
+/** 고급 모듈 능력치: 기본 +GRADE_PTS + 제련 단계 × refinePts */
 export const gradedPts = (lv: number) => GRADE_PTS + CFG.craft.refinePts * lv;
 /** 잠재능력 칸 수: 희귀 1 · 전설 2 (희귀 조합 장비만 — 동맹 · 고유 장비 제외), 그 밖 0 */
 export const potSlots = (id: string | null | undefined) => (!id ? 0 : ALL_ADVANCED.includes(refineBase(id)) ? CFG.craft.potSlots.A : isForgeLegend(id) ? CFG.craft.potSlots.L : 0);
@@ -498,7 +502,7 @@ export function itemInfo(id: string): ItemInfo {
   }
   const lv = tier === 'L' ? refineLv(id) : 0;
   const a = ADV_BY_ID[refineBase(id).slice(2)];
-  const k = tier === 'L' ? 3 : 1;
+  const k = tier === 'L' ? 3 : 1, kf = tier === 'L' ? LEGEND_FX : 1; // 주요 능력치 배율 · 부가 효과 배율
   const majors: Partial<Record<Major, number>> = {};
   // 전설 제련 (별무리 파편): 주요 능력치 하나(+18)면 단계마다 +6, 둘(+9 · +9)이면 각각 +3
   const up = lv * (a.a === a.b ? CFG.craft.legendPts.focus / 2 : CFG.craft.legendPts.split);
@@ -507,7 +511,7 @@ export function itemInfo(id: string): ItemInfo {
   const mtxt = Object.entries(majors).map(([m, v]) => `${MAJOR_NAME[m as Major]} +${v}`).join(', ');
   return {
     id, tier, name: (tier === 'L' ? '[전설] ' : '') + a.name + (lv ? ` +${lv}` : ''), icon: COMPONENTS.find((c) => c.major === a.a)!.icon,
-    majors, desc: `${mtxt}${lv ? ` (제련 ${lv}단계)` : ''}. ${a.desc(k)}${potsOf(id).length ? ` 잠재능력: ${potsOf(id).map(potText).join(' · ')}.` : ''}`, recipe: tier === 'A' && a.craft !== false ? [`C_${a.a}`, `C_${a.b}`] : lv ? [withRefine(id, lv - 1), SHARD] : undefined, refine: lv || undefined,
+    majors, desc: `${mtxt}${lv ? ` (제련 ${lv}단계)` : ''}. ${a.desc(kf)}${potsOf(id).length ? ` 잠재능력: ${potsOf(id).map(potText).join(' · ')}.` : ''}`, recipe: tier === 'A' && a.craft !== false ? [`C_${a.a}`, `C_${a.b}`] : lv ? [withRefine(id, lv - 1), SHARD] : undefined, refine: lv || undefined,
   };
 }
 
@@ -527,7 +531,7 @@ export function itemEffect(id: string, owner?: string, ctype?: string): Effect {
   const info = itemInfo(id);
   if (info.tier === 'C' || info.tier === 'G') return { majors: info.majors };
   const a = ADV_BY_ID[refineBase(id).slice(2)];
-  const k = info.tier === 'L' ? 3 : 1;
+  const k = info.tier === 'L' ? LEGEND_FX : 1; // 부가 효과 배율 (주요 능력치는 itemInfo 의 3배)
   const e = HOOK_SCALED.has(a.id) ? a.effect(k) : scaleEffect(a.effect(1), k);
   const pe = potsOf(id).filter((p) => POTS[p]).reduce((acc, p) => addEffect(acc, POTS[p].effect(ctype)), { ...e } as Effect); // 잠재능력
   return { ...pe, majors: info.majors };

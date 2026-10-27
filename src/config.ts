@@ -177,10 +177,10 @@ export const CFG = {
   sell: { C: 3, G: 7, A: 7, L: 20, M: 6, O: 8, K: 4, T: 5, J: 1, S: 3 } as Record<string, number>,
   /** 장비 합성 재료 (data/items.ts MATS): 성운 가루 + 재료 = 고급 모듈 · 성운 가루 2개 = 별무리 파편 · 별무리 파편 + 고급 모듈 = 제련.
    *  drop: 승리 시 재료 드롭과 따로 굴리는 합성 재료 확률 · w: 성운 가루 : 백수정 조각 비율 (crystal = false 면 백수정 조각은 나오지 않음).
-   *  shop: 상점마다 합성 재료 1개를 진열할 확률 · refinePts: 성운 가루 제련 1단계마다 고급 모듈 주요 능력치 증가 (기본 +6 → 5단계 +21) · legendPts: 별무리 파편 제련 1단계마다 전설 장비 능력치 증가 (focus = 주요 능력치 하나 +18 짜리 · split = 둘에 +9 씩 짜리, 각각) · refineMax: 최대 제련 단계 */
+   *  shop: 상점마다 합성 재료 1개를 진열할 확률 · refinePts: 성운 가루 제련 1단계마다 고급 모듈 주요 능력치 증가 (기본 +9 → 5단계 +24) · legendPts: 별무리 파편 제련 1단계마다 전설 장비 능력치 증가 (focus = 주요 능력치 하나 +18 짜리 · split = 둘에 +9 씩 짜리, 각각) · refineMax: 최대 제련 단계 */
   craft: { drop: { battle: 0.15, adversity: 0.5, boss: 1 } as Record<string, number>, w: { S_dust: 3, S_crystal: 1 } as Record<string, number>, crystal: true,
     shop: 0.75, refinePts: 3, legendPts: { focus: 6, split: 3 }, refineMax: 5,
-    /** 잠재능력 칸 (백수정 조각): 희귀 · 전설 */ potSlots: { A: 1, L: 2 },
+    /** 잠재능력 칸 (백수정 조각): 희귀 · 전설 */ potSlots: { A: 2, L: 3 },
     /** 캣휠(ZI존) 제련 (별무리 파편): 단계마다 모든 주요 능력치 + · 별무리 파편을 밍키에게 끼우면 (이스터에그) 먹어 치우고 공명도 + */ ziPts: 2, mingkiShardXp: 12 }, // J: 유닉스제 잡동사니 (캣휠)
   // 장비 드랍 [임시]
   // advParts: 역경(· 도전) 승리 시 무작위 장비 재료 확정 개수 (예전: 확률 50%)
