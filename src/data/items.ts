@@ -67,8 +67,8 @@ const ADV: AdvDef[] = [
     effect: () => ({ stats: { cdr: 0.3 } }) },
   { id: 'def_def', a: 'def', b: 'def', name: '요새 장갑', desc: (k) => `받는 피해 -${Math.min(80, 15 * k)}%.`,
     effect: () => ({ taken: [red('all', 0.15)] }) },
-  { id: 'def_agi', a: 'def', b: 'agi', name: '반응 장갑', desc: (k) => `받은 피해의 ${25 * k}%를 공격자에게 고정 피해로 반사.`,
-    effect: (k) => ({ hooks: { onStart(bt, u) { bt.buff(u, u, 'item.reactive', 999, { reflectTrue: 0.25 * k, label: '' }); } } }) },
+  { id: 'def_agi', a: 'def', b: 'agi', name: '반응 장갑', desc: (k) => `공격을 받으면 (지속 피해 제외) 자신 방어도의 ${50 * k}%만큼 공격자에게 고정 피해.`,
+    effect: (k) => ({ hooks: { onStart(bt, u) { bt.buff(u, u, 'item.reactive', 999, { reflectArmor: 0.5 * k, label: '' }); } } }) },
   { id: 'agi_agi', a: 'agi', b: 'agi', name: '위상 이동기', desc: (k) => `회피 +${7.5 * k}%p. 회피할 때마다 공격 속도 +${5 * k}% (최대 10중첩).`,
     effect: (k) => ({
       stats: { eva: 0.075 },

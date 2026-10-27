@@ -68,6 +68,8 @@ export interface Status {
   provPlus?: number;
   /** 고정 피해 반사 (방어도 무시) */
   reflectTrue?: number;
+  /** 피격 시 자신 방어도 × 이 값만큼 공격자에게 고정 피해 (반응 장갑) */
+  reflectArmor?: number;
   /** 중첩 수 (부상 · 방어도 감소 등) */
   stacks?: number;
   /** 받은 피해의 일부를 이 기물이 나눠 받는다 (린디웨) */
@@ -1347,10 +1349,11 @@ export class Battle {
       if (tgt.alive && res.amount > 0 && o.tag !== 'dot') this.ultGain(tgt, CFG.ultGain.hurt, 'hurt');
       if (src !== tgt) for (const a of this.alliesOf(tgt, false)) for (const h of a.hooks) h.onAllyHurt?.(this, a, tgt, src, res);
       if (o.tag !== 'proc' && src.alive && src !== tgt) {
-        let rf = 0, rt = 0;
-        for (const s of tgt.statuses) { rf += s.reflect || 0; rt += s.reflectTrue || 0; }
+        let rf = 0, rt = 0, ra = 0;
+        for (const s of tgt.statuses) { rf += s.reflect || 0; rt += s.reflectTrue || 0; ra += s.reflectArmor || 0; }
         if (rf > 0) this.dealDamage(tgt, src, dmg * rf, { elem: 'phys', tag: 'proc', noHooks: true });
         if (rt > 0 && src.alive) this.dealDamage(tgt, src, dmg * rt, { elem: 'true', tag: 'proc', noHooks: true });
+        if (ra > 0 && src.alive && o.tag !== 'dot') this.dealDamage(tgt, src, this.S(tgt, 'armor') * ra, { elem: 'true', tag: 'proc', noHooks: true });
       }
     }
     if (dmg > 0 && src !== tgt && !o.noHooks) {

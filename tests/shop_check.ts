@@ -367,6 +367,7 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   R.gainItem(run, 'K_barricade');
   ok(run.inventory.filter((x) => x === 'K_barricade').length === DEV.wall.uses, `바리케이드 1개 = ${DEV.wall.uses}회분`);
   ok(!CONSUMABLES.K_seize.legend, '강제 징수기는 일반 소모품');
+  ok(itemInfo('A_def_agi').desc.includes('방어도의 50%') && itemInfo('L_def_agi').desc.includes('방어도의 150%'), '반응 장갑: 방어도의 50% (전설 150%)');
   let cp = 0, seize = 0;
   for (let sd = 1; sd <= 300; sd++) {
     const r = mk(sd, 'waste', 7, 3);
