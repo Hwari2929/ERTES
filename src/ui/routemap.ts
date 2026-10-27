@@ -1,13 +1,15 @@
 // 지도 화면 항로도 (전술 스코프): 리빈 낙원동 = 구체 내벽 회전, 베르타–산노디스 물류망 = 대각 진행 원 궤도,
-// 라이덴 제34블록 = 고저 단면 (기둥 위 보행 데크 · 아래 거리의 다층 상가 · 여우 신사), 카운티폴 세피아 교외 = 등각 교외 길 안내 (핀 · 헤드업 내비).
-// 시안: claude.ai 아티팩트 '전장별 항로 시안' (리빈 = 스코프, 물류망 = 스코프 · 대각, 라이덴 = ① 다층 상가, 카운티폴 = A′-2 핀).
+// 라이덴 제34블록 = 고저 단면 (기둥 위 보행 데크 · 아래 거리의 다층 상가 · 여우 신사), 카운티폴 세피아 교외 = 등각 교외 길 안내 (핀 · 헤드업 내비),
+// 금고선 히페리온호 = 순찰 스코프 (궤도에서 내려다본 선체 · 대각 진행축 · 탐지선이 쓸 때만 드러나는 경비 접촉).
+// 시안: claude.ai 아티팩트 '전장별 항로 시안' (리빈 = 스코프, 물류망 = 스코프 · 대각, 라이덴 = ① 다층 상가, 카운티폴 = A′-2 핀) ·
+//       '히페리온 · 크레타 항로 시안' (히페리온 = H3 순찰 스코프).
 // 렌더마다 화면이 통째로 다시 그려지므로, 항로도 DOM 은 이 모듈이 들고 있다가 자리(.rmap-host)에 다시 끼운다.
 // 그래서 진행(노드 완료 뒤 지도로 돌아옴)마다 끝낸 노드가 옅어지고 다음 노드가 밝아지는 전환을 이어서 보여 줄 수 있다.
 // 조작: 가로로 끌기 · 가로 휠 = 항로만 이동 (페이지는 그대로), 세로로 끄는 터치 = 페이지 스크롤. 전체 화면 = 넓은 시야 + 노드 목록 · 범례 패널.
 import { NODE_NAME, type NodeType, type RunState } from '../types';
 import { lineIcon } from './synicons';
 
-const FIELDS = { livin: 'ring', swarm: 'orbit', raiden: 'stairs', county: 'grid' } as const;
+const FIELDS = { livin: 'ring', swarm: 'orbit', raiden: 'stairs', county: 'grid', hyperion: 'patrol' } as const;
 type Kind = (typeof FIELDS)[keyof typeof FIELDS];
 const CODE: Partial<Record<NodeType, string>> = { supply: 'SUP', battle: 'BTL', council: 'CNL', event: 'EVT', shop: 'BRN', adversity: 'ADV', boss: 'BOS', recruit: 'RCT', fork: 'FRK', news: 'NWS', invest: 'INV', pilgrim: 'PLG', challenge: 'CHL' };
 // 프리버드(공룡) 실루엣 — 오른쪽을 보고 발이 y=0
@@ -251,7 +253,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   const t0 = performance.now();
   const startAmb = () => { if (amb) return; const f = (now: number) => { tick(reduce ? 0 : now - t0); amb = requestAnimationFrame(f); }; amb = requestAnimationFrame(f); };
 
-  const sc: { go(): void; stop(): void; look?(i: number): void; name?: string; legend?: string[][] } = kind === 'ring' ? ringScene() : kind === 'orbit' ? orbitScene() : kind === 'stairs' ? stairsScene() : gridScene();
+  const sc: { go(): void; stop(): void; look?(i: number): void; name?: string; legend?: string[][] } = kind === 'ring' ? ringScene() : kind === 'orbit' ? orbitScene() : kind === 'stairs' ? stairsScene() : kind === 'patrol' ? patrolScene() : gridScene();
   goNow = () => { sel = cur; sc.go(); panel(); };
   // ── 전체 화면 옆 패널: 노드 목록 (상태 · 고른 노드의 설명) + 범례. 노드를 고르면 지도도 그 노드로
   function pick(i: number) { sel = Math.max(0, Math.min(N - 1, i)); if (sel === cur) sc.go(); else sc.look?.(sel); panel(); }
@@ -915,6 +917,65 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     return {
       ...sc, name: '라이덴 제34블록 봉쇄선',
       legend: [['데크', '계단 · 층계참 = 노드 (기둥 위)'], ['+24m', '층계참 표고'], ['상가', '노드와 별개의 높이 · 셔터 = 폐쇄 점포'], ['노란 사선', '출입 금지 테이프 · 바리케이드'], ['CAM · 비행선', '데스 스트리밍 생중계 (CAM-07 은 우리를 따라옴)'], ['도리이 · 稲荷', '마지막 계단 · 꼭대기 여우 신사']],
+    };
+  }
+
+  // ── 금고선 히페리온호: 궤도에서 내려다본 유람 금고선. 진행축은 16° 기울어 뱃머리(금고)로 오르고, 노드는 갑판 위 순찰 항로.
+  // 현재 위치에 붙은 거리환 · 회전 탐지선이 경비 접촉(GRD)을 쓸고 지나갈 때만 드러내며 서서히 사라진다. 순찰정 2척이 선체를 돌고, 뱃머리 금고는 보호막 13겹
+  function patrolScene() {
+    const VB = stageBase(narrow ? [180, 10, 440, 430] : [0, 0, 800, 450]);
+    const rnd = rng(31 + run.phase), TH = -16 * Math.PI / 180, ax = [Math.cos(TH), Math.sin(TH)], nv = [-Math.sin(TH), Math.cos(TH)], THd = TH * 180 / Math.PI;
+    const O = [140, 300], STEP = 182, L2W = (u: number, v: number) => [O[0] + u * ax[0] + v * nv[0], O[1] + u * ax[1] + v * nv[1]];
+    const V = (i: number) => (i === 0 || i === N - 1 ? 0 : Math.floor((i + 1) / 2) % 2 ? -32 : 32); // 갑판 위 순찰 항로: 좌현 · 우현을 두 칸씩 번갈아
+    const UL = (N - 1) * STEP, P = types.map((_, i) => L2W(i * STEP, V(i)));
+    const sky = el('g', {}, stage), world = el('g', {}, stage), fixed = el('g', {}, stage);
+    for (let j = 0; j < 260; j++) { const big = rnd() < .1; el('circle', { cx: -400 + rnd() * (UL + 1400), cy: -500 + rnd() * 1200, r: big ? 1 : .55, fill: big ? C.t2 : C.t3 }, sky); }
+    // 선체 (위에서): 긴 캡슐 · 갑판 구획 · 구명정 · 수영장 · 헬기장
+    const hull = el('g', { transform: `translate(${O[0]} ${O[1]}) rotate(${THd})` }, world);
+    el('path', { d: `M-160 -84H${UL + 120}Q${UL + 300} 0 ${UL + 120} 84H-160Q-210 0 -160 -84Z`, fill: C.panel }, hull);
+    el('path', { d: `M-130 -60H${UL + 100}Q${UL + 230} 0 ${UL + 100} 60H-130Z`, fill: C.panel2 }, hull);
+    for (let u = -100; u < UL; u += STEP / 2) el('line', { x1: u, y1: -60, x2: u, y2: 60, stroke: C.line }, hull);
+    for (let u = -120; u < UL + 60; u += 26) for (const v of [-76, 70]) el('rect', { x: u, y: v, width: 18, height: 6, rx: 3, fill: C.line }, hull);
+    const pools = [Math.min(3, N - 2), Math.min(7, N - 2)].map((i) => { const u = i * STEP + 70; el('rect', { x: u, y: -14, width: 60, height: 28, rx: 6, fill: mix(C.panel, C.bg, .5) }, hull); return el('ellipse', { cx: u + 30, cy: 0, rx: 4, ry: 2, fill: 'none', stroke: C.t3 }, hull); });
+    el('circle', { cx: STEP + 90, cy: 40, r: 16, fill: 'none', stroke: C.line, 'stroke-width': 2 }, hull);
+    txt(hull, STEP + 84, 44, 'H', { 'font-size': 10, fill: C.line });
+    const vault = el('g', { transform: `translate(${UL + 60} 0)` }, hull);
+    for (let k = 13; k >= 1; k--) el('circle', { r: 20 + k * 5, fill: 'none', stroke: k % 4 === 0 ? C.t3 : C.line, 'stroke-width': .8 }, vault);
+    el('circle', { r: 18, fill: C.panel2, stroke: C.t2 }, vault);
+    { const [x, y] = L2W(UL + 60, -100); txt(world, x, y, 'Ω01–13 · ZODIAC VAULT', { 'font-size': 7, fill: C.t2 }); }
+    // 경비 접촉 · 순찰정
+    const guards = Array.from({ length: Math.max(4, Math.min(9, N - 3)) }, (_, k) => {
+      const g = el('g', {}, world); el('path', { d: 'M0 -3 3 0 0 3-3 0Z', fill: C.t2 }, g); contact(g, `GRD-${pad2(k + 1)}`, -8);
+      return { g, u: (1 + k) * STEP + 40 + rnd() * 60, v: (rnd() - .5) * 90, span: 30 + rnd() * 30, w: .0005 + rnd() * .0004, ph: rnd() * 6 };
+    });
+    const craft = [0, 1].map((k) => { const g = el('g', {}, world), a = el('path', { d: 'M-8 -4 9 0-8 4-5 0Z', fill: C.t2 }, g); txt(g, -8, -9, `PTL-${k + 1}`, { 'font-size': 6.5, fill: C.t2 }); return { g, a, ph: k * Math.PI }; });
+    const routeG = el('g', {}, world), rigG = el('g', {}, world), nodeG = el('g', {}, world);
+    const rig = sweepRig(rigG, [60, 120, 180], (r) => `${r}m`);
+    corners(fixed, VB);
+    titleBlock(fixed, VB, 'HYPERION · 부감 순찰 스코프', [`금고선 히페리온호 · 페이즈 ${run.phase}`, `${N} NODES`, `진행축 방위 ${Math.round(90 + THd)}°`, '거리환 60m · HYP-30']);
+    let mk = P[cur];
+    const sc = trackRun({
+      VB, world, routeLayer: routeG, nodeLayer: nodeG, start: P[0], segs: P.slice(1).map((p) => ` L${p[0].toFixed(1)} ${p[1].toFixed(1)}`), pos: (i) => P[i],
+      dir: true, line: true, focus: .32, midY: .58, para: [[sky, .2, .2]],
+      onMarker(p) { mk = [p.x, p.y]; rig.g.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`); },
+      tick(t) {
+        const sa = mod(t * .06, 360); rig.set(sa);
+        for (const g of guards) { // 탐지선이 지나간 뒤로 서서히 사라진다 (거리환 밖은 흐리게)
+          const [x, y] = L2W(g.u + g.span * Math.sin(t * g.w + g.ph), g.v);
+          g.g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+          const dx = x - mk[0], dy = y - mk[1], lag = mod(sa - mod(Math.atan2(dy, dx) * 180 / Math.PI, 360), 360);
+          g.g.setAttribute('opacity', Math.hypot(dx, dy) > 180 ? '.12' : Math.max(.12, 1 - lag / 300).toFixed(2));
+        }
+        pools.forEach((e, k) => { const q = mod(t * .0007 + k * .5, 1); e.setAttribute('rx', (3 + q * 22).toFixed(1)); e.setAttribute('ry', (2 + q * 10).toFixed(1)); e.setAttribute('opacity', (1 - q).toFixed(2)); });
+        for (const c of craft) {
+          const pt = (a: number) => L2W(UL / 2 + Math.cos(a) * (UL / 2 + 320), Math.sin(a) * 150), a = t * .00012 + c.ph, [x, y] = pt(a), [x2, y2] = pt(a + .01);
+          c.g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); c.a.setAttribute('transform', `rotate(${(Math.atan2(y2 - y, x2 - x) * 180 / Math.PI).toFixed(1)})`);
+        }
+      },
+    });
+    return {
+      ...sc, name: '금고선 히페리온호 · 순찰 스코프',
+      legend: [['항로', '갑판 위 순찰 항로 · 지난 구간은 강조색'], ['거리환', '현재 위치 60m 간격 · 탐지선이 돈다'], ['GRD', '경비 접촉 — 탐지선이 쓸 때 드러남'], ['PTL', '선체를 도는 순찰정'], ['Ω01–13', '뱃머리 금고 보호막 13겹 · 보스']],
     };
   }
 
