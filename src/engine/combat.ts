@@ -484,7 +484,7 @@ export class Battle {
   computeTac() {
     for (const side of [0, 1] as const) {
       const us = this.units.filter((x) => x.side === side && !x.isSummon && x.alive && !x.mem.inert); // 반려 돌은 세지 않는다
-      // 아군 (위력 단위, 출전 4명 · 지휘관 1명 = 100): 출전 기물 1명당 +16, 지휘관 1명 추가당 +40, 지휘관 정신력 1당 +2
+      // 아군 (위력 단위, 출전 4명 · 지휘관 1명 = CFG.tacBase): 출전 기물 1명당 tacPerUnit, 지휘관 1명 추가당 tacPerCmd, 지휘관 정신력 1당 tacPerMnd
       // 적: 기존 규칙을 위력 단위로 (8 × (20 - 2×인원 + 지휘관 2))
       const cmds = us.filter((c) => c.ctype === 'CMD');
       let v = side === 0

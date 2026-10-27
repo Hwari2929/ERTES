@@ -15,7 +15,7 @@ export const CFG = {
   finishMult: 2.6, // 콤보 무기 피니쉬 배율 (콤보 타격은 무기 계수 그대로)
   // 전술 위력 (사격 · 타격 · 기술 위력과 같은 단위): 출전 4명 · 지휘관 1명 기준 tacBase
   resultDelay: 1.1, // 전투가 끝나고 결과 창이 뜨기까지 (초)
-  tacBase: 60, tacPerUnit: 16, tacPerCmd: 40, tacPerMnd: 2, // 기본값 100 → 60 (지휘관 스킬 하향)
+  tacBase: 100, tacPerUnit: 16, tacPerCmd: 10, tacPerMnd: 3, // 기본 100 (출전 4명 · 지휘관 1명) · 지휘관 1명 추가당 +10 · 지휘관 정신력 1당 +3 (예전 60 · 40 · 2)
   reasonStart: 50, // 사이오닉 이성 시작값
   reasonDot: 0.005, // 저이성 정신 피해: 초당 최대 체력 × 이 값 × (-이성/100), -50 이하 2배
   frenzyFriendly: true, // 광폭이 아군도 공격하는지 (실험용 토글, 기본 true = 현행)
