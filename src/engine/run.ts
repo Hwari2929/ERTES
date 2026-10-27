@@ -407,7 +407,7 @@ export const encounterMult = (type: NodeType, step: number) => (type === 'advers
 function battleCredits(run: RunState, type: NodeType): number {
   let c = CFG.winCredits(run.phase);
   if (type === 'adversity') c = Math.round(c * CFG.adversityReward);
-  c = Math.round(c * CFG.diffWinMul(run.diff || 0) * oathWinMul(run) * contractWinMul(run)); // 위험 3 ×1.25 · 위험 6 ×1.5 · 박봉의 서약
+  c = Math.round(c * +(CFG.winBaseMul * CFG.diffWinMul(run.diff || 0)).toFixed(6) * oathWinMul(run) * contractWinMul(run)); // 기본 ×1.25 · 위험 6 ×1.2 · 박봉의 서약 (배율 곱은 소수 오차 없이)
   if (type === 'boss') c += 5;
   return Math.max(0, Math.round(c * stakesMul(run)) + globalWinAdd(run)); // 판돈 올리기 · 전리품 회수
 }

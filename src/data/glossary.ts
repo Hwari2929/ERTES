@@ -51,7 +51,7 @@ export const GLOSSARY: GlossChapter[] = [
   },
   {
     ch: 'ch2', title: '2장 — 경제', who: 'lindiwe', entries: [
-      { id: 'credit', term: '에너지 크레딧', key: 'ch2_intro', text: `용병단의 돈. 전투가 끝날 때마다 들어온다. 승리 보수는 페이즈에 따라 ${CFG.winCredits(1)}~${CFG.winCredits(CFG.victoryPhase)} (역경 ${CFG.adversityReward}배, 보스 +5, 위험 등급 · 서약에 따라 배율). 지면 그 승리 보수의 ${pc(CFG.lossShare)}를 받는다.` },
+      { id: 'credit', term: '에너지 크레딧', key: 'ch2_intro', text: `용병단의 돈. 전투가 끝날 때마다 들어온다. 승리 보수는 페이즈에 따라 ${Math.round(CFG.winCredits(1) * CFG.winBaseMul)}~${Math.round(CFG.winCredits(CFG.victoryPhase) * CFG.winBaseMul)} (역경 ${CFG.adversityReward}배, 보스 +5, 위험 등급 · 서약에 따라 배율). 지면 그 승리 보수의 ${pc(CFG.lossShare)}를 받는다.` },
       { id: 'interest', term: '이자', key: 'ch2_intro', text: `전투 정산 때 그 전에 들고 있던 크레딧 ${CFG.interestPer}마다 1씩 더 받는다. 기본 상한 ${CFG.interestMax}. 안 쓰고 모아 두는 것도 투자다.` },
       { id: 'streak', term: '연승', key: 'ch2_intro', text: `연달아 이기면 보너스: 2연승부터 +${CFG.streakBonus(2)}, 4연승 +${CFG.streakBonus(4)}, 6연승 +${CFG.streakBonus(6)}. 한 번 지면 처음부터.` },
       { id: 'php', term: '플레이어 체력', key: 'ch2_intro', text: '화면 위쪽 하트, 용병단이 버틸 수 있는 힘. 전투에서 지면 3 + 2 × 페이즈 + 살아남은 적 수만큼 깎인다 (보스전은 10 + 3 × 페이즈). 0이 되면 의뢰 실패.' },
