@@ -258,10 +258,29 @@ export const CFG = {
   // ── 전역 증강 수치 (src/data/globals.ts · 설명문도 여기서 읽는다)
   globalAug: {
     solventN: 2, overhaulUp: 0.25, // 용제 밀수: 분리 용제 개수 · 전면 재조달: 장비마다 한 단계 위 확률
-    medic: 3, salvage: 2, shieldwall: 0.08, tenacity: 0.2, tenacityHp: 0.35, discount: 0.15,
-    glassDmg: 0.35, glassTaken: 0.2, overtime: 0.5, blitz: 0.6, blitzDur: 6, vamp: 0.08, bountyMax: 6, bond: 60, bondCap: 2,
-    firstShot: 2, regen: 0.006, fiber: 0.12, critDmg: 0.25, pen: 0.1, reload: 0.25, ult: 0.2, eva: 0.06, mindRes: 0.2, mindRed: 0.15, saving: 2, ration: 15, rationMax: 10,
-    chain: 0.8, thorns: 0.3, windAt: 0.3, wind: 0.25, execAt: 0.2, exec: 0.4, giant: 0.25, dblChance: 0.15, dbl: 0.5, patron: 15, tutor: 2, commission: 20, transfuse: 15,
+    tenacity: 0.2, tenacityHp: 0.35, discount: 0.15, // vamp · vampKill · vampMax: 흡혈 탄두 (처치마다 생명력 흡수 +vamp, 최대 vampMax 중첩 · 처치 회복)
+    glassDmg: 0.35, glassTaken: 0.2, overtime: 0.5, blitz: 0.6, blitzDur: 6, vamp: 0.02, vampKill: 0.1, vampMax: 8, bountyMax: 6, bond: 60, bondCap: 2,
+    firstShot: 2, ration: 15, rationMax: 10,
+    // 고유 효과 (예전 깡 능력치 · 소액 경제 증강을 바꾼 것)
+    ammoKill: 0.25, ammoCap: 2, // 탄피 회수: 처치 시 탄창 용량 × ammoKill 장전 · 최대 탄창 용량 × ammoCap
+    npCritDmg: 1.5, // 약점 연산: 비물리 치명타 피해 (고정)
+    finishHp: 0.15, // 마무리 흡수: 피니쉬 추가 고정 피해 = 자신 최대 체력 × finishHp, 같은 양 회복
+    nodeCredit: 1, nodeCap: 3, // 잔돈 영업: 노드마다 크레딧 + · 이자 상한 -
+    scrapN: 3, // 분해 작업대: 즉시 장비 재료 개수 (재구성 회로 → 분해 + 성운 가루 1)
+    comeback: 0.5, // 재기 수당: 패배로 잃은 플레이어 체력 중 다음 승리 때 돌려받는 몫
+    pointPer: 5, // 포인트 적립: 상점에서 쓴 크레딧 pointPer 당 공명도 1 분배
+    mark: 0.3, // 표적 지정: 표적이 받는 피해 +
+    armorShare: 0.3, // 장갑 공유: 방어도가 가장 높은 아군 방어도의 몫
+    killCdIcd: 3, // 연속 처형: 스킬 처치 → 쿨다운 초기화 (기물마다 초당 1번)
+    ultChain: 0.1, // 공명 연쇄: 아군 궁극기 → 다른 아군 궁극기 게이지 +
+    riposte: 0.8, // 역습 태세: 회피 뒤 다음 기본 공격 피해 +
+    cleanse: 0.06, cleanseIcd: 2, // 정화 반응: 해로운 효과를 받으면 최대 체력 × 보호막 (기물마다 icd 초에 1번)
+    overheal: 0.5, overhealCap: 0.25, // 과잉 회복 전환: 넘친 회복 × 보호막 (최대 체력 × cap 까지)
+    lastWall: 0.2, // 최후의 방벽: 아군이 처음 쓰러지면 남은 아군에게 최대 체력 × 보호막
+    corrode: 0.03, corrodeMax: 0.45, // 장갑 부식: 적중마다 대상 방어도 - (최대)
+    spec: 0.25, specMin: 0.5, specMax: 3, // 투기 자금: 페이즈 시작 때 보유 크레딧 × spec 투자 → 다음 페이즈 시작 때 × [min, max] 무작위
+    rebirth: 3, // 윤회 계약: 모든 기물 공명 등급 + (무작위 기물로 교체)
+    chain: 0.8, thorns: 1, windAt: 0.3, wind: 0.25, execAt: 0.2, exec: 0.4, giant: 0.25, dblChance: 0.15, dbl: 0.5, tutor: 2, commission: 20, transfuse: 15,
     berserkMax: 0.8, berserkHp: 0.15, goldAt: 100, gold: 0.3, goldCap: 3, odAt: 20, od: 0.6, odAs: 0.2, odSlow: 0.3, hydra: 0.2, midasLean: 2, loneMax: 3, lone: 0.6, loneRed: 0.25, phoenix: 0.5, phoenixCost: 20,
     stakes: 1.5, stakesFoe: 0.25, blood: 2, minkyRank: 2, petraPer: 3, ascend: 2, lastDmg: 0.4, lastRed: 0.15, sacrifice: 2,
   },

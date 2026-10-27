@@ -98,13 +98,15 @@ export function globCred(run: RunState, id: string): number {
   const t = us.length ? teamEval(run, us) : null;
   const act = t ? SYNERGIES.filter((x) => x.tiers.length > 1 && tierOf(x.id, t.counts[x.id] || 0) > 0) : [];
   switch (id) {
-    case 'G.funds': return 25;
-    case 'G.armory': return 2 * CFG.price.C;
+    case 'G.funds': return 5 * H / CFG.globalAug.pointPer * CFG.buyXpCost / CFG.buyXpAmount; // 포인트 적립: 전투당 상점 지출 약 5 → 공명도
+    case 'G.scrap': return CFG.globalAug.scrapN * CFG.price.C; // 분해 작업대: 재료 (분해는 덤)
+    case 'G.salvage': return 0.5 * H; // 잔돈 영업: 노드 +1 (전투당 약 1.5) − 이자 상한 -3
+    case 'G.medic': return 0.5 * CFG.globalAug.comeback * AUG.lossPerBattle[(run.diff || 0) >= 6 ? 'd7' : 'd3'] * H * hpVal(run); // 재기 수당
+    case 'G.r_patron': return run.credits * CFG.globalAug.spec * ((CFG.globalAug.specMin + CFG.globalAug.specMax) / 2 - 1) * Math.max(1, CFG.victoryPhase - run.phase); // 투기 자금: 기대 ×1.75
     case 'G.interest': return 3 * H; // 상한 +5: 남길 크레딧이 늘어 실제로는 전투당 약 +3
     case 'G.resonance': return 0.35 * CFG.xpPool(run.phase) * H * CFG.buyXpCost / CFG.buyXpAmount;
     case 'G.study': return AUG.xpSpendPerBattle * (1 - (CFG.buyXpCost - 1) / (CFG.buyXpAmount + 1) / (CFG.buyXpCost / CFG.buyXpAmount)) * H; // 같은 크레딧으로 공명도 +67%
-    case 'G.scout': return AUG.recruitsPerBattle * H * CFG.xpToNext(R.recruitRank(run)) + 4;
-    case 'G.network': return AUG.recruitsPerBattle * H * 6;
+    case 'G.scout': return AUG.recruitsPerBattle * H * (CFG.xpToNext(R.recruitRank(run)) + 6) + 4; // 예전 인맥을 합쳤다
     case 'G.squad': return (R.fleetCost(run) ?? 60) * 1.3;
     case 'G.survival': return (30 + 0.3 * AUG.lossPerBattle[(run.diff || 0) >= 6 ? 'd7' : 'd3'] * H) * hpVal(run);
     case 'G.emblem': { const own = [...new Set(us.flatMap((u) => memberships(u, run)))].filter((x) => EMBLEM_SYNS.includes(x)); const gs = own.map((x) => emblemGain(run, x)); return gs.length ? credV(run, gs.reduce((a, b) => a + b, 0) / gs.length) : 0; }

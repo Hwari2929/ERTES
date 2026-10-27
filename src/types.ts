@@ -242,7 +242,7 @@ export interface RunState {
   diff: number; // 난이도 단계 = 위험 등급 (difficulty.ts): 쉬움 3 · 모험 6 · 고난 7
   cleared: boolean; // 목표 페이즈 보스 격파 (의뢰 성공)
   endless: boolean; // 의뢰 성공 후 무한 모드 진행 중
-  mods: { interestCap: number; nodeIncome: number; divStart?: number; divGain?: number }; // 사건으로 바뀐 경제 규칙 · 순례 효과 (다음 전투 신성력 · 이번 페이즈 신성력 획득)
+  mods: { interestCap: number; nodeIncome: number; divStart?: number; divGain?: number; spec?: number; comeback?: number; pts?: number }; // 사건으로 바뀐 경제 규칙 · 순례 효과 (다음 전투 신성력 · 이번 페이즈 신성력 획득) · 전역 증강 [투기 자금] 투자금 · [재기 수당] 돌려받을 체력 · [포인트 적립] 공명도로 바꾸고 남은 크레딧
   boons: string[]; // 사건 팀 효과 (영구)
   phaseBoons: string[]; // 사건 팀 효과 (이번 페이즈)
   seenEvents: string[]; // 이번 런에서 겪은 사건

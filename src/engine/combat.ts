@@ -148,6 +148,10 @@ export interface Hooks {
   onAllyHurt?(b: Battle, self: CUnit, ally: CUnit, src: CUnit, r: DmgResult): void;
   /** 다른 아군이 전투 스킬을 썼을 때 */
   onAllySkill?(b: Battle, self: CUnit, caster: CUnit): void;
+  /** 다른 아군이 궁극기를 썼을 때 */
+  onAllyUlt?(b: Battle, self: CUnit, caster: CUnit): void;
+  /** 적이 건 해로운 효과를 받았을 때 (저항 판정을 통과한 뒤) */
+  onAfflicted?(b: Battle, self: CUnit, src: CUnit, s: Status): void;
   /** 다른 아군이 기본 공격을 했을 때 */
   onAllyBasic?(b: Battle, self: CUnit, attacker: CUnit): void;
   /** 아군 · 적 누구든 쓰러졌을 때 */
@@ -978,6 +982,7 @@ export class Battle {
         if (!u.mem.ultT1) u.mem.ultT1 = this.t;
         if (u.side === 0) this.counters.skills++;
         if (this.keepEvents) { this.events.splice(at, 0, { k: 'ult', id: u.id, ult: u.ult.id }); this.emit({ k: 'skillEnd', id: u.id }); }
+        for (const a of this.alliesOf(u, false)) for (const h of a.hooks) h.onAllyUlt?.(this, a, u);
         if (this.over) return;
       } else this.events.length = Math.min(this.events.length, at);
     }
@@ -1275,12 +1280,15 @@ export class Battle {
     }
     // 전기 · 화학 · 정신 · 신성은 치명타 불가. 그 밖은 기존 사격 · 타격 / 기술 치명 허용 규칙을 따른다.
     // 기술 피해 치명: 기술 치명 허용(도노반 등) 또는 인과학파 저이성 (mem.lowTechCrit, data/psionic.ts)
-    const canCrit = !isNonPhys(o.elem) && o.tag !== 'dot' && (o.kind === 'shoot' || o.kind === 'strike' || (o.kind === 'tech' && (src.mem.techCrit || src.mem.lowTechCrit)));
+    // 전역 증강 [약점 연산] (mem.npCrit): 비물리 공격도 치명 가능, 그 치명타 피해는 CFG.globalAug.npCritDmg 고정
+    const npCrit = isNonPhys(o.elem) && !!src.mem.npCrit && o.tag !== 'dot';
+    const canCrit = npCrit || (!isNonPhys(o.elem) && o.tag !== 'dot' && (o.kind === 'shoot' || o.kind === 'strike' || (o.kind === 'tech' && (src.mem.techCrit || src.mem.lowTechCrit))));
     if (dmg > 0 && canCrit && !res.miss) {
       if (this.rng.next() < this.S(src, 'crit') + (o.critBonus || 0)) {
         res.crit = true;
         let cm = this.S(src, 'critDmg') + tgt.statuses.reduce((a, s) => a + (s.critVuln || 0), 0);
         if (src.mem.critOver) cm += Math.max(0, this.S(src, 'crit') - 1) * src.mem.critOver; // 사냥꾼: 치명타 확률 100% 초과분 × 배율 = 치명타 피해
+        if (npCrit) cm = CFG.globalAug.npCritDmg;
         if (tgt.mem.critRed) cm = Math.max(1, cm * (1 - tgt.mem.critRed)); // 인과학파 고이성: 받는 치명타 피해 감소
         dmg *= cm;
         if (src.side === 0) this.counters.crits++;
@@ -1289,7 +1297,7 @@ export class Battle {
     if (dmg > 0) {
       const isTrue = o.elem === 'true';
       if (!isTrue) {
-        const armor = this.S(tgt, 'armor') * CFG.armorFactor[o.elem] * (1 - Math.min(1, this.S(src, 'armorPen') + (o.pen || 0)));
+        const armor = this.S(tgt, 'armor') * CFG.armorFactor[o.elem] * (1 - Math.min(1, this.S(src, 'armorPen') + (o.pen || 0) + (tgt.mem.corrode || 0))); // corrode: 전역 증강 [장갑 부식]
         dmg *= 1 - armor / (armor + CFG.armorK);
       }
       dmg *= categoryMult(tgt.category, o.elem);
@@ -1539,6 +1547,7 @@ export class Battle {
     if (!hostile && src !== tgt && tgt.mem.noBless && s.type === 'buff' && (s.mods?.some((m) => m.v > 0) || Object.values(s.delta || {}).some((v) => (v as number) > 0))) return false;
     s.src = src;
     for (const h of src.hooks) h.onInflict?.(this, src, tgt, s);
+    if (hostile) for (const h of tgt.hooks) h.onAfflicted?.(this, tgt, src, s);
     const ex = tgt.statuses.find((x) => x.key === s.key);
     if (ex) this.mergeStatus(ex, s, src);
     else {
