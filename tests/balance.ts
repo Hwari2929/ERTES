@@ -27,6 +27,9 @@ const COUNT = +process.argv[3] || 10;
 const CF_RATE = process.argv[4] !== undefined ? +process.argv[4] : 0.06;
 /** 위험 등급 (기본 0). 2 이상이면 적 장비 · 개조부품이 실제 게임처럼 붙는다. 쉬움 3 · 모험 6 · 고난 7 (고난은 절망 증강을 봇이 무작위로 고른다) */
 const DIFF = +process.argv[5] || 0;
+/** hpadd=x: 페이즈 체력 성장 계수에 x 를 더한다 (난이도 실험, 예: hpadd=0.1 → 1.85 → 1.95) */
+const HP_ADD = +(process.argv.find((a) => a.startsWith('hpadd='))?.slice(6) || 0);
+if (HP_ADD) { const f0 = CFG.phaseHpFactor; CFG.phaseHpFactor = (p: number) => f0(p) + HP_ADD; }
 /** detail: 런마다 기물 · 증강 · 성유물별 [전투 수, 승리] 기록 (군집 신뢰구간용). randrelic: 디바인 성유물을 무작위로 장착 (성유물 효과 분리 실험) */
 const DETAIL = process.argv.includes('detail');
 const RANDREL = process.argv.includes('randrelic');
