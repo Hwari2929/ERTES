@@ -1,15 +1,16 @@
 // 지도 화면 항로도 (전술 스코프): 리빈 낙원동 = 구체 내벽 회전, 베르타–산노디스 물류망 = 대각 진행 원 궤도,
 // 라이덴 제34블록 = 고저 단면 (기둥 위 보행 데크 · 아래 거리의 다층 상가 · 여우 신사), 카운티폴 세피아 교외 = 등각 교외 길 안내 (핀 · 헤드업 내비),
-// 금고선 히페리온호 = 순찰 스코프 (궤도에서 내려다본 선체 · 대각 진행축 · 탐지선이 쓸 때만 드러나는 경비 접촉).
+// 금고선 히페리온호 = 순찰 스코프 (궤도에서 내려다본 선체 · 대각 진행축 · 탐지선이 쓸 때만 드러나는 경비 접촉),
+// 크레타 백원 = 탐지 야경 (촛불 점 들판 · 탐지선이 지난 자리의 촛불이 꺼지고 망령 진형이 불투명도만으로 나타남).
 // 시안: claude.ai 아티팩트 '전장별 항로 시안' (리빈 = 스코프, 물류망 = 스코프 · 대각, 라이덴 = ① 다층 상가, 카운티폴 = A′-2 핀) ·
-//       '히페리온 · 크레타 항로 시안' (히페리온 = H3 순찰 스코프).
+//       '히페리온 · 크레타 항로 시안' (히페리온 = H3 순찰 스코프, 크레타 = C9b 꺼진 촛불에서 일어남).
 // 렌더마다 화면이 통째로 다시 그려지므로, 항로도 DOM 은 이 모듈이 들고 있다가 자리(.rmap-host)에 다시 끼운다.
 // 그래서 진행(노드 완료 뒤 지도로 돌아옴)마다 끝낸 노드가 옅어지고 다음 노드가 밝아지는 전환을 이어서 보여 줄 수 있다.
 // 조작: 가로로 끌기 · 가로 휠 = 항로만 이동 (페이지는 그대로), 세로로 끄는 터치 = 페이지 스크롤. 전체 화면 = 넓은 시야 + 노드 목록 · 범례 패널.
 import { NODE_NAME, type NodeType, type RunState } from '../types';
 import { lineIcon } from './synicons';
 
-const FIELDS = { livin: 'ring', swarm: 'orbit', raiden: 'stairs', county: 'grid', hyperion: 'patrol' } as const;
+const FIELDS = { livin: 'ring', swarm: 'orbit', raiden: 'stairs', county: 'grid', hyperion: 'patrol', crete: 'vigil' } as const;
 type Kind = (typeof FIELDS)[keyof typeof FIELDS];
 const CODE: Partial<Record<NodeType, string>> = { supply: 'SUP', battle: 'BTL', council: 'CNL', event: 'EVT', shop: 'BRN', adversity: 'ADV', boss: 'BOS', recruit: 'RCT', fork: 'FRK', news: 'NWS', invest: 'INV', pilgrim: 'PLG', challenge: 'CHL' };
 // 프리버드(공룡) 실루엣 — 오른쪽을 보고 발이 y=0
@@ -243,9 +244,9 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     txt(g, 6, 33, cells[0], { 'font-size': 8.5 }); txt(g, 6, 48, cells[1], { 'font-size': 8.5 });
     txt(g, 140, 33, cells[2], { 'font-size': 8.5 }); txt(g, 140, 48, cells[3], { 'font-size': 8.5 });
   }
-  function contact(g: Element, lab: string, y = -16) {
-    el('path', { d: `M-10 ${y + 4}v-4h4M10 ${y + 4}v-4h-4`, fill: 'none', stroke: C.t2, 'stroke-width': .8 }, g);
-    txt(g, 12, y + 2, lab, { 'font-size': 7, fill: C.t2 });
+  function contact(g: Element, lab: string, y = -16, col = C.t2) {
+    el('path', { d: `M-10 ${y + 4}v-4h4M10 ${y + 4}v-4h-4`, fill: 'none', stroke: col, 'stroke-width': .8 }, g);
+    txt(g, 12, y + 2, lab, { 'font-size': 7, fill: col });
   }
   const tokensFor = (parent: Element) => types.map((_, i) => token(parent, i));
   const stopAmb = () => { cancelAnimationFrame(amb); amb = 0; };
@@ -253,7 +254,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   const t0 = performance.now();
   const startAmb = () => { if (amb) return; const f = (now: number) => { tick(reduce ? 0 : now - t0); amb = requestAnimationFrame(f); }; amb = requestAnimationFrame(f); };
 
-  const sc: { go(): void; stop(): void; look?(i: number): void; name?: string; legend?: string[][] } = kind === 'ring' ? ringScene() : kind === 'orbit' ? orbitScene() : kind === 'stairs' ? stairsScene() : kind === 'patrol' ? patrolScene() : gridScene();
+  const sc: { go(): void; stop(): void; look?(i: number): void; name?: string; legend?: string[][] } = kind === 'ring' ? ringScene() : kind === 'orbit' ? orbitScene() : kind === 'stairs' ? stairsScene() : kind === 'patrol' ? patrolScene() : kind === 'vigil' ? vigilScene() : gridScene();
   goNow = () => { sel = cur; sc.go(); panel(); };
   // ── 전체 화면 옆 패널: 노드 목록 (상태 · 고른 노드의 설명) + 범례. 노드를 고르면 지도도 그 노드로
   function pick(i: number) { sel = Math.max(0, Math.min(N - 1, i)); if (sel === cur) sc.go(); else sc.look?.(sel); panel(); }
@@ -976,6 +977,74 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     return {
       ...sc, name: '금고선 히페리온호 · 순찰 스코프',
       legend: [['항로', '갑판 위 순찰 항로 · 지난 구간은 강조색'], ['거리환', '현재 위치 60m 간격 · 탐지선이 돈다'], ['GRD', '경비 접촉 — 탐지선이 쓸 때 드러남'], ['PTL', '선체를 도는 순찰정'], ['Ω01–13', '뱃머리 금고 보호막 13겹 · 보스']],
+    };
+  }
+
+  // ── 크레타 백원: 대령제 전야의 야간 위성 사진. 들판 = 촛불 점 (정적, 색마다 path 하나), 노드는 위아래로 굽이치는 곡선 항로.
+  // 현재 위치의 거리환 · 탐지선이 노드 사이 진형 자리를 쓸고 지나가면 그 자리의 촛불이 어둡게 꺼지고 망령 6기(k.soul 아이콘)가
+  // 불투명도만으로 나타났다 사라진다 (아이콘 비율 그대로). 등불 행렬 3줄 · 구름 그림자 · 끝의 불 꺼진 장군 묘 = 레가투스 (보스)
+  function vigilScene() {
+    const VB = stageBase(narrow ? [180, 10, 440, 430] : [0, 0, 800, 450]);
+    const rnd = rng(67 + run.phase), X = (i: number) => 140 + i * 190, Y = (i: number) => (i === N - 1 ? 225 : [225, 150, 150, 300, 300][i % 5]);
+    const P = types.map((_, i) => [X(i), Y(i)]), XE = X(N - 1), TB = [XE + 100, 225];
+    const SOUL = 'M-6 8V-2a6 6 0 0 1 12 0v10l-2-2-2 2-2-2-2 2-2-2zM-2 -2h.01M2 -2h.01'; // ui/synicons.ts 'k.soul' 을 중심 (0,0) 으로
+    const soul = (p: Element, d: string, col: string) => el('path', { d, fill: col, 'fill-opacity': .14, stroke: col, 'stroke-width': 1.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }, p);
+    const world = el('g', {}, stage), fixed = el('g', {}, stage);
+    // 촛불 점: 노드 주변 · 행렬 길 · 세로 고랑 · 묘 자리는 비운다
+    let da = '', db = '';
+    for (let x = -600; x < XE + 500; x += 14) for (let y = 34; y < 430; y += 14) {
+      if (P.some(([px, py]) => Math.abs(x - px) < 36 && Math.abs(y - py) < 36)) continue;
+      if ((y > 180 && y < 196) || (y > 254 && y < 270) || mod(x - 140, 95) < 12 || (Math.abs(x - TB[0]) < 60 && Math.abs(y - TB[1]) < 55) || rnd() > .6) continue;
+      const q = (rnd() < .3 ? 1.6 : 1).toFixed(1), d = `M${(x + rnd() * 5).toFixed(0)} ${(y + rnd() * 5).toFixed(0)}h${q}v${q}h-${q}z`;
+      if (rnd() < .15) db += d; else da += d;
+    }
+    el('path', { d: da, fill: C.t3, 'fill-opacity': .4 }, world); el('path', { d: db, fill: C.t2, 'fill-opacity': .32 }, world);
+    el('rect', { x: TB[0] - 56, y: TB[1] - 50, width: 112, height: 100, fill: C.bg, stroke: C.line }, world);
+    const clouds = [0, 1].map((k) => ({ g: el('ellipse', { rx: 200 + k * 40, ry: 60, fill: C.bg, 'fill-opacity': .5 }, world), o: k * 900, y: 120 + k * 170, v: .012 + k * .004 }));
+    // 망령 진형 (노드 사이, 곡선 바깥쪽): 어두운 얼룩 + 아이콘 6기 + 이름표
+    const ghostG = el('g', {}, world);
+    const forms = types.slice(1).map((_, i) => {
+      const fx = (X(i) + X(i + 1)) / 2, my = (Y(i) + Y(i + 1)) / 2, fy = my > 225 ? my - 98 : my + 96;
+      const g = el('g', { transform: `translate(${fx} ${fy})` }, ghostG);
+      const dark = el('ellipse', { rx: 58, ry: 26, fill: C.bg, opacity: 0 }, g);
+      const men = el('g', { opacity: 0 }, g);
+      for (let k = 0; k < 6; k++) soul(men, SOUL, C.t2).setAttribute('transform', `translate(${(k - 2.5) * 17} ${(k % 2) * 8})`);
+      const tag = el('g', { transform: 'translate(-40 -30)', opacity: .1 }, g); contact(tag, `LOCHOS-${pad2(i + 1)}`, 0);
+      return { dark, men, tag, fx, fy, r: 0, on: -1 };
+    });
+    const leg = el('g', { transform: `translate(${TB[0]} ${TB[1]})` }, ghostG), legI = el('g', {}, leg);
+    soul(legI, SOUL + 'M10 9V-12M8.5 -9 10 -13 11.5 -9', C.bad).setAttribute('transform', 'scale(2.6)');
+    contact(leg, 'LEGATUS · 접수 거부', -70, C.bad);
+    const routeG = el('g', {}, world);
+    const procs = [0, 1, 2].map((k) => { let d = ''; for (let j = 0; j < 9; j++) d += `M${-j * 6 - 1.2} -1.2h2.4v2.4h-2.4z`; return { g: el('path', { d, fill: C.divine, 'fill-opacity': .55 }, world), y: [188, 262, 188][k], o: k * 800, v: (k % 2 ? -1 : 1) * .012 }; });
+    const rigG = el('g', {}, world), nodeG = el('g', {}, world);
+    const rig = sweepRig(rigG, [80, 160, 240], (r) => `${Math.round(r / 8) * 5}m`);
+    corners(fixed, VB);
+    titleBlock(fixed, VB, 'CRETE · 대령제 전야 · 탐지 야경', [`크레타 백원 · 페이즈 ${run.phase}`, `${N} NODES`, '점 = 촛불 · 줄 = 행렬', '사각 = 장군의 묘']);
+    let mk = P[cur], sa = 0;
+    const sc = trackRun({
+      VB, world, routeLayer: routeG, nodeLayer: nodeG, start: P[0], pos: (i) => P[i],
+      segs: P.slice(1).map((q, i) => { const p = P[i], mx = (p[0] + q[0]) / 2; return ` C${mx} ${p[1]} ${mx} ${q[1]} ${q[0]} ${q[1]}`; }),
+      dir: true, follow: .4, midY: .52,
+      onMarker(p) { mk = [p.x, p.y]; rig.g.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`); },
+      tick(t) {
+        sa = mod(t * .06, 360); rig.set(sa);
+        for (const f of forms) { // 탐지선이 쓸고 지난 직후(140° 안)만 켜짐 → 불투명도만 부드럽게 따라감
+          const dx = f.fx - mk[0], dy = f.fy - mk[1], on = Math.hypot(dx, dy) < 280 && mod(sa - mod(Math.atan2(dy, dx) * 180 / Math.PI, 360), 360) < 140 ? 1 : 0;
+          if (f.on !== on) { f.on = on; f.tag.setAttribute('opacity', on ? '.9' : '.1'); }
+          if (!on && f.r < .01) { if (f.r) { f.r = 0; f.dark.setAttribute('opacity', '0'); f.men.setAttribute('opacity', '0'); } continue; }
+          f.r += (on - f.r) * .08;
+          f.dark.setAttribute('opacity', (.8 * f.r).toFixed(2)); f.men.setAttribute('opacity', (.95 * f.r).toFixed(2));
+          f.men.setAttribute('transform', `translate(0 ${(-2 * Math.sin(t * .0012 + f.fx)).toFixed(1)})`); // 제자리에서 아주 작게 떠 있음
+        }
+        for (const p of procs) p.g.setAttribute('transform', `translate(${(mod(p.o + t * p.v, XE + 800) - 400).toFixed(1)} ${p.y}) scale(${Math.sign(p.v)} 1)`);
+        for (const c of clouds) c.g.setAttribute('transform', `translate(${(mod(c.o + t * c.v, XE + 1400) - 600).toFixed(1)} ${c.y})`);
+        legI.setAttribute('transform', `translate(0 ${(4 * Math.sin(t * .0012)).toFixed(1)})`);
+      },
+    });
+    return {
+      ...sc, name: '크레타 백원 · 탐지 야경',
+      legend: [['항로', '굽이치는 곡선 항로 · 지난 구간은 강조색'], ['거리환', '현재 위치 50m 간격 · 탐지선이 돈다'], ['LOCHOS', '망령 진형 — 탐지선이 쓸면 촛불이 꺼지고 나타남'], ['등불 행렬', '대령제 순례 행렬'], ['LEGATUS', '불 꺼진 장군의 묘 · 보스']],
     };
   }
 
