@@ -12,12 +12,12 @@ export interface Device {
   mode?: 'strike' | 'drop';
 }
 export const DEV = {
-  /** 바리케이드: 1칸일 때 내구도 (페이즈 체력 배율을 곱한다). 2칸 · 3칸이면 칸마다 1/2 · 1/3 */
-  wall: { hp: 1500, armor: 3, maxN: 3 },
+  /** 바리케이드: 1칸일 때 내구도 (페이즈 체력 배율을 곱한다). 2칸 · 3칸이면 칸마다 1/2 · 1/3 · 1개를 얻으면 uses 회분 (보관함에 겹쳐 들어간다) */
+  wall: { hp: 1500, armor: 3, maxN: 3, uses: 2 },
   /** 유인 신호기: 체력 1 · 배치 직후 무적 · 도발 배율 · 매초 주변 적 전체에게 쌓는 도발 수치 (도발 배율 적용 전) */
   decoy: { invuln: 4, prov: 10, pulse: 40 },
   /** 감전 지뢰: 적이 r칸 안에 들어오면 delay 초 뒤 폭발 (반경 r) · 피해 (페이즈 체력 배율^0.9) · 감전 지속 (초, 범위 안 무작위) */
-  mine: { r: 1, delay: 1.5, dmg: 250, shock: [2, 4] as [number, number] },
+  mine: { r: 1, delay: 0.5, dmg: 400, shock: [3, 6] as [number, number] },
   /** 포획 그물: 2×2 칸 안의 적에게 고정 확률로 속박 · 지속 (효과 저항만큼 줄어듦, 최소 min초) */
   net: { chance: 0.7, dur: 5, min: 1 },
   /** 표시 망원경 (항해자): 처음 받을 때 사용 횟수 · 항해자 단계별로 처음 닿을 때 더하는 횟수 · 페이즈 진입마다 · 포격 계수 (전술 위력 × 페이즈 체력 배율^0.85) · 효과 반경 (항해자 단계별) */
@@ -58,6 +58,7 @@ export function deviceRows(id: string, navTiers: number[] = [2, 4, 6, 8]): [stri
   const W = DEV.wall, D = DEV.decoy, M = DEV.mine, N = DEV.net, S = DEV.scope, F = DEV.feast;
   switch (id) {
     case 'K_barricade': return [
+      ['사용 횟수', `1개당 ${W.uses}회`],
       ['놓는 곳', '적 진형 밖 빈칸'],
       ['모양', `1칸 · 가로 · 세로 ${W.maxN}칸까지`],
       ['내구도', `${W.hp} ÷ 칸 수 (× 페이즈 체력 배율)`],

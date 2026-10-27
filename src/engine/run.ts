@@ -10,7 +10,7 @@ import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBAL_ODDS, GLOBALS, PRIVILEGES, synName } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, DUST, isGraded, isMat, potPool, potsOf, refineBase, withPots, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_GEAR, TURRET_GEAR_IDS } from '../data/items';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, DUST, SHARD, isGraded, isMat, potPool, potsOf, refineBase, withPots, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_GEAR, TURRET_GEAR_IDS } from '../data/items';
 import { ENG_TUR, UNI_XP, OCCULT_SYNTH, PETRA_PAY, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { OATH_AUGS, VOW_ENH_KEEP } from '../data/oathaugs';
@@ -829,7 +829,7 @@ export function useCheck(run: RunState, kIdx: number, tg: UseTarget): string | n
     if (isInjector(id) && u.rank >= CFG.maxRank) return '이미 최고 공명 등급입니다';
     const gear = u.items.filter((x) => (id === 'K_reroll' ? canReroll(x) : x && !isLocked(x))).length;
     if ((id === 'K_strip' || id === 'K_reroll') && !gear) return id === 'K_strip' ? '해제할 장비가 없습니다' : '바꿀 수 있는 장비가 없습니다';
-    if ((id === 'K_strip' || id === 'K_reroll') && run.inventory.length - 1 + gear > CFG.inventoryMax) return '보관함 공간이 부족합니다';
+    if ((id === 'K_strip' || id === 'K_reroll') && invSlots(run, run.inventory.indexOf(id)) + gear > CFG.inventoryMax) return '보관함 공간이 부족합니다';
     return null;
   }
   if (tg.k === 'unit') return WRONG_TARGET;
@@ -837,7 +837,7 @@ export function useCheck(run: RunState, kIdx: number, tg: UseTarget): string | n
   const it = useItemId(run, tg);
   if (!it || isLocked(it) || isConsumable(it)) return WRONG_TARGET;
   if (id === 'K_legend' && (it[0] === 'L' || isMod(it) || isTurretGear(it))) return WRONG_TARGET;
-  if (id === 'K_copy' && run.inventory.length - 1 >= CFG.inventoryMax) return '보관함이 가득 찼습니다';
+  if (id === 'K_copy' && invSlots(run, run.inventory.indexOf(id)) >= CFG.inventoryMax) return '보관함이 가득 찼습니다';
   return null;
 }
 const useItemId = (run: RunState, tg: UseTarget) => tg.k === 'inv' ? run.inventory[tg.i] : tg.k === 'eq' ? (tg.slot === -1 ? run.units.find((x) => x.uid === tg.uid)?.mod : run.units.find((x) => x.uid === tg.uid)?.items[tg.slot]) ?? null : null;
@@ -1278,18 +1278,18 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     if (pet >= 1) { const pb = petraPay(pet, true); income += pb; lines.push(`페트라 실적 +${pb}`); }
     const fw = fieldOf(run.field).winCredits;
     if (fw) { income += fw; lines.push(`전장 조건 · 계약 정산 +${fw}`); }
-    // 전투 보상 소모품: 분리 용제 · 재구성 회로 · 공명 주입기 (주입기 크기는 페이즈에 따라) · 캠페인 소모품 · 배치형 4종 중 하나
+    // 전투 보상 소모품: 분리 용제 · 재구성 회로 · 공명 주입기 (주입기 크기는 페이즈에 따라) · 배치형 4종 · 강제 징수기 (적이 장비를 다는 위험 등급에서만) · 캠페인 소모품 (캠페인만) 중 하나
     const uc = CFG.drop.utility[type] || 0;
     if (uc && rng(run, (r) => r.chance(uc))) {
-      const k = rng(run, (r) => { const k = r.pick(['K_strip', 'K_reroll', 'inject', 'K_cp_purge', 'K_cp_note', 'K_barricade', 'K_decoy', 'K_mine', 'K_net']); return k === 'inject' ? pickInjector(r, p) : k; });
+      const pool = ['K_strip', 'K_reroll', 'inject', 'K_barricade', 'K_decoy', 'K_mine', 'K_net', ...(foeGearOn(run) ? ['K_seize'] : []), ...(run.campaign ? ['K_cp_purge', 'K_cp_note'] : [])];
+      const k = rng(run, (r) => { const k = r.pick(pool); return k === 'inject' ? pickInjector(r, p) : k; });
       if (k === 'K_strip' && !solventOn(run)) { // 분리 용제가 안 나오는 런: 같은 값의 공명도를 파티에 분배
         const xp = Math.max(1, Math.round(CFG.shop.price.K_strip / XP_VALUE));
         distributeXp(run, xp); run.units.forEach((u) => settleXp(run, u));
         lines.push(`공명도 ${xp} 분배`);
       } else gainItem(run, k, lines);
     }
-    // 전설 소모품 (따로 굴림): 강제 징수기 (적이 장비를 다는 위험 등급에서만) · 원초 공명석
-    if (foeGearOn(run) && rng(run, (r) => r.chance(CFG.drop.seize[type] || 0))) gainItem(run, 'K_seize', lines);
+    // 전설 소모품 (따로 굴림): 원초 공명석
     if (rng(run, (r) => r.chance(CFG.drop.rank3[type] || 0))) gainItem(run, 'K_rank3', lines);
     // 합성 재료: 재료 드롭과 따로 굴린다 (CFG.craft.drop)
     if (rng(run, (r) => r.chance(CFG.craft.drop[type] || 0))) gainItem(run, rng(run, (r) => pickMat(r)), lines);
@@ -1595,17 +1595,32 @@ export function mergeCatwheels(run: RunState, lines?: string[]): number {
   run.pending.push({ t: 'notice', title: zi, body: `캣휠 ${need * made}개가 저절로 맞물려 전설 장비 [${zi}]${made > 1 ? ` ${made}개가` : '이'} 되었습니다. 모든 주요 능력치 +${CFG.despair.ziMajors}. ${[...new Set(where)].join(' · ')}에 들어갔습니다.` });
   return made;
 }
+/** 보관함이 차지한 칸 수: 같은 소모품은 한 칸에 겹친다 (남은 개수는 원형 토큰). drop = 빼고 셀 보관함 칸 (쓰거나 옮기기 직전 확인) */
+export function invSlots(run: RunState, drop = -1): number {
+  const seen = new Set<string>();
+  let n = 0;
+  run.inventory.forEach((x, i) => {
+    if (i === drop) return;
+    if (isConsumable(x)) { if (seen.has(x)) return; seen.add(x); }
+    n++;
+  });
+  return n;
+}
+/** 1개를 얻을 때 보관함에 들어가는 수: 접이식 바리케이드는 DEV.wall.uses 회분 */
+export const bundleOf = (id: string) => (id === 'K_barricade' ? DEV.wall.uses : 1);
+/** 보관함이 가득 차서 id 를 더 넣을 수 없는지 (이미 든 소모품이면 겹쳐 들어간다) */
+export const invFull = (run: RunState, id?: string) => invSlots(run) >= CFG.inventoryMax && !(id && isConsumable(id) && run.inventory.includes(id));
 /** 장비 획득. own = 이미 가진 장비를 돌려받는 경우 (방출 · 변성: 유닉스제 대체 없음). 들어온 장비 id (자동 판매면 null) */
 export function gainItem(run: RunState, id: string, lines?: string[], force = false, own = false): string | null {
   if (!own) id = unixSwap(run, id, lines);
-  if (run.inventory.length >= CFG.inventoryMax && !force) {
+  if (invFull(run, id) && !force) {
     const v = sellPrice(run, id);
     run.credits += v;
     lines?.push(`인벤토리 가득 참 — ${itemInfo(id).name} 자동 판매 +${v}`);
     return null;
   }
   if (id === 'K_bread') breadLeft(run, true); // 지금 보관함 빵에 맞춘 뒤
-  run.inventory.push(id);
+  for (let k = 0; k < bundleOf(id); k++) run.inventory.push(id);
   if (id === 'K_bread') run.breadFresh!.push(CFG.chef.staleAfter); // 새 빵: 식기까지 전투 staleAfter 회
   lines?.push(`장비 획득: ${itemInfo(id).name}`);
   if (id === CATWHEEL) mergeCatwheels(run, lines);
@@ -1697,8 +1712,9 @@ export function genShop(run: RunState, merchant?: string): ShopSlot[] {
       if (r.chance(S.gearAdv)) add(r.pick(ALL_ADVANCED), pr('A'));
       else add(r.pick(ALL_GRADED), pr('G'));
     }
-    // 소모품: 서로 다른 종류 S.consMin 개 확정 (+ S.cons 확률로 1개 더). 공명 주입기는 페이즈에 맞는 크기, 분리 용제는 고난 이상 일반 런만
-    const ks = Object.keys(S.consW).filter((k) => k !== 'K_strip' || solventOn(run));
+    // 소모품: 서로 다른 종류 S.consMin 개 확정 (+ S.cons 확률로 1개 더). 공명 주입기는 페이즈에 맞는 크기, 분리 용제는 고난 이상 일반 런만,
+    // 강제 징수기는 적이 장비를 다는 위험 등급에서만, 캠페인 소모품 (정화 분무기 · 선지급 어음) 은 캠페인만
+    const ks = Object.keys(S.consW).filter((k) => (k !== 'K_strip' || solventOn(run)) && (k !== 'K_seize' || foeGearOn(run)) && (!k.startsWith('K_cp_') || !!run.campaign));
     const consId = (k: string) => (k === 'inject' ? pickInjector(r, run.phase) : k);
     for (let n = S.consMin + (r.chance(S.cons) ? 1 : 0); n > 0 && ks.length; n--) {
       const k = r.weighted(ks, (x) => S.consW[x]);
@@ -1706,8 +1722,7 @@ export function genShop(run: RunState, merchant?: string): ShopSlot[] {
       const id = consId(k);
       add(id, sp(id));
     }
-    // 전설 소모품: 강제 징수기 (종종, 적이 장비를 다는 위험 등급에서만) · 원초 공명석 (희귀)
-    if (foeGearOn(run) && r.chance(S.seize)) add('K_seize', sp('K_seize'));
+    // 전설 소모품: 원초 공명석 (희귀)
     if (run.phase >= S.rank3From && r.chance(S.rank3)) add('K_rank3', sp('K_rank3'));
     // 문장 (희귀): 출전 기물이 가진 시너지 위주
     const own = [...new Set(deployed(run).flatMap((u) => memberships(u)))].filter((x) => EMBLEM_SYNS.includes(x));
@@ -1790,7 +1805,7 @@ export function tradeErr(run: RunState, invIdx?: number): string | null {
   if (nd.traded) return '이 상점에서는 이미 교환했습니다';
   if (!tradeOptions(run).length) return '교환할 고급 · 희귀 장비가 없습니다';
   if (invIdx !== undefined && !tradeOptions(run).includes(invIdx)) return '고급 · 희귀 장비만 교환할 수 있습니다';
-  if (run.inventory.length - 1 + 3 > CFG.inventoryMax) return '보관함 공간이 부족합니다';
+  if (invSlots(run) - 1 + 3 > CFG.inventoryMax) return '보관함 공간이 부족합니다';
   return null;
 }
 /** 고르곤 교환: 보관함 장비 1개 → 재료 3개 (상점마다 1번). 받은 재료 또는 오류 */
@@ -1837,11 +1852,12 @@ export function buyShop(run: RunState, idx: number): string | null {
   const s = run.node?.shop?.[idx];
   if (!s || s.sold) return '이미 판매됨';
   if (run.credits < s.price) return '크레딧 부족';
-  if (run.inventory.length >= CFG.inventoryMax) return '인벤토리 가득 참';
+  if (invFull(run, s.item)) return '인벤토리 가득 참';
   run.credits -= s.price;
   recSpend(run, 'shop', s.price);
   s.sold = true;
-  run.inventory.push(unixSwap(run, s.item));
+  const got = unixSwap(run, s.item);
+  for (let k = 0; k < bundleOf(got); k++) run.inventory.push(got);
   mergeCatwheels(run);
   return null;
 }
@@ -1891,11 +1907,13 @@ export function equipCheck(run: RunState, id: string | null | undefined, uid: st
   if (isRock(u)) return '반려 돌은 장비를 달 수 없습니다';
   if (isConsumable(id)) return '소모품은 장착할 수 없습니다';
   if (isTurretGear(id)) return '포탑 전용 장비는 감시 포탑에만 장착할 수 있습니다';
-  if (isMat(id)) return equipCombo(run, id, uid) ? null : '합성 재료는 장착할 수 없습니다 (같은 기물의 장비와 합성만)';
+  if (isMat(id)) return equipCombo(run, id, uid) || shardSnack(u, id) ? null : '합성 재료는 장착할 수 없습니다 (같은 기물의 장비와 합성만)';
   if (isMod(id)) return isEmblem(id) && memberships(u).includes(emblemOf(id)) && u.mod !== id ? '이미 소속된 시너지의 문장입니다' : null;
   if (!u.items.includes(null) && !equipCombo(run, id, uid)) return '장비 슬롯이 가득 찼습니다 (3칸)';
   return null;
 }
+/** 이스터에그: 별무리 파편을 밍키에게 끼우면 반짝이는 걸 삼켜 버린다 (공명도 +CFG.craft.mingkiShardXp, 조합할 장비가 있으면 조합이 먼저) */
+const shardSnack = (u: UnitState, id: string) => id === SHARD && u.defId === 'mingki';
 /** 장비 id 를 기물 uid 에 장착하면 조합될 칸과 결과 (조합 없으면 null): 빈 칸이 없으면 조합되는 장비, 있으면 같은 기물의 재료끼리 */
 export function equipCombo(run: RunState, id: string, uid: string): { slot: number; res: string } | null {
   const u = run.units.find((x) => x.uid === uid);
@@ -1918,6 +1936,15 @@ export function equip(run: RunState, invIdx: number, uid: string): string | null
   }
   // 조합되는 장비가 있으면 그 칸에서 조합 (빈 칸이 없을 때 · 같은 기물의 재료끼리), 아니면 빈 칸에
   const cb = equipCombo(run, id, uid);
+  if (!cb && shardSnack(u, id)) {
+    run.inventory.splice(invIdx, 1);
+    const r0 = u.rank, xp = CFG.craft.mingkiShardXp;
+    u.xp += xp; settleXp(run, u);
+    const nm = UNIT_BY_ID.mingki?.name || '밍키';
+    log(run, `${nm}가 별무리 파편을 삼킴 (공명도 +${xp})`);
+    run.pending.push({ t: 'notice', title: '냠', body: `${nm}가 반짝이는 별무리 파편을 냉큼 삼켜 버렸습니다. 공명도 +${xp}${u.rank > r0 ? ` (공명 등급 ${u.rank})` : ''}.` });
+    return null;
+  }
   if (cb) u.items[cb.slot] = rollPots(run, unixSwap(run, cb.res), u.items[cb.slot]!);
   else u.items[u.items.indexOf(null)] = id;
   run.inventory.splice(invIdx, 1);
@@ -1935,7 +1962,7 @@ export function unequip(run: RunState, uid: string, slot: number): string | null
   const u = run.units.find((x) => x.uid === uid);
   if (u && slot === -1) {
     if (!u.mod) return null;
-    if (run.inventory.length >= CFG.inventoryMax) return '인벤토리 가득 참';
+    if (invFull(run)) return '인벤토리 가득 참';
     run.inventory.push(u.mod);
     u.mod = null;
     return null;
@@ -1945,7 +1972,7 @@ export function unequip(run: RunState, uid: string, slot: number): string | null
   // 분리 용제 규칙: 용제 1개를 쓰고 그 자리에 장비가 들어온다 (보관함이 가득 차도 된다)
   const pay = solventNeed(run, uid, slot), k = pay ? run.inventory.indexOf('K_strip') : -1;
   if (pay && k < 0) return '분리 용제가 없어 장비를 옮길 수 없습니다';
-  if (run.inventory.length - (pay ? 1 : 0) >= CFG.inventoryMax) return '인벤토리 가득 참';
+  if (invSlots(run, pay ? k : -1) >= CFG.inventoryMax) return '인벤토리 가득 참';
   if (pay) run.inventory.splice(k, 1);
   run.inventory.push(u.items[slot]!);
   u.items[slot] = null;

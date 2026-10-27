@@ -133,7 +133,7 @@ export function shopOverlay(run: RunState): string {
     D.kvChip('보유', `${D.CR}<b>${run.credits}</b>`, '에너지 크레딧', 'cr'),
     D.kvChip('이자 지키며 쓸 수 있음', `${D.CR}<b>${k.spend}</b>`, `지금 이자(크레딧 ${k.per}당 1, 상한 ${I.cap})를 줄이지 않고 쓸 수 있는 크레딧 = 보유 ${run.credits} − ${k.per} × ${I.direct ? 0 : I.raw}`, `cr kv-keep${k.spend ? '' : ' zero'}`),
     D.kvChip('이자', `<b>+${k.keep}</b><small>유지</small>`, '위 금액까지만 쓰면 다음 전투를 마칠 때 받는 이자', 'kv-int'),
-    D.kvChip('보관함', `<b>${run.inventory.length}</b>/${CFG.inventoryMax}`, '산 물품이 들어가는 곳', `kv-inv${run.inventory.length >= CFG.inventoryMax ? ' full' : ''}`),
+    D.kvChip('보관함', `<b>${R.invSlots(run)}</b>/${CFG.inventoryMax}`, '산 물품이 들어가는 곳', `kv-inv${R.invSlots(run) >= CFG.inventoryMax ? ' full' : ''}`),
   ].join('');
   const sold = stock.filter((s) => s.sold).length;
   const rf = R.refreshInfo(run), rfOff = rf.used || !!run.tutorial, mul = R.shopMul(run);
@@ -255,7 +255,7 @@ export function shopAct(run: RunState | null, a: string, v: string): boolean {
       SHOP.sel = i; SHOP.rfErr = '';
       if (s.sold) { say(run, 'sold'); break; }
       if (run.credits < s.price) { SHOP.err = { i, msg: '크레딧 부족' }; say(run, 'poor'); D.sfx('error'); break; }
-      if (run.inventory.length >= CFG.inventoryMax) { SHOP.err = { i, msg: '보관함 가득' }; say(run, 'full'); D.sfx('error'); break; }
+      if (R.invFull(run, s.item)) { SHOP.err = { i, msg: '보관함 가득' }; say(run, 'full'); D.sfx('error'); break; }
       SHOP.err = null;
       say(run, selTalk(s));
       const k = R.interestKeep(run), after = k.after(s.price);

@@ -53,8 +53,8 @@ const ADV: AdvDef[] = [
     effect: (k) => ({ hooks: { onLethal(bt, u) { if ((u.mem.kit || 0) >= k) return false; u.mem.kit = (u.mem.kit || 0) + 1; u.hp = 1; bt.heal(u, u, bt.S(u, 'maxHp') * 0.15, true); return true; } } }) },
   { id: 'pow_pow', a: 'pow', b: 'pow', name: '과출력 무기', desc: (k) => `모든 피해 +${15 * k}%.`,
     effect: () => ({ mods: [inc('all', 0.15)] }) },
-  { id: 'pow_mnd', a: 'pow', b: 'mnd', name: '조준 보조 AI', desc: (k) => `치명타 확률 +${5 * k}%p, 치명타 피해 +${40 * k}%p.`,
-    effect: () => ({ stats: { crit: 0.05, critDmg: 0.4 } }) },
+  { id: 'pow_mnd', a: 'pow', b: 'mnd', name: '조준 보조 AI', desc: (k) => `치명타 확률 +${30 * k}%p, 치명타 피해 +${10 * k}%p.`,
+    effect: () => ({ stats: { crit: 0.3, critDmg: 0.1 } }) },
   { id: 'pow_def', a: 'pow', b: 'def', name: '중력 해머', desc: (k) => `기본 공격 시 ${Math.min(100, 20 * k)}% 확률로 대상 1초 기절.`,
     effect: (k) => ({ hooks: { onBasic(bt, u, t) { if (t.alive && bt.rng.chance(0.2 * k)) bt.stun(u, t, 1); } } }) },
   { id: 'pow_agi', a: 'pow', b: 'agi', name: '고속 연사 장치', desc: (k) => `공격 속도 +${30 * k}%.`,
@@ -91,8 +91,8 @@ export interface ItemInfo { id: string; tier: 'C' | 'G' | 'A' | 'L' | 'M' | 'K' 
 export const DUST = 'S_dust', SHARD = 'S_shard', CRYSTAL = 'S_crystal';
 export const MATS: Record<string, { name: string; icon: string; desc: string }> = {
   [DUST]: { name: '성운 가루', icon: '✧', desc: `[합성 재료] 장비 재료와 합성하면 같은 능력치의 고급 모듈이 됩니다. 고급 모듈과 합성하면 모듈을 1단계 제련해 주요 능력치가 +${CFG.craft.refinePts} 증가합니다 (최대 ${CFG.craft.refineMax}단계). 성운 가루 2개를 합성하면 별무리 파편이 됩니다.` },
-  [SHARD]: { name: '별무리 파편', icon: '✦', desc: `[희귀 합성 재료] 전설 장비와 합성하면 1단계 제련합니다. 주요 능력치가 하나인 전설은 +${CFG.craft.legendPts.focus}, 둘인 전설은 각각 +${CFG.craft.legendPts.split} 증가합니다 (최대 ${CFG.craft.refineMax}단계).` },
-  [CRYSTAL]: { name: '백수정 조각', icon: '⬡', desc: `[합성 재료] 희귀 · 전설 장비와 합성하면 잠재능력 1개를 무작위로 개방합니다 (희귀 최대 ${CFG.craft.potSlots.A}개 · 전설 최대 ${CFG.craft.potSlots.L}개). 잠재능력은 장비를 만든 재료에 따라 정해집니다. 잠재능력이 다 열린 장비에 쓰면 붙어 있던 잠재능력을 모두 다시 뽑습니다.` },
+  [SHARD]: { name: '별무리 파편', icon: '✦', desc: `[희귀 합성 재료] 전설 장비와 합성하면 1단계 제련합니다. 주요 능력치가 하나인 전설은 +${CFG.craft.legendPts.focus}, 둘인 전설은 각각 +${CFG.craft.legendPts.split}, 캣휠(ZI존)은 모든 주요 능력치가 +${CFG.craft.ziPts} 증가합니다 (최대 ${CFG.craft.refineMax}단계).` },
+  [CRYSTAL]: { name: '백수정 조각', icon: '⬡', desc: `[합성 재료] 희귀 · 전설 장비와 합성하면 잠재능력 1개를 무작위로 개방합니다 (희귀 최대 ${CFG.craft.potSlots.A}개 · 전설 최대 ${CFG.craft.potSlots.L}개). 잠재능력은 장비를 만든 재료에 따라 정해집니다 (캣휠(ZI존)은 모든 잠재능력 중에서). 잠재능력이 다 열린 장비에 쓰면 붙어 있던 잠재능력을 모두 다시 뽑습니다.` },
 };
 export const isMat = (id: string | null | undefined) => !!id && !!MATS[id];
 export const ALL_MATS = Object.keys(MATS);
@@ -113,9 +113,11 @@ export const gradedPts = (lv: number) => GRADE_PTS + CFG.craft.refinePts * lv;
 /** 잠재능력 칸 수: 희귀 1 · 전설 2 (희귀 조합 장비만 — 동맹 · 고유 장비 제외), 그 밖 0 */
 export const potSlots = (id: string | null | undefined) => (!id ? 0 : ALL_ADVANCED.includes(refineBase(id)) ? CFG.craft.potSlots.A : isForgeLegend(id) ? CFG.craft.potSlots.L : 0);
 /** 장비의 잠재능력 후보: 조합 재료(주요 능력치 둘)의 잠재능력 (같은 재료면 4개) */
-export const potPool = (id: string): string[] => { const a = ADV_BY_ID[refineBase(id).slice(2)]; return a ? [...new Set([a.a, a.b])].flatMap((m) => POT_KEYS.filter((k) => POTS[k].major === m)) : []; };
-/** 별무리 파편으로 제련할 수 있는 전설 장비 (희귀 조합의 전설판 — 동맹 · 고유 장비 제외, 제련 단계 무관) */
-export const isForgeLegend = (id: string | null | undefined) => !!id && id[0] === 'L' && !!ADV_BY_ID[refineBase(id).slice(2)];
+export const potPool = (id: string): string[] => { if (isZi(id)) return [...POT_KEYS]; const a = ADV_BY_ID[refineBase(id).slice(2)]; return a ? [...new Set([a.a, a.b])].flatMap((m) => POT_KEYS.filter((k) => POTS[k].major === m)) : []; };
+/** 별무리 파편으로 제련 · 백수정 조각으로 잠재능력을 열 수 있는 전설 장비 (희귀 조합의 전설판 · 캣휠(ZI존) — 동맹 · 고유 장비 제외, 제련 단계 무관) */
+export const isForgeLegend = (id: string | null | undefined) => !!id && id[0] === 'L' && (!!ADV_BY_ID[refineBase(id).slice(2)] || isZi(id));
+/** 캣휠(ZI존) (제련 단계 · 잠재능력 무관) */
+export const isZi = (id: string | null | undefined) => !!id && refineBase(id) === CATWHEEL_ZI;
 
 const ADV_BY_ID = Object.fromEntries(ADV.map((a) => [a.id, a]));
 
@@ -126,10 +128,10 @@ export interface PotDef { major: Major; name: string; desc: string; /** 도감 �
 const mainKey = (ctype?: string): 'shoot' | 'strike' | 'tech' => (ctype === 'MARK' ? 'shoot' : ctype === 'VAN' ? 'strike' : 'tech');
 export const POTS: Record<string, PotDef> = {
   vit1: { major: 'vit', name: '강인함', desc: '최대 체력 +15%p', effect: () => ({ pct: { maxHp: 0.15 } }) },
-  vit2: { major: 'vit', name: '재생 촉진', desc: '회복 효율 +25%p', effect: () => ({ stats: { healEff: 0.25 } }) },
+  vit2: { major: 'vit', name: '재생 촉진', desc: '회복 효율 +35%p', effect: () => ({ stats: { healEff: 0.35 } }) },
   vit3: { major: 'vit', name: '면역 강화', desc: '효과 저항 +20%p', effect: () => ({ stats: { effRes: 0.2 } }) },
   vit4: { major: 'vit', name: '해독 체질', desc: '받는 지속 피해 -30%p', effect: () => ({ taken: [red('dot', 0.3)] }) },
-  pow1: { major: 'pow', name: '출력 집중', desc: '주 위력 +15%p', note: '장착한 기물의 전투 유형에 따라 사격 · 타격 · 기술 위력 중 하나, 지휘관은 자신이 쓰는 전술 위력', effect: (c) => (c === 'CMD' ? { setup: (u) => { u.mem.tacPct = (u.mem.tacPct || 0) + 0.15; } } : { pct: { [mainKey(c)]: 0.15 } }) },
+  pow1: { major: 'pow', name: '출력 집중', desc: '주 위력 +20%p', note: '장착한 기물의 전투 유형에 따라 사격 · 타격 · 기술 위력 중 하나, 지휘관은 자신이 쓰는 전술 위력', effect: (c) => (c === 'CMD' ? { setup: (u) => { u.mem.tacPct = (u.mem.tacPct || 0) + 0.2; } } : { pct: { [mainKey(c)]: 0.2 } }) },
   pow2: { major: 'pow', name: '장갑 파쇄', desc: '방어도 관통 +20%p', effect: () => ({ stats: { armorPen: 0.2 } }) },
   pow3: { major: 'pow', name: '급소 강타', desc: '치명타 피해 +30%p', effect: () => ({ stats: { critDmg: 0.3 } }) },
   pow4: { major: 'pow', name: '약점 포착', desc: '치명타 확률 +10%p', effect: () => ({ stats: { crit: 0.1 } }) },
@@ -231,7 +233,7 @@ export const isJunk = (id: string | null | undefined) => !!id && !!JUNK[id];
  *  캣휠로도 친다 (밍키가 달면 캣휠 보너스 · 업적 catwheel). 조합 · 전설 주조 불가 */
 export const CATWHEEL_ZI = 'L_catwheel_zi';
 /** 캣휠 · 캣휠(ZI존) */
-export const isCatwheel = (id: string | null | undefined) => !!id && (!!JUNK[id]?.cat || id === CATWHEEL_ZI);
+export const isCatwheel = (id: string | null | undefined) => !!id && (!!JUNK[id]?.cat || isZi(id));
 const allMajors = (k: number) => Object.fromEntries(MAJORS.map((m) => [m, k])) as Partial<Record<Major, number>>;
 /** 잡동사니 id 목록 (도감) */
 export const JUNK_IDS = Object.keys(JUNK);
@@ -325,13 +327,13 @@ export const CONSUMABLES: Record<string, { name: string; icon: string; target: '
   K_xp: { name: '소형 공명 주입기', icon: '✚', target: 'unit', price: 0, drop: true, get desc() { return injText('K_xp'); } },
   K_xp2: { name: '중형 공명 주입기', icon: '✚', target: 'unit', price: 0, drop: true, get desc() { return injText('K_xp2'); } },
   K_xp3: { name: '대형 공명 주입기', icon: '✚', target: 'unit', price: 0, drop: true, get desc() { return injText('K_xp3'); } },
-  // 전설급
-  K_seize: { name: '강제 징수기', icon: '⚒', target: 'foe', price: 0, drop: true, legend: true,
+  K_seize: { name: '강제 징수기', icon: '⚒', target: 'foe', price: 0, drop: true,
     desc: '편성 화면에서 이번 전투의 적 1명에게 사용 (보스 포함): 그 적이 단 장비 · 개조부품을 모두 떼어 냅니다. 떼어 낸 것 중 등급이 가장 높은 1개(전설 > 개조부품 > 희귀 > 고급 > 재료)가 보관함으로 들어오고, 나머지는 부서집니다.' },
+  // 전설급
   K_rank3: { name: '원초 공명석', icon: '◆', target: 'unit', price: 0, drop: true, legend: true, desc: '기물에 사용: 공명 등급 +3. 정제되지 않은 공명석 원핵이 기물의 공명 구조를 단숨에 끌어올립니다.' },
   // 셰프 시너지
   K_bread: { name: '갓 구운 빵', icon: '◒', target: 'run', price: 0, drop: true, chef: true, get desc() { return `바로 사용: 플레이어 체력 회복 (위험 등급에 따라 ${breadHealText()}). 얻은 뒤 전투 ${CFG.chef.staleAfter}회를 지나면 식은 빵이 됩니다 (셰프 ${SYN_BY_ID.CHEF?.tiers[CFG.chef.noStaleTier - 1] ?? ''}명 이상이 켜진 전투는 세지 않음). 셰프들이 남는 시간에 구워 둔 빵.`; } },
-  // 캠페인 「회수 계약」에서 들여온 소모품 (본편 상점 · 전투 보상에도 나온다). 테이프는 캠페인 사건 전용
+  // 캠페인 「회수 계약」 소모품 (캠페인 상점 · 전투 보상에만 나온다). 테이프는 캠페인 사건 전용
   K_cp_purge: { name: '정화 분무기', icon: '❉', target: 'run', price: 0, drop: true, desc: '바로 사용: 다음 전투 동안 아군 전원이 받는 화학 피해 -40%. 포자 안개를 걷어 내는 페트라 격리팀 표준 장비.' },
   K_cp_note: { name: '선지급 어음', icon: '✎', target: 'run', price: 0, drop: true, desc: '바로 사용: 크레딧 +15. 이번 페이즈가 끝날 때 (캠페인은 장이 끝날 때) -20 (라르스 서명, 이자 포함).' },
   K_cp_tape: { name: '격리 봉인 테이프', icon: '▤', target: 'run', price: 0, drop: true, desc: '격리 화물 사건에서 쓴다: 위험한 화물을 열어도 위험은 봉인하고 보상만 챙긴다. 직접 사용할 수는 없다.' },
@@ -377,8 +379,8 @@ const HEL_ITEMS: Record<string, { name: string; icon: string; major: Major; desc
     effect: (k) => ({ hooks: { onInflict(_b, u, tgt, s) { if (tgt.side !== u.side) s.dur += 2 * k; } } }) },
   hellight: { name: '달빛 등대', icon: '☾', major: 'agi', desc: (k) => `회피하면 최대 체력 ${3 * k}% 회복.`,
     effect: (k) => ({ hooks: { onEvade(b, u) { b.heal(u, u, b.S(u, 'maxHp') * 0.03 * k, true); } } }) },
-  helrelic: { name: '올림푸스 성물', icon: '⚱', major: 'def', desc: (k) => `한 번에 최대 체력 ${10 / k}%를 넘는 피해를 받지 않음.`,
-    effect: (k) => ({ setup: (u) => { u.mem.hitCap = Math.min(u.mem.hitCap || 1, 0.1 / k); } }) },
+  helrelic: { name: '올림푸스 성물', icon: '⚱', major: 'def', desc: (k) => `한 번에 최대 체력 ${5 / k}%를 넘는 피해를 받지 않음.`,
+    effect: (k) => ({ setup: (u) => { u.mem.hitCap = Math.min(u.mem.hitCap || 1, 0.05 / k); } }) },
 };
 export const HEL_ITEM_IDS = ['A_helrelic', 'A_helanchor', 'A_hellight']; // 동맹 1 · 2 · 3단계 선물 순서 (올림푸스 성물 → 성운 정박기 → 달빛 등대)
 export const isHelItem = (id: string | null) => !!id && !!HEL_ITEMS[id.slice(2)];
@@ -465,9 +467,11 @@ export function itemInfo(id: string): ItemInfo {
     return { id, tier: id[0] === 'L' ? 'L' : 'A', name: (k === 2 ? '[전설] ' : '') + h.name, icon: h.icon, majors: { [h.major]: 6 * k }, desc: `[동맹 전용] ${MAJOR_NAME[h.major]} +${6 * k}. ${h.desc(k)}` };
   }
   if (JUNK[id]) { const j = JUNK[id]; return { id, tier: 'J', name: j.name, icon: j.icon, majors: {}, desc: j.desc }; }
-  if (id === CATWHEEL_ZI) {
-    const Z = CFG.despair;
-    return { id, tier: 'L', name: '캣휠(ZI존)', icon: '◎', majors: allMajors(Z.ziMajors), desc: `[유닉스제 · 전설] 캣휠 ${Z.zi}개가 저절로 맞물려 성계 하나를 통째로 가리는 물건이 되었다. 모든 주요 능력치 +${Z.ziMajors}. 고양이라면 더더욱 모르겠다.` };
+  if (isZi(id)) { // 별무리 파편으로 제련 (단계마다 모든 주요 능력치 +CFG.craft.ziPts) · 백수정 조각으로 잠재능력 (후보: 20종 전부)
+    const Z = CFG.despair, lv = refineLv(id), pts = Z.ziMajors + CFG.craft.ziPts * lv, ps = potsOf(id);
+    return { id, tier: 'L', name: `캣휠(ZI존)${lv ? ` +${lv}` : ''}`, icon: '◎', majors: allMajors(pts),
+      desc: `[유닉스제 · 전설] 캣휠 ${Z.zi}개가 저절로 맞물려 성계 하나를 통째로 가리는 물건이 되었다. 모든 주요 능력치 +${pts}${lv ? ` (제련 ${lv}단계 · 기본 +${Z.ziMajors})` : ''}. 고양이라면 더더욱 모르겠다.${ps.length ? ` 잠재능력: ${ps.map(potText).join(' · ')}.` : ''}`,
+      recipe: lv ? [withRefine(id, lv - 1), SHARD] : undefined, refine: lv || undefined };
   }
   if (MATS[id]) { const m = MATS[id]; return { id, tier: 'S', name: m.name, icon: m.icon, majors: {}, desc: m.desc, recipe: id === SHARD ? [DUST, DUST] : undefined }; }
   if (CONSUMABLES[id]) { const c = CONSUMABLES[id]; return { id, tier: 'K', name: c.name, icon: c.icon, majors: {}, desc: `[소모품] ${c.desc}` }; }
@@ -506,7 +510,10 @@ export function itemInfo(id: string): ItemInfo {
 /** owner: 장착한 기물 id (캣휠 · 밍키처럼 기물에 따라 달라지는 장비) */
 export function itemEffect(id: string, owner?: string, ctype?: string): Effect {
   if (JUNK[id]) { const k = JUNK[id].cat && owner === 'mingki' ? CFG.despair.catwheelMajors : 0; return k ? { majors: Object.fromEntries(MAJORS.map((m) => [m, k])) } : {}; }
-  if (id === CATWHEEL_ZI) return { majors: allMajors(CFG.despair.ziMajors + (owner === 'mingki' ? CFG.despair.catwheelMajors : 0)) }; // 밍키: 캣휠 보너스도 그대로
+  if (isZi(id)) { // 밍키: 캣휠 보너스도 그대로 · 잠재능력
+    const majors = allMajors(CFG.despair.ziMajors + CFG.craft.ziPts * refineLv(id) + (owner === 'mingki' ? CFG.despair.catwheelMajors : 0));
+    return { ...potsOf(id).filter((p) => POTS[p]).reduce((acc, p) => addEffect(acc, POTS[p].effect(ctype)), {} as Effect), majors };
+  }
   if (isTurretGear(id)) return TURRET_GEAR[id].effect;
   if (isHelItem(id)) { const h = HEL_ITEMS[id.slice(2)], k = id[0] === 'L' ? 2 : 1; return { ...h.effect(k), majors: { [h.major]: 6 * k } }; }
   if (UNIQUE[id]) return UNIQUE[id].effect;

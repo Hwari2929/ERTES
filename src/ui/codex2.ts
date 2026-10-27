@@ -290,7 +290,7 @@ function sources(id: string): string[] {
       }
       out.push(`회복량 (위험 등급별): ${C.breadHeal.map(([l, h]) => `${diffName(l) || `위험 ${l}`} ${stale ? Math.max(1, h - C.staleHeal) : h}`).join(' · ')}`);
       out.push(`판매가 (난이도별): ${breadSellText(stale)}`);
-    } else if (id.startsWith('K_cp_')) { // 캠페인 「회수 계약」 소모품 (정화 분무기 · 선지급 어음은 본편에도 나온다)
+    } else if (id.startsWith('K_cp_')) { // 캠페인 「회수 계약」 소모품 (캠페인에서만 나온다)
       if (id === 'K_cp_tape') out.push('캠페인 1장: 필리스 합류 사건에서 [상자는 두고 와]를 고르면 1개');
       else out.push(`상점 ${CFG.shop.price[id]} 크레딧 (가끔 진열) · 전투 보상 소모품 (확률)`, '캠페인 시작 때 라르스가 1개 보낸다');
       out.push('일반 의뢰에서는 나오지 않는다');
@@ -305,8 +305,8 @@ function sources(id: string): string[] {
       else out.push(`상점 · ${S.price[id]} 크레딧 (가끔 진열) · 전투 보상 소모품 (확률)`);
       for (const [k, v] of deviceRows(id, SYN_BY_ID.NAV.tiers)) out.push(`${k}: ${v}`);
     } else if (id === 'K_seize') {
-      out.push(`상점 · ${S.price[id]} 크레딧 (${pctTxt(S.seize)} 확률 진열, ${foeGear})`);
-      out.push(`전투 승리 보상 (${foeGear}): ${dropTxt(CFG.drop.seize)}`);
+      out.push(`전투 승리 보상 (${foeGear}): ${dropTxt(CFG.drop.utility)} 확률로 소모품 1개`);
+      out.push(`상점 · ${S.price[id]} 크레딧 (${pctTxt(S.cons)} 확률로 소모품 1개 진열, ${foeGear})`);
     } else if (id === 'K_rank3') {
       out.push(`상점 · ${S.price[id]} 크레딧 (${S.rank3From}페이즈부터 ${pctTxt(S.rank3)} 확률 진열)`);
       out.push(`전투 승리 보상: ${dropTxt(CFG.drop.rank3)}`);
@@ -327,7 +327,7 @@ function sources(id: string): string[] {
   }
   if (id === CATWHEEL_ZI) { // 캣휠이 모이면 자동으로 (engine/run.ts mergeCatwheels)
     out.push(`보관함 + 장착 중인 캣휠이 ${CFG.despair.zi}개 모이면 자동으로 합쳐짐 (보관함 것부터, 모자라면 장착한 것 — 그 칸에 그대로 달림)`);
-    out.push('조합 · 전설 주조 불가');
+    out.push(`별무리 파편으로 제련 (최대 ${CFG.craft.refineMax}단계, 단계마다 모든 주요 능력치 +${CFG.craft.ziPts})`, `백수정 조각으로 잠재능력 (${CFG.craft.potSlots.L}칸, 모든 잠재능력 중에서)`);
     return out;
   }
   if (isLocked(id)) {
@@ -399,16 +399,16 @@ function itemDetail(H: CxH, id: string): string {
     if (it.recipe) a.push(`<h3>조합</h3><div class="cx2-recipe">${it.recipe.map((x) => `${H.itemIcon(x)}<span class="small">${esc(itemInfo(x).name)}</span>`).join('<b>+</b>')}<b>=</b>${H.itemIcon(id)}</div>`);
     if (id === CRYSTAL) { // 잠재능력 표: 재료(주요 능력치)마다 4종
       const ms = [...new Set(POT_KEYS.map((k) => POTS[k].major))];
-      b.push(`<h3>잠재능력 <span class="cx-hn">${POT_KEYS.length}종 · 희귀 ${CFG.craft.potSlots.A}칸 · 전설 ${CFG.craft.potSlots.L}칸</span></h3>${ms.map((m) => `<h4 class="small">${H.majorIcon(m)} ${esc(MAJOR_NAME[m])} 재료</h4><ul class="cx2-rows">${POT_KEYS.filter((k) => POTS[k].major === m).map((k) => `<li class="small"><b>${esc(POTS[k].name)}</b> · ${esc(POTS[k].desc)}${POTS[k].note ? ` <span class="muted">(${esc(POTS[k].note!)})</span>` : ''}</li>`).join('')}</ul>`).join('')}<p class="muted small">장비를 만든 재료 두 가지의 잠재능력 중에서 열립니다 (같은 재료 2개로 만든 장비는 그 재료의 4종).</p>`);
+      b.push(`<h3>잠재능력 <span class="cx-hn">${POT_KEYS.length}종 · 희귀 ${CFG.craft.potSlots.A}칸 · 전설 ${CFG.craft.potSlots.L}칸</span></h3>${ms.map((m) => `<h4 class="small">${H.majorIcon(m)} ${esc(MAJOR_NAME[m])} 재료</h4><ul class="cx2-rows">${POT_KEYS.filter((k) => POTS[k].major === m).map((k) => `<li class="small"><b>${esc(POTS[k].name)}</b> · ${esc(POTS[k].desc)}${POTS[k].note ? ` <span class="muted">(${esc(POTS[k].note!)})</span>` : ''}</li>`).join('')}</ul>`).join('')}<p class="muted small">장비를 만든 재료 두 가지의 잠재능력 중에서 열립니다 (같은 재료 2개로 만든 장비는 그 재료의 4종 · 캣휠(ZI존)은 모든 잠재능력 중에서).</p>`);
     } else if (g === 'S' || g === 'C') {
-      const rows = [...ALL_COMPONENTS, ...ALL_MATS, ...ALL_GRADED, ...ALL_ADVANCED.map(legendOf).slice(0, 2)].map((y) => [y, combine(id, y)] as const).filter(([, r]) => r); // 전설은 예시 2개 (집중형 · 분산형)
+      const rows = [...ALL_COMPONENTS, ...ALL_MATS, ...ALL_GRADED, ...ALL_ADVANCED.map(legendOf).slice(0, 2), CATWHEEL_ZI].map((y) => [y, combine(id, y)] as const).filter(([, r]) => r); // 전설은 예시 2개 (집중형 · 분산형)
       if (!rows.length) b.push('<h3>조합 결과</h3><p class="muted small">아직 쓰임새가 없습니다.</p>');
       else
       b.push(`<h3>조합 결과 <span class="cx-hn">${rows.length}종</span></h3><ul class="cx2-rows">${rows.map(([y, r]) => `<li class="cx2-mix"><b>+</b>${H.itemIcon(y)}<b>=</b>${itemRow(H, r!)}</li>`).join('')}</ul>`);
     }
-    if (g === 'G' || (g === 'L' && isForgeLegend(id))) { // 제련 단계별 능력치 (고급 모듈 = 성운 가루 · 전설 = 별무리 파편, 1개 = 1단계)
+    if (g === 'G' || ((g === 'L' || g === 'X') && isForgeLegend(id))) { // 제련 단계별 능력치 (고급 모듈 = 성운 가루 · 전설 · 캣휠(ZI존) = 별무리 파편, 1개 = 1단계)
       const lvs = [...Array(CFG.craft.refineMax + 1).keys()];
-      const val = (lv: number) => Object.values(itemInfo(withRefine(id, lv)).majors).map((v) => `+${v}`).join(' · ');
+      const val = (lv: number) => { const vs = Object.values(itemInfo(withRefine(id, lv)).majors); return id === CATWHEEL_ZI ? `+${vs[0]}` : vs.map((v) => `+${v}`).join(' · '); }; // 캣휠(ZI존): 모든 주요 능력치가 같은 값
       const tool = itemInfo(g === 'G' ? DUST : SHARD).name;
       a.push(`<h3>제련 <span class="cx-hn">최대 ${CFG.craft.refineMax}단계</span></h3><div class="cx2-maj">${lvs.map((lv) => `<span>${H.itemIcon(withRefine(id, lv))}${lv ? '' : '기본 '}<b class="f-num">${val(lv)}</b></span>`).join('')}</div><p class="muted small">${(Object.keys(it.majors) as Major[]).map((m) => esc(MAJOR_NAME[m])).join(' · ')} · ${esc(tool)} 1개로 1단계</p>`);
     }

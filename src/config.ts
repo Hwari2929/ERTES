@@ -176,12 +176,12 @@ export const CFG = {
    *  shop: 상점마다 합성 재료 1개를 진열할 확률 · refinePts: 성운 가루 제련 1단계마다 고급 모듈 주요 능력치 증가 (기본 +6 → 5단계 +21) · legendPts: 별무리 파편 제련 1단계마다 전설 장비 능력치 증가 (focus = 주요 능력치 하나 +18 짜리 · split = 둘에 +9 씩 짜리, 각각) · refineMax: 최대 제련 단계 */
   craft: { drop: { battle: 0.15, adversity: 0.5, boss: 1 } as Record<string, number>, w: { S_dust: 3, S_crystal: 1 } as Record<string, number>, crystal: true,
     shop: 0.75, refinePts: 3, legendPts: { focus: 6, split: 3 }, refineMax: 5,
-    /** 잠재능력 칸 (백수정 조각): 희귀 · 전설 */ potSlots: { A: 1, L: 2 } }, // J: 유닉스제 잡동사니 (캣휠)
+    /** 잠재능력 칸 (백수정 조각): 희귀 · 전설 */ potSlots: { A: 1, L: 2 },
+    /** 캣휠(ZI존) 제련 (별무리 파편): 단계마다 모든 주요 능력치 + · 별무리 파편을 밍키에게 끼우면 (이스터에그) 먹어 치우고 공명도 + */ ziPts: 2, mingkiShardXp: 12 }, // J: 유닉스제 잡동사니 (캣휠)
   // 장비 드랍 [임시]
   // advParts: 역경(· 도전) 승리 시 무작위 장비 재료 확정 개수 (예전: 확률 50%)
   drop: { battle: 0.1, advParts: 1, bossAdvEvery: 3, bossPart: 0.5, shopParts: 2, shopAdv: 0.4, shopAdv2: 0.1, shopGraded: 0.15, shopLegend: 0.05, shopLegendPhase: 6, utility: { battle: 0.15, adversity: 0.3, boss: 0.5 } as Record<string, number>,
-    // 전설 소모품 (승리 시, 위 utility 와 따로 굴림): 강제 징수기 = 매우 낮은 확률 (적이 장비를 다는 위험 등급에서만) · 원초 공명석 = 극저확률
-    seize: { battle: 0.01, adversity: 0.02, boss: 0.04 } as Record<string, number>,
+    // 전설 소모품 (승리 시, 위 utility 와 따로 굴림): 원초 공명석 = 극저확률
     rank3: { battle: 0.003, adversity: 0.008, boss: 0.02 } as Record<string, number> },
   /** 공명 주입기 (소형 K_xp · 중형 K_xp2 · 대형 K_xp3): 공명도 · 입고 가중치 · 나오기 시작하는 페이즈.
    *  smallTo 페이즈가 지나면 소형은 나오지 않고 그 가중치를 중형이 가져간다 (전투 보상 · 상점 공용) */
@@ -193,12 +193,11 @@ export const CFG = {
   shop: {
     gearFrom: 3, gearAdv: 0.5, // 이 페이즈부터 고급 · 희귀 장비를 1개 이상 확정 진열 (확률 입고가 없으면 1개 추가: 희귀일 확률, 아니면 고급)
     consMin: 2, // 소모품은 서로 다른 종류로 최소 2개 진열 (+ cons 확률로 1개 더)
-    cons: 0.4, consW: { inject: 3, K_strip: 1, K_reroll: 1, K_cp_purge: 1, K_cp_note: 1, K_barricade: 1, K_decoy: 1, K_mine: 1, K_net: 1 } as Record<string, number>, // 소모품 1개 (종종): 공명 주입기(페이즈에 맞는 크기) · 분리 용제 · 재구성 회로 · 정화 분무기 · 선지급 어음 (캠페인에서 들여옴) · 배치형 4종 (바리케이드 · 신호기 · 지뢰 · 그물)
-    seize: 0.25, // 강제 징수기 (종종, 적이 장비를 다는 위험 등급에서만)
+    cons: 0.4, consW: { inject: 3, K_strip: 1, K_reroll: 1, K_seize: 1, K_cp_purge: 1, K_cp_note: 1, K_barricade: 1, K_decoy: 1, K_mine: 1, K_net: 1 } as Record<string, number>, // 소모품 1개 (종종): 공명 주입기(페이즈에 맞는 크기) · 분리 용제 · 재구성 회로 · 강제 징수기 (적이 장비를 다는 위험 등급만) · 정화 분무기 · 선지급 어음 (캠페인만) · 배치형 4종 (바리케이드 · 신호기 · 지뢰 · 그물)
     rank3: 0.04, rank3From: 2, // 원초 공명석 (희귀): 입고 확률 · 시작 페이즈
     emblem: 0.06, emblemOwn: 0.6, // 문장 (희귀): 입고 확률 · 출전 기물이 가진 시너지 문장일 확률
     /** 가격 (크레딧, 전장 상점 배율 · 관세 적용 전). 소모품 판매가(sell.K)보다 비싸게. K_feast = 미리암 라일라 전용 (만찬 백수정) */
-    price: { K_xp: 6, K_xp2: 14, K_xp3: 26, K_strip: 6, K_reroll: 8, K_seize: 30, K_rank3: 40, emblem: 25, K_cp_purge: 6, K_cp_note: 2, K_barricade: 8, K_decoy: 6, K_mine: 7, K_net: 9, K_feast: 14 } as Record<string, number>,
+    price: { K_xp: 6, K_xp2: 14, K_xp3: 26, K_strip: 6, K_reroll: 8, K_seize: 12, K_rank3: 40, emblem: 25, K_cp_purge: 6, K_cp_note: 2, K_barricade: 8, K_decoy: 6, K_mine: 7, K_net: 9, K_feast: 14 } as Record<string, number>,
     /** 진열대 칸 수 (3×3). 상점마다 진열하는 물품 수는 count 확률 ([개수, 확률], 새로고침도 다시 뽑는다) — 남는 칸은 빈 선반으로 둔다.
      *  위 확률 진열을 굴린 뒤 모자라는 칸은 fill 가중치로 분류를 골라 채운다 (재료 · 소모품 · 고급 · 희귀 · 문장, 겹치지 않게) */
     slots: 9,

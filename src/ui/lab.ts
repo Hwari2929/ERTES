@@ -108,7 +108,7 @@ function unitsTab(run: RunState) {
 // ───────── 탭: 장비 · 소모품
 function itemsTab(run: RunState) {
   const scope = run.scope || run.inventory.includes('K_scope') ? kv(CONSUMABLES.K_scope?.name || '', stepper('scope', run.scope?.n || 0, 0, 99, 1, '사용 횟수')) : '';
-  const head = kv('보관함', `<b class="f-num">${run.inventory.length}</b> <span class="muted small">/ ${CFG.inventoryMax} (훈련장은 넘쳐도 들어감)</span><button class="btn tiny ghost" ${go('inv-clear')} ${run.inventory.length ? '' : 'disabled'}>비우기</button>`) + scope;
+  const head = kv('보관함', `<b class="f-num">${R.invSlots(run)}</b> <span class="muted small">/ ${CFG.inventoryMax} (훈련장은 넘쳐도 들어감)</span><button class="btn tiny ghost" ${go('inv-clear')} ${run.inventory.length ? '' : 'disabled'}>비우기</button>`) + scope;
   const groups = itemCatalog().map(([g, ids]) => {
     const tiles = ids.map((id) => {
       if (id.startsWith('R:')) {

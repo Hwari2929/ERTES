@@ -287,12 +287,12 @@ function xpBar(u: UnitState) {
   const need = CFG.xpToNext(u.rank);
   return `<div class="xp"><i style="width:${(u.xp / need) * 100}%"></i><b>${u.xp}/${need}</b></div>`;
 }
-function itemIcon(id: string | null, attrs = '', note = '') { // note: 툴팁 덧붙임 (갓 구운 빵의 남은 전투 등)
+function itemIcon(id: string | null, attrs = '', note = '', count = 1) { // note: 툴팁 덧붙임 (갓 구운 빵의 남은 전투 등) · count: 보관함에 겹친 같은 소모품 수
   if (!id) return `<span class="item empty" ${attrs}></span>`;
   const it = itemInfo(id);
   const sc = isEmblem(id) ? SYN_BY_ID[emblemOf(id)]?.color : isOccultMod(id) ? SYN_BY_ID.OCCULT.color : ''; // 문장: 시너지 색 · 신비 부품: 신비학자 색
   const hx = isConsumable(id) ? ` hex" style="--hc:${consColor(id)}` : ''; // 소모품: 육각형 (합성품 보라 · 전투 보상 청록 · 전설급 금색 · 셰프 주황)
-  const uses = id === 'K_scope' && app.run?.scope ? `<b class="use-n" title="남은 사용 횟수">${app.run.scope.n}</b>` : ''; // 표시 망원경: 오른쪽 아래 원형 사용 횟수
+  const uses = id === 'K_scope' && app.run?.scope ? `<b class="use-n" title="남은 사용 횟수">${app.run.scope.n}</b>` : count > 1 ? `<b class="use-n" title="보유 개수">${count}</b>` : ''; // 표시 망원경: 오른쪽 아래 원형 사용 횟수 · 겹친 소모품: 같은 자리에 개수
   const rf = refineLv(id);
   const refine = rf ? `<span class="rf-gem" title="제련 ${rf}단계" aria-label="제련 ${rf}단계">${'<i></i>'.repeat(rf)}</span>` : ''; // 제련 단계: 칸 안 우측 상단부터 아래로 마름모 n개
   const np = potsOf(id).length, ns = potSlots(id);
@@ -1000,7 +1000,7 @@ function mapScreen(run: RunState) {
       <h2>파티 <span class="muted small">출전 ${deployed(run).length}/${R.deployCap(run)} · 보유 ${run.units.length}/${CFG.maxParty}</span></h2>
       <div class="party">${run.units.map(rosterTile).join('')}</div>
       <h2>보관함 <span class="muted small">${run.inventory.length}개</span></h2>
-      ${run.inventory.length ? `<div class="inv-strip">${run.inventory.map((id) => itemIcon(id)).join('')}</div>` : '<p class="muted small">보관 중인 장비가 없습니다.</p>'}
+      ${run.inventory.length ? `<div class="inv-strip">${invGroups(run).map(({ i, all }) => itemIcon(run.inventory[i], '', '', all.length)).join('')}</div>` : '<p class="muted small">보관 중인 장비가 없습니다.</p>'}
       </section>
       <section class="st-pane" role="tabpanel" aria-label="환경">
       <div class="env-hero" style="--c:${fieldOf(run.field).color};background-image:url('${bgURL(`field_${fieldOf(run.field).id}`)}'), linear-gradient(165deg, color-mix(in srgb, ${fieldOf(run.field).color} 40%, #0b0d14), #0b0d14 75%)"><span class="env-kicker">현재 전장</span><b>${esc(fieldOf(run.field).name)}</b><span>${esc(fieldOf(run.field).region)}</span></div>
@@ -1905,15 +1905,33 @@ function kingDetail(run: RunState, bar: string) {
 function invRail(run: RunState) {
   const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1; // 고른 (쥔) 물품 = 토큰에 붙은 호박색 실선 (docs/UI.md 13), 받을 수 없는 것은 toolMark 가 흐린다
   return `<div class="inv-rail" data-drop="inv" title="기물에게 끌어다 장착 · 재료끼리 겹치면 조합">
-    <span class="ir-count">${run.inventory.length}/${CFG.inventoryMax}</span>
-    <div class="ir-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`, breadNote(run, i)).replace('class="item', `class="item${i === selIdx || app.ask?.hl?.includes(i) ? ' sel' : ''}`)).join('')}${run.inventory.length ? '' : '<span class="ir-empty muted">비어 있음</span>'}${relicInv(run)}</div>
+    <span class="ir-count">${R.invSlots(run)}/${CFG.inventoryMax}</span>
+    <div class="ir-items">${invTokens(run, selIdx)}${run.inventory.length ? '' : '<span class="ir-empty muted">비어 있음</span>'}${relicInv(run)}</div>
   </div>`;
 }
 /** 상점 등: 가로 보관 칸 */
 function inventoryPanel(run: RunState) {
   const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;
-  return `<div class="inv" data-drop="inv" title="재료끼리 겹치면 조합"><span class="ir-count">${run.inventory.length}/${CFG.inventoryMax}</span>
-    <div class="inv-items">${run.inventory.map((id, i) => itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`, breadNote(run, i)).replace('class="item', `class="item${i === selIdx || app.ask?.hl?.includes(i) ? ' sel' : ''}`)).join('') || '<span class="muted small">비어 있음</span>'}${relicInv(run)}</div></div>${invDetail(run)}`;
+  return `<div class="inv" data-drop="inv" title="재료끼리 겹치면 조합"><span class="ir-count">${R.invSlots(run)}/${CFG.inventoryMax}</span>
+    <div class="inv-items">${invTokens(run, selIdx) || '<span class="muted small">비어 있음</span>'}${relicInv(run)}</div></div>${invDetail(run)}`;
+}
+/** 보관함 칸: 같은 소모품은 첫 칸 하나로 겹치고 원형 토큰에 개수 (표시 망원경의 사용 횟수와 같은 자리). 고른 칸 · 강조 칸은 겹친 묶음 어느 칸이든 */
+function invGroups(run: RunState): { i: number; all: number[] }[] {
+  const first = new Map<string, { i: number; all: number[] }>(), out: { i: number; all: number[] }[] = [];
+  run.inventory.forEach((id, i) => {
+    const g = isConsumable(id) ? first.get(id) : undefined;
+    if (g) { g.all.push(i); return; }
+    const ng = { i, all: [i] };
+    out.push(ng);
+    if (isConsumable(id)) first.set(id, ng);
+  });
+  return out;
+}
+function invTokens(run: RunState, selIdx: number) {
+  return invGroups(run).map(({ i, all }) => {
+    const id = run.inventory[i], on = all.includes(selIdx) || all.some((k) => app.ask?.hl?.includes(k));
+    return itemIcon(id, `data-drag="item:${i}" data-drop="invitem:${i}" data-a="sel-item" data-v="${i}"`, breadNote(run, i), all.length).replace('class="item', `class="item${on ? ' sel' : ''}`);
+  }).join('');
 }
 /** 보관 중인 성유물: 소모품처럼 보관 칸에 항상 표시. 디바인에게 끌어다 놓거나 선택 후 디바인을 누르면 장착 */
 function relicInv(run: RunState) {

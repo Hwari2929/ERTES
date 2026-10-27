@@ -345,7 +345,7 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   }
   ok(allIn && distinct, '굴린 잠재능력: 후보 안에서 · 겹치지 않게');
   ok(changed, '다시 뽑기: 적어도 하나는 바뀜');
-  ok((itemEffect('A_pow_pow#pow2').stats?.armorPen || 0) === 0.2 && (itemEffect('A_pow_mnd#pow1', 'x', 'MARK').pct?.shoot || 0) === 0.15 && (itemEffect('A_pow_mnd#pow1', 'x', 'VAN').pct?.strike || 0) === 0.15, '잠재능력 효과 · 주 위력은 전투 유형을 따름');
+  ok((itemEffect('A_pow_pow#pow2').stats?.armorPen || 0) === 0.2 && (itemEffect('A_pow_mnd#pow1', 'x', 'MARK').pct?.shoot || 0) === 0.2 && (itemEffect('A_pow_mnd#pow1', 'x', 'VAN').pct?.strike || 0) === 0.2, '잠재능력 효과 · 주 위력은 전투 유형을 따름');
   const u = run.units[0];
   u.items = ['A_vit_pow', null, null]; run.inventory = [CRYSTAL];
   ok(!R.equip(run, 0, u.uid) && potsOf(u.items[0]!).length === 1 && !u.items[0]!.includes('?'), `기물에 단 희귀에 백수정 조각 → 바로 개방 (${u.items[0]})`);
@@ -353,6 +353,44 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   const got = R.combineInv(run, 0, 1);
   ok(!!got && potsOf(got).length === 1 && !got.includes('?') && run.inventory.length === 1, `보관함 합성 → 개방 (${got})`);
   ok(itemInfo('L_pow_mnd+1#pow1.mnd3').desc.includes(POTS.pow1.name) && itemInfo('L_pow_mnd+1#pow1.mnd3').refine === 1, '설명에 잠재능력 · 제련 단계');
+}
+
+// ── 10. 소모품 겹치기 · 바리케이드 2회 · 캣휠(ZI존) 제련 · 잠재능력 · 밍키 별무리 파편 · 출처
+{
+  const run = mk(10, 'waste', 7);
+  run.inventory = ['K_strip', 'K_strip', 'K_reroll', 'A_vit_pow'];
+  ok(R.invSlots(run) === 3, `같은 소모품은 한 칸 (${R.invSlots(run)})`);
+  run.inventory = [...Array(CFG.inventoryMax - 1).keys()].map((i) => ALL_COMPONENTS[i % ALL_COMPONENTS.length]).concat('K_mine');
+  ok(R.invFull(run) && !R.invFull(run, 'K_mine') && R.invFull(run, 'K_net'), '가득 차도 이미 든 소모품은 겹쳐 들어감');
+  ok(R.gainItem(run, 'K_mine') === 'K_mine' && run.inventory.filter((x) => x === 'K_mine').length === 2, '가득 찬 보관함에 같은 소모품 획득');
+  run.inventory = [];
+  R.gainItem(run, 'K_barricade');
+  ok(run.inventory.filter((x) => x === 'K_barricade').length === DEV.wall.uses, `바리케이드 1개 = ${DEV.wall.uses}회분`);
+  ok(!CONSUMABLES.K_seize.legend, '강제 징수기는 일반 소모품');
+  let cp = 0, seize = 0;
+  for (let sd = 1; sd <= 300; sd++) {
+    const r = mk(sd, 'waste', 7, 3);
+    r.node = { type: 'shop' } as RunState['node'];
+    const stock = R.genShop(r).map((x) => x.item);
+    if (stock.some((x) => x.startsWith('K_cp_'))) cp++;
+    if (stock.includes('K_seize')) seize++;
+  }
+  ok(cp === 0, `일반 의뢰 상점에 정화 분무기 · 선지급 어음 없음 (${cp})`);
+  ok(seize > 0, `일반 소모품 진열에 강제 징수기 (${seize}/300)`);
+  const zi = 'L_catwheel_zi';
+  ok(combine(SHARD, zi) === zi + '+1' && combine(SHARD, zi + '+5') === null, '캣휠(ZI존) 별무리 파편 제련 (최대 5)');
+  const z = CFG.despair.ziMajors;
+  ok(itemInfo(zi + '+3').majors.vit === z + 3 * CFG.craft.ziPts && itemEffect(zi + '+3').majors?.agi === z + 3 * CFG.craft.ziPts, '제련 단계마다 모든 주요 능력치 +ziPts');
+  ok(combine(CRYSTAL, zi) === zi + '#?' && potPool(zi).length === Object.keys(POTS).length, '캣휠(ZI존) 잠재능력: 2칸 · 모든 잠재능력 후보');
+  ok((itemEffect(zi + '#pow2').stats?.armorPen || 0) === 0.2, '캣휠(ZI존) 잠재능력 효과');
+  const mk2 = mk(11);
+  const u = mk2.units[0];
+  u.defId = 'mingki'; u.items = [null, null, null];
+  const xp0 = u.xp, r0 = u.rank;
+  mk2.inventory = [SHARD];
+  ok(!R.equip(mk2, 0, u.uid) && !mk2.inventory.length && u.items.every((x) => x === null) && (u.rank > r0 || u.xp === xp0 + CFG.craft.mingkiShardXp), '밍키에게 별무리 파편: 삼키고 공명도');
+  const v = mk2.units[1]; mk2.inventory = [SHARD];
+  ok(!!R.equip(mk2, 0, v.uid) && mk2.inventory.length === 1, '다른 기물에게는 별무리 파편을 끼울 수 없음');
 }
 
 if (fails) { console.log(`상점 검사 실패 ${fails}건 (통과 ${passed})`); process.exitCode = 1; }
