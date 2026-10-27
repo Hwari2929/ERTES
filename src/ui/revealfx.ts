@@ -1,6 +1,6 @@
 // 증강 · 보상 카드 공개 연출 (소리 없음 — 공개음은 sound.ts reveal). 등급은 공개음과 같은 3단계 판정:
 //   1 일반 — 조용히 (창 · 카드의 기존 등장만)
-//   2 희귀 — 테두리 광 + 빛 훑기 + 살짝 튀어나옴 (희귀 장비 · 보급 대박). 증강 창(전역 · 특권 · 메이저 · 전공)은 초록 희귀 광을 쓰지 않는다 (장비 등급색과 헷갈려서)
+//   2 희귀 — 테두리 광 + 빛 훑기 + 살짝 튀어나옴 (희귀 장비 · 보급 대박). 증강 창(전역 · 특권 · 메이저 · 전공)은 파랑 희귀 광을 쓰지 않는다 (장비 등급색과 헷갈려서)
 //   3 최상 — 위 + 카드 뒤 빛 줄기 + 화면 플래시 (창 하나에 한 번) + 카드 흔들림 (전설 장비 · 전설급 소모품 · ★ 전설 전공 증강 · 12등급 이상 메이저 · 전용 증강)
 //   마이너 능력치 대성공은 고른 능력치 칸에만 황금 광 (greatFlash)
 // 카드의 기존 등장 애니메이션(전역 증강 뒤집기 · 특권 막)이 끝난 뒤에 시작하고,
@@ -36,7 +36,7 @@ const supTurn = (c: SupplyCard) => (c.mult > 1 ? SUP_REVEAL.turnJp : SUP_REVEAL.
 export const supplyFaceAt = (cs: SupplyCard[], k: number) => (reduced() ? 0 : cs.slice(0, k).length * SUP_REVEAL.stagger + supHold(cs[k]) + supTurn(cs[k]) / 2);
 /** 공개한 카드 → 앞면이 다 드러나는 시각 (performance.now 기준). 공개 중에 다시 그려져도 남은 시간만큼 이어서 연출한다 */
 let supSeen = { sig: '', open: new Map<number, number>() };
-/** 선택지 하나의 공개 연출 등급: 장비는 제 등급, 증강은 최상(3)만 연출 — 전역 · 특권 · 메이저 증강의 초록 희귀 광은 장비 등급과 헷갈려서 뺀다 */
+/** 선택지 하나의 공개 연출 등급: 장비는 제 등급, 증강은 최상(3)만 연출 — 전역 · 특권 · 메이저 증강의 파랑 희귀 광은 장비 등급과 헷갈려서 뺀다 */
 function gradeOf(p: Pending, i: number): Grade {
   if (p.t === 'itemPick') return tierGrade(p.options[i]);
   if (p.t === 'rankup') return augGrade(p, p.options?.[i]?.id || '') === 3 ? 3 : 1;

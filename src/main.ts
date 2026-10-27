@@ -9,7 +9,7 @@ import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
 import { STORIES } from './data/stories';
 import { FIELDS, fieldOf } from './data/battlefields';
 import { BLESSING_BY_ID, GLOBAL_BY_ID, GLOBAL_TIER_NAME } from './data/globals';
-import { combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isInjector, isLegendConsumable, isLocked, isMat, isMod, refineLv, refineBase, potsOf, potSlots, potPool, POTS, DUST, SHARD, CRYSTAL, isOccultMod, isTurretGear, itemInfo, TURRET_GEAR } from './data/items';
+import { tierKey, combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isInjector, isLegendConsumable, isLocked, isMat, isMod, refineLv, refineBase, potsOf, potSlots, potPool, POTS, DUST, SHARD, CRYSTAL, isOccultMod, isTurretGear, itemInfo, TURRET_GEAR } from './data/items';
 import { aceTargetUid, ENG_TUR, OCCULT_SYNTH, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
 import { rowHtml, tierCmp } from './ui/tierdiff';
 import { RECRUITABLE, UNIT_BY_ID, UNITS, type UnitDef } from './data/units';
@@ -299,7 +299,7 @@ function itemIcon(id: string | null, attrs = '', note = '', count = 1) { // note
   const refine = rf ? `<span class="rf-gem" title="제련 ${rf}단계" aria-label="제련 ${rf}단계">${'<i></i>'.repeat(rf)}</span>` : ''; // 제련 단계: 칸 안 우측 상단부터 아래로 마름모 n개
   const np = potsOf(id).length, ns = potSlots(id);
   const potPips = np ? `<span class="pot-st" title="잠재능력 ${np}/${ns}" aria-label="잠재능력 ${np}/${ns}">${POT_STAR.repeat(np)}</span>` : ''; // 잠재능력: 하나라도 열렸을 때만, 아이콘 위 가운데
-  return `<span class="item t${it.tier}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc + (note ? ` (${note})` : ''))}" ${attrs}>${itemGlyph(id) || it.icon}${uses}${refine}${potPips}</span>`;
+  return `<span class="item t${tierKey(id)}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc + (note ? ` (${note})` : ''))}" ${attrs}>${itemGlyph(id) || it.icon}${uses}${refine}${potPips}</span>`;
 }
 /** 보관함 칸 i 가 갓 구운 빵이면 '전투 n회 뒤 식음' (engine/run.ts breadLeft, 셰프 6명 이상이 켜져 있으면 덧붙임) */
 function breadNote(run: RunState, i: number) {
@@ -579,7 +579,7 @@ function supplyHtml(p: Extract<Pending, { t: 'supply' }>) {
     const jp = c.mult > 1 ? `<span class="sup-jp">대박 ×${c.mult}</span>` : ''; // ×2 파랑 · ×4 빨강 (jpClass)
     const body = c.kind === 'credits' ? `<span class="sup-ic">${CR}</span><b>+${c.credits}</b><span>에너지 크레딧</span>`
       : c.kind === 'xp' ? `<span class="sup-ic">${RES}</span><b>+${c.xp}</b><span>공명도 — 파티에 분배</span>`
-      : c.items.map((id) => `<span class="sup-ic">${itemIcon(id)}</span><b class="t${itemInfo(id).tier}">${esc(itemInfo(id).name)}</b><span>${statIc(esc(itemInfo(id).desc))}</span>`).join('');
+      : c.items.map((id) => `<span class="sup-ic">${itemIcon(id)}</span><b class="t${tierKey(id)}">${esc(itemInfo(id).name)}</b><span>${statIc(esc(itemInfo(id).desc))}</span>`).join('');
     return `<div class="card sup-card open sup-${c.kind}${jpClass(c)}" data-sup="${i}">${jp}${body}</div>`;
   };
   return `<h1>보급</h1><p class="muted small">보급품 ${p.options.length}장을 모두 받습니다. 뒤집기 전에는 무엇이 들었는지 모릅니다 · ${p.route ? '항로 보급: 첫 장은 장비 재료 확정, 대박 없음' : `장마다 대박 확률 ${jackpotTxt()} (가치 배율)`} · 마지막 장: ${app.run && R.solventOn(app.run) ? '분리 용제 또는 재구성 회로' : '재구성 회로 또는 공명도'}.</p>
@@ -2624,7 +2624,7 @@ function foeItemTip(el: HTMLElement, id: string) {
   if (!id) return;
   const it = itemInfo(id);
   const tip = document.createElement('div');
-  tip.className = `item-tip tip-${id.startsWith('U_') ? 'U' : it.tier}`;
+  tip.className = `item-tip tip-${tierKey(id)}`;
   tip.innerHTML = `<span class="tip-tier">적 장비</span><b>${esc(it.name)}</b><span>${statIc(esc(it.desc))}</span>`;
   tip.addEventListener('pointerdown', (e) => e.stopPropagation());
   document.body.appendChild(tip);
@@ -3232,7 +3232,7 @@ function pendingModal(run: RunState): string {
   if (p.t === 'global') {
     mcls = 'global';
     body = `<h1>${p.rerolls !== undefined ? '항로 회의 — ' : ''}전역 증강</h1><p class="muted small">런 끝까지 함대 전체에 적용됩니다. 한 장을 고르세요.</p>
-      <div class="gc-row">${p.options.map((id, i) => { const g = GLOBAL_BY_ID[id]; const h = g.tier === 'L' ? 42 : g.tier === 'R' ? 150 : [...id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7); return `<button class="gcard${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i};--h:${h}" data-a="pick-global" data-v="${id}">
+      <div class="gc-row">${p.options.map((id, i) => { const g = GLOBAL_BY_ID[id]; const h = g.tier === 'L' ? 42 : g.tier === 'R' ? 212 : [...id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7); return `<button class="gcard${g.tier ? ` gt-${g.tier}` : ''}" style="--i:${i};--h:${h}" data-a="pick-global" data-v="${id}">
         <i class="cback" aria-hidden="true"></i><span class="gc-sigil" aria-hidden="true">${g.tier === 'L' ? '✹' : g.tier === 'R' ? '✧' : '✦'}</span>
         <span class="gc-kind">${g.tier ? `${GLOBAL_TIER_NAME[g.tier]} · ` : ''}${g.unique ? '고유 · ' : ''}전역</span><b>${esc(g.name)}</b><span class="gc-desc">${ic(esc(g.desc))}</span></button>`; }).join('')}</div>
       ${p.rerolls !== undefined ? `<div class="row-btns"><button class="btn" data-a="reroll-global" ${p.rerolls > 0 ? '' : 'disabled'}>새로고침 (${p.rerolls}회)</button></div>` : ''}`;
@@ -5833,7 +5833,7 @@ function itemTip(el: HTMLElement, key: string) {
   const id = u ? (+slot < 0 ? u.mod : u.items[+slot]) : null;
   if (!id) return;
   const it = itemInfo(id);
-  const tier = id.startsWith('U_') ? 'U' : it.tier;
+  const tier = tierKey(id);
   const TIER_NAME: Record<string, string> = { C: '재료', G: '고급', A: '희귀', L: '전설', M: '개조부품', U: '고유' };
   const tip = document.createElement('div');
   tip.className = `item-tip tip-${tier}`;

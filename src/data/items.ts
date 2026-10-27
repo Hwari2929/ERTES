@@ -239,6 +239,10 @@ const allMajors = (k: number) => Object.fromEntries(MAJORS.map((m) => [m, k])) a
 export const JUNK_IDS = Object.keys(JUNK);
 /** 고유 장비 id 목록 (도감) */
 export const UNIQUE_IDS = Object.keys(UNIQUE);
+/** 고유 장비 (기물 전용 U_ · 캠페인 P_): 등급 색은 전설 빨강 대신 고유 보라 (--g-U) */
+export const isUniqueGear = (id: string | null | undefined) => !!id && !!UNIQUE[id];
+/** 등급 색 클래스 글자 (t? · tip-? · it-?): 고유 장비는 'U', 그 밖은 itemInfo 등급 */
+export const tierKey = (id: string) => (isUniqueGear(id) ? 'U' : itemInfo(id).tier);
 
 // ── 개조부품: 장비 칸과 별도인 1칸. 문장 = 장착한 기물이 해당 시너지에 추가 소속, 신비 부품(O_) = 신비학자 전용 특수 효과
 export const isEmblem = (id: string | null) => !!id && id.startsWith('M_');
