@@ -100,7 +100,7 @@ const L: Record<string, string> = {
   'i.pow_def': '<path d="M14 4l6 6-3 3-6-6z"/><path d="M11.5 10.5 3 19l2 2 8.5-8.5"/>',
   'i.pow_agi': '<path d="M4 5l7 7-7 7M12 5l7 7-7 7"/>',
   'i.mnd_mnd': '<path d="M12 12h.01"/><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7"/><path d="M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/>',
-  'i.mnd_def': '<path d="M13 2.5 4.5 13.5H11L10 21.5l8.5-11H12z"/>',
+  'i.mnd_def': '<circle cx="12" cy="14.5" r="6.5"/><path d="M10 8V5h4v3"/><path d="M14 5h3.5"/><path d="M12.8 11 10.7 14.5h2.6l-2.1 3.5"/>', // 전자전 모듈: EMP 수류탄 (몸통 + 핀 + 번개)
   'i.mnd_agi': '<rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
   'i.def_def': '<path d="M12 3l8 3v6c0 4.6-3.3 7.8-8 9-4.7-1.2-8-4.4-8-9V6z"/><path d="M12 7v11"/>',
   'i.def_agi': '<path d="M12 3l8 3v6c0 4.6-3.3 7.8-8 9-4.7-1.2-8-4.4-8-9V6z"/><path d="M15 9.5 10 9.5a2 2 0 0 0 0 4h4M12.5 7.5 15 9.5 12.5 11.5"/>',
