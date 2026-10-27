@@ -97,6 +97,8 @@ export const CFG = {
   // 고페이즈 보정 [임시]: lateFrom 페이즈부터 매 페이즈 피해 ×lateAmp 추가 (체력 ×0.9 약화 보정은 없앴다)
   lateFrom: 5, lateAmp: 1.05,
   phaseHpFactor: (p: number) => (p <= 5 ? 1.85 : Math.max(1.1, 1.85 - 0.1 * (p - 5))), // 후반 체력 약화 보정(×0.9) 제거
+  /** 난이도별 적 체력 성장 가산: 페이즈마다 곱하는 phaseHpFactor 에 더한다 (모험(6) +0.15 · 고난(7) +0.25, 위험 6 미만 0) */
+  diffHpAdd: (d: number) => (d >= 7 ? 0.25 : d >= 6 ? 0.15 : 0),
   adversityMult: 1.25, // 역경 · 도전 조우 강도 (위험 등급과 무관): 적 체력 ×이 값, 피해 ×encDmgMult(이 값) (예전 1.5)
   adversityReward: 1.5, // 역경 승리 보상 배율: 크레딧 · 공명도 풀 (도전 보상의 '남은 역경' 몫도 이 값)
   adversityLoss: 1.5, // 역경 패배 체력 피해 배율 (도전 패배도 역경 기준)
@@ -347,9 +349,9 @@ export function phaseAmpMult(p: number): number {
 /** 조우 강도 배율(적 체력 배율 mult) → 적 피해 배율: 체력 배율의 절반만 반영 (build.ts buildEnemy · 역경 설명 공용) */
 export const encDmgMult = (mult: number) => 1 + (mult - 1) / 2;
 
-/** p 페이즈 적 체력 누적 배율 */
-export function phaseHpMult(p: number): number {
+/** p 페이즈 적 체력 누적 배율 (add = 페이즈마다 곱하는 계수에 더하는 값: 난이도 diffHpAdd) */
+export function phaseHpMult(p: number, add = 0): number {
   let m = 1;
-  for (let k = 2; k <= p; k++) m *= CFG.phaseHpFactor(k);
+  for (let k = 2; k <= p; k++) m *= CFG.phaseHpFactor(k) + add;
   return m;
 }

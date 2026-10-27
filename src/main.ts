@@ -959,7 +959,8 @@ function newRunScreen() {
 // ───────────────────────── 화면: 맵
 function mapScreen(run: RunState) {
   const p = run.phase;
-  const scale = `적 체력 ×${fmt(phaseHpMult(p))} (이번 페이즈 ×${p > 1 ? CFG.phaseHpFactor(p).toFixed(2) : '1'}) · 방어도 ×${Math.pow(CFG.phaseArmor, p - 1).toFixed(2)} · 피해 ×${phaseAmpMult(p).toFixed(2)}`;
+  const ha = CFG.diffHpAdd(run.diff || 0);
+  const scale = `적 체력 ×${fmt(phaseHpMult(p, ha))} (이번 페이즈 ×${p > 1 ? (CFG.phaseHpFactor(p) + ha).toFixed(2) : '1'}) · 방어도 ×${Math.pow(CFG.phaseArmor, p - 1).toFixed(2)} · 피해 ×${phaseAmpMult(p).toFixed(2)}`;
   const opts = R.currentOptions(run);
   const pick: NodeType | undefined = run.node ? run.node.type : opts.includes(app.nodePick as NodeType) ? (app.nodePick as NodeType) : opts[0];
   const nodeIc = (o: NodeType, i: number) => {

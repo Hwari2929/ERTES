@@ -30,6 +30,8 @@ const DIFF = +process.argv[5] || 0;
 /** hpadd=x: 페이즈 체력 성장 계수에 x 를 더한다 (난이도 실험, 예: hpadd=0.1 → 1.85 → 1.95) */
 const HP_ADD = +(process.argv.find((a) => a.startsWith('hpadd='))?.slice(6) || 0);
 if (HP_ADD) { const f0 = CFG.phaseHpFactor; CFG.phaseHpFactor = (p: number) => f0(p) + HP_ADD; }
+/** nodiffhp: 난이도별 적 체력 성장 가산(CFG.diffHpAdd)을 끈다 (가산 전 기준선 비교용) */
+if (process.argv.includes('nodiffhp')) CFG.diffHpAdd = () => 0;
 /** gearlog: 전투마다 [페이즈, 노드 첫 글자, 승리 1/0, 출전 기물 장비 목록] (장비 · 제련 · 잠재능력 승률 분석) */
 const GEARLOG = process.argv.includes('gearlog');
 /** detail: 런마다 기물 · 증강 · 성유물별 [전투 수, 승리] 기록 (군집 신뢰구간용). randrelic: 디바인 성유물을 무작위로 장착 (성유물 효과 분리 실험) */

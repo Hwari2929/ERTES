@@ -438,7 +438,7 @@ const WALL_PAL = ['#0e0e0e', '#9a7a4a', '#6a5232', '#d8c090', '#b89a62', '#3e2f1
 export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number, gear?: { items?: string[]; mod?: string; stripped?: boolean }): CUnit {
   const c = blankUnit(1);
   const st = emptyStats();
-  st.maxHp = def.hp * CFG.enemyHpMul * phaseHpMult(phase) * mult;
+  st.maxHp = def.hp * CFG.enemyHpMul * phaseHpMult(phase, CFG.diffHpAdd(b.ctx.diff || 0)) * mult; // 모험 · 고난: 페이즈 체력 성장 가산
   st.shoot = st.strike = st.tech = def.power * CFG.enemyPowMul;
   st.armor = def.armor * CFG.armorScale * Math.pow(CFG.phaseArmor, phase - 1); // 적 정의는 옛 방어도 단위 (armorScale 로 변환)
   st.acc = def.acc || 0; st.eva = def.eva || 0; st.crit = def.crit ?? 0.05; st.critDmg = 1.5;
