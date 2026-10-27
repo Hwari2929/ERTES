@@ -237,9 +237,10 @@ export const CFG = {
     firstCredits: 10,
     floor: (phase: number) => 12 + phase,
     kindW: { credits: 1, xp: 1, gear: 1 } as Record<string, number>,
-    jackpot: [[2, 0.025], [1.5, 0.09]] as [number, number][],
+    /** 대박 [배율, 확률]: ×2 = 파랑 · ×4 = 빨강 (공개 연출). jackpotLegend 배율 이상인 장비 카드는 페이즈와 무관하게 전설 장비 */
+    jackpot: [[4, 0.025], [2, 0.09]] as [number, number][], jackpotLegend: 4,
     graded: 0.3, legendFrom: 6,
-    jackpotInject: 0.35, // 대박 카드가 재료 등급으로 떨어졌을 때 중형 공명 주입기가 될 확률 (나머지는 고급 · 희귀 장비)
+    jackpotInject: 0.35, // ×2 대박 카드가 재료 등급으로 떨어졌을 때 중형 공명 주입기가 될 확률 (나머지는 고급 · 희귀 장비)
   },
 
   // ── 플레이어 체력 [임시]

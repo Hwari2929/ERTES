@@ -9,6 +9,7 @@
 // 공개 전 · 공개 뒤에 남는 등급 테두리는 없다 (선택 표시 .on · 포커스 테두리와 겹치지 않게). 움직임 줄이기는 테두리만 제자리에서 나타났다 사라진다.
 import type { Pending, SupplyCard } from '../types';
 import { revealGrade } from '../data/items';
+import { CFG } from '../config';
 import { isLegendAug, isTransformAug } from '../data/schools';
 
 type Grade = 1 | 2 | 3;
@@ -23,8 +24,8 @@ export function augGrade(p: Rankup, id: string): Grade {
   if (p.kind === 'psionic') return (isTransformAug(id) ? 2 : Math.min(2, rankGrade(p))) as Grade;
   return rankGrade(p);
 }
-/** 보급품 카드 등급 (공개 연출 · 공개음 공용): 대박 ×2 이상 3 · 그 밖의 대박 2, 장비는 제 등급과 비교해 높은 쪽 */
-export const supplyGrade = (c: SupplyCard): Grade => Math.max(c.mult >= 2 ? 3 : c.mult > 1 ? 2 : 1, ...c.items.map(tierGrade)) as Grade;
+/** 보급품 카드 등급 (공개 연출 · 공개음 공용): 대박 ×4 (빨강) 3 · ×2 (파랑) 2, 장비는 제 등급과 비교해 높은 쪽 */
+export const supplyGrade = (c: SupplyCard): Grade => Math.max(c.mult >= CFG.supply.jackpotLegend ? 3 : c.mult > 1 ? 2 : 1, ...c.items.map(tierGrade)) as Grade;
 /** 보급품 카드 묶음 표식 (뒤집힌 카드만 새로 공개 처리) */
 export const supplySig = (p: Extract<Pending, { t: 'supply' }>) => p.options.map((c) => `${c.kind}${c.credits}.${c.xp}.${c.items.join('+')}.${c.mult}`).join('|');
 /** 보급 카드 공개 시간 (ms): 누르면 뒷면이 hold 동안 떨다가 turn 동안 뒤집힌다. 대박은 황금빛이 차오르며 더 오래 · 더 느리게. 여러 장은 stagger 간격 */
@@ -119,17 +120,17 @@ function supplyCards(md: HTMLElement, p: Extract<Pending, { t: 'supply' }>) {
   });
   if (hi.length) void reveal(md, hi, still);
 }
-/** 앞면 위에 뒷면을 덮고 떨게 하다가 뒤집는다 (left = 다 뒤집힐 때까지 ms). 대박은 뒷면 테두리 · 빛이 황금색으로 차오르고 흔들림이 커진다 */
+/** 앞면 위에 뒷면을 덮고 떨게 하다가 뒤집는다 (left = 다 뒤집힐 때까지 ms). 대박은 뒷면 테두리 · 빛이 대박 색으로 차오르고 흔들림이 커진다 */
 function holdFlip(el: HTMLElement, c: SupplyCard, left: number) {
   const jp = c.mult > 1, turn = Math.min(left, supTurn(c)), hold = left - turn;
   const back = document.createElement('i');
-  back.className = `cback sup-hold${jp ? ' jp' : ''}`;
+  back.className = `cback sup-hold${jp ? ' jp' : ''}`; // 대박 색 (--jp-c: ×2 파랑 · ×4 빨강) 은 카드(.sup-card.jp-lo · jp-hi)에서 물려받는다
   back.setAttribute('aria-hidden', 'true');
   el.appendChild(back);
   if (hold > 0) {
     if (jp) {
-      el.animate([{ boxShadow: '0 0 0 0 transparent' }, { boxShadow: '0 0 30px 6px color-mix(in srgb, var(--g-L) 70%, transparent)' }], { duration: hold, easing: 'ease-in', fill: 'forwards' });
-      back.animate([{ boxShadow: 'inset 0 0 0 0 transparent' }, { boxShadow: 'inset 0 0 60px 14px color-mix(in srgb, var(--g-L) 55%, transparent)' }], { duration: hold, easing: 'ease-in', fill: 'forwards' });
+      el.animate([{ boxShadow: '0 0 0 0 transparent' }, { boxShadow: '0 0 30px 6px color-mix(in srgb, var(--jp-c) 70%, transparent)' }], { duration: hold, easing: 'ease-in', fill: 'forwards' });
+      back.animate([{ boxShadow: 'inset 0 0 0 0 transparent' }, { boxShadow: 'inset 0 0 60px 14px color-mix(in srgb, var(--jp-c) 55%, transparent)' }], { duration: hold, easing: 'ease-in', fill: 'forwards' });
       const amp = [1, 1, 2, 2, 3, 3, 4, 4];
       el.animate(amp.flatMap((a, j) => [{ translate: `${j % 2 ? a : -a}px 0` }]).concat([{ translate: '0 0' }]), { duration: hold, easing: 'ease-in' });
     } else {

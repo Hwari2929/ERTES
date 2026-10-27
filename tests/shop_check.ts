@@ -367,6 +367,15 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   R.gainItem(run, 'K_barricade');
   ok(run.inventory.filter((x) => x === 'K_barricade').length === DEV.wall.uses, `바리케이드 1개 = ${DEV.wall.uses}회분`);
   ok(!CONSUMABLES.K_seize.legend, '강제 징수기는 일반 소모품');
+  let jg = 0, jbad = 0, j2 = 0;
+  for (let sd = 1; sd <= 400; sd++) {
+    const r = mk(sd, 'waste', 7, 2);
+    for (const c of R.genSupply(r)) {
+      if (c.mult === 2) j2++;
+      if (c.mult >= CFG.supply.jackpotLegend && c.kind === 'gear') { jg++; if (!c.items.every((x) => x[0] === 'L')) jbad++; }
+    }
+  }
+  ok(jg > 0 && jbad === 0 && j2 > 0, `보급 대박 ×${CFG.supply.jackpotLegend} 장비 카드 = 전설 확정 (${jg}장 · ×2 ${j2}장)`);
   ok(itemInfo('A_def_agi').desc.includes('방어도의 50%') && itemInfo('L_def_agi').desc.includes('방어도의 150%'), '반응 장갑: 방어도의 50% (전설 150%)');
   let cp = 0, seize = 0;
   for (let sd = 1; sd <= 300; sd++) {

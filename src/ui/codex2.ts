@@ -246,7 +246,7 @@ function sources(id: string): string[] {
   const P = CFG.price, D = CFG.drop;
   // 보급 장비 카드: 카드 가치(크레딧 환산)를 가까운 두 등급 가격 사이에서 확률로 맞춘다 (run.ts supplyGear)
   const S = CFG.supply;
-  const supGear = (t: 'G' | 'A' | 'L') => t === 'L' ? `보급 장비 카드 (${S.legendFrom}페이즈부터 대박 ${S.jackpot.map(([x]) => `×${x}`).join(' · ')} 카드만, 카드 가치가 ${Math.min(P.G, P.A)}을 넘으면 ${P.L}에 가까울수록 확률 ↑)`
+  const supGear = (t: 'G' | 'A' | 'L') => t === 'L' ? `보급 장비 카드 (대박 ×${S.jackpotLegend} 카드는 확정, ${S.legendFrom}페이즈부터 대박 ${S.jackpot.filter(([x]) => x < S.jackpotLegend).map(([x]) => `×${x}`).join(' · ')} 카드도 카드 가치가 ${Math.min(P.G, P.A)}을 넘으면 ${P.L}에 가까울수록 확률 ↑)`
     : `보급 장비 카드 (카드 가치가 ${P.C}을 넘으면 ${Math.min(P.G, P.A)}에 가까울수록 확률 ↑, 고급 ${pctTxt(S.graded)} · 희귀 ${pctTxt(1 - S.graded)})`;
   const out: string[] = [];
   const hall = NEWS_OFFERS.hall as (typeof NEWS_OFFERS)[string] | undefined, legendK = CONSUMABLES.K_legend as (typeof CONSUMABLES)[string] | undefined;

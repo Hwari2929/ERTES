@@ -86,6 +86,8 @@ for (const a of CH_AREAS) if (!ALL_AREAS.includes(a)) throw new Error(`알 수 �
 setEvalMode(CH_AREAS.has('syn3')); // 3단계: 효과 단계 · 시너지 실측 잔차 평가 (tests/chulsu/syn.ts). 계약 기물 선택(pickStarters)부터 같은 평가를 쓴다
 /** instr: 런마다 계측 기록 (조우 진입 상태 · 장비 현황 · 실패 사유 · 실행 시간) → runs[].ins. dlog: 철수 판단 기록 → runs[].dlog. 둘 다 없으면 출력은 예전과 같다 */
 const INSTR = process.argv.includes('instr');
+/** globrand: 전역 증강을 제시된 선택지 중 무작위로 고른다 (새로고침 없음) + 런마다 [페이즈, 제시, 고름] 기록 (gr) — 전역 증강 승률 비교 (제시됐는데 안 고른 런이 대조군) */
+const GLOB_RAND = process.argv.includes('globrand');
 const DLOG = process.argv.includes('dlog');
 /** [조건부 실험 · 측정표용] fpriv=<특권 id> · fdesp=<절망 증강 id> (출격 때 첫 절망 증강) · fglob=<전역 증강 id> (첫 항로 회의): 선택지와 무관하게 그것을 고른다.
  *  철수 aug 영역의 실측 가치표(tests/chulsu/tables.ts)를 조정 시드에서 만들 때만 쓴다. 없으면 동작 그대로 */
@@ -243,6 +245,7 @@ function playRun(seed: number) {
   const bossRec: [number, string, number][] = []; // 3단계 기록: 보스전 [페이즈, 보스, 승]
   const trace: unknown[] = [];
   const gearLog: [number, string, number, string[]][] = [];
+  const globRec: [number, string[], string][] = [];
   const synMax: Record<string, number> = {};
   const det: Record<string, [number, number]> = {}; // detail 모드: `키|페이즈:노드` → [전투, 승리]
   const relicSet = new Set<string>();
@@ -280,6 +283,7 @@ function playRun(seed: number) {
       if (p.t === 'victory') { R.continueEndless(run); continue; }
       if (p.t === 'global') {
         if (F_GLOB && !fGlobDone && p.rerolls !== undefined) { fGlobDone = true; R.pickGlobal(run, F_GLOB); } // 조건부 실험: 첫 항로 회의
+        else if (GLOB_RAND) { const g = bot.pick(p.options); globRec.push([run.phase, [...p.options], g]); R.pickGlobal(run, g); }
         else if (CH?.augOn('glob')) CH.global(p); // 철수 aug (새로고침은 p.options 를 바꾼다)
         else R.pickGlobal(run, bot.pick(p.options));
       }
@@ -548,7 +552,7 @@ function playRun(seed: number) {
   const rb = run.rep?.b || [];
   const eco = { nb: rb.length, i: rb.reduce((s, x) => s + x.i, 0), cap: rb.reduce((s, x) => s + x.cap, 0), inc: rb.reduce((s, x) => s + x.c, 0), atCap: rb.filter((x) => x.cap > 0 && x.i >= x.cap).length,
     sp: run.rep?.sp || {}, crAt, end: run.credits, loan: run.loan || 0 };
-  runs.push({ ...(GEARLOG ? { gl: gearLog } : {}), seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, causal: run.causal || 0, king: run.causal ? causalStage(run.causal) : 0, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems,
+  runs.push({ ...(GEARLOG ? { gl: gearLog } : {}), ...(GLOB_RAND ? { gr: globRec, glob: [...(run.globals || [])] } : {}), seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, causal: run.causal || 0, king: run.causal ? causalStage(run.causal) : 0, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems,
     cz: czAt, kb: kbAt, chrMax: run.chrTier || 0, bw, diff: run.diff || 0, heat: run.oathHeat || 0, despairs: run.despairs || [], hp: run.hp, eco, ...(DETAIL ? { det } : {}), ...(ADVSTUDY ? { adv: advRecs, nb: nbRecs, maxHp: run.maxHp } : {}),
     ...(INSTR ? { trace, ins: { bot: BOT, ...(YH_MODE ? { econ: YH_MODE } : {}), areas: [...CH_AREAS], enc: encRec, gear: gearRec, fail: INS!.fail, ev: INS!.ev, ms: Math.round(performance.now() - t0), dms: Math.round(dms), cms: Math.round(CH?.ms || 0), nb: battles, synAt, boss: bossRec, ...(n >= 200 ? { capped: 1 } : {}), ...(CH?.xb ? { xb: CH.xb, xms: Math.round(CH.xms) } : {}), ...(CH?.stage2() ? { ch: CH.rec } : {}),
       glob: [...(run.globals || [])], uaug: run.units.map((u) => [u.defId, u.augments.map((g) => g.id)]), br: brRec, route: routeRec, buy: buyRec } } : {}),

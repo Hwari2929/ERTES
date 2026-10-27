@@ -332,7 +332,7 @@ export function reveal(p: Pending | undefined) {
   } else if (p.t === 'global' || p.t === 'privilege') { key = `${p.t}:${p.options.map((x) => (typeof x === 'string' ? x : x.id)).join()}`; g = 2; }
   else if (p.t === 'itemPick') { key = `it:${p.options.join()}`; g = Math.max(...p.options.map(revealGrade)); } // 전설 장비 · 전설급 소모품 3, 희귀 2
   else if (p.t === 'recruit' || p.t === 'blessing') { key = `${p.t}:${p.options.join()}`; g = 1; }
-  else if (p.t === 'supply') { // 보급: 카드를 뒤집을 때마다, 이번에 뒤집힌 카드 중 가장 높은 등급 (대박 ×2 이상 3 · 대박 · 희귀 장비 2)
+  else if (p.t === 'supply') { // 보급: 카드를 뒤집을 때마다, 이번에 뒤집힌 카드 중 가장 높은 등급 (대박 ×4 · 전설 장비 3 · 대박 ×2 · 희귀 장비 2)
     const sig = supplySig(p), open = p.options.map((c, i) => (c.open ? i : -1)).filter((i) => i >= 0);
     const before = revealKey.startsWith(`sup:${sig}:`) ? revealKey.slice(sig.length + 5).split(',').filter(Boolean).map(Number) : [];
     const now = open.filter((i) => !before.includes(i));

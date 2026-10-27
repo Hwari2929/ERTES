@@ -206,6 +206,8 @@ const pctTxt = (x: number) => `${Math.round(x * 100)}%`;
 /** 확률 표기 (소수 1자리): 2.5% · 8.8% */
 const pct1 = (x: number) => `${+(x * 100).toFixed(1)}%`;
 /** 보급 대박: 장마다 앞에서부터 굴려 처음 걸린 배율 (CFG.supply.jackpot) → 배율별 실제 확률 */
+/** 보급 대박 카드 클래스: ×jackpotLegend 이상 = 빨강 (jp-hi), 그 밖의 대박 = 파랑 (jp-lo) */
+const jpClass = (c: SupplyCard) => (c.mult >= CFG.supply.jackpotLegend ? ' jp jp-hi' : c.mult > 1 ? ' jp jp-lo' : '');
 const jackpotTxt = () => { let left = 1; return CFG.supply.jackpot.map(([x, p]) => { const q = left * p; left *= 1 - p; return `×${x} ${pct1(q)}`; }).join(' · '); };
 
 /** 출격 계약 차림표를 연다 (바 · 타이틀 · 결과 화면의 '새 계약'). list = 메뉴에 없는 의뢰 목록을 펼친 채로 */
@@ -574,11 +576,11 @@ function supplyHtml(p: Extract<Pending, { t: 'supply' }>) {
   const left = p.options.filter((c) => !c.open).length;
   const face = (c: SupplyCard, i: number) => {
     if (!c.open) return `<button class="card sup-card" data-a="pick-supply" data-v="${i}" aria-label="보급품 ${i + 1} 뒤집기"><i class="cback" aria-hidden="true"></i></button>`;
-    const jp = c.mult > 1 ? `<span class="sup-jp">대박 ×${c.mult}</span>` : '';
+    const jp = c.mult > 1 ? `<span class="sup-jp">대박 ×${c.mult}</span>` : ''; // ×2 파랑 · ×4 빨강 (jpClass)
     const body = c.kind === 'credits' ? `<span class="sup-ic">${CR}</span><b>+${c.credits}</b><span>에너지 크레딧</span>`
       : c.kind === 'xp' ? `<span class="sup-ic">${RES}</span><b>+${c.xp}</b><span>공명도 — 파티에 분배</span>`
       : c.items.map((id) => `<span class="sup-ic">${itemIcon(id)}</span><b class="t${itemInfo(id).tier}">${esc(itemInfo(id).name)}</b><span>${statIc(esc(itemInfo(id).desc))}</span>`).join('');
-    return `<div class="card sup-card open sup-${c.kind}${c.mult > 1 ? ' jp' : ''}" data-sup="${i}">${jp}${body}</div>`;
+    return `<div class="card sup-card open sup-${c.kind}${jpClass(c)}" data-sup="${i}">${jp}${body}</div>`;
   };
   return `<h1>보급</h1><p class="muted small">보급품 ${p.options.length}장을 모두 받습니다. 뒤집기 전에는 무엇이 들었는지 모릅니다 · ${p.route ? '항로 보급: 첫 장은 장비 재료 확정, 대박 없음' : `장마다 대박 확률 ${jackpotTxt()} (가치 배율)`} · 마지막 장: ${app.run && R.solventOn(app.run) ? '분리 용제 또는 재구성 회로' : '재구성 회로 또는 공명도'}.</p>
     <div class="cards sup-cards">${p.options.map(face).join('')}</div>

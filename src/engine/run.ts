@@ -2007,16 +2007,17 @@ export function releaseGain(rank: number) {
 }
 /** 보급 기준 가치 (valueCards 장 합계): max(페이즈 하한, 지금 영입할 기물을 바로 방출한 환급 × ratio) */
 export const supplyBase = (run: RunState) => Math.max(CFG.supply.floor(run.phase), releaseGain(recruitRank(run)) * CFG.supply.ratio);
-/** 장비 카드: 가치 v 를 가장 가까운 두 등급(상점 기본가) 사이에서 확률로 (기대 가치 = v, 범위 밖이면 끝 등급). 전설은 대박 카드만 (legendFrom 페이즈부터) */
-function supplyGear(run: RunState, r: Rng, v: number, jackpot: boolean): string {
-  const S = CFG.supply, P = CFG.price;
+/** 장비 카드: 가치 v 를 가장 가까운 두 등급(상점 기본가) 사이에서 확률로 (기대 가치 = v, 범위 밖이면 끝 등급). 전설은 대박 카드만 (legendFrom 페이즈부터), ×jackpotLegend 대박은 전설 확정 */
+function supplyGear(run: RunState, r: Rng, v: number, mult: number): string {
+  const S = CFG.supply, P = CFG.price, jackpot = mult > 1;
+  if (mult >= S.jackpotLegend) return 'L_' + r.pick(ALL_ADVANCED).slice(2);
   const steps: ['C' | 'U' | 'L', number][] = [['C', P.C], ['U', Math.min(P.G, P.A)], ...(jackpot && run.phase >= S.legendFrom ? [['L', P.L] as ['L', number]] : [])];
   let t = steps[0][0];
   for (let i = 0; i < steps.length; i++) {
     if (v < steps[i][1]) { if (i > 0) t = r.chance((v - steps[i - 1][1]) / (steps[i][1] - steps[i - 1][1])) ? steps[i][0] : steps[i - 1][0]; break; }
     t = steps[i][0];
   }
-  if (t === 'C' && jackpot) return r.chance(S.jackpotInject) ? 'K_xp2' : r.chance(S.graded) ? r.pick(ALL_GRADED) : r.pick(ALL_ADVANCED); // 대박(×1.5 · ×2): 재료 대신 최소 고급 · 희귀 또는 중형 공명 주입기
+  if (t === 'C' && jackpot) return r.chance(S.jackpotInject) ? 'K_xp2' : r.chance(S.graded) ? r.pick(ALL_GRADED) : r.pick(ALL_ADVANCED); // 대박(×2): 재료 대신 최소 고급 · 희귀 또는 중형 공명 주입기
   if (t === 'C') return r.pick(ALL_COMPONENTS);
   if (t === 'L') return 'L_' + r.pick(ALL_ADVANCED).slice(2);
   return r.chance(S.graded) ? r.pick(ALL_GRADED) : r.pick(ALL_ADVANCED);
@@ -2047,7 +2048,7 @@ export function genSupply(run: RunState, onMap = false): SupplyCard[] {
     const c: SupplyCard = { kind, xp: 0, credits: 0, items: [], value: 0, mult };
     if (kind === 'credits') c.credits = Math.max(1, Math.round(v)) + (first ? S.firstCredits : 0);
     else if (kind === 'xp') c.xp = Math.max(1, Math.round(v / XP_VALUE));
-    else c.items = [onMap && i === 0 ? r.pick(ALL_COMPONENTS) : supplyGear(run, r, v, mult > 1)];
+    else c.items = [onMap && i === 0 ? r.pick(ALL_COMPONENTS) : supplyGear(run, r, v, mult)];
     c.value = supplyValue(c);
     return c;
   }));
