@@ -1603,7 +1603,7 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .ip-head { display: flex; align-items: center; gap: 10px; } .ip-head > div { display: grid; min-width: 0; } .ip-head b { font-size: var(--fs-md); }
 .ip-kind { font-size: var(--fs-xs); color: var(--c-text-2); letter-spacing: .04em; }
 .ip-x { margin-left: auto; padding: 0 7px; }
-.ip-stats > span > svg:not(.li):not(.mi) { width: 12px; height: 12px; fill: currentColor; } /* 제련 별 */
+.ip-stats > span > svg:not(.li):not(.mi) { width: 10px; height: 10px; fill: currentColor; } /* 제련 마름모 */
 .ip-stats { display: flex; flex-wrap: wrap; gap: 4px 10px; } .ip-stats span { display: inline-flex; align-items: center; gap: 4px; } .ip-stats .li, .ip-stats .mi { width: 14px; height: 14px; }
 .ip-eff { margin: 0; line-height: 1.5; }
 .ip-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -4690,16 +4690,17 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .wall-opt { display: grid; gap: 2px; justify-items: center; }
 .item:has(.use-n) { position: relative; }
 /* 제련 단계 (고급 모듈 · 전설 장비): 아이콘 아래 가운데 별 n개. 장비 등급색 그대로, 바탕색 테로 테두리와 갈린다 */
-.item .rf-st { position: absolute; left: -2px; right: -2px; bottom: -3px; display: flex; justify-content: center; gap: 0; pointer-events: none; line-height: 0; }
-.item .rf-st svg { width: min(10px, 26%); height: auto; aspect-ratio: 1; flex: none; fill: currentColor; stroke: var(--panel); stroke-width: 1.1px; paint-order: stroke; overflow: visible; } /* 크게 · 촘촘하게: 5개가 칸 너비 안에 들어가게 (작은 장비 칸에서는 줄어든다) */
-.item .rf-st svg + svg { margin-left: -1px; }
-.item:has(.rf-st) { position: relative; }
-/* 잠재능력 (희귀 · 전설, 백수정 조각): 아이콘 위 가운데 마름모 점 — 칸 수만큼, 열린 칸은 채움 · 빈 칸은 테만. 하나라도 열렸을 때만 보인다 */
-.item .pot-pips { position: absolute; left: 0; right: 0; top: -3px; display: flex; justify-content: center; gap: 1px; pointer-events: none; line-height: 0; }
-.item .pot-pips i { display: block; width: min(7px, 24%); aspect-ratio: 1; }
-.item .pot-pips svg { width: 100%; height: 100%; fill: var(--panel); stroke: currentColor; stroke-width: 1.4px; overflow: visible; }
-.item .pot-pips i.on svg { fill: currentColor; stroke: var(--panel); stroke-width: 1.1px; paint-order: stroke; }
-.item:has(.pot-pips) { position: relative; }
+/* 제련 단계 (고급 모듈 · 전설): 칸 안 우측 상단부터 아래로 등급색 마름모 n개 (칸 크기에 비례) */
+.item .rf-gem { position: absolute; top: 11%; right: 9%; width: max(3px, 9%); display: flex; flex-direction: column; pointer-events: none; }
+.item .rf-gem i { display: block; width: 100%; aspect-ratio: 1; background: currentColor; rotate: 45deg; }
+.item .rf-gem i + i { margin-top: 85%; }
+.item:has(.rf-gem) { position: relative; }
+/* 잠재능력 (희귀 · 전설, 백수정 조각): 아이콘 아래 가운데 네 모서리 별 — 열린 잠재능력만 (빈 칸은 그리지 않는다) */
+.item .pot-st { position: absolute; left: -2px; right: -2px; bottom: -3px; display: flex; justify-content: center; gap: 0; pointer-events: none; line-height: 0; }
+.item .pot-st svg { width: min(10px, 30%); height: auto; aspect-ratio: 1; flex: none; fill: currentColor; stroke: var(--panel); stroke-width: 1.1px; paint-order: stroke; overflow: visible; }
+.item .pot-st svg + svg { margin-left: -1px; }
+.item:has(.pot-st) { position: relative; }
+
 /* 전투: 숨겨 둔 감전 지뢰 (아군에게만 보이는 흐린 표식) */
 .trap-tok { position: absolute; pointer-events: none; box-sizing: border-box; border: 2px dashed color-mix(in srgb, var(--el-elec) 60%, transparent); border-radius: 50%; transform: scale(.55); opacity: .7; }
 /* 전투: 바리케이드 · 유인 신호기 (스프라이트 대신 장치 표식) */

@@ -294,9 +294,9 @@ function itemIcon(id: string | null, attrs = '', note = '') { // note: 툴팁 �
   const hx = isConsumable(id) ? ` hex" style="--hc:${consColor(id)}` : ''; // 소모품: 육각형 (합성품 보라 · 전투 보상 청록 · 전설급 금색 · 셰프 주황)
   const uses = id === 'K_scope' && app.run?.scope ? `<b class="use-n" title="남은 사용 횟수">${app.run.scope.n}</b>` : ''; // 표시 망원경: 오른쪽 아래 원형 사용 횟수
   const rf = refineLv(id);
-  const refine = rf ? `<span class="rf-st" title="제련 ${rf}단계" aria-label="제련 ${rf}단계">${RF_STAR.repeat(rf)}</span>` : ''; // 제련 단계: 아이콘 아래 가운데 별 n개
+  const refine = rf ? `<span class="rf-gem" title="제련 ${rf}단계" aria-label="제련 ${rf}단계">${'<i></i>'.repeat(rf)}</span>` : ''; // 제련 단계: 칸 안 우측 상단부터 아래로 마름모 n개
   const np = potsOf(id).length, ns = potSlots(id);
-  const potPips = np ? `<span class="pot-pips" aria-label="잠재능력 ${np}/${ns}">${[...Array(ns).keys()].map((i) => `<i class="${i < np ? 'on' : ''}">${POT_PIP}</i>`).join('')}</span>` : ''; // 잠재능력: 하나라도 열렸을 때만, 아이콘 위 가운데
+  const potPips = np ? `<span class="pot-st" title="잠재능력 ${np}/${ns}" aria-label="잠재능력 ${np}/${ns}">${POT_STAR.repeat(np)}</span>` : ''; // 잠재능력: 하나라도 열렸을 때만, 아이콘 위 가운데
   return `<span class="item t${it.tier}${hx}"${sc ? ` style="--sc:${sc}"` : ''} title="${esc(it.name + ' — ' + it.desc + (note ? ` (${note})` : ''))}" ${attrs}>${itemGlyph(id) || it.icon}${uses}${refine}${potPips}</span>`;
 }
 /** 보관함 칸 i 가 갓 구운 빵이면 '전투 n회 뒤 식음' (engine/run.ts breadLeft, 셰프 6명 이상이 켜져 있으면 덧붙임) */
@@ -317,10 +317,11 @@ const SPECIAL_GLYPH: Record<string, string> = {
   K_barricade: 'k.barricade', K_decoy: 'k.decoy', K_mine: 'k.mine', K_net: 'k.net', K_scope: 'k.scope', K_feast: 'k.feast', K_muster_ticket: 'k.ticket',
   T_cal: 'a.dmg', T_plate: 'a.hp', T_cryo: 's.chrono', T_ammo: 'u.mag', T_barrier: 'a.shield', T_selfd: 'u.area', T_rapid: 'a.speed', T_tesla: 'e.elec', T_flame: 's.pyro', T_snipe: 'a.snipe', T_mark: 'u.target',
 };
-/** 잠재능력 점 (아이콘 위 가운데, 칸마다 1개 · 열린 칸은 채움) */
-const POT_PIP = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 1l4 4-4 4-4-4z"/></svg>';
-/** 제련 별 (아이콘 아래 가운데, 단계마다 1개): 네 모서리 별 */
-const RF_STAR = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 .3l1.3 3.4L9.7 5 6.3 6.3 5 9.7 3.7 6.3.3 5l3.4-1.3z"/></svg>';
+/** 잠재능력 별 (아이콘 아래 가운데, 열린 잠재능력마다 1개 · 빈 칸은 그리지 않는다) */
+const POT_PIP = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 .3l1.3 3.4L9.7 5 6.3 6.3 5 9.7 3.7 6.3.3 5l3.4-1.3z"/></svg>'; // 잠재능력 줄 (팝업): 네 모서리 별
+const POT_STAR = POT_PIP;
+/** 제련 단계 칩 (팝업): 마름모 */
+const RF_GEM = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 1l4 4-4 4-4-4z"/></svg>';
 /** 합성 재료 아이콘 */
 const MAT_GLYPH: Record<string, string> = { S_dust: 'm.dust', S_shard: 'm.shard', S_crystal: 'm.crystal' };
 /** 장비 아이콘: 재료 · 고급 = 메이저 아이콘, 희귀 · 전설 = 고유 아이콘, 문장 = 시너지 아이콘 */
@@ -1960,7 +1961,7 @@ function itemBrief(id: string) {
   const it = itemInfo(id);
   const ms = Object.entries(it.majors || {}) as [Major, number][];
   const rf = refineLv(id), pots = potsOf(id), slots = potSlots(id);
-  const rfChip = rf ? `<span>${RF_STAR}제련 <b>${rf}</b>단계</span>` : ''; // 제련 단계: 능력치 줄 끝에
+  const rfChip = rf ? `<span>${RF_GEM}제련 <b>${rf}</b>단계</span>` : ''; // 제련 단계: 능력치 줄 끝에
   const statRow = ms.length ? `<div class="ip-stats">${ms.map(([m, v]) => `<span>${majorIcon(m)}${MAJOR_NAME[m]} <b>+${v}</b></span>`).join('')}${rfChip}</div>` : '';
   // 잠재능력 칸: 열린 것 = 이름 + 값, 남은 칸 = 빈 칸 (희귀 · 전설만)
   const potRow = slots ? `<div class="ip-pots">${pots.map((k) => `<span class="ip-pot">${POT_PIP}<b>${esc(POTS[k]?.name || '?')}</b>${esc(POTS[k]?.desc || '합성할 때 결정')}</span>`).join('')}${slots > pots.length ? `<span class="ip-pot empty">${POT_PIP}<span>빈 잠재능력 칸 ${slots - pots.length}개 · ${esc(itemInfo(CRYSTAL).name)}로 개방</span></span>` : ''}</div>` : '';
