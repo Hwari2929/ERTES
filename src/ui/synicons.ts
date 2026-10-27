@@ -103,7 +103,7 @@ const L: Record<string, string> = {
   'i.mnd_def': '<circle cx="12" cy="14.5" r="6.5"/><path d="M10 8V5h4v3"/><path d="M14 5h3.5"/><path d="M12.8 11 10.7 14.5h2.6l-2.1 3.5"/>', // 전자전 모듈: EMP 수류탄 (몸통 + 핀 + 번개)
   'i.mnd_agi': '<rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
   'i.def_def': '<path d="M12 3l8 3v6c0 4.6-3.3 7.8-8 9-4.7-1.2-8-4.4-8-9V6z"/><path d="M12 7v11"/>',
-  'i.def_agi': '<path d="M12 3l8 3v6c0 4.6-3.3 7.8-8 9-4.7-1.2-8-4.4-8-9V6z"/><path d="M15 9.5 10 9.5a2 2 0 0 0 0 4h4M12.5 7.5 15 9.5 12.5 11.5"/>',
+  'i.def_agi': '<path d="M12 5l5 1.8v4.7c0 3.6-2.2 6-5 7-2.8-1-5-3.4-5-7V6.8z"/><path d="M19 10h3.5M21 8.5l1.5 1.5-1.5 1.5M5 10H1.5M3 8.5 1.5 10 3 11.5"/>', // 반응 장갑: 반격 방패 (방패 양옆으로 바깥 화살)
   'i.agi_agi': '<path d="M3 8h10a3 3 0 1 0-3-3"/><path d="M3 12h15a3 3 0 1 1-3 3"/><path d="M3 16h7"/>',
   'i.taunt': '<path d="M3 10v4h3l7 4.5v-13L6 10z"/><path d="M16 9.2a3.8 3.8 0 0 1 0 5.6M18.6 6.6a7.5 7.5 0 0 1 0 10.8"/>',
   'i.U_shade': '<path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v7a2 2 0 0 1-4 0"/><path d="M12 3v.5"/>',
