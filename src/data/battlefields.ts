@@ -86,10 +86,10 @@ export const FIELDS: FieldDef[] = [
   {
     id: 'crimson', name: '크림슨 대공령', region: '칼리토 제국 · 북부 변방', icon: '♛', color: '#c0303a',
     desc: '"제국의 방패는 강철이 아니라 피로 만들어졌다." 배양조와 정맥관이 박동하는 바이오펑크 전선.',
-    rules: ['혈족의 밤: 모든 적이 가한 피해의 15%만큼 회복, 적 피해 +4%', '제국 기물 피해 +20%, 방어도 +150'],
+    rules: ['혈족의 밤: 모든 적이 가한 피해의 15%만큼 회복, 적 피해 +4%', '제국 기물 피해 +20%, 방어도 +10'],
     pool: ['cr_thrall', 'cr_hound', 'cr_musket', 'cr_leech'], elite: 'cr_knight', bosses: ['cr_count', 'cr_heart'],
     enemyMod: (c) => { c.st.lifesteal = (c.st.lifesteal || 0) + 0.15; c.phaseAmp *= 1.04; },
-    ally: { syn: 'KAL', effect: { mods: [inc('all', 0.2)], stats: { armor: 150 } } },
+    ally: { syn: 'KAL', effect: { mods: [inc('all', 0.2)], stats: { armor: 10 } } },
   },
   {
     id: 'sparta', name: '스파르타 전쟁 궤도', region: '헬레니우스 동맹 · 최전선', icon: '⚑', color: '#2fa39a',

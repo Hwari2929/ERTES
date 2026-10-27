@@ -427,7 +427,7 @@ const phyllis: AugDef[] = [
 ];
 
 // ───────────────────────── 에이든: 바텐더 · 고양이 형태 · 액체 금속
-const AID = { shield: 0.25, vuln: 0.15, menu: 1.5, serve: 1.5, serveCd: 3, eva: 0.15, counter: 1.2, counterCd: 0.3, metalMax: 10, metalArmor: 40, metalRed: 0.02, metalHit: 0.3, metalCd: 0.3, ult: 2.6, ultFear: 1.5, ultFearChance: 0.6, ultTaunt: 2, ultDur: 5, ultRed: 0.3 };
+const AID = { shield: 0.25, vuln: 0.15, menu: 1.5, serve: 1.5, serveCd: 3, eva: 0.15, counter: 1.2, counterCd: 0.3, metalMax: 10, metalArmor: 3, metalRed: 0.02, metalHit: 0.3, metalCd: 0.3, ult: 2.6, ultFear: 1.5, ultFearChance: 0.6, ultTaunt: 2, ultDur: 5, ultRed: 0.3 };
 /** 액체 금속 장갑 중첩 반영 */
 function metal(b: Battle, u: CUnit, n: number) {
   u.mem.mjMetal = n;

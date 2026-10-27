@@ -99,16 +99,16 @@ const BASE_ULTS: Record<string, UltDef> = {
   grenholm: {
     id: 'grenholm', name: '7중 방호 전면 전개', charge: 0.9, line: '이 양식 다시 써 와. 살아서.',
     brief: '자신과 아군 전체에게 보호막을 주고, 잠시 방어도를 크게 증가시킵니다.',
-    text: '자신에게 최대 체력의 [p:0.5]만큼 보호막을 부여합니다.\n다른 아군 전체에게 각자 최대 체력의 [p:0.15]만큼 보호막을 부여합니다.\n[s:6]간 아군 전체의 방어도를 300 증가시키고, 받는 피해를 [pv:0.15] 감소시킵니다.',
+    text: '자신에게 최대 체력의 [p:0.5]만큼 보호막을 부여합니다.\n다른 아군 전체에게 각자 최대 체력의 [p:0.15]만큼 보호막을 부여합니다.\n[s:6]간 아군 전체의 방어도를 20 증가시키고, 받는 피해를 [pv:0.15] 감소시킵니다.',
     // 스킬 한쪽 원칙: 방호 전용 (주변 적 피해 · 기절 제거, 대신 아군 전원 보호막)
-    desc: '자신에게 최대 체력 50% 보호막, 다른 아군 전원에게 각자 최대 체력 15% 보호막. 6초간 아군 전원 방어도 +300, 피해량 경감 15%p.',
+    desc: '자신에게 최대 체력 50% 보호막, 다른 아군 전원에게 각자 최대 체력 15% 보호막. 6초간 아군 전원 방어도 +20, 피해량 경감 15%p.',
     theme: { pat: 'form', c1: '#c8ccd4', c2: '#d03838', txt: 'stamp' },
     cast(b, u) {
       if (!b.enemiesOf(u).length) return false;
       b.shield(u, b.S(u, 'maxHp') * 0.5);
       b.fx(u.x, u.y, 2, 'phys', 'buff');
       for (const a of b.alliesOf(u, false)) b.shield(a, b.S(a, 'maxHp') * 0.15);
-      for (const a of b.alliesOf(u)) b.buff(u, a, 'gren.wall', 6, { delta: { armor: 300 }, taken: [red('all', 0.15)], label: '방호 전개' });
+      for (const a of b.alliesOf(u)) b.buff(u, a, 'gren.wall', 6, { delta: { armor: 20 }, taken: [red('all', 0.15)], label: '방호 전개' });
       return true;
     },
   },

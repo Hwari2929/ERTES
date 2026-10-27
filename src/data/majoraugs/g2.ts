@@ -354,14 +354,14 @@ const panEng = (a: CUnit) => a.synergies.has('PAN') || a.synergies.has('ENG');
 const hasSt = (a: CUnit, key: string) => a.statuses.some((s) => s.key === key);
 const yupito: AugDef[] = [
   mj('yupito', 'amp', '장벽 증폭', '임시 에너지 장벽 보호막 ×1.3 (포탑 보호막 포함).', setSk((s) => { s.shield *= 1.3; s.turretShield *= 1.3; })),
-  mj('yupito', 'plate', '강화 장갑판', '임시 에너지 장벽을 받은 아군은 4초간 방어도 +300.', setSk((s) => { s.armor = (s.armor || 0) + 300; s.dur = 4; })),
+  mj('yupito', 'plate', '강화 장갑판', '임시 에너지 장벽을 받은 아군은 4초간 방어도 +20.', setSk((s) => { s.armor = (s.armor || 0) + 20; s.dur = 4; })),
   mj('yupito', 'wide', '광역 장벽', '임시 에너지 장벽 범위 1칸 → 2칸, 보호막 ×0.8 (포탑 보호막 제외).', setSk((s) => { s.radius = 2; s.shield *= 0.8; })),
   mj('yupito', 'gear2', '특제 장비 2호', '[강철의 마녀] 특제 장비를 아군 1명에게 더 준다 (아직 없는 아군 중 무작위, 같은 효과).', { hooks: { onStart(b, u) {
     const as = b.alliesOf(u).filter((a) => !a.isSummon && !hasSt(a, GEAR));
     if (!as.length) return;
     const a = b.rng.pick(as);
     const k = panEng(a) ? 2 : 1;
-    b.buff(u, a, GEAR, 999, { mods: [inc('all', 0.2 * k)], delta: { armor: 200 * k }, label: '특제 장비' });
+    b.buff(u, a, GEAR, 999, { mods: [inc('all', 0.2 * k)], delta: { armor: 15 * k }, label: '특제 장비' });
   } } }),
   mj('yupito', 'tune', '맞춤 정비', '[강철의 마녀] 특제 장비를 받은 아군은 공격 속도 +20%, 받는 피해 -10%.', { hooks: { onTick(b, u) {
     if (u.mem.mjYtune) return; // 특제 장비 2호까지 나눠 준 뒤 (첫 틱)
@@ -406,13 +406,13 @@ const yupito: AugDef[] = [
     }
     void b;
   } } }, true),
-  mj('yupito', 'workshop', '강철의 마녀 공방', '특제 장비가 없는 아군 전원(소환물 제외)에게 보급형 특제 장비: 피해 +12%, 방어도 +120 (공동체 · 엔지니어 아군이면 2배).', { hooks: { onTick(b, u) {
+  mj('yupito', 'workshop', '강철의 마녀 공방', '특제 장비가 없는 아군 전원(소환물 제외)에게 보급형 특제 장비: 피해 +12%, 방어도 +9 (공동체 · 엔지니어 아군이면 2배).', { hooks: { onTick(b, u) {
     if (u.mem.mjYshop) return;
     u.mem.mjYshop = 1;
     for (const a of b.alliesOf(u)) {
       if (a.isSummon || hasSt(a, GEAR)) continue;
       const k = panEng(a) ? 2 : 1;
-      b.buff(u, a, 'yupito.lite', 999, { mods: [inc('all', 0.12 * k)], delta: { armor: 120 * k }, label: '보급형 특제 장비' });
+      b.buff(u, a, 'yupito.lite', 999, { mods: [inc('all', 0.12 * k)], delta: { armor: 9 * k }, label: '보급형 특제 장비' });
     }
   } } }, true),
 ];

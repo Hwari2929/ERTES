@@ -44,7 +44,7 @@ export const GLOBALS: GlobalDef[] = [
   { id: 'G.armory', name: '무기고 개방', desc: '즉시 무작위 장비 재료 2개 획득.' },
   { id: 'G.squad', name: '대규모 편성', desc: '출전 인원 +1.', unique: true },
   { id: 'G.aim', name: '정밀 조준 프로토콜', desc: '모든 아군 명중 +10%p, 치명타 확률 +4%p.', team: { stats: { acc: 0.1, crit: 0.04 } } },
-  { id: 'G.plate', name: '표준 강화 장갑', desc: '모든 아군 방어도 +200, 효과 저항 +10%p.', team: { stats: { armor: 200, effRes: 0.1 } } },
+  { id: 'G.plate', name: '표준 강화 장갑', desc: '모든 아군 방어도 +15, 효과 저항 +10%p.', team: { stats: { armor: 15, effRes: 0.1 } } },
   { id: 'G.cooler', name: '쿨러 오버클럭', desc: '모든 아군 쿨다운 감소 속도 +20%.', team: { stats: { cdr: 0.2 } } },
   { id: 'G.survival', name: '생존 본능', desc: '최대 플레이어 체력 +30 (즉시 회복), 패배 시 피해량 경감 30%.', unique: true,
     onPick: (r) => { r.maxHp += 30; r.hp += 30; } },

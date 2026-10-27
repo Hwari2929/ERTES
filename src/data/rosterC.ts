@@ -285,7 +285,7 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(8, 5, 8, 7, 3),
     sprite: 'robe', palette: tint(PAL.FAM, '#1a1a1a', '#ffffff', '#c8ccd8'), lore: '3대째 같은 스튜를 끓인다. 레시피는 가주도 모른다.',
     skill: support({
-      name: '가문의 스튜', cd: 8, target: 'lowest', power: cookPower, params: { shield: 1.8, heal: 0.6, armor: 200, dur: 5 }, // 쿨다운 6.5 → 8 (특성 [저택의 실세]가 스킬마다 아군 전원 회복)
+      name: '가문의 스튜', cd: 8, target: 'lowest', power: cookPower, params: { shield: 1.8, heal: 0.6, armor: 15, dur: 5 }, // 쿨다운 6.5 → 8 (특성 [저택의 실세]가 스킬마다 아군 전원 회복)
       desc: (p) => `[요리] 체력 비율이 가장 낮은 아군에게 기술 위력 ${pct(p.shield)} 보호막 + ${pct(p.heal)} 회복${p.cleanse ? ', 해로운 상태이상 제거' : ''}, ${p.dur}초간 방어도 +${p.armor}${p.splash ? '. 주변 1칸 아군에게 50% 효과' : ''}.`,
     }),
   },

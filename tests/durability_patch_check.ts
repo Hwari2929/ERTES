@@ -13,7 +13,7 @@ near(CFG.adversityMult,1.25,'adversity strength');
 {
  const r=R.newRun(1,['lindiwe'],'waste',7),u=r.units[0];
  const a=computeStats(u,[]).st;u.perm.vit++;u.perm.def++;const b=computeStats(u,[]).st;
- near(b.maxHp-a.maxHp,138,'one vitality grants 138 HP');near(b.armor-a.armor,69,'one defense grants 69 armor');
+ near(b.maxHp-a.maxHp,150,'one vitality grants 150 HP');near(b.armor-a.armor,5,'one defense grants 5 armor');
 }
 for(let t=1;t<=4;t++){
  const ctx={run:null,unit:null,counts:{MED:t*2},phase:1,credits:0} as EffectCtx;

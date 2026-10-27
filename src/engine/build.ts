@@ -440,7 +440,7 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   const st = emptyStats();
   st.maxHp = def.hp * CFG.enemyHpMul * phaseHpMult(phase) * mult;
   st.shoot = st.strike = st.tech = def.power * CFG.enemyPowMul;
-  st.armor = def.armor * Math.pow(CFG.phaseArmor, phase - 1);
+  st.armor = def.armor * CFG.armorScale * Math.pow(CFG.phaseArmor, phase - 1); // 적 정의는 옛 방어도 단위 (armorScale 로 변환)
   st.acc = def.acc || 0; st.eva = def.eva || 0; st.crit = def.crit ?? 0.05; st.critDmg = 1.5;
   st.effHit = def.effHit || 0; st.effRes = def.effRes || 0; st.range = def.range;
   const em = enemyMajors(def, phase);

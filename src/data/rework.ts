@@ -716,8 +716,8 @@ export const REWORK: Record<string, ReworkDef> = {
         if (s.key !== 'aiden.cat' || t !== u) return;
         for (const a of b.around(u, 2, b.alliesOf(u, false))) b.buff(u, a, 'aiden.gap', 2, { delta: { atkSpd: 0.3 }, label: '시간의 틈' });
       } } }),
-      sp('aiden', 'human', '인간 형태', '고양이 형태가 되지 않는다. 대신 최대 체력 +40%, 방어도 +30, 스킬 피해 +50%. 고양이 형태가 될 때마다 같은 시간 동안 [집중] (회피 · 공격 속도 보너스 없음): 고양이 형태에 반응하는 증강은 집중 상태에서 발동한다.', {
-        pct: { maxHp: 0.4 }, stats: { armor: 30 }, mods: [inc('skill', 0.5)], setup: (u) => { u.mem.noCat = 1; },
+      sp('aiden', 'human', '인간 형태', '고양이 형태가 되지 않는다. 대신 최대 체력 +40%, 방어도 +2, 스킬 피해 +50%. 고양이 형태가 될 때마다 같은 시간 동안 [집중] (회피 · 공격 속도 보너스 없음): 고양이 형태에 반응하는 증강은 집중 상태에서 발동한다.', {
+        pct: { maxHp: 0.4 }, stats: { armor: 2 }, mods: [inc('skill', 0.5)], setup: (u) => { u.mem.noCat = 1; },
       }),
     ],
   },
@@ -740,13 +740,13 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'SPEC', ttype: 'major', faith: 'science', weapon: G('용접 아크건', 'elec', 0.8, 3, 0.8, 10, 2.5),
     factions: ['PAN'], traits: ['ENG'],
     trait: {
-      name: '강철의 마녀', desc: '전투 시작 시 무작위 아군 1명에게 특제 장비: 피해 +20%, 방어도 +200. 공동체 · 엔지니어 아군이면 2배.',
+      name: '강철의 마녀', desc: '전투 시작 시 무작위 아군 1명에게 특제 장비: 피해 +20%, 방어도 +15. 공동체 · 엔지니어 아군이면 2배.',
       effect: { hooks: { onStart(b, u) {
         const as = b.alliesOf(u).filter((a) => !a.isSummon);
         if (!as.length) return;
         const a = as[Math.floor(b.rng.next() * as.length)];
         const k = a.synergies.has('PAN') || a.synergies.has('ENG') ? 2 : 1;
-        b.buff(u, a, 'yupito.gear', 999, { mods: [inc('all', 0.2 * k)], delta: { armor: 200 * k }, label: '특제 장비' });
+        b.buff(u, a, 'yupito.gear', 999, { mods: [inc('all', 0.2 * k)], delta: { armor: 15 * k }, label: '특제 장비' });
       } } },
     },
   },

@@ -396,7 +396,7 @@ export const ENEMIES: EnemyDef[] = [
     hp: 1300, power: 38, armor: 500, effRes: 0.3, interval: 1.2, range: 1, moveSpd: 0.8, atk: { type: 'strike', elem: 'phys' }, melee: true,
     skill: {
       name: '방패벽', cd: 9, params: {}, desc: () => '아군 보호막 + 방어도 증가',
-      cast(b, u) { b.fx(u.x, u.y, 2, 'phys'); for (const a of b.alliesOf(u)) { b.shield(a, b.S(a, 'maxHp') * 0.15); b.buff(u, a, 'sparta.wall', 4, { delta: { armor: 200 }, label: '방패벽' }); } return true; },
+      cast(b, u) { b.fx(u.x, u.y, 2, 'phys'); for (const a of b.alliesOf(u)) { b.shield(a, b.S(a, 'maxHp') * 0.15); b.buff(u, a, 'sparta.wall', 4, { delta: { armor: 15 }, label: '방패벽' }); } return true; },
     } },
   { id: 'sp_spear', name: '창구 절멸 포대', tend: 'sniper', keywords: ['mech', 'struct'], sprite: 'turret', palette: SPARTA_BOSS, tier: 'boss', minPhase: 1,
     hp: 4000, power: 52, armor: 450, effRes: 0.4, interval: 1.4, range: 7, immobile: true, atk: { type: 'shoot', elem: 'elec' }, melee: false,

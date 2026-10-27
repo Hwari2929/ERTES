@@ -492,7 +492,7 @@ export const ENEMY_ABIL: Record<string, { skill?: SkillInfo; trait?: string }> =
     skill: { tgt: '모든 적', range: null, area: { k: 'all' }, rows: [['피해', '[dmg:tech:0.5:chem]'], ['중독', '[p:0.5] 확률로 [st:poison:4]: 초당 [dmg:tech:0.1:chem]']] },
     trait: '[s:15]마다 혈족 종자 1기 [g:spawn].',
   },
-  sp_phalanx: { skill: { tgt: '모든 아군', range: null, area: { k: 'all', ally: true }, rows: [['보호막', '각자 최대 체력의 [p:0.15]'], ['방어도', '[s:4] 방어도 +200']] } },
+  sp_phalanx: { skill: { tgt: '모든 아군', range: null, area: { k: 'all', ally: true }, rows: [['보호막', '각자 최대 체력의 [p:0.15]'], ['방어도', '[s:4] 방어도 +15']] } },
   sp_spear: { skill: { tgt: '현재 대상 (없으면 가장 먼 적)', range: null, area: { k: 'line' }, rows: [['피해', '[dmg:tech:2:elec]']] } },
   sp_colossus: {
     skill: { tgt: '자신', range: 0, area: { k: 'self', r: 2 }, rows: [['피해', '[dmg:tech:1.2:elec]'], ['기절', '[st:stun:1:0.5]']] },

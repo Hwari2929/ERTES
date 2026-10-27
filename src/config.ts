@@ -3,10 +3,10 @@ import type { CType } from './types';
 export const CFG = {
   // ── 메이저 → 마이너 환산 [임시]
   conv: {
-    vit: { maxHp: 138, healEff: 0.02 },
+    vit: { maxHp: 150, healEff: 0.02 }, // 최대 체력 138 → 150
     pow: { shoot: 5, strike: 5, crit: 0.01 },
     mnd: { tech: 5, acc: 0.02, effHit: 0.03 },
-    def: { armor: 69, effRes: 0.03 },
+    def: { armor: 5, effRes: 0.03 }, // 방어도 69 → 5: 위력(1당 +5)과 같은 자릿수. armorK · 고정 방어도도 약 1/14 로 줄여 경감률은 거의 그대로 (armorScale)
     // 재장전 속도 1%p → 2%p: 재장전 중 기술 금지 · 제어 시 재장전 초기화로 탄창 무기 기물의 기술 횟수가 ~5.5% 줄어든 만큼 보정
     // (같은 시드 1600판: 보정 전 클리어 31.4% → 29.2%, 보정 후 32.2% · 평균 도달 페이즈 5.61 → 5.60)
     agi: { moveSpd: 0.048, eva: 0.01, atkSpd: 0.01, reloadSpd: 0.02 },
@@ -48,10 +48,12 @@ export const CFG = {
   /** 마이너 성장 배율: 10등급 ×2, 20등급 ×3 (선형) */
   minorGrow: (rank: number) => (rank <= 10 ? 1 + (Math.max(1, rank) - 1) / 9 : 2 + (rank - 10) / 10),
   // 모든 기물 공통 기초 마이너 스탯 [임시]
-  baseMinor: { maxHp: 600, shoot: 20, strike: 20, tech: 20, armor: 100, crit: 0.05, critDmg: 1.5 },
+  baseMinor: { maxHp: 600, shoot: 20, strike: 20, tech: 20, armor: 7, crit: 0.05, critDmg: 1.5 },
 
   // ── 전투 규칙 (확정)
-  armorK: 3200,
+  armorK: 230, // 방어도 230 = 받는 물리 피해 절반 (예전 3200, 방어도 단위를 약 1/14 로)
+  /** 방어도 단위 변환 (옛 단위 → 새 단위, 약 1/14): 적 정의의 방어도 (data/enemies.ts) 에 곱한다. 그 밖의 고정 방어도는 숫자를 직접 바꿨다 */
+  armorScale: 1 / 14,
   /** 난이도별 승리 크레딧 배율 (위험 3 · 6 단계): 쉬움(3) ×1.25 · 모험(6) · 고난(7) ×1.5 — 조건과 함께 간다 (위험 3 의 시작 크레딧 0 보상) */
   diffWinMul: (d: number) => (d >= 6 ? 1.5 : d >= 3 ? 1.25 : 1),
   /** 난이도별 적 증원: [위험 등급, 간격(페이즈)] — 그 등급부터 간격 페이즈마다 조우의 적 +1 (높은 등급이 대체).
