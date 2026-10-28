@@ -14,7 +14,7 @@ import { effTier, inactiveRange, setEvalMode } from './chulsu/syn';
 import { Rng } from '../src/rng';
 import { RELICS } from '../src/data/relics';
 import { FIELDS } from '../src/data/battlefields';
-import { fieldSyn, starterPool } from '../src/engine/starters';
+import { fieldSyn, starterFavNeed, starterPool } from '../src/engine/starters';
 import { oathV } from '../src/data/oaths';
 import { causalStage } from '../src/data/chungra';
 import { isLocked } from '../src/data/items';
@@ -39,7 +39,7 @@ const DETAIL = process.argv.includes('detail');
 const RANDREL = process.argv.includes('randrelic');
 /** field=<id>: 전장 고정 (전장별 클리어율 비교) */
 const FORCE_FIELD = process.argv.find((a) => a.startsWith('field='))?.slice(6);
-/** pool: 실제 게임처럼 계약 기물 후보(engine/starters.ts, 전장 우세 시너지 보장)에서 고른다 — 우세 시너지 기물 먼저 (최대 CFG.starterFav명), 나머지는 무작위.
+/** pool: 실제 게임처럼 계약 기물 후보(engine/starters.ts, 전장 우세 시너지 보장)에서 고른다 — 우세 시너지 기물 먼저 (최대 starterFavNeed명), 나머지는 무작위.
  *  없으면 예전처럼 시작 가능한 기물 전체에서 무작위 4명 (예전 기록과 비교용) */
 const POOL = process.argv.includes('pool') || process.argv.includes('pool0');
 /** pool0: 같은 정책이되 우세 시너지 보장 없이 무작위 후보 (보장 효과만 따로 보려는 비교용) */
@@ -231,7 +231,7 @@ function playRun(seed: number) {
   if (POOL || CH_AREAS.has('start')) { // 전장은 newRun 과 같은 추첨 (시드 첫 난수)
     const pr = new Rng(seed * 13 + 5), field = FORCE_FIELD || new Rng(seed).pick(FIELDS).id, syn = fieldSyn(field);
     const pool = starterPool(pr, field);
-    const fav = pr.shuffle(pool.filter((id) => !!syn && ([...UNIT_BY_ID[id].factions, ...UNIT_BY_ID[id].traits] as string[]).includes(syn))).slice(0, CFG.starterFav);
+    const fav = pr.shuffle(pool.filter((id) => !!syn && ([...UNIT_BY_ID[id].factions, ...UNIT_BY_ID[id].traits] as string[]).includes(syn))).slice(0, starterFavNeed(field));
     starters = [...fav, ...pr.sample(pool.filter((id) => !fav.includes(id)), CFG.startUnits - fav.length)];
     if (CH_AREAS.has('start')) starters = pickStarters(seed, pool, field, DIFF, startLog); // 철수: 후보 8명 중 4명 조합을 모두 비교
   }

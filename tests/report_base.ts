@@ -6,7 +6,7 @@ import { FIELDS } from '../src/data/battlefields';
 import { UNIT_BY_ID } from '../src/data/units';
 import { buildBattle } from '../src/engine/build';
 import * as R from '../src/engine/run';
-import { fieldSyn, starterPool } from '../src/engine/starters';
+import { fieldSyn, starterFavNeed, starterPool } from '../src/engine/starters';
 import { Rng } from '../src/rng';
 import type { Major, RunState } from '../src/types';
 import { augChoice, forkChoice, manageItems, pilgrimBot, shopSynth, turretPickBot } from './botlib';
@@ -64,7 +64,7 @@ export function botRun(seed: number, diff: number, stop?: (run: RunState) => boo
   const bot = new Rng(seed * 7 + 1);
   const pr = new Rng(seed * 13 + 5), field = new Rng(seed).pick(FIELDS).id, syn = fieldSyn(field);
   const pool = starterPool(pr, field);
-  const fav = pr.shuffle(pool.filter((id) => !!syn && ([...UNIT_BY_ID[id].factions, ...UNIT_BY_ID[id].traits] as string[]).includes(syn))).slice(0, CFG.starterFav);
+  const fav = pr.shuffle(pool.filter((id) => !!syn && ([...UNIT_BY_ID[id].factions, ...UNIT_BY_ID[id].traits] as string[]).includes(syn))).slice(0, starterFavNeed(field));
   const starters = [...fav, ...pr.sample(pool.filter((id) => !fav.includes(id)), CFG.startUnits - fav.length)];
   const run = R.newRun(seed, starters, field, diff);
   let n = 0;

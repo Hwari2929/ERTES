@@ -142,7 +142,7 @@ export const CFG = {
   amundsenRecruitW: 0.08, // 아문센 · 데미우르고스 영입 후보 가중치 (다른 기물 = 1)
   joinRankRatio: 0.7, // 영입 · 합류 등급 = max(페이즈 - 1, 출전 기물 평균 등급 × k)
   startUnits: 5, maxParty: 16, // 계약 기물: 후보 8명 중 5명 (출전 한도 deployBase 4 — 1명은 대기) // 출전 최대 10 + 대기 6
-  starterPool: 8, starterFav: 2, starterRerolls: 1, // 계약 기물 선택 (engine/starters.ts): 후보 수 · 그중 전장 우세 시너지(FieldDef.ally.syn, 전장 브리핑의 '우세 시너지') 기물 최소 수 · 후보 새로고침 횟수
+  starterPool: 8, starterFav: 2, starterRerolls: 1, // 계약 기물 선택 (engine/starters.ts): 후보 수 · 그중 전장 우세 시너지(FieldDef.ally.syn, 전장 브리핑의 '우세 시너지') 기물 최소 수 (그 시너지 첫 단계 인원이 더 크면 그만큼 — starterFavNeed) · 후보 새로고침 횟수
   deployBase: 4, // 기본 출전 인원. 함대 확장으로 늘린다
   fleetCosts: [20, 40, 56, 72, 90, 108, 128, 160, 200, 256], // 함대 확장 n번째 비용 (출전 5 → 14명)
   musterCost: 16, musterStep: 8, musterPicks: 3, // 지정 소집: 기본 가격, 회당 상승, 고르는 시너지 수
