@@ -325,6 +325,10 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   ok(!R.equip(run, 0, u.uid) && u.items[0] === 'G_vit+2', '성운 가루를 고급 모듈 든 기물에 주면 제련');
   u.items = ['L_vit_pow', null, null]; run.inventory = [SHARD];
   ok(!R.equip(run, 0, u.uid) && u.items[0] === 'L_vit_pow+1', '별무리 파편을 전설 든 기물에 주면 제련');
+  u.items = ['G_vit+1', 'G_pow', 'A_pow_mnd']; run.inventory = [DUST];
+  ok(R.equipCombo(run, DUST, u.uid, 1)?.slot === 1 && !R.equip(run, 0, u.uid, 1) && u.items[0] === 'G_vit+1' && u.items[1] === 'G_pow+1', `고급 모듈 여럿: 성운 가루를 놓은 칸만 제련 (${u.items.join(' · ')})`);
+  run.inventory = [DUST];
+  ok(R.equipCombo(run, DUST, u.uid, 2)?.slot === 0, '조합되지 않는 칸에 놓으면 앞 칸부터 찾는다');
   ok(R.tradeOptions({ ...run, inventory: ['G_pow+3'] } as RunState).length === 1, '제련한 고급 모듈도 교환 가능');
   const rg = new Rng(7), draws = [...Array(400)].map(() => R.pickMat(rg));
   ok(CFG.craft.crystal ? draws.includes(CRYSTAL) && draws.includes(DUST) : draws.every((x) => x === DUST), `합성 재료 드롭: 백수정 조각 ${CFG.craft.crystal ? '켜짐 (3 : 1)' : '꺼짐 → 성운 가루만'}`);
@@ -349,6 +353,8 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   const u = run.units[0];
   u.items = ['A_vit_pow', null, null]; run.inventory = [CRYSTAL];
   ok(!R.equip(run, 0, u.uid) && potsOf(u.items[0]!).length === 1 && !u.items[0]!.includes('?'), `기물에 단 희귀에 백수정 조각 → 바로 개방 (${u.items[0]})`);
+  u.items = ['A_vit_pow', 'A_def_agi', null]; run.inventory = [CRYSTAL];
+  ok(!R.equip(run, 0, u.uid, 1) && potsOf(u.items[1]!).length === 1 && potsOf(u.items[0]!).length === 0, `희귀 여럿: 백수정 조각을 놓은 칸만 개방 (${u.items.join(' · ')})`);
   run.inventory = [CRYSTAL, 'A_def_agi'];
   const got = R.combineInv(run, 0, 1);
   ok(!!got && potsOf(got).length === 1 && !got.includes('?') && run.inventory.length === 1, `보관함 합성 → 개방 (${got})`);

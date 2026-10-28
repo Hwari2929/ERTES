@@ -1953,30 +1953,35 @@ export const combinePreview = (run: RunState, i: number, j: number) => (i !== j 
 /** 절망 증강 [유닉스제 대량 생산]: 장비 id 를 새로 얻을 때 캣휠로 바뀔 확률 (해당 없으면 0) */
 export const unixChance = (run: RunState, id: string) => (hasDespair(run, 'D.unix') && (ALL_ADVANCED.includes(id) || ALL_GRADED.includes(id)) ? CFG.despair.catwheel : 0);
 /** 장비 id 를 기물 uid 에 장착할 수 있는지 (null = 가능). 보관함 밖의 장비(다른 기물에서 옮기는 장비)도 미리 확인한다 */
-export function equipCheck(run: RunState, id: string | null | undefined, uid: string): string | null {
+/** slot = 끌어다 놓은 장비 칸 (그 칸의 장비와 조합되면 그 칸을 쓴다. 없거나 조합되지 않으면 앞 칸부터 찾는다) */
+export function equipCheck(run: RunState, id: string | null | undefined, uid: string, slot?: number): string | null {
   const u = run.units.find((x) => x.uid === uid);
   if (!u || !id) return '대상 없음';
   if (isRock(u)) return '반려 돌은 장비를 달 수 없습니다';
   if (isConsumable(id)) return '소모품은 장착할 수 없습니다';
   if (isTurretGear(id)) return '포탑 전용 장비는 감시 포탑에만 장착할 수 있습니다';
-  if (isMat(id)) return equipCombo(run, id, uid) || shardSnack(u, id) ? null : '합성 재료는 장착할 수 없습니다 (같은 기물의 장비와 합성만)';
+  if (isMat(id)) return equipCombo(run, id, uid, slot) || shardSnack(u, id) ? null : '합성 재료는 장착할 수 없습니다 (같은 기물의 장비와 합성만)';
   if (isMod(id)) return isEmblem(id) && memberships(u).includes(emblemOf(id)) && u.mod !== id ? '이미 소속된 시너지의 문장입니다' : null;
-  if (!u.items.includes(null) && !equipCombo(run, id, uid)) return '장비 슬롯이 가득 찼습니다 (3칸)';
+  if (!u.items.includes(null) && !equipCombo(run, id, uid, slot)) return '장비 슬롯이 가득 찼습니다 (3칸)';
   return null;
 }
 /** 이스터에그: 별무리 파편을 밍키에게 끼우면 반짝이는 걸 삼켜 버린다 (공명도 +CFG.craft.mingkiShardXp, 조합할 장비가 있으면 조합이 먼저) */
 const shardSnack = (u: UnitState, id: string) => id === SHARD && u.defId === 'mingki';
-/** 장비 id 를 기물 uid 에 장착하면 조합될 칸과 결과 (조합 없으면 null): 빈 칸이 없으면 조합되는 장비, 있으면 같은 기물의 재료끼리 */
-export function equipCombo(run: RunState, id: string, uid: string): { slot: number; res: string } | null {
+/** 장비 id 를 기물 uid 에 장착하면 조합될 칸과 결과 (조합 없으면 null): 빈 칸이 없으면 조합되는 장비, 있으면 같은 기물의 재료끼리.
+ *  slot = 끌어다 놓은 장비 칸: 그 칸의 장비와 조합되면 그 칸 (희귀 여럿에 백수정 · 고급 여럿에 성운 가루를 원하는 칸에) */
+export function equipCombo(run: RunState, id: string, uid: string, slot?: number): { slot: number; res: string } | null {
   const u = run.units.find((x) => x.uid === uid);
   if (!u || isMod(id) || isRock(u)) return null;
+  const at = slot !== undefined && slot >= 0 ? u.items[slot] : null;
+  const pick = at && (isMat(id) || !u.items.includes(null) || (at[0] === 'C' && id[0] === 'C')) ? combine(at, id) : null;
+  if (pick) return { slot: slot!, res: pick };
   const k = u.items.includes(null) && !isMat(id) ? u.items.findIndex((x) => x && x[0] === 'C' && id[0] === 'C') : u.items.findIndex((x) => x && combine(x, id)); // 합성 재료는 빈 칸이 있어도 조합만
   const res = k >= 0 ? combine(u.items[k]!, id) : null;
   return res ? { slot: k, res } : null;
 }
-export function equip(run: RunState, invIdx: number, uid: string): string | null {
+export function equip(run: RunState, invIdx: number, uid: string, slot?: number): string | null {
   const id = run.inventory[invIdx];
-  const err = equipCheck(run, id, uid);
+  const err = equipCheck(run, id, uid, slot);
   if (err) return err;
   const u = run.units.find((x) => x.uid === uid)!;
   // 개조부품은 전용 칸으로 (이미 있으면 맞교환)
@@ -1987,7 +1992,7 @@ export function equip(run: RunState, invIdx: number, uid: string): string | null
     return null;
   }
   // 조합되는 장비가 있으면 그 칸에서 조합 (빈 칸이 없을 때 · 같은 기물의 재료끼리), 아니면 빈 칸에
-  const cb = equipCombo(run, id, uid);
+  const cb = equipCombo(run, id, uid, slot);
   if (!cb && shardSnack(u, id)) {
     run.inventory.splice(invIdx, 1);
     const r0 = u.rank, xp = CFG.craft.mingkiShardXp;

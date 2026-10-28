@@ -1538,13 +1538,22 @@ function toolMark(run: RunState, t: HeldTool | null = toolOf(run)) {
     [...foes, ...turrets, ...inv].forEach((el) => mark(el, false));
     return;
   }
+  // 기물에 단 장비 하나하나: 그 칸에 놓으면 그 장비와 조합 (희귀 여럿에 백수정 · 고급 여럿에 성운 가루를 원하는 칸에, equipCombo slot)
+  const slotMark = (id: string, skip?: string) => q(':is(.u[data-a="sel-unit"], .d-eq) .tk-it[data-drop^="eqitem:"]').forEach((el) => {
+    const [, uid, k] = el.dataset.drop!.split(':');
+    if (uid === skip || +k < 0 || R.equipCheck(run, id, uid, +k)) return;
+    const cb = R.equipCombo(run, id, uid, +k);
+    if (cb && cb.slot === +k) mark(el, true, combo(cb.res));
+  });
   if (t.k === 'move') { // 기물에 단 장비를 다른 기물 · 보관함으로 (moveEq)
+    slotMark(t.id, t.uid);
     allies.forEach((el) => { const u = unitOf(el); if (!u) return; if (u.uid === t.uid) return; const e = R.equipCheck(run, t.id, u.uid), cb = e ? null : R.equipCombo(run, t.id, u.uid); mark(el, !e, e ? whyShort(e) : cb ? combo(cb.res) : isMod(t.id) && u.mod ? '교체' : '장착'); });
     [...foes, ...turrets].forEach((el) => mark(el, false));
     inv.forEach((el) => mark(el, true, '해제'));
     return;
   }
   if (t.k === 'equip') {
+    slotMark(t.id);
     allies.forEach((el) => { const u = unitOf(el); if (!u) return; const e = R.equipCheck(run, t.id, u.uid), cb = e ? null : R.equipCombo(run, t.id, u.uid); mark(el, !e, e ? whyShort(e) : cb ? combo(cb.res) : isMod(t.id) && u.mod ? '교체' : '장착'); });
     turrets.forEach((el) => mark(el, false, '포탑 불가'));
     foes.forEach((el) => mark(el, false));
@@ -3600,13 +3609,14 @@ function askCombineInv(run: RunState, i: number, j: number): boolean {
   return true;
 }
 /** 보관함 장비 → 기물: 조합되면 확인 팝업 (보관함 왼쪽), 아니면 바로 장착. 다음 선택 상태 */
-function equipAsk(run: RunState, idx: number, uid: string): Sel {
-  const id = run.inventory[idx], cb = id && !R.equipCheck(run, id, uid) ? R.equipCombo(run, id, uid) : null;
+/** slot = 끌어다 놓은 장비 칸 (그 칸의 장비와 조합되면 그 칸으로) */
+function equipAsk(run: RunState, idx: number, uid: string, slot?: number): Sel {
+  const id = run.inventory[idx], cb = id && !R.equipCheck(run, id, uid, slot) ? R.equipCombo(run, id, uid, slot) : null;
   const u = run.units.find((x) => x.uid === uid);
   if (!cb || !u) return equipSel(run, idx, uid);
   combineAsk(run, u.items[cb.slot]!, id, cb.res, invCell(idx), () => {
     if (run.inventory[idx] !== id) return;
-    const e = R.equip(run, idx, uid);
+    const e = R.equip(run, idx, uid, cb.slot);
     if (e) toast(e); else { combinedToast(cb.res, u.items[cb.slot]); persist(); }
     app.sel = { k: 'unit', uid };
   }, `<p class="ask-note muted">${esc(UNIT_BY_ID[u.defId].name)}에게 장착한 장비와 합칩니다.</p>`);
@@ -3614,12 +3624,12 @@ function equipAsk(run: RunState, idx: number, uid: string): Sel {
 }
 /** 장착 장비 옮기기 (보관함 · 다른 기물): 끌기 · 말풍선 [해제] · 기물 상세 패널의 장비 끌기가 모두 여기로 온다.
  *  분리 용제 규칙 (CFG.solventFrom 이상, 개조부품 제외): 용제 1개를 쓸지 묻고 (R.unequip 이 소모), 없으면 옮길 수 없다고 알린다. 다른 기물에서 조합되면 조합 확인 하나로 */
-function moveEq(run: RunState, uid: string, slot: number, to: string | null) {
+function moveEq(run: RunState, uid: string, slot: number, to: string | null, toSlot?: number) {
   const u = run.units.find((x) => x.uid === uid);
   const id = u ? (slot < 0 ? u.mod : u.items[slot]) : null;
   if (!u || !id || to === uid) return;
   if (isLocked(id)) { toast('고유 장비는 해제할 수 없습니다.'); return; }
-  if (to) { const e = R.equipCheck(run, id, to); if (e) { toast(`${e}.`); return; } }
+  if (to) { const e = R.equipCheck(run, id, to, toSlot); if (e) { toast(`${e}.`); return; } }
   const pay = R.solventNeed(run, uid, slot), left = R.solventLeft(run), sv = CONSUMABLES.K_strip.name;
   const here = [`.board [data-drag="eq:${uid}:${slot}"]`, `[data-drag="eq:${uid}:${slot}"]`, ...INV_BOX];
   const rule = `${esc(diffName(CFG.solventFrom) || `위험 ${CFG.solventFrom}`)} 이상에서는 장착한 장비를 옮길 때마다 ${esc(sv)} 1개가 필요합니다.`;
@@ -3627,14 +3637,14 @@ function moveEq(run: RunState, uid: string, slot: number, to: string | null) {
     app.ask = { anchor: here, at: 'beside', html: `<b class="ask-t">${itemIcon('K_strip')} ${esc(sv)} 없음</b><div class="ask-eq">${askItem(id)}</div><p class="ask-note">남은 ${esc(sv)}가 없어 옮길 수 없습니다. ${rule}</p>` };
     return;
   }
-  const cb = to ? R.equipCombo(run, id, to) : null;
+  const cb = to ? R.equipCombo(run, id, to, toSlot) : null;
   const go = () => {
     if ((slot < 0 ? u.mod : u.items[slot]) !== id) return;
     const e = R.unequip(run, uid, slot);
     if (e) { toast(`${e}.`); return; }
     if (app.sel?.k === 'item') app.sel = null; // 분리 용제가 빠지면 보관함 칸 번호가 바뀐다
     if (to) {
-      const e2 = R.equip(run, run.inventory.length - 1, to);
+      const e2 = R.equip(run, run.inventory.length - 1, to, cb?.slot);
       if (e2) toast(e2); else if (cb) combinedToast(cb.res, run.units.find((x) => x.uid === to)?.items[cb.slot]); else toast(pay ? `${sv} 1개를 써서 옮겼습니다.` : '장착했습니다.');
       app.sel = { k: 'unit', uid: to };
     } else if (pay) toast(`${sv} 1개를 써서 보관함으로 옮겼습니다.`);
@@ -6129,7 +6139,7 @@ function onDrop(src: string, dst: string) {
     if (tg) tryUse(run, i, tg);
   } else if (sk === 'item') {
     const idx = +sv[0];
-    if (dk === 'eqitem' || dk === 'unit') app.sel = equipAsk(run, idx, dv[0]);
+    if (dk === 'eqitem' || dk === 'unit') app.sel = equipAsk(run, idx, dv[0], dk === 'eqitem' ? +dv[1] : undefined);
     else if (dk === 'invitem') {
       if (!askCombineInv(run, idx, +dv[0])) { if (idx !== +dv[0]) toast('조합할 수 없는 장비입니다.'); app.sel = null; }
     }
@@ -6137,7 +6147,7 @@ function onDrop(src: string, dst: string) {
     // 장착 장비 → 보관함 · 다른 기물 (기물 상세 패널의 장비 끌기 포함). 분리 용제 규칙 · 조합 확인은 moveEq
     const [uid, slot] = sv;
     if (dk === 'inv' || dk === 'invitem') moveEq(run, uid, +slot, null);
-    else if ((dk === 'unit' || dk === 'eqitem') && dv[0] !== uid) moveEq(run, uid, +slot, dv[0]);
+    else if ((dk === 'unit' || dk === 'eqitem') && dv[0] !== uid) moveEq(run, uid, +slot, dv[0], dk === 'eqitem' ? +dv[1] : undefined);
   }
   persist();
   render();
