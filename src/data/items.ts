@@ -36,8 +36,8 @@ const PLATE_SHIELD = 0.24;
  *  추가 (bb84837 대비 같은 시드 400판, 위험 0): 클리어 44.75% → 44.50% (성공→실패 6 · 실패→성공 5, 차이 없음), 페이즈 보정 장착 승률 +1.3 → +1.7%p
  *  (희귀 17종 중 16위 → 14위). 위험 7 400판도 +5.0 → +5.9%p (11위). 상위권을 넘지 않아 보호막 24% 그대로 둔다 */
 const PLATE_TAKEN = 0.9, PLATE_TAKEN_L = 0.8;
-/** 전자전 모듈: 보호막이 깨질 때 주변 1칸 적에게 주는 전기 피해 (자신 방어도 비례, 전설은 LEGEND_FX 배) */
-const EW_ARMOR = 1;
+/** 전자전 모듈: 전투 시작 · 전투 스킬마다 최대 체력 비례 보호막 · 보호막이 깨질 때 주변 1칸 적에게 주는 전기 피해 (자신 방어도 비례, 1 → 1.25). 전설은 LEGEND_FX 배 */
+const EW_SHIELD = 0.01, EW_ARMOR = 1.25;
 const plateTaken = (k: number) => (k > 1 ? PLATE_TAKEN_L : PLATE_TAKEN);
 
 const ADV: AdvDef[] = [
@@ -65,8 +65,8 @@ const ADV: AdvDef[] = [
     effect: () => ({ stats: { atkSpd: 0.3 } }) },
   { id: 'mnd_mnd', a: 'mnd', b: 'mnd', name: '사이오닉 증폭기', desc: (k) => `기술 위력 +${30 * k}%, 효과 명중 +${20 * k}%p, 기술 피해 +${10 * k}%, 회복 효율 +${15 * k}%.`,
     effect: () => ({ pct: { tech: 0.3 }, stats: { effHit: 0.2, healEff: 0.15 }, mods: [inc('tech', 0.1)] }) },
-  { id: 'mnd_def', a: 'mnd', b: 'def', name: '전자전 모듈', desc: (k) => `보호막이 파괴되면 주변 1칸 적에게 방어도의 ${Math.round(EW_ARMOR * 100 * k)}%만큼 전기 피해.`,
-    effect: (k) => ({ hooks: { onShieldBreak(bt, u) { const d = bt.S(u, 'armor') * EW_ARMOR * k; if (d <= 0) return; bt.fx(u.x, u.y, 1, 'elec'); for (const e of bt.around(u, 1, bt.enemiesOf(u))) bt.dealDamage(u, e, d, { elem: 'elec', tag: 'proc', kind: 'tech', canMiss: false }); } } }) },
+  { id: 'mnd_def', a: 'mnd', b: 'def', name: '전자전 모듈', desc: (k) => `전투 시작 시와 전투 스킬을 쓸 때마다 최대 체력 ${+(EW_SHIELD * 100 * k).toFixed(1)}% 보호막. 보호막이 파괴되면 주변 1칸 적에게 방어도의 ${Math.round(EW_ARMOR * 100 * k)}%만큼 전기 피해.`,
+    effect: (k) => ({ hooks: { onStart(bt, u) { bt.shield(u, bt.S(u, 'maxHp') * EW_SHIELD * k); }, onSkill(bt, u) { bt.shield(u, bt.S(u, 'maxHp') * EW_SHIELD * k); }, onShieldBreak(bt, u) { const d = bt.S(u, 'armor') * EW_ARMOR * k; if (d <= 0) return; bt.fx(u.x, u.y, 1, 'elec'); for (const e of bt.around(u, 1, bt.enemiesOf(u))) bt.dealDamage(u, e, d, { elem: 'elec', tag: 'proc', kind: 'tech', canMiss: false }); } } }) },
   { id: 'mnd_agi', a: 'mnd', b: 'agi', name: '예지 회로', desc: (k) => `쿨다운 감소 속도 +${30 * k}%.`,
     effect: () => ({ stats: { cdr: 0.3 } }) },
   { id: 'def_def', a: 'def', b: 'def', name: '요새 장갑', desc: (k) => `받는 피해 -${Math.min(80, 15 * k)}%.`,
