@@ -65,9 +65,29 @@ export const CLERKS = { every: 10, max: 3, fear: 0.25 };
 /** 소환물에 훅을 한 번 붙인다 (주기적으로 새로 생기므로 매 틱 확인) */
 const tagPets = (b: Battle, u: CUnit, key: string, f: (pet: CUnit) => void) => { for (const pet of summonsOf(b, u)) if (!pet.mem[key]) { pet.mem[key] = 1; f(pet); } };
 /** 드론: 공격하지 않고 CROP.every 초마다 체력 비율이 가장 낮은 아군에게 농작물 (회복 · 요리 배율) */
+/** 농업 드론 산책: 2 ~ 5초마다 주인 곁 2칸 안의 빈 이웃 칸으로 한 칸 (연출, 공격하지 않으니 전투에는 거의 상관없다) */
+function droneWander(b: Battle, owner: CUnit, self: CUnit, dt: number) {
+  self.mem.wanderT = (self.mem.wanderT ?? 1 + b.rng.next() * 3) - dt;
+  if (self.mem.wanderT > 0 || self.moveT > 0 || self.immobile || self.statuses.some((s) => s.key === 'root' || s.type === 'stun')) return;
+  self.mem.wanderT = 2 + b.rng.next() * 3;
+  const cells: { x: number; y: number }[] = [];
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const x = self.x + dx, y = self.y + dy;
+    if ((!dx && !dy) || !b.inBounds(x, y) || b.unitAt(x, y)) continue;
+    if (owner.alive && b.dist({ x, y }, owner) > 2) continue;
+    cells.push({ x, y });
+  }
+  if (!cells.length) return;
+  const c = cells[Math.floor(b.rng.next() * cells.length)];
+  self.px = self.x; self.py = self.y;
+  self.x = c.x; self.y = c.y;
+  self.moveDur = self.moveT = 0.5;
+  self.mem.lastCell = -1;
+}
 function droneInit(owner: CUnit, pet: CUnit) {
   pet.noAttack = true;
   pet.hooks.push({ onTick(bb, self, dt) {
+    droneWander(bb, owner, self, dt);
     if (!every(self, 'cropT', dt, CROP.every, 1)) return;
     const l = bb.lowestHpAlly(self);
     if (!l) return;
@@ -187,7 +207,7 @@ export const ROSTER_G: BaseUnit[] = [
     sprite: 'knight', palette: tint('#1a1a22', '#2f6a4a', '#e8c8a8'), noBar: true,
     lore: '"물자는 훔쳤다. 왕자는 지켰다. 어느 쪽을 먼저 따질 텐가."',
     skill: {
-      name: '설원 검무', tag: () => '주변 광역 물리 공격 + 피해량 감소', cd: 7, params: { mult: 2.0, radius: 1, weak: 0.3, dur: 4 },
+      name: '설원 검무', tag: () => '주변 광역 물리 공격 + 피해량 감소', cd: 7, params: { mult: 2.0, radius: 1, weak: 0.4, dur: 4 },
       desc: (p) => `낡은 대검을 휘둘러 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 물리 피해, ${p.dur}초간 맞은 적이 가하는 피해 -${pct(p.weak)}.`,
       cast(b, u) {
         const p = u.sk;
@@ -203,13 +223,13 @@ export const ROSTER_G: BaseUnit[] = [
     },
   },
   {
-    id: 'clover', name: '클로버', title: '광양축산공사 자동화 AI 비서', factions: ['CHR'], traits: ['BUDDY', 'CHEF'], keywords: ['mech'],
+    id: 'clover', name: '클로버', title: '광양축산공사 자동화 AI 비서', factions: ['CHR'], traits: ['CHEF'], keywords: ['mech'],
     atk: { type: 'shoot', elem: 'phys', interval: 1.1 }, range: 2, base: B(8, 7, 7, 9, 2),
     sprite: 'drone', palette: tint('#3a8a3a', '#e8f0e0', '#9af0a0'), noBar: true, front: true,
     summon: DRONE,
     lore: '"유통 체계는 준수됩니다. 창고에 들어오신 분은 소각됩니다. 오늘의 작물은 송향초입니다."',
     skill: {
-      name: '출하 지시', tag: () => '농업 드론 추가 + 농작물', cd: 8, params: { cap: 2, crop: CROP.heal },
+      name: '출하 지시', tag: () => '농업 드론 추가 + 농작물', cd: 8, params: { cap: 3, crop: CROP.heal },
       desc: (p) => `농업 드론을 1기 더 부른다 (최대 ${p.cap}기). 드론마다 곧바로 체력 비율이 가장 낮은 아군에게 농작물을 던져 드론 기술 위력 ${pct(p.crop)} × 요리 배율 회복.`,
       cast(b, u) {
         const p = u.sk;
@@ -427,8 +447,8 @@ export const REWORK_G: Record<string, ReworkDef> = {
   juseong: {
     ctype: 'VAN', ttype: 'major', faith: 'human', weapon: K('낡은 대검', 'phys', 1.0, 1, 1.0, 3),
     trait: {
-      name: '연현문 검객', desc: '피니쉬가 맞으면 대상을 1칸 밀쳐내고 30% 확률로 1초 기절시킨다.',
-      effect: { hooks: { onBasic(b, u, t, r) {
+      name: '연현문 검객', desc: '받는 사격 피해 -20%. 피니쉬가 맞으면 대상을 1칸 밀쳐내고 30% 확률로 1초 기절시킨다.',
+      effect: { taken: [red('shoot', 0.2)], hooks: { onBasic(b, u, t, r) {
         if (!u.mem.finished || r.miss || !t.alive) return;
         b.knockback(u, t);
         if (t.alive) b.stun(u, t, 1, 0.3);
@@ -456,7 +476,7 @@ export const REWORK_G: Record<string, ReworkDef> = {
       },
     },
     specialAugs: [
-      sp('clover', 'fleet', '드론 증차', '농업 드론 최대 2 → 3기.', setSk((s) => { s.cap = 3; })),
+      sp('clover', 'fleet', '드론 증차', '농업 드론 최대 3 → 4기.', setSk((s) => { s.cap = 4; })),
       sp('clover', 'harvest', '풍년', '농작물 회복 +40%.', setSk((s) => { s.crop *= 1.4; })),
       sp('clover', 'greenhouse', '비닐하우스', '농작물을 받은 아군에게 최대 체력 5% 보호막.', setSk((s) => { s.cropShield = 0.05; })),
       sp('clover', 'incinerate', '소각 규정', '연소 확률 25% → 50%.', { setup: (u) => { u.mem.cloverBurn = 0.25; } }),

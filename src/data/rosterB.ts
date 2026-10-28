@@ -56,7 +56,7 @@ export const ROSTER_B: BaseUnit[] = [
   },
   {
     id: 'nadir', name: '나디르', title: '흑정상회 출신 수정상', factions: ['KAL', 'PAN'], traits: [], keywords: ['bio'],
-    atk: { type: 'shoot', elem: 'psy', interval: 1.1 }, range: 4, base: B(5, 8, 9, 3, 5),
+    atk: { type: 'shoot', elem: 'phys', interval: 1.1 }, range: 4, base: B(5, 8, 9, 3, 5),
     sprite: 'robe', palette: tint(PAL.KAL, '#e8e8f0', '#40c0c0', '#80e0ff'), lore: '"말만 해요! 깨끗한 기록부터 더러운 금서까지 - 다 제 손바닥 안이거든요."',
     skill: strike({
       name: '백수정 섬광', cd: 7, pow: 'tech', elem: 'psy', mult: 1.75, params: { radius: 1, noMiss: 1, blind: 0.3 },
@@ -117,9 +117,22 @@ export const ROSTER_B: BaseUnit[] = [
     summon: { name: '베헤모스', ctype: 'SPEC', art: 'sm_behemoth', sprite: 'crawler', palette: BEHEMOTH, atk: { type: 'strike', elem: 'phys', interval: 0.9 }, range: 1, hpMul: 1.4 },
     lore: '"체온 관리는 중요해. 이상 체온은 베헤모스를 자극할 수 있어."',
     skill: support({
-      name: '치유 탄환', cd: 7, target: 'lowest', params: { heal: 2.6, petDmg: 0.4 }, // 회복 2.2 → 2.6
-      desc: (p) => `의료 드론이 체력 비율이 가장 낮은 아군에게 치유 탄환을 꽂아 기술 위력 ${pct(p.heal)} 회복${p.shield ? ` + ${pct(p.shield)} 보호막` : ''}${p.cleanse ? ', 해로운 상태이상 제거' : ''}${p.red ? `, 4초간 받는 피해 -${pct(p.red)}` : ''}. 베헤모스는 4초간 피해 +${pct(p.petDmg)}.`,
+      name: '치유 탄환', cd: 7, target: 'lowest', params: { heal: 2, petDmg: 0.4, chain: 2, chainK: 0.5 }, // 회복 2.6 → 2 + 주변 아군 연쇄 2회 (각 50%)
+      desc: (p) => `의료 드론이 체력 비율이 가장 낮은 아군에게 치유 탄환을 꽂아 기술 위력 ${pct(p.heal)} 회복${p.shield ? ` + ${pct(p.shield)} 보호막` : ''}${p.cleanse ? ', 해로운 상태이상 제거' : ''}${p.red ? `, 4초간 받는 피해 -${pct(p.red)}` : ''}${p.heal && p.chain ? `. 2칸 안의 다친 아군에게 최대 ${p.chain}회 연쇄 (각 ${pct(p.heal * p.chainK)} 회복)` : ''}. 베헤모스는 4초간 피해 +${pct(p.petDmg)}.`,
       after: (b, u, ts, p) => {
+        // 연쇄 치유: 대상에서 2칸 안의 다친 아군에게 차례로 (아직 안 받은 아군, 체력 비율이 낮은 순)
+        if (p.heal && ts[0]) {
+          const got = new Set(ts);
+          let at = ts[0];
+          for (let i = 0; i < (p.chain || 0); i++) {
+            const n = b.around(at, 2, b.alliesOf(u)).filter((a) => !got.has(a) && a.hp < b.S(a, 'maxHp')).sort((x, y) => b.hpPct(x) - b.hpPct(y))[0];
+            if (!n) break;
+            got.add(n);
+            b.heal(u, n, b.P(u, 'tech') * p.heal * p.chainK);
+            b.fx(n.x, n.y, 0, 'holy', 'heal');
+            at = n;
+          }
+        }
         for (const d of summonsOf(b, u)) b.buff(u, d, 'bianca.behemoth', 4, { mods: [inc('all', p.petDmg)], label: '변이' });
         // 표본 회수: 베헤모스 대신 치유 대상이 변이 (유전 물질 단계 피해 포함)
         if (u.mem.sample && ts[0]) b.buff(u, ts[0], 'bianca.sample', 4, { mods: [inc('all', p.petDmg + (u.mem.bondAmp || 0))], label: '변이' });
@@ -163,7 +176,7 @@ export const ROSTER_B: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'elec', interval: 1.0 }, range: 3, base: B(6, 7, 9, 4, 5),
     sprite: 'medic', palette: tint(PAL.HEL, '#f0f0f0', '#d4a83a', '#ffd040'), lore: '"헤르메스 신도가 되는거 어떻게 생각하세요? 그- 일단 우리 헤르메스님이 엄청 잘생기셨거든요!"',
     skill: support({
-      name: '헤르메스의 가속', cd: 7, target: 'commanded', params: { count: 2, as: 0.35, dur: 4, jam: 1.5, fearChance: 0.5 },
+      name: '헤르메스의 가속', cd: 7, target: 'commanded', params: { count: 2, as: 0.5, dur: 4, jam: 1.5, fearChance: 0.5 },
       desc: (p) => `피해 기여가 가장 큰 아군 ${p.count}명의 공격 속도 ${p.dur}초간 +${pct(p.as)}.`,
     }),
   },

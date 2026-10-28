@@ -2,6 +2,7 @@
 import type { AbilText, Area } from '../abiltext';
 import { CFG } from '../../config';
 import { ZAHARA_ACE_STEAL } from '../rosterB';
+import { NADIR } from '../rework';
 
 /** 셰프 단계별 요리 배율 '×1.3 / ×2 / ×3.4 / ×4.6' (CFG.cookPower) */
 const COOK_MULT = CFG.cookPower.slice(1).map((x) => `×${x}`).join(' / ');
@@ -42,7 +43,7 @@ export const ABIL_B: Record<string, AbilText> = {
     ].join('\n'),
   },
   nadir: {
-    brief: { skill: '대상 주변의 적들에게 정신 피해를 주고 잠시 명중 확률을 감소시킵니다.', trait: '기본 공격이 가까운 다른 적에게 한 번 더 튀어 정신 피해를 줍니다.' },
+    brief: { skill: '대상 주변의 적들에게 정신 피해를 주고 잠시 명중 확률을 감소시킵니다.', trait: '기본 공격과 전투 스킬이 주변 적들에게 튀어 정신 피해를 줍니다.' },
     skill: (p) => ({
       tgt: '현재 대상', range: 'unit', area: aroundOr(p.radius),
       rows: [
@@ -57,7 +58,10 @@ export const ABIL_B: Record<string, AbilText> = {
         ...(p.vuln ? [`공격이 적중하면 [s:4]간 대상이 받는 피해를 [pv:${p.vuln}] 증가시킵니다.`] : []),
       ].join('\n'),
     }),
-    trait: '기본 공격이 적중하면 대상으로부터 [t:2] 이내에서 가장 가까운 다른 적에게 [pw:tech:0.625:psy] 피해를 가합니다.',
+    trait: [
+      `기본 공격이 적중하면 대상으로부터 [t:${NADIR.r}] 이내의 다른 적에게 최대 ${NADIR.basicN}회 [g:bounce]되는 [pw:tech:${NADIR.k}:psy] 피해를 가합니다.`,
+      `전투 스킬이 적중하면 최대 ${NADIR.skillN}회 [g:bounce]됩니다 (시전마다 1번).`,
+    ].join('\n'),
   },
   kairo: {
     brief: { skill: '가장 다친 아군에게 보호막과 치명타 확률을 주고, 저격 준비 스택을 쌓습니다.', trait: '스킬과 아군의 기본 공격으로 스택을 쌓고, 다 차면 가장 튼튼한 적을 강하게 저격합니다.' },
@@ -126,7 +130,7 @@ export const ABIL_B: Record<string, AbilText> = {
     ].join('\n'),
   },
   bianca: {
-    brief: { skill: '가장 다친 아군을 치료하고, 베헤모스가 가하는 피해를 잠시 증가시킵니다.', trait: '쓰러진 적에게서 유전 물질을 모아 베헤모스를 키웁니다.' },
+    brief: { skill: '가장 다친 아군을 치료하고 주변 아군에게 연쇄 치유하며, 베헤모스가 가하는 피해를 잠시 증가시킵니다.', trait: '쓰러진 적에게서 유전 물질을 모아 베헤모스를 키웁니다.' },
     skill: (p) => ({
       tgt: '체력 비율이 가장 낮은 아군', range: null, area: p.splash ? { k: 'around', r: 1 } : { k: 'one' },
       rows: [
@@ -136,10 +140,12 @@ export const ABIL_B: Record<string, AbilText> = {
         ...(p.red ? [['피해량 경감', `[g:red] [pv:${p.red}] ([s:${p.dur}])`] as Row] : []),
         ['베헤모스', `[g:behemoth] [s:4] 동안 피해 [pp:${p.petDmg}]`],
         ...(p.splash ? [['주변', '대상 주변 [t:1] 아군에게 [p:0.5] 효과'] as Row] : []),
+        ...(p.heal && p.chain ? [['연쇄', `다친 아군에게 최대 ${p.chain}회 [heal:${p.heal * p.chainK}]`] as Row] : []),
       ],
       text: [
         '체력 비율이 가장 낮은 아군을 지정합니다.',
         ...(p.heal ? [`대상을 [pw:tech:${p.heal}]만큼 회복시킵니다.`] : []),
+        ...(p.heal && p.chain ? [`이어서 [t:2] 이내의 다친 아군에게 최대 ${p.chain}회 연쇄되어, 각각 [pw:tech:${p.heal * p.chainK}]만큼 회복시킵니다.`] : []),
         ...(p.shield ? [`대상에게 [pw:tech:${p.shield}]만큼 보호막을 부여합니다.`] : []),
         ...(p.cleanse ? ['대상의 해로운 효과를 모두 제거합니다.'] : []),
         ...(p.red ? [`[s:${p.dur}]간 대상이 받는 피해를 [pv:${p.red}] 감소시킵니다.`] : []),

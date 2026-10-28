@@ -91,7 +91,7 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'medic', palette: tint(PAL.UNI, '#e8eef0', '#3b6fd8', '#9ad0ff'),
     lore: '"마스크는 벗지 않을 거예요. 당신들 미생물 수치, 생각보다 꽤 끔찍하거든요."',
     skill: support({
-      name: '임상 시험 혈청', cd: 6, target: 'lowest', params: { heal: 2.2, red: 0.15, dur: 4 },
+      name: '임상 시험 혈청', cd: 5.5, target: 'lowest', params: { heal: 2.2, red: 0.15, dur: 4 },
       desc: (p) => `체력 비율이 가장 낮은 아군에게 기술 위력 ${pct(p.heal)} 회복, ${p.dur}초간 받는 피해 -${pct(p.red)}${p.splash ? '. 주변 1칸 아군에게 50% 효과' : ''}${p.vaccine ? `. 모든 아군에게 ${pct(p.vaccine)} 효과로 회복 (광역 백신)` : ''}.`,
     }),
   },
@@ -129,7 +129,7 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'robe', palette: tint(HOI_PAL, '#ff4d9a', '#7fe3ff', '#ffe14d'),
     lore: '"안녕안녕~ 레이카 0호야! 오늘도 은하 끝까지 방송 켜 둘게~☆"',
     skill: {
-      name: '라이브 피날레', tag: () => '적 전체 전기 공격 + 감전', cd: 9.5, params: { mult: 1.125, shockChance: 0.4, shock: 1.2, encore: 0 },
+      name: '라이브 피날레', tag: () => '적 전체 전기 공격 + 감전', cd: 9.5, params: { mult: 1, shockChance: 0.4, shock: 1.2, encore: 0 },
       desc: (p) => `모든 적에게 기술 위력 ${pct(p.mult)} 전기 피해, ${pct(p.shockChance)} 확률로 ${p.shock}초 감전${p.encore ? `. 앙코르: 같은 공연을 ${pct(p.encore)} 위력으로 한 번 더` : ''}.`,
       cast(b, u) {
         const es = b.enemiesOf(u);
@@ -173,7 +173,7 @@ export const ROSTER_F: BaseUnit[] = [
 /** 리워크 정보 */
 export const REWORK_F: Record<string, ReworkDef> = {
   bjorn: {
-    ctype: 'MARK', ttype: 'special', faith: 'human', weapon: G('구조용 전기 작살포', 'elec', 1.1, 3, 1.25, 6, 2.0),
+    ctype: 'MARK', ttype: 'special', faith: 'human', weapon: G('구조용 전기 작살포', 'elec', 1.1, 2, 1.8 / 1.35, 6, 2.0), // 명사수 배율 ×1.35 를 곱하면 발당 사격 위력 180%
     trait: {
       name: '바이킹의 피', desc: '피해량 경감 15%. 잃은 체력 1%당 주는 피해 +1%. [구조 신호] 7초마다 체력 비율이 가장 낮은 아군에게 사격 위력 120% 보호막.',
       effect: { taken: [red('all', 0.15)], hooks: {

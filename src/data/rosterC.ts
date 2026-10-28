@@ -1,6 +1,8 @@
 // 시리우스 성도회 · 범은하 공동체 · 엘베스타드 일가
+import type { Battle, CUnit } from '../engine/combat';
 import { inc, red, vuln } from '../engine/effects';
 import { blinkTo, bleed, cleanse, every, fear, pct, skillHit, summonsOf } from './kit';
+import { dorosAwaken } from './rework';
 import { cookPower, strike, support } from './tpl';
 import { B, PAL, setSk, tint, uaug, type BaseUnit } from './unitkit';
 
@@ -68,7 +70,7 @@ export const ROSTER_C: BaseUnit[] = [
     },
     skill: {
       // 회복 0.7 → 0.85 (TUNE s ×1.35 적용 후 95% → 115%)
-      name: '재생 촉진', tag: () => '아군 전체 회복', cd: 8, params: { heal: 0.85, cleanse: 0, threshold: -50, rage: 0.4, regen: 0.015, fearChance: 0.6 },
+      name: '재생 촉진', tag: () => '아군 전체 회복', cd: 6.5, params: { heal: 0.85, cleanse: 0, threshold: -50, rage: 0.4, regen: 0.015, fearChance: 0.6 },
       desc: (p) => `모든 아군의 자연 치유를 가속해 기술 위력 ${pct(p.heal)} 회복${p.cleanse ? ' + 해로운 상태이상 제거' : ''}. 이성이 ${p.threshold} 이하가 되면 체사레로 전환: 근접 도끼 공격, 피해 +${pct(p.rage)}, 초당 최대 체력 ${pct(p.regen)} 재생, 전환할 때와 그 뒤 8초마다 주변 적 ${pct(p.fearChance)} 확률 1.5초 공포. 체사레의 재생 촉진은 자신에게만 2배로 쓰인다.`,
       cast(b, u) {
         if (!b.enemiesOf(u).length) return false;
@@ -97,11 +99,12 @@ export const ROSTER_C: BaseUnit[] = [
   },
   {
     id: 'kyle', name: '카일', title: '켈레브림 가주 · 망각의 용사', factions: ['SIR'], traits: ['INFIL'], keywords: ['bio'],
-    atk: { type: 'strike', elem: 'holy', interval: 1.1 }, range: 1, base: B(9, 7, 5, 8, 3),
+    atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, base: B(9, 7, 5, 8, 3),
     sprite: 'knight', palette: PAL.SIR, lore: '적진 한가운데가 그의 제단이다.',
     skill: strike({
-      name: '성전 돌입', cd: 8, pow: 'strike', elem: 'holy', mult: 2, target: 'backline', blink: true, params: { radius: 1 },
-      desc: (p) => `적 후방으로 돌입해 주변 ${p.radius}칸에 타격 위력 ${pct(p.mult)} 신성 피해${p.stun ? ` + ${p.stun}초 기절` : ''}.`,
+      name: '성전 돌입', cd: 8, pow: 'strike', elem: 'holy', mult: 2, target: 'backline', blink: true, params: { radius: 1, guard: 0.25 },
+      desc: (p) => `적 후방으로 돌입해 주변 ${p.radius}칸에 타격 위력 ${pct(p.mult)} 신성 피해${p.stun ? ` + ${p.stun}초 기절` : ''}. 자신에게 최대 체력 ${pct(p.guard)} 보호막.`,
+      after: (b, u, _t, _d, p) => { b.shield(u, b.S(u, 'maxHp') * p.guard); },
     }),
   },
   {
@@ -110,7 +113,8 @@ export const ROSTER_C: BaseUnit[] = [
     sprite: 'robe', palette: tint(PAL.SIR, '#c8a070', '#ffffff', '#ffd866'), lore: '빵을 굽는 동안 기도하고, 기도하는 동안 빵을 굽는다.',
     skill: support({
       name: '성찬', cd: 6, target: 'lowest', power: cookPower, params: { heal: 2.2, cleanse: 1, dmg: 0.3, dur: 5 }, // 회복 1.8 → 2.2
-      desc: (p) => `[요리] 체력 비율이 가장 낮은 아군을 기술 위력 ${pct(p.heal)} 회복, 해로운 상태이상 제거, ${p.dur}초간 피해 +${pct(p.dmg)}${p.shield ? `, ${pct(p.shield)} 보호막` : ''}${p.splash ? '. 주변 1칸 아군에게 50% 효과' : ''}.`,
+      desc: (p) => `[요리] 체력 비율이 가장 낮은 아군을 기술 위력 ${pct(p.heal)} 회복, 해로운 상태이상 제거, ${p.dur}초간 피해 +${pct(p.dmg)}${p.shield ? `, ${pct(p.shield)} 보호막` : ''}${p.splash ? '. 주변 1칸 아군에게 50% 효과' : ''}. 받은 아군의 고유 신앙이 이번 전투 동안 깨어난다 (이미 디바인이면 신성력 획득 +100%p).`,
+      after: (b, _u, ts) => { for (const t of ts) dorosAwaken(b, t); },
     }),
   },
   {
@@ -183,7 +187,7 @@ export const ROSTER_C: BaseUnit[] = [
     sprite: 'medic', palette: tint(PAL.FAM, '#f4f4f8', '#d4b050', '#ffd860'),
     lore: '"매일 우리 흰사슴들의 관심을 빚지고 있잖아요. 오늘도 최고의 무대를 보여드릴게요, 기대해주세요-!"',
     skill: strike({
-      name: '오늘도 최고의 무대', cd: 7, pow: 'tech', elem: 'psy', mult: 2.125, params: { radius: 2, fear: 1, fearChance: 0.3, noMiss: 1 },
+      name: '오늘도 최고의 무대', cd: 7, pow: 'tech', elem: 'psy', mult: 2.4, params: { radius: 2, fear: 1, fearChance: 0.3, noMiss: 1 },
       desc: (p) => `대상 주변 ${p.radius}칸에 기술 위력 ${pct(p.mult)} 정신 피해, ${pct(p.fearChance)} 확률로 ${p.fear}초 공포${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}.`,
     }),
   },
@@ -204,12 +208,13 @@ export const ROSTER_C: BaseUnit[] = [
   },
   {
     id: 'rachel', name: '레이첼', title: '아문센의 양녀 · 구인류 최후의 생존자', factions: ['FAM'], traits: [], keywords: ['bio'],
-    atk: { type: 'strike', elem: 'psy', interval: 1.0 }, range: 1, base: B(10, 7, 5, 8, 3),
+    atk: { type: 'strike', elem: 'phys', interval: 1.0 }, range: 1, base: B(10, 7, 5, 8, 3),
     sprite: 'soldier', palette: tint(PAL.FAM, '#121218', '#2a2a34', '#9a6aff'),
     lore: '"…이거 꼭 지금 해야 돼요? 하면 잘하긴 하는데."',
     skill: strike({
-      name: '염동 제압', cd: 7, pow: 'strike', elem: 'psy', mult: 2.5, params: { stun: 1.5 },
-      desc: (p) => `암흑물질 노심의 출력을 실어 대상에게 타격 위력 ${pct(p.mult)} 정신 피해 + ${p.stun}초 기절${p.radius ? ` (주변 ${p.radius}칸)` : ''}.`,
+      name: '염동 제압', cd: 7, pow: 'strike', elem: 'psy', mult: 2.5, params: { stun: 1.5, blinkStun: 0.5 },
+      desc: (p) => `암흑물질 노심의 출력을 실어 대상에게 타격 위력 ${pct(p.mult)} 정신 피해 + ${p.stun}초 기절${p.radius ? ` (주변 ${p.radius}칸)` : ''}. 이어서 대상 너머 1칸으로 순간이동한다: 그 칸에 적이 있으면 밀쳐내고 ${p.blinkStun}초 기절 (밀어낼 수 없으면 이동하지 않고 기절만).`,
+      after: (b, u, t, _d, p) => rachelBlink(b, u, t, p.blinkStun),
     }),
   },
   {
@@ -230,9 +235,9 @@ export const ROSTER_C: BaseUnit[] = [
     id: 'rasmus', name: '라스무스', title: '엘베스타드가 조경사 · 경비견 맥스', factions: ['FAM'], traits: ['BUDDY'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, base: B(9, 7, 5, 7, 3),
     sprite: 'knight', palette: tint(PAL.FAM, '#4a5a3a', '#c8ccd8', '#ffcf40'),
-    // 맥스: 체력이 두꺼운 경비견 (앞을 막는다) · 라라: 빠르고 약한 적을 노리는 사냥개 (상속 80%, 체력 0.9배)
+    // 맥스: 체력이 두꺼운 경비견 (앞을 막는다) · 라라: 빠르고 약한 적을 노리는 사냥개 (상속 80%, 체력 0.9배, 회피 +15%p)
     summon: { name: '맥스', ctype: 'VAN', art: 'sm_max', sprite: 'beast', palette: BEAR, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.6,
-      also: [{ name: '라라', ctype: 'VAN', sprite: 'beast', palette: LARA, atk: { type: 'strike', elem: 'phys', interval: 0.75 }, range: 1, hpMul: 0.9, rate: 0.8, moveSpd: 1.5, focusLow: true }] },
+      also: [{ name: '라라', ctype: 'VAN', sprite: 'beast', palette: LARA, atk: { type: 'strike', elem: 'phys', interval: 0.75 }, range: 1, hpMul: 0.9, rate: 0.8, moveSpd: 1.5, focusLow: true, eva: 0.15 }] },
     lore: '본가의 정원을 40년 가꿨다. 정원을 망치는 것은 무엇이든 맥스가 먼저 쫓아낸다.',
     skill: {
       name: '불청객 퇴치', tag: () => '맥스 · 라라 돌격 + 출혈', cd: 7, params: { mult: 2.5, bleed: 0.3, roar: 0 },
@@ -285,9 +290,30 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 3, base: B(8, 5, 8, 7, 3),
     sprite: 'robe', palette: tint(PAL.FAM, '#1a1a1a', '#ffffff', '#c8ccd8'), lore: '3대째 같은 스튜를 끓인다. 레시피는 가주도 모른다.',
     skill: support({
-      name: '가문의 스튜', cd: 8, target: 'lowest', power: cookPower, params: { shield: 1.8, heal: 0.6, armor: 15, dur: 5 }, // 쿨다운 6.5 → 8 (특성 [저택의 실세]가 스킬마다 아군 전원 회복)
+      name: '가문의 스튜', cd: 8, target: 'lowest', power: cookPower, params: { shield: 1.5, heal: 0.6, armor: 15, dur: 5 }, // 쿨다운 6.5 → 8 (특성 [저택의 실세]가 스킬마다 아군 전원 회복)
       desc: (p) => `[요리] 체력 비율이 가장 낮은 아군에게 기술 위력 ${pct(p.shield)} 보호막 + ${pct(p.heal)} 회복${p.cleanse ? ', 해로운 상태이상 제거' : ''}, ${p.dur}초간 방어도 +${p.armor}${p.splash ? '. 주변 1칸 아군에게 50% 효과' : ''}.`,
     }),
   },
 ];
+/** 레이첼 [염동 제압]: 대상 너머 1칸 (자신 → 대상 방향)으로 순간이동. 그 칸의 적은 밀쳐내고 기절, 밀리지 않으면 이동 없이 기절만 */
+function rachelBlink(b: Battle, u: CUnit, t: CUnit, stun: number) {
+  if (!u.alive || u.immobile) return;
+  const dx = Math.sign(t.x - u.x), dy = Math.sign(t.y - u.y);
+  if (!dx && !dy) return;
+  const x = t.x + dx, y = t.y + dy;
+  if (!b.inBounds(x, y)) return;
+  const occ = b.unitAt(x, y);
+  if (occ) {
+    if (occ.mem.wall || b.sideOf(occ) !== 1 - b.sideOf(u)) return; // 아군 · 구조물 자리면 그대로
+    const r = b.knockback(u, occ);
+    if (occ.alive) b.stun(u, occ, stun);
+    if (!r.moved) return;
+  }
+  u.px = u.x; u.py = u.y;
+  u.x = x; u.y = y;
+  u.moveDur = u.moveT = 0.15;
+  u.mem.lastCell = -1;
+  b.fx(x, y, 0, 'psy');
+  for (const h of u.hooks) h.onMove?.(b, u);
+}
 export { inc };

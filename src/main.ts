@@ -3496,13 +3496,15 @@ const RECO: Record<string, string[]> = {
   SPEC: ['mnd_mnd', 'mnd_agi', 'mnd_def', 'vit_mnd', 'pow_mnd'],
   CMD: ['mnd_agi', 'mnd_mnd', 'def_def', 'vit_def', 'mnd_def'],
 };
+/** 기물별 추천 장비 키 (기물 정의 recItems 우선, 없으면 전투 유형 기본) */
+const recoKeys = (d: UnitDef) => d.recItems?.length ? d.recItems : RECO[d.ctype] || [];
 /** 추천 장비 창: 추천 목록 + 보관함 보유 · 아군 장착 현황 */
 function recoModal(run: RunState) {
   const u = app.recoFor ? run.units.find((x) => x.uid === app.recoFor) : null;
   if (!u) return '';
   const d = UNIT_BY_ID[u.defId];
   const name = (uid: string) => UNIT_BY_ID[run.units.find((x) => x.uid === uid)!.defId].name;
-  const rows = (RECO[d.ctype] || []).map((key) => {
+  const rows = recoKeys(d).map((key) => {
     const ids = [`A_${key}`, `L_${key}`];
     const it = itemInfo(`A_${key}`);
     const mine = u.items.filter((x) => x && ids.includes(x)).length;
@@ -5030,7 +5032,7 @@ function codexDetail(d: UnitDef, m: ReturnType<typeof loadMeta>) {
   if (d.ctype === 'CMD') b.tac[0] = CFG.tacBase + CFG.tacPerMnd * (c.mem.mnd || 0); // 전술 위력: 출전 4명 · 지휘관 1명 기준
   const r = m.units[d.id];
   const syn = [...d.factions, ...d.traits].map((id) => { const x = SYN_BY_ID[id as SynergyId]; if (!x) return ''; return `<button class="cx-syn-row" style="--c:${x.color}" data-a="cx2" data-v="go:syn:${x.id}" title="시너지 도감에서 보기"><span class="cx-syn-ic">${synIcon(x.id) || x.icon}</span><span><b>${esc(x.name)}</b> <span class="muted small">${x.kind === 'faction' ? '세력' : '특성'} · <span class="f-num">${x.tiers.join(' / ')}</span></span><p class="small muted">${esc(x.desc).replace(/\n/g, '<br>')}</p></span></button>`; }).join('');
-  const reco = (RECO[d.ctype] || []).map((key) => { const it = itemInfo(`A_${key}`); const [ca, cb] = it.recipe || []; return `<li class="rc-row">${itemIcon(`A_${key}`)}<div class="rc-main"><b>${esc(it.name)}</b><span class="small muted">${statIc(esc(it.desc))}</span></div><div class="rc-parts" title="조합 재료">${[ca, cb].filter(Boolean).map((x) => itemIcon(x!)).join('')}</div></li>`; }).join('');
+  const reco = recoKeys(d).map((key) => { const it = itemInfo(`A_${key}`); const [ca, cb] = it.recipe || []; return `<li class="rc-row">${itemIcon(`A_${key}`)}<div class="rc-main"><b>${esc(it.name)}</b><span class="small muted">${statIc(esc(it.desc))}</span></div><div class="rc-parts" title="조합 재료">${[ca, cb].filter(Boolean).map((x) => itemIcon(x!)).join('')}</div></li>`; }).join('');
   const art = standImg(d.id, 'stand full') + standImg(d.id, 'stand bust', true);
   return `<div class="detail cx-d cx-ud">
     <div class="cx-ud-top">

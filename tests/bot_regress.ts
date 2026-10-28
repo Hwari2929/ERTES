@@ -200,6 +200,14 @@ const u0 = (run: RunState) => run.units[0];
   const cands2 = thresholdCands(r2, deployed(r2), r2.units.filter((u) => !u.pos), (us) => teamEval(r2, us).v);
   const f2 = cands2.find((x) => x.name.startsWith('완성 VOYAGE'));
   ok(!!f2 && f2.name.includes('3→5') && (synergyCounts(f2.team, r2).VOYAGE || 0) === 5, `multi: 문장 소속 포함 출항기 3명 → 대기 2명으로 완성 (${f2?.name})`);
+  // 시그문드 보좌: 아직 출전하지 않은 후보 편성에서도 공명 등급이 가장 높은 다른 기물이 엘베스타드로 센다
+  const r3 = R.newRun(1, ['rachel', 'nadir', 'kyle', 'sigmund', 'temur'], 'waste', 0);
+  r3.pending = [];
+  for (const u of r3.units) u.pos = null;
+  r3.units.find((u) => u.defId === 'kyle')!.rank = 9;
+  const team3 = r3.units.filter((u) => u.defId !== 'temur');
+  const fam0 = synergyCounts(team3.filter((u) => u.defId !== 'sigmund'), r3).FAM || 0, fam1 = synergyCounts(team3, r3).FAM || 0;
+  ok(fam1 === fam0 + 2, `sigmund: 후보 편성 엘베스타드 ${fam0} → ${fam1} (시그문드 + 보좌 대상 카일)`);
   setEvalMode(false);
 }
 

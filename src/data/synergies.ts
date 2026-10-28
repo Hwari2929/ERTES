@@ -182,17 +182,19 @@ function chainBolt(b: Battle, u: CUnit, from: CUnit, hops: number, radius: numbe
 
 // ─────────────── 우리의 출항기!: 1명 또는 5명 출전 시 구성원 고유 능력
 const NO_CTX: EffectCtx = { run: null, unit: null, counts: {}, phase: 1, credits: 0 };
-/** 나디르: 대상에서 주변 적에게 3회 튕기는 물리 피해 (기본 공격 계수의 절반) */
+/** 나디르: 대상에서 주변 적에게 3회 튕기는 물리 피해 (기본 공격 계수의 25%). 맞은 적마다 이성 +1.5, 쿨다운 -0.25초 */
+const NADIR_V = { k: 0.25, n: 3, reason: 1.5, cd: 0.25 };
 function nadirBounce(b: Battle, u: CUnit, from: CUnit) {
-  const dmg = b.S(u, 'shoot') * (u.weapon?.mult || 1) * 0.5;
+  const dmg = b.S(u, 'shoot') * (u.weapon?.mult || 1) * NADIR_V.k;
   const hit = new Set<CUnit>([from]);
   let at: CUnit = from;
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < NADIR_V.n; i++) {
     const next = b.nearest(at, b.around(at, 3, b.enemiesOf(u)).filter((e) => !hit.has(e)));
     if (!next) break;
     hit.add(next);
     b.emit({ k: 'atk', from: at.id, to: next.id, elem: 'phys', ranged: true, chain: true });
-    b.dealDamage(u, next, dmg, { elem: 'phys', tag: 'proc', kind: 'shoot' });
+    const r = b.dealDamage(u, next, dmg, { elem: 'phys', tag: 'proc', kind: 'shoot' });
+    if (!r.miss) { b.addReason(u, NADIR_V.reason, 'voyage'); u.cd = Math.max(0, u.cd - NADIR_V.cd); }
     at = next;
   }
 }
@@ -213,7 +215,7 @@ export const VOYAGE_SPECIAL: Record<string, { who: string; name: string; text: s
       u.mem.beamT = (u.mem.beamT ?? 8) + dt;
       if (u.mem.beamT >= 12) { u.mem.beamT = 0; rachelBeam(b, u); }
     } } } },
-  nadir: { who: '나디르', name: '바운스 영사', text: '기본 공격 · 전투 기술이 맞으면 사격 위력 × 기본 공격 계수의 50% 계수의 물리 속성 피해가 3칸 내의 적에게 최대 3회 바운스된다.',
+  nadir: { who: '나디르', name: '바운스 영사', text: `기본 공격 · 전투 기술이 맞으면 사격 위력 × 기본 공격 계수의 ${pct(NADIR_V.k)} 계수의 물리 속성 피해가 3칸 내의 적에게 최대 ${NADIR_V.n}회 바운스된다. 바운스에 맞은 적 1명마다 이성 +${NADIR_V.reason}, 전투 스킬 쿨다운 -${NADIR_V.cd}초.`,
     effect: { hooks: {
       onBasic(b, u, t, r) { if (r.amount > 0) nadirBounce(b, u, t); },
       onSkill(b, u) { const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u)); if (t) nadirBounce(b, u, t); },

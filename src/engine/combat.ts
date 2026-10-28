@@ -160,6 +160,8 @@ export interface Hooks {
   onAnyDeath?(b: Battle, self: CUnit, dead: CUnit, killer: CUnit | null): void;
   /** 한 칸 이동했을 때 */
   onMove?(b: Battle, self: CUnit): void;
+  /** 암살형 적에게서 물러났을 때 (hunters = 자기를 노린 암살형 적, 가까운 순) */
+  onFlee?(b: Battle, self: CUnit, hunters: CUnit[]): void;
   /** 신권 대행 발동 직후 */
   onDivine?(b: Battle, self: CUnit): void;
   /** 이성이 -100 에 닿아 광폭에 들어갈 때 */
@@ -1197,8 +1199,9 @@ export class Battle {
     const range = this.S(u, 'range'), tgt = u.target && u.target.alive ? u.target : null;
     const d0 = near(u);
     let best: { x: number; y: number } | null = null, bs = -Infinity;
-    for (let dy = -1; dy <= 1; dy++)
-      for (let dx = -1; dx <= 1; dx++) {
+    const R = u.mem.fleeR || 1; // 물러나는 거리 (미리내 특성: 2칸)
+    for (let dy = -R; dy <= R; dy++)
+      for (let dx = -R; dx <= R; dx++) {
         const x = u.x + dx, y = u.y + dy;
         if ((!dx && !dy) || !this.inBounds(x, y) || this.unitAt(x, y)) continue;
         const p = { x, y }, d = near(p);
@@ -1217,6 +1220,8 @@ export class Battle {
     u.moveDur = u.moveT = CFG.moveTime / this.S(u, 'moveSpd');
     this.emit({ k: 'status', id: u.id, name: '물러남' });
     for (const h of u.hooks) h.onMove?.(this, u);
+    hunters.sort((a, b) => this.dist(u, a) - this.dist(u, b));
+    for (const h of u.hooks) h.onFlee?.(this, u, hunters);
     return true;
   }
 

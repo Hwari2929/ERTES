@@ -49,6 +49,10 @@ export interface ReworkDef {
   ttype: TType;
   weapon: Weapon;
   faith: FaithId;
+  /** 추천 주요 능력치 [주, 보조] (없으면 전투 유형 기본값, rework.ts recMajors) */
+  rec?: Major[];
+  /** 추천 장비 (고급 장비 키, A_ 접두 없이 · 없으면 전투 유형 기본 목록, main.ts RECO) */
+  recItems?: string[];
   trait: { name: string; desc: string; effect?: Effect };
   /** 마이너: 런 동안 쌓이는 성장 특성. g = UnitState.grow */
   growth?: { name: string; desc: string; effect?: (g: Record<string, number>) => Effect };
@@ -84,6 +88,8 @@ export interface SummonDef {
   moveSpd?: number;
   /** 사거리 안에서 체력 비율이 가장 낮은 적을 노린다 */
   focusLow?: boolean;
+  /** 회피 가산 (주인 회피에 더한다) */
+  eva?: number;
   /** 함께 소환되는 다른 소환물 (각 1기, 추가 소환 효과는 첫 소환물에만) */
   also?: SummonDef[];
   /** 구조물 소환물: 이동하지 않고 방어도 ×1.3 · 기절 · 공포 · 빙결 면역 (체력은 '내구도'로 표기) */

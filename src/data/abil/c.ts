@@ -2,6 +2,7 @@
 // 상세 문장 문형: docs/ABILITY_TEXT.md (줄마다 한 문장, 토큰 [rng] [pw] [el] [t] [s] [p] [pp] [pv] [g] [fx])
 // 지휘관(도로스 · 시그문드)의 스킬 위력은 [pw:tac:…] (전술 위력) 으로 적는다
 import type { AbilText, Area } from '../abiltext';
+import { DOROS_FEAST, GUNNIR_FAM_HEAL, GUNNIR_HEAL, KYLE_FINISH } from '../rework';
 
 type Row = [string, string];
 type P = Record<string, number>;
@@ -150,8 +151,8 @@ export const ABIL_C: Record<string, AbilText> = {
   },
   kyle: {
     brief: {
-      skill: '가장 뒤쪽 적에게 순간이동해 주변 적들에게 신성 피해를 줍니다.',
-      trait: '가하는 신성 피해가 증가하고, 전투 스킬을 쓸 때 보호막을 얻습니다.',
+      skill: '가장 뒤쪽 적에게 순간이동해 주변 적들에게 신성 피해를 주고, 보호막을 얻습니다.',
+      trait: '가하는 신성 피해가 증가하고, 피니쉬가 주변까지 신성 피해를 줍니다.',
     },
     skill: (p) => ({
       tgt: '가장 뒤쪽 적 (순간이동)', range: null, area: aroundOr(p.radius),
@@ -164,17 +165,18 @@ export const ABIL_C: Record<string, AbilText> = {
         ...moreHits(p, 'strike', 'holy'),
         ...hitMods(p),
         ...riders(p, p.radius ? '범위 안의 적들' : '대상'),
+        `자신에게 최대 체력의 [p:${p.guard}]만큼 보호막을 부여합니다.`,
       ),
     }),
     trait: L(
       '가하는 [el:holy] 피해가 [pv:0.2] 증가합니다.',
-      '전투 스킬을 쓰면 자신에게 최대 체력의 [p:0.25]만큼 보호막을 부여합니다.',
+      `[g:finish]가 적중하면 대상과 대상으로부터 [t:1] 이내의 적들에게 [pw:strike:${KYLE_FINISH}:holy] 피해를 가합니다.`,
     ),
   },
   doros: {
     brief: {
-      skill: '[요리] 가장 다친 아군을 치료하고 해로운 효과를 걷어내며, 잠시 가하는 피해를 증가시킵니다.',
-      trait: '성찬을 받은 아군의 고유 신앙을 이번 전투 동안 깨웁니다.',
+      skill: '[요리] 가장 다친 아군을 치료하고 해로운 효과를 걷어내며, 피해를 잠시 증가시키고 고유 신앙을 깨웁니다.',
+      trait: '기본 공격을 할 때마다 모든 아군을 조금씩 치료합니다.',
     },
     skill: (p) => ({
       tgt: '체력 비율이 가장 낮은 아군', range: null, area: p.splash ? { k: 'around', r: 1 } : { k: 'one' },
@@ -193,12 +195,10 @@ export const ABIL_C: Record<string, AbilText> = {
         `[s:${p.dur}]간 대상이 가하는 피해를 [pv:${p.dmg}] 증가시킵니다.`,
         p.splash && '대상으로부터 [t:1] 이내의 다른 아군들에게도 같은 효과를 [p:0.5]의 세기로 줍니다.',
         '이 스킬의 회복 · 강화 효과는 [g:cook] 배율을 받습니다.',
+        '성찬을 받은 아군은 이번 전투 동안 [g:awaken] 상태가 됩니다. 이미 디바인인 아군은 대신 신성력 획득량이 [pv:1] 증가합니다.',
       ),
     }),
-    trait: L(
-      '성찬의 강화 효과를 받은 아군은 이번 전투 동안 [g:awaken] 상태가 됩니다.',
-      '이미 디바인인 아군은 대신 신성력 획득량이 [pv:1] 증가합니다.',
-    ),
+    trait: `기본 공격을 할 때마다 모든 아군을 [pw:tac:${DOROS_FEAST}]만큼 회복시킵니다.`,
   },
   demiurgos: {
     brief: {
@@ -223,7 +223,7 @@ export const ABIL_C: Record<string, AbilText> = {
   aiden: {
     brief: {
       skill: '체력 비율이 가장 낮은 적에게 순간이동해 물리 피해를 주고, 가끔 [공포]에 빠뜨립니다.',
-      trait: '전투 시작 · 회피 · 처치 때 잠시 [고양이 형태]가 되고, 크게 다치면 뒤로 물러납니다.',
+      trait: '전투 시작 · 회피 · 처치 때 잠시 [고양이 형태]가 되고, 크게 다치면 뒤로 물러나 조금 회복합니다.',
     },
     skill: (p) => ({
       tgt: '체력 비율이 가장 낮은 적 (순간이동)', range: null, area: aroundOr(p.radius),
@@ -243,7 +243,7 @@ export const ABIL_C: Record<string, AbilText> = {
     trait: L(
       '전투가 시작되면 [s:5]간, 공격을 회피하면 [s:2]간, 적을 처치하면 [s:5]간 [g:catform] 상태가 됩니다.',
       '[g:catform]에서는 회피가 [pv:0.15], 공격 속도가 [pv:0.3] 증가합니다.',
-      '체력이 [p:0.35] 미만이 되면 자기 진영 뒷줄로 물러납니다.',
+      '체력이 [p:0.35] 미만이 되면 자기 진영 뒷줄로 물러나고, 곧바로 최대 체력의 [p:0.1]만큼 회복합니다.',
       '이 후퇴는 [s:10]마다 1번 발동합니다.',
     ),
     ace: (k) => `회피가 [pv:${n(0.075 * k)}] 증가합니다. 공격을 회피하면 공격자에게 [pw:strike:${n(0.8 * k)}:phys] 피해를 가합니다.`,
@@ -373,7 +373,7 @@ export const ABIL_C: Record<string, AbilText> = {
   // ───────── 엘베스타드 일가
   rachel: {
     brief: {
-      skill: '대상에게 강한 정신 피해를 주고 [기절]시킵니다.',
+      skill: '대상에게 강한 정신 피해를 주고 [기절]시킨 뒤, 대상 너머로 순간이동합니다.',
       trait: '정신 피해로 체력을 흡수하고, 기본 공격과 피니쉬에 고정 피해를 더합니다.',
     },
     skill: (p) => ({
@@ -387,6 +387,8 @@ export const ABIL_C: Record<string, AbilText> = {
         ...moreHits(p, 'strike', 'psy'),
         ...hitMods(p),
         ...riders(p, p.radius ? '범위 안의 적들' : '대상'),
+        '이어서 대상 너머 1칸으로 순간이동합니다.',
+        `그 칸에 적이 있으면 밀쳐내고 [fx:stun:${p.blinkStun}] 효과를 부여합니다. 밀어낼 수 없으면 이동하지 않고 기절만 겁니다.`,
       ),
     }),
     trait: L(
@@ -446,7 +448,7 @@ export const ABIL_C: Record<string, AbilText> = {
         ['출혈', `[st:bleed:4] 초당 자기 타격 위력의 [p:${p.bleed}]`],
         ...opt(p.roar, '공포', `각자 주변 [t:1] 적에게 [st:fear:1.2:${p.roar}]`),
         ['개 없을 때', '인접한 대상에게 라스무스가 직접 [dmg:strike:1.5:phys]'],
-        ['소환', '맥스 (체력 ×1.6, 앞을 막음) · 라라 (상속 [p:0.8], 체력 ×0.9, 공격 간격 0.75초, 빠름, 인접한 적 중 체력 비율이 가장 낮은 적을 노림)'],
+        ['소환', '맥스 (체력 ×1.6, 앞을 막음) · 라라 (상속 [p:0.8], 체력 ×0.9, 회피 [pp:0.15], 공격 간격 0.75초, 빠름, 인접한 적 중 체력 비율이 가장 낮은 적을 노림)'],
       ],
       text: L(
         `맥스와 라라가 각자 대상 곁으로 순간이동해 자신의 타격 위력의 [p:${p.mult}] [el:phys] 피해를 가합니다.`,
@@ -489,7 +491,7 @@ export const ABIL_C: Record<string, AbilText> = {
   gunnir: {
     brief: {
       skill: '[요리] 가장 다친 아군을 치료하고 보호막을 부여하며, 잠시 방어도를 증가시킵니다.',
-      trait: '전투 스킬을 쓴 뒤 모든 아군을 치료하고, 엘베스타드 일가는 훨씬 많이 치료합니다.',
+      trait: '전투 스킬을 쓴 뒤 모든 아군을 치료하고, 엘베스타드 일가는 더 많이 치료합니다.',
     },
     skill: (p) => ({
       tgt: '체력 비율이 가장 낮은 아군', range: null, area: p.splash ? { k: 'around', r: 1 } : { k: 'one' },
@@ -510,8 +512,8 @@ export const ABIL_C: Record<string, AbilText> = {
       ),
     }),
     trait: L(
-      '전투 스킬을 쓰면 모든 아군을 [pw:tech:0.2]만큼 회복시킵니다.',
-      '엘베스타드 일가 아군에게 주는 회복량이 [p:1] 증가하며, 보호막은 증가하지 않습니다.',
+      `전투 스킬을 쓰면 모든 아군을 [pw:tech:${GUNNIR_HEAL}]만큼 회복시킵니다.`,
+      `엘베스타드 일가 아군은 [pw:tech:${GUNNIR_HEAL + GUNNIR_FAM_HEAL}]만큼 회복시킵니다.`,
     ),
   },
 };

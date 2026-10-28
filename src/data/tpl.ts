@@ -134,6 +134,18 @@ export interface SupportOpts {
   after?: (b: Battle, u: CUnit, targets: CUnit[], p: Record<string, number>) => void;
 }
 
+/** 지원 스킬 효과 1명분 (m = 세기 배율: 요리 배율 · 주변 50% 등). 오르카 [깜짝 마술] 잔 폭발도 이걸로 */
+export function supportApply(b: Battle, u: CUnit, a: CUnit, p: Record<string, number>, m: number, label: string) {
+  if (p.heal) b.heal(u, a, b.P(u, 'tech') * p.heal * m);
+  if (p.shield) b.shield(a, b.P(u, 'tech') * p.shield * m);
+  if (p.cleanse) cleanse(a);
+  if (p.as || p.dmg || p.armor || p.eva || p.crit || p.red) {
+    b.buff(u, a, `sup.${u.defId}`, p.dur, {
+      delta: { atkSpd: p.as * m, armor: p.armor * m, eva: p.eva * m, crit: p.crit * m },
+      mods: p.dmg ? [inc('all', p.dmg * m)] : undefined, taken: p.red ? [red('all', p.red * m)] : undefined, label,
+    });
+  }
+}
 /** 지원형 기술: 아군 선택 → 회복 / 보호막 / 버프 / 정화 */
 export function support(o: SupportOpts): SkillDef {
   return {
@@ -149,18 +161,7 @@ export function support(o: SupportOpts): SkillDef {
       if (p.heal && !p.shield && !p.as && !p.dmg && !p.armor && !p.eva && !p.crit && ts.every((a) => b.hpPct(a) > 0.95)) return false;
       if (p.splash && ts.length === 1) ts = [ts[0], ...b.around(ts[0], 1, b.alliesOf(u)).filter((a) => a !== ts[0])];
       const k = o.power?.(u) ?? 1;
-      ts.forEach((a, i) => {
-        const m = (i > 0 && p.splash && ts.length > 1 && o.target !== 'all' ? 0.5 : 1) * k;
-        if (p.heal) b.heal(u, a, b.P(u, 'tech') * p.heal * m);
-        if (p.shield) b.shield(a, b.P(u, 'tech') * p.shield * m);
-        if (p.cleanse) cleanse(a);
-        if (p.as || p.dmg || p.armor || p.eva || p.crit || p.red) {
-          b.buff(u, a, `sup.${u.defId}`, p.dur, {
-            delta: { atkSpd: p.as * m, armor: p.armor * m, eva: p.eva * m, crit: p.crit * m },
-            mods: p.dmg ? [inc('all', p.dmg * m)] : undefined, taken: p.red ? [red('all', p.red * m)] : undefined, label: o.name,
-          });
-        }
-      });
+      ts.forEach((a, i) => supportApply(b, u, a, p, (i > 0 && p.splash && ts.length > 1 && o.target !== 'all' ? 0.5 : 1) * k, o.name));
       const c = ts[0];
       b.fx(c.x, c.y, o.target === 'all' ? 0 : p.radius, 'holy', p.heal || p.shield ? 'heal' : 'buff');
       o.after?.(b, u, ts, p);

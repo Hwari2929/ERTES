@@ -40,9 +40,9 @@ const RELICS_BASE: Omit<RelicDef, 'brief' | 'text'>[] = [
       } });
     } },
   { id: 'sandals', name: '헤르메스의 날개 신', owner: 'iris', price: 20, enh: 25,
-    desc: (k) => `아군 전원 기술 쿨다운 즉시 -2초. 전투 끝까지 아군 전원 공격 속도 +${pct(0.2 * k)}p, 이동 속도 +${pct(0.3 * k)}p.`,
+    desc: (k) => `아군 전원 기술 쿨다운 즉시 -2초. 전투 끝까지 아군 전원 공격 속도 +${pct(0.3 * k)}p, 이동 속도 +${pct(0.3 * k)}p.`,
     act(b, u, k) {
-      for (const a of b.alliesOf(u)) { a.cd = Math.max(0, a.cd - 2); b.buff(u, a, 'rel.sandals', FOREVER, { delta: { atkSpd: 0.2 * k, moveSpd: 0.3 * k }, label: '날개 신' }); }
+      for (const a of b.alliesOf(u)) { a.cd = Math.max(0, a.cd - 2); b.buff(u, a, 'rel.sandals', FOREVER, { delta: { atkSpd: 0.3 * k, moveSpd: 0.3 * k }, label: '날개 신' }); }
       b.fx(u.x, u.y, 0, 'elec', 'buff');
     } },
   { id: 'bow', name: '귀환의 활', owner: 'odysseus', price: 25, enh: 30,
@@ -174,7 +174,7 @@ const RELIC_TX: Record<string, Pick<RelicDef, 'brief' | 'text'>> = {
   lantern: { brief: '아군 전체를 회복시키고, 전투 끝까지 주변 아군을 계속 회복시킵니다.',
     text: (k) => `아군 전체를 각자 최대 체력의 [p:${0.12 * k}]만큼 회복시킵니다.\n${END} 1초마다 자신으로부터 [t:2] 이내의 아군을 각자 최대 체력의 [p:${0.008 * k}]만큼 회복시킵니다.` },
   sandals: { brief: '아군 전체의 스킬을 앞당기고, 전투 끝까지 아군을 빠르게 합니다.',
-    text: (k) => `아군 전체의 스킬 쿨다운을 [s:2] 감소시킵니다.\n${END} 아군 전체의 공격 속도를 [pv:${0.2 * k}], 이동 속도를 [pv:${0.3 * k}] 증가시킵니다.` },
+    text: (k) => `아군 전체의 스킬 쿨다운을 [s:2] 감소시킵니다.\n${END} 아군 전체의 공격 속도를 [pv:${0.3 * k}], 이동 속도를 [pv:${0.3 * k}] 증가시킵니다.` },
   bow: { brief: '가장 다친 적들에게 방어도를 무시하는 신성 피해를 주고, 전투 끝까지 치명타 확률을 증가시킵니다.',
     text: (k) => `체력 비율이 가장 낮은 적 3명에게 각각 [pw:shoot:${7.5 * k}:holy] 피해를 가합니다.\n지휘관이면 사격 위력과 전술 위력 중 높은 쪽으로 계산합니다.\n이 공격은 대상의 방어도를 [p:1] 무시합니다.\n${END} 자신의 치명타 확률을 [pv:${0.15 * k}] 증가시킵니다.` },
   spear: { brief: '적이 모인 곳에 뛰어들어 신성 피해를 주고 [기절]시키며, 전투 끝까지 받는 피해를 감소시킵니다.',

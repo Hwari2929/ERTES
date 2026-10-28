@@ -77,11 +77,12 @@ export function zoneAt(g: Geo, x: number, y: number): 'foe' | 'ally' | 'mid' | '
 export function deployed(run: RunState) { return run.units.filter((u) => u.pos); }
 
 /** 기물이 소속된 시너지 (세력 + 특성 + 증강으로 얻은 추가 소속) */
-export function memberships(u: UnitState, run?: RunState | null): SynergyId[] {
+/** team = 시그문드 보좌 대상을 따질 편성 (synergyCounts 가 넘긴다. 없으면 지금 출전) */
+export function memberships(u: UnitState, run?: RunState | null, team?: UnitState[]): SynergyId[] {
   if (run?.campaign) return campMembers(u.defId); // 캠페인: 전용 소속표만 (증강 · 문장 추가 소속 없음)
   const d = UNIT_BY_ID[u.defId];
   const s = new Set<SynergyId>([...d.factions, ...d.traits]);
-  if (run && sigmundTarget(run) === u.uid) s.add('FAM'); // 시그문드가 모시는 기물
+  if (run && sigmundTarget(run, team) === u.uid) s.add('FAM'); // 시그문드가 모시는 기물 (후보 편성 기준으로도 센다: 봇 편성 평가)
   for (const a of u.augments) {
     const e = AUG_BY_ID[a.id]?.effect(a.param);
     e?.extraSyn?.forEach((x) => s.add(x));
@@ -97,7 +98,7 @@ export function synergyCounts(units: UnitState[], run?: RunState | null, raw = f
   for (const u of units) {
     if (seen.has(u.defId)) continue; // 같은 기물은 1회만 집계
     seen.add(u.defId);
-    for (const s of memberships(u, run)) c[s] = (c[s] || 0) + 1;
+    for (const s of memberships(u, run, units)) c[s] = (c[s] || 0) + 1;
   }
   if (run && !run.campaign) {
     // 연합 협정 / 전술 교범: 인원이 가장 많은 세력 / 특성 +1
@@ -296,7 +297,7 @@ export function makeSummons(owner: CUnit, sd0: SummonDef): SummonMade[] {
     st.maxHp = o.maxHp * r * (sd.hpMul || 1);
     st.shoot = o.shoot * r; st.strike = o.strike * r; st.tech = o.tech * r;
     st.armor = o.armor * r + (owner.mem.summonArmor || 0) * flat;
-    st.acc = o.acc; st.crit = o.crit; st.critDmg = o.critDmg; st.effHit = o.effHit; st.effRes = o.effRes; st.eva = o.eva;
+    st.acc = o.acc; st.crit = o.crit; st.critDmg = o.critDmg; st.effHit = o.effHit; st.effRes = o.effRes; st.eva = o.eva + (sd.eva || 0);
     st.moveSpd = sd.moveSpd || 1.15; st.range = sd.range;
     st.maxHp *= (1 + (owner.mem.summonHpPct || 0)) * (owner.mem.summonHpMul || 1);
     // 라르스: 경호원 메이저 보너스

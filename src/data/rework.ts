@@ -6,7 +6,7 @@ import { type CType, type Elem, type FaithId, FAITH_NAME, type Major, MAJORS, ty
 import { itemEffect } from './items';
 import { RELIC_BY_ID } from './relics';
 import { blinkTo, corrode, every, fear, gw, isHarmful, lineTargets, nth, pct, skillHit, summonsOf } from './kit';
-import { LARS_EXTRA } from './rosterA';
+import { LARS_EXTRA, ORCA_GLASS } from './rosterA';
 import { kairoSnipe, ZAHARA_ACE_STEAL } from './rosterB';
 import { monsterBuff } from './rosterE';
 import { pickEnemy } from './tpl';
@@ -14,9 +14,18 @@ import { type BaseUnit, type ReworkDef, setSk, uaug } from './unitkit';
 /** 레이첼 [암흑물질 붕괴]: 정신 피해 흡혈 · 기본 공격 추가 고정 피해 (타격 위력 대비) · 피니쉬 주변 고정 피해 (피니쉬 피해 대비) */
 const RACHEL = { heal: 0.15, extra: 0.2, finish: 0.35 };
 /** 에이든: 체력 비율 기준 · 재발동 대기 (초) */
-const AIDEN_RETREAT = { hp: 0.35, icd: 10 };
-/** 구닐라 [저택의 실세]: 엘베스타드 일가 아군에게 주는 회복량 증가 */
-export const GUNNIR_FAM_HEAL = 1;
+/** 에이든 후퇴: 체력 조건 · 재발동 대기 · 물러난 뒤 즉시 회복 (최대 체력 비율) */
+export const AIDEN_RETREAT = { hp: 0.35, icd: 10, heal: 0.1 };
+/** 구닐라 [저택의 실세]: 전투 스킬 뒤 아군 전원 회복 (기술 위력 비율) · 엘베스타드 일가 아군 추가분 */
+export const GUNNIR_HEAL = 0.3, GUNNIR_FAM_HEAL = 0.15;
+/** 나디르 [사이오닉 영사]: 바운스 계수 (기술 위력) · 칸 · 기본 공격 / 전투 스킬 바운스 횟수 */
+export const NADIR = { k: 0.25, r: 2, basicN: 2, skillN: 3 };
+/** 도로스 [성도회식 만찬]: 기본 공격마다 아군 전원 회복 (전술 위력 비율) */
+export const DOROS_FEAST = 0.05;
+/** 미리내 [물질주의 캠퍼]: 물러나는 칸 · 물러날 때 사격 계수 */
+export const MIRINAE = { r: 2, k: 1.5 };
+/** 카일 [성전 기사]: 피니쉬 적중 시 대상 · 주변 1칸 신성 피해 (타격 위력 비율) */
+export const KYLE_FINISH = 1;
 
 // ───────── 무기 헬퍼: G = 탄창형(사격), K = 콤보형(타격)
 const G = (name: string, elem: Elem, interval: number, range: number, mult: number, mag: number, reload: number, x: Partial<Weapon> = {}): Weapon =>
@@ -54,7 +63,7 @@ export const MINOR_TRAIT_GROW: Record<string, (g: number) => string> = {
   ingel: (g) => `[무대 위의 달] 아군 1명당 피해 +${pct(0.1 * g)} · 소환물당 +${pct(0.05 * g)}`,
   rasmus: (g) => `[가지치기] 부상 최대 ${Math.round(5 * g)}중첩`,
   sigmund: (g) => `[집사의 예법] 모시는 엘베스타드 모든 주요 능력치 +${Math.round(5 * g)}`,
-  gunnir: (g) => `[저택의 실세] 기술 후 아군 전원 회복 기술 위력 ${pct(0.25 * g)}`,
+  gunnir: (g) => `[저택의 실세] 기술 후 아군 전원 회복 기술 위력 ${pct(GUNNIR_HEAL * g)} (일가 +${pct(GUNNIR_FAM_HEAL * g)}p)`,
   bill: (g) => `[호쾌한 관광객] 해로운 효과 대상 피해 +${pct(0.1 * g)}`,
   eden: (g) => `[밑바닥 생존자] 체력 50% 이하 피해 +${pct(0.2 * g)}`,
   u404: (g) => `[1원칙] 기술마다 피해 +${pct(0.1 * g)} 중첩`,
@@ -95,16 +104,25 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'MARK', ttype: 'major', faith: 'human', weapon: G('깜찍이', 'phys', 1.0, 5, 1.4, 4, 2.5),
     factions: ['UNI'], traits: ['HUNTER'],
     trait: {
-      name: '물질주의 캠퍼', desc: '장착한 장비 · 개조부품 · 임시 장비 1개당 회피 · 치명타 확률 +2.5%p (최대 +15%p).',
-      effect: { hooks: { onStart(_b, u) {
-        const n = (u.src?.items.filter(Boolean).length || 0) + (u.src?.mod ? 1 : 0) + (u.tempItems?.length || 0);
-        const v = Math.min(0.15, 0.025 * n);
-        u.st.eva += v; u.st.crit += v;
-      } } },
+      name: '물질주의 캠퍼', desc: `장착한 장비 · 개조부품 · 임시 장비 1개당 회피 · 치명타 확률 +2.5%p (최대 +15%p). 암살형 적에게서 물러날 때 ${MIRINAE.r}칸까지 물러나며, 물러날 때마다 그 적에게 사격 위력 ${pct(MIRINAE.k)} 물리 피해.`,
+      effect: { setup: (u) => { u.mem.fleeR = MIRINAE.r; }, hooks: {
+        onStart(_b, u) {
+          const n = (u.src?.items.filter(Boolean).length || 0) + (u.src?.mod ? 1 : 0) + (u.tempItems?.length || 0);
+          const v = Math.min(0.15, 0.025 * n);
+          u.st.eva += v; u.st.crit += v;
+        },
+        // 물러남 1번에 1회: 자기를 노린 가장 가까운 암살형 적에게
+        onFlee(b, u, hunters) {
+          const t = hunters.find((e) => e.alive);
+          if (!t) return;
+          b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'phys', ranged: true });
+          b.dealDamage(u, t, b.S(u, 'shoot') * MIRINAE.k, { elem: 'phys', tag: 'proc', kind: 'shoot', canMiss: true });
+        },
+      } },
     },
   },
   gebek: {
-    ctype: 'MARK', ttype: 'major', faith: 'human', weapon: G('헤비 버니', 'phys', 0.45, 4, 0.5, 40, 4.5),
+    ctype: 'MARK', ttype: 'major', faith: 'human', weapon: G('헤비 버니', 'phys', 0.39, 2, 0.5, 40, 4.5), // 사거리 4 → 2, 공격 속도 +15% (0.45 → 0.39초)
     factions: ['UNI', 'STL'], traits: ['ENG'],
     trait: {
       name: '괴수', desc: '기본 공격이 맞으면 25% 확률로 [제압]: 대상의 다음 공격 피해가 1이 된다.',
@@ -112,9 +130,9 @@ export const REWORK: Record<string, ReworkDef> = {
     },
   },
   donovan: {
-    ctype: 'SPEC', ttype: 'special', faith: 'human', weapon: K('단분자 와이어', 'phys', 0.8, 1, 0.8, 4),
+    ctype: 'SPEC', ttype: 'special', faith: 'human', weapon: K('단분자 와이어', 'phys', 0.8, 2, 0.8, 4),
     factions: ['UNI', 'SEC'], traits: ['BUDDY'],
-    trait: { name: '자안의 사수', desc: '기술 피해도 치명타가 터진다. 체력 비율이 가장 낮은 적을 우선 노린다. 까악이 공격 속도 +30%.', effect: {
+    trait: { name: '급소 절단', desc: '기술 피해도 치명타가 터진다. 체력 비율이 가장 낮은 적을 우선 노린다. 까악이 공격 속도 +30%.', effect: {
       setup: (u) => { u.mem.techCrit = 1; u.mem.lowestFocus = 1; },
       hooks: { onTick(b, u) {
         if (u.mem.crowInit) return;
@@ -211,7 +229,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'MARK', ttype: 'minor', faith: 'index', weapon: G('작살총', 'phys', 1.4, 3, 1.6, 1, 2),
     factions: ['PET'], traits: ['CHEF'],
     trait: {
-      name: '깜짝 마술', desc: '공격 · 기술이 맞으면 20% 확률로 무작위 적 하나를 0.6초 기절시킨다 (1초에 1회).',
+      name: '깜짝 마술', desc: `공격 · 기술이 맞으면 20% 확률로 무작위 적 하나를 0.6초 기절시킨다 (1초에 1회). 전투 스킬을 쓴 뒤 ${pct(ORCA_GLASS.p)} 고정 확률로 잔이 터져, 대상 주변 1칸 다른 아군에게도 스킬 효과를 ${pct(ORCA_GLASS.k)} 세기로 준다.`,
       effect: { hooks: { onDeal(b, u, _t, r, o) {
         if (r.amount <= 0 || (o.tag !== 'basic' && o.tag !== 'skill') || !b.rng.chance(Math.min(0.6, 0.2 * gw(u))) || !icd(b, u, 'orcaIcd', 1)) return;
         const es = b.enemiesOf(u);
@@ -249,7 +267,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'CMD', ttype: 'special', faith: 'index', weapon: { name: '비무장', kind: 'none', type: 'shoot', elem: 'phys', interval: 1, range: 3, mult: 0 },
     factions: ['PET', 'FAM'], traits: ['BUDDY'],
     trait: {
-      name: '합리적인 거래', desc: `기본 공격을 하지 않는다. 경호원은 기본 1명 + 공명 등급 4등급마다 1명 (최대 4명)이고, 추가 경호원은 첫 경호원 능력치의 ${pct(LARS_EXTRA)}. 라르스가 함께한 뒤 번 크레딧 10당 경호원 주요 능력치 +1 (100에서 상한 +10). 이자 상한 +2. [경호 계약] 8초마다 경호원 전원에게 기술 위력 150% 보호막.`,
+      name: '합리적인 거래', desc: `기본 공격을 하지 않는다. 경호원은 기본 1명 + 공명 등급 4등급마다 1명 (최대 4명)이고, 추가 경호원은 첫 경호원 능력치의 ${pct(LARS_EXTRA)}. 라르스가 함께한 뒤 번 크레딧 10당 경호원 주요 능력치 +1 (100에서 상한 +10). [경호 계약] 8초마다 경호원 전원에게 기술 위력 150% 보호막.`,
       effect: {
         setup: (u) => { u.mem.summonMaj = Math.min(10, Math.floor(gv(u.src?.grow || {}, 'earn') / 10)); },
         hooks: { onTick(b, u, dt) {
@@ -338,15 +356,19 @@ export const REWORK: Record<string, ReworkDef> = {
     psi: { desc: '점괘가 길이면 이성 +10, 흉이면 -10.', effect: {} },
   },
   nadir: {
-    ctype: 'SPEC', ttype: 'psionic', faith: 'emperor', weapon: G('백수정 조각', 'psy', 0.9, 3, 1.125, 6, 1.5),
+    ctype: 'SPEC', ttype: 'psionic', faith: 'emperor', weapon: G('백수정 조각', 'phys', 0.9, 3, 0.9, 6, 1.5),
     factions: ['KAL', 'VOYAGE'], traits: ['OCCULT'],
     trait: {
-      name: '사이오닉 영사', desc: '기본 공격이 맞으면 기술 위력 62.5% 계수의 정신 속성 피해가 2칸 내의 적에게 최대 1회 바운스된다.',
-      effect: { hooks: { onBasic(b, u, t, r) {
-        if (r.amount <= 0) return;
-        const e = b.nearest(t, b.around(t, 2, b.enemiesOf(u)).filter((x) => x !== t));
-        if (e) proc(b, u, e, b.S(u, 'tech') * 0.625, 'psy', 'tech');
-      } } },
+      name: '사이오닉 영사', desc: `기본 공격이 맞으면 기술 위력 ${pct(NADIR.k)} 계수의 정신 속성 피해가 ${NADIR.r}칸 내의 적에게 최대 ${NADIR.basicN}회 바운스된다 (전투 스킬이 맞으면 ${NADIR.skillN}회, 시전마다 1번).`,
+      effect: { hooks: {
+        onBasic(b, u, t, r) { if (r.amount > 0) nadirEcho(b, u, t, NADIR.basicN); },
+        onDeal(b, u, t, r, o) {
+          // 전투 스킬: 범위 공격이라 여러 적이 맞아도 처음 맞은 대상에서 한 번만
+          if (o.tag !== 'skill' || r.amount <= 0 || t === u || u.mem.nadirSk === b.t) return;
+          u.mem.nadirSk = b.t;
+          nadirEcho(b, u, t, NADIR.skillN);
+        },
+      } },
     },
     psi: { desc: '전투 스킬 사용 시 이성 -10, 결정타 +6.', effect: { hooks: { onSkill: (b, u) => b.addReason(u, -10), onKill: (b, u) => b.addReason(u, 6) } } },
   },
@@ -643,16 +665,21 @@ export const REWORK: Record<string, ReworkDef> = {
     },
   },
   kyle: {
-    ctype: 'VAN', ttype: 'divine', faith: 'sirius', weapon: K('성전 장검', 'holy', 1.0, 1, 1, 4),
+    ctype: 'VAN', ttype: 'divine', faith: 'sirius', weapon: K('성전 장검', 'phys', 1.0, 1, 0.8, 4),
     factions: ['SIR'], traits: ['GUARD'],
-    trait: { name: '성전 기사', desc: '신성 피해량 +20%. 전투 스킬을 쓸 때 최대 체력 25% 보호막.', effect: { mods: [inc('holy', 0.2)], hooks: { onSkill(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.25); } } } },
+    trait: { name: '성전 기사', desc: `신성 피해량 +20%. 피니쉬가 맞으면 대상과 주변 1칸 적에게 타격 위력 ${pct(KYLE_FINISH)} 신성 피해.`, effect: { mods: [inc('holy', 0.2)], hooks: { onBasic(b, u, t, r) {
+      if (!u.mem.finished || r.miss) return;
+      b.fx(t.x, t.y, 1, 'holy');
+      for (const e of [t, ...b.around(t, 1, b.enemiesOf(u)).filter((x) => x !== t)]) if (e.alive) b.dealDamage(u, e, b.S(u, 'strike') * KYLE_FINISH, { elem: 'holy', tag: 'proc', kind: 'strike' });
+    } } } },
   },
   doros: {
     ctype: 'CMD', ttype: 'divine', faith: 'sirius', weapon: G('빵 투척', 'holy', 1.0, 3, 0.75, 6, 2),
     factions: ['SIR'], traits: ['CHEF'],
     trait: {
-      name: '성찬', desc: '요리받은 아군의 고유 신앙이 이번 전투 동안 깨어난다 (신성력 · 신권 대행 사용 가능). 이미 디바인이면 신성력 획득 +100%p.',
-      effect: { hooks: { onInflict(b, _u, t, s) { if (s.key === 'sup.doros') awaken(b, t); } } },
+      // 신앙 각성은 전투 스킬 [성찬] 쪽 (rosterC · dorosAwaken)
+      name: '성도회식 만찬', desc: `기본 공격을 할 때마다 아군 전원을 전술 위력 ${pct(DOROS_FEAST)} 회복.`,
+      effect: { hooks: { onBasic(b, u) { for (const a of b.alliesOf(u)) b.heal(u, a, b.P(u, 'tech') * DOROS_FEAST); } } },
     },
   },
   demiurgos: {
@@ -672,9 +699,9 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'VAN', ttype: 'special', faith: 'science', weapon: K('액체 금속 칼날', 'phys', 0.75, 1, 0.75, 5),
     factions: ['TIME'], traits: ['OCCULT'],
     trait: {
-      name: '고양이 형태', desc: `전투 시작 5초 · 회피 시 2초 · 처치 시 5초 동안 고양이 형태: 회피 +15%p, 공격 속도 +30%p. 체력이 ${AIDEN_RETREAT.hp * 100}% 아래로 떨어지면 후방으로 물러난다 (${AIDEN_RETREAT.icd}초에 1회).`,
+      name: '고양이 형태', desc: `전투 시작 5초 · 회피 시 2초 · 처치 시 5초 동안 고양이 형태: 회피 +15%p, 공격 속도 +30%p. 체력이 ${AIDEN_RETREAT.hp * 100}% 아래로 떨어지면 후방으로 물러나고 최대 체력 ${pct(AIDEN_RETREAT.heal)} 회복 (${AIDEN_RETREAT.icd}초에 1회).`,
       effect: { hooks: {
-        onHurt(b, u) { if (b.hpPct(u) < AIDEN_RETREAT.hp && icd(b, u, 'aidenRet', AIDEN_RETREAT.icd)) retreat(b, u); },
+        onHurt(b, u) { if (b.hpPct(u) < AIDEN_RETREAT.hp && icd(b, u, 'aidenRet', AIDEN_RETREAT.icd) && retreat(b, u)) b.heal(u, u, b.S(u, 'maxHp') * AIDEN_RETREAT.heal); },
         onStart(b, u) { cat(b, u, 5); },
         onEvade(b, u) { cat(b, u, 2); },
         onKill(b, u) { cat(b, u, 5); },
@@ -724,6 +751,8 @@ export const REWORK: Record<string, ReworkDef> = {
   vivian: {
     ctype: 'SPEC', ttype: 'minor', faith: 'science', weapon: G('다트 소총', 'phys', 1.0, 3, 1.0, 5, 2),
     factions: ['PAN', 'VOYAGE'], traits: ['BUDDY'],
+    // 다트 소총 사격 · 리키 상속 모두 전투력
+    rec: ['pow', 'agi'], recItems: ['pow_pow', 'pow_agi', 'vit_pow', 'pow_mnd', 'pow_def'],
     trait: {
       name: '생태 분석', desc: '비비안과 리키의 기본 공격이 대상의 방어도를 10%p 깎는다 (최대 3중첩, 5초). 리키 기본 공격 피해 +12%.',
       effect: { hooks: {
@@ -821,7 +850,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ],
   },
   rachel: {
-    ctype: 'VAN', ttype: 'psionic', faith: 'human', weapon: K('암흑물질 노심', 'psy', 0.9, 1, 1.0625, 4),
+    ctype: 'VAN', ttype: 'psionic', faith: 'human', weapon: K('암흑물질 노심', 'phys', 0.9, 1, 0.85, 4, { mix: 'psy', mixShare: 0.625 }), // 물리 몫 50% + 정신 몫 62.5% (정신 계수는 물리보다 높게)
     factions: ['FAM', 'TIME', 'VOYAGE'], traits: [],
     trait: {
       name: '암흑물질 붕괴', desc: `자신이 준 정신 피해의 ${RACHEL.heal * 100}%만큼 회복한다. 기본 공격이 맞으면 대상에게 타격 위력 ${RACHEL.extra * 100}% 고정 피해를 더하고, 피니쉬는 대상과 주변 1칸 적에게 피니쉬 피해의 ${RACHEL.finish * 100}%만큼 고정 피해를 더 준다.`,
@@ -844,6 +873,8 @@ export const REWORK: Record<string, ReworkDef> = {
   oliver: {
     ctype: 'SPEC', ttype: 'major', faith: 'hermes', weapon: K('기관사 렌치', 'phys', 0.85, 1, 0.8, 3),
     factions: ['FAM', 'PAN'], traits: ['NAV'],
+    // 이동 속도로 기술 위력이 오른다: 기동력 · 정신력
+    rec: ['agi', 'mnd'], recItems: ['mnd_agi', 'agi_agi', 'pow_agi'],
     trait: { name: '메트로 기관사', desc: '이동 속도가 100%를 넘는 만큼 기술 위력이 1.5배로 오른다.', effect: { hooks: { onStart(b, u) { u.st.tech *= 1 + 1.5 * Math.max(0, b.S(u, 'moveSpd') - 1); } } } },
   },
   rasmus: {
@@ -880,11 +911,10 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'SPEC', ttype: 'minor', faith: 'index', weapon: G('주방 칼 투척', 'phys', 1.0, 3, 0.8, 5, 2),
     factions: ['FAM'], traits: ['MED', 'CHEF'],
     trait: {
-      name: '저택의 실세', desc: `전투 스킬을 쓴 뒤 아군 전원을 기술 위력 20% 회복. 엘베스타드 일가 아군에게 주는 회복량 +${pct(GUNNIR_FAM_HEAL)}.`,
+      name: '저택의 실세', desc: `전투 스킬을 쓴 뒤 아군 전원을 기술 위력 ${pct(GUNNIR_HEAL)} 회복 (엘베스타드 일가 아군은 ${pct(GUNNIR_HEAL + GUNNIR_FAM_HEAL)}).`,
       effect: { hooks: {
-        onSkill(b, u) { for (const a of b.alliesOf(u)) b.heal(u, a, b.P(u, 'tech') * 0.2 * gw(u)); },
-        // 엘베스타드 일가 (시그문드가 모셔 합류한 기물 포함) 회복량 +100%
-        healMult: (_b, _u, t) => (t.synergies.has('FAM') ? 1 + GUNNIR_FAM_HEAL : 1),
+        // 엘베스타드 일가 (시그문드가 모셔 합류한 기물 포함)는 계수 +15%p
+        onSkill(b, u) { for (const a of b.alliesOf(u)) b.heal(u, a, b.P(u, 'tech') * (GUNNIR_HEAL + (a.synergies.has('FAM') ? GUNNIR_FAM_HEAL : 0)) * gw(u)); },
       } },
     },
   },
@@ -995,19 +1025,21 @@ function romaniPull(b: Battle, u: CUnit) {
   proc(b, u, e, b.S(u, 'strike') * 0.5, 'phys', 'strike');
 }
 /** 자기 진영 맨 뒷줄 빈칸으로 물러난다 (없으면 한 줄 앞) */
-function retreat(b: Battle, u: CUnit) {
+/** 후방으로 물러난다. 실제로 옮겼으면 true */
+function retreat(b: Battle, u: CUnit): boolean {
   const ay1 = b.geo?.ay1 ?? b.h - 2; // 아군 진형 맨 뒷줄 (지형 틀에 따라 다름)
   const rows = u.side === 0 ? [ay1, ay1 - 1, ay1 - 2] : [1, 2, 3];
   for (const y of rows) {
     const xs = [...Array(b.w).keys()].filter((x) => b.inBounds(x, y) && !b.unitAt(x, y)).sort((a, c) => Math.abs(a - u.x) - Math.abs(c - u.x));
     if (!xs.length) continue;
-    if (u.side === 0 ? y <= u.y : y >= u.y) return; // 이미 그보다 뒤에 있다
+    if (u.side === 0 ? y <= u.y : y >= u.y) return false; // 이미 그보다 뒤에 있다
     u.px = u.x; u.py = u.y; u.x = xs[0]; u.y = y;
     u.moveDur = u.moveT = 0.3; u.mem.lastCell = -1;
     b.fx(u.x, u.y, 0, 'phys', 'buff');
     b.emit({ k: 'status', id: u.id, name: '후퇴' });
-    return;
+    return true;
   }
+  return false;
 }
 function cat(b: Battle, u: CUnit, dur: number) {
   // 인간 형태: 고양이 대신 [집중] (같은 키라 고양이 형태에 반응하는 증강이 그대로 발동, 회피 · 공격 속도 보너스 없음)
@@ -1025,8 +1057,9 @@ function wound(b: Battle, u: CUnit, t: CUnit) {
 }
 
 /** 시그문드가 모시는 기물: 출전한 다른 기물 중 공명 등급이 가장 높은 기물 */
-export function sigmundTarget(run: RunState): string | null {
-  const dep = run.units.filter((u) => u.pos);
+/** 시그문드가 모시는 기물 uid: 출전 기물 중 공명 등급이 가장 높은 다른 기물. team = 따져 볼 편성 (봇이 후보 편성을 평가할 때, 기본 = 지금 출전) */
+export function sigmundTarget(run: RunState, team?: RunState['units']): string | null {
+  const dep = team ?? run.units.filter((u) => u.pos);
   if (!dep.some((u) => u.defId === 'sigmund')) return null;
   return dep.filter((u) => u.defId !== 'sigmund').sort((a, b) => b.rank - a.rank)[0]?.uid ?? null;
 }
@@ -1100,6 +1133,19 @@ export const FAITH_DEF: Record<FaithId, FaithDef> = {
     },
     passive: { mods: [inc('holy', 0.2)], taken: [red('holy', 0.2)] } },
 };
+/** 사이오닉 영사: from 에서 아직 맞지 않은 가장 가까운 적으로 n번 튄다 */
+function nadirEcho(b: Battle, u: CUnit, from: CUnit, n: number) {
+  const hit = new Set<CUnit>([from]);
+  let at = from;
+  for (let i = 0; i < n; i++) {
+    const e = b.nearest(at, b.around(at, NADIR.r, b.enemiesOf(u)).filter((x) => !hit.has(x) && x.alive));
+    if (!e) break;
+    hit.add(e);
+    b.emit({ k: 'atk', from: at.id, to: e.id, elem: 'psy', ranged: true, chain: true });
+    proc(b, u, e, b.S(u, 'tech') * NADIR.k, 'psy', 'tech');
+    at = e;
+  }
+}
 /** 신권 대행 기본형 (전투 유형별) */
 /** brief = 상세 보기 꺼짐 한 줄 (수치 없음) · text = 상세 문장 (docs/ABILITY_TEXT.md, 토큰) */
 export const DIVINE_ACT: Record<CType, { name: string; desc: string; brief: string; text: string }> = {
@@ -1152,7 +1198,8 @@ export function enableDivine(u: CUnit, faith: FaithId, capBonus: number) {
   u.hooks.push(FAITH_DEF[faith].hooks);
   u.hooks.push({ onTick(b, self, dt) { self.mem.divT = (self.mem.divT || 0) + dt; if (self.mem.divT >= 1) { self.mem.divT -= 1; b.addDiv(self, 2); } } });
 }
-function awaken(b: Battle, t: CUnit) {
+/** 도로스 [성찬]: 요리받은 아군의 고유 신앙을 깨운다 (이미 디바인이면 신성력 획득 +100%p) */
+export function dorosAwaken(b: Battle, t: CUnit) {
   if (t.isSummon) return;
   if (t.div === null) {
     const f = t.src?.faith || REWORK[t.defId]?.faith;
@@ -1167,6 +1214,7 @@ export const ENEMY_PSI: Hooks = { onHurt(b, u, _s, _r, o) { if (o.elem === 'psy'
 
 /** 추천 메이저 (스페셜 자동 성장 · 능력치 선택 추천) */
 export function recMajors(d: BaseUnit & ReworkDef): Major[] {
+  if (d.rec?.length) return d.rec;
   const main: Major = d.ctype === 'SPEC' || d.ctype === 'CMD' ? 'mnd' : 'pow';
   const second: Major = d.ctype === 'VAN' ? 'vit' : d.ctype === 'MARK' ? 'agi' : d.ctype === 'CMD' ? 'def' : 'vit';
   return [main, second];

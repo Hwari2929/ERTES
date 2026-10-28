@@ -164,7 +164,7 @@ const ISSAC: AugDef[] = [
 // ───────────────────────── 주성 (돌격가 · 수호자): 설원 검무 (주변 1칸 200% · 가하는 피해 -30% 4초) · 연현문 검객 (피니쉬 밀쳐내기 + 30% 기절) · 월하 호위
 const JUSEONG: AugDef[] = [
   mj('juseong', 'circle', '큰 원 베기', '설원 검무 범위 주변 1칸 → 2칸, 피해 200% → 160%.', setSk((s) => { s.radius = 2; s.mult *= 1.6 / 2; })),
-  mj('juseong', 'frost', '설원의 냉기', '설원 검무에 맞은 적이 가하는 피해 -30% → -45%.', setSk((s) => { s.weak = 0.45; })),
+  mj('juseong', 'frost', '설원의 냉기', '설원 검무에 맞은 적이 가하는 피해 -40% → -55%.', setSk((s) => { s.weak = 0.55; })),
   mj('juseong', 'shatter', '빙판 깨기', '피니쉬가 맞은 뒤 대상이 기절해 있으면 타격 위력 80% 물리 추가 피해.', { hooks: { onBasic(b, u, t, r) {
     if (u.mem.finished && !r.miss && t.alive && b.has(t, 'stun')) b.dealDamage(u, t, b.S(u, 'strike') * 0.8, { elem: 'phys', tag: 'proc', kind: 'strike' });
   } } }),

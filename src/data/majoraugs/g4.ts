@@ -156,10 +156,10 @@ const rus: AugDef[] = [
   }, true),
 ];
 
-// ───────────────────────── 도노반: 자안의 사수 · 까악이 · 소시민 귀차니즘
+// ───────────────────────── 도노반: 급소 절단 · 까악이 · 소시민 귀차니즘
 const DON = { crowBond: 0.25, crowShot: 1.875, chain: 0.6, quiet: 2, quietDmg: 0.4, feedCrit: 0.04, feedCd: 0.08, feedMax: 5, red: 0.6, hack: 0.3, hackDur: 4, ult: 1.8, ultN: 4, ultCrow: 1 };
 const donovan: AugDef[] = [
-  mj('donovan', 'livibold', '리비볼드 경', `까악이 상속률 +${pct(DON.crowBond)}p. 자안의 사수를 쓰면 까악이가 그 대상에게 까악이 사격 위력 ${pct(DON.crowShot)} 전기 피해.`, {
+  mj('donovan', 'livibold', '리비볼드 경', `까악이 상속률 +${pct(DON.crowBond)}p. 급소 절단을 쓰면 까악이가 그 대상에게 까악이 사격 위력 ${pct(DON.crowShot)} 전기 피해.`, {
     setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + DON.crowBond; },
     hooks: { onSkill(b, u) {
       for (const d of summonsOf(b, u)) {
@@ -170,7 +170,7 @@ const donovan: AugDef[] = [
       }
     } },
   }),
-  mj('donovan', 'chain', '연쇄 급소', `자안의 사수로 적을 처치하면 다음으로 체력 비율이 가장 낮은 적에게 파고들어 같은 기술을 ${pct(DON.chain)} 피해로 1번 더 쓴다 (시전마다 1번).`, {
+  mj('donovan', 'chain', '연쇄 급소', `급소 절단으로 적을 처치하면 다음으로 체력 비율이 가장 낮은 적에게 파고들어 같은 기술을 ${pct(DON.chain)} 피해로 1번 더 쓴다 (시전마다 1번).`, {
     setup: (u) => flagSkill(u),
     hooks: {
       // 처치 판정은 onKill 에서 (onDeal 시점에는 아직 r.killed 가 정해지지 않는다)
@@ -186,7 +186,7 @@ const donovan: AugDef[] = [
       onSkill(_b, u) { u.mem.mjChained = 0; },
     },
   }),
-  mj('donovan', 'quiet', '조용한 퇴근', `자안의 사수를 쓰면 ${DON.quiet}초간 은신 (대상으로 지정되지 않음). 은신 중 기본 공격 피해 +${pct(DON.quietDmg)}.`, { hooks: {
+  mj('donovan', 'quiet', '조용한 퇴근', `급소 절단을 쓰면 ${DON.quiet}초간 은신 (대상으로 지정되지 않음). 은신 중 기본 공격 피해 +${pct(DON.quietDmg)}.`, { hooks: {
     onSkill(b, u) { b.buff(u, u, 'stealth', DON.quiet, { label: '은신' }); },
     dmgMult: (b, u, _t, o) => (o.tag === 'basic' && b.hidden(u) ? 1 + DON.quietDmg : 1),
   } }),
@@ -195,7 +195,7 @@ const donovan: AugDef[] = [
     u.mem.mjFeed = (u.mem.mjFeed || 0) + 1;
     u.st.crit += DON.feedCrit; u.st.critDmg += DON.feedCd;
   } } }),
-  mj('donovan', 'redeye', '붉은 급소', `자안의 사수가 반드시 치명타로 터진다. 자안의 사수 피해가 대상이 잃은 체력 1%당 +1% (최대 +${pct(DON.red)}).`, {
+  mj('donovan', 'redeye', '붉은 급소', `급소 절단이 반드시 치명타로 터진다. 급소 절단 피해가 대상이 잃은 체력 1%당 +1% (최대 +${pct(DON.red)}).`, {
     setup: (u) => { flagSkill(u); u.sk.crit = (u.sk.crit || 0) + 1; },
     hooks: { dmgMult: (b, u, t, o) => (u.mem.mjInSk && o.tag === 'skill' ? 1 + Math.min(DON.red, Math.max(0, 1 - b.hpPct(t))) : 1) },
   }, true),

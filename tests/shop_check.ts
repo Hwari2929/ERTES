@@ -274,7 +274,7 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
   ok(!!fu && fu.st.maxHp >= DEV.feast.hp, `내구도 ${fu?.st.maxHp}`);
   const allies = b.units.filter((u) => u.side === 0 && !u.isSummon && u !== fu);
   allies.forEach((u, i) => { u.hp = u.st.maxHp * (0.3 + 0.1 * i); });
-  for (const e of b.units.filter((u) => u.side === 1)) { e.st.shoot = 0; e.st.strike = 0; e.st.tech = 0; e.noAttack = true; e.immobile = true; }
+  for (const e of b.units.filter((u) => u.side === 1)) { e.st.shoot = 0; e.st.strike = 0; e.st.tech = 0; e.noAttack = true; e.immobile = true; e.st.maxHp = e.hp = 1e9; } // 10초 동안 전투가 끝나지 않게
   const heals = () => b.events.filter((e) => e.k === 'heal' && e.src === fu?.id) as { k: 'heal'; id: number; v: number }[];
   while (b.t < DEV.feast.every - 0.2 && !b.over) b.step(CFG.tick);
   ok(heals().length === 0, '5초 전에는 회복 없음');

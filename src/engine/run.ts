@@ -58,7 +58,7 @@ export const isRock = (u: UnitState) => !!UNIT_BY_ID[u.defId]?.inert;
 const despairInterest = (run: RunState, x: number) => (hasDespair(run, 'D.myopic') ? Math.floor(x * (1 - CFG.despair.interest)) : x);
 /**
  * 이자: 다음 전투를 마치면 받는 이자 (resolveBattle 정산 · battleRewardPreview 지도 미리보기 · 상단 바 크레딧 표시 공용).
- * 지금 보유 크레딧 CFG.interestPer 당 1, 상한 cap (위험 등급 · 동결의 서약 · 사건으로 줄고, 페트라 · 전역 증강 · 라르스로 는다). 근시안적 투자안이면 줄어든다 (내림).
+ * 지금 보유 크레딧 CFG.interestPer 당 1, 상한 cap (위험 등급 · 동결의 서약 · 사건으로 줄고, 페트라 · 전역 증강으로 는다). 근시안적 투자안이면 줄어든다 (내림).
  * parts = 상한 내역 [이름, 더하는 값] (상단 바 툴팁), floor = 줄어드는 쪽 합이 기본 상한을 넘겨 0 에서 멈췄는지
  */
 export function interestInfo(run: RunState, counts = synergyCounts(deployed(run), run)) {
@@ -67,13 +67,12 @@ export function interestInfo(run: RunState, counts = synergyCounts(deployed(run)
   const base = CFG.interestMax + run.mods.interestCap - diffCut - vault;
   const petAdd = (pet >= 1 ? 3 : 0) + (pet >= 3 ? 3 : 0) + (pet >= 4 ? 4 : 0);
   const glob = hasGlobal(run, 'G.interest') ? 5 : 0;
-  const lars = run.units.some((u) => u.defId === 'lars') ? 2 : 0; // 라르스: 이자 상한 +2
   const pemb = deployed(run).filter((u) => u.mod === 'M_PET').length * EMB.PET; // 페트라 문장: 출전 기물이 단 문장 1개당 (data/emblems.ts)
-  const cap = Math.max(0, base) + petAdd + glob + lars + pemb;
+  const cap = Math.max(0, base) + petAdd + glob + pemb;
   const raw = Math.min(cap, Math.floor(run.credits / CFG.interestPer));
   const parts: [string, number][] = ([
     ['기본', CFG.interestMax], ['사건 · 계약', run.mods.interestCap], [`위험 6 이상`, -diffCut], [OATH_BY_ID.vault.name, -vault],
-    [`${SYN_BY_ID.PET.name} ${pet}단계`, petAdd], [GLOBAL_BY_ID['G.interest']?.name || '전역 증강', glob], [UNIT_BY_ID.lars?.name || '라르스', lars], [`${SYN_BY_ID.PET.name} 문장`, pemb],
+    [`${SYN_BY_ID.PET.name} ${pet}단계`, petAdd], [GLOBAL_BY_ID['G.interest']?.name || '전역 증강', glob], [`${SYN_BY_ID.PET.name} 문장`, pemb],
   ] as [string, number][]).filter(([, v]) => v !== 0);
   const myopic = hasDespair(run, 'D.myopic');
   const direct = hasGlobal(run, 'G.l_petra'); // 전설 [페트라 직불 계약]: 이자 0

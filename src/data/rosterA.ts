@@ -1,12 +1,14 @@
 // 성간 인류 연합 · 주식회사 페트라
 import { inc, red, vuln } from '../engine/effects';
 import { lineTargets, pct, shock, skillHit, summonsOf } from './kit';
-import { cookPower, pickEnemy, strike, support } from './tpl';
+import { cookPower, pickEnemy, strike, support, supportApply } from './tpl';
 import { B, PAL, setSk, tint, uaug, type BaseUnit } from './unitkit';
 
 const DRONE = ['#0c0e12', '#5a7090', '#2a3040', '#9ab0c8', '#7fe3ff', '#40465a', '#e0f0ff'];
 /** 라르스: 공명 등급으로 늘어나는 추가 경호원은 첫 경호원 능력치의 50% (상속 스탯 · 주요 능력치 보너스 · 방어도 보너스) */
 export const LARS_EXTRA = 0.5;
+/** 오르카 [깜짝 마술]: 전투 스킬 뒤 잔이 터질 고정 확률 · 주변 1칸 아군에게 주는 세기 */
+export const ORCA_GLASS = { p: 0.4, k: 0.5 };
 const BOT = ['#0c0c12', '#3a3f58', '#c8ccd8', '#9aa0b0', '#ff5a5a', '#2a2e40', '#ffffff'];
 
 export const ROSTER_A: BaseUnit[] = [
@@ -16,7 +18,7 @@ export const ROSTER_A: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.1 }, range: 4, base: B(5, 8, 9, 3, 5),
     sprite: 'soldier', palette: tint(PAL.UNI, '#5a5e6a', '#2a6ad8', '#3a8aff'), lore: '"밀린 업무가 많아요. 까먹기 전에, 모두 해치우죠."',
     skill: strike({
-      name: '항밈 소거', cd: 6, pow: 'tech', elem: 'psy', mult: 2, params: { forget: 3, fear: 1, fearChance: 0.4, weak: 0.2, weakDur: 4 },
+      name: '항밈 소거', cd: 5.5, pow: 'tech', elem: 'psy', mult: 2, params: { forget: 3, fear: 1, fearChance: 0.4, weak: 0.2, weakDur: 4 },
       desc: (p) => `대상${p.radius ? `과 주변 ${p.radius}칸` : ''}에게 기술 위력 ${pct(p.mult)} 정신 피해. 기억이 지워진 적은 기술 쿨다운 +${p.forget}초, ${p.weakDur}초간 주는 피해 -${pct(p.weak)}, ${pct(p.fearChance)} 확률로 ${p.fear}초 공포${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}.`,
       after: (b, u, t, _d, p) => {
         for (const e of p.radius ? b.around(t, p.radius, b.enemiesOf(u)) : [t]) if (e.alive) {
@@ -51,7 +53,7 @@ export const ROSTER_A: BaseUnit[] = [
     summon: { name: '까악이', ctype: 'SPEC', art: 'sm_crow', sprite: 'drone', palette: DRONE, atk: { type: 'shoot', elem: 'elec', interval: 0.8, mult: 1.25 }, range: 3, hpMul: 1.2 },
     lore: '"휴가 중. 기한 100년. 고양이 사료는 문 앞에."',
     skill: strike({
-      name: '자안의 사수', cd: 7, pow: 'tech', elem: 'phys', mult: 2.3, target: 'lowest', blink: true, params: { crit: 0.2 },
+      name: '급소 절단', cd: 7, pow: 'tech', elem: 'phys', mult: 2.3, target: 'lowest', blink: true, params: { crit: 0.2 },
       desc: (p) => `급소가 붉게 보인다. 체력 비율이 가장 낮은 적에게 파고들어 단분자 와이어로 기술 위력 ${pct(p.mult)} 물리 피해 (치명타 확률 +${pct(p.crit)}p)${p.bleed ? `, 4초간 초당 ${pct(p.bleed)} 출혈` : ''}${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}${p.shock ? `, ${pct(p.shockChance || 0.7)} 확률로 ${p.shock}초 감전` : ''}. 까악이도 같은 적을 노린다.`,
       after: (b, u, t) => { for (const d of summonsOf(b, u)) d.target = t; },
     }),
@@ -93,6 +95,14 @@ export const ROSTER_A: BaseUnit[] = [
     sprite: 'medic', palette: tint(PAL.PET, '#1a1a22', '#e8e8f0', '#e8e8f0'), lore: '"사기라뇨 - 그런 비겁한 행동은 선호하지 않아요."',
     skill: support({
       name: '바 당직 시그니처', cd: 4.5, target: 'lowest', power: cookPower, params: { heal: 1.8, as: 0.35, dur: 5 },
+      // 특성 [깜짝 마술]: 잔이 터지면 대상 주변 1칸 다른 아군에게 같은 효과를 절반 세기로
+      after: (b, u, ts, p) => {
+        if (!ts[0] || !b.rng.chance(ORCA_GLASS.p)) return;
+        const k = cookPower(u) * ORCA_GLASS.k;
+        b.fx(ts[0].x, ts[0].y, 1, 'holy', 'buff');
+        b.emit({ k: 'status', id: ts[0].id, name: '잔 폭발' });
+        for (const a of b.around(ts[0], 1, b.alliesOf(u)).filter((x) => x !== ts[0])) supportApply(b, u, a, p, k, '바 당직 시그니처');
+      },
       desc: (p) => `[요리] 체력 비율이 가장 낮은 아군을 기술 위력 ${pct(p.heal)} 회복${p.shield ? ` + ${pct(p.shield)} 보호막` : ''}${p.cleanse ? ' + 해로운 상태이상 제거' : ''}하고 ${p.dur}초간 공격 속도 +${pct(p.as)}${p.dmg ? `, 피해 +${pct(p.dmg)}` : ''}${p.red ? `, 받는 피해 -${pct(p.red)}` : ''}.`,
     }),
   },
