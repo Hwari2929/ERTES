@@ -122,7 +122,7 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'psy', interval: 1.0 }, range: 3, base: B(7, 7, 7, 6, 5),
     sprite: 'phantom', palette: tint(PAL.SIR, '#f0f0f8', '#ff7aa8', '#ff7aa8'), noStarter: true, lore: '처음 만났는데 오래 알던 사이 같다고? 응, 맞아.',
     skill: support({
-      name: '친구의 손길', cd: 7, target: 'lowest', params: { heal: 2.0, red: 0.2, dur: 3 },
+      name: '보살핌의 기적', cd: 7, target: 'lowest', params: { heal: 2.0, red: 0.2, dur: 3 },
       desc: (p) => `체력 비율이 가장 낮은 아군을 기술 위력 ${pct(p.heal)} 회복하고 ${p.dur}초간 받는 피해 -${pct(p.red)}${p.radius ? ` (주변 ${p.radius}칸 포함)` : ''}.`,
     }),
   },

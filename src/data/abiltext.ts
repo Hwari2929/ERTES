@@ -8,7 +8,8 @@
 
 import { CFG } from '../config';
 import { PSI } from './psinum';
-import { controlNames } from '../engine/combat';
+import { controlNames, vanLikeAbil } from '../engine/combat';
+import { FAR_FLEE_R } from './rework';
 import { ABIL_A, GLOSS_A } from './abil/a';
 import { ABIL_B, GLOSS_B } from './abil/b';
 import { ABIL_C, GLOSS_C } from './abil/c';
@@ -154,7 +155,7 @@ const ABIL_PILOT: Record<string, AbilText> = {
     trait: '기본 공격이 [el:psy] 피해를 가합니다.\n[el:psy] 피해를 가하면 대상의 스킬 쿨다운을 [s:1] 증가시킵니다.\n이 효과는 대상마다 [s:1]에 1회 발동합니다.',
   },
   gebek: {
-    brief: { skill: '대상 주변의 적들에게 피해를 여러 번 가합니다.', trait: '기본 공격이 가끔 적을 [제압]해 다음 공격을 무력화합니다.' },
+    brief: { skill: '대상 주변의 적들에게 피해를 여러 번 가합니다.', trait: '기본 공격이 가끔 적을 [제압]해 다음 공격을 무력화합니다. 돌격가처럼 적을 경계로 붙잡습니다.' },
     skill: (p) => ({
       tgt: '현재 대상', range: 'unit', area: aroundOr(p.radius),
       rows: [
@@ -166,11 +167,11 @@ const ABIL_PILOT: Record<string, AbilText> = {
         ...(p.corrode ? [`공격이 적중하면 [s:5]간 대상의 방어도를 [p:${p.corrode}] 감소시킵니다.`] : []),
       ].join('\n'),
     }),
-    trait: '기본 공격이 적중하면 대상에게 [p:0.25] 고정 확률로 [fx:suppress:10] 효과를 부여합니다.',
+    trait: `기본 공격이 적중하면 대상에게 [p:0.25] 고정 확률로 [fx:suppress:10] 효과를 부여합니다.\n${vanLikeAbil()}`,
     augs: {
-      'mj.belt': '헤비 버니 화망의 피해 횟수가 2회 증가합니다.',
-      'mj.wide': '헤비 버니 화망의 범위가 대상으로부터 [t:2] 이내로 넓어집니다.',
-      'mj.ap': '헤비 버니 화망이 적중하면 [s:5]간 대상의 방어도를 [p:0.3] 감소시킵니다.',
+      'mj.belt': '탄막 화망의 피해 횟수가 2회 증가합니다.',
+      'mj.wide': '탄막 화망의 범위가 대상으로부터 [t:2] 이내로 넓어집니다.',
+      'mj.ap': '탄막 화망이 적중하면 [s:5]간 대상의 방어도를 [p:0.3] 감소시킵니다.',
       'mj.roar': '괴수의 [g:suppress] 고정 확률이 [pv:0.15] 증가합니다.',
       'mj.pin': '[g:suppress] 효과를 부여하면 [s:4]간 대상이 받는 피해를 [pv:0.15] 증가시킵니다.',
       'mj.drum': '[g:mag]이 60발로 증가하고, 재장전 시간이 [s:3.5]로 감소합니다.',
@@ -179,9 +180,9 @@ const ABIL_PILOT: Record<string, AbilText> = {
       'mj.yuri': '헤비 버니 풀오토가 끝나면 1초 동안 그때의 대상으로부터 [t:2] 이내의 무작위 적에게 [pw:shoot:0.6:phys] 피해를 10회 가합니다. 이 피해가 적중하면 대상에게 [p:0.5] 고정 확률로 "특성 - 괴수"의 [g:suppress] 효과를 부여합니다.',
       'mj.dad': '쓰러질 피해를 받으면 체력 [p:0.3]으로 버티고, [s:3]간 받는 피해가 [pv:0.5] 감소합니다. 전투당 1회.',
       'mj.eng': '아군 [g:turret]의 기본 공격이 적중하면 대상에게 [p:0.2] 고정 확률로 "특성 - 괴수"의 [g:suppress] 효과를 부여합니다.',
-      'mj.legeno': '헤비 버니 화망이 적중할 때마다 궁극기 게이지가 [p:0.004] 차오르며, 시전마다 최대 [p:0.1]까지 차오릅니다.',
+      'mj.legeno': '탄막 화망이 적중할 때마다 궁극기 게이지가 [p:0.004] 차오르며, 시전마다 최대 [p:0.1]까지 차오릅니다.',
       'mj.beast': '기본 공격이 적중하면 대상으로부터 [t:1] 이내의 다른 적들에게 [pw:shoot:0.25:phys] 피해를 가합니다. 이 피해가 적중하면 대상에게 [p:0.25] 고정 확률로 "특성 - 괴수"의 [g:suppress] 효과를 부여합니다.',
-      'mj.endless': '재장전하지 않습니다. 기본 공격 10회마다 헤비 버니 화망의 쿨다운이 [s:1] 감소합니다.',
+      'mj.endless': '재장전하지 않습니다. 기본 공격 10회마다 탄막 화망의 쿨다운이 [s:1] 감소합니다.',
     },
   },
   temur: {
@@ -437,6 +438,8 @@ Object.assign(GLOSS, {
   spawn: { name: '증원', desc: '전장에 아군 개체를 추가로 불러냄.' },
   lifesteal: { name: '흡혈', desc: '준 피해의 일부만큼 회복.' },
   root: { name: '속박', desc: '이동할 수 없다 (공격 · 스킬은 쓴다).' },
+  zoc: { name: '경계', desc: `돌격가(와 돌격가처럼 싸우는 기물) 주변 ${CFG.zoc.r}칸. 들어온 적은 교전 시간 동안 멈추고 그 기물에게 도발 수치가 쌓이며, 경계 안에서는 이동 속도 ×${CFG.zoc.slow} (암살형 ×${CFG.zoc.assassinSlow}). 편성 화면에서만 보인다.` },
+  farflee: { name: '신속 후퇴', desc: `암살형 적의 표적이 되어 물러날 때 1칸이 아니라 최대 ${FAR_FLEE_R}칸까지 물러난다.` },
   stealth: { name: '은신', desc: '대상으로 지정되지 않는다 (광역 피해는 받는다).' },
   antiheal: { name: '회복 감소', desc: '받는 회복량이 감소한다.' },
   rampage: { name: '광폭', desc: '전장이 일으킨 광폭. 피아 구분 없이 가장 가까운 대상을 공격 (같은 편에게는 피해 50%), 주는 피해 +30%. 이성과 무관하게 지속 시간이 끝나면 풀린다.' },

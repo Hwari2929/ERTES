@@ -66,7 +66,7 @@ export const ROSTER_E: BaseUnit[] = [
     sprite: 'knight', palette: CRIMSON, eventOnly: true, noStarter: true,
     lore: '"제국의 방패는 피로 만들어졌다지. 나는 그 피를 조금 덜 흘리기로 했을 뿐이네." [임시]',
     skill: strike({
-      name: '혈검', cd: 6, pow: 'strike', elem: 'phys', mult: 2.2, target: 'lowest', blink: true, params: { bleed: 0.3 },
+      name: '선혈 습격', cd: 6, pow: 'strike', elem: 'phys', mult: 2.2, target: 'lowest', blink: true, params: { bleed: 0.3 },
       desc: (p) => `체력 비율이 가장 낮은 적에게 파고들어 타격 위력 ${pct(p.mult)} 물리 피해 + 출혈${p.resetOnKill ? `. 처치 시 쿨다운 ${pct(p.resetOnKill)} 초기화` : ''}.`,
     }),
   },

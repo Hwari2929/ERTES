@@ -1,5 +1,6 @@
 // 4차 확장 기물 11종: 기본 정의(명단) + 리워크 정보(무기 · 특성 · 유형)를 한 파일에 둔다.
-import type { Battle, CUnit } from '../engine/combat';
+import { type Battle, type CUnit, vanLikeRule } from '../engine/combat';
+import { FAR_FLEE_R } from './rework';
 import { type AugDef, type Effect, inc, red, vuln } from '../engine/effects';
 import type { Elem, Weapon } from '../types';
 import { every, gw, isHarmful, pct, poison, shock, skillHit, slow } from './kit';
@@ -175,7 +176,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
   bjorn: {
     ctype: 'MARK', ttype: 'special', faith: 'human', weapon: G('구조용 전기 작살포', 'elec', 1.1, 2, 1.8 / 1.35, 6, 2.0), // 명사수 배율 ×1.35 를 곱하면 발당 사격 위력 180%
     trait: {
-      name: '바이킹의 피', desc: '피해량 경감 15%. 잃은 체력 1%당 주는 피해 +1%. [구조 신호] 7초마다 체력 비율이 가장 낮은 아군에게 사격 위력 120% 보호막.',
+      name: '바이킹의 피', desc: `피해량 경감 15%. 잃은 체력 1%당 주는 피해 +1%. [구조 신호] 7초마다 체력 비율이 가장 낮은 아군에게 사격 위력 120% 보호막. ${vanLikeRule()}`,
       effect: { taken: [red('all', 0.15)], hooks: {
         dmgMult: (b, u) => 1 + (1 - b.hpPct(u)) * (u.mem.vikingK || 1),
         onTick(b, u, dt) {
@@ -212,8 +213,8 @@ export const REWORK_F: Record<string, ReworkDef> = {
   zina: {
     ctype: 'MARK', ttype: 'psionic', faith: 'sirius', weapon: G('꽃다발 속 소음 권총', 'chem', 0.9, 4, 1.25, 8, 1.6),
     trait: {
-      name: '꽃집 아가씨', desc: '기본 공격이 사격 위력 25% 화학 중독을 건다 (4초). 중독된 적에게 주는 피해 +25%.',
-      effect: { hooks: {
+      name: '꽃집 아가씨', desc: `기본 공격이 사격 위력 25% 화학 중독을 건다 (4초). 중독된 적에게 주는 피해 +25%. [신속 후퇴] 암살형 적에게서 ${FAR_FLEE_R}칸까지 물러난다.`,
+      effect: { setup: (u) => { u.mem.fleeR = FAR_FLEE_R; }, hooks: {
         onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) poison(b, u, t, b.S(u, 'shoot') * 0.25, 4, 1); },
         dmgMult: (_b, u, t) => (t.statuses.some((s) => s.key === 'poison') ? 1.25 + (u.mem.zinaVenom || 0) : 1),
       } },

@@ -21,7 +21,7 @@ import { SUMMON_RT, type SummonDef } from '../data/unitkit';
 import type { SkillDef } from './combat';
 import { Rng } from '../rng';
 import { categoryOf, type EnemySpawn, type Geo, type MapOpt, type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
-import { Battle, type CUnit, T_NOSHOT } from './combat';
+import { Battle, type CUnit, T_NOSHOT, VAN_LIKE } from './combat';
 import { applyLive, type Effect, type EffectCtx, red } from './effects';
 
 export type Counts = Partial<Record<SynergyId, number>>;
@@ -239,6 +239,7 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
   });
   if (c.synergies.has('GUARD') && !tierOf('GUARD', counts.GUARD || 0)) c.mem.guardOff = 1; // 도발 배율: 수호자 시너지가 꺼져 있으면 수호자 가산 없음
   c.mem.mnd = majors.mnd;
+  if (VAN_LIKE.includes(d.id)) c.mem.vanLike = 1; // 돌격가처럼: 도발 배율 · 경계 (combat.ts zocCapable)
   if (d.inert) { c.immobile = true; c.noAttack = true; c.skill = null; c.mem.inert = 1; c.mem.invulnUntil = Infinity; } // 반려 돌 (절망 증강): 공격 · 이동 · 기술 없이 칸만 차지 (표적 · 승패 판정에서 빠지고, 범위 피해도 받지 않음)
   applyCategory(c);
   if (d.weapon.kind === 'none') c.noAttack = true;

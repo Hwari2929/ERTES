@@ -63,21 +63,21 @@ const creditBonus = (credits: number, per: number, cap: number) => Math.min(cap,
 
 // ───────────────────────── 케빈 (falcon): 레일건 · 관통 시험
 const falcon: AugDef[] = [
-  mj('falcon', 'coil', '과충전 코일', '레일건 피해 계수 ×1.3, 쿨다운 +1.5초.', setSk((s, u) => { s.mult *= 1.3; u.cdMax += 1.5; })),
-  mj('falcon', 'tungsten', '텅스텐 탄심', '레일건 방어도 관통 +30%p, 치명타 확률 +20%p.', setSk((s) => { s.pen = Math.min(1, (s.pen || 0) + 0.3); s.crit = (s.crit || 0) + 0.2; })),
-  mj('falcon', 'leak', '전자기 누설', '레일건에 맞은 적은 60% 확률로 2초 감전.', setSk((s) => { s.shock = Math.min(1, (s.shock || 0) + 0.6); })),
+  mj('falcon', 'coil', '과충전 코일', '과부하 사격 피해 계수 ×1.3, 쿨다운 +1.5초.', setSk((s, u) => { s.mult *= 1.3; u.cdMax += 1.5; })),
+  mj('falcon', 'tungsten', '텅스텐 탄심', '과부하 사격 방어도 관통 +30%p, 치명타 확률 +20%p.', setSk((s) => { s.pen = Math.min(1, (s.pen || 0) + 0.3); s.crit = (s.crit || 0) + 0.2; })),
+  mj('falcon', 'leak', '전자기 누설', '과부하 사격에 맞은 적은 60% 확률로 2초 감전.', setSk((s) => { s.shock = Math.min(1, (s.shock || 0) + 0.6); })),
   mj('falcon', 'pierce', '관통 효율 개선', '[관통 시험] 직선 위 다른 적이 받는 피해 50% → 80% (기본 공격 피해 기준).', { hooks: { onBasic(b, u, t) {
     for (const e of lineTargets(b, u, t)) if (e !== t && e.alive) proc(b, u, e, b.S(u, 'shoot') * wmult(u) * 0.3, 'phys', 'shoot');
   } } }),
   mj('falcon', 'mag', '확장 탄창', '탄창 +2발 (3 → 5).', { setup: (u) => { if (u.weapon) u.weapon.mag = (u.weapon.mag || 1) + 2; } }),
-  mj('falcon', 'cool', '냉각 순환', '재장전을 시작할 때마다 레일건 쿨다운 -1.5초.', { hooks: { onTick(_b, u) {
+  mj('falcon', 'cool', '냉각 순환', '재장전을 시작할 때마다 과부하 사격 쿨다운 -1.5초.', { hooks: { onTick(_b, u) {
     if (u.reloadT > 0) { if (!u.mem.mjFcool) { u.mem.mjFcool = 1; u.cd = Math.max(0, u.cd - 1.5); } } else u.mem.mjFcool = 0;
   } } }),
   mj('falcon', 'safety', '사고 대비 수칙', '궁극기를 쓰기 직전 최대 체력 15% 보호막. 궁극기 충전 효율 +15%.', {
     stats: { ultCharge: 0.15 },
     hooks: onUlt('mjFsafe', null, (b, u) => b.shield(u, b.S(u, 'maxHp') * 0.15)),
   }),
-  mj('falcon', 'prey', '사냥감 표시', '레일건 · 궁극기에 맞은 적은 5초간 받는 사격 피해 +15%.', { hooks: onSkillHit(null, (b, u, t) => {
+  mj('falcon', 'prey', '사냥감 표시', '과부하 사격 · 궁극기에 맞은 적은 5초간 받는 사격 피해 +15%.', { hooks: onSkillHit(null, (b, u, t) => {
     b.applyStatus(u, t, { type: 'buff', key: 'falcon.prey', dur: 5, taken: [vuln('shoot', 0.15)], label: '사냥감' });
   }) }),
   mj('falcon', 'scope', '정밀 조준경', '사거리 +1, 명중 +15%p.', { stats: { range: 1, acc: 0.15 } }),
@@ -85,7 +85,7 @@ const falcon: AugDef[] = [
     const v = creditBonus(ctx.credits, 0.04, 0.4);
     if (v > 0) u.mods.push(inc('skill', v));
   } }),
-  mj('falcon', 'chain', '연쇄 방전', '레일건으로 적을 쓰러뜨리면 그 레일건 쿨다운이 40% 줄어든다 (시전마다 1번).', { setup: (u) => wrapSkill(u, (_b, self, kills) => {
+  mj('falcon', 'chain', '연쇄 방전', '과부하 사격으로 적을 쓰러뜨리면 그 과부하 사격 쿨다운이 40% 줄어든다 (시전마다 1번).', { setup: (u) => wrapSkill(u, (_b, self, kills) => {
     if (kills > 0) self.cd = Math.min(self.cd, self.cdMax * 0.6);
   }) }),
   mj('falcon', 'used', '사고에 익숙함', '최대 체력 +15%. 체력 50% 이하일 때 받는 피해 -20%.', { pct: { maxHp: 0.15 }, hooks: { takenMult: (b, u) => (b.hpPct(u) <= 0.5 ? 0.8 : 1) } }),
@@ -104,7 +104,7 @@ const falcon: AugDef[] = [
       });
     }),
   }, true),
-  mj('falcon', 'twin', '2연장 레일건', '레일건을 쏘면 0.4초 뒤 한 번 더 쏜다 (피해 계수 70%, 관통 · 치명타 · 감전 보정 그대로).', { setup: (u) => {
+  mj('falcon', 'twin', '2연장 레일건', '과부하 사격을 쏘면 0.4초 뒤 한 번 더 쏜다 (피해 계수 70%, 관통 · 치명타 · 감전 보정 그대로).', { setup: (u) => {
     const base = u.skill;
     if (!base) return;
     u.skill = { ...base, cast(b, self) {

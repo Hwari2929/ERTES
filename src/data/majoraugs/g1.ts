@@ -69,10 +69,10 @@ const gearCount = (u: CUnit) => (u.src?.items.filter(Boolean).length || 0) + (u.
 const highestHp = (es: CUnit[]) => (es.length ? es.reduce((a, c) => (c.hp > a.hp ? c : a)) : null);
 
 const MIRINAE: AugDef[] = [
-  mj('mirinae', 'ap', '철갑 에너지 셀', '깜찍이 방어도 관통 +40%.', setSk((s) => { s.pen = (s.pen || 0) + 0.4; })),
-  mj('mirinae', 'oneshot', '한 발 원칙', '깜찍이로 적을 쓰러뜨리면 깜찍이 쿨다운의 60%를 바로 돌려받는다.',
+  mj('mirinae', 'ap', '철갑 에너지 셀', '흉악한 한 발 방어도 관통 +40%.', setSk((s) => { s.pen = (s.pen || 0) + 0.4; })),
+  mj('mirinae', 'oneshot', '한 발 원칙', '흉악한 한 발로 적을 쓰러뜨리면 흉악한 한 발 쿨다운의 60%를 바로 돌려받는다.',
     setSk((s) => { s.resetOnKill = Math.max(s.resetOnKill || 0, 0.6); })),
-  mj('mirinae', 'double', '2발째', '깜찍이가 2발 나간다 (2번째 피해 50%). 깜찍이 쿨다운 +1.5초.', { setup: (u) => {
+  mj('mirinae', 'double', '2발째', '흉악한 한 발을 2번 쏜다 (2번째 피해 50%). 흉악한 한 발 쿨다운 +1.5초.', { setup: (u) => {
     u.sk.hits = Math.max(2, u.sk.hits || 1); u.sk.second = 0.5; u.cdMax += 1.5;
   } }),
   mj('mirinae', 'camper', '캠핑 장비 풀세트', '물질주의 캠퍼: 장비 1개당 회피 · 치명타 확률 +2.5%p → +4%p, 상한 15%p → 24%p.', { hooks: { onStart(_b, u) {
@@ -80,8 +80,8 @@ const MIRINAE: AugDef[] = [
     const extra = Math.min(0.24, 0.04 * n) - Math.min(0.15, 0.025 * n);
     u.st.eva += extra; u.st.crit += extra;
   } } }),
-  mj('mirinae', 'mirage', '신기루', '깜찍이를 쏜 뒤 2초간 은신 (대상으로 지정되지 않는다).', { hooks: { onSkill(b, u) { b.buff(u, u, 'stealth', 2, { label: '은신' }); } } }),
-  mj('mirinae', 'track', '추적 표식', '깜찍이에 맞은 적은 6초간 받는 피해 +15%.', { setup: markCast, hooks: { onDeal(b, u, t, r, o) {
+  mj('mirinae', 'mirage', '신기루', '흉악한 한 발을 쏜 뒤 2초간 은신 (대상으로 지정되지 않는다).', { hooks: { onSkill(b, u) { b.buff(u, u, 'stealth', 2, { label: '은신' }); } } }),
+  mj('mirinae', 'track', '추적 표식', '흉악한 한 발에 맞은 적은 6초간 받는 피해 +15%.', { setup: markCast, hooks: { onDeal(b, u, t, r, o) {
     if (r.amount > 0 && t.alive && bySkill(u, o)) b.applyStatus(u, t, { type: 'buff', key: 'mirinae.track', dur: 6, taken: [vuln('all', 0.15)], label: '추적' });
   } } }),
   mj('mirinae', 'drum', '증설 탄창', '탄창 4 → 6발, 재장전 2.5 → 2초.', { setup: (u) => {
@@ -107,7 +107,7 @@ const MIRINAE: AugDef[] = [
     dmgMult: (b, u, t) => (b.dist(u, t) >= 3 ? 1.15 : 1),
   } }),
   // ★ 전설
-  mj('mirinae', 'onlyone', '한 발이면 충분해', '깜찍이에 맞고 체력이 25% 이하가 된 적은 즉시 쓰러진다. 보스 · 정예는 대신 체력 25% 이하일 때 깜찍이 피해 ×1.6.', { setup: markCast, hooks: {
+  mj('mirinae', 'onlyone', '한 발이면 충분해', '흉악한 한 발에 맞고 체력이 25% 이하가 된 적은 즉시 쓰러진다. 보스 · 정예는 대신 체력 25% 이하일 때 흉악한 한 발 피해 ×1.6.', { setup: markCast, hooks: {
     dmgMult: (b, u, t, o) => (bySkill(u, o) && (t.isBoss || t.elite) && b.hpPct(t) <= 0.25 ? 1.6 : 1),
     onDeal(b, u, t, r, o) {
       if (r.amount <= 0 || !t.alive || t.isBoss || t.elite || !bySkill(u, o) || b.hpPct(t) > 0.25) return;
@@ -141,9 +141,9 @@ function reloadEdge(u: CUnit, key: string, refill: boolean) {
 }
 
 const GEBEK: AugDef[] = [
-  mj('gebek', 'belt', '탄띠 증설', '헤비 버니 화망 연사 5 → 7회.', setSk((s) => { s.hits += 2; })),
-  mj('gebek', 'wide', '화망 확장', '헤비 버니 화망 범위 1 → 2칸.', setSk((s) => { s.radius = Math.max(s.radius, 2); })),
-  mj('gebek', 'ap', '철갑탄', '헤비 버니 화망에 맞은 적은 5초간 방어도 -30%.', setSk((s) => { s.corrode = Math.max(s.corrode || 0, 0.3); })),
+  mj('gebek', 'belt', '탄띠 증설', '탄막 화망 연사 5 → 7회.', setSk((s) => { s.hits += 2; })),
+  mj('gebek', 'wide', '화망 확장', '탄막 화망 범위 1 → 2칸.', setSk((s) => { s.radius = Math.max(s.radius, 2); })),
+  mj('gebek', 'ap', '철갑탄', '탄막 화망에 맞은 적은 5초간 방어도 -30%.', setSk((s) => { s.corrode = Math.max(s.corrode || 0, 0.3); })),
   mj('gebek', 'roar', '괴수의 포효', '괴수: [제압] 확률 25% → 40%.', { hooks: { onBasic(b, u, t, r) {
     // 특성 판정(25%)이 실패했을 때 20% 한 번 더: 25% + 75% × 20% = 40%
     if (r.amount > 0 && t.alive && !hasSt(t, 'suppress') && b.rng.chance(0.2)) suppress(b, u, t);
@@ -200,7 +200,7 @@ const GEBEK: AugDef[] = [
       tur.hooks.push({ onBasic(bb, _self, t, r) { if (r.amount > 0 && t.alive && u.alive && bb.rng.chance(0.2)) suppress(bb, u, t); } });
     }
   } } }),
-  mj('gebek', 'legeno', '레게노!', '헤비 버니 화망이 1발 맞을 때마다 궁극기 게이지 +0.4% (시전마다 최대 10%).', { setup: markCast, hooks: {
+  mj('gebek', 'legeno', '레게노!', '탄막 화망이 1발 맞을 때마다 궁극기 게이지 +0.4% (시전마다 최대 10%).', { setup: markCast, hooks: {
     onDeal(_b, u, _t, r, o) {
       if (r.amount <= 0 || !bySkill(u, o) || (u.mem.mjLeg || 0) >= 0.1 - 1e-9) return;
       u.mem.mjLeg = (u.mem.mjLeg || 0) + 0.004;
@@ -217,7 +217,7 @@ const GEBEK: AugDef[] = [
       if (r2.amount > 0 && e.alive && b.rng.chance(0.25)) suppress(b, u, e);
     }
   } } }, true),
-  mj('gebek', 'endless', '무한 탄띠', '재장전하지 않는다 (탄창이 줄지 않음). 기본 공격 10회마다 헤비 버니 화망 쿨다운 -1초.', { hooks: { onBasic(_b, u) {
+  mj('gebek', 'endless', '무한 탄띠', '재장전하지 않는다 (탄창이 줄지 않음). 기본 공격 10회마다 탄막 화망 쿨다운 -1초.', { hooks: { onBasic(_b, u) {
     if (u.weapon?.kind !== 'mag') return;
     const mag = u.weapon.mag || 1;
     u.ammo = mag + 1; // 공격 뒤 1 줄어 가득 찬 채로

@@ -1,6 +1,6 @@
 // 시스템 리워크: 기물별 전투 유형 · 전술 유형 · 무기 · 고유 특성 · 성장 · 스페셜 증강 · 이성 규칙 · 신앙
 import { CFG } from '../config';
-import { type Battle, type CUnit, DIVINE_HOOK, type Hooks, type Status } from '../engine/combat';
+import { type Battle, type CUnit, DIVINE_HOOK, type Hooks, type Status, vanLikeRule } from '../engine/combat';
 import { type AugDef, type Effect, applyLive, inc, red, vuln } from '../engine/effects';
 import { type CType, type Elem, type FaithId, FAITH_NAME, type Major, MAJORS, type RunState, type Weapon } from '../types';
 import { itemEffect } from './items';
@@ -23,7 +23,9 @@ export const NADIR = { k: 0.25, r: 2, basicN: 2, skillN: 3 };
 /** 도로스 [성도회식 만찬]: 기본 공격마다 아군 전원 회복 (전술 위력 비율) */
 export const DOROS_FEAST = 0.0375;
 /** 미리내 [물질주의 캠퍼]: 물러나는 칸 · 물러날 때 사격 계수 */
-export const MIRINAE = { r: 2, k: 1.5 };
+/** [신속 후퇴] (미리내 · 지나 · 오르카): 암살형 적에게서 물러날 때 이 칸 수까지 물러난다 (combat.ts flee, mem.fleeR) */
+export const FAR_FLEE_R = 2;
+export const MIRINAE = { r: FAR_FLEE_R, k: 1.5 };
 /** 카일 [성전 기사]: 피니쉬 적중 시 대상 · 주변 1칸 신성 피해 (타격 위력 비율) */
 export const KYLE_FINISH = 1;
 /** 비비안 [생태 분석]: 리키 상속률 가산 */
@@ -103,10 +105,10 @@ export const REWORK: Record<string, ReworkDef> = {
     psi: { desc: '항밈 소거 사용 시 이성 -8, 아군이 전투 스킬을 쓸 때 +2.', effect: { hooks: { onSkill: (b, u) => b.addReason(u, -8), onAllySkill: (b, u) => b.addReason(u, 2) } } },
   },
   mirinae: {
-    ctype: 'MARK', ttype: 'major', faith: 'human', weapon: G('깜찍이', 'phys', 1.0, 5, 1.4, 4, 2.5),
+    ctype: 'MARK', ttype: 'major', faith: 'human', weapon: G('깜찍이', 'phys', 1.0, 3, 1.4, 4, 2.0), // 사거리 5 → 3, 재장전 2.5 → 2초 (−20%)
     factions: ['UNI'], traits: ['HUNTER'],
     trait: {
-      name: '물질주의 캠퍼', desc: `장착한 장비 · 개조부품 · 임시 장비 1개당 회피 · 치명타 확률 +2.5%p (최대 +15%p). 암살형 적에게서 물러날 때 ${MIRINAE.r}칸까지 물러나며, 물러날 때마다 그 적에게 사격 위력 ${pct(MIRINAE.k)} 물리 피해.`,
+      name: '물질주의 캠퍼', desc: `장착한 장비 · 개조부품 · 임시 장비 1개당 회피 · 치명타 확률 +2.5%p (최대 +15%p). [신속 후퇴] 암살형 적에게서 ${FAR_FLEE_R}칸까지 물러나며, 물러날 때마다 그 적에게 사격 위력 ${pct(MIRINAE.k)} 물리 피해.`,
       effect: { setup: (u) => { u.mem.fleeR = MIRINAE.r; }, hooks: {
         onStart(_b, u) {
           const n = (u.src?.items.filter(Boolean).length || 0) + (u.src?.mod ? 1 : 0) + (u.tempItems?.length || 0);
@@ -127,7 +129,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'MARK', ttype: 'major', faith: 'human', weapon: G('헤비 버니', 'phys', 0.39, 2, 0.5, 40, 4.5), // 사거리 4 → 2, 공격 속도 +15% (0.45 → 0.39초)
     factions: ['UNI', 'STL'], traits: ['ENG'],
     trait: {
-      name: '괴수', desc: '기본 공격이 맞으면 25% 확률로 [제압]: 대상의 다음 공격 피해가 1이 된다.',
+      name: '괴수', desc: `기본 공격이 맞으면 25% 확률로 [제압]: 대상의 다음 공격 피해가 1이 된다. ${vanLikeRule()}`,
       effect: { hooks: { onBasic(b, u, t, r) { if (r.amount > 0 && t.alive && b.rng.chance(0.25)) b.applyStatus(u, t, { type: 'buff', key: 'suppress', dur: 10, label: '제압' }); } } },
     },
   },
@@ -231,8 +233,8 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'MARK', ttype: 'minor', faith: 'index', weapon: G('작살총', 'phys', 1.4, 3, 1.6, 1, 2),
     factions: ['PET'], traits: ['CHEF'],
     trait: {
-      name: '깜짝 마술', desc: `공격 · 기술이 맞으면 20% 확률로 무작위 적 하나를 0.6초 기절시킨다 (1초에 1회). 전투 스킬을 쓴 뒤 ${pct(ORCA_GLASS.p)} 고정 확률로 잔이 터져, 대상 주변 1칸 다른 아군에게도 스킬 효과를 ${pct(ORCA_GLASS.k)} 세기로 준다.`,
-      effect: { hooks: { onDeal(b, u, _t, r, o) {
+      name: '깜짝 마술', desc: `공격 · 기술이 맞으면 20% 확률로 무작위 적 하나를 0.6초 기절시킨다 (1초에 1회). 전투 스킬을 쓴 뒤 ${pct(ORCA_GLASS.p)} 고정 확률로 잔이 터져, 대상 주변 1칸 다른 아군에게도 스킬 효과를 ${pct(ORCA_GLASS.k)} 세기로 준다. [신속 후퇴] 암살형 적에게서 ${FAR_FLEE_R}칸까지 물러난다.`,
+      effect: { setup: (u) => { u.mem.fleeR = FAR_FLEE_R; }, hooks: { onDeal(b, u, _t, r, o) {
         if (r.amount <= 0 || (o.tag !== 'basic' && o.tag !== 'skill') || !b.rng.chance(Math.min(0.6, 0.2 * gw(u))) || !icd(b, u, 'orcaIcd', 1)) return;
         const es = b.enemiesOf(u);
         if (es.length) b.stun(u, es[Math.floor(b.rng.next() * es.length)], 0.6);
@@ -243,7 +245,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'CMD', ttype: 'major', faith: 'index', weapon: K('에너지 블레이드', 'phys', 0.9, 1, 0.6, 4),
     factions: ['KAL', 'PET', 'TIME'], traits: [],
     trait: {
-      name: '은하법 검사', desc: '흡혈 +10%p. 전투 스킬을 쓴 뒤 잃은 체력의 12.5%를 재생한다. 기본 공격이 맞은 적에게 5초간 [심판]: 그동안 아군이 준 피해의 20%를 기록하고, 끝날 때 기록의 100%를 고정 피해로 정산한다.',
+      name: '은하법 검사', desc: `흡혈 +10%p. 전투 스킬을 쓴 뒤 잃은 체력의 12.5%를 재생한다. 기본 공격이 맞은 적에게 5초간 [심판]: 그동안 아군이 준 피해의 20%를 기록하고, 끝날 때 기록의 100%를 고정 피해로 정산한다. ${vanLikeRule()}`,
       effect: {
         stats: { lifesteal: 0.1 },
         hooks: { onSkill(b, u) { b.heal(u, u, (b.S(u, 'maxHp') - u.hp) * (u.sk.rewind ?? 0.125), true); }, onBasic(b, u, t, r) {
@@ -685,7 +687,7 @@ export const REWORK: Record<string, ReworkDef> = {
     },
   },
   demiurgos: {
-    ctype: 'SPEC', ttype: 'minor', faith: 'sirius', weapon: K('친구의 손', 'psy', 1.0, 2, 1, 3),
+    ctype: 'SPEC', ttype: 'minor', faith: 'sirius', weapon: K('다정한 손짓', 'psy', 1.0, 2, 1, 3),
     factions: ['SIR'], traits: ['RFRIEND', 'OCCULT'],
     trait: {
       name: '친구의 손길', desc: '회복받은 아군은 3초간 피해량 경감 10%.',

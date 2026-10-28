@@ -218,15 +218,15 @@ const thirst = (k: (b: Battle, u: CUnit) => number) => ({
   onDeal(b: Battle, u: CUnit, t: CUnit, r: { amount: number }, o: { tag: string }) { const m = k(b, u); if (m && o.tag === 'skill' && t !== u && r.amount > 0) b.heal(u, u, r.amount * m, true); },
 });
 const EXILE: AugDef[] = [
-  mj('exile', 'hunt', '사냥의 밤', '혈검으로 적을 처치하면 쿨다운 60% 초기화.', setSk((s) => { s.resetOnKill = Math.max(s.resetOnKill || 0, 0.6); })),
-  mj('exile', 'deep', '깊은 상처', '혈검 출혈 초당 타격 위력 30% → 60%.', setSk((s) => { s.bleed *= 2; })),
-  mj('exile', 'vital', '급소 찌르기', '혈검 치명타 확률 +30%.', setSk((s) => { s.crit = (s.crit || 0) + 0.3; })),
+  mj('exile', 'hunt', '사냥의 밤', '선혈 습격으로 적을 처치하면 쿨다운 60% 초기화.', setSk((s) => { s.resetOnKill = Math.max(s.resetOnKill || 0, 0.6); })),
+  mj('exile', 'deep', '깊은 상처', '선혈 습격 출혈 초당 타격 위력 30% → 60%.', setSk((s) => { s.bleed *= 2; })),
+  mj('exile', 'vital', '급소 찌르기', '선혈 습격 치명타 확률 +30%.', setSk((s) => { s.crit = (s.crit || 0) + 0.3; })),
   mj('exile', 'thirst', '갈증 심화', '특성 [혈족의 갈증] 회복 35% → 50%.', { hooks: thirst(() => 0.15) }),
   mj('exile', 'cloak', '망토 한 벌', '전투 시작 시 4초간 은신 (적의 대상이 되지 않는다), 공격 속도 +30%.', { hooks: { onStart(b, u) {
     b.buff(u, u, 'stealth', 4, { label: '은신' });
     b.buff(u, u, 'exile.cloak', 4, { delta: { atkSpd: 0.3 } });
   } } }),
-  mj('exile', 'apology', '칼을 뽑기 전의 사과', '혈검 · 혈월에 맞은 적은 3초간 가하는 피해 -20%.', { hooks: { onDeal(b, u, t, r, o) {
+  mj('exile', 'apology', '칼을 뽑기 전의 사과', '선혈 습격 · 혈월에 맞은 적은 3초간 가하는 피해 -20%.', { hooks: { onDeal(b, u, t, r, o) {
     if (o.tag === 'skill' && t !== u && t.alive && r.amount > 0) b.applyStatus(u, t, { type: 'buff', key: 'weaken', dur: 3, mods: [inc('all', -0.2)], label: '피해량 감소' });
   } } }),
   mj('exile', 'evade', '추격대 따돌리기', '체력이 50% 이하이면 회피 +15%.', { hooks: { onTick(b, u) {
@@ -244,7 +244,7 @@ const EXILE: AugDef[] = [
     if (!es.length || !icd(b, u, 'exShadowT', 1)) return;
     blinkTo(b, u, lowFirst(b, es)[0]);
   } } }),
-  mj('exile', 'price', '내 피 말이오', '혈검 피해 220% → 300%. 대신 혈검을 쓸 때마다 체력 6% 소모 (체력 1 아래로는 줄지 않는다).', {
+  mj('exile', 'price', '내 피 말이오', '선혈 습격 피해 220% → 300%. 대신 선혈 습격을 쓸 때마다 체력 6% 소모 (체력 1 아래로는 줄지 않는다).', {
     setup: (u) => { u.sk.mult *= 3 / 2.2; },
     hooks: { onSkill(b, u) { u.hp = Math.max(1, u.hp - b.S(u, 'maxHp') * 0.06); } },
   }),

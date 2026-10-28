@@ -9,6 +9,7 @@ import { UNIT_BY_ID } from '../../src/data/units';
 import { isLocked } from '../../src/data/items';
 import type { Effect } from '../../src/engine/effects';
 import type { Major, RunState, Stats, UnitState } from '../../src/types';
+import { VAN_LIKE } from '../../src/engine/combat';
 import { PROFILE } from './profile.gen';
 import { SYNPROF } from './synprofile.gen';
 import { EVM, SYN_KIND, effTier, shrink } from './syn';
@@ -48,7 +49,7 @@ function hookItem(id: string, front: boolean): [number, number] {
   return [1, 1];
 }
 
-export const isFront = (u: UnitState) => { const d = UNIT_BY_ID[u.defId]; return d.range <= 1 || !!d.front || d.ctype === 'VAN'; };
+export const isFront = (u: UnitState) => { const d = UNIT_BY_ID[u.defId]; return d.range <= 1 || !!d.front || d.ctype === 'VAN' || VAN_LIKE.includes(d.id); };
 
 /** 기준 상태 (profile_gen 과 같은 보강: 공명 1, 생명력 +60 · 방어력 +40, 시너지 없음) 능력치 캐시 */
 const REF = new Map<string, { st: Stats; tac: number }>();

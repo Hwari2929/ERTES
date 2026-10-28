@@ -33,7 +33,7 @@ export const ROSTER_A: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.15 }, range: 5, base: B(5, 10, 8, 3, 5),
     sprite: 'soldier', palette: tint(PAL.UNI, '#4a5a3a', '#1a1a22', '#3a8aff'), lore: '"연락은 자제해줘. 캠핑 중이니까 - "',
     skill: strike({
-      name: '깜찍이', cd: 6, pow: 'shoot', elem: 'phys', mult: 3.8, params: { crit: 0.125 },
+      name: '흉악한 한 발', cd: 6, pow: 'shoot', elem: 'phys', mult: 3.8, params: { crit: 0.125 },
       desc: (p) => `커스텀 에너지 핸드캐논으로 대상에게 사격 위력 ${pct(p.mult)} 물리 피해 (치명타 확률 +${pct(p.crit)}p${p.pen ? `, 방어도 관통 ${pct(p.pen)}` : ''})${p.hits > 1 ? `, ${p.hits}회` : ''}. 가능하면 한 발로 끝낸다.`,
     }),
   },
@@ -42,7 +42,7 @@ export const ROSTER_A: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.0 }, range: 4, base: B(8, 9, 7, 6, 3),
     sprite: 'mech', palette: tint(PAL.UNI, '#3a3f4a', '#c03a2a', '#ff6040'), lore: '"비결? 이 요망한 주둥아리지."',
     skill: strike({
-      name: '헤비 버니 화망', cd: 8, pow: 'shoot', elem: 'phys', mult: 0.5, params: { radius: 1, hits: 5, second: 1 },
+      name: '탄막 화망', cd: 8, pow: 'shoot', elem: 'phys', mult: 0.5, params: { radius: 1, hits: 5, second: 1 },
       desc: (p) => `막내 유리가 이름 붙인 기관총으로 대상 주변 ${p.radius}칸에 사격 위력 ${pct(p.mult)} 물리 연사 ${p.hits}회${p.corrode ? `. 맞은 적 5초간 방어도 -${pct(p.corrode)}` : ''}.`,
     }),
   },
@@ -167,7 +167,7 @@ export const ROSTER_A: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.4 }, range: 6, base: B(4, 10, 8, 3, 5),
     sprite: 'soldier', palette: tint(PAL.PET, '#d0d0d8', '#e07a1f', '#62d6ff'), lore: '시제품 레일건 시험 사격 1,204회. 사고 보고서 1,203건.',
     skill: {
-      name: '레일건', tag: () => '직선 관통 사격', cd: 8, needsRange: true, params: { mult: 3.1, pen: 0.4, crit: 0, shock: 0 },
+      name: '과부하 사격', tag: () => '직선 관통 사격', cd: 8, needsRange: true, params: { mult: 3.1, pen: 0.4, crit: 0, shock: 0 },
       desc: (p) => `대상 방향 직선 위 모든 적에게 사격 위력 ${pct(p.mult)} 물리 피해 (방어도 관통 ${pct(p.pen)}${p.crit ? `, 치명타 확률 +${pct(p.crit)}p` : ''})${p.shock ? `. ${pct(p.shock)} 확률로 2초 감전` : ''}.`,
       cast(b, u) {
         const t = u.target;

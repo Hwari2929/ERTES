@@ -357,8 +357,15 @@ export const PROV = {
 };
 /** 기물별 도발 배율: 돌격가 3, 수호자 시너지가 켜지면 +1.5, 장비(위협 신호기) +n, 은신 · 침투자 기습 중 ×0.3.
  *  소환물: 돌격가 소환물 3, 전투 유형이 정해진 단짝 소환물 (SummonDef.ctype → mem.typed) 은 그 유형 값 (전문가 1), 그 밖은 근접 1.4 · 고정 1.2 · 원거리 1.0 */
+/** 돌격가가 아니지만 돌격가처럼 도발 배율 PROV.van · 경계를 갖는 기물 (build.ts 가 mem.vanLike 를 켠다) */
+export const VAN_LIKE: readonly string[] = ['bjorn', 'franze', 'gebek'];
+/** 돌격가처럼: 세 기물 특성에 같은 문장으로 붙는다 (데이터 desc 용 · 능력 카드 문구는 vanLikeAbil) */
+export const vanLikeRule = () => `돌격가처럼 도발 배율 ×${PROV.van}을 받고, 주변 ${CFG.zoc.r}칸에 경계를 만든다.`;
+export const vanLikeAbil = () => `돌격가처럼 도발 배율이 ×${PROV.van}이 되고, 주변 [t:${CFG.zoc.r}]에 [g:zoc]를 만듭니다.`;
+/** 경계를 만들고 돌격가 도발 배율을 받는 기물인지 (돌격가 · 돌격가처럼) */
+export const zocCapable = (a: { ctype?: string; mem: Record<string, any> }) => a.ctype === 'VAN' || !!a.mem.vanLike;
 export function provMult(b: Battle | null, a: CUnit): number {
-  let m = a.mem.provBase ?? (a.ctype === 'VAN' ? PROV.van : 1); // provBase: 기본 도발 배율을 따로 정한 소환물 (반려 돌(인화성) 4.5)
+  let m = a.mem.provBase ?? (zocCapable(a) ? PROV.van : 1); // provBase: 기본 도발 배율을 따로 정한 소환물 (반려 돌(인화성) 4.5)
   if (a.isSummon && a.ctype !== 'VAN' && !a.mem.typed && a.mem.provBase === undefined) m = a.immobile ? PROV.sumFixed : a.atk.type === 'strike' ? PROV.sumMelee : PROV.sumRanged;
   if (a.synergies?.has('GUARD') && !a.mem.guardOff) m += PROV.guard; // 수호자 혼자(시너지 꺼짐)면 가산 없음
   m += a.statuses.reduce((sum, s) => sum + (s.provPlus || 0), 0);
@@ -1227,7 +1234,7 @@ export class Battle {
 
   // ───────── 돌격가 경계 (아군 돌격가만)
   /** 경계를 만드는 기물: 아군 편 돌격가 (소환물 · 반려 돌 · 은신 · 매혹된 기물 제외) */
-  zocOwners() { return this.units.filter((v) => v.alive && v.side === 0 && this.sideOf(v) === 0 && v.ctype === 'VAN' && !v.isSummon && !v.mem.inert && !this.hidden(v)); }
+  zocOwners() { return this.units.filter((v) => v.alive && v.side === 0 && this.sideOf(v) === 0 && zocCapable(v) && !v.isSummon && !v.mem.inert && !this.hidden(v)); }
   /** u 가 경계를 따르는 적이면 칸별 경계 표시 (1 = 아군 돌격가 주변 CFG.zoc.r 칸), 아니면 null. 고정 기물은 무시 (암살형도 따른다, 교전 시간만 CFG.zoc.assassinMul 배) */
   zocMask(u: CUnit): Uint8Array | null {
     if (this.sideOf(u) !== 1 || u.immobile) return null;

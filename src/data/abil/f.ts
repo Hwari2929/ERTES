@@ -1,6 +1,8 @@
 // 능력 설명 (통일 형식) — 그룹 f
 // 상세 문장은 docs/ABILITY_TEXT.md 문형. 지휘관(CMD)의 스킬 · 증강처럼 전술 위력으로 계산되는 값은 [pw:tac:…] 로 적는다.
 import type { AbilText, Area } from '../abiltext';
+import { vanLikeAbil } from '../../engine/combat';
+import { FAR_FLEE_R } from '../rework';
 
 type Row = [string, string];
 const aroundOr = (r: number): Area => (r ? { k: 'around', r } : { k: 'one' });
@@ -39,7 +41,7 @@ const mt = (p: P) => ((p.count || 1) > 1 ? '각 대상' : '대상');
 
 export const ABIL_F: Record<string, AbilText> = {
   bjorn: {
-    brief: { skill: '가장 먼 적에게 전기 피해를 주고 [기절]시킵니다.', trait: '받는 피해가 감소하고, 다칠수록 더 세게 싸우며, 주기적으로 가장 다친 아군에게 보호막을 줍니다.' },
+    brief: { skill: '가장 먼 적에게 전기 피해를 주고 [기절]시킵니다.', trait: '받는 피해가 감소하고, 다칠수록 더 세게 싸우며, 주기적으로 가장 다친 아군에게 보호막을 줍니다. 돌격가처럼 적을 경계로 붙잡습니다.' },
     skill: (p) => ({
       tgt: '가장 먼 적', range: null, area: aroundOr(p.radius),
       rows: [
@@ -59,6 +61,7 @@ export const ABIL_F: Record<string, AbilText> = {
       '받는 피해가 [pv:0.15] 감소합니다.',
       '잃은 체력 1%당 주는 피해가 [p:0.01] 증가합니다.',
       '[s:7]마다 체력 비율이 가장 낮은 아군에게 [pw:shoot:@rescue]만큼 보호막을 부여합니다.',
+      vanLikeAbil(),
     ),
     augs: {
       'sp.first': '다른 아군이 쓰러질 피해를 받으면 그 아군은 체력 1로 버팁니다. 대신 자신이 최대 체력의 [p:0.2]만큼 [el:true] 피해를 받습니다. 전투당 1회.',
@@ -78,7 +81,7 @@ export const ABIL_F: Record<string, AbilText> = {
     },
   },
   zina: {
-    brief: { skill: '가장 약한 적 곁으로 순간이동해 화학 피해를 주고 [중독]시키며, 처치하면 쿨다운을 돌려받습니다.', trait: '기본 공격이 [중독]을 걸고, 중독된 적에게 더 큰 피해를 줍니다.' },
+    brief: { skill: '가장 약한 적 곁으로 순간이동해 화학 피해를 주고 [중독]시키며, 처치하면 쿨다운을 돌려받습니다.', trait: '기본 공격이 [중독]을 걸고, 중독된 적에게 더 큰 피해를 줍니다. 쫓아오는 적에게서 멀리 물러납니다.' },
     skill: (p) => ({
       tgt: '체력 비율이 가장 낮은 적 (순간이동)', range: null, area: aroundOr(p.radius),
       rows: [
@@ -96,6 +99,7 @@ export const ABIL_F: Record<string, AbilText> = {
     trait: lines(
       '기본 공격이 적중하면 대상에게 반드시 [fx:poison:4:shoot:0.25] 효과를 부여합니다.',
       '[g:poison] 상태의 적에게 주는 피해가 [p:0.25] 증가합니다.',
+      `[g:farflee]: 암살형 적에게서 최대 [t:${FAR_FLEE_R}]까지 물러납니다.`,
     ),
   },
   fotini: {
@@ -386,18 +390,18 @@ export const ABIL_F: Record<string, AbilText> = {
     }),
     trait: '[g:finish] · 전투 스킬 · 궁극기로 피해를 주면 준 피해의 [p:0.35]만큼 회복합니다.',
     augs: {
-      'mj.hunt': '혈검으로 적을 처치하면 쿨다운의 [p:0.6]를 돌려받습니다.',
-      'mj.deep': '혈검의 [g:bleed] 피해가 초당 [pw:strike:0.3:phys] 피해만큼 증가합니다.',
-      'mj.vital': '혈검은 치명타 확률이 [pv:0.3] 상승 적용됩니다.',
+      'mj.hunt': '선혈 습격으로 적을 처치하면 쿨다운의 [p:0.6]를 돌려받습니다.',
+      'mj.deep': '선혈 습격의 [g:bleed] 피해가 초당 [pw:strike:0.3:phys] 피해만큼 증가합니다.',
+      'mj.vital': '선혈 습격은 치명타 확률이 [pv:0.3] 상승 적용됩니다.',
       'mj.thirst': '혈족의 갈증의 회복량이 준 피해의 [pv:0.15] 증가합니다.',
       'mj.cloak': '전투가 시작되면 자신에게 [fx:stealth:4] 효과를 부여하고, [s:4]간 공격 속도가 [pv:0.3] 증가합니다.',
-      'mj.apology': '혈검 · 혈월로 피해를 주면 [s:3]간 대상이 가하는 피해를 [pv:0.2] 감소시킵니다.',
+      'mj.apology': '선혈 습격 · 혈월로 피해를 주면 [s:3]간 대상이 가하는 피해를 [pv:0.2] 감소시킵니다.',
       'mj.evade': '체력이 [p:0.5] 이하이면 회피가 [pv:0.15] 증가합니다.',
       'mj.noble': '칼리토 작위 +1, 치명타 피해 [pp:0.2].',
       'mj.moon': '혈월을 쓰면 [s:6]간 공격 속도가 [pv:0.4] 증가합니다.',
       'mj.edge': '[g:finish]가 적중하면 대상에게 반드시 [fx:bleed:4:strike:0.25] 효과를 부여합니다.',
       'mj.shadow': '적을 처치하면 체력 비율이 가장 낮은 적의 곁으로 순간이동합니다. 1초에 1번.',
-      'mj.price': '혈검의 피해가 [pw:strike:0.8:phys] 피해만큼 증가합니다. 대신 혈검을 쓸 때마다 최대 체력의 [p:0.06]만큼 체력을 잃으며, 체력은 1 미만으로 감소하지 않습니다.',
+      'mj.price': '선혈 습격의 피해가 [pw:strike:0.8:phys] 피해만큼 증가합니다. 대신 선혈 습격을 쓸 때마다 최대 체력의 [p:0.06]만큼 체력을 잃으며, 체력은 1 미만으로 감소하지 않습니다.',
       'mj.banquet': '혈월이 끝나면 혈월이 베지 않은 적 중 체력 비율이 가장 낮은 2명에게 차례로 순간이동해 각각 [pw:strike:3:phys] 피해를 가하고, 반드시 [fx:bleed:4:strike:0.3] 효과를 부여합니다. 이 공격은 명중 확률이 [pv:1] 상승 적용됩니다.',
       'mj.undying': '쓰러질 피해를 받으면 체력 1로 버티고 [s:3]간 피해를 받지 않습니다. 그동안 혈족의 갈증의 회복량이 준 피해의 [pv:0.35] 증가합니다. 전투당 1회.',
     },

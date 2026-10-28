@@ -31,7 +31,7 @@ import * as TFX from './ui/themefx';
 import {
   activeTiers, allyRoom, type CompanionTok, encGeo, foeCell, runGeo, terrainCells, zoneAt, buildAlly, buildBattle, buildEnemy, chrTier, companionCells, deployed, kingOn, kingState, enemyBaseMoveSpd, layout, memberships, PAD, synergyCounts, synList, toPos, totalMajors, turretCells, turretCount, turretSavePos, TURRET_PAL, unitEffects, ZONE,
 } from './engine/build';
-import { Battle, controlNames, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME, fleeShort, zocHoldFormula, zocHoldOf, zocRows, zocRule, zocShort } from './engine/combat';
+import { Battle, controlNames, type CUnit, PROV, provMult, REASON_HI, REASON_LO, type Status, STATUS_NAME, TEND_NAME, fleeShort, VAN_LIKE, zocCapable, zocHoldFormula, zocHoldOf, zocRows, zocRule, zocShort } from './engine/combat';
 import * as R from './engine/run';
 import { CAUSAL, causalGain, causalLeft, causalNeed, causalStage, gearScore, KING, KING_GEAR, KING_GEAR_NAME, KING_MS_TEXT, kingStageText } from './data/chungra';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
@@ -1673,7 +1673,7 @@ function prepScreen(run: RunState) {
   zocB.keepEvents = false;
   for (const u of deployed(run)) {
     const p = lay.get(u.uid), d = UNIT_BY_ID[u.defId];
-    if (!p || d.ctype !== 'VAN' || d.inert) continue;
+    if (!p || (d.ctype !== 'VAN' && !VAN_LIKE.includes(d.id)) || d.inert) continue; // 돌격가 · 돌격가처럼
     const hold = zocHoldOf(provMult(null, buildAlly(zocB, run, u, zocCounts)));
     for (let dy = -CFG.zoc.r; dy <= CFG.zoc.r; dy++) for (let dx = -CFG.zoc.r; dx <= CFG.zoc.r; dx++) if (dx || dy) { const k = `${p.x + dx},${p.y + dy}`; zocCells.set(k, Math.max(zocCells.get(k) || 0, hold)); }
   }
@@ -2422,7 +2422,7 @@ function provChip(b: Battle | null, c: CUnit) {
   const m = provMult(b, c);
   if (Math.abs(m - 1) < 0.05) return '';
   const rule = `돌격가 ×${PROV.van} · 수호자 시너지 +${PROV.guard}${c.mem.provPlus ? ` · 장비 +${c.mem.provPlus}` : ''} · 소환물 근접 ×${PROV.sumMelee} · 고정 ×${PROV.sumFixed} (전투 유형이 정해진 최고의 친구 소환물은 그 유형 값: 돌격가 ×${PROV.van} · 전문가 ×1) · 그 밖 ×1, 은신 · 기습 중 ×${PROV.hide}`;
-  const zoc = c.side === 0 && c.ctype === 'VAN' && !c.isSummon ? ` 돌격가 경계 교전 시간 ${+zocHoldOf(m).toFixed(3)}초 (${zocHoldFormula()}).` : '';
+  const zoc = c.side === 0 && zocCapable(c) && !c.isSummon ? ` 돌격가 경계 교전 시간 ${+zocHoldOf(m).toFixed(3)}초 (${zocHoldFormula()}).` : '';
   return `<span class="d-pow pw-prov" title="도발 배율: 적이 이 기물에게 쌓는 도발 수치에 곱해지는 값 (${rule}).${zoc}">${lineIcon('p.prov', 'li')}<span>도발 배율</span><b>×${+m.toFixed(2)}</b></span>`;
 }
 /** 확대 버튼 (전체 상세 팝업): 상세 창 위쪽 바 (자세히 보기 옆) */
