@@ -401,7 +401,7 @@ export type BEvent =
   /** 광석 운반차가 선로 위 기물을 쳐 냄 (ids: 맞은 기물 · dir: 1 오른쪽으로 · -1 왼쪽으로) */
   | { k: 'cart'; ids: number[]; dir: 1 | -1 };
 
-export interface BattleCtx { phase: number; credits: number; field?: string; diff?: number; despairs?: string[]; oaths?: Record<string, number>; otShift?: number; campIntel?: boolean; campIntel2?: boolean; campIntel3?: boolean; campIntel4?: boolean; campAudit?: boolean; /** 전역 증강 id (적에게 걸리는 것: 판돈 올리기) */ globals?: string[] } // despairs: 이 런의 절망 증강 id 목록 (data/despair.ts) · oaths: 절망 서약 (data/oaths.ts) · otShift: 연장전 · 제한 시간을 앞당기는 초 (초침의 서약)
+export interface BattleCtx { phase: number; credits: number; /** 캠페인 전투 (적 성장 페이즈 매핑 없음, config.ts scalePhase) */ camp?: boolean; field?: string; diff?: number; despairs?: string[]; oaths?: Record<string, number>; otShift?: number; campIntel?: boolean; campIntel2?: boolean; campIntel3?: boolean; campIntel4?: boolean; campAudit?: boolean; /** 전역 증강 id (적에게 걸리는 것: 판돈 올리기) */ globals?: string[] } // despairs: 이 런의 절망 증강 id 목록 (data/despair.ts) · oaths: 절망 서약 (data/oaths.ts) · otShift: 연장전 · 제한 시간을 앞당기는 초 (초침의 서약)
 
 /** 지형 칸 성질 (비트): 통행 불가 (물 · 수로 — 탄은 넘어간다) · 탄도 차단 (벽 · 탱크 · 닫힌 수문 — 보통 통행 불가와 함께) */
 export const T_NOWALK = 1, T_NOSHOT = 2;

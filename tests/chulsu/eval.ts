@@ -2,7 +2,7 @@
 // 기물별 실측 팀 기여 · 계수(profile.gen.ts ← profile_gen.ts)로 '초당 피해 · 유효 체력 · 초당 회복'을 어림하고, 팀 가치를 낸다.
 //   팀 가치 V = (Σ 초당 피해) × (Σ 유효 체력 + τ × Σ 초당 회복) × (1 + α × Σ 활성 시너지 단계) × 전열 보정
 // 공개 정보만 쓴다: 기물 · 장비 · 시너지 정의와 지금 런 상태 (숨은 보상 · 난수는 읽지 않는다).
-import { CFG } from '../../src/config';
+import { CFG, scalePhase } from '../../src/config';
 import { computeStats, memberships, synergyCounts, unitEffects, type Counts } from '../../src/engine/build';
 import { SYNERGIES, tierOf } from '../../src/data/synergies';
 import { UNIT_BY_ID } from '../../src/data/units';
@@ -121,12 +121,12 @@ function tacOf(units: UnitState[], run: RunState | null, counts: Counts): number
 export interface TeamEval { v: number; off: number; ehp: number; heal: number; tiers: number; per: Map<string, UEval>; counts: Counts; tac: number; mo: number; md: number }
 /** 3단계 syn3: 실측 시너지 잔차 한 칸 (없는 단계는 아래 단계, 청라공국은 인과 단계 1 · 4 · 7 실측 사이를 보간) */
 type PQ = { o: number; d: number; so: number; sd: number };
-/** 실측 한 칸 (잡음 줄임). 3페이즈 · 6페이즈 두 시점(키@3 · 키@6)을 지금 페이즈로 보간한다 (3 이하 = @3, 6 이상 = @6) */
+/** 실측 한 칸 (잡음 줄임). 적 성장 페이즈 3 · 6 두 시점(키@3 · 키@6)을 지금 페이즈의 적 성장 페이즈 (scalePhase, 의뢰 5페이즈 = 6)로 보간한다 (3 이하 = @3, 6 이상 = @6) */
 export function profAt(run: RunState | null, k: string): PQ | null {
   const one = (x: string) => { const p = SYNPROF[x]; return p ? { o: shrink(p.o, p.oe), d: shrink(p.d, p.de), so: p.so, sd: p.sd } : null; };
   const a = one(`${k}@3`), b = one(`${k}@6`);
   if (!a || !b) return a || b || one(k);
-  const w = Math.max(0, Math.min(1, ((run?.phase || 1) - 3) / 3));
+  const w = Math.max(0, Math.min(1, (scalePhase(run?.phase || 1, !!run?.campaign) - 3) / 3));
   return { o: a.o + (b.o - a.o) * w, d: a.d + (b.d - a.d) * w, so: a.so + (b.so - a.so) * w, sd: a.sd + (b.sd - a.sd) * w };
 }
 export function synProf(run: RunState | null, id: string, t: number): PQ | null {

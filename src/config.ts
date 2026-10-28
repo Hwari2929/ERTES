@@ -93,7 +93,7 @@ export const CFG = {
 
   // ── 무한 모드 페이즈 스케일링 (확정, 복리)
   phaseArmor: 1.25, phaseAmp: 1.28,
-  // 체력 배율: 5페이즈까지 ×2.05, 6페이즈부터 ×1.9, ×1.8 … (하한 ×1.1 [임시])
+  // 체력 배율 (적 성장 페이즈 기준, config.ts scalePhase): 5페이즈까지 ×1.85, 6페이즈부터 ×1.75, ×1.65 … (하한 ×1.1 [임시]) · lateFrom 도 적 성장 페이즈 기준
   // 고페이즈 보정 [임시]: lateFrom 페이즈부터 매 페이즈 피해 ×lateAmp 추가 (체력 ×0.9 약화 보정은 없앴다)
   lateFrom: 5, lateAmp: 1.05,
   phaseHpFactor: (p: number) => (p <= 5 ? 1.85 : Math.max(1.1, 1.85 - 0.1 * (p - 5))), // 후반 체력 약화 보정(×0.9) 제거
@@ -128,7 +128,11 @@ export const CFG = {
   greatChance: 0.2,
 
   // ── 파티/보드
-  victoryPhase: 6, // 이 페이즈 보스를 이기면 의뢰 성공
+  victoryPhase: 5, // 이 페이즈 보스를 이기면 의뢰 성공
+  /** 적 성장 페이즈 (scalePhase): 의뢰 마지막 페이즈의 적 = 예전 이 페이즈 세기 (의뢰를 6 → 5페이즈로 줄이며 마지막 보스는 예전 6페이즈에 맞춤) */
+  scaleFinal: 6,
+  /** 페이즈 안 칸 번호(step)당 일반 · 보스 조우 강도 +이 값 (12칸 시절 0.04 → 10칸이라 마지막 보스가 예전과 같은 ×1.44 가 되게) */
+  stepMult: 0.049,
   // 전환 노드 (짝수 페이즈): 휴식 = 체력 회복 + 공명도 소량 / 도전 = 다음 페이즈 역경급 전투, 승리 시 남은 노드 보상을 몰아 받고 다음 페이즈로
   forkRestHp: 10, forkRestLost: 0.2, forkRestXp: 0.5, // 휴식: 체력 +n + 잃은 체력 × lost (내림), 공명도 = 전투 1회 풀 × k
   challengeXp: 4.5, // 도전 승리: 공명도 = 전투 1회 풀 × k
@@ -169,7 +173,7 @@ export const CFG = {
 
   // ── 경제 [임시]
   startCredits: 6,
-  winCredits: (phase: number) => Math.floor(2.5 + phase / 2), // 노드가 늘어 이자가 쌓이므로 노드당 2~3 감소 (P1 3 · P3 4 · P6 5)
+  winCredits: (phase: number) => Math.floor(2.5 + phase / 2), // 노드가 늘어 이자가 쌓이므로 노드당 2~3 감소 (P1 3 · P3 4 · P5 5)
   lossShare: 0.5, // 패배 시 승리 보상 크레딧의 몫 (공명도 풀도 같은 몫: xpPool × lossShare)
   interestPer: 10, interestMax: 5,
   streakBonus: (streak: number) => (streak >= 6 ? 3 : streak >= 4 ? 2 : streak >= 2 ? 1 : 0),
@@ -184,7 +188,7 @@ export const CFG = {
     /** 캣휠(ZI존) 제련 (별무리 파편): 단계마다 모든 주요 능력치 + · 별무리 파편을 밍키에게 끼우면 (이스터에그) 먹어 치우고 공명도 + */ ziPts: 2, mingkiShardXp: 12 }, // J: 유닉스제 잡동사니 (캣휠)
   // 장비 드랍 [임시]
   // advParts: 역경(· 도전) 승리 시 무작위 장비 재료 확정 개수 (예전: 확률 50%)
-  drop: { battle: 0.1, advParts: 1, bossAdvEvery: 3, bossPart: 0.5, shopParts: 2, shopAdv: 0.4, shopAdv2: 0.1, shopGraded: 0.15, shopLegend: 0.05, shopLegendPhase: 6, utility: { battle: 0.15, adversity: 0.3, boss: 0.5 } as Record<string, number>,
+  drop: { battle: 0.1, advParts: 1, bossAdvEvery: 3, bossPart: 0.5, shopParts: 2, shopAdv: 0.4, shopAdv2: 0.1, shopGraded: 0.15, shopLegend: 0.05, shopLegendPhase: 5, utility: { battle: 0.15, adversity: 0.3, boss: 0.5 } as Record<string, number>,
     // 전설 소모품 (승리 시, 위 utility 와 따로 굴림): 원초 공명석 = 극저확률
     rank3: { battle: 0.003, adversity: 0.008, boss: 0.02 } as Record<string, number> },
   /** 공명 주입기 (소형 K_xp · 중형 K_xp2 · 대형 K_xp3): 공명도 · 입고 가중치 · 나오기 시작하는 페이즈.
@@ -288,7 +292,7 @@ export const CFG = {
   },
   despair: {
     from: 7, // 이 위험 등급 이상 런에서 고른다 (고난)
-    every: 3, // 추가로 고르는 간격 (페이즈): 페이즈 every · 2×every … 시작 때 1개씩
+    every: 2, // 추가로 고르는 간격 (페이즈): 페이즈 1+every · 1+2×every … 시작 때 1개씩 (의뢰 5페이즈: 3 · 5페이즈)
     choices: 3, rerolls: 1, // 선택지 수 · 새로고침 횟수 (고를 때마다)
     rockSlots: 1, // 단장의 반려 돌: 영입 선택지 중 반려 돌로 바뀌는 수
     overclock: 2, // 오버클럭: 적 기술 쿨다운 감소 속도 +
@@ -336,12 +340,20 @@ export const CFG = {
     hull: { heat: [1, 1], hp: [15, 30] }, // 균열: 함대 최대 체력 -
     recruit: { heat: [1, 1], less: [1, 2] }, // 고립: 영입 선택지 - (최소 1)
     augment: { heat: [2], less: [1] }, // 침묵: 공명 증강 선택지 -
-    abyss: { heat: [2, 2], start: [1, 1], every: [0, 2] }, // 심연: 출격 때 절망 증강 + · 추가 선택 간격 (0 = 그대로)
+    abyss: { heat: [2, 2], start: [1, 1], every: [0, 1] }, // 심연: 출격 때 절망 증강 + · 추가 선택 간격 (0 = 그대로, 1 = 2페이즈부터 매 페이즈)
     strip: { heat: [1, 1], rerolls: [0, 0], choices: [0, 1] }, // 박탈: 특권 증강 새로고침 · 선택지 수 (0 = 그대로)
   },
 };
 
-/** p 페이즈 적 피해 누적 배율 */
+/** 적 성장 페이즈: 의뢰 페이즈 p 를 적 체력 · 피해 · 방어도 · 능력치 성장 곡선 위 위치로. 1 → 1, victoryPhase → scaleFinal, 사이는 고르게 (소수),
+ *  그 뒤 (무한 항해)는 1씩. 캠페인은 장마다 정한 페이즈 그대로 (camp = true) */
+export function scalePhase(p: number, camp = false): number {
+  const V = CFG.victoryPhase, F = CFG.scaleFinal;
+  if (camp || p <= 1 || V <= 1) return p;
+  return p <= V ? 1 + ((p - 1) * (F - 1)) / (V - 1) : p + F - V;
+}
+
+/** p 페이즈 적 피해 누적 배율 (p = 적 성장 페이즈, 소수 가능) */
 export function phaseAmpMult(p: number): number {
   return Math.pow(CFG.phaseAmp, p - 1) * Math.pow(CFG.lateAmp, Math.max(0, p - CFG.lateFrom + 1));
 }
@@ -349,9 +361,11 @@ export function phaseAmpMult(p: number): number {
 /** 조우 강도 배율(적 체력 배율 mult) → 적 피해 배율: 체력 배율의 절반만 반영 (build.ts buildEnemy · 역경 설명 공용) */
 export const encDmgMult = (mult: number) => 1 + (mult - 1) / 2;
 
-/** p 페이즈 적 체력 누적 배율 (add = 페이즈마다 곱하는 계수에 더하는 값: 난이도 diffHpAdd) */
+/** p 페이즈 적 체력 누적 배율 (p = 적 성장 페이즈, 소수면 다음 페이즈 계수를 그 몫만큼 거듭제곱 · add = 페이즈마다 곱하는 계수에 더하는 값: 난이도 diffHpAdd) */
 export function phaseHpMult(p: number, add = 0): number {
   let m = 1;
-  for (let k = 2; k <= p; k++) m *= CFG.phaseHpFactor(k) + add;
+  const n = Math.floor(p);
+  for (let k = 2; k <= n; k++) m *= CFG.phaseHpFactor(k) + add;
+  if (p > n && n >= 1) m *= Math.pow(CFG.phaseHpFactor(n + 1) + add, p - n);
   return m;
 }

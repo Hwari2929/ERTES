@@ -68,7 +68,7 @@ function rerollWorth(cur: number, rerolls: number, sample: () => number): boolea
 const credV = (run: RunState, g: number) => g / xpRate(run);
 const hpVal = (run: RunState) => ECON.hpVal[(run.diff || 0) >= 6 ? 'd7' : 'd3'] * (1 + 20 / Math.max(10, run.hp));
 /** 앞으로 남은 전투 수 어림 (페이즈당 약 9번) × 할인, 상한 AUG.horizon */
-const horizon = (run: RunState) => Math.min(AUG.horizon, (CFG.victoryPhase - run.phase) * 9 + Math.max(0, 12 - run.step) * 0.75) * AUG.discount;
+const horizon = (run: RunState) => Math.min(AUG.horizon, (CFG.victoryPhase - run.phase) * 7.5 + Math.max(0, run.map.length - run.step) * 0.75) * AUG.discount; // 페이즈 10칸 기준
 const vOf = (run: RunState, us: UnitState[]) => (us.length ? teamEval(run, us).v : 0);
 /** 기물 묶음 변경의 팀 가치 상대 상승 */
 function relGain(run: RunState, f: (u: UnitState) => UnitState): number {
@@ -186,9 +186,9 @@ function despHarm(run: RunState, id: string, bossRisk?: number): number {
       f = Math.min(3, share / 0.12); break;
     }
     case 'D.rival': case 'D.rock': f = ph >= 3 ? 0.5 : 1; break; // 영입: 파티가 꾸려진 뒤에는 덜 해롭다
-    case 'D.swarm': case 'D.myopic': f = ph >= 6 ? 0.3 : 1; break; // 공명도 · 이자: 마지막 페이즈에는 남은 전투가 적다
-    case 'D.tariff': f = ph >= 6 ? 0.5 : 1; break;
-    case 'D.final': f = ph >= 3 ? 1.5 : 1; break; // 보스: 6페이즈 보스 = 클리어 조건
+    case 'D.swarm': case 'D.myopic': f = ph >= CFG.victoryPhase ? 0.3 : 1; break; // 공명도 · 이자: 마지막 페이즈에는 남은 전투가 적다
+    case 'D.tariff': f = ph >= CFG.victoryPhase ? 0.5 : 1; break;
+    case 'D.final': f = ph >= 3 ? 1.5 : 1; break; // 보스: 마지막 페이즈 보스 = 클리어 조건
   }
   return h + 0.2 * (f - 1);
 }

@@ -1,4 +1,4 @@
-import { CFG } from '../config';
+import { CFG, scalePhase } from '../config';
 import { AUG_BY_ID } from '../data/augments';
 import { FIELDS, fieldOf } from '../data/battlefields';
 import { diffAddCount, diffHas } from '../data/difficulty';
@@ -111,12 +111,12 @@ export function newRun(seed: number, starters: string[], field?: string, diff = 
   return run;
 }
 
-/** 페이즈 노드 구성 (12칸): 전투 > 전투 > 항로 회의(전역 증강) > 사건 > 역경 > 보급 > 전투(짝수 페이즈는 전환) > 전투 > 사건 > 역경 > 보급 > 보스.
- *  보급 = 상점 / 보급 / 모집 (+ 은하 대스타 속보 · 투자 · 순례) 중 선택. 2페이즈부터는 페이즈 시작 때 영입 기회가 열린다 */
+/** 페이즈 노드 구성 (10칸): 전투 > 항로 회의(전역 증강) > 사건 > 역경 > 보급 > 전투(짝수 페이즈는 전환) > 사건 > 역경 > 보급 > 보스.
+ *  (의뢰 5페이즈 단축: 연달아 있던 전투 두 쌍을 하나씩으로.) 보급 = 상점 / 보급 / 모집 (+ 은하 대스타 속보 · 투자 · 순례) 중 선택. 2페이즈부터는 페이즈 시작 때 영입 기회가 열린다 */
 export function phaseMap(phase: number): NodeType[][] {
   // [실험] CFG.supply.p1: 1페이즈만 맨 앞 보급 + 첫 역경 → 보급 (항로 보급, 분기점 보급과 달리 재료 1장 확정 · 대박 없음)
-  if (phase === 1 && CFG.supply.p1) return [['supply'], ['battle'], ['battle'], ['council'], ['event'], ['supply'], ['shop'], ['battle'], ['battle'], ['event'], ['adversity'], ['shop'], ['boss']];
-  const m: NodeType[][] = [['battle'], ['battle'], ['council'], ['event'], ['adversity'], ['shop'], [phase % 2 === 0 ? 'fork' : 'battle'], ['battle'], ['event'], ['adversity'], ['shop'], ['boss']];
+  if (phase === 1 && CFG.supply.p1) return [['supply'], ['battle'], ['council'], ['event'], ['supply'], ['shop'], ['battle'], ['event'], ['adversity'], ['shop'], ['boss']];
+  const m: NodeType[][] = [['battle'], ['council'], ['event'], ['adversity'], ['shop'], [phase % 2 === 0 ? 'fork' : 'battle'], ['event'], ['adversity'], ['shop'], ['boss']];
   return phase >= 2 && CFG.supply.front ? [['supply'], ...m] : m; // [실험] CFG.supply.front: 2페이즈부터 맨 앞 보급
 }
 
@@ -401,7 +401,7 @@ export function autoFill(run: RunState) {
 // ───────────────────────── 노드 진행
 export function currentOptions(run: RunState): NodeType[] { return run.map[run.step] || []; }
 /** 조우 강도 배율 (적 체력 · 피해): 역경은 설정값, 그 밖은 페이즈 안에서 진행한 칸에 따라 조금씩 (genEncounter · 지도 미리보기 공용) */
-export const encounterMult = (type: NodeType, step: number) => (type === 'adversity' ? CFG.adversityMult : 1 + 0.04 * step);
+export const encounterMult = (type: NodeType, step: number, camp = false) => (type === 'adversity' ? CFG.adversityMult : 1 + (camp ? 0.04 : CFG.stepMult) * step); // 캠페인은 장별 설계 그대로 (0.04)
 /** 전투 보상 크레딧 (승리 기준): 페이즈 기본 × 역경 · 위험 등급 · 서약 · 계약 배율 (+보스 5) × 판돈 + 전역 증강 가산. 패배는 이것의 CFG.lossShare */
 function battleCredits(run: RunState, type: NodeType): number {
   let c = CFG.winCredits(run.phase);
@@ -1213,6 +1213,7 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
     const nw = mapOf(map).narrow, n = type === 'boss' ? CFG.bossBoard : nw ? narrowWidth(run, nw, mapOf(map).allyRows) : env.n;
     const rows = playerRows(n);
     const p = phase;
+    const sp = Math.round(scalePhase(p, !!run.campaign)); // 적 수: 적 성장 페이즈 기준 (의뢰 마지막 페이즈 = 예전 6페이즈 인원)
     const f = fieldOf(run.field);
     const enemies: EnemySpawn[] = [];
     const ids: string[] = [];
@@ -1220,11 +1221,11 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
     if (type === 'boss') {
       const boss = run.campaign ? campBoss(run) : f.bosses[(p - 1) % f.bosses.length];
       ids.push(boss, ...(ENEMY_BY_ID[boss].escort || []));
-      const extra = run.campaign ? 0 : Math.max(0, p - 1); // 보스 호위 추가 인원 = 페이즈 - 1 (상한 없음) · 캠페인은 장 보스 혼자 (포자를 쏟아 낸다)
+      const extra = run.campaign ? 0 : Math.max(0, sp - 1); // 보스 호위 추가 인원 = 적 성장 페이즈 - 1 (상한 없음) · 캠페인은 장 보스 혼자 (포자를 쏟아 낸다)
       for (let i = 0; i < extra + (diffHas(run.diff, 4) ? 1 : 0) + oathV(run, 'titan', 'guard'); i++) ids.push(r.pick(pool)); // 거두의 서약: 호위 +
     } else {
-      const late = run.step >= 5 ? 1 : 0; // 페이즈 후반 (항로 회의 이후 두 번째 전투부터)
-      const count = run.campaign ? campFoeCount(run) : Math.min(rows * n - 2, 2 + p + late + (f.extraEnemies || 0) + (type === 'adversity' && diffHas(run.diff, 5) ? 1 : 0));
+      const late = run.step >= 4 ? 1 : 0; // 페이즈 후반 (보급 이후 전투부터)
+      const count = run.campaign ? campFoeCount(run) : Math.min(rows * n - 2, 2 + sp + late + (f.extraEnemies || 0) + (type === 'adversity' && diffHas(run.diff, 5) ? 1 : 0));
       if (run.campaign && run.flags.includes('cp_sample')) { ids.push('sw_spore', 'sw_spore'); run.flags = run.flags.filter((x) => x !== 'cp_sample'); } // 캠페인 격리 화물: 빠져나간 군체 표본
       if (run.campaign) { const el = campElite(run); if (el) ids.push(el); } // 캠페인: 장마다 정한 칸부터 정예 1마리 else if (type === 'adversity' || ((p >= 2 || oathLv(run, 'elite')) && r.chance((diffHas(run.diff, 5) ? 0.6 : 0.3) + oathV(run, 'elite', 'chance')))) ids.push(f.elite); // 정예의 서약: 1페이즈부터 · 확률 +
       while (ids.length < count) ids.push(r.pick(pool));
@@ -1255,7 +1256,7 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
     return {
       n, env: type === 'boss' ? '보스 아레나' : mapOf(map).narrow ? '좁은 전장' : env.env, enemies,
       ...(map ? { map } : {}),
-      mult: encounterMult(type, run.step),
+      mult: encounterMult(type, run.step, !!run.campaign),
       seed: r.int(1, 2 ** 31 - 1),
       ...(phase !== run.phase ? { phase } : {}),
       ...(add ? { add } : {}),
@@ -1729,7 +1730,7 @@ export function openShop(run: RunState) {
 }
 
 /** 상점 진열 (3×3 진열대에 서로 다른 물품 n 개, n = CFG.shop.count 확률로 6~9 — 남는 칸은 빈 선반).
- *  1) 예전 진열 규칙을 그대로 굴린다: 재료 2 확정 · 희귀 (1 · 2) · 고급 · 전설 (6페이즈부터, 고르곤은 페이즈 무관 20%) · 3페이즈부터 고급 · 희귀 1개 이상 · 소모품 2~3 · 강제 징수기 · 원초 공명석 · 문장.
+ *  1) 예전 진열 규칙을 그대로 굴린다: 재료 2 확정 · 희귀 (1 · 2) · 고급 · 전설 (CFG.drop.shopLegendPhase 부터, 고르곤은 페이즈 무관 20%) · 3페이즈부터 고급 · 희귀 1개 이상 · 소모품 2~3 · 강제 징수기 · 원초 공명석 · 문장.
  *  2) 상인 전용 상품은 늘 넣는다 (n 개 안). 넘치면 분류 순서 (전용 > 전설 > 희귀 > 고급 > 문장 > 재료 > 전설 소모품 > 소모품) 로 자른다 — 전용 · 굴린 전설은 남는다.
  *  3) 모자라는 칸은 CFG.shop.fill 가중치로 분류를 골라 그 분류의 아직 없는 물품으로 채운다 (재료 · 소모품 · 고급 · 희귀 · 문장).
  *  4) 할인: 칸 수 CFG.shop.sale.n 확률 · 할인율 sale.pct 균등 (드물게 sale.rare) */

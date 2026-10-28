@@ -1,4 +1,4 @@
-import { CFG, encDmgMult, phaseAmpMult, phaseHpMult } from '../config';
+import { CFG, encDmgMult, phaseAmpMult, phaseHpMult, scalePhase } from '../config';
 import { AUG_BY_ID } from '../data/augments';
 import { ENEMY_BY_ID, ENEMY_RT, type EnemyDef, setSummonHook } from '../data/enemies';
 import { fieldOf } from '../data/battlefields';
@@ -439,12 +439,13 @@ const WALL_PAL = ['#0e0e0e', '#9a7a4a', '#6a5232', '#d8c090', '#b89a62', '#3e2f1
 export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number, gear?: { items?: string[]; mod?: string; stripped?: boolean }): CUnit {
   const c = blankUnit(1);
   const st = emptyStats();
-  st.maxHp = def.hp * CFG.enemyHpMul * phaseHpMult(phase, CFG.diffHpAdd(b.ctx.diff || 0)) * mult; // 모험 · 고난: 페이즈 체력 성장 가산
+  const sp = scalePhase(phase, b.ctx.camp); // 적 성장 페이즈 (의뢰 마지막 페이즈 = 예전 6페이즈 세기)
+  st.maxHp = def.hp * CFG.enemyHpMul * phaseHpMult(sp, CFG.diffHpAdd(b.ctx.diff || 0)) * mult; // 모험 · 고난: 페이즈 체력 성장 가산
   st.shoot = st.strike = st.tech = def.power * CFG.enemyPowMul;
-  st.armor = def.armor * CFG.armorScale * Math.pow(CFG.phaseArmor, phase - 1); // 적 정의는 옛 방어도 단위 (armorScale 로 변환)
+  st.armor = def.armor * CFG.armorScale * Math.pow(CFG.phaseArmor, sp - 1); // 적 정의는 옛 방어도 단위 (armorScale 로 변환)
   st.acc = def.acc || 0; st.eva = def.eva || 0; st.crit = def.crit ?? 0.05; st.critDmg = 1.5;
   st.effHit = def.effHit || 0; st.effRes = def.effRes || 0; st.range = def.range;
-  const em = enemyMajors(def, phase);
+  const em = enemyMajors(def, sp);
   // 이동 속도: 기본값 (성향 · 적별 이동 배율) + 기동력 1당 아군과 같은 환산
   st.moveSpd = enemyBaseMoveSpd(def) + em.agi * CFG.conv.agi.moveSpd;
   // 효과 명중 · 효과 저항은 아군과 같은 환산, 명중 · 회피 · 치명타는 약하게 (전체 난이도 유지)
@@ -461,7 +462,7 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
     defId: def.id, name: def.name, sprite: def.sprite, palette: def.palette, art: def.art, st, keywords: def.keywords.slice(),
     atk: { type: def.atk.type, elem: def.atk.elem, interval: def.interval }, skill: def.skill || null,
     sk: { ...(def.skill?.params || {}) }, cdMax: def.skill?.cd || 0, isBoss: def.tier === 'boss', big: def.tier !== 'minion',
-    immobile: !!def.immobile, phaseAmp: phaseAmpMult(phase) * encDmgMult(mult) * critTax,
+    immobile: !!def.immobile, phaseAmp: phaseAmpMult(sp) * encDmgMult(mult) * critTax,
   });
   c.mem.mult = mult;
   c.elite = def.tier === 'elite';
@@ -848,7 +849,7 @@ export function prepOccupied(run: RunState, enc: Encounter, skip?: Device): Set<
 
 export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): Battle {
   const g = encGeo(enc);
-  const b = new Battle(g.w, g.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined, globals: run.globals.length ? [...run.globals] : undefined, oaths: run.oaths, otShift: oathV(run, 'clock', 'sec') || undefined, campIntel: run.campaign && run.flags.includes('cp_intel') ? true : undefined, campIntel2: run.campaign && run.flags.includes('cp_intel2') ? true : undefined, campIntel3: run.campaign && run.flags.includes('cp_intel3') ? true : undefined, campIntel4: run.campaign && run.flags.includes('cp_intel4') ? true : undefined, campAudit: run.campaign && run.flags.includes('cp_br_audit') ? true : undefined });
+  const b = new Battle(g.w, g.h, new Rng(enc.seed), { phase: enc.phase ?? run.phase, credits: run.credits, camp: !!run.campaign, field: run.field, diff: run.diff, despairs: run.despairs?.length ? [...run.despairs] : undefined, globals: run.globals.length ? [...run.globals] : undefined, oaths: run.oaths, otShift: oathV(run, 'clock', 'sec') || undefined, campIntel: run.campaign && run.flags.includes('cp_intel') ? true : undefined, campIntel2: run.campaign && run.flags.includes('cp_intel2') ? true : undefined, campIntel3: run.campaign && run.flags.includes('cp_intel3') ? true : undefined, campIntel4: run.campaign && run.flags.includes('cp_intel4') ? true : undefined, campAudit: run.campaign && run.flags.includes('cp_br_audit') ? true : undefined });
   b.keepEvents = keepEvents;
   b.geo = g;
   applyMap(b, g, !!enc.gateOpen); // 지형 칸 · 수문 · 운반차 (수문 시작 상태 · 연결교 · 크레인은 편성 화면에서, g.opt)
@@ -886,7 +887,7 @@ export { SYN_BY_ID };
 
 /** 편성 화면에서 놓은 장치를 전장에 (전투 시작 전): 바리케이드 · 유인 신호기 · 감전 지뢰는 칸에, 항공 보급은 장비를 먼저 달고, 포격 · 그물은 첫 틱에 */
 function applyDevices(b: Battle, run: RunState, enc: Encounter, counts: Counts) {
-  const phase = enc.phase ?? run.phase;
+  const phase = scalePhase(enc.phase ?? run.phase, !!run.campaign); // 장치 내구도 · 피해: 적 성장 페이즈 기준
   const navR = scopeR(tierOf('NAV', counts.NAV || 0));
   const dummy = (name: string, x: number, y: number) => { const c = blankUnit(0); c.name = name; c.x = c.px = x; c.y = c.py = y; c.st.effHit = 9; return c; }; // 장치의 피해 · 상태 출처 (전장에 없음)
   const foesNear = (x: number, y: number, r: number) => b.units.filter((e) => e.alive && e.side === 1 && !e.mem.inert && b.dist(e, { x, y }) <= r);

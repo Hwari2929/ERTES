@@ -77,7 +77,7 @@ export const GLOSSARY: GlossChapter[] = [
   },
   {
     ch: 'ch4', title: '4장 — 항로 · 적', who: 'franze', entries: [
-      { id: 'phase', term: '페이즈 · 항로', key: 'ch4_map', text: `의뢰 하나는 ${CFG.victoryPhase}페이즈. 한 페이즈는 12칸이고 한 칸씩 밟아 간다. 마지막 칸의 보스전을 치르면 (지더라도) 다음 페이즈, ${CFG.victoryPhase}페이즈 보스를 이기면 의뢰 성공.` },
+      { id: 'phase', term: '페이즈 · 항로', key: 'ch4_map', text: `의뢰 하나는 ${CFG.victoryPhase}페이즈. 한 페이즈는 10칸 (1페이즈는 11칸)이고 한 칸씩 밟아 간다. 마지막 칸의 보스전을 치르면 (지더라도) 다음 페이즈, ${CFG.victoryPhase}페이즈 보스를 이기면 의뢰 성공.` },
       { id: 'nodes', term: '노드 종류', key: 'ch4_map', text: '전투, 역경, 사건, 보급(갈림길: 상점 · 보급 · 모집, 은하 대스타가 있으면 속보도), 전환(짝수 페이즈: 휴식 · 도전), 보스. 항로 회의에서는 의뢰 내내 함대 전체에 적용되는 전역 증강 셋 중 하나를 고른다. 2페이즈부터는 페이즈마다 영입 기회가 열린다.' },
       { id: 'field', term: '전장 · 전장 조건', key: 'ch4_brief', text: '의뢰마다 싸우는 전장이 정해진다. 전장 조건은 모든 전투에 붙고(적 증가, 가격 상승 등), 힘을 받는 세력도 따로 있다. 지도의 환경 탭에서 언제든 다시 본다.' },
       { id: 'terrain', term: '지형 틀 · 지형 칸', key: 'ch4_brief', text: `일반 · 역경 전투는 가끔 개활지가 아닌 지형에서 벌어진다 (편성 화면 머리 제목 · 오른쪽 '이번 전투'의 지형 설명). 지형 칸은 누르면 범위와 성질이 나온다. ${Object.values(TERRAIN).filter((t) => t.bits === 1).map((t) => t.name).join(' · ')}은 길만 막고, ${Object.values(TERRAIN).filter((t) => t.bits === 3 && t.name !== '수문').map((t) => t.name).join(' · ')}는 직선 사격까지 막는다. 기술은 틈 없이 갈라질 때만 막힌다. 수문 시작 상태 · 연결교 접기 · 크레인은 편성 화면의 지형 상세에서 전투 전에 정한다. 공용 ${MAPS.filter((m) => !m.field && m.id !== 'open').map((m) => m.name).join(' · ')}, 전장 전용 ${MAPS.filter((m) => m.field).map((m) => m.name).join(' · ')}.` },

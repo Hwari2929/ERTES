@@ -1,5 +1,5 @@
 import { PREVIEW_SECS, startPreview } from './engine/preview';
-import { CFG, encDmgMult, phaseAmpMult, phaseHpMult } from './config';
+import { CFG, encDmgMult, phaseAmpMult, phaseHpMult, scalePhase } from './config';
 import { AUG_BY_ID, augDesc } from './data/augments';
 import { ENEMIES, ENEMY_BY_ID, type EnemyDef } from './data/enemies';
 import { ENEMY_DESC } from './data/enemyText';
@@ -959,8 +959,8 @@ function newRunScreen() {
 // ───────────────────────── 화면: 맵
 function mapScreen(run: RunState) {
   const p = run.phase;
-  const ha = CFG.diffHpAdd(run.diff || 0);
-  const scale = `적 체력 ×${fmt(phaseHpMult(p, ha))} (이번 페이즈 ×${p > 1 ? (CFG.phaseHpFactor(p) + ha).toFixed(2) : '1'}) · 방어도 ×${Math.pow(CFG.phaseArmor, p - 1).toFixed(2)} · 피해 ×${phaseAmpMult(p).toFixed(2)}`;
+  const ha = CFG.diffHpAdd(run.diff || 0), sp = scalePhase(p, !!run.campaign), sp0 = scalePhase(p - 1, !!run.campaign); // 적 성장 페이즈
+  const scale = `적 체력 ×${fmt(phaseHpMult(sp, ha))} (이번 페이즈 ×${p > 1 ? (phaseHpMult(sp, ha) / phaseHpMult(sp0, ha)).toFixed(2) : '1'}) · 방어도 ×${Math.pow(CFG.phaseArmor, sp - 1).toFixed(2)} · 피해 ×${phaseAmpMult(sp).toFixed(2)}`;
   const opts = R.currentOptions(run);
   const pick: NodeType | undefined = run.node ? run.node.type : opts.includes(app.nodePick as NodeType) ? (app.nodePick as NodeType) : opts[0];
   const nodeIc = (o: NodeType, i: number) => {
@@ -1192,7 +1192,7 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   const act = (cur: boolean) => (cur ? `<div class="ah-act">${buttons}</div>` : '');
   // 현재 칸 카드: 이름 → 노드 설명 한 줄 → (보스는 특징 칩) → 예상 수입 → 모디파이어. 다음 칸 카드: 이름 → nodeHint 여러 줄 (보스는 특징 칩)
   const bossCard = (i: number, e: EnemyDef, cur: boolean) => {
-    const cat = enemyCategory(e), td = TEND_NAME[e.tend], rk = foeRank(run, e, run.phase, R.encounterMult('boss', i));
+    const cat = enemyCategory(e), td = TEND_NAME[e.tend], rk = foeRank(run, e, run.phase, R.encounterMult('boss', i, !!run.campaign));
     return `<li class="ah-card ah-boss n-boss${cur ? ' cur tl-info' : ''}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}">${act(cur)}<span class="ah-lead"><span class="ah-port">${sprite(e, 'spr big')}<i class="ah-ic">${NODE_ICON.boss}</i></span>${step(i)}</span>
       <div class="ah-body"><b>${esc(e.name)}</b>${cur ? about('boss') : desc(`${NODE_NAME.boss} · ${nodeHint('boss')}`)}<div class="ah-chips">${rankChip(rk)}${R.bossMustWin(run) ? tchip(lineIcon('m.elite', 'li'), '최종 보스', 'bad', '의뢰의 마지막 보스: 이길 때까지 다시 싸운다 (다른 보스는 져도 다음 페이즈로)') : ''}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${cur ? `${income('boss')}${mods('boss')}` : ''}</div></li>`;
   };
@@ -1227,7 +1227,7 @@ function allyRef(rank: number) {
   return (allyRefs[rank] = { hp: hp / RECRUITABLE.length, pow: pow / RECRUITABLE.length });
 }
 function foeRank(run: RunState, e: EnemyDef, phase: number, mult: number, s?: { items?: string[]; mod?: string }) {
-  return unitRank(e, buildEnemy(new Battle(9, 9, new Rng(1), { phase, credits: 0, field: run.field, diff: run.diff, despairs: run.despairs, oaths: run.oaths }), e, phase, mult, s));
+  return unitRank(e, buildEnemy(new Battle(9, 9, new Rng(1), { phase, credits: 0, camp: !!run.campaign, field: run.field, diff: run.diff, despairs: run.despairs, oaths: run.oaths }), e, phase, mult, s));
 }
 /** 적 유닛(편성 미리보기 · 전투 중)의 공명 등급 추정 */
 function unitRank(e: EnemyDef, c: CUnit) {
@@ -1320,7 +1320,7 @@ const zoneMini = (foe: boolean, mid = true) => `<span class="zm" title="놓을 �
 const rangeGrid = (r: number) => { const n = 2 * r + 1; return `<span class="sc-grid" style="--n:${n}">${[...Array(n * n).keys()].map((i) => `<i${i === (n * n - 1) / 2 ? ' class="c"' : ''}></i>`).join('')}</span>`; };
 /** 바리케이드 팝업: 놓는 곳 · 모양별 칸당 내구도 (지금 페이즈) · 막는 것 (직선 사격 / 기술 따로) */
 function wallPop(run: RunState) {
-  const ph = run.node?.enc?.phase ?? run.phase, M = DEV.wall.maxN;
+  const ph = scalePhase(run.node?.enc?.phase ?? run.phase, !!run.campaign), M = DEV.wall.maxN; // 장치 내구도: 적 성장 페이즈 기준
   const shapes = [...Array(M).keys()].map((k) => `<span class="dw-shape"><span class="dw-cells">${'<i></i>'.repeat(k + 1)}</span><b>${wallHp(ph, k + 1)}</b></span>`).join('');
   return `<div class="sc-row">${zoneMini(false)}<span class="small">적 진형 밖 빈칸</span></div>
     <div class="dw-shapes" title="칸당 내구도 (이번 페이즈)">${shapes}</div>
@@ -1340,7 +1340,7 @@ function decoyPop() {
 }
 /** 만찬 백수정 팝업 (미리암 라일라 전용): 놓는 곳 (아군 진형만) · 연쇄 회복 도식 (수정 → 1 → 2 → 3, 최대 체력 대비) · 주기 · 내구도 (이번 페이즈) */
 function feastPop(run: RunState) {
-  const F = DEV.feast, ph = run.node?.enc?.phase ?? run.phase;
+  const F = DEV.feast, ph = scalePhase(run.node?.enc?.phase ?? run.phase, !!run.campaign);
   const hop = feastChain().map((k, i) => `<i>→</i><span class="fc-hop" title="${i + 1}번째 대상"><b>${feastPct(k)}</b><small>${i + 1}</small></span>`).join('');
   return `<div class="sc-row">${zoneMini(false, false)}<span class="small">아군 진형 빈칸 · <b>아군 구조물</b></span></div>
     <div class="dv-chain" title="${F.every}초마다: 체력 비율이 가장 낮은 다친 아군부터 겹치지 않게">${lineIcon('k.feast', 'li fc-src')}${hop}</div>
@@ -1362,7 +1362,7 @@ function deviceTokens(run: RunState, n: number, box: (x: number, y: number, w?: 
   if (!enc?.devices?.length) return '';
   const g = runGeo(run, n), { w: fw, h: fh } = g;
   const navR = scopeR(tierOf('NAV', synergyCounts(deployed(run), run).NAV || 0));
-  const phase = enc.phase ?? run.phase;
+  const phase = scalePhase(enc.phase ?? run.phase, !!run.campaign); // 장치 내구도: 적 성장 페이즈 기준
   return enc.devices.map((d, i) => {
     const c = CONSUMABLES[d.id], ic = lineIcon(SPECIAL_GLYPH[d.id] || 'a.power', 'li');
     if (d.id === 'K_net' || d.id === 'K_scope') {
@@ -2652,7 +2652,7 @@ function detailPanel(run: RunState, extra = '') {
     if (!s) return '';
     const e = ENEMY_BY_ID[s.defId];
     const ph = run.node.enc.phase ?? run.phase; // 도전은 다음 페이즈 적
-    const b = new Battle(9, 9, new Rng(1), { phase: ph, credits: 0, field: run.field, diff: run.diff, despairs: run.despairs, oaths: run.oaths }); // 실제 전투와 같은 전장 · 위험 등급 · 절망 증강 · 절망 서약 (체력 · 피해 배율)
+    const b = new Battle(9, 9, new Rng(1), { phase: ph, credits: 0, camp: !!run.campaign, field: run.field, diff: run.diff, despairs: run.despairs, oaths: run.oaths }); // 실제 전투와 같은 전장 · 위험 등급 · 절망 증강 · 절망 서약 (체력 · 피해 배율)
     const c = buildEnemy(b, e, ph, run.node.enc.mult, s);
     const ms = battleMajors(c)!;
     const eq = foeGear(e, s);
@@ -3486,7 +3486,7 @@ function statPopHtml(run: RunState) {
     const s = run.node.enc.enemies[sel.i];
     if (!s) return '';
     const ph = run.node.enc.phase ?? run.phase;
-    const b = new Battle(9, 9, new Rng(1), { phase: ph, credits: 0 });
+    const b = new Battle(9, 9, new Rng(1), { phase: ph, credits: 0, camp: !!run.campaign });
     const c = buildEnemy(b, ENEMY_BY_ID[s.defId], ph, run.node.enc.mult, s);
     if (app.abilPop) return enemyAbilPop(app.abilPop, ENEMY_BY_ID[s.defId], b, c);
     return `<div class="stat-pop"><div class="sp-head"><b>상세 능력치</b><span class="muted small">${esc(c.name)}</span><button class="btn tiny" data-a="stat-pop">닫기</button></div>${statLines(c, b)}</div>`;

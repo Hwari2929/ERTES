@@ -1,7 +1,7 @@
 // 난이도 단계 (위험 등급). 단계 n 은 1~n 의 조건을 모두 포함한다. 단계 n 을 클리어하면 n+1 해금 (기록).
 // 선택 화면의 세 단계: 쉬움 = 위험 3 · 모험 = 위험 6 · 고난 = 위험 7 (위험 6 + 절망 증강 · 빠른 증원). 적 증원은 CFG.diffAdd, 절망 증강은 CFG.despair.
 // 체계 판 2 (위험 7 = 절망 증강 삽입): 예전 위험 7 · 8 은 8 · 9 가 됐다 — 예전 기록 · 저장은 ui/meta.ts loadMeta · engine/run.ts migrate 에서 옮긴다.
-import { CFG } from '../config';
+import { CFG, scalePhase } from '../config';
 const p1 = (x: number) => `${+(x * 100).toFixed(1)}%`;
 const FG = CFG.foeGear;
 import { despairRule } from './despair';
@@ -15,18 +15,22 @@ export function diffAddEvery(d: number | undefined): number {
   for (const [l, k] of CFG.diffAdd) if ((d || 0) >= l && l > lvl) { lvl = l; every = k; }
   return every;
 }
-/** 위험 등급 d · 페이즈 p 의 적 증원 수 = ⌊p ÷ 간격⌋ (조우마다 기본 구성에 더한다. 보드 칸 상한은 genEncounter) */
-export const diffAddCount = (d: number | undefined, p: number) => { const k = diffAddEvery(d); return k > 0 ? Math.floor(p / k) : 0; };
-/** 증원 규칙 한 줄: '3페이즈마다 적 +1' (간격이 없으면 '') */
-export const diffAddRule = (d: number | undefined) => { const k = diffAddEvery(d); return k > 0 ? `${k}페이즈마다 적 +1` : ''; };
+/** 위험 등급 d · 페이즈 p 의 적 증원 수 = ⌊적 성장 페이즈 ÷ 간격⌋ (scalePhase: 의뢰 마지막 페이즈 = 예전 6페이즈. 조우마다 기본 구성에 더한다. 보드 칸 상한은 genEncounter) */
+export const diffAddCount = (d: number | undefined, p: number) => { const k = diffAddEvery(d); return k > 0 ? Math.floor(scalePhase(p) / k) : 0; };
+/** 의뢰 안에서 증원이 늘어나는 페이즈: '3페이즈 +1 · 5페이즈 +2' (없으면 '') */
+const diffAddSteps = (d: number | undefined) => {
+  const out: string[] = [];
+  for (let p = 1; p <= CFG.victoryPhase; p++) { const n = diffAddCount(d, p); if (n > diffAddCount(d, p - 1)) out.push(`${p}페이즈 +${n}`); }
+  return out.join(' · ');
+};
+/** 증원 규칙 한 줄: '3페이즈 +1 · 5페이즈 +2' (증원이 없으면 '') */
+export const diffAddRule = (d: number | undefined) => (diffAddEvery(d) > 0 ? diffAddSteps(d) : '');
 /** 위험 등급 설명에 붙는 증원 조건: 그 등급에서 간격이 새로 정해질 때만 (CFG.diffAdd), 의뢰 페이즈 안의 예시 포함 */
 function addDesc(lvl: number): string {
   const e = CFG.diffAdd.find(([l]) => l === lvl);
   if (!e) return '';
   const prev = CFG.diffAdd.filter(([l]) => l < lvl).sort((a, b) => b[0] - a[0])[0];
-  const ex: string[] = [];
-  for (let p = e[1]; p <= CFG.victoryPhase; p += e[1]) ex.push(`${p}페이즈 +${diffAddCount(lvl, p)}`);
-  return `적 증원: ${e[1]}페이즈마다 모든 전투의 적 +1 (${ex.join(' · ')}${prev ? `, 위험 ${prev[0]} 대체` : ''}).`;
+  return `적 증원: 모든 전투의 적 ${diffAddSteps(lvl)}${prev ? ` (위험 ${prev[0]} 대체)` : ''}.`;
 }
 
 const BASE: DiffDef[] = [
