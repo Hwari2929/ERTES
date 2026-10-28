@@ -122,7 +122,7 @@ export const CFG = {
   // 등급업: 모든 메이저 +rankAll. statEvery 등급마다 서로 다른 메이저 rankPicks개를 골라 각각 +rankPoints
   rankAll: 1, rankPicks: 2, rankPoints: 3, statEvery: 3,
   hasRankPick: (rank: number) => rank % CFG.statEvery === 0,
-  xpPool: (phase: number) => 10 + 6 * phase, // 전투 1회 공명도 풀: P1 16 · P3 28 · P5 40 (예전 6 + 3p, 판 전체 약 760 ↔ 예전 725)
+  xpPool: (phase: number) => 4 + 8 * phase, // 전투 1회 공명도 풀: P1 12 · P3 28 · P5 44 (총량은 10 + 6p 와 같고 후반으로 기울임 — 초반 성장 쏠림 완화)
   buyXpCost: 4, buyXpAmount: 4, // [임시]
   augmentChoices: 3, augmentRerolls: 1,
   /** ★ 전설 전공 증강: 전공 증강 선택지 3장 중 1장이 전설일 확률 = base + pity × (전설 없이 지나간 전공 증강 수). 전설을 한 번 얻으면 보정 없이 base */
