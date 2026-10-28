@@ -349,7 +349,7 @@ export const PROV = {
   /** 사거리 밖 대상 감쇠 (돌격형 · 저격형 · 반격형): 1 / (1 + far × 넘는 칸) */
   far: 0.5,
   /** 도발 배율: 돌격가 · 수호자 가산 · 소환물 (근접 · 고정 · 원거리, 전투 유형이 정해진 단짝 소환물은 그 유형 값) · 은신 · 기습 중 */
-  van: 3, guard: 1.5, sumMelee: 1.4, sumFixed: 1.2, sumRanged: 1, hide: 0.3,
+  van: 3, vanLike: 2, guard: 1.5, sumMelee: 1.4, sumFixed: 1.2, sumRanged: 1, hide: 0.3,
   /** 거리 감쇠 (돌격형 · 저격형 · 반격형, 칸당) · 저격형 피해 점유 가중치 · 도발 수치 지수 (1 = 비례) */
   near: 0.5, snipe: 0.5, pow: 1,
   /** 돌격가 경계에 걸린 적 → 그 돌격가에게 (도발 배율 적용 전, 피해 1당 dmg 와 같은 단위: 40 = 피해 400 상당) */
@@ -360,12 +360,12 @@ export const PROV = {
 /** 돌격가가 아니지만 돌격가처럼 도발 배율 PROV.van · 경계를 갖는 기물 (build.ts 가 mem.vanLike 를 켠다) */
 export const VAN_LIKE: readonly string[] = ['bjorn', 'franze', 'gebek'];
 /** 돌격가처럼: 세 기물 특성에 같은 문장으로 붙는다 (데이터 desc 용 · 능력 카드 문구는 vanLikeAbil) */
-export const vanLikeRule = () => `돌격가처럼 도발 배율 ×${PROV.van}을 받고, 주변 ${CFG.zoc.r}칸에 경계를 만든다.`;
-export const vanLikeAbil = () => `돌격가처럼 도발 배율이 ×${PROV.van}이 되고, 주변 [t:${CFG.zoc.r}]에 [g:zoc]를 만듭니다.`;
+export const vanLikeRule = () => `돌격가처럼 도발 배율 ×${PROV.vanLike}를 받고, 주변 ${CFG.zoc.r}칸에 경계를 만든다.`;
+export const vanLikeAbil = () => `돌격가처럼 도발 배율이 ×${PROV.vanLike}가 되고, 주변 [t:${CFG.zoc.r}]에 [g:zoc]를 만듭니다.`;
 /** 경계를 만들고 돌격가 도발 배율을 받는 기물인지 (돌격가 · 돌격가처럼) */
 export const zocCapable = (a: { ctype?: string; mem: Record<string, any> }) => a.ctype === 'VAN' || !!a.mem.vanLike;
 export function provMult(b: Battle | null, a: CUnit): number {
-  let m = a.mem.provBase ?? (zocCapable(a) ? PROV.van : 1); // provBase: 기본 도발 배율을 따로 정한 소환물 (반려 돌(인화성) 4.5)
+  let m = a.mem.provBase ?? (a.ctype === 'VAN' ? PROV.van : a.mem.vanLike ? PROV.vanLike : 1); // provBase: 기본 도발 배율을 따로 정한 소환물 (반려 돌(인화성) 4.5)
   if (a.isSummon && a.ctype !== 'VAN' && !a.mem.typed && a.mem.provBase === undefined) m = a.immobile ? PROV.sumFixed : a.atk.type === 'strike' ? PROV.sumMelee : PROV.sumRanged;
   if (a.synergies?.has('GUARD') && !a.mem.guardOff) m += PROV.guard; // 수호자 혼자(시너지 꺼짐)면 가산 없음
   m += a.statuses.reduce((sum, s) => sum + (s.provPlus || 0), 0);

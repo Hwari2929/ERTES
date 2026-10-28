@@ -84,7 +84,7 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'soldier', palette: tint(SEC_PAL, '#ff8a3d', '#5ad08a', '#b07cff'),
     lore: '"하하! 일은 무슨, 난 휴가 중이라네. …아, 그 친구? 방금 처리했지. 하하!"',
     skill: strike({
-      name: '기념사진 플래시', cd: 6, pow: 'tech', elem: 'elec', mult: 1.75, params: { radius: 1, fear: 1.5, fearChance: 0.6 },
+      name: '기념사진 플래시', cd: 6, pow: 'tech', elem: 'elec', mult: 2.0, params: { radius: 1, fear: 1.5, fearChance: 0.6 },
       desc: (p) => `"자, 김치~!" 대상 주변 ${p.radius}칸에 기술 위력 ${pct(p.mult)} 전기 피해, ${pct(p.fearChance)} 확률로 ${p.fear}초 공포.`,
     }),
   },
@@ -256,10 +256,10 @@ export const REWORK_F: Record<string, ReworkDef> = {
   bill: {
     ctype: 'SPEC', ttype: 'minor', faith: 'human', weapon: G('관광용 물총', 'chem', 0.9, 3, 1.125, 10, 2.0),
     trait: {
-      name: '호쾌한 관광객', desc: '기본 공격이 25% 확률로 3초 둔화를 건다. 해로운 효과가 걸린 적이 받는 피해 +10% (빌의 공격).',
+      name: '호쾌한 관광객', desc: '기본 공격이 40% 확률로 3초 둔화를 건다. 해로운 효과가 걸린 적이 받는 피해 +20% (빌의 공격).',
       effect: { hooks: {
-        onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) slow(b, u, t, 0.25, 3, 0.25); },
-        dmgMult: (_b, u, t) => (t.statuses.some((s) => s.type !== 'buff' || s.key === 'slow' || s.key === 'gloom') ? 1 + 0.1 * gw(u) : 1),
+        onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) slow(b, u, t, 0.25, 3, 0.4); },
+        dmgMult: (_b, u, t) => (t.statuses.some((s) => s.type !== 'buff' || s.key === 'slow' || s.key === 'gloom') ? 1 + 0.2 * gw(u) : 1),
       } },
     },
   },

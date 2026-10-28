@@ -28,6 +28,8 @@ export const FAR_FLEE_R = 2;
 export const MIRINAE = { r: FAR_FLEE_R, k: 1.5 };
 /** 오르카 신속 후퇴 반격: 사격 위력 k 물리 피해 + p 고정 확률 stun 초 기절 */
 export const ORCA_FLEE = { k: 1, p: 0.5, stun: 1 };
+/** 오디세우스 [귀환의 길]: 전투 스킬을 쓸 때마다 이번 전투 동안 자신의 전술 위력 +per (최대 +max) */
+export const ODYSSEUS_TAC = { per: 0.1, max: 1 };
 /** 카일 [성전 기사]: 피니쉬 적중 시 대상 · 주변 1칸 신성 피해 (타격 위력 비율) */
 export const KYLE_FINISH = 1;
 /** 비비안 [생태 분석]: 리키 상속률 가산 */
@@ -70,7 +72,7 @@ export const MINOR_TRAIT_GROW: Record<string, (g: number) => string> = {
   rasmus: (g) => `[가지치기] 부상 최대 ${Math.round(5 * g)}중첩`,
   sigmund: (g) => `[집사의 예법] 모시는 엘베스타드 모든 주요 능력치 +${Math.round(5 * g)}`,
   gunnir: (g) => `[저택의 실세] 기술 후 아군 전원 회복 기술 위력 ${pct(GUNNIR_HEAL * g)} (일가 +${pct(GUNNIR_FAM_HEAL * g)}p)`,
-  bill: (g) => `[호쾌한 관광객] 해로운 효과 대상 피해 +${pct(0.1 * g)}`,
+  bill: (g) => `[호쾌한 관광객] 해로운 효과 대상 피해 +${pct(0.2 * g)}`,
   eden: (g) => `[밑바닥 생존자] 체력 50% 이하 피해 +${pct(0.2 * g)}`,
   u404: (g) => `[1원칙] 기술마다 피해 +${pct(0.1 * g)} 중첩`,
   jaehwon: (g) => `[절멸파 수장] 스킬 치명타 확률 +${pct(0.15 * g)}p`,
@@ -637,7 +639,9 @@ export const REWORK: Record<string, ReworkDef> = {
   odysseus: {
     ctype: 'CMD', ttype: 'divine', faith: 'athena', weapon: G('장궁', 'phys', 0.75, 4, 1.0, 1, 0.8),
     factions: ['HEL'], traits: ['SCHEME'],
-    trait: { name: '귀환자의 눈', desc: '체력 비율이 가장 낮은 적을 노린다. 치명타 확률 +25%p.', effect: { stats: { crit: 0.25 }, setup: (u) => { u.mem.lowestFocus = 1; } } },
+    trait: { name: '귀환자의 눈', desc: `체력 비율이 가장 낮은 적을 노린다. 치명타 확률 +25%p. [귀환의 길] 전투 스킬을 쓸 때마다 이번 전투 동안 자신의 전술 위력 +${pct(ODYSSEUS_TAC.per)} (최대 +${pct(ODYSSEUS_TAC.max)}).`, effect: { stats: { crit: 0.25 }, setup: (u) => { u.mem.lowestFocus = 1; }, hooks: {
+      onSkill(_b, u) { u.mem.odyTac = Math.min(ODYSSEUS_TAC.max, (u.mem.odyTac || 0) + ODYSSEUS_TAC.per); u.mem.tacPct = (u.mem.tacPct || 0) + (u.mem.odyTac - (u.mem.odyTacPrev || 0)); u.mem.odyTacPrev = u.mem.odyTac; },
+    } } },
   },
   argon: {
     ctype: 'MARK', ttype: 'major', faith: 'hades', weapon: G('선상 작살총', 'phys', 0.9, 4, 1.1, 2, 2.5, { mix: 'chem', mixShare: 0.625 }),

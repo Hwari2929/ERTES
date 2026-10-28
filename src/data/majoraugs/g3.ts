@@ -37,33 +37,33 @@ const lowFirst = (b: Battle, es: CUnit[]) => es.slice().sort((a, z) => b.hpPct(a
 
 // ───────────────────────── 올리버: 규정 속도 경계선 (후열 돌진 · 기술 위력 160% · 기절 0.5초) · 메트로 기관사 (이동 속도 → 기술 위력) · 막차 급행
 const OLIVER: AugDef[] = [
-  mj('oliver', 'overspeed', '과속 딱지', '이동 속도 +15% (100%를 넘는 만큼 특성 [메트로 기관사]로 기술 위력이 오른다).', { stats: { moveSpd: 0.15 } }),
+  mj('oliver', 'overspeed', '과속 딱지', '이동 속도 +30% (100%를 넘는 만큼 특성 [메트로 기관사]로 기술 위력이 오른다).', { stats: { moveSpd: 0.3 } }),
   mj('oliver', 'wide', '광폭 선로', '규정 속도 경계선 범위 주변 1칸 → 2칸, 피해 160% → 130%.', setSk((s) => { s.radius = 2; s.mult *= 1.3 / 1.6; })),
   mj('oliver', 'express', '급행 환승', '규정 속도 경계선으로 적을 처치하면 쿨다운 50% 초기화.', setSk((s) => { s.resetOnKill = Math.max(s.resetOnKill || 0, 0.5); })),
   mj('oliver', 'brake', '급제동', '규정 속도 경계선 기절 0.5초 → 1.2초.', setSk((s) => { s.stun = 1.2; })),
   mj('oliver', 'doors', '스크린 도어', '규정 속도 경계선을 쓰면 자신에게 기술 위력 80% 보호막.', { hooks: { onSkill(b, u) { b.shield(u, b.P(u, 'tech') * 0.8); } } }),
-  mj('oliver', 'transfer', '환승 안내 방송', '규정 속도 경계선에 맞은 적은 5초간 받는 피해 +15%.', setSk((s) => { s.vuln = 0.15; s.vulnDur = 5; })),
-  mj('oliver', 'wrench', '렌치 정비', '피니쉬가 맞으면 규정 속도 경계선 쿨다운 0.6초 감소.', { hooks: { onBasic(_b, u, _t, r) {
-    if (u.mem.finished && !r.miss) u.cd = Math.max(0, u.cd - 0.6);
+  mj('oliver', 'transfer', '환승 안내 방송', '규정 속도 경계선에 맞은 적은 6초간 받는 피해 +20%.', setSk((s) => { s.vuln = 0.2; s.vulnDur = 6; })),
+  mj('oliver', 'wrench', '렌치 정비', '피니쉬가 맞으면 규정 속도 경계선 쿨다운 1초 감소.', { hooks: { onBasic(_b, u, _t, r) {
+    if (u.mem.finished && !r.miss) u.cd = Math.max(0, u.cd - 1);
   } } }),
-  mj('oliver', 'first', '첫차 출발', '전투 시작 궁극기 게이지 +40% (20% → 60%).', { setup: (u) => { u.mem.ultStart = (u.mem.ultStart || 0) + 0.4; } }),
+  mj('oliver', 'first', '첫차 출발', '전투 시작 궁극기 게이지 +50% (20% → 70%).', { setup: (u) => { u.mem.ultStart = (u.mem.ultStart || 0) + 0.5; } }),
   mj('oliver', 'passenger', '승객 대체로 무사', '막차 급행을 쓰면 모든 아군 5초간 공격 속도 +25%.', { hooks: { onStart: afterUlt((b, u) => {
     for (const a of b.alliesOf(u)) b.buff(u, a, 'oliver.pass', 5, { delta: { atkSpd: 0.25 }, label: '승객 대체로 무사' });
   }) } }),
   mj('oliver', 'horn', '경적', '규정 속도 경계선에 맞은 적이 50% 확률로 1.5초 공포.', setSk((s) => { s.fear = 1.5; s.fearChance = 0.5; })),
-  mj('oliver', 'double', '복선 운행', '규정 속도 경계선이 2번 들이받는다 (2번째 피해 40%).', setSk((s) => { s.hits = 2; s.second = 0.4; })),
+  mj('oliver', 'double', '복선 운행', '규정 속도 경계선이 2번 들이받는다 (2번째 피해 80%).', setSk((s) => { s.hits = 2; s.second = 0.8; })),
   mj('oliver', 'family', '5형제 맏이', '엘베스타드 일가 시너지 기물 1명당 (자신 포함) 이동 속도 +5%.', { setup: (u, _b, ctx) => { u.st.moveSpd += 0.05 * (ctx.counts.FAM || 0); } }),
-  mj('oliver', 'nonstop', '무정차 통과', '이동 속도 +15%. 특성 [메트로 기관사] 기준 이동 속도 100% → 80%, 넘는 만큼 오르는 기술 위력 1.5배 → 2배.', {
-    stats: { moveSpd: 0.15 },
+  mj('oliver', 'nonstop', '무정차 통과', '이동 속도 +25%. 특성 [메트로 기관사] 기준 이동 속도 100% → 80%, 넘는 만큼 오르는 기술 위력 1.5배 → 2배.', {
+    stats: { moveSpd: 0.25 },
     // 특성(onStart)이 이미 ×(1 + 1.5 × (이동 속도 − 1))을 곱하므로, 여기서는 목표 배율 ×(1 + 2 × (이동 속도 − 0.8)) 과의 비를 곱한다 (순서와 무관)
     hooks: { onStart(b, u) {
       const ms = b.S(u, 'moveSpd');
       u.st.tech *= (1 + 2 * Math.max(0, ms - 0.8)) / (1 + 1.5 * Math.max(0, ms - 1));
     } },
   }, true),
-  mj('oliver', 'extend', '막차 연장 운행', '막차 급행을 쓰면 규정 속도 경계선 쿨다운이 바로 끝나고, 8초간 쿨다운 감소 +100%.', { hooks: { onStart: afterUlt((b, u) => {
+  mj('oliver', 'extend', '막차 연장 운행', '막차 급행을 쓰면 규정 속도 경계선 쿨다운이 바로 끝나고, 8초간 쿨다운 감소 +100% · 주는 피해 +25%.', { hooks: { onStart: afterUlt((b, u) => {
     u.cd = 0;
-    b.buff(u, u, 'oliver.extend', 8, { delta: { cdr: 1 }, label: '연장 운행' });
+    b.buff(u, u, 'oliver.extend', 8, { delta: { cdr: 1 }, mods: [inc('all', 0.25)], label: '연장 운행' });
   }) } }, true),
 ];
 
@@ -171,13 +171,13 @@ const JUSEONG: AugDef[] = [
   mj('juseong', 'escort', '왕자 호위', '주변 1칸 다른 아군의 피해량 경감 +12%.', { hooks: { onTick(b, u, dt) {
     aura(b, u, dt, 'jus.escort', 1, { taken: [red('all', 0.12)] });
   } } }),
-  mj('juseong', 'toll', '통행료', '설원 검무 · 월하 호위에 맞은 적 1명당 자신에게 최대 체력 3% 보호막.', { hooks: { onDeal(b, u, t, r, o) {
-    if (o.tag === 'skill' && t !== u && r.amount > 0) b.shield(u, b.S(u, 'maxHp') * 0.03);
+  mj('juseong', 'toll', '통행료', '설원 검무 · 월하 호위에 맞은 적 1명당 자신에게 최대 체력 5% 보호막.', { hooks: { onDeal(b, u, t, r, o) {
+    if (o.tag === 'skill' && t !== u && r.amount > 0) b.shield(u, b.S(u, 'maxHp') * 0.05);
   } } }),
-  mj('juseong', 'loot', '훔친 물자', '전투 시작 시 모든 아군에게 주성 최대 체력 6% 보호막.', { hooks: { onStart(b, u) {
-    for (const a of b.alliesOf(u)) b.shield(a, b.S(u, 'maxHp') * 0.06);
+  mj('juseong', 'loot', '훔친 물자', '전투 시작 시 모든 아군에게 주성 최대 체력 10% 보호막.', { hooks: { onStart(b, u) {
+    for (const a of b.alliesOf(u)) b.shield(a, b.S(u, 'maxHp') * 0.1);
   } } }),
-  mj('juseong', 'whet', '대검 손질', '피니쉬 피해 +40%.', { mods: [inc('finish', 0.4)] }),
+  mj('juseong', 'whet', '대검 손질', '피니쉬 피해 +65%.', { mods: [inc('finish', 0.65)] }),
   mj('juseong', 'counter', '받아치기', '주변 1칸 적에게 맞으면 25% 확률로 타격 위력 60% 물리 반격 (0.5초에 1번).', { hooks: { onHurt(b, u, src, _r, o) {
     if (o.tag === 'dot' || o.tag === 'proc' || src === u || !src.alive || b.sideOf(src) === b.sideOf(u) || b.dist(u, src) > 1) return;
     if (!b.rng.chance(0.25) || !icd(b, u, 'jusCounterT', 0.5)) return;
@@ -186,27 +186,27 @@ const JUSEONG: AugDef[] = [
   mj('juseong', 'stance', '버티기', '체력이 50% 이하이면 피해량 경감 +20%.', { hooks: { onTick(b, u) {
     if (b.hpPct(u) <= 0.5) b.buff(u, u, 'jus.stance', 0.3, { taken: [red('all', 0.2)] });
   } } }),
-  mj('juseong', 'moonlight', '달빛 아래', '월하 호위를 쓰면 주변 2칸 다른 아군에게 주성 최대 체력 15% 보호막.', { hooks: { onStart: afterUlt((b, u) => {
-    for (const a of b.around(u, 2, b.alliesOf(u, false))) b.shield(a, b.S(u, 'maxHp') * 0.15);
+  mj('juseong', 'moonlight', '달빛 아래', '월하 호위를 쓰면 주변 3칸 다른 아군에게 주성 최대 체력 25% 보호막.', { hooks: { onStart: afterUlt((b, u) => {
+    for (const a of b.around(u, 3, b.alliesOf(u, false))) b.shield(a, b.S(u, 'maxHp') * 0.25);
   }) } }),
   mj('juseong', 'tempo', '검기 순환', '설원 검무 쿨다운 7초 → 5.5초.', setSk((_s, u) => { u.cdMax *= 5.5 / 7; })),
-  mj('juseong', 'chr', '청라의 떠돌이', '청라공국 시너지 기물 1명당 (자신 포함) 최대 체력 +5%.', { setup: (u, _b, ctx) => { u.st.maxHp *= 1 + 0.05 * (ctx.counts.CHR || 0); } }),
-  mj('juseong', 'wall', '만부부당', '설원 검무를 쓰면 범위 안의 적이 2초간 주성을 노리고 (도발), 그 적 1명당 6초간 피해량 경감 +6% (최대 30%).', { hooks: { onSkill(b, u) {
+  mj('juseong', 'chr', '청라의 떠돌이', '청라공국 시너지 기물 1명당 (자신 포함) 최대 체력 +8%.', { setup: (u, _b, ctx) => { u.st.maxHp *= 1 + 0.08 * (ctx.counts.CHR || 0); } }),
+  mj('juseong', 'wall', '만부부당', '설원 검무를 쓰면 범위 안의 적이 2초간 주성을 노리고 (도발), 그 적 1명당 6초간 피해량 경감 +8% (최대 40%).', { hooks: { onSkill(b, u) {
     const es = b.around(u, u.sk.radius || 1, b.enemiesOf(u));
     for (const e of es) b.provoke(e, u, 2);
-    if (es.length) addStacks(b, u, u, 'jus.wall', es.length, 5, 6, (n) => ({ taken: [red('all', 0.06 * n)] }), '만부부당');
+    if (es.length) addStacks(b, u, u, 'jus.wall', es.length, 5, 6, (n) => ({ taken: [red('all', 0.08 * n)] }), '만부부당');
   } } }, true),
-  mj('juseong', 'moonblade', '월하 검귀', '월하 호위를 쓰면 8초간 3타 → 2타마다 피니쉬, 피니쉬가 대상 주변 1칸 다른 적도 타격 위력 100%로 벤다.', { hooks: {
+  mj('juseong', 'moonblade', '월하 검귀', '월하 호위를 쓰면 10초간 3타 → 2타마다 피니쉬, 피니쉬가 대상 주변 1칸 다른 적도 타격 위력 150%로 벤다.', { hooks: {
     onStart: afterUlt((b, u) => {
       if (!u.weapon) return;
-      const until = (u.mem.moonUntil = b.t + 8);
+      const until = (u.mem.moonUntil = b.t + 10);
       if (!u.mem.moonCombo) u.mem.moonCombo = u.weapon.combo || 3;
       u.weapon.combo = 2;
-      b.later(8, () => { if (u.mem.moonUntil === until && u.weapon) { u.weapon.combo = u.mem.moonCombo || 3; u.mem.moonCombo = 0; } });
+      b.later(10, () => { if (u.mem.moonUntil === until && u.weapon) { u.weapon.combo = u.mem.moonCombo || 3; u.mem.moonCombo = 0; } });
     }),
     onBasic(b, u, t) {
       if (!u.mem.finished || (u.mem.moonUntil || 0) <= b.t) return;
-      for (const e of b.around(t, 1, b.enemiesOf(u))) if (e !== t && e.alive) b.dealDamage(u, e, b.S(u, 'strike'), { elem: 'phys', tag: 'proc', kind: 'strike' });
+      for (const e of b.around(t, 1, b.enemiesOf(u))) if (e !== t && e.alive) b.dealDamage(u, e, b.S(u, 'strike') * 1.5, { elem: 'phys', tag: 'proc', kind: 'strike' });
     },
   } }, true),
 ];

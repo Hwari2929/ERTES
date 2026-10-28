@@ -2,7 +2,7 @@
 import type { AbilText, Area } from '../abiltext';
 import { CFG } from '../../config';
 import { ZAHARA_ACE_STEAL } from '../rosterB';
-import { NADIR } from '../rework';
+import { NADIR, ODYSSEUS_TAC } from '../rework';
 
 /** 셰프 단계별 요리 배율 '×1.3 / ×2 / ×3.4 / ×4.6' (CFG.cookPower) */
 const COOK_MULT = CFG.cookPower.slice(1).map((x) => `×${x}`).join(' / ');
@@ -283,7 +283,7 @@ export const ABIL_B: Record<string, AbilText> = {
     ].join('\n'),
   },
   odysseus: {
-    brief: { skill: '가장 약한 적에게 치명타가 잘 터지는 강한 화살을 쏩니다.', trait: '가장 약한 적을 노리고, 치명타가 매우 잘 터집니다.' },
+    brief: { skill: '가장 약한 적에게 치명타가 잘 터지는 강한 화살을 쏩니다.', trait: '가장 약한 적을 노리고, 치명타가 매우 잘 터지며, 스킬을 쓸수록 전술 위력이 오릅니다.' },
     skill: (p) => ({
       tgt: '체력 비율이 가장 낮은 적', range: null, area: { k: 'one' },
       rows: [
@@ -300,7 +300,7 @@ export const ABIL_B: Record<string, AbilText> = {
         ...(p.resetOnKill ? [`적을 처치하면 스킬 쿨다운의 [p:${p.resetOnKill}]를 되돌립니다.`] : []),
       ].join('\n'),
     }),
-    trait: '기본 공격은 사거리 안에서 체력 비율이 가장 낮은 적을 노립니다.\n치명타 확률이 [pv:0.25] 증가합니다.',
+    trait: `기본 공격은 사거리 안에서 체력 비율이 가장 낮은 적을 노립니다.\n치명타 확률이 [pv:0.25] 증가합니다.\n[귀환의 길]: 전투 스킬을 쓸 때마다 이번 전투 동안 자신의 [g:tac]이 [p:${ODYSSEUS_TAC.per}] 증가합니다 (최대 [p:${ODYSSEUS_TAC.max}]).`,
   },
   argon: {
     brief: { skill: '무작위 적들에게 작살을 여러 번 쏩니다.', trait: '다른 기물이 주는 강화 효과를 받지 않는 대신, 해로운 효과에 강합니다.' },
