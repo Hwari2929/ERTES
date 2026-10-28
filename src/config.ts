@@ -132,10 +132,10 @@ export const CFG = {
 
   // ── 파티/보드
   victoryPhase: 5, // 이 페이즈 보스를 이기면 의뢰 성공
-  /** 적 성장 페이즈 (scalePhase): 의뢰 마지막 페이즈의 적 = 예전 이 페이즈 세기 (의뢰를 6 → 5페이즈로 줄이며 마지막 보스는 예전 6페이즈에 맞춤) */
-  scaleFinal: 6,
-  /** 페이즈 안 칸 번호(step)당 일반 · 보스 조우 강도 +이 값 (12칸 시절 0.04 → 10칸이라 마지막 보스가 예전과 같은 ×1.44 가 되게) */
-  stepMult: 0.049,
+  /** 적 성장 페이즈 (scalePhase): 의뢰 페이즈 1 … victoryPhase 의 적 = 예전 6페이즈 곡선의 이 위치 (마지막 보스 = 예전 6페이즈, P2 를 당겨 초반을 조인다) */
+  scaleCurve: [1, 2.5, 3.75, 4.75, 6],
+  /** 페이즈 안 칸 번호(step)당 일반 · 보스 조우 강도 +이 값 (12칸 시절 0.04 → 10칸 0.049 → 0.08: 페이즈 안 오름폭을 키움) */
+  stepMult: 0.08,
   // 전환 노드 (짝수 페이즈): 휴식 = 체력 회복 + 공명도 소량 / 도전 = 다음 페이즈 역경급 전투, 승리 시 남은 노드 보상을 몰아 받고 다음 페이즈로
   forkRestHp: 10, forkRestLost: 0.2, forkRestXp: 0.5, // 휴식: 체력 +n + 잃은 체력 × lost (내림), 공명도 = 전투 1회 풀 × k
   challengeXp: 3.5, // 도전 승리: 공명도 = 전투 1회 풀 × k (건너뛰는 역경 1.5 + 보스 1 + 사건 · 보급 몫, 10칸 항로)
@@ -349,12 +349,13 @@ export const CFG = {
   },
 };
 
-/** 적 성장 페이즈: 의뢰 페이즈 p 를 적 체력 · 피해 · 방어도 · 능력치 성장 곡선 위 위치로. 1 → 1, victoryPhase → scaleFinal, 사이는 고르게 (소수),
+/** 적 성장 페이즈: 의뢰 페이즈 p 를 적 체력 · 피해 · 방어도 · 능력치 성장 곡선 위 위치로 (CFG.scaleCurve, 소수 가능),
  *  그 뒤 (무한 항해)는 1씩. 캠페인은 장마다 정한 페이즈 그대로 (camp = true) */
 export function scalePhase(p: number, camp = false): number {
-  const V = CFG.victoryPhase, F = CFG.scaleFinal;
-  if (camp || p <= 1 || V <= 1) return p;
-  return p <= V ? 1 + ((p - 1) * (F - 1)) / (V - 1) : p + F - V;
+  const C = CFG.scaleCurve;
+  if (camp || p <= 1) return p;
+  const i = Math.round(p);
+  return i <= C.length ? C[i - 1] : i + C[C.length - 1] - C.length;
 }
 
 /** p 페이즈 적 피해 누적 배율 (p = 적 성장 페이즈, 소수 가능) */
