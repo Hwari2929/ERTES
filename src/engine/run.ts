@@ -16,6 +16,7 @@ import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
 import { OATH_AUGS, VOW_ENH_KEEP } from '../data/oathaugs';
 import { MAJOR_AUGS, recMajors } from '../data/rework';
 import { SCHOOL_AUGS, schoolPassives } from '../data/psionic';
+import { PSI_UNIT_AUGS, psiUnitOf } from '../data/psiunit';
 import { isLegendAug, majorsOf, schoolAugId, schoolOf, type SchoolId } from '../data/schools';
 import type { AugDef } from './effects';
 import { DEFAULT_RELIC, RELIC_BY_ID, RELICS } from '../data/relics';
@@ -1542,7 +1543,8 @@ export function typeAugKind(u: UnitState): AugKind | null {
   return tt === 'major' || tt === 'special' ? 'special' : tt === 'psionic' ? 'psionic' : tt === 'divine' ? 'oath' : null; // 메이저 = 전용 증강 · 디바인 = 서약 증강
 }
 /** 사이오닉: 보유 학파의 전공 증강 (학파가 없으면 빈 목록) */
-export const psiPool = (u: UnitState) => schoolPassives(schoolOf(u));
+/** 전공 증강 풀: 공용 전공 증강 + 이 기물 전용 전공 증강 (같은 확률) */
+export const psiPool = (u: UnitState) => { const s = schoolOf(u); return [...schoolPassives(s), ...PSI_UNIT_AUGS.filter((a) => a.owner === s && psiUnitOf(a.id) === u.defId)]; };
 /** 유형 증강 풀 (메이저 전용 · 디바인 서약 · 사이오닉 전공 증강, 'major' = 예전 공용 풀: 예전 저장의 대기 선택만) — 성장 · 사건 · 호이슌 계약 공용 */
 export function augPoolOf(u: UnitState, kind: AugKind): readonly AugDef[] {
   return kind === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : kind === 'oath' ? OATH_AUGS : kind === 'psionic' ? psiPool(u) : kind === 'major' ? MAJOR_AUGS : [];
