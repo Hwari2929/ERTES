@@ -119,7 +119,7 @@ export const CFG = {
   // 등급업: 모든 메이저 +rankAll. statEvery 등급마다 서로 다른 메이저 rankPicks개를 골라 각각 +rankPoints
   rankAll: 1, rankPicks: 2, rankPoints: 3, statEvery: 3,
   hasRankPick: (rank: number) => rank % CFG.statEvery === 0,
-  xpPool: (phase: number) => 6 + 3 * phase, // 전투 1회 공명도 풀 [임시]
+  xpPool: (phase: number) => 10 + 6 * phase, // 전투 1회 공명도 풀: P1 16 · P3 28 · P5 40 (예전 6 + 3p, 판 전체 약 760 ↔ 예전 725)
   buyXpCost: 4, buyXpAmount: 4, // [임시]
   augmentChoices: 3, augmentRerolls: 1,
   /** ★ 전설 전공 증강: 전공 증강 선택지 3장 중 1장이 전설일 확률 = base + pity × (전설 없이 지나간 전공 증강 수). 전설을 한 번 얻으면 보정 없이 base */
@@ -135,7 +135,7 @@ export const CFG = {
   stepMult: 0.049,
   // 전환 노드 (짝수 페이즈): 휴식 = 체력 회복 + 공명도 소량 / 도전 = 다음 페이즈 역경급 전투, 승리 시 남은 노드 보상을 몰아 받고 다음 페이즈로
   forkRestHp: 10, forkRestLost: 0.2, forkRestXp: 0.5, // 휴식: 체력 +n + 잃은 체력 × lost (내림), 공명도 = 전투 1회 풀 × k
-  challengeXp: 4.5, // 도전 승리: 공명도 = 전투 1회 풀 × k
+  challengeXp: 3.5, // 도전 승리: 공명도 = 전투 1회 풀 × k (건너뛰는 역경 1.5 + 보스 1 + 사건 · 보급 몫, 10칸 항로)
   amundsenRecruitW: 0.08, // 아문센 · 데미우르고스 영입 후보 가중치 (다른 기물 = 1)
   joinRankRatio: 0.7, // 영입 · 합류 등급 = max(페이즈 - 1, 출전 기물 평균 등급 × k)
   startUnits: 5, maxParty: 16, // 계약 기물: 후보 8명 중 5명 (출전 한도 deployBase 4 — 1명은 대기) // 출전 최대 10 + 대기 6
@@ -173,7 +173,8 @@ export const CFG = {
 
   // ── 경제 [임시]
   startCredits: 6,
-  winCredits: (phase: number) => Math.floor(2.5 + phase / 2), // 노드가 늘어 이자가 쌓이므로 노드당 2~3 감소 (P1 3 · P3 4 · P5 5)
+  // 의뢰 5페이즈 (전투 약 22회)에 예전 6페이즈 (약 39회) 규모를 나눠 담는다: 페이즈마다 쌓인 양이 그 페이즈의 적 성장 페이즈 (scalePhase) 끝의 예전 누적과 비슷하게
+  winCredits: (phase: number) => Math.floor(4 + phase), // P1 5 · P3 7 · P5 9 (예전 3 · 4 · 5, 판 전체 약 189 ↔ 예전 176 + 줄어든 이자 일부)
   lossShare: 0.5, // 패배 시 승리 보상 크레딧의 몫 (공명도 풀도 같은 몫: xpPool × lossShare)
   interestPer: 10, interestMax: 5,
   streakBonus: (streak: number) => (streak >= 6 ? 3 : streak >= 4 ? 2 : streak >= 2 ? 1 : 0),
@@ -245,7 +246,7 @@ export const CFG = {
     kindW: { credits: 1, xp: 1, gear: 1 } as Record<string, number>,
     /** 대박 [배율, 확률]: ×2 = 파랑 · ×4 = 빨강 (공개 연출). jackpotLegend 배율 이상인 장비 카드는 페이즈와 무관하게 전설 장비 */
     jackpot: [[4, 0.025], [2, 0.09]] as [number, number][], jackpotLegend: 4,
-    graded: 0.3, legendFrom: 6,
+    graded: 0.3, legendFrom: 5,
     jackpotInject: 0.35, // ×2 대박 카드가 재료 등급으로 떨어졌을 때 중형 공명 주입기가 될 확률 (나머지는 고급 · 희귀 장비)
   },
 

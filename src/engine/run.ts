@@ -524,7 +524,7 @@ export function pickFork(run: RunState, choice: 'rest' | 'challenge' | 'synth') 
 /** 도전 승리 보상: 건너뛰는 전투 · 사건 · 역경 · 보급 · 보스를 합친 정도 (전환 뒤 칸: phaseMap) */
 function challengeReward(run: RunState, lines: string[]) {
   const p = run.phase;
-  const c = Math.round(CFG.winCredits(p) * CFG.adversityReward + CFG.winCredits(p) * 2 + 5 + 12 + p);
+  const c = Math.round(CFG.winCredits(p) * CFG.adversityReward + CFG.winCredits(p) + 5 + 12 + p); // 역경 + 보스 + 사건 · 보급 몫 (전환 뒤 10칸 항로: 사건 · 역경 · 보급 · 보스)
   run.credits += c;
   lines.push(`도전 보상 +${c}`);
   gainItem(run, rng(run, (r) => r.pick(ALL_COMPONENTS)), lines);
