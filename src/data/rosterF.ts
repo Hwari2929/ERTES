@@ -1,6 +1,8 @@
 // 4차 확장 기물 11종: 기본 정의(명단) + 리워크 정보(무기 · 특성 · 유형)를 한 파일에 둔다.
 import { type Battle, type CUnit, vanLikeRule } from '../engine/combat';
 import { FAR_FLEE_R } from './rework';
+/** 지나 신속 후퇴 반격: 사격 위력 k 화학 피해 + 기본 공격과 같은 중독 (사격 위력 poison · dur 초) */
+export const ZINA_FLEE = { k: 0.75, poison: 0.25, dur: 4 };
 import { type AugDef, type Effect, inc, red, vuln } from '../engine/effects';
 import type { Elem, Weapon } from '../types';
 import { every, gw, isHarmful, pct, poison, shock, skillHit, slow } from './kit';
@@ -213,9 +215,16 @@ export const REWORK_F: Record<string, ReworkDef> = {
   zina: {
     ctype: 'MARK', ttype: 'psionic', faith: 'sirius', weapon: G('꽃다발 속 소음 권총', 'chem', 0.9, 4, 1.25, 8, 1.6),
     trait: {
-      name: '꽃집 아가씨', desc: `기본 공격이 사격 위력 25% 화학 중독을 건다 (4초). 중독된 적에게 주는 피해 +25%. [신속 후퇴] 암살형 적에게서 ${FAR_FLEE_R}칸까지 물러난다.`,
+      name: '꽃집 아가씨', desc: `기본 공격이 사격 위력 25% 화학 중독을 건다 (4초). 중독된 적에게 주는 피해 +25%. [신속 후퇴] 암살형 적에게서 ${FAR_FLEE_R}칸까지 물러나며, 물러날 때마다 그 적에게 사격 위력 ${pct(ZINA_FLEE.k)} 화학 피해 + 기본 공격과 같은 중독.`,
       effect: { setup: (u) => { u.mem.fleeR = FAR_FLEE_R; }, hooks: {
-        onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) poison(b, u, t, b.S(u, 'shoot') * 0.25, 4, 1); },
+        onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) poison(b, u, t, b.S(u, 'shoot') * ZINA_FLEE.poison, ZINA_FLEE.dur, 1); },
+        onFlee(b, u, hunters) {
+          const t = hunters.find((e) => e.alive);
+          if (!t) return;
+          b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'chem', ranged: true });
+          const r = b.dealDamage(u, t, b.S(u, 'shoot') * ZINA_FLEE.k, { elem: 'chem', tag: 'proc', kind: 'shoot', canMiss: true });
+          if (!r.miss && t.alive) poison(b, u, t, b.S(u, 'shoot') * ZINA_FLEE.poison, ZINA_FLEE.dur, 1);
+        },
         dmgMult: (_b, u, t) => (t.statuses.some((s) => s.key === 'poison') ? 1.25 + (u.mem.zinaVenom || 0) : 1),
       } },
     },

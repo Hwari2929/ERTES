@@ -26,6 +26,8 @@ export const DOROS_FEAST = 0.0375;
 /** [신속 후퇴] (미리내 · 지나 · 오르카): 암살형 적에게서 물러날 때 이 칸 수까지 물러난다 (combat.ts flee, mem.fleeR) */
 export const FAR_FLEE_R = 2;
 export const MIRINAE = { r: FAR_FLEE_R, k: 1.5 };
+/** 오르카 신속 후퇴 반격: 사격 위력 k 물리 피해 + p 고정 확률 stun 초 기절 */
+export const ORCA_FLEE = { k: 1, p: 0.5, stun: 1 };
 /** 카일 [성전 기사]: 피니쉬 적중 시 대상 · 주변 1칸 신성 피해 (타격 위력 비율) */
 export const KYLE_FINISH = 1;
 /** 비비안 [생태 분석]: 리키 상속률 가산 */
@@ -233,8 +235,16 @@ export const REWORK: Record<string, ReworkDef> = {
     ctype: 'MARK', ttype: 'minor', faith: 'index', weapon: G('작살총', 'phys', 1.4, 3, 1.6, 1, 2),
     factions: ['PET'], traits: ['CHEF'],
     trait: {
-      name: '깜짝 마술', desc: `공격 · 기술이 맞으면 20% 확률로 무작위 적 하나를 0.6초 기절시킨다 (1초에 1회). 전투 스킬을 쓴 뒤 ${pct(ORCA_GLASS.p)} 고정 확률로 잔이 터져, 대상 주변 1칸 다른 아군에게도 스킬 효과를 ${pct(ORCA_GLASS.k)} 세기로 준다. [신속 후퇴] 암살형 적에게서 ${FAR_FLEE_R}칸까지 물러난다.`,
-      effect: { setup: (u) => { u.mem.fleeR = FAR_FLEE_R; }, hooks: { onDeal(b, u, _t, r, o) {
+      name: '깜짝 마술', desc: `공격 · 기술이 맞으면 20% 확률로 무작위 적 하나를 0.6초 기절시킨다 (1초에 1회). 전투 스킬을 쓴 뒤 ${pct(ORCA_GLASS.p)} 고정 확률로 잔이 터져, 대상 주변 1칸 다른 아군에게도 스킬 효과를 ${pct(ORCA_GLASS.k)} 세기로 준다. [신속 후퇴] 암살형 적에게서 ${FAR_FLEE_R}칸까지 물러나며, 물러날 때마다 그 적에게 사격 위력 ${pct(ORCA_FLEE.k)} 물리 피해 + ${pct(ORCA_FLEE.p)} 고정 확률로 ${ORCA_FLEE.stun}초 기절.`,
+      effect: { setup: (u) => { u.mem.fleeR = FAR_FLEE_R; }, hooks: {
+        onFlee(b, u, hunters) {
+          const t = hunters.find((e) => e.alive);
+          if (!t) return;
+          b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'phys', ranged: true });
+          const r = b.dealDamage(u, t, b.S(u, 'shoot') * ORCA_FLEE.k, { elem: 'phys', tag: 'proc', kind: 'shoot', canMiss: true });
+          if (!r.miss && t.alive && b.rng.chance(ORCA_FLEE.p)) b.stun(u, t, ORCA_FLEE.stun);
+        },
+        onDeal(b, u, _t, r, o) {
         if (r.amount <= 0 || (o.tag !== 'basic' && o.tag !== 'skill') || !b.rng.chance(Math.min(0.6, 0.2 * gw(u))) || !icd(b, u, 'orcaIcd', 1)) return;
         const es = b.enemiesOf(u);
         if (es.length) b.stun(u, es[Math.floor(b.rng.next() * es.length)], 0.6);

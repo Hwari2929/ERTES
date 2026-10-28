@@ -2,7 +2,7 @@
 import type { AbilText, Area } from '../abiltext';
 import { CFG } from '../../config';
 import { vanLikeAbil } from '../../engine/combat';
-import { FAR_FLEE_R, MIRINAE } from '../rework';
+import { FAR_FLEE_R, MIRINAE, ORCA_FLEE } from '../rework';
 import { ORCA_GLASS } from '../rosterA';
 
 /** 셰프 단계별 요리 배율 '×1.3 / ×2 / ×3.4 / ×4.6' (CFG.cookPower) */
@@ -198,7 +198,7 @@ export const ABIL_A: Record<string, AbilText> = {
         '회복 · 보호막 · 강화 수치에 [g:cook] 배율이 적용됩니다.',
       ].join('\n'),
     }),
-    trait: `기본 공격이나 스킬로 피해를 가하면 [p:0.2] 고정 확률로 무작위 적 1명에게 [fx:stun:0.6] 효과를 부여합니다.\n이 효과는 [s:1]에 1회 발동합니다.\n전투 스킬을 쓴 뒤 [p:${ORCA_GLASS.p}] 고정 확률로 잔이 터져, 대상으로부터 [t:1] 이내의 다른 아군에게도 전투 스킬 효과를 [p:${ORCA_GLASS.k}]의 세기로 줍니다.\n[g:farflee]: 암살형 적에게서 최대 [t:${FAR_FLEE_R}]까지 물러납니다.`,
+    trait: `기본 공격이나 스킬로 피해를 가하면 [p:0.2] 고정 확률로 무작위 적 1명에게 [fx:stun:0.6] 효과를 부여합니다.\n이 효과는 [s:1]에 1회 발동합니다.\n전투 스킬을 쓴 뒤 [p:${ORCA_GLASS.p}] 고정 확률로 잔이 터져, 대상으로부터 [t:1] 이내의 다른 아군에게도 전투 스킬 효과를 [p:${ORCA_GLASS.k}]의 세기로 줍니다.\n[g:farflee]: 암살형 적에게서 최대 [t:${FAR_FLEE_R}]까지 물러납니다. 물러날 때마다 그 적에게 [pw:shoot:${ORCA_FLEE.k}:phys] 피해를 가하고, [p:${ORCA_FLEE.p}] 고정 확률로 [fx:stun:${ORCA_FLEE.stun}] 효과를 부여합니다.`,
   },
   franze: {
     brief: { skill: '대상에게 큰 타격 피해를 줍니다.', trait: '흡혈하고 스킬 뒤 체력을 되찾으며, 맞힌 적에게 [심판]을 걸어 아군 피해를 기록했다가 고정 피해로 돌려줍니다. 돌격가처럼 적을 경계로 붙잡습니다.' },

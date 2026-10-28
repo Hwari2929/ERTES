@@ -3,6 +3,7 @@
 import type { AbilText, Area } from '../abiltext';
 import { vanLikeAbil } from '../../engine/combat';
 import { FAR_FLEE_R } from '../rework';
+import { ZINA_FLEE } from '../rosterF';
 
 type Row = [string, string];
 const aroundOr = (r: number): Area => (r ? { k: 'around', r } : { k: 'one' });
@@ -99,7 +100,7 @@ export const ABIL_F: Record<string, AbilText> = {
     trait: lines(
       '기본 공격이 적중하면 대상에게 반드시 [fx:poison:4:shoot:0.25] 효과를 부여합니다.',
       '[g:poison] 상태의 적에게 주는 피해가 [p:0.25] 증가합니다.',
-      `[g:farflee]: 암살형 적에게서 최대 [t:${FAR_FLEE_R}]까지 물러납니다.`,
+      `[g:farflee]: 암살형 적에게서 최대 [t:${FAR_FLEE_R}]까지 물러납니다. 물러날 때마다 그 적에게 [pw:shoot:${ZINA_FLEE.k}:chem] 피해를 가하고, 기본 공격과 같은 [fx:poison:${ZINA_FLEE.dur}:shoot:${ZINA_FLEE.poison}] 효과를 부여합니다.`,
     ),
   },
   fotini: {
