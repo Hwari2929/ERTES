@@ -125,7 +125,7 @@ export function addChill(b: Battle, u: CUnit, t: CUnit, n: number, chance = 1) {
 }
 /** ★ 시간의 메아리: 빙결 상태별로 얼어 있는 동안 받은 피해 */
 const ECHO_REC = new WeakMap<Status, number>();
-function freeze(b: Battle, u: CUnit, t: CUnit, chance: number) {
+export function freeze(b: Battle, u: CUnit, t: CUnit, chance: number) {
   const echo = P(u, 'chrono.echo');
   const ok = b.applyStatus(u, t, {
     type: 'stun', key: 'freeze', dur: P(u, 'chrono.perma') ? PSI.chrono.permaDur : PSI.chrono.freezeDur, label: LB('freeze'),
@@ -269,7 +269,7 @@ function conductStatus(b: Battle, u: CUnit, n: number, ally: boolean, hit?: numb
     },
   };
 }
-function addConduct(b: Battle, u: CUnit, t: CUnit, n: number, chance = 1, hit?: number) {
+export function addConduct(b: Battle, u: CUnit, t: CUnit, n: number, chance = 1, hit?: number) {
   if (P(u, 'volt.reverse')) {
     // 역전류: 대상과 가장 가까운 아군에게
     if (chance < 1 && !b.rng.chance(chance)) return false;
@@ -394,7 +394,7 @@ function shockwave(b: Battle, u: CUnit) {
 }
 
 // ───────────────────────── 파종: 중독 · (◆ 지속 회복)
-function poisonStatus(b: Battle, u: CUnit, stacks: number, perDps = mp(b, u) * (P(u, 'seed.venom') ? PSI.seed.venomPer : PSI.seed.per)): Status { // 맹독 17.5%
+export function poisonStatus(b: Battle, u: CUnit, stacks: number, perDps = mp(b, u) * (P(u, 'seed.venom') ? PSI.seed.venomPer : PSI.seed.per)): Status { // 맹독 17.5%
   return {
     type: 'dot', key: 'poison', dur: PSI.seed.dur, elem: 'chem', perDps, dps: perDps * stacks, stacks, maxStacks: psiStackCap('poison', (k) => P(u, k)),
     healMul: P(u, 'seed.rot') ? 0.4 : undefined, label: LB('poison'),

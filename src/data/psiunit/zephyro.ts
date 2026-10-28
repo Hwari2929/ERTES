@@ -3,11 +3,10 @@
 // 전투 스킬 [돛 방향 틀기] (주변 2칸 아군 받는 피해 감소 · 회피, 탄환의 작용점을 비튼다), 질문으로 전제의 허점을 짚는 논박,
 // 빠른 길보다 안전한 우회로를 고르는 뱃사공. 공진 · 전도는 연쇄로 불어나지 않게 같은 적 대기를 둔다 (예전 공명 연쇄 과열).
 // 수치는 ZX, 설명문도 ZX 를 읽는다.
-import type { Battle, CUnit, Status } from '../../engine/combat';
+import type { Battle, CUnit } from '../../engine/combat';
 import { type AugDef, vuln } from '../../engine/effects';
 import { CFG } from '../../config';
-import { resonanceStatus } from '../psionic';
-import { PSI } from '../psinum';
+import { addConduct, resonanceStatus } from '../psionic';
 import { pu } from './kit';
 
 /** 제피로 전용 전공 증강 수치 */
@@ -44,14 +43,9 @@ const secondOf = (b: Battle, u: CUnit, t: CUnit) => b.nearest(t, b.enemiesOf(u).
 const SAIL = 'sup.zephyro';
 const sailOn = (u: CUnit, a: CUnit) => a.statuses.some((s) => s.key === SAIL && s.src === u && s.dur > 0);
 
-/** 마지막으로 적에게 건 자신의 전도 (전도가 없는 적에게 새로 걸 때의 틀: 엔진의 전도 생성 함수가 바깥에 없어 복사한다) */
-const CONDUCT_TPL = new WeakMap<CUnit, Status>();
-const captureConduct = { onInflict(b: Battle, u: CUnit, t: CUnit, s: Status) { if (s.key === 'conduct' && foe(b, u, t)) CONDUCT_TPL.set(u, s); } };
-/** 대상의 자신이 건 전도에 n중첩을 더한다 (없으면 새로 건다, 최대 중첩까지). from = 복사할 전도 (없으면 대상의 것 · 틀) */
-function growConduct(b: Battle, u: CUnit, t: CUnit, n: number, from?: Status) {
-  const base = from || myConduct(u, t) || CONDUCT_TPL.get(u);
-  if (!base || !t.alive) return false;
-  return b.applyStatus(u, t, { ...base, stacks: n, dur: PSI.volt.dur, tickAcc: undefined });
+/** 대상에게 자신의 전도 n중첩 (psionic.ts addConduct: 없으면 새로 걸고, 최대 중첩까지 · 역전류면 아군에게) */
+function growConduct(b: Battle, u: CUnit, t: CUnit, n: number) {
+  return t.alive ? addConduct(b, u, t, n) : false;
 }
 /** from 에서 멀어지는 쪽으로 1칸 밀쳐낸다 (옮긴 주인 = u: 한아 [혼란한 땅] · 반작용 등이 u 의 밀쳐내기로 본다) */
 function shove(b: Battle, u: CUnit, from: CUnit, e: CUnit) {
@@ -84,11 +78,11 @@ export const AUGS: AugDef[] = [
       const e = secondOf(b, u, t);
       if (!e || !foe(b, u, e) || !icd(b, e, `zvAsk${u.id}`, V.askIcd)) return;
       b.emit({ k: 'atk', from: t.id, to: e.id, elem: 'elec', ranged: true, chain: true });
-      growConduct(b, u, e, V.askAdd, s);
+      growConduct(b, u, e, V.askAdd);
     } } }),
   pu('zephyro', 'volt', 'bend', '작용점 비틀기',
     `돛 방향 틀기가 걸린 아군이 적의 기본 공격 · 전투 스킬에 맞으면, 그 공격의 작용점을 비틀어 공격자에게 전도 ${V.bendAdd}중첩을 더한다 (없으면 새로 건다, 같은 공격자에게 ${V.bendIcd}초에 1회).`,
-    { hooks: { ...captureConduct, onStart(b, u) {
+    { hooks: { onStart(b, u) {
       for (const a of b.alliesOf(u)) {
         if (a.mem[`zvBend${u.id}`]) continue;
         a.mem[`zvBend${u.id}`] = 1;

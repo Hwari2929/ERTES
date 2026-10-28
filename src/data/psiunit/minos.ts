@@ -4,10 +4,9 @@
 // 사망 등록 · 접수 번호 · 독촉 · 반려 같은 행정 업무, "대기열은 언제나 줄어듭니다".
 // 수치는 MX, 설명문도 MX 를 읽는다.
 import type { Battle, CUnit, DmgOpts, Status } from '../../engine/combat';
-import { type AugDef, vuln } from '../../engine/effects';
+import type { AugDef } from '../../engine/effects';
 import { summonsOf } from '../kit';
-import { confuse, mp } from '../psionic';
-import { PSI, psiStackCap } from '../psinum';
+import { confuse, mp, poisonStatus } from '../psionic';
 import { CLERKS } from '../rosterG';
 import { PSI_STATUS } from '../schools';
 import { pu } from './kit';
@@ -35,7 +34,6 @@ export const MX = {
 const pc = (v: number) => `${Math.round(v * 100)}%`;
 const pp = (v: number) => `${Math.round(v * 100)}%p`;
 const foe = (b: Battle, u: CUnit, t: CUnit) => t !== u && b.sideOf(t) !== b.sideOf(u);
-const P = (u: CUnit, k: string) => !!u.mem[`ps.${k}`];
 const icd = (b: Battle, holder: CUnit, key: string, sec: number) => {
   if ((holder.mem[key] || 0) > b.t) return false;
   holder.mem[key] = b.t + sec;
@@ -43,12 +41,7 @@ const icd = (b: Battle, holder: CUnit, key: string, sec: number) => {
 };
 /** 자신의 중독 (psionic.ts poisonStatus 와 같은 모양: 맹독 · 부패 · 괴사 · 독성 농축 반영. 그 함수는 내보내지 않아 여기서 같은 수치로 만든다) */
 function poisonOf(b: Battle, u: CUnit, n: number): Status {
-  const per = mp(b, u) * (P(u, 'seed.venom') ? PSI.seed.venomPer : PSI.seed.per);
-  return {
-    type: 'dot', key: 'poison', dur: PSI.seed.dur, elem: 'chem', perDps: per, dps: per * n, stacks: n, maxStacks: psiStackCap('poison', (k) => P(u, k)),
-    healMul: P(u, 'seed.rot') ? 0.4 : undefined, label: PSI_STATUS.poison.name,
-    onStack: P(u, 'seed.necro') ? (s) => { s.taken = (s.stacks || 0) >= PSI.seed.necroAt ? [vuln('all', PSI.seed.necroVuln)] : undefined; } : undefined,
-  };
+  return poisonStatus(b, u, n);
 }
 /** 저승청 관료 (포자 군락 · 환영 같은 다른 소환물 제외)에게 한 번씩 훅을 붙인다 */
 function tagClerks(b: Battle, u: CUnit, key: string, f: (c: CUnit) => void) {

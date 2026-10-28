@@ -2,10 +2,10 @@
 // 조슈아: 진정제 다트 권총 (기본 공격) · [재생 촉진] 아군 전체 회복 (체사레면 자신만 2배)
 // [체사레] 이성 -50 이하에서 전환: 도끼 근접 · 피해 증가 · 재생 · 주변 적 공포. 이성: 아군이 잃은 체력만큼 감소, 회복할 때 +3.
 import type { Battle, CUnit, Status } from '../../engine/combat';
-import { type AugDef, inc, vuln } from '../../engine/effects';
+import { type AugDef, inc } from '../../engine/effects';
 import { fear } from '../kit';
-import { mp } from '../psionic';
-import { PSI, psiStackCap } from '../psinum';
+import { mp, poisonStatus } from '../psionic';
+import { PSI } from '../psinum';
 import { PSI_STATUS } from '../schools';
 import { pu } from './kit';
 
@@ -37,14 +37,7 @@ const foe = (b: Battle, u: CUnit, t: CUnit) => t !== u && b.sideOf(t) !== b.side
 const myPoison = (u: CUnit, t: CUnit) => t.statuses.find((s) => s.key === 'poison' && s.src === u);
 /** 파종 중독 n중첩 (psionic.ts poisonStatus 와 같은 모양: 맹독 · 독성 농축 · 부패 · 괴사 반영) */
 function seedPoison(b: Battle, u: CUnit, t: CUnit, n: number) {
-  const has = (k: string) => !!u.mem[`ps.${k}`];
-  const per = mp(b, u) * (has('seed.venom') ? PSI.seed.venomPer : PSI.seed.per);
-  const st: Status = {
-    type: 'dot', key: 'poison', dur: PSI.seed.dur, elem: 'chem', perDps: per, dps: per * n, stacks: n, maxStacks: psiStackCap('poison', has),
-    healMul: has('seed.rot') ? 0.4 : undefined, label: PSI_STATUS.poison.name,
-    onStack: has('seed.necro') ? (s) => { s.taken = (s.stacks || 0) >= PSI.seed.necroAt ? [vuln('all', PSI.seed.necroVuln)] : undefined; } : undefined,
-  };
-  return b.applyStatus(u, t, st);
+  return b.applyStatus(u, t, poisonStatus(b, u, n));
 }
 /** 아비스: 혼란마다 이미 늘린 시간 */
 const ABYSS = new WeakMap<Status, number>();

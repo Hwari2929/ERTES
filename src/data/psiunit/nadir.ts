@@ -2,9 +2,9 @@
 // 나디르: 백수정 기록을 현실에 비추는 [사이오닉 영사] (기본 공격 · 전투 스킬의 정신 바운스), 백수정 조각 탄창 (6발 · 재장전),
 // 전투 스킬 [백수정 섬광] (주변 1칸 정신 피해 + 명중 감소), 빛을 한 점에 모아 태우는 전투 방식, 대기 시간마다 하는 백수정 저글링,
 // 주변 풍경을 영사해 숨는 위장. 수치는 NX, 설명문도 NX 를 읽는다.
-import type { Battle, CUnit, DmgOpts, Status } from '../../engine/combat';
+import type { Battle, CUnit, DmgOpts } from '../../engine/combat';
 import type { AugDef } from '../../engine/effects';
-import { mp, resonanceStatus } from '../psionic';
+import { addConduct, mp, resonanceStatus } from '../psionic';
 import { PSI } from '../psinum';
 import { pu } from './kit';
 
@@ -52,14 +52,9 @@ const noteFlash = (b: Battle, u: CUnit, t: CUnit) => {
 };
 const flashHits = (b: Battle, u: CUnit) => { const h = FLASH.get(u); return h && h.t === b.t ? [...h.hit].filter((e) => foe(b, u, e)) : []; };
 
-/** 마지막으로 적에게 건 자신의 전도 (전도가 없는 적에게 새로 걸 때의 틀: 엔진의 전도 생성 함수가 바깥에 없어 복사한다) */
-const CONDUCT_TPL = new WeakMap<CUnit, Status>();
-const captureConduct = { onInflict(b: Battle, u: CUnit, t: CUnit, s: Status) { if (s.key === 'conduct' && foe(b, u, t)) CONDUCT_TPL.set(u, s); } };
-/** 대상의 자신이 건 전도에 n중첩을 더한다 (없으면 새로 건다, 최대 중첩까지) */
+/** 대상에게 자신의 전도 n중첩 (psionic.ts addConduct: 없으면 새로 걸고, 최대 중첩까지 · 역전류면 아군에게) */
 function growConduct(b: Battle, u: CUnit, t: CUnit, n: number) {
-  const base = myConduct(u, t) || CONDUCT_TPL.get(u);
-  if (!base || !t.alive) return false;
-  return b.applyStatus(u, t, { ...base, stacks: n, dur: PSI.volt.dur, tickAcc: undefined });
+  return t.alive ? addConduct(b, u, t, n) : false;
 }
 
 const V = NX.volt, W = NX.wave;
@@ -68,7 +63,7 @@ export const AUGS: AugDef[] = [
   // ───────── 뇌전
   pu('nadir', 'volt', 'induct', '유도 영사',
     `사이오닉 영사 바운스가 맞힌 적에게 기록의 전류가 옮겨 간다: 자신이 건 전도가 있으면 즉시 한 번 반응하고 (그 적이 행동한 것처럼), 없으면 ${pc(V.inductP)} 확률로 전도 1중첩을 건다 (같은 적에게 ${V.inductIcd}초에 1회).`,
-    { hooks: { ...captureConduct, onDeal(b, u, t, _r, o) {
+    { hooks: { onDeal(b, u, t, _r, o) {
       if (!isEcho(o) || !foe(b, u, t) || !icd(b, t, `nvInd${u.id}`, V.inductIcd)) return;
       const s = myConduct(u, t);
       if (s) { b.fx(t.x, t.y, 1, 'elec'); s.onAct?.(b, t, s); }
@@ -76,7 +71,7 @@ export const AUGS: AugDef[] = [
     } } }),
   pu('nadir', 'volt', 'juggle', '저글링',
     `재장전을 마칠 때마다 손에서 굴리던 백수정을 던진다: 사거리 안에서 자신이 건 전도가 가장 많은 적(없으면 지금 대상)에게 주요 위력 ${pc(V.juggleCoef)} 전기 피해, 전도 ${V.juggleAdd}중첩 추가 (없으면 새로 건다).`,
-    { hooks: { ...captureConduct, onTick(b, u) {
+    { hooks: { onTick(b, u) {
       const was = u.mem.nvJugRl || 0;
       u.mem.nvJugRl = u.reloadT;
       if (!(was > 0 && u.reloadT <= 0) || !u.alive) return;

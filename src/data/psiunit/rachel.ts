@@ -5,10 +5,9 @@
 // 이성 규칙 (피니쉬마다 -5, 주변 1칸 아군이 맞으면 +4).
 // 수치는 RA, 설명문도 RA 를 읽는다. 스스로 다시 번지는 효과 · 상한 없는 중첩은 만들지 않는다 (대기 시간 · 초당 상한).
 import type { Battle, CUnit, DmgOpts, Status } from '../../engine/combat';
-import { type AugDef, vuln } from '../../engine/effects';
-import { addBurn, addChill, CANTRIPS, confuse, giveTempItem, mp, resonanceStatus } from '../psionic';
-import { PSI, psiStackCap } from '../psinum';
-import { PSI_STATUS } from '../schools';
+import type { AugDef } from '../../engine/effects';
+import { addBurn, addChill, CANTRIPS, confuse, freeze, giveTempItem, mp, poisonStatus, resonanceStatus } from '../psionic';
+import { PSI } from '../psinum';
 import { pu } from './kit';
 
 /** 레이첼 전용 전공 증강 수치 */
@@ -84,7 +83,6 @@ const kindOf = (u: CUnit): 'shoot' | 'strike' | 'tech' => (u.ctype === 'MARK' ? 
 const statusOf = (u: CUnit, k: string) => u.statuses.find((s) => s.key === k);
 const stacksOf = (u: CUnit, k: string) => statusOf(u, k)?.stacks || 0;
 const foe = (b: Battle, u: CUnit, t: CUnit) => t !== u && b.sideOf(t) !== b.sideOf(u);
-const has = (u: CUnit) => (k: string) => !!u.mem[`ps.${k}`];
 /** 대기 시간: key 가 아직 막혀 있으면 false, 아니면 막고 true */
 const icd = (b: Battle, holder: CUnit, key: string, sec: number) => {
   if ((holder.mem[key] || 0) > b.t) return false;
@@ -122,25 +120,11 @@ const closeCast = (b: Battle, u: CUnit) => { const c = castOf(b, u); CAST.delete
 
 /** 파종 중독 (psionic.ts poisonStatus 와 같은 규칙: 맹독 · 독성 농축 · 부패 · 괴사 반영) */
 function poisonOf(b: Battle, u: CUnit, n: number): Status {
-  const P = has(u), per = mp(b, u) * (P('seed.venom') ? PSI.seed.venomPer : PSI.seed.per);
-  return {
-    type: 'dot', key: 'poison', dur: PSI.seed.dur, elem: 'chem', perDps: per, dps: per * n, stacks: n, maxStacks: psiStackCap('poison', P),
-    healMul: P('seed.rot') ? 0.4 : undefined, label: PSI_STATUS.poison.name,
-    onStack: P('seed.necro') ? (s) => { s.taken = (s.stacks || 0) >= PSI.seed.necroAt ? [vuln('all', PSI.seed.necroVuln)] : undefined; } : undefined,
-  };
+  return poisonStatus(b, u, n);
 }
 /** 시공 빙결 (psionic.ts freeze 와 같은 규칙: 영구 동토 · 정지된 시간 · 엔트로피 역류 반영, 오한 소모) */
 function freezeOn(b: Battle, u: CUnit, t: CUnit) {
-  const P = has(u);
-  const ok = b.applyStatus(u, t, {
-    type: 'stun', key: 'freeze', dur: P('chrono.perma') ? PSI.chrono.permaDur : PSI.chrono.freezeDur, label: PSI_STATUS.freeze.name,
-    taken: P('chrono.stop') ? [vuln('all', PSI.chrono.stopVuln)] : undefined,
-  });
-  if (!ok) return false;
-  if (!P('chrono.perma')) t.statuses = t.statuses.filter((s) => s.key !== 'chill');
-  b.fx(t.x, t.y, 0, 'elec', 'aura');
-  if (P('chrono.revert')) b.addReason(u, PSI.chrono.revertReason, 'chrono.revert');
-  return true;
+  return freeze(b, u, t, 1);
 }
 
 const PY = RA.pyro, CH = RA.chrono, VO = RA.volt, WA = RA.wave, SE = RA.seed, MI = RA.mind, GO = RA.gold, IL = RA.illusion;

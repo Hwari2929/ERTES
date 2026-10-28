@@ -5,7 +5,7 @@
 import type { Battle, CUnit, DmgOpts, Status } from '../../engine/combat';
 import type { AugDef } from '../../engine/effects';
 import { CFG } from '../../config';
-import { resonanceStatus } from '../psionic';
+import { addConduct, resonanceStatus } from '../psionic';
 import { PSI } from '../psinum';
 import { pu } from './kit';
 
@@ -43,14 +43,9 @@ const isGut = (o: DmgOpts) => o.tag === 'skill' && o.elem === 'psy' && !o.key;
 /** 전도 반응 (그 적이 행동한 것처럼) */
 const react = (b: Battle, t: CUnit, s: Status) => { b.fx(t.x, t.y, 1, 'elec'); s.onAct?.(b, t, s); };
 
-/** 마지막으로 적에게 건 자신의 전도 (전도가 없는 적에게 새로 걸 때의 틀: 엔진의 전도 생성 함수가 바깥에 없어 복사한다) */
-const CONDUCT_TPL = new WeakMap<CUnit, Status>();
-const captureConduct = { onInflict(b: Battle, u: CUnit, t: CUnit, s: Status) { if (s.key === 'conduct' && foe(b, u, t)) CONDUCT_TPL.set(u, s); } };
-/** 대상의 자신이 건 전도에 n중첩을 더한다 (없으면 새로 건다, 최대 중첩까지) */
+/** 대상에게 자신의 전도 n중첩 (psionic.ts addConduct: 없으면 새로 걸고, 최대 중첩까지 · 역전류면 아군에게) */
 function growConduct(b: Battle, u: CUnit, t: CUnit, n: number) {
-  const base = myConduct(u, t) || CONDUCT_TPL.get(u);
-  if (!base || !t.alive) return false;
-  return b.applyStatus(u, t, { ...base, stacks: n, dur: PSI.volt.dur, tickAcc: undefined });
+  return t.alive ? addConduct(b, u, t, n) : false;
 }
 /** 동티: 전도된 적이 ally 를 쳤다 → 전류에 튕겨 곁의 빈칸으로 (옮긴 주인 = u: [혼란한 땅]이 자신의 강제 이동으로 본다) */
 function jolt(b: Battle, u: CUnit, src: CUnit, amount: number) {
@@ -82,7 +77,7 @@ export const AUGS: AugDef[] = [
     } }),
   pu('hana', 'volt', 'charm', '뇌부',
     `부적 피니쉬(콤보 3번째)가 맞으면 대상에게 벼락 부적을 붙여 전도 ${V.charmAdd}중첩을 더한다 (없으면 새로 건다). 이미 최대 중첩이면 대신 그 전도가 즉시 한 번 반응한다 (같은 적에게 ${V.charmIcd}초에 1회).`,
-    { hooks: { ...captureConduct, onBasic(b, u, t, r) {
+    { hooks: { onBasic(b, u, t, r) {
       if (!u.mem.finished || r.miss || r.amount <= 0 || !u.alive || !foe(b, u, t)) return;
       const s = myConduct(u, t);
       if (s && (s.stacks || 1) >= (s.maxStacks || PSI.volt.max)) { if (icd(b, t, `hvCharm${u.id}`, V.charmIcd)) react(b, t, s); }

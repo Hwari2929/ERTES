@@ -1,11 +1,10 @@
 // 사이오닉 전용 전공 증강: yelena (kit.ts 참고)
 // 예레나: [항밈 요원] 정신 피해 → 대상 기술 쿨다운 +1초 · [항밈 소거] 기억 소거 (기술 쿨다운 증가 · 항밈 약화 · 공포)
 // 이성: 항밈 소거 -8, 아군이 전투 스킬을 쓰면 +2. 사전 조율 · 사후 수습이 본업인 외교관, 몰래 하는 가챠 게임.
-import type { Battle, CUnit, Status } from '../../engine/combat';
-import { type AugDef, inc, vuln } from '../../engine/effects';
-import { confuse, mp } from '../psionic';
-import { PSI, psiStackCap } from '../psinum';
-import { PSI_STATUS } from '../schools';
+import type { Battle, CUnit } from '../../engine/combat';
+import { type AugDef, inc } from '../../engine/effects';
+import { confuse, poisonStatus } from '../psionic';
+import { PSI } from '../psinum';
 import { pu } from './kit';
 
 /** 예레나 전용 전공 증강 수치 (설명문도 여기서 읽는다) */
@@ -35,14 +34,7 @@ const icd = (b: Battle, holder: CUnit, key: string, sec: number) => {
 };
 /** 파종 중독 n중첩 (psionic.ts poisonStatus 와 같은 모양: 맹독 · 독성 농축 · 부패 · 괴사 반영) */
 function seedPoison(b: Battle, u: CUnit, t: CUnit, n: number) {
-  const has = (k: string) => !!u.mem[`ps.${k}`];
-  const per = mp(b, u) * (has('seed.venom') ? PSI.seed.venomPer : PSI.seed.per);
-  const st: Status = {
-    type: 'dot', key: 'poison', dur: PSI.seed.dur, elem: 'chem', perDps: per, dps: per * n, stacks: n, maxStacks: psiStackCap('poison', has),
-    healMul: has('seed.rot') ? 0.4 : undefined, label: PSI_STATUS.poison.name,
-    onStack: has('seed.necro') ? (s) => { s.taken = (s.stacks || 0) >= PSI.seed.necroAt ? [vuln('all', PSI.seed.necroVuln)] : undefined; } : undefined,
-  };
-  return b.applyStatus(u, t, st);
+  return b.applyStatus(u, t, poisonStatus(b, u, n));
 }
 
 export const AUGS: AugDef[] = [
