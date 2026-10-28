@@ -4,10 +4,10 @@ import { PSI_STATUS, type SchoolId } from '../data/schools';
 import { CTYPE_NAME } from '../types';
 import type { Category, CType, DmgTag, Elem, FaithId, Geo, Keyword, Mod, Stats, StatKey, SynergyId, TakenMod, TType, UnitState, Weapon } from '../types';
 
-/** 비물리 4속성 (전기 · 화학 · 정신 · 신성): 치명타 불가 대신 아군 기물이 주는 피해의 계수 ×ELEM_AMP (적 · 전장 효과 · 체력 비례 직접 피해에는 없음) */
-export const ELEM_AMP = 1.25;
+/** 비물리 4속성 (전기 · 화학 · 정신 · 신성): 치명타 불가. 그 대신 아군 쪽 계수가 물리보다 높게 (예전 엔진 배율 ×1.25 를 각 계수에 곱해 넣었다) */
+/** 심판의 탄환: 물리 무기로 쏘는 신성 관통탄의 계수 배율 */
+export const HOLY_SHOT = 1.25;
 export const isNonPhys = (elem: Elem) => elem === 'elec' || elem === 'chem' || elem === 'psy' || elem === 'holy';
-export const elementDamageMult = (elem: Elem): number => (isNonPhys(elem) ? ELEM_AMP : 1);
 
 export type StatusType = 'stun' | 'fear' | 'shock' | 'dot' | 'buff';
 
@@ -234,7 +234,8 @@ export interface CUnit {
   moveT: number; moveDur: number;
   hp: number; shield: number;
   st: Stats;
-  atk: { type: 'shoot' | 'strike'; elem: Elem; interval: number };
+  /** mult: 무기가 없는 기물(소환물)의 기본 공격 계수 (기본 1) */
+  atk: { type: 'shoot' | 'strike'; elem: Elem; interval: number; mult?: number };
   atkTimer: number;
   cd: number; cdMax: number;
   skill: SkillDef | null;
@@ -737,7 +738,7 @@ export class Battle {
   private hitWall(src: CUnit, w: CUnit, base: number, o: DmgOpts): DmgResult {
     const res: DmgResult = { amount: 0, crit: false, miss: false, graze: false, killed: false };
     if ((w.mem.invulnUntil || 0) > this.t) return res;
-    let dmg = base * (src.side === 0 ? elementDamageMult(o.elem) : 1);
+    let dmg = base;
     if (o.elem !== 'true') { const armor = this.S(w, 'armor') * CFG.armorFactor[o.elem]; dmg *= 1 - armor / (armor + CFG.armorK); }
     dmg *= categoryMult(w.category, o.elem);
     const dhp = -Math.min(dmg, Math.max(0, w.hp));
@@ -1081,7 +1082,7 @@ export class Battle {
     const kind = u.atk.type;
     const pow = w?.tactical ? this.tacPower(u) : this.S(u, kind);
     const extra: DmgTag[] = [];
-    let m = (w?.mult ?? 1) * coef;
+    let m = (w?.mult ?? u.atk.mult ?? 1) * coef;
     if (w?.kind === 'combo') {
       u.combo++;
       if (u.combo >= (w.combo || 3)) { u.combo = 0; m *= CFG.finishMult; extra.push('finish'); u.mem.finished = 1; }
@@ -1091,10 +1092,11 @@ export class Battle {
     const holy = (u.mem.holyShots || 0) > 0;
     if (holy) u.mem.holyShots--;
     const elem = holy ? 'holy' : u.atk.elem;
+    if (holy && !isNonPhys(u.atk.elem)) m *= HOLY_SHOT; // 물리 무기의 신성 관통탄은 계수 ×1.25 (비물리 계수 기준에 맞춤)
     this.emit({ k: 'atk', from: u.id, to: tgt.id, elem, ranged: u.atk.type === 'shoot' });
     const mix = !holy && w?.mix ? w.mix : null; // 혼합 속성 무기: 계수를 반씩 두 속성으로 (두 번째 몫은 첫 몫이 맞아야)
     const r = this.dealDamage(u, tgt, pow * m * (mix ? 0.5 : 1), { elem, tag: 'basic', kind, canMiss: true, extra, pen: holy ? 1 : 0 });
-    if (mix && !r.miss && tgt.alive) { const r2 = this.dealDamage(u, tgt, pow * m * 0.5, { elem: mix, tag: 'basic', kind, canMiss: false }); r.amount += r2.amount; r.killed ||= r2.killed; }
+    if (mix && !r.miss && tgt.alive) { const r2 = this.dealDamage(u, tgt, pow * m * (w?.mixShare ?? 0.5), { elem: mix, tag: 'basic', kind, canMiss: false }); r.amount += r2.amount; r.killed ||= r2.killed; }
     if (r.miss) this.missed.add(tgt); // 빗나간 기본 공격: 특성 · 장비 훅이 거는 해로운 상태 효과는 들어가지 않는다
     for (const h of u.hooks) h.onBasic?.(this, u, tgt, r);
     this.missed.delete(tgt);
@@ -1260,7 +1262,7 @@ export class Battle {
       const w = this.lineWall(src, tgt);
       return w ? this.hitWall(src, w, base, o) : res;
     }
-    let dmg = base * (src.side === 0 ? elementDamageMult(o.elem) : 1); // 비물리 4속성: 아군 기물의 계수만 ×ELEM_AMP
+    let dmg = base;
     // 제압: 다음 공격 피해 1
     if (o.tag !== 'dot' && o.tag !== 'proc' && src.statuses.some((s) => s.key === 'suppress')) {
       src.statuses = src.statuses.filter((s) => s.key !== 'suppress');

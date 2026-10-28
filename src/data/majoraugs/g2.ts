@@ -206,8 +206,8 @@ const argon: AugDef[] = [
   mj('argon', 'lamp', '망자의 등불', '작살(전투 기술 · 궁극기)에 맞은 적은 4초간 [등불]: 받는 피해 +10%.', { hooks: onSkillHit('chem', (b, u, t) => {
     b.applyStatus(u, t, { type: 'buff', key: 'argon.lamp', dur: 4, taken: [vuln('all', 0.1)], label: '등불' });
   }) }),
-  mj('argon', 'venom', '독 작살촉', '작살(전투 기술 · 궁극기)에 맞은 적은 4초간 초당 사격 위력 15% 화학 중독.', { hooks: onSkillHit('chem', (b, u, t) => {
-    poison(b, u, t, b.S(u, 'shoot') * 0.15, 4, 1);
+  mj('argon', 'venom', '독 작살촉', '작살(전투 기술 · 궁극기)에 맞은 적은 4초간 초당 사격 위력 19% 화학 중독.', { hooks: onSkillHit('chem', (b, u, t) => {
+    poison(b, u, t, b.S(u, 'shoot') * 0.1875, 4, 1);
   }) }),
   mj('argon', 'count', '승객 명부', '전투 시작 시 적 1명당 피해 +3% (최대 +30%).', { hooks: { onStart(b, u) {
     const v = Math.min(0.3, 0.03 * b.enemiesOf(u).length);
@@ -240,14 +240,14 @@ const argon: AugDef[] = [
   mj('argon', 'endless', '끝나지 않는 항로', '궁극기 작살 +8발 (12 → 20발, 맞은 적에게 같은 망자의 표식). 전투 시작 시 궁극기 게이지 +30%.', {
     setup: (u) => { u.mem.ultStart = (u.mem.ultStart || 0) + 0.3; },
     hooks: onUlt('mjAend', (b, u) => {
-      for (let i = 1; i <= 8; i++) b.later(1.5 + 0.125 * i, () => harpoon(b, u, 0.9));
+      for (let i = 1; i <= 8; i++) b.later(1.5 + 0.125 * i, () => harpoon(b, u, 1.125));
     }),
   }, true),
   mj('argon', 'ferry', '저승 도선사', '작살(전투 기술 · 궁극기)에 맞은 적에게 [망자의 표식] (4초간 받는 피해 +15%). [망자의 표식] · [등불]이 걸린 적이 쓰러지면 작살 3발이 무작위 적에게 날아간다 (사격 위력 60% 화학, 맞으면 망자의 표식).', { hooks: {
     ...onSkillHit('chem', ARGON_MARK),
     onAnyDeath(b, u, dead) {
       if (!u.alive || dead.side === u.side || !dead.statuses.some((s) => s.key === 'argon.mark' || s.key === 'argon.lamp')) return;
-      for (let i = 1; i <= 3; i++) b.later(0.1 * i, () => harpoon(b, u, 0.6));
+      for (let i = 1; i <= 3; i++) b.later(0.1 * i, () => harpoon(b, u, 0.75));
     },
   } }, true),
 ];

@@ -24,7 +24,7 @@ export const X = {
     /** 전류 이전: 옮겨 갈 범위 */
     relayR: 2,
     /** 아크: 필요한 전도 중첩 · 추가 피해 · 같은 적 대기 */
-    arcAt: 3, arcCoef: 0.4, arcIcd: 2,
+    arcAt: 3, arcCoef: 0.5, arcIcd: 2,
   },
   wave: {
     /** 감쇠: 공진된 적이 주는 피해 감소 */
@@ -36,7 +36,7 @@ export const X = {
     /** 수확: 중독 1중첩당 회복 · 셈하는 최대 중첩 */
     harvest: 0.15, harvestMax: 6,
     /** 촉매: 남은 중독 피해 중 즉시 주는 비율 · 상한 (주요 위력 배수) */
-    cat: 0.5, catCap: 3,
+    cat: 0.5, catCap: 3.75,
   },
   mind: {
     /** 단절: 다른 결속 대상 혼란 · 이성 */

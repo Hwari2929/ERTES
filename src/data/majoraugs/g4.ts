@@ -1,7 +1,6 @@
 // 메이저 전용 증강 (기물별 14개 = 일반 12 + ★ 전설 2) · 궁극기가 없던 기물의 궁극기. 이 묶음이 맡은 기물만 채운다 (index.ts 가 합친다)
 // 4묶음: 루스 (전용 증강 14개 새로) · 도노반 · 라르스 · 카이로 · 비앙카 · 필리스 · 에이든 (예전 스페셜 8개 + 6개, 궁극기 새로)
 import type { Battle, CUnit, Hooks, UltDef } from '../../engine/combat';
-import { ELEM_AMP } from '../../engine/combat';
 import { type AugDef, type Effect, inc, red, vuln } from '../../engine/effects';
 import { blinkTo, cleanse, corrode, every, fear, lineTargets, pct, skillHit, slow, summonsOf } from '../kit';
 import { ROSTER_A } from '../rosterA';
@@ -158,7 +157,7 @@ const rus: AugDef[] = [
 ];
 
 // ───────────────────────── 도노반: 자안의 사수 · 까악이 · 소시민 귀차니즘
-const DON = { crowBond: 0.25, crowShot: 1.5, chain: 0.6, quiet: 2, quietDmg: 0.4, feedCrit: 0.04, feedCd: 0.08, feedMax: 5, red: 0.6, hack: 0.3, hackDur: 4, ult: 1.8, ultN: 4, ultCrow: 0.8 };
+const DON = { crowBond: 0.25, crowShot: 1.875, chain: 0.6, quiet: 2, quietDmg: 0.4, feedCrit: 0.04, feedCd: 0.08, feedMax: 5, red: 0.6, hack: 0.3, hackDur: 4, ult: 1.8, ultN: 4, ultCrow: 1 };
 const donovan: AugDef[] = [
   mj('donovan', 'livibold', '리비볼드 경', `까악이 상속률 +${pct(DON.crowBond)}p. 자안의 사수를 쓰면 까악이가 그 대상에게 까악이 사격 위력 ${pct(DON.crowShot)} 전기 피해.`, {
     setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + DON.crowBond; },
@@ -388,7 +387,7 @@ const bianca: AugDef[] = [
 ];
 
 // ───────────────────────── 필리스: 균열 · 땡땡이 · 긴급 조달
-const PHY = { cherry: 6, cherryAs: 0.25, cherryDur: 4, restAt: 0.3, rest: 3, restHps: 0.05, armor: 0.3, armorDur: 4, boom: 0.2, boomDmg: 0.8, fear: 1.5, fearChance: 0.6, chainN: 2, chain: 0.7, ult: 1.1, ultDur: 6, ultStep: 0.6 };
+const PHY = { cherry: 6, cherryAs: 0.25, cherryDur: 4, restAt: 0.3, rest: 3, restHps: 0.05, armor: 0.3, armorDur: 4, boom: 0.2, boomDmg: 1, fear: 1.5, fearChance: 0.6, chainN: 2, chain: 0.7, ult: 1.375, ultDur: 6, ultStep: 0.6 };
 const phyllis: AugDef[] = [
   mj('phyllis', 'cherry', '체리 배송', `${PHY.cherry}초마다 무작위 아군 기물 1명에게 ${PHY.cherryDur}초간 공격 속도 +${pct(PHY.cherryAs)}.`, { hooks: { onTick(b, u, dt) {
     if (!every(u, 'mjCherry', dt, PHY.cherry) || !b.enemiesOf(u).length) return;
@@ -487,7 +486,7 @@ export const ULTS_X: Record<string, UltDef> = {
   donovan: {
     id: 'donovan', name: '밤까마귀 사냥', charge: 1.0, line: '빨리 끝내자. 저녁 메뉴 아직 못 정했어.',
     brief: '가장 다친 적들에게 차례로 파고들어 치명타를 노리고, 까악이도 함께 공격합니다.',
-    text: `체력 비율이 가장 낮은 적부터 최대 ${DON.ultN}명에게 차례로 이동해 각각 [pw:tech:${DON.ult}:phys] 피해를 가합니다.\n이 공격은 치명타 확률이 [pv:1] 상승 적용됩니다.\n까악이가 같은 대상마다 까악이 사격 위력의 ${pct(DON.ultCrow * ELEM_AMP)} [el:elec] 피해를 가합니다.`,
+    text: `체력 비율이 가장 낮은 적부터 최대 ${DON.ultN}명에게 차례로 이동해 각각 [pw:tech:${DON.ult}:phys] 피해를 가합니다.\n이 공격은 치명타 확률이 [pv:1] 상승 적용됩니다.\n까악이가 같은 대상마다 까악이 사격 위력의 ${pct(DON.ultCrow)} [el:elec] 피해를 가합니다.`,
     desc: `체력 비율이 가장 낮은 적부터 최대 ${DON.ultN}명에게 차례로 파고들어 기술 위력 ${pct(DON.ult)} 물리 피해 (치명타 확정). 까악이도 그 대상들에게 까악이 사격 위력 ${pct(DON.ultCrow)} 전기 피해.`,
     theme: { pat: 'moon', c1: '#e03a4a', c2: '#0e0c16', txt: 'glitch' },
     cast(b, u) {

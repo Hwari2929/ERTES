@@ -1,7 +1,7 @@
 // 능력 설명 렌더러: 토큰 문장 → 아이콘 · 실제 수치, 사거리 · 범위 미니 격자, 좌측 상세 팝업
 import { CFG } from '../config';
 import { type Area, GLOSS, type SkillInfo, STATUS_FX } from '../data/abiltext';
-import { elementDamageMult, type Battle, type CUnit } from '../engine/combat';
+import type { Battle, CUnit } from '../engine/combat';
 import { type Elem, ELEM_NAME, type Weapon } from '../types';
 import { fmt } from './battleview';
 import { augKey, lineIcon } from './synicons';
@@ -37,7 +37,6 @@ export function powVal(ctx: AbilCtx, pow: Pow, tactical = false): number | null 
 /** 상세 보기: 예상 수치 대신 계수 (위력 × %) 로 표시 */
 export const ABOPT = { coef: false };
 export function powNum(ctx: AbilCtx, pow: Pow, mult: number, plus = false, tactical = false, elem?: Elem) {
-  if (elem && (!ctx.c || ctx.c.side === 0)) mult *= elementDamageMult(elem); // 비물리 4속성: 아군 기물의 계수만 ×1.25 (적 능력 표시는 그대로)
   const k = powKey(ctx, pow, tactical);
   const v = ABOPT.coef ? null : powVal(ctx, pow, tactical);
   const txt = v === null ? `${POW_KO[k]} ${pct(mult)}` : fmt(v * mult);
@@ -47,7 +46,6 @@ export function powNum(ctx: AbilCtx, pow: Pow, mult: number, plus = false, tacti
 }
 /** 상세 문장 (docs/ABILITY_TEXT.md): '사격 위력의 180%(324) 물리' — 계수 + 지금 값 (기물이 없으면 값 생략) + 속성 이름 */
 export function powCoef(ctx: AbilCtx, pow: Pow, mult: number, elem?: Elem) {
-  if (elem && (!ctx.c || ctx.c.side === 0)) mult *= elementDamageMult(elem); // 비물리 4속성: 아군 기물의 계수만 ×1.25
   const k = powKey(ctx, pow), v = powVal(ctx, pow);
   const shown = pow === 'main' && k !== 'main' ? mult * CFG.psiPower : mult; // 주요 위력을 실제 위력 이름으로 풀면 사이오닉 배율까지 곱해 보인다 (값과 맞게)
   return `<span class="pw pw-${k}">${lineIcon(`p.${k}`, 'li')}<b>${POW_KO[k]}의 ${pct(shown)}</b>${v === null ? '' : `<small class="pw-v">(${fmt(v * mult)})</small>`}</span>${elem ? ` ${elemWord(elem)}` : ''}`;

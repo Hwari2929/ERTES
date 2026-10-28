@@ -158,12 +158,12 @@ const GEBEK: AugDef[] = [
     onBasic(_b, u) { if ((u.mem.mjSpin || 0) < 15) { u.mem.mjSpin = (u.mem.mjSpin || 0) + 1; u.st.atkSpd += 0.02; } },
     onTick(_b, u) { if (reloadEdge(u, 'mjSpinE', false) && u.mem.mjSpin) { u.st.atkSpd -= 0.02 * u.mem.mjSpin; u.mem.mjSpin = 0; } },
   } }),
-  mj('gebek', 'burp', '핵융합볶음면 트림', '재장전을 시작할 때 (무한 탄띠면 탄창 1개 분량을 쏠 때마다) 불붙은 트림: 주변 2칸 적에게 사격 위력 200% 화학 피해.', { hooks: { onTick(b, u) {
+  mj('gebek', 'burp', '핵융합볶음면 트림', '재장전을 시작할 때 (무한 탄띠면 탄창 1개 분량을 쏠 때마다) 불붙은 트림: 주변 2칸 적에게 사격 위력 250% 화학 피해.', { hooks: { onTick(b, u) {
     if (!reloadEdge(u, 'mjBurpE', true)) return;
     const es = b.around(u, 2, b.enemiesOf(u));
     if (!es.length) return;
     b.fx(u.x, u.y, 2, 'chem');
-    for (const e of es) b.dealDamage(u, e, b.S(u, 'shoot') * 2, { elem: 'chem', tag: 'proc', kind: 'shoot' });
+    for (const e of es) b.dealDamage(u, e, b.S(u, 'shoot') * 2.5, { elem: 'chem', tag: 'proc', kind: 'shoot' });
   } } }),
   mj('gebek', 'yuri', '막내의 응원', '헤비 버니 풀오토가 끝나면 1초 동안 그때의 대상 주변 2칸에 10발 더 (사격 위력 60% 물리, 맞은 적 50% 확률로 [제압]).', { hooks: ultWrap('mjGebYuri', (b, u, base) => {
     if (!base(b, u)) return false;

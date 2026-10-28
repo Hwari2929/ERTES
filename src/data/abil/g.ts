@@ -14,7 +14,7 @@ const BURN = PSI.pyro.dps * CFG.psiPower;
 /** [연소] 부여 토큰: 설명 문장은 STATUS_FX 가 능력 설명 끝에 붙인다 (지속 · 위력 · 중첩당 계수 · 최대 중첩) */
 const burnFx = (pow: string) => `[fx:burn:${PSI.pyro.dur}:${pow}:${BURN}:${PSI.pyro.max}]`;
 /** 시우 [흘러내린 기록] 중독: 초당 기술 위력 15%, 4초 (rosterG siu cast) */
-const SIU_POISON = '[fx:poison:4:tech:0.15]';
+const SIU_POISON = '[fx:poison:4:tech:0.1875]';
 
 export const ABIL_G: Record<string, AbilText> = {
   muhyul: {
@@ -70,7 +70,7 @@ export const ABIL_G: Record<string, AbilText> = {
       rows: [
         ['피해', `[dmg:tech:${p.mult}:chem]`],
         ['바운스', `[dmg:tech:${p.bk}:chem] · [t:${p.radius}] 내 최대 ${p.bounce}회 (공명 등급 4등급마다 +1회)`],
-        ...when(p.tears, ['중독', '바운스 적중 시 [st:poison:4] 초당 [dmg:tech:0.15:chem]']),
+        ...when(p.tears, ['중독', '바운스 적중 시 [st:poison:4] 초당 [dmg:tech:0.1875:chem]']),
       ],
       text: L(
         `[rng] 이내의 적에게 [pw:tech:${p.mult}:chem] 피해를 가합니다.`,
@@ -80,9 +80,9 @@ export const ABIL_G: Record<string, AbilText> = {
         p.final && '바운스 중 결정타를 가하면 결정타 1회당 1회, 최대 3회 바운스를 처음 대상에서 다시 가합니다.',
       ),
     }),
-    trait: '기본 공격이 적중하면 [p:0.3] 고정 확률로 대상으로부터 [t:2] 이내의 적에게 최대 1회 [g:bounce]되는 [pw:tech:0.5:chem] 피해를 가합니다.',
+    trait: '기본 공격이 적중하면 [p:0.3] 고정 확률로 대상으로부터 [t:2] 이내의 적에게 최대 1회 [g:bounce]되는 [pw:tech:0.625:chem] 피해를 가합니다.',
     augs: {
-      'sp.record': '눈물의 해독과 기본 공격 바운스의 바운스 피해가 [pw:tech:0.25:chem]만큼 증가합니다.',
+      'sp.record': '눈물의 해독과 기본 공격 바운스의 바운스 피해가 [pw:tech:0.3125:chem]만큼 증가합니다.',
       'sp.scope': '눈물의 해독과 기본 공격 바운스의 바운스 범위가 [t:3]으로 증가하고, 눈물의 해독의 바운스 횟수가 1회 증가합니다.',
       'sp.tears': `눈물의 해독의 바운스 피해가 적중하면 대상에게 반드시 ${SIU_POISON} 효과를 부여합니다.`,
       'sp.trigger': '기본 공격 바운스의 고정 확률이 [pv:0.3] 증가하고, 바운스 횟수가 1회 증가합니다.',
@@ -94,8 +94,8 @@ export const ABIL_G: Record<string, AbilText> = {
       'mj.ending': '체력이 [p:0.3] 이하인 적에게 가하는 스킬 피해와 궁극기 피해가 [p:0.6] 증가합니다. [g:bounce] 피해는 포함되지 않습니다.',
       'mj.rewrite': '[g:bounce] 피해가 적을 맞힐 때마다 눈물의 해독의 쿨다운이 [s:0.2] 감소합니다.',
       'mj.mag': '[g:mag]이 12발로 증가하고, 재장전 속도가 [pv:0.2] 증가합니다.',
-      'mj.script': '눈물의 해독과 [g:bounce] 피해가 적중하면 [s:6]간 대상이 받는 [el:chem] 피해를 [pv:0.1] 증가시킵니다. 이 효과가 걸린 적이 쓰러지면 그 자리에서 최대 3회 [g:bounce]되는 [pw:tech:0.8:chem] 피해를 가하며, 바운스 범위는 눈물의 해독과 같습니다. 이 바운스는 받는 [el:chem] 피해 증가 효과를 남기지 않습니다.',
-      'mj.orbit': '눈물의 해독을 쓰면 [s:3]간 [s:1]마다 무작위 적에게 [pw:tech:0.5:chem] 피해를 가하고, 이어서 그 적으로부터 최대 2회 [g:bounce]됩니다. 이 피해의 계수와 바운스 범위는 눈물의 해독의 바운스를 따릅니다. 다시 쓰면 처음부터 다시 셉니다.',
+      'mj.script': '눈물의 해독과 [g:bounce] 피해가 적중하면 [s:6]간 대상이 받는 [el:chem] 피해를 [pv:0.1] 증가시킵니다. 이 효과가 걸린 적이 쓰러지면 그 자리에서 최대 3회 [g:bounce]되는 [pw:tech:1:chem] 피해를 가하며, 바운스 범위는 눈물의 해독과 같습니다. 이 바운스는 받는 [el:chem] 피해 증가 효과를 남기지 않습니다.',
+      'mj.orbit': '눈물의 해독을 쓰면 [s:3]간 [s:1]마다 무작위 적에게 [pw:tech:0.625:chem] 피해를 가하고, 이어서 그 적으로부터 최대 2회 [g:bounce]됩니다. 이 피해의 계수와 바운스 범위는 눈물의 해독의 바운스를 따릅니다. 다시 쓰면 처음부터 다시 셉니다.',
     },
   },
   jaehwon: {
@@ -184,7 +184,7 @@ export const ABIL_G: Record<string, AbilText> = {
       'sp.greenhouse': '농작물을 받은 아군에게 그 아군 최대 체력의 [p:0.05]만큼 보호막을 부여합니다.',
       'sp.incinerate': '[g:burn] 효과의 기본 확률이 [pv:0.25] 증가합니다.',
       'sp.quota': '출하 지시의 쿨다운이 [s:2] 감소합니다.',
-      'sp.pesticide': `농업 드론이 농작물을 3번 던질 때마다 그 드론에서 가장 가까운 적에게 농업 드론 기술 위력의 [p:0.8] [el:chem] 피해를 가합니다. 공격이 적중하면 대상에게 반드시 [g:poison] 효과를 부여합니다. [g:poison] 효과가 부여된 적은 매초 농업 드론 기술 위력의 [p:0.2] [el:chem] 피해를 받으며, [s:4] 지속됩니다.`, // 위력이 드론 기준이라 [fx] 대신 직접 쓴다 (STATUS_FX 는 주인 위력으로 계산)
+      'sp.pesticide': `농업 드론이 농작물을 3번 던질 때마다 그 드론에서 가장 가까운 적에게 농업 드론 기술 위력의 [p:1] [el:chem] 피해를 가합니다. 공격이 적중하면 대상에게 반드시 [g:poison] 효과를 부여합니다. [g:poison] 효과가 부여된 적은 매초 농업 드론 기술 위력의 [p:0.25] [el:chem] 피해를 받으며, [s:4] 지속됩니다.`, // 위력이 드론 기준이라 [fx] 대신 직접 쓴다 (STATUS_FX 는 주인 위력으로 계산)
       'sp.silo': '방어도가 [pv:0.3] 증가하고, 받는 피해가 [pv:0.1] 감소합니다.',
       'sp.protocol': '농작물에 곱하는 [g:cook] 배율이 [pv:0.2] 증가합니다.',
       'mj.guard': '자신으로부터 [t:1] 이내의 적에게 가하는 피해가 [p:0.25] 증가합니다.',
@@ -210,7 +210,7 @@ export const ABIL_G: Record<string, AbilText> = {
       ),
     }),
     trait: L(
-      '자신이나 아군의 효과로 적이 [g:displace]되면 그 적에게 [pw:tac:0.6:psy] 피해를 가하고, [p:0.3] 기본 확률로 [fx:fear:1.5] 효과를 부여합니다.',
+      '자신이나 아군의 효과로 적이 [g:displace]되면 그 적에게 [pw:tac:0.75:psy] 피해를 가하고, [p:0.3] 기본 확률로 [fx:fear:1.5] 효과를 부여합니다.',
       '이 효과는 대상마다 [s:0.4]에 1번 발동합니다.',
     ),
     ace: (k) => `해주굿의 피해가 [pv:${0.2 * k}] 증가합니다. 자신이나 아군의 효과로 적이 [g:displace]되면 [s:3]간 그 적이 받는 피해를 [pv:${0.05 * k}] 증가시킵니다.`,

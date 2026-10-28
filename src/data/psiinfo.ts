@@ -89,7 +89,7 @@ const CANTRIP: Record<SchoolId, Build> = {
     const N = PSI.volt;
     const hv = use('hv');
     const overload = use('overload'), chain = use('chain'), short = use('short');
-    const bounce = `[dmg:main:${Math.round(N.coef * N.bounce * 100) / 100}:elec]`;
+    const bounce = `[dmg:main:${Math.round(N.coef * N.bounce * 10000) / 10000}:elec]`;
     if (use('reverse')) {
       // 역전류 (◆): 적 대신 대상과 가장 가까운 아군에게 전도 충전. 방전 강화 증강은 충전한 아군 기준으로 작동
       const rows: [string, string][] = [

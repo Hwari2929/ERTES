@@ -70,7 +70,8 @@ export interface SummonDef {
   ctype?: Extract<CType, 'VAN' | 'SPEC'>;
   sprite: string;
   palette: string[];
-  atk: { type: 'shoot' | 'strike'; elem: Elem; interval: number };
+  /** mult: 기본 공격 계수 (기본 1, 비물리는 1.25) */
+  atk: { type: 'shoot' | 'strike'; elem: Elem; interval: number; mult?: number };
   range: number;
   hpMul?: number;
   /** 일러스트 id (art/<art>.webp, 초상화 아이콘) */

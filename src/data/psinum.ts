@@ -1,6 +1,6 @@
 // 사이오닉 비술 · 지속 능력 · 전공 증강의 수치. 엔진(psionic.ts)과 설명(psiinfo.ts)이 같은 값을 읽는다.
 import { SCHOOL_BY_ID, type SchoolId } from './schools';
-// 계수는 주요 위력 기준 (명사수 사격 · 돌격가 타격 · 전문가 기술 · 지휘관 전술) × CFG.psiPower.
+// 계수는 주요 위력 기준 (명사수 사격 · 돌격가 타격 · 전문가 기술 · 지휘관 전술) × CFG.psiPower. 비물리(전기 · 화학 · 정신) 계수는 물리보다 1.25배 높게 잡혀 있다.
 
 /** 피해량 기준 (파장 · 시공 발동 확률, 뇌전 전도 스냅샷): 이번 피해 ÷ (주요 위력 × ref), 확률은 최대 max 배 */
 export const PSI_HIT = { ref: 0.8, max: 2 } as const;
@@ -52,33 +52,33 @@ export const PSI = {
   },
   volt: {
     /** 방전 피해 · 거는 전도 */
-    coef: 0.9, conduct: 2,
+    coef: 1.125, conduct: 2,
     /** 전도: 중첩당 (고전압) · 범위 (고전압) · 최대 · 지속 */
-    per: 0.15, hvPer: 0.22, r: 1, hvR: 2, max: 3, dur: 5, proc: 0.25,
+    per: 0.1875, hvPer: 0.275, r: 1, hvR: 2, max: 3, dur: 5, proc: 0.25,
     /** 과부하: 필요 중첩 · 폭발 계수 */
-    overloadAt: 3, overload: 3,
+    overloadAt: 3, overload: 3.75,
     /** 바운스 번개: 방전 피해 대비 · 횟수 */
     bounce: 0.6, bounceN: 3,
     /** 역전류 (◆): 충전 중첩 · 아군 전도 중첩당 피해 (고전압이면 hv) */
-    reverseN: 3, reversePer: 0.1, reverseHvPer: 0.15,
+    reverseN: 3, reversePer: 0.125, reverseHvPer: 0.1875,
     /** 역전류 + 과부하: 충전 대상 아군이 이미 3중첩이면 소모해 주변 1칸 적 전원에게 · 역전류 + 단락: 3중첩 아군이 행동하면 가장 가까운 적 감전 */
-    reverseOverload: 1.5, shortShock: 1, shortIcd: 2,
+    reverseOverload: 1.875, shortShock: 1, shortIcd: 2,
     /** 정전기: 유도 전류 확률 */
     staticProc: 0.4,
     /** ★ 전력망: 범위 밖 추가 대상 수 */
     gridN: 2,
     /** ★ 뇌신 강림: 두르는 전도 · 범위 · 중첩당 피해 (고전압) */
-    avatarN: 3, avatarR: 2, avatarPer: 0.12, avatarHvPer: 0.18,
+    avatarN: 3, avatarR: 2, avatarPer: 0.15, avatarHvPer: 0.225,
   },
   wave: {
     /** 충격파 피해 · 공진 지속 */
-    coef: 0.7, resDur: 5,
+    coef: 0.875, resDur: 5,
     /** 공진: 피해 (고유 진동수) · 범위 (끌개) · 내부 쿨다운 */
-    res: 0.15, freqRes: 0.25, resR: 1, attractResR: 2, resIcd: 0.5, proc: 0.2,
+    res: 0.1875, freqRes: 0.3125, resR: 1, attractResR: 2, resIcd: 0.5, proc: 0.2,
     /** 충돌 · 진도 측정 기절 */
     stun: 1.2, seismicP: 0.35,
     /** 여진: 지연 · 피해 */
-    afterDelay: 1.5, afterCoef: 0.35,
+    afterDelay: 1.5, afterCoef: 0.4375,
     /** ★ 중력 붕괴: 끌어모으는 범위 */
     collapseR: 2,
     /** ★ 공명 연쇄: 여파 (적마다) 내부 쿨다운 */
@@ -86,15 +86,15 @@ export const PSI = {
   },
   seed: {
     /** 포자 피해 · 거는 중독 */
-    coef: 0.4, poison: 2,
+    coef: 0.5, poison: 2,
     /** 중독: 중첩당 초당 · 지속 · 최대 (독성 농축) */
-    per: 0.1, dur: 5, max: 3, concMax: 6, proc: 0.25,
+    per: 0.125, dur: 5, max: 3, concMax: 6, proc: 0.25,
     /** 재생 포자 (◆): 지속 · 초당 회복 */
     regenDur: 5, regenHps: 0.25,
     /** 괴사: 필요 중첩 · 받는 피해 */
     necroAt: 6, necroVuln: 0.2,
     /** 맹독: 중첩당 초당 */
-    venomPer: 0.14,
+    venomPer: 0.175,
     /** ★ 포자 군락: 지속 · 체력 (자신 최대 체력 비율) · 최대 수 */
     colonyLife: 8, colonyHp: 0.25, colonyMax: 3,
     /** ★ 역병 개화: 옮기는 중독 · 적마다 내부 쿨다운 */
@@ -130,15 +130,15 @@ export const PSI = {
   },
   illusion: {
     /** 환영: 지속 · 최대 (군무) · 체력 · 실체화 공격 계수 */
-    life: 6, max: 2, troupeMax: 4, hp: 0.3, solid: 0.4,
+    life: 6, max: 2, troupeMax: 4, hp: 0.3, solid: 0.5,
     /** 분신 (◆): 지속 · 체력 · 피해 · 쿨다운 증가 */
     cloneLife: 12, cloneHp: 0.5, cloneDmg: 0.5, cloneCd: 4,
     /** 군무 + 분신: 분신 지속 */
     troupeCloneLife: 18,
     /** 실체화 + 분신: 체력 · 받는 피해 감소 · 기본 공격 적중 시 정신 추가 피해 */
-    solidCloneHp: 0.7, solidCloneRed: 0.15, solidCloneHit: 0.2,
+    solidCloneHp: 0.7, solidCloneRed: 0.15, solidCloneHit: 0.25,
     /** 잔향 · 안개 · 교란 */
-    echo: 1.2, fog: 0.3, disrupt: 0.1, disruptMax: 3,
+    echo: 1.5, fog: 0.3, disrupt: 0.1, disruptMax: 3,
     /** 향취 (같은 대상 1초에 1회 판정) */
     proc: 0.3, scentDur: 4, scentEva: 0.15, scentVuln: 0.08, denseMax: 3,
     /** 잔상: 환영 지속 · 체력 · 분신 지속 추가 */

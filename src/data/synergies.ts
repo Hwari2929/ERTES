@@ -8,6 +8,8 @@ import { DEV } from './devices';
 import { ALL_ADVANCED, breadSellText, HEL_ITEM_IDS, itemEffect, itemInfo, OCCULT_MODS, occultModsOfTier } from './items';
 import { CAUSAL, KING, KING_GEAR, KING_GEAR_NAME } from './chungra';
 import { addStacks, blinkTo, harmfulCount, isDebuffed, isHarmful, pct, pp } from './kit';
+/** 소수점 둘째 자리까지 퍼센트 (계수가 깔끔하지 않을 때) */
+const pc2 = (x: number) => `${+(x * 100).toFixed(2)}%`;
 import { UNIT_BY_ID } from './units';
 
 export interface SynDef {
@@ -128,7 +130,7 @@ const UNI_MAJ = [5, 10, 15, 30], UNI_RANK = [0, 0, 2, 5];
  *  회복 효율은 성장 폭이 작아, 예전의 '치료 대상 다음 기본 공격 피해 +20%' 대신 단계마다 최대 체력을 올린다 */
 const MED = { eff: [0.2, 0.4, 0.75, 1.5], heal: [0.8, 1.5, 2.6, 4.5], hp: [0.1, 0.25, 0.5, 1.0] };
 /** 의무관 (4명부터) [괴사]: 의무관이 준 회복량(초과 회복량은 over 효율)의 rate 만큼 기록 → 다음 기본 공격에 기록량만큼 화학 피해, 기록은 keep 만 남기고 초기화 (남은 몫이 누적) */
-const MED_NEC = { rate: [0, 0.2, 0.6, 1.0], keep: [0, 0, 0.1, 0.25], over: 0.5 };
+const MED_NEC = { rate: [0, 0.25, 0.75, 1.25], keep: [0, 0, 0.1, 0.25], over: 0.5 };
 const medTier = (i: number) => `회복 효율 +${pct(MED.eff[i])}, ${i < 3 ? `치료 = 기술 위력 ${pct(MED.heal[i])}` : `3초마다 기술 위력 ${pct(MED.heal[i])} 치료 + 초과분 보호막`}${i === 2 ? ', 치료 대상에게 초과분까지 보호막' : ''}${i === 3 ? ', 치료할 때 해로운 효과 1개 제거' : ''}, 모든 아군 최대 체력 +${pct(MED.hp[i])}${MED_NEC.rate[i] ? `, [괴사] 기록 ${pct(MED_NEC.rate[i])} · 발산 후 ${pct(1 - MED_NEC.keep[i])} 초기화${MED_NEC.keep[i] ? ` (${pct(MED_NEC.keep[i])}씩 누적)` : ''}` : ''}`;
 
 /** 모략가 (2 · 4 · 6 · 8명) [암운]: 기본 공격 · 기술 적중 시 기본 hit 확률, 적에게 해로운 효과를 걸 때 기본 inflict 확률로 1중첩
@@ -150,10 +152,10 @@ const schemeTier = (i: number) => {
   ].filter(Boolean).join(', ');
 };
 /** 분해자 (2 · 4 · 6 · 8명): 화학 피해 증가 · 추가 화학 피해 (자신 최대 체력 배율) · [부식] 최대 중첩 · [부식] 부여 기본 확률 (효과 명중 · 저항 판정) */
-export const DECOMP_T = { chem: [0.1, 0.25, 0.5, 1.0], hp: [0.03, 0.06, 0.1, 0.2], max: [5, 7, 9, 13], chance: [0.5, 0.5, 1.0, 1.0] };
+export const DECOMP_T = { chem: [0.1, 0.25, 0.5, 1.0], hp: [0.0375, 0.075, 0.125, 0.25], max: [5, 7, 9, 13], chance: [0.5, 0.5, 1.0, 1.0] };
 const DECOMP_DECAY = { vuln: 0.1, dur: 8, heal: 0.1 };
 /** 전도체 (2 · 4 · 6 · 8명): [바운스] 고정 확률 (효과 명중과 무관) · 단계별 전기 피해 증가 · 계수 · 칸 · 횟수 · (4) 이상 피격 바운스 고정 확률 */
-export const COND_T = { chance: 0.5, elec: [0.15, 0.35, 0.6, 1.0], k: [0.5, 0.5, 0.75, 1.0], radius: [2, 2, 3, 3], hops: [2, 3, 4, 8], hurt: 0.5, killHops: 4 };
+export const COND_T = { chance: 0.5, elec: [0.15, 0.35, 0.6, 1.0], k: [0.625, 0.625, 0.9375, 1.25], radius: [2, 2, 3, 3], hops: [2, 3, 4, 8], hurt: 0.5, killHops: 4 };
 /** 엘베스타드 일가 (3 · 5 · 7 · 9명): 일가 기물 피해 독립 증폭 · 받는 피해 독립 감소 (둘 다 다른 증폭 · 감소와 합치지 않는 별도 배율, 고정 피해는 감소 제외) */
 export const FAM_T = { amp: [0.3, 0.75, 2.0, 4.0], red: [0.05, 0.1, 0.2, 0.4] };
 
@@ -202,11 +204,11 @@ function rachelBeam(b: Battle, u: CUnit) {
   b.emit({ k: 'skill', id: u.id, name: '파괴 광선!', tag: '광역 정신 공격' });
   b.emit({ k: 'atk', from: u.id, to: c.id, elem: 'psy', ranged: true });
   b.fx(c.x, c.y, 2, 'psy');
-  for (const e of b.around(c, 2, foes)) b.dealDamage(u, e, b.S(u, 'strike') * 3.0, { elem: 'psy', tag: 'skill', kind: 'strike', canMiss: false });
+  for (const e of b.around(c, 2, foes)) b.dealDamage(u, e, b.S(u, 'strike') * 3.75, { elem: 'psy', tag: 'skill', kind: 'strike', canMiss: false });
 }
 const TEMUR_KEYS: (keyof Stats)[] = ['maxHp', 'shoot', 'strike', 'tech', 'armor', 'acc', 'crit', 'effHit', 'effRes', 'eva', 'critDmg', 'armorPen', 'atkSpd', 'cdr', 'healEff', 'moveSpd', 'lifesteal'];
 export const VOYAGE_SPECIAL: Record<string, { who: string; name: string; text: string; effect: Effect }> = {
-  rachel: { who: '레이첼', name: '파괴 광선!', text: '4초 후부터 12초마다 적이 가장 많이 모인 곳에 광선을 쏴 주변 2칸 모든 적에게 타격 위력 300% 정신 피해 (빗나가지 않음).',
+  rachel: { who: '레이첼', name: '파괴 광선!', text: '4초 후부터 12초마다 적이 가장 많이 모인 곳에 광선을 쏴 주변 2칸 모든 적에게 타격 위력 375% 정신 피해 (빗나가지 않음).',
     effect: { hooks: { onTick(b, u, dt) {
       u.mem.beamT = (u.mem.beamT ?? 8) + dt;
       if (u.mem.beamT >= 12) { u.mem.beamT = 0; rachelBeam(b, u); }
@@ -329,10 +331,10 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'SIR', name: '시리우스 성도회', kind: 'faction', tiers: [3, 5, 7, 9], color: '#e8e2c8', icon: '✧',
     desc: '시리우스를 섬기는 무장 교단. 성도회 기물은 신성 피해가 강하고 단단하며, 단계가 오르면 쓰러진 아군을 되살리는 기적을 일으킵니다.',
-    tierDesc: ['성도회 신성 피해 증폭 +20%, 준 피해(고정 제외)의 10% 추가 신성 피해, 피해량 경감 12%', '신성 피해 증폭 +50%, 추가 신성 피해 20%, 준 신성 피해의 30% 회복, 피해량 경감 18%, 전투당 1회 처음 쓰러지는 아군 부활 (체력 40%)', '신성 피해 증폭 +100%, 추가 신성 피해 35%, 신성 피해 30% 회복, 피해량 경감 25%, 부활 1회 (체력 70%)',
-      '[시리우스 강림] 신성 피해 증폭 +200%, 추가 신성 피해 50%, 신성 피해 30% 회복, 피해량 경감 35%, 부활 1회 (체력 100%), 부활한 아군은 2초 무적 · 10초간 피해 +50%'],
+    tierDesc: ['성도회 신성 피해 증폭 +20%, 준 피해(고정 제외)의 12.5% 추가 신성 피해, 피해량 경감 12%', '신성 피해 증폭 +50%, 추가 신성 피해 25%, 준 신성 피해의 30% 회복, 피해량 경감 18%, 전투당 1회 처음 쓰러지는 아군 부활 (체력 40%)', '신성 피해 증폭 +100%, 추가 신성 피해 43.75%, 신성 피해 30% 회복, 피해량 경감 25%, 부활 1회 (체력 70%)',
+      '[시리우스 강림] 신성 피해 증폭 +200%, 추가 신성 피해 62.5%, 신성 피해 30% 회복, 피해량 경감 35%, 부활 1회 (체력 100%), 부활한 아군은 2초 무적 · 10초간 피해 +50%'],
     member: (t) => {
-      const extra = T(t, [0.1, 0.2, 0.35, 0.5]);
+      const extra = T(t, [0.125, 0.25, 0.4375, 0.625]);
       return {
         mods: [amp('holy', T(t, [0.2, 0.5, 1.0, 2.0]))], taken: [red('all', T(t, [0.12, 0.18, 0.25, 0.35]))],
         hooks: {
@@ -634,7 +636,7 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'DECOMP', name: '분해자', kind: 'trait', tiers: [2, 4, 6, 8], color: '#9bd13a', icon: '☣',
     desc: `무엇이든 녹여 버리는 이들. 분해자가 기본 공격 · 기술로 적을 맞히면 자신 최대 체력 비례 화학 피해를 더하고, 기본 ${pct(DECOMP_T.chance[0])} 확률로 [부식]을 쌓습니다 (6명부터 기본 ${pct(DECOMP_T.chance[2])}). [부식] 1중첩당 대상이 받는 화학 피해 +${pct(DECOMP_DECAY.vuln)}p (${DECOMP_DECAY.dur}초).`,
-    tierDesc: [0, 1, 2, 3].map((i) => `${i === 3 ? '[완전 분해] ' : ''}화학 피해 +${pct(DECOMP_T.chem[i])}, 추가 화학 피해 = 최대 체력 ${pct(DECOMP_T.hp[i])}, [부식] 최대 ${DECOMP_T.max[i]}중첩${i === 2 ? `, [부식] 부여 기본 확률 ${pct(DECOMP_T.chance[i])}` : ''}${i === 1 ? `, [부식] 걸린 적을 공격하면 피해의 ${pct(DECOMP_DECAY.heal)} 회복` : ''}`),
+    tierDesc: [0, 1, 2, 3].map((i) => `${i === 3 ? '[완전 분해] ' : ''}화학 피해 +${pct(DECOMP_T.chem[i])}, 추가 화학 피해 = 최대 체력 ${pc2(DECOMP_T.hp[i])}, [부식] 최대 ${DECOMP_T.max[i]}중첩${i === 2 ? `, [부식] 부여 기본 확률 ${pct(DECOMP_T.chance[i])}` : ''}${i === 1 ? `, [부식] 걸린 적을 공격하면 피해의 ${pct(DECOMP_DECAY.heal)} 회복` : ''}`),
     member: (t) => {
       const extra = T(t, DECOMP_T.hp), max = T(t, DECOMP_T.max), chance = T(t, DECOMP_T.chance);
       return {
@@ -654,7 +656,7 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'COND', name: '전도체', kind: 'trait', tiers: [2, 4, 6, 8], color: '#4fc3ff', icon: 'ϟ',
     desc: `몸에 전류가 흐르는 이들.\n· 전도체가 기본 공격 · 기술로 적을 맞히면 ${pct(COND_T.chance)} 고정 확률로 [바운스]: n% 계수의 전기 속성 피해가 n칸 내의 적에게 최대 n회 바운스된다 (단계별 수치).\n· 계수는 사격 · 타격 · 기술 위력 중 가장 높은 값 기준.\n· 광역 공격은 같은 순간 여러 적을 맞혀도 바운스 판정은 1번 (처음 맞은 대상에서).\n· 바운스는 아직 맞지 않은 적을 먼저 노리고, 새 대상이 없으면 바로 직전 대상만 빼고 적 사이를 왕복합니다 (적이 2명 이상일 때).\n· 바운스 도중 결정타를 내면 남은 바운스 횟수 +${COND_T.killHops}회.`,
-    tierDesc: [0, 1, 2, 3].map((i) => `${i === 3 ? '[천둥 폭풍] ' : ''}전기 피해 +${pct(COND_T.elec[i])}, ${pct(COND_T.k[i])} 계수의 전기 속성 피해가 ${COND_T.radius[i]}칸 내의 적에게 최대 ${COND_T.hops[i]}회 바운스된다${i === 1 ? `, 명사수 · 지휘관 전도체 바운스 +1회, 전문가 · 돌격가 전도체는 피격 시 ${pct(COND_T.hurt)} 확률로 바운스` : ''}`),
+    tierDesc: [0, 1, 2, 3].map((i) => `${i === 3 ? '[천둥 폭풍] ' : ''}전기 피해 +${pct(COND_T.elec[i])}, ${pc2(COND_T.k[i])} 계수의 전기 속성 피해가 ${COND_T.radius[i]}칸 내의 적에게 최대 ${COND_T.hops[i]}회 바운스된다${i === 1 ? `, 명사수 · 지휘관 전도체 바운스 +1회, 전문가 · 돌격가 전도체는 피격 시 ${pct(COND_T.hurt)} 확률로 바운스` : ''}`),
     member: (t) => {
       const radius = T(t, COND_T.radius), k = T(t, COND_T.k);
       const hopsOf = (u: CUnit) => T(t, COND_T.hops) + (t >= 2 && (u.ctype === 'MARK' || u.ctype === 'CMD') ? 1 : 0);

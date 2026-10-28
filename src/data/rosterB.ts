@@ -59,7 +59,7 @@ export const ROSTER_B: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'psy', interval: 1.1 }, range: 4, base: B(5, 8, 9, 3, 5),
     sprite: 'robe', palette: tint(PAL.KAL, '#e8e8f0', '#40c0c0', '#80e0ff'), lore: '"말만 해요! 깨끗한 기록부터 더러운 금서까지 - 다 제 손바닥 안이거든요."',
     skill: strike({
-      name: '백수정 섬광', cd: 7, pow: 'tech', elem: 'psy', mult: 1.4, params: { radius: 1, noMiss: 1, blind: 0.3 },
+      name: '백수정 섬광', cd: 7, pow: 'tech', elem: 'psy', mult: 1.75, params: { radius: 1, noMiss: 1, blind: 0.3 },
       desc: (p) => `빈 백수정을 터뜨려 대상 주변 ${p.radius}칸에 기술 위력 ${pct(p.mult)} 정신 피해, 3초간 명중 -${pct(p.blind)}p${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}.`,
       after: (b, u, t, _d, p) => { for (const e of b.around(t, p.radius, b.enemiesOf(u))) b.applyStatus(u, e, { type: 'buff', key: 'nadir.blind', dur: 3, delta: { acc: -p.blind }, label: '섬광' }); },
     }),
@@ -145,7 +145,7 @@ export const ROSTER_B: BaseUnit[] = [
     atk: { type: 'strike', elem: 'holy', interval: 0.9 }, range: 1, base: B(5, 9, 7, 3, 8),
     sprite: 'robe', palette: tint(PAL.HEL, '#8a8a90', '#2a2a30', '#ffd040'), lore: '"일은 똑똑하게 해야지- 나 쉬러간다-!"',
     skill: strike({
-      name: '균열 도약', cd: 6, pow: 'tech', elem: 'holy', mult: 2.2, target: 'lowest', blink: true, params: { supply: 0.8 },
+      name: '균열 도약', cd: 6, pow: 'tech', elem: 'holy', mult: 2.75, target: 'lowest', blink: true, params: { supply: 0.8 },
       desc: (p) => `공간 균열로 체력 비율이 가장 낮은 적에게 파고들어 기술 위력 ${pct(p.mult)} 신성 피해${p.hits > 1 ? ` ${p.hits}회` : ''}.`,
     }),
   },
@@ -163,7 +163,7 @@ export const ROSTER_B: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'elec', interval: 1.0 }, range: 3, base: B(6, 7, 9, 4, 5),
     sprite: 'medic', palette: tint(PAL.HEL, '#f0f0f0', '#d4a83a', '#ffd040'), lore: '"헤르메스 신도가 되는거 어떻게 생각하세요? 그- 일단 우리 헤르메스님이 엄청 잘생기셨거든요!"',
     skill: support({
-      name: '헤르메스의 가속', cd: 7, target: 'commanded', params: { count: 2, as: 0.35, dur: 4, jam: 1.2, fearChance: 0.5 },
+      name: '헤르메스의 가속', cd: 7, target: 'commanded', params: { count: 2, as: 0.35, dur: 4, jam: 1.5, fearChance: 0.5 },
       desc: (p) => `피해 기여가 가장 큰 아군 ${p.count}명의 공격 속도 ${p.dur}초간 +${pct(p.as)}.`,
     }),
   },
@@ -186,7 +186,7 @@ export const ROSTER_B: BaseUnit[] = [
     },
     skill: {
       name: '망령권 작살', tag: () => '무작위 화학 6연사', cd: 7, params: { shots: 6, mult: 0.5, shock: 0, crit: 0 },
-      desc: (p) => `등불로 항로를 밝히고 무작위 적에게 선상 작살총으로 사격 위력 ${pct(p.mult)} 화학 사격 ${p.shots}회${p.crit ? ` (치명타 확률 +${pct(p.crit)}p)` : ''}${p.shock ? `, 발당 ${pct(p.shock)} 확률로 1.5초 감전` : ''}.`,
+      desc: (p) => `등불로 항로를 밝히고 무작위 적에게 선상 작살총으로 사격 위력 ${pct(p.mult / 2)} 물리 + ${pct(p.mult * 0.625)} 화학 사격 ${p.shots}회${p.crit ? ` (치명타 확률 +${pct(p.crit)}p)` : ''}${p.shock ? `, 발당 ${pct(p.shock)} 확률로 1.5초 감전` : ''}.`,
       cast(b, u) {
         if (!b.enemiesOf(u).length) return false;
         const p = u.sk;
@@ -197,7 +197,7 @@ export const ROSTER_B: BaseUnit[] = [
           b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'chem', ranged: true });
           // 물리 절반 + 화학 절반 (화학 몫은 물리 몫이 맞아야)
           const r = skillHit(b, u, t, 'shoot', p.mult * 0.5, 'phys', { critBonus: p.crit });
-          if (!r.miss && t.alive) skillHit(b, u, t, 'shoot', p.mult * 0.5, 'chem', { noMiss: true });
+          if (!r.miss && t.alive) skillHit(b, u, t, 'shoot', p.mult * 0.625, 'chem', { noMiss: true });
           if (p.shock && !r.miss && t.alive) b.applyStatus(u, t, { type: 'shock', key: 'shock', dur: 1.5 }, p.shock);
         }
         return true;

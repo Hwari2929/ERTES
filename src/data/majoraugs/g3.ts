@@ -67,12 +67,12 @@ const OLIVER: AugDef[] = [
   }) } }, true),
 ];
 
-// ───────────────────────── 카부라야 (지휘관): 야근 수당 청구 (전술 위력 280% · 주변 1칸 · 감전 80% 1.5초) · 권태 (감전 적 피해 +25%) · 정시 퇴근
+// ───────────────────────── 카부라야 (지휘관): 야근 수당 청구 (전술 위력 350% · 주변 1칸 · 감전 80% 1.5초) · 권태 (감전 적 피해 +25%) · 정시 퇴근
 const KABURAYA: AugDef[] = [
   mj('kaburaya', 'bored', '권태의 극치', '감전된 적에게 주는 피해 +25% → +45%.', { setup: (u) => { u.mem.kabBored = (u.mem.kabBored || 0) + 0.2; } }),
-  mj('kaburaya', 'overtime', '확대 회의', '야근 수당 청구 범위 주변 1칸 → 2칸, 피해 280% → 220%.', setSk((s) => { s.radius = 2; s.mult *= 2.2 / 2.8; })),
-  mj('kaburaya', 'jolt', '누전', '기본 공격이 감전된 적에게 맞으면 전술 위력 40% 전기 추가 피해.', { hooks: { onBasic(b, u, t, r) {
-    if (r.amount > 0 && t.alive && b.has(t, 'shock')) b.dealDamage(u, t, b.tacPower(u) * 0.4, { elem: 'elec', tag: 'proc', kind: 'tech' });
+  mj('kaburaya', 'overtime', '확대 회의', '야근 수당 청구 범위 주변 1칸 → 2칸, 피해 350% → 275%.', setSk((s) => { s.radius = 2; s.mult *= 2.2 / 2.8; })),
+  mj('kaburaya', 'jolt', '누전', '기본 공격이 감전된 적에게 맞으면 전술 위력 50% 전기 추가 피해.', { hooks: { onBasic(b, u, t, r) {
+    if (r.amount > 0 && t.alive && b.has(t, 'shock')) b.dealDamage(u, t, b.tacPower(u) * 0.5, { elem: 'elec', tag: 'proc', kind: 'tech' });
   } } }),
   mj('kaburaya', 'invoice', '수당 청구서', '야근 수당 청구에 맞은 적은 5초간 받는 피해 +15%.', setSk((s) => { s.vuln = 0.15; s.vulnDur = 5; })),
   mj('kaburaya', 'clockout', '칼퇴 준비', '전투 시작 궁극기 게이지 +40% (20% → 60%).', { setup: (u) => { u.mem.ultStart = (u.mem.ultStart || 0) + 0.4; } }),
@@ -83,22 +83,22 @@ const KABURAYA: AugDef[] = [
   } } }),
   mj('kaburaya', 'dnd', '방해 금지', '적이 거는 기절 · 빙결 · 공포에 걸리지 않는다. 대신 최대 체력 -10%.', { pct: { maxHp: -0.1 }, setup: (u) => { u.mem.ccImmuneUntil = Infinity; } }),
   mj('kaburaya', 'hoi', '결재 라인', '호이슌 홀딩스 시너지 기물 1명당 (자신 포함) 전술 위력 +5%.', { setup: (u, _b, ctx) => { u.mem.tacPct = (u.mem.tacPct || 0) + 0.05 * (ctx.counts.HOI || 0); } }),
-  mj('kaburaya', 'chain', '연쇄 결재', '감전된 적이 쓰러지면 2칸 안의 가장 가까운 적에게 전술 위력 60% 전기 피해 + 1.5초 감전.', { hooks: { onAnyDeath(b, u, dead) {
+  mj('kaburaya', 'chain', '연쇄 결재', '감전된 적이 쓰러지면 2칸 안의 가장 가까운 적에게 전술 위력 75% 전기 피해 + 1.5초 감전.', { hooks: { onAnyDeath(b, u, dead) {
     if (dead.side === u.side || !dead.statuses.some((s) => s.key === 'shock' && s.dur > 0)) return;
     const n = b.nearest(dead, b.around(dead, 2, b.enemiesOf(u)));
     if (!n) return;
     b.fx(n.x, n.y, 0, 'elec');
-    b.dealDamage(u, n, b.tacPower(u) * 0.6, { elem: 'elec', tag: 'proc', kind: 'tech' });
+    b.dealDamage(u, n, b.tacPower(u) * 0.75, { elem: 'elec', tag: 'proc', kind: 'tech' });
     if (n.alive) shock(b, u, n, 1.5, 1);
   } } }),
   mj('kaburaya', 'battery', '보조 배터리', '지루한 스턴건 탄창 4발 → 6발, 재장전 2초 → 1.5초.', { setup: (u) => { if (u.weapon) { u.weapon.mag = 6; u.weapon.reload = 1.5; } } }),
   mj('kaburaya', 'paper', '서류 정리', '야근 수당 청구 쿨다운 7초 → 6초.', setSk((_s, u) => { u.cdMax *= 6 / 7; })),
-  mj('kaburaya', 'afterhours', '퇴근 후 문제', '정시 퇴근 3초 뒤 한 번 더: 모든 적에게 전술 위력 200% 전기 피해 + 1초 감전.', { hooks: { onStart: afterUlt((b, u) => {
+  mj('kaburaya', 'afterhours', '퇴근 후 문제', '정시 퇴근 3초 뒤 한 번 더: 모든 적에게 전술 위력 250% 전기 피해 + 1초 감전.', { hooks: { onStart: afterUlt((b, u) => {
     b.later(3, () => {
       if (!u.alive) return;
       b.emit({ k: 'status', id: u.id, name: '퇴근 후 문제' });
       for (const e of b.enemiesOf(u)) {
-        b.dealDamage(u, e, b.P(u, 'tech') * 2, { elem: 'elec', tag: 'skill', kind: 'tech', canMiss: false });
+        b.dealDamage(u, e, b.P(u, 'tech') * 2.5, { elem: 'elec', tag: 'skill', kind: 'tech', canMiss: false });
         if (e.alive) shock(b, u, e, 1, 1);
       }
     });
@@ -108,18 +108,18 @@ const KABURAYA: AugDef[] = [
   } } }, true),
 ];
 
-// ───────────────────────── ISSAC (돌격가): 붕대 해제 (주변 1칸 타격 위력 180% 화학 + 중독 30%) · 재생하는 괴물 · 실험체 해방
+// ───────────────────────── ISSAC (돌격가): 붕대 해제 (주변 1칸 타격 위력 225% 화학 + 중독 38%) · 재생하는 괴물 · 실험체 해방
 const SLIME = ['#06100a', '#4cc860', '#2a7a3a', '#9af0a0', '#ffffff', '#2a4a30', '#e0ffe0'];
 /** ★ 녹빛 손: 상속률 = 최고의 친구 기본 상속률 × rate */
-const GREEN_HAND: SummonDef = { name: '녹빛 손', ctype: 'VAN', sprite: 'beast', palette: SLIME, atk: { type: 'strike', elem: 'chem', interval: 0.9 }, range: 1, hpMul: 0.8, rate: 1.5 };
+const GREEN_HAND: SummonDef = { name: '녹빛 손', ctype: 'VAN', sprite: 'beast', palette: SLIME, atk: { type: 'strike', elem: 'chem', interval: 0.9, mult: 1.25 }, range: 1, hpMul: 0.8, rate: 1.5 };
 const ISSAC: AugDef[] = [
   mj('issac', 'regen', '과재생', '초당 재생 최대 체력 0.5% → 1%.', { hooks: { onTick(b, u, dt) {
     u.mem.isRg = (u.mem.isRg || 0) + dt;
     if (u.mem.isRg >= 1) { u.mem.isRg -= 1; b.heal(u, u, b.S(u, 'maxHp') * 0.005, true); }
   } } }),
   mj('issac', 'slime', '점액 갑옷', '전투 스킬을 쓸 때 받는 보호막 최대 체력 15% → 25%.', { hooks: { onSkill(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.1); } } }),
-  mj('issac', 'wide', '붕대 전부 풀기', '붕대 해제 범위 주변 1칸 → 2칸, 피해 180% → 150%.', setSk((s) => { s.radius = 2; s.mult *= 1.5 / 1.8; })),
-  mj('issac', 'toxin', '맹독 체액', '붕대 해제 중독 초당 타격 위력 30% → 60%.', setSk((s) => { s.poison *= 2; })),
+  mj('issac', 'wide', '붕대 전부 풀기', '붕대 해제 범위 주변 1칸 → 2칸, 피해 225% → 188%.', setSk((s) => { s.radius = 2; s.mult *= 1.5 / 1.8; })),
+  mj('issac', 'toxin', '맹독 체액', '붕대 해제 중독 초당 타격 위력 38% → 75%.', setSk((s) => { s.poison *= 2; })),
   mj('issac', 'family', '우리 식구', '주변 1칸 다른 아군이 받는 피해 (지속 피해 제외)의 20%를 ISSAC이 대신 받는다.', { hooks: { onTick(b, u, dt) {
     aura(b, u, dt, 'issac.family', 1, { share: u, shareRate: 0.2 });
   } } }),
@@ -133,11 +133,11 @@ const ISSAC: AugDef[] = [
   mj('issac', 'crowd', '사람이 많네요', '주변 2칸 적 1명당 받는 피해 -5% (최대 -25%).', { hooks: {
     takenMult: (b, u) => 1 - Math.min(0.25, 0.05 * b.around(u, 2, b.enemiesOf(u)).length),
   } }),
-  mj('issac', 'venom', '독수', '피니쉬가 맞으면 4초간 초당 타격 위력 40% 중독.', { hooks: { onBasic(b, u, t, r) {
-    if (u.mem.finished && r.amount > 0 && t.alive) poison(b, u, t, b.S(u, 'strike') * 0.4, 4, 1);
+  mj('issac', 'venom', '독수', '피니쉬가 맞으면 4초간 초당 타격 위력 50% 중독.', { hooks: { onBasic(b, u, t, r) {
+    if (u.mem.finished && r.amount > 0 && t.alive) poison(b, u, t, b.S(u, 'strike') * 0.5, 4, 1);
   } } }),
-  mj('issac', 'limb', '성격 급한 손', '기본 공격이 맞으면 25% 확률로 떨어진 손이 타격 위력 50% 화학 추가 피해.', { hooks: { onBasic(b, u, t, r) {
-    if (r.amount > 0 && t.alive && b.rng.chance(0.25)) b.dealDamage(u, t, b.S(u, 'strike') * 0.5, { elem: 'chem', tag: 'proc', kind: 'strike' });
+  mj('issac', 'limb', '성격 급한 손', '기본 공격이 맞으면 25% 확률로 떨어진 손이 타격 위력 63% 화학 추가 피해.', { hooks: { onBasic(b, u, t, r) {
+    if (r.amount > 0 && t.alive && b.rng.chance(0.25)) b.dealDamage(u, t, b.S(u, 'strike') * 0.625, { elem: 'chem', tag: 'proc', kind: 'strike' });
   } } }),
   mj('issac', 'patience', '참을성의 한계', '피격으로 차는 궁극기 게이지 2배.', { hooks: { onHurt(b, u, _s, r, o) {
     if (o.tag !== 'dot' && r.amount > 0 && u.mem.ultHurtAt === b.t) b.ultGain(u, CFG.ultGain.hurt, 'bonus'); // 이번 피격에 엔진 피격 충전이 들어갔을 때만 같은 양 한 번 더
@@ -149,13 +149,13 @@ const ISSAC: AugDef[] = [
     b.emit({ k: 'status', id: u.id, name: '녹빛 손' });
     for (let i = 0; i < 2; i++) SUMMON_RT.make?.(b, u, GREEN_HAND);
   } } }, true),
-  mj('issac', 'unbound', '붕대 없는 신사', '최대 체력 -15%. 기본 공격이 대상 주변 1칸 다른 적에게도 타격 위력 40% 화학 피해 + 3초간 초당 타격 위력 15% 중독.', {
+  mj('issac', 'unbound', '붕대 없는 신사', '최대 체력 -15%. 기본 공격이 대상 주변 1칸 다른 적에게도 타격 위력 50% 화학 피해 + 3초간 초당 타격 위력 19% 중독.', {
     pct: { maxHp: -0.15 },
     hooks: { onBasic(b, u, t) {
       for (const e of b.around(t, 1, b.enemiesOf(u))) {
         if (e === t || !e.alive) continue;
-        b.dealDamage(u, e, b.S(u, 'strike') * 0.4, { elem: 'chem', tag: 'proc', kind: 'strike' });
-        if (e.alive) poison(b, u, e, b.S(u, 'strike') * 0.15, 3, 1);
+        b.dealDamage(u, e, b.S(u, 'strike') * 0.5, { elem: 'chem', tag: 'proc', kind: 'strike' });
+        if (e.alive) poison(b, u, e, b.S(u, 'strike') * 0.1875, 3, 1);
       }
     } },
   }, true),

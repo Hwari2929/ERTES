@@ -144,8 +144,8 @@ const BASE_ULTS: Record<string, UltDef> = {
   argon: {
     id: 'argon', name: '망자의 항로', charge: 1.0, line: '…늦더라도, 반드시 도착한다.',
     brief: '무작위 적들에게 작살을 여러 번 쏘고, 맞은 적이 받는 피해를 증가시킵니다.',
-    text: '[s:1.5]간 무작위 적을 12회 지정해 각각 [pw:shoot:0.45:phys] 피해와 [pw:shoot:0.45:chem] 피해를 가합니다.\n공격이 적중하면 [s:4]간 대상이 받는 피해를 [pv:0.15] 증가시킵니다.',
-    desc: '1.5초 동안 무작위 적에게 작살 12회 (사격 위력 45% 물리 + 45% 화학). 맞은 적은 4초간 받는 피해 +15%p.',
+    text: '[s:1.5]간 무작위 적을 12회 지정해 각각 [pw:shoot:0.45:phys] 피해와 [pw:shoot:0.5625:chem] 피해를 가합니다.\n공격이 적중하면 [s:4]간 대상이 받는 피해를 [pv:0.15] 증가시킵니다.',
+    desc: '1.5초 동안 무작위 적에게 작살 12회 (사격 위력 45% 물리 + 56% 화학). 맞은 적은 4초간 받는 피해 +15%p.',
     theme: { pat: 'sea', c1: '#3ad0c0', c2: '#0a1418', txt: 'mist' },
     cast(b, u) {
       if (!b.enemiesOf(u).length) return false;
@@ -154,7 +154,7 @@ const BASE_ULTS: Record<string, UltDef> = {
         if (!es.length) return;
         const t = bb.rng.pick(es);
         const r = shot(bb, u, t, 0.45, 'phys'); // 작살: 물리 절반 + 화학 절반 (화학 몫은 물리 몫이 맞아야)
-        if (!r.miss && t.alive) { const r2 = bb.dealDamage(u, t, S(bb, u, 'shoot') * 0.45, { elem: 'chem', tag: 'skill', kind: 'shoot', canMiss: false }); r.amount += r2.amount; }
+        if (!r.miss && t.alive) { const r2 = bb.dealDamage(u, t, S(bb, u, 'shoot') * 0.5625, { elem: 'chem', tag: 'skill', kind: 'shoot', canMiss: false }); r.amount += r2.amount; }
         if (!r.miss && t.alive) bb.applyStatus(u, t, { type: 'buff', key: 'argon.mark', dur: 4, taken: [vuln('all', 0.15)], label: '망자의 표식' });
       });
       return true;
@@ -229,15 +229,15 @@ const BASE_ULTS: Record<string, UltDef> = {
   kaburaya: {
     id: 'kaburaya', name: '정시 퇴근', charge: 1.0, line: '18시입니다. 퇴근하겠습니다.',
     brief: '모든 적에게 전기 피해를 주고 [감전]시킵니다.',
-    text: '적 전체에게 [pw:tech:3:elec] 피해를 가합니다.\n공격이 적중하면 대상에게 반드시 [fx:shock:2] 효과를 부여합니다.',
+    text: '적 전체에게 [pw:tech:3.75:elec] 피해를 가합니다.\n공격이 적중하면 대상에게 반드시 [fx:shock:2] 효과를 부여합니다.',
     // 스킬 한쪽 원칙: 적 전용 (아군 쿨다운 감소 제거, 피해 250 → 300%)
-    desc: '모든 적에게 전술 위력 300% 전기 피해 + 2초 감전.',
+    desc: '모든 적에게 전술 위력 375% 전기 피해 + 2초 감전.',
     theme: { pat: 'office', c1: '#e8e05a', c2: '#2a2c30', txt: 'bored' },
     cast(b, u) {
       const es = b.enemiesOf(u);
       if (!es.length) return false;
       for (const e of es) {
-        const r = b.dealDamage(u, e, b.P(u, 'tech') * 3, { elem: 'elec', tag: 'skill', kind: 'tech', canMiss: false });
+        const r = b.dealDamage(u, e, b.P(u, 'tech') * 3.75, { elem: 'elec', tag: 'skill', kind: 'tech', canMiss: false });
         if (!r.miss && e.alive) shock(b, u, e, 2, 1);
       }
       return true;
@@ -246,8 +246,8 @@ const BASE_ULTS: Record<string, UltDef> = {
   issac: {
     id: 'issac', name: '실험체 해방', charge: 0.9, line: '실례하겠습니다. 잠시… 예의를 벗겠습니다.',
     brief: '잠시 크게 강해지고 재생하며, 기본 공격이 주변 적에게 [중독]을 퍼뜨립니다.',
-    text: '[s:8]간 자신이 가하는 피해를 [pv:0.5] 증가시키고, 받는 피해를 [pv:0.3] 감소시킵니다.\n[s:8]간 1초마다 최대 체력의 [p:0.03]만큼 회복합니다.\n[s:8]간 기본 공격을 할 때마다 대상으로부터 [t:1] 이내의 다른 적들에게 [pw:strike:0.6:chem] 피해를 가합니다.\n이 공격이 적중하면 그 적들에게 반드시 [fx:poison:3:strike:0.2] 효과를 부여합니다.',
-    desc: '8초간 주는 피해 +50%p, 피해량 경감 30%p, 초당 최대 체력 3% 재생. 기본 공격이 주변 1칸 적에게도 타격 위력 60% 화학 피해 + 중독.',
+    text: '[s:8]간 자신이 가하는 피해를 [pv:0.5] 증가시키고, 받는 피해를 [pv:0.3] 감소시킵니다.\n[s:8]간 1초마다 최대 체력의 [p:0.03]만큼 회복합니다.\n[s:8]간 기본 공격을 할 때마다 대상으로부터 [t:1] 이내의 다른 적들에게 [pw:strike:0.75:chem] 피해를 가합니다.\n이 공격이 적중하면 그 적들에게 반드시 [fx:poison:3:strike:0.25] 효과를 부여합니다.',
+    desc: '8초간 주는 피해 +50%p, 피해량 경감 30%p, 초당 최대 체력 3% 재생. 기본 공격이 주변 1칸 적에게도 타격 위력 75% 화학 피해 + 중독.',
     theme: { pat: 'tape', c1: '#7aff6a', c2: '#f4f4f0', txt: 'unwrap' },
     cast(b, u) {
       if (!b.enemiesOf(u).length) return false;
@@ -258,8 +258,8 @@ const BASE_ULTS: Record<string, UltDef> = {
         if (!h.onBasic || bb.t > until) { h.onBasic = undefined; return; }
         for (const e of bb.around(t, 1, bb.enemiesOf(self))) {
           if (e === t) continue;
-          const r = bb.dealDamage(self, e, bb.S(self, 'strike') * 0.6, { elem: 'chem', tag: 'proc', kind: 'strike' });
-          if (!r.miss && e.alive) poison(bb, self, e, bb.S(self, 'strike') * 0.2, 3, 1);
+          const r = bb.dealDamage(self, e, bb.S(self, 'strike') * 0.75, { elem: 'chem', tag: 'proc', kind: 'strike' });
+          if (!r.miss && e.alive) poison(bb, self, e, bb.S(self, 'strike') * 0.25, 3, 1);
         }
       } };
       u.hooks.push(h);

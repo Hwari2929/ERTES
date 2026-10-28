@@ -100,7 +100,7 @@ export const ROSTER_C: BaseUnit[] = [
     atk: { type: 'strike', elem: 'holy', interval: 1.1 }, range: 1, base: B(9, 7, 5, 8, 3),
     sprite: 'knight', palette: PAL.SIR, lore: '적진 한가운데가 그의 제단이다.',
     skill: strike({
-      name: '성전 돌입', cd: 8, pow: 'strike', elem: 'holy', mult: 1.6, target: 'backline', blink: true, params: { radius: 1 },
+      name: '성전 돌입', cd: 8, pow: 'strike', elem: 'holy', mult: 2, target: 'backline', blink: true, params: { radius: 1 },
       desc: (p) => `적 후방으로 돌입해 주변 ${p.radius}칸에 타격 위력 ${pct(p.mult)} 신성 피해${p.stun ? ` + ${p.stun}초 기절` : ''}.`,
     }),
   },
@@ -183,7 +183,7 @@ export const ROSTER_C: BaseUnit[] = [
     sprite: 'medic', palette: tint(PAL.FAM, '#f4f4f8', '#d4b050', '#ffd860'),
     lore: '"매일 우리 흰사슴들의 관심을 빚지고 있잖아요. 오늘도 최고의 무대를 보여드릴게요, 기대해주세요-!"',
     skill: strike({
-      name: '오늘도 최고의 무대', cd: 7, pow: 'tech', elem: 'psy', mult: 1.7, params: { radius: 2, fear: 1, fearChance: 0.3, noMiss: 1 },
+      name: '오늘도 최고의 무대', cd: 7, pow: 'tech', elem: 'psy', mult: 2.125, params: { radius: 2, fear: 1, fearChance: 0.3, noMiss: 1 },
       desc: (p) => `대상 주변 ${p.radius}칸에 기술 위력 ${pct(p.mult)} 정신 피해, ${pct(p.fearChance)} 확률로 ${p.fear}초 공포${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}.`,
     }),
   },
@@ -208,7 +208,7 @@ export const ROSTER_C: BaseUnit[] = [
     sprite: 'soldier', palette: tint(PAL.FAM, '#121218', '#2a2a34', '#9a6aff'),
     lore: '"…이거 꼭 지금 해야 돼요? 하면 잘하긴 하는데."',
     skill: strike({
-      name: '염동 제압', cd: 7, pow: 'strike', elem: 'psy', mult: 2.0, params: { stun: 1.5 },
+      name: '염동 제압', cd: 7, pow: 'strike', elem: 'psy', mult: 2.5, params: { stun: 1.5 },
       desc: (p) => `암흑물질 노심의 출력을 실어 대상에게 타격 위력 ${pct(p.mult)} 정신 피해 + ${p.stun}초 기절${p.radius ? ` (주변 ${p.radius}칸)` : ''}.`,
     }),
   },

@@ -44,7 +44,7 @@ export const ROSTER_E: BaseUnit[] = [
     sprite: 'robe', palette: tint(PAL.PAN, '#1a1a2a', '#9a5ad0', '#d0b0ff'), eventOnly: true, noStarter: true,
     lore: '설계되지 않았는데 꾸어지는 꿈이 있다. 합창단은 그것을 "의뢰하지 않은 꿈"이라 부른다. [임시]',
     skill: {
-      name: '의뢰하지 않은 꿈', tag: () => '적 전체 정신 공격 + 공포', cd: 8, params: { mult: 0.9, fearChance: 0.25, fear: 1.5, vuln: 0 },
+      name: '의뢰하지 않은 꿈', tag: () => '적 전체 정신 공격 + 공포', cd: 8, params: { mult: 1.125, fearChance: 0.25, fear: 1.5, vuln: 0 },
       desc: (p) => `모든 적에게 기술 위력 ${pct(p.mult)} 정신 피해, ${pct(p.fearChance)} 확률로 ${p.fear}초 공포${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}.`,
       cast(b, u) {
         const es = b.enemiesOf(u);

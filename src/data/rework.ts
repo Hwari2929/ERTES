@@ -45,7 +45,7 @@ const stack = (b: Battle, u: CUnit, t: CUnit, key: string, max: number, dur: num
 
 /** 마이너: 성장 배율 g 에 따른 특성 주요 수치 (상세 창 표시용, 특성 코드의 gw(u) 와 같은 식) */
 export const MINOR_TRAIT_GROW: Record<string, (g: number) => string> = {
-  chloe: (g) => `[항밈 처방] 중독 초당 기술 위력 ${pct(0.25 * g)}`,
+  chloe: (g) => `[항밈 처방] 중독 초당 기술 위력 ${pct(0.3125 * g)}`,
   west: (g) => `[현장 반장] 포탑 추가 고정 피해 사격 위력 ${pct(0.15 * g)}`,
   orca: (g) => `[깜짝 마술] 기절 확률 ${pct(Math.min(0.6, 0.2 * g))}`,
   zahara: (g) => `[복수자] 반격 타격 위력 ${pct(1.5 * g)}`,
@@ -81,7 +81,7 @@ const dealTarget = (b: Battle, u: CUnit) => b.units.find((e) => e.alive && e.sid
 export const REWORK: Record<string, ReworkDef> = {
   // ───────────────────────── 성간 인류 연합
   yelena: {
-    ctype: 'SPEC', ttype: 'psionic', faith: 'human', weapon: G('델타-9 제식 권총', 'psy', 0.95, 3, 1.0, 12, 1.5),
+    ctype: 'SPEC', ttype: 'psionic', faith: 'human', weapon: G('델타-9 제식 권총', 'psy', 0.95, 3, 1.25, 12, 1.5),
     factions: ['SEC'], traits: ['SCHEME'],
     trait: {
       name: '항밈 요원', desc: '사격이 정신 피해가 된다. 정신 피해를 받은 적은 기술 쿨다운 +1초 (대상당 1초에 1회).',
@@ -155,12 +155,12 @@ export const REWORK: Record<string, ReworkDef> = {
     ],
   },
   chloe: {
-    ctype: 'SPEC', ttype: 'minor', faith: 'science', weapon: G('다트 권총', 'chem', 1.0, 3, 0.9, 6, 1.8),
+    ctype: 'SPEC', ttype: 'minor', faith: 'science', weapon: G('다트 권총', 'chem', 1.0, 3, 1.125, 6, 1.8),
     factions: ['SEC'], traits: ['MED', 'DECOMP'],
     trait: {
-      name: '항밈 처방', desc: '기본 공격이 대상에게 [중독]을 건다 (4초간 초당 기술 위력 25% 화학 피해). 다트가 6번 맞을 때마다 항밈 수면제: 대상이 50% 확률로 2초 기절. 회복할 때 대상의 해로운 상태이상 1개를 제거한다.',
+      name: '항밈 처방', desc: '기본 공격이 대상에게 [중독]을 건다 (4초간 초당 기술 위력 31% 화학 피해). 다트가 6번 맞을 때마다 항밈 수면제: 대상이 50% 확률로 2초 기절. 회복할 때 대상의 해로운 상태이상 1개를 제거한다.',
       effect: { hooks: { onBasic(b, u, t, r) {
-        if (r.amount > 0 && t.alive) b.applyStatus(u, t, { type: 'dot', key: 'poison', dur: 4, dps: b.S(u, 'tech') * 0.25 * gw(u), elem: 'chem' }, 1);
+        if (r.amount > 0 && t.alive) b.applyStatus(u, t, { type: 'dot', key: 'poison', dur: 4, dps: b.S(u, 'tech') * 0.3125 * gw(u), elem: 'chem' }, 1);
         if (r.amount > 0 && t.alive && nth(u, 'sleepN', 6)) b.stun(u, t, u.sk.sleep || 2, u.sk.sleepChance || 0.5);
       }, onHealDone(_b, u, t) {
         const i = t.statuses.findIndex(harmful);
@@ -319,7 +319,7 @@ export const REWORK: Record<string, ReworkDef> = {
 
   // ───────────────────────── 칼리토 제국
   hiiro: {
-    ctype: 'CMD', ttype: 'psionic', faith: 'emperor', weapon: G('여우불 부적', 'psy', 1.1, 3, 0.6, 5, 2),
+    ctype: 'CMD', ttype: 'psionic', faith: 'emperor', weapon: G('여우불 부적', 'psy', 1.1, 3, 0.75, 5, 2),
     factions: ['KAL', 'HOI'], traits: ['STAR'],
     trait: {
       name: '점괘', desc: '전투 시작 시 점괘를 본다. 길: 아군 전원 12초간 피해 +12%. 흉: 아군 전원 6초간 받는 피해 +8%. 이성이 높을수록 길이 잘 나온다. 여우불 부적이 맞으면 10% 확률로 대상이 환술에 걸려 2초 공포 (3초에 1회).',
@@ -338,14 +338,14 @@ export const REWORK: Record<string, ReworkDef> = {
     psi: { desc: '점괘가 길이면 이성 +10, 흉이면 -10.', effect: {} },
   },
   nadir: {
-    ctype: 'SPEC', ttype: 'psionic', faith: 'emperor', weapon: G('백수정 조각', 'psy', 0.9, 3, 0.9, 6, 1.5),
+    ctype: 'SPEC', ttype: 'psionic', faith: 'emperor', weapon: G('백수정 조각', 'psy', 0.9, 3, 1.125, 6, 1.5),
     factions: ['KAL', 'VOYAGE'], traits: ['OCCULT'],
     trait: {
-      name: '사이오닉 영사', desc: '기본 공격이 맞으면 기술 위력 50% 계수의 정신 속성 피해가 2칸 내의 적에게 최대 1회 바운스된다.',
+      name: '사이오닉 영사', desc: '기본 공격이 맞으면 기술 위력 62.5% 계수의 정신 속성 피해가 2칸 내의 적에게 최대 1회 바운스된다.',
       effect: { hooks: { onBasic(b, u, t, r) {
         if (r.amount <= 0) return;
         const e = b.nearest(t, b.around(t, 2, b.enemiesOf(u)).filter((x) => x !== t));
-        if (e) proc(b, u, e, b.S(u, 'tech') * 0.5, 'psy', 'tech');
+        if (e) proc(b, u, e, b.S(u, 'tech') * 0.625, 'psy', 'tech');
       } } },
     },
     psi: { desc: '전투 스킬 사용 시 이성 -10, 결정타 +6.', effect: { hooks: { onSkill: (b, u) => b.addReason(u, -10), onKill: (b, u) => b.addReason(u, 6) } } },
@@ -495,10 +495,10 @@ export const REWORK: Record<string, ReworkDef> = {
     } } },
   },
   phyllis: {
-    ctype: 'SPEC', ttype: 'special', faith: 'hades', weapon: K('만능 렌치', 'holy', 0.8, 1, 0.8, 4),
+    ctype: 'SPEC', ttype: 'special', faith: 'hades', weapon: K('만능 렌치', 'holy', 0.8, 1, 1, 4),
     factions: ['VOYAGE'], traits: ['INFIL', 'ENG'], // 5차 확장: 헬레니우스 동맹에서 빠지고 엔지니어 추가 (동맹 자리는 미노스)
     trait: {
-      name: '균열 회피', desc: '회피 +5%p. 회피하면 공격자에게 타격 위력 100% 반격하고 무작위 적에게 순간이동한다 (0.5초에 1회). [물자 전송] 6초마다 체력 비율이 가장 낮은 아군에게 기술 위력 100% 보호막.',
+      name: '균열 회피', desc: '회피 +5%p. 회피하면 공격자에게 타격 위력 125% 신성 피해로 반격하고 무작위 적에게 순간이동한다 (0.5초에 1회). [물자 전송] 6초마다 체력 비율이 가장 낮은 아군에게 기술 위력 100% 보호막.',
       effect: { stats: { eva: 0.05 }, hooks: { onTick(b, u, dt) {
         if (!every(u, 'supplyT', dt, 6) || !b.enemiesOf(u).length) return;
         const a = b.lowestHpAlly(u);
@@ -508,7 +508,7 @@ export const REWORK: Record<string, ReworkDef> = {
         if (u.sk.supplyCleanse) { const i = a.statuses.findIndex(isHarmful); if (i >= 0) a.statuses.splice(i, 1); } // 하데스 택배
       }, onEvade(b, u, src) {
         if (!src.alive || !icd(b, u, 'phIcd', 0.5)) return;
-        proc(b, u, src, b.S(u, 'strike') * (u.mem.counterMul || 1), 'holy', 'strike');
+        proc(b, u, src, b.S(u, 'strike') * 1.25 * (u.mem.counterMul || 1), 'holy', 'strike');
         const es = b.enemiesOf(u);
         if (es.length) blinkTo(b, u, es[Math.floor(b.rng.next() * es.length)]);
       } } },
@@ -529,14 +529,14 @@ export const REWORK: Record<string, ReworkDef> = {
         if (t && blinkTo(b, u, t)) u.atkTimer = 0;
       } } }),
       sp('phyllis', 'hades', '하데스 택배', '물자 전송 보호막 ×1.6 (기술 위력 100% → 160%), 보호막을 받은 아군의 해로운 효과 1개 제거.', setSk((s) => { s.supply *= 1.6; s.supplyCleanse = 1; })),
-      sp('phyllis', 'rift', '균열 잔상', '균열 도약으로 떠난 자리에 2초간 균열 (주변 1칸): 지나는 적에게 기술 위력 40% 신성 피해 (균열마다 적 1회).', { hooks: {
+      sp('phyllis', 'rift', '균열 잔상', '균열 도약으로 떠난 자리에 2초간 균열 (주변 1칸): 지나는 적에게 기술 위력 50% 신성 피해 (균열마다 적 1회).', { hooks: {
         onTick(b, u) {
           if ((u.mem.riftUntil || 0) > b.t) {
             const key = `rift${u.id}`;
             for (const e of b.around({ x: u.mem.riftX, y: u.mem.riftY }, 1, b.enemiesOf(u))) {
               if (e.mem[key] === u.mem.riftN) continue;
               e.mem[key] = u.mem.riftN;
-              proc(b, u, e, b.P(u, 'tech') * 0.4, 'holy', 'tech');
+              proc(b, u, e, b.P(u, 'tech') * 0.5, 'holy', 'tech');
             }
           }
           u.mem.lastX = u.x; u.mem.lastY = u.y;
@@ -548,7 +548,7 @@ export const REWORK: Record<string, ReworkDef> = {
           b.fx(u.mem.riftX, u.mem.riftY, 1, 'holy');
         },
       } }),
-      sp('phyllis', 'dodge', '회피 달인', '회피 +10%p, 균열 회피 반격 피해 100% → 150%.', { stats: { eva: 0.1 }, setup: (u) => { u.mem.counterMul = 1.5; } }),
+      sp('phyllis', 'dodge', '회피 달인', '회피 +10%p, 균열 회피 반격 피해 ×1.5 (타격 위력 125% → 188%).', { stats: { eva: 0.1 }, setup: (u) => { u.mem.counterMul = 1.5; } }),
       sp('phyllis', 'supply', '긴급 조달', '전투 시작 시 모든 아군에게 기술 위력 60% 보호막.', { hooks: { onStart(b, u) { for (const a of b.alliesOf(u)) b.shield(a, b.P(u, 'tech') * 0.6); } } }),
       sp('phyllis', 'underworld', '명계 출장', '균열 도약이 적 대신 가장 뒤에 있는 아군 곁으로 순간이동해, 자신과 주변 1칸 아군 모두에게 보호막 (물자 전송 보호막 수치). 피해는 주지 않는다.', { setup: (u) => {
         const base = u.skill;
@@ -587,13 +587,13 @@ export const REWORK: Record<string, ReworkDef> = {
     },
   },
   iris: {
-    ctype: 'CMD', ttype: 'divine', faith: 'hermes', weapon: G('날개 단검 투척', 'elec', 0.9, 3, 0.6, 6, 1.5), // 모든 피해 전기 (헤르메스 = 번개처럼 빠른 전령)
+    ctype: 'CMD', ttype: 'divine', faith: 'hermes', weapon: G('날개 단검 투척', 'elec', 0.9, 3, 0.75, 6, 1.5), // 모든 피해 전기 (헤르메스 = 번개처럼 빠른 전령)
     factions: ['HEL', 'STL'], traits: ['COND'],
     trait: {
-      name: '헤르메스의 날개', desc: '아군 전원 이동 속도 · 공격 속도 +25%p. 날개 단검이 5번 맞을 때마다 대상의 인지를 교란해 기술 위력 120% 전기 피해 + 50% 확률로 1.5초 공포.',
+      name: '헤르메스의 날개', desc: '아군 전원 이동 속도 · 공격 속도 +25%p. 날개 단검이 5번 맞을 때마다 대상의 인지를 교란해 전술 위력 150% 전기 피해 + 50% 확률로 1.5초 공포.',
       effect: { hooks: { onBasic(b, u, t, r) {
         if (r.amount <= 0 || !t.alive || !nth(u, 'irisN', 5)) return;
-        skillHit(b, u, t, 'tech', u.sk.jam ?? 1.2, 'elec', { noMiss: true });
+        skillHit(b, u, t, 'tech', u.sk.jam ?? 1.5, 'elec', { noMiss: true });
         if (t.alive) fear(b, u, t, 1.5, u.sk.fearChance ?? 0.5);
       }, onStart(b, u) { for (const a of b.alliesOf(u)) b.buff(u, a, 'iris.wing', 999, { delta: { moveSpd: 0.25, atkSpd: 0.25 } }); } } },
     },
@@ -604,7 +604,7 @@ export const REWORK: Record<string, ReworkDef> = {
     trait: { name: '귀환자의 눈', desc: '체력 비율이 가장 낮은 적을 노린다. 치명타 확률 +25%p.', effect: { stats: { crit: 0.25 }, setup: (u) => { u.mem.lowestFocus = 1; } } },
   },
   argon: {
-    ctype: 'MARK', ttype: 'major', faith: 'hades', weapon: G('선상 작살총', 'phys', 0.9, 4, 1.1, 2, 2.5, { mix: 'chem' }),
+    ctype: 'MARK', ttype: 'major', faith: 'hades', weapon: G('선상 작살총', 'phys', 0.9, 4, 1.1, 2, 2.5, { mix: 'chem', mixShare: 0.625 }),
     factions: ['HEL'], traits: ['NAV', 'DECOMP'],
     trait: { name: '망자의 뱃사공', desc: '다른 기물이 주는 이로운 버프를 받지 않는다. 효과 저항 +40%p.', effect: { stats: { effRes: 0.4 }, setup: (u) => { u.mem.noBless = 1; } } },
   },
@@ -623,7 +623,7 @@ export const REWORK: Record<string, ReworkDef> = {
     psi: { desc: '전투 스킬(집행자 투척) 사용 시 이성 -8, 결정타 +10.', effect: { hooks: { onSkill: (b, u) => b.addReason(u, -8), onKill: (b, u) => b.addReason(u, 10) } } },
   },
   joshua: {
-    ctype: 'SPEC', ttype: 'psionic', faith: 'sirius', weapon: G('진정제 다트 권총', 'holy', 1.0, 3, 0.9, 6, 2),
+    ctype: 'SPEC', ttype: 'psionic', faith: 'sirius', weapon: G('진정제 다트 권총', 'holy', 1.0, 3, 1.125, 6, 2),
     factions: ['SIR', 'PAN'], traits: ['MED'],
     trait: { name: '체사레', desc: '이성이 -50 이하로 떨어지면 체사레로 전환된다.' },
     psi: { desc: '아군(자신 포함)이 잃은 체력 비율만큼 이성 감소 (최대 체력 10%당 -3), 회복할 때마다 +3.', effect: { hooks: {
@@ -643,12 +643,12 @@ export const REWORK: Record<string, ReworkDef> = {
     },
   },
   kyle: {
-    ctype: 'VAN', ttype: 'divine', faith: 'sirius', weapon: K('성전 장검', 'holy', 1.0, 1, 0.8, 4),
+    ctype: 'VAN', ttype: 'divine', faith: 'sirius', weapon: K('성전 장검', 'holy', 1.0, 1, 1, 4),
     factions: ['SIR'], traits: ['GUARD'],
     trait: { name: '성전 기사', desc: '신성 피해량 +20%. 전투 스킬을 쓸 때 최대 체력 25% 보호막.', effect: { mods: [inc('holy', 0.2)], hooks: { onSkill(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.25); } } } },
   },
   doros: {
-    ctype: 'CMD', ttype: 'divine', faith: 'sirius', weapon: G('빵 투척', 'holy', 1.0, 3, 0.6, 6, 2),
+    ctype: 'CMD', ttype: 'divine', faith: 'sirius', weapon: G('빵 투척', 'holy', 1.0, 3, 0.75, 6, 2),
     factions: ['SIR'], traits: ['CHEF'],
     trait: {
       name: '성찬', desc: '요리받은 아군의 고유 신앙이 이번 전투 동안 깨어난다 (신성력 · 신권 대행 사용 가능). 이미 디바인이면 신성력 획득 +100%p.',
@@ -656,7 +656,7 @@ export const REWORK: Record<string, ReworkDef> = {
     },
   },
   demiurgos: {
-    ctype: 'SPEC', ttype: 'minor', faith: 'sirius', weapon: K('친구의 손', 'psy', 1.0, 2, 0.8, 3),
+    ctype: 'SPEC', ttype: 'minor', faith: 'sirius', weapon: K('친구의 손', 'psy', 1.0, 2, 1, 3),
     factions: ['SIR'], traits: ['RFRIEND', 'OCCULT'],
     trait: {
       name: '친구의 손길', desc: '회복받은 아군은 3초간 피해량 경감 10%.',
@@ -737,7 +737,7 @@ export const REWORK: Record<string, ReworkDef> = {
     },
   },
   yupito: {
-    ctype: 'SPEC', ttype: 'major', faith: 'science', weapon: G('용접 아크건', 'elec', 0.8, 3, 0.8, 10, 2.5),
+    ctype: 'SPEC', ttype: 'major', faith: 'science', weapon: G('용접 아크건', 'elec', 0.8, 3, 1, 10, 2.5),
     factions: ['PAN'], traits: ['ENG'],
     trait: {
       name: '강철의 마녀', desc: '전투 시작 시 무작위 아군 1명에게 특제 장비: 피해 +20%, 방어도 +15. 공동체 · 엔지니어 아군이면 2배.',
@@ -751,7 +751,7 @@ export const REWORK: Record<string, ReworkDef> = {
     },
   },
   ingel: {
-    ctype: 'SPEC', ttype: 'minor', faith: 'selene', weapon: G('음파 마이크', 'psy', 0.9, 3, 0.9, 8, 2),
+    ctype: 'SPEC', ttype: 'minor', faith: 'selene', weapon: G('음파 마이크', 'psy', 0.9, 3, 1.125, 8, 2),
     factions: ['PAN'], traits: ['STAR', 'SCHEME'],
     trait: {
       name: '무대 위의 달', desc: '출전한 다른 아군 기물 1명당 피해 +10%p, 소환물 · 시설 1개당 +5%p.',
@@ -765,7 +765,7 @@ export const REWORK: Record<string, ReworkDef> = {
     },
   },
   onyx: {
-    ctype: 'SPEC', ttype: 'psionic', faith: 'human', weapon: G('합창', 'psy', 1.0, 3, 0.9, 10, 2),
+    ctype: 'SPEC', ttype: 'psionic', faith: 'human', weapon: G('합창', 'psy', 1.0, 3, 1.125, 10, 2),
     factions: ['PAN'], traits: ['COND'],
     trait: { name: '오닉스 합창', desc: '이성이 낮을수록 주는 정신 피해 증가 (이성 -100에서 최대 +30%).', effect: { hooks: {
       dmgMult: (_b, u, t, o) => (o.elem === 'psy' && t !== u && u.reason !== null && u.reason < 0 ? 1 + 0.3 * (-u.reason / 100) : 1),
@@ -821,7 +821,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ],
   },
   rachel: {
-    ctype: 'VAN', ttype: 'psionic', faith: 'human', weapon: K('암흑물질 노심', 'psy', 0.9, 1, 0.85, 4),
+    ctype: 'VAN', ttype: 'psionic', faith: 'human', weapon: K('암흑물질 노심', 'psy', 0.9, 1, 1.0625, 4),
     factions: ['FAM', 'TIME', 'VOYAGE'], traits: [],
     trait: {
       name: '암흑물질 붕괴', desc: `자신이 준 정신 피해의 ${RACHEL.heal * 100}%만큼 회복한다. 기본 공격이 맞으면 대상에게 타격 위력 ${RACHEL.extra * 100}% 고정 피해를 더하고, 피니쉬는 대상과 주변 1칸 적에게 피니쉬 피해의 ${RACHEL.finish * 100}%만큼 고정 피해를 더 준다.`,
@@ -1105,10 +1105,10 @@ export const FAITH_DEF: Record<FaithId, FaithDef> = {
 export const DIVINE_ACT: Record<CType, { name: string; desc: string; brief: string; text: string }> = {
   MARK: { name: '심판의 탄환', desc: '탄창을 즉시 채우고, 다음 탄창 전부 신성 관통탄',
     brief: '탄창을 바로 채우고, 그 탄창의 기본 공격을 방어도를 무시하는 신성 피해로 바꿉니다.',
-    text: '탄창을 즉시 가득 채웁니다.\n그 탄창을 다 쓸 때까지 기본 공격이 [el:holy] 피해로 바뀌고, 대상의 방어도를 [p:1] 무시합니다.' },
-  VAN: { name: '성전 돌입', desc: '대상 옆으로 돌입해 2초 무적, 주변 1칸 적에게 타격 위력 300% 신성 피해',
+    text: '탄창을 즉시 가득 채웁니다.\n그 탄창을 다 쓸 때까지 기본 공격이 [el:holy] 피해로 바뀌고 (물리 무기는 계수 [p:1.25]), 대상의 방어도를 [p:1] 무시합니다.' },
+  VAN: { name: '성전 돌입', desc: '대상 옆으로 돌입해 2초 무적, 주변 1칸 적에게 타격 위력 375% 신성 피해',
     brief: '대상 곁으로 뛰어들어 잠시 피해를 받지 않고, 주변 적에게 신성 피해를 줍니다.',
-    text: '현재 대상 옆으로 이동하고, [s:2]간 받는 피해가 0이 됩니다.\n자신으로부터 [t:1] 이내의 적들에게 [pw:strike:3:holy] 피해를 가합니다.' },
+    text: '현재 대상 옆으로 이동하고, [s:2]간 받는 피해가 0이 됩니다.\n자신으로부터 [t:1] 이내의 적들에게 [pw:strike:3.75:holy] 피해를 가합니다.' },
   SPEC: { name: '기적', desc: '전투 스킬을 즉시 2회 연속 시전',
     brief: '전투 스킬을 곧바로 연달아 씁니다.',
     text: '전투 스킬을 즉시 2회 연속으로 사용합니다.' },
@@ -1133,7 +1133,7 @@ DIVINE_HOOK.act = (b, u) => {
       if (t) blinkTo(b, u, t);
       u.mem.invulnUntil = b.t + 2;
       b.fx(u.x, u.y, 1, 'holy');
-      for (const e of b.around(u, 1, b.enemiesOf(u))) b.dealDamage(u, e, b.S(u, 'strike') * 3, { elem: 'holy', tag: 'skill', kind: 'strike' });
+      for (const e of b.around(u, 1, b.enemiesOf(u))) b.dealDamage(u, e, b.S(u, 'strike') * 3.75, { elem: 'holy', tag: 'skill', kind: 'strike' });
       break;
     }
     case 'SPEC':

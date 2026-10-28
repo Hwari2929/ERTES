@@ -37,7 +37,7 @@ const PLATE_SHIELD = 0.24;
  *  (희귀 17종 중 16위 → 14위). 위험 7 400판도 +5.0 → +5.9%p (11위). 상위권을 넘지 않아 보호막 24% 그대로 둔다 */
 const PLATE_TAKEN = 0.9, PLATE_TAKEN_L = 0.8;
 /** 전자전 모듈: 전투 시작 · 전투 스킬마다 최대 체력 비례 보호막 · 보호막이 깨질 때 주변 1칸 적에게 주는 전기 피해 (자신 방어도 비례, 1 → 1.25). 전설은 LEGEND_FX 배 */
-const EW_SHIELD = 0.01, EW_ARMOR = 1.25;
+const EW_SHIELD = 0.01, EW_ARMOR = 1.5625;
 const plateTaken = (k: number) => (k > 1 ? PLATE_TAKEN_L : PLATE_TAKEN);
 
 const ADV: AdvDef[] = [
@@ -217,10 +217,10 @@ const UNIQUE: Record<string, { name: string; icon: string; desc: string; effect:
     } } },
   },
   U_mh_sword: {
-    name: `[고유] ${KING_GEAR_NAME.U_mh_sword}`, icon: '劍', desc: '무휼 전용 · 청라공국 7명에 해금. 사이오닉 의식검. 정신력 +8, 쿨다운 감소 속도 +30%. 전투 스킬을 쓰면 대상에게 전술 위력 120% 정신 피해를 더한다.',
+    name: `[고유] ${KING_GEAR_NAME.U_mh_sword}`, icon: '劍', desc: '무휼 전용 · 청라공국 7명에 해금. 사이오닉 의식검. 정신력 +8, 쿨다운 감소 속도 +30%. 전투 스킬을 쓰면 대상에게 전술 위력 150% 정신 피해를 더한다.',
     effect: { majors: { mnd: 8 }, stats: { cdr: 0.3 }, hooks: { onSkill(b, u) {
       const t = u.target?.alive ? u.target : b.nearest(u, b.enemiesOf(u));
-      if (t) { b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'psy', ranged: true }); b.dealDamage(u, t, b.P(u, 'tech') * 1.2, { elem: 'psy', tag: 'proc', kind: 'tech' }); }
+      if (t) { b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'psy', ranged: true }); b.dealDamage(u, t, b.P(u, 'tech') * 1.5, { elem: 'psy', tag: 'proc', kind: 'tech' }); }
     } } },
   },
 };
@@ -397,8 +397,8 @@ export const isHelItem = (id: string | null) => !!id && !!HEL_ITEMS[id.slice(2)]
 //    일반 기물 · 일반 장비 풀 · 재구성과 섞이지 않는다. 장비마다 모든 포탑 모든 주요 능력치 +ENG_TUR.modMaj (engine/build.ts ENG_HOOK.spawn)
 export interface TurretGear { name: string; icon: string; desc: string; effect: Effect }
 const tPow = (b: import('../engine/combat').Battle, u: import('../engine/combat').CUnit) => b.S(u, 'shoot');
-/** 테슬라 코일 바운스 계수 (사격 위력 비례, 50 → 40%: 포탑 장비 독주 완화) */
-const TESLA_K = 0.4;
+/** 테슬라 코일: 전기 기본 공격 계수 · 바운스 계수 (사격 위력 비례) */
+const TESLA_ATK = 1.25, TESLA_K = 0.5;
 /** 포탑 장비 수치 (설명 문구와 효과가 같은 값을 읽는다) */
 const TG = {
   cal: 0.8, plate: { hp: 1.0, armor: 1.0 },
@@ -413,10 +413,10 @@ export const TURRET_GEAR: Record<string, TurretGear> = {
   T_plate: { name: '증가 장갑', icon: '⛊', desc: `포탑 최대 체력 +${tp(TG.plate.hp)}, 방어도 +${tp(TG.plate.armor)}.`, effect: { pct: { maxHp: TG.plate.hp, armor: TG.plate.armor } } },
   T_cryo: { name: '냉각탄', icon: '❄', desc: `포탑 피해 +${tp(TG.cryo.dmg)}. 기본 공격이 대상을 ${TG.cryo.dur}초간 둔화 (공격 · 이동 속도 -${tp(TG.cryo.slow)}p).`,
     effect: { mods: [inc('all', TG.cryo.dmg)], hooks: { onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) slow(b, u, t, TG.cryo.slow, TG.cryo.dur); } } } },
-  T_ammo: { name: '탄약 증설', icon: '⁂', desc: `공격 속도 +${tp(TG.ammo.as)}p. 기본 공격 ${TG.ammo.every}번째마다 같은 대상에게 한 발 더 쏩니다 (사격 위력 100%).`,
+  T_ammo: { name: '탄약 증설', icon: '⁂', desc: `공격 속도 +${tp(TG.ammo.as)}p. 기본 공격 ${TG.ammo.every}번째마다 같은 대상에게 기본 공격과 같은 계수로 한 발 더 쏩니다.`,
     effect: { stats: { atkSpd: TG.ammo.as }, hooks: { onBasic(b, u, t) {
       u.mem.tAmmo = (u.mem.tAmmo || 0) + 1;
-      if (u.mem.tAmmo % TG.ammo.every === 0 && t.alive) { b.emit({ k: 'atk', from: u.id, to: t.id, elem: u.atk.elem, ranged: true }); b.dealDamage(u, t, tPow(b, u), { elem: u.atk.elem, tag: 'proc', kind: 'shoot', canMiss: true }); }
+      if (u.mem.tAmmo % TG.ammo.every === 0 && t.alive) { b.emit({ k: 'atk', from: u.id, to: t.id, elem: u.atk.elem, ranged: true }); b.dealDamage(u, t, tPow(b, u) * (u.atk.mult ?? 1), { elem: u.atk.elem, tag: 'proc', kind: 'shoot', canMiss: true }); }
     } } } },
   T_barrier: { name: '방벽 모듈', icon: '⬡', desc: `전투 시작 시 포탑 최대 체력 ${tp(TG.barrier.start)} 보호막, 이후 ${TG.barrier.every}초마다 최대 체력 ${tp(TG.barrier.per)} 보호막.`,
     effect: { hooks: {
@@ -433,9 +433,9 @@ export const TURRET_GEAR: Record<string, TurretGear> = {
       return false;
     } } } },
   T_rapid: { name: '과급 급탄기', icon: '≫', desc: '포탑 공격 속도 +100%p.', effect: { stats: { atkSpd: 1.0 } } },
-  T_tesla: { name: '테슬라 코일', icon: 'ϟ', desc: `기본 공격이 전기 피해로 바뀌고, 맞히면 사격 위력 ${Math.round(TESLA_K * 100)}% 계수의 전기 속성 피해가 2칸 내의 적에게 최대 2회 바운스된다.`,
+  T_tesla: { name: '테슬라 코일', icon: 'ϟ', desc: `기본 공격이 사격 위력 ${tp(TESLA_ATK)} 전기 피해로 바뀌고, 맞히면 사격 위력 ${tp(TESLA_K)} 계수의 전기 속성 피해가 2칸 내의 적에게 최대 2회 바운스된다.`,
     effect: {
-      setup: (u) => { u.atk = { ...u.atk, elem: 'elec' }; },
+      setup: (u) => { u.atk = { ...u.atk, elem: 'elec', mult: (u.atk.mult ?? 1) * TESLA_ATK }; },
       hooks: { onBasic(b, u, t, r) {
         if (r.amount <= 0) return;
         let at = t, prev: import('../engine/combat').CUnit | null = null;
@@ -456,7 +456,7 @@ export const TURRET_GEAR: Record<string, TurretGear> = {
         if (r.amount > 0 && t.alive) burn(t);
         b.fx(t.x, t.y, 1, 'phys');
         for (const e of b.around(t, 1, b.enemiesOf(u)).filter((x) => x !== t)) {
-          const r2 = b.dealDamage(u, e, tPow(b, u), { elem: u.atk.elem, tag: 'proc', kind: 'shoot' });
+          const r2 = b.dealDamage(u, e, tPow(b, u) * (u.atk.mult ?? 1), { elem: u.atk.elem, tag: 'proc', kind: 'shoot' });
           if (r2.amount > 0 && e.alive) burn(e);
         }
       } },

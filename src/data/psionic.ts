@@ -313,14 +313,14 @@ function discharge(b: Battle, u: CUnit) {
   const cs = statusOf(t, 'conduct');
   const hr = zap(b, u, t, PSI.volt.coef, 'elec');
   if (t.alive && cs && (cs.stacks || 0) >= PSI.volt.overloadAt && P(u, 'volt.overload')) {
-    // 과부하: 전도 3중첩 소모 → 주요 위력 300% 전기 폭발
+    // 과부하: 전도 3중첩 소모 → 주요 위력 375% 전기 폭발
     t.statuses = t.statuses.filter((s) => s !== cs);
     b.fx(t.x, t.y, 1, 'elec');
     b.emit({ k: 'status', id: t.id, name: '과부하', src: u.id, harm: true });
     zap(b, u, t, PSI.volt.overload, 'elec');
   } else if (t.alive) b.applyStatus(u, t, conductStatus(b, u, PSI.volt.conduct, false, hr.amount));
   if (P(u, 'volt.chain')) {
-    // 바운스 번개: 대상에서 가장 가까운 다른 적 3명에게 차례로 60%
+    // 바운스 번개: 대상에서 가장 가까운 다른 적 3명에게 차례로 방전 피해의 60%
     const others = b.targetable(u).filter((e) => e !== t).sort((a, c) => b.dist(a, t) - b.dist(c, t)).slice(0, PSI.volt.bounceN);
     let prev = t;
     for (const e of others) {
@@ -394,7 +394,7 @@ function shockwave(b: Battle, u: CUnit) {
 }
 
 // ───────────────────────── 파종: 중독 · (◆ 지속 회복)
-function poisonStatus(b: Battle, u: CUnit, stacks: number, perDps = mp(b, u) * (P(u, 'seed.venom') ? PSI.seed.venomPer : PSI.seed.per)): Status { // 맹독 14%
+function poisonStatus(b: Battle, u: CUnit, stacks: number, perDps = mp(b, u) * (P(u, 'seed.venom') ? PSI.seed.venomPer : PSI.seed.per)): Status { // 맹독 17.5%
   return {
     type: 'dot', key: 'poison', dur: PSI.seed.dur, elem: 'chem', perDps, dps: perDps * stacks, stacks, maxStacks: psiStackCap('poison', (k) => P(u, k)),
     healMul: P(u, 'seed.rot') ? 0.4 : undefined, label: LB('poison'),
@@ -533,7 +533,7 @@ function blankSummon(owner: CUnit): CUnit {
 }
 const maxShades = (u: CUnit) => (P(u, 'illusion.troupe') ? PSI.illusion.troupeMax : PSI.illusion.max);
 const shadesOf = (b: Battle, u: CUnit) => b.units.filter((s) => s.alive && s.owner === u && s.mem.illusion);
-/** 잔향: 환영이 사라질 때 주변 1칸 적에게 주요 위력 120% 정신 피해 */
+/** 잔향: 환영이 사라질 때 주변 1칸 적에게 주요 위력 150% 정신 피해 */
 function echo(b: Battle, s: CUnit) {
   const o = s.owner;
   if (!o || !o.alive || !s.mem.illusion || !P(o, 'illusion.echo') || s.mem.echoed) return;
@@ -590,7 +590,7 @@ function summonShade(b: Battle, u: CUnit, near: CUnit) {
     });
     s.mem.life = (P(u, 'illusion.troupe') ? I.troupeCloneLife : I.cloneLife) + (P(u, 'illusion.linger') ? I.lingerClone : 0); // 군무: 분신이 더 오래 남아 여러 기가 함께 싸운다 · 잔상 +3초
     if (solid) {
-      // 실체화 + 분신: 더 단단한 몸 (체력 70%, 받는 피해 -15%), 기본 공격이 맞으면 주요 위력 20% 정신 추가 피해 (시전자 몫)
+      // 실체화 + 분신: 더 단단한 몸 (체력 70%, 받는 피해 -15%), 기본 공격이 맞으면 주요 위력 25% 정신 추가 피해 (시전자 몫)
       s.mem.solid = 1;
       s.hooks.push({
         takenMult: () => 1 - I.solidCloneRed,
@@ -598,7 +598,7 @@ function summonShade(b: Battle, u: CUnit, near: CUnit) {
       });
     }
   } else {
-    // 환영: 체력 = 자신 최대 체력 30%, 제자리 · 도발 (실체화: 주요 위력 40%로 공격)
+    // 환영: 체력 = 자신 최대 체력 30%, 제자리 · 도발 (실체화: 주요 위력 50%로 공격)
     const linger = P(u, 'illusion.linger'); // 잔상: 지속 · 체력
     st.maxHp = b.S(u, 'maxHp') * (linger ? PSI.illusion.lingerHp : PSI.illusion.hp);
     st.armor = b.S(u, 'armor');
@@ -886,7 +886,7 @@ const PASSIVE_FX: Record<string, Effect> = {
     if (!dead.statuses.some((x) => x.key === 'poison' && x.src === u)) return;
     colony(b, u, dead);
   } } },
-  // 포자 폭발: 중독된 적이 쓰러지면 주변 1칸 적에게 60% 화학 피해 + 중독을 옮긴다
+  // 포자 폭발: 중독된 적이 쓰러지면 주변 1칸 적에게 75% 화학 피해 + 중독을 옮긴다
   'seed.burst': { hooks: { onAnyDeath(b, u, dead) {
     if (!u.alive || b.sideOf(dead) === b.sideOf(u)) return;
     const s = dead.statuses.find((x) => x.key === 'poison' && x.src === u);
@@ -894,7 +894,7 @@ const PASSIVE_FX: Record<string, Effect> = {
     b.fx(dead.x, dead.y, 1, 'chem');
     for (const e of b.around(dead, 1, b.enemiesOf(u))) {
       if (!e.alive) continue;
-      zap(b, u, e, 0.6, 'chem', 'proc');
+      zap(b, u, e, 0.75, 'chem', 'proc');
       if (e.alive) b.applyStatus(u, e, poisonStatus(b, u, s.stacks ?? 1));
     }
   } } },

@@ -282,7 +282,7 @@ export const CFG = {
     corrode: 0.03, corrodeMax: 0.45, // 장갑 부식: 적중마다 대상 방어도 - (최대)
     spec: 0.25, specMin: 0.5, specMax: 3, // 투기 자금: 페이즈 시작 때 보유 크레딧 × spec 투자 → 다음 페이즈 시작 때 × [min, max] 무작위
     rebirth: 3, // 윤회 계약: 모든 기물 공명 등급 + (무작위 기물로 교체)
-    chain: 0.8, thorns: 1, windAt: 0.3, wind: 0.25, execAt: 0.2, exec: 0.4, giant: 0.25, dblChance: 0.15, dbl: 0.5, tutor: 2, commission: 20, transfuse: 15,
+    chain: 1, thorns: 1, windAt: 0.3, wind: 0.25, execAt: 0.2, exec: 0.4, giant: 0.25, dblChance: 0.15, dbl: 0.5, tutor: 2, commission: 20, transfuse: 15,
     berserkMax: 0.8, berserkHp: 0.15, goldAt: 100, gold: 0.3, goldCap: 3, odAt: 20, od: 0.6, odAs: 0.2, odSlow: 0.3, hydra: 0.2, midasLean: 2, loneMax: 3, lone: 0.6, loneRed: 0.25, phoenix: 0.5, phoenixCost: 20,
     stakes: 1.5, stakesFoe: 0.25, blood: 2, minkyRank: 2, petraPer: 3, ascend: 2, lastDmg: 0.4, lastRed: 0.15, sacrifice: 2,
   },

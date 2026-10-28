@@ -31,7 +31,7 @@ export const ROSTER_F: BaseUnit[] = [
     lore: '"뒤는 걱정 마라. 내가 서 있는 한, 아무도 남겨 두고 가지 않는다."',
     skill: strike({
       // rescue · rescueN: 특성 [바이킹의 피]의 구조 신호 보호막 수치
-      name: '구조 작살', cd: 7, pow: 'shoot', elem: 'elec', mult: 2.2, target: 'farthest', params: { stun: 1, rescue: 1.2 },
+      name: '구조 작살', cd: 7, pow: 'shoot', elem: 'elec', mult: 2.75, target: 'farthest', params: { stun: 1, rescue: 1.2 },
       desc: (p) => `가장 먼 적에게 전기 작살을 박아 사격 위력 ${pct(p.mult)} 전기 피해, ${p.stun}초 기절${p.pull ? '. 대상을 비외른 앞 1칸으로 끌어온다 (엘리트 · 보스 제외)' : ''}.`,
       after: (b, u, t, _d, p) => {
         // 끌어당기기: 대상을 비외른 앞 1칸으로 (엘리트 · 보스 제외)
@@ -48,7 +48,7 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'soldier', palette: tint(PAL.SIR, '#1a1a1a', '#ff8ab0', '#ff8ab0'),
     lore: '"오늘의 꽃은 백합이에요. 꽃말이요? …그건 받는 분이 알게 되실 거예요."',
     skill: strike({
-      name: '마지막 꽃다발', cd: 7, pow: 'shoot', elem: 'chem', mult: 2.6, target: 'lowest', blink: true, params: { poison: 0.5, resetOnKill: 0.5 },
+      name: '마지막 꽃다발', cd: 7, pow: 'shoot', elem: 'chem', mult: 3.25, target: 'lowest', blink: true, params: { poison: 0.625, resetOnKill: 0.5 },
       desc: (p) => `체력 비율이 가장 낮은 적 곁으로 숨어들어 사격 위력 ${pct(p.mult)} 화학 피해 + 중독 (초당 ${pct(p.poison)}). 처치하면 쿨다운 ${pct(p.resetOnKill)} 회복.`,
     }),
   },
@@ -58,7 +58,7 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'drone', palette: tint(PAL.HEL, '#f0f0f8', '#ff9de2', '#7fe3ff'),
     lore: '"여러분~ 이쪽입니다 ^^ 왼쪽에 보이시는 것이 바로 전장입니다 ^^"',
     skill: strike({
-      name: '관광 명소 소개', cd: 6.5, pow: 'shoot', elem: 'holy', mult: 1.6, params: { radius: 1, vuln: 0.15, vulnDur: 5, provPlus: 2.5 },
+      name: '관광 명소 소개', cd: 6.5, pow: 'shoot', elem: 'holy', mult: 2, params: { radius: 1, vuln: 0.15, vulnDur: 5, provPlus: 2.5 },
       desc: (p) => `안내 깃발로 대상 주변 ${p.radius}칸에 사격 위력 ${pct(p.mult)} 신성 피해, 맞은 적은 5초간 받는 피해 +${pct(p.vuln)}. 주 대상은 5초간 도발 계수 +${p.provPlus} (관광객의 시선 집중).`,
       after(b, u, t, _d, p) {
         if (t.alive) b.applyStatus(u, t, { type: 'buff', key: 'fotini.attention', dur: 5, provPlus: p.provPlus, label: '시선 집중' });
@@ -71,7 +71,7 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'soldier', palette: tint(HOI_PAL, '#1c1c24', '#8a8a96', '#4fc3ff'),
     lore: '"…아, 네. 리스크요. 다 처리했습니다. 이제 퇴근해도 됩니까."',
     skill: strike({
-      name: '야근 수당 청구', cd: 7, pow: 'tech', elem: 'elec', mult: 2.8, params: { radius: 1, shock: 1.5, shockChance: 0.8 },
+      name: '야근 수당 청구', cd: 7, pow: 'tech', elem: 'elec', mult: 3.5, params: { radius: 1, shock: 1.5, shockChance: 0.8 },
       desc: (p) => `대상 주변 ${p.radius}칸에 기술 위력 ${pct(p.mult)} 전기 피해, ${pct(p.shockChance)} 확률로 ${p.shock}초 감전.`,
     }),
   },
@@ -81,7 +81,7 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'soldier', palette: tint(SEC_PAL, '#ff8a3d', '#5ad08a', '#b07cff'),
     lore: '"하하! 일은 무슨, 난 휴가 중이라네. …아, 그 친구? 방금 처리했지. 하하!"',
     skill: strike({
-      name: '기념사진 플래시', cd: 6, pow: 'tech', elem: 'elec', mult: 1.4, params: { radius: 1, fear: 1.5, fearChance: 0.6 },
+      name: '기념사진 플래시', cd: 6, pow: 'tech', elem: 'elec', mult: 1.75, params: { radius: 1, fear: 1.5, fearChance: 0.6 },
       desc: (p) => `"자, 김치~!" 대상 주변 ${p.radius}칸에 기술 위력 ${pct(p.mult)} 전기 피해, ${pct(p.fearChance)} 확률로 ${p.fear}초 공포.`,
     }),
   },
@@ -101,7 +101,7 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'knight', palette: tint(SLIME, '#f0f0f0', '#4cc860', '#ffffff'),
     lore: '"놀라셨다면 죄송합니다. 붕대는… 예의상 감고 있는 것입니다."',
     skill: strike({
-      name: '붕대 해제', cd: 7, pow: 'strike', elem: 'chem', mult: 1.8, aroundSelf: true, params: { radius: 1, poison: 0.3 },
+      name: '붕대 해제', cd: 7, pow: 'strike', elem: 'chem', mult: 2.25, aroundSelf: true, params: { radius: 1, poison: 0.375 },
       desc: (p) => `붕대를 풀어 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 화학 피해 + 중독 (초당 ${pct(p.poison)}).`,
     }),
   },
@@ -111,7 +111,7 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'soldier', palette: tint(PAL.UNI, '#3a3a44', '#8a6a4a', '#ffd040'),
     lore: '"트레이닝복이 어때서. 도망칠 땐 이게 제일 편해."',
     skill: strike({
-      name: '뒷골목 수법', cd: 6, pow: 'shoot', elem: 'chem', mult: 1.4, params: { radius: 1, strip: 0.5, stripN: 1, vuln: 0 },
+      name: '뒷골목 수법', cd: 6, pow: 'shoot', elem: 'chem', mult: 1.75, params: { radius: 1, strip: 0.5, stripN: 1, vuln: 0 },
       desc: (p) => `대상과 주변 ${p.radius}칸에 독한 약품을 뿌려 전술 위력 ${pct(p.mult)} 화학 피해. 맞은 적마다 ${pct(p.strip)} 확률로 이로운 효과 ${p.stripN}종 제거${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}.`,
       after: (b, u, t, _d, p) => {
         for (const e of b.around(t, p.radius, b.enemiesOf(u))) {
@@ -129,7 +129,7 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'robe', palette: tint(HOI_PAL, '#ff4d9a', '#7fe3ff', '#ffe14d'),
     lore: '"안녕안녕~ 레이카 0호야! 오늘도 은하 끝까지 방송 켜 둘게~☆"',
     skill: {
-      name: '라이브 피날레', tag: () => '적 전체 전기 공격 + 감전', cd: 9.5, params: { mult: 0.9, shockChance: 0.4, shock: 1.2, encore: 0 },
+      name: '라이브 피날레', tag: () => '적 전체 전기 공격 + 감전', cd: 9.5, params: { mult: 1.125, shockChance: 0.4, shock: 1.2, encore: 0 },
       desc: (p) => `모든 적에게 기술 위력 ${pct(p.mult)} 전기 피해, ${pct(p.shockChance)} 확률로 ${p.shock}초 감전${p.encore ? `. 앙코르: 같은 공연을 ${pct(p.encore)} 위력으로 한 번 더` : ''}.`,
       cast(b, u) {
         const es = b.enemiesOf(u);
@@ -164,7 +164,7 @@ export const ROSTER_F: BaseUnit[] = [
     sprite: 'knight', palette: tint(STL_PAL, '#1c1c24', '#ffe14d', '#4fc3ff'),
     lore: '"잠재력이 보이네요. 연봉 협상은 살아서 돌아온 다음에 하죠."',
     skill: strike({
-      name: '분기 실적 보고', cd: 6.5, pow: 'strike', elem: 'elec', mult: 2.0, aroundSelf: true, params: { radius: 1, stun: 0.8 },
+      name: '분기 실적 보고', cd: 6.5, pow: 'strike', elem: 'elec', mult: 2.5, aroundSelf: true, params: { radius: 1, stun: 0.8 },
       desc: (p) => `서류 가방을 휘둘러 주변 ${p.radius}칸 적에게 타격 위력 ${pct(p.mult)} 전기 피해, ${p.stun}초 기절.`,
     }),
   },
@@ -173,7 +173,7 @@ export const ROSTER_F: BaseUnit[] = [
 /** 리워크 정보 */
 export const REWORK_F: Record<string, ReworkDef> = {
   bjorn: {
-    ctype: 'MARK', ttype: 'special', faith: 'human', weapon: G('구조용 전기 작살포', 'elec', 1.1, 3, 1.0, 6, 2.0),
+    ctype: 'MARK', ttype: 'special', faith: 'human', weapon: G('구조용 전기 작살포', 'elec', 1.1, 3, 1.25, 6, 2.0),
     trait: {
       name: '바이킹의 피', desc: '피해량 경감 15%. 잃은 체력 1%당 주는 피해 +1%. [구조 신호] 7초마다 체력 비율이 가장 낮은 아군에게 사격 위력 120% 보호막.',
       effect: { taken: [red('all', 0.15)], hooks: {
@@ -210,18 +210,18 @@ export const REWORK_F: Record<string, ReworkDef> = {
     ],
   },
   zina: {
-    ctype: 'MARK', ttype: 'psionic', faith: 'sirius', weapon: G('꽃다발 속 소음 권총', 'chem', 0.9, 4, 1.0, 8, 1.6),
+    ctype: 'MARK', ttype: 'psionic', faith: 'sirius', weapon: G('꽃다발 속 소음 권총', 'chem', 0.9, 4, 1.25, 8, 1.6),
     trait: {
-      name: '꽃집 아가씨', desc: '기본 공격이 사격 위력 20% 화학 중독을 건다 (4초). 중독된 적에게 주는 피해 +25%.',
+      name: '꽃집 아가씨', desc: '기본 공격이 사격 위력 25% 화학 중독을 건다 (4초). 중독된 적에게 주는 피해 +25%.',
       effect: { hooks: {
-        onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) poison(b, u, t, b.S(u, 'shoot') * 0.2, 4, 1); },
+        onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) poison(b, u, t, b.S(u, 'shoot') * 0.25, 4, 1); },
         dmgMult: (_b, u, t) => (t.statuses.some((s) => s.key === 'poison') ? 1.25 + (u.mem.zinaVenom || 0) : 1),
       } },
     },
     psi: { desc: '마지막 꽃다발을 쓰면 이성 -10, 적을 처치하면 +6.', effect: { hooks: { onSkill: (b, u) => b.addReason(u, -10), onKill: (b, u) => b.addReason(u, 6) } } },
   },
   fotini: {
-    ctype: 'MARK', ttype: 'divine', faith: 'hermes', weapon: G('안내 깃발 레이저', 'holy', 1.0, 4, 0.9, 8, 1.8),
+    ctype: 'MARK', ttype: 'divine', faith: 'hermes', weapon: G('안내 깃발 레이저', 'holy', 1.0, 4, 1.125, 8, 1.8),
     trait: {
       name: '여러분 이쪽입니다 ^^', desc: '전투 시작 시 모든 아군 이동 속도 +20%, 6초간 피해 +15%. 자신은 4초간 공격 속도 +50%, 결정타를 날리면 다시 4초로 갱신.',
       effect: { hooks: {
@@ -234,7 +234,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
     },
   },
   kaburaya: {
-    ctype: 'CMD', ttype: 'major', faith: 'index', weapon: G('지루한 스턴건', 'elec', 1.2, 3, 1.1, 4, 2.0),
+    ctype: 'CMD', ttype: 'major', faith: 'index', weapon: G('지루한 스턴건', 'elec', 1.2, 3, 1.375, 4, 2.0),
     trait: {
       name: '권태', desc: '기본 공격이 30% 확률로 1초 감전을 건다. 감전된 적에게 주는 피해 +25%.',
       effect: { hooks: {
@@ -244,7 +244,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
     },
   },
   bill: {
-    ctype: 'SPEC', ttype: 'minor', faith: 'human', weapon: G('관광용 물총', 'chem', 0.9, 3, 0.9, 10, 2.0),
+    ctype: 'SPEC', ttype: 'minor', faith: 'human', weapon: G('관광용 물총', 'chem', 0.9, 3, 1.125, 10, 2.0),
     trait: {
       name: '호쾌한 관광객', desc: '기본 공격이 25% 확률로 3초 둔화를 건다. 해로운 효과가 걸린 적이 받는 피해 +10% (빌의 공격).',
       effect: { hooks: {
@@ -254,7 +254,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
     },
   },
   winter: {
-    ctype: 'SPEC', ttype: 'special', faith: 'science', weapon: G('주사기 권총', 'chem', 1.0, 3, 0.8, 6, 1.8),
+    ctype: 'SPEC', ttype: 'special', faith: 'science', weapon: G('주사기 권총', 'chem', 1.0, 3, 1, 6, 1.8),
     trait: {
       name: '생명과학 교수', desc: '치료한 아군의 최대 체력이 전투 동안 2% 오른다 (대상당 최대 5회).',
       effect: { hooks: { onHealDone(b, u, t) {
@@ -272,11 +272,11 @@ export const REWORK_F: Record<string, ReworkDef> = {
         hooks: { onSkill(b, u) { for (const a of b.alliesOf(u)) b.heal(u, a, b.P(u, 'tech') * u.sk.heal * (u.sk.vaccine || 0)); } },
       }),
       sp('winter', 'antidote', '해독제', '치료할 때 해로운 효과를 모두 없앤다.', { hooks: { onHealDone(_b, _u, t) { t.statuses = t.statuses.filter((s) => !isHarmful(s)); } } }),
-      sp('winter', 'pathogen', '병원체 샘플', '기본 공격이 기술 위력 30% 화학 중독을 건다 (4초).', { hooks: { onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) poison(b, u, t, b.S(u, 'tech') * 0.3, 4, 1); } } }),
+      sp('winter', 'pathogen', '병원체 샘플', '기본 공격이 기술 위력 38% 화학 중독을 건다 (4초).', { hooks: { onBasic(b, u, t, r) { if (r.amount > 0 && t.alive) poison(b, u, t, b.S(u, 'tech') * 0.375, 4, 1); } } }),
       sp('winter', 'tenure', '정년 보장', '생명과학 교수의 대상당 상한 5회 → 10회.', { setup: (u) => { u.mem.winterCap = 10; } }),
       sp('winter', 'phase2', '임상 2상', '임상 시험 혈청의 받는 피해 -15% → -25%, 지속 4 → 6초.', setSk((s) => { s.red = 0.25; s.dur = 6; })),
       sp('winter', 'overheal', '과잉 치료', '넘친 회복량의 50%를 보호막으로 준다.', { hooks: { onHealDone(b, _u, t, _amt, over) { if (over > 0) b.shield(t, over * 0.5); } } }),
-      sp('winter', 'trial', '생체 실험', '임상 시험 혈청을 아군 대신 적에게 쓴다: 기술 위력 180% 화학 피해 + 4초간 받는 피해 +15% (임상 2상의 수치 · 지속 적용). 실험 데이터로 체력 비율이 가장 낮은 아군을 혈청 회복량의 40%만큼 치료한다 (치료 증강 · 생명과학 교수 적용).', { setup: (u) => {
+      sp('winter', 'trial', '생체 실험', '임상 시험 혈청을 아군 대신 적에게 쓴다: 기술 위력 225% 화학 피해 + 4초간 받는 피해 +15% (임상 2상의 수치 · 지속 적용). 실험 데이터로 체력 비율이 가장 낮은 아군을 혈청 회복량의 40%만큼 치료한다 (치료 증강 · 생명과학 교수 적용).', { setup: (u) => {
         const base = u.skill;
         if (!base) return;
         u.skill = { ...base, needsRange: false, tag: () => '화학 공격 + 취약', cast(b, self) {
@@ -284,7 +284,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
           if (!t) return false;
           const p = self.sk;
           b.emit({ k: 'atk', from: self.id, to: t.id, elem: 'chem', ranged: true });
-          skillHit(b, self, t, 'tech', 1.8, 'chem', { noMiss: true });
+          skillHit(b, self, t, 'tech', 2.25, 'chem', { noMiss: true });
           if (t.alive) b.applyStatus(self, t, { type: 'buff', key: 'winter.trial', dur: p.dur, taken: [vuln('all', p.red)], label: '생체 실험' });
           // 실험 데이터: 약한 아군 치료 (해독제 · 과잉 치료 · 정년 보장이 함께 작동하도록)
           const a = b.lowestHpAlly(self);
@@ -298,7 +298,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
     ],
   },
   issac: {
-    ctype: 'VAN', ttype: 'major', faith: 'science', weapon: K('붕대 감은 주먹', 'chem', 0.85, 1, 1.0, 3),
+    ctype: 'VAN', ttype: 'major', faith: 'science', weapon: K('붕대 감은 주먹', 'chem', 0.85, 1, 1.25, 3),
     trait: {
       name: '재생하는 괴물', desc: '초당 최대 체력 0.5% 재생. 화학 피해량 경감 30%. 전투 스킬을 쓸 때 최대 체력 15% 보호막 (점액 재생).',
       effect: { taken: [red('chem', 0.3)], hooks: {
@@ -318,7 +318,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
     },
   },
   reika: {
-    ctype: 'CMD', ttype: 'divine', faith: 'zeus', weapon: G('라이트 스틱 빔', 'elec', 0.9, 4, 0.9, 10, 1.6),
+    ctype: 'CMD', ttype: 'divine', faith: 'zeus', weapon: G('라이트 스틱 빔', 'elec', 0.9, 4, 1.125, 10, 1.6),
     trait: {
       name: '구독과 좋아요', desc: '아군이 전투 스킬을 쓸 때마다 [시청자] +1 (최대 30). 시청자 1명당 레이카의 기술 피해 +3%.',
       effect: {
@@ -332,7 +332,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
     },
   },
   mao: {
-    ctype: 'CMD', ttype: 'special', faith: 'index', weapon: G('칵테일 셰이커 블래스터', 'elec', 1.1, 3, 1.25, 6, 2.0),
+    ctype: 'CMD', ttype: 'special', faith: 'index', weapon: G('칵테일 셰이커 블래스터', 'elec', 1.1, 3, 1.5625, 6, 2.0),
     trait: {
       name: '회장님의 접대', desc: '요리받은 아군의 기술 쿨다운 -2초.',
       effect: { hooks: { onInflict(_b, _u, t, s) { if (s.key === 'sup.mao' && t.skill) t.cd -= 2; } } },
@@ -356,7 +356,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
         t.mem.maoAfterHook = 1;
         t.hooks.push({ onKill(_bb, self) { const x = self.statuses.find((y) => y.key === 'sup.mao'); if (x) x.dur = Math.max(x.dur, u.sk.dur); } });
       } } }),
-      sp('mao', 'bomb', '칵테일 폭탄', '네온 칵테일에 폭탄이 딸려 나간다: 요리를 낸 뒤 체력이 가장 높은 적에게 셰이커를 던져 전술 위력 150% 전기 피해 + 1.5초 감전. 대신 요리 쿨다운 +2초 (요리 증강은 그대로 적용).', { setup: (u) => {
+      sp('mao', 'bomb', '칵테일 폭탄', '네온 칵테일에 폭탄이 딸려 나간다: 요리를 낸 뒤 체력이 가장 높은 적에게 셰이커를 던져 전술 위력 188% 전기 피해 + 1.5초 감전. 대신 요리 쿨다운 +2초 (요리 증강은 그대로 적용).', { setup: (u) => {
         const base = u.skill;
         if (!base) return;
         u.cdMax += 2;
@@ -365,7 +365,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
           const t = pickEnemy(b, self, 'strongest');
           if (!t) return cooked;
           b.emit({ k: 'atk', from: self.id, to: t.id, elem: 'elec', ranged: true });
-          skillHit(b, self, t, 'tech', 1.5, 'elec', { noMiss: true });
+          skillHit(b, self, t, 'tech', 1.875, 'elec', { noMiss: true });
           if (t.alive) shock(b, self, t, 1.5, 1);
           return true;
         } };
@@ -387,7 +387,7 @@ export const REWORK_F: Record<string, ReworkDef> = {
     ],
   },
   skadi: {
-    ctype: 'VAN', ttype: 'divine', faith: 'index', weapon: K('결재 서류 가방', 'elec', 0.9, 1, 1.0, 3),
+    ctype: 'VAN', ttype: 'divine', faith: 'index', weapon: K('결재 서류 가방', 'elec', 0.9, 1, 1.25, 3),
     trait: {
       name: '인재 육성', desc: '전투 시작 시 공명 등급이 가장 낮은 다른 출전 아군에게 전투 동안 피해 +30%, 피해량 경감 15%. 전투 스킬을 쓸 때 최대 체력 12% 보호막 (결재 서류 방패).',
       effect: { hooks: { onSkill(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.12); }, onStart(b, u) {

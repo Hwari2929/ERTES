@@ -112,9 +112,9 @@ export const AUGS: Record<string, AugDef[]> = {
       takenMult: (b, u) => 1 - Math.min(0.2, 0.05 * b.around(u, 2, b.enemiesOf(u)).length),
     } }),
     mj('bjorn', 'reel', '작살 회수', '구조 작살로 적을 쓰러뜨리면 쿨다운 50% 환급. 재장전 속도 +25%.', { stats: { reloadSpd: 0.25 }, setup: (u) => { u.sk.resetOnKill = Math.max(u.sk.resetOnKill || 0, 0.5); } }),
-    mj('bjorn', 'thor', '천둥 작살', '구조 작살이 대상에게서 2칸 안의 다른 적에게 최대 4번 튄다: 튈 때마다 사격 위력 60% 전기 피해 + 1초 감전.', { hooks: { onDeal(b, u, t, r, o) {
+    mj('bjorn', 'thor', '천둥 작살', '구조 작살이 대상에게서 2칸 안의 다른 적에게 최대 4번 튄다: 튈 때마다 사격 위력 75% 전기 피해 + 1초 감전.', { hooks: { onDeal(b, u, t, r, o) {
       if (o.tag !== 'skill' || o.kind !== 'shoot' || o.elem !== 'elec' || r.amount <= 0) return;
-      hop(b, u, t, 4, 2, b.P(u, 'shoot') * 0.6, 'elec', 'shoot', (e) => shock(b, u, e, 1, 1));
+      hop(b, u, t, 4, 2, b.P(u, 'shoot') * 0.75, 'elec', 'shoot', (e) => shock(b, u, e, 1, 1));
     } } }, true),
     mj('bjorn', 'wall', '방패벽', '주변 2칸 안의 다른 아군이 받는 피해의 30%를 대신 받는다. 비외른 피해량 경감 +15%p.', { taken: [red('all', 0.15)], hooks: { onTick(b, u, dt) {
       if (!every(u, 'bjWall', dt, 0.5, 0)) return;
@@ -197,7 +197,7 @@ export const AUGS: Record<string, AugDef[]> = {
       if (o.tag === 'proc' && o.elem === 'chem' && o.kind === 'tech') u.cd = Math.max(0, u.cd - 0.2);
     } } }),
     mj('siu', 'mag', '확장 탄창', '호신용 권총 탄창 8 → 12발, 재장전 속도 +20%.', { stats: { reloadSpd: 0.2 }, setup: (u) => { if (u.weapon) u.weapon = { ...u.weapon, mag: 12 }; } }),
-    mj('siu', 'script', '은하수 필사', '눈물의 해독 · 바운스에 맞은 적에게 6초간 [필사]: 받는 화학 피해 +10%. [필사]된 적이 쓰러지면 그 자리에서 기술 위력 80% 화학 바운스가 3번 튄다 (이 바운스는 [필사]를 남기지 않는다).', { hooks: {
+    mj('siu', 'script', '은하수 필사', '눈물의 해독 · 바운스에 맞은 적에게 6초간 [필사]: 받는 화학 피해 +10%. [필사]된 적이 쓰러지면 그 자리에서 기술 위력 100% 화학 바운스가 3번 튄다 (이 바운스는 [필사]를 남기지 않는다).', { hooks: {
       onDeal(b, u, t, r, o) {
         if (r.amount <= 0 || (u.mem.siuNoMark || 0) > 0 || u.mem.siuUlt || o.elem !== 'chem' || o.kind !== 'tech' || (o.tag !== 'proc' && o.tag !== 'skill')) return;
         const ex = t.statuses.find((s) => s.key === 'siu.script' && s.src === u);
@@ -207,7 +207,7 @@ export const AUGS: Record<string, AugDef[]> = {
       onAnyDeath(b, u, dead) {
         if (dead.side === u.side || !dead.statuses.some((s) => s.key === 'siu.script' && s.src === u && s.dur > 0)) return;
         u.mem.siuNoMark = (u.mem.siuNoMark || 0) + 1;
-        hop(b, u, dead, 3, u.sk.radius || 2, b.P(u, 'tech') * 0.8, 'chem', 'tech');
+        hop(b, u, dead, 3, u.sk.radius || 2, b.P(u, 'tech') * 1, 'chem', 'tech');
         u.mem.siuNoMark--;
       },
     } }, true),
@@ -221,7 +221,7 @@ export const AUGS: Record<string, AugDef[]> = {
         u.mem.siuOrb--;
         const es = b.targetable(u);
         if (!es.length) return;
-        hop(b, u, b.rng.pick(es), SIU_ORB.hops, u.sk.radius || 2, b.P(u, 'tech') * (u.sk.bk || 0.5), 'chem', 'tech', undefined, true);
+        hop(b, u, b.rng.pick(es), SIU_ORB.hops, u.sk.radius || 2, b.P(u, 'tech') * (u.sk.bk || 0.625), 'chem', 'tech', undefined, true);
       },
     } }, true),
   ],
@@ -392,8 +392,8 @@ export const ULTS_X: Record<string, UltDef> = {
   siu: {
     id: 'siu', name: '쏟아지는 별무리', charge: 1.0, line: '이번 장은 제가 고쳐 쓸게요.',
     brief: '모든 적에게 화학 피해를 주고, 잠시 화학 피해에 약하게 만듭니다.',
-    text: `적 전체에게 [pw:tech:2.2:chem] 피해를 가합니다.\n공격이 적중하면 [s:6]간 대상이 받는 [el:chem] 피해를 [pv:0.2] 증가시킵니다.`,
-    desc: '모든 적에게 기술 위력 220% 화학 피해, 맞은 적은 6초간 받는 화학 피해 +20%p.',
+    text: `적 전체에게 [pw:tech:2.75:chem] 피해를 가합니다.\n공격이 적중하면 [s:6]간 대상이 받는 [el:chem] 피해를 [pv:0.2] 증가시킵니다.`,
+    desc: '모든 적에게 기술 위력 275% 화학 피해, 맞은 적은 6초간 받는 화학 피해 +20%p.',
     theme: { pat: 'vortex', c1: '#5ad08a', c2: '#0c1430', txt: 'reverse' },
     cast(b, u) {
       const es = b.enemiesOf(u);
@@ -401,7 +401,7 @@ export const ULTS_X: Record<string, UltDef> = {
       u.mem.siuUlt = 1; // ★ 은하수 필사: 궁극기 피해는 [필사]를 남기지 않는다
       for (const e of es) {
         b.emit({ k: 'atk', from: u.id, to: e.id, elem: 'chem', ranged: true });
-        const r = b.dealDamage(u, e, b.P(u, 'tech') * 2.2, { elem: 'chem', tag: 'skill', kind: 'tech', canMiss: false });
+        const r = b.dealDamage(u, e, b.P(u, 'tech') * 2.75, { elem: 'chem', tag: 'skill', kind: 'tech', canMiss: false });
         if (!r.miss && e.alive) b.applyStatus(u, e, { type: 'buff', key: 'siu.ult', dur: 6, taken: [vuln('chem', 0.2)], label: '별의 눈물' });
       }
       u.mem.siuUlt = 0;

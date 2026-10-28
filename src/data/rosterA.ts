@@ -16,7 +16,7 @@ export const ROSTER_A: BaseUnit[] = [
     atk: { type: 'shoot', elem: 'phys', interval: 1.1 }, range: 4, base: B(5, 8, 9, 3, 5),
     sprite: 'soldier', palette: tint(PAL.UNI, '#5a5e6a', '#2a6ad8', '#3a8aff'), lore: '"밀린 업무가 많아요. 까먹기 전에, 모두 해치우죠."',
     skill: strike({
-      name: '항밈 소거', cd: 6, pow: 'tech', elem: 'psy', mult: 1.6, params: { forget: 3, fear: 1, fearChance: 0.4, weak: 0.2, weakDur: 4 },
+      name: '항밈 소거', cd: 6, pow: 'tech', elem: 'psy', mult: 2, params: { forget: 3, fear: 1, fearChance: 0.4, weak: 0.2, weakDur: 4 },
       desc: (p) => `대상${p.radius ? `과 주변 ${p.radius}칸` : ''}에게 기술 위력 ${pct(p.mult)} 정신 피해. 기억이 지워진 적은 기술 쿨다운 +${p.forget}초, ${p.weakDur}초간 주는 피해 -${pct(p.weak)}, ${pct(p.fearChance)} 확률로 ${p.fear}초 공포${p.vuln ? `, 4초간 받는 피해 +${pct(p.vuln)}` : ''}.`,
       after: (b, u, t, _d, p) => {
         for (const e of p.radius ? b.around(t, p.radius, b.enemiesOf(u)) : [t]) if (e.alive) {
@@ -48,7 +48,7 @@ export const ROSTER_A: BaseUnit[] = [
     id: 'donovan', name: '도노반', title: '전 보안위원회 특수요원 "밤까마귀"', factions: ['UNI'], traits: ['INFIL', 'BUDDY'], keywords: ['bio'],
     atk: { type: 'strike', elem: 'phys', interval: 0.9 }, range: 1, base: B(6, 9, 7, 4, 7),
     sprite: 'soldier', palette: tint(PAL.UNI, '#5a5a66', '#2a2a30', '#b07cff'),
-    summon: { name: '까악이', ctype: 'SPEC', art: 'sm_crow', sprite: 'drone', palette: DRONE, atk: { type: 'shoot', elem: 'elec', interval: 0.8 }, range: 3, hpMul: 1.2 },
+    summon: { name: '까악이', ctype: 'SPEC', art: 'sm_crow', sprite: 'drone', palette: DRONE, atk: { type: 'shoot', elem: 'elec', interval: 0.8, mult: 1.25 }, range: 3, hpMul: 1.2 },
     lore: '"휴가 중. 기한 100년. 고양이 사료는 문 앞에."',
     skill: strike({
       name: '자안의 사수', cd: 7, pow: 'tech', elem: 'phys', mult: 2.3, target: 'lowest', blink: true, params: { crit: 0.2 },

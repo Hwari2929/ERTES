@@ -214,8 +214,8 @@ export const GLOBAL_BY_ID: Record<string, GlobalDef> = Object.fromEntries([...GL
 export interface BlessingDef { id: string; name: string; desc: string; team?: Effect; onPick?: (run: RunState) => void }
 export const BLESSINGS: BlessingDef[] = [
   { id: 'B.martyr', name: '순교자의 가호', desc: '이번 페이즈 모든 아군 최대 체력 +20%.', team: { pct: { maxHp: 0.2 } } },
-  { id: 'B.flame', name: '성전의 불꽃', desc: '이번 페이즈 모든 아군 기본 공격에 기술 위력 25% 신성 추가 피해.',
-    team: { hooks: { onBasic(b, u, t, r) { if (!r.miss && t.alive) skillHit(b, u, t, 'tech', 0.25, 'holy', { tag: 'proc', noMiss: true }); } } } },
+  { id: 'B.flame', name: '성전의 불꽃', desc: '이번 페이즈 모든 아군 기본 공격에 기술 위력 31% 신성 추가 피해.',
+    team: { hooks: { onBasic(b, u, t, r) { if (!r.miss && t.alive) skillHit(b, u, t, 'tech', 0.3125, 'holy', { tag: 'proc', noMiss: true }); } } } },
   { id: 'B.sanctum', name: '성소의 빛', desc: '이번 페이즈 전투 시작 시 모든 아군 최대 체력 15% 보호막.',
     team: { hooks: { onStart(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.15); } } } },
   { id: 'B.zeal', name: '광신', desc: '이번 페이즈 모든 아군 공격 속도 +25%, 받는 피해 +10%.',
