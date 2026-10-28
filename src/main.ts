@@ -1,4 +1,4 @@
-import { PREVIEW_SECS, startPreview } from './engine/preview';
+import { PREVIEW_SECS, foeKey, startPreview } from './engine/preview';
 import { CFG, encDmgMult, phaseAmpMult, phaseHpMult, scalePhase } from './config';
 import { AUG_BY_ID, augDesc } from './data/augments';
 import { ENEMIES, ENEMY_BY_ID, type EnemyDef } from './data/enemies';
@@ -1803,10 +1803,12 @@ function summonCard(t: CompanionTok) {
         <span class="tk-items tk-none" aria-hidden="true">${itemIcon(null)}${itemIcon(null)}${itemIcon(null)}</span></div>`; // 장비 칸 자리는 비워 두되 높이는 기물 토큰과 같게
 }
 const TURRET_SPR = { sprite: 'turret', palette: TURRET_PAL, art: 'sm_turret' };
-/** 개전 예측 (편성 화면, 선택한 출전 기물): 예상 이동 경로 · 병목 칸 · 첫 공격 목표를 보드 위에 (engine/preview.ts) */
+/** 개전 예측 (편성 화면, 선택한 출전 기물 · 적): 예상 이동 경로 · 병목 칸 · 첫 공격 목표를 보드 위에 (engine/preview.ts) */
 function selPreview(run: RunState) {
   const sel = app.sel, enc = run.node?.enc;
-  if (sel?.k !== 'unit' || !enc) return null;
+  if (!enc) return null;
+  if (sel?.k === 'enemy') return enc.enemies[sel.i] ? startPreview(run, enc).get(foeKey(sel.i)) || null : null;
+  if (sel?.k !== 'unit') return null;
   const u = run.units.find((x) => x.uid === sel.uid);
   if (!u?.pos) return null;
   return startPreview(run, enc).get(u.uid) || null;
@@ -2660,6 +2662,7 @@ function detailPanel(run: RunState, extra = '') {
     const eq = foeGear(e, s);
     return `<div class="detail">${bar}
       ${foeHead(e, sprite(e, 'spr big'), unitRank(e, c))}
+      ${startChips(run)}
       ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.map((x) => `<span class="tk-it">${itemIcon(x, `data-a="foe-item" data-v="${x}"`)}</span>`).join('')}</div></div>` : ''}
       <div class="mj-wrap"><div class="mj-head"><h3>주요 능력치 <span class="muted small">페이즈 ${ph} · 체력 ${fmt(b.S(c, 'maxHp'))}</span></h3>${magBtn()}</div>${majorsHtml(ms, foeAmp(ms, c))}</div>
       <h3>능력</h3><div class="abils">${enemyAbilCards(e, b, c)}</div>

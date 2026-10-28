@@ -2,7 +2,7 @@
 // (예전에는 캐시 키에 조우의 장치 · 지형 틀이 빠져 있어 낡은 예측이 남았다)
 import * as R from '../src/engine/run';
 import { buildBattle, deployed, encGeo, layout, prepOccupied, terrainCells, zoneAt } from '../src/engine/build';
-import { previewKey, startPreview } from '../src/engine/preview';
+import { foeKey, previewKey, startPreview } from '../src/engine/preview';
 import { DEV } from '../src/data/devices';
 import { RECRUITABLE } from '../src/data/units';
 import type { Encounter, RunState } from '../src/types';
@@ -39,7 +39,12 @@ const free = (run: RunState, enc: Encounter, x: number, y: number, decoy = false
 {
   const { run, enc } = mkRun(7);
   const p0 = snap(run, enc);
-  ok(startPreview(run, enc).size === deployed(run).length && deployed(run).length > 0, `예측: 출전 기물 ${deployed(run).length}명 모두`);
+  ok(deployed(run).every((u) => startPreview(run, enc).has(u.uid)) && deployed(run).length > 0, `예측: 출전 기물 ${deployed(run).length}명 모두`);
+  ok(enc.enemies.every((_, i) => startPreview(run, enc).has(foeKey(i))) && enc.enemies.length > 0, `예측: 적 ${enc.enemies.length}명 모두`);
+  { const fp = [...enc.enemies.keys()].map((i) => startPreview(run, enc).get(foeKey(i))!);
+    ok(fp.some((p) => p.path.length > 1), '예측: 적도 이동 경로가 있다');
+    const allyAt = new Set(buildBattle(run, enc, true).units.filter((u) => u.side === 0).map((u) => `${u.x},${u.y}`));
+    ok(fp.some((p) => p.target) && fp.filter((p) => p.target).every((p) => p.target!.enemy === undefined && allyAt.has(`${p.target!.x},${p.target!.y}`)), '예측: 적의 첫 목표 = 아군 (시작 칸)'); }
   const pv = startPreview(run, enc);
   // 근접 기물의 첫 목표 바로 앞(아군 쪽) 빈칸, 없으면 예상 경로 위 빈칸
   let at: { x: number; y: number } | null = null;
