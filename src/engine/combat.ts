@@ -938,6 +938,7 @@ export class Battle {
       if (u.reloadT <= 0) { u.reloadT = 0; u.ammo = u.weapon?.mag || 1; }
     }
     if (u.moveT > 0) return;
+    if ((u.mem.knockUntil || 0) > this.t) return; // 밀쳐내기 · 끌어당기기 직후 (CFG.knockStagger): 이동 · 기본 공격 · 기술 · 비술 · 궁극기 불가
 
     // 광폭: 피아 구분 없이 가장 가까운 대상
     const frenzy = this.frenzied(u);
@@ -1022,7 +1023,6 @@ export class Battle {
       d2 = this.dist(u, t2); // 밀쳐내기 등으로 대상 위치가 바뀌었을 수 있다
     }
     // 암살형 적에게 노려지는 아군: 그 적이 다가오면 1칸 물러난다 (공격이 준비돼 있고 사거리 안이면 공격 먼저)
-    if ((u.mem.knockUntil || 0) > this.t) return; // 밀쳐내기 직후: 이동 · 기본 공격 불가 (CFG.knockStagger)
     if (u.alive && !(t2.alive && !u.noAttack && d2 <= range && !fearOnly && u.atkTimer <= 0 && u.reloadT <= 0) && this.flee(u, frenzy || confused)) return;
     if (!t2.alive || u.noAttack || !u.alive) return;
     if (d2 <= range && this.los(u, t2)) {
@@ -1431,6 +1431,7 @@ export class Battle {
     tgt.x = nx; tgt.y = ny;
     tgt.moveDur = tgt.moveT = 0.25;
     tgt.mem.lastCell = -1;
+    tgt.mem.knockUntil = Math.max(tgt.mem.knockUntil || 0, this.t + CFG.knockStagger);
     this.emit({ k: 'status', id: tgt.id, name: '끌어당기기', src: src.id, harm: true, stype: 'knock' });
     this.displaced(src, tgt, 'pull');
     return { moved: true };
