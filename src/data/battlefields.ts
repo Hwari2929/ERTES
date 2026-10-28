@@ -99,7 +99,7 @@ export const FIELDS: FieldDef[] = [
     desc: '"물러서라. 그것이 내가 너희에게 내리는 유일한 명령이다." 인간 1,100명과 메카 10억 기가 지키는 궤도.',
     rules: ['물러서지 않는 진형: 모든 적 방어도 +10%', '동맹 기물 피해 +20%, 효과 명중 +20%p, 방어도 관통 +15%p'],
     pool: ['sp_hoplite', 'sp_lancer', 'sp_archer', 'sp_drone'], elite: 'sp_phalanx', bosses: ['sp_colossus', 'sp_spear'],
-    enemyMod: (c) => { c.st.armor *= 1.1; },
+    enemyMod: (c) => { threat(c, 0.95); c.st.armor *= 1.1; },
     ally: { syn: 'HEL', effect: { mods: [inc('all', 0.2)], stats: { effHit: 0.2, armorPen: 0.15 } } },
   },
   {
@@ -114,11 +114,11 @@ export const FIELDS: FieldDef[] = [
   {
     id: 'waste', name: '황무지 성계', region: '무법 변경 · 약탈자 항로', icon: '☠', color: '#b08a5a',
     desc: '어느 세력의 깃발도 닿지 않는 변경. 약탈 함대와 공허의 잔향이 떠돈다. 대신 주인 없는 물자도 많다.',
-    rules: ['무법지대: 2페이즈부터 일반 전투 적 +1, 전투 재료 드랍 확률 ×2', '물자 부족: 상점 가격 +25%', '범은하 공동체 기물 피해 +20%'],
+    rules: ['무법지대: 3페이즈부터 일반 전투 적 +1, 전투 재료 드랍 확률 ×2', '물자 부족: 상점 가격 +10%', '범은하 공동체 기물 피해 +20%'],
     pool: ['raider', 'gunner', 'drone', 'crawler', 'trooper', 'turret', 'wraith', 'priest'], elite: 'warlord', bosses: ['varga', 'goliath', 'nyx'],
-    enemyMod: (c) => threat(c, 0.95),
+    enemyMod: (c) => threat(c, 0.88),
     ally: { syn: 'PAN', effect: { mods: [inc('all', 0.2)] } },
-    dropMul: 2, shopMul: 1.25, extraEnemies: 1, extraFrom: 2,
+    dropMul: 2, shopMul: 1.1, extraEnemies: 1, extraFrom: 3,
   },
   // ═════════ 신규 전장 (docs/FIELDS_DRAFT.md)
   {
@@ -126,7 +126,7 @@ export const FIELDS: FieldDef[] = [
     desc: '너무 완벽한 이웃들이 사는 동네. 보안위원회 지부가 직접 움직일 수 없어, 군체 광대와 성도회 정화조를 함께 걷어 낼 바깥 용병을 불렀다.',
     rules: ['이웃의 얼굴: 일반 · 역경 전투에서 적 1기(4페이즈부터 2기)가 아군 뒷줄 빈칸에 섞여 시작 — 5초 은신 · 정지 후 주변 1칸 타격 120% + 1초 공포', '보안위원회 기물 피해 +20%, 은신한 적도 공격 대상으로 지정'],
     pool: ['cf_neighbor', 'cf_dog', 'sw_spitter', 'cf_purifier', 'cf_drone'], elite: 'cf_chair', bosses: ['cf_model', 'cf_inquisitor'],
-    enemyMod: (c) => threat(c, 1.05),
+    enemyMod: (c) => threat(c, 1.12),
     ally: { syn: 'SEC', effect: { mods: [inc('all', 0.2)], setup: (u) => { u.mem.seeStealth = 1; } } },
     battle: {
       // 침투자 순간이동보다 먼저 굴린다 (이웃이 먼저 뒷줄에 섞이고, 침투자는 그 뒤에 적진으로 뛴다)
@@ -242,7 +242,7 @@ export const FIELDS: FieldDef[] = [
     pool: ['hy_teller', 'hy_cashier', 'hy_exchange', 'turret', 'drone'], elite: 'hy_appraiser', bosses: ['hy_door', 'hy_zodiac'],
     ally: { syn: 'INFIL', effect: { mods: [inc('all', 0.2)], hooks: { onStart(b, u) { for (const e of b.around(u, 1, b.enemiesOf(u))) if (e.mem.layers) { e.mem.layers = Math.max(0, e.mem.layers - 3); b.emit({ k: 'status', id: e.id, name: e.mem.layers ? `보호막 ${e.mem.layers}겹` : '보호막 붕괴' }); } } } } },
     winCredits: 3,
-    enemyMod: (c) => { threat(c, 1.08); if (!c.mem.inert) c.mem.layers = c.mem.layersMax = c.isBoss || c.elite ? 13 : 3; },
+    enemyMod: (c) => { threat(c, 1.15); if (!c.mem.inert) c.mem.layers = c.mem.layersMax = c.isBoss || c.elite ? 13 : 3; },
     battle: {
       onStart(b) {
         for (const u of b.fighters(1)) {

@@ -3,7 +3,7 @@
 import { CFG } from '../src/config';
 import * as R from '../src/engine/run';
 import { buildBattle, encGeo, PAD } from '../src/engine/build';
-import { FIELDS } from '../src/data/battlefields';
+import { FIELDS, fieldOf } from '../src/data/battlefields';
 import { MERCHANT_BY_ID, MERCHANTS, merchantPool } from '../src/data/merchants';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_GRADED, combine, CONSUMABLES, CRYSTAL, DUST, itemEffect, itemInfo, potPool, POTS, potsOf, SHARD } from '../src/data/items';
 import { DEV, type Device, feastChain } from '../src/data/devices';
@@ -109,7 +109,8 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
 // ── 4. 새로고침: 페이즈마다 1번 · 첫 번 무료 · 그다음 (base, +step) × 상점 배율 (진열 가격과 같은 shopMul: 전장 · 관세 · 단골 할인) · 진열 개수도 다시
 {
   const RF = CFG.shop.refresh;
-  const cases: [string, boolean, boolean, number][] = [['swarm', false, false, 1], ['waste', false, false, 1.25], ['livin', false, false, 1.15], ['waste', true, false, 1.25 * (1 + CFG.despair.tariff)], ['waste', true, true, 1.25 * (1 + CFG.despair.tariff) * (1 - CFG.globalAug.discount)], ['swarm', false, true, 1 - CFG.globalAug.discount]];
+  const WASTE = fieldOf('waste').shopMul || 1;
+  const cases: [string, boolean, boolean, number][] = [['swarm', false, false, 1], ['waste', false, false, WASTE], ['livin', false, false, 1.15], ['waste', true, false, WASTE * (1 + CFG.despair.tariff)], ['waste', true, true, WASTE * (1 + CFG.despair.tariff) * (1 - CFG.globalAug.discount)], ['swarm', false, true, 1 - CFG.globalAug.discount]];
   for (const [field, tariff, discount, expMul] of cases) {
     const run = mk(9, field);
     if (tariff) run.despairs = [...(run.despairs || []), 'D.tariff'];
@@ -136,10 +137,10 @@ function mk(seed: number, field = 'waste', diff = 0, phase = 1): RunState {
     const ex = MERCHANT_BY_ID[m].ex;
     ok(!ex || run.node!.shop!.some((x) => x.item === ex), `[${lab}] 새로고침 뒤에도 전용 상품`);
   }
-  // 배율이 1이 아니면 숫자가 실제로 바뀐다 (황무지 ×1.25: 6 → 8 · 10 → 13)
+  // 배율이 1이 아니면 숫자가 실제로 바뀐다 (황무지 ×shopMul)
   const rw = mk(9, 'waste');
   rw.shopRf = { n: 1, ph: 0 };
-  ok(R.refreshInfo(rw).cost === Math.round(RF.base * 1.25) && R.refreshInfo(rw).cost !== RF.base, `황무지 유료 첫 새로고침 ${RF.base} → ${R.refreshInfo(rw).cost}`);
+  ok(R.refreshInfo(rw).cost === Math.round(RF.base * (fieldOf('waste').shopMul || 1)) && R.refreshInfo(rw).cost !== RF.base, `황무지 유료 첫 새로고침 ${RF.base} → ${R.refreshInfo(rw).cost}`);
   // 새로고침은 진열 개수도 다시 뽑는다 (유이 티켓은 늘)
   const lens = new Set<number>();
   let exMiss = 0;
