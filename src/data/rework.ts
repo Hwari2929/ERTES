@@ -21,11 +21,13 @@ export const GUNNIR_HEAL = 0.3, GUNNIR_FAM_HEAL = 0.15;
 /** 나디르 [사이오닉 영사]: 바운스 계수 (기술 위력) · 칸 · 기본 공격 / 전투 스킬 바운스 횟수 */
 export const NADIR = { k: 0.25, r: 2, basicN: 2, skillN: 3 };
 /** 도로스 [성도회식 만찬]: 기본 공격마다 아군 전원 회복 (전술 위력 비율) */
-export const DOROS_FEAST = 0.05;
+export const DOROS_FEAST = 0.0375;
 /** 미리내 [물질주의 캠퍼]: 물러나는 칸 · 물러날 때 사격 계수 */
 export const MIRINAE = { r: 2, k: 1.5 };
 /** 카일 [성전 기사]: 피니쉬 적중 시 대상 · 주변 1칸 신성 피해 (타격 위력 비율) */
 export const KYLE_FINISH = 1;
+/** 비비안 [생태 분석]: 리키 상속률 가산 */
+export const VIVIAN_BOND = 0.5;
 
 // ───────── 무기 헬퍼: G = 탄창형(사격), K = 콤보형(타격)
 const G = (name: string, elem: Elem, interval: number, range: number, mult: number, mag: number, reload: number, x: Partial<Weapon> = {}): Weapon =>
@@ -754,8 +756,8 @@ export const REWORK: Record<string, ReworkDef> = {
     // 다트 소총 사격 · 리키 상속 모두 전투력
     rec: ['pow', 'agi'], recItems: ['pow_pow', 'pow_agi', 'vit_pow', 'pow_mnd', 'pow_def'],
     trait: {
-      name: '생태 분석', desc: '비비안과 리키의 기본 공격이 대상의 방어도를 10%p 깎는다 (최대 3중첩, 5초). 리키 기본 공격 피해 +12%.',
-      effect: { hooks: {
+      name: '생태 분석', desc: `비비안과 리키의 기본 공격이 대상의 방어도를 10%p 깎는다 (최대 3중첩, 5초). 리키 기본 공격 피해 +12%, 리키 상속률 +${pct(VIVIAN_BOND)}p.`,
+      effect: { setup: (u) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + VIVIAN_BOND; }, hooks: {
         onBasic(b, u, t, r) { if (r.amount > 0) shred(b, u, t); },
         onTick(b, u) {
           if (u.mem.vivInit) return;

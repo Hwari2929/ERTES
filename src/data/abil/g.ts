@@ -2,6 +2,7 @@
 import { CFG } from '../../config';
 import type { AbilText, Area } from '../abiltext';
 import { KING } from '../chungra';
+import { CLOVER_BOND } from '../rosterG';
 import { PSI } from '../psinum';
 
 type Row = [string, string];
@@ -169,6 +170,7 @@ export const ABIL_G: Record<string, AbilText> = {
       '기본 공격을 하면 대상을 제외하고 자신으로부터 [t:2] 이내의 적들에게 [pw:shoot:0.6:phys] 피해를 가하고, 맞은 적마다 [p:0.25] 기본 확률로 [g:burn] 효과를 1중첩 부여합니다.',
       '농업 드론은 공격하지 않고, [s:3]마다 체력 비율이 가장 낮은 아군을 지정해 농업 드론 기술 위력의 [p:1.5]에 [g:cook] 배율을 곱한 만큼 회복시킵니다.',
       '농업 드론은 가끔 자신 근처의 빈칸으로 돌아다닙니다.',
+      `공명 등급 1당 농업 드론의 [g:inherit]이 [pv:${CLOVER_BOND}] 증가합니다.`,
     ),
     summon: {
       '농업 드론': (p) => ({

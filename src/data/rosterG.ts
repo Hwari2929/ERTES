@@ -59,6 +59,8 @@ const DRONE: SummonDef = { name: '농업 드론', ctype: 'SPEC', art: 'sm_farmdr
 const CLERK: SummonDef = { name: '저승청 관료', ctype: 'SPEC', art: 'sm_hadesclerk', sprite: 'robe', palette: tint('#2a2a34', '#c8ccd8', '#ffd84d', HEL_PAL), atk: { type: 'shoot', elem: 'holy', interval: 1.2, mult: 1.25 }, range: 3, hpMul: 0.8 };
 /** 클로버 농작물 (드론 1기당 주기 · 회복 계수 = 드론 기술 위력 대비 · 요리 배율) */
 export const CROP = { every: 3, heal: 1.5 };
+/** 클로버 [광양 관리 AI]: 공명 등급 1당 농업 드론 상속률 가산 */
+export const CLOVER_BOND = 0.05;
 /** 미노스: 관료 추가 소환 주기 · 최대 · 공포 확률 */
 export const CLERKS = { every: 10, max: 3, fear: 0.25 };
 
@@ -458,10 +460,10 @@ export const REWORK_G: Record<string, ReworkDef> = {
   clover: {
     ctype: 'MARK', ttype: 'special', faith: 'science', weapon: G('수확용 회전날', 'phys', 1.1, 2, 0.8, 8, 1.8),
     trait: {
-      name: '광양 관리 AI', desc: '움직이지 않는다. 방어도 +60%. 기본 공격이 대상과 함께 2칸 안의 다른 적 모두에게 사격 위력 60% 물리 피해를 주고, 맞은 적마다 25% 확률로 연소 1중첩. 농업 드론은 공격하지 않고 3초마다 체력 비율이 가장 낮은 아군에게 농작물을 던져 회복시킨다 (요리 배율).',
+      name: '광양 관리 AI', desc: `움직이지 않는다. 방어도 +60%. 기본 공격이 대상과 함께 2칸 안의 다른 적 모두에게 사격 위력 60% 물리 피해를 주고, 맞은 적마다 25% 확률로 연소 1중첩. 농업 드론은 공격하지 않고 3초마다 체력 비율이 가장 낮은 아군에게 농작물을 던져 회복시킨다 (요리 배율). 공명 등급 1당 농업 드론 상속률 +${pct(CLOVER_BOND)}p.`,
       effect: {
         pct: { armor: 0.6 },
-        setup: (u) => { u.immobile = true; },
+        setup: (u) => { u.immobile = true; u.mem.bondBonus = (u.mem.bondBonus || 0) + CLOVER_BOND * (u.src?.rank || 1); }, // 공명 등급당 농업 드론 상속률
         hooks: {
           onBasic(b, u, t, r) {
             if (!r.miss && t.alive) addBurn(b, u, t, 1, 0.25 + (u.mem.cloverBurn || 0));

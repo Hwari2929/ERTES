@@ -2,7 +2,7 @@
 // 상세 문장 문형: docs/ABILITY_TEXT.md (줄마다 한 문장, 토큰 [rng] [pw] [el] [t] [s] [p] [pp] [pv] [g] [fx])
 // 지휘관(도로스 · 시그문드)의 스킬 위력은 [pw:tac:…] (전술 위력) 으로 적는다
 import type { AbilText, Area } from '../abiltext';
-import { DOROS_FEAST, GUNNIR_FAM_HEAL, GUNNIR_HEAL, KYLE_FINISH } from '../rework';
+import { DOROS_FEAST, GUNNIR_FAM_HEAL, GUNNIR_HEAL, KYLE_FINISH, VIVIAN_BOND } from '../rework';
 
 type Row = [string, string];
 type P = Record<string, number>;
@@ -287,6 +287,7 @@ export const ABIL_C: Record<string, AbilText> = {
     trait: L(
       '비비안과 리키의 기본 공격이 적중하면 [s:5]간 대상의 방어도를 [p:0.1] 감소시키며, 이 효과는 최대 3회 중첩됩니다.',
       '리키의 기본 공격 피해가 [p:0.12] 증가합니다.',
+      `리키의 [g:inherit]이 [pv:${VIVIAN_BOND}] 증가합니다.`,
     ),
     summon: {
       리키: (p) => ({

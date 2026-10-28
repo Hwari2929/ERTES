@@ -96,6 +96,8 @@ function panGift(t: number, ctx: EffectCtx): Effect | null {
   return { stats, pct: armor ? { armor } : undefined, mods, majors };
 }
 
+/** 스텔라레이서: 단계별 비행선 추락 고정 피해 (모든 적 최대 체력 비율) */
+const STL_DMG = [0.05, 0.08, 0.12, 0.2];
 /** 스텔라레이서: 비행선 추락 */
 function shipCrash(b: Battle, u: CUnit, k: number, t = 1) {
   b.emit({ k: 'status', id: u.id, name: '비행선 추락!' });
@@ -403,10 +405,10 @@ export const SYNERGIES: SynDef[] = [
   {
     id: 'STL', name: '스텔라레이서', kind: 'faction', tiers: [2, 4, 6, 8], color: '#ff6a3d', icon: '➹',
     desc: '성간 경기장의 레이서들. 레이서 기물은 빠르고, 전투가 시작되면 경기장에서 이탈한 비행선이 적진에 추락해 모든 적에게 최대 체력 비례 고정 피해를 줍니다.',
-    tierDesc: ['기동력 +5, 전투 시작 비행선 추락: 모든 적 최대 체력 6% 고정 피해', '기동력 +11, 추락 10%, 20초마다 다시 추락, 추락 직후 4초간 레이서 공격 속도 +60%',
-      '기동력 +18, 추락 13%, 14초마다 다시 추락, 추락 직후 레이서 공격 속도 +60%', '[그랑프리 대참사] 기동력 +30, 추락 18%, 8초마다 다시 추락, 추락 직후 레이서 공격 속도 +60%'],
+    tierDesc: [`기동력 +5, 전투 시작 비행선 추락: 모든 적 최대 체력 ${pct(STL_DMG[0])} 고정 피해`, `기동력 +11, 추락 ${pct(STL_DMG[1])}, 20초마다 다시 추락, 추락 직후 4초간 레이서 공격 속도 +60%`,
+      `기동력 +18, 추락 ${pct(STL_DMG[2])}, 14초마다 다시 추락, 추락 직후 레이서 공격 속도 +60%`, `[그랑프리 대참사] 기동력 +30, 추락 ${pct(STL_DMG[3])}, 8초마다 다시 추락, 추락 직후 레이서 공격 속도 +60%`],
     member: (t) => {
-      const dmg = T(t, [0.06, 0.1, 0.13, 0.18]), every = T(t, [0, 20, 14, 8]);
+      const dmg = T(t, STL_DMG), every = T(t, [0, 20, 14, 8]);
       const lead = (b: Battle, u: CUnit) => b.alliesOf(u).find((a) => a.mem.stl) === u;
       return {
         majors: { agi: T(t, [5, 11, 18, 30]) },
