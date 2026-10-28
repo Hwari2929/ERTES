@@ -515,7 +515,9 @@ button { font: inherit; color: inherit; }
 .brand { font-family: var(--f-display); font-size: var(--fs-2xl); color: var(--c-brand); letter-spacing: .04em; }
 .stat-row { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
 /* 런 리본의 칩 줄: 높이를 고정하고 한 줄만 쓴다. 칩이 늘어나도 (절망 서약 · 절망 증강 · 영수 증서 · 인과) 리본이 두꺼워지지 않고 옆으로 밀어 본다 */
-.top .stat-row { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; align-items: center; height: var(--top-pill-h); overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; }
+/* 칩 묶음: 남는 폭을 차지하고, 그 안에서 칩 줄은 내용 폭만큼 · 기타 칩은 바로 뒤 (이자 칩 옆). 칩이 넘치면 칩 줄만 줄어 옆으로 밀어 본다 */
+.top-chips { display: flex; align-items: center; gap: 6px; flex: 1 1 0; min-width: 0; }
+.top .stat-row { flex: 0 1 auto; min-width: 0; flex-wrap: nowrap; align-items: center; height: var(--top-pill-h); overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; }
 .top .stat-row::-webkit-scrollbar { display: none; }
 .pill { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-pill); padding: 2px 10px; font-size: var(--fs-base); font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 3px; }
 .top .pill { white-space: nowrap; flex: none; height: var(--top-pill-h); box-sizing: border-box; overflow: hidden; } /* 리본 칩: 높이 고정 · 안에서 줄바꿈 없음 */
@@ -2771,7 +2773,7 @@ body:has(> .adv) .ach-toasts { bottom: auto; top: calc(58px + env(safe-area-inse
 @media (orientation: landscape) and (max-height: 560px) {
   .wrap { padding-inline: 12px; padding-block: 8px 0; }
   .top { flex-wrap: nowrap; padding-block: 4px; gap: 8px; }
-  .top .stat-row { flex: 0 1 auto; }
+  .top-chips { flex: 0 1 auto; }
   .brand { display: none; }
   .top-syns-wrap { display: block; position: relative; flex: 1 1 0; min-width: 0; order: 0; }
   .top-syns { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 8px; padding: 2px 4px; scrollbar-width: none; position: static; }

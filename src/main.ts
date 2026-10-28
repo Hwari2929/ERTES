@@ -372,6 +372,7 @@ function topbar() {
   const it = interestLines(r);
   return `<header class="top">
     <div class="brand">ERRANTEs</div>
+    <div class="top-chips">
     <div class="stat-row">
       ${r.campaign ? `<span class="pill" title="장 · 노드"><b>${r.campaign.ch}</b>장 · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>` : `<span class="pill" title="페이즈 · 노드">P<b>${r.phase}</b> · ${Math.min(r.step + 1, r.map.length)}/${r.map.length}</span>`}
       <span class="pill hp" title="체력">${lineIcon('r.hp', 'li')}<b>${r.hp}</b>/${r.maxHp}</span>
@@ -379,6 +380,7 @@ function topbar() {
       ${CTR.contractPill(r)}${despairPill(r)}${OATH.oathPill(r)}${kingPill(r)}
     </div>
     ${extra.length ? `<details class="pill more"><summary title="기타 자원">${lineIcon('r.more', 'li')}<span class="more-tx">기타</span></summary><ul class="more-list">${extra.join('')}</ul></details>` : ''}
+    </div>
     ${app.screen === 'battle' ? '' : `<button class="btn ghost menu-btn" data-a="menu" title="메뉴" aria-label="메뉴">${lineIcon('r.menu', 'li')}</button>`}
     ${syns.length && app.screen !== 'battle' ? `<div class="top-syns-wrap"><div class="top-syns pc-syn">${syns.map((s) => synToken(s.id, counts[s.id] || 0)).join('')}</div><span class="ts-more" aria-hidden="true">›</span></div>` : ''}
   </header>`;
