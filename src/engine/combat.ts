@@ -307,7 +307,7 @@ export const fleeRule = () => `암살형 적의 표적이 된 아군 ${fleeWho()
 export const fleeShort = () => `암살형 적의 표적이 되면 그 적이 ${CFG.flee.r}칸 안으로 올 때 1칸 물러난다 (${CFG.flee.cd}초에 1번, 공격 준비가 되면 공격 먼저)`;
 export const TEND_NAME: Record<EnemyTend, { name: string; desc: string }> = {
   charge: { name: '돌격형', desc: '가까운 대상을 먼저 노리고, 도발 수치를 가장 충실히 따른다' },
-  assassin: { name: '암살형', desc: `체력이 낮거나 뒷줄에 있는 약한 대상을 노리고, 도발 수치에 덜 휘둘린다. 기본 이동 속도가 다른 성향의 ${+(CFG.enemyMoveSpd.assassin / CFG.enemyMoveSpd.base).toFixed(2)}배이고, 돌격가 경계에 걸리는 교전 시간 · 그때 돌격가에게 쌓이는 도발 수치가 ${xm(CFG.zoc.assassinMul)}이다. 표적이 된 아군 ${fleeWho()} 기물은 이 적이 ${CFG.flee.r}칸 안으로 다가오면 ${CFG.flee.cd}초에 1번씩 1칸 물러난다` },
+  assassin: { name: '암살형', desc: `체력이 낮거나 뒷줄에 있는 약한 대상을 노리고, 도발 수치에 덜 휘둘린다. 기본 이동 속도가 다른 성향의 ${+(CFG.enemyMoveSpd.assassin / CFG.enemyMoveSpd.base).toFixed(2)}배이고, 돌격가 경계에 걸리는 교전 시간 · 그때 돌격가에게 쌓이는 도발 수치가 ${xm(CFG.zoc.assassinMul)}, 경계 안 이동 속도가 ${xm(CFG.zoc.assassinSlow)}이다. 표적이 된 아군 ${fleeWho()} 기물은 이 적이 ${CFG.flee.r}칸 안으로 다가오면 ${CFG.flee.cd}초에 1번씩 1칸 물러난다` },
   sniper: { name: '저격형', desc: '피해를 가장 많이 준 대상을 노린다' },
   counter: { name: '반격형', desc: '동료 적을 때린 대상을 노린다' },
 };
@@ -321,17 +321,17 @@ const zocHoldExamples = () => `돌격가 ×${PROV.van} → ${+zocHoldOf(PROV.van
 export const zocRows = (): [string, string][] => [
   ['경계 범위', `아군 돌격가 주변 ${CFG.zoc.r}칸 (편성 화면에서만 보임)`],
   ['경계 효과', '들어온 적이 그 자리에 멈춘다 (공격 · 기술은 함) · 그 돌격가에게 도발 수치 누적'],
+  ['경계 안 이동 속도', `${xm(CFG.zoc.slow)} (경계 칸에서 나가거나 들어가는 걸음)`],
   ['교전 시간', zocHoldFormula()],
   ['예시', zocHoldExamples()],
   ['겹친 경계', '긴 쪽 적용'],
-  ['경계 → 경계', '곧장 넘어갈 수 없음 (돌격가 사이 틈 차단)'],
-  ['암살형 적', `교전 시간 · 도발 ${xm(CFG.zoc.assassinMul)} (경계 → 경계 금지는 같음)`],
+  ['암살형 적', `교전 시간 · 도발 ${xm(CFG.zoc.assassinMul)} · 경계 안 이동 속도 ${xm(CFG.zoc.assassinSlow)}`],
   ['적 쪽 경계', '없음'],
 ];
 /** 돌격가 경계 규칙 문구 (교범 · 전투 유형 설명): CFG.zoc · PROV 에서 읽는다 */
-export const zocRule = () => `아군 돌격가 주변 ${CFG.zoc.r}칸은 경계다. 적이 경계 칸에 들어오면 그 자리에서 멈춰 교전 시간 동안 움직이지 못하고 (공격 · 기술은 한다) 그 돌격가에게 도발 수치가 쌓인다. 교전 시간 = ${zocHoldFormula()}, 도발 배율은 그 경계를 만든 돌격가의 값이다 (${zocHoldExamples()}, 경계가 겹치면 긴 쪽). 경계 칸에서 다른 경계 칸으로 곧장 넘어갈 수 없어 돌격가 사이의 틈을 그냥 빠져나가지 못한다. 암살형 성향의 적도 경계에 걸리지만 교전 시간과 그 돌격가에게 쌓이는 도발 수치가 ${xm(CFG.zoc.assassinMul)}이다 (경계 → 경계 이동 금지는 똑같이 받는다). 적 쪽에는 경계가 없다. 경계 범위는 편성 화면에서만 보인다.`;
+export const zocRule = () => `아군 돌격가 주변 ${CFG.zoc.r}칸은 경계다. 적이 경계 칸에 들어오면 그 자리에서 멈춰 교전 시간 동안 움직이지 못하고 (공격 · 기술은 한다) 그 돌격가에게 도발 수치가 쌓인다. 교전 시간 = ${zocHoldFormula()}, 도발 배율은 그 경계를 만든 돌격가의 값이다 (${zocHoldExamples()}, 경계가 겹치면 긴 쪽). 경계 칸에서 나가거나 경계 칸으로 들어가는 걸음은 이동 속도가 ${xm(CFG.zoc.slow)}이다. 암살형 성향의 적도 경계에 걸리지만 교전 시간과 그 돌격가에게 쌓이는 도발 수치가 ${xm(CFG.zoc.assassinMul)}, 경계 안 이동 속도는 ${xm(CFG.zoc.assassinSlow)}이다. 적 쪽에는 경계가 없다. 경계 범위는 편성 화면에서만 보인다.`;
 /** 짧은 경계 문구 (편성 칸 툴팁 · 돌격가 한 줄 설명) */
-export const zocShort = (hold?: number) => `돌격가 경계: 들어온 적은 ${hold !== undefined ? `${+hold.toFixed(3)}초` : zocHoldFormula()} 멈춰 교전, 경계에서 경계로 곧장 넘어가지 못함 (암살형은 ${hold !== undefined ? `${+(hold * CFG.zoc.assassinMul).toFixed(3)}초` : `교전 시간 ${xm(CFG.zoc.assassinMul)}`})`;
+export const zocShort = (hold?: number) => `돌격가 경계: 들어온 적은 ${hold !== undefined ? `${+hold.toFixed(3)}초` : zocHoldFormula()} 멈춰 교전, 경계 안 이동 속도 ${xm(CFG.zoc.slow)} (암살형은 ${hold !== undefined ? `${+(hold * CFG.zoc.assassinMul).toFixed(3)}초` : `교전 시간 ${xm(CFG.zoc.assassinMul)}`} · 이동 속도 ${xm(CFG.zoc.assassinSlow)})`;
 /** 도발 수치 계수 */
 export const PROV = {
   /** 그 적에게 준 피해 1당 */
@@ -1022,6 +1022,7 @@ export class Battle {
       d2 = this.dist(u, t2); // 밀쳐내기 등으로 대상 위치가 바뀌었을 수 있다
     }
     // 암살형 적에게 노려지는 아군: 그 적이 다가오면 1칸 물러난다 (공격이 준비돼 있고 사거리 안이면 공격 먼저)
+    if ((u.mem.knockUntil || 0) > this.t) return; // 밀쳐내기 직후: 이동 · 기본 공격 불가 (CFG.knockStagger)
     if (u.alive && !(t2.alive && !u.noAttack && d2 <= range && !fearOnly && u.atkTimer <= 0 && u.reloadT <= 0) && this.flee(u, frenzy || confused)) return;
     if (!t2.alive || u.noAttack || !u.alive) return;
     if (d2 <= range && this.los(u, t2)) {
@@ -1122,7 +1123,7 @@ export class Battle {
     const cost = new Float64Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), via = new Uint8Array(N), done = new Uint8Array(N);
     cost[start] = 0;
     const back = u.mem.lastCell ?? -1;
-    const zoc = this.zocMask(u); // 돌격가 경계 (적만): 경계 → 경계 이동 금지, 경계에 들어가는 길은 비싸게
+    const zoc = this.zocMask(u); // 돌격가 경계 (적만): 길찾기는 보통 칸과 같게, 걸음은 느리게 (CFG.zoc.slow)
     let goal = -1;
     for (;;) {
       let cur = -1, bc = Infinity;
@@ -1142,7 +1143,6 @@ export class Battle {
           if (occ && !wall && (cur === start || occ.side !== u.side)) continue;
           if (dx && dy && this.stepCell(cx + dx, cy) && this.stepCell(cx, cy + dy)) continue; // 막힌 두 칸 사이를 대각선으로 비집지 못한다
           if (cur === start && id === back) continue; // 방금 떠나온 칸
-          if (zoc && zoc[cur] && zoc[id]) continue; // 경계 칸에서 경계 칸으로 곧장 넘어가지 못한다
           const c = bc + (wall ? WALL_PATH_COST : occ ? 4 : 1) + (dx && dy ? 0.01 : 0) + (zoc && zoc[id] && !zoc[cur] ? CFG.zoc.pathCost : 0); // 아군 칸은 비싸게, 대각선은 아주 조금 비싸게 (직선 우선), 경계에 들어가면 멈추므로 그만큼
           if (c < cost[id]) { cost[id] = c; prev[id] = cur; via[id] = via[cur] | (occ ? 1 : 0); }
         }
@@ -1170,7 +1170,6 @@ export class Battle {
           const nx = u.x + dx, ny = u.y + dy;
           if (!this.inBounds(nx, ny) || this.unitAt(nx, ny)) continue;
           if (dx && dy && this.stepCell(u.x + dx, u.y) && this.stepCell(u.x, u.y + dy)) continue;
-          if (zoc && zoc[start] && zoc[ny * n + nx]) continue;
           const dd = this.dist({ x: nx, y: ny }, tgt);
           if (dd < best) { best = dd; next = ny * n + nx; }
         }
@@ -1179,7 +1178,8 @@ export class Battle {
     u.mem.lastCell = start;
     u.px = u.x; u.py = u.y;
     u.x = next % n; u.y = (next / n) | 0;
-    u.moveDur = u.moveT = CFG.moveTime / this.S(u, 'moveSpd');
+    const slow = zoc && (zoc[next] || zoc[start]) ? (u.tend === 'assassin' ? CFG.zoc.assassinSlow : CFG.zoc.slow) : 1; // 경계 안 걸음은 느리다
+    u.moveDur = u.moveT = CFG.moveTime / (this.S(u, 'moveSpd') * slow);
     if (zoc && zoc[next] && !zoc[start]) this.zocCatch(u);
     for (const h of u.hooks) h.onMove?.(this, u);
     return null;
@@ -1448,6 +1448,7 @@ export class Battle {
     tgt.x = nx; tgt.y = ny;
     tgt.moveDur = tgt.moveT = 0.2;
     tgt.mem.lastCell = -1;
+    tgt.mem.knockUntil = Math.max(tgt.mem.knockUntil || 0, this.t + CFG.knockStagger);
     this.emit({ k: 'status', id: tgt.id, name: '밀쳐내기', src: src.id, harm: true, stype: 'knock' });
     this.displaced(src, tgt, 'knock');
     return { moved: true };
