@@ -40,5 +40,13 @@ export function starterPool(r: Rng, field: string | null | undefined, keep: stri
     const slots = r.shuffle(pool.map((_, i) => i).filter((i) => !keep.includes(pool[i]) && !hasSyn(pool[i], syn)));
     while (have < need && cand.length && slots.length) { pool[slots.pop()!] = cand.shift()!; have++; }
   }
+  // 전장이 요구하는 무기 속성 (크레타: 신성) 기물이 없으면 우세 시너지 · keep 이 아닌 후보 하나를 바꾼다
+  const el = field ? fieldOf(field).starterElem : undefined;
+  const hasEl = (id: string) => UNITS.find((u) => u.id === id)?.weapon?.elem === el;
+  if (el && !pool.some(hasEl)) {
+    const cand = left(all.filter(hasEl)).sort((a, b) => +avoid.includes(a) - +avoid.includes(b));
+    const slots = r.shuffle(pool.map((_, i) => i).filter((i) => !keep.includes(pool[i]) && !hasSyn(pool[i], syn)));
+    if (cand.length && slots.length) pool[slots[0]] = cand[0];
+  }
   return r.shuffle(pool);
 }

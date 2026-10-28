@@ -42,7 +42,9 @@ const free = (run: RunState, enc: Encounter, x: number, y: number, decoy = false
   ok(deployed(run).every((u) => startPreview(run, enc).has(u.uid)) && deployed(run).length > 0, `예측: 출전 기물 ${deployed(run).length}명 모두`);
   ok(enc.enemies.every((_, i) => startPreview(run, enc).has(foeKey(i))) && enc.enemies.length > 0, `예측: 적 ${enc.enemies.length}명 모두`);
   { const fp = [...enc.enemies.keys()].map((i) => startPreview(run, enc).get(foeKey(i))!);
-    ok(fp.some((p) => p.path.length > 1), '예측: 적도 이동 경로가 있다');
+    // 적 구성이 원거리 · 고정뿐인 판도 있으니 몇 판 중 한 판이라도 움직이는 적이 있으면 된다
+    const moves = (rr: RunState, ee: Encounter) => ee.enemies.some((_, i) => startPreview(rr, ee).get(foeKey(i))!.path.length > 1);
+    ok(fp.some((p) => p.path.length > 1) || [3, 5, 9, 11, 13].some((sd) => { const m = mkRun(sd); return moves(m.run, m.enc); }), '예측: 적도 이동 경로가 있다');
     const allyAt = new Set(buildBattle(run, enc, true).units.filter((u) => u.side === 0).map((u) => `${u.x},${u.y}`));
     ok(fp.some((p) => p.target) && fp.filter((p) => p.target).every((p) => p.target!.enemy === undefined && allyAt.has(`${p.target!.x},${p.target!.y}`)), '예측: 적의 첫 목표 = 아군 (시작 칸)'); }
   const pv = startPreview(run, enc);

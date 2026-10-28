@@ -890,12 +890,12 @@ export function dropObstacle(b: Battle, defId: string, cell: { x: number; y: num
   b.later(life, () => { if (o.alive) { o.alive = false; b.emit({ k: 'die', id: o.id }); } });
   return o;
 }
-/** 답례 투하: 반려 돌 + 낙하 칸 주변 1칸 아군(플레이어 쪽) 최대 체력 6% 물리 피해 */
-export function petRock(b: Battle, cell: { x: number; y: number }) {
+/** 답례 투하: 반려 돌 + 낙하 칸 주변 1칸 아군(플레이어 쪽) 최대 체력 pct 물리 피해 (캣휠 전장 규칙 8%, 적 기술 6%) */
+export function petRock(b: Battle, cell: { x: number; y: number }, pct = 0.06) {
   const o = dropObstacle(b, 'cw_rock', cell, 20);
   if (!o) return null;
   b.emit({ k: 'fx', x: cell.x, y: cell.y, r: 1, elem: 'phys' });
-  for (const t of b.around(cell, 1, b.living(0))) b.rawHit(o, t, b.S(t, 'maxHp') * 0.06, 'phys');
+  for (const t of b.around(cell, 1, b.living(0))) b.rawHit(o, t, b.S(t, 'maxHp') * pct, 'phys');
   return o;
 }
 /** 히페리온 보호막 겹 더하기 (처음 겹 수까지) */

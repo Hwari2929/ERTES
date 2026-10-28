@@ -1225,7 +1225,7 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
       for (let i = 0; i < extra + (diffHas(run.diff, 4) ? 1 : 0) + oathV(run, 'titan', 'guard'); i++) ids.push(r.pick(pool)); // 거두의 서약: 호위 +
     } else {
       const late = run.step >= 4 ? 1 : 0; // 페이즈 후반 (보급 이후 전투부터)
-      const count = run.campaign ? campFoeCount(run) : Math.min(rows * n - 2, 2 + sp + late + (f.extraEnemies || 0) + (type === 'adversity' && diffHas(run.diff, 5) ? 1 : 0));
+      const count = run.campaign ? campFoeCount(run) : Math.min(rows * n - 2, 2 + sp + late + (p >= (f.extraFrom || 1) ? f.extraEnemies || 0 : 0) + (type === 'adversity' && diffHas(run.diff, 5) ? 1 : 0));
       if (run.campaign && run.flags.includes('cp_sample')) { ids.push('sw_spore', 'sw_spore'); run.flags = run.flags.filter((x) => x !== 'cp_sample'); } // 캠페인 격리 화물: 빠져나간 군체 표본
       if (run.campaign) { const el = campElite(run); if (el) ids.push(el); } // 캠페인: 장마다 정한 칸부터 정예 1마리 else if (type === 'adversity' || ((p >= 2 || oathLv(run, 'elite')) && r.chance((diffHas(run.diff, 5) ? 0.6 : 0.3) + oathV(run, 'elite', 'chance')))) ids.push(f.elite); // 정예의 서약: 1페이즈부터 · 확률 +
       while (ids.length < count) ids.push(r.pick(pool));
