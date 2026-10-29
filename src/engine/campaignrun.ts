@@ -15,7 +15,7 @@ export function newCampaignRun(diff: number): RunState {
   const run = R.newRun((Date.now() ^ (Math.random() * 1e9)) | 0, CAMP_START, 'swarm', diff);
   run.pending = []; // 특권 · 절망 증강 없음 (캠페인 고정 진행)
   run.campaign = { id: CAMP_ID, ch: ch.ch, time: ch.time, timeMax: ch.time, spent: 0 };
-  run.map = ch.map.map((x) => x.slice());
+  run.map = ch.map.map((x) => x.slice()); delete run.links; delete run.path; // 캠페인: 장별 한 줄 항로
   run.picked = [];
   run.log = [`캠페인 「회수 계약」 ${ch.name} 시작 · AH ${ch.time}`];
   // 라르스가 먼저 보낸 것: 통행증 · 정화 분무기 · 선지급 어음

@@ -18,7 +18,7 @@ import { fieldSyn, starterFavNeed, starterPool } from '../src/engine/starters';
 import { oathV } from '../src/data/oaths';
 import { causalStage } from '../src/data/chungra';
 import { isLocked } from '../src/data/items';
-import type { Major, RunState, SynergyId } from '../src/types';
+import type { Major, NodeType, RunState, SynergyId } from '../src/types';
 
 declare const process: { argv: string[]; stdout: { write(s: string): void }; stderr: { write(s: string): void } };
 
@@ -352,6 +352,16 @@ function playRun(seed: number) {
   const czAt: Record<number, [number, number]> = {}; // 청라공국: 페이즈 첫 전투 직전 무휼 인과율 · 그 전투의 청라 단계
   const kbAt: Record<number, number> = {}; // 청라공국: 페이즈 보스전 첫 진입 직전 무휼 인과율 (최종 보스 승리 뒤 성장분 제외용)
   const bw = [0, 0, 0, 0]; // [보스전 수, 보스 승리, 보스 외 전투 수, 보스 외 승리]
+  /** 분기 항로에서 다음 노드 고르기: 서비스 노드 (상점 · 보급 · 모집 · 투자 · 순례 · 속보)가 있으면 철수 · 영희의 갈림길 판단 (econ), 없으면 첫 번째 ·
+   *  체력이 넉넉하면 절반쯤 역경 · 그 밖은 전투 > 사건 순 (한 줄 항로는 예전 그대로) */
+  const SVC: NodeType[] = ['shop', 'supply', 'recruit', 'invest', 'pilgrim', 'news'];
+  const routePick = (opts: NodeType[]): NodeType => {
+    if (opts.length <= 1) return opts[0];
+    const svc = opts.filter((o) => SVC.includes(o));
+    if (svc.length && (svc.length === opts.length || bot.chance(0.6))) return CH?.has('econ') ? CH.branch(svc) : svc.includes('shop') ? 'shop' : svc[0];
+    if (opts.includes('adversity') && run.hp > 60 && bot.chance(0.5)) return 'adversity';
+    return opts.find((o) => o === 'battle') ?? opts.find((o) => o === 'event') ?? opts.find((o) => !SVC.includes(o)) ?? opts[0];
+  };
   while (!run.over && !run.cleared && n < 200) {
     if (ADVSTUDY && run.node?.enc && !encPre.has(run.node.enc)) encPre.set(run.node.enc, structuredClone(run.node.enc));
     resolvePending(); manage(); resolvePending();
@@ -359,7 +369,7 @@ function playRun(seed: number) {
     if (!run.node) {
       const opts = R.currentOptions(run);
       if (POL_ADV) R.enterNode(run, opts.includes('adversity') ? (want(POL_ADV) ? 'adversity' : 'battle') : opts[0]); // 역경 칸을 일반 전투로 바꾸는 것은 가상 정책 (실제 지도에서 역경은 필수)
-      else R.enterNode(run, opts.includes('adversity') && run.hp > 60 && bot.chance(0.5) ? 'adversity' : opts[0]);
+      else R.enterNode(run, routePick(opts));
       if (run.pending[0]?.t === 'branch') resolvePending();
       const t = (run.node as { type: string } | null)?.type;
       if (INSTR) routeRec.push([run.phase, opts.join(','), t || '-']);

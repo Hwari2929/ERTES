@@ -95,7 +95,7 @@ export function campNextChapter(run: RunState) {
   c.ch = ch.ch; c.time = ch.time; c.timeMax = ch.time;
   run.phase = ch.phase; // 적 성장 단계 (장 정의)
   run.step = 0;
-  run.map = ch.map.map((x) => x.slice());
+  run.map = ch.map.map((x) => x.slice()); delete run.links; delete run.path; // 캠페인: 장별 한 줄 항로
   run.log.unshift(`${ch.name} 시작 · AH ${ch.time}`);
   const intro = campChapterIntro(ch.ch, c.bonus ?? 0);
   if (intro) run.pending.push({ t: 'notice', title: ch.name, body: ch.place, scene: intro });

@@ -199,6 +199,10 @@ export interface RunState {
   phase: number;
   step: number;
   map: NodeType[][];
+  /** 분기 항로 (run.ts phaseRoute): 칸 r 의 노드 i 에서 갈 수 있는 칸 r+1 노드 번호들. 없으면 한 줄 항로 (튜토리얼 · 캠페인 · 훈련장 · 옛 저장) */
+  links?: number[][][];
+  /** 분기 항로에서 칸마다 지나간 노드 번호 */
+  path?: number[];
   picked: (NodeType | null)[];
   /** shop 노드: merchant = 상인 id (data/merchants.ts, 합성 공방은 없음) · met = 이 상점을 한 번 열었다 (다시 열면 재방문 인사) · traded = 고르곤 교환을 했다 */
   node: { type: NodeType; enc?: Encounter; shop?: ShopSlot[]; synth?: boolean; merchant?: string; met?: boolean; traded?: boolean; news?: NewsOffer[]; invest?: InvestOffer[] } | null;

@@ -29,7 +29,7 @@ export function newTutorialRun(): RunState {
   const run = R.newRun(TUT_SEED, ['vivian', 'temur'], TUT_FIELD, 0);
   run.pending = []; // 특권 증강 없음
   run.tutorial = { i: 0 };
-  run.map = TUT_MAP.map((x) => x.slice());
+  run.map = TUT_MAP.map((x) => x.slice()); R.clearRoute(run); // 튜토리얼: 한 줄 항로
   run.picked = [];
   for (const u of run.units) u.pos = null; // 첫 배치는 직접 끌어다 놓는다
   run.log = ['튜토리얼: 당직 근무 중 승계.'];

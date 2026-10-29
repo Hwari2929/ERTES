@@ -106,6 +106,7 @@ export function newRun(seed: number, starters: string[], field?: string, diff = 
   for (const id of starters) addUnit(run, id, 1);
   autoPlace(run);
   if (!field) run.field = rng(run, (r) => r.pick(FIELDS).id);
+  setRoute(run); // 분기 항로 (튜토리얼 · 캠페인 · 훈련장은 제 항로로 덮어쓴다 — clearRoute)
   // 전장 · 난이도는 출격 전 화면에서 이미 보여 줬다. 특권 증강이 시작 기물 합류 증강보다 먼저
   run.pending.unshift({ t: 'privilege', options: rollPrivileges(run).slice(0, oathV(run, 'strip', 'choices') || undefined), rerolls: oathLv(run, 'strip') ? oathV(run, 'strip', 'rerolls') : CFG.privilegeRerolls }); // 박탈의 서약
   if (despairDiff(diff)) queueDespair(run); // 고난: 특권 바로 다음 (해금 조건 없음)
@@ -120,6 +121,65 @@ export function phaseMap(phase: number): NodeType[][] {
   if (phase === 1 && CFG.supply.p1) return [['supply'], ['battle'], ['council'], ['event'], ['supply'], ['shop'], ['battle'], ['event'], ['adversity'], ['shop'], ['boss']];
   const m: NodeType[][] = [['battle'], ['council'], ['event'], ['adversity'], ['shop'], [phase % 2 === 0 ? 'fork' : 'battle'], ['event'], ['adversity'], ['shop'], ['boss']];
   return phase >= 2 && CFG.supply.front ? [['supply'], ...m] : m; // [실험] CFG.supply.front: 2페이즈부터 맨 앞 보급
+}
+
+/** 분기 항로 (슬더슬식): 전투 → 항로 회의 → 세 갈래 4칸 → 정비 거점 (짝수 페이즈 전환 · 홀수 보급) → 두 갈래 4칸 → 보스. 1페이즈는 맨 앞에 보급 (CFG.supply.p1).
+ *  갈래마다 성격이 다른 묶음 (ROUTE_A · ROUTE_B)을 섞어 깔고 (역경이 적은 길 · 많은 길), 옆 갈래로 건너가는 선을 일부 놓는다 — 선끼리 교차하지 않게,
+ *  한 노드에서 갈 수 있는 다음 노드들은 종류가 겹치지 않게 (노드는 종류로 고른다). 순례 · 투자 · 속보는 페이즈 시작 때 조건이 맞으면 갈래의 사건 · 모집 칸에.
+ *  런 난수와 따로 굴린다 (시드 · 페이즈에서) — 기존 난수 흐름을 바꾸지 않게 */
+const ROUTE_A: NodeType[][] = [['event', 'battle', 'shop', 'recruit'], ['battle', 'event', 'adversity', 'shop'], ['event', 'adversity', 'supply', 'adversity']];
+const ROUTE_B: NodeType[][] = [['event', 'adversity', 'recruit', 'shop'], ['adversity', 'event', 'battle', 'shop']];
+export function phaseRoute(run: RunState, phase = run.phase): { map: NodeType[][]; links: number[][][] } {
+  const r = new Rng(((run.seed * 977 + phase * 7919 + 31337) >>> 0) || 1);
+  /** 갈래 하나 섞기: 역경이 연달아 오지 않고, 첫 칸은 역경이 아니게 (회의 · 거점 바로 뒤) */
+  const lane = (base: NodeType[]) => { for (let t = 0; t < 40; t++) { const l = r.shuffle(base.slice()); if (l[0] !== 'adversity' && !l.some((x, i) => x === 'adversity' && l[i + 1] === 'adversity')) return l; } return base.slice(); };
+  const specials: NodeType[] = [...(hasDivine(run) ? ['pilgrim' as const] : []), ...(tierNow(run, 'HOI') ? ['invest' as const] : []), ...(tierNow(run, 'STAR') ? ['news' as const] : [])];
+  for (let t = 0; t < 60; t++) {
+    const A = r.shuffle(ROUTE_A.map(lane)), B = r.shuffle(ROUTE_B.map(lane));
+    // 특수 노드: 갈래마다 하나까지, 사건 · 모집 칸을 바꾼다
+    const lanes = [...A, ...B];
+    for (const sp of specials) { const cand = lanes.filter((l) => !l.some((x) => ['pilgrim', 'invest', 'news'].includes(x)) && l.some((x) => x === 'event' || x === 'recruit')); if (cand.length) { const l = r.pick(cand), ks = l.map((x, i) => (x === 'event' || x === 'recruit' ? i : -1)).filter((i) => i >= 0); l[r.pick(ks)] = sp; } }
+    const rows: NodeType[][] = [
+      ...(phase === 1 && CFG.supply.p1 ? [['supply'] as NodeType[]] : []),
+      ['battle'], ['council'],
+      ...[0, 1, 2, 3].map((i) => A.map((l) => l[i])),
+      [phase % 2 === 0 ? 'fork' : 'supply'],
+      ...[0, 1, 2, 3].map((i) => B.map((l) => l[i])),
+      ['boss'],
+    ];
+    // 하나뿐인 칸 (회의 · 거점) 바로 뒤 칸은 모두 갈 수 있으니 종류가 겹치면 다시
+    if (rows.some((row, i) => i > 0 && rows[i - 1].length === 1 && new Set(row).size < row.length)) continue;
+    const links = rows.slice(0, -1).map((row, i) => {
+      const next = rows[i + 1];
+      if (row.length === 1 || next.length === 1) return row.map(() => next.map((_, j) => j));
+      const out = row.map((_, j) => [j]);
+      for (let j = 0; j + 1 < row.length; j++) { // 옆 갈래로 건너가는 선: 한 쌍에 많아야 하나 (교차하지 않게) · 다음 노드 종류가 겹치면 놓지 않는다
+        if (t >= 40 || !r.chance(0.45)) continue; // 여러 번 실패하면 곧은 갈래만 (갈래 묶음 자체는 길 규칙을 지킨다)
+        const [from, to] = r.chance(0.5) ? [j, j + 1] : [j + 1, j];
+        if (!out[from].some((k) => next[k] === next[to])) out[from].push(to);
+      }
+      return out.map((l) => l.sort((a, b) => a - b));
+    });
+    if (!routeOk(rows, links)) continue;
+    return { map: rows, links };
+  }
+  return { map: phaseMap(phase), links: phaseMap(phase).slice(0, -1).map((row) => row.map(() => [0])) };
+}
+/** 한 줄 항로로 (튜토리얼 · 캠페인 · 훈련장이 run.map 을 직접 깔 때) */
+export function clearRoute(run: RunState) { delete run.links; delete run.path; }
+/** 분기 항로의 모든 길 검사: 길마다 상점 · 사건 1개 이상, 역경 1~3, 보스 앞 전투 (전투 + 역경) 2~5 — 옆 갈래로 건너가는 선이 상점을 모두 피하거나 역경만 잇는 길을 만들지 않게 */
+function routeOk(rows: NodeType[][], links: number[][][]): boolean {
+  const walk = (i: number, j: number, c: Record<string, number>): boolean => {
+    const t = rows[i][j], n = { ...c, [t]: (c[t] || 0) + 1 };
+    if (i === rows.length - 1) { const f = (n.battle || 0) + (n.adversity || 0); return !!n.shop && !!n.event && (n.adversity || 0) >= 1 && (n.adversity || 0) <= 3 && f >= 2 && f <= 5; }
+    return (links[i][j] || []).every((k) => walk(i + 1, k, n));
+  };
+  return walk(0, 0, {});
+}
+/** 이번 페이즈 항로를 깐다: 분기 항로 · 지나간 노드 비우기 */
+export function setRoute(run: RunState) {
+  const rt = phaseRoute(run);
+  run.map = rt.map; run.links = rt.links; run.path = [];
 }
 
 // ───────────────────────── 특권 증강 (런 시작)
@@ -401,8 +461,17 @@ export function autoFill(run: RunState) {
 }
 
 // ───────────────────────── 노드 진행
-export function currentOptions(run: RunState): NodeType[] { return run.map[run.step] || []; }
+export function currentOptions(run: RunState): NodeType[] { const row = run.map[run.step] || []; return reachIdx(run).map((i) => row[i]); }
+/** 지금 칸에서 고를 수 있는 노드 번호: 분기 항로면 직전에 지나간 노드에서 이어진 것만 (생성 규칙상 종류가 겹치지 않는다), 아니면 칸 전체 */
+export function reachIdx(run: RunState): number[] {
+  const row = run.map[run.step] || [], all = row.map((_, i) => i);
+  if (!run.links || run.step === 0) return all;
+  const l = run.links[run.step - 1]?.[run.path?.[run.step - 1] ?? 0];
+  return l ? l.filter((i) => i < row.length) : all;
+}
 /** 조우 강도 배율 (적 체력 · 피해): 역경은 설정값, 그 밖은 페이즈 안에서 진행한 칸에 따라 조금씩 (genEncounter · 지도 미리보기 공용) */
+/** 페이즈 안 진행 칸을 예전 10칸 항로 기준으로 (분기 항로는 칸이 더 많다): 적 강도 곡선 · '페이즈 후반' 판정이 칸 수와 상관없이 같게 */
+export const routeStep = (run: RunState, step = run.step) => (run.links && run.map.length > 1 ? (step * 9) / (run.map.length - 1) : step);
 export const encounterMult = (type: NodeType, step: number, camp = false) => (type === 'adversity' ? CFG.adversityMult : 1 + (camp ? 0.04 : CFG.stepMult) * step); // 캠페인은 장별 설계 그대로 (0.04)
 /** 전투 보상 크레딧 (승리 기준): 페이즈 기본 × 역경 · 위험 등급 · 서약 · 계약 배율 (+보스 5) × 판돈 + 전역 증강 가산. 패배는 이것의 CFG.lossShare */
 function battleCredits(run: RunState, type: NodeType): number {
@@ -431,6 +500,7 @@ export function battleRewardPreview(run: RunState, node: NodeType) {
 
 export function enterNode(run: RunState, type: NodeType) {
   run.picked[run.step] = type;
+  if (run.links) (run.path ||= [])[run.step] = reachIdx(run).find((i) => run.map[run.step][i] === type) ?? reachIdx(run)[0] ?? 0; // 분기 항로: 지나간 노드
   const campEv = run.campaign ? campEnter(run, type).event : undefined; // 캠페인: AH 차감 · 장별 고정 사건
   if (type !== 'battle' && type !== 'adversity' && type !== 'boss') run.fame += tierNow(run, 'STAR');
   if (type === 'pilgrim') {
@@ -459,9 +529,10 @@ export function enterNode(run: RunState, type: NodeType) {
     syncQuests(run);
     syncTurretPick(run); // 엔지니어 2 · 4 · 6명: 전투 전에 포탑 장비 고르기
   } else if (type === 'shop') {
-    run.pending.push({ t: 'branch', options: branchOptions(run) });
+    if (run.links) openShop(run); // 분기 항로: 상점 노드는 바로 상점 (갈림길 고르기는 한 줄 항로에만)
+    else run.pending.push({ t: 'branch', options: branchOptions(run) });
   } else if (type === 'supply') {
-    const route = run.map[run.step]?.[0] === 'supply'; // 항로에 놓인 보급 노드 (분기점 보급 아님)
+    const route = run.links ? run.map[run.step]?.length === 1 : run.map[run.step]?.[0] === 'supply'; // 항로에 고정된 보급 노드 (재료 1장 확정 · 대박 없음). 분기 항로의 갈래 보급 · 갈림길 보급은 일반 보급
     run.pending.push({ t: 'supply', options: genSupply(run, route), ...(route ? { route } : {}) });
     advance(run);
   } else if (type === 'recruit') {
@@ -1029,7 +1100,7 @@ export function advance(run: RunState) {
     if (run.scope) run.scope.n += DEV.scope.perPhase; // 표시 망원경: 페이즈마다 +1
     run.mods.divGain = 0; // 성인 기념일은 이번 페이즈만
     run.step = 0;
-    run.map = phaseMap(run.phase);
+    setRoute(run);
     run.picked = [];
     run.nodeUnits = {};
     autoPlace(run);
@@ -1046,6 +1117,11 @@ export function advance(run: RunState) {
   // (분기점에서 이미 속보를 골랐으면 붙이지 않는다: picked 는 실제로 간 노드)
   if (run.map[run.step]?.includes('boss') && run.map[run.step - 1]?.[0] !== 'news' && run.picked[run.step - 1] !== 'news' && tierNow(run, 'STAR')) {
     run.map.splice(run.step, 0, ['news']);
+    if (run.links) { // 분기 항로: 직전 칸의 노드 → 속보 → 보스
+      const prev = run.links[run.step - 1];
+      if (prev) for (let i = 0; i < prev.length; i++) prev[i] = [0];
+      run.links.splice(run.step, 0, [(run.map[run.step + 1] || []).map((_, i) => i)]);
+    }
   }
 }
 
@@ -1331,7 +1407,7 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
         sq.push({ kind: 'boss', name: ENEMY_BY_ID[boss].name, ids: [boss, ...(ENEMY_BY_ID[boss].escort || [])] });
         budget = Math.max(0, sp - 1) + (diffHas(run.diff, 4) ? 1 : 0) + oathV(run, 'titan', 'guard'); // 보스 호위 추가 인원 = 적 성장 페이즈 - 1 · 거두의 서약
       } else {
-        const late = run.step >= 4 ? 1 : 0; // 페이즈 후반 (보급 이후 전투부터)
+        const late = routeStep(run) >= 4 ? 1 : 0; // 페이즈 후반 (보급 이후 전투부터, 예전 10칸 기준)
         budget = Math.min(rows * n - 2, 2 + sp + late + (p >= (f.extraFrom || 1) ? f.extraEnemies || 0 : 0) + (type === 'adversity' && diffHas(run.diff, 5) ? 1 : 0));
         if (CFG.squads.elite && (type === 'adversity' || ((p >= 2 || oathLv(run, 'elite')) && r.chance((diffHas(run.diff, 5) ? 0.6 : 0.3) + oathV(run, 'elite', 'chance'))))) { // 정예의 서약: 1페이즈부터 · 확률 +
           sq.push({ kind: 'elite', name: ENEMY_BY_ID[f.elite].name, ids: [f.elite] });
@@ -1349,7 +1425,7 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
     return {
       n, env: type === 'boss' ? '보스 아레나' : mapOf(map).narrow ? '좁은 전장' : env.env, enemies,
       ...(map ? { map } : {}),
-      mult: encounterMult(type, run.step, !!run.campaign),
+      mult: encounterMult(type, routeStep(run), !!run.campaign),
       seed: r.int(1, 2 ** 31 - 1),
       ...(phase !== run.phase ? { phase } : {}),
       ...(add ? { add } : {}),

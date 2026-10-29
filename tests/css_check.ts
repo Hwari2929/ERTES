@@ -19,7 +19,8 @@ export const LEGACY: Record<string, string> = {
   '--good': '--c-good', '--bad': '--c-bad', '--info': '--c-info',
 };
 /** JS(main.ts · battleview.ts 등)가 style="--x:…" / setProperty('--x') 로 주입하는 변수 */
-export const JS_VARS = ['--rot-bp', '--fc', '--gx', '--gy', '--gs', '--tx', '--ty', '--tw', '--nx', '--ny', '--nw', '--ns', '--ox', '--oy', '--ow', '--oh', '--oz', '--rot-mn', '--rot-pr', '--rot-rd', '--rot-ls', '--el', '--d', '--sw-el', // ui/contract.ts: 도면 · 차림표가 놓인 각도
+export const JS_VARS = ['--cols', // main.ts routeGraph: 분기 항로 지도 칸 수
+  '--rot-bp', '--fc', '--gx', '--gy', '--gs', '--tx', '--ty', '--tw', '--nx', '--ny', '--nw', '--ns', '--ox', '--oy', '--ow', '--oh', '--oz', '--rot-mn', '--rot-pr', '--rot-rd', '--rot-ls', '--el', '--d', '--sw-el', // ui/contract.ts: 도면 · 차림표가 놓인 각도
  
   '--c', '--sc', '--h', '--w', '--fw', '--fh', '--ox', '--oy', '--i', '--x', '--y', '--s', '--d', '--n', '--o', '--p', '--v', '--mx', '--my', '--hc', '--top-h', '--a', '--k', '--dl', '--oi-r',
 ];

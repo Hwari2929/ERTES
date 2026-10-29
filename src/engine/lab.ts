@@ -41,7 +41,7 @@ export function newLabRun(seed = (Date.now() ^ (Math.random() * 1e9)) | 0): RunS
   labAutoPending(run); // 시작 기물 합류 선택 (스페셜 전용 증강 · 사이오닉 학파)
   run.pending = []; // 특권 증강 · 절망 증강 없음
   run.credits = LAB_CREDITS;
-  run.map = Array.from({ length: LAB_NODES }, () => ['battle']);
+  run.map = Array.from({ length: LAB_NODES }, () => ['battle']); R.clearRoute(run); // 훈련장: 한 줄 항로
   run.picked = [];
   run.log = ['에란테스 훈련장 개장.'];
   enterLabNode(run);

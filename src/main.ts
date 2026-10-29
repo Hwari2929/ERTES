@@ -996,7 +996,7 @@ function mapScreen(run: RunState) {
     </aside>
     <section class="map-main${RM.routeMapOn(run) ? ' has-rmap' : ''}">
       <div class="screen-head map-head"><h1>${run.lab ? '에란테스 훈련장' : run.campaign ? esc(campChapter(run).name.split(' · ')[0]) : `페이즈 ${p}`}</h1>${run.campaign ? campTimeChip(run) : ''}${bossGoal(run)}</div>
-      ${RM.routeMapOn(run) ? '<div class="rmap-host"></div>' : ''}<div class="tl"><ol class="tl-track">${track}</ol></div>
+      ${RM.routeMapOn(run) ? '<div class="rmap-host"></div>' : ''}${run.links ? routeGraph(run, pick, nodeIc) : `<div class="tl"><ol class="tl-track">${track}</ol></div>`}
       <p class="map-scale" title="이번 페이즈 적 강도 (페이즈마다 누적)">${scale}</p>
       ${mapAhead(run, pick, enter)}
       ${run.lab ? '' : shipPanel(run, pet >= 2 ? `<button class="btn ship-loan" data-a="loan" ${run.loan ? 'disabled' : ''}>페트라 대출 ${CR}+25 · 상환 30</button>` : '')}
@@ -1110,7 +1110,7 @@ const supplyHint = (run: RunState | null, route = false) => `보급품 ${CFG.sup
 function nodeHint(o: NodeType) {
   return ({
     battle: '공명도 · 크레딧 · 재료 확률', adversity: `적 ×${CFG.adversityMult} · 보상 ${CFG.adversityReward}배 + 장비 재료 ${CFG.drop.advParts}개 확정`,
-    council: `전역 증강 3장 중 택1 · 새로고침 ${CFG.globalRerolls}회`, shop: `분기점 — 상점 / 보급 / 모집 (+ ${SYN_BY_ID.STAR.name} 속보 · 호이슌 투자 · 순례)`,
+    council: `전역 증강 3장 중 택1 · 새로고침 ${CFG.globalRerolls}회`, shop: app.run?.links ? '상인의 진열대 · 장비 · 소모품 · 재료' : `분기점 — 상점 / 보급 / 모집 (+ ${SYN_BY_ID.STAR.name} 속보 · 호이슌 투자 · 순례)`, // 분기 항로는 상점 노드 = 바로 상점
     supply: supplyHint(app.run, true), recruit: '새 동료 3명 중 택1', boss: `${app.run && R.bossMustWin(app.run) ? '의뢰의 마지막 보스 · 이길 때까지 다시 싸운다' : `승리 시 페이즈 클리어 · 패배해도 다음 페이즈로 (체력 -${CFG.bossLossDamage(app.run?.phase || 1)})`} · ${CFG.drop.bossAdvEvery}페이즈마다 희귀 장비`,
     pilgrim: '신앙 획득 + 이번 페이즈 축복 선택', news: '명성을 보상으로 교환', invest: '호이슌 투자 상품 · 크레딧으로 문장 · 증강 · 다음 페이즈 수익', event: '전장에 얽힌 사건 · 선택에 따라 판이 바뀝니다',
     fork: `갈림길 — 휴식(체력 +${CFG.forkRestHp} + 잃은 체력 ${Math.round(CFG.forkRestLost * 100)}%) 또는 도전(다음 페이즈 역경급 전투, 승리 시 다음 페이즈로)`,
@@ -1120,17 +1120,57 @@ function nodeHint(o: NodeType) {
 /** 이번 페이즈 보스: 전장의 보스는 페이즈마다 순환한다 (조우 생성과 같은 규칙) */
 const phaseBoss = (run: RunState): EnemyDef | undefined => { if (run.campaign) return ENEMY_BY_ID[campBoss(run)]; const f = fieldOf(run.field); return ENEMY_BY_ID[f.bosses[(run.phase - 1) % f.bosses.length]]; };
 const FIGHT_NODES: NodeType[] = ['battle', 'adversity', 'challenge', 'boss'];
-/** 지도: 보스 칸까지 남은 전투 수 (지금 칸 포함, 보스 제외) · 남은 칸 · 전환 칸 수. 실제 지도(run.map)와 이미 고른 노드에서 센다 */
+/** 분기 항로 지도 (run.links): 칸 = 열, 노드 = 갈래 자리 (세 갈래 1 · 3 · 5, 두 갈래 2 · 4, 하나 3 — 6칸 격자에서 2칸씩), 연결선 = 뒤에 깐 SVG (같은 격자 좌표).
+ *  지나간 노드 · 연결선 = 진하게, 지금 고를 수 있는 노드 = 단추, 지금 위치에서 갈 수 없는 노드 · 연결선 = 흐리게 (docs/UI.md 10: 정적) */
+function routeGraph(run: RunState, pick: NodeType | undefined, nodeIc: (o: NodeType, i: number) => string) {
+  const links = run.links!, rows = run.map, C = rows.length, path = run.path || [];
+  const slot = (len: number, j: number) => (len === 1 ? 3 : len === 2 ? 2 + j * 2 : 1 + j * 2); // 6칸 격자의 시작 줄 (가운데 = 같은 수)
+  // 지금 위치에서 갈 수 있는 노드: 지금 칸의 고를 수 있는 노드부터 앞으로
+  const reach = rows.map(() => new Set<number>());
+  if (!run.node) R.reachIdx(run).forEach((j) => reach[run.step]?.add(j)); else reach[run.step]?.add(path[run.step] ?? 0);
+  for (let i = run.step; i < C - 1; i++) for (const j of reach[i]) for (const k of links[i]?.[j] || []) reach[i + 1].add(k);
+  const reachable = R.reachIdx(run);
+  const edges: string[] = [];
+  for (let i = 0; i < C - 1; i++) rows[i].forEach((_, j) => (links[i]?.[j] || []).forEach((k) => {
+    const taken = i < run.step && path[i] === j && path[i + 1] === k, live = i >= run.step && reach[i].has(j) && reach[i + 1].has(k);
+    edges.push(`<line class="${taken ? 'rt-e taken' : live ? 'rt-e' : 'rt-e off'}" x1="${i + 0.5}" y1="${slot(rows[i].length, j)}" x2="${i + 1.5}" y2="${slot(rows[i + 1].length, k)}" vector-effect="non-scaling-stroke"/>`);
+  }));
+  const nodes = rows.map((row, i) => row.map((o, j) => {
+    const nm = o === 'recruit' && i < run.step && run.nodeUnits?.[i] ? `${NODE_NAME[o]} · ${UNIT_BY_ID[run.nodeUnits[i]]?.name}` : NODE_NAME[o];
+    const st = i < run.step ? (path[i] === j ? 'done' : 'past') : i === run.step ? (reachable.includes(j) || run.node ? (run.node && path[i] !== j ? 'off' : 'cur') : 'off') : reach[i].has(j) ? 'next' : 'off';
+    const pos = `grid-column:${i + 1};grid-row:${slot(row.length, j) + 1} / span 2`;
+    const cls = `tl-node rt-n n-${o} ${st}${o === 'boss' ? ' rt-boss' : ''}`;
+    if (st === 'cur' && !run.node) return `<button class="${cls}${o === pick ? ' on' : ''}" style="${pos}" data-a="tl-pick" data-v="${o}" data-step="${i}" data-node="${o}" title="${esc(nm)} (단축키 ${reachable.indexOf(j) + 1})" aria-pressed="${o === pick}">${nodeIc(o, i)}</button>`;
+    return `<span class="${cls}" style="${pos}" data-step="${i}" data-node="${o}" title="${esc(nm)}">${nodeIc(o, i)}</span>`;
+  }).join('')).join('');
+  const nums = rows.map((_, i) => `<span class="rt-num${i === run.step ? ' cur' : ''}" style="grid-column:${i + 1};grid-row:1">${i + 1}</span>`).join('');
+  return `<div class="tl rt"><div class="rt-grid" style="--cols:${C}">${nums}<svg class="rt-edges" viewBox="0 0 ${C} 6" preserveAspectRatio="none" aria-hidden="true">${edges.join('')}</svg>${nodes}</div></div>`;
+}
+/** 지도: 보스 칸까지 남은 전투 수 (지금 칸 포함, 보스 제외) · 남은 칸 · 전환 칸 수. 실제 지도(run.map)와 이미 고른 노드에서 센다.
+ *  분기 항로는 지금 위치에서 갈 수 있는 길 중 가장 적은 · 많은 전투 (fights · fightsMax) */
 function toBoss(run: RunState) {
   const bi = run.map.findIndex((o, i) => i >= run.step && o.includes('boss'));
   if (bi < 0) return null;
+  if (run.links) {
+    let cur = new Map<number, [number, number]>((run.node ? [run.path?.[run.step] ?? 0] : R.reachIdx(run)).map((j) => [j, [0, 0]]));
+    for (let i = run.step; i < bi; i++) {
+      const nx = new Map<number, [number, number]>();
+      for (const [j, [lo, hi]] of cur) {
+        const f = FIGHT_NODES.includes(run.map[i][j]) ? 1 : 0;
+        for (const k of run.links[i]?.[j] || []) { const o = nx.get(k); nx.set(k, o ? [Math.min(o[0], lo + f), Math.max(o[1], hi + f)] : [lo + f, hi + f]); }
+      }
+      cur = nx;
+    }
+    const all = [...cur.values()], forks = run.map.slice(run.step, bi).filter((o) => o.includes('fork')).length;
+    return { bi, fights: Math.min(...all.map((x) => x[0])), fightsMax: Math.max(...all.map((x) => x[1])), forks, steps: bi - run.step };
+  }
   let fights = 0, forks = 0;
   for (let i = run.step; i < bi; i++) {
     const o = run.picked[i] ? [run.picked[i]!] : run.map[i];
     if (o.every((x) => FIGHT_NODES.includes(x))) fights++;
     else if (o.includes('fork')) forks++;
   }
-  return { bi, fights, forks, steps: bi - run.step };
+  return { bi, fights, fightsMax: fights, forks, steps: bi - run.step };
 }
 /** 지도 머리: 런의 목표(이번 페이즈 보스)까지 남은 전투 */
 function bossGoal(run: RunState) {
@@ -1138,7 +1178,7 @@ function bossGoal(run: RunState) {
   if (!t) return '';
   const e = phaseBoss(run);
   const txt = t.steps === 0 ? `<b>보스전</b>` : `보스까지 남은 노드 <b>${t.steps}</b>개`;
-  return `<div class="boss-goal" title="${esc(`${t.bi + 1}번째 칸 · ${e?.name || NODE_NAME.boss} · 보스까지 전투 ${t.fights}회${t.forks ? ` (${NODE_NAME.fork}에서 ${NODE_NAME.challenge} 승리 시 지름길)` : ''}`)}"><span class="bg-ic">${e ? sprite(e, 'spr') : NODE_ICON.boss}</span><span class="bg-main">${txt}</span></div>`;
+  return `<div class="boss-goal" title="${esc(`${t.bi + 1}번째 칸 · ${e?.name || NODE_NAME.boss} · 보스까지 전투 ${t.fights === t.fightsMax ? t.fights : `${t.fights}~${t.fightsMax}`}회${t.forks ? ` (${NODE_NAME.fork}에서 ${NODE_NAME.challenge} 승리 시 지름길)` : ''}`)}"><span class="bg-ic">${e ? sprite(e, 'spr') : NODE_ICON.boss}</span><span class="bg-main">${txt}</span></div>`;
 }
 /** 지도 미리보기: 현재 칸 + 다음 2칸 (보스는 그 안에 들어올 때만 — 남은 노드 수는 페이즈 옆 보스 칩).
  *  현재 칸 설명은 노드 유형 설명(data/nodes.ts NODE_DESC), 다음 칸 설명은 nodeHint, 재료 확률은 설정 · 전장값, 보스는 적 데이터에서 읽는다 */
@@ -1197,7 +1237,7 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   const act = (cur: boolean) => (cur ? `<div class="ah-act">${buttons}</div>` : '');
   // 현재 칸 카드: 이름 → 노드 설명 한 줄 → (보스는 특징 칩) → 예상 수입 → 모디파이어. 다음 칸 카드: 이름 → nodeHint 여러 줄 (보스는 특징 칩)
   const bossCard = (i: number, e: EnemyDef, cur: boolean) => {
-    const cat = enemyCategory(e), td = TEND_NAME[e.tend], rk = foeRank(run, e, run.phase, R.encounterMult('boss', i, !!run.campaign));
+    const cat = enemyCategory(e), td = TEND_NAME[e.tend], rk = foeRank(run, e, run.phase, R.encounterMult('boss', R.routeStep(run, i), !!run.campaign));
     return `<li class="ah-card ah-boss n-boss${cur ? ' cur tl-info' : ''}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}">${act(cur)}<span class="ah-lead"><span class="ah-port">${sprite(e, 'spr big')}<i class="ah-ic">${NODE_ICON.boss}</i></span>${step(i)}</span>
       <div class="ah-body"><b>${esc(e.name)}</b>${cur ? about('boss') : desc(`${NODE_NAME.boss} · ${nodeHint('boss')}`)}<div class="ah-chips">${rankChip(rk)}${R.bossMustWin(run) ? tchip(lineIcon('m.elite', 'li'), '최종 보스', 'bad', '의뢰의 마지막 보스: 이길 때까지 다시 싸운다 (다른 보스는 져도 다음 페이즈로)') : ''}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${cur ? `${income('boss')}${mods('boss')}` : ''}</div></li>`;
   };
@@ -1211,7 +1251,9 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   // 현재 칸 (진입 단추 포함, 강조) → 다음 칸들: 같은 카드 토큰으로 한 흐름
   const cur = pick ? nodeCard(run.step, pick, true)
     : `<li class="ah-card cur tl-info">${act(true)}<span class="ah-lead"><i class="ah-ic">${NODE_ICON.boss}</i>${step(run.step)}</span><div class="ah-body"><b>항로 끝</b><span class="ah-hint">이번 항로의 모든 칸을 지났습니다.</span></div></li>`;
-  return `<section class="ahead" aria-label="현재 칸과 앞으로 올 칸"><ol class="ah-list">${cur}${idx.flatMap((i) => run.map[i].includes('boss') ? [nodeCard(i, 'boss', false)] : run.map[i].map((o) => nodeCard(i, o, false))).join('')}</ol></section>`;
+  // 분기 항로: 다음 칸은 지금 고른 노드에서 이어지는 노드만
+  const nextOf = (i: number) => { if (!run.links) return run.map[i]; const j = run.node ? run.path?.[run.step] : R.reachIdx(run).find((k) => run.map[run.step][k] === pick); return (run.links[i - 1]?.[j ?? 0] || []).map((k) => run.map[i][k]); };
+  return `<section class="ahead" aria-label="현재 칸과 앞으로 올 칸"><ol class="ah-list">${cur}${idx.flatMap((i) => run.map[i].includes('boss') ? [nodeCard(i, 'boss', false)] : nextOf(i).map((o) => nodeCard(i, o, false))).join('')}</ol></section>`;
 }
 // ───────── 적 스펙 ≈ 공명 등급: 적의 공격 위력을 '장비 · 시너지 · 증강 없는 아군(영입 가능 기물 평균)'의 등급별 위력과 비교해 가장 가까운 등급
 //   위력 = 사격 · 타격 · 기술 중 큰 값 (적은 × 페이즈 피해 배율). 아군 등급 성장은 설정값 그대로 (모든 메이저 +rankAll, 마이너 추천 메이저 rankPoints, 위력 rankPowGrowth)
@@ -4307,7 +4349,7 @@ function render() {
   }
   // 노드 타임라인: 현재 단계를 가운데로 (다음 노드가 보이도록)
   const tl = root.querySelector<HTMLElement>('.tl');
-  const cur = tl?.querySelector<HTMLElement>('.tl-step.cur');
+  const cur = tl?.querySelector<HTMLElement>('.tl-step.cur, .rt-num.cur'); // 분기 항로 지도는 지금 칸 번호 칸
   if (tl && cur) tl.scrollLeft = Math.max(0, cur.offsetLeft - (tl.clientWidth - cur.offsetWidth) / 2);
   if (sameView) {
     for (const [sel, top] of keep) { const el = root.querySelector(sel); if (el && top) el.scrollTop = top; }
@@ -6308,7 +6350,7 @@ const HOTKEYS: HotKey[] = [
   { scope: 'modal', keys: DIGITS, cap: '#', sel: [PICK_SEL], desc: '선택지 고르기 (증강 · 전공 · 영입은 숫자키로 고르면 바로 확정)' },
   { scope: 'modal', keys: ['Enter', ' '], cap: 'Enter', sel: [CONFIRM_ACTS.map((a) => `.modal [data-a="${a}"]`).join(', ')], desc: '확인 · 계속' },
   { scope: 'modal', keys: ['r'], cap: 'R', sel: ['.modal [data-a="reroll"], .modal [data-a="reroll-privilege"], .modal [data-a="reroll-despair"]'], desc: '새로고침' },
-  { scope: 'map', keys: DIGITS, cap: '#', sel: ['.tl-step.cur .tl-node'], desc: '다음 노드 고르기' },
+  { scope: 'map', keys: DIGITS, cap: '#', sel: ['.tl-step.cur .tl-node', '.rt-n.cur'], desc: '다음 노드 고르기' },
   { scope: 'map', keys: ['Enter', ' '], cap: 'Enter', sel: ['.tl-go'], desc: '노드 진입' },
   { scope: 'map', keys: ['m'], cap: 'M', sel: [], run: () => act('manage', ''), desc: '편성 관리 (단추 없이 키로만)' },
   { scope: 'newrun', keys: ['r'], cap: 'R', sel: ['[data-a="reroll-starters"]'], desc: '후보 새로고침' },
