@@ -172,6 +172,8 @@ export interface RunState {
   mapHist?: string[];
   /** 이 런에서 나온 지형 틀 (개활지 제외): 복합 지형(MapDef.later)은 같은 전장 전용 틀이 한 번 나온 뒤부터 */
   mapSeen?: string[];
+  /** 이 런에서 나온 포위 틀 (MapDef.surround) 수: CFG.maps.surroundMax 번까지 */
+  mapSurround?: number;
   /** 지정 소집 횟수 (가격 상승) */
   musters?: number;
   /** 엔지니어 감시 포탑 배치 (편성 화면에서 끌어 옮긴 자리, 순서대로). c = -1 / 99 는 양옆 가장자리 열 */

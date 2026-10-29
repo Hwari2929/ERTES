@@ -1184,7 +1184,7 @@ function gearEnemies(run: RunState, r: Rng, enemies: EnemySpawn[], type: NodeTyp
 
 /** 전장 지형 틀 고르기 (data/maps.ts): 보스전 · 튜토리얼 · 캠페인은 개활지. 그 전장 전용 틀 CFG.maps.field 확률, 아니면 공용 틀 CFG.maps.common 확률.
  *  런 난수와 따로 굴린다 (시드 · 페이즈 · 칸 · 종류에서) — 기존 조우 난수 흐름을 바꾸지 않게.
- *  직전 · 그 전 전투의 틀(run.mapHist)은 가중치를 낮춘다 (CFG.maps.repeat, 고를 틀이 그것뿐이면 그 묶음 확률째로). later 틀은 같은 전장 전용 틀이 한 번 나온 뒤부터 */
+ *  직전 · 그 전 전투의 틀(run.mapHist)은 가중치를 낮춘다 (CFG.maps.repeat, 고를 틀이 그것뿐이면 그 묶음 확률째로). later 틀은 같은 전장 전용 틀이 한 번 나온 뒤부터 · 포위 틀(surround)은 런마다 CFG.maps.surroundMax 번까지 */
 function pickMap(run: RunState, type: NodeType, phase: number): string | undefined {
   if (type === 'boss' || run.tutorial || run.campaign) return undefined;
   const r = new Rng(((run.seed * 31 + phase * 1009 + run.step * 7919 + (type === 'adversity' ? 104729 : 0)) >>> 0) || 1);
@@ -1192,7 +1192,7 @@ function pickMap(run: RunState, type: NodeType, phase: number): string | undefin
   const w = (id: string) => (id === hist[hist.length - 1] ? CFG.maps.repeat[0] : id === hist[hist.length - 2] ? CFG.maps.repeat[1] : 1);
   const fieldMaps = MAPS.filter((m) => m.field && m.field === run.field);
   const own = fieldMaps.filter((m) => !m.later || seen.some((id) => id !== m.id && fieldMaps.some((f) => f.id === id)));
-  const common = MAPS.filter((m) => !m.field && m.id !== 'open');
+  const common = MAPS.filter((m) => !m.field && m.id !== 'open' && !(m.surround && (run.mapSurround || 0) >= CFG.maps.surroundMax)); // 포위 틀은 런마다 CFG.maps.surroundMax 번까지
   const top = (ms: MapDef[]) => Math.max(0, ...ms.map((m) => w(m.id))); // 묶음 안에 최근이 아닌 틀이 있으면 1
   if (own.length && r.chance(CFG.maps.field * top(own))) return r.weighted(own, (m) => w(m.id)).id;
   if (r.chance(CFG.maps.common * top(common))) return r.weighted(common, (m) => w(m.id) * (m.phaseW?.(phase) ?? 1) * (m.weight ?? 1)).id; // 긴 통로 4칸 · 5칸은 페이즈에 따라 한 자리를 나눈다 · 가로 지형은 weight 로 덜 나온다
@@ -1205,6 +1205,7 @@ function noteMap(run: RunState, type: NodeType, map: string | undefined) {
   if (type === 'boss' || run.tutorial || run.campaign) return;
   run.mapHist = [...(run.mapHist || []), map || 'open'].slice(-2);
   if (map && !(run.mapSeen ||= []).includes(map)) run.mapSeen.push(map);
+  if (mapOf(map).surround) run.mapSurround = (run.mapSurround || 0) + 1;
 }
 export function genEncounter(run: RunState, type: NodeType, phase = run.phase): Encounter {
   const map = pickMap(run, type, phase);

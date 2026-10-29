@@ -104,15 +104,35 @@ const YARD: Record<number, string[]> = {
   7: ['.AAqqBB', '.AAqquu', 'ppssCC.'],
   8: ['.AA.qqBB', '.AA.qquu', 'ppss.CC.'],
 };
+/** 쌍둥이 연결교 (폭 6 · 7 · 8): 가운데 통로 · 양쪽 1칸 연결교 · 사이는 진공 틈 */
+const TWIN: Record<number, string[]> = { 6: Array(3).fill('vb..bv'), 7: Array(3).fill('vbv.vbv'), 8: Array(3).fill('vbv..vbv') };
+/** 광석 야적장 (폭 6 · 7 · 8): 가운데 진공 틈 · 양옆 광석 더미 */
+const ORE: Record<number, string[]> = {
+  6: ['o.vv.o', '..vv..', 'o.vv.o'],
+  7: ['oo.v.oo', '...v...', 'oo.v.oo'],
+  8: ['oo.vv.oo', '...vv...', 'oo.vv.oo'],
+};
+/** 광석 하역장 (폭 6 · 7 · 8): 위 A · B 1×2 컨테이너 · 가운데 선로 · 아래 적재칸 p · q 1×2 */
+const UNLOAD: Record<number, string[]> = {
+  6: ['AA..BB', 'rrrrrr', 'pp..qq'],
+  7: ['.AA.BB.', 'rrrrrrr', '.pp.qq.'],
+  8: ['.AA..BB.', 'rrrrrrrr', '.pp..qq.'],
+};
+/** 배양 탱크 창고 (폭 6 · 7 · 8): 위 탱크 엄폐 · 아래 방벽 (가운데 길 · 수문 2개) */
+const DEPOT: Record<number, string[]> = {
+  6: ['T.TT.T', '......', '#=..=#'],
+  7: ['T.T.T.T', '.......', '#=#.#=#'],
+  8: ['T.T..T.T', '........', '#=#..#=#'],
+};
 
 export const MAPS: MapDef[] = [
   { id: 'open', name: '개활지', desc: '막힌 곳 없는 평지.' },
   // ── 공용 지형 틀
   { id: 'corridor', name: '긴 통로', narrow: 4, phaseW: (p) => 1 - wide5(p), allyRows: 4, gap: 5, desc: '좁고 긴 통로. 적이 줄지어 다가온다.' },
   { id: 'corridor5', name: '긴 통로', narrow: 5, phaseW: wide5, allyRows: 4, gap: 5, desc: '좁고 긴 통로. 적이 줄지어 다가온다.' },
-  { id: 'surround', name: '포위', surround: true, desc: '아군이 가운데, 적이 위아래에서 조여 온다.' },
+  { id: 'surround', name: '포위', surround: true, weight: 0.5, desc: '아군이 가운데, 적이 위아래에서 조여 온다.' },
   { id: 'hcorridor', name: '가로 통로', rot: true, narrow: 4, allyRows: 4, gap: 9, weight: 0.5, desc: '아주 긴 가로 통로. 적이 오른쪽 끝에서 줄지어 온다.' },
-  { id: 'hsurround', name: '가로 포위', rot: true, surround: true, narrow: 5, allyRows: 4, gap: 4, weight: 0.5, desc: '긴 전장 한가운데에 아군, 적이 양옆에서 조여 온다.' },
+  { id: 'hsurround', name: '가로 포위', rot: true, surround: true, narrow: 5, allyRows: 4, gap: 4, weight: 0.25, desc: '긴 전장 한가운데에 아군, 적이 양옆에서 조여 온다.' },
   // ── 리빈 낙원동 (방역 시즌)
   { id: 'lv_gate', field: 'livin', name: '방역 수문', gap: 3, gateCycle: [8, 6],
     desc: '방벽이 가운데를 가르고, 수문이 주기적으로 여닫힌다. 양 끝은 우회로.',
@@ -123,6 +143,15 @@ export const MAPS: MapDef[] = [
   { id: 'lv_farm', field: 'livin', name: '격리 재배 구획', gap: 3, later: true,
     desc: '온실과 배양 탱크가 길을 나눈다. 입구가 좁다.',
     terrain: pattern(['gg.T.gg', '...T...', 'T..g..T']) },
+  { id: 'lv_canal', field: 'livin', name: '방역 수로', gap: 3, gateCycle: [6, 6],
+    desc: '수로가 전장을 가로지른다. 수문 2개가 주기적으로 여닫히며 건널목이 되고, 양 끝은 뭍길. 물 너머로는 쏠 수 있다.',
+    terrain: pattern(['..T.T..', '.~=~=~.', '.......']) },
+  { id: 'lv_green', field: 'livin', name: '온실 회랑', gap: 3, later: true,
+    desc: '유리 온실이 줄지어 서 좁은 골목을 만든다. 온실 너머로는 보이고 쏠 수 있다.',
+    terrain: pattern({ 6: ['g.gg.g', '..~~..', 'g.gg.g'], 7: ['g.g.g.g', '.~...~.', 'g.g.g.g'], 8: ['g.g..g.g', '.~....~.', 'g.g..g.g'] }) },
+  { id: 'lv_depot', field: 'livin', name: '배양 탱크 창고', gap: 3, later: true, gateCycle: [8, 5],
+    desc: '배양 탱크가 엄폐가 되고, 아래 방벽은 가운데 길과 주기적으로 여닫히는 수문 2개로만 지난다.',
+    terrain: pattern(DEPOT) },
   // ── 베르타–산노디스 물류망 (군체가 끊은 연합 수도 물류망)
   { id: 'sw_dock', field: 'swarm', name: '도킹 연결부', gap: 3,
     desc: '진공 틈을 가운데 연결교와 양 끝 통로로만 건넌다. 연결교 위는 엄폐가 없다. 전투 전에 연결교를 접을 수 있다.',
@@ -133,6 +162,15 @@ export const MAPS: MapDef[] = [
   { id: 'sw_rail', field: 'swarm', name: '광석 운반차 선로', gap: 3, later: true, cartDir: 1,
     desc: '가운데 선로로 광석 운반차가 정해진 시각에 지나가며, 선로 위 기물을 아군 · 적 가리지 않고 쳐 낸다.',
     terrain: pattern(['..o..o.', 'rrrrrrr', '.o..o..']) },
+  { id: 'sw_twin', field: 'swarm', name: '쌍둥이 연결교', gap: 3,
+    desc: '진공 틈 사이로 가운데 통로와 양쪽 연결교 2개. 연결교 위는 엄폐가 없다. 전투 전에 연결교를 접으면 가운데 통로만 남는다.',
+    terrain: pattern(TWIN) },
+  { id: 'sw_ore', field: 'swarm', name: '광석 야적장', gap: 3,
+    desc: '광석 더미가 양옆을 막고, 가운데 진공 틈이 전장을 둘로 가른다. 틈 너머로는 쏠 수 있다.',
+    terrain: pattern(ORE) },
+  { id: 'sw_unload', field: 'swarm', name: '광석 하역장', gap: 3, later: true, cartDir: -1,
+    desc: '가운데 선로로 광석 운반차가 지나간다. 전투 전에 크레인으로 컨테이너를 선로 건너편 적재칸에 옮길 수 있다.',
+    terrain: pattern(UNLOAD), bays: bays(UNLOAD) },
 ];
 export const MAP_BY_ID: Record<string, MapDef> = Object.fromEntries(MAPS.map((m) => [m.id, m]));
 export const mapOf = (id?: string) => MAP_BY_ID[id || 'open'] || MAP_BY_ID.open;
