@@ -182,9 +182,9 @@ export const CFG = {
     /** 금고 칸: 아군이 그 위에 합쳐 need 초 서 있으면 전투 승리 때 크레딧 +credits */
     vaultCell: { need: 5, credits: 2 } },
   /** 적 분대 (data/squads.ts · run.ts assembleSquads).
-   *  elite: 일반 · 역경 전투에 정예 분대를 넣는다 — 캠페인 2장 작업(5bb320c) 뒤로 정예 줄이 주석에 묻혀 일반 런에는 정예가 나오지 않았고, 지금 밸런스가 그 상태로 맞춰져 있어 꺼 둔다.
+   *  elite: 일반 · 역경 전투에 정예 분대를 넣는다 (역경 확정 · 2페이즈부터 일반 전투 확률). 캠페인 2장 작업(5bb320c) 뒤로 정예 줄이 주석에 묻혀 빠져 있던 것을 되살림 (v411 밸런스는 정예 없이 맞춘 값).
    *  duo: 포병 듀오 (두 칸이 체력을 나눠 쓰는 한 기물): 뒤 칸 (포병) 받는 피해 ×back · 앞 칸 (부사수) ×front · 한 전투 최대 수 (4페이즈부터 max4) */
-  squads: { elite: false, duo: { back: 1.5, front: 0.6, max: 1, max4: 2 } },
+  squads: { elite: true, duo: { back: 1.5, front: 0.6, max: 1, max4: 2 } },
   rarePhase: 3, // 아문센 · 데미우르고스가 영입 후보에 나오는 페이즈 (배치 제한은 없음)
   /** 최고의 친구 소환물 스탯 상속률 (build.ts spawnSummons): 시너지가 꺼져 있을 때의 기본값 · 추가로 불린 소환물(2번째부터)의 배율 · 상한 */
   bond: { base: 0.5, extra: 0.8, cap: 6 },
