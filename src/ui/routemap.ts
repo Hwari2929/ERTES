@@ -520,7 +520,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       { kind: 'planet', name: '중계 위성', code: 'RL-2', sub: '군체 침식 구역', R: 17, r: 158, moon: true },
     ].map((b, k) => ({ ...b, half: k % 2 ? 'hi' : 'lo', u: 0, v: 0, cx: 0, cy: 0 }));
     // 분기 항로: 기준 항로는 천체 사이를 완만하게 누비고 (진폭 AW), 천체는 갈래 다발 (LANE 간격) 이 지나갈 자리 밖으로 비켜 놓는다 ('lo' = 항로가 +v 쪽)
-    const AW = 36, LANE = 64, extOf = (b: (typeof BOD)[number]) => (b.rings ? b.R + 6 + (b.rings - 1) * 4.5 : b.kind === 'port' ? 47 : b.moon ? 44 : b.R + 8);
+    const AW = 18, LANE = 64, extOf = (b: (typeof BOD)[number]) => (b.rings ? b.R + 6 + (b.rings - 1) * 4.5 : b.kind === 'port' ? 47 : b.moon ? 44 : b.R + 8);
     let U = 0;
     for (const b of BOD) { b.u = U + b.r; U += 2 * b.r; if (run.links) b.v = (b.half === 'lo' ? -1 : 1) * (LANE + 36 + extOf(b) - AW); [b.cx, b.cy] = L2W(b.u, b.v); }
     const away = (b: (typeof BOD)[number]) => Math.sign(b.v); // 천체에서 항로 반대쪽
@@ -613,7 +613,8 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
 
     if (run.links) return orbitBranch();
     /** 분기 항로 (궤도 다발): 기준 항로 = 천체 사이를 완만하게 누비는 곡선, 칸 = 진행축 위 같은 간격, 갈래 = 기준 항로의 법선으로 LANE 씩.
-     *  연결선 = 원호 하나: 갈라지는 노드에서는 기준 항로 방향으로 나가 왼쪽 · 가운데 (곧게) · 오른쪽으로 휘고, 합쳐지는 노드로는 기준 항로 방향으로 들어온다.
+     *  노드마다 진행 방향 = 그 칸의 기준 항로 방향. 같은 갈래로 잇는 길 = 두 노드의 진행 방향을 잇는 매끄러운 곡선 (갈림길의 가운데 길은 갈림 노드의 기울기를 그대로 이어 간다),
+     *  옆 갈래로 갈라지는 길 = 갈림 노드에서 비스듬히 벌어졌다가 도착 노드의 진행 방향으로 펴지는 원호, 합쳐지는 길 = 그 반대 (나란히 나와 모여든다).
      *  지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 흐리게. 지금 고를 수 있는 노드는 누르면 고른다 (main 의 노드 고르기와 같다) */
     function orbitBranch() {
       const rows = run.map, L = run.links!, R = rows.length;
@@ -636,14 +637,22 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         for (let q = 0; q <= 28; q++) { const th = (2 * ph * q) / 28, c = Math.cos(th), sn = Math.sin(th); out.push([O2[0] + v0[0] * c - v0[1] * sn, O2[1] + v0[0] * sn + v0[1] * c]); }
         return out;
       };
-      // 연결선: 갈라지는 노드 (자식 2개 이상) 는 나가는 방향을, 합쳐지는 노드 (부모 2개 이상) 는 들어오는 방향을 기준 항로에 맞춘다
+      /** A → B 를 두 끝의 진행 방향 TA · TB 로 잇는 3차 베지어 (점 29개) */
+      const hermite = (A: number[], B: number[], TA: number[], TB: number[]) => {
+        const h = Math.hypot(B[0] - A[0], B[1] - A[1]) / 3, P1 = [A[0] + TA[0] * h, A[1] + TA[1] * h], P2 = [B[0] - TB[0] * h, B[1] - TB[1] * h], out: number[][] = [];
+        for (let q = 0; q <= 28; q++) { const t = q / 28, m = 1 - t, a = m * m * m, b = 3 * m * m * t, c = 3 * m * t * t, d = t * t * t; out.push([a * A[0] + b * P1[0] + c * P2[0] + d * B[0], a * A[1] + b * P1[1] + c * P2[1] + d * B[1]]); }
+        return out;
+      };
+      // 연결선: 같은 갈래 = 매끄러운 곡선 · 갈라지는 옆 갈래 = 도착 방향에 맞춘 원호 · 합쳐지는 옆 갈래 = 출발 방향에 맞춘 원호
       const edgeLayer = el('g', {}, world), beaconLayer = el('g', {}, world), nodeLayer = el('g', {}, world);
       type Edge = { i: number; j: number; k: number; pts: number[][]; e: SVGElement; mid: number[] };
       const edges: Edge[] = [];
       const parents = (i: number, k: number) => rows[i].filter((_, j) => (L[i]?.[j] || []).includes(k)).length;
       for (let i = 0; i < R - 1; i++) rows[i].forEach((_, j) => (L[i]?.[j] || []).forEach((k, _n, kids) => {
         const A = nodeAt(i, j), B = nodeAt(i + 1, k), tb = tan(uRow(i + 1));
-        const pts = kids.length < 2 && parents(i, k) >= 2 ? arc(B, A, [-tb[0], -tb[1]]).reverse() : arc(A, B, tan(uRow(i)));
+        const ta = tan(uRow(i)), side = Math.abs(dOf(i + 1, k) - dOf(i, j)) > 1;
+        const g0 = L2W(uRow(i), vs(uRow(i))), g1 = L2W(uRow(i + 1), vs(uRow(i + 1))), gl = Math.hypot(g1[0] - g0[0], g1[1] - g0[1]) || 1, g = [(g1[0] - g0[0]) / gl, (g1[1] - g0[1]) / gl]; // 두 칸 사이 기준 항로 방향 (옆 갈래가 좌우 대칭으로 휘게)
+        const pts = side && kids.length >= 2 ? arc(B, A, [-g[0], -g[1]]).reverse() : side && parents(i, k) >= 2 ? arc(A, B, g) : hermite(A, B, ta, tb);
         const e = el('polyline', { points: pts.map((q) => q.map((v) => v.toFixed(1)).join(',')).join(' '), fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, edgeLayer);
         edges.push({ i, j, k, pts, e, mid: pts[14] });
       }));
