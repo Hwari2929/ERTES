@@ -9,6 +9,7 @@ import { EVENT_BY_ID, EVENTS, type EventApi } from '../data/events';
 import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
+import { type FoeRole, roleOf, SQUADS, type SquadKind, squadName, type SquadTpl } from '../data/squads';
 import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBAL_ODDS, GLOBALS, PRIVILEGES, synName } from '../data/globals';
 import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, DUST, SHARD, isGraded, isMat, potPool, potsOf, refineBase, withPots, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_GEAR, TURRET_GEAR_IDS } from '../data/items';
 import { ENG_TUR, UNI_XP, OCCULT_SYNTH, PETRA_PAY, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
@@ -22,7 +23,7 @@ import type { AugDef } from './effects';
 import { DEFAULT_RELIC, RELIC_BY_ID, RELICS } from '../data/relics';
 import { Rng } from '../rng';
 import { FAITHS,
-  type AugPick, type Encounter, type InvestOffer, type FaithId, type EnemySpawn, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
+  type AugPick, type Encounter, type InvestOffer, type FaithId, type EnemySpawn, type EncSquad, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
   type Quest, type RunState, type ShopSlot, type SupplyCard, type SynergyId, type UnitState,
 } from '../types';
 import { allyRoom, companionCells, deployed, encGeo, engTier, geoOf, mapOptOf, terrainPathOk, foeCell, layout, PAD, runGeo, terrainCells, toPos, memberships, playerRows, prepOccupied, synergyCounts, turretCells, turretCount, ZONE, zoneAt } from './build';
@@ -1207,6 +1208,79 @@ function noteMap(run: RunState, type: NodeType, map: string | undefined) {
   if (map && !(run.mapSeen ||= []).includes(map)) run.mapSeen.push(map);
   if (mapOf(map).surround) run.mapSurround = (run.mapSurround || 0) + 1;
 }
+/** 조립 중인 분대: 종류 · 이름 · 적 정의 id (포병 듀오는 [포병, 부사수]) · 위험 등급 증원 */
+interface Squad { kind: SquadKind; name: string; ids: string[]; add?: boolean }
+/** 분대 조립 (data/squads.ts): 예산 budget 만큼 역할 분대를 붙인다. 첫 분대는 대개 전열, 1명이 남으면 기존 분대에 더하거나 (분대가 적으면 절반쯤) 혼성 1명.
+ *  분대 안의 같은 역할은 대개 같은 적 (70%) — 한눈에 읽히게. 포병 듀오의 포병은 구조물이 아닌 사격 적 */
+function assembleSquads(r: Rng, field: string, pool: string[], p: number, budget: number, out: Squad[], add = false) {
+  const live = pool.filter((id) => !ENEMY_BY_ID[id].inert);
+  const by = (role: FoeRole, duo = false) => live.filter((id) => roleOf(ENEMY_BY_ID[id]) === role && !(duo && (ENEMY_BY_ID[id].keywords.includes('struct') || ENEMY_BY_ID[id].immobile)));
+  const D = CFG.squads.duo, duoMax = p >= 4 ? D.max4 : D.max;
+  const pickFor = (role: FoeRole, prev: string[], duo = false) => { const c = by(role, duo); const same = prev.find((id) => c.includes(id)); return same && r.chance(0.7) ? same : r.pick(c); };
+  const ok = (t: SquadTpl, rem: number) => (t.from ?? 1) <= p && t.slots.length <= rem && t.slots.every((role, i) => by(role, t.kind === 'duo' && i === 0).length > 0)
+    && !(t.kind === 'duo' && out.filter((x) => x.kind === 'duo').length >= duoMax);
+  let rem = budget;
+  while (rem > 0) {
+    const cands = SQUADS.filter((t) => ok(t, rem));
+    const first = !out.some((x) => x.kind !== 'boss' && x.kind !== 'elite');
+    if (rem >= 2 && cands.length) {
+      const t = first && cands.some((x) => x.kind === 'line') && r.chance(0.6) ? cands.find((x) => x.kind === 'line')! : r.weighted(cands, (x) => x.w); // 첫 분대는 대개 전열 (60%)
+      const ids: string[] = [];
+      t.slots.forEach((role, i) => ids.push(pickFor(role, ids, t.kind === 'duo' && i === 0)));
+      out.push({ kind: t.kind, name: squadName(field, t.kind), ids, ...(add ? { add: true } : {}) });
+      rem -= ids.length;
+      continue;
+    }
+    // 1명 남음 (또는 맞는 분대 없음): 더할 수 있는 분대에 1명 → 없으면 혼성
+    const grow = out.filter((x) => { const g = SQUADS.find((t) => t.kind === x.kind)?.grow; return g && x.ids.length < g.max && by(g.role).length && !!x.add === add; });
+    // 분대가 적은 초반은 절반쯤 혼성 1명으로 (같은 분대만 커지지 않게)
+    if (grow.length && (out.length >= 3 || r.chance(0.5))) { const x = r.pick(grow), g = SQUADS.find((t) => t.kind === x.kind)!.grow!; x.ids.push(pickFor(g.role, x.ids)); }
+    else { const mx = out.find((x) => x.kind === 'mixed' && !!x.add === add); if (mx) mx.ids.push(r.pick(live.length ? live : pool)); else out.push({ kind: 'mixed', name: squadName(field, 'mixed'), ids: [r.pick(live.length ? live : pool)], ...(add ? { add: true } : {}) }); }
+    rem--;
+  }
+}
+/** 분대 진형 배치 (적 진형: row 0 = 뒷줄 · rows-1 = 앞줄, 열 0~n-1): 포병 듀오 (뒷줄 + 바로 앞 칸) → 보스 · 정예 → 사격선 (뒷줄 나란히) → 지원조 (가운데 뒷줄 + 앞 호위)
+ *  → 전열 (앞줄 가운데 나란히) → 암살조 (측면) → 혼성. 자리가 없으면 근접 = 앞줄부터 · 원거리 = 뒷줄부터 빈칸. 포위 지형은 분대 단위로 위 · 아래 진형을 번갈아 */
+function placeSquads(r: Rng, sq: Squad[], n: number, rows: number, surround: boolean): EnemySpawn[] {
+  const out: EnemySpawn[] = [], taken = new Set<string>(), front = rows - 1;
+  const key = (c: number, row: number, z: boolean) => `${z ? 1 : 0}:${c},${row}`;
+  const free = (c: number, row: number, z: boolean) => c >= 0 && c < n && row >= 0 && row < rows && !taken.has(key(c, row, z));
+  const put = (id: string, c: number, row: number, i: number, z: boolean, extra: Partial<EnemySpawn> = {}) => { taken.add(key(c, row, z)); out.push({ defId: id, c, row, sq: i, ...(z ? { flip: true } : {}), ...extra }); };
+  const loose = (id: string, i: number, z: boolean) => { // 근접은 앞줄부터, 원거리는 뒷줄부터
+    const order = ENEMY_BY_ID[id].melee ? [front, front - 1, 0] : [0, 1, front];
+    for (const row of order) { const cs = r.shuffle([...Array(n).keys()]).filter((c) => free(c, row, z)); if (row >= 0 && row < rows && cs.length) { put(id, cs[0], row, i, z); return; } }
+  };
+  /** 한 줄에 k칸 나란히: 가운데에 가까운 시작부터 (같은 거리는 무작위) */
+  const run = (row: number, k: number, z: boolean) => {
+    const starts = r.shuffle([...Array(Math.max(0, n - k + 1)).keys()]).sort((a, b) => Math.abs(a + (k - 1) / 2 - (n - 1) / 2) - Math.abs(b + (k - 1) / 2 - (n - 1) / 2));
+    return starts.find((s0) => [...Array(k).keys()].every((j) => free(s0 + j, row, z)));
+  };
+  const order: SquadKind[] = ['duo', 'boss', 'elite', 'fire', 'support', 'line', 'ambush', 'mixed'];
+  const idx = sq.map((_, i) => i).sort((a, b) => order.indexOf(sq[a].kind) - order.indexOf(sq[b].kind));
+  let zi = 0;
+  for (const i of idx) {
+    const x = sq[i], z = surround && x.kind !== 'boss' && zi++ % 2 === 1; // 포위: 분대 단위로 번갈아 아래 진형
+    if (x.kind === 'duo' && rows >= 2) {
+      const cs = r.shuffle([...Array(n).keys()]).sort((a, b) => Number(a === 0 || a === n - 1) - Number(b === 0 || b === n - 1)).filter((c) => free(c, 0, z) && free(c, 1, z));
+      if (cs.length) { put(x.ids[0], cs[0], 0, i, z, { duo: 'b' }); put(x.ids[1], cs[0], 1, i, z, { duo: 'f' }); continue; }
+    }
+    if ((x.kind === 'fire' || x.kind === 'line') && x.ids.length) {
+      const row = x.kind === 'fire' ? 0 : front, s0 = run(row, x.ids.length, z);
+      if (s0 !== undefined) { x.ids.forEach((id, j) => put(id, s0 + j, row, i, z)); continue; }
+    }
+    if (x.kind === 'ambush') { // 측면: 앞줄 양 끝부터 안쪽으로, 앞줄이 차면 가운데 줄 양 끝
+      const sides = [...Array(n).keys()].flatMap((j) => (j < n - 1 - j ? [j, n - 1 - j] : j === n - 1 - j ? [j] : [])).slice(0, n);
+      for (const id of x.ids) { const row = [front, front - 1].find((rw) => sides.some((c) => free(c, rw, z))); const c = row === undefined ? undefined : sides.find((cc) => free(cc, row, z)); if (row !== undefined && c !== undefined) put(id, c, row, i, z); else loose(id, i, z); }
+      continue;
+    }
+    if (x.kind === 'support' && x.ids.length === 2) { // 지원 적은 뒷줄 가운데 쪽, 호위는 같은 열 바로 앞
+      const c = r.shuffle([...Array(n).keys()]).sort((a, b) => Math.abs(a - (n - 1) / 2) - Math.abs(b - (n - 1) / 2)).find((cc) => free(cc, 0, z) && free(cc, 1, z));
+      if (c !== undefined) { put(x.ids[0], c, 0, i, z); put(x.ids[1], c, 1, i, z); continue; }
+    }
+    for (const id of x.ids) loose(id, i, z);
+  }
+  return out;
+}
 export function genEncounter(run: RunState, type: NodeType, phase = run.phase): Encounter {
   const map = pickMap(run, type, phase);
   noteMap(run, type, map);
@@ -1220,40 +1294,57 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
     const enemies: EnemySpawn[] = [];
     const ids: string[] = [];
     const pool = f.pool.filter((id) => ENEMY_BY_ID[id].minPhase <= p);
-    if (type === 'boss') {
-      const boss = run.campaign ? campBoss(run) : f.bosses[(p - 1) % f.bosses.length];
-      ids.push(boss, ...(ENEMY_BY_ID[boss].escort || []));
-      const extra = run.campaign ? 0 : Math.max(0, sp - 1); // 보스 호위 추가 인원 = 적 성장 페이즈 - 1 (상한 없음) · 캠페인은 장 보스 혼자 (포자를 쏟아 낸다)
-      for (let i = 0; i < extra + (diffHas(run.diff, 4) ? 1 : 0) + oathV(run, 'titan', 'guard'); i++) ids.push(r.pick(pool)); // 거두의 서약: 호위 +
-    } else {
-      const late = run.step >= 4 ? 1 : 0; // 페이즈 후반 (보급 이후 전투부터)
-      const count = run.campaign ? campFoeCount(run) : Math.min(rows * n - 2, 2 + sp + late + (p >= (f.extraFrom || 1) ? f.extraEnemies || 0 : 0) + (type === 'adversity' && diffHas(run.diff, 5) ? 1 : 0));
-      if (run.campaign && run.flags.includes('cp_sample')) { ids.push('sw_spore', 'sw_spore'); run.flags = run.flags.filter((x) => x !== 'cp_sample'); } // 캠페인 격리 화물: 빠져나간 군체 표본
-      if (run.campaign) { const el = campElite(run); if (el) ids.push(el); } // 캠페인: 장마다 정한 칸부터 정예 1마리 else if (type === 'adversity' || ((p >= 2 || oathLv(run, 'elite')) && r.chance((diffHas(run.diff, 5) ? 0.6 : 0.3) + oathV(run, 'elite', 'chance')))) ids.push(f.elite); // 정예의 서약: 1페이즈부터 · 확률 +
-      while (ids.length < count) ids.push(r.pick(pool));
-    }
-    // 위험 등급 적 증원 (모험 · 고난, CFG.diffAdd): 보스전 포함 모든 전투. 이 조우에 이미 나온 일반 적(정예 · 보스 · 장애물 제외) 중에서 복제하고,
-    // 없으면 전장 풀에서. 보드 칸(줄 × 폭 - 2)이 모자라면 들어가는 만큼만
-    const add = run.campaign ? 0 : Math.max(0, Math.min(diffAddCount(run.diff, p) + oathV(run, 'horde', 'add'), rows * n - 2 - ids.length)); // + 군세의 서약 · 캠페인은 장별 인원 설계를 따른다
-    if (add) {
-      const same = ids.filter((id) => ENEMY_BY_ID[id].tier === 'minion' && !ENEMY_BY_ID[id].inert);
-      for (let i = 0; i < add; i++) ids.push(r.pick(same.length ? same : pool));
-    }
-    // 근접은 앞줄, 원거리는 뒷줄
-    const front = rows - 1;
-    const taken = new Set<string>();
-    for (const id of ids) {
-      const d = ENEMY_BY_ID[id];
-      const order = d.melee ? [front, front - 1, 0] : [0, 1, front];
-      let placed = false;
-      for (const row of order) {
-        if (row < 0 || row >= rows) continue;
-        const cols = r.shuffle([...Array(n).keys()]);
-        for (const c of cols) if (!taken.has(`${c},${row}`)) { taken.add(`${c},${row}`); enemies.push({ defId: id, c, row }); placed = true; break; }
-        if (placed) break;
+    let squads: EncSquad[] | undefined, add = 0;
+    if (run.campaign) { // 캠페인: 장별 설계 그대로 (낱개 무작위 · 분대 없음 · 증원 없음)
+      if (type === 'boss') {
+        const boss = campBoss(run);
+        ids.push(boss, ...(ENEMY_BY_ID[boss].escort || [])); // 장 보스는 호위 추가 인원 없이 (포자를 쏟아 낸다)
+        for (let i = 0; i < (diffHas(run.diff, 4) ? 1 : 0) + oathV(run, 'titan', 'guard'); i++) ids.push(r.pick(pool)); // 거두의 서약: 호위 +
+      } else {
+        const count = campFoeCount(run);
+        if (run.flags.includes('cp_sample')) { ids.push('sw_spore', 'sw_spore'); run.flags = run.flags.filter((x) => x !== 'cp_sample'); } // 캠페인 격리 화물: 빠져나간 군체 표본
+        const el = campElite(run); // 장마다 정한 칸부터 정예 1마리
+        if (el) ids.push(el);
+        while (ids.length < count) ids.push(r.pick(pool));
       }
+      // 근접은 앞줄, 원거리는 뒷줄
+      const front = rows - 1;
+      const taken = new Set<string>();
+      for (const id of ids) {
+        const d = ENEMY_BY_ID[id];
+        const order = d.melee ? [front, front - 1, 0] : [0, 1, front];
+        let placed = false;
+        for (const row of order) {
+          if (row < 0 || row >= rows) continue;
+          const cols = r.shuffle([...Array(n).keys()]);
+          for (const c of cols) if (!taken.has(`${c},${row}`)) { taken.add(`${c},${row}`); enemies.push({ defId: id, c, row }); placed = true; break; }
+          if (placed) break;
+        }
+      }
+      if (mapOf(map).surround) enemies.forEach((e, i) => { if (i % 2) e.flip = true; }); // 포위: 절반은 아래 적 진형에서
+    } else {
+      // 분대 조립 (data/squads.ts): 보스 · 정예는 제 분대, 나머지는 예산(적 수)만큼 역할 분대를 붙인다. 위험 등급 증원은 증원 분대로
+      const sq: Squad[] = [];
+      let budget: number;
+      if (type === 'boss') {
+        const boss = f.bosses[(p - 1) % f.bosses.length];
+        sq.push({ kind: 'boss', name: ENEMY_BY_ID[boss].name, ids: [boss, ...(ENEMY_BY_ID[boss].escort || [])] });
+        budget = Math.max(0, sp - 1) + (diffHas(run.diff, 4) ? 1 : 0) + oathV(run, 'titan', 'guard'); // 보스 호위 추가 인원 = 적 성장 페이즈 - 1 · 거두의 서약
+      } else {
+        const late = run.step >= 4 ? 1 : 0; // 페이즈 후반 (보급 이후 전투부터)
+        budget = Math.min(rows * n - 2, 2 + sp + late + (p >= (f.extraFrom || 1) ? f.extraEnemies || 0 : 0) + (type === 'adversity' && diffHas(run.diff, 5) ? 1 : 0));
+        if (CFG.squads.elite && (type === 'adversity' || ((p >= 2 || oathLv(run, 'elite')) && r.chance((diffHas(run.diff, 5) ? 0.6 : 0.3) + oathV(run, 'elite', 'chance'))))) { // 정예의 서약: 1페이즈부터 · 확률 +
+          sq.push({ kind: 'elite', name: ENEMY_BY_ID[f.elite].name, ids: [f.elite] });
+          budget--;
+        }
+      }
+      assembleSquads(r, run.field, pool, p, Math.max(0, budget), sq);
+      const used = sq.reduce((a, x) => a + x.ids.length, 0);
+      add = Math.max(0, Math.min(diffAddCount(run.diff, p) + oathV(run, 'horde', 'add'), rows * n - 2 - used)); // 위험 등급 증원 + 군세의 서약 (보드 칸이 모자라면 들어가는 만큼)
+      if (add) assembleSquads(r, run.field, pool, p, add, sq, true);
+      enemies.push(...placeSquads(r, sq, n, rows, !!mapOf(map).surround));
+      squads = sq.map((x) => ({ kind: x.kind, name: x.name, ...(x.add ? { add: true as const } : {}) }));
     }
-    if (mapOf(map).surround) enemies.forEach((e, i) => { if (i % 2) e.flip = true; }); // 포위: 절반은 아래 적 진형에서
     gearEnemies(run, r, enemies, type, p);
     return {
       n, env: type === 'boss' ? '보스 아레나' : mapOf(map).narrow ? '좁은 전장' : env.env, enemies,
@@ -1262,6 +1353,7 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
       seed: r.int(1, 2 ** 31 - 1),
       ...(phase !== run.phase ? { phase } : {}),
       ...(add ? { add } : {}),
+      ...(squads ? { squads } : {}),
     };
   });
 }

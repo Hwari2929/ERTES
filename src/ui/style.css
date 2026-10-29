@@ -1082,6 +1082,26 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .pb-nm em { flex: none; font-style: normal; font-size: var(--fs-2xs); font-weight: 700; color: var(--c-bad); }
 .pb-n { font: 700 var(--fs-md) var(--f-mono); text-align: right; }
 .pb-sub { grid-column: 2 / 4; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+/* 적 분대 (data/squads.ts): [종류 아이콘 | 이름 · 종류 · 증원 | 분대원 얼굴 | 인원]. 누르면 보드에서 그 분대만 강조 (선택색 실선, 정적 · docs/UI.md 10) */
+.pb-sq-h { margin-top: 10px; }
+.pb-sqs { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
+.pb-sq { width: 100%; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 4px 8px 4px 6px; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-md); color: var(--c-text); font: inherit; text-align: left; cursor: pointer; }
+.pb-sq:hover { border-color: var(--c-text-2); }
+.pb-sq.on { border-color: var(--c-select); background: color-mix(in srgb, var(--c-select) 10%, var(--panel-2)); }
+.pb-sq-ic { display: grid; place-items: center; width: 24px; height: 24px; color: var(--c-text-2); }
+.pb-sq-ic .li { width: 18px; height: 18px; }
+.pb-sq-nm { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.pb-sq-nm b { font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pb-sq-nm em { flex: none; font-style: normal; font-size: var(--fs-2xs); color: var(--c-text-2); }
+.pb-sq-nm em.pb-sq-add { color: var(--c-bad); font-weight: 700; }
+.pb-sq-faces { display: flex; }
+.pb-sq-faces .spr { width: 22px; height: 22px; border-radius: var(--r-sm); object-fit: cover; margin-left: -6px; border: 1px solid var(--panel-2); }
+.pb-sq-faces .spr:first-child { margin-left: 0; }
+/* 편성 보드: 고른 분대 = 선택색 실선 · 나머지 적은 흐리게 / 포병 듀오 = 두 칸을 두르는 한 틀 (두 칸이 한 기물) */
+.board .u.side1.sq-on { outline: 2px solid var(--c-select); outline-offset: -1px; }
+.board .u.side1.sq-off { opacity: var(--tg-dim, .4); }
+.duo-frame { position: absolute; box-sizing: border-box; border: 1px solid color-mix(in srgb, var(--c-bad) 70%, transparent); border-radius: var(--r-md); background: color-mix(in srgb, var(--c-bad) 8%, transparent); pointer-events: none; }
+.u.duo-b .tk-card, .u.duo-b > img { box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--c-bad) 70%, transparent); }
 /* 상성 · 아군 공격 속성: 같은 줄 토큰 [아이콘 | 이름 | 인원 | 칩] */
 .pb-row { display: grid; grid-template-columns: 24px auto auto minmax(0, 1fr); align-items: center; gap: 4px 8px; padding: 5px 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-md); font-size: var(--fs-sm); }
 .pb-ri { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--panel); color: color-mix(in srgb, var(--c, var(--c-text-2)) var(--data-mix), var(--c-text)); font-style: normal; }

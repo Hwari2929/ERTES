@@ -129,8 +129,11 @@ export interface Geo { n: number; w: number; h: number; x0: number; ay0: number;
 /** 지형 틀의 전투 전 선택 (data/maps.ts terrainOf): fold = 연결교를 접음 (진공 틈이 된다) · crane = 컨테이너 번호 → 적재칸 번호 */
 export interface MapOpt { fold?: boolean; crane?: Record<number, number>; /** 광석 운반차 첫 방향 (조우 seed 로 무작위, 1 = 오른쪽으로) */ cart?: 1 | -1;
   /** 스프링클러 첫 살수를 늦게 · 레이저 아래 조가 먼저 켜짐 · 차단기로 끈 전력선 쪽 (0 왼쪽 · 1 오른쪽) */ sprLate?: true; laserB?: true; breaker?: 0 | 1 }
-export interface EnemySpawn { defId: string; c: number; row: number; /** 포위 지형: 아래 적 진형에서 나온다 */ flip?: boolean; elite?: boolean; items?: string[]; mod?: string; stripped?: boolean } // items · mod: 위험 등급 장비 · stripped: 강제 징수기로 장비를 떼어 냄 (적 정의의 장비도 달지 않는다)
+/** 조우의 적 분대 (data/squads.ts): 편성 화면 '이번 전투' 미리보기. kind = 분대 종류 (SquadKind) · add = 위험 등급 증원 분대 */
+export interface EncSquad { kind: string; name: string; add?: true }
+export interface EnemySpawn { defId: string; c: number; row: number; /** 분대 번호 (Encounter.squads) · 포병 듀오의 앞 칸 (부사수) f · 뒤 칸 (포병) b */ sq?: number; duo?: 'f' | 'b'; /** 포위 지형: 아래 적 진형에서 나온다 */ flip?: boolean; elite?: boolean; items?: string[]; mod?: string; stripped?: boolean } // items · mod: 위험 등급 장비 · stripped: 강제 징수기로 장비를 떼어 냄 (적 정의의 장비도 달지 않는다)
 export interface Encounter { n: number; env: string; enemies: EnemySpawn[]; mult: number; seed: number; phase?: number; add?: number; /** 편성 화면에서 배치한 소모품 (data/devices.ts) */ devices?: Device[]; /** 전장 지형 틀 (data/maps.ts, 없으면 개활지) */ map?: string; /** 수문이 열린 채 시작 (편성 화면에서 정함, 기본 닫힘) */ gateOpen?: boolean; /** 연결교를 접은 채 싸운다 (도킹 연결부, 편성 화면에서 정함) */ bridgeFold?: true; /** 크레인으로 옮긴 컨테이너: 컨테이너 번호 → 적재칸 번호 (컨테이너 환적장, 편성 화면에서 정함) */ crane?: Record<number, number>;
+  /** 적 분대 (data/squads.ts, 없으면 분대 없는 조우: 캠페인 · 옛 저장 · 훈련장에서 바꾼 조우) */ squads?: EncSquad[];
   /** 스프링클러 늦게 · 레이저 아래 조 먼저 · 차단기 (편성 화면에서 정함, data/maps.ts MapOpt) */ sprLate?: true; laserB?: true; breaker?: 0 | 1 } // phase: 적 강도 기준 페이즈 (도전 = 다음 페이즈) · add: 위험 등급 적 증원으로 더한 수 (difficulty.ts)
 
 /** 상점 진열 칸. base · off = 할인 칸의 원래 가격 · 할인율(%) · ex = 상인 전용 상품 (data/merchants.ts) */

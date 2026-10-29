@@ -873,6 +873,7 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
   KING_AT.set(b, kc ? { x: kc.x, y: kc.y } : null);
   COMP_AT.set(b, new Map(comp.filter((t) => !t.king).map((t) => [t.key, { x: t.x, y: t.y }])));
   TURRET_MODS_AT.set(b, (run.turretMods || []).slice());
+  const duos = new Map<number, { f?: CUnit; b?: CUnit }>(); // 포병 듀오: 분대 번호 → 앞 칸 · 뒤 칸
   for (const s of enc.enemies) {
     const def = ENEMY_BY_ID[s.defId];
     const e = buildEnemy(b, def, enc.phase ?? run.phase, enc.mult, s);
@@ -881,13 +882,34 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
     e.y = e.py = ec.y;
     if (b.unitAt(e.x, e.y)) { const f = b.freeCellNear(e.x, e.y); if (!f) continue; e.x = e.px = f.x; e.y = e.py = f.y; }
     b.add(e);
+    if (s.duo && s.sq !== undefined) { const d = duos.get(s.sq) || {}; d[s.duo] = e; duos.set(s.sq, d); }
   }
+  for (const d of duos.values()) if (d.f && d.b) linkDuo(b, d.f, d.b);
   if (enc.devices?.length) applyDevices(b, run, enc, counts);
   b.start();
   return b;
 }
 
 export { SYN_BY_ID };
+
+/** 포병 듀오 (data/squads.ts, CFG.squads.duo): 두 칸이 한 기물. 체력을 합쳐 한 통으로 나눠 쓰고 (어느 칸이 맞아도 같은 체력이 준다 · 회복도 같이),
+ *  움직이지 않는다. 뒤 칸 (포병) 받는 피해 ×back · 앞 칸 (부사수) ×front. 한 칸이 쓰러지면 다른 칸도 무너진다 (처치는 한 번만 센다) */
+export function linkDuo(b: Battle, f: CUnit, k: CUnit) {
+  const D = CFG.squads.duo, max = f.st.maxHp + k.st.maxHp;
+  let pool = max, lastF = max, lastK = max;
+  const sync = () => {
+    if (!f.alive || !k.alive) { for (const u of [f, k]) if (u.alive) b.kill(u, null); return; }
+    pool = Math.min(b.S(k, 'maxHp'), pool - (lastF - f.hp) - (lastK - k.hp));
+    if (pool <= 0) { f.hp = 0; b.kill(f, null); b.kill(k, null); return; }
+    f.hp = k.hp = lastF = lastK = pool;
+  };
+  for (const [u, mate, part, mul] of [[f, k, 1, D.front], [k, f, 2, D.back]] as const) {
+    u.st.maxHp = u.hp = max;
+    u.immobile = true;
+    u.mem.duo = part; u.mem.duoMate = mate.id;
+    u.hooks.push({ takenMult: () => mul, onHurt: () => sync(), onTick: () => sync() });
+  }
+}
 
 /** 편성 화면에서 놓은 장치를 전장에 (전투 시작 전): 바리케이드 · 유인 신호기 · 감전 지뢰는 칸에, 항공 보급은 장비를 먼저 달고, 포격 · 그물은 첫 틱에 */
 function applyDevices(b: Battle, run: RunState, enc: Encounter, counts: Counts) {

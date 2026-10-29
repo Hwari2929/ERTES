@@ -2,6 +2,7 @@ import { PREVIEW_SECS, foeKey, startPreview } from './engine/preview';
 import { CFG, encDmgMult, phaseAmpMult, phaseHpMult, scalePhase } from './config';
 import { AUG_BY_ID, augDesc } from './data/augments';
 import { ENEMIES, ENEMY_BY_ID, type EnemyDef } from './data/enemies';
+import { SQUAD_KIND, type SquadKind } from './data/squads';
 import { ENEMY_DESC } from './data/enemyText';
 import { DIFF_PRESETS, DIFFS, MAX_DIFF, diffAddCount, diffAddEvery, diffAddRule, diffLabel, diffName, effDiffLabel, runHeat } from './data/difficulty';
 import { CATWHEEL, DESPAIR_BY_ID, DESPAIRS, despairDiff, despairPhases, despairsOf, type DespairDef } from './data/despair';
@@ -36,7 +37,7 @@ import * as R from './engine/run';
 import { CAUSAL, causalGain, causalLeft, causalNeed, causalStage, gearScore, KING, KING_GEAR, KING_GEAR_NAME, KING_MS_TEXT, kingStageText } from './data/chungra';
 import { BGS, NPCS, PC_NAME, type Beat } from './data/scene';
 import { Rng } from './rng';
-import { type Category, type Encounter, type Geo, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from './types';
+import { type Category, type Encounter, type EnemySpawn, type Geo, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type Elem, type TType, type DmgTag, type StatKey, type Weapon, CTYPE_NAME, ELEM_NAME, type FaithId, FAITH_NAME, FAITHS, MAJOR_NAME, TTYPE_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from './types';
 import { encounterMatchup, fieldMatchup, matchupShort, schoolWarnings } from './ui/matchup';
 import { computeStats, fromScr, gateGroupState, gateState, type GateState, makeSummons, rectScr, scrDims, type SummonMade, toScr } from './engine/build';
 import { DEV, type Device, deviceCells, deviceRows, feastChain, feastHp, feastPct, isPlaceable, netCells, scopeR, wallHp } from './data/devices';
@@ -195,7 +196,8 @@ const app = {
   meterTab: 'dmg' as 'dmg' | 'taken' | 'support' | 'kills',
   battleSel: null as number | null, // 전투 중 선택한 기물 (아군 · 적)
   battleTerrain: null as number | null, // 전투 중 선택한 지형 지물 (data/maps.ts terrainGroups 번호)
-  crane: null as number | null, // 편성 화면: 크레인으로 옮길 자리를 고르는 컨테이너 번호 (그 컨테이너를 고른 동안만)
+  crane: null as number | null,
+  sqSel: null as number | null, // 편성 화면 '이번 전투': 고른 적 분대 번호 (보드에서 그 분대만 강조) // 편성 화면: 크레인으로 옮길 자리를 고르는 컨테이너 번호 (그 컨테이너를 고른 동안만)
   bPick: null as string | null, // 상세 정보에서 고른 효과 (st:key) · 장비 (it:id)
   releaseConfirm: null as string | null,
   lastBattle: null as Battle | null,
@@ -1735,10 +1737,13 @@ function prepScreen(run: RunState) {
     units += `<div class="u side0 tk placed comp-tk${t.king ? ' king-tk' : ''}${sel ? ' sel' : ''}" style="${cellBox(t.x, t.y)}" data-drag="comp:${t.key}" data-drop="cell:${t.x}:${t.y}" data-a="${t.king ? 'sel-king' : 'sel-unit'}" data-v="${t.owner || ''}" title="${esc(tip)}">
       ${t.king ? allyCard(kingState(run), true) : summonCard(t)}</div>`;
   }
+  const sqSel = node?.enc?.squads && app.sqSel !== null && app.sqSel < node.enc.squads.length ? app.sqSel : null; // 고른 분대 (그 분대원만 강조, 나머지 적은 흐리게)
   if (node?.enc) node.enc.enemies.forEach((s, i) => {
     const e = ENEMY_BY_ID[s.defId];
     const sel = app.sel?.k === 'enemy' && app.sel.i === i;
-    units += `<div class="u side1 placed${hasPortrait(e) ? ' tk' : ''} ${e.tier !== 'minion' && !hasPortrait(e) ? 'big' : ''} ${sel ? 'sel' : ''}" style="${(() => { const ec = foeCell(s, geo); return cellBox(ec.x, ec.y); })()}"
+    if (s.duo === 'b') { const ec = foeCell(s, geo), mate = node.enc!.enemies.find((o) => o.sq === s.sq && o.duo === 'f'), mc = mate && foeCell(mate, geo); if (mc) units += `<i class="duo-frame" style="${box(ec.x, Math.min(ec.y, mc.y), 1, 2)}" aria-hidden="true"></i>`; } // 포병 듀오: 두 칸을 한 기물로 두르는 틀
+    const sqc = sqSel === null ? '' : s.sq === sqSel ? ' sq-on' : ' sq-off';
+    units += `<div class="u side1 placed${hasPortrait(e) ? ' tk' : ''} ${e.tier !== 'minion' && !hasPortrait(e) ? 'big' : ''} ${sel ? 'sel' : ''}${s.duo ? ` duo duo-${s.duo}` : ''}${sqc}" style="${(() => { const ec = foeCell(s, geo); return cellBox(ec.x, ec.y); })()}"
       data-a="sel-enemy" data-v="${i}" data-drop="foe:${i}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''} · ${tendText(e)}`)}">${hasPortrait(e)
         ? (() => { const cat = enemyCategory(e), td = TEND_NAME[e.tend], mod = s.mod || (s.stripped ? null : e.mod), its = [...(s.stripped ? [] : (e.items || []).filter((x): x is string => !!x)), ...(s.items || [])]; return `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${mod ? `<span class="tk-mod">${itemIcon(mod, `data-a="foe-item" data-v="${mod}"`)}</span>` : ''}</div><span class="tk-side">${e.tier === 'minion' ? '' : `<b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : 'E'}</b>`}<i class="cat-${cat}" title="${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}">${lineIcon(`k.${cat}`, 'li')}</i>${td ? `<i class="tk-tend" title="${esc(`${td.name}: ${td.desc}`)}">${lineIcon(`t.${e.tend}`, 'li')}</i>` : ''}</span><span class="tk-items">${[0, 1, 2].map((k) => (its[k] ? itemIcon(its[k], `data-a="foe-item" data-v="${its[k]}"`) : itemIcon(null))).join('')}</span></div>`; })()
         : sprite(e, '')}</div>`;
@@ -2621,12 +2626,36 @@ function prepBrief(run: RunState) {
   return `<div class="detail pb" aria-label="이번 전투 적 구성">
     <div class="pb-head"><h3>이번 전투</h3><span class="pb-kind n-${type}">${esc(kind)}</span><span class="muted small">적 ${mu.foes}명 · 체력 ×${+enc.mult.toFixed(2)}</span>${diffAddChip(run, enc.phase ?? run.phase, enc.add || 0)}</div>
     <div class="pb-map">${lineIcon('n.battle', 'li')}<b>${esc(encName(enc))}</b><span>${esc(mapOf(enc.map).desc)}</span></div>
+    ${squadList(enc)}
     <ul class="pb-foes">${rows.map(foe).join('')}</ul>
     <h3>상성</h3>
     <ul class="pb-rows">${muRows || '<li class="pb-row muted">특별한 면역 · 취약 없음</li>'}</ul>
     ${elRows ? `<h3>아군 공격 속성 <span class="muted small">출전 ${allies.length}명</span></h3><ul class="pb-rows">${elRows}</ul>` : ''}
     ${PREP_TIPS}
   </div>`;
+}
+/** 포병 듀오 적 상세 (engine/build.ts linkDuo): 이 칸 (포병 · 부사수) · 두 칸 합친 체력 · 받는 피해 배율 · 움직이지 않음 */
+function duoInfo(run: RunState, s: EnemySpawn, b: Battle, c: CUnit) {
+  const enc = run.node?.enc, mate = s.duo && enc?.enemies.find((o) => o.sq === s.sq && o.duo !== s.duo);
+  if (!s.duo || !enc || !mate) return '';
+  const m = buildEnemy(b, ENEMY_BY_ID[mate.defId], enc.phase ?? run.phase, enc.mult, mate), D = CFG.squads.duo, back = s.duo === 'b';
+  const rows: [string, string][] = [['이 칸', back ? '포병 (뒤 칸)' : '부사수 (앞 칸)'], ['짝', `${ENEMY_BY_ID[mate.defId].name} (${back ? '앞' : '뒤'} 칸)`], ['체력', `두 칸 합계 ${fmt(b.S(c, 'maxHp') + b.S(m, 'maxHp'))} · 나눠 씀`], ['받는 피해', `뒤 칸 ×${D.back} · 앞 칸 ×${D.front}`], ['이동', '움직이지 않음'], ['쓰러짐', '한 칸이 쓰러지면 둘 다']];
+  return `<h3>포병 듀오 <span class="muted small">두 칸 한 기물</span></h3><dl class="um-types ct-rules">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
+}
+/** '이번 전투' 적 분대 (data/squads.ts): 분대마다 종류 아이콘 · 이름 · 인원 · 분대원 얼굴 (같은 적은 한 번). 누르면 보드에서 그 분대만 강조 (다시 누르면 해제).
+ *  증원 분대는 '증원' 꼬리표. 포병 듀오는 두 칸 한 기물이라 '2칸' */
+function squadList(enc: Encounter) {
+  if (!enc.squads?.length) return '';
+  const items = enc.squads.map((q, i) => {
+    const mem = enc.enemies.filter((e) => e.sq === i);
+    if (!mem.length) return '';
+    const k = SQUAD_KIND[q.kind as SquadKind] || SQUAD_KIND.mixed, on = app.sqSel === i;
+    const faces = [...new Set(mem.map((e) => e.defId))].slice(0, 3).map((id) => sprite(ENEMY_BY_ID[id], 'spr')).join('');
+    const n = q.kind === 'duo' ? '2칸' : `${mem.length}명`;
+    return `<li><button class="pb-sq sq-${q.kind}${on ? ' on' : ''}" data-a="sel-squad" data-v="${i}" aria-pressed="${on}" title="${esc(`${q.name} — ${k.name}${q.kind === 'duo' ? ` · 두 칸이 체력을 나눠 쓰는 한 기물 · 뒤 칸 받는 피해 ×${CFG.squads.duo.back}` : ''}`)}">
+      <span class="pb-sq-ic">${lineIcon(k.icon, 'li')}</span><span class="pb-sq-nm"><b>${esc(q.name)}</b>${q.name !== k.name ? `<em>${esc(k.name)}</em>` : ''}${q.add ? '<em class="pb-sq-add">증원</em>' : ''}</span><span class="pb-sq-faces">${faces}</span><span class="pb-n">${n}</span></button></li>`;
+  }).join('');
+  return `<h3 class="pb-sq-h">분대 <span class="muted small">${enc.squads.length}개</span></h3><ul class="pb-sqs">${items}</ul>`;
 }
 /** 적이 단 장비: 적 정의의 장비 · 개조부품 + 이번 조우의 위험 등급 장비 (편성 보드 · 적 구성 · 적 상세 공용, 강제 징수기로 떼어 낸 적은 정의 장비도 없음) */
 function foeGear(e: EnemyDef, s: { items?: string[]; mod?: string; stripped?: boolean }) {
@@ -2668,6 +2697,7 @@ function detailPanel(run: RunState, extra = '') {
     return `<div class="detail">${bar}
       ${foeHead(e, sprite(e, 'spr big'), unitRank(e, c))}
       ${startChips(run)}
+      ${duoInfo(run, s, b, c)}
       ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.map((x) => `<span class="tk-it">${itemIcon(x, `data-a="foe-item" data-v="${x}"`)}</span>`).join('')}</div></div>` : ''}
       <div class="mj-wrap"><div class="mj-head"><h3>주요 능력치 <span class="muted small">페이즈 ${ph} · 체력 ${fmt(b.S(c, 'maxHp'))}</span></h3>${magBtn()}</div>${majorsHtml(ms, foeAmp(ms, c))}</div>
       <h3>능력</h3><div class="abils">${enemyAbilCards(e, b, c)}</div>
@@ -5634,7 +5664,7 @@ function act(a: string, v: string) {
       break;
     }
     case 'field-info': if (run) run.pending.unshift({ t: 'field' }); break;
-    case 'enter': {
+    case 'enter': { app.sqSel = null; // 새 조우: 고른 분대 풀기
       if (!run || run.pending.length) return;
       if (run.tutorial && TUTORIAL_FLOW[run.tutorial.i]?.[0] === 'scene') return; // 튜토리얼: 장면이 먼저 (장면 뒤에 노드로 들어간다)
       if (run.tutorial) TUT.tutEnterNode(run, v as NodeType); else R.enterNode(run, v as NodeType);
@@ -5695,6 +5725,7 @@ function act(a: string, v: string) {
       break;
     }
     case 'sel-clear': app.sel = null; break;
+    case 'sel-squad': app.sqSel = app.sqSel === +v ? null : +v; break; // 이번 전투 분대: 보드에서 그 분대만 강조
     case 'gate-start': if (run?.node?.enc) { run.node.enc.gateOpen = v === '1' || undefined; persist(); } break; // 수문 시작 상태 (편성 화면 지형 상세)
     case 'map-opt': if (run?.node?.enc) { // 스프링클러 첫 살수 · 레이저 먼저 켤 줄 · 차단기 (편성 화면 지형 상세, 전투 전에만)
       const e = run.node.enc, [key, val] = v.split(':');

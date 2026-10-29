@@ -485,6 +485,17 @@ export class BattleView {
       board.appendChild(el);
       this.traps.set(tr, el);
     }
+    // 포병 듀오 (engine/build.ts linkDuo): 움직이지 않는 두 칸을 한 틀로 두른다 (둘 중 하나가 쓰러지면 함께 사라진다)
+    for (const u of b.units) {
+      if (u.mem.duo !== 2) continue;
+      const m = b.units.find((x) => x.id === u.mem.duoMate);
+      if (!m) continue;
+      const p1 = this.sc(u.x, u.y), p2 = this.sc(m.x, m.y), el = document.createElement('i');
+      el.className = 'duo-frame';
+      Object.assign(el.style, { left: `${(Math.min(p1.x, p2.x) / this.W) * 100}%`, top: `${(Math.min(p1.y, p2.y) / this.H) * 100}%`, width: `${((Math.abs(p1.x - p2.x) + 1) / this.W) * 100}%`, height: `${((Math.abs(p1.y - p2.y) + 1) / this.H) * 100}%` });
+      board.appendChild(el);
+      this.duoFrames.push({ el, a: u, b: m });
+    }
     // 수문 전환 카운트다운: 수문 덩어리 가운데 칸 위쪽에 작은 배지 (전투 시간 b.t 기준, sync 에서 갱신)
     if (b.geo && b.mem.gateNext !== undefined) for (const grp of terrainGroups(b.geo)) {
       if (grp.k !== 'gate') continue;
@@ -627,7 +638,7 @@ export class BattleView {
     const turret = card && u.isSummon && u.defId === 'turret'; // 엔지니어 감시 포탑: 우측 상단 '기계' 배지
     const dev = u.mem.wall ? 'wall' : u.mem.decoy ? 'decoy' : u.mem.feast ? 'feast' : ''; // 편성 화면에서 놓은 바리케이드 · 유인 신호기 · 만찬 백수정: 스프라이트 대신 장치 표식
     const neutral = u.side === 1 && !!u.mem.inert; // 전장 장애물 (유닉스 답례 투하의 반려 돌 · 묘석): 적이 아닌 중립 지형물로 보인다
-    el.className = `u ${neutral ? 'sideN inert' : `side${u.side}`}${card ? ' tkb' : ''}${turret ? ' has-cat' : ''}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}`;
+    el.className = `u ${neutral ? 'sideN inert' : `side${u.side}`}${card ? ' tkb' : ''}${turret ? ' has-cat' : ''}${u.big ? ' big' : ''}${u.isBoss ? ' boss' : ''}${u.mem.duo ? ` duo duo-${u.mem.duo === 1 ? 'f' : 'b'}` : ''}`;
     el.style.width = `${100 / this.W}%`;
     el.style.height = `${100 / this.H}%`;
     el.dataset.a = 'bsel';
@@ -673,6 +684,7 @@ export class BattleView {
   private gateCd: HTMLElement[] = [];
   private gateCdSig = '';
   private dynCd: { el: HTMLElement; grp: TerrainGroup; sig: string }[] = [];
+  private duoFrames: { el: HTMLElement; a: CUnit; b: CUnit }[] = [];
   private powSig = '';
   /** 바뀌는 지형 배지: 다음 변화 · 남은 초 (금고 칸은 쌓인 초). 곧 일어나면 깜빡인다 (docs/UI.md 10) · 위험한 변화 (전류 · 살수 · 레이저 켜짐)는 경고색 */
   private syncDynCd() {
@@ -765,6 +777,7 @@ export class BattleView {
     this.syncGateCd();
     this.syncCart();
     this.syncDynCd();
+    for (const d of this.duoFrames) d.el.hidden = !d.a.alive || !d.b.alive;
     for (const [tr, el] of this.traps) if (!this.b.traps.includes(tr as Battle['traps'][number])) { el.remove(); this.traps.delete(tr); }
     const now = this.vt;
     const dvt = Math.max(0, now - this.syncVt); // 표시 시간 변화량 (정지 중 0, 주사율과 무관)
