@@ -4727,6 +4727,9 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .cell.tr { position: relative; display: grid; place-items: center; cursor: pointer; --trc: var(--c-steel); box-sizing: border-box; }
 .cell.tr { --tre: color-mix(in srgb, var(--trc) 60%, transparent); } /* 일반 지형 경계 = 종류 색을 흐리게 (고른 덩어리의 선택색 경계와 구별) */
 .cell.tr.e-t { border-top: 1px solid var(--tre); } .cell.tr.e-r { border-right: 1px solid var(--tre); } .cell.tr.e-b { border-bottom: 1px solid var(--tre); } .cell.tr.e-l { border-left: 1px solid var(--tre); }
+/* 열린 · 꺼진 · 접은 · 폐쇄 대기 지형: 덩어리 바깥 변(1px)만 점선. 칸에는 기본 테두리가 없어 border-style 만 주면 브라우저 기본 굵기(3px) · 글자색으로 그려진다 */
+.cell.tr:is(.open, .off, .folded, .pending).e-t { border-top-style: dashed; } .cell.tr:is(.open, .off, .folded, .pending).e-r { border-right-style: dashed; }
+.cell.tr:is(.open, .off, .folded, .pending).e-b { border-bottom-style: dashed; } .cell.tr:is(.open, .off, .folded, .pending).e-l { border-left-style: dashed; }
 /* 지형 덩어리 (docs/UI.md 10): 일반 지형 = 종류별 무늬 · 색 + 바깥 변 1px, 정적. 고른 덩어리 (tr-sel = 상세를 보는 대상) = 선택색 경계 + 옅은 면, 정적.
    새로 고른 순간만 (tr-in, main.ts) 면이 짧게 들어온다 (움직임 줄이기면 없음). 반복 움직임은 운반차 경고 · 수문 폐쇄 대기처럼 시간에 따른 위험에만 */
 .cell.tr.tr-sel { --trc: var(--c-select); --tre: var(--c-select); }
@@ -4744,9 +4747,9 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .cell.tr-wall { --trc: var(--c-steel); background: linear-gradient(0deg, color-mix(in srgb, var(--c-black) 40%, transparent) 0 2px, transparent 2px) 0 0 / 100% 33.3%, linear-gradient(90deg, color-mix(in srgb, var(--c-black) 40%, transparent) 0 2px, transparent 2px) 0 0 / 50% 33.3%, color-mix(in srgb, var(--c-steel) 55%, var(--cell-mid)); }
 .cell.tr-tank { --trc: var(--cat-struct); background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--c-good) 45%, var(--c-steel)) 0 34%, color-mix(in srgb, var(--c-steel) 70%, var(--cell-mid)) 36% 44%, color-mix(in srgb, var(--c-steel) 30%, var(--cell-mid)) 46%); }
 .cell.tr-gate { --trc: var(--c-warn-ink); background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--c-warn-ink) 45%, var(--cell-mid)) 0 4px, color-mix(in srgb, var(--c-steel) 55%, var(--cell-mid)) 4px 8px); }
-.cell.tr-gate.open { background: var(--cell-mid); border-style: dashed; }
+.cell.tr-gate.open { background: var(--cell-mid); }
 /* 수문 폐쇄 대기: 닫힘 주기인데 기물이 서 있어 아직 열린 칸 (비는 즉시 닫힘) — 경고색 점선 안쪽 테두리 */
-.cell.tr-gate.pending { background: color-mix(in srgb, var(--c-warn-ink) 12%, var(--cell-mid)); border-style: dashed; outline: 1px dashed var(--c-warn-ink); outline-offset: -5px; }
+.cell.tr-gate.pending { background: color-mix(in srgb, var(--c-warn-ink) 12%, var(--cell-mid)); outline: 1px dashed var(--c-warn-ink); outline-offset: -5px; }
 @media (prefers-reduced-motion: no-preference) { .cell.tr-gate.pending { animation: gate-pend .8s ease-in-out infinite alternate; } .gate-cd.soon > span { animation: cart-warn .5s ease-in-out infinite alternate; } }
 @keyframes gate-pend { to { outline-color: transparent; } }
 /* 수문 전환 카운트다운 배지 (전투): 가운데 칸 위쪽 가장자리, 다음 상태 색 */
@@ -4769,7 +4772,6 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 /* 물류망 지형: 진공 틈 (검은 우주 + 별 점) · 연결교 (가로 판자 + 양옆 난간 자리) · 접은 연결교 (진공 틈 무늬 + 점선 테두리) · 컨테이너 (골판, 번호마다 색 cr-0~2) · 선로 (침목 + 레일 2줄) · 광석 더미 (돌무더기) */
 .cell.tr-void, .cell.tr-bridge.folded, .tr-hero.tr-void, .tr-hero.tr-bridge.folded { --trc: var(--c-psi); background: radial-gradient(circle at 22% 30%, color-mix(in srgb, var(--c-white) 75%, transparent) 0 1px, transparent 1.6px), radial-gradient(circle at 72% 62%, color-mix(in srgb, var(--c-white) 55%, transparent) 0 1px, transparent 1.6px), radial-gradient(circle at 46% 86%, color-mix(in srgb, var(--c-info) 70%, transparent) 0 1px, transparent 1.6px), radial-gradient(circle at 86% 18%, color-mix(in srgb, var(--c-psi) 70%, transparent) 0 1px, transparent 1.6px), radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--c-psi) 16%, var(--c-black)) 0, color-mix(in srgb, var(--c-black) 88%, var(--cell-mid)) 75%); }
 .cell.tr-bridge { --trc: var(--c-warn-ink); background: linear-gradient(90deg, color-mix(in srgb, var(--c-steel) 75%, var(--cell-mid)) 0 3px, transparent 3px calc(100% - 3px), color-mix(in srgb, var(--c-steel) 75%, var(--cell-mid)) calc(100% - 3px)), repeating-linear-gradient(0deg, color-mix(in srgb, var(--c-steel) 52%, var(--cell-mid)) 0 7px, color-mix(in srgb, var(--c-black) 45%, var(--cell-mid)) 7px 9px); }
-.cell.tr-bridge.folded { border-style: dashed; }
 .cell.tr-container { --trc: color-mix(in srgb, var(--crc) 55%, var(--c-steel)); --crc: var(--c-credit); background: linear-gradient(0deg, color-mix(in srgb, var(--c-black) 30%, transparent) 0 2px, transparent 2px calc(100% - 2px), color-mix(in srgb, var(--c-white) 14%, transparent) calc(100% - 2px)), repeating-linear-gradient(90deg, color-mix(in srgb, var(--crc) 52%, var(--cell-mid)) 0 3px, color-mix(in srgb, var(--crc) 34%, var(--cell-mid)) 3px 6px); }
 .cell.tr-container.cr-1 { --crc: var(--c-info); }
 .cell.tr-container.cr-2 { --crc: var(--c-bad); }
@@ -4798,10 +4800,10 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .cell.tr-car.cr-2 { --crc: var(--c-bad); }
 .cell.tr-barricade { --trc: var(--c-warn-ink); background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--c-warn-ink) 55%, var(--cell-mid)) 0 6px, color-mix(in srgb, var(--c-black) 55%, var(--cell-mid)) 6px 12px); }
 .cell.tr-holo { --trc: var(--c-psi); background: repeating-linear-gradient(0deg, color-mix(in srgb, var(--c-psi) 42%, var(--cell-mid)) 0 2px, color-mix(in srgb, var(--c-info) 22%, var(--cell-mid)) 2px 5px); }
-.cell.tr-holo.open { background: color-mix(in srgb, var(--c-psi) 8%, var(--cell-mid)); border-style: dashed; }
+.cell.tr-holo.open { background: color-mix(in srgb, var(--c-psi) 8%, var(--cell-mid)); }
 .cell.tr-statue { --trc: var(--c-steel); background: radial-gradient(40% 36% at 50% 46%, color-mix(in srgb, var(--c-steel) 75%, var(--c-white)) 0 80%, transparent 100%), color-mix(in srgb, var(--c-steel) 30%, var(--cell-mid)); }
 .cell.tr-power { --trc: var(--el-elec); background: linear-gradient(0deg, transparent 44%, color-mix(in srgb, var(--el-elec) 60%, var(--cell-mid)) 44% 56%, transparent 56%), repeating-linear-gradient(90deg, color-mix(in srgb, var(--c-steel) 30%, var(--cell-mid)) 0 6px, var(--cell-mid) 6px 12px); }
-.cell.tr-power.off { background: linear-gradient(0deg, transparent 46%, color-mix(in srgb, var(--c-steel) 45%, var(--cell-mid)) 46% 54%, transparent 54%), var(--cell-mid); border-style: dashed; }
+.cell.tr-power.off { background: linear-gradient(0deg, transparent 46%, color-mix(in srgb, var(--c-steel) 45%, var(--cell-mid)) 46% 54%, transparent 54%), var(--cell-mid); }
 .cell.tr-power.live { outline: 1px solid var(--el-elec); outline-offset: -3px; }
 .cell.tr-power.live::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(60deg, color-mix(in srgb, var(--el-elec) 45%, transparent) 0 4px, transparent 4px 10px); }
 .cell.tr-power.cart-warn { outline: 1px dashed var(--c-bad); outline-offset: -4px; }
@@ -4812,10 +4814,10 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .cell.tr-recovery { --trc: var(--el-holy); background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--el-holy) 65%, var(--cell-mid)) 0 18%, transparent 20% 34%, color-mix(in srgb, var(--el-holy) 40%, transparent) 35% 40%, transparent 42%), color-mix(in srgb, var(--el-holy) 10%, var(--cell-mid)); }
 .cell.tr-cell { --trc: var(--c-credit); background: linear-gradient(0deg, color-mix(in srgb, var(--c-black) 35%, transparent) 0 2px, transparent 2px) 0 0 / 100% 25%, color-mix(in srgb, var(--c-credit) 48%, var(--cell-mid)); }
 .cell.tr-laser { --trc: var(--c-bad); background: repeating-linear-gradient(90deg, transparent 0 3px, color-mix(in srgb, var(--c-bad) 70%, transparent) 3px 5px, transparent 5px 9px), color-mix(in srgb, var(--c-bad) 14%, var(--cell-mid)); }
-.cell.tr-laser.open { background: repeating-linear-gradient(90deg, transparent 0 4px, color-mix(in srgb, var(--c-bad) 18%, transparent) 4px 5px, transparent 5px 9px), var(--cell-mid); border-style: dashed; }
+.cell.tr-laser.open { background: repeating-linear-gradient(90deg, transparent 0 4px, color-mix(in srgb, var(--c-bad) 18%, transparent) 4px 5px, transparent 5px 9px), var(--cell-mid); }
 .cell.tr-vault { --trc: var(--c-credit); background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--c-credit) 55%, var(--c-steel)) 0 5px, color-mix(in srgb, var(--c-steel) 60%, var(--cell-mid)) 5px 7px); }
-.cell.tr-vault.open { background: var(--cell-mid); border-style: dashed; }
-.cell.tr-laser.pending, .cell.tr-vault.pending { background: color-mix(in srgb, var(--c-warn-ink) 12%, var(--cell-mid)); border-style: dashed; outline: 1px dashed var(--c-warn-ink); outline-offset: -5px; }
+.cell.tr-vault.open { background: var(--cell-mid); }
+.cell.tr-laser.pending, .cell.tr-vault.pending { background: color-mix(in srgb, var(--c-warn-ink) 12%, var(--cell-mid)); outline: 1px dashed var(--c-warn-ink); outline-offset: -5px; }
 @media (prefers-reduced-motion: no-preference) { .cell.tr-laser.pending, .cell.tr-vault.pending { animation: gate-pend .8s ease-in-out infinite alternate; } }
 .cell.tr-vaultcell { --trc: var(--c-credit); background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--c-credit) 26%, var(--cell-mid)) 0 4px, color-mix(in srgb, var(--c-credit) 12%, var(--cell-mid)) 4px 8px); }
 .tr-hero.tr-fence, .tr-hero.tr-sprinkler { background: color-mix(in srgb, var(--c-good) 16%, var(--panel-2)); }
