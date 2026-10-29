@@ -123,14 +123,75 @@ export function phaseMap(phase: number): NodeType[][] {
   return phase >= 2 && CFG.supply.front ? [['supply'], ...m] : m; // [실험] CFG.supply.front: 2페이즈부터 맨 앞 보급
 }
 
-/** 분기 항로 (슬더슬식): 전투 → 항로 회의 → 세 갈래 4칸 → 정비 거점 (짝수 페이즈 전환 · 홀수 보급) → 두 갈래 4칸 → 보스. 1페이즈는 맨 앞에 보급 (CFG.supply.p1).
- *  갈래마다 성격이 다른 묶음 (ROUTE_A · ROUTE_B)을 섞어 깔고 (역경이 적은 길 · 많은 길), 옆 갈래로 건너가는 선을 일부 놓는다 — 선끼리 교차하지 않게,
- *  한 노드에서 갈 수 있는 다음 노드들은 종류가 겹치지 않게 (노드는 종류로 고른다). 순례 · 투자 · 속보는 페이즈 시작 때 조건이 맞으면 갈래의 사건 · 모집 칸에.
+/** 분기 항로 (슬더슬식): 전투 → 항로 회의 → 갈래 4칸 → 정비 거점 (짝수 페이즈 전환 · 홀수 보급) → 갈래 4칸 → 보스. 1페이즈는 맨 앞에 보급 (CFG.supply.p1).
+ *  1) 모양 항로: 구간 모양 (SHAPE_A · SHAPE_B, 칸마다 갈래 수)을 페이즈마다 골라 연결선을 깔고, 노드 종류를 무게대로 뽑은 뒤 길 규칙 (routeFaults)을 지킬 때까지 고친다.
+ *  2) 예비 (모양 항로가 끝내 규칙을 못 지키면): 세 갈래 → 거점 → 두 갈래에 갈래마다 성격이 다른 묶음 (ROUTE_A · ROUTE_B).
+ *  옆 갈래로 건너가는 선은 교차하지 않고, 한 노드에서 갈 수 있는 다음 노드들은 종류가 겹치지 않는다 (노드는 종류로 고른다). 순례 · 투자 · 속보는 페이즈 시작 때 조건이 맞으면 영입 · 보급 · 사건 칸에.
  *  런 난수와 따로 굴린다 (시드 · 페이즈에서) — 기존 난수 흐름을 바꾸지 않게 */
 const ROUTE_A: NodeType[][] = [['event', 'battle', 'shop', 'recruit'], ['battle', 'event', 'adversity', 'shop'], ['event', 'adversity', 'supply', 'adversity']];
 const ROUTE_B: NodeType[][] = [['event', 'adversity', 'recruit', 'shop'], ['adversity', 'event', 'battle', 'shop']];
+/** 구간 모양 (칸마다 갈래 수): 회의 뒤 4칸 (SHAPE_A) · 정비 거점 뒤 4칸 (SHAPE_B). 페이즈마다 하나씩 골라 갈래 모양이 달라진다 —
+ *  3×3 격자 · 곧은 길에서 갈라짐 · 셋이 둘로 합쳐짐 · 두 갈래가 셋으로 퍼짐 등 */
+const SHAPE_A: number[][] = [[3, 3, 3, 3], [2, 2, 3, 3], [1, 2, 3, 3], [1, 2, 2, 3], [3, 3, 2, 2], [2, 3, 3, 2], [2, 2, 2, 3], [1, 1, 2, 3], [2, 3, 3, 3]];
+const SHAPE_B: number[][] = [[2, 2, 2, 2], [1, 2, 2, 2], [1, 1, 2, 2], [2, 3, 3, 2], [2, 2, 3, 3], [3, 3, 2, 2], [1, 2, 3, 2], [2, 2, 1, 2]];
+/** 노드 종류 무게 (모양 항로를 채울 때, 길 규칙 routeOk 를 통과할 때까지 다시 뽑는다) */
+const ROUTE_W: [NodeType, number][] = [['battle', 0.24], ['adversity', 0.42], ['event', 0.2], ['shop', 0.12], ['supply', 0.07], ['recruit', 0.07]];
+/** 칸 사이 연결: 하나 ↔ 여럿 = 모두 · 같은 수 = 곧은 길 + 옆 갈래로 건너가는 선 일부 (교차 없음) · 수가 다르면 가장 가까운 갈래 자리로 (같은 거리면 둘 다 — 갈라짐 · 합쳐짐) */
+function routeLinks(r: Rng, rows: NodeType[][] | number[], cross: boolean): number[][][] {
+  const len = (i: number) => (typeof rows[i] === 'number' ? (rows[i] as number) : (rows[i] as NodeType[]).length);
+  const out: number[][][] = [];
+  for (let i = 0; i < rows.length - 1; i++) {
+    const m = len(i), n = len(i + 1), sl = (c: number, j: number) => j - (c - 1) / 2;
+    if (m === 1 || n === 1) { out.push([...Array(m)].map(() => [...Array(n).keys()])); continue; }
+    if (m === n) {
+      const o = [...Array(m).keys()].map((j) => [j]);
+      if (cross) for (let j = 0; j + 1 < m; j++) { if (!r.chance(0.45)) continue; const [a, b] = r.chance(0.5) ? [j, j + 1] : [j + 1, j]; o[a].push(b); }
+      out.push(o.map((l) => l.sort((x, y) => x - y)));
+      continue;
+    }
+    out.push([...Array(m).keys()].map((j) => { const ds = [...Array(n).keys()].map((k) => Math.abs(sl(m, j) - sl(n, k))), lo = Math.min(...ds); return [...Array(n).keys()].filter((k) => ds[k] - lo < 1e-9); }));
+  }
+  return out;
+}
 export function phaseRoute(run: RunState, phase = run.phase): { map: NodeType[][]; links: number[][][] } {
   const r = new Rng(((run.seed * 977 + phase * 7919 + 31337) >>> 0) || 1);
+  const specials0: NodeType[] = [...(hasDivine(run) ? ['pilgrim' as const] : []), ...(tierNow(run, 'HOI') ? ['invest' as const] : []), ...(tierNow(run, 'STAR') ? ['news' as const] : [])];
+  // 1) 모양 항로: 구간 모양을 고르고 노드 종류를 무게대로 뽑아, 길 규칙을 지킬 때까지 다시 (모양을 바꿔 가며)
+  for (let shape = 0; shape < 10; shape++) {
+    const A = r.pick(SHAPE_A), B = r.pick(SHAPE_B), lead = phase === 1 && CFG.supply.p1;
+    const sizes = [...(lead ? [1] : []), 1, 1, ...A, 1, ...B, 1], hub = (lead ? 1 : 0) + 2 + A.length;
+    const links = routeLinks(r, sizes, true);
+    const fixed = (i: number): NodeType | null => (lead && i === 0 ? 'supply' : i === (lead ? 1 : 0) ? 'battle' : i === (lead ? 2 : 1) ? 'council' : i === hub ? (phase % 2 === 0 ? 'fork' : 'supply') : i === sizes.length - 1 ? 'boss' : null);
+    for (let t = 0; t < 6; t++) {
+      // 무게대로 뽑은 뒤 고치기: 규칙을 어기는 칸의 노드를 하나씩 다시 뽑아, 어김 수가 늘지 않으면 받아들인다 (언덕 오르기)
+      const rows: NodeType[][] = sizes.map((n, i) => [...Array(n)].map(() => fixed(i) ?? r.weighted(ROUTE_W, (w) => w[1])[0]));
+      const free = rows.flatMap((row, i) => (fixed(i) ? [] : row.map((_, j) => [i, j])));
+      let bad = routeFaults(rows, links) + (rows.some((row) => row.includes('recruit')) ? 0 : 1); // 페이즈마다 영입 노드가 어딘가에는
+      for (let it = 0; it < 500 && bad > 0; it++) {
+        const [i, j] = r.pick(free), was = rows[i][j];
+        rows[i][j] = r.weighted(ROUTE_W, (w) => w[1])[0];
+        const b2 = routeFaults(rows, links) + (rows.some((row) => row.includes('recruit')) ? 0 : 1);
+        if (b2 <= bad) bad = b2; else rows[i][j] = was;
+      }
+      if (bad > 0) continue;
+      // 규칙을 지킨 뒤: 역경이 1개뿐인 길을 줄인다 (규칙은 계속 지키며)
+      const softOf = () => { const o = { n: 0 }; return routeFaults(rows, links, o) === 0 ? o.n : Infinity; };
+      let sf = softOf();
+      for (let it = 0; it < 300 && sf > 0; it++) {
+        const [i, j] = r.pick(free), was = rows[i][j];
+        rows[i][j] = r.weighted(ROUTE_W, (w) => w[1])[0];
+        const s2 = rows.some((row) => row.includes('recruit')) ? softOf() : Infinity;
+        if (s2 <= sf) sf = s2; else rows[i][j] = was;
+      }
+      for (const sp of specials0) { // 순례 · 투자 · 속보: 영입 · 보급 · 사건 노드 하나를 바꾸고 규칙을 다시 본다
+        const cand = rows.flatMap((row, i) => (fixed(i) ? [] : row.map((x, j) => (x === 'recruit' || x === 'supply' || x === 'event' ? [i, j] : null)).filter((q): q is number[] => !!q)));
+        for (const [i, j] of r.shuffle(cand)) { const was = rows[i][j]; rows[i][j] = sp; if (routeOk(rows, links)) break; rows[i][j] = was; }
+      }
+      return { map: rows, links };
+    }
+  }
+  // 2) 예비: 갈래 묶음 항로 (갈래마다 성격이 다른 묶음, 세 갈래 → 거점 → 두 갈래)
+  /** 갈래 하나 섞기: 역경이 연달아 오지 않고, 첫 칸은 역경이 아니게 (회의 · 거점 바로 뒤) */
   /** 갈래 하나 섞기: 역경이 연달아 오지 않고, 첫 칸은 역경이 아니게 (회의 · 거점 바로 뒤) */
   const lane = (base: NodeType[]) => { for (let t = 0; t < 40; t++) { const l = r.shuffle(base.slice()); if (l[0] !== 'adversity' && !l.some((x, i) => x === 'adversity' && l[i + 1] === 'adversity')) return l; } return base.slice(); };
   const specials: NodeType[] = [...(hasDivine(run) ? ['pilgrim' as const] : []), ...(tierNow(run, 'HOI') ? ['invest' as const] : []), ...(tierNow(run, 'STAR') ? ['news' as const] : [])];
@@ -168,13 +229,40 @@ export function phaseRoute(run: RunState, phase = run.phase): { map: NodeType[][
 /** 한 줄 항로로 (튜토리얼 · 캠페인 · 훈련장이 run.map 을 직접 깔 때) */
 export function clearRoute(run: RunState) { delete run.links; delete run.path; }
 /** 분기 항로의 모든 길 검사: 길마다 상점 · 사건 1개 이상, 역경 1~3, 보스 앞 전투 (전투 + 역경) 2~5 — 옆 갈래로 건너가는 선이 상점을 모두 피하거나 역경만 잇는 길을 만들지 않게 */
-function routeOk(rows: NodeType[][], links: number[][][]): boolean {
-  const walk = (i: number, j: number, c: Record<string, number>): boolean => {
-    const t = rows[i][j], n = { ...c, [t]: (c[t] || 0) + 1 };
-    if (i === rows.length - 1) { const f = (n.battle || 0) + (n.adversity || 0); return !!n.shop && !!n.event && (n.adversity || 0) >= 1 && (n.adversity || 0) <= 3 && f >= 2 && f <= 5; }
-    return (links[i][j] || []).every((k) => walk(i + 1, k, n));
+const routeOk = (rows: NodeType[][], links: number[][][]) => routeFaults(rows, links) === 0;
+/** 분기 항로 규칙을 어긴 수 (0 = 통과): 겹치는 다음 노드 · 하나뿐인 칸 바로 뒤 역경 · 들어오는 길 없는 노드 · 규칙을 어긴 길 (상점 · 사건 1개 이상, 역경 1~3 · 연달아 없음, 보스 앞 전투 2~5) */
+function routeFaults(rows: NodeType[][], links: number[][][], soft?: { n: number }): number {
+  let bad = 0;
+  for (let i = 0; i < rows.length - 1; i++) for (let j = 0; j < rows[i].length; j++) {
+    const ks = links[i][j] || [], ts = ks.map((k) => rows[i + 1][k]);
+    if (!ks.length) bad += 5;
+    bad += ts.length - new Set(ts).size;
+    if (rows[i].length === 1 && rows[i][0] !== 'battle' && i + 1 < rows.length - 1) bad += ts.filter((x) => x === 'adversity').length;
+  }
+  for (let i = 1; i < rows.length; i++) for (let k = 0; k < rows[i].length; k++) if (!links[i - 1].some((l) => l.includes(k))) bad += 5;
+  // 길 규칙: 길마다 상태 (상점 · 사건을 봤나, 역경 수, 전투 수, 직전이 역경인가, 연달은 역경 수)를 칸 단위로 넘기며 같은 상태의 길 수를 센다 (모든 길을 따로 걷지 않게)
+  const key = (sh: number, ev: number, a: number, f: number, pa: number, st: number) => ((((sh * 2 + ev) * 5 + a) * 7 + f) * 2 + pa) * 4 + st;
+  const cap = (v: number, m: number) => Math.min(v, m);
+  let layer: Map<number, number>[] = rows[0].map(() => new Map());
+  const add = (m: Map<number, number>, k: number, n: number) => m.set(k, (m.get(k) || 0) + n);
+  const enter = (t: NodeType, k: number) => { // 상태 k 에서 노드 t 를 지난 상태
+    let st = k % 4, pa = Math.floor(k / 4) % 2, f = Math.floor(k / 8) % 7, a = Math.floor(k / 56) % 5, ev = Math.floor(k / 280) % 2, sh = Math.floor(k / 560);
+    if (t === 'adversity' && pa) st = cap(st + 1, 3);
+    pa = t === 'adversity' ? 1 : 0; if (t === 'shop') sh = 1; if (t === 'event') ev = 1; if (t === 'adversity') a = cap(a + 1, 4); if (t === 'battle' || t === 'adversity') f = cap(f + 1, 6);
+    return key(sh, ev, a, f, pa, st);
   };
-  return walk(0, 0, {});
+  layer[0].set(enter(rows[0][0], key(0, 0, 0, 0, 0, 0)), 1);
+  for (let i = 0; i < rows.length - 1; i++) {
+    const next: Map<number, number>[] = rows[i + 1].map(() => new Map());
+    layer.forEach((m, j) => (links[i][j] || []).forEach((k2) => { for (const [k, n] of m) add(next[k2], enter(rows[i + 1][k2], k), n); }));
+    layer = next;
+  }
+  for (const m of layer) for (const [k, n] of m) {
+    const st = k % 4, f = Math.floor(k / 8) % 7, a = Math.floor(k / 56) % 5, ev = Math.floor(k / 280) % 2, sh = Math.floor(k / 560);
+    bad += n * (st + (sh ? 0 : 1) + (ev ? 0 : 1) + (a < 1 ? 1 : a > 3 ? a - 3 : 0) + (f < 2 ? 2 - f : f > 5 ? f - 5 : 0));
+    if (soft && a < 2) soft.n += n; // 규칙은 지키지만 역경이 1개뿐인 길 (적을수록 좋다 — 예전 한 줄 항로는 페이즈마다 역경 2)
+  }
+  return bad;
 }
 /** 이번 페이즈 항로를 깐다: 분기 항로 · 지나간 노드 비우기 */
 export function setRoute(run: RunState) {

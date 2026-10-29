@@ -20,9 +20,11 @@ const DINO = {
   ptero: 'M-11 0Q-5 -6 0 -1Q5 -6 11 0Q5 -2 1 2L5 3L0 3Q-5 -2-11 0Z',
 };
 
-/** 이 런의 지도에 항로도를 쓰는가: 항로도가 있는 전장 · 튜토리얼 아님 · 모든 칸이 선택지 1개 (분기 고르기는 기존 타임라인) */
+/** 이 런의 지도에 항로도를 쓰는가: 항로도가 있는 전장 · 튜토리얼 아님 · 한 줄 항로 (모든 칸이 선택지 1개). 분기 항로는 분기형 항로도가 있는 전장만 (물류망) — 나머지는 공용 분기 지도 */
+const BRANCH_KINDS: Kind[] = ['orbit'];
 export function routeMapOn(run: RunState): boolean {
-  return run.field in FIELDS && !run.tutorial && !run.lab && run.map.every((o) => o.length === 1);
+  if (!(run.field in FIELDS) || run.tutorial || run.lab) return false;
+  return run.links ? BRANCH_KINDS.includes(FIELDS[run.field as keyof typeof FIELDS]) : run.map.every((o) => o.length === 1);
 }
 
 // ── 색: 테마 토큰을 읽어 #rrggbb 로 (섞기 · 보간용)
@@ -63,7 +65,9 @@ interface Scene { key: string; el: HTMLElement; sync(step: number): void; sleep(
 let S: Scene | null = null;
 /** 노드 설명 (HTML): 전체 화면 옆 패널에 쓴다 — 문구는 main 의 기존 팝오버와 같은 것 */
 type Hint = (t: NodeType, i: number) => string;
-let last: { host: HTMLElement; run: RunState; onNode: (el: HTMLElement) => void; hint: Hint } | null = null;
+/** 분기 항로: 지금 고른 노드 종류 (main 의 app.nodePick) · 고르기 (지도 노드를 누르면) */
+type Pick = { get(): NodeType | undefined; set(t: NodeType): void };
+let last: { host: HTMLElement; run: RunState; onNode: (el: HTMLElement) => void; hint: Hint; pick?: Pick } | null = null;
 // 전체 화면: 항로도를 body 위 덮개로 옮기고(브라우저 전체 화면은 되면 덤), 더 넓은 시야 + 옆 패널 (노드 목록 · 범례)
 let fs = false, fsNative = false, fsResize = 0;
 function setFs(on: boolean, remount = true) {
@@ -73,19 +77,19 @@ function setFs(on: boolean, remount = true) {
   if (on) document.documentElement.requestFullscreen?.().then(() => { fsNative = true; }, () => {});
   else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   S?.destroy(); S = null;
-  if (remount && last) mountRouteMap(last.host, last.run, last.onNode, last.hint);
+  if (remount && last) mountRouteMap(last.host, last.run, last.onNode, last.hint, last.pick);
 }
 addEventListener('keydown', (e) => { if (fs && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setFs(false); } }, true);
 document.addEventListener('fullscreenchange', () => { if (fs && fsNative && !document.fullscreenElement) setFs(false); }); // 브라우저 Esc 는 전체 화면만 끄고 키는 넘겨 주지 않는다
-addEventListener('resize', () => { if (!fs) return; clearTimeout(fsResize); fsResize = window.setTimeout(() => { if (fs && last) { S?.destroy(); S = null; mountRouteMap(last.host, last.run, last.onNode, last.hint); } }, 200); });
+addEventListener('resize', () => { if (!fs) return; clearTimeout(fsResize); fsResize = window.setTimeout(() => { if (fs && last) { S?.destroy(); S = null; mountRouteMap(last.host, last.run, last.onNode, last.hint, last.pick); } }, 200); });
 
 /** render() 뒤에 부른다: host 가 없으면(지도 화면이 아님) 움직임만 멈춘다 */
-export function mountRouteMap(host: HTMLElement | null, run: RunState | null, onNode: (el: HTMLElement) => void, hint: Hint = () => '') {
+export function mountRouteMap(host: HTMLElement | null, run: RunState | null, onNode: (el: HTMLElement) => void, hint: Hint = () => '', pick?: Pick) {
   if (!host || !run || !routeMapOn(run)) { if (fs) setFs(false, false); S?.sleep(); return; }
-  last = { host, run, onNode, hint };
+  last = { host, run, onNode, hint, pick };
   const narrow = matchMedia('(max-width: 600px)').matches;
-  const types = run.map.map((o, i) => run.picked[i] || o[0]);
-  const key = [run.seed, run.phase, run.field, document.documentElement.dataset.uiTheme, narrow, types.join(), fs].join('|');
+  const types = run.links ? branchTypes(run, pick?.get()) : run.map.map((o, i) => run.picked[i] || o[0]);
+  const key = [run.seed, run.phase, run.field, document.documentElement.dataset.uiTheme, narrow, run.links ? run.map.map((r) => r.join('/')).join() : types.join(), fs].join('|'); // 분기 항로: 지도가 같으면 진행 · 고르기는 sync 로
   const parent = fs ? document.body : host;
   if (!S || S.key !== key) { S?.destroy(); S = build(parent, run, key, types, narrow, onNode, hint); }
   else if (S.el.parentElement !== parent) parent.appendChild(S.el);
@@ -93,6 +97,18 @@ export function mountRouteMap(host: HTMLElement | null, run: RunState | null, on
   S.sync(run.step);
 }
 
+/** 분기 항로의 칸별 대표 노드 (전체 화면 목록 · 칸 수): 지난 칸 = 지나간 노드, 지금 칸 = 고른 노드, 앞 칸 = 고른 노드에서 이어지는 첫 노드 */
+function branchTypes(run: RunState, pick?: NodeType): NodeType[] {
+  const L = run.links!, out: NodeType[] = [];
+  let j = 0;
+  run.map.forEach((row, i) => {
+    if (i < run.step) j = run.path?.[i] ?? 0;
+    else if (i === run.step) { const opts = i === 0 ? row.map((_, k) => k) : L[i - 1]?.[run.path?.[i - 1] ?? 0] || [0]; j = run.node ? run.path?.[i] ?? opts[0] : opts.find((k) => row[k] === pick) ?? opts[0]; }
+    else j = L[i - 1]?.[j]?.[0] ?? 0;
+    out.push(row[j] ?? row[0]);
+  });
+  return out;
+}
 function build(host: HTMLElement, run: RunState, key: string, types: NodeType[], narrow: boolean, onNode: (el: HTMLElement) => void, hint: Hint): Scene {
   const C = palette();
   const N = types.length, kind: Kind = FIELDS[run.field as keyof typeof FIELDS] as Kind;
@@ -129,8 +145,8 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     next: { r: 19, sw: 1.25, isw: 1.5, sc: 1, ny: -28, op: 1, bs: 1, ba: 0, bo: 1 },
     past: { r: 19, sw: 1, isw: 1.3, sc: .92, ny: -28, op: .45, bs: .9, ba: 0, bo: .45 },
   };
-  function token(parent: Element, i: number): Tok {
-    const t = types[i], g = el('g', { class: 'rm-node', 'data-step': i, 'data-node': t, tabindex: 0, role: 'button', 'aria-label': `${i + 1}번째 칸 ${NODE_NAME[t]}` }, parent), sg = el('g', {}, g);
+  function token(parent: Element, i: number, t = types[i]): Tok {
+    const g = el('g', { class: 'rm-node', 'data-step': i, 'data-node': t, tabindex: 0, role: 'button', 'aria-label': `${i + 1}번째 칸 ${NODE_NAME[t]}` }, parent), sg = el('g', {}, g);
     const ring = el('circle', { r: 19, fill: C.bg }, sg);
     const ic = el('g', { transform: 'translate(-11.5 -11.5) scale(.96)' }, sg);
     ic.innerHTML = lineIcon(`n.${t}`);
@@ -211,10 +227,10 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   }
   stage.addEventListener('click', (e) => {
     const n = (e.target as Element).closest<SVGElement>('.rm-node') || downNode;
-    if (n && moved < 6) { if (fs) pick(+(n.dataset.step ?? cur)); else onNode(n as unknown as HTMLElement); }
+    if (n && moved < 6) { if (n.dataset.pick && last?.pick) last.pick.set(n.dataset.pick as NodeType); else if (fs) pick(+(n.dataset.step ?? cur)); else onNode(n as unknown as HTMLElement); } // 분기 항로: 지금 고를 수 있는 노드는 누르면 고른다
     downNode = null;
   });
-  stage.addEventListener('keydown', (e) => { const n = (e.target as Element).closest<SVGElement>('.rm-node'); if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); if (fs) pick(+(n.dataset.step ?? cur)); else onNode(n as unknown as HTMLElement); } });
+  stage.addEventListener('keydown', (e) => { const n = (e.target as Element).closest<SVGElement>('.rm-node'); if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); if (n.dataset.pick && last?.pick) last.pick.set(n.dataset.pick as NodeType); else if (fs) pick(+(n.dataset.step ?? cur)); else onNode(n as unknown as HTMLElement); } });
   recenterBtn.addEventListener('click', () => goNow());
 
   // ── 공통 장식
@@ -254,7 +270,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   const t0 = performance.now();
   const startAmb = () => { if (amb) return; const f = (now: number) => { tick(reduce ? 0 : now - t0); amb = requestAnimationFrame(f); }; amb = requestAnimationFrame(f); };
 
-  const sc: { go(): void; stop(): void; look?(i: number): void; name?: string; legend?: string[][] } = kind === 'ring' ? ringScene() : kind === 'orbit' ? orbitScene() : kind === 'stairs' ? stairsScene() : kind === 'patrol' ? patrolScene() : kind === 'vigil' ? vigilScene() : gridScene();
+  const sc: { go(): void; stop(): void; look?(i: number): void; update?(): void; name?: string; legend?: string[][] } = kind === 'ring' ? ringScene() : kind === 'orbit' ? orbitScene() : kind === 'stairs' ? stairsScene() : kind === 'patrol' ? patrolScene() : kind === 'vigil' ? vigilScene() : gridScene();
   goNow = () => { sel = cur; sc.go(); panel(); };
   // ── 전체 화면 옆 패널: 노드 목록 (상태 · 고른 노드의 설명) + 범례. 노드를 고르면 지도도 그 노드로
   function pick(i: number) { sel = Math.max(0, Math.min(N - 1, i)); if (sel === cur) sc.go(); else sc.look?.(sel); panel(); }
@@ -279,7 +295,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   panel();
   return {
     key, el: box,
-    sync(step: number) { const c = Math.min(step, N - 1); if (c === cur) return; cur = c; goNow(); },
+    sync(step: number) { const c = Math.min(step, N - 1); if (sc.update) { cur = c; sc.update(); panel(); return; } if (c === cur) return; cur = c; goNow(); }, // 분기 항로: 고른 노드가 바뀌어도 다시 칠한다
     sleep() { stopAmb(); clearTimeout(idleT); },
     wake() { if (!awake || !amb) { awake = true; startAmb(); } },
     destroy() { stopAmb(); cancelAnimationFrame(raf); cancelAnimationFrame(praf); clearTimeout(idleT); sc.stop(); box.remove(); },
@@ -592,6 +608,150 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       txt(g, lx, ly + 14, `${b.name} · ${b.sub}`, { 'text-anchor': 'middle', 'font-size': 8.5, class: 'rm-ko' });
     }
 
+    if (run.links) return orbitBranch();
+    /** 분기 항로 (궤도 다발): 기준 항로 = 한 줄 항로와 같은 반원 사슬. 갈래 = 기준 항로의 평행 곡선 (진행 방향 법선으로 LANE 씩) — 반원마다 동심 궤도가 되고,
+     *  천체를 넘어갈 때 안쪽 · 바깥쪽이 바뀌며 다발처럼 꼬인다. 칸 = 기준 항로 위 같은 간격, 연결선 = 두 노드 사이 기준 항로를 따라가며 갈래 자리를 부드럽게 옮긴다.
+     *  지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 흐리게. 지금 고를 수 있는 노드는 누르면 고른다 (main 의 노드 고르기와 같다) */
+    function orbitBranch() {
+      const rows = run.map, L = run.links!, R = rows.length, LANE = 64; // 갈래 사이: 현재 노드 조준 괄호가 옆 갈래 노드에 닿지 않게
+      const st0 = L2W(BOD[0].u - BOD[0].r, 0);
+      let d = `M${st0[0]} ${st0[1]}`;
+      for (const b of BOD) { const e = L2W(b.u + b.r, 0); d += ` A${b.r} ${b.r} 0 0 ${b.half === 'lo' ? 0 : 1} ${e[0]} ${e[1]}`; }
+      const base = el('path', { d, fill: 'none', stroke: C.line, 'stroke-width': .8, 'stroke-dasharray': '1 6' }, world) as SVGGeometryElement; // 기준 궤도 (흐린 안내선)
+      const total = base.getTotalLength(), sRow = (i: number) => (total * i) / (R - 1);
+      const dOf = (i: number, j: number) => (j - (rows[i].length - 1) / 2) * LANE;
+      const at = (sv: number, dl: number) => {
+        const s0 = Math.max(0, Math.min(total, sv)), a = base.getPointAtLength(Math.max(0, s0 - 1)), b = base.getPointAtLength(Math.min(total, s0 + 1)), p = base.getPointAtLength(s0);
+        const tx = b.x - a.x, ty = b.y - a.y, n = Math.hypot(tx, ty) || 1;
+        return [p.x - (ty / n) * dl, p.y + (tx / n) * dl];
+      };
+      const nodeAt = (i: number, j: number) => at(sRow(i), dOf(i, j));
+      const smooth = (t: number) => t * t * (3 - 2 * t);
+      // 갈래 안내: 세 갈래 · 두 갈래 구간에서 갈래 자리를 따라 흐린 궤도
+      for (let i = 0; i < R - 1; i++) if (rows[i].length > 1 && rows[i + 1].length === rows[i].length) rows[i].forEach((_, j) => {
+        const pts: number[][] = []; for (let k = 0; k <= 12; k++) pts.push(at(sRow(i) + ((sRow(i + 1) - sRow(i)) * k) / 12, dOf(i, j)));
+        el('polyline', { points: pts.map((q) => q.map((v) => v.toFixed(1)).join(',')).join(' '), fill: 'none', stroke: C.line, 'stroke-width': .7 }, world);
+      });
+      // 연결선 (기준 항로를 따라 갈래 자리를 옮기는 곡선)
+      const edgeLayer = el('g', {}, world), beaconLayer = el('g', {}, world), nodeLayer = el('g', {}, world);
+      type Edge = { i: number; j: number; k: number; pts: number[][]; e: SVGElement; mid: number[] };
+      const edges: Edge[] = [];
+      for (let i = 0; i < R - 1; i++) rows[i].forEach((_, j) => (L[i]?.[j] || []).forEach((k) => {
+        const pts: number[][] = [], da = dOf(i, j), db = dOf(i + 1, k);
+        for (let q = 0; q <= 28; q++) { const t = q / 28; pts.push(at(sRow(i) + (sRow(i + 1) - sRow(i)) * t, da + (db - da) * smooth(t))); }
+        const e = el('polyline', { points: pts.map((q) => q.map((v) => v.toFixed(1)).join(',')).join(' '), fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, edgeLayer);
+        edges.push({ i, j, k, pts, e, mid: pts[14] });
+      }));
+      const ptOn = (ed: Edge, t: number) => { const f = Math.max(0, Math.min(1, t)) * (ed.pts.length - 1), q = Math.floor(f), r = f - q, a = ed.pts[q], b = ed.pts[Math.min(ed.pts.length - 1, q + 1)]; return [a[0] + (b[0] - a[0]) * r, a[1] + (b[1] - a[1]) * r, Math.atan2(b[1] - a[1], b[0] - a[0])]; };
+      // 노드 토큰 (한 줄 항로와 같은 토큰): 칸 번호 · 호출 부호는 지금 고를 노드 · 하나뿐인 칸 · 보스만 (갈래 사이가 붐비지 않게)
+      const toks = rows.map((row, i) => row.map((t, j) => { const k = token(nodeLayer, i, t); k.g.dataset.j = String(j); const [x, y] = nodeAt(i, j); k.g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); return k; }));
+      // 항로 표지: 지나간 연결선 가운데에 하나씩 (화물선이 지나면 켜진다) + 고른 노드로 가는 연결선 (꺼진 채 점멸)
+      const beacons = new Map<Edge, { wave: SVGElement; dia: SVGElement; dot: SVGElement; lab: SVGElement; on: boolean; at: number; g: SVGElement }>();
+      const beacon = (ed: Edge) => {
+        let b = beacons.get(ed);
+        if (b) return b;
+        const g = el('g', { transform: `translate(${ed.mid[0].toFixed(1)} ${ed.mid[1].toFixed(1)})` }, beaconLayer);
+        b = { g, wave: el('circle', { r: 4, fill: 'none', stroke: C.sel, 'stroke-width': 1.2, opacity: 0 }, g), dia: el('path', { d: 'M0 -4.5 4.5 0 0 4.5-4.5 0Z', 'stroke-width': .9, fill: C.bg, stroke: C.t2 }, g), dot: el('circle', { r: 1.2, fill: C.t2 }, g), lab: txt(g, 8, -8, `NAV-${pad2(ed.i + 1)} ONLINE`, { 'font-size': 7.5, fill: C.sel, opacity: 0 }), on: false, at: 0 };
+        beacons.set(ed, b);
+        return b;
+      };
+      const ship = el('g', {}, world);
+      el('path', { d: 'M-11 -5 11 0-11 5-7 0Z', fill: C.sel, stroke: C.bg, 'stroke-width': 2, 'paint-order': 'stroke' }, ship);
+      const rig = sweepRig(world, [70, 140, 210], (r) => `${(r / 1000).toFixed(2)}AU`);
+      corners(fixed, VB);
+      titleBlock(fixed, VB, 'BERTHA–SAN-NODIS 물류망 · 궤도 다발 항로도', [`페이즈 ${run.phase} · ${R} ROWS`, '군체 침식 전선 561', `진행축 방위 ${Math.round(90 + THd)}°`, 'REV.06 · 분기 궤도']);
+      // 상태: 지금 칸 · 지나간 노드 · 고를 수 있는 노드 · 고른 노드 · 그 앞으로 갈 수 있는 노드
+      const live = () => last?.run ?? run;
+      let shipEdge: Edge | null = null, shipT = 0, uc = 0;
+      const stateNow = () => {
+        const r = live(), step = Math.min(r.step, R - 1), path = r.path || [], prev = step > 0 ? path[step - 1] ?? 0 : -1;
+        const opts = step === 0 ? rows[0].map((_, k) => k) : L[step - 1]?.[prev] || [0];
+        const pj = r.node ? path[step] ?? opts[0] : opts.find((k) => rows[step][k] === last?.pick?.get()) ?? opts[0];
+        const fwd = (from: number[]) => { const out = rows.map(() => new Set<number>()); from.forEach((j) => out[step].add(j)); for (let i = step; i < R - 1; i++) for (const j of out[i]) for (const k of L[i]?.[j] || []) out[i + 1].add(k); return out; };
+        return { r, step, path, prev, opts: r.node ? [pj] : opts, pj, all: fwd(r.node ? [pj] : opts), mine: fwd([pj]) };
+      };
+      const ST_OPT = { ...STATE.next, sw: 1.8, bs: 1, ba: 0, bo: .8 };
+      const ucOf = (x: number, y: number) => Math.max(-40, Math.min(U + 40, proj(x, y)));
+      const placeShip = () => {
+        if (!shipEdge) { const [x, y] = nodeAt(0, 0); ship.setAttribute('transform', `translate(${x - 30 * ax[0]} ${y - 30 * ax[1]}) rotate(${THd})`); rig.g.setAttribute('transform', `translate(${x} ${y})`); return [x, y]; }
+        const [x, y, a] = ptOn(shipEdge, shipT);
+        ship.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(a * 180 / Math.PI).toFixed(1)})`);
+        rig.g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+        return [x, y];
+      };
+      let homeU = 0;
+      const drawCam = () => {
+        const [cx, cy] = camAt(uc);
+        world.setAttribute('transform', `translate(${-cx} ${-cy})`); para.setAttribute('transform', `translate(${-cx * PAR} ${-cy * PAR})`);
+        recenterBtn.hidden = homing || Math.abs(uc - homeU) < 4;
+      };
+      /** 다시 칠하기: 노드 상태 · 연결선 · 표지 · 화물선 자리. anim = 칸이 바뀌어 화물선이 지나간 연결선을 따라 움직인다 */
+      const update = (anim: boolean) => {
+        const S0 = stateNow(), { step, path, prev, pj } = S0;
+        rows.forEach((row, i) => row.forEach((t, j) => {
+          const k = toks[i][j];
+          const kind = i < step ? (path[i] === j ? 'past' : 'gone') : i === step ? (j === pj ? 'cur' : S0.opts.includes(j) ? 'opt' : 'gone') : S0.mine[i].has(j) ? 'next' : S0.all[i].has(j) ? 'alt' : 'gone';
+          const v: St = kind === 'cur' ? { kind: 'cur', ...STATE.cur, col: C.sel, ncol: C.sel, bcol: C.sel }
+            : kind === 'opt' ? { kind: 'next', ...ST_OPT, col: C.sel, ncol: C.sel, bcol: C.sel }
+            : kind === 'past' ? { kind: 'past', ...STATE.past, col: C.t3, ncol: C.t3, bcol: C.t3 }
+            : kind === 'next' ? { kind: 'next', ...STATE.next, col: colOf(t), ncol: C.t3, bcol: C.t3 }
+            : kind === 'alt' ? { kind: 'next', ...STATE.next, op: .75, col: mix(colOf(t), C.bg, .35), ncol: C.t3, bcol: C.t3, bo: .4 }
+            : { kind: 'past', ...STATE.past, op: .22, col: C.t3, ncol: C.t3, bcol: C.t3, bo: .15 };
+          apply(k, v); k.st = v;
+          k.g.style.opacity = kind === 'gone' ? '.28' : kind === 'alt' ? '.8' : '1';
+          const key = kind === 'cur' || kind === 'opt' || row.length === 1;
+          k.num.style.display = key ? '' : 'none';
+          k.call.style.display = kind === 'cur' || kind === 'opt' || t === 'boss' || (row.length === 1 && i >= step) ? '' : 'none';
+          if (kind === 'opt' || kind === 'cur') { if (!S0.r.node) k.g.dataset.pick = t; else delete k.g.dataset.pick; } else delete k.g.dataset.pick;
+        }));
+        let pickEdge: Edge | null = null;
+        for (const ed of edges) {
+          const taken = ed.i + 1 < step ? path[ed.i] === ed.j && path[ed.i + 1] === ed.k : ed.i + 1 === step && path[ed.i] === ed.j && ed.k === pj && !!S0.r.node;
+          const toPick = ed.i + 1 === step && ed.j === prev && ed.k === pj && !S0.r.node;
+          if (toPick || (ed.i + 1 === step && ed.j === prev && ed.k === pj)) pickEdge = ed;
+          const mine = ed.i >= step && S0.mine[ed.i].has(ed.j) && S0.mine[ed.i + 1].has(ed.k), alt = ed.i >= step ? S0.all[ed.i].has(ed.j) && S0.all[ed.i + 1].has(ed.k) : ed.i + 1 === step && ed.j === prev && S0.opts.includes(ed.k);
+          const a: Attrs = taken ? { stroke: C.sel, 'stroke-width': 2.5, opacity: 1, 'stroke-dasharray': null } : toPick ? { stroke: C.sel, 'stroke-width': 1.8, opacity: .9, 'stroke-dasharray': '6 4' } : mine ? { stroke: C.t2, 'stroke-width': 1.6, opacity: 1, 'stroke-dasharray': null } : alt ? { stroke: C.t3, 'stroke-width': 1.3, opacity: .9, 'stroke-dasharray': null } : { stroke: C.line, 'stroke-width': .9, opacity: .55, 'stroke-dasharray': '1 4' };
+          for (const kk in a) { const v = a[kk]; if (v == null) ed.e.removeAttribute(kk); else ed.e.setAttribute(kk, String(v)); }
+          if (taken || toPick) { const b = beacon(ed); const on = taken; if (b.on !== on) { b.on = on; b.dia.setAttribute('fill', on ? C.sel : C.bg); b.dia.setAttribute('stroke', on ? C.sel : C.t2); b.dot.setAttribute('fill', on ? C.bg : C.t2); b.at = on && anim && !reduce ? performance.now() : 0; } b.g.style.display = ''; }
+          else { const b = beacons.get(ed); if (b) b.g.style.display = 'none'; }
+        }
+        // 화물선: 고르는 중이면 지나온 노드에서 고른 노드 쪽으로 막 출발한 자리, 들어간 노드면 그 노드 바로 앞
+        const from = shipEdge, fromT = shipT, toEdge = pickEdge, toT = S0.r.node ? .86 : .16;
+        { const [x, y] = nodeAt(step, pj); homeU = ucOf(x, y) + 40; } // 카메라: 고른 노드 (한 줄 항로처럼 지금 칸이 가운데, 앞 칸이 보이게 조금 앞으로)
+        const moved = from && toEdge && from !== toEdge && toEdge.i === from.i + 1;
+        if (anim && moved && !reduce) {
+          const s0 = fromT; homing = true;
+          const u0 = uc; tween(1100, (q) => { if (q < .5) { shipEdge = from; shipT = s0 + (1 - s0) * (q / .5); } else { shipEdge = toEdge; shipT = toT * ((q - .5) / .5); } placeShip(); uc = u0 + (homeU - u0) * q; drawCam(); }, () => { homing = false; shipEdge = toEdge; shipT = toT; placeShip(); uc = homeU; drawCam(); });
+        } else { shipEdge = toEdge; shipT = toT; placeShip(); if (!homing) { uc = homeU; drawCam(); } }
+      };
+      update(false);
+      tick = (t) => {
+        for (const k of spin) k.g.setAttribute('transform', `rotate(${(k.a + t * k.w).toFixed(2)})`);
+        for (const m of orbiters) { const a = t * m.w + 1; m.g.setAttribute('transform', `translate(${m.cx + Math.cos(a) * m.r} ${m.cy + Math.sin(a) * m.r})`); m.body?.setAttribute('transform', `rotate(${t * .02})`); }
+        for (const c of convoys) { const u = mod(c.off + c.dir * t * .018, U + 600) - 300, [x, y] = L2W(u, c.v); c.g.setAttribute('transform', `translate(${x} ${y})`); c.body.setAttribute('transform', `rotate(${THd + (c.dir < 0 ? 180 : 0)})`); }
+        for (const b of blink) b.e.setAttribute('stroke-opacity', (Math.max(0, Math.sin(t / 380 - b.ph)) * .9 + .1).toFixed(2));
+        const now = performance.now();
+        for (const [ed, b] of beacons) {
+          if (!b.on) { b.dot.setAttribute('fill-opacity', Math.sin(t / 260 - ed.i * 1.7) > .3 ? '1' : '.15'); continue; }
+          b.dot.setAttribute('fill-opacity', '1');
+          if (!b.at) continue;
+          const k = (now - b.at) / 900, k2 = (now - b.at) / 2200;
+          b.wave.setAttribute('r', String(4 + 20 * Math.min(1, k))); b.wave.setAttribute('opacity', Math.max(0, 1 - k).toFixed(2));
+          b.lab.setAttribute('opacity', (k2 < .7 ? Math.min(1, k2 * 6) : Math.max(0, (1 - k2) / .3)).toFixed(2));
+          if (k2 >= 1) { b.at = 0; b.wave.setAttribute('opacity', '0'); b.lab.setAttribute('opacity', '0'); }
+        }
+        rig.set(mod(t * .05, 360));
+      };
+      const off = dragger((dx) => { uc = Math.max(-40, Math.min(U + 40, uc - dx / ax[0])); drawCam(); });
+      return {
+        name: '베르타–산노디스 물류망',
+        legend: [['궤도', '갈래 = 기준 항로의 평행 궤도 (천체를 넘으면 안팎이 바뀐다)'], ['연결선', '지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['NAV', '항로 표지 — 화물선이 지나면 복구'], ['천체', 'B-4 · TS-7 · A-117 · SN · RL-2'], ['CVY', '수송선단 (진행축 양쪽)'], ['DEBRIS β', '소행성대'], ['PSR', '산-노디스 펄서 (8년 주기)']],
+        look(i: number) { const [x, y] = nodeAt(i, 0), u0 = uc, want = ucOf(x, y); tween(700, (k) => { uc = u0 + (want - u0) * k; drawCam(); }); },
+        go() { const u0 = uc; homing = true; tween(600, (k) => { uc = u0 + (homeU - u0) * k; drawCam(); }, () => { homing = false; drawCam(); }); },
+        update() { update(true); },
+        stop: off,
+      };
+    }
     // 항로: 첫 노드에서 시작해 마지막(보스) 노드에서 끝난다. 반원 끝 접선이 같아 이음매가 매끄럽다
     const rig = sweepRig(world, [70, 140, 210], (r) => `${(r / 1000).toFixed(2)}AU`);
     const st0 = L2W(BOD[0].u - BOD[0].r, 0);
