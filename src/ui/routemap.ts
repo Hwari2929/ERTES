@@ -66,7 +66,7 @@ let S: Scene | null = null;
 /** 노드 설명 (HTML): 전체 화면 옆 패널에 쓴다 — 문구는 main 의 기존 팝오버와 같은 것 */
 type Hint = (t: NodeType, i: number) => string;
 /** 분기 항로: 지금 고른 노드 종류 (main 의 app.nodePick) · 고르기 (지도 노드를 누르면) */
-type Pick = { get(): NodeType | undefined; set(t: NodeType): void };
+type Pick = { get(): NodeType | undefined; set(t: NodeType): void; go?(t: NodeType): void };
 let last: { host: HTMLElement; run: RunState; onNode: (el: HTMLElement) => void; hint: Hint; pick?: Pick } | null = null;
 // 전체 화면: 항로도를 body 위 덮개로 옮기고(브라우저 전체 화면은 되면 덤), 더 넓은 시야 + 옆 패널 (노드 목록 · 범례)
 let fs = false, fsNative = false, fsResize = 0;
@@ -190,12 +190,14 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   // 스크롤 잠금: 가로로 끄는 동안은 페이지가 위아래로 움직이지 않는다. 세로로 시작한 터치는 페이지 스크롤로 넘기고, 가로 휠 · Shift+휠은 항로만 민다
   let goNow = () => {};
   const armReturn = () => { clearTimeout(idleT); if (fs) return; idleT = window.setTimeout(() => { if (!recenterBtn.hidden) goNow(); }, 2200); };
-  let moved = 0, downNode: SVGElement | null = null; // 누른 노드 (포인터 캡처 뒤 click 대상은 무대 자체라 누를 때 기억)
+  let moved = 0, downNode: SVGElement | null = null, downTouch = false;
+  /** 지금 고를 수 있는 노드를 누름 (분기 항로가 바꿔 끼운다): click = 마우스 · tap = 터치 · key = Enter */
+  let onPick = (t: NodeType, _how: 'click' | 'tap' | 'key') => { last?.pick?.set(t); }; // 누른 노드 (포인터 캡처 뒤 click 대상은 무대 자체라 누를 때 기억)
   function dragger(onDelta: (dx: number) => void) {
     let id = -1, lx = 0, ly = 0, v = 0, lt = 0, inert = 0, axis: '' | 'x' | 'y' = '', touch = false, wheelT = 0;
     const scale = () => stage.viewBox.baseVal.width / stage.getBoundingClientRect().width;
     const halt = () => { clearTimeout(idleT); homing = false; cancelAnimationFrame(raf); cancelAnimationFrame(inert); };
-    const down = (e: PointerEvent) => { if (e.button !== 0) return; downNode = (e.target as Element).closest<SVGElement>('.rm-node'); halt(); id = e.pointerId; lx = e.clientX; ly = e.clientY; lt = performance.now(); v = 0; moved = 0; axis = ''; touch = e.pointerType !== 'mouse'; try { stage.setPointerCapture(id); } catch { /* 합성 이벤트 */ } };
+    const down = (e: PointerEvent) => { if (e.button !== 0) return; downNode = (e.target as Element).closest<SVGElement>('.rm-node'); downTouch = e.pointerType !== 'mouse'; halt(); id = e.pointerId; lx = e.clientX; ly = e.clientY; lt = performance.now(); v = 0; moved = 0; axis = ''; touch = e.pointerType !== 'mouse'; try { stage.setPointerCapture(id); } catch { /* 합성 이벤트 */ } };
     const move = (e: PointerEvent) => {
       if (e.pointerId !== id) return;
       const ddx = e.clientX - lx, ddy = e.clientY - ly;
@@ -227,10 +229,10 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   }
   stage.addEventListener('click', (e) => {
     const n = (e.target as Element).closest<SVGElement>('.rm-node') || downNode;
-    if (n && moved < 6) { if (n.dataset.pick && last?.pick) last.pick.set(n.dataset.pick as NodeType); else if (fs) pick(+(n.dataset.step ?? cur)); else onNode(n as unknown as HTMLElement); } // 분기 항로: 지금 고를 수 있는 노드는 누르면 고른다
+    if (n && moved < 6) { if (n.dataset.pick && last?.pick) onPick(n.dataset.pick as NodeType, downTouch ? 'tap' : 'click'); else if (fs) pick(+(n.dataset.step ?? cur)); else onNode(n as unknown as HTMLElement); } // 분기 항로: 지금 고를 수 있는 노드는 누르면 고른다
     downNode = null;
   });
-  stage.addEventListener('keydown', (e) => { const n = (e.target as Element).closest<SVGElement>('.rm-node'); if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); if (n.dataset.pick && last?.pick) last.pick.set(n.dataset.pick as NodeType); else if (fs) pick(+(n.dataset.step ?? cur)); else onNode(n as unknown as HTMLElement); } });
+  stage.addEventListener('keydown', (e) => { const n = (e.target as Element).closest<SVGElement>('.rm-node'); if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); if (n.dataset.pick && last?.pick) onPick(n.dataset.pick as NodeType, 'key'); else if (fs) pick(+(n.dataset.step ?? cur)); else onNode(n as unknown as HTMLElement); } });
   recenterBtn.addEventListener('click', () => goNow());
 
   // ── 공통 장식
@@ -543,8 +545,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     el('ellipse', { cx: fx, cy: fy, rx: 17, ry: 4, fill: 'none', stroke: C.t3, transform: `rotate(-14 ${fx} ${fy})` }, para);
     txt(para, fx + 22, fy + 3, 'BODY-X2', { 'font-size': 7.5 });
 
-    // 진행축 · 거리 눈금
-    { const [a, b] = [L2W(-300, 0), L2W(U + 300, 0)]; el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: C.line, 'stroke-width': .8 }, world); }
+    // 진행축 거리 눈금 (축 선은 긋지 않는다)
     for (let u = 0; u <= U; u += 200) { const [x, y] = L2W(u, 0); el('path', { d: `M${x} ${y - 4}v8`, stroke: C.t3, transform: `rotate(${THd} ${x} ${y})` }, world); txt(world, x + 4, y - 5, `${(u / 1000).toFixed(1)}AU`, { 'font-size': 7 }); }
     // 수송선단 (진행축 양쪽 가장자리)
     for (const L of [{ v: run.links ? -236 : -182, dir: 1, code: 'CVY-12' }, { v: run.links ? 236 : 188, dir: -1, code: 'CVY-07' }]) {
@@ -643,22 +644,23 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         for (let q = 0; q <= 28; q++) { const t = q / 28, m = 1 - t, a = m * m * m, b = 3 * m * m * t, c = 3 * m * t * t, d = t * t * t; out.push([a * A[0] + b * P1[0] + c * P2[0] + d * B[0], a * A[1] + b * P1[1] + c * P2[1] + d * B[1]]); }
         return out;
       };
-      // 연결선: 같은 갈래 = 매끄러운 곡선 · 갈라지는 옆 갈래 = 도착 방향에 맞춘 원호 · 합쳐지는 옆 갈래 = 출발 방향에 맞춘 원호
+      // 연결선: 갈라지는 옆 갈래 = 도착 방향에 맞춘 원호 · 나머지 (같은 갈래 · 합쳐지는 갈래) = 두 노드의 진행 방향을 잇는 매끄러운 곡선
       const edgeLayer = el('g', {}, world), beaconLayer = el('g', {}, world), nodeLayer = el('g', {}, world);
       type Edge = { i: number; j: number; k: number; pts: number[][]; e: SVGElement; mid: number[] };
       const edges: Edge[] = [];
-      const parents = (i: number, k: number) => rows[i].filter((_, j) => (L[i]?.[j] || []).includes(k)).length;
       for (let i = 0; i < R - 1; i++) rows[i].forEach((_, j) => (L[i]?.[j] || []).forEach((k, _n, kids) => {
         const A = nodeAt(i, j), B = nodeAt(i + 1, k), tb = tan(uRow(i + 1));
         const ta = tan(uRow(i)), side = Math.abs(dOf(i + 1, k) - dOf(i, j)) > 1;
         const g0 = L2W(uRow(i), vs(uRow(i))), g1 = L2W(uRow(i + 1), vs(uRow(i + 1))), gl = Math.hypot(g1[0] - g0[0], g1[1] - g0[1]) || 1, g = [(g1[0] - g0[0]) / gl, (g1[1] - g0[1]) / gl]; // 두 칸 사이 기준 항로 방향 (옆 갈래가 좌우 대칭으로 휘게)
-        const pts = side && kids.length >= 2 ? arc(B, A, [-g[0], -g[1]]).reverse() : side && parents(i, k) >= 2 ? arc(A, B, g) : hermite(A, B, ta, tb);
+        const pts = side && kids.length >= 2 ? arc(B, A, [-g[0], -g[1]]).reverse() : hermite(A, B, ta, tb);
         const e = el('polyline', { points: pts.map((q) => q.map((v) => v.toFixed(1)).join(',')).join(' '), fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, edgeLayer);
+        if (!reduce) e.style.transition = 'stroke .5s, stroke-width .5s, opacity .5s';
         edges.push({ i, j, k, pts, e, mid: pts[14] });
       }));
       const ptOn = (ed: Edge, t: number) => { const f = Math.max(0, Math.min(1, t)) * (ed.pts.length - 1), q = Math.floor(f), r = f - q, a = ed.pts[q], b = ed.pts[Math.min(ed.pts.length - 1, q + 1)]; return [a[0] + (b[0] - a[0]) * r, a[1] + (b[1] - a[1]) * r, Math.atan2(b[1] - a[1], b[0] - a[0])]; };
       // 노드 토큰 (한 줄 항로와 같은 토큰): 칸 번호 · 호출 부호는 지금 고를 노드 · 하나뿐인 칸 · 보스만 (갈래 사이가 붐비지 않게)
-      const toks = rows.map((row, i) => row.map((t, j) => { const k = token(nodeLayer, i, t); k.g.dataset.j = String(j); const [x, y] = nodeAt(i, j); k.g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); return k; }));
+      const trailEl = el('polyline', { fill: 'none', stroke: C.sel, 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, edgeLayer); // 화물선이 지나며 칠하는 길
+      const toks = rows.map((row, i) => row.map((t, j) => { const k = token(nodeLayer, i, t); k.g.dataset.j = String(j); if (!reduce) k.g.style.transition = 'opacity .5s'; const [x, y] = nodeAt(i, j); k.g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); return k; }));
       // 항로 표지: 지나간 연결선 가운데에 하나씩 (화물선이 지나면 켜진다) + 고른 노드로 가는 연결선 (꺼진 채 점멸)
       const beacons = new Map<Edge, { wave: SVGElement; dia: SVGElement; dot: SVGElement; lab: SVGElement; on: boolean; at: number; g: SVGElement }>();
       const beacon = (ed: Edge) => {
@@ -674,16 +676,19 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       const rig = sweepRig(world, [70, 140, 210], (r) => `${(r / 1000).toFixed(2)}AU`);
       corners(fixed, VB);
       titleBlock(fixed, VB, 'BERTHA–SAN-NODIS 물류망 · 궤도 다발 항로도', [`페이즈 ${run.phase} · ${R} ROWS`, '군체 침식 전선 561', `진행축 방위 ${Math.round(90 + THd)}°`, 'REV.06 · 분기 궤도']);
-      // 상태: 지금 칸 · 지나간 노드 · 고를 수 있는 노드 · 고른 노드 · 그 앞으로 갈 수 있는 노드
+      // 상태: 지금 칸 · 지나간 노드 · 고를 수 있는 노드 · 고른 노드 (마우스를 올린 노드 우선) · 그 앞으로 갈 수 있는 노드
       const live = () => last?.run ?? run;
-      let shipEdge: Edge | null = null, shipT = 0, uc = 0;
+      let shipEdge: Edge | null = null, shipT = 0, uc = 0, Z = 1, hov: NodeType | null = null, trail: Edge | null = null, camKey = '';
+      const shipTo: { edge: Edge | null; t: number } = { edge: null, t: 0 };
       const stateNow = () => {
         const r = live(), step = Math.min(r.step, R - 1), path = r.path || [], prev = step > 0 ? path[step - 1] ?? 0 : -1;
         const opts = step === 0 ? rows[0].map((_, k) => k) : L[step - 1]?.[prev] || [0];
-        const pj = r.node ? path[step] ?? opts[0] : opts.find((k) => rows[step][k] === last?.pick?.get()) ?? opts[0];
+        const want = hov && opts.some((k) => rows[step][k] === hov) ? hov : last?.pick?.get();
+        const pj = r.node ? path[step] ?? opts[0] : opts.find((k) => rows[step][k] === want) ?? opts[0];
         const fwd = (from: number[]) => { const out = rows.map(() => new Set<number>()); from.forEach((j) => out[step].add(j)); for (let i = step; i < R - 1; i++) for (const j of out[i]) for (const k of L[i]?.[j] || []) out[i + 1].add(k); return out; };
-        return { r, step, path, prev, opts: r.node ? [pj] : opts, pj, all: fwd(r.node ? [pj] : opts), mine: fwd([pj]) };
+        return { r, step, path, prev, opts: r.node ? [pj] : opts, pj, all: fwd(r.node ? [pj] : opts), mine: fwd([pj]), choosing: !r.node && opts.length > 1 };
       };
+      type Now = ReturnType<typeof stateNow>;
       const ST_OPT = { ...STATE.next, sw: 1.8, bs: 1, ba: 0, bo: .8 };
       const ucOf = (x: number, y: number) => Math.max(-40, Math.min(U + 40, proj(x, y)));
       const placeShip = () => {
@@ -694,14 +699,57 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         return [x, y];
       };
       let homeU = 0;
+      /** 카메라: uc = 화면 가운데의 진행축 자리, Z = 확대 (갈림길에서 고르는 동안 ZOOM) */
+      const ZOOM = 1.4;
       const drawCam = () => {
-        const [cx, cy] = camAt(uc);
-        world.setAttribute('transform', `translate(${-cx} ${-cy})`); para.setAttribute('transform', `translate(${-cx * PAR} ${-cy * PAR})`);
+        const P = L2W(uc, 0), [cx, cy] = camAt(uc);
+        world.setAttribute('transform', `translate(400 ${CY}) scale(${Z.toFixed(4)}) translate(${(-P[0]).toFixed(1)} ${(-P[1]).toFixed(1)})`); para.setAttribute('transform', `translate(${-cx * PAR} ${-cy * PAR})`);
         recenterBtn.hidden = homing || Math.abs(uc - homeU) < 4;
       };
-      /** 다시 칠하기: 노드 상태 · 연결선 · 표지 · 화물선 자리. anim = 칸이 바뀌어 화물선이 지나간 연결선을 따라 움직인다 */
+      /** 카메라 자리: 고르는 중 = 지나온 노드와 고를 노드 사이를 확대 (고른 노드 · 마우스와 상관없이 고정), 아니면 지금 노드 조금 앞 */
+      const camOf = (S0: Now): [number, number] => {
+        const { step, prev, pj } = S0;
+        if (S0.choosing) { const b = nodeAt(step, S0.opts[0]), a = step > 0 ? nodeAt(step - 1, prev) : [b[0] - 110 * ax[0], b[1] - 110 * ax[1]]; return [(ucOf(a[0], a[1]) + ucOf(b[0], b[1])) / 2 + 30, ZOOM]; }
+        const [x, y] = nodeAt(step, pj); return [ucOf(x, y) + 40, 1];
+      };
+      /** 노드 칠하기: ms 동안 (끝낸 노드가 먼저 옅어지고 새 현재 노드가 밝아진다 — 한 줄 항로와 같은 순서) */
+      const paintJobs = (jobs: { k: Tok; from: St; to: St; w: number[] }[], ms: number) => {
+        cancelAnimationFrame(praf);
+        const set = (T: number) => jobs.forEach((j) => { const u = Math.min(1, Math.max(0, (T - j.w[0]) / (j.w[1] - j.w[0]))); const v = u >= 1 ? j.to : lerp(j.from, j.to, ease(u)); apply(j.k, v); j.k.st = v; });
+        if (!ms || reduce) { set(1); return; }
+        const t0 = performance.now();
+        const f = (now: number) => { const T = Math.min(1, (now - t0) / ms); set(T); if (T < 1) praf = requestAnimationFrame(f); };
+        praf = requestAnimationFrame(f);
+      };
+      /** 연결선 칠하기 · 항로 표지. lit = 표지가 켜질 때 물결 (at = 켜지는 시각) */
+      const styleEdges = (S0: Now, lit: number) => {
+        const { step, path, prev, pj } = S0;
+        let pickEdge: Edge | null = null;
+        for (const ed of edges) {
+          const taken = ed !== trail && (ed.i + 1 < step ? path[ed.i] === ed.j && path[ed.i + 1] === ed.k : ed.i + 1 === step && path[ed.i] === ed.j && ed.k === pj && !!S0.r.node);
+          const toPick = ed.i + 1 === step && ed.j === prev && ed.k === pj && !S0.r.node;
+          if (ed.i + 1 === step && ed.j === prev && ed.k === pj) pickEdge = ed;
+          const mine = ed === trail || (ed.i >= step && S0.mine[ed.i].has(ed.j) && S0.mine[ed.i + 1].has(ed.k)), alt = ed.i >= step ? S0.all[ed.i].has(ed.j) && S0.all[ed.i + 1].has(ed.k) : ed.i + 1 === step && ed.j === prev && S0.opts.includes(ed.k);
+          const [stroke, sw, op, dash] = taken ? [C.sel, 2.5, 1, ''] : toPick ? [C.sel, 1.8, .9, '6 4'] : mine ? [C.t2, 1.6, 1, ''] : alt ? [C.t3, 1.3, .9, ''] : [C.line, .9, .55, '1 4'];
+          ed.e.style.stroke = stroke; ed.e.style.strokeWidth = String(sw); ed.e.style.opacity = String(op);
+          if (dash) ed.e.setAttribute('stroke-dasharray', dash); else ed.e.removeAttribute('stroke-dasharray');
+          if (taken || toPick) { const b = beacon(ed); if (b.on !== taken) { b.on = taken; b.dia.setAttribute('fill', taken ? C.sel : C.bg); b.dia.setAttribute('stroke', taken ? C.sel : C.t2); b.dot.setAttribute('fill', taken ? C.bg : C.t2); b.at = taken && lit && !reduce ? lit : 0; } b.g.style.display = ''; }
+          else { const b = beacons.get(ed); if (b) b.g.style.display = 'none'; }
+        }
+        return pickEdge;
+      };
+      const drawTrail = () => {
+        if (!trail || shipEdge !== trail) return;
+        const f = shipT * (trail.pts.length - 1), q = Math.floor(f), [x, y] = ptOn(trail, shipT);
+        trailEl.setAttribute('points', [...trail.pts.slice(0, q + 1), [x, y]].map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' '));
+      };
+      /** 다시 칠하기. anim = 칸이 바뀌면 화물선이 지나온 연결선을 따라 움직이며 길을 칠하고 카메라가 따라간다 (한 줄 항로의 이동 연출).
+       *  같은 칸에서 고른 노드만 바뀌면 (누름 · 마우스) 카메라는 그대로, 노드 · 연결선만 짧게 바뀐다 */
       const update = (anim: boolean) => {
-        const S0 = stateNow(), { step, path, prev, pj } = S0;
+        const S0 = stateNow(), { step, path } = S0, pj = S0.pj;
+        const key = `${step}|${S0.choosing}|${S0.r.node ? 1 : 0}`, big = key !== camKey;
+        camKey = key;
+        const jobs: { k: Tok; from: St; to: St; w: number[] }[] = [];
         rows.forEach((row, i) => row.forEach((t, j) => {
           const k = toks[i][j];
           const kind = i < step ? (path[i] === j ? 'past' : 'gone') : i === step ? (j === pj ? 'cur' : S0.opts.includes(j) ? 'opt' : 'gone') : S0.mine[i].has(j) ? 'next' : S0.all[i].has(j) ? 'alt' : 'gone';
@@ -711,33 +759,40 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
             : kind === 'next' ? { kind: 'next', ...STATE.next, col: colOf(t), ncol: C.t3, bcol: C.t3 }
             : kind === 'alt' ? { kind: 'next', ...STATE.next, op: .75, col: mix(colOf(t), C.bg, .35), ncol: C.t3, bcol: C.t3, bo: .4 }
             : { kind: 'past', ...STATE.past, op: .22, col: C.t3, ncol: C.t3, bcol: C.t3, bo: .15 };
-          apply(k, v); k.st = v;
+          jobs.push({ k, from: k.st || v, to: v, w: kind === 'past' || kind === 'gone' ? [0, .55] : kind === 'cur' ? [.35, 1] : [0, 1] });
           k.g.style.opacity = kind === 'gone' ? '.28' : kind === 'alt' ? '.8' : '1';
-          const key = kind === 'cur' || kind === 'opt' || row.length === 1;
-          k.num.style.display = key ? '' : 'none';
+          const keyNode = kind === 'cur' || kind === 'opt' || row.length === 1;
+          k.num.style.display = keyNode ? '' : 'none';
           k.call.style.display = kind === 'cur' || kind === 'opt' || t === 'boss' || (row.length === 1 && i >= step) ? '' : 'none';
-          if (kind === 'opt' || kind === 'cur') { if (!S0.r.node) k.g.dataset.pick = t; else delete k.g.dataset.pick; } else delete k.g.dataset.pick;
+          if ((kind === 'opt' || kind === 'cur') && !S0.r.node) k.g.dataset.pick = t; else delete k.g.dataset.pick;
         }));
-        let pickEdge: Edge | null = null;
-        for (const ed of edges) {
-          const taken = ed.i + 1 < step ? path[ed.i] === ed.j && path[ed.i + 1] === ed.k : ed.i + 1 === step && path[ed.i] === ed.j && ed.k === pj && !!S0.r.node;
-          const toPick = ed.i + 1 === step && ed.j === prev && ed.k === pj && !S0.r.node;
-          if (toPick || (ed.i + 1 === step && ed.j === prev && ed.k === pj)) pickEdge = ed;
-          const mine = ed.i >= step && S0.mine[ed.i].has(ed.j) && S0.mine[ed.i + 1].has(ed.k), alt = ed.i >= step ? S0.all[ed.i].has(ed.j) && S0.all[ed.i + 1].has(ed.k) : ed.i + 1 === step && ed.j === prev && S0.opts.includes(ed.k);
-          const a: Attrs = taken ? { stroke: C.sel, 'stroke-width': 2.5, opacity: 1, 'stroke-dasharray': null } : toPick ? { stroke: C.sel, 'stroke-width': 1.8, opacity: .9, 'stroke-dasharray': '6 4' } : mine ? { stroke: C.t2, 'stroke-width': 1.6, opacity: 1, 'stroke-dasharray': null } : alt ? { stroke: C.t3, 'stroke-width': 1.3, opacity: .9, 'stroke-dasharray': null } : { stroke: C.line, 'stroke-width': .9, opacity: .55, 'stroke-dasharray': '1 4' };
-          for (const kk in a) { const v = a[kk]; if (v == null) ed.e.removeAttribute(kk); else ed.e.setAttribute(kk, String(v)); }
-          if (taken || toPick) { const b = beacon(ed); const on = taken; if (b.on !== on) { b.on = on; b.dia.setAttribute('fill', on ? C.sel : C.bg); b.dia.setAttribute('stroke', on ? C.sel : C.t2); b.dot.setAttribute('fill', on ? C.bg : C.t2); b.at = on && anim && !reduce ? performance.now() : 0; } b.g.style.display = ''; }
-          else { const b = beacons.get(ed); if (b) b.g.style.display = 'none'; }
-        }
+        paintJobs(jobs, anim ? (big ? 1100 : 240) : 0);
         // 화물선: 고르는 중이면 지나온 노드에서 고른 노드 쪽으로 막 출발한 자리, 들어간 노드면 그 노드 바로 앞
-        const from = shipEdge, fromT = shipT, toEdge = pickEdge, toT = S0.r.node ? .86 : .16;
-        { const [x, y] = nodeAt(step, pj); homeU = ucOf(x, y) + 40; } // 카메라: 고른 노드 (한 줄 항로처럼 지금 칸이 가운데, 앞 칸이 보이게 조금 앞으로)
-        const moved = from && toEdge && from !== toEdge && toEdge.i === from.i + 1;
-        if (anim && moved && !reduce) {
-          const s0 = fromT; homing = true;
-          const u0 = uc; tween(1100, (q) => { if (q < .5) { shipEdge = from; shipT = s0 + (1 - s0) * (q / .5); } else { shipEdge = toEdge; shipT = toT * ((q - .5) / .5); } placeShip(); uc = u0 + (homeU - u0) * q; drawCam(); }, () => { homing = false; shipEdge = toEdge; shipT = toT; placeShip(); uc = homeU; drawCam(); });
-        } else { shipEdge = toEdge; shipT = toT; placeShip(); if (!homing) { uc = homeU; drawCam(); } }
+        const [hu, hz] = camOf(S0), entered = step >= 2 ? edges.find((ed) => ed.i === step - 2 && ed.j === path[step - 2] && ed.k === path[step - 1]) : undefined;
+        const moving = anim && big && !reduce && !!entered && shipEdge?.i === step - 2; // 지난 칸에서 들어간 연결선 → 이번 칸 연결선
+        const from = moving ? entered! : shipEdge, fromT = moving && shipEdge !== entered ? .16 : shipT;
+        if (moving) trail = from;
+        const toEdge = styleEdges(S0, moving ? performance.now() + 320 : anim ? performance.now() : 0);
+        shipTo.edge = toEdge; shipTo.t = S0.r.node ? .86 : .16;
+        homeU = hu;
+        if (!big) { if (!homing) { shipEdge = shipTo.edge; shipT = shipTo.t; placeShip(); } return; } // 고른 노드만 바뀜: 카메라는 그대로
+        if (anim && !reduce) {
+          const u0 = uc, z0 = Z; homing = true;
+          tween(moving ? 1100 : 700, (q) => {
+            if (moving && from) { if (q < .5) { shipEdge = from; shipT = fromT + (1 - fromT) * (q / .5); } else { shipEdge = shipTo.edge; shipT = shipTo.t * ((q - .5) / .5); } drawTrail(); }
+            else if (from && from === shipTo.edge) { shipEdge = from; shipT = fromT + (shipTo.t - fromT) * q; } // 같은 연결선 위 (고른 노드로 들어감)
+            else { shipEdge = shipTo.edge; shipT = shipTo.t; }
+            placeShip(); uc = u0 + (homeU - u0) * q; Z = z0 + (hz - z0) * q; drawCam();
+          }, () => {
+            homing = false; shipEdge = shipTo.edge; shipT = shipTo.t; placeShip(); uc = homeU; Z = hz; drawCam();
+            if (trail) { trail = null; trailEl.setAttribute('points', ''); styleEdges(stateNow(), 0); }
+          });
+        } else { trail = null; trailEl.setAttribute('points', ''); shipEdge = shipTo.edge; shipT = shipTo.t; placeShip(); uc = homeU; Z = hz; drawCam(); }
       };
+      // 마우스를 올린 노드: 그 노드로 가는 길을 미리 밝힌다 (카메라는 그대로). 누르면 바로 진행 — 터치는 한 번 누르면 고르고 고른 노드를 다시 누르면 진행
+      nodeLayer.addEventListener('pointerover', (e) => { if (e.pointerType !== 'mouse') return; const t = (e.target as Element).closest<SVGElement>('.rm-node')?.dataset.pick as NodeType | undefined; if (t && t !== hov) { hov = t; update(true); } });
+      nodeLayer.addEventListener('pointerout', (e) => { if (e.pointerType !== 'mouse' || !hov || e.buttons) return; const to = (e.relatedTarget as Element | null)?.closest?.('.rm-node') as SVGElement | null; if (to?.dataset.pick === hov) return; hov = null; update(true); }); // 누르는 순간 (포인터 캡처) 은 떠난 것이 아니다
+      onPick = (t, how) => { const p = last?.pick; if (!p) return; if (how === 'tap' && p.get() !== t) { p.set(t); return; } hov = null; if (p.go) p.go(t); else p.set(t); };
       update(false);
       tick = (t) => {
         for (const k of spin) k.g.setAttribute('transform', `rotate(${(k.a + t * k.w).toFixed(2)})`);
@@ -748,7 +803,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         for (const [ed, b] of beacons) {
           if (!b.on) { b.dot.setAttribute('fill-opacity', Math.sin(t / 260 - ed.i * 1.7) > .3 ? '1' : '.15'); continue; }
           b.dot.setAttribute('fill-opacity', '1');
-          if (!b.at) continue;
+          if (!b.at || now < b.at) continue;
           const k = (now - b.at) / 900, k2 = (now - b.at) / 2200;
           b.wave.setAttribute('r', String(4 + 20 * Math.min(1, k))); b.wave.setAttribute('opacity', Math.max(0, 1 - k).toFixed(2));
           b.lab.setAttribute('opacity', (k2 < .7 ? Math.min(1, k2 * 6) : Math.max(0, (1 - k2) / .3)).toFixed(2));
@@ -756,7 +811,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         }
         rig.set(mod(t * .05, 360));
       };
-      const off = dragger((dx) => { uc = Math.max(-40, Math.min(U + 40, uc - dx / ax[0])); drawCam(); });
+      const off = dragger((dx) => { uc = Math.max(-40, Math.min(U + 40, uc - dx / ax[0] / Z)); drawCam(); });
       return {
         name: '베르타–산노디스 물류망',
         legend: [['궤도', '갈림길 = 왼쪽 · 가운데 · 오른쪽으로 갈라지는 궤도'], ['연결선', '지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['NAV', '항로 표지 — 화물선이 지나면 복구'], ['천체', 'B-4 · TS-7 · A-117 · SN · RL-2'], ['CVY', '수송선단 (진행축 양쪽)'], ['DEBRIS β', '소행성대'], ['PSR', '산-노디스 펄서 (8년 주기)']],
