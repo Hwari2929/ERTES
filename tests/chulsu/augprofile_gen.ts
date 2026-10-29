@@ -3,7 +3,7 @@
 // 방법 (profile_gen.ts 와 같은 틀): 기준 아군 3명 (refs.ts refsFor 의 묶음 전부, 묶음 × 시드) + 기물 X (공명 4, 생명력 +60 · 방어력 +40 보강) 가 3페이즈 일반 조우 SEEDS 개와 싸운다.
 //   X 자리를 반려 돌로 바꾼 같은 시드 전투와 비교해 X 의 팀 초당 피해 · 회복 기여를 재고, 증강 A 를 단 X 와 달지 않은 X 의 기여 비율을 낸다.
 //  - d: (A 를 단 X 의 팀 피해 기여) ÷ (달지 않은 X 의 기여) − 1 · h: 회복 기여 같은 비율 (회복 기여가 작으면 0)
-//  - 메이저 = 기물 전용 증강 14종 (★ 전설 포함) · 디바인 = 서약 증강 (디바인 공용 풀, 기물마다) · 사이오닉 학파(전공 2종) · 학파별 전공 증강 (그 학파를 단 상태 대비)
+//  - 메이저 = 기물 전용 증강 14종 (★ 전설 포함) · 디바인 = 서약 증강 (디바인 공용 풀, 기물마다) · 사이오닉 학파(전공 2종) · 학파별 전공 증강 + 기물 전용 전공 증강 (그 학파를 단 상태 대비)
 //    (예전 메이저 공용 증강 · 스페셜 유형은 클래스 재편으로 없어졌다: 예전 스페셜 기물은 이제 메이저)
 import { buildBattle } from '../../src/engine/build';
 import * as R from '../../src/engine/run';
@@ -11,6 +11,7 @@ import { UNITS } from '../../src/data/units';
 import { PETROCK } from '../../src/data/despair';
 import { OATH_AUGS } from '../../src/data/oathaugs';
 import { schoolPassives } from '../../src/data/psionic';
+import { PSI_UNIT_AUGS, psiUnitOf } from '../../src/data/psiunit';
 import { majorsOf, schoolAugId } from '../../src/data/schools';
 import { MAJORS, type AugPick } from '../../src/types';
 import { checkRefs, refsFor } from './refs';
@@ -79,7 +80,8 @@ for (const d of UNITS) {
       const sa = { id: schoolAugId(s) };
       const cs = contrib(d.id, [sa]);
       rec[sa.id] = ratio(cs, c0); n++;
-      for (const a of schoolPassives(s)) { rec[a.id] = ratio(contrib(d.id, [sa, { id: a.id }]), cs); n++; }
+      // 공용 전공 증강 + 이 기물 전용 전공 증강 (run.ts psiPool 과 같은 풀)
+      for (const a of [...schoolPassives(s), ...PSI_UNIT_AUGS.filter((x) => x.owner === s && psiUnitOf(x.id) === d.id)]) { rec[a.id] = ratio(contrib(d.id, [sa, { id: a.id }]), cs); n++; }
     }
   }
   process.stderr.write(`${d.id} ${Object.keys(rec).length}\n`);

@@ -9,6 +9,7 @@ import { DESPAIRS } from '../../src/data/despair';
 import { EMBLEM_SYNS, GLOBALS, PRIVILEGES } from '../../src/data/globals';
 import { emblemId } from '../../src/data/items';
 import { schoolPassives } from '../../src/data/psionic';
+import { PSI_UNIT_AUGS, psiUnitOf } from '../../src/data/psiunit';
 import { UNIT_BY_ID } from '../../src/data/units';
 import { SYNERGIES, tierOf } from '../../src/data/synergies';
 import { deployed, memberships } from '../../src/engine/build';
@@ -247,7 +248,7 @@ export function augScore(run: RunState, u: UnitState, a: AugPick): number {
 function schoolScore(run: RunState, u: UnitState, a: AugPick): number {
   const s = a.id.slice(7);
   const x = cloneUnit(u); x.augments = [...u.augments, a];
-  const fut = schoolPassives(s as never).map((p) => augScore(run, x, { id: p.id })).sort((p, q) => q - p).slice(0, 4);
+  const fut = [...schoolPassives(s as never), ...PSI_UNIT_AUGS.filter((p) => p.owner === s && psiUnitOf(p.id) === u.defId)].map((p) => augScore(run, x, { id: p.id })).sort((p, q) => q - p).slice(0, 4);
   return augScore(run, u, a) + AUG.schoolFuture * (fut.length ? fut.reduce((p, q) => p + q, 0) / fut.length : 0);
 }
 /** 새 뽑기 표본 풀 (공개 규칙 = 게임의 R.augPoolOf: 메이저 = 기물 전용 증강, 디바인 = 서약 증강, 사이오닉 = 학파 전공 증강, 보유 증강은 중첩 가능한 것만) */
