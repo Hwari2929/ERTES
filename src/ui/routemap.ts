@@ -518,9 +518,12 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       { kind: 'rock', name: '광석 소행성', code: 'A-117', sub: '하역장', R: 12, r: 150 },
       { kind: 'planet', name: '산-노디스', code: 'SN', sub: '제31시 · 8년 주기 펄서', R: 21, r: 92, pulsar: true },
       { kind: 'planet', name: '중계 위성', code: 'RL-2', sub: '군체 침식 구역', R: 17, r: 158, moon: true },
-    ].map((b, k) => ({ ...b, half: k % 2 ? 'hi' : 'lo', u: 0, cx: 0, cy: 0 }));
+    ].map((b, k) => ({ ...b, half: k % 2 ? 'hi' : 'lo', u: 0, v: 0, cx: 0, cy: 0 }));
+    // 분기 항로: 기준 항로는 천체 사이를 완만하게 누비고 (진폭 AW), 천체는 갈래 다발 (LANE 간격) 이 지나갈 자리 밖으로 비켜 놓는다 ('lo' = 항로가 +v 쪽)
+    const AW = 36, LANE = 64, extOf = (b: (typeof BOD)[number]) => (b.rings ? b.R + 6 + (b.rings - 1) * 4.5 : b.kind === 'port' ? 47 : b.moon ? 44 : b.R + 8);
     let U = 0;
-    for (const b of BOD) { b.u = U + b.r; U += 2 * b.r; [b.cx, b.cy] = L2W(b.u, 0); }
+    for (const b of BOD) { b.u = U + b.r; U += 2 * b.r; if (run.links) b.v = (b.half === 'lo' ? -1 : 1) * (LANE + 36 + extOf(b) - AW); [b.cx, b.cy] = L2W(b.u, b.v); }
+    const away = (b: (typeof BOD)[number]) => Math.sign(b.v); // 천체에서 항로 반대쪽
     const camAt = (u: number) => [O[0] + u * ax[0] - 400, O[1] + u * ax[1] - CY];
     const spin: { g: SVGElement; w: number; a: number }[] = [], blink: { e: SVGElement; ph: number }[] = [];
     const orbiters: { g: SVGElement; body?: SVGElement; cx: number; cy: number; r: number; w: number }[] = [];
@@ -544,7 +547,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     { const [a, b] = [L2W(-300, 0), L2W(U + 300, 0)]; el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: C.line, 'stroke-width': .8 }, world); }
     for (let u = 0; u <= U; u += 200) { const [x, y] = L2W(u, 0); el('path', { d: `M${x} ${y - 4}v8`, stroke: C.t3, transform: `rotate(${THd} ${x} ${y})` }, world); txt(world, x + 4, y - 5, `${(u / 1000).toFixed(1)}AU`, { 'font-size': 7 }); }
     // 수송선단 (진행축 양쪽 가장자리)
-    for (const L of [{ v: -182, dir: 1, code: 'CVY-12' }, { v: 188, dir: -1, code: 'CVY-07' }]) {
+    for (const L of [{ v: run.links ? -236 : -182, dir: 1, code: 'CVY-12' }, { v: run.links ? 236 : 188, dir: -1, code: 'CVY-07' }]) {
       const [a, b] = [L2W(-300, L.v), L2W(U + 300, L.v)];
       el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: C.line, 'stroke-dasharray': '1 6' }, world);
       for (let c = 0; c < 2; c++) {
@@ -593,52 +596,54 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         el('circle', { cx, cy, r: 40, fill: 'none', stroke: C.line, 'stroke-dasharray': '1 3' }, g);
         const m = el('g', {}, g); el('circle', { r: 4, fill: C.line }, m);
         orbiters.push({ g: m, cx, cy, r: 40, w: -.00022 });
-        const [wx, wy] = L2W(b.u + 62, -b.r * .45); // 침식된 난파선
+        const [wx, wy] = L2W(b.u + 62, b.v ? b.v + away(b) * 30 : -b.r * .45); // 침식된 난파선
         el('path', { d: `M${wx - 14} ${wy}l9 -5h12l-3 4 5 2-6 3h-10Z M${wx + 9} ${wy - 6}l5 -4`, fill: C.panel2 }, g);
         txt(g, wx, wy + 14, 'WRK-02', { 'text-anchor': 'middle', 'font-size': 7 });
       }
       if (b.pulsar) {
-        const [px, py] = L2W(b.u + b.r + 70, -120), q = el('g', { transform: `translate(${px} ${py})` }, g);
+        const [px, py] = b.v ? L2W(b.u + 70, b.v + away(b) * 40) : L2W(b.u + b.r + 70, -120), q = el('g', { transform: `translate(${px} ${py})` }, g);
         el('circle', { r: 5, fill: C.t2 }, q);
         for (const r of [12, 20, 28]) blink.push({ e: el('circle', { r, fill: 'none', stroke: C.t3 }, q), ph: r / 9 });
         txt(q, 0, 42, 'PSR · P=8y', { 'text-anchor': 'middle', fill: C.t2, 'font-size': 9 });
       }
-      const [lx, ly] = L2W(b.u, b.half === 'lo' ? -b.r - 22 : b.r + 24); // 이름은 항로 반대편
+      const [lx, ly] = L2W(b.u, b.v ? b.v + away(b) * (extOf(b) + (away(b) < 0 ? 22 : 24)) : b.half === 'lo' ? -b.r - 22 : b.r + 24); // 이름은 항로 반대편
       txt(g, lx, ly, b.code, { 'text-anchor': 'middle', fill: C.text, 'font-size': 11 });
       txt(g, lx, ly + 14, `${b.name} · ${b.sub}`, { 'text-anchor': 'middle', 'font-size': 8.5, class: 'rm-ko' });
     }
 
     if (run.links) return orbitBranch();
-    /** 분기 항로 (궤도 다발): 기준 항로 = 한 줄 항로와 같은 반원 사슬. 갈래 = 기준 항로의 평행 곡선 (진행 방향 법선으로 LANE 씩) — 반원마다 동심 궤도가 되고,
-     *  천체를 넘어갈 때 안쪽 · 바깥쪽이 바뀌며 다발처럼 꼬인다. 칸 = 기준 항로 위 같은 간격, 연결선 = 두 노드 사이 기준 항로를 따라가며 갈래 자리를 부드럽게 옮긴다.
+    /** 분기 항로 (궤도 다발): 기준 항로 = 천체 사이를 완만하게 누비는 곡선, 칸 = 진행축 위 같은 간격, 갈래 = 기준 항로의 법선으로 LANE 씩.
+     *  연결선 = 원호 하나: 갈라지는 노드에서는 기준 항로 방향으로 나가 왼쪽 · 가운데 (곧게) · 오른쪽으로 휘고, 합쳐지는 노드로는 기준 항로 방향으로 들어온다.
      *  지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 흐리게. 지금 고를 수 있는 노드는 누르면 고른다 (main 의 노드 고르기와 같다) */
     function orbitBranch() {
-      const rows = run.map, L = run.links!, R = rows.length, LANE = 64; // 갈래 사이: 현재 노드 조준 괄호가 옆 갈래 노드에 닿지 않게
-      const st0 = L2W(BOD[0].u - BOD[0].r, 0);
-      let d = `M${st0[0]} ${st0[1]}`;
-      for (const b of BOD) { const e = L2W(b.u + b.r, 0); d += ` A${b.r} ${b.r} 0 0 ${b.half === 'lo' ? 0 : 1} ${e[0]} ${e[1]}`; }
-      const base = el('path', { d, fill: 'none', stroke: C.line, 'stroke-width': .8, 'stroke-dasharray': '1 6' }, world) as SVGGeometryElement; // 기준 궤도 (흐린 안내선)
-      const total = base.getTotalLength(), sRow = (i: number) => (total * i) / (R - 1);
-      const dOf = (i: number, j: number) => (j - (rows[i].length - 1) / 2) * LANE;
-      const at = (sv: number, dl: number) => {
-        const s0 = Math.max(0, Math.min(total, sv)), a = base.getPointAtLength(Math.max(0, s0 - 1)), b = base.getPointAtLength(Math.min(total, s0 + 1)), p = base.getPointAtLength(s0);
-        const tx = b.x - a.x, ty = b.y - a.y, n = Math.hypot(tx, ty) || 1;
-        return [p.x - (ty / n) * dl, p.y + (tx / n) * dl];
+      const rows = run.map, L = run.links!, R = rows.length;
+      const WP = BOD.map((b) => [b.u, (b.half === 'lo' ? 1 : -1) * AW]);
+      const vs = (u: number) => {
+        if (u <= WP[0][0]) return WP[0][1];
+        for (let k = 0; k < WP.length - 1; k++) if (u <= WP[k + 1][0]) { const t = (u - WP[k][0]) / (WP[k + 1][0] - WP[k][0]); return WP[k][1] + (WP[k + 1][1] - WP[k][1]) * (1 - Math.cos(Math.PI * t)) / 2; }
+        return WP[WP.length - 1][1];
       };
-      const nodeAt = (i: number, j: number) => at(sRow(i), dOf(i, j));
-      const smooth = (t: number) => t * t * (3 - 2 * t);
-      // 갈래 안내: 세 갈래 · 두 갈래 구간에서 갈래 자리를 따라 흐린 궤도
-      for (let i = 0; i < R - 1; i++) if (rows[i].length > 1 && rows[i + 1].length === rows[i].length) rows[i].forEach((_, j) => {
-        const pts: number[][] = []; for (let k = 0; k <= 12; k++) pts.push(at(sRow(i) + ((sRow(i + 1) - sRow(i)) * k) / 12, dOf(i, j)));
-        el('polyline', { points: pts.map((q) => q.map((v) => v.toFixed(1)).join(',')).join(' '), fill: 'none', stroke: C.line, 'stroke-width': .7 }, world);
-      });
-      // 연결선 (기준 항로를 따라 갈래 자리를 옮기는 곡선)
+      const u0 = BOD[0].u - BOD[0].r, uRow = (i: number) => u0 + ((U - u0) * i) / (R - 1);
+      const tan = (u: number) => { const a = L2W(u - 1, vs(u - 1)), b = L2W(u + 1, vs(u + 1)), n = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1; return [(b[0] - a[0]) / n, (b[1] - a[1]) / n]; };
+      const dOf = (i: number, j: number) => (j - (rows[i].length - 1) / 2) * LANE;
+      const nodeAt = (i: number, j: number) => { const u = uRow(i), [x, y] = L2W(u, vs(u)), [tx, ty] = tan(u), dl = dOf(i, j); return [x - ty * dl, y + tx * dl]; };
+      { const pts: number[][] = []; for (let u = u0; u <= U; u += 12) pts.push(L2W(u, vs(u))); el('polyline', { points: pts.map((q) => q.map((v) => v.toFixed(1)).join(',')).join(' '), fill: 'none', stroke: C.line, 'stroke-width': .8, 'stroke-dasharray': '1 6' }, world); } // 기준 항로 (흐린 안내선)
+      /** A 에서 T 방향으로 나가 B 에 닿는 원호 (점 29개) */
+      const arc = (A: number[], B: number[], T: number[]) => {
+        const cx = B[0] - A[0], cy = B[1] - A[1], ph = Math.atan2(T[0] * cy - T[1] * cx, T[0] * cx + T[1] * cy), out: number[][] = [];
+        if (Math.abs(ph) < 1e-3) { for (let q = 0; q <= 28; q++) out.push([A[0] + (cx * q) / 28, A[1] + (cy * q) / 28]); return out; }
+        const r = Math.hypot(cx, cy) / (2 * Math.sin(ph)), O2 = [A[0] - T[1] * r, A[1] + T[0] * r], v0 = [A[0] - O2[0], A[1] - O2[1]];
+        for (let q = 0; q <= 28; q++) { const th = (2 * ph * q) / 28, c = Math.cos(th), sn = Math.sin(th); out.push([O2[0] + v0[0] * c - v0[1] * sn, O2[1] + v0[0] * sn + v0[1] * c]); }
+        return out;
+      };
+      // 연결선: 갈라지는 노드 (자식 2개 이상) 는 나가는 방향을, 합쳐지는 노드 (부모 2개 이상) 는 들어오는 방향을 기준 항로에 맞춘다
       const edgeLayer = el('g', {}, world), beaconLayer = el('g', {}, world), nodeLayer = el('g', {}, world);
       type Edge = { i: number; j: number; k: number; pts: number[][]; e: SVGElement; mid: number[] };
       const edges: Edge[] = [];
-      for (let i = 0; i < R - 1; i++) rows[i].forEach((_, j) => (L[i]?.[j] || []).forEach((k) => {
-        const pts: number[][] = [], da = dOf(i, j), db = dOf(i + 1, k);
-        for (let q = 0; q <= 28; q++) { const t = q / 28; pts.push(at(sRow(i) + (sRow(i + 1) - sRow(i)) * t, da + (db - da) * smooth(t))); }
+      const parents = (i: number, k: number) => rows[i].filter((_, j) => (L[i]?.[j] || []).includes(k)).length;
+      for (let i = 0; i < R - 1; i++) rows[i].forEach((_, j) => (L[i]?.[j] || []).forEach((k, _n, kids) => {
+        const A = nodeAt(i, j), B = nodeAt(i + 1, k), tb = tan(uRow(i + 1));
+        const pts = kids.length < 2 && parents(i, k) >= 2 ? arc(B, A, [-tb[0], -tb[1]]).reverse() : arc(A, B, tan(uRow(i)));
         const e = el('polyline', { points: pts.map((q) => q.map((v) => v.toFixed(1)).join(',')).join(' '), fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, edgeLayer);
         edges.push({ i, j, k, pts, e, mid: pts[14] });
       }));
@@ -745,7 +750,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       const off = dragger((dx) => { uc = Math.max(-40, Math.min(U + 40, uc - dx / ax[0])); drawCam(); });
       return {
         name: '베르타–산노디스 물류망',
-        legend: [['궤도', '갈래 = 기준 항로의 평행 궤도 (천체를 넘으면 안팎이 바뀐다)'], ['연결선', '지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['NAV', '항로 표지 — 화물선이 지나면 복구'], ['천체', 'B-4 · TS-7 · A-117 · SN · RL-2'], ['CVY', '수송선단 (진행축 양쪽)'], ['DEBRIS β', '소행성대'], ['PSR', '산-노디스 펄서 (8년 주기)']],
+        legend: [['궤도', '갈림길 = 왼쪽 · 가운데 · 오른쪽으로 갈라지는 궤도'], ['연결선', '지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['NAV', '항로 표지 — 화물선이 지나면 복구'], ['천체', 'B-4 · TS-7 · A-117 · SN · RL-2'], ['CVY', '수송선단 (진행축 양쪽)'], ['DEBRIS β', '소행성대'], ['PSR', '산-노디스 펄서 (8년 주기)']],
         look(i: number) { const [x, y] = nodeAt(i, 0), u0 = uc, want = ucOf(x, y); tween(700, (k) => { uc = u0 + (want - u0) * k; drawCam(); }); },
         go() { const u0 = uc; homing = true; tween(600, (k) => { uc = u0 + (homeU - u0) * k; drawCam(); }, () => { homing = false; drawCam(); }); },
         update() { update(true); },
