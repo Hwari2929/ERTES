@@ -166,7 +166,7 @@ const app = {
   useK: null as null | { i: number; tg: R.UseTarget }, // 소모품 사용 확인 창
   ask: null as null | Ask, // 보관함 · 기물 옆 확인 팝업 (장비 조합 · 재구성 회로 · 분리 용제)
   nodePick: null as string | null, // 지도: 이번 칸에서 고른 노드 (진입 전)
-  goAfter: null as string | null, // 분기 항로: 갈림길에서 고른 노드 — 미뤄 둔 증강 · 보상 창을 다 닫으면 바로 들어간다 (routeHold)
+  goAfter: null as { t: NodeType; step: number; phase: number } | null, // 분기 항로: 갈림길에서 고른 노드 — 미뤄 둔 증강 · 보상 창을 다 닫으면 바로 들어간다 (routeHold). 그 칸에서만 유효
   bigUnit: null as string | null, // 기물 전체 상세 팝업 (대기실 · 편성 확대)
   preview: null as { defId: string; run: RunState; uid: string } | null, // 영입 전 기물 전체 상세 (카드의 최대화 단추): 런을 복제해 합류시킨 모습
   statPop: false, // 상세 보기: 전투 스탯 펼침 (패널 왼쪽)
@@ -3368,9 +3368,10 @@ function injectFx(uid: string, r0: number, x0: number, x1: number, r1: number) {
 
 /** 분기 항로: 갈림길 고르기가 증강 · 보상 창보다 먼저 — 지도에서 고를 노드가 2개 이상이면 증강 · 보상 · 알림 창을 미뤄 두고, 노드를 고르면 띄운다 (노드 자체의 창 = 보급 · 영입 · 사건 · 항로 회의 등은 그대로) */
 const HOLD_PENDING: Pending['t'][] = ['rankup', 'itemPick', 'turretPick', 'notice', 'global'];
+const goAfterOk = (run: RunState) => !!app.goAfter && app.goAfter.step === run.step && app.goAfter.phase === run.phase && !run.node && R.currentOptions(run).includes(app.goAfter.t);
 function routeHold(run: RunState): boolean {
   const p = run.pending[0];
-  if (!p || app.screen !== 'map' || !run.links || run.node || run.tutorial || app.goAfter || !HOLD_PENDING.includes(p.t)) return false;
+  if (!p || app.screen !== 'map' || !run.links || run.node || run.tutorial || goAfterOk(run) || !HOLD_PENDING.includes(p.t)) return false;
   if ((p.t === 'global' && p.rerolls !== undefined) || (p.t === 'notice' && p.end)) return false; // 항로 회의 · 캠페인 마지막 알림
   return R.currentOptions(run).length > 1;
 }
@@ -4292,6 +4293,8 @@ function render() {
   AB.ABOPT.coef = app.detail; // 상세 보기: 피해 · 회복을 계수로
   if (app.screen !== 'battle' && app.view) { app.view.destroy(); app.view = null; }
   const run = app.run;
+  if (app.goAfter && (!run || !goAfterOk(run))) app.goAfter = null; // 다른 칸 · 다른 런: 미뤄 둔 진입은 버린다
+  else if (run && app.goAfter && !run.pending.length && app.screen === 'map') { const g = app.goAfter.t; app.goAfter = null; queueMicrotask(() => act('enter', g)); } // 미뤄 둔 창을 다 닫음: 고른 노드로
   if (app.popOff && !(run && placingSel(run) && app.popOff === popKey(run))) app.popOff = ''; // 놓기가 끝나거나 다른 것을 고르면 닫아 둔 팝업 기록을 지운다
   if (run && app.screen === 'shop' && lastView.screen !== 'shop' && SHOP.onOpen(run)) // 상인 상점을 열 때 인사 (처음 · 다시 열 때). 처음 연 표시(met)는 바로 저장 (불러와도 재방문 인사)
     queueMicrotask(() => { if (app.run === run && !run.over) saveRun(run, run.lab ? LAB.LAB_SLOT : run.tutorial ? TUT_SLOT : run.campaign ? CAMP_SLOT : 'auto'); });
@@ -4334,7 +4337,7 @@ function render() {
   umCompactBind();
   detailHeadBind();
   RM.mountRouteMap(root.querySelector<HTMLElement>('.rmap-host'), app.screen === 'map' ? run : null, (el) => setTimeout(() => tlPop(el), 0), (o) => { const boss = o === 'boss' && run ? phaseBoss(run) : undefined; return `${boss ? `<b>${esc(boss.name)}</b><br>` : ''}${ic(esc(nodeHint(o)))}`; },
-    { get: () => { if (!run) return undefined; const o = R.currentOptions(run); return o.includes(app.nodePick as NodeType) ? (app.nodePick as NodeType) : o[0]; }, set: (t) => act('tl-pick', t), go: (t) => act('route-go', t) }); // 분기 항로: 고른 노드 · 지도에서 고르기 — 항로도 (리빈 · 물류망). 팝오버는 누름으로 다시 그린 뒤에 연다 (항로도 DOM 은 그대로 옮겨지므로 el 이 유지된다)
+    { get: () => { if (!run) return undefined; const o = R.currentOptions(run); return o.includes(app.nodePick as NodeType) ? (app.nodePick as NodeType) : o[0]; }, set: (t) => act('tl-pick', t), go: (t) => act('route-go', t), auto: () => !!app.run && app.screen === 'map' && (!app.run.pending.length || routeHold(app.run)) && !app.menu }); // 분기 항로: 고른 노드 · 지도에서 고르기 — 항로도 (리빈 · 물류망). 팝오버는 누름으로 다시 그린 뒤에 연다 (항로도 DOM 은 그대로 옮겨지므로 el 이 유지된다)
   // 창 내용은 첫 그리기에서 채워질 수 있으므로 (선택지 생성 등) 그린 뒤의 키를 기억한다
   lastView.modal = modalKeyOf();
   topHSync();
@@ -5720,7 +5723,8 @@ function act(a: string, v: string) {
     case 'field-info': if (run) run.pending.unshift({ t: 'field' }); break;
     case 'enter': { app.sqSel = null; // 새 조우: 고른 분대 풀기
       if (!run) return;
-      if (run.pending.length) { if (routeHold(run)) { app.goAfter = v; app.nodePick = v; render(); } return; } // 갈림길에서 고름: 미뤄 둔 창을 띄우고, 다 닫으면 들어간다
+      if (!run.tutorial && !run.node && !R.currentOptions(run).includes(v as NodeType)) { app.goAfter = null; return; } // 이 칸에서 갈 수 없는 노드
+      if (run.pending.length) { if (routeHold(run)) { app.goAfter = { t: v as NodeType, step: run.step, phase: run.phase }; app.nodePick = v; render(); } return; } // 갈림길에서 고름: 미뤄 둔 창을 띄우고, 다 닫으면 들어간다
       app.goAfter = null;
       if (run.tutorial && TUTORIAL_FLOW[run.tutorial.i]?.[0] === 'scene') return; // 튜토리얼: 장면이 먼저 (장면 뒤에 노드로 들어간다)
       if (run.tutorial) TUT.tutEnterNode(run, v as NodeType); else R.enterNode(run, v as NodeType);
@@ -5980,7 +5984,6 @@ function act(a: string, v: string) {
     case 'notice-ok': { const p = run?.pending.shift(); if (run && p?.t === 'notice' && p.end) { run.over = true; goPrepOrMap(); } persist(); break; } // 캠페인 마지막 알림을 닫으면 런 끝
     default: return;
   }
-  if (run && app.goAfter && !run.pending.length && app.screen === 'map' && !run.node) { const g = app.goAfter; app.goAfter = null; act('enter', g); return; } // 미뤄 둔 창을 다 닫음: 고른 노드로
   render();
 }
 

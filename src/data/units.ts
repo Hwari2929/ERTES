@@ -15,7 +15,7 @@ function merge(b: BaseUnit): UnitDef {
   const r = REWORK[b.id] || REWORK_F[b.id] || REWORK_G[b.id];
   if (!r) throw new Error(`리워크 정보 없음: ${b.id}`);
   const t = TUNE[b.id] || {};
-  const w = { ...r.weapon, mult: r.weapon.mult * (r.ctype === 'MARK' && b.id !== 'orca' ? MARK_BASIC : 1) * (t.w || 1) };
+  const w = { ...r.weapon, mult: r.weapon.mult * (r.ctype === 'MARK' ? MARK_BASIC : 1) * (t.w || 1) };
   const params = { ...b.skill.params };
   if (t.s) for (const k of TUNE_KEYS) if (params[k]) params[k] = Math.round(params[k] * t.s * 100) / 100;
   return {

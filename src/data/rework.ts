@@ -234,16 +234,16 @@ export const REWORK: Record<string, ReworkDef> = {
     },
   },
   orca: {
-    ctype: 'MARK', ttype: 'minor', faith: 'index', weapon: G('작살총', 'phys', 1.4, 3, 1.6, 1, 2),
+    ctype: 'SPEC', ttype: 'minor', faith: 'index', weapon: G('작살총', 'phys', 1.4, 3, 1.6, 1, 2),
     factions: ['PET'], traits: ['CHEF'],
     trait: {
-      name: '깜짝 마술', desc: `공격 · 기술이 맞으면 20% 확률로 무작위 적 하나를 0.6초 기절시킨다 (1초에 1회). 전투 스킬을 쓴 뒤 ${pct(ORCA_GLASS.p)} 고정 확률로 잔이 터져, 대상 주변 1칸 다른 아군에게도 스킬 효과를 ${pct(ORCA_GLASS.k)} 세기로 준다. [신속 후퇴] 암살형 적에게서 ${FAR_FLEE_R}칸까지 물러나며, 물러날 때마다 그 적에게 사격 위력 ${pct(ORCA_FLEE.k)} 물리 피해 + ${pct(ORCA_FLEE.p)} 고정 확률로 ${ORCA_FLEE.stun}초 기절.`,
+      name: '깜짝 마술', desc: `공격 · 기술이 맞으면 20% 확률로 무작위 적 하나를 0.6초 기절시킨다 (1초에 1회). 전투 스킬을 쓴 뒤 ${pct(ORCA_GLASS.p)} 고정 확률로 잔이 터져, 대상 주변 1칸 다른 아군에게도 스킬 효과를 ${pct(ORCA_GLASS.k)} 세기로 준다. [신속 후퇴] 암살형 적에게서 ${FAR_FLEE_R}칸까지 물러나며, 물러날 때마다 그 적에게 기술 위력 ${pct(ORCA_FLEE.k)} 물리 피해 + ${pct(ORCA_FLEE.p)} 고정 확률로 ${ORCA_FLEE.stun}초 기절.`,
       effect: { setup: (u) => { u.mem.fleeR = FAR_FLEE_R; }, hooks: {
         onFlee(b, u, hunters) {
           const t = hunters.find((e) => e.alive);
           if (!t) return;
           b.emit({ k: 'atk', from: u.id, to: t.id, elem: 'phys', ranged: true });
-          const r = b.dealDamage(u, t, b.S(u, 'shoot') * ORCA_FLEE.k, { elem: 'phys', tag: 'proc', kind: 'shoot', canMiss: true });
+          const r = b.dealDamage(u, t, b.S(u, 'tech') * ORCA_FLEE.k, { elem: 'phys', tag: 'proc', kind: 'shoot', canMiss: true });
           if (!r.miss && t.alive && b.rng.chance(ORCA_FLEE.p)) b.stun(u, t, ORCA_FLEE.stun);
         },
         onDeal(b, u, _t, r, o) {
@@ -1251,7 +1251,7 @@ void skillHit;
 
 // ───────────────────────── 밸런스 보정 (1000판 분석 반영)
 /** 명사수 기본 공격 계수 전반 상향 (지원형 오르카 제외) */
-export const MARK_BASIC = 1.35; // 명사수 기본 공격 계수 배율 (오르카 제외). 1.25 → 1.35 (+8%)
+export const MARK_BASIC = 1.35; // 명사수 기본 공격 계수 배율. 1.25 → 1.35 (+8%)
 /** 하위권 기물 보정: w = 기본 공격 계수 배율, s = 스킬 주 계수(피해 · 회복 · 보호막) 배율 */
 export const TUNE: Record<string, { w?: number; s?: number }> = {
   falcon: { w: 1.35, s: 1.3 }, west: { w: 1.3, s: 1.3 }, argon: { w: 1.3, s: 1.3 }, romani: { w: 1.1, s: 1.15 },
