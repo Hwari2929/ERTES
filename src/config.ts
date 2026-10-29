@@ -161,7 +161,26 @@ export const CFG = {
     bridgeTaken: 0.15,
     /** 광석 운반차 (광석 운반차 선로): 첫 통과 first 초, 이후 period 초마다 (방향은 번갈아) · warn 초 전부터 선로 경고 · 선로를 지나는 데 sweep 초 · 운반차 길이 len 칸 ·
      *  선로 위 기물 (아군 · 적 · 구조물): 최대 체력의 dmg 만큼 물리 피해 + 선로 밖으로 밀려남 + 기절 stun 초. 지나는 동안 운반차가 선 칸은 직선 사격을 막는다 */
-    cart: { first: 6, period: 10, warn: 2, sweep: 0.6, len: 2, dmg: 0.12, stun: 0.5 } },
+    cart: { first: 6, period: 10, warn: 2, sweep: 0.6, len: 2, dmg: 0.12, stun: 0.5 },
+    /** 스프링클러 (스프링클러 잔디밭): 첫 살수 early · late 초 (편성 화면에서 고름), 이후 period 초마다 전장 전체 은신 해제 + 주변 r칸 slow 초 둔화 (공격 · 이동 속도 −slowAmt) */
+    sprinkler: { early: 2, late: 6, period: 8, r: 1, slow: 1, slowAmt: 0.3 },
+    /** 주차된 차 · 봉쇄 바리케이드 (부서지는 엄폐물): 체력 = 소모품 바리케이드 체력 ÷ hpDiv (페이즈 배율). 차는 부서지고 delay 초 뒤 주변 r칸에 최대 체력 dmg 몫 화학 피해 (아군 · 적 · 구조물 모두) */
+    car: { hpDiv: 2, delay: 1, r: 1, dmg: 0.15 },
+    barricade: { hpDiv: 3 },
+    /** 홀로그램 광고판: 켜짐 on 초 (직선 사격 막음) → 꺼짐 off 초, 켜진 채 시작 */
+    holo: { on: 6, off: 4 },
+    /** 전력선: first 초에 첫 전류, 이후 period 초마다 live 초 동안 (warn 초 전부터 예고). 위에 선 기물 (아군 · 적 · 구조물 피해만): 최대 체력 dmg 몫 전기 피해 + 감전 stun 초, 기계 적은 광폭 rampage 초 */
+    power: { first: 10, period: 12, live: 2, warn: 2, dmg: 0.08, stun: 0.5, rampage: 4 },
+    /** 회수 장치: 주변 r칸에서 쓰러진 아군은 망령으로 일어나지 않고, 주변 r칸의 영혼 적은 1초마다 최대 체력 soul 몫 피해 */
+    recovery: { r: 1, soul: 0.02 },
+    /** 단상: 위에 선 원거리 기물 (기본 사거리 2 이상) 사거리 +range */
+    dais: { range: 1 },
+    /** 레이저 장막: period 초마다 두 줄이 엇갈려 켜진다 (켜진 줄 = 통행 불가 · 탄은 넘어감) */
+    laser: { period: 6 },
+    /** 회전 금고문: period 초마다 틈이 한 칸씩 오른쪽으로 (끝에서 처음으로) */
+    vault: { period: 6 },
+    /** 금고 칸: 아군이 그 위에 합쳐 need 초 서 있으면 전투 승리 때 크레딧 +credits */
+    vaultCell: { need: 5, credits: 2 } },
   rarePhase: 3, // 아문센 · 데미우르고스가 영입 후보에 나오는 페이즈 (배치 제한은 없음)
   /** 최고의 친구 소환물 스탯 상속률 (build.ts spawnSummons): 시너지가 꺼져 있을 때의 기본값 · 추가로 불린 소환물(2번째부터)의 배율 · 상한 */
   bond: { base: 0.5, extra: 0.8, cap: 6 },

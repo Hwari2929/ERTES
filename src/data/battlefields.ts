@@ -3,6 +3,7 @@ import { type Battle, type CUnit, FIELD_RULES, type FieldRules } from '../engine
 import type { Effect } from '../engine/effects';
 import { inc, red } from '../engine/effects';
 import type { Elem, SynergyId } from '../types';
+import { nearRecovery } from '../engine/mapfx';
 import { ENEMY_RT, gasBlast, petRock, rampage } from './enemies';
 import { fear, skillHit } from './kit';
 
@@ -198,6 +199,7 @@ export const FIELDS: FieldDef[] = [
           if (n) { n.mem.flag = 1; n.mem.flagPassed = 1; b.emit({ k: 'status', id: n.id, name: '깃발 계승' }); }
         }
         if (dead.side !== 0 || dead.isSummon || dead.mem.inert) return;
+        if (nearRecovery(b, dead)) { b.emit({ k: 'status', id: dead.id, name: '안식 접수' }); return; } // 회수 장치 주변 (회수 장치 구역)
         b.emit({ k: 'status', id: dead.id, name: '서사 감염' });
         b.later(3, () => { const g = ENEMY_RT.ghost?.(b, dead); if (g) b.emit({ k: 'mark', id: g.id, name: '망령', style: 'revive' }); }, 1);
       },

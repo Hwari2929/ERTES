@@ -660,6 +660,10 @@ export class Battle {
   terrainVer = 0;
   /** 칸별 받는 피해 증가 몫 (연결교 등, 지형이 정한다), 없으면 null */
   cellTaken: Float32Array | null = null;
+  /** 칸별 원거리 기물 사거리 증가 (단상), 없으면 null */
+  cellRange: Uint8Array | null = null;
+  /** 지형 구조물 (주차된 차 등)이 부서질 때 (engine/mapfx.ts) */
+  onWallBreak: ((b: Battle, u: CUnit) => void) | null = null;
   /** 칸 구조 (지형 틀 · 아군 진형 줄): buildBattle 이 붙인다 */
   geo?: Geo;
   /** 탄도를 막는 칸 (지형 · 구조물) 기준 구역 번호. 구조물이 부서지거나 지형이 바뀌면 다시 계산 */
@@ -783,6 +787,7 @@ export class Battle {
       v = Math.max(0, v);
     }
     if (k === 'moveSpd') v = Math.max(0.2, v);
+    if (k === 'range' && this.cellRange && u.st.range >= 2 && this.inRect(u.x, u.y)) v += this.cellRange[u.y * this.w + u.x]; // 단상 위 원거리 기물
     return v;
   }
   has(u: CUnit, type: StatusType, key?: string) { return u.statuses.some((s) => s.type === type && (!key || s.key === key)); }
@@ -1484,7 +1489,7 @@ export class Battle {
     u.hp = 0;
     if (u.mem.charmTo) u.mem.charmTo = 0; // 매혹 중 쓰러지면 원래 편으로 집계
     this.emit({ k: 'die', id: u.id, by: by?.id });
-    if (u.mem.neutral) { if (u.mem.wall) this.wallsChanged(); return; } // 중립 구조물: 처치 · 사망 훅 없음
+    if (u.mem.neutral) { if (u.mem.wall) { this.wallsChanged(); this.onWallBreak?.(this, u); } return; } // 중립 구조물: 처치 · 사망 훅 없음 (지형 구조물은 부서질 때 onWallBreak)
     // 광폭으로 같은 편을 쓰러뜨린 것은 그 기물의 처치로 치지 않는다 (아군 사망은 그대로 패배 피해에 포함)
     const foe = !!by && this.sideOf(by) !== u.side;
     if (u.side === 1 && by) this.counters.kills++;

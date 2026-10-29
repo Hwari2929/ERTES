@@ -16,6 +16,7 @@ import { enableDivine, ENEMY_PSI, FAITH_DEF, sigmundTarget } from '../data/rewor
 import { DEFAULT_RELIC } from '../data/relics';
 import { DEV, deviceCells, type Device, feastChain, feastHp, mineDmg, netCells, scopeR, strikeDmg, wallCells, wallHp } from '../data/devices';
 import { mapOf, TERRAIN, type TCell, terrainOf } from '../data/maps';
+import { applyMapFx } from './mapfx';
 import { ULTS } from '../data/ults';
 import { SUMMON_RT, type SummonDef } from '../data/unitkit';
 import type { SkillDef } from './combat';
@@ -45,7 +46,9 @@ export function geoOf(n: number, map?: string, opt?: MapOpt): Geo {
 export const mapOptOf = (enc: Encounter | null | undefined): MapOpt | undefined => {
   if (!enc) return undefined;
   const cart = mapOf(enc.map).cartDir ? cartDirOf(enc) : undefined;
-  return enc.bridgeFold || (enc.crane && Object.keys(enc.crane).length) || cart ? { ...(enc.bridgeFold ? { fold: true } : {}), ...(enc.crane ? { crane: { ...enc.crane } } : {}), ...(cart ? { cart } : {}) } : undefined;
+  const o: MapOpt = { ...(enc.bridgeFold ? { fold: true } : {}), ...(enc.crane && Object.keys(enc.crane).length ? { crane: { ...enc.crane } } : {}), ...(cart ? { cart } : {}),
+    ...(enc.sprLate ? { sprLate: true as const } : {}), ...(enc.laserB ? { laserB: true as const } : {}), ...(enc.breaker !== undefined ? { breaker: enc.breaker } : {}) };
+  return Object.keys(o).length ? o : undefined;
 };
 /** 광석 운반차 첫 방향: 조우마다 무작위 (조우 seed 를 섞어서, 런 난수는 건드리지 않는다) */
 export const cartDirOf = (enc: Encounter): 1 | -1 => ((Math.imul(enc.seed | 0, 0x9e3779b1) >>> 16) & 1 ? -1 : 1);
@@ -214,7 +217,7 @@ export function applyCategory(c: CUnit) {
   if (c.category === 'struct') { c.st.armor *= 1.3; c.immobile = true; }
 }
 
-function blankUnit(side: 0 | 1): CUnit {
+export function blankUnit(side: 0 | 1): CUnit {
   return {
     id: 0, side, defId: '', name: '', sprite: 'soldier', palette: [], x: 0, y: 0, px: 0, py: 0, moveT: 0, moveDur: 0,
     hp: 1, shield: 0, st: emptyStats(), atk: { type: 'strike', elem: 'phys', interval: 1 }, atkTimer: 0, cd: 0, cdMax: 0,
@@ -996,12 +999,14 @@ export function terrainPathOk(g: Geo, land = terrainCells(g)): boolean {
 export function applyMap(b: Battle, g: Geo, gateOpen = false) { // gateOpen: 수문이 열린 채 시작 (편성 화면에서 정함) · 연결교 접기 · 크레인은 g.opt (terrainOf)
   const m = mapOf(g.map), cells = terrainOf(g);
   for (const c of cells) {
+    if (TERRAIN[c.k].breakable) continue; // 차 · 바리케이드: 지형이 아니라 구조물 (applyMapFx)
     b.setTerrain(c.x, c.y, c.bits ?? TERRAIN[c.k].bits);
     const tk = TERRAIN[c.k].taken;
     if (tk && !((c.bits ?? 0) & 1)) (b.cellTaken ||= new Float32Array(b.w * b.h))[c.y * b.w + c.x] = tk; // 연결교: 위에 선 기물이 받는 피해 +
   }
   const rail = cells.filter((c) => c.k === 'rail');
   if (rail.length && m.cartDir) startCart(b, rail, g.opt?.cart ?? m.cartDir);
+  applyMapFx(b, cells, { sprLate: g.opt?.sprLate, laserB: g.opt?.laserB });
   const gates = cells.filter((c) => c.k === 'gate');
   if (!gates.length || !m.gateCycle) return;
   const [shut, open] = m.gateCycle;

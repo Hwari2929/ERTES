@@ -12,7 +12,9 @@ import { SCHOOL_BY_ID, type SchoolId } from '../data/schools';
 import { cantripView } from '../data/psiinfo';
 import { lineIcon } from './synicons';
 import { SYN_BY_ID } from '../data/synergies';
-import { terrainGroups } from '../data/maps';
+import { type TerrainGroup, terrainGroups } from '../data/maps';
+import { dynPending } from '../engine/mapfx';
+import { dynLive } from './terrainlive';
 import { fromScr, toScr } from '../engine/build';
 import { GLOSS } from '../data/abiltext';
 import { FeedList, type FeedItem } from './bfeed';
@@ -48,6 +50,7 @@ export interface ActLine { t: number; key: string; text: string; v?: number; ids
 const T_MELEE = 0.08; // 근접: 기울기 정점에서 적중
 const T_SKILL = 0.12; // 스킬명 → 효과
 const T_SUPPORT = 0.22; // 회복 · 보호막 표식 이동
+const DYN_CD = new Set(['holo', 'laser', 'vault', 'power', 'sprinkler', 'vaultcell']); // 다음 변화 배지를 다는 지형 (ui/terrainlive.ts)
 const GATE_SOON = 3; // 수문 전환 배지가 깜빡이기 시작하는 남은 초
 /** 효과 색: 아군이 준 피해 흰색 · 적이 준 피해 빨강 (속성색은 숫자에만) */
 const sideColor = (side: 0 | 1 | undefined) => (side === 1 ? 'var(--bad)' : '#f2f4f8');
@@ -511,6 +514,17 @@ export class BattleView {
       this.cart = { cd, tok, xs: grp.cells.map((c) => c.x).sort((p, q) => p - q), y: grp.cells[0].y };
       break;
     }
+    // 바뀌는 지형 (홀로그램 · 레이저 · 금고문 · 전력선 · 스프링클러 · 금고 칸): 덩어리 가운데 칸 위쪽에 다음 변화 배지 (ui/terrainlive.ts, sync 에서 갱신)
+    if (b.geo) for (const grp of terrainGroups(b.geo)) {
+      if (!DYN_CD.has(grp.k) || grp.off || !dynLive(b, b.geo, grp)) continue;
+      const sc = grp.cells.map((c) => this.sc(c.x, c.y)), cx = sc.reduce((a, c) => a + c.x, 0) / sc.length, cy = Math.min(...sc.map((c) => c.y));
+      const el = document.createElement('div');
+      el.className = `gate-cd dyn-cd cd-${grp.k}`;
+      Object.assign(el.style, { left: `${(cx / this.W) * 100}%`, top: `${(cy / this.H) * 100}%`, width: `${100 / this.W}%`, height: `${100 / this.H}%` });
+      el.innerHTML = '<span><small></small><b></b></span>';
+      board.appendChild(el);
+      this.dynCd.push({ el, grp, sig: '' });
+    }
     this.sync();
     // 피니쉬 표시: 콤보 무기의 피니쉬 여부는 기본 공격 이벤트가 나가는 그 순간의 콤보 상태로만 알 수 있다 (이벤트에 없는 정보, 엔진은 그대로)
     const emit = b.emit.bind(b);
@@ -618,7 +632,7 @@ export class BattleView {
     el.style.height = `${100 / this.H}%`;
     el.dataset.a = 'bsel';
     el.dataset.v = String(u.id);
-    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div>${dev ? `<span class="dev-face dev-${dev}">${lineIcon(`k.${dev === 'wall' ? 'barricade' : dev}`, 'li')}</span>` : `<img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}">`}<div class="cd"><i></i></div>${u.side === 0 && u.reason !== null ? `<div class="gx${schoolOfC(u) ? ` sc sc-${barOf(schoolOfC(u)!)}` : ''}"><i></i></div>` : ''}${schoolOfC(u) ? `<div class="cpi" style="--sc:${SCHOOL_BY_ID[schoolOfC(u) as SchoolId]?.color || '#b07cff'}" title="비술 준비"><i class="cpi-ring"></i>${lineIcon(`s.${schoolOfC(u)}`, 'li')}</div>` : ''}${turret ? `<span class="tk-cat cat-mech" title="기계 · 구조물">${lineIcon('k.mech', 'li')}</span>` : ''}<div class="sti sts deb"></div><div class="stc"></div><div class="stk sts buf"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
+    const inner = `<div class="bars"><i class="loss"></i><i class="hp"></i><i class="sh"></i></div>${dev ? `<span class="dev-face dev-${dev}${u.defId === 'map_car' ? ' dev-car' : ''}">${lineIcon(u.defId === 'map_car' ? 'tr.car' : `k.${dev === 'wall' ? 'barricade' : dev}`, 'li')}</span>` : `<img alt="" class="${card ? 'pt' : ''}" src="${iconURL(u)}">`}<div class="cd"><i></i></div>${u.side === 0 && u.reason !== null ? `<div class="gx${schoolOfC(u) ? ` sc sc-${barOf(schoolOfC(u)!)}` : ''}"><i></i></div>` : ''}${schoolOfC(u) ? `<div class="cpi" style="--sc:${SCHOOL_BY_ID[schoolOfC(u) as SchoolId]?.color || '#b07cff'}" title="비술 준비"><i class="cpi-ring"></i>${lineIcon(`s.${schoolOfC(u)}`, 'li')}</div>` : ''}${turret ? `<span class="tk-cat cat-mech" title="기계 · 구조물">${lineIcon('k.mech', 'li')}</span>` : ''}<div class="sti sts deb"></div><div class="stc"></div><div class="stk sts buf"></div><div class="rl" hidden title="재장전 중"><i class="rl-ring"></i><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M5 .8C3.4 2.2 2.8 3.8 2.8 5.6V7h4.4V5.6C7.2 3.8 6.6 2.2 5 .8Z"/><rect x="2.8" y="7.8" width="4.4" height="6.2" rx=".5"/><rect x="2.2" y="14.4" width="5.6" height="1.2" rx=".4"/></svg></div>`;
     el.innerHTML = card ? `<div class="tk-card">${inner}</div>` : inner;
     this.board.appendChild(el);
     const q = <T extends HTMLElement>(s: string) => el.querySelector<T>(s)!;
@@ -658,15 +672,46 @@ export class BattleView {
   private terrainSig = '';
   private gateCd: HTMLElement[] = [];
   private gateCdSig = '';
+  private dynCd: { el: HTMLElement; grp: TerrainGroup; sig: string }[] = [];
+  private powSig = '';
+  /** 바뀌는 지형 배지: 다음 변화 · 남은 초 (금고 칸은 쌓인 초). 곧 일어나면 깜빡인다 (docs/UI.md 10) · 위험한 변화 (전류 · 살수 · 레이저 켜짐)는 경고색 */
+  private syncDynCd() {
+    const b = this.b;
+    for (const d of this.dynCd) {
+      const v = dynLive(b, b.geo!, d.grp);
+      if (!v || v.key === d.sig) continue;
+      d.sig = v.key;
+      const harm = d.grp.k === 'power' || d.grp.k === 'sprinkler' || (d.grp.k === 'laser' && v.cd?.what === '켜짐');
+      d.el.classList.toggle('to-shut', harm);
+      d.el.classList.toggle('to-open', !harm);
+      d.el.classList.toggle('soon', v.soon);
+      d.el.querySelector('small')!.textContent = v.cd ? v.cd.what : d.grp.k === 'vaultcell' ? '반출' : v.st;
+      d.el.querySelector('b')!.textContent = v.cd ? `${v.cd.left}초` : v.st;
+      d.el.title = v.cd ? `${v.cd.left}초 뒤 ${v.cd.what}` : v.st;
+    }
+    // 전력선 칸: 전류가 흐르는 동안 live · 예고 시간 warn (시간에 따른 위험)
+    if (b.mem.powNext === undefined) return;
+    const live = !!b.mem.powLive, warn = !live && b.mem.powNext - b.t <= CFG.maps.power.warn, sig = `${live ? 1 : 0}${warn ? 1 : 0}`;
+    if (sig === this.powSig) return;
+    this.powSig = sig;
+    this.board.querySelectorAll<HTMLElement>('.cells .cell.tr-power:not(.off)').forEach((el) => { el.classList.toggle('live', live); el.classList.toggle('cart-warn', warn); });
+  }
   /** 지형이 바뀌면 (수문 열림 · 닫힘) 칸 색을 다시 칠한다: 수문 칸은 지형 비트가 0 이면 열림, 닫힘 주기인데 열려 있으면 폐쇄 대기 (기물이 서 있는 칸) */
   private syncTerrain() {
     const b = this.b;
     if (!b.terrain) return;
-    const sig = `${b.terrainVer}:${b.mem.gateGen || 0}`;
+    const sig = `${b.terrainVer}:${b.mem.gateGen || 0}:${dynPending(b).size}`;
     if (sig === this.terrainSig) return;
     this.terrainSig = sig;
     const cells = this.board.querySelectorAll<HTMLElement>('.cells .cell');
+    const pend = dynPending(b);
     cells.forEach((el, i) => {
+      if (el.classList.contains('tr-holo') || el.classList.contains('tr-laser') || el.classList.contains('tr-vault')) { // 바뀌는 지형: 막는 비트가 없으면 열림 (꺼짐) · 닫힐 차례인데 기물이 서 있으면 폐쇄 대기
+        const c = fromScr(b.geo, i % this.W, Math.floor(i / this.W)), idx = c.y * b.w + c.x;
+        el.classList.toggle('open', !b.terrain![idx] && !pend.has(idx));
+        el.classList.toggle('pending', pend.has(idx));
+        return;
+      }
       if (!el.classList.contains('tr-gate')) return;
       const c = fromScr(b.geo, i % this.W, Math.floor(i / this.W)); // 칸은 화면 순서로 깔려 있다 (main.ts battleCells)
       const open = !b.terrain![c.y * b.w + c.x];
@@ -719,6 +764,7 @@ export class BattleView {
     this.syncTerrain();
     this.syncGateCd();
     this.syncCart();
+    this.syncDynCd();
     for (const [tr, el] of this.traps) if (!this.b.traps.includes(tr as Battle['traps'][number])) { el.remove(); this.traps.delete(tr); }
     const now = this.vt;
     const dvt = Math.max(0, now - this.syncVt); // 표시 시간 변화량 (정지 중 0, 주사율과 무관)

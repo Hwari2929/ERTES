@@ -2,6 +2,7 @@
 import { Battle, T_NOSHOT, T_NOWALK } from '../src/engine/combat';
 import { applyMap, buildBattle, cartDirOf, buildEnemy, buildWall, encGeo, gateGroupState, gateState, geoOf, terrainPathOk, zoneAt } from '../src/engine/build';
 import { crateHomes, MAPS, mapOf, rectCells, TERRAIN, terrainOf } from '../src/data/maps';
+import { nearRecovery } from '../src/engine/mapfx';
 import * as R from '../src/engine/run';
 import { UNITS } from '../src/data/units';
 import { CFG } from '../src/config';
@@ -290,7 +291,83 @@ for (const n of [6, 7, 8]) {
 // 전투 중 조작 없음: 편성 화면의 지형 선택 함수는 조우(run.node.enc)만 바꾸고, 전투 화면은 지형 단추를 받지 않는다 (main.ts 허용 목록)
 {
   const src = readFileSync('src/main.ts', 'utf8'), allow = /app\.screen === 'battle' && !\[([^\]]*)\]\.includes\(a\)/.exec(src)?.[1] || '';
-  ok(!!allow && !/crane|bridge|gate-start/.test(allow), '전투 중 허용 동작에 크레인 · 연결교 · 수문 단추 없음');
+  ok(!!allow && !/crane|bridge|gate-start|map-opt/.test(allow), '전투 중 허용 동작에 크레인 · 연결교 · 수문 · 지형 선택 단추 없음');
+}
+// 카운티폴 · 라이덴 · 크레타 · 히페리온 기믹 (engine/mapfx.ts): 빈 전투에 지형만 깔고 시간을 흘려 본다
+{
+  const bat = (id: string, opt?: Parameters<typeof geoOf>[2]) => { const g = geoOf(7, id, opt), b = new Battle(g.w, g.h, new Rng(2), { phase: 1, credits: 0 }); b.geo = g; applyMap(b, g); return { g, b }; };
+  /** 전투가 끝나지 않게 양쪽 구석에 움직이지 않는 기물 하나씩 */
+  const hold = (b: Battle) => { for (const [side, y] of [[0, b.geo!.ay1], [1, 1]] as const) { const u = mk(b, melee, side, b.geo!.x0 + b.geo!.n - 1, y); u.immobile = true; u.noAttack = true; } };
+  const run = (b: Battle, sec: number) => { for (let t = 0; t < sec; t += CFG.tick) { b.step(CFG.tick); b.events.length = 0; } };
+  const M = CFG.maps;
+  { // 부서지는 구조물: 차 · 바리케이드는 지형이 아니라 구조물. 차 한 칸이 부서지면 한 대가 통째로 무너지고 delay 초 뒤 주변 폭발
+    const { b } = bat('cf_garage'), cars = b.units.filter((u) => u.defId === 'map_car');
+    ok(cars.length >= 4 && cars.every((u) => !b.terrainAt(u.x, u.y)), `차고 진입로: 주차된 차 ${cars.length}칸이 구조물로 (지형 비트 없음)`);
+    const v = mk(b, melee, 0, cars[0].x + 1, cars[0].y); v.st.maxHp = v.hp = 1000;
+    b.start(); b.kill(cars[0], null);
+    const twin = cars.filter((u) => u.mem.car === cars[0].mem.car);
+    ok(twin.every((u) => !u.alive), '차 한 칸이 부서지면 같은 차의 칸이 모두 무너진다');
+    run(b, M.car.delay + 0.2);
+    ok(v.hp < 1000, `폭발: 주변 기물이 피해 (${Math.round(1000 - v.hp)})`);
+    const { b: b2 } = bat('rd_block');
+    ok(b2.units.filter((u) => u.defId === 'map_barricade').length >= 5, '봉쇄 바리케이드: 구조물로 깔린다');
+  }
+  { // 홀로그램: 켜진 채 (사격만 막음) → on 초 뒤 꺼짐
+    const { b } = bat('rd_holo'), c = terrainOf(geoOf(7, 'rd_holo')).find((x) => x.k === 'holo')!;
+    hold(b); b.start();
+    ok(b.terrainAt(c.x, c.y) === T_NOSHOT, '홀로그램 광고판: 처음엔 사격만 막는다');
+    run(b, M.holo.on + 0.1);
+    ok(b.terrainAt(c.x, c.y) === 0, `홀로그램 광고판: ${M.holo.on}초 뒤 꺼짐`);
+  }
+  { // 레이저: 두 줄 엇갈림 · 아래 줄 먼저 (laserB)
+    for (const laserB of [false, true]) {
+      const { g, b } = bat('hy_laser', laserB ? { laserB: true } : undefined), cs = terrainOf(g).filter((x) => x.k === 'laser');
+      const ys = [...new Set(cs.map((c) => c.y))].sort((p, q) => p - q), top = cs.find((c) => c.y === ys[0])!, bot = cs.find((c) => c.y === ys[1])!;
+      hold(b); b.start();
+      const s0 = [b.terrainAt(top.x, top.y), b.terrainAt(bot.x, bot.y)];
+      run(b, M.laser.period + 0.1);
+      const s1 = [b.terrainAt(top.x, top.y), b.terrainAt(bot.x, bot.y)];
+      ok(s0.join() === (laserB ? '0,1' : '1,0') && s1.join() === (laserB ? '1,0' : '0,1'), `레이저 장막 (${laserB ? '아래' : '위'} 줄 먼저): ${s0} → ${s1}`);
+    }
+  }
+  { // 회전 금고문: 틈이 한 칸 오른쪽으로 · 기물이 선 칸은 비울 때까지 열림
+    const { b } = bat('hy_vault'), ring = b.geo!.n, y = terrainOf(b.geo!).find((c) => c.k === 'vault')!.y;
+    const open = () => [...Array(ring).keys()].filter((i) => !b.terrainAt(b.geo!.x0 + i, y));
+    hold(b); b.start();
+    const o0 = open(), stand = mk(b, melee, 0, b.geo!.x0 + o0[0], y); stand.immobile = true;
+    run(b, M.vault.period + 0.1);
+    const o1 = open();
+    ok(o1.includes(o0[0]) && o0.every((i) => o1.includes((i + 1) % ring)), `회전 금고문: 틈 ${o0} → ${o1} (기물이 선 칸은 열린 채)`);
+  }
+  { // 전력선: 차단기로 끈 쪽은 전류 없음, 켜진 쪽 위 기물은 피해 + 기절
+    const { g, b } = bat('rd_shrine', { breaker: 0 }), cs = terrainOf(g).filter((c) => c.k === 'power');
+    const offC = cs.find((c) => c.off)!, onC = cs.find((c) => !c.off)!;
+    const a = mk(b, melee, 0, offC.x, offC.y), e = mk(b, melee, 1, onC.x, onC.y);
+    for (const u of [a, e]) { u.immobile = true; u.noAttack = true; u.st.maxHp = u.hp = 1000; }
+    b.start(); run(b, M.power.first + 0.3);
+    ok(a.hp === 1000 && e.hp < 1000, `전력선: 끈 쪽 피해 없음 · 켜진 쪽 피해 ${Math.round(1000 - e.hp)}`);
+  }
+  { // 스프링클러: 첫 살수에 전장 전체 은신 해제
+    const { b } = bat('cf_lawn', { sprLate: true }), u = mk(b, melee, 1, 1, b.geo!.ay1);
+    u.immobile = true; u.noAttack = true;
+    b.applyStatus(u, u, { type: 'buff', key: 'stealth', dur: 30 });
+    b.start(); run(b, M.sprinkler.early + 0.2);
+    ok(b.hidden(u), '스프링클러 (늦게): 먼저 시각에는 아직 은신');
+    run(b, M.sprinkler.late - M.sprinkler.early);
+    ok(!b.hidden(u), '스프링클러: 살수에 전장 끝의 은신도 풀린다');
+  }
+  { // 단상 · 회수 장치 · 금고 칸
+    const { g, b } = bat('kr_stairs'), d = terrainOf(g).find((c) => c.k === 'dais' && c.y === g.ay0)!;
+    const r = mk(b, ranged, 0, d.x, d.y), base = r.st.range;
+    ok(b.S(r, 'range') === base + M.dais.range, `단상: 원거리 사거리 ${base} → ${b.S(r, 'range')}`);
+    const { b: b2 } = bat('kr_recovery'), rc = terrainOf(b2.geo!).find((c) => c.k === 'recovery')!;
+    ok(nearRecovery(b2, { x: rc.x, y: rc.y + M.recovery.r }) && !nearRecovery(b2, { x: b2.geo!.x0, y: b2.geo!.ay1 }), '회수 장치: 주변 칸만 안식');
+    const { b: b3 } = bat('hy_vault'), vc = terrainOf(b3.geo!).find((c) => c.k === 'vaultcell')!;
+    const t = mk(b3, melee, 0, vc.x, vc.y); t.immobile = true; t.noAttack = true;
+    mk(b3, melee, 1, 1, 1).immobile = true;
+    b3.start(); run(b3, M.vaultCell.need + 0.3);
+    ok(b3.mem.vaultPay === M.vaultCell.credits, `금고 칸: ${M.vaultCell.need}초 서 있으면 크레딧 +${b3.mem.vaultPay ?? 0}`);
+  }
 }
 if (fail) { console.log(`\n${fail}개 실패`); process.exit(1); }
 console.log('\n지형 검사 통과');

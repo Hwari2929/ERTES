@@ -123,7 +123,7 @@ function fitEnemies(enc: Encounter): number {
 /** 조우의 지형 틀 · 폭을 바꾼다 (통로처럼 폭이 정해진 틀은 그 폭). 포위로 바뀌면 적의 절반을 아래 진형으로 */
 function shapeEnc(enc: Encounter, map: string, n: number): number {
   const m = mapOf(map), wasSur = !!encGeo(enc).foe2;
-  if ((enc.map || 'open') !== m.id || enc.n !== (m.narrow ?? n)) { delete enc.gateOpen; delete enc.bridgeFold; delete enc.crane; } // 지형 · 폭이 바뀌면 전투 전 지형 선택 (수문 · 연결교 · 크레인)도 처음으로
+  if ((enc.map || 'open') !== m.id || enc.n !== (m.narrow ?? n)) { delete enc.gateOpen; delete enc.bridgeFold; delete enc.crane; delete enc.sprLate; delete enc.laserB; delete enc.breaker; } // 지형 · 폭이 바뀌면 전투 전 지형 선택 (수문 · 연결교 · 크레인)도 처음으로
   if (m.id === 'open') delete enc.map; else enc.map = m.id;
   enc.n = m.narrow ?? n;
   if (m.surround && !wasSur) enc.enemies.forEach((e, i) => { if (i % 2) e.flip = true; });

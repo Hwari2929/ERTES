@@ -1327,6 +1327,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     if (pet >= 1) { const pb = petraPay(pet, true); income += pb; lines.push(`페트라 실적 +${pb}`); }
     const fw = fieldOf(run.field).winCredits;
     if (fw) { income += fw; lines.push(`전장 조건 · 계약 정산 +${fw}`); }
+    if (b.mem.vaultPay) { income += b.mem.vaultPay; lines.push(`금고 반출 +${b.mem.vaultPay}`); } // 회전 금고문: 금고 칸 (CFG.maps.vaultCell)
     // 전투 보상 소모품: 분리 용제 · 재구성 회로 · 공명 주입기 (주입기 크기는 페이즈에 따라) · 배치형 4종 · 강제 징수기 (적이 장비를 다는 위험 등급에서만) · 캠페인 소모품 (캠페인만) 중 하나
     const uc = CFG.drop.utility[type] || 0;
     if (uc && rng(run, (r) => r.chance(uc))) {
