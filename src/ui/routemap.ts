@@ -20,8 +20,8 @@ const DINO = {
   ptero: 'M-11 0Q-5 -6 0 -1Q5 -6 11 0Q5 -2 1 2L5 3L0 3Q-5 -2-11 0Z',
 };
 
-/** 이 런의 지도에 항로도를 쓰는가: 항로도가 있는 전장 · 튜토리얼 아님 · 한 줄 항로 (모든 칸이 선택지 1개). 분기 항로는 분기형 항로도가 있는 전장만 (물류망) — 나머지는 공용 분기 지도 */
-const BRANCH_KINDS: Kind[] = ['orbit'];
+/** 이 런의 지도에 항로도를 쓰는가: 항로도가 있는 전장 · 튜토리얼 아님 · 한 줄 항로 (모든 칸이 선택지 1개). 분기 항로는 분기형 항로도가 있는 전장만 (물류망 · 카운티폴) — 나머지는 공용 분기 지도 */
+const BRANCH_KINDS: Kind[] = ['orbit', 'grid'];
 export function routeMapOn(run: RunState): boolean {
   if (!(run.field in FIELDS) || run.tutorial || run.lab) return false;
   return run.links ? BRANCH_KINDS.includes(FIELDS[run.field as keyof typeof FIELDS]) : run.map.every((o) => o.length === 1);
@@ -706,260 +706,34 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       };
       // 연결선: 갈라지는 옆 갈래 = 도착 방향에 맞춘 원호 · 나머지 (같은 갈래 · 합쳐지는 갈래) = 두 노드의 진행 방향을 잇는 매끄러운 곡선
       const edgeLayer = el('g', {}, world), beaconLayer = el('g', {}, world), nodeLayer = el('g', {}, world);
-      type Edge = { i: number; j: number; k: number; pts: number[][]; e: SVGElement; mid: number[] };
-      const edges: Edge[] = [];
-      for (let i = 0; i < R - 1; i++) rows[i].forEach((_, j) => (L[i]?.[j] || []).forEach((k, _n, kids) => {
-        const A = nodeAt(i, j), B = nodeAt(i + 1, k), tb = tan(uRow(i + 1));
-        const ta = tan(uRow(i)), side = Math.abs(dOf(i + 1, k) - dOf(i, j)) > 1;
-        const g0 = L2W(uRow(i), vs(uRow(i))), g1 = L2W(uRow(i + 1), vs(uRow(i + 1))), gl = Math.hypot(g1[0] - g0[0], g1[1] - g0[1]) || 1, g = [(g1[0] - g0[0]) / gl, (g1[1] - g0[1]) / gl]; // 두 칸 사이 기준 항로 방향 (옆 갈래가 좌우 대칭으로 휘게)
-        const pts = side && kids.length >= 2 ? arc(B, A, [-g[0], -g[1]]).reverse() : hermite(A, B, ta, tb);
-        const e = el('polyline', { points: pts.map((q) => q.map((v) => v.toFixed(1)).join(',')).join(' '), fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, edgeLayer);
-        if (!reduce) e.style.transition = 'stroke .5s, stroke-width .5s, opacity .5s';
-        edges.push({ i, j, k, pts, e, mid: pts[14] });
-      }));
-      const ptOn = (ed: Edge, t: number) => { const f = Math.max(0, Math.min(1, t)) * (ed.pts.length - 1), q = Math.floor(f), r = f - q, a = ed.pts[q], b = ed.pts[Math.min(ed.pts.length - 1, q + 1)]; return [a[0] + (b[0] - a[0]) * r, a[1] + (b[1] - a[1]) * r, Math.atan2(b[1] - a[1], b[0] - a[0])]; };
-      // 노드 토큰 (한 줄 항로와 같은 토큰): 칸 번호 · 호출 부호는 지금 고를 노드 · 하나뿐인 칸 · 보스만 (갈래 사이가 붐비지 않게)
-      const trailEl = el('polyline', { fill: 'none', stroke: C.sel, 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, edgeLayer); // 화물선이 지나며 칠하는 길
-      const toks = rows.map((row, i) => row.map((t, j) => { const k = token(nodeLayer, i, t); k.g.dataset.j = String(j); if (!reduce) k.g.style.transition = 'opacity .5s'; const [x, y] = nodeAt(i, j); k.g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); return k; }));
-      // 항로 표지: 지나간 연결선 가운데에 하나씩 (화물선이 지나면 켜진다) + 고른 노드로 가는 연결선 (꺼진 채 점멸)
-      const beacons = new Map<Edge, { wave: SVGElement; dia: SVGElement; dot: SVGElement; lab: SVGElement; on: boolean; at: number; g: SVGElement }>();
-      const beacon = (ed: Edge) => {
-        let b = beacons.get(ed);
-        if (b) return b;
-        const g = el('g', { transform: `translate(${ed.mid[0].toFixed(1)} ${ed.mid[1].toFixed(1)})` }, beaconLayer);
-        b = { g, wave: el('circle', { r: 4, fill: 'none', stroke: C.sel, 'stroke-width': 1.2, opacity: 0 }, g), dia: el('path', { d: 'M0 -4.5 4.5 0 0 4.5-4.5 0Z', 'stroke-width': .9, fill: C.bg, stroke: C.t2 }, g), dot: el('circle', { r: 1.2, fill: C.t2 }, g), lab: txt(g, 8, -8, `NAV-${pad2(ed.i + 1)} ONLINE`, { 'font-size': 7.5, fill: C.sel, opacity: 0 }), on: false, at: 0 };
-        beacons.set(ed, b);
-        return b;
-      };
       const ship = el('g', {}, world);
       el('path', { d: 'M-11 -5 11 0-11 5-7 0Z', fill: C.sel, stroke: C.bg, 'stroke-width': 2, 'paint-order': 'stroke' }, ship);
       const rig = sweepRig(world, [70, 140, 210], (r) => `${(r / 1000).toFixed(2)}AU`);
       corners(fixed, VB);
       titleBlock(fixed, VB, 'BERTHA–SAN-NODIS 물류망 · 궤도 다발 항로도', [`페이즈 ${run.phase} · ${R} ROWS`, '군체 침식 전선 561', `진행축 방위 ${Math.round(90 + THd)}°`, 'REV.06 · 분기 궤도']);
-      // 상태: 지금 칸 · 지나간 노드 · 고를 수 있는 노드 · 고른 노드 (마우스를 올린 노드 우선) · 그 앞으로 갈 수 있는 노드
-      const live = () => last?.run ?? run;
-      let shipEdge: Edge | null = null, shipT = 0, uc = 0, hov: NodeType | null = null, trail: Edge | null = null, camKey = '';
-      const shipTo: { edge: Edge | null; t: number } = { edge: null, t: 0 };
-      const stateNow = () => {
-        const r = live(), step = Math.min(r.step, R - 1), path = r.path || [], prev = step > 0 ? path[step - 1] ?? 0 : -1;
-        const opts = step === 0 ? rows[0].map((_, k) => k) : L[step - 1]?.[prev] || [0];
-        const want = hov && opts.some((k) => rows[step][k] === hov) ? hov : last?.pick?.get();
-        const pj = r.node ? path[step] ?? opts[0] : opts.find((k) => rows[step][k] === want) ?? opts[0];
-        const fwd = (from: number[]) => { const out = rows.map(() => new Set<number>()); from.forEach((j) => out[step].add(j)); for (let i = step; i < R - 1; i++) for (const j of out[i]) for (const k of L[i]?.[j] || []) out[i + 1].add(k); return out; };
-        return { r, step, path, prev, opts: r.node ? [pj] : opts, pj, all: fwd(r.node ? [pj] : opts), mine: fwd([pj]), choosing: !r.node && opts.length > 1 };
-      };
-      type Now = ReturnType<typeof stateNow>;
-      const ST_OPT = { ...STATE.next, sw: 1.8, bs: 1, ba: 0, bo: .8 };
-      const ucOf = (x: number, y: number) => Math.max(-40, Math.min(U + 40, proj(x, y)));
-      const placeShip = () => {
-        if (!shipEdge) { const [x, y] = nodeAt(0, 0); ship.setAttribute('transform', `translate(${x - 30 * ax[0]} ${y - 30 * ax[1]}) rotate(${THd})`); rig.g.setAttribute('transform', `translate(${x} ${y})`); return [x, y]; }
-        const [x, y, a] = ptOn(shipEdge, shipT);
-        ship.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(a * 180 / Math.PI).toFixed(1)})`);
-        rig.g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
-        return [x, y];
-      };
-      let homeU = 0;
-      const drawCam = () => {
-        const P = L2W(uc, 0), [cx, cy] = camAt(uc);
-        world.setAttribute('transform', `translate(${(400 - P[0]).toFixed(1)} ${(CY - P[1]).toFixed(1)})`); para.setAttribute('transform', `translate(${-cx * PAR} ${-cy * PAR})`);
-        recenterBtn.hidden = homing || Math.abs(uc - homeU) < 4;
-        placeCards();
-      };
-      /** 카메라 자리 (진행축 위치): 고르는 중 = 지나온 노드와 고를 노드 사이 (고른 노드 · 마우스와 상관없이 고정), 아니면 지금 노드 조금 앞 */
-      const camOf = (S0: Now): number => {
-        const { step, prev, pj } = S0;
-        if (S0.choosing) { const b = nodeAt(step, S0.opts[0]), a = step > 0 ? nodeAt(step - 1, prev) : [b[0] - 110 * ax[0], b[1] - 110 * ax[1]]; return (ucOf(a[0], a[1]) + ucOf(b[0], b[1])) / 2 + 60; }
-        const [x, y] = nodeAt(step, pj); return ucOf(x, y) + 40;
-      };
-      /** 노드 칠하기: ms 동안 (끝낸 노드가 먼저 옅어지고 새 현재 노드가 밝아진다 — 한 줄 항로와 같은 순서) */
-      const paintJobs = (jobs: { k: Tok; from: St; to: St; w: number[] }[], ms: number) => {
-        cancelAnimationFrame(praf);
-        const set = (T: number) => jobs.forEach((j) => { const u = Math.min(1, Math.max(0, (T - j.w[0]) / (j.w[1] - j.w[0]))); const v = u >= 1 ? j.to : lerp(j.from, j.to, ease(u)); apply(j.k, v); j.k.st = v; });
-        if (!ms || reduce) { set(1); return; }
-        const t0 = performance.now();
-        const f = (now: number) => { const T = Math.min(1, (now - t0) / ms); set(T); if (T < 1) praf = requestAnimationFrame(f); };
-        praf = requestAnimationFrame(f);
-      };
-      /** 연결선 칠하기 · 항로 표지. lit = 표지가 켜질 때 물결 (at = 켜지는 시각) */
-      const styleEdges = (S0: Now, lit: number) => {
-        const { step, path, prev, pj } = S0;
-        let pickEdge: Edge | null = null;
-        for (const ed of edges) {
-          const taken = ed !== trail && (ed.i + 1 < step ? path[ed.i] === ed.j && path[ed.i + 1] === ed.k : ed.i + 1 === step && path[ed.i] === ed.j && ed.k === pj && !!S0.r.node);
-          const toPick = ed.i + 1 === step && ed.j === prev && ed.k === pj && !S0.r.node;
-          if (ed.i + 1 === step && ed.j === prev && ed.k === pj) pickEdge = ed;
-          const mine = ed === trail || (ed.i >= step && S0.mine[ed.i].has(ed.j) && S0.mine[ed.i + 1].has(ed.k)), alt = ed.i >= step ? S0.all[ed.i].has(ed.j) && S0.all[ed.i + 1].has(ed.k) : ed.i + 1 === step && ed.j === prev && S0.opts.includes(ed.k);
-          const [stroke, sw, op, dash] = taken ? [C.sel, 2.5, 1, ''] : toPick ? [C.sel, 1.8, .9, '6 4'] : mine ? [C.t2, 1.6, 1, ''] : alt ? [C.t3, 1.3, .9, ''] : [C.line, .9, .55, '1 4'];
-          ed.e.style.stroke = stroke; ed.e.style.strokeWidth = String(sw); ed.e.style.opacity = String(op);
-          if (dash) ed.e.setAttribute('stroke-dasharray', dash); else ed.e.removeAttribute('stroke-dasharray');
-          if (taken || toPick) { const b = beacon(ed); if (b.on !== taken) { b.on = taken; b.dia.setAttribute('fill', taken ? C.sel : C.bg); b.dia.setAttribute('stroke', taken ? C.sel : C.t2); b.dot.setAttribute('fill', taken ? C.bg : C.t2); b.at = taken && lit && !reduce ? lit : 0; } b.g.style.display = ''; }
-          else { const b = beacons.get(ed); if (b) b.g.style.display = 'none'; }
-        }
-        return pickEdge;
-      };
-      const drawTrail = () => {
-        if (!trail || shipEdge !== trail) return;
-        const f = shipT * (trail.pts.length - 1), q = Math.floor(f), [x, y] = ptOn(trail, shipT);
-        trailEl.setAttribute('points', [...trail.pts.slice(0, q + 1), [x, y]].map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' '));
-      };
-      /** 다시 칠하기. anim = 칸이 바뀌면 화물선이 지나온 연결선을 따라 움직이며 길을 칠하고 카메라가 따라간다 (한 줄 항로의 이동 연출).
-       *  같은 칸에서 고른 노드만 바뀌면 (누름 · 마우스) 카메라는 그대로, 노드 · 연결선만 짧게 바뀐다 */
-      const update = (anim: boolean) => {
-        const S0 = stateNow(), { step, path } = S0, pj = S0.pj;
-        const key = `${step}|${S0.choosing}|${S0.r.node ? 1 : 0}`, big = key !== camKey;
-        camKey = key;
-        const jobs: { k: Tok; from: St; to: St; w: number[] }[] = [];
-        rows.forEach((row, i) => row.forEach((t, j) => {
-          const k = toks[i][j];
-          const kind = i < step ? (path[i] === j ? 'past' : 'gone') : i === step ? (j === pj ? 'cur' : S0.opts.includes(j) ? 'opt' : 'gone') : S0.mine[i].has(j) ? 'next' : S0.all[i].has(j) ? 'alt' : 'gone';
-          const v: St = kind === 'cur' ? { kind: 'cur', ...STATE.cur, col: C.sel, ncol: C.sel, bcol: C.sel }
-            : kind === 'opt' ? { kind: 'next', ...ST_OPT, col: C.sel, ncol: C.sel, bcol: C.sel }
-            : kind === 'past' ? { kind: 'past', ...STATE.past, col: C.t3, ncol: C.t3, bcol: C.t3 }
-            : kind === 'next' ? { kind: 'next', ...STATE.next, col: colOf(t), ncol: C.t3, bcol: C.t3 }
-            : kind === 'alt' ? { kind: 'next', ...STATE.next, op: .75, col: mix(colOf(t), C.bg, .35), ncol: C.t3, bcol: C.t3, bo: .4 }
-            : { kind: 'past', ...STATE.past, op: .22, col: C.t3, ncol: C.t3, bcol: C.t3, bo: .15 };
-          jobs.push({ k, from: k.st || v, to: v, w: kind === 'past' || kind === 'gone' ? [0, .55] : kind === 'cur' ? [.35, 1] : [0, 1] });
-          k.g.style.opacity = kind === 'gone' ? '.28' : kind === 'alt' ? '.8' : '1';
-          const keyNode = kind === 'cur' || kind === 'opt' || kind === 'next' || row.length === 1; // 고른 길에서 갈 수 있는 노드는 칸 번호를 보인다 (몇 번째 칸까지 이어지는지)
-          k.num.style.display = keyNode ? '' : 'none';
-          k.call.style.display = kind === 'cur' || kind === 'opt' || t === 'boss' || (row.length === 1 && i >= step) ? '' : 'none';
-          if ((kind === 'opt' || kind === 'cur') && !S0.r.node) k.g.dataset.pick = t; else delete k.g.dataset.pick;
-        }));
-        paintJobs(jobs, anim ? (big ? 1100 : 240) : 0);
-        // 화물선: 고르는 중이면 지나온 노드에서 고른 노드 쪽으로 막 출발한 자리, 들어간 노드면 그 노드 바로 앞
-        const hu = camOf(S0), entered = step >= 2 ? edges.find((ed) => ed.i === step - 2 && ed.j === path[step - 2] && ed.k === path[step - 1]) : undefined;
-        const moving = anim && big && !reduce && !!entered && shipEdge?.i === step - 2; // 지난 칸에서 들어간 연결선 → 이번 칸 연결선
-        const from = moving ? entered! : shipEdge, fromT = moving && shipEdge !== entered ? .16 : shipT;
-        if (moving) trail = from;
-        const toEdge = styleEdges(S0, moving ? performance.now() + 320 : anim ? performance.now() : 0);
-        shipTo.edge = toEdge; shipTo.t = S0.r.node ? .86 : .16;
-        homeU = hu;
-        fx();
-        if (!big) { if (!homing) { shipEdge = shipTo.edge; shipT = shipTo.t; placeShip(); } return; } // 고른 노드만 바뀜: 카메라는 그대로
-        if (anim && !reduce) {
-          const u0 = uc; homing = true;
-          tween(moving ? 1100 : 700, (q) => {
-            if (moving && from) { if (q < .5) { shipEdge = from; shipT = fromT + (1 - fromT) * (q / .5); } else { shipEdge = shipTo.edge; shipT = shipTo.t * ((q - .5) / .5); } drawTrail(); }
-            else if (from && from === shipTo.edge) { shipEdge = from; shipT = fromT + (shipTo.t - fromT) * q; } // 같은 연결선 위 (고른 노드로 들어감)
-            else { shipEdge = shipTo.edge; shipT = shipTo.t; }
-            placeShip(); uc = u0 + (homeU - u0) * q; drawCam();
-          }, () => {
-            homing = false; shipEdge = shipTo.edge; shipT = shipTo.t; placeShip(); uc = homeU; drawCam();
-            if (trail) { trail = null; trailEl.setAttribute('points', ''); styleEdges(stateNow(), 0); }
-          });
-        } else { trail = null; trailEl.setAttribute('points', ''); shipEdge = shipTo.edge; shipT = shipTo.t; placeShip(); uc = homeU; drawCam(); }
-      };
-      // 마우스를 올린 노드: 그 노드로 가는 길을 미리 밝힌다 (카메라는 그대로). 누르면 바로 진행 — 터치는 한 번 누르면 고르고 고른 노드를 다시 누르면 진행
-      nodeLayer.addEventListener('pointerover', (e) => { if (e.pointerType !== 'mouse') return; const t = (e.target as Element).closest<SVGElement>('.rm-node')?.dataset.pick as NodeType | undefined; if (t && t !== hov) { hov = t; update(true); panel(); } });
-      nodeLayer.addEventListener('pointerout', (e) => { if (e.pointerType !== 'mouse' || !hov || e.buttons) return; const to = (e.relatedTarget as Element | null)?.closest?.('.rm-node') as SVGElement | null; if (to?.dataset.pick === hov) return; hov = null; update(true); panel(); }); // 누르는 순간 (포인터 캡처) 은 떠난 것이 아니다
-      onPick = (t, how) => { const p = last?.pick; if (!p) return; if (how === 'tap' && p.get() !== t) { p.set(t); return; } hov = null; const go = () => (p.go ? p.go(t) : p.set(t)); if (fs) closeFs(true, go); else go(); }; // 진행: 전체 화면은 지도 자리로 줄인 뒤 (미뤄 둔 보상 창 · 다음 화면이 보이게)
-      // 전체 화면 옆 패널: 고를 수 있는 길마다 그 길로 몇 번째 칸의 어느 노드까지 갈 수 있는지 (모든 길이 만나는 칸까지)
-      const NAME = '베르타–산노디스 물류망';
-      const LEGEND = [['궤도', '갈림길 = 왼쪽 · 가운데 · 오른쪽으로 갈라지는 궤도'], ['연결선', '지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['NAV', '항로 표지 — 화물선이 지나면 복구'], ['천체', 'B-4 · TS-7 · A-117 · SN · RL-2'], ['CVY', '수송선단 (진행축 양쪽)'], ['DEBRIS β', '소행성대'], ['PSR', '산-노디스 펄서 (8년 주기)']];
-      /** 노드 j 를 고르면 이어지는 칸들: 칸 번호 · 갈 수 있는 노드 · 끝 표시 (고르는 중 = 모든 길이 만나는 칸까지, 아니면 4칸) */
-      const aheadRows = (j: number, S0: Now) => {
-        const { step } = S0, me = rows.map(() => new Set<number>()), out: { i: number; ks: number[]; end: '' | '합류' | '보스' }[] = [];
-        me[step].add(j);
-        for (let i = step; i < R - 1; i++) for (const a of me[i]) for (const k of L[i]?.[a] || []) me[i + 1].add(k);
-        for (let i = step + 1; i < R; i++) {
-          const ks = [...me[i]].sort((a, b) => a - b), join = S0.choosing ? ks.length === 1 && S0.all[i].size === 1 : i >= step + 4 || i === R - 1;
-          out.push({ i, ks, end: join && S0.choosing ? (i === R - 1 ? '보스' : '합류') : '' });
-          if (join) break;
-        }
-        return out;
-      };
-      const branchPanel = () => {
-        const S0 = stateNow(), { step } = S0, ic = (t: NodeType) => `<span class="rp-ic" title="${NODE_NAME[t]}">${lineIcon(`n.${t}`, 'li')}</span>`;
-        const ahead = (j: number) => `<ol class="rp-ahead">${aheadRows(j, S0).map((r) => `<li${r.end ? ' class="rp-join"' : ''}><span class="mono rp-n">${pad2(r.i + 1)}</span>${r.ks.map((k) => ic(rows[r.i][k])).join('')}${r.end ? `<small>${r.end}</small>` : ''}</li>`).join('')}</ol>`;
-        const opts = S0.choosing ? S0.opts : [S0.pj], pt = rows[step][S0.pj];
-        const items = opts.map((j) => { const t = rows[step][j], on = j === S0.pj; return `<li class="rp-route${on ? ' on' : ''}"><button type="button" data-pick="${t}" aria-pressed="${on}"><span class="mono rp-n">${pad2(step + 1)}</span>${ic(t)}<b>${NODE_NAME[t]}</b>${on && S0.choosing ? '<small>고름</small>' : ''}</button>${ahead(j)}</li>`; }).join('');
-        return `<header><b>${NAME}</b><span class="chip" style="--c:var(--c-bad)">보스까지 <b class="mono">${R - 1 - step}</b>칸</span></header>
-          <h4>${S0.choosing ? '고를 수 있는 길' : '지금 길'}</h4><ol class="rp-routes">${items}</ol>
-          ${S0.choosing ? `<button class="btn primary rp-go" type="button" data-enter="${pt}">${pad2(step + 1)} ${NODE_NAME[pt]} 진입</button>` : ''}
-          <h4>범례</h4><dl class="rp-legend">${LEGEND.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
-          <p class="rp-keys"><kbd>Esc</kbd> 닫기 · 끌기 · 휠로 둘러보기</p>`;
-      };
-      // 갈림길 (전체 화면이 다 펼쳐진 뒤): 위쪽 가운데 제목 '경로를 선택하세요' + 고를 노드마다 옆 카드 (노드 이름 · 그 뒤로 이어지는 칸)
-      const cardHtml = (j: number, S0: Now) => {
-        const t = rows[S0.step][j], on = j === S0.pj, nm = (k: NodeType) => `${lineIcon(`n.${k}`, 'li')}${NODE_NAME[k]}`;
-        const ahead = aheadRows(j, S0).map((r) => `<span class="rmc-row"><i class="mono">${pad2(r.i + 1)}</i>${r.ks.map((k) => `<span>${nm(rows[r.i][k])}</span>`).join('<span class="rmc-or">·</span>')}${r.end ? `<em>${r.end}</em>` : ''}</span>`).join('');
-        return `<button type="button" class="rm-card${on ? ' on' : ''}" data-pick="${t}" data-j="${j}" aria-pressed="${on}" style="--c:${colOf(t)}"><span class="rmc-head"><i class="mono">${pad2(S0.step + 1)}</i>${lineIcon(`n.${t}`, 'li')}<b>${NODE_NAME[t]}</b></span><span class="rmc-ahead">${ahead}</span></button>`;
-      };
-      /** 카드 자리: 고를 노드마다 후보 자리 (바깥쪽 → 진행 방향 → 뒤 → 위 · 아래 · 좌우) 중에서 보이는 노드 · 다른 카드 · 안내 제목을 가장 덜 가리는 곳 */
-      function placeCards() {
-        if (cardsEl.hidden || !cardsEl.children.length) return;
-        const vr = viewEl.getBoundingClientRect(), step = stateNow().step, [tx, ty] = tan(uRow(step)), top = guideEl.hidden ? 8 : guideEl.offsetTop + guideEl.offsetHeight + 8;
-        type Box = { l: number; t: number; r: number; b: number };
-        const rel = (r: DOMRect, pad: number): Box => ({ l: r.left - vr.left - pad, t: r.top - vr.top - pad, r: r.right - vr.left + pad, b: r.bottom - vr.top + pad });
-        const obst: Box[] = [];
-        toks.forEach((row) => row.forEach((k) => { if (k.g.style.opacity !== '.28') obst.push(rel(k.ring.getBoundingClientRect(), 8)); })); // 흐린 (갈 수 없는) 노드는 가려도 된다
-        const over = (a: Box, b: Box) => Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t));
-        const ps = Array.from(cardsEl.children).map((c) => { const r = toks[step][+(c as HTMLElement).dataset.j!].ring.getBoundingClientRect(); return { c: c as HTMLElement, x: r.x + r.width / 2 - vr.left, y: r.y + r.height / 2 - vr.top, rad: r.width / 2 }; });
-        const mx = ps.reduce((a, p) => a + p.x, 0) / ps.length, my = ps.reduce((a, p) => a + p.y, 0) / ps.length;
-        const placed: Box[] = [];
-        for (const p of ps) {
-          let ox = p.x - mx, oy = p.y - my; const n = Math.hypot(ox, oy);
-          if (n < 8) { ox = tx; oy = ty; } else { ox /= n; oy /= n; }
-          const w = p.c.offsetWidth, h = p.c.offsetHeight, gap = p.rad + 26;
-          const dirs = [[ox, oy], [tx, ty], [-tx, -ty], [0, Math.sign(oy) || -1], [0, -(Math.sign(oy) || -1)], [1, 0], [-1, 0]];
-          let best: Box | null = null, bestS = Infinity;
-          dirs.forEach(([dx, dy], i) => {
-            let l: number, t: number;
-            if (Math.abs(dx) >= Math.abs(dy)) { l = dx > 0 ? p.x + gap : p.x - gap - w; t = p.y - h / 2; } else { t = dy > 0 ? p.y + gap : p.y - gap - h; l = p.x - w / 2; }
-            l = Math.max(8, Math.min(vr.width - w - 8, l)); t = Math.max(top, Math.min(vr.height - h - 8, t));
-            const bx = { l, t, r: l + w, b: t + h };
-            const sc = obst.reduce((a, o) => a + over(bx, o), 0) + placed.reduce((a, o) => a + 2 * over(bx, o), 0) + i * 40; // 앞 후보일수록 조금 유리
-            if (sc < bestS) { bestS = sc; best = bx; }
-          });
-          placed.push(best!);
-          p.c.style.transform = `translate(${best!.l.toFixed(0)}px, ${best!.t.toFixed(0)}px)`;
-        }
-      }
-      const fx = () => {
-        const S0 = stateNow(), show = fs && fxOn && S0.choosing;
-        for (const j of S0.opts) toks[S0.step][j].call.style.display = show ? 'none' : ''; // 카드가 이름을 보이면 작은 호출 부호는 숨긴다
-        if (!show) { guideEl.hidden = true; cardsEl.hidden = true; cardsEl.innerHTML = ''; cardsEl.dataset.k = ''; return; }
-        guideEl.querySelector('small')!.textContent = `갈림길 · ${S0.opts.length}갈래`;
-        if (guideEl.hidden) { guideEl.hidden = false; replay(guideEl); }
-        const k = `${S0.r.seed}|${S0.r.phase}|${S0.step}`; // 카드는 칸마다 한 번 만든다 — 고른 노드 · 마우스가 바뀌면 표시만 바꾼다 (다시 그리면 등장 연출이 되풀이된다)
-        if (cardsEl.dataset.k !== k) { cardsEl.innerHTML = S0.opts.map((j) => cardHtml(j, S0)).join(''); cardsEl.dataset.k = k; }
-        for (const c of Array.from(cardsEl.children) as HTMLElement[]) { const on = +c.dataset.j! === S0.pj; c.classList.toggle('on', on); c.setAttribute('aria-pressed', String(on)); }
-        if (cardsEl.hidden) { cardsEl.hidden = false; replay(cardsEl); }
-        placeCards();
-      };
-      fxHook = fx;
-      cardsEl.addEventListener('click', (e) => { const b = (e.target as Element).closest<HTMLElement>('.rm-card'); if (b?.dataset.pick) onPick(b.dataset.pick as NodeType, (e as PointerEvent).pointerType === 'touch' ? 'tap' : 'click'); });
-      cardsEl.addEventListener('pointerover', (e) => { if (e.pointerType !== 'mouse') return; const t = (e.target as Element).closest<HTMLElement>('.rm-card')?.dataset.pick as NodeType | undefined; if (t && t !== hov) { hov = t; update(true); panel(); } });
-      cardsEl.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && hov) { hov = null; update(true); panel(); } });
-      // 패널의 길에 마우스를 올리면 지도에서도 그 길을 미리 밝힌다
-      panelEl?.addEventListener('pointerover', (e) => { if (e.pointerType !== 'mouse') return; const t = (e.target as Element).closest<HTMLElement>('[data-pick]')?.dataset.pick as NodeType | undefined; if (t && t !== hov && stateNow().choosing) { hov = t; update(true); panel(); } });
-      panelEl?.addEventListener('pointerleave', () => { if (hov) { hov = null; update(true); panel(); } });
-      update(false);
-      tick = (t) => {
-        for (const k of spin) k.g.setAttribute('transform', `rotate(${(k.a + t * k.w).toFixed(2)})`);
-        for (const m of orbiters) { const a = t * m.w + 1; m.g.setAttribute('transform', `translate(${m.cx + Math.cos(a) * m.r} ${m.cy + Math.sin(a) * m.r})`); m.body?.setAttribute('transform', `rotate(${t * .02})`); }
-        for (const c of convoys) { const u = mod(c.off + c.dir * t * .018, U + 600) - 300, [x, y] = L2W(u, c.v); c.g.setAttribute('transform', `translate(${x} ${y})`); c.body.setAttribute('transform', `rotate(${THd + (c.dir < 0 ? 180 : 0)})`); }
-        for (const b of blink) b.e.setAttribute('stroke-opacity', (Math.max(0, Math.sin(t / 380 - b.ph)) * .9 + .1).toFixed(2));
-        const now = performance.now();
-        for (const [ed, b] of beacons) {
-          if (!b.on) { b.dot.setAttribute('fill-opacity', Math.sin(t / 260 - ed.i * 1.7) > .3 ? '1' : '.15'); continue; }
-          b.dot.setAttribute('fill-opacity', '1');
-          if (!b.at || now < b.at) continue;
-          const k = (now - b.at) / 900, k2 = (now - b.at) / 2200;
-          b.wave.setAttribute('r', String(4 + 20 * Math.min(1, k))); b.wave.setAttribute('opacity', Math.max(0, 1 - k).toFixed(2));
-          b.lab.setAttribute('opacity', (k2 < .7 ? Math.min(1, k2 * 6) : Math.max(0, (1 - k2) / .3)).toFixed(2));
-          if (k2 >= 1) { b.at = 0; b.wave.setAttribute('opacity', '0'); b.lab.setAttribute('opacity', '0'); }
-        }
-        rig.set(mod(t * .05, 360));
-      };
-      const off = dragger((dx) => { uc = Math.max(-40, Math.min(U + 40, uc - dx / ax[0])); drawCam(); });
-      return {
-        name: NAME, legend: LEGEND, panel: branchPanel,
-        look(i: number) { const [x, y] = nodeAt(i, 0), u0 = uc, want = ucOf(x, y); tween(700, (k) => { uc = u0 + (want - u0) * k; drawCam(); }); },
-        go() { const u0 = uc; homing = true; tween(600, (k) => { uc = u0 + (homeU - u0) * k; drawCam(); }, () => { homing = false; drawCam(); }); },
-        update() { update(true); },
-        stop: off,
-      };
+      return branchKit({
+        name: '베르타–산노디스 물류망',
+        legend: [['궤도', '갈림길 = 왼쪽 · 가운데 · 오른쪽으로 갈라지는 궤도'], ['연결선', '지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['NAV', '항로 표지 — 화물선이 지나면 복구'], ['천체', 'B-4 · TS-7 · A-117 · SN · RL-2'], ['CVY', '수송선단 (진행축 양쪽)'], ['DEBRIS β', '소행성대'], ['PSR', '산-노디스 펄서 (8년 주기)']],
+        edgeLayer, nodeLayer, beaconLayer, beacon: (i) => `NAV-${pad2(i + 1)} ONLINE`,
+        nodeAt, dirAt: (i) => tan(uRow(i)),
+        // 연결선: 갈라지는 옆 갈래 = 도착 방향에 맞춘 원호 · 나머지 (같은 갈래 · 합쳐지는 갈래) = 두 노드의 진행 방향을 잇는 매끄러운 곡선
+        edgePts(i, j, k, kids) {
+          const A = nodeAt(i, j), B = nodeAt(i + 1, k), tb = tan(uRow(i + 1)), ta = tan(uRow(i)), side = Math.abs(dOf(i + 1, k) - dOf(i, j)) > 1;
+          const g0 = L2W(uRow(i), vs(uRow(i))), g1 = L2W(uRow(i + 1), vs(uRow(i + 1))), gl = Math.hypot(g1[0] - g0[0], g1[1] - g0[1]) || 1, g = [(g1[0] - g0[0]) / gl, (g1[1] - g0[1]) / gl]; // 두 칸 사이 기준 항로 방향 (옆 갈래가 좌우 대칭으로 휘게)
+          return side && kids.length >= 2 ? arc(B, A, [-g[0], -g[1]]).reverse() : hermite(A, B, ta, tb);
+        },
+        style: { taken: [C.sel, 2.5, 1, ''], toPick: [C.sel, 1.8, .9, '6 4'], mine: [C.t2, 1.6, 1, ''], alt: [C.t3, 1.3, .9, ''], none: [C.line, .9, .55, '1 4'] },
+        camU: proj, camRange: [-40, U + 40], ahead: [60, 40], camEps: 4, dragPer: ax[0],
+        drawCam(uc) { const P = L2W(uc, 0), [cx, cy] = camAt(uc); world.setAttribute('transform', `translate(${(400 - P[0]).toFixed(1)} ${(CY - P[1]).toFixed(1)})`); para.setAttribute('transform', `translate(${-cx * PAR} ${-cy * PAR})`); },
+        marker(x, y, a) { ship.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(a * 180 / Math.PI).toFixed(1)})`); rig.g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); },
+        tick(t) {
+          for (const k of spin) k.g.setAttribute('transform', `rotate(${(k.a + t * k.w).toFixed(2)})`);
+          for (const m of orbiters) { const a = t * m.w + 1; m.g.setAttribute('transform', `translate(${m.cx + Math.cos(a) * m.r} ${m.cy + Math.sin(a) * m.r})`); m.body?.setAttribute('transform', `rotate(${t * .02})`); }
+          for (const c of convoys) { const u = mod(c.off + c.dir * t * .018, U + 600) - 300, [x, y] = L2W(u, c.v); c.g.setAttribute('transform', `translate(${x} ${y})`); c.body.setAttribute('transform', `rotate(${THd + (c.dir < 0 ? 180 : 0)})`); }
+          for (const b of blink) b.e.setAttribute('stroke-opacity', (Math.max(0, Math.sin(t / 380 - b.ph)) * .9 + .1).toFixed(2));
+          rig.set(mod(t * .05, 360));
+        },
+      });
     }
     // 항로: 첫 노드에서 시작해 마지막(보스) 노드에서 끝난다. 반원 끝 접선이 같아 이음매가 매끄럽다
     const rig = sweepRig(world, [70, 140, 210], (r) => `${(r / 1000).toFixed(2)}AU`);
@@ -1056,6 +830,283 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     stage.setAttribute('viewBox', VB.join(' ')); stage.style.aspectRatio = fs ? '' : `${VB[2]} / ${VB[3]}`;
     el('rect', { x: VB[0] - 1200, y: VB[1] - 800, width: VB[2] + 2400, height: VB[3] + 1600, fill: C.bg }, stage);
     return VB;
+  }
+  /** 분기 항로 공용 (물류망 · 카운티폴): 지도 모양은 장면이 (노드 자리 · 연결선 점 · 카메라 · 표시기), 나머지는 여기서.
+   *  상태 (지금 칸 · 지나간 노드 · 고를 수 있는 노드 · 고른 노드 · 그 앞으로 갈 수 있는 노드), 칸을 넘을 때 표시기가 지나온 길을 칠하며 움직이는 연출,
+   *  노드 색 전환, 갈림길 안내 · 노드 카드 · 전체 화면 패널, 마우스 · 누름 · 터치로 고르고 진행하기 */
+  type EdgeSt = [string, number, number, string]; // 선 색 · 굵기 · 불투명도 · 점선
+  interface BranchOpt {
+    name: string; legend: string[][];
+    edgeLayer: Element; nodeLayer: Element; casingLayer?: Element; beaconLayer?: Element;
+    /** 노드 토큰 자리 · 칸의 진행 방향 (화면 방향 단위 벡터) */
+    nodeAt(i: number, j: number): number[]; dirAt(i: number): number[];
+    /** 연결선 점 (kids = 출발 노드에서 이어지는 다음 노드들) */
+    edgePts(i: number, j: number, k: number, kids: number[]): number[][];
+    style: Record<'taken' | 'toPick' | 'mine' | 'alt' | 'none', EdgeSt>;
+    /** 연결선 테두리 (선 굵기에 더할 폭) — 길 안내처럼 */
+    casing?: number;
+    /** 항로 표지 이름표 (있으면 지나간 연결선 가운데에 표지) */
+    beacon?(i: number): string;
+    /** 카메라: 월드 점 → 카메라 값 · 범위 · 그리기 · 끌기 1단위 (화면 좌표 / 카메라 값) · 앞서 보기 (고르는 중 · 아닐 때) · 첫 노드 뒤 거리 */
+    camU(x: number, y: number): number; camRange: number[]; drawCam(u: number): void; dragPer: number; ahead: number[]; camEps: number;
+    /** 표시기 (배 · 차) 를 그린다: 자리 · 방향 (라디안) · 지금 연결선 (없으면 출발 전) */
+    marker(x: number, y: number, a: number, ed: { i: number; j: number; k: number; pts: number[][] } | null, t: number): void;
+    /** 노드 상태가 바뀔 때 (핀 · 그림자 등 장면 소품을 맞춘다) */
+    nodeState?(i: number, j: number, kind: string): void;
+    tick?(t: number): void;
+  }
+  function branchKit(o: BranchOpt) {
+    const rows = run.map, L = run.links!, R = rows.length;
+    type Edge = { i: number; j: number; k: number; pts: number[][]; e: SVGElement; c?: SVGElement; mid: number[] };
+    const line = (p: number[][]) => p.map((q) => `${q[0].toFixed(1)},${q[1].toFixed(1)}`).join(' ');
+    const edges: Edge[] = [];
+    for (let i = 0; i < R - 1; i++) rows[i].forEach((_, j) => (L[i]?.[j] || []).forEach((k, _n, kids) => {
+      const pts = o.edgePts(i, j, k, kids), at = { points: line(pts), fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' };
+      const c = o.casing && o.casingLayer ? el('polyline', { ...at, stroke: C.bg }, o.casingLayer) : undefined, e = el('polyline', at, o.edgeLayer);
+      if (!reduce) for (const x of [e, c]) if (x) x.style.transition = 'stroke .5s, stroke-width .5s, opacity .5s';
+      edges.push({ i, j, k, pts, e, c, mid: pts[Math.floor(pts.length / 2)] });
+    }));
+    const ptOn = (ed: Edge, t: number) => {
+      const seg = ed.pts.slice(1).map((b, q) => Math.hypot(b[0] - ed.pts[q][0], b[1] - ed.pts[q][1])), tot = seg.reduce((a, b) => a + b, 0) || 1;
+      let d = Math.max(0, Math.min(1, t)) * tot, q = 0;
+      while (q < seg.length - 1 && d > seg[q]) { d -= seg[q]; q++; }
+      const a = ed.pts[q], b = ed.pts[q + 1] || a, r = seg[q] ? d / seg[q] : 0;
+      return [a[0] + (b[0] - a[0]) * r, a[1] + (b[1] - a[1]) * r, Math.atan2(b[1] - a[1], b[0] - a[0]), q];
+    };
+    const [tS, tW] = o.style.taken;
+    const trailC = o.casing && o.casingLayer ? el('polyline', { fill: 'none', stroke: C.bg, 'stroke-width': tW + o.casing, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, o.casingLayer) : null;
+    const trailEl = el('polyline', { fill: 'none', stroke: tS, 'stroke-width': tW, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, o.edgeLayer); // 표시기가 지나며 칠하는 길
+    const toks = rows.map((row, i) => row.map((t, j) => { const k = token(o.nodeLayer, i, t); k.g.dataset.j = String(j); if (!reduce) k.g.style.transition = 'opacity .5s'; const [x, y] = o.nodeAt(i, j); k.g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); return k; }));
+    // 항로 표지: 지나간 연결선 가운데에 하나씩 (지나면 켜진다) + 고른 노드로 가는 연결선 (꺼진 채 점멸)
+    const beacons = new Map<Edge, { wave: SVGElement; dia: SVGElement; dot: SVGElement; lab: SVGElement; on: boolean; at: number; g: SVGElement }>();
+    const beacon = (ed: Edge) => {
+      let b = beacons.get(ed);
+      if (b || !o.beacon || !o.beaconLayer) return b;
+      const g = el('g', { transform: `translate(${ed.mid[0].toFixed(1)} ${ed.mid[1].toFixed(1)})` }, o.beaconLayer);
+      b = { g, wave: el('circle', { r: 4, fill: 'none', stroke: C.sel, 'stroke-width': 1.2, opacity: 0 }, g), dia: el('path', { d: 'M0 -4.5 4.5 0 0 4.5-4.5 0Z', 'stroke-width': .9, fill: C.bg, stroke: C.t2 }, g), dot: el('circle', { r: 1.2, fill: C.t2 }, g), lab: txt(g, 8, -8, o.beacon(ed.i), { 'font-size': 7.5, fill: C.sel, opacity: 0 }), on: false, at: 0 };
+      beacons.set(ed, b);
+      return b;
+    };
+    const live = () => last?.run ?? run;
+    let shipEdge: Edge | null = null, shipT = 0, uc = 0, hov: NodeType | null = null, trail: Edge | null = null, camKey = '', homeU = 0;
+    const shipTo: { edge: Edge | null; t: number } = { edge: null, t: 0 };
+    const stateNow = () => {
+      const r = live(), step = Math.min(r.step, R - 1), path = r.path || [], prev = step > 0 ? path[step - 1] ?? 0 : -1;
+      const opts = step === 0 ? rows[0].map((_, k) => k) : L[step - 1]?.[prev] || [0];
+      const want = hov && opts.some((k) => rows[step][k] === hov) ? hov : last?.pick?.get();
+      const pj = r.node ? path[step] ?? opts[0] : opts.find((k) => rows[step][k] === want) ?? opts[0];
+      const fwd = (from: number[]) => { const out = rows.map(() => new Set<number>()); from.forEach((j) => out[step].add(j)); for (let i = step; i < R - 1; i++) for (const j of out[i]) for (const k of L[i]?.[j] || []) out[i + 1].add(k); return out; };
+      return { r, step, path, prev, opts: r.node ? [pj] : opts, pj, all: fwd(r.node ? [pj] : opts), mine: fwd([pj]), choosing: !r.node && opts.length > 1 };
+    };
+    type Now = ReturnType<typeof stateNow>;
+    const ST_OPT = { ...STATE.next, sw: 1.8, bs: 1, ba: 0, bo: .8 };
+    const clampU = (u: number) => Math.max(o.camRange[0], Math.min(o.camRange[1], u));
+    const ucOf = (x: number, y: number) => clampU(o.camU(x, y));
+    const placeShip = () => {
+      if (!shipEdge) { const [x, y] = o.nodeAt(0, 0), [dx, dy] = o.dirAt(0); o.marker(x - dx * 30, y - dy * 30, Math.atan2(dy, dx), null, 0); return; }
+      const [x, y, a] = ptOn(shipEdge, shipT);
+      o.marker(x, y, a, shipEdge, shipT);
+    };
+    const drawCam = () => { o.drawCam(uc); recenterBtn.hidden = homing || Math.abs(uc - homeU) < o.camEps; placeCards(); };
+    /** 카메라 자리: 고르는 중 = 지나온 노드와 고를 노드 사이 (고른 노드 · 마우스와 상관없이 고정), 아니면 지금 노드 조금 앞 */
+    const camOf = (S0: Now): number => {
+      const { step, prev, pj } = S0;
+      if (S0.choosing) { const b = o.nodeAt(step, S0.opts[0]), [dx, dy] = o.dirAt(step), a = step > 0 ? o.nodeAt(step - 1, prev) : [b[0] - dx * 110, b[1] - dy * 110]; return clampU((o.camU(a[0], a[1]) + o.camU(b[0], b[1])) / 2 + o.ahead[0]); }
+      const [x, y] = o.nodeAt(step, pj); return clampU(o.camU(x, y) + o.ahead[1]);
+    };
+    /** 노드 칠하기: ms 동안 (끝낸 노드가 먼저 옅어지고 새 현재 노드가 밝아진다 — 한 줄 항로와 같은 순서) */
+    const paintJobs = (jobs: { k: Tok; from: St; to: St; w: number[] }[], ms: number) => {
+      cancelAnimationFrame(praf);
+      const set = (T: number) => jobs.forEach((j) => { const u = Math.min(1, Math.max(0, (T - j.w[0]) / (j.w[1] - j.w[0]))); const v = u >= 1 ? j.to : lerp(j.from, j.to, ease(u)); apply(j.k, v); j.k.st = v; });
+      if (!ms || reduce) { set(1); return; }
+      const t0 = performance.now();
+      const f = (now: number) => { const T = Math.min(1, (now - t0) / ms); set(T); if (T < 1) praf = requestAnimationFrame(f); };
+      praf = requestAnimationFrame(f);
+    };
+    /** 연결선 칠하기 · 항로 표지 (lit = 표지가 켜지는 시각). 겹치는 연결선은 중요한 것이 위로 */
+    const styleEdges = (S0: Now, lit: number) => {
+      const { step, path, prev, pj } = S0;
+      let pickEdge: Edge | null = null;
+      const pri: [Edge, number][] = [];
+      for (const ed of edges) {
+        const taken = ed !== trail && (ed.i + 1 < step ? path[ed.i] === ed.j && path[ed.i + 1] === ed.k : ed.i + 1 === step && path[ed.i] === ed.j && ed.k === pj && !!S0.r.node);
+        const toPick = ed.i + 1 === step && ed.j === prev && ed.k === pj && !S0.r.node;
+        if (ed.i + 1 === step && ed.j === prev && ed.k === pj) pickEdge = ed;
+        const mine = ed === trail || (ed.i >= step && S0.mine[ed.i].has(ed.j) && S0.mine[ed.i + 1].has(ed.k)), alt = ed.i >= step ? S0.all[ed.i].has(ed.j) && S0.all[ed.i + 1].has(ed.k) : ed.i + 1 === step && ed.j === prev && S0.opts.includes(ed.k);
+        const kind = taken ? 'taken' : toPick ? 'toPick' : mine ? 'mine' : alt ? 'alt' : 'none', [stroke, sw, op, dash] = o.style[kind];
+        ed.e.style.stroke = stroke; ed.e.style.strokeWidth = String(sw); ed.e.style.opacity = String(op);
+        if (ed.c) { ed.c.style.strokeWidth = String(sw + (o.casing || 0)); ed.c.style.opacity = String(op); }
+        if (dash) ed.e.setAttribute('stroke-dasharray', dash); else ed.e.removeAttribute('stroke-dasharray');
+        pri.push([ed, ['none', 'alt', 'mine', 'taken', 'toPick'].indexOf(kind)]);
+        if (taken || toPick) { const b = beacon(ed); if (b) { if (b.on !== taken) { b.on = taken; b.dia.setAttribute('fill', taken ? C.sel : C.bg); b.dia.setAttribute('stroke', taken ? C.sel : C.t2); b.dot.setAttribute('fill', taken ? C.bg : C.t2); b.at = taken && lit && !reduce ? lit : 0; } b.g.style.display = ''; } }
+        else { const b = beacons.get(ed); if (b) b.g.style.display = 'none'; }
+      }
+      pri.sort((a, b) => a[1] - b[1]).forEach(([ed]) => { if (ed.c) ed.c.parentNode!.appendChild(ed.c); ed.e.parentNode!.appendChild(ed.e); });
+      if (trailC) trailC.parentNode!.appendChild(trailC);
+      trailEl.parentNode!.appendChild(trailEl);
+      return pickEdge;
+    };
+    const drawTrail = () => {
+      if (!trail || shipEdge !== trail) return;
+      const [x, y, , q] = ptOn(trail, shipT), p = line([...trail.pts.slice(0, q + 1), [x, y]]);
+      trailEl.setAttribute('points', p); trailC?.setAttribute('points', p);
+    };
+    const clearTrail = () => { trail = null; trailEl.setAttribute('points', ''); trailC?.setAttribute('points', ''); };
+    /** 다시 칠하기. anim = 칸이 바뀌면 표시기가 지나온 연결선을 따라 움직이며 길을 칠하고 카메라가 따라간다 (한 줄 항로의 이동 연출).
+     *  같은 칸에서 고른 노드만 바뀌면 (누름 · 마우스) 카메라는 그대로, 노드 · 연결선만 짧게 바뀐다 */
+    const update = (anim: boolean) => {
+      const S0 = stateNow(), { step, path } = S0, pj = S0.pj;
+      const key = `${step}|${S0.choosing}|${S0.r.node ? 1 : 0}`, big = key !== camKey;
+      camKey = key;
+      const jobs: { k: Tok; from: St; to: St; w: number[] }[] = [];
+      rows.forEach((row, i) => row.forEach((t, j) => {
+        const k = toks[i][j];
+        const kind = i < step ? (path[i] === j ? 'past' : 'gone') : i === step ? (j === pj ? 'cur' : S0.opts.includes(j) ? 'opt' : 'gone') : S0.mine[i].has(j) ? 'next' : S0.all[i].has(j) ? 'alt' : 'gone';
+        const v: St = kind === 'cur' ? { kind: 'cur', ...STATE.cur, col: C.sel, ncol: C.sel, bcol: C.sel }
+          : kind === 'opt' ? { kind: 'next', ...ST_OPT, col: C.sel, ncol: C.sel, bcol: C.sel }
+          : kind === 'past' ? { kind: 'past', ...STATE.past, col: C.t3, ncol: C.t3, bcol: C.t3 }
+          : kind === 'next' ? { kind: 'next', ...STATE.next, col: colOf(t), ncol: C.t3, bcol: C.t3 }
+          : kind === 'alt' ? { kind: 'next', ...STATE.next, op: .75, col: mix(colOf(t), C.bg, .35), ncol: C.t3, bcol: C.t3, bo: .4 }
+          : { kind: 'past', ...STATE.past, op: .22, col: C.t3, ncol: C.t3, bcol: C.t3, bo: .15 };
+        jobs.push({ k, from: k.st || v, to: v, w: kind === 'past' || kind === 'gone' ? [0, .55] : kind === 'cur' ? [.35, 1] : [0, 1] });
+        k.g.style.opacity = kind === 'gone' ? '.28' : kind === 'alt' ? '.8' : '1';
+        const keyNode = kind === 'cur' || kind === 'opt' || kind === 'next' || row.length === 1; // 고른 길에서 갈 수 있는 노드는 칸 번호를 보인다 (몇 번째 칸까지 이어지는지)
+        k.num.style.display = keyNode ? '' : 'none';
+        k.call.style.display = kind === 'cur' || kind === 'opt' || t === 'boss' || (row.length === 1 && i >= step) ? '' : 'none';
+        if ((kind === 'opt' || kind === 'cur') && !S0.r.node) k.g.dataset.pick = t; else delete k.g.dataset.pick;
+        o.nodeState?.(i, j, kind);
+      }));
+      paintJobs(jobs, anim ? (big ? 1100 : 240) : 0);
+      // 표시기: 고르는 중이면 지나온 노드에서 고른 노드 쪽으로 막 출발한 자리, 들어간 노드면 그 노드 바로 앞
+      const hu = camOf(S0), entered = step >= 2 ? edges.find((ed) => ed.i === step - 2 && ed.j === path[step - 2] && ed.k === path[step - 1]) : undefined;
+      const moving = anim && big && !reduce && !!entered && shipEdge?.i === step - 2; // 지난 칸에서 들어간 연결선 → 이번 칸 연결선
+      const from = moving ? entered! : shipEdge, fromT = moving && shipEdge !== entered ? .16 : shipT;
+      if (moving) trail = from;
+      const toEdge = styleEdges(S0, moving ? performance.now() + 320 : anim ? performance.now() : 0);
+      shipTo.edge = toEdge; shipTo.t = S0.r.node ? .86 : .16;
+      homeU = hu;
+      fx();
+      if (!big) { if (!homing) { shipEdge = shipTo.edge; shipT = shipTo.t; placeShip(); } return; } // 고른 노드만 바뀜: 카메라는 그대로
+      if (anim && !reduce) {
+        const u0 = uc; homing = true;
+        tween(moving ? 1100 : 700, (q) => {
+          if (moving && from) { if (q < .5) { shipEdge = from; shipT = fromT + (1 - fromT) * (q / .5); } else { shipEdge = shipTo.edge; shipT = shipTo.t * ((q - .5) / .5); } drawTrail(); }
+          else if (from && from === shipTo.edge) { shipEdge = from; shipT = fromT + (shipTo.t - fromT) * q; } // 같은 연결선 위 (고른 노드로 들어감)
+          else { shipEdge = shipTo.edge; shipT = shipTo.t; }
+          placeShip(); uc = u0 + (homeU - u0) * q; drawCam();
+        }, () => {
+          homing = false; shipEdge = shipTo.edge; shipT = shipTo.t; placeShip(); uc = homeU; drawCam();
+          if (trail) { clearTrail(); styleEdges(stateNow(), 0); }
+        });
+      } else { clearTrail(); shipEdge = shipTo.edge; shipT = shipTo.t; placeShip(); uc = homeU; drawCam(); }
+    };
+    // 마우스를 올린 노드: 그 노드로 가는 길을 미리 밝힌다 (카메라는 그대로). 누르면 바로 진행 — 터치는 한 번 누르면 고르고 고른 노드를 다시 누르면 진행
+    o.nodeLayer.addEventListener('pointerover', (e) => { if ((e as PointerEvent).pointerType !== 'mouse') return; const t = (e.target as Element).closest<SVGElement>('.rm-node')?.dataset.pick as NodeType | undefined; if (t && t !== hov) { hov = t; update(true); panel(); } });
+    o.nodeLayer.addEventListener('pointerout', (e) => { const pe = e as PointerEvent; if (pe.pointerType !== 'mouse' || !hov || pe.buttons) return; const to = (pe.relatedTarget as Element | null)?.closest?.('.rm-node') as SVGElement | null; if (to?.dataset.pick === hov) return; hov = null; update(true); panel(); }); // 누르는 순간 (포인터 캡처) 은 떠난 것이 아니다
+    onPick = (t, how) => { const p = last?.pick; if (!p) return; if (how === 'tap' && p.get() !== t) { p.set(t); return; } hov = null; const go = () => (p.go ? p.go(t) : p.set(t)); if (fs) closeFs(true, go); else go(); }; // 진행: 전체 화면은 지도 자리로 줄인 뒤 (미뤄 둔 보상 창 · 다음 화면이 보이게)
+    /** 노드 j 를 고르면 이어지는 칸들: 칸 번호 · 갈 수 있는 노드 · 끝 표시 (고르는 중 = 모든 길이 만나는 칸까지, 아니면 4칸) */
+    const aheadRows = (j: number, S0: Now) => {
+      const { step } = S0, me = rows.map(() => new Set<number>()), out: { i: number; ks: number[]; end: '' | '합류' | '보스' }[] = [];
+      me[step].add(j);
+      for (let i = step; i < R - 1; i++) for (const a of me[i]) for (const k of L[i]?.[a] || []) me[i + 1].add(k);
+      for (let i = step + 1; i < R; i++) {
+        const ks = [...me[i]].sort((a, b) => a - b), join = S0.choosing ? ks.length === 1 && S0.all[i].size === 1 : i >= step + 4 || i === R - 1;
+        out.push({ i, ks, end: join && S0.choosing ? (i === R - 1 ? '보스' : '합류') : '' });
+        if (join) break;
+      }
+      return out;
+    };
+    // 전체 화면 옆 패널: 고를 수 있는 길마다 그 길로 몇 번째 칸의 어느 노드까지 갈 수 있는지 (모든 길이 만나는 칸까지)
+    const branchPanel = () => {
+      const S0 = stateNow(), { step } = S0, ic = (t: NodeType) => `<span class="rp-ic" title="${NODE_NAME[t]}">${lineIcon(`n.${t}`, 'li')}</span>`;
+      const ahead = (j: number) => `<ol class="rp-ahead">${aheadRows(j, S0).map((r) => `<li${r.end ? ' class="rp-join"' : ''}><span class="mono rp-n">${pad2(r.i + 1)}</span>${r.ks.map((k) => ic(rows[r.i][k])).join('')}${r.end ? `<small>${r.end}</small>` : ''}</li>`).join('')}</ol>`;
+      const opts = S0.choosing ? S0.opts : [S0.pj], pt = rows[step][S0.pj];
+      const items = opts.map((j) => { const t = rows[step][j], on = j === S0.pj; return `<li class="rp-route${on ? ' on' : ''}"><button type="button" data-pick="${t}" aria-pressed="${on}"><span class="mono rp-n">${pad2(step + 1)}</span>${ic(t)}<b>${NODE_NAME[t]}</b>${on && S0.choosing ? '<small>고름</small>' : ''}</button>${ahead(j)}</li>`; }).join('');
+      return `<header><b>${o.name}</b><span class="chip" style="--c:var(--c-bad)">보스까지 <b class="mono">${R - 1 - step}</b>칸</span></header>
+        <h4>${S0.choosing ? '고를 수 있는 길' : '지금 길'}</h4><ol class="rp-routes">${items}</ol>
+        ${S0.choosing ? `<button class="btn primary rp-go" type="button" data-enter="${pt}">${pad2(step + 1)} ${NODE_NAME[pt]} 진입</button>` : ''}
+        <h4>범례</h4><dl class="rp-legend">${o.legend.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+        <p class="rp-keys"><kbd>Esc</kbd> 닫기 · 끌기 · 휠로 둘러보기</p>`;
+    };
+    // 갈림길 (전체 화면이 다 펼쳐진 뒤): 위쪽 가운데 제목 '경로를 선택하세요' + 고를 노드마다 옆 카드 (노드 이름 · 그 뒤로 이어지는 칸)
+    const cardHtml = (j: number, S0: Now) => {
+      const t = rows[S0.step][j], on = j === S0.pj, nm = (k: NodeType) => `${lineIcon(`n.${k}`, 'li')}${NODE_NAME[k]}`;
+      const ahead = aheadRows(j, S0).map((r) => `<span class="rmc-row"><i class="mono">${pad2(r.i + 1)}</i>${r.ks.map((k) => `<span>${nm(rows[r.i][k])}</span>`).join('<span class="rmc-or">·</span>')}${r.end ? `<em>${r.end}</em>` : ''}</span>`).join('');
+      return `<button type="button" class="rm-card${on ? ' on' : ''}" data-pick="${t}" data-j="${j}" aria-pressed="${on}" style="--c:${colOf(t)}"><span class="rmc-head"><i class="mono">${pad2(S0.step + 1)}</i>${lineIcon(`n.${t}`, 'li')}<b>${NODE_NAME[t]}</b></span><span class="rmc-ahead">${ahead}</span></button>`;
+    };
+    /** 카드 자리: 고를 노드마다 후보 자리 (바깥쪽 → 진행 방향 → 뒤 → 위 · 아래 · 좌우) 중에서 보이는 노드 · 다른 카드 · 안내 제목을 가장 덜 가리는 곳 */
+    function placeCards() {
+      if (cardsEl.hidden || !cardsEl.children.length) return;
+      const vr = viewEl.getBoundingClientRect(), step = stateNow().step, [tx, ty] = o.dirAt(step), top = guideEl.hidden ? 8 : guideEl.offsetTop + guideEl.offsetHeight + 8;
+      type Box = { l: number; t: number; r: number; b: number };
+      const rel = (r: DOMRect, pad: number): Box => ({ l: r.left - vr.left - pad, t: r.top - vr.top - pad, r: r.right - vr.left + pad, b: r.bottom - vr.top + pad });
+      const obst: Box[] = [];
+      toks.forEach((row) => row.forEach((k) => { if (k.g.style.opacity !== '.28') obst.push(rel(k.ring.getBoundingClientRect(), 8)); })); // 흐린 (갈 수 없는) 노드는 가려도 된다
+      const over = (a: Box, b: Box) => Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t));
+      const ps = Array.from(cardsEl.children).map((c) => { const r = toks[step][+(c as HTMLElement).dataset.j!].ring.getBoundingClientRect(); return { c: c as HTMLElement, x: r.x + r.width / 2 - vr.left, y: r.y + r.height / 2 - vr.top, rad: r.width / 2 }; });
+      const mx = ps.reduce((a, p) => a + p.x, 0) / ps.length, my = ps.reduce((a, p) => a + p.y, 0) / ps.length;
+      const placed: Box[] = [];
+      for (const p of ps) {
+        let ox = p.x - mx, oy = p.y - my; const n = Math.hypot(ox, oy);
+        if (n < 8) { ox = tx; oy = ty; } else { ox /= n; oy /= n; }
+        const w = p.c.offsetWidth, h = p.c.offsetHeight, gap = p.rad + 26;
+        const dirs = [[ox, oy], [tx, ty], [-tx, -ty], [0, Math.sign(oy) || -1], [0, -(Math.sign(oy) || -1)], [1, 0], [-1, 0]];
+        let best: Box | null = null, bestS = Infinity;
+        dirs.forEach(([dx, dy], i) => {
+          let l: number, t: number;
+          if (Math.abs(dx) >= Math.abs(dy)) { l = dx > 0 ? p.x + gap : p.x - gap - w; t = p.y - h / 2; } else { t = dy > 0 ? p.y + gap : p.y - gap - h; l = p.x - w / 2; }
+          l = Math.max(8, Math.min(vr.width - w - 8, l)); t = Math.max(top, Math.min(vr.height - h - 8, t));
+          const bx = { l, t, r: l + w, b: t + h };
+          const sc = obst.reduce((a, q) => a + over(bx, q), 0) + placed.reduce((a, q) => a + 2 * over(bx, q), 0) + i * 40; // 앞 후보일수록 조금 유리
+          if (sc < bestS) { bestS = sc; best = bx; }
+        });
+        placed.push(best!);
+        p.c.style.transform = `translate(${best!.l.toFixed(0)}px, ${best!.t.toFixed(0)}px)`;
+      }
+    }
+    const fx = () => {
+      const S0 = stateNow(), show = fs && fxOn && S0.choosing;
+      for (const j of S0.opts) toks[S0.step][j].call.style.display = show ? 'none' : ''; // 카드가 이름을 보이면 작은 호출 부호는 숨긴다
+      if (!show) { guideEl.hidden = true; cardsEl.hidden = true; cardsEl.innerHTML = ''; cardsEl.dataset.k = ''; return; }
+      guideEl.querySelector('small')!.textContent = `갈림길 · ${S0.opts.length}갈래`;
+      if (guideEl.hidden) { guideEl.hidden = false; replay(guideEl); }
+      const k = `${S0.r.seed}|${S0.r.phase}|${S0.step}`; // 카드는 칸마다 한 번 만든다 — 고른 노드 · 마우스가 바뀌면 표시만 바꾼다 (다시 그리면 등장 연출이 되풀이된다)
+      if (cardsEl.dataset.k !== k) { cardsEl.innerHTML = S0.opts.map((j) => cardHtml(j, S0)).join(''); cardsEl.dataset.k = k; }
+      for (const c of Array.from(cardsEl.children) as HTMLElement[]) { const on = +c.dataset.j! === S0.pj; c.classList.toggle('on', on); c.setAttribute('aria-pressed', String(on)); }
+      if (cardsEl.hidden) { cardsEl.hidden = false; replay(cardsEl); }
+      placeCards();
+    };
+    fxHook = fx;
+    cardsEl.addEventListener('click', (e) => { const b = (e.target as Element).closest<HTMLElement>('.rm-card'); if (b?.dataset.pick) onPick(b.dataset.pick as NodeType, (e as PointerEvent).pointerType === 'touch' ? 'tap' : 'click'); });
+    cardsEl.addEventListener('pointerover', (e) => { if (e.pointerType !== 'mouse') return; const t = (e.target as Element).closest<HTMLElement>('.rm-card')?.dataset.pick as NodeType | undefined; if (t && t !== hov) { hov = t; update(true); panel(); } });
+    cardsEl.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && hov) { hov = null; update(true); panel(); } });
+    // 패널의 길에 마우스를 올리면 지도에서도 그 길을 미리 밝힌다
+    panelEl?.addEventListener('pointerover', (e) => { if (e.pointerType !== 'mouse') return; const t = (e.target as Element).closest<HTMLElement>('[data-pick]')?.dataset.pick as NodeType | undefined; if (t && t !== hov && stateNow().choosing) { hov = t; update(true); panel(); } });
+    panelEl?.addEventListener('pointerleave', () => { if (hov) { hov = null; update(true); panel(); } });
+    update(false);
+    tick = (t) => {
+      o.tick?.(t);
+      const now = performance.now();
+      for (const [ed, b] of beacons) {
+        if (!b.on) { b.dot.setAttribute('fill-opacity', Math.sin(t / 260 - ed.i * 1.7) > .3 ? '1' : '.15'); continue; }
+        b.dot.setAttribute('fill-opacity', '1');
+        if (!b.at || now < b.at) continue;
+        const k = (now - b.at) / 900, k2 = (now - b.at) / 2200;
+        b.wave.setAttribute('r', String(4 + 20 * Math.min(1, k))); b.wave.setAttribute('opacity', Math.max(0, 1 - k).toFixed(2));
+        b.lab.setAttribute('opacity', (k2 < .7 ? Math.min(1, k2 * 6) : Math.max(0, (1 - k2) / .3)).toFixed(2));
+        if (k2 >= 1) { b.at = 0; b.wave.setAttribute('opacity', '0'); b.lab.setAttribute('opacity', '0'); }
+      }
+    };
+    const off = dragger((dx) => { uc = clampU(uc - dx / o.dragPer); drawCam(); });
+    return {
+      name: o.name, legend: o.legend, panel: branchPanel,
+      look(i: number) { const [x, y] = o.nodeAt(i, 0), u0 = uc, want = ucOf(x, y); tween(700, (k) => { uc = u0 + (want - u0) * k; drawCam(); }); },
+      go() { const u0 = uc; homing = true; tween(600, (k) => { uc = u0 + (homeU - u0) * k; drawCam(); }, () => { homing = false; drawCam(); }); },
+      update() { update(true); },
+      stop: off,
+      /** 지금 표시기가 있는 연결선 · 고른 노드 (장면의 길 안내 표시용) */
+      now: () => ({ S0: stateNow(), shipEdge, shipT, edges }),
+    };
   }
   function trackRun(o: RunOpt) {
     const RL = o.routeLayer, tmp = el('path', { fill: 'none' }, RL) as SVGGeometryElement, S = [0];
@@ -1422,75 +1473,65 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   function gridScene() {
     const VB = stageBase(narrow ? [180, 30, 440, 400] : [0, 0, 800, 450]);
     const rnd = rng(54 + run.phase), rr = rng(58 + run.phase), SZ = 26, OX = 150, OY = 205, M_PER = 20, PIN = 58; // 격자 1칸 = 20m (구획 3칸 = 60m)
-    const rows: number[] = []; // 노드마다 가로 몇 줄 위 · 아래로 꺾이는가 (보스는 첫 노드와 같은 줄)
-    for (let i = 0, x = 0; i < N; i++) { if (i === N - 1) x = 0; else if (i && rr() < .7) x = Math.max(-2, Math.min(2, x + (rr() < .5 ? -1 : 1))); rows.push(x); }
     const iso = (gx: number, gy: number, z = 0) => [OX + (gx - gy) * SZ * .866, OY + (gx + gy) * SZ * .5 - z];
     const world = el('g', {}, stage), sky = el('g', {}, stage), fixed = el('g', {}, stage);
-    const GX = (i: number) => i * 3, GY = (i: number) => rows[i] * 3;
-    const gx0 = -6, gx1 = GX(N - 1) + 8, gy0 = -9, gy1 = 9;
     const ground = el('g', {}, world), bldg = el('g', {}, world), routeG = el('g', {}, world), over = el('g', {}, world); // 안내 경로 · 핀은 집 위 (늘 보이게)
     const poly = (a: number[][], fill: string, stroke?: string, p: Element = bldg) => el('polygon', { points: pts(a), fill, stroke: stroke || 'none', 'stroke-width': .6 }, p);
-    poly([iso(gx0, gy0), iso(gx1, gy0), iso(gx1, gy1), iso(gx0, gy1)], C.panel, undefined, ground);
-    for (let g = gx0; g <= gx1; g += 3) poly([iso(g - .3, gy0), iso(g + .3, gy0), iso(g + .3, gy1), iso(g - .3, gy1)], C.panel2, undefined, ground);
-    for (let g = gy0; g <= gy1; g += 3) poly([iso(gx0, g - .3), iso(gx1, g - .3), iso(gx1, g + .3), iso(gx0, g + .3)], C.panel2, undefined, ground);
-    const isoBox = (x: number, y: number, w: number, d: number, h: number) => {
-      const a = iso(x, y + d), b = iso(x + w, y + d), c = iso(x + w, y), A = iso(x, y + d, h), B = iso(x + w, y + d, h), Cc = iso(x + w, y, h), D = iso(x, y, h);
-      poly([a, b, B, A], C.panel2, C.line); poly([b, c, Cc, B], mix(C.panel2, C.bg, .3), C.line); poly([A, B, Cc, D], C.line, C.line);
-    };
-    const isoHouse = (x: number, y: number) => {
-      const w = .8, d = .7, h = 10, rh = 8;
-      const a = iso(x, y + d), b = iso(x + w, y + d), c = iso(x + w, y), A = iso(x, y + d, h), B = iso(x + w, y + d, h), Cc = iso(x + w, y, h), D = iso(x, y, h);
-      poly([a, b, B, A], C.panel2, C.line); poly([b, c, Cc, B], mix(C.panel2, C.bg, .35), C.line);
-      const R1 = iso(x, y + d / 2, h + rh), R2 = iso(x + w, y + d / 2, h + rh);
-      poly([A, B, R2, R1], C.t3, C.line); poly([D, Cc, R2, R1], mix(C.t3, C.bg, .3), C.line);
-    };
-    const items: { k: number; f(): void }[] = [], civGX = GX(N - 1);
-    for (let bx = gx0; bx < gx1; bx += 3) for (let by = gy0; by < gy1; by += 3) {
-      if (bx === civGX && by === -6) { items.push({ k: bx + by + 3, f: () => { isoBox(bx + .6, by + .6, 1.8, 1.8, 30); const [x, y] = iso(bx + 1.5, by + 1.5, 46); txt(bldg, x, y, 'CIV-01 행정 구역', ko({ 'text-anchor': 'middle', 'font-size': 7, fill: C.t2 })); } }); continue; }
-      if (rnd() < .1) { // 공원: 나무 (짧은 줄기 + 단색 수관 — 둥근 활엽수 · 두 단 침엽수)
-        const trees = Array.from({ length: 7 }, () => [bx + .5 + rnd() * 2, by + .5 + rnd() * 2, rnd() < .55 ? 1 : 0]).sort((a, b) => a[0] + a[1] - b[0] - b[1]);
-        for (const [tx, ty, round] of trees) items.push({ k: tx + ty, f: () => {
-          const [x, y] = iso(tx, ty);
-          el('rect', { x: x - 1, y: y - 4, width: 2, height: 4, fill: C.t3 }, bldg);
-          if (round) el('path', { d: `M${x - 6} ${y - 4}a3.4 3.4 0 0 1 .6 -5.6a4.4 4.4 0 0 1 8 -1.6a3.6 3.6 0 0 1 3.4 5.4a3 3 0 0 1 -2.4 1.8Z`, fill: C.line }, bldg);
-          else el('path', { d: `M${x - 5.5} ${y - 3}L${x - 2} ${y - 8}H${x - 4}L${x} ${y - 16}L${x + 4} ${y - 8}H${x + 2}L${x + 5.5} ${y - 3}Z`, fill: C.line }, bldg);
-        } });
-        continue;
+    /** 교외 격자: 땅 · 도로 (3칸마다) · 집 · 공원 · 행정 구역 (보스 노드 옆 구획) */
+    const city = (gx0: number, gx1: number, gy0: number, gy1: number, civ: number[]) => {
+      poly([iso(gx0, gy0), iso(gx1, gy0), iso(gx1, gy1), iso(gx0, gy1)], C.panel, undefined, ground);
+      for (let g = gx0; g <= gx1; g += 3) poly([iso(g - .3, gy0), iso(g + .3, gy0), iso(g + .3, gy1), iso(g - .3, gy1)], C.panel2, undefined, ground);
+      for (let g = gy0; g <= gy1; g += 3) poly([iso(gx0, g - .3), iso(gx1, g - .3), iso(gx1, g + .3), iso(gx0, g + .3)], C.panel2, undefined, ground);
+      const isoBox = (x: number, y: number, w: number, d: number, h: number) => {
+        const a = iso(x, y + d), b = iso(x + w, y + d), c = iso(x + w, y), A = iso(x, y + d, h), B = iso(x + w, y + d, h), Cc = iso(x + w, y, h), D = iso(x, y, h);
+        poly([a, b, B, A], C.panel2, C.line); poly([b, c, Cc, B], mix(C.panel2, C.bg, .3), C.line); poly([A, B, Cc, D], C.line, C.line);
+      };
+      const isoHouse = (x: number, y: number) => {
+        const w = .8, d = .7, h = 10, rh = 8;
+        const a = iso(x, y + d), b = iso(x + w, y + d), c = iso(x + w, y), A = iso(x, y + d, h), B = iso(x + w, y + d, h), Cc = iso(x + w, y, h), D = iso(x, y, h);
+        poly([a, b, B, A], C.panel2, C.line); poly([b, c, Cc, B], mix(C.panel2, C.bg, .35), C.line);
+        const R1 = iso(x, y + d / 2, h + rh), R2 = iso(x + w, y + d / 2, h + rh);
+        poly([A, B, R2, R1], C.t3, C.line); poly([D, Cc, R2, R1], mix(C.t3, C.bg, .3), C.line);
+      };
+      const items: { k: number; f(): void }[] = [];
+      for (let bx = gx0; bx < gx1; bx += 3) for (let by = gy0; by < gy1; by += 3) {
+        if (bx === civ[0] && by === civ[1]) { items.push({ k: bx + by + 3, f: () => { isoBox(bx + .6, by + .6, 1.8, 1.8, 30); const [x, y] = iso(bx + 1.5, by + 1.5, 46); txt(bldg, x, y, 'CIV-01 행정 구역', ko({ 'text-anchor': 'middle', 'font-size': 7, fill: C.t2 })); } }); continue; }
+        if (rnd() < .1) { // 공원: 나무 (짧은 줄기 + 단색 수관 — 둥근 활엽수 · 두 단 침엽수)
+          const trees = Array.from({ length: 7 }, () => [bx + .5 + rnd() * 2, by + .5 + rnd() * 2, rnd() < .55 ? 1 : 0]).sort((a, b) => a[0] + a[1] - b[0] - b[1]);
+          for (const [tx, ty, round] of trees) items.push({ k: tx + ty, f: () => {
+            const [x, y] = iso(tx, ty);
+            el('rect', { x: x - 1, y: y - 4, width: 2, height: 4, fill: C.t3 }, bldg);
+            if (round) el('path', { d: `M${x - 6} ${y - 4}a3.4 3.4 0 0 1 .6 -5.6a4.4 4.4 0 0 1 8 -1.6a3.6 3.6 0 0 1 3.4 5.4a3 3 0 0 1 -2.4 1.8Z`, fill: C.line }, bldg);
+            else el('path', { d: `M${x - 5.5} ${y - 3}L${x - 2} ${y - 8}H${x - 4}L${x} ${y - 16}L${x + 4} ${y - 8}H${x + 2}L${x + 5.5} ${y - 3}Z`, fill: C.line }, bldg);
+          } });
+          continue;
+        }
+        for (const [dx, dy] of [[.55, .55], [1.55, .55], [.55, 1.55], [1.55, 1.55]]) items.push({ k: bx + dx + by + dy, f: () => isoHouse(bx + dx, by + dy) });
       }
-      for (const [dx, dy] of [[.55, .55], [1.55, .55], [.55, 1.55], [1.55, 1.55]]) items.push({ k: bx + dx + by + dy, f: () => isoHouse(bx + dx, by + dy) });
-    }
-    items.sort((p, q) => p.k - q.k).forEach((h) => h.f());
-    // 경유점 (격자) → 화면 경로 · 회전 안내
-    type Wp = { gx: number; gy: number; node?: number; x: number; y: number; s: number };
-    const wps: Wp[] = [];
-    for (let i = 0; i < N; i++) { wps.push({ gx: GX(i), gy: GY(i), node: i, x: 0, y: 0, s: 0 }); if (i < N - 1) { wps.push({ gx: GX(i) + 1.5, gy: GY(i), x: 0, y: 0, s: 0 }); wps.push({ gx: GX(i) + 1.5, gy: GY(i + 1), x: 0, y: 0, s: 0 }); } }
-    let acc = 0;
-    wps.forEach((w, k) => { [w.x, w.y] = iso(w.gx, w.gy); if (k) acc += Math.hypot(w.gx - wps[k - 1].gx, w.gy - wps[k - 1].gy) * SZ; w.s = acc; });
-    const ST = ['느릅나무로', '단풍나무로', '중앙대로', '참나무로', '자작나무로'];
-    const turns: { s: number; dir: 'R' | 'L'; street: string }[] = [];
-    for (let k = 1; k < wps.length - 1; k++) {
-      const a = wps[k - 1], b = wps[k], c = wps[k + 1], ux = b.x - a.x, uy = b.y - a.y, vx = c.x - b.x, vy = c.y - b.y;
-      if (Math.hypot(ux, uy) < 1 || Math.hypot(vx, vy) < 1) continue;
-      const cr = ux * vy - uy * vx;
-      if (Math.abs(cr) < 1) continue;
-      const street = Math.abs(c.gy - b.gy) > .1 ? `AVE ${String.fromCharCode(65 + Math.round((b.gx - gx0) / 3))}` : ST[Math.max(0, Math.min(4, Math.round(b.gy / 3) + 2))];
-      turns.push({ s: b.s, dir: cr > 0 ? 'R' : 'L', street });
-    }
-    const segs: string[] = []; { let buf = ''; for (let k = 1; k < wps.length; k++) { buf += ` L${wps[k].x.toFixed(1)} ${wps[k].y.toFixed(1)}`; if (wps[k].node != null) { segs.push(buf); buf = ''; } } }
-    const meters = (s: number) => Math.round(s / SZ * M_PER);
-    const fmtM = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${Math.max(0, Math.round(m / 10) * 10)}m`);
+      items.sort((p, q) => p.k - q.k).forEach((h) => h.f());
+    };
     // 핀: 토큰 아래 줄기 · 아래를 가리키는 화살촉 · 땅 위 고리
-    types.forEach((_, i) => {
-      const [x, y] = iso(GX(i), GY(i)), g = el('g', {}, over);
+    const pin = (gx: number, gy: number) => {
+      const [x, y] = iso(gx, gy), g = el('g', {}, over);
       el('line', { x1: x, y1: y - PIN + 21, x2: x, y2: y - 7, stroke: C.t2, 'stroke-width': 1.2 }, g);
       el('path', { d: `M${x - 4} ${y - 11}L${x} ${y - 5}L${x + 4} ${y - 11}`, fill: 'none', stroke: C.t2, 'stroke-width': 1.4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
       el('ellipse', { cx: x, cy: y, rx: 9, ry: 5, fill: 'none', stroke: C.t2, 'stroke-width': 1.2 }, g);
-    });
-    // 차 · 비행기 (그림자)
-    const cars = Array.from({ length: 14 }, () => { const g = el('g', {}, bldg); el('rect', { x: -4, y: -2.5, width: 8, height: 5, rx: 1.5, fill: C.t2 }, g); return { g, along: rnd() < .6, lane: (Math.floor(rnd() * 6) - 3) * 3, o: rnd() * 40, v: (rnd() < .5 ? 1 : -1) * .0016 }; });
+      return g;
+    };
+    const ST = ['너도밤나무로', '느릅나무로', '단풍나무로', '중앙대로', '참나무로', '자작나무로', '버드나무로'];
+    const meters = (s: number) => Math.round(s / SZ * M_PER);
+    const fmtM = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${Math.max(0, Math.round(m / 10) * 10)}m`);
+    // 차 · 비행기 (그림자) · 흐르는 진행 화살표 (남은 경로 위)
+    const carsIn = (gx0: number, gx1: number, gy0: number, gy1: number, n: number) => Array.from({ length: n }, () => { const g = el('g', {}, bldg); el('rect', { x: -4, y: -2.5, width: 8, height: 5, rx: 1.5, fill: C.t2 }, g); return { g, along: rnd() < .6, lane: (Math.floor(rnd() * ((gy1 - gy0) / 3)) + gy0 / 3) * 3, cross: (Math.floor(rnd() * ((gx1 - gx0) / 3)) + gx0 / 3) * 3, o: rnd() * 40, v: (rnd() < .5 ? 1 : -1) * .0016, gx0, gx1, gy0, gy1 }; });
+    type Car = ReturnType<typeof carsIn>[number];
+    const moveCars = (cars: Car[], t: number) => { for (const c of cars) { const p = c.along ? iso(mod(c.o + t * c.v, c.gx1 - c.gx0) + c.gx0, c.lane + .15) : iso(c.cross + .15, mod(c.o + t * c.v, c.gy1 - c.gy0) + c.gy0); c.g.setAttribute('transform', `translate(${p[0].toFixed(1)} ${p[1].toFixed(1)}) rotate(${c.along ? 30 : -30})`); } };
     const PL = 'M14 0L4 -2L-2 -12H-5L-1 -2H-9L-12 -6H-14L-12 0L-14 6H-12L-9 2H-1L-5 12H-2L4 2Z';
     const shadow = el('path', { d: PL, fill: C.line, opacity: .5 }, sky), plane = el('path', { d: PL, fill: C.t2 }, sky);
-    // 흐르는 진행 화살표 (남은 경로 위)
+    const flyPlane = (t: number) => {
+      const k = mod(t, 22000) / 22000, px = VB[0] - 60 + k * (VB[2] + 160), py = VB[1] + VB[3] * .82 - k * VB[3] * .6; // 22초마다 한 번, 화면을 비스듬히
+      plane.setAttribute('transform', `translate(${px.toFixed(1)} ${py.toFixed(1)}) rotate(-28)`);
+      shadow.setAttribute('transform', `translate(${(px + 26).toFixed(1)} ${(py + 34).toFixed(1)}) rotate(-28)`);
+    };
     const flow = Array.from({ length: 16 }, () => el('path', { d: 'M-3 -3 1 0-3 3', fill: 'none', stroke: C.bg, 'stroke-width': 1.6, 'stroke-linecap': 'round' }, over));
     // 헤드업 안내: 왼쪽 위 회전 안내 (화살표 · 남은 거리 · 길 이름), 아래 진행 막대 (다음 노드 · 보스까지)
     const ARROW = { R: 'M-5 9V1Q-5 -5 1 -5H6M2 -9 6 -5 2 -1', L: 'M5 9V1Q5 -5 -1 -5H-6M-2 -9 -6 -5 -2 -1', F: 'M-4 9V-9M-4 -9H6L3 -5 6 -1H-4' };
@@ -1506,6 +1547,31 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     el('rect', { x: 0, y: 37, width: BW, height: 3, fill: C.line }, bar);
     const pb = el('rect', { x: 0, y: 37, width: 0, height: 3, fill: C.info }, bar);
     corners(fixed, VB);
+    if (run.links) return gridBranch();
+
+    const rows: number[] = []; // 노드마다 가로 몇 줄 위 · 아래로 꺾이는가 (보스는 첫 노드와 같은 줄)
+    for (let i = 0, x = 0; i < N; i++) { if (i === N - 1) x = 0; else if (i && rr() < .7) x = Math.max(-2, Math.min(2, x + (rr() < .5 ? -1 : 1))); rows.push(x); }
+    const GX = (i: number) => i * 3, GY = (i: number) => rows[i] * 3;
+    const gx0 = -6, gx1 = GX(N - 1) + 8, gy0 = -9, gy1 = 9;
+    city(gx0, gx1, gy0, gy1, [GX(N - 1), -6]);
+    // 경유점 (격자) → 화면 경로 · 회전 안내
+    type Wp = { gx: number; gy: number; node?: number; x: number; y: number; s: number };
+    const wps: Wp[] = [];
+    for (let i = 0; i < N; i++) { wps.push({ gx: GX(i), gy: GY(i), node: i, x: 0, y: 0, s: 0 }); if (i < N - 1) { wps.push({ gx: GX(i) + 1.5, gy: GY(i), x: 0, y: 0, s: 0 }); wps.push({ gx: GX(i) + 1.5, gy: GY(i + 1), x: 0, y: 0, s: 0 }); } }
+    let acc = 0;
+    wps.forEach((w, k) => { [w.x, w.y] = iso(w.gx, w.gy); if (k) acc += Math.hypot(w.gx - wps[k - 1].gx, w.gy - wps[k - 1].gy) * SZ; w.s = acc; });
+    const turns: { s: number; dir: 'R' | 'L'; street: string }[] = [];
+    for (let k = 1; k < wps.length - 1; k++) {
+      const a = wps[k - 1], b = wps[k], c = wps[k + 1], ux = b.x - a.x, uy = b.y - a.y, vx = c.x - b.x, vy = c.y - b.y;
+      if (Math.hypot(ux, uy) < 1 || Math.hypot(vx, vy) < 1) continue;
+      const cr = ux * vy - uy * vx;
+      if (Math.abs(cr) < 1) continue;
+      const street = Math.abs(c.gy - b.gy) > .1 ? `AVE ${String.fromCharCode(65 + Math.round((b.gx - gx0) / 3))}` : ST[Math.max(0, Math.min(6, Math.round(b.gy / 3) + 3))];
+      turns.push({ s: b.s, dir: cr > 0 ? 'R' : 'L', street });
+    }
+    const segs: string[] = []; { let buf = ''; for (let k = 1; k < wps.length; k++) { buf += ` L${wps[k].x.toFixed(1)} ${wps[k].y.toFixed(1)}`; if (wps[k].node != null) { segs.push(buf); buf = ''; } } }
+    types.forEach((_, i) => pin(GX(i), GY(i)));
+    const cars = carsIn(gx0, gx1, -9, 9, 14);
     titleBlock(fixed, VB, 'COUNTYFALL · 세피아 교외 길 안내', [`카운티폴 세피아 교외 · 페이즈 ${run.phase}`, `${N} NODES`, '표준 주택 모듈 R-1', `격자 1칸 ${M_PER}m · 회전 ${turns.length}곳`]);
     let route: SVGGeometryElement | null = null, total = 0, S: number[] = [], sp = 0;
     const sc = trackRun({
@@ -1525,10 +1591,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         pb.setAttribute('width', (BW * s / (total || 1)).toFixed(1));
       },
       tick(t) {
-        for (const c of cars) { const p = c.along ? iso(mod(c.o + t * c.v, gx1 - gx0) + gx0, c.lane + .15) : iso(c.lane + .15, mod(c.o + t * c.v, gy1 - gy0) + gy0); c.g.setAttribute('transform', `translate(${p[0].toFixed(1)} ${p[1].toFixed(1)}) rotate(${c.along ? 30 : -30})`); }
-        const k = mod(t, 22000) / 22000, px = VB[0] - 60 + k * (VB[2] + 160), py = VB[1] + VB[3] * .82 - k * VB[3] * .6; // 22초마다 한 번, 화면을 비스듬히
-        plane.setAttribute('transform', `translate(${px.toFixed(1)} ${py.toFixed(1)}) rotate(-28)`);
-        shadow.setAttribute('transform', `translate(${(px + 26).toFixed(1)} ${(py + 34).toFixed(1)}) rotate(-28)`);
+        moveCars(cars, t); flyPlane(t);
         if (!route) return;
         for (let j = 0; j < flow.length; j++) {
           const s = sp + 12 + mod(t * .03, 22) + j * 22;
@@ -1542,5 +1605,75 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       ...sc, name: '카운티폴 세피아 교외',
       legend: [['파란 길', '남은 경로 (흐르는 화살표 = 진행 방향)'], ['회색 길', '지나온 경로'], ['핀', '노드 자리 (땅 위 고리가 정확한 지점)'], ['회전 안내', '다음 회전 · 남은 거리 (격자 1칸 20m)'], ['CIV-01', '행정 구역 · 보스'], ['나무', '공원 구획']],
     };
+
+    /** 분기 항로 (교외 격자): 칸 사이 = 2구획 (6칸), 갈래 사이 = 2구획. 갈래 = 나란한 도로, 연결선 = 도로를 따라 가다 다음 교차로 사이 길 (AVE) 에서 꺾는 길.
+     *  갈림길 = 교차로에서 좌회전 · 직진 · 우회전. 지나온 길 = 회색 굵은 길, 고른 노드에서 이어지는 길 = 파란 안내 경로, 갈 수 있는 다른 길 = 옅게 */
+    function gridBranch() {
+      const R = run.map.length, D = 6, LG = 6;
+      const GXb = (i: number) => i * D, GYb = (i: number, j: number) => (j - (run.map[i].length - 1) / 2) * LG;
+      const gx0 = -6, gx1 = GXb(R - 1) + 9, gy0 = -12, gy1 = 12;
+      city(gx0, gx1, gy0, gy1, [GXb(R - 1), -6]);
+      const pins = run.map.map((row, i) => row.map((_, j) => pin(GXb(i), GYb(i, j))));
+      const casingG = el('g', {}, routeG), edgeG = el('g', {}, routeG);
+      const cars = carsIn(gx0, gx1, gy0, gy1, 24);
+      const fwd = (() => { const a = iso(0, 0), b = iso(1, 0), n = Math.hypot(b[0] - a[0], b[1] - a[1]); return [(b[0] - a[0]) / n, (b[1] - a[1]) / n]; })();
+      const puck = el('g', {}, over);
+      el('circle', { r: 9, fill: C.info, stroke: C.bg, 'stroke-width': 2.5 }, puck);
+      const puckDir = el('path', { d: 'M-4 -4.5 6 0-4 4.5-1.5 0Z', fill: C.bg }, puck);
+      let cut = 0; for (let i = 0; i < R - 1; i++) cut += run.map[i].length > 1 || run.map[i + 1].length > 1 ? 1 : 0;
+      titleBlock(fixed, VB, 'COUNTYFALL · 세피아 교외 길 안내', [`세피아 교외 · 페이즈 ${run.phase}`, `${R} ROWS · 2구획 간격`, '표준 주택 모듈 R-1', `격자 1칸 ${M_PER}m · 갈림 교차로 ${cut}곳`]);
+      /** 연결선 (i, j) → (i+1, k) 의 회전: 도로를 따라 1구획 가서 AVE 로 꺾고, 다음 칸 줄에서 다시 꺾는다 (같은 줄이면 직진) */
+      const legs = (i: number, j: number, k: number) => {
+        const ga = GXb(i), ya = GYb(i, j), yb = GYb(i + 1, k), len = D + Math.abs(yb - ya);
+        if (Math.abs(yb - ya) < .1) return { len, turns: [] as { s: number; dir: 'R' | 'L'; street: string }[] };
+        const a = iso(ga, ya), b = iso(ga + 3, ya), c = iso(ga + 3, yb), d = iso(ga + D, yb);
+        const side = (p: number[], q: number[], r: number[]): 'R' | 'L' => ((q[0] - p[0]) * (r[1] - q[1]) - (q[1] - p[1]) * (r[0] - q[0]) > 0 ? 'R' : 'L');
+        return { len, turns: [{ s: 3, dir: side(a, b, c), street: `AVE ${String.fromCharCode(65 + Math.round((ga + 3 - gx0) / 3))}` }, { s: 3 + Math.abs(yb - ya), dir: side(b, c, d), street: ST[Math.max(0, Math.min(6, Math.round(yb / 3) + 3))] }] };
+      };
+      let shipEdge: { i: number; j: number; k: number; pts: number[][] } | null = null, shipT = 0;
+      const kit = branchKit({
+        name: '카운티폴 세피아 교외',
+        legend: [['파란 길', '고른 노드에서 이어지는 길 (점선 = 지금 고른 다음 구간 · 흐르는 화살표 = 진행 방향)'], ['회색 굵은 길', '지나온 길'], ['옅은 길', '갈 수 있는 다른 길'], ['교차로', '갈림길 = 교차로에서 좌회전 · 직진 · 우회전'], ['핀', '노드 자리 (땅 위 고리가 정확한 지점)'], ['회전 안내', '다음 회전 · 남은 거리 (격자 1칸 20m)'], ['CIV-01', '행정 구역 · 보스'], ['나무', '공원 구획']],
+        edgeLayer: edgeG, casingLayer: casingG, nodeLayer: over, casing: 5,
+        nodeAt: (i, j) => { const p = iso(GXb(i), GYb(i, j)); return [p[0], p[1] - PIN]; },
+        dirAt: () => fwd,
+        edgePts(i, j, k) {
+          const ga = GXb(i), ya = GYb(i, j), yb = GYb(i + 1, k);
+          return Math.abs(yb - ya) < .1 ? [iso(ga, ya), iso(ga + D, yb)] : [iso(ga, ya), iso(ga + 3, ya), iso(ga + 3, yb), iso(ga + D, yb)];
+        },
+        style: { taken: [C.t3, 5.5, 1, ''], toPick: [C.info, 5.5, 1, '9 6'], mine: [C.info, 4.5, .9, ''], alt: [C.t2, 3, .5, ''], none: [C.line, 2, .45, '2 5'] },
+        camU: (x, y) => ((x - OX) / (SZ * .866) + (y + PIN - OY) / (SZ * .5)) / 2, camRange: [-2, GXb(R - 1) + 2], ahead: [1, 1.5], camEps: .3, dragPer: SZ * .866,
+        drawCam(u) { const P = iso(u, 0, PIN * .5); world.setAttribute('transform', `translate(${(VB[0] + VB[2] / 2 - P[0]).toFixed(1)} ${(VB[1] + VB[3] / 2 - P[1]).toFixed(1)})`); },
+        marker(x, y, a, ed, t) {
+          puck.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); puckDir.setAttribute('transform', `rotate(${(a * 180 / Math.PI).toFixed(1)})`);
+          shipEdge = ed; shipT = t;
+          // 길 안내: 이 연결선에서 다음 회전 · 남은 거리, 다음 노드 · 보스까지
+          if (!ed) { arrow.setAttribute('d', ARROW.F); dist.textContent = '출발'; road.textContent = `N01 ${NODE_NAME[run.map[0][0]]}`; b1.textContent = ''; b2.textContent = ''; pb.setAttribute('width', '0'); return; }
+          const g = legs(ed.i, ed.j, ed.k), s = t * g.len, m = g.turns.find((x) => x.s > s + .05), nt = run.map[ed.i + 1][ed.k];
+          arrow.setAttribute('d', ARROW[m ? m.dir : 'F']);
+          dist.textContent = fmtM(((m ? m.s : g.len) - s) * M_PER);
+          road.textContent = m ? `${m.street} 방면 ${m.dir === 'R' ? '우회전' : '좌회전'}` : `직진 · N${pad2(ed.i + 2)} ${NODE_NAME[nt]}`;
+          const left = ((R - 2 - ed.i) * D + g.len - s) * M_PER;
+          b1.textContent = `다음 · N${pad2(ed.i + 2)} ${NODE_NAME[nt]} ${fmtM((g.len - s) * M_PER)}`;
+          b2.textContent = `보스까지 ${fmtM(left)} · 도착 예정 ${Math.max(1, Math.round(left / 500))}분 (30km/h)`;
+          pb.setAttribute('width', (BW * Math.min(1, (ed.i + t) / (R - 1))).toFixed(1));
+        },
+        nodeState(i, j, kind) { pins[i][j].style.opacity = kind === 'gone' ? '.22' : kind === 'alt' ? '.6' : '1'; },
+        tick(t) {
+          moveCars(cars, t); flyPlane(t);
+          // 흐르는 진행 화살표: 표시기가 있는 연결선의 남은 구간
+          const pts0 = shipEdge?.pts;
+          const seg = pts0 ? pts0.slice(1).map((b, q) => Math.hypot(b[0] - pts0[q][0], b[1] - pts0[q][1])) : [], tot = seg.reduce((a, b) => a + b, 0);
+          for (let j = 0; j < flow.length; j++) {
+            const d0 = shipT * tot + 12 + mod(t * .03, 22) + j * 22;
+            if (!pts0 || d0 >= tot) { flow[j].setAttribute('opacity', '0'); continue; }
+            let d = d0, q = 0; while (q < seg.length - 1 && d > seg[q]) { d -= seg[q]; q++; }
+            const a = pts0[q], b = pts0[q + 1], r = seg[q] ? d / seg[q] : 0;
+            flow[j].setAttribute('opacity', '.9'); flow[j].setAttribute('transform', `translate(${(a[0] + (b[0] - a[0]) * r).toFixed(1)} ${(a[1] + (b[1] - a[1]) * r).toFixed(1)}) rotate(${(Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI).toFixed(1)})`);
+          }
+        },
+      });
+      return kit;
+    }
   }
 }

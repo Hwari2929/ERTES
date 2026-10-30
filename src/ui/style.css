@@ -725,6 +725,7 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 .rmap .rm-guide small { font-family: var(--f-mono); font-size: var(--fs-sm); letter-spacing: .08em; color: var(--c-select); }
 .rmap .rm-guide h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: var(--fs-3xl); line-height: 1.15; letter-spacing: .02em; color: var(--c-text); }
 .rmap .rm-guide.in { animation: rm-guide-in .45s ease-out both; }
+.rmap .rm-guide[hidden] { display: none; } /* display: grid 가 hidden 을 덮지 않게 */
 @keyframes rm-guide-in { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
 /* 고를 노드 옆 카드: 노드 이름 (크게) + 그 뒤로 이어지는 칸 (칸 번호 · 노드). 노드들의 바깥쪽에 붙는다 (자리는 routemap.ts placeCards) */
 .rmap .rm-cards { position: absolute; inset: 0; pointer-events: none; }
