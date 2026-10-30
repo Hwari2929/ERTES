@@ -1,7 +1,7 @@
 // 지도 화면 항로도 (전술 스코프): 리빈 낙원동 = 구체 내벽 회전, 베르타–산노디스 물류망 = 대각 진행 원 궤도,
 // 라이덴 제34블록 = 고저 단면 (기둥 위 보행 데크 · 아래 거리의 다층 상가 · 여우 신사), 카운티폴 세피아 교외 = 등각 교외 길 안내 (핀 · 헤드업 내비),
 // 금고선 히페리온호 = 순찰 스코프 (궤도에서 내려다본 선체 · 대각 진행축 · 탐지선이 쓸 때만 드러나는 경비 접촉),
-// 황무지 성계 = 불모 행성 · 메트로 타운 정거장 사이 직선 + 곡선 항로 (은하 열차가 이따금 지나감), 캣휠 그늘 성계 = 끝없는 캣휠 · 성운 사이 직선 항로 (물류망 바탕), 크레타 백원 = 묘역 등각도 (면 없이 선으로만 · 등고선 · 묘비 눈금 · 서류탑 · 애도 극장 · 접수 대기열 · 호명 릴레이 · 장군의 묘).
+// 브샤크 묘비 해안 = 죽은 바다 · 산맥 사이 해안 등각도 (군집 · 묘비 개체 · 마부 개체), 황무지 성계 = 불모 행성 · 메트로 타운 정거장 사이 직선 + 곡선 항로 (은하 열차가 이따금 지나감), 캣휠 그늘 성계 = 끝없는 캣휠 · 성운 사이 직선 항로 (물류망 바탕), 크레타 백원 = 묘역 등각도 (면 없이 선으로만 · 등고선 · 묘비 눈금 · 서류탑 · 애도 극장 · 접수 대기열 · 호명 릴레이 · 장군의 묘).
 // 시안: claude.ai 아티팩트 '전장별 항로 시안' (리빈 = 스코프, 물류망 = 스코프 · 대각, 라이덴 = ① 다층 상가, 카운티폴 = A′-2 핀) ·
 //       '히페리온 · 크레타 항로 시안' (히페리온 = H3 순찰 스코프).
 // 렌더마다 화면이 통째로 다시 그려지므로, 항로도 DOM 은 이 모듈이 들고 있다가 자리(.rmap-host)에 다시 끼운다.
@@ -10,7 +10,7 @@
 import { NODE_NAME, type NodeType, type RunState } from '../types';
 import { lineIcon } from './synicons';
 
-const FIELDS = { livin: 'ring', swarm: 'orbit', raiden: 'stairs', county: 'grid', hyperion: 'patrol', crete: 'vigil', catwheel: 'wheel', waste: 'rail' } as const;
+const FIELDS = { livin: 'ring', swarm: 'orbit', raiden: 'stairs', county: 'grid', hyperion: 'patrol', crete: 'vigil', catwheel: 'wheel', waste: 'rail', bshak: 'coast' } as const;
 type Kind = (typeof FIELDS)[keyof typeof FIELDS];
 const CODE: Partial<Record<NodeType, string>> = { supply: 'SUP', battle: 'BTL', council: 'CNL', event: 'EVT', shop: 'BRN', adversity: 'ADV', boss: 'BOS', recruit: 'RCT', fork: 'FRK', news: 'NWS', invest: 'INV', pilgrim: 'PLG', challenge: 'CHL' };
 // 프리버드(공룡) 실루엣 — 오른쪽을 보고 발이 y=0
@@ -20,8 +20,8 @@ const DINO = {
   ptero: 'M-11 0Q-5 -6 0 -1Q5 -6 11 0Q5 -2 1 2L5 3L0 3Q-5 -2-11 0Z',
 };
 
-/** 이 런의 지도에 항로도를 쓰는가: 항로도가 있는 전장 · 튜토리얼 아님 · 한 줄 항로 (모든 칸이 선택지 1개). 분기 항로는 분기형 항로도가 있는 전장만 (물류망 · 카운티폴 · 라이덴 · 크레타 · 캣휠 · 황무지) — 나머지는 공용 분기 지도 */
-const BRANCH_KINDS: Kind[] = ['orbit', 'grid', 'stairs', 'vigil', 'wheel', 'rail'];
+/** 이 런의 지도에 항로도를 쓰는가: 항로도가 있는 전장 · 튜토리얼 아님 · 한 줄 항로 (모든 칸이 선택지 1개). 분기 항로는 분기형 항로도가 있는 전장만 (물류망 · 카운티폴 · 라이덴 · 크레타 · 캣휠 · 황무지 · 브샤크) — 나머지는 공용 분기 지도 */
+const BRANCH_KINDS: Kind[] = ['orbit', 'grid', 'stairs', 'vigil', 'wheel', 'rail', 'coast'];
 export function routeMapOn(run: RunState): boolean {
   if (!(run.field in FIELDS) || run.tutorial || run.lab) return false;
   return run.links ? BRANCH_KINDS.includes(FIELDS[run.field as keyof typeof FIELDS]) : run.map.every((o) => o.length === 1);
@@ -307,7 +307,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   const t0 = performance.now();
   const startAmb = () => { if (amb) return; const f = (now: number) => { tick(reduce ? 0 : now - t0); amb = requestAnimationFrame(f); }; amb = requestAnimationFrame(f); };
 
-  const sc: { go(): void; stop(): void; look?(i: number): void; update?(): void; panel?(): string; name?: string; legend?: string[][] } = kind === 'ring' ? ringScene() : kind === 'orbit' ? orbitScene() : kind === 'stairs' ? stairsScene() : kind === 'patrol' ? patrolScene() : kind === 'vigil' ? vigilScene() : kind === 'wheel' ? wheelScene() : kind === 'rail' ? railScene() : gridScene();
+  const sc: { go(): void; stop(): void; look?(i: number): void; update?(): void; panel?(): string; name?: string; legend?: string[][] } = kind === 'ring' ? ringScene() : kind === 'orbit' ? orbitScene() : kind === 'stairs' ? stairsScene() : kind === 'patrol' ? patrolScene() : kind === 'vigil' ? vigilScene() : kind === 'wheel' ? wheelScene() : kind === 'rail' ? railScene() : kind === 'coast' ? coastScene() : gridScene();
   goNow = () => { sel = cur; sc.go(); panel(); };
   if (fs) queueMicrotask(() => { if (!morphBusy) reveal(true); }); // 펼치는 연출 없이 연 전체 화면 (창 크기 변경 등)
   // ── 전체 화면 옆 패널: 노드 목록 (상태 · 고른 노드의 설명) + 범례. 노드를 고르면 지도도 그 노드로
@@ -1030,6 +1030,177 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         const left = Math.ceil((lg.t1 - tt) / 1000);
         eta.textContent = lg.dwell ? `${stops[lg.to].nm} 정차 중 · ${left}초 뒤 출발` : `다음 역 · ${stops[lg.to].nm} ${left}초`;
         rig.set(mod(t * .05, 360));
+      },
+    });
+  }
+  // ── 브샤크 묘비 해안: 군체에 먹혀 불모화된 행성 하나 위. 크레타처럼 등각으로 내려다보되 면 없이 선으로만 — 아래 (앞) = 죽은 바다 (물결 · 해안선 · 소금 평원),
+  // 가운데 = 해안 평지의 갈래 다발, 위 (뒤) = 브샤크 산맥 (촘촘한 등고선 · 봉우리 표고). 군체 군집 (맥동하는 살 덩어리 · 촉수), 땅에 박혀 맥동하는 묘비 개체 (살 기둥),
+  // 산기슭을 느릿느릿 걷는 마부 개체 (군집을 등에 지고 불탄다), 포자 안개. 출발 = 발키리 분대 강하 지점, 끝 = 옛 야생동물 재활 시설 (구조 신호) · 거대 묘비 개체
+  function coastScene() {
+    const VB = stageBase(narrow ? [180, 30, 440, 400] : [0, 0, 800, 450]);
+    const rows = run.map, R = rows.length, L = run.links ?? rows.slice(0, -1).map((row) => row.map(() => [0]));
+    const rnd = rng(83 + run.phase), SZ = 26, OX = 150, OY = 215, PIN = 52, D = 6, LG = 6, HM = 14, MPX = 4; // 높이 1px = 4m
+    const ph = [0, 1, 2, 3, 4, 5].map(() => rnd() * 6.28);
+    const coastY = (x: number) => 9.2 + 1.4 * Math.sin(x * .3 + ph[0]) + .7 * Math.sin(x * .83 + ph[1]); // 해안선 (이보다 gy 가 크면 바다)
+    const mtnY = (x: number) => -8 + 1.4 * Math.sin(x * .23 + ph[2]); // 산기슭 (이보다 gy 가 작으면 산)
+    const H = (x: number, y: number) => {
+      const d = coastY(x) - y; if (d <= 0) return 0;
+      const m = Math.max(0, mtnY(x) - y), ridge = .72 + .28 * Math.sin(x * .55 + ph[3]) * Math.cos(y * .4 + ph[4]) + .14 * Math.sin(x * 1.3 + y * .9);
+      return 10 * (1 - Math.exp(-d / 2)) + 2 * Math.sin(x * .37 + ph[5]) * Math.cos(y * .29) * Math.min(1, d / 3) + Math.min(175, 13 * m ** 1.28 * ridge);
+    };
+    const iso = (gx: number, gy: number, z = 0) => [OX + (gx - gy) * SZ * .866, OY + (gx + gy) * SZ * .5 - z];
+    const isoH = (gx: number, gy: number, dz = 0) => iso(gx, gy, H(gx, gy) + dz);
+    const GX = (i: number) => i * D, GY = (i: number, j: number) => (j - (rows[i].length - 1) / 2) * LG;
+    const gx0 = -12, gx1 = GX(R - 1) + 14, gy0 = -22, gy1 = 18;
+    const world = el('g', {}, stage), fixed = el('g', {}, stage);
+    const ground = el('g', {}, world), struct = el('g', {}, world), routeG = el('g', {}, world), over = el('g', {}, world);
+    const casingG = el('g', {}, routeG), edgeG = el('g', {}, routeG);
+    const P = (a: number[][]) => 'M' + a.map((q) => `${q[0].toFixed(1)} ${q[1].toFixed(1)}`).join('L');
+    const ell = (r: number) => [r * SZ * 1.2247, r * SZ * .7071]; // 땅 위 반지름 r 원 → 화면 타원 반지름
+    const label = (x: number, y: number, s: string, col = C.t2, p: Element = struct) => { const g = el('g', { transform: `translate(${x.toFixed(1)} ${y.toFixed(1)})` }, p); el('path', { d: 'M0 8v-8h6', fill: 'none', stroke: col, 'stroke-width': .9 }, g); txt(g, 9, 8, s, ko({ 'font-size': 11, fill: col, stroke: C.bg, 'stroke-width': 3, 'paint-order': 'stroke', 'stroke-linejoin': 'round' })); return g; };
+    // 길 (격자): 같은 갈래 = 곧게, 옆 갈래 = 1.2칸 곧게 → 비스듬히 → 곧게. 지형 높이를 따라 오르내린다
+    const gpath = (i: number, j: number, k: number) => { const a = GX(i), ya = GY(i, j), yb = GY(i + 1, k); return Math.abs(yb - ya) < .1 ? [[a, ya], [a + D, yb]] : [[a, ya], [a + 1.2, ya], [a + D - 1.2, yb], [a + D, yb]]; };
+    const sample = (g: number[][]) => { const out: number[][] = [g[0]]; for (let q = 1; q < g.length; q++) { const [ax, ay] = g[q - 1], [bx, by] = g[q], n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / .3)); for (let s = 1; s <= n; s++) out.push([ax + (bx - ax) * s / n, ay + (by - ay) * s / n]); } return out; };
+    // 땅 · 바다
+    el('polygon', { points: pts([iso(gx0 - 40, gy0 - 40), iso(gx1 + 40, gy0 - 40), iso(gx1 + 40, gy1 + 40), iso(gx0 - 40, gy1 + 40)]), fill: C.panel }, ground);
+    { const cl: number[][] = []; for (let x = gx0 - 40; x <= gx1 + 40; x += .5) cl.push(iso(x, coastY(x))); // 바다 (해안선 바깥은 어둡게) · 물결 · 해안선 · 소금 평원
+      el('polygon', { points: pts([...cl, iso(gx1 + 40, gy1 + 40), iso(gx0 - 40, gy1 + 40)]), fill: C.bg }, ground);
+      let dw = '';
+      for (let x = gx0; x < gx1; x += 1.1) for (let y = 0; y < 14; y += .9) { const gy = coastY(x) + .8 + y + (rnd() - .5) * .4, gx = x + (rnd() - .5) * .8 + (y % 2) * .5; if (gy > gy1) continue; const a = iso(gx, gy), b = iso(gx + .45, gy), m = iso(gx + .22, gy - .12); dw += `M${a[0].toFixed(1)} ${a[1].toFixed(1)}Q${m[0].toFixed(1)} ${m[1].toFixed(1)} ${b[0].toFixed(1)} ${b[1].toFixed(1)}`; }
+      el('path', { d: dw, fill: 'none', stroke: C.t3, 'stroke-width': .8, opacity: .7 }, ground);
+      let ds = ''; for (let q = 0; q < 900; q++) { const x = gx0 + rnd() * (gx1 - gx0), y = coastY(x) - .25 - rnd() * rnd() * 2.6, p = isoH(x, y); ds += `M${p[0].toFixed(1)} ${p[1].toFixed(1)}h1v1h-1z`; }
+      el('path', { d: ds, fill: C.t3, opacity: .7 }, ground);
+      el('path', { d: P(cl), fill: 'none', stroke: C.t2, 'stroke-width': 1.2 }, ground);
+      for (let x = 8; x < gx1; x += 26) { const [lx, ly] = iso(x, coastY(x) + 3.2); txt(ground, lx, ly, '죽은 바다 · 염분 34%', ko({ 'font-size': 9, fill: C.t3, 'text-anchor': 'middle' })); } }
+    // 등고선 (8px = 32m 마다, 128m 마다 굵게): 해안 평지는 드물고 산맥은 촘촘하게
+    { const ST = .5, nx = Math.round((gx1 - gx0) / ST), ny = Math.round((gy1 - gy0) / ST), hv: number[] = [];
+      for (let a = 0; a <= nx; a++) for (let b = 0; b <= ny; b++) hv.push(H(gx0 + a * ST, gy0 + b * ST));
+      let dMin = '', dMaj = '';
+      for (let lv = 8; lv < 190; lv += 8) {
+        let d = '';
+        for (let a = 0; a < nx; a++) for (let b = 0; b < ny; b++) {
+          const c = [[a, b], [a + 1, b], [a + 1, b + 1], [a, b + 1]], v = c.map(([p, q]) => hv[p * (ny + 1) + q]), hit: number[][] = [];
+          if (Math.max(...v) < lv || Math.min(...v) > lv) continue;
+          for (let e = 0; e < 4; e++) { const f = (e + 1) % 4; if ((v[e] - lv) * (v[f] - lv) < 0) { const t = (lv - v[e]) / (v[f] - v[e]); hit.push(iso(gx0 + (c[e][0] + (c[f][0] - c[e][0]) * t) * ST, gy0 + (c[e][1] + (c[f][1] - c[e][1]) * t) * ST, lv)); } }
+          for (let h = 0; h + 1 < hit.length; h += 2) d += `M${hit[h][0].toFixed(1)} ${hit[h][1].toFixed(1)}L${hit[h + 1][0].toFixed(1)} ${hit[h + 1][1].toFixed(1)}`;
+        }
+        if (lv % 32 === 0) dMaj += d; else dMin += d;
+      }
+      el('path', { d: dMin, fill: 'none', stroke: C.line, 'stroke-width': .7 }, ground);
+      el('path', { d: dMaj, fill: 'none', stroke: C.t3, 'stroke-width': .9 }, ground);
+      for (let x0 = gx0 + 6; x0 < gx1 - 6; x0 += 22) { // 봉우리 표고
+        let best = [0, 0, -1]; for (let x = x0; x < x0 + 18; x += .5) for (let y = gy0 + 2; y < mtnY(x) - 3; y += .5) { const h = H(x, y); if (h > best[2]) best = [x, y, h]; }
+        if (best[2] < 60) continue;
+        const [px, py] = iso(best[0], best[1], best[2]); el('path', { d: `M${px - 4} ${py + 3}L${px} ${py - 4}L${px + 4} ${py + 3}Z`, fill: C.t2 }, ground);
+        txt(ground, px + 7, py + 2, `브샤크 산맥 ${Math.round(best[2] * MPX)}m`, ko({ 'font-size': 8, fill: C.t2 }));
+      } }
+    // 포자 안개 (아주 옅게 떠다닌다)
+    const fog = Array.from({ length: 46 }, () => ({ e: el('circle', { r: 1.2 + rnd() * 1.4, fill: C.t3, opacity: .28 }, over), x: gx0 + rnd() * (gx1 - gx0), y: gy0 + 6 + rnd() * (gy1 - gy0 - 8), z: 6 + rnd() * 40, v: .0002 + rnd() * .0003 }));
+    // 군체 군집: 살 덩어리 (울퉁불퉁한 윤곽) · 맥동하는 혹 · 촉수
+    const nods: { e: SVGElement; r: number; o: number }[] = [];
+    const cluster = (cx: number, cy: number, r: number) => {
+      const g = el('g', {}, struct), out: number[][] = [];
+      for (let q = 0; q < 16; q++) { const a = q / 16 * Math.PI * 2, rr = r * (.7 + rnd() * .4); out.push(isoH(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr)); }
+      for (let q = 0; q < 7; q++) { const a = rnd() * 6.28, x1 = cx + Math.cos(a) * r * .9, y1 = cy + Math.sin(a) * r * .9, x2 = cx + Math.cos(a + .3) * r * 1.6, y2 = cy + Math.sin(a + .3) * r * 1.6, x3 = cx + Math.cos(a - .1) * r * 2.1, y3 = cy + Math.sin(a - .1) * r * 2.1; el('path', { d: P([isoH(x1, y1), isoH(x2, y2), isoH(x3, y3)]), fill: 'none', stroke: C.bad, 'stroke-width': .8, opacity: .45 }, g); }
+      el('polygon', { points: pts(out), fill: C.bad, 'fill-opacity': .12, stroke: C.bad, 'stroke-width': .9, 'stroke-opacity': .7 }, g);
+      for (let q = 0; q < 4 + Math.floor(r * 3); q++) { const a = rnd() * 6.28, rr = rnd() * r * .7, [x, y] = isoH(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr, 2), rad = 1.6 + rnd() * 3; nods.push({ e: el('circle', { cx: x, cy: y, r: rad, fill: C.bg, stroke: C.bad, 'stroke-width': .9 }, g), r: rad, o: rnd() * 6.28 }); }
+    };
+    // 묘비 개체: 땅에 박힌 살 기둥 (테를 하나씩 올려 그림 · 위로 갈수록 가늘고 휜다) · 꼭대기 갈라진 틈 · 발치에서 맥동이 번진다
+    const pulses: { e: SVGElement; rx: number; ry: number; o: number }[] = [];
+    const tomb = (cx: number, cy: number, h: number, rb: number, name: string) => {
+      const g = el('g', {}, struct), z0 = H(cx, cy), n = Math.round(h / 4), [prx, pry] = ell(rb * 1.4), [bx, by] = iso(cx, cy, z0);
+      pulses.push({ e: el('ellipse', { cx: bx, cy: by, rx: prx, ry: pry, fill: 'none', stroke: C.bad, 'stroke-width': 1, opacity: 0 }, g), rx: prx, ry: pry, o: rnd() * 3000 });
+      let top = [bx, by];
+      for (let k = 0; k <= n; k++) {
+        const f = k / n, r = rb * (1 - .45 * f) * (1 + .1 * Math.sin(k * .9)), [rx, ry] = ell(r), [x, y] = iso(cx + .5 * f * f, cy - .3 * f * f, z0 + k * 4);
+        el('ellipse', { cx: x, cy: y, rx, ry, fill: C.bg, stroke: k % 5 === 0 ? C.bad : C.line, 'stroke-width': k % 5 === 0 ? .9 : .6, 'stroke-opacity': k % 5 === 0 ? .8 : 1 }, g);
+        top = [x, y];
+      }
+      el('path', { d: `M${top[0] - 5} ${top[1]}Q${top[0]} ${top[1] - 3} ${top[0] + 5} ${top[1]}`, fill: 'none', stroke: C.bad, 'stroke-width': 1.4 }, g);
+      label(top[0] + 12, top[1] - 12, name, C.bad);
+    };
+    // 배치: 산기슭 · 해변의 군집, 산기슭의 묘비 개체 (갈래 다발 바깥)
+    for (let x = gx0 + 4; x < gx1 - 2; x += 5 + rnd() * 5) { cluster(x, mtnY(x) - .6 - rnd() * 2.4, .7 + rnd() * .9); if (rnd() < .45) cluster(x + 2, coastY(x + 2) - 1.1, .45 + rnd() * .35); }
+    for (let x = gx0 + 14; x < GX(R - 1) - 6; x += 24 + rnd() * 10) tomb(x, mtnY(x) - 1.6, 70 + rnd() * 40, .8 + rnd() * .3, '묘비 개체 · 휴면 핵');
+    // 끝: 옛 야생동물 재활 시설 (녹슨 우리 · 구조 신호 비콘) · 거대 묘비 개체
+    const XE = GX(R - 1);
+    const beacon: { ring: SVGElement[]; lamp: SVGElement } = { ring: [], lamp: el('g', {}) };
+    { const cx = XE + 3.4, cy = 4.4, z = H(cx, cy), g = el('g', {}, struct);
+      for (const [hw, hd, ox] of [[1.4, .8, 0], [.7, .5, 2.2]]) {
+        const c = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd], [-hw, -hd]].map(([a, b]) => [cx + ox + a, cy + b]);
+        el('path', { d: P(c.map(([x, y]) => iso(x, y, z))), fill: 'none', stroke: C.t3, 'stroke-width': .8 }, g);
+        el('path', { d: P(c.map(([x, y]) => iso(x, y, z + 14))), fill: 'none', stroke: C.t3, 'stroke-width': .8 }, g);
+        let d = ''; for (let q = 0; q < 4; q++) { const [a, b] = [c[q], c[q + 1]], n = Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / .3); for (let s = 0; s < n; s++) { const x = a[0] + (b[0] - a[0]) * s / n, y = a[1] + (b[1] - a[1]) * s / n, p = iso(x, y, z), p2 = iso(x, y, z + 14); d += `M${p[0].toFixed(1)} ${p[1].toFixed(1)}V${p2[1].toFixed(1)}`; } }
+        el('path', { d, stroke: C.line, 'stroke-width': .7 }, g); // 녹슨 철창
+      }
+      const [mx, my] = iso(cx - 1.4, cy - .8, z);
+      el('path', { d: `M${mx} ${my}V${my - 46}M${mx - 6} ${my}L${mx} ${my - 30}L${mx + 6} ${my}`, stroke: C.t2, 'stroke-width': 1 }, g);
+      for (let q = 0; q < 3; q++) beacon.ring.push(el('circle', { cx: mx, cy: my - 46, r: 4, fill: 'none', stroke: C.info, 'stroke-width': 1, opacity: 0 }, g));
+      beacon.lamp = el('circle', { cx: mx, cy: my - 46, r: 2.4, fill: C.info }, g);
+      label(mx + 10, my - 64, '옛 야생동물 재활 시설 · 구조 신호 (비콘 코드 일치)', C.info); }
+    tomb(XE + 5.5, -3.2, 150, 1.5, '묘비 개체 · 군집의 핵');
+    // 출발: 발키리 분대 강하 지점
+    { const [x, y] = isoH(-4.5, 0), g = el('g', {}, struct);
+      el('ellipse', { cx: x, cy: y, rx: 16, ry: 9, fill: 'none', stroke: C.t2, 'stroke-dasharray': '2 3' }, g);
+      el('path', { d: `M${x - 6} ${y}L${x} ${y - 18}L${x + 6} ${y}Z`, fill: C.panel2, stroke: C.t2, 'stroke-width': .9 }, g);
+      label(x + 14, y - 22, '발키리 분대 강하 지점'); }
+    el('path', { d: P(sample([[-4.5, 0], [0, GY(0, 0)]]).map(([x, y]) => isoH(x, y))), fill: 'none', stroke: C.t3, 'stroke-width': 1.6, 'stroke-dasharray': '3 4' }, ground);
+    // 마부 개체: 군집을 등에 지고 산기슭을 느릿느릿 걷는다 (다리 6개 · 등 위 불길)
+    const mabus = [0, 1, 2].map((n) => {
+      const g = el('g', {}, struct), body = el('g', { transform: 'scale(1.25)' }, g), legs: SVGElement[] = [], flames: SVGElement[] = [];
+      for (let q = 0; q < 6; q++) legs.push(el('path', { stroke: C.t2, 'stroke-width': 1.6, 'stroke-linecap': 'round', fill: 'none' }, body));
+      el('path', { d: 'M-34 -16Q-36 -34 -14 -38Q10 -44 30 -32Q40 -24 36 -14Q0 -8 -34 -16Z', fill: C.bg, stroke: C.t2, 'stroke-width': 1.1 }, body); // 몸통
+      el('path', { d: 'M30 -30Q44 -34 46 -24Q42 -18 34 -20', fill: C.bg, stroke: C.t2, 'stroke-width': 1 }, body); // 머리
+      el('path', { d: 'M-24 -38Q-26 -52 -12 -54Q-6 -64 6 -58Q18 -62 22 -50Q30 -46 24 -40Q0 -46 -24 -38Z', fill: C.bad, 'fill-opacity': .14, stroke: C.bad, 'stroke-width': 1 }, body); // 등에 진 군집
+      for (const fx of [-14, -2, 10]) flames.push(el('path', { d: `M${fx - 3} -54Q${fx} -66 ${fx + 3} -54Z`, fill: C.streak, opacity: .8 }, body));
+      txt(g, 0, 16, '마부 개체 · 군집 운반 중', ko({ 'font-size': 9, fill: C.t2, 'text-anchor': 'middle', stroke: C.bg, 'stroke-width': 3, 'paint-order': 'stroke' }));
+      return { g, legs, flames, o: n / 3, dy: .6 + n % 2 * .9 };
+    });
+    // 핀 · 표고
+    const pins = rows.map((row, i) => row.map((_, j) => {
+      const h = H(GX(i), GY(i, j)), [x, y] = iso(GX(i), GY(i, j), h), g = el('g', {}, over);
+      el('line', { x1: x, y1: y - PIN + 21, x2: x, y2: y - 4, stroke: C.t2, 'stroke-width': 1.1 }, g);
+      el('ellipse', { cx: x, cy: y, rx: 8, ry: 4.6, fill: C.bg, stroke: C.t2, 'stroke-width': 1.1 }, g);
+      el('circle', { cx: x, cy: y, r: 1.4, fill: C.t2 }, g);
+      txt(g, x + 11, y + 3, `▲${Math.round(h * MPX)}m`, { 'font-size': 6.5, fill: C.t3 });
+      return g;
+    }));
+    const squad = el('g', {}, over);
+    el('circle', { r: 11, fill: C.sel, opacity: .16 }, squad);
+    el('path', { d: 'M0 -5.5 4 0 0 5.5-4 0Z', fill: C.sel, stroke: C.bg, 'stroke-width': 1.4, 'paint-order': 'stroke' }, squad);
+    // 구조 신호 (왼쪽 아래): 시설까지 남은 거리 · 신호 강도
+    const hud = el('g', { transform: `translate(${VB[0] + 14} ${VB[1] + VB[3] - 54})` }, fixed);
+    el('rect', { width: 196, height: 40, fill: C.bg, stroke: C.line }, hud);
+    txt(hud, 8, 14, '구조 신호 · 재활 시설 비콘 112.4MHz', ko({ 'font-size': 8, fill: C.t2 }));
+    const sig = txt(hud, 8, 31, '', ko({ 'font-size': 9.5, fill: C.text }));
+    const bars = [0, 1, 2, 3, 4].map((q) => el('rect', { x: 150 + q * 8, y: 33 - (q + 1) * 4, width: 5, height: (q + 1) * 4, fill: C.line }, hud));
+    corners(fixed, VB);
+    titleBlock(fixed, VB, 'BSHAK · 묘비 해안 등각도', [`브샤크 묘비 해안 · 페이즈 ${run.phase}`, `${R} ROWS · 등고선 32m`, '군체 휴면 군집', '죽은 바다 · 브샤크 산맥']);
+    const fwd = (() => { const a = iso(0, 0), b = iso(1, 0), n = Math.hypot(b[0] - a[0], b[1] - a[1]); return [(b[0] - a[0]) / n, (b[1] - a[1]) / n]; })();
+    let prog = 0;
+    return branchKit({
+      name: '브샤크 묘비 해안',
+      legend: [['길', '고른 노드에서 이어지는 길 (점선 = 지금 고른 다음 구간) · 지형을 따라 오르내린다'], ['회색 길', '지나온 길'], ['등고선 · ▲', '32m 간격 (128m 마다 굵게) · 노드 · 봉우리 표고'], ['죽은 바다', '앞쪽 — 물결 · 해안선 · 소금 평원'], ['브샤크 산맥', '뒤쪽 — 촘촘한 등고선'], ['군체 군집', '맥동하는 살 덩어리 · 촉수'], ['묘비 개체', '땅에 박혀 맥동하는 살 기둥 (휴면 핵)'], ['마부 개체', '군집을 등에 지고 산기슭을 걷는다'], ['재활 시설', '구조 신호 (비콘 코드 일치) · 끝의 거대 묘비 개체 = 보스']],
+      edgeLayer: edgeG, casingLayer: casingG, nodeLayer: over, casing: 3,
+      nodeAt: (i, j) => { const p = isoH(GX(i), GY(i, j)); return [p[0], p[1] - PIN]; },
+      dirAt: () => fwd,
+      edgePts: (i, j, k) => sample(gpath(i, j, k)).map(([x, y]) => isoH(x, y)),
+      style: { taken: [C.t3, 3, 1, ''], toPick: [C.sel, 2.6, 1, '7 5'], mine: [C.sel, 2.2, .9, ''], alt: [C.t2, 1.6, .55, ''], none: [C.line, 1.2, .5, '2 4'] },
+      camU: (x, y) => ((x - OX) / (SZ * .866) + (y + PIN + HM - OY) / (SZ * .5)) / 2, camRange: [-3, GX(R - 1) + 3], ahead: [1, 1.5], camEps: .3, dragPer: SZ * .866,
+      drawCam(u) { const p = iso(u, 0, PIN * .5 + HM); world.setAttribute('transform', `translate(${(VB[0] + VB[2] / 2 - p[0]).toFixed(1)} ${(VB[1] + VB[3] / 2 - p[1]).toFixed(1)})`); },
+      marker(x, y, _a, ed, t) { squad.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); prog = ed ? (ed.i + t) / (R - 1) : 0; },
+      nodeState(i, j, kind) { pins[i][j].style.opacity = kind === 'gone' ? '.22' : kind === 'alt' ? '.6' : '1'; },
+      tick(t) {
+        for (const n of nods) n.e.setAttribute('r', (n.r * (1 + .22 * Math.sin(t * .0021 + n.o))).toFixed(2));
+        for (const p of pulses) { const u = mod(t + p.o, 3200) / 3200; p.e.setAttribute('opacity', (.7 * (1 - u)).toFixed(2)); p.e.setAttribute('rx', (p.rx * (1 + u * 1.6)).toFixed(1)); p.e.setAttribute('ry', (p.ry * (1 + u * 1.6)).toFixed(1)); }
+        for (const f of fog) { const x = gx0 + mod(f.x - gx0 + t * f.v, gx1 - gx0), [px, py] = isoH(x, f.y, f.z + 4 * Math.sin(t * .0007 + f.y)); f.e.setAttribute('cx', px.toFixed(1)); f.e.setAttribute('cy', py.toFixed(1)); }
+        for (const m of mabus) { const x = gx0 + mod(t * .00045 + m.o * (gx1 - gx0), gx1 - gx0), y = mtnY(x) - m.dy, [px, py] = isoH(x, y); m.g.setAttribute('transform', `translate(${px.toFixed(1)} ${py.toFixed(1)})`); // 마부 개체 셋: 산기슭을 한 걸음씩
+          m.legs.forEach((l, q) => { const bx = -24 + q * 10, sw = 5 * Math.sin(t * .004 + q * (q % 2 ? Math.PI : 0) + q * .4); l.setAttribute('d', `M${bx} -16Q${bx + sw * .4} -8 ${bx + sw} 0`); });
+          m.flames.forEach((f, q) => f.setAttribute('transform', `translate(0 ${(2 * Math.sin(t * .013 + q * 2)).toFixed(1)}) scale(1 ${(1 + .25 * Math.sin(t * .017 + q)).toFixed(2)})`)); }
+        { const u = mod(t, 2400) / 2400; beacon.ring.forEach((r, q) => { const k = mod(u + q / 3, 1); r.setAttribute('r', (4 + k * 26).toFixed(1)); r.setAttribute('opacity', (.9 * (1 - k)).toFixed(2)); }); beacon.lamp.setAttribute('opacity', u < .5 ? '1' : '.35'); }
+        const lvl = Math.min(5, 1 + Math.floor(prog * 5)), km = ((1 - prog) * (R - 1) * D * 40 / 1000).toFixed(1);
+        sig.textContent = `시설까지 ${km}km · ${['미약', '미약', '약', '보통', '강', '매우 강'][lvl]}`;
+        bars.forEach((b, q) => b.setAttribute('fill', q < lvl ? (Math.sin(t * .006) > -.7 || q < lvl - 1 ? C.info : C.line) : C.line));
       },
     });
   }
