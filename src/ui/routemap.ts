@@ -1617,7 +1617,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     const t0k = Math.floor(rr() * 5), b0k = Math.floor(rr() * 5);
     for (let i = 0; i < R - 1; i++) {
       const x = GX(i) + D / 2 + (rr() - .5) * 1.5;
-      if (rr() < .85) { const k = TOP[(t0k + i) % 5]; sites.push({ k, x, y: -11 - rr() * 2, r: k === 'relay' ? 3.2 : 2.4 }); }
+      if (rr() < .85) { const k = TOP[(t0k + i) % 5]; sites.push({ k, x, y: -11 - rr() * 2, r: k === 'relay' ? 3.2 : k === 'papers' ? 3.1 : 2.4 }); }
       if (rr() < .85) { const k = BOT[(b0k + i) % 5]; sites.push({ k, x, y: k === 'theater' ? 11.5 : 10.5 + rr() * 2, r: k === 'theater' ? 4 : 2.6 }); }
     }
     const XB = GX(R - 1) + 5.5;
@@ -1671,10 +1671,14 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         nPaper++;
         const tops: number[][] = [], spots: number[][] = [], W = .085, Dp = .065;
         for (let q = 0; q < 18; q++) { const fx = s.x + (rnd() - .5) * 4, fy = s.y + (rnd() - .5) * 3; el('polygon', { points: pts(rect(fx, fy, .06, .045, H(fx, fy))), fill: C.bg, stroke: C.t3, 'stroke-width': .4 }, g); }
-        for (let a = 0; a < 15; a++) for (let b = 0; b < 11; b++) { const x = s.x - 1.6 + a * .23 + (rnd() - .5) * .05, y = s.y - 1.15 + b * .23 + (rnd() - .5) * .05; if (rnd() < .85 && Math.hypot((x - s.x) / 1.7, (y - s.y) / 1.25) < 1) spots.push([x, y]); }
+        for (let a = 0; a < 25; a++) for (let b = 0; b < 19; b++) { // 타원 안 (rr < 1) = 본 무리, 바깥 고리 (rr 1 ~ 1.75) = 아주 작은 더미가 점점 낮고 드물어지며 땅으로 이어진다
+          const x = s.x - 2.76 + a * .23 + (rnd() - .5) * .05, y = s.y - 2.07 + b * .23 + (rnd() - .5) * .05, rr = Math.hypot((x - s.x) / 1.7, (y - s.y) / 1.25);
+          if (rr < 1 ? rnd() < .85 : rr < 1.75 && rnd() < .85 * ((1.75 - rr) / .75) ** .7) spots.push([x, y, rr]);
+        }
         spots.sort((p, q) => p[0] + p[1] - q[0] - q[1]);
-        for (const [bx, by] of spots) {
-          const u = rnd(), h = u < .12 ? 60 + rnd() * 55 : u < .4 ? 22 + rnd() * 30 : 3 + rnd() * 16, zb = H(bx, by), z1 = zb + h; // 높이 (px): 높은 더미 · 중간 · 낮은 더미
+        for (const [bx, by, rr] of spots) {
+          const u = rnd(), edge = rr < .6 ? 1 : rr < 1 ? 1 - .65 * ((rr - .6) / .4) ** 2 : 0; // 가장자리로 갈수록 높은 더미가 줄어든다
+          const h = rr >= 1 ? 1.2 + rnd() * 5.5 * (1.75 - rr) / .75 : (u < .12 * edge ? 60 + rnd() * 55 : u < .4 * edge ? 22 + rnd() * 30 : 3 + rnd() * 16) * (.55 + .45 * edge), zb = H(bx, by), z1 = zb + h; // 높이 (px): 높은 더미 · 중간 · 낮은 더미 · 고리의 아주 작은 더미
           const Lp = iso(bx - W, by + Dp, zb), F = iso(bx + W, by + Dp, zb), Rp = iso(bx + W, by - Dp, zb), L1 = iso(bx - W, by + Dp, z1), F1 = iso(bx + W, by + Dp, z1), R1 = iso(bx + W, by - Dp, z1), B1 = iso(bx - W, by - Dp, z1);
           el('polygon', { points: pts([Lp, F, Rp, R1, B1, L1]), fill: C.bg, stroke: C.t3, 'stroke-width': .5 }, g);
           let d = `M${F[0].toFixed(1)} ${F[1].toFixed(1)}V${F1[1].toFixed(1)}M${L1[0].toFixed(1)} ${L1[1].toFixed(1)}L${F1[0].toFixed(1)} ${F1[1].toFixed(1)}L${R1[0].toFixed(1)} ${R1[1].toFixed(1)}`;
