@@ -1667,24 +1667,24 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     };
     for (const s of sites) {
       const z0 = H(s.x, s.y), g = el('g', {}, struct);
-      if (s.k === 'papers') { // 미처리 서류더미 군: 작은 더미 여럿이 빽빽하게 (뒤 → 앞 순서로 겹쳐 그림, 낱장을 한 장씩 올려 위로 갈수록 기울고 흔들린다), 발치에 흩어진 낱장
+      if (s.k === 'papers') { // 미처리 서류더미 군: 망령만 한 작은 더미가 빽빽하게, 높이는 제각각 (낮은 더미 사이로 훨씬 높은 더미가 솟는다). 더미 = 윤곽 + 낱장 줄, 뒤 → 앞 순서로 겹쳐 그림
         nPaper++;
-        const tops: number[][] = [], spots: number[][] = [];
-        for (let q = 0; q < 14; q++) { const fx = s.x + (rnd() - .5) * 3.6, fy = s.y + (rnd() - .5) * 2.6; el('polygon', { points: pts(rect(fx, fy, .11, .08, H(fx, fy))), fill: C.bg, stroke: C.t3, 'stroke-width': .4 }, g); }
-        for (let a = 0; a < 6; a++) for (let b = 0; b < 4; b++) if (rnd() < .82) spots.push([s.x - 1.4 + a * .56 + (rnd() - .5) * .14, s.y - .9 + b * .6 + (rnd() - .5) * .14]);
+        const tops: number[][] = [], spots: number[][] = [], W = .085, Dp = .065;
+        for (let q = 0; q < 18; q++) { const fx = s.x + (rnd() - .5) * 4, fy = s.y + (rnd() - .5) * 3; el('polygon', { points: pts(rect(fx, fy, .06, .045, H(fx, fy))), fill: C.bg, stroke: C.t3, 'stroke-width': .4 }, g); }
+        for (let a = 0; a < 15; a++) for (let b = 0; b < 11; b++) { const x = s.x - 1.6 + a * .23 + (rnd() - .5) * .05, y = s.y - 1.15 + b * .23 + (rnd() - .5) * .05; if (rnd() < .85 && Math.hypot((x - s.x) / 1.7, (y - s.y) / 1.25) < 1) spots.push([x, y]); }
         spots.sort((p, q) => p[0] + p[1] - q[0] - q[1]);
         for (const [bx, by] of spots) {
-          const cnt = 6 + Math.floor(rnd() * 16), lean = (rnd() - .5) * .012, zb = H(bx, by);
-          let jx = 0, jy = 0;
-          for (let k = 0; k < cnt; k++) {
-            jx += lean + (rnd() - .5) * .025; jy += (rnd() - .5) * .02;
-            el('polygon', { points: pts(rect(bx + jx, by + jy, .21, .15, zb + k * 1.7)), fill: C.bg, stroke: k % 6 === 5 ? C.t2 : C.t3, 'stroke-width': .5 }, g);
-          }
-          tops.push(iso(bx + jx, by + jy, zb + cnt * 1.7));
+          const u = rnd(), h = u < .12 ? 60 + rnd() * 55 : u < .4 ? 22 + rnd() * 30 : 3 + rnd() * 16, zb = H(bx, by), z1 = zb + h; // 높이 (px): 높은 더미 · 중간 · 낮은 더미
+          const Lp = iso(bx - W, by + Dp, zb), F = iso(bx + W, by + Dp, zb), Rp = iso(bx + W, by - Dp, zb), L1 = iso(bx - W, by + Dp, z1), F1 = iso(bx + W, by + Dp, z1), R1 = iso(bx + W, by - Dp, z1), B1 = iso(bx - W, by - Dp, z1);
+          el('polygon', { points: pts([Lp, F, Rp, R1, B1, L1]), fill: C.bg, stroke: C.t3, 'stroke-width': .5 }, g);
+          let d = `M${F[0].toFixed(1)} ${F[1].toFixed(1)}V${F1[1].toFixed(1)}M${L1[0].toFixed(1)} ${L1[1].toFixed(1)}L${F1[0].toFixed(1)} ${F1[1].toFixed(1)}L${R1[0].toFixed(1)} ${R1[1].toFixed(1)}`;
+          for (let z = 2.2 + rnd() * 1.5; z < h - 1; z += 2.2 + rnd() * 1.5) d += `M${Lp[0].toFixed(1)} ${(Lp[1] - z).toFixed(1)}L${F[0].toFixed(1)} ${(F[1] - z).toFixed(1)}L${Rp[0].toFixed(1)} ${(Rp[1] - z).toFixed(1)}`; // 낱장 줄
+          el('path', { d, fill: 'none', stroke: h > 50 ? C.t2 : C.t3, 'stroke-width': .45 }, g);
+          tops.push(F1);
         }
         const hi = tops.reduce((a, b) => (b[1] < a[1] ? b : a));
         label(hi[0] - 10, hi[1] - 14, `미처리 서류 · ${530 + Math.floor(rnd() * 32)}년 접수분`);
-        for (let q = 0; q < 3; q++) { const tp = tops[Math.floor(rnd() * tops.length)]; sheets.push({ e: el('path', { d: 'M-1.8 0 0 -1 1.8 0 0 1Z', fill: C.bg, stroke: C.t2, 'stroke-width': .5 }, g), x: tp[0], y: tp[1], o: rnd() * 9000, v: .012 + rnd() * .008, fall: 40 + rnd() * 30, sw: 6 + rnd() * 8 }); }
+        for (let q = 0; q < 4; q++) { const tp = tops.reduce((a, b) => (b[1] < a[1] && rnd() < .5 ? b : a)); sheets.push({ e: el('path', { d: 'M-1.4 0 0 -.8 1.4 0 0 .8Z', fill: C.bg, stroke: C.t2, 'stroke-width': .5 }, g), x: tp[0], y: tp[1], o: rnd() * 9000, v: .012 + rnd() * .008, fall: 40 + rnd() * 30, sw: 6 + rnd() * 8 }); }
       } else if (s.k === 'theater') { // 지상 애도 극장: 산비탈에 기댄 반원 객석 (바깥 줄일수록 높이) · 둥근 무대 · 무대 건물 (갈래 쪽) · 망령 관객 · 무대 조명
         nTheater++;
         const seat = (r: number) => z0 + (r - 1) * 7;
