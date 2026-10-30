@@ -1510,7 +1510,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         if (bx === civ[0] && by === civ[1]) { items.push({ k: bx + by + 3, f: () => { isoBox(bx + .6, by + .6, 1.8, 1.8, 30); const [x, y] = iso(bx + 1.5, by + 1.5, 46); txt(bldg, x, y, 'CIV-01 행정 구역', ko({ 'text-anchor': 'middle', 'font-size': 7, fill: C.t2 })); } }); continue; }
         if (cutB.has(`${(bx - gx0) / 3},${(by - gy0) / 3}`)) { // 대각 도로가 지나는 구획: 잘린 택지 — 도로에서 떨어진 자리에만 집, 집이 못 들어가는 자투리 땅은 나무
           const homes: number[][] = [];
-          for (const dx of [.4, 1.15, 1.9]) for (const dy of [.4, 1.15, 1.9]) if (dmin(bx + dx + .4, by + dy + .35) > .95) { homes.push([bx + dx + .4, by + dy + .35]); items.push({ k: bx + dx + by + dy, f: () => isoHouse(bx + dx, by + dy) }); }
+          for (const dx of [.4, 1.15, 1.9]) for (const dy of [.4, 1.15, 1.9]) if (dmin(bx + dx + .4, by + dy + .35) > .95) { homes.push([bx + dx + .4, by + dy + .35]); items.push({ k: bx + dx + by + dy + 1.5, f: () => isoHouse(bx + dx, by + dy) }); }
           for (let q = 0; q < 10; q++) {
             const tx = bx + .55 + rnd() * 1.9, ty = by + .55 + rnd() * 1.9, round = rnd() < .55;
             if (dmin(tx, ty) < .62 || homes.some(([hx, hy]) => Math.abs(hx - tx) < .7 && Math.abs(hy - ty) < .65)) continue;
@@ -1533,7 +1533,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
           } });
           continue;
         }
-        for (const [dx, dy] of [[.55, .55], [1.55, .55], [.55, 1.55], [1.55, 1.55]]) items.push({ k: bx + dx + by + dy, f: () => isoHouse(bx + dx, by + dy) });
+        for (const [dx, dy] of [[.55, .55], [1.55, .55], [.55, 1.55], [1.55, 1.55]]) items.push({ k: bx + dx + by + dy + 1.5, f: () => isoHouse(bx + dx, by + dy) }); // 집 그리는 순서 = 앞 모서리 (x + 0.8, y + 0.7) 깊이 — 뒤에 선 나무가 집 위에 그려지지 않게;
       }
       items.sort((p, q) => p.k - q.k).forEach((h) => h.f());
     };
