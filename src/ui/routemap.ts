@@ -922,8 +922,8 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       },
     });
   }
-  // ── 황무지 성계 (코빈 구역): 물류망 · 캣휠처럼 비스듬한 진행축 위 갈래 다발, 길은 직선 (같은 갈래) 과 곡선 (옆 갈래로 옮겨 가는 S자) 을 섞는다.
-  // 평범한 은하 배경 (별 두 층 · 은하수 띠) · 불모 행성 4개 · 은하 열차 선로가 갈래 다발 바깥을 굽이치며 메트로 타운 정거장 셋을 잇고, 이따금 열차가 지나간다 (다음 열차까지 남은 시간 표시)
+  // ── 황무지 성계 (코빈 구역): 물류망 · 캣휠처럼 비스듬한 진행축 위 갈래 다발, 길은 직선 (같은 갈래) 과 노선도처럼 꺾이는 길 (옆 갈래, 모서리만 둥글게) 을 섞는다.
+  // 평범한 은하 배경 (별 두 층 · 은하수 띠) · 불모 행성 4개 · 은하 열차 선로가 갈래 다발 바깥을 굽이치며 메트로 타운 정거장 셋을 잇고, 열차가 역마다 정차하며 왕복한다 (시각표 = 정차 · 다음 역)
   function railScene() {
     const W = 800, CY = 225, TH = 20 * Math.PI / 180, ax = [Math.cos(TH), Math.sin(TH)], nv = [-Math.sin(TH), Math.cos(TH)], THd = TH * 180 / Math.PI;
     const O = [120, 150], L2W = (u: number, v: number) => [O[0] + u * ax[0] + v * nv[0], O[1] + u * ax[1] + v * nv[1]];
@@ -965,20 +965,22 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     el('path', { d: rd, fill: 'none', stroke: C.t3, 'stroke-width': 4.6 }, world); el('path', { d: rd, fill: 'none', stroke: C.bg, 'stroke-width': 2.4 }, world);
     const atS = (s: number) => { s = Math.max(0, Math.min(RT, s)); let lo = 0, hi = rail.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (rail[m].s < s) lo = m; else hi = m; } const a = rail[lo], b = rail[hi], t = (s - a.s) / ((b.s - a.s) || 1); return [a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, Math.atan2(b.y - a.y, b.x - a.x)]; };
     const sOfU = (u: number) => rail[Math.max(0, Math.min(rail.length - 1, Math.round((u + 700) / 6)))].s;
-    // 메트로 타운 정거장 셋 (선로 위): 둥근 역사 · 승강장 · 이름 (갈래 반대쪽)
+    // 메트로 타운 정거장 셋 (선로 위): 둥근 역사 · 승강장 (열차 6량 길이) · 이름 (갈래 반대쪽)
+    const stops: { s: number; nm: string }[] = [];
     [['메트로 타운 · 코빈 환승역', '은하 3호선 · 성간 항로 조합'], ['메트로 타운 · 녹슨 갈고리', '옛 해적 소굴 · 재개장'], ['메트로 타운 · 종착역', '페트라 화물 성도 연결']].forEach(([nm, sub], k) => {
       const u = U * (.12 + k * .38), v = vAt(u), [x, y] = L2W(u, v), [, , a] = atS(sOfU(u)), g = el('g', {}, world), sd = Math.sign(v);
-      el('circle', { cx: x, cy: y, r: 30, fill: 'none', stroke: C.line, 'stroke-dasharray': '1 3' }, g);
+      stops.push({ s: sOfU(u), nm: nm.replace('메트로 타운 · ', '') });
+      el('circle', { cx: x, cy: y, r: 58, fill: 'none', stroke: C.line, 'stroke-dasharray': '1 3' }, g);
       const st = el('g', { transform: `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(a * 180 / Math.PI).toFixed(1)})` }, g);
-      el('rect', { x: -26, y: -11, width: 52, height: 6, fill: C.panel2, stroke: C.t3, 'stroke-width': .7 }, st); el('rect', { x: -26, y: 5, width: 52, height: 6, fill: C.panel2, stroke: C.t3, 'stroke-width': .7 }, st); // 승강장 두 줄
+      el('rect', { x: -54, y: -11, width: 108, height: 6, fill: C.panel2, stroke: C.t3, 'stroke-width': .7 }, st); el('rect', { x: -54, y: 5, width: 108, height: 6, fill: C.panel2, stroke: C.t3, 'stroke-width': .7 }, st); // 승강장 두 줄
       el('circle', { r: 13, fill: C.panel, stroke: C.t2, 'stroke-width': 1 }, el('g', { transform: `translate(0 ${sd * 24})` }, st));
-      for (let q = 0; q < 4; q++) el('rect', { x: -20 + q * 11, y: -9.5, width: 3, height: 3, fill: C.divine, opacity: .8 }, st);
+      for (let q = 0; q < 8; q++) el('rect', { x: -46 + q * 12, y: -9.5, width: 3, height: 3, fill: C.divine, opacity: .8 }, st);
       const [lx, ly] = L2W(u, v + sd * 56);
       txt(g, lx, ly, nm, ko({ 'text-anchor': 'middle', fill: C.text, 'font-size': 10 }));
       txt(g, lx, ly + 13, sub, ko({ 'text-anchor': 'middle', 'font-size': 8 }));
     });
     // 열차: 객차 6량 (창 불빛 · 앞 차 전조등). 이따금 화면 앞을 지나간다
-    const train = el('g', { opacity: 0 }, world), cars = Array.from({ length: 6 }, (_, k) => { const c = el('g', {}, train); el('rect', { x: -8, y: -3.2, width: 16, height: 6.4, rx: k ? 1.2 : 3, fill: k ? C.t2 : C.text, stroke: C.bg, 'stroke-width': 1 }, c); for (let w = -5; w < 6; w += 4) el('rect', { x: w, y: -1.2, width: 2, height: 2.4, fill: C.divine }, c); return c; });
+    const train = el('g', {}, world), cars = Array.from({ length: 6 }, (_, k) => { const c = el('g', {}, train); el('rect', { x: -8, y: -3.2, width: 16, height: 6.4, rx: k ? 1.2 : 3, fill: k ? C.t2 : C.text, stroke: C.bg, 'stroke-width': 1 }, c); for (let w = -5; w < 6; w += 4) el('rect', { x: w, y: -1.2, width: 2, height: 2.4, fill: C.divine }, c); return c; });
     el('path', { d: 'M8 0L46 -10V10Z', fill: C.divine, opacity: .14 }, cars[0]); // 전조등
     // 갈래 다발 · 노드 · 화물선
     const dOf = (i: number, j: number) => (j - (rows[i].length - 1) / 2) * LANE;
@@ -988,34 +990,45 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     el('path', { d: 'M-11 -5 11 0-11 5-7 0Z', fill: C.sel, stroke: C.bg, 'stroke-width': 2, 'paint-order': 'stroke' }, ship);
     const rig = sweepRig(world, [60, 120, 180], (r) => `${(r / 1000).toFixed(2)}AU`);
     // 시각표 (왼쪽 아래): 다음 열차까지
-    const PER = 16000, RUN = 7000, hud = el('g', { transform: `translate(${VB[0] + 14} ${VB[1] + VB[3] - 54})` }, fixed);
+    // 운행표: 환승역 → 녹슨 갈고리 → 종착역 → 녹슨 갈고리 → … 왕복. 역마다 정차, 출발 · 도착은 천천히 (가속 · 감속 구간)
+    const legs: { t0: number; t1: number; a: number; b: number; to: number; dwell: boolean }[] = [], ORD = [0, 1, 2, 1];
+    let TT = 0, dirT = 1;
+    ORD.forEach((q, n) => { const A = stops[q], nx = ORD[(n + 1) % ORD.length], B = stops[nx], d = Math.max(3000, Math.abs(B.s - A.s) / .2); legs.push({ t0: TT, t1: TT + 2800, a: A.s, b: A.s, to: q, dwell: true }); TT += 2800; legs.push({ t0: TT, t1: TT + d, a: A.s, b: B.s, to: nx, dwell: false }); TT += d; });
+    const trap = (k: number, f = .3) => { const vm = 1 / (1 - f); return k < f ? vm * k * k / (2 * f) : k < 1 - f ? vm * (f / 2 + k - f) : 1 - vm * (1 - k) ** 2 / (2 * f); }; // 가속 → 등속 → 감속
+    const hud = el('g', { transform: `translate(${VB[0] + 14} ${VB[1] + VB[3] - 54})` }, fixed);
     el('rect', { width: 186, height: 40, fill: C.bg, stroke: C.line }, hud);
     txt(hud, 8, 14, '은하 3호선 · 코빈 구역 시각표', ko({ 'font-size': 8, fill: C.t2 }));
     const eta = txt(hud, 8, 31, '', ko({ 'font-size': 9.5, fill: C.text }));
     corners(fixed, VB);
     titleBlock(fixed, VB, 'WASTELAND · 코빈 구역 메트로 항로도', [`황무지 성계 · 페이즈 ${run.phase}`, `${R} ROWS · 직선 + 곡선`, '은하 3호선 · 정거장 3', 'REV.01 · 약탈자 항로']);
     const camAt = (uc: number) => { const P = L2W(uc, 0); return [P[0] - 400, P[1] - CY]; };
-    /** A → B 를 진행축 방향으로 나가 진행축 방향으로 들어오는 S 곡선 (3차 베지어, 점 25개) */
-    const scurve = (A: number[], B: number[]) => { const h = Math.hypot(B[0] - A[0], B[1] - A[1]) * .45, P1 = [A[0] + ax[0] * h, A[1] + ax[1] * h], P2 = [B[0] - ax[0] * h, B[1] - ax[1] * h], out: number[][] = []; for (let q = 0; q <= 24; q++) { const t = q / 24, m = 1 - t; out.push([m * m * m * A[0] + 3 * m * m * t * P1[0] + 3 * m * t * t * P2[0] + t * t * t * B[0], m * m * m * A[1] + 3 * m * m * t * P1[1] + 3 * m * t * t * P2[1] + t * t * t * B[1]]); } return out; };
-    let camU = 0;
+    /** 옆 갈래로 옮겨 가는 길: 노선도처럼 진행축으로 곧게 → 비스듬히 곧게 → 다시 진행축으로 곧게, 꺾이는 두 곳만 둥글게 (반지름 26) */
+    const bend = (i: number, j: number, k: number) => {
+      const u0 = i * STEP, va = dOf(i, j), vb = dOf(i + 1, k), P = [L2W(u0, va), L2W(u0 + STEP * .25, va), L2W(u0 + STEP * .75, vb), L2W(u0 + STEP, vb)], out: number[][] = [P[0]];
+      for (const c of [1, 2]) {
+        const [A, Q, B] = [P[c - 1], P[c], P[c + 1]], la = Math.hypot(A[0] - Q[0], A[1] - Q[1]), lb = Math.hypot(B[0] - Q[0], B[1] - Q[1]), r = Math.min(26, la / 2, lb / 2);
+        const p1 = [Q[0] + (A[0] - Q[0]) / la * r, Q[1] + (A[1] - Q[1]) / la * r], p2 = [Q[0] + (B[0] - Q[0]) / lb * r, Q[1] + (B[1] - Q[1]) / lb * r];
+        for (let q = 0; q <= 8; q++) { const t = q / 8, m = 1 - t; out.push([m * m * p1[0] + 2 * m * t * Q[0] + t * t * p2[0], m * m * p1[1] + 2 * m * t * Q[1] + t * t * p2[1]]); }
+      }
+      out.push(P[3]);
+      return out;
+    };
     return branchKit({
       name: '황무지 성계 · 코빈 구역',
-      legend: [['항로', '같은 갈래 = 직선 · 옆 갈래로 옮겨 가는 길 = 곡선 · 지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['NAV', '항로 표지 — 화물선이 지나면 켜짐'], ['선로 · 열차', '은하 3호선 — 이따금 열차가 지나간다 (시각표 = 다음 열차까지)'], ['메트로 타운', '정거장 (코빈 환승역 · 녹슨 갈고리 · 종착역)'], ['KV', '코빈 불모 행성 I ~ IV']],
+      legend: [['항로', '같은 갈래 = 직선 · 옆 갈래로 옮겨 가는 길 = 노선도처럼 꺾이는 길 (모서리만 둥글게) · 지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['NAV', '항로 표지 — 화물선이 지나면 켜짐'], ['선로 · 열차', '은하 3호선 — 역마다 정차하며 왕복 (시각표 = 정차 · 다음 역)'], ['메트로 타운', '정거장 (코빈 환승역 · 녹슨 갈고리 · 종착역)'], ['KV', '코빈 불모 행성 I ~ IV']],
       edgeLayer, casingLayer, casing: 4, nodeLayer, beaconLayer, beacon: (i) => `NAV-${pad2(i + 1)} ONLINE`,
       nodeAt, dirAt: () => ax,
-      edgePts: (i, j, k) => { const A = nodeAt(i, j), B = nodeAt(i + 1, k); return Math.abs(dOf(i + 1, k) - dOf(i, j)) < 1 ? [A, [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], B] : scurve(A, B); },
+      edgePts: (i, j, k) => { const A = nodeAt(i, j), B = nodeAt(i + 1, k); return Math.abs(dOf(i + 1, k) - dOf(i, j)) < 1 ? [A, [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], B] : bend(i, j, k); },
       style: { taken: [C.sel, 2.5, 1, ''], toPick: [C.sel, 1.8, .9, '6 4'], mine: [C.t2, 1.6, 1, ''], alt: [C.t3, 1.3, .9, ''], none: [C.line, .9, .55, '1 4'] },
       camU: proj, camRange: [-60, U + 60], ahead: [60, 40], camEps: 4, dragPer: ax[0],
-      drawCam(uc) { camU = uc; const [cx, cy] = camAt(uc); world.setAttribute('transform', `translate(${(-cx).toFixed(1)} ${(-cy).toFixed(1)})`); layers.forEach((g, k) => g.setAttribute('transform', `translate(${(-cx * PAR[k]).toFixed(1)} ${(-cy * PAR[k]).toFixed(1)})`)); },
+      drawCam(uc) { const [cx, cy] = camAt(uc); world.setAttribute('transform', `translate(${(-cx).toFixed(1)} ${(-cy).toFixed(1)})`); layers.forEach((g, k) => g.setAttribute('transform', `translate(${(-cx * PAR[k]).toFixed(1)} ${(-cy * PAR[k]).toFixed(1)})`)); },
       marker(x, y, a) { ship.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(a * 180 / Math.PI).toFixed(1)})`); rig.g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); },
       tick(t) {
-        const ph = mod(t, PER), cyc = Math.floor(t / PER), dir = cyc % 2 ? -1 : 1; // 오가는 방향을 번갈아
-        if (ph < RUN) {
-          const k = ph / RUN, s0 = sOfU(camU) + dir * (k * 1700 - 850);
-          train.setAttribute('opacity', (Math.min(1, k * 8, (1 - k) * 8)).toFixed(2));
-          cars.forEach((c, n) => { const [x, y, a] = atS(s0 - dir * n * 17); c.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${((a + (dir < 0 ? Math.PI : 0)) * 180 / Math.PI).toFixed(1)})`); });
-          eta.textContent = `열차 통과 중 · ${dir > 0 ? '종착역' : '코빈 환승역'} 방면`;
-        } else { train.setAttribute('opacity', '0'); eta.textContent = `다음 열차 · ${Math.ceil((PER - ph) / 1000)}초 뒤 도착`; }
+        const tt = mod(t, TT), lg = legs.find((l) => tt < l.t1) || legs[legs.length - 1], k = (tt - lg.t0) / (lg.t1 - lg.t0), s0 = lg.dwell ? lg.a : lg.a + (lg.b - lg.a) * trap(k);
+        if (!lg.dwell) dirT = Math.sign(lg.b - lg.a) || dirT;
+        cars.forEach((c, n) => { const [x, y, a] = atS(s0 + dirT * (42 - n * 17)); c.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${((a + (dirT < 0 ? Math.PI : 0)) * 180 / Math.PI).toFixed(1)})`); }); // 열차 가운데가 역 한가운데
+        const left = Math.ceil((lg.t1 - tt) / 1000);
+        eta.textContent = lg.dwell ? `${stops[lg.to].nm} 정차 중 · ${left}초 뒤 출발` : `다음 역 · ${stops[lg.to].nm} ${left}초`;
         rig.set(mod(t * .05, 360));
       },
     });
