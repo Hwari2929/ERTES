@@ -1477,17 +1477,23 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     const world = el('g', {}, stage), sky = el('g', {}, stage), fixed = el('g', {}, stage);
     const ground = el('g', {}, world), bldg = el('g', {}, world), routeG = el('g', {}, world), over = el('g', {}, world); // 안내 경로 · 핀은 집 위 (늘 보이게)
     const poly = (a: number[][], fill: string, stroke?: string, p: Element = bldg) => el('polygon', { points: pts(a), fill, stroke: stroke || 'none', 'stroke-width': .6 }, p);
-    /** 교외 격자: 땅 · 도로 (3칸마다) · 집 · 공원 · 행정 구역 (보스 노드 옆 구획). diag = 구획을 가로지르는 대각 샛길 (격자 좌표 두 점) — 지나는 구획은 집 대신 공원 */
+    /** 교외 격자: 땅 · 도로 (3칸마다) · 집 · 공원 · 행정 구역 (보스 노드 옆 구획). diag = 구획을 가로지르는 대각 도로 (격자 좌표 두 점) —
+     *  지나는 구획은 도로를 따라 잘린 택지가 된다 (도로에서 떨어진 모서리에만 집, 도로 양옆은 가로수) */
     const city = (gx0: number, gx1: number, gy0: number, gy1: number, civ: number[], diag: number[][][] = []) => {
       poly([iso(gx0, gy0), iso(gx1, gy0), iso(gx1, gy1), iso(gx0, gy1)], C.panel, undefined, ground);
       for (let g = gx0; g <= gx1; g += 3) poly([iso(g - .3, gy0), iso(g + .3, gy0), iso(g + .3, gy1), iso(g - .3, gy1)], C.panel2, undefined, ground);
       for (let g = gy0; g <= gy1; g += 3) poly([iso(gx0, g - .3), iso(gx1, g - .3), iso(gx1, g + .3), iso(gx0, g + .3)], C.panel2, undefined, ground);
-      const green = new Set<string>(), near = (x: number, y: number) => diag.some(([a, b]) => { const dx = b[0] - a[0], dy = b[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy || 1))); return Math.hypot(a[0] + dx * t - x, a[1] + dy * t - y) < .75; });
+      const items0: { k: number; f(): void }[] = [];
+      const cutB = new Set<string>(), dmin = (x: number, y: number) => Math.min(9, ...diag.map(([a, b]) => { const dx = b[0] - a[0], dy = b[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy || 1))); return Math.hypot(a[0] + dx * t - x, a[1] + dy * t - y); }));
+      const inLot = (v: number) => { const f = mod(v, 3); return f > .45 && f < 2.55; }; // 구획 안쪽 (둘레 도로 위가 아닌 곳)
+      const verge: number[][] = [];
       for (const [a, b] of diag) {
-        for (let q = 0; q <= 40; q++) { const x = a[0] + (b[0] - a[0]) * q / 40, y = a[1] + (b[1] - a[1]) * q / 40; green.add(`${Math.floor((x - gx0) / 3)},${Math.floor((y - gy0) / 3)}`); }
-        const n = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, ox = -(b[1] - a[1]) / n * .3, oy = (b[0] - a[0]) / n * .3; // 대각 샛길 (도로와 같은 폭)
-        poly([iso(a[0] + ox, a[1] + oy), iso(b[0] + ox, b[1] + oy), iso(b[0] - ox, b[1] - oy), iso(a[0] - ox, a[1] - oy)], C.panel2, undefined, ground);
+        const n = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, ux = (b[0] - a[0]) / n, uy = (b[1] - a[1]) / n;
+        for (let q = 0; q <= 60; q++) { const x = a[0] + (b[0] - a[0]) * q / 60, y = a[1] + (b[1] - a[1]) * q / 60; if (inLot(x) || inLot(y)) cutB.add(`${Math.floor((x - gx0) / 3)},${Math.floor((y - gy0) / 3)}`); }
+        poly([iso(a[0] - uy * .3, a[1] + ux * .3), iso(b[0] - uy * .3, b[1] + ux * .3), iso(b[0] + uy * .3, b[1] - ux * .3), iso(a[0] + uy * .3, a[1] - ux * .3)], C.panel2, undefined, ground); // 대각 도로 (격자 도로와 같은 폭)
+        for (let d = .5; d < n - .3; d += .85) for (const sd of [1, -1]) { const x = a[0] + ux * d - uy * .7 * sd, y = a[1] + uy * d + ux * .7 * sd; if (inLot(x) && inLot(y) && dmin(x, y) > .6) verge.push([x, y]); } // 가로수
       }
+      for (const [tx, ty] of verge) items0.push({ k: tx + ty, f: () => { const [x, y] = iso(tx, ty); el('rect', { x: x - 1, y: y - 4, width: 2, height: 4, fill: C.t3 }, bldg); el('path', { d: `M${x - 6} ${y - 4}a3.4 3.4 0 0 1 .6 -5.6a4.4 4.4 0 0 1 8 -1.6a3.6 3.6 0 0 1 3.4 5.4a3 3 0 0 1 -2.4 1.8Z`, fill: C.line }, bldg); } });
       const isoBox = (x: number, y: number, w: number, d: number, h: number) => {
         const a = iso(x, y + d), b = iso(x + w, y + d), c = iso(x + w, y), A = iso(x, y + d, h), B = iso(x + w, y + d, h), Cc = iso(x + w, y, h), D = iso(x, y, h);
         poly([a, b, B, A], C.panel2, C.line); poly([b, c, Cc, B], mix(C.panel2, C.bg, .3), C.line); poly([A, B, Cc, D], C.line, C.line);
@@ -1499,12 +1505,15 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         const R1 = iso(x, y + d / 2, h + rh), R2 = iso(x + w, y + d / 2, h + rh);
         poly([A, B, R2, R1], C.t3, C.line); poly([D, Cc, R2, R1], mix(C.t3, C.bg, .3), C.line);
       };
-      const items: { k: number; f(): void }[] = [];
+      const items = items0;
       for (let bx = gx0; bx < gx1; bx += 3) for (let by = gy0; by < gy1; by += 3) {
         if (bx === civ[0] && by === civ[1]) { items.push({ k: bx + by + 3, f: () => { isoBox(bx + .6, by + .6, 1.8, 1.8, 30); const [x, y] = iso(bx + 1.5, by + 1.5, 46); txt(bldg, x, y, 'CIV-01 행정 구역', ko({ 'text-anchor': 'middle', 'font-size': 7, fill: C.t2 })); } }); continue; }
-        const cut = green.has(`${(bx - gx0) / 3},${(by - gy0) / 3}`);
-        if (cut || rnd() < .1) { // 공원: 나무 (짧은 줄기 + 단색 수관 — 둥근 활엽수 · 두 단 침엽수). 대각 샛길이 지나는 구획은 공원 (나무는 샛길을 비켜서)
-          const trees = Array.from({ length: cut ? 12 : 7 }, () => [bx + .5 + rnd() * 2, by + .5 + rnd() * 2, rnd() < .55 ? 1 : 0]).filter(([x, y]) => !cut || !near(x, y)).sort((a, b) => a[0] + a[1] - b[0] - b[1]);
+        if (cutB.has(`${(bx - gx0) / 3},${(by - gy0) / 3}`)) { // 대각 도로가 지나는 구획: 잘린 택지 — 도로에서 떨어진 자리에만 집
+          for (const dx of [.4, 1.15, 1.9]) for (const dy of [.4, 1.15, 1.9]) if (dmin(bx + dx + .4, by + dy + .35) > .95) items.push({ k: bx + dx + by + dy, f: () => isoHouse(bx + dx, by + dy) });
+          continue;
+        }
+        if (rnd() < .1) { // 공원: 나무 (짧은 줄기 + 단색 수관 — 둥근 활엽수 · 두 단 침엽수)
+          const trees = Array.from({ length: 7 }, () => [bx + .5 + rnd() * 2, by + .5 + rnd() * 2, rnd() < .55 ? 1 : 0]).sort((a, b) => a[0] + a[1] - b[0] - b[1]);
           for (const [tx, ty, round] of trees) items.push({ k: tx + ty, f: () => {
             const [x, y] = iso(tx, ty);
             el('rect', { x: x - 1, y: y - 4, width: 2, height: 4, fill: C.t3 }, bldg);
@@ -1614,12 +1623,12 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     };
 
     /** 분기 항로 (교외 격자): 칸 사이 = 2구획 (6칸), 갈래 사이 = 2구획. 갈래 = 나란한 도로, 같은 갈래 연결선 = 도로를 따라 직진,
-     *  옆 갈래 연결선 = 구획을 가로지르는 대각 샛길 (지나는 구획은 집 대신 공원). 지나온 길 = 회색 굵은 길, 고른 노드에서 이어지는 길 = 파란 안내 경로, 갈 수 있는 다른 길 = 옅게 */
+     *  옆 갈래 연결선 = 구획을 비스듬히 가르는 대각 도로 (지나는 구획은 도로를 따라 잘린 택지). 지나온 길 = 회색 굵은 길, 고른 노드에서 이어지는 길 = 파란 안내 경로, 갈 수 있는 다른 길 = 옅게 */
     function gridBranch() {
       const R = run.map.length, D = 6, LG = 6;
       const GXb = (i: number) => i * D, GYb = (i: number, j: number) => (j - (run.map[i].length - 1) / 2) * LG;
       const gx0 = -6, gx1 = GXb(R - 1) + 9, gy0 = -12, gy1 = 12;
-      const diag: number[][][] = []; // 옆 갈래로 넘어가는 길 = 구획을 가로지르는 대각 샛길
+      const diag: number[][][] = []; // 옆 갈래로 넘어가는 길 = 구획을 비스듬히 가르는 대각 도로
       for (let i = 0; i < R - 1; i++) run.map[i].forEach((_, j) => (run.links![i]?.[j] || []).forEach((k) => { if (Math.abs(GYb(i + 1, k) - GYb(i, j)) > .1) diag.push([[GXb(i), GYb(i, j)], [GXb(i + 1), GYb(i + 1, k)]]); }));
       city(gx0, gx1, gy0, gy1, [GXb(R - 1), -6], diag);
       const pins = run.map.map((row, i) => row.map((_, j) => pin(GXb(i), GYb(i, j))));
@@ -1629,7 +1638,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       const puck = el('g', {}, over);
       el('circle', { r: 9, fill: C.info, stroke: C.bg, 'stroke-width': 2.5 }, puck);
       const puckDir = el('path', { d: 'M-4 -4.5 6 0-4 4.5-1.5 0Z', fill: C.bg }, puck);
-      titleBlock(fixed, VB, 'COUNTYFALL · 세피아 교외 길 안내', [`세피아 교외 · 페이즈 ${run.phase}`, `${R} ROWS · 2구획 간격`, '표준 주택 모듈 R-1', `격자 1칸 ${M_PER}m · 공원 샛길 ${diag.length}곳`]);
+      titleBlock(fixed, VB, 'COUNTYFALL · 세피아 교외 길 안내', [`세피아 교외 · 페이즈 ${run.phase}`, `${R} ROWS · 2구획 간격`, '표준 주택 모듈 R-1', `격자 1칸 ${M_PER}m · 대각 도로 ${diag.length}곳`]);
       /** 연결선 (i, j) → (i+1, k): 같은 줄이면 도로를 따라 직진, 옆 갈래면 공원을 가로지르는 대각 샛길 (bear = 비스듬히 꺾는 쪽) */
       const legs = (i: number, j: number, k: number) => {
         const ga = GXb(i), ya = GYb(i, j), yb = GYb(i + 1, k), len = Math.hypot(D, yb - ya);
@@ -1640,7 +1649,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       let shipEdge: { i: number; j: number; k: number; pts: number[][] } | null = null, shipT = 0;
       const kit = branchKit({
         name: '카운티폴 세피아 교외',
-        legend: [['파란 길', '고른 노드에서 이어지는 길 (점선 = 지금 고른 다음 구간 · 흐르는 화살표 = 진행 방향)'], ['회색 굵은 길', '지나온 길'], ['옅은 길', '갈 수 있는 다른 길'], ['샛길', '옆 갈래로 넘어가는 대각 길 (공원을 가로지른다)'], ['핀', '노드 자리 (땅 위 고리가 정확한 지점)'], ['회전 안내', '다음 회전 · 남은 거리 (격자 1칸 20m)'], ['CIV-01', '행정 구역 · 보스'], ['나무', '공원 구획']],
+        legend: [['파란 길', '고른 노드에서 이어지는 길 (점선 = 지금 고른 다음 구간 · 흐르는 화살표 = 진행 방향)'], ['회색 굵은 길', '지나온 길'], ['옅은 길', '갈 수 있는 다른 길'], ['대각 도로', '옆 갈래로 넘어가는 길 (구획을 비스듬히 가르고, 양옆은 가로수)'], ['핀', '노드 자리 (땅 위 고리가 정확한 지점)'], ['회전 안내', '다음 회전 · 남은 거리 (격자 1칸 20m)'], ['CIV-01', '행정 구역 · 보스'], ['나무', '공원 구획']],
         edgeLayer: edgeG, casingLayer: casingG, nodeLayer: over, casing: 5,
         nodeAt: (i, j) => { const p = iso(GXb(i), GYb(i, j)); return [p[0], p[1] - PIN]; },
         dirAt: () => fwd,
@@ -1659,7 +1668,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
           const g = legs(ed.i, ed.j, ed.k), s = t * g.len, nt = run.map[ed.i + 1][ed.k];
           arrow.setAttribute('d', ARROW[g.bear || 'F']);
           dist.textContent = fmtM((g.len - s) * M_PER);
-          road.textContent = `${g.bear ? `공원 샛길 ${g.bear === 'R' ? '오른쪽' : '왼쪽'} 대각` : '직진'} · N${pad2(ed.i + 2)} ${NODE_NAME[nt]}`;
+          road.textContent = `${g.bear ? `대각 도로 ${g.bear === 'R' ? '오른쪽' : '왼쪽'}` : '직진'} · N${pad2(ed.i + 2)} ${NODE_NAME[nt]}`;
           const left = ((R - 2 - ed.i) * D + g.len - s) * M_PER;
           b1.textContent = `다음 · N${pad2(ed.i + 2)} ${NODE_NAME[nt]} ${fmtM((g.len - s) * M_PER)}`;
           b2.textContent = `보스까지 ${fmtM(left)} · 도착 예정 ${Math.max(1, Math.round(left / 500))}분 (30km/h)`;
