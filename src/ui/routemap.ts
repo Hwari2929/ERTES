@@ -1343,13 +1343,14 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
 
     /** 분기 항로 (라이덴 고저 단면): 갈래 = 층. 위 = 마천루 사이 고가도로, 가운데 = 기둥 위 보행 데크, 아래 = 거리 밑 지하 상가 (B1).
      *  갈림 노드 = 엘리베이터 (다른 층 갈래로 타고 오르내린다), 합류 = 계단으로 오르내리며 가운데로 모인다 (높이 차가 크면 엘리베이터).
-     *  같은 갈래 안에서도 칸마다 층이 오르내린다: 데크 = 1~3층씩 계단 (한 줄 항로처럼), 고가도로 = 경사로, 지하 상가 = 평면 */
+     *  같은 갈래 안에서도 칸마다 층이 오르내린다: 데크 = 1~3층씩 계단 (한 줄 항로처럼), 고가도로 = 경사로, 지하 상가 = 넓은 층계참 · 짧은 계단 */
     function stairsBranch() {
       const rows = run.map, L = run.links!, R = rows.length, LANEH = 112, Y0 = 200, ARC = FLOOR + 62; // 지하 상가 바닥
       const walk = (lo: number, hi: number, span: number) => { const out: number[] = []; for (let i = 0, v = 0; i < R; i++) { if (i) { let d = 0; while (!d) d = Math.round((lr() * 2 - 1) * span); v = Math.max(lo, Math.min(hi, v + d)); } out.push(v); } return out; };
       const midLv = walk(-2, 1, 3), topLv = walk(-1, 1, 2); // 층 (LH 단위): 데크 · 고가도로가 칸마다 따로 오르내린다 (같은 칸의 데크 · 고가 노드가 겹치지 않게 데크는 +1층까지)
+      const BD = 20, BLAND = 64, botLv = walk(0, 2, 2); // 지하 상가: 칸마다 바닥이 BD 씩 꺼지거나 올라온다 (천장은 거리 밑 그대로) · 넓은 층계참에 점포
       const lane = (i: number, j: number) => { const n = rows[i].length; return n === 1 ? 0 : n === 2 ? (j ? 1 : -1) : j - 1; }; // -1 위 · 0 가운데 · 1 아래
-      const Yl = (i: number, j: number) => { const l = lane(i, j); return l < 0 ? Y0 - LANEH - topLv[i] * LH : l > 0 ? ARC : Y0 - midLv[i] * LH; };
+      const Yl = (i: number, j: number) => { const l = lane(i, j); return l < 0 ? Y0 - LANEH - topLv[i] * LH : l > 0 ? ARC + botLv[i] * BD : Y0 - midLv[i] * LH; };
       const parents = (i: number, k: number) => rows[i].filter((_, j) => (L[i]?.[j] || []).includes(k)).length;
       type Shape = 'step' | 'liftOut' | 'liftIn';
       const shapeOf = (i: number, j: number, k: number): Shape => {
@@ -1358,9 +1359,9 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         if ((L[i]?.[j] || []).length >= 2) return 'liftOut'; // 갈림 노드: 엘리베이터로 다른 층 갈래
         return dy <= 140 ? 'step' : parents(i, k) >= 2 ? 'liftIn' : 'liftOut'; // 합류 · 옮겨 가기: 계단 (높이 차가 크면 엘리베이터)
       };
-      const stairPts = (xa: number, ya: number, xb: number, yb: number) => {
+      const stairPts = (xa: number, ya: number, xb: number, yb: number, land = LAND) => {
         if (Math.abs(yb - ya) < 1) return [[xa, ya], [xb, yb]];
-        const x0 = xa + LAND, x1 = xb - LAND, n = Math.max(2, Math.round(Math.abs(yb - ya) / 8)), tr = (x1 - x0) / n, rs = (yb - ya) / n, out = [[xa, ya], [x0, ya]];
+        const x0 = xa + land, x1 = xb - land, n = Math.max(2, Math.round(Math.abs(yb - ya) / 8)), tr = (x1 - x0) / n, rs = (yb - ya) / n, out = [[xa, ya], [x0, ya]];
         let cx = x0, cy = ya;
         for (let q = 0; q < n; q++) { if (rs < 0) { cy += rs; out.push([cx, cy]); cx += tr; out.push([cx, cy]); } else { cx += tr; out.push([cx, cy]); cy += rs; out.push([cx, cy]); } } // 오를 땐 챌면 먼저, 내릴 땐 디딤면 먼저
         out.push([xb, yb]);
@@ -1370,6 +1371,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       const ptsOf = (i: number, j: number, k: number) => {
         const xa = X(i), ya = Yl(i, j), xb = X(i + 1), yb = Yl(i + 1, k), s = shapeOf(i, j, k);
         if (s === 'step' && lane(i, j) < 0 && lane(i + 1, k) < 0) return [[xa, ya], [xa + LAND, ya], [xb - LAND, yb], [xb, yb]]; // 고가도로: 경사로
+        if (s === 'step' && lane(i, j) > 0 && lane(i + 1, k) > 0) return stairPts(xa, ya, xb, yb, BLAND); // 지하 상가: 넓은 층계참 사이 짧은 계단
         return s === 'step' ? stairPts(xa, ya, xb, yb) : s === 'liftOut' ? [[xa, ya], [xa + SH, ya], [xa + SH, yb], [xb, yb]] : [[xa, ya], [xb - SH, ya], [xb - SH, yb], [xb, yb]];
       };
       // 엘리베이터 통로 (갈림 노드마다 · 큰 합류마다 하나): 오르내리는 층을 모두 잇는다
@@ -1394,11 +1396,21 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         el('rect', { x: Lx, y: F + 1, width: Rx - Lx, height: 16, fill: mix(C.panel2, C.bg, .4) }, district); // 차도
         el('line', { x1: Lx, y1: F, x2: Rx, y2: F, stroke: C.t3 }, district);
         el('line', { x1: Lx, y1: F + 9, x2: Rx, y2: F + 9, stroke: C.t3, 'stroke-dasharray': '14 12', opacity: .6 }, district);
-        const A0 = F + 18, A1 = ARC + 6; // 지하 상가: 천장 · 뒷벽 점포 (셔터 · 간판) · 바닥
+        const A0 = F + 18, A1 = ARC + 2 * BD + 6; // 지하 상가: 천장 · 뒷벽 점포 (셔터 · 간판) · 칸마다 높이가 다른 바닥 (층계참 · 계단)
+        const by = (i: number) => ARC + botLv[Math.max(0, Math.min(R - 1, i))] * BD, prof: number[][] = [[Lx, by(0)]];
+        for (let i = 0; i < R - 1; i++) prof.push(...stairPts(X(i), by(i), X(i + 1), by(i + 1), BLAND));
+        prof.push([Rx, by(R - 1)]);
+        const floorAt = (x: number) => { for (let q = 1; q < prof.length; q++) { const [ax, ay] = prof[q - 1], [bx, bY] = prof[q]; if (x <= bx) return bx - ax < .01 ? Math.min(ay, bY) : ay + (bY - ay) * (x - ax) / (bx - ax); } return by(R - 1); };
+        const fl = prof.map((q) => `${q[0].toFixed(1)} ${(q[1] + 6).toFixed(1)}`).join(' L');
         el('rect', { x: Lx, y: A0, width: Rx - Lx, height: A1 - A0, fill: mix(C.panel2, C.bg, .55) }, district);
+        el('path', { d: `M${fl} L${Rx} ${A1 + 12} L${Lx} ${A1 + 12}Z`, fill: C.panel }, district); // 바닥 슬래브 (계단 단면)
         el('line', { x1: Lx, y1: A0, x2: Rx, y2: A0, stroke: C.t3, 'stroke-width': 1.2 }, district);
-        el('line', { x1: Lx, y1: A1, x2: Rx, y2: A1, stroke: C.t3, 'stroke-width': 1.2 }, district);
-        for (let x = Lx + 20; x < Rx; x += 46 + rnd() * 30) { const w = 34 + rnd() * 14, g = el('g', {}, district); shutter(g, x, ARC - 22, w, 22); sign(g, x, A0 + 6, w); if (rnd() < .4) lanterns.push(el('rect', { x: x + w / 2 - 2, y: A0 + 18, width: 4, height: 5, rx: 1, fill: C.divine, opacity: .6 }, g)); }
+        el('path', { d: `M${fl}`, fill: 'none', stroke: C.t3, 'stroke-width': 1.2 }, district);
+        for (let x = Lx + 20; x < Rx; x += 46 + rnd() * 30) {
+          const w = 34 + rnd() * 14, fy = floorAt(x), g = el('g', {}, district);
+          sign(g, x, A0 + 6, w); if (rnd() < .4) lanterns.push(el('rect', { x: x + w / 2 - 2, y: A0 + 18, width: 4, height: 5, rx: 1, fill: C.divine, opacity: .6 }, g));
+          if (Math.abs(floorAt(x + w) - fy) < .5 && Math.abs(floorAt(x + w / 2) - fy) < .5) shutter(g, x, fy - 22 - (fy - ARC) * .5, w, 22 + (fy - ARC) * .5); // 층계참 위 점포 (깊은 칸은 셔터도 높게)
+        }
         for (let x = X(0); x <= XN; x += STEP * 2) txt(district, x + STEP / 2, A0 + 30, 'B1 地下街', ko({ 'text-anchor': 'middle', 'font-size': 7, fill: C.t3 }));
         const T0 = A1 + 12, T1 = T0 + 50; // 지하철 (운행 중지)
         el('rect', { x: Lx, y: T0, width: Rx - Lx, height: T1 - T0, fill: C.bg, stroke: C.t3, 'stroke-width': .8 }, district);
@@ -1431,7 +1443,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       rows.forEach((row, i) => row.forEach((_, j) => { // 기둥 · 표고
         const y = Yl(i, j), under = y > FLOOR;
         if (!under) for (const dx of [-LAND + 6, LAND - 6]) el('path', { d: `M${X(i) + dx} ${y + 5}V${FLOOR}`, stroke: C.line, 'stroke-width': lane(i, j) < 0 ? 5 : 3 }, deckG);
-        txt(deckG, X(i), y + 14, under ? 'B1' : `+${Math.round(((FLOOR - y) / LH) * EL)}m`, { 'text-anchor': 'middle', 'font-size': 6.5 });
+        txt(deckG, X(i), y + 14, under ? `B1 −${Math.round(((y - FLOOR) / LH) * EL)}m` : `+${Math.round(((FLOOR - y) / LH) * EL)}m`, { 'text-anchor': 'middle', 'font-size': 6.5 });
       }));
       for (const sh of shafts.values()) { // 엘리베이터: 레일 · 가새 · 승강장 문 · 기계실 · 칸 · 줄
         const y0 = Math.min(...sh.ys), y1 = Math.max(...sh.ys), x = sh.x, g = el('g', {}, deckG);
