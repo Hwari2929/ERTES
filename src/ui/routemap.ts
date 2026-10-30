@@ -581,9 +581,10 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       { kind: 'planet', name: '중계 위성', code: 'RL-2', sub: '군체 침식 구역', R: 17, r: 158, moon: true },
     ].map((b, k) => ({ ...b, half: k % 2 ? 'hi' : 'lo', u: 0, v: 0, cx: 0, cy: 0 }));
     // 분기 항로: 기준 항로는 천체 사이를 완만하게 누비고 (진폭 AW), 천체는 갈래 다발 (LANE 간격) 이 지나갈 자리 밖으로 비켜 놓는다 ('lo' = 항로가 +v 쪽)
-    const AW = 18, LANE = 64, extOf = (b: (typeof BOD)[number]) => (b.rings ? b.R + 6 + (b.rings - 1) * 4.5 : b.kind === 'port' ? 47 : b.moon ? 44 : b.R + 8);
+    const AW = 18, LANE = 128, extOf = (b: (typeof BOD)[number]) => (b.rings ? b.R + 6 + (b.rings - 1) * 4.5 : b.kind === 'port' ? 47 : b.moon ? 44 : b.R + 8);
     let U = 0;
-    for (const b of BOD) { b.u = U + b.r; U += 2 * b.r; if (run.links) b.v = (b.half === 'lo' ? -1 : 1) * (LANE + 36 + extOf(b) - AW); [b.cx, b.cy] = L2W(b.u, b.v); }
+    const RS = run.links ? 1.45 : 1; // 분기 항로: 갈래 사이가 넓어 칸 사이도 넓힌다 (옆 갈래 곡선이 반원처럼 휘지 않게)
+    for (const b of BOD) { b.u = U + b.r * RS; U += 2 * b.r * RS; if (run.links) b.v = (b.half === 'lo' ? -1 : 1) * (LANE + 36 + extOf(b) - AW); [b.cx, b.cy] = L2W(b.u, b.v); }
     const away = (b: (typeof BOD)[number]) => Math.sign(b.v); // 천체에서 항로 반대쪽
     const camAt = (u: number) => [O[0] + u * ax[0] - 400, O[1] + u * ax[1] - CY];
     const spin: { g: SVGElement; w: number; a: number }[] = [], blink: { e: SVGElement; ph: number }[] = [];
@@ -607,7 +608,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     // 진행축 거리 눈금 (축 선은 긋지 않는다)
     for (let u = 0; u <= U; u += 200) { const [x, y] = L2W(u, 0); el('path', { d: `M${x} ${y - 4}v8`, stroke: C.t3, transform: `rotate(${THd} ${x} ${y})` }, world); txt(world, x + 4, y - 5, `${(u / 1000).toFixed(1)}AU`, { 'font-size': 7 }); }
     // 수송선단 (진행축 양쪽 가장자리)
-    for (const L of [{ v: run.links ? -236 : -182, dir: 1, code: 'CVY-12' }, { v: run.links ? 236 : 188, dir: -1, code: 'CVY-07' }]) {
+    for (const L of [{ v: run.links ? -310 : -182, dir: 1, code: 'CVY-12' }, { v: run.links ? 310 : 188, dir: -1, code: 'CVY-07' }]) {
       const [a, b] = [L2W(-300, L.v), L2W(U + 300, L.v)];
       el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: C.line, 'stroke-dasharray': '1 6' }, world);
       for (let c = 0; c < 2; c++) {
@@ -892,7 +893,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         for (const p of ps) { // 고를 노드들의 바깥쪽으로 (가운데 노드는 진행 방향으로) 붙인다
           let dx = p.x - mx, dy = p.y - my; const n = Math.hypot(dx, dy);
           if (n < 8) { dx = tx; dy = ty; } else { dx /= n; dy /= n; }
-          const w = p.c.offsetWidth, h = p.c.offsetHeight, gap = p.rad + 14;
+          const w = p.c.offsetWidth, h = p.c.offsetHeight, gap = p.rad + 26;
           let l: number, t: number;
           if (Math.abs(dx) >= Math.abs(dy)) { l = dx > 0 ? p.x + gap : p.x - gap - w; t = p.y - h / 2; } else { t = dy > 0 ? p.y + gap : p.y - gap - h; l = p.x - w / 2; }
           l = Math.max(8, Math.min(vr.width - w - 8, l)); t = Math.max(top, Math.min(vr.height - h - 8, t));

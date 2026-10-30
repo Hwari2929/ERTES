@@ -1908,7 +1908,7 @@ function turretDetail(run: RunState, i: number, bar: string) {
     <div class="small muted">기계: ${esc(CATEGORY_RULE.mech)}<br>구조물: ${esc(CATEGORY_RULE.struct)}</div>
     ${t ? `<dl class="stats">${row('최대 내구도', fmt(t.st.maxHp))}${row('사격 위력', fmt(t.st.shoot))}${row('방어도', fmt(t.st.armor))}${row('공격 속도', `+${Math.round(t.st.atkSpd * 100)}%`)}${row('명중', pc(t.st.acc))}${row('치명타 확률', pc(t.st.crit))}${row('치명타 피해', pc(t.st.critDmg))}${row('사거리', String(t.st.range))}${row('피해 속성', ELEM_NAME[t.atk.elem])}${row('모든 주요 능력치', `+${t.mem.turretMaj || 0}`)}</dl>` : '<p class="muted small">엔지니어가 출전해야 포탑이 설치됩니다.</p>'}
     <h3>포탑 장비 ${kvChip('고름', `<b>${mods.length}</b>/${ENG_TUR.picks}`, '모든 포탑 공통')}</h3>
-    <div class="t-gear">${mods.length ? mods.map((id) => `<div class="t-slot">${itemIcon(id)}<div><b>${esc(TURRET_GEAR[id]?.name || id)}</b><div class="small muted">${statIc(esc(TURRET_GEAR[id]?.desc || ''))}</div></div>${kvChip('모든 주요 능력치', `<b>+${ENG_TUR.modMaj}</b>`)}</div>`).join('') : '<p class="muted small">아직 고른 장비가 없습니다.</p>'}</div>
+    <div class="t-gear">${mods.length ? mods.map((id) => `<div class="t-slot">${itemIcon(id)}<div><b>${esc(TURRET_GEAR[id]?.name || id)}</b><div class="small muted">${statIc(esc(TURRET_GEAR[id]?.desc || ''))}</div></div></div>`).join('') : '<p class="muted small">아직 고른 장비가 없습니다.</p>'}</div>
     <p class="muted small">${TURRET_RULES.map((x) => `${x[0]}: ${x[1]}`).join('. ')}.</p>
   </div>`;
 }
@@ -3171,7 +3171,6 @@ function summaryModal(run: RunState) {
 const TURRET_RULES: [string, string][] = [
   ['고르기', `엔지니어 ${SYN_BY_ID.ENG.tiers.slice(0, ENG_TUR.picks).join(' · ')}명에 처음 닿을 때 ${ENG_TUR.offer}개 중 1개 (최대 ${ENG_TUR.picks}개)`],
   ['적용', '모든 포탑 공통 (특성 · 증강으로 더 놓인 포탑 포함)'],
-  ['장비 능력치', `장비마다 모든 포탑 모든 주요 능력치 +${ENG_TUR.modMaj}`],
   ['유지', '엔지니어 단계가 내려가도 남음 · 포탑이 있을 때만 작동'],
 ];
 /** 상태 칩 (이름 + 값): 지도 노드 미리보기의 예상 수입 칸(.ah-in)과 같은 모양. 화면 머리의 상태 줄 공용 */
@@ -3462,7 +3461,7 @@ function pendingModal(run: RunState): string {
     // 엔지니어 포탑 장비: 3개 중 1개 → 모든 포탑 공통. 머리 = 제목 + 고른 수 칩, 카드 = 아이콘 · 이름 · 효과 (+ 모든 주요 능력치 칩)
     const had = run.turretMods?.length || 0;
     body = `<div class="tp-head"><h1>감시 포탑 장비 — 엔지니어 ${SYN_BY_ID.ENG.tiers[p.tier - 1] ?? ''}명</h1>${kvChip('장비', `<b>${had}</b>/${ENG_TUR.picks}`, '고른 포탑 장비 (모든 포탑 공통)')}</div>
-      <div class="cards">${p.options.map((id, i) => { const g = TURRET_GEAR[id]; return `<button class="card tp-card" data-a="pick-turret" data-v="${i}" title="단축키 ${i + 1}">${itemIcon(id)}<b>${esc(g?.name || id)}</b><span>${statIc(esc(g?.desc || ''))}</span>${kvChip('모든 포탑 모든 주요 능력치', `<b>+${ENG_TUR.modMaj}</b>`)}</button>`; }).join('')}</div>`;
+      <div class="cards">${p.options.map((id, i) => { const g = TURRET_GEAR[id]; return `<button class="card tp-card" data-a="pick-turret" data-v="${i}" title="단축키 ${i + 1}">${itemIcon(id)}<b>${esc(g?.name || id)}</b><span>${statIc(esc(g?.desc || ''))}</span></button>`; }).join('')}</div>`;
   } else if (p.t === 'itemPick') {
     body = `<h1>${esc(p.title)}</h1><div class="cards">${p.options.map((id, i) => { const it = itemInfo(id); return `<button class="card" data-a="pick-item" data-v="${i}">${itemIcon(id)}<b>${esc(it.name)}</b><span>${statIc(esc(it.desc))}</span></button>`; }).join('')}</div>`;
   } else if (p.t === 'recruit') {

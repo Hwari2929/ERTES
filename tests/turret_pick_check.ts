@@ -1,4 +1,4 @@
-// 엔지니어 포탑 장비 고르기 점검 (수동 실행: npx esbuild tests/turret_pick_check.ts --bundle --platform=node --outfile=dist/turret_pick_check.cjs && node dist/turret_pick_check.cjs): 엔지니어 4명 출전 → 전투 칸 진입 때 고르기 → 하나 고르면 다음 고르기 → 모든 포탑에 두 장비 + 모든 주요 능력치 +modMaj×2
+// 엔지니어 포탑 장비 고르기 점검 (수동 실행: npx esbuild tests/turret_pick_check.ts --bundle --platform=node --outfile=dist/turret_pick_check.cjs && node dist/turret_pick_check.cjs): 엔지니어 4명 출전 → 전투 칸 진입 때 고르기 → 하나 고르면 다음 고르기 → 모든 포탑에 두 장비 (포탑 장비는 능력치를 더하지 않는다)
 import * as R from '../src/engine/run';
 import { buildBattle, deployed, engTier, synergyCounts } from '../src/engine/build';
 import { UNITS } from '../src/data/units';
@@ -39,7 +39,7 @@ const ts = bt.units.filter((u) => u.defId === 'turret' && u.side === 0);
 ok(ts.length >= ENG_TUR.count[engTier(run) - 1], `포탑 ${ts.length}기 설치`);
 const base = ENG_TUR.maj[engTier(run) - 1];
 ok(ts.every((t) => (t.tempItems || []).join() === [a, b].join()), '모든 포탑에 두 장비');
-ok(ts.every((t) => t.mem.turretMaj === base + 2 * ENG_TUR.modMaj), `모든 포탑 모든 주요 능력치 ${base} + ${2 * ENG_TUR.modMaj} (실제 ${ts.map((t) => t.mem.turretMaj).join(',')})`);
+ok(ts.every((t) => t.mem.turretMaj === base), `모든 포탑 모든 주요 능력치 = 엔지니어 단계 가산 ${base} 그대로 (실제 ${ts.map((t) => t.mem.turretMaj).join(',')})`);
 
 // 단계가 내려가도 남는다
 for (const u of run.units.slice(1)) u.pos = null;

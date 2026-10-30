@@ -267,7 +267,7 @@ function sources(id: string): string[] {
   if (isTurretGear(id)) {
     const s = SYN_BY_ID.ENG;
     out.push(`${s.name} ${s.tiers.slice(0, ENG_TUR.picks).join(' · ')}명에 처음 닿을 때 포탑 장비 ${ENG_TUR.offer}개 중 1개 선택 (최대 ${ENG_TUR.picks}개)`);
-    out.push(`고른 장비는 모든 포탑에 공통 적용 · 장비마다 모든 포탑 모든 주요 능력치 +${ENG_TUR.modMaj} (일반 기물 장착 불가 · 상점 · 전리품 · 재구성에 나오지 않음)`);
+    out.push(`고른 장비는 모든 포탑에 공통 적용 (일반 기물 장착 불가 · 상점 · 전리품 · 재구성에 나오지 않음)`);
     out.push(`${s.name} 단계가 내려가도 고른 장비는 남음 (포탑이 있을 때만 작동)`);
     return out;
   }

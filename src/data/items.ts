@@ -394,7 +394,7 @@ export const HEL_ITEM_IDS = ['A_helrelic', 'A_helanchor', 'A_hellight']; // 동�
 export const isHelItem = (id: string | null) => !!id && !!HEL_ITEMS[id.slice(2)];
 
 // ── 엔지니어 포탑 장비 (T_): 엔지니어 2 · 4 · 6명 달성 때 3개 중 1개를 골라 모든 포탑에 공통 적용 (run.turretMods, engine/run.ts syncTurretPick).
-//    일반 기물 · 일반 장비 풀 · 재구성과 섞이지 않는다. 장비마다 모든 포탑 모든 주요 능력치 +ENG_TUR.modMaj (engine/build.ts ENG_HOOK.spawn)
+//    일반 기물 · 일반 장비 풀 · 재구성과 섞이지 않는다. 능력치 가산 없이 장비 고유 효과만 (engine/build.ts ENG_HOOK.spawn)
 export interface TurretGear { name: string; icon: string; desc: string; effect: Effect }
 const tPow = (b: import('../engine/combat').Battle, u: import('../engine/combat').CUnit) => b.S(u, 'shoot');
 /** 테슬라 코일: 전기 기본 공격 계수 · 바운스 계수 (사격 위력 비례) */
@@ -469,7 +469,7 @@ export const TURRET_GEAR_IDS = Object.keys(TURRET_GEAR);
 export const isTurretGear = (id: string | null | undefined) => !!id && id.startsWith('T_') && !!TURRET_GEAR[id];
 
 export function itemInfo(id: string): ItemInfo {
-  if (isTurretGear(id)) { const g = TURRET_GEAR[id], k = ENG_TUR.modMaj; return { id, tier: 'T', name: g.name, icon: g.icon, majors: allMajors(k), desc: `[포탑 장비] 모든 포탑 모든 주요 능력치 +${k}. ${g.desc}` }; }
+  if (isTurretGear(id)) { const g = TURRET_GEAR[id]; return { id, tier: 'T', name: g.name, icon: g.icon, majors: {}, desc: `[포탑 장비] ${g.desc}` }; }
   if (isHelItem(id)) {
     const h = HEL_ITEMS[id.slice(2)], k = id[0] === 'L' ? 2 : 1;
     return { id, tier: id[0] === 'L' ? 'L' : 'A', name: (k === 2 ? '[전설] ' : '') + h.name, icon: h.icon, majors: { [h.major]: 6 * k }, desc: `[동맹 전용] ${MAJOR_NAME[h.major]} +${6 * k}. ${h.desc(k)}` };

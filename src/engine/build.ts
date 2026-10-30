@@ -626,8 +626,8 @@ ENG_HOOK.spawn = (b, lead, engs, n, first = 0) => {
     st.critDmg = Math.max(CFG.baseMinor.critDmg, avg('critDmg') * inherit); // 치명타 피해도 상속 (기본값 150% 아래로는 내려가지 않음)
     st.effRes = avg('effRes') * inherit; // 효과 저항도 같은 계수로 상속
     st.atkSpd = asBonus; st.range = 4; st.moveSpd = 1;
-    // 모든 주요 능력치 가산: 엔지니어 단계 + 포탑 장비 1개당 ENG_TUR.modMaj. 기물과 같은 환산 (CFG.conv)
-    const maj = ENG_TUR.maj[ti] + gear.length * ENG_TUR.modMaj;
+    // 모든 주요 능력치 가산: 엔지니어 단계. 기물과 같은 환산 (CFG.conv). 포탑 장비는 능력치를 더하지 않는다 (장비 고유 효과만)
+    const maj = ENG_TUR.maj[ti];
     for (const k of MAJORS) for (const [sk, per] of Object.entries(CFG.conv[k])) st[sk as keyof Stats] += (per as number) * maj;
     st.maxHp *= (1 + hpBonus) * (1 + maxHpBonus);
     st.armor *= 1 + hpBonus;
