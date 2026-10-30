@@ -818,7 +818,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     };
   }
   // ── 캣휠 그늘 성계: 물류망처럼 비스듬한 진행축 위 갈래 다발, 길은 오직 직선. 우주는 끝없이 버려진 캣휠로 가득하다 — 먼 층일수록 작고 빽빽한 캣휠 무늬 (반복 무늬라 어디까지 끌어도 끝나지 않는다),
-  // 그 뒤로 성운 빛 · 별 (캣휠 실루엣이 빛을 가린다), 항로 곁 가까운 캣휠은 천천히 돈다. 출발 = 의뢰한 가족의 개척지, 끝 = 유닉스 회수함 · 반려 돌이 떠다닌다
+  // 그 뒤로 별 (캣휠 실루엣이 별빛을 가린다), 항로 곁 가까운 캣휠은 천천히 돈다. 출발 = 의뢰한 가족의 개척지, 끝 = 유닉스 회수함 · 반려 돌이 떠다닌다
   function wheelScene() {
     const W = 800, CY = 225, TH = 20 * Math.PI / 180, ax = [Math.cos(TH), Math.sin(TH)], nv = [-Math.sin(TH), Math.cos(TH)], THd = TH * 180 / Math.PI;
     const O = [120, 150], L2W = (u: number, v: number) => [O[0] + u * ax[0] + v * nv[0], O[1] + u * ax[1] + v * nv[1]];
@@ -833,9 +833,11 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       const g = el('g', { transform: `translate(${cx.toFixed(1)} ${cy.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(1 ${k.toFixed(2)})`, opacity: op }, p), ns = { fill: 'none', stroke, 'vector-effect': 'non-scaling-stroke' };
       if (stand) el('path', { d: `M0 0L${-r * .72} ${r * 1.18}M0 0L${r * .72} ${r * 1.18}M${-r * .95} ${r * 1.18}H${r * .95}`, ...ns, 'stroke-width': 1 }, g);
       el('circle', { r, fill: C.bg }, g);
-      el('circle', { r, ...ns, 'stroke-width': 1.1 }, g); el('circle', { r: r * .86, ...ns, 'stroke-width': .8 }, g);
+      el('circle', { r, ...ns, 'stroke-width': r < 9 ? .7 : 1.1 }, g);
       const sp = el('g', {}, g);
       let d = '';
+      if (r < 9) { for (let q = 0; q < 3; q++) { const a = q / 3 * Math.PI * 2; d += `M0 0L${(Math.cos(a) * r).toFixed(1)} ${(Math.sin(a) * r).toFixed(1)}`; } el('path', { d, ...ns, 'stroke-width': .5 }, sp); return sp; } // 작은 캣휠: 테 · 살 3개만
+      el('circle', { r: r * .86, ...ns, 'stroke-width': .8 }, g);
       for (let q = 0; q < 28; q++) { const a = q / 28 * Math.PI * 2, c = Math.cos(a), s = Math.sin(a); d += `M${(c * r * .86).toFixed(1)} ${(s * r * .86).toFixed(1)}L${(c * r).toFixed(1)} ${(s * r).toFixed(1)}`; }
       for (let q = 0; q < 6; q++) { const a = q / 6 * Math.PI * 2, c = Math.cos(a), s = Math.sin(a); d += `M${(c * r * .12).toFixed(1)} ${(s * r * .12).toFixed(1)}L${(c * r * .86).toFixed(1)} ${(s * r * .86).toFixed(1)}`; }
       el('path', { d, ...ns, 'stroke-width': .7 }, sp); el('circle', { r: r * .12, ...ns, 'stroke-width': .8 }, sp);
@@ -851,21 +853,18 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       }
       cover(p, `url(#${id}-${uid})`).setAttribute('opacity', String(op));
     };
-    // 별 (가장 먼 층) · 성운 빛 (가려지는 빛) · 캣휠 무늬 세 층 (먼 층일수록 작고 빽빽하고 흐리게)
+    // 별 (가장 먼 층) · 캣휠 무늬 세 층 (먼 층일수록 작고 빽빽하게) — 물류망처럼 면 없이 선 · 점으로만
     { const pat = el('pattern', { id: `cw-st-${uid}`, width: 260, height: 220, patternUnits: 'userSpaceOnUse' }, defs);
       for (let j = 0; j < 46; j++) { const big = rnd() < .14; el('circle', { cx: rnd() * 260, cy: rnd() * 220, r: big ? 1.1 : .6, fill: big ? C.t2 : C.t3 }, pat); }
       cover(layers[0], `url(#cw-st-${uid})`); }
-    { const cols = [C.info, C.divine, C.streak, C.info];
-      cols.forEach((c, k) => { const gr = el('radialGradient', { id: `cw-nb${k}-${uid}` }, defs); el('stop', { offset: 0, 'stop-color': c, 'stop-opacity': .32 }, gr); el('stop', { offset: .55, 'stop-color': c, 'stop-opacity': .1 }, gr); el('stop', { offset: 1, 'stop-color': c, 'stop-opacity': 0 }, gr); });
-      for (let x = -1400; x < U * PAR[1] + 2200; x += 260 + rnd() * 260) { const y = O[1] - 300 + rnd() * 700, rx = 220 + rnd() * 360; el('ellipse', { cx: x, cy: y, rx, ry: rx * (.35 + rnd() * .35), fill: `url(#cw-nb${Math.floor(rnd() * 4)}-${uid})`, transform: `rotate(${(rnd() * 60 - 30).toFixed(0)} ${x.toFixed(0)} ${y.toFixed(0)})` }, layers[1]); } }
-    field(layers[1], 'cw-f0', 340, 260, 34, 5, 16, C.line, .75);
-    field(layers[2], 'cw-f1', 520, 400, 16, 14, 40, C.line, .9);
-    field(layers[3], 'cw-f2', 900, 640, 9, 38, 92, C.t3, .6);
+    field(layers[1], 'cw-f0', 300, 240, 110, 1.6, 5, C.line, .8);
+    field(layers[2], 'cw-f1', 460, 360, 60, 4, 11, C.line, .9);
+    field(layers[3], 'cw-f2', 760, 560, 26, 9, 24, C.line, .9);
     // 가까운 캣휠 (항로 곁 · 천천히 돈다): 갈래 다발 바깥
     const spins: { e: SVGElement; w: number }[] = [];
-    for (let u = -300; u < U + 400; u += 90 + rnd() * 110) for (const sd of [-1, 1]) {
-      if (rnd() < .35) continue;
-      const r = 26 + rnd() * 60, v = sd * (LANE + 70 + r * .9 + rnd() * 120), [x, y] = L2W(u + (rnd() - .5) * 60, v);
+    for (let u = -300; u < U + 400; u += 34 + rnd() * 40) for (const sd of [-1, 1]) {
+      if (rnd() < .3) continue;
+      const r = 10 + rnd() * rnd() * 26, v = sd * (LANE + 40 + r + rnd() * 160), [x, y] = L2W(u + (rnd() - .5) * 60, v);
       spins.push({ e: wheel(world, x, y, r, rnd() * 180 - 90, .3 + rnd() * .55, C.t3, 1, rnd() < .5), w: (rnd() - .5) * .02 });
     }
     // 출발: 의뢰한 가족의 개척지 (돔 거주지 · 창 불빛) / 끝: 유닉스 회수함 (긴 선체 · 회수 집게) / 떠다니는 반려 돌
@@ -900,7 +899,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     const camAt = (uc: number) => { const P = L2W(uc, 0); return [P[0] - 400, P[1] - CY]; };
     return branchKit({
       name: '캣휠 그늘 성계',
-      legend: [['항로', '모든 길은 직선 · 지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['신호', '회수 신호 — 화물선이 지나면 켜짐'], ['캣휠', '버려진 캣휠 — 성계의 빛을 가릴 만큼 끝없이 (가까운 것은 돈다)'], ['성운', '캣휠 사이로 새어 나오는 빛'], ['반려 돌', '항의한 유족에게 투하된 답례품'], ['개척지 · 회수함', '의뢰한 가족의 집 · 유닉스 회수함 (보스)']],
+      legend: [['항로', '모든 길은 직선 · 지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['신호', '회수 신호 — 화물선이 지나면 켜짐'], ['캣휠', '버려진 캣휠 — 성계의 빛을 가릴 만큼 끝없이 (가까운 것은 돈다)'], ['반려 돌', '항의한 유족에게 투하된 답례품'], ['개척지 · 회수함', '의뢰한 가족의 집 · 유닉스 회수함 (보스)']],
       edgeLayer, casingLayer, casing: 4, nodeLayer, beaconLayer, beacon: (i) => `RCV-${pad2(i + 1)} 신호`,
       nodeAt, dirAt: () => ax,
       edgePts: (i, j, k) => { const A = nodeAt(i, j), B = nodeAt(i + 1, k); return [A, [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], B]; }, // 직선 (가운데 점 = 신호 자리)
