@@ -61,7 +61,11 @@ const mod = (a: number, n: number) => ((a % n) + n) % n;
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 function rng(seed: number) { return () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
-interface Scene { key: string; el: HTMLElement; sync(step: number): void; sleep(): void; wake(): void; destroy(): void }
+interface Scene { key: string; el: HTMLElement; sync(step: number): void; sleep(): void; wake(): void; destroy(): void;
+  /** 전체 화면 전환 연출: rect = 지도 창 자리 (화면 좌표), vb = 그 자리의 시야. opening = 지도 자리 → 전체 화면 */
+  morph(rect: DOMRect, vb: number[], opening: boolean, done: () => void): void;
+  /** 지도 창 크기일 때의 시야 · 이동 연출이 끝나는 시각 */
+  baseVB(): number[]; busyUntil(): number }
 let S: Scene | null = null;
 /** 노드 설명 (HTML): 전체 화면 옆 패널에 쓴다 — 문구는 main 의 기존 팝오버와 같은 것 */
 type Hint = (t: NodeType, i: number) => string;
@@ -71,24 +75,40 @@ type Pick = { get(): NodeType | undefined; set(t: NodeType): void; go?(t: NodeTy
 let autoKey = '', autoT = 0;
 const choiceCount = (run: RunState) => (run.step === 0 ? run.map[0]?.length ?? 0 : run.links?.[run.step - 1]?.[run.path?.[run.step - 1] ?? 0]?.length ?? 0);
 let last: { host: HTMLElement; run: RunState; onNode: (el: HTMLElement) => void; hint: Hint; pick?: Pick } | null = null;
-// 전체 화면: 항로도를 body 위 덮개로 옮기고(브라우저 전체 화면은 되면 덤), 더 넓은 시야 + 옆 패널 (노드 목록 · 범례)
-let fs = false, fsNative = false, fsResize = 0;
+// 전체 화면: 항로도를 body 위 덮개로 옮기고, 더 넓은 시야 + 옆 패널 (노드 목록 · 범례). 열고 닫을 때 지도 창이 화면을 채우며 커지고 · 제자리로 줄어든다 (morph)
+let fs = false, fsResize = 0, morphing = false;
 function setFs(on: boolean, remount = true) {
   if (fs === on) return;
-  fs = on; fsNative = false;
+  fs = on;
+  if (!on) { morphing = false; if (last) last.host.style.minHeight = ''; }
   document.documentElement.classList.toggle('rmap-fs-on', on);
-  if (on) document.documentElement.requestFullscreen?.().then(() => { fsNative = true; }, () => {});
-  else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   S?.destroy(); S = null;
   if (remount && last) mountRouteMap(last.host, last.run, last.onNode, last.hint, last.pick);
 }
-addEventListener('keydown', (e) => { if (fs && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setFs(false); } }, true);
-document.addEventListener('fullscreenchange', () => { if (fs && fsNative && !document.fullscreenElement) setFs(false); }); // 브라우저 Esc 는 전체 화면만 끄고 키는 넘겨 주지 않는다
+/** 전체 화면 열기: 지도 창 자리에서 화면 가득으로 커진다 (지도 자리는 비워 두지 않고 높이를 지킨다 — 닫을 때 돌아올 자리) */
+function openFs(anim: boolean) {
+  if (fs || morphing || !last || !S) return;
+  const from = S.el.getBoundingClientRect(), base = S.baseVB();
+  if (from.height > 0) last.host.style.minHeight = `${from.height}px`;
+  setFs(true);
+  if (anim && S && from.width > 0) { morphing = true; S.morph(from, base, true, () => { morphing = false; }); }
+}
+/** 전체 화면 닫기: 지도 창 자리로 줄어든 뒤 원래 크기 항로도로 (then = 닫은 뒤 할 일) */
+function closeFs(anim: boolean, then?: () => void) {
+  if (!fs) { then?.(); return; }
+  if (morphing) return;
+  const host = last?.host, base = S?.baseVB();
+  if (!anim || !S || !host?.isConnected || !base) { setFs(false); then?.(); return; }
+  const hr = host.getBoundingClientRect();
+  morphing = true;
+  S.morph(new DOMRect(hr.left, hr.top, hr.width, (hr.width * base[3]) / base[2]), base, false, () => { setFs(false); then?.(); });
+}
+addEventListener('keydown', (e) => { if (fs && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeFs(true); } }, true);
 addEventListener('resize', () => { if (!fs) return; clearTimeout(fsResize); fsResize = window.setTimeout(() => { if (fs && last) { S?.destroy(); S = null; mountRouteMap(last.host, last.run, last.onNode, last.hint, last.pick); } }, 200); });
 
 /** render() 뒤에 부른다: host 가 없으면(지도 화면이 아님) 움직임만 멈춘다 */
 export function mountRouteMap(host: HTMLElement | null, run: RunState | null, onNode: (el: HTMLElement) => void, hint: Hint = () => '', pick?: Pick) {
-  if (!host || !run || !routeMapOn(run)) { clearTimeout(autoT); if (fs) setFs(false, false); S?.sleep(); return; }
+  if (!host || !run || !routeMapOn(run)) { clearTimeout(autoT); if (fs) { if (last) last.host.style.minHeight = ''; setFs(false, false); } S?.sleep(); return; }
   last = { host, run, onNode, hint, pick };
   const narrow = matchMedia('(max-width: 600px)').matches;
   const types = run.links ? branchTypes(run, pick?.get()) : run.map.map((o, i) => run.picked[i] || o[0]);
@@ -100,8 +120,8 @@ export function mountRouteMap(host: HTMLElement | null, run: RunState | null, on
   S.sync(run.step);
   clearTimeout(autoT);
   const ak = `${run.seed}|${run.phase}|${run.step}`;
-  if (run.links && !fs && !run.node && ak !== autoKey && choiceCount(run) > 1 && (pick?.auto?.() ?? true)) {
-    autoT = window.setTimeout(() => { if (last?.run === run && !fs && !run.node && `${run.seed}|${run.phase}|${run.step}` === ak && (last.pick?.auto?.() ?? true)) { autoKey = ak; setFs(true); } }, 1250);
+  if (run.links && !fs && !run.node && ak !== autoKey && choiceCount(run) > 1 && (pick?.auto?.() ?? true)) { // 칸을 넘어오는 이동 연출이 끝나면 바로 이어서
+    autoT = window.setTimeout(() => { if (last?.run === run && !fs && !run.node && `${run.seed}|${run.phase}|${run.step}` === ak && (last.pick?.auto?.() ?? true)) { autoKey = ak; openFs(true); } }, Math.max(250, S.busyUntil() - performance.now() + 120));
   }
 }
 
@@ -123,13 +143,15 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const box = document.createElement('div');
   box.className = `rmap rmap-${kind}${fs ? ' fs' : ''}`;
-  box.innerHTML = `<div class="rm-view"><svg class="rm-stage" role="img" aria-label="항로도 — 좌우로 끌어서 둘러보기, 노드를 누르면 설명"></svg><button class="btn tiny rm-recenter" type="button" hidden>현재 노드로</button><button class="btn tiny rm-fs" type="button" aria-pressed="${fs}">${lineIcon(fs ? 'u.shrink' : 'u.expand', 'li')}${fs ? '닫기' : '전체 화면'}</button></div>${fs ? '<aside class="rm-panel" aria-label="항로 상세"></aside>' : ''}`;
+  box.innerHTML = `<div class="rm-view"><svg class="rm-stage" role="img" aria-label="항로도 — 좌우로 끌어서 둘러보기, 노드를 누르면 설명"></svg><button class="btn tiny rm-recenter" type="button" hidden>현재 노드로</button><button class="btn tiny rm-fs" type="button" aria-pressed="${fs}">${lineIcon(fs ? 'u.shrink' : 'u.expand', 'li')}${fs ? '닫기' : '전체 화면'}</button><div class="rm-guide" role="status" hidden><b>갈림길</b><span>경로를 선택하세요</span></div></div>${fs ? '<aside class="rm-panel" aria-label="항로 상세"></aside>' : ''}`;
   host.appendChild(box); // 길이 계산(getTotalLength)은 문서에 붙은 뒤에
-  const stage = box.querySelector('svg')!, recenterBtn = box.querySelector<HTMLButtonElement>('.rm-recenter')!, panelEl = box.querySelector<HTMLElement>('.rm-panel');
-  box.querySelector('.rm-fs')!.addEventListener('click', () => setFs(!fs));
+  const stage = box.querySelector('svg')!, recenterBtn = box.querySelector<HTMLButtonElement>('.rm-recenter')!, panelEl = box.querySelector<HTMLElement>('.rm-panel'), guideEl = box.querySelector<HTMLElement>('.rm-guide')!;
+  box.querySelector('.rm-fs')!.addEventListener('click', () => (fs ? closeFs(true) : openFs(true)));
   // 전체 화면 시야: 무대 칸의 비율에 맞춰 원래 시야보다 넓고 높게 (가운데는 그대로)
   const sr = stage.getBoundingClientRect(), aspect = sr.height > 0 ? sr.width / sr.height : 0;
+  let baseVB = [0, 0, 800, 450], busyUntil = 0;
   const fit = (v: number[]) => {
+    baseVB = v;
     if (!fs || !aspect) return v;
     const w = Math.min(Math.max(v[3] * 1.3 * aspect, v[2] * 1.2), v[2] * 2.2), h = Math.min(Math.max(w / aspect, v[3] * 1.15), v[3] * 2);
     return [v[0] + v[2] / 2 - w / 2, v[1] + v[3] / 2 - h / 2, w, h];
@@ -141,6 +163,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     cancelAnimationFrame(raf);
     if (reduce) { step(1); done?.(); return; }
     const t0 = performance.now();
+    busyUntil = t0 + ms;
     const f = (now: number) => { const t = Math.min(1, (now - t0) / ms); step(ease(t)); if (t < 1) raf = requestAnimationFrame(f); else done?.(); };
     raf = requestAnimationFrame(f);
   };
@@ -312,6 +335,24 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     sleep() { stopAmb(); clearTimeout(idleT); },
     wake() { if (!awake || !amb) { awake = true; startAmb(); } },
     destroy() { stopAmb(); cancelAnimationFrame(raf); cancelAnimationFrame(praf); clearTimeout(idleT); sc.stop(); box.remove(); },
+    baseVB: () => baseVB, busyUntil: () => busyUntil,
+    morph(r0: DOMRect, vb0: number[], opening: boolean, done: () => void) {
+      // 지도 창 자리(r0)에 그 시야(vb0)가 그대로 보이게 하는 전체 화면 시야(V0)에서 출발해, 잘라 보이는 창(clip-path)과 시야를 함께 넓힌다
+      const sr = stage.getBoundingClientRect(), bv = stage.viewBox.baseVal, V1 = [bv.x, bv.y, bv.width, bv.height], s = vb0[2] / Math.max(1, r0.width);
+      const V0 = [vb0[0] - (r0.left - sr.left) * s, vb0[1] - (r0.top - sr.top) * s, sr.width * s, sr.height * s];
+      const I0 = [r0.top, innerWidth - r0.right, innerHeight - r0.bottom, r0.left];
+      const set = (k: number) => {
+        stage.setAttribute('viewBox', V0.map((v, i) => (v + (V1[i] - v) * k).toFixed(2)).join(' '));
+        box.style.clipPath = `inset(${I0.map((v) => `${(v * (1 - k)).toFixed(1)}px`).join(' ')} round ${(12 * (1 - k)).toFixed(1)}px)`;
+        if (panelEl) panelEl.style.opacity = Math.max(0, (k - 0.35) / 0.65).toFixed(3);
+      };
+      const finish = () => { stage.setAttribute('viewBox', V1.join(' ')); box.style.clipPath = ''; if (panelEl) panelEl.style.opacity = ''; done(); };
+      if (reduce) { finish(); return; }
+      set(opening ? 0 : 1);
+      const t0 = performance.now(), ms = opening ? 560 : 440;
+      const f = (now: number) => { const t = Math.min(1, (now - t0) / ms), e = ease(t); set(opening ? e : 1 - e); if (t < 1) requestAnimationFrame(f); else finish(); };
+      requestAnimationFrame(f);
+    },
   };
 
   // ── 리빈 낙원동: 속 빈 구체의 내벽 단면. 인공 태양(중심)은 화면 위 바깥
@@ -757,6 +798,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       const update = (anim: boolean) => {
         const S0 = stateNow(), { step, path } = S0, pj = S0.pj;
         const key = `${step}|${S0.choosing}|${S0.r.node ? 1 : 0}`, big = key !== camKey;
+        guideEl.hidden = !S0.choosing; // 갈림길 안내 (지도 창 · 전체 화면 위쪽 가운데)
         camKey = key;
         const jobs: { k: Tok; from: St; to: St; w: number[] }[] = [];
         rows.forEach((row, i) => row.forEach((t, j) => {
@@ -801,7 +843,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       // 마우스를 올린 노드: 그 노드로 가는 길을 미리 밝힌다 (카메라는 그대로). 누르면 바로 진행 — 터치는 한 번 누르면 고르고 고른 노드를 다시 누르면 진행
       nodeLayer.addEventListener('pointerover', (e) => { if (e.pointerType !== 'mouse') return; const t = (e.target as Element).closest<SVGElement>('.rm-node')?.dataset.pick as NodeType | undefined; if (t && t !== hov) { hov = t; update(true); panel(); } });
       nodeLayer.addEventListener('pointerout', (e) => { if (e.pointerType !== 'mouse' || !hov || e.buttons) return; const to = (e.relatedTarget as Element | null)?.closest?.('.rm-node') as SVGElement | null; if (to?.dataset.pick === hov) return; hov = null; update(true); panel(); }); // 누르는 순간 (포인터 캡처) 은 떠난 것이 아니다
-      onPick = (t, how) => { const p = last?.pick; if (!p) return; if (how === 'tap' && p.get() !== t) { p.set(t); return; } hov = null; if (fs) setFs(false, false); if (p.go) p.go(t); else p.set(t); }; // 진행: 전체 화면은 닫고 (미뤄 둔 보상 창 · 다음 화면이 보이게)
+      onPick = (t, how) => { const p = last?.pick; if (!p) return; if (how === 'tap' && p.get() !== t) { p.set(t); return; } hov = null; const go = () => (p.go ? p.go(t) : p.set(t)); if (fs) closeFs(true, go); else go(); }; // 진행: 전체 화면은 지도 자리로 줄인 뒤 (미뤄 둔 보상 창 · 다음 화면이 보이게)
       // 전체 화면 옆 패널: 고를 수 있는 길마다 그 길로 몇 번째 칸의 어느 노드까지 갈 수 있는지 (모든 길이 만나는 칸까지)
       const NAME = '베르타–산노디스 물류망';
       const LEGEND = [['궤도', '갈림길 = 왼쪽 · 가운데 · 오른쪽으로 갈라지는 궤도'], ['연결선', '지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['NAV', '항로 표지 — 화물선이 지나면 복구'], ['천체', 'B-4 · TS-7 · A-117 · SN · RL-2'], ['CVY', '수송선단 (진행축 양쪽)'], ['DEBRIS β', '소행성대'], ['PSR', '산-노디스 펄서 (8년 주기)']];

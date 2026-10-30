@@ -720,6 +720,10 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 .rmap .rm-recenter { position: absolute; left: 10px; top: 10px; }
 .rmap .rm-fs { position: absolute; right: 10px; top: 10px; display: inline-flex; align-items: center; gap: 4px; }
 .rmap .rm-fs .li { width: 14px; height: 14px; }
+.rmap .rm-guide { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: baseline; gap: 8px; padding: 5px 14px; border: 1px solid var(--c-select); border-radius: var(--r-md); background: var(--panel); color: var(--c-text); font-size: var(--fs-md); white-space: nowrap; pointer-events: none; }
+.rmap .rm-guide b { color: var(--c-select); }
+.rmap.fs .rm-guide { top: 14px; font-size: var(--fs-lg); padding: 7px 18px; }
+@media (max-width: 600px) { .rmap:not(.fs) .rm-guide { top: auto; bottom: 10px; } } /* 좁은 화면: 위 단추들과 겹치지 않게 아래로 */
 /* 전체 화면: 화면을 덮고, 넓은 시야 + 오른쪽 패널 (노드 목록 · 범례) */
 html.rmap-fs-on, html.rmap-fs-on body { overflow: hidden; }
 .rmap.fs { position: fixed; inset: 0; z-index: var(--z-modal); border: 0; border-radius: 0; display: grid; grid-template-columns: minmax(0, 1fr) 300px;
