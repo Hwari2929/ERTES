@@ -1475,7 +1475,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     const rnd = rng(54 + run.phase), rr = rng(58 + run.phase), SZ = 26, OX = 150, OY = 205, M_PER = 20, PIN = 58; // 격자 1칸 = 20m (구획 3칸 = 60m)
     const iso = (gx: number, gy: number, z = 0) => [OX + (gx - gy) * SZ * .866, OY + (gx + gy) * SZ * .5 - z];
     const world = el('g', {}, stage), sky = el('g', {}, stage), fixed = el('g', {}, stage);
-    const ground = el('g', {}, world), bldg = el('g', {}, world), routeG = el('g', {}, world), over = el('g', {}, world); // 안내 경로 · 핀은 집 위 (늘 보이게)
+    const ground = el('g', {}, world), routeG = el('g', {}, world), bldg = el('g', {}, world), over = el('g', {}, world); // 안내 경로는 땅 위 · 집 아래 (앞에 선 집 지붕에 가려진다), 핀 · 표시기는 집 위 (늘 보이게)
     const poly = (a: number[][], fill: string, stroke?: string, p: Element = bldg) => el('polygon', { points: pts(a), fill, stroke: stroke || 'none', 'stroke-width': .6 }, p);
     /** 교외 격자: 땅 · 도로 (3칸마다) · 집 · 공원 · 행정 구역 (보스 노드 옆 구획). diag = 구획을 가로지르는 대각 도로 (격자 좌표 두 점) —
      *  지나는 구획은 도로를 따라 잘린 택지가 된다 (도로에서 떨어진 모서리에만 집, 도로 양옆은 가로수) */
