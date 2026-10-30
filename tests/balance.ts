@@ -188,8 +188,24 @@ Battle.prototype.dealDamage = function (this: Battle, src: CUnit, tgt: CUnit, ba
     }
     if (r.miss) tap.evaded.set(tgt, (tap.evaded.get(tgt) || 0) + base);
   }
+  // 대형 적 계측 (instr): 아군 기물별로 대형 적(EnemyDef.size)의 본체 칸 · 나머지 칸에 넣은 실제 피해 (체력은 한 통이라 둘 다 같은 체력을 깎는다)
+  if (bigTap && r.amount > 0 && tgt.side === 1 && tgt.mem.grp && ENEMY_BY_ID[tgt.defId]?.size) {
+    const a = actorOf(src);
+    if (a.side === 0) { const k = a.defId || '?', v = (bigTap[k] ??= [0, 0]); v[tgt.mem.part ? 1 : 0] += r.amount; }
+  }
   return r;
 };
+/** 대형 적 피해 계측 (전투마다 새로): 아군 기물 정의 id → [본체 칸 피해, 나머지 칸 피해] */
+let bigTap: Record<string, [number, number]> | null = null;
+/** 적 쓰러진 시각 (instr, 읽기만): 전투 동작은 그대로 */
+const FOE_DT = new WeakMap<CUnit, number>();
+if (process.argv.includes('instr')) {
+  const k0 = Battle.prototype.kill;
+  Battle.prototype.kill = function (this: Battle, u: CUnit, by: CUnit | null) {
+    if (u.alive && u.side === 1 && !FOE_DT.has(u)) FOE_DT.set(u, this.t);
+    return k0.call(this, u, by);
+  };
+}
 
 /** 반사실 실험 전용: buildBattle 과 같되 시너지 인원을 덮어쓸 수 있다.
  *  편성 화면의 포탑 자리 · 포탑 장비 · 무휼 자리(build.ts 내부 WeakMap)는 넘기지 못해 기본 자리 · 장비 없음으로 설치된다.
@@ -421,13 +437,20 @@ function playRun(seed: number) {
       add('foegear', `${ntype}|${ph}|${tr}`, { n: 1, [`k${Math.min(3, it.length)}`]: 1, items: it.length, C: it.filter((x) => x.startsWith('C_')).length, G: it.filter((x) => x.startsWith('G_')).length, A: it.filter((x) => x.startsWith('A_')).length, L: it.filter((x) => x.startsWith('L_')).length, mod: s.mod ? 1 : 0, strip: s.stripped ? 1 : 0 });
     }
     const b = buildBattle(run, enc, false); // 실제 게임과 같은 경로 (포탑 · 무휼 자리, 포탑 장비 포함)
+    bigTap = INSTR && enc.enemies.some((e) => ENEMY_BY_ID[e.defId]?.size) ? {} : null;
     b.runToEnd();
+    const BT = bigTap; bigTap = null;
     const won = b.winner === 0;
     if (GEARLOG) gearLog.push([ph, ntype[0], won ? 1 : 0, dep.flatMap((u) => u.items.filter((x): x is string => !!x))]);
     if (INSTR) trace.push({ph, st:run.step, type:ntype, won, sec:b.t, counts:{...counts},
       enemyLegends:enc.enemies.reduce((n,e)=>n+(e.items||[]).filter(i=>i.startsWith('L_')).length,0),
       foes:enc.enemies.length, party:dep.filter(u=>!R.isRock(u)).map(u=>({id:u.defId,rank:u.rank})),
-      alive:b.units.filter(u=>u.side===0&&!u.isSummon&&u.alive).length});
+      alive:b.units.filter(u=>u.side===0&&!u.isSummon&&u.alive).length,
+      // 적 계측: fz = 적 기물마다 [정의 id, 끝까지 생존 1/0, 준 피해, 쓰러진 시각(-1 = 안 쓰러짐 · 탈출), 소환 1/0, 정예 1/0] (대형 적 나머지 칸 · 중립 구조물 제외)
+      // ad = 아군 사망 · loot = 밀수 운반책 크레딧 · sq = 분대 종류 · bigd = 대형 적에게 넣은 피해 (아군 기물별 [본체, 나머지 칸])
+      fz:b.units.filter(u=>u.side===1&&!u.mem.part&&!u.mem.neutral&&!u.mem.inert).map(u=>[u.defId,u.alive?1:0,Math.round(u.counters.dmg),Math.round((FOE_DT.get(u)??-1)*10)/10,u.isSummon?1:0,u.elite?1:0]),
+      ad:b.counters.allyDeaths, loot:(b.mem.lootPay as number)||0, sq:(enc.squads||[]).map(s=>s.kind+(s.add?'+':'')),
+      ...(BT ? { bigd:Object.fromEntries(Object.entries(BT).map(([k,v])=>[k,[Math.round(v[0]),Math.round(v[1])]])) } : {})});
     CH?.afterBattle(b, ntype);
     battles++;
     if (INSTR) {
