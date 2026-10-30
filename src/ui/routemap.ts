@@ -1,7 +1,7 @@
 // 지도 화면 항로도 (전술 스코프): 리빈 낙원동 = 구체 내벽 회전, 베르타–산노디스 물류망 = 대각 진행 원 궤도,
 // 라이덴 제34블록 = 고저 단면 (기둥 위 보행 데크 · 아래 거리의 다층 상가 · 여우 신사), 카운티폴 세피아 교외 = 등각 교외 길 안내 (핀 · 헤드업 내비),
 // 금고선 히페리온호 = 순찰 스코프 (궤도에서 내려다본 선체 · 대각 진행축 · 탐지선이 쓸 때만 드러나는 경비 접촉),
-// 페트라 본사 성역 = 계정 고리 회랑 · 조직도 갑판 도시 · 공급망 배관 (유닉스 침투 · 격리), 브샤크 묘비 해안 = 죽은 바다 · 산맥 사이 해안 등각도 (군집 · 묘비 개체 · 마부 개체), 황무지 성계 = 불모 행성 · 메트로 타운 정거장 사이 직선 + 곡선 항로 (은하 열차가 이따금 지나감), 캣휠 그늘 성계 = 끝없는 캣휠 · 성운 사이 직선 항로 (물류망 바탕), 크레타 백원 = 묘역 등각도 (면 없이 선으로만 · 등고선 · 묘비 눈금 · 서류탑 · 애도 극장 · 접수 대기열 · 호명 릴레이 · 장군의 묘).
+// 페트라 본사 성역 = 계정 고리 회랑 · 사무 · 물류 갑판 · 공급망 배관 (유닉스 침투 · 격리), 브샤크 묘비 해안 = 죽은 바다 · 산맥 사이 해안 등각도 (군집 · 묘비 개체 · 마부 개체), 황무지 성계 = 불모 행성 · 메트로 타운 정거장 사이 직선 + 곡선 항로 (은하 열차가 이따금 지나감), 캣휠 그늘 성계 = 끝없는 캣휠 · 성운 사이 직선 항로 (물류망 바탕), 크레타 백원 = 묘역 등각도 (면 없이 선으로만 · 등고선 · 묘비 눈금 · 서류탑 · 애도 극장 · 접수 대기열 · 호명 릴레이 · 장군의 묘).
 // 시안: claude.ai 아티팩트 '전장별 항로 시안' (리빈 = 스코프, 물류망 = 스코프 · 대각, 라이덴 = ① 다층 상가, 카운티폴 = A′-2 핀) ·
 //       '히페리온 · 크레타 항로 시안' (히페리온 = H3 순찰 스코프).
 // 렌더마다 화면이 통째로 다시 그려지므로, 항로도 DOM 은 이 모듈이 들고 있다가 자리(.rmap-host)에 다시 끼운다.
@@ -1247,7 +1247,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     });
   }
   // ── 페트라 본사 성역: 우주에 뜬 긴 회랑형 본사 (P5) — 진행축을 따라 계정별 거주 고리를 하나씩 지나 끝의 본계정 (중앙 기록소) 으로.
-  // 선체 안 갑판은 조직도가 공간으로 펼쳐진 도시 (P2): 부서 구역이 조직도 상자처럼 줄지어 있고, 길은 조직도 연결선처럼 직각으로 꺾인다 (모서리만 둥글게).
+  // 선체 안 갑판은 사무동 · 물류 야적장 (P2): 바깥 띠에 부서 사무동, 갈래 사이 통로에 적요별 컨테이너 더미 · 무인 운반차, 길은 연결 통로처럼 직각으로 꺾인다 (모서리만 둥글게).
   // 선체 바깥은 공급망 배관 (P3): 외부 생산자에게서 화물이 흘러들고, 적요에 없는 화물 (빨강) 은 격벽 밸브에서 격리 구획으로 빠진다. 유닉스 자기증식 설비가 외벽에 따개비처럼 (페이즈마다 늘어난다), 격리팀 함정이 둘레를 돈다
   function ledgerScene() {
     const W = 800, CY = 225, TH = 14 * Math.PI / 180, ax = [Math.cos(TH), Math.sin(TH)], nv = [-Math.sin(TH), Math.cos(TH)], THd = TH * 180 / Math.PI;
@@ -1273,21 +1273,47 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       el('ellipse', { cx: 9, cy: 0, rx: 18, ry: HV + 22, fill: 'none', stroke: C.line }, g);
       txt(g, 0, -HV - 30, `${ACC[k % ACC.length]} 고리`, ko({ 'text-anchor': 'middle', 'font-size': 9, fill: C.t2 }));
     }
-    // 갑판 도시 (조직도): 갈래 사이 · 바깥 띠에 부서 구역 상자, 조직도 버스 선 · 내림선
+    // 갑판 = 사무동 · 물류 야적장: 바깥 띠에 사무동 (창 격자 · 옥상 설비 · 부서 간판), 갈래 사이 통로에 적요별 컨테이너 더미 (2 ~ 3단),
+    // 통로 바닥 차선 위로 무인 운반차가 컨테이너를 싣고 오간다. 모두 진행축에 맞춘 국소 좌표 · 윗면을 살짝 비껴 그린 사선 투영 (면 칠 없이 선으로)
     const DEPT = ['전략기획부', '자산관리부', '과학기술부', '전통기술부', '무역관세부', '재정부', '법무부', '개척개발부', '브랜드홍보부', '정보감사실', '안전복지부', '전쟁부'];
+    const OB = [7, -6]; // 윗면 비낌 (국소 좌표)
+    const blockAt = (g: Element, x: number, y: number, w: number, h: number, d: number, stroke: string) => { // 사선 상자: 앞면 · 윗면 · 옆면
+      const f = [[x, y], [x + w, y], [x + w, y + h], [x, y + h]], tp = [[x, y], [x + w, y], [x + w + OB[0] * d, y + OB[1] * d], [x + OB[0] * d, y + OB[1] * d]], sd = [[x + w, y], [x + w + OB[0] * d, y + OB[1] * d], [x + w + OB[0] * d, y + h + OB[1] * d], [x + w, y + h]];
+      el('polygon', { points: pts(sd), fill: C.bg, stroke, 'stroke-width': .8 }, g); el('polygon', { points: pts(tp), fill: C.panel2, stroke, 'stroke-width': .8 }, g); el('polygon', { points: pts(f), fill: C.bg, stroke, 'stroke-width': .9 }, g);
+    };
     let di = Math.floor(rnd() * DEPT.length);
-    for (const v of [-55, 55, -140, 140]) {
-      const g = el('g', {}, deck), outer = Math.abs(v) > 100;
-      el('path', { d: `M${L2W(-200, v + (v < 0 ? -18 : 18)).join(' ')}L${L2W(U, v + (v < 0 ? -18 : 18)).join(' ')}`, stroke: C.line, 'stroke-width': .8 }, g); // 조직도 버스
+    for (const s of [-1, 1]) for (let i = -1; i < R; i++) { // 사무동 (바깥 띠): 층마다 창 줄 · 옥상 냉각기 · 부서 간판
+      if (rnd() < .2) continue;
+      const u = i * STEP + 40 + rnd() * 50, w = 54 + rnd() * 34, fl = 2 + Math.floor(rnd() * 3), h = fl * 9 + 6, g = el('g', { transform: at(u, s * 142) }, deck), y0 = -h / 2;
+      blockAt(g, -w / 2, y0, w, h, 1, C.t3);
+      for (let f = 0; f < fl; f++) for (let x = -w / 2 + 4; x < w / 2 - 4; x += 7) el('rect', { x, y: y0 + 4 + f * 9, width: 4, height: 4, fill: rnd() < .35 ? C.divine : C.line, opacity: .75 }, g);
+      for (let q = 0; q < 2; q++) el('rect', { x: -w / 2 + 8 + q * 16 + OB[0] * .5, y: y0 + OB[1] * .5 - 3, width: 9, height: 3, fill: C.bg, stroke: C.t3, 'stroke-width': .6 }, g); // 옥상 설비
+      const hot = rnd() < .12; txt(g, 0, y0 + h + 10, DEPT[di++ % DEPT.length], ko({ 'text-anchor': 'middle', 'font-size': 7.5, fill: hot ? C.streak : C.t2 }));
+      if (hot) el('rect', { x: -w / 2 - 2, y: y0 - 2, width: w + 4, height: h + 4, fill: 'none', stroke: C.streak, 'stroke-width': 1, 'stroke-dasharray': '3 2' }, g); // 이번 분기 재산정 중
+    }
+    const container = (g: Element, x: number, y: number, hot: boolean) => { // 컨테이너 한 칸: 골판 줄 · 문 끝단
+      blockAt(g, x, y, 24, 9, .7, hot ? C.bad : C.t3);
+      let d = ''; for (let k = 3; k < 22; k += 3) d += `M${x + k} ${y + 1.5}v6`; el('path', { d, stroke: hot ? C.bad : C.line, 'stroke-width': .5 }, g);
+      el('path', { d: `M${x + 22} ${y + 1}v7`, stroke: hot ? C.bad : C.t3, 'stroke-width': .7 }, g);
+    };
+    for (const v of [-55, 55]) { // 갈래 사이 통로: 차선 · 컨테이너 더미 (적요 번호표)
+      const lane = el('g', {}, deck);
+      el('path', { d: `M${L2W(-220, v).join(' ')}L${L2W(U + 40, v).join(' ')}`, stroke: C.line, 'stroke-width': 1, 'stroke-dasharray': '10 8' }, lane);
       for (let i = 0; i < R; i++) {
-        if (rnd() < (outer ? .25 : .3)) continue;
-        const u = i * STEP + 42, b = el('g', { transform: at(u, v) }, g), w = outer ? 74 : 56, h = outer ? 24 : 20, hot = rnd() < .12;
-        el('path', { d: `M0 ${v < 0 ? -h / 2 : h / 2}V${v < 0 ? -18 : 18}`, stroke: C.line, 'stroke-width': .8 }, b); // 버스에서 내림선
-        el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, fill: C.bg, stroke: hot ? C.streak : C.t3, 'stroke-width': hot ? 1.2 : .9 }, b);
-        txt(b, 0, 3, outer ? (rnd() < .5 ? `주거구 · 등급 ${'ABCDE'[Math.floor(rnd() * 5)]}` : DEPT[di++ % DEPT.length]) : DEPT[di++ % DEPT.length], ko({ 'text-anchor': 'middle', 'font-size': 8, fill: hot ? C.streak : C.t2 }));
-        if (outer) for (let q = 0; q < 6; q++) el('rect', { x: -w / 2 + 6 + q * 11, y: v < 0 ? -h / 2 - 5 : h / 2 + 2, width: 5, height: 3, fill: rnd() < .4 ? C.divine : C.line, opacity: .7 }, b); // 창 불빛
+        if (rnd() < .15) continue;
+        const u = i * STEP + 22 + rnd() * 30, g = el('g', { transform: at(u, v + (v < 0 ? -10 : 10)) }, deck), cols = 1 + Math.floor(rnd() * 3);
+        for (let c = 0; c < cols; c++) { const lv = 1 + Math.floor(rnd() * 3); for (let k = 0; k < lv; k++) container(g, c * 27 - 12, -k * 10 - 4, rnd() < .07); }
+        if (rnd() < .3) { const x1 = -18, x2 = cols * 27 - 8; el('path', { d: `M${x1} 8V-40M${x2} 8V-40M${x1 - 4} -40H${x2 + 4}`, fill: 'none', stroke: C.t2, 'stroke-width': .9 }, g); el('rect', { x: (x1 + x2) / 2 - 5, y: -40, width: 10, height: 5, fill: C.panel2, stroke: C.t2, 'stroke-width': .6 }, g); el('path', { d: `M${(x1 + x2) / 2} -35V-20`, stroke: C.t3, 'stroke-width': .6 }, g); } // 갠트리 크레인
+        if (rnd() < .5) txt(g, 0, 16, `적요 541-${String(Math.floor(rnd() * 9000) + 1000)}`, { 'text-anchor': 'middle', 'font-size': 6.5, fill: C.t3 });
       }
     }
+    const agvs = Array.from({ length: 6 }, (_, q) => { // 무인 운반차: 통로 차선을 오가며 컨테이너를 나른다
+      const g = el('g', {}, deck), v = q % 2 ? 55 : -55, dir = q % 3 ? 1 : -1;
+      el('rect', { x: -10, y: -3, width: 20, height: 6, rx: 1.5, fill: C.panel2, stroke: C.t2, 'stroke-width': .7 }, g);
+      el('rect', { x: -9, y: -10, width: 18, height: 7, fill: C.bg, stroke: C.t3, 'stroke-width': .6 }, g);
+      el('circle', { cx: dir * 9, cy: 0, r: 1.3, fill: C.divine }, g);
+      return { g, v, dir, o: rnd() * 4000 };
+    });
     // 격리 구획 (갑판 위 빗금 띠): 적요 외 반입물이 발견된 칸
     for (let q = 0; q < 2 + Math.floor(run.phase / 2); q++) {
       const u = STEP * (1 + rnd() * (R - 3)) + 90, v = (rnd() < .5 ? -1 : 1) * 140, g = el('g', { transform: at(u, v) }, deck);
@@ -1330,7 +1356,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     // 갈래 · 노드 · 화물선
     const dOf = (i: number, j: number) => (j - (rows[i].length - 1) / 2) * LANE;
     const nodeAt = (i: number, j: number) => L2W(i * STEP, dOf(i, j));
-    /** 옆 갈래로 옮겨 가는 길: 조직도 연결선처럼 진행축 → 직각으로 꺾어 갈래 사이 이동 → 다시 진행축, 모서리 둘만 둥글게 (반지름 16) */
+    /** 옆 갈래로 옮겨 가는 길: 연결 통로처럼 진행축 → 직각으로 꺾어 갈래 사이 이동 → 다시 진행축, 모서리 둘만 둥글게 (반지름 16) */
     const ortho = (i: number, j: number, k: number) => {
       const u0 = i * STEP, um = u0 + STEP * .5, va = dOf(i, j), vb = dOf(i + 1, k), Pp = [L2W(u0, va), L2W(um, va), L2W(um, vb), L2W(u0 + STEP, vb)], out: number[][] = [Pp[0]];
       for (const c of [1, 2]) {
@@ -1350,11 +1376,11 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     txt(hud, 8, 14, '격리팀 출동 · 무역관세부 실적 상관 0.91', ko({ 'font-size': 8, fill: C.t2 }));
     const sortie = txt(hud, 8, 31, '', ko({ 'font-size': 9.5, fill: C.text }));
     corners(fixed, VB);
-    titleBlock(fixed, VB, 'PETRA · 본사 성역 회랑 항로도', [`페트라 본사 성역 · 페이즈 ${run.phase}`, `${R} ROWS · 조직도 갑판`, '특수기동격리팀 관할', 'REV.01 · 본계정']);
+    titleBlock(fixed, VB, 'PETRA · 본사 성역 회랑 항로도', [`페트라 본사 성역 · 페이즈 ${run.phase}`, `${R} ROWS · 사무 · 물류 갑판`, '특수기동격리팀 관할', 'REV.01 · 본계정']);
     const camAt = (uc: number) => { const P0 = L2W(uc, 0); return [P0[0] - 400, P0[1] - CY]; };
     return branchKit({
       name: '페트라 본사 성역',
-      legend: [['길', '같은 갈래 = 직선 · 옆 갈래 = 조직도 연결선처럼 직각으로 꺾는 길 · 지나간 길 = 강조색 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['고리', '계정별 거주 고리 (매입 · 담보 · 이연 · 상각)'], ['갑판 도시', '부서 구역이 조직도 상자처럼 — 주황 테 = 이번 분기 재산정 중'], ['배관', '공급망 — 빨간 화물 = 적요 외 반입물 (격벽 밸브에서 격리)'], ['UNIX 설비', '외벽에 붙어 분기마다 늘어나는 자기증식 설비'], ['격리 구획 · 격리팀', '특수기동격리팀이 막아 둔 칸 · 순찰 함정'], ['본계정', '중앙 기록소 (보스)']],
+      legend: [['길', '같은 갈래 = 직선 · 옆 갈래 = 직각으로 꺾는 연결 통로 · 지나간 길 = 강조색 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['고리', '계정별 거주 고리 (매입 · 담보 · 이연 · 상각)'], ['사무동', '부서 사무동 (창 불빛 · 옥상 설비) — 주황 점선 테 = 이번 분기 재산정 중'], ['야적장', '적요별 컨테이너 더미 · 무인 운반차 (빨간 컨테이너 = 적요 외 반입물)'], ['배관', '공급망 — 빨간 화물 = 적요 외 반입물 (격벽 밸브에서 격리)'], ['UNIX 설비', '외벽에 붙어 분기마다 늘어나는 자기증식 설비'], ['격리 구획 · 격리팀', '특수기동격리팀이 막아 둔 칸 · 순찰 함정'], ['본계정', '중앙 기록소 (보스)']],
       edgeLayer, casingLayer, casing: 4, nodeLayer, beaconLayer, beacon: (i) => `적요 541-${String(i + 12).padStart(4, '0')} 종결`,
       nodeAt, dirAt: () => ax,
       edgePts: (i, j, k) => { const A = nodeAt(i, j), B = nodeAt(i + 1, k); return Math.abs(dOf(i + 1, k) - dOf(i, j)) < 1 ? [A, [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], B] : ortho(i, j, k); },
@@ -1369,6 +1395,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
           if (c.red && u > vl.u) { const k = Math.min(1, (u - vl.u) / 40); c.e.setAttribute('transform', `${at(vl.u, c.s * (PV + 14 + k * 16))}`); c.e.setAttribute('opacity', (1 - k).toFixed(2)); c.e.setAttribute('fill', C.bad); continue; }
           c.e.setAttribute('transform', at(u, c.s * PV)); c.e.setAttribute('opacity', '1'); c.e.setAttribute('fill', c.red ? C.bad : C.t2);
         }
+        for (const a of agvs) { const u = -200 + mod(a.o + t * .025 * a.dir, U + 240); a.g.setAttribute('transform', at(u, a.v)); }
         for (const p of patrol) { const u = UA + mod(t * .02 * p.s + (p.s < 0 ? 600 : 0), UB - UA); p.g.setAttribute('transform', `${at(u, p.s * (PV + 46))}${p.s < 0 ? ' scale(-1 1)' : ''}`); }
         podE.forEach((e, q) => e.setAttribute('stroke-opacity', (.55 + .45 * Math.sin(t * .002 + q)).toFixed(2)));
         sortie.textContent = `이번 분기 출동 ${312 + run.phase * 17 + Math.floor(t / 20000)}건 · 격리 중 ${3 + run.phase}구획`;
