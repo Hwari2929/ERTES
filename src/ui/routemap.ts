@@ -1275,21 +1275,75 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     }
     // 갑판 = 사무동 · 물류 야적장: 바깥 띠에 사무동 (창 격자 · 옥상 설비 · 부서 간판), 갈래 사이 통로에 적요별 컨테이너 더미 (2 ~ 3단),
     // 통로 바닥 차선 위로 무인 운반차가 컨테이너를 싣고 오간다. 모두 진행축에 맞춘 국소 좌표 · 윗면을 살짝 비껴 그린 사선 투영 (면 칠 없이 선으로)
-    const DEPT = ['전략기획부', '자산관리부', '과학기술부', '전통기술부', '무역관세부', '재정부', '법무부', '개척개발부', '브랜드홍보부', '정보감사실', '안전복지부', '전쟁부'];
     const OB = [7, -6]; // 윗면 비낌 (국소 좌표)
     const blockAt = (g: Element, x: number, y: number, w: number, h: number, d: number, stroke: string) => { // 사선 상자: 앞면 · 윗면 · 옆면
       const f = [[x, y], [x + w, y], [x + w, y + h], [x, y + h]], tp = [[x, y], [x + w, y], [x + w + OB[0] * d, y + OB[1] * d], [x + OB[0] * d, y + OB[1] * d]], sd = [[x + w, y], [x + w + OB[0] * d, y + OB[1] * d], [x + w + OB[0] * d, y + h + OB[1] * d], [x + w, y + h]];
       el('polygon', { points: pts(sd), fill: C.bg, stroke, 'stroke-width': .8 }, g); el('polygon', { points: pts(tp), fill: C.panel2, stroke, 'stroke-width': .8 }, g); el('polygon', { points: pts(f), fill: C.bg, stroke, 'stroke-width': .9 }, g);
     };
-    let di = Math.floor(rnd() * DEPT.length);
-    for (const s of [-1, 1]) for (let i = -1; i < R; i++) { // 사무동 (바깥 띠): 층마다 창 줄 · 옥상 냉각기 · 부서 간판
-      if (rnd() < .2) continue;
-      const u = i * STEP + 40 + rnd() * 50, w = 54 + rnd() * 34, fl = 2 + Math.floor(rnd() * 3), h = fl * 9 + 6, g = el('g', { transform: at(u, s * 142) }, deck), y0 = -h / 2;
-      blockAt(g, -w / 2, y0, w, h, 1, C.t3);
-      for (let f = 0; f < fl; f++) for (let x = -w / 2 + 4; x < w / 2 - 4; x += 7) el('rect', { x, y: y0 + 4 + f * 9, width: 4, height: 4, fill: rnd() < .35 ? C.divine : C.line, opacity: .75 }, g);
-      for (let q = 0; q < 2; q++) el('rect', { x: -w / 2 + 8 + q * 16 + OB[0] * .5, y: y0 + OB[1] * .5 - 3, width: 9, height: 3, fill: C.bg, stroke: C.t3, 'stroke-width': .6 }, g); // 옥상 설비
-      const hot = rnd() < .12; txt(g, 0, y0 + h + 10, DEPT[di++ % DEPT.length], ko({ 'text-anchor': 'middle', 'font-size': 7.5, fill: hot ? C.streak : C.t2 }));
-      if (hot) el('rect', { x: -w / 2 - 2, y: y0 - 2, width: w + 4, height: h + 4, fill: 'none', stroke: C.streak, 'stroke-width': 1, 'stroke-dasharray': '3 2' }, g); // 이번 분기 재산정 중
+    // 사무동 (바깥 띠): 시안에서 고른 9가지 — 시안 좌표 (바닥 y = 0, 가운데 x = 165) 로 그리고 축소해 얹는다. 위 띠 = 높은 동 (크게), 아래 띠 = 낮은 동 (작게 — 갈래를 가리지 않게)
+    const OBd = [.7, -.6], wins = (g: Element, x: number, y: number, w: number, h: number, cw = 7, ch = 8) => { for (let yy = y + 4; yy < y + h - 4; yy += ch) for (let xx = x + 4; xx < x + w - 5; xx += cw) el('rect', { x: xx, y: yy, width: cw - 3, height: ch - 4, fill: rnd() < .38 ? C.divine : C.line, opacity: .8 }, g); };
+    const quad = (g: Element, q: number[][], fill: string, st = C.t3) => el('polygon', { points: pts(q), fill, stroke: st, 'stroke-width': 1 }, g);
+    const bx = (g: Element, x: number, y: number, w: number, h: number, d: number, st = C.t3) => { const dx = OBd[0] * d, dy = OBd[1] * d; quad(g, [[x + w, y - h], [x + w + dx, y - h + dy], [x + w + dx, y + dy], [x + w, y]], C.bg, st); quad(g, [[x, y - h], [x + w, y - h], [x + w + dx, y - h + dy], [x + dx, y - h + dy]], C.panel2, st); quad(g, [[x, y - h], [x + w, y - h], [x + w, y], [x, y]], C.bg, st); };
+    /** 기운 상자 (밑변 x ~ x+w, 꼭대기가 lean 만큼 옆으로): 옆면 · 윗면 · 앞면 모두 */
+    const leanBox = (g: Element, x: number, w: number, h: number, lean: number, d: number, st = C.t3) => {
+      const dx = OBd[0] * d, dy = OBd[1] * d, f = [[x, 0], [x + w, 0], [x + w + lean, -h], [x + lean, -h]];
+      quad(g, [[x + w, 0], [x + w + lean, -h], [x + w + lean + dx, -h + dy], [x + w + dx, dy]], C.bg, st);
+      quad(g, [[x + lean, -h], [x + w + lean, -h], [x + w + lean + dx, -h + dy], [x + lean + dx, -h + dy]], C.panel2, st);
+      quad(g, f, C.bg, st);
+      for (let y = 10; y < h - 6; y += 9) for (let xx = 5; xx < w - 6; xx += 9) el('rect', { x: x + xx + lean * y / h, y: -y - 5, width: 5, height: 4, fill: rnd() < .38 ? C.divine : C.line, opacity: .8 }, g);
+    };
+    const ctr = (g: Element, x: number, y: number, w = 60, h = 22, d = 14, st = C.t3) => { bx(g, x, y, w, h, d, st); let d2 = ''; for (let k = 4; k < w - 2; k += 4) d2 += `M${x + k} ${y - h + 2}v${h - 4}`; el('path', { d: d2, stroke: C.line, 'stroke-width': .6 }, g); el('rect', { x: x + w / 2 - 6, y: y - h + 6, width: 12, height: 9, fill: rnd() < .5 ? C.divine : C.line, opacity: .8 }, g); };
+    type Bld = { tall: boolean; dept: string; draw(g: Element): void };
+    const BLD: Record<string, Bld> = {
+      vault: { tall: false, dept: '재정부', draw: (g) => { // O9 금고동
+        bx(g, 70, 0, 190, 90, 34, C.t2);
+        for (let k = 0; k < 6; k++) el('rect', { x: 80 + k * 30, y: -82, width: 8, height: 74, fill: C.panel2, stroke: C.line }, g);
+        el('circle', { cx: 165, cy: -40, r: 26, fill: C.bg, stroke: C.divine, 'stroke-width': 1.4 }, g);
+        for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; el('path', { d: `M165 -40l${(Math.cos(a) * 20).toFixed(1)} ${(Math.sin(a) * 20).toFixed(1)}`, stroke: C.t3 }, g); }
+        el('rect', { x: 90, y: -120, width: 150, height: 16, fill: C.bg, stroke: C.streak }, g); txt(g, 96, -109, 'c ▲ 3,000.41  AH ▼ 12.7', { 'font-size': 9, fill: C.streak });
+      } },
+      slab: { tall: true, dept: '전략기획부', draw: (g) => leanBox(g, 60, 160, 150, 40, 30) }, // N2 기울어진 판상형
+      lean2: { tall: true, dept: '브랜드홍보부', draw: (g) => { // V4 서로 기댄 쌍탑 + 꼭대기 고리 통로
+        leanBox(g, 210, 50, 160, -30, 22); leanBox(g, 70, 50, 160, 30, 22);
+        el('ellipse', { cx: 172, cy: -164, rx: 64, ry: 13, fill: 'none', stroke: C.t2, 'stroke-width': 4 }, g); el('ellipse', { cx: 172, cy: -164, rx: 64, ry: 13, fill: 'none', stroke: C.streak, 'stroke-dasharray': '4 4' }, g);
+      } },
+      triple: { tall: true, dept: '자산관리부', draw: (g) => { // V3 세쌍둥이 + 2단 브리지 — 왼쪽 탑 → 그 오른쪽 브리지 → 다음 탑 순서 (브리지가 왼쪽 탑 옆면 앞, 오른쪽 탑 앞면 뒤)
+        bx(g, 40, 0, 52, 150, 22); wins(g, 40, -150, 52, 150);
+        bx(g, 92, -110, 48, 12, 14, C.t2); txt(g, 98, -100, 'PETRA', { 'font-size': 7, fill: C.streak });
+        bx(g, 140, 0, 52, 175, 22); wins(g, 140, -175, 52, 175);
+        bx(g, 192, -60, 48, 12, 14, C.t2);
+        bx(g, 240, 0, 52, 125, 22); wins(g, 240, -125, 52, 125);
+      } },
+      crane: { tall: true, dept: '무역관세부', draw: (g) => { // V5 컨테이너 탑 + 지브 크레인
+        for (const [x, y] of [[100, 0], [130, -22], [90, -44], [125, -66], [100, -88], [135, -110], [105, -132]]) ctr(g, x, y);
+        el('path', { d: 'M190 -132V-190M150 -180H260M260 -180V-150', stroke: C.t2, 'stroke-width': 1.2, fill: 'none' }, g); ctr(g, 240, -128, 40, 16, 10, C.streak);
+      } },
+      bridge: { tall: false, dept: '전통기술부', draw: (g) => { bx(g, 50, 0, 46, 90, 30); wins(g, 50, -90, 46, 90); bx(g, 234, 0, 46, 90, 30); wins(g, 234, -90, 46, 90); bx(g, 30, -90, 270, 46, 34); wins(g, 30, -136, 270, 46, 8, 9); } }, // V8 다리형 캔틸레버
+      cubes: { tall: false, dept: '과학기술부', draw: (g) => { // N3 큐브 클러스터 (아래 → 위, 왼쪽 → 오른쪽 순서로 겹침)
+        const Q = [[90, 0], [130, 0], [170, -20], [110, -40], [150, -60], [200, -60], [90, -80], [180, -100]].sort((p, q) => q[1] - p[1] || p[0] - q[0]);
+        for (const [x, y] of Q) { bx(g, x, y, 40, 40, 20); wins(g, x, y - 40, 40, 40, 8, 9); }
+      } },
+      spire: { tall: true, dept: '비서실 · 본계정', draw: (g) => { // N6 첨탑 본부
+        bx(g, 80, 0, 170, 24, 40); bx(g, 110, -24, 110, 24, 30);
+        quad(g, [[195, -48], [212, -58], [168, -200]], C.panel2, C.streak); quad(g, [[135, -48], [195, -48], [168, -200]], C.bg, C.streak);
+        for (let y = 60; y < 180; y += 12) el('path', { d: `M${165 - (200 - y) * .18} ${-y}h${(200 - y) * .36}`, stroke: C.divine, opacity: .5 }, g);
+        el('circle', { cx: 168, cy: -204, r: 3, fill: C.bad }, g);
+      } },
+      bunker: { tall: false, dept: '전쟁부', draw: (g) => { // N10 반쯤 묻힌 벙커 (윗판 · 경사 옆면 · 환기구 · 경사로)
+        quad(g, [[70, -40], [260, -40], [282, -56], [92, -56]], C.panel2, C.t2); quad(g, [[260, -40], [290, 0], [312, -16], [282, -56]], C.bg, C.t2); quad(g, [[40, 0], [290, 0], [260, -40], [70, -40]], C.bg, C.t2);
+        for (let k = 0; k < 6; k++) el('rect', { x: 84 + k * 32, y: -30, width: 18, height: 6, fill: C.line }, g);
+        for (const x of [120, 230]) { el('path', { d: `M${x - 9} -48V-70A9 3 0 0 1 ${x + 9} -70V-48`, fill: C.bg, stroke: C.t3 }, g); el('ellipse', { cx: x, cy: -70, rx: 9, ry: 3, fill: C.panel2, stroke: C.t3 }, g); }
+        quad(g, [[20, 0], [60, -18], [90, -18], [50, 0]], C.panel2, C.t3);
+      } },
+    };
+    const TALL = Object.keys(BLD).filter((k) => BLD[k].tall && k !== 'spire'), LOW = Object.keys(BLD).filter((k) => !BLD[k].tall);
+    for (const s of [-1, 1]) for (let i = -1; i < R; i++) {
+      if (rnd() < .22) continue;
+      const k = s < 0 ? (i === R - 2 ? 'spire' : TALL[Math.floor(rnd() * TALL.length)]) : LOW[Math.floor(rnd() * LOW.length)], b = BLD[k], sc = s < 0 ? .36 : .27;
+      const g = el('g', { transform: at(i * STEP + 70 + rnd() * 20, s * 142) }, deck), inner = el('g', { transform: `translate(${(-165 * sc).toFixed(1)} 14) scale(${sc})` }, g);
+      b.draw(inner);
+      const hot = rnd() < .12; txt(g, 0, 26, b.dept, ko({ 'text-anchor': 'middle', 'font-size': 7.5, fill: hot ? C.streak : C.t2 }));
+      if (hot) el('path', { d: 'M-34 22h68', stroke: C.streak, 'stroke-width': 1, 'stroke-dasharray': '3 2' }, g); // 이번 분기 재산정 중
     }
     const container = (g: Element, x: number, y: number, hot: boolean) => { // 컨테이너 한 칸: 골판 줄 · 문 끝단
       blockAt(g, x, y, 24, 9, .7, hot ? C.bad : C.t3);
@@ -1380,7 +1434,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     const camAt = (uc: number) => { const P0 = L2W(uc, 0); return [P0[0] - 400, P0[1] - CY]; };
     return branchKit({
       name: '페트라 본사 성역',
-      legend: [['길', '같은 갈래 = 직선 · 옆 갈래 = 직각으로 꺾는 연결 통로 · 지나간 길 = 강조색 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['고리', '계정별 거주 고리 (매입 · 담보 · 이연 · 상각)'], ['사무동', '부서 사무동 (창 불빛 · 옥상 설비) — 주황 점선 테 = 이번 분기 재산정 중'], ['야적장', '적요별 컨테이너 더미 · 무인 운반차 (빨간 컨테이너 = 적요 외 반입물)'], ['배관', '공급망 — 빨간 화물 = 적요 외 반입물 (격벽 밸브에서 격리)'], ['UNIX 설비', '외벽에 붙어 분기마다 늘어나는 자기증식 설비'], ['격리 구획 · 격리팀', '특수기동격리팀이 막아 둔 칸 · 순찰 함정'], ['본계정', '중앙 기록소 (보스)']],
+      legend: [['길', '같은 갈래 = 직선 · 옆 갈래 = 직각으로 꺾는 연결 통로 · 지나간 길 = 강조색 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['고리', '계정별 거주 고리 (매입 · 담보 · 이연 · 상각)'], ['사무동', '부서마다 다른 건물 (금고동 · 판상형 · 기댄 쌍탑 · 세쌍둥이 · 컨테이너 탑 · 다리형 · 큐브 · 벙커 · 첨탑 본부) — 주황 점선 = 이번 분기 재산정 중'], ['야적장', '적요별 컨테이너 더미 · 무인 운반차 (빨간 컨테이너 = 적요 외 반입물)'], ['배관', '공급망 — 빨간 화물 = 적요 외 반입물 (격벽 밸브에서 격리)'], ['UNIX 설비', '외벽에 붙어 분기마다 늘어나는 자기증식 설비'], ['격리 구획 · 격리팀', '특수기동격리팀이 막아 둔 칸 · 순찰 함정'], ['본계정', '중앙 기록소 (보스)']],
       edgeLayer, casingLayer, casing: 4, nodeLayer, beaconLayer, beacon: (i) => `적요 541-${String(i + 12).padStart(4, '0')} 종결`,
       nodeAt, dirAt: () => ax,
       edgePts: (i, j, k) => { const A = nodeAt(i, j), B = nodeAt(i + 1, k); return Math.abs(dOf(i + 1, k) - dOf(i, j)) < 1 ? [A, [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], B] : ortho(i, j, k); },
