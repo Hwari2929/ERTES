@@ -885,19 +885,34 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         const ahead = aheadRows(j, S0).map((r) => `<span class="rmc-row"><i class="mono">${pad2(r.i + 1)}</i>${r.ks.map((k) => `<span>${nm(rows[r.i][k])}</span>`).join('<span class="rmc-or">·</span>')}${r.end ? `<em>${r.end}</em>` : ''}</span>`).join('');
         return `<button type="button" class="rm-card${on ? ' on' : ''}" data-pick="${t}" data-j="${j}" aria-pressed="${on}" style="--c:${colOf(t)}"><span class="rmc-head"><i class="mono">${pad2(S0.step + 1)}</i>${lineIcon(`n.${t}`, 'li')}<b>${NODE_NAME[t]}</b></span><span class="rmc-ahead">${ahead}</span></button>`;
       };
+      /** 카드 자리: 고를 노드마다 후보 자리 (바깥쪽 → 진행 방향 → 뒤 → 위 · 아래 · 좌우) 중에서 보이는 노드 · 다른 카드 · 안내 제목을 가장 덜 가리는 곳 */
       function placeCards() {
         if (cardsEl.hidden || !cardsEl.children.length) return;
         const vr = viewEl.getBoundingClientRect(), step = stateNow().step, [tx, ty] = tan(uRow(step)), top = guideEl.hidden ? 8 : guideEl.offsetTop + guideEl.offsetHeight + 8;
+        type Box = { l: number; t: number; r: number; b: number };
+        const rel = (r: DOMRect, pad: number): Box => ({ l: r.left - vr.left - pad, t: r.top - vr.top - pad, r: r.right - vr.left + pad, b: r.bottom - vr.top + pad });
+        const obst: Box[] = [];
+        toks.forEach((row) => row.forEach((k) => { if (k.g.style.opacity !== '.28') obst.push(rel(k.ring.getBoundingClientRect(), 8)); })); // 흐린 (갈 수 없는) 노드는 가려도 된다
+        const over = (a: Box, b: Box) => Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t));
         const ps = Array.from(cardsEl.children).map((c) => { const r = toks[step][+(c as HTMLElement).dataset.j!].ring.getBoundingClientRect(); return { c: c as HTMLElement, x: r.x + r.width / 2 - vr.left, y: r.y + r.height / 2 - vr.top, rad: r.width / 2 }; });
         const mx = ps.reduce((a, p) => a + p.x, 0) / ps.length, my = ps.reduce((a, p) => a + p.y, 0) / ps.length;
-        for (const p of ps) { // 고를 노드들의 바깥쪽으로 (가운데 노드는 진행 방향으로) 붙인다
-          let dx = p.x - mx, dy = p.y - my; const n = Math.hypot(dx, dy);
-          if (n < 8) { dx = tx; dy = ty; } else { dx /= n; dy /= n; }
+        const placed: Box[] = [];
+        for (const p of ps) {
+          let ox = p.x - mx, oy = p.y - my; const n = Math.hypot(ox, oy);
+          if (n < 8) { ox = tx; oy = ty; } else { ox /= n; oy /= n; }
           const w = p.c.offsetWidth, h = p.c.offsetHeight, gap = p.rad + 26;
-          let l: number, t: number;
-          if (Math.abs(dx) >= Math.abs(dy)) { l = dx > 0 ? p.x + gap : p.x - gap - w; t = p.y - h / 2; } else { t = dy > 0 ? p.y + gap : p.y - gap - h; l = p.x - w / 2; }
-          l = Math.max(8, Math.min(vr.width - w - 8, l)); t = Math.max(top, Math.min(vr.height - h - 8, t));
-          p.c.style.transform = `translate(${l.toFixed(0)}px, ${t.toFixed(0)}px)`;
+          const dirs = [[ox, oy], [tx, ty], [-tx, -ty], [0, Math.sign(oy) || -1], [0, -(Math.sign(oy) || -1)], [1, 0], [-1, 0]];
+          let best: Box | null = null, bestS = Infinity;
+          dirs.forEach(([dx, dy], i) => {
+            let l: number, t: number;
+            if (Math.abs(dx) >= Math.abs(dy)) { l = dx > 0 ? p.x + gap : p.x - gap - w; t = p.y - h / 2; } else { t = dy > 0 ? p.y + gap : p.y - gap - h; l = p.x - w / 2; }
+            l = Math.max(8, Math.min(vr.width - w - 8, l)); t = Math.max(top, Math.min(vr.height - h - 8, t));
+            const bx = { l, t, r: l + w, b: t + h };
+            const sc = obst.reduce((a, o) => a + over(bx, o), 0) + placed.reduce((a, o) => a + 2 * over(bx, o), 0) + i * 40; // 앞 후보일수록 조금 유리
+            if (sc < bestS) { bestS = sc; best = bx; }
+          });
+          placed.push(best!);
+          p.c.style.transform = `translate(${best!.l.toFixed(0)}px, ${best!.t.toFixed(0)}px)`;
         }
       }
       const fx = () => {
@@ -906,8 +921,9 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         if (!show) { guideEl.hidden = true; cardsEl.hidden = true; cardsEl.innerHTML = ''; cardsEl.dataset.k = ''; return; }
         guideEl.querySelector('small')!.textContent = `갈림길 · ${S0.opts.length}갈래`;
         if (guideEl.hidden) { guideEl.hidden = false; replay(guideEl); }
-        const k = `${S0.step}|${S0.pj}`;
+        const k = `${S0.r.seed}|${S0.r.phase}|${S0.step}`; // 카드는 칸마다 한 번 만든다 — 고른 노드 · 마우스가 바뀌면 표시만 바꾼다 (다시 그리면 등장 연출이 되풀이된다)
         if (cardsEl.dataset.k !== k) { cardsEl.innerHTML = S0.opts.map((j) => cardHtml(j, S0)).join(''); cardsEl.dataset.k = k; }
+        for (const c of Array.from(cardsEl.children) as HTMLElement[]) { const on = +c.dataset.j! === S0.pj; c.classList.toggle('on', on); c.setAttribute('aria-pressed', String(on)); }
         if (cardsEl.hidden) { cardsEl.hidden = false; replay(cardsEl); }
         placeCards();
       };
