@@ -720,10 +720,35 @@ span.tl-node { cursor: pointer; } /* 누르면 유형 · 설명 팝오버 */
 .rmap .rm-recenter { position: absolute; left: 10px; top: 10px; }
 .rmap .rm-fs { position: absolute; right: 10px; top: 10px; display: inline-flex; align-items: center; gap: 4px; }
 .rmap .rm-fs .li { width: 14px; height: 14px; }
-.rmap .rm-guide { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: baseline; gap: 8px; padding: 5px 14px; border: 1px solid var(--c-select); border-radius: var(--r-md); background: var(--panel); color: var(--c-text); font-size: var(--fs-md); white-space: nowrap; pointer-events: none; }
-.rmap .rm-guide b { color: var(--c-select); }
-.rmap.fs .rm-guide { top: 14px; font-size: var(--fs-lg); padding: 7px 18px; }
-@media (max-width: 600px) { .rmap:not(.fs) .rm-guide { top: auto; bottom: 10px; } } /* 좁은 화면: 위 단추들과 겹치지 않게 아래로 */
+/* 갈림길 (전체 화면이 다 펼쳐진 뒤 등장): 화면 제목 — 위 = 상황 (고정폭 작은 글자), 아래 = 할 일 (제목 글꼴). 칩 · 상자 없이 지도 위 글자 */
+.rmap .rm-guide { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); display: grid; justify-items: center; gap: 2px; text-align: center; white-space: nowrap; pointer-events: none; text-shadow: 0 0 10px var(--bg), 0 0 3px var(--bg); }
+.rmap .rm-guide small { font-family: var(--f-mono); font-size: var(--fs-sm); letter-spacing: .08em; color: var(--c-select); }
+.rmap .rm-guide h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: var(--fs-3xl); line-height: 1.15; letter-spacing: .02em; color: var(--c-text); }
+.rmap .rm-guide.in { animation: rm-guide-in .45s ease-out both; }
+@keyframes rm-guide-in { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+/* 고를 노드 옆 카드: 노드 이름 (크게) + 그 뒤로 이어지는 칸 (칸 번호 · 노드). 노드들의 바깥쪽에 붙는다 (자리는 routemap.ts placeCards) */
+.rmap .rm-cards { position: absolute; inset: 0; pointer-events: none; }
+.rmap .rm-card { position: absolute; left: 0; top: 0; max-width: 260px; display: grid; gap: 5px; padding: 8px 12px 9px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); color: var(--c-text); font: inherit; text-align: left; cursor: pointer; pointer-events: auto; box-shadow: var(--shadow-pop); }
+.rmap .rm-card:hover { background: var(--panel-2); }
+.rmap .rm-card.on { border-color: var(--c-select); }
+.rmap .rmc-head { display: flex; align-items: center; gap: 7px; }
+.rmap .rmc-head b { font-size: var(--fs-lg); line-height: 1.2; }
+.rmap .rmc-head .li { width: 22px; height: 22px; color: var(--c); }
+.rmap .rm-card i { font-style: normal; color: var(--c-text-2); font-size: var(--fs-sm); }
+.rmap .rmc-ahead { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 8px; font-size: var(--fs-sm); color: var(--c-text-2); }
+.rmap .rmc-row { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.rmap .rmc-row + .rmc-row::before { content: '›'; margin-right: 2px; }
+.rmap .rmc-row span { display: inline-flex; align-items: center; gap: 2px; color: var(--c-text); }
+.rmap .rmc-row .li { width: 14px; height: 14px; }
+.rmap .rmc-row .rmc-or { color: var(--c-text-2); }
+.rmap .rmc-row em { font-style: normal; color: var(--c-text-2); }
+.rmap .rm-cards.in .rm-card { animation: rm-card-in .35s ease-out both; }
+.rmap .rm-cards.in .rm-card:nth-child(2) { animation-delay: .06s; }
+.rmap .rm-cards.in .rm-card:nth-child(3) { animation-delay: .12s; }
+@keyframes rm-card-in { from { opacity: 0; translate: 0 6px; } to { opacity: 1; translate: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .rmap .rm-guide.in, .rmap .rm-cards.in .rm-card { animation: none; } }
+.rmap .rm-guide h2 { white-space: nowrap; }
+@media (max-width: 600px) { .rmap .rm-guide { top: 14px; } .rmap .rm-guide h2 { font-size: var(--fs-2xl); } .rmap .rm-card { max-width: 220px; padding: 6px 10px 7px; } .rmap .rmc-head b { font-size: var(--fs-md); } }
 /* 전체 화면: 화면을 덮고, 넓은 시야 + 오른쪽 패널 (노드 목록 · 범례) */
 html.rmap-fs-on, html.rmap-fs-on body { overflow: hidden; }
 .rmap.fs { position: fixed; inset: 0; z-index: var(--z-modal); border: 0; border-radius: 0; display: grid; grid-template-columns: minmax(0, 1fr) 300px;

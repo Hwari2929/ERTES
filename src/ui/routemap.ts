@@ -143,9 +143,13 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const box = document.createElement('div');
   box.className = `rmap rmap-${kind}${fs ? ' fs' : ''}`;
-  box.innerHTML = `<div class="rm-view"><svg class="rm-stage" role="img" aria-label="항로도 — 좌우로 끌어서 둘러보기, 노드를 누르면 설명"></svg><button class="btn tiny rm-recenter" type="button" hidden>현재 노드로</button><button class="btn tiny rm-fs" type="button" aria-pressed="${fs}">${lineIcon(fs ? 'u.shrink' : 'u.expand', 'li')}${fs ? '닫기' : '전체 화면'}</button><div class="rm-guide" role="status" hidden><b>갈림길</b><span>경로를 선택하세요</span></div></div>${fs ? '<aside class="rm-panel" aria-label="항로 상세"></aside>' : ''}`;
+  box.innerHTML = `<div class="rm-view"><svg class="rm-stage" role="img" aria-label="항로도 — 좌우로 끌어서 둘러보기, 노드를 누르면 설명"></svg><button class="btn tiny rm-recenter" type="button" hidden>현재 노드로</button><button class="btn tiny rm-fs" type="button" aria-pressed="${fs}">${lineIcon(fs ? 'u.shrink' : 'u.expand', 'li')}${fs ? '닫기' : '전체 화면'}</button><div class="rm-guide" role="status" hidden><small></small><h2>경로를 선택하세요</h2></div><div class="rm-cards" hidden></div></div>${fs ? '<aside class="rm-panel" aria-label="항로 상세"></aside>' : ''}`;
   host.appendChild(box); // 길이 계산(getTotalLength)은 문서에 붙은 뒤에
-  const stage = box.querySelector('svg')!, recenterBtn = box.querySelector<HTMLButtonElement>('.rm-recenter')!, panelEl = box.querySelector<HTMLElement>('.rm-panel'), guideEl = box.querySelector<HTMLElement>('.rm-guide')!;
+  const stage = box.querySelector('svg')!, recenterBtn = box.querySelector<HTMLButtonElement>('.rm-recenter')!, panelEl = box.querySelector<HTMLElement>('.rm-panel'), guideEl = box.querySelector<HTMLElement>('.rm-guide')!, cardsEl = box.querySelector<HTMLElement>('.rm-cards')!, viewEl = box.querySelector<HTMLElement>('.rm-view')!;
+  /** 전체 화면이 다 펼쳐진 뒤에만 보이는 것 (갈림길 안내 · 노드 카드): 펼쳐지는 동안에는 숨기고, 다 펼쳐지면 등장한다 */
+  let fxOn = false, morphBusy = false, fxHook: (() => void) | null = null;
+  const reveal = (on: boolean) => { fxOn = on; fxHook?.(); };
+  const replay = (e: HTMLElement) => { e.classList.remove('in'); void e.offsetWidth; e.classList.add('in'); };
   box.querySelector('.rm-fs')!.addEventListener('click', () => (fs ? closeFs(true) : openFs(true)));
   // 전체 화면 시야: 무대 칸의 비율에 맞춰 원래 시야보다 넓고 높게 (가운데는 그대로)
   const sr = stage.getBoundingClientRect(), aspect = sr.height > 0 ? sr.width / sr.height : 0;
@@ -305,6 +309,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
 
   const sc: { go(): void; stop(): void; look?(i: number): void; update?(): void; panel?(): string; name?: string; legend?: string[][] } = kind === 'ring' ? ringScene() : kind === 'orbit' ? orbitScene() : kind === 'stairs' ? stairsScene() : kind === 'patrol' ? patrolScene() : kind === 'vigil' ? vigilScene() : gridScene();
   goNow = () => { sel = cur; sc.go(); panel(); };
+  if (fs) queueMicrotask(() => { if (!morphBusy) reveal(true); }); // 펼치는 연출 없이 연 전체 화면 (창 크기 변경 등)
   // ── 전체 화면 옆 패널: 노드 목록 (상태 · 고른 노드의 설명) + 범례. 노드를 고르면 지도도 그 노드로
   function pick(i: number) { sel = Math.max(0, Math.min(N - 1, i)); if (sel === cur) sc.go(); else sc.look?.(sel); panel(); }
   function panel() {
@@ -346,7 +351,9 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         box.style.clipPath = `inset(${I0.map((v) => `${(v * (1 - k)).toFixed(1)}px`).join(' ')} round ${(12 * (1 - k)).toFixed(1)}px)`;
         if (panelEl) panelEl.style.opacity = Math.max(0, (k - 0.35) / 0.65).toFixed(3);
       };
-      const finish = () => { stage.setAttribute('viewBox', V1.join(' ')); box.style.clipPath = ''; if (panelEl) panelEl.style.opacity = ''; done(); };
+      const finish = () => { stage.setAttribute('viewBox', V1.join(' ')); box.style.clipPath = ''; if (panelEl) panelEl.style.opacity = ''; morphBusy = false; if (opening) reveal(true); done(); };
+      morphBusy = true;
+      if (!opening) reveal(false);
       if (reduce) { finish(); return; }
       set(opening ? 0 : 1);
       const t0 = performance.now(), ms = opening ? 560 : 440;
@@ -755,6 +762,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         const P = L2W(uc, 0), [cx, cy] = camAt(uc);
         world.setAttribute('transform', `translate(${(400 - P[0]).toFixed(1)} ${(CY - P[1]).toFixed(1)})`); para.setAttribute('transform', `translate(${-cx * PAR} ${-cy * PAR})`);
         recenterBtn.hidden = homing || Math.abs(uc - homeU) < 4;
+        placeCards();
       };
       /** 카메라 자리 (진행축 위치): 고르는 중 = 지나온 노드와 고를 노드 사이 (고른 노드 · 마우스와 상관없이 고정), 아니면 지금 노드 조금 앞 */
       const camOf = (S0: Now): number => {
@@ -798,7 +806,6 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       const update = (anim: boolean) => {
         const S0 = stateNow(), { step, path } = S0, pj = S0.pj;
         const key = `${step}|${S0.choosing}|${S0.r.node ? 1 : 0}`, big = key !== camKey;
-        guideEl.hidden = !S0.choosing; // 갈림길 안내 (지도 창 · 전체 화면 위쪽 가운데)
         camKey = key;
         const jobs: { k: Tok; from: St; to: St; w: number[] }[] = [];
         rows.forEach((row, i) => row.forEach((t, j) => {
@@ -826,6 +833,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         const toEdge = styleEdges(S0, moving ? performance.now() + 320 : anim ? performance.now() : 0);
         shipTo.edge = toEdge; shipTo.t = S0.r.node ? .86 : .16;
         homeU = hu;
+        fx();
         if (!big) { if (!homing) { shipEdge = shipTo.edge; shipT = shipTo.t; placeShip(); } return; } // 고른 노드만 바뀜: 카메라는 그대로
         if (anim && !reduce) {
           const u0 = uc; homing = true;
@@ -847,26 +855,65 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       // 전체 화면 옆 패널: 고를 수 있는 길마다 그 길로 몇 번째 칸의 어느 노드까지 갈 수 있는지 (모든 길이 만나는 칸까지)
       const NAME = '베르타–산노디스 물류망';
       const LEGEND = [['궤도', '갈림길 = 왼쪽 · 가운데 · 오른쪽으로 갈라지는 궤도'], ['연결선', '지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['NAV', '항로 표지 — 화물선이 지나면 복구'], ['천체', 'B-4 · TS-7 · A-117 · SN · RL-2'], ['CVY', '수송선단 (진행축 양쪽)'], ['DEBRIS β', '소행성대'], ['PSR', '산-노디스 펄서 (8년 주기)']];
+      /** 노드 j 를 고르면 이어지는 칸들: 칸 번호 · 갈 수 있는 노드 · 끝 표시 (고르는 중 = 모든 길이 만나는 칸까지, 아니면 4칸) */
+      const aheadRows = (j: number, S0: Now) => {
+        const { step } = S0, me = rows.map(() => new Set<number>()), out: { i: number; ks: number[]; end: '' | '합류' | '보스' }[] = [];
+        me[step].add(j);
+        for (let i = step; i < R - 1; i++) for (const a of me[i]) for (const k of L[i]?.[a] || []) me[i + 1].add(k);
+        for (let i = step + 1; i < R; i++) {
+          const ks = [...me[i]].sort((a, b) => a - b), join = S0.choosing ? ks.length === 1 && S0.all[i].size === 1 : i >= step + 4 || i === R - 1;
+          out.push({ i, ks, end: join && S0.choosing ? (i === R - 1 ? '보스' : '합류') : '' });
+          if (join) break;
+        }
+        return out;
+      };
       const branchPanel = () => {
         const S0 = stateNow(), { step } = S0, ic = (t: NodeType) => `<span class="rp-ic" title="${NODE_NAME[t]}">${lineIcon(`n.${t}`, 'li')}</span>`;
-        const reachFrom = (j: number) => { const out = rows.map(() => new Set<number>()); out[step].add(j); for (let i = step; i < R - 1; i++) for (const a of out[i]) for (const k of L[i]?.[a] || []) out[i + 1].add(k); return out; };
-        const ahead = (j: number) => {
-          const me = reachFrom(j), cells: string[] = [];
-          for (let i = step + 1; i < R; i++) {
-            const ks = [...me[i]].sort((a, b) => a - b), join = S0.choosing ? ks.length === 1 && S0.all[i].size === 1 : i >= step + 4 || i === R - 1;
-            cells.push(`<li${join ? ' class="rp-join"' : ''}><span class="mono rp-n">${pad2(i + 1)}</span>${ks.map((k) => ic(rows[i][k])).join('')}${join && S0.choosing ? `<small>${i === R - 1 ? '보스' : '합류'}</small>` : ''}</li>`);
-            if (join) break;
-          }
-          return `<ol class="rp-ahead">${cells.join('')}</ol>`;
-        };
+        const ahead = (j: number) => `<ol class="rp-ahead">${aheadRows(j, S0).map((r) => `<li${r.end ? ' class="rp-join"' : ''}><span class="mono rp-n">${pad2(r.i + 1)}</span>${r.ks.map((k) => ic(rows[r.i][k])).join('')}${r.end ? `<small>${r.end}</small>` : ''}</li>`).join('')}</ol>`;
         const opts = S0.choosing ? S0.opts : [S0.pj], pt = rows[step][S0.pj];
         const items = opts.map((j) => { const t = rows[step][j], on = j === S0.pj; return `<li class="rp-route${on ? ' on' : ''}"><button type="button" data-pick="${t}" aria-pressed="${on}"><span class="mono rp-n">${pad2(step + 1)}</span>${ic(t)}<b>${NODE_NAME[t]}</b>${on && S0.choosing ? '<small>고름</small>' : ''}</button>${ahead(j)}</li>`; }).join('');
-        return `<header><b>${NAME}</b><span class="chip" style="--c:var(--c-bad)">보스까지 <b class="mono">${R - 1 - step}</b>칸</span>${S0.choosing ? `<span class="chip">갈림길 <b class="mono">${opts.length}</b>갈래</span>` : ''}</header>
+        return `<header><b>${NAME}</b><span class="chip" style="--c:var(--c-bad)">보스까지 <b class="mono">${R - 1 - step}</b>칸</span></header>
           <h4>${S0.choosing ? '고를 수 있는 길' : '지금 길'}</h4><ol class="rp-routes">${items}</ol>
           ${S0.choosing ? `<button class="btn primary rp-go" type="button" data-enter="${pt}">${pad2(step + 1)} ${NODE_NAME[pt]} 진입</button>` : ''}
           <h4>범례</h4><dl class="rp-legend">${LEGEND.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
           <p class="rp-keys"><kbd>Esc</kbd> 닫기 · 끌기 · 휠로 둘러보기</p>`;
       };
+      // 갈림길 (전체 화면이 다 펼쳐진 뒤): 위쪽 가운데 제목 '경로를 선택하세요' + 고를 노드마다 옆 카드 (노드 이름 · 그 뒤로 이어지는 칸)
+      const cardHtml = (j: number, S0: Now) => {
+        const t = rows[S0.step][j], on = j === S0.pj, nm = (k: NodeType) => `${lineIcon(`n.${k}`, 'li')}${NODE_NAME[k]}`;
+        const ahead = aheadRows(j, S0).map((r) => `<span class="rmc-row"><i class="mono">${pad2(r.i + 1)}</i>${r.ks.map((k) => `<span>${nm(rows[r.i][k])}</span>`).join('<span class="rmc-or">·</span>')}${r.end ? `<em>${r.end}</em>` : ''}</span>`).join('');
+        return `<button type="button" class="rm-card${on ? ' on' : ''}" data-pick="${t}" data-j="${j}" aria-pressed="${on}" style="--c:${colOf(t)}"><span class="rmc-head"><i class="mono">${pad2(S0.step + 1)}</i>${lineIcon(`n.${t}`, 'li')}<b>${NODE_NAME[t]}</b></span><span class="rmc-ahead">${ahead}</span></button>`;
+      };
+      function placeCards() {
+        if (cardsEl.hidden || !cardsEl.children.length) return;
+        const vr = viewEl.getBoundingClientRect(), step = stateNow().step, [tx, ty] = tan(uRow(step)), top = guideEl.hidden ? 8 : guideEl.offsetTop + guideEl.offsetHeight + 8;
+        const ps = Array.from(cardsEl.children).map((c) => { const r = toks[step][+(c as HTMLElement).dataset.j!].ring.getBoundingClientRect(); return { c: c as HTMLElement, x: r.x + r.width / 2 - vr.left, y: r.y + r.height / 2 - vr.top, rad: r.width / 2 }; });
+        const mx = ps.reduce((a, p) => a + p.x, 0) / ps.length, my = ps.reduce((a, p) => a + p.y, 0) / ps.length;
+        for (const p of ps) { // 고를 노드들의 바깥쪽으로 (가운데 노드는 진행 방향으로) 붙인다
+          let dx = p.x - mx, dy = p.y - my; const n = Math.hypot(dx, dy);
+          if (n < 8) { dx = tx; dy = ty; } else { dx /= n; dy /= n; }
+          const w = p.c.offsetWidth, h = p.c.offsetHeight, gap = p.rad + 14;
+          let l: number, t: number;
+          if (Math.abs(dx) >= Math.abs(dy)) { l = dx > 0 ? p.x + gap : p.x - gap - w; t = p.y - h / 2; } else { t = dy > 0 ? p.y + gap : p.y - gap - h; l = p.x - w / 2; }
+          l = Math.max(8, Math.min(vr.width - w - 8, l)); t = Math.max(top, Math.min(vr.height - h - 8, t));
+          p.c.style.transform = `translate(${l.toFixed(0)}px, ${t.toFixed(0)}px)`;
+        }
+      }
+      const fx = () => {
+        const S0 = stateNow(), show = fs && fxOn && S0.choosing;
+        for (const j of S0.opts) toks[S0.step][j].call.style.display = show ? 'none' : ''; // 카드가 이름을 보이면 작은 호출 부호는 숨긴다
+        if (!show) { guideEl.hidden = true; cardsEl.hidden = true; cardsEl.innerHTML = ''; cardsEl.dataset.k = ''; return; }
+        guideEl.querySelector('small')!.textContent = `갈림길 · ${S0.opts.length}갈래`;
+        if (guideEl.hidden) { guideEl.hidden = false; replay(guideEl); }
+        const k = `${S0.step}|${S0.pj}`;
+        if (cardsEl.dataset.k !== k) { cardsEl.innerHTML = S0.opts.map((j) => cardHtml(j, S0)).join(''); cardsEl.dataset.k = k; }
+        if (cardsEl.hidden) { cardsEl.hidden = false; replay(cardsEl); }
+        placeCards();
+      };
+      fxHook = fx;
+      cardsEl.addEventListener('click', (e) => { const b = (e.target as Element).closest<HTMLElement>('.rm-card'); if (b?.dataset.pick) onPick(b.dataset.pick as NodeType, (e as PointerEvent).pointerType === 'touch' ? 'tap' : 'click'); });
+      cardsEl.addEventListener('pointerover', (e) => { if (e.pointerType !== 'mouse') return; const t = (e.target as Element).closest<HTMLElement>('.rm-card')?.dataset.pick as NodeType | undefined; if (t && t !== hov) { hov = t; update(true); panel(); } });
+      cardsEl.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && hov) { hov = null; update(true); panel(); } });
       // 패널의 길에 마우스를 올리면 지도에서도 그 길을 미리 밝힌다
       panelEl?.addEventListener('pointerover', (e) => { if (e.pointerType !== 'mouse') return; const t = (e.target as Element).closest<HTMLElement>('[data-pick]')?.dataset.pick as NodeType | undefined; if (t && t !== hov && stateNow().choosing) { hov = t; update(true); panel(); } });
       panelEl?.addEventListener('pointerleave', () => { if (hov) { hov = null; update(true); panel(); } });
