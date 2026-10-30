@@ -1055,6 +1055,8 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     const world = el('g', {}, stage), fixed = el('g', {}, stage);
     const ground = el('g', {}, world), struct = el('g', {}, world), routeG = el('g', {}, world), over = el('g', {}, world);
     const casingG = el('g', {}, routeG), edgeG = el('g', {}, routeG);
+    const decor = el('g', {}, struct), depth = el('g', {}, struct); // 땅에 붙은 오염 (군집) 은 맨 아래, 선 것들 (소금 기둥 · 묘비 개체 · 시설 · 마부 개체) 은 땅 위 자리 (화면 y) 순서로 앞뒤를 맞춘다
+    const stand = (y: number) => { const g = el('g', {}, depth); g.dataset.y = y.toFixed(1); return g; };
     const P = (a: number[][]) => 'M' + a.map((q) => `${q[0].toFixed(1)} ${q[1].toFixed(1)}`).join('L');
     const ell = (r: number) => [r * SZ * 1.2247, r * SZ * .7071]; // 땅 위 반지름 r 원 → 화면 타원 반지름
     const label = (x: number, y: number, s: string, col = C.t2, p: Element = struct) => { const g = el('g', { transform: `translate(${x.toFixed(1)} ${y.toFixed(1)})` }, p); el('path', { d: 'M0 8v-8h6', fill: 'none', stroke: col, 'stroke-width': .9 }, g); txt(g, 9, 8, s, ko({ 'font-size': 11, fill: col, stroke: C.bg, 'stroke-width': 3, 'paint-order': 'stroke', 'stroke-linejoin': 'round' })); return g; };
@@ -1099,7 +1101,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     // 군체 군집: 살 덩어리 (울퉁불퉁한 윤곽) · 맥동하는 혹 · 촉수
     const nods: { e: SVGElement; r: number; o: number }[] = [], tendrils: { e: SVGElement; x: number; y: number; a: number; len: number; o: number }[] = [];
     const cluster = (cx: number, cy: number, r: number) => {
-      const g = el('g', {}, struct), out: number[][] = [];
+      const g = el('g', {}, decor), out: number[][] = [];
       for (let q = 0; q < 16; q++) { const a = q / 16 * Math.PI * 2, rr = r * (.7 + rnd() * .4); out.push(isoH(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr)); }
       for (let q = 0; q < 7; q++) { const a = rnd() * 6.28; tendrils.push({ e: el('path', { fill: 'none', stroke: C.bad, 'stroke-width': .8, 'stroke-linecap': 'round', opacity: .45 }, g), x: cx + Math.cos(a) * r * .85, y: cy + Math.sin(a) * r * .85, a, len: r * (1 + rnd() * .9), o: rnd() * 6.28 }); }
       el('polygon', { points: pts(out), fill: C.bad, 'fill-opacity': .12, stroke: C.bad, 'stroke-width': .9, 'stroke-opacity': .7 }, g);
@@ -1108,7 +1110,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     // 묘비 개체: 땅에 박힌 살 기둥 (테를 하나씩 올려 그림 · 위로 갈수록 바늘처럼 가늘어지며 휜다) · 발치에서 맥동이 번진다
     const pulses: { e: SVGElement; rx: number; ry: number; o: number }[] = [];
     const tomb = (cx: number, cy: number, h: number, rb: number, name: string) => {
-      const g = el('g', {}, struct), z0 = H(cx, cy), n = Math.round(h / 4), [prx, pry] = ell(rb * 1.4), [bx, by] = iso(cx, cy, z0);
+      const z0 = H(cx, cy), n = Math.round(h / 4), [prx, pry] = ell(rb * 1.4), [bx, by] = iso(cx, cy, z0), g = stand(by);
       pulses.push({ e: el('ellipse', { cx: bx, cy: by, rx: prx, ry: pry, fill: 'none', stroke: C.bad, 'stroke-width': 1, opacity: 0 }, g), rx: prx, ry: pry, o: rnd() * 3000 });
       let top = [bx, by];
       for (let k = 0; k <= n; k++) {
@@ -1120,22 +1122,19 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       label(top[0] + 12, top[1] - 12, name, C.bad);
     };
     // 천연 소금 기둥 군락: 해안 소금 평원 · 얕은 바다에 둥근 기둥이 무리 지어 선다 (뒤 → 앞 순서로 겹쳐 그림, 높이 제각각)
-    const saltCol = (cx: number, cy: number) => {
-      const g = el('g', {}, struct), cols: number[][] = [];
-      for (let q = 0; q < 9 + Math.floor(rnd() * 8); q++) cols.push([cx + (rnd() - .5) * 2.4, cy + (rnd() - .5) * 1.6, .1 + rnd() * .2, 8 + rnd() * rnd() * 46]);
-      cols.sort((a, b) => a[0] + a[1] - b[0] - b[1]);
-      for (const [x, y, r, h] of cols) {
-        const z = H(x, y), [px, py] = iso(x, y, z), [rx, ry] = ell(r);
-        el('path', { d: `M${(px - rx).toFixed(1)} ${py.toFixed(1)}V${(py - h).toFixed(1)}A${rx.toFixed(1)} ${ry.toFixed(1)} 0 0 1 ${(px + rx).toFixed(1)} ${(py - h).toFixed(1)}V${py.toFixed(1)}A${rx.toFixed(1)} ${ry.toFixed(1)} 0 0 1 ${(px - rx).toFixed(1)} ${py.toFixed(1)}Z`, fill: C.bg, stroke: C.text, 'stroke-width': .8, 'stroke-opacity': .55 }, g);
-        el('ellipse', { cx: px, cy: py - h, rx, ry, fill: C.panel2, stroke: C.text, 'stroke-width': .8, 'stroke-opacity': .7 }, g);
-        for (let k = 6; k < h - 3; k += 7 + rnd() * 6) el('path', { d: `M${(px - rx).toFixed(1)} ${(py - k).toFixed(1)}A${rx.toFixed(1)} ${ry.toFixed(1)} 0 0 0 ${(px + rx).toFixed(1)} ${(py - k).toFixed(1)}`, fill: 'none', stroke: C.text, 'stroke-width': .5, 'stroke-opacity': .3 }, g); // 결정 층
+    const saltCol = (cx: number, cy: number) => { // 성기게 흩어진 가는 기둥 (가끔 굵은 것) · 제각각 기울어짐
+      for (let q = 0; q < 7 + Math.floor(rnd() * 6); q++) {
+        const x = cx + (rnd() - .5) * 5.5, y = cy + (rnd() - .5) * 3.4, r = .045 + rnd() ** 2.2 * .16, h = 10 + rnd() * rnd() * 52, th = (rnd() - .5) * rnd() * 1.1;
+        const z = H(x, y), [px, py] = iso(x, y, z), [rx, ry] = ell(r), tx = px + Math.sin(th) * h, ty = py - Math.cos(th) * h, g = stand(py), f = (v: number) => v.toFixed(1);
+        el('path', { d: `M${f(px - rx)} ${f(py)}L${f(tx - rx)} ${f(ty)}A${f(rx)} ${f(ry)} 0 0 1 ${f(tx + rx)} ${f(ty)}L${f(px + rx)} ${f(py)}A${f(rx)} ${f(ry)} 0 0 1 ${f(px - rx)} ${f(py)}Z`, fill: C.bg, stroke: C.text, 'stroke-width': .8, 'stroke-opacity': .55 }, g);
+        el('ellipse', { cx: tx, cy: ty, rx, ry, fill: C.panel2, stroke: C.text, 'stroke-width': .8, 'stroke-opacity': .7 }, g);
+        for (let k = 6; k < h - 3; k += 7 + rnd() * 6) { const u = k / h, bx = px + (tx - px) * u, by = py + (ty - py) * u; el('path', { d: `M${f(bx - rx)} ${f(by)}A${f(rx)} ${f(ry)} 0 0 0 ${f(bx + rx)} ${f(by)}`, fill: 'none', stroke: C.text, 'stroke-width': .5, 'stroke-opacity': .3 }, g); } // 결정 층
       }
-      return g;
     };
     { const XF = GX(R - 1) + 1.6; let n = 0; // 시설 · 강하 지점 자리는 비킨다, 군락 둘에 하나꼴로 이름표
       for (let x = gx0 + 8; x < gx1 - 6; x += 13 + rnd() * 9) {
         if (Math.abs(x - XF) < 5 || Math.abs(x + 4.5) < 3) continue;
-        const y = coastY(x) + (rnd() < .5 ? -.4 : .9); saltCol(x, y);
+        const y = coastY(x) + (rnd() < .5 ? -.2 : 1.2); saltCol(x, y);
         if (n++ % 2 === 0) { const [lx, ly] = iso(x + 1, y + .8, H(x, y)); label(lx + 6, ly + 8, '천연 소금 기둥 군락', C.t2); }
       } }
     // 배치: 산기슭 · 해변의 군집, 산기슭의 묘비 개체 (갈래 다발 바깥)
@@ -1144,7 +1143,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     // 끝: 옛 야생동물 재활 시설 — 해안에서 죽은 바다로 뻗은 부두 · 둥근 바다 우리 셋 (범고래 환수를 돌보던 곳) · 부두 끝 등대 (구조 신호) · 뭍의 보트 창고, 그리고 거대 묘비 개체
     const XE = GX(R - 1);
     const beacon: { ring: SVGElement[]; lamp: SVGElement } = { ring: [], lamp: el('g', {}) };
-    { const fx = XE + 1.6, c0 = coastY(fx), g = el('g', {}, struct);
+    { const fx = XE + 1.6, c0 = coastY(fx), g = stand(iso(fx, c0 + 2)[1]);
       const prism = (x: number, y: number, w: number, d: number, h: number, z: number, top: string) => { // 면 없이 윤곽 (앞 두 면 = 배경색, 윗면 = 패널색)
         const a = iso(x, y + d, z), b = iso(x + w, y + d, z), c = iso(x + w, y, z), A = iso(x, y + d, z + h), B = iso(x + w, y + d, z + h), Cc = iso(x + w, y, z + h), Dd = iso(x, y, z + h);
         for (const f of [[a, b, B, A], [b, c, Cc, B]]) el('polygon', { points: pts(f), fill: C.bg, stroke: C.t2, 'stroke-width': .9 }, g);
@@ -1175,7 +1174,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     // 마부 개체: 군집을 등에 지고 산기슭을 느릿느릿 걷는다 (다리 6개 · 등 위 불길)
     // 마부 개체 (거미 운반자): 높고 가는 다리 8개 위 작은 몸통, 군집은 몸 아래 주머니로 매달려 흔들리고 포자가 방울져 떨어진다
     const mabus = [0, 1, 2, 3].map((n) => {
-      const g = el('g', {}, struct), legs = Array.from({ length: 8 }, () => el('path', { fill: 'none', stroke: C.t2, 'stroke-width': 1.2, 'stroke-linecap': 'round' }, g));
+      const g = el('g', {}, depth), legs = Array.from({ length: 8 }, () => el('path', { fill: 'none', stroke: C.t2, 'stroke-width': 1.2, 'stroke-linecap': 'round' }, g));
       const feet = legs.map(() => el('ellipse', { rx: 3, ry: 1.6, fill: 'none', stroke: C.t3 }, g));
       const top = el('g', {}, g);
       el('path', { d: 'M0 10V20', stroke: C.bad }, top);
@@ -1209,7 +1208,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     corners(fixed, VB);
     titleBlock(fixed, VB, 'BSHAK · 묘비 해안 등각도', [`브샤크 묘비 해안 · 페이즈 ${run.phase}`, `${R} ROWS · 등고선 32m`, '군체 휴면 군집', '죽은 바다 · 브샤크 산맥']);
     const fwd = (() => { const a = iso(0, 0), b = iso(1, 0), n = Math.hypot(b[0] - a[0], b[1] - a[1]); return [(b[0] - a[0]) / n, (b[1] - a[1]) / n]; })();
-    let prog = 0;
+    let prog = 0, lastSort = -1e9;
     return branchKit({
       name: '브샤크 묘비 해안',
       legend: [['길', '고른 노드에서 이어지는 길 (점선 = 지금 고른 다음 구간) · 지형을 따라 오르내린다'], ['회색 길', '지나온 길'], ['등고선 · ▲', '32m 간격 (128m 마다 굵게) · 노드 · 봉우리 표고'], ['죽은 바다', '앞쪽 — 물결 · 해안선 · 소금 평원'], ['브샤크 산맥', '뒤쪽 — 촘촘한 등고선'], ['군체 군집', '맥동하는 살 덩어리 · 아주 느리게 흔들리는 촉수'], ['묘비 개체', '땅에 박혀 맥동하는 살 기둥 (휴면 핵)'], ['마부 개체', '높은 다리 8개로 아주 느리게 걷는 운반자 (산기슭 · 얕은 바다) — 몸 아래 군집 주머니'], ['재활 시설', '해안 부두 끝 바다 우리 · 등대 (구조 신호, 비콘 코드 일치) · 끝의 거대 묘비 개체 = 보스']],
@@ -1231,9 +1230,10 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         }
         for (const p of pulses) { const u = mod(t + p.o, 3200) / 3200; p.e.setAttribute('opacity', (.7 * (1 - u)).toFixed(2)); p.e.setAttribute('rx', (p.rx * (1 + u * 1.6)).toFixed(1)); p.e.setAttribute('ry', (p.ry * (1 + u * 1.6)).toFixed(1)); }
         for (const f of fog) { const x = gx0 + mod(f.x - gx0 + t * f.v, gx1 - gx0), [px, py] = isoH(x, f.y, f.z + 4 * Math.sin(t * .0007 + f.y)); f.e.setAttribute('cx', px.toFixed(1)); f.e.setAttribute('cy', py.toFixed(1)); }
+        if (t - lastSort > 250) { lastSort = t; const kids = Array.from(depth.children) as SVGElement[], sorted = [...kids].sort((a, b) => +(a.dataset.y || 0) - +(b.dataset.y || 0)); if (sorted.some((k, q) => k !== kids[q])) sorted.forEach((k) => depth.appendChild(k)); }
         for (const m of mabus) { // 마부 개체: 아주아주 느리게 (위 = 산기슭 · 아래 = 얕은 바다, 서로 반대 방향) (다리 8개가 번갈아 디딘다 · 몸통이 살짝 출렁 · 주머니가 흔들린다)
           const x = gx0 - 20 + mod(m.x0 - gx0 + 20 + m.dir * t * .00012, gx1 - gx0 + 40), y = m.up ? mtnY(x) - m.dy : coastY(x) + m.dy, [px, py] = isoH(x, y), w = t * .0008 + m.ph, by = -96 + 3 * Math.sin(w * 2);
-          m.g.setAttribute('transform', `translate(${px.toFixed(1)} ${py.toFixed(1)}) scale(.78)`);
+          m.g.setAttribute('transform', `translate(${px.toFixed(1)} ${py.toFixed(1)}) scale(.78)`); m.g.dataset.y = py.toFixed(1);
           m.top.setAttribute('transform', `translate(0 ${by.toFixed(1)})`); m.sac.setAttribute('transform', `rotate(${(6 * Math.sin(w * .9)).toFixed(1)} 0 20)`);
           m.legs.forEach((l, q) => {
             const s = q < 4 ? -1 : 1, k = q % 4, ph = w + (q % 2 ? Math.PI : 0) + k * .5, st = Math.sin(ph), lift = Math.max(0, Math.cos(ph)) * 6;
