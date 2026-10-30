@@ -862,13 +862,13 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       for (let c = 0; c < 9; c++) { const cx = rnd() * 320, cy = rnd() * 260, sp = 6 + rnd() * 16, n = 10 + Math.floor(rnd() * 26); for (let q = 0; q < n; q++) { const x = mod(cx + (rnd() + rnd() + rnd() - 1.5) * sp * 1.6, 320), y = mod(cy + (rnd() + rnd() + rnd() - 1.5) * sp, 260), r = (.45 + rnd() * .55).toFixed(2), d = `M${x.toFixed(1)} ${y.toFixed(1)}m-${r} 0a${r} ${r} 0 1 0 ${(2 * +r).toFixed(2)} 0a${r} ${r} 0 1 0 -${(2 * +r).toFixed(2)} 0`; if (rnd() < .2) db += d; else da += d; } }
       el('path', { d: da, fill: C.line }, pat); el('path', { d: db, fill: C.t3 }, pat);
       cover(layers[1], `url(#cw-dt-${uid})`); }
-    field(layers[2], 'cw-f1', 460, 360, 60, 4, 11, C.line, .9);
-    field(layers[3], 'cw-f2', 760, 560, 26, 9, 24, C.line, .9);
+    field(layers[2], 'cw-f1', 460, 360, 24, 4, 11, C.line, .9); // 렉 줄이기: 개수 40%
+    field(layers[3], 'cw-f2', 760, 560, 10, 9, 24, C.line, .9);
     field(fronts[0], 'cw-n0', 1500, 1100, 3, 110, 190, C.line, .55, 'none'); // 아주 가까운 층: 커다란 캣휠 테두리가 항로 앞을 빠르게 스친다
     field(fronts[1], 'cw-n1', 2600, 1700, 2, 260, 400, C.line, .4, 'none');
     // 가까운 캣휠 (항로 곁 · 천천히 돈다): 갈래 다발 바깥
     const spins: { e: SVGElement; w: number }[] = [];
-    for (let u = -300; u < U + 400; u += 34 + rnd() * 40) for (const sd of [-1, 1]) {
+    for (let u = -300; u < U + 400; u += 85 + rnd() * 100) for (const sd of [-1, 1]) {
       if (rnd() < .3) continue;
       const r = 10 + rnd() * rnd() * 26, v = sd * (LANE + 40 + r + rnd() * 160), [x, y] = L2W(u + (rnd() - .5) * 60, v);
       spins.push({ e: wheel(world, x, y, r, rnd() * 180 - 90, .3 + rnd() * .55, C.t3, 1, rnd() < .5), w: (rnd() - .5) * .02 });
