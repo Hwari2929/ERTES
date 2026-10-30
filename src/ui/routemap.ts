@@ -826,14 +826,14 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     const VB = stageBase(narrow ? [180, 10, 440, 440] : [0, 0, W, 450]);
     const rows = run.map, R = rows.length, STEP = 175, LANE = 118, U = (R - 1) * STEP, rnd = rng(37 + run.phase);
     const uid = Math.random().toString(36).slice(2, 8), defs = el('defs', {}, stage);
-    const PAR = [.08, .2, .32, .55], layers = PAR.map(() => el('g', {}, stage)), world = el('g', {}, stage), fixed = el('g', {}, stage);
+    const PAR = [.08, .2, .32, .55], layers = PAR.map(() => el('g', {}, stage)), world = el('g', {}, stage), FPAR = [1.6, 2.4], fronts = FPAR.map(() => el('g', { 'pointer-events': 'none' }, stage)), fixed = el('g', {}, stage); // fronts = 아주 가까운 캣휠 (항로보다 앞, 테두리만)
     const BIG = 6000, cover = (p: Element, fill: string) => el('rect', { x: -BIG, y: -BIG, width: 2 * BIG + U, height: 2 * BIG, fill }, p);
     /** 캣휠 (제 평면 안의 원 → 비스듬히 기울인 타원): 바퀴 테 두 겹 · 디딤판 · 바큇살 · 축, 받침대 (선택). 안쪽은 배경색으로 칠해 뒤의 빛을 가린다. 돌아가는 부분 (디딤판 · 바큇살) 을 돌려준다 */
-    const wheel = (p: Element, cx: number, cy: number, r: number, rot: number, k: number, stroke: string, op: number, stand: boolean) => {
+    const wheel = (p: Element, cx: number, cy: number, r: number, rot: number, k: number, stroke: string, op: number, stand: boolean, fill = C.bg) => {
       const g = el('g', { transform: `translate(${cx.toFixed(1)} ${cy.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(1 ${k.toFixed(2)})`, opacity: op }, p), ns = { fill: 'none', stroke, 'vector-effect': 'non-scaling-stroke' };
       if (stand) el('path', { d: `M0 0L${-r * .72} ${r * 1.18}M0 0L${r * .72} ${r * 1.18}M${-r * .95} ${r * 1.18}H${r * .95}`, ...ns, 'stroke-width': 1 }, g);
-      el('circle', { r, fill: C.bg }, g);
-      el('circle', { r, ...ns, 'stroke-width': r < 9 ? .7 : 1.1 }, g);
+      if (fill !== 'none') el('circle', { r, fill }, g);
+      el('circle', { r, ...ns, 'stroke-width': r < 9 ? .7 : r > 100 ? 2.2 : 1.1 }, g);
       const sp = el('g', {}, g);
       let d = '';
       if (r < 9) { for (let q = 0; q < 3; q++) { const a = q / 3 * Math.PI * 2; d += `M0 0L${(Math.cos(a) * r).toFixed(1)} ${(Math.sin(a) * r).toFixed(1)}`; } el('path', { d, ...ns, 'stroke-width': .5 }, sp); return sp; } // 작은 캣휠: 테 · 살 3개만
@@ -844,12 +844,12 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       return sp;
     };
     /** 끝없는 캣휠 층: 타일 하나에 크기 · 기울기가 제각각인 캣휠 n 개 (겹쳐도 앞 캣휠이 뒤를 가린다) → 무늬로 깔아 어디까지 가도 이어진다 */
-    const field = (p: Element, id: string, tw: number, th: number, n: number, r0: number, r1: number, stroke: string, op: number) => {
+    const field = (p: Element, id: string, tw: number, th: number, n: number, r0: number, r1: number, stroke: string, op: number, fill = C.bg) => {
       const pat = el('pattern', { id: `${id}-${uid}`, width: tw, height: th, patternUnits: 'userSpaceOnUse' }, defs);
       const ws = Array.from({ length: n }, () => [rnd() * tw, rnd() * th, r0 + (r1 - r0) * rnd() ** 1.6]).sort((a, b) => a[2] - b[2]); // 작은 것 먼저 (큰 것이 위)
       for (const [x, y, r] of ws) for (const dx of [-tw, 0, tw]) for (const dy of [-th, 0, th]) { // 타일 경계에 걸친 캣휠은 이웃 칸에도 그려 이음매가 없게
         if (x + dx + r * 1.3 < 0 || x + dx - r * 1.3 > tw || y + dy + r * 1.4 < 0 || y + dy - r * 1.3 > th) continue;
-        wheel(pat, x + dx, y + dy, r, (x * 7 + y * 3) % 180 - 90, .35 + ((x + y) % 60) / 100, stroke, 1, ((x * 13) | 0) % 3 === 0);
+        wheel(pat, x + dx, y + dy, r, (x * 7 + y * 3) % 180 - 90, .35 + ((x + y) % 60) / 100, stroke, 1, ((x * 13) | 0) % 3 === 0, fill);
       }
       cover(p, `url(#${id}-${uid})`).setAttribute('opacity', String(op));
     };
@@ -857,9 +857,15 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     { const pat = el('pattern', { id: `cw-st-${uid}`, width: 260, height: 220, patternUnits: 'userSpaceOnUse' }, defs);
       for (let j = 0; j < 46; j++) { const big = rnd() < .14; el('circle', { cx: rnd() * 260, cy: rnd() * 220, r: big ? 1.1 : .6, fill: big ? C.t2 : C.t3 }, pat); }
       cover(layers[0], `url(#cw-st-${uid})`); }
-    field(layers[1], 'cw-f0', 300, 240, 110, 1.6, 5, C.line, .8);
+    { const pat = el('pattern', { id: `cw-dt-${uid}`, width: 320, height: 260, patternUnits: 'userSpaceOnUse' }, defs); // 먼 층: 캣휠이 점으로 보이는 별무리
+      let da = '', db = '';
+      for (let c = 0; c < 9; c++) { const cx = rnd() * 320, cy = rnd() * 260, sp = 6 + rnd() * 16, n = 10 + Math.floor(rnd() * 26); for (let q = 0; q < n; q++) { const x = mod(cx + (rnd() + rnd() + rnd() - 1.5) * sp * 1.6, 320), y = mod(cy + (rnd() + rnd() + rnd() - 1.5) * sp, 260), r = (.45 + rnd() * .55).toFixed(2), d = `M${x.toFixed(1)} ${y.toFixed(1)}m-${r} 0a${r} ${r} 0 1 0 ${(2 * +r).toFixed(2)} 0a${r} ${r} 0 1 0 -${(2 * +r).toFixed(2)} 0`; if (rnd() < .2) db += d; else da += d; } }
+      el('path', { d: da, fill: C.line }, pat); el('path', { d: db, fill: C.t3 }, pat);
+      cover(layers[1], `url(#cw-dt-${uid})`); }
     field(layers[2], 'cw-f1', 460, 360, 60, 4, 11, C.line, .9);
     field(layers[3], 'cw-f2', 760, 560, 26, 9, 24, C.line, .9);
+    field(fronts[0], 'cw-n0', 1500, 1100, 3, 110, 190, C.line, .55, 'none'); // 아주 가까운 층: 커다란 캣휠 테두리가 항로 앞을 빠르게 스친다
+    field(fronts[1], 'cw-n1', 2600, 1700, 2, 260, 400, C.line, .4, 'none');
     // 가까운 캣휠 (항로 곁 · 천천히 돈다): 갈래 다발 바깥
     const spins: { e: SVGElement; w: number }[] = [];
     for (let u = -300; u < U + 400; u += 34 + rnd() * 40) for (const sd of [-1, 1]) {
@@ -899,13 +905,13 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     const camAt = (uc: number) => { const P = L2W(uc, 0); return [P[0] - 400, P[1] - CY]; };
     return branchKit({
       name: '캣휠 그늘 성계',
-      legend: [['항로', '모든 길은 직선 · 지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['신호', '회수 신호 — 화물선이 지나면 켜짐'], ['캣휠', '버려진 캣휠 — 성계의 빛을 가릴 만큼 끝없이 (가까운 것은 돈다)'], ['반려 돌', '항의한 유족에게 투하된 답례품'], ['개척지 · 회수함', '의뢰한 가족의 집 · 유닉스 회수함 (보스)']],
+      legend: [['항로', '모든 길은 직선 · 지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['신호', '회수 신호 — 화물선이 지나면 켜짐'], ['캣휠', '버려진 캣휠 — 성계의 빛을 가릴 만큼 끝없이 (먼 것은 점 무리, 아주 가까운 것은 앞을 크게 스친다, 항로 곁은 돈다)'], ['반려 돌', '항의한 유족에게 투하된 답례품'], ['개척지 · 회수함', '의뢰한 가족의 집 · 유닉스 회수함 (보스)']],
       edgeLayer, casingLayer, casing: 4, nodeLayer, beaconLayer, beacon: (i) => `RCV-${pad2(i + 1)} 신호`,
       nodeAt, dirAt: () => ax,
       edgePts: (i, j, k) => { const A = nodeAt(i, j), B = nodeAt(i + 1, k); return [A, [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], B]; }, // 직선 (가운데 점 = 신호 자리)
       style: { taken: [C.sel, 2.5, 1, ''], toPick: [C.sel, 1.8, .9, '6 4'], mine: [C.t2, 1.6, 1, ''], alt: [C.t3, 1.3, .9, ''], none: [C.line, .9, .55, '1 4'] },
       camU: proj, camRange: [-60, U + 60], ahead: [60, 40], camEps: 4, dragPer: ax[0],
-      drawCam(uc) { const [cx, cy] = camAt(uc); world.setAttribute('transform', `translate(${(-cx).toFixed(1)} ${(-cy).toFixed(1)})`); layers.forEach((g, k) => g.setAttribute('transform', `translate(${(-cx * PAR[k]).toFixed(1)} ${(-cy * PAR[k]).toFixed(1)})`)); },
+      drawCam(uc) { const [cx, cy] = camAt(uc); world.setAttribute('transform', `translate(${(-cx).toFixed(1)} ${(-cy).toFixed(1)})`); layers.forEach((g, k) => g.setAttribute('transform', `translate(${(-cx * PAR[k]).toFixed(1)} ${(-cy * PAR[k]).toFixed(1)})`)); fronts.forEach((g, k) => g.setAttribute('transform', `translate(${(-cx * FPAR[k]).toFixed(1)} ${(-cy * FPAR[k]).toFixed(1)})`)); },
       marker(x, y, a) { ship.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(a * 180 / Math.PI).toFixed(1)})`); rig.g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); },
       tick(t) {
         for (const s of spins) s.e.setAttribute('transform', `rotate(${(t * s.w).toFixed(1)})`);
