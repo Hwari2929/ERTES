@@ -1659,7 +1659,12 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     const audience: { e: SVGElement; o: number }[] = [];
     let nPaper = 0, nTheater = 0;
     const rect = (cx: number, cy: number, hw: number, hd: number, z: number) => [iso(cx - hw, cy - hd, z), iso(cx + hw, cy - hd, z), iso(cx + hw, cy + hd, z), iso(cx - hw, cy + hd, z)];
-    const label = (x: number, y: number, s: string, col = C.t2) => { const g = el('g', { transform: `translate(${x.toFixed(1)} ${y.toFixed(1)})` }, struct); contact(g, s, 0, col); return g; };
+    const label = (x: number, y: number, s: string, col = C.t2) => { // 이름표: 괄호 + 큰 글씨 (배경색 테두리로 단 경계선 위에서도 읽히게)
+      const g = el('g', { transform: `translate(${x.toFixed(1)} ${y.toFixed(1)})` }, struct);
+      el('path', { d: 'M0 8v-8h6', fill: 'none', stroke: col, 'stroke-width': .9 }, g);
+      txt(g, 9, 8, s, ko({ 'font-size': 11, fill: col, stroke: C.panel, 'stroke-width': 3, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }));
+      return g;
+    };
     for (const s of sites) {
       const z0 = H(s.x, s.y), g = el('g', {}, struct);
       if (s.k === 'papers') { // 미처리 서류탑: 낱장을 한 장씩 올려 그린 더미 2~3개 (위로 갈수록 기울고 흔들린다), 발치에 흩어진 낱장
@@ -1667,7 +1672,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         const n = 2 + Math.floor(rnd() * 2), tops: number[][] = [];
         for (let q = 0; q < 9; q++) { const fx = s.x + (rnd() - .5) * 3.4, fy = s.y + (rnd() - .5) * 2.4; el('polygon', { points: pts(rect(fx, fy, .22, .16, H(fx, fy))), fill: C.bg, stroke: C.t3, 'stroke-width': .5 }, g); }
         for (let q = 0; q < n; q++) {
-          const bx = s.x + (q - (n - 1) / 2) * 1.1 + (rnd() - .5) * .3, by = s.y + (rnd() - .5) * .8, cnt = 22 + Math.floor(rnd() * 34), lean = (rnd() - .5) * .02;
+          const bx = s.x + (q - (n - 1) / 2) * 1.1 + (rnd() - .5) * .3, by = s.y + (rnd() - .5) * .8, cnt = 10 + Math.floor(rnd() * 12), lean = (rnd() - .5) * .02;
           let jx = 0, jy = 0;
           for (let k = 0; k < cnt; k++) {
             jx += lean + (rnd() - .5) * .05; jy += (rnd() - .5) * .04;
@@ -1687,13 +1692,13 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         el('path', { d: P(orc), fill: C.bg, stroke: C.t2, 'stroke-width': .9 }, g);
         el('polygon', { points: pts(rect(s.x, s.y - 1.45, 2.2, .28, z0)), fill: C.bg, stroke: C.t2, 'stroke-width': .9 }, g);
         for (const dx of [-1.2, 0, 1.2]) { const [x, y] = iso(s.x + dx, s.y - 1.45, z0); el('path', { d: `M${x - 3} ${y}v-6h6v6`, fill: 'none', stroke: C.t3, 'stroke-width': .8 }, g); } // 무대 건물 문
-        for (let q = 0; q < 26; q++) { const r = 1.6 + Math.floor(rnd() * 6) * .36, th = .15 + rnd() * (Math.PI - .3), [x, y] = iso(s.x + r * Math.cos(th), s.y + r * Math.sin(th), seat(r)); audience.push({ e: soul(g, x, y - 3, .32, C.t2, .5), o: rnd() * 6.28 }); }
+        for (let row = 0; row < 5; row++) for (let q = 0, r = 1.56 + row * .36 + .18, nq = 6 + row; q < nq; q++) { if (row === 2 && q === 3) continue; const th = .25 + (Math.PI - .5) * (q + (row % 2) * .5) / (nq - .5), [x, y] = iso(s.x + r * Math.cos(th), s.y + r * Math.sin(th), seat(r)); audience.push({ e: soul(g, x, y - 3, .32, C.t2, .5), o: row * .9 }); }
         const [sx, sy] = iso(s.x, s.y, z0), [lx, ly] = iso(s.x + 1.6, s.y - 1.6, z0 + 70);
         el('path', { d: `M${lx} ${ly}L${sx - 13} ${sy}A13 7 0 0 0 ${sx + 13} ${sy}Z`, fill: C.divine, opacity: .1 }, g);
         el('ellipse', { cx: sx, cy: sy, rx: 13, ry: 7, fill: C.divine, opacity: .14 }, g);
         audience.push({ e: soul(g, sx, sy - 6, .6, C.divine, .9), o: -1 });
-        const [tx, ty] = iso(s.x + 3.7, s.y + 3.7 * .2, seat(3.7));
-        label(tx - 70, ty - 22, '지상 애도 극장 · 상연 「끝내지 못한 일」');
+        const [tx, ty] = iso(s.x + 1.2, s.y + 3.9, seat(3.7));
+        label(tx + 4, ty + 10, '지상 애도 극장 · 상연 「끝내지 못한 일」'); // 객석 바깥 아래
       } else if (s.k === 'queue') { // 접수 창구 대기열: 줄 세우는 끈 (지그재그) · 창구 · 줄을 따라 조금씩 나아가는 망령
         const rowsN = 5, w = 2.6, gp: number[][] = [];
         for (let q = 0; q < rowsN; q++) { const y = s.y + 1 - q * .5; gp.push(q % 2 ? [s.x + w / 2, y] : [s.x - w / 2, y], q % 2 ? [s.x - w / 2, y] : [s.x + w / 2, y]); }
@@ -1705,7 +1710,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         const [bx, by] = iso(end[0], end[1] - 1.05, z0); txt(g, bx, by + 2.5, '07', { 'text-anchor': 'middle', 'font-size': 6, fill: C.t2 });
         { const [qx, qy] = iso(s.x - w / 2, s.y + 1.4, z0); label(qx - 150, qy + 14, '접수 창구 07 · 평균 대기 3년 2개월'); } // 줄 끝 (갈래 반대쪽) 아래
         const len = sp.slice(1).map((b, q) => Math.hypot(b[0] - sp[q][0], b[1] - sp[q][1])), tot = len.reduce((a, b) => a + b, 0);
-        queues.push({ pts: sp, len, tot, men: Array.from({ length: 11 }, () => soul(g, 0, 0, .3, C.t2, .75)), o: rnd() * 1000 });
+        queues.push({ pts: sp, len, tot, men: Array.from({ length: 16 }, () => soul(g, 0, 0, .3, C.t2, .75)), o: rnd() * 1000 });
       } else if (s.k === 'relay') { // 호명 릴레이: 일정 간격으로 늘어선 암송 관료 — 부른 이름이 줄을 따라 번진다 (부르는 사람 둘레에 소리 고리)
         const dots: SVGElement[] = [], rings: SVGElement[] = [];
         for (let q = 0; q < 9; q++) {
@@ -1743,7 +1748,9 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     // 출발 길 (하강구 → 첫 노드)
     el('path', { d: P(onGround(sample([[-4, 0], [0, GY(0, 0)]]))), fill: 'none', stroke: C.t3, 'stroke-width': 1.6, 'stroke-dasharray': '3 4' }, ground);
     // 망령 빛: 들판에서 천천히 올라 사라진다 (대령제의 안식)
-    const motes = Array.from({ length: 36 }, () => ({ e: el('circle', { r: 1.3, fill: C.divine, opacity: 0 }, over), x: gx0 + rnd() * (gx1 - gx0), y: gy0 + rnd() * (gy1 - gy0), o: rnd() * 9000, v: 1 / (7000 + rnd() * 5000) }));
+    // 망령 빛: 묘비 한 줄을 따라 나란히 — 줄 끝에서부터 차례로 올라 사라지고, 다음엔 다른 묘역의 한 줄에서
+    const lineAt = () => { const bx = gx0 + 3 * Math.floor(rnd() * ((gx1 - gx0) / 3)) + .3, by = gy0 + .4 + .75 * Math.floor(rnd() * ((gy1 - gy0) / .75)); return [bx, by]; };
+    const moteLines = Array.from({ length: 7 }, (_, n) => ({ at: lineAt(), o: n / 7, v: 1 / (9000 + rnd() * 3000), last: 0, e: Array.from({ length: 5 }, () => el('circle', { r: 1.3, fill: C.divine, opacity: 0 }, over)) }));
     // 핀 · 표고
     const pins = rows.map((row, i) => row.map((_, j) => {
       const h = H(GX(i), GY(i, j)), [x, y] = iso(GX(i), GY(i, j), h), g = el('g', {}, over);
@@ -1784,7 +1791,12 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         for (const p of pulses) { const u = mod(t + p.o, 3000) / 3000; p.e.setAttribute('opacity', (.8 * (1 - u)).toFixed(2)); p.e.setAttribute('rx', (11 * (1 + u * 1.4)).toFixed(1)); p.e.setAttribute('ry', (6.3 * (1 + u * 1.4)).toFixed(1)); }
         for (const q of queues) q.men.forEach((m, n) => { let d = mod(n * q.tot / q.men.length + (t + q.o) * .004, q.tot), s = 0; while (s < q.len.length - 1 && d > q.len[s]) { d -= q.len[s]; s++; } const a = q.pts[s], b = q.pts[s + 1], r = q.len[s] ? d / q.len[s] : 0; m.setAttribute('transform', `translate(${(a[0] + (b[0] - a[0]) * r).toFixed(1)} ${(a[1] + (b[1] - a[1]) * r - 4).toFixed(1)}) scale(.3)`); });
         for (const a of audience) if (a.o >= 0) a.e.setAttribute('opacity', (.3 + .25 * Math.sin(t * .0013 + a.o)).toFixed(2));
-        for (const m of motes) { const k = mod(t * m.v + m.o, 1); if (k < .004) { m.x = gx0 + rnd() * (gx1 - gx0); m.y = gy0 + rnd() * (gy1 - gy0); } const [x, y] = isoH(m.x, m.y, k * 130); m.e.setAttribute('cx', x.toFixed(1)); m.e.setAttribute('cy', y.toFixed(1)); m.e.setAttribute('opacity', (Math.sin(k * Math.PI) * .7).toFixed(2)); }
+        for (const ml of moteLines) {
+          const k0 = mod(t * ml.v + ml.o, 1);
+          if (k0 < ml.last) ml.at = lineAt(); // 한 바퀴 돌면 다른 줄로
+          ml.last = k0;
+          ml.e.forEach((e, q) => { const k = Math.max(0, Math.min(1, (k0 - q * .06) / .7)), [x, y] = isoH(ml.at[0] + q * .5, ml.at[1], k * 120); e.setAttribute('cx', x.toFixed(1)); e.setAttribute('cy', y.toFixed(1)); e.setAttribute('opacity', (Math.sin(k * Math.PI) * .75).toFixed(2)); });
+        }
         legI.setAttribute('transform', `translate(${legX.toFixed(1)} ${(legY + 4 * Math.sin(t * .0012)).toFixed(1)})`);
       },
     });
