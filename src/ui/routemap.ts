@@ -1122,21 +1122,17 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       label(top[0] + 12, top[1] - 12, name, C.bad);
     };
     // 천연 소금 기둥 군락: 해안 소금 평원 · 얕은 바다에 둥근 기둥이 무리 지어 선다 (뒤 → 앞 순서로 겹쳐 그림, 높이 제각각)
-    const saltCol = (cx: number, cy: number) => { // 성기게 흩어진 가는 기둥 (가끔 굵은 것) · 제각각 기울어짐
+    const saltCol = (cx: number, cy: number) => { // 성기게 흩어진 가는 기둥 · 제각각 기울어짐
       for (let q = 0; q < 7 + Math.floor(rnd() * 6); q++) {
-        const x = cx + (rnd() - .5) * 5.5, y = cy + (rnd() - .5) * 3.4, r = .045 + rnd() ** 2.2 * .16, h = 10 + rnd() * rnd() * 52, th = (rnd() - .5) * rnd() * 1.1;
+        const x = cx + (rnd() - .5) * 6.6, y = cy + (rnd() - .5) * 4.1, r = .045 + rnd() * .04, h = 10 + rnd() * rnd() * 52, th = (rnd() - .5) * rnd() * 1.1;
         const z = H(x, y), [px, py] = iso(x, y, z), [rx, ry] = ell(r), tx = px + Math.sin(th) * h, ty = py - Math.cos(th) * h, g = stand(py), f = (v: number) => v.toFixed(1);
         el('path', { d: `M${f(px - rx)} ${f(py)}L${f(tx - rx)} ${f(ty)}A${f(rx)} ${f(ry)} 0 0 1 ${f(tx + rx)} ${f(ty)}L${f(px + rx)} ${f(py)}A${f(rx)} ${f(ry)} 0 0 1 ${f(px - rx)} ${f(py)}Z`, fill: C.bg, stroke: C.text, 'stroke-width': .8, 'stroke-opacity': .55 }, g);
         el('ellipse', { cx: tx, cy: ty, rx, ry, fill: C.panel2, stroke: C.text, 'stroke-width': .8, 'stroke-opacity': .7 }, g);
         for (let k = 6; k < h - 3; k += 7 + rnd() * 6) { const u = k / h, bx = px + (tx - px) * u, by = py + (ty - py) * u; el('path', { d: `M${f(bx - rx)} ${f(by)}A${f(rx)} ${f(ry)} 0 0 0 ${f(bx + rx)} ${f(by)}`, fill: 'none', stroke: C.text, 'stroke-width': .5, 'stroke-opacity': .3 }, g); } // 결정 층
       }
     };
-    { const XF = GX(R - 1) + 1.6; let n = 0; // 시설 · 강하 지점 자리는 비킨다, 군락 둘에 하나꼴로 이름표
-      for (let x = gx0 + 8; x < gx1 - 6; x += 13 + rnd() * 9) {
-        if (Math.abs(x - XF) < 5 || Math.abs(x + 4.5) < 3) continue;
-        const y = coastY(x) + (rnd() < .5 ? -.2 : 1.2); saltCol(x, y);
-        if (n++ % 2 === 0) { const [lx, ly] = iso(x + 1, y + .8, H(x, y)); label(lx + 6, ly + 8, '천연 소금 기둥 군락', C.t2); }
-      } }
+    { const XF = GX(R - 1) + 1.6; // 시설 · 강하 지점 자리는 비킨다
+      for (let x = gx0 + 8; x < gx1 - 6; x += 13 + rnd() * 9) { if (Math.abs(x - XF) < 5 || Math.abs(x + 4.5) < 3) continue; saltCol(x, coastY(x) + (rnd() < .5 ? -.2 : 1.2)); } }
     // 배치: 산기슭 · 해변의 군집, 산기슭의 묘비 개체 (갈래 다발 바깥)
     for (let x = gx0 + 4; x < gx1 - 2; x += 5 + rnd() * 5) { cluster(x, mtnY(x) - .6 - rnd() * 2.4, .7 + rnd() * .9); if (rnd() < .45) cluster(x + 2, coastY(x + 2) - 1.1, .45 + rnd() * .35); }
     for (let x = gx0 + 14; x < GX(R - 1) - 6; x += 24 + rnd() * 10) tomb(x, mtnY(x) - 1.6, 70 + rnd() * 40, .62 + rnd() * .2, '묘비 개체 · 휴면 핵');
