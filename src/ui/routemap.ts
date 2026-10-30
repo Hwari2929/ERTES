@@ -1,9 +1,9 @@
 // 지도 화면 항로도 (전술 스코프): 리빈 낙원동 = 구체 내벽 회전, 베르타–산노디스 물류망 = 대각 진행 원 궤도,
 // 라이덴 제34블록 = 고저 단면 (기둥 위 보행 데크 · 아래 거리의 다층 상가 · 여우 신사), 카운티폴 세피아 교외 = 등각 교외 길 안내 (핀 · 헤드업 내비),
 // 금고선 히페리온호 = 순찰 스코프 (궤도에서 내려다본 선체 · 대각 진행축 · 탐지선이 쓸 때만 드러나는 경비 접촉),
-// 크레타 백원 = 탐지 야경 (촛불 점 들판 · 탐지선이 지난 자리의 촛불이 꺼지고 망령 진형이 불투명도만으로 나타남).
+// 크레타 백원 = 묘역 등각도 (면 없이 선으로만 · 등고선 · 묘비 눈금 · 서류탑 · 애도 극장 · 접수 대기열 · 호명 릴레이 · 장군의 묘).
 // 시안: claude.ai 아티팩트 '전장별 항로 시안' (리빈 = 스코프, 물류망 = 스코프 · 대각, 라이덴 = ① 다층 상가, 카운티폴 = A′-2 핀) ·
-//       '히페리온 · 크레타 항로 시안' (히페리온 = H3 순찰 스코프, 크레타 = C9b 꺼진 촛불에서 일어남).
+//       '히페리온 · 크레타 항로 시안' (히페리온 = H3 순찰 스코프).
 // 렌더마다 화면이 통째로 다시 그려지므로, 항로도 DOM 은 이 모듈이 들고 있다가 자리(.rmap-host)에 다시 끼운다.
 // 그래서 진행(노드 완료 뒤 지도로 돌아옴)마다 끝낸 노드가 옅어지고 다음 노드가 밝아지는 전환을 이어서 보여 줄 수 있다.
 // 조작: 가로로 끌기 · 가로 휠 = 항로만 이동 (페이지는 그대로), 세로로 끄는 터치 = 페이지 스크롤. 전체 화면 = 넓은 시야 + 노드 목록 · 범례 패널.
@@ -20,8 +20,8 @@ const DINO = {
   ptero: 'M-11 0Q-5 -6 0 -1Q5 -6 11 0Q5 -2 1 2L5 3L0 3Q-5 -2-11 0Z',
 };
 
-/** 이 런의 지도에 항로도를 쓰는가: 항로도가 있는 전장 · 튜토리얼 아님 · 한 줄 항로 (모든 칸이 선택지 1개). 분기 항로는 분기형 항로도가 있는 전장만 (물류망 · 카운티폴 · 라이덴) — 나머지는 공용 분기 지도 */
-const BRANCH_KINDS: Kind[] = ['orbit', 'grid', 'stairs'];
+/** 이 런의 지도에 항로도를 쓰는가: 항로도가 있는 전장 · 튜토리얼 아님 · 한 줄 항로 (모든 칸이 선택지 1개). 분기 항로는 분기형 항로도가 있는 전장만 (물류망 · 카운티폴 · 라이덴 · 크레타) — 나머지는 공용 분기 지도 */
+const BRANCH_KINDS: Kind[] = ['orbit', 'grid', 'stairs', 'vigil'];
 export function routeMapOn(run: RunState): boolean {
   if (!(run.field in FIELDS) || run.tutorial || run.lab) return false;
   return run.links ? BRANCH_KINDS.includes(FIELDS[run.field as keyof typeof FIELDS]) : run.map.every((o) => o.length === 1);
@@ -831,7 +831,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     el('rect', { x: VB[0] - 1200, y: VB[1] - 800, width: VB[2] + 2400, height: VB[3] + 1600, fill: C.bg }, stage);
     return VB;
   }
-  /** 분기 항로 공용 (물류망 · 카운티폴): 지도 모양은 장면이 (노드 자리 · 연결선 점 · 카메라 · 표시기), 나머지는 여기서.
+  /** 분기 항로 공용 (물류망 · 카운티폴 · 라이덴 · 크레타): 지도 모양은 장면이 (노드 자리 · 연결선 점 · 카메라 · 표시기), 나머지는 여기서.
    *  상태 (지금 칸 · 지나간 노드 · 고를 수 있는 노드 · 고른 노드 · 그 앞으로 갈 수 있는 노드), 칸을 넘을 때 표시기가 지나온 길을 칠하며 움직이는 연출,
    *  노드 색 전환, 갈림길 안내 · 노드 카드 · 전체 화면 패널, 마우스 · 누름 · 터치로 고르고 진행하기 */
   type EdgeSt = [string, number, number, string]; // 선 색 · 굵기 · 불투명도 · 점선
@@ -856,7 +856,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     tick?(t: number): void;
   }
   function branchKit(o: BranchOpt) {
-    const rows = run.map, L = run.links!, R = rows.length;
+    const rows = run.map, L = run.links ?? rows.slice(0, -1).map((row) => row.map(() => [0])), R = rows.length; // 한 줄 항로 (크레타) 는 모든 칸이 0 번 노드로
     type Edge = { i: number; j: number; k: number; pts: number[][]; e: SVGElement; c?: SVGElement; mid: number[] };
     const line = (p: number[][]) => p.map((q) => `${q[0].toFixed(1)},${q[1].toFixed(1)}`).join(' ');
     const edges: Edge[] = [];
@@ -891,7 +891,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     let shipEdge: Edge | null = null, shipT = 0, uc = 0, hov: NodeType | null = null, trail: Edge | null = null, camKey = '', homeU = 0;
     const shipTo: { edge: Edge | null; t: number } = { edge: null, t: 0 };
     const stateNow = () => {
-      const r = live(), step = Math.min(r.step, R - 1), path = r.path || [], prev = step > 0 ? path[step - 1] ?? 0 : -1;
+      const r = live(), step = Math.min(r.step, R - 1), path = run.links ? r.path || [] : rows.map(() => 0), prev = step > 0 ? path[step - 1] ?? 0 : -1;
       const opts = step === 0 ? rows[0].map((_, k) => k) : L[step - 1]?.[prev] || [0];
       const want = hov && opts.some((k) => rows[step][k] === hov) ? hov : last?.pick?.get();
       const pj = r.node ? path[step] ?? opts[0] : opts.find((k) => rows[step][k] === want) ?? opts[0];
@@ -1571,72 +1571,223 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     };
   }
 
-  // ── 크레타 백원: 대령제 전야의 야간 위성 사진. 들판 = 촛불 점 (정적, 색마다 path 하나), 노드는 위아래로 굽이치는 곡선 항로.
-  // 현재 위치의 거리환 · 탐지선이 노드 사이 진형 자리를 쓸고 지나가면 그 자리의 촛불이 어둡게 꺼지고 망령 6기(k.soul 아이콘)가
-  // 불투명도만으로 나타났다 사라진다 (아이콘 비율 그대로). 등불 행렬 3줄 · 구름 그림자 · 끝의 불 꺼진 장군 묘 = 레가투스 (보스)
+  // ── 크레타 백원: 대령제 전야의 묘역 등각도. 카운티폴처럼 등각으로 내려다보되 입체 면 없이 선으로만 — 고저는 등고선 · 표고 · 높이만큼 올려 그린 단으로.
+  // 흰 묘역 = 줄지어 선 묘비 눈금 (구획 사이는 통로), 노드 = 핀 (땅 위 고리 옆 표고), 갈래 = 묘역을 가르는 행렬 길 (지형을 따라 오르내린다), 표시기 = 등불.
+  // 길 바깥 (위쪽): 끝없이 쌓인 미처리 서류탑 (꼭대기에서 낱장이 날린다) · 호명 릴레이 (암송 관료 줄을 따라 이름이 번진다) · 회수 장치,
+  // (아래쪽): 지상 망령 애도 극장 (산비탈 객석 · 망령 관객 · 무대 조명) · 접수 창구 대기열 (망령이 줄을 따라 조금씩) · 회수 장치.
+  // 출발점 = 크노소스 하강구 (지하로 내려가는 단), 끝 = 레가투스 장군의 묘 (보스). 들판 곳곳에서 망령 빛이 천천히 오른다
   function vigilScene() {
-    const VB = stageBase(narrow ? [180, 10, 440, 430] : [0, 0, 800, 450]);
-    const rnd = rng(67 + run.phase), X = (i: number) => 140 + i * 190, Y = (i: number) => (i === N - 1 ? 225 : [225, 150, 150, 300, 300][i % 5]);
-    const P = types.map((_, i) => [X(i), Y(i)]), XE = X(N - 1), TB = [XE + 100, 225];
-    const SOUL = 'M-6 8V-2a6 6 0 0 1 12 0v10l-2-2-2 2-2-2-2 2-2-2zM-2 -2h.01M2 -2h.01'; // ui/synicons.ts 'k.soul' 을 중심 (0,0) 으로
-    const soul = (p: Element, d: string, col: string) => el('path', { d, fill: col, 'fill-opacity': .14, stroke: col, 'stroke-width': 1.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }, p);
+    const VB = stageBase(narrow ? [180, 30, 440, 400] : [0, 0, 800, 450]);
+    const rows = run.map, R = rows.length, L = run.links ?? rows.slice(0, -1).map((row) => row.map(() => [0]));
+    const rnd = rng(67 + run.phase), rr = rng(61 + run.phase), SZ = 26, OX = 150, OY = 230, PIN = 52, D = 6, LG = 6, HM = 40; // 높이 1px = 0.5m · HM = 평균 높이 (카메라)
+    const ph = [0, 1, 2, 3].map(() => rnd() * 6.28);
+    const TS = 16, Hs = (x: number, y: number) => 1.85 * (22 + 10 * Math.sin(x * .21 + ph[0]) * Math.cos(y * .17 + ph[1]) + 7 * Math.sin((x * .6 + y * .4) * .35 + ph[2]) + 5 * Math.cos(y * .45 - x * .15 + ph[3]));
+    const H = (x: number, y: number) => Math.round(Hs(x, y) / TS) * TS; // 단: 높이를 8m (TS) 단위로 — 단 위는 평평하고 경계는 옹벽 · 길은 계단
+    const iso = (gx: number, gy: number, z = 0) => [OX + (gx - gy) * SZ * .866, OY + (gx + gy) * SZ * .5 - z];
+    const isoH = (gx: number, gy: number, dz = 0) => iso(gx, gy, H(gx, gy) + dz);
+    const GX = (i: number) => i * D, GY = (i: number, j: number) => (j - (rows[i].length - 1) / 2) * LG;
+    const gx0 = -10, gx1 = GX(R - 1) + 13, gy0 = -21, gy1 = 21;
     const world = el('g', {}, stage), fixed = el('g', {}, stage);
-    // 촛불 점: 노드 주변 · 행렬 길 · 세로 고랑 · 묘 자리는 비운다
-    let da = '', db = '';
-    for (let x = -600; x < XE + 500; x += 14) for (let y = 34; y < 430; y += 14) {
-      if (P.some(([px, py]) => Math.abs(x - px) < 36 && Math.abs(y - py) < 36)) continue;
-      if ((y > 180 && y < 196) || (y > 254 && y < 270) || mod(x - 140, 95) < 12 || (Math.abs(x - TB[0]) < 60 && Math.abs(y - TB[1]) < 55) || rnd() > .6) continue;
-      const q = (rnd() < .3 ? 1.6 : 1).toFixed(1), d = `M${(x + rnd() * 5).toFixed(0)} ${(y + rnd() * 5).toFixed(0)}h${q}v${q}h-${q}z`;
-      if (rnd() < .15) db += d; else da += d;
+    const ground = el('g', {}, world), struct = el('g', {}, world), routeG = el('g', {}, world), over = el('g', {}, world);
+    const casingG = el('g', {}, routeG), edgeG = el('g', {}, routeG);
+    const P = (a: number[][]) => 'M' + a.map((q) => `${q[0].toFixed(1)} ${q[1].toFixed(1)}`).join('L');
+    const SOUL = 'M-6 8V-2a6 6 0 0 1 12 0v10l-2-2-2 2-2-2-2 2-2-2zM-2 -2h.01M2 -2h.01'; // ui/synicons.ts 'k.soul' 을 중심 (0,0) 으로
+    const soul = (p: Element, x: number, y: number, s: number, col: string, op = 1) => el('path', { d: SOUL, transform: `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${s})`, fill: col, 'fill-opacity': .14, stroke: col, 'stroke-width': 1, opacity: op, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }, p);
+    // 행렬 길 (격자 좌표): 같은 갈래 = 곧게, 옆 갈래 = 1.2칸 곧게 간 뒤 비스듬히 옮겨 가고 다시 곧게. 0.3칸마다 지형 높이를 따라 오르내린다
+    const gpath = (i: number, j: number, k: number) => { const a = GX(i), ya = GY(i, j), yb = GY(i + 1, k); return Math.abs(yb - ya) < .1 ? [[a, ya], [a + D, yb]] : [[a, ya], [a + 1.2, ya], [a + D - 1.2, yb], [a + D, yb]]; };
+    /** 격자 점들 → 화면 점: 단이 바뀌는 곳은 세 칸 계단으로 */
+    const onGround = (g: number[][]) => {
+      const out: number[][] = [];
+      g.forEach(([x, y], q) => {
+        const z = H(x, y);
+        if (q) { const [px, py] = g[q - 1], pz = H(px, py); if (z !== pz) for (let s = 1; s <= 3; s++) { const f = .25 + s * .15, sx = px + (x - px) * f, sy = py + (y - py) * f; out.push(iso(sx, sy, pz + (z - pz) * (s - 1) / 3), iso(sx, sy, pz + (z - pz) * s / 3)); } }
+        out.push(iso(x, y, z));
+      });
+      return out;
+    };
+    const sample = (g: number[][]) => { const out: number[][] = [g[0]]; for (let q = 1; q < g.length; q++) { const [ax, ay] = g[q - 1], [bx, by] = g[q], n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / .3)); for (let s = 1; s <= n; s++) out.push([ax + (bx - ax) * s / n, ay + (by - ay) * s / n]); } return out; };
+    const segs: number[][][] = [];
+    for (let i = 0; i < R - 1; i++) rows[i].forEach((_, j) => (L[i]?.[j] || []).forEach((k) => { const g = gpath(i, j, k); for (let q = 1; q < g.length; q++) segs.push([g[q - 1], g[q]]); }));
+    segs.push([[-5, 0], [0, GY(0, 0)]]);
+    const dSeg = (x: number, y: number) => Math.min(9, ...segs.map(([a, b]) => { const dx = b[0] - a[0], dy = b[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy || 1))); return Math.hypot(a[0] + dx * t - x, a[1] + dy * t - y); }));
+    // 구조물 자리: 칸 사이마다 위 · 아래 (갈래 띠 바깥). 위 = 서류탑 · 호명 릴레이 · 회수 장치, 아래 = 애도 극장 · 접수 대기열 · 회수 장치
+    type Kind2 = 'papers' | 'relay' | 'recover' | 'theater' | 'queue';
+    const sites: { k: Kind2; x: number; y: number; r: number }[] = [];
+    const TOP: Kind2[] = ['papers', 'relay', 'papers', 'recover', 'papers'], BOT: Kind2[] = ['theater', 'queue', 'recover', 'queue', 'theater'];
+    const t0k = Math.floor(rr() * 5), b0k = Math.floor(rr() * 5);
+    for (let i = 0; i < R - 1; i++) {
+      const x = GX(i) + D / 2 + (rr() - .5) * 1.5;
+      if (rr() < .85) { const k = TOP[(t0k + i) % 5]; sites.push({ k, x, y: -11 - rr() * 2, r: k === 'relay' ? 3.2 : 2.4 }); }
+      if (rr() < .85) { const k = BOT[(b0k + i) % 5]; sites.push({ k, x, y: k === 'theater' ? 11.5 : 10.5 + rr() * 2, r: k === 'theater' ? 4 : 2.6 }); }
     }
-    el('path', { d: da, fill: C.t3, 'fill-opacity': .4 }, world); el('path', { d: db, fill: C.t2, 'fill-opacity': .32 }, world);
-    el('rect', { x: TB[0] - 56, y: TB[1] - 50, width: 112, height: 100, fill: C.bg, stroke: C.line }, world);
-    const clouds = [0, 1].map((k) => ({ g: el('ellipse', { rx: 200 + k * 40, ry: 60, fill: C.bg, 'fill-opacity': .5 }, world), o: k * 900, y: 120 + k * 170, v: .012 + k * .004 }));
-    // 망령 진형 (노드 사이, 곡선 바깥쪽): 어두운 얼룩 + 아이콘 6기 + 이름표
-    const ghostG = el('g', {}, world);
-    const forms = types.slice(1).map((_, i) => {
-      const fx = (X(i) + X(i + 1)) / 2, my = (Y(i) + Y(i + 1)) / 2, fy = my > 225 ? my - 98 : my + 96;
-      const g = el('g', { transform: `translate(${fx} ${fy})` }, ghostG);
-      const dark = el('ellipse', { rx: 58, ry: 26, fill: C.bg, opacity: 0 }, g);
-      const men = el('g', { opacity: 0 }, g);
-      for (let k = 0; k < 6; k++) soul(men, SOUL, C.t2).setAttribute('transform', `translate(${(k - 2.5) * 17} ${(k % 2) * 8})`);
-      const tag = el('g', { transform: 'translate(-40 -30)', opacity: .1 }, g); contact(tag, `LOCHOS-${pad2(i + 1)}`, 0);
-      return { dark, men, tag, fx, fy, r: 0, on: -1 };
-    });
-    const leg = el('g', { transform: `translate(${TB[0]} ${TB[1]})` }, ghostG), legI = el('g', {}, leg);
-    soul(legI, SOUL + 'M10 9V-12M8.5 -9 10 -13 11.5 -9', C.bad).setAttribute('transform', 'scale(2.6)');
-    contact(leg, 'LEGATUS · 접수 거부', -70, C.bad);
-    const routeG = el('g', {}, world);
-    const procs = [0, 1, 2].map((k) => { let d = ''; for (let j = 0; j < 9; j++) d += `M${-j * 6 - 1.2} -1.2h2.4v2.4h-2.4z`; return { g: el('path', { d, fill: C.divine, 'fill-opacity': .55 }, world), y: [188, 262, 188][k], o: k * 800, v: (k % 2 ? -1 : 1) * .012 }; });
-    const rigG = el('g', {}, world), nodeG = el('g', {}, world);
-    const rig = sweepRig(rigG, [80, 160, 240], (r) => `${Math.round(r / 8) * 5}m`);
-    corners(fixed, VB);
-    titleBlock(fixed, VB, 'CRETE · 대령제 전야 · 탐지 야경', [`크레타 백원 · 페이즈 ${run.phase}`, `${N} NODES`, '점 = 촛불 · 줄 = 행렬', '사각 = 장군의 묘']);
-    let mk = P[cur], sa = 0;
-    const sc = trackRun({
-      VB, world, routeLayer: routeG, nodeLayer: nodeG, start: P[0], pos: (i) => P[i],
-      segs: P.slice(1).map((q, i) => { const p = P[i], mx = (p[0] + q[0]) / 2; return ` C${mx} ${p[1]} ${mx} ${q[1]} ${q[0]} ${q[1]}`; }),
-      dir: true, follow: .4, midY: .52,
-      onMarker(p) { mk = [p.x, p.y]; rig.g.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`); },
-      tick(t) {
-        sa = mod(t * .06, 360); rig.set(sa);
-        for (const f of forms) { // 탐지선이 쓸고 지난 직후(140° 안)만 켜짐 → 불투명도만 부드럽게 따라감
-          const dx = f.fx - mk[0], dy = f.fy - mk[1], on = Math.hypot(dx, dy) < 280 && mod(sa - mod(Math.atan2(dy, dx) * 180 / Math.PI, 360), 360) < 140 ? 1 : 0;
-          if (f.on !== on) { f.on = on; f.tag.setAttribute('opacity', on ? '.9' : '.1'); }
-          if (!on && f.r < .01) { if (f.r) { f.r = 0; f.dark.setAttribute('opacity', '0'); f.men.setAttribute('opacity', '0'); } continue; }
-          f.r += (on - f.r) * .08;
-          f.dark.setAttribute('opacity', (.8 * f.r).toFixed(2)); f.men.setAttribute('opacity', (.95 * f.r).toFixed(2));
-          f.men.setAttribute('transform', `translate(0 ${(-2 * Math.sin(t * .0012 + f.fx)).toFixed(1)})`); // 제자리에서 아주 작게 떠 있음
+    const XB = GX(R - 1) + 5.5;
+    const keep = [...sites.map((s) => [s.x, s.y, s.r]), [-6, 0, 3.2], [XB, 0, 4.4], ...rows.flatMap((row, i) => row.map((_, j) => [GX(i), GY(i, j), 1.1]))];
+    // 땅: 흰 묘역 바탕 · 등고선 (3m 마다, 12m 마다 굵게) · 묘비 눈금
+    el('polygon', { points: pts([iso(gx0 - 40, gy0 - 40, HM), iso(gx1 + 40, gy0 - 40, HM), iso(gx1 + 40, gy1 + 40, HM), iso(gx0 - 40, gy1 + 40, HM)]), fill: C.panel }, ground);
+    { const ST = .5, nx = Math.round((gx1 - gx0) / ST), ny = Math.round((gy1 - gy0) / ST), hv: number[] = [];
+      for (let a = 0; a <= nx; a++) for (let b = 0; b <= ny; b++) hv.push(Hs(gx0 + a * ST, gy0 + b * ST));
+      const hAt = (a: number, b: number) => hv[a * (ny + 1) + b];
+      let dTop = '', dBot = '', dWall = '', n = 0; // 단 경계 (매끈한 높이의 중간값 등고선): 위 모서리 · 아래 모서리 · 그 사이 옹벽 세로 눈금
+      for (let k = 0; k < 7; k++) {
+        const lv = (k + .5) * TS, hi = (k + 1) * TS, lo = k * TS;
+        for (let a = 0; a < nx; a++) for (let b = 0; b < ny; b++) {
+          const c = [[a, b], [a + 1, b], [a + 1, b + 1], [a, b + 1]], v = c.map(([p, q]) => hAt(p, q)), hit: number[][] = [];
+          for (let e = 0; e < 4; e++) { const f = (e + 1) % 4; if ((v[e] - lv) * (v[f] - lv) < 0) { const t = (lv - v[e]) / (v[f] - v[e]); hit.push([gx0 + (c[e][0] + (c[f][0] - c[e][0]) * t) * ST, gy0 + (c[e][1] + (c[f][1] - c[e][1]) * t) * ST]); } }
+          for (let h = 0; h + 1 < hit.length; h += 2) {
+            const [p, q] = [hit[h], hit[h + 1]], A = iso(p[0], p[1], hi), B = iso(q[0], q[1], hi), A2 = iso(p[0], p[1], lo), B2 = iso(q[0], q[1], lo);
+            dTop += `M${A[0].toFixed(1)} ${A[1].toFixed(1)}L${B[0].toFixed(1)} ${B[1].toFixed(1)}`; dBot += `M${A2[0].toFixed(1)} ${A2[1].toFixed(1)}L${B2[0].toFixed(1)} ${B2[1].toFixed(1)}`;
+            if (n++ % 2 === 0) { const m = iso((p[0] + q[0]) / 2, (p[1] + q[1]) / 2, hi), m2 = iso((p[0] + q[0]) / 2, (p[1] + q[1]) / 2, lo); dWall += `M${m[0].toFixed(1)} ${m[1].toFixed(1)}L${m2[0].toFixed(1)} ${m2[1].toFixed(1)}`; }
+          }
         }
-        for (const p of procs) p.g.setAttribute('transform', `translate(${(mod(p.o + t * p.v, XE + 800) - 400).toFixed(1)} ${p.y}) scale(${Math.sign(p.v)} 1)`);
-        for (const c of clouds) c.g.setAttribute('transform', `translate(${(mod(c.o + t * c.v, XE + 1400) - 600).toFixed(1)} ${c.y})`);
-        legI.setAttribute('transform', `translate(0 ${(4 * Math.sin(t * .0012)).toFixed(1)})`);
+      }
+      el('path', { d: dWall, fill: 'none', stroke: C.line, 'stroke-width': .7, opacity: .8 }, ground);
+      el('path', { d: dBot, fill: 'none', stroke: C.line, 'stroke-width': .8 }, ground);
+      el('path', { d: dTop, fill: 'none', stroke: C.t3, 'stroke-width': 1 }, ground); }
+    { let g1 = '', g2 = '';
+      for (let x = gx0 + .3; x < gx1; x += .5) { if (mod(x - gx0, 3) > 2.4) continue; // 묘역 구획 사이 통로
+        for (let y = gy0 + .4; y < gy1; y += .75) {
+          if (mod(y - gy0, 4.5) > 3.7 || rnd() < .1 || dSeg(x, y) < .75 || keep.some(([cx, cy, r]) => Math.hypot(x - cx, y - cy) < r)) continue;
+          const [px, py] = isoH(x, y), s = `M${px.toFixed(1)} ${py.toFixed(1)}v-3.4`;
+          if (rnd() < .16) g2 += s; else g1 += s;
+        } }
+      el('path', { d: g1, stroke: C.t3, 'stroke-width': 1.4, opacity: .6 }, ground); el('path', { d: g2, stroke: C.t2, 'stroke-width': 1.4, opacity: .7 }, ground); }
+    // ── 구조물 (모두 선 · 높이만큼 올려 그린 윤곽)
+    const sheets: { e: SVGElement; x: number; y: number; o: number; v: number; fall: number; sw: number }[] = [];
+    const relays: { dots: SVGElement[]; rings: SVGElement[]; o: number }[] = [];
+    const pulses: { e: SVGElement; o: number }[] = [];
+    const queues: { pts: number[][]; len: number[]; tot: number; men: SVGElement[]; o: number }[] = [];
+    const audience: { e: SVGElement; o: number }[] = [];
+    let nPaper = 0, nTheater = 0;
+    const rect = (cx: number, cy: number, hw: number, hd: number, z: number) => [iso(cx - hw, cy - hd, z), iso(cx + hw, cy - hd, z), iso(cx + hw, cy + hd, z), iso(cx - hw, cy + hd, z)];
+    const label = (x: number, y: number, s: string, col = C.t2) => { const g = el('g', { transform: `translate(${x.toFixed(1)} ${y.toFixed(1)})` }, struct); contact(g, s, 0, col); return g; };
+    for (const s of sites) {
+      const z0 = H(s.x, s.y), g = el('g', {}, struct);
+      if (s.k === 'papers') { // 미처리 서류탑: 낱장을 한 장씩 올려 그린 더미 2~3개 (위로 갈수록 기울고 흔들린다), 발치에 흩어진 낱장
+        nPaper++;
+        const n = 2 + Math.floor(rnd() * 2), tops: number[][] = [];
+        for (let q = 0; q < 9; q++) { const fx = s.x + (rnd() - .5) * 3.4, fy = s.y + (rnd() - .5) * 2.4; el('polygon', { points: pts(rect(fx, fy, .22, .16, H(fx, fy))), fill: C.bg, stroke: C.t3, 'stroke-width': .5 }, g); }
+        for (let q = 0; q < n; q++) {
+          const bx = s.x + (q - (n - 1) / 2) * 1.1 + (rnd() - .5) * .3, by = s.y + (rnd() - .5) * .8, cnt = 22 + Math.floor(rnd() * 34), lean = (rnd() - .5) * .02;
+          let jx = 0, jy = 0;
+          for (let k = 0; k < cnt; k++) {
+            jx += lean + (rnd() - .5) * .05; jy += (rnd() - .5) * .04;
+            el('polygon', { points: pts(rect(bx + jx, by + jy, .42, .3, z0 + k * 3.1)), fill: C.bg, stroke: k % 7 === 6 ? C.t2 : C.t3, 'stroke-width': .6 }, g);
+          }
+          tops.push(iso(bx + jx, by + jy, z0 + cnt * 3.1));
+        }
+        const hi = tops.reduce((a, b) => (b[1] < a[1] ? b : a));
+        label(hi[0] - 10, hi[1] - 14, `미처리 서류 · ${530 + Math.floor(rnd() * 32)}년 접수분`);
+        for (let q = 0; q < 2; q++) { const tp = tops[q % tops.length]; sheets.push({ e: el('path', { d: 'M-3.2 0 0 -1.7 3.2 0 0 1.7Z', fill: C.bg, stroke: C.t2, 'stroke-width': .6 }, g), x: tp[0], y: tp[1], o: rnd() * 9000, v: .012 + rnd() * .008, fall: 60 + rnd() * 50, sw: 8 + rnd() * 10 }); }
+      } else if (s.k === 'theater') { // 지상 애도 극장: 산비탈에 기댄 반원 객석 (바깥 줄일수록 높이) · 둥근 무대 · 무대 건물 (갈래 쪽) · 망령 관객 · 무대 조명
+        nTheater++;
+        const seat = (r: number) => z0 + (r - 1) * 7;
+        for (let r = 1.2; r <= 3.7; r += .36) { const a: number[][] = []; for (let q = 0; q <= 24; q++) { const th = Math.PI * q / 24; a.push(iso(s.x + r * Math.cos(th), s.y + r * Math.sin(th), seat(r))); } el('path', { d: P(a), fill: 'none', stroke: r > 3.5 ? C.t2 : C.t3, 'stroke-width': r > 3.5 ? 1 : .7 }, g); }
+        for (const th of [Math.PI * .25, Math.PI * .5, Math.PI * .75]) el('path', { d: P([iso(s.x + 1.2 * Math.cos(th), s.y + 1.2 * Math.sin(th), seat(1.2)), iso(s.x + 3.7 * Math.cos(th), s.y + 3.7 * Math.sin(th), seat(3.7))]), stroke: C.bg, 'stroke-width': 2.2 }, g); // 통로
+        const orc: number[][] = []; for (let q = 0; q <= 32; q++) { const th = Math.PI * 2 * q / 32; orc.push(iso(s.x + .9 * Math.cos(th), s.y + .9 * Math.sin(th), z0)); }
+        el('path', { d: P(orc), fill: C.bg, stroke: C.t2, 'stroke-width': .9 }, g);
+        el('polygon', { points: pts(rect(s.x, s.y - 1.45, 2.2, .28, z0)), fill: C.bg, stroke: C.t2, 'stroke-width': .9 }, g);
+        for (const dx of [-1.2, 0, 1.2]) { const [x, y] = iso(s.x + dx, s.y - 1.45, z0); el('path', { d: `M${x - 3} ${y}v-6h6v6`, fill: 'none', stroke: C.t3, 'stroke-width': .8 }, g); } // 무대 건물 문
+        for (let q = 0; q < 26; q++) { const r = 1.6 + Math.floor(rnd() * 6) * .36, th = .15 + rnd() * (Math.PI - .3), [x, y] = iso(s.x + r * Math.cos(th), s.y + r * Math.sin(th), seat(r)); audience.push({ e: soul(g, x, y - 3, .32, C.t2, .5), o: rnd() * 6.28 }); }
+        const [sx, sy] = iso(s.x, s.y, z0), [lx, ly] = iso(s.x + 1.6, s.y - 1.6, z0 + 70);
+        el('path', { d: `M${lx} ${ly}L${sx - 13} ${sy}A13 7 0 0 0 ${sx + 13} ${sy}Z`, fill: C.divine, opacity: .1 }, g);
+        el('ellipse', { cx: sx, cy: sy, rx: 13, ry: 7, fill: C.divine, opacity: .14 }, g);
+        audience.push({ e: soul(g, sx, sy - 6, .6, C.divine, .9), o: -1 });
+        const [tx, ty] = iso(s.x + 3.7, s.y + 3.7 * .2, seat(3.7));
+        label(tx - 70, ty - 22, '지상 애도 극장 · 상연 「끝내지 못한 일」');
+      } else if (s.k === 'queue') { // 접수 창구 대기열: 줄 세우는 끈 (지그재그) · 창구 · 줄을 따라 조금씩 나아가는 망령
+        const rowsN = 5, w = 2.6, gp: number[][] = [];
+        for (let q = 0; q < rowsN; q++) { const y = s.y + 1 - q * .5; gp.push(q % 2 ? [s.x + w / 2, y] : [s.x - w / 2, y], q % 2 ? [s.x - w / 2, y] : [s.x + w / 2, y]); }
+        const end = gp[gp.length - 1]; gp.push([end[0], end[1] - .7]);
+        const sp = gp.map(([x, y]) => iso(x, y, z0));
+        for (let q = 0; q < rowsN - 1; q++) { const y = s.y + 1 - q * .5 - .25; el('path', { d: P([iso(s.x - w / 2 + (q % 2 ? .35 : 0), y, z0), iso(s.x + w / 2 - (q % 2 ? 0 : .35), y, z0)]), stroke: C.t3, 'stroke-width': .8, 'stroke-dasharray': '3 2' }, g); }
+        const booth = rect(end[0], end[1] - 1.05, .55, .3, z0);
+        el('polygon', { points: pts(booth), fill: C.bg, stroke: C.t2, 'stroke-width': .9 }, g);
+        const [bx, by] = iso(end[0], end[1] - 1.05, z0); txt(g, bx, by + 2.5, '07', { 'text-anchor': 'middle', 'font-size': 6, fill: C.t2 });
+        { const [qx, qy] = iso(s.x - w / 2, s.y + 1.4, z0); label(qx - 150, qy + 14, '접수 창구 07 · 평균 대기 3년 2개월'); } // 줄 끝 (갈래 반대쪽) 아래
+        const len = sp.slice(1).map((b, q) => Math.hypot(b[0] - sp[q][0], b[1] - sp[q][1])), tot = len.reduce((a, b) => a + b, 0);
+        queues.push({ pts: sp, len, tot, men: Array.from({ length: 11 }, () => soul(g, 0, 0, .3, C.t2, .75)), o: rnd() * 1000 });
+      } else if (s.k === 'relay') { // 호명 릴레이: 일정 간격으로 늘어선 암송 관료 — 부른 이름이 줄을 따라 번진다 (부르는 사람 둘레에 소리 고리)
+        const dots: SVGElement[] = [], rings: SVGElement[] = [];
+        for (let q = 0; q < 9; q++) {
+          const x = s.x - 3 + q * .75, y = s.y + Math.sin(q * .7) * .3, [px, py] = isoH(x, y);
+          rings.push(el('ellipse', { cx: px, cy: py, rx: 4, ry: 2.3, fill: 'none', stroke: C.divine, 'stroke-width': .8, opacity: 0 }, g));
+          el('path', { d: `M${px} ${py}v-5`, stroke: C.t2, 'stroke-width': 1.2 }, g);
+          dots.push(el('circle', { cx: px, cy: py - 7, r: 1.8, fill: C.t2 }, g));
+        }
+        relays.push({ dots, rings, o: rnd() * 5000 });
+        const [lx, ly] = isoH(s.x + 3, s.y); label(lx + 6, ly - 14, '호명 릴레이 · 암송 관료');
+      } else { // 회수 장치: 땅 위 고리 · 세 다리 · 머리 (안식의 빛을 거두는 맥동)
+        for (let q = 0; q < 2; q++) {
+          const x = s.x + (q ? 1.2 : -1) + (rnd() - .5) * .4, y = s.y + (q ? -.6 : .5), z = H(x, y), [px, py] = iso(x, y, z), hy = py - 20;
+          el('ellipse', { cx: px, cy: py, rx: 11, ry: 6.3, fill: 'none', stroke: C.t3, 'stroke-width': .8 }, g);
+          for (const dx of [-8, 0, 8]) el('path', { d: `M${px + dx} ${py + (dx ? 1.5 : 4)}L${px} ${hy}`, stroke: C.t2, 'stroke-width': .9 }, g);
+          el('path', { d: `M${px - 3.5} ${hy}h7l-3.5 -5Z`, fill: C.bg, stroke: C.divine, 'stroke-width': 1 }, g);
+          pulses.push({ e: el('ellipse', { cx: px, cy: py, rx: 11, ry: 6.3, fill: 'none', stroke: C.divine, 'stroke-width': 1, opacity: 0 }, g), o: rnd() * 3000 });
+          if (!q) label(px + 14, hy - 4, `회수 장치 R-${pad2(1 + Math.floor(rnd() * 40))}`);
+        }
+      }
+    }
+    // 크노소스 하강구 (출발점 뒤): 지하로 내려가는 단 — 안쪽 윤곽일수록 낮게
+    { const cx = -6, cy = 0, z0 = H(cx, cy), g = el('g', {}, struct);
+      for (let k = 0; k < 7; k++) el('polygon', { points: pts(rect(cx, cy, 2.3 - k * .3, 2.3 - k * .3, z0 - k * 5)), fill: k === 6 ? C.bg : 'none', stroke: k ? C.t3 : C.t2, 'stroke-width': k ? .7 : 1.1 }, g);
+      const [x, y] = iso(cx - 2.3, cy - 2.3, z0); label(x + 8, y - 8, '크노소스 하강구 · 지하 11층'); }
+    // 레가투스 장군의 묘 (보스 노드 뒤): 세 단 기단 (위 단일수록 높이) · 불 꺼진 비석 · 떠 있는 장군의 망령
+    let legI: SVGElement, legX = 0, legY = 0;
+    { const cx = XB, cy = 0, z0 = H(cx, cy), g = el('g', {}, struct);
+      [3.6, 2.9, 2.2].forEach((r, k) => el('polygon', { points: pts(rect(cx, cy, r, r * .8, z0 + k * 8)), fill: C.bg, stroke: k === 2 ? C.t2 : C.t3, 'stroke-width': k === 2 ? 1.1 : .8 }, g));
+      el('polygon', { points: pts(rect(cx, cy, .9, .35, z0 + 16)), fill: C.panel, stroke: C.t2, 'stroke-width': .9 }, g);
+      const [x, y] = iso(cx, cy, z0 + 16);
+      legX = x; legY = y - 40; legI = el('g', { transform: `translate(${x} ${legY})` }, g);
+      el('path', { d: SOUL + 'M10 9V-12M8.5 -9 10 -13 11.5 -9', transform: 'scale(2.4)', fill: C.bad, 'fill-opacity': .14, stroke: C.bad, 'stroke-width': 1.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }, legI);
+      label(x + 34, y - 64, 'LEGATUS · 접수 거부', C.bad); }
+    // 출발 길 (하강구 → 첫 노드)
+    el('path', { d: P(onGround(sample([[-4, 0], [0, GY(0, 0)]]))), fill: 'none', stroke: C.t3, 'stroke-width': 1.6, 'stroke-dasharray': '3 4' }, ground);
+    // 망령 빛: 들판에서 천천히 올라 사라진다 (대령제의 안식)
+    const motes = Array.from({ length: 36 }, () => ({ e: el('circle', { r: 1.3, fill: C.divine, opacity: 0 }, over), x: gx0 + rnd() * (gx1 - gx0), y: gy0 + rnd() * (gy1 - gy0), o: rnd() * 9000, v: 1 / (7000 + rnd() * 5000) }));
+    // 핀 · 표고
+    const pins = rows.map((row, i) => row.map((_, j) => {
+      const h = H(GX(i), GY(i, j)), [x, y] = iso(GX(i), GY(i, j), h), g = el('g', {}, over);
+      el('line', { x1: x, y1: y - PIN + 21, x2: x, y2: y - 4, stroke: C.t2, 'stroke-width': 1.1 }, g);
+      el('ellipse', { cx: x, cy: y, rx: 8, ry: 4.6, fill: C.bg, stroke: C.t2, 'stroke-width': 1.1 }, g);
+      el('circle', { cx: x, cy: y, r: 1.4, fill: C.t2 }, g);
+      txt(g, x + 11, y + 3, `▲${(h / 2).toFixed(1)}`, { 'font-size': 6.5, fill: C.t3 });
+      return g;
+    }));
+    const lamp = el('g', {}, over);
+    el('circle', { r: 11, fill: C.sel, opacity: .16 }, lamp);
+    const flame = el('path', { d: 'M0 -5.5 4 0 0 5.5-4 0Z', fill: C.sel, stroke: C.bg, 'stroke-width': 1.4, 'paint-order': 'stroke' }, lamp);
+    // 접수 현황 (왼쪽 위): 접수 번호가 계속 올라간다
+    const hud = el('g', { transform: `translate(${VB[0] + 14} ${VB[1] + VB[3] - 54})` }, fixed); // 왼쪽 아래 (제목 칸 맞은편)
+    el('rect', { width: 172, height: 40, fill: C.bg, stroke: C.line }, hud);
+    txt(hud, 8, 14, '백원 접수 현황 · 대령제 전야', ko({ 'font-size': 8, fill: C.t2 }));
+    const recv = txt(hud, 8, 31, '', { 'font-size': 9.5, fill: C.text, class: 'mono' });
+    corners(fixed, VB);
+    titleBlock(fixed, VB, 'CRETE · 백원 묘역 등각도', [`크레타 백원 · 페이즈 ${run.phase}`, `${R} ROWS · 단 높이 8m`, `서류탑 ${nPaper}곳 · 극장 ${nTheater}곳`, '눈금 = 묘비 · ▲ = 표고']);
+    const fwd = (() => { const a = iso(0, 0), b = iso(1, 0), n = Math.hypot(b[0] - a[0], b[1] - a[1]); return [(b[0] - a[0]) / n, (b[1] - a[1]) / n]; })();
+    return branchKit({
+      name: '크레타 백원 · 묘역 등각도',
+      legend: [['행렬 길', '고른 노드에서 이어지는 길 (점선 = 지금 고른 다음 구간) · 지형을 따라 오르내린다'], ['회색 길', '지나온 길'], ['단 · ▲', '묘역은 8m 단으로 — 경계 = 옹벽 (위 · 아래 모서리), 길은 계단으로 오르내린다 · 노드 표고'], ['눈금', '묘비 — 흰 묘역 (구획 사이는 통로)'], ['서류탑', '끝없이 쌓인 미처리 서류'], ['애도 극장', '지상 망령 애도 극장 — 망령이 자기 이야기를 무대에 올린다'], ['접수 창구 · 호명 릴레이 · 회수 장치', '망령 행정 — 접수 · 호명 · 안식'], ['하강구 · LEGATUS', '크노소스로 내려가는 입구 · 장군의 묘 (보스)']],
+      edgeLayer: edgeG, casingLayer: casingG, nodeLayer: over, casing: 3,
+      nodeAt: (i, j) => { const p = isoH(GX(i), GY(i, j)); return [p[0], p[1] - PIN]; },
+      dirAt: () => fwd,
+      edgePts: (i, j, k) => onGround(sample(gpath(i, j, k))),
+      style: { taken: [C.t3, 3, 1, ''], toPick: [C.sel, 2.6, 1, '7 5'], mine: [C.sel, 2.2, .9, ''], alt: [C.t2, 1.6, .55, ''], none: [C.line, 1.2, .5, '2 4'] },
+      camU: (x, y) => ((x - OX) / (SZ * .866) + (y + PIN + HM - OY) / (SZ * .5)) / 2, camRange: [-3, GX(R - 1) + 3], ahead: [1, 1.5], camEps: .3, dragPer: SZ * .866,
+      drawCam(u) { const p = iso(u, 0, PIN * .5 + HM); world.setAttribute('transform', `translate(${(VB[0] + VB[2] / 2 - p[0]).toFixed(1)} ${(VB[1] + VB[3] / 2 - p[1]).toFixed(1)})`); },
+      marker(x, y) { lamp.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); },
+      nodeState(i, j, kind) { pins[i][j].style.opacity = kind === 'gone' ? '.22' : kind === 'alt' ? '.6' : '1'; },
+      tick(t) {
+        flame.setAttribute('transform', `scale(${(1 + .08 * Math.sin(t * .011)).toFixed(3)} ${(1 + .12 * Math.sin(t * .017)).toFixed(3)})`);
+        recv.textContent = `№ 562-${String(418200 + Math.floor(t / 900)).padStart(7, '0')}`;
+        for (const s of sheets) { const k = mod(s.o + t * s.v * 60, 1000) / 1000; s.e.setAttribute('transform', `translate(${(s.x + 6 + k * 30 + s.sw * Math.sin(k * 9)).toFixed(1)} ${(s.y + k * s.fall).toFixed(1)}) rotate(${(k * 540).toFixed(0)})`); s.e.setAttribute('opacity', (k < .1 ? k * 10 : k > .8 ? (1 - k) * 5 : 1).toFixed(2)); }
+        for (const r of relays) { const w = mod((t + r.o) * .0025, 14); r.dots.forEach((d, q) => { const on = Math.max(0, 1 - Math.abs(w - q)); d.setAttribute('fill', on > .5 ? C.divine : C.t2); const rg = r.rings[q], u = mod(w - q, 14); rg.setAttribute('opacity', u < 1.6 ? (.9 * (1 - u / 1.6)).toFixed(2) : '0'); rg.setAttribute('rx', (4 + u * 9).toFixed(1)); rg.setAttribute('ry', (2.3 + u * 5.2).toFixed(1)); }); }
+        for (const p of pulses) { const u = mod(t + p.o, 3000) / 3000; p.e.setAttribute('opacity', (.8 * (1 - u)).toFixed(2)); p.e.setAttribute('rx', (11 * (1 + u * 1.4)).toFixed(1)); p.e.setAttribute('ry', (6.3 * (1 + u * 1.4)).toFixed(1)); }
+        for (const q of queues) q.men.forEach((m, n) => { let d = mod(n * q.tot / q.men.length + (t + q.o) * .004, q.tot), s = 0; while (s < q.len.length - 1 && d > q.len[s]) { d -= q.len[s]; s++; } const a = q.pts[s], b = q.pts[s + 1], r = q.len[s] ? d / q.len[s] : 0; m.setAttribute('transform', `translate(${(a[0] + (b[0] - a[0]) * r).toFixed(1)} ${(a[1] + (b[1] - a[1]) * r - 4).toFixed(1)}) scale(.3)`); });
+        for (const a of audience) if (a.o >= 0) a.e.setAttribute('opacity', (.3 + .25 * Math.sin(t * .0013 + a.o)).toFixed(2));
+        for (const m of motes) { const k = mod(t * m.v + m.o, 1); if (k < .004) { m.x = gx0 + rnd() * (gx1 - gx0); m.y = gy0 + rnd() * (gy1 - gy0); } const [x, y] = isoH(m.x, m.y, k * 130); m.e.setAttribute('cx', x.toFixed(1)); m.e.setAttribute('cy', y.toFixed(1)); m.e.setAttribute('opacity', (Math.sin(k * Math.PI) * .7).toFixed(2)); }
+        legI.setAttribute('transform', `translate(${legX.toFixed(1)} ${(legY + 4 * Math.sin(t * .0012)).toFixed(1)})`);
       },
     });
-    return {
-      ...sc, name: '크레타 백원 · 탐지 야경',
-      legend: [['항로', '굽이치는 곡선 항로 · 지난 구간은 강조색'], ['거리환', '현재 위치 50m 간격 · 탐지선이 돈다'], ['LOCHOS', '망령 진형 — 탐지선이 쓸면 촛불이 꺼지고 나타남'], ['등불 행렬', '대령제 순례 행렬'], ['LEGATUS', '불 꺼진 장군의 묘 · 보스']],
-    };
   }
 
   // ── 카운티폴 세피아 교외: 등각으로 내려다본 계획 도시. 같은 크기 구획 · 직각 가로망 · 표준 주택, 항로는 내비 경로처럼 안내된다
