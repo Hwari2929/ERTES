@@ -1339,7 +1339,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     const TALL = Object.keys(BLD).filter((k) => BLD[k].tall && k !== 'spire'), LOW = Object.keys(BLD).filter((k) => !BLD[k].tall);
     for (const s of [-1, 1]) for (let i = -1; i < R; i++) {
       if (rnd() < .22) continue;
-      const k = s < 0 ? (i === R - 2 ? 'spire' : TALL[Math.floor(rnd() * TALL.length)]) : LOW[Math.floor(rnd() * LOW.length)], b = BLD[k], sc = s < 0 ? .36 : .27;
+      const k = s < 0 ? (i === R - 2 ? 'spire' : TALL[Math.floor(rnd() * TALL.length)]) : LOW[Math.floor(rnd() * LOW.length)], b = BLD[k], sc = s < 0 ? .43 : .32;
       const g = el('g', { transform: at(i * STEP + 70 + rnd() * 20, s * 142) }, deck), inner = el('g', { transform: `translate(${(-165 * sc).toFixed(1)} 14) scale(${sc})` }, g);
       b.draw(inner);
       const hot = rnd() < .12; txt(g, 0, 26, b.dept, ko({ 'text-anchor': 'middle', 'font-size': 7.5, fill: hot ? C.streak : C.t2 }));
@@ -1368,13 +1368,6 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       el('circle', { cx: dir * 9, cy: 0, r: 1.3, fill: C.divine }, g);
       return { g, v, dir, o: rnd() * 4000 };
     });
-    // 격리 구획 (갑판 위 빗금 띠): 적요 외 반입물이 발견된 칸
-    for (let q = 0; q < 2 + Math.floor(run.phase / 2); q++) {
-      const u = STEP * (1 + rnd() * (R - 3)) + 90, v = (rnd() < .5 ? -1 : 1) * 140, g = el('g', { transform: at(u, v) }, deck);
-      el('rect', { x: -30, y: -15, width: 60, height: 30, fill: 'none', stroke: C.bad, 'stroke-width': 1.1, 'stroke-dasharray': '6 3' }, g);
-      for (let k = -30; k < 30; k += 7) el('path', { d: `M${k} 15L${k + 12} -15`, stroke: C.bad, 'stroke-width': .6, opacity: .45 }, g);
-      txt(g, -30, -19, '격리 구획 · 적요 외 반입물', ko({ 'font-size': 7.5, fill: C.bad }));
-    }
     // 공급망 배관 (선체 바깥 위 · 아래): 외부 생산자 → 본계정. 화물이 흐르고, 적요에 없는 화물 (빨강) 은 격벽 밸브에서 격리 상자로 빠진다
     const PIPE0 = -560, valves = [-1, 1].map((s) => ({ s, u: STEP * (1.2 + rnd() * 1.5) }));
     const cargo: { e: SVGElement; s: number; o: number; red: boolean }[] = [];
@@ -1390,7 +1383,6 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     for (const vl of valves) {
       const g = el('g', { transform: at(vl.u, vl.s * PV) }, front);
       el('path', { d: 'M-3 -9V9M3 -9V9', stroke: C.bad, 'stroke-width': 2 }, g);
-      el('rect', { x: -18, y: vl.s < 0 ? -44 : 22, width: 36, height: 22, fill: 'none', stroke: C.bad, 'stroke-dasharray': '4 2' }, g); // 격리 상자
       txt(g, 22, vl.s < 0 ? -30 : 36, '격벽 밸브 · 적요 외 화물 차단', ko({ 'font-size': 8, fill: C.bad }));
     }
     // 유닉스 자기증식 설비: 외벽에 따개비처럼 (반입구 쪽이 빽빽하고 페이즈마다 늘어난다)
@@ -1434,7 +1426,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     const camAt = (uc: number) => { const P0 = L2W(uc, 0); return [P0[0] - 400, P0[1] - CY]; };
     return branchKit({
       name: '페트라 본사 성역',
-      legend: [['길', '같은 갈래 = 직선 · 옆 갈래 = 직각으로 꺾는 연결 통로 · 지나간 길 = 강조색 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['고리', '계정별 거주 고리 (매입 · 담보 · 이연 · 상각)'], ['사무동', '부서마다 다른 건물 (금고동 · 판상형 · 기댄 쌍탑 · 세쌍둥이 · 컨테이너 탑 · 다리형 · 큐브 · 벙커 · 첨탑 본부) — 주황 점선 = 이번 분기 재산정 중'], ['야적장', '적요별 컨테이너 더미 · 무인 운반차 (빨간 컨테이너 = 적요 외 반입물)'], ['배관', '공급망 — 빨간 화물 = 적요 외 반입물 (격벽 밸브에서 격리)'], ['UNIX 설비', '외벽에 붙어 분기마다 늘어나는 자기증식 설비'], ['격리 구획 · 격리팀', '특수기동격리팀이 막아 둔 칸 · 순찰 함정'], ['본계정', '중앙 기록소 (보스)']],
+      legend: [['길', '같은 갈래 = 직선 · 옆 갈래 = 직각으로 꺾는 연결 통로 · 지나간 길 = 강조색 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['고리', '계정별 거주 고리 (매입 · 담보 · 이연 · 상각)'], ['사무동', '부서마다 다른 건물 (금고동 · 판상형 · 기댄 쌍탑 · 세쌍둥이 · 컨테이너 탑 · 다리형 · 큐브 · 벙커 · 첨탑 본부) — 주황 점선 = 이번 분기 재산정 중'], ['야적장', '적요별 컨테이너 더미 · 무인 운반차 (빨간 컨테이너 = 적요 외 반입물)'], ['배관', '공급망 — 빨간 화물 = 적요 외 반입물 (격벽 밸브에서 격리)'], ['UNIX 설비', '외벽에 붙어 분기마다 늘어나는 자기증식 설비'], ['격리팀', '특수기동격리팀 순찰 함정'], ['본계정', '중앙 기록소 (보스)']],
       edgeLayer, casingLayer, casing: 4, nodeLayer, beaconLayer, beacon: (i) => `적요 541-${String(i + 12).padStart(4, '0')} 종결`,
       nodeAt, dirAt: () => ax,
       edgePts: (i, j, k) => { const A = nodeAt(i, j), B = nodeAt(i + 1, k); return Math.abs(dOf(i + 1, k) - dOf(i, j)) < 1 ? [A, [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], B] : ortho(i, j, k); },
