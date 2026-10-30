@@ -1336,14 +1336,30 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         quad(g, [[20, 0], [60, -18], [90, -18], [50, 0]], C.panel2, C.t3);
       } },
     };
+    const lowRise = (g: Element) => { // 시안에 없던 낮은 사무실 · 부속동: 1 ~ 2층 상자 (가끔 두 덩이 계단 · 옥상 설비 · 안테나)
+      const w = 80 + rnd() * 90, h = 26 + Math.floor(rnd() * 2) * 18, x = 165 - w / 2;
+      bx(g, x, 0, w, h, 26 + rnd() * 20); wins(g, x, -h, w, h, 8, 9);
+      if (rnd() < .45) { const w2 = w * (.35 + rnd() * .25), x2 = rnd() < .5 ? x : x + w - w2; bx(g, x2, -h, w2, 16, 18); wins(g, x2, -h - 16, w2, 16, 8, 8); }
+      for (let q = 0; q < 1 + Math.floor(rnd() * 3); q++) { const rx = x + 10 + rnd() * (w - 30); el('rect', { x: rx + 6, y: -h - 12 - 5, width: 12, height: 5, fill: C.bg, stroke: C.t3, 'stroke-width': .8 }, g); }
+      if (rnd() < .25) el('path', { d: `M${x + w - 10} ${-h - 10}v-22`, stroke: C.t3 }, g);
+      return w;
+    };
+    const WID: Record<string, number> = { vault: 200, slab: 220, lean2: 250, triple: 260, crane: 180, bridge: 280, cubes: 150, bunker: 280, spire: 180 };
+    let spired = false;
     const TALL = Object.keys(BLD).filter((k) => BLD[k].tall && k !== 'spire'), LOW = Object.keys(BLD).filter((k) => !BLD[k].tall);
-    for (const s of [-1, 1]) for (let i = -1; i < R; i++) {
-      if (rnd() < .22) continue;
-      const k = s < 0 ? (i === R - 2 ? 'spire' : TALL[Math.floor(rnd() * TALL.length)]) : LOW[Math.floor(rnd() * LOW.length)], b = BLD[k], sc = s < 0 ? .43 : .32;
-      const g = el('g', { transform: at(i * STEP + 70 + rnd() * 20, s * 142) }, deck), inner = el('g', { transform: `translate(${(-165 * sc).toFixed(1)} 14) scale(${sc})` }, g);
-      b.draw(inner);
-      const hot = rnd() < .12; txt(g, 0, 26, b.dept, ko({ 'text-anchor': 'middle', 'font-size': 7.5, fill: hot ? C.streak : C.t2 }));
-      if (hot) el('path', { d: 'M-34 22h68', stroke: C.streak, 'stroke-width': 1, 'stroke-dasharray': '3 2' }, g); // 이번 분기 재산정 중
+    for (const s of [-1, 1]) { // 띠마다 제멋대로: 이름 있는 동 · 낮은 사무실이 섞이고 간격 · 앞뒤 자리가 들쭉날쭉, 같은 동이 이웃하지 않게
+      const sc = s < 0 ? .43 : .32, pool = s < 0 ? TALL : LOW;
+      let u = -170 + rnd() * 60, prev = '';
+      while (u < U + 30) {
+        let k = 'low';
+        if (s < 0 && u > (R - 2) * STEP - 40 && u < (R - 2) * STEP + 120 && prev !== 'spire' && !spired) k = 'spire';
+        else if (rnd() < .5) { const opts = pool.filter((q) => q !== prev && !(['vault', 'bridge'].includes(q) && ['vault', 'bridge'].includes(prev))); k = opts[Math.floor(rnd() * opts.length)]; }
+        if (k === 'spire') spired = true;
+        const g = el('g', {}, deck), inner = el('g', { transform: `translate(${(-165 * sc).toFixed(1)} 14) scale(${sc})` }, g), w = k === 'low' ? lowRise(inner) : (BLD[k].draw(inner), WID[k]);
+        const cu = u + w * sc / 2; g.setAttribute('transform', at(cu, s * (132 + rnd() * 20)));
+        if (k !== 'low') { const hot = rnd() < .12; txt(g, 0, 26, BLD[k].dept, ko({ 'text-anchor': 'middle', 'font-size': 7.5, fill: hot ? C.streak : C.t2 })); if (hot) el('path', { d: 'M-34 22h68', stroke: C.streak, 'stroke-width': 1, 'stroke-dasharray': '3 2' }, g); }
+        prev = k; u += w * sc + 8 + rnd() * rnd() * 70;
+      }
     }
     const container = (g: Element, x: number, y: number, hot: boolean) => { // 컨테이너 한 칸: 골판 줄 · 문 끝단
       blockAt(g, x, y, 24, 9, .7, hot ? C.bad : C.t3);
