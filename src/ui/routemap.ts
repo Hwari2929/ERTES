@@ -990,11 +990,11 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     el('path', { d: 'M-11 -5 11 0-11 5-7 0Z', fill: C.sel, stroke: C.bg, 'stroke-width': 2, 'paint-order': 'stroke' }, ship);
     const rig = sweepRig(world, [60, 120, 180], (r) => `${(r / 1000).toFixed(2)}AU`);
     // 시각표 (왼쪽 아래): 다음 열차까지
-    // 운행표: 환승역 → 녹슨 갈고리 → 종착역 → 녹슨 갈고리 → … 왕복. 역마다 정차, 출발 · 도착은 천천히 (가속 · 감속 구간)
+    // 운행표: 환승역 → 녹슨 갈고리 → 종착역 → 녹슨 갈고리 → … 왕복. 역마다 4초 정차, 느린 순항 (먼 거리), 출발 · 도착은 구간의 42% 씩 들여 천천히 가속 · 감속
     const legs: { t0: number; t1: number; a: number; b: number; to: number; dwell: boolean }[] = [], ORD = [0, 1, 2, 1];
     let TT = 0, dirT = 1;
-    ORD.forEach((q, n) => { const A = stops[q], nx = ORD[(n + 1) % ORD.length], B = stops[nx], d = Math.max(3000, Math.abs(B.s - A.s) / .2); legs.push({ t0: TT, t1: TT + 2800, a: A.s, b: A.s, to: q, dwell: true }); TT += 2800; legs.push({ t0: TT, t1: TT + d, a: A.s, b: B.s, to: nx, dwell: false }); TT += d; });
-    const trap = (k: number, f = .3) => { const vm = 1 / (1 - f); return k < f ? vm * k * k / (2 * f) : k < 1 - f ? vm * (f / 2 + k - f) : 1 - vm * (1 - k) ** 2 / (2 * f); }; // 가속 → 등속 → 감속
+    ORD.forEach((q, n) => { const A = stops[q], nx = ORD[(n + 1) % ORD.length], B = stops[nx], d = Math.max(9000, Math.abs(B.s - A.s) / .05); legs.push({ t0: TT, t1: TT + 4000, a: A.s, b: A.s, to: q, dwell: true }); TT += 4000; legs.push({ t0: TT, t1: TT + d, a: A.s, b: B.s, to: nx, dwell: false }); TT += d; });
+    const trap = (k: number, f = .42) => { const vm = 1 / (1 - f); return k < f ? vm * k * k / (2 * f) : k < 1 - f ? vm * (f / 2 + k - f) : 1 - vm * (1 - k) ** 2 / (2 * f); }; // 가속 → 등속 → 감속
     const hud = el('g', { transform: `translate(${VB[0] + 14} ${VB[1] + VB[3] - 54})` }, fixed);
     el('rect', { width: 186, height: 40, fill: C.bg, stroke: C.line }, hud);
     txt(hud, 8, 14, '은하 3호선 · 코빈 구역 시각표', ko({ 'font-size': 8, fill: C.t2 }));
