@@ -1667,22 +1667,24 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     };
     for (const s of sites) {
       const z0 = H(s.x, s.y), g = el('g', {}, struct);
-      if (s.k === 'papers') { // 미처리 서류탑: 낱장을 한 장씩 올려 그린 더미 2~3개 (위로 갈수록 기울고 흔들린다), 발치에 흩어진 낱장
+      if (s.k === 'papers') { // 미처리 서류더미 군: 작은 더미 여럿이 빽빽하게 (뒤 → 앞 순서로 겹쳐 그림, 낱장을 한 장씩 올려 위로 갈수록 기울고 흔들린다), 발치에 흩어진 낱장
         nPaper++;
-        const n = 2 + Math.floor(rnd() * 2), tops: number[][] = [];
-        for (let q = 0; q < 9; q++) { const fx = s.x + (rnd() - .5) * 3.4, fy = s.y + (rnd() - .5) * 2.4; el('polygon', { points: pts(rect(fx, fy, .22, .16, H(fx, fy))), fill: C.bg, stroke: C.t3, 'stroke-width': .5 }, g); }
-        for (let q = 0; q < n; q++) {
-          const bx = s.x + (q - (n - 1) / 2) * 1.1 + (rnd() - .5) * .3, by = s.y + (rnd() - .5) * .8, cnt = 10 + Math.floor(rnd() * 12), lean = (rnd() - .5) * .02;
+        const tops: number[][] = [], spots: number[][] = [];
+        for (let q = 0; q < 14; q++) { const fx = s.x + (rnd() - .5) * 3.6, fy = s.y + (rnd() - .5) * 2.6; el('polygon', { points: pts(rect(fx, fy, .11, .08, H(fx, fy))), fill: C.bg, stroke: C.t3, 'stroke-width': .4 }, g); }
+        for (let a = 0; a < 6; a++) for (let b = 0; b < 4; b++) if (rnd() < .82) spots.push([s.x - 1.4 + a * .56 + (rnd() - .5) * .14, s.y - .9 + b * .6 + (rnd() - .5) * .14]);
+        spots.sort((p, q) => p[0] + p[1] - q[0] - q[1]);
+        for (const [bx, by] of spots) {
+          const cnt = 6 + Math.floor(rnd() * 16), lean = (rnd() - .5) * .012, zb = H(bx, by);
           let jx = 0, jy = 0;
           for (let k = 0; k < cnt; k++) {
-            jx += lean + (rnd() - .5) * .05; jy += (rnd() - .5) * .04;
-            el('polygon', { points: pts(rect(bx + jx, by + jy, .42, .3, z0 + k * 3.1)), fill: C.bg, stroke: k % 7 === 6 ? C.t2 : C.t3, 'stroke-width': .6 }, g);
+            jx += lean + (rnd() - .5) * .025; jy += (rnd() - .5) * .02;
+            el('polygon', { points: pts(rect(bx + jx, by + jy, .21, .15, zb + k * 1.7)), fill: C.bg, stroke: k % 6 === 5 ? C.t2 : C.t3, 'stroke-width': .5 }, g);
           }
-          tops.push(iso(bx + jx, by + jy, z0 + cnt * 3.1));
+          tops.push(iso(bx + jx, by + jy, zb + cnt * 1.7));
         }
         const hi = tops.reduce((a, b) => (b[1] < a[1] ? b : a));
         label(hi[0] - 10, hi[1] - 14, `미처리 서류 · ${530 + Math.floor(rnd() * 32)}년 접수분`);
-        for (let q = 0; q < 2; q++) { const tp = tops[q % tops.length]; sheets.push({ e: el('path', { d: 'M-3.2 0 0 -1.7 3.2 0 0 1.7Z', fill: C.bg, stroke: C.t2, 'stroke-width': .6 }, g), x: tp[0], y: tp[1], o: rnd() * 9000, v: .012 + rnd() * .008, fall: 60 + rnd() * 50, sw: 8 + rnd() * 10 }); }
+        for (let q = 0; q < 3; q++) { const tp = tops[Math.floor(rnd() * tops.length)]; sheets.push({ e: el('path', { d: 'M-1.8 0 0 -1 1.8 0 0 1Z', fill: C.bg, stroke: C.t2, 'stroke-width': .5 }, g), x: tp[0], y: tp[1], o: rnd() * 9000, v: .012 + rnd() * .008, fall: 40 + rnd() * 30, sw: 6 + rnd() * 8 }); }
       } else if (s.k === 'theater') { // 지상 애도 극장: 산비탈에 기댄 반원 객석 (바깥 줄일수록 높이) · 둥근 무대 · 무대 건물 (갈래 쪽) · 망령 관객 · 무대 조명
         nTheater++;
         const seat = (r: number) => z0 + (r - 1) * 7;
