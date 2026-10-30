@@ -1176,7 +1176,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     }
     const lo = branch ? 0 : Math.min(...lv), BASE = 250 + Math.min(0, lo + 2) * LH; // 가장 낮은 칸도 거리보다 충분히 위
     const X = (i: number) => 150 + i * STEP, Y = (i: number) => BASE - lv[i] * LH, XN = X(N - 1);
-    const FLOOR = branch ? 276 : BASE - lo * LH + 74; // 아래 거리 (상가가 서는 땅)
+    const FLOOR = branch ? 297 : BASE - lo * LH + 74; // 아래 거리 (상가가 서는 땅)
     const para = el('g', {}, stage), mid = el('g', {}, stage), world = el('g', {}, stage), fixed = el('g', {}, stage);
     type Blink = { e: SVGElement; ph: number; w: number; broken?: boolean };
     const blink: Blink[] = [], neon: Blink[] = [], lanterns: SVGElement[] = [];
@@ -1345,7 +1345,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
      *  갈림 노드 = 엘리베이터 (다른 층 갈래로 타고 오르내린다), 합류 = 계단으로 오르내리며 가운데로 모인다 (높이 차가 크면 엘리베이터).
      *  같은 갈래 안에서도 칸마다 층이 오르내린다: 데크 = 1~3층씩 계단 (한 줄 항로처럼), 고가도로 = 경사로, 지하 상가 = 평면 */
     function stairsBranch() {
-      const rows = run.map, L = run.links!, R = rows.length, LANEH = 112, Y0 = 220, ARC = FLOOR + 62; // 지하 상가 바닥
+      const rows = run.map, L = run.links!, R = rows.length, LANEH = 112, Y0 = 200, ARC = FLOOR + 62; // 지하 상가 바닥
       const walk = (lo: number, hi: number, span: number) => { const out: number[] = []; for (let i = 0, v = 0; i < R; i++) { if (i) { let d = 0; while (!d) d = Math.round((lr() * 2 - 1) * span); v = Math.max(lo, Math.min(hi, v + d)); } out.push(v); } return out; };
       const midLv = walk(-2, 1, 3), topLv = walk(-1, 1, 2); // 층 (LH 단위): 데크 · 고가도로가 칸마다 따로 오르내린다 (같은 칸의 데크 · 고가 노드가 겹치지 않게 데크는 +1층까지)
       const lane = (i: number, j: number) => { const n = rows[i].length; return n === 1 ? 0 : n === 2 ? (j ? 1 : -1) : j - 1; }; // -1 위 · 0 가운데 · 1 아래
