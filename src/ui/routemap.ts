@@ -1342,12 +1342,14 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     };
 
     /** 분기 항로 (라이덴 고저 단면): 갈래 = 층. 위 = 마천루 사이 고가도로, 가운데 = 기둥 위 보행 데크, 아래 = 거리 밑 지하 상가 (B1).
-     *  갈림 노드 = 엘리베이터 (다른 층 갈래로 타고 오르내린다), 합류 = 계단으로 오르내리며 가운데로 모인다 (높이 차가 크면 엘리베이터). 칸마다 데크 바닥이 조금씩 오르내린다 */
+     *  갈림 노드 = 엘리베이터 (다른 층 갈래로 타고 오르내린다), 합류 = 계단으로 오르내리며 가운데로 모인다 (높이 차가 크면 엘리베이터).
+     *  같은 갈래 안에서도 칸마다 층이 오르내린다: 데크 = 1~3층씩 계단 (한 줄 항로처럼), 고가도로 = 경사로, 지하 상가 = 평면 */
     function stairsBranch() {
       const rows = run.map, L = run.links!, R = rows.length, LANEH = 112, Y0 = 220, ARC = FLOOR + 62; // 지하 상가 바닥
-      const wob: number[] = []; for (let i = 0, b = 0; i < R; i++) { if (i && i < R - 1 && lr() < .5) b = Math.max(-1, Math.min(1, b + (lr() < .5 ? -1 : 1))); wob.push(i === R - 1 ? 0 : b * 18); }
+      const walk = (lo: number, hi: number, span: number) => { const out: number[] = []; for (let i = 0, v = 0; i < R; i++) { if (i) { let d = 0; while (!d) d = Math.round((lr() * 2 - 1) * span); v = Math.max(lo, Math.min(hi, v + d)); } out.push(v); } return out; };
+      const midLv = walk(-2, 1, 3), topLv = walk(-1, 1, 2); // 층 (LH 단위): 데크 · 고가도로가 칸마다 따로 오르내린다 (같은 칸의 데크 · 고가 노드가 겹치지 않게 데크는 +1층까지)
       const lane = (i: number, j: number) => { const n = rows[i].length; return n === 1 ? 0 : n === 2 ? (j ? 1 : -1) : j - 1; }; // -1 위 · 0 가운데 · 1 아래
-      const Yl = (i: number, j: number) => { const l = lane(i, j); return l < 0 ? Y0 - LANEH + wob[i] * .5 : l > 0 ? ARC : Y0 + wob[i]; };
+      const Yl = (i: number, j: number) => { const l = lane(i, j); return l < 0 ? Y0 - LANEH - topLv[i] * LH : l > 0 ? ARC : Y0 - midLv[i] * LH; };
       const parents = (i: number, k: number) => rows[i].filter((_, j) => (L[i]?.[j] || []).includes(k)).length;
       type Shape = 'step' | 'liftOut' | 'liftIn';
       const shapeOf = (i: number, j: number, k: number): Shape => {
@@ -1367,6 +1369,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       const SH = 46; // 엘리베이터 통로: 갈림 노드 바로 뒤 · 합류 노드 바로 앞
       const ptsOf = (i: number, j: number, k: number) => {
         const xa = X(i), ya = Yl(i, j), xb = X(i + 1), yb = Yl(i + 1, k), s = shapeOf(i, j, k);
+        if (s === 'step' && lane(i, j) < 0 && lane(i + 1, k) < 0) return [[xa, ya], [xa + LAND, ya], [xb - LAND, yb], [xb, yb]]; // 고가도로: 경사로
         return s === 'step' ? stairPts(xa, ya, xb, yb) : s === 'liftOut' ? [[xa, ya], [xa + SH, ya], [xa + SH, yb], [xb, yb]] : [[xa, ya], [xb - SH, ya], [xb - SH, yb], [xb, yb]];
       };
       // 엘리베이터 통로 (갈림 노드마다 · 큰 합류마다 하나): 오르내리는 층을 모두 잇는다
