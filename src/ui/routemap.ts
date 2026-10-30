@@ -1112,16 +1112,35 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       pulses.push({ e: el('ellipse', { cx: bx, cy: by, rx: prx, ry: pry, fill: 'none', stroke: C.bad, 'stroke-width': 1, opacity: 0 }, g), rx: prx, ry: pry, o: rnd() * 3000 });
       let top = [bx, by];
       for (let k = 0; k <= n; k++) {
-        const f = k / n, r = rb * Math.max(.05, 1 - .92 * f ** 1.1) * (1 + .08 * Math.sin(k * .9)), [rx, ry] = ell(r), [x, y] = iso(cx + .5 * f * f, cy - .3 * f * f, z0 + k * 4);
+        const f = k / n, r = rb * (f < .12 ? 1 - .38 * (f / .12) ** .8 : .62 * Math.max(.08, 1 - .9 * ((f - .12) / .88) ** 2.4)) * (1 + .06 * Math.sin(k * .9)), [rx, ry] = ell(r), [x, y] = iso(cx + .5 * f * f, cy - .3 * f * f, z0 + k * 4); // 밑둥만 살짝 퍼지고 거의 둥근 기둥, 끝에서 가늘게
         el('ellipse', { cx: x, cy: y, rx, ry, fill: C.bg, stroke: k % 5 === 0 ? C.bad : C.line, 'stroke-width': k % 5 === 0 ? .9 : .6, 'stroke-opacity': k % 5 === 0 ? .8 : 1 }, g);
         top = [x, y];
       }
       el('path', { d: `M${top[0]} ${top[1] - 1}v-6`, stroke: C.bad, 'stroke-width': 1.1, 'stroke-linecap': 'round' }, g); // 바늘처럼 가는 끝
       label(top[0] + 12, top[1] - 12, name, C.bad);
     };
+    // 천연 소금 기둥 군락: 해안 소금 평원 · 얕은 바다에 둥근 기둥이 무리 지어 선다 (뒤 → 앞 순서로 겹쳐 그림, 높이 제각각)
+    const saltCol = (cx: number, cy: number) => {
+      const g = el('g', {}, struct), cols: number[][] = [];
+      for (let q = 0; q < 9 + Math.floor(rnd() * 8); q++) cols.push([cx + (rnd() - .5) * 2.4, cy + (rnd() - .5) * 1.6, .1 + rnd() * .2, 8 + rnd() * rnd() * 46]);
+      cols.sort((a, b) => a[0] + a[1] - b[0] - b[1]);
+      for (const [x, y, r, h] of cols) {
+        const z = H(x, y), [px, py] = iso(x, y, z), [rx, ry] = ell(r);
+        el('path', { d: `M${(px - rx).toFixed(1)} ${py.toFixed(1)}V${(py - h).toFixed(1)}A${rx.toFixed(1)} ${ry.toFixed(1)} 0 0 1 ${(px + rx).toFixed(1)} ${(py - h).toFixed(1)}V${py.toFixed(1)}A${rx.toFixed(1)} ${ry.toFixed(1)} 0 0 1 ${(px - rx).toFixed(1)} ${py.toFixed(1)}Z`, fill: C.bg, stroke: C.text, 'stroke-width': .8, 'stroke-opacity': .55 }, g);
+        el('ellipse', { cx: px, cy: py - h, rx, ry, fill: C.panel2, stroke: C.text, 'stroke-width': .8, 'stroke-opacity': .7 }, g);
+        for (let k = 6; k < h - 3; k += 7 + rnd() * 6) el('path', { d: `M${(px - rx).toFixed(1)} ${(py - k).toFixed(1)}A${rx.toFixed(1)} ${ry.toFixed(1)} 0 0 0 ${(px + rx).toFixed(1)} ${(py - k).toFixed(1)}`, fill: 'none', stroke: C.text, 'stroke-width': .5, 'stroke-opacity': .3 }, g); // 결정 층
+      }
+      return g;
+    };
+    { const XF = GX(R - 1) + 1.6; let n = 0; // 시설 · 강하 지점 자리는 비킨다, 군락 둘에 하나꼴로 이름표
+      for (let x = gx0 + 8; x < gx1 - 6; x += 13 + rnd() * 9) {
+        if (Math.abs(x - XF) < 5 || Math.abs(x + 4.5) < 3) continue;
+        const y = coastY(x) + (rnd() < .5 ? -.4 : .9); saltCol(x, y);
+        if (n++ % 2 === 0) { const [lx, ly] = iso(x + 1, y + .8, H(x, y)); label(lx + 6, ly + 8, '천연 소금 기둥 군락', C.t2); }
+      } }
     // 배치: 산기슭 · 해변의 군집, 산기슭의 묘비 개체 (갈래 다발 바깥)
     for (let x = gx0 + 4; x < gx1 - 2; x += 5 + rnd() * 5) { cluster(x, mtnY(x) - .6 - rnd() * 2.4, .7 + rnd() * .9); if (rnd() < .45) cluster(x + 2, coastY(x + 2) - 1.1, .45 + rnd() * .35); }
-    for (let x = gx0 + 14; x < GX(R - 1) - 6; x += 24 + rnd() * 10) tomb(x, mtnY(x) - 1.6, 70 + rnd() * 40, .8 + rnd() * .3, '묘비 개체 · 휴면 핵');
+    for (let x = gx0 + 14; x < GX(R - 1) - 6; x += 24 + rnd() * 10) tomb(x, mtnY(x) - 1.6, 70 + rnd() * 40, .62 + rnd() * .2, '묘비 개체 · 휴면 핵');
     // 끝: 옛 야생동물 재활 시설 — 해안에서 죽은 바다로 뻗은 부두 · 둥근 바다 우리 셋 (범고래 환수를 돌보던 곳) · 부두 끝 등대 (구조 신호) · 뭍의 보트 창고, 그리고 거대 묘비 개체
     const XE = GX(R - 1);
     const beacon: { ring: SVGElement[]; lamp: SVGElement } = { ring: [], lamp: el('g', {}) };
@@ -1146,7 +1165,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       for (let q = 0; q < 3; q++) beacon.ring.push(el('circle', { cx: lx, cy: by, r: 4, fill: 'none', stroke: C.info, 'stroke-width': 1, opacity: 0 }, g));
       beacon.lamp = el('circle', { cx: lx, cy: by, r: 2.6, fill: C.info }, g);
       label(lx + 12, by - 18, '옛 야생동물 재활 시설 · 바다 우리 (구조 신호 · 비콘 코드 일치)', C.info); }
-    tomb(XE + 5.5, -3.2, 150, 1.5, '묘비 개체 · 군집의 핵');
+    tomb(XE + 5.5, -3.2, 150, 1.15, '묘비 개체 · 군집의 핵');
     // 출발: 발키리 분대 강하 지점
     { const [x, y] = isoH(-4.5, 0), g = el('g', {}, struct);
       el('ellipse', { cx: x, cy: y, rx: 16, ry: 9, fill: 'none', stroke: C.t2, 'stroke-dasharray': '2 3' }, g);
@@ -1166,7 +1185,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       el('ellipse', { rx: 18, ry: 10, fill: C.bg, stroke: C.t2, 'stroke-width': 1.2 }, top); // 몸통
       const drips = [0, 1, 2].map(() => el('circle', { r: 1.2, fill: C.t3 }, g));
       const lab = txt(g, 0, 18, '마부 개체 · 군집 운반 중', ko({ 'font-size': 9, fill: C.t2, 'text-anchor': 'middle', stroke: C.bg, 'stroke-width': 3, 'paint-order': 'stroke' }));
-      const up = n % 2 === 0, x0 = GX(Math.min(run.step, R - 1)) + (up ? 1 : -1) * (13 + n * 5); // 위 (산기슭) · 아래 (얕은 바다) 번갈아, 카메라 밖에서 서로 엇갈려 다가온다
+      const up = n % 2 === 0, x0 = GX(Math.min(run.step, R - 1)) + 1.5 + (up ? 11.5 + n * 4 : -(10 + (n - 1) * 4)); // 기본 화면 가장자리 바로 밖 // 위 (산기슭) · 아래 (얕은 바다) 번갈아, 카메라 밖에서 서로 엇갈려 다가온다
       return { g, legs, feet, top, sac, drips, lab, up, x0, dir: up ? -1 : 1, dy: up ? .3 : .4 + n * .2, ph: rnd() * 6 };
     });
     // 핀 · 표고
