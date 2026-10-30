@@ -20,8 +20,8 @@ const DINO = {
   ptero: 'M-11 0Q-5 -6 0 -1Q5 -6 11 0Q5 -2 1 2L5 3L0 3Q-5 -2-11 0Z',
 };
 
-/** 이 런의 지도에 항로도를 쓰는가: 항로도가 있는 전장 · 튜토리얼 아님 · 한 줄 항로 (모든 칸이 선택지 1개). 분기 항로는 분기형 항로도가 있는 전장만 (물류망 · 카운티폴) — 나머지는 공용 분기 지도 */
-const BRANCH_KINDS: Kind[] = ['orbit', 'grid'];
+/** 이 런의 지도에 항로도를 쓰는가: 항로도가 있는 전장 · 튜토리얼 아님 · 한 줄 항로 (모든 칸이 선택지 1개). 분기 항로는 분기형 항로도가 있는 전장만 (물류망 · 카운티폴 · 라이덴) — 나머지는 공용 분기 지도 */
+const BRANCH_KINDS: Kind[] = ['orbit', 'grid', 'stairs'];
 export function routeMapOn(run: RunState): boolean {
   if (!(run.field in FIELDS) || run.tutorial || run.lab) return false;
   return run.links ? BRANCH_KINDS.includes(FIELDS[run.field as keyof typeof FIELDS]) : run.map.every((o) => o.length === 1);
@@ -1167,16 +1167,16 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   // 시작 앞 = 봉쇄 바리케이드 · 폐쇄된 역, 마지막 계단 = 도리이, 옥상 = 여우 신사. 하늘엔 데스 스트리밍 비행선 · 촬영 드론 (CAM-07 은 우리를 따라온다)
   function stairsScene() {
     const VB = stageBase(narrow ? [180, 20, 440, 380] : [0, 10, 800, 400]);
-    const STEP = 156, LH = 26, LAND = 32, EL = 8, rnd = rng(71 + run.phase), lr = rng(41 + run.phase);
-    const lv: number[] = []; // 층: 칸마다 1~3층씩 크게 오르내리고, 마지막(보스)은 바로 앞보다 3층 위 신사
-    for (let i = 0, L = 0; i < N; i++) {
+    const branch = !!run.links, STEP = branch ? 210 : 156, LH = 26, LAND = 32, EL = 8, rnd = rng(71 + run.phase), lr = rng(41 + run.phase);
+    const lv: number[] = []; // 층: 칸마다 1~3층씩 크게 오르내리고, 마지막(보스)은 바로 앞보다 3층 위 신사 (분기 항로는 층 갈래 — stairsBranch)
+    if (!branch) for (let i = 0, L = 0; i < N; i++) {
       if (i === N - 1) L = Math.min(lv[i - 1] + 3, 6);
       else if (i) { let dl = 0; while (!dl) dl = Math.round((lr() * 2 - 1) * 3); L = Math.max(-3, Math.min(4, L + dl)); }
       lv.push(L);
     }
-    const lo = Math.min(...lv), BASE = 250 + Math.min(0, lo + 2) * LH; // 가장 낮은 칸도 거리보다 충분히 위
+    const lo = branch ? 0 : Math.min(...lv), BASE = 250 + Math.min(0, lo + 2) * LH; // 가장 낮은 칸도 거리보다 충분히 위
     const X = (i: number) => 150 + i * STEP, Y = (i: number) => BASE - lv[i] * LH, XN = X(N - 1);
-    const FLOOR = BASE - lo * LH + 74; // 아래 거리 (상가가 서는 땅)
+    const FLOOR = branch ? 276 : BASE - lo * LH + 74; // 아래 거리 (상가가 서는 땅)
     const para = el('g', {}, stage), mid = el('g', {}, stage), world = el('g', {}, stage), fixed = el('g', {}, stage);
     type Blink = { e: SVGElement; ph: number; w: number; broken?: boolean };
     const blink: Blink[] = [], neon: Blink[] = [], lanterns: SVGElement[] = [];
@@ -1208,9 +1208,9 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     const drone = (p: Element, lab: string, anchor = 'start') => { const g = el('g', {}, p); el('path', { d: 'M-9 -2h18M-7 -2v-2M7 -2v-2M-3 -2h6v5h-6Z', stroke: C.t2, fill: C.t3 }, g); const rec = el('circle', { cx: 0, cy: 5, r: 1.7, fill: C.bad }, g); txt(g, anchor === 'end' ? -12 : 11, 2, lab, ko({ 'font-size': 6.5, fill: C.t2, 'text-anchor': anchor })); return { g, rec }; };
     const drones = [0, 1, 2].map((k) => ({ ...drone(mid, `CAM-0${k + 3}`), x0: rnd() * 1400 - 200, y: 100 + k * 30, v: (k % 2 ? -1 : 1) * (.02 + rnd() * .02), ph: rnd() * 6 }));
 
-    const district = el('g', {}, world), deckG = el('g', {}, world), back = el('g', {}, world), routeG = el('g', {}, world), front = el('g', {}, world);
+    const towers = el('g', {}, world), district = el('g', {}, world), deckG = el('g', {}, world), back = el('g', {}, world), routeG = el('g', {}, world), front = el('g', {}, world);
     // 아래 거리 · 그 아래 단면 (차도 · 배관 · 운행 중지된 지하철 — 전체 화면의 높은 시야에서 보인다)
-    { const L = X(0) - 600, R = XN + 700, F = FLOOR;
+    if (!branch) { const L = X(0) - 600, R = XN + 700, F = FLOOR;
       el('rect', { x: L, y: F, width: R - L, height: 600, fill: C.panel }, district);
       el('line', { x1: L, y1: F, x2: R, y2: F, stroke: C.t3 }, district);
       el('rect', { x: L, y: F + 1, width: R - L, height: 16, fill: mix(C.panel2, C.bg, .4) }, district);
@@ -1250,7 +1250,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
     };
     const trash = (g: Element, x0: number, w: number, y: number) => { for (let k = 0; k < 1 + Math.floor(rnd() * 3); k++) el('ellipse', { cx: x0 + rnd() * w, cy: y - 2, rx: 3 + rnd() * 2, ry: 2.4, fill: C.line }, g); };
     let shops = 0;
-    for (let x = X(0) - 140; x < XN + 30; x += 64 + rnd() * 50) { // 다층 상가 건물: 2~6층, 높이는 데크와 상관없이 제각각
+    for (let x = X(0) - 140; x < XN + 30; x += 64 + rnd() * 50) { // 다층 상가 건물: 2~6층, 높이는 데크와 상관없이 제각각 (분기 항로에서도 같은 거리)
       const w = 58 + rnd() * 44, fl = 2 + Math.floor(rnd() * 5), FH = 22, top = FLOOR - fl * FH, g = el('g', {}, district);
       el('rect', { x, y: top, width: w, height: FLOOR - top, fill: mix(C.panel2, C.bg, .25), stroke: C.t3, 'stroke-width': .6 }, g);
       for (let f = 1; f < fl; f++) el('line', { x1: x, y1: FLOOR - f * FH, x2: x + w, y2: FLOOR - f * FH, stroke: C.line }, g);
@@ -1262,6 +1262,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       else el('path', { d: `M${x + 8} ${top}v-${14 + rnd() * 18}`, stroke: C.t3 }, g); // 안테나
       trash(g, x, w, FLOOR);
     }
+    if (branch) return stairsBranch();
     // 보행 데크: 계단 · 층계참은 기둥 위 (상가와 높이를 공유하지 않는다)
     const segs: string[] = [], stairs: { x0: number; x1: number; y0: number; y1: number }[] = [];
     for (let i = 0; i < N - 1; i++) {
@@ -1339,6 +1340,161 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
       ...sc, name: '라이덴 제34블록 봉쇄선',
       legend: [['데크', '계단 · 층계참 = 노드 (기둥 위)'], ['+24m', '층계참 표고'], ['상가', '노드와 별개의 높이 · 셔터 = 폐쇄 점포'], ['노란 사선', '출입 금지 테이프 · 바리케이드'], ['CAM · 비행선', '데스 스트리밍 생중계 (CAM-07 은 우리를 따라옴)'], ['도리이 · 稲荷', '마지막 계단 · 꼭대기 여우 신사']],
     };
+
+    /** 분기 항로 (라이덴 고저 단면): 갈래 = 층. 위 = 마천루 사이 고가도로, 가운데 = 기둥 위 보행 데크, 아래 = 거리 밑 지하 상가 (B1).
+     *  갈림 노드 = 엘리베이터 (다른 층 갈래로 타고 오르내린다), 합류 = 계단으로 오르내리며 가운데로 모인다 (높이 차가 크면 엘리베이터). 칸마다 데크 바닥이 조금씩 오르내린다 */
+    function stairsBranch() {
+      const rows = run.map, L = run.links!, R = rows.length, LANEH = 112, Y0 = 220, ARC = FLOOR + 62; // 지하 상가 바닥
+      const wob: number[] = []; for (let i = 0, b = 0; i < R; i++) { if (i && i < R - 1 && lr() < .5) b = Math.max(-1, Math.min(1, b + (lr() < .5 ? -1 : 1))); wob.push(i === R - 1 ? 0 : b * 18); }
+      const lane = (i: number, j: number) => { const n = rows[i].length; return n === 1 ? 0 : n === 2 ? (j ? 1 : -1) : j - 1; }; // -1 위 · 0 가운데 · 1 아래
+      const Yl = (i: number, j: number) => { const l = lane(i, j); return l < 0 ? Y0 - LANEH + wob[i] * .5 : l > 0 ? ARC : Y0 + wob[i]; };
+      const parents = (i: number, k: number) => rows[i].filter((_, j) => (L[i]?.[j] || []).includes(k)).length;
+      type Shape = 'step' | 'liftOut' | 'liftIn';
+      const shapeOf = (i: number, j: number, k: number): Shape => {
+        if (lane(i, j) === lane(i + 1, k)) return 'step';
+        const dy = Math.abs(Yl(i + 1, k) - Yl(i, j));
+        if ((L[i]?.[j] || []).length >= 2) return 'liftOut'; // 갈림 노드: 엘리베이터로 다른 층 갈래
+        return dy <= 140 ? 'step' : parents(i, k) >= 2 ? 'liftIn' : 'liftOut'; // 합류 · 옮겨 가기: 계단 (높이 차가 크면 엘리베이터)
+      };
+      const stairPts = (xa: number, ya: number, xb: number, yb: number) => {
+        if (Math.abs(yb - ya) < 1) return [[xa, ya], [xb, yb]];
+        const x0 = xa + LAND, x1 = xb - LAND, n = Math.max(2, Math.round(Math.abs(yb - ya) / 8)), tr = (x1 - x0) / n, rs = (yb - ya) / n, out = [[xa, ya], [x0, ya]];
+        let cx = x0, cy = ya;
+        for (let q = 0; q < n; q++) { if (rs < 0) { cy += rs; out.push([cx, cy]); cx += tr; out.push([cx, cy]); } else { cx += tr; out.push([cx, cy]); cy += rs; out.push([cx, cy]); } } // 오를 땐 챌면 먼저, 내릴 땐 디딤면 먼저
+        out.push([xb, yb]);
+        return out;
+      };
+      const SH = 46; // 엘리베이터 통로: 갈림 노드 바로 뒤 · 합류 노드 바로 앞
+      const ptsOf = (i: number, j: number, k: number) => {
+        const xa = X(i), ya = Yl(i, j), xb = X(i + 1), yb = Yl(i + 1, k), s = shapeOf(i, j, k);
+        return s === 'step' ? stairPts(xa, ya, xb, yb) : s === 'liftOut' ? [[xa, ya], [xa + SH, ya], [xa + SH, yb], [xb, yb]] : [[xa, ya], [xb - SH, ya], [xb - SH, yb], [xb, yb]];
+      };
+      // 엘리베이터 통로 (갈림 노드마다 · 큰 합류마다 하나): 오르내리는 층을 모두 잇는다
+      type Shaft = { x: number; ys: number[]; car?: SVGElement; cable?: SVGElement; top: number };
+      const shafts = new Map<string, Shaft>(), edgeShaft = new Map<string, Shaft>();
+      for (let i = 0; i < R - 1; i++) rows[i].forEach((_, j) => (L[i]?.[j] || []).forEach((k) => {
+        const s = shapeOf(i, j, k); if (s === 'step') return;
+        const key = s === 'liftOut' ? `o${i},${j}` : `n${i + 1},${k}`, x = s === 'liftOut' ? X(i) + SH : X(i + 1) - SH;
+        const sh = shafts.get(key) || { x, ys: [], top: 0 };
+        sh.ys.push(Yl(i, j), Yl(i + 1, k)); shafts.set(key, sh); edgeShaft.set(`${i},${j},${k}`, sh);
+      }));
+      // 위: 마천루 (상가 뒤) · 고가도로 / 가운데: 보행 데크 / 아래: 거리 · 지하 상가 · 운행 중지된 지하철
+      for (let x = X(0) - 320; x < XN + 320; x += 70 + rnd() * 80) {
+        const w = 40 + rnd() * 36, top = 18 + rnd() * 70, g = el('g', {}, towers);
+        el('rect', { x, y: top, width: w, height: FLOOR - top, fill: mix(C.panel, C.bg, .15), stroke: C.line, 'stroke-width': .6 }, g);
+        for (let wy = top + 8; wy < FLOOR - 10; wy += 10) for (let wx = x + 4; wx < x + w - 4; wx += 8) if (rnd() < .2) el('rect', { x: wx, y: wy, width: 3, height: 4, fill: rnd() < .3 ? C.t3 : C.line }, g);
+        if (rnd() < .35) sign(g, x + w - 4, top + 14 + rnd() * 40, 0, true);
+        if (rnd() < .4) el('path', { d: `M${x + w / 2} ${top}v-${12 + rnd() * 20}`, stroke: C.t3 }, g);
+      }
+      { const Lx = X(0) - 600, Rx = XN + 700, F = FLOOR;
+        el('rect', { x: Lx, y: F, width: Rx - Lx, height: 600, fill: C.panel }, district);
+        el('rect', { x: Lx, y: F + 1, width: Rx - Lx, height: 16, fill: mix(C.panel2, C.bg, .4) }, district); // 차도
+        el('line', { x1: Lx, y1: F, x2: Rx, y2: F, stroke: C.t3 }, district);
+        el('line', { x1: Lx, y1: F + 9, x2: Rx, y2: F + 9, stroke: C.t3, 'stroke-dasharray': '14 12', opacity: .6 }, district);
+        const A0 = F + 18, A1 = ARC + 6; // 지하 상가: 천장 · 뒷벽 점포 (셔터 · 간판) · 바닥
+        el('rect', { x: Lx, y: A0, width: Rx - Lx, height: A1 - A0, fill: mix(C.panel2, C.bg, .55) }, district);
+        el('line', { x1: Lx, y1: A0, x2: Rx, y2: A0, stroke: C.t3, 'stroke-width': 1.2 }, district);
+        el('line', { x1: Lx, y1: A1, x2: Rx, y2: A1, stroke: C.t3, 'stroke-width': 1.2 }, district);
+        for (let x = Lx + 20; x < Rx; x += 46 + rnd() * 30) { const w = 34 + rnd() * 14, g = el('g', {}, district); shutter(g, x, ARC - 22, w, 22); sign(g, x, A0 + 6, w); if (rnd() < .4) lanterns.push(el('rect', { x: x + w / 2 - 2, y: A0 + 18, width: 4, height: 5, rx: 1, fill: C.divine, opacity: .6 }, g)); }
+        for (let x = X(0); x <= XN; x += STEP * 2) txt(district, x + STEP / 2, A0 + 30, 'B1 地下街', ko({ 'text-anchor': 'middle', 'font-size': 7, fill: C.t3 }));
+        const T0 = A1 + 12, T1 = T0 + 50; // 지하철 (운행 중지)
+        el('rect', { x: Lx, y: T0, width: Rx - Lx, height: T1 - T0, fill: C.bg, stroke: C.t3, 'stroke-width': .8 }, district);
+        for (let x = Lx; x < Rx; x += 46) el('path', { d: `M${x} ${T1}V${T0 + 12}Q${x + 23} ${T0 - 2} ${x + 46} ${T0 + 12}`, fill: 'none', stroke: C.line, 'stroke-width': .8 }, district);
+        txt(district, X(1), T0 + 22, '地下鉄 34番駅 · 운행 중지', ko({ 'text-anchor': 'middle', 'font-size': 8, fill: C.t2 }));
+        el('rect', { x: Lx, y: T1, width: Rx - Lx, height: 600, fill: mix(C.panel, C.bg, .5) }, district); }
+      // 길 바닥 (연결선 아래): 위 = 고가도로 (넓은 차도 · 차선 · 방호벽), 가운데 = 보행 데크 (난간), 아래 = 지하 상가 바닥. 엘리베이터로 오르내리는 구간은 바닥 없음
+      const hwCars: { g: SVGElement; x0: number; x1: number; y: number; o: number; v: number }[] = [];
+      for (let i = 0; i < R - 1; i++) rows[i].forEach((_, j) => (L[i]?.[j] || []).forEach((k) => {
+        const p = ptsOf(i, j, k), runs: number[][][] = [[p[0]]];
+        for (let q = 1; q < p.length; q++) { if (Math.abs(p[q][1] - p[q - 1][1]) > 30 && Math.abs(p[q][0] - p[q - 1][0]) < 1) runs.push([p[q]]); else runs[runs.length - 1].push(p[q]); }
+        for (const r of runs) {
+          if (r.length < 2) continue;
+          const d = 'M' + r.map((q) => `${q[0].toFixed(1)} ${q[1].toFixed(1)}`).join(' L'), ym = Math.max(...r.map((q) => q[1])), yt = Math.min(...r.map((q) => q[1]));
+          if (ym < Y0 - 55) { // 고가도로
+            el('path', { d, fill: 'none', stroke: C.panel2, 'stroke-width': 12 }, deckG);
+            el('path', { d, fill: 'none', stroke: C.t3, 'stroke-width': .8, 'stroke-dasharray': '8 6' }, deckG);
+            el('path', { d, fill: 'none', stroke: C.line, 'stroke-width': 2, transform: 'translate(0 -8)' }, deckG);
+            for (let x = r[0][0] + 20; x < r[r.length - 1][0] - 10; x += 70) el('path', { d: `M${x} ${yt + 7}V${FLOOR}`, stroke: C.line, 'stroke-width': 5 }, deckG); // 교각
+            for (let c = 0; c < 2; c++) { const g = el('g', {}, deckG); el('rect', { x: -6, y: -6, width: 12, height: 5, rx: 1.5, fill: C.t2 }, g); el('rect', { x: 5, y: -5, width: 2, height: 2, fill: C.divine }, g); hwCars.push({ g, x0: r[0][0], x1: r[r.length - 1][0], y: r[0][1], o: rnd() * 200, v: .03 + rnd() * .03 }); }
+          } else if (yt > FLOOR + 10) el('path', { d, fill: 'none', stroke: C.panel2, 'stroke-width': 5 }, deckG); // 지하 상가 바닥
+          else { // 보행 데크 · 계단
+            el('path', { d, fill: 'none', stroke: C.panel2, 'stroke-width': 7, 'stroke-linejoin': 'round' }, deckG);
+            el('path', { d, fill: 'none', stroke: C.t2, 'stroke-width': 1.1 }, deckG);
+            el('path', { d, fill: 'none', stroke: C.line, 'stroke-width': .7, transform: 'translate(0 -10)' }, deckG);
+          }
+        }
+      }));
+      { const y0 = Yl(0, 0), d = `M${X(0) - 60} ${y0} H${X(0)}`; el('path', { d, fill: 'none', stroke: C.panel2, 'stroke-width': 7 }, deckG); el('path', { d, fill: 'none', stroke: C.t2, 'stroke-width': 1.1 }, deckG); }
+      rows.forEach((row, i) => row.forEach((_, j) => { // 기둥 · 표고
+        const y = Yl(i, j), under = y > FLOOR;
+        if (!under) for (const dx of [-LAND + 6, LAND - 6]) el('path', { d: `M${X(i) + dx} ${y + 5}V${FLOOR}`, stroke: C.line, 'stroke-width': lane(i, j) < 0 ? 5 : 3 }, deckG);
+        txt(deckG, X(i), y + 14, under ? 'B1' : `+${Math.round(((FLOOR - y) / LH) * EL)}m`, { 'text-anchor': 'middle', 'font-size': 6.5 });
+      }));
+      for (const sh of shafts.values()) { // 엘리베이터: 레일 · 가새 · 승강장 문 · 기계실 · 칸 · 줄
+        const y0 = Math.min(...sh.ys), y1 = Math.max(...sh.ys), x = sh.x, g = el('g', {}, deckG);
+        sh.top = y0 - 44;
+        el('rect', { x: x - 11, y: sh.top, width: 22, height: y1 + 6 - sh.top, fill: mix(C.panel, C.bg, .3), stroke: C.t3, 'stroke-width': .8 }, g);
+        for (let y = sh.top + 12; y < y1; y += 18) el('path', { d: `M${x - 11} ${y}L${x + 11} ${y + 18}`, stroke: C.line, 'stroke-width': .7 }, g);
+        el('rect', { x: x - 14, y: sh.top - 12, width: 28, height: 12, fill: C.panel2, stroke: C.t3, 'stroke-width': .8 }, g);
+        txt(g, x, sh.top - 3, 'EV', { 'text-anchor': 'middle', 'font-size': 7, fill: C.t2 });
+        for (const y of [...new Set(sh.ys)]) el('rect', { x: x - 9, y: y - 24, width: 18, height: 24, fill: 'none', stroke: C.t2, 'stroke-width': .8 }, g); // 승강장 문
+        sh.cable = el('line', { x1: x, y1: sh.top, x2: x, y2: sh.top, stroke: C.t3, 'stroke-width': .8 }, g);
+        sh.car = el('g', {}, g); el('rect', { x: -8, y: -22, width: 16, height: 22, fill: C.panel2, stroke: C.text, 'stroke-width': 1 }, sh.car); el('rect', { x: -5, y: -18, width: 10, height: 7, fill: C.bg }, sh.car);
+      }
+      const moveCar = (sh: Shaft, y: number) => { sh.car!.setAttribute('transform', `translate(${sh.x} ${y.toFixed(1)})`); sh.cable!.setAttribute('y2', (y - 22).toFixed(1)); };
+      shafts.forEach((sh) => moveCar(sh, sh.ys[0]));
+      // 출발점 앞 봉쇄 바리케이드 · 도리이 (보스로 오르는 마지막 길) · 여우 신사 (옥상)
+      { const bar = el('g', { transform: `translate(${X(0) - 46} ${Yl(0, 0)})` }, front);
+        el('rect', { x: -22, y: -14, width: 44, height: 9, fill: C.bg, stroke: C.t2, 'stroke-width': .8 }, bar);
+        for (let k = -20; k < 22; k += 7) el('path', { d: `M${k} -5l4 -9`, stroke: C.divine, 'stroke-width': 1.6 }, bar);
+        const holo = el('g', {}, bar); el('rect', { x: -40, y: -42, width: 80, height: 18, fill: 'none', stroke: C.bad, 'stroke-width': .9 }, holo);
+        txt(holo, 0, -30, 'LOCKDOWN 封鎖 · BLK-34', { 'text-anchor': 'middle', 'font-size': 6.8, fill: C.bad }); neon.push({ e: holo, ph: 0, w: .006, broken: true }); }
+      rows[R - 2].forEach((_, j) => { if (!(L[R - 2]?.[j] || []).length) return; const p = ptsOf(R - 2, j, 0), a = p[1] || p[0], b = p[p.length - 2] || p[p.length - 1], tn = Math.max(3, Math.round(Math.abs(b[0] - a[0]) / 14)); for (let k = 0; k <= tn; k++) { const t = k / tn; torii(back, a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, .62 + .1 * t, k % 2 ? C.t3 : C.t2); } });
+      const yB = Yl(R - 1, 0);
+      el('rect', { x: XN - 20, y: yB, width: 150, height: FLOOR - yB, fill: mix(C.panel2, C.bg, .2), stroke: C.t3, 'stroke-width': .6 }, district);
+      { const sh = el('g', { transform: `translate(${XN + 64} ${yB})` }, world);
+        el('path', { d: 'M-40 -34H40L30 -44H-30Z', fill: C.panel, stroke: C.t2, 'stroke-width': .8 }, sh);
+        el('rect', { x: -26, y: -34, width: 52, height: 34, fill: C.bg, stroke: C.t2, 'stroke-width': .8 }, sh);
+        for (const lx of [-34, 34]) { el('path', { d: `M${lx} 0v-10`, stroke: C.t3 }, sh); lanterns.push(el('rect', { x: lx - 3, y: -16, width: 6, height: 7, rx: 1, fill: C.divine, opacity: .7 }, sh)); }
+        txt(sh, 0, 18, '옥상 稲荷 · 여우 신사', ko({ 'text-anchor': 'middle', 'font-size': 8, fill: C.t2 })); }
+      const walker = el('path', { d: 'M-7 -4 7 0-7 4-4 0Z', fill: C.sel, stroke: C.bg, 'stroke-width': 1.5, 'paint-order': 'stroke' }, front);
+      const cam = drone(front, 'CAM-07 · 우리를 생중계 중', 'end');
+      const rain = Array.from({ length: 30 }, () => ({ e: el('line', { x1: 0, y1: 0, x2: -3, y2: 9, stroke: C.t3, 'stroke-width': .6, opacity: .55 }, fixed), x: VB[0] + rnd() * (VB[2] + 40), y: VB[1] + rnd() * VB[3], v: .18 + rnd() * .12 }));
+      corners(fixed, VB);
+      titleBlock(fixed, VB, 'RAIDEN · 제34블록 층 갈래 단면', [`라이덴 제34블록 · 페이즈 ${run.phase}`, `${R} ROWS · 고가 · 데크 · B1`, `엘리베이터 ${shafts.size}기 · 폐쇄 ${shops}곳`, 'REV.05 · 분기 단면']);
+      let mk = [X(0), Yl(0, 0)], camP = [X(0), Yl(0, 0) - 80];
+      return branchKit({
+        name: '라이덴 제34블록 봉쇄선',
+        legend: [['고가도로', '위 갈래 — 마천루 사이 고가도로'], ['데크', '가운데 갈래 — 기둥 위 보행 데크 · 계단'], ['B1 地下街', '아래 갈래 — 거리 밑 지하 상가'], ['EV', '갈림길 엘리베이터 — 다른 층 갈래로 오르내림 (높이 차가 큰 합류도)'], ['계단', '합류 — 오르내리며 가운데로 모임'], ['+24m · B1', '표고'], ['CAM · 비행선', '데스 스트리밍 생중계 (CAM-07 은 우리를 따라옴)'], ['도리이 · 稲荷', '마지막 길 · 꼭대기 여우 신사']],
+        edgeLayer: routeG, nodeLayer: front,
+        nodeAt: (i, j) => [X(i), Yl(i, j) - 32], dirAt: () => [1, 0],
+        edgePts: ptsOf,
+        style: { taken: [C.sel, 2.6, 1, ''], toPick: [C.sel, 2, .95, '6 4'], mine: [C.t2, 1.6, 1, ''], alt: [C.t3, 1.2, .8, ''], none: [C.line, .9, .5, '2 4'] },
+        camU: (x) => x, camRange: [X(0) - 80, XN + 80], ahead: [10, 60], camEps: 4, dragPer: 1,
+        drawCam(u) { const cx = u - (VB[0] + VB[2] / 2); world.setAttribute('transform', `translate(${(-cx).toFixed(1)} 0)`); para.setAttribute('transform', `translate(${(-cx * .3).toFixed(1)} 0)`); mid.setAttribute('transform', `translate(${(-cx * .6).toFixed(1)} 0)`); },
+        marker(x, y, a, ed) {
+          const flat = Math.abs(Math.cos(a)) > .5; // 엘리베이터 · 챌면을 오르내릴 땐 앞을 본 채로
+          walker.setAttribute('transform', `translate(${x.toFixed(1)} ${(y - 3).toFixed(1)}) rotate(${flat ? (a * 180 / Math.PI).toFixed(1) : 0})`);
+          mk = [x, y];
+          const sh = ed && edgeShaft.get(`${ed.i},${ed.j},${ed.k}`);
+          if (sh && ed) moveCar(sh, Math.abs(x - sh.x) < .5 ? y : x < sh.x ? ed.pts[0][1] : ed.pts[ed.pts.length - 1][1]); // 엘리베이터 칸이 함께 오르내린다
+        },
+        tick(t) {
+          for (const b of blink) b.e.setAttribute('opacity', Math.sin(t * b.w + b.ph) > -.6 ? '1' : '.25');
+          for (const s of neon) s.e.setAttribute('opacity', s.broken ? (Math.sin(t * .03 + s.ph) > .3 && Math.sin(t * s.w + s.ph) > -.2 ? '1' : '.15') : (.75 + .25 * Math.sin(t * s.w + s.ph)).toFixed(2));
+          train.setAttribute('transform', `translate(${(mod(t * .05, XN * .6 + 1500) - 400).toFixed(1)} 0)`);
+          ship.setAttribute('transform', `translate(${(mod(t * .012, 1900) - 300).toFixed(1)} ${(40 + 4 * Math.sin(t * .0008)).toFixed(1)})`);
+          liveDot.setAttribute('opacity', Math.sin(t * .006) > 0 ? '1' : '.2');
+          viewers.textContent = `봉쇄 34블록 · ${(1.2 + .3 * Math.sin(t * .0004)).toFixed(2)}M 시청`;
+          for (const d of drones) { d.g.setAttribute('transform', `translate(${(mod(d.x0 + t * d.v, 1700) - 300).toFixed(1)} ${(d.y + 4 * Math.sin(t * .003 + d.ph)).toFixed(1)})`); d.rec.setAttribute('opacity', Math.sin(t * .008 + d.ph) > 0 ? '1' : '.2'); }
+          for (const c of hwCars) c.g.setAttribute('transform', `translate(${(c.x0 + mod(c.o + t * c.v, Math.max(1, c.x1 - c.x0))).toFixed(1)} ${c.y.toFixed(1)})`);
+          camP = [camP[0] + (mk[0] - 24 - camP[0]) * .04, camP[1] + (mk[1] - 86 - camP[1]) * .04];
+          cam.g.setAttribute('transform', `translate(${camP[0].toFixed(1)} ${(camP[1] + 3 * Math.sin(t * .004)).toFixed(1)})`); cam.rec.setAttribute('opacity', Math.sin(t * .008) > 0 ? '1' : '.2');
+          for (const r of rain) { const y = mod(r.y + t * r.v, VB[3] + 20) + VB[1] - 10, x = mod(r.x - (y - VB[1]) * .33, VB[2] + 40) + VB[0] - 20; r.e.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); }
+          lanterns.forEach((l, k) => l.setAttribute('opacity', (.5 + .4 * Math.abs(Math.sin(t * .003 + k))).toFixed(2)));
+        },
+      });
+    }
   }
 
   // ── 금고선 히페리온호: 궤도에서 내려다본 유람 금고선. 진행축은 16° 기울어 뱃머리(금고)로 오르고, 노드는 갑판 위 순찰 항로.
