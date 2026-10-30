@@ -2,7 +2,7 @@
 //   조작은 모두 engine/lab.ts 함수로. 이름 · 수치는 그릴 때마다 데이터 표에서 읽는다 (UNIT_BY_ID · ENEMY_BY_ID · 장비 표(codex2 itemCatalog) · MAPS · FIELDS · RELIC_BY_ID).
 //   main.ts 는 labHtml(그리기) · labAct(data-a="lab" 동작) · labInit(바꾸기 입력 → 동작) · labStart(타이틀 진입)만 부른다.
 import { CFG } from '../config';
-import { FIELDS, fieldOf } from '../data/battlefields';
+import { FIELDS, fieldElites, fieldOf } from '../data/battlefields';
 import { ENEMIES, ENEMY_BY_ID, type EnemyDef } from '../data/enemies';
 import { CONSUMABLES, isMod, itemInfo } from '../data/items';
 import { MAPS, mapOf } from '../data/maps';
@@ -153,7 +153,7 @@ function foesTab(run: RunState) {
       <span class="lab-gear">${gear.map((g) => `<button class="lab-gi" ${go(`foe-ungear:${i}:${g.slot}`)} title="${esc(`${itemInfo(g.id).name} — 눌러서 떼기${g.slot === 'def' ? ' (기본 장비 모두)' : ''}`)}">${D?.itemIcon(g.id) || ''}</button>`).join('')}<select class="lab-gsel" data-lab="foe-gear:${i}" aria-label="장비 달기"><option value="" selected>장비 +</option>${gearOptions()}</select></span>
       <button class="btn tiny ghost lab-del" ${go(`foe-del:${i}`)} aria-label="${esc(e.name)} 빼기">✕</button></li>`;
   }).join('');
-  const fd = fieldOf(run.field), here = new Set([...fd.pool, fd.elite, ...fd.bosses]);
+  const fd = fieldOf(run.field), here = new Set([...fd.pool, ...fieldElites(fd), ...fd.bosses]);
   const pool = ENEMIES.filter((e) => (LS.ef === 'all' ? true : LS.ef === 'field' ? here.has(e.id) : e.tier === LS.ef));
   const tiles = pool.map((e) => `<button class="lab-tile" ${go(`foe:${e.id}`)}${qAttr(`${e.name} ${tierKo(e)}`)} title="${esc(`${e.name} · ${tierKo(e)}`)}">${spr(e)}<span>${esc(e.name)}</span>${e.tier !== 'minion' ? `<i class="lab-tier tier-${e.tier}">${e.tier === 'boss' ? 'B' : 'E'}</i>` : ''}</button>`).join('');
   return `${head}

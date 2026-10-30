@@ -5,6 +5,7 @@ import { buildBattle, deployed } from '../src/engine/build';
 import { CFG } from '../src/config';
 import { FIELDS } from '../src/data/battlefields';
 import { RECRUITABLE } from '../src/data/units';
+import { ENEMY_BY_ID } from '../src/data/enemies';
 declare const process: { exit(code: number): never };
 
 let fail = 0;
@@ -30,7 +31,50 @@ for (const f of FIELDS) for (let p = 1; p <= 5; p++) for (let s = 0; s < 6; s++)
 }
 ok(bad === 0, `조우 ${encs}개: 모든 적이 분대에 속한다 (분대 없는 조우 ${bad})`);
 ok(badForm === 0, `분대 진형: 포병 듀오 ${duos}개 뒷줄 + 바로 앞 · 전열 앞줄 (어긋남 ${badForm})`);
-ok(['line', 'fire', 'ambush', 'support', 'duo', 'boss'].every((k) => kinds[k] > 0), `분대 종류가 고루 나온다: ${Object.entries(kinds).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
+ok(['line', 'fire', 'ambush', 'support', 'duo', 'engineer', 'big', 'boss'].every((k) => kinds[k] > 0), `분대 종류가 고루 나온다: ${Object.entries(kinds).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
+// 대형 적 (EnemyDef.size · CFG.foeKit.big): 차지한 칸이 붙어 있고 체력을 하나로 나눠 쓰며, 본체 칸 ×core · 나머지 칸 ×part 로 맞는다
+{
+  let checked = false, badCells = 0, bigs = 0;
+  for (const f of FIELDS) for (let s = 0; s < 40; s++) {
+    const run = R.newRun(1300 + s * 17, ids, f.id, 7);
+    run.phase = 3; run.step = s % 6;
+    const enc = R.genEncounter(run, 'battle', 3);
+    const parts = enc.enemies.filter((e) => e.part !== undefined);
+    if (!parts.length) continue;
+    bigs++;
+    const d = ENEMY_BY_ID[parts[0].defId].size!;
+    const cs = parts.map((e) => `${e.c},${e.row}`), c0 = Math.min(...parts.map((e) => e.c)), r0 = Math.min(...parts.map((e) => e.row));
+    if (parts.length !== d.w * d.h || new Set(cs).size !== cs.length || parts.some((e) => e.c - c0 >= d.w || e.row - r0 >= d.h) || parts[0].part !== 0) badCells++;
+    if (checked) continue;
+    run.pending = []; R.autoPlace(run);
+    if (!deployed(run).length) continue;
+    run.node = { type: 'battle', enc };
+    const b = buildBattle(run, enc, false);
+    const g = b.units.filter((u) => u.side === 1 && u.mem.grpN === d.w * d.h);
+    const core = g.find((u) => !u.mem.part)!, part = g.find((u) => u.mem.part)!;
+    const me = b.units.find((x) => x.side === 0)!;
+    const hit = (u: typeof core) => { const h0 = core.hp; b.dealDamage(me, u, 100, { elem: 'true', tag: 'skill' }); b.step(0.05); return h0 - core.hp; };
+    const dc = hit(core), dp = hit(part);
+    ok(g.every((u) => Math.abs(u.hp - core.hp) < 1e-6), `대형 적 ${ENEMY_BY_ID[parts[0].defId].name}: ${g.length}칸이 체력을 함께 쓴다 (${Math.round(core.hp)})`);
+    ok(Math.abs(dp / dc - CFG.foeKit.big.part / CFG.foeKit.big.core) < 0.05, `대형 적: 나머지 칸 피해 ${Math.round(dp)} = 본체 칸 ${Math.round(dc)} × ${CFG.foeKit.big.part}`);
+    b.dealDamage(me, part, 1e9, { elem: 'true', tag: 'skill' }); b.step(0.05);
+    ok(g.every((u) => !u.alive), '대형 적: 한 칸이 쓰러지면 모두 쓰러진다');
+    checked = true;
+  }
+  ok(checked && badCells === 0, `대형 적 ${bigs}개 조우: 칸이 w × h 로 붙어 있다 (어긋남 ${badCells})`);
+}
+// 공병단: 공병(EnemyDef.builder)은 뒷줄
+{
+  let n = 0, bad = 0;
+  for (const f of FIELDS) for (let s = 0; s < 30; s++) {
+    const run = R.newRun(1700 + s * 19, ids, f.id, 7);
+    run.phase = 3; run.step = s % 6;
+    const enc = R.genEncounter(run, 'battle', 3);
+    const backFull = (flip: boolean) => enc.enemies.filter((e) => e.row === 0 && !!e.flip === flip).length >= enc.n; // 뒷줄이 다 찼으면 (다른 분대가 먼저 앉음) 앞으로 밀려도 된다
+    enc.squads?.forEach((q, i) => { if (q.kind !== 'engineer') return; n++; if (enc.enemies.some((e) => e.sq === i && ENEMY_BY_ID[e.defId].builder && e.row !== 0 && !backFull(!!e.flip))) bad++; });
+  }
+  ok(n > 0 && bad === 0, `공병단 ${n}개: 공병은 뒷줄 (뒷줄 빈칸이 있는데 어긋남 ${bad})`);
+}
 // 포병 듀오: 체력 공유 · 뒤 칸 피해 배율 · 함께 쓰러짐
 {
   let checked = false;

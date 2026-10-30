@@ -77,7 +77,38 @@ export const CFG = {
   unitMoveSpd: 0.5, // 아군 기물 기본 이동 속도 (기동력 1당 conv.agi.moveSpd 만큼 더함)
   /** 적 기본 이동 속도 = 이 값 × 적별 이동 배율(EnemyDef.moveSpd, 없으면 1), 그 위에 기동력 1당 conv.agi.moveSpd 를 더한다.
    *  암살형 성향은 assassin (예전 기본값 그대로). 소환물 · 포탑 · 근위기사 · 망령 등 아군 쪽 생성물은 따로 (build.ts) */
-  enemyMoveSpd: { base: 0.5, assassin: 1 },
+  enemyMoveSpd: { base: 0.5, assassin: 1, disrupt: 0.85 },
+  /** 적 성향 중 호위형 · 교란형 · 무리형의 수치 (combat.ts provScore · act · lureScore, build.ts buildEnemy).
+   *  escort 호위형: r 칸 안의 같은 편 중 받은 피해가 가장 많은 동료(없으면 자신)를 지킨다 — 후보 점수 = √p × 1 / (1 + near × 그 동료와 후보 사이 거리) × (사거리 안이면 inRange).
+   *  disrupt 교란형: 도발 수치를 보지 않는다. 후보 점수 = (1 + crowd × 후보 주변 1칸의 다른 아군 수) / (1 + near × 거리), 같은 대상에게 기본 공격 sweepHits 번을 하면
+   *    sweepFor 초 동안 그 대상 점수 ×sweepMul (다음 대상으로 휩쓸고 지나간다). 기본 회피 +eva, 받는 찰과상 피해 ×(1 − grazeRed).
+   *    lure: 아군 기물이 표적을 고를 때 사거리 + 1칸 안의 교란형 적을 '도발 배율 ×lure' 로 본다 (점수 = 배율 / (1 + 0.5 × 거리), 보통 적은 1).
+   *    돌격가 경계에는 암살형처럼 걸린다 (교전 시간 · 도발 ×zoc.assassinMul, 경계 안 이동 ×zoc.assassinSlow).
+   *  pack 무리형: 후보 점수 = p × (1 + focus × 그 후보를 지금 노리는 다른 같은 편 수) × 도달. 도발 배율은 전투 시작 provFor 초까지만 곱하고, 그 뒤로는 배율을 뺀 도발 수치를 본다. */
+  tend: {
+    escort: { r: 5, near: 0.6, inRange: 1.3 },
+    disrupt: { eva: 0.15, grazeRed: 0.5, lure: 2, near: 0.3, crowd: 0.5, sweepHits: 2, sweepFor: 6, sweepMul: 0.15 },
+    pack: { provFor: 6, focus: 0.8 },
+  },
+  /** 공용 기믹 적 (data/enemies.ts mx_*) 수치. 이름 · 설명은 enemyText 가 이 값을 읽는다.
+   *  aegis 방벽 투사병: 전투 시작 보호막 = 최대 체력 × shield, 보호막이 깨지면 그 전투 동안 받는 피해 +taken · 주는 피해 −weak
+   *  warden 소집 지휘관: 시작 n기 · every 초마다 n기 (동시 cap 기), 징집병이 하나라도 살아 있으면 받는 피해 −red
+   *  stim 각성제 강습병: 시작부터 [각성] 공격 속도 +atkSpd · 피해 +dmg. hits 번 맞으면 calm 초 동안 [각성] 해제 (그 뒤 다시 각성)
+   *  shade 광학 위장 저격수: 전투 시작 hide 초 은신 · 체력 low 아래로 처음 떨어지면 hideLow 초 은신
+   *  sapper 야전 공병: first 초 뒤부터 every 초마다 방벽 · 자동 포탑을 번갈아 세운다 (공병 1명당 동시 cap 개, 앞쪽 2칸 안 빈칸)
+   *  smuggler 밀수 운반책: 일반 · 역경 전투에 chance 확률로 1기 더 (보스 · 캠페인 · 튜토리얼 제외). 공격하지 않고 아군 기물에게서 달아난다.
+   *    escape 초가 지나거나 다른 적이 모두 쓰러지고 alone 초가 지나면 빠져나가고 (보상 없음), 그 전에 쓰러뜨리면 승패와 상관없이 크레딧 +(credBase + credPer × 페이즈)
+   *  big 대형 적 (2×2 · 1×3): 한 기물이 여러 칸을 차지하고 체력을 나눠 쓴다. 본체 칸 받는 피해 ×core · 나머지 칸 ×part.
+   *    풀에 대형 적이 있는 전장의 일반 · 역경 전투에 chance 확률로 1기 (적 수 예산 cost 명분) */
+  foeKit: {
+    aegis: { shield: 1, taken: 0.5, weak: 0.5 },
+    warden: { n: 2, every: 12, cap: 4, red: 0.4 },
+    stim: { atkSpd: 0.5, dmg: 0.25, hits: 4, calm: 5 },
+    shade: { hide: 5, low: 0.5, hideLow: 3 },
+    sapper: { first: 3, every: 8, cap: 2 },
+    smuggler: { chance: 0.15, escape: 18, alone: 5, credBase: 2, credPer: 1 },
+    big: { core: 1, part: 0.5, chance: 0.35, cost: 2 },
+  },
   /** 돌격가 경계 (아군 돌격가만, 적 쪽 경계는 없다): 아군 돌격가 주변 r칸. 적이 경계 칸에 들어오면 그 자리에서 hold 초 동안 움직이지 못한다
    *  (공격 · 기술은 한다). 경계에 걸리면 그 돌격가에게 도발 수치 PROV.zoc (combat.ts).
    *  slow: 경계 칸에서 나가거나 경계 칸으로 들어가는 걸음의 이동 속도 배율 (암살형은 assassinSlow). 길찾기는 경계 칸을 보통 칸과 같게 본다.

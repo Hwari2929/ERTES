@@ -1,4 +1,8 @@
-// 적 · 보스 설명 (툴팁 · 도감)
+// 적 · 보스 설명 (툴팁 · 도감). 공용 기믹 적(mx_*)의 수치는 CFG.foeKit 에서 읽는다
+import { CFG } from '../config';
+
+const K = CFG.foeKit;
+const pc = (v: number) => `${Math.round(v * 100)}%`;
 export const ENEMY_DESC: Record<string, string> = {
   // 황무지 성계
   raider: '근접 타격. 특별한 능력은 없지만 수가 많다.',
@@ -76,7 +80,7 @@ export const ENEMY_DESC: Record<string, string> = {
   // 크레타 백원
   kr_nameless: '근접 망령. 영혼 분류 (물리 피해 ×0.6, 신성 ×1.5).',
   kr_archer: '사거리 4 물리 사격 망령.',
-  kr_builder: '10초마다 적 쪽 빈칸에 묘석(칸을 막는 장애물)을 세운다. 2페이즈부터.',
+  kr_builder: '공병. 10초마다 적 쪽 빈칸에 묘석(칸을 막는 장애물)을 세운다. 2페이즈부터.',
   kr_ferryman: '사거리 2 장대. 50% 확률로 1.5초 속박.',
   kr_bearer: '정예. 주변 2칸 망령 피해 +20%. 쓰러지면 가장 가까운 망령이 깃발을 이어받는다 (1회).',
   kr_general: '보스. [재집결] 9초마다 쓰러진 망령 2기를 체력 50%로 다시 세운다. 서사의 망령 피해 +30%.',
@@ -111,4 +115,17 @@ export const ENEMY_DESC: Record<string, string> = {
   bs_knight: '정예. 골갑: 화학 외 받는 피해 -30%.',
   bs_tomb: '보스 · 고정형. 살아 있는 동안 생체 적이 2번까지 되살아난다. 15초마다 포자 살점 2기 (소환된 개체는 되살아나지 않는다).',
   bs_signal: '보스. [아는 목소리] 7초마다 무작위 적 정신 피해 + 2초 공포. 체력 50%에서 4초 은신.',
+  // 공용 (여러 전장)
+  mx_aegis: `[방벽 투사기] 전투 시작 때 최대 체력 ${pc(K.aegis.shield)}만큼 보호막. 보호막이 깨지면 [과부하]: 그 전투 동안 받는 피해 +${pc(K.aegis.taken)} · 주는 피해 −${pc(K.aegis.weak)}.`,
+  mx_warden: `정예. [소집] 전투 시작과 ${K.warden.every}초마다 징집병 ${K.warden.n}기 (동시 최대 ${K.warden.cap}기). 징집병이 1기라도 있으면 받는 피해 −${pc(K.warden.red)}. 지휘관이 쓰러지면 징집병도 흩어진다.`,
+  mx_skirm: `교란형 근접. 아군이 몰린 곳으로 파고들어 같은 대상을 ${CFG.tend.disrupt.sweepHits}번 베면 다음 대상으로 넘어간다. 피해는 낮지만 회피가 높고 (기본 10% + 교란형 ${pc(CFG.tend.disrupt.eva)}p) 찰과상을 덜 받는다. 아군의 시선을 끈다.`,
+  mx_conscript: '소집 지휘관이 부르는 근접 징집병. 지휘관이 쓰러지면 흩어진다.',
+  mx_stim: `[각성] 전투 시작부터 공격 속도 +${pc(K.stim.atkSpd)} · 피해 +${pc(K.stim.dmg)}. ${K.stim.hits}번 맞으면 (지속 피해 제외) ${K.stim.calm}초 동안 각성이 풀렸다가 다시 각성한다.`,
+  mx_shade: `사거리 4 사격. [광학 위장] 전투 시작 ${K.shade.hide}초 은신, 체력이 ${pc(K.shade.low)} 아래로 처음 떨어지면 ${K.shade.hideLow}초 은신. 은신 중에도 광역 피해는 맞는다. 2페이즈부터.`,
+  mx_sapper: `공병. [야전 축성] ${K.sapper.first}초 뒤부터 ${K.sapper.every}초마다 앞쪽 2칸 안 빈칸에 야전 방벽 · 야전 자동 포탑을 번갈아 세운다 (공병 1명당 동시 ${K.sapper.cap}개). 공병이 쓰러지면 세운 구조물도 무너진다. 2페이즈부터.`,
+  mx_barrier: '야전 공병이 세운 방벽. 칸을 막고 공격하지 않는다. 공병이 쓰러지면 무너진다.',
+  mx_sentry: '야전 공병이 세운 사거리 3 자동 포탑. 공병이 쓰러지면 무너진다.',
+  mx_bastion: `대형 (2×2) · 고정형. 사거리 5 포격, 맞은 칸 주변 1칸에 40%. 4칸이 같은 체력을 나눠 쓴다 (본체 칸 받는 피해 ×${K.big.core} · 나머지 칸 ×${K.big.part}, 광역 피해는 칸마다 들어간다). 2페이즈부터.`,
+  mx_rampart: `대형 (1×3) · 고정형. 앞줄을 가로막는 사거리 2 방벽 전차. 3칸이 같은 체력을 나눠 쓴다 (본체 칸 받는 피해 ×${K.big.core} · 나머지 칸 ×${K.big.part}). 2페이즈부터.`,
+  mx_smuggler: `일반 · 역경 전투에 ${pc(K.smuggler.chance)} 확률로 끼어든다. 공격하지 않고 아군에게서 달아난다. ${K.smuggler.escape}초가 지나거나 다른 적이 모두 쓰러지고 ${K.smuggler.alone}초가 지나면 빠져나간다. 그 전에 쓰러뜨리면 승패와 상관없이 크레딧 +(${K.smuggler.credBase} + ${K.smuggler.credPer} × 페이즈).`,
 };
