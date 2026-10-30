@@ -240,26 +240,29 @@ function routeFaults(rows: NodeType[][], links: number[][][], soft?: { n: number
     if (rows[i].length === 1 && rows[i][0] !== 'battle' && i + 1 < rows.length - 1) bad += ts.filter((x) => x === 'adversity').length;
   }
   for (let i = 1; i < rows.length; i++) for (let k = 0; k < rows[i].length; k++) if (!links[i - 1].some((l) => l.includes(k))) bad += 5;
-  // 길 규칙: 길마다 상태 (상점 · 사건을 봤나, 역경 수, 전투 수, 직전이 역경인가, 연달은 역경 수)를 칸 단위로 넘기며 같은 상태의 길 수를 센다 (모든 길을 따로 걷지 않게)
-  const key = (sh: number, ev: number, a: number, f: number, pa: number, st: number) => ((((sh * 2 + ev) * 5 + a) * 7 + f) * 2 + pa) * 4 + st;
+  // 길 규칙: 길마다 상태 (상점 수 · 마지막 상점 뒤로 지난 노드 수 · 사건을 봤나, 역경 수, 전투 수, 직전이 역경인가, 연달은 역경 수)를 칸 단위로 넘기며 같은 상태의 길 수를 센다 (모든 길을 따로 걷지 않게)
+  // 상점: 길마다 1~2번 (페이즈당 최대 2번), 상점 사이에 다른 노드 2개 이상 (상점 · 노드 · 상점처럼 번갈아 나오지 않게)
+  const key = (sh: number, ls: number, ev: number, a: number, f: number, pa: number, st: number) => (((((sh * 4 + ls) * 2 + ev) * 5 + a) * 7 + f) * 2 + pa) * 4 + st;
   const cap = (v: number, m: number) => Math.min(v, m);
+  const dec = (k: number) => ({ st: k % 4, pa: Math.floor(k / 4) % 2, f: Math.floor(k / 8) % 7, a: Math.floor(k / 56) % 5, ev: Math.floor(k / 280) % 2, ls: Math.floor(k / 560) % 4, sh: Math.floor(k / 2240) });
   let layer: Map<number, number>[] = rows[0].map(() => new Map());
   const add = (m: Map<number, number>, k: number, n: number) => m.set(k, (m.get(k) || 0) + n);
-  const enter = (t: NodeType, k: number) => { // 상태 k 에서 노드 t 를 지난 상태
-    let st = k % 4, pa = Math.floor(k / 4) % 2, f = Math.floor(k / 8) % 7, a = Math.floor(k / 56) % 5, ev = Math.floor(k / 280) % 2, sh = Math.floor(k / 560);
+  const enter = (t: NodeType, k: number): [number, number] => { // 상태 k 에서 노드 t 를 지난 상태 · 이 걸음의 위반 수
+    let { st, pa, f, a, ev, ls, sh } = dec(k), fault = 0;
     if (t === 'adversity' && pa) st = cap(st + 1, 3);
-    pa = t === 'adversity' ? 1 : 0; if (t === 'shop') sh = 1; if (t === 'event') ev = 1; if (t === 'adversity') a = cap(a + 1, 4); if (t === 'battle' || t === 'adversity') f = cap(f + 1, 6);
-    return key(sh, ev, a, f, pa, st);
+    pa = t === 'adversity' ? 1 : 0; if (t === 'event') ev = 1; if (t === 'adversity') a = cap(a + 1, 4); if (t === 'battle' || t === 'adversity') f = cap(f + 1, 6);
+    if (t === 'shop') { if (sh && ls < 2) fault = 2 - ls; sh = cap(sh + 1, 3); ls = 0; } else ls = cap(ls + 1, 3);
+    return [key(sh, ls, ev, a, f, pa, st), fault];
   };
-  layer[0].set(enter(rows[0][0], key(0, 0, 0, 0, 0, 0)), 1);
+  { const [k0] = enter(rows[0][0], key(0, 3, 0, 0, 0, 0, 0)); layer[0].set(k0, 1); }
   for (let i = 0; i < rows.length - 1; i++) {
     const next: Map<number, number>[] = rows[i + 1].map(() => new Map());
-    layer.forEach((m, j) => (links[i][j] || []).forEach((k2) => { for (const [k, n] of m) add(next[k2], enter(rows[i + 1][k2], k), n); }));
+    layer.forEach((m, j) => (links[i][j] || []).forEach((k2) => { for (const [k, n] of m) { const [k3, fb] = enter(rows[i + 1][k2], k); add(next[k2], k3, n); bad += n * fb; } }));
     layer = next;
   }
   for (const m of layer) for (const [k, n] of m) {
-    const st = k % 4, f = Math.floor(k / 8) % 7, a = Math.floor(k / 56) % 5, ev = Math.floor(k / 280) % 2, sh = Math.floor(k / 560);
-    bad += n * (st + (sh ? 0 : 1) + (ev ? 0 : 1) + (a < 1 ? 1 : a > 3 ? a - 3 : 0) + (f < 2 ? 2 - f : f > 5 ? f - 5 : 0));
+    const { st, f, a, ev, sh } = dec(k);
+    bad += n * (st + (sh ? 0 : 1) + (sh > 2 ? sh - 2 : 0) + (ev ? 0 : 1) + (a < 1 ? 1 : a > 3 ? a - 3 : 0) + (f < 2 ? 2 - f : f > 5 ? f - 5 : 0));
     if (soft && a < 2) soft.n += n; // 규칙은 지키지만 역경이 1개뿐인 길 (적을수록 좋다 — 예전 한 줄 항로는 페이즈마다 역경 2)
   }
   return bad;

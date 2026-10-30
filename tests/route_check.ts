@@ -1,4 +1,4 @@
-// 분기 항로 검사 (run.ts phaseRoute · reachIdx · enterNode): 모든 길이 규칙을 지키고 (상점 · 사건 1개 이상 · 역경 1~3 · 보스 앞 전투 2~5),
+// 분기 항로 검사 (run.ts phaseRoute · reachIdx · enterNode): 모든 길이 규칙을 지키고 (상점 1~2 · 상점 사이 다른 노드 2개 이상 · 사건 1개 이상 · 역경 1~3 · 보스 앞 전투 2~5),
 // 한 노드에서 갈 수 있는 다음 노드는 종류가 겹치지 않으며 (노드는 종류로 고른다), 옛 저장 (links 없음)은 한 줄 항로처럼 움직인다
 import * as R from '../src/engine/run';
 import { RECRUITABLE } from '../src/data/units';
@@ -9,6 +9,7 @@ let fail = 0;
 const ok = (c: boolean, msg: string) => { console.log(`${c ? 'ok  ' : 'FAIL'} ${msg}`); if (!c) fail++; };
 const ids = RECRUITABLE.slice(0, 4).map((u) => u.id);
 let routes = 0, paths = 0, bad = 0, dup = 0, flat = 0;
+const shops: number[] = [];
 const F = ['battle', 'adversity'];
 for (let s = 1; s <= 120; s++) for (const p of [1, 2, 3, 4, 5]) {
   const run = R.newRun(s * 13, ids, 'waste', 7);
@@ -20,7 +21,9 @@ for (let s = 1; s <= 120; s++) for (const p of [1, 2, 3, 4, 5]) {
     if (i === map.length - 1) {
       paths++;
       const n = (t: NodeType) => acc.filter((x) => x === t).length, f = acc.filter((x) => F.includes(x)).length;
-      if (map[i][j] !== 'boss' || !n('shop') || !n('event') || n('adversity') < 1 || n('adversity') > 3 || f < 2 || f > 5) bad++;
+      const sp = acc.flatMap((x, k) => (x === 'shop' ? [k] : [])), close = sp.some((k, q) => q > 0 && k - sp[q - 1] <= 2); // 상점 사이 다른 노드 2개 미만
+      if (map[i][j] !== 'boss' || !n('shop') || n('shop') > 2 || close || !n('event') || n('adversity') < 1 || n('adversity') > 3 || f < 2 || f > 5) bad++;
+      shops.push(n('shop'));
       return;
     }
     const nx = links[i]?.[j] || [];
@@ -32,6 +35,7 @@ for (let s = 1; s <= 120; s++) for (const p of [1, 2, 3, 4, 5]) {
 }
 ok(bad === 0, `항로 ${routes}개 · 길 ${paths}개: 모든 길이 규칙을 지킨다 (어긋남 ${bad})`);
 ok(dup === 0, `다음 노드 종류가 겹치지 않는다 (겹침 ${dup})`);
+console.log(`     길마다 상점: 1번 ${shops.filter((x) => x === 1).length} · 2번 ${shops.filter((x) => x === 2).length}`);
 ok(flat === 0, `모든 항로가 실제로 갈라진다 (한 줄로 떨어진 항로 ${flat})`);
 // 진행: enterNode 가 지나간 노드를 기록하고, 다음 칸 선택지는 그 노드에서 이어진 것만
 {
