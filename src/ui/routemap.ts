@@ -1,7 +1,7 @@
 // 지도 화면 항로도 (전술 스코프): 리빈 낙원동 = 구체 내벽 회전, 베르타–산노디스 물류망 = 대각 진행 원 궤도,
 // 라이덴 제34블록 = 고저 단면 (기둥 위 보행 데크 · 아래 거리의 다층 상가 · 여우 신사), 카운티폴 세피아 교외 = 등각 교외 길 안내 (핀 · 헤드업 내비),
 // 금고선 히페리온호 = 순찰 스코프 (궤도에서 내려다본 선체 · 대각 진행축 · 탐지선이 쓸 때만 드러나는 경비 접촉),
-// 캣휠 그늘 성계 = 끝없는 캣휠 · 성운 사이 직선 항로 (물류망 바탕), 크레타 백원 = 묘역 등각도 (면 없이 선으로만 · 등고선 · 묘비 눈금 · 서류탑 · 애도 극장 · 접수 대기열 · 호명 릴레이 · 장군의 묘).
+// 황무지 성계 = 불모 행성 · 메트로 타운 정거장 사이 직선 + 곡선 항로 (은하 열차가 이따금 지나감), 캣휠 그늘 성계 = 끝없는 캣휠 · 성운 사이 직선 항로 (물류망 바탕), 크레타 백원 = 묘역 등각도 (면 없이 선으로만 · 등고선 · 묘비 눈금 · 서류탑 · 애도 극장 · 접수 대기열 · 호명 릴레이 · 장군의 묘).
 // 시안: claude.ai 아티팩트 '전장별 항로 시안' (리빈 = 스코프, 물류망 = 스코프 · 대각, 라이덴 = ① 다층 상가, 카운티폴 = A′-2 핀) ·
 //       '히페리온 · 크레타 항로 시안' (히페리온 = H3 순찰 스코프).
 // 렌더마다 화면이 통째로 다시 그려지므로, 항로도 DOM 은 이 모듈이 들고 있다가 자리(.rmap-host)에 다시 끼운다.
@@ -10,7 +10,7 @@
 import { NODE_NAME, type NodeType, type RunState } from '../types';
 import { lineIcon } from './synicons';
 
-const FIELDS = { livin: 'ring', swarm: 'orbit', raiden: 'stairs', county: 'grid', hyperion: 'patrol', crete: 'vigil', catwheel: 'wheel' } as const;
+const FIELDS = { livin: 'ring', swarm: 'orbit', raiden: 'stairs', county: 'grid', hyperion: 'patrol', crete: 'vigil', catwheel: 'wheel', waste: 'rail' } as const;
 type Kind = (typeof FIELDS)[keyof typeof FIELDS];
 const CODE: Partial<Record<NodeType, string>> = { supply: 'SUP', battle: 'BTL', council: 'CNL', event: 'EVT', shop: 'BRN', adversity: 'ADV', boss: 'BOS', recruit: 'RCT', fork: 'FRK', news: 'NWS', invest: 'INV', pilgrim: 'PLG', challenge: 'CHL' };
 // 프리버드(공룡) 실루엣 — 오른쪽을 보고 발이 y=0
@@ -20,8 +20,8 @@ const DINO = {
   ptero: 'M-11 0Q-5 -6 0 -1Q5 -6 11 0Q5 -2 1 2L5 3L0 3Q-5 -2-11 0Z',
 };
 
-/** 이 런의 지도에 항로도를 쓰는가: 항로도가 있는 전장 · 튜토리얼 아님 · 한 줄 항로 (모든 칸이 선택지 1개). 분기 항로는 분기형 항로도가 있는 전장만 (물류망 · 카운티폴 · 라이덴 · 크레타 · 캣휠) — 나머지는 공용 분기 지도 */
-const BRANCH_KINDS: Kind[] = ['orbit', 'grid', 'stairs', 'vigil', 'wheel'];
+/** 이 런의 지도에 항로도를 쓰는가: 항로도가 있는 전장 · 튜토리얼 아님 · 한 줄 항로 (모든 칸이 선택지 1개). 분기 항로는 분기형 항로도가 있는 전장만 (물류망 · 카운티폴 · 라이덴 · 크레타 · 캣휠 · 황무지) — 나머지는 공용 분기 지도 */
+const BRANCH_KINDS: Kind[] = ['orbit', 'grid', 'stairs', 'vigil', 'wheel', 'rail'];
 export function routeMapOn(run: RunState): boolean {
   if (!(run.field in FIELDS) || run.tutorial || run.lab) return false;
   return run.links ? BRANCH_KINDS.includes(FIELDS[run.field as keyof typeof FIELDS]) : run.map.every((o) => o.length === 1);
@@ -307,7 +307,7 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
   const t0 = performance.now();
   const startAmb = () => { if (amb) return; const f = (now: number) => { tick(reduce ? 0 : now - t0); amb = requestAnimationFrame(f); }; amb = requestAnimationFrame(f); };
 
-  const sc: { go(): void; stop(): void; look?(i: number): void; update?(): void; panel?(): string; name?: string; legend?: string[][] } = kind === 'ring' ? ringScene() : kind === 'orbit' ? orbitScene() : kind === 'stairs' ? stairsScene() : kind === 'patrol' ? patrolScene() : kind === 'vigil' ? vigilScene() : kind === 'wheel' ? wheelScene() : gridScene();
+  const sc: { go(): void; stop(): void; look?(i: number): void; update?(): void; panel?(): string; name?: string; legend?: string[][] } = kind === 'ring' ? ringScene() : kind === 'orbit' ? orbitScene() : kind === 'stairs' ? stairsScene() : kind === 'patrol' ? patrolScene() : kind === 'vigil' ? vigilScene() : kind === 'wheel' ? wheelScene() : kind === 'rail' ? railScene() : gridScene();
   goNow = () => { sel = cur; sc.go(); panel(); };
   if (fs) queueMicrotask(() => { if (!morphBusy) reveal(true); }); // 펼치는 연출 없이 연 전체 화면 (창 크기 변경 등)
   // ── 전체 화면 옆 패널: 노드 목록 (상태 · 고른 노드의 설명) + 범례. 노드를 고르면 지도도 그 노드로
@@ -918,6 +918,104 @@ function build(host: HTMLElement, run: RunState, key: string, types: NodeType[],
         for (const r of rocks) { const [x, y] = L2W(r.u + Math.sin(t * .0003 + r.ph) * 14, r.v + Math.cos(t * .0004 + r.ph) * 10); r.g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(t * r.w * 10).toFixed(0)})`); }
         lights.forEach((l, k) => l.setAttribute('opacity', Math.sin(t / 900 + k * 2.1) > -.6 ? '1' : '.3'));
         cnt.textContent = `${(48213907461 + Math.floor(t / 40)).toLocaleString('en-US')}개 · 생산 중`;
+        rig.set(mod(t * .05, 360));
+      },
+    });
+  }
+  // ── 황무지 성계 (코빈 구역): 물류망 · 캣휠처럼 비스듬한 진행축 위 갈래 다발, 길은 직선 (같은 갈래) 과 곡선 (옆 갈래로 옮겨 가는 S자) 을 섞는다.
+  // 평범한 은하 배경 (별 두 층 · 은하수 띠) · 불모 행성 4개 · 은하 열차 선로가 갈래 다발 바깥을 굽이치며 메트로 타운 정거장 셋을 잇고, 이따금 열차가 지나간다 (다음 열차까지 남은 시간 표시)
+  function railScene() {
+    const W = 800, CY = 225, TH = 20 * Math.PI / 180, ax = [Math.cos(TH), Math.sin(TH)], nv = [-Math.sin(TH), Math.cos(TH)], THd = TH * 180 / Math.PI;
+    const O = [120, 150], L2W = (u: number, v: number) => [O[0] + u * ax[0] + v * nv[0], O[1] + u * ax[1] + v * nv[1]];
+    const proj = (x: number, y: number) => (x - O[0]) * ax[0] + (y - O[1]) * ax[1];
+    const VB = stageBase(narrow ? [180, 10, 440, 440] : [0, 0, W, 450]);
+    const rows = run.map, R = rows.length, STEP = 175, LANE = 118, U = (R - 1) * STEP, rnd = rng(19 + run.phase);
+    const uid = Math.random().toString(36).slice(2, 8), defs = el('defs', {}, stage);
+    const PAR = [.1, .3], layers = PAR.map(() => el('g', {}, stage)), world = el('g', {}, stage), fixed = el('g', {}, stage);
+    const BIG = 6000, cover = (p: Element, fill: string) => el('rect', { x: -BIG, y: -BIG, width: 2 * BIG + U, height: 2 * BIG, fill }, p);
+    // 은하 배경: 별 두 층 (반복 무늬) · 은하수 띠 (진행축을 비스듬히 가로지르는 촘촘한 별먼지)
+    [[300, 240, 40, .55, C.t3], [420, 330, 26, .9, C.t2]].forEach(([tw, th, n, r1, col], k) => {
+      const pat = el('pattern', { id: `wr-st${k}-${uid}`, width: tw, height: th, patternUnits: 'userSpaceOnUse' }, defs);
+      for (let j = 0; j < (n as number); j++) { const big = rnd() < .15; el('circle', { cx: rnd() * (tw as number), cy: rnd() * (th as number), r: big ? (r1 as number) + .5 : (r1 as number) * .7, fill: big ? C.t2 : (col as string) }, pat); }
+      cover(layers[k], `url(#wr-st${k}-${uid})`);
+    });
+    { let d = ''; const L0 = -900, L1 = U * PAR[0] + 1800;
+      for (let j = 0; j < 3200; j++) { const t = rnd(), x = L0 + t * (L1 - L0), y = O[1] + 260 - t * 420 + (rnd() + rnd() + rnd() - 1.5) * 110, r = (.35 + rnd() * .45).toFixed(2); d += `M${x.toFixed(0)} ${y.toFixed(0)}h${r}v${r}h-${r}z`; }
+      el('path', { d, fill: C.t3, opacity: .7 }, layers[0]); }
+    // 불모 행성 4개 (갈래 다발 · 선로 바깥): 크레이터 · 낮밤 경계 빗금
+    const PL = [{ code: 'KV-1', name: '코빈 I', sub: '불모 · 폐광 행성' }, { code: 'KV-2', name: '코빈 II', sub: '약탈자 정박 암석' }, { code: 'KV-3', name: '코빈 III', sub: '유리 사막' }, { code: 'KV-4', name: '코빈 IV', sub: '얼어붙은 위성 잔해' }];
+    PL.forEach((p, k) => {
+      const Rr = 24 + rnd() * 22, sd = k % 2 ? -1 : 1, u = U * (.08 + k * .28) + (rnd() - .5) * 80, v = sd * (LANE + 140 + Rr + rnd() * 30), [cx, cy] = L2W(u, v), g = el('g', {}, world);
+      const clip = el('clipPath', { id: `wr-pc${k}-${uid}` }, defs); el('circle', { cx, cy, r: Rr }, clip);
+      el('circle', { cx, cy, r: Rr, fill: C.panel2 }, g);
+      const sh = el('g', { 'clip-path': `url(#wr-pc${k}-${uid})` }, g);
+      for (let q = -Rr; q < Rr; q += 4) el('line', { x1: cx + Rr * .35 + q * .3, y1: cy + q, x2: cx + Rr * 1.2, y2: cy + q, stroke: C.bg, 'stroke-width': 1, opacity: .7 }, sh); // 밤 쪽 빗금
+      for (let q = 0; q < 5; q++) { const a = rnd() * 6.28, rr = rnd() * Rr * .65; el('circle', { cx: cx + Math.cos(a) * rr, cy: cy + Math.sin(a) * rr, r: 1.5 + rnd() * Rr * .14, fill: 'none', stroke: C.line, 'stroke-width': .8 }, sh); }
+      const [lx, ly] = L2W(u, v + sd * (Rr + 22));
+      txt(g, lx, ly, p.code, { 'text-anchor': 'middle', fill: C.text, 'font-size': 11 });
+      txt(g, lx, ly + 14, `${p.name} · ${p.sub}`, { 'text-anchor': 'middle', 'font-size': 8.5, class: 'rm-ko' });
+    });
+    // 은하 열차 선로: 갈래 다발 바깥을 굽이치다 두 번 가로지른다 (침목 · 두 줄 레일)
+    const WPv = [[-700, 205], [U * .22, 190], [U * .42, -195], [U * .7, -205], [U * .86, 200], [U + 700, 190]];
+    const vAt = (u: number) => { for (let k = 0; k < WPv.length - 1; k++) if (u <= WPv[k + 1][0]) { const t = (u - WPv[k][0]) / (WPv[k + 1][0] - WPv[k][0]); return WPv[k][1] + (WPv[k + 1][1] - WPv[k][1]) * (1 - Math.cos(Math.PI * Math.max(0, t))) / 2; } return WPv[WPv.length - 1][1]; };
+    const rail: { u: number; x: number; y: number; s: number }[] = [];
+    for (let u = -700, s = 0; u <= U + 700; u += 6) { const [x, y] = L2W(u, vAt(u)); if (rail.length) { const p = rail[rail.length - 1]; s += Math.hypot(x - p.x, y - p.y); } rail.push({ u, x, y, s }); }
+    const RT = rail[rail.length - 1].s, rd = 'M' + rail.map((p) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join('L');
+    el('path', { d: rd, fill: 'none', stroke: C.line, 'stroke-width': 8, 'stroke-dasharray': '1.2 6' }, world); // 침목
+    el('path', { d: rd, fill: 'none', stroke: C.t3, 'stroke-width': 4.6 }, world); el('path', { d: rd, fill: 'none', stroke: C.bg, 'stroke-width': 2.4 }, world);
+    const atS = (s: number) => { s = Math.max(0, Math.min(RT, s)); let lo = 0, hi = rail.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (rail[m].s < s) lo = m; else hi = m; } const a = rail[lo], b = rail[hi], t = (s - a.s) / ((b.s - a.s) || 1); return [a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, Math.atan2(b.y - a.y, b.x - a.x)]; };
+    const sOfU = (u: number) => rail[Math.max(0, Math.min(rail.length - 1, Math.round((u + 700) / 6)))].s;
+    // 메트로 타운 정거장 셋 (선로 위): 둥근 역사 · 승강장 · 이름 (갈래 반대쪽)
+    [['메트로 타운 · 코빈 환승역', '은하 3호선 · 성간 항로 조합'], ['메트로 타운 · 녹슨 갈고리', '옛 해적 소굴 · 재개장'], ['메트로 타운 · 종착역', '페트라 화물 성도 연결']].forEach(([nm, sub], k) => {
+      const u = U * (.12 + k * .38), v = vAt(u), [x, y] = L2W(u, v), [, , a] = atS(sOfU(u)), g = el('g', {}, world), sd = Math.sign(v);
+      el('circle', { cx: x, cy: y, r: 30, fill: 'none', stroke: C.line, 'stroke-dasharray': '1 3' }, g);
+      const st = el('g', { transform: `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(a * 180 / Math.PI).toFixed(1)})` }, g);
+      el('rect', { x: -26, y: -11, width: 52, height: 6, fill: C.panel2, stroke: C.t3, 'stroke-width': .7 }, st); el('rect', { x: -26, y: 5, width: 52, height: 6, fill: C.panel2, stroke: C.t3, 'stroke-width': .7 }, st); // 승강장 두 줄
+      el('circle', { r: 13, fill: C.panel, stroke: C.t2, 'stroke-width': 1 }, el('g', { transform: `translate(0 ${sd * 24})` }, st));
+      for (let q = 0; q < 4; q++) el('rect', { x: -20 + q * 11, y: -9.5, width: 3, height: 3, fill: C.divine, opacity: .8 }, st);
+      const [lx, ly] = L2W(u, v + sd * 56);
+      txt(g, lx, ly, nm, ko({ 'text-anchor': 'middle', fill: C.text, 'font-size': 10 }));
+      txt(g, lx, ly + 13, sub, ko({ 'text-anchor': 'middle', 'font-size': 8 }));
+    });
+    // 열차: 객차 6량 (창 불빛 · 앞 차 전조등). 이따금 화면 앞을 지나간다
+    const train = el('g', { opacity: 0 }, world), cars = Array.from({ length: 6 }, (_, k) => { const c = el('g', {}, train); el('rect', { x: -8, y: -3.2, width: 16, height: 6.4, rx: k ? 1.2 : 3, fill: k ? C.t2 : C.text, stroke: C.bg, 'stroke-width': 1 }, c); for (let w = -5; w < 6; w += 4) el('rect', { x: w, y: -1.2, width: 2, height: 2.4, fill: C.divine }, c); return c; });
+    el('path', { d: 'M8 0L46 -10V10Z', fill: C.divine, opacity: .14 }, cars[0]); // 전조등
+    // 갈래 다발 · 노드 · 화물선
+    const dOf = (i: number, j: number) => (j - (rows[i].length - 1) / 2) * LANE;
+    const nodeAt = (i: number, j: number) => L2W(i * STEP, dOf(i, j));
+    for (let u = 0; u <= U; u += STEP) { const [x, y] = L2W(u, 0); el('path', { d: `M${x} ${y - 4}v8`, stroke: C.t3, transform: `rotate(${THd} ${x} ${y})` }, world); }
+    const casingLayer = el('g', {}, world), edgeLayer = el('g', {}, world), beaconLayer = el('g', {}, world), nodeLayer = el('g', {}, world), ship = el('g', {}, world);
+    el('path', { d: 'M-11 -5 11 0-11 5-7 0Z', fill: C.sel, stroke: C.bg, 'stroke-width': 2, 'paint-order': 'stroke' }, ship);
+    const rig = sweepRig(world, [60, 120, 180], (r) => `${(r / 1000).toFixed(2)}AU`);
+    // 시각표 (왼쪽 아래): 다음 열차까지
+    const PER = 16000, RUN = 7000, hud = el('g', { transform: `translate(${VB[0] + 14} ${VB[1] + VB[3] - 54})` }, fixed);
+    el('rect', { width: 186, height: 40, fill: C.bg, stroke: C.line }, hud);
+    txt(hud, 8, 14, '은하 3호선 · 코빈 구역 시각표', ko({ 'font-size': 8, fill: C.t2 }));
+    const eta = txt(hud, 8, 31, '', ko({ 'font-size': 9.5, fill: C.text }));
+    corners(fixed, VB);
+    titleBlock(fixed, VB, 'WASTELAND · 코빈 구역 메트로 항로도', [`황무지 성계 · 페이즈 ${run.phase}`, `${R} ROWS · 직선 + 곡선`, '은하 3호선 · 정거장 3', 'REV.01 · 약탈자 항로']);
+    const camAt = (uc: number) => { const P = L2W(uc, 0); return [P[0] - 400, P[1] - CY]; };
+    /** A → B 를 진행축 방향으로 나가 진행축 방향으로 들어오는 S 곡선 (3차 베지어, 점 25개) */
+    const scurve = (A: number[], B: number[]) => { const h = Math.hypot(B[0] - A[0], B[1] - A[1]) * .45, P1 = [A[0] + ax[0] * h, A[1] + ax[1] * h], P2 = [B[0] - ax[0] * h, B[1] - ax[1] * h], out: number[][] = []; for (let q = 0; q <= 24; q++) { const t = q / 24, m = 1 - t; out.push([m * m * m * A[0] + 3 * m * m * t * P1[0] + 3 * m * t * t * P2[0] + t * t * t * B[0], m * m * m * A[1] + 3 * m * m * t * P1[1] + 3 * m * t * t * P2[1] + t * t * t * B[1]]); } return out; };
+    let camU = 0;
+    return branchKit({
+      name: '황무지 성계 · 코빈 구역',
+      legend: [['항로', '같은 갈래 = 직선 · 옆 갈래로 옮겨 가는 길 = 곡선 · 지나간 길 = 강조색 · 고른 노드에서 이어지는 길 = 밝게 · 갈 수 없는 길 = 점선'], ['화물선', '지금 위치'], ['NAV', '항로 표지 — 화물선이 지나면 켜짐'], ['선로 · 열차', '은하 3호선 — 이따금 열차가 지나간다 (시각표 = 다음 열차까지)'], ['메트로 타운', '정거장 (코빈 환승역 · 녹슨 갈고리 · 종착역)'], ['KV', '코빈 불모 행성 I ~ IV']],
+      edgeLayer, casingLayer, casing: 4, nodeLayer, beaconLayer, beacon: (i) => `NAV-${pad2(i + 1)} ONLINE`,
+      nodeAt, dirAt: () => ax,
+      edgePts: (i, j, k) => { const A = nodeAt(i, j), B = nodeAt(i + 1, k); return Math.abs(dOf(i + 1, k) - dOf(i, j)) < 1 ? [A, [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], B] : scurve(A, B); },
+      style: { taken: [C.sel, 2.5, 1, ''], toPick: [C.sel, 1.8, .9, '6 4'], mine: [C.t2, 1.6, 1, ''], alt: [C.t3, 1.3, .9, ''], none: [C.line, .9, .55, '1 4'] },
+      camU: proj, camRange: [-60, U + 60], ahead: [60, 40], camEps: 4, dragPer: ax[0],
+      drawCam(uc) { camU = uc; const [cx, cy] = camAt(uc); world.setAttribute('transform', `translate(${(-cx).toFixed(1)} ${(-cy).toFixed(1)})`); layers.forEach((g, k) => g.setAttribute('transform', `translate(${(-cx * PAR[k]).toFixed(1)} ${(-cy * PAR[k]).toFixed(1)})`)); },
+      marker(x, y, a) { ship.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(a * 180 / Math.PI).toFixed(1)})`); rig.g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); },
+      tick(t) {
+        const ph = mod(t, PER), cyc = Math.floor(t / PER), dir = cyc % 2 ? -1 : 1; // 오가는 방향을 번갈아
+        if (ph < RUN) {
+          const k = ph / RUN, s0 = sOfU(camU) + dir * (k * 1700 - 850);
+          train.setAttribute('opacity', (Math.min(1, k * 8, (1 - k) * 8)).toFixed(2));
+          cars.forEach((c, n) => { const [x, y, a] = atS(s0 - dir * n * 17); c.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${((a + (dir < 0 ? Math.PI : 0)) * 180 / Math.PI).toFixed(1)})`); });
+          eta.textContent = `열차 통과 중 · ${dir > 0 ? '종착역' : '코빈 환승역'} 방면`;
+        } else { train.setAttribute('opacity', '0'); eta.textContent = `다음 열차 · ${Math.ceil((PER - ph) / 1000)}초 뒤 도착`; }
         rig.set(mod(t * .05, 360));
       },
     });
