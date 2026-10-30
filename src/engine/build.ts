@@ -421,10 +421,10 @@ export function enemyMajors(def: EnemyDef, phase: number): Record<Major, number>
   return Object.fromEntries(MAJORS.map((m) => [m, Math.max(0, Math.round(lv * w[m]))])) as Record<Major, number>;
 }
 
-/** 적 기본 이동 속도 (기동력 가산 전): CFG.enemyMoveSpd (암살형은 assassin) × 적별 이동 배율 */
+/** 적 기본 이동 속도 (기동력 가산 전): CFG.enemyMoveSpd (암살형은 assassin · 교란형은 disrupt) × 적별 이동 배율 */
 export function enemyBaseMoveSpd(def: EnemyDef): number {
   const M = CFG.enemyMoveSpd;
-  return (def.tend === 'assassin' ? M.assassin : M.base) * (def.moveSpd ?? 1);
+  return (def.tend === 'assassin' ? M.assassin : def.tend === 'disrupt' ? M.disrupt : M.base) * (def.moveSpd ?? 1);
 }
 
 /** 중립 구조물 (접이식 바리케이드 등): 어느 편도 아니고 (sideOf 2), 칸 · 탄도를 막는다. 표적 · 승패에서 빠지고, 길이 완전히 막히거나 탄이 지나가면 양쪽이 친다 */
@@ -440,14 +440,14 @@ export function buildWall(b: Battle, x: number, y: number, hp: number, o: { name
 }
 const WALL_PAL = ['#0e0e0e', '#9a7a4a', '#6a5232', '#d8c090', '#b89a62', '#3e2f1c', '#efe2c0'];
 
-export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number, gear?: { items?: string[]; mod?: string; stripped?: boolean }): CUnit {
+export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number, gear?: { items?: string[]; mod?: string; stripped?: boolean; part?: number }): CUnit {
   const c = blankUnit(1);
   const st = emptyStats();
   const sp = scalePhase(phase, b.ctx.camp); // 적 성장 페이즈 (의뢰 마지막 페이즈 = 예전 6페이즈 세기)
   st.maxHp = def.hp * CFG.enemyHpMul * phaseHpMult(sp, CFG.diffHpAdd(b.ctx.diff || 0)) * mult; // 모험 · 고난: 페이즈 체력 성장 가산
   st.shoot = st.strike = st.tech = def.power * CFG.enemyPowMul;
   st.armor = def.armor * CFG.armorScale * Math.pow(CFG.phaseArmor, sp - 1); // 적 정의는 옛 방어도 단위 (armorScale 로 변환)
-  st.acc = def.acc || 0; st.eva = def.eva || 0; st.crit = def.crit ?? 0.05; st.critDmg = 1.5;
+  st.acc = def.acc || 0; st.eva = (def.eva || 0) + (def.tend === 'disrupt' ? CFG.tend.disrupt.eva : 0); st.crit = def.crit ?? 0.05; st.critDmg = 1.5; // 교란형: 기본 회피 가산
   st.effHit = def.effHit || 0; st.effRes = def.effRes || 0; st.range = def.range;
   const em = enemyMajors(def, sp);
   // 이동 속도: 기본값 (성향 · 적별 이동 배율) + 기동력 1당 아군과 같은 환산
@@ -471,6 +471,8 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   c.mem.mult = mult;
   c.elite = def.tier === 'elite';
   c.tend = def.tend; c.prov = new Map(); // 표적 고르기: 성향 + 도발 수치
+  if (def.tend === 'pack') c.provRaw = new Map(); // 무리형: 도발 배율을 뺀 도발 수치 (CFG.tend.pack.provFor 초 뒤부터)
+  if (def.tend === 'disrupt') c.mem.grazeRed = CFG.tend.disrupt.grazeRed; // 교란형: 받는 찰과상 피해 감소
   applyCategory(c);
   for (const m of MAJORS) c.mem[`M_${m}`] = em[m];
   c.cd = c.cdMax * 0.6;
@@ -504,6 +506,7 @@ export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number
   // 적 장비 · 개조부품
   for (const it of [...(gear?.stripped ? [] : [...(def.items || []), def.mod || null]), ...(gear?.items || []), gear?.mod || null]) if (it) applyLive(c, itemEffect(it), b, makeCtx(null, null, {})); // stripped: 강제 징수기
   if (gear?.items?.length || gear?.mod) { c.tempItems = [...(gear.items || []), ...(gear.mod ? [gear.mod] : [])]; c.mem.gear = 1; } // 위험 등급 장비 (표시용)
+  if (gear?.part) { c.noAttack = true; c.skill = null; c.cdMax = 0; c.mem.part = gear.part; c.elite = false; return c; } // 대형 적의 나머지 칸: 공격 · 기술 · 고유 능력 없이 체력만 (linkGroup)
   if (def.onBasic) c.hooks.push({ onBasic: def.onBasic });
   if (def.onTick) c.hooks.push({ onTick: def.onTick });
   if (def.hooks) c.hooks.push(def.hooks);
@@ -874,6 +877,7 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
   COMP_AT.set(b, new Map(comp.filter((t) => !t.king).map((t) => [t.key, { x: t.x, y: t.y }])));
   TURRET_MODS_AT.set(b, (run.turretMods || []).slice());
   const duos = new Map<number, { f?: CUnit; b?: CUnit }>(); // 포병 듀오: 분대 번호 → 앞 칸 · 뒤 칸
+  const bigs = new Map<number, CUnit[]>(); // 대형 적: 분대 번호 → [본체, 나머지 칸…]
   for (const s of enc.enemies) {
     const def = ENEMY_BY_ID[s.defId];
     const e = buildEnemy(b, def, enc.phase ?? run.phase, enc.mult, s);
@@ -883,8 +887,10 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
     if (b.unitAt(e.x, e.y)) { const f = b.freeCellNear(e.x, e.y); if (!f) continue; e.x = e.px = f.x; e.y = e.py = f.y; }
     b.add(e);
     if (s.duo && s.sq !== undefined) { const d = duos.get(s.sq) || {}; d[s.duo] = e; duos.set(s.sq, d); }
+    if (s.part !== undefined && s.sq !== undefined) { const g = bigs.get(s.sq) || []; g[s.part] = e; bigs.set(s.sq, g); }
   }
   for (const d of duos.values()) if (d.f && d.b) linkDuo(b, d.f, d.b);
+  for (const g of bigs.values()) if (g[0] && g.length > 1) { const B = CFG.foeKit.big; linkGroup(b, g.filter(Boolean), g[0].st.maxHp, g.filter(Boolean).map((u) => (u === g[0] ? B.core : B.part))); }
   if (enc.devices?.length) applyDevices(b, run, enc, counts);
   b.start();
   return b;
@@ -895,20 +901,30 @@ export { SYN_BY_ID };
 /** 포병 듀오 (data/squads.ts, CFG.squads.duo): 두 칸이 한 기물. 체력을 합쳐 한 통으로 나눠 쓰고 (어느 칸이 맞아도 같은 체력이 준다 · 회복도 같이),
  *  움직이지 않는다. 뒤 칸 (포병) 받는 피해 ×back · 앞 칸 (부사수) ×front. 한 칸이 쓰러지면 다른 칸도 무너진다 (처치는 한 번만 센다) */
 export function linkDuo(b: Battle, f: CUnit, k: CUnit) {
-  const D = CFG.squads.duo, max = f.st.maxHp + k.st.maxHp;
-  let pool = max, lastF = max, lastK = max;
+  const D = CFG.squads.duo;
+  linkGroup(b, [f, k], f.st.maxHp + k.st.maxHp, [D.front, D.back]);
+  f.mem.duo = 1; f.mem.duoMate = k.id;
+  k.mem.duo = 2; k.mem.duoMate = f.id;
+}
+/** 여러 칸이 한 기물 (포병 듀오 · 대형 적): 체력 max 를 한 통으로 나눠 쓰고 (어느 칸이 맞아도 같은 체력이 준다 · 회복도 같이), 움직이지 않는다.
+ *  칸마다 받는 피해 ×muls[i]. 한 칸이 쓰러지면 모두 무너진다 (처치는 한 번만 센다). mem.grp = 첫 칸 id (전투 화면이 한 틀로 두른다) */
+export function linkGroup(b: Battle, us: CUnit[], max: number, muls: number[]) {
+  let pool = max;
+  const last = us.map(() => max);
   const sync = () => {
-    if (!f.alive || !k.alive) { for (const u of [f, k]) if (u.alive) b.kill(u, null); return; }
-    pool = Math.min(b.S(k, 'maxHp'), pool - (lastF - f.hp) - (lastK - k.hp));
-    if (pool <= 0) { f.hp = 0; b.kill(f, null); b.kill(k, null); return; }
-    f.hp = k.hp = lastF = lastK = pool;
+    if (us.some((u) => !u.alive)) { for (const u of us) if (u.alive) b.kill(u, null); return; }
+    let lost = 0;
+    us.forEach((u, i) => { lost += last[i] - u.hp; });
+    pool = Math.min(b.S(us[0], 'maxHp'), pool - lost);
+    if (pool <= 0) { us[0].hp = 0; for (const u of us) b.kill(u, null); return; }
+    us.forEach((u, i) => { u.hp = last[i] = pool; });
   };
-  for (const [u, mate, part, mul] of [[f, k, 1, D.front], [k, f, 2, D.back]] as const) {
+  us.forEach((u, i) => {
     u.st.maxHp = u.hp = max;
     u.immobile = true;
-    u.mem.duo = part; u.mem.duoMate = mate.id;
-    u.hooks.push({ takenMult: () => mul, onHurt: () => sync(), onTick: () => sync() });
-  }
+    u.mem.grp = us[0].id; u.mem.grpN = us.length;
+    u.hooks.push({ takenMult: () => muls[i], onHurt: () => sync(), onTick: () => sync() });
+  });
 }
 
 /** 편성 화면에서 놓은 장치를 전장에 (전투 시작 전): 바리케이드 · 유인 신호기 · 감전 지뢰는 칸에, 항공 보급은 장비를 먼저 달고, 포격 · 그물은 첫 틱에 */

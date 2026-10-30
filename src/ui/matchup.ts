@@ -1,7 +1,7 @@
 // 전장 상성 요약: 전장의 적 풀(일반 · 정예 · 보스)과 적 정의의 키워드(→ 분류)에서 자동 집계한다.
 // 면역 · 취약 · 저항은 엔진 규칙(categoryImmune · categoryMult · BOSS_CC_IMMUNE)을 그대로 물어서 얻는다 (손으로 적지 않음).
 import { BOSS_CC_IMMUNE, categoryImmune, categoryMult, STATUS_NAME } from '../engine/combat';
-import { fieldOf } from '../data/battlefields';
+import { fieldElites, fieldOf } from '../data/battlefields';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { PSI_STATUS, SCHOOL_BY_ID, type SchoolId } from '../data/schools';
 import { type Category, CATEGORY_NAME, categoryOf, type Elem, ELEM_NAME } from '../types';
@@ -22,7 +22,7 @@ export function fieldFoes(fid: string): FieldFoes {
   const roster: FieldFoes['roster'] = [];
   const add = (id: string, w: number, boss: boolean) => { const e = ENEMY_BY_ID[id]; if (e) roster.push({ c: categoryOf(e.keywords, !!e.immobile), w, boss }); };
   for (const id of f.pool) add(id, W.minion, false);
-  add(f.elite, W.elite, false);
+  for (const id of fieldElites(f)) add(id, W.elite / fieldElites(f).length, false); // 공용 정예 후보가 있으면 정예 몫을 나눈다
   for (const id of f.bosses) add(id, W.boss, true);
   const total = roster.reduce((a, r) => a + r.w, 0) || 1;
   const by: Partial<Record<Category, number>> = {};

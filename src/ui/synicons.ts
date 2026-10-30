@@ -279,10 +279,12 @@ const L: Record<string, string> = {
   'u.zoomout': '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3L21 21M7.5 10.5h6"/>',
   // 편성 보드 확대 복구 (전체 보기 ↔ 마지막 확대): 네 모서리 틀 + 가운데 칸
   'u.fit': '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><rect x="9" y="9" width="6" height="6" rx="1"/>',
-  // 적 성향 (도발 수치 가중치): 돌격 · 저격 · 반격 · 암살
+  // 적 성향 (도발 수치 가중치): 돌격 · 저격 · 호위 · 교란 · 무리 · 암살
   't.charge': '<path d="M4 5l7 7-7 7"/><path d="M12 5l7 7-7 7"/>',
   't.sniper': '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 7v2M12 15v2M7 12h2M15 12h2"/>',
-  't.counter': '<path d="M9 4L4 9l5 5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+  't.escort': '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><circle cx="12" cy="10" r="2"/><path d="M8.5 16c.8-1.6 2-2.4 3.5-2.4s2.7.8 3.5 2.4"/>',
+  't.disrupt': '<path d="M3 9c2.5-4 5.5 4 9 0s6.5 4 9 0"/><path d="M3 15c2.5-4 5.5 4 9 0s6.5 4 9 0"/>',
+  't.pack': '<circle cx="5" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="19" cy="12" r="2.5"/><path d="M7 6l9 5M7 18l9-5M7 12h9"/>',
   't.assassin': '<path d="M20 4l-1.2 5.2L10 18l-4-4 8.8-8.8z"/><path d="M5 13l6 6"/><path d="M7 17l-3 3"/>',
 };
 export function lineIcon(key: string, cls = 'li'): string {

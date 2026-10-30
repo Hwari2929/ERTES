@@ -1166,6 +1166,8 @@ main.syn-focus .u.syn-hl .tk-card, main.syn-focus .rt.syn-hl { border-color: var
 .prep .u.side1.sq-off .tk-card, .prep .u.side1.sq-off:not(.tk) > * { opacity: var(--tg-dim); } /* 토큰 자체는 등장 연출이 투명도를 쥐고 있어 안쪽을 흐린다 (tg-no 와 같은 방식) */
 .duo-frame { position: absolute; box-sizing: border-box; border: 1px solid color-mix(in srgb, var(--c-bad) 70%, transparent); border-radius: var(--r-md); background: color-mix(in srgb, var(--c-bad) 8%, transparent); pointer-events: none; }
 .u.duo-b .tk-card, .u.duo-b > img { box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--c-bad) 70%, transparent); }
+/* 대형 적의 나머지 칸 (build.ts linkGroup · 2×2 · 1×3): 틀 안 빈칸. 초상 · 체력 막대 · 상태 줄은 본체 칸에만 (체력은 한 통) */
+.u.bigpart > img, .u.bigpart > .bars, .u.bigpart > .cd, .u.bigpart > .sti, .u.bigpart > .stk, .u.bigpart > .stc, .u.bigpart .tk-card { visibility: hidden; }
 /* 상성 · 아군 공격 속성: 같은 줄 토큰 [아이콘 | 이름 | 인원 | 칩] */
 .pb-row { display: grid; grid-template-columns: 24px auto auto minmax(0, 1fr); align-items: center; gap: 4px 8px; padding: 5px 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-md); font-size: var(--fs-sm); }
 .pb-ri { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--panel); color: color-mix(in srgb, var(--c, var(--c-text-2)) var(--data-mix), var(--c-text)); font-style: normal; }

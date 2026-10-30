@@ -1,4 +1,5 @@
-import type { Battle, CUnit, EnemyTend, Hooks, SkillDef } from '../engine/combat';
+import type { Battle, CUnit, DmgResult, EnemyTend, Hooks, SkillDef } from '../engine/combat';
+import { CFG } from '../config';
 import type { CType, Elem, Keyword, TType } from '../types';
 import { bleed, blinkTo, corrode, fear, lineTargets, poison, skillHit } from './kit';
 
@@ -28,7 +29,7 @@ export interface EnemyDef {
   immobile?: boolean;
   melee: boolean;
   skill?: SkillDef;
-  onBasic?: (b: Battle, u: CUnit, t: CUnit) => void;
+  onBasic?: (b: Battle, u: CUnit, t: CUnit, r: DmgResult) => void;
   onTick?: (b: Battle, u: CUnit, dt: number) => void;
   escort?: string[];
   /** 장비 3칸 · 개조부품 (적 전용 장비는 추후 설계) */
@@ -44,6 +45,10 @@ export interface EnemyDef {
   hooks?: Hooks;
   /** 다른 적의 초상화를 빌려 쓴다 (portraits.gen 키, 예: 'en_sw_brood') */
   art?: string;
+  /** 구조물을 세우는 적: 분대 역할 '공병' (data/squads.ts 공병단) */
+  builder?: boolean;
+  /** 대형 적: 가로 w × 세로 h 칸을 한 기물이 차지한다 (체력 공유 · 움직이지 않음, engine/build.ts linkGroup · CFG.foeKit.big) */
+  size?: { w: number; h: number };
 }
 
 /** 적 전투 유형 · 전술 유형: 지정값 우선, 없으면 공격 방식 · 키워드로 추정 */
@@ -108,6 +113,38 @@ const VAULT = ['#080604', '#5a4a20', '#e0c060', '#fff0c0', '#ffffff', '#3a2a10',
 const PALE = ['#0e0c0c', '#8a8078', '#c8c0b0', '#e8e0d8', '#ff6060', '#4a4440', '#fff8f0'];
 const TOMB = ['#0a0606', '#6a3a3a', '#c06a6a', '#f0c0b0', '#ffe0a0', '#3a1a1a', '#fff0e8'];
 const TOMB_BOSS = ['#080404', '#7a2020', '#e05050', '#ffc0b0', '#e0ff80', '#3a0a0a', '#fff0e0'];
+// 공용 기믹 적 (mx_*): 여러 전장의 풀에 함께 들어간다
+const MERC = ['#0e0d0c', '#5a5448', '#8a7a5a', '#cfc4a8', '#ffb040', '#34302a', '#f4ecd8'];
+const MERC_ELITE = ['#0c0c0e', '#3a4a5a', '#c08a3a', '#d8d0c0', '#ffd060', '#22303c', '#fff4e0'];
+const MERC_BIG = ['#0a0c0e', '#4a5258', '#6a6a58', '#c0c4b8', '#ff7030', '#2a3036', '#eef0e8'];
+const SMUG = ['#0c0a06', '#4a3a1a', '#d0a030', '#f0e0a0', '#fff080', '#2a2010', '#fffbe0'];
+/** 공병이 세운 구조물 · 지휘관이 부른 징집병처럼 주인이 있는 소환물: 주인이 쓰러지면 함께 사라진다 (Battle.kill) */
+function ownedSpawn(b: Battle, u: CUnit, defId: string, cell: { x: number; y: number }, exact = false) {
+  const o = ENEMY_RT.spawn?.(b, defId, cell, { summon: true, mult: u.mem.mult, exact });
+  if (o) o.owner = u;
+  return o || null;
+}
+const ownedAlive = (b: Battle, u: CUnit, ids: string[]) => b.units.filter((x) => x.alive && x.owner === u && ids.includes(x.defId)).length;
+/** 밀수 운반책: 아군 기물(플레이어 쪽)에게서 먼 쪽 빈칸으로 1칸 (움직이는 중 · 기절 · 속박 중이면 제자리) */
+function runAway(b: Battle, u: CUnit) {
+  if (u.moveT > 0 || b.has(u, 'stun') || u.statuses.some((s) => s.key === 'root')) return;
+  const foes = b.enemiesOf(u).filter((e) => !e.mem.inert);
+  if (!foes.length) return;
+  const score = (x: number, y: number) => Math.min(6, ...foes.map((e) => b.dist(e, { x, y }))) * 10 - Math.abs(x - (b.w - 1) / 2) * 0.1;
+  let best: { x: number; y: number } | null = null, bs = score(u.x, u.y);
+  for (let dy = -1; dy <= 1; dy++)
+    for (let dx = -1; dx <= 1; dx++) {
+      const x = u.x + dx, y = u.y + dy;
+      if ((!dx && !dy) || !b.inBounds(x, y) || b.unitAt(x, y)) continue;
+      const sc = score(x, y) - (dx && dy ? 0.01 : 0);
+      if (sc > bs) { bs = sc; best = { x, y }; }
+    }
+  if (!best) return;
+  u.px = u.x; u.py = u.y;
+  u.x = best.x; u.y = best.y;
+  u.moveDur = u.moveT = CFG.moveTime / b.S(u, 'moveSpd');
+}
+const K = () => CFG.foeKit;
 /** 카운티폴 광대 (반상회장이 은신시키는 대상) */
 const CLOWNS = new Set(['cf_neighbor', 'cf_dog', 'sw_spitter', 'cf_model']);
 
@@ -131,7 +168,7 @@ export const ENEMIES: EnemyDef[] = [
     hp: 600, power: 34, armor: 300, acc: 0.1, interval: 1.2, range: 4, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false },
   { id: 'wraith', name: '공허 환영', tend: 'assassin', keywords: ['phantom'], sprite: 'phantom', palette: VOID, tier: 'minion', minPhase: 2,
     hp: 300, power: 30, armor: 40, eva: 0.25, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false },
-  { id: 'priest', name: '사이오닉 사제', tend: 'counter', keywords: ['bio', 'phantom'], sprite: 'medic', palette: VOID, tier: 'minion', minPhase: 3,
+  { id: 'priest', name: '사이오닉 사제', tend: 'escort', keywords: ['bio', 'phantom'], sprite: 'medic', palette: VOID, tier: 'minion', minPhase: 3,
     hp: 340, power: 24, armor: 80, interval: 1.2, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     skill: {
       name: '공허 치유', cd: 6, params: {}, desc: () => '아군 회복',
@@ -226,7 +263,7 @@ export const ENEMIES: EnemyDef[] = [
     } },
   // 캠페인 「회수 계약」 1장 보스: 하역 크레인에 엉겨 붙은 고정형 군집. 컨테이너에서 포자 살점을 쏟아 낸다 (비비안 조사 = 컨테이너 2개 봉인 → 간격 10 → 12초, b.ctx.campIntel).
   // 시뮬(tests/campaign_sim.ts, 쉬움): 바로 돌파 시 보스 평균 2.2회 · 조사 시 1.5회
-  { id: 'cp_loader', name: '적재 군집', tend: 'counter', keywords: ['bio'], sprite: 'crawler', palette: SWARM_BOSS, art: 'en_sw_brood', tier: 'boss', minPhase: 99,
+  { id: 'cp_loader', name: '적재 군집', tend: 'pack', keywords: ['bio'], sprite: 'crawler', palette: SWARM_BOSS, art: 'en_sw_brood', tier: 'boss', minPhase: 99,
     hp: 2600, power: 34, armor: 160, interval: 1.4, range: 2, immobile: true, atk: { type: 'strike', elem: 'chem' }, melee: true,
     skill: {
       name: '크레인 투척', cd: 9, params: {}, desc: () => '가장 가까운 적을 집어 던진다 (기술 위력 160% 물리 + 1.5초 기절)',
@@ -280,14 +317,14 @@ export const ENEMIES: EnemyDef[] = [
       for (let i = 0; i < n; i++) { const a = ENEMY_RT.spawn?.(b, 'cp_antenna', { x: u.x + (i ? 1 : -1), y: u.y }, { summon: true }); if (a) a.owner = u; }
     },
     hooks: { takenMult: (b, u) => (b.units.some((x) => x.alive && x.owner === u && x.defId === 'cp_antenna') ? 0.5 : 1) } },
-  { id: 'cp_antenna', name: '중계 안테나', tend: 'counter', keywords: ['mech', 'struct'], sprite: 'turret', palette: SWARM2, art: 'en_turret', tier: 'minion', minPhase: 99,
+  { id: 'cp_antenna', name: '중계 안테나', tend: 'escort', keywords: ['mech', 'struct'], sprite: 'turret', palette: SWARM2, art: 'en_turret', tier: 'minion', minPhase: 99,
     hp: 900, power: 0, armor: 200, interval: 9, range: 0, immobile: true, atk: { type: 'strike', elem: 'phys' }, melee: false, noAttack: true },
   // 캠페인 「회수 계약」 4장 보스: 베르타-4 제4링 격리 검사 갑문에 뿌리내린 둥지. 적요 번호 없는 화물이 검사 없이 지나가던 바로 그 갑문이다.
   // [격리 셔터] 12초 주기로 갑문이 열렸다 닫힌다 — 닫혀 있는 동안 받는 피해 -50%. 열린 시간은 4초, 검사대를 다시 돌리고 왔으면 7초 (b.ctx.campIntel4).
   // [오염 컨테이너] 10초마다 포자 살점 2마리 (동시 최대 4마리). 감사 분기(b.ctx.campAudit)면 격리팀이 컨테이너를 봉인해 15초마다 1마리.
   // [산성 방류] 3칸 안 모든 적에게 화학 피해. 장 적 단계는 data/campaign.ts (4장 = 5).
   // 시뮬(tests/campaign_sim.ts, 분기 · 정책별 40판): 4장 보스 평균 시도 감사 1.0~1.1 · 라르스 1.6~1.9 · 침묵 1.4~1.6회. 감사는 쉬운 대신 AH -6 이라 정산이 줄고, 라르스는 AH 가 가장 많이 남는다
-  { id: 'cp_gate', name: '검역 갑문 둥지', tend: 'counter', keywords: ['bio'], sprite: 'crawler', palette: SWARM_BOSS, art: 'en_sw_brood', tier: 'boss', minPhase: 99,
+  { id: 'cp_gate', name: '검역 갑문 둥지', tend: 'pack', keywords: ['bio'], sprite: 'crawler', palette: SWARM_BOSS, art: 'en_sw_brood', tier: 'boss', minPhase: 99,
     hp: 5600, power: 125, armor: 220, effRes: 0.3, interval: 1.3, range: 2, immobile: true, atk: { type: 'strike', elem: 'chem' }, melee: true,
     skill: {
       name: '산성 방류', cd: 9, params: {}, desc: () => '3칸 안 모든 적에게 화학 피해 (기술 위력 110%)',
@@ -307,7 +344,7 @@ export const ENEMIES: EnemyDef[] = [
       if (alive < cap) summonHook?.(b, u, 'sw_spore', Math.min(audit ? 1 : 2, cap - alive));
     },
     hooks: { takenMult: (b) => (b.t % 12 < (b.ctx.campIntel4 ? 7 : 4) ? 1 : 0.5) } },
-  { id: 'sw_queen', name: '군체 여왕', tend: 'counter', keywords: ['bio', 'phantom'], sprite: 'phantom', palette: SWARM_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'sw_queen', name: '군체 여왕', tend: 'pack', keywords: ['bio', 'phantom'], sprite: 'phantom', palette: SWARM_BOSS, tier: 'boss', minPhase: 1,
     hp: 3000, power: 46, armor: 180, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     escort: ['sw_hound', 'sw_spitter'],
     skill: {
@@ -343,7 +380,7 @@ export const ENEMIES: EnemyDef[] = [
     onBasic: (b, u, t) => { bleed(b, u, t, b.S(u, 'strike') * 0.2, 3, 0.4); } },
   { id: 'cr_musket', name: '정맥관 총사', tend: 'sniper', keywords: ['bio'], sprite: 'soldier', palette: CRIMSON, tier: 'minion', minPhase: 1,
     hp: 300, power: 30, armor: 80, acc: 0.1, interval: 1.2, range: 4, atk: { type: 'shoot', elem: 'phys' }, melee: false },
-  { id: 'cr_leech', name: '배양조 사제', tend: 'counter', keywords: ['bio'], sprite: 'medic', palette: CRIMSON2, tier: 'minion', minPhase: 2,
+  { id: 'cr_leech', name: '배양조 사제', tend: 'escort', keywords: ['bio'], sprite: 'medic', palette: CRIMSON2, tier: 'minion', minPhase: 2,
     hp: 340, power: 24, armor: 80, interval: 1.2, range: 3, atk: { type: 'shoot', elem: 'chem' }, melee: false,
     skill: {
       name: '수혈', cd: 6, params: {}, desc: () => '아군 회복',
@@ -374,7 +411,7 @@ export const ENEMIES: EnemyDef[] = [
       b.heal(u, u, b.S(u, 'maxHp') * 0.06);
       for (const a of b.alliesOf(u)) b.buff(u, a, 'crimson.feast', 5, { mods: [{ kind: 'inc', tag: 'all', v: 0.25 }], label: '혈연 축제' });
     } },
-  { id: 'cr_heart', name: '그라나툼 심핵 수호체', tend: 'counter', keywords: ['bio', 'struct'], sprite: 'mech', palette: CRIMSON_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'cr_heart', name: '그라나툼 심핵 수호체', tend: 'escort', keywords: ['bio', 'struct'], sprite: 'mech', palette: CRIMSON_BOSS, tier: 'boss', minPhase: 1,
     hp: 3400, power: 40, armor: 280, effRes: 0.3, interval: 1.3, range: 5, immobile: true, atk: { type: 'shoot', elem: 'chem' }, melee: false,
     escort: ['cr_hound', 'cr_thrall'],
     skill: {
@@ -392,7 +429,7 @@ export const ENEMIES: EnemyDef[] = [
     hp: 300, power: 30, armor: 150, acc: 0.1, interval: 1.2, range: 4, atk: { type: 'shoot', elem: 'elec' }, melee: false },
   { id: 'sp_drone', name: '예인 드론', tend: 'sniper', keywords: ['mech'], sprite: 'drone', palette: SPARTA, tier: 'minion', minPhase: 2,
     hp: 240, power: 22, armor: 100, eva: 0.15, interval: 0.7, range: 2, moveSpd: 1.4, atk: { type: 'shoot', elem: 'elec' }, melee: false },
-  { id: 'sp_phalanx', name: '팔랑크스 지휘기', tend: 'counter', keywords: ['mech'], sprite: 'mech', palette: SPARTA_ELITE, tier: 'elite', minPhase: 1,
+  { id: 'sp_phalanx', name: '팔랑크스 지휘기', tend: 'escort', keywords: ['mech'], sprite: 'mech', palette: SPARTA_ELITE, tier: 'elite', minPhase: 1,
     hp: 1300, power: 38, armor: 500, effRes: 0.3, interval: 1.2, range: 1, moveSpd: 0.8, atk: { type: 'strike', elem: 'phys' }, melee: true,
     skill: {
       name: '방패벽', cd: 9, params: {}, desc: () => '아군 보호막 + 방어도 증가',
@@ -442,7 +479,7 @@ export const ENEMIES: EnemyDef[] = [
         return true;
       },
     } },
-  { id: 'pt_unixline', name: '유닉스 생산 라인', tend: 'counter', keywords: ['mech', 'struct'], sprite: 'turret', palette: UNIX, tier: 'boss', minPhase: 1,
+  { id: 'pt_unixline', name: '유닉스 생산 라인', tend: 'escort', keywords: ['mech', 'struct'], sprite: 'turret', palette: UNIX, tier: 'boss', minPhase: 1,
     hp: 2900, power: 34, armor: 320, effRes: 0.3, interval: 1.2, range: 4, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false,
     escort: ['pt_guard', 'pt_drone'],
     // 1원칙: 매 분기 직전 대비 더 많이 생산한다
@@ -467,7 +504,7 @@ export const ENEMIES: EnemyDef[] = [
     onBasic: (b, u, t) => { antiheal(b, u, t, 0.3, 4); } },
   { id: 'cf_drone', name: '성광 드론', tend: 'sniper', keywords: ['mech'], sprite: 'drone', palette: SIRIUS, tier: 'minion', minPhase: 2,
     hp: 240, power: 22, armor: 70, eva: 0.15, interval: 0.7, range: 2, moveSpd: 1.4, atk: { type: 'shoot', elem: 'elec' }, melee: false },
-  { id: 'cf_chair', name: '반상회장', tend: 'counter', keywords: ['bio'], sprite: 'soldier', palette: SEPIA_ELITE, tier: 'elite', minPhase: 1,
+  { id: 'cf_chair', name: '반상회장', tend: 'pack', keywords: ['bio'], sprite: 'soldier', palette: SEPIA_ELITE, tier: 'elite', minPhase: 1,
     hp: 1100, power: 40, armor: 220, acc: 0.1, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false,
     // 반상회 소집: 8초마다 광대 1기 은신 + 피해 증가
     onTick: (b, u, dt) => {
@@ -535,7 +572,7 @@ export const ENEMIES: EnemyDef[] = [
       b.heal(u, u, b.S(u, 'maxHp') * 0.15);
       b.later(3, () => { if (u.alive) gasBlast(b, u, u.x, u.y, 1, 0.1); });
     } },
-  { id: 'lv_mother', name: '부유체 모체', tend: 'counter', keywords: ['bio'], sprite: 'phantom', palette: FLOAT_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'lv_mother', name: '부유체 모체', tend: 'pack', keywords: ['bio'], sprite: 'phantom', palette: FLOAT_BOSS, tier: 'boss', minPhase: 1,
     hp: 3000, power: 42, armor: 160, effRes: 0.3, interval: 1.3, range: 3, moveSpd: 0.5, atk: { type: 'shoot', elem: 'chem' }, melee: false,
     escort: ['lv_floater', 'lv_raptor'],
     onTick: (b, u, dt) => { u.mem.spawnT = (u.mem.spawnT || 0) + dt; if (u.mem.spawnT >= 14) { u.mem.spawnT = 0; b.emit({ k: 'status', id: u.id, name: '포자 방출' }); summonHook?.(b, u, 'lv_spores', 2); } } },
@@ -561,7 +598,7 @@ export const ENEMIES: EnemyDef[] = [
   { id: 'rd_sub', name: '구독 치안 드론', tend: 'sniper', keywords: ['mech'], sprite: 'drone', palette: CHROME, tier: 'minion', minPhase: 1,
     hp: 260, power: 24, armor: 90, eva: 0.1, interval: 0.8, range: 3, moveSpd: 1.3, atk: { type: 'shoot', elem: 'elec' }, melee: false,
     onBasic: (b, u, t) => { b.applyStatus(u, t, { type: 'buff', key: 'rd.unpaid', dur: 4, taken: [{ kind: 'vuln', tag: 'all', v: 0.15 }], label: '미납' }); } },
-  { id: 'rd_stream', name: '데스 스트리밍 드론', tend: 'counter', keywords: ['mech'], sprite: 'drone', palette: NEON, tier: 'minion', minPhase: 2,
+  { id: 'rd_stream', name: '데스 스트리밍 드론', tend: 'disrupt', keywords: ['mech'], sprite: 'drone', palette: NEON, tier: 'minion', minPhase: 2,
     hp: 240, power: 10, armor: 80, eva: 0.2, interval: 1.0, range: 4, moveSpd: 1.2, atk: { type: 'shoot', elem: 'phys' }, melee: false, noAttack: true,
     // 생중계: 2초마다 가장 가까운 적 하나를 찍는다 (받는 피해 +15%)
     onTick: (b, u, dt) => {
@@ -580,7 +617,7 @@ export const ENEMIES: EnemyDef[] = [
       rampage(b, u, 8);
       b.buff(u, u, 'rd.crit', 8, { taken: [{ kind: 'red', tag: 'all', v: 0.3 }], label: '임계 돌파' });
     } },
-  { id: 'rd_tower', name: '결함 펌웨어 송출탑', tend: 'counter', keywords: ['mech', 'struct'], sprite: 'turret', palette: NEON_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'rd_tower', name: '결함 펌웨어 송출탑', tend: 'pack', keywords: ['mech', 'struct'], sprite: 'turret', palette: NEON_BOSS, tier: 'boss', minPhase: 1,
     hp: 3000, power: 40, armor: 300, effRes: 0.3, interval: 1.3, range: 5, immobile: true, atk: { type: 'shoot', elem: 'elec' }, melee: false,
     escort: ['rd_laborer', 'rd_combat', 'rd_sub'],
     // 펌웨어 송출: 10초마다 같은 편 2기 광폭 + 적 기계 기물 2초 감전
@@ -613,7 +650,7 @@ export const ENEMIES: EnemyDef[] = [
     hp: 380, power: 28, armor: 60, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
   { id: 'kr_archer', name: '대열 궁수 망령', tend: 'sniper', keywords: ['phantom'], sprite: 'soldier', palette: GHOST, tier: 'minion', minPhase: 1,
     hp: 280, power: 28, armor: 40, acc: 0.05, interval: 1.2, range: 4, atk: { type: 'shoot', elem: 'phys' }, melee: false },
-  { id: 'kr_builder', name: '미완의 건축가 망령', tend: 'counter', keywords: ['phantom'], sprite: 'robe', palette: GHOST, tier: 'minion', minPhase: 2,
+  { id: 'kr_builder', name: '미완의 건축가 망령', tend: 'escort', keywords: ['phantom'], sprite: 'robe', palette: GHOST, tier: 'minion', minPhase: 2,
     hp: 320, power: 22, armor: 60, interval: 1.2, range: 2, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     // 묘석 축조: 10초마다 적 쪽 빈칸에 묘석
     onTick: (b, u, dt) => {
@@ -645,7 +682,7 @@ export const ENEMIES: EnemyDef[] = [
       b.emit({ k: 'status', id: u.id, name: '재집결' });
       for (const d of dead) { d.mem.raised = 1; const n = ENEMY_RT.spawn?.(b, d.defId, d, { hpPct: 0.5, mult: d.mem.mult, summon: true }); if (n) n.mem.raised = 1; }
     } },
-  { id: 'kr_choir', name: '무명의 합창', tend: 'counter', keywords: ['phantom'], sprite: 'phantom', palette: GHOST_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'kr_choir', name: '무명의 합창', tend: 'pack', keywords: ['phantom'], sprite: 'phantom', palette: GHOST_BOSS, tier: 'boss', minPhase: 1,
     hp: 3000, power: 46, armor: 120, effRes: 0.3, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
     escort: ['kr_nameless', 'kr_ferryman'],
     skill: {
@@ -667,7 +704,7 @@ export const ENEMIES: EnemyDef[] = [
   // ── 올림푸스 성관 축전 구획 (동맹 · 흑운)
   { id: 'ol_battery', name: '자동 포격 포대', tend: 'sniper', keywords: ['mech', 'struct'], sprite: 'turret', palette: RING, tier: 'minion', minPhase: 1,
     hp: 520, power: 30, armor: 260, acc: 0.1, interval: 1.4, range: 5, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false },
-  { id: 'ol_tender', name: '축전 정비 드론', tend: 'counter', keywords: ['mech'], sprite: 'drone', palette: RING, tier: 'minion', minPhase: 1,
+  { id: 'ol_tender', name: '축전 정비 드론', tend: 'escort', keywords: ['mech'], sprite: 'drone', palette: RING, tier: 'minion', minPhase: 1,
     hp: 260, power: 20, armor: 80, eva: 0.1, interval: 0.8, range: 2, moveSpd: 1.3, atk: { type: 'shoot', elem: 'elec' }, melee: false,
     // 축전 정비: 8초마다 주변 2칸 아군에게 충전 비례 보호막
     onTick: (b, u, dt) => {
@@ -679,7 +716,7 @@ export const ENEMIES: EnemyDef[] = [
     } },
   { id: 'ol_patrol', name: '링 순찰기', tend: 'charge', keywords: ['mech'], sprite: 'mech', palette: RING, tier: 'minion', minPhase: 1,
     hp: 560, power: 30, armor: 280, interval: 1.1, range: 1, moveSpd: 0.9, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'ol_manager', name: '축전 구획 관리기', tend: 'counter', keywords: ['mech', 'struct'], sprite: 'turret', palette: BLACKCLOUD, tier: 'elite', minPhase: 1,
+  { id: 'ol_manager', name: '축전 구획 관리기', tend: 'escort', keywords: ['mech', 'struct'], sprite: 'turret', palette: BLACKCLOUD, tier: 'elite', minPhase: 1,
     hp: 1300, power: 40, armor: 320, interval: 1.2, range: 3, immobile: true, atk: { type: 'shoot', elem: 'elec' }, melee: false,
     // 축전 배분: 8초마다 주변 2칸 아군 충전 +3 (자신은 방전 피해 면역)
     onTick: (b, u, dt) => {
@@ -702,7 +739,7 @@ export const ENEMIES: EnemyDef[] = [
         return true;
       },
     } },
-  { id: 'ol_conduit', name: '극지 도관', tend: 'counter', keywords: ['mech', 'struct'], sprite: 'turret', palette: BLACKCLOUD_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'ol_conduit', name: '극지 도관', tend: 'escort', keywords: ['mech', 'struct'], sprite: 'turret', palette: BLACKCLOUD_BOSS, tier: 'boss', minPhase: 1,
     hp: 2800, power: 38, armor: 300, effRes: 0.3, interval: 1.3, range: 5, immobile: true, atk: { type: 'shoot', elem: 'elec' }, melee: false,
     escort: ['ol_patrol', 'ol_tender'],
     // 살아 있는 동안 모든 아군 공격 속도 +20%, 4초마다 충전이 가장 높은 아군 +2
@@ -728,7 +765,7 @@ export const ENEMIES: EnemyDef[] = [
     } },
   { id: 'cw_maid', name: '전투 메이드 유닉스', tend: 'assassin', keywords: ['mech'], sprite: 'knight', palette: MAID, tier: 'minion', minPhase: 1,
     hp: 380, power: 30, armor: 140, eva: 0.1, interval: 0.7, range: 1, moveSpd: 1.5, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  { id: 'cw_dropper', name: '투하 드론', tend: 'counter', keywords: ['mech'], sprite: 'drone', palette: ASH, tier: 'minion', minPhase: 2,
+  { id: 'cw_dropper', name: '투하 드론', tend: 'disrupt', keywords: ['mech'], sprite: 'drone', palette: ASH, tier: 'minion', minPhase: 2,
     hp: 260, power: 10, armor: 80, eva: 0.15, interval: 1.0, range: 4, moveSpd: 1.2, atk: { type: 'shoot', elem: 'phys' }, melee: false, noAttack: true,
     onTick: (b, u, dt) => {
       u.mem.dropT = (u.mem.dropT ?? 3) - dt;
@@ -738,7 +775,7 @@ export const ENEMIES: EnemyDef[] = [
       const cell = b.freeCellNear(t.x, t.y);
       if (cell) petRock(b, cell);
     } },
-  { id: 'cw_sub', name: '서브루틴', tend: 'counter', keywords: ['mech'], sprite: 'robe', palette: UNIX_ELITE, tier: 'elite', minPhase: 1,
+  { id: 'cw_sub', name: '서브루틴', tend: 'pack', keywords: ['mech'], sprite: 'robe', palette: UNIX_ELITE, tier: 'elite', minPhase: 1,
     hp: 1100, power: 40, armor: 220, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'elec' }, melee: false,
     onTick: (b, u, dt) => {
       if (!command(b, u, 'cmdT', dt, 8, 4)) return;
@@ -761,7 +798,7 @@ export const ENEMIES: EnemyDef[] = [
         return true;
       },
     } },
-  { id: 'cw_kernel', name: '커널 응답체', tend: 'counter', keywords: ['mech'], sprite: 'robe', palette: UNIX_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'cw_kernel', name: '커널 응답체', tend: 'escort', keywords: ['mech'], sprite: 'robe', palette: UNIX_BOSS, tier: 'boss', minPhase: 1,
     hp: 3200, power: 46, armor: 260, effRes: 0.3, interval: 1.0, range: 3, atk: { type: 'shoot', elem: 'elec' }, melee: false,
     escort: ['cw_maid', 'cw_reclaim'],
     // 권한 거부: 체력 25% 구간마다 4초 무적 + 반려 돌 4개
@@ -797,7 +834,7 @@ export const ENEMIES: EnemyDef[] = [
         return true;
       },
     } },
-  { id: 'hy_door', name: '13번째 금고문', tend: 'counter', keywords: ['struct'], sprite: 'turret', palette: VAULT, tier: 'boss', minPhase: 1,
+  { id: 'hy_door', name: '13번째 금고문', tend: 'escort', keywords: ['struct'], sprite: 'turret', palette: VAULT, tier: 'boss', minPhase: 1,
     hp: 2600, power: 38, armor: 360, effRes: 0.3, interval: 1.3, range: 5, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false,
     escort: ['hy_teller', 'hy_exchange', 'turret'],
     // 금고 재봉인: 5초마다 자기 보호막 +1겹, 12초마다 모든 아군 +2겹 (처음 겹 수까지)
@@ -828,7 +865,7 @@ export const ENEMIES: EnemyDef[] = [
   { id: 'bs_knight', name: '해안 기사 개체', tend: 'charge', keywords: ['bio'], sprite: 'knight', palette: TOMB, tier: 'elite', minPhase: 1,
     hp: 1200, power: 42, armor: 260, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     hooks: { takenMult: (_b, _u, _s, o) => (o.elem === 'chem' ? 1 : 0.7) } },
-  { id: 'bs_tomb', name: '묘비 개체', tend: 'counter', keywords: ['bio', 'struct'], sprite: 'turret', palette: TOMB_BOSS, tier: 'boss', minPhase: 1,
+  { id: 'bs_tomb', name: '묘비 개체', tend: 'pack', keywords: ['bio', 'struct'], sprite: 'turret', palette: TOMB_BOSS, tier: 'boss', minPhase: 1,
     hp: 2800, power: 38, armor: 260, effRes: 0.3, interval: 1.3, range: 4, immobile: true, atk: { type: 'shoot', elem: 'chem' }, melee: false,
     escort: ['sw_spore'],
     onTick: (b, u, dt) => { u.mem.spawnT = (u.mem.spawnT || 0) + dt; if (u.mem.spawnT >= 15) { u.mem.spawnT = 0; summonHook?.(b, u, 'sw_spore', 2); } } },
@@ -850,6 +887,105 @@ export const ENEMIES: EnemyDef[] = [
       if (u.mem.hid || b.hpPct(u) > 0.5) return;
       u.mem.hid = 1;
       b.buff(u, u, 'stealth', 4, { label: '은신' });
+    } },
+
+  // ═════════ 공용 기믹 적 (여러 전장 풀 · 정예 후보 · 밀수 운반책은 무작위 출현). 수치는 CFG.foeKit
+  // 원칙: 특정 속성 면역 없이, 해법이 여러 갈래 (폭딜 · 광역 · 다단 · 은신 감지 · 소환자 먼저 등). 대형 · 구조물은 '구조물' 분류 (속성 배율 없음)
+  // [방벽 투사기] 시작 보호막 = 최대 체력. 보호막이 깨지면 [과부하]: 받는 피해 +50% · 주는 피해 −50% (그 전투 동안)
+  { id: 'mx_aegis', name: '방벽 투사병', tend: 'charge', keywords: ['bio'], sprite: 'knight', palette: MERC, tier: 'minion', minPhase: 1,
+    hp: 380, power: 26, armor: 150, interval: 1.1, range: 1, moveSpd: 0.9, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: {
+      onStart(b, u) { b.shield(u, b.S(u, 'maxHp') * K().aegis.shield); u.mem.aegis = 1; },
+      onTick(b, u) {
+        if (u.mem.aegis !== 1 || u.shield > 0) return;
+        u.mem.aegis = 2;
+        b.emit({ k: 'status', id: u.id, name: '방벽 과부하', harm: true });
+        b.applyStatus(u, u, { type: 'buff', key: 'mx.overload', dur: 9999, taken: [{ kind: 'vuln', tag: 'all', v: K().aegis.taken }], mods: [{ kind: 'inc', tag: 'all', v: -K().aegis.weak }], label: '과부하' });
+      },
+    } },
+  // [소집] 시작에 징집병 2기, 12초마다 2기 (동시 4기). 징집병이 하나라도 있으면 받는 피해 −40%. 지휘관이 쓰러지면 징집병도 흩어진다
+  { id: 'mx_warden', name: '소집 지휘관', tend: 'escort', keywords: ['bio'], sprite: 'soldier', palette: MERC_ELITE, tier: 'elite', minPhase: 1,
+    hp: 1000, power: 38, armor: 200, acc: 0.1, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false,
+    onTick: (b, u, dt) => {
+      const W = K().warden;
+      u.mem.callT = (u.mem.callT ?? 0) - dt;
+      if (u.mem.callT > 0) return;
+      u.mem.callT = W.every;
+      const n = Math.min(W.n, W.cap - ownedAlive(b, u, ['mx_conscript']));
+      if (n <= 0) return;
+      b.emit({ k: 'status', id: u.id, name: '소집' });
+      const fwd = u.y < b.h / 2 ? 1 : -1;
+      for (let i = 0; i < n; i++) ownedSpawn(b, u, 'mx_conscript', { x: u.x + (i % 2 ? 1 : -1), y: u.y + fwd });
+    },
+    hooks: { takenMult: (b, u) => (ownedAlive(b, u, ['mx_conscript']) ? 1 - K().warden.red : 1) } },
+  { id: 'mx_conscript', name: '징집병', tend: 'charge', keywords: ['bio'], sprite: 'knight', palette: MERC, tier: 'minion', minPhase: 99,
+    hp: 240, power: 20, armor: 60, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
+  // [각성] 시작부터 공격 속도 +50% · 피해 +25%. 4번 맞으면 (지속 피해 제외) 5초 진정한 뒤 다시 각성
+  { id: 'mx_stim', name: '각성제 강습병', tend: 'charge', keywords: ['bio'], sprite: 'knight', palette: MERC, tier: 'minion', minPhase: 1,
+    hp: 400, power: 26, armor: 110, interval: 1.0, range: 1, moveSpd: 1.1, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    onTick: (b, u) => {
+      if (u.mem.stim || b.t < (u.mem.calmUntil || 0)) return;
+      const S = K().stim;
+      u.mem.stim = 1; u.mem.stimHits = 0;
+      b.applyStatus(u, u, { type: 'buff', key: 'mx.stim', dur: 9999, delta: { atkSpd: S.atkSpd }, mods: [{ kind: 'inc', tag: 'all', v: S.dmg }], label: '각성' });
+    },
+    hooks: { onHurt(b, u, _src, _r, o) {
+      if (!u.mem.stim || o.tag === 'dot') return;
+      if (++u.mem.stimHits < K().stim.hits) return;
+      u.mem.stim = 0;
+      u.mem.calmUntil = b.t + K().stim.calm;
+      u.statuses = u.statuses.filter((s) => s.key !== 'mx.stim');
+      b.emit({ k: 'status', id: u.id, name: '진정', harm: true });
+    } } },
+  // [광학 위장] 전투 시작 5초 은신 · 체력 50% 아래로 처음 떨어지면 3초 은신 (은신 중에도 광역 피해는 맞는다)
+  { id: 'mx_shade', name: '광학 위장 저격수', tend: 'sniper', keywords: ['bio'], sprite: 'soldier', palette: MERC, tier: 'minion', minPhase: 2,
+    hp: 280, power: 30, armor: 60, acc: 0.15, interval: 1.3, range: 4, atk: { type: 'shoot', elem: 'phys' }, melee: false,
+    onTick: (b, u) => {
+      const S = K().shade;
+      if (!u.mem.hid0) { u.mem.hid0 = 1; b.buff(u, u, 'stealth', S.hide, { label: '광학 위장' }); return; }
+      if (u.mem.hid1 || b.hpPct(u) > S.low) return;
+      u.mem.hid1 = 1;
+      b.buff(u, u, 'stealth', S.hideLow, { label: '광학 위장' });
+    } },
+  // [야전 축성] 3초 뒤부터 8초마다 앞쪽 2칸 안 빈칸에 방벽 · 자동 포탑을 번갈아 (공병 1명당 동시 2개). 공병이 쓰러지면 구조물도 무너진다
+  { id: 'mx_sapper', name: '야전 공병', tend: 'escort', builder: true, keywords: ['bio'], sprite: 'robe', palette: MERC, tier: 'minion', minPhase: 2,
+    hp: 320, power: 22, armor: 90, interval: 1.2, range: 2, atk: { type: 'shoot', elem: 'phys' }, melee: false,
+    onTick: (b, u, dt) => {
+      const S = K().sapper;
+      u.mem.buildT = (u.mem.buildT ?? S.first) - dt;
+      if (u.mem.buildT > 0 || b.has(u, 'stun')) return;
+      u.mem.buildT = S.every;
+      if (ownedAlive(b, u, ['mx_barrier', 'mx_sentry']) >= S.cap) return;
+      const t = b.nearest(u, b.targetable(u)); if (!t) return;
+      const dy = Math.sign(t.y - u.y) || 1;
+      const cell = [[0, dy], [-1, dy], [1, dy], [0, 2 * dy], [-1, 2 * dy], [1, 2 * dy], [-1, 0], [1, 0]].map(([dx, d]) => ({ x: u.x + dx, y: u.y + d })).find((c) => b.inBounds(c.x, c.y) && !b.unitAt(c.x, c.y));
+      if (!cell) return;
+      const id = (u.mem.built = (u.mem.built || 0) + 1) % 2 ? 'mx_barrier' : 'mx_sentry';
+      if (ownedSpawn(b, u, id, cell, true)) b.emit({ k: 'status', id: u.id, name: id === 'mx_barrier' ? '방벽 설치' : '포탑 설치' });
+    } },
+  { id: 'mx_barrier', name: '야전 방벽', tend: 'charge', keywords: ['struct'], sprite: 'turret', palette: MERC_BIG, tier: 'minion', minPhase: 99,
+    hp: 520, power: 0, armor: 160, interval: 9, range: 0, immobile: true, atk: { type: 'strike', elem: 'phys' }, melee: false, noAttack: true },
+  { id: 'mx_sentry', name: '야전 자동 포탑', tend: 'sniper', keywords: ['struct'], sprite: 'turret', palette: MERC_BIG, art: 'en_turret', tier: 'minion', minPhase: 99,
+    hp: 300, power: 18, armor: 100, interval: 1.0, range: 3, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false },
+  // 대형 (2×2): 움직이지 않는 포격 보행기. 포탄이 맞은 칸 주변 1칸에 40%. 칸마다 맞지만 체력은 하나 (본체 칸 ×1 · 나머지 ×0.5)
+  { id: 'mx_bastion', name: '공성 보행 포대', tend: 'sniper', size: { w: 2, h: 2 }, keywords: ['struct'], sprite: 'turret', palette: MERC_BIG, tier: 'minion', minPhase: 2,
+    hp: 1400, power: 30, armor: 200, acc: 0.1, interval: 1.6, range: 5, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false,
+    onBasic: (b, u, t, r) => { if (r.miss || u.mem.part) return; b.fx(t.x, t.y, 1, 'phys'); for (const e of b.around(t, 1, b.enemiesOf(u))) if (e !== t) skillHit(b, u, e, 'shoot', 0.4, 'phys', { tag: 'proc', noMiss: true }); } },
+  // 대형 (1×3): 앞줄을 가로막는 방벽 전차. 사거리 2 사격, 지킬 동료 곁의 대상을 친다
+  { id: 'mx_rampart', name: '방벽 전차', tend: 'escort', size: { w: 3, h: 1 }, keywords: ['struct'], sprite: 'mech', palette: MERC_BIG, tier: 'minion', minPhase: 2,
+    hp: 1300, power: 26, armor: 240, interval: 1.2, range: 2, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false },
+  // 교란형 근접: 아군이 몰린 곳을 두 번씩 베고 지나간다. 피해는 낮고 회피가 높다 (명중 · 광역 · 경계로 붙잡기)
+  { id: 'mx_skirm', name: '교란 척후병', tend: 'disrupt', keywords: ['bio'], sprite: 'knight', palette: MERC, tier: 'minion', minPhase: 1,
+    hp: 300, power: 22, armor: 70, eva: 0.1, interval: 0.8, range: 1, moveSpd: 1.2, atk: { type: 'strike', elem: 'phys' }, melee: true },
+  // 밀수 운반책: 공격하지 않고 달아난다. 18초가 지나거나 동료가 다 쓰러지고 5초가 지나면 빠져나간다 (보상 없음). 그 전에 쓰러뜨리면 크레딧
+  { id: 'mx_smuggler', name: '밀수 운반책', tend: 'disrupt', keywords: ['bio'], sprite: 'beast', palette: SMUG, tier: 'minion', minPhase: 99,
+    hp: 220, power: 10, armor: 40, interval: 9, range: 1, moveSpd: 0.9, atk: { type: 'strike', elem: 'phys' }, melee: true, noAttack: true,
+    onTick: (b, u) => {
+      const S = K().smuggler;
+      if (!u.mem.bounty) { u.mem.bounty = S.credBase + S.credPer * b.ctx.phase; u.mem.escAt = S.escape; }
+      if (!u.mem.alone && !b.fighters(1).some((x) => x !== u && x.defId !== 'mx_smuggler')) { u.mem.alone = 1; u.mem.escAt = Math.min(u.mem.escAt, b.t + S.alone); }
+      if (b.t >= u.mem.escAt) { u.alive = false; b.emit({ k: 'status', id: u.id, name: '탈출' }); b.emit({ k: 'die', id: u.id }); b.checkEnd(); return; }
+      runAway(b, u);
     } },
 ];
 export const ENEMY_BY_ID: Record<string, EnemyDef> = Object.fromEntries(ENEMIES.map((e) => [e.id, e]));

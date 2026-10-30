@@ -8,7 +8,7 @@ import { DIFF_PRESETS, DIFFS, MAX_DIFF, diffAddCount, diffAddEvery, diffAddRule,
 import { CATWHEEL, DESPAIR_BY_ID, DESPAIRS, despairDiff, despairPhases, despairsOf, type DespairDef } from './data/despair';
 import { BOONS, EVENT_BY_ID, EVENTS } from './data/events';
 import { STORIES } from './data/stories';
-import { FIELDS, fieldOf } from './data/battlefields';
+import { FIELDS, fieldElites, fieldOf } from './data/battlefields';
 import { BLESSING_BY_ID, GLOBAL_BY_ID, GLOBAL_TIER_NAME } from './data/globals';
 import { tierKey, combine, CONSUMABLES, emblemOf, isConsumable, isEmblem, isInjector, isLegendConsumable, isLocked, isMat, isMod, refineLv, refineBase, potsOf, potSlots, potPool, POTS, DUST, SHARD, CRYSTAL, isOccultMod, isTurretGear, itemInfo, TURRET_GEAR } from './data/items';
 import { aceTargetUid, ENG_TUR, OCCULT_SYNTH, rankTitle, SYN_BY_ID, SYNERGIES, TITLE_NAME, tierOf, VOYAGE_SPECIAL } from './data/synergies';
@@ -882,7 +882,7 @@ const muTags = (x: { weak: string[]; resist: string[]; immune: string[] }) => [x
 /** 전장 정보: 적 유형 · 우세 속성 · 우세 시너지 */
 function fieldBrief(fid: string) {
   const f = fieldOf(fid);
-  const roster = [...f.pool.map((id) => [id, 1] as const), [f.elite, 2] as const, ...f.bosses.map((id) => [id, 3] as const)];
+  const roster = [...f.pool.map((id) => [id, 1] as const), ...fieldElites(f).map((id) => [id, 2 / fieldElites(f).length] as const), ...f.bosses.map((id) => [id, 3] as const)];
   const ct: Record<string, number> = {}, el: Record<string, number> = {};
   for (const [id, w] of roster) { const e = ENEMY_BY_ID[id]; if (!e) continue; const t = enemyCategory(e); ct[t] = (ct[t] || 0) + w; el[e.atk.elem] = (el[e.atk.elem] || 0) + w; }
   const top = (o: Record<string, number>, n: number) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n).map((x) => x[0]);
@@ -894,7 +894,7 @@ function fieldBrief(fid: string) {
   </div>
   ${matchupHtml(fid)}
   <ul class="fb-rules">${f.rules.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
-  <div class="fb-foes">${[...f.bosses, f.elite, ...f.pool].map((id) => {
+  <div class="fb-foes">${[...f.bosses, ...fieldElites(f), ...f.pool].map((id) => {
     const e = ENEMY_BY_ID[id];
     if (!e) return '';
     const tag = e.tier === 'boss' ? '보스' : e.tier === 'elite' ? '정예' : '';
@@ -904,7 +904,7 @@ function fieldBrief(fid: string) {
 /** 명부 머리 띠 위 전장 정보: 자주 나오는 적 (분류 · 얼굴) · 유리한 시너지 (후보 보장 수). 전장 그림 위에 얹는다 */
 function fieldBandInfo(fid: string) {
   const f = fieldOf(fid), ct: Record<string, number> = {};
-  for (const [id, w] of [...f.pool.map((id) => [id, 1] as const), [f.elite, 2] as const]) { const e = ENEMY_BY_ID[id]; if (e) ct[enemyCategory(e)] = (ct[enemyCategory(e)] || 0) + w; }
+  for (const [id, w] of [...f.pool.map((id) => [id, 1] as const), ...fieldElites(f).map((id) => [id, 2 / fieldElites(f).length] as const)]) { const e = ENEMY_BY_ID[id]; if (e) ct[enemyCategory(e)] = (ct[enemyCategory(e)] || 0) + w; }
   const cats = Object.entries(ct).sort((a, b) => b[1] - a[1]).slice(0, 2).map((x) => x[0] as Category);
   const faces = f.pool.slice(0, 4).map((id) => ENEMY_BY_ID[id]).filter(Boolean).map((e) => `<i class="nr-bi-face" title="${esc(e.name)}">${sprite(e, '')}</i>`).join('');
   const syn = fieldSyn(fid), k = starterFavNeed(fid);
@@ -1785,7 +1785,9 @@ function prepScreen(run: RunState) {
     const e = ENEMY_BY_ID[s.defId];
     const sel = app.sel?.k === 'enemy' && app.sel.i === i;
     if (s.duo === 'b') { const ec = foeCell(s, geo), mate = node.enc!.enemies.find((o) => o.sq === s.sq && o.duo === 'f'), mc = mate && foeCell(mate, geo); if (mc) units += `<i class="duo-frame" style="${box(ec.x, Math.min(ec.y, mc.y), 1, 2)}" aria-hidden="true"></i>`; } // 포병 듀오: 두 칸을 한 기물로 두르는 틀
+    if (s.part === 0) { const cs = node.enc!.enemies.filter((o) => o.sq === s.sq && o.part !== undefined).map((o) => foeCell(o, geo)), x0 = Math.min(...cs.map((c) => c.x)), y0 = Math.min(...cs.map((c) => c.y)); units += `<i class="duo-frame" style="${box(x0, y0, Math.max(...cs.map((c) => c.x)) - x0 + 1, Math.max(...cs.map((c) => c.y)) - y0 + 1)}" aria-hidden="true"></i>`; } // 대형 적: 차지한 칸을 한 기물로 두르는 틀
     const sqc = sqSel === null ? '' : s.sq === sqSel ? ' sq-on' : ' sq-off';
+    if (s.part) { units += `<div class="u side1 placed bigpart${sel ? ' sel' : ''}${sqc}" style="${(() => { const ec = foeCell(s, geo); return cellBox(ec.x, ec.y); })()}" data-a="sel-enemy" data-v="${i}" data-drop="foe:${i}" title="${esc(`${e.name} (대형 · 같은 기물)`)}"></div>`; return; } // 대형 적의 나머지 칸: 틀 안 빈칸 (초상은 본체 칸에)
     units += `<div class="u side1 placed${hasPortrait(e) ? ' tk' : ''} ${e.tier !== 'minion' && !hasPortrait(e) ? 'big' : ''} ${sel ? 'sel' : ''}${s.duo ? ` duo duo-${s.duo}` : ''}${sqc}" style="${(() => { const ec = foeCell(s, geo); return cellBox(ec.x, ec.y); })()}"
       data-a="sel-enemy" data-v="${i}" data-drop="foe:${i}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''} · ${tendText(e)}`)}">${hasPortrait(e)
         ? (() => { const cat = enemyCategory(e), td = TEND_NAME[e.tend], mod = s.mod || (s.stripped ? null : e.mod), its = [...(s.stripped ? [] : (e.items || []).filter((x): x is string => !!x)), ...(s.items || [])]; return `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${mod ? `<span class="tk-mod">${itemIcon(mod, `data-a="foe-item" data-v="${mod}"`)}</span>` : ''}</div><span class="tk-side">${e.tier === 'minion' ? '' : `<b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : 'E'}</b>`}<i class="cat-${cat}" title="${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}">${lineIcon(`k.${cat}`, 'li')}</i>${td ? `<i class="tk-tend" title="${esc(`${td.name}: ${td.desc}`)}">${lineIcon(`t.${e.tend}`, 'li')}</i>` : ''}</span><span class="tk-items">${[0, 1, 2].map((k) => (its[k] ? itemIcon(its[k], `data-a="foe-item" data-v="${its[k]}"`) : itemIcon(null))).join('')}</span></div>`; })()
@@ -1800,7 +1802,7 @@ function prepScreen(run: RunState) {
   units += `<div class="dev-pv-host">${pv ? devPvHtml(run, pv, ex) : ''}</div>`;
   // 창 가장자리 길잡이 (vpCueSync): 아군 진형 · 적 진형의 화면 사각형 (보이는 틀 기준 화면 칸) + 적 수. 아군 진형은 포탑 열까지
   const zoneScr = (x: number, y: number, w: number, h: number) => { const r = rectScr(geo, x, y, w, h); return [r.x - fr.ox, r.y - fr.oy, r.w, r.h]; };
-  const foeN = (flip: boolean) => node?.enc?.enemies.filter((s) => !!s.flip === flip).length ?? 0;
+  const foeN = (flip: boolean) => node?.enc?.enemies.filter((s) => !!s.flip === flip && !s.part).length ?? 0; // 대형 적은 본체 칸만 센다
   const zones = [{ k: 'ally', r: zoneScr(PAD - ex, geo.ay0, n + 2 * ex, geo.rows), n: deployed(run).length },
     ...(isBattle ? [{ k: 'foe0', r: zoneScr(PAD, PAD, n, ZONE), n: foeN(false) }] : []),
     ...(isBattle && geo.foe2 ? [{ k: 'foe1', r: zoneScr(PAD, geo.foe2, n, ZONE), n: foeN(true) }] : [])];
@@ -2084,8 +2086,9 @@ function statLines(c: CUnit, b: Battle) {
 /** 이동 속도 계산 규칙 (능력치 줄 툴팁 · 도감): 아군 기물 · 적 (데이터 CFG · enemyBaseMoveSpd 에서 읽는다) */
 const agiMovePp = () => `${+(CFG.conv.agi.moveSpd * 100).toFixed(1)}%p`;
 function enemyMoveRule(e: EnemyDef) {
-  const mul = e.moveSpd ?? 1, base = e.tend === 'assassin' ? CFG.enemyMoveSpd.assassin : CFG.enemyMoveSpd.base;
-  const why = [e.tend === 'assassin' ? `암살형 ${mul !== 1 ? pctTxt(base) : ''}`.trim() : mul !== 1 ? pctTxt(base) : '', mul !== 1 ? `이동 배율 ${mul}` : ''].filter(Boolean).join(' × ');
+  const mul = e.moveSpd ?? 1, base = e.tend === 'assassin' ? CFG.enemyMoveSpd.assassin : e.tend === 'disrupt' ? CFG.enemyMoveSpd.disrupt : CFG.enemyMoveSpd.base;
+  const fast = e.tend === 'assassin' || e.tend === 'disrupt' ? TEND_NAME[e.tend].name : '';
+  const why = [fast ? `${fast} ${mul !== 1 ? pctTxt(base) : ''}`.trim() : mul !== 1 ? pctTxt(base) : '', mul !== 1 ? `이동 배율 ${mul}` : ''].filter(Boolean).join(' × ');
   return `기본 이동 속도 ${pctTxt(enemyBaseMoveSpd(e))}${why ? ` (${why})` : ''} + 기동력 1당 ${agiMovePp()}`;
 }
 function moveRule(c: CUnit): string {
@@ -2636,6 +2639,7 @@ function prepBrief(run: RunState) {
   // 같은 적은 한 줄로 묶는다 (장비는 편성 보드의 적 카드에 보인다). 누르면 그 적의 첫 개체 상세
   const groups = new Map<string, { id: string; i: number; n: number; idx: number[] }>();
   enc.enemies.forEach((s, i) => {
+    if (s.part) return; // 대형 적의 나머지 칸 (본체 칸이 대표)
     const g = groups.get(s.defId) || { id: s.defId, i, n: 0, idx: [] };
     g.n++;
     g.idx.push(i);
@@ -2651,7 +2655,7 @@ function prepBrief(run: RunState) {
   // 아군 공격 속성: 미리보기 전투에서 실제 값을 읽는다 (장비 · 증강 반영)
   const b = deployed(run).length ? buildBattle(run, { ...enc, enemies: [] }, false) : null;
   const allies = b ? b.units.filter((u) => u.side === 0 && !u.isSummon) : [];
-  const mu = encounterMatchup(enc.enemies.map((s) => s.defId), allies.map((u) => u.atk.elem));
+  const mu = encounterMatchup(enc.enemies.filter((s) => !s.part).map((s) => s.defId), allies.map((u) => u.atk.elem)); // 대형 적은 본체 칸만
   const kind = type === 'challenge' ? `${NODE_NAME.challenge} · P${enc.phase ?? run.phase}` : type === 'boss' ? '보스전' : NODE_NAME[type];
   const foe = (x: (typeof rows)[number]) => {
     const cat = enemyCategory(x.e), td = TEND_NAME[x.e.tend];
@@ -2685,6 +2689,14 @@ function duoInfo(run: RunState, s: EnemySpawn, b: Battle, c: CUnit) {
   const rows: [string, string][] = [['이 칸', back ? '포병 (뒤 칸)' : '부사수 (앞 칸)'], ['짝', `${ENEMY_BY_ID[mate.defId].name} (${back ? '앞' : '뒤'} 칸)`], ['체력', `두 칸 합계 ${fmt(b.S(c, 'maxHp') + b.S(m, 'maxHp'))} · 나눠 씀`], ['받는 피해', `뒤 칸 ×${D.back} · 앞 칸 ×${D.front}`], ['이동', '움직이지 않음'], ['쓰러짐', '한 칸이 쓰러지면 둘 다']];
   return `<h3>포병 듀오 <span class="muted small">두 칸 한 기물</span></h3><dl class="um-types ct-rules">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
 }
+/** 대형 적 상세 (EnemyDef.size · engine/build.ts linkGroup): 차지한 칸 · 이 칸 · 체력 공유 · 칸별 받는 피해 배율 */
+function bigInfo(s: EnemySpawn) {
+  const z = ENEMY_BY_ID[s.defId]?.size;
+  if (!z || s.part === undefined) return '';
+  const B = CFG.foeKit.big;
+  const rows: [string, string][] = [['차지한 칸', `가로 ${z.w} × 세로 ${z.h}`], ['이 칸', s.part ? '나머지 칸' : '본체 칸'], ['체력', '모든 칸이 같은 체력을 나눠 씀'], ['받는 피해', `본체 칸 ×${B.core} · 나머지 칸 ×${B.part} (광역은 칸마다)`], ['이동', '움직이지 않음'], ['쓰러짐', '체력이 다하면 모든 칸이 함께']];
+  return `<h3>대형 <span class="muted small">${z.w * z.h}칸 한 기물</span></h3><dl class="um-types ct-rules">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
+}
 /** '이번 전투' 적 분대 (data/squads.ts): 분대마다 종류 아이콘 · 이름 · 인원 · 분대원 얼굴 (같은 적은 한 번). 누르면 보드에서 그 분대만 강조 (다시 누르면 해제).
  *  증원 분대는 '증원' 꼬리표. 포병 듀오는 두 칸 한 기물이라 '2칸' */
 function squadList(enc: Encounter) {
@@ -2694,7 +2706,7 @@ function squadList(enc: Encounter) {
     if (!mem.length) return '';
     const k = SQUAD_KIND[q.kind as SquadKind] || SQUAD_KIND.mixed, on = app.sqSel === i;
     const faces = [...new Set(mem.map((e) => e.defId))].slice(0, 3).map((id) => sprite(ENEMY_BY_ID[id], 'spr')).join('');
-    const n = q.kind === 'duo' ? '2칸' : `${mem.length}명`;
+    const n = q.kind === 'duo' ? '2칸' : q.kind === 'big' ? `${mem.length}칸` : `${mem.length}명`;
     return `<li><button class="pb-sq sq-${q.kind}${on ? ' on' : ''}" data-a="sel-squad" data-v="${i}" aria-pressed="${on}" title="${esc(`${q.name} — ${k.name}${q.kind === 'duo' ? ` · 두 칸이 체력을 나눠 쓰는 한 기물 · 뒤 칸 받는 피해 ×${CFG.squads.duo.back}` : ''}`)}">
       <span class="pb-sq-ic">${lineIcon(k.icon, 'li')}</span><span class="pb-sq-nm"><b>${esc(q.name)}</b>${q.name !== k.name ? `<em>${esc(k.name)}</em>` : ''}${q.add ? '<em class="pb-sq-add">증원</em>' : ''}</span><span class="pb-sq-faces">${faces}</span><span class="pb-n">${n}</span></button></li>`;
   }).join('');
@@ -2740,7 +2752,7 @@ function detailPanel(run: RunState, extra = '') {
     return `<div class="detail">${bar}
       ${foeHead(e, sprite(e, 'spr big'), unitRank(e, c))}
       ${startChips(run)}
-      ${duoInfo(run, s, b, c)}
+      ${duoInfo(run, s, b, c)}${bigInfo(s)}
       ${eq.length ? `<h3>장비</h3><div class="d-eqbox"><div class="d-eq">${eq.map((x) => `<span class="tk-it">${itemIcon(x, `data-a="foe-item" data-v="${x}"`)}</span>`).join('')}</div></div>` : ''}
       <div class="mj-wrap"><div class="mj-head"><h3>주요 능력치 <span class="muted small">페이즈 ${ph} · 체력 ${fmt(b.S(c, 'maxHp'))}</span></h3>${magBtn()}</div>${majorsHtml(ms, foeAmp(ms, c))}</div>
       <h3>능력</h3><div class="abils">${enemyAbilCards(e, b, c)}</div>
@@ -3278,7 +3290,7 @@ function fieldCard(run: RunState, compact = false) {
     <div class="fc-head"><span class="fc-ic">${f.icon}</span><div><b>${esc(f.name)}</b><div class="muted small">${esc(f.region)}</div></div></div>
     ${compact ? '' : `<p class="small">${esc(f.desc)}</p>`}
     <ul class="fc-rules">${f.rules.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
-    <div class="small muted">출현: ${f.pool.map(nm).join(' · ')} · 정예 ${nm(f.elite)}</div>
+    <div class="small muted">출현: ${f.pool.map(nm).join(' · ')} · 정예 ${fieldElites(f).map(nm).join(' · ')}</div>
     <div class="small"><span class="accent">보스</span> ${f.bosses.map((id) => (id === bossNow ? `<b>${nm(id)}</b>` : nm(id))).join(' → ')} <span class="muted">(페이즈마다 순환)</span></div>
     ${compact ? '' : matchupHtml(f.id)}
   </div>`;
@@ -5025,7 +5037,8 @@ function provInfo(b: Battle, u: CUnit) {
   if (!u.prov || !u.alive) return '';
   const top = b.provTop(u, 3);
   const tg = u.target?.alive ? u.target : null;
-  return `<h3>표적 <span class="muted small">${u.tend ? esc(TEND_NAME[u.tend].name) : ''}</span></h3><p class="small">${tg ? `지금 표적: <b>${esc(tg.name)}</b>` : '표적 없음'}${(u.mem.provLock || 0) > b.t ? ' <span class="tag">도발 고정</span>' : ''}</p>${top.length ? `<ol class="as-log">${top.map((x) => `<li>${esc(x.u.name)} <span class="muted">도발 수치 ${Math.round(x.v)}</span></li>`).join('')}</ol>` : ''}`;
+  const guard = u.tend === 'escort' && u.mem.guardId ? b.units.find((x) => x.id === u.mem.guardId && x.alive) : null; // 호위형: 지키는 동료
+  return `<h3>표적 <span class="muted small">${u.tend ? esc(TEND_NAME[u.tend].name) : ''}</span></h3><p class="small">${tg ? `지금 표적: <b>${esc(tg.name)}</b>` : '표적 없음'}${(u.mem.provLock || 0) > b.t ? ' <span class="tag">도발 고정</span>' : ''}${guard ? ` · 지키는 동료: <b>${esc(guard.name)}</b>` : ''}${u.tend === 'pack' && b.t > CFG.tend.pack.provFor ? ' <span class="tag">도발 배율 무시</span>' : ''}</p>${top.length ? `<ol class="as-log">${top.map((x) => `<li>${esc(x.u.name)} <span class="muted">도발 수치 ${Math.round(x.v)}</span></li>`).join('')}</ol>` : ''}`;
 }
 function heroHead(artId: string, fallback: string, name: string, tags: string) {
   const t = tags ? `<span class="dh-types">${tags}</span>` : '';
@@ -5220,14 +5233,14 @@ function codexScreen() {
     body = codexUnits(m);
   } else if (app.codexTab === 'enemies') {
     body = FIELDS.map((f) => {
-      const ids = [...f.pool, f.elite, ...f.bosses];
+      const ids = [...f.pool, ...fieldElites(f), ...f.bosses];
       return `<h2 style="color:${f.color}">${f.icon} ${esc(f.name)}</h2><div class="codex-list">${ids.map((id) => {
         const e = ENEMY_BY_ID[id];
         const r = m.enemies[id];
         return `<div class="codex-row ${r ? '' : 'unknown'}">${sprite(e)}<div><b>${r ? esc(e.name) : '???'}</b> <span class="muted small">${e.tier === 'boss' ? '보스' : e.tier === 'elite' ? '정예' : '일반'}</span>
           <div class="small">${r ? esc(ENEMY_DESC[id] || '') : '아직 만나지 못했습니다.'}</div>${r ? `<div class="small muted">${esc(tendText(e))}</div>${e.immobile ? '' : `<div class="small muted">${esc(enemyMoveRule(e))}</div>`}` : ''}</div><div class="small mono">조우 ${r?.seen || 0}<br>처치 ${r?.kills || 0}</div></div>`;
       }).join('')}</div>`;
-    }).join('') + (() => { const extra = ENEMIES.filter((e) => !FIELDS.some((f) => [...f.pool, f.elite, ...f.bosses].includes(e.id)) && m.enemies[e.id]); return extra.length ? `<h2>기타</h2><div class="codex-list">${extra.map((e) => `<div class="codex-row">${sprite(e)}<div><b>${esc(e.name)}</b></div><div class="small mono">처치 ${m.enemies[e.id].kills}</div></div>`).join('')}</div>` : ''; })();
+    }).join('') + (() => { const extra = ENEMIES.filter((e) => !FIELDS.some((f) => [...f.pool, ...fieldElites(f), ...f.bosses].includes(e.id)) && m.enemies[e.id]); return extra.length ? `<h2>기타</h2><div class="codex-list">${extra.map((e) => `<div class="codex-row">${sprite(e)}<div><b>${esc(e.name)}</b></div><div class="small mono">처치 ${m.enemies[e.id].kills}</div></div>`).join('')}</div>` : ''; })();
   } else if (app.codexTab === 'events') {
     const story = (p: string) => EVENTS.filter((e) => e.id.startsWith(p));
     const groups: [string, typeof EVENTS][] = [['공용', EVENTS.filter((e) => !e.fields && !/^s[a-d]_/.test(e.id))], ...FIELDS.map((f) => [f.name, EVENTS.filter((e) => e.fields?.includes(f.id))] as [string, typeof EVENTS]),
