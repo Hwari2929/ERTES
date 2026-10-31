@@ -162,7 +162,7 @@ export type Pending =
   | { t: 'supply'; options: SupplyCard[]; route?: boolean } // route: 항로에 놓인 보급 노드 (첫 장 재료 확정 · 대박 없음)
   | { t: 'branch'; options: NodeType[] }
   | { t: 'fork' } // 전환: 휴식 / 도전
-  | { t: 'muster' } // 지정 소집: 시너지 4개 선택 창
+  | { t: 'muster' } // 지정 소집: 시너지 CFG.musterPicks 개 선택 창
   | { t: 'blessing'; options: string[] }
   | { t: 'notice'; title: string; body: string; scene?: Beat[]; /** 이름 + 값 표 (규칙 · 수치는 문장 대신 여기에) */ rows?: [string, string][]; /** 캠페인 마지막 알림: 닫으면 런이 끝난다 */ end?: boolean };
 
