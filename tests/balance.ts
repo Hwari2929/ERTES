@@ -99,6 +99,14 @@ const F_GLOB = process.argv.find((a) => a.startsWith('fglob='))?.slice(6);
 /** [보급안 실험] cfgp1: CFG.supply.p1 (1페이즈 항로 보급 2회) · cfgfront: CFG.supply.front (2페이즈부터 페이즈 맨 앞 항로 보급). CLI supply(분기점 보급 선택 정책)와 다르다 */
 if (process.argv.includes('cfgp1')) (CFG.supply as { p1: boolean }).p1 = true;
 if (process.argv.includes('cfgfront')) (CFG.supply as { front: boolean }).front = true;
+/** 규칙 실험: cfgset=offer.step:18,consecrate.gain:20 — CFG 의 숫자 값을 점 경로로 바꾼다 (그 실행 안에서만) */
+for (const kv of (process.argv.find((a) => a.startsWith('cfgset='))?.slice(7) || '').split(',').filter(Boolean)) {
+  const [path, v] = kv.split(':'), ks = path.split('.');
+  let o = CFG as unknown as Record<string, unknown>;
+  for (const k of ks.slice(0, -1)) o = o[k] as Record<string, unknown>;
+  if (typeof o?.[ks[ks.length - 1]] !== 'number' || !Number.isFinite(+v)) throw new Error(`cfgset: 숫자 설정이 아님 ${path}`);
+  o[ks[ks.length - 1]] = +v;
+}
 
 // ───────── 역경 계측: 첫 아군 사망 · 첫 적 처치 시각 (전투 동작은 그대로, 시각만 기록)
 type Enc = NonNullable<NonNullable<RunState['node']>['enc']>;

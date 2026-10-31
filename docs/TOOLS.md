@@ -108,6 +108,7 @@ node <폴더>/bal.cjs <시작 시드> <런 수> [반사실 표본 비율] [위�
 | | `adv=1.2` | 역경 · 도전 강도 `CFG.adversityMult` |
 | | `oath=grit:3,pain:2` · `oathfrom=3` | 절망 서약 설정 · 서약이 걸리는 위험 등급 낮추기 |
 | | `cfgp1` · `cfgfront` | 보급 실험 `CFG.supply.p1` · `.front` 켜기. **p1 은 지금 기본으로 켜져 있어 `cfgp1` 은 효과 없음** |
+| | `cfgset=<경로>:<값>,…` | CFG 숫자 값을 점 경로로 바꾼다 (예: `cfgset=offer.step:24,consecrate.gain:20`). 숫자가 아닌 경로면 실패 |
 | 선택 정책 | `advpol=<역경>:<도전>` | 역경 must · avoid · state · power, 도전 always · never · state · power (정책 난수는 봇 난수와 따로). 분기 항로에서는 '역경이 있으면 정책대로, 없으면 첫 선택지'로 고르므로 상점 · 보급 같은 서비스 노드 판단이 빠진다 |
 | | `supply` | 갈림길 대기(`branch`)에서 첫 상점 뒤에 보급을 고른다. **갈림길 대기는 한 줄 항로에만 있어 지금 일반 런에서는 효과 없음** |
 | | `globrand` | 전역 증강을 제시된 것 중 무작위로 (새로고침 없음) + 런마다 `gr` [페이즈, 제시, 고름] — 전역 증강 비교 (제시됐는데 안 고른 런이 대조군) |
