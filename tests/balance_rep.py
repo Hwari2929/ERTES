@@ -1,16 +1,27 @@
 """밸런스 조각 집계 2단계 (v471 보고서에서 처음 씀): 작업 폴더의 acc_chulsu.json · acc_younghee.json (tests/balance_acc.py) → tables.md (보고서 표 재료) + summary.json (docs 원자료).
 사용: python3 tests/balance_rep.py <작업 폴더> [직전 보고 원자료 json (기본 docs/balance_2026_10_30_v457.json)]
-직전 보고 비교 열은 v457 원자료 키 (rep · byPhaseNode · foe) 를 읽는다."""
-import json, os, math, sys
+직전 보고 비교 열은 v457 원자료 키 (rep · byPhaseNode · foe) 를 읽는다. v471 부터의 원자료 (이 스크립트의 summary.json) 도 받는다:
+byPhaseNode · foe 를 v457 모양으로 바꿔 읽고, 시드별 클리어 (seeds) 가 있으면 같은 시드 짝 비교를 낸다. 비교 열 이름은 파일 이름의 vNNN (BAL_PREV 로 바꿀 수 있다).
+디바인 개편 (2026-10-31, 서약 증강 · 참배 카드 없음 — 이름표 vows 가 빈 표) 뒤 자료면 서약 · 참배 카드 · 초안 봉헌 대입 표를 건너뛰고 dv 여섯째 칸을 봉헌 단계로 읽는다."""
+import json, os, math, sys, re
 from collections import defaultdict, Counter
 
 HERE = sys.argv[1]
 N = json.load(open(os.path.join(HERE, 'names.json')))
 U = N['units']; EN = N['enemy']
-V457 = json.load(open(sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'docs', 'balance_2026_10_30_v457.json')))
+_PREV = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'docs', 'balance_2026_10_30_v457.json')
+V457 = json.load(open(_PREV))
+PL = os.environ.get('BAL_PREV') or (re.search(r'v\d+', os.path.basename(_PREV)) or re.search('', '')).group(0) or '직전'  # 비교 열 이름
+if 'byPhaseNode' not in V457:  # v471 이후 원자료: v457 모양으로 바꿔 읽는다 (lift 는 % → 비율)
+    V457['byPhaseNode'] = {b: {k.replace('|', ':'): {'rank': x[3]} for k, x in V457['rep'][b]['node'].items()} for b in ['chulsu', 'younghee']}
+    _fo = V457['foe']
+    V457['foe'] = {b: {'tend': {k: {'lift': x['lift'] / 100} for k, x in _fo['tend'][b].items() if x},
+                       'squad': {k: {'lift': x['lift'] / 100} for k, x in _fo['squad'][b].items() if x},
+                       'foe': {k: {'lift': u[b[0]]['lift'] / 100} for k, u in _fo['units'].items() if u.get(b[0])}} for b in ['chulsu', 'younghee']}
 BOTS = ['chulsu', 'younghee']
 BN = {'chulsu': '철수', 'younghee': '영희'}
 D = {b: json.load(open(os.path.join(HERE, f'acc_{b}.json'))) for b in BOTS}
+POST = not N.get('vows')  # 디바인 개편 뒤 (서약 증강 없음)
 MINOR = ['gunnir', 'demiurgos', 'ingel', 'zahara', 'jaehwon', 'vivian', 'bill', 'orca', 'eden', 'chloe', 'west', 'rasmus', 'sigmund', 'u404', 'petrock']
 GRP = {'toDivine': '디바인으로 (5)', 'toPsionic': '사이오닉으로 (4)', 'toMajor': '메이저로 (6)'}
 DIVINE = [k for k, v in U.items() if v['tt'] == 'divine']
@@ -73,7 +84,7 @@ for b in BOTS:
 
 # ───────── 1. 요약
 P('\n## 1. 요약')
-P('| 항목 | 철수 | 영희 | v457 (철수 / 영희) |'); P('|---|---|---|---|')
+P(f'| 항목 | 철수 | 영희 | {PL} (철수 / 영희) |'); P('|---|---|---|---|')
 row = {}
 for b in BOTS:
     R = D[b]['runs']; n = len(R); k = sum(r['cl'] for r in R); lo, hi = wilson(k, n)
@@ -89,14 +100,25 @@ for b in BOTS:
                          'battlesPerRun': sum(r['nb'] for r in R) / n, 'hpEnd': sum(r['hp'] for r in R) / n}
 v = V457['rep']
 P(f"| 클리어 (95% CI) | {row['chulsu']['clear']} | {row['younghee']['clear']} | {100*v['chulsu']['clear']:.1f}% / {100*v['younghee']['clear']:.1f}% |")
-P(f"| 보스 첫 시도 P1–P5 | {row['chulsu']['fb']} | {row['younghee']['fb']} | " + ' · '.join(' / '.join(f"{100*v[b]['bossFirst'][str(p)][0]:.0f}" for p in range(1, 6)) for b in BOTS) + ' |')
+P(f"| 보스 첫 시도 P1–P5 | {row['chulsu']['fb']} | {row['younghee']['fb']} | " + ' · '.join(' / '.join(f"{(lambda x: x if x > 1.5 else 100 * x)(v[b]['bossFirst'][str(p)][0]):.0f}" for p in range(1, 6)) for b in BOTS) + ' |')
 P(f"| 실패 위치 상위 | {row['chulsu']['fail']} | {row['younghee']['fail']} | |")
-P(f"| 판당 전투 · 끝난 뒤 체력 | {row['chulsu']['nb']} | {row['younghee']['nb']} | 24.1 · 21 / 24.3 · 32 |")
+P(f"| 판당 전투 · 끝난 뒤 체력 | {row['chulsu']['nb']} | {row['younghee']['nb']} | {' / '.join(f"{v[b]['battlesPerRun']:.1f} · {v[b]['hpEnd']:.0f}" for b in BOTS) if 'battlesPerRun' in v['chulsu'] else '24.1 · 21 / 24.3 · 32'} |")
 P(f"| 평균 도달 페이즈 | {row['chulsu']['ph']} | {row['younghee']['ph']} | {v['chulsu']['phase']:.2f} / {v['younghee']['phase']:.2f} |")
-# 같은 시드 2,000판만 (30001–32000)
+# 같은 시드 짝 비교 (직전 원자료에 시드별 클리어가 있을 때) · 없으면 v457 처럼 같은 시드 2,000판만 (30001–32000)
 for b in BOTS:
+    sd = V457.get('seeds', {}).get(b)
+    if not sd: continue
+    old = {sd['from'] + i: int(c) for i, c in enumerate(sd['cleared'])}
+    R = [r for r in D[b]['runs'] if r['seed'] in old]; N_ = len(R)
+    if not N_: continue
+    ob = sum(1 for r in R if old[r['seed']] and not r['cl']); nb_ = sum(1 for r in R if r['cl'] and not old[r['seed']])
+    d_ = (nb_ - ob) / N_; se = math.sqrt(max(0.0, ob + nb_ - (nb_ - ob) ** 2 / N_)) / N_
+    P(f"- {BN[b]} 같은 시드 짝 ({N_}판): {PL} {100*sum(old[r['seed']] for r in R)/N_:.1f}% → 이번 {100*sum(r['cl'] for r in R)/N_:.1f}% · **{100*d_:+.1f} ±{196*se:.1f}%p** ({PL}만 클리어 {ob} · 이번만 {nb_})")
+    summary.setdefault('paired', {})[b] = {'n': N_, 'prevOnly': ob, 'newOnly': nb_, 'd': d_, 'ci': 1.96 * se}
+for b in BOTS:
+    if V457.get('seeds', {}).get(b): continue
     R = [r for r in D[b]['runs'] if r['seed'] <= 32000]
-    if R: P(f"- {BN[b]} 시드 30001–32000 ({len(R)}판) 클리어 {100*sum(r['cl'] for r in R)/len(R):.1f}% (v457 {100*v[b]['clear']:.1f}%)")
+    if R: P(f"- {BN[b]} 시드 30001–32000 ({len(R)}판) 클리어 {100*sum(r['cl'] for r in R)/len(R):.1f}% ({PL} {100*v[b]['clear']:.1f}%)")
     R2 = [r for r in D[b]['runs'] if r['seed'] > 32000]
     if R2: P(f"- {BN[b]} 시드 32001–32500 ({len(R2)}판) 클리어 {100*sum(r['cl'] for r in R2)/len(R2):.1f}%")
 _cs = {r['seed']: r['cl'] for r in D['chulsu']['runs']}; _ys = {r['seed']: r['cl'] for r in D['younghee']['runs']}
@@ -129,7 +151,7 @@ def v457grp(key):  # v457 unitLift 를 기물-전투 수로 가중 평균 (유�
         xs = [x for x in V457['rep'][b]['unitLift'] if key(x[0])]; n = sum(x[3] for x in xs)
         out.append(f"{sum(x[1]*x[3] for x in xs)/n:+.1f}" if n else '—')
     return ' / '.join(out)
-P('| 유형 | 철수 | 영희 | 두 봇 | P1 | P2 | P3 | P4 | P5 | v457 (철수 / 영희) |'); P('|---|---|---|---|---|---|---|---|---|---|')
+P(f'| 유형 | 철수 | 영희 | 두 봇 | P1 | P2 | P3 | P4 | P5 | {PL} (철수 / 영희) |'); P('|---|---|---|---|---|---|---|---|---|---|')
 summary['type'] = {}
 for tt in ['major', 'minor', 'psionic', 'divine']:
     ph = ' | '.join(fl(L('both', 'tt_ph', f'{tt}|{p}'), ci=False) for p in range(1, 6))
@@ -149,7 +171,7 @@ for tt in ['major', 'minor', 'psionic', 'divine']:
 # ───────── 4. 스페셜 15명
 P('\n## 4. 스페셜 15명')
 uLift457 = {b: {x[0]: x for x in V457['rep'][b]['unitLift']} for b in BOTS}
-P('| 기물 | 옮길 유형 | 전투 유형 | 철수 lift (전투) | 영희 lift | 두 봇 | 런 lift 철수 | 런 lift 영희 | 사용 런 % (철수 / 영희) | v457 (철수 / 영희) |'); P('|---|---|---|---|---|---|---|---|---|---|')
+P(f'| 기물 | {"지금 유형" if POST else "옮길 유형"} | 전투 유형 | 철수 lift (전투) | 영희 lift | 두 봇 | 런 lift 철수 | 런 lift 영희 | 사용 런 % (철수 / 영희) | {PL} (철수 / 영희) |'); P('|---|---|---|---|---|---|---|---|---|---|')
 mins = {}
 grp_of = {}
 for x in ['gunnir', 'demiurgos', 'ingel', 'zahara', 'jaehwon']: grp_of[x] = 'toDivine'
@@ -160,7 +182,7 @@ for u in MINOR:
     rc = runlift('chulsu', lambda r: u in r['used']); ry = runlift('younghee', lambda r: u in r['used'])
     use = ' / '.join(f"{100*sum(1 for r in D[b]['runs'] if u in r['used'])/len(D[b]['runs']):.1f}" for b in BOTS)
     old = ' / '.join(f"{uLift457[b][u][1]:+.1f}" if u in uLift457[b] else '—' for b in BOTS)
-    P(f"| {nm(u)} `{u}` | {GRP[grp_of[u]][:-4]} | {CT_KO.get(U[u]['ct'],'')} | {fl(lc,n=True)} | {fl(ly,n=True)} | {fl(lb)} | {frl(rc)} | {frl(ry)} | {use} | {old} |")
+    P(f"| {nm(u)} `{u}` | {TT_KO[U[u]['tt']] if POST else GRP[grp_of[u]][:-4]} | {CT_KO.get(U[u]['ct'],'')} | {fl(lc,n=True)} | {fl(ly,n=True)} | {fl(lb)} | {frl(rc)} | {frl(ry)} | {use} | {old} |")
     mins[u] = {'c': lc, 'y': ly, 'b': lb, 'runC': rc, 'runY': ry, 'ph': {p: L('both', 'u_ph', f'{u}|{p}') for p in range(1, 6)},
                'phC': {p: L('chulsu', 'u_ph', f'{u}|{p}') for p in range(1, 6)}, 'phY': {p: L('younghee', 'u_ph', f'{u}|{p}') for p in range(1, 6)}}
 P('\n스페셜 페이즈별 전투 lift (두 봇, ±CI, 표본)')
@@ -203,7 +225,7 @@ summary['minor']['_ttrk'] = {tt: {rk: L('both', 'ttrk', f'{tt}|{rk}') for rk in 
 
 # ───────── 5. 디바인
 P('\n## 5. 디바인')
-P('| 기물 | 신앙 | 성유물 | 철수 lift | 영희 lift | 두 봇 | 런 lift 철수 | 런 lift 영희 | 출전 런 % | 신성력 (전투당) | 신권 대행 사용률 | 첫 사용 (초) | 권능 몫 / 전투 | 상한 200 도달 | v457 |'); P('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
+P(f'| 기물 | 신앙 | 성유물 | 철수 lift | 영희 lift | 두 봇 | 런 lift 철수 | 런 lift 영희 | 출전 런 % | 신성력 (전투당) | 신권 대행 사용률 | 첫 사용 (초) | 권능 몫 / 전투 | 상한 200 도달 | {PL} |'); P('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
 dvs = {}
 for u in DIVINE:
     s = defaultdict(float)
@@ -280,17 +302,19 @@ for b in BOTS:
                    pil=pil / n, pil_ph={k: vv / n for k, vv in pil_ph.items()}, offer_ph={k: vv / n for k, vv in offer_ph.items()}, pmap_ph={k: pmap_ph[k] / pmap_n[k] for k in pmap_n}, pmap_reach={k: pmap_n[k] for k in pmap_n},
                    pil_any=pil_any, pil_tot=pil, pil_buy=pil_buy, pil_enh=pil_enh, pil_pw=pil_pw / pil if pil else 0, card_off=dict(card_off), card_buy=dict(card_buy), rel_off=rel_off,
                    vow_n=vow_n, vow_off=dict(vow_off), vow_off_first=dict(vow_off_first), vow_pick=dict(vow_pick), pwStart={k: sum(vv) / len(vv) for k, vv in pw_ph_start.items()},
-                   ownRunsEnd=sum(r['dvx'].get('end', 0) for r in own) / max(1, len(own)), srcOwn=sum(sum(r['dvx'].get('src', {}).values()) for r in dep) / max(1, len(dep)),
+                   ownRunsEnd=sum(r['dvx'].get('end', 0) for r in own) / max(1, len(own)), srcOwn=sum(sum(v_ for k_, v_ in r['dvx'].get('src', {}).items() if not k_.startswith('neg:')) for r in dep) / max(1, len(dep)),
                    spOwn=sum(sum(c for _, c in r['dvx'].get('sp', {}).values()) for r in dep) / max(1, len(dep)), endDep=sum(r['dvx'].get('end', 0) for r in dep) / max(1, len(dep)))
 for lab, f in [('디바인 보유 런 (최종 명단 또는 출전)', lambda e: f"{100*e['own']/e['n']:.1f}%"), ('디바인 출전 런', lambda e: f"{100*e['dep']/e['n']:.1f}%"),
                ('권능 획득 (전투 정산)', lambda e: f"{e['src'].get('battle',0):.1f}"), ('권능 획득 (사건)', lambda e: f"{e['src'].get('event',0):.2f}"),
-               ('권능 획득 (그 밖)', lambda e: ', '.join(f"{k} {v:.2f}" for k, v in e['src'].items() if k not in ('battle', 'event')) or '0'),
+               ('권능 획득 (그 밖)', lambda e: ', '.join(f"{k} {v:.2f}" for k, v in e['src'].items() if k not in ('battle', 'event') and not k.startswith('neg:')) or '0'),
                ('권능 사용 합', lambda e: f"{sum(e['sp'].values()):.1f}"),
-               ('— 참배 카드', lambda e: f"{sum(v for k,v in e['sp'].items() if k not in ('relic','enh')):.1f}"), ('— 성유물 구매', lambda e: f"{e['sp'].get('relic',0):.2f}"), ('— 축성 (강화)', lambda e: f"{e['sp'].get('enh',0):.2f} ({e['spn'].get('enh',0):.3f}회)"),
+               *([('— 축성 (봉헌 +, 회수)', lambda e: f"{e['sp'].get('cons',0):.1f} ({e['spn'].get('cons',0):.2f}회)"), ('— 성유물 구매', lambda e: f"{e['sp'].get('relic',0):.2f}"),
+                  ('순례 제례 · 나눔 (판당 횟수, 무료)', lambda e: f"{e['spn'].get('rite',0):.2f} · {e['spn'].get('alms',0):.2f}")] if POST else
+                 [('— 참배 카드', lambda e: f"{sum(v for k,v in e['sp'].items() if k not in ('relic','enh')):.1f}"), ('— 성유물 구매', lambda e: f"{e['sp'].get('relic',0):.2f}"), ('— 축성 (강화)', lambda e: f"{e['sp'].get('enh',0):.2f} ({e['spn'].get('enh',0):.3f}회)")]),
                ('— 개종', lambda e: f"{e['sp'].get('convert',0):.2f}"),
                ('끝날 때 남은 권능', lambda e: f"{e['end']:.1f}"), ('디바인 출전 런: 획득 · 사용 · 남음', lambda e: f"{e['srcOwn']:.1f} · {e['spOwn']:.1f} · {e['endDep']:.1f}"),
-               ('순례 방문 (판당)', lambda e: f"{e['pil']:.2f}"), ('순례에서 뭐라도 산 비율', lambda e: f"{100*e['pil_any']/max(1,e['pil_tot']):.0f}%"), ('순례 들어갈 때 권능', lambda e: f"{e['pil_pw']:.1f}"),
-               ('순례당 산 카드 · 축성', lambda e: f"{e['pil_buy']/max(1,e['pil_tot']):.2f} · {e['pil_enh']/max(1,e['pil_tot']):.2f}"), ('서약 증강 선택 (판당)', lambda e: f"{e['vow_n']/e['n']:.2f}")]:
+               ('순례 방문 (판당)', lambda e: f"{e['pil']:.2f}"), *([] if POST else [('순례에서 뭐라도 산 비율', lambda e: f"{100*e['pil_any']/max(1,e['pil_tot']):.0f}%")]), ('순례 들어갈 때 권능', lambda e: f"{e['pil_pw']:.1f}"),
+               *([] if POST else [('순례당 산 카드 · 축성', lambda e: f"{e['pil_buy']/max(1,e['pil_tot']):.2f} · {e['pil_enh']/max(1,e['pil_tot']):.2f}"), ('서약 증강 선택 (판당)', lambda e: f"{e['vow_n']/e['n']:.2f}")])]:
     P(f"| {lab} | {f(econ['chulsu'])} | {f(econ['younghee'])} |")
 P('\n순례 노드: 페이즈별 [항로에 있음 · 선택지로 보임 · 들어감] (판당 비율)')
 P('| 페이즈 | 철수 항로 | 철수 선택지 | 철수 방문 | 영희 항로 | 영희 선택지 | 영희 방문 |'); P('|---|---|---|---|---|---|---|')
@@ -300,15 +324,15 @@ for ph in range(1, 6):
         e = econ[b]; reach = e['pmap_reach'].get(ph, 0)
         cells += [f"{100*e['pmap_ph'].get(ph,0):.0f}% (도달 {reach})", f"{100*e['offer_ph'].get(ph,0)*e['n']/max(1,reach):.0f}%", f"{100*e['pil_ph'].get(ph,0)*e['n']/max(1,reach):.0f}%"]
     P(f"| P{ph} | " + ' | '.join(cells) + ' |')
-P('\n참배 카드 (제시 → 구매, 두 봇 합)')
+P('\n순례 카드 (제례 · 나눔, 제시 → 받음, 두 봇 합)' if POST else '\n참배 카드 (제시 → 구매, 두 봇 합)')
 co = Counter(); cb = Counter()
 for b in BOTS: co.update(econ[b]['card_off']); cb.update(econ[b]['card_buy'])
-P('| 카드 | 권능 | 제시 | 구매 | 구매율 | 철수 구매 | 영희 구매 |'); P('|---|---|---|---|---|---|---|')
+P('| 카드 | 권능 | 제시 | 받음 | 받은 비율 | 철수 받음 | 영희 받음 |' if POST else '| 카드 | 권능 | 제시 | 구매 | 구매율 | 철수 구매 | 영희 구매 |'); P('|---|---|---|---|---|---|---|')
 for c, n in co.most_common():
     P(f"| {N['cards'].get(c,{}).get('name',c)} `{c}` | {N['cards'].get(c,{}).get('cost','')} | {n} | {cb[c]} | {100*cb[c]/n:.0f}% | {econ['chulsu']['card_buy'].get(c,0)} | {econ['younghee']['card_buy'].get(c,0)} |")
 P(f"- 성유물 제시 {sum(econ[b]['rel_off'] for b in BOTS)}개 · 구매 {sum(econ[b]['sp'].get('relic',0)*econ[b]['n'] for b in BOTS):.0f}")
-P('\n서약 증강 (제시 = 최종 선택지 기준, 처음 제시는 새로고침 전)')
-P('| 서약 | 처음 제시 | 최종 제시 | 고름 (철수 / 영희) | 고름 / 최종 제시 | 전투 lift 철수 | 영희 | 두 봇 | 런 lift (철수 / 영희) |'); P('|---|---|---|---|---|---|---|---|---|')
+if not POST: P('\n서약 증강 (제시 = 최종 선택지 기준, 처음 제시는 새로고침 전)')
+if not POST: P('| 서약 | 처음 제시 | 최종 제시 | 고름 (철수 / 영희) | 고름 / 최종 제시 | 전투 lift 철수 | 영희 | 두 봇 | 런 lift (철수 / 영희) |'); P('|---|---|---|---|---|---|---|---|---|')
 vows = {}
 for vid, vn_ in N['vows'].items():
     of = sum(econ[b]['vow_off'].get(vid, 0) for b in BOTS); off1 = sum(econ[b]['vow_off_first'].get(vid, 0) for b in BOTS)
@@ -324,9 +348,14 @@ for rid, rr in N['relics'].items():
     lc, ly, lb = L('chulsu', 'r', rid), L('younghee', 'r', rid), L('both', 'r', rid)
     if not (lc or ly): continue
     P(f"| {rr['name']} `{rid}` | {nm(rr['owner']) if rr['owner'] else '—'} | {fl(lc,n=True)} | {fl(ly,n=True)} | {fl(lb)} |"); rel[rid] = {'c': lc, 'y': ly, 'both': lb}
-P('\n축성 (다음 전투 ×3) 받은 전투 vs 아닌 전투 (같은 디바인)')
-for b in ['chulsu', 'younghee', 'both']:
-    P(f"- {BN.get(b,'두 봇')}: 축성 {fl(L(b,'dv_enh_all','1'),n=True)} · 안 함 {fl(L(b,'dv_enh_all','0'),n=True)}")
+if POST:  # 개편 뒤: dv 여섯째 칸 = 봉헌 단계 (balance_acc.py 는 같은 칸을 dv_enh 로 묶는다)
+    P('\n봉헌 단계별 디바인-전투 lift (같은 디바인끼리가 아니라 전체, 단계는 런이 길수록 높아 페이즈와 섞여 있다)')
+    for b in ['chulsu', 'younghee', 'both']:
+        P(f"- {BN.get(b,'두 봇')}: " + ' · '.join(f"{st}단계 {fl(L(b,'dv_enh_all',str(st)),n=True)}" for st in range(7) if L(b, 'dv_enh_all', str(st))))
+else:
+    P('\n축성 (다음 전투 ×3) 받은 전투 vs 아닌 전투 (같은 디바인)')
+    for b in ['chulsu', 'younghee', 'both']:
+        P(f"- {BN.get(b,'두 봇')}: 축성 {fl(L(b,'dv_enh_all','1'),n=True)} · 안 함 {fl(L(b,'dv_enh_all','0'),n=True)}")
 P('\n신권 대행을 쓴 전투 vs 못 쓴 전투 (같은 디바인, 결과 편향 있음 — 참고)')
 for u in DIVINE:
     a1, a0 = L('both', 'dv_act', f'{u}|1'), L('both', 'dv_act', f'{u}|0')
@@ -339,10 +368,10 @@ def stage(x):
     n = 0
     while n < 6 and 12 * (n + 1) * (n + 2) / 2 <= x: n += 1
     return n
-P('\n[추정] 초안 자동 봉헌 공식 (출전 전투마다 2 + 그 기물 권능 몫) 을 이번 실측에 대입한 누계 · 단계 (단계 = 12 · 36 · 72 · 120 · 180 · 252)')
-P('| 기물 | 클리어 런 끝 누계 (철수 / 영희) | 단계 분포 0-1 / 2-3 / 4-5 / 6 (두 봇, 클리어 런) | P1 / P2 / P3 / P4 / P5 끝 평균 누계 (두 봇, 그 페이즈까지 출전) | 출전 전투 (클리어 런) |'); P('|---|---|---|---|---|')
+if not POST: P('\n[추정] 초안 자동 봉헌 공식 (출전 전투마다 2 + 그 기물 권능 몫) 을 이번 실측에 대입한 누계 · 단계 (단계 = 12 · 36 · 72 · 120 · 180 · 252)')
+if not POST: P('| 기물 | 클리어 런 끝 누계 (철수 / 영희) | 단계 분포 0-1 / 2-3 / 4-5 / 6 (두 봇, 클리어 런) | P1 / P2 / P3 / P4 / P5 끝 평균 누계 (두 봇, 그 페이즈까지 출전) | 출전 전투 (클리어 런) |'); P('|---|---|---|---|---|')
 offs = {}
-for u in DIVINE:
+for u in ([] if POST else DIVINE):
     fin_ = {b: [] for b in BOTS}; phv = defaultdict(list); nb = []
     for b in BOTS:
         for r in D[b]['runs']:
@@ -380,7 +409,7 @@ for b in BOTS:
 def oldw(u):
     xs = old.get(u, []); n = sum(x[1] for x in xs)
     return sum(x[0] * x[1] for x in xs) / n if n else None
-P('| 순위 | 기물 | 유형 | 두 봇 lift | 철수 | 영희 | v457 (가중) |'); P('|---|---|---|---|---|---|---|')
+P(f'| 순위 | 기물 | 유형 | 두 봇 lift | 철수 | 영희 | {PL} (가중) |'); P('|---|---|---|---|---|---|---|')
 for i, (l, u, lb, lc, ly) in enumerate(allu):
     o = oldw(u)
     P(f"| {i+1} | {nm(u)} | {TT_KO[U[u]['tt']]} | {fl(lb,n=True)} | {fl(lc,ci=False)} | {fl(ly,ci=False)} | {o:+.1f} |" if o is not None else f"| {i+1} | {nm(u)} | {TT_KO[U[u]['tt']]} | {fl(lb,n=True)} | {fl(lc,ci=False)} | {fl(ly,ci=False)} | — |")
@@ -403,8 +432,8 @@ for b in BOTS:
     for x in V457['rep'][b]['synLift']: oldsyn.setdefault(x[0], []).append((x[1], x[3]))
 def oldsw(k):
     xs = oldsyn.get(k, []); n = sum(x[1] for x in xs); return f"{sum(x[0]*x[1] for x in xs)/n:+.1f}" if n else '—'
-P('- 시너지 상위: ' + ' · '.join(f"{synname(k)} **{x['lift']:+.1f}** ({x['n']:,}전, v457 {oldsw(k)})" for _, k, x in sy[:12]))
-P('- 시너지 하위: ' + ' · '.join(f"{synname(k)} {x['lift']:+.1f} ({x['n']:,}전, v457 {oldsw(k)})" for _, k, x in sy[-10:][::-1]))
+P('- 시너지 상위: ' + ' · '.join(f"{synname(k)} **{x['lift']:+.1f}** ({x['n']:,}전, {PL} {oldsw(k)})" for _, k, x in sy[:12]))
+P('- 시너지 하위: ' + ' · '.join(f"{synname(k)} {x['lift']:+.1f} ({x['n']:,}전, {PL} {oldsw(k)})" for _, k, x in sy[-10:][::-1]))
 for b in BOTS:
     summary['rep'][b]['synLift'] = sorted([[k, x['lift'], x['ci'], x['n'], x['win']] for k in D[b]['acc'].get('s', {}) for x in [L(b, 's', k)] if x], key=lambda z: -z[1])
 # 반사실
@@ -489,16 +518,16 @@ P('\n## 10. 적 · 분대 · 성향 (일반 · 역경, 전장 × 페이즈 × �
 TEND_KO = {'charge': '돌격', 'sniper': '저격', 'assassin': '암살', 'escort': '호위형', 'disrupt': '교란형', 'pack': '무리형'}
 VF = {b: V457['foe'][b] for b in BOTS}
 v4 = lambda tab, k: ' / '.join(f"{100*VF[b][tab][k]['lift']:+.1f}" if k in VF[b][tab] else '—' for b in BOTS)
-P('| 성향 | 철수 | 영희 | v457 (철수 / 영희) |'); P('|---|---|---|---|')
+P(f'| 성향 | 철수 | 영희 | {PL} (철수 / 영희) |'); P('|---|---|---|---|')
 for td in TEND_KO:
     P(f"| {TEND_KO[td]} | {fl(L('chulsu','tend',td),n=True)} | {fl(L('younghee','tend',td),n=True)} | {v4('tend', td)} |")
-P('\n| 분대 | 철수 | 영희 | v457 (철수 / 영희) |'); P('|---|---|---|---|')
+P(f'\n| 분대 | 철수 | 영희 | {PL} (철수 / 영희) |'); P('|---|---|---|---|')
 keys = set()
 for b in BOTS: keys |= set(D[b]['acc'].get('squad', {}).keys())
 for q in sorted(keys, key=lambda q: -(L('both', 'squad', q) or {'n': 0})['n']):
     P(f"| {q} | {fl(L('chulsu','squad',q),n=True)} | {fl(L('younghee','squad',q),n=True)} | {v4('squad', q)} |")
 P('\n전장 고유 기믹 적 39종 (+ 홀로그램) · 공용 기믹 적 12종')
-P('| 적 | 전장 | 등장 전투 (두 봇) | 기수 | lift 철수 | 영희 | v457 (철수 / 영희) | 처치율 (진 전투) | 쓰러진 시각 | 적 피해 몫 | 전투 시간 · 아군 사망 |'); P('|---|---|---|---|---|---|---|---|---|---|---|')
+P(f'| 적 | 전장 | 등장 전투 (두 봇) | 기수 | lift 철수 | 영희 | {PL} (철수 / 영희) | 처치율 (진 전투) | 쓰러진 시각 | 적 피해 몫 | 전투 시간 · 아군 사망 |'); P('|---|---|---|---|---|---|---|---|---|---|---|')
 FF = 'sw_cargo sw_cyst sw_synapse cr_bats cr_valet cr_starved sp_aspis sp_peltast sp_agoge pt_crate pt_counsel pt_temp ws_rider ws_hyena ws_watch cf_mower cf_kids cf_shrine lv_ketzal lv_fumig lv_egg rd_guardian rd_phase rd_billboard rd_holo kr_mourner kr_papers kr_actor ol_cell ol_zealot ol_cleric cw_sweeper cw_cats cw_hunter hy_dealer hy_adjuster hy_robber bs_salt bs_jelly bs_sentry'.split()
 fld_of = {}
 for fid, f in N['fields'].items():
@@ -532,7 +561,7 @@ P('- 적 lift 상위 (쉬운 적): ' + ' · '.join(f"{nm(k)} {x['lift']:+.1f} ({
 
 # ───────── 11. 전장
 P('\n## 11. 전장')
-P('| 전장 | 철수 | 영희 | 두 봇 | v457 (철수 / 영희 / 평균) | 일반 · 역경 승률 (두 봇) | 보스 승률 (두 봇) |'); P('|---|---|---|---|---|---|---|')
+P(f'| 전장 | 철수 | 영희 | 두 봇 | {PL} (철수 / 영희 / 평균) | 일반 · 역경 승률 (두 봇) | 보스 승률 (두 봇) |'); P('|---|---|---|---|---|---|---|')
 fv = {b: {x[0]: x for x in V457['rep'][b]['field']} for b in BOTS}
 frows = []
 for fid in N['fields']:
@@ -556,7 +585,7 @@ for b in BOTS:
 
 # ───────── 12. 경제 · 경로
 P('\n## 12. 경제 · 경로 (판당)')
-P('| 항목 | 철수 | 영희 | v457 (철수 / 영희) |'); P('|---|---|---|---|')
+P(f'| 항목 | 철수 | 영희 | {PL} (철수 / 영희) |'); P('|---|---|---|---|')
 ec = {}
 for b in BOTS:
     R = D[b]['runs']; n = len(R)
