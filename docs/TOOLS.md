@@ -114,7 +114,7 @@ node <폴더>/bal.cjs <시작 시드> <런 수> [반사실 표본 비율] [위�
 | | `globrand` | 전역 증강을 제시된 것 중 무작위로 (새로고침 없음) + 런마다 `gr` [페이즈, 제시, 고름] — 전역 증강 비교 (제시됐는데 안 고른 런이 대조군) |
 | | `randrelic` | 디바인 성유물을 무작위 장착 (성유물 효과 분리) |
 | | `fpriv=<id>` · `fdesp=<id>` · `fglob=<id>` | 첫 특권 · 출격 절망 증강 · 첫 항로 회의 전역 증강을 강제 (철수 실측 가치표 `tests/chulsu/tables.ts` 만들 때만) |
-| 계측 | `instr` | 런마다 `trace` (전투별 승패 · 시간 · 시너지 · 적 fz · 아군 사망 ad · 밀수 loot · 분대 sq · 대형 적 bigd) · `ins` (조우 진입 상태 · 장비 현황 · 실패 사유 · 실행 시간 · 갈림길 br · 지도 칸 route · 상점 구매 buy · 전역 증강 · 기물 증강). 실행 오류도 `err` 로 남기고 다음 런으로 |
+| 계측 | `instr` | 런마다 `trace` (전투별 승패 · 시간 · 시너지 · 적 fz · 아군 사망 ad · 밀수 loot · 분대 sq · 대형 적 bigd · 출전 디바인 dv [신성력 · 신권 대행 횟수 · 첫 사용 시각 · 성유물 · 축성 · 권능 몫 …] · 출전 스페셜 mn [등급 · 대성공 · 능력치 선택 점수] · 전투 직전 권능 pw0 · 정산 권능 pw) · `ins` (조우 진입 상태 · 장비 현황 · 실패 사유 · 실행 시간 · 갈림길 br · 지도 칸 route [페이즈, 선택지, 진입 뒤 노드, 고른 노드] · 상점 구매 buy · 전역 증강 · 기물 증강 · 디바인 경제 dvx: 권능 출처 src · 사용처 sp · 끝난 뒤 권능 · 순례 방문 pil · 페이즈별 항로 순례 노드 pmap · 서약 증강 선택 vow · 스페셜 능력치 선택 mpk). 실행 오류도 `err` 로 남기고 다음 런으로 |
 | | `detail` | 런마다 `det`: `<키>\|<페이즈>:<노드>` → [전투, 승] (키 `u:` 기물 · `a:` 증강 · `ua:` 기물×증강 · `i:` 장비 · `s:` 시너지\|단계 · `r:` · `ur:` 성유물). 군집 신뢰구간용 |
 | | `gearlog` | 런마다 `gl`: 전투마다 [페이즈, 노드 첫 글자, 승, 출전 기물 장비 목록] (장비 · 제련 · 잠재능력 분석) |
 | | `dlog` | 철수 판단 기록 `dlog` (econ · xp · muster · branch · shop · place · event 등) |
@@ -135,7 +135,7 @@ node <폴더>/bal.cjs <시작 시드> <런 수> [반사실 표본 비율] [위�
 | 항목 | 관례 |
 |---|---|
 | 난이도 · 시작 | 고난 (위험 7) · `pool` |
-| 시드 | 30001 부터. 500판 = 30001–30500, 2,000판 = 30001–32000. 보고서끼리 같은 시드라 판 단위로 비교된다 |
+| 시드 | 30001 부터. 500판 = 30001–30500, 2,000판 = 30001–32000, 2,500판 = 30001–32500 (v471). 보고서끼리 같은 시드라 판 단위로 비교된다 — v471 원자료부터 시드별 클리어(`seeds`)를 남긴다 |
 | 봇 | 철수 (`bot=chulsu`) · 영희 (`bot=younghee`) 각각 같은 시드로. 빠른 확인 500판, 보고서 2,000판 |
 | 실행 | `node bal.cjs <시작> 125 0.06 7 bot=<봇> instr gearlog pool detail` 를 125판 조각으로 나눠 여러 프로세스로 (`xargs -P`) — v411 · v457 과 같은 설정. 조각 파일은 작업 폴더에 |
 | 기준 커밋 비교 | 바꾸기 직전 커밋을 따로 꺼내 (예: 임시 워크트리) 같은 명령 · 같은 시드로 돌린다. 시드마다 성공 / 실패를 맞대어 '기준만 성공 / 이번만 성공' 수와 클리어 차를 낸다. 예: v457 은 개편 직전 `bf92f74` 를 30001–30750 (750판) |
@@ -155,12 +155,13 @@ node <폴더>/bal.cjs <시작 시드> <런 수> [반사실 표본 비율] [위�
 - 머리: 측정 기준 커밋 · 이번 개편 내용 · 직전 보고 뒤 들어간 다른 변경 · 표본(실행 명령 그대로, 실행 실패 수) · 원자료 json 의 키 · 집계 스크립트 위치. 제목에 '측정만 · 게임 수치 변경 없음'.
 - 1쪽 요약 → 페이즈별 · 전장 · 기물 · 장비 · 증강 · 경제 → 제안 (측정만) → 다음에 볼 것.
 - 보고서는 기록 문서다. 규칙이 바뀌어도 고치지 않고 새 보고서를 쓴다.
-- 최근 보고서의 집계 스크립트(`rep2k_v457/an.py` 등)는 작업 폴더에만 있었다. 다시 쓸 집계는 `tests/*.py` 로 넣는다.
+- v457 까지의 집계 스크립트(`rep2k_v457/an.py` 등)는 작업 폴더에만 있었다. v471 부터는 `tests/balance_acc.py` · `balance_rep.py` (5절). 다시 쓸 집계는 `tests/*.py` 로 넣는다.
 
 ## 5. 집계 스크립트 (`tests/*.py`)
 
 | 파일 | 입력 → 출력 |
 |---|---|
+| `balance_acc.py` · `balance_rep.py` | 2,000판급 보고서 집계 (v471 부터). 조각 `<bot>_*.json` (`instr gearlog pool detail`) + 이름표 `names.json` (`tests/balance_names.ts`) → 봇별 군집 누적 `acc_<bot>.json` → `tables.md` (보고서 표 재료: 요약 · 페이즈 × 노드 · 전술 · 전투 유형 · 스페셜 · 디바인 경제 · 기물 · 시너지 · 장비 · 증강 · 적 · 전장 · 경제) + `summary.json` (docs 원자료). 직전 보고 비교 열은 v457 원자료 키를 읽는다. 실행: `python3 tests/balance_acc.py <bot> <조각 폴더>` (봇마다) → `BAL_NOTE="<설명>" python3 tests/balance_rep.py <작업 폴더> [직전 원자료 json]` |
 | `balance_report.py` | `part*.json` + `meta.json` → 지표 json (`docs/BALANCE_REPORT.md` 재료) |
 | `balance_tables.py` | `docs/balance_report.json` → 표 다시 그리기 |
 | `balance_summary.py` | detail 출력 → 신뢰구간 포함 시너지 · 기물 · 장비 · 유형 표 |
@@ -173,7 +174,7 @@ node <폴더>/bal.cjs <시작 시드> <런 수> [반사실 표본 비율] [위�
 | `balance_divine.py` | 조각 (봇별, 이번 · 기준) + 이름표 → 전술 유형 lift (그때 유형 · 이번 유형으로 다시 나눈 기준), 디바인 기물별 lift · 봉헌 단계 · 사용률, 봉헌 단계별 lift, 권능 · 봉헌 경제 (출처 · 축성 · 제례 / 나눔 · 진열장 · 개종 · 런 끝 단계 분포), 시드 짝 비교 (2026-10-31 디바인 개편 뒤 보고서, `docs/BALANCE_2026_10_31_v474.md`) |
 | `analyze_report.py` · `analyze_events.py` · `probe2_report.py` | `tests/analyze.ts` · `tests/probe2.ts` 출력 집계 (옛 측정) |
 
-이름표: `tests/chulsu2000_names.ts` (기물 · 시너지 · 장비 · 증강 · 적 이름 JSON), `tests/balance_meta.ts` · `tests/detail_meta.ts`.
+이름표: `tests/chulsu2000_names.ts` (기물 · 시너지 · 장비 · 증강 · 적 이름 JSON), `tests/balance_names.ts` (+ 전술 · 전투 유형 · 신앙 · 성유물 · 서약 · 참배 카드 · 전장 적 풀 · 적 성향, `balance_acc.py` 용), `tests/balance_meta.ts` · `tests/detail_meta.ts`.
 
 ## 6. 그 밖의 시뮬 · 측정 도구
 
