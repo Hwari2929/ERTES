@@ -111,7 +111,7 @@ const KABURAYA: AugDef[] = [
 // ───────────────────────── ISSAC (돌격가): 붕대 해제 (주변 1칸 타격 위력 225% 화학 + 중독 38%) · 재생하는 괴물 · 실험체 해방
 const SLIME = ['#06100a', '#4cc860', '#2a7a3a', '#9af0a0', '#ffffff', '#2a4a30', '#e0ffe0'];
 /** ★ 녹빛 손: 상속률 = 최고의 친구 기본 상속률 × rate */
-const GREEN_HAND: SummonDef = { name: '녹빛 손', ctype: 'VAN', sprite: 'beast', palette: SLIME, atk: { type: 'strike', elem: 'chem', interval: 0.9, mult: 1.25 }, range: 1, hpMul: 0.8, rate: 1.5 };
+const GREEN_HAND: SummonDef = { name: '녹빛 손', ctype: 'VAN', art: 'sm_greenhand', sprite: 'beast', palette: SLIME, atk: { type: 'strike', elem: 'chem', interval: 0.9, mult: 1.25 }, range: 1, hpMul: 0.8, rate: 1.5 };
 const ISSAC: AugDef[] = [
   mj('issac', 'regen', '과재생', '초당 재생 최대 체력 0.5% → 1%.', { hooks: { onTick(b, u, dt) {
     u.mem.isRg = (u.mem.isRg || 0) + dt;

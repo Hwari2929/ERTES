@@ -12,7 +12,7 @@ const extraPet = { setup: (u: { mem: Record<string, number> }) => { u.mem.extraS
 const bond = (v: number) => ({ setup: (u: { mem: Record<string, number> }) => { u.mem.bondBonus = (u.mem.bondBonus || 0) + v; } });
 const WOLF = ['#101014', '#7a7a80', '#d8d8d8', '#b0b0b0', '#ffcf40', '#4a4a50', '#ffffff'];
 const BEAR = ['#0c0806', '#4a3424', '#8a6a4a', '#c0a080', '#ffcf40', '#2a1a10', '#e0d0c0'];
-/** 라라: 크림색 사냥개 (일러스트 없음 → 도트) */
+/** 라라: 크림색 사냥개 (그림 sm_lara, 도트 팔레트는 그림이 없을 때) */
 const LARA = ['#0c0806', '#d8b880', '#f0e0c0', '#c0a080', '#7fd0ff', '#8a6a40', '#fff8e8'];
 
 export const ROSTER_C: BaseUnit[] = [
@@ -237,7 +237,7 @@ export const ROSTER_C: BaseUnit[] = [
     sprite: 'knight', palette: tint(PAL.FAM, '#4a5a3a', '#c8ccd8', '#ffcf40'),
     // 맥스: 체력이 두꺼운 경비견 (앞을 막는다) · 라라: 빠르고 약한 적을 노리는 사냥개 (상속 80%, 체력 0.9배, 회피 +15%p)
     summon: { name: '맥스', ctype: 'VAN', art: 'sm_max', sprite: 'beast', palette: BEAR, atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, hpMul: 1.6,
-      also: [{ name: '라라', ctype: 'VAN', sprite: 'beast', palette: LARA, atk: { type: 'strike', elem: 'phys', interval: 0.75 }, range: 1, hpMul: 0.9, rate: 0.8, moveSpd: 1.5, focusLow: true, eva: 0.15 }] },
+      also: [{ name: '라라', ctype: 'VAN', art: 'sm_lara', sprite: 'beast', palette: LARA, atk: { type: 'strike', elem: 'phys', interval: 0.75 }, range: 1, hpMul: 0.9, rate: 0.8, moveSpd: 1.5, focusLow: true, eva: 0.15 }] },
     lore: '본가의 정원을 40년 가꿨다. 정원을 망치는 것은 무엇이든 맥스가 먼저 쫓아낸다.',
     skill: {
       name: '불청객 퇴치', tag: () => '맥스 · 라라 돌격 + 출혈', cd: 7, params: { mult: 2.5, bleed: 0.3, roar: 0 },
