@@ -1072,5 +1072,252 @@
  "trait.minos": {
   "subject": "stack of ledgers and quill with three ghostly hooded clerks rising, fear aura",
   "color": "gray and spectral blue"
+ },
+ "ult.donovan": {
+  "subject": "black raven silhouette diving in a zigzag chain through four target marks, monomolecular wire glint, critical spark bursts",
+  "color": "crimson and silver",
+  "name": "도노반 · 밤까마귀 사냥",
+  "alts": {
+   "v1": {
+    "subject": "black raven silhouette diving in a zigzag chain through four target marks, monomolecular wire glint, critical spark bursts",
+    "color": "crimson and silver"
+   },
+   "v2": {
+    "subject": "razor-thin monomolecular wire threads slicing through four marked targets in a row, black feathers scattering, crimson critical flashes",
+    "color": "silver and crimson"
+   },
+   "v3": {
+    "subject": "mechanical crow swooping with electric sparks behind a dark hunter's wire slash, night hunt, crescent moon",
+    "color": "crimson and electric blue"
+   }
+  }
+ },
+ "ult.lars": {
+  "subject": "final contract document sealed with a heavy red wax seal stamped down, glowing signature line, pressure shockwave ring",
+  "color": "gold and crimson",
+  "name": "라르스 · 최종 제안",
+  "alts": {
+   "v1": {
+    "subject": "final contract document sealed with a heavy red wax seal stamped down, glowing signature line, pressure shockwave ring",
+    "color": "gold and crimson"
+   },
+   "v2": {
+    "subject": "golden fountain pen nib piercing a contract that bursts into binding chains, credit coins scattering",
+    "color": "gold and teal"
+   },
+   "v3": {
+    "subject": "ornate trade seal slamming onto a ledger, ring of credit coins and chain links pressing down",
+    "color": "teal and gold"
+   }
+  }
+ },
+ "ult.kairo": {
+  "subject": "three tracer bullets fired in rapid succession from a long sniper rifle, musical notes trailing behind, scope glint",
+  "color": "crimson and gold",
+  "name": "카이로 · 알레그로 3연주",
+  "alts": {
+   "v1": {
+    "subject": "three tracer bullets fired in rapid succession from a long sniper rifle, musical notes trailing behind, scope glint",
+    "color": "crimson and gold"
+   },
+   "v2": {
+    "subject": "sniper scope crosshair with three piercing bullet holes in a triangle, golden treble clef, armor-piercing shockwave",
+    "color": "gold and crimson"
+   },
+   "v3": {
+    "subject": "elegant engraved sniper rifle beside a ticking metronome, three piercing beams crossing the frame",
+    "color": "silver and crimson"
+   }
+  }
+ },
+ "ult.bianca": {
+  "subject": "surgical scalpel and glowing healing cross over a beating heart, emergency light rays",
+  "color": "white and pale teal with crimson accents",
+  "name": "비앙카 · 긴급 수술",
+  "alts": {
+   "v1": {
+    "subject": "surgical scalpel and glowing healing cross over a beating heart, emergency light rays",
+    "color": "white and pale teal with crimson accents"
+   },
+   "v2": {
+    "subject": "healing cross burst of light over a monstrous beast heart in a cracked specimen jar",
+    "color": "pale teal and crimson"
+   },
+   "v3": {
+    "subject": "surgical operating lamp shining down with healing cross particles and stitched bandages unrolling",
+    "color": "white and pale teal"
+   }
+  }
+ },
+ "ult.phyllis": {
+  "subject": "many jagged dimensional rift cracks opening across darkness, cat silhouette blinking between them, golden afterimages",
+  "color": "gold and amber",
+  "name": "필리스 · 균열 술래잡기",
+  "alts": {
+   "v1": {
+    "subject": "many jagged dimensional rift cracks opening across darkness, cat silhouette blinking between them, golden afterimages",
+    "color": "gold and amber"
+   },
+   "v2": {
+    "subject": "spinning wrench leaving a chain of glowing rift portals, playful cat ears shadow, sparkles",
+    "color": "gold and violet"
+   },
+   "v3": {
+    "subject": "cat paw prints of golden light hopping between floating rift tears, game of tag",
+    "color": "gold and amber"
+   }
+  }
+ },
+ "ult.aiden": {
+  "subject": "liquid metal blades bursting outward in a ring around a bar counter service bell, closing time shockwave",
+  "color": "silver and crimson",
+  "name": "에이든 · 마감 시간입니다",
+  "alts": {
+   "v1": {
+    "subject": "liquid metal blades bursting outward in a ring around a bar counter service bell, closing time shockwave",
+    "color": "silver and crimson"
+   },
+   "v2": {
+    "subject": "sleek liquid metal cat leaping out of a whirling storm of silver blades, glowing eyes",
+    "color": "silver and pale teal"
+   },
+   "v3": {
+    "subject": "bar shutter slamming down with a ring of mercury spikes, wall clock at closing time",
+    "color": "silver and violet"
+   }
+  }
+ },
+ "ult.amundsen": {
+  "subject": "eight artillery shells raining down diagonally from an orbital warship cannon, explosion craters below",
+  "color": "orange and silver",
+  "name": "아문센 · 7703 전탄 발사",
+  "alts": {
+   "v1": {
+    "subject": "eight artillery shells raining down diagonally from an orbital warship cannon, explosion craters below",
+    "color": "orange and silver"
+   },
+   "v2": {
+    "subject": "massive starship broadside battery firing a full salvo, row of muzzle flashes",
+    "color": "orange and red"
+   },
+   "v3": {
+    "subject": "targeting grid with eight impact markers and falling shells, antique explorer compass emblem",
+    "color": "orange and steel blue"
+   }
+  }
+ },
+ "ult.bjorn": {
+  "subject": "viking longship prow cutting through stormy waves with an electric harpoon rescue line, protective barrier dome",
+  "color": "cyan and electric blue",
+  "name": "비외른 · 북해 구조 작전",
+  "alts": {
+   "v1": {
+    "subject": "viking longship prow cutting through stormy waves with an electric harpoon rescue line, protective barrier dome",
+    "color": "cyan and electric blue"
+   },
+   "v2": {
+    "subject": "electric harpoon chain wrapping into a glowing protective dome, lifebuoy ring, sea spray",
+    "color": "cyan and white"
+   },
+   "v3": {
+    "subject": "horned viking helmet above a crackling lightning shield and rescue rope, northern sea storm",
+    "color": "electric blue and crimson"
+   }
+  }
+ },
+ "ult.winter": {
+  "subject": "quarantine ward barrier of hexagonal glass panels around a glowing serum vial, healing particles",
+  "color": "white and pale teal",
+  "name": "윈터 · 격리 병동",
+  "alts": {
+   "v1": {
+    "subject": "quarantine ward barrier of hexagonal glass panels around a glowing serum vial, healing particles",
+    "color": "white and pale teal"
+   },
+   "v2": {
+    "subject": "giant syringe injecting glowing serum into a protective quarantine dome, DNA double helix",
+    "color": "pale teal and toxic green"
+   },
+   "v3": {
+    "subject": "biohazard containment seal transforming into a healing cross, sterile light beams",
+    "color": "white and toxic green"
+   }
+  }
+ },
+ "ult.mao": {
+  "subject": "cocktail shaker blasting a fountain of neon cocktails into many raised glasses, celebration sparkles",
+  "color": "neon pink and electric blue",
+  "name": "마오 · 라스트 오더",
+  "alts": {
+   "v1": {
+    "subject": "cocktail shaker blasting a fountain of neon cocktails into many raised glasses, celebration sparkles",
+    "color": "neon pink and electric blue"
+   },
+   "v2": {
+    "subject": "last order bell beside a tower of champagne glasses overflowing with glowing neon drink",
+    "color": "cyan and pink"
+   },
+   "v3": {
+    "subject": "golden cocktail glass raised in a toast with lightning sparkles, speed lines, spinning clock hands",
+    "color": "electric blue and gold"
+   }
+  }
+ },
+ "ult.siu": {
+  "subject": "meteor shower of glowing green stars raining down across a dark sky, chemical star trails",
+  "color": "acid green and teal",
+  "name": "시우 · 쏟아지는 별무리",
+  "alts": {
+   "v1": {
+    "subject": "meteor shower of glowing green stars raining down across a dark sky, chemical star trails",
+    "color": "acid green and teal"
+   },
+   "v2": {
+    "subject": "armillary sphere releasing a torrent of falling toxic starlight, constellation lines",
+    "color": "toxic green and deep blue"
+   },
+   "v3": {
+    "subject": "star chart scroll unrolling as green comets pour out, dripping corrosive stardust",
+    "color": "acid green and violet"
+   }
+  }
+ },
+ "ult.clover": {
+  "subject": "industrial incinerator furnace opening with a roaring firestorm, rotating harvest blades, hazard stripes",
+  "color": "orange and red",
+  "name": "클로버 · 전량 소각 처분",
+  "alts": {
+   "v1": {
+    "subject": "industrial incinerator furnace opening with a roaring firestorm, rotating harvest blades, hazard stripes",
+    "color": "orange and red"
+   },
+   "v2": {
+    "subject": "swarm of agricultural drones dropping fire bombs on a field, ring of spreading flames",
+    "color": "orange and leaf green"
+   },
+   "v3": {
+    "subject": "huge spinning harvester blade engulfed in flames, burning four-leaf clover emblem",
+    "color": "red and orange"
+   }
+  }
+ },
+ "ult.mingki": {
+  "subject": "black cat dashing in zigzag streaks across a midnight room, six claw slashes, glowing eyes, moonlight",
+  "color": "deep purple and silver",
+  "name": "밍키 · 한밤의 우다다",
+  "alts": {
+   "v1": {
+    "subject": "black cat dashing in zigzag streaks across a midnight room, six claw slashes, glowing eyes, moonlight",
+    "color": "deep purple and silver"
+   },
+   "v2": {
+    "subject": "cat silhouette bouncing between walls with motion blur afterimages under a nebula night sky",
+    "color": "violet and gold"
+   },
+   "v3": {
+    "subject": "giant cat paw swiping six times with starry nebula claws, midnight zoomies",
+    "color": "midnight blue and pink"
+   }
+  }
  }
 }

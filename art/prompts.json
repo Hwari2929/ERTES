@@ -2201,5 +2201,31 @@
   "alts": {
    "v1": "security drone of an old wildlife rehabilitation facility, worn white casing, faded paw print logo, searchlight, rust, flying, no humans"
   }
+ },
+ "sm_lara": {
+  "name": "라라",
+  "subject": "no humans",
+  "tags": "cream-colored hunting dog, saluki, slender build, long legs, feathered ears, alert eyes, leather collar, animal focus, full body, standing",
+  "alts": {
+   "v1": "cream-colored hunting dog, saluki, slender build, long legs, feathered ears, alert eyes, leather collar, animal focus, full body, standing",
+   "v2": "cream labrador retriever, hunting dog, energetic, red collar with brass tag, wagging tail, animal focus, full body, standing",
+   "v3": "lean sighthound, greyhound, cream coat, mid-sprint running pose, green scarf, animal focus, full body"
+  },
+  "source": "summon",
+  "object": null,
+  "notes": "라스무스 단짝 (맥스의 짝): 빠르고 약한 적을 노리는 크림색 사냥개. 엘베스타드 본가 정원. 동물이라 object 끄고 animal focus."
+ },
+ "sm_greenhand": {
+  "name": "녹빛 손",
+  "subject": "no humans, monster",
+  "tags": "disembodied giant green hand creature, glowing green slimy skin, torn bandage strips, crawling on fingers, dripping slime, menacing, full body",
+  "alts": {
+   "v1": "disembodied giant green hand creature, glowing green slimy skin, torn bandage strips, crawling on fingers, dripping slime, menacing, full body",
+   "v2": "green slime creature shaped like a severed arm and hand, bandaged wrist, single glowing eye on the palm, gooey, full body",
+   "v3": "small regenerated green homunculus made of hands, bandage wrappings, translucent toxic green flesh, white glove remnant, full body"
+  },
+  "source": "summon",
+  "object": null,
+  "notes": "이삭(붕대 감은 녹색 괴인) 메이저 증강 녹빛 손: 체력이 반 아래면 떨어져 나와 싸우는 화학 근접 소환물 2기."
  }
 }

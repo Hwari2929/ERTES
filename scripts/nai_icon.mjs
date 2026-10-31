@@ -1,6 +1,9 @@
 // NovelAI 능력 아이콘 생성.
 //   node scripts/nai_icon.mjs <id...> | --all [--style A] [--force] [--dry] [--seed N]
-// 입력: art/icon_prompts.json { id: { subject, color } }  결과: art/icons/raw/<id>.png
+//   node scripts/nai_icon.mjs ult.donovan ult.lars --cand --alt v2     시안: 프롬프트 변형 alts.v2 로 art/icons/cand/<id>/v2-<seed>.png
+// 입력: art/icon_prompts.json { id: { subject, color, light?, prop?, name?, alts?: { v1: { subject?, color?, ... } } } }
+// 결과: art/icons/raw/<id>.png (게임에 넣을 원본) · 시안은 art/icons/cand/<id>/. 깃에 넣지 않는다.
+// 기록: 생성마다 art/gen-log.json 에 { id, alt, kind: 'icon', style, seed, model, time, prompt, file } (원본을 잃어도 같은 시드로 다시 뽑는다)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
 import { guard, anlas, pause } from './nai_guard.mjs';
@@ -10,10 +13,21 @@ const P = JSON.parse(readFileSync('art/icon_prompts.json', 'utf8'));
 const args = process.argv.slice(2);
 const flag = (f) => args.includes(f);
 const opt = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : undefined; };
-const valued = ['--seed', '--style', '--out'];
+const valued = ['--seed', '--style', '--out', '--alt'];
 const ids = flag('--all') ? Object.keys(P).filter((k) => !k.startsWith('_')) : args.filter((a, i) => !a.startsWith('--') && !valued.includes(args[i - 1]));
 const style = opt('--style') || 'E';
 const out = opt('--out') || 'art/icons/raw';
+const alt = opt('--alt'), cand = flag('--cand');
+const logPath = 'art/gen-log.json';
+const log = existsSync(logPath) ? JSON.parse(readFileSync(logPath, 'utf8')) : [];
+/** 프롬프트: --alt 면 alts.<alt> 를 기본 항목 위에 덮는다 */
+function promptOf(id) {
+  const p = P[id];
+  if (!alt) return p;
+  const a = p.alts?.[alt];
+  if (!a) throw new Error(`${id}: alts.${alt} 없음`);
+  return { ...p, ...a };
+}
 // 무료 생성이 막힌 계정: 무료 범위(28스텝 이하)를 벗어나 Anlas 로 생성 (29스텝). 아이콘은 작게 써서 640px 로 충분
 const W = 640, H = 640, STEPS = 29;
 const token = process.env.NOVELAI_TOKEN;
@@ -42,7 +56,7 @@ function unzipFirst(buf) {
   return method === 8 ? inflateRawSync(data) : data;
 }
 async function gen(id, seed) {
-  const p = P[id];
+  const p = promptOf(id);
   // 무기: 이펙트보다 무기 자체가 먼저 보이게 (단일 물체 · 전체 형태 · 대각 배치)
   const weapon = id.startsWith('weapon.') && !p.prop ? ', ::1.4::single weapon object, entire weapon visible, weapon in focus, detailed weapon design::, subtle effect behind' : '';
   // 물리 계열 (light): 흰 배경 · 은빛 톤
@@ -58,16 +72,19 @@ async function gen(id, seed) {
     const res = await fetch('https://image.novelai.net/ai/generate-image', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (res.status === 429) { await new Promise((r) => setTimeout(r, 30000 * (a + 1))); continue; }
     if (!res.ok) throw new Error(`${id}: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
-    mkdirSync(out, { recursive: true });
-    writeFileSync(`${out}/${id}.png`, unzipFirst(Buffer.from(await res.arrayBuffer())));
-    console.log(`${id} ok (${seed})`); return;
+    const dir = cand ? `art/icons/cand/${id}` : out, file = cand ? `${dir}/${alt ? alt + '-' : ''}${seed}.png` : `${out}/${id}.png`;
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(file, unzipFirst(Buffer.from(await res.arrayBuffer())));
+    log.push({ id, alt, kind: 'icon', style, seed, model: cfg.model, time: new Date().toISOString(), prompt: input, file });
+    writeFileSync(logPath, JSON.stringify(log, null, 2));
+    console.log(`${id}${alt ? '/' + alt : ''} ok (${seed}) → ${file}`); return;
   }
   throw new Error(`${id}: 429 반복`);
 }
 if (!flag('--dry')) await guard(ids.length, token);
 for (const id of ids) {
   if (!P[id]) { console.error(`${id}: 프롬프트 없음`); continue; }
-  if (!flag('--force') && !flag('--dry') && existsSync(`${out}/${id}.png`)) continue;
+  if (!cand && !flag('--force') && !flag('--dry') && existsSync(`${out}/${id}.png`)) continue;
   try { await gen(id, opt('--seed') ? Number(opt('--seed')) : Math.floor(Math.random() * 4294967295)); }
   catch (e) { console.error(String(e)); }
   if (!flag('--dry')) await new Promise((r) => setTimeout(r, pause()));

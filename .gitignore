@@ -9,6 +9,7 @@ dist/analyze.cjs
 dist/*.cjs
 dist/ERRANTEs-offline.html
 art/icons/raw/
+art/icons/cand/
 art/faces_raw/
 art/expr_stage/
 .cache/

@@ -53,7 +53,7 @@ art/prompts.json ──(scripts/nai.mjs, 유료 29스텝)──▶ art/raw/<id>/
 | `scripts/nai_bg.mjs` | 배경 (가로 1216×832) | `node scripts/nai_bg.mjs <키 ...>` · `--all` · `--n` · `--force` | `art/raw/bg/<키>/<seed>.png` (입력 `art/bg_prompts.json`) |
 | `scripts/nai_prop.mjs` | 출격 계약 탑뷰 소품 (테이블 · 벨 · 전표 출력기) | `node scripts/nai_prop.mjs <키 ...>` · `--all` | `art/raw/prop/<키>/<seed>.png` (입력 `art/prop_prompts.json`, 흰 바탕 → 오리기) |
 | `scripts/nai_outpaint.mjs` | 캔버스 확장 (마스크 흰 곳만 새로 그림) | `node scripts/nai_outpaint.mjs <소품 키> <canvas.png> <mask.png> <장 수>` | `art/raw/prop/<키>_x/<seed>.png` |
-| `scripts/nai_icon.mjs` | 능력 아이콘 (10절) | `node scripts/nai_icon.mjs <id ...>` · `--all` · `--style A~E` (기본 E) · `--seed` · `--force` · `--dry` | `art/icons/raw/<id>.png` |
+| `scripts/nai_icon.mjs` | 능력 아이콘 (10절) | `node scripts/nai_icon.mjs <id ...>` · `--all` · `--style A~E` (기본 E) · `--seed` · `--force` · `--dry` · 시안 `--cand --alt v1` | `art/icons/raw/<id>.png` · 시안 `art/icons/cand/<id>/<alt>-<seed>.png` · 기록 `art/gen-log.json` (`kind: 'icon'`) |
 | `scripts/nai_upscale.mjs` | 2배 업스케일 (Anlas 소모) | `node scripts/nai_upscale.mjs <입력.png> <출력.png>` | |
 | `scripts/nai_expr.py` · `scripts/nai_face.py` | 표정 차분 (전신 img2img · 얼굴 인페인팅, 9절) | 파일 머리 docstring | `art/picked/<id>.<표정>.webp` · `art/faces_raw/` |
 | `scripts/nai_i2i.py` | 배경 등 일반 img2img | `python3 scripts/nai_i2i.py <입력> <출력 폴더> --prompt "…" [--strength] [--noise] [--n]` | |
@@ -104,7 +104,7 @@ art/prompts.json ──(scripts/nai.mjs, 유료 29스텝)──▶ art/raw/<id>/
 
 시안 페이지 도구: **`scripts/pick_page.py`** + 템플릿 **`tools/pick/tpl.html`** (사용법은 파일 머리 docstring).
 
-1. 페이지 만들기: `python3 scripts/pick_page.py OUT_DIR --title "전장 고유 적 시안" --col picks <prompt id ...> [--latest N]`
+1. 페이지 만들기: `python3 scripts/pick_page.py OUT_DIR --title "전장 고유 적 시안" --col picks <prompt id ...> [--latest N]` (능력 아이콘 시안은 `--icons`: `art/icons/cand/<id>/` · 정사각 칸 · 문서 id 는 `.` → `_`)
    → `OUT_DIR/index.html` · `OUT_DIR/img/<id>_<seed>.webp` (축소본) · 게시용 목록 `OUT_DIR/files.json`. `--latest N` = 각 id 의 `art/raw/<id>/` 에서 최근 N장만.
 2. 게시: Artifact 도구로 `OUT_DIR/index.html` 을 `root` = OUT_DIR, `files` = `files.json` 내용, `capabilities` = `{"db": {}}` 로.
 3. 사용자가 고른다 (고르면 바로 db 에 저장, 시안마다 '다시 뽑기' 칸도 있다). 고르는 페이지의 변경 알림은 오지 않을 수 있으니 사용자가 "골랐다"고 하면 읽는다.
@@ -205,10 +205,10 @@ art/prompts.json ──(scripts/nai.mjs, 유료 29스텝)──▶ art/raw/<id>/
 ### 원본 보관
 
 - 생성 원본(`art/icons/raw/<id>.png`, 640×640)은 깃에 넣지 않았고 생성한 작업 환경에만 있었다. 저장소에 남은 것은 `src/ui/abilicons.gen.ts` 의 88px WebP 뿐이다.
-- `nai_icon.mjs` 는 `art/gen-log.json` 에 시드를 남기지 않는다 (아이콘 기록 0건) — 예전 아이콘을 같은 그림으로 다시 뽑을 수 없다.
+- 2026-10-31 전에 뽑은 아이콘 249개는 시드 기록이 없어 같은 그림으로 다시 뽑을 수 없다. 그 뒤로 `nai_icon.mjs` 는 생성마다 `art/gen-log.json` 에 `{ id, alt, kind: 'icon', style, seed, prompt, file }` 를 남긴다 (`--seed` 로 같은 그림을 다시 뽑는다).
 - 새 아이콘만 추가할 때도 `icons_build.py` 는 raw 폴더에 있는 것만으로 파일을 다시 쓴다 (아래 주의).
 
-- 다시 뽑을 때는 프롬프트를 바꾼 시안 3개를 보여 주고 고르게 한다.
+- 다시 뽑을 때는 프롬프트를 바꾼 시안 3개를 보여 주고 고르게 한다: 항목에 `alts: { v1: { subject, color }, v2: …, v3: … }` 를 두고 `node scripts/nai_icon.mjs <id ...> --cand --alt v1` (v2 · v3 도) → `python3 scripts/pick_page.py OUT --icons <id ...>`. 고른 시안은 `art/icons/raw/<id>.png` 로 복사하고, 항목의 기본 `subject` · `color` 를 고른 alt 로 맞춘다.
 - `art/icons/raw` 는 깃에 없다. `icons_build.py` 는 그 폴더에 있는 그림만으로 `abilicons.gen.ts` 를 통째로 다시 쓰므로, 새 체크아웃처럼 폴더가 비어 있으면 기존 아이콘이 빠진다 — 돌리기 전에 폴더 내용을 확인하고 `git diff` 로 줄어든 아이콘이 없는지 본다.
 
 ## 11. 알려진 어긋남
