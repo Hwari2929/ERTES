@@ -12,13 +12,13 @@ import { augChoice, forkChoice, manageItems, manageItemsFix, newIns, shopSynth, 
 import { ALL_AREAS, Chulsu, DEFAULT_AREAS, DLog, pickStarters, type Area } from './chulsu';
 import { effTier, inactiveRange, setEvalMode } from './chulsu/syn';
 import { Rng } from '../src/rng';
-import { RELICS } from '../src/data/relics';
+import { RELICS, offerCap, offerStage } from '../src/data/relics';
 import { FIELDS } from '../src/data/battlefields';
 import { fieldSyn, starterFavNeed, starterPool } from '../src/engine/starters';
 import { oathV } from '../src/data/oaths';
 import { causalStage } from '../src/data/chungra';
 import { isLocked } from '../src/data/items';
-import type { Major, NodeType, RunState, SynergyId } from '../src/types';
+import { MAJORS, type Major, type NodeType, type RunState, type SynergyId } from '../src/types';
 
 declare const process: { argv: string[]; stdout: { write(s: string): void }; stderr: { write(s: string): void } };
 
@@ -277,10 +277,32 @@ function playRun(seed: number) {
   const want = (p: string) => (p === 'always' || p === 'must' ? true : p === 'avoid' || p === 'never' ? false : p === 'state' ? run.hp > 60 && pol.chance(0.5) : p === 'power' ? strong() : false);
 
   // 경로 · 상점 계측 (instr, 읽기만): 갈림길 [페이즈, 선택지, 고른 것] · 지도 칸 진입 [페이즈, 선택지, 들어간 노드] · 상점 구매 [페이즈, 장비, 가격, 구매 직전 크레딧]
-  const brRec: [number, string, string][] = [], routeRec: [number, string, string][] = [], buyRec: [number, string, number, number][] = [];
+  const brRec: [number, string, string][] = [], routeRec: [number, string, string, string][] = [], buyRec: [number, string, number, number][] = [];
+  // 디바인 · 스페셜 계측 (instr, 읽기만 — 난수 · 상태를 건드리지 않는다)
+  // pwSrc = 권능 포인트 출처별 합 (전투 정산 battle · 사건 event · 그 밖, 대기 선택 종류 이름) · pwSp = 사용처별 [횟수, 권능] (개편 뒤: rite · alms 받은 카드 수 · cons 축성 · relic 성유물 구매 · convert 개종, 개편 전: 참배 카드 id · enh 강화)
+  // pilRec = 순례 방문 · vowRec = 서약 증강 선택 · mpkRec = 스페셜 능력치 선택 · greats = 기물 uid → 대성공 횟수 · pmapRec = 페이즈별 항로에 순례 노드
+  const pwSrc: Record<string, number> = {}, pwSp: Record<string, [number, number]> = {};
+  const pilRec: unknown[] = [], vowRec: unknown[] = [], mpkRec: unknown[] = [], pmapRec: number[][] = [];
+  const greats = new Map<string, number>();
+  // 봉헌 계측: og = 봉헌 출처별 합 (auto 전투 정산 · rite 제례 · cons 축성 (그 밖의 증가) · join 합류 시작값) · 축성 횟수는 pwSp.cons [횟수, 권능] · ostRec = 페이즈 시작마다 [페이즈, '기물:단계:출전' …]
+  const og: Record<string, number> = {}, offLast = new Map<string, number>(), consSeen = new Map<string, number>(), ostRec: unknown[] = [];
+  const ogMark = (src: string) => {
+    for (const u of R.divines(run)) {
+      const o = u.offer || 0, l = offLast.get(u.uid);
+      if (l === undefined) og.join = (og.join || 0) + o; else if (o > l) og[src] = (og[src] || 0) + o - l;
+      offLast.set(u.uid, o);
+      if (u.cons) { const k = `${u.uid}|${u.cons.p}`, n0 = consSeen.get(k) || 0; if (u.cons.n > n0) { const s = (pwSp.cons ??= [0, 0]); s[0] += u.cons.n - n0; s[1] += (u.cons.n - n0) * CFG.consecrate.cost; consSeen.set(k, u.cons.n); } }
+    }
+  };
+  let pwLast = run.power;
+  /** 지난 기록 뒤 권능 변화를 src 로 돌린다 (늘어난 몫만 출처로, 순례 밖에서 줄어든 몫은 neg:src) */
+  const pwMark = (src: string) => { ogMark('cons'); const d = run.power - pwLast; if (d > 0) pwSrc[src] = (pwSrc[src] || 0) + d; else if (d < 0 && src !== 'pilgrim') pwSrc[`neg:${src}`] = (pwSrc[`neg:${src}`] || 0) + d; pwLast = run.power; };
   const resolvePending = () => {
+    let pk = 'other';
     while (run.pending.length) {
+      if (INSTR) pwMark(pk);
       const p = run.pending[0];
+      pk = p.t;
       if (p.t === 'privilege') {
         if (F_PRIV) { p.options = [{ id: F_PRIV, ...(F_PRIV === 'P.emblem' ? { param: CH?.emblemParam() || p.options.find((o) => o.id === 'P.emblem')?.param || 'UNI' } : {}) }]; R.pickPrivilege(run, 0); continue; } // 조건부 실험 (측정표)
         if (CH?.augOn('priv')) { CH.privilege(p); continue; } // 철수 aug: 크레딧 환산 모형 + 새로고침 기대값
@@ -308,7 +330,12 @@ function playRun(seed: number) {
       else if (p.t === 'rankup') {
         const u = run.units.find((x) => x.uid === p.uid)!;
         const pref: Major[] = UNIT_BY_ID[u.defId].range <= 1 ? ['vit', 'pow'] : ['pow', 'mnd'];
+        const al0 = INSTR && !p.allocDone ? { ...u.alloc } : null; // 계측: 스페셜 능력치 선택 전 배분
         if (!p.allocDone) R.allocRank(run, p, (!p.allocDone && CH?.alloc(p)) || pref); // 대성공이면 같은 능력치 2배. 철수 growth: 실제 계수 기준
+        if (al0 && p.allocDone) {
+          mpkRec.push([run.phase, u.defId, p.rank, MAJORS.filter((k) => u.alloc[k] > al0[k]).join(','), p.great ? 1 : 0]);
+          if (p.great) greats.set(u.uid, (greats.get(u.uid) || 0) + 1);
+        }
         R.ensureRankupOptions(run, p);
         if (CH?.augOn('unit')) { const a = CH.aug(p); if (a) R.chooseAug(run, p.uid, a); } // 철수 aug: 실측 증강 가치 + 새로고침
         else { const a = augChoice(p, (o) => bot.pick(o)); if (a) R.chooseAug(run, p.uid, a); }
@@ -329,9 +356,28 @@ function playRun(seed: number) {
       else if (p.t === 'branch') { R.pickBranch(run, run.picked.slice(0, run.step).includes('shop') ? SUPPLY && p.options.includes('supply') ? 'supply' : (run.units.length < 10 ? (['recruit', 'invest', 'pilgrim', 'shop'] as const) : (['invest', 'pilgrim', 'shop'] as const)).find((o) => p.options.includes(o))! : 'shop'); continue; }
       else if (p.t === 'fork' && CH?.has('hard') && !POL_ADV) { R.pickFork(run, CH.fork()); continue; } // 철수 hard: 체력 · 전력 여유로 휴식 / 도전
       else if (p.t === 'fork') { R.pickFork(run, POL_ADV ? (R.occultTier(run) && run.credits >= 20 ? 'synth' : want(POL_CH) ? 'challenge' : 'rest') : forkChoice(run, () => bot.chance(0.5))); continue; }
-      else if (p.t === 'pilgrim') { pilgrimBot(run); run.pending.shift(); continue; }
+      else if (p.t === 'pilgrim') {
+        // 계측: 순례 방문 [페이즈, 칸, 들어갈 때 권능, 제시 카드 (rite:<신앙> · alms), 받은 카드, 제시 성유물, 산 성유물, 축성한 기물, 나올 때 권능, 보유 디바인, 출전 디바인, 제례 대상 수, 개종 (제시 신앙:산 1/0)]
+        if (INSTR) { pwMark(pk); ogMark('cons'); }
+        const pw0 = run.power, rs0 = (p.relics || []).map((x) => x.sold), dv0 = R.divines(run), cs0 = dv0.map((u) => R.consUsed(run, u)), of0 = new Map(dv0.map((u) => [u.uid, u.offer || 0])), cv0 = !!p.convert?.sold;
+        pilgrimBot(run);
+        if (INSTR) {
+          const rb = (p.relics || []).filter((x, i) => x.sold && !rs0[i]), cn = dv0.filter((u, i) => R.consUsed(run, u) > cs0[i]);
+          const tk = p.took !== undefined ? p.offers[p.took] : undefined;
+          const ru = tk?.k === 'rite' ? R.riteUnits(run, tk.faith) : [];
+          if (tk?.k === 'rite') for (const u of ru) { const g = Math.min(tk.gain, offerCap() - (of0.get(u.uid) || 0)); if (g > 0) { og.rite = (og.rite || 0) + g; offLast.set(u.uid, (offLast.get(u.uid) || 0) + g); } }
+          if (tk) { const s = (pwSp[tk.k === 'rite' ? 'rite' : 'alms'] ??= [0, 0]); s[0]++; }
+          for (const x of rb) { const s = (pwSp.relic ??= [0, 0]); s[0]++; s[1] += x.cost; }
+          if (p.convert?.sold && !cv0) { const s = (pwSp.convert ??= [0, 0]); s[0]++; s[1] += p.convert.cost; }
+          const ofs = (o: (typeof p.offers)[number]) => (o.k === 'rite' ? `rite:${o.faith}` : 'alms');
+          pilRec.push([run.phase, run.step, pw0, p.offers.map(ofs).join(','), tk ? ofs(tk) : '', (p.relics || []).map((x) => x.id).join(','), rb.map((x) => x.id).join(','), cn.map((u) => u.defId).join(','), run.power, dv0.length, dv0.filter((u) => u.pos).length, ru.length, p.convert ? `${p.convert.faith}:${p.convert.sold && !cv0 ? 1 : 0}` : '']);
+          ogMark('cons'); pwLast = run.power;
+        }
+        run.pending.shift(); continue;
+      }
       run.pending.shift();
     }
+    if (INSTR) pwMark(pk);
   };
   const track: Track = (id, what) => { add('cons', id, { [what]: 1 }); if (what === 'used') consUsed++; };
   const manage = () => {
@@ -380,15 +426,18 @@ function playRun(seed: number) {
   };
   while (!run.over && !run.cleared && n < 200) {
     if (ADVSTUDY && run.node?.enc && !encPre.has(run.node.enc)) encPre.set(run.node.enc, structuredClone(run.node.enc));
+    // 계측: 페이즈마다 [페이즈, 항로에 순례 노드가 있나, 보유 디바인 수] (항로는 페이즈가 시작될 때 정해진다)
+    if (INSTR && pmapRec[pmapRec.length - 1]?.[0] !== run.phase) { pmapRec.push([run.phase, run.map.some((row) => row.includes('pilgrim')) ? 1 : 0, R.divines(run).length]); ostRec.push([run.phase, run.power, ...R.divines(run).map((u) => `${u.defId}:${offerStage(u.offer)}:${u.pos ? 1 : 0}`)]); }
     resolvePending(); manage(); resolvePending();
     if (run.node?.synth) { if (CH?.has('econ')) { CH.synth(track); R.leaveShop(run); } else shopSynth(run, track); continue; }
     if (!run.node) {
-      const opts = R.currentOptions(run);
+      const opts = R.currentOptions(run), st0 = run.step;
+      if (INSTR) pwMark('other');
       if (POL_ADV) R.enterNode(run, opts.includes('adversity') ? (want(POL_ADV) ? 'adversity' : 'battle') : opts[0]); // 역경 칸을 일반 전투로 바꾸는 것은 가상 정책 (실제 지도에서 역경은 필수)
       else R.enterNode(run, routePick(opts));
       if (run.pending[0]?.t === 'branch') resolvePending();
       const t = (run.node as { type: string } | null)?.type;
-      if (INSTR) routeRec.push([run.phase, opts.join(','), t || '-']);
+      if (INSTR) { routeRec.push([run.phase, opts.join(','), t || '-', run.picked[st0] || '?']); pwMark('node'); } // 넷째 = 실제로 고른 노드 (셋째는 진입 뒤 run.node 종류라 순례 · 사건 · 회의 등은 '-')
       if (t === 'shop' && CH?.has('econ')) {
         const sh = (run.node as { shop?: { item: string; price: number; sold?: boolean }[] } | null)?.shop || [], was = sh.map((x) => !!x.sold), cr0 = run.credits;
         CH.shop();
@@ -450,7 +499,13 @@ function playRun(seed: number) {
       // ad = 아군 사망 · loot = 밀수 운반책 크레딧 · sq = 분대 종류 · bigd = 대형 적에게 넣은 피해 (아군 기물별 [본체, 나머지 칸])
       fz:b.units.filter(u=>u.side===1&&!u.mem.part&&!u.mem.neutral&&!u.mem.inert).map(u=>[u.defId,u.alive?1:0,Math.round(u.counters.dmg),Math.round((FOE_DT.get(u)??-1)*10)/10,u.isSummon?1:0,u.elite?1:0]),
       ad:b.counters.allyDeaths, loot:(b.mem.lootPay as number)||0, sq:(enc.squads||[]).map(s=>s.kind+(s.add?'+':'')),
-      ...(BT ? { bigd:Object.fromEntries(Object.entries(BT).map(([k,v])=>[k,[Math.round(v[0]),Math.round(v[1])]])) } : {})});
+      ...(BT ? { bigd:Object.fromEntries(Object.entries(BT).map(([k,v])=>[k,[Math.round(v[0]),Math.round(v[1])]])) } : {}),
+      // 디바인 계측: dv = 출전 디바인마다 [정의 id, 모은 신성력, 신권 대행 횟수, 첫 신권 대행 시각(-1 = 없음), 성유물, 봉헌 단계 (2026-10-31 개편 전 기록은 강화 1/0), 신앙, 권능 몫(÷ powerPerDiv + 사용 1, 상한 전), 생존, 준 피해, 등급]
+      //   pw0 = 전투 직전 보유 권능 · pw = 이 전투 정산에서 얻은 권능 (전투 뒤 채움, 상한 CFG.powerMax 뒤)
+      // 스페셜 계측: mn = 출전 스페셜(minor)마다 [정의 id, 등급, 대성공 횟수, 능력치 선택 점수 합 (배분 − 등급 자동 상승)]
+      dv:b.units.filter(c=>c.side===0&&!c.isSummon&&c.src&&c.div!==null&&UNIT_BY_ID[c.src.defId]?.ttype==='divine').map(c=>[c.src!.defId,Math.round(c.divGot),c.mem.divActs||0,c.mem.divT1?Math.round(c.mem.divT1*10)/10:-1,c.src!.relic||'-',offerStage(c.src!.offer),c.faith||'-',Math.floor(c.divGot/CFG.powerPerDiv)+(c.divUsed?1:0),c.alive?1:0,Math.round(c.counters.dmg),c.src!.rank]),
+      mn:b.units.filter(c=>c.side===0&&!c.isSummon&&c.src&&!c.mem.inert&&UNIT_BY_ID[c.src.defId]?.ttype==='minor').map(c=>[c.src!.defId,c.src!.rank,greats.get(c.src!.uid)||0,MAJORS.reduce((s,k)=>s+c.src!.alloc[k],0)-(c.src!.rank-1)*CFG.rankAll*MAJORS.length]),
+      pw0:run.power, pw:0});
     CH?.afterBattle(b, ntype);
     battles++;
     if (INSTR) {
@@ -574,7 +629,9 @@ function playRun(seed: number) {
         add('cf', sid, v); add('cf_t', `${sid}|${tier}`, v); add('cf_ph', `${sid}|${ph}`, v);
       }
     }
+    if (INSTR) pwMark('other');
     R.resolveBattle(run, b);
+    if (INSTR) { (trace[trace.length - 1] as { pw: number }).pw = run.power - pwLast; ogMark('auto'); pwMark('battle'); }
     if (run.over) add('death', `${ph}|${ntype}`, { n: 1 });
   }
   // 런 단위: 최종 장비 · 시너지 최고 단계 · 도달 페이즈
@@ -590,7 +647,9 @@ function playRun(seed: number) {
   runs.push({ ...(GEARLOG ? { gl: gearLog } : {}), ...(GLOB_RAND ? { gr: globRec, glob: [...(run.globals || [])] } : {}), seed, starters, field: run.field, cleared: run.cleared, phase: run.phase, battles, causal: run.causal || 0, king: run.causal ? causalStage(run.causal) : 0, used: [...usedUnits], final: run.units.map((u) => u.defId), synMax, finalItems,
     cz: czAt, kb: kbAt, chrMax: run.chrTier || 0, bw, diff: run.diff || 0, heat: run.oathHeat || 0, despairs: run.despairs || [], hp: run.hp, eco, ...(DETAIL ? { det } : {}), ...(ADVSTUDY ? { adv: advRecs, nb: nbRecs, maxHp: run.maxHp } : {}),
     ...(INSTR ? { trace, ins: { bot: BOT, ...(YH_MODE ? { econ: YH_MODE } : {}), areas: [...CH_AREAS], enc: encRec, gear: gearRec, fail: INS!.fail, ev: INS!.ev, ms: Math.round(performance.now() - t0), dms: Math.round(dms), cms: Math.round(CH?.ms || 0), nb: battles, synAt, boss: bossRec, ...(n >= 200 ? { capped: 1 } : {}), ...(CH?.xb ? { xb: CH.xb, xms: Math.round(CH.xms) } : {}), ...(CH?.stage2() ? { ch: CH.rec } : {}),
-      glob: [...(run.globals || [])], uaug: run.units.map((u) => [u.defId, u.augments.map((g) => g.id)]), br: brRec, route: routeRec, buy: buyRec } } : {}),
+      glob: [...(run.globals || [])], uaug: run.units.map((u) => [u.defId, u.augments.map((g) => g.id)]), br: brRec, route: routeRec, buy: buyRec,
+      // 디바인 · 스페셜 경제 (위 계측 설명): 권능 출처 · 사용처 · 끝난 뒤 권능 · 순례 방문 · 페이즈별 항로 순례 노드 · 서약 증강 (개편 뒤 비어 있음) · 스페셜 능력치 [페이즈, 기물, 등급, 능력치, 대성공] · 봉헌 출처 og · 페이즈별 봉헌 단계 ost (마지막 = 런 끝)
+      dvx: { src: (pwMark('other'), pwSrc), sp: pwSp, end: run.power, pil: pilRec, pmap: pmapRec, vow: vowRec, mpk: mpkRec, divCap: run.divCap || 0, og, ost: [...ostRec, [run.phase, run.power, ...R.divines(run).map((u) => `${u.defId}:${offerStage(u.offer)}:${u.pos ? 1 : 0}`)]] } } } : {}),
     ...(DLOG && CH ? { dlog: CH.log.list } : {}) });
 }
 
