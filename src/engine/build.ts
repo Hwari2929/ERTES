@@ -440,8 +440,9 @@ export function buildWall(b: Battle, x: number, y: number, hp: number, o: { name
 }
 const WALL_PAL = ['#0e0e0e', '#9a7a4a', '#6a5232', '#d8c090', '#b89a62', '#3e2f1c', '#efe2c0'];
 
-export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number, gear?: { items?: string[]; mod?: string; stripped?: boolean; part?: number }): CUnit {
+export function buildEnemy(b: Battle, def: EnemyDef, phase: number, mult: number, gear?: { items?: string[]; mod?: string; stripped?: boolean; part?: number; summon?: boolean }): CUnit {
   const c = blankUnit(1);
+  if (gear?.summon) c.isSummon = true; // 전투 중 소환된 적: 전장 조건(enemyMod)이 알 수 있게 미리
   const st = emptyStats();
   const sp = scalePhase(phase, b.ctx.camp); // 적 성장 페이즈 (의뢰 마지막 페이즈 = 예전 6페이즈 세기)
   st.maxHp = def.hp * CFG.enemyHpMul * phaseHpMult(sp, CFG.diffHpAdd(b.ctx.diff || 0)) * mult; // 모험 · 고난: 페이즈 체력 성장 가산
@@ -742,7 +743,7 @@ KAL_HOOK.spawn = (b, lead, n) => {
 
 setSummonHook((b, owner, defId, count) => {
   for (let i = 0; i < count; i++) {
-    const e = buildEnemy(b, ENEMY_BY_ID[defId], b.ctx.phase, owner.mem.mult || 1);
+    const e = buildEnemy(b, ENEMY_BY_ID[defId], b.ctx.phase, owner.mem.mult || 1, { summon: true });
     e.isSummon = true;
     e.hp = e.st.maxHp;
     b.spawn(e, owner);
@@ -756,7 +757,7 @@ ENEMY_RT.spawn = (b, defId, at, o = {}) => {
   const free = b.inBounds(at.x, at.y) && !b.unitAt(at.x, at.y);
   const cell = free ? { x: at.x, y: at.y } : o.exact ? null : b.freeCellNear(at.x, at.y);
   if (!cell) return null;
-  const e = buildEnemy(b, def, b.ctx.phase, o.mult || 1);
+  const e = buildEnemy(b, def, b.ctx.phase, o.mult || 1, o.summon ? { summon: true } : undefined);
   e.isSummon = !!o.summon;
   e.hp = e.st.maxHp * (o.hpPct ?? 1);
   e.atkTimer = e.atk.interval * 0.5;

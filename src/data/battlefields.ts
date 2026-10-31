@@ -170,14 +170,14 @@ export const FIELDS: FieldDef[] = [
   {
     id: 'raiden', name: '라이덴 제34블록 봉쇄선', region: '칼리토 제국 · 호이슌 대공령', icon: '⛩', color: '#e0409a',
     desc: '결함 펌웨어로 과개조자들이 한꺼번에 폭주했다. 일손이 모자란 카게키리 특무대가 위상 붕괴 구역에서도 돌아오는 용병을 불렀다.',
-    rules: ['폭주 전염: 적이 쓰러지면 주변 1칸의 다른 적이 4초 광폭 (피해 +30%, 같은 편 포함 가장 가까운 대상 공격 · 같은 편에겐 50%). 징집병은 퍼뜨리지도 걸리지도 않는다', '호이슌 기물 피해 +20%, 효과 저항 +20%p'],
+    rules: ['폭주 전염: 적이 쓰러지면 주변 1칸의 다른 적이 4초 광폭 (피해 +30%, 같은 편 포함 가장 가까운 대상 공격 · 같은 편에겐 50%). 소환된 적은 퍼뜨리지도 걸리지도 않는다', '호이슌 기물 피해 +20%, 효과 저항 +20%p'],
     pool: ['rd_laborer', 'rd_combat', 'rd_sub', 'rd_stream', 'gunner', 'mx_aegis', 'mx_stim', 'mx_skirm', 'mx_rampart'], elite: 'rd_critical', elites: ['mx_warden'], bosses: ['rd_tower', 'rd_repo'],
     enemyMod: (c) => threat(c, 1.2),
     ally: { syn: 'HOI', effect: { mods: [inc('all', 0.2)], stats: { effRes: 0.2 } } },
     battle: {
       onDeath(b, dead) {
-        if (dead.side !== 1 || dead.mem.inert || dead.defId === 'mx_conscript') return; // 소집 지휘관의 징집병은 폭주 전염 밖
-        for (const a of b.around(dead, 1, b.fighters(1))) if (a !== dead && !a.immobile && a.defId !== 'mx_conscript') rampage(b, a, 4);
+        if (dead.side !== 1 || dead.mem.inert || dead.isSummon) return; // 전투 중 소환된 적은 폭주 전염 밖
+        for (const a of b.around(dead, 1, b.fighters(1))) if (a !== dead && !a.immobile && !a.isSummon) rampage(b, a, 4);
       },
     },
   },
@@ -245,11 +245,11 @@ export const FIELDS: FieldDef[] = [
   {
     id: 'hyperion', name: '금고선 히페리온호', region: '범은하 공동체 · 금고장 조디악', icon: '⛁', color: '#e0b84a',
     desc: '13겹 보호막을 두른 유람 금고. 운용 30주년 보안 감사로 금고장 조디악이 모의 침투를 맡겼다. 금고문까지 닿으면 들고 나온 만큼이 보수다.',
-    rules: ['13중 보호막: 정예 · 보스는 보호막 13겹, 일반 적은 3겹으로 시작 (징집병 제외). 피해 1회(지속 피해 제외)가 피해량과 상관없이 1겹을 벗기고, 겹이 남은 동안 피해 0', '감사 보수: 전투 승리 시 크레딧 +3', '침투자 기물 피해 +20%, 착지 직후 주변 1칸 적 보호막 3겹 제거'],
+    rules: ['13중 보호막: 정예 · 보스는 보호막 13겹, 일반 적은 3겹으로 시작 (전투 중 소환된 적 제외). 피해 1회(지속 피해 제외)가 피해량과 상관없이 1겹을 벗기고, 겹이 남은 동안 피해 0', '감사 보수: 전투 승리 시 크레딧 +3', '침투자 기물 피해 +20%, 착지 직후 주변 1칸 적 보호막 3겹 제거'],
     pool: ['hy_teller', 'hy_cashier', 'hy_exchange', 'turret', 'drone', 'mx_aegis', 'mx_shade', 'mx_skirm'], elite: 'hy_appraiser', elites: ['mx_warden'], bosses: ['hy_door', 'hy_zodiac'],
     ally: { syn: 'INFIL', effect: { mods: [inc('all', 0.2)], hooks: { onStart(b, u) { for (const e of b.around(u, 1, b.enemiesOf(u))) if (e.mem.layers) { e.mem.layers = Math.max(0, e.mem.layers - 3); b.emit({ k: 'status', id: e.id, name: e.mem.layers ? `보호막 ${e.mem.layers}겹` : '보호막 붕괴' }); } } } } },
     winCredits: 3,
-    enemyMod: (c) => { threat(c, 1.15); if (!c.mem.inert && c.defId !== 'mx_conscript') c.mem.layers = c.mem.layersMax = c.isBoss || c.elite ? 13 : 3; }, // 징집병은 보호막 없이
+    enemyMod: (c) => { threat(c, 1.15); if (!c.mem.inert && !c.isSummon) c.mem.layers = c.mem.layersMax = c.isBoss || c.elite ? 13 : 3; }, // 전투 중 소환된 적은 보호막 없이
     battle: {
       onStart(b) {
         for (const u of b.fighters(1)) {
