@@ -170,6 +170,7 @@ node <폴더>/bal.cjs <시작 시드> <런 수> [반사실 표본 비율] [위�
 | `balance_synergy_lift.py` · `balance_synergy_compare.py` | 시너지 단계별 lift · 두 봇 비교 (`docs/BALANCE_SYNERGY_LIFT.md`) |
 | `balance_adversity.py` | `advstudy` · `advpol=` 결과 → `docs/BALANCE_ADVERSITY.md` 재료 |
 | `balance_experiments.py` | 단일 변경 실험 → `docs/balance_experiments.json` |
+| `balance_divine.py` | 조각 (봇별, 이번 · 기준) + 이름표 → 전술 유형 lift (그때 유형 · 이번 유형으로 다시 나눈 기준), 디바인 기물별 lift · 봉헌 단계 · 사용률, 봉헌 단계별 lift, 권능 · 봉헌 경제 (출처 · 축성 · 제례 / 나눔 · 진열장 · 개종 · 런 끝 단계 분포), 시드 짝 비교 (2026-10-31 디바인 개편 뒤 보고서, `docs/BALANCE_2026_10_31_v474.md`) |
 | `analyze_report.py` · `analyze_events.py` · `probe2_report.py` | `tests/analyze.ts` · `tests/probe2.ts` 출력 집계 (옛 측정) |
 
 이름표: `tests/chulsu2000_names.ts` (기물 · 시너지 · 장비 · 증강 · 적 이름 JSON), `tests/balance_meta.ts` · `tests/detail_meta.ts`.

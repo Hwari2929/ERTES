@@ -1209,7 +1209,7 @@ export function enableDivine(u: CUnit, faith: FaithId, capBonus: number) {
   u.div = 0; u.divGot = 0; u.divUsed = false; u.divCap = CFG.divCap + capBonus;
   u.faith = faith;
   u.hooks.push(FAITH_DEF[faith].hooks);
-  u.hooks.push({ onTick(b, self, dt) { self.mem.divT = (self.mem.divT || 0) + dt; if (self.mem.divT >= 1) { self.mem.divT -= 1; b.addDiv(self, 2); } } });
+  u.hooks.push({ onTick(b, self, dt) { self.mem.divT = (self.mem.divT || 0) + dt; if (self.mem.divT >= 1) { self.mem.divT -= 1; b.addDiv(self, CFG.divTick); } } });
 }
 /** 도로스 [성찬]: 요리받은 아군의 고유 신앙을 깨운다 (이미 디바인이면 신성력 획득 +100%p) */
 export function dorosAwaken(b: Battle, t: CUnit) {
