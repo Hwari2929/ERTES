@@ -8777,5 +8777,27 @@
     "time": "2026-10-31T15:57:20.949Z",
     "prompt": "::1.6::cat paw prints of golden light hopping between floating rift tears, game of tag::, gold and amber color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
     "file": "art/icons/cand/ult.phyllis/v3-4182892260.png"
+  },
+  {
+    "id": "ult.aiden",
+    "alt": "v3",
+    "kind": "icon",
+    "style": "E",
+    "seed": 764517873,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:57:32.430Z",
+    "prompt": "::1.6::bar shutter slamming down with a ring of mercury spikes, wall clock at closing time::, silver and violet color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.aiden/v3-764517873.png"
+  },
+  {
+    "id": "ult.amundsen",
+    "alt": "v3",
+    "kind": "icon",
+    "style": "E",
+    "seed": 4077946571,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:57:50.524Z",
+    "prompt": "::1.6::targeting grid with eight impact markers and falling shells, antique explorer compass emblem::, orange and steel blue color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.amundsen/v3-4077946571.png"
   }
 ]
