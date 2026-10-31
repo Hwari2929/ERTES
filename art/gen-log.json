@@ -8502,5 +8502,16 @@
     "time": "2026-10-31T15:51:47.553Z",
     "prompt": "::1.6::liquid metal blades bursting outward in a ring around a bar counter service bell, closing time shockwave::, silver and crimson color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
     "file": "art/icons/cand/ult.aiden/v1-1753563628.png"
+  },
+  {
+    "id": "ult.amundsen",
+    "alt": "v1",
+    "kind": "icon",
+    "style": "E",
+    "seed": 1645417936,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:52:04.069Z",
+    "prompt": "::1.6::eight artillery shells raining down diagonally from an orbital warship cannon, explosion craters below::, orange and silver color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.amundsen/v1-1645417936.png"
   }
 ]
