@@ -8799,5 +8799,111 @@
     "time": "2026-10-31T15:57:50.524Z",
     "prompt": "::1.6::targeting grid with eight impact markers and falling shells, antique explorer compass emblem::, orange and steel blue color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
     "file": "art/icons/cand/ult.amundsen/v3-4077946571.png"
+  },
+  {
+    "id": "ult.bjorn",
+    "alt": "v3",
+    "kind": "icon",
+    "style": "E",
+    "seed": 3235760773,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:58:02.843Z",
+    "prompt": "::1.6::horned viking helmet above a crackling lightning shield and rescue rope, northern sea storm::, electric blue and crimson color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.bjorn/v3-3235760773.png"
+  },
+  {
+    "id": "ult.winter",
+    "alt": "v3",
+    "kind": "icon",
+    "style": "E",
+    "seed": 2839310255,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:58:15.238Z",
+    "prompt": "::1.6::biohazard containment seal transforming into a healing cross, sterile light beams::, white and toxic green color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.winter/v3-2839310255.png"
+  },
+  {
+    "id": "ult.mao",
+    "alt": "v3",
+    "kind": "icon",
+    "style": "E",
+    "seed": 822466619,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:58:29.475Z",
+    "prompt": "::1.6::golden cocktail glass raised in a toast with lightning sparkles, speed lines, spinning clock hands::, electric blue and gold color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.mao/v3-822466619.png"
+  },
+  {
+    "id": "ult.siu",
+    "alt": "v3",
+    "kind": "icon",
+    "style": "E",
+    "seed": 3467016975,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:58:42.075Z",
+    "prompt": "::1.6::star chart scroll unrolling as green comets pour out, dripping corrosive stardust::, acid green and violet color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.siu/v3-3467016975.png"
+  },
+  {
+    "id": "ult.clover",
+    "alt": "v3",
+    "kind": "icon",
+    "style": "E",
+    "seed": 2048760884,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:58:58.147Z",
+    "prompt": "::1.6::huge spinning harvester blade engulfed in flames, burning four-leaf clover emblem::, red and orange color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.clover/v3-2048760884.png"
+  },
+  {
+    "id": "ult.mingki",
+    "alt": "v3",
+    "kind": "icon",
+    "style": "E",
+    "seed": 2029746592,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:59:13.673Z",
+    "prompt": "::1.6::giant cat paw swiping six times with starry nebula claws, midnight zoomies::, midnight blue and pink color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.mingki/v3-2029746592.png"
+  },
+  {
+    "id": "sm_greenhand",
+    "alt": "v1",
+    "seed": 3397505611,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:59:25.144Z",
+    "prompt": "no humans, monster, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, disembodied giant green hand creature, glowing green slimy skin, torn bandage strips, crawling on fingers, dripping slime, menacing, full body"
+  },
+  {
+    "id": "sm_lara",
+    "alt": "v2",
+    "seed": 1370011207,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:59:41.263Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, cream labrador retriever, hunting dog, energetic, red collar with brass tag, wagging tail, animal focus, full body, standing"
+  },
+  {
+    "id": "sm_greenhand",
+    "alt": "v2",
+    "seed": 2695210668,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:59:56.259Z",
+    "prompt": "no humans, monster, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, green slime creature shaped like a severed arm and hand, bandaged wrist, single glowing eye on the palm, gooey, full body"
+  },
+  {
+    "id": "sm_lara",
+    "alt": "v3",
+    "seed": 3210762305,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T16:00:14.622Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, lean sighthound, greyhound, cream coat, mid-sprint running pose, green scarf, animal focus, full body"
+  },
+  {
+    "id": "sm_greenhand",
+    "alt": "v3",
+    "seed": 1984901084,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T16:00:25.344Z",
+    "prompt": "no humans, monster, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, small regenerated green homunculus made of hands, bandage wrappings, translucent toxic green flesh, white glove remnant, full body"
   }
 ]
