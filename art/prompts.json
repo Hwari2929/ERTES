@@ -2006,10 +2006,13 @@
  "en_cf_mower": {
   "name": "무인 잔디깎이",
   "subject": "no humans",
-  "tags": "autonomous robotic lawn mower, spinning blades, cheerful paint chipped, uncanny suburban, sepia tones, no humans",
+  "tags": "autonomous robotic riding lawn mower vehicle, red and white plastic body, four wheels, spinning blade deck underneath, single sensor eye, grass clippings flying, three-quarter view, uncanny suburban, sepia tones, no humans, no buildings",
   "source": "enemy",
-  "notes": "전장 고유 적 · 시안",
-  "object": true
+  "notes": "전장 고유 적 · 시안 2차",
+  "object": true,
+  "alts": {
+   "v1": "autonomous robotic lawn mower, spinning blades, cheerful paint chipped, uncanny suburban, sepia tones, no humans"
+  }
  },
  "en_cf_kids": {
   "name": "놀이터 아이들",
@@ -2045,10 +2048,13 @@
  "en_lv_egg": {
   "name": "프리버드 둥지 알",
   "subject": "no humans",
-  "tags": "large alien egg in a nest of twigs and biomass, cracking shell, glowing from inside, iridescent speckles, no humans",
+  "tags": "cluster of large alien eggs in a nest of thorny vines and biomass, speckled iridescent shells, glowing veins, one egg cracking with a small claw poking out, no humans",
   "source": "enemy",
-  "notes": "전장 고유 적 · 시안",
-  "object": true
+  "notes": "전장 고유 적 · 시안 2차",
+  "object": true,
+  "alts": {
+   "v1": "large alien egg in a nest of twigs and biomass, cracking shell, glowing from inside, iridescent speckles, no humans"
+  }
  },
  "en_rd_guardian": {
   "name": "보호자 등급 폭주자",
@@ -2067,10 +2073,13 @@
  "en_rd_billboard": {
   "name": "홀로그램 광고판",
   "subject": "no humans",
-  "tags": "holographic advertisement billboard, neon frame, glitching floating hologram ad, cyberpunk street structure, no humans",
+  "tags": "standalone holographic advertisement sign mounted on a metal pole, floating translucent hologram screen with a glitching smiling mascot, neon pink and cyan glow, projector base with cables, cyberpunk street furniture, no humans, no buildings",
   "source": "enemy",
-  "notes": "전장 고유 적 · 시안",
-  "object": true
+  "notes": "전장 고유 적 · 시안 2차",
+  "object": true,
+  "alts": {
+   "v1": "holographic advertisement billboard, neon frame, glitching floating hologram ad, cyberpunk street structure, no humans"
+  }
  },
  "en_kr_mourner": {
   "name": "서사에 감염된 조문객",
@@ -2119,18 +2128,24 @@
  "en_cw_sweeper": {
   "name": "청소 유닉스",
   "subject": "no humans",
-  "tags": "boxy cleaning service robot, mop and brush arms, deploying barricade panels, no humans",
+  "tags": "small boxy cleaning robot on wheels, grey and white plating with hazard stripes, screen face, mop and brush arms, carrying folding barricade panels on its back, no humans",
   "source": "enemy",
-  "notes": "전장 고유 적 · 시안",
-  "object": true
+  "notes": "전장 고유 적 · 시안 2차",
+  "object": true,
+  "alts": {
+   "v1": "boxy cleaning service robot, mop and brush arms, deploying barricade panels, no humans"
+  }
  },
  "en_cw_cats": {
   "name": "야생화된 고양이 떼",
   "subject": "no humans",
-  "tags": "group of three feral stray cats, hissing, scruffy fur, glowing eyes, no humans",
+  "tags": "three feral alley cats leaping and pouncing, aggressive, arched backs, hissing, bared fangs, scruffy fur, torn ears, glowing eyes, dynamic action, no humans",
   "source": "enemy",
-  "notes": "전장 고유 적 · 시안",
-  "object": true
+  "notes": "전장 고유 적 · 시안 2차",
+  "object": true,
+  "alts": {
+   "v1": "group of three feral stray cats, hissing, scruffy fur, glowing eyes, no humans"
+  }
  },
  "en_cw_hunter": {
   "name": "회수 현상금 사냥꾼",
@@ -2179,9 +2194,12 @@
  "en_bs_sentry": {
   "name": "재활 시설 보안 드론",
   "subject": "no humans",
-  "tags": "security drone of an old wildlife rehabilitation facility, worn white casing, faded paw print logo, searchlight, rust, flying, no humans",
+  "tags": "small flying security drone, round weathered white robot body, single camera eye, four propeller rotors, searchlight, faded paw print emblem, rust stains, hovering, no humans, no buildings",
   "source": "enemy",
-  "notes": "전장 고유 적 · 시안",
-  "object": true
+  "notes": "전장 고유 적 · 시안 2차",
+  "object": true,
+  "alts": {
+   "v1": "security drone of an old wildlife rehabilitation facility, worn white casing, faded paw print logo, searchlight, rust, flying, no humans"
+  }
  }
 }
