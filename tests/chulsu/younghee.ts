@@ -180,8 +180,8 @@ export function branch(run: RunState, options: NodeType[], log: DLog, mode: YhMo
       case 'shop': v = spare >= 7 ? sup * (0.7 + Math.min(spare, 60) / 50 + (synShort ? 0.15 : 0)) : 0; break;
       // 투자 (장기투자): 호이슌 펀드(다음 페이즈 ×1.5~2.5) · 문장 매입(시너지) · 인재 영입 — 여유 20 이상이면 같은 여유의 상점보다 높다 (페이즈당 1번만 열린다)
       case 'invest': v = spare >= 20 ? sup * (0.95 + Math.min(spare, 60) / 50 + (synShort ? 0.15 : 0)) : 0; break;
-      // 순례: 크레딧이 아니라 권능 포인트를 쓴다 (모아 둔 권능이 많을수록)
-      case 'pilgrim': v = run.power >= 10 ? sup * Math.min(1.4, 0.5 + run.power / 40) : 0; break;
+      // 순례: 제례 · 나눔 중 1장이 무료 (나눔 ≈ 보급 기준값) + 모아 둔 권능으로 진열장 · 축성
+      case 'pilgrim': v = sup * (0.9 + Math.min(0.4, run.power / 100)); break;
       // 소식: 명성 교환 (독점 인터뷰 5 → 크레딧 15 등)
       case 'news': v = run.fame >= 5 ? Math.min(sup * 1.5, run.fame * 1.2) : 0; break;
     }

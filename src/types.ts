@@ -118,10 +118,12 @@ export interface UnitState {
   faith?: FaithId;
   /** 런 동안 누적되는 값 (마이너 성장 특성, 유전 물질 등) */
   grow?: Record<string, number>;
-  /** 디바인: 장착한 성유물 (= 신권 대행) · 다음 전투 강화 여부 */
-  relic?: string; enh?: boolean;
-  /** 서약 증강 [축성의 서약]: 강화를 한 전투 더 이어 가는 중 (engine/run.ts settleGrowth) */
-  enhKept?: boolean;
+  /** 디바인: 장착한 성유물 (= 신권 대행) */
+  relic?: string;
+  /** 디바인: 성유물 봉헌 누계 (런 동안, 기물별 — 성유물을 바꿔도 이어진다). 단계는 engine/run.ts offerStage (CFG.offer) */
+  offer?: number;
+  /** 디바인: 축성 기록 — 페이즈 p 에 n 번 (CFG.consecrate.perPhase, engine/run.ts consecrate) */
+  cons?: { p: number; n: number };
   pos: { c: number; r: number } | null; // r=0 이 아군 진영 가장 뒷줄
 }
 
@@ -154,6 +156,9 @@ export interface Quest { id: string; target: number; progress: number; done: boo
 /** 보급품 카드 (run.ts genSupply): 보상 한 종류 (크레딧 · 공명도 풀 분배 · 장비). value = 크레딧 환산 가치, mult = 대박 배율 (1 = 보통), open = 뒤집어 받음 */
 export interface SupplyCard { kind: 'credits' | 'xp' | 'gear'; xp: number; credits: number; items: string[]; value: number; mult: number; open?: boolean }
 
+/** 순례 고르기 카드: 제례 = 그 신앙을 가진 디바인 기물 각자 봉헌 +gain (+ 그 신앙의 축복, 이번 페이즈) · 나눔 = 장비 재료 · 합성 재료 묶음 (value = 크레딧 환산 가치) */
+export type PilOffer = { k: 'rite'; faith: FaithId; gain: number; bless?: string } | { k: 'alms'; items: string[]; value: number };
+
 export type Pending =
   | { t: 'global'; options: string[]; rerolls?: number } // rerolls: 항로 회의 전역 증강 새로고침
   | { t: 'field' }
@@ -161,8 +166,9 @@ export type Pending =
   | { t: 'event'; id: string; sub?: string | null } // sub: 이번 사건의 동적 조연 (기물 id)
   | { t: 'privilege'; options: AugPick[]; rerolls: number }
   | { t: 'despair'; options: string[]; rerolls: number; phase?: number } // 절망 증강 (data/despair.ts): 반드시 1개 · phase: 페이즈 시작 때 더 고르는 것 (없으면 출격 때)
-  | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean; join?: boolean; kind?: 'major' | 'special' | 'psionic' | 'school' | 'oath'; great?: boolean } // school: 사이오닉 합류 시 학파 선택 · great: 마이너 능력치 대성공 (만들 때 굴림, 첫 확정 뒤 공개) · round: 대성공으로 두 번째 고르는 중
-  | { t: 'pilgrim'; cards?: { id: string; cost: number; sold: boolean; faith?: FaithId }[]; relics?: { id: string; cost: number; sold: boolean }[] }
+  | { t: 'rankup'; uid: string; rank: number; points: number; options: AugPick[] | null; rerolls: number; allocDone: boolean; join?: boolean; kind?: 'major' | 'special' | 'psionic' | 'school'; great?: boolean } // school: 사이오닉 합류 시 학파 선택 · great: 마이너 능력치 대성공 (만들 때 굴림, 첫 확정 뒤 공개) · round: 대성공으로 두 번째 고르는 중
+  /** 순례 (engine/run.ts genPilgrim): 무료 고르기 카드 (제례 · 나눔) 중 1장 (took = 고른 칸) + 곁 패널 (권능으로 성유물 · 개종) */
+  | { t: 'pilgrim'; offers: PilOffer[]; took?: number; relics: { id: string; cost: number; sold: boolean }[]; convert?: { faith: FaithId; cost: number; sold: boolean } }
   | { t: 'itemPick'; options: string[]; title: string }
   | { t: 'turretPick'; options: string[]; tier: number } // 엔지니어 포탑 장비 (T_) 1개 선택 · tier = 몇 번째 고르기 (1 ~ ENG_TUR.picks, engine/run.ts syncTurretPick)
   | { t: 'recruit'; options: string[]; rerolls?: number; syns?: string[] } // rerolls 없음 = 1회, syns = 지정 소집 조건
@@ -262,7 +268,7 @@ export interface RunState {
   diff: number; // 난이도 단계 = 위험 등급 (difficulty.ts): 쉬움 3 · 모험 6 · 고난 7
   cleared: boolean; // 목표 페이즈 보스 격파 (의뢰 성공)
   endless: boolean; // 의뢰 성공 후 무한 모드 진행 중
-  mods: { interestCap: number; nodeIncome: number; divStart?: number; divGain?: number; spec?: number; comeback?: number; pts?: number }; // 사건으로 바뀐 경제 규칙 · 순례 효과 (다음 전투 신성력 · 이번 페이즈 신성력 획득) · 전역 증강 [투기 자금] 투자금 · [재기 수당] 돌려받을 체력 · [포인트 적립] 공명도로 바꾸고 남은 크레딧
+  mods: { interestCap: number; nodeIncome: number; spec?: number; comeback?: number; pts?: number }; // 사건으로 바뀐 경제 규칙 · 전역 증강 [투기 자금] 투자금 · [재기 수당] 돌려받을 체력 · [포인트 적립] 공명도로 바꾸고 남은 크레딧
   boons: string[]; // 사건 팀 효과 (영구)
   phaseBoons: string[]; // 사건 팀 효과 (이번 페이즈)
   seenEvents: string[]; // 이번 런에서 겪은 사건

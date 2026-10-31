@@ -12,7 +12,7 @@ import * as B from './build';
 import * as S from './search';
 import * as Y from './younghee';
 import * as R from '../../src/engine/run';
-import { equipGearFix, equipMods, newIns, useConsumablesFix, useMats, type BotIns, type Track } from '../botlib';
+import { consecrateBot, equipGearFix, equipMods, newIns, useConsumablesFix, useMats, type BotIns, type Track } from '../botlib';
 import { planGear } from './gear';
 import { formation, pickRecruit, place } from './form';
 import { allocPicks, buyXp, xpTarget } from './growth';
@@ -66,6 +66,7 @@ export class Chulsu {
     this.time(() => {
       const run = this.run;
       R.checkOccult(run);
+      consecrateBot(run); // 디바인 축성 (권능 → 봉헌)
       const xpPick = this.has('growth') ? () => xpTarget(run) : undefined;
       if (this.has('recruit2') && !run.node) { const n = RS.releaseBench(run, this.log, this.bias(), this.has('multi')); if (n) this.count('released', n); }
       if (this.has('form')) this.form();

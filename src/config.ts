@@ -24,8 +24,20 @@ export const CFG = {
   psiPower: 1.2, // 소마법 · 학파 전공 계수 배율 (밸런스)
   divCap: 200, // 디바인 전투당 신성력 수집 상한
   powerPerDiv: 25, powerMax: 12, // 권능 포인트 = 디바인 1명당 모은 신성력 ÷ 25 + 신권 대행 1 (전투당 최대 12)
-  // 전술 유형별 성장 (공명 등급이 오르면 모두 메이저 +1, 그 밖의 보상은 유형별 이정표).
-  // 주기는 아래 '성장' 절의 statEvery · augEvery · oathEvery · psiEvery · psiAugMax 하나에서만 정한다 (규칙 문구 app/unitparts.ts TTYPE_RULE · 교범도 이 값을 읽는다)
+  /** 디바인 봉헌 (engine/run.ts offerStage · settleGrowth): 기물별 누계 UnitState.offer. n단계 누계 = step × n(n+1)/2 (12 · 36 · 72 · 120 · 180 · 252), max 단계까지.
+   *  장착한 성유물이 추천 주요 능력치 첫째(rework.ts recMajors)를 stat0 + 단계 × stat 만큼 올리고, 신권 대행 위력이 단계마다 +act (mem.divK).
+   *  자동 봉헌: 전투가 끝날 때 출전한 디바인마다 floor + 그 기물이 이번 전투에서 번 권능 포인트 × perPower (권능은 깎지 않는다, 대기 기물 0) */
+  offer: { stat0: 3, stat: 3, act: 0.2, step: 12, max: 6, perPower: 1, floor: 2 },
+  /** 축성 (engine/run.ts consecrate): 권능 cost → 그 기물 봉헌 +gain, 기물마다 페이즈당 perPhase 번 */
+  consecrate: { cost: 20, gain: 30, perPhase: 1 },
+  /** 순례 제례 (engine/run.ts genPilgrim): 고른 신앙을 가진 디바인 기물 각자 봉헌 +gain, 고르기 카드 중 제례 choices 장 (보유 디바인 신앙이 모자라면 나눔으로 채운다) */
+  rite: { gain: 40, choices: 2 },
+  /** 순례 나눔: 장비 재료 · 합성 재료 묶음, 가치 ≈ 보급 기준값(run.ts supplyBase) × ratio */
+  alms: { ratio: 1 },
+  /** 순례 곁 패널: 권능으로 사는 성유물 수 · 개종 값 (권능) */
+  pilgrim: { relics: 2, convert: 20 },
+  // 전술 유형별 성장 (공명 등급이 오르면 모두 메이저 +1, 그 밖의 보상은 유형별 이정표. 디바인은 이정표 대신 봉헌 CFG.offer).
+  // 주기는 아래 '성장' 절의 statEvery · augEvery · psiEvery · psiAugMax 하나에서만 정한다 (규칙 문구 app/unitparts.ts TTYPE_RULE · 교범도 이 값을 읽는다)
   growth: {
     /** 스페셜 (데이터 키 minor): statEvery 등급마다 능력치 rankPicks종 +rankPoints */
     pick: (tt: string, rank: number): boolean => tt === 'minor' && rank % CFG.statEvery === 0,
@@ -33,8 +45,6 @@ export const CFG = {
     major: (_tt: string, _rank: number) => false,
     /** 메이저 (예전 메이저 + 스페셜): augEvery 등급마다 기물 전용 증강 (14개 중, 최대 majorAugMax 개) */
     special: (tt: string, rank: number): boolean => tt === 'major' && rank % CFG.augEvery === 0,
-    /** 디바인: oathEvery 등급마다 서약 증강 (디바인 공용 풀) */
-    oath: (tt: string, rank: number): boolean => tt === 'divine' && rank % CFG.oathEvery === 0,
     /** 사이오닉: psiEvery 등급마다 전공 증강 (최대 psiAugMax 개, psiAugRanks() 마지막 등급에 완성) */
     psionic: (tt: string, rank: number): boolean => tt === 'psionic' && rank % CFG.psiEvery === 0 && rank <= CFG.psiEvery * CFG.psiAugMax,
   },
@@ -201,8 +211,8 @@ export const CFG = {
   // ── 성장
   maxRank: 99, // 10 이상은 스탯만
   rankPowGrowth: 1.025, // 공명 등급당 사격 · 타격 · 기술 위력 독립 배율
-  /** 이정표 주기 (등급, 판정 CFG.growth): 메이저 전용 증강 · 디바인 서약 증강 · 사이오닉 전공 증강 (최대 psiAugMax 개) */
-  augEvery: 4, oathEvery: 5, psiEvery: 4, psiAugMax: 4,
+  /** 이정표 주기 (등급, 판정 CFG.growth): 메이저 전용 증강 · 사이오닉 전공 증강 (최대 psiAugMax 개) */
+  augEvery: 4, psiEvery: 4, psiAugMax: 4,
   xpToNext: (rank: number) => 2 + 2 * rank, // 1→2: 4pt … 9→10: 20pt [임시]
   // 등급업: 모든 메이저 +rankAll. 스페셜(데이터 키 minor)은 statEvery 등급마다 서로 다른 메이저 rankPicks개를 골라 각각 +rankPoints (근위기사 성장도 이 주기)
   rankAll: 1, rankPicks: 2, rankPoints: 3, statEvery: 3,

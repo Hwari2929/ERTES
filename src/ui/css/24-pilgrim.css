@@ -1,0 +1,102 @@
+/* ═════ 순례 성소 덮개 (src/app/pilgrim.ts, docs/UI.md): 상단 바 아래 전체. 인물 없이 촛불 제단 · 봉헌함 · 성유물 진열장.
+   상인 상점(07-shop.css)과 다른 화면: 머리 = 제목 + 상태 칩 + [순례 마치기], 본문 = 제단(카드 3장) · 봉헌함 | 진열장.
+   신성 금색(--c-divine)은 촛불 · 신앙 · 봉헌의 데이터 색, 고른 카드 · 받은 카드 = 호박 실선(--c-select, 정적, 굵기는 다른 카드와 같다).
+   촛불은 깜빡이지 않고 (반복 애니메이션 없음), 그림은 한 색 면 · 선으로만 (명암 없음) */
+.pil-ov { position: fixed; z-index: var(--z-shop); top: calc(var(--top-h, 70px) - 10px); left: 0; right: 0; bottom: 0; overflow: auto; background: var(--bg); animation: so-in .22s ease-out; }
+.pil-head { position: sticky; top: 0; z-index: var(--z-sticky-head); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 16px; background: var(--bg); border-bottom: 1px solid var(--line); }
+.pil-head h1 { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-size: var(--fs-2xl); }
+.pil-head h1 .li { width: 22px; height: 22px; color: var(--c-divine); }
+.pil-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pil-chips .pil-pw b { color: color-mix(in srgb, var(--c-divine) var(--data-mix), var(--c-text)); }
+.pil-done { margin-left: auto; }
+.pil-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); gap: 16px; max-width: 1240px; margin: 0 auto; padding: 16px; }
+.pil-main { display: grid; gap: 16px; align-content: start; min-width: 0; }
+
+/* 제단: 뒤 벽 (아치 두 줄 · 선반 · 작은 봉헌 촛불) + 카드 3장 (카드마다 촛불 한 자루) + 제단보 (금 가는 선 두 줄) */
+.pil-altar { display: grid; padding: 0 12px 14px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--panel); }
+.pil-wall { display: block; width: 100%; height: 72px; }
+.pil-wall .ar, .pil-wall .sh { fill: none; stroke: var(--line); stroke-width: 1.5; }
+.pil-wall .vt rect { fill: var(--panel-2); stroke: var(--line); }
+.pil-wall .fl { fill: var(--c-divine); }
+.pil-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.pil-cloth { height: 6px; margin: 12px -12px 0; border-top: 1px solid color-mix(in srgb, var(--c-divine) 55%, transparent); border-bottom: 1px solid color-mix(in srgb, var(--c-divine) 30%, transparent); }
+.pil-card { display: grid; grid-template-rows: auto 1fr auto; gap: 8px; min-width: 0; padding: 0 12px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel-2); color: inherit; text-align: left; cursor: pointer; transition: border-color .15s, opacity .2s; }
+.pil-card:not(.off, .took):hover, .pil-card:focus-visible { border-color: color-mix(in srgb, var(--c-divine) 60%, var(--line)); }
+.pil-card.on, .pil-card.took { border-color: var(--c-select); }
+.pil-card.took { background: color-mix(in srgb, var(--c-select) 8%, var(--panel-2)); cursor: default; }
+.pil-card.off { opacity: calc(.45 + var(--op-lift)); cursor: default; }
+.pil-cand { display: block; width: 32px; height: 48px; margin: -24px auto 0; }
+.pil-cand .wx { fill: var(--panel); stroke: var(--line); }
+.pil-cand .wk, .pil-cand .bs { fill: none; stroke: var(--c-text-2); stroke-width: 1.5; }
+.pil-cand .fl { fill: var(--c-divine); opacity: 0; transition: opacity .3s; }
+.pil-cand.lit .fl { opacity: 1; }
+.pil-cb { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.pil-ch { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pil-ch .ab-tok { width: 34px; height: 34px; flex: none; border-radius: var(--r-sm); }
+.pil-ch small, .pil-cvh small { display: block; color: var(--c-text-2); font-size: var(--fs-xs); }
+.pil-ch b { font-size: var(--fs-lg); }
+.k-rite .pil-ch b, .pil-cvh b { color: color-mix(in srgb, var(--c-divine) var(--data-mix), var(--c-text)); }
+.pil-ic { display: inline-grid; place-items: center; width: 34px; height: 34px; flex: none; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.pil-ic .li { width: 20px; height: 20px; }
+.pil-who, .pil-items { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.pil-who li, .pil-items li { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: var(--fs-base); }
+.pil-who .spr, .pil-u .spr, .pil-cvu .spr { width: 26px; height: 26px; flex: none; border-radius: var(--r-sm); }
+.pil-bench { color: var(--c-text-2); font-size: var(--fs-xs); }
+.pil-st { margin-left: auto; color: var(--c-text-2); font: 700 var(--fs-sm) var(--f-mono); white-space: nowrap; }
+.pil-st i { margin: 0 2px; font-style: normal; }
+.pil-st b { color: color-mix(in srgb, var(--c-divine) var(--data-mix), var(--c-text)); }
+.pil-items .tC { color: var(--g-C); } .pil-items .tS { color: var(--g-S); }
+.pil-vs { display: flex; flex-wrap: wrap; gap: 6px; }
+.pil-v { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel); }
+.pil-v small { color: var(--c-text-2); font-size: var(--fs-xs); }
+.pil-v b { display: inline-flex; align-items: center; gap: 2px; font: 700 var(--fs-md) var(--f-mono); }
+.pil-v .li { width: 13px; height: 13px; }
+.k-rite .pil-v b { color: color-mix(in srgb, var(--c-divine) var(--data-mix), var(--c-text)); }
+.pil-bl { display: grid; gap: 2px; padding-top: 8px; border-top: 1px solid var(--line-soft); }
+.pil-bk { display: inline-flex; align-items: center; gap: 4px; color: var(--c-text-2); font-size: var(--fs-xs); }
+.pil-bk .li { width: 12px; height: 12px; color: var(--c-divine); }
+.pil-bl small { color: var(--c-text-2); font-size: var(--fs-sm); line-height: 1.45; }
+.pil-free { color: var(--c-text-2); font-size: var(--fs-xs); }
+.pil-stamp { justify-self: start; padding: 1px 8px; border: 1px solid var(--c-select); border-radius: var(--r-sm); color: var(--c-select); font-size: var(--fs-xs); font-weight: 700; }
+
+/* 봉헌함 · 진열장 */
+.pil-box, .pil-case { align-self: start; min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--panel); }
+.pil-box h2, .pil-case h2 { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; font-size: var(--fs-lg); }
+.pil-box h2 .li, .pil-case h2 .li { width: 18px; height: 18px; color: var(--c-divine); }
+.pil-box h2 small { color: var(--c-text-2); font-size: var(--fs-xs); font-weight: 400; }
+.pil-rows { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.pil-row { display: grid; grid-template-columns: minmax(120px, 180px) minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--r-md); }
+.pil-row.hl { background: color-mix(in srgb, var(--c-divine) 8%, var(--panel-2)); } /* 받으면 봉헌을 받을 기물 (미리보기 = 옅은 면) */
+.pil-u { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pil-u b { display: block; }
+.pil-u small { display: inline-flex; align-items: center; gap: 3px; color: var(--c-text-2); font-size: var(--fs-xs); }
+.pil-u small .ab-tok, .pil-cvu small .ab-tok { width: 14px; height: 14px; }
+.pil-cons { display: inline-flex; align-items: center; gap: 4px; }
+.pil-cons .li { width: 13px; height: 13px; color: var(--c-divine); }
+.pil-shelf { display: grid; margin: 0; padding: 0; list-style: none; }
+.pil-rl { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); } /* 선반 한 칸 = 괘선 한 줄 */
+.pil-rl.sold .relic-tok, .pil-rl.sold .pil-rn { opacity: calc(.45 + var(--op-lift)); }
+.pil-rn b { display: block; }
+.pil-rn small { color: var(--c-text-2); font-size: var(--fs-sm); line-height: 1.45; }
+.pil-pr { display: grid; justify-items: end; gap: 2px; }
+.pil-tag, .pil-price { display: inline-flex; align-items: center; gap: 4px; font: 700 var(--fs-md) var(--f-mono); }
+.pil-tag .li, .pil-price .li { width: 14px; height: 14px; color: var(--c-divine); }
+.pil-why { color: color-mix(in srgb, var(--c-bad) 80%, var(--c-text)); font-size: var(--fs-xs); }
+.pil-sold { color: var(--c-text-2); font-size: var(--fs-xs); }
+.pil-cv { display: grid; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.pil-cvh { display: flex; align-items: center; gap: 8px; }
+.pil-cvh .ab-tok { width: 30px; height: 30px; flex: none; border-radius: var(--r-sm); }
+.pil-cvh .pil-price, .pil-cvh .pil-sold { margin-left: auto; }
+.pil-cvd { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 8px; margin: 0; font-size: var(--fs-sm); }
+.pil-cvd dt { color: var(--c-text-2); }
+.pil-cvd dd { margin: 0; }
+.pil-cvus { display: flex; flex-wrap: wrap; gap: 6px; }
+.pil-cvu { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; }
+.pil-cv.sold .pil-cvus { display: none; }
+@media (prefers-reduced-motion: reduce) { .pil-cand .fl, .pil-card { transition: none; } }
+@media (max-width: 900px) { .pil-body { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) {
+  .pil-cards { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .pil-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .pil-row .of-g { grid-column: 1 / -1; grid-row: 2; }
+}

@@ -6,7 +6,6 @@ import { tierKey, itemInfo } from '../data/items';
 import { SYN_BY_ID } from '../data/synergies';
 import { UNIT_BY_ID, type UnitDef } from '../data/units';
 import { FAITH_DEF, MINOR_TRAIT_GROW } from '../data/rework';
-import { OATH_AUGS } from '../data/oathaugs';
 import { cantripView, passiveView, SCHOOL_LINE } from '../data/psiinfo';
 import { GROUPS, SCHOOL_BY_ID, SCHOOL_PASSIVES, UNIT_GROUP, augMark, psiAugId, schoolOf, type SchoolId } from '../data/schools';
 import { BRIEF, unitBlurb } from '../data/brief';
@@ -17,7 +16,8 @@ import { Battle, type CUnit, fleeShort, zocHoldFormula, zocRows, zocRule } from 
 import * as R from '../engine/run';
 import { type Category, CATEGORY_NAME, CATEGORY_RULE, categoryOf, type CType, type TType, type Weapon, CTYPE_NAME, ELEM_NAME, FAITH_NAME, MAJOR_NAME, TTYPE_NAME, MAJORS, type Pending, type RunState, type SupplyCard, type SynergyId, type UnitState } from '../types';
 import { schoolWarnings } from '../ui/matchup';
-import { RELIC_BY_ID } from '../data/relics';
+import { RELIC_BY_ID, offerMul, offerNeed, offerStage, offerStat } from '../data/relics';
+import { recMajors } from '../data/rework';
 import { standImg } from '../ui/portraits';
 import { lineIcon, typeIcon } from '../ui/synicons';
 import { app, esc, jackpotTxt, jpClass } from './state';
@@ -73,7 +73,7 @@ export const TTYPE_RULE: Record<TType, string> = {
   minor: `${RANK_ALL} ${CFG.statEvery}등급마다 주요 능력치 ${CFG.rankPicks}종 +${CFG.rankPoints}. 기술 계수와 특성 수치가 등급에 따라 자란다 (10등급 ×${CFG.minorGrow(10)}, 20등급 ×${CFG.minorGrow(20)}).`,
   special: `${RANK_ALL} ${CFG.augEvery}등급마다 기물 전용 증강 1개 (최대 ${CFG.majorAugMax}개).`,
   psionic: `${RANK_ALL} 기물마다 학파가 정해져 있고, 합류할 때 그 학파의 전공을 고른다 (비술 + 지속 능력). ${PSI_RANKS.join(' · ')}등급에 전공 증강 (최대 ${CFG.psiAugMax}개, ${PSI_RANKS[PSI_RANKS.length - 1]}등급에 완성).`,
-  divine: `${RANK_ALL} 고유 신앙이 깨어 있어 신성력을 모으고, 가득 차면 장착한 성유물의 신권 대행을 쓴다. ${CFG.oathEvery}등급마다 서약 증강 1개 (디바인 공용 풀). 모은 신성력은 전투 후 권능 포인트가 된다.`,
+  divine: `${RANK_ALL} 고유 신앙이 깨어 있어 신성력을 모으고, 가득 차면 장착한 성유물의 신권 대행을 쓴다. 성유물에 봉헌이 쌓여 단계가 오르면 추천 주요 능력치와 신권 대행 위력이 오른다 (전투마다 자동 봉헌 · 축성 · 순례 제례). 모은 신성력은 전투 후 권능 포인트가 된다.`,
 };
 /** 특성 하위 항목 (접힘) */
 export function sub(key: string, icon: string, cls: string, name: string, kind: string, body: string) {
@@ -91,12 +91,9 @@ export function nextMilestone(tt: TType, rank: number): number | null {
     if ((tt === 'major' || tt === 'special') && CFG.growth.special('major', r)) return r;
     if (tt === 'minor' && CFG.growth.pick(tt, r)) return r;
     if (tt === 'psionic' && CFG.growth.psionic(tt, r)) return r;
-    if (tt === 'divine' && CFG.growth.oath(tt, r)) return r;
   }
   return null;
 }
-export const PILGRIM_FLAVOR = ['향 연기가 낮게 깔린 성소. 순례자들이 조용히 무릎을 꿇는다.', '닳은 돌계단 끝에 작은 제단이 있다. 누군가 두고 간 등불이 아직 따뜻하다.', '성가대의 노래가 끊겼다 이어진다. 사제가 권능의 값을 매긴다.'];
-/** 순례: 참배 카드 3장 + 성유물 2종 + 디바인 성유물 관리 */
 /** 보급: 뒷면 카드를 뒤집어 모두 받는다 (카드 1장 = 크레딧 · 공명도 · 장비 하나, 대박이면 배율 띠). 공개 연출 · 공개음은 revealfx · sound (supplyGrade) */
 export function supplyHtml(p: Extract<Pending, { t: 'supply' }>) {
   const left = p.options.filter((c) => !c.open).length;
@@ -112,28 +109,6 @@ export function supplyHtml(p: Extract<Pending, { t: 'supply' }>) {
     <div class="cards sup-cards">${p.options.map(face).join('')}</div>
     <div class="row-btns">${left ? `<button class="btn primary" data-a="supply-all">모두 뒤집기 (${left}장)</button>` : '<button class="btn primary" data-a="supply-done">계속</button>'}</div>`;
 }
-export function pilgrimHtml(run: RunState, p: Extract<Pending, { t: 'pilgrim' }>) {
-  const dv = R.divines(run);
-  const card = (c: NonNullable<typeof p.cards>[number], i: number) => {
-    const d = R.PILGRIM_CARDS[c.id];
-    const poor = run.power < c.cost;
-    const head = `<b>${esc(d.name)}${c.faith ? ` · ${FAITH_NAME[c.faith]}` : ''}</b><span class="small">${esc(c.faith ? `디바인 1명의 신앙을 ${FAITH_NAME[c.faith]}(으)로 바꾼다.` : d.desc)}</span><span class="accent small">권능 ${c.cost}</span>`;
-    if (c.sold) return `<div class="card pil-card sold">${head}<span class="tag">받음</span></div>`;
-    if (!d.target) return `<button class="card pil-card" data-a="pil-card" data-v="${i}" ${poor ? 'disabled' : ''}>${head}</button>`;
-    return `<div class="card pil-card">${head}<div class="pil-who">${dv.map((u) => `<button class="btn tiny" data-a="pil-card" data-v="${i}:${u.uid}" ${poor ? 'disabled' : ''}>${esc(UNIT_BY_ID[u.defId].name)}</button>`).join('')}</div></div>`;
-  };
-  const relic = (o: NonNullable<typeof p.relics>[number], i: number) => {
-    const r = RELIC_BY_ID[o.id];
-    const head = `<b>${lineIcon('a.power', 'li')} ${esc(r.name)}</b><span class="small">${esc(r.desc(1))}</span><span class="accent small">권능 ${o.cost} · 강화 ${r.enh}</span>`;
-    return o.sold ? `<div class="card pil-card sold">${head}<span class="tag">구매함</span></div>` : `<button class="card pil-card relic" data-a="pil-relic" data-v="${i}" ${run.power < o.cost ? 'disabled' : ''}>${head}</button>`;
-  };
-  return `<h1>순례</h1><p class="pil-flavor muted">${esc(PILGRIM_FLAVOR[(run.phase + run.step) % PILGRIM_FLAVOR.length])}</p>
-    <p>권능 포인트 <b class="accent">${run.power}</b> <span class="muted small">· 디바인이 전투에서 모은 신성력으로 얻습니다</span></p>
-    <h3>참배</h3><div class="cards">${(p.cards || []).map(card).join('')}</div>
-    <h3>성유물 <span class="muted small">디바인 전용 장비 · 장착한 성유물이 신권 대행이 된다</span></h3><div class="cards">${(p.relics || []).map(relic).join('') || '<p class="muted small">남은 성유물이 없습니다.</p>'}</div>
-    ${dv.length ? `<h3>디바인</h3>${dv.map((u) => relicPanel(run, u)).join('')}` : ''}
-    <div class="row-btns"><button class="btn primary" data-a="pilgrim-done">순례 마치기</button></div>`;
-}
 /** 성유물 토큰 (원형) */
 export function relicTok(id: string | undefined, attrs = '', on = false) {
   const r = id ? RELIC_BY_ID[id] : null;
@@ -146,21 +121,24 @@ export function relicPicker(run: RunState, u: UnitState) {
   return `<div class="relic-pick"><div class="small">${cur ? `<b class="accent">${esc(cur.name)}</b> 장착 중 · ` : ''}<span class="muted">보관함 성유물을 누르면 교체합니다</span></div>
     <div class="rp-list">${spare.length ? spare.map((id) => `<button class="rp-item" data-a="relic-equip" data-v="${u.uid}:${id}">${relicTok(id)}<span><b>${esc(RELIC_BY_ID[id].name)}</b><br><span class="muted small">${esc(RELIC_BY_ID[id].desc(1))}</span></span></button>`).join('') : '<span class="muted small">보관 중인 성유물이 없습니다. 순례에서 구할 수 있습니다.</span>'}</div></div>`;
 }
-/** 상세 창용: 강화 버튼 + 보관함 성유물 교체 */
-export function relicPanelLite(run: RunState, u: UnitState) {
-  const r = u.relic ? RELIC_BY_ID[u.relic] : null;
-  const spare = run.relics || [];
-  return `<div class="rp-lite">${r ? `<button class="btn tiny${u.enh ? ' on' : ''}" data-a="relic-enh" data-v="${u.uid}" ${u.enh || run.power < r.enh ? 'disabled' : ''} title="다음 전투 한정 신권 대행 계수 ×3">${u.enh ? '다음 전투 강화됨' : `강화 (권능 ${r.enh})`}</button>` : ''}
-    ${spare.map((id) => `<button class="btn tiny" data-a="relic-equip" data-v="${u.uid}:${id}" title="${esc(RELIC_BY_ID[id].desc(1))}">${esc(RELIC_BY_ID[id].name)} 장착</button>`).join('')}</div>`;
+/** 축성 단추 (성유물 칸 · 상세 창 머리 공용): 권능 CFG.consecrate.cost → 그 기물 봉헌 +gain, 기물마다 페이즈당 perPhase 번. 못 하면 흐리게 + 이유 (title) */
+export function consBtn(run: RunState, u: UnitState, cls: string, off = false) {
+  const C = CFG.consecrate, why = R.consecrateWhy(run, u), done = R.consUsed(run, u) >= C.perPhase, max = offerStage(u.offer) >= CFG.offer.max;
+  const label = max ? '봉헌 최대' : done ? '축성함' : `축성 · 권능 ${C.cost} → 봉헌 +${C.gain}`;
+  return `<button class="btn tiny ${cls}${done || max ? ' done' : ''}" data-a="consecrate" data-v="${u.uid}" title="${esc(why || `권능 ${C.cost}을 써서 봉헌 +${C.gain} (기물마다 페이즈당 ${C.perPhase}번 · 보유 권능 ${run.power})`)}" ${off || why ? 'disabled' : ''}>${lineIcon('a.divact', 'li')}${label}</button>`;
 }
-/** 디바인 성유물 관리: 장착 · 교체 · 강화 */
-export function relicPanel(run: RunState, u: UnitState) {
-  const r = u.relic ? RELIC_BY_ID[u.relic] : null;
-  const spare = run.relics || [];
-  return `<div class="relic-panel"><div class="rp-head"><b>${esc(UNIT_BY_ID[u.defId].name)}</b>${r ? `<span>${lineIcon('a.power', 'li')} ${esc(r.name)}</span>` : '<span class="muted">성유물 없음</span>'}
-    ${r ? `<button class="btn tiny${u.enh ? ' on' : ''}" data-a="relic-enh" data-v="${u.uid}" ${u.enh || run.power < r.enh ? 'disabled' : ''} title="다음 전투 한정 신권 대행 계수 ×3">${u.enh ? '강화됨' : `강화 · 권능 ${r.enh}`}</button>` : ''}</div>
-    ${r ? `<p class="small">${esc(r.desc(u.enh ? 3 : 1))}</p>` : ''}
-    ${spare.length ? `<div class="rp-swap"><span class="muted small">교체:</span>${spare.map((id) => `<button class="btn tiny" data-a="relic-equip" data-v="${u.uid}:${id}" title="${esc(RELIC_BY_ID[id].desc(1))}">${esc(RELIC_BY_ID[id].name)}</button>`).join('')}</div>` : ''}</div>`;
+/** 봉헌 게이지 + '지금 → 다음' 칩 (기물 상세 전술 유형 칸 · 순례 봉헌함 공용). d = 기물 정의 (추천 주요 능력치) */
+export function offerGauge(d: UnitDef, offer: number | undefined, plus = 0) {
+  const O = CFG.offer, st = offerStage(offer), max = st >= O.max;
+  const lo = offerNeed(st), hi = offerNeed(Math.min(O.max, st + 1)), cur = offer || 0;
+  const m = recMajors(d)[0];
+  const w = max ? 100 : Math.max(0, Math.min(100, ((cur - lo) / (hi - lo)) * 100));
+  const wp = max || !plus ? 0 : Math.max(0, Math.min(100 - w, ((Math.min(hi, cur + plus) - Math.max(lo, cur)) / (hi - lo)) * 100));
+  const k = (n: number) => `×${offerMul(n).toFixed(1)}`;
+  const nx = (a: string, b: string) => (max ? `<b>${a}</b>` : `<b>${a}</b><i>→</i><b class="nx">${b}</b>`);
+  return `<div class="of-g${max ? ' max' : ''}"><div class="of-h"><span class="tt-k">${lineIcon('k.relic', 'li')}봉헌</span><b class="tt-big">${st}<small>/${O.max}단계</small></b><span class="of-n">${max ? '최대' : `${Math.round(cur - lo)} / ${hi - lo}`}</span></div>
+    <div class="of-bar" role="img" aria-label="봉헌 ${st}단계${max ? ' (최대)' : `, 다음 단계까지 ${Math.round(hi - cur)}`}"><i style="width:${w.toFixed(1)}%"></i>${wp ? `<i class="add" style="width:${wp.toFixed(1)}%"></i>` : ''}</div>
+    <div class="of-chips"><span class="abc" title="장착한 성유물이 주는 ${MAJOR_NAME[m]} (추천 주요 능력치)">${majorIcon(m)}${nx(`+${offerStat(st)}`, `+${offerStat(st + 1)}`)}</span><span class="abc" title="신권 대행 위력 배율">${lineIcon('a.divact', 'li')}${nx(k(st), k(st + 1))}</span></div></div>`;
 }
 /** 고유 신앙 한 줄: 디바인만 활성 */
 /** 능력 블록: 고유 신앙 (디바인만 활성, 그 외는 비활성 표시) */
@@ -262,11 +240,9 @@ export function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null,
     }
   } else {
     if (live && c && c.div !== null) body.push(`<div class="tt-row"><span class="tt-k">신성력</span><b class="tt-big">${c.divUsed ? '발동함' : Math.round(c.div)}</b><span class="muted small">수집 ${Math.round(c.divGot)} / ${c.divCap}</span></div>`);
-    if (run) body.push(`<div class="tt-row"><span class="tt-k">권능 포인트</span><b>${run.power}</b><span class="muted small">전투 후 디바인이 모은 신성력 ÷ ${CFG.powerPerDiv}</span></div>`);
-    const vows = owned.filter((a) => AUG_BY_ID[a.id]?.pool === 'oath');
-    body.push(`<div class="tt-row"><span class="tt-k">서약 증강</span><b>${vows.length}</b>${nx ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
-    if (vows.length) body.push(`<ul class="augs">${vows.map((a) => augRow(a.id, a.param, b, c)).join('')}</ul>`);
-    else if (!u) body.push(`<p class="muted small">${CFG.oathEvery}등급마다 디바인 공용 서약 증강 ${OATH_AUGS.length}종 중 하나를 고른다.</p>`);
+    if (u) body.push(offerGauge(d, u.offer));
+    else body.push(`<div class="of-chips"><span class="abc" title="성유물을 장착하면 (봉헌 0단계)">${majorIcon(recMajors(d)[0])}<b>+${offerStat(0)}</b></span><span class="abc" title="봉헌 단계마다">${lineIcon('k.relic', 'li')}단계마다 +${CFG.offer.stat} · 위력 +${Math.round(CFG.offer.act * 100)}%p</span><span class="abc">최대 ${CFG.offer.max}단계</span></div>`);
+    if (run) body.push(`<div class="tt-row"><span class="tt-k">${lineIcon('a.power', 'li')}권능 포인트</span><b>${run.power}</b>${app.detail ? `<span class="muted small">전투 후 모은 신성력 ÷ ${CFG.powerPerDiv} · 자동 봉헌 ${CFG.offer.floor} + 번 권능 × ${CFG.offer.perPower}</span>` : ''}</div>`);
   }
   void f;
   return `<section class="abil tt-sec tt-${tt}"><div class="ab-head"><span class="ab-kind">전술 유형</span><b class="tt-name"><i class="tt-${tt}">${TTYPE_ICON(tt)}</i>${TTYPE_NAME[tt]}</b></div>
@@ -316,12 +292,10 @@ export function unitSkillAbil(d: UnitDef) {
   if (!info?.text) return abil('skill', d.skill.name, app.detail ? `${d.skill.cd}초` : '', skillText(d));
   return `<div class="abil ab-skill"><div class="ab-head"><span class="ab-kind">${AB_KIND.skill}</span><b>${esc(d.skill.name)}</b><span class="ab-meta">${d.skill.cd}초</span></div>${detailHtml(info.text, { b: null, c: { ctype: d.ctype, side: 0, isSummon: false, mem: {} } as unknown as CUnit, p: d.skill.params, skill: true, range: d.range })}</div>`;
 }
-/** 위쪽 바 축성 단추 (편성 중 디바인 · 성유물 장착 시): 권능을 써서 다음 전투의 신권 대행 계수 ×3 (성유물 칸의 축성과 같은 동작) */
+/** 위쪽 바 축성 단추 (편성 중 디바인 · 성유물 장착 시): 성유물 칸의 축성과 같은 동작 */
 export function blessBtn(run: RunState, u: UnitState, d: UnitDef) {
-  if (d.ttype !== 'divine') return '';
-  const rel = u.relic ? RELIC_BY_ID[u.relic] : null;
-  if (!rel) return '';
-  return `<button class="btn tiny d-bless${u.enh ? ' done' : ''}" data-a="relic-enh" data-v="${u.uid}" title="권능 ${rel.enh}을 써서 다음 전투의 신권 대행 계수를 ×3으로 (보유 권능 ${run.power})" ${u.enh || run.power < rel.enh ? 'disabled' : ''}>${lineIcon('a.divact', 'li')}${u.enh ? '축성됨' : `축성 · 권능 ${rel.enh}`}</button>`;
+  if (d.ttype !== 'divine' || !u.relic) return '';
+  return consBtn(run, u, 'd-bless');
 }
 /** 상세 창 상단 고정 바: 닫기(←) · [추가 버튼] · 상세 보기(돋보기) */
 export function dBar(back: string, extra = '') {

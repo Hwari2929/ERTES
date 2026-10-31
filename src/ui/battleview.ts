@@ -839,7 +839,7 @@ export class BattleView {
         e.ug = ring;
       }
       if (e.ug) {
-        const spent = u.divUsed && (u.mem.divActs || 0) >= 1 + (u.mem.divExtra || 0); // 서약 증강 [재림의 서약]: 횟수가 남았으면 다시 차오른다
+        const spent = u.divUsed; // 전투당 1회
         const f = u.ult ? (u.ultG || 0) : u.div !== null ? (spent ? 1 : u.div / 100) : 0;
         const st = u.ult ? (f >= 1 ? 'full' : '') : spent ? 'used' : f >= 1 ? 'full' : '';
         const sig = `${Math.round(f * 200)}|${st}|${alive ? 1 : 0}`;
@@ -1596,14 +1596,14 @@ export class BattleView {
     SND.battle('ult', this._speed, this.b.keepEvents); // 효과음: 신권 대행 (궁극기와 같은 소리)
     const rel = u.relic ? RELIC_BY_ID[u.relic] : null;
     const name = rel?.name || (u.ctype ? DIVINE_ACT[u.ctype].name : '신권 대행'); // 성유물이 없으면 (성찬으로 깨어난 기물) 전투 유형 기본형
-    const enh = (u.mem.enh || 1) > 1;
+    const st = u.mem.offerSt || 0, enh = st >= CFG.offer.max; // 봉헌 최대 단계면 더 밝게
     this.skillCtx = { id, land: this.vt + 0.18 };
-    this.log(id, 'divact', `신권 대행 · ${name}${enh ? ' (강화)' : ''}`);
-    this.eventLine({ kind: 'div', u, label: enh ? '신권 대행 · 강화' : '신권 대행', title: name, sub: u.name });
+    this.log(id, 'divact', `신권 대행 · ${name}${st ? ` (봉헌 ${st}단계)` : ''}`);
+    this.eventLine({ kind: 'div', u, label: st ? `신권 대행 · 봉헌 ${st}단계` : '신권 대행', title: name, sub: u.name });
     const ee = this.els.get(id);
     if (ee && !this.reduced) this.play(ee.face, [{ boxShadow: '0 0 0 0 #ffd34d' }, { boxShadow: '0 0 0 4px #ffd34d, 0 0 24px #ffd34d', offset: 0.3 }, { boxShadow: '0 0 0 0 transparent' }], 700);
     if (FX.ultCut === 'off' || this.reduced || !this.b.keepEvents) { if (FX.ultCut === 'off' && this.b.keepEvents) this.big(u, name, 'mark div', { rel: this.rel(id) }); return; }
-    this.cutQ.push({ u, name, line: voicePick(VOICE[u.defId]?.divine, `${id}|${this.b.t.toFixed(2)}`) || DIV_LINE[u.defId] || '신이시여, 지금 이 손에 권능을.', theme: { pat: 'halo', c1: enh ? '#fff6c8' : '#ffd34d', c2: enh ? '#5a4410' : '#2a2008', txt: enh ? 'spark' : 'mist' }, label: enh ? '신권 대행 · 강화' : '신권 대행' });
+    this.cutQ.push({ u, name, line: voicePick(VOICE[u.defId]?.divine, `${id}|${this.b.t.toFixed(2)}`) || DIV_LINE[u.defId] || '신이시여, 지금 이 손에 권능을.', theme: { pat: 'halo', c1: enh ? '#fff6c8' : '#ffd34d', c2: enh ? '#5a4410' : '#2a2008', txt: enh ? 'spark' : 'mist' }, label: st ? `신권 대행 · 봉헌 ${st}단계` : '신권 대행' });
     this.nextCut();
   }
   private nextCut() {

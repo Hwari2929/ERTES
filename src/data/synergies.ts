@@ -762,10 +762,11 @@ export const SYNERGIES: SynDef[] = [
   },
   {
     id: 'RFRIEND', name: '당신의 친구, R', kind: 'trait', tiers: [1], color: '#ff7aa8', icon: 'R',
-    desc: '데미우르고스 전용. 출전한 시리우스 성도회 인원과 디바인 기물 1명당 데미우르고스의 모든 주요 능력치 +2 (정신력은 +4).',
-    tierDesc: ['모든 주요 능력치 +2 × (성도회 인원 + 디바인 인원), 정신력은 추가 +2 ×'],
+    desc: '데미우르고스 전용. 출전한 시리우스 성도회 인원과 다른 디바인 기물 1명당 데미우르고스의 모든 주요 능력치 +2 (정신력은 +4).',
+    tierDesc: ['모든 주요 능력치 +2 × (성도회 인원 + 자신을 뺀 디바인 인원), 정신력은 추가 +2 ×'],
     member: (_t, ctx) => {
-      const n = (ctx.counts.SIR || 0) + (ctx.run?.units.filter((x) => x.pos && UNIT_BY_ID[x.defId].ttype === 'divine').length || 0);
+      // 데미우르고스 자신도 디바인이지만 디바인 인원에는 세지 않는다 (성도회 인원에는 그대로 센다)
+      const n = (ctx.counts.SIR || 0) + (ctx.run?.units.filter((x) => x.pos && x.uid !== ctx.unit?.uid && UNIT_BY_ID[x.defId].ttype === 'divine').length || 0);
       return { majors: { vit: 2 * n, pow: 2 * n, mnd: 4 * n, def: 2 * n, agi: 2 * n } };
     },
   },

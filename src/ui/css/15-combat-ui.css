@@ -54,16 +54,27 @@
 .rp-list { display: grid; gap: 4px; }
 .rp-item { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 8px; align-items: center; text-align: left; padding: 4px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); color: inherit; cursor: pointer; }
 .rp-item:hover { border-color: var(--c-divine); }
-.rp-lite, .rp-swap { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-/* 순례 */
-.pil-flavor { font-style: italic; }
-.pil-card { display: grid; gap: 4px; text-align: left; align-content: start; }
-.pil-card.sold { opacity: .5; }
-.pil-card.relic b { color: var(--c-divine); display: inline-flex; gap: 4px; align-items: center; } .pil-card .li { width: 14px; height: 14px; }
-.pil-who { display: flex; flex-wrap: wrap; gap: 4px; }
-.relic-panel { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel-2); margin-bottom: 6px; }
-.rp-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .rp-head .li { width: 14px; height: 14px; color: var(--c-divine); }
-.relic-panel p { margin: 0; }
+/* 디바인 봉헌 게이지 (app/unitparts.ts offerGauge — 기물 상세 전술 유형 칸 · 순례 봉헌함): 단계 · 다음 단계까지 · 막대 (받을 몫 미리보기 = 빗금 면) · '지금 → 다음' 칩 */
+.of-g { display: grid; gap: 4px; min-width: 0; }
+.of-h { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.of-h .tt-k { display: inline-flex; align-items: center; gap: 4px; }
+.of-h .li { width: 13px; height: 13px; color: var(--c-divine); }
+.of-h .tt-big { color: color-mix(in srgb, var(--c-divine) var(--data-mix), var(--c-text)); }
+.of-n { margin-left: auto; font: var(--fs-xs) var(--f-mono); color: var(--c-text-2); white-space: nowrap; }
+.of-bar { display: flex; height: 6px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel-2); overflow: hidden; }
+.of-bar i { display: block; height: 100%; background: var(--c-divine); }
+.of-bar i.add { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--c-divine) 55%, transparent) 0 3px, transparent 3px 6px); }
+.of-bar.grow i:first-child { animation: of-grow .7s cubic-bezier(.2, .8, .3, 1); } /* 방금 받은 봉헌: 받기 전 자리에서 차오른다 (한 번) */
+@keyframes of-grow { from { width: var(--from); } }
+.of-g.up .of-h .tt-big { animation: of-up .6s ease-out; } /* 단계가 올랐다 */
+@keyframes of-up { from { color: var(--c-white); } }
+@media (prefers-reduced-motion: reduce) { .of-bar.grow i:first-child, .of-g.up .of-h .tt-big { animation: none; } }
+.of-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; color: var(--c-text-2); }
+.of-chips .abc { gap: 4px; }
+.of-chips .mi { width: 13px; height: 13px; flex: none; }
+.of-chips i { font-style: normal; }
+.of-chips b { font-family: var(--f-mono); color: var(--c-text); }
+.of-chips b.nx { color: color-mix(in srgb, var(--c-divine) var(--data-mix), var(--c-text)); }
 /* 분류 표시 */
 .cat { display: inline-flex; align-items: center; gap: 3px; font-style: normal; }
 .cat .li { width: 13px; height: 13px; }

@@ -314,7 +314,7 @@ export function updateMeter(force = false) {
 /** 보상 줄: 종류별 아이콘 + 내용 + 수치 */
 export function resLine(l: string, i: number) {
   const STREAK = lineIcon('r.streak', 'li streak');
-  const icon = /연승/.test(l) ? STREAK : /인과|청라공국/.test(l) ? lineIcon('a.power', 'li faith') : /공명도/.test(l) ? RES : /명성/.test(l) ? lineIcon('a.fame', 'li fame') : /권능/.test(l) ? lineIcon('n.pilgrim', 'li faith')
+  const icon = /연승/.test(l) ? STREAK : /인과|청라공국/.test(l) ? lineIcon('a.power', 'li faith') : /공명도/.test(l) ? RES : /명성/.test(l) ? lineIcon('a.fame', 'li fame') : /봉헌/.test(l) ? lineIcon('k.relic', 'li faith') : /권능/.test(l) ? lineIcon('n.pilgrim', 'li faith')
     : /승리 보상|이자|실적|정산|보험금|상환|판매|크레딧/.test(l) ? CR : /패배|체력/.test(l) ? lineIcon('r.hp', 'li bad') : lineIcon('r.more', 'li');
   const m = l.match(/^(.*?)\s*([+-]\d+)(.*)$/);
   const body = m ? `<span class="rl-t">${esc(m[1])}${m[3] ? ` <small>${esc(m[3].trim())}</small>` : ''}</span><b class="rl-v${m[2].startsWith('-') ? ' neg' : ''}">${esc(m[2])}</b>` : `<span class="rl-t">${esc(l)}</span>`;

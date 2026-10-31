@@ -115,6 +115,10 @@
 .cx2-sc:hover { border-color: var(--line); }
 .cx2-sc .cx2-si, .cx2-sc > .li { color: color-mix(in srgb, var(--c) var(--data-mix), var(--c-text)); }
 .cx2-maj span { display: inline-flex; align-items: center; gap: 4px; }
+.cx2-of { border-collapse: collapse; font-size: var(--fs-sm); } /* 성유물 봉헌 단계표 (ui/codex2.ts itemDetail) */
+.cx2-of th, .cx2-of td { padding: 2px 10px 2px 0; text-align: left; border-bottom: 1px solid var(--line-soft); }
+.cx2-of th { color: var(--c-text-2); font-weight: 500; font-size: var(--fs-xs); }
+.cx2-of td.f-num { font-family: var(--f-mono); }
 .cx2-req { display: block; margin-top: 3px; font-size: var(--fs-sm); line-height: 1.45; }
 .cx2-req.warn { color: color-mix(in srgb, var(--c-bad) 75%, var(--c-text)); }
 .cx2-req.info { color: var(--c-text-2); }

@@ -65,17 +65,12 @@ export const MINOR_TRAIT_GROW: Record<string, (g: number) => string> = {
   chloe: (g) => `[항밈 처방] 중독 초당 기술 위력 ${pct(0.3125 * g)}`,
   west: (g) => `[현장 반장] 포탑 추가 고정 피해 사격 위력 ${pct(0.15 * g)}`,
   orca: (g) => `[깜짝 마술] 기절 확률 ${pct(Math.min(0.6, 0.2 * g))}`,
-  zahara: (g) => `[복수자] 반격 타격 위력 ${pct(1.5 * g)}`,
-  demiurgos: (g) => `[친구의 손길] 피해량 경감 ${pct(Math.min(0.3, 0.1 * g))}`,
   vivian: (g) => `[생태 분석] 중첩당 방어도 -${pct(Math.min(0.2, 0.1 * g))}`,
-  ingel: (g) => `[무대 위의 달] 아군 1명당 피해 +${pct(0.1 * g)} · 소환물당 +${pct(0.05 * g)}`,
   rasmus: (g) => `[가지치기] 부상 최대 ${Math.round(5 * g)}중첩`,
   sigmund: (g) => `[집사의 예법] 모시는 엘베스타드 모든 주요 능력치 +${Math.round(5 * g)}`,
-  gunnir: (g) => `[저택의 실세] 기술 후 아군 전원 회복 기술 위력 ${pct(GUNNIR_HEAL * g)} (일가 +${pct(GUNNIR_FAM_HEAL * g)}p)`,
   bill: (g) => `[호쾌한 관광객] 해로운 효과 대상 피해 +${pct(0.2 * g)}`,
   eden: (g) => `[밑바닥 생존자] 체력 50% 이하 피해 +${pct(0.2 * g)}`,
   u404: (g) => `[1원칙] 기술마다 피해 +${pct(0.1 * g)} 중첩`,
-  jaehwon: (g) => `[절멸파 수장] 스킬 치명타 확률 +${pct(0.15 * g)}p`,
 };
 
 // ───────── 성장 수치 조회
@@ -437,7 +432,7 @@ export const REWORK: Record<string, ReworkDef> = {
     ],
   },
   zahara: {
-    ctype: 'VAN', ttype: 'minor', faith: 'emperor', weapon: K('쌍곡도', 'phys', 0.8, 1, 0.7, 5),
+    ctype: 'VAN', ttype: 'divine', faith: 'emperor', weapon: K('쌍곡도', 'phys', 0.8, 1, 0.7, 5),
     factions: ['KAL'], traits: ['STAR', 'NAV'],
     trait: {
       name: '복수자', desc: '피해를 받으면 공격자에게 타격 위력 150% 반격. 주변 1칸 아군이 맞았을 때도 50% 확률로 반격 (0.4초에 1회). 항해자 에이스 파일럿이면 주변 아군 반격이 확정이고 반격 피해 일부를 흡혈.',
@@ -701,7 +696,7 @@ export const REWORK: Record<string, ReworkDef> = {
     },
   },
   demiurgos: {
-    ctype: 'SPEC', ttype: 'minor', faith: 'sirius', weapon: K('다정한 손짓', 'psy', 1.0, 2, 1, 3),
+    ctype: 'SPEC', ttype: 'divine', faith: 'sirius', weapon: K('다정한 손짓', 'psy', 1.0, 2, 1, 3),
     factions: ['SIR'], traits: ['RFRIEND', 'OCCULT'],
     trait: {
       name: '친구의 손길', desc: '회복받은 아군은 3초간 피해량 경감 10%.',
@@ -798,7 +793,7 @@ export const REWORK: Record<string, ReworkDef> = {
     },
   },
   ingel: {
-    ctype: 'SPEC', ttype: 'minor', faith: 'selene', weapon: G('음파 마이크', 'psy', 0.9, 3, 1.125, 8, 2),
+    ctype: 'SPEC', ttype: 'divine', faith: 'selene', weapon: G('음파 마이크', 'psy', 0.9, 3, 1.125, 8, 2),
     factions: ['PAN'], traits: ['STAR', 'SCHEME'],
     trait: {
       name: '무대 위의 달', desc: '출전한 다른 아군 기물 1명당 피해 +10%p, 소환물 · 시설 1개당 +5%p.',
@@ -926,7 +921,7 @@ export const REWORK: Record<string, ReworkDef> = {
     },
   },
   gunnir: {
-    ctype: 'SPEC', ttype: 'minor', faith: 'index', weapon: G('주방 칼 투척', 'phys', 1.0, 3, 0.8, 5, 2),
+    ctype: 'SPEC', ttype: 'divine', faith: 'index', weapon: G('주방 칼 투척', 'phys', 1.0, 3, 0.8, 5, 2),
     factions: ['FAM'], traits: ['MED', 'CHEF'],
     trait: {
       name: '저택의 실세', desc: `전투 스킬을 쓴 뒤 아군 전원을 기술 위력 ${pct(GUNNIR_HEAL)} 회복 (엘베스타드 일가 아군은 ${pct(GUNNIR_HEAL + GUNNIR_FAM_HEAL)}).`,
@@ -1183,10 +1178,10 @@ export const DIVINE_ACT: Record<CType, { name: string; desc: string; brief: stri
 const mainPow = (b: Battle, u: CUnit) => (u.ctype === 'MARK' ? b.S(u, 'shoot') : u.ctype === 'VAN' ? b.S(u, 'strike') : b.P(u, 'tech'));
 
 DIVINE_HOOK.act = (b, u) => {
-  // 장착한 성유물이 신권 대행 (강화하면 다음 전투 한정 ×3). 성유물이 없으면 (성찬으로 깨어난 기물) 전투 유형 기본형
+  // 장착한 성유물이 신권 대행. 성유물이 없으면 (성찬으로 깨어난 기물) 전투 유형 기본형
   const rel = u.relic ? RELIC_BY_ID[u.relic] : null;
-  // mem.divK = 서약 증강의 신권 대행 위력 가산 (data/oathaugs.ts)
-  if (rel) { rel.act(b, u, (u.mem.enh || 1) * (1 + (u.mem.divK || 0))); return; }
+  // mem.divK = 신권 대행 위력 가산: 봉헌 단계 × CFG.offer.act (engine/build.ts buildAlly)
+  if (rel) { rel.act(b, u, 1 + (u.mem.divK || 0)); return; }
   switch (u.ctype) {
     case 'MARK':
       u.reloadT = 0; u.ammo = u.weapon?.mag || 1;

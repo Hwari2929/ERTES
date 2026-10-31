@@ -10,20 +10,19 @@ import { PC_NAME, resolveScene, type Beat } from '../data/scene';
 import { EVENT_SCENES } from '../data/scenes';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { type FoeRole, roleOf, SQUADS, type SquadKind, squadName, type SquadTpl } from '../data/squads';
-import { BLESSING_BY_ID, BLESSINGS, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBAL_ODDS, GLOBALS, PRIVILEGES, synName } from '../data/globals';
-import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, DUST, SHARD, isGraded, isMat, potPool, potsOf, refineBase, withPots, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_GEAR, TURRET_GEAR_IDS } from '../data/items';
+import { BLESSING_BY_ID, blessingOf, EMBLEM_SYNS, GLOBAL_BY_ID, GLOBAL_ODDS, GLOBALS, PRIVILEGES, synName } from '../data/globals';
+import { ALL_ADVANCED, ALL_COMPONENTS, ALL_CONSUMABLES, ALL_GRADED, CRYSTAL, DUST, SHARD, isGraded, isMat, potPool, potsOf, refineBase, withPots, breadHeal, breadSell, CATWHEEL_ZI, combine, CONSUMABLES, emblemId, emblemOf, gearRank, injectAmount, injectorWeights, isConsumable, isEmblem, isInjector, isLocked, isMod, itemInfo, occultModsOfTier, OCCULT_MODS, HEL_ITEM_IDS, isHelItem, isTurretGear, TURRET_GEAR, TURRET_GEAR_IDS } from '../data/items';
 import { ENG_TUR, UNI_XP, OCCULT_SYNTH, PETRA_PAY, SYN_BY_ID, SYNERGIES, tierOf } from '../data/synergies';
 import { RECRUITABLE, UNIT_BY_ID } from '../data/units';
-import { OATH_AUGS, VOW_ENH_KEEP } from '../data/oathaugs';
 import { MAJOR_AUGS, recMajors } from '../data/rework';
 import { SCHOOL_AUGS, schoolPassives } from '../data/psionic';
 import { PSI_UNIT_AUGS, psiUnitOf } from '../data/psiunit';
 import { isLegendAug, majorsOf, schoolAugId, schoolOf, type SchoolId } from '../data/schools';
 import type { AugDef } from './effects';
-import { DEFAULT_RELIC, RELIC_BY_ID, RELICS } from '../data/relics';
+import { DEFAULT_RELIC, offerCap, offerNeed, offerStage, RELIC_BY_ID, RELICS } from '../data/relics';
 import { Rng } from '../rng';
-import { FAITHS,
-  type AugPick, type Encounter, type InvestOffer, type FaithId, type EnemySpawn, type EncSquad, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending,
+import { FAITH_NAME, FAITHS,
+  type AugPick, type Encounter, type InvestOffer, type FaithId, type EnemySpawn, type EncSquad, type Major, MAJORS, MAJOR_NAME, type NodeType, type Pending, type PilOffer,
   type Quest, type RunState, type ShopSlot, type SupplyCard, type SynergyId, type UnitState,
 } from '../types';
 import { allyRoom, companionCells, deployed, encGeo, engTier, geoOf, mapOptOf, terrainPathOk, foeCell, layout, PAD, runGeo, terrainCells, toPos, memberships, playerRows, prepOccupied, synergyCounts, turretCells, turretCount, ZONE, zoneAt } from './build';
@@ -399,7 +398,7 @@ export function addUnit(run: RunState, defId: string, rank: number): UnitState {
   // 스페셜: 합류할 때 전용 증강 1개 · 사이오닉: 합류할 때 학파 1개 (메이저 · 디바인은 합류 선택 없음)
   if (UNIT_BY_ID[defId].ttype === 'special') run.pending.push({ t: 'rankup', uid: u.uid, rank: 1, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, join: true, kind: 'special' });
   if (UNIT_BY_ID[defId].ttype === 'psionic') run.pending.push({ t: 'rankup', uid: u.uid, rank: 1, points: 0, options: null, rerolls: 0, allocDone: true, join: true, kind: 'school' });
-  if (UNIT_BY_ID[defId].ttype === 'divine') u.relic = DEFAULT_RELIC[defId]; // 기본 성유물
+  if (UNIT_BY_ID[defId].ttype === 'divine') { u.relic = DEFAULT_RELIC[defId]; u.offer = offerStart(run); } // 기본 성유물 · 늦게 합류하면 봉헌이 (페이즈 − 1)단계에서 시작
   for (let r = 2; r <= rank; r++) rankUp(run, u); // 건너뛴 이정표도 모두 지급
   return u;
 }
@@ -1189,7 +1188,6 @@ export function advance(run: RunState) {
     if (notes) { run.flags = run.flags.filter((f) => f !== 'cp_note'); run.credits = Math.max(0, run.credits - 20 * notes); log(run, `선지급 어음 정산: 크레딧 -${20 * notes}`); }
     run.phase++;
     if (run.scope) run.scope.n += DEV.scope.perPhase; // 표시 망원경: 페이즈마다 +1
-    run.mods.divGain = 0; // 성인 기념일은 이번 페이즈만
     run.step = 0;
     setRoute(run);
     run.picked = [];
@@ -1823,12 +1821,11 @@ function rankUp(run: RunState, u: UnitState) {
   for (const k of MAJORS) u.alloc[k] += CFG.rankAll; // 모든 메이저 자동 상승
   const tt = UNIT_BY_ID[u.defId].ttype;
   const R = u.rank;
-  // 마이너: 능력치 2종 +3 · 메이저: 메이저 증강 · 스페셜: 전용 증강 · 사이오닉: 전공 증강 (디바인은 스탯만)
+  // 스페셜(마이너): 능력치 2종 +3 · 메이저: 전용 증강 · 사이오닉: 전공 증강 (디바인은 스탯만 — 성장은 봉헌, CFG.offer)
   if (CFG.growth.pick(tt, R)) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: CFG.rankPoints, options: [], rerolls: 0, allocDone: false, ...(rng(run, (r) => r.chance(CFG.greatChance)) ? { great: true } : {}) }); // 대성공은 미리 굴려 두고 첫 확정 때 공개
   if (CFG.growth.major(tt, R)) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, kind: 'major' });
   if (CFG.growth.special(tt, R) && augRoom(u, 'special')) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, kind: 'special' });
   if (CFG.growth.psionic(tt, R) && augRoom(u, 'psionic')) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, kind: 'psionic' });
-  if (CFG.growth.oath(tt, R) && augRoom(u, 'oath')) run.pending.push({ t: 'rankup', uid: u.uid, rank: R, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, kind: 'oath' });
 }
 
 export function buyXp(run: RunState, uid: string): boolean {
@@ -1844,20 +1841,20 @@ export function buyXp(run: RunState, uid: string): boolean {
 export const xpCost = (run: RunState) => CFG.buyXpCost - (hasGlobal(run, 'G.study') ? 1 : 0) + (hasDespair(run, 'D.leak') ? CFG.despair.leak : 0);
 
 // ───────────────────────── 증강 선택
-export type AugKind = 'major' | 'special' | 'psionic' | 'school' | 'oath';
-/** 기물 유형이 받는 증강 종류 (마이너 · 디바인은 없음) */
+export type AugKind = 'major' | 'special' | 'psionic' | 'school';
+/** 기물 유형이 받는 증강 종류 (스페셜(마이너) · 디바인은 없음) */
 export function typeAugKind(u: UnitState): AugKind | null {
   const tt = UNIT_BY_ID[u.defId].ttype;
-  return tt === 'major' || tt === 'special' ? 'special' : tt === 'psionic' ? 'psionic' : tt === 'divine' ? 'oath' : null; // 메이저 = 전용 증강 · 디바인 = 서약 증강
+  return tt === 'major' || tt === 'special' ? 'special' : tt === 'psionic' ? 'psionic' : null; // 메이저 = 전용 증강 · 사이오닉 = 전공 증강
 }
 /** 사이오닉: 보유 학파의 전공 증강 (학파가 없으면 빈 목록) */
 /** 전공 증강 풀: 공용 전공 증강 + 이 기물 전용 전공 증강 (같은 확률) */
 export const psiPool = (u: UnitState) => { const s = schoolOf(u); return [...schoolPassives(s), ...PSI_UNIT_AUGS.filter((a) => a.owner === s && psiUnitOf(a.id) === u.defId)]; };
-/** 유형 증강 풀 (메이저 전용 · 디바인 서약 · 사이오닉 전공 증강, 'major' = 예전 공용 풀: 예전 저장의 대기 선택만) — 성장 · 사건 · 호이슌 계약 공용 */
+/** 유형 증강 풀 (메이저 전용 · 사이오닉 전공 증강, 'major' = 예전 공용 풀: 예전 저장의 대기 선택만) — 성장 · 사건 · 호이슌 계약 공용 */
 export function augPoolOf(u: UnitState, kind: AugKind): readonly AugDef[] {
-  return kind === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : kind === 'oath' ? OATH_AUGS : kind === 'psionic' ? psiPool(u) : kind === 'major' ? MAJOR_AUGS : [];
+  return kind === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : kind === 'psionic' ? psiPool(u) : kind === 'major' ? MAJOR_AUGS : [];
 }
-/** 이 유형 증강을 더 받을 수 있는지 (사이오닉 전공 증강은 최대 CFG.psiAugMax 개, 메이저 전용 · 서약 증강은 CFG.majorAugMax 개, 학파는 1개) */
+/** 이 유형 증강을 더 받을 수 있는지 (사이오닉 전공 증강은 최대 CFG.psiAugMax 개, 메이저 전용 증강은 CFG.majorAugMax 개, 학파는 1개) */
 export function augRoom(u: UnitState, kind: AugKind) {
   if (kind === 'major') return true;
   if (kind === 'school') return UNIT_BY_ID[u.defId].ttype === 'psionic' && !schoolOf(u);
@@ -1895,7 +1892,7 @@ export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major')
   });
 }
 
-/** 증강 선택지 수 (메이저 전용 · 사이오닉 전공 · 디바인 서약 증강): 침묵의 서약이면 줄어든다 */
+/** 증강 선택지 수 (메이저 전용 · 사이오닉 전공 증강): 침묵의 서약이면 줄어든다 */
 const augN = (run: RunState) => Math.max(1, CFG.augmentChoices - oathV(run, 'augment', 'less'));
 /** ★ 전설 전공 증강이 이번 선택지에 섞일 확률: 기본 + 전설 없이 지나간 전공 증강 선택마다 보정, 전설을 한 번 얻으면 기본만 */
 /** ★ 전설 메이저 전용 증강이 선택지에 섞일 확률 (CFG.majorLegend): 전설을 아직 못 얻었으면 지나간 선택마다 보정 */
@@ -2580,7 +2577,7 @@ function genInvest(run: RunState): InvestOffer[] {
   return rng(run, (r) => order.map((id) => {
     const o: InvestOffer = { id, cost: Math.round(INVEST_OFFERS[id].cost * investPrice[t - 1]), sold: false };
     if (id === 'aug') {
-      // 유형별 증강 계약: 메이저 전용 증강 · 사이오닉 전공 증강 · 디바인 서약 증강 (스페셜은 대상 아님). ★ 전설은 성장 선택으로만 얻는다
+      // 유형별 증강 계약: 메이저 전용 증강 · 사이오닉 전공 증강 (스페셜 · 디바인은 대상 아님). ★ 전설은 성장 선택으로만 얻는다
       const cands = run.units.flatMap((u) => {
         const k = typeAugKind(u);
         if (!k || !augRoom(u, k)) return [];
@@ -2655,6 +2652,22 @@ export function migrate(run: RunState): RunState {
     else if (u && p.kind === 'psionic' && p.options.some((o) => AUG_BY_ID[o.id]?.owner !== schoolOf(u))) p.options = null;
   }
   for (const p of run.pending) if (p.t === 'supply' && p.options.some((o) => typeof o !== 'object')) p.options = genSupply(run); // 옛 보급 (선택지 이름 문자열) → 뒷면 카드
+  // 디바인 개편 (2026-10-31): 서약 증강 · '다음 전투 ×3' 강화 · 참배 카드 폐지 → 봉헌 · 축성 · 제례 / 나눔.
+  //   서약 증강(vow.*)은 위의 없어진 증강 정리로 지워지고, 대기 중인 서약 증강 선택은 버린다. 디바인은 봉헌 (페이즈 − 1)단계에서 시작 (스페셜에서 옮긴 5명 포함)
+  run.pending = run.pending.filter((p) => {
+    if (p.t !== 'rankup') return true;
+    if ((p.kind as string) === 'oath') return false;
+    const d = UNIT_BY_ID[run.units.find((x) => x.uid === p.uid)?.defId || ''];
+    return p.allocDone || !d || d.ttype === 'minor'; // 능력치 선택 대기는 스페셜만 (스페셜에서 디바인으로 옮긴 기물의 대기는 버린다)
+  });
+  for (const u of run.units) {
+    const o = u as UnitState & { enh?: unknown; enhKept?: unknown };
+    delete o.enh; delete o.enhKept;
+    if (UNIT_BY_ID[u.defId]?.ttype === 'divine') { if (typeof u.offer !== 'number' || !(u.offer >= 0)) u.offer = offerStart(run); }
+    else { delete u.offer; delete u.cons; }
+  }
+  { const m = run.mods as RunState['mods'] & { divStart?: unknown; divGain?: unknown }; if (m) { delete m.divStart; delete m.divGain; } } // 순례자의 기도 · 성인 기념일 (폐지)
+  run.pending = run.pending.map((p) => (p.t === 'pilgrim' && !Array.isArray((p as { offers?: unknown }).offers) ? genPilgrim(run) : p)); // 옛 순례 (참배 카드) → 제례 · 나눔
   run.field ??= 'waste';
   run.diff ??= 0;
   if (!run.despairs) { // 위험 등급 체계 판 2 이전 저장: 절망 증강 1개 → 목록, 예전 위험 7 · 8 → 8 · 9 (위험 7 = 절망 증강을 끼워 넣음)
@@ -2744,7 +2757,7 @@ function eventApi(run: RunState): EventApi {
     augNow: (u) => {
       const k = typeAugKind(u);
       const opts = k ? augOptions(run, u, k) : [];
-      // 증강이 없는 유형(마이너 · 디바인)이나 더 받을 수 없으면 공명 등급 +1
+      // 증강이 없는 유형(스페셜 · 디바인)이나 더 받을 수 없으면 공명 등급 +1
       if (!opts.length) { if (u.rank >= CFG.maxRank) return null; rankUp(run, u); return '공명 각성 (등급 +1)'; }
       u.augments.push(opts[0]);
       return AUG_BY_ID[opts[0].id]?.name || null;
@@ -2833,53 +2846,100 @@ export function releaseUnit(run: RunState, uid: string): string | null {
   return null;
 }
 
-// ───────────────────────── 디바인 · 순례
-/** 순례 참배 카드 (권능 10~30). 축복은 이번 페이즈, 순례자의 기도는 다음 전투, 성인 기념일은 이번 페이즈 */
-export const PILGRIM_CARDS: Record<string, { name: string; desc: string; cost: number; target?: boolean }> = {
-  'bless:B.martyr': { name: '순교자의 가호', desc: '이번 페이즈 모든 아군 최대 체력 +20%.', cost: 15 },
-  'bless:B.flame': { name: '성전의 불꽃', desc: '이번 페이즈 모든 아군 기본 공격에 기술 위력 25% 신성 추가 피해.', cost: 15 },
-  'bless:B.sanctum': { name: '성소의 빛', desc: '이번 페이즈 전투 시작 시 모든 아군 최대 체력 15% 보호막.', cost: 15 },
-  'bless:B.zeal': { name: '광신', desc: '이번 페이즈 모든 아군 공격 속도 +25%, 받는 피해 +10%.', cost: 15 },
-  grail: { name: '성배', desc: '신성력 수집 상한 +50 (영구).', cost: 15 },
-  prayer: { name: '순례자의 기도', desc: '다음 전투에서 모든 디바인이 신성력 40으로 시작.', cost: 10 },
-  saintday: { name: '성인 기념일', desc: '이번 페이즈 디바인 신성력 획득 +50%.', cost: 20 },
-  chrism: { name: '성유', desc: '디바인 1명 공명 등급 +1.', cost: 25, target: true },
-  indulgence: { name: '면죄부', desc: '함대 체력 +15.', cost: 20 },
-  convert: { name: '개종', desc: '디바인 1명의 신앙을 바꾼다.', cost: 20, target: true },
-};
-function genPilgrim(run: RunState): Extract<Pending, { t: 'pilgrim' }> {
-  return rng(run, (r) => {
-    const pool = Object.keys(PILGRIM_CARDS).filter((k) => k !== 'convert');
-    const cards: NonNullable<Extract<Pending, { t: 'pilgrim' }>['cards']> = r.sample(pool, 3).map((id) => ({ id, cost: PILGRIM_CARDS[id].cost, sold: false }));
-    if (r.chance(0.2)) cards[2] = { id: 'convert', cost: PILGRIM_CARDS.convert.cost, sold: false, faith: r.pick(FAITHS) };
-    const owned = new Set([...(run.relics || []), ...run.units.map((u) => u.relic).filter((x): x is string => !!x)]);
-    const rel = r.sample(RELICS.filter((x) => !owned.has(x.id)).map((x) => x.id), 2).map((id) => ({ id, cost: RELIC_BY_ID[id].price, sold: false }));
-    return { t: 'pilgrim' as const, cards, relics: rel };
-  });
-}
+// ───────────────────────── 디바인 · 봉헌 · 축성 · 순례
 /** 보유한 디바인 */
 export const divines = (run: RunState) => run.units.filter((u) => UNIT_BY_ID[u.defId].ttype === 'divine');
+/** 디바인의 봉헌 시작값: 1페이즈 0, 늦게 합류하면 (페이즈 − 1)단계 누계 (CFG.offer) */
+export const offerStart = (run: RunState) => offerNeed(Math.min(CFG.offer.max, Math.max(0, run.phase - 1)));
+/** 봉헌 더하기 (디바인만, 최대 단계 누계까지). 오른 단계 수 */
+export function addOffer(u: UnitState, v: number): number {
+  if (UNIT_BY_ID[u.defId]?.ttype !== 'divine' || v <= 0) return 0;
+  const st = offerStage(u.offer);
+  u.offer = Math.min(offerCap(), (u.offer || 0) + v);
+  return offerStage(u.offer) - st;
+}
+/** 이번 페이즈에 축성한 횟수 */
+export const consUsed = (run: RunState, u: UnitState) => (u.cons?.p === run.phase ? u.cons.n : 0);
+/** 축성할 수 없는 이유 (없으면 null) */
+export function consecrateWhy(run: RunState, u: UnitState | undefined): string | null {
+  if (!u || UNIT_BY_ID[u.defId]?.ttype !== 'divine') return '디바인만 축성합니다';
+  if (offerStage(u.offer) >= CFG.offer.max) return '봉헌이 최대 단계입니다';
+  if (consUsed(run, u) >= CFG.consecrate.perPhase) return '이번 페이즈에 이미 축성했습니다';
+  if (run.power < CFG.consecrate.cost) return '권능 포인트가 부족합니다';
+  return null;
+}
+/** 축성: 권능 CFG.consecrate.cost → 그 기물 봉헌 +gain (기물마다 페이즈당 perPhase 번, 어디서나) */
+export function consecrate(run: RunState, uid: string): string | null {
+  const u = run.units.find((x) => x.uid === uid);
+  const why = consecrateWhy(run, u);
+  if (why) return why;
+  run.power -= CFG.consecrate.cost;
+  u!.cons = { p: run.phase, n: consUsed(run, u!) + 1 };
+  const up = addOffer(u!, CFG.consecrate.gain);
+  log(run, `축성: ${UNIT_BY_ID[u!.defId].name} 봉헌 +${CFG.consecrate.gain}${up ? ` (${offerStage(u!.offer)}단계)` : ''}`);
+  return null;
+}
+/** 나눔: 장비 재료 · 합성 재료 묶음 (가치 ≈ 보급 기준값 × CFG.alms.ratio, 최대 6개) */
+function genAlms(run: RunState, r: Rng): PilOffer {
+  const v = supplyBase(run) * CFG.alms.ratio;
+  const items: string[] = [];
+  let sum = 0;
+  while (items.length < 6 && (!items.length || sum + CFG.price.C / 2 < v)) {
+    const id = r.chance(0.3) ? r.pick([DUST, CRYSTAL]) : r.pick(ALL_COMPONENTS);
+    items.push(id);
+    sum += supplyValue({ credits: 0, xp: 0, items: [id] });
+  }
+  return { k: 'alms', items, value: Math.round(sum) };
+}
+/** 순례 (디바인 보유 시): 무료 고르기 카드 = 제례 (보유 디바인의 신앙, 출전 기물의 신앙 먼저) CFG.rite.choices 장 + 나눔 1장 (신앙이 모자라면 나눔으로 채움),
+ *  곁 패널 = 권능으로 사는 성유물 CFG.pilgrim.relics 개 · 개종 1가지 */
+function genPilgrim(run: RunState): Extract<Pending, { t: 'pilgrim' }> {
+  return rng(run, (r) => {
+    const dv = divines(run);
+    const uniq = (us: UnitState[]) => [...new Set(us.map((u) => u.faith || UNIT_BY_ID[u.defId].faith))];
+    const on = uniq(dv.filter((u) => u.pos)), off = uniq(dv).filter((f) => !on.includes(f));
+    const faiths = [...r.sample(on, on.length), ...r.sample(off, off.length)].slice(0, CFG.rite.choices);
+    const offers: PilOffer[] = faiths.map((f) => ({ k: 'rite', faith: f, gain: CFG.rite.gain, ...(blessingOf(f) ? { bless: blessingOf(f)!.id } : {}) }));
+    while (offers.length < CFG.rite.choices + 1) offers.push(genAlms(run, r));
+    const owned = new Set([...(run.relics || []), ...run.units.map((u) => u.relic).filter((x): x is string => !!x)]);
+    const relics = r.sample(RELICS.filter((x) => !owned.has(x.id)).map((x) => x.id), CFG.pilgrim.relics).map((id) => ({ id, cost: RELIC_BY_ID[id].price, sold: false }));
+    const cf = FAITHS.filter((f) => dv.some((u) => (u.faith || UNIT_BY_ID[u.defId].faith) !== f)); // 바꿀 수 있는 신앙 (디바인 누군가와 다른 신앙)
+    return { t: 'pilgrim' as const, offers, relics, ...(cf.length ? { convert: { faith: r.pick(cf), cost: CFG.pilgrim.convert, sold: false } } : {}) };
+  });
+}
 const pilgrimOf = (run: RunState) => run.pending.find((x): x is Extract<Pending, { t: 'pilgrim' }> => x.t === 'pilgrim');
-/** 참배 카드 구매. 대상이 필요한 카드는 uid (디바인) */
-export function pilgrimCard(run: RunState, idx: number, uid?: string): string | null {
+/** 제례 대상: 그 신앙을 가진 보유 디바인 */
+export const riteUnits = (run: RunState, f: FaithId) => divines(run).filter((u) => (u.faith || UNIT_BY_ID[u.defId].faith) === f);
+/** 순례 고르기 카드 받기 (무료, 순례마다 1장). 받은 내용 문구 또는 오류 */
+export function pilgrimTake(run: RunState, idx: number): { err?: string; msg?: string } {
   const p = pilgrimOf(run);
-  const c = p?.cards?.[idx];
-  if (!p || !c || c.sold) return '이미 받았습니다';
+  const o = p?.offers[idx];
+  if (!p || !o) return { err: '없는 카드입니다' };
+  if (p.took !== undefined) return { err: '이미 한 장을 받았습니다' };
+  p.took = idx;
+  if (o.k === 'alms') {
+    for (const id of o.items) gainItem(run, id);
+    log(run, `순례 나눔: ${o.items.map((id) => itemInfo(id).name).join(', ')}`);
+    return { msg: `나눔: ${o.items.map((id) => itemInfo(id).name).join(' · ')}` };
+  }
+  const us = riteUnits(run, o.faith);
+  for (const u of us) addOffer(u, o.gain);
+  if (o.bless) pickBlessing(run, o.bless);
+  log(run, `순례 제례 (${FAITH_NAME[o.faith]}): ${us.map((u) => UNIT_BY_ID[u.defId].name).join(', ') || '대상 없음'} 봉헌 +${o.gain}${o.bless ? ` · 축복 ${BLESSING_BY_ID[o.bless]?.name}` : ''}`);
+  return { msg: `제례: ${us.map((u) => UNIT_BY_ID[u.defId].name).join(' · ')} 봉헌 +${o.gain}` };
+}
+/** 개종 (권능): 디바인 1명의 신앙을 순례가 권하는 신앙으로 */
+export function pilgrimConvert(run: RunState, uid: string): string | null {
+  const c = pilgrimOf(run)?.convert;
+  const u = run.units.find((x) => x.uid === uid);
+  if (!c || c.sold) return '이미 개종했습니다';
+  if (!u || UNIT_BY_ID[u.defId].ttype !== 'divine') return '디바인 기물을 고르세요';
+  if (u.faith === c.faith) return '이미 그 신앙입니다';
   if (run.power < c.cost) return '권능 포인트가 부족합니다';
-  const def = PILGRIM_CARDS[c.id];
-  const u = uid ? run.units.find((x) => x.uid === uid) : undefined;
-  if (def.target && (!u || UNIT_BY_ID[u.defId].ttype !== 'divine')) return '디바인 기물을 고르세요';
-  if (c.id === 'chrism' && u!.rank >= CFG.maxRank) return '더 오를 수 없습니다';
-  if (c.id === 'convert' && (!c.faith || u!.faith === c.faith)) return '이미 그 신앙입니다';
-  if (c.id.startsWith('bless:')) pickBlessing(run, c.id.slice(6));
-  else if (c.id === 'grail') run.divCap += 50;
-  else if (c.id === 'prayer') run.mods.divStart = 40;
-  else if (c.id === 'saintday') run.mods.divGain = 0.5;
-  else if (c.id === 'chrism') rankUp(run, u!);
-  else if (c.id === 'indulgence') run.hp = Math.min(run.maxHp, run.hp + 15);
-  else if (c.id === 'convert') u!.faith = c.faith;
   run.power -= c.cost;
+  u.faith = c.faith;
   c.sold = true;
+  log(run, `개종: ${UNIT_BY_ID[u.defId].name} → ${FAITH_NAME[c.faith]}`);
   return null;
 }
 /** 성유물 구매 (보관함으로) */
@@ -2892,7 +2952,7 @@ export function pilgrimRelic(run: RunState, idx: number): string | null {
   (run.relics ??= []).push(o.id);
   return null;
 }
-/** 성유물 장착 (디바인만, 쓰던 것은 보관함으로) */
+/** 성유물 장착 (디바인만, 쓰던 것은 보관함으로). 봉헌은 기물에 쌓이므로 그대로 이어진다 */
 export function equipRelic(run: RunState, uid: string, id: string): string | null {
   const u = run.units.find((x) => x.uid === uid);
   if (!u || UNIT_BY_ID[u.defId].ttype !== 'divine') return '디바인만 성유물을 장착합니다';
@@ -2902,26 +2962,16 @@ export function equipRelic(run: RunState, uid: string, id: string): string | nul
   list.splice(i, 1);
   if (u.relic) list.push(u.relic);
   u.relic = id;
-  u.enh = false;
-  return null;
-}
-/** 신권 대행 강화: 다음 전투 한정 계수 ×3 */
-export function enhanceRelic(run: RunState, uid: string): string | null {
-  const u = run.units.find((x) => x.uid === uid);
-  const rel = u?.relic ? RELIC_BY_ID[u.relic] : null;
-  if (!u || !rel) return '성유물이 없습니다';
-  if (u.enh) return '이미 강화했습니다';
-  if (run.power < rel.enh) return '권능 포인트가 부족합니다';
-  run.power -= rel.enh;
-  u.enh = true;
-  u.enhKept = false;
   return null;
 }
 
-/** 전투 후 런 누적 성장 정산: 전투 중 g_ 기록 → UnitState.grow, 권능 포인트, 마이너 성장, 루스 전리품 */
+/** 이 전투에서 디바인 기물이 번 권능 포인트 (팀 상한 전): 모은 신성력 ÷ powerPerDiv + 신권 대행을 쓰면 1 */
+export const divPower = (c: { div: number | null; divGot: number; divUsed: boolean }) => (c.div !== null ? Math.floor(c.divGot / CFG.powerPerDiv) + (c.divUsed ? 1 : 0) : 0);
+/** 전투 후 런 누적 성장 정산: 전투 중 g_ 기록 → UnitState.grow, 권능 포인트 · 자동 봉헌, 루스 전리품 */
 function settleGrowth(run: RunState, b: Battle, won: boolean, interest: number, lines: string[]) {
   void won; void interest;
   let pw = 0;
+  const offers: string[] = [];
   for (const c of b.units) {
     if (c.side !== 0 || !c.src) continue;
     const u = c.src;
@@ -2930,15 +2980,15 @@ function settleGrowth(run: RunState, b: Battle, won: boolean, interest: number, 
     if (c.mem.g_loot) { run.credits += c.mem.g_loot; lines.push(`루스 약탈 +${c.mem.g_loot}`); }
     if (c.mem.g_ultLoot) { run.credits += c.mem.g_ultLoot; lines.push(`루스 약탈 개시 +${c.mem.g_ultLoot}`); }
     if (c.mem.g_divCredit) { run.credits += c.mem.g_divCredit; lines.push(`배당 결의서 +${c.mem.g_divCredit}`); }
-    // 권능: 디바인 1명당 모은 신성력 ÷ 25, 신권 대행을 쓰면 +1
-    if (c.div !== null && UNIT_BY_ID[u.defId]?.ttype === 'divine') pw += Math.floor(c.divGot / CFG.powerPerDiv) + (c.divUsed ? 1 : 0);
+    if (UNIT_BY_ID[u.defId]?.ttype !== 'divine' || !run.units.includes(u)) continue;
+    // 권능: 디바인 1명당 모은 신성력 ÷ 25, 신권 대행을 쓰면 +1 · 자동 봉헌: 바닥 + 그 기물이 번 권능 × perPower (권능은 깎지 않는다)
+    const own = divPower(c);
+    pw += own;
+    const g = CFG.offer.floor + own * CFG.offer.perPower;
+    const before = u.offer || 0, up = addOffer(u, g);
+    if ((u.offer || 0) > before) offers.push(`${UNIT_BY_ID[u.defId].name} 봉헌 +${Math.round((u.offer || 0) - before)}${up ? ` · ${offerStage(u.offer)}단계` : ''}`);
   }
-  // 강화 · 다음 전투 한정 효과는 이번 전투로 끝 (서약 증강 [축성의 서약]: 강화가 한 전투 더 남는다, data/oathaugs.ts)
-  for (const u of run.units) {
-    if (u.enh && !u.enhKept && u.augments.some((a) => a.id === VOW_ENH_KEEP)) u.enhKept = true;
-    else { u.enh = false; u.enhKept = false; }
-  }
-  run.mods.divStart = 0;
   pw = Math.min(CFG.powerMax, pw);
   if (pw) { run.power += pw; lines.push(`권능 포인트 +${pw} (현재 ${run.power})`); }
+  lines.push(...offers);
 }

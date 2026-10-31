@@ -731,7 +731,7 @@ export function invDetail(run: RunState) {
   if (app.sel?.k === 'relic') {
     const r = RELIC_BY_ID[app.sel.id];
     if (!r) return '';
-    return pop(relicTok(r.id), '성유물', r.name, `<div class="ip-stats"><span>${lineIcon('a.divact', 'li')}신권 대행 · 강화 권능 ${r.enh}</span></div>`, statIc(esc(r.desc(1))),
+    return pop(relicTok(r.id), '성유물', r.name, `<div class="ip-stats"><span>${lineIcon('a.divact', 'li')}신권 대행</span><span title="장착한 디바인의 추천 주요 능력치 (봉헌 단계마다 +${CFG.offer.stat})">${lineIcon('k.relic', 'li')}추천 주요 능력치 +${CFG.offer.stat0}~</span></div>`, statIc(esc(r.desc(1))),
       '<span class="muted small">디바인 기물에 끌어다 놓거나, 선택한 채로 디바인을 누르면 장착합니다.</span>');
   }
   const selIdx = app.sel?.k === 'item' ? app.sel.idx : -1;

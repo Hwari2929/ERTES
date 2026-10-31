@@ -4,7 +4,8 @@
 import { CFG } from '../src/config';
 import * as R from '../src/engine/run';
 import type { RunState } from '../src/types';
-import { equipGear, equipGearFix, newIns, useConsumables, useConsumablesFix } from './botlib';
+import { consecrateBot, equipGear, equipGearFix, newIns, pilgrimBot, useConsumables, useConsumablesFix } from './botlib';
+import { offerNeed } from '../src/data/relics';
 import { Chulsu, DEFAULT_AREAS } from './chulsu';
 import * as Y from './chulsu/younghee';
 import * as A from './chulsu/aug';
@@ -15,7 +16,7 @@ import { teamEval } from './chulsu/eval';
 import { effTier, setEvalMode } from './chulsu/syn';
 import { formation, thresholdCands } from './chulsu/form';
 import { tierOf } from '../src/data/synergies';
-import { deployed, synergyCounts } from '../src/engine/build';
+import { buildBattle, deployed, synergyCounts } from '../src/engine/build';
 import { emblemId } from '../src/data/items';
 import type { UnitState } from '../src/types';
 
@@ -280,6 +281,68 @@ const u0 = (run: RunState) => run.units[0];
   R.buyFleet(j); j.credits = 100; // 대기 없음 (출전 5 = 보유 5)
   const pick = Y.branch(j, ['shop', 'supply', 'recruit'], yh(j).log, 'yh', null, true);
   ok(pick === 'shop', `영희: 여유 60 이면 갈림길에서 상점 → ${pick}`);
+}
+
+// ── 디바인 개편 (봉헌 · 축성 · 순례 제례 / 나눔 · 저장 이어 받기)
+{
+  const run = R.newRun(7, ['eleni', 'ingel', 'kyle', 'gunnir'], 'waste', 0); // 셀레네 2 · 시리우스 1 · 지수추종 1
+  run.pending = [];
+  R.autoPlace(run);
+  const dv = R.divines(run);
+  ok(dv.length === 4 && dv.every((u) => u.offer === 0 && !!u.relic), `디바인 4명 · 1페이즈 봉헌 0 · 기본 성유물 (${dv.map((u) => `${u.defId}:${u.offer}:${u.relic}`).join(' ')})`);
+  // 전투 한 판: 출전한 디바인마다 바닥 2 + 번 권능만큼 자동 봉헌, 권능은 줄지 않는다
+  R.enterNode(run, 'battle');
+  const b = buildBattle(run, run.node!.enc!, false);
+  b.runToEnd();
+  const pw0 = run.power;
+  R.resolveBattle(run, b);
+  const ownPw = (uid: string) => { const c = b.units.find((x) => x.src?.uid === uid); return c ? R.divPower(c) : 0; };
+  const want = (u: UnitState) => (u.pos ? CFG.offer.floor + ownPw(u.uid) * CFG.offer.perPower : 0);
+  ok(dv.every((u) => (u.offer || 0) === Math.min(offerNeed(CFG.offer.max), want(u))) && run.power >= pw0, `자동 봉헌 = ${CFG.offer.floor} + 번 권능 (${dv.map((u) => `${u.defId} ${u.offer}`).join(' · ')}) · 권능 ${pw0} → ${run.power}`);
+  run.pending = run.pending.filter((p) => p.t !== 'rankup');
+  // 순례: 보유 디바인 신앙 제례 2장 + 나눔 1장, 봇은 대상이 많은 신앙(셀레네) 제례를 고른다
+  const before = Object.fromEntries(dv.map((u) => [u.uid, u.offer || 0]));
+  R.enterNode(run, 'pilgrim');
+  const pg = run.pending.find((p) => p.t === 'pilgrim');
+  ok(!!pg && pg.t === 'pilgrim' && pg.offers.length === CFG.rite.choices + 1 && pg.offers.filter((o) => o.k === 'rite').length === CFG.rite.choices && pg.offers.some((o) => o.k === 'alms'),
+    `순례 카드: 제례 ${CFG.rite.choices} + 나눔 1 (${pg && pg.t === 'pilgrim' ? pg.offers.map((o) => (o.k === 'rite' ? o.faith : `나눔 ${o.items.length}개`)).join(' · ') : '없음'})`);
+  run.power = 0;
+  pilgrimBot(run);
+  const took = pg && pg.t === 'pilgrim' && pg.took !== undefined ? pg.offers[pg.took] : null;
+  ok(took?.k === 'rite' && took.faith === 'selene' && dv.filter((u) => u.faith === 'selene').every((u) => (u.offer || 0) === before[u.uid] + CFG.rite.gain) && dv.filter((u) => u.faith !== 'selene').every((u) => (u.offer || 0) === before[u.uid]),
+    `봇 순례: 셀레네 제례 → 엘레니 · 잉겔 봉헌 +${CFG.rite.gain} (${dv.map((u) => `${u.defId} ${before[u.uid]}→${u.offer}`).join(' · ')}) · 축복 ${run.blessing}`);
+  ok(run.blessing === 'B.sanctum', `셀레네 제례의 축복 = 성소의 빛 (${run.blessing})`);
+  run.pending = run.pending.filter((p) => p.t !== 'pilgrim');
+  // 축성: 권능 20 → 다음 단계까지 가장 가까운 출전 디바인 봉헌 +30, 기물마다 페이즈당 1번
+  run.power = CFG.consecrate.cost * 2 + 5;
+  const o1 = Object.fromEntries(dv.map((u) => [u.uid, u.offer || 0]));
+  consecrateBot(run);
+  const got = dv.filter((u) => (u.offer || 0) > o1[u.uid]);
+  ok(got.length === 2 && run.power === 5 && got.every((u) => (u.offer || 0) - o1[u.uid] === CFG.consecrate.gain || (u.offer || 0) === offerNeed(CFG.offer.max)), `봇 축성 2번 (권능 ${CFG.consecrate.cost * 2 + 5} → ${run.power}): ${got.map((u) => u.defId).join(' · ')}`);
+  ok(R.consecrate(run, got[0].uid) !== null, `같은 페이즈에 같은 기물은 다시 축성하지 못한다 (${R.consecrateWhy(run, got[0])})`);
+  // 저장 이어 받기: 옛 강화 · 서약 증강 · 서약 증강 대기 · 옛 순례 대기 · 봉헌 없는 디바인 → 멱등 정리
+  const m = R.newRun(9, ['eleni', 'zahara', 'falcon', 'gebek'], 'waste', 0);
+  m.phase = 3;
+  const el = m.units.find((u) => u.defId === 'eleni')!, za = m.units.find((u) => u.defId === 'zahara')!;
+  Object.assign(el, { enh: true, enhKept: true, offer: undefined });
+  el.augments.push({ id: 'vow.might' });
+  delete za.offer; delete za.relic;
+  m.pending = [{ t: 'rankup', uid: el.uid, rank: 5, points: 0, options: [{ id: 'vow.zeal' }], rerolls: 1, allocDone: true, kind: 'oath' as never },
+    { t: 'rankup', uid: za.uid, rank: 3, points: 3, options: [], rerolls: 0, allocDone: false },
+    { t: 'pilgrim', cards: [{ id: 'grail', cost: 15, sold: false }], relics: [] } as never];
+  R.migrate(m);
+  const snap1 = JSON.stringify(m);
+  R.migrate(m);
+  const elx = el as UnitState & { enh?: unknown; enhKept?: unknown };
+  const pm = m.pending.find((p) => p.t === 'pilgrim');
+  ok(elx.enh === undefined && elx.enhKept === undefined && !el.augments.some((a) => a.id.startsWith('vow.')) && el.offer === offerNeed(2) && za.offer === offerNeed(2) && za.relic === 'whip'
+    && !m.pending.some((p) => p.t === 'rankup') && !!pm && pm.t === 'pilgrim' && Array.isArray(pm.offers) && JSON.stringify(m) === snap1,
+    `저장 이어 받기 (3페이즈): 강화 · 서약 증강 · 대기 삭제, 봉헌 ${el.offer} · ${za.offer} (= 2단계 누계 ${offerNeed(2)}), 자하라 성유물 ${za.relic}, 옛 순례 → ${pm && pm.t === 'pilgrim' ? pm.offers.length : 0}장, 두 번 해도 같음`);
+  // 늦게 합류: 봉헌 시작값 = (페이즈 − 1)단계 누계
+  const late = R.newRun(11, ['falcon', 'gebek', 'argon', 'romani'], 'waste', 0);
+  late.phase = 4;
+  const nu = R.addUnit(late, 'jaehwon', 3);
+  ok(nu.offer === offerNeed(3) && nu.relic === 'warrant', `4페이즈 합류 재훤: 봉헌 ${nu.offer} (= 3단계 누계 ${offerNeed(3)}) · 성유물 ${nu.relic}`);
 }
 
 process.stdout.write(fails ? `\n${fails}개 실패\n` : '\n모두 통과\n');

@@ -177,7 +177,7 @@ export function setLabRank(run: RunState, uid: string, rank: number): UnitState 
   const nu = R.addUnit(run, u.defId, rank);
   run.units.splice(run.units.indexOf(nu), 1);
   run.units.splice(i, 0, nu);
-  Object.assign(nu, { items: u.items, mod: u.mod, pos: u.pos, ...(u.relic ? { relic: u.relic } : {}) });
+  Object.assign(nu, { items: u.items, mod: u.mod, pos: u.pos, ...(u.relic ? { relic: u.relic } : {}), ...(u.offer !== undefined ? { offer: u.offer } : {}) }); // 성유물 · 봉헌은 그대로
   if (run.aceTarget === u.uid) run.aceTarget = nu.uid;
   labAutoPending(run);
   return nu;

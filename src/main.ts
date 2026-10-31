@@ -18,7 +18,6 @@ import './ui/tierdiff';
 import { RECRUITABLE, UNIT_BY_ID } from './data/units';
 import './data/emblems';
 import './data/rework';
-import './data/oathaugs';
 import './data/psiinfo';
 import './data/augreq';
 import './data/schools';
@@ -74,6 +73,7 @@ import { CAMP_SLOT, Screen, TUT_SLOT, app, applyFxPrefs, applyTheme, canFullscre
 import { banner, interestLines, itemIcon, itemTip, statIc, topbar } from './app/common';
 import { fieldBrief, foeModal, newRunScreen, titleScreen } from './app/title';
 import { CAN_HOVER, relicTok } from './app/unitparts';
+import { pilgrimAct } from './app/pilgrim';
 import { CR, ic, mapScreen, nodeHint, phaseBoss } from './app/map';
 import { devicePop, itemBrief, placeAt, placingSel, popKey, prepScreen, setTacShownPrev, setTouchPtr, tgTip, toolMark } from './app/prep';
 import { detailHeadBind, foeItemTip, umCompactBind, unitModal } from './app/abilities';
@@ -192,7 +192,7 @@ export function render() {
   const prevScreen = lastView.screen;
   lastView.screen = app.screen;
   // 다시 그려도 스크롤 위치 유지 (상세 패널 · 전체 상세 팝업)
-  const KEEP = ['.um-grid', '.um-a', '.um-c', '.um-r', '.um-main', '.side.right', '.map-detail', '.detail', '.shop-ov', '.so-body', '.shop-ov .sd'];
+  const KEEP = ['.um-grid', '.um-a', '.um-c', '.um-r', '.um-main', '.side.right', '.map-detail', '.detail', '.shop-ov', '.so-body', '.shop-ov .sd', '.pil-ov'];
   const kept = KEEP.map((q) => root.querySelector<HTMLElement>(q)?.scrollTop ?? 0);
   const media = app.screen === 'battle' || app.screen === 'bar' ? null : keepMedia();
   TFX.beforeScreen(prevScreen, app.screen, root); // 이타카: 바뀌기 전 화면을 덮는 바다 (그리기 전에 지금 화면을 얼려 둔다)
@@ -311,6 +311,7 @@ export function act(a: string, v: string) {
     return;
   }
   if (SHOP.shopAct(run, a, v)) { render(); return; } // 상인 상점 (ui/shop.ts): 고르기 · 구매 확인 · 새로고침 · 고르곤 교환
+  if (pilgrimAct(run, a, v)) { render(); return; } // 순례 성소 (app/pilgrim.ts): 제례 · 나눔 받기 · 성유물 · 개종 · 마치기 (확인은 대상 옆 ✕ / ✓)
   if (a.startsWith('ct-') && a !== 'ct-back') { if (CTR.contractAct(a, v)) render(); return; } // 출격 계약 (ui/contract.ts)
   switch (a) {
     case 'newrun': // 출격 계약: 에란테스 바 카운터의 의뢰 차림표부터 (ui/contract.ts)
@@ -575,12 +576,9 @@ export function act(a: string, v: string) {
     case 'buy-news': if (run) { const e = R.buyNews(run, +v); if (e) toast(e); persist(); } break;
     case 'buy-invest': if (run) { const e = R.buyInvest(run, +v); if (e) toast(e); persist(); } break;
     case 'ace-target': if (run) { run.aceTarget = v; toast('에이스 파일럿으로 지정했습니다.'); persist(); } break;
-    case 'pil-card': if (run) { const [i, uid] = v.split(':'); const e = R.pilgrimCard(run, +i, uid); if (e) toast(e); persist(); } break;
-    case 'pil-relic': if (run) { const e = R.pilgrimRelic(run, +v); if (e) toast(e); else toast('성유물을 보관함에 넣었습니다'); persist(); } break;
     case 'relic-pick': app.relicPick = app.relicPick === v ? null : v; break;
     case 'relic-equip': if (run) { const [uid, id] = v.split(':'); const e = R.equipRelic(run, uid, id); if (e) toast(e); persist(); } break;
-    case 'relic-enh': if (run) { const e = R.enhanceRelic(run, v); if (e) toast(e); else toast('다음 전투의 신권 대행이 강화됩니다 (계수 ×3)'); persist(); } break;
-    case 'pilgrim-done': if (run?.pending.some((x) => x.t === 'pilgrim')) { run.pending = run.pending.filter((x) => x.t !== 'pilgrim'); persist(); } break;
+    case 'consecrate': if (run) { const e = R.consecrate(run, v); toast(e || `축성: 봉헌 +${CFG.consecrate.gain}`); persist(); } break; // 축성 (성유물 칸 · 상세 창 머리 · 순례 봉헌함)
     case 'leave-shop': if (run) { if (run.node?.type === 'shop') SHOP.farewell(run, 'leave'); R.leaveShop(run); app.shopShut = false; app.screen = 'map'; persist(); } break;
     case 'loan': if (run) { toast(R.takeLoan(run) ? '대출 실행: 크레딧 +25' : '대출할 수 없습니다.'); persist(); } break;
     // 대기 선택

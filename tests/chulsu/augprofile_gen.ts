@@ -9,7 +9,6 @@ import { buildBattle } from '../../src/engine/build';
 import * as R from '../../src/engine/run';
 import { UNITS } from '../../src/data/units';
 import { PETROCK } from '../../src/data/despair';
-import { OATH_AUGS } from '../../src/data/oathaugs';
 import { schoolPassives } from '../../src/data/psionic';
 import { PSI_UNIT_AUGS, psiUnitOf } from '../../src/data/psiunit';
 import { majorsOf, schoolAugId } from '../../src/data/schools';
@@ -66,11 +65,11 @@ let n = 0;
 for (const d of UNITS) {
   if (d.king || d.inert) continue;
   const tt = d.ttype;
-  if (tt !== 'major' && tt !== 'special' && tt !== 'divine' && tt !== 'psionic') continue;
+  if (tt !== 'major' && tt !== 'special' && tt !== 'psionic') continue; // 디바인은 증강이 없다 (봉헌으로 성장)
   const rec: Record<string, { d: number; h: number }> = (out[d.id] = {});
-  if (tt === 'major' || tt === 'special' || tt === 'divine') {
+  if (tt === 'major' || tt === 'special') {
     const c0 = contrib(d.id, []);
-    for (const a of tt === 'divine' ? OATH_AUGS : d.specialAugs || []) {
+    for (const a of d.specialAugs || []) {
       const p = a.roll ? a.roll((arr) => arr[0]) : undefined;
       rec[a.id] = ratio(contrib(d.id, [{ id: a.id, ...(p ? { param: p } : {}) }]), c0); n++;
     }

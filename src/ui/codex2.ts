@@ -17,7 +17,7 @@ import { deviceRows, isPlaceable } from '../data/devices';
 import { exMerchantOf, PETRA_AD } from '../data/merchants';
 import { PSI_BRIEF } from '../data/brief';
 import { cantripView, passiveView, SCHOOL_LINE, transformPreview } from '../data/psiinfo';
-import { RELIC_BY_ID, RELICS } from '../data/relics';
+import { offerMul, offerNeed, offerStat, RELIC_BY_ID, RELICS } from '../data/relics';
 import { augMark, GROUPS, type GroupId, isLegendAug, isTransformAug, PSI_STATUS, SCHOOL_BY_ID, SCHOOLS, type SchoolId, UNIT_GROUP } from '../data/schools';
 import { ENG_TUR, KAL_GUARD_TEXT, KAL_GUARDS, SYN_BY_ID, SYNERGIES, VOYAGE_SPECIAL } from '../data/synergies';
 import { KNIGHT_PAL } from '../engine/build';
@@ -27,9 +27,9 @@ import { UNIT_BY_ID, UNITS, type UnitDef } from '../data/units';
 import { EMB_ROCK, emblemText } from '../data/emblems';
 import type { SummonDef } from '../data/unitkit';
 import { LORE, LORE_BY_ID, LORE_GROUP_NAME, LORE_SECTIONS, type LoreEntry, type LoreGroup, loreRegionsOf } from '../data/worldlore';
-import { FOE_GEAR_DIFF, INVEST_OFFERS, NEWS_OFFERS, PILGRIM_CARDS } from '../engine/run';
+import { FOE_GEAR_DIFF, INVEST_OFFERS, NEWS_OFFERS } from '../engine/run';
 import type { AugDef } from '../engine/effects';
-import { type Category, CATEGORY_NAME, CTYPE_NAME, ELEM_NAME, MAJOR_NAME, type Major, type RunState, type SynergyId, TTYPE_NAME } from '../types';
+import { type Category, CATEGORY_NAME, CTYPE_NAME, ELEM_NAME, FAITH_NAME, MAJOR_NAME, type Major, type RunState, type SynergyId, TTYPE_NAME } from '../types';
 import * as AB from './abil';
 import { schoolCore, schoolWarnings } from './matchup';
 import { loadMeta } from './meta';
@@ -253,7 +253,7 @@ function sources(id: string): string[] {
   if (id.startsWith(RELIC_KEY)) {
     const r = RELIC_BY_ID[id.slice(2)];
     if (r.owner && UNIT_BY_ID[r.owner]) out.push(`${UNIT_BY_ID[r.owner].name} 기본 장착`);
-    out.push(`순례에서 구매 · 권능 ${r.price}`, `축성 (다음 전투 신권 대행 ×3) · 권능 ${r.enh}`);
+    out.push(`순례 성유물 진열장에서 구매 · 권능 ${r.price}`, `축성: 권능 ${CFG.consecrate.cost} → 장착한 기물 봉헌 +${CFG.consecrate.gain} (기물마다 페이즈당 ${CFG.consecrate.perPhase}번)`);
     return out;
   }
   const t = id[0];
@@ -387,7 +387,12 @@ function itemDetail(H: CxH, id: string): string {
   if (id.startsWith(RELIC_KEY)) {
     const r = RELIC_BY_ID[id.slice(2)];
     // 도감은 참조 자리: 상세 문장 (docs/ABILITY_TEXT.md) 그대로
-    a.push(`<p class="cx2-lead">${esc(r.brief)}</p>${H.statIc(AB.detailText(r.text(1), NO_CTX, new Set()))}`, `<h3>축성 시 <span class="cx-hn">계수 ×3</span></h3><div class="small">${H.statIc(AB.detailText(r.text(3), NO_CTX, new Set()))}</div>`);
+    // 봉헌 단계표 (CFG.offer): 단계 · 누계 · 장착한 기물의 추천 주요 능력치 · 신권 대행 위력 배율. 최대 단계의 상세 문장은 그 아래
+    const lv = [...Array(CFG.offer.max + 1).keys()];
+    a.push(`<p class="cx2-lead">${esc(r.brief)}</p>${H.statIc(AB.detailText(r.text(1), NO_CTX, new Set()))}`,
+      `<h3>봉헌 단계 <span class="cx-hn">최대 ${CFG.offer.max}단계</span></h3><table class="cx2-of"><thead><tr><th>단계</th><th>누계</th><th>추천 주요 능력치</th><th>위력</th></tr></thead><tbody>${lv.map((n) => `<tr><td>${n}</td><td class="f-num">${offerNeed(n)}</td><td class="f-num">+${offerStat(n)}</td><td class="f-num">×${offerMul(n).toFixed(1)}</td></tr>`).join('')}</tbody></table>`
+      + `<p class="muted small">봉헌은 기물마다 쌓인다: 전투마다 ${CFG.offer.floor} + 번 권능 × ${CFG.offer.perPower} · 축성 +${CFG.consecrate.gain} · 순례 제례 +${CFG.rite.gain}</p>`,
+      `<h3>${CFG.offer.max}단계 <span class="cx-hn">위력 ×${offerMul(CFG.offer.max).toFixed(1)}</span></h3><div class="small">${H.statIc(AB.detailText(r.text(offerMul(CFG.offer.max)), NO_CTX, new Set()))}</div>`);
     if (r.owner && UNIT_BY_ID[r.owner]) b.push(`<h3>기본 장착</h3><div class="cx2-mem">${unitChip(H, UNIT_BY_ID[r.owner])}</div>`);
     const div = UNITS.filter((d) => d.ttype === 'divine');
     a.push(`<p class="muted small">${esc(TTYPE_NAME.divine)} 기물 ${div.length}명이 장착할 수 있습니다. 장착한 성유물이 신권 대행이 됩니다.</p>`);
@@ -729,10 +734,10 @@ function unitRowBtn(H: CxH, d: UnitDef, text: string) {
 
 // ═══════════════════════ 증강
 interface AugGroup { key: string; name: string; note: string; body: (H: CxH) => string; count: number }
-const POOL_NAME: Record<string, string> = { major: '(예전) 메이저 공용', special: '메이저 전용', school: '사이오닉 전공 선택', psionic: '사이오닉 전공 증강', oath: '디바인 서약 증강' };
+const POOL_NAME: Record<string, string> = { major: '(예전) 메이저 공용', special: '메이저 전용', school: '사이오닉 전공 선택', psionic: '사이오닉 전공 증강' };
 function augGroups(): AugGroup[] {
   const pools = [...new Set(ALL_AUGS.map((a) => a.pool))];
-  const order = ['special', 'school', 'psionic', 'oath', 'major'];
+  const order = ['special', 'school', 'psionic', 'major'];
   pools.sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
   const out: AugGroup[] = [];
   for (const pool of pools) {
@@ -756,10 +761,9 @@ function augGroups(): AugGroup[] {
     } else {
       if (pool === 'major') note = '더는 고르지 않는 예전 메이저 공용 증강입니다 (예전 저장의 기물만 지님).';
       if (pool === 'school') note = `${TTYPE_NAME.psionic} 기물이 합류할 때 학파의 전공 ${Object.values(GROUPS)[0].majors.length}개 중 1개를 고릅니다 (학파가 없으면 ${SCHOOLS.length}개 중).`;
-      if (pool === 'oath') note = `${TTYPE_NAME.divine} 기물이 ${milestones(CFG.growth.oath, 'divine')}에 고릅니다 (최대 ${CFG.majorAugMax}개, ${TTYPE_NAME.divine} 기물끼리 같은 목록).`;
       body = (H) => `<ul class="augs cx2-augs">${list.map((a) => augLi(H, a)).join('')}</ul>`;
     }
-    out.push({ key: pool === 'oath' ? 'vow' : pool, name, note, body, count: list.length }); // 서약 증강: 절망 서약 묶음(key 'oath')과 분류가 겹치지 않게
+    out.push({ key: pool, name, note, body, count: list.length });
   }
   // 전역 · 특권 · 축복 · 절망: 기물이 아닌 함대 전체 증강 (icon: 줄마다 아이콘이 다를 때)
   const simple = (key: string, name: string, note: string, rows: { id: string; name: string; desc: string; tags: string[]; icon?: string }[]): AugGroup => ({
@@ -772,8 +776,8 @@ function augGroups(): AugGroup[] {
   const PH = '(시너지)';
   out.push(simple('priv', '특권 증강', '런 시작 때 3개 중 1개 (새로고침 가능). 문장은 시작 기물의 시너지 위주로 나옵니다.',
     PRIVILEGES.map((p) => ({ id: p.id, name: p.name(PH), desc: p.desc(PH), tags: [`출현 ${pctTxt(p.w / wsum)}`] }))));
-  out.push(simple('bless', '축복', `${TTYPE_NAME.divine} 기물이 있으면 열리는 순례에서 권능으로 받습니다. 이번 페이즈 동안 모든 아군에게.`,
-    BLESSINGS.map((b) => { const c = PILGRIM_CARDS[`bless:${b.id}`]; return { id: b.id, name: b.name, desc: b.desc, tags: c ? [`권능 ${c.cost}`] : [] }; })));
+  out.push(simple('bless', '축복', `${TTYPE_NAME.divine} 기물이 있으면 열리는 순례에서 제례를 받으면 그 신앙의 축복이 덤으로 붙습니다. 이번 페이즈 동안 모든 아군에게.`,
+    BLESSINGS.map((b) => ({ id: b.id, name: b.name, desc: b.desc, tags: [`제례: ${b.faiths.map((f) => FAITH_NAME[f]).join(' · ')}`] }))));
   const meta = loadMeta();
   out.push(simple('despair', '절망 증강', `${diffName(CFG.despair.from) || `위험 ${CFG.despair.from}`}(위험 ${CFG.despair.from}) 런은 ${despairRule()} 고른 증강은 의뢰 내내 함께 걸리는 디버프이고, 증강별로 의뢰 · 성공 기록이 남습니다.`,
     DESPAIRS.map((d) => { const r = meta.despair?.[d.id]; return { id: d.id, name: d.name, desc: `${d.desc()} — ${d.quip}`, icon: d.icon, tags: [r?.clears ? `성공 ${r.clears}회` : r?.runs ? `의뢰 ${r.runs}회 · 성공 없음` : '기록 없음'] }; })));

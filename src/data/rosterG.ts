@@ -429,7 +429,7 @@ export const REWORK_G: Record<string, ReworkDef> = {
     ],
   },
   jaehwon: {
-    ctype: 'MARK', ttype: 'minor', faith: 'human', weapon: G('수렵총', 'phys', 1.2, 5, 1.3, 5, 2.2),
+    ctype: 'MARK', ttype: 'divine', faith: 'human', weapon: G('수렵총', 'phys', 1.2, 5, 1.3, 5, 2.2),
     trait: {
       name: '절멸파 수장', desc: '일반 공격 치명타 적중 시 전투 스킬 쿨다운 -1.25초. 전투 스킬 사용 후 5초간 공격 속도 +25%p (최대 2중첩, 각 중첩은 별도로 만료).',
       effect: {

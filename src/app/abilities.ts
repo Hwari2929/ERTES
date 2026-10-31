@@ -25,13 +25,13 @@ import { makeSummons, type SummonMade } from '../engine/build';
 import { mapOf, terrainGroups } from '../data/maps';
 import { fmt } from '../ui/battleview';
 import { ULTS } from '../data/ults';
-import { DEFAULT_RELIC, RELIC_BY_ID } from '../data/relics';
+import { DEFAULT_RELIC, offerMul, offerStage, RELIC_BY_ID } from '../data/relics';
 import { ABIL_ICONS } from '../ui/abilicons.gen';
 import { lineIcon, typeIcon } from '../ui/synicons';
 import { app, esc, root } from './state';
 import { NODE_ICON, augIcon, hero, itemIcon, majorIcon, sprite, statIc, synToken, xpBar } from './common';
 import { diffAddChip, matchupHtml, muRow, muTag, muTags, releaseBlock } from './title';
-import { AB_KIND, CTYPE_ICON, TTYPE_ICON, TTYPE_RULE, WPOS, awakened, blessBtn, cSchool, categoryTag, ctypeRuleHtml, dBar, detailHtml, detailToggle, dorosReady, enemyCategory, faithAbil, focusBtn, relicPicker, relicTok, skillText, sub, traitGroup, traitText, ttSection, unitCategory } from './unitparts';
+import { AB_KIND, CTYPE_ICON, TTYPE_ICON, TTYPE_RULE, WPOS, awakened, blessBtn, consBtn, cSchool, categoryTag, ctypeRuleHtml, dBar, detailHtml, detailToggle, dorosReady, enemyCategory, faithAbil, focusBtn, relicPicker, relicTok, skillText, sub, traitGroup, traitText, ttSection, unitCategory } from './unitparts';
 import { foeRank, rankChip, rankLabel, unitRank } from './map';
 import { hpLabel, kingDetail, previewAlly, startChips, statLines, turretDetail } from './prep';
 import { battleMajors, encName, foeAmp, foeHead, magBtn, majorsHtml, tendOf, terrainDetail, tierKo } from './battle';
@@ -80,12 +80,12 @@ export function relicSection(d: UnitDef, u: UnitState | null, run: RunState | nu
   const rid = u?.relic || c?.relic || DEFAULT_RELIC[d.id];
   const rel = rid ? RELIC_BY_ID[rid] : null;
   const edit = !!(u && run && !live);
-  const head = `<div class="ab-head"><span class="ab-kind">성유물</span><b>${esc(rel?.name || '없음')}</b>${u && run && rel ? `<button class="btn tiny rl-bless${u.enh ? ' done' : ''}" data-a="relic-enh" data-v="${u.uid}" title="권능 ${rel.enh}을 써서 다음 전투의 신권 대행 계수를 ×3으로" ${live || u.enh || run.power < rel.enh ? 'disabled' : ''}>${u.enh ? '축성됨' : `축성 · 권능 ${rel.enh}`}</button>` : ''}</div>`;
+  const head = `<div class="ab-head"><span class="ab-kind">성유물</span><b>${esc(rel?.name || '없음')}</b>${u && run && rel ? consBtn(run, u, 'rl-bless', live) : ''}</div>`;
   const slot = `<div class="rl-slot">${relicTok(rel?.id || '', edit ? `data-a="relic-pick" data-v="${u!.uid}"` : '', edit && app.relicPick === u!.uid)}<p class="small muted">${rel ? '장착한 성유물이 신권 대행의 효과를 정한다.' : `성유물이 없으면 ${esc(CTYPE_NAME[d.ctype])} 기본형 신권 대행 [${esc(DIVINE_ACT[d.ctype].name)}]을 쓴다.`}</p></div>${edit && app.relicPick === u!.uid ? relicPicker(run!, u!) : ''}`;
   let act = '';
   if (rel) {
-    const k = (live ? c?.mem.enh : u?.enh ? 3 : 1) || 1;
-    const chips = `<div class="ab-chips"><span class="abc" title="신성력이 가득 차면 발동">${lineIcon('a.divact', 'li')}신성력 100</span><span class="abc">전투당 1회</span>${k > 1 ? '<span class="abc v">강화 ×3</span>' : ''}${live && c && c.div !== null ? `<span class="abc v">${c.divUsed ? '발동함' : Math.round(c.div)}</span>` : ''}</div>`;
+    const st = live && c ? c.mem.offerSt || 0 : offerStage(u?.offer), k = offerMul(st); // 봉헌 단계 → 위력 배율 (CFG.offer.act)
+    const chips = `<div class="ab-chips"><span class="abc" title="신성력이 가득 차면 발동">${lineIcon('a.divact', 'li')}신성력 100</span><span class="abc">전투당 1회</span>${st ? `<span class="abc v" title="봉헌 ${st}단계">위력 ×${k.toFixed(1)}</span>` : ''}${live && c && c.div !== null ? `<span class="abc v">${c.divUsed ? '발동함' : Math.round(c.div)}</span>` : ''}</div>`;
     act = `<div class="rl-act ab-click${abilOn('divact')}" data-a="abil-pop" data-v="divact" role="button" tabindex="0"><div class="ab-head"><span class="ab-kind">신권 대행</span><b>${lineIcon('a.divact', 'li ab-ic')}${esc(rel.name)}</b></div>${chips}${app.detail ? detailHtml(rel.text(k), actx(b0, c)) : `<p>${esc(rel.brief)}</p>`}</div>`;
   }
   return `<section class="abil ab-relic">${head}${slot}${act ? `<hr class="rl-sep">${act}` : ''}</section>`;
@@ -279,9 +279,10 @@ export function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit 
     const rid = c?.relic || app.run?.units.find((x) => x.defId === d.id)?.relic || DEFAULT_RELIC[d.id];
     const rel = rid ? RELIC_BY_ID[rid] : null;
     const da = DIVINE_ACT[d.ctype];
-    kind = '신권 대행'; name = rel?.name || da.name; mech = rel ? '고유 신앙에 맞는 행동으로 신성력을 모아 100이 되면 전투당 한 번 발동. 장착한 성유물에 따라 효과가 바뀌고, 지속 효과는 전투가 끝날 때까지 유지된다. 권능으로 강화하면 다음 전투 한정 계수 ×3.'
+    kind = '신권 대행'; name = rel?.name || da.name; mech = rel ? `고유 신앙에 맞는 행동으로 신성력을 모아 100이 되면 전투당 한 번 발동. 장착한 성유물에 따라 효과가 바뀌고, 지속 효과는 전투가 끝날 때까지 유지된다. 봉헌 단계마다 위력 +${Math.round(CFG.offer.act * 100)}%p.`
       : `고유 신앙에 맞는 행동으로 신성력을 모아 100이 되면 전투당 한 번 발동. 성유물이 없으면 (도로스의 [성찬]으로 깨어난 기물 등) ${CTYPE_NAME[d.ctype]} 기본형을 쓴다.`;
-    body = rel ? `${detailHtml(rel.text(c?.mem.enh || 1), ctx, gl)}<p class="muted small">강화 비용 권능 ${rel.enh}</p>` : detailHtml(da.text, ctx, gl);
+    const st = c ? c.mem.offerSt ?? offerStage(c.src?.offer) : 0;
+    body = rel ? `${detailHtml(rel.text(offerMul(st)), ctx, gl)}${st ? `<p class="muted small">봉헌 ${st}단계 · 위력 ×${offerMul(st).toFixed(1)}</p>` : ''}` : detailHtml(da.text, ctx, gl);
   } else if (key === 'trait') {
     kind = '특성'; name = d.trait.name; mech = '전투 내내 적용되는 이 기물의 고유 효과.';
     const t = ABIL[d.id]?.trait;
@@ -298,7 +299,7 @@ export function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit 
     const id = key.slice(4);
     kind = '증강'; name = AUG_BY_ID[id]?.name || id;
     const pool = AUG_BY_ID[id]?.pool;
-    mech = pool === 'unit' ? '이 기물 전용 증강. 획득하면 영구 적용.' : pool === 'special' ? `메이저 기물이 ${CFG.augEvery}등급마다 고르는 전용 증강. 영구 적용.` : pool === 'oath' ? `디바인 기물이 ${CFG.oathEvery}등급마다 고르는 서약 증강. 영구 적용.` : pool === 'psionic' ? '사이오닉 증강. 이성 규칙을 바꾼다. 영구 적용.' : '공용 증강. 영구 적용.';
+    mech = pool === 'unit' ? '이 기물 전용 증강. 획득하면 영구 적용.' : pool === 'special' ? `메이저 기물이 ${CFG.augEvery}등급마다 고르는 전용 증강. 영구 적용.` : pool === 'psionic' ? '사이오닉 증강. 이성 규칙을 바꾼다. 영구 적용.' : '공용 증강. 영구 적용.';
     body = `<p>${augText(id, c?.src?.augments.find((a) => a.id === id)?.param, b, c, gl)}</p>${augNotes(id, c?.src || app.run?.units.find((x) => x.defId === d.id) || null, true)}`;
     // ◆ 변형 증강: 바뀐 비술 · 지속 능력을 함께 (이 기물의 다른 전공 증강까지 반영)
     const tp = transformPreview(id);

@@ -29,10 +29,11 @@ import * as SHOP from '../ui/shop';
 import { FS_SVG, UI_FX, app, canFullscreen, esc, isFullscreen, pct1, pctTxt, root, themePicker, uiFx } from './state';
 import { NODE_ICON, augIcon, interestLines, itemIcon, majorIcon, recommendedMajors, sprite, statIc, synToken } from './common';
 import { despairNames, dpPlayed, matchupHtml, pvPlayed, setDpPlayed, setPvPlayed } from './title';
-import { CAN_HOVER, PSI_RANKS, detailToggle, ownedChip, pickCard, pilgrimHtml, schoolOpt, sub, supplyHtml, teamCount } from './unitparts';
+import { CAN_HOVER, PSI_RANKS, detailToggle, ownedChip, pickCard, schoolOpt, sub, supplyHtml, teamCount } from './unitparts';
 import { CR, ic, musterModal, phaseBoss, rankLabel, rosterRow, supplyHint } from './map';
 import { inventoryPanel, previewAlly } from './prep';
 import { abilPopHtml, augNotes, augText } from './abilities';
+import { pilgrimScreen } from './pilgrim';
 import { keyList, uxSettings } from './hotkeys';
 import { act, render } from '../main';
 
@@ -313,8 +314,8 @@ export function pendingModal(run: RunState): string {
       const opts = p.options || [];
       const pv = previewAlly(run, u);
       body = `${side}<div class="ru-main">
-        <div class="ru-head"><h1>${p.kind === 'school' ? '합류 · 사이오닉 전공' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 전공 증강` : p.kind === 'oath' ? `${p.rank}등급 달성 · 서약 증강` : `${p.rank}등급 달성 · 증강`}</h1>
-          <span class="muted small">${p.kind === 'school' ? `${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙고, ${PSI_RANKS.join(' · ')}등급에 전공 증강을 고릅니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}` : p.kind === 'special' ? `메이저 기물은 ${CFG.augEvery}등급마다 전용 증강을 고릅니다 (최대 ${CFG.majorAugMax}개). 이번 ★ 전설 출현 확률 ${Math.round(R.majorLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.majorLegend.pity * 100)}%p)` : p.kind === 'oath' ? '디바인 기물은 5등급마다 서약 증강을 고릅니다 (디바인 공용 풀).' : p.kind === 'psionic' ? `사이오닉 기물은 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다 (최대 4개). 이번 ★ 전설 출현 확률 ${Math.round(R.psiLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.psiLegend.pity * 100)}%p)` : ''}</span>
+        <div class="ru-head"><h1>${p.kind === 'school' ? '합류 · 사이오닉 전공' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 전공 증강` : `${p.rank}등급 달성 · 증강`}</h1>
+          <span class="muted small">${p.kind === 'school' ? `${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙고, ${PSI_RANKS.join(' · ')}등급에 전공 증강을 고릅니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}` : p.kind === 'special' ? `메이저 기물은 ${CFG.augEvery}등급마다 전용 증강을 고릅니다 (최대 ${CFG.majorAugMax}개). 이번 ★ 전설 출현 확률 ${Math.round(R.majorLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.majorLegend.pity * 100)}%p)` : p.kind === 'psionic' ? `사이오닉 기물은 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다 (최대 4개). 이번 ★ 전설 출현 확률 ${Math.round(R.psiLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.psiLegend.pity * 100)}%p)` : ''}</span>
           ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
         ${p.kind === 'school' ? `<p class="mu-short small">이 전장의 주요 적: ${esc(matchupShort(run.field))}</p>` : ''}
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {
@@ -357,7 +358,7 @@ export function pendingModal(run: RunState): string {
     const BR: Partial<Record<NodeType, string>> = {
       shop: `재료 ${CFG.drop.shopParts}개 확정 · ${run.phase >= CFG.shop.gearFrom ? '희귀 / 고급 1개 이상 확정' : `희귀 ${pct1(CFG.drop.shopAdv2 + (1 - CFG.drop.shopAdv2) * CFG.drop.shopAdv)} · 고급 ${pct1(CFG.drop.shopGraded)}`} · 소모품 ${pct1(CFG.shop.cons)} · 문장 ${pct1(CFG.shop.emblem)}${run.phase >= CFG.drop.shopLegendPhase ? ` · 전설 ${pct1(CFG.drop.shopLegend)}` : ''}`, supply: supplyHint(run),
       news: `은하 속보: 명성 ${run.fame}을 보상으로 교환`, recruit: '기물 영입 기회 (후보 중 1명)',
-      invest: '호이슌 투자 상품 (페이즈당 1회)', pilgrim: `권능 +1 후 순례 (페이즈당 1회) · 보유 권능 ${run.power}`,
+      invest: '호이슌 투자 상품 (페이즈당 1회)', pilgrim: `제례 ${CFG.rite.choices} · 나눔 1 중 1장 무료 · 권능 ${run.power}으로 성유물 · 개종`,
     };
     body = `<h1>분기점</h1><p class="muted small">어디로 향할지 고르세요.</p><div class="cards">${p.options.map((o, i) => `<button class="card br-card n-${o}" data-a="pick-branch" data-v="${o}" title="단축키 ${i + 1}"><span class="br-ic">${NODE_ICON[o]}</span><b>${esc(NODE_NAME[o])}</b><span class="small muted">${ic(esc(BR[o] || ''))}</span></button>`).join('')}</div>`;
   } else if (p.t === 'muster') {
@@ -373,7 +374,7 @@ export function pendingModal(run: RunState): string {
     body = supplyHtml(p);
     mcls = 'supply';
   } else if (p.t === 'pilgrim') {
-    body = pilgrimHtml(run, p);
+    return pilgrimScreen(run, p); // 성소 덮개 (상단 바 아래 전체, app/pilgrim.ts) — 창 틀을 쓰지 않는다
   } else if (p.t === 'blessing') {
     body = `<h1>순례 — 축복 선택</h1><p class="muted">축복은 이번 페이즈가 끝날 때까지 유지됩니다.</p>
       <div class="cards">${p.options.map((id) => { const d = BLESSING_BY_ID[id]; return `<button class="card" data-a="pick-blessing" data-v="${id}"><b>${esc(d.name)}</b><span>${ic(esc(d.desc))}</span></button>`; }).join('')}</div>`;

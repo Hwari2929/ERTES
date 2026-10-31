@@ -12,8 +12,8 @@ import { CHR_HOOK, ENG_HOOK, ENG_TUR, KAL_GUARD_RANK, KAL_GUARDS, KAL_HOOK, rank
 import { CAMP_SYNERGIES, campMembers } from '../data/campaign';
 import { causalStage, KING, kingGearOf } from '../data/chungra';
 import { UNIT_BY_ID } from '../data/units';
-import { enableDivine, ENEMY_PSI, FAITH_DEF, sigmundTarget } from '../data/rework';
-import { DEFAULT_RELIC } from '../data/relics';
+import { enableDivine, ENEMY_PSI, FAITH_DEF, recMajors, sigmundTarget } from '../data/rework';
+import { DEFAULT_RELIC, offerStage, offerStat } from '../data/relics';
 import { DEV, deviceCells, type Device, feastChain, feastHp, mineDmg, netCells, scopeR, strikeDmg, wallCells, wallHp } from '../data/devices';
 import { mapOf, TERRAIN, type TCell, terrainOf } from '../data/maps';
 import { applyMapFx } from './mapfx';
@@ -136,7 +136,10 @@ export function unitEffects(run: RunState | null, u: UnitState, counts: Counts, 
   if (d.passive) out.push(d.passive);
   if (d.trait.effect) out.push(d.trait.effect);
   if (d.ttype === 'psionic' && d.psi) out.push(d.psi.effect);
-  if (d.ttype === 'divine') out.push(FAITH_DEF[u.faith || d.faith].passive); // 고유 신앙 상시 버프
+  if (d.ttype === 'divine') {
+    out.push(FAITH_DEF[u.faith || d.faith].passive); // 고유 신앙 상시 버프
+    if (u.relic) out.push({ majors: { [recMajors(d)[0]]: offerStat(offerStage(u.offer)) } }); // 장착한 성유물: 추천 주요 능력치 첫째 + 봉헌 단계 (CFG.offer)
+  }
   // 시그문드: 모시는 기물이 원래 엘베스타드면 모든 메이저 +5
   if (run && sigmundTarget(run) === u.uid && d.factions.includes('FAM')) {
     const sg = run.units.find((x) => x.defId === 'sigmund');
@@ -270,9 +273,9 @@ export function buildAlly(b: Battle, run: RunState | null, u: UnitState, counts:
   if (d.ttype === 'divine') {
     enableDivine(c, c.faith!, run?.divCap || 0);
     c.relic = u.relic || DEFAULT_RELIC[d.id];
-    if (u.enh) c.mem.enh = 3; // 신권 대행 강화 (다음 전투 한정)
-    c.div = Math.min(100, (c.div || 0) + (run?.mods.divStart || 0)); // 순례자의 기도
-    if (run?.mods.divGain) c.mem.divBoost = (c.mem.divBoost || 0) + run.mods.divGain; // 성인 기념일
+    const st = offerStage(u.offer);
+    c.mem.offerSt = st; // 봉헌 단계 (표시용)
+    c.mem.divK = (c.mem.divK || 0) + CFG.offer.act * st; // 봉헌: 단계마다 신권 대행 위력 +act (data/rework.ts DIVINE_HOOK.act)
   }
   if (d.ttype === 'major' && ULTS[d.id]) { c.ult = ULTS[d.id]; c.ultG = Math.min(1, CFG.ultStart + (c.mem.ultStart || 0)); } // 메이저 궁극기
   const sd = d.summon;

@@ -18,7 +18,7 @@ body:has(.bar, .adv) .tfx-petals { display: none; } /* 바(실내) · 사건 장
   background-image: repeating-linear-gradient(0deg, color-mix(in srgb, var(--c-white) 2.5%, transparent) 0 1px, transparent 1px 4px),
     repeating-linear-gradient(90deg, color-mix(in srgb, var(--c-black) 22%, transparent) 0 1px, transparent 1px 4px); } /* 캔버스 결 */
 [data-ui-theme="vintage"][data-tfx="low"] { --lth-hl: transparent; --lth-burn: color-mix(in srgb, var(--c-black) 30%, transparent); }
-[data-ui-theme="vintage"]:is([data-tfx="on"], [data-tfx="low"]) :is(.btn:not(.ts-btn, .danger-ghost), .modal, .um, .detail, .rt, .ship-btn, .shop-item, .inv, .inv-rail, .inv-detail, .bench, .field-card, .card, .ucard, .ah-card, .aug-opt, .pref, .th-opt, .d-eqbox, .relic-panel) {
+[data-ui-theme="vintage"]:is([data-tfx="on"], [data-tfx="low"]) :is(.btn:not(.ts-btn, .danger-ghost), .modal, .um, .detail, .rt, .ship-btn, .shop-item, .inv, .inv-rail, .inv-detail, .bench, .field-card, .card, .ucard, .ah-card, .aug-opt, .pref, .th-opt, .d-eqbox) {
   background-image: linear-gradient(transparent 2px, var(--lth-hl) 2px, transparent 5px),
     linear-gradient(90deg, var(--lth-burn), transparent 4px, transparent calc(100% - 4px), var(--lth-burn)),
     linear-gradient(var(--lth-burn), transparent 3px, transparent calc(100% - 6px), var(--lth-burn)),
@@ -31,9 +31,9 @@ body:has(.bar, .adv) .tfx-petals { display: none; } /* 바(실내) · 사건 장
 [data-ui-theme="vintage"][data-tfx] .btn:is(.primary, .danger, :disabled) { --dye: transparent; } /* 강조 · 위험 단추는 제 색, 비활성은 흐린 표시 그대로 */
 [data-ui-theme="vintage"][data-tfx] .btn.primary { background-blend-mode: normal, normal, normal, soft-light, normal; } /* 밝은 단추는 결을 절반 세기로 */
 [data-ui-theme="vintage"][data-tfx] :nth-child(2n) { --gx: 61px; --gy: 23px; } [data-ui-theme="vintage"][data-tfx] :nth-child(3n) { --gx: 113px; --gy: 79px; } /* 이웃 조각끼리 결이 겹치지 않게 */
-[data-ui-theme="vintage"][data-tfx="on"] :is(.btn:not(.ts-btn, .danger-ghost, :disabled), .detail, .rt, .ship-btn, .shop-item, .inv, .inv-rail, .inv-detail, .bench, .field-card, .card, .ucard, .ah-card, .aug-opt, .pref, .th-opt, .d-eqbox, .relic-panel):not(.on, .syn-hl) {
+[data-ui-theme="vintage"][data-tfx="on"] :is(.btn:not(.ts-btn, .danger-ghost, :disabled), .detail, .rt, .ship-btn, .shop-item, .inv, .inv-rail, .inv-detail, .bench, .field-card, .card, .ucard, .ah-card, .aug-opt, .pref, .th-opt, .d-eqbox):not(.on, .syn-hl) {
   box-shadow: 0 1px 0 var(--lth-drop), 0 3px 6px var(--lth-drop); }
-[data-ui-theme="vintage"]:is([data-tfx="on"], [data-tfx="low"]) :is(.modal, .um, .detail, .ship-btn, .shop-item, .inv, .inv-rail, .inv-detail, .bench, .field-card, .card, .ucard, .ah-card, .aug-opt, .relic-panel):not(:focus-visible) { outline: 1px dashed var(--stitch); outline-offset: -5px; }
+[data-ui-theme="vintage"]:is([data-tfx="on"], [data-tfx="low"]) :is(.modal, .um, .detail, .ship-btn, .shop-item, .inv, .inv-rail, .inv-detail, .bench, .field-card, .card, .ucard, .ah-card, .aug-opt):not(:focus-visible) { outline: 1px dashed var(--stitch); outline-offset: -5px; }
 [data-ui-theme="vintage"]:is([data-tfx="on"], [data-tfx="low"]) .btn:not(.ts-btn, .danger-ghost, .tiny):not(:focus-visible) { outline: 1px dotted var(--stitch); outline-offset: -4px; } /* 단추는 촘촘한 땀 */
 [data-ui-theme="vintage"]:is([data-tfx="on"], [data-tfx="low"]) .btn:active:not(:disabled) { box-shadow: inset 0 2px 5px var(--shade-2); translate: 0 1px; }
 /* 이타카: 바닷물 (화면 전환 물결 · 런 시작 룰렛 커튼 · 특권 막). --wd 깊은 쪽 → 얕은 쪽, --wx 물결 가장자리, --ws 물결 깊이, --wy 위아래 엇갈림 */

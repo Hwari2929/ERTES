@@ -3,6 +3,7 @@ import { CFG } from '../src/config';
 import { breadHeal, CONSUMABLES, CRYSTAL, DUST, gearRank, potsOf, potSlots, isConsumable, isEmblem, isForgeLegend, isGraded, isInjector, isLocked, isOccultMod, refineLv, SHARD } from '../src/data/items';
 import { memberships } from '../src/engine/build';
 import * as R from '../src/engine/run';
+import { offerNeed, offerStage } from '../src/data/relics';
 import type { AugPick, RunState, UnitState } from '../src/types';
 
 export type Track = (id: string, what: 'used' | 'sold' | 'bought') => void;
@@ -185,6 +186,7 @@ export function equipGear(run: RunState, ins?: BotIns) {
 /** 장비 운용 한 바퀴 (신비학자 부품 지급 확인 포함) */
 export function manageItems(run: RunState, track?: Track, ins?: BotIns) {
   R.checkOccult(run);
+  consecrateBot(run);
   useMats(run);
   equipMods(run);
   useConsumables(run, track, ins);
@@ -256,6 +258,7 @@ export function equipGearFix(run: RunState, ins?: BotIns) {
 /** 라라: 장비 운용 한 바퀴 (덤비와 같은 순서) */
 export function manageItemsFix(run: RunState, track?: Track, ins?: BotIns) {
   R.checkOccult(run);
+  consecrateBot(run);
   useMats(run);
   equipMods(run);
   useConsumablesFix(run, track, ins);
@@ -282,17 +285,28 @@ export function shopSynth(run: RunState, track?: Track) {
 }
 export { CONSUMABLES };
 
-/** 순례: 강화(가장 싼 성유물) → 순례자의 기도 · 성배 · 성인 기념일 · 성유 순으로 살 수 있는 만큼 */
+/** 순례: 제례 (보유 디바인의 신앙에 맞으면 — 봉헌을 더 받을 수 있는 대상이 많은 것, 출전 기물 ×2) > 나눔. 받은 뒤 남은 권능으로 축성 */
 export function pilgrimBot(run: RunState) {
   const p = run.pending.find((x) => x.t === 'pilgrim');
   if (!p || p.t !== 'pilgrim') return;
-  const dv = R.divines(run).sort((a, b) => b.rank - a.rank);
-  const order = ['prayer', 'saintday', 'grail', 'chrism', 'indulgence', 'bless:B.sanctum', 'bless:B.martyr', 'bless:B.flame', 'bless:B.zeal'];
-  for (const id of order) {
-    const i = (p.cards || []).findIndex((c) => c.id === id && !c.sold);
-    if (i >= 0 && run.power >= p.cards![i].cost) R.pilgrimCard(run, i, dv[0]?.uid);
+  if (p.took === undefined && p.offers.length) {
+    const score = (i: number) => {
+      const o = p.offers[i];
+      if (o.k === 'alms') return 0.5;
+      return R.riteUnits(run, o.faith).filter((u) => offerStage(u.offer) < CFG.offer.max).reduce((n, u) => n + (u.pos ? 2 : 1), 0);
+    };
+    const best = p.offers.map((_, i) => i).sort((a, b) => score(b) - score(a))[0];
+    R.pilgrimTake(run, best);
   }
-  if (dv[0] && !dv[0].enh) R.enhanceRelic(run, dv[0].uid);
+  consecrateBot(run);
+}
+/** 축성: 권능이 CFG.consecrate.cost 이상이면 다음 단계까지 남은 봉헌이 가장 적은 디바인부터 (출전 기물 먼저, 기물마다 페이즈당 1번) */
+export function consecrateBot(run: RunState) {
+  const left = (u: UnitState) => offerNeed(offerStage(u.offer) + 1) - (u.offer || 0);
+  for (;;) {
+    const c = R.divines(run).filter((u) => !R.consecrateWhy(run, u)).sort((a, b) => +!!b.pos - +!!a.pos || left(a) - left(b))[0];
+    if (!c || R.consecrate(run, c.uid)) break;
+  }
 }
 
 /** 포탑 장비 선호 순서: 포탑을 앞줄 탱커로 쓰므로 (tests/chulsu/form.ts place) 버티는 장비 → 화력 순 */

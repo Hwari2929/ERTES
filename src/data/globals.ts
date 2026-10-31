@@ -1,7 +1,7 @@
 import type { Effect, EffectCtx } from '../engine/effects';
 import type { Battle, CUnit } from '../engine/combat';
 import { inc, red } from '../engine/effects';
-import type { RunState, SynergyId } from '../types';
+import type { FaithId, RunState, SynergyId } from '../types';
 import type { EventApi } from './events';
 import { CFG } from '../config';
 import { emblemText } from './emblems';
@@ -210,15 +210,18 @@ export const PRIVILEGES: PrivilegeDef[] = [
 export const PRIVILEGE_BY_ID: Record<string, PrivilegeDef> = Object.fromEntries(PRIVILEGES.map((p) => [p.id, p]));
 export const GLOBAL_BY_ID: Record<string, GlobalDef> = Object.fromEntries([...GLOBALS, ...RETIRED_GLOBALS].map((g) => [g.id, g]));
 
-/** 성직자 순례 노드 축복: 이번 페이즈 동안 모든 아군에게 */
-export interface BlessingDef { id: string; name: string; desc: string; team?: Effect; onPick?: (run: RunState) => void }
+/** 순례 축복: 제례(engine/run.ts genPilgrim)를 고르면 그 신앙의 축복이 덤으로 붙는다 — 이번 페이즈 동안 모든 아군에게 (run.blessing, 페이즈마다 1개).
+ *  faiths = 이 축복을 주는 신앙 (11신앙이 4축복에 하나씩) */
+export interface BlessingDef { id: string; name: string; desc: string; faiths: FaithId[]; team?: Effect; onPick?: (run: RunState) => void }
 export const BLESSINGS: BlessingDef[] = [
-  { id: 'B.martyr', name: '순교자의 가호', desc: '이번 페이즈 모든 아군 최대 체력 +20%.', team: { pct: { maxHp: 0.2 } } },
-  { id: 'B.flame', name: '성전의 불꽃', desc: '이번 페이즈 모든 아군 기본 공격에 기술 위력 31% 신성 추가 피해.',
+  { id: 'B.martyr', name: '순교자의 가호', desc: '이번 페이즈 모든 아군 최대 체력 +20%.', faiths: ['hades', 'ares', 'human'], team: { pct: { maxHp: 0.2 } } },
+  { id: 'B.flame', name: '성전의 불꽃', desc: '이번 페이즈 모든 아군 기본 공격에 기술 위력 31% 신성 추가 피해.', faiths: ['sirius', 'zeus', 'emperor'],
     team: { hooks: { onBasic(b, u, t, r) { if (!r.miss && t.alive) skillHit(b, u, t, 'tech', 0.3125, 'holy', { tag: 'proc', noMiss: true }); } } } },
-  { id: 'B.sanctum', name: '성소의 빛', desc: '이번 페이즈 전투 시작 시 모든 아군 최대 체력 15% 보호막.',
+  { id: 'B.sanctum', name: '성소의 빛', desc: '이번 페이즈 전투 시작 시 모든 아군 최대 체력 15% 보호막.', faiths: ['selene', 'athena', 'science'],
     team: { hooks: { onStart(b, u) { b.shield(u, b.S(u, 'maxHp') * 0.15); } } } },
-  { id: 'B.zeal', name: '광신', desc: '이번 페이즈 모든 아군 공격 속도 +25%, 받는 피해 +10%.',
+  { id: 'B.zeal', name: '광신', desc: '이번 페이즈 모든 아군 공격 속도 +25%, 받는 피해 +10%.', faiths: ['hermes', 'index'],
     team: { stats: { atkSpd: 0.25 }, taken: [{ kind: 'vuln', tag: 'all', v: 0.1 }] } },
 ];
 export const BLESSING_BY_ID: Record<string, BlessingDef> = Object.fromEntries(BLESSINGS.map((b) => [b.id, b]));
+/** 신앙 → 제례에 붙는 축복 */
+export const blessingOf = (f: FaithId): BlessingDef | undefined => BLESSINGS.find((b) => b.faiths.includes(f));
