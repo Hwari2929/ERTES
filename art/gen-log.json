@@ -8428,5 +8428,79 @@
     "model": "nai-diffusion-5-full",
     "time": "2026-10-31T10:39:36.314Z",
     "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, solo, cat, animal focus, single feral stray cat, hissing, arched back, bared fangs, scruffy fur, torn ear, glowing eyes, full body, -2::multiple cats, group, character sheet, reference sheet, multiple views::"
+  },
+  {
+    "id": "ult.donovan",
+    "alt": "v1",
+    "kind": "icon",
+    "style": "E",
+    "seed": 2876494709,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:49:51.945Z",
+    "prompt": "::1.6::black raven silhouette diving in a zigzag chain through four target marks, monomolecular wire glint, critical spark bursts::, crimson and silver color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.donovan/v1-2876494709.png"
+  },
+  {
+    "id": "sm_lara",
+    "alt": "v1",
+    "seed": 2188169059,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:50:07.254Z",
+    "prompt": "no humans, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, cream-colored hunting dog, saluki, slender build, long legs, feathered ears, alert eyes, leather collar, animal focus, full body, standing"
+  },
+  {
+    "id": "ult.lars",
+    "alt": "v1",
+    "kind": "icon",
+    "style": "E",
+    "seed": 1151543755,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:50:56.251Z",
+    "prompt": "::1.6::final contract document sealed with a heavy red wax seal stamped down, glowing signature line, pressure shockwave ring::, gold and crimson color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.lars/v1-1151543755.png"
+  },
+  {
+    "id": "ult.kairo",
+    "alt": "v1",
+    "kind": "icon",
+    "style": "E",
+    "seed": 1570444891,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:51:09.344Z",
+    "prompt": "::1.6::three tracer bullets fired in rapid succession from a long sniper rifle, musical notes trailing behind, scope glint::, crimson and gold color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.kairo/v1-1570444891.png"
+  },
+  {
+    "id": "ult.bianca",
+    "alt": "v1",
+    "kind": "icon",
+    "style": "E",
+    "seed": 1320680755,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:51:22.524Z",
+    "prompt": "::1.6::surgical scalpel and glowing healing cross over a beating heart, emergency light rays::, white and pale teal with crimson accents color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.bianca/v1-1320680755.png"
+  },
+  {
+    "id": "ult.phyllis",
+    "alt": "v1",
+    "kind": "icon",
+    "style": "E",
+    "seed": 3588978462,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:51:33.745Z",
+    "prompt": "::1.6::many jagged dimensional rift cracks opening across darkness, cat silhouette blinking between them, golden afterimages::, gold and amber color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.phyllis/v1-3588978462.png"
+  },
+  {
+    "id": "ult.aiden",
+    "alt": "v1",
+    "kind": "icon",
+    "style": "E",
+    "seed": 1753563628,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:51:47.553Z",
+    "prompt": "::1.6::liquid metal blades bursting outward in a ring around a bar counter service bell, closing time shockwave::, silver and crimson color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.aiden/v1-1753563628.png"
   }
 ]
