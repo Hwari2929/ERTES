@@ -1,8 +1,8 @@
 """디바인 경제 · 전술 유형 집계 (2026-10-31 디바인 개편 뒤 보고서용, 표준 표는 balance_rep.py)
 
 사용:
-  python3 tests/balance_divine.py --names <names.json> --new <봇>=<조각 …> [<봇>=<조각 …>] \
-      [--base <봇>=<조각 …> …] [--base-names <names.json>] [--base-mark <names.json>] [--json <out.json>]
+  python3 tests/balance_divine.py --names <names.json> --new <봇>= <조각 …> [<봇>= <조각 …>] \
+      [--base <봇>= <조각 …> …] [--base-names <names.json>] [--base-mark <names.json>] [--json <out.json>]
 
 - 조각 = `tests/balance.ts ... instr gearlog pool detail` 출력 (조각마다 runs 배열)
 - names.json = `tests/balance_names.ts` 출력 ({units: {id: {name, tt, faith, relic …}}}).
@@ -30,7 +30,8 @@ def parse(argv):
         if cur in ('names', 'bnames', 'bmark', 'json'): o[cur] = a; cur = None; continue
         if cur in ('new', 'base'):
             if '=' in a:
-                bot, f = a.split('=', 1); o['_bot'] = bot; o[cur].setdefault(bot, []).append(f)
+                bot, f = a.split('=', 1); o['_bot'] = bot; o[cur].setdefault(bot, [])
+                if f: o[cur][bot].append(f)
             else:
                 o[cur].setdefault(o['_bot'], []).append(a)
     return o
