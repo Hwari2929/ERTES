@@ -511,7 +511,7 @@ function synDetail(H: CxH, sid: SynergyId): string {
   if (sid === 'KAL') {
     const k = KAL_GUARD_TEXT;
     const counts = s.tiers.map((need, i) => (KAL_GUARDS[i] ? `(${need}) ${KAL_GUARDS[i]}기` : '')).filter(Boolean).join(' · ');
-    a.push(`<h3>소환물 · ${esc(k.name)} <span class="cx-hn">${esc(counts)}</span></h3><div class="cx2-row cx2-knight">${H.sprite({ id: 'kal_guard', name: k.name, sprite: 'knight', palette: KNIGHT_PAL } as unknown as UnitDef)}<span><b>${esc(k.name)}</b> <span class="cx2-note">${esc(CTYPE_NAME.VAN)} · ${esc(TTYPE_NAME.major)} · 소환물</span><p class="muted">${esc(k.desc)}</p><p class="muted">${esc(k.weapon)}<br>${esc(k.skill)}<br>${esc(k.ult)}</p></span></div>`);
+    a.push(`<h3>소환물 · ${esc(k.name)} <span class="cx-hn">${esc(counts)}</span></h3><div class="cx2-row cx2-knight">${H.sprite({ id: 'kal_guard', art: 'sm_kalguard', name: k.name, sprite: 'knight', palette: KNIGHT_PAL } as unknown as UnitDef)}<span><b>${esc(k.name)}</b> <span class="cx2-note">${esc(CTYPE_NAME.VAN)} · ${esc(TTYPE_NAME.major)} · 소환물</span><p class="muted">${esc(k.desc)}</p><p class="muted">${esc(k.weapon)}<br>${esc(k.skill)}<br>${esc(k.ult)}</p></span></div>`);
   }
   if (sid === 'BUDDY') a.push(buddySummons(H));
   if (sid === 'CHR' || sid === 'KING') a.push(kingSection(H, sid === 'KING'));

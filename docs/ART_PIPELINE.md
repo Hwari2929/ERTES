@@ -184,6 +184,30 @@ art/prompts.json ──(scripts/nai.mjs, 유료 29스텝)──▶ art/raw/<id>/
 | 물리 계열 스킬 · 무기 | `light: true` → 흰 배경 · 옅은 회색 비네트 (부정 프롬프트에 어두운 배경) |
 | 무기 (`weapon.*`) | `prop` 이 없으면 무기 자체가 먼저 보이게 강조 태그를 더한다 |
 
+### 색 배치 규칙 (`color`)
+
+능력의 속성 · 효과에 맞춰 색 계열을 고른다. 아래는 지금 프롬프트 249개가 따르는 관례를 정리한 것이다 (2026-10-31, 기물 데이터의 무기 · 능력 속성과 대조). 새 아이콘도 이 표에서 고른다.
+
+| 능력 | `color` | 비고 |
+|---|---|---|
+| 물리 피해 스킬 · 물리 무기 | `white, silver and light gray with subtle crimson accents` | `light: true` (흰 배경) — 62개 |
+| 화학 | `toxic green` | 변형 `acid green and teal` · `acid green and blue` |
+| 전기 | `cyan and electric blue` | |
+| 정신 | `violet and purple` | 변형 `violet and black` · `violet and deep purple` |
+| 신성 | `gold and amber` · `white and pale gold` (축복 · 치유 쪽) | |
+| 회복 · 보호 · 지원 (속성 없음) | `white and pale teal` · `teal` | |
+| 공격 강화 · 화력 · 분노 특성 (속성 없음) | `crimson and orange` · `orange and red` | |
+| 은신 · 암살 · 고정 피해 · 저주 | `deep purple and black` | |
+| 신앙 `faith.*` · 디바인 `divine.*` | `gold and amber, golden holy light` | |
+| 학파 비술 · 지속 (`cantrip.*` · `passive.*`) | 홍염 `orange and red` · 시공 `icy blue and white` · 뇌전 `cyan and electric blue` · 파장 `teal and aquamarine` · 파종 `toxic green` · 정신 `pink and violet` · 보화 `gold and amber` · 환조 `lavender and prismatic` | 비술과 지속이 같은 색 |
+| 궁극기 `ult.*` | 그 기물의 주 속성 색 + 기물 고유 강조색 두 가지 (`teal and gold` · `crimson and gold` · `cyan and orange` 등) | 물리 궁극기도 `light` 없이 어두운 배경 |
+
+### 원본 보관
+
+- 생성 원본(`art/icons/raw/<id>.png`, 640×640)은 깃에 넣지 않았고 생성한 작업 환경에만 있었다. 저장소에 남은 것은 `src/ui/abilicons.gen.ts` 의 88px WebP 뿐이다.
+- `nai_icon.mjs` 는 `art/gen-log.json` 에 시드를 남기지 않는다 (아이콘 기록 0건) — 예전 아이콘을 같은 그림으로 다시 뽑을 수 없다.
+- 새 아이콘만 추가할 때도 `icons_build.py` 는 raw 폴더에 있는 것만으로 파일을 다시 쓴다 (아래 주의).
+
 - 다시 뽑을 때는 프롬프트를 바꾼 시안 3개를 보여 주고 고르게 한다.
 - `art/icons/raw` 는 깃에 없다. `icons_build.py` 는 그 폴더에 있는 그림만으로 `abilicons.gen.ts` 를 통째로 다시 쓰므로, 새 체크아웃처럼 폴더가 비어 있으면 기존 아이콘이 빠진다 — 돌리기 전에 폴더 내용을 확인하고 `git diff` 로 줄어든 아이콘이 없는지 본다.
 

@@ -570,7 +570,7 @@ export function foeHead(e: EnemyDef, fallback: string, rk: { lv: number; hpX: nu
     + (td ? `<span class="tchip"${pop(td.name, td.desc)}>${lineIcon(`t.${e.tend}`, 'li')}${td.name}</span>` : '')
     + (tier ? `<span class="tchip bad"${pop(tier.term, tier.text)}>${lineIcon(e.tier === 'boss' ? 'n.boss' : 'm.elite', 'li')}${tierKo(e)}</span>` : '');
   const line = foeBlurb(e);
-  return `${heroHead(`en_${e.id}`, fallback, e.name, chips)}${line ? `<p class="small foe-line">${esc(line)}</p>` : ''}`;
+  return `${heroHead(e.art || `en_${e.id}`, fallback, e.name, chips)}${line ? `<p class="small foe-line">${esc(line)}</p>` : ''}`;
 }
 /** 적 한 줄 설명 (표시용): 설명 데이터(ENEMY_DESC)에서 칩과 겹치는 머리말(보스 · 정예)과 출현 페이즈('n페이즈부터')를 걸러 낸다 — 도감 · 툴팁은 원문 그대로 */
 export const foeBlurb = (e: EnemyDef) => (ENEMY_DESC[e.id] || '').replace(/^(보스|정예)(\. | · )/, '').replace(/\s*\d+페이즈부터\.?/g, '').trim();
@@ -616,9 +616,9 @@ export function battleUnitStatic(b: Battle, u: CUnit) {
   let head = '', abils = '', pop = '';
   if (u.side === 0 && (!u.isSummon || u.mem.king)) {
     const d = withEmblemSummon(UNIT_BY_ID[u.defId], u.src?.mod);
-    const pv = provChip(b, u);
+    const pv = provChip(b, u), traitTok = abTok(`trait.${d.id}`);
     head = heroHead(d.id, sprite(u, 'spr big'), d.name, allyTags(d)) + (pv ? `<div class="d-pows">${pv}</div>` : '');
-    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem, d.id)}<div class="abil ab-trait ab-click${abilOn('trait')} has-tok" data-a="abil-pop" data-v="trait" role="button" tabindex="0">${abTok(`trait.${d.id}`)}<div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${summonSection(d, b, u, '이번 전투')}${ultCard(d, b, u, true)}${ttSection(d, u.src || null, app.run, b, u, true)}${relicSection(d, u.src || null, app.run, u, true, b)}${faithAbil(d, u.src || null, app.run, u)}`;
+    abils = `${weaponCard(u.weapon || d.weapon, b, u, u.atk.elem, d.id)}<div class="abil ab-trait ab-click${abilOn('trait')}${traitTok ? ' has-tok' : ''}" data-a="abil-pop" data-v="trait" role="button" tabindex="0">${traitTok}<div class="ab-head"><span class="ab-kind">특성</span><b>${esc(d.trait.name)}</b></div>${traitHtml(d, b, u)}</div>${skillCard(d, b, u)}${summonSection(d, b, u, '이번 전투')}${ultCard(d, b, u, true)}${ttSection(d, u.src || null, app.run, b, u, true)}${relicSection(d, u.src || null, app.run, u, true, b)}${faithAbil(d, u.src || null, app.run, u)}`;
     if (app.abilPop) pop = abilPopHtml(app.abilPop, d, b, u);
   } else if (u.side === 1 && ENEMY_BY_ID[u.defId]) {
     const e = ENEMY_BY_ID[u.defId];

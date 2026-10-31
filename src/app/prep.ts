@@ -612,7 +612,7 @@ export function turretDetail(run: RunState, i: number, bar: string) {
   const row = (k: string, v: string) => `<dt>${k}</dt><dd>${v}</dd>`;
   const pc = (x: number) => `${Math.round(x * 100)}%`;
   return `<div class="detail">${bar}
-    ${heroHead('', sprite(TURRET_SPR, 'spr big'), `감시 포탑 ${i + 1}`, `<span class="tag cat-mech">${lineIcon('k.mech', 'li')}기계</span><span class="tag">구조물</span><span class="tag">엔지니어 소환물</span>`)}
+    ${heroHead(TURRET_SPR.art, sprite(TURRET_SPR, 'spr big'), `감시 포탑 ${i + 1}`, `<span class="tag cat-mech">${lineIcon('k.mech', 'li')}기계</span><span class="tag">구조물</span><span class="tag">엔지니어 소환물</span>`)}
     <div class="small muted">기계: ${esc(CATEGORY_RULE.mech)}<br>구조물: ${esc(CATEGORY_RULE.struct)}</div>
     ${t ? `<dl class="stats">${row('최대 내구도', fmt(t.st.maxHp))}${row('사격 위력', fmt(t.st.shoot))}${row('방어도', fmt(t.st.armor))}${row('공격 속도', `+${Math.round(t.st.atkSpd * 100)}%`)}${row('명중', pc(t.st.acc))}${row('치명타 확률', pc(t.st.crit))}${row('치명타 피해', pc(t.st.critDmg))}${row('사거리', String(t.st.range))}${row('피해 속성', ELEM_NAME[t.atk.elem])}${row('모든 주요 능력치', `+${t.mem.turretMaj || 0}`)}</dl>` : '<p class="muted small">엔지니어가 출전해야 포탑이 설치됩니다.</p>'}
     <h3>포탑 장비 ${kvChip('고름', `<b>${mods.length}</b>/${ENG_TUR.picks}`, '모든 포탑 공통')}</h3>

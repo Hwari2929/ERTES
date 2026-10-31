@@ -9,7 +9,7 @@ const artId = (id: string) => ART_ALIAS[id] || id;
 
 /** 기물 id (적 · 소환물 · 포탑은 null) */
 function unitKey(x: Spriteish): string | null {
-  if (x.art) return ICONS[x.art] ? x.art : null; // 소환물 · 포탑
+  if (x.art) return ICONS[artId(x.art)] ? artId(x.art) : null; // 소환물 · 포탑 · 분신 (별칭은 스탠딩 standURL 과 같게)
   if (x.defId !== undefined) {
     if (x.side === 0) return ICONS[artId(x.defId)] ? artId(x.defId) : null;
     return ICONS[`en_${x.defId}`] ? `en_${x.defId}` : null; // 적
