@@ -1,6 +1,6 @@
 // 노드 유형 설명: 이 칸이 '무엇인지' 한 줄 (지도 현재 칸 카드에서 노드 이름 바로 밑).
 //   노드 유형의 성격만 적고 수치는 넣지 않는다 — 예상 수입 · 모디파이어(적 강화 · 적 증원 · 정예 · 보상 배율)는 카드의 섹션이 설정값에서 읽어 보여 준다.
-//   다음 칸 미리보기 카드의 짧은 요약(수치 포함)은 main.ts 의 nodeHint.
+//   다음 칸 미리보기 카드의 짧은 요약(수치 포함)은 src/app/map.ts 의 nodeHint.
 import type { NodeType } from '../types';
 
 export const NODE_DESC: Record<NodeType, string> = {

@@ -254,7 +254,7 @@
 /* 보관 물품 정보 팝업 (스킬 상세처럼: 아이콘 · 능력치 · 효과) */
 .inv-pop { position: fixed; z-index: var(--z-pop); width: 260px; display: grid; gap: 8px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 8px 24px color-mix(in srgb, var(--c-black) 45%, transparent); font-size: var(--fs-base); }
 .inv-pop.sheet { left: 8px !important; right: 8px; bottom: 8px; top: auto !important; width: auto; } /* JS 가 넣은 인라인 left · top 을 이긴다 (하단 시트) */
-/* 태블릿 세로 (보관함 세로 줄 · 오른쪽 자리 없음, main.ts railTopDock): 보드 위 머리 자리 (상단 바 · 보드 머리줄)에 겹쳐 — 보드 칸을 가리지 않는다. 높이는 JS (max-height), 넘치면 안에서 스크롤.
+/* 태블릿 세로 (보관함 세로 줄 · 오른쪽 자리 없음, app/popups.ts railTopDock): 보드 위 머리 자리 (상단 바 · 보드 머리줄)에 겹쳐 — 보드 칸을 가리지 않는다. 높이는 JS (max-height), 넘치면 안에서 스크롤.
    넓은 띠라 머리 (아이콘 · 이름) 는 왼쪽 칸, 성질 · 효과 · 바닥 줄은 오른쪽 칸 */
 .inv-pop.dock-top { --ip-hw: min(220px, 32%); display: block; overflow-y: auto; overscroll-behavior: contain; } /* 자리 (left · right · top · max-height) 는 JS 인라인 */
 .inv-pop.dock-top > .ip-head { float: left; width: var(--ip-hw); }

@@ -36,7 +36,8 @@ npm run -s map-metrics     # 지형 틀 측정 (check 에 들어가지 않음)
 ## 폴더 구조
 | 경로 | 내용 |
 |---|---|
-| `src/main.ts` | 화면 · 입력 · 진행 흐름 (타이틀, 계약 기물 명부, 지도, 편성, 전투, 결과, 도감, 튜토리얼 진행) |
+| `src/main.ts` | 진입점: 그리기(`render`) · 조작(`act`) · 시작(`boot`)과 전역 이벤트 등록. 화면별 코드는 `src/app/` |
+| `src/app/` | 화면 · 입력 · 진행 흐름 (예전 main.ts 를 나눈 것): 상태 · 설정(`state.ts`), 공용 조각(`common.ts`), 타이틀 · 출격 연출(`title.ts`), 기물 정보 조각(`unitparts.ts`), 지도(`map.ts`), 편성(`prep.ts`), 능력 · 소환물(`abilities.ts`), 전투(`battle.ts` · `battlecam.ts`), 상점 · 사건 · 대기 중인 선택 창(`modals.ts`), 확인 팝업(`popups.ts`), 보드 확대(`zoom.ts`), 캐러셀(`carousel.ts`), 도감(`codex.ts`), 튜토리얼 진행(`tutorial.ts`), 끌기(`drag.ts`), 단축키(`hotkeys.ts`), 강조 · 키워드 팝업(`hover.ts`). 다른 모듈의 상태는 그 모듈의 `set…()` 으로 바꾼다 (불러온 `let` 에는 값을 쓸 수 없다) |
 | `src/config.ts` | 전투 · 성장 · 경제 · 적 강도 · 적 성향 · 기믹 적 · 지형 · 분대 수치 (`CFG`), 적 성장 곡선 (`scalePhase` · `phaseHpMult` · `phaseAmpMult`) |
 | `src/types.ts` | 공용 타입: 주요 능력치, 속성, 분류, 전투 · 전술 유형, 신앙, 노드 종류, 조우 · 분대, 런 상태 |
 | `src/engine/` | `combat.ts` 전투 시뮬레이션 (피해 · 상태 · 도발 · 성향 · 경계) · `build.ts` 기물 · 적 → 전투 유닛 변환, 스탯 · 시너지 집계 · `run.ts` 런 진행 (분기 항로, 조우 · 분대 조립, 보상, 성장, 상점, 사건) · `preview.ts` 개전 예측 · `report.ts` 전투 종료 보고서 · `achieve.ts` 업적 판정 · `campaign.ts` · `campaignrun.ts` 캠페인 · `lab.ts` 훈련장 · `tutorial.ts` 튜토리얼 런 · `starters.ts` 계약 기물 후보 · `effects.ts` 효과 모델 |

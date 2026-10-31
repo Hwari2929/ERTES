@@ -22,7 +22,7 @@
 .tl-step.cur .tl-node { color: var(--c-text); cursor: pointer; }
 .tl-step.cur .tl-node.on { border-color: var(--c-select); color: var(--c-select); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-select) 25%, transparent); }
 .tl-step.cur span.tl-node { cursor: default; }
-/* 분기 항로 지도 (main.ts routeGraph): 칸 = 열 · 갈래 자리 = 6줄 격자 (노드는 2줄씩) · 연결선 = 같은 격자 좌표의 SVG (뒤에, 굵기 고정).
+/* 분기 항로 지도 (app/map.ts routeGraph): 칸 = 열 · 갈래 자리 = 6줄 격자 (노드는 2줄씩) · 연결선 = 같은 격자 좌표의 SVG (뒤에, 굵기 고정).
    지나간 노드 = 옅게 채움 · 지나가지 않은 지난 노드 = 아주 흐리게 · 지금 위치에서 갈 수 없는 노드 · 선 = 흐리게 (정적, docs/UI.md 10) */
 .tl.rt { padding: 6px 0 12px; }
 .rt-grid { position: relative; display: grid; grid-template-columns: repeat(var(--cols), minmax(44px, 1fr)); grid-template-rows: auto repeat(6, 21px); min-width: max-content; padding: 0 8px; }
@@ -165,7 +165,7 @@ html.rmap-fs-on, html.rmap-fs-on body { overflow: hidden; }
   .rmap.fs { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 42%; }
   .rm-panel { border-left: 0; border-top: 1px solid var(--line); }
 }
-/* 타임라인 노드 팝오버 (main.ts tlPop) */
+/* 타임라인 노드 팝오버 (app/hover.ts tlPop) */
 .tl-pop { position: fixed; z-index: var(--z-kw); display: grid; gap: 3px; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-top: 2px solid var(--nc); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); font-size: var(--fs-base); line-height: 1.5; pointer-events: none; }
 .tl-pop b { display: inline-flex; align-items: center; gap: 6px; color: var(--c-text); }
 .tl-pop b .li { width: 16px; height: 16px; color: color-mix(in srgb, var(--nc) var(--data-mix), var(--c-text)); }

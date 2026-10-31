@@ -1928,7 +1928,7 @@ export function unixSwap(run: RunState, id: string, lines?: string[]): string {
 }
 /** 캣휠(ZI존): 보관함 + 장착 중인 캣휠이 CFG.despair.zi 개 모이면 그만큼 소모해 캣휠(ZI존) 1개로 바꾼다 (모일 때마다 반복).
  *  보관함의 캣휠부터 쓰고, 모자라면 장착한 캣휠을 뗀다 (밍키 것을 먼저 — ZI존은 처음 뗀 칸에 그대로 달린다. 장착한 것을 안 썼으면 보관함으로).
- *  알림은 대기 중인 선택(notice)으로. 장비가 들어오는 길(획득 · 구매 · 합성 · 장착 조합 · 복제)과 UI 저장(main.ts persist)에서 부른다. 만든 개수 */
+ *  알림은 대기 중인 선택(notice)으로. 장비가 들어오는 길(획득 · 구매 · 합성 · 장착 조합 · 복제)과 UI 저장(app/state.ts persist)에서 부른다. 만든 개수 */
 export function mergeCatwheels(run: RunState, lines?: string[]): number {
   const need = CFG.despair.zi;
   let made = 0;

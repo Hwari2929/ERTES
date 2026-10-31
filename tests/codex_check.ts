@@ -24,7 +24,7 @@ declare const process: { exit(code: number): never };
 declare function require(m: 'node:fs'): { existsSync(p: string): boolean };
 
 const esc = (s: string) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
-// main.ts 의 그림 조각 대역 (이름은 넣지 않는다: 이름이 상세 본문에 실제로 나오는지 보려고)
+// src/app/* 의 그림 조각 대역 (이름은 넣지 않는다: 이름이 상세 본문에 실제로 나오는지 보려고)
 const H: CxH = {
   itemIcon: (id) => `<span class="item" data-i="${esc(id)}">${itemInfo(id) ? '' : 'undefined'}</span>`,
   augIcon: (id) => `<span class="aug-ic" data-a="${esc(id)}"></span>`,

@@ -1,7 +1,7 @@
 // 업적: 희귀한 사건 · 어려운 계약 · 이상한 조합을 해냈을 때 받는 메달. 보상은 메달과 전시(도감 '업적' 탭 · 바 카운터 뒤 진열장)뿐이고 게임 밸런스에는 영향이 없다.
 // 판정은 순수 함수: 훅(ui/achieve.ts)이 런 · 전투 · 사건 · 메타 기록을 '사실(AchFact)' 하나로 요약해 넘기면 test 가 참인지만 본다 (tests/achieve_check.ts).
 // 이름 · 설명에 나오는 사건 제목 · 기물 이름 · 장비 이름 · 위험 등급 · 전장 수 · 함대 확장 횟수는 그릴 때마다 데이터 표에서 읽는다.
-//   훅 위치: 전투 결과 (main.ts BattleView 끝 → achBattle) · 사건 선택 (event-choice → achEvent, 결과 키는 run.ts lastOutcome)
+//   훅 위치: 전투 결과 (src/app/battlecam.ts 전투 끝 → achBattle) · 사건 선택 (event-choice → achEvent, 결과 키는 run.ts lastOutcome)
 //            의뢰 성공 (victory-end · victory-endless → achClear) · 튜토리얼 종료 (tutFinish → achTutorial) · 소모품 사용 (use-k → achUse)
 //            장면 건너뛰기 (adv.ts 'adv-skip' 이벤트 → run.ach.skip) · 메타 기록이 바뀔 때마다 (meta.ts metaWatch → 사건 · 만담 · 전장 · 위험 등급 기록)
 import { CFG } from '../config';

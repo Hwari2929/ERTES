@@ -1,4 +1,4 @@
-// 런 결과 화면: 전투 종료 보고서 (main.ts overScreen 이 부른다). 기록 · 기준선 계산은 engine/report.ts, 여기는 그리기만.
+// 런 결과 화면: 전투 종료 보고서 (app/modals.ts overScreen 이 부른다). 기록 · 기준선 계산은 engine/report.ts, 여기는 그리기만.
 //   구성: 머리(작전명 · 전장 · 위험 등급 · 결과 도장 · 일자 · 페이즈 · 전투 수) → 핵심 수치 → 기물별 영향력 → 전투력 추이 · 경제 → 기록 (메타 · 절망 · 업적 · 최종 편성)
 //   승리 · 패배는 도장 · 색 · 문구만 다르고 구조는 같다 (.aar.win / .aar.lose). 색은 테마 토큰만 (src/ui/css/13-reports.css '전투 종료 보고서').
 //   전투력 그래프: 축 하나 (실제 · 예상 같은 단위). 선은 늘어나는 SVG(preserveAspectRatio none + non-scaling-stroke), 눈금 글자는 HTML 로 얹어 폭이 바뀌어도 글자 크기가 그대로.
@@ -31,11 +31,11 @@ const opName = (seed: number) => { const s = Math.abs(seed | 0); return `${OP_A[
 const opCode = (seed: number) => `ERR-${String(Math.abs(seed | 0) % 100000).padStart(5, '0')}`;
 
 export interface ReportOpts {
-  /** 위험 등급 표기 (main.ts 가 한 곳에서 만든다) */
+  /** 위험 등급 표기 (src/app/modals.ts overScreen 이 한 곳에서 만든다) */
   risk: string;
   /** 예전 결과 화면의 한 줄 요약 (의뢰 성공 · 무너진 페이즈 · 위험 등급 · 절망 증강 · 절망 서약) */
   summary: string;
-  /** 최종 편성 (main.ts rosterRow) */
+  /** 최종 편성 (app/map.ts rosterRow) */
   roster: string;
   /** 공명 등급 표기 */
   rank: (n: number) => string;

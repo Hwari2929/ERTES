@@ -1,7 +1,7 @@
 // 도감 탭: 기물 목록 · 장비 · 시너지 · 사이오닉 · 증강 · 세계관.
 // 모든 이름 · 수치 · 설명은 그릴 때마다 데이터 표(items · synergies · schools · psiinfo · augments · relics · globals · run 상품표 · worldlore · battlefields)에서 읽는다.
 // 목록은 표를 순회해서 만들므로, 데이터에 항목을 더하거나 고치면 도감에도 그대로 반영된다 (검사: npm run check).
-// main.ts 에만 있는 그림 조각(장비 · 증강 아이콘, 초상화 등)은 CxH 로 받는다.
+// src/app/* 에만 있는 그림 조각(장비 · 증강 아이콘, 초상화 등)은 CxH 로 받는다 (src/app/codex.ts 가 넘긴다).
 // 배치: 왼쪽 목록 + 오른쪽 상세 (상세 폭이 넓으면 2단). 좁은 화면(≤860px)은 목록 → 상세 → '목록' 단추로 돌아오는 한 단 흐름.
 import { CFG } from '../config';
 import { ABIL, augAbilText, GLOSS } from '../data/abiltext';
@@ -37,7 +37,7 @@ import { artURL, bgURL } from './portraits';
 import { lineIcon, synIcon } from './synicons';
 import { tierCellHtml } from './tierdiff';
 
-/** main.ts 의 그림 조각 */
+/** src/app/* 의 그림 조각 (src/app/codex.ts 가 넘긴다) */
 export interface CxH {
   itemIcon(id: string): string;
   augIcon(id: string): string;
@@ -150,7 +150,7 @@ function synChip(sid: string) {
   return `<button class="cx2-sc" style="--c:${s.color}" ${go(`go:syn:${s.id}`)} title="시너지 도감에서 보기"><span class="cx2-si">${synIcon(s.id) || esc(s.icon)}</span>${esc(s.name)}</button>`;
 }
 
-// ═══════════════════════ 기물 목록 (상세는 main.ts 의 codexDetail)
+// ═══════════════════════ 기물 목록 (상세는 src/app/codex.ts 의 codexDetail)
 export type UnitGroupBy = 'none' | 'faction' | 'trait' | 'ctype' | 'ttype';
 const UGROUP: [UnitGroupBy, string][] = [['none', '없음'], ['faction', '세력'], ['trait', '특성'], ['ctype', '전투 유형'], ['ttype', '전술 유형']];
 const USORT: [UnitSort, string][] = [['name', '이름'], ['ctype', '전투 유형'], ['ttype', '전술 유형']];

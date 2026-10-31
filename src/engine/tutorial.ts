@@ -47,7 +47,7 @@ export function tutEncounter(run: RunState, step = run.step): Encounter {
 export function tutEnterNode(run: RunState, type: NodeType) {
   run.picked[run.step] = type;
   if ((type === 'battle' || type === 'adversity' || type === 'boss') && ENC[run.step]) { run.node = { type, enc: tutEncounter(run) }; return; }
-  if (type === 'supply') { // 고정 카드: 재료(공격력) · 크레딧 · 크레딧 — 재료는 다음 칸 상점의 조합 안내용 (main.ts ch2_supply)
+  if (type === 'supply') { // 고정 카드: 재료(공격력) · 크레딧 · 크레딧 — 재료는 다음 칸 상점의 조합 안내용 (src/app/tutorial.ts ch2_supply)
     const card = (c: Pick<SupplyCard, 'kind' | 'credits' | 'items'>): SupplyCard => ({ xp: 0, mult: 1, ...c, value: R.supplyValue({ xp: 0, ...c }) });
     run.pending.push({ t: 'supply', options: [card({ kind: 'gear', credits: 0, items: ['C_pow'] }), card({ kind: 'credits', credits: 4, items: [] }), card({ kind: 'credits', credits: 3, items: [] })] });
     R.advance(run);

@@ -10,7 +10,7 @@
 - 시뮬레이터 · 검사 도구 · 밸런스 측정 관례는 `docs/TOOLS.md`.
 
 ## 도감 연동
-- 도감(codexScreen · src/ui/codex2.ts)은 데이터 표(기물 · 장비 · 시너지 · 증강 · 전공 · 성유물 · 전역 증강 등)를 **그릴 때마다 직접 읽어서** 보여 준다. 도감에 이름 · 수치 · 설명을 따로 베껴 적지 않는다.
+- 도감(codexScreen `src/app/codex.ts` · `src/ui/codex2.ts`)은 데이터 표(기물 · 장비 · 시너지 · 증강 · 전공 · 성유물 · 전역 증강 등)를 **그릴 때마다 직접 읽어서** 보여 준다. 도감에 이름 · 수치 · 설명을 따로 베껴 적지 않는다.
 - 기물 · 장비 · 시너지 · 증강 · 전공 · 성유물을 추가 · 수정 · 삭제하면 `npm run check` (도감 누락 · undefined · NaN 검사)를 돌려 통과시킨다. 능력 문구(src/data/abiltext.ts · src/data/abil/*.ts · brief.ts)도 함께 맞춘다.
 - 적을 추가 · 수정하면 설명 문구(src/data/enemyText.ts — 수치는 CFG 에서 읽는다)와 `docs/ENEMIES.md` 도 맞춘다. 게임 규칙이 바뀌면 교범(src/data/glossary.ts) · 튜토리얼(src/data/scenes/tutorial.ts) 설명도 확인한다.
 

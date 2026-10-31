@@ -187,7 +187,7 @@
   --data-mix: 100%; --c-narr: var(--art-text-2); --c-narr-2: var(--art-text-2); --c-type: var(--art-text-2); --c-down: var(--art-bad); --c-res: var(--art-info);
   color-scheme: dark; color: var(--c-text);
 }
-/* 이타카 가시성: 타이틀은 파스텔 항구 그림(lore_ithaca, main.ts titleScreen) 위 밝은 유리 단추 · 짙은 글씨, 난이도 설정은 밤바다 */
+/* 이타카 가시성: 타이틀은 파스텔 항구 그림(lore_ithaca, app/title.ts titleScreen) 위 밝은 유리 단추 · 짙은 글씨, 난이도 설정은 밤바다 */
 :is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .title-screen { background: var(--bg); }
 :is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .ts-shade { background: radial-gradient(60% 50% at 50% 46%, color-mix(in srgb, var(--bg) 38%, transparent), transparent 80%), linear-gradient(180deg, transparent 50%, color-mix(in srgb, var(--bg) 85%, transparent)); }
 :is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .ts-stars { display: none; }

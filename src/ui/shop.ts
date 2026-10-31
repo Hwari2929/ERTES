@@ -21,7 +21,7 @@ export interface ShopDeps {
   kvChip(label: string, val: string, title?: string, cls?: string): string;
   /** 크레딧 아이콘 */
   CR: string;
-  /** 대상 옆 ✕ / ✓ 확인 팝업 (main.ts askPop) */
+  /** 대상 옆 ✕ / ✓ 확인 팝업 (app/popups.ts askPop) */
   ask(anchor: string[], html: string, okLabel: string, ok: () => void): void;
   toast(msg: string): void;
   persist(): void;

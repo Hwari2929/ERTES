@@ -51,7 +51,7 @@ export interface ReworkDef {
   faith: FaithId;
   /** 추천 주요 능력치 [주, 보조] (없으면 전투 유형 기본값, rework.ts recMajors) */
   rec?: Major[];
-  /** 추천 장비 (고급 장비 키, A_ 접두 없이 · 없으면 전투 유형 기본 목록, main.ts RECO) */
+  /** 추천 장비 (고급 장비 키, A_ 접두 없이 · 없으면 전투 유형 기본 목록, app/modals.ts RECO) */
   recItems?: string[];
   trait: { name: string; desc: string; effect?: Effect };
   /** 마이너: 런 동안 쌓이는 성장 특성. g = UnitState.grow */

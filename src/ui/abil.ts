@@ -80,7 +80,7 @@ export function kwIcon(key: string) {
   const g = GLOSS[key];
   return lineIcon(KW_ICON[key] || augKey(`${g?.name || ''} ${g?.desc || ''}`), 'li');
 }
-/** 키워드: 아이콘 + 노란 글자, 호버 · 탭하면 설명 팝업 (main.ts) */
+/** 키워드: 아이콘 + 노란 글자, 호버 · 탭하면 설명 팝업 (src/app/hover.ts) */
 const kw = (key: string, gl: Set<string>) => { gl.add(key); return `<span class="kw" data-kw="${esc(key)}" tabindex="0">${kwIcon(key)}${esc(GLOSS[key]?.name || key)}</span>`; };
 
 /** 숫자 인자: 그대로 또는 @스킬파라미터(*배율) */

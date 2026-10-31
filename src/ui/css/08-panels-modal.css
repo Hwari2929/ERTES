@@ -76,7 +76,7 @@
 .card span:not(.src) { font-size: var(--fs-md); color: var(--c-text-2); }
 .card .src { justify-self: start; }
 .card.aug-unit { border-color: var(--c-text-2); }
-/* 보급 (main.ts supplyHtml): 뒷면(.cback) 카드를 뒤집으면 앞면 — 자원 아이콘 · 양 · 이름. 대박은 오른쪽 위 띠 (공개 연출은 revealfx 의 rv-2 · rv-3) */
+/* 보급 (app/unitparts.ts supplyHtml): 뒷면(.cback) 카드를 뒤집으면 앞면 — 자원 아이콘 · 양 · 이름. 대박은 오른쪽 위 띠 (공개 연출은 revealfx 의 rv-2 · rv-3) */
 .modal.supply { width: min(900px, 100%); }
 /* 4장 한 줄. 카드 크기는 화면 너비와 높이 중 작은 쪽으로 정해 세로로 넘치지 않게 하고, 높이는 내용(장비 설명 길이 · 뒷면/앞면)과 상관없이 고정 */
 .sup-cards { --sup-w: clamp(124px, min(19vw, 30vh), 190px); grid-template-columns: repeat(4, var(--sup-w)); justify-content: center; gap: 14px; }
@@ -201,7 +201,7 @@ textarea, input[type=file] { width: 100%; background: var(--bg); color: var(--c-
 /* ── 편의: 단축키 표시 · 빈 자리 · 보유 시너지 */
 .keys { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
 kbd { font-family: var(--f-mono); font-size: .75em; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 0 4px; background: var(--panel-2); }
-/* 단축키 키캡: main.ts 단축키 표(HOTKEYS)가 그 키로 눌리는 버튼에 data-key 를 단다. 터치가 주 입력인 화면에서는 숨긴다 (설정에서 끌 수도 있음) */
+/* 단축키 키캡: src/app/hotkeys.ts 단축키 표(HOTKEYS)가 그 키로 눌리는 버튼에 data-key 를 단다. 터치가 주 입력인 화면에서는 숨긴다 (설정에서 끌 수도 있음) */
 :where([data-key]) { position: relative; }
 [data-key]::before { content: attr(data-key); position: absolute; top: -8px; right: -6px; z-index: var(--z-raise); min-width: 16px; padding: 0 4px; box-sizing: border-box;
   border: 1px solid var(--line); border-bottom-width: 2px; border-radius: var(--r-sm); background: var(--panel); color: var(--c-text-2);

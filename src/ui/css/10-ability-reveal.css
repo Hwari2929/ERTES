@@ -145,7 +145,7 @@
 .bview { overflow: hidden; border-radius: var(--r-md); touch-action: none; cursor: grab; }
 .bview.panning { cursor: grabbing; }
 .board-in { position: absolute; width: calc(var(--fw) / var(--w) * 100%); height: calc(var(--fh) / var(--h) * 100%); left: calc(-100% * var(--ox, 1) / var(--w)); top: calc(-100% * var(--oy, 1) / var(--h)); will-change: transform; transition: top .6s cubic-bezier(.4, 0, .2, 1), left .6s cubic-bezier(.4, 0, .2, 1); }
-/* 확대 (main.ts camApply): 창 안 보드 크기 · 위치를 px 로 맞추고, 창은 화면 아래 끝까지 세로로 는다 (camFrame). 확대 · 축소 중에는 이동 애니메이션 없이 (가리킨 점이 흔들리지 않게) */
+/* 확대 (app/battlecam.ts camApply): 창 안 보드 크기 · 위치를 px 로 맞추고, 창은 화면 아래 끝까지 세로로 는다 (camFrame). 확대 · 축소 중에는 이동 애니메이션 없이 (가리킨 점이 흔들리지 않게) */
 .bview.zoomed { aspect-ratio: auto; }
 .bview.zooming .board-in { transition: none; }
 .board-in .cells { grid-template-columns: repeat(var(--fw), 1fr); grid-template-rows: repeat(var(--fh), 1fr); }
@@ -162,7 +162,7 @@
 /* 상세 보기: 마름모만 (이름 · 단계는 눌러서) */
 .dh-syn .syn-lv { display: none; }
 /* 전체 보기: 테두리 포함 전장 전체를 축소 */
-/* 전체 보기도 정사각 창: 전장 전체를 긴 변에 맞추고 가운데 (main.ts bviewHtml 이 --ox · --oy · --w · --h 를 준다) */
+/* 전체 보기도 정사각 창: 전장 전체를 긴 변에 맞추고 가운데 (app/battle.ts bviewHtml 이 --ox · --oy · --w · --h 를 준다) */
 .bview.full { cursor: default; }
 .settings-gap { height: 8px; }
 .modal .pref + .pref { margin-top: 8px; }

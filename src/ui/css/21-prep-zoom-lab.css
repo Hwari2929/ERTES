@@ -1,4 +1,4 @@
-/* ── 편성 보드 창 (main.ts prepZoomSync): 보드는 .board-vp 창 안에서만 커지고 줄어든다 (Ctrl + 휠 · 두 손가락 · 보드 왼쪽 ± 단추, 화면 배율은 그대로).
+/* ── 편성 보드 창 (app/zoom.ts prepZoomSync): 보드는 .board-vp 창 안에서만 커지고 줄어든다 (Ctrl + 휠 · 두 손가락 · 보드 왼쪽 ± 단추, 화면 배율은 그대로).
    기본 칸 크기는 --cell-min (긴 통로 · 포위처럼 긴 보드도 칸이 이 아래로 줄지 않는다 → 창 안에서 스크롤), '전체 보기'는 보드 전체를 창에 맞춘다. 창 높이는 화면 높이에 맞춘다 (--vp-h) */
 .prep, .battle { --cell-min: 52px; }
 @media (pointer: coarse), (max-width: 640px) { .prep, .battle { --cell-min: 44px; } }
@@ -7,16 +7,16 @@
 @media (orientation: landscape) and (max-height: 560px) { .prep { --vp-h: max(160px, calc(100vh - var(--top-h, 44px) - 104px)); } }
 .board-vp { position: relative; flex: 0 1 auto; min-width: 0; max-width: 100%; max-height: var(--vp-h); overflow: visible; overscroll-behavior: contain; touch-action: pan-x pan-y; scrollbar-width: thin; border-radius: var(--r-md); }
 .board-vp > .board { margin: 0 auto; max-width: none; flex: none; }
-/* 창 밖으로 칸이 더 있는 쪽 가장자리를 흐리게 (main.ts vpMoreSync) */
-.board-vp.scroll { overflow: auto; } /* 보드가 창보다 클 때만 창 안 스크롤 (main.ts prepZoomSync) */
+/* 창 밖으로 칸이 더 있는 쪽 가장자리를 흐리게 (app/zoom.ts vpMoreSync) */
+.board-vp.scroll { overflow: auto; } /* 보드가 창보다 클 때만 창 안 스크롤 (app/zoom.ts prepZoomSync) */
 .board-vp.scroll { --fl: 0px; --fr: 0px; --ft: 0px; --fb: 0px;
   -webkit-mask-image: linear-gradient(to right, transparent, var(--c-black) var(--fl), var(--c-black) calc(100% - var(--fr)), transparent), linear-gradient(to bottom, transparent, var(--c-black) var(--ft), var(--c-black) calc(100% - var(--fb)), transparent);
   -webkit-mask-composite: source-in; mask-image: linear-gradient(to right, transparent, var(--c-black) var(--fl), var(--c-black) calc(100% - var(--fr)), transparent), linear-gradient(to bottom, transparent, var(--c-black) var(--ft), var(--c-black) calc(100% - var(--fb)), transparent); mask-composite: intersect; }
 .board-vp[data-more~="l"] { --fl: 28px; } .board-vp[data-more~="r"] { --fr: 28px; } .board-vp[data-more~="t"] { --ft: 28px; } .board-vp[data-more~="b"] { --fb: 28px; }
-/* 창 가장자리 길잡이 (main.ts vpCueSync): 창 밖 진형 쪽 가장자리에 [적 n →] · [아군 n ←], 누르면 그쪽으로. 창 위에 겹쳐 놓고 (스크롤과 따로) 칩만 누를 수 있다 */
+/* 창 가장자리 길잡이 (app/zoom.ts vpCueSync): 창 밖 진형 쪽 가장자리에 [적 n →] · [아군 n ←], 누르면 그쪽으로. 창 위에 겹쳐 놓고 (스크롤과 따로) 칩만 누를 수 있다 */
 .vp-cues { position: absolute; pointer-events: none; z-index: var(--z-sticky); }
 .board-row:has(.dragging) .vp-cues, body:has(> .drag-ghost) .vp-cues { visibility: hidden; } /* 끄는 동안은 가장자리 (자동 스크롤 · 놓을 칸)를 가리지 않게 */
-/* 칩 묶음 자리는 main.ts vpCuePlace 가 정한다 (그 가장자리를 따라 기물 · 적 · 장치가 없는 칸 위로) */
+/* 칩 묶음 자리는 app/zoom.ts vpCuePlace 가 정한다 (그 가장자리를 따라 기물 · 적 · 장치가 없는 칸 위로) */
 .vp-cs { position: absolute; left: 0; top: 0; display: flex; gap: 4px; }
 .vp-cs.s-l, .vp-cs.s-r { flex-direction: column; }
 .vp-cs.s-l { align-items: flex-start; } .vp-cs.s-r { align-items: flex-end; }
@@ -43,7 +43,7 @@
 .bz-ctl .btn:disabled { opacity: .4; cursor: default; }
 .bz-ctl .li { width: 16px; height: 16px; flex: none; }
 .bz-step { font-weight: 800; font-variant-numeric: tabular-nums; }
-/* 편성: 보드 왼쪽 세로 단추 줄 (main.ts prepZoomCtl, 위 → 아래 [+] [복구] [−]). 확대할 여지가 없는 보드 (개활지 등)에서는 숨고 보드가 그 폭까지 쓴다 */
+/* 편성: 보드 왼쪽 세로 단추 줄 (app/zoom.ts prepZoomCtl, 위 → 아래 [+] [복구] [−]). 확대할 여지가 없는 보드 (개활지 등)에서는 숨고 보드가 그 폭까지 쓴다 */
 .board-wrap { display: flex; align-items: flex-start; gap: 6px; }
 .board-main { flex: 1 1 auto; min-width: 0; }
 .bz-prep { flex: none; flex-direction: column; align-items: stretch; gap: 4px; width: 32px; }
@@ -52,11 +52,11 @@
 .bz-prep .li { width: 18px; height: 18px; }
 .bz-bat { position: absolute; right: 6px; bottom: 6px; z-index: var(--z-raise); }
 .bz-bat .btn { padding: 4px; background: color-mix(in srgb, var(--panel) 82%, transparent); }
-/* 배치 미리보기 (main.ts devPvHtml): 놓으면 차지 · 영향을 주는 칸, 초록 = 놓을 수 있음 · 빨강 = 없음, 가리킨 칸 옆 이유 이름표 */
+/* 배치 미리보기 (app/prep.ts devPvHtml): 놓으면 차지 · 영향을 주는 칸, 초록 = 놓을 수 있음 · 빨강 = 없음, 가리킨 칸 옆 이유 이름표 */
 .dev-pv-host { position: absolute; inset: 0; pointer-events: none; z-index: var(--z-raise); }
 .dev-pv { --pv: var(--c-good); }
 .dev-pv.bad { --pv: var(--c-bad); }
-/* 기준점 (main.ts devPvHtml): 놓일 장치 모습 그대로 (dev-tok · dev-mark) + 칸 네 모서리 조준 표시. 범위는 위 .pv-range (점선 + 빗금) */
+/* 기준점 (app/prep.ts devPvHtml): 놓일 장치 모습 그대로 (dev-tok · dev-mark) + 칸 네 모서리 조준 표시. 범위는 위 .pv-range (점선 + 빗금) */
 .dev-pv .pv-ghost { pointer-events: none; cursor: default; }
 .dev-pv .pv-aim { position: absolute; z-index: var(--z-raise); box-sizing: border-box; pointer-events: none; --a: 30%; background:
   linear-gradient(var(--pv), var(--pv)) left top / var(--a) 2px no-repeat, linear-gradient(var(--pv), var(--pv)) left top / 2px var(--a) no-repeat,
@@ -71,7 +71,7 @@
 .dev-pv-lb { position: absolute; bottom: calc(100% + 4px); left: 0; white-space: nowrap; padding: 2px 8px; border-radius: var(--r-pill); border: 1px solid var(--pv); background: var(--panel); color: var(--pv); font: 700 var(--fs-sm)/1.35 var(--f-body); box-shadow: 0 2px 8px color-mix(in srgb, var(--c-black) 50%, transparent); }
 .dev-pv-lb.r { left: auto; right: 0; }
 .dev-pv-lb.below { bottom: auto; top: calc(100% + 4px); }
-/* 오른쪽 상세 패널 접기 (main.ts foldTog, 보는 사람마다 기억). 접으면 세로 단추만 남고 보드 칸이 넓어진다 */
+/* 오른쪽 상세 패널 접기 (app/prep.ts foldTog, 보는 사람마다 기억). 접으면 세로 단추만 남고 보드 칸이 넓어진다 */
 .side-fold-row { display: flex; justify-content: flex-end; margin-bottom: 6px; }
 .side-fold { position: relative; display: inline-flex; align-items: center; gap: 4px; color: var(--c-text-2); }
 .side-fold svg { width: 16px; height: 16px; flex: none; }
@@ -85,7 +85,7 @@
 @media (orientation: landscape) and (max-height: 560px) { .prep.fold-r { grid-template-columns: minmax(0, 1fr) 40px; } .prep.fold-r .side-fold { writing-mode: vertical-rl; padding: 8px 4px; } }
 /* 패널 내용이 길어져 창 스크롤 막대가 생기거나 없어져도 보드가 옆으로 밀리지 않게 */
 html:has(main.prep) { scrollbar-gutter: stable; }
-/* 배치형 소모품을 고른 채 (main.ts invDetail ip-placing): 좁은 화면은 머리 · 바닥 줄만 하단 시트로 ('자세히' 로 펼침) → 보드를 가리지 않는다 */
+/* 배치형 소모품을 고른 채 (app/prep.ts invDetail ip-placing): 좁은 화면은 머리 · 바닥 줄만 하단 시트로 ('자세히' 로 펼침) → 보드를 가리지 않는다 */
 .ip-more { display: none; }
 @media (max-width: 700px) {
   .inv-pop.ip-placing .ip-more { display: inline-block; margin-left: auto; }

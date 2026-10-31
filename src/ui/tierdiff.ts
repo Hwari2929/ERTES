@@ -1,7 +1,7 @@
 // 단계 효과 비교 (docs/UI.md 3. '지금 → 다음'):
 // 두 단계 문구를 숫자 / 글자 토막으로 나누고, 효과가 여러 개면 한 효과씩 자른 뒤,
 // 숫자를 뺀 뼈대가 같은 효과끼리 짝지어 바뀐 숫자만 a → b 로 보인다. 짝이 하나도 없으면 문구를 그대로 둔다 (지금 / 다음).
-// 문구는 데이터(synergies.ts tierDesc)에서 그대로 받는다. 시너지 팝업(main.ts synPopHtml)과 도감(codex2 synDetail)이 함께 쓴다.
+// 문구는 데이터(synergies.ts tierDesc)에서 그대로 받는다. 시너지 팝업(app/common.ts synPopHtml)과 도감(codex2 synDetail)이 함께 쓴다.
 
 /** 문구 토막: n = 숫자(부호 · 단위 포함) */
 export interface Tok { n: boolean; v: string }

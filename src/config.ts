@@ -25,7 +25,7 @@ export const CFG = {
   divCap: 200, // 디바인 전투당 신성력 수집 상한
   powerPerDiv: 25, powerMax: 12, // 권능 포인트 = 디바인 1명당 모은 신성력 ÷ 25 + 신권 대행 1 (전투당 최대 12)
   // 전술 유형별 성장 (공명 등급이 오르면 모두 메이저 +1, 그 밖의 보상은 유형별 이정표).
-  // 주기는 아래 '성장' 절의 statEvery · augEvery · oathEvery · psiEvery · psiAugMax 하나에서만 정한다 (규칙 문구 main.ts TTYPE_RULE · 교범도 이 값을 읽는다)
+  // 주기는 아래 '성장' 절의 statEvery · augEvery · oathEvery · psiEvery · psiAugMax 하나에서만 정한다 (규칙 문구 app/unitparts.ts TTYPE_RULE · 교범도 이 값을 읽는다)
   growth: {
     /** 스페셜 (데이터 키 minor): statEvery 등급마다 능력치 rankPicks종 +rankPoints */
     pick: (tt: string, rank: number): boolean => tt === 'minor' && rank % CFG.statEvery === 0,

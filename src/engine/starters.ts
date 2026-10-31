@@ -1,4 +1,4 @@
-// 계약 기물 선택 (새 런 시작 기물 후보): 후보 수 · 전장 우세 시너지 보장 · 새로고침. 화면(main.ts newRunScreen)과 봇 sim(tests/balance.ts) 공용
+// 계약 기물 선택 (새 런 시작 기물 후보): 후보 수 · 전장 우세 시너지 보장 · 새로고침. 화면(app/title.ts newRunScreen)과 봇 sim(tests/balance.ts) 공용
 import { CFG } from '../config';
 import { fieldOf } from '../data/battlefields';
 import { SYN_BY_ID } from '../data/synergies';

@@ -1,6 +1,6 @@
 // 출격 계약: 에란테스 바 카운터를 내려다본 탑뷰. 바에서 [새 계약] → 시선이 바 테이블로 내려가고 → 위에서 청사진(도면)이, 아래에서 차림표(메뉴판)가 미끄러져 들어온다.
 // 차림표의 줄을 고르면 오른쪽 전표 출력기가 카본지 전표를 찍어 위로 밀어 올리고 (길수록 끝이 휘며 그림자가 진다). 고른 것을 바꾸면 출력기가 바뀐 첫 줄까지 종이를 되감아 그 자리부터 다시 찍는다 (종이 재활용 · feedSlip), 다 고르면 탁상 벨이 테이블 오른쪽 끝에서 튀어나와 그 자리에 놓인다.
-// 나가기 = 같은 길을 거꾸로 (바로 돌아갈 때): 위 화살표 · 화면을 위로 세게 쓸어 올리기 · 세게 굴리기. 벨 = 전표에 '승인' 도장 → 그늘(체인 · 회중시계) → 계약 기물 명부 (main.ts newRunScreen).
+// 나가기 = 같은 길을 거꾸로 (바로 돌아갈 때): 위 화살표 · 화면을 위로 세게 쓸어 올리기 · 세게 굴리기. 벨 = 전표에 '승인' 도장 → 그늘(체인 · 회중시계) → 계약 기물 명부 (app/title.ts newRunScreen).
 // [의뢰 취소] 또는 벨을 화면 밖으로 끌어내기 = '취소' 도장 → 전표가 바깥으로 미끄러져 나가고 고른 것이 비워진다.
 // 의뢰 = 전장 (의뢰 제목 · 의뢰인 = data/scenes/fields.ts) · 약관 = 난이도 (data/contract.ts PLANS, 조항 = data/difficulty.ts DIFFS) · 특약 = 절망 서약 (data/oaths.ts, 담보 약관에만).
 // 에란테스의 의뢰는 모두 싯가: 오늘 들어온 의뢰서 3장 = 제철 의뢰 (보수 + CFG.contract.seasonWin), 메뉴에 없는 의뢰 = 직접 주문 (기본 보수).
@@ -360,7 +360,7 @@ function infoHtml(): string {
     const j = v.startsWith('c:') ? orderOf(v.slice(2)) : CT.jobs[+v.slice(1)];
     if (!j) return '';
     const f = fieldOf(j.field), fi = fieldIntroOf(j.field);
-    // 전장 브리핑(main.ts fieldBrief)을 세 칸으로 나눈다: 의뢰 | 전장 (분류 · 속성 · 시너지 · 규칙) | 주요 적 (상성 · 초상)
+    // 전장 브리핑(app/title.ts fieldBrief)을 세 칸으로 나눈다: 의뢰 | 전장 (분류 · 속성 · 시너지 · 규칙) | 주요 적 (상성 · 초상)
     const b = hooks.brief(j.field), at = (k: string) => { const i = b.indexOf(k); return i < 0 ? b.length : i; };
     const iMu = at('<div class="mu-box">'), iRules = at('<ul class="fb-rules">'), iFoes = at('<div class="fb-foes">');
     const field = b.slice(0, Math.min(iMu, iRules)) + b.slice(iRules, iFoes), foes = b.slice(iMu, iRules).replace(/<span class="mu-k">[^<]*<\/span>/, '') + b.slice(iFoes);

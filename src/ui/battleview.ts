@@ -726,7 +726,7 @@ export class BattleView {
         return;
       }
       if (!el.classList.contains('tr-gate')) return;
-      const c = fromScr(b.geo, i % this.W, Math.floor(i / this.W)); // 칸은 화면 순서로 깔려 있다 (main.ts battleCells)
+      const c = fromScr(b.geo, i % this.W, Math.floor(i / this.W)); // 칸은 화면 순서로 깔려 있다 (app/battle.ts battleCells)
       const open = !b.terrain![c.y * b.w + c.x];
       el.classList.toggle('open', open && !!b.mem.gateOpen);
       el.classList.toggle('pending', open && !b.mem.gateOpen);

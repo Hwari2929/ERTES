@@ -83,7 +83,7 @@ body:has(.bar, .adv) .tfx-petals { display: none; } /* 바(실내) · 사건 장
 .tfx-ghost { position: fixed; inset: 0; z-index: calc(var(--z-banner) - 1); overflow: hidden; pointer-events: none; background: var(--bg); }
 .tfx-ghost-in { position: relative; min-height: 100%; display: flex; flex-direction: column; }
 html, body { height: 100%; }
-html { touch-action: pan-x pan-y; } /* 화면(페이지) 두 손가락 확대 · 두 번 눌러 확대 막기 — 확대는 맵 창 안에서만 (main.ts 확대 제스처) */
+html { touch-action: pan-x pan-y; } /* 화면(페이지) 두 손가락 확대 · 두 번 눌러 확대 막기 — 확대는 맵 창 안에서만 (src/app/zoom.ts 확대 제스처) */
 body { background: var(--bg); color: var(--c-text); font-family: var(--f-body); font-size: var(--fs-md); line-height: 1.5; }
 * { box-sizing: border-box; }
 #app { min-height: 100%; display: flex; flex-direction: column; }

@@ -25,7 +25,7 @@
 .um-pop { position: absolute; z-index: 2; right: 18px; top: 64px; width: min(440px, calc(100% - 36px)); max-height: calc(100% - 84px); overflow: auto; }
 .um-pop > * { position: static !important; width: auto !important; }
 .dp-unit .mj-head .mag-btn { margin-left: auto; } /* 확대 버튼이 위쪽 바로 옮겨 가서 돋보기만 오른쪽 끝에 */
-.dp-unit .dp-sticky { margin: 0 -12px; } /* top 은 위쪽 바 높이에 맞춰 main.ts 가 넣는다 */
+.dp-unit .dp-sticky { margin: 0 -12px; } /* top 은 위쪽 바 높이에 맞춰 src/app/abilities.ts 가 넣는다 */
 .dp-sticky .um-sc { padding: 6px 12px; gap: 8px; }
 .dp-sticky .um-sc .um-face { width: 40px; height: 40px; }
 .dp-sticky .pc-syn { position: static; inset: auto; display: flex; flex-wrap: wrap; gap: 2px; }
