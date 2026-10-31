@@ -2139,12 +2139,13 @@
  "en_cw_cats": {
   "name": "야생화된 고양이 떼",
   "subject": "no humans",
-  "tags": "three feral alley cats leaping and pouncing, aggressive, arched backs, hissing, bared fangs, scruffy fur, torn ears, glowing eyes, dynamic action, no humans",
+  "tags": "single feral stray cat, hissing, arched back, bared fangs, scruffy fur, torn ear, glowing eyes, full body, no humans",
   "source": "enemy",
-  "notes": "전장 고유 적 · 시안 2차",
+  "notes": "전장 고유 적 · 시안 3차 (한 마리)",
   "object": true,
   "alts": {
-   "v1": "group of three feral stray cats, hissing, scruffy fur, glowing eyes, no humans"
+   "v1": "group of three feral stray cats, hissing, scruffy fur, glowing eyes, no humans",
+   "v2": "three feral alley cats leaping and pouncing, aggressive, arched backs, hissing, bared fangs, scruffy fur, torn ears, glowing eyes, dynamic action, no humans"
   }
  },
  "en_cw_hunter": {

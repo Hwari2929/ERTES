@@ -2,6 +2,7 @@
 
   python3 scripts/art.py pick     art/picks.json 의 선택본(art/raw) → art/picked/<id>.webp (보관용 원본, 깃에 넣음)
   python3 scripts/art.py faces    얼굴 위치를 못 정한 기물만 자동 추정 → art/faces.json [얼굴 중심 x, 눈썹 y, 턱 y] (손으로 고치는 게 기본)
+  python3 scripts/art.py build [id ...]   id 를 주면 그 그림만 다시 (아이콘 · 얼굴 위치표의 다른 줄은 그대로)
   python3 scripts/art.py build    art/picked + art/faces.json → public/art/<id>.webp (전신) · <id>.<표정>.webp (표정 차분)
                                   + public/art/<id>.bust.webp (머리 크기를 맞춘 상반신 배너)
                                   + src/ui/portraits.gen.ts (머리 크기를 맞춘 아이콘, 데이터 URI 내장)
@@ -14,7 +15,7 @@
   python3 scripts/art.py sheet OUT.png   아이콘 확인용 시트
   python3 scripts/art.py holes OUT.png   갇힌 배경 후보 표시 (art/cut.json 에 지울 점 기록)
 """
-import base64, io, json, os, sys
+import base64, io, json, os, re, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -195,11 +196,21 @@ def bust_of(cut, face):
     return out
 
 
-def cmd_build():
+def gen_rows(path, pat):
+    """이미 만든 생성 파일에서 'id: 값' 줄을 읽는다 (build [id ...] 에서 나머지 줄을 그대로 두려고)"""
+    if not os.path.exists(path):
+        return {}
+    return {m.group(1): m.group(2) for m in re.finditer(pat, open(path).read(), re.M)}
+
+
+def cmd_build(only=None):
     faces = load_json(FACES, {})
     os.makedirs(OUT, exist_ok=True)
     icons, total, faced = {}, 0, []
-    for i in ids():
+    if only:
+        icons = gen_rows('src/ui/portraits.gen.ts', r"^  (\w+): '(.*)',$")
+        keep = gen_rows('src/ui/standface.gen.ts', r"^  (\w+): (\[.*\]),$")
+    for i in (only or ids()):
         src = f'{PICKED}/{i}.webp'
         if not os.path.exists(src):
             continue
@@ -229,6 +240,8 @@ def cmd_build():
             row = standface_row(i, cut, faces)
             if row:
                 faced.append(row)
+                if only:
+                    keep.pop(i, None)
     with open('src/ui/portraits.gen.ts', 'w') as f:
         f.write('// 자동 생성: python3 scripts/art.py build — 직접 고치지 말 것\n')
         f.write('/** 기물 id → 머리 크롭 아이콘 (128px WebP 데이터 URI) */\n')
@@ -237,7 +250,7 @@ def cmd_build():
             f.write(f"  {k}: '{v}',\n")
         f.write('};\n')
     print(f'art {len(os.listdir(OUT))}개 {total / 1024 / 1024:.1f} MB, icon {len(icons)}개 {sum(map(len, icons.values())) / 1024:.0f} KB')
-    write_standfaces(faced)
+    write_standfaces(faced + [f'  {k}: {v},' for k, v in keep.items()] if only else faced)
 
 
 def standface_row(i, cut, faces):
@@ -316,4 +329,4 @@ def cmd_croptool():
 
 if __name__ == '__main__':
     cmd = sys.argv[1] if len(sys.argv) > 1 else ''
-    {'pick': cmd_pick, 'faces': cmd_faces, 'build': cmd_build, 'standfaces': cmd_standfaces, 'croptool': cmd_croptool, 'variants': lambda: cmd_variants(sys.argv[2:] or None)}.get(cmd, lambda: cmd_sheet(sys.argv[2]) if cmd == 'sheet' else cmd_holes(sys.argv[2]) if cmd == 'holes' else print(__doc__))()
+    {'pick': cmd_pick, 'faces': cmd_faces, 'build': lambda: cmd_build(sys.argv[2:] or None), 'standfaces': cmd_standfaces, 'croptool': cmd_croptool, 'variants': lambda: cmd_variants(sys.argv[2:] or None)}.get(cmd, lambda: cmd_sheet(sys.argv[2]) if cmd == 'sheet' else cmd_holes(sys.argv[2]) if cmd == 'holes' else print(__doc__))()
