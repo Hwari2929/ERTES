@@ -1,10 +1,13 @@
 """NovelAI 전신 img2img 로 스탠딩 표정 차분 만들기 (Anlas 사용).
   python3 scripts/nai_expr.py <id> <face...> [--strength 0.5] [--noise 0.3] [--seed N] [--subtle] [--out art/picked]
 원본: art/raw/<id>/<picks.json 의 파일> (없으면 art/picked/<id>.webp) — 원래 생성 프롬프트에 표정 태그를 얹어 전신을 다시 그린다.
+유료(Anlas) 29스텝 · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~15초 (scripts/nai_guard.py).
 결과: <out>/<id>.<face>.webp (art.py build 가 기본 스탠딩과 같은 틀로 잘라 public/art 에 낸다)
 """
 import base64, io, json, os, random, ssl, sys, time, urllib.request, zipfile
 from PIL import Image
+sys.path.insert(0, os.path.dirname(__file__))
+from nai_guard import STEPS, guard, pause
 
 FACE_TAGS = {
   'smile': 'smile, happy, gentle smile',
@@ -55,13 +58,14 @@ ctx = ssl.create_default_context(cafile=os.environ.get('SSL_CERT_FILE', '/root/.
 HEAD = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36', 'Origin': 'https://novelai.net', 'Referer': 'https://novelai.net/'}
 NEG = cfg['negative']
 
-for face in faces:
+guard(len(faces))
+for n, face in enumerate(faces):
   tags = (SUBTLE if '--subtle' in args else FACE_TAGS)[face]
   keep = f', ::1.2::{KEEP[uid]}::' if uid in KEEP else ''
   prompt = f'::1.5::{tags}::{keep}, {base_prompt}'
   seed = int(opt('--seed') or random.randrange(2**32))
   params = {
-    'params_version': 3, 'width': W, 'height': H, 'scale': cfg['scale'], 'sampler': cfg['sampler'], 'steps': 28,
+    'params_version': 3, 'width': W, 'height': H, 'scale': cfg['scale'], 'sampler': cfg['sampler'], 'steps': STEPS,
     'n_samples': 1, 'ucPreset': 0, 'qualityToggle': False, 'seed': seed, 'extra_noise_seed': seed, 'noise_schedule': cfg['noise_schedule'],
     'negative_prompt': NEG, 'image': img_b64, 'strength': float(opt('--strength', '0.5')), 'noise': float(opt('--noise', '0.3')),
     'cfg_rescale': 0, 'sm': False, 'sm_dyn': False, 'dynamic_thresholding': False, 'legacy': False, 'add_original_image': True,
@@ -87,4 +91,4 @@ for face in faces:
   im = im.convert('RGBA') if 'A' in im.getbands() else im.convert('RGB')
   im.save(f'{out}/{uid}.{face}.webp', 'WEBP', quality=92, alpha_quality=100, method=6)
   print(uid, face, 'ok', seed, im.mode)
-  time.sleep(2.5)
+  if n < len(faces) - 1: pause()

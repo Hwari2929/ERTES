@@ -1,10 +1,15 @@
 // NovelAI 2배 업스케일 (Anlas 소모). node scripts/nai_upscale.mjs <입력.png> <출력.png>
+// 안전장치 (scripts/nai_guard.mjs): 1장 · 동시 실행 금지. 640×640 이하는 무료 업스케일 범위라 막는다 (유료로만).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
+import { guard, anlas } from './nai_guard.mjs';
 const [src, out] = process.argv.slice(2);
 const token = process.env.NOVELAI_TOKEN;
 const buf = readFileSync(src);
 const w = buf.readUInt32BE(16), h = buf.readUInt32BE(20); // PNG IHDR
+if (!token) { console.error('NOVELAI_TOKEN 없음'); process.exit(1); }
+if (w * h <= 640 * 640) { console.error(`${w}x${h}: 640×640 이하는 무료 업스케일 범위라 돌리지 않습니다 (유료로만).`); process.exit(1); }
+await guard(1, token);
 function unzipFirst(b) {
   let eocd = b.length - 22;
   while (eocd >= 0 && b.readUInt32LE(eocd) !== 0x06054b50) eocd--;
@@ -22,3 +27,4 @@ const res = await fetch('https://image.novelai.net/ai/upscale', {
 if (!res.ok) { console.error(`HTTP ${res.status} ${(await res.text()).slice(0, 300)}`); process.exit(1); }
 writeFileSync(out, unzipFirst(Buffer.from(await res.arrayBuffer())));
 console.log(`${src} (${w}x${h}) → ${out}`);
+await anlas(token, '끝난 뒤');

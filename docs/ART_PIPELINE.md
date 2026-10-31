@@ -62,7 +62,7 @@ art/prompts.json ──(scripts/nai.mjs, 유료 29스텝)──▶ art/raw/<id>/
 - `nai.mjs` 는 `art/raw/<id>` 에 이미 그림이 있으면 건너뛴다 (`--force` 또는 `--seed` 로 다시).
 - **이 클라우드 환경에서는 `NODE_USE_ENV_PROXY=1` 을 붙여 실행한다** (`NODE_USE_ENV_PROXY=1 NOVELAI_TOKEN=… node scripts/nai.mjs …`). 없으면 `fetch failed`. 잔액 조회 주소(`api.novelai.net`)는 막혀 있어 시작 · 끝의 **"Anlas 잔액 확인 실패" 는 정상**이다 (생성 주소 `image.novelai.net` 는 열려 있음).
 
-### 안전장치 (`scripts/nai_guard.mjs`, 모든 `nai*.mjs` 가 import)
+### 안전장치 (`scripts/nai_guard.mjs` · 파이썬판 `scripts/nai_guard.py`, 모든 `nai*` 스크립트가 쓴다 — 같은 잠금 파일)
 
 | 규칙 | 코드 |
 |---|---|
@@ -70,7 +70,8 @@ art/prompts.json ──(scripts/nai.mjs, 유료 29스텝)──▶ art/raw/<id>/
 | 동시 실행 금지: 잠금 파일 `art/.nai.lock` (pid 가 살아 있으면 거절, 죽은 잠금은 무시) | `guard()` |
 | 장 사이 무작위 6~15초 휴식 | `pause()` |
 | 시작 전 · 끝난 뒤 Anlas 잔액 표시 (클라우드에서는 실패가 정상) | `anlas()` |
-| 유료로만: 무료 범위(832×1216 이하 · 28스텝 이하)를 벗어나도록 **29스텝** | `nai.mjs` (설정 23 → 29로 올림, 29 초과 · 큰 해상도는 거절) · `nai_icon` · `nai_prop` · `nai_outpaint` (`STEPS = 29`) |
+| 유료로만: 무료 범위(832×1216 이하 · 28스텝 이하)를 벗어나도록 **29스텝** | `nai.mjs` (설정 23 → 29로 올림, 29 초과 · 큰 해상도는 거절) · `nai_icon` · `nai_prop` · `nai_outpaint` · `nai_bg` (`STEPS = 29`) · `nai_expr` · `nai_face` · `nai_i2i` (`nai_guard.py` 의 `STEPS`) |
+| 업스케일: 640×640 이하(무료 업스케일 범위)는 거절, 1장씩 · 잠금 | `nai_upscale.mjs` |
 
 - `nai.mjs --free` 플래그(설정 스텝 그대로)는 쓰지 않는다.
 - 429 (요청 제한)는 30초 × 시도 수만큼 기다렸다 다시 (최대 4~5번).
@@ -186,13 +187,6 @@ art/prompts.json ──(scripts/nai.mjs, 유료 29스텝)──▶ art/raw/<id>/
 - 다시 뽑을 때는 프롬프트를 바꾼 시안 3개를 보여 주고 고르게 한다.
 - `art/icons/raw` 는 깃에 없다. `icons_build.py` 는 그 폴더에 있는 그림만으로 `abilicons.gen.ts` 를 통째로 다시 쓰므로, 새 체크아웃처럼 폴더가 비어 있으면 기존 아이콘이 빠진다 — 돌리기 전에 폴더 내용을 확인하고 `git diff` 로 줄어든 아이콘이 없는지 본다.
 
-## 11. 알려진 어긋남 (스크립트 쪽, 판단 필요)
+## 11. 알려진 어긋남
 
-1절 원칙(유료 29스텝 · 1회 8장 · 잠금)을 스크립트가 다 강제하지는 않는다. 고치기 전에는 아래 스크립트를 쓰지 않거나, 쓰기 전에 사용자에게 확인한다.
-
-| 스크립트 | 어긋남 |
-|---|---|
-| `nai_bg.mjs` | `STEPS = min(28, 설정 23)` = 23스텝 — 무료 범위 안 (안전장치 `guard` 는 씀) |
-| `nai_expr.py` · `nai_i2i.py` · `nai_face.py` | 28스텝 이하 (무료 범위), `nai_guard` 를 쓰지 않아 8장 상한 · 잠금 · 6~15초 휴식이 없다 (2.5초 휴식) |
-| `nai_upscale.mjs` | 안전장치 없음 (한 번에 1장) |
-| `nai.mjs` 주석 | 'Anlas 보호: 28스텝 이하 · 1장만' 은 옛 설명 — 코드는 29스텝 · 최대 8장 |
+없음. (2026-10-31 정리: `nai_bg.mjs` 23스텝 → 29스텝, `nai_expr.py` · `nai_face.py` · `nai_i2i.py` 에 `nai_guard.py` 적용 (29스텝 · 8장 · 잠금 · 6~15초), `nai_upscale.mjs` 에 잠금 · 무료 범위 거절, `nai.mjs` 주석 정리.)

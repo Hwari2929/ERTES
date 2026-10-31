@@ -2,10 +2,13 @@
   python3 scripts/nai_face.py yelena smile angry ...     (기물 id, 표정 키들)
   --model nai-diffusion-4-5-full-inpainting  --seed N  --out art/faces_raw
 원본: art/picked/<id>.webp (RGBA) · 얼굴 위치: art/faces.json [중심 x, 눈썹 y, 턱 y]
+유료(Anlas) 29스텝 · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~15초 (scripts/nai_guard.py).
 얼굴 부위만 다시 그린 뒤 원본 알파 위에 부드럽게 합성 → <out>/<id>.<face>.png
 """
 import base64, io, json, os, random, ssl, sys, time, urllib.request, zipfile
 from PIL import Image, ImageDraw, ImageFilter
+sys.path.insert(0, os.path.dirname(__file__))
+from nai_guard import STEPS, guard, pause
 
 FACE_TAGS = {
   'smile': 'smile, happy, gentle smile, closed eyes smile',
@@ -76,14 +79,15 @@ def b64(im):
   bio = io.BytesIO(); im.save(bio, 'PNG'); return base64.b64encode(bio.getvalue()).decode()
 NEG = cfg['negative'] + ', glasses, eyewear, goggles, mask, blindfold, bandage, face paint, censor bar'
 ctx = ssl.create_default_context(cafile=os.environ.get('SSL_CERT_FILE', '/root/.ccr/ca-bundle.crt'))
-for face in faces:
+guard(len(faces))
+for n, face in enumerate(faces):
   tags = (SUBTLE if '--subtle' in args else FACE_TAGS)[face]
   if uid in KEEP: tags = f'{tags}, {KEEP[uid]}'
   prompt = base_prompt.replace('transparent background, ', 'white background, ').replace('full body, ', 'portrait, upper body, face focus, ').replace('standing illustration, ', '').replace('calm smile, ', '').replace('smile, ', '')
   prompt = f'::1.5::{tags}::, {prompt}'
   seed = int(opt('--seed') or random.randrange(2**32))
   body = {'input': prompt, 'model': model, 'action': mode, 'parameters': {
-    'params_version': 3, 'width': S, 'height': S, 'scale': cfg['scale'], 'sampler': cfg['sampler'], 'steps': min(28, cfg['steps']),
+    'params_version': 3, 'width': S, 'height': S, 'scale': cfg['scale'], 'sampler': cfg['sampler'], 'steps': STEPS,
     'n_samples': 1, 'ucPreset': 0, 'qualityToggle': False, 'seed': seed, 'noise_schedule': cfg['noise_schedule'], 'negative_prompt': NEG,
     'image': b64(flatc), **({'mask': b64(mask)} if mode == 'infill' else {}), 'extra_noise_seed': seed, 'strength': float(opt('--strength', '0.7')), 'noise': 0, 'add_original_image': False, 'inpaintImg2ImgStrength': 1,
     'cfg_rescale': 0, 'sm': False, 'sm_dyn': False, 'dynamic_thresholding': False, 'legacy': False,
@@ -107,4 +111,4 @@ for face in faces:
   lm = Image.fromarray(__import__('numpy').minimum(__import__('numpy').array(lm), __import__('numpy').array(src.split()[3])))
   res = Image.composite(layer, res, lm)
   res.save(f'{out}/{uid}.{face}.png'); print(uid, face, 'ok', seed)
-  time.sleep(2.5)
+  if n < len(faces) - 1: pause()
