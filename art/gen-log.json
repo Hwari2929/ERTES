@@ -8766,5 +8766,16 @@
     "time": "2026-10-31T15:57:05.114Z",
     "prompt": "::1.6::surgical operating lamp shining down with healing cross particles and stitched bandages unrolling::, white and pale teal color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
     "file": "art/icons/cand/ult.bianca/v3-978376282.png"
+  },
+  {
+    "id": "ult.phyllis",
+    "alt": "v3",
+    "kind": "icon",
+    "style": "E",
+    "seed": 4182892260,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:57:20.949Z",
+    "prompt": "::1.6::cat paw prints of golden light hopping between floating rift tears, game of tag::, gold and amber color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.phyllis/v3-4182892260.png"
   }
 ]
