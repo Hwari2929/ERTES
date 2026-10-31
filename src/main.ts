@@ -1238,7 +1238,7 @@ function mapAhead(run: RunState, pick: NodeType | undefined, buttons: string) {
   const act = (cur: boolean) => (cur ? `<div class="ah-act">${buttons}</div>` : '');
   // 현재 칸 카드: 이름 → 노드 설명 한 줄 → (보스는 특징 칩) → 예상 수입 → 모디파이어. 다음 칸 카드: 이름 → nodeHint 여러 줄 (보스는 특징 칩)
   const bossCard = (i: number, e: EnemyDef, cur: boolean) => {
-    const cat = enemyCategory(e), td = TEND_NAME[e.tend], rk = foeRank(run, e, run.phase, R.encounterMult('boss', R.routeStep(run, i), !!run.campaign));
+    const cat = enemyCategory(e), td = tendOf(e), rk = foeRank(run, e, run.phase, R.encounterMult('boss', R.routeStep(run, i), !!run.campaign));
     return `<li class="ah-card ah-boss n-boss${cur ? ' cur tl-info' : ''}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''}`)}">${act(cur)}<span class="ah-lead"><span class="ah-port">${sprite(e, 'spr big')}<i class="ah-ic">${NODE_ICON.boss}</i></span>${step(i)}</span>
       <div class="ah-body"><b>${esc(e.name)}</b>${cur ? about('boss') : desc(`${NODE_NAME.boss} · ${nodeHint('boss')}`)}<div class="ah-chips">${rankChip(rk)}${R.bossMustWin(run) ? tchip(lineIcon('m.elite', 'li'), '최종 보스', 'bad', '의뢰의 마지막 보스: 이길 때까지 다시 싸운다 (다른 보스는 져도 다음 페이즈로)') : ''}${tchip(lineIcon(`k.${cat}`, 'li'), CATEGORY_NAME[cat], `cat-${cat}`, `${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}`)}${td ? tchip(lineIcon(`t.${e.tend}`, 'li'), td.name, '', `${td.name}: ${td.desc}`) : ''}</div>${cur ? `${income('boss')}${mods('boss')}` : ''}</div></li>`;
   };
@@ -1790,7 +1790,7 @@ function prepScreen(run: RunState) {
     if (s.part) { units += `<div class="u side1 placed bigpart${sel ? ' sel' : ''}${sqc}" style="${(() => { const ec = foeCell(s, geo); return cellBox(ec.x, ec.y); })()}" data-a="sel-enemy" data-v="${i}" data-drop="foe:${i}" title="${esc(`${e.name} (대형 · 같은 기물)`)}"></div>`; return; } // 대형 적의 나머지 칸: 틀 안 빈칸 (초상은 본체 칸에)
     units += `<div class="u side1 placed${hasPortrait(e) ? ' tk' : ''} ${e.tier !== 'minion' && !hasPortrait(e) ? 'big' : ''} ${sel ? 'sel' : ''}${s.duo ? ` duo duo-${s.duo}` : ''}${sqc}" style="${(() => { const ec = foeCell(s, geo); return cellBox(ec.x, ec.y); })()}"
       data-a="sel-enemy" data-v="${i}" data-drop="foe:${i}" title="${esc(`${e.name} — ${ENEMY_DESC[e.id] || ''} · ${tendText(e)}`)}">${hasPortrait(e)
-        ? (() => { const cat = enemyCategory(e), td = TEND_NAME[e.tend], mod = s.mod || (s.stripped ? null : e.mod), its = [...(s.stripped ? [] : (e.items || []).filter((x): x is string => !!x)), ...(s.items || [])]; return `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${mod ? `<span class="tk-mod">${itemIcon(mod, `data-a="foe-item" data-v="${mod}"`)}</span>` : ''}</div><span class="tk-side">${e.tier === 'minion' ? '' : `<b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : 'E'}</b>`}<i class="cat-${cat}" title="${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}">${lineIcon(`k.${cat}`, 'li')}</i>${td ? `<i class="tk-tend" title="${esc(`${td.name}: ${td.desc}`)}">${lineIcon(`t.${e.tend}`, 'li')}</i>` : ''}</span><span class="tk-items">${[0, 1, 2].map((k) => (its[k] ? itemIcon(its[k], `data-a="foe-item" data-v="${its[k]}"`) : itemIcon(null))).join('')}</span></div>`; })()
+        ? (() => { const cat = enemyCategory(e), td = tendOf(e), mod = s.mod || (s.stripped ? null : e.mod), its = [...(s.stripped ? [] : (e.items || []).filter((x): x is string => !!x)), ...(s.items || [])]; return `<div class="tk-card"><div class="tk-art">${sprite(e, '')}${mod ? `<span class="tk-mod">${itemIcon(mod, `data-a="foe-item" data-v="${mod}"`)}</span>` : ''}</div><span class="tk-side">${e.tier === 'minion' ? '' : `<b class="tk-rank tier-${e.tier}" title="${tierKo(e)}">${e.tier === 'boss' ? 'B' : 'E'}</b>`}<i class="cat-${cat}" title="${CATEGORY_NAME[cat]}: ${CATEGORY_RULE[cat]}">${lineIcon(`k.${cat}`, 'li')}</i>${td ? `<i class="tk-tend" title="${esc(`${td.name}: ${td.desc}`)}">${lineIcon(`t.${e.tend}`, 'li')}</i>` : ''}</span><span class="tk-items">${[0, 1, 2].map((k) => (its[k] ? itemIcon(its[k], `data-a="foe-item" data-v="${its[k]}"`) : itemIcon(null))).join('')}</span></div>`; })()
         : sprite(e, '')}</div>`;
   });
   units += terrainIcons(tLay, cellBox, lift);
@@ -2658,7 +2658,7 @@ function prepBrief(run: RunState) {
   const mu = encounterMatchup(enc.enemies.filter((s) => !s.part).map((s) => s.defId), allies.map((u) => u.atk.elem)); // 대형 적은 본체 칸만
   const kind = type === 'challenge' ? `${NODE_NAME.challenge} · P${enc.phase ?? run.phase}` : type === 'boss' ? '보스전' : NODE_NAME[type];
   const foe = (x: (typeof rows)[number]) => {
-    const cat = enemyCategory(x.e), td = TEND_NAME[x.e.tend];
+    const cat = enemyCategory(x.e), td = tendOf(x.e);
     const atk = x.e.noAttack ? '' : tchip(lineIcon(`e.${x.e.atk.elem}`, 'li'), '', '', `${ELEM_NAME[x.e.atk.elem]} ${x.e.atk.type === 'shoot' ? '사격' : '타격'}`, `--c:var(--el-${x.e.atk.elem})`);
     return `<li><button class="pb-foe tier-${x.e.tier}" data-a="sel-enemy" data-v="${x.i}" title="${esc(`${x.e.name} — ${ENEMY_DESC[x.e.id] || ''}`)}">${sprite(x.e, 'spr')}
       <span class="pb-nm"><b>${esc(x.e.name)}</b>${x.e.tier !== 'minion' ? `<em>${tierKo(x.e)}</em>` : ''}${x.e.inert ? '<em>장애물</em>' : ''}</span><span class="pb-n">${x.n > 1 ? `×${x.n}` : ''}</span>
@@ -5017,7 +5017,7 @@ function allyTags(d: UnitDef) { return `<i>${typeIcon(d.ttype)}${TTYPE_NAME[d.tt
 /** 적 상세 머리 (편성 · 전장 브리핑 · 전투 공용): 초상 → 칩 줄 (공명 등급 · 분류 · 성향 · 정예 / 보스만 등급) → 한 줄 설명.
  *  칩은 편성 적 패널과 같은 토큰 (.rank.foe-rank · .tchip). 누르면(PC 호버) 설명 팝업 — 공명 등급 추정 · 분류 규칙 · 성향 · 용어집 '정예 · 보스' 데이터에서 읽는다 */
 function foeHead(e: EnemyDef, fallback: string, rk: { lv: number; hpX: number } | null) {
-  const cat = enemyCategory(e), td = TEND_NAME[e.tend];
+  const cat = enemyCategory(e), td = tendOf(e);
   const pop = (t: string, d: string) => ` data-kw="foe" data-tt="${esc(t)}" data-td="${esc(d)}" tabindex="0" role="button"`;
   const tier = e.tier === 'minion' ? undefined : GLOSSARY.flatMap((c) => c.entries).find((x) => x.id === 'boss');
   const [rt, rd] = rk ? rankTip(rk).split(': ') : ['', ''];
@@ -5031,7 +5031,9 @@ function foeHead(e: EnemyDef, fallback: string, rk: { lv: number; hpX: number } 
 /** 적 한 줄 설명 (표시용): 설명 데이터(ENEMY_DESC)에서 칩과 겹치는 머리말(보스 · 정예)과 출현 페이즈('n페이즈부터')를 걸러 낸다 — 도감 · 툴팁은 원문 그대로 */
 const foeBlurb = (e: EnemyDef) => (ENEMY_DESC[e.id] || '').replace(/^(보스|정예)(\. | · )/, '').replace(/\s*\d+페이즈부터\.?/g, '').trim();
 /** 적 성향 한 줄 (툴팁 · 상세) */
-const tendText = (e: EnemyDef) => `성향: ${TEND_NAME[e.tend].name} — ${TEND_NAME[e.tend].desc}`;
+/** 적 성향 (공격하지 않는 고정 구조물은 표적을 고르지 않으므로 없음: 컨테이너 · 둥지 알 · 광고판 등) */
+function tendOf(e: EnemyDef) { return e.noAttack && e.immobile ? null : TEND_NAME[e.tend]; }
+const tendText = (e: EnemyDef) => { const td = tendOf(e); return td ? `성향: ${td.name} — ${td.desc}` : '성향: 없음 — 공격하지 않는 고정 구조물'; };
 /** 적: 지금 표적 + 도발 수치 상위 3명 (전투 상세) */
 function provInfo(b: Battle, u: CUnit) {
   if (!u.prov || !u.alive) return '';

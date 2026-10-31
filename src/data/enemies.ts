@@ -1,7 +1,7 @@
-import type { Battle, CUnit, DmgResult, EnemyTend, Hooks, SkillDef } from '../engine/combat';
+import type { Battle, CUnit, DmgOpts, DmgResult, EnemyTend, Hooks, SkillDef } from '../engine/combat';
 import { CFG } from '../config';
 import type { CType, Elem, Keyword, TType } from '../types';
-import { bleed, blinkTo, corrode, fear, lineTargets, poison, skillHit } from './kit';
+import { bleed, blinkTo, corrode, fear, lineTargets, poison, skillHit, slow } from './kit';
 
 /** 지휘 · 강화 패시브: period 초마다 (첫 발동 first 초), 전투 스킬과 따로 돈다 (스킬 한쪽 원칙).
  *  교전 중이 아니거나 (reach 칸 안에 적이 없으면) 기절 · 공포 중이면 미뤄 두었다가 조건이 되면 발동 — 예전 스킬 시전 조건과 같게 */
@@ -49,6 +49,8 @@ export interface EnemyDef {
   builder?: boolean;
   /** 대형 적: 가로 w × 세로 h 칸을 한 기물이 차지한다 (체력 공유 · 움직이지 않음, engine/build.ts linkGroup · CFG.foeKit.big) */
   size?: { w: number; h: number };
+  /** 묶음 적: 분대에 뽑히면 이 수만큼 한 묶음으로 나온다 (engine/run.ts assembleSquads · CFG.squads.pack, 같은 묶음은 mem.packId) */
+  pack?: number;
 }
 
 /** 적 전투 유형 · 전술 유형: 지정값 우선, 없으면 공격 방식 · 키워드로 추정 */
@@ -145,6 +147,114 @@ function runAway(b: Battle, u: CUnit) {
   u.moveDur = u.moveT = CFG.moveTime / b.S(u, 'moveSpd');
 }
 const K = () => CFG.foeKit;
+// 전장 고유 기믹 적 (전장마다 3종): 수치는 CFG.fieldFoe
+const SWARM_MECH = ['#0e0a10', '#6a6470', '#9a5aa0', '#c8b8c8', '#a0ff60', '#3a3040', '#f0e0f0'];
+const CYST = ['#120a0e', '#8a3a5a', '#c06a8a', '#f0b0c0', '#ffe060', '#4a1a2a', '#ffe0ea'];
+const SYNAPSE = ['#0e0a12', '#4a3a7a', '#8a6ad0', '#d0c0ff', '#ff80ff', '#2a1a4a', '#f0e8ff'];
+const BAT = ['#0a0406', '#3a0a14', '#6a1a2a', '#b08090', '#ff3040', '#1a0408', '#e0c0c8'];
+const CLOCK = ['#0c0806', '#8a6a30', '#4a3a24', '#e0c890', '#ff4030', '#3a2a14', '#fff0d0'];
+const STARVE = ['#0a0608', '#6a5a6a', '#a090a0', '#e0d0e0', '#ff2030', '#3a2a3a', '#ffffff'];
+const ASPIS = ['#0c0a06', '#b08a40', '#5a4a30', '#f0d890', '#40c0ff', '#4a3a20', '#fff4d0'];
+const PELTAST = ['#0c0a06', '#a07a4a', '#c04a2a', '#e0c0a0', '#ff6020', '#5a3a20', '#fff0e0'];
+const AGOGE = ['#0c0806', '#8a2a1a', '#c0a060', '#e0c8a0', '#ff3020', '#4a1a10', '#fff0d0'];
+const CRATE = ['#0a0a0e', '#5a5e70', '#e07a1f', '#c8ccd8', '#a0a0ff', '#2a2e40', '#ffffff'];
+const COUNSEL = ['#0c0c10', '#1a1a24', '#6a6a7a', '#d8d8e0', '#d4a83a', '#101018', '#ffffff'];
+const TEMP = ['#0c0c10', '#3a3f58', '#ff9a30', '#d0d0d0', '#ffe040', '#2a2e40', '#ffffff'];
+const RUST = ['#120a06', '#7a4a2a', '#a06a3a', '#d0a070', '#ffb030', '#4a2a14', '#f0d8b0'];
+const RUST_MECH = ['#0e0a08', '#6a5a4a', '#8a3a1a', '#c0a890', '#ff5020', '#3a2a20', '#e8d8c8'];
+const MOWER = ['#0c0e08', '#5a8a3a', '#c8a070', '#d8e8b0', '#ff4020', '#2a3a18', '#f8fff0'];
+const KIDS = ['#140e08', '#c87a5a', '#e8c070', '#f8e0c0', '#ff4060', '#6a3a28', '#fff8f0'];
+const SHRINE = ['#0c0c14', '#d0c080', '#8a8060', '#fffff0', '#ffd040', '#5a5440', '#ffffff'];
+const KETZAL = ['#0a0e0c', '#2a8a6a', '#e04a30', '#a0e0c0', '#ffe040', '#14402e', '#f0fff8'];
+const FUMIG = ['#0a0c0e', '#c0c8c0', '#e0d040', '#f0f4f0', '#a0ff60', '#5a605a', '#ffffff'];
+const EGG = ['#100c08', '#c8b890', '#8a7a5a', '#f0e8d0', '#a0b050', '#5a4a30', '#fffaf0'];
+const GUARDIAN = ['#08060e', '#2a4a6a', '#e0a040', '#a0d0ff', '#40ffe0', '#142030', '#f0f8ff'];
+const PHASE = ['#06040c', '#4a2a7a', '#e040a0', '#c0a0ff', '#40ffe0', '#20104a', '#ffe0ff'];
+const BILLBOARD = ['#06060c', '#2a2a4a', '#ff3080', '#80e0ff', '#ffff40', '#14142a', '#ffffff'];
+const HOLO = ['#04101a', '#2080c0', '#40c0ff', '#a0f0ff', '#ff60e0', '#104060', '#e0ffff'];
+const MOURN = ['#0e0c0c', '#3a3a40', '#8a8a90', '#d8d8d8', '#80e0ff', '#202024', '#ffffff'];
+const PAPER = ['#0e0e0c', '#d8d4c0', '#a8a490', '#f8f6ec', '#c03030', '#7a7660', '#ffffff'];
+const ACTOR = ['#0a0a10', '#7a6a9a', '#d0c0e0', '#f8f0ff', '#ffd060', '#3a3050', '#ffffff'];
+const CELL = ['#0a0a0c', '#7a7060', '#3a3a3a', '#d0c8a8', '#80ffff', '#2a2a2a', '#fff8e0'];
+const ZEALOT = ['#06060a', '#2a2a3a', '#5a5a70', '#c0b080', '#ffd040', '#14141c', '#f0e8c0'];
+const CLERIC = ['#0a0a0c', '#e0d8b0', '#3a3a50', '#fffaf0', '#60c0ff', '#7a7258', '#ffffff'];
+const SWEEPER = ['#0c0c0c', '#a0a8a0', '#30a0c0', '#e0f0f0', '#30ff60', '#4a504a', '#ffffff'];
+const CAT = ['#0e0a08', '#8a6a4a', '#d0a060', '#f0e0c0', '#80ff40', '#3a2a1a', '#fff8e8'];
+const HUNTER = ['#0c0c0c', '#4a4a3a', '#8a7040', '#d0c8a8', '#ff3030', '#2a2a20', '#f0e8d0'];
+const DEALER = ['#0c0a06', '#1a4a2a', '#d0a840', '#f0e8c8', '#ff3040', '#0a2a14', '#ffffff'];
+const ADJUSTER = ['#0c0a06', '#3a3a4a', '#c8a040', '#e8e0d0', '#40e0ff', '#202030', '#ffffff'];
+const ROBBER = ['#080604', '#4a4030', '#a09060', '#e8e0c0', '#ffe060', '#2a2418', '#fffbe8'];
+const SALT = ['#0e0e10', '#d8dce0', '#a8b0b8', '#ffffff', '#ffe0a0', '#7a8088', '#ffffff'];
+const JELLY = ['#0e0a0e', '#b08ab0', '#e0b0d0', '#fff0ff', '#ff6080', '#5a3a5a', '#ffffff'];
+const REHAB = ['#0c0c0c', '#c8c4b8', '#6a6a60', '#f0ece0', '#ff5040', '#5a5850', '#ffffff'];
+const F = () => CFG.fieldFoe;
+/** 포자 웅덩이 (감염 화물 드론 · 떠도는 촉수 해파리): 휩쓸고 지나간 대상의 칸에 dur 초. 그 칸에 선 상대편 기물은 tick 초마다 2초 중독 (주인의 타격 위력 × dps 초당) */
+function sporePuddle(b: Battle, u: CUnit, t: CUnit) {
+  const P = F().puddle, x = t.x, y = t.y, dps = b.S(u, 'strike') * P.dps, side = b.sideOf(u);
+  for (let k = 0; k * P.tick < P.dur - 1e-6; k++) b.later(k * P.tick, () => {
+    b.emit({ k: 'fx', x, y, r: 0, elem: 'chem', kind: 'aura', side: 1 });
+    const o = b.unitAt(x, y);
+    if (o && !o.mem.inert && !o.mem.neutral && b.sideOf(o) !== side) poison(b, u, o, dps, 2, 1);
+  });
+}
+/** 대신 받기 (guard 훅: 점막 포낭 · 태엽 집사): r 칸 안 동료가 받는 피해 (지속 피해 제외)의 share 를 이 기물이 방어 없이 받는다. 받은 양은 mem.stored 에 모은다 */
+function shareHit(b: Battle, u: CUnit, a: CUnit, src: CUnit, dmg: number, o: DmgOpts, r: number, share: number) {
+  if (o.tag === 'dot' || a.mem.inert || b.dist(u, a) > r) return dmg;
+  const part = dmg * share;
+  u.mem.stored = (u.mem.stored || 0) + part;
+  b.rawHit(src, u, part, o.elem, true);
+  return dmg - part;
+}
+/** 같은 편 동료가 가장 많이 노리는 대상 (없으면 null) */
+function focusOf(b: Battle, u: CUnit): CUnit | null {
+  const n = new Map<CUnit, number>();
+  for (const a of b.alliesOf(u, false)) if (a.target?.alive && !a.mem.inert) n.set(a.target, (n.get(a.target) || 0) + 1);
+  let best: CUnit | null = null, bn = 0;
+  for (const [t, c] of n) if (c > bn || (c === bn && t === u.target)) { best = t; bn = c; }
+  return best;
+}
+/** 가장 많이 맞은 동료 (자신 · 장애물 제외, 아무도 안 맞았으면 null) */
+function mostHit(b: Battle, u: CUnit): CUnit | null {
+  let best: CUnit | null = null;
+  for (const a of b.alliesOf(u, false)) if (!a.mem.inert && a.counters.taken > (best?.counters.taken || 0)) best = a;
+  return best;
+}
+/** 부유체 계열 (케찰급 프리버드가 밀고 오작동 방역 드론이 채우는 것, 모체 제외) */
+const PUFFS = new Set(['lv_floater', 'lv_spores']);
+/** 강제로 1칸: f 를 가장 가까운 상대편 기물 쪽 빈칸으로 (displaced 알림 없이, 밀수 운반책 걸음처럼) */
+function nudgeToward(b: Battle, f: CUnit) {
+  if (f.moveT > 0 || f.immobile) return false;
+  const t = b.nearest(f, b.enemiesOf(f).filter((e) => !e.mem.inert));
+  if (!t) return false;
+  let best: { x: number; y: number } | null = null, bd = b.dist(f, t);
+  for (let dy = -1; dy <= 1; dy++)
+    for (let dx = -1; dx <= 1; dx++) {
+      const x = f.x + dx, y = f.y + dy;
+      if ((!dx && !dy) || !b.inBounds(x, y) || b.unitAt(x, y)) continue;
+      const d = b.dist({ x, y }, t) + (dx && dy ? 0.01 : 0);
+      if (d < bd) { bd = d; best = { x, y }; }
+    }
+  if (!best) return false;
+  f.px = f.x; f.py = f.y;
+  f.x = best.x; f.y = best.y;
+  f.moveDur = f.moveT = 0.3;
+  f.mem.lastCell = -1;
+  return true;
+}
+/** 카지노 딜러 로봇: 딜러 → (베팅한 아군 → 마감 시각) */
+const BETS = new WeakMap<CUnit, Map<CUnit, number>>();
+/** 히페리온 보호막 겹을 처음 겹 수 위로도 (딜러 [베팅], 최대 CFG.fieldFoe.dealer.cap 겹) */
+function layerUp(b: Battle, u: CUnit, n: number) {
+  if (!u.mem.layersMax) return;
+  u.mem.layersMax = Math.max(u.mem.layersMax, Math.min(F().dealer.cap, (u.mem.layers || 0) + n));
+  addLayers(b, u, n);
+}
+/** 스스로 사라진다 (처치 · 사망 훅 없음): 컨테이너 개봉 · 알 부화 · 계약 해지 */
+function vanish(b: Battle, u: CUnit, name: string) {
+  u.alive = false;
+  b.emit({ k: 'status', id: u.id, name });
+  b.emit({ k: 'die', id: u.id });
+}
 /** 카운티폴 광대 (반상회장이 은신시키는 대상) */
 const CLOWNS = new Set(['cf_neighbor', 'cf_dog', 'sw_spitter', 'cf_model']);
 
@@ -757,9 +867,13 @@ export const ENEMIES: EnemyDef[] = [
   { id: 'cw_reclaim', name: '회수 집행 유닉스', tend: 'charge', keywords: ['mech'], sprite: 'mech', palette: UNIX, tier: 'minion', minPhase: 1,
     hp: 540, power: 28, armor: 250, interval: 1.1, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
     onBasic: (b, u, t) => { b.applyStatus(u, t, { type: 'buff', key: 'root', dur: 1 }, 0.5); },
-    // 회수 우선순위: 기계 기물 먼저
+    // 회수 우선순위: [스캔 완료] 대상 (회수 현상금 사냥꾼) → 기계 기물
     onTick: (b, u) => {
-      if (u.target?.category === 'mech' || b.frenzied(u)) return;
+      if (b.frenzied(u)) return;
+      if (u.target?.statuses.some((s) => s.key === 'cw.scan')) return;
+      const scan = b.targetable(u).filter((e) => e.statuses.some((s) => s.key === 'cw.scan'));
+      if (scan.length) { u.target = b.nearest(u, scan); return; }
+      if (u.target?.category === 'mech') return;
       const m = b.targetable(u).filter((e) => e.category === 'mech');
       if (m.length) u.target = b.nearest(u, m);
     } },
@@ -987,6 +1101,359 @@ export const ENEMIES: EnemyDef[] = [
       if (b.t >= u.mem.escAt) { u.alive = false; b.emit({ k: 'status', id: u.id, name: '탈출' }); b.emit({ k: 'die', id: u.id }); b.checkEnd(); return; }
       runAway(b, u);
     } },
+
+  // ═════════ 전장 고유 기믹 적 (전장마다 3종, 수치 CFG.fieldFoe · 설명 enemyText). 구조물 분류는 모두 고정형 (immobile)
+  // ── 베르타–산노디스 물류망
+  { id: 'sw_cargo', name: '감염 화물 드론', tend: 'disrupt', keywords: ['mech'], sprite: 'drone', palette: SWARM_MECH, tier: 'minion', minPhase: 1,
+    hp: 300, power: 22, armor: 140, interval: 0.9, range: 1, moveSpd: 1.1, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: { onSweep: (b, u, t) => sporePuddle(b, u, t) } },
+  { id: 'sw_cyst', name: '점막 포낭', tend: 'sniper', keywords: ['bio', 'struct'], sprite: 'crawler', palette: CYST, tier: 'minion', minPhase: 2,
+    hp: 1000, power: 20, armor: 120, interval: 1.4, range: 2, immobile: true, atk: { type: 'shoot', elem: 'chem' }, melee: false,
+    hooks: { guard: (b, u, a, src, dmg, o) => shareHit(b, u, a, src, dmg, o, F().cyst.r, F().cyst.share) } },
+  { id: 'sw_synapse', name: '신경 동조체', tend: 'pack', keywords: ['bio'], sprite: 'phantom', palette: SYNAPSE, tier: 'minion', minPhase: 1,
+    hp: 300, power: 24, armor: 70, interval: 1.2, range: 3, atk: { type: 'shoot', elem: 'psy' }, melee: false,
+    onBasic: (b, u, t, r) => {
+      if (r.miss) return;
+      const S = F().sync, f = focusOf(b, u) || t;
+      b.applyStatus(u, f, { type: 'buff', key: 'sw.sync', dur: S.dur, maxStacks: S.max, stacks: 1, label: '동조', onStack: (st) => { st.taken = [{ kind: 'vuln', tag: 'psy', v: S.vuln * (st.stacks || 1) }]; } });
+    } },
+  // ── 크림슨 대공령
+  { id: 'cr_bats', name: '혈익 박쥐 떼', tend: 'pack', keywords: ['bio'], sprite: 'beast', palette: BAT, tier: 'minion', minPhase: 1,
+    hp: 260, power: 24, armor: 50, eva: 0.2, interval: 0.7, range: 1, moveSpd: 1.3, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: { onStart: (_b, u) => { u.st.lifesteal = (u.st.lifesteal || 0) * F().bat.ls; } } },
+  { id: 'cr_valet', name: '태엽 집사', tend: 'escort', keywords: ['mech'], sprite: 'mech', palette: CLOCK, tier: 'minion', minPhase: 2,
+    hp: 560, power: 28, armor: 220, interval: 1.2, range: 1, moveSpd: 0.9, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: {
+      guard: (b, u, a, src, dmg, o) => shareHit(b, u, a, src, dmg, o, F().valet.r, F().valet.share),
+      // 쓰러질 때 모아 둔 피해만큼 주변 동료를 나눠 회복
+      onLethal(b, u) {
+        if (u.mem.released) return false;
+        u.mem.released = 1;
+        const amt = u.mem.stored || 0, near = b.around(u, F().valet.healR, b.alliesOf(u, false)).filter((a) => !a.mem.inert);
+        if (amt < 1 || !near.length) return false;
+        b.emit({ k: 'status', id: u.id, name: '태엽 풀림' });
+        b.fx(u.x, u.y, F().valet.healR, 'phys', 'heal');
+        for (const a of near) b.heal(u, a, amt / near.length);
+        return false;
+      },
+    } },
+  { id: 'cr_starved', name: '굶주린 혈족의 망령', tend: 'disrupt', keywords: ['phantom'], sprite: 'phantom', palette: STARVE, tier: 'minion', minPhase: 1,
+    hp: 300, power: 26, armor: 40, interval: 0.8, range: 1, moveSpd: 1.1, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: { onSweep: (b, u, t) => { antiheal(b, u, t, F().starve.heal, F().starve.dur); } } },
+  // ── 스파르타 전쟁 궤도
+  // 지키는 동료(호위형 mem.guardId)와 붙어 있고 공격자와 그 동료 사이에 있으면: 2칸 이상 떨어진 적의 기본 공격 피해 감소 (근접 · 기술 · 광역 · 측면은 그대로)
+  { id: 'sp_aspis', name: '아스피스 방패 드론', tend: 'escort', keywords: ['mech'], sprite: 'drone', palette: ASPIS, tier: 'minion', minPhase: 2,
+    hp: 420, power: 18, armor: 300, interval: 1.0, range: 1, moveSpd: 1.1, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: { guard(b, u, a, src, dmg, o) {
+      if (o.tag !== 'basic' || a.id !== u.mem.guardId || b.dist(u, a) > 1 || b.dist(src, a) < 2 || b.dist(u, src) >= b.dist(a, src)) return dmg;
+      return dmg * (1 - F().aspis.red);
+    } } },
+  { id: 'sp_peltast', name: '펠타스트 경보병', tend: 'disrupt', keywords: ['bio'], sprite: 'soldier', palette: PELTAST, tier: 'minion', minPhase: 1,
+    hp: 400, power: 34, armor: 60, eva: 0.15, interval: 1.0, range: 3, moveSpd: 1.1, atk: { type: 'shoot', elem: 'phys' }, melee: false },
+  { id: 'sp_agoge', name: '아고게 전사', tend: 'pack', keywords: ['bio'], sprite: 'knight', palette: AGOGE, tier: 'minion', minPhase: 1,
+    hp: 440, power: 28, armor: 160, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: {
+      onAllyDeath(b, u, d) {
+        if (d === u || d.mem.inert || !u.alive || (u.mem.agoge || 0) >= F().agoge.max) return;
+        u.mem.agoge = (u.mem.agoge || 0) + 1;
+        b.emit({ k: 'status', id: u.id, name: `전우의 복수 ${u.mem.agoge}` });
+      },
+      dmgMult: (_b, u) => 1 + F().agoge.dmg * (u.mem.agoge || 0),
+    } },
+  // ── 페트라 본사 성역
+  // 12초 뒤 스스로 열려 격리 이탈 개체가 나온다. 먼저 부수면 그 개체가 체력 50%로 (처치 보상은 그대로)
+  { id: 'pt_crate', name: '격리 컨테이너', tend: 'sniper', keywords: ['struct'], sprite: 'turret', palette: CRATE, tier: 'minion', minPhase: 2,
+    hp: 700, power: 0, armor: 260, interval: 9, range: 0, immobile: true, atk: { type: 'strike', elem: 'phys' }, melee: false, noAttack: true,
+    hooks: {
+      onStart(b, u) { u.mem.openAt = b.t + F().crate.open; },
+      onTick(b, u) {
+        if (u.mem.opened) return;
+        if (b.t < u.mem.openAt) { if (!u.mem.warn && b.t >= u.mem.openAt - 3) { u.mem.warn = 1; b.emit({ k: 'status', id: u.id, name: '개봉 3초 전', harm: true }); } return; }
+        u.mem.opened = 1;
+        const at = { x: u.x, y: u.y };
+        vanish(b, u, '격리 해제');
+        ENEMY_RT.spawn?.(b, 'pt_anomaly', at, { summon: true, mult: u.mem.mult });
+        b.checkEnd();
+      },
+      onLethal(b, u) {
+        if (u.mem.opened) return false;
+        u.mem.opened = 1;
+        const at = { x: u.x, y: u.y }, mult = u.mem.mult;
+        b.later(0, () => { const n = ENEMY_RT.spawn?.(b, 'pt_anomaly', at, { summon: true, mult, hpPct: F().crate.hp }); if (n) b.emit({ k: 'status', id: n.id, name: '파손된 격리' }); }, 1); // 컨테이너가 마지막 적이어도 나온 개체까지 싸운다
+        return false;
+      },
+    } },
+  // [이의 제기] 곁의 동료가 받는 큰 피해 1회를 줄인다 (8초마다)
+  { id: 'pt_counsel', name: '법무 대리인', tend: 'escort', keywords: ['bio'], sprite: 'soldier', palette: COUNSEL, tier: 'minion', minPhase: 1,
+    hp: 340, power: 24, armor: 90, interval: 1.2, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false,
+    hooks: { guard(b, u, a, _src, dmg, o) {
+      const C = F().counsel;
+      if (o.tag === 'dot' || a.mem.inert || (u.mem.objT || 0) > b.t || b.dist(u, a) > C.r || dmg < b.S(a, 'maxHp') * C.big) return dmg;
+      u.mem.objT = b.t + C.cd;
+      b.emit({ k: 'status', id: a.id, name: '이의 제기' });
+      return dmg * (1 - C.red);
+    } } },
+  // 3기 묶음 (EnemyDef.pack). 같은 묶음의 마지막 1기는 계약 해지로 빠져나간다 (보상 없음 · 승패 판정에서 빠짐)
+  { id: 'pt_temp', name: '하청 경비 용역', tend: 'pack', pack: 3, keywords: ['bio'], sprite: 'knight', palette: TEMP, tier: 'minion', minPhase: 1,
+    hp: 240, power: 22, armor: 80, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: {
+      onStart(b, u) { if (u.mem.packId) u.mem.packN = b.units.filter((x) => x.alive && x.defId === u.defId && x.mem.packId === u.mem.packId).length; },
+      onTick(b, u) {
+        if ((u.mem.packN || 0) < 2 || b.units.some((x) => x !== u && x.alive && x.defId === u.defId && x.mem.packId === u.mem.packId)) return;
+        vanish(b, u, '계약 해지');
+        b.checkEnd();
+      },
+    } },
+  // ── 황무지 성계
+  { id: 'ws_rider', name: '고철 질주병', tend: 'disrupt', keywords: ['bio'], sprite: 'knight', palette: RUST, tier: 'minion', minPhase: 1,
+    hp: 340, power: 24, armor: 90, interval: 0.9, range: 1, moveSpd: 1.5, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: { onMove(b, u) {
+      const R = F().rider;
+      for (const e of b.around(u, 1, b.targetable(u))) {
+        const k = `rid${e.id}`;
+        if ((u.mem[k] || 0) > b.t) continue;
+        u.mem[k] = b.t + R.icd;
+        skillHit(b, u, e, 'strike', R.dmg, 'phys', { tag: 'proc', noMiss: true });
+      }
+    } } },
+  { id: 'ws_hyena', name: '고철 하이에나', tend: 'pack', keywords: ['mech'], sprite: 'beast', palette: RUST_MECH, tier: 'minion', minPhase: 1,
+    hp: 360, power: 26, armor: 160, interval: 0.8, range: 1, moveSpd: 1.3, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: { dmgMult: (b, _u, t) => (b.hpPct(t) < F().hyena.low ? 1 + F().hyena.dmg : 1) } },
+  { id: 'ws_watch', name: '고철 망루', tend: 'sniper', keywords: ['struct'], sprite: 'turret', palette: RUST, tier: 'minion', minPhase: 2,
+    hp: 560, power: 30, armor: 240, acc: 0.1, interval: 1.3, range: 4, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false,
+    hooks: { guard: (b, u, a, src, dmg, o) => (o.tag !== 'dot' && b.dist(u, a) <= F().watch.r && b.dist(src, a) >= 2 ? dmg * (1 - F().watch.red) : dmg) } },
+  // ── 카운티폴 세피아 교외
+  { id: 'cf_mower', name: '무인 잔디깎이', tend: 'disrupt', keywords: ['mech'], sprite: 'drone', palette: MOWER, tier: 'minion', minPhase: 1,
+    hp: 320, power: 22, armor: 150, interval: 0.9, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: { onSweep(b, u, t) {
+      const M = F().mower;
+      b.fx(t.x, t.y, M.r, 'phys');
+      for (const e of b.around(t, M.r, b.enemiesOf(u))) if (!e.mem.inert) slow(b, u, e, M.slow, M.dur);
+    } } },
+  // 3기 묶음. 처음 kids.wait 초는 제자리에서 웃으며 서 있다가 (mem.holdUntil) 한꺼번에 달려든다
+  { id: 'cf_kids', name: '놀이터 아이들', tend: 'pack', pack: 3, keywords: ['bio'], sprite: 'knight', palette: KIDS, tier: 'minion', minPhase: 1,
+    hp: 220, power: 20, armor: 50, interval: 0.9, range: 1, moveSpd: 1.2, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: {
+      onStart(b, u) { if (u.isSummon) return; u.mem.holdUntil = b.t + F().kids.wait; b.emit({ k: 'status', id: u.id, name: '웃음' }); },
+      onTick(b, u) { if (u.mem.holdUntil && !u.mem.ran && b.t >= u.mem.holdUntil) { u.mem.ran = 1; b.emit({ k: 'status', id: u.id, name: '달려든다!' }); } },
+    } },
+  { id: 'cf_shrine', name: '성도회 성물함', tend: 'sniper', keywords: ['struct'], sprite: 'turret', palette: SHRINE, tier: 'minion', minPhase: 2,
+    hp: 800, power: 15, armor: 200, interval: 1.4, range: 3, immobile: true, atk: { type: 'shoot', elem: 'holy' }, melee: false,
+    onTick: (b, u, dt) => {
+      const S = F().shrine;
+      u.mem.shT = (u.mem.shT ?? S.first) - dt;
+      if (u.mem.shT > 0) return;
+      const t = mostHit(b, u);
+      if (!t) { u.mem.shT = 0.5; return; }
+      u.mem.shT = S.every;
+      b.fx(t.x, t.y, 0, 'holy', 'buff');
+      b.emit({ k: 'status', id: t.id, name: '신성 보호막' });
+      b.shield(t, b.S(t, 'maxHp') * S.shield);
+    } },
+  // ── 리빈 낙원동 방역 시즌
+  { id: 'lv_ketzal', name: '케찰급 프리버드', tend: 'disrupt', keywords: ['bio'], sprite: 'beast', palette: KETZAL, tier: 'minion', minPhase: 1,
+    hp: 320, power: 24, armor: 60, eva: 0.15, interval: 0.8, range: 1, moveSpd: 1.2, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    onTick: (b, u, dt) => {
+      const Z = F().ketzal;
+      u.mem.flapT = (u.mem.flapT ?? Z.first) - dt;
+      if (u.mem.flapT > 0 || b.has(u, 'stun')) return;
+      u.mem.flapT = Z.every;
+      let n = 0;
+      for (const f of b.around(u, Z.r, b.alliesOf(u, false))) if (PUFFS.has(f.defId) && nudgeToward(b, f)) n++;
+      if (!n) return;
+      b.fx(u.x, u.y, Z.r, 'phys', 'aura');
+      b.emit({ k: 'status', id: u.id, name: '날갯짓' });
+    } },
+  // 호위형: 가장 많이 맞은 부유체 곁으로 (escortPref, 맞은 부유체가 없으면 보통 호위형)
+  { id: 'lv_fumig', name: '오작동 방역 드론', tend: 'escort', keywords: ['mech'], sprite: 'drone', palette: FUMIG, tier: 'minion', minPhase: 1,
+    hp: 280, power: 18, armor: 100, eva: 0.1, interval: 1.0, range: 2, moveSpd: 1.2, atk: { type: 'shoot', elem: 'chem' }, melee: false,
+    onTick: (b, u, dt) => {
+      const M = F().fumig;
+      u.mem.gasT = (u.mem.gasT ?? M.every) - dt;
+      if (u.mem.gasT > 0) return;
+      u.mem.gasT = M.every;
+      const fs = b.around(u, M.r, b.alliesOf(u, false)).filter((a) => PUFFS.has(a.defId) && b.hpPct(a) < 1);
+      if (!fs.length) return;
+      const t = fs.reduce((a, c) => (c.counters.taken > a.counters.taken ? c : a));
+      b.fx(t.x, t.y, 0, 'chem', 'heal');
+      b.heal(u, t, b.S(t, 'maxHp') * M.heal);
+    },
+    hooks: { escortPref: (_b, _u, a) => PUFFS.has(a.defId) } },
+  { id: 'lv_egg', name: '프리버드 둥지 알', tend: 'sniper', keywords: ['struct'], sprite: 'turret', palette: EGG, tier: 'minion', minPhase: 2,
+    hp: 600, power: 0, armor: 120, interval: 9, range: 0, immobile: true, atk: { type: 'strike', elem: 'phys' }, melee: false, noAttack: true,
+    hooks: {
+      onStart(b, u) { u.mem.hatchAt = b.t + F().egg.hatch; },
+      onTick(b, u) {
+        if (b.t < u.mem.hatchAt) { if (!u.mem.warn && b.t >= u.mem.hatchAt - 3) { u.mem.warn = 1; b.emit({ k: 'status', id: u.id, name: '부화 3초 전', harm: true }); } return; }
+        const at = { x: u.x, y: u.y };
+        vanish(b, u, '부화');
+        ENEMY_RT.spawn?.(b, 'lv_raptor', at, { summon: true, mult: u.mem.mult });
+        b.checkEnd();
+      },
+    } },
+  // ── 라이덴 제34블록 봉쇄선
+  { id: 'rd_guardian', name: '보호자 등급 폭주자', tend: 'escort', keywords: ['bio'], sprite: 'knight', palette: GUARDIAN, tier: 'minion', minPhase: 1,
+    hp: 560, power: 28, armor: 200, interval: 1.1, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: { onStart: (_b, u) => { u.mem.loyal = 1; } } }, // 광폭이어도 같은 편을 치지 않는다 (combat.ts act)
+  { id: 'rd_phase', name: '위상 붕괴 잔상', tend: 'pack', keywords: ['phantom'], sprite: 'phantom', palette: PHASE, tier: 'minion', minPhase: 2,
+    hp: 300, power: 26, armor: 40, eva: 0.15, interval: 0.9, range: 1, moveSpd: 1.2, atk: { type: 'strike', elem: 'psy' }, melee: true },
+  // 6초마다 가장 가까운 아군 앞 칸에 가짜 적 홀로그램 (교란형 · 체력 1 · 공격하지 않음): 아군이 교란형 적처럼 먼저 노린다 (Battle.lures)
+  { id: 'rd_billboard', name: '홀로그램 광고판', tend: 'sniper', keywords: ['struct'], sprite: 'turret', palette: BILLBOARD, tier: 'minion', minPhase: 2,
+    hp: 700, power: 0, armor: 180, interval: 9, range: 0, immobile: true, atk: { type: 'strike', elem: 'elec' }, melee: false, noAttack: true,
+    onTick: (b, u, dt) => {
+      const H = F().billboard;
+      u.mem.holoT = (u.mem.holoT ?? H.first) - dt;
+      if (u.mem.holoT > 0) return;
+      u.mem.holoT = H.every;
+      if (ownedAlive(b, u, ['rd_holo']) >= H.cap) return;
+      const t = b.nearest(u, b.enemiesOf(u).filter((e) => !e.mem.inert && !e.isSummon));
+      if (!t) return;
+      const fwd = Math.sign(u.y - t.y) || -1;
+      const cell = [[0, fwd], [-1, fwd], [1, fwd], [0, 2 * fwd], [-1, 0], [1, 0]].map(([dx, dy]) => ({ x: t.x + dx, y: t.y + dy })).find((c) => b.inBounds(c.x, c.y) && !b.unitAt(c.x, c.y)) || b.freeCellNear(t.x, t.y);
+      if (!cell || !ownedSpawn(b, u, 'rd_holo', cell, true)) return;
+      b.emit({ k: 'status', id: u.id, name: '광고 송출' });
+      b.emit({ k: 'fx', x: cell.x, y: cell.y, r: 0, elem: 'elec', kind: 'aura', side: 1 });
+    } },
+  { id: 'rd_holo', name: '가짜 적 홀로그램', tend: 'disrupt', keywords: ['struct'], sprite: 'knight', palette: HOLO, tier: 'minion', minPhase: 99,
+    hp: 1, power: 0, armor: 0, interval: 9, range: 0, immobile: true, atk: { type: 'strike', elem: 'phys' }, melee: false, noAttack: true,
+    hooks: { onStart: (_b, u) => { u.st.maxHp = 1; u.hp = 1; u.st.armor = 0; u.shield = 0; } } },
+  // ── 크레타 백원
+  { id: 'kr_mourner', name: '서사에 감염된 조문객', tend: 'pack', keywords: ['bio'], sprite: 'robe', palette: MOURN, tier: 'minion', minPhase: 1,
+    hp: 400, power: 26, armor: 100, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
+  { id: 'kr_papers', name: '끝없는 서류탑', tend: 'sniper', keywords: ['struct'], sprite: 'turret', palette: PAPER, tier: 'minion', minPhase: 2,
+    hp: 800, power: 20, armor: 160, interval: 1.3, range: 3, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false,
+    onTick: (b, u, dt) => {
+      const P = F().papers;
+      u.mem.papT = (u.mem.papT ?? P.first) - dt;
+      if (u.mem.papT > 0) return;
+      u.mem.papT = P.every;
+      const all = b.targetable(u), main = all.filter((e) => !e.isSummon);
+      const ts = b.rng.shuffle(main.length ? main : all).slice(0, P.n);
+      if (!ts.length) return;
+      b.emit({ k: 'status', id: u.id, name: '서류 살포' });
+      for (const t of ts) { b.fx(t.x, t.y, 0, 'phys'); antiheal(b, u, t, P.heal, P.dur); }
+    } },
+  // [대역] 곁의 동료(보스 제외)가 쓰러질 피해를 받으면 대신 쓰러지고 그 동료를 체력 30%로 세운다 (1회)
+  { id: 'kr_actor', name: '애도 극장 배우', tend: 'escort', keywords: ['phantom'], sprite: 'robe', palette: ACTOR, tier: 'minion', minPhase: 1,
+    hp: 460, power: 36, armor: 60, interval: 1.2, range: 2, atk: { type: 'shoot', elem: 'psy' }, melee: false,
+    hooks: { guard(b, u, a, src, dmg) {
+      const A = F().actor;
+      if (u.mem.stood || a.isBoss || a.mem.inert || b.dist(u, a) > A.r || dmg < a.hp + a.shield) return dmg;
+      u.mem.stood = 1;
+      const hp0 = a.hp;
+      a.hp = Math.max(1, b.S(a, 'maxHp') * A.hp);
+      b.emit({ k: 'heal', id: a.id, src: u.id, v: a.hp - hp0, dhp: a.hp - hp0 });
+      b.emit({ k: 'mark', id: a.id, name: '대역', style: 'revive' });
+      b.kill(u, src);
+      return 0;
+    } } },
+  // ── 올림푸스 성관 축전 구획
+  { id: 'ol_cell', name: '축전 셀 운반기', tend: 'charge', keywords: ['mech'], sprite: 'mech', palette: CELL, tier: 'minion', minPhase: 1,
+    hp: 620, power: 26, armor: 260, interval: 1.3, range: 1, moveSpd: 0.7, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: { onLethal(b, u) {
+      if (u.mem.burst) return false;
+      u.mem.burst = 1;
+      const C = F().cell, at = { x: u.x, y: u.y }, side = u.side;
+      b.emit({ k: 'status', id: u.id, name: '셀 파열' });
+      b.emit({ k: 'fx', x: at.x, y: at.y, r: C.r, elem: 'elec', kind: 'aura', side: 1 });
+      b.later(0, () => { for (const a of b.units) if (a.alive && a.side === side && !a.mem.inert && (a.category === 'mech' || a.category === 'struct') && b.dist(a, at) <= C.r) ENEMY_RT.charge?.(b, a, C.charge, u); });
+      return false;
+    } } },
+  { id: 'ol_zealot', name: '흑운 숭배자', tend: 'pack', keywords: ['bio'], sprite: 'robe', palette: ZEALOT, tier: 'minion', minPhase: 1,
+    hp: 400, power: 26, armor: 90, interval: 1.0, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true },
+  { id: 'ol_cleric', name: '성관 수비 사제', tend: 'escort', keywords: ['bio'], sprite: 'medic', palette: CLERIC, tier: 'minion', minPhase: 2,
+    hp: 360, power: 24, armor: 100, interval: 1.2, range: 3, atk: { type: 'shoot', elem: 'holy' }, melee: false,
+    onTick: (b, u, dt) => {
+      const C = F().cleric;
+      u.mem.drT = (u.mem.drT ?? C.every) - dt;
+      if (u.mem.drT > 0) return;
+      u.mem.drT = C.every;
+      let got = 0;
+      for (const a of b.around(u, 1, b.alliesOf(u, false))) if ((a.category === 'mech' || a.category === 'struct') && (a.mem.charge || 0) > 0) { const d = Math.min(C.drain, a.mem.charge); a.mem.charge -= d; got += d; }
+      if (!got) return;
+      b.emit({ k: 'status', id: u.id, name: `충전 흡수 ${got}` });
+      b.fx(u.x, u.y, 1, 'elec', 'buff');
+      b.shield(u, b.S(u, 'maxHp') * C.shield * got);
+    } },
+  // ── 캣휠 그늘 성계
+  // 반려 돌을 밀어 지키는 동료(호위형 mem.guardId) 앞 칸 (가장 가까운 아군 쪽)에 세운다
+  { id: 'cw_sweeper', name: '청소 유닉스', tend: 'escort', keywords: ['mech'], sprite: 'mech', palette: SWEEPER, tier: 'minion', minPhase: 2,
+    hp: 520, power: 24, armor: 240, interval: 1.1, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    onTick: (b, u, dt) => {
+      const S = F().sweeper;
+      u.mem.swT = (u.mem.swT ?? S.every) - dt;
+      if (u.mem.swT > 0) return;
+      u.mem.swT = 1;
+      const g = u.mem.guardId ? b.units.find((x) => x.alive && x.id === u.mem.guardId) : null;
+      const foe = g ? b.nearest(g, b.enemiesOf(g).filter((e) => !e.mem.inert)) : null;
+      if (!g || !foe) return;
+      const front = (c: { x: number; y: number }) => b.dist(c, g) === 1 && b.dist(c, foe) < b.dist(g, foe);
+      const rock = b.nearest(u, b.units.filter((x) => x.alive && x.defId === 'cw_rock' && x.moveT <= 0 && b.dist(x, u) <= S.grab && !front(x)));
+      if (!rock) return;
+      let cell: { x: number; y: number } | null = null, bd = 99;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const c = { x: g.x + dx, y: g.y + dy };
+        if ((!dx && !dy) || !b.inBounds(c.x, c.y) || b.unitAt(c.x, c.y) || !front(c)) continue;
+        const d = b.dist(c, foe) + (dx && dy ? 0.01 : 0);
+        if (d < bd) { bd = d; cell = c; }
+      }
+      if (!cell) return;
+      u.mem.swT = S.every;
+      rock.px = rock.x; rock.py = rock.y;
+      rock.x = cell.x; rock.y = cell.y;
+      rock.moveDur = rock.moveT = 0.4;
+      b.emit({ k: 'status', id: u.id, name: '엄폐물 설치' });
+    } },
+  { id: 'cw_cats', name: '야생화된 고양이 떼', tend: 'pack', pack: 3, keywords: ['bio'], sprite: 'beast', palette: CAT, tier: 'minion', minPhase: 1,
+    hp: 200, power: 17, armor: 40, eva: 0.1, interval: 0.7, range: 1, moveSpd: 1.6, atk: { type: 'strike', elem: 'phys' }, melee: true },
+  { id: 'cw_hunter', name: '회수 현상금 사냥꾼', tend: 'sniper', keywords: ['bio'], sprite: 'soldier', palette: HUNTER, tier: 'minion', minPhase: 1,
+    hp: 320, power: 22, armor: 80, acc: 0.1, interval: 1.3, range: 4, atk: { type: 'shoot', elem: 'phys' }, melee: false,
+    onBasic: (b, u, t, r) => { if (r.miss) return; const H = F().hunter; b.applyStatus(u, t, { type: 'buff', key: 'cw.scan', dur: H.dur, taken: [{ kind: 'vuln', tag: 'all', v: H.vuln }], label: '스캔 완료' }); } },
+  // ── 금고선 히페리온호
+  // [베팅] 휩쓸고 지나간 아군이 dur 초 안에 딜러를 맞히면 (보호막 겹에 막혀도) 크레딧, 못 맞히면 딜러 보호막 +1겹 (처음 겹 수 위로도, 최대 cap 겹)
+  { id: 'hy_dealer', name: '카지노 딜러 로봇', tend: 'disrupt', keywords: ['mech'], sprite: 'robe', palette: DEALER, tier: 'minion', minPhase: 1,
+    hp: 380, power: 26, armor: 120, interval: 0.9, range: 1, moveSpd: 1.1, atk: { type: 'strike', elem: 'phys' }, melee: true,
+    hooks: {
+      onSweep(b, u, t) {
+        let m = BETS.get(u);
+        if (!m) BETS.set(u, (m = new Map()));
+        m.set(t, b.t + F().dealer.dur);
+        b.emit({ k: 'status', id: t.id, name: '베팅', src: u.id, harm: true });
+      },
+      takenMult(b, u, src, o) { // 맞았는지만 본다 (피해 배율은 그대로 1)
+        const m = BETS.get(u), at = m?.get(src);
+        if (at === undefined || o.tag === 'dot' || at < b.t) return 1;
+        m!.delete(src);
+        b.mem.betPay = (b.mem.betPay || 0) + F().dealer.cred;
+        b.emit({ k: 'status', id: u.id, name: `베팅 적중 +${F().dealer.cred}` });
+        return 1;
+      },
+      onTick(b, u) {
+        const m = BETS.get(u);
+        if (!m?.size) return;
+        for (const [t, at] of m) if (b.t > at) { m.delete(t); layerUp(b, u, 1); }
+      },
+    } },
+  { id: 'hy_adjuster', name: '손해사정인', tend: 'escort', keywords: ['bio'], sprite: 'soldier', palette: ADJUSTER, tier: 'minion', minPhase: 2,
+    hp: 340, power: 24, armor: 100, interval: 1.2, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false,
+    hooks: { onAllyDeath(b, u, d) {
+      if (d === u || d.mem.inert || !u.alive) return;
+      const A = F().adjuster, near = b.around(u, A.r, b.alliesOf(u)).filter((a) => a.mem.layersMax && (a.mem.layers || 0) < a.mem.layersMax);
+      if (!near.length) return;
+      b.emit({ k: 'status', id: u.id, name: '보험금 지급' });
+      b.fx(u.x, u.y, A.r, 'phys', 'buff');
+      for (const a of near) addLayers(b, a, A.layers);
+    } } },
+  { id: 'hy_robber', name: '실패한 강도의 망령', tend: 'pack', keywords: ['phantom'], sprite: 'phantom', palette: ROBBER, tier: 'minion', minPhase: 1,
+    hp: 440, power: 34, armor: 50, interval: 0.9, range: 1, atk: { type: 'strike', elem: 'phys' }, melee: true }, // 히페리온 보호막 1겹 (battlefields.ts hyperion enemyMod)
+  // ── 브샤크 묘비 해안
+  { id: 'bs_salt', name: '소금 결정 기둥', tend: 'sniper', keywords: ['struct'], sprite: 'turret', palette: SALT, tier: 'minion', minPhase: 2,
+    hp: 800, power: 22, armor: 220, interval: 1.4, range: 3, immobile: true, atk: { type: 'shoot', elem: 'phys' }, melee: false }, // 묘비의 맥박 대기 단축 (battlefields.ts bshak)
+  { id: 'bs_jelly', name: '떠도는 촉수 해파리', tend: 'disrupt', keywords: ['bio'], sprite: 'crawler', palette: JELLY, tier: 'minion', minPhase: 1,
+    hp: 320, power: 26, armor: 60, interval: 0.9, range: 1, moveSpd: 0.9, atk: { type: 'strike', elem: 'chem' }, melee: true,
+    hooks: { onSweep: (b, u, t) => sporePuddle(b, u, t) } },
+  { id: 'bs_sentry', name: '재활 시설 보안 드론', tend: 'pack', keywords: ['mech'], sprite: 'drone', palette: REHAB, tier: 'minion', minPhase: 1,
+    hp: 280, power: 24, armor: 140, eva: 0.1, interval: 0.9, range: 2, moveSpd: 1.2, atk: { type: 'shoot', elem: 'elec' }, melee: false },
 ];
 export const ENEMY_BY_ID: Record<string, EnemyDef> = Object.fromEntries(ENEMIES.map((e) => [e.id, e]));
 export const BOSS_ROTATION = ['varga', 'goliath', 'nyx'];
@@ -1010,7 +1477,7 @@ export function rampage(b: Battle, u: CUnit, dur: number) {
   u.target = null;
 }
 /** 프리버드: 산패 폭발 피해 2배 */
-export const FREEBIRDS = new Set(['lv_raptor', 'lv_alpha', 'lv_king']);
+export const FREEBIRDS = new Set(['lv_raptor', 'lv_alpha', 'lv_king', 'lv_ketzal']);
 /** 산패 폭발: 주변 r칸 모든 유닛(양쪽)에게 각자 최대 체력 pct 화학 피해 */
 export function gasBlast(b: Battle, src: CUnit, x: number, y: number, r: number, pct: number) {
   b.emit({ k: 'fx', x, y, r, elem: 'chem' });

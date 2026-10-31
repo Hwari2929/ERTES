@@ -1382,10 +1382,24 @@ interface Squad { kind: SquadKind; name: string; ids: string[]; add?: boolean }
  *  분대 안의 같은 역할은 대개 같은 적 (70%) — 한눈에 읽히게. 포병 듀오의 포병은 구조물이 아닌 사격 적 */
 function assembleSquads(r: Rng, field: string, pool: string[], p: number, budget: number, out: Squad[], add = false) {
   const live = pool.filter((id) => !ENEMY_BY_ID[id].inert && !ENEMY_BY_ID[id].size); // 대형 적은 제 분대로 따로 (genEncounter)
-  const by =(role: FoeRole, duo = false) => live.filter((id) => roleOf(ENEMY_BY_ID[id]) === role && !(duo && (ENEMY_BY_ID[id].keywords.includes('struct') || ENEMY_BY_ID[id].immobile)));
+  // noPack: 묶음 적을 뺀다 (전열 · 사격선 · 암살조 밖의 분대는 칸 수가 정해진 진형이라 묶음을 넣지 않는다)
+  const by =(role: FoeRole, duo = false, noPack = false) => live.filter((id) => roleOf(ENEMY_BY_ID[id]) === role && !(duo && (ENEMY_BY_ID[id].keywords.includes('struct') || ENEMY_BY_ID[id].immobile)) && !(noPack && ENEMY_BY_ID[id].pack));
   const D = CFG.squads.duo, duoMax = p >= 4 ? D.max4 : D.max;
-  const pickFor = (role: FoeRole, prev: string[], duo = false) => { const c = by(role, duo); const same = prev.find((id) => c.includes(id)); return same && r.chance(0.7) ? same : r.pick(c); };
-  const ok = (t: SquadTpl, rem: number) => (t.from ?? 1) <= p && t.slots.length <= rem && t.slots.every((role, i) => by(role, t.kind === 'duo' && i === 0).length > 0)
+  const pickFor = (role: FoeRole, prev: string[], duo = false, noPack = false) => { const c = by(role, duo, noPack); const same = prev.find((id) => c.includes(id)); return same && r.chance(0.7) ? same : r.pick(c); };
+  const packKind = (k: SquadKind) => k === 'line' || k === 'fire' || k === 'ambush'; // 묶음 적이 들어갈 수 있는 분대
+  // 묶음 적 (EnemyDef.pack): 분대에 뽑히면 pack 기 묶음으로 (예산 CFG.squads.pack 명분). 남은 1명을 채울 때는 묶음 적을 고르지 않는다 (풀에 묶음 적이 없으면 아래 흐름은 예전과 같다)
+  const isPack = (id: string) => !!ENEMY_BY_ID[id].pack;
+  const single = (ids: string[]) => { const s = ids.filter((id) => !isPack(id)); return s.length ? s : ids; };
+  const packUp = (ids: string[], rem: number): { ids: string[]; cost: number } => {
+    const pk = ids.find(isPack);
+    if (!pk) return { ids, cost: ids.length };
+    const rest = ids.filter((id) => id !== pk), cost = rest.length + CFG.squads.pack;
+    if (cost <= rem) return { ids: [...Array(ENEMY_BY_ID[pk].pack!).fill(pk), ...rest], cost };
+    const alt = single(live.filter((id) => roleOf(ENEMY_BY_ID[id]) === roleOf(ENEMY_BY_ID[pk]))); // 예산이 모자라면 같은 역할의 다른 적으로
+    const out = ids.map((id) => (id === pk && !isPack(alt[0]) ? r.pick(alt) : id));
+    return { ids: out, cost: out.length };
+  };
+  const ok = (t: SquadTpl, rem: number) => (t.from ?? 1) <= p && t.slots.length <= rem && t.slots.every((role, i) => by(role, t.kind === 'duo' && i === 0, !packKind(t.kind)).length > 0)
     && !(t.kind === 'duo' && out.filter((x) => x.kind === 'duo').length >= duoMax);
   let rem = budget;
   while (rem > 0) {
@@ -1393,17 +1407,18 @@ function assembleSquads(r: Rng, field: string, pool: string[], p: number, budget
     const first = !out.some((x) => x.kind !== 'boss' && x.kind !== 'elite');
     if (rem >= 2 && cands.length) {
       const t = first && cands.some((x) => x.kind === 'line') && r.chance(0.6) ? cands.find((x) => x.kind === 'line')! : r.weighted(cands, (x) => x.w); // 첫 분대는 대개 전열 (60%)
-      const ids: string[] = [];
-      t.slots.forEach((role, i) => ids.push(pickFor(role, ids, t.kind === 'duo' && i === 0)));
+      const ids0: string[] = [];
+      t.slots.forEach((role, i) => ids0.push(pickFor(role, ids0, t.kind === 'duo' && i === 0, !packKind(t.kind))));
+      const { ids, cost } = packUp(ids0, rem);
       out.push({ kind: t.kind, name: squadName(field, t.kind), ids, ...(add ? { add: true } : {}) });
-      rem -= ids.length;
+      rem -= cost;
       continue;
     }
-    // 1명 남음 (또는 맞는 분대 없음): 더할 수 있는 분대에 1명 → 없으면 혼성
-    const grow = out.filter((x) => { const g = SQUADS.find((t) => t.kind === x.kind)?.grow; return g && x.ids.length < g.max && by(g.role).length && !!x.add === add; });
+    // 1명 남음 (또는 맞는 분대 없음): 더할 수 있는 분대에 1명 → 없으면 혼성 (묶음 분대는 더하지 않는다)
+    const grow = out.filter((x) => { const g = SQUADS.find((t) => t.kind === x.kind)?.grow; return g && x.ids.length < g.max && by(g.role).length && !!x.add === add && !x.ids.some(isPack); });
     // 분대가 적은 초반은 절반쯤 혼성 1명으로 (같은 분대만 커지지 않게)
-    if (grow.length && (out.length >= 3 || r.chance(0.5))) { const x = r.pick(grow), g = SQUADS.find((t) => t.kind === x.kind)!.grow!; x.ids.push(pickFor(g.role, x.ids)); }
-    else { const mx = out.find((x) => x.kind === 'mixed' && !!x.add === add); if (mx) mx.ids.push(r.pick(live.length ? live : pool)); else out.push({ kind: 'mixed', name: squadName(field, 'mixed'), ids: [r.pick(live.length ? live : pool)], ...(add ? { add: true } : {}) }); }
+    if (grow.length && (out.length >= 3 || r.chance(0.5))) { const x = r.pick(grow), g = SQUADS.find((t) => t.kind === x.kind)!.grow!; const c = single(by(g.role)); const same = x.ids.find((id) => c.includes(id)); x.ids.push(same && r.chance(0.7) ? same : r.pick(c)); }
+    else { const one = single(live.length ? live : pool), mx = out.find((x) => x.kind === 'mixed' && !!x.add === add); if (mx) mx.ids.push(r.pick(one)); else out.push({ kind: 'mixed', name: squadName(field, 'mixed'), ids: [r.pick(one)], ...(add ? { add: true } : {}) }); }
     rem--;
   }
 }
@@ -1666,6 +1681,7 @@ export function resolveBattle(run: RunState, b: Battle): BattleSummary {
     if (type === 'boss') lines.push(bossMustWin(run) ? '의뢰의 마지막 보스입니다 — 쓰러뜨려야 의뢰를 마칠 수 있습니다. 다시 맞붙습니다.' : '보스를 넘지 못했지만, 함대는 물러나 다음 페이즈로 항로를 이어 갑니다.');
   }
   if (b.mem.lootPay) { income += b.mem.lootPay; lines.push(`밀수품 회수 +${b.mem.lootPay}`); } // 밀수 운반책을 쓰러뜨림 (승패와 상관없이, CFG.foeKit.smuggler)
+  if (b.mem.betPay) { income += b.mem.betPay; lines.push(`베팅 적중 +${b.mem.betPay}`); } // 카지노 딜러 로봇 [베팅] (승패와 상관없이, CFG.fieldFoe.dealer)
   if (run.loan > 0) {
     const pay = Math.min(10, run.loan, run.credits + income);
     run.loan -= pay;

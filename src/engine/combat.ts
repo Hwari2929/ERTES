@@ -173,6 +173,13 @@ export interface Hooks {
   onDisplace?(b: Battle, self: CUnit, victim: CUnit, src: CUnit, kind: DisplaceKind): void;
   /** 받을 피해가 정해진 뒤, 일부를 다른 대상에게 넘긴다 (반환: 남은 피해) */
   redirect?(b: Battle, self: CUnit, src: CUnit, dmg: number, o: DmgOpts): number;
+  /** 같은 편 다른 기물(ally)이 받을 피해가 정해진 뒤 (redirect 다음): 대신 받기 · 줄이기 · 대신 쓰러지기 (반환: ally 가 받을 피해).
+   *  이 훅을 가진 기물은 Battle.add 때 Battle.guards 에 올라가고, 피해마다 같은 편 guards 만 본다 (없으면 아무것도 하지 않는다) */
+  guard?(b: Battle, self: CUnit, ally: CUnit, src: CUnit, dmg: number, o: DmgOpts): number;
+  /** 교란형: 같은 대상을 휩쓸고 지나갔을 때 (CFG.tend.disrupt.sweepHits 번 친 직후) */
+  onSweep?(b: Battle, self: CUnit, tgt: CUnit): void;
+  /** 호위형: 지킬 동료 후보 (true 인 동료 중 가장 많이 맞은 쪽을 먼저, 없으면 모든 동료에서) */
+  escortPref?(b: Battle, self: CUnit, ally: CUnit): boolean;
 }
 
 /** 강제 위치 변경 종류: 밀쳐내기 · 끌어당기기 · 그 밖의 강제 이동 (순간 이동 · 재배치) */
@@ -466,6 +473,8 @@ export class Battle {
   }
   /** 승패 판정에 세는 기물 (전장 장애물 inert 제외) */
   fighters(side: 0 | 1) { return this.units.filter((u) => u.alive && u.side === side && !u.mem.inert && !u.mem.decoy && !u.mem.feast); } // 유인 신호기 · 만찬 백수정도 빠진다
+  /** guard 훅을 가진 기물 (Battle.add 가 모은다): 같은 편이 받는 피해를 대신 받거나 줄인다 */
+  guards: CUnit[] = [];
   /** 칸에 숨겨 둔 함정 (감전 지뢰): side 의 적이 r칸 안에 들어오면 delay 초 뒤 fire. 기물이 아니라 칸을 막지 않는다 */
   traps: { x: number; y: number; side: 0 | 1; r: number; delay: number; at?: number; fire: (b: Battle) => void }[] = [];
   private tickTraps() {
@@ -606,9 +615,14 @@ export class Battle {
   tendCtx(u: CUnit): TendCtx {
     if (u.tend === 'escort') {
       let guard: CUnit | null = null, best = 0;
-      for (const a of this.units) {
-        if (a === u || !a.alive || a.mem.inert || this.sideOf(a) !== this.sideOf(u) || this.dist(a, u) > CFG.tend.escort.r) continue;
-        if (a.counters.taken > best) { best = a.counters.taken; guard = a; }
+      const pref = u.hooks.find((h) => h.escortPref)?.escortPref; // 지킬 동료 후보가 정해진 호위형 (그중 맞은 동료가 없으면 모든 동료에서)
+      for (const only of pref ? [true, false] : [false]) {
+        for (const a of this.units) {
+          if (a === u || !a.alive || a.mem.inert || this.sideOf(a) !== this.sideOf(u) || this.dist(a, u) > CFG.tend.escort.r) continue;
+          if (only && !pref!(this, u, a)) continue;
+          if (a.counters.taken > best) { best = a.counters.taken; guard = a; }
+        }
+        if (guard) break;
       }
       u.mem.guardId = guard?.id ?? 0; // 표시용 (전투 상세)
       return { guard };
@@ -849,7 +863,7 @@ export class Battle {
   emit(e: BEvent) { if (this.keepEvents) this.events.push(e); }
 
   // ───────── 생성
-  add(u: CUnit) { u.id = this.nextId++; this.units.push(u); if (u.mem.wall) this.wallsChanged(); return u; }
+  add(u: CUnit) { u.id = this.nextId++; this.units.push(u); if (u.mem.wall) this.wallsChanged(); if (u.hooks.some((h) => h.guard)) this.guards.push(u); return u; }
   spawn(u: CUnit, near: { x: number; y: number }) {
     const cell = this.freeCellNear(near.x, near.y);
     if (!cell) return null;
@@ -1004,11 +1018,12 @@ export class Battle {
     }
     if (u.moveT > 0) return;
     if ((u.mem.knockUntil || 0) > this.t) return; // 밀쳐내기 · 끌어당기기 직후 (CFG.knockStagger): 이동 · 기본 공격 · 기술 · 비술 · 궁극기 불가
+    if ((u.mem.holdUntil || 0) > this.t) return; // 제자리 대기 (상태이상 아님, 놀이터 아이들): 이동 · 기본 공격 · 기술을 하지 않는다 (쿨다운은 돈다)
 
     // 광폭: 피아 구분 없이 가장 가까운 대상
     const frenzy = this.frenzied(u);
     const confused = this.confused(u);
-    const ff = (frenzy && CFG.frenzyFriendly) || confused; // 광폭이 아군도 노리는지 (기본 true) · 혼란은 항상
+    const ff = (frenzy && CFG.frenzyFriendly && !u.mem.loyal) || confused; // 광폭이 아군도 노리는지 (기본 true, mem.loyal = 광폭이어도 같은 편은 치지 않는다) · 혼란은 항상
     const pool = () => (ff ? this.units.filter((x) => x.alive && x !== u && !this.hidden(x) && !x.mem.inert) : this.targetable(u));
     // 적: 도발 수치 + 성향으로 표적을 고른다 (광폭 · 혼란 · 매혹 중에는 예전 규칙)
     const provAI = !!u.prov && !ff && !u.mem.charmTo;
@@ -1124,6 +1139,7 @@ export class Battle {
     (u.swept ??= new Map()).set(t, this.t);
     u.mem.dsN = 0;
     u.mem.provT = 0;
+    for (const h of u.hooks) h.onSweep?.(this, u, t);
   }
 
   // ───────── 재장전 · 제어 효과
@@ -1410,6 +1426,14 @@ export class Battle {
     if ((tgt.mem.invulnUntil || 0) > this.t) dmg = 0; // 성전 돌입 무적
     if (dmg > 0 && this.fr?.absorb) dmg = Math.max(0, this.fr.absorb(this, src, tgt, dmg, o)); // 전장 조건 (보호막 겹 등)
     if (dmg > 0 && src !== tgt) for (const h of tgt.hooks) if (h.redirect) dmg = Math.max(0, h.redirect(this, tgt, src, dmg, o)); // 자아 분리
+    if (dmg > 0 && src !== tgt && this.guards.length) { // 같은 편이 대신 받기 · 줄이기 (guard 훅: 점막 포낭 · 태엽 집사 · 법무 대리인 · 애도 극장 배우 등)
+      const s = this.sideOf(tgt);
+      for (const g of this.guards) {
+        if (g === tgt || !g.alive || this.sideOf(g) !== s) continue;
+        for (const h of g.hooks) if (h.guard) dmg = Math.max(0, h.guard(this, g, tgt, src, dmg, o));
+        if (dmg <= 0 || !tgt.alive) break;
+      }
+    }
     // 피해 분담 (린디웨 특별경호팀)
     const sh = dmg > 0 && o.tag !== 'dot' ? tgt.statuses.find((s) => s.share && s.share !== tgt && s.share.alive) : undefined;
     if (sh) {
