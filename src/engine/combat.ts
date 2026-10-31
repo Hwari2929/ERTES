@@ -632,16 +632,18 @@ export class Battle {
     if (cur && best !== cur && bs < PROV.switchAt * this.provScore(u, cur, maxDmg, ctx)) return;
     u.target = best;
   }
+  /** 아군 기물의 시선을 끄는 교란형 적인지 (밀수 운반책은 교란형이어도 시선을 끌지 않는다) */
+  lures(e: CUnit) { return e.tend === 'disrupt' && e.defId !== 'mx_smuggler'; }
   /** 아군 기물이 표적을 고를 때의 점수: 보통 적은 가까울수록 (1 / (1 + 0.5 × 거리)), 사거리 + 1칸 안의 교란형 적은 ×CFG.tend.disrupt.lure */
   lureScore(u: CUnit, e: CUnit) {
     const d = this.dist(u, e);
-    return (e.tend === 'disrupt' && d <= this.S(u, 'range') + 1 ? CFG.tend.disrupt.lure : 1) / (1 + PROV.near * d);
+    return (this.lures(e) && d <= this.S(u, 'range') + 1 ? CFG.tend.disrupt.lure : 1) / (1 + PROV.near * d);
   }
   /** 아군 기물: 교란형 적에게 시선을 빼앗기는지 (지금 대상보다 점수가 높은 교란형 적이 있으면 그 적) */
   lured(u: CUnit, pool: CUnit[]): CUnit | null {
     const cur = u.target && u.target.alive ? this.lureScore(u, u.target) : 0;
     let best: CUnit | null = null, bs = cur;
-    for (const e of pool) if (e.tend === 'disrupt' && e !== u.target) { const sc = this.lureScore(u, e); if (sc > bs) { bs = sc; best = e; } }
+    for (const e of pool) if (this.lures(e) && e !== u.target) { const sc = this.lureScore(u, e); if (sc > bs) { bs = sc; best = e; } }
     return best;
   }
   taunter(u: CUnit): CUnit | null {
@@ -1023,7 +1025,7 @@ export class Battle {
       u.mem.lureT = (u.mem.lureT ?? 0) - dt;
       if (badT || u.mem.lureT <= 0) {
         u.mem.lureT = PROV.every;
-        if (this.units.some((e) => e.alive && e.tend === 'disrupt')) { const l = this.lured(u, pool()); if (l) u.target = l; }
+        if (this.units.some((e) => e.alive && this.lures(e))) { const l = this.lured(u, pool()); if (l) u.target = l; }
       }
     }
     // 명사수 기본 메커니즘: 1초마다 사거리 안에서 체력 비율이 가장 낮은 적으로 대상을 바꾼다 (아군 명사수, 외길 추적 · 광폭 · 매혹 제외)

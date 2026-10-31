@@ -1530,13 +1530,15 @@ export function genEncounter(run: RunState, type: NodeType, phase = run.phase): 
           if (z.w <= n && z.h <= rows) { sq.push({ kind: 'big', name: ENEMY_BY_ID[id].name, ids: [id] }); budget = Math.min(budget - B.cost, rows * n - 2 - z.w * z.h); }
         }
       }
-      assembleSquads(r, run.field, pool, p, Math.max(0, budget), sq);
+      // 보스 전투의 호위 · 증원은 전장 고유 적에서만 (공용 기믹 적 mx_* 제외, 고유 적이 없으면 풀 그대로)
+      const own = pool.filter((id) => !id.startsWith('mx_')), fpool = type === 'boss' && own.length ? own : pool;
+      assembleSquads(r, run.field, fpool, p, Math.max(0, budget), sq);
       // 밀수 운반책 (CFG.foeKit.smuggler): 일반 · 역경 전투에 따로 굴린 확률로 1기 더 (다른 적 구성의 난수 흐름은 그대로)
       const SM = CFG.foeKit.smuggler;
       if (type !== 'boss' && !run.tutorial && !run.lab && new Rng(((run.seed * 7 + p * 4099 + run.step * 337 + (type === 'adversity' ? 9973 : 0)) >>> 0) || 1).chance(SM.chance)) sq.push({ kind: 'ambush', name: ENEMY_BY_ID.mx_smuggler.name, ids: ['mx_smuggler'] });
       const used = sq.reduce((a, x) => a + x.ids.reduce((k, id) => k + (ENEMY_BY_ID[id].size ? ENEMY_BY_ID[id].size!.w * ENEMY_BY_ID[id].size!.h : 1), 0), 0); // 차지하는 칸 수
       add = Math.max(0, Math.min(diffAddCount(run.diff, p) + oathV(run, 'horde', 'add'), rows * n - 2 - used)); // 위험 등급 증원 + 군세의 서약 (보드 칸이 모자라면 들어가는 만큼)
-      if (add) assembleSquads(r, run.field, pool, p, add, sq, true);
+      if (add) assembleSquads(r, run.field, fpool, p, add, sq, true);
       enemies.push(...placeSquads(r, sq, n, rows, !!mapOf(map).surround));
       squads = sq.map((x) => ({ kind: x.kind, name: x.name, ...(x.add ? { add: true as const } : {}) }));
     }

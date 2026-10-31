@@ -903,7 +903,7 @@ export const ENEMIES: EnemyDef[] = [
         b.applyStatus(u, u, { type: 'buff', key: 'mx.overload', dur: 9999, taken: [{ kind: 'vuln', tag: 'all', v: K().aegis.taken }], mods: [{ kind: 'inc', tag: 'all', v: -K().aegis.weak }], label: '과부하' });
       },
     } },
-  // [소집] 시작에 징집병 2기, 12초마다 2기 (동시 4기). 징집병이 하나라도 있으면 받는 피해 −40%. 지휘관이 쓰러지면 징집병도 흩어진다
+  // [소집] 시작에 징집병 2기, 8초마다 2기 (동시 3기). 징집병이 하나라도 있으면 받는 피해 −20%. 지휘관이 쓰러지면 징집병도 흩어진다
   { id: 'mx_warden', name: '소집 지휘관', tend: 'escort', keywords: ['bio'], sprite: 'soldier', palette: MERC_ELITE, tier: 'elite', minPhase: 1,
     hp: 1000, power: 38, armor: 200, acc: 0.1, interval: 1.1, range: 3, atk: { type: 'shoot', elem: 'phys' }, melee: false,
     onTick: (b, u, dt) => {
@@ -977,12 +977,12 @@ export const ENEMIES: EnemyDef[] = [
   // 교란형 근접: 아군이 몰린 곳을 두 번씩 베고 지나간다. 피해는 낮고 회피가 높다 (명중 · 광역 · 경계로 붙잡기)
   { id: 'mx_skirm', name: '교란 척후병', tend: 'disrupt', keywords: ['bio'], sprite: 'knight', palette: MERC, tier: 'minion', minPhase: 1,
     hp: 300, power: 22, armor: 70, eva: 0.1, interval: 0.8, range: 1, moveSpd: 1.2, atk: { type: 'strike', elem: 'phys' }, melee: true },
-  // 밀수 운반책: 공격하지 않고 달아난다. 18초가 지나거나 동료가 다 쓰러지고 5초가 지나면 빠져나간다 (보상 없음). 그 전에 쓰러뜨리면 크레딧
+  // 밀수 운반책: 공격하지 않고 달아난다. 18초 (+페이즈마다 3초)가 지나거나 동료가 다 쓰러지고 5초가 지나면 빠져나간다 (보상 없음). 그 전에 쓰러뜨리면 크레딧
   { id: 'mx_smuggler', name: '밀수 운반책', tend: 'disrupt', keywords: ['bio'], sprite: 'beast', palette: SMUG, tier: 'minion', minPhase: 99,
     hp: 220, power: 10, armor: 40, interval: 9, range: 1, moveSpd: 0.9, atk: { type: 'strike', elem: 'phys' }, melee: true, noAttack: true,
     onTick: (b, u) => {
       const S = K().smuggler;
-      if (!u.mem.bounty) { u.mem.bounty = S.credBase + S.credPer * b.ctx.phase; u.mem.escAt = S.escape; }
+      if (!u.mem.bounty) { u.mem.bounty = S.credBase + S.credPer * b.ctx.phase; u.mem.escAt = S.escape + S.escPer * Math.max(0, b.ctx.phase - 1); }
       if (!u.mem.alone && !b.fighters(1).some((x) => x !== u && x.defId !== 'mx_smuggler')) { u.mem.alone = 1; u.mem.escAt = Math.min(u.mem.escAt, b.t + S.alone); }
       if (b.t >= u.mem.escAt) { u.alive = false; b.emit({ k: 'status', id: u.id, name: '탈출' }); b.emit({ k: 'die', id: u.id }); b.checkEnd(); return; }
       runAway(b, u);

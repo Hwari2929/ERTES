@@ -121,7 +121,7 @@ export const FIELDS: FieldDef[] = [
     id: 'waste', name: '황무지 성계', region: '무법 변경 · 약탈자 항로', icon: '☠', color: '#b08a5a',
     desc: '어느 세력의 깃발도 닿지 않는 변경. 약탈 함대와 공허의 잔향이 떠돈다. 대신 주인 없는 물자도 많다.',
     rules: ['무법지대: 3페이즈부터 일반 전투 적 +1, 전투 재료 드랍 확률 ×2', '물자 부족: 상점 가격 +10%', '범은하 공동체 기물 피해 +20%'],
-    pool: ['raider', 'gunner', 'drone', 'crawler', 'trooper', 'turret', 'wraith', 'priest', 'mx_aegis', 'mx_stim', 'mx_skirm', 'mx_shade', 'mx_sapper', 'mx_bastion', 'mx_rampart'], elite: 'warlord', elites: ['mx_warden'], bosses: ['varga', 'goliath', 'nyx'],
+    pool: ['raider', 'gunner', 'drone', 'crawler', 'trooper', 'turret', 'wraith', 'priest', 'mx_stim', 'mx_skirm', 'mx_sapper', 'mx_bastion'], elite: 'warlord', elites: ['mx_warden'], bosses: ['varga', 'goliath', 'nyx'],
     enemyMod: (c) => threat(c, 0.88),
     ally: { syn: 'PAN', effect: { mods: [inc('all', 0.2)] } },
     dropMul: 2, shopMul: 1.1, extraEnemies: 1, extraFrom: 3,

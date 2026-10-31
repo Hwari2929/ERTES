@@ -96,17 +96,17 @@ export const CFG = {
    *  stim 각성제 강습병: 시작부터 [각성] 공격 속도 +atkSpd · 피해 +dmg. hits 번 맞으면 calm 초 동안 [각성] 해제 (그 뒤 다시 각성)
    *  shade 광학 위장 저격수: 전투 시작 hide 초 은신 · 체력 low 아래로 처음 떨어지면 hideLow 초 은신
    *  sapper 야전 공병: first 초 뒤부터 every 초마다 방벽 · 자동 포탑을 번갈아 세운다 (공병 1명당 동시 cap 개, 앞쪽 2칸 안 빈칸)
-   *  smuggler 밀수 운반책: 일반 · 역경 전투에 chance 확률로 1기 더 (보스 · 캠페인 · 튜토리얼 제외). 공격하지 않고 아군 기물에게서 달아난다.
-   *    escape 초가 지나거나 다른 적이 모두 쓰러지고 alone 초가 지나면 빠져나가고 (보상 없음), 그 전에 쓰러뜨리면 승패와 상관없이 크레딧 +(credBase + credPer × 페이즈)
+   *  smuggler 밀수 운반책: 일반 · 역경 전투에 chance 확률로 1기 더 (보스 · 캠페인 · 튜토리얼 제외). 공격하지 않고 아군 기물에게서 달아난다. 교란형이지만 아군 기물의 시선은 끌지 않는다.
+   *    (escape + escPer × (페이즈 − 1)) 초가 지나거나 다른 적이 모두 쓰러지고 alone 초가 지나면 빠져나가고 (보상 없음), 그 전에 쓰러뜨리면 승패와 상관없이 크레딧 +(credBase + credPer × 페이즈)
    *  big 대형 적 (2×2 · 1×3): 한 기물이 여러 칸을 차지하고 체력을 나눠 쓴다. 본체 칸 받는 피해 ×core · 나머지 칸 ×part.
    *    풀에 대형 적이 있는 전장의 일반 · 역경 전투에 chance 확률로 1기 (적 수 예산 cost 명분) */
   foeKit: {
     aegis: { shield: 1, taken: 0.5, weak: 0.5 },
-    warden: { n: 2, every: 12, cap: 4, red: 0.4 },
+    warden: { n: 2, every: 8, cap: 3, red: 0.2 },
     stim: { atkSpd: 0.5, dmg: 0.25, hits: 4, calm: 5 },
     shade: { hide: 5, low: 0.5, hideLow: 3 },
     sapper: { first: 3, every: 8, cap: 2 },
-    smuggler: { chance: 0.15, escape: 18, alone: 5, credBase: 2, credPer: 1 },
+    smuggler: { chance: 0.15, escape: 18, escPer: 3, alone: 5, credBase: 2, credPer: 1 },
     big: { core: 1, part: 0.5, chance: 0.35, cost: 2 },
   },
   /** 돌격가 경계 (아군 돌격가만, 적 쪽 경계는 없다): 아군 돌격가 주변 r칸. 적이 경계 칸에 들어오면 그 자리에서 hold 초 동안 움직이지 못한다

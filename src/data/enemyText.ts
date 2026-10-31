@@ -127,5 +127,5 @@ export const ENEMY_DESC: Record<string, string> = {
   mx_sentry: '야전 공병이 세운 사거리 3 자동 포탑. 공병이 쓰러지면 무너진다.',
   mx_bastion: `대형 (2×2) · 고정형. 사거리 5 포격, 맞은 칸 주변 1칸에 40%. 4칸이 같은 체력을 나눠 쓴다 (본체 칸 받는 피해 ×${K.big.core} · 나머지 칸 ×${K.big.part}, 광역 피해는 칸마다 들어간다). 2페이즈부터.`,
   mx_rampart: `대형 (1×3) · 고정형. 앞줄을 가로막는 사거리 2 방벽 전차. 3칸이 같은 체력을 나눠 쓴다 (본체 칸 받는 피해 ×${K.big.core} · 나머지 칸 ×${K.big.part}). 2페이즈부터.`,
-  mx_smuggler: `일반 · 역경 전투에 ${pc(K.smuggler.chance)} 확률로 끼어든다. 공격하지 않고 아군에게서 달아난다. ${K.smuggler.escape}초가 지나거나 다른 적이 모두 쓰러지고 ${K.smuggler.alone}초가 지나면 빠져나간다. 그 전에 쓰러뜨리면 승패와 상관없이 크레딧 +(${K.smuggler.credBase} + ${K.smuggler.credPer} × 페이즈).`,
+  mx_smuggler: `일반 · 역경 전투에 ${pc(K.smuggler.chance)} 확률로 끼어든다. 공격하지 않고 아군에게서 달아나며, 교란형이지만 아군의 시선은 끌지 않는다. ${K.smuggler.escape}초 (2페이즈부터 페이즈마다 +${K.smuggler.escPer}초)가 지나거나 다른 적이 모두 쓰러지고 ${K.smuggler.alone}초가 지나면 빠져나간다. 그 전에 쓰러뜨리면 승패와 상관없이 크레딧 +(${K.smuggler.credBase} + ${K.smuggler.credPer} × 페이즈).`,
 };
