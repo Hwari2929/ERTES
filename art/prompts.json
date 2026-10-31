@@ -1889,5 +1889,299 @@
   "tags": "sneaky smuggler, oversized backpack stuffed with gold credit chips and crates, hood, running away pose, glancing back, full body, mob character, faceless, eyes not visible, face covered by scarf and goggles",
   "source": "enemy",
   "notes": "공용 기믹 적 (mx_*) · 모브 페이스"
+ },
+ "en_sw_cargo": {
+  "name": "감염 화물 드론",
+  "subject": "no humans",
+  "tags": "cargo quadcopter drone carrying a shipping crate, infected by alien biomass, pulsating fleshy growths and tendrils on the metal frame, spore sacs, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_sw_cyst": {
+  "name": "점막 포낭",
+  "subject": "no humans",
+  "tags": "giant pulsating mucous membrane cyst, translucent fleshy sac rooted to the ground, visible veins, dripping slime, alien biomass nest, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_sw_synapse": {
+  "name": "신경 동조체",
+  "subject": "no humans",
+  "tags": "floating alien nerve cluster creature, glowing neuron tendrils, brain-like bioluminescent organism, dangling filaments, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_cr_bats": {
+  "name": "혈익 박쥐 떼",
+  "subject": "no humans",
+  "tags": "swarm of crimson vampire bats, blood red wings, glowing red eyes, flock flying together, gothic, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_cr_valet": {
+  "name": "태엽 집사",
+  "subject": "1other",
+  "tags": "clockwork automaton butler, exposed brass gears, black tailcoat, white gloves, porcelain mask face, wind-up key on the back, gothic mansion servant, full body, standing, bowing slightly",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_cr_starved": {
+  "name": "굶주린 혈족의 망령",
+  "subject": "1other",
+  "tags": "emaciated vampire ghost, translucent pale crimson spectre, gaunt hollow cheeks, long claws, tattered noble clothes, floating, starving, eerie glow, full body, faceless, eyes not visible",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_sp_aspis": {
+  "name": "아스피스 방패 드론",
+  "subject": "no humans",
+  "tags": "hovering shield drone shaped like a round bronze greek aspis shield, lambda emblem, small thrusters, faint energy field, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_sp_peltast": {
+  "name": "펠타스트 경보병",
+  "subject": "1boy",
+  "tags": "greek peltast light skirmisher, crescent wicker shield, bundle of javelins, light tunic with sci-fi armor pieces, javelin throwing pose, full body, mob character, faceless, eyes not visible, face covered by bronze helmet",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_sp_agoge": {
+  "name": "아고게 전사",
+  "subject": "1boy",
+  "tags": "young spartan trainee warrior, red cloak, short spear and round bronze shield, lean muscular, fighting stance, full body, mob character, faceless, eyes not visible, face covered by corinthian helmet",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_pt_crate": {
+  "name": "격리 컨테이너",
+  "subject": "no humans",
+  "tags": "corporate quarantine containment container, steel crate with hazard stripes, biohazard warning symbols, glowing seal lock, dents from something banging inside, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_pt_counsel": {
+  "name": "법무 대리인",
+  "subject": "1boy",
+  "tags": "corporate lawyer, sharp black business suit, briefcase, holding up legal documents like a shield, objection pose, full body, mob character, faceless, eyes not visible, shadowed face",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_pt_temp": {
+  "name": "하청 경비 용역",
+  "subject": "1boy",
+  "tags": "subcontracted security guard, cheap ill-fitting uniform, reflective safety vest, baton and riot shield, tired slouching posture, full body, mob character, faceless, eyes not visible, face covered by helmet visor",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_ws_rider": {
+  "name": "고철 질주병",
+  "subject": "1boy",
+  "tags": "wasteland raider riding a scrap-built motorbike, spiked scrap metal armor, chains, dust trail, dynamic pose, full body, mob character, faceless, eyes not visible, face covered by gas mask and goggles",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_ws_hyena": {
+  "name": "고철 하이에나",
+  "subject": "no humans",
+  "tags": "robotic hyena made of scrap metal, rusty welded plates, exposed wires, single glowing red eye, snarling, quadruped, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_ws_watch": {
+  "name": "고철 망루",
+  "subject": "no humans",
+  "tags": "scrap metal watchtower, rusted corrugated sheet metal, sniper nest platform, ladder, spotlight, barbed wire, wasteland, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_cf_mower": {
+  "name": "무인 잔디깎이",
+  "subject": "no humans",
+  "tags": "autonomous robotic lawn mower, spinning blades, cheerful paint chipped, uncanny suburban, sepia tones, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_cf_kids": {
+  "name": "놀이터 아이들",
+  "subject": "multiple others",
+  "tags": "three uncanny suburban children holding hands, matching old-fashioned sunday clothes, faces hidden by paper bag masks, sepia tones, eerie, full body, mob character, faceless",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_cf_shrine": {
+  "name": "성도회 성물함",
+  "subject": "no humans",
+  "tags": "ornate church reliquary box on a stand, gilded, lit candles, glowing sacred relic, small suburban chapel, sepia tones, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_lv_ketzal": {
+  "name": "케찰급 프리버드",
+  "subject": "no humans",
+  "tags": "feathered serpent creature, quetzal bird-like alien, iridescent green plumage, long tail feathers, wings spread, monster, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_lv_fumig": {
+  "name": "오작동 방역 드론",
+  "subject": "no humans",
+  "tags": "malfunctioning fumigation drone, spraying green disinfectant mist, sparks, hazard markings, quadcopter with chemical tank, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_lv_egg": {
+  "name": "프리버드 둥지 알",
+  "subject": "no humans",
+  "tags": "large alien egg in a nest of twigs and biomass, cracking shell, glowing from inside, iridescent speckles, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_rd_guardian": {
+  "name": "보호자 등급 폭주자",
+  "subject": "1boy",
+  "tags": "rampaging cyborg bodyguard, heavy cybernetic arms, torn black suit, glitching neon implants, protective stance, full body, mob character, faceless, eyes not visible, face covered by cracked visor",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_rd_phase": {
+  "name": "위상 붕괴 잔상",
+  "subject": "1other",
+  "tags": "glitch afterimage ghost, phase-shifted human silhouette, neon cyan and magenta, datamosh distortion, translucent, full body, faceless, eyes not visible",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_rd_billboard": {
+  "name": "홀로그램 광고판",
+  "subject": "no humans",
+  "tags": "holographic advertisement billboard, neon frame, glitching floating hologram ad, cyberpunk street structure, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_kr_mourner": {
+  "name": "서사에 감염된 조문객",
+  "subject": "1girl",
+  "tags": "mourner in black funeral clothes, holding a white chrysanthemum, ink-like tendrils crawling out of the body, full body, mob character, faceless, eyes not visible, face covered by black veil",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_kr_papers": {
+  "name": "끝없는 서류탑",
+  "subject": "no humans",
+  "tags": "towering stack of paperwork documents, swirling loose papers, ink stamps, bureaucratic, endless file tower, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_kr_actor": {
+  "name": "애도 극장 배우",
+  "subject": "1other",
+  "tags": "ghostly theater actor, translucent spectre, white tragedy mask, ruffled stage costume, dramatic pose, floating, full body, faceless",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_ol_cell": {
+  "name": "축전 셀 운반기",
+  "subject": "no humans",
+  "tags": "electric battery cell carrier robot, crawler treads, large glowing capacitor cylinder, white marble and gold plating, electric arcs, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_ol_zealot": {
+  "name": "흑운 숭배자",
+  "subject": "1boy",
+  "tags": "cultist in black hooded robe, dark storm cloud motifs, lightning sigils, ceremonial staff, greek style, full body, mob character, faceless, eyes not visible, face hidden in hood shadow",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_ol_cleric": {
+  "name": "성관 수비 사제",
+  "subject": "1girl",
+  "tags": "temple guardian priest, white and gold greek robes, lightning rod staff absorbing electricity, full body, mob character, faceless, eyes not visible, face covered by golden veil",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_cw_sweeper": {
+  "name": "청소 유닉스",
+  "subject": "no humans",
+  "tags": "boxy cleaning service robot, mop and brush arms, deploying barricade panels, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_cw_cats": {
+  "name": "야생화된 고양이 떼",
+  "subject": "no humans",
+  "tags": "group of three feral stray cats, hissing, scruffy fur, glowing eyes, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_cw_hunter": {
+  "name": "회수 현상금 사냥꾼",
+  "subject": "1boy",
+  "tags": "bounty hunter, long coat, long-barreled rifle, net launcher, wanted posters, full body, mob character, faceless, eyes not visible, face covered by mask and wide-brim hat",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_hy_dealer": {
+  "name": "카지노 딜러 로봇",
+  "subject": "1other",
+  "tags": "casino dealer robot, sleek android croupier, vest and bow tie, dealing cards, poker chips, gold and red neon, monitor head displaying a card suit, full body, standing",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_hy_adjuster": {
+  "name": "손해사정인",
+  "subject": "1boy",
+  "tags": "insurance claims adjuster, grey suit, clipboard and tablet, measuring tape, full body, mob character, faceless, eyes not visible, eyes hidden by glasses glare",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_hy_robber": {
+  "name": "실패한 강도의 망령",
+  "subject": "1other",
+  "tags": "ghost of a failed casino robber, translucent spectre, ski mask, bag of money, ghostly green glow, floating, full body, faceless",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안"
+ },
+ "en_bs_salt": {
+  "name": "소금 결정 기둥",
+  "subject": "no humans",
+  "tags": "salt crystal pillar, white jagged crystals, sparkling, salt flat by a briny sea, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_bs_jelly": {
+  "name": "떠도는 촉수 해파리",
+  "subject": "no humans",
+  "tags": "floating jellyfish, long stinging tentacles, translucent bell, bioluminescent, drifting in the air, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
+ },
+ "en_bs_sentry": {
+  "name": "재활 시설 보안 드론",
+  "subject": "no humans",
+  "tags": "security drone of an old wildlife rehabilitation facility, worn white casing, faded paw print logo, searchlight, rust, flying, no humans",
+  "source": "enemy",
+  "notes": "전장 고유 적 · 시안",
+  "object": true
  }
 }
