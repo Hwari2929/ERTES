@@ -19,7 +19,7 @@ const ids = flag('--all') ? Object.keys(prompts) : args.filter((a, i) => !a.star
 const alt = opt('--alt');
 const count = Math.max(1, Math.min(8, Number(opt('--n')) || 1));
 
-// Anlas 보호: Portrait(832×1216) · 28스텝 이하 · 1장만 허용
+// Anlas 보호: Portrait(832×1216) 크기까지만 · 29스텝 (그보다 크면 막는다)
 // 무료 생성이 막힌 계정: 무료 범위(28스텝 이하)를 벗어나야 Anlas 로 생성된다. 기본은 29스텝.
 if (!flag('--free')) cfg.steps = Math.max(cfg.steps, 29);
 if (cfg.width * cfg.height > 832 * 1216 || cfg.steps > 29) {

@@ -1297,7 +1297,7 @@ export const ENEMIES: EnemyDef[] = [
     hooks: { onStart: (_b, u) => { u.mem.loyal = 1; } } }, // 광폭이어도 같은 편을 치지 않는다 (combat.ts act)
   { id: 'rd_phase', name: '위상 붕괴 잔상', tend: 'pack', keywords: ['phantom'], sprite: 'phantom', palette: PHASE, tier: 'minion', minPhase: 2,
     hp: 300, power: 26, armor: 40, eva: 0.15, interval: 0.9, range: 1, moveSpd: 1.2, atk: { type: 'strike', elem: 'psy' }, melee: true },
-  // 6초마다 가장 가까운 아군 앞 칸에 가짜 적 홀로그램 (교란형 · 체력 1 · 공격하지 않음): 아군이 교란형 적처럼 먼저 노린다 (Battle.lures)
+  // CFG.fieldFoe.billboard.every 초마다 가장 가까운 아군 앞 칸에 가짜 적 홀로그램 (교란형 · 체력 1 · 공격하지 않음): 아군이 교란형 적처럼 먼저 노린다 (Battle.lures)
   { id: 'rd_billboard', name: '홀로그램 광고판', tend: 'sniper', keywords: ['struct'], sprite: 'turret', palette: BILLBOARD, tier: 'minion', minPhase: 2,
     hp: 700, power: 0, armor: 180, interval: 9, range: 0, immobile: true, atk: { type: 'strike', elem: 'elec' }, melee: false, noAttack: true,
     onTick: (b, u, dt) => {
