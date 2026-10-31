@@ -243,11 +243,11 @@ export function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null,
         <div class="pr-bar">${r !== null ? `<i style="left:${(r + 100) / 2}%"></i><b style="left:${(r + 100) / 2}%">${Math.round(r)}</b>` : ''}</div>
         <div class="pr-ends"><span class="lo">${lineIcon('a.power', 'li')}${esc(sc.low)}</span><span class="hi">${esc(sc.high)}${lineIcon('a.shield', 'li')}</span></div>
         ${fz ? '<span class="pr-fz">광폭</span>' : ''}</div>`);
-      // 전공 증강: 4칸 슬롯
-      const slots = [0, 1, 2, 3].map((i) => {
+      // 전공 증강: 칸마다 고르는 등급 (CFG.psiEvery · psiAugMax — 예전에는 5 · 10 · 15 · 20 으로 잘못 적혀 있었다)
+      const slots = psiAugRanks().map((rk, i) => {
         const a = mine[i];
         if (a) return `<button class="tt-ic ab-click${abilOn(`aug:${a.id}`)}" data-a="abil-pop" data-v="aug:${esc(a.id)}" title="${esc(AUG_BY_ID[a.id]?.name || a.id)}">${augIcon(a.id)}</button>`;
-        return `<span class="ps-slot" title="${[5, 10, 15, 20][i]}등급">${[5, 10, 15, 20][i]}</span>`;
+        return `<span class="ps-slot" title="${rk}등급">${rk}</span>`;
       }).join('');
       body.push(`<div class="tt-row ps-augs"><span class="tt-k">전공 증강</span><div class="tt-icons">${slots}</div></div>`);
       if (!u) { // 보유 기물은 고른 증강만 (남은 후보 목록은 상세 보기에서도 띄우지 않는다)

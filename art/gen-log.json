@@ -8579,5 +8579,192 @@
     "time": "2026-10-31T15:53:21.408Z",
     "prompt": "::1.6::black cat dashing in zigzag streaks across a midnight room, six claw slashes, glowing eyes, moonlight::, deep purple and silver color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
     "file": "art/icons/cand/ult.mingki/v1-2846630747.png"
+  },
+  {
+    "id": "ult.donovan",
+    "alt": "v2",
+    "kind": "icon",
+    "style": "E",
+    "seed": 2033271995,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:53:36.408Z",
+    "prompt": "::1.6::razor-thin monomolecular wire threads slicing through four marked targets in a row, black feathers scattering, crimson critical flashes::, silver and crimson color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.donovan/v2-2033271995.png"
+  },
+  {
+    "id": "ult.lars",
+    "alt": "v2",
+    "kind": "icon",
+    "style": "E",
+    "seed": 1387445331,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:53:44.176Z",
+    "prompt": "::1.6::golden fountain pen nib piercing a contract that bursts into binding chains, credit coins scattering::, gold and teal color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.lars/v2-1387445331.png"
+  },
+  {
+    "id": "ult.kairo",
+    "alt": "v2",
+    "kind": "icon",
+    "style": "E",
+    "seed": 3665258012,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:54:00.887Z",
+    "prompt": "::1.6::sniper scope crosshair with three piercing bullet holes in a triangle, golden treble clef, armor-piercing shockwave::, gold and crimson color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.kairo/v2-3665258012.png"
+  },
+  {
+    "id": "ult.bianca",
+    "alt": "v2",
+    "kind": "icon",
+    "style": "E",
+    "seed": 3508217233,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:54:17.461Z",
+    "prompt": "::1.6::healing cross burst of light over a monstrous beast heart in a cracked specimen jar::, pale teal and crimson color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.bianca/v2-3508217233.png"
+  },
+  {
+    "id": "ult.phyllis",
+    "alt": "v2",
+    "kind": "icon",
+    "style": "E",
+    "seed": 1080258987,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:54:30.884Z",
+    "prompt": "::1.6::spinning wrench leaving a chain of glowing rift portals, playful cat ears shadow, sparkles::, gold and violet color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.phyllis/v2-1080258987.png"
+  },
+  {
+    "id": "ult.aiden",
+    "alt": "v2",
+    "kind": "icon",
+    "style": "E",
+    "seed": 213490283,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:54:43.765Z",
+    "prompt": "::1.6::sleek liquid metal cat leaping out of a whirling storm of silver blades, glowing eyes::, silver and pale teal color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.aiden/v2-213490283.png"
+  },
+  {
+    "id": "ult.amundsen",
+    "alt": "v2",
+    "kind": "icon",
+    "style": "E",
+    "seed": 2325358372,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:54:52.001Z",
+    "prompt": "::1.6::massive starship broadside battery firing a full salvo, row of muzzle flashes::, orange and red color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.amundsen/v2-2325358372.png"
+  },
+  {
+    "id": "ult.bjorn",
+    "alt": "v2",
+    "kind": "icon",
+    "style": "E",
+    "seed": 2965114375,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:55:03.896Z",
+    "prompt": "::1.6::electric harpoon chain wrapping into a glowing protective dome, lifebuoy ring, sea spray::, cyan and white color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.bjorn/v2-2965114375.png"
+  },
+  {
+    "id": "ult.winter",
+    "alt": "v2",
+    "kind": "icon",
+    "style": "E",
+    "seed": 1213535956,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:55:22.393Z",
+    "prompt": "::1.6::giant syringe injecting glowing serum into a protective quarantine dome, DNA double helix::, pale teal and toxic green color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.winter/v2-1213535956.png"
+  },
+  {
+    "id": "ult.mao",
+    "alt": "v2",
+    "kind": "icon",
+    "style": "E",
+    "seed": 8296475,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:55:32.331Z",
+    "prompt": "::1.6::last order bell beside a tower of champagne glasses overflowing with glowing neon drink::, cyan and pink color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.mao/v2-8296475.png"
+  },
+  {
+    "id": "ult.siu",
+    "alt": "v2",
+    "kind": "icon",
+    "style": "E",
+    "seed": 2226181362,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:55:50.823Z",
+    "prompt": "::1.6::armillary sphere releasing a torrent of falling toxic starlight, constellation lines::, toxic green and deep blue color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.siu/v2-2226181362.png"
+  },
+  {
+    "id": "ult.clover",
+    "alt": "v2",
+    "kind": "icon",
+    "style": "E",
+    "seed": 1405421001,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:56:03.300Z",
+    "prompt": "::1.6::swarm of agricultural drones dropping fire bombs on a field, ring of spreading flames::, orange and leaf green color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.clover/v2-1405421001.png"
+  },
+  {
+    "id": "ult.mingki",
+    "alt": "v2",
+    "kind": "icon",
+    "style": "E",
+    "seed": 617524359,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:56:13.798Z",
+    "prompt": "::1.6::cat silhouette bouncing between walls with motion blur afterimages under a nebula night sky::, violet and gold color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.mingki/v2-617524359.png"
+  },
+  {
+    "id": "ult.donovan",
+    "alt": "v3",
+    "kind": "icon",
+    "style": "E",
+    "seed": 2034154037,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:56:24.919Z",
+    "prompt": "::1.6::mechanical crow swooping with electric sparks behind a dark hunter's wire slash, night hunt, crescent moon::, crimson and electric blue color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.donovan/v3-2034154037.png"
+  },
+  {
+    "id": "ult.lars",
+    "alt": "v3",
+    "kind": "icon",
+    "style": "E",
+    "seed": 3236089325,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:56:36.618Z",
+    "prompt": "::1.6::ornate trade seal slamming onto a ledger, ring of credit coins and chain links pressing down::, teal and gold color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.lars/v3-3236089325.png"
+  },
+  {
+    "id": "ult.kairo",
+    "alt": "v3",
+    "kind": "icon",
+    "style": "E",
+    "seed": 2309313437,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:56:50.443Z",
+    "prompt": "::1.6::elegant engraved sniper rifle beside a ticking metronome, three piercing beams crossing the frame::, silver and crimson color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.kairo/v3-2309313437.png"
+  },
+  {
+    "id": "ult.bianca",
+    "alt": "v3",
+    "kind": "icon",
+    "style": "E",
+    "seed": 978376282,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-10-31T15:57:05.114Z",
+    "prompt": "::1.6::surgical operating lamp shining down with healing cross particles and stitched bandages unrolling::, white and pale teal color scheme, game skill icon, ability icon, square composition, full bleed, no frame, no border, no humans, stylized vfx painting, clear readable main object, dynamic diagonal composition, motion lines, glow accents, dark vignette edges, monochromatic palette, soft painterly shading, smooth gradients, clean shapes, cel shading, stylized fantasy vfx, high contrast, best quality, masterpiece, highres",
+    "file": "art/icons/cand/ult.bianca/v3-978376282.png"
   }
 ]
