@@ -24,6 +24,7 @@ npm run -s offline         # 일러스트 내장 단독 파일
 npm run sim -- 40          # 헤드리스 봇 시뮬레이션 40판 (뒤에 fields / units 를 붙이면 전장별 · 기물별 집계)
 npm run -s syn-doc         # docs/SYNERGY_TABLE.md 다시 생성
 npm run -s events-doc      # docs/EVENTS.md 다시 생성
+npm run -s tut-doc         # docs/TUTORIAL_SCRIPT.md 다시 생성
 npm run -s banter          # docs/banter/*.md → src/data/bar/banter.gen.ts (바 허브 만담)
 npm run -s map-metrics     # 지형 틀 측정 (check 에 들어가지 않음)
 ```
@@ -74,7 +75,7 @@ NovelAI 생성 스크립트는 환경 변수 `NOVELAI_TOKEN`이 필요하고, �
 |---|---|
 | 기획 · 규칙 (현행) | [`docs/GDD.md`](docs/GDD.md), [`docs/ENEMIES.md`](docs/ENEMIES.md) (적 개념 · 기믹 적 표), [`docs/TARGETING.md`](docs/TARGETING.md) (적 표적 규칙), [`docs/UI.md`](docs/UI.md) (UI 지침), [`docs/ABILITY_TEXT.md`](docs/ABILITY_TEXT.md) (능력 설명 작문) |
 | 글쓰기 (현행) | [`docs/SCENES.md`](docs/SCENES.md) (사건 연출, 3차 지침 우선), [`docs/VOICES.md`](docs/VOICES.md) (인물 말투), [`docs/BANTER.md`](docs/BANTER.md) + `docs/banter/` (바 허브 만담) |
-| 데이터에서 생성 | `SYNERGY_TABLE.md` (`npm run syn-doc`), `EVENTS.md` (`npm run events-doc`), `TUTORIAL_SCRIPT.md`, `MOTIFS.md`. 손으로 고치지 말고 원본 데이터를 고친 뒤 다시 만듭니다 |
+| 데이터에서 생성 | `SYNERGY_TABLE.md` (`npm run syn-doc`), `EVENTS.md` (`npm run events-doc`), `TUTORIAL_SCRIPT.md` (`npm run tut-doc`), `MOTIFS.md`. 손으로 고치지 말고 원본 데이터를 고친 뒤 다시 만듭니다 |
 | 도구 (현행) | [`docs/TOOLS.md`](docs/TOOLS.md) (검사 · 시뮬레이터 · 밸런스 측정 관례), [`docs/ART_PIPELINE.md`](docs/ART_PIPELINE.md) (그림 생성 · 반영 · 게시) |
 | 밸런스 · 봇 (기록) | 최신 `docs/BALANCE_2026_10_30_v457.md`, 그 밖의 `BALANCE_*` · `BOT_*` · `BUILD_GUIDE.md` — 측정 당시 규칙 기준 |
 | 설계 초안 · 보관 (기록) | `REWORK.md` · `*_DRAFT.md` · `SYNERGY_PLAN.md` · 루트 `SKILL_SPLIT_CHANGES.md`, `docs/archive/` · `archive/` |

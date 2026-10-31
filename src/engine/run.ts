@@ -396,7 +396,7 @@ export function addUnit(run: RunState, defId: string, rank: number): UnitState {
   run.units.push(u);
   if (!run.usedIds.includes(defId)) run.usedIds.push(defId);
   run.rankLog[defId] = Math.max(run.rankLog[defId] || 0, 1);
-  // 스페셜: 합류할 때 전용 증강 1개 · 사이오닉: 합류할 때 학파 1개 (다른 유형은 합류 선택 없음)
+  // 스페셜: 합류할 때 전용 증강 1개 · 사이오닉: 합류할 때 학파 1개 (메이저 · 디바인은 합류 선택 없음)
   if (UNIT_BY_ID[defId].ttype === 'special') run.pending.push({ t: 'rankup', uid: u.uid, rank: 1, points: 0, options: null, rerolls: CFG.augmentRerolls, allocDone: true, join: true, kind: 'special' });
   if (UNIT_BY_ID[defId].ttype === 'psionic') run.pending.push({ t: 'rankup', uid: u.uid, rank: 1, points: 0, options: null, rerolls: 0, allocDone: true, join: true, kind: 'school' });
   if (UNIT_BY_ID[defId].ttype === 'divine') u.relic = DEFAULT_RELIC[defId]; // 기본 성유물

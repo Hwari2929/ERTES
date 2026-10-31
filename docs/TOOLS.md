@@ -24,6 +24,7 @@
 | `npm run sim -- [런 수] [fields\|ult\|units]` | `tests/sim.ts` 헤드리스 시뮬 (단순 봇, 6절) |
 | `npm run -s syn-doc` | `tests/syndoc.ts` → `docs/SYNERGY_TABLE.md` 다시 쓰기 |
 | `npm run -s events-doc` | `tests/eventdoc.ts` → `docs/EVENTS.md` 다시 쓰기 (사건 일람, 손으로 고치지 않는다) |
+| `npm run -s tut-doc` | `tests/tutorial_doc.ts` → `docs/TUTORIAL_SCRIPT.md` 다시 쓰기 (튜토리얼 대본 읽기용 사본, 원본 `src/data/scenes/tutorial.ts`) |
 | `npm run -s banter` | `scripts/banter_build.mjs`: `docs/banter/*.md` → `src/data/bar/banter.gen.ts` |
 | `npm run -s chulsu-profile` | 철수 기물 실측표 → `tests/chulsu/profile.gen.ts` |
 | `npm run -s chulsu-augprofile` | 철수 증강 실측표 → `tests/chulsu/augprofile.gen.ts` (약 5분) |

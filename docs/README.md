@@ -38,7 +38,7 @@
 |---|---|---|
 | [`SYNERGY_TABLE.md`](SYNERGY_TABLE.md) | 기물 소속 · 시너지 단계 · 효과 전문 | `npm run -s syn-doc` |
 | [`EVENTS.md`](EVENTS.md) | 사건 일람 (조건 · 선택지 · 결과) | `npm run -s events-doc` |
-| [`TUTORIAL_SCRIPT.md`](TUTORIAL_SCRIPT.md) | 튜토리얼 대본 읽기용 사본 (원본 `src/data/scenes/tutorial.ts`) | 원본을 고친 뒤 다시 옮긴다 (생성 스크립트는 저장소에 없음) |
+| [`TUTORIAL_SCRIPT.md`](TUTORIAL_SCRIPT.md) | 튜토리얼 대본 읽기용 사본 (원본 `src/data/scenes/tutorial.ts`) | `npm run -s tut-doc` (`tests/tutorial_doc.ts`) |
 | [`MOTIFS.md`](MOTIFS.md) | 인물별 표면 소재 사용 횟수 (기준을 넘으면 `npm run check` 실패) | `tests/motif_check.ts --doc` |
 
 ## 현행 — 로어 · 도구

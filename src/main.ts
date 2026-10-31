@@ -3439,7 +3439,7 @@ function pendingModal(run: RunState): string {
       const conv = (m: Major) => Object.entries(CFG.conv[m]).map(([k, v]) => `${STAT_SHORT[k] || k} +${(v as number) < 1 ? +((v as number) * 100).toFixed(1) + '%' : v}`).join(', ');
       body = `${side}<div class="ru-main">
         <div class="ru-head"><h1>${p.rank}등급 달성 보상 · 능력치</h1></div>
-        ${`<p class="muted small">마이너 기물이 공명 등급 3의 배수마다 받는 보상입니다. 서로 다른 주요 능력치 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.options?.length === 0 ? '' : ` · 이어서 ${p.rank}등급 증강`}<br>확정할 때 ${Math.round(CFG.greatChance * 100)}% 확률로 <b>대성공</b>: 고른 능력치 상승량 2배 · (등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>`}
+        ${`<p class="muted small">스페셜 기물이 공명 등급 3의 배수마다 받는 보상입니다. 서로 다른 주요 능력치 ${CFG.rankPicks}개를 골라 각각 <b class="accent">+${p.points}</b>${p.options?.length === 0 ? '' : ` · 이어서 ${p.rank}등급 증강`}<br>확정할 때 ${Math.round(CFG.greatChance * 100)}% 확률로 <b>대성공</b>: 고른 능력치 상승량 2배 · (등급이 오를 때마다 모든 스탯 +${CFG.rankAll}은 이미 반영됨)</p>`}
         <div class="alloc-grid">${MAJORS.map((m) => {
           const on = app.picks.includes(m);
           return `<button class="stat-pick ${on ? 'on' : ''} ${rec.includes(m) ? 'rec' : ''}" data-a="alloc-pick" data-v="${m}" aria-pressed="${on}" aria-label="${MAJOR_NAME[m]} ${on ? tm[m] + p.points : tm[m]}" ${on || left ? '' : 'disabled'}>
@@ -5399,9 +5399,7 @@ function tipSteps(key: string, run: RunState | null): Partial<CoachStep>[] {
       ];
     }
     case 'ch3_recruit': return [
-      { target: '.modal.recruit', pend: true, need: true, until: () => r.pending[0]?.t !== 'recruit' },
-      { target: '.modal.rankup .aug-list', pend: true, gate: () => r.pending[0]?.t === 'rankup' },
-      { target: '.modal.rankup .ru-reroll', pend: true, gate: () => r.pending[0]?.t === 'rankup' },
+      { target: '.modal.recruit', pend: true, need: true, until: () => r.pending[0]?.t !== 'recruit' }, // 필리스는 메이저라 합류 증강 창 없음
       { target: synTok('VOYAGE') },
     ];
     case 'ch3_equip': return [
