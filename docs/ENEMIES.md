@@ -28,7 +28,7 @@
 | 영혼 `soul` | 물리 ×0.6 · 신성 ×1.5 | 매혹 | 회피 +10%p |
 | 구조물 `struct` | — | 기절 · 공포 · 빙결 (`type: 'stun'` · `'fear'` · `freeze`) | 방어도 ×1.3, 이동하지 않음 |
 
-- 화면 문구는 `CATEGORY_RULE` (`src/types.ts`). 이 문구는 숫자를 직접 적고 있어서, 위 배율을 바꾸면 함께 고친다.
+- 수치는 `CATEGORY_STATS` (`src/types.ts`) 한 표에 있다: `categoryMult` (받는 피해) · 생체 출혈 · 중독 강화 · `applyCategory` (회피 · 방어도) · 화면 문구 `CATEGORY_RULE` 가 모두 이 표를 읽는다. 면역 판정만 `categoryImmune` (문구는 표의 `immune`).
 - 전장 규칙 · 기믹이 분류를 읽는다: 올림푸스 충전 (기계 · 구조물), 브샤크 부활 (생체), 크레타 깃발 · 회수 장치 (영혼), 라이덴 전력선 (기계 광폭) 등 (6장).
 
 ## 2. 성향 6종 (`EnemyTend`, `TEND_NAME`)

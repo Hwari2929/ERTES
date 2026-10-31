@@ -1,7 +1,7 @@
 import { CFG } from '../config';
 import { Rng } from '../rng';
 import { PSI_STATUS, type SchoolId } from '../data/schools';
-import { CTYPE_NAME } from '../types';
+import { CATEGORY_STATS, CTYPE_NAME } from '../types';
 import type { Category, CType, DmgTag, Elem, FaithId, Geo, Keyword, Mod, Stats, StatKey, SynergyId, TakenMod, TType, UnitState, Weapon } from '../types';
 
 /** 비물리 4속성 (전기 · 화학 · 정신 · 신성): 치명타 불가. 그 대신 아군 쪽 계수가 물리보다 높게 (예전 엔진 배율 ×1.25 를 각 계수에 곱해 넣었다) */
@@ -13,10 +13,7 @@ export type StatusType = 'stun' | 'fear' | 'shock' | 'dot' | 'buff';
 
 /** 분류별 받는 피해 배율 (아군 · 적 공통) */
 export function categoryMult(c: Category, elem: Elem): number {
-  if (c === 'bio') return elem === 'chem' ? 1.5 : 1;
-  if (c === 'mech') return elem === 'elec' ? 1.5 : elem === 'psy' ? 0.25 : 1;
-  if (c === 'soul') return elem === 'phys' ? 0.6 : elem === 'holy' ? 1.5 : 1;
-  return 1;
+  return CATEGORY_STATS[c].take?.[elem] ?? 1;
 }
 /** 이성 출처 태그: cantrip 비술 · frenzy 광폭 회복 · rule 기물 고유 규칙(기본) · '<전공>.<증강키>' 전공 증강 (예: volt.store) */
 export interface ReasonLog { gain: Record<string, number>; loss: Record<string, number>; hiT: number; loT: number; frzT: number; recent: { t: number; tag: string; d: number }[] }
@@ -1654,7 +1651,7 @@ export class Battle {
     const cc = BOSS_CC_IMMUNE.includes(s.key);
     if (cc && tgt.isBoss) return false; // 보스: 빙결 · 매혹 · 혼란 면역
     const hostile = this.sideOf(src) !== this.sideOf(tgt);
-    if (hostile && tgt.category === 'bio' && s.dps && (s.key === 'bleed' || s.key === 'poison')) { s.dps *= 1.25; if (s.perDps) s.perDps *= 1.25; } // 생체: 출혈 · 중독 강화
+    if (hostile && tgt.category === 'bio' && s.dps && (s.key === 'bleed' || s.key === 'poison')) { const k = 1 + (CATEGORY_STATS.bio.dotUp || 0); s.dps *= k; if (s.perDps) s.perDps *= k; } // 생체: 출혈 · 중독 강화
     if (hostile && this.missed.has(tgt)) return false; // 공격이 빗나간 대상
     if (hostile) {
       const p = baseChance * (1 + this.S(src, 'effHit') - this.S(tgt, 'effRes'));

@@ -21,7 +21,7 @@ import { ULTS } from '../data/ults';
 import { SUMMON_RT, type SummonDef } from '../data/unitkit';
 import type { SkillDef } from './combat';
 import { Rng } from '../rng';
-import { categoryOf, type EnemySpawn, type Geo, type MapOpt, type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
+import { CATEGORY_STATS, categoryOf, type EnemySpawn, type Geo, type MapOpt, type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
 import { Battle, type CUnit, T_NOSHOT, VAN_LIKE } from './combat';
 import { applyLive, type Effect, type EffectCtx, red } from './effects';
 
@@ -210,11 +210,13 @@ export function boardPos(pos: { c: number; r: number }, W: number, g?: Geo) {
   return { x: PAD + Math.max(0, Math.min(pos.c, W - 1)), y: (g?.ay1 ?? ALLY_Y1) - Math.max(0, Math.min(pos.r, (g?.rows ?? ZONE) - 1)) };
 }
 
-/** 분류 확정 + 분류 기본 보정 (영혼 회피 +10%p, 구조물 방어도 ×1.3) */
+/** 분류 확정 + 분류 기본 보정 (CATEGORY_STATS: 영혼 회피 · 구조물 방어도) */
 export function applyCategory(c: CUnit) {
   c.category = categoryOf(c.keywords, c.immobile);
-  if (c.category === 'soul') c.st.eva += 0.1;
-  if (c.category === 'struct') { c.st.armor *= 1.3; c.immobile = true; }
+  const s = CATEGORY_STATS[c.category];
+  if (s.eva) c.st.eva += s.eva;
+  if (s.armor) c.st.armor *= s.armor;
+  if (c.category === 'struct') c.immobile = true;
 }
 
 export function blankUnit(side: 0 | 1): CUnit {

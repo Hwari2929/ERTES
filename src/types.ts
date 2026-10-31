@@ -12,12 +12,19 @@ export const KEYWORD_NAME: Record<Keyword, string> = { bio: '생체', mech: '기
 /** 분류: 아군 · 적 공통 상성 규칙 (기물 하나에 하나) */
 export type Category = 'bio' | 'mech' | 'soul' | 'struct';
 export const CATEGORY_NAME: Record<Category, string> = { bio: '생체', mech: '기계', soul: '영혼', struct: '구조물' };
-export const CATEGORY_RULE: Record<Category, string> = {
-  bio: '받는 화학 피해 ×1.5. 출혈 · 중독 피해 +25%.',
-  mech: '받는 전기 피해 ×1.5, 정신 피해 ×0.25. 출혈 · 중독 면역.',
-  soul: '받는 물리 피해 ×0.6, 신성 피해 ×1.5. 회피 +10%p. 매혹 면역.',
-  struct: '이동하지 않음. 방어도 ×1.3. 기절 · 공포 · 빙결 면역.',
+/** 분류 상성 수치 — 이 표만 고친다: combat.ts categoryMult (받는 피해) · 생체 출혈 · 중독 강화, build.ts applyCategory (회피 · 방어도), 아래 CATEGORY_RULE 문구가 모두 읽는다.
+ *  면역은 combat.ts categoryImmune (문구는 immune) */
+export const CATEGORY_STATS: Record<Category, { take?: Partial<Record<Elem, number>>; dotUp?: number; eva?: number; armor?: number; immune?: string }> = {
+  bio: { take: { chem: 1.5 }, dotUp: 0.25 },
+  mech: { take: { elec: 1.5, psy: 0.25 }, immune: '출혈 · 중독' },
+  soul: { take: { phys: 0.6, holy: 1.5 }, eva: 0.1, immune: '매혹' },
+  struct: { armor: 1.3, immune: '기절 · 공포 · 빙결' },
 };
+const catRule = (c: Category) => {
+  const s = CATEGORY_STATS[c], take = Object.entries(s.take || {}).map(([e, m], i) => `${i ? '' : '받는 '}${ELEM_NAME[e as Elem]} 피해 ×${m}`).join(', ');
+  return [c === 'struct' ? '이동하지 않음.' : '', take ? `${take}.` : '', s.dotUp ? `출혈 · 중독 피해 +${Math.round(s.dotUp * 100)}%.` : '', s.eva ? `회피 +${Math.round(s.eva * 100)}%p.` : '', s.armor ? `방어도 ×${s.armor}.` : '', s.immune ? `${s.immune} 면역.` : ''].filter(Boolean).join(' ');
+};
+export const CATEGORY_RULE = Object.fromEntries((['bio', 'mech', 'soul', 'struct'] as Category[]).map((c) => [c, catRule(c)])) as Record<Category, string>;
 /** 키워드 → 분류: 이동하지 않으면 구조물, 기계 > 영혼(환상) > 생체 */
 export function categoryOf(keywords: readonly string[], immobile = false): Category {
   if (immobile) return 'struct';

@@ -308,7 +308,7 @@ export const CFG = {
     rank3: { battle: 0.003, adversity: 0.008, boss: 0.02 } as Record<string, number> },
   /** 공명 주입기 (소형 K_xp · 중형 K_xp2 · 대형 K_xp3): 공명도 · 입고 가중치 · 나오기 시작하는 페이즈.
    *  smallTo 페이즈가 지나면 소형은 나오지 않고 그 가중치를 중형이 가져간다 (전투 보상 · 상점 공용) */
-  inject: { amount: { K_xp: 8, K_xp2: 20, K_xp3: 40 } as Record<string, number>, w: { K_xp: 6, K_xp2: 3, K_xp3: 3 } as Record<string, number>, from: { K_xp: 1, K_xp2: 3, K_xp3: 6 } as Record<string, number>, smallTo: 4 },
+  inject: { amount: { K_xp: 8, K_xp2: 20, K_xp3: 40 } as Record<string, number>, w: { K_xp: 6, K_xp2: 3, K_xp3: 3 } as Record<string, number>, from: { K_xp: 1, K_xp2: 3, K_xp3: 5 } as Record<string, number>, smallTo: 4 },
   /** 상점 노드 (분기점의 상점, genShop): 재료 · 희귀 · 고급 · 전설은 drop.shop* 그대로, 아래는 그 밖의 진열 */
   /** 위험 등급 적 장비 (run.ts gearEnemies, 위험 2 부터): 칸마다 장착 확률 slot (역경 · 보스전 big) × 정예 elite 배율 (보스도 다른 적과 같은 규칙),
    *  역경 · 보스전 장비는 graded 확률로 고급 (아니면 재료). (7) 고난 역경: hardN 번 hard 확률로 재료 · 고급 · 희귀 중 등급별 같은 확률. 적은 개조부품을 달지 않는다 */
