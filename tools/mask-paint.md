@@ -6,20 +6,25 @@
 
 ## 쓰는 법 (사용자)
 
-- 위 줄: **층** 고르기 (첫 층 = 남길 곳, 나머지 = 따로 뺄 층) · **보기** (편집 / 칠한 곳만 / 나머지만) · **저장**
+- 위 줄: **층** 고르기 (첫 층 = 남길 곳, 나머지 = 따로 뺄 층) · **보기** (편집 / 칠한 곳만 / 나머지만) · **PNG** (지금 층으로 오린 그림 내려받기, `downloads` 가 있을 때만 보임) · **저장**
 - 아래 줄: **붓 | 이동 · 확대** (붓 모드에서는 한 손가락 = 칠하기만, 이동 모드에서는 한 손가락 끌기 = 이동 · 두 손가락 = 확대),
   **칠하기 | 지우기**, 붓 크기, 되돌리기(획 단위), 맞추기, 바탕 색 (칠한 곳만 · 나머지만 볼 때)
 - 편집 보기: 첫 층 밖은 어둡게(지워질 곳), 나머지 층은 각자 색으로 덮인다.
+- 저장하면 상태 칸에 '저장했습니다 시:분'. 다시 열면 저장된 마스크를 불러온다. 자잘한 붓 자국이 너무 많으면 (마스크 데이터 합 25만 자 초과) '마스크가 너무 큽니다' 로 저장을 막는다.
 - PC 단축키: `X` 칠하기 ↔ 지우기 · 오른쪽 버튼 = 지우기 · `V` 붓 ↔ 이동 · `[` `]` 크기 · 휠 확대 · `Space`+끌기 이동 · `1`~`9` 층 · `Ctrl+Z` · `F`
 
 ## 새 작업 (Claude)
 
 1. 원본을 webp 로 만든다 (그대로의 원본 — 지울 것까지 보이게).
-2. `tools/mask-paint.html` 맨 위 `<script id="cfg">` 의 `name` (저장 문서 = `masks/<name>`) · `src` (원본 파일 이름) · `layers` (층 키 · 이름 · 색, 남길 곳은 `"keep": true`) 를 작업에 맞게 바꾼다.
+2. `tools/mask-paint.html` 맨 위 `<script id="cfg">` 의 `name` (저장 문서 = `masks/<name>`) · `src` (원본 파일 이름) · `layers` (층 키 `key` · 이름 `label` · 색 `color`, 남길 곳은 `"keep": true` — 없으면 첫 층) 를 작업에 맞게 바꾼다.
 3. 게시: `Artifact` publish, `file_path` = 이 파일, `files` = `{ "<src>": "<원본 webp 경로>" }`, `capabilities` = `{ "db": {}, "downloads": true }`.
    같은 아티팩트를 다른 작업에 다시 쓰려면 `url` 을 주고 `files` 로 원본만 바꾼다 (문서 이름이 다르면 마스크가 섞이지 않는다).
-4. 처음 값(자동 추출본)이 있으면 `ArtifactData` set 으로 `masks/<name>` 에 넣는다: `{ w, h, <층 키>: "data:image/png;base64,..." (흰색 + 알파) }`.
-5. 사용자가 저장하면 `ArtifactData` get (`out_dir` 로 파일로 받기) → `python3 scripts/mask_apply.py <원본> <문서.json> <출력 폴더> --keep <남길 층> --under <뺄 층,...>`.
+4. 처음 값(자동 추출본)이 있으면 `ArtifactData` set 으로 `masks/<name>` 에 넣는다: `{ w, h, <층 키>: "data:image/png;base64,..." (흰색 + 알파) }`. 페이지가 저장하는 문서는 여기에 `src` · `savedAt` 이 더 붙는다.
+5. 사용자가 저장하면 `ArtifactData` get (`out_dir` 로 파일로 받기) → `python3 scripts/mask_apply.py <원본> <문서.json> <출력 폴더> --keep <남길 층> --under <뺄 층,...> [--feather 0.8]`.
+   - 문서 JSON 이 `{ data: {...} }` 로 감싸여 있어도 읽는다. 마스크는 원본 크기로 늘려 쓰고, 원본 알파와 곱한다.
+   - `--keep` 기본 `hand` (예전 작업 이름) — 작업마다 꼭 준다. `--feather` = 가장자리 흐림 반경 (px, 기본 0.8).
+   - 출력 파일 이름은 **남길 층 키** 기준: `<keep>.png` (남길 곳), `--under` 층마다 `<keep>.<층>.png` (그 층 ∩ 남길 곳), `<keep>.front.png` (남길 곳 − 그 층들).
+6. 결과를 게임 그림으로 쓰면 `public/art` 에 넣고, 게시 때 `files` 로 함께 올린다 (`docs/ART_PIPELINE.md` 7절).
 
 ## 기록
 
