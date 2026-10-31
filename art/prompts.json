@@ -2139,10 +2139,9 @@
  "en_cw_cats": {
   "name": "야생화된 고양이 떼",
   "subject": "no humans",
-  "tags": "single feral stray cat, hissing, arched back, bared fangs, scruffy fur, torn ear, glowing eyes, full body, no humans",
+  "tags": "solo, cat, animal focus, single feral stray cat, hissing, arched back, bared fangs, scruffy fur, torn ear, glowing eyes, full body, -2::multiple cats, group, character sheet, reference sheet, multiple views::",
   "source": "enemy",
-  "notes": "전장 고유 적 · 시안 3차 (한 마리)",
-  "object": true,
+  "notes": "전장 고유 적 · 시안 4차 (한 마리, 사물 설정 끔: concept art 가 설정화를 부름)",
   "alts": {
    "v1": "group of three feral stray cats, hissing, scruffy fur, glowing eyes, no humans",
    "v2": "three feral alley cats leaping and pouncing, aggressive, arched backs, hissing, bared fangs, scruffy fur, torn ears, glowing eyes, dynamic action, no humans"
