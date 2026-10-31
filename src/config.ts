@@ -109,6 +109,60 @@ export const CFG = {
     smuggler: { chance: 0.15, escape: 18, escPer: 3, alone: 5, credBase: 2, credPer: 1 },
     big: { core: 1, part: 0.5, chance: 0.35, cost: 2 },
   },
+  /** 전장 고유 기믹 적 (data/enemies.ts, 전장마다 3종) 수치. 도감 설명(enemyText)이 이 값을 읽는다. r = 칸 (체비셰프 거리), dur · every · cd · first = 초
+   *  puddle 포자 웅덩이 (감염 화물 드론 · 떠도는 촉수 해파리): 휩쓸고 지나간 대상의 칸에 dur 초, 그 칸에 선 아군은 tick 초마다 위력 × dps 초당 화학 중독 (2초)
+   *  cyst 점막 포낭: r 칸 안 동료가 받는 피해 (지속 피해 제외)의 share 를 대신 받는다
+   *  sync 신경 동조체: 기본 공격마다 동료가 가장 많이 노리는 대상에게 [동조] 1중첩 (받는 정신 피해 +vuln/중첩, 최대 max, dur 초)
+   *  bat 혈익 박쥐 떼: 흡혈 × ls · valet 태엽 집사: r 칸 안 동료가 받는 피해의 share 를 대신 받아 모으고, 쓰러지면 모은 양을 healR 칸 안 동료에게 나눠 회복
+   *  starve 굶주린 혈족의 망령: 휩쓸고 지나간 대상 dur 초 받는 회복 −heal
+   *  aspis 아스피스 방패 드론: 지키는 동료와 붙어 있고 공격자 쪽에 있으면, 그 동료가 2칸 이상 떨어진 적에게서 받는 기본 공격 피해 −red
+   *  agoge 아고게 전사: 동료가 쓰러질 때마다 피해 +dmg (최대 max 중첩) · crate 격리 컨테이너: open 초 뒤 열림, 먼저 부수면 격리 이탈 개체 체력 hp
+   *  counsel 법무 대리인 [이의 제기]: r 칸 안 동료가 받는 1회 피해가 최대 체력 big 이상이면 −red (cd 초마다)
+   *  rider 고철 질주병: 한 칸 옮길 때마다 주변 1칸 아군에게 타격 위력 × dmg 물리 (같은 대상은 icd 초에 1번)
+   *  hyena 고철 하이에나: 대상 체력 low 아래면 피해 +dmg · watch 고철 망루: r 칸 안 동료가 2칸 이상 떨어진 적에게서 받는 피해 −red
+   *  mower 무인 잔디깎이: 휩쓸고 지나간 대상과 그 주변 r 칸 아군 dur 초 둔화 (공격 · 이동 속도 −slow) · kids 놀이터 아이들: 전투 시작 wait 초 제자리
+   *  shrine 성도회 성물함: every 초마다 (첫 first 초) 가장 많이 맞은 동료에게 최대 체력 shield 신성 보호막
+   *  ketzal 케찰급 프리버드: every 초마다 (첫 first 초) r 칸 안 부유체 계열을 아군 쪽으로 1칸
+   *  fumig 오작동 방역 드론: every 초마다 r 칸 안에서 가장 많이 맞은 부유체 계열 최대 체력 heal 회복 · egg 둥지 알: hatch 초 뒤 부화
+   *  billboard 홀로그램 광고판: every 초마다 (첫 first 초) 가짜 적 홀로그램 1개 (광고판 1개당 동시 cap 개, 체력 1)
+   *  papers 끝없는 서류탑: every 초마다 (첫 first 초) 아군 n 명 dur 초 받는 회복 −heal · actor 애도 극장 배우 [대역]: r 칸 안 동료 대신 쓰러지고 그 동료를 체력 hp 로 (1회)
+   *  cell 축전 셀 운반기: 쓰러지면 r 칸 안 적 기계 · 구조물 충전 +charge · cleric 성관 수비 사제: every 초마다 붙어 있는 기계 · 구조물 동료 충전을 drain 씩 빼내 1당 최대 체력 shield 보호막
+   *  sweeper 청소 유닉스: every 초마다 grab 칸 안 반려 돌 1개를 지키는 동료 앞 칸으로 · hunter 회수 현상금 사냥꾼 [스캔 완료]: dur 초 받는 피해 +vuln
+   *  dealer 카지노 딜러 로봇 [베팅]: dur 초 안에 그 아군이 딜러를 맞히면 크레딧 +cred, 못 맞히면 딜러 보호막 +1겹 (최대 cap 겹)
+   *  adjuster 손해사정인 [보험금]: 동료가 쓰러지면 r 칸 안 동료 보호막 +layers 겹 · robber 실패한 강도의 망령: 히페리온 보호막 layers 겹
+   *  salt 소금 결정 기둥: r 칸 안에서 쓰러진 생체 동료의 묘비의 맥박 대기 delay 초 */
+  fieldFoe: {
+    puddle: { dur: 3, tick: 0.5, dps: 0.25 },
+    cyst: { r: 2, share: 0.25 },
+    sync: { vuln: 0.1, max: 3, dur: 6 },
+    bat: { ls: 2 },
+    valet: { r: 1, share: 0.2, healR: 2 },
+    starve: { heal: 0.5, dur: 2 },
+    aspis: { red: 0.4 },
+    agoge: { dmg: 0.1, max: 3 },
+    crate: { open: 8, hp: 0.5 },
+    counsel: { r: 2, big: 0.15, red: 0.5, cd: 8 },
+    rider: { dmg: 0.3, icd: 1 },
+    hyena: { low: 0.5, dmg: 0.3 },
+    watch: { r: 1, red: 0.2 },
+    mower: { r: 1, slow: 0.3, dur: 1 },
+    kids: { wait: 4 },
+    shrine: { every: 8, first: 4, shield: 0.15 },
+    ketzal: { every: 4, first: 2, r: 3 },
+    fumig: { every: 2, r: 2, heal: 0.03 },
+    egg: { hatch: 12 },
+    billboard: { every: 4, first: 2, cap: 3 },
+    papers: { every: 6, first: 3, n: 2, dur: 3, heal: 0.3 },
+    actor: { r: 2, hp: 0.3 },
+    cell: { r: 2, charge: 5 },
+    cleric: { every: 3, drain: 2, shield: 0.04 },
+    sweeper: { every: 5, grab: 3 },
+    hunter: { vuln: 0.1, dur: 6 },
+    dealer: { dur: 3, cred: 1, cap: 6 },
+    adjuster: { r: 2, layers: 2 },
+    robber: { layers: 1 },
+    salt: { r: 2, delay: 2 },
+  },
   /** 돌격가 경계 (아군 돌격가만, 적 쪽 경계는 없다): 아군 돌격가 주변 r칸. 적이 경계 칸에 들어오면 그 자리에서 hold 초 동안 움직이지 못한다
    *  (공격 · 기술은 한다). 경계에 걸리면 그 돌격가에게 도발 수치 PROV.zoc (combat.ts).
    *  slow: 경계 칸에서 나가거나 경계 칸으로 들어가는 걸음의 이동 속도 배율 (암살형은 assassinSlow). 길찾기는 경계 칸을 보통 칸과 같게 본다.
@@ -214,8 +268,9 @@ export const CFG = {
     vaultCell: { need: 5, credits: 2 } },
   /** 적 분대 (data/squads.ts · run.ts assembleSquads).
    *  elite: 일반 · 역경 전투에 정예 분대를 넣는다 (역경 확정 · 2페이즈부터 일반 전투 확률). 캠페인 2장 작업(5bb320c) 뒤로 정예 줄이 주석에 묻혀 빠져 있던 것을 되살림 (v411 밸런스는 정예 없이 맞춘 값).
-   *  duo: 포병 듀오 (두 칸이 체력을 나눠 쓰는 한 기물): 뒤 칸 (포병) 받는 피해 ×back · 앞 칸 (부사수) ×front · 한 전투 최대 수 (4페이즈부터 max4) */
-  squads: { elite: true, duo: { back: 1.5, front: 0.6, max: 1, max4: 2 } },
+   *  duo: 포병 듀오 (두 칸이 체력을 나눠 쓰는 한 기물): 뒤 칸 (포병) 받는 피해 ×back · 앞 칸 (부사수) ×front · 한 전투 최대 수 (4페이즈부터 max4)
+   *  pack: 묶음 적 (EnemyDef.pack, 3기 묶음) 한 묶음이 쓰는 적 수 예산 (체력이 낮은 3기 = pack 명분) */
+  squads: { elite: true, duo: { back: 1.5, front: 0.6, max: 1, max4: 2 }, pack: 2 },
   rarePhase: 3, // 아문센 · 데미우르고스가 영입 후보에 나오는 페이즈 (배치 제한은 없음)
   /** 최고의 친구 소환물 스탯 상속률 (build.ts spawnSummons): 시너지가 꺼져 있을 때의 기본값 · 추가로 불린 소환물(2번째부터)의 배율 · 상한 */
   bond: { base: 0.5, extra: 0.8, cap: 6 },

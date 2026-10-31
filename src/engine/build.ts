@@ -889,6 +889,7 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
     b.add(e);
     if (s.duo && s.sq !== undefined) { const d = duos.get(s.sq) || {}; d[s.duo] = e; duos.set(s.sq, d); }
     if (s.part !== undefined && s.sq !== undefined) { const g = bigs.get(s.sq) || []; g[s.part] = e; bigs.set(s.sq, g); }
+    if (def.pack) e.mem.packId = (s.sq ?? -1) + 2; // 묶음 적 (EnemyDef.pack): 같은 분대 = 같은 묶음 (분대 없는 조우는 모두 한 묶음)
   }
   for (const d of duos.values()) if (d.f && d.b) linkDuo(b, d.f, d.b);
   for (const g of bigs.values()) if (g[0] && g.length > 1) { const B = CFG.foeKit.big; linkGroup(b, g.filter(Boolean), g[0].st.maxHp, g.filter(Boolean).map((u) => (u === g[0] ? B.core : B.part))); }

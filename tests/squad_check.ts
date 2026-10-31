@@ -75,6 +75,31 @@ ok(['line', 'fire', 'ambush', 'support', 'duo', 'engineer', 'big', 'boss'].every
   }
   ok(n > 0 && bad === 0, `공병단 ${n}개: 공병은 뒷줄 (뒷줄 빈칸이 있는데 어긋남 ${bad})`);
 }
+// 묶음 적 (EnemyDef.pack, CFG.squads.pack): 전열 · 사격선 · 암살조 분대 안에서만, 한 분대에 pack 기씩 (보드 칸이 모자라 덜 놓인 경우 제외) · 전투에서 같은 묶음 번호
+{
+  let n = 0, bad = 0, badKind = 0, badId = 0;
+  const packs = FIELDS.filter((f) => f.pool.some((id) => ENEMY_BY_ID[id].pack));
+  for (const f of packs) for (let s = 0; s < 40; s++) {
+    const run = R.newRun(2300 + s * 13, ids, f.id, 7);
+    run.phase = 1 + (s % 5); run.step = s % 6; run.pending = []; R.autoPlace(run);
+    const enc = R.genEncounter(run, s % 3 ? 'battle' : 'adversity', run.phase);
+    enc.squads?.forEach((q, i) => {
+      const m = enc.enemies.filter((e) => e.sq === i && ENEMY_BY_ID[e.defId].pack);
+      if (!m.length) return;
+      n++;
+      if (!['line', 'fire', 'ambush'].includes(q.kind)) badKind++;
+      const per = new Map<string, number>();
+      for (const e of m) per.set(e.defId, (per.get(e.defId) || 0) + 1);
+      if ([...per].some(([id, c]) => c !== ENEMY_BY_ID[id].pack) && enc.enemies.length < enc.n * 3 - 2) bad++;
+    });
+    if (s < 5 && deployed(run).length && enc.enemies.some((e) => ENEMY_BY_ID[e.defId].pack)) {
+      run.node = { type: 'battle', enc };
+      const b = buildBattle(run, enc, false);
+      if (b.units.some((u) => u.side === 1 && ENEMY_BY_ID[u.defId]?.pack && !u.mem.packId)) badId++;
+    }
+  }
+  ok(n > 0 && bad === 0 && badKind === 0 && badId === 0, `묶음 분대 ${n}개: 전열 · 사격선 · 암살조에만 (어긋남 ${badKind}), 묶음 인원 그대로 (어긋남 ${bad}), 전투에서 묶음 번호 (없음 ${badId})`);
+}
 // 포병 듀오: 체력 공유 · 뒤 칸 피해 배율 · 함께 쓰러짐
 {
   let checked = false;

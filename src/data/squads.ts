@@ -4,9 +4,10 @@
 // 공병단 = 구조물을 세우는 적(EnemyDef.builder) 2명 뒷줄 + 앞 호위 1명. 대형 적(EnemyDef.size: 2×2 · 1×3)은 제 분대 (대형)로 따로 놓인다 (CFG.foeKit.big).
 import type { EnemyDef } from './enemies';
 
-/** 적의 분대 역할 (적 정의의 성향 · 사거리에서): 앞 = 근접 · 총 = 원거리 · 암 = 암살형 · 근접 교란형 · 지 = 호위형 · 원거리 교란형 · 공 = 구조물을 세우는 적 */
+/** 적의 분대 역할 (적 정의의 성향 · 사거리에서): 앞 = 근접 · 총 = 원거리 · 암 = 암살형 · 근접 교란형 · 지 = 호위형 · 원거리 교란형 · 공격하지 않는 고정 구조물 (포낭 · 컨테이너 · 둥지 알 등) · 공 = 구조물을 세우는 적.
+ *  묶음 적 (EnemyDef.pack): 분대에 뽑히면 그 적 pack 기가 한 묶음으로 나온다 (engine/run.ts assembleSquads, 예산 CFG.squads.pack 명분) */
 export type FoeRole = 'front' | 'gun' | 'ambush' | 'support' | 'engineer';
-export const roleOf = (e: EnemyDef): FoeRole => (e.builder ? 'engineer' : e.tend === 'assassin' || (e.tend === 'disrupt' && e.melee) ? 'ambush' : e.tend === 'escort' || e.tend === 'disrupt' ? 'support' : e.melee ? 'front' : 'gun');
+export const roleOf = (e: EnemyDef): FoeRole => (e.builder ? 'engineer' : e.immobile && e.noAttack ? 'support' : e.tend === 'assassin' || (e.tend === 'disrupt' && e.melee) ? 'ambush' : e.tend === 'escort' || e.tend === 'disrupt' ? 'support' : e.melee ? 'front' : 'gun');
 
 export type SquadKind = 'line' | 'fire' | 'ambush' | 'support' | 'duo' | 'engineer' | 'big' | 'mixed' | 'elite' | 'boss';
 export interface SquadTpl {
