@@ -1,0 +1,58 @@
+<title>%%TITLE%%</title>
+<style>
+:root{--bg:#f4f2ee;--card:#fffdf9;--fg:#23201b;--mute:#6f685d;--line:#ddd6ca;--acc:#b5532c;--accbg:#f7e3d8;--plate:#d9d4cb;
+--bio:#3f7d3a;--mech:#2f6690;--soul:#7a4fa0;--struct:#8a6a2c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1916;--card:#25221e;--fg:#ece6dc;--mute:#a59d90;--line:#3a3530;--acc:#e0825a;--accbg:#3d2a20;--plate:#3a3631;--bio:#86c27c;--mech:#79b0d8;--soul:#b994dc;--struct:#d4b06a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1b1916;--card:#25221e;--fg:#ece6dc;--mute:#a59d90;--line:#3a3530;--acc:#e0825a;--accbg:#3d2a20;--plate:#3a3631;--bio:#86c27c;--mech:#79b0d8;--soul:#b994dc;--struct:#d4b06a;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 "Pretendard","Noto Sans KR",system-ui,sans-serif;padding-inline:16px;padding-block:0 48px}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:2;background:var(--bg);border-bottom:1px solid var(--line);padding-block:12px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;max-width:1100px;margin:0 auto}
+.top h1{font-size:18px;margin:0;text-wrap:balance}
+.top .count{font-variant-numeric:tabular-nums;font-weight:600}
+.top .sync{color:var(--mute);font-size:13px}
+main{max-width:1100px;margin:0 auto}
+h2{font-size:16px;letter-spacing:.04em;margin:28px 0 8px;color:var(--mute)}
+.foe{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+.foe header{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
+.foe h3{font-size:16px;margin:0 6px 0 0}
+.chip{font-size:12px;padding:1px 8px;border-radius:99px;border:1px solid var(--line);color:var(--mute)}
+.c-bio{color:var(--bio);border-color:var(--bio)}.c-mech{color:var(--mech);border-color:var(--mech)}.c-soul{color:var(--soul);border-color:var(--soul)}.c-struct{color:var(--struct);border-color:var(--struct)}
+.state{margin-left:auto;font-size:13px;color:var(--acc);font-weight:600}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.opt{position:relative;padding:0;border:2px solid transparent;border-radius:8px;background:var(--plate);cursor:pointer;overflow:hidden;color:var(--fg);font:inherit}
+.opt img{display:block;width:100%;height:auto;aspect-ratio:360/526;object-fit:contain}
+.opt .num{position:absolute;left:6px;top:4px;font-weight:700;font-size:13px;background:var(--card);border-radius:6px;padding:0 6px}
+.opt[aria-pressed="true"]{border-color:var(--acc);box-shadow:0 0 0 2px var(--accbg)}
+.opt.redo{display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--mute);background:transparent;border:2px dashed var(--line)}
+.opt.redo[aria-pressed="true"]{border-style:solid;border-color:var(--acc);color:var(--acc)}
+.opt:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.empty{color:var(--mute);grid-column:1/4;margin:0}
+@media (max-width:520px){.opts{grid-template-columns:repeat(3,minmax(0,1fr))}.opt.redo{padding:8px}}
+</style>
+<div class="top"><h1>%%TITLE%%</h1><span class="count" id="count">0 / %%N%%</span><span class="sync" id="sync">저장 연결 중…</span></div>
+<main>%%BODY%%</main>
+<script>
+const picks={};
+function paint(){
+  document.querySelectorAll('.opt').forEach(b=>b.setAttribute('aria-pressed',String(picks[b.dataset.id]===b.dataset.seed)));
+  document.querySelectorAll('.state').forEach(s=>{const v=picks[s.dataset.for];if(!v){s.textContent='';return}
+    if(v==='redo'){s.textContent='다시 뽑기';return}
+    const i=[...document.querySelectorAll(`.opt[data-id="${s.dataset.for}"]`)].findIndex(b=>b.dataset.seed===v);s.textContent=i>=0?`${i+1}번 선택`:''});
+  document.getElementById('count').textContent=`${Object.keys(picks).length} / %%N%%`;
+}
+let db=null;
+document.addEventListener('click',async e=>{const b=e.target.closest('.opt');if(!b)return;
+  const id=b.dataset.id,seed=b.dataset.seed,prev=picks[id];
+  if(prev===seed)delete picks[id];else picks[id]=seed;paint();
+  if(!db)return;
+  try{const ref=db.doc('%%COL%%/'+id);if(picks[id])await ref.set({seed:picks[id]});else await ref.delete();}
+  catch(err){if(prev)picks[id]=prev;else delete picks[id];paint();document.getElementById('sync').textContent='저장 실패 — 다시 눌러 주세요';}
+});
+(async()=>{const sync=document.getElementById('sync');
+  const t=setTimeout(()=>{sync.textContent='저장에 연결하지 못했습니다 (보기 전용)'},10000);
+  try{db=await window.claude?.use?.('db');}catch{db=null}
+  if(!db){clearTimeout(t);sync.textContent='보기 전용 — 고른 결과가 저장되지 않습니다';return}
+  db.collection('%%COL%%').onSnapshot(s=>{clearTimeout(t);for(const k in picks)delete picks[k];s.docs.forEach(d=>{const v=d.data()?.seed;if(v)picks[d.id]=v});paint();sync.textContent='고르면 바로 저장됩니다';},
+    ()=>{clearTimeout(t);sync.textContent='저장에 연결하지 못했습니다'});
+})();
+paint();
+</script>
