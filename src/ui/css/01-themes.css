@@ -1,0 +1,273 @@
+/* ═════════ UI 테마: 면 · 글씨 · 선택 · 상태 · 그림자 토큰을 테마마다 다시 정의한다 (설정 → 테마, <html data-ui-theme>)
+   · 모든 테마 블록은 아래 기본(에란테스 갤럭시) 블록과 같은 토큰을 빠짐없이 정의한다 (tests/css_check.ts 가 검사)
+   · --c-select 는 테마의 강조색이지만 역할(선택 · 확정 · 다음 행동 전용)은 같다
+   · 데이터 색(--el-* · --g-* · --st-* · 시너지 --c/--sc)은 공통. 라이트 테마만 읽기 어려운 값을 보정한다
+   · [data-ui-theme] 는 :root 가 아니어도 걸리므로 설정 창의 견본 칩이 그 테마 색을 그대로 보여 준다 */
+:root, [data-ui-theme="galaxy"] {
+  /* 에란테스 갤럭시 (기본): 잉크빛 남색 · 미색 글씨 · 계약서 호박색 */
+  --bg: #0f1219;                       /* 바탕 */
+  --panel: #171c26;                    /* 1단 면 */
+  --panel-2: #1e2532;                  /* 2단 면 (버튼 · 칸) */
+  --line: #2b3445;                     /* 테두리 */
+  --c-text: #e9e4d8;                   /* 본문 글씨 */
+  --c-text-2: #8d96a8;                 /* 흐린 글씨 (보조 · 단위 · 꺼진 항목) */
+  --c-select: #f2a93b;                 /* 선택 · 확정 · 다음 행동 전용 (호박색) */
+  --c-select-ink: #1a1206;             /* 호박색 위 글씨 */
+  --c-good: #63d297;                   /* 회복 · 이득이 실제로 일어난 곳 */
+  --c-bad: #ff6b5e;                    /* 위험 · 손실 · 피해 */
+  --c-info: #6cb6ff;                   /* 정보 · 진행 (경험치 막대 등) */
+  --c-chalk: #f0f2f6;                  /* 흰 배지 · 어두운 칩 위 아이콘 */
+  --c-chalk-ink: #12151c;              /* 흰 배지 위 글씨 */
+  --c-ink: rgb(10 12 18);              /* 그림 위 어두운 유리 칩 (color-mix 로 투명도) */
+  --c-brand: #f2a93b;                  /* 로고 · 타이틀 · 의식 연출 (브랜드 호박색: 선택 표시와 같은 값, 용도 구분용) */
+  --c-credit: #f2a93b;                 /* 크레딧(통화) 아이콘 · 수치. 지금은 호박색과 같은 값 — 선택색과 나눌지 결정 필요 */
+  --cell-mine: #1b2433;
+  --cell-foe: #22191c;
+  --cell-mid: #161b24;
+  --cell-zoc: rgb(150 172 214 / .10);   /* 돌격가 경계 칸 덧칠 (편성 화면 전용) */
+  --cell-zoc-line: rgb(150 172 214 / .30); /* 돌격가 경계 칸 테두리 */
+  --overlay: rgba(6, 8, 12, 0.78);
+  --tint-1: rgb(255 255 255 / .03);    /* 면 위 살짝 밝게 (hover · 선택 행) */
+  --tint-2: rgb(255 255 255 / .06);
+  --shade-1: rgb(0 0 0 / .35);         /* 그림자 · 글씨 받침 */
+  --shade-2: rgb(0 0 0 / .55);
+  --shade-3: rgb(0 0 0 / .8);
+  color-scheme: dark;
+}
+[data-ui-theme="vintage"] {
+  /* 에란테스 퓨처리스틱 네이비 빈티지: 짙은 네이비 · 빛바랜 종이 글씨 · 녹청(황동이 삭은 청록) 강조, 바랜 황동은 로고 · 통화에만 */
+  --bg: #0b121c;
+  --panel: #121b28;
+  --panel-2: #1a2535;
+  --line: #2d3b4d;
+  --c-text: #e4dac4;
+  --c-text-2: #8f9aa5;
+  --c-select: #5cb8a6;
+  --c-select-ink: #061a16;
+  --c-good: #86c99a;
+  --c-bad: #e67a62;
+  --c-info: #86aedb;
+  --c-chalk: #ebe3d0;
+  --c-chalk-ink: #141a22;
+  --c-ink: rgb(7 12 20);
+  --c-brand: #c8a467;
+  --c-credit: #c8a467;
+  --cell-mine: #16212f;
+  --cell-foe: #221a1a;
+  --cell-mid: #111a26;
+  --cell-zoc: rgb(92 184 166 / .10);
+  --cell-zoc-line: rgb(92 184 166 / .32);
+  --overlay: rgba(4, 8, 14, 0.8);
+  --tint-1: rgb(235 222 196 / .035);
+  --tint-2: rgb(235 222 196 / .07);
+  --shade-1: rgb(0 0 0 / .35);
+  --shade-2: rgb(0 0 0 / .55);
+  --shade-3: rgb(0 0 0 / .8);
+  color-scheme: dark;
+  --leather: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='l' x='0' y='0' width='1' height='1'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.35' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeDiffuseLighting surfaceScale='2.6' lighting-color='white'%3E%3CfeDistantLight azimuth='225' elevation='50'/%3E%3C/feDiffuseLighting%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='.4' intercept='-.07'/%3E%3CfeFuncG type='linear' slope='.4' intercept='-.07'/%3E%3CfeFuncB type='linear' slope='.4' intercept='-.07'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23l)'/%3E%3C/svg%3E"); /* 테마 연출: 엠보싱 가죽 결 (feTurbulence + feDiffuseLighting, 160px 타일, 평균 밝기 0.48 · 오톨도톨한 큰 결) */
+  --stitch: color-mix(in srgb, var(--c-brand) 62%, transparent); /* 가죽 조각 안쪽 스티치 (바랜 황동 실) */
+  --dye-navy: rgb(38 60 100 / .4); /* 네이비로 물들인 가죽 (섹션 · 큰 조각): 원래 면 색 위에 겹친다 */
+  --dye-brown: rgb(104 66 40 / .58); /* 짙은 갈색 가죽 (단추 · 작은 조각) */
+  --lth-hl: color-mix(in srgb, var(--c-text) 15%, transparent); /* 위쪽 안 하이라이트 */
+  --lth-burn: color-mix(in srgb, var(--c-black) 55%, transparent); /* 눌러 다듬은 짙은 가장자리 */
+  --lth-drop: color-mix(in srgb, var(--c-black) 55%, transparent); /* 살짝 솟은 조각의 바깥 그림자 */
+}
+[data-ui-theme="ithaca"] {
+  /* 이타카 코랄 베이지 시-사이드 (라이트): 모래 베이지 바탕 · 짙은 갈색 글씨 · 코랄 강조 · 바다색 보조.
+     그림 위 유리 칩(--c-ink)은 밝은 모래색, 흰 배지(--c-chalk)는 짙은 배지로 뒤집는다. 그림자는 옅은 갈색, 틴트는 어둡게 */
+  --bg: #f2e8d6;
+  --panel: #fbf6ec;
+  --panel-2: #f0e5d1;
+  --line: #d3c2a3;
+  --c-text: #2a221c;
+  --c-text-2: #66584a;
+  --c-select: #b33c26;
+  --c-select-ink: #ffffff;
+  --c-good: #23794f;
+  --c-bad: #b8322a;
+  --c-info: #1f6f8e;
+  --sea: #1f6f8e; /* 테마 연출 바닷물 (그림 위 영역에서도 같은 색) */
+  --c-chalk: #3a2f27;
+  --c-chalk-ink: #fbf6ec;
+  --c-ink: rgb(251 246 236);
+  --c-brand: #c9503a;
+  --c-credit: #8a5a10;
+  --cell-mine: #dfe6df;
+  --cell-foe: #efdcd2;
+  --cell-mid: #e8dfcd;
+  --cell-zoc: rgb(31 111 142 / .09);
+  --cell-zoc-line: rgb(31 111 142 / .32);
+  --overlay: rgba(70, 52, 34, 0.42);
+  --tint-1: rgb(60 40 20 / .04);
+  --tint-2: rgb(60 40 20 / .08);
+  --shade-1: rgb(70 50 30 / .14);
+  --shade-2: rgb(70 50 30 / .22);
+  --shade-3: rgb(70 50 30 / .34);
+  color-scheme: light;
+  /* 라이트 보정: 어두운 바탕용 데이터 색 중 밝은 모래색 위에서 읽기 어려운 값만 짙게 */
+  --c-divine: #9a7408; --c-occult: #8448c8; --c-psi: #7442c4; --c-ult: #2a6fc0; --c-steel: #566a7e; --fame: #b0447f; --staff: #7d6a3a;
+  --el-phys: #554d44; --el-chem: #4a8a1c; --el-elec: #1a7fa8; --el-psy: #9246c8; --el-holy: #9a7408; --el-true: #c03a3a;
+  --g-C: #857e70; --g-G: #23794f; --g-A: #2a6fc0; --g-L: #b0245a; --g-U: #8a2fb0; --g-T: #3a7e9c; --g-S: #5a50b8;
+  --st-buff: #2a7fc0; --st-buff-ink: #1f6aa8; --st-debuff: #c0392e; --st-debuff-ink: #b03a2e; --st-chip: #fbf6ec;
+  --st-bleed: #c0352e; --st-dot: #b85a1e; --st-corrode: #946a1a; --st-slow: #2f6ab8; --st-wound: #b83a52; --st-vuln: #b8424a;
+  --st-suppress: #5e6170; --st-gloom: #7a52b8; --st-burn: #c2481a; --st-conduct: #1a86a8; --st-chill: #2a7aa8; --st-teal: #1a8a78;
+  --st-regen: #4a8a1c; --st-power: #b8680a; --st-fear: #9246c8;
+  --data-mix: 55%;
+  --ft-outline: #fbf6ec;               /* 전투 보드의 떠오르는 숫자 테두리: 밝은 칸 위라 밝게 */
+  --c-down: #b8322a; --c-type: #3a3029; --c-narr: #3a3029; --c-narr-2: #3a3029; --c-res: #1f6f8e; --c-warn-ink: #8a5a00; --c-ok-ink: #23794f;
+  --c-danger-ink: #b3261e; --c-danger-line: #c0392e; --c-danger-bg: #e7a79d;
+  --op-lift: .15;
+  --c-streak: #b2520f; --c-lo: #b0303f; --cat-bio: #3f7f22; --cat-mech: #2a6aa8; --cat-struct: #7a6a48;
+  /* 그림 위 화면(타이틀 · 출격 연출 · 바 · 사건 ADV · 전환 배너)은 어두운 그림이 바탕이라 밤바다 색 면을 쓴다 → 아래 '그림 위 화면' 규칙 */
+  --art-bg: #121820; --art-panel: #1a222c; --art-panel-2: #232c38; --art-line: #384452; --art-text: #f5ede1; --art-text-2: #aba497;
+  --art-chalk: #f6efe4; --art-chalk-ink: #1c1814; --art-ink: rgb(10 13 18); --art-overlay: rgba(8, 10, 14, 0.75);
+  --art-good: #63d297; --art-bad: #ff6b5e; --art-info: #6cb6ff; --art-select: #e8705a; --art-select-ink: #1f0c07;
+}
+[data-ui-theme="ithaca-port"] {
+  /* 이타카 무역항 (라이트, 이타카 코랄 베이지 시-사이드의 포크): 맑은 물안개 하늘빛 바탕 · 짙은 남색 글씨 · 네이비 선택 · 에메랄드 청록 강조 · 바다색 보조.
+     연출(바다 전환 · 타이틀 항구 그림 · 그림 위 화면 규칙)은 이타카와 같고, 면 · 선 · 그림자 · 틴트를 모두 푸른 계열로 옮겼다 */
+  --bg: #e8eff4;
+  --panel: #f6f9fb;
+  --panel-2: #e1e9ef;
+  --line: #bccad6;
+  --c-text: #1b2733;
+  --c-text-2: #4d5f70;
+  --c-select: #1f4f7d;
+  --c-select-ink: #ffffff;
+  --c-good: #1f7a5a;
+  --c-bad: #b8322a;
+  --c-info: #1f6f8e;
+  --sea: #1f6f8e; /* 테마 연출 바닷물 (그림 위 영역에서도 같은 색) */
+  --c-chalk: #22303d;
+  --c-chalk-ink: #f6f9fb;
+  --c-ink: rgb(246 249 251);
+  --c-brand: #1a7f78;
+  --c-credit: #7a5a12;
+  --cell-mine: #dae9e5;
+  --cell-foe: #eee0dd;
+  --cell-mid: #e0e7ee;
+  --cell-zoc: rgb(31 111 142 / .09);
+  --cell-zoc-line: rgb(31 111 142 / .32);
+  --overlay: rgba(26, 42, 58, 0.42);
+  --tint-1: rgb(20 40 60 / .04);
+  --tint-2: rgb(20 40 60 / .08);
+  --shade-1: rgb(28 48 70 / .14);
+  --shade-2: rgb(28 48 70 / .22);
+  --shade-3: rgb(28 48 70 / .34);
+  color-scheme: light;
+  /* 라이트 보정: 어두운 바탕용 데이터 색 중 밝은 모래색 위에서 읽기 어려운 값만 짙게 */
+  --c-divine: #9a7408; --c-occult: #8448c8; --c-psi: #7442c4; --c-ult: #2a6fc0; --c-steel: #566a7e; --fame: #b0447f; --staff: #7d6a3a;
+  --el-phys: #554d44; --el-chem: #4a8a1c; --el-elec: #1a7fa8; --el-psy: #9246c8; --el-holy: #9a7408; --el-true: #c03a3a;
+  --g-C: #857e70; --g-G: #23794f; --g-A: #2a6fc0; --g-L: #b0245a; --g-U: #8a2fb0; --g-T: #3a7e9c; --g-S: #5a50b8;
+  --st-buff: #2a7fc0; --st-buff-ink: #1f6aa8; --st-debuff: #c0392e; --st-debuff-ink: #b03a2e; --st-chip: #f6f9fb;
+  --st-bleed: #c0352e; --st-dot: #b85a1e; --st-corrode: #946a1a; --st-slow: #2f6ab8; --st-wound: #b83a52; --st-vuln: #b8424a;
+  --st-suppress: #5e6170; --st-gloom: #7a52b8; --st-burn: #c2481a; --st-conduct: #1a86a8; --st-chill: #2a7aa8; --st-teal: #1a8a78;
+  --st-regen: #4a8a1c; --st-power: #b8680a; --st-fear: #9246c8;
+  --data-mix: 55%;
+  --ft-outline: #f6f9fb;               /* 전투 보드의 떠오르는 숫자 테두리: 밝은 칸 위라 밝게 */
+  --c-down: #b8322a; --c-type: #283544; --c-narr: #283544; --c-narr-2: #283544; --c-res: #1f6f8e; --c-warn-ink: #8a5a00; --c-ok-ink: #1f7a5a;
+  --c-danger-ink: #b3261e; --c-danger-line: #c0392e; --c-danger-bg: #e7a79d;
+  --op-lift: .15;
+  --c-streak: #b2520f; --c-lo: #b0303f; --cat-bio: #3f7f22; --cat-mech: #2a6aa8; --cat-struct: #5d6b78;
+  /* 그림 위 화면(타이틀 · 출격 연출 · 바 · 사건 ADV · 전환 배너)은 어두운 그림이 바탕이라 밤바다 색 면을 쓴다 → 아래 '그림 위 화면' 규칙 */
+  --art-bg: #121820; --art-panel: #1a222c; --art-panel-2: #232c38; --art-line: #384452; --art-text: #eef3f7; --art-text-2: #a2afbb;
+  --art-chalk: #f6efe4; --art-chalk-ink: #1c1814; --art-ink: rgb(10 13 18); --art-overlay: rgba(8, 10, 14, 0.75);
+  --art-good: #63d297; --art-bad: #ff6b5e; --art-info: #6cb6ff; --art-select: #4fbfc4; --art-select-ink: #05191b;
+}
+/* 라이트 테마의 그림 위 화면: 어두운 일러스트 위라 면 · 글씨를 밤바다 색으로 되돌린다 (강조 코랄은 그대로). 파생 토큰도 여기서 다시 계산
+   · 특권 선택(.pv-bg)도 어두운 막 · 어두운 카드 위라 여기에 든다. 난이도 설정(.diffsel)도 어두운 그림 카드뿐이라 화면 전체를 밤바다로. 출격 계약(.ct)은 바 그림 위
+   · 타이틀은 이타카 항구 그림(파스텔)이라 밝은 면 그대로 → 아래 '이타카 가시성' */
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) :is(.intro, .bar, .ct, .adv, .banner, .pv-bg, .diffsel) {
+  --bg: var(--art-bg); --panel: var(--art-panel); --panel-2: var(--art-panel-2); --line: var(--art-line);
+  --c-text: var(--art-text); --c-text-2: var(--art-text-2); --c-chalk: var(--art-chalk); --c-chalk-ink: var(--art-chalk-ink); --c-ink: var(--art-ink); --overlay: var(--art-overlay);
+  --c-good: var(--art-good); --c-bad: var(--art-bad); --c-info: var(--art-info); --c-select: var(--art-select); --c-select-ink: var(--art-select-ink);
+  --tint-1: color-mix(in srgb, var(--c-white) 4%, transparent); --tint-2: color-mix(in srgb, var(--c-white) 8%, transparent);
+  --shade-1: color-mix(in srgb, var(--c-black) 35%, transparent); --shade-2: color-mix(in srgb, var(--c-black) 55%, transparent); --shade-3: color-mix(in srgb, var(--c-black) 80%, transparent);
+  --line-soft: color-mix(in srgb, var(--line) 65%, transparent); --shield: var(--c-text); --ally-hp: var(--c-good); --foe-hp: var(--c-bad); --shadow-pop: 0 10px 26px var(--shade-2);
+  --data-mix: 100%; --c-narr: var(--art-text-2); --c-narr-2: var(--art-text-2); --c-type: var(--art-text-2); --c-down: var(--art-bad); --c-res: var(--art-info);
+  color-scheme: dark; color: var(--c-text);
+}
+/* 이타카 가시성: 타이틀은 파스텔 항구 그림(lore_ithaca, main.ts titleScreen) 위 밝은 유리 단추 · 짙은 글씨, 난이도 설정은 밤바다 */
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .title-screen { background: var(--bg); }
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .ts-shade { background: radial-gradient(60% 50% at 50% 46%, color-mix(in srgb, var(--bg) 38%, transparent), transparent 80%), linear-gradient(180deg, transparent 50%, color-mix(in srgb, var(--bg) 85%, transparent)); }
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .ts-stars { display: none; }
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .title-screen .logo { filter: drop-shadow(0 2px 10px color-mix(in srgb, var(--c-white) 70%, transparent)); }
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) :is(.title-screen .tagline, .ts-foot, .title-actions .ts-util .btn) { color: var(--c-text); text-shadow: 0 0 6px var(--panel), 0 0 2px var(--panel); }
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .ts-kicker { color: var(--c-brand); }
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .ts-meta { color: var(--c-text-2); }
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .title-actions .ts-btn:not(.primary) { background: color-mix(in srgb, var(--panel) 80%, transparent); }
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .diffsel { background: radial-gradient(120% 75% at 50% 0%, color-mix(in srgb, var(--sea) 45%, var(--art-bg)), var(--art-bg) 72%); } /* 밤바다: 위쪽이 옅은 물빛 */
+/* 그림 위 이름표: 검은 그림자 대신 모래색 후광 (짙은 글씨가 그림 위에서도 읽히게) */
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) :is(.dh-name, .ru-tag, .cx2-lhero .cx2-hd b, .rs-mvp-tag em, .bf b) { text-shadow: 0 0 2px var(--panel), 0 0 8px var(--panel); }
+/* 시너지 마름모: 짙은 시너지색 바탕 + 흰 아이콘, 테두리 없음 (모래색 위에서 옅은 시너지색이 묻히지 않게). 비활성은 반투명 */
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .syn-dia { background: color-mix(in srgb, var(--c) 55%, var(--c-text)); border-color: transparent; color: var(--c-white); }
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .syn-tk.active .syn-dia, :is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .syn-b:hover .syn-dia, :is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .syn-b.peek .syn-dia { background: color-mix(in srgb, var(--c) 70%, var(--c-text)); }
+/* 출전 수 배지도 같은 짙은 바탕 + 흰 숫자, 테두리는 바탕색 (마름모에서 떼어 보이게). 기본 .syn-tk.active / :not(.active) .syn-lv 보다 우선 */
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .syn-tk:is(.active, :not(.active)) .syn-lv { background: color-mix(in srgb, var(--c) 40%, var(--c-text-2)); color: var(--c-white); box-shadow: 0 0 0 1.5px var(--bg); }
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .syn-tk.active .syn-lv { background: color-mix(in srgb, var(--c) 70%, var(--c-text)); }
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .syn-tk:not(.active) .syn-dia { background: color-mix(in srgb, var(--c) 40%, var(--c-text-2)); border-color: transparent; opacity: .62; }
+:is([data-ui-theme="ithaca"], [data-ui-theme="ithaca-port"]) .pcard .pc-syn .syn-tk:not(.active) .syn-dia { background: color-mix(in srgb, var(--c) 55%, var(--c-text)); opacity: 1; }
+[data-ui-theme="hoishun"] {
+  /* 호이슌 사쿠라 가든: 네온이 꺼지지 않는 자줏빛 밤 · 벚꽃 분홍 강조 · 네온 청록 정보색, 통화는 호이슌 홀딩스 금색 */
+  --bg: #150e1d;
+  --panel: #1e1428;
+  --panel-2: #291c36;
+  --line: #3f2c50;
+  --c-text: #f4e6ee;
+  --c-text-2: #a993b2;
+  --c-select: #ff8fbd;
+  --c-select-ink: #2a0817;
+  --c-good: #5fe6b4;
+  --c-bad: #ff5f78;
+  --c-info: #5fd6ff;
+  --c-chalk: #fcedf4;
+  --c-chalk-ink: #1d1026;
+  --c-ink: rgb(17 9 25);
+  --c-brand: #ff8fbd;
+  --c-credit: #e0bc4a;
+  --g-L: #ff5a36;                      /* 전설: 선택(분홍) · 위험(진홍 분홍)과 갈리게 주홍 쪽 붉은색 */
+  --cell-mine: #221b36;
+  --cell-foe: #2f1727;
+  --cell-mid: #1b1427;
+  --cell-zoc: rgb(170 150 230 / .11);
+  --cell-zoc-line: rgb(170 150 230 / .32);
+  --overlay: rgba(10, 4, 16, 0.8);
+  --tint-1: rgb(255 210 235 / .04);
+  --tint-2: rgb(255 210 235 / .08);
+  --shade-1: rgb(0 0 0 / .38);
+  --shade-2: rgb(0 0 0 / .58);
+  --shade-3: rgb(0 0 0 / .82);
+  color-scheme: dark;
+}
+[data-ui-theme="calito"] {
+  /* 칼리토 스타더스트 홀: 황실 연회장의 깊은 남보라 · 별빛 글씨 · 금색 강조 · 은빛 정보색.
+     칼리토 시너지(제국 적색 #c0303a)와 위험색이 섞이지 않게 위험은 밝은 주홍 쪽으로, 면에는 붉은 기를 넣지 않는다 */
+  --bg: #100e22;
+  --panel: #18152e;
+  --panel-2: #211d3c;
+  --line: #363058;
+  --c-text: #ece8f7;
+  --c-text-2: #9d97bb;
+  --c-select: #e9c15a;
+  --c-select-ink: #1c1505;
+  --c-good: #6fd6a0;
+  --c-bad: #ff6f52;
+  --c-info: #aac3f2;
+  --c-chalk: #f3f1fb;
+  --c-chalk-ink: #15122a;
+  --c-ink: rgb(11 9 25);
+  --c-brand: #e9c15a;
+  --c-credit: #e9c15a;
+  --cell-mine: #1c1a37;
+  --cell-foe: #261624;
+  --cell-mid: #16142b;
+  --cell-zoc: rgb(170 195 242 / .10);
+  --cell-zoc-line: rgb(170 195 242 / .30);
+  --overlay: rgba(7, 5, 19, 0.8);
+  --tint-1: rgb(225 220 255 / .035);
+  --tint-2: rgb(225 220 255 / .07);
+  --shade-1: rgb(0 0 0 / .35);
+  --shade-2: rgb(0 0 0 / .55);
+  --shade-3: rgb(0 0 0 / .8);
+  color-scheme: dark;
+}

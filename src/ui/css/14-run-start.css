@@ -1,0 +1,229 @@
+/* ───────── 출격 연출: 별 무리 → 커튼 → 전장 슬롯 → 브리핑 */
+.intro { position: relative; min-height: 100vh; overflow: hidden; background: #05060b; display: grid; align-content: center; justify-items: center; gap: 22px; padding: 40px 16px; box-sizing: border-box; }
+.in-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transform: scale(1.08); transition: opacity 1.2s ease, transform 6s ease-out; }
+.intro.landed .in-bg { opacity: 1; transform: scale(1); }
+.in-shade { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 40%, rgb(5 6 11 / .25), rgb(5 6 11 / .85)), linear-gradient(transparent 40%, rgb(5 6 11 / .9)); pointer-events: none; }
+.in-stars { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+.in-stars i { position: absolute; top: -4%; left: var(--x); width: 2px; height: 2px; border-radius: 50%; background: var(--c-white); box-shadow: 0 0 6px #cfe0ff; opacity: .8; animation: star-fall var(--s) linear var(--d) infinite; }
+.in-stars i:nth-child(3n) { width: 1px; height: 1px; opacity: .5; }
+@keyframes star-fall { from { transform: translateY(0); } to { transform: translateY(110vh); } }
+.intro.landed .in-stars { opacity: .35; transition: opacity 1.2s; }
+.in-curtain { position: absolute; top: 0; bottom: 0; width: 51%; z-index: 3; background: radial-gradient(1px 1px at 20% 30%, color-mix(in srgb, var(--c-white) 53.3%, transparent), transparent), radial-gradient(1px 1px at 70% 60%, color-mix(in srgb, var(--c-white) 40%, transparent), transparent), radial-gradient(1.5px 1.5px at 45% 80%, #cfe0ff88, transparent), linear-gradient(90deg, #0b0d16, #141a2a 60%, #0b0d16); background-size: 120px 140px, 90px 110px, 160px 150px, auto; box-shadow: inset 0 0 60px color-mix(in srgb, var(--c-black) 80%, transparent); transition: transform 1.1s cubic-bezier(.7, 0, .2, 1); }
+.in-curtain::after { content: ''; position: absolute; top: 0; bottom: 0; width: 2px; background: linear-gradient(transparent, var(--c-brand), transparent); opacity: .7; } /* 커튼 가장자리는 단색 (전장 색으로 전장을 미리 알리지 않게) */
+.in-curtain.l { left: 0; } .in-curtain.l::after { right: 0; }
+.in-curtain.r { right: 0; } .in-curtain.r::after { left: 0; }
+.intro.opened .in-curtain.l { transform: translateX(-101%); }
+.intro.opened .in-curtain.r { transform: translateX(101%); }
+.in-slot { position: relative; z-index: 2; display: grid; justify-items: center; gap: 4px; text-align: center; }
+.in-kicker { font-size: var(--fs-sm); letter-spacing: .3em; color: var(--c-text-2); }
+.in-name { font: 400 clamp(1.8rem, 6vw, 3.4rem) var(--f-display); color: var(--c-white); text-shadow: 0 0 24px var(--c, var(--c-brand)); min-height: 1.2em; }
+.in-region { font-size: var(--fs-md); color: color-mix(in srgb, var(--c, var(--c-brand)) var(--data-mix), var(--c-text)); }
+.intro.landed .in-name { animation: slot-land .5s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes slot-land { from { transform: scale(1.25); } }
+.in-info { position: relative; z-index: 2; width: min(760px, 100%); display: grid; gap: 12px; padding: 18px 20px; border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); border-radius: var(--r-lg); background: rgb(8 10 18 / .72); backdrop-filter: blur(6px);
+  opacity: 0; transform: translateY(20px); pointer-events: none; transition: opacity .6s ease .35s, transform .6s ease .35s; }
+.intro.landed .in-info { opacity: 1; transform: none; pointer-events: auto; }
+.in-desc { margin: 0; color: var(--c-text); opacity: .9; }
+.fb-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.fb-cell { display: grid; gap: 4px; padding: 8px 10px; border-radius: var(--r-lg); background: color-mix(in srgb, var(--c-white) 4%, transparent); border: 1px solid var(--line); }
+.fb-k { font-size: var(--fs-xs); color: var(--c-text-2); letter-spacing: .08em; }
+.fb-v { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.fb-v i { font-style: normal; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; color: color-mix(in srgb, var(--c, var(--c-text)) var(--data-mix), var(--c-text)); }
+.fb-v .li, .fb-v svg { width: 15px; height: 15px; }
+.fb-rules { margin: 0; padding-left: 18px; display: grid; gap: 3px; font-size: var(--fs-md); }
+.fb-foe { color: var(--c-text-2); }
+.in-act, .ds-act { display: flex; justify-content: flex-end; gap: 8px; }
+@media (max-width: 640px) { .fb-grid { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .in-stars i { animation: none; } .in-curtain, .in-bg, .in-info { transition: none; } }
+
+/* ───────── 난이도 설정: 삼분할, 선택된 칸이 넓어지고 살짝 확대 */
+.diffsel { min-height: 100vh; box-sizing: border-box; padding: 32px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 18px; background: #06070c; }
+.ds-title { margin: 0; text-align: center; font: 400 clamp(1.6rem, 4vw, 2.4rem) var(--f-display); color: var(--c-brand); letter-spacing: .06em; }
+.ds-row { display: flex; gap: 12px; min-height: 60vh; }
+.ds-card { position: relative; flex: 1 1 0; min-width: 0; overflow: hidden; border: 0; border-radius: var(--r-lg); padding: 0; background: #0b0d14; color: var(--c-text); text-align: left; cursor: pointer;
+  transition: flex-grow .55s cubic-bezier(.25, .8, .3, 1), min-height .55s cubic-bezier(.25, .8, .3, 1), transform .55s cubic-bezier(.25, .8, .3, 1), box-shadow .4s; }
+.ds-card.on { flex-grow: 1.55; transform: scale(1.025); box-shadow: 0 18px 40px color-mix(in srgb, var(--c-black) 55%, transparent); z-index: 1; }
+.ds-bg { position: absolute; inset: 0; background-size: cover; background-position: center; filter: saturate(.7) brightness(.6); transition: filter .45s, transform 1.2s; }
+.ds-card.on .ds-bg, .ds-card:hover .ds-bg { filter: none; transform: scale(1.04); }
+.ds-shade { position: absolute; inset: 0; background: linear-gradient(transparent 30%, rgb(5 6 11 / .92)); }
+.ds-body { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px; display: grid; gap: 6px; height: 150px; align-content: start; box-sizing: border-box; }
+.ds-sub { font-size: var(--fs-sm); letter-spacing: .18em; color: var(--c-text-2); }
+.ds-name { font: 400 clamp(1.6rem, 3.5vw, 2.6rem) var(--f-display); }
+.ds-card.on .ds-name { color: var(--c-select); }
+.ds-line { font-size: var(--fs-md); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* 한 줄: 좁으면 말줄임 */
+/* 난이도 설정에 들어올 때: 카드가 차례로 떠오르며 나타난다 (transform 은 선택 확대가 쓰므로 translate · opacity 만) */
+@media (prefers-reduced-motion: no-preference) {
+  .diffsel.enter .ds-card { animation: ds-in .6s cubic-bezier(.2, .8, .3, 1) both; }
+  .diffsel.enter .ds-card:nth-child(2) { animation-delay: .09s; } .diffsel.enter .ds-card:nth-child(3) { animation-delay: .18s; }
+  .diffsel.enter :is(.ds-title, .ds-act) { animation: ds-fade .5s ease-out both; }
+}
+@keyframes ds-in { from { opacity: 0; translate: 0 32px; } }
+@keyframes ds-fade { from { opacity: 0; } }
+.ds-conds { margin: 0; padding-left: 16px; font-size: var(--fs-sm); color: var(--c-text-2); display: none; gap: 2px; max-height: 0; overflow: hidden; transition: max-height .45s; }
+.ds-card.on .ds-conds { max-height: 220px; }
+@media (max-width: 700px) {
+  .ds-row { flex-direction: column; min-height: 0; }
+  .ds-card { min-height: 120px; }
+  .ds-card.on { min-height: 260px; transform: none; }
+}
+
+/* ───────── 특권 증강: 화면 전체를 덮는 막이 내려온 뒤 카드 세 장 */
+.modal-bg.pv-bg { background: transparent; }
+.modal.privilege { position: relative; z-index: 1; background: none; border: 0; box-shadow: none; width: min(1040px, 100%); overflow: visible; max-height: none; padding: 0; }
+.pv-curtain { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.pv-half { position: absolute; top: 0; bottom: 0; width: 50.5%; background: radial-gradient(1px 1px at 20% 30%, color-mix(in srgb, var(--c-white) 53.3%, transparent), transparent), radial-gradient(1px 1px at 70% 60%, color-mix(in srgb, var(--c-white) 40%, transparent), transparent), radial-gradient(1.5px 1.5px at 45% 80%, #cfe0ff88, transparent), linear-gradient(90deg, #0b0d16, #141a2a 60%, #0b0d16);
+  background-size: 120px 140px, 90px 110px, 160px 150px, auto; box-shadow: inset 0 0 80px color-mix(in srgb, var(--c-black) 80%, transparent); animation: .9s cubic-bezier(.7, 0, .2, 1) both; }
+.pv-half.l { left: 0; animation-name: pv-close-l; }
+.pv-half.r { right: 0; animation-name: pv-close-r; }
+@keyframes pv-close-l { from { transform: translateX(-101%); } }
+@keyframes pv-close-r { from { transform: translateX(101%); } }
+.pv-seam { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; transform: translateX(-50%); background: linear-gradient(transparent, var(--c-brand), transparent); box-shadow: 0 0 18px var(--c-brand); opacity: 0; animation: pv-seam .6s ease .85s forwards; }
+@keyframes pv-seam { 40% { opacity: 1; } to { opacity: .35; } }
+.pv-stars { position: absolute; inset: 0; z-index: 1; }
+.pv-stars i { position: absolute; top: -4%; left: var(--x); width: 2px; height: 2px; border-radius: 50%; background: var(--c-white); box-shadow: 0 0 6px #cfe0ff; opacity: .75; animation: star-fall var(--s) linear var(--d) infinite; }
+.pv-stars i:nth-child(3n) { width: 1px; height: 1px; opacity: .45; }
+.pv-curtain::after { content: ''; position: absolute; inset: 0; z-index: 1; background: radial-gradient(45% 35% at 50% 45%, rgb(242 169 59 / .16), transparent 70%); opacity: 0; animation: pv-spot .8s ease .9s forwards; }
+@keyframes pv-spot { to { opacity: 1; } }
+.pv-bg.played .pv-half, .pv-bg.played .pv-seam, .pv-bg.played .pv-curtain::after { animation-duration: 0s; animation-delay: 0s; }
+.pv-bg.played .pv-body { animation-delay: 0s; }
+.pv-bg.played .pv-card { animation-delay: calc(var(--i) * .08s); }
+.pv-body { position: relative; z-index: 1; display: grid; gap: 12px; justify-items: center; text-align: center; animation: pv-in .5s ease .85s both; }
+@keyframes pv-in { from { opacity: 0; } }
+.pv-body h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.6rem); text-shadow: 0 0 22px rgb(242 169 59 / .5); }
+.pv-body > p { margin: 0; }
+.pv-kicker { font-size: var(--fs-sm); letter-spacing: .4em; color: var(--c-brand); }
+.pv-row { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 6px; }
+.pv-card { display: grid; align-content: start; gap: 8px; min-height: 230px; padding: 20px 16px; border-radius: var(--r-lg); border: 1px solid color-mix(in srgb, var(--c-brand) 60%, transparent); text-align: left; color: var(--c-text); cursor: pointer;
+  background: linear-gradient(170deg, rgb(40 24 12 / .92), rgb(14 12 18 / .95) 60%); box-shadow: 0 14px 34px color-mix(in srgb, var(--c-black) 60%, transparent), inset 0 1px 0 rgb(255 220 160 / .15);
+  animation: pv-card .55s cubic-bezier(.2, .9, .3, 1.2) both; animation-delay: calc(1.05s + var(--i) * .13s); transition: transform .2s, box-shadow .2s; }
+.pv-card:hover { transform: translateY(-6px); box-shadow: 0 0 0 1px var(--c-select), 0 20px 40px color-mix(in srgb, var(--c-black) 70%, transparent); }
+.pv-card b { font-size: var(--fs-xl); }
+.pv-sigil { font-size: var(--fs-3xl); color: var(--c-brand); }
+.pv-desc { font-size: var(--fs-md); color: var(--c-narr-2); }
+@keyframes pv-card { from { opacity: 0; transform: translateY(40px) rotateX(40deg); } }
+@media (max-width: 700px) { .pv-row { grid-template-columns: 1fr; } .pv-card { min-height: 0; } }
+@media (prefers-reduced-motion: reduce) { .pv-curtain, .pv-card, .pv-body { animation: none; } }
+
+/* ───────── 절망 증강 (data/despair.ts): 특권 막과 달리 위에서 어둠이 내려앉고, 붉은 재가 가라앉으며, 카드는 무겁게 떨어진다 (빛 · 반짝임 없음) */
+.modal-bg.dp-bg { background: color-mix(in srgb, var(--c-despair-deep) 90%, var(--c-black)); animation: dp-dark 1.6s ease-in both; }
+@keyframes dp-dark { from { background-color: transparent; } }
+.dp-veil { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background: radial-gradient(75% 60% at 50% 42%, transparent 30%, color-mix(in srgb, var(--c-black) 88%, transparent)); }
+.dp-veil i { position: absolute; top: -3%; left: var(--x); width: 3px; height: 3px; border-radius: 50%; background: var(--c-despair); box-shadow: 0 0 6px var(--c-despair); opacity: .5; animation: dp-ash var(--s) linear var(--d) infinite; }
+.dp-veil i:nth-child(3n) { width: 2px; height: 2px; opacity: .3; }
+@keyframes dp-ash { to { transform: translate(-40px, 108vh); opacity: 0; } }
+.modal.despair { position: relative; z-index: 1; background: none; border: 0; box-shadow: none; width: min(1040px, 100%); overflow: visible; max-height: none; padding: 0; }
+.dp-body { display: grid; gap: 12px; justify-items: center; text-align: center; animation: dp-in 1.1s ease .5s both; }
+@keyframes dp-in { from { opacity: 0; translate: 0 -14px; } }
+.dp-body h1 { margin: 0; font-size: var(--fs-banner); color: var(--c-text); letter-spacing: .12em; text-shadow: 0 2px 0 var(--c-black), 0 0 26px var(--c-despair); }
+.dp-kicker { font-size: var(--fs-sm); letter-spacing: .4em; color: var(--c-despair); }
+.dp-sub { margin: 0; color: var(--c-text-2); }
+.dp-row { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 6px; }
+.dp-card { display: grid; align-content: start; gap: 8px; min-height: 260px; padding: 20px 16px; border-radius: var(--r-lg); text-align: left; color: var(--c-text); cursor: pointer; border: 1px solid color-mix(in srgb, var(--c-despair) 50%, transparent);
+  background: linear-gradient(178deg, var(--c-despair-deep), color-mix(in srgb, var(--c-black) 94%, transparent) 72%); box-shadow: inset 0 0 44px color-mix(in srgb, var(--c-black) 75%, transparent), 0 16px 34px color-mix(in srgb, var(--c-black) 65%, transparent);
+  animation: dp-card 1.3s cubic-bezier(.5, 0, .2, 1) both; animation-delay: calc(1s + var(--i) * .4s); transition: translate .35s, box-shadow .35s, filter .35s; filter: saturate(.75); }
+@keyframes dp-card { 0% { opacity: 0; translate: 0 -36px; filter: brightness(0); } 70% { opacity: 1; translate: 0 3px; filter: brightness(.55) saturate(.4); } }
+.dp-card:hover, .dp-card:focus-visible { translate: 0 4px; filter: none; box-shadow: 0 0 0 1px var(--c-despair), 0 0 32px color-mix(in srgb, var(--c-despair) 38%, transparent), inset 0 0 44px color-mix(in srgb, var(--c-black) 75%, transparent); }
+.dp-card b { font-size: var(--fs-xl); }
+.dp-sigil { color: var(--c-despair); line-height: 0; }
+.dp-sigil .li { width: 30px; height: 30px; }
+.dp-desc { font-size: var(--fs-md); color: var(--c-narr-2); }
+.dp-quip { font-size: var(--fs-sm); color: var(--c-text-2); font-style: italic; }
+.dp-rec { margin-top: auto; font-size: var(--fs-xs); color: var(--c-text-2); }
+.dp-bg.played, .dp-bg.played .dp-body, .dp-bg.played .dp-card { animation-duration: 0s; animation-delay: 0s; }
+@media (max-width: 700px) { .dp-row { grid-template-columns: 1fr; } .dp-card { min-height: 0; } }
+@media (prefers-reduced-motion: reduce) { .modal-bg.dp-bg, .dp-veil i, .dp-body, .dp-card { animation: none; } }
+/* 런 내내: 상단 바 표시 (누르면 설명) · 환경 탭 · 지도 현재 칸 모디파이어 · 도감 */
+.pill.despair { border-color: color-mix(in srgb, var(--c-despair) 70%, transparent); background: color-mix(in srgb, var(--c-despair-deep) 80%, var(--panel-2)); color: var(--c-text); cursor: pointer; font: inherit; line-height: 1.2; }
+.pill.despair .li { color: var(--c-despair); }
+@media (max-width: 860px) { .top .pill.despair b { display: none; } }
+.ah-md.despair { --tc: var(--c-despair); }
+.globals.despair b, .cx2-despair .aug-ic { color: var(--c-despair); }
+/* 고난: 절망 증강이 쌓인다 (출격 때 1개 + 몇 페이즈마다 1개). 상단 바는 아이콘을 나란히 + '절망 n', 환경 탭은 고른 순서대로, 선택 창은 이미 짊어진 절망 줄 */
+.pill.despair .dp-ics { display: inline-flex; align-items: center; gap: 2px; }
+.globals.despair li > .li { vertical-align: -.15em; margin-right: 4px; color: var(--c-despair); }
+.dp-held { margin: 0; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 8px; font-size: var(--fs-sm); color: var(--c-text-2); }
+.dp-held > span { letter-spacing: .2em; }
+.dp-held b { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: var(--r-pill); border: 1px solid color-mix(in srgb, var(--c-despair) 55%, transparent); background: color-mix(in srgb, var(--c-despair-deep) 85%, transparent); color: var(--c-text); }
+.dp-held .li { color: var(--c-despair); }
+/* 난이도 선택: 고난 카드의 절망 증강 안내 (ⓘ 조건 창이 열리면 숨김) */
+.ds-despair { position: absolute; top: 12px; left: 12px; right: 52px; display: flex; align-items: flex-start; gap: 6px; padding: 6px 10px; border-radius: var(--r-md); font-size: var(--fs-sm); line-height: 1.35; color: var(--c-text-2); background: color-mix(in srgb, var(--c-black) 62%, transparent); border: 1px solid var(--line); transition: opacity .25s; }
+.ds-despair.open { color: var(--c-text); border-color: color-mix(in srgb, var(--c-despair) 70%, transparent); background: color-mix(in srgb, var(--c-despair-deep) 88%, transparent); box-shadow: 0 0 18px color-mix(in srgb, var(--c-despair) 30%, transparent); }
+.ds-despair .li { width: 14px; height: 14px; flex: none; margin-top: 1px; color: var(--c-despair); }
+.ds-card.info .ds-despair { opacity: 0; }
+/* ───────── 절망 서약 (data/oaths.ts · ui/oath.ts): 타이틀에서 따로 여는 고난 전용 조건 화면. 절망 증강의 어두운 진홍 토큰을 그대로 쓴다 */
+.title-actions .ts-oath { border-color: color-mix(in srgb, var(--c-despair) 55%, var(--line)); }
+.wrap.oath { padding-bottom: 32px; } /* 절망 서약 화면만 (리본의 서약 칩 .pill.oath 에 아래 여백이 붙어 글 · 아이콘이 칩 위로 삐져나오던 것) */
+.oh-top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 16px; padding: 18px 20px; border-radius: var(--r-lg); border: 1px solid color-mix(in srgb, var(--c-despair) 45%, var(--line)); background: linear-gradient(170deg, var(--c-despair-deep), var(--panel) 75%); }
+.oh-title { display: grid; gap: 6px; max-width: 760px; }
+.oh-title h1 { margin: 0; display: flex; align-items: center; gap: 8px; letter-spacing: .08em; }
+.oh-title h1 .li { width: 26px; height: 26px; color: var(--c-despair); }
+.oh-title p { margin: 0; }
+.oh-kicker { font-size: var(--fs-sm); letter-spacing: .3em; color: var(--c-despair); }
+.oh-heat { display: grid; justify-items: center; min-width: 140px; padding: 10px 18px; border-radius: var(--r-md); background: color-mix(in srgb, var(--c-black) 55%, transparent); border: 1px solid color-mix(in srgb, var(--c-despair) 60%, transparent); }
+.oh-heat span { font-size: var(--fs-sm); letter-spacing: .2em; color: var(--c-text-2); }
+.oh-heat b { font: 700 var(--fs-3xl) var(--f-mono); line-height: 1.1; color: var(--c-despair); text-shadow: 0 0 18px color-mix(in srgb, var(--c-despair) 45%, transparent); }
+.oh-heat small { font-size: var(--fs-xs); color: var(--c-text-2); }
+/* 실효(표기) 위험 등급: 절망 수치 CFG.oathDiffStep 마다 +1 (data/difficulty.ts effDiff) */
+.oh-heat .oh-eff { display: grid; justify-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid color-mix(in srgb, var(--c-despair) 35%, transparent); font-style: normal; font-weight: 700; color: var(--c-text); }
+.ds-sub-x { letter-spacing: normal; color: var(--c-despair); }
+.pill.oath .oh-dl { font-size: var(--fs-sm); color: var(--c-text-2); }
+.oh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.oh-card { display: grid; gap: 8px; align-content: start; padding: 12px; border-radius: var(--r-md); border: 1px solid var(--line); background: var(--panel); transition: border-color .2s, background .2s; }
+.oh-card.on { border-color: color-mix(in srgb, var(--c-despair) 65%, transparent); background: linear-gradient(175deg, color-mix(in srgb, var(--c-despair-deep) 85%, var(--panel)), var(--panel) 80%); }
+.oh-hd { display: flex; align-items: center; gap: 8px; }
+.oh-hd b { font-size: var(--fs-md); }
+.oh-ic { line-height: 0; color: var(--c-text-2); }
+.oh-ic .li { width: 20px; height: 20px; }
+.oh-card.on .oh-ic, .oh-card.on .oh-cost { color: var(--c-despair); }
+.oh-cost { margin-left: auto; font: var(--fs-xs) var(--f-mono); color: var(--c-text-2); }
+.oh-quip { margin: 0; font-size: var(--fs-sm); font-style: italic; color: var(--c-text-2); }
+.oh-lvs { display: grid; gap: 4px; }
+.oh-lv { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--panel-2); color: var(--c-text-2); text-align: left; font: inherit; font-size: var(--fs-sm); cursor: pointer; }
+.oh-lv:hover, .oh-lv:focus-visible { border-color: color-mix(in srgb, var(--c-despair) 60%, var(--line)); color: var(--c-text); }
+.oh-lv.on { color: var(--c-text); border-color: color-mix(in srgb, var(--c-despair) 45%, transparent); background: color-mix(in srgb, var(--c-despair-deep) 70%, var(--panel-2)); }
+.oh-lv.cur { box-shadow: inset 3px 0 0 var(--c-despair); }
+.oh-k { display: grid; place-items: center; width: 22px; height: 22px; border-radius: var(--r-pill); border: 1px solid var(--line); font: 700 var(--fs-xs) var(--f-mono); }
+.oh-lv.on .oh-k { background: var(--c-despair); border-color: var(--c-despair); color: var(--c-text); }
+.oh-h { font: 700 var(--fs-xs) var(--f-mono); color: var(--c-despair); }
+.oh-rec { margin-top: 18px; }
+.oh-rec ul { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px; font-size: var(--fs-sm); }
+.oh-rec li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line-soft); }
+.oh-act { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+/* 런 중 상단 바 (누르면 목록) · 난이도 선택 고난 카드의 지금 절망 수치 */
+.pill.oath { border-color: color-mix(in srgb, var(--c-despair) 70%, transparent); background: color-mix(in srgb, var(--c-despair-deep) 80%, var(--panel-2)); color: var(--c-text); cursor: pointer; font: inherit; line-height: 1.2; } /* 버튼이라 본문 줄 높이를 물려받아 리본이 두꺼워지던 것: 줄 높이를 다른 칩과 맞춘다 (높이 고정은 .top .pill) */
+.pill.oath .li { color: var(--c-despair); }
+@media (max-width: 860px) { .top .pill.oath .oh-pl { display: none; } }
+/* 좁은 화면: 서약 표시는 표기 위험 등급만 (절망 수치 · 아이콘은 누르면 알림 · 환경 탭), 예상 이자는 크레딧 칸 모서리 배지 '+n' (누르면 알림) */
+@media (max-width: 860px) {
+  .top .pill.oath .li, .top .pill.oath b { display: none; }
+  .top .pill.oath .oh-dl { color: var(--c-text); }
+  .top .pill.cr .cr-int { margin-left: 2px; padding: 0 4px; border-radius: var(--r-pill); border: 1px solid color-mix(in srgb, var(--c-credit) 55%, transparent); font-size: var(--fs-xs); line-height: 1.2; opacity: 1; } /* 칩 안 작은 배지 (리본 밖으로 튀어나오지 않게) */
+  .top .pill.cr .cr-int-tx { display: none; }
+}
+.ds-despair { flex-wrap: wrap; }
+.ds-oath { flex-basis: 100%; display: flex; align-items: flex-start; gap: 6px; color: var(--c-text-2); }
+.ds-oath.on { color: var(--c-text); }
+.ds-oath b { color: var(--c-despair); }
+
+/* 난이도 카드: 제목 높이를 맞추고 세부 조건은 i 버튼으로 */
+.ds-info-btn { position: absolute; top: 12px; right: 12px; z-index: 3; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font: italic 700 var(--fs-lg) Georgia, serif; color: var(--c-text); background: rgb(8 10 16 / .65); border: 1px solid color-mix(in srgb, var(--c-white) 35%, transparent); cursor: pointer; }
+.ds-info-btn:hover, .ds-card.info .ds-info-btn { background: var(--c-select); color: var(--c-select-ink); border-color: var(--c-select); }
+.ds-pop { position: absolute; top: 48px; right: 12px; left: 12px; z-index: 3; display: grid; gap: 6px; padding: 12px 14px; border-radius: var(--r-lg); background: rgb(8 10 16 / .9); border: 1px solid var(--line); font-size: var(--fs-base); color: var(--c-text-2); opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity .25s, transform .25s; max-height: calc(100% - 60px); overflow-y: auto; box-sizing: border-box; }
+.ds-pop b { color: var(--c-text); font-size: var(--fs-md); }
+.ds-pop ul { margin: 0; padding-left: 16px; display: grid; gap: 3px; }
+.ds-card.info .ds-pop { opacity: 1; transform: none; }
+@media (max-width: 700px) { .ds-body { height: auto; } }
+
+/* 전장 브리핑: 적 초상화 */
+.fb-foes { display: flex; flex-wrap: wrap; gap: 6px; }
+.fb-foe-ic { position: relative; width: 58px; padding: 0; border: 1px solid var(--line); border-radius: var(--r-lg); background: color-mix(in srgb, var(--c-white) 4%, transparent); color: var(--c-text); cursor: pointer; display: grid; justify-items: center; overflow: hidden; }
+.fb-foe-ic img, .fb-foe-ic canvas, .fb-foe-ic .spr { width: 56px; height: 56px; object-fit: cover; image-rendering: auto; display: block; }
+.fb-foe-ic i { font-style: normal; font-size: var(--fs-2xs); line-height: 1.2; padding: 2px 3px 4px; width: 100%; box-sizing: border-box; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fb-foe-ic em { position: absolute; top: 2px; left: 2px; font-style: normal; font-size: .58rem; font-weight: 700; padding: 0 4px; border-radius: var(--r-sm); background: var(--c-bad); color: var(--c-white); }
+.fb-foe-ic.tier-elite em { background: var(--c-psi); }
+.fb-foe-ic.tier-boss { border-color: color-mix(in srgb, var(--c-bad) 60%, var(--line)); }
+.fb-foe-ic:hover { border-color: var(--c, var(--c-select)); }
+.modal.foe-modal { width: min(560px, 100%); }
+
+@media (max-width: 700px) { .ds-card.info { min-height: 340px; } }
+

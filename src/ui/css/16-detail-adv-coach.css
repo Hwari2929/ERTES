@@ -1,0 +1,186 @@
+/* ───────── 기물 전체 상세 팝업 (대기실 · 편성 확대) */
+.um-back { position: fixed; inset: 0; z-index: var(--z-tip); background: rgb(6 8 12 / .62); backdrop-filter: blur(2px); }
+.um { position: fixed; z-index: var(--z-um); inset: max(16px, 3vh) max(16px, 3vw); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 20px 60px color-mix(in srgb, var(--c-black) 60%, transparent); overflow: hidden; }
+.um-head { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; padding: 8px 14px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.um-id { display: grid; justify-items: center; text-align: center; gap: 2px; } .um-id b { font-size: var(--fs-2xl); font-family: var(--f-body); font-weight: 800; line-height: 1.2; }
+.um-idblk { display: grid; gap: 8px; }
+.um-sc-name { font-size: var(--fs-base); font-weight: 800; }
+.um-rank { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .um-rank .xpbar, .um-rank .xp { flex: 1; min-width: 90px; }
+.um-tools { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; }
+.um-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr) minmax(0, 1fr); gap: 0; overflow: hidden; grid-template-rows: auto auto minmax(0, 1fr); }
+.um-col { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 8px; overflow: auto; overscroll-behavior: contain; padding: 12px 14px; }
+.um-a { border-right: 1px solid var(--line); background: color-mix(in srgb, var(--panel-2) 45%, transparent); position: relative; grid-row: 1 / 4; }
+/* 전체 상세 위쪽 바: 도구만 (이름 · 유형은 왼쪽 열 초상화 아래). 왼쪽 열 초상화가 바 높이까지 올라간다 */
+.um-top { grid-column: 2 / -1; grid-row: 1; position: relative; z-index: var(--z-sticky); }
+.um-col h3 { margin: 4px 0 0; font-size: var(--fs-sm); color: var(--c-text-2); letter-spacing: 0; font-weight: 700; }
+.um-c .abils { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 8px; align-items: start; max-width: 1100px; }
+.um-c .um-types { max-width: 1100px; }
+.um-c .abils .tt-sec, .um-c .abils .ab-relic, .um-c .abils .sm-sec { grid-column: 1 / -1; }
+.um-art { border-radius: var(--r-lg); overflow: hidden; background: var(--panel-2); max-height: 300px; display: grid; place-items: center; transition: opacity .35s ease, transform .35s ease, filter .35s ease; transform-origin: 50% 0; }
+.um-art img, .um-art .hero { max-height: 300px; width: auto; max-width: 100%; }
+.um-relic { display: flex; gap: 8px; align-items: center; }
+.um-types { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; margin: 0; font-size: var(--fs-sm); }
+.um-types dt { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; white-space: nowrap; } .um-types dd { margin: 0; color: var(--c-text-2); }
+.um-types dt svg, .um-types dt .li { width: 14px; height: 14px; }
+.um-pop { position: absolute; z-index: 2; right: 18px; top: 64px; width: min(440px, calc(100% - 36px)); max-height: calc(100% - 84px); overflow: auto; }
+.um-pop > * { position: static !important; width: auto !important; }
+.dp-unit .mj-head .mag-btn { margin-left: auto; } /* 확대 버튼이 위쪽 바로 옮겨 가서 돋보기만 오른쪽 끝에 */
+.dp-unit .dp-sticky { margin: 0 -12px; } /* top 은 위쪽 바 높이에 맞춰 main.ts 가 넣는다 */
+.dp-sticky .um-sc { padding: 6px 12px; gap: 8px; }
+.dp-sticky .um-sc .um-face { width: 40px; height: 40px; }
+.dp-sticky .pc-syn { position: static; inset: auto; display: flex; flex-wrap: wrap; gap: 2px; }
+.dp-sticky .pc-syn .syn-b { width: 26px; height: 26px; } .dp-sticky .pc-syn .syn-dia { width: 19px; height: 19px; } .dp-sticky .pc-syn .syn-dia .si { width: 11px; height: 11px; }
+.dp-sticky .syn-lv { display: none; }
+@media (max-width: 1100px) { .um-grid { grid-template-columns: minmax(240px, 280px) minmax(0, 1fr); } .um-c .abils { grid-template-columns: minmax(0, 1fr); max-width: 620px; } }
+@media (max-width: 700px) { .um { inset: 8px; } .um-grid { grid-template-columns: minmax(0, 1fr); overflow: auto; align-content: start; grid-auto-rows: auto; grid-template-rows: none; } .um-col { overflow: visible; min-height: auto; } .um-a { border-right: 0; border-bottom: 1px solid var(--line); } .um-c .abils { max-width: none; } }
+.um .pc-syn { position: static; display: flex; flex-direction: row; flex-wrap: wrap; gap: 4px; transform: none; inset: auto; }
+.um-pop.sheet { left: 8px !important; right: 8px !important; top: auto !important; bottom: 8px; width: auto; }
+.um-col > * { flex-shrink: 0; }
+/* ───────── 미연시(ADV) 화면 */
+.adv { position: fixed; inset: 0; z-index: var(--z-adv); overflow: hidden; background: #07080c; color: var(--c-text, #e8e6e3); outline: none; user-select: none; cursor: pointer; }
+.adv-bg { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 30%, #1d2433, #07080c) center / cover no-repeat; background-size: cover; transition: background-image .4s; }
+.adv-shade { position: absolute; inset: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--c-black) 15%, transparent), transparent 30%, color-mix(in srgb, var(--c-black) 55%, transparent) 72%, color-mix(in srgb, var(--c-black) 80%, transparent)); pointer-events: none; }
+.adv-stage { position: absolute; inset: 0 0 0 0; display: grid; grid-template-columns: repeat(3, 1fr); align-items: end; pointer-events: none; }
+.adv-slot { height: 92%; display: flex; justify-content: center; align-items: flex-end; transition: filter .25s, transform .25s; }
+.adv-slot img { height: 100%; max-width: 160%; object-fit: contain; object-position: bottom; animation: adv-in .35s ease-out; }
+.adv-slot.dim { filter: brightness(.5) saturate(.7); }
+.adv-slot.talk { transform: translateY(-1%); }
+@keyframes adv-in { from { opacity: 0; transform: translateY(2%); } }
+.adv-place { position: absolute; left: 16px; top: max(16px, env(safe-area-inset-top)); padding: 6px 12px; border-left: 3px solid var(--c-text-2); background: rgb(8 10 14 / .72); font-size: var(--fs-base); letter-spacing: .03em; opacity: 0; }
+.adv-place.show { animation: adv-place 3.2s ease forwards; }
+@keyframes adv-place { 10%, 75% { opacity: 1; } to { opacity: 0; } }
+.adv-title { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); font: 800 clamp(20px, 3vw, 30px) var(--f-body); letter-spacing: .08em; text-shadow: 0 2px 12px var(--c-black); animation: adv-title 2.6s ease forwards; pointer-events: none; white-space: nowrap; }
+@keyframes adv-title { from { opacity: 0; } 15%, 70% { opacity: 1; } to { opacity: 0; } }
+.adv-tools { position: absolute; right: 12px; top: max(12px, env(safe-area-inset-top)); display: flex; gap: 6px; z-index: 2; }
+.adv-tools button { font: 600 var(--fs-sm) inherit; padding: 5px 10px; border-radius: var(--r-md); border: 1px solid color-mix(in srgb, var(--c-white) 18%, transparent); background: rgb(8 10 14 / .6); color: inherit; cursor: pointer; }
+.adv-tools button.on { border-color: var(--c-select); color: var(--c-select); }
+.adv-box { position: absolute; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(980px, calc(100% - 32px)); min-height: 132px; padding: 26px 26px 20px; border-radius: var(--r-lg); background: color-mix(in srgb, var(--c-ink) 86%, transparent); border: 1px solid color-mix(in srgb, var(--c-white) 12%, transparent); box-shadow: 0 10px 40px color-mix(in srgb, var(--c-black) 50%, transparent); backdrop-filter: blur(4px); }
+.adv-name { position: absolute; left: 20px; top: 0; transform: translateY(-55%); padding: 4px 16px; border-radius: var(--r-md); background: color-mix(in srgb, var(--c) 30%, #10131a); border: 1px solid var(--c); font-weight: 800; font-size: var(--fs-lg); letter-spacing: .04em; }
+.adv-text { margin: 0; font-size: clamp(15px, 1.6vw, 18px); line-height: 1.7; white-space: pre-wrap; word-break: keep-all; }
+.adv-box.narr .adv-text { color: #cfd3db; font-style: normal; }
+.adv-box.think .adv-text { color: #b9c4d6; font-style: italic; }
+.adv-box.think .adv-text::before { content: '( '; } .adv-box.think .adv-text::after { content: ' )'; }
+.adv-next { position: absolute; right: 18px; bottom: 10px; font-size: var(--fs-xs); color: var(--c-select); opacity: 0; }
+.adv-box.ready .adv-next { opacity: 1; animation: adv-blink 1s infinite; }
+.adv-box.ended .adv-next { display: none; }
+@keyframes adv-blink { 50% { transform: translateY(3px); opacity: .4; } }
+.adv-end { position: absolute; left: 50%; bottom: calc(max(16px, env(safe-area-inset-bottom)) + 150px); transform: translateX(-50%); width: min(720px, calc(100% - 32px)); display: grid; gap: 8px; cursor: default; }
+.adv-result { margin: 0 0 4px; padding: 10px 14px; border-radius: var(--r-lg); background: color-mix(in srgb, var(--c-ink) 90%, transparent); border-left: 3px solid var(--c-info); font-size: var(--fs-md); }
+.adv-choice { display: grid; gap: 2px; text-align: left; padding: 11px 16px; border-radius: var(--r-lg); border: 1px solid color-mix(in srgb, var(--c-white) 16%, transparent); background: rgb(14 17 24 / .92); color: inherit; font: inherit; cursor: pointer; transition: border-color .15s, background .15s; }
+.adv-choice:hover:not([disabled]), .adv-choice:focus-visible { border-color: var(--c-select); background: rgb(24 28 38 / .95); }
+.adv-choice b { font-size: var(--fs-lg); } .adv-choice span { font-size: var(--fs-sm); color: var(--c-text-2); }
+.adv-choice[disabled] { opacity: calc(.5 + var(--op-lift)); cursor: not-allowed; }
+.adv-choice.ok { text-align: center; }
+.adv-log { position: absolute; inset: 0; z-index: 3; background: rgb(6 8 12 / .92); display: grid; grid-template-rows: 1fr auto; padding: 24px max(16px, 8vw); gap: 12px; cursor: default; }
+.adv-log-in { overflow: auto; display: grid; gap: 10px; align-content: start; max-width: 860px; width: 100%; margin: 0 auto; }
+.adv-log-in p { margin: 0; line-height: 1.6; } .adv-log-in b { display: block; color: color-mix(in srgb, var(--c) var(--data-mix), var(--c-text)); font-size: var(--fs-base); }
+.adv-log-in .think { font-style: italic; color: #b9c4d6; } .adv-log-in .narr { color: #cfd3db; }
+.adv-log .btn { justify-self: center; }
+.adv.fx-shake { animation: adv-shake .45s; } @keyframes adv-shake { 20% { transform: translate(-6px, 2px); } 40% { transform: translate(5px, -3px); } 60% { transform: translate(-4px, 1px); } 80% { transform: translate(3px, 0); } }
+.adv.fx-flash::after, .adv.fx-dark::after, .adv.fx-fade::after { content: ''; position: absolute; inset: 0; pointer-events: none; animation: adv-flash .6s forwards; background: var(--c-white); }
+.adv.fx-dark::after { background: var(--c-black); animation-name: adv-dark; animation-duration: .9s; }
+.adv.fx-fade::after { background: var(--c-black); animation-name: adv-fade; animation-duration: .9s; }
+@keyframes adv-flash { from { opacity: .85; } to { opacity: 0; } }
+@keyframes adv-dark { 40% { opacity: .75; } to { opacity: 0; } }
+@keyframes adv-fade { from { opacity: 1; } to { opacity: 0; } }
+.adv.fx-glitch .adv-stage { animation: adv-glitch .5s steps(2); } @keyframes adv-glitch { 25% { transform: translateX(4px); filter: hue-rotate(90deg); } 50% { transform: translateX(-3px); } 75% { transform: translateX(2px); filter: hue-rotate(-60deg); } }
+@media (max-width: 700px) {
+  .adv-stage { grid-template-columns: repeat(3, 1fr); }
+  .adv-slot { height: 70%; } .adv-slot img { max-width: 220%; }
+  .adv-box { min-height: 120px; padding: 22px 16px 16px; }
+  .adv-end { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 136px); }
+}
+@media (prefers-reduced-motion: reduce) { .adv *, .adv { animation: none !important; transition: none !important; } }
+.adv [hidden] { display: none !important; }
+@media (max-width: 700px) { .adv-place { top: calc(max(12px, env(safe-area-inset-top)) + 40px); } }
+
+/* ── 튜토리얼: 안내 말풍선 (코치 마크) · 타이틀 NEW · 첫 실행 질문 · 도감 교범 */
+.coach { position: fixed; inset: 0; z-index: var(--z-coach); pointer-events: none; --cc: var(--c-select); }
+.coach[hidden] { display: none; }
+.co-dim { position: fixed; left: 0; top: 0; width: 0; height: 0; background: rgb(4 6 10 / .66); pointer-events: auto; }
+.co-ring { position: fixed; border: 2px solid var(--cc); border-radius: var(--r-lg); pointer-events: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-black) 35%, transparent), 0 0 22px color-mix(in srgb, var(--cc) 55%, transparent); animation: co-pulse 1.8s ease-in-out infinite; }
+.co-ring[hidden] { display: none; }
+@keyframes co-pulse { 50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-black) 35%, transparent), 0 0 36px color-mix(in srgb, var(--cc) 80%, transparent); } }
+.co-bub { position: fixed; pointer-events: auto; width: min(360px, calc(100vw - 16px)); display: grid; gap: 8px; padding: 12px 14px 10px; border-radius: var(--r-lg);
+  background: var(--panel); border: 1px solid color-mix(in srgb, var(--cc) 55%, var(--line)); box-shadow: 0 12px 34px color-mix(in srgb, var(--c-black) 60%, transparent); cursor: default; }
+.co-bub[data-mode="center"] { left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.co-bub.nudge { animation: co-nudge .35s; }
+@keyframes co-nudge { 25% { translate: -5px 0; } 50% { translate: 4px 0; } 75% { translate: -2px 0; } }
+.co-head { display: flex; align-items: center; gap: 10px; }
+.co-pt { width: 40px; height: 40px; flex: none; border-radius: 50%; object-fit: cover; border: 2px solid var(--cc); background: var(--panel-2); }
+.co-nm { color: var(--cc); font-size: var(--fs-lg); }
+.co-n { margin-left: auto; font: 600 var(--fs-xs) var(--f-mono); color: var(--c-text-2); }
+.co-tx { font-size: var(--fs-lg); line-height: 1.6; word-break: keep-all; }
+.co-foot { display: flex; align-items: center; gap: 8px; min-height: 30px; }
+.co-skip { background: none; border: 0; padding: 2px 0; color: var(--c-text-2); font-size: var(--fs-sm); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.co-skip.armed { color: var(--c-bad); }
+.co-hint { flex: 1; text-align: right; color: var(--c-select); font-size: var(--fs-sm); }
+.co-hint:empty { flex: 1; }
+.co-next { padding: 5px 16px; }
+.co-next[hidden] { display: none; }
+body.coaching .kw-tip, body.coaching .item-tip, body.coaching .drag-ghost { z-index: var(--z-coach-tip); }
+@media (max-width: 700px) {
+  .co-bub, .co-bub[data-mode] { left: 8px; right: 8px; width: auto; transform: none; }
+  .co-bub[data-mode="bottom"], .co-bub[data-mode="center"] { top: auto; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .co-bub[data-mode="top"] { top: calc(8px + env(safe-area-inset-top, 0px)); bottom: auto; }
+  .co-tx { font-size: var(--fs-md); }
+}
+@media (prefers-reduced-motion: reduce) { .co-ring, .co-bub.nudge { animation: none; } }
+.title-actions .ts-btn.ts-tut { position: relative; }
+.ts-new { position: absolute; top: -7px; right: -6px; padding: 1px 7px; border-radius: var(--r-pill); background: var(--c-select); color: var(--c-select-ink); font: 800 var(--fs-2xs) var(--f-mono); letter-spacing: .06em; box-shadow: 0 2px 8px color-mix(in srgb, var(--c-black) 40%, transparent); }
+.ts-sub { display: flex; gap: 6px; justify-content: center; }
+.tut-ask { max-width: 440px; display: grid; gap: 10px; }
+.tut-ask .ta-head { display: flex; gap: 12px; align-items: center; }
+.tut-ask .ta-head .spr { width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--c-brand); object-fit: cover; }
+.gl-ch { --c: var(--c-text-2); margin-top: 14px; }
+.gl-h { display: flex; align-items: center; gap: 10px; color: var(--c-text); margin-block: 14px 8px; }
+.gl-h small { font-family: var(--f-body); font-size: var(--fs-base); }
+.gl-h .gl-pt { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--c); object-fit: cover; background: var(--panel-2); }
+.gl-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 6px; }
+.gl-row { display: grid; gap: 3px; align-content: start; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--c); border-radius: var(--r-md); }
+.gl-row p { line-height: 1.55; word-break: keep-all; }
+.gl-row.locked { opacity: calc(.55 + var(--op-lift)); border-left-color: var(--line); }
+@media (max-width: 700px) { .gl-list { grid-template-columns: minmax(0, 1fr); } }
+/* 전체 상세(.um)에서 경험치를 사 등급이 오르면 등급 보상 창이 그 위에 뜨게 */
+.modal-bg:has(> .modal.rankup) { z-index: var(--z-um-over); }
+/* ───────── 능력 아이콘 토큰: 카드 왼쪽 정사각 아이콘, 테두리는 능력 종류 색 */
+.has-tok { display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 9px; align-items: start; }
+.has-tok > :not(.ab-tok) { grid-column: 2; min-width: 0; }
+.ab-tok { grid-column: 1; grid-row: 1 / span 4; width: 44px; height: 44px; border-radius: var(--r-lg); object-fit: cover; border: 0; box-shadow: none; background: #0c0e14; user-select: none; filter: brightness(.9) saturate(.88); -webkit-mask-image: radial-gradient(circle at 50% 50%, var(--c-black) 58%, color-mix(in srgb, var(--c-black) 72%, transparent) 100%); mask-image: radial-gradient(circle at 50% 50%, var(--c-black) 58%, color-mix(in srgb, var(--c-black) 72%, transparent) 100%); }
+.ab-faith.off .ab-tok { filter: grayscale(.85) brightness(.7); }
+.abil.has-tok .ab-head { min-height: 18px; }
+.ab-trait > .ab-click.has-tok { margin: -2px -4px; padding: 2px 4px; }
+.ps-card.has-tok { grid-template-columns: 38px minmax(0, 1fr); }
+.ps-card .ab-tok { width: 38px; height: 38px; border-color: var(--sc); }
+@media (max-width: 700px) { .has-tok { grid-template-columns: 38px minmax(0, 1fr); } .ab-tok { width: 38px; height: 38px; } }
+.abil-pop .sp-head .ap-tok { grid-row: auto; width: 40px; height: 40px; border-color: var(--c-text-2); }
+@media (max-width: 700px) {   }
+
+/* 전체 상세 3단: 좌(개요) · 중앙(전투 유형 · 무기 · 특성 · 스킬) · 우(신앙 · 전술 유형). 열마다 따로 스크롤 */
+.um-main { display: contents; }
+.um-r { border-left: 1px solid var(--line); }
+.um-c .abils, .um-r .abils { grid-template-columns: minmax(0, 1fr); max-width: none; }
+.um-c .um-types, .um-r .um-types { max-width: none; }
+@media (max-width: 1100px) {
+  
+  .um-main { display: block; min-height: 0; overflow: auto; overscroll-behavior: contain; grid-row: 1 / 4; }
+  .um-main > .um-col { overflow: visible; min-height: auto; }
+  .um-r { border-left: 0; border-top: 1px solid var(--line); }
+}
+@media (max-width: 700px) {
+  
+  .um-main { overflow: visible; display: contents; }
+}
+.um-r .tt-rule { display: none; }
+.um-c .ab-trait .subs { display: none; }
+/* 전공 선택 카드 (간소화): 이름 · 핵심 한 줄 · 비술 / 지속 아이콘 (눌러서 상세) */
+.sch-opt { display: grid; gap: 8px; align-content: start; cursor: pointer; }
+.so-line { margin: 0; font-size: var(--fs-base); line-height: 1.5; color: var(--c-text); }
+.so-ics { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.so-ic { display: flex; align-items: center; gap: 8px; padding: 5px; border-radius: var(--r-lg); background: none; border: 1px solid var(--line); min-width: 0; border-color: var(--line-soft); }
+.so-ic .ab-tok { grid-row: auto; width: 40px; height: 40px; flex: none; border-color: var(--sc); }
+.so-ic > span { display: grid; min-width: 0; } .so-ic small { font-size: var(--fs-xs); color: var(--c-text-2) !important; font-weight: 700; } .so-ic b { font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.so-ic:hover, .so-ic.on { border-color: var(--line); background: color-mix(in srgb, var(--c-white) 3%, transparent); }
+.ru-pop { position: fixed; z-index: var(--z-over); left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(420px, calc(100vw - 24px)); max-height: min(80vh, 640px); overflow: auto; }
+.ru-pop > * { position: static !important; width: auto !important; }
+

@@ -1,0 +1,70 @@
+/* ═════════ 색 · 글꼴 역할 (원칙) — 예전 "디자인 1차 정돈" 덮어쓰기는 각 원래 규칙에 합쳤다 ═════════
+   색 역할
+   · 선택 · 확정 · 다음 행동 = --c-select (호박색): 선택된 항목 · 주요 버튼에만
+   · 상태 변화 = --c-good / --c-bad: 회복 · 위험 · 손실이 실제로 일어난 곳에만
+   · 피해 속성 = --el-* : 속성 아이콘 · 관련 수치에만 (라벨 배경 X)
+   · 세력 · 시너지 · 전공 = --c / --sc: 작은 문양 · 활성 단계 · 그 상세에만
+   · 장비 희귀도 = --g-* : 장비 칸 테두리 · 등급 표식에만
+   · 그 외 (종류 라벨 · 제목 · 테두리) = 무채색 (--c-text / --c-text-2 / --line)
+   글꼴 역할
+   · .f-title (Black Han Sans): 화면 제목 · 전투 결과 · 장면 제목 (h1)
+   · .f-ui (Gothic A1): 이름 · 메뉴 · 능력명 · 설명 · 소제목 (h2 · h3)
+   · .f-num (IBM Plex Mono): 정렬이 필요한 수치 */
+.f-title { font-family: var(--f-display); font-weight: 400; }
+.f-ui { font-family: var(--f-body); }
+.f-num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+/* 소제목은 Gothic A1 로 (Black Han Sans 는 h1 · 결과 · 장면 제목만) */
+h2, h3 { font-family: var(--f-body); font-weight: 800; letter-spacing: 0; }
+
+/* ── 능력 목록: 카드 안의 카드 → 행. 종류는 흰 아이콘 + 작은 종류명, 종류별 색 없음 */
+.abils > .abil:last-child { border-bottom: 0; }
+.ab-head b { font-weight: 700; }
+.tt-sec .ab-kind, .tt-cantrip .ab-kind, .ab-relic > .ab-head .ab-kind, .rl-act .ab-kind { color: var(--c-text-2); background: none; }
+/* 스킬 메타 칩 → 작은 한 줄 메타 (쿨다운 · 사거리 · 대상 · 범위) */
+.abc, .ab-chips > .pw { background: none; border: 0; padding: 0; font-size: var(--fs-meta); }
+.abc .li, .ab-chips .pw .li { opacity: .8; }
+/* 능력 그림: 같은 목록에서 시각적 무게 맞춤 (흰 배경 그림은 가장자리를 눌러 주고, 발광 그림은 밝기를 낮춤). 테두리 · 그림자 없음 */
+.ps-card .ab-tok, .so-ic .ab-tok { border: 0; }
+
+/* ── 기물 전체 상세: 요약 한 블록 (한 줄 설명 → 이번 빌드) 을 위에 고정 */
+.um-sum { display: grid; gap: 4px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--panel); font-size: var(--fs-base); grid-column: 2 / 4; grid-row: 2; }
+.us-row { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.us-k { color: var(--c-text-2); font-size: var(--fs-sm); font-weight: 700; }
+.us-row p { margin: 0; line-height: 1.5; }
+.us-row b { font-weight: 700; color: var(--c-text); }
+.us-blurb { margin: 0; line-height: 1.5; color: var(--c-text); }
+.us-blurb b { font-weight: 700; }
+/* 이번 빌드: 변형 칩 · 증강 아이콘 줄 · 장비 칸 줄 */
+.us-bd { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; min-width: 0; }
+.us-g { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-width: 0; }
+.us-gk { font-size: var(--fs-xs); color: var(--c-text-2); white-space: nowrap; }
+.us-g .tt-ic .aug-ic { width: 28px; height: 28px; }
+.us-gear { display: flex; flex-wrap: wrap; gap: 3px; }
+.us-gear .item { width: 28px; height: 28px; font-size: var(--fs-sm); }
+.tchip.tf { --tc: var(--c-select); }
+.um-rules { margin-top: 0; border-top: 0; padding-top: 0; }
+.um-c, .um-r { grid-row: 3; }
+@media (max-width: 1100px) { .um-sum { grid-column: auto; } .um-a { grid-row: 1 / 4; } .um-top { position: sticky; top: 0; } }
+@media (max-width: 700px) { .um-a, .um-main { grid-row: auto; } .us-row { grid-template-columns: 64px minmax(0, 1fr); } }
+.dh-types i { background: none; border: 1px solid var(--line-soft); }
+.d-bless { display: inline-flex; align-items: center; gap: 4px; } .d-bless .li { width: 14px; height: 14px; } .d-bless.done { color: var(--c-select); }
+
+/* ── 시너지 목록: 비활성은 조용히, 활성만 문양 색 · 단계 표시 */
+.syn-tk:not(.active) .syn-dia { border-color: color-mix(in srgb, var(--c) 45%, var(--line)); background: none; }
+.syn-steps span.cur { color: var(--c-data-ink); background: var(--c); }
+.syn-tk:not(.active) .syn-lv { background: var(--panel-2); color: var(--c-text-2); }
+.sp-tiers li.cur b { background: var(--c); color: var(--c-data-ink); box-shadow: none; }
+.syn-pop .small b, .syn-pop .accent { color: var(--c-text); }
+
+/* 기물 상세 접히는 머리줄: 위에서 살짝 내려오며 나타남 (들어올 때 200ms · 나갈 때 140ms), 초상화는 약간 확대 → 1 */
+:is(.um-a, .dp-unit).compact .um-sc .um-face { transform: none; transition: transform .2s cubic-bezier(.2, .7, .3, 1); }
+.um-a.um-instant .um-sc .um-face { transition: none !important; }
+@media (prefers-reduced-motion: reduce) { .um-sc, .um-a.compact .um-sc, .um-sc .um-face, .um-a.compact .um-sc .um-face { transition: none !important; transform: none !important; } }
+@media (max-width: 700px) {  .um-top { order: -3; position: sticky; top: 0; } .um-a { order: -2; } .um-sum { order: -1; } .um-c, .um-r { order: 0; } }
+@media (max-width: 700px) {  .um-top, .um-sum, .um-a, .um-c, .um-r { grid-row: auto; grid-column: auto; } }
+/* 머리줄이 켜지면 본문에 남은 공명 등급 · 시너지 조각은 즉시 숨기고, 꺼질 때는 머리줄이 다 사라진 뒤(140ms) 다시 보인다 */
+.um-idblk { transition: visibility 0s linear .14s; }
+.um-a.compact .um-idblk { visibility: hidden; transition: none; }
+.um-a.um-instant .um-idblk { transition: none; }
+@media (prefers-reduced-motion: reduce) { .um-idblk { transition: none; } }
+

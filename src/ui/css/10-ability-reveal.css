@@ -1,0 +1,237 @@
+/* ── 능력 (통일 형식) */
+.ab-click { cursor: pointer; border-radius: var(--r-sm); }
+.abil.ab-click { border-radius: 0; } /* 능력 행은 모서리 없는 행 */
+.ab-click:hover { outline: 0; background: color-mix(in srgb, var(--c-white) 2.5%, transparent); }
+.ab-click.on { outline: 0; box-shadow: inset 2px 0 0 var(--c-select); background: color-mix(in srgb, var(--c-white) 3%, transparent); }
+.abil .ab-click { margin: -2px -4px; padding: 2px 4px; }
+.ab-chips { display: flex; flex-wrap: wrap; gap: 2px 10px; margin-top: 3px; min-width: 0; max-width: 100%; color: var(--c-text-2); font-size: var(--fs-meta); }
+.abc { display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; border-radius: var(--r-sm); background: var(--panel); border: 1px solid var(--line); font-size: var(--fs-sm); line-height: 1.5; white-space: nowrap; }
+.abc .li, .pw .li, .tln .li, .ap-rows .li { width: 13px; height: 13px; flex: none; }
+.abc.v { border-color: transparent; background: none; padding-inline: 2px; display: inline-block; max-width: 100%; min-width: 0; white-space: normal; word-break: keep-all; overflow-wrap: break-word; }
+/* 기술 요약 줄: 칸 폭을 넘으면 단어 단위로 줄바꿈 (가로 스크롤 · 모바일 폭 넘침 방지) */
+.pw { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+.pw b { font-family: var(--f-mono); font-weight: 700; }
+.pw-shoot, .pw-strike, .pw-tech, .pw-tac { color: var(--c-text); } /* 위력 = 마이너 능력치: 흰색 (피해 수치는 속성 색) */
+.ab-chips > .pw { padding: 1px 6px; border-radius: var(--r-sm); background: var(--panel); border: 1px solid var(--line); font-size: var(--fs-sm); }
+.hits { font-family: var(--f-mono); margin-left: 1px; }
+.elc { display: inline-block; padding: 0 5px; border-radius: var(--r-sm); font-size: var(--fs-xs); font-weight: 600; line-height: 1.5; color: #0d0f14; vertical-align: 1px; }
+.el-phys { background: var(--el-phys); } .el-chem { background: var(--el-chem); } .el-elec { background: var(--el-elec); }
+.el-psy { background: var(--el-psy); } .el-holy { background: var(--el-holy); } .el-true { background: var(--el-true); }
+.ab-chips > .elc { align-self: center; }
+.kw { color: var(--c-text); display: inline-flex; align-items: center; gap: 2px; cursor: help; text-decoration: underline dotted color-mix(in srgb, var(--c-text) 45%, transparent); text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--c-text) 45%, transparent); }
+.kw .li { width: 13px; height: 13px; flex: none; color: var(--c-text-2); }
+.kw:focus-visible { outline: 1px solid var(--c-select); outline-offset: 1px; border-radius: 2px; }
+.kw-tip { position: fixed; z-index: var(--z-kw); display: grid; gap: 4px; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 8px 22px color-mix(in srgb, var(--c-black) 55%, transparent); font-size: var(--fs-base); line-height: 1.5; pointer-events: none; border-color: var(--line); }
+.kw-tip b { display: inline-flex; align-items: center; gap: 4px; color: var(--c-text); }
+.kw-tip b .li { width: 14px; height: 14px; }
+.ap-mech { color: var(--c-text-2); font-size: var(--fs-sm) !important; margin: -2px 0 8px !important; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.tln { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; }
+.ab-ace-wrap { display: grid; gap: 4px; }
+.aug-li.ab-click { padding: 3px 4px; }
+/* 좌측 능력 팝업 */
+.abil-pop { width: 320px; }
+.abil-pop .sp-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.abil-pop .sp-head b { font-size: var(--fs-lg); }
+.abil-pop p { margin: 4px 0; font-size: var(--fs-md); line-height: 1.55; }
+.ap-top { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; }
+.ap-meta, .ap-rows, .ap-gloss { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0; font-size: var(--fs-base); }
+.ap-meta { font-size: var(--fs-sm); align-content: start; }
+.ap-meta dt, .ap-rows dt, .ap-gloss dt { color: var(--c-text-2); white-space: nowrap; }
+.ap-meta dd, .ap-rows dd, .ap-gloss dd { margin: 0; }
+.ap-rows { padding: 6px 8px; background: var(--panel-2); border-radius: var(--r-md); }
+.ap-rows dd { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.ap-hr { border: 0; border-top: 1px dashed var(--line); margin: 10px 0 8px; }
+.ap-gloss dt { color: var(--c-text); font-weight: 700; }
+.ap-gloss dd { color: var(--c-text); opacity: .85; }
+/* 미니 격자: 시전자 금색 · 사거리 파랑 · 대상 진한 빨강 · 피해 칸 빨강 */
+.mg { margin: 0; display: grid; justify-items: center; gap: 3px; flex: none; }
+.mg-g { display: grid; grid-template-columns: repeat(var(--n), 9px); gap: 1px; }
+.mg-g i { width: 9px; height: 9px; border-radius: 1.5px; background: color-mix(in srgb, var(--c-text) 10%, transparent); }
+.mg-g i.in { background: color-mix(in srgb, var(--c-info) 55%, transparent); }
+.mg-g i.me { background: var(--c-divine); }
+.mg-g i.tg { background: var(--c-bad); }
+.mg-g i.hit { background: color-mix(in srgb, var(--c-bad) 50%, transparent); }
+.mg figcaption { font-size: var(--fs-xs); color: var(--c-text-2); white-space: nowrap; }
+/* 팝업 본문: 격자(세로) | 수치 */
+.ap-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; }
+.ap-grids { display: grid; gap: 10px; justify-items: center; padding-top: 2px; }
+.ap-body .ap-rows { align-self: stretch; align-content: start; }
+.el-t-phys { color: var(--el-phys); } .el-t-chem { color: var(--el-chem); } .el-t-elec { color: var(--el-elec); }
+.el-t-psy { color: var(--el-psy); } .el-t-holy { color: var(--el-holy); } .el-t-true { color: var(--el-true); }
+.pw-heal { color: var(--c-good); }
+.coef { font-family: var(--f-mono); font-size: var(--fs-sm); color: var(--c-text-2); margin-right: 4px; }
+
+/* 시너지 토큰: 마름모 + 활성 단계 원 + 이름 · 구성 단계 (편성 좌측 · 영입 카드 공용) */
+.syn-tk { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.syn-tk .syn-b { flex: none; border: 0; padding: 0; background: none; cursor: pointer; }
+.syn-tk .syn-dia { opacity: .55; }
+.syn-tk.active .syn-dia { opacity: 1; background: color-mix(in srgb, var(--c) 16%, var(--panel)); }
+.syn-lv { position: absolute; right: -3px; bottom: -3px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: var(--r-pill); display: grid; place-items: center; font: 700 var(--fs-xs)/1 var(--f-mono); background: var(--panel-2); color: var(--c-text-2); border: 1.5px solid var(--bg); box-sizing: border-box; border-color: var(--panel); }
+.syn-tk.active .syn-lv { background: var(--c); color: var(--c-data-ink); }
+.syn-tx { display: grid; gap: 2px; min-width: 0; }
+.syn-tx b { font-size: var(--fs-md); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.syn-tk:not(.active) .syn-tx b { color: var(--c-text-2); }
+.syn-tk.benchonly { opacity: calc(.5 + var(--op-lift)); }
+.syn-list .syn-tk { padding: 3px 4px; gap: 10px; }
+.syn-b:focus-visible .syn-dia { outline: 2px solid var(--c-text); outline-offset: 2px; }
+/* 시너지 상세 팝업 */
+.syn-pop { pointer-events: auto; border-color: var(--line); gap: 6px; max-height: 70vh; overflow-y: auto; background: var(--panel); box-shadow: 0 10px 26px color-mix(in srgb, var(--c-black) 55%, transparent); border-top: 2px solid var(--c); }
+.syn-pop .sp-t { color: var(--c-text); font-size: var(--fs-lg); display: flex; align-items: center; gap: 6px; }
+.syn-pop .sp-t .si { width: 18px; height: 18px; color: color-mix(in srgb, var(--c) var(--data-mix), var(--c-text)); }
+.syn-pop p { margin: 0; color: var(--c-text); opacity: .85; }
+.sp-tiers { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.sp-tiers li { display: grid; grid-template-columns: minmax(2.2em, auto) 1fr; gap: 6px; color: var(--c-text-2); }
+.sp-tiers li b { white-space: nowrap; padding: 0 4px; font-family: var(--f-mono); text-align: center; border-radius: var(--r-sm); background: var(--panel-2); align-self: start; }
+.sp-tiers li.cur { color: var(--c-text); background: var(--panel-2); border-radius: var(--r-sm); box-shadow: inset 2px 0 0 var(--c); }
+/* 시너지 상세: 시너지 색 토큰 · 소속 기물 초상화 (출전 / 대기 / 미보유) */
+.syn-pop .sp-t small { margin-left: auto; font-size: var(--fs-xs); font-weight: 600; padding: 1px 6px; border-radius: var(--r-sm); border: 1px solid var(--c); color: var(--c-text-2); border-color: var(--line) !important; }
+.syn-pop .accent { color: color-mix(in srgb, var(--c) var(--data-mix), var(--c-text)); }
+.syn-pop > .small b { color: color-mix(in srgb, var(--c) var(--data-mix), var(--c-text)); }
+.sp-units { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px 4px; padding: 2px 0; border-radius: var(--r-md); background: none; }
+.sp-u { display: grid; justify-items: center; gap: 2px; min-width: 0; }
+.sp-u .spr { width: 36px; height: 36px; border-radius: var(--r-md); box-sizing: border-box; object-fit: cover; }
+.sp-u i { font-style: normal; font-size: var(--fs-2xs); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-u.s0 .spr { border: 1.5px solid color-mix(in srgb, var(--c-text) 75%, transparent); box-shadow: none; }
+.sp-u.s0 i { color: var(--c-text); font-weight: 700; }
+.sp-u.s1 .spr { border: 1.5px dashed var(--line); opacity: .85; }
+.sp-u.s1 i { color: var(--c-text); }
+.sp-u.s2 .spr { border: 1px solid var(--line); filter: grayscale(1) brightness(.55); }
+.sp-u.s2 i { color: var(--c-text-2); }
+.sp-legend { display: flex; gap: 10px; color: var(--c-text-2); }
+.sp-legend span::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.sp-legend .s0::before { border: 1.5px solid var(--c-text); }
+.sp-legend .s1::before { border: 1.5px dashed var(--c-text-2); }
+.sp-legend .s2::before { border: 1px solid var(--line); background: #444; }
+.sp-tiers li.on b { background: none; color: var(--c-text); box-shadow: inset 0 0 0 1px var(--line); }
+/* 시너지 팝업: 상태 줄 → 지금 → 다음 비교 → (접힘) 전체 단계 · 설명. 비교 줄은 src/ui/tierdiff.ts 가 만든다 (도감 단계표와 같은 td-* 조각) */
+.sp-st { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: var(--fs-sm); color: var(--c-text-2); }
+.sp-st .sp-n b { color: var(--c-text); font-size: var(--fs-md); }
+.sp-k { padding: 0 6px; border: 1px solid var(--line); border-radius: var(--r-sm); font-size: var(--fs-xs); color: var(--c-text-2); }
+.sp-k.on { border-color: var(--c); color: var(--c-text); font-weight: 700; }
+.sp-cmp { display: grid; gap: 5px; padding: 6px 8px; border-radius: var(--r-md); background: var(--panel-2); box-shadow: inset 2px 0 0 var(--c); }
+.sp-ch { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: var(--fs-xs); color: var(--c-text-2); }
+.sp-lv b { font: 600 var(--fs-xs) var(--f-mono); padding: 0 5px; border-radius: var(--r-sm); }
+.sp-lv.cur b { background: var(--c); color: var(--c-data-ink); }
+.sp-lv.nx b { color: var(--c-text); box-shadow: inset 0 0 0 1px var(--c); }
+.td-tag { padding: 0 6px; border: 1px solid var(--c); border-radius: var(--r-sm); font-size: var(--fs-xs); font-weight: 700; color: color-mix(in srgb, var(--c) var(--data-mix), var(--c-text)); }
+.sp-ch .td-tag { margin-left: auto; }
+.td-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.td-rows li { display: flex; align-items: baseline; gap: 6px; min-width: 0; line-height: 1.45; color: var(--c-text); }
+.td-rows li > span { min-width: 0; }
+.td-rows .td-cur, .td-rows .td-same { color: var(--c-text-2); }
+.td-l { flex: none; font-style: normal; font-size: var(--fs-2xs); font-weight: 700; padding: 0 4px; border-radius: var(--r-sm); border: 1px solid var(--line); color: var(--c-text-2); }
+.td-add .td-l { border-color: var(--c); color: var(--c-text); }
+.td-n { font-variant-numeric: tabular-nums; }
+.td-a { color: var(--c-text-2); font-variant-numeric: tabular-nums; }
+/* 시너지 팝업: 지금 값 강조 · 다음 값은 흐리게. 활성(live)이면 지금에만 있는 효과는 그대로, 다음에만 있는 효과는 흐리게 */
+.syn-pop .td-cv { font-weight: 700; font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--c) var(--data-mix), var(--c-text)); }
+.td-nx { color: var(--c-text-2); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+.sp-cmp.live .td-rows .td-cur { color: var(--c-text); }
+.sp-cmp.live .td-rows .td-add { color: var(--c-text-2); }
+.sp-cmp.live .td-add .td-l { border-color: var(--line); color: var(--c-text-2); }
+.sp-cmp.live .td-cur .td-l { border-color: var(--c); color: var(--c-text); }
+.td-ar { margin: 0 3px; font-size: var(--fs-xs); color: var(--c-text-2); }
+:is(.syn-pop, .cx2-tiers) .td-b { display: inline; font-weight: 700; font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--c) var(--data-mix), var(--c-text)); }
+.sp-more { border-top: 1px solid var(--line-soft); padding-top: 4px; display: grid; gap: 6px; }
+.sp-more > summary { cursor: pointer; font-size: var(--fs-sm); color: var(--c-text-2); }
+.sp-more[open] > summary { margin-bottom: 4px; }
+.syn-pop .sp-desc { font-size: var(--fs-sm); color: var(--c-text-2); }
+/* 도감 단계표 칸: 효과 한 줄씩, 이전 단계보다 바뀐 숫자 강조 · 새로 붙은 효과 표시 */
+.cx2-tiers .td-tag { display: inline-block; margin-bottom: 2px; }
+.cx2-tiers .td-rows li { display: flex; padding: 0; border-left: 0; background: none; border-radius: 0; font-size: inherit; }
+.cx2-tiers .td-rows li::before { content: ''; flex: none; width: 8px; font-weight: 700; color: color-mix(in srgb, var(--c) var(--data-mix), var(--c-text)); }
+.cx2-tiers .td-rows .td-add::before { content: '+'; }
+/* 전투 보드: 배치 구역만 보이는 창 + 전체 전장(테두리 포함)을 끌어서 보기 */
+.bview { overflow: hidden; border-radius: var(--r-md); touch-action: none; cursor: grab; }
+.bview.panning { cursor: grabbing; }
+.board-in { position: absolute; width: calc(var(--fw) / var(--w) * 100%); height: calc(var(--fh) / var(--h) * 100%); left: calc(-100% * var(--ox, 1) / var(--w)); top: calc(-100% * var(--oy, 1) / var(--h)); will-change: transform; transition: top .6s cubic-bezier(.4, 0, .2, 1), left .6s cubic-bezier(.4, 0, .2, 1); }
+/* 확대 (main.ts camApply): 창 안 보드 크기 · 위치를 px 로 맞추고, 창은 화면 아래 끝까지 세로로 는다 (camFrame). 확대 · 축소 중에는 이동 애니메이션 없이 (가리킨 점이 흔들리지 않게) */
+.bview.zoomed { aspect-ratio: auto; }
+.bview.zooming .board-in { transition: none; }
+.board-in .cells { grid-template-columns: repeat(var(--fw), 1fr); grid-template-rows: repeat(var(--fh), 1fr); }
+.bview .u { cursor: pointer; }
+/* 시너지 목록 한 단계 크게 */
+.syn-list .syn-b { width: 40px; height: 40px; }
+.syn-list .syn-dia { width: 30px; height: 30px; }
+.syn-list .syn-dia .si { width: 18px; height: 18px; }
+.syn-list .syn-lv { min-width: 18px; height: 18px; font-size: var(--fs-sm); }
+.syn-list .syn-tx b { font-size: var(--fs-md); }
+.syn-list .syn-steps { font-size: var(--fs-sm); }
+/* 상세 보기: 시너지 토큰을 일러스트 좌상단에 (영입 카드와 같은 배열) */
+.d-hero .dh-syn { top: 8px; left: 8px; z-index: 3; }
+/* 상세 보기: 마름모만 (이름 · 단계는 눌러서) */
+.dh-syn .syn-lv { display: none; }
+/* 전체 보기: 테두리 포함 전장 전체를 축소 */
+/* 전체 보기도 정사각 창: 전장 전체를 긴 변에 맞추고 가운데 (main.ts bviewHtml 이 --ox · --oy · --w · --h 를 준다) */
+.bview.full { cursor: default; }
+.settings-gap { height: 8px; }
+.modal .pref + .pref { margin-top: 8px; }
+
+/* ── 상단 리본: 아이콘 자원 · 기타 자원 드롭다운 · (모바일) 시너지 아이콘 줄 */
+.pill .li { width: 13px; height: 13px; }
+.pill.hp .li { color: var(--c-bad); }
+.pill.streak { border-color: var(--c-streak); color: var(--c-streak); }
+.pill.streak b { color: inherit; }
+.pill.more { position: relative; padding: 0; }
+.pill.more summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; height: 100%; box-sizing: border-box; }
+.pill.more summary::-webkit-details-marker { display: none; }
+.pill.more[open] summary { color: var(--c-select); }
+.more-list { position: absolute; top: calc(100% + 6px); right: 0; z-index: var(--z-pop); min-width: 170px; margin: 0; padding: 6px; list-style: none; display: grid; gap: 4px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 10px 24px color-mix(in srgb, var(--c-black) 55%, transparent); animation: drop-in .18s ease-out; }
+.more-list li { display: flex; justify-content: space-between; gap: 10px; padding: 4px 8px; border-radius: var(--r-sm); background: var(--panel-2); font-size: var(--fs-base); }
+.more-list li.faith b { color: var(--el-holy); } .more-list li.fame b { color: var(--fame); }
+@keyframes drop-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.top-syns { display: none; }
+@media (max-width: 860px) {
+  .top-syns { display: flex; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; gap: clamp(5px, calc((100vw - 56px - 6.5 * 38px) / 6 - 3px), 17px); width: 100%; position: static; padding: 4px 8px 6px; scrollbar-width: none; -ms-overflow-style: none; }
+  .top-syns::-webkit-scrollbar { display: none; }
+  .top-syns .syn-b { width: 38px; height: 38px; }
+  .top-syns .syn-dia { width: 29px; height: 29px; }
+  .top-syns .syn-dia .si { width: 17px; height: 17px; }
+  .top-syns .syn-tx { display: none; }
+  .top-syns .syn-lv { display: grid !important; min-width: 16px; height: 16px; font-size: var(--fs-xs); right: -4px; bottom: -4px; }
+  .top-syns .syn-tk:not(.active) .syn-dia { opacity: .45; }
+  
+}
+/* ── 사건: 본문과 선택지 사이 간격 */
+.event > p { margin-bottom: 22px; line-height: 1.7; }
+.event .cards { margin-top: 8px; }
+/* 사건 연출 (임시 대본 표시) */
+.scene { display: grid; gap: 10px; max-height: min(58vh, 560px); overflow-y: auto; padding: 14px 16px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-lg); line-height: 1.75; }
+.sc-bg { font: 700 var(--fs-xs) var(--f-mono); letter-spacing: .12em; color: var(--c-text-2); text-transform: uppercase; display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.sc-bg::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.sc-narr { margin: 0; color: var(--c-narr); }
+.sc-say { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; align-items: baseline; }
+.sc-say p { margin: 0; color: var(--c-text); }
+.sc-who { font-weight: 800; color: color-mix(in srgb, var(--c, var(--c-text)) var(--data-mix), var(--c-text)); font-size: var(--fs-md); text-align: right; overflow-wrap: anywhere; }
+.sc-think { margin: 0; color: var(--c-text-2); font-style: italic; padding-left: 104px; position: relative; }
+.sc-think .sc-who { position: absolute; left: 0; width: 92px; font-style: normal; opacity: .75; }
+.sc-think .sc-who::after { content: ' · 속마음'; font-weight: 400; font-size: var(--fs-xs); }
+.sc-result { color: var(--c-text); font-size: var(--fs-md); }
+@media (max-width: 860px) {
+  .scene { max-height: 52vh; padding: 12px; }
+  .sc-say { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .sc-who { text-align: left; }
+  .sc-think { padding-left: 0; }
+  .sc-think .sc-who { position: static; display: block; width: auto; }
+}
+
+/* ── 창 등장 */
+.modal.enter { animation: modal-in .32s cubic-bezier(.2, .8, .3, 1) both; }
+@keyframes modal-in { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+/* ── 증강 · 보상 카드 등급 연출 (revealfx.ts · 공개음과 같은 3단계): 2 희귀 = 테두리 광 · 빛 훑기, 3 최상 = + 카드 뒤 빛 줄기 · 화면 플래시 · 흔들림.
+   색은 장비 희귀도 색 (희귀 --g-A · 전설 --g-L). 테두리 광은 공개 순간에 나타났다 사라진다 (희귀 ~1.3초, 최상 ~2.4초, 영구 테두리 없음).
+   움직임 줄이기: 빛 훑기 · 빛 줄기 · 플래시 · 흔들림 없이 테두리만 제자리에서 나타났다 사라진다.
+   움직임은 JS(WAAPI)의 개별 속성 · 덧붙인 요소로만 → 이타카 물결 등장 · 뒤집기 · 특권 막의 transform 과 겹치지 않는다 */
+.rv-2 { --rv-c: var(--g-A); } .rv-3 { --rv-c: var(--g-L); }
+.pv-bg .rv-2 { --rv-c: color-mix(in srgb, var(--g-A) 65%, var(--c-white)); } .pv-bg .rv-3 { --rv-c: color-mix(in srgb, var(--g-L) 65%, var(--c-white)); } /* 특권: 어두운 막 위 */
+:is(.rv-2, .rv-3) { position: relative; --rv-glow: color-mix(in srgb, var(--rv-c) 60%, transparent); }
+.rv-shine { position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--rv-c) 40%, transparent) 46%, color-mix(in srgb, var(--c-white) 50%, transparent) 50%, color-mix(in srgb, var(--rv-c) 40%, transparent) 54%, transparent 65%) 130% 0 / 250% 100% no-repeat; }
+.rv-host { position: relative; isolation: isolate; }
+.rv-rays { position: absolute; z-index: -1; pointer-events: none; border-radius: 50%; opacity: 0;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--rv-c) 80%, transparent) 0 6deg, transparent 6deg 18deg);
+  mask: radial-gradient(circle, var(--c-black) 20%, transparent 68%); -webkit-mask: radial-gradient(circle, var(--c-black) 20%, transparent 68%); }
+.rv-flash { position: fixed; inset: 0; z-index: var(--z-raise); pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at var(--x) var(--y), color-mix(in srgb, var(--rv-c) 55%, transparent), color-mix(in srgb, var(--rv-c) 14%, transparent) 45%, transparent 75%); }
+@media (prefers-reduced-motion: reduce) { .rv-shine, .rv-rays, .rv-flash { display: none; } }

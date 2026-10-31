@@ -6,7 +6,7 @@
 
 ## 커밋 · 게시
 - 작업 브랜치에 커밋 · push 한다. 코드 커밋과 빌드 커밋을 나눈다: 코드 먼저, 그다음 `dist/artifact.html` · `dist/index.html` 을 "아티팩트 vNNN 빌드" 로 (NNN 은 직전 빌드 커밋 번호 + 1, `git log --oneline | grep "아티팩트 v"`).
-- 게시: Artifact 도구로 `dist/artifact.html` 을 기존 게임 아티팩트 URL 에 올린다 (label 에 버전). 이어서 `npm run -s offline` → `dist/ERRANTEs-offline.html` 을 사용자에게 보낸다.
+- 게시: Artifact 도구로 `dist/artifact.html` 을 기존 게임 아티팩트 URL 에 올린다 (label 에 버전). 오프라인 파일(`npm run -s offline` → `dist/ERRANTEs-offline.html`, 약 70MB)은 **사용자가 요청할 때만** 만들어 보낸다.
 - 시뮬레이터 · 검사 도구 · 밸런스 측정 관례는 `docs/TOOLS.md`.
 
 ## 도감 연동

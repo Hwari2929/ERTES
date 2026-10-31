@@ -1,0 +1,121 @@
+/* 용병단 전술 단말기: 잉크빛 남색 바탕 + 계약서 호박색 강조. 단일 다크 룩. */
+:root {
+  /* ── 색: 역할 토큰 (화면은 이것만 쓴다) */
+  --line-soft: color-mix(in srgb, var(--line) 65%, transparent);
+  --c-white: #fff;
+  --c-streak: #ff8a3c;                 /* 연승 */
+  --c-sale: #ff5f8f;                   /* 상점 할인 꼬리표 (상태 · 등급색과 다른 분홍빛 빨강, 모양도 따로) */
+  --c-petra: #ff9a3c; --c-led-bg: #140b05; /* 페트라 광고판 (지정 소집 티켓): 주황 LED 글씨 · 꺼진 판 */
+  /* 어두운 바탕에 맞춘 보조 글씨색 (라이트 테마만 짙게 다시 정의) */
+  --c-down: #ff7a7a; --c-type: #cfcabe; --c-narr: #c9c4b8; --c-narr-2: #cfc6b4; --c-res: #9ad0ff; --c-warn-ink: #ffcf7a; --c-ok-ink: #9fe0a0;
+  --c-danger-ink: #ff8a8a; --c-danger-line: #ff6a6a; --c-danger-bg: #b03030;
+  --op-lift: 0;                        /* 비활성 · 꺼진 항목 투명도에 더하는 값 (라이트 테마는 대비를 위해 조금 올림) */
+  --c-lo: #ff8a9a;                     /* 저이성 쪽 표시 */
+  --cat-bio: #8fdc7a; --cat-mech: #8fc8ff; --cat-struct: #d8c9a8; /* 분류 (생체 · 기계 · 구조물) */
+  --c-data-ink: #1a1206;               /* 데이터 색(시너지 --c 등) 바탕 위 글씨: 모든 테마에서 짙게 */
+  --ft-outline: var(--c-black);        /* 전투 보드의 떠오르는 숫자 테두리 */
+  --data-mix: 100%;                    /* 글씨로 쓰는 데이터 색의 비율 (라이트 테마는 본문색과 섞어 대비 확보) */
+  --c-black: #000;
+  --c-bad-deep: rgb(120 10 20);        /* 패배 비네트 */
+  --c-despair: #c23a4a; --c-despair-deep: rgb(34 6 12); /* 절망 증강 (어두운 진홍) */
+  --c-steel: #a0b4c8;                  /* 감시 포탑 · 기계 */
+  --c-divine: #ffd34d;                 /* 신성 · 성유물 금색 */
+  --c-occult: #c38cff;                 /* 개조부품 기본 보라 (시너지 색이 없을 때) */
+  --c-psi: #b07cff;                    /* 사이오닉 · 이성 */
+  --c-ult: #4aa8ff;                    /* 궁극기 게이지 · 컷인 */
+  /* 청사진 레터프레스 (에란테스 바 · 출격 계약, ui/bar.ts · ui/contract.ts · docs/UI.md 19): 빅토리안 활판 메뉴판 70 + 19세기 천문 항해 30, 바탕은 크림이 아니라 한색 종이.
+     종이(L65) · 프러시안 청사진(L25) · 네이비 띠(L10) 세 층을 금(선과 점으로만)이 가로지른다. 갈색 · 크림 면 · 시안 홀로 · 글로우 · 스캔라인 없음. 명부 · 지도부터는 게임 토큰 (카본 영수 증서 칩만 따라간다) */
+  --lp-paper: #86a0ae; --lp-paper-lo: #6f8b9a;   /* 한색 종이 (파우더 블루) · 종이 위 받침 */
+  --lp-ink: #0e1730;                              /* 종이 위 잉크 = 네이비 */
+  --lp-navy: #0e1730; --lp-navy-2: #15213f;       /* 네이비 띠 · 그늘 장면의 어둠 (검정이 아니다) */
+  --lp-cw: #cfe0ea;                               /* 띠 · 청사진 위 청백 글씨 */
+  --lp-bp: #1d3a5f;                               /* 프러시안 청사진 면 (정보 쪽) */
+  --lp-au: #c8ad74; --lp-au-lo: #7a5f2c;          /* 금 두 톤: 밝은 가는 선 + 어두운 굵은 선 (단색 금은 골판지) · 가라앉힌 값 */
+  --lp-carbon: #a9bcc8; --lp-cink: #3a2f6b;       /* 청색 카본지 · 보랏빛 먹지 잉크 (전표 = 영수 증서) */
+  --lp-stamp: #8a2f22;                            /* 도장 (싯가 · 특약) — 한색 위에서 튀므로 면적 최소 */
+  --lp-flash: #2747ff;                            /* 청남색 비비드 조명: 태블릿 속으로 들어갈 때 빠르게 점멸 (그 순간에만) */
+  --lp-cream: #efe3c8;
+  --ct-lamp: #f0a24a; --ct-lamp-lo: #4a2a18; /* 바 테이블 위 램프 빛 (난색) · 램프 밖 그늘 (난색 어둠). .ct-light 가 --lamp 세기로 곱한다 */
+  --ct-wood: #3a2418; --ct-wood-hi: #5b3a24; --ct-wood-lo: #24150d; /* 탑뷰 바 테이블 (그림이 없을 때 바탕 · 소품 받침) */                            /* 빛의 끝: 회중시계 법랑 문자판 · 별점 중심 (색이 아니라 빛) */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  /* 전투 종료 보고서 영향력 축 (ui/report.ts): 전투 · 회복 · 서포팅. 테마별 값을 따라간다 */
+  --ax-dmg: var(--st-power); --ax-heal: var(--c-good); --ax-sup: var(--st-buff);
+  /* 상태 이상 팔레트: 버프 = 파랑 테두리, 디버프 = 빨강 테두리, 아이콘 색은 종류별 */
+  --st-buff: #5ab8ff; --st-buff-ink: #9fd4ff; --st-debuff: #ff6a6a; --st-debuff-ink: #ff9a9a; --st-chip: #14161d;
+  --st-bleed: #ff5a5a; --st-dot: #ff9a5a; --st-corrode: #e0a050; --st-slow: #7fb6ff; --st-wound: #ff7a8a; --st-vuln: #ffb0b0;
+  --st-suppress: #c9ccd4; --st-gloom: #c9a8ff; --st-burn: #ff7a3d; --st-conduct: #4fd1ff; --st-chill: #a9dcff; --st-teal: #7ff0d8;
+  --st-regen: #8fd14f; --st-power: #ffb347; --st-fear: #d6a3ff;
+  --fame: #ff9de2;
+  --staff: #c9b37a;
+  --ally-hp: var(--c-good);
+  --foe-hp: var(--c-bad);
+  --shield: var(--c-text);
+  --shadow-pop: 0 10px 26px var(--shade-2);  /* 떠 있는 창 · 팝업 */
+  /* 데이터 색 (예외: 속성 · 희귀도. 세력 · 시너지 · 전공은 JS 가 --c · --sc 로 넣는다) */
+  --el-phys: #eceae4; --el-chem: #9be15d; --el-elec: #62d6ff; --el-psy: #d48cff; --el-holy: #ffd866; --el-true: #ff7a7a;
+  --g-C: #eef0f4; --g-G: #63d297; --g-A: #6cb6ff; --g-L: #ff4f7b; --g-U: #d58cff; --g-T: #9fd0e8; --g-S: #aaa6ff; /* 고급 G = 초록 · 희귀 A = 파랑 · S = 합성 재료 (성운 가루 · 별무리 파편 · 백수정 조각) · U = 고유 장비 (기물 전용 · 캠페인, 보라) */ /* 전설 = 붉은 계열 (선택 호박색 · 위험 산호색과 다른 장밋빛 진홍) */
+  /* 업적 메달 금속 (ui/achieve.ts): 1 빛 받는 면 · 2 바탕 · 3 그늘 · ink 새긴 문양. 전설은 --g-L 테 + 짙은 법랑 면(en) + 문양에 --g-L 빛 */
+  --ach-bz-1: #f7cba2; --ach-bz-2: #c27a46; --ach-bz-3: #6b391b; --ach-bz-ink: #46200b;
+  --ach-ag-1: #ffffff; --ach-ag-2: #bcc6d2; --ach-ag-3: #63707f; --ach-ag-ink: #2c3542;
+  --ach-au-1: #fff4c4; --ach-au-2: #e5b03d; --ach-au-3: #8c5d0a; --ach-au-ink: #4f3203;
+  --ach-lg-1: #ffd3de; --ach-lg-2: var(--g-L); --ach-lg-3: #6b0f2a; --ach-lg-ink: var(--g-L);
+  --ach-en-1: #3b2862; --ach-en-2: #0e0a1c; --ach-edge: rgb(0 0 0 / .5);
+  /* 옛 이름 (별칭: 새 코드에서 쓰지 않는다 · tests/css_check.ts 가 사용 횟수를 막는다) */
+  --accent: var(--c-select); --accent-ink: var(--c-select-ink);
+  --fg: var(--c-text); --dim: var(--c-text-2); --muted: var(--c-text-2);
+  --good: var(--c-good); --bad: var(--c-bad); --info: var(--c-info);
+
+  /* ── 글자: 글꼴 3역할 + 크기 단계 (rem = 16px) */
+  --f-display: 'Black Han Sans', 'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  --f-body: 'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  /* 시대를 말하는 글자 셋: 제목 = 세리프(빈티지) · 수치 · 코드 = 모노(미래) · 본문 = 산세리프(중립). 종이 위 본문은 바탕체, 서명은 펜 글씨 */
+  --f-serif: 'Gowun Batang', 'Nanum Myeongjo', 'AppleMyungjo', serif;
+  --f-paper: 'Gowun Batang', 'Nanum Myeongjo', 'AppleMyungjo', serif;
+  --f-pen: 'Nanum Pen Script', 'Segoe Script', cursive;
+  --f-sign: 'Pinyon Script', 'Snell Roundhand', 'Gowun Batang', cursive; /* 간판 글씨: 동판 필기체 'Errantes' (계약 표지 · 바 세로 띠, index.html 에서 그 글자만 받는다) */
+  --f-slip: 'Nanum Gothic Coding', var(--f-mono); /* 전표 · 영수 증서: 한글도 같은 폭으로 찍히는 고정폭 */
+  --fs-2xs: .625rem;   /* 10px  배지 숫자 · 아주 작은 표식 */
+  --fs-xs: .6875rem;   /* 11px  메타 · 단위 · 칩 */
+  --fs-sm: .75rem;     /* 12px  보조 설명 · 표 */
+  --fs-base: .8125rem; /* 13px  목록 · 본문 (작은 칸) */
+  --fs-md: .875rem;    /* 14px  본문 · 버튼 */
+  --fs-lg: 1rem;       /* 16px  이름 · 소제목 */
+  --fs-xl: 1.125rem;   /* 18px  창 제목 */
+  --fs-2xl: 1.375rem;  /* 22px  화면 제목 */
+  --fs-3xl: 1.75rem;   /* 28px  큰 제목 (h1 · 결과) */
+  --fs-meta: var(--fs-sm);
+  --fs-banner: clamp(1.8rem, 4vw, 2.6rem); /* 결과 · 전환 큰 글자 */
+  --fs-sign: 4.4rem;   /* 70px  필기체 간판 (계약 차림표 표지) */
+  --fs-sign-s: 3.3rem; /* 53px  필기체 간판 (태블릿 · 휴대폰 · 바 세로 띠) */
+
+  /* ── 모서리 둥글기 3단계 */
+  --r-sm: 4px;   /* 칩 · 배지 · 작은 칸 */
+  --r-md: 6px;   /* 버튼 · 입력 · 카드 */
+  --r-lg: 10px;  /* 창 · 큰 패널 */
+  --r-pill: 999px;
+
+  /* ── 쌓임 층 (z-index). 실제 쓰임에서 뽑은 층 이름 · 값. 카드 · 토큰 안쪽 순서(0 ~ 6)는 지역 쌓임이라 숫자 그대로 */
+  --top-pill-h: 26px;  /* 런 리본 칩 높이 (리본 두께 고정) */
+  --z-raise: 3;        /* 같은 목록 안에서 고른 칸을 한 단 위로 */
+  --z-sticky: 5;       /* 화면 하단 버튼 줄 */
+  --z-sticky-head: 6;  /* 상세 패널 머리 바 */
+  --z-shop: 10;        /* 상인 상점 덮개 (상단 바 아래 전체, 상단 바 · 펼침보다 아래) */
+  --z-cutin: 15;       /* 전투 궁극기 컷인 */
+  --z-top: 20;         /* 상단 바 · 바 아래 펼침 */
+  --z-float: 30;       /* 떠 있는 상세 능력치 */
+  --z-pop: 40;         /* 드롭다운 · 하단 시트 · 보관 물품 팝업 */
+  --z-modal: 50;       /* 창 (모달 바탕) */
+  --z-tip: 60;         /* 말풍선 · 전체 상세 바탕 (창 위) */
+  --z-um: 61;          /* 전체 상세 창 */
+  --z-um-over: 62;     /* 전체 상세 위 등급 보상 창 */
+  --z-over: 75;        /* 창 안 팝업 (증강 상세) */
+  --z-stand: 80;       /* 스탠딩 크게 보기 */
+  --z-adv: 90;         /* 사건 연출 (ADV) */
+  --z-drag: 100;       /* 끌고 있는 기물 · 장비 */
+  --z-kw: 120;         /* 용어 말풍선 */
+  --z-coach: 140;      /* 튜토리얼 안내 */
+  --z-coach-tip: 145;  /* 튜토리얼 중 말풍선 */
+  --z-banner: 150;     /* 전환 배너 */
+  --z-toast: 200;      /* 알림 */
+}

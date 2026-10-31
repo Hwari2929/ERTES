@@ -1,0 +1,161 @@
+/* ── 편성 보드 창 (main.ts prepZoomSync): 보드는 .board-vp 창 안에서만 커지고 줄어든다 (Ctrl + 휠 · 두 손가락 · 보드 왼쪽 ± 단추, 화면 배율은 그대로).
+   기본 칸 크기는 --cell-min (긴 통로 · 포위처럼 긴 보드도 칸이 이 아래로 줄지 않는다 → 창 안에서 스크롤), '전체 보기'는 보드 전체를 창에 맞춘다. 창 높이는 화면 높이에 맞춘다 (--vp-h) */
+.prep, .battle { --cell-min: 52px; }
+@media (pointer: coarse), (max-width: 640px) { .prep, .battle { --cell-min: 44px; } }
+.prep { --vp-h: max(220px, calc(100vh - var(--top-h, 70px) - var(--board-reserve, 150px))); }
+@media (max-width: 1100px) { .prep { --vp-h: max(220px, calc(100vh - var(--top-h, 44px) - 104px)); } }
+@media (orientation: landscape) and (max-height: 560px) { .prep { --vp-h: max(160px, calc(100vh - var(--top-h, 44px) - 104px)); } }
+.board-vp { position: relative; flex: 0 1 auto; min-width: 0; max-width: 100%; max-height: var(--vp-h); overflow: visible; overscroll-behavior: contain; touch-action: pan-x pan-y; scrollbar-width: thin; border-radius: var(--r-md); }
+.board-vp > .board { margin: 0 auto; max-width: none; flex: none; }
+/* 창 밖으로 칸이 더 있는 쪽 가장자리를 흐리게 (main.ts vpMoreSync) */
+.board-vp.scroll { overflow: auto; } /* 보드가 창보다 클 때만 창 안 스크롤 (main.ts prepZoomSync) */
+.board-vp.scroll { --fl: 0px; --fr: 0px; --ft: 0px; --fb: 0px;
+  -webkit-mask-image: linear-gradient(to right, transparent, var(--c-black) var(--fl), var(--c-black) calc(100% - var(--fr)), transparent), linear-gradient(to bottom, transparent, var(--c-black) var(--ft), var(--c-black) calc(100% - var(--fb)), transparent);
+  -webkit-mask-composite: source-in; mask-image: linear-gradient(to right, transparent, var(--c-black) var(--fl), var(--c-black) calc(100% - var(--fr)), transparent), linear-gradient(to bottom, transparent, var(--c-black) var(--ft), var(--c-black) calc(100% - var(--fb)), transparent); mask-composite: intersect; }
+.board-vp[data-more~="l"] { --fl: 28px; } .board-vp[data-more~="r"] { --fr: 28px; } .board-vp[data-more~="t"] { --ft: 28px; } .board-vp[data-more~="b"] { --fb: 28px; }
+/* 창 가장자리 길잡이 (main.ts vpCueSync): 창 밖 진형 쪽 가장자리에 [적 n →] · [아군 n ←], 누르면 그쪽으로. 창 위에 겹쳐 놓고 (스크롤과 따로) 칩만 누를 수 있다 */
+.vp-cues { position: absolute; pointer-events: none; z-index: var(--z-sticky); }
+.board-row:has(.dragging) .vp-cues, body:has(> .drag-ghost) .vp-cues { visibility: hidden; } /* 끄는 동안은 가장자리 (자동 스크롤 · 놓을 칸)를 가리지 않게 */
+/* 칩 묶음 자리는 main.ts vpCuePlace 가 정한다 (그 가장자리를 따라 기물 · 적 · 장치가 없는 칸 위로) */
+.vp-cs { position: absolute; left: 0; top: 0; display: flex; gap: 4px; }
+.vp-cs.s-l, .vp-cs.s-r { flex-direction: column; }
+.vp-cs.s-l { align-items: flex-start; } .vp-cs.s-r { align-items: flex-end; }
+.vp-cue { pointer-events: auto; display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border: 1px solid var(--c-bad); border-radius: var(--r-pill); background: var(--c-bad); color: var(--c-white); font: 700 var(--fs-sm)/1.3 var(--f-body); font-variant-numeric: tabular-nums; white-space: nowrap; cursor: pointer; box-shadow: 0 2px 8px color-mix(in srgb, var(--c-black) 45%, transparent); }
+.vp-cue span { font-size: var(--fs-md); }
+.vp-cue svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.vp-cue.ally { border-color: var(--c-good); background: var(--panel); color: var(--c-good); }
+.vp-cue:hover { filter: brightness(1.12); }
+.vp-cue:focus-visible { outline: 2px solid var(--c-text); outline-offset: 2px; }
+.vp-cue.pulse { animation: vp-cue-pulse .8s ease-out 3; }
+.vp-edge { position: absolute; pointer-events: none; animation: vp-edge-glow 2.4s ease-out both; }
+.vp-edge.s-l, .vp-edge.s-r { top: 0; bottom: 0; width: 36px; } .vp-edge.s-t, .vp-edge.s-b { left: 0; right: 0; height: 36px; }
+.vp-edge.s-l { left: 0; background: linear-gradient(to right, color-mix(in srgb, var(--c-bad) 55%, transparent), transparent); }
+.vp-edge.s-r { right: 0; background: linear-gradient(to left, color-mix(in srgb, var(--c-bad) 55%, transparent), transparent); }
+.vp-edge.s-t { top: 0; background: linear-gradient(to bottom, color-mix(in srgb, var(--c-bad) 55%, transparent), transparent); }
+.vp-edge.s-b { bottom: 0; background: linear-gradient(to top, color-mix(in srgb, var(--c-bad) 55%, transparent), transparent); }
+@keyframes vp-cue-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-bad) 75%, transparent); } 100% { box-shadow: 0 0 0 10px transparent; } }
+@keyframes vp-edge-glow { 0% { opacity: 0; } 15%, 45% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .vp-cue.pulse { animation: none; } .vp-edge { animation-duration: 1ms; } }
+/* 확대 단추 묶음: 편성 = 보드 왼쪽 세로 줄 · 전투 = 창 오른쪽 아래 */
+.bz-ctl { display: inline-flex; align-items: center; gap: 4px; }
+.bz-ctl[hidden], .bz-ctl [hidden] { display: none; }
+.bz-ctl .btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 28px; line-height: 1.3; }
+.bz-ctl .btn:disabled { opacity: .4; cursor: default; }
+.bz-ctl .li { width: 16px; height: 16px; flex: none; }
+.bz-step { font-weight: 800; font-variant-numeric: tabular-nums; }
+/* 편성: 보드 왼쪽 세로 단추 줄 (main.ts prepZoomCtl, 위 → 아래 [+] [복구] [−]). 확대할 여지가 없는 보드 (개활지 등)에서는 숨고 보드가 그 폭까지 쓴다 */
+.board-wrap { display: flex; align-items: flex-start; gap: 6px; }
+.board-main { flex: 1 1 auto; min-width: 0; }
+.bz-prep { flex: none; flex-direction: column; align-items: stretch; gap: 4px; width: 32px; }
+.bz-prep .btn { width: 32px; min-width: 0; min-height: 32px; padding: 0; }
+.bz-prep .bz-fit { flex-direction: column; gap: 1px; padding: 4px 0 3px; font-size: var(--fs-xs); line-height: 1.1; letter-spacing: -.02em; }
+.bz-prep .li { width: 18px; height: 18px; }
+.bz-bat { position: absolute; right: 6px; bottom: 6px; z-index: var(--z-raise); }
+.bz-bat .btn { padding: 4px; background: color-mix(in srgb, var(--panel) 82%, transparent); }
+/* 배치 미리보기 (main.ts devPvHtml): 놓으면 차지 · 영향을 주는 칸, 초록 = 놓을 수 있음 · 빨강 = 없음, 가리킨 칸 옆 이유 이름표 */
+.dev-pv-host { position: absolute; inset: 0; pointer-events: none; z-index: var(--z-raise); }
+.dev-pv { --pv: var(--c-good); }
+.dev-pv.bad { --pv: var(--c-bad); }
+/* 기준점 (main.ts devPvHtml): 놓일 장치 모습 그대로 (dev-tok · dev-mark) + 칸 네 모서리 조준 표시. 범위는 위 .pv-range (점선 + 빗금) */
+.dev-pv .pv-ghost { pointer-events: none; cursor: default; }
+.dev-pv .pv-aim { position: absolute; z-index: var(--z-raise); box-sizing: border-box; pointer-events: none; --a: 30%; background:
+  linear-gradient(var(--pv), var(--pv)) left top / var(--a) 2px no-repeat, linear-gradient(var(--pv), var(--pv)) left top / 2px var(--a) no-repeat,
+  linear-gradient(var(--pv), var(--pv)) right top / var(--a) 2px no-repeat, linear-gradient(var(--pv), var(--pv)) right top / 2px var(--a) no-repeat,
+  linear-gradient(var(--pv), var(--pv)) left bottom / var(--a) 2px no-repeat, linear-gradient(var(--pv), var(--pv)) left bottom / 2px var(--a) no-repeat,
+  linear-gradient(var(--pv), var(--pv)) right bottom / var(--a) 2px no-repeat, linear-gradient(var(--pv), var(--pv)) right bottom / 2px var(--a) no-repeat; }
+/* 놓을 수 없음: 그 칸에 금지 표시 (+ 이유 이름표) */
+.dev-pv .pv-no { position: absolute; z-index: var(--z-raise); display: grid; place-items: center; box-sizing: border-box; border: 1px solid var(--pv); border-radius: var(--r-sm); background: color-mix(in srgb, var(--pv) 16%, transparent); color: var(--pv); pointer-events: none; }
+.dev-pv .pv-no .no-ic { width: 56%; height: 56%; filter: drop-shadow(0 1px 2px var(--c-black)); }
+.dev-pv.cand .dev-pv-lb { border-style: dashed; }
+.dev-pv-at { position: absolute; }
+.dev-pv-lb { position: absolute; bottom: calc(100% + 4px); left: 0; white-space: nowrap; padding: 2px 8px; border-radius: var(--r-pill); border: 1px solid var(--pv); background: var(--panel); color: var(--pv); font: 700 var(--fs-sm)/1.35 var(--f-body); box-shadow: 0 2px 8px color-mix(in srgb, var(--c-black) 50%, transparent); }
+.dev-pv-lb.r { left: auto; right: 0; }
+.dev-pv-lb.below { bottom: auto; top: calc(100% + 4px); }
+/* 오른쪽 상세 패널 접기 (main.ts foldTog, 보는 사람마다 기억). 접으면 세로 단추만 남고 보드 칸이 넓어진다 */
+.side-fold-row { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+.side-fold { position: relative; display: inline-flex; align-items: center; gap: 4px; color: var(--c-text-2); }
+.side-fold svg { width: 16px; height: 16px; flex: none; }
+.side-fold:hover { color: var(--c-text); }
+.side-fold-dot { position: absolute; top: -4px; right: -4px; width: 9px; height: 9px; border-radius: 50%; background: var(--c-select); box-shadow: 0 0 0 2px var(--bg); }
+.prep.fold-r { grid-template-columns: 200px minmax(0, 1fr) 40px; }
+.prep.fold-r .side-fold { writing-mode: vertical-rl; padding: 8px 4px; gap: 6px; }
+.prep.fold-r .side-fold svg { writing-mode: horizontal-tb; }
+@media (max-width: 1100px) { .prep.fold-r { grid-template-columns: minmax(0, 1fr) 40px; } }
+@media (max-width: 860px) { .prep.fold-r { grid-template-columns: minmax(0, 1fr); } .prep.fold-r .side-fold { writing-mode: horizontal-tb; padding: 2px 8px; } .side-fold-row { margin-bottom: 4px; } }
+@media (orientation: landscape) and (max-height: 560px) { .prep.fold-r { grid-template-columns: minmax(0, 1fr) 40px; } .prep.fold-r .side-fold { writing-mode: vertical-rl; padding: 8px 4px; } }
+/* 패널 내용이 길어져 창 스크롤 막대가 생기거나 없어져도 보드가 옆으로 밀리지 않게 */
+html:has(main.prep) { scrollbar-gutter: stable; }
+/* 배치형 소모품을 고른 채 (main.ts invDetail ip-placing): 좁은 화면은 머리 · 바닥 줄만 하단 시트로 ('자세히' 로 펼침) → 보드를 가리지 않는다 */
+.ip-more { display: none; }
+@media (max-width: 700px) {
+  .inv-pop.ip-placing .ip-more { display: inline-block; margin-left: auto; }
+  .inv-pop.ip-placing .ip-more + .ip-cancel { margin-left: 0; }
+  .inv-pop.ip-placing:not(.more) > :not(.ip-head):not(.ip-foot) { display: none; }
+}
+/* 보드 열 안에서 떠 있는 것 (끌기 · 이름표)이 오른쪽 상세 패널 위로 뜰 수 있게: 넓은 화면에서 보드 열은 sticky 라 쌓임 맥락을 만든다.
+   보관함 팝업(.inv-pop)은 보드 열 밖 (.prep 의 마지막 자식) — 이 맥락에 갇히지 않아 태블릿 세로의 머리 자리 (상단 바 위)에도 뜬다 */
+.prep > .board-col { z-index: var(--z-raise); }
+/* ───────── 에란테스 훈련장 (ui/lab.ts): 편성 화면 오른쪽에 떠 있는 패널 · 좁은 화면은 아래 시트 */
+.title-actions .ts-lab { grid-column: 1 / -1; border-color: color-mix(in srgb, var(--c-info) 45%, var(--line)); }
+.lab-fab { position: fixed; right: 12px; bottom: 12px; z-index: var(--z-float); border-color: var(--c-info); box-shadow: var(--shadow-pop); font-weight: 800; }
+.lab-panel { position: fixed; z-index: var(--z-float); top: calc(var(--top-h, 70px) + 8px); right: 8px; bottom: 8px; width: min(380px, calc(100vw - 16px)); display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid color-mix(in srgb, var(--c-info) 45%, var(--line)); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); overflow: hidden; }
+.lab-hd { display: flex; align-items: center; gap: 6px; padding: 8px 8px 6px 12px; border-bottom: 1px solid var(--line); }
+.lab-hd > b { font-size: var(--fs-lg); margin-right: auto; }
+.lab-chip { display: inline-flex; align-items: baseline; gap: 4px; padding: 2px 8px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--panel-2); font-size: var(--fs-sm); }
+.lab-chip small { color: var(--c-text-2); font-size: var(--fs-xs); }
+.lab-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid var(--line); }
+.lab-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 4px; color: var(--c-text-2); font: inherit; font-size: var(--fs-base); font-weight: 700; cursor: pointer; }
+.lab-tabs button.on { color: var(--c-text); border-bottom-color: var(--c-select); }
+.lab-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 8px 12px 16px; scrollbar-width: thin; }
+.lab-body h4 { margin: 12px 0 6px; font-size: var(--fs-sm); color: var(--c-text-2); }
+.lab-kv { display: grid; grid-template-columns: 6.5em minmax(0, 1fr); align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line-soft); font-size: var(--fs-base); }
+.lab-k { color: var(--c-text-2); font-size: var(--fs-sm); font-weight: 700; }
+.lab-v { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.lab-v select, .lab-cell select, .lab-gsel { max-width: 100%; background: var(--panel-2); color: var(--c-text); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px 4px; font: inherit; font-size: var(--fs-sm); }
+.lab-step { display: inline-flex; align-items: center; gap: 2px; }
+.lab-num { width: 4.2em; background: var(--panel-2); color: var(--c-text); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 2px 4px; font: inherit; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; text-align: center; }
+.lab-num.wide { width: 7em; }
+.lab-seg button:disabled { opacity: calc(.4 + var(--op-lift)); cursor: not-allowed; }
+.lab-btns { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0 2px; }
+.lab-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+.lab-q { flex: 1 1 100%; min-width: 0; background: var(--panel-2); color: var(--c-text); border: 1px solid var(--line); border-radius: var(--r-md); padding: 6px 8px; font: inherit; font-size: var(--fs-base); }
+.lab-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.lab-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px; border: 1px solid var(--line-soft); border-radius: var(--r-md); background: var(--panel-2); }
+.lab-row .spr { width: 28px; height: 28px; }
+.lab-nm { display: grid; flex: 1 1 6em; min-width: 0; line-height: 1.2; }
+.lab-nm b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-base); }
+.lab-nm small { font-size: var(--fs-xs); color: var(--c-text-2); }
+.lab-nm small.on { color: var(--c-good); }
+.lab-nm small.tier-elite, .lab-nm small.tier-boss { color: var(--c-bad); }
+.lab-del { margin-left: auto; color: var(--c-text-2); }
+.lab-row.foe { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto auto; }
+.lab-row.foe .lab-cell, .lab-row.foe .lab-gear { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+.lab-row.foe .lab-gear { grid-column: 2 / -1; }
+.lab-row.foe .lab-del { grid-row: 1; grid-column: 4; }
+.lab-hd .lab-go { padding: 3px 12px; }
+@media (max-width: 420px) { .lab-hd .lab-chip.rec { display: none; } }
+.lab-gi { display: inline-grid; padding: 0; border: 0; background: none; cursor: pointer; }
+.lab-gi .item { width: 22px; height: 22px; }
+.lab-gsel { width: 7em; }
+.lab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 4px; }
+.lab-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; padding: 5px 3px; border: 1px solid var(--line-soft); border-radius: var(--r-md); background: var(--panel-2); color: var(--c-text); font: inherit; font-size: var(--fs-xs); line-height: 1.2; cursor: pointer; }
+.lab-tile:hover { border-color: var(--c-select); }
+.lab-tile > span { max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; text-align: center; }
+.lab-tile.it .item, .lab-tile .relic-tok { width: 30px; height: 30px; }
+.lab-tier { position: absolute; top: 2px; right: 2px; padding: 0 3px; border-radius: var(--r-sm); background: var(--c-chalk); color: var(--c-chalk-ink); font: 700 var(--fs-2xs)/1.3 var(--f-mono); font-style: normal; }
+.lab-tier.tier-boss { background: var(--c-bad); color: var(--c-white); }
+.lab-tile[hidden], .lab-grp[hidden] { display: none; }
+@media (max-width: 860px) {
+  .lab-panel { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: min(54vh, 520px); border-radius: var(--r-lg) var(--r-lg) 0 0; border-bottom: 0; }
+  .lab-fab { bottom: 72px; }
+}
+/* 수문 시작 상태 단추 (편성 화면 지형 상세) */
+.gate-start { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.gate-start .seg { display: inline-flex; gap: 2px; }
+.gate-start .btn.on { border-color: var(--c-select); background: color-mix(in srgb, var(--c-select) 18%, var(--panel-2)); }
+.gate-start .btn:disabled { opacity: .45; cursor: not-allowed; }
+.crane-ctl .btn { display: inline-flex; align-items: center; gap: 4px; }
+.crane-ctl .btn .li { width: 16px; height: 16px; }
+.gate-why { margin: 4px 0 0; }
+
