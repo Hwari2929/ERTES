@@ -1857,14 +1857,14 @@ export const psiPool = (u: UnitState) => { const s = schoolOf(u); return [...sch
 export function augPoolOf(u: UnitState, kind: AugKind): readonly AugDef[] {
   return kind === 'special' ? UNIT_BY_ID[u.defId].specialAugs || [] : kind === 'oath' ? OATH_AUGS : kind === 'psionic' ? psiPool(u) : kind === 'major' ? MAJOR_AUGS : [];
 }
-/** 이 유형 증강을 더 받을 수 있는지 (스페셜 · 사이오닉은 최대 4개, 학파는 1개) */
+/** 이 유형 증강을 더 받을 수 있는지 (사이오닉 전공 증강은 최대 CFG.psiAugMax 개, 메이저 전용 · 서약 증강은 CFG.majorAugMax 개, 학파는 1개) */
 export function augRoom(u: UnitState, kind: AugKind) {
   if (kind === 'major') return true;
   if (kind === 'school') return UNIT_BY_ID[u.defId].ttype === 'psionic' && !schoolOf(u);
-  if (kind === 'psionic' && !schoolOf(u)) return u.augments.filter((a) => a.id.startsWith('psi.')).length < 4; // 학파 선택 대기 중: 이정표는 남겨 둔다
+  if (kind === 'psionic' && !schoolOf(u)) return u.augments.filter((a) => a.id.startsWith('psi.')).length < CFG.psiAugMax; // 학파 선택 대기 중: 이정표는 남겨 둔다
   const list = augPoolOf(u, kind);
   const pool = new Set(list.map((a) => a.id));
-  if (u.augments.filter((a) => pool.has(a.id)).length >= (kind === 'psionic' ? 4 : CFG.majorAugMax)) return false;
+  if (u.augments.filter((a) => pool.has(a.id)).length >= (kind === 'psionic' ? CFG.psiAugMax : CFG.majorAugMax)) return false;
   return list.some((a) => !u.augments.some((p) => p.id === a.id)); // 고를 수 있는 증강이 남았는지
 }
 export function augOptions(run: RunState, u: UnitState, kind: AugKind = 'major'): AugPick[] {
@@ -2637,12 +2637,12 @@ export function migrate(run: RunState): RunState {
     const cur = schoolOf(u);
     if (cur && !ok.includes(cur)) u.augments = u.augments.filter((a) => !a.id.startsWith('school.') && !a.id.startsWith('psi.'));
     if (!schoolOf(u) && !run.pending.some((p) => p.t === 'rankup' && p.uid === u.uid && p.kind === 'school')) u.augments.unshift({ id: schoolAugId(rng(run, (r) => r.pick(ok))) });
-    // 다른 전공의 전공 증강 · 중복 전공 정리 (전공 증강 최대 4개)
+    // 다른 전공의 전공 증강 · 중복 전공 정리 (전공 증강 최대 CFG.psiAugMax 개)
     const sc = schoolOf(u);
     let seenSchool = false, nPsi = 0;
     u.augments = u.augments.filter((a) => {
       if (a.id.startsWith('school.')) { const keep = !seenSchool && a.id === `school.${sc}`; seenSchool ||= keep; return keep; }
-      if (a.id.startsWith('psi.')) return !!sc && AUG_BY_ID[a.id]?.owner === sc && ++nPsi <= 4;
+      if (a.id.startsWith('psi.')) return !!sc && AUG_BY_ID[a.id]?.owner === sc && ++nPsi <= CFG.psiAugMax;
       return true;
     });
   }

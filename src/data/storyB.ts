@@ -1,6 +1,7 @@
 // 이야기 사건 묶음 B — 세력 정치 · 의뢰
 import type { Effect } from '../engine/effects';
 import { inc, red } from '../engine/effects';
+import { CFG } from '../config';
 import type { EventApi, EventDef } from './events';
 import type { RunState, UnitState } from '../types';
 
@@ -419,7 +420,7 @@ export const STORY_B: EventDef[] = [
       },
       {
         label: '역으로 스카우트한다', desc: '50%: 헤드헌터의 인맥으로 기물 3명 중 1명 영입 / 50%: 접대비만 날린다, 크레딧 -6.',
-        block: (r) => (r.units.length >= 16 ? '보유 한도(16명)에 도달했습니다' : null),
+        block: (r) => (r.units.length >= CFG.maxParty ? `보유 한도(${CFG.maxParty}명)에 도달했습니다` : null),
         apply: (r, api) => {
           if (api.chance(0.5)) { api.recruitPick(3); api.outcome('ok'); return '헤드헌터가 명함첩을 통째로 넘겼습니다. 면접을 진행합니다.'; }
           spend(r, 6); api.outcome('fail'); return '헤드헌터는 비싼 술만 마시고 돌아갔습니다. 크레딧 -6.';

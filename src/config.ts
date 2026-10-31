@@ -24,19 +24,19 @@ export const CFG = {
   psiPower: 1.2, // 소마법 · 학파 전공 계수 배율 (밸런스)
   divCap: 200, // 디바인 전투당 신성력 수집 상한
   powerPerDiv: 25, powerMax: 12, // 권능 포인트 = 디바인 1명당 모은 신성력 ÷ 25 + 신권 대행 1 (전투당 최대 12)
-  // 전술 유형별 성장 주기
-  // 전술 유형별 성장 (공명 등급이 오르면 모두 메이저 +1, 그 밖의 보상은 유형별 이정표)
+  // 전술 유형별 성장 (공명 등급이 오르면 모두 메이저 +1, 그 밖의 보상은 유형별 이정표).
+  // 주기는 아래 '성장' 절의 statEvery · augEvery · oathEvery · psiEvery · psiAugMax 하나에서만 정한다 (규칙 문구 main.ts TTYPE_RULE · 교범도 이 값을 읽는다)
   growth: {
-    /** 마이너: 3등급마다 능력치 2종 +3 */
-    pick: (tt: string, rank: number) => tt === 'minor' && rank % 3 === 0,
+    /** 스페셜 (데이터 키 minor): statEvery 등급마다 능력치 rankPicks종 +rankPoints */
+    pick: (tt: string, rank: number): boolean => tt === 'minor' && rank % CFG.statEvery === 0,
     /** (예전) 메이저 공용 증강: 쓰지 않는다 — 메이저는 아래 special(전용 증강)로 성장 */
     major: (_tt: string, _rank: number) => false,
-    /** 메이저 (예전 메이저 + 스페셜): 4등급마다 기물 전용 증강 (14개 중, 최대 majorAugMax 개) */
-    special: (tt: string, rank: number) => tt === 'major' && rank % 4 === 0,
-    /** 디바인: 5등급마다 서약 증강 (디바인 공용 풀) */
-    oath: (tt: string, rank: number) => tt === 'divine' && rank % 5 === 0,
-    /** 사이오닉: 4 · 8 · 12 · 16등급에 전공 증강 (최대 4, 16등급에 완성) */
-    psionic: (tt: string, rank: number) => tt === 'psionic' && rank % 4 === 0 && rank <= 16,
+    /** 메이저 (예전 메이저 + 스페셜): augEvery 등급마다 기물 전용 증강 (14개 중, 최대 majorAugMax 개) */
+    special: (tt: string, rank: number): boolean => tt === 'major' && rank % CFG.augEvery === 0,
+    /** 디바인: oathEvery 등급마다 서약 증강 (디바인 공용 풀) */
+    oath: (tt: string, rank: number): boolean => tt === 'divine' && rank % CFG.oathEvery === 0,
+    /** 사이오닉: psiEvery 등급마다 전공 증강 (최대 psiAugMax 개, psiAugRanks() 마지막 등급에 완성) */
+    psionic: (tt: string, rank: number): boolean => tt === 'psionic' && rank % CFG.psiEvery === 0 && rank <= CFG.psiEvery * CFG.psiAugMax,
   },
   /** 메이저 궁극기: 자연 충전 기준 시간(초, 충전 계수 1.0) · 전투 시작 게이지 */
   ultTime: 35, ultStart: 0.2,
@@ -201,12 +201,11 @@ export const CFG = {
   // ── 성장
   maxRank: 99, // 10 이상은 스탯만
   rankPowGrowth: 1.025, // 공명 등급당 사격 · 타격 · 기술 위력 독립 배율
-  augEvery: 5, // n등급마다 기물 전용 증강 1개
-  hasRankAug: (rank: number) => rank % CFG.augEvery === 0,
+  /** 이정표 주기 (등급, 판정 CFG.growth): 메이저 전용 증강 · 디바인 서약 증강 · 사이오닉 전공 증강 (최대 psiAugMax 개) */
+  augEvery: 4, oathEvery: 5, psiEvery: 4, psiAugMax: 4,
   xpToNext: (rank: number) => 2 + 2 * rank, // 1→2: 4pt … 9→10: 20pt [임시]
-  // 등급업: 모든 메이저 +rankAll. statEvery 등급마다 서로 다른 메이저 rankPicks개를 골라 각각 +rankPoints
+  // 등급업: 모든 메이저 +rankAll. 스페셜(데이터 키 minor)은 statEvery 등급마다 서로 다른 메이저 rankPicks개를 골라 각각 +rankPoints (근위기사 성장도 이 주기)
   rankAll: 1, rankPicks: 2, rankPoints: 3, statEvery: 3,
-  hasRankPick: (rank: number) => rank % CFG.statEvery === 0,
   xpPool: (phase: number) => 4 + 8 * phase, // 전투 1회 공명도 풀: P1 12 · P3 28 · P5 44 (총량은 10 + 6p 와 같고 후반으로 기울임 — 초반 성장 쏠림 완화)
   buyXpCost: 4, buyXpAmount: 4, // [임시]
   augmentChoices: 3, augmentRerolls: 1,
@@ -459,6 +458,9 @@ export const CFG = {
     strip: { heat: [1, 1], rerolls: [0, 0], choices: [0, 1] }, // 박탈: 특권 증강 새로고침 · 선택지 수 (0 = 그대로)
   },
 };
+
+/** 사이오닉 전공 증강을 고르는 공명 등급 (지금 4 · 8 · 12 · 16) — 규칙 문구가 읽는다 */
+export const psiAugRanks = () => Array.from({ length: CFG.psiAugMax }, (_, i) => (i + 1) * CFG.psiEvery);
 
 /** 적 성장 페이즈: 의뢰 페이즈 p 를 적 체력 · 피해 · 방어도 · 능력치 성장 곡선 위 위치로 (CFG.scaleCurve, 소수 가능),
  *  그 뒤 (무한 항해)는 1씩. 캠페인은 장마다 정한 페이즈 그대로 (camp = true) */

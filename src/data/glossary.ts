@@ -1,6 +1,8 @@
 // 교범: 튜토리얼에서 가르치는 용어 모음 (도감 · 교범 탭). 수치는 config.ts · run.ts · combat.ts 기준.
 // key = 이 항목을 여는 튜토리얼 장면 · 안내 키 (TUTORIAL_FLOW). 튜토리얼을 끝내거나 건너뛰면 전부 열린다.
-import { CFG, encDmgMult } from '../config';
+import { CFG, encDmgMult, psiAugRanks } from '../config';
+import { ALL_AUGS } from './augments';
+import { isLegendAug, SCHOOLS } from './schools';
 import { DIFF_PRESETS, diffName } from './difficulty';
 import { DESPAIRS, despairPhases } from './despair';
 import { BOSS_CC_IMMUNE, controlNames, fleeRule, PROV, RELOAD_RESET_LABEL, STATUS_NAME, TEND_NAME, VAN_LIKE, zocRule } from '../engine/combat';
@@ -20,6 +22,13 @@ export interface GlossEntry { id: string; term: string; text: string; key: strin
 export interface GlossChapter { ch: string; title: string; who: string; entries: GlossEntry[] }
 /** 비율 → '25%' */
 const pc = (v: number) => `${Math.round(v * 100)}%`;
+/** 전공 하나의 공용 전공 증강 수 (id psi.<전공>.<키>, 기물 전용 psi.<전공>.<기물>.<키> 제외): ★ 전설 / 그 밖 — 전공마다 다르면 '10~12' */
+const psiCommonCount = (legend: boolean) => {
+  const n = [...new Set(SCHOOLS.map((s) => ALL_AUGS.filter((a) => a.id.startsWith(`psi.${s.id}.`) && a.id.split('.').length === 3 && isLegendAug(a.id) === legend).length))].sort((a, b) => a - b);
+  return n.length > 1 ? `${n[0]}~${n[n.length - 1]}` : `${n[0]}`;
+};
+/** ★ 전설 전공 증강이 반드시 나오는 선택 순서 (base + pity × 지나간 수 ≥ 1) */
+const psiLegendSure = Math.ceil((1 - CFG.psiLegend.base) / CFG.psiLegend.pity - 1e-9) + 1;
 /** 비율 포인트 → '4.8%p' */
 const pp = (v: number) => `${+(v * 100).toFixed(1)}%p`;
 /** 주요 능력치 1당 오르는 능력치 이름 (CFG.conv 의 키) */
@@ -102,9 +111,9 @@ export const GLOSSARY: GlossChapter[] = [
       { id: 'field', term: '전장 · 전장 조건', key: 'ch4_brief', text: '의뢰마다 싸우는 전장이 정해진다. 전장 조건은 모든 전투에 붙고(적 증가, 가격 상승 등), 힘을 받는 세력도 따로 있다. 지도의 환경 탭에서 언제든 다시 본다.' },
       { id: 'terrain', term: '지형 틀 · 지형 칸', key: 'ch4_brief', text: `일반 · 역경 전투는 가끔 개활지가 아닌 지형에서 벌어진다 (편성 화면 머리 제목 · 오른쪽 '이번 전투'의 지형 설명). 지형 칸은 누르면 범위와 성질이 나온다. ${Object.values(TERRAIN).filter((t) => t.bits === 1 && !t.dyn).map((t) => t.name).join(' · ')}은 길만 막고, ${Object.values(TERRAIN).filter((t) => t.bits === 3 && !t.dyn && !t.breakable && t.name !== '수문').map((t) => t.name).join(' · ')}는 직선 사격까지 막는다. 기술은 틈 없이 갈라질 때만 막힌다. ${Object.values(TERRAIN).filter((t) => t.breakable).map((t) => t.name).join(' · ')}는 전투가 시작되면 부서지는 구조물이 되고, ${Object.values(TERRAIN).filter((t) => t.dyn).map((t) => t.name).join(' · ')}은 전투 중 주기적으로 막는 것이 바뀐다. 수문 시작 상태 · 연결교 접기 · 크레인 · 스프링클러 첫 살수 · 먼저 켤 레이저 줄 · 전력선 차단기는 편성 화면의 지형 상세에서 전투 전에 정한다. 공용 ${MAPS.filter((m) => !m.field && m.id !== 'open').map((m) => m.name).join(' · ')}, 전장 전용 ${MAPS.filter((m) => m.field).map((m) => m.name).join(' · ')}.` },
       { id: 'devices', term: '배치형 소모품', key: 'ch4_brief', text: '바리케이드 · 신호기 · 지뢰 · 그물 · 망원경은 편성 화면에서 칸 · 적 · 아군에 끌어다 놓고, 전투가 시작되면 작동한다. 놓은 뒤 누르면 회수. 바리케이드는 어느 편도 아니라서 내 직선 사격도 막는다. 기술은 틈 없이 갈라질 때만 막는다. 전투 중 기물을 누르면 사선이 보인다.' },
-      { id: 'ttype', term: '전술 유형', key: 'ch4_intro', text: `성장 방식. 어느 유형이든 공명 등급이 오를 때마다 모든 주요 능력치 +1이고, 그 밖의 보상이 다르다. ${TTYPE_NAME.major}(궁극기 · 4등급마다 기물 전용 증강, 최대 ${CFG.majorAugMax}개), ${TTYPE_NAME.minor}(3등급마다 주요 능력치 ${CFG.rankPicks}종 +${CFG.rankPoints} · 기술 계수와 특성 수치가 등급 따라 자람), ${TTYPE_NAME.psionic}(합류할 때 전공 · 이성 · 4 · 8 · 12 · 16등급 전공 증강), ${TTYPE_NAME.divine}(신앙 · 신성력 · 성유물 · 5등급마다 서약 증강). 증강끼리 배타는 없다: 비술 · 기술을 바꾸는 변형 증강도 다른 증강과 함께 작동한다.` },
-      { id: 'psileg', term: '★ 전설 전공 증강', key: 'ch4_intro', text: `사이오닉의 전공 증강은 전공마다 기본 8종에 ★ 전설 2종이 더 있다. 전설은 학파의 규칙 자체를 비튼다 (초신성 · 시간 정지 · 포자 군락 등). 전공 증강 선택지 ${CFG.augmentChoices}장 중 1장이 전설로 섞일 확률은 ${pc(CFG.psiLegend.base)}이고, 전설 없이 고를 때마다 +${pc(CFG.psiLegend.pity)}p씩 오른다 (4번째 선택에서는 반드시 나온다). 전설을 한 번 얻으면 다시 ${pc(CFG.psiLegend.base)}. 전설 카드는 가장 화려한 공개 연출로 나오고, ◆ 변형 증강은 그보다 한 단계 아래로 나온다.` },
-      { id: 'great', term: '능력치 대성공', key: 'ch4_intro', text: `${TTYPE_NAME.minor} 기물의 능력치 보상(3등급마다)은 확정할 때 ${pc(CFG.greatChance)} 확률로 대성공한다. 대성공이면 고른 주요 능력치 ${CFG.rankPicks}종이 각각 +${CFG.rankPoints * 2} (상승량 2배) — 고른 칸이 황금빛으로 반짝이고 창이 저절로 닫힌다.` },
+      { id: 'ttype', term: '전술 유형', key: 'ch4_intro', text: `성장 방식. 어느 유형이든 공명 등급이 오를 때마다 모든 주요 능력치 +${CFG.rankAll}이고, 그 밖의 보상이 다르다. ${TTYPE_NAME.major}(궁극기 · ${CFG.augEvery}등급마다 기물 전용 증강, 최대 ${CFG.majorAugMax}개), ${TTYPE_NAME.minor}(${CFG.statEvery}등급마다 주요 능력치 ${CFG.rankPicks}종 +${CFG.rankPoints} · 기술 계수와 특성 수치가 등급 따라 자람), ${TTYPE_NAME.psionic}(합류할 때 전공 · 이성 · ${psiAugRanks().join(' · ')}등급 전공 증강), ${TTYPE_NAME.divine}(신앙 · 신성력 · 성유물 · ${CFG.oathEvery}등급마다 서약 증강). 증강끼리 배타는 없다: 비술 · 기술을 바꾸는 변형 증강도 다른 증강과 함께 작동한다.` },
+      { id: 'psileg', term: '★ 전설 전공 증강', key: 'ch4_intro', text: `사이오닉의 전공 증강은 전공마다 기본 ${psiCommonCount(false)}종에 ★ 전설 ${psiCommonCount(true)}종이 더 있다. 전설은 학파의 규칙 자체를 비튼다 (초신성 · 시간 정지 · 포자 군락 등). 전공 증강 선택지 ${CFG.augmentChoices}장 중 1장이 전설로 섞일 확률은 ${pc(CFG.psiLegend.base)}이고, 전설 없이 고를 때마다 +${pc(CFG.psiLegend.pity)}p씩 오른다 (${psiLegendSure}번째 선택에서는 반드시 나온다). 전설을 한 번 얻으면 다시 ${pc(CFG.psiLegend.base)}. 전설 카드는 가장 화려한 공개 연출로 나오고, ◆ 변형 증강은 그보다 한 단계 아래로 나온다.` },
+      { id: 'great', term: '능력치 대성공', key: 'ch4_intro', text: `${TTYPE_NAME.minor} 기물의 능력치 보상(${CFG.statEvery}등급마다)은 확정할 때 ${pc(CFG.greatChance)} 확률로 대성공한다. 대성공이면 고른 주요 능력치 ${CFG.rankPicks}종이 각각 +${CFG.rankPoints * 2} (상승량 2배) — 고른 칸이 황금빛으로 반짝이고 창이 저절로 닫힌다.` },
       { id: 'reason', term: '이성 (사이오닉)', key: 'ch4_deploy', text: `사이오닉의 정신 수치. ${CFG.reasonStart}에서 시작해 기술과 행동에 따라 오르내리고, 0 밑으로 내려가면 매초 정신 피해를 받는다. 사이오닉은 합류할 때 학파의 전공을 하나 고른다. 학파마다 고이성 · 저이성 효과가 다르다 (인과학파 저이성은 기술 피해에도 치명타).` },
       { id: 'event', term: '사건', key: 'ch4_event', text: '이야기를 읽고 끝에서 선택지를 고른다. 선택지 아래 작은 글씨가 효과이며, 회색 선택지는 조건이 모자란 것이고 이유가 함께 적힌다.' },
       { id: 'adversity', term: '역경', key: 'ch4_adversity', text: `적 체력 ${CFG.adversityMult}배 · 피해 ${+encDmgMult(CFG.adversityMult).toFixed(2)}배에 정예가 반드시 섞인다. 대신 크레딧과 공명도 보상은 ${CFG.adversityReward}배이고, 이기면 무작위 장비 재료 ${CFG.drop.advParts}개가 확정으로 나온다.` },

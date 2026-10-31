@@ -93,6 +93,8 @@ const amb = BANTER.filter((b) => b.place !== 2);
 const needN = (c: string[]) => new Set(c.filter((id) => id !== 'rachel').map((id) => (id === 'cesare' ? 'joshua' : id))).size;
 const castN = [0, 1, 2, 3, 4].map((n) => amb.filter((b) => b.cast.filter((id) => id !== 'rachel' && id !== 'aiden').length === n).length);
 console.log(`바 무대 ${STAGE_MAX}명 (레이첼은 무대 밖 · 에이든은 거의 늘 1자리): 재생 가능한 바 만담 ${amb.filter((b) => needN(b.cast) <= STAGE_MAX).length}/${amb.length}편 · 레이첼 · 에이든 뺀 출연 0~4명 = ${castN.join(' / ')}편`);
+// 무대 정원보다 출연이 많은 바 만담은 영영 재생되지 않는다 → 출연을 줄이거나 바 밖(place 2) 만담으로
+for (const b of amb) if (needN(b.cast) > STAGE_MAX) errs.push(`만담 ${b.id}: 레이첼 뺀 출연 ${needN(b.cast)}명 > 무대 ${STAGE_MAX}명 — 재생되지 않는다 (${b.cast.join(' · ')})`);
 const ROSTERS: [string, string[]][] = [
   ['전원', UNITS.filter((u) => !u.inert && !u.noBar).map((u) => u.id).filter((id) => id !== 'rachel' && id !== 'aiden')], // 반려 돌(절망 증강)은 바에 오지 않는다
   ['튜토리얼 7명', ['yelena', 'franze', 'lindiwe', 'vivian', 'phyllis', 'temur', 'nadir']],

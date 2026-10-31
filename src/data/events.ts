@@ -1,6 +1,7 @@
 // 사건 노드: 전장별 · 공용 사건. 선택지마다 실제로 판을 흔드는 효과를 준다.
 import type { Effect } from '../engine/effects';
 import { inc, red } from '../engine/effects';
+import { CFG } from '../config';
 import type { Rng } from '../rng';
 import type { RunState, UnitState } from '../types';
 
@@ -57,7 +58,7 @@ import { BOONS_D, STORY_D } from './storyD';
 
 const FACTION_EMBLEMS = ['UNI', 'KAL', 'HEL', 'PET', 'SIR', 'PAN', 'FAM'];
 const owns = (run: RunState, id: string) => run.units.some((u) => u.defId === id);
-const full = (run: RunState) => (run.units.length >= 16 ? '보유 한도(16명)에 도달했습니다' : null);
+const full = (run: RunState) => (run.units.length >= CFG.maxParty ? `보유 한도(${CFG.maxParty}명)에 도달했습니다` : null);
 const top = (run: RunState) => run.units.slice().sort((a, b) => b.rank - a.rank)[0];
 
 /** 캠페인 「회수 계약」 사건 (전장 id '__camp' = 일반 런 추첨에 나오지 않음, 캠페인 장 정의가 칸마다 고정으로 부른다 — data/campaign.ts) */

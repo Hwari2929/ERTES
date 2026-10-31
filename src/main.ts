@@ -1,5 +1,5 @@
 import { PREVIEW_SECS, foeKey, startPreview } from './engine/preview';
-import { CFG, encDmgMult, phaseAmpMult, phaseHpMult, scalePhase } from './config';
+import { CFG, encDmgMult, phaseAmpMult, phaseHpMult, psiAugRanks, scalePhase } from './config';
 import { AUG_BY_ID, augDesc } from './data/augments';
 import { ENEMIES, ENEMY_BY_ID, type EnemyDef } from './data/enemies';
 import { SQUAD_KIND, type SquadKind } from './data/squads';
@@ -548,12 +548,13 @@ function ctypeRuleHtml(ct: string, detail: boolean) {
   return `<dl class="um-types ct-rules">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
 }
 /** 전술 유형 공통 규칙: 공명 등급마다 모든 능력치 +1, 이정표 보상은 유형별 */
+const RANK_ALL = `공명 등급마다 모든 주요 능력치 +${CFG.rankAll}.`, PSI_RANKS = psiAugRanks();
 const TTYPE_RULE: Record<TType, string> = {
-  major: `공명 등급마다 모든 주요 능력치 +1. 4등급마다 기물 전용 증강 1개 (최대 ${CFG.majorAugMax}개, 일반 12 · ★ 전설 2 중에서). 고유 궁극기는 시간이 지나면 저절로 차오르고 (기본 약 ${Math.round(CFG.ultTime * CFG.ultNeed)}초, 전투 시작 ${Math.round(CFG.ultStart * 100)}%), 기본 공격 · 전투 스킬 · 피격 때도 조금씩 찬다. 한 전투에 여러 번 쓸 수 있다.`,
-  minor: '공명 등급마다 모든 주요 능력치 +1. 3등급마다 주요 능력치 2종 +3. 기술 계수와 특성 수치가 등급에 따라 자란다 (10등급 ×2, 20등급 ×3).',
-  special: `공명 등급마다 모든 주요 능력치 +1. 4등급마다 기물 전용 증강 1개 (최대 ${CFG.majorAugMax}개).`,
-  psionic: '공명 등급마다 모든 주요 능력치 +1. 기물마다 학파가 정해져 있고, 합류할 때 그 학파의 전공을 고른다 (비술 + 지속 능력). 4 · 8 · 12 · 16등급에 전공 증강 (최대 4개, 16등급에 완성).',
-  divine: '공명 등급마다 모든 주요 능력치 +1. 고유 신앙이 깨어 있어 신성력을 모으고, 가득 차면 장착한 성유물의 신권 대행을 쓴다. 5등급마다 서약 증강 1개 (디바인 공용 풀). 모은 신성력은 전투 후 권능 포인트가 된다.',
+  major: `${RANK_ALL} ${CFG.augEvery}등급마다 기물 전용 증강 1개 (최대 ${CFG.majorAugMax}개, 일반 12 · ★ 전설 2 중에서). 고유 궁극기는 시간이 지나면 저절로 차오르고 (기본 약 ${Math.round(CFG.ultTime * CFG.ultNeed)}초, 전투 시작 ${Math.round(CFG.ultStart * 100)}%), 기본 공격 · 전투 스킬 · 피격 때도 조금씩 찬다. 한 전투에 여러 번 쓸 수 있다.`,
+  minor: `${RANK_ALL} ${CFG.statEvery}등급마다 주요 능력치 ${CFG.rankPicks}종 +${CFG.rankPoints}. 기술 계수와 특성 수치가 등급에 따라 자란다 (10등급 ×${CFG.minorGrow(10)}, 20등급 ×${CFG.minorGrow(20)}).`,
+  special: `${RANK_ALL} ${CFG.augEvery}등급마다 기물 전용 증강 1개 (최대 ${CFG.majorAugMax}개).`,
+  psionic: `${RANK_ALL} 기물마다 학파가 정해져 있고, 합류할 때 그 학파의 전공을 고른다 (비술 + 지속 능력). ${PSI_RANKS.join(' · ')}등급에 전공 증강 (최대 ${CFG.psiAugMax}개, ${PSI_RANKS[PSI_RANKS.length - 1]}등급에 완성).`,
+  divine: `${RANK_ALL} 고유 신앙이 깨어 있어 신성력을 모으고, 가득 차면 장착한 성유물의 신권 대행을 쓴다. ${CFG.oathEvery}등급마다 서약 증강 1개 (디바인 공용 풀). 모은 신성력은 전투 후 권능 포인트가 된다.`,
 };
 /** 특성 하위 항목 (접힘) */
 function sub(key: string, icon: string, cls: string, name: string, kind: string, body: string) {
@@ -746,7 +747,7 @@ function ttSection(d: UnitDef, u: UnitState | null, run: RunState | null, b: Bat
     const vows = owned.filter((a) => AUG_BY_ID[a.id]?.pool === 'oath');
     body.push(`<div class="tt-row"><span class="tt-k">서약 증강</span><b>${vows.length}</b>${nx ? `<span class="muted small">다음 ${nx}등급</span>` : ''}</div>`);
     if (vows.length) body.push(`<ul class="augs">${vows.map((a) => augRow(a.id, a.param, b, c)).join('')}</ul>`);
-    else if (!u) body.push(`<p class="muted small">5등급마다 디바인 공용 서약 증강 ${OATH_AUGS.length}종 중 하나를 고른다.</p>`);
+    else if (!u) body.push(`<p class="muted small">${CFG.oathEvery}등급마다 디바인 공용 서약 증강 ${OATH_AUGS.length}종 중 하나를 고른다.</p>`);
   }
   void f;
   return `<section class="abil tt-sec tt-${tt}"><div class="ab-head"><span class="ab-kind">전술 유형</span><b class="tt-name"><i class="tt-${tt}">${TTYPE_ICON(tt)}</i>${TTYPE_NAME[tt]}</b></div>
@@ -2372,7 +2373,7 @@ function abilPopHtml(key: string, d: UnitDef, b: Battle | null, c: CUnit | null,
     const id = key.slice(4);
     kind = '증강'; name = AUG_BY_ID[id]?.name || id;
     const pool = AUG_BY_ID[id]?.pool;
-    mech = pool === 'unit' ? '이 기물 전용 증강. 획득하면 영구 적용.' : pool === 'special' ? '메이저 기물이 4등급마다 고르는 전용 증강. 영구 적용.' : pool === 'oath' ? '디바인 기물이 5등급마다 고르는 서약 증강. 영구 적용.' : pool === 'psionic' ? '사이오닉 증강. 이성 규칙을 바꾼다. 영구 적용.' : '공용 증강. 영구 적용.';
+    mech = pool === 'unit' ? '이 기물 전용 증강. 획득하면 영구 적용.' : pool === 'special' ? `메이저 기물이 ${CFG.augEvery}등급마다 고르는 전용 증강. 영구 적용.` : pool === 'oath' ? `디바인 기물이 ${CFG.oathEvery}등급마다 고르는 서약 증강. 영구 적용.` : pool === 'psionic' ? '사이오닉 증강. 이성 규칙을 바꾼다. 영구 적용.' : '공용 증강. 영구 적용.';
     body = `<p>${augText(id, c?.src?.augments.find((a) => a.id === id)?.param, b, c, gl)}</p>${augNotes(id, c?.src || app.run?.units.find((x) => x.defId === d.id) || null, true)}`;
     // ◆ 변형 증강: 바뀐 비술 · 지속 능력을 함께 (이 기물의 다른 전공 증강까지 반영)
     const tp = transformPreview(id);
@@ -3455,7 +3456,7 @@ function pendingModal(run: RunState): string {
       const pv = previewAlly(run, u);
       body = `${side}<div class="ru-main">
         <div class="ru-head"><h1>${p.kind === 'school' ? '합류 · 사이오닉 전공' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 전공 증강` : p.kind === 'oath' ? `${p.rank}등급 달성 · 서약 증강` : `${p.rank}등급 달성 · 증강`}</h1>
-          <span class="muted small">${p.kind === 'school' ? `${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙고, 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}` : p.kind === 'special' ? `메이저 기물은 4등급마다 전용 증강을 고릅니다 (최대 ${CFG.majorAugMax}개). 이번 ★ 전설 출현 확률 ${Math.round(R.majorLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.majorLegend.pity * 100)}%p)` : p.kind === 'oath' ? '디바인 기물은 5등급마다 서약 증강을 고릅니다 (디바인 공용 풀).' : p.kind === 'psionic' ? `사이오닉 기물은 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다 (최대 4개). 이번 ★ 전설 출현 확률 ${Math.round(R.psiLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.psiLegend.pity * 100)}%p)` : ''}</span>
+          <span class="muted small">${p.kind === 'school' ? `${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙고, ${PSI_RANKS.join(' · ')}등급에 전공 증강을 고릅니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}` : p.kind === 'special' ? `메이저 기물은 ${CFG.augEvery}등급마다 전용 증강을 고릅니다 (최대 ${CFG.majorAugMax}개). 이번 ★ 전설 출현 확률 ${Math.round(R.majorLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.majorLegend.pity * 100)}%p)` : p.kind === 'oath' ? '디바인 기물은 5등급마다 서약 증강을 고릅니다 (디바인 공용 풀).' : p.kind === 'psionic' ? `사이오닉 기물은 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다 (최대 4개). 이번 ★ 전설 출현 확률 ${Math.round(R.psiLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.psiLegend.pity * 100)}%p)` : ''}</span>
           ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
         ${p.kind === 'school' ? `<p class="mu-short small">이 전장의 주요 적: ${esc(matchupShort(run.field))}</p>` : ''}
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {

@@ -1,6 +1,7 @@
 // 이야기 사건 묶음 D — 변경 생존 · 도박 · 인양
 import type { Effect } from '../engine/effects';
 import { inc, red } from '../engine/effects';
+import { CFG } from '../config';
 import type { EventApi, EventDef } from './events';
 import type { RunState, UnitState } from '../types';
 
@@ -22,7 +23,7 @@ const needHp = (n: number) => (r: RunState) => (r.hp <= n ? '체력이 부족합
 const isGear = (x: string | null) => !!x && /^[CGAL]_/.test(x);
 const hasGear = (r: RunState) => r.inventory.some(isGear) || r.units.some((u) => u.items.some(isGear));
 const noGear = (r: RunState) => (hasGear(r) ? null : '내놓을 장비가 없습니다');
-const full = (r: RunState) => (r.units.length >= 16 ? '보유 한도(16명)에 도달했습니다' : null);
+const full = (r: RunState) => (r.units.length >= CFG.maxParty ? `보유 한도(${CFG.maxParty}명)에 도달했습니다` : null);
 const pickDeployed = (r: RunState, api: EventApi): UnitState | undefined => {
   const pool = r.units.filter((u) => u.pos);
   const src = pool.length ? pool : r.units;

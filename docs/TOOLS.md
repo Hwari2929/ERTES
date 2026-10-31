@@ -43,7 +43,7 @@
 |---|---|---|
 | 1 | `tests/codex_check.ts` | 도감: 데이터 표(장비 · 시너지 · 사이오닉 · 증강 · 전역 · 특권 · 축복 · 세계관)의 모든 항목이 도감 탭에 나오는지, 그린 글에 undefined · NaN 이 없는지, 세계관 연결 · 기물 참조 · 기물 한 줄 설명 |
 | 2 | `tests/css_check.ts` | CSS 토큰: `:root` 밖 새 색 값, 옛 토큰 · 글자 크기 · 둥글기 · z-index 리터럴 · `!important` 가 기준(`tests/css_baseline.json`)보다 늘었는지, 정의 안 된 변수 |
-| 3 | `tests/bar_check.ts` | 바 허브: 화자 · 후보 id, 슬롯, 인사 · 반응 · 화제 · 작별 · 혼잣말 분량, 무대 규칙 모의 실행 |
+| 3 | `tests/bar_check.ts` | 바 허브: 화자 · 후보 id, 슬롯, 인사 · 반응 · 화제 · 작별 · 혼잣말 분량, 무대 규칙 모의 실행, 무대 정원(레이첼 제외 3명)보다 출연이 많아 재생되지 않는 바 만담 |
 | 4 | `tests/motif_check.ts` | 인물별 표면 소재(말버릇 · 반복 개그) 사용 횟수가 기준 이하 (`--doc` 로 `docs/MOTIFS.md` 갱신) |
 | 5 | `tests/number_check.ts` | 대사 · 서술의 수량 · 서수는 아라비아 숫자 (도우미 `python3 scripts/numfix.py [--apply] 파일…`) |
 | 6 | `tests/lore_ext_check.ts` | `lore/인물/확장/*.md`: 문서 이름 · 원본 시트 경로 · 관계 표시 · 출처 문구가 실제 파일에 있는지 · 금지 설정 |
