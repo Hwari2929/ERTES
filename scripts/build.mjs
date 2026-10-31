@@ -24,7 +24,13 @@ if (process.argv.includes('--syndoc')) {
   writeFileSync('dist/index.html', full);
   writeFileSync('dist/artifact.html', html);
   // 스탠딩 일러스트: dist/art/<id>.webp (index.html 옆에 두면 오프라인에서도 보임, 없으면 도트로 대체)
-  if (existsSync('public/art')) cpSync('public/art', 'dist/art', { recursive: true });
+  if (existsSync('public/art')) {
+    cpSync('public/art', 'dist/art', { recursive: true });
+    // 적 · 소환물 상반신 배너 묶음 (아티팩트 파일 수 한도 512): src/ui/portraits.ts loadArtPack
+    const pack = {};
+    for (const f of readdirSync('public/art')) if (/^(en|sm)_.*\.bust\.webp$/.test(f)) pack[f] = 'data:image/webp;base64,' + readFileSync(`public/art/${f}`).toString('base64');
+    writeFileSync('dist/art/busts-en.json', JSON.stringify(pack));
+  }
   console.log(`dist/index.html ${(full.length / 1024).toFixed(1)} KB`);
   // 단독 오프라인 파일: 일러스트까지 데이터 URI 로 내장 (아이패드 · 옵시디언 등에서 파일 하나로 실행)
   if (process.argv.includes('--offline') && existsSync('public/art')) {

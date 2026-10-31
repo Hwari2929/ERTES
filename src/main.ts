@@ -53,7 +53,7 @@ import { VOICE, voicePick } from './data/voicelines';
 import { DEFAULT_RELIC, RELIC_BY_ID } from './data/relics';
 import { deleteSave, exportCode, importCode, listSaves, loadRun, saveRun, SLOT_NAME } from './ui/save';
 import { loadMeta, metaBarMvp, metaBattle, metaClear, metaDeed, metaEvent, metaRunEnd, metaTutEnd, metaTutSeen, tutMeta, tutOver } from './ui/meta';
-import { artURL, bgURL, hasPortrait, iconURL, loadArt, prefetchArt, standImg, standURL } from './ui/portraits';
+import { artURL, bgURL, hasPortrait, iconURL, loadArt, loadArtPack, prefetchArt, standImg, standURL } from './ui/portraits';
 import { advKey, closeAdv, playAdv } from './ui/adv';
 import * as SND from './ui/sound';
 import * as OATH from './ui/oath';
@@ -6760,5 +6760,6 @@ function boot(data: unknown) {
   if (r) { app.run = r; goPrepOrMap(); }
   render();
 }
+loadArtPack();
 if (hot?.ready) hot.ready(boot); else boot(hot?.data ?? null);
 void activeTiers;

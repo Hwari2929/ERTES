@@ -31,7 +31,14 @@ export function iconURL(x: Spriteish) {
 
 /** 단독 오프라인 빌드는 일러스트를 데이터 URI 로 내장한다 (window.__ART__) */
 const EMBED = (globalThis as { __ART__?: Record<string, string> }).__ART__;
-export const artURL = (file: string) => EMBED?.[file] ?? `art/${file}`;
+/** 적 · 소환물 상반신 배너(en_* · sm_* .bust.webp)는 아티팩트 파일 수 한도 때문에 art/busts-en.json 하나로 묶는다 (scripts/build.mjs).
+ *  시작 때 뒤에서 받아 두고, 받기 전 · 실패하면 낱개 파일(art/<file>)로 */
+let PACK: Record<string, string> | undefined;
+export const artURL = (file: string) => EMBED?.[file] ?? PACK?.[file] ?? `art/${file}`;
+export function loadArtPack() {
+  if (EMBED || typeof fetch === 'undefined') return;
+  fetch('art/busts-en.json').then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) PACK = j; }).catch(() => {});
+}
 /** 배경 일러스트 (전장 · 난이도) */
 export const bgURL = (key: string) => artURL(`bg_${key}.webp`);
 export function standURL(id: string) {
