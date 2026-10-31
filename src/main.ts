@@ -89,7 +89,7 @@ function applyFxPrefs() {
   FX.death = isDeathStyle(p.death) ? p.death : FX_DEFAULT.death;
   FX.ultCut = p.ultCut === 'full' || p.ultCut === 'short' || p.ultCut === 'off' ? p.ultCut : FX_DEFAULT.ultCut;
 }
-/** UI 테마 (설정 → 테마). 색은 style.css 의 [data-ui-theme] 블록에 있고, 여기서는 <html data-ui-theme> 만 바꾼다. 첫 실행 기본값 = 에란테스 갤럭시 */
+/** UI 테마 (설정 → 테마). 색은 src/ui/css/01-themes.css 의 [data-ui-theme] 블록에 있고, 여기서는 <html data-ui-theme> 만 바꾼다. 첫 실행 기본값 = 에란테스 갤럭시 */
 const UI_THEMES = [
   { id: 'galaxy', name: '에란테스 갤럭시', desc: '잉크빛 남색 · 미색 · 계약서 호박색 (기본)' },
   { id: 'vintage', name: '에란테스 퓨처리스틱 네이비 빈티지', desc: '짙은 네이비 · 빛바랜 종이 · 녹청 강조 · 바랜 황동' },

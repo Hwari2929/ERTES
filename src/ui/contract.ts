@@ -6,7 +6,7 @@
 // 에란테스의 의뢰는 모두 싯가: 오늘 들어온 의뢰서 3장 = 제철 의뢰 (보수 + CFG.contract.seasonWin), 메뉴에 없는 의뢰 = 직접 주문 (기본 보수).
 // 차림표 · 청사진에는 배율 숫자를 쓰지 않는다 (위험 눈금 · 감수 / 보상 아이콘만). 조항 수치는 출격 뒤 지도 환경 탭 '계약' (contractEnv).
 // 단골 경로: 두 번째 계약부터 의뢰 칸 맨 위에 '늘 하던 대로', 그늘 연출 압축. 전표 번호 = 서명하고 출격한 수 (ui/meta.ts deeds).
-// 재료: 종이 사물(차림표 · 청사진 · 전표)만 청사진 레터프레스 키트 (style.css .lp-*), 말풍선은 게임 말풍선 (docs/UI.md 19). 소품 그림 = art/ct_*.webp (없으면 선 그림).
+// 재료: 종이 사물(차림표 · 청사진 · 전표)만 청사진 레터프레스 키트 (src/ui/css/22-letterpress.css .lp-*), 말풍선은 게임 말풍선 (docs/UI.md 19). 소품 그림 = art/ct_*.webp (없으면 선 그림).
 import { CFG } from '../config';
 import { FIELDS, fieldOf } from '../data/battlefields';
 import { PLAN_BY_LVL, PLANS, seasonWin } from '../data/contract';

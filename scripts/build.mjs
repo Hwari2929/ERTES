@@ -17,7 +17,8 @@ if (process.argv.includes('--syndoc')) {
     entryPoints: ['src/main.ts'], bundle: true, format: 'iife', target: 'es2020', minify: true, write: false, logLevel: 'warning',
   });
   const js = res.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
-  const css = readFileSync('src/ui/style.css', 'utf8');
+  // 스타일: src/ui/css/*.css 를 파일 이름 순서(00- … 23-)대로 이어 붙인다. 순서가 곧 캐스케이드 순서다 (tests/css_check.ts 도 같은 순서로 읽는다)
+  const css = readdirSync('src/ui/css').filter((f) => f.endsWith('.css')).sort().map((f) => readFileSync(`src/ui/css/${f}`, 'utf8')).join('');
   const html = readFileSync('src/index.html', 'utf8')
     .replace('/*__CSS__*/', () => css)
     .replace('/*__JS__*/', () => js);

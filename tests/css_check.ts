@@ -1,4 +1,5 @@
-// CSS 토큰 검사 (src/ui/style.css). npm run check 에서 함께 돈다.
+// CSS 토큰 검사 (src/ui/css/*.css — 빌드와 같은 이름 순서로 이어 붙여 읽는다). npm run check 에서 함께 돈다.
+//   · 파일마다 괄호 짝이 맞아야 한다 (한 파일에서 열린 블록이 다음 파일로 넘어가면 실패)
 //   · :root (토큰 정의 블록) 밖에 새 색 값(#hex · rgb() · hsl())이 생기면 실패
 //   · 옛 토큰(--accent 등) 사용 횟수가 기준보다 늘면 실패
 //   · 정의되지 않은 CSS 변수를 쓰면 실패 (JS 가 인라인으로 주입하는 변수는 JS_VARS 허용 목록)
@@ -7,10 +8,20 @@
 // 줄이는 것은 언제나 통과 → 줄였으면 기준을 갱신해 둔다:  node dist/css_check.cjs --update
 // 수치만 보기: node dist/css_check.cjs --report
 declare const process: { argv: string[]; exit(code: number): never };
-declare function require(m: 'node:fs'): { readFileSync(p: string, e: 'utf8'): string; writeFileSync(p: string, s: string): void; existsSync(p: string): boolean };
+declare function require(m: 'node:fs'): { readFileSync(p: string, e: 'utf8'): string; writeFileSync(p: string, s: string): void; existsSync(p: string): boolean; readdirSync(p: string): string[] };
 const fs = require('node:fs');
 
-const CSS_PATH = (process.argv.find((a) => a.startsWith('--css=')) || '--css=src/ui/style.css').slice(6);
+/** 검사할 스타일: --css=파일 이면 그 파일 하나, 아니면 src/ui/css/*.css 를 이름 순서로 (scripts/build.mjs 와 같은 순서) */
+const CSS_ARG = process.argv.find((a) => a.startsWith('--css='))?.slice(6);
+const CSS_DIR = 'src/ui/css';
+function loadCss() {
+  const files = CSS_ARG ? [CSS_ARG] : fs.readdirSync(CSS_DIR).filter((f) => f.endsWith('.css')).sort().map((f) => `${CSS_DIR}/${f}`);
+  let start = 1;
+  const spans = files.map((path) => { const text = fs.readFileSync(path, 'utf8'); const sp = { path, text, start }; start += text.split('\n').length - 1; return sp; });
+  /** 이어 붙인 글의 줄 번호 → '파일:줄' */
+  const at = (line: number) => { let sp = spans[0]; for (const x of spans) if (x.start <= line) sp = x; return `${sp.path}:${line - sp.start + 1}`; };
+  return { css: spans.map((x) => x.text).join(''), spans, at };
+}
 const BASE_PATH = 'tests/css_baseline.json';
 
 /** 옛 토큰: 역할 토큰의 별칭으로만 남아 있다. 새 코드는 오른쪽 역할 토큰을 쓴다 */
@@ -160,8 +171,12 @@ function summary(st: Stats) {
 }
 
 function main() {
-  const css = fs.readFileSync(CSS_PATH, 'utf8');
+  const { css, spans, at } = loadCss();
+  // 괄호 짝은 파일마다 따로 본다 (이어 붙이면 앞 파일의 열린 블록이 뒤 파일에서 닫혀 보일 수 있다)
+  const fileBrace: string[] = [];
+  for (const sp of spans) { parse(sp.text); fileBrace.push(...braceErrors.splice(0).map((e) => `${sp.path} ${e}`)); if (!sp.text.endsWith('\n')) fileBrace.push(`${sp.path}: 마지막 줄 끝에 줄바꿈이 없다 (이어 붙이면 다음 파일 첫 줄과 붙는다)`); }
   const decls = parse(css);
+  braceErrors.splice(0);
   const { st, where } = collect(decls);
   const s = summary(st);
   if (process.argv.includes('--report')) {
@@ -176,7 +191,7 @@ function main() {
   }
   const base: Stats = fs.existsSync(BASE_PATH) ? JSON.parse(fs.readFileSync(BASE_PATH, 'utf8')) : { colors: {}, legacy: {}, fontSize: {}, radius: {}, zIndex: {}, important: 0 };
   const fails: string[] = [];
-  const lines = (kind: string, k: string) => (where[kind + '|' + k] || []).slice(0, 6).map((l) => `${CSS_PATH}:${l}`).join(', ');
+  const lines = (kind: string, k: string) => (where[kind + '|' + k] || []).slice(0, 6).map((l) => at(l)).join(', ');
   const cmp = (kind: keyof Omit<Stats, 'important'>, label: string, hint: (k: string) => string) => {
     for (const [k, n] of Object.entries(st[kind])) {
       const b = (base[kind] as Record<string, number>)[k] || 0;
@@ -189,10 +204,10 @@ function main() {
   cmp('radius', '둥글기 리터럴', () => 'var(--r-sm) 4px · var(--r-md) 6px · var(--r-lg) 10px · var(--r-pill) (원은 50%)');
   cmp('zIndex', 'z-index 리터럴', () => ':root 의 --z-* 층 이름 (--z-raise · --z-board-fx · --z-sticky · --z-top · --z-pop · --z-modal · --z-over · --z-adv · --z-coach · --z-toast)');
   if (st.important > base.important) fails.push(`!important 늘어남 (${base.important} → ${st.important})\n    위치: ${lines('important', '')}\n    고치기: 덮어쓰기 대신 원래 규칙을 고치거나 선택자 우선순위로 해결`);
-  for (const e of braceErrors) fails.push(`괄호 짝이 맞지 않음 — ${CSS_PATH} ${e}`);
+  for (const e of fileBrace) fails.push(`괄호 짝이 맞지 않음 — ${e}`);
   const tm = themeMissing(decls);
-  for (const m of tm.miss) fails.push(`테마 '${m.theme}' 에 빠진 토큰 ${m.props.length}개: ${m.props.join(' · ')} (${CSS_PATH}:${m.line})\n    고치기: 기본 테마 블록(:root, [data-ui-theme="galaxy"])에 있는 역할 · 면 · 선 토큰은 모든 [data-ui-theme] 블록이 다시 정의한다`);
-  for (const u of undefinedVars(decls)) fails.push(`정의되지 않은 변수 ${u.name} (${CSS_PATH}:${u.line} ${u.sel})\n    고치기: :root 에 정의하거나, JS 가 주입하는 변수라면 tests/css_check.ts 의 JS_VARS 에 추가`);
+  for (const m of tm.miss) fails.push(`테마 '${m.theme}' 에 빠진 토큰 ${m.props.length}개: ${m.props.join(' · ')} (${at(m.line)})\n    고치기: 기본 테마 블록(:root, [data-ui-theme="galaxy"])에 있는 역할 · 면 · 선 토큰은 모든 [data-ui-theme] 블록이 다시 정의한다`);
+  for (const u of undefinedVars(decls)) fails.push(`정의되지 않은 변수 ${u.name} (${at(u.line)} ${u.sel})\n    고치기: :root 에 정의하거나, JS 가 주입하는 변수라면 tests/css_check.ts 의 JS_VARS 에 추가`);
   const shrunk = (['colors', 'legacy', 'fontSize', 'radius', 'zIndex'] as const).some((k) => Object.entries(base[k]).some(([key, n]) => (st[k][key] || 0) < n)) || st.important < base.important;
   if (fails.length) {
     console.log(`CSS 검사 실패 ${fails.length}건\n` + fails.map((f) => ' · ' + f).join('\n'));

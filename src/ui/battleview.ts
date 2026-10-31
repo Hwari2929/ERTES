@@ -381,7 +381,7 @@ export function previewDeath(host: HTMLElement, style: DeathStyle) {
 
 /** 표시 우선순위: 0 일반 숫자 · 1 스킬 피해 · 범위 · 2 스킬명 · 부활 · 상태이상 (생략하지 않음) */
 type Prio = 0 | 1 | 2;
-/** 피드가 보드 옆이 아니라 아래로 접히는 배치 (style.css 의 .battle .side.left 접힘 조건과 같게): 스킬 줄도 사건 피드에 */
+/** 피드가 보드 옆이 아니라 아래로 접히는 배치 (src/ui/css/08-panels-modal.css · 12-banner-mobile.css 의 .battle .side.left 접힘 조건과 같게): 스킬 줄도 사건 피드에 */
 const FEED_NARROW = '(max-width: 1100px), (orientation: landscape) and (max-height: 560px)';
 /** 떠오르는 글자 자리 (칸 크기 배율, 기물 중앙 기준): 피해 숫자는 위 가운데 (같은 종류는 합산), 큰 숫자(치명타 · 피니쉬 · 처치)는 그보다 위,
  *  지속 피해 · 회복 · 보호막은 옆, 상태 글자(회피 · 찰과 · 상태이상 이름)는 카드 아래쪽 두 칸을 나눠 쓴다 */

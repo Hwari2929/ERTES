@@ -286,7 +286,7 @@ export function seaTransition(): SeaHandle {
       const a = w.amp * U, span = i ? (C.waves[i - 1].top - w.top) * H : H * 0.2;
       wv.grad.setAttribute('y1', (-a).toFixed(1)); wv.grad.setAttribute('y2', Math.max(40, span).toFixed(1));
       if (wv.shade) bakeGlow(wv, pts, pad);
-      // 반짝이는 별: 판 위 고정 자리에 콕콕 (판과 함께 흔들리고, 제각각 점멸 — style.css .ts-star)
+      // 반짝이는 별: 판 위 고정 자리에 콕콕 (판과 함께 흔들리고, 제각각 점멸 — src/ui/css/02-themefx.css .ts-star)
       wv.glints.textContent = '';
       const SR = C.stars;
       for (let k = 0; k < SR.count; k++) {

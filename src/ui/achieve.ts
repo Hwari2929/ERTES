@@ -2,7 +2,7 @@
 // 이름 · 설명 · 등급 · 문양은 그릴 때마다 data/achievements.ts 에서 읽는다. 판정은 순수 함수(judge)에 사실 하나를 넘겨서 한다.
 //   배너: 전설 증강 공개 연출과 같은 색 토큰(--g-L, revealfx 의 .rv-3 → --rv-c) · 공개음 reveal3 (sound.ts). 입력은 막지 않는다 (pointer-events: none)
 //   여러 개가 한꺼번에 달성되면 차례로 하나씩 띄운다. 움직임 줄이기면 미끄러짐 · 빛 줄기 · 빛 훑기 없이 나타났다 사라진다.
-//   메달: 등급별 금속 테두리(동 · 은 · 금 · 전설) + 업적별 문양 (synicons 선 아이콘 재사용 + 업적 전용 몇 개). 금속 색은 style.css :root 의 --ach-* 토큰
+//   메달: 등급별 금속 테두리(동 · 은 · 금 · 전설) + 업적별 문양 (synicons 선 아이콘 재사용 + 업적 전용 몇 개). 금속 색은 src/ui/css/00-tokens.css :root 의 --ach-* 토큰
 //   저장: 메타(meta.ts) achieved { id: 날짜 } · showcase [id × 최대 3]
 import { ACH_BY_ID, ACH_GRADES, ACHIEVEMENTS, type AchDef, type AchFact, type AchGrade, GRADE_NAME, judge, SHOWCASE_MAX } from '../data/achievements';
 import { battleFact, clearFact, countSkip, eventFact, metaFact, tutorialFact, useFact } from '../engine/achieve';

@@ -1,6 +1,6 @@
 // 런 결과 화면: 전투 종료 보고서 (main.ts overScreen 이 부른다). 기록 · 기준선 계산은 engine/report.ts, 여기는 그리기만.
 //   구성: 머리(작전명 · 전장 · 위험 등급 · 결과 도장 · 일자 · 페이즈 · 전투 수) → 핵심 수치 → 기물별 영향력 → 전투력 추이 · 경제 → 기록 (메타 · 절망 · 업적 · 최종 편성)
-//   승리 · 패배는 도장 · 색 · 문구만 다르고 구조는 같다 (.aar.win / .aar.lose). 색은 테마 토큰만 (style.css '전투 종료 보고서').
+//   승리 · 패배는 도장 · 색 · 문구만 다르고 구조는 같다 (.aar.win / .aar.lose). 색은 테마 토큰만 (src/ui/css/13-reports.css '전투 종료 보고서').
 //   전투력 그래프: 축 하나 (실제 · 예상 같은 단위). 선은 늘어나는 SVG(preserveAspectRatio none + non-scaling-stroke), 눈금 글자는 HTML 로 얹어 폭이 바뀌어도 글자 크기가 그대로.
 import { CFG } from '../config';
 import { ACH_BY_ID } from '../data/achievements';

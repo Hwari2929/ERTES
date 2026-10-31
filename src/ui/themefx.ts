@@ -2,7 +2,7 @@
 //   · 갤럭시: 화면 뒤(본문 아래) 별빛 층 — 천천히 흐르는 별 3층 · 반짝임 · 가끔 유성
 //   · 호이슌: 화면 앞 벚꽃잎 — 흩날리는 꽃잎 · 1~2분마다 벚꽃 폭풍 · 누른 자리에서 흩날림 (꽃잎 상한 80)
 //   · 이타카 (· 이타카 무역항): 큰 화면 전환에 바다가 차올라 덮었다가 내려가며 다음 화면이 드러난다 (seatrans.ts, 줄이기는 물결 한 번 쓸기 · 런 시작 룰렛 · 특권 선택은 CSS 쪽)
-//   · 빈티지: CSS 만 (가죽 결 · 스티치, style.css [data-ui-theme="vintage"][data-tfx])
+//   · 빈티지: CSS 만 (가죽 결 · 스티치, src/ui/css/02-themefx.css [data-ui-theme="vintage"][data-tfx])
 // 움직임은 모두 Web Animations 의 transform · opacity 라 합성기에서 돌고 메인 스레드는 거의 쓰지 않는다
 // (별 타일은 시작할 때 canvas 로 한 번만 그린다). 모든 층은 pointer-events: none 이라 입력을 막지 않는다.
 // 움직임 줄이기 설정이면 정지 화면. 전투 중에는 별빛 층을 내리고, 꽃잎은 절반으로 줄인다 (onScreen).
