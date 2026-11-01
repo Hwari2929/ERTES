@@ -179,6 +179,17 @@ for (const m of metrics.slice(0, 2)) {
   const talk = Object.values(m.kindT).reduce((a, b) => a + b, 0);
   console.log(`    시간 비율 (화면에 떠 있는 동안): ${Object.entries(m.kindT).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${Math.round((v / (m.totT || 1)) * 100)}%`).join(' · ')} · 정적 ${Math.round((1 - talk / (m.totT || 1)) * 100)}%`);
 }
+// 반복 개그 회수 〔회수:id,id〕: 깔린 편이 있고 보류 · 자기 자신이 아니어야 (없으면 영영 재생되지 않는다)
+const BID = new Map(BANTER.map((b) => [b.id, b]));
+for (const b of BANTER) for (const id of b.callback || []) {
+  const x = BID.get(id);
+  if (!x) errs.push(`만담 ${b.id}: 회수 대상 ${id} 없음`);
+  else if (x.hold) errs.push(`만담 ${b.id}: 회수 대상 ${id} 가 보류`);
+  else if (id === b.id) errs.push(`만담 ${b.id}: 자기 자신을 회수`);
+}
+const shapes = new Map<string, number>();
+for (const b of BANTER) if (!b.hold) shapes.set(b.shape || '(없음)', (shapes.get(b.shape || '(없음)') || 0) + 1);
+console.log(`만담 모양: ${[...shapes.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
 // ───────── 바 운영 (docs/BAR_OPS.md): 메뉴 · 단골 · 주문 · 채점 · 주문 대사
 for (const r of RECIPES) {
   const g = GLASS_BY_ID[r.glass];

@@ -263,9 +263,12 @@ const timeOk = (t?: 'day' | 'night') => !t || (t === 'night') === S.night;
 const TIME_TAG = /^〔(낮|밤)〕\s*/;
 const lineTimeOk = (l: string) => { const m = l.match(TIME_TAG); return !m || (m[1] === '밤') === S.night; };
 const untag = (l: string) => l.replace(TIME_TAG, '');
+/** 반복 개그 회수 〔회수:id,id〕: 깔린 만담을 다 본 뒤에만 */
+const callbackOk = (b: Banter, seen: Set<string>) => !b.callback || b.callback.every((id) => seen.has(id));
 function eligibleAmbient(): Banter[] {
   const k = S.known;
-  return BANTER.filter((b) => b.place !== 2 && !b.hold && timeOk(b.time) && b.cast.every((id) => k.has(id)) && needOf(b.cast).length <= STAGE_MAX);
+  const seen = new Set([...(loadMeta().bar?.seen || []), ...S.session]);
+  return BANTER.filter((b) => b.place !== 2 && !b.hold && timeOk(b.time) && callbackOk(b, seen) && b.cast.every((id) => k.has(id)) && needOf(b.cast).length <= STAGE_MAX);
 }
 /** 들어올 수 있는 단원: 해금됐고 무대에 없는 사람 (이번 방문에 나간 사람은 다른 사람이 없을 때만) */
 function entrants(): string[] {
@@ -1196,8 +1199,9 @@ function awayPool(): Banter[] {
   const last = loadMeta().bar?.last;
   if (!last) return [];
   const crew = new Set([...last.units, ...BASE]);
-  const mine = BANTER.filter((b) => b.place === 2 && b.cast.every((id) => crew.has(figOf(id)) || id === 'max'));
-  return mine.length ? mine : BANTER.filter((b) => b.place === 2 && b.cast.every((id) => k.has(id)));
+  const seen = new Set(loadMeta().bar?.seen || []);
+  const mine = BANTER.filter((b) => b.place === 2 && !b.hold && callbackOk(b, seen) && b.cast.every((id) => crew.has(figOf(id)) || id === 'max'));
+  return mine.length ? mine : BANTER.filter((b) => b.place === 2 && !b.hold && callbackOk(b, seen) && b.cast.every((id) => k.has(id)));
 }
 const SHIP_TOPICS = new Set(['05_travel', '13_shiplife']);
 // 통신 기록 배경: 전장 일러스트 (장소 표시는 전장 이름)

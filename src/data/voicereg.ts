@@ -78,7 +78,7 @@ export const VOICE: Record<string, VoiceSheet> = {
   },
   vivian: {
     name: '비비안', age: 24, base: 'ban',
-    to: [{ who: 'crew', reg: 'ban' }, { who: ['rachel'], reg: 'ban', title: '레이첼' }, { who: ['amundsen'], reg: 'yo', title: '단장님' }, { who: ['winter'], reg: 'yo', title: '교수님' }, { who: ['zina'], reg: 'yo', title: '지나 아줌마' }, { who: ['ingel'], reg: 'ban', title: '잉겔 언니' }, { who: ['sigmund', 'rasmus'], reg: 'yo' }],
+    to: [{ who: 'crew', reg: 'ban' }, { who: ['rachel'], reg: 'ban', title: '레이첼' }, { who: ['amundsen'], reg: 'yo', title: '단장님' }, { who: ['winter'], reg: 'yo', title: '교수님' }, { who: ['zina'], reg: 'yo', title: '지나 아줌마' }, { who: ['ingel'], reg: 'ban', title: '잉겔 언니' }, { who: ['sigmund', 'rasmus'], reg: 'yo' }, { who: 'elder', reg: 'yo' }],
     titles: { rachel: '레이첼', amundsen: '단장님', gebek: '아저씨', west: '아저씨', winter: '교수님', zina: '지나 아줌마', ingel: '잉겔 언니' },
     endings: ['~야!', '~잖아!', '~지?'], marker: '흠흠-', quirk: '처음 본 생물마다 \'이름 지어도 돼?\'',
     breaks: { surface: '게베크가 철 지난 유행어를 쓰면 대리 수치심에 텐션이 꺾인다 (\'…아저씨, 그거 몇 년 전 말이야.\').', real: '브샤크 · 부모 얘기가 나오면 즉시 수첩을 펴고 동물 이름 짓기로 달아나고 목소리가 한 톤 높아진다 / 누가 울면 눈치 없는 척 큰 소리로 딴 얘기를 한다.' },
@@ -127,7 +127,7 @@ export const VOICE: Record<string, VoiceSheet> = {
   },
   kairo: {
     name: '카이로', age: 33, base: 'mix',
-    to: [{ who: 'crew', reg: 'mix' }, { who: ['rachel'], reg: 'mix', title: '지휘관' }, { who: ['bianca'], reg: 'hage', title: '비앙카 선생 · 선생' }, { who: ['amundsen'], reg: 'hage', title: '단장' }, { who: ['nadir'], reg: 'mix', title: '자네' }],
+    to: [{ who: 'crew', reg: 'mix' }, { who: ['rachel'], reg: 'mix', title: '지휘관' }, { who: ['bianca'], reg: 'hage', title: '비앙카 선생 · 선생 (귀족 출신이라 고아한 하게체 — 거친 말 · 줄임말 없이)' }, { who: ['amundsen'], reg: 'hage', title: '단장' }, { who: ['nadir'], reg: 'mix', title: '자네' }],
     titles: { rachel: '지휘관', bianca: '선생', amundsen: '단장', nadir: '자네' },
     endings: ['~군', '~네', '~하게'], marker: '귀찮군.', quirk: '사감은 없네.',
     breaks: { surface: '반 잔에 취하면 하게체가 풀리고 같은 말을 되풀이한다 (\'선생… 그 그림, 무명 작가… 내가 샀네…\').', real: '고맙다고 말해야 할 때 빈정 한 줄로 대신하고 계산서를 먼저 집는다 / 형 얘기가 나오면 대답 없이 기도서 뒷표지를 엄지로 문지른다.' },
@@ -269,7 +269,7 @@ export const VOICE: Record<string, VoiceSheet> = {
     name: '그렌홀름', age: 46, base: 'hap',
     to: [{ who: ['lars'], reg: 'hap', title: '라르스 부장' }, { who: ['rachel'], reg: 'hap', title: '지휘관' }, { who: 'petra', reg: 'hap', title: '이름 + 직함 (케빈 사수 · 린디웨 팀장 · 카부라야 본부장)' }, { who: 'superior', reg: 'hap' }, { who: 'crew', reg: 'hap', title: '○○ 씨 · ○○ 고문' }],
     titles: { lars: '라르스 부장', rachel: '지휘관', falcon: '케빈 사수', lindiwe: '린디웨 팀장', kaburaya: '카부라야 본부장', franze: '프란체 고문', orca: '오르카 씨', phyllis: '필리스 씨' },
-    endings: ['~입니까?', '~십시오', '~습니다'], marker: '자료 보시죠.', quirk: '모욕한 뒤 숫자 · 조항 번호로 증명한다 — 욕은 근거를 박는 못',
+    endings: ['~입니까?', '~십시오', '~습니다'], marker: '자료 보시죠.', quirk: '모욕한 뒤 숫자 · 조항 번호로 증명한다 — 욕은 근거를 박는 못. 무뢰한이 아니라 말 거친 사업가: 욕은 일 · 숫자 · 책임자를 향하고, 사람 자체나 약자를 깔보는 데 쓰지 않는다',
     breaks: { surface: '\'할러\'라고 불리면 → 554년 적요 번호를 꺼낸다 / 누가 반박하면 → 입꼬리가 올라가고 질문이 늘며 말이 빨라진다 (\'좋습니다. 아주 좋습니다. 계속하시죠.\')', real: '휴가를 권하면 → 업무 일정으로 답하고, 강제 휴가 중에도 뭔가를 \'처리\'하고 돌아온다 / 전쟁 억제의 모순을 짚으면 → 운동 시간 얘기로 넘긴다' },
   },
   falcon: {
