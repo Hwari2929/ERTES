@@ -189,7 +189,7 @@ P('\n스페셜 페이즈별 전투 lift (두 봇, ±CI, 표본)')
 P('| 기물 | P1 | P2 | P3 | P4 | P5 |'); P('|---|---|---|---|---|---|')
 for u in MINOR:
     P(f"| {nm(u)} | " + ' | '.join(fl(mins[u]['ph'][p], n=True) for p in range(1, 6)) + ' |')
-P('\n옮길 유형별 묶음 (기물-전투 lift)')
+P('\n옮긴 · 옮길 유형별 묶음 (개편 전 스페셜 15명, 기물-전투 lift)' if POST else '\n옮길 유형별 묶음 (기물-전투 lift)')
 P('| 묶음 | 철수 | 영희 | 두 봇 | P1 | P2 | P3 | P4 | P5 |'); P('|---|---|---|---|---|---|---|---|---|')
 for g in ['toDivine', 'toPsionic', 'toMajor']:
     P(f"| {GRP[g]} | {fl(L('chulsu','mgrp',g),n=True)} | {fl(L('younghee','mgrp',g),n=True)} | {fl(L('both','mgrp',g))} | " + ' | '.join(fl(L('both', 'mgrp_ph', f'{g}|{p}'), ci=False) for p in range(1, 6)) + ' |')
@@ -327,9 +327,13 @@ for ph in range(1, 6):
 P('\n순례 카드 (제례 · 나눔, 제시 → 받음, 두 봇 합)' if POST else '\n참배 카드 (제시 → 구매, 두 봇 합)')
 co = Counter(); cb = Counter()
 for b in BOTS: co.update(econ[b]['card_off']); cb.update(econ[b]['card_buy'])
-P('| 카드 | 권능 | 제시 | 받음 | 받은 비율 | 철수 받음 | 영희 받음 |' if POST else '| 카드 | 권능 | 제시 | 구매 | 구매율 | 철수 구매 | 영희 구매 |'); P('|---|---|---|---|---|---|---|')
+def card_name(c):
+    if POST and c.startswith('rite:'): return '제례 — ' + N.get('faiths', {}).get(c[5:], c[5:])
+    if POST and c == 'alms': return '나눔'
+    return N['cards'].get(c, {}).get('name', c)
+P('| 카드 | 제시 | 받음 | 받은 비율 | 철수 받음 | 영희 받음 |' if POST else '| 카드 | 권능 | 제시 | 구매 | 구매율 | 철수 구매 | 영희 구매 |'); P('|---|---|---|---|---|---|' + ('' if POST else '---|'))
 for c, n in co.most_common():
-    P(f"| {N['cards'].get(c,{}).get('name',c)} `{c}` | {N['cards'].get(c,{}).get('cost','')} | {n} | {cb[c]} | {100*cb[c]/n:.0f}% | {econ['chulsu']['card_buy'].get(c,0)} | {econ['younghee']['card_buy'].get(c,0)} |")
+    P(f"| {card_name(c)} `{c}` | " + ('' if POST else f"{N['cards'].get(c,{}).get('cost','')} | ") + f"{n} | {cb[c]} | {100*cb[c]/n:.0f}% | {econ['chulsu']['card_buy'].get(c,0)} | {econ['younghee']['card_buy'].get(c,0)} |")
 P(f"- 성유물 제시 {sum(econ[b]['rel_off'] for b in BOTS)}개 · 구매 {sum(econ[b]['sp'].get('relic',0)*econ[b]['n'] for b in BOTS):.0f}")
 if not POST: P('\n서약 증강 (제시 = 최종 선택지 기준, 처음 제시는 새로고침 전)')
 if not POST: P('| 서약 | 처음 제시 | 최종 제시 | 고름 (철수 / 영희) | 고름 / 최종 제시 | 전투 lift 철수 | 영희 | 두 봇 | 런 lift (철수 / 영희) |'); P('|---|---|---|---|---|---|---|---|---|')

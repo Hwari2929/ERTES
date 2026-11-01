@@ -161,7 +161,7 @@ node <폴더>/bal.cjs <시작 시드> <런 수> [반사실 표본 비율] [위�
 
 | 파일 | 입력 → 출력 |
 |---|---|
-| `balance_acc.py` · `balance_rep.py` | 2,000판급 보고서 집계 (v471 부터). 조각 `<bot>_*.json` (`instr gearlog pool detail`) + 이름표 `names.json` (`tests/balance_names.ts`) → 봇별 군집 누적 `acc_<bot>.json` → `tables.md` (보고서 표 재료: 요약 · 페이즈 × 노드 · 전술 · 전투 유형 · 스페셜 · 디바인 경제 · 기물 · 시너지 · 장비 · 증강 · 적 · 전장 · 경제) + `summary.json` (docs 원자료). 직전 보고 비교 열은 v457 원자료 키를 읽는다. 실행: `python3 tests/balance_acc.py <bot> <조각 폴더>` (봇마다) → `BAL_NOTE="<설명>" python3 tests/balance_rep.py <작업 폴더> [직전 원자료 json]` |
+| `balance_acc.py` · `balance_rep.py` | 2,000판급 보고서 집계 (v471 부터). 조각 `<bot>_*.json` (`instr gearlog pool detail`) + 이름표 `names.json` (`tests/balance_names.ts`) → 봇별 군집 누적 `acc_<bot>.json` → `tables.md` (보고서 표 재료: 요약 · 페이즈 × 노드 · 전술 · 전투 유형 · 스페셜 · 디바인 경제 · 기물 · 시너지 · 장비 · 증강 · 적 · 전장 · 경제) + `summary.json` (docs 원자료). 직전 보고 비교 열은 둘째 인자 원자료 (기본 v457, v471 형식도 읽고 `seeds` 가 있으면 같은 시드 짝 비교를 넣는다) 를 읽고, 서약 증강이 없는 자료 (디바인 개편 뒤) 는 서약 · 봉헌 추정 표를 빼고 제례 · 나눔 · 축성 표로 바꾼다. 실행: `python3 tests/balance_acc.py <bot> <조각 폴더>` (봇마다) → `BAL_NOTE="<설명>" python3 tests/balance_rep.py <작업 폴더> [직전 원자료 json]` |
 | `balance_report.py` | `part*.json` + `meta.json` → 지표 json (`docs/BALANCE_REPORT.md` 재료) |
 | `balance_tables.py` | `docs/balance_report.json` → 표 다시 그리기 |
 | `balance_summary.py` | detail 출력 → 신뢰구간 포함 시너지 · 기물 · 장비 · 유형 표 |
@@ -171,7 +171,7 @@ node <폴더>/bal.cjs <시작 시드> <런 수> [반사실 표본 비율] [위�
 | `balance_synergy_lift.py` · `balance_synergy_compare.py` | 시너지 단계별 lift · 두 봇 비교 (`docs/BALANCE_SYNERGY_LIFT.md`) |
 | `balance_adversity.py` | `advstudy` · `advpol=` 결과 → `docs/BALANCE_ADVERSITY.md` 재료 |
 | `balance_experiments.py` | 단일 변경 실험 → `docs/balance_experiments.json` |
-| `balance_divine.py` | 조각 (봇별, 이번 · 기준) + 이름표 → 전술 유형 lift (그때 유형 · 이번 유형으로 다시 나눈 기준), 디바인 기물별 lift · 봉헌 단계 · 사용률, 봉헌 단계별 lift, 권능 · 봉헌 경제 (출처 · 축성 · 제례 / 나눔 · 진열장 · 개종 · 런 끝 단계 분포), 시드 짝 비교 (2026-10-31 디바인 개편 뒤 보고서, `docs/BALANCE_2026_10_31_v474.md`) |
+| `balance_divine.py` | 조각 (봇별, 이번 · 기준) + 이름표 → 전술 유형 lift (그때 유형 · 이번 유형으로 다시 나눈 기준), 디바인 기물별 lift · 봉헌 단계 · 사용률, 봉헌 단계별 lift, 권능 · 봉헌 경제 (출처 · 축성 · 제례 / 나눔 · 진열장 · 개종 · 런 끝 단계 분포), 시드 짝 비교 (디바인 개편 뒤 보고서, `docs/BALANCE_2026_11_01_v474.md`). 실행: `python3 tests/balance_divine.py --names <이번 names.json> --base-names <기준 names.json> --base-mark <기준 자료에 이번 유형을 씌운 names.json> --new chulsu= <조각 …> younghee= <조각 …> --base chulsu= <조각 …> younghee= <조각 …> --json <out.json>` |
 | `analyze_report.py` · `analyze_events.py` · `probe2_report.py` | `tests/analyze.ts` · `tests/probe2.ts` 출력 집계 (옛 측정) |
 
 이름표: `tests/chulsu2000_names.ts` (기물 · 시너지 · 장비 · 증강 · 적 이름 JSON), `tests/balance_names.ts` (+ 전술 · 전투 유형 · 신앙 · 성유물 · 서약 · 참배 카드 · 전장 적 풀 · 적 성향, `balance_acc.py` 용), `tests/balance_meta.ts` · `tests/detail_meta.ts`.

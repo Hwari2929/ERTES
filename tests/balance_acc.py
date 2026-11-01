@@ -116,7 +116,7 @@ for agg, runs in runs_iter():
                 put('tt', tt, w, p); put('tt_ph', f'{tt}|{ph}', w, p); put('ct', ct, w, p)
                 put('ttrk', f'{tt}|{rb(m["rank"])}', w, p)
                 S['rk'][f'{tt}|{ph}|n'] += 1; S['rk'][f'{tt}|{ph}|s'] += m['rank']
-                if tt == 'minor':
+                if tt == 'minor' or m['id'] in MINOR_GROUP:  # 개편 뒤에는 옮긴 기물도 같은 묶음으로 (개편 전 15명)
                     g = MINOR_GROUP.get(m['id'], '?'); put('mgrp', g, w, p); put('mgrp_ph', f'{g}|{ph}', w, p)
                     put('mrk', f'{m["id"]}|{rb(m["rank"])}', w, p)
             # 스페셜 대성공 (자연 실험): 같은 등급 묶음 안에서 대성공 0 / 1+
