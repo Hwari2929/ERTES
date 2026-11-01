@@ -10,6 +10,7 @@ import { BAR_TUNE, STAGE_MAX, barSimulate } from '../src/ui/bar';
 import { GLASS_BY_ID, ING_BY_ID, GARNISH_BY_ID, GARNISH_MAX, RECIPES, REGULARS, RECIPE_BY_ID } from '../src/data/bar/drinks';
 import { feelConds, feelText, judge, makeOrder, recipeName } from '../src/data/bar/orders';
 import { ORDER_TALK, ORDER_GENERIC } from '../src/data/bar/orderlines';
+import { FIRST_MEET } from '../src/data/bar/firstmeet';
 declare const process: { exitCode?: number; argv?: string[] };
 declare function require(m: 'node:fs'): { readdirSync(p: string): string[]; readFileSync(p: string, e: 'utf8'): string };
 
@@ -230,6 +231,15 @@ for (const [id, t] of [...Object.entries(ORDER_TALK), ['(공통)', ORDER_GENERIC
   }
   if (!t.hint?.includes('{menu}')) errs.push(`주문 대사 ${id}.hint: {menu} 없음`);
 }
+// 레이첼과의 첫 만남: 바에 오는 단원 전원 (레이첼 · 보류한 카일 · 데미우르고스 제외), 이름표 · 길이
+const MEET_SKIP = new Set(['rachel', 'kyle', 'demiurgos']);
+for (const [id, ls] of Object.entries(FIRST_MEET)) {
+  if (!ok(id)) errs.push(`첫 만남 ${id}: 모르는 인물`);
+  ls.forEach((l, i) => lineCheck(`첫 만남 ${id}:${i}`, l));
+  if (ls.length < 6 || ls.length > 18) errs.push(`첫 만남 ${id}: ${ls.length}줄 (6~18줄)`);
+}
+const meetMiss = UNITS.filter((u) => !u.inert && !u.noBar && !MEET_SKIP.has(u.id) && !FIRST_MEET[u.id]).map((u) => u.id);
+if (meetMiss.length) errs.push(`첫 만남 없음 ${meetMiss.length}명: ${meetMiss.join(' · ')}`);
 console.log(`바 운영: 메뉴 ${RECIPES.length} · 단골 ${Object.keys(REGULARS).length} · 주문 대사 ${Object.keys(ORDER_TALK).length}/${CUSTOMERS.length}명`);
 const askN = Object.keys(ASK).length, askDeep = Object.values(ASK).filter((a) => a.past[2]).length;
 console.log(`물어보기: ${askN}명 × 질문 ${ASK_Q.length}개 (실재 층 답 ${askDeep}명)`);

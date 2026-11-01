@@ -9,6 +9,7 @@ import { ASK } from '../src/data/bar/ask';
 import { LEAVE_LINES } from '../src/data/bar/leave';
 import { ERANTES_CREW, MONO } from '../src/data/bar/mono';
 import { ORDER_TALK } from '../src/data/bar/orderlines';
+import { FIRST_MEET } from '../src/data/bar/firstmeet';
 import { UNITS } from '../src/data/units';
 import { REG_NAME, VOICE, regFor, type Reg } from '../src/data/voicereg';
 declare const process: { argv?: string[] };
@@ -42,6 +43,7 @@ for (const it of BAR_IDLE) for (const l of it.lines) { const p = parse(l, 'aiden
 for (const [id, a] of Object.entries(ASK)) for (const [k, v] of Object.entries(a)) for (const x of (Array.isArray(v) ? v : [v])) if (typeof x === 'string') for (const l of x.split(' / ')) { const p = parse(l.replace(/^\* [^/]*$/, ''), id); if (p && p[1]) lines.push({ who: p[0], to: p[0] === id ? 'rachel' : '', t: p[1], at: `물어보기 ${id}.${k}` }); }
 for (const [id, ls] of Object.entries(LEAVE_LINES)) for (const l of ls) lines.push({ who: id, to: '', t: l.replace(/^〔(낮|밤)〕\s*/, ''), at: `작별 ${id}` });
 for (const [id, m] of Object.entries(MONO)) for (const [k, l] of Object.entries(m)) lines.push({ who: id, to: '', t: l.replace(/^〔(낮|밤)〕\s*/, ''), at: `혼잣말 ${id}.${k}` });
+for (const [id, ls] of Object.entries(FIRST_MEET)) for (const l of ls) { const p = parse(l, id); if (p) lines.push({ who: p[0], to: p[0] === id ? 'rachel' : p[0] === 'rachel' ? id : '', t: p[1], at: `첫 만남 ${id}` }); }
 for (const [id, t] of Object.entries(ORDER_TALK)) for (const [k, v] of Object.entries(t)) for (const l of (Array.isArray(v) ? v : [v])) lines.push({ who: id, to: 'rachel', t: l, at: `주문 ${id}.${k}` });
 
 // ───────── 문장 · 어미

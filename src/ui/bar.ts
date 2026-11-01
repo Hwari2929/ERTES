@@ -21,6 +21,7 @@ import { ERANTES_CREW, MONO, MONO_KIND_NAME, MONO_KINDS, type MonoKind } from '.
 import { GLASS_BY_ID, HOUSE_MENUS, ING_BY_ID, ORDER_STYLE_NAME, RECIPE_BY_ID, REGULARS, type Drink, type OrderStyle } from '../data/bar/drinks';
 import { BAR_OPS, COIN_NAME, GRADE_NAME, judge, makeOrder, payOf, recipeName, feelText, type Grade, type Order } from '../data/bar/orders';
 import { ORDER_TALK, orderTalk } from '../data/bar/orderlines';
+import { FIRST_MEET } from '../data/bar/firstmeet';
 import { FIELDS, fieldOf } from '../data/battlefields';
 import { EVENT_BY_ID } from '../data/events';
 import { BGS, fillText, NPCS, type Beat } from '../data/scene';
@@ -236,7 +237,15 @@ const aidenOn = () => S.stage.some((s) => s.id === 'aiden');
 /** 장면에 필요한 무대 인원 (레이첼 제외 · 체사레 = 조슈아 그림 · 손님 = 'guest') */
 const needOf = (ids: string[]) => [...new Set(ids.filter((id) => id && id !== 'rachel').map(figOf))];
 /** 시계 (검사용 모의 실행이 바꿔 끼운다) */
-const clock = { now: () => performance.now() };
+/** 바의 시계: 시간 가속(좌측 상단 ⏩)이면 실제보다 BAR_FAST 배 빨리 간다 — 입퇴장 간격 · 머무는 시간 · 잔 · 주문 · 낮밤.
+ *  대사 · 말풍선이 떠 있는 시간은 실제 시간 그대로 (schedule 은 실제 ms). 검사용 모의 실행은 now 를 바꿔 끼운다 */
+const W = { rate: 1, base: 0, at: 0 };
+const worldNow = () => W.base + (performance.now() - W.at) * W.rate;
+const clock = { now: worldNow };
+export const BAR_FAST = 8;
+function setRate(r: number) { const n = worldNow(); W.base = n; W.at = performance.now(); W.rate = r; }
+/** 가속 중이면 장면 사이 쉬는 시간 · 정적도 절반 */
+const fastK = () => (W.rate > 1 ? 0.5 : 1);
 const rand = ([a, b]: [number, number]) => a + Math.random() * (b - a);
 const weighted = <T>(xs: T[], w: (x: T) => number): T => { let r = Math.random() * xs.reduce((a, x) => a + w(x), 0); return xs.find((x) => (r -= w(x)) < 0) ?? xs[xs.length - 1]; };
 
@@ -406,7 +415,7 @@ const NOOP: Plan = { add: [], drop: [] };
  *  force = 오래 조용해서 자리를 돌릴 때 (확률 없이). 에이든은 아주 가끔 카운터 뒤로 돌아간다 (작별이 아니라 잠깐) */
 function leaveScene(now: number, force = false): Pick | null {
   const regs = regulars();
-  const half = isFull() ? 1 : 0.5;
+  const half = (isFull() ? 1 : 0.5) * (W.rate > 1 ? 3 : 1); // 시간 가속 중에는 자리가 더 빨리 돈다
   const cand = regs.length >= 2 ? regs.filter((s) => (force || s.n >= 1) && stayed(s, now) && !owesCup(s, now) && !s.order) : []; // 주문이 걸려 있으면 기다린다
   const goes = force ? cand : cand.filter((s) => Math.random() < (CREW.has(s.id) ? BAR_TUNE.leave.crew : BAR_TUNE.leave.other) * half);
   if (goes.length) {
@@ -425,7 +434,7 @@ function leaveScene(now: number, force = false): Pick | null {
 }
 /** 정적: 아무도 말하지 않는 한때 (빈자리가 있고 곧 누가 올 거면 그때까지) */
 function waitScene(now: number): Pick {
-  const hold = !isFull() && S.enterAt > now ? Math.max(5000, Math.min(12_000, S.enterAt - now)) : rand(BAR_TUNE.hold);
+  const hold = (!isFull() && S.enterAt > now ? Math.max(5000, Math.min(12_000, (S.enterAt - now) / W.rate)) : rand(BAR_TUNE.hold)) * fastK();
   return { scene: { key: '', sit: '', lines: [], kind: 'wait', hold }, plan: planFor([], 0, new Set()) || NOOP };
 }
 /** 혼잣말 앞 이모티콘: 잠꼬대는 꾸벅 · 술주정은 취함 */
@@ -589,7 +598,7 @@ function startScene(p: Pick, root: HTMLElement | null, prev: Scene | null = null
   const speak = new Set(p.scene.lines.filter((l) => l[3] !== 'e').map(([w]) => figOf(w)));
   for (const s of S.stage) if (speak.has(keyOf(s))) s.n++;
   S.cur = p.scene; S.li = 0;
-  const rest = prev && prev.kind !== 'wait' && prev.kind !== 'leave' ? rand(BAR_TUNE.rest) : 0;
+  const rest = prev && prev.kind !== 'wait' && prev.kind !== 'leave' ? rand(BAR_TUNE.rest) * fastK() : 0;
   const silent = !p.scene.lines.length ? p.scene.hold || 2500 : 0;
   if (!root) return rest + (silent || (fresh.length ? 2600 : 1200));
   root.classList.toggle('night', S.night);
@@ -793,6 +802,57 @@ function exitEl(el: HTMLElement) {
   window.setTimeout(rm, reduced() ? 800 : 2800);
 }
 
+// ───────── 좌측 상단 시계 · 시간대 · 시간 가속
+/** 바의 하루: 낮(에이든 출근) = 07:00 → 19:00, 밤(레이첼 혼자) = 19:00 → 07:00 을 BAR_TUNE.day · night 에 맞춰 흘려 보낸다 (분 단위) */
+function barClock(now = clock.now()): { min: number; slot: ClockSlot } {
+  const len = S.night ? BAR_TUNE.night : BAR_TUNE.day;
+  const p = S.cycleAt === Infinity ? 0 : Math.max(0, Math.min(1, 1 - (S.cycleAt - now) / len));
+  const min = Math.floor(((S.night ? 19 : 7) * 60 + p * 12 * 60) % (24 * 60));
+  const h = min / 60;
+  const slot: ClockSlot = h >= 5 && h < 7 ? 'dawn' : h >= 7 && h < 11 ? 'morning' : h >= 11 && h < 17 ? 'day' : h >= 17 && h < 19 ? 'dusk' : h >= 19 ? 'night' : 'late';
+  return { min, slot };
+}
+type ClockSlot = 'dawn' | 'morning' | 'day' | 'dusk' | 'night' | 'late';
+const SLOT_NAME: Record<ClockSlot, string> = { dawn: '새벽', morning: '아침', day: '낮', dusk: '저녁', night: '밤', late: '심야' };
+/** 시간대 아이콘 (한 색 선 · 면, docs/UI.md 26) */
+const SLOT_ICON: Record<ClockSlot, string> = {
+  dawn: '<path d="M3 17 H21" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M7 17 A5 5 0 0 1 17 17" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 8 V10 M5.6 11 L7 12.3 M18.4 11 L17 12.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".55"/>',
+  morning: '<path d="M3 18 H21" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M6.5 18 A5.5 5.5 0 0 1 17.5 18 Z" fill="currentColor"/><path d="M12 6 V9 M4.8 9.8 L6.8 11.6 M19.2 9.8 L17.2 11.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  day: '<circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5 V5 M12 19 V21.5 M2.5 12 H5 M19 12 H21.5 M5.3 5.3 L7 7 M17 17 L18.7 18.7 M5.3 18.7 L7 17 M17 7 L18.7 5.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  dusk: '<path d="M3 16 H21 M6 19.5 H18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M6.5 16 A5.5 5.5 0 0 1 17.5 16 Z" fill="currentColor"/><path d="M12 7.5 V9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  night: '<path d="M15.5 3.5 A8.5 8.5 0 1 0 20.5 15 A7 7 0 0 1 15.5 3.5 Z" fill="currentColor"/>',
+  late: '<path d="M13.5 5 A7 7 0 1 0 18.5 14.5 A5.8 5.8 0 0 1 13.5 5 Z" fill="currentColor"/><path d="M19 3 L19.6 4.6 L21.2 5.2 L19.6 5.8 L19 7.4 L18.4 5.8 L16.8 5.2 L18.4 4.6 Z M5 17.5 L5.4 18.6 L6.5 19 L5.4 19.4 L5 20.5 L4.6 19.4 L3.5 19 L4.6 18.6 Z" fill="currentColor"/>',
+};
+const FAST_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6 L12 12 L4 18 Z M12 6 L20 12 L12 18 Z" fill="currentColor"/></svg>';
+const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+function clockHtml() {
+  const c = barClock();
+  return `<div class="bar-clock"><span class="bar-time pill" aria-live="off" title="${SLOT_NAME[c.slot]}"><svg viewBox="0 0 24 24" aria-hidden="true" data-slot="${c.slot}">${SLOT_ICON[c.slot]}</svg><b class="f-num">${hhmm(c.min)}</b><small>${SLOT_NAME[c.slot]}</small></span>
+    <button class="bar-fast pill" data-a="bar-x" data-v="fast" aria-pressed="${W.rate > 1}" aria-label="시간 가속 (손님 들고 나는 간격을 ${BAR_FAST}배 빨리)">${FAST_ICON}<b class="f-num">×${W.rate > 1 ? BAR_FAST : 1}</b></button></div>`;
+}
+/** 시계 칸만 다시 쓴다 (분이 바뀌거나 시간대 · 가속이 바뀔 때) */
+function syncClock(root: HTMLElement) {
+  const el = root.querySelector<HTMLElement>('.bar-clock');
+  if (!el) return;
+  const c = barClock();
+  const key = `${c.min}|${W.rate}`;
+  if (el.dataset.k === key) return;
+  el.dataset.k = key;
+  const svg = el.querySelector<SVGElement>('.bar-time svg');
+  if (svg && svg.dataset.slot !== c.slot) { svg.dataset.slot = c.slot; svg.innerHTML = SLOT_ICON[c.slot]; el.querySelector('.bar-time small')!.textContent = SLOT_NAME[c.slot]; el.querySelector('.bar-time')!.setAttribute('title', SLOT_NAME[c.slot]); }
+  el.querySelector('.bar-time b')!.textContent = hhmm(c.min);
+  const f = el.querySelector<HTMLElement>('.bar-fast');
+  if (f) { f.setAttribute('aria-pressed', String(W.rate > 1)); f.querySelector('b')!.textContent = `×${W.rate > 1 ? BAR_FAST : 1}`; }
+}
+/** 시간 가속 켜고 끄기: 켜면 지금 기다리던 쉬는 시간도 줄여 바로 다음 일로 */
+function toggleFast() {
+  setRate(W.rate > 1 ? 1 : BAR_FAST);
+  const root = document.querySelector<HTMLElement>(BAR_SEL);
+  if (root) syncClock(root);
+  if (W.rate > 1 && !S.prep && !advKey() && S.cur && (S.cur.kind === 'wait' || S.li >= S.cur.lines.length)) schedule(300);
+}
+let clockTimer = 0;
+
 /** 바 안의 장소 (배경 그림 1216 × 832 좌표의 사각형): 세로 띠의 줄을 가리키면 그 사물이 밝아진다 */
 const PLACES: { id: string; box: [number, number, number, number] }[] = [
   { id: 'counter', box: [520, 300, 1216, 780] }, // 카운터 · 술병 진열장 (의뢰)
@@ -834,6 +894,7 @@ export function barScreen(): string {
       <span class="est">ERRANTES</span>
     </aside>
     <div class="bar-floor" data-n="${S.stage.length}">${floorHtml()}</div>
+    ${clockHtml()}
     <button class="bar-door lp-btn" data-a="to-title">타이틀 ›</button>${coinChip()}
     <section class="bar-prep" aria-label="제조대" hidden></section>
     <p class="bar-hint muted small">인물을 누르면 말을 겁니다. 머리 위 주문을 누르면 제조대로 돌아섭니다.</p>
@@ -1049,6 +1110,8 @@ export function barMount() {
     }
   }
   syncCups(root);
+  clearInterval(clockTimer);
+  clockTimer = window.setInterval(() => { const r = document.querySelector<HTMLElement>(BAR_SEL); if (!r) { clearInterval(clockTimer); return; } syncClock(r); }, 500);
   if (S.prep) { const sec = root.querySelector<HTMLElement>('.bar-prep'); if (sec) sec.hidden = false; drawPrep(root); root.classList.add('prep-on'); return; } // 제조대를 보던 중 다시 그려졌으면 그대로
   const gain = loadMeta().bar?.coinGain;
   if (gain) { metaBarCoinShown(); window.setTimeout(() => coinFloat(gain), 1200); } // 런을 마치고 받은 코인
@@ -1137,6 +1200,14 @@ function talk(id: string) {
   const t = BAR_TALK[id];
   if (id === 'guest') { playAdv('bar:guest', toBeats('aiden', pick(BAR_GUEST), { pc: PC }).map((b, i) => (i ? b : { ...b, bg: 'erantes_bar' })), { ...advOpts, title: '에란테스 바', onDone: () => {} }); return; }
   metaBarBond(id);
+  // 레이첼과의 첫 만남: 처음 말을 걸면 첫 만남 장면이 열리고, 끝나면 평소 화제 메뉴로 이어진다 (도감 기록 탭 '첫 만남')
+  const meet = FIRST_MEET[id];
+  if (meet && !(loadMeta().bar?.talk || []).includes(`meet:${id}`)) {
+    metaBar('talk', `meet:${id}`);
+    const beats = atBar(id, toBeats(id, meet, { pc: PC, name: nameOf(id) }));
+    if (t) topicMenu(id, beats, []); else plainMenu(id, beats, true);
+    return;
+  }
   const r = reactFor(id);
   if (r) metaBar('heard', r.key);
   if (!t) { plainMenu(id, atBar(id, r ? toBeats(id, r.lines, r.vars) : [{ text: fillText('{name}이 잔을 들어 보인다. 옆자리가 비어 있다.', { name: nameOf(id) }) }]), true); return; }
@@ -1327,6 +1398,7 @@ export function barAct(v: string): boolean {
   if (k === 'next') { barNext(); return false; }
   if (k === 'cup' && id) { showTip(id); return false; }
   if (k === 'prop' && id) { const pr = S.props[+id]; if (pr) showTip(pr.k, pr.name); return false; }
+  if (k === 'fast') { toggleFast(); return false; }
   if (k === 'order' && id) { openPrep(id); return false; }
   if (k === 'coin' && id) { collect(id); return false; }
   if (k === 'prep' && S.prep) {
@@ -1375,10 +1447,14 @@ export function barRecordsHtml(): string {
   const monoGot = monoRows.reduce((n, r) => n + r.got.length, 0);
   const monoHtml = monoRows.map(({ id, got }) => `<section class="bar-rec-b"><h3>${esc(nameOf(id))} <span class="muted small f-num">${got.length}/${MONO_KINDS.length}</span></h3>${got.map((k) => `<p><b style="--c:${colorOf(id)}">${esc(MONO_KIND_NAME[k])}</b> ${esc(fillText(untag(MONO[id][k]), { pc: PC }))}</p>`).join('')}</section>`).join('');
   const knowHtml = askRows.map(({ id, got }) => `<section class="bar-rec-b"><h3>${esc(nameOf(id))} <span class="muted small f-num">${got.length}</span></h3>${got.map(({ q, t }) => `<div class="bar-rec-v"><span class="muted small">${esc(q.note)}${Array.isArray(ASK[id][q.key]) ? ` · ${TIER_NAME[t]}` : ''}</span>${scriptLines(id, askLines(askText(id, q.key, t)))}</div>`).join('')}</section>`).join('');
+  // 첫 만남: 처음 말을 걸 때 본 장면
+  const meetRows = Object.keys(FIRST_MEET).filter((id) => talk.has(`meet:${id}`));
+  const meetHtml = meetRows.map((id) => `<section class="bar-rec-b"><h3>${esc(nameOf(id))}</h3>${scriptLines(id, FIRST_MEET[id])}</section>`).join('');
   return `<h2>에란테스 바</h2>
     <p class="muted small">본 만담 <b class="f-num">${banterN}</b> / ${BANTER.length}편 · 끼어들기 만담 <b class="f-num">${frameRows.length}</b> / ${FRAMES.length}편 (버전 <b class="f-num">${fseen.length}</b> / ${variants}) · 단원에게 들은 이야기 <b class="f-num">${talkRows.length}</b> / ${talkAll}편 · 알게 된 것 <b class="f-num">${askGot}</b> / ${askAll} · 들은 혼잣말 <b class="f-num">${monoGot}</b> / ${monoAll}.
       심야 이야기는 그 단원과 가까워지면(말 걸기 + 함께 출전한 런 ${DEEP_BOND}) 열립니다.</p>
     <div class="bar-rec">
+      ${meetRows.length ? `<details><summary><b>첫 만남</b> <span class="muted small f-num">${meetRows.length}/${Object.keys(FIRST_MEET).length}</span></summary>${meetHtml}</details>` : ''}
       ${monoRows.length ? `<details><summary><b>혼잣말</b> <span class="muted small f-num">${monoGot}/${monoAll}</span></summary>${monoHtml}</details>` : ''}
       ${askRows.length ? `<details><summary><b>알게 된 것</b> <span class="muted small f-num">${askGot}/${askAll}</span></summary>${knowHtml}</details>` : ''}
       ${talkRows.length ? `<details><summary><b>단원 이야기</b> <span class="muted small f-num">${talkRows.length}/${talkAll}</span></summary>
