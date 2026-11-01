@@ -737,14 +737,7 @@ function showLine() {
   const k = figOf(who);
   const seat = k === 'rachel' ? null : root.querySelector<HTMLElement>(`.bar-seat[data-seat="${k}"]:not(.out)`);
   if (kind === 'e') {
-    const emo = seat?.querySelector<HTMLElement>('.bar-emo');
-    if (emo && EMOTE_IDS.has(text)) {
-      emo.innerHTML = emoteSvg(text as EmoteId);
-      emo.dataset.e = text;
-      emo.dataset.pos = POS.emo ?? pick(EMO_POS);
-      emo.hidden = false;
-      emo.classList.remove('on'); void emo.offsetWidth; emo.classList.add('on');
-    }
+    if (seat) showEmote(seat, text);
     return lineMs(S.cur, ln, last);
   }
   hideBub(root);
@@ -759,6 +752,16 @@ function showLine() {
   seat?.classList.add('talking');
   if (!reduced()) { void bub.offsetWidth; bub.classList.add('on'); }
   return lineMs(S.cur, ln, last);
+}
+/** 그 자리(.bar-seat)의 머리 둘레에 이모티콘 하나를 띄운다 (자리 4곳 중 무작위, 움직임은 CSS .bar-emo.on[data-e]) */
+function showEmote(seat: HTMLElement, id: string) {
+  const emo = seat.querySelector<HTMLElement>('.bar-emo');
+  if (!emo || !EMOTE_IDS.has(id)) return;
+  emo.innerHTML = emoteSvg(id as EmoteId);
+  emo.dataset.e = id;
+  emo.dataset.pos = POS.emo ?? pick(EMO_POS);
+  emo.hidden = false;
+  emo.classList.remove('on'); void emo.offsetWidth; emo.classList.add('on');
 }
 /** 말풍선 · 이모티콘이 인물 그림 기준으로 뜨는 자리 (줄마다 무작위). 확인용 주소의 __barPos 로 고정할 수 있다 */
 const BUB_POS = ['top', 'tr', 'tl', 'side'] as const;
@@ -856,6 +859,7 @@ if (typeof location !== 'undefined' && location.search.includes('bartest')) {
   testHook.__barTune = (t: Partial<typeof BAR_TUNE>) => Object.assign(BAR_TUNE, t);
   testHook.__barPlay = (lines: Line[]) => { S.cur = { key: '', sit: '', lines, kind: 'emote' }; S.li = 0; stop(); tick(); };
   testHook.__barPos = (bub?: (typeof BUB_POS)[number], emo?: string) => { POS.bub = bub; POS.emo = emo; };
+  testHook.__barEmo = (k: string, e: string, pos?: string) => { const seat = document.querySelector<HTMLElement>(`${BAR_SEL} .bar-seat[data-seat="${k}"]:not(.out)`); if (!seat) return; const keep = POS.emo; if (pos) POS.emo = pos; showEmote(seat, e); POS.emo = keep; };
   testHook.__barStage = (ids: string[]) => { const now = clock.now(); S.stage = ids.map((id) => ({ id, since: now, n: 0 })); const root = document.querySelector<HTMLElement>(BAR_SEL); if (root) syncFloor(root); };
   testHook.__barState = () => ({ stage: S.stage.map(keyOf), night: S.night, kind: S.cur?.kind, key: S.cur?.key || S.cur?.mono, li: S.li, enterIn: Math.round(S.enterAt - clock.now()), cycleIn: Math.round(S.cycleAt - clock.now()), cups: S.stage.map((s) => [keyOf(s), s.cup?.name, cupLeft(s.cup, clock.now())]) });
   testHook.__barNight = (n: boolean) => { setNight(n, clock.now()); if (n) S.stage = S.stage.filter((s) => s.id !== 'aiden'); const root = document.querySelector<HTMLElement>(BAR_SEL); if (root) { root.classList.toggle('night', n); syncFloor(root); } };
