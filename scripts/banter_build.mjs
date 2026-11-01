@@ -39,7 +39,7 @@ function splitTags(raw) {
     else if (v === '삭제') tags.del = 1;
     else if ((mm = v.match(/^소품\s*:\s*(.+)$/))) tags.props.push(...mm[1].split(/\s*[,·]\s*/).filter(Boolean));
     else if ((mm = v.match(/^동물\s*:\s*(.+)$/))) tags.pets.push(...mm[1].split(/\s*[,·]\s*/).filter(Boolean));
-    else if ((mm = v.match(/^회수\s*:\s*(.+)$/))) tags.callback = mm[1].split(/\s*,\s*/);
+    else if ((mm = v.match(/^회수\s*:\s*(.+)$/))) { tags.callback = mm[1].split(/\s*,\s*/); tags.shape ||= '회수'; }
     else if (SHAPES.includes(v)) tags.shape = v;
     else unknown.add(`표시: 〔${v}〕`);
     return '';
