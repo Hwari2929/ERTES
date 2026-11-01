@@ -22,7 +22,7 @@ import { SUMMON_RT, type SummonDef } from '../data/unitkit';
 import type { SkillDef } from './combat';
 import { Rng } from '../rng';
 import { CATEGORY_STATS, categoryOf, type EnemySpawn, type Geo, type MapOpt, type Major, MAJORS, type RunState, type Stats, emptyStats, type SynergyId, type UnitState, type Encounter } from '../types';
-import { Battle, type CUnit, T_NOSHOT, VAN_LIKE } from './combat';
+import { Battle, type CUnit, PROV, T_NOSHOT, VAN_LIKE } from './combat';
 import { applyLive, type Effect, type EffectCtx, red } from './effects';
 
 export type Counts = Partial<Record<SynergyId, number>>;
@@ -874,6 +874,7 @@ export function buildBattle(run: RunState, enc: Encounter, keepEvents = true): B
     if (!p) continue;
     const c = buildAlly(b, run, u, counts);
     c.x = c.px = p.x; c.y = c.py = p.y;
+    if (PROV.front && p.y === g.ay0) c.mem.provFront = 1; // 맨 앞줄에서 시작: 도발 배율 + PROV.front (실험용, 기본 0)
     b.add(c);
   }
   TURRET_AT.set(b, turretCells(run, enc.n, 8));

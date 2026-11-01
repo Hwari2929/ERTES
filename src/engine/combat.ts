@@ -365,6 +365,8 @@ export const PROV = {
   far: 0.5,
   /** 도발 배율: 돌격가 · 수호자 가산 · 소환물 (근접 · 고정 · 원거리, 전투 유형이 정해진 단짝 소환물은 그 유형 값) · 은신 · 기습 중 */
   van: 3, vanLike: 2, guard: 1.5, sumMelee: 1.4, sumFixed: 1.2, sumRanged: 1, hide: 0.3,
+  /** 아군 맨 앞줄(적 쪽 첫 줄)에서 시작한 기물의 도발 배율 가산 (0 = 없음, 실험용: tests/balance.ts provset=front:1) */
+  front: 0,
   /** 거리 감쇠 (돌격형 · 저격형 · 무리형, 칸당) · 저격형 피해 점유 가중치 · 도발 수치 지수 (1 = 비례) */
   near: 0.5, snipe: 0.5, pow: 1,
   /** 돌격가 경계에 걸린 적 → 그 돌격가에게 (도발 배율 적용 전, 피해 1당 dmg 와 같은 단위: 40 = 피해 400 상당) */
@@ -385,6 +387,7 @@ export function provMult(b: Battle | null, a: CUnit): number {
   if (a.synergies?.has('GUARD') && !a.mem.guardOff) m += PROV.guard; // 수호자 혼자(시너지 꺼짐)면 가산 없음
   m += a.statuses.reduce((sum, s) => sum + (s.provPlus || 0), 0);
   if (a.mem.provPlus) m += a.mem.provPlus; // 장비 가산 (위협 신호기)
+  if (a.mem.provFront) m += PROV.front; // 맨 앞줄에서 시작 (build.ts buildBattle)
   if (a.mem.provMul) m *= a.mem.provMul;
   if (b && (b.hidden(a) || a.statuses.some((x) => x.key === 'infil.ambush'))) m *= PROV.hide;
   return m;

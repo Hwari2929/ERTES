@@ -6,7 +6,7 @@ import { ENEMY_BY_ID, enemyTypes } from '../src/data/enemies';
 import { UNITS, UNIT_BY_ID } from '../src/data/units';
 import { SYNERGIES, tierOf } from '../src/data/synergies';
 import { boardDims, buildAlly, buildBattle, buildEnemy, deployed, enemyCell, layout, memberships, synergyCounts } from '../src/engine/build';
-import { Battle, type CUnit, type DmgOpts, type DmgResult } from '../src/engine/combat';
+import { Battle, type CUnit, type DmgOpts, type DmgResult, PROV } from '../src/engine/combat';
 import * as R from '../src/engine/run';
 import { augChoice, forkChoice, manageItems, manageItemsFix, newIns, shopSynth, type BotIns, type Track, pilgrimBot, turretPickBot } from './botlib';
 import { ALL_AREAS, Chulsu, DEFAULT_AREAS, DLog, pickStarters, type Area } from './chulsu';
@@ -119,6 +119,13 @@ for (const kv of (process.argv.find((a) => a.startsWith('cfgset='))?.slice(7) ||
   for (const k of ks.slice(0, -1)) o = o[k] as Record<string, unknown>;
   if (typeof o?.[ks[ks.length - 1]] !== 'number' || !Number.isFinite(+v)) throw new Error(`cfgset: 숫자 설정이 아님 ${path}`);
   o[ks[ks.length - 1]] = +v;
+}
+/** 도발 실험: provset=van:2,vanLike:1,guard:1,front:1 — engine/combat.ts PROV 의 숫자 값을 바꾼다 (그 실행 안에서만) */
+for (const kv of (process.argv.find((a) => a.startsWith('provset='))?.slice(8) || '').split(',').filter(Boolean)) {
+  const [k, v] = kv.split(':');
+  const P = PROV as unknown as Record<string, number>;
+  if (typeof P[k] !== 'number' || !Number.isFinite(+v)) throw new Error(`provset: 숫자 설정이 아님 ${k}`);
+  P[k] = +v;
 }
 
 // ───────── 역경 계측: 첫 아군 사망 · 첫 적 처치 시각 (전투 동작은 그대로, 시각만 기록)
