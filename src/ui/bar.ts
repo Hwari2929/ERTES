@@ -1,10 +1,12 @@
-// 에란테스 바 허브: 지상의 진짜 바. 런 사이에 들러 단원 · 손님의 잡담을 구경하고 말을 건다.
-// - 구경: 무대에 인물이 최대 3명(에이든 · 손님 포함) 허리 위로 서 있고, 말풍선이 하나씩 돌며 만담(docs/banter → banter.gen.ts)을 보여 준다.
-//   레이첼(지휘관)은 무대에 서지 않는다. 레이첼 대사는 화면 아래쪽 '무대 밖' 말풍선으로 (플레이어 목소리처럼).
-//   에이든은 자기가 나오는 장면에서만 카운터 뒤에서 나온다 (만담 출연 인원 분포 → 3석을 단원과 나눠 쓰는 쪽이 재생 가능한 장면이 많다).
-// - 입퇴장: 장면이 끝나면 일정 확률로 한 사람이 작별 인사(data/bar/leave.ts)를 하고 나간다 → 10~30초 빈자리 (남은 사람끼리 장면 · 대기)
-//   → 새 인물이 들어와 합류 장면 (남아 있던 사람과 새 사람이 함께 나오는 장면 우선). 무대는 0명이 되지 않는다.
-// - 말 걸기: 인물을 누르면 미연시 화면(playAdv). 직전 런 기록에 맞는 반응 대사가 먼저, 그다음 화제 선택지.
+// 에란테스 바 허브: 지상의 진짜 바. 접속하면 바로 여기 (런 사이에도 들른다). 레이첼(플레이어)이 카운터 안에서 손님 쪽을 본다.
+// - 무대: 카운터 너머 손님이 최대 4명 상반신으로 (스탠딩을 줄이고 흰 테두리, 허리는 카운터가 가린다). 카운터 위에는 각자 마시는 잔.
+//   레이첼은 무대에 서지 않는다 → 레이첼 대사는 화면 아래 '무대 밖' 말풍선으로.
+// - 낮 · 밤: 에이든은 낮에만 출근해 카운터 쪽 끝에 선다 (손님에게 단골 메뉴를 내준다). 밤에는 레이첼 혼자 (조명이 바뀐다).
+//   런을 마치고 돌아오면 밤, 그 밖에는 낮에서 시작하고, 머무는 동안 BAR_TUNE.day · night 마다 바뀐다 (에이든 퇴근 · 출근 인사).
+// - 한때(박자): 만담 약 15% · 정적 약 40% · 나머지는 이모티콘(말풍선 속 그림) · 혼잣말 (작은 기울임 글씨). 위쪽 상황 줄은 없다 —
+//   만담은 보이는 것(인물 · 잔 · 조명)과 대사만으로 읽혀야 한다.
+// - 입퇴장: 빈자리가 있으면 새 사람이 말없이 걸어 들어오고 (뒤뚱거리며 · 프레임 낮게), 다 머문 사람은 작별 인사를 하고 나간다.
+// - 말 걸기: 인물을 누르면 미연시 화면(playAdv). 잔을 누르면 무슨 음료인지 이름이 잠깐 뜬다.
 // - 통신 기록: 바 밖(전장 · 함선) 만담은 '지난 의뢰 통신 기록'으로 재생한다.
 // 보상은 없다. 본 만담 · 들은 이야기는 도감 '기록' 탭에 모인다 (meta.bar).
 import { BANTER, BANTER_TOPICS, type Banter } from '../data/bar/banter.gen';
@@ -12,8 +14,9 @@ import { REACT_RULES, type ReactCtx } from '../data/bar/react';
 import { FRAME_THEME, FRAMES, type Frame } from '../data/bar/frames';
 import { ASK, ASK_MID, ASK_Q, askLines, type AskKey } from '../data/bar/ask';
 import { BAR_GUEST, BAR_IDLE, BAR_TALK, DEEP_TOPICS, FIELD_SHORT, GENERIC_REACT } from '../data/bar/talk';
-import { AIDEN_BACK, BAR_ENTER, BAR_WAIT, LEAVE_GENERIC, LEAVE_LINES } from '../data/bar/leave';
-import { ERANTES_CREW, MONO, MONO_KIND_NAME, MONO_KINDS, MONO_LEAD, MONO_TAG } from '../data/bar/mono';
+import { AIDEN_BACK, AIDEN_OFF, AIDEN_ON, LEAVE_GENERIC, LEAVE_LINES } from '../data/bar/leave';
+import { ERANTES_CREW, MONO, MONO_KIND_NAME, MONO_KINDS, type MonoKind } from '../data/bar/mono';
+import { HOUSE_MENUS, ING_BY_ID, RECIPE_BY_ID, REGULARS, type Drink } from '../data/bar/drinks';
 import { FIELDS, fieldOf } from '../data/battlefields';
 import { EVENT_BY_ID } from '../data/events';
 import { BGS, fillText, NPCS, type Beat } from '../data/scene';
@@ -21,8 +24,10 @@ import { SYN_BY_ID } from '../data/synergies';
 import { UNIT_BY_ID, UNITS } from '../data/units';
 import { advKey, closeAdv, playAdv } from './adv';
 import { barShowcaseHtml } from './achieve';
+import { EMOTE_PAIRS, emoteSvg, soloWeights, type EmoteId } from './baremote';
+import { drinkSvg } from './drinkart';
 import { loadMeta, metaBar, metaBarBond } from './meta';
-import { bgURL, standURL } from './portraits';
+import { artURL, bgURL, standURL } from './portraits';
 import { STAND_FACE } from './standface.gen';
 import { listSaves, loadRun } from './save';
 
@@ -35,23 +40,34 @@ const PC = '레이첼';
 const TUT_CAST = ['yelena', 'franze', 'lindiwe', 'vivian', 'phyllis', 'temur', 'nadir'];
 /** 바에 늘 있는 인물: 바텐더 · 지휘관 */
 const BASE = ['aiden', 'rachel'];
-/** 무대 인원 상한 (에이든 · 손님 포함). 레이첼은 무대에 서지 않고 화면 아래쪽 말풍선으로만 말한다 */
-export const STAGE_MAX = 3;
-/** 입퇴장 · 쉬는 시간 (ms · 확률). 확인용 주소(?bartest)의 __barTune 으로만 바꾼다.
- *  leave: 장면 · 혼잣말이 끝난 뒤 다 머문 사람이 인사하고 나갈 확률 (무대가 꽉 찼을 때, 빈자리가 있으면 절반). 정규 단원 · 다른 단원 · 에이든(카운터 뒤로 잠깐)
- *  stay: 들어온 뒤 적어도 이만큼은 머문다 · vacant: 퇴장(입장) 뒤 다음 단원이 들어오기까지 · rest: 장면 사이 말 없이 쉬는 시간
- *  quiet: 무대가 꽉 찬 채 볼 장면 없이 이만큼 조용하면 한 사람이 일어난다 · aidenBack: 카운터 뒤로 간 에이든이 다시 나오기까지
- *  mono · monoGap: 볼 장면이 없을 때 혼잣말이 나올 확률 · 혼잣말 사이 최소 간격 · crewBonus: 정규 단원이 새로 들어오는 장면의 가산점
- *  (정규 단원은 오래 머물고 덜 나가므로 가산점은 작게: 모의 실행 기준 단원 시간의 약 94%가 정규 단원) */
+/** 무대 인원 상한 (낮의 에이든 · 손님 포함). 레이첼은 무대에 서지 않고 화면 아래쪽 말풍선으로만 말한다 */
+export const STAGE_MAX = 4;
+/** 입퇴장 · 박자 (ms · 확률). 확인용 주소(?bartest)의 __barTune 으로만 바꾼다.
+ *  leave: 한때가 끝난 뒤 다 머문 사람이 인사하고 나갈 확률 (무대가 꽉 찼을 때, 빈자리가 있으면 절반). 정규 단원 · 다른 단원 · 에이든(카운터 뒤로 잠깐)
+ *  stay: 들어온 뒤 적어도 이만큼은 머문다 · vacant: 퇴장(입장) 뒤 다음 단원이 들어오기까지 · rest: 한때 사이 쉬는 시간
+ *  enter: 들어올 수 있을 때 실제로 들어올 확률 (한때마다) · quiet: 무대가 꽉 찬 채 만담 없이 이만큼 지나면 한 사람이 일어난다
+ *  aidenBack: 카운터 뒤로 간 에이든이 다시 나오기까지 · day · night: 낮 · 밤 길이
+ *  share: 한때를 고를 확률 (만담 scene · 따로 쉬는 정적 quiet, 나머지 = 혼잣말 mono 비율 · 이모티콘). 한때 사이 rest 도 정적이라,
+ *    화면에 말풍선이 떠 있는 시간으로 만담 약 15% · 이모티콘 + 혼잣말 약 45% · 정적 약 40% (tests/bar_check.ts 가 잰다) · hold: 정적 길이 · monoGap: 혼잣말 사이 최소 간격
+ *  serve: 에이든이 새로 온 손님에게 단골 메뉴를 내줄 확률 · refill: 빈 잔을 치우며 한 잔 더 내줄 확률 · sip: 한 잔 마시는 시간 · clear: 빈 잔을 치우기까지
+ *  crewBonus: 정규 단원이 새로 들어오는 장면의 가산점 */
 export const BAR_TUNE = {
-  leave: { crew: 0.07, other: 0.18, aiden: 0.03 },
+  leave: { crew: 0.05, other: 0.12, aiden: 0.02 },
   stay: { crew: 150_000, other: 90_000, aiden: 120_000 },
   vacant: [40_000, 80_000] as [number, number],
-  rest: [4_000, 9_000] as [number, number],
-  quiet: 40_000,
+  rest: [1_800, 3_800] as [number, number],
+  enter: 0.6,
+  quiet: 240_000,
   aidenBack: [20_000, 45_000] as [number, number],
-  mono: 0.3,
-  monoGap: 50_000,
+  day: 480_000,
+  night: 480_000,
+  share: { scene: 0.14, quiet: 0.03, mono: 0.3 },
+  hold: [4_000, 9_000] as [number, number],
+  monoGap: 40_000,
+  serve: 0.6,
+  refill: 0.35,
+  sip: [150_000, 330_000] as [number, number],
+  clear: [20_000, 45_000] as [number, number],
   crewBonus: 1,
 };
 /** 실재 층 해금: 그 인물과의 관계 = 바에서 말 건 횟수 + 함께 출전한 런 수 */
@@ -144,13 +160,21 @@ const banterBeats = (b: Banter): Beat[] => b.lines.map(([who, t, nm]) => ({ who,
 const fmt = (s: string) => esc(s);
 
 // ───────── 구경 모드 상태
-/** 무대에 선 인물. guest = 해금 안 된 인물의 실루엣(손님) · since = 들어온 시각 · n = 들어온 뒤 말한 장면 수 */
-interface Seat { id: string; guest?: boolean; since: number; n: number }
-/** 장면 줄: [화자 id ('' = 서술), 대사, 이름표?] */
-type Line = [string, string, string?];
-/** kind: scene 만담 · idle 바텐더와 손님 · mono 정규 단원 혼잣말 · leave 작별 인사 (끝나면 exit 가 나간다, 에이든은 카운터 뒤로) · wait 대기 (hold 동안)
- *  mono = 들은 혼잣말 기록 키 (도감 '기록' 탭) */
-interface Scene { key: string; sit: string; lines: Line[]; layer?: 's' | 'i' | 'r'; kind: 'scene' | 'idle' | 'mono' | 'leave' | 'wait'; exit?: string; hold?: number; mono?: string; idle?: number }
+/** 카운터 위 잔: by = 내준 사람 (에이든 · 플레이어 — 플레이어가 내준 잔이 남아 있으면 그 손님은 다 마시기 전에 나가지 않는다).
+ *  at = 놓인 시각 (그 전에는 안 보인다) · dur = 다 마시는 데 걸리는 시간 · emptyAt = 비운 시각 */
+interface Cup { d: Drink; name: string; by: 'aiden' | 'player'; at: number; dur: number; alc: boolean; emptyAt?: number }
+/** 무대에 선 인물. guest = 해금 안 된 인물의 실루엣(손님) · since = 들어온 시각 · n = 들어온 뒤 말한 장면 수 · cup = 카운터 위 잔 */
+interface Seat { id: string; guest?: boolean; since: number; n: number; cup?: Cup }
+/** 장면 줄: [화자 id ('' = 서술 — 무대에서는 건너뜀), 대사, 이름표?, 종류? (e = 이모티콘: 대사 자리에 이모티콘 id · m = 혼잣말)] */
+type Line = [string, string, string?, ('e' | 'm')?];
+/** kind: scene 만담 · idle 바텐더와 손님 · mono 혼잣말 · emote 이모티콘 · enter 말없이 들어옴 · serve 에이든이 잔을 내주거나 치움 ·
+ *  shift 낮 ↔ 밤 · leave 작별 인사 (끝나면 exit 가 나간다, 에이든은 카운터 뒤로) · wait 정적 (hold 동안).
+ *  mono = 들은 혼잣말 기록 키 (도감 '기록' 탭) · cups = serve 가 바꿀 잔 (null = 치움) · toNight = 이 장면이 끝나면 밤 · toDay = 시작하며 낮 */
+interface Scene {
+  key: string; sit: string; lines: Line[]; layer?: 's' | 'i' | 'r';
+  kind: 'scene' | 'idle' | 'mono' | 'emote' | 'enter' | 'serve' | 'shift' | 'leave' | 'wait';
+  exit?: string; hold?: number; mono?: string; idle?: number; cups?: [string, Cup | null][]; toNight?: boolean; toDay?: boolean;
+}
 /** 장면을 시작하기 전의 무대 변화 (무대 키): add 들어오는 사람 · drop 카운터 뒤로 비켜 주는 에이든 · 나가는 손님 */
 interface Plan { add: string[]; drop: string[] }
 interface Pick { scene: Scene; plan: Plan }
@@ -169,25 +193,48 @@ const S = {
   gone: new Set<string>(),
   /** 카운터 뒤로 간 에이든이 다시 나올 수 있는 시각 */
   aidenAt: 0,
-  /** 마지막으로 대화(만담 · 손님 대화)가 끝난 시각: 오래 조용하면 한 사람이 일어난다 */
+  /** 마지막으로 만담 · 바텐더 대화가 끝난 시각: 꽉 찬 채 오래 조용하면 한 사람이 일어난다 */
   talkAt: 0,
   /** 마지막 혼잣말 시각 · 이번 방문에 나온 혼잣말 */
   monoAt: -Infinity,
   monoUsed: new Set<string>(),
+  /** 밤 (에이든 없음) · 다음에 낮 ↔ 밤이 바뀌는 시각 */
+  night: false,
+  cycleAt: Infinity,
 };
+/** 다음 방문은 밤에서 시작 (런을 마치고 돌아올 때) */
+let nightNext = false;
 const BAR_SEL = 'main.bar';
-/** 바 안에 늘 있는 사람: 기다리지 않고 바로 나온다 (에이든은 카운터 뒤에서, 손님은 문가에서) */
+/** 바 안에 늘 있는 사람: 기다리지 않고 바로 나온다 (에이든은 카운터 뒤에서 — 낮에만, 손님은 문가에서) */
 const BAR_FOLK = new Set(['aiden', 'guest']);
 /** 정규 에란테스 단원 (lore/_틀/틀-에란테스.md, 레이첼 제외): 바에 들어올 가중치가 크고 오래 머문다 */
 const CREW = new Set(ERANTES_CREW);
 const keyOf = (s: Seat) => (s.guest ? 'guest' : s.id);
 const regulars = () => S.stage.filter((s) => !s.guest && s.id !== 'aiden');
+const aidenOn = () => S.stage.some((s) => s.id === 'aiden');
 /** 장면에 필요한 무대 인원 (레이첼 제외 · 체사레 = 조슈아 그림 · 손님 = 'guest') */
 const needOf = (ids: string[]) => [...new Set(ids.filter((id) => id && id !== 'rachel').map(figOf))];
 /** 시계 (검사용 모의 실행이 바꿔 끼운다) */
 const clock = { now: () => performance.now() };
 const rand = ([a, b]: [number, number]) => a + Math.random() * (b - a);
 const weighted = <T>(xs: T[], w: (x: T) => number): T => { let r = Math.random() * xs.reduce((a, x) => a + w(x), 0); return xs.find((x) => (r -= w(x)) < 0) ?? xs[xs.length - 1]; };
+
+// ───────── 카운터 위 잔
+const ALC = new Set(['spirit', 'brew', 'liqueur']);
+/** 에이든이 내주는 잔: 단골이면 단골 메뉴, 아니면 무난한 메뉴 중 하나 */
+function aidenCup(id: string, now: number, delay = 2200): Cup {
+  const r = RECIPE_BY_ID[REGULARS[id]?.menu || pick(HOUSE_MENUS)];
+  return { d: r, name: r.name, by: 'aiden', at: now + delay, dur: rand(BAR_TUNE.sip), alc: r.fill.some((x) => ALC.has(ING_BY_ID[x]?.kind)) };
+}
+/** 남은 양 (0~1, 아직 안 놓였으면 null) */
+function cupLeft(c: Cup | undefined, now: number): number | null {
+  if (!c || now < c.at) return null;
+  const l = Math.max(0, 1 - (now - c.at) / c.dur);
+  if (l <= 0 && c.emptyAt === undefined) c.emptyAt = c.at + c.dur;
+  return l;
+}
+/** 이 사람이 마시는 중인가 (잔이 놓여 있고 남았다) */
+const sipping = (s: Seat, now: number) => (cupLeft(s.cup, now) ?? 0) > 0;
 
 function eligibleAmbient(): Banter[] {
   const k = S.known;
@@ -204,10 +251,11 @@ function entrants(): string[] {
 const isFull = () => S.stage.filter((s) => !s.guest).length >= STAGE_MAX;
 /** 빈자리가 있고 대기가 끝났나 (새 인물 1명이 들어올 수 있다) */
 const canEnter = (now: number) => !isFull() && now >= S.enterAt && entrants().length > 0;
-/** 이 장면을 지금 무대로 재생할 수 있나. 에이든 · 손님은 바로 나오고, 단원은 fresh 명까지만 새로 들어온다 (ok = 들어올 수 있는 단원).
- *  손님은 자기 장면이 끝나면 나간다. 에이든은 장면 때문에 밀려나지 않는다 (거의 늘 무대에: 3자리가 모자란 장면은 에이든이 쉬러 들어갔을 때만).
- *  무대가 비지 않게 한 명은 남긴다. 재생할 수 없으면 null */
+/** 이 장면을 지금 무대로 재생할 수 있나. 에이든(낮에만) · 손님은 바로 나오고, 단원은 fresh 명까지만 새로 들어온다 (ok = 들어올 수 있는 단원).
+ *  손님은 자기 장면이 끝나면 나간다. 에이든은 장면 때문에 밀려나지 않는다. 밤에는 에이든이 나오는 장면을 재생하지 않는다.
+ *  재생할 수 없으면 null */
 function planFor(need: string[], fresh: number, ok: Set<string>): Plan | null {
+  if (S.night && need.includes('aiden')) return null;
   const on = S.stage.map(keyOf);
   const want = new Set(need);
   const add = need.filter((k) => !on.includes(k));
@@ -247,7 +295,7 @@ function buildFrame(f: Frame, pool: Set<string>, here: Set<string>, comm = false
 }
 /** 확장 틀의 핵심 대화에 필요한 무대 인원 (핵심 인물 + 핵심 줄에서 말하는 사람: '손님:' 줄이 있으면 손님 자리) */
 const frameNeed = (f: Frame) => needOf([...f.cast, ...f.lines.filter((l) => !/^@\d$/.test(l)).map((l) => parseLine(l, f.cast[0])[0])]);
-/** 확장 틀을 지금 무대로: 끼어드는 자리는 무대에 있는 사람 → 무대 밖 레이첼 · 자리가 있으면 카운터의 에이든 · 합류할 수 있으면 새 인물 */
+/** 확장 틀을 지금 무대로: 끼어드는 자리는 무대에 있는 사람 → 무대 밖 레이첼 · 자리가 있으면 카운터의 에이든(낮) · 합류할 수 있으면 새 인물 */
 function stageFrame(f: Frame, plan: Plan, fresh: number, ok: Set<string>): Scene {
   const on = new Set([...S.stage.map(keyOf), ...plan.add]);
   const size = () => S.stage.length - plan.drop.length + plan.add.length;
@@ -255,7 +303,7 @@ function stageFrame(f: Frame, plan: Plan, fresh: number, ok: Set<string>): Scene
   const canCall = (id: string) => {
     const k = figOf(id);
     if (k === 'rachel' || seated(k)) return true;
-    if (size() >= STAGE_MAX) return false;
+    if (size() >= STAGE_MAX || (k === 'aiden' && S.night)) return false;
     return plan.drop.includes(k) || k === 'aiden' || (plan.add.filter((x) => !BAR_FOLK.has(x)).length < fresh && ok.has(k));
   };
   const take = (id: string) => {
@@ -266,8 +314,8 @@ function stageFrame(f: Frame, plan: Plan, fresh: number, ok: Set<string>): Scene
   };
   return buildFrame(f, S.known, on, false, canCall, take);
 }
-/** 다음 장면: 지금 무대로 재생할 수 있는 것만 (빈자리 대기가 끝났으면 새 인물 fresh 명까지).
- *  층을 먼저 고르고 (실재 10% · 이상 25%), 그 안에서 합류 장면 · 안 본 것 · 확장 틀 · 무대에 있는 사람이 나오는 것 우선.
+/** 다음 만담: 지금 무대로 재생할 수 있는 것만 (빈자리 대기가 끝났으면 새 인물 fresh 명까지).
+ *  층을 먼저 고르고 (실재 10% · 이상 25%, 실재는 밤에만), 그 안에서 합류 장면 · 안 본 것 · 확장 틀 · 무대에 있는 사람이 나오는 것 우선.
  *  새로 들어오는 사람은 정규 단원이면 크게 더하고 다른 단원이면 뺀다 (정규 단원이 바에 있을 때가 훨씬 많게). 손님 장면도 낮게.
  *  repeat: 이번 방문에 본 장면도 다시 (더 볼 것이 없을 때) */
 function nextScene(fresh: number, repeat = false): Pick | null {
@@ -281,6 +329,7 @@ function nextScene(fresh: number, repeat = false): Pick | null {
   let avail = 0; // 해금된 장면 수 (무대와 상관없이)
   const offer = (layer: Item['layer'], base: number, need: string[], make: Item['make']) => {
     avail++;
+    if (layer === 'r' && !S.night) return; // 실재 층은 심야 장면
     const plan = planFor(need, fresh, ok);
     if (!plan) return;
     const stay = need.filter((k) => here.has(k) && k !== 'guest').length; // 무대에 있던 사람 (에이든 포함)
@@ -304,7 +353,7 @@ function nextScene(fresh: number, repeat = false): Pick | null {
   const by = (l: string) => pool.filter((x) => x.layer === l);
   const layerPool = roll < DEEP_SHARE && by('r').length ? by('r') : roll < DEEP_SHARE + IDEAL_SHARE && by('i').length ? by('i') : by('s').length ? by('s') : pool;
   const best = layerPool.map((x) => ({ x, sc: x.score + Math.random() * 2 })).sort((a, b) => b.sc - a.sc)[0]?.x;
-  // 바텐더 · 손님 대화: 해금한 단원이 적으면 번갈아, 아니면 볼 장면이 없을 때 가끔 (손님은 드물게 · 같은 대화는 방문마다 한 번)
+  // 바텐더 · 손님 대화 (낮, 에이든): 해금한 단원이 적으면 번갈아, 아니면 볼 장면이 없을 때 가끔 (같은 대화는 방문마다 한 번)
   const idleTurn = !(fresh === 1 && pool !== items) && avail < 8 && (S.idleI + S.session.size) % 2 === 1;
   if (idleTurn || (!best && (avail < 8 || repeat || Math.random() < 0.2))) {
     const left = BAR_IDLE.map((_, i) => (S.idleI + i) % BAR_IDLE.length).filter((i) => repeat || !S.session.has(`idle:${i}`));
@@ -318,18 +367,21 @@ function nextScene(fresh: number, repeat = false): Pick | null {
 }
 /** 다 머물렀나: 들어온 뒤 BAR_TUNE.stay 만큼은 (정규 단원이 가장 오래) */
 const stayed = (s: Seat, now: number) => now - s.since >= (s.id === 'aiden' ? BAR_TUNE.stay.aiden : CREW.has(s.id) ? BAR_TUNE.stay.crew : BAR_TUNE.stay.other);
+/** 플레이어가 내준 잔이 남아 있으면 그 손님은 아직 일어나지 않는다 (내준 잔이 반응 없이 사라지지 않게) */
+const owesCup = (s: Seat, now: number) => s.cup?.by === 'player' && (cupLeft(s.cup, now) ?? 1) > 0;
+const NOOP: Plan = { add: [], drop: [] };
 /** 작별 인사: 무대의 단원 한 명이 인사하고 나간다 (단원이 2명 이상일 때만, 다른 단원 · 오래 있던 사람일수록 먼저).
  *  force = 오래 조용해서 자리를 돌릴 때 (확률 없이). 에이든은 아주 가끔 카운터 뒤로 돌아간다 (작별이 아니라 잠깐) */
 function leaveScene(now: number, force = false): Pick | null {
   const regs = regulars();
   const half = isFull() ? 1 : 0.5;
-  const cand = regs.length >= 2 ? regs.filter((s) => (force || s.n >= 1) && stayed(s, now)) : [];
+  const cand = regs.length >= 2 ? regs.filter((s) => (force || s.n >= 1) && stayed(s, now) && !owesCup(s, now)) : [];
   const goes = force ? cand : cand.filter((s) => Math.random() < (CREW.has(s.id) ? BAR_TUNE.leave.crew : BAR_TUNE.leave.other) * half);
   if (goes.length) {
     const s = weighted(goes, (x) => (CREW.has(x.id) ? 1 : 3) * (1 + (now - x.since) / 120_000));
     const vars = { name: nameOf(s.id) };
     const line = parseLine(fillText(pick(LEAVE_LINES[s.id] || LEAVE_GENERIC), vars), s.id);
-    return { scene: { key: '', sit: fillText('{name}이 자리에서 일어난다', vars), lines: [line], kind: 'leave', exit: s.id }, plan: { add: [], drop: [] } };
+    return { scene: { key: '', sit: '', lines: [line], kind: 'leave', exit: s.id }, plan: { add: [], drop: [] } };
   }
   const aiden = S.stage.find((s) => s.id === 'aiden');
   if (!force && aiden && S.stage.length > 1 && stayed(aiden, now) && Math.random() < BAR_TUNE.leave.aiden) {
@@ -337,56 +389,99 @@ function leaveScene(now: number, force = false): Pick | null {
   }
   return null;
 }
-/** 대기: 볼 장면이 없으면 몸짓 서술 한 줄 또는 잠깐의 정적 (손님은 나간다). 빈자리가 있으면 새 사람이 올 때까지 몇 번에 나눠 */
+/** 정적: 아무도 말하지 않는 한때 (빈자리가 있고 곧 누가 올 거면 그때까지) */
 function waitScene(now: number): Pick {
-  const regs = regulars();
-  const who = regs.length ? pick(regs).id : 'aiden';
-  const hold = !isFull() && S.enterAt > now ? Math.max(4000, Math.min(10_000, S.enterAt - now)) : rand([5000, 9000]);
-  const lines: Line[] = Math.random() < 0.5 ? [['', fillText(pick(BAR_WAIT), { name: nameOf(who), pc: PC })]] : [];
-  return { scene: { key: '', sit: '', lines, kind: 'wait', hold }, plan: planFor([], 0, new Set()) || { add: [], drop: [] } };
+  const hold = !isFull() && S.enterAt > now ? Math.max(5000, Math.min(12_000, S.enterAt - now)) : rand(BAR_TUNE.hold);
+  return { scene: { key: '', sit: '', lines: [], kind: 'wait', hold }, plan: planFor([], 0, new Set()) || NOOP };
 }
-/** 혼잣말: 볼 장면이 없을 때 가끔, 무대의 정규 단원 한 명이 말풍선 하나 (이번 방문에 나온 줄은 다시 안 나오고, 안 들은 줄 먼저).
- *  잠꼬대 · 술주정은 앞에 짧은 서술 */
+/** 혼잣말 앞 이모티콘: 잠꼬대는 꾸벅 · 술주정은 취함 */
+const MONO_EMO: Partial<Record<MonoKind, EmoteId>> = { sleep: 'zzz', drunk: 'drunk' };
+/** 혼잣말: 무대의 정규 단원 한 명이 작게 한 줄 (이번 방문에 나온 줄은 다시 안 나오고, 안 들은 줄 먼저). 낮에는 잠꼬대 · 술주정이 드물다 */
 function monoScene(now: number): Pick | null {
-  if (now - S.monoAt < BAR_TUNE.monoGap || Math.random() >= BAR_TUNE.mono) return null;
+  if (now - S.monoAt < BAR_TUNE.monoGap) return null;
   const heard = new Set(loadMeta().bar?.talk || []);
-  const opts = S.stage.filter((s) => !s.guest && MONO[s.id]).flatMap((s) => MONO_KINDS.filter((k) => !S.monoUsed.has(`${s.id}.${k}`)).map((k) => ({ id: s.id, k, key: `mono:${s.id}.${k}` })));
+  const opts = S.stage.filter((s) => !s.guest && MONO[s.id]).flatMap((s) => MONO_KINDS.filter((k) => !S.monoUsed.has(`${s.id}.${k}`) && (S.night || (k !== 'sleep' && k !== 'drunk'))).map((k) => ({ id: s.id, k, key: `mono:${s.id}.${k}` })));
   if (!opts.length) return null;
   const fresh = opts.filter((o) => !heard.has(o.key));
   const o = pick(fresh.length ? fresh : opts);
   S.monoUsed.add(`${o.id}.${o.k}`);
   S.monoAt = now;
   const vars = { name: nameOf(o.id), pc: PC };
-  const lead = MONO_LEAD[o.k];
-  const lines: Line[] = [...(lead ? [['', fillText(lead, vars)] as Line] : []), [o.id, fillText(MONO[o.id][o.k], vars), `${nameOf(o.id)} (${MONO_TAG[o.k]})`]];
-  return { scene: { key: '', sit: '', lines, kind: 'mono', mono: o.key }, plan: planFor([], 0, new Set()) || { add: [], drop: [] } };
+  const emo = MONO_EMO[o.k];
+  const lines: Line[] = [...(emo ? [[o.id, emo, undefined, 'e'] as Line] : []), [o.id, fillText(MONO[o.id][o.k], vars), undefined, 'm']];
+  return { scene: { key: '', sit: '', lines, kind: 'mono', mono: o.key }, plan: planFor([], 0, new Set()) || NOOP };
 }
-/** 조용한 한때: 가끔 혼잣말, 아니면 대기 */
-const quietBeat = (now: number) => monoScene(now) || waitScene(now);
-/** 장면이 끝난 뒤 할 일: 작별 인사 · 다음 장면 (빈자리 대기가 끝났으면 합류) · 혼잣말 · 대기. 에이든은 자리가 있으면 카운터에서 다시 나온다 */
+/** 이모티콘: 무대의 한 사람이 말 대신 그림 하나 (마시는 중이면 맛있음 · 건배, 밤이면 꾸벅 · 취함이 잦다). 둘 이상이면 가끔 주고받는다 */
+function emoteScene(now: number): Pick | null {
+  const ppl = S.stage.filter((s) => !s.guest && (s.id !== 'aiden' || Math.random() < 0.3)); // 낯선 손님은 곧 나간다
+  if (!ppl.length) return null;
+  const w = (s: Seat) => soloWeights({ drink: sipping(s, now), alcohol: !!s.cup?.alc, night: S.night });
+  let lines: Line[];
+  if (ppl.length >= 2 && Math.random() < 0.3) {
+    const [a, b] = shuffle(ppl);
+    const [ea, eb] = pick(EMOTE_PAIRS);
+    lines = [[keyOf(a), ea, undefined, 'e'], [keyOf(b), eb, undefined, 'e']];
+  } else {
+    const s = pick(ppl);
+    lines = [[keyOf(s), weighted(w(s).filter(([, x]) => x > 0), ([, x]) => x)[0], undefined, 'e']];
+  }
+  return { scene: { key: '', sit: '', lines, kind: 'emote' }, plan: planFor([], 0, new Set()) || NOOP };
+}
+/** 말없이 들어옴: 빈자리에 한 사람이 걸어 들어온다 (정규 단원이 더 자주). 낮이면 에이든이 곧 단골 메뉴를 내준다 (확률) */
+function enterScene(now: number): Pick | null {
+  const e = entrants();
+  if (!e.length) return null;
+  const id = weighted(e, (x) => (CREW.has(x) ? 6 : 1));
+  const plan = planFor([id], 1, new Set([id]));
+  return plan ? { scene: { key: '', sit: '', lines: [], kind: 'enter', hold: 2600 }, plan } : null;
+}
+/** 에이든 서빙: 빈 잔을 치우고 (가끔 한 잔 더), 잔이 없는 손님에게 가끔 단골 메뉴를 내준다 (낮에만) */
+function serveScene(now: number): Pick | null {
+  if (S.night || !aidenOn()) return null;
+  const cups: [string, Cup | null][] = [];
+  for (const s of regulars()) {
+    cupLeft(s.cup, now);
+    if (s.cup?.emptyAt !== undefined && now - s.cup.emptyAt >= rand(BAR_TUNE.clear)) cups.push([keyOf(s), Math.random() < BAR_TUNE.refill ? aidenCup(s.id, now, 3000) : null]);
+    else if (!s.cup && now - s.since > 30_000 && Math.random() < 0.12) cups.push([keyOf(s), aidenCup(s.id, now, 1200)]);
+  }
+  return cups.length ? { scene: { key: '', sit: '', lines: [], kind: 'serve', hold: 1800, cups }, plan: NOOP } : null;
+}
+/** 낮 ↔ 밤: 해가 지면 에이든이 퇴근 인사를 하고 나간다 (그 뒤 밤) · 해가 뜨면 에이든이 출근 인사를 하며 들어온다 */
+function shiftScene(now: number): Pick | null {
+  if (now < S.cycleAt) return null;
+  if (!S.night) {
+    if (aidenOn()) return { scene: { key: '', sit: '', lines: [['aiden', fillText(pick(AIDEN_OFF), { pc: PC })]], kind: 'leave', exit: 'aiden', toNight: true }, plan: NOOP };
+    return { scene: { key: '', sit: '', lines: [], kind: 'shift', hold: 2500, toNight: true }, plan: NOOP };
+  }
+  const room = S.stage.length < STAGE_MAX;
+  return { scene: { key: '', sit: '', lines: room ? [['aiden', fillText(pick(AIDEN_ON), { pc: PC })]] : [], kind: 'shift', hold: 2500, toDay: true }, plan: room ? { add: ['aiden'], drop: [] } : NOOP };
+}
+/** 장면이 끝난 뒤 할 일: 낮 ↔ 밤 · 작별 인사 · 에이든 서빙 · 들어옴 · 만담 · 정적 · 혼잣말 · 이모티콘. 에이든은 낮에 자리가 있으면 카운터에서 다시 나온다 */
 function decide(prev: Scene | null): Pick {
   const now = clock.now();
   const p = decideInner(prev, now);
-  // 에이든: 카운터 뒤에서 쉬었으면 빈자리로 다시 나온다 (거의 늘 무대에 있게)
   const size = S.stage.length - p.plan.drop.length + p.plan.add.length;
-  if (p.scene.kind !== 'leave' && !S.stage.some((s) => s.id === 'aiden') && !p.plan.add.includes('aiden') && !p.plan.drop.includes('aiden') && size < STAGE_MAX && now >= S.aidenAt) p.plan.add.push('aiden');
+  if (!S.night && !p.scene.toNight && p.scene.kind !== 'leave' && !aidenOn() && !p.plan.add.includes('aiden') && !p.plan.drop.includes('aiden') && size < STAGE_MAX && now >= S.aidenAt) p.plan.add.push('aiden');
   return p;
 }
 function decideInner(prev: Scene | null, now: number): Pick {
-  // 1) 장면 · 혼잣말이 끝나면 다 머문 사람이 일정 확률로 인사하고 나간다
-  if (prev && prev.kind !== 'wait' && prev.kind !== 'leave') {
-    const l = leaveScene(now);
-    if (l) return l;
-  }
-  // 2) 지금 무대로 재생할 수 있는 장면
-  const fresh = canEnter(now) ? 1 : 0;
-  const nx = nextScene(fresh);
-  if (nx) return nx;
-  // 3) 볼 장면이 없다: 꽉 찬 채 오래 조용하면 한 사람이 일어나 자리를 돌리고, 곧 누가 올 거면 혼잣말 · 대기, 더 올 사람이 없으면 본 장면을 다시
-  const others = entrants().length > 0;
-  if (isFull() && others) return (now - S.talkAt >= BAR_TUNE.quiet && leaveScene(now, true)) || quietBeat(now);
-  if (others && !fresh) return quietBeat(now);
-  return nextScene(fresh, true) || quietBeat(now);
+  const sh = shiftScene(now);
+  if (sh) return sh;
+  const beat = prev && prev.kind !== 'wait' && prev.kind !== 'leave' && prev.kind !== 'enter';
+  // 1) 한때가 끝나면 다 머문 사람이 일정 확률로 인사하고 나간다
+  if (beat) { const l = leaveScene(now); if (l) return l; }
+  // 2) 에이든 서빙 (낮)
+  if (prev?.kind !== 'serve') { const sv = serveScene(now); if (sv) return sv; }
+  // 3) 빈자리가 있으면 새 사람이 들어온다
+  if (canEnter(now) && Math.random() < BAR_TUNE.enter) { const e = enterScene(now); if (e) return e; }
+  // 4) 꽉 찬 채 오래 만담이 없으면 한 사람이 일어나 자리를 돌린다
+  if (isFull() && entrants().length && now - S.talkAt >= BAR_TUNE.quiet) { const l = leaveScene(now, true); if (l) return l; }
+  // 5) 한때 고르기: 만담 · 정적 · 혼잣말 · 이모티콘
+  const r = Math.random();
+  const sh2 = BAR_TUNE.share;
+  if (r < sh2.scene) { const nx = nextScene(0) || nextScene(0, true); if (nx) return nx; }
+  if (r < sh2.scene + sh2.quiet) return waitScene(now);
+  return (Math.random() < sh2.mono && monoScene(now)) || emoteScene(now) || waitScene(now);
 }
 function guestSeat(): { id: string; guest: true } {
   const pool = UNITS.filter((d) => !S.known.has(d.id) && standURL(d.id) && !d.inert && !d.noBar);
@@ -409,6 +504,12 @@ function leaveStage(id: string, now: number) {
   S.gone.add(id);
   S.enterAt = Math.max(S.enterAt, now + rand(BAR_TUNE.vacant));
 }
+/** 낮 ↔ 밤 바꾸기 */
+function setNight(night: boolean, now: number) {
+  S.night = night;
+  S.cycleAt = now + (night ? BAR_TUNE.night : BAR_TUNE.day);
+  if (night) S.aidenAt = Infinity; else S.aidenAt = 0;
+}
 /** 장면 · 혼잣말이 끝났을 때의 기록 (본 장면 · 들은 혼잣말 · 마지막 대화 시각). save = 메타에 남긴다 (모의 실행은 안 남김) */
 function finishScene(cur: Scene | null, now: number, save: boolean) {
   if (!cur) return;
@@ -416,48 +517,51 @@ function finishScene(cur: Scene | null, now: number, save: boolean) {
   else if (cur.kind === 'idle') S.session.add(`idle:${cur.idle}`);
   if (cur.mono && save) metaBar('talk', cur.mono);
   if (cur.kind === 'scene' || cur.kind === 'idle') S.talkAt = now;
+  if (cur.toNight && !cur.exit) setNight(true, now);
 }
-/** 장면 시작: 무대를 바꾸고 (새 인물이 들어오면 위쪽에 들어오는 서술), 첫 줄까지 기다릴 시간을 돌려준다.
- *  앞 장면 · 혼잣말 뒤에는 BAR_TUNE.rest 만큼 말 없이 쉰다 */
+/** 장면 시작: 무대를 바꾸고 (낮이 되면 조명 · 에이든 출근, 잔 내주기 · 치우기), 첫 줄까지 기다릴 시간을 돌려준다.
+ *  앞 장면 · 혼잣말 뒤에는 BAR_TUNE.rest 만큼 말 없이 쉰다. 무대에서는 서술 줄을 건너뛴다 (상황 줄이 없다) */
 function startScene(p: Pick, root: HTMLElement | null, prev: Scene | null = null): number {
   const now = clock.now();
+  if (p.scene.toDay) setNight(false, now);
   const before = new Set(regulars().map((s) => s.id));
   applyPlan(p.plan, now);
   const fresh = regulars().filter((s) => !before.has(s.id));
-  const enter = fresh.length ? fillText(pick(BAR_ENTER), { name: nameOf(fresh[0].id) }) : '';
-  if (fresh.length) S.enterAt = now + rand(BAR_TUNE.vacant); // 자리가 또 비어도 다음 사람은 다시 한참 뒤
-  const speak = new Set(p.scene.lines.map(([w]) => figOf(w)));
+  if (fresh.length) {
+    S.enterAt = now + rand(BAR_TUNE.vacant); // 자리가 또 비어도 다음 사람은 다시 한참 뒤
+    if (!S.night && aidenOn()) for (const s of fresh) if (Math.random() < BAR_TUNE.serve) s.cup = aidenCup(s.id, now, rand([4000, 9000]));
+  }
+  for (const [k, c] of p.scene.cups || []) { const s = S.stage.find((x) => keyOf(x) === k); if (s) s.cup = c || undefined; }
+  p.scene.lines = p.scene.lines.filter(([w]) => w);
+  const speak = new Set(p.scene.lines.filter((l) => l[3] !== 'e').map(([w]) => figOf(w)));
   for (const s of S.stage) if (speak.has(keyOf(s))) s.n++;
   S.cur = p.scene; S.li = 0;
   const rest = prev && prev.kind !== 'wait' && prev.kind !== 'leave' ? rand(BAR_TUNE.rest) : 0;
-  const silent = p.scene.kind === 'wait' && !p.scene.lines.length ? p.scene.hold || 2500 : 0;
-  if (!root) return rest + (silent || (enter ? 2600 : 1200));
-  const sit = root.querySelector<HTMLElement>('.bar-sit');
-  if (sit) sit.textContent = enter || (p.scene.sit ? `— ${p.scene.sit}` : '');
-  root.classList.toggle('late', p.scene.layer === 'r'); // 실재 층: 심야 조명
+  const silent = !p.scene.lines.length ? p.scene.hold || 2500 : 0;
+  if (!root) return rest + (silent || (fresh.length ? 2600 : 1200));
+  root.classList.toggle('night', S.night);
   const moved = syncFloor(root);
-  return rest + (silent || (enter ? 2600 : moved && !reduced() ? 1800 : 1200));
+  return rest + (silent || (moved && !reduced() ? 2000 : 1200));
 }
-/** 처음 들어올 때: 첫 장면의 출연자가 이미 앉아 있다 (혼자면 말없이 잔을 든 단원 한 명 더 — 정규 단원일 때가 많다), 자리가 있으면 에이든도 */
+/** 처음 들어올 때: 한두 사람이 이미 앉아 있다 (정규 단원일 때가 많다), 낮이면 에이든도. 잔은 이미 마시던 중일 수 있다 */
 function firstStage() {
   const now = clock.now();
-  S.stage = []; S.enterAt = 0; S.talkAt = now; S.aidenAt = 0;
-  const p = nextScene(STAGE_MAX) || waitScene(now);
-  applyPlan(p.plan, now);
-  if (regulars().length < 2 && S.stage.length < STAGE_MAX) { const e = entrants(); if (e.length) S.stage.push({ id: weighted(e, (id) => (CREW.has(id) ? 6 : 1)), since: now, n: 0 }); }
-  if (S.stage.length < STAGE_MAX && !S.stage.some((s) => s.id === 'aiden')) S.stage.unshift({ id: 'aiden', since: now, n: 0 });
+  S.stage = []; S.enterAt = 0; S.talkAt = now; S.aidenAt = S.night ? Infinity : 0;
+  if (S.cycleAt === Infinity) setNight(S.night, now);
+  const want = 1 + (Math.random() < 0.6 ? 1 : 0) + (Math.random() < 0.3 ? 1 : 0);
+  for (let i = 0; i < want; i++) { const e = entrants(); if (!e.length) break; S.stage.push({ id: weighted(e, (id) => (CREW.has(id) ? 6 : 1)), since: now, n: 0 }); }
+  if (!S.night) S.stage.unshift({ id: 'aiden', since: now, n: 0 });
+  for (const s of regulars()) if (Math.random() < 0.55) { const c = aidenCup(s.id, now, 0); c.at = now - c.dur * Math.random() * 0.7; s.cup = c; }
   S.enterAt = now + rand(BAR_TUNE.vacant);
-  const speak = new Set(p.scene.lines.map(([w]) => figOf(w)));
-  for (const s of S.stage) if (speak.has(keyOf(s))) s.n++;
-  S.cur = p.scene; S.li = 0;
+  S.cur = { key: '', sit: '', lines: [], kind: 'wait', hold: 2500 }; S.li = 0;
 }
 
 // ───────── 그리기
 /** 무대 위치 (0~1): 인원에 맞춰 가운데로 모은다 */
-const SPOTS = [[0.5], [0.3, 0.7], [0.17, 0.5, 0.83]];
-const spotOf = (i: number, n: number) => SPOTS[Math.min(Math.max(n, 1), 3) - 1][i] ?? 0.5;
+const SPOTS = [[0.5], [0.3, 0.7], [0.18, 0.5, 0.82], [0.13, 0.38, 0.62, 0.87]];
+const spotOf = (i: number, n: number) => SPOTS[Math.min(Math.max(n, 1), 4) - 1][i] ?? 0.5;
 /** 허리 위 구도: 스탠딩은 전신이라 얼굴 위치표(standface.gen.ts)로 맞춘다. 얼굴 가운데를 자리 가운데에, 턱을 칸 위에서 CHIN_AT 높이에,
- *  얼굴(눈썹~턱)을 칸 높이의 FACE_AT 로 (그림마다 얼굴 크기 · 위치가 조금씩 달라서). 칸 아래(허리)부터는 마스크로 흐려 자른다 */
+ *  얼굴(눈썹~턱)을 칸 높이의 FACE_AT 로 (그림마다 얼굴 크기 · 위치가 조금씩 달라서). 칸 아래(허리)부터는 카운터가 가린다 */
 const CHIN_AT = 0.36, FACE_AT = 0.126;
 export function figStyle(f: string) {
   const [fx, brow, chin] = STAND_FACE[f] || [0.5, 0.099, 0.152];
@@ -468,51 +572,92 @@ function seatHtml(s: Seat, x: number) {
   const f = figOf(s.id);
   const url = UNIT_BY_ID[f] ? standURL(f) : null;
   const nm = s.guest ? '낯선 손님' : nameOf(s.id);
-  const tag = `<span class="bar-tag f-ui">${esc(nm)}</span>`;
   const art = url ? `<img alt="" src="${url}" style="${figStyle(f)}" decoding="async" onerror="this.remove()">` : '<i class="bar-sil" aria-hidden="true"></i>';
-  return `<div class="bar-seat" data-seat="${keyOf(s)}" style="--x:${x}"><button class="bar-fig${s.guest ? ' is-guest' : ''}" data-a="bar-x" data-v="talk:${s.guest ? 'guest' : s.id}" aria-label="${esc(nm)}에게 말 걸기">${art}${tag}</button></div>`;
+  return `<div class="bar-seat" data-seat="${keyOf(s)}" style="--x:${x}"><button class="bar-fig${s.guest ? ' is-guest' : ''}" data-a="bar-x" data-v="talk:${s.guest ? 'guest' : s.id}" aria-label="${esc(nm)}에게 말 걸기">${art}</button><span class="bar-emo" hidden></span></div>`;
 }
-/** 무대: 인물들 + 말풍선 하나 (말풍선은 늘 인물 그림 위 층) */
-function floorHtml() { return `${S.stage.map((s, i) => seatHtml(s, spotOf(i, S.stage.length))).join('')}<div class="bar-bub" hidden></div>`; }
-/** 무대 DOM 을 S.stage 에 맞춘다: 나간 사람은 옆으로 걸어 나가고 (에이든은 카운터 뒤로), 들어온 사람은 옆에서 걸어 들어오고, 남은 사람은 자리를 고쳐 선다.
- *  움직임이 있었으면 true */
+/** 카운터 앞쪽: 그 사람의 잔(카운터 위) · 이름표(카운터 앞면) */
+function frontHtml(s: Seat, x: number) {
+  const nm = s.guest ? '낯선 손님' : nameOf(s.id);
+  return `<div class="bar-front" data-seat="${keyOf(s)}" style="--x:${x}"><button class="bar-cup" data-a="bar-x" data-v="cup:${keyOf(s)}" aria-label="${esc(nm)}의 잔" hidden></button><button class="bar-tag f-ui" data-a="bar-x" data-v="talk:${s.guest ? 'guest' : s.id}">${esc(nm)}</button></div>`;
+}
+/** 흰 테두리 (스티커처럼): 그림 알파를 넓혀 흰색으로 깔고 그 위에 원본 (원본 파일은 그대로) */
+const STICKER = '<svg class="bar-defs" width="0" height="0" aria-hidden="true"><filter id="bar-stk" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feMorphology in="SourceAlpha" operator="dilate" radius="3.5" result="d"/><feFlood style="flood-color:var(--c-white)"/><feComposite in2="d" operator="in" result="o"/><feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge></filter></svg>';
+/** 무대: 인물들 · 카운터 · 카운터 위 잔과 이름표 · 말풍선 하나 · 잔 이름 꼬리표 */
+function floorHtml() {
+  const n = S.stage.length;
+  return `${S.stage.map((s, i) => seatHtml(s, spotOf(i, n))).join('')}
+    <div class="bar-counter" aria-hidden="true" style="--tex:url('${artURL('ct_table.webp')}')"><i class="ctr-top"></i><i class="ctr-front"></i></div>
+    <div class="bar-fronts">${S.stage.map((s, i) => frontHtml(s, spotOf(i, n))).join('')}</div>
+    <div class="bar-bub" hidden></div><div class="bar-tip f-ui" hidden></div>`;
+}
+/** 카운터 위 잔을 지금 남은 양으로 다시 그린다 (남은 양이 4% 넘게 바뀌었거나 놓이고 치워질 때만) */
+function syncCups(root: HTMLElement) {
+  const now = clock.now();
+  for (const s of S.stage) {
+    const el = root.querySelector<HTMLElement>(`.bar-front[data-seat="${keyOf(s)}"]:not(.out) .bar-cup`);
+    if (!el) continue;
+    const l = cupLeft(s.cup, now);
+    if (l === null) { if (!el.hidden) { el.hidden = true; el.innerHTML = ''; delete el.dataset.l; } continue; }
+    const prevL = el.dataset.l === undefined ? null : +el.dataset.l;
+    if (prevL !== null && Math.abs(prevL - l) < 0.04 && !(l === 0 && prevL > 0) && el.dataset.d === s.cup!.d.glass + s.cup!.name) continue;
+    el.innerHTML = drinkSvg(s.cup!.d, l);
+    el.dataset.l = l.toFixed(3);
+    el.dataset.d = s.cup!.d.glass + s.cup!.name;
+    if (el.hidden) { el.hidden = false; el.classList.remove('put'); void el.offsetWidth; el.classList.add('put'); }
+  }
+}
+/** 무대 DOM 을 S.stage 에 맞춘다: 나간 사람은 옆으로 뒤뚱뒤뚱 걸어 나가고 (에이든은 카운터 뒤로), 들어온 사람은 옆에서 걸어 들어오고,
+ *  남은 사람은 자리를 고쳐 선다 (잔 · 이름표도 함께). 움직임이 있었으면 true */
 function syncFloor(root: HTMLElement): boolean {
   const fl = root.querySelector<HTMLElement>('.bar-floor');
-  if (!fl) return false;
+  const fr = root.querySelector<HTMLElement>('.bar-fronts');
+  if (!fl || !fr) return false;
   const want = S.stage.map(keyOf);
   let moved = false;
-  fl.querySelectorAll<HTMLElement>('.bar-seat:not(.out)').forEach((el) => { if (!want.includes(el.dataset.seat!)) { exitSeat(el); moved = true; } });
-  const bub = fl.querySelector('.bar-bub');
+  fl.querySelectorAll<HTMLElement>('.bar-seat:not(.out)').forEach((el) => { if (!want.includes(el.dataset.seat!)) { exitEl(el); moved = true; } });
+  fr.querySelectorAll<HTMLElement>('.bar-front:not(.out)').forEach((el) => { if (!want.includes(el.dataset.seat!)) exitEl(el); });
+  const ctr = fl.querySelector('.bar-counter');
   S.stage.forEach((s, i) => {
     const x = String(spotOf(i, S.stage.length));
-    const el = fl.querySelector<HTMLElement>(`.bar-seat[data-seat="${keyOf(s)}"]:not(.out)`);
-    if (el) { if (el.style.getPropertyValue('--x') !== x) { el.style.setProperty('--x', x); moved = true; } return; }
-    const t = document.createElement('template');
-    t.innerHTML = seatHtml(s, +x);
-    const nw = t.content.firstElementChild as HTMLElement;
-    // 옆에서 몇 걸음 걸어 들어오며 또렷해진다 (에이든은 카운터 뒤에서 올라온다 · 움직임 줄이기: 제자리에서 짧게 페이드)
-    const from = s.id === 'aiden' ? 'b' : +x < 0.5 ? 'l' : 'r';
-    nw.dataset.from = from;
-    nw.classList.add('off');
-    if (from !== 'b' && !reduced()) nw.style.setProperty('--x', String(+x + (from === 'l' ? -0.14 : 0.14)));
-    fl.insertBefore(nw, bub);
-    moved = true;
-    void nw.offsetWidth;
-    nw.classList.remove('off');
-    nw.style.setProperty('--x', x);
+    for (const [box, sel, html, before] of [[fl, '.bar-seat', seatHtml, ctr], [fr, '.bar-front', frontHtml, null]] as const) {
+      const el = box.querySelector<HTMLElement>(`${sel}[data-seat="${keyOf(s)}"]:not(.out)`);
+      if (el) { if (el.style.getPropertyValue('--x') !== x) { walk(el); el.style.setProperty('--x', x); moved = true; } continue; }
+      const t = document.createElement('template');
+      t.innerHTML = html(s, +x);
+      const nw = t.content.firstElementChild as HTMLElement;
+      // 옆에서 몇 걸음 뒤뚱거리며 걸어 들어온다 (에이든은 카운터 뒤에서 올라온다 · 움직임 줄이기: 제자리에서 짧게 페이드)
+      const from = s.id === 'aiden' ? 'b' : +x < 0.5 ? 'l' : 'r';
+      nw.dataset.from = from;
+      nw.classList.add('off');
+      if (from !== 'b' && !reduced()) nw.style.setProperty('--x', String(+x + (from === 'l' ? -0.14 : 0.14)));
+      box.insertBefore(nw, before);
+      moved = true;
+      void nw.offsetWidth;
+      if (from !== 'b') walk(nw);
+      nw.classList.remove('off');
+      nw.style.setProperty('--x', x);
+    }
   });
   fl.dataset.n = String(S.stage.length);
+  syncCups(root);
   return moved;
 }
-/** 나가는 사람: 가까운 쪽으로 몇 걸음 걸어가며 천천히 흐려진다 (에이든은 카운터 뒤로 내려가며). 움직임 줄이기 설정이면 제자리에서 짧게 흐려진다.
- *  흐려짐이 끝난 뒤에 지운다 (transitionend, 늦어도 2.8초) */
-function exitSeat(el: HTMLElement) {
+/** 걷는 동안 뒤뚱거림 (프레임 낮게 좌우로 기우뚱 — 20-bar.css .walk) */
+function walk(el: HTMLElement, ms = 1700) {
+  if (reduced()) return;
+  el.classList.add('walk');
+  clearTimeout(+(el.dataset.wt || 0));
+  el.dataset.wt = String(window.setTimeout(() => el.classList.remove('walk'), ms));
+}
+/** 나가는 사람 (잔 · 이름표도): 가까운 쪽으로 몇 걸음 뒤뚱거리며 걸어가며 흐려진다 (에이든은 카운터 뒤로 내려가며).
+ *  움직임 줄이기 설정이면 제자리에서 짧게 흐려진다. 흐려짐이 끝난 뒤에 지운다 (transitionend, 늦어도 2.8초) */
+function exitEl(el: HTMLElement) {
   el.classList.remove('talking');
   el.classList.add('out');
   const x = parseFloat(el.style.getPropertyValue('--x')) || 0.5;
   const to = el.dataset.seat === 'aiden' ? 'b' : x < 0.5 ? 'l' : 'r';
   el.dataset.from = to;
-  if (to !== 'b' && !reduced()) el.style.setProperty('--x', String(x + (to === 'l' ? -0.14 : 0.14)));
+  if (to !== 'b' && !reduced()) { walk(el, 2400); el.style.setProperty('--x', String(x + (to === 'l' ? -0.14 : 0.14))); }
   el.classList.add('off');
   let done = false;
   const rm = () => { if (!done) { done = true; el.remove(); } };
@@ -529,7 +674,7 @@ const PLACES: { id: string; box: [number, number, number, number] }[] = [
 ];
 export function barScreen(): string {
   S.known = knownSet();
-  if (!S.stage.length) firstStage();
+  if (!S.stage.length && !S.cur) firstStage();
   resumeCache.t = -Infinity; // 바를 그릴 때는 저장을 새로 읽는다 (페이지를 연 직후 비어 있던 값이 남아 '이어서 출격'이 빠지던 것)
   const res = resumeInfo();
   const auto = listSaves().find((x) => x.slot === 'auto');
@@ -540,13 +685,13 @@ export function barScreen(): string {
   /** 세로 띠의 한 줄: 가리키면 그 사물(장소)이 밝아진다 */
   const line = (p: string, act: string, label: string, sub = '', extra = '') =>
     `<button class="bn${p === 'counter' && !extra.includes('data-sub') ? ' pri' : ''}" data-p="${p}" data-a="${act}"${extra}><b>${label}</b>${sub ? `<small class="f-num">${sub}</small>` : ''}</button>`;
-  return `<main class="bar${S.cur?.layer === 'r' ? ' late' : ''}" aria-label="에란테스 바">
+  return `<main class="bar${S.night ? ' night' : ''}" aria-label="에란테스 바">
     <div class="bar-scene">
       <div class="bar-bg" style="background-image:url('${bgURL('erantes_bar')}')"></div>
       ${PLACES.map((p) => `<i class="bar-glow" data-p="${p.id}" style="--x0:${p.box[0]};--y0:${p.box[1]};--x1:${p.box[2]};--y1:${p.box[3]}" aria-hidden="true"></i>`).join('')}
       ${barShowcaseHtml()}
     </div>
-    <div class="bar-shade"></div><div class="lp-grain" aria-hidden="true"></div>
+    <div class="bar-shade"></div><div class="lp-grain" aria-hidden="true"></div>${STICKER}
     <aside class="bar-nav" aria-label="바 둘러보기">
       <svg class="lp-stars" viewBox="0 0 120 40" aria-hidden="true"><circle cx="14" cy="22" r="1.2"/><circle cx="38" cy="9" r=".9"/><circle cx="61" cy="27" r="1.5"/><circle cx="84" cy="12" r=".9"/><circle cx="106" cy="24" r="1.1"/></svg>
       <h1 lang="la" aria-label="에란테스 바">Errantes</h1>
@@ -560,10 +705,9 @@ export function barScreen(): string {
       </nav>
       <span class="est">ERRANTES</span>
     </aside>
-    <header class="bar-top"><h1>에란테스 바</h1><p class="bar-sit f-ui" aria-live="polite">${S.cur?.sit ? `— ${esc(S.cur.sit)}` : ''}</p></header>
     <div class="bar-floor" data-n="${S.stage.length}">${floorHtml()}</div>
     <button class="bar-door lp-btn" data-a="to-title">타이틀 ›</button>
-    <p class="bar-hint muted small">인물을 누르면 말을 겁니다. 빈 곳을 누르면 다음 대사로.</p>
+    <p class="bar-hint muted small">인물을 누르면 말을 겁니다. 잔을 누르면 무슨 음료인지 보입니다.</p>
   </main>`;
 }
 
@@ -573,43 +717,55 @@ function stop() { clearTimeout(S.timer); S.timer = 0; }
 function schedule(ms: number) { clearTimeout(S.timer); S.timer = window.setTimeout(tick, ms); }
 function hideBub(root: HTMLElement) {
   const bub = root.querySelector<HTMLElement>('.bar-bub');
-  if (bub) { bub.hidden = true; bub.classList.remove('on'); }
+  if (bub) { bub.hidden = true; bub.classList.remove('on', 'mono'); }
   root.querySelectorAll('.bar-seat.talking').forEach((s) => s.classList.remove('talking'));
 }
-/** 지금 줄을 보여 주고 보여 줄 시간을 돌려준다: 서술은 위쪽 상황 줄, 무대에 선 사람은 그 머리 위 말풍선, 무대 밖(레이첼)은 아래쪽 말풍선 */
-/** 한 줄을 보여 주는 시간: 서술은 짧게, 대사는 글자 수에 맞춰 (대기 서술은 대기 시간만큼) */
-function lineMs(sc: Scene, [who, text]: Line) {
-  if (!who) { const ms = Math.min(5000, Math.max(1800, 900 + [...text].length * 55)); return sc.kind === 'wait' ? Math.max(ms, sc.hold || 0) : ms; }
-  return Math.min(6000, Math.max(2200, 1300 + [...text].length * 70));
+function hideEmotes(root: HTMLElement) { root.querySelectorAll<HTMLElement>('.bar-emo').forEach((e) => { e.hidden = true; e.classList.remove('on'); }); }
+/** 한 줄을 보여 주는 시간: 대사는 글자 수에 맞춰 · 혼잣말은 조금 짧게 · 이모티콘은 주고받으면 첫 그림 뒤 잠깐, 마지막 그림은 길게 */
+function lineMs(sc: Scene, [who, text, , k]: Line, last = true) {
+  if (k === 'e') return last ? 3800 : 1300;
+  if (!who) return Math.min(5000, Math.max(1800, 900 + [...text].length * 55));
+  return Math.min(6000, Math.max(k === 'm' ? 2400 : 2200, 1300 + [...text].length * (k === 'm' ? 62 : 70)));
 }
+/** 지금 줄을 보여 주고 보여 줄 시간을 돌려준다: 무대에 선 사람은 그 머리 위 말풍선 (이모티콘은 머리 옆 작은 말풍선), 무대 밖(레이첼)은 아래쪽 말풍선 */
 function showLine() {
   const root = document.querySelector<HTMLElement>(BAR_SEL);
   if (!root || !S.cur) return 0;
-  hideBub(root);
-  const [who, text, nm] = S.cur.lines[S.li];
-  const sitEl = root.querySelector<HTMLElement>('.bar-sit');
-  if (!who) {
-    if (sitEl) sitEl.textContent = text;
-    return lineMs(S.cur, S.cur.lines[S.li]);
-  }
-  if (sitEl && S.cur.sit) sitEl.textContent = `— ${S.cur.sit}`;
+  const ln = S.cur.lines[S.li];
+  const [who, text, nm, kind] = ln;
+  const last = S.li === S.cur.lines.length - 1;
   const k = figOf(who);
+  const seat = k === 'rachel' ? null : root.querySelector<HTMLElement>(`.bar-seat[data-seat="${k}"]:not(.out)`);
+  if (kind === 'e') {
+    const emo = seat?.querySelector<HTMLElement>('.bar-emo');
+    if (emo && EMOTE_IDS.has(text)) {
+      emo.innerHTML = emoteSvg(text as EmoteId);
+      emo.dataset.e = text;
+      emo.hidden = false;
+      emo.classList.remove('on'); void emo.offsetWidth; emo.classList.add('on');
+    }
+    return lineMs(S.cur, ln, last);
+  }
+  hideBub(root);
+  hideEmotes(root);
   const i = k === 'rachel' ? -1 : S.stage.findIndex((s) => keyOf(s) === k);
-  const seat = i >= 0 ? root.querySelector<HTMLElement>(`.bar-seat[data-seat="${k}"]:not(.out)`) : null;
   const bub = root.querySelector<HTMLElement>('.bar-bub');
   if (!bub) return 0;
   bub.innerHTML = `<b class="f-ui" style="--c:${colorOf(who)}">${esc(nm || nameOf(who))}</b><span>${esc(text)}</span>`;
   bub.classList.toggle('off-stage', !seat);
+  bub.classList.toggle('mono', kind === 'm');
   bub.style.setProperty('--x', String(seat ? spotOf(i, S.stage.length) : 0.5));
   bub.hidden = false;
   seat?.classList.add('talking');
   if (!reduced()) { void bub.offsetWidth; bub.classList.add('on'); }
-  return lineMs(S.cur, S.cur.lines[S.li]);
+  return lineMs(S.cur, ln, last);
 }
+const EMOTE_IDS = new Set<string>(['dots', 'excl', 'q', 'note', 'heart', 'anger', 'sweat', 'zzz', 'idea', 'yum', 'cheers', 'drunk', 'sparkle']);
 function tick() {
   const root = document.querySelector<HTMLElement>(BAR_SEL);
   if (!root) { stop(); return; }
   if (advKey()) { schedule(700); return; } // 말 거는 중에는 멈춘다
+  syncCups(root);
   if (!S.cur || S.li >= S.cur.lines.length) { endScene(root); return; }
   const ms = showLine();
   S.li++;
@@ -618,12 +774,13 @@ function tick() {
 function endScene(root: HTMLElement) {
   const cur = S.cur;
   hideBub(root);
+  hideEmotes(root);
   finishScene(cur, clock.now(), true);
-  if (cur?.exit) { // 인사를 마친 사람이 걸어 나가며 흐려진다 → 빈자리 (에이든은 카운터 뒤로)
+  if (cur?.exit) { // 인사를 마친 사람이 뒤뚱뒤뚱 걸어 나가며 흐려진다 → 빈자리 (에이든은 카운터 뒤로 — 퇴근이면 그 뒤 밤)
     leaveStage(cur.exit, clock.now());
+    if (cur.toNight) setNight(true, clock.now());
+    root.classList.toggle('night', S.night);
     S.cur = null; S.li = 0;
-    const sit = root.querySelector<HTMLElement>('.bar-sit');
-    if (sit) sit.textContent = '';
     syncFloor(root);
     schedule(EXIT_MS);
     return;
@@ -633,8 +790,9 @@ function endScene(root: HTMLElement) {
 /** 퇴장 뒤 다음 일까지 (걸어 나가며 흐려지는 동안) */
 const EXIT_MS = 2400;
 const testHook = globalThis as unknown as Record<string, unknown>;
-/** 확인용 (주소에 ?bartest): 특정 틀을 정한 끼어들기로 바로 재생 · 입퇴장 시간 바꾸기 · 무대 상태 보기.
- *  window.__barFrame('g01', ['temur']) · window.__barTune({ leave: { crew: 1, other: 1, aiden: 0 }, stay: { crew: 0, other: 0, aiden: 0 }, vacant: [1500, 2500] }) · window.__barState() */
+/** 확인용 (주소에 ?bartest): 특정 틀을 정한 끼어들기로 바로 재생 · 박자 바꾸기 · 무대 상태 보기 · 낮밤 바꾸기.
+ *  window.__barFrame('g01', ['temur']) · window.__barTune({ day: 20000 }) · window.__barState() · window.__barNight(true) · window.__barCup('temur', 'milkpint', .5)
+ *  · window.__barPlay([['temur', 'yum', null, 'e'], ['aiden', 'note', null, 'e']]) (이모티콘 · 혼잣말 'm' · 대사를 바로) */
 if (typeof location !== 'undefined' && location.search.includes('bartest')) {
   testHook.__barFrame = (id: string, ints: string[]) => {
     const f = FRAMES.find((x) => x.id === id);
@@ -643,13 +801,16 @@ if (typeof location !== 'undefined' && location.search.includes('bartest')) {
     const sc = buildFrame({ ...f, slots: f.slots.map((sl, i) => (ints[i] && sl[ints[i]] ? { [ints[i]]: sl[ints[i]] } : {})) }, here, here);
     const now = clock.now();
     S.stage = needOf([...f.cast, ...ints]).slice(0, STAGE_MAX).map((k) => (k === 'guest' ? { ...guestSeat(), since: now, n: 0 } : { id: k, since: now, n: 0 }));
-    S.cur = sc; S.li = 0;
+    S.cur = { ...sc, lines: sc.lines.filter(([w]) => w) }; S.li = 0;
     const root = document.querySelector<HTMLElement>(BAR_SEL);
-    if (root) { syncFloor(root); root.classList.toggle('late', f.layer === 'r'); }
+    if (root) syncFloor(root);
     stop(); tick();
   };
   testHook.__barTune = (t: Partial<typeof BAR_TUNE>) => Object.assign(BAR_TUNE, t);
-  testHook.__barState = () => ({ stage: S.stage.map(keyOf), kind: S.cur?.kind, key: S.cur?.key || S.cur?.mono, li: S.li, enterIn: Math.round(S.enterAt - clock.now()) });
+  testHook.__barPlay = (lines: Line[]) => { S.cur = { key: '', sit: '', lines, kind: 'emote' }; S.li = 0; stop(); tick(); };
+  testHook.__barState = () => ({ stage: S.stage.map(keyOf), night: S.night, kind: S.cur?.kind, key: S.cur?.key || S.cur?.mono, li: S.li, enterIn: Math.round(S.enterAt - clock.now()), cycleIn: Math.round(S.cycleAt - clock.now()), cups: S.stage.map((s) => [keyOf(s), s.cup?.name, cupLeft(s.cup, clock.now())]) });
+  testHook.__barNight = (n: boolean) => { setNight(n, clock.now()); if (n) S.stage = S.stage.filter((s) => s.id !== 'aiden'); const root = document.querySelector<HTMLElement>(BAR_SEL); if (root) { root.classList.toggle('night', n); syncFloor(root); } };
+  testHook.__barCup = (k: string, recipe: string, left = 1) => { const s = S.stage.find((x) => keyOf(x) === k); const r = RECIPE_BY_ID[recipe]; if (s && r) { s.cup = { d: r, name: r.name, by: 'aiden', at: clock.now() - (1 - left) * 200_000, dur: 200_000, alc: false }; const root = document.querySelector<HTMLElement>(BAR_SEL); if (root) syncCups(root); } };
 }
 /** 화면을 그린 뒤 (render 끝): 말풍선 진행을 이어 간다 */
 export function barMount() {
@@ -672,28 +833,54 @@ export function barMount() {
       });
     }
   }
+  syncCups(root);
   // 다시 그려졌으면 지금 줄부터 다시 보여 준다
   if (S.li > 0) S.li--;
   schedule(S.timer ? 300 : 900);
 }
 /** 다음 대사로 넘기기 */
 function barNext() { if (!advKey()) { stop(); tick(); } }
-/** 바에 들어올 때: 자리를 새로 채운다 */
-export function barEnter() { stop(); S.stage = []; S.cur = null; S.li = 0; S.session.clear(); S.gone.clear(); S.enterAt = 0; S.aidenAt = 0; S.monoAt = -Infinity; S.monoUsed.clear(); resumeCache.t = 0; }
+/** 바에 들어올 때: 자리를 새로 채운다 (런을 마치고 돌아오면 밤, 아니면 낮) */
+export function barEnter() {
+  stop(); S.stage = []; S.cur = null; S.li = 0; S.session.clear(); S.gone.clear(); S.enterAt = 0; S.aidenAt = 0; S.monoAt = -Infinity; S.monoUsed.clear(); resumeCache.t = 0;
+  S.night = nightNext; nightNext = false; S.cycleAt = Infinity;
+}
+/** 런 결과 화면에서 바로 돌아갈 때 (다음 바 방문은 밤) */
+export function barAfterRun() { nightNext = true; }
+/** 잔 이름 꼬리표: 그 잔 위에 잠깐 떴다 사라진다 */
+let tipTimer = 0;
+function showTip(k: string) {
+  const root = document.querySelector<HTMLElement>(BAR_SEL);
+  const s = S.stage.find((x) => keyOf(x) === k);
+  const tip = root?.querySelector<HTMLElement>('.bar-tip');
+  const i = S.stage.findIndex((x) => keyOf(x) === k);
+  if (!root || !s?.cup || !tip || cupLeft(s.cup, clock.now()) === null) return;
+  const l = cupLeft(s.cup, clock.now())!;
+  tip.textContent = l > 0 ? s.cup.name : `${s.cup.name} (빈 잔)`;
+  tip.style.setProperty('--x', String(spotOf(i, S.stage.length)));
+  tip.hidden = false;
+  tip.classList.remove('on'); void tip.offsetWidth; tip.classList.add('on');
+  clearTimeout(tipTimer);
+  tipTimer = window.setTimeout(() => { tip.hidden = true; }, 2200);
+}
 
 /** 검사용 (tests/bar_check.ts): 화면 없이 구경 모드를 n 단계 돌린 기록. known = 해금된 단원. 시간은 화면과 같은 규칙 (줄마다 lineMs · 첫 줄까지 · 퇴장) */
-export function barSimulate(n: number, known: string[]) {
-  type Rec = { t: number; kind: string; key: string; stage: string[]; add: string[]; drop: string[]; exit?: string; speakers: string[]; mono?: string };
+export function barSimulate(n: number, known: string[], night = false) {
+  type Rec = { t: number; kind: string; key: string; stage: string[]; add: string[]; drop: string[]; exit?: string; speakers: string[]; emotes: string[]; mono?: string; night: boolean; cups: number; vis: number };
   const log: Rec[] = [];
   const real = clock.now;
   let t = 0;
   clock.now = () => t;
   const rec = (kind: string, plan?: Plan, exit?: string) => log.push({
-    t, kind, key: S.cur?.key || '', stage: S.stage.map(keyOf), add: plan?.add || [], drop: plan?.drop || [], exit, mono: exit ? undefined : S.cur?.mono,
-    speakers: exit ? [] : [...new Set((S.cur?.lines || []).map(([w]) => figOf(w)).filter((w) => w && w !== 'rachel'))],
+    t, kind, key: S.cur?.key || '', stage: S.stage.map(keyOf), add: plan?.add || [], drop: plan?.drop || [], exit, mono: exit ? undefined : S.cur?.mono, night: S.night,
+    speakers: exit ? [] : [...new Set((S.cur?.lines || []).filter((l) => l[3] !== 'e').map(([w]) => figOf(w)).filter((w) => w && w !== 'rachel'))],
+    emotes: exit ? [] : (S.cur?.lines || []).filter((l) => l[3] === 'e').map(([w]) => figOf(w)),
+    cups: S.stage.filter((s) => cupLeft(s.cup, t) !== null).length,
+    vis: exit || !S.cur ? 0 : S.cur.lines.reduce((a, l, j) => a + lineMs(S.cur!, l, j === S.cur!.lines.length - 1), 0), // 말풍선 · 이모티콘이 떠 있는 시간
   });
   try {
     barEnter();
+    S.night = night;
     S.known = new Set([...BASE, ...known]);
     if (S.known.has('joshua')) S.known.add('cesare');
     firstStage();
@@ -701,14 +888,14 @@ export function barSimulate(n: number, known: string[]) {
     t += 1500;
     for (let i = 0; i < n; i++) {
       const cur = S.cur!;
-      t += cur.lines.reduce((a, l) => a + lineMs(cur, l), 0);
+      t += cur.lines.reduce((a, l, j) => a + lineMs(cur, l, j === cur.lines.length - 1), 0) + (cur.lines.length ? 0 : 0);
       finishScene(cur, t, false);
-      if (cur.exit) { leaveStage(cur.exit, t); rec('exit', undefined, cur.exit); t += EXIT_MS; }
+      if (cur.exit) { leaveStage(cur.exit, t); if (cur.toNight) setNight(true, t); rec('exit', undefined, cur.exit); t += EXIT_MS; }
       const prev = cur.exit ? null : cur;
       const p = decide(prev);
       const wait = startScene(p, null, prev);
       rec(p.scene.kind, p.plan);
-      t += wait; // 첫 줄까지 (말 없는 대기는 대기 시간 전체)
+      t += wait; // 첫 줄까지 (말 없는 한때는 그 길이 전체)
     }
   } finally { clock.now = real; barEnter(); }
   return log;
@@ -846,6 +1033,7 @@ export function barAct(v: string): boolean {
   if (k === 'talk' && id) { stop(); talk(id); return false; }
   if (k === 'log') { if (!awayPool().length && !loadMeta().bar?.last) return false; stop(); playLog(); return false; } // 의뢰를 한 번 마치기 전에는 열리지 않는다 (창가 명판이 흐림)
   if (k === 'next') { barNext(); return false; }
+  if (k === 'cup' && id) { showTip(id); return false; }
   return false;
 }
 /** 다른 화면이 열 때 바 장면이 떠 있으면 닫는다 */

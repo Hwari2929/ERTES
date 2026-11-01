@@ -101,6 +101,7 @@
 | [`SPECIAL_AUGS_DRAFT.md`](SPECIAL_AUGS_DRAFT.md) | 특수군 전용 증강 (기물당 8종) 초안 | 폐기 (지금은 메이저 전용 증강 14종) |
 | [`FIELDS_DRAFT.md`](FIELDS_DRAFT.md) | 신규 전장 15곳 제안 (기획 배경) | 초안. 지금 전장 13곳은 `src/data/battlefields.ts` |
 | [`TUTORIAL_DRAFT.md`](TUTORIAL_DRAFT.md) | 튜토리얼 「당직 근무 중 승계」 설계 | 구현됨. 현행은 GDD 12.1 · `src/engine/tutorial.ts` · `src/data/scenes/tutorial.ts` |
+| [`BAR_OPS.md`](BAR_OPS.md) | 에란테스 바 운영 기획: 주문 → 제조대(재료 16 + 분말 3 · 잔 6 · 얼음 · 가니쉬 10) → 내주기 → 술값 · 팁 코인, 맛 축 · 주문 4방식 · 손님 표 | 기획 초안 (2026-11-01). 무대 · 카운터 · 잔 그림 · 낮밤은 구현됨 (GDD 2.1 · `src/data/bar/drinks.ts`), 운영은 확인 뒤 구현 |
 | [`TTYPE_REWORK_DRAFT.md`](TTYPE_REWORK_DRAFT.md) | 전술 유형 개편: 스페셜 폐지 (디바인 5 · 사이오닉 4 · 메이저 6) · 디바인 봉헌 · 축성 · 제례 · 나눔 설계와 결정 사항 25개 | 디바인 부분 구현됨 (2026-10-31, 사용자 결정은 GDD 10절 · 변경 이력). 사이오닉 4명 · 메이저 6명 · 스페셜 제거는 남음 |
 | [`SKILL_SPLIT_CHANGES.md`](../SKILL_SPLIT_CHANGES.md) | 스킬 한쪽 원칙 정리 작업의 변경 내역 (2026-10-15) | 원칙은 현행 (GDD 4.1), 표의 수치 · 문구는 그때 값 |
 | [`drafts/연합 캠페인 방향.md`](../drafts/연합%20캠페인%20방향.md) · [`drafts/연합 캠페인 아크.md`](../drafts/연합%20캠페인%20아크.md) | 연합 캠페인 줄거리 방향 · 이야기 장치 메모 | 미확정 제안 |

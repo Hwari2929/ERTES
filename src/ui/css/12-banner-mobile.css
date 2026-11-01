@@ -207,3 +207,14 @@
 .cx-syn-ic svg { width: 20px; height: 20px; }
 @media (max-width: 860px) { .cx-wrap { grid-template-columns: minmax(0, 1fr); } .cx-detail { position: static; max-height: none; order: 0; } }
 
+
+/* 휴대폰 세로 화면: 가로로 돌려 달라는 첫 화면 (src/index.html .rotate-ask). 모바일 세로는 정식 지원하지 않는다 — 가로로 돌리면 바로 사라진다 */
+.rotate-ask { display: none; }
+@media (orientation: portrait) and (max-width: 700px) and (pointer: coarse) {
+  .rotate-ask { position: fixed; inset: 0; z-index: var(--z-toast); display: grid; place-content: center; justify-items: center; gap: 10px; padding: 24px; text-align: center; background: var(--lp-navy); color: var(--lp-cw); }
+  .rotate-ask svg { width: 96px; height: 96px; fill: none; stroke: var(--lp-au); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .rotate-ask svg .to { stroke-dasharray: 3 3; }
+  .rotate-ask b { font: 700 var(--fs-lg)/1.4 var(--f-serif); letter-spacing: .14em; }
+  .rotate-ask small { font-size: var(--fs-sm); opacity: .75; }
+  #app { visibility: hidden; }
+}

@@ -31,6 +31,7 @@ export const LEGACY: Record<string, string> = {
 };
 /** JS(src/app/* · battleview.ts 등)가 style="--x:…" / setProperty('--x') 로 주입하는 변수 */
 export const JS_VARS = ['--cols', // app/map.ts routeGraph: 분기 항로 지도 칸 수
+  '--tex', // ui/bar.ts 카운터 나무결 그림 (artURL)
   '--rot-bp', '--fc', '--gx', '--gy', '--gs', '--tx', '--ty', '--tw', '--nx', '--ny', '--nw', '--ns', '--ox', '--oy', '--ow', '--oh', '--oz', '--rot-mn', '--rot-pr', '--rot-rd', '--rot-ls', '--el', '--d', '--sw-el', // ui/contract.ts: 도면 · 차림표가 놓인 각도
  
   '--c', '--sc', '--h', '--w', '--fw', '--fh', '--ox', '--oy', '--i', '--x', '--y', '--s', '--d', '--n', '--o', '--p', '--v', '--mx', '--my', '--hc', '--top-h', '--a', '--k', '--dl', '--oi-r', '--from', // app/pilgrim.ts: 봉헌 게이지가 차오르기 시작하는 자리

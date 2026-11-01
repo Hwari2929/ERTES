@@ -602,8 +602,9 @@ export function act(a: string, v: string) {
     case 'oath-back': app.screen = 'title'; break;
     case 'oath-set': case 'oath-clear': OATH.oathAct(a, v); break;
     case 'oath-info': { const t = OATH.oathToast(run); if (t) toast(t); if (t && app.screen === 'map') setMapTab(1); return; }
-    case 'ret-bar': // 런 결과 → 에란테스 바: 태블릿 화면에서 줌 아웃해 테이블로 빠져나온 뒤 바로 (ui/contract.ts contractReturn)
+    case 'ret-bar': // 런 결과 → 에란테스 바: 태블릿 화면에서 줌 아웃해 테이블로 빠져나온 뒤 바로 (ui/contract.ts contractReturn). 의뢰를 마친 밤이다
       if (app.view) { app.view.destroy(); app.view = null; }
+      BAR.barAfterRun();
       Object.assign(app, { run: null, menu: null, summary: null, sel: null, bigUnit: null, abilPop: null, statPop: false, introFoe: null });
       CTR.contractReturn(); app.screen = 'contract'; break;
     case 'bar': // 에란테스 바: 진행 중인 런은 자동 저장해 두고 나온다 (바에서 '이어서 출격')
@@ -892,8 +893,11 @@ hot?.snapshot?.(() => ({ run: app.run }));
 function boot(data: unknown) {
   const r = (data as { run?: RunState } | null)?.run;
   if (r) { app.run = r; goPrepOrMap(); }
+  else if (barHome()) { app.screen = 'bar'; BAR.barEnter(); } // 접속하면 바로 에란테스 바 (처음 온 사람은 튜토리얼이 있는 타이틀)
   render();
 }
+/** 바가 첫 화면인가: 튜토리얼을 봤거나 런을 한 번이라도 했으면 */
+function barHome() { const m = loadMeta(); return !!(m.tut?.done || m.tut?.seen?.length || m.runs); }
 loadArtPack();
 if (hot?.ready) hot.ready(boot); else boot(hot?.data ?? null);
 void activeTiers;

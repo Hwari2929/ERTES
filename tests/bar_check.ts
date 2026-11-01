@@ -102,16 +102,16 @@ const ROSTERS: [string, string[]][] = [
   ['없음', []],
 ];
 const CREW = new Set(ERANTES_CREW);
-const sim = { steps: 0, entries: 0, joins: 0, leaves: 0, waits: 0, idle: 0, mono: 0 };
+const sim = { steps: 0, entries: 0, joins: 0, leaves: 0, waits: 0, idle: 0, mono: 0, emotes: 0, scenes: 0, nights: 0 };
 /** 시간 지표 (명단별): 단원 체류 · 퇴장 사이 간격 · 정규 단원 비율(에이든 · 손님 뺀 단원 시간 중) · 에이든 무대 비율 */
-const metric = (label: string) => ({ label, stay: [] as number[], gap: [] as number[], crewT: 0, unitT: 0, aidenT: 0, totT: 0 });
+const metric = (label: string) => ({ label, stay: [] as number[], gap: [] as number[], crewT: 0, unitT: 0, aidenT: 0, totT: 0, kindT: {} as Record<string, number> });
 const metrics: ReturnType<typeof metric>[] = [];
 for (const [label, ids] of ROSTERS) {
   const s0 = { ...sim };
   const mt = metric(label);
   metrics.push(mt);
   for (let run = 0; run < 3; run++) {
-    const log = barSimulate(300, ids);
+    const log = barSimulate(300, ids, run === 2); // 3번째는 밤에서 시작 (런을 마치고 돌아온 바)
     let lastChange = log[0].t;
     let lastExit = -1;
     let prev = new Set(log[0].stage);
@@ -122,9 +122,16 @@ for (const [label, ids] of ROSTERS) {
       const dt = (log[i + 1]?.t ?? r.t) - r.t;
       const regs = r.stage.filter((k) => k !== 'aiden' && k !== 'guest');
       mt.totT += dt; if (r.stage.includes('aiden')) mt.aidenT += dt;
+      const kk = r.kind === 'idle' || r.kind === 'scene' ? '만담' : r.kind === 'emote' ? '이모티콘' : r.kind === 'mono' ? '혼잣말' : '그 밖의 말'; // 말풍선이 떠 있는 시간만, 나머지는 정적
+      if (r.vis) mt.kindT[kk] = (mt.kindT[kk] || 0) + Math.min(r.vis, dt);
       for (const k of regs) { mt.unitT += dt; if (CREW.has(k)) mt.crewT += dt; if (since[k] === undefined) since[k] = r.t; }
       if (r.stage.length > STAGE_MAX) errs.push(`${at}: 무대 ${r.stage.length}명`);
-      if (!r.stage.length) errs.push(`${at}: 무대가 비었음`);
+      if (!r.stage.length && !r.night && ids.length) errs.push(`${at}: 낮인데 무대가 비었음`); // 밤에는 레이첼 혼자일 수 있다
+      if (r.night && r.stage.includes('aiden') && r.kind !== 'leave') errs.push(`${at}: 밤인데 에이든이 무대에 있음 (낮에만 출근)`);
+      for (const e of r.emotes) if (!r.stage.includes(e)) errs.push(`${at}: 이모티콘 ${e} 가 무대에 없음`);
+      if (r.night) sim.nights++;
+      if (r.kind === 'emote') sim.emotes++;
+      if (r.kind === 'scene' || r.kind === 'idle') sim.scenes++;
       if (r.stage.includes('rachel')) errs.push(`${at}: 레이첼이 무대에 섰음`);
       for (const sp of r.speakers) if (!r.stage.includes(sp)) errs.push(`${at}: 말하는 ${sp} 가 무대에 없음 (${r.key})`);
       const fresh = r.stage.filter((k) => !prev.has(k) && k !== 'aiden' && k !== 'guest');
@@ -163,8 +170,12 @@ for (const [label, ids] of ROSTERS) {
   if (process.argv?.includes('--stage')) console.log(`  ${label}: ${Object.entries(sim).map(([k, v]) => `${k} ${v - s0[k as keyof typeof sim]}`).join(' · ')}`);
 }
 const avgS = (a: number[]) => (a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length / 1000) : 0);
-console.log(`무대 모의 실행 ${sim.steps}단계: 입장 ${sim.entries} (합류 장면 ${sim.joins}) · 퇴장 ${sim.leaves} · 대기 ${sim.waits} · 혼잣말 ${sim.mono} · 바텐더와 손님 ${sim.idle}`);
-for (const m of metrics.slice(0, 2)) console.log(`  ${m.label}: 단원 평균 체류 ${avgS(m.stay)}초 · 퇴장 간격 ${avgS(m.gap)}초 · 정규 단원 비율 ${Math.round((m.crewT / (m.unitT || 1)) * 100)}% · 에이든 무대 ${Math.round((m.aidenT / (m.totT || 1)) * 100)}%`);
+console.log(`무대 모의 실행 ${sim.steps}단계: 입장 ${sim.entries} (합류 장면 ${sim.joins}) · 퇴장 ${sim.leaves} · 만담 ${sim.scenes} (바텐더와 손님 ${sim.idle}) · 정적 ${sim.waits} · 혼잣말 ${sim.mono} · 이모티콘 ${sim.emotes} · 밤 ${sim.nights}단계`);
+for (const m of metrics.slice(0, 2)) {
+  console.log(`  ${m.label}: 단원 평균 체류 ${avgS(m.stay)}초 · 퇴장 간격 ${avgS(m.gap)}초 · 정규 단원 비율 ${Math.round((m.crewT / (m.unitT || 1)) * 100)}% · 에이든 무대 ${Math.round((m.aidenT / (m.totT || 1)) * 100)}%`);
+  const talk = Object.values(m.kindT).reduce((a, b) => a + b, 0);
+  console.log(`    시간 비율 (화면에 떠 있는 동안): ${Object.entries(m.kindT).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${Math.round((v / (m.totT || 1)) * 100)}%`).join(' · ')} · 정적 ${Math.round((1 - talk / (m.totT || 1)) * 100)}%`);
+}
 const askN = Object.keys(ASK).length, askDeep = Object.values(ASK).filter((a) => a.past[2]).length;
 console.log(`물어보기: ${askN}명 × 질문 ${ASK_Q.length}개 (실재 층 답 ${askDeep}명)`);
 const lay = (xs: { layer: string }[]) => ['s', 'i', 'r'].map((k) => xs.filter((x) => x.layer === k).length).join(' / ');

@@ -1,0 +1,180 @@
+// 에란테스 바 음료: 재료 · 가니쉬 · 잔 · 얼음 · 이름 있는 메뉴(에이든 공략집) · 단골 메뉴.
+// 기획: docs/BAR_OPS.md. 재료는 세계관 음료 모음(사용자 제공)에서 골랐고, 맛 수치 · 메뉴 · 단골은 [임시] (확인받기 전).
+// 맛 축 3개는 더해서 센다 (잔이 클수록 진해진다): 당도 (음수 = 쓴맛) · 강도 (알코올) · 농도 (음수 = 청량). 향 · 산미는 태그.
+// 얼음은 맛을 바꾸지 않는다 (없음 · 온더록 · 프로즌 — 프로즌은 층이 섞여 한 색이 된다). 잔 종류는 주문 조건으로만 쓴다.
+
+export type Axis = 'sweet' | 'strength' | 'body';
+export const AXES: Axis[] = ['sweet', 'strength', 'body'];
+export const AXIS_NAME: Record<Axis, string> = { sweet: '당도', strength: '강도', body: '농도' };
+export type Taste = Record<Axis, number>;
+
+export type IngKind = 'spirit' | 'brew' | 'liqueur' | 'mixer' | 'powder';
+export const ING_KIND_NAME: Record<IngKind, string> = { spirit: '증류주', brew: '양조주', liqueur: '리큐르 · 비터', mixer: '음료', powder: '분말' };
+
+export interface Ingredient {
+  id: string; name: string; kind: IngKind;
+  /** 세계관 속 분류 (진 · 라거 …) */
+  type: string;
+  taste: Taste;
+  /** 향 · 맛 태그 (주문의 '느낌' 맞추기 · 완성 맛 문장) */
+  tags: string[];
+  /** 잔 속 색 */
+  color: string;
+  /** 탄산 (잔 속 기포) · 불투명 (우유 · 크림) */
+  fizz?: boolean; opaque?: boolean;
+  /** 원산 · 한 줄 설명 (도감 · 레시피북) */
+  desc: string;
+}
+
+/** 재료 16종 (술 10 · 음료 6) + 분말 3종. 한 칸 = 한 번 붓기 */
+export const INGREDIENTS: Ingredient[] = [
+  // ───────── 술 (10)
+  { id: 'dustrain', name: '더스트레인', kind: 'spirit', type: '진', taste: { sweet: -1, strength: 2, body: -1 }, tags: ['건조함', '금속성'], color: '#dfe4dc', desc: '네오사이트 황무지 성계 증류 진. 에란테스 바의 시그니처.' },
+  { id: 'yebeson', name: '다크 블랙 예베손 라임', kind: 'spirit', type: '다크 럼', taste: { sweet: 1, strength: 2, body: 1 }, tags: ['묵직함', '라임'], color: '#4a2614', desc: '예베손-2 블랙 마켓 유래. 밀조주 시절의 검은 병 그대로.' },
+  { id: 'aster', name: '아스터', kind: 'spirit', type: '보드카', taste: { sweet: 0, strength: 2, body: -1 }, tags: ['깨끗함'], color: '#eaf0f2', desc: '비네트-3 개척 22년차 신생 증류소. 칵테일 베이스로 두루 쓴다.' },
+  { id: 'anchor', name: '올드 앵커', kind: 'spirit', type: '블렌디드 위스키', taste: { sweet: 0, strength: 3, body: 1 }, tags: ['스모키', '바닐라'], color: '#b8692a', desc: '에란테스 바 자체 브랜드. 아문센이 여러 성계 원액을 섞었다.' },
+  { id: 'ringside', name: '링사이드', kind: 'brew', type: '라거', taste: { sweet: 0, strength: 1, body: -2 }, tags: ['곡물향'], color: '#e8b84a', fizz: true, desc: '베르타 4중 링월드 제3링 양조. 연합에서 가장 많이 팔리는 맥주.' },
+  { id: 'darkringer', name: '다크 링거', kind: 'brew', type: '스타우트', taste: { sweet: 1, strength: 1, body: 2 }, tags: ['커피향'], color: '#22150e', desc: '베르타 제1링의 차가운 기후대에서 길게 숙성한 거의 검은 맥주.' },
+  { id: 'nostos', name: '노스토스', kind: 'brew', type: '과실주', taste: { sweet: 2, strength: 1, body: 0 }, tags: ['과일향', '따뜻한 여운'], color: '#9b2a3a', desc: '이타카 귀향 과실주. 에란테스에서는 임무를 마치면 이걸로 축배를 든다.' },
+  { id: 'ferma', name: '페르마', kind: 'brew', type: '사과주', taste: { sweet: 1, strength: 1, body: -1 }, tags: ['사과', '산미'], color: '#e6c879', fizz: true, desc: '리빈-1 소규모 농가의 전통 시드르. 가을 수확기 한정.' },
+  { id: 'velour', name: '벨루어', kind: 'liqueur', type: '크림 리큐르', taste: { sweet: 2, strength: 1, body: 2 }, tags: ['바닐라', '크림'], color: '#d8c3a0', opaque: true, desc: '올드 앵커 원액 + 스타밀크. 에란테스 바의 2번째 하우스 브랜드.' },
+  { id: 'bitter', name: '비터 스펙트럼', kind: 'liqueur', type: '약초 비터', taste: { sweet: -3, strength: 2, body: 0 }, tags: ['약초향', '쓴맛'], color: '#6a1f1a', desc: '델포이 약초 증류. 한 방울은 깊이, 두 방울은 약, 세 방울은 벌.' },
+  // ───────── 음료 (6)
+  { id: 'tonic', name: '보이드 토닉', kind: 'mixer', type: '토닉워터', taste: { sweet: -1, strength: 0, body: -2 }, tags: ['쓴맛'], color: '#e3eef5', fizz: true, desc: '네오사이트 캠퍼스타운 제조. 황무지 자생 식물로 쓴맛을 낸다.' },
+  { id: 'heliosfizz', name: '헬리오스 피즈', kind: 'mixer', type: '진저 비어', taste: { sweet: 1, strength: 0, body: -1 }, tags: ['생강', '얼얼함'], color: '#d9b25e', fizz: true, desc: '트락스 해양 근처 생강 농장의 발효 탄산 음료.' },
+  { id: 'soda', name: '과산소 소다', kind: 'mixer', type: '탄산수', taste: { sweet: 0, strength: 0, body: -2 }, tags: [], color: '#eef4f6', fizz: true, desc: '고농도 산소 탄산수. 맛은 물인데, 임무 복귀 뒤 첫 잔으로는 이게 제일이다.' },
+  { id: 'jolly', name: '졸리 시트러스 블라스트', kind: 'mixer', type: '합성 과즙', taste: { sweet: 2, strength: 0, body: -1 }, tags: ['시트러스'], color: '#f39a2b', fizz: true, desc: '페트라 식품 부문의 합성 과즙. 라임보다는 오렌지에 가깝다.' },
+  { id: 'starmilk', name: '스타밀크', kind: 'mixer', type: '우유', taste: { sweet: 1, strength: 0, body: 2 }, tags: ['우유'], color: '#f2efe6', opaque: true, desc: '벨루어의 재료이기도 한 우유.' },
+  { id: 'honey', name: '카스토리스 꿀 시럽', kind: 'mixer', type: '시럽', taste: { sweet: 3, strength: 0, body: 1 }, tags: ['꿀', '허브향'], color: '#d99a1c', desc: '카스토리스 야생 벌집의 꿀을 졸인 시럽. 벌은 포위를 모른다.' },
+  // ───────── 분말 (3): 한 칸 = 그 분말로 탄 한 칸
+  { id: 'midnight', name: '미드나이트 오일', kind: 'powder', type: '고카페인 커피', taste: { sweet: -2, strength: 0, body: 1 }, tags: ['커피향', '견과향'], color: '#3b2416', desc: '네오사이트 학술 카페의 밤샘 연료. 당직 근무의 동반자.' },
+  { id: 'cocoa', name: '에이든 코코아', kind: 'powder', type: '핫초코 가루', taste: { sweet: 2, strength: 0, body: 2 }, tags: ['초콜릿'], color: '#6b3f26', opaque: true, desc: '에이든이 배합한 핫초코 가루. 배합은 메뉴판에 없다.' },
+  { id: 'yakyung', name: '야경', kind: 'powder', type: '허브 블렌드', taste: { sweet: 0, strength: 0, body: -1 }, tags: ['카모마일', '꽃향'], color: '#d8d08a', desc: '호이슌 수경 허브와 알비온 꽃을 섞은 디카페인 차. 밤을 재우는 잔.' },
+];
+export const ING_BY_ID: Record<string, Ingredient> = Object.fromEntries(INGREDIENTS.map((x) => [x.id, x]));
+
+export interface Garnish { id: string; name: string; tags: string[]; taste?: Partial<Taste>; desc: string }
+/** 가니쉬 10종 (한 잔에 최대 GARNISH_MAX 개) */
+export const GARNISH_MAX = 3;
+export const GARNISHES: Garnish[] = [
+  { id: 'citrus', name: '솔라리스 시트러스', tags: ['산미', '시트러스'], desc: '얇게 썬 시트러스 한 바퀴. 더스트레인의 정석 짝.' },
+  { id: 'lime', name: '예베손 라임', tags: ['산미', '라임'], desc: '라임 한 조각.' },
+  { id: 'salt', name: '에테르 솔트 림', tags: ['짭짤함'], desc: '잔 테두리에 두른 소금.' },
+  { id: 'cardia', name: '카르디아 씨앗', tags: ['향신료', '따뜻함'], desc: '한 꼬집 띄우는 것이 선원의 방식.' },
+  { id: 'mint', name: '수경 민트', tags: ['허브향', '화함'], desc: '호이슌 수경 농장의 민트 잎.' },
+  { id: 'petal', name: '알비온 꽃잎', tags: ['꽃향'], desc: '알비온 자동화 정원의 꽃잎.' },
+  { id: 'bean', name: '커피콩 3알', tags: ['커피향'], desc: '위에 띄우는 커피콩.' },
+  { id: 'marsh', name: '마시멜로', tags: ['단맛'], taste: { sweet: 1 }, desc: '몇 개를 올릴지는 손님 표정을 보고 정한다.' },
+  { id: 'cream', name: '휘핑크림', tags: ['크림'], taste: { sweet: 1, body: 1 }, desc: '위에 높게 쌓은 크림.' },
+  { id: 'crystal', name: '수정 설탕 조각', tags: ['단맛', '반짝임'], taste: { sweet: 1 }, desc: '사이오닉 수정 설탕 절임 조각. 에이든의 연구 부산물.' },
+];
+export const GARNISH_BY_ID: Record<string, Garnish> = Object.fromEntries(GARNISHES.map((x) => [x.id, x]));
+
+export type GlassKind = 'tumbler' | 'stem';
+export interface Glass { id: string; name: string; kind: GlassKind; slots: 3 | 4 | 5 }
+/** 잔: 2종 × 3크기 (작은 잔 3칸 · 중간 4칸 · 큰 잔 5칸, 칸은 다 채운다). 종류 · 크기는 주문 조건 */
+export const GLASSES: Glass[] = [
+  { id: 'rock', name: '록 글라스', kind: 'tumbler', slots: 3 },
+  { id: 'highball', name: '하이볼', kind: 'tumbler', slots: 4 },
+  { id: 'pint', name: '파인트', kind: 'tumbler', slots: 5 },
+  { id: 'coupe', name: '쿠페', kind: 'stem', slots: 3 },
+  { id: 'wine', name: '와인 잔', kind: 'stem', slots: 4 },
+  { id: 'goblet', name: '고블릿', kind: 'stem', slots: 5 },
+];
+export const GLASS_BY_ID: Record<string, Glass> = Object.fromEntries(GLASSES.map((x) => [x.id, x]));
+export const GLASS_KIND_NAME: Record<GlassKind, string> = { tumbler: '텀블러', stem: '스템 잔' };
+
+export type Ice = 'none' | 'rocks' | 'frozen';
+export const ICE_NAME: Record<Ice, string> = { none: '얼음 없음', rocks: '온더록', frozen: '프로즌' };
+
+/** 완성된 잔 (붓는 순서대로 칸 · 아래부터 층) */
+export interface Drink { glass: string; fill: string[]; ice: Ice; garnish: string[] }
+export interface Recipe extends Drink { id: string; name: string; desc: string }
+
+const R = (id: string, name: string, glass: string, fill: string[], ice: Ice, garnish: string[], desc: string): Recipe => ({ id, name, glass, fill, ice, garnish, desc });
+/** 이름 있는 메뉴 = 에이든 공략집 (게베크 · 비비안 · 미리내 · 나디르가 정리하는 '메뉴판 밖 메뉴' 목록) [임시] */
+export const RECIPES: Recipe[] = [
+  R('hotchoco2', '핫초코 곱빼기', 'pint', ['cocoa', 'cocoa', 'starmilk', 'starmilk', 'starmilk'], 'none', ['marsh'], '마시멜로 개수는 그날 표정으로 정한다.'),
+  R('ringer', '다크 링거 파인트', 'pint', ['darkringer', 'darkringer', 'darkringer', 'darkringer', 'darkringer'], 'none', [], '링사이드가 낮의 맥주라면 이건 밤의 맥주.'),
+  R('dtonic', '더스트레인 토닉', 'highball', ['dustrain', 'dustrain', 'tonic', 'tonic'], 'rocks', ['salt', 'citrus'], '에란테스 바 시그니처. 솔트 림과 시트러스가 정석.'),
+  R('homecup', '귀향의 잔', 'wine', ['nostos', 'nostos', 'nostos', 'nostos'], 'none', ['cardia'], '임무를 마친 밤의 축배. 카르디아 씨앗 한 꼬집.'),
+  R('anchorrock', '앵커 온더록', 'rock', ['anchor', 'anchor', 'anchor'], 'rocks', [], '만든 사람은 평가할 수 없다고 한다.'),
+  R('anchorhb', '앵커 하이볼', 'highball', ['anchor', 'soda', 'soda', 'soda'], 'rocks', ['citrus'], '올드 앵커를 소다로 길게.'),
+  R('blackstorm', '검은 폭풍', 'highball', ['yebeson', 'yebeson', 'heliosfizz', 'heliosfizz'], 'rocks', ['lime'], '다크 럼 위에 진저 비어. 밀조주 시절 맛.'),
+  R('frontier', '개척지 뮬', 'highball', ['aster', 'heliosfizz', 'heliosfizz', 'heliosfizz'], 'rocks', ['lime', 'mint'], '젊고 거친 보드카를 생강으로 달랜다.'),
+  R('dutycoffee', '당직 커피', 'rock', ['midnight', 'midnight', 'midnight'], 'none', [], '이것 없이 밤을 새는 건 고문이다.'),
+  R('velouroil', '벨루어 오일', 'coupe', ['midnight', 'midnight', 'velour'], 'none', ['cream'], '미드나이트 오일에 벨루어. 커피인지 디저트인지 정하지 않는다.'),
+  R('ringpint', '링사이드 파인트', 'pint', ['ringside', 'ringside', 'ringside', 'ringside', 'ringside'], 'none', [], '누구에게나 무난하고 누구도 싫어하지 않는다.'),
+  R('fermaglass', '페르마 한 잔', 'wine', ['ferma', 'ferma', 'ferma', 'ferma'], 'none', [], '입고되면 단원들에게 개인 메시지가 간다.'),
+  R('jollyspark', '졸리 스파클', 'highball', ['jolly', 'jolly', 'soda', 'soda'], 'rocks', ['citrus'], '술이 없는 탄산. 시고 달다.'),
+  R('icesoda', '얼음 씹는 소다', 'pint', ['soda', 'soda', 'soda', 'soda', 'soda'], 'rocks', [], '음료보다 얼음이 목적인 잔.'),
+  R('nightlatte', '야경 라떼', 'coupe', ['yakyung', 'starmilk', 'honey'], 'none', ['petal'], '밤을 재우는 잔.'),
+  R('bitterdrop', '쓴 약 한 방울', 'rock', ['bitter', 'tonic', 'tonic'], 'rocks', ['lime'], '두 방울은 약, 세 방울은 벌.'),
+  R('sugarbomb', '설탕 폭탄', 'coupe', ['velour', 'honey', 'starmilk'], 'frozen', ['marsh', 'crystal'], '단맛 센서가 있는 손님 전용.'),
+  R('hometoddy', '귀향 토디', 'rock', ['nostos', 'nostos', 'honey'], 'none', ['cardia'], '노스토스에 꿀을 풀어 따뜻하게.'),
+  R('wastedry', '황무지 드라이', 'coupe', ['dustrain', 'dustrain', 'bitter'], 'none', ['citrus'], '건조하고 날카롭다. 황무지는 이렇게 건조하다.'),
+  R('applehb', '사과 하이볼', 'highball', ['ferma', 'ferma', 'soda', 'soda'], 'rocks', ['mint'], '페르마를 소다로 늘린 낮의 잔.'),
+  R('frozencitrus', '프로즌 시트러스', 'goblet', ['aster', 'jolly', 'jolly', 'jolly', 'honey'], 'frozen', ['citrus'], '갈아 낸 시트러스. 머리가 띵할 때까지.'),
+  R('milkpint', '스타밀크 파인트', 'pint', ['starmilk', 'starmilk', 'starmilk', 'starmilk', 'starmilk'], 'none', [], '큰 잔에 우유. 그게 다다.'),
+  R('cocoacream', '코코아 크림', 'coupe', ['cocoa', 'starmilk', 'velour'], 'none', ['cream'], '디저트를 잔에 담았다.'),
+  R('crystalcock', '수정 칵테일', 'rock', ['aster', 'tonic', 'tonic'], 'rocks', ['crystal'], '바텐더가 스스로에게 따르는 잔. 3잔째부터 바텐더가 조금 기운다.'),
+];
+export const RECIPE_BY_ID: Record<string, Recipe> = Object.fromEntries(RECIPES.map((x) => [x.id, x]));
+
+export type OrderStyle = 'vague' | 'photo' | 'name' | 'usual';
+export const ORDER_STYLE_NAME: Record<OrderStyle, string> = { vague: '느낌으로', photo: '사진으로', name: '이름으로', usual: '늘 마시던 거' };
+/** 단골: 에이든이 내주는 단골 메뉴 · 좋아하는 주문 방식 (약 50% 이 방식, 나머지는 다른 방식 중 무작위) [임시] */
+export const REGULARS: Record<string, { menu: string; style: OrderStyle }> = {
+  amundsen: { menu: 'anchorrock', style: 'usual' },
+  lindiwe: { menu: 'cocoacream', style: 'name' },
+  yelena: { menu: 'ringer', style: 'usual' },
+  orca: { menu: 'anchorhb', style: 'vague' },
+  franze: { menu: 'velouroil', style: 'name' },
+  zephyro: { menu: 'jollyspark', style: 'vague' },
+  hiiro: { menu: 'nightlatte', style: 'vague' },
+  vivian: { menu: 'ringpint', style: 'photo' },
+  nadir: { menu: 'frontier', style: 'photo' },
+  mirinae: { menu: 'applehb', style: 'photo' },
+  gebek: { menu: 'fermaglass', style: 'name' },
+  phyllis: { menu: 'frozencitrus', style: 'vague' },
+  temur: { menu: 'milkpint', style: 'vague' },
+  eleni: { menu: 'sugarbomb', style: 'name' },
+  kairo: { menu: 'wastedry', style: 'name' },
+  donovan: { menu: 'icesoda', style: 'usual' },
+  iris: { menu: 'applehb', style: 'vague' },
+  zahara: { menu: 'bitterdrop', style: 'usual' },
+  romani: { menu: 'blackstorm', style: 'vague' },
+  bianca: { menu: 'nightlatte', style: 'name' },
+  joshua: { menu: 'dutycoffee', style: 'usual' },
+  chloe: { menu: 'frozencitrus', style: 'photo' },
+  west: { menu: 'hometoddy', style: 'usual' },
+  yupito: { menu: 'frontier', style: 'vague' },
+  sarma: { menu: 'dtonic', style: 'photo' },
+};
+/** 단골이 아닌 손님에게 에이든이 내주는 무난한 메뉴 */
+export const HOUSE_MENUS = ['dtonic', 'anchorhb', 'ringpint', 'jollyspark', 'applehb', 'homecup'];
+
+// ───────── 맛 계산
+/** 완성 맛 = 칸마다 재료 맛 + 가니쉬 맛 (더한다) */
+export function tasteOf(d: Drink): Taste {
+  const t: Taste = { sweet: 0, strength: 0, body: 0 };
+  for (const id of d.fill) { const x = ING_BY_ID[id]; if (x) for (const a of AXES) t[a] += x.taste[a]; }
+  for (const id of d.garnish) { const g = GARNISH_BY_ID[id]; if (g?.taste) for (const a of AXES) t[a] += g.taste[a] || 0; }
+  return t;
+}
+/** 향 · 맛 태그 (많이 들어간 것 먼저) */
+export function tagsOf(d: Drink): string[] {
+  const n = new Map<string, number>();
+  for (const id of d.fill) for (const t of ING_BY_ID[id]?.tags || []) n.set(t, (n.get(t) || 0) + 1);
+  for (const id of d.garnish) for (const t of GARNISH_BY_ID[id]?.tags || []) n.set(t, (n.get(t) || 0) + 1);
+  return [...n.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);
+}
+/** 완성 맛을 한 문장으로: '달고 독한, 청량한 편 · 시트러스 향' */
+export function tasteText(d: Drink): string {
+  const t = tasteOf(d);
+  const sw = t.sweet >= 6 ? '아주 달고' : t.sweet >= 3 ? '달고' : t.sweet <= -6 ? '아주 쓰고' : t.sweet <= -3 ? '쓰고' : '단맛은 덜하고';
+  const st = t.strength === 0 ? '술기운 없는' : t.strength <= 3 ? '순한' : t.strength <= 7 ? '독한' : '아주 독한';
+  const bd = t.body >= 4 ? '진한 편' : t.body <= -4 ? '청량한 편' : '가벼운 편';
+  const tags = tagsOf(d).slice(0, 2);
+  return `${sw} ${st}, ${bd}${tags.length ? ` · ${tags.join(' · ')}` : ''}`;
+}
