@@ -15,6 +15,7 @@ import { Rng } from '../src/rng';
 import { RELICS, offerCap, offerStage } from '../src/data/relics';
 import { pilgrimValue, type PVRec } from './pilval';
 import { statValue, type SVRec } from './statval';
+import { placeValue, type PLRec } from './placeval';
 import { FIELDS } from '../src/data/battlefields';
 import { fieldSyn, starterFavNeed, starterPool } from '../src/engine/starters';
 import { oathV } from '../src/data/oaths';
@@ -45,6 +46,10 @@ const PILVAL_K = PILVAL?.includes('=') ? +PILVAL.split('=')[1] || 2 : 2;
 /** statval[=확률]: 역경 · 보스 전투 직전 주요 능력치 가치를 복제 굴림으로 잰다 (tests/statval.ts, 분석 전용 — 느림). 런 기록 sv 에 남긴다 */
 const STATVAL = process.argv.find((a) => a === 'statval' || a.startsWith('statval='));
 const STATVAL_P = STATVAL?.includes('=') ? +STATVAL.split('=')[1] || 0.3 : 0.3;
+/** placeval[=p[:q]]: 전투 직전 (일반 전투는 확률 p, 기본 0.3 · 역경은 확률 q, 기본 0.6 · 도전 · 보스는 모두) 배치 반사실 · 돌파 지표를 복제 굴림으로 잰다 (tests/placeval.ts, 분석 전용 — 느림). 런 기록 pl 에 남긴다 */
+const PLACEVAL = process.argv.find((a) => a === 'placeval' || a.startsWith('placeval='));
+const PLACEVAL_PQ = (PLACEVAL?.split('=')[1] || '').split(':').map((x) => (x === '' ? NaN : +x));
+const PLACEVAL_P = Number.isFinite(PLACEVAL_PQ[0]) ? PLACEVAL_PQ[0] : 0.3, PLACEVAL_Q = Number.isFinite(PLACEVAL_PQ[1]) ? PLACEVAL_PQ[1] : 0.6;
 /** field=<id>: 전장 고정 (전장별 클리어율 비교) */
 const FORCE_FIELD = process.argv.find((a) => a.startsWith('field='))?.slice(6);
 /** pool: 실제 게임처럼 계약 기물 후보(engine/starters.ts, 전장 우세 시너지 보장)에서 고른다 — 우세 시너지 기물 먼저 (최대 starterFavNeed명), 나머지는 무작위.
@@ -301,6 +306,7 @@ function playRun(seed: number) {
   const pilRec: unknown[] = [], vowRec: unknown[] = [], mpkRec: unknown[] = [], pmapRec: number[][] = [];
   const pvRec: PVRec[] = [], pvRng = new Rng(seed * 197 + 29);
   const svRec: SVRec[] = [], svRng = new Rng(seed * 211 + 37);
+  const plRec: PLRec[] = [], plRng = new Rng(seed * 223 + 41);
   const greats = new Map<string, number>();
   // 봉헌 계측: og = 봉헌 출처별 합 (auto 전투 정산 · rite 제례 · cons 축성 (그 밖의 증가) · join 합류 시작값) · 축성 횟수는 pwSp.cons [횟수, 권능] · ostRec = 페이즈 시작마다 [페이즈, '기물:단계:출전' …]
   const og: Record<string, number> = {}, offLast = new Map<string, number>(), consSeen = new Map<string, number>(), ostRec: unknown[] = [];
@@ -505,11 +511,14 @@ function playRun(seed: number) {
       add('foegear', `${ntype}|${ph}|${tr}`, { n: 1, [`k${Math.min(3, it.length)}`]: 1, items: it.length, C: it.filter((x) => x.startsWith('C_')).length, G: it.filter((x) => x.startsWith('G_')).length, A: it.filter((x) => x.startsWith('A_')).length, L: it.filter((x) => x.startsWith('L_')).length, mod: s.mod ? 1 : 0, strip: s.stripped ? 1 : 0 });
     }
     if (STATVAL) { const v = statValue(run, svRng, STATVAL_P); if (v) svRec.push(v); }
+    let plv: PLRec | null = null;
+    if (PLACEVAL) { const tp = tap; tap = null; plv = placeValue(run, plRng, PLACEVAL_P, PLACEVAL_Q); tap = tp; if (plv) plRec.push(plv); } // 계측 전투 피해는 유형 상성 표(mx_*)에 넣지 않는다
     const b = buildBattle(run, enc, false); // 실제 게임과 같은 경로 (포탑 · 무휼 자리, 포탑 장비 포함)
     bigTap = INSTR && enc.enemies.some((e) => ENEMY_BY_ID[e.defId]?.size) ? {} : null;
     b.runToEnd();
     const BT = bigTap; bigTap = null;
     const won = b.winner === 0;
+    if (plv) plv.real = won ? 1 : 0;
     if (GEARLOG) gearLog.push([ph, ntype[0], won ? 1 : 0, dep.flatMap((u) => u.items.filter((x): x is string => !!x))]);
     if (INSTR) trace.push({ph, st:run.step, type:ntype, won, sec:b.t, counts:{...counts},
       enemyLegends:enc.enemies.reduce((n,e)=>n+(e.items||[]).filter(i=>i.startsWith('L_')).length,0),
@@ -672,6 +681,7 @@ function playRun(seed: number) {
       dvx: { src: (pwMark('other'), pwSrc), sp: pwSp, end: run.power, pil: pilRec, pmap: pmapRec, vow: vowRec, mpk: mpkRec, divCap: run.divCap || 0, og, ost: [...ostRec, [run.phase, run.power, ...R.divines(run).map((u) => `${u.defId}:${offerStage(u.offer)}:${u.pos ? 1 : 0}`)]] } } } : {}),
     ...(PILVAL ? { pv: pvRec } : {}),
     ...(STATVAL ? { sv: svRec } : {}),
+    ...(PLACEVAL ? { pl: plRec } : {}),
     ...(DLOG && CH ? { dlog: CH.log.list } : {}) });
 }
 
