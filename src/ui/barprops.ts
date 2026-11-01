@@ -29,6 +29,7 @@ const ICON: Record<string, string> = {
   flag: S(`<path d="M5 21 V3" stroke="#6b5a45" stroke-width="1.6"/><path d="M5 4 H18 L15.5 8 L18 12 H5 Z" fill="#3b6fb6" stroke="#22406b" stroke-width="1"/>`),
   tent: S(`<path d="M2.5 19 L12 5 L21.5 19 Z" fill="#c9895a" stroke="#6b4a1f" stroke-width="1"/><path d="M12 5 V19 M9 19 L12 13 L15 19" fill="none" stroke="#6b4a1f" stroke-width="1"/>`),
   cushion: S(`<path d="M4 9 Q12 6 20 9 Q21.5 14 20 18 Q12 21 4 18 Q2.5 14 4 9 Z" fill="#b48ad1" stroke="#5f4176" stroke-width="1"/><path d="M5 9 L6.5 5 L9 8 M19 9 L17.5 5 L15 8" fill="#b48ad1" stroke="#5f4176" stroke-width="1"/>`),
+  gem: S(`<path d="M7 4 H17 L21 9 L12 21 L3 9 Z" fill="#dfe8ef" stroke="#7d8f9e" stroke-width="1"/><path d="M3 9 H21 M7 4 L9.5 9 L12 21 L14.5 9 L17 4 M9.5 9 L12 4 L14.5 9" fill="none" stroke="#7d8f9e" stroke-width=".8"/>`),
   box: S(`<path d="M4 8 L12 4 L20 8 V17 L12 21 L4 17 Z" fill="#9aa3ad" stroke="#4d545c" stroke-width="1"/><path d="M4 8 L12 12 L20 8 M12 12 V21" fill="none" stroke="#4d545c" stroke-width="1"/>`),
 };
 /** 이름 → 아이콘 종류 (먼저 맞는 것). 잔 · 음료는 recipe (음료 그림) */
@@ -38,11 +39,16 @@ const RULES: [RegExp, string][] = [
   [/잔$|가득 찬 잔/, 'drink:anchorrock'],
   [/커피머신/, 'machine'], [/홀로그램/, 'holo'], [/단말/, 'phone'], [/카메라|사진기/, 'camera'],
   [/땅콩버터|꿀단지/, 'jar'], [/약병/, 'vial'], [/병/, 'bottle'],
-  [/팻말/, 'sign'], [/스케치북|공책|수첩|장부|메뉴판/, 'book'], [/계약서|서류|정산표|계산서|청구서|보고서|의뢰서|배치표|설계도|항로도/, 'paper'],
+  [/팻말/, 'sign'], [/스케치북|공책|수첩|장부|메뉴판|잡지|책$/, 'book'], [/계약서|서류|정산표|계산서|청구서|보고서|의뢰서|배치표|설계도|항로도/, 'paper'],
   [/냄비/, 'pot'], [/그릇|라면|밥/, 'bowl'], [/푸딩|접시|떡|케이크|반죽|생선|블루라인|디저트|고기/, 'plate'],
   [/렌치|공구|나사|부품|숟가락|발전기/, 'tool'],
-  [/꽃|백합/, 'flower'], [/체스|다트|큐대/, 'game'], [/기타/, 'guitar'], [/선물/, 'gift'], [/초$|켜진 초/, 'candle'], [/깃발/, 'flag'], [/텐트/, 'tent'], [/쿠션/, 'cushion'],
+  [/수정|보석|원석/, 'gem'], [/꽃|백합/, 'flower'], [/체스|다트|큐대/, 'game'], [/기타/, 'guitar'], [/선물/, 'gift'], [/초$|켜진 초/, 'candle'], [/깃발/, 'flag'], [/텐트/, 'tent'], [/쿠션/, 'cushion'],
 ];
+/** 카운터에 올라앉는 동물: 이름 → 그림(public/art/<art>.webp) · 주인 (주인이 무대에 있으면 그 앞, 없으면 첫 화자 앞) */
+export const PETS: Record<string, { art: string; owner?: string }> = {
+  리키: { art: 'sm_ricky', owner: 'vivian' },
+  밍키: { art: 'mingki' },
+};
 export function propKind(name: string): string {
   for (const [re, k] of RULES) if (re.test(name)) return k;
   return 'box';

@@ -71,7 +71,8 @@ for (const [k, dir, re] of SOURCES) {
         if (b) block = b[1];
         for (const n of NAMES) if (t.includes(`'${ID[n]}'`) || t.includes(n) || block === ID[n]) who.add(n);
       }
-      text[k].push({ t, who, at: `${dir}/${f}:${ln}` });
+      // 만담 머리줄 끝의 표시 〔낮〕 · 〔소품: …〕 등은 분류용이라 세지 않는다 (docs/BANTER.md)
+      text[k].push({ t: k === '만담' ? t.replace(/\s*〔[^〕]*〕/g, '') : t, who, at: `${dir}/${f}:${ln}` });
     }
   }
 }

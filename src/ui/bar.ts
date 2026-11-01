@@ -26,7 +26,7 @@ import { advKey, closeAdv, playAdv } from './adv';
 import { barShowcaseHtml } from './achieve';
 import { EMOTE_PAIRS, emoteSvg, soloWeights, type EmoteId } from './baremote';
 import { drinkSvg } from './drinkart';
-import { propSvg } from './barprops';
+import { PETS, propSvg } from './barprops';
 import { loadMeta, metaBar, metaBarBond } from './meta';
 import { artURL, bgURL, standURL } from './portraits';
 import { STAND_FACE } from './standface.gen';
@@ -177,6 +177,8 @@ interface Scene {
   exit?: string; hold?: number; mono?: string; idle?: number; cups?: [string, Cup | null][]; toNight?: boolean; toDay?: boolean;
   /** 카운터 위 소품 (만담 머리줄 〔소품: …〕 · 틀 · 바텐더 대화의 props) — 그 장면 동안 말하는 사람 앞에 */
   props?: string[];
+  /** 카운터에 올라앉는 동물 (만담 〔동물: …〕 · 틀의 pets) — 주인 앞에, 무대에 그 동물이 단원으로 서 있으면 그리지 않는다 */
+  pets?: string[];
 }
 /** 장면을 시작하기 전의 무대 변화 (무대 키): add 들어오는 사람 · drop 카운터 뒤로 비켜 주는 에이든 · 나가는 손님 */
 interface Plan { add: string[]; drop: string[] }
@@ -302,7 +304,9 @@ function buildFrame(f: Frame, pool: Set<string>, here: Set<string>, comm = false
     if (sm) { const c = ints[+sm[1]]; if (c) lines.push(...f.slots[+sm[1]][c].map((x) => parseLine(x, c, comm ? ' (통신)' : ''))); continue; }
     lines.push(parseLine(l, f.cast[0]));
   }
-  return { key: `${f.id}+${ints.filter(Boolean).join('+') || '-'}`, sit: f.sit, lines, layer: f.layer, kind: 'scene', props: f.props };
+  const who = new Set([...f.cast, ...ints.filter(Boolean)]);
+  const pets = Object.entries(f.pets || {}).filter(([w]) => who.has(w)).flatMap(([, p]) => p);
+  return { key: `${f.id}+${ints.filter(Boolean).join('+') || '-'}`, sit: f.sit, lines, layer: f.layer, kind: 'scene', props: f.props, pets: pets.length ? [...new Set(pets)] : undefined };
 }
 /** 확장 틀의 핵심 대화에 필요한 무대 인원 (핵심 인물 + 핵심 줄에서 말하는 사람: '손님:' 줄이 있으면 손님 자리) */
 const frameNeed = (f: Frame) => needOf([...f.cast, ...f.lines.filter((l) => !/^@\d$/.test(l)).map((l) => parseLine(l, f.cast[0])[0])]);
@@ -338,9 +342,9 @@ function nextScene(fresh: number, repeat = false): Pick | null {
   type Item = { layer: 's' | 'i' | 'r'; score: number; join: boolean; plan: Plan; make: (p: Plan) => Scene };
   const items: Item[] = [];
   let avail = 0; // 해금된 장면 수 (무대와 상관없이)
-  const offer = (layer: Item['layer'], base: number, need: string[], make: Item['make']) => {
+  const offer = (layer: Item['layer'], base: number, need: string[], make: Item['make'], day = false) => {
     avail++;
-    if (layer === 'r' && !S.night) return; // 실재 층은 심야 장면
+    if (layer === 'r' && !S.night && !day) return; // 실재 층은 심야 장면 (낮 표시가 붙은 것만 낮에: 에이든이 핵심인 d01)
     const plan = planFor(need, fresh, ok);
     if (!plan) return;
     const stay = need.filter((k) => here.has(k) && k !== 'guest').length; // 무대에 있던 사람 (에이든 포함)
@@ -352,11 +356,11 @@ function nextScene(fresh: number, repeat = false): Pick | null {
   for (const b of eligibleAmbient()) {
     if (!repeat && S.session.has(b.id)) continue;
     if (b.layer === 'r' && !b.cast.filter((id) => !BASE.includes(id)).every((id) => deepOpen(id))) continue; // 실재 층: 출연자 모두와 가까워야
-    offer(b.layer, seen.has(b.id) ? 0 : 4, needOf([...b.cast, ...b.lines.map((l) => l[0])]), () => ({ key: b.id, sit: b.sit, layer: b.layer, kind: 'scene', props: b.props, lines: b.lines.map((l) => [l[0], fillText(l[1], { pc: PC }), l[2]] as Line) }));
+    offer(b.layer, seen.has(b.id) ? 0 : 4, needOf([...b.cast, ...b.lines.map((l) => l[0])]), () => ({ key: b.id, sit: b.sit, layer: b.layer, kind: 'scene', props: b.props, pets: b.pets, lines: b.lines.map((l) => [l[0], fillText(l[1], { pc: PC }), l[2]] as Line) }), b.time === 'day');
   }
   for (const f of FRAMES) {
     if (!f.cast.every((id) => S.known.has(id)) || !deepOpen(f.deep) || !timeOk(f.time) || (!repeat && [...S.session].some((k) => k.startsWith(f.id + '+')))) continue;
-    offer(f.layer, seenFrame.has(f.id) ? 2 : 6, frameNeed(f), (p) => stageFrame(f, p, fresh, ok));
+    offer(f.layer, seenFrame.has(f.id) ? 2 : 6, frameNeed(f), (p) => stageFrame(f, p, fresh, ok), f.time === 'day');
   }
   // 빈자리 대기가 끝났으면 합류 장면부터
   const pool = fresh === 1 && items.some((x) => x.join) ? items.filter((x) => x.join) : items;
@@ -561,22 +565,27 @@ function startScene(p: Pick, root: HTMLElement | null, prev: Scene | null = null
 function showProps(root: HTMLElement, sc: Scene) {
   root.querySelectorAll<HTMLElement>('.bar-prop').forEach((e) => { e.classList.add('gone'); window.setTimeout(() => e.remove(), reduced() ? 0 : 500); });
   S.props = [];
-  if (!sc.props?.length) return;
-  const who = [...new Set(sc.lines.map(([w]) => figOf(w)).filter((w) => w && w !== 'rachel'))].filter((k) => S.stage.some((s) => keyOf(s) === k));
-  if (!who.length) return;
-  sc.props.forEach((name, i) => {
-    const k = who[i % who.length];
-    const fr = root.querySelector<HTMLElement>(`.bar-front[data-seat="${k}"]:not(.out)`);
-    if (!fr) return;
-    const n = fr.querySelectorAll('.bar-prop:not(.gone)').length;
+  const onStage = (k: string) => S.stage.some((s) => keyOf(s) === k);
+  const who = [...new Set(sc.lines.map(([w]) => figOf(w)).filter((w) => w && w !== 'rachel'))].filter(onStage);
+  const front = (k: string) => root.querySelector<HTMLElement>(`.bar-front[data-seat="${k}"]:not(.out)`);
+  const put = (fr: HTMLElement, k: string, name: string, html: string, pet = false) => {
     const b = document.createElement('button');
-    b.className = 'bar-prop';
-    b.dataset.a = 'bar-x'; b.dataset.v = `prop:${S.props.length}`; b.dataset.i = String(n);
+    b.className = pet ? 'bar-prop bar-pet' : 'bar-prop';
+    b.dataset.a = 'bar-x'; b.dataset.v = `prop:${S.props.length}`;
+    if (!pet) b.dataset.i = String(fr.querySelectorAll('.bar-prop:not(.gone):not(.bar-pet)').length);
     b.setAttribute('aria-label', name);
-    b.innerHTML = propSvg(name);
+    b.innerHTML = html;
     fr.appendChild(b);
     S.props.push({ k, name });
-  });
+  };
+  if (who.length) sc.props?.forEach((name, i) => { const k = who[i % who.length]; const fr = front(k); if (fr) put(fr, k, name, propSvg(name)); });
+  for (const name of sc.pets || []) {
+    const pet = PETS[name];
+    if (!pet || onStage(pet.art)) continue;
+    const k = pet.owner && onStage(pet.owner) ? pet.owner : who[0];
+    const fr = k && front(k);
+    if (fr) put(fr, k, name, `<img src="${artURL(pet.art + '.webp')}" alt="" draggable="false">`, true);
+  }
 }
 /** 처음 들어올 때: 한두 사람이 이미 앉아 있다 (정규 단원일 때가 많다), 낮이면 에이든도. 잔은 이미 마시던 중일 수 있다 */
 function firstStage() {
@@ -888,7 +897,7 @@ if (typeof location !== 'undefined' && location.search.includes('bartest')) {
     S.stage = needOf([...f.cast, ...ints]).slice(0, STAGE_MAX).map((k) => (k === 'guest' ? { ...guestSeat(), since: now, n: 0 } : { id: k, since: now, n: 0 }));
     S.cur = { ...sc, lines: sc.lines.filter(([w]) => w) }; S.li = 0;
     const root = document.querySelector<HTMLElement>(BAR_SEL);
-    if (root) syncFloor(root);
+    if (root) { syncFloor(root); showProps(root, S.cur); }
     stop(); tick();
   };
   testHook.__barTune = (t: Partial<typeof BAR_TUNE>) => Object.assign(BAR_TUNE, t);
@@ -1153,7 +1162,7 @@ export function barRecordsHtml(): string {
     const core = f.lines.map((l) => (/^@\d$/.test(l) ? '<p class="muted small">( 끼어드는 자리 )</p>' : scriptLines(f.cast[0], [l]))).join('');
     const slots = f.slots.map((sl) => Object.entries(sl).filter(([id]) => ints.has(id)).map(([id, ls]) => `<div class="bar-rec-v"><span class="muted small">${esc(nameOf(id))} 버전</span>${scriptLines(id, ls)}</div>`).join('')).join('');
     const total = f.slots.reduce((a, sl) => a + Object.keys(sl).length, 0);
-    return `<section class="bar-rec-b"><h3>${esc(FRAME_THEME[f.theme])} · ${esc(f.sit)} <span class="muted small f-num">${ints.size}/${total}</span>${f.layer === 'r' ? ' <span class="muted small">심야</span>' : ''}</h3>${core}${slots}</section>`;
+    return `<section class="bar-rec-b"><h3>${esc(FRAME_THEME[f.theme])} · ${esc(f.sit)} <span class="muted small f-num">${ints.size}/${total}</span>${f.layer === 'r' && f.time !== 'day' ? ' <span class="muted small">심야</span>' : ''}</h3>${core}${slots}</section>`;
   };
   // 알게 된 것: 물어보기로 들은 답 (인물별, 질문 · 깊이별)
   const askRows = Object.keys(ASK).map((id) => ({ id, got: ASK_Q.flatMap((q) => [0, 1, 2].filter((t) => talk.has(`ask:${id}.${q.key}.${t}`)).map((t) => ({ q, t }))) })).filter((r) => r.got.length);
