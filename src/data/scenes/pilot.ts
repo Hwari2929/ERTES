@@ -61,7 +61,7 @@ export const PILOT_SCENES: Record<string, EventScene> = {
       falcon: [
         S('falcon', '저기, 그 원통. 레일건 반동 감쇠기죠? 제 거랑 똑같이 생겼네요.', { at: 'C', face: 'base' }),
         S('scrapper', '똑같으면 뭐.'),
-        S('falcon', '제 건 쏠 때마다 터지거든요. 이것도 터지나 해서요. 보통 삼 초 걸려요.', { face: 'base' }),
+        S('falcon', '제 건 쏠 때마다 터지거든요. 이것도 터지나 해서요. 보통 3초 걸려요.', { face: 'base' }),
         N('고물상이 원통을 진열대 맨 뒤로 슬쩍 밀어 놓는다.', { exit: ['falcon'] }),
       ],
       lindiwe: [

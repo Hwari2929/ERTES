@@ -39,7 +39,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
     subs: {
       gebek: [
         S('gebek', '어이, 배고픈 친구! 이거 먹어. 매운 꼬치야. 조금 매워. 아주 조금.', { at: 'C', face: 'grin' }),
-        N('용병이 꼬치를 한 입 문다. 삼 초 뒤, 얼굴이 새빨개진다.'),
+        N('용병이 꼬치를 한 입 문다. 3초 뒤, 얼굴이 새빨개진다.'),
         S('c_merc', '조, 조금이라면서요!', { face: 'surprise' }),
         S('gebek', '나한텐 조금이지! 하하! 물은 저쪽이다!', { face: 'laugh', exit: true }),
       ],
@@ -1063,7 +1063,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
     after: [
       [
         N('제어판이 열리고, 까악이가 단자에 접속했다. 허공을 집던 팔이 그대로 멈췄다.', { sfx: 'static' }),
-        N('삼 초. 오 초. 광학 센서가 꺼졌다가, 다른 색으로 켜졌다.', { fx: 'flash' }),
+        N('3초. 5초. 광학 센서가 꺼졌다가, 다른 색으로 켜졌다.', { fx: 'flash' }),
         S('u404', '재부팅 완료. 생산 목표 탐색 중. …탐색 완료. 신규 생산 목표, 에란테스.', { at: 'R', face: 'blank' }),
         S('u404', '다음 분기 목표치를 설정합니다. 직전 분기 대비 110퍼센트.'),
         S('donovan', '직전 분기 실적 0이잖아.', { at: 'L', face: 'surprise' }),

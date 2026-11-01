@@ -443,7 +443,7 @@ const MONO_EMO: Partial<Record<MonoKind, EmoteId>> = { sleep: 'zzz', drunk: 'dru
 function monoScene(now: number): Pick | null {
   if (now - S.monoAt < BAR_TUNE.monoGap) return null;
   const heard = new Set(loadMeta().bar?.talk || []);
-  const opts = S.stage.filter((s) => !s.guest && MONO[s.id]).flatMap((s) => MONO_KINDS.filter((k) => !S.monoUsed.has(`${s.id}.${k}`) && lineTimeOk(MONO[s.id][k]) && (S.night || (k !== 'sleep' && k !== 'drunk'))).map((k) => ({ id: s.id, k, key: `mono:${s.id}.${k}` })));
+  const opts = S.stage.filter((s) => !s.guest && MONO[s.id]).flatMap((s) => MONO_KINDS.filter((k) => !S.monoUsed.has(`${s.id}.${k}`) && lineTimeOk(MONO[s.id][k]) && (S.night || s.id === 'aiden' || (k !== 'sleep' && k !== 'drunk'))).map((k) => ({ id: s.id, k, key: `mono:${s.id}.${k}` })));
   if (!opts.length) return null;
   const fresh = opts.filter((o) => !heard.has(o.key));
   const o = pick(fresh.length ? fresh : opts);
@@ -1215,13 +1215,15 @@ function talk(id: string) {
   topicMenu(id, atBar(id, open), []);
 }
 const ASK_CHOICE = { label: '물어보기…', desc: '누구에게나 묻는 질문' };
+/** 실재 층 화제 표시: 심야 이야기 (에이든은 낮에만 출근하므로 마감 무렵) */
+const deepTag = (id: string) => (id === 'aiden' ? '마감 무렵' : '심야');
 function topicMenu(id: string, beats: Beat[], done: string[]) {
   const t = BAR_TALK[id];
   const heard = new Set(loadMeta().bar?.talk || []);
   const deep = DEEP_TOPICS[id];
   const open = deepOpen(id);
-  const tops = [...t.topics, ...(deep && open ? [{ ...deep, label: `(심야) ${deep.label}` }] : [])].filter((x) => !done.includes(x.key));
-  const locked = deep && !open ? [{ label: '(심야) …', desc: '더 가까워지면 들을 수 있는 이야기', why: `관계 ${bondOf(id)} / ${DEEP_BOND} (말 걸기 + 함께 출전한 런)` }] : [];
+  const tops = [...t.topics, ...(deep && open ? [{ ...deep, label: `(${deepTag(id)}) ${deep.label}` }] : [])].filter((x) => !done.includes(x.key));
+  const locked = deep && !open ? [{ label: `(${deepTag(id)}) …`, desc: '더 가까워지면 들을 수 있는 이야기', why: `관계 ${bondOf(id)} / ${DEEP_BOND} (말 걸기 + 함께 출전한 런)` }] : [];
   playAdv(`bar:talk:${id}:${done.length}:${Date.now()}`, beats, {
     ...advOpts, title: done.length || beats.length < 2 ? undefined : nameOf(id),
     choices: [...tops.map((x) => ({ label: x.label, desc: heard.has(`${id}.${x.key}`) ? '들은 이야기' : undefined })), ...(ASK[id] ? [ASK_CHOICE] : []), ...locked, { label: '자리로 돌아간다' }],
@@ -1423,7 +1425,7 @@ export function barRecordsHtml(): string {
   const banterN = BANTER.filter((b) => seen.has(b.id)).length;
   const line = (who: string, text: string, nm?: string) => (who ? `<p><b style="--c:${colorOf(who)}">${esc(nm || nameOf(who))}</b> ${esc(fillText(text, { pc: PC }))}</p>` : `<p class="muted">${esc(text)}</p>`);
   const scriptLines = (owner: string, ls: string[]) => ls.map((l) => { const [w, t, nm] = parseLine(l, owner); return line(w, t, nm); }).join('');
-  const topicsOf = (id: string) => [...BAR_TALK[id].topics, ...(DEEP_TOPICS[id] ? [{ ...DEEP_TOPICS[id], label: `(심야) ${DEEP_TOPICS[id].label}` }] : [])];
+  const topicsOf = (id: string) => [...BAR_TALK[id].topics, ...(DEEP_TOPICS[id] ? [{ ...DEEP_TOPICS[id], label: `(${deepTag(id)}) ${DEEP_TOPICS[id].label}` }] : [])];
   const talkRows = Object.keys(BAR_TALK).flatMap((id) => topicsOf(id).filter((x) => talk.has(`${id}.${x.key}`)).map((x) => ({ id, x })));
   const talkAll = Object.keys(BAR_TALK).reduce((n, id) => n + topicsOf(id).length, 0);
   // 확장 틀: 본 끼어들기 조합별로

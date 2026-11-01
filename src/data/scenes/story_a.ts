@@ -995,7 +995,7 @@ export const STORY_A_SCENES: Record<string, EventScene> = {
       falcon: [
         S('falcon', '저 소리, 제 레일건이 터지기 직전 소리랑 똑같은데요.', { at: 'C', face: 'base' }),
         S('west', '…몇 초 전에?'),
-        S('falcon', '보통 삼 초요.'),
+        S('falcon', '보통 3초요.'),
         N('기관실의 모두가 동시에 한 걸음 물러선다. 쿵. 아무 일도 없다.', { sfx: 'a_knock', exit: ['falcon'] }),
       ],
     },

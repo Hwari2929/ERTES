@@ -5,7 +5,8 @@
 //   stranger (처음 보는 사람 · 손님) · superior (위계상 윗사람) · petra (페트라 사람). 개별 id 규칙이 집단 규칙보다 먼저다.
 export type Reg = 'ban' | 'yo' | 'hap' | 'hage' | 'hao' | 'da' | 'cry' | 'mix';
 export const REG_NAME: Record<Reg, string> = { ban: '반말', yo: '해요체', hap: '합쇼체', hage: '하게체', hao: '하오체', da: '단정 단문', cry: '울음소리', mix: '섞어 씀' };
-export interface VoiceTo { who: string | string[]; reg: Reg; title?: string }
+/** gap: elder · younger 규칙을 나이 차가 이만큼 넘을 때만 (비비안: 또래 = 5살 위까지는 반말) */
+export interface VoiceTo { who: string | string[]; reg: Reg; title?: string; gap?: number }
 export interface VoiceSheet {
   name: string; age: number | null; base: Reg; to: VoiceTo[]; titles: Record<string, string>;
   endings: string[]; marker: string; quirk: string; breaks: { surface: string; real: string | null };
@@ -78,7 +79,7 @@ export const VOICE: Record<string, VoiceSheet> = {
   },
   vivian: {
     name: '비비안', age: 24, base: 'ban',
-    to: [{ who: 'crew', reg: 'ban' }, { who: ['rachel'], reg: 'ban', title: '레이첼' }, { who: ['amundsen'], reg: 'yo', title: '단장님' }, { who: ['winter'], reg: 'yo', title: '교수님' }, { who: ['zina'], reg: 'yo', title: '지나 아줌마' }, { who: ['ingel'], reg: 'ban', title: '잉겔 언니' }, { who: ['sigmund', 'rasmus'], reg: 'yo' }, { who: 'elder', reg: 'yo' }],
+    to: [{ who: 'crew', reg: 'ban' }, { who: ['rachel'], reg: 'ban', title: '레이첼' }, { who: ['amundsen'], reg: 'yo', title: '단장님' }, { who: ['winter'], reg: 'yo', title: '교수님' }, { who: ['zina'], reg: 'yo', title: '지나 아줌마' }, { who: ['ingel'], reg: 'ban', title: '잉겔 언니' }, { who: ['sigmund', 'rasmus'], reg: 'yo' }, { who: 'elder', reg: 'yo', gap: 6 }],
     titles: { rachel: '레이첼', amundsen: '단장님', gebek: '아저씨', west: '아저씨', winter: '교수님', zina: '지나 아줌마', ingel: '잉겔 언니' },
     endings: ['~야!', '~잖아!', '~지?'], marker: '흠흠-', quirk: '처음 본 생물마다 \'이름 지어도 돼?\'',
     breaks: { surface: '게베크가 철 지난 유행어를 쓰면 대리 수치심에 텐션이 꺾인다 (\'…아저씨, 그거 몇 년 전 말이야.\').', real: '브샤크 · 부모 얘기가 나오면 즉시 수첩을 펴고 동물 이름 짓기로 달아나고 목소리가 한 톤 높아진다 / 누가 울면 눈치 없는 척 큰 소리로 딴 얘기를 한다.' },
@@ -423,8 +424,8 @@ export function regFor(speaker: string, listener: string, crew: ReadonlySet<stri
   const age = v.age, la = VOICE[listener]?.age;
   for (const x of v.to) {
     if (x.who === 'elvestad' && ELVESTAD.includes(listener)) return x.reg;
-    if (x.who === 'elder' && age != null && la != null && la > age) return x.reg;
-    if (x.who === 'younger' && age != null && la != null && la < age) return x.reg;
+    if (x.who === 'elder' && age != null && la != null && la - age >= (x.gap ?? 1)) return x.reg;
+    if (x.who === 'younger' && age != null && la != null && age - la >= (x.gap ?? 1)) return x.reg;
   }
   const c = v.to.find((x) => x.who === 'crew');
   if (c && crew.has(listener)) return c.reg;

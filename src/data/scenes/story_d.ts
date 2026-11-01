@@ -41,7 +41,7 @@ export const STORY_D_SCENES: Record<string, EventScene> = {
       falcon: [
         S('falcon', '이 진동 소리요, 제 레일건 터지기 직전 소리랑 똑같네요.', { at: 'C', face: 'base' }),
         S('west', '그래서 몇 초 남았는데.'),
-        S('falcon', '레일건은 삼 초쯤이요. 반응로는 안 재 봤어요. 재 볼까요?', { face: 'blank' }),
+        S('falcon', '레일건은 3초쯤이요. 반응로는 안 재 봤어요. 재 볼까요?', { face: 'blank' }),
         S('west', '재지 마.', { face: 'tired', exit: ['falcon'] }),
       ],
       u404: [
