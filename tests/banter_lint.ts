@@ -47,8 +47,8 @@ for (const [id, ls] of Object.entries(FIRST_MEET)) for (const l of ls) { const p
 for (const [id, t] of Object.entries(ORDER_TALK)) for (const [k, v] of Object.entries(t)) for (const l of (Array.isArray(v) ? v : [v])) lines.push({ who: id, to: 'rachel', t: l, at: `주문 ${id}.${k}` });
 
 // ───────── 문장 · 어미
-/** 따옴표 속 인용을 뺀 문장들 (마침표 · 물음표 · 느낌표 · 말줄임 · 물결로 나눔) */
-const sentences = (t: string) => t.replace(/'[^']*'|"[^"]*"|「[^」]*」/g, '').split(/(?<=[.!?…~])\s+|[.!?…~-]+$/).map((s) => s.replace(/[.!?…~\-—,\s)]+$/, '').trim()).filter(Boolean);
+/** 따옴표 속 인용 · 괄호 속 몸짓을 뺀 문장들 (마침표 · 물음표 · 느낌표 · 말줄임 · 물결로 나눔) */
+const sentences = (t: string) => t.replace(/'[^']*'|"[^"]*"|「[^」]*」|\([^)]*\)/g, '').split(/(?<=[.!?…~])\s+|[.!?…~-]+$/).map((s) => s.replace(/[.!?…~\-—,\s)]+$/, '').trim()).filter(Boolean);
 const HON = /(요|니다|니까|십시오|세요|지요|죠|까요|소서)$/;
 const PLAIN = /(다|야|어|아|지|냐|니|래|게|자|거든|잖아|군|걸|데|라|해|줘|돼|봐|겠어|했어|었어|았어|할게|할래|거야|잖아|구나|던데|는데|은데|더라|마|렴)$/;
 type Cls = 'hon' | 'plain' | null;
