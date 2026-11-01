@@ -86,7 +86,8 @@
 .bar-emo[data-e="sweat"], .bar-emo[data-e="zzz"] { color: var(--c-info); }
 .bar-emo[data-e="idea"], .bar-emo[data-e="sparkle"], .bar-emo[data-e="cheers"] { color: var(--c-select); }
 .bar-emo[data-e="note"], .bar-emo[data-e="yum"], .bar-emo[data-e="drunk"] { color: var(--c-good); }
-.bar-emo.on { animation: bar-pop .22s ease-out; }
+.bar-emo.on { animation: bar-bub-in .65s cubic-bezier(.2, .7, .3, 1) both; }
+.bar-emo.out { animation: bar-bub-out .65s ease forwards; pointer-events: none; }
 /* 이모티콘 움직임 (사용자 지정, docs/UI.md 10 의 예외 — 감정 표현 연출): 말이 없는 대신 그림이 반응한다. 움직임 줄이기면 모두 끈다 */
 .bar-emo svg, .bar-emo svg * { transform-box: fill-box; }
 @media (prefers-reduced-motion: no-preference) {
@@ -162,8 +163,14 @@
 /* 무대 밖 화자 (레이첼 = 카운터 안의 플레이어): 카운터 앞면 위 가운데, 같은 말풍선에 꼬리만 없다 */
 .bar-bub.off-stage { --bw: min(340px, 60cqw); top: auto; left: 50%; translate: -50% 0; bottom: calc(var(--ctr-h) * .08); }
 .bar-bub.off-stage::after { content: none; }
-.bar-bub.on { animation: bar-pop .22s ease-out; }
+.bar-bub.ghost { pointer-events: none; animation: bar-bub-out .65s ease forwards; }
+/* 말풍선 · 이모티콘: 0.65초 동안 살짝 떠오르며 나타나고, 사라질 때는 조금 더 떠오르며 흐려진다 (자리 translate 와 겹치지 않게 transform 으로) */
+.bar-bub.on { animation: bar-bub-in .65s cubic-bezier(.2, .7, .3, 1) both; }
+@keyframes bar-bub-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes bar-bub-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-6px); } }
 @keyframes bar-pop { from { opacity: 0; translate: 0 6px; } }
+@keyframes bar-fade-in { from { opacity: 0; } } /* 움직임 줄이기: 떠오르지 않고 흐려지기만 */
+@keyframes bar-fade-out { to { opacity: 0; } }
 .bar-hint { position: absolute; right: 16px; bottom: calc(6px + env(safe-area-inset-bottom, 0px)); z-index: var(--z-sticky-head); margin: 0; color: var(--c-text-2); text-shadow: 0 1px 4px var(--shade-3); pointer-events: none; }
 @media (max-width: 760px) { /* 좁은 화면: 세로 띠는 아래 가로 띠로 (제목 · 별점은 접는다) */
   .bar-nav { top: auto; right: 0; width: auto; flex-direction: row; padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)); border-right: 0; border-top: 1px solid var(--lp-au-lo); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--lp-au) 40%, transparent), 0 -10px 30px var(--shade-2); }
@@ -177,7 +184,7 @@
   .bar-top, .bar-floor { margin-left: 0; }
   .bar-floor { margin-bottom: 56px; }
 }
-@media (prefers-reduced-motion: reduce) { .bar-bub.on, .bar-emo.on, .bar-tip.on, .bar-cup.put { animation: none; } .bar-fig img { transition: none; } .bar-seat, .bar-front { transition: opacity .45s ease; } } /* 움직임 줄이기: 걷지 않고 제자리에서 짧게 페이드 */
+@media (prefers-reduced-motion: reduce) { .bar-tip.on, .bar-cup.put { animation: none; } .bar-bub.on, .bar-emo.on { animation: bar-fade-in .4s ease both; } .bar-bub.ghost, .bar-emo.out { animation: bar-fade-out .4s ease forwards; } .bar-fig img { transition: none; } .bar-seat, .bar-front { transition: opacity .45s ease; } } /* 움직임 줄이기: 걷지 않고 제자리에서 짧게 페이드 */
 /* 도감 기록 탭: 바에서 본 만담 · 들은 이야기 (카드 없이 줄로) */
 .bar-rec details { border-bottom: 1px solid var(--line-soft); }
 .bar-rec summary { padding: 9px 2px; cursor: pointer; }

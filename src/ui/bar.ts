@@ -844,12 +844,32 @@ export function barScreen(): string {
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 function stop() { clearTimeout(S.timer); S.timer = 0; }
 function schedule(ms: number) { clearTimeout(S.timer); S.timer = window.setTimeout(tick, ms); }
+/** 말풍선 나타남 · 사라짐 (20-bar.css bar-bub-in · bar-bub-out, 0.65초) */
+const BUB_FADE = 650;
+/** 말풍선을 치운다: 떠 있던 말풍선은 그 자리에 사본을 남겨 부드럽게 사라지게 하고 (다음 줄은 원래 말풍선으로 새로 떠오른다 → 겹쳐 바뀐다) */
 function hideBub(root: HTMLElement) {
-  const bub = root.querySelector<HTMLElement>('.bar-bub');
+  const bub = root.querySelector<HTMLElement>('.bar-bub:not(.ghost)');
+  if (bub && !bub.hidden) {
+    const g = bub.cloneNode(true) as HTMLElement;
+    g.classList.remove('on');
+    g.classList.add('ghost');
+    g.setAttribute('aria-hidden', 'true');
+    bub.after(g);
+    g.addEventListener('animationend', () => g.remove(), { once: true });
+    window.setTimeout(() => g.remove(), BUB_FADE * 2); // 애니메이션이 늦게 끝나도 (느린 기기) 끝까지 흐려진 뒤 치운다
+  }
   if (bub) { bub.hidden = true; bub.classList.remove('on', 'mono'); }
   root.querySelectorAll('.bar-seat.talking').forEach((s) => s.classList.remove('talking'));
 }
-function hideEmotes(root: HTMLElement) { root.querySelectorAll<HTMLElement>('.bar-emo').forEach((e) => { e.hidden = true; e.classList.remove('on'); }); }
+/** 이모티콘을 치운다: 그 자리에서 부드럽게 사라진 뒤 숨긴다 (그 사이 같은 자리에 새 이모티콘이 뜨면 취소) */
+function hideEmotes(root: HTMLElement) {
+  root.querySelectorAll<HTMLElement>('.bar-emo:not([hidden]):not(.out)').forEach((e) => {
+    e.classList.add('out');
+    const done = () => { if (e.classList.contains('out')) { e.hidden = true; e.classList.remove('on', 'out'); } };
+    e.onanimationend = (ev) => { if (ev.target === e && ev.animationName.startsWith('bar-fade-out') || (ev.target === e && ev.animationName === 'bar-bub-out')) done(); }; // 한 처리기만 (숨길 때마다 쌓이지 않게)
+    e.dataset.ht = String(window.setTimeout(done, BUB_FADE * 2));
+  });
+}
 /** 한 줄을 보여 주는 시간: 대사는 글자 수에 맞춰 · 혼잣말은 조금 짧게 · 이모티콘은 주고받으면 첫 그림 뒤 잠깐, 마지막 그림은 길게 */
 function lineMs(sc: Scene, [who, text, , k]: Line, last = true) {
   if (k === 'e') return last ? 3800 : 1300;
@@ -871,7 +891,7 @@ function showLine() {
   }
   hideBub(root);
   hideEmotes(root);
-  const bub = root.querySelector<HTMLElement>('.bar-bub');
+  const bub = root.querySelector<HTMLElement>('.bar-bub:not(.ghost)');
   if (!bub) return 0;
   bub.innerHTML = `<b class="f-ui" style="--c:${colorOf(who)}">${esc(nm || nameOf(who))}</b><span>${esc(text)}</span>`;
   bub.classList.toggle('off-stage', !seat);
@@ -879,13 +899,15 @@ function showLine() {
   bub.hidden = false;
   placeBub(root, bub, seat);
   seat?.classList.add('talking');
-  if (!reduced()) { void bub.offsetWidth; bub.classList.add('on'); }
+  void bub.offsetWidth; bub.classList.add('on'); // 움직임 줄이기면 CSS 가 흐려지기만 한다
   return lineMs(S.cur, ln, last);
 }
 /** 그 자리(.bar-seat)의 머리 둘레에 이모티콘 하나를 띄운다 (자리 4곳 중 무작위, 움직임은 CSS .bar-emo.on[data-e]) */
 function showEmote(seat: HTMLElement, id: string) {
   const emo = seat.querySelector<HTMLElement>('.bar-emo');
   if (!emo || !EMOTE_IDS.has(id)) return;
+  clearTimeout(+(emo.dataset.ht || 0));
+  emo.classList.remove('out');
   emo.innerHTML = emoteSvg(id as EmoteId);
   emo.dataset.e = id;
   emo.dataset.pos = POS.emo ?? pick(EMO_POS);
