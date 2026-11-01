@@ -53,7 +53,7 @@ function settlePending(r: RunState) {
   }
 }
 /** 크레딧 k 를 더해 공명도 구매에 모두 쓴다 */
-function spendXp(r: RunState, k: number): boolean {
+export function spendXp(r: RunState, k: number): boolean {
   r.credits += k;
   let left = k;
   while (left >= R.xpCost(r)) {

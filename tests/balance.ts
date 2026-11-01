@@ -14,6 +14,7 @@ import { effTier, inactiveRange, setEvalMode } from './chulsu/syn';
 import { Rng } from '../src/rng';
 import { RELICS, offerCap, offerStage } from '../src/data/relics';
 import { pilgrimValue, type PVRec } from './pilval';
+import { statValue, type SVRec } from './statval';
 import { FIELDS } from '../src/data/battlefields';
 import { fieldSyn, starterFavNeed, starterPool } from '../src/engine/starters';
 import { oathV } from '../src/data/oaths';
@@ -41,6 +42,9 @@ const RANDREL = process.argv.includes('randrelic');
 /** pilval[=조우 종류마다 시드 수]: 순례마다 항목 가치를 복제 굴림으로 잰다 (tests/pilval.ts, 분석 전용 — 느림). 런 기록 pv 에 남긴다 */
 const PILVAL = process.argv.find((a) => a === 'pilval' || a.startsWith('pilval='));
 const PILVAL_K = PILVAL?.includes('=') ? +PILVAL.split('=')[1] || 2 : 2;
+/** statval[=확률]: 역경 · 보스 전투 직전 주요 능력치 가치를 복제 굴림으로 잰다 (tests/statval.ts, 분석 전용 — 느림). 런 기록 sv 에 남긴다 */
+const STATVAL = process.argv.find((a) => a === 'statval' || a.startsWith('statval='));
+const STATVAL_P = STATVAL?.includes('=') ? +STATVAL.split('=')[1] || 0.3 : 0.3;
 /** field=<id>: 전장 고정 (전장별 클리어율 비교) */
 const FORCE_FIELD = process.argv.find((a) => a.startsWith('field='))?.slice(6);
 /** pool: 실제 게임처럼 계약 기물 후보(engine/starters.ts, 전장 우세 시너지 보장)에서 고른다 — 우세 시너지 기물 먼저 (최대 starterFavNeed명), 나머지는 무작위.
@@ -296,6 +300,7 @@ function playRun(seed: number) {
   const pwSrc: Record<string, number> = {}, pwSp: Record<string, [number, number]> = {};
   const pilRec: unknown[] = [], vowRec: unknown[] = [], mpkRec: unknown[] = [], pmapRec: number[][] = [];
   const pvRec: PVRec[] = [], pvRng = new Rng(seed * 197 + 29);
+  const svRec: SVRec[] = [], svRng = new Rng(seed * 211 + 37);
   const greats = new Map<string, number>();
   // 봉헌 계측: og = 봉헌 출처별 합 (auto 전투 정산 · rite 제례 · cons 축성 (그 밖의 증가) · join 합류 시작값) · 축성 횟수는 pwSp.cons [횟수, 권능] · ostRec = 페이즈 시작마다 [페이즈, '기물:단계:출전' …]
   const og: Record<string, number> = {}, offLast = new Map<string, number>(), consSeen = new Map<string, number>(), ostRec: unknown[] = [];
@@ -499,6 +504,7 @@ function playRun(seed: number) {
       const it = s.items || [], tr = ENEMY_BY_ID[s.defId]?.tier || '?';
       add('foegear', `${ntype}|${ph}|${tr}`, { n: 1, [`k${Math.min(3, it.length)}`]: 1, items: it.length, C: it.filter((x) => x.startsWith('C_')).length, G: it.filter((x) => x.startsWith('G_')).length, A: it.filter((x) => x.startsWith('A_')).length, L: it.filter((x) => x.startsWith('L_')).length, mod: s.mod ? 1 : 0, strip: s.stripped ? 1 : 0 });
     }
+    if (STATVAL) { const v = statValue(run, svRng, STATVAL_P); if (v) svRec.push(v); }
     const b = buildBattle(run, enc, false); // 실제 게임과 같은 경로 (포탑 · 무휼 자리, 포탑 장비 포함)
     bigTap = INSTR && enc.enemies.some((e) => ENEMY_BY_ID[e.defId]?.size) ? {} : null;
     b.runToEnd();
@@ -665,6 +671,7 @@ function playRun(seed: number) {
       // 디바인 · 스페셜 경제 (위 계측 설명): 권능 출처 · 사용처 · 끝난 뒤 권능 · 순례 방문 · 페이즈별 항로 순례 노드 · 서약 증강 (개편 뒤 비어 있음) · 스페셜 능력치 [페이즈, 기물, 등급, 능력치, 대성공] · 봉헌 출처 og · 페이즈별 봉헌 단계 ost (마지막 = 런 끝)
       dvx: { src: (pwMark('other'), pwSrc), sp: pwSp, end: run.power, pil: pilRec, pmap: pmapRec, vow: vowRec, mpk: mpkRec, divCap: run.divCap || 0, og, ost: [...ostRec, [run.phase, run.power, ...R.divines(run).map((u) => `${u.defId}:${offerStage(u.offer)}:${u.pos ? 1 : 0}`)]] } } } : {}),
     ...(PILVAL ? { pv: pvRec } : {}),
+    ...(STATVAL ? { sv: svRec } : {}),
     ...(DLOG && CH ? { dlog: CH.log.list } : {}) });
 }
 
