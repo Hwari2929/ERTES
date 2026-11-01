@@ -4,7 +4,9 @@ import { breadHeal, CONSUMABLES, CRYSTAL, DUST, gearRank, potsOf, potSlots, isCo
 import { memberships } from '../src/engine/build';
 import * as R from '../src/engine/run';
 import { offerNeed, offerStage } from '../src/data/relics';
-import type { AugPick, RunState, UnitState } from '../src/types';
+import type { AugPick, Pending, PilOffer, RunState, UnitState } from '../src/types';
+import { UNIT_BY_ID } from '../src/data/units';
+import { ALMS_K, BLESS_V, FAITH_H, OFFER_V, POWER_V, RELIC_G } from './pilval.gen';
 
 export type Track = (id: string, what: 'used' | 'sold' | 'bought') => void;
 /** 봇 계측 (선택): 장착 · 해제 · 소모품 사용 실패 사유와 운용 사건 수. 넘기지 않으면 동작 · 출력이 예전과 같다 (관찰만 한다) */
@@ -285,25 +287,74 @@ export function shopSynth(run: RunState, track?: Track) {
 }
 export { CONSUMABLES };
 
-/** 순례: 제례 (보유 디바인의 신앙에 맞으면 — 봉헌을 더 받을 수 있는 대상이 많은 것, 출전 기물 ×2) > 나눔. 받은 뒤 남은 권능으로 축성 */
+/** 순례 봇 실측표 (tests/pilval.gen.ts — balance.ts pilval 복제 굴림, 단위 크레딧) 를 쓰는 규칙.
+ *  권능은 다음 순례의 성유물 · 개종을 위해 PIL_RESERVE 만큼 남기고 축성한다 (마지막 페이즈에는 모두 축성). */
+export const PIL = { reserve: 30, margin: 5, battlesPerPhase: 4.9, bench: 0.5 };
+/** 이번 페이즈에만 걸리는 효과 (축복) 의 기간 몫: 이번 페이즈 남은 전투 ÷ 런 남은 전투 */
+const blessShare = (run: RunState) => {
+  const rem = PIL.battlesPerPhase * Math.max(0.5, 12 - run.step) / 12;
+  return rem / (rem + PIL.battlesPerPhase * Math.max(0, CFG.victoryPhase - run.phase));
+};
+const offerVal = (u: UnitState, gain: number) => {
+  let v = 0, o = u.offer || 0;
+  for (let left = gain; left > 0 && offerStage(o) < CFG.offer.max;) { const sg = offerStage(o), d = Math.min(left, offerNeed(sg + 1) - o); v += d * OFFER_V[sg]; o += d; left -= d; }
+  return v;
+};
+/** 순례 고르기 카드 점수 (크레딧): 제례 = 축복 × 기간 몫 + 대상 디바인 봉헌 +gain (대기 기물은 PIL.bench 배), 나눔 = 공시 가치 × ALMS_K */
+export function pilgrimCardScore(run: RunState, o: PilOffer): number {
+  if (o.k === 'alms') return (o.value || 0) * ALMS_K;
+  const bl = o.bless ? (BLESS_V[o.bless] || 0) * blessShare(run) : 0;
+  return bl + R.riteUnits(run, o.faith).reduce((a, u) => a + offerVal(u, o.gain) * (u.pos ? 1 : PIL.bench), 0);
+}
+const relicG = (id: string | undefined) => (id ? RELIC_G[id] ?? 0 : 0);
+const faithOf = (u: UnitState) => u.faith || UNIT_BY_ID[u.defId].faith;
+/** 진열장: 순이득 (성유물 · 신앙 이득 − 권능 × POWER_V) 이 PIL.margin 보다 큰 것부터 산다. 산 성유물은 이득이 가장 큰 출전 디바인에 장착 */
+function pilgrimShelf(run: RunState, p: Extract<Pending, { t: 'pilgrim' }>) {
+  const dv = () => R.divines(run).filter((u) => u.pos);
+  for (let g = 0; g < 4; g++) {
+    let best: { net: number; f: () => void } | null = null;
+    (p.relics || []).forEach((o, i) => {
+      if (o.sold || run.power < o.cost) return;
+      for (const u of dv()) {
+        const net = relicG(o.id) - relicG(u.relic) - o.cost * POWER_V;
+        if (net > PIL.margin && (!best || net > best.net)) best = { net, f: () => { if (!R.pilgrimRelic(run, i)) R.equipRelic(run, u.uid, o.id); } };
+      }
+    });
+    const c = p.convert;
+    if (c && !c.sold && run.power >= c.cost) for (const u of dv()) {
+      if (faithOf(u) === c.faith) continue;
+      const net = (FAITH_H[c.faith] ?? 0) - (FAITH_H[faithOf(u)] ?? 0) - c.cost * POWER_V;
+      if (net > PIL.margin && (!best || net > best.net)) best = { net, f: () => { R.pilgrimConvert(run, u.uid); } };
+    }
+    if (!best) break;
+    (best as { f: () => void }).f();
+  }
+  // 보관함 성유물: 지금 것보다 나으면 출전 디바인에 (바꾼 것은 보관함으로)
+  for (let g = 0; g < 6; g++) {
+    let best: { id: string; u: UnitState; d: number } | null = null;
+    for (const id of run.relics || []) for (const u of dv()) { const d = relicG(id) - relicG(u.relic); if (d > 0 && (!best || d > best.d)) best = { id, u, d }; }
+    if (!best) break;
+    R.equipRelic(run, best.u.uid, best.id);
+  }
+}
+/** 순례: 고르기 카드는 점수 (pilgrimCardScore) 가 큰 것, 진열장은 pilgrimShelf, 남은 권능으로 축성 (PIL.reserve 를 남기고) */
 export function pilgrimBot(run: RunState) {
   const p = run.pending.find((x) => x.t === 'pilgrim');
   if (!p || p.t !== 'pilgrim') return;
   if (p.took === undefined && p.offers.length) {
-    const score = (i: number) => {
-      const o = p.offers[i];
-      if (o.k === 'alms') return 0.5;
-      return R.riteUnits(run, o.faith).filter((u) => offerStage(u.offer) < CFG.offer.max).reduce((n, u) => n + (u.pos ? 2 : 1), 0);
-    };
-    const best = p.offers.map((_, i) => i).sort((a, b) => score(b) - score(a))[0];
+    const best = p.offers.map((_, i) => i).sort((a, b) => pilgrimCardScore(run, p.offers[b]) - pilgrimCardScore(run, p.offers[a]))[0];
     R.pilgrimTake(run, best);
   }
+  pilgrimShelf(run, p);
   consecrateBot(run);
 }
-/** 축성: 권능이 CFG.consecrate.cost 이상이면 다음 단계까지 남은 봉헌이 가장 적은 디바인부터 (출전 기물 먼저, 기물마다 페이즈당 1번) */
+/** 축성: 권능이 CFG.consecrate.cost 이상이면 다음 단계까지 남은 봉헌이 가장 적은 디바인부터 (출전 기물 먼저, 기물마다 페이즈당 1번).
+ *  마지막 페이즈가 아니면 PIL.reserve 를 남긴다 (다음 순례의 성유물 · 개종 몫) */
 export function consecrateBot(run: RunState) {
+  const keep = run.phase >= CFG.victoryPhase ? 0 : PIL.reserve;
   const left = (u: UnitState) => offerNeed(offerStage(u.offer) + 1) - (u.offer || 0);
   for (;;) {
+    if (run.power - CFG.consecrate.cost < keep) break;
     const c = R.divines(run).filter((u) => !R.consecrateWhy(run, u)).sort((a, b) => +!!b.pos - +!!a.pos || left(a) - left(b))[0];
     if (!c || R.consecrate(run, c.uid)) break;
   }

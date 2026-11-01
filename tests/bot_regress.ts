@@ -4,7 +4,8 @@
 import { CFG } from '../src/config';
 import * as R from '../src/engine/run';
 import type { RunState } from '../src/types';
-import { consecrateBot, equipGear, equipGearFix, newIns, pilgrimBot, useConsumables, useConsumablesFix } from './botlib';
+import { consecrateBot, equipGear, equipGearFix, newIns, PIL, pilgrimBot, useConsumables, useConsumablesFix } from './botlib';
+import { RELIC_G } from './pilval.gen';
 import { offerNeed } from '../src/data/relics';
 import { Chulsu, DEFAULT_AREAS } from './chulsu';
 import * as Y from './chulsu/younghee';
@@ -313,12 +314,24 @@ const u0 = (run: RunState) => run.units[0];
     `봇 순례: 셀레네 제례 → 엘레니 · 잉겔 봉헌 +${CFG.rite.gain} (${dv.map((u) => `${u.defId} ${before[u.uid]}→${u.offer}`).join(' · ')}) · 축복 ${run.blessing}`);
   ok(run.blessing === 'B.sanctum', `셀레네 제례의 축복 = 성소의 빛 (${run.blessing})`);
   run.pending = run.pending.filter((p) => p.t !== 'pilgrim');
-  // 축성: 권능 20 → 다음 단계까지 가장 가까운 출전 디바인 봉헌 +30, 기물마다 페이즈당 1번
-  run.power = CFG.consecrate.cost * 2 + 5;
+  // 순례 진열장: 실측표 (tests/pilval.gen.ts) 순이득이 큰 성유물을 사서, 지금 성유물 가치가 가장 낮은 출전 디바인에 장착한다
+  R.enterNode(run, 'pilgrim');
+  const pg2 = run.pending.find((p) => p.t === 'pilgrim');
+  if (pg2 && pg2.t === 'pilgrim') { pg2.relics = [{ id: 'key', cost: 30, sold: false }]; delete pg2.convert; }
+  run.power = 30;
+  const on = R.divines(run).filter((u) => u.pos);
+  const low = on.slice().sort((a, b) => (RELIC_G[a.relic || ''] ?? 0) - (RELIC_G[b.relic || ''] ?? 0))[0];
+  const lowRelic = low?.relic;
+  pilgrimBot(run);
+  ok(!!pg2 && pg2.t === 'pilgrim' && pg2.relics[0].sold && low?.relic === 'key' && (run.relics || []).includes(lowRelic || '?') && run.power === 0,
+    `봇 진열장: 하데스의 열쇠 구매 → ${low?.defId} (${lowRelic} → ${low?.relic}), 권능 30 → ${run.power}`);
+  run.pending = run.pending.filter((p) => p.t !== 'pilgrim');
+  // 축성: 권능 20 → 다음 단계까지 가장 가까운 출전 디바인 봉헌 +30, 기물마다 페이즈당 1번. 마지막 페이즈 전에는 PIL.reserve 를 남긴다 (순례 진열장 몫)
+  run.power = PIL.reserve + CFG.consecrate.cost * 2 + 5;
   const o1 = Object.fromEntries(dv.map((u) => [u.uid, u.offer || 0]));
   consecrateBot(run);
   const got = dv.filter((u) => (u.offer || 0) > o1[u.uid]);
-  ok(got.length === 2 && run.power === 5 && got.every((u) => (u.offer || 0) - o1[u.uid] === CFG.consecrate.gain || (u.offer || 0) === offerNeed(CFG.offer.max)), `봇 축성 2번 (권능 ${CFG.consecrate.cost * 2 + 5} → ${run.power}): ${got.map((u) => u.defId).join(' · ')}`);
+  ok(run.phase < CFG.victoryPhase && got.length === 2 && run.power === PIL.reserve + 5 && got.every((u) => (u.offer || 0) - o1[u.uid] === CFG.consecrate.gain || (u.offer || 0) === offerNeed(CFG.offer.max)), `봇 축성 2번 (권능 ${PIL.reserve + CFG.consecrate.cost * 2 + 5} → ${run.power}, ${PIL.reserve} 남김): ${got.map((u) => u.defId).join(' · ')}`);
   ok(R.consecrate(run, got[0].uid) !== null, `같은 페이즈에 같은 기물은 다시 축성하지 못한다 (${R.consecrateWhy(run, got[0])})`);
   // 저장 이어 받기: 옛 강화 · 서약 증강 · 서약 증강 대기 · 옛 순례 대기 · 봉헌 없는 디바인 → 멱등 정리
   const m = R.newRun(9, ['eleni', 'zahara', 'falcon', 'gebek'], 'waste', 0);
