@@ -1,4 +1,6 @@
 // 도감 · 기록 (런 사이에 유지되는 데이터). 이 브라우저의 localStorage 에만 저장된다.
+import { BAR_OPS } from '../data/bar/orders';
+import type { Drink } from '../data/bar/drinks';
 import { CFG } from '../config';
 import { effDiff, MAX_DIFF, runEffDiff } from '../data/difficulty';
 import type { Battle } from '../engine/combat';
@@ -48,6 +50,11 @@ export interface BarMeta {
   used?: Record<string, number>;
   /** 바에서 말 건 횟수 (관계: 실재 층 해금 기준의 일부) */
   bond?: Record<string, number>;
+  /** 바 운영 (docs/BAR_OPS.md): 코인 · 런을 마치고 받아 아직 바에서 보여 주지 않은 코인 · 단골 장부(지난번 좋아함을 받은 잔) · 내준 잔 수 */
+  coins?: number;
+  coinGain?: number;
+  usual?: Record<string, Drink & { name?: string }>;
+  served?: number;
 }
 
 const KEY = 'errantes.meta.v1';
@@ -142,6 +149,24 @@ export function metaBarBond(id: string) {
   b[id] = (b[id] || 0) + 1;
   save();
 }
+/** 바 코인: 거둔 술값 · 팁 (gain = 런 보상처럼 바에 돌아와서 보여 줄 몫) */
+export function metaBarCoins(n: number, gain = false) {
+  const m = loadMeta();
+  const b = (m.bar ||= {});
+  b.coins = (b.coins || 0) + n;
+  if (gain) b.coinGain = (b.coinGain || 0) + n;
+  save();
+}
+/** 런 보상으로 받은 코인을 바에서 보여 줬다 */
+export function metaBarCoinShown() { const m = loadMeta(); if (m.bar?.coinGain) { m.bar.coinGain = 0; save(); } }
+/** 잔을 내줬다: 좋아함이면 단골 장부에 그 잔을 적는다 ('늘 마시던 거') */
+export function metaBarServed(id: string, d: Drink & { name?: string }, liked: boolean) {
+  const m = loadMeta();
+  const b = (m.bar ||= {});
+  b.served = (b.served || 0) + 1;
+  if (liked) (b.usual ||= {})[id] = { glass: d.glass, fill: [...d.fill], ice: d.ice, garnish: [...d.garnish], name: d.name };
+  save();
+}
 /** 바에서 본 만담 · 들은 이야기 · 반응 대사 기록 (만담 id, 확장 틀은 '틀 id+끼어든 인물') */
 export function metaBar(kind: 'seen' | 'talk' | 'heard', key: string) {
   const m = loadMeta();
@@ -189,6 +214,9 @@ export function metaRunEnd(run: RunState) {
     for (const id of run.usedIds) used[id] = m.runs;
     b.last = { run: m.runs, field: run.field, cleared: !!run.cleared, phase: run.phase, diff: run.diff, mvp: (cur && top(cur.mvp)) || top(run.rankLog), units: [...run.usedIds], newEvents: cur?.newEv.slice(0, 6) || [] };
     b.cur = undefined;
+    const gain = run.cleared ? BAR_OPS.run.clear : BAR_OPS.run.fail; // 바 코인: 런을 마치면 조금
+    b.coins = (b.coins || 0) + gain;
+    b.coinGain = (b.coinGain || 0) + gain;
   }
   save();
 }

@@ -118,6 +118,8 @@ export const RECIPES: Recipe[] = [
   R('milkpint', '스타밀크 파인트', 'pint', ['starmilk', 'starmilk', 'starmilk', 'starmilk', 'starmilk'], 'none', [], '큰 잔에 우유. 그게 다다.'),
   R('cocoacream', '코코아 크림', 'coupe', ['cocoa', 'starmilk', 'velour'], 'none', ['cream'], '디저트를 잔에 담았다.'),
   R('crystalcock', '수정 칵테일', 'rock', ['aster', 'tonic', 'tonic'], 'rocks', ['crystal'], '바텐더가 스스로에게 따르는 잔. 3잔째부터 바텐더가 조금 기운다.'),
+  R('mintea', '유랑 민트 티', 'rock', ['yakyung', 'yakyung', 'honey'], 'none', ['mint'], '술 대신 차를 내는 유랑민의 잔. 당직 근무 날에는 이것만 나간다.'),
+  R('gingersoda', '진저 소다', 'highball', ['heliosfizz', 'heliosfizz', 'soda', 'soda'], 'rocks', ['lime'], '검은 폭풍에서 럼을 뺀 잔. 끝까지 자리를 지키는 사람의 잔.'),
 ];
 export const RECIPE_BY_ID: Record<string, Recipe> = Object.fromEntries(RECIPES.map((x) => [x.id, x]));
 
@@ -142,8 +144,8 @@ export const REGULARS: Record<string, { menu: string; style: OrderStyle }> = {
   kairo: { menu: 'wastedry', style: 'name' },
   donovan: { menu: 'icesoda', style: 'usual' },
   iris: { menu: 'applehb', style: 'vague' },
-  zahara: { menu: 'bitterdrop', style: 'usual' },
-  romani: { menu: 'blackstorm', style: 'vague' },
+  zahara: { menu: 'mintea', style: 'usual' }, // 술은 맛없다 · 알-카흐란 차 문화 (lore)
+  romani: { menu: 'gingersoda', style: 'vague' }, // 술은 마시지 않는다 (lore)
   bianca: { menu: 'nightlatte', style: 'name' },
   joshua: { menu: 'dutycoffee', style: 'usual' },
   chloe: { menu: 'frozencitrus', style: 'photo' },

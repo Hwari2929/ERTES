@@ -7,6 +7,9 @@ import { UNIT_BY_ID, UNITS } from '../src/data/units';
 import { AIDEN_BACK, BAR_ENTER, BAR_WAIT, LEAVE_GENERIC, LEAVE_LINES } from '../src/data/bar/leave';
 import { ERANTES_CREW, MONO, MONO_KINDS } from '../src/data/bar/mono';
 import { BAR_TUNE, STAGE_MAX, barSimulate } from '../src/ui/bar';
+import { GLASS_BY_ID, ING_BY_ID, GARNISH_BY_ID, GARNISH_MAX, RECIPES, REGULARS, RECIPE_BY_ID } from '../src/data/bar/drinks';
+import { feelConds, feelText, judge, makeOrder, recipeName } from '../src/data/bar/orders';
+import { ORDER_TALK, ORDER_GENERIC } from '../src/data/bar/orderlines';
 declare const process: { exitCode?: number; argv?: string[] };
 declare function require(m: 'node:fs'): { readdirSync(p: string): string[]; readFileSync(p: string, e: 'utf8'): string };
 
@@ -176,6 +179,47 @@ for (const m of metrics.slice(0, 2)) {
   const talk = Object.values(m.kindT).reduce((a, b) => a + b, 0);
   console.log(`    시간 비율 (화면에 떠 있는 동안): ${Object.entries(m.kindT).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${Math.round((v / (m.totT || 1)) * 100)}%`).join(' · ')} · 정적 ${Math.round((1 - talk / (m.totT || 1)) * 100)}%`);
 }
+// ───────── 바 운영 (docs/BAR_OPS.md): 메뉴 · 단골 · 주문 · 채점 · 주문 대사
+for (const r of RECIPES) {
+  const g = GLASS_BY_ID[r.glass];
+  if (!g) errs.push(`메뉴 ${r.id}: 모르는 잔 ${r.glass}`);
+  else if (r.fill.length !== g.slots) errs.push(`메뉴 ${r.id}: ${g.name} 는 ${g.slots}칸인데 ${r.fill.length}칸`);
+  for (const x of r.fill) if (!ING_BY_ID[x]) errs.push(`메뉴 ${r.id}: 모르는 재료 ${x}`);
+  for (const x of r.garnish) if (!GARNISH_BY_ID[x]) errs.push(`메뉴 ${r.id}: 모르는 가니쉬 ${x}`);
+  if (r.garnish.length > GARNISH_MAX) errs.push(`메뉴 ${r.id}: 가니쉬 ${r.garnish.length}개 (최대 ${GARNISH_MAX})`);
+  if (recipeName(r) !== r.name) errs.push(`메뉴 ${r.id}: 같은 구성의 다른 메뉴가 있다 (${recipeName(r)})`);
+  if (judge({ who: 'x', style: 'name', at: 0, target: r, name: r.name }, r).grade !== 'like') errs.push(`메뉴 ${r.id}: 메뉴 그대로 만든 잔이 좋아함이 아니다`);
+}
+for (const [id, x] of Object.entries(REGULARS)) { if (!ok(id)) errs.push(`단골 ${id}: 모르는 인물`); if (!RECIPE_BY_ID[x.menu]) errs.push(`단골 ${id}: 모르는 메뉴 ${x.menu}`); }
+// 느낌 주문은 그 기준 잔으로 늘 '좋아함'이 나와야 한다 (만들 수 있는 주문만)
+let rs = 7; const rnd = () => ((rs = (rs * 16807) % 2147483647) / 2147483647);
+for (let i = 0; i < 2000; i++) {
+  const r = RECIPES[i % RECIPES.length];
+  const cs = feelConds(r, rnd);
+  const o = { who: 'x', style: 'vague' as const, at: 0, conds: cs };
+  if (!cs.length || cs.length > 3) errs.push(`느낌 주문 ${r.id}: 조건 ${cs.length}개`);
+  if (judge(o, r).grade !== 'like') { errs.push(`느낌 주문 ${r.id}: 기준 잔이 조건을 못 맞춤 (${feelText(cs)})`); break; }
+}
+for (const id of Object.keys(REGULARS)) for (const st of ['vague', 'photo', 'name', 'usual'] as const) {
+  const o = makeOrder(id, 0, { night: true, style: st }, rnd);
+  if (st !== 'vague' && !o.target) errs.push(`주문 ${id}/${st}: 맞출 잔이 없다`);
+}
+// 주문 대사: 정규 단원 25명 모두 · 방식마다 {feel} · {menu} 자리
+const CUSTOMERS = ERANTES_CREW.filter((id) => id !== 'aiden');
+for (const id of CUSTOMERS) if (!ORDER_TALK[id]) errs.push(`주문 대사 ${id}: 없음`);
+for (const [id, t] of [...Object.entries(ORDER_TALK), ['(공통)', ORDER_GENERIC] as const]) {
+  for (const k of ['vague', 'photo', 'name', 'usual', 'like', 'ok', 'bad'] as const) {
+    if (!t[k]?.length) { errs.push(`주문 대사 ${id}.${k}: 비었다`); continue; }
+    for (const l of t[k]) {
+      if (k === 'vague' && (l.match(/\{feel\}/g) || []).length !== 1) errs.push(`주문 대사 ${id}.vague: {feel} 이 한 번이 아니다 — ${l}`);
+      if (k === 'name' && !l.includes('{menu}')) errs.push(`주문 대사 ${id}.name: {menu} 없음 — ${l}`);
+      if (k !== 'vague' && l.includes('{feel}')) errs.push(`주문 대사 ${id}.${k}: {feel} 은 느낌 주문에만 — ${l}`);
+      if ((k === 'photo' || k === 'usual') && l.includes('{menu}')) errs.push(`주문 대사 ${id}.${k}: 메뉴 이름을 말하면 안 된다 — ${l}`);
+    }
+  }
+  if (!t.hint?.includes('{menu}')) errs.push(`주문 대사 ${id}.hint: {menu} 없음`);
+}
+console.log(`바 운영: 메뉴 ${RECIPES.length} · 단골 ${Object.keys(REGULARS).length} · 주문 대사 ${Object.keys(ORDER_TALK).length}/${CUSTOMERS.length}명`);
 const askN = Object.keys(ASK).length, askDeep = Object.values(ASK).filter((a) => a.past[2]).length;
 console.log(`물어보기: ${askN}명 × 질문 ${ASK_Q.length}개 (실재 층 답 ${askDeep}명)`);
 const lay = (xs: { layer: string }[]) => ['s', 'i', 'r'].map((k) => xs.filter((x) => x.layer === k).length).join(' / ');
