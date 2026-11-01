@@ -24,6 +24,28 @@ const AWAY_TOPIC = new Set(['01_deploy', '02_victory', '03_supply', '05_travel',
 const AWAY_WORD = /함선|셔틀|화물칸|함교|격납고|기관실|덕트|식당|휴게실|의무실|전장|현장|강하|작전실|선실|갑판|주방|연구실|훈련장|사격장|정박|출격|전투|배치|교전|본가|저택|정원|성도회 수도원|보급|상점|병실|검진|우주|궤도|사막|설원|정글|폐광|해양|복도|침실|엔진|조타|항해|레이스|경기장|경주|대기실|관람석|돌격|작업실|창구|레이싱|무대|공연장|객실|사무실|회의|브리핑|집무실|매장|꽃집|시장|항구|부두|기도|체육관|본가|레일건|배에|검사|근력|도서관|해변|숲|산책/;
 const BAR_WORD = /바 |바,|바에|바의|바$|카운터|당직|에란테스 바|술자리|발코니|창가|테이블/;
 
+/** 머리줄 끝의 표시 〔…〕 (docs/BANTER.md): 〔낮〕 · 〔밤〕 (조명) · 〔소품: 이름〕 (카운터 위) · 〔동물: 이름〕 · 〔바 밖〕 (통신 기록으로만) · 〔보류〕 (바 무대에서 재생하지 않음) ·
+ *  〔삭제〕 (내보내지 않음 — 번호는 세어서 뒤 만담 id 가 밀리지 않게) · 모양 태그 〔받아치기〕 등 · 〔회수:id,id〕 */
+const SHAPES = ['받아치기', '투덜', '펀치', '확전', '3인', '끊김', '여운'];
+function splitTags(raw) {
+  const tags = { props: [], pets: [] };
+  const sit = raw.replace(/\s*〔([^〕]+)〕/g, (_, t) => {
+    const v = t.trim();
+    let mm;
+    if (v === '낮') tags.time = 'day';
+    else if (v === '밤') tags.time = 'night';
+    else if (v === '바 밖') tags.away = 1;
+    else if (v === '보류') tags.hold = 1;
+    else if (v === '삭제') tags.del = 1;
+    else if ((mm = v.match(/^소품\s*:\s*(.+)$/))) tags.props.push(...mm[1].split(/\s*[,·]\s*/).filter(Boolean));
+    else if ((mm = v.match(/^동물\s*:\s*(.+)$/))) tags.pets.push(...mm[1].split(/\s*[,·]\s*/).filter(Boolean));
+    else if ((mm = v.match(/^회수\s*:\s*(.+)$/))) tags.callback = mm[1].split(/\s*,\s*/);
+    else if (SHAPES.includes(v)) tags.shape = v;
+    else unknown.add(`표시: 〔${v}〕`);
+    return '';
+  }).trim();
+  return { sit, tags };
+}
 const files = readdirSync(DIR).filter((f) => /^\d\d_.*\.md$/.test(f)).sort();
 const topics = [];
 const out = [];
@@ -35,7 +57,7 @@ for (const f of files) {
   topics.push([key, title]);
   const ti = topics.length - 1;
   let sub = '', cur = null, n = 0;
-  const flush = () => { if (cur && cur.lines.length) out.push(cur); cur = null; };
+  const flush = () => { if (cur && cur.lines.length && !cur.tags.del) out.push(cur); cur = null; };
   for (const raw of src) {
     const ln = raw.trimEnd();
     const h = ln.match(/^##\s+(.+)/);
@@ -44,7 +66,8 @@ for (const f of files) {
     if (m) {
       flush();
       const cast = m[1].split('×').map((s) => s.trim()).map((nm) => NAME_ID[nm] || (unknown.add(nm), nm));
-      cur = { id: `${key.slice(0, 2)}.${++n}`, t: ti, sub, sit: m[2].trim(), cast, lines: [] };
+      const { sit, tags } = splitTags(m[2]);
+      cur = { id: `${key.slice(0, 2)}.${++n}`, t: ti, sub, sit, cast, lines: [], tags };
       continue;
     }
     if (!ln.trim()) { flush(); continue; }
@@ -63,7 +86,7 @@ for (const f of files) {
 for (const b of out) {
   const key = topics[b.t][0];
   const text = b.sit + ' ' + b.sub;
-  b.place = AWAY_TOPIC.has(key) || AWAY_WORD.test(b.sit) || (AWAY_WORD.test(b.sub) && !BAR_WORD.test(b.sit)) ? 2 : key === '04_bar' || BAR_WORD.test(text) ? 0 : 1;
+  b.place = b.tags.away ? 2 : AWAY_TOPIC.has(key) || AWAY_WORD.test(b.sit) || (AWAY_WORD.test(b.sub) && !BAR_WORD.test(b.sit)) ? 2 : key === '04_bar' || BAR_WORD.test(text) ? 0 : 1;
   // 대사 속에 함선 공간이 나오면 바 밖으로
   if (b.place !== 2 && b.lines.some(([, t]) => /함선|셔틀|화물칸|격납고|함교|기관실/.test(t))) b.place = 2;
   // 출연자: 대사 화자 ∪ 머리줄 인물 (체사레는 조슈아로)
@@ -95,9 +118,11 @@ const body = `// 자동 생성: node scripts/banter_build.mjs (원본 docs/bante
 /** 만담 주제: [파일 키, 제목] */
 export const BANTER_TOPICS: [string, string][] = ${J(topics)};
 /** 만담 한 편: id · 주제 번호 · 소제목 · 상황 · 장소(0 바 · 1 어디서나 · 2 바 밖) · 층(s 표면 · i 이상 · r 실재) · 출연 기물 · 대사 [화자, 대사, 이름표?] */
-export interface Banter { id: string; t: number; sub: string; sit: string; place: 0 | 1 | 2; layer: 's' | 'i' | 'r'; cast: string[]; lines: ([string, string] | [string, string, string])[] }
+export interface Banter { id: string; t: number; sub: string; sit: string; place: 0 | 1 | 2; layer: 's' | 'i' | 'r'; cast: string[]; lines: ([string, string] | [string, string, string])[];
+  /** 머리줄 표시 (docs/BANTER.md): 조명 (낮 · 밤에만) · 카운터 위 소품 · 동물 · 보류 (바 무대에서 재생 안 함) · 모양 · 회수 대상 id */
+  time?: 'day' | 'night'; props?: string[]; pets?: string[]; hold?: 1; shape?: string; callback?: string[] }
 export const BANTER: Banter[] = [
-${out.map((b) => `  {id:${J(b.id)},t:${b.t},sub:${J(b.sub)},sit:${J(b.sit)},place:${b.place},layer:${J(b.layer)},cast:${J(b.cast)},lines:${J(b.lines)}},`).join('\n')}
+${out.map((b) => { const g = b.tags; const ext = `${g.time ? `,time:${J(g.time)}` : ''}${g.props.length ? `,props:${J(g.props)}` : ''}${g.pets.length ? `,pets:${J(g.pets)}` : ''}${g.hold ? ',hold:1' : ''}${g.shape ? `,shape:${J(g.shape)}` : ''}${g.callback ? `,callback:${J(g.callback)}` : ''}`; return `  {id:${J(b.id)},t:${b.t},sub:${J(b.sub)},sit:${J(b.sit)},place:${b.place},layer:${J(b.layer)},cast:${J(b.cast)},lines:${J(b.lines)}${ext}},`; }).join('\n')}
 ];
 `;
 writeFileSync(OUT, body);

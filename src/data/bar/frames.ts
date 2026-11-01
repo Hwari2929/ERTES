@@ -26,6 +26,9 @@ export interface Frame {
   lines: string[];
   /** 슬롯별 후보 → 대사 */
   slots: Record<string, string[]>[];
+  /** 조명: 낮 · 밤에만 재생 (바 무대에 상황 줄이 없으므로 시간대가 중요한 틀) · 카운터 위 소품 (핵심 인물 앞) */
+  time?: 'day' | 'night';
+  props?: string[];
 }
 
 /** 4차 추가 후보(frames_c.ts)는 첫 슬롯에 합친다 */

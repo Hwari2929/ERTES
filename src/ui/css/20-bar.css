@@ -135,6 +135,13 @@
 .bar-cup:hover, .bar-cup:focus-visible { color: var(--c-text); outline: 0; }
 .bar-cup.put { animation: bar-put .5s steps(3, jump-end); }
 @keyframes bar-put { from { opacity: 0; translate: -80% 0; } }
+/* 카운터 위 소품 (장면 동안, bar.ts showProps): 잔 왼쪽부터 차례로. 누르면 이름 꼬리표 */
+.bar-prop { position: absolute; bottom: calc(var(--ctr-h) * .76); left: calc(8% - var(--n, 0) * 30%); width: calc(var(--fig-h) * .16); aspect-ratio: 1; padding: 0; background: none; border: 0; color: var(--c-text-2); cursor: pointer; pointer-events: auto; translate: -50% 0; }
+.bar-prop[data-i="1"] { --n: 1; } .bar-prop[data-i="2"] { --n: 2; }
+.bar-prop svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.bar-prop .prop-drink { height: 125%; translate: 0 -20%; }
+.bar-prop.gone { opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: no-preference) { .bar-prop { animation: bar-put .5s steps(3, jump-end); } .bar-prop.gone { transition: opacity .45s steps(3, jump-end); } }
 .bar-tag { position: absolute; left: 50%; bottom: calc(var(--ctr-h) * .3); translate: -50% 0; padding: 2px 10px; white-space: nowrap; font-size: var(--fs-sm); font-weight: 700; color: var(--c-text); background: var(--overlay); border: 1px solid var(--line-soft); border-radius: var(--r-pill); cursor: pointer; pointer-events: auto; } /* 이름표 · 말풍선은 게임 토큰 (레터프레스는 종이 사물에만) */
 .bar-tag:focus-visible { outline: 2px solid var(--c-select); outline-offset: 2px; }
 /* 잔 이름 꼬리표: 누른 잔 바로 위에 잠깐 */

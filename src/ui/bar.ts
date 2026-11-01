@@ -26,6 +26,7 @@ import { advKey, closeAdv, playAdv } from './adv';
 import { barShowcaseHtml } from './achieve';
 import { EMOTE_PAIRS, emoteSvg, soloWeights, type EmoteId } from './baremote';
 import { drinkSvg } from './drinkart';
+import { propSvg } from './barprops';
 import { loadMeta, metaBar, metaBarBond } from './meta';
 import { artURL, bgURL, standURL } from './portraits';
 import { STAND_FACE } from './standface.gen';
@@ -174,6 +175,8 @@ interface Scene {
   key: string; sit: string; lines: Line[]; layer?: 's' | 'i' | 'r';
   kind: 'scene' | 'idle' | 'mono' | 'emote' | 'enter' | 'serve' | 'shift' | 'leave' | 'wait';
   exit?: string; hold?: number; mono?: string; idle?: number; cups?: [string, Cup | null][]; toNight?: boolean; toDay?: boolean;
+  /** 카운터 위 소품 (만담 머리줄 〔소품: …〕 · 틀 · 바텐더 대화의 props) — 그 장면 동안 말하는 사람 앞에 */
+  props?: string[];
 }
 /** 장면을 시작하기 전의 무대 변화 (무대 키): add 들어오는 사람 · drop 카운터 뒤로 비켜 주는 에이든 · 나가는 손님 */
 interface Plan { add: string[]; drop: string[] }
@@ -198,6 +201,8 @@ const S = {
   /** 마지막 혼잣말 시각 · 이번 방문에 나온 혼잣말 */
   monoAt: -Infinity,
   monoUsed: new Set<string>(),
+  /** 지금 카운터 위 소품 (자리 · 이름, 꼬리표용) */
+  props: [] as { k: string; name: string }[],
   /** 밤 (에이든 없음) · 다음에 낮 ↔ 밤이 바뀌는 시각 */
   night: false,
   cycleAt: Infinity,
@@ -236,9 +241,15 @@ function cupLeft(c: Cup | undefined, now: number): number | null {
 /** 이 사람이 마시는 중인가 (잔이 놓여 있고 남았다) */
 const sipping = (s: Seat, now: number) => (cupLeft(s.cup, now) ?? 0) > 0;
 
+/** 조명 표시(〔낮〕 · 〔밤〕)가 지금 시간대와 맞나 */
+const timeOk = (t?: 'day' | 'night') => !t || (t === 'night') === S.night;
+/** 줄 앞 〔낮〕 · 〔밤〕 접두: 지금 시간대에 쓸 수 있는 줄만, 접두를 떼고 (작별 · 혼잣말) */
+const TIME_TAG = /^〔(낮|밤)〕\s*/;
+const lineTimeOk = (l: string) => { const m = l.match(TIME_TAG); return !m || (m[1] === '밤') === S.night; };
+const untag = (l: string) => l.replace(TIME_TAG, '');
 function eligibleAmbient(): Banter[] {
   const k = S.known;
-  return BANTER.filter((b) => b.place !== 2 && b.cast.every((id) => k.has(id)) && needOf(b.cast).length <= STAGE_MAX);
+  return BANTER.filter((b) => b.place !== 2 && !b.hold && timeOk(b.time) && b.cast.every((id) => k.has(id)) && needOf(b.cast).length <= STAGE_MAX);
 }
 /** 들어올 수 있는 단원: 해금됐고 무대에 없는 사람 (이번 방문에 나간 사람은 다른 사람이 없을 때만) */
 function entrants(): string[] {
@@ -291,7 +302,7 @@ function buildFrame(f: Frame, pool: Set<string>, here: Set<string>, comm = false
     if (sm) { const c = ints[+sm[1]]; if (c) lines.push(...f.slots[+sm[1]][c].map((x) => parseLine(x, c, comm ? ' (통신)' : ''))); continue; }
     lines.push(parseLine(l, f.cast[0]));
   }
-  return { key: `${f.id}+${ints.filter(Boolean).join('+') || '-'}`, sit: f.sit, lines, layer: f.layer, kind: 'scene' };
+  return { key: `${f.id}+${ints.filter(Boolean).join('+') || '-'}`, sit: f.sit, lines, layer: f.layer, kind: 'scene', props: f.props };
 }
 /** 확장 틀의 핵심 대화에 필요한 무대 인원 (핵심 인물 + 핵심 줄에서 말하는 사람: '손님:' 줄이 있으면 손님 자리) */
 const frameNeed = (f: Frame) => needOf([...f.cast, ...f.lines.filter((l) => !/^@\d$/.test(l)).map((l) => parseLine(l, f.cast[0])[0])]);
@@ -341,10 +352,10 @@ function nextScene(fresh: number, repeat = false): Pick | null {
   for (const b of eligibleAmbient()) {
     if (!repeat && S.session.has(b.id)) continue;
     if (b.layer === 'r' && !b.cast.filter((id) => !BASE.includes(id)).every((id) => deepOpen(id))) continue; // 실재 층: 출연자 모두와 가까워야
-    offer(b.layer, seen.has(b.id) ? 0 : 4, needOf([...b.cast, ...b.lines.map((l) => l[0])]), () => ({ key: b.id, sit: b.sit, layer: b.layer, kind: 'scene', lines: b.lines.map((l) => [l[0], fillText(l[1], { pc: PC }), l[2]] as Line) }));
+    offer(b.layer, seen.has(b.id) ? 0 : 4, needOf([...b.cast, ...b.lines.map((l) => l[0])]), () => ({ key: b.id, sit: b.sit, layer: b.layer, kind: 'scene', props: b.props, lines: b.lines.map((l) => [l[0], fillText(l[1], { pc: PC }), l[2]] as Line) }));
   }
   for (const f of FRAMES) {
-    if (!f.cast.every((id) => S.known.has(id)) || !deepOpen(f.deep) || (!repeat && [...S.session].some((k) => k.startsWith(f.id + '+')))) continue;
+    if (!f.cast.every((id) => S.known.has(id)) || !deepOpen(f.deep) || !timeOk(f.time) || (!repeat && [...S.session].some((k) => k.startsWith(f.id + '+')))) continue;
     offer(f.layer, seenFrame.has(f.id) ? 2 : 6, frameNeed(f), (p) => stageFrame(f, p, fresh, ok));
   }
   // 빈자리 대기가 끝났으면 합류 장면부터
@@ -361,7 +372,7 @@ function nextScene(fresh: number, repeat = false): Pick | null {
     const it = i === undefined ? null : BAR_IDLE[i];
     const lines = it ? it.lines.map((l) => parseLine(l, 'aiden')) : [];
     const plan = it && planFor(needOf(lines.map(([w]) => w)), 0, ok);
-    if (it && plan) { S.idleI = i! + 1; return { scene: { key: '', sit: it.sit, lines, kind: 'idle', idle: i }, plan }; }
+    if (it && plan) { S.idleI = i! + 1; return { scene: { key: '', sit: it.sit, lines, kind: 'idle', idle: i, props: it.props }, plan }; }
   }
   return best ? { scene: best.make(best.plan), plan: best.plan } : null;
 }
@@ -380,12 +391,14 @@ function leaveScene(now: number, force = false): Pick | null {
   if (goes.length) {
     const s = weighted(goes, (x) => (CREW.has(x.id) ? 1 : 3) * (1 + (now - x.since) / 120_000));
     const vars = { name: nameOf(s.id) };
-    const line = parseLine(fillText(pick(LEAVE_LINES[s.id] || LEAVE_GENERIC), vars), s.id);
+    const own = (LEAVE_LINES[s.id] || []).filter(lineTimeOk);
+    const line = parseLine(fillText(untag(pick(own.length ? own : LEAVE_GENERIC)), vars), s.id);
     return { scene: { key: '', sit: '', lines: [line], kind: 'leave', exit: s.id }, plan: { add: [], drop: [] } };
   }
   const aiden = S.stage.find((s) => s.id === 'aiden');
   if (!force && aiden && S.stage.length > 1 && stayed(aiden, now) && Math.random() < BAR_TUNE.leave.aiden) {
-    return { scene: { key: '', sit: '', lines: [['aiden', fillText(pick(AIDEN_BACK), { pc: PC })]], kind: 'leave', exit: 'aiden' }, plan: { add: [], drop: [] } };
+    const back = AIDEN_BACK.filter(lineTimeOk);
+    return { scene: { key: '', sit: '', lines: [['aiden', fillText(untag(pick(back.length ? back : AIDEN_BACK)), { pc: PC })]], kind: 'leave', exit: 'aiden' }, plan: { add: [], drop: [] } };
   }
   return null;
 }
@@ -400,7 +413,7 @@ const MONO_EMO: Partial<Record<MonoKind, EmoteId>> = { sleep: 'zzz', drunk: 'dru
 function monoScene(now: number): Pick | null {
   if (now - S.monoAt < BAR_TUNE.monoGap) return null;
   const heard = new Set(loadMeta().bar?.talk || []);
-  const opts = S.stage.filter((s) => !s.guest && MONO[s.id]).flatMap((s) => MONO_KINDS.filter((k) => !S.monoUsed.has(`${s.id}.${k}`) && (S.night || (k !== 'sleep' && k !== 'drunk'))).map((k) => ({ id: s.id, k, key: `mono:${s.id}.${k}` })));
+  const opts = S.stage.filter((s) => !s.guest && MONO[s.id]).flatMap((s) => MONO_KINDS.filter((k) => !S.monoUsed.has(`${s.id}.${k}`) && lineTimeOk(MONO[s.id][k]) && (S.night || (k !== 'sleep' && k !== 'drunk'))).map((k) => ({ id: s.id, k, key: `mono:${s.id}.${k}` })));
   if (!opts.length) return null;
   const fresh = opts.filter((o) => !heard.has(o.key));
   const o = pick(fresh.length ? fresh : opts);
@@ -408,7 +421,7 @@ function monoScene(now: number): Pick | null {
   S.monoAt = now;
   const vars = { name: nameOf(o.id), pc: PC };
   const emo = MONO_EMO[o.k];
-  const lines: Line[] = [...(emo ? [[o.id, emo, undefined, 'e'] as Line] : []), [o.id, fillText(MONO[o.id][o.k], vars), undefined, 'm']];
+  const lines: Line[] = [...(emo ? [[o.id, emo, undefined, 'e'] as Line] : []), [o.id, fillText(untag(MONO[o.id][o.k]), vars), undefined, 'm']];
   return { scene: { key: '', sit: '', lines, kind: 'mono', mono: o.key }, plan: planFor([], 0, new Set()) || NOOP };
 }
 /** 이모티콘: 무대의 한 사람이 말 대신 그림 하나 (마시는 중이면 맛있음 · 건배, 밤이면 꾸벅 · 취함이 잦다). 둘 이상이면 가끔 주고받는다 */
@@ -541,7 +554,29 @@ function startScene(p: Pick, root: HTMLElement | null, prev: Scene | null = null
   if (!root) return rest + (silent || (fresh.length ? 2600 : 1200));
   root.classList.toggle('night', S.night);
   const moved = syncFloor(root);
+  showProps(root, p.scene);
   return rest + (silent || (moved && !reduced() ? 2000 : 1200));
+}
+/** 카운터 위 소품: 장면의 props 를 말하는 사람(무대에 있는, 레이첼 제외) 앞에 차례로 놓는다. 다음 장면에서 치운다 (장면에 소품이 없으면 그대로 비움) */
+function showProps(root: HTMLElement, sc: Scene) {
+  root.querySelectorAll<HTMLElement>('.bar-prop').forEach((e) => { e.classList.add('gone'); window.setTimeout(() => e.remove(), reduced() ? 0 : 500); });
+  S.props = [];
+  if (!sc.props?.length) return;
+  const who = [...new Set(sc.lines.map(([w]) => figOf(w)).filter((w) => w && w !== 'rachel'))].filter((k) => S.stage.some((s) => keyOf(s) === k));
+  if (!who.length) return;
+  sc.props.forEach((name, i) => {
+    const k = who[i % who.length];
+    const fr = root.querySelector<HTMLElement>(`.bar-front[data-seat="${k}"]:not(.out)`);
+    if (!fr) return;
+    const n = fr.querySelectorAll('.bar-prop:not(.gone)').length;
+    const b = document.createElement('button');
+    b.className = 'bar-prop';
+    b.dataset.a = 'bar-x'; b.dataset.v = `prop:${S.props.length}`; b.dataset.i = String(n);
+    b.setAttribute('aria-label', name);
+    b.innerHTML = propSvg(name);
+    fr.appendChild(b);
+    S.props.push({ k, name });
+  });
 }
 /** 처음 들어올 때: 한두 사람이 이미 앉아 있다 (정규 단원일 때가 많다), 낮이면 에이든도. 잔은 이미 마시던 중일 수 있다 */
 function firstStage() {
@@ -902,14 +937,18 @@ export function barEnter() {
 export function barAfterRun() { nightNext = true; }
 /** 잔 이름 꼬리표: 그 잔 위에 잠깐 떴다 사라진다 */
 let tipTimer = 0;
-function showTip(k: string) {
+function showTip(k: string, text?: string) {
   const root = document.querySelector<HTMLElement>(BAR_SEL);
   const s = S.stage.find((x) => keyOf(x) === k);
   const tip = root?.querySelector<HTMLElement>('.bar-tip');
   const i = S.stage.findIndex((x) => keyOf(x) === k);
-  if (!root || !s?.cup || !tip || cupLeft(s.cup, clock.now()) === null) return;
-  const l = cupLeft(s.cup, clock.now())!;
-  tip.textContent = l > 0 ? s.cup.name : `${s.cup.name} (빈 잔)`;
+  if (!root || !s || !tip) return;
+  if (text === undefined) {
+    if (!s.cup || cupLeft(s.cup, clock.now()) === null) return;
+    const l = cupLeft(s.cup, clock.now())!;
+    text = l > 0 ? s.cup.name : `${s.cup.name} (빈 잔)`;
+  }
+  tip.textContent = text;
   tip.style.setProperty('--x', String(spotOf(i, S.stage.length)));
   tip.hidden = false;
   tip.classList.remove('on'); void tip.offsetWidth; tip.classList.add('on');
@@ -1087,6 +1126,7 @@ export function barAct(v: string): boolean {
   if (k === 'log') { if (!awayPool().length && !loadMeta().bar?.last) return false; stop(); playLog(); return false; } // 의뢰를 한 번 마치기 전에는 열리지 않는다 (창가 명판이 흐림)
   if (k === 'next') { barNext(); return false; }
   if (k === 'cup' && id) { showTip(id); return false; }
+  if (k === 'prop' && id) { const pr = S.props[+id]; if (pr) showTip(pr.k, pr.name); return false; }
   return false;
 }
 /** 다른 화면이 열 때 바 장면이 떠 있으면 닫는다 */
@@ -1123,7 +1163,7 @@ export function barRecordsHtml(): string {
   const monoRows = ERANTES_CREW.filter((id) => MONO[id]).map((id) => ({ id, got: MONO_KINDS.filter((k) => talk.has(`mono:${id}.${k}`)) })).filter((r) => r.got.length);
   const monoAll = ERANTES_CREW.reduce((n, id) => n + (MONO[id] ? MONO_KINDS.length : 0), 0);
   const monoGot = monoRows.reduce((n, r) => n + r.got.length, 0);
-  const monoHtml = monoRows.map(({ id, got }) => `<section class="bar-rec-b"><h3>${esc(nameOf(id))} <span class="muted small f-num">${got.length}/${MONO_KINDS.length}</span></h3>${got.map((k) => `<p><b style="--c:${colorOf(id)}">${esc(MONO_KIND_NAME[k])}</b> ${esc(fillText(MONO[id][k], { pc: PC }))}</p>`).join('')}</section>`).join('');
+  const monoHtml = monoRows.map(({ id, got }) => `<section class="bar-rec-b"><h3>${esc(nameOf(id))} <span class="muted small f-num">${got.length}/${MONO_KINDS.length}</span></h3>${got.map((k) => `<p><b style="--c:${colorOf(id)}">${esc(MONO_KIND_NAME[k])}</b> ${esc(fillText(untag(MONO[id][k]), { pc: PC }))}</p>`).join('')}</section>`).join('');
   const knowHtml = askRows.map(({ id, got }) => `<section class="bar-rec-b"><h3>${esc(nameOf(id))} <span class="muted small f-num">${got.length}</span></h3>${got.map(({ q, t }) => `<div class="bar-rec-v"><span class="muted small">${esc(q.note)}${Array.isArray(ASK[id][q.key]) ? ` · ${TIER_NAME[t]}` : ''}</span>${scriptLines(id, askLines(askText(id, q.key, t)))}</div>`).join('')}</section>`).join('');
   return `<h2>에란테스 바</h2>
     <p class="muted small">본 만담 <b class="f-num">${banterN}</b> / ${BANTER.length}편 · 끼어들기 만담 <b class="f-num">${frameRows.length}</b> / ${FRAMES.length}편 (버전 <b class="f-num">${fseen.length}</b> / ${variants}) · 단원에게 들은 이야기 <b class="f-num">${talkRows.length}</b> / ${talkAll}편 · 알게 된 것 <b class="f-num">${askGot}</b> / ${askAll} · 들은 혼잣말 <b class="f-num">${monoGot}</b> / ${monoAll}.
