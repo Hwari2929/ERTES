@@ -741,6 +741,7 @@ function showLine() {
     if (emo && EMOTE_IDS.has(text)) {
       emo.innerHTML = emoteSvg(text as EmoteId);
       emo.dataset.e = text;
+      emo.dataset.pos = POS.emo ?? pick(EMO_POS);
       emo.hidden = false;
       emo.classList.remove('on'); void emo.offsetWidth; emo.classList.add('on');
     }
@@ -748,17 +749,63 @@ function showLine() {
   }
   hideBub(root);
   hideEmotes(root);
-  const i = k === 'rachel' ? -1 : S.stage.findIndex((s) => keyOf(s) === k);
   const bub = root.querySelector<HTMLElement>('.bar-bub');
   if (!bub) return 0;
   bub.innerHTML = `<b class="f-ui" style="--c:${colorOf(who)}">${esc(nm || nameOf(who))}</b><span>${esc(text)}</span>`;
   bub.classList.toggle('off-stage', !seat);
   bub.classList.toggle('mono', kind === 'm');
-  bub.style.setProperty('--x', String(seat ? spotOf(i, S.stage.length) : 0.5));
   bub.hidden = false;
+  placeBub(root, bub, seat);
   seat?.classList.add('talking');
   if (!reduced()) { void bub.offsetWidth; bub.classList.add('on'); }
   return lineMs(S.cur, ln, last);
+}
+/** 말풍선 · 이모티콘이 인물 그림 기준으로 뜨는 자리 (줄마다 무작위). 확인용 주소의 __barPos 로 고정할 수 있다 */
+const BUB_POS = ['top', 'tr', 'tl', 'side'] as const;
+const EMO_POS = ['tr', 'tl', 'r', 'l'];
+const POS: { bub?: (typeof BUB_POS)[number]; emo?: string } = {};
+/** 말풍선 자리: 그 사람 자리(.bar-seat)를 재서 머리 위 · 오른쪽 위 · 왼쪽 위 · 얼굴 옆(빈 쪽) 중 하나에 놓고, 꼬리가 머리를 가리키게 한다.
+ *  무대 밖(레이첼)은 CSS 자리 (카운터 앞면 위 가운데) */
+function placeBub(root: HTMLElement, bub: HTMLElement, seat: HTMLElement | null) {
+  bub.style.left = ''; bub.style.top = ''; bub.style.removeProperty('--tx'); bub.style.removeProperty('--ty');
+  delete bub.dataset.pos; delete bub.dataset.tail;
+  if (!seat) return;
+  const fl = root.querySelector<HTMLElement>('.bar-floor');
+  if (!fl) return;
+  const F = fl.getBoundingClientRect(), R = seat.getBoundingClientRect();
+  const W = F.width, bw = bub.offsetWidth, bh = bub.offsetHeight;
+  const sw = R.width, h = R.height, top0 = R.top - F.top;
+  const hx = R.left - F.left + sw / 2; // 얼굴 가운데 (그림은 얼굴을 자리 가운데에 맞춘다)
+  const headTop = top0 + h * 0.13, faceMid = top0 + h * 0.3;
+  // 옆 사람 얼굴: 다른 자리의 가운데 x (얼굴 옆 말풍선은 그 얼굴을 덮지 않을 때만)
+  const others = Array.from(fl.querySelectorAll<HTMLElement>('.bar-seat:not(.out)')).filter((e) => e !== seat).map((e) => { const r = e.getBoundingClientRect(); return r.left - F.left + r.width / 2; });
+  const clearOf = (l: number) => others.every((ox) => ox < l - sw * 0.2 || ox > l + bw + sw * 0.2);
+  let pos = POS.bub ?? pick([...BUB_POS]);
+  let left = 0, top = 0, tail = 'b';
+  const fits = (l: number) => l >= 8 && l + bw <= W - 8;
+  if (pos === 'side') { // 얼굴 옆: 빈 쪽이 있을 때만 (가장자리 · 인원이 적을 때), 없으면 머리 위 쪽으로
+    const rl = hx + sw * 0.3, ll = hx - sw * 0.3 - bw;
+    const ok = [rl, ll].filter((l) => fits(l) && clearOf(l));
+    if (!ok.length) pos = POS.bub === 'side' ? 'top' : pick(['top', 'tr', 'tl'] as const);
+  }
+  if (pos === 'tr' && !fits(hx + sw * 0.08)) pos = 'tl';
+  if (pos === 'tl' && !fits(hx - sw * 0.08 - bw)) pos = fits(hx + sw * 0.08) ? 'tr' : 'top';
+  if (pos === 'top') { left = hx - bw / 2; top = headTop - bh - 12; }
+  else if (pos === 'tr') { left = hx + sw * 0.08; top = headTop - bh + 4; }
+  else if (pos === 'tl') { left = hx - sw * 0.08 - bw; top = headTop - bh + 4; }
+  else { // 얼굴 옆: 비어 있는 쪽 (둘 다 비면 넓은 쪽)
+    const rl = hx + sw * 0.3, ll = hx - sw * 0.3 - bw;
+    const rOk = fits(rl) && clearOf(rl), lOk = fits(ll) && clearOf(ll);
+    const right = rOk && (!lOk || W - hx > hx);
+    left = right ? rl : ll; top = faceMid - bh / 2; tail = right ? 'l' : 'r';
+  }
+  left = Math.max(8, Math.min(W - bw - 8, left));
+  top = Math.max(8, top);
+  bub.dataset.pos = pos; bub.dataset.tail = tail;
+  bub.style.left = `${Math.round(left)}px`; bub.style.top = `${Math.round(top)}px`;
+  // 꼬리: 아래 꼬리는 머리 가운데를 향해 (말풍선 안쪽 14px ~ 폭 − 24px), 옆 꼬리는 높이 가운데
+  if (tail === 'b') bub.style.setProperty('--tx', `${Math.round(Math.max(14, Math.min(bw - 24, hx - left - 6)))}px`);
+  else bub.style.setProperty('--ty', `${Math.round(bh / 2 - 6)}px`);
 }
 const EMOTE_IDS = new Set<string>(['dots', 'excl', 'q', 'note', 'heart', 'anger', 'sweat', 'zzz', 'idea', 'yum', 'cheers', 'drunk', 'sparkle']);
 function tick() {
@@ -808,6 +855,8 @@ if (typeof location !== 'undefined' && location.search.includes('bartest')) {
   };
   testHook.__barTune = (t: Partial<typeof BAR_TUNE>) => Object.assign(BAR_TUNE, t);
   testHook.__barPlay = (lines: Line[]) => { S.cur = { key: '', sit: '', lines, kind: 'emote' }; S.li = 0; stop(); tick(); };
+  testHook.__barPos = (bub?: (typeof BUB_POS)[number], emo?: string) => { POS.bub = bub; POS.emo = emo; };
+  testHook.__barStage = (ids: string[]) => { const now = clock.now(); S.stage = ids.map((id) => ({ id, since: now, n: 0 })); const root = document.querySelector<HTMLElement>(BAR_SEL); if (root) syncFloor(root); };
   testHook.__barState = () => ({ stage: S.stage.map(keyOf), night: S.night, kind: S.cur?.kind, key: S.cur?.key || S.cur?.mono, li: S.li, enterIn: Math.round(S.enterAt - clock.now()), cycleIn: Math.round(S.cycleAt - clock.now()), cups: S.stage.map((s) => [keyOf(s), s.cup?.name, cupLeft(s.cup, clock.now())]) });
   testHook.__barNight = (n: boolean) => { setNight(n, clock.now()); if (n) S.stage = S.stage.filter((s) => s.id !== 'aiden'); const root = document.querySelector<HTMLElement>(BAR_SEL); if (root) { root.classList.toggle('night', n); syncFloor(root); } };
   testHook.__barCup = (k: string, recipe: string, left = 1) => { const s = S.stage.find((x) => keyOf(x) === k); const r = RECIPE_BY_ID[recipe]; if (s && r) { s.cup = { d: r, name: r.name, by: 'aiden', at: clock.now() - (1 - left) * 200_000, dur: 200_000, alc: false }; const root = document.querySelector<HTMLElement>(BAR_SEL); if (root) syncCups(root); } };
