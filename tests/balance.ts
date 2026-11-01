@@ -13,6 +13,7 @@ import { ALL_AREAS, Chulsu, DEFAULT_AREAS, DLog, pickStarters, type Area } from 
 import { effTier, inactiveRange, setEvalMode } from './chulsu/syn';
 import { Rng } from '../src/rng';
 import { RELICS, offerCap, offerStage } from '../src/data/relics';
+import { pilgrimValue, type PVRec } from './pilval';
 import { FIELDS } from '../src/data/battlefields';
 import { fieldSyn, starterFavNeed, starterPool } from '../src/engine/starters';
 import { oathV } from '../src/data/oaths';
@@ -37,6 +38,9 @@ const GEARLOG = process.argv.includes('gearlog');
 /** detail: 런마다 기물 · 증강 · 성유물별 [전투 수, 승리] 기록 (군집 신뢰구간용). randrelic: 디바인 성유물을 무작위로 장착 (성유물 효과 분리 실험) */
 const DETAIL = process.argv.includes('detail');
 const RANDREL = process.argv.includes('randrelic');
+/** pilval[=조우 종류마다 시드 수]: 순례마다 항목 가치를 복제 굴림으로 잰다 (tests/pilval.ts, 분석 전용 — 느림). 런 기록 pv 에 남긴다 */
+const PILVAL = process.argv.find((a) => a === 'pilval' || a.startsWith('pilval='));
+const PILVAL_K = PILVAL?.includes('=') ? +PILVAL.split('=')[1] || 2 : 2;
 /** field=<id>: 전장 고정 (전장별 클리어율 비교) */
 const FORCE_FIELD = process.argv.find((a) => a.startsWith('field='))?.slice(6);
 /** pool: 실제 게임처럼 계약 기물 후보(engine/starters.ts, 전장 우세 시너지 보장)에서 고른다 — 우세 시너지 기물 먼저 (최대 starterFavNeed명), 나머지는 무작위.
@@ -291,6 +295,7 @@ function playRun(seed: number) {
   // pilRec = 순례 방문 · vowRec = 서약 증강 선택 · mpkRec = 스페셜 능력치 선택 · greats = 기물 uid → 대성공 횟수 · pmapRec = 페이즈별 항로에 순례 노드
   const pwSrc: Record<string, number> = {}, pwSp: Record<string, [number, number]> = {};
   const pilRec: unknown[] = [], vowRec: unknown[] = [], mpkRec: unknown[] = [], pmapRec: number[][] = [];
+  const pvRec: PVRec[] = [], pvRng = new Rng(seed * 197 + 29);
   const greats = new Map<string, number>();
   // 봉헌 계측: og = 봉헌 출처별 합 (auto 전투 정산 · rite 제례 · cons 축성 (그 밖의 증가) · join 합류 시작값) · 축성 횟수는 pwSp.cons [횟수, 권능] · ostRec = 페이즈 시작마다 [페이즈, '기물:단계:출전' …]
   const og: Record<string, number> = {}, offLast = new Map<string, number>(), consSeen = new Map<string, number>(), ostRec: unknown[] = [];
@@ -367,6 +372,7 @@ function playRun(seed: number) {
       else if (p.t === 'pilgrim') {
         // 계측: 순례 방문 [페이즈, 칸, 들어갈 때 권능, 제시 카드 (rite:<신앙> · alms), 받은 카드, 제시 성유물, 산 성유물, 축성한 기물, 나올 때 권능, 보유 디바인, 출전 디바인, 제례 대상 수, 개종 (제시 신앙:산 1/0)]
         if (INSTR) { pwMark(pk); ogMark('cons'); }
+        if (PILVAL) { const v = pilgrimValue(run, pvRng, PILVAL_K); if (v) pvRec.push(v); }
         const pw0 = run.power, rs0 = (p.relics || []).map((x) => x.sold), dv0 = R.divines(run), cs0 = dv0.map((u) => R.consUsed(run, u)), of0 = new Map(dv0.map((u) => [u.uid, u.offer || 0])), cv0 = !!p.convert?.sold;
         pilgrimBot(run);
         if (INSTR) {
@@ -658,6 +664,7 @@ function playRun(seed: number) {
       glob: [...(run.globals || [])], uaug: run.units.map((u) => [u.defId, u.augments.map((g) => g.id)]), br: brRec, route: routeRec, buy: buyRec,
       // 디바인 · 스페셜 경제 (위 계측 설명): 권능 출처 · 사용처 · 끝난 뒤 권능 · 순례 방문 · 페이즈별 항로 순례 노드 · 서약 증강 (개편 뒤 비어 있음) · 스페셜 능력치 [페이즈, 기물, 등급, 능력치, 대성공] · 봉헌 출처 og · 페이즈별 봉헌 단계 ost (마지막 = 런 끝)
       dvx: { src: (pwMark('other'), pwSrc), sp: pwSp, end: run.power, pil: pilRec, pmap: pmapRec, vow: vowRec, mpk: mpkRec, divCap: run.divCap || 0, og, ost: [...ostRec, [run.phase, run.power, ...R.divines(run).map((u) => `${u.defId}:${offerStage(u.offer)}:${u.pos ? 1 : 0}`)]] } } } : {}),
+    ...(PILVAL ? { pv: pvRec } : {}),
     ...(DLOG && CH ? { dlog: CH.log.list } : {}) });
 }
 
