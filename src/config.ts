@@ -28,7 +28,7 @@ export const CFG = {
   /** 디바인 봉헌 (engine/run.ts offerStage · settleGrowth): 기물별 누계 UnitState.offer. n단계 누계 = step × n(n+1)/2 (24 · 72 · 144 · 240 · 360 · 504), max 단계까지.
    *  장착한 성유물이 추천 주요 능력치 첫째(rework.ts recMajors)를 stat0 + 단계 × stat 만큼 올리고, 신권 대행 위력이 단계마다 +act (mem.divK).
    *  자동 봉헌: 전투가 끝날 때 출전한 디바인마다 floor + 그 기물이 이번 전투에서 번 권능 포인트 × perPower (권능은 깎지 않는다, 대기 기물 0) */
-  offer: { stat0: 3, stat: 3, act: 0.2, step: 24, max: 6, perPower: 1, floor: 2 },
+  offer: { stat0: 3, stat: 3, act: 0.15, step: 24, max: 6, perPower: 1, floor: 2 },
   /** 축성 (engine/run.ts consecrate): 권능 cost → 그 기물 봉헌 +gain, 기물마다 페이즈당 perPhase 번 */
   consecrate: { cost: 20, gain: 30, perPhase: 1 },
   /** 순례 제례 (engine/run.ts genPilgrim): 고른 신앙을 가진 디바인 기물 각자 봉헌 +gain, 고르기 카드 중 제례 choices 장 (보유 디바인 신앙이 모자라면 나눔으로 채운다) */

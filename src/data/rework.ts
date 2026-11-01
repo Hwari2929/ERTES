@@ -1102,8 +1102,8 @@ export { PSI_AUGS } from './psionic';
 interface FaithDef { gain: string; buff: string; hooks: Hooks; passive: Effect }
 const dv = (b: Battle, u: CUnit, v: number, key = 'fIcd', sec = 0.3) => { if (icd(b, u, key, sec)) b.addDiv(u, v); };
 export const FAITH_DEF: Record<FaithId, FaithDef> = {
-  emperor: { gain: '결정타 +35', buff: '주는 피해 +10%',
-    hooks: { onKill: (b, u) => b.addDiv(u, 35) },
+  emperor: { gain: '결정타 +35, 적에게 피해를 줄 때 +2', buff: '주는 피해 +10%',
+    hooks: { onKill: (b, u) => b.addDiv(u, 35), onDeal(b, u, t, r) { if (t.side !== u.side && r.amount > 0) dv(b, u, 2, 'emIcd', 0.3); } },
     passive: { mods: [inc('all', 0.1)] } },
   athena: { gain: '적에게 상태이상을 걸 때 +20, 치명타 +5', buff: '효과 명중 +25%p',
     hooks: { onInflict(b, u, t) { if (t.side !== u.side) dv(b, u, 20); }, onDeal(b, u, _t, r) { if (r.crit) dv(b, u, 5, 'atIcd', 0.3); } },
@@ -1120,8 +1120,8 @@ export const FAITH_DEF: Record<FaithId, FaithDef> = {
   hades: { gain: '누구든 쓰러질 때 +25', buff: '쓰러진 아군 1명당 피해 +8%',
     hooks: { onAnyDeath: (b, u) => b.addDiv(u, 25) },
     passive: { hooks: { dmgMult: (b, u) => 1 + 0.08 * b.units.filter((x) => !x.alive && x.side === u.side && !x.isSummon).length } } },
-  zeus: { gain: '치명타 +10', buff: '치명타 확률 +10%p',
-    hooks: { onDeal(b, u, _t, r) { if (r.crit) dv(b, u, 10, 'zIcd', 0.2); } },
+  zeus: { gain: '치명타 +10, 전투 스킬을 쓸 때 +15', buff: '치명타 확률 +10%p',
+    hooks: { onDeal(b, u, _t, r) { if (r.crit) dv(b, u, 10, 'zeIcd', 0.2); }, onSkill: (b, u) => b.addDiv(u, 15) },
     passive: { stats: { crit: 0.1 } } },
   selene: { gain: '회복 · 보호막 부여 +6 (40초 이후 2배)', buff: '주는 회복량 +20%',
     hooks: { onHealDone(b, u, _t, amt) { if (amt > 0) dv(b, u, b.t > 40 ? 12 : 6); } },
