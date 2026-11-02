@@ -1,6 +1,6 @@
 """NovelAI 생성 안전장치 (파이썬판, scripts/nai_guard.mjs 와 같은 규칙 · 같은 잠금 파일). 모든 nai*.py 가 쓴다.
-  - 사용자가 요청한 만큼만, 유료(Anlas) 생성만: 29스텝 (STEPS, 무료 범위 28스텝 이하를 벗어난다). 1회 실행 최대 8장.
-  - 동시 실행 금지 (art/.nai.lock — node 스크립트와 함께 쓴다), 장 사이 무작위 6~15초 휴식 (pause).
+  - nai*.py 는 모두 편집(img2img · 인페인팅 · 표정 차분)이라 유료(Anlas): 29스텝 (STEPS). 새로 그리기만 무료 범위 23스텝 (nai_guard.mjs 의 GEN_STEPS).
+  - 사용자가 요청한 만큼만 · 1회 실행 최대 8장 · 동시 실행 금지 (art/.nai.lock — node 스크립트와 함께 쓴다) · 장 사이 무작위 6~15초 휴식 (pause).
 """
 import atexit, os, random, sys, time
 

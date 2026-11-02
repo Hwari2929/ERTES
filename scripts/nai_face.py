@@ -2,7 +2,7 @@
   python3 scripts/nai_face.py yelena smile angry ...     (기물 id, 표정 키들)
   --model nai-diffusion-4-5-full-inpainting  --seed N  --out art/faces_raw
 원본: art/picked/<id>.webp (RGBA) · 얼굴 위치: art/faces.json [중심 x, 눈썹 y, 턱 y]
-유료(Anlas) 29스텝 · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~15초 (scripts/nai_guard.py).
+편집이라 유료(Anlas) 29스텝 · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~15초 (scripts/nai_guard.py).
 얼굴 부위만 다시 그린 뒤 원본 알파 위에 부드럽게 합성 → <out>/<id>.<face>.png
 """
 import base64, io, json, os, random, ssl, sys, time, urllib.request, zipfile

@@ -7,7 +7,7 @@
 // 결과: art/raw/<id>/<seed>.png (깃에 넣지 않음), 기록: art/gen-log.json
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
-import { guard, anlas, pause } from './nai_guard.mjs';
+import { guard, anlas, pause, GEN_STEPS, freeOnly } from './nai_guard.mjs';
 
 const cfg = JSON.parse(readFileSync('art/nai.config.json', 'utf8'));
 const prompts = JSON.parse(readFileSync('art/prompts.json', 'utf8'));
@@ -19,13 +19,9 @@ const ids = flag('--all') ? Object.keys(prompts) : args.filter((a, i) => !a.star
 const alt = opt('--alt');
 const count = Math.max(1, Math.min(8, Number(opt('--n')) || 1));
 
-// Anlas 보호: Portrait(832×1216) 크기까지만 · 29스텝 (그보다 크면 막는다)
-// 무료 생성이 막힌 계정: 무료 범위(28스텝 이하)를 벗어나야 Anlas 로 생성된다. 기본은 29스텝.
-if (!flag('--free')) cfg.steps = Math.max(cfg.steps, 29);
-if (cfg.width * cfg.height > 832 * 1216 || cfg.steps > 29) {
-  console.error('설정이 무료 생성 범위를 벗어납니다 (Portrait 832×1216, 28스텝 이하). art/nai.config.json 을 확인하세요.');
-  process.exit(1);
-}
+// 새로 그리기는 구독 무료 범위로: 23스텝 (GEN_STEPS) · Portrait 832×1216 · 1장씩. 벗어나면 막는다 (scripts/nai_guard.mjs)
+cfg.steps = GEN_STEPS;
+freeOnly(cfg.width, cfg.height, cfg.steps, 'art/nai.config.json');
 const token = process.env.NOVELAI_TOKEN;
 if (!flag('--dry') && !token) { console.error('NOVELAI_TOKEN 환경 변수가 없습니다.'); process.exit(1); }
 if (!ids.length) { console.error('기물 id 를 주거나 --all 을 쓰세요.'); process.exit(1); }

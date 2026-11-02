@@ -1,9 +1,15 @@
-// NovelAI 생성 안전장치 (2026-10 무료 생성 영구 제한 이후). 모든 nai*.mjs 가 import 한다.
-//  - 사용자가 요청한 만큼만, 유료(Anlas) 생성만. 1회 실행 최대 8장.
-//  - 동시 실행 금지 (art/.nai.lock), 장 사이 무작위 6~15초 휴식.
-//  - 시작 전 Anlas 잔액 표시.
+// NovelAI 생성 안전장치. 모든 nai*.mjs 가 import 한다. (2026-11-02 구독 토큰으로 바꾼 뒤의 규칙)
+//  - 사용자가 요청한 만큼만. 새로 그리기(스탠딩 · 배경 · 아이콘 · 소품)는 구독 무료 범위로: GEN_STEPS 23스텝 · FREE_AREA(1024×1024) 이하 · 1장씩 (freeOnly 가 확인).
+//  - 편집(img2img · 인페인팅 · 캔버스 확장 · 표정 차분)과 업스케일만 유료(Anlas): EDIT_STEPS 29스텝 (nai_guard.py 의 STEPS 도 29).
+//  - 서버에 부담을 주지 않게: 1회 실행 최대 8장 · 동시 실행 금지 (art/.nai.lock) · 장 사이 무작위 6~15초 휴식. 여러 번은 순차로.
+//  - 시작 전 Anlas 잔액 표시 (클라우드에서는 조회 주소가 막혀 실패가 정상).
 import { existsSync, writeFileSync, unlinkSync, readFileSync } from 'node:fs';
 export const MAX_PER_RUN = 8;
+export const GEN_STEPS = 23, EDIT_STEPS = 29, FREE_AREA = 1024 * 1024;
+/** 새로 그리기가 무료 범위(크기 · 스텝)를 벗어나면 막는다 */
+export function freeOnly(w, h, steps, what = '') {
+  if (w * h > FREE_AREA || steps > 28) { console.error(`${what} ${w}×${h} · ${steps}스텝: 구독 무료 범위(1024×1024 이하 · 28스텝 이하)를 벗어납니다. 새로 그리기는 무료 범위에서만 돌립니다.`); process.exit(1); }
+}
 export const pause = () => 6000 + Math.floor(Math.random() * 9000);
 const LOCK = 'art/.nai.lock';
 export async function guard(total, token) {

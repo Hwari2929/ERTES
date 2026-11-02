@@ -1,16 +1,16 @@
-// NovelAI 출격 계약 탑뷰 소품 (바 테이블 · 벨 · 전표 출력기) 생성. 유료(Anlas) 29스텝, 1회 최대 8장 (scripts/nai_guard.mjs).
+// NovelAI 출격 계약 탑뷰 소품 (바 테이블 · 벨 · 전표 출력기) 생성. 구독 무료 범위 23스텝 (1024×1024 이하), 1회 최대 8장 (scripts/nai_guard.mjs).
 //   node scripts/nai_prop.mjs ct_table_a ct_bell_a ...   |  --all
 // 입력: art/prop_prompts.json  결과: art/raw/prop/<key>/<seed>.png (소품은 흰 바탕 → art.py cut_background 로 오린다 · transparent: true 면 V5 투명 배경 RGBA 로 바로)
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
-import { guard, anlas, pause } from './nai_guard.mjs';
+import { guard, anlas, pause, GEN_STEPS, freeOnly } from './nai_guard.mjs';
 
 const cfg = JSON.parse(readFileSync('art/nai.config.json', 'utf8'));
 const P = JSON.parse(readFileSync('art/prop_prompts.json', 'utf8'));
 const NEG_LIGHT = 'light pool, spotlight, lamp, light source, glare, reflection, shadow, vignette, gradient lighting, ';
 const args = process.argv.slice(2);
 const keys = args.includes('--all') ? Object.keys(P.props) : args.filter((a) => !a.startsWith('--'));
-const STEPS = 29; // 무료 범위(28 이하)를 벗어나 유료로만
+const STEPS = GEN_STEPS; // 새로 그리기: 구독 무료 범위
 const token = process.env.NOVELAI_TOKEN;
 if (!token) { console.error('NOVELAI_TOKEN 없음'); process.exit(1); }
 
@@ -51,6 +51,7 @@ async function gen(key, seed) {
 }
 const bad = keys.filter((k) => !P.props[k]);
 if (bad.length) { console.error(`없는 소품: ${bad.join(', ')}`); process.exit(1); }
+for (const k of keys) freeOnly(P.props[k].w, P.props[k].h, STEPS, k);
 await guard(keys.length, token);
 for (const [i, key] of keys.entries()) {
   await gen(key, Math.floor(Math.random() * 4294967295));

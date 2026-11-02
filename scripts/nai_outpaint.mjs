@@ -1,4 +1,4 @@
-// NovelAI 캔버스 확장 (아웃페인팅): 원본을 넓은 캔버스에 놓고 마스크(흰 = 새로 그림) 부분만 그린다. 유료(Anlas) 29스텝, 1회 최대 8장 (scripts/nai_guard.mjs).
+// NovelAI 캔버스 확장 (아웃페인팅): 원본을 넓은 캔버스에 놓고 마스크(흰 = 새로 그림) 부분만 그린다. 편집이라 유료(Anlas) 29스텝, 1회 최대 8장 (scripts/nai_guard.mjs).
 //   NODE_USE_ENV_PROXY=1 node scripts/nai_outpaint.mjs <소품 키> <canvas.png> <mask.png> <장 수>
 // 프롬프트 · 부정 프롬프트는 art/prop_prompts.json 의 그 소품 것을 그대로 쓴다. 결과: art/raw/prop/<키>_x/<seed>.png
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -6,7 +6,7 @@ import { inflateRawSync } from 'node:zlib';
 import { guard, anlas, pause } from './nai_guard.mjs';
 
 const MODEL = 'nai-diffusion-4-5-full-inpainting';
-const STEPS = 29; // 무료 범위(28 이하)를 벗어나 유료로만
+const STEPS = 29; // 편집(캔버스 확장)은 유료로만 (EDIT_STEPS)
 const cfg = JSON.parse(readFileSync('art/nai.config.json', 'utf8'));
 const P = JSON.parse(readFileSync('art/prop_prompts.json', 'utf8'));
 const [key, canvasPath, maskPath, nArg] = process.argv.slice(2);

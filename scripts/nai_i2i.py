@@ -1,7 +1,7 @@
 """NovelAI img2img (배경 등 일반 이미지).
   python3 scripts/nai_i2i.py <입력.png> <출력 폴더> --prompt "..." [--strength 0.6] [--noise 0.2] [--n 4]
   배경 공용 태그(art/bg_prompts.json 의 base · negative)를 붙인다.
-  유료(Anlas) 29스텝 · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~15초 (scripts/nai_guard.py).
+  편집이라 유료(Anlas) 29스텝 · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~15초 (scripts/nai_guard.py).
 """
 import base64, io, json, os, random, ssl, sys, time, urllib.request, zipfile
 from PIL import Image

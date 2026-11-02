@@ -6,7 +6,7 @@
 // 기록: 생성마다 art/gen-log.json 에 { id, alt, kind: 'icon', style, seed, model, time, prompt, file } (원본을 잃어도 같은 시드로 다시 뽑는다)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
-import { guard, anlas, pause } from './nai_guard.mjs';
+import { guard, anlas, pause, GEN_STEPS } from './nai_guard.mjs';
 
 const cfg = JSON.parse(readFileSync('art/nai.config.json', 'utf8'));
 const P = JSON.parse(readFileSync('art/icon_prompts.json', 'utf8'));
@@ -28,8 +28,8 @@ function promptOf(id) {
   if (!a) throw new Error(`${id}: alts.${alt} 없음`);
   return { ...p, ...a };
 }
-// 무료 생성이 막힌 계정: 무료 범위(28스텝 이하)를 벗어나 Anlas 로 생성 (29스텝). 아이콘은 작게 써서 640px 로 충분
-const W = 640, H = 640, STEPS = 29;
+// 새로 그리기: 구독 무료 범위 23스텝 (scripts/nai_guard.mjs). 아이콘은 작게 써서 640px 로 충분
+const W = 640, H = 640, STEPS = GEN_STEPS;
 const token = process.env.NOVELAI_TOKEN;
 if (!flag('--dry') && !token) { console.error('NOVELAI_TOKEN 없음'); process.exit(1); }
 

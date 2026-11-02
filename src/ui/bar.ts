@@ -1216,7 +1216,7 @@ function showTip(k: string, text?: string, ms = 2200) {
 }
 
 /** 검사용 (tests/bar_check.ts): 화면 없이 구경 모드를 n 단계 돌린 기록. known = 해금된 단원. 시간은 화면과 같은 규칙 (줄마다 lineMs · 첫 줄까지 · 퇴장) */
-export function barSimulate(n: number, known: string[], night = false) {
+export function barSimulate(n: number, known: string[], night = false, rate = 1) {
   type Rec = { t: number; kind: string; key: string; stage: string[]; add: string[]; drop: string[]; exit?: string; speakers: string[]; emotes: string[]; mono?: string; night: boolean; cups: number; vis: number };
   const log: Rec[] = [];
   const real = clock.now;
@@ -1229,7 +1229,8 @@ export function barSimulate(n: number, known: string[], night = false) {
     cups: S.stage.filter((s) => cupLeft(s.cup, t) !== null).length,
     vis: exit || !S.cur ? 0 : S.cur.lines.reduce((a, l, j) => a + lineMs(S.cur!, l, j === S.cur!.lines.length - 1), 0), // 말풍선 · 이모티콘이 떠 있는 시간
   });
-  const ops = S.ops;
+  const ops = S.ops, r0 = W.rate;
+  W.rate = rate; // 시간 가속 모의: 바 시계(t)는 대사 · 쉬는 시간(실제 ms)의 rate 배로 간다
   S.ops = false; // 모의 실행에는 레이첼이 없다 (주문을 받지 않는다)
   try {
     barEnter();
@@ -1241,16 +1242,16 @@ export function barSimulate(n: number, known: string[], night = false) {
     t += 1500;
     for (let i = 0; i < n; i++) {
       const cur = S.cur!;
-      t += cur.lines.reduce((a, l, j) => a + lineMs(cur, l, j === cur.lines.length - 1), 0) + (cur.lines.length ? 0 : 0);
+      t += cur.lines.reduce((a, l, j) => a + lineMs(cur, l, j === cur.lines.length - 1), 0) * rate;
       finishScene(cur, t, false);
-      if (cur.exit) { leaveStage(cur.exit, t); if (cur.toNight) setNight(true, t); rec('exit', undefined, cur.exit); t += EXIT_MS; }
+      if (cur.exit) { leaveStage(cur.exit, t); if (cur.toNight) setNight(true, t); rec('exit', undefined, cur.exit); t += EXIT_MS * rate; }
       const prev = cur.exit ? null : cur;
       const p = decide(prev);
       const wait = startScene(p, null, prev);
       rec(p.scene.kind, p.plan);
-      t += wait; // 첫 줄까지 (말 없는 한때는 그 길이 전체)
+      t += wait * rate; // 첫 줄까지 (말 없는 한때는 그 길이 전체)
     }
-  } finally { clock.now = real; barEnter(); S.ops = ops; }
+  } finally { clock.now = real; W.rate = r0; barEnter(); S.ops = ops; }
   return log;
 }
 

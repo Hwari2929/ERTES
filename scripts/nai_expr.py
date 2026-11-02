@@ -1,7 +1,7 @@
 """NovelAI 전신 img2img 로 스탠딩 표정 차분 만들기 (Anlas 사용).
   python3 scripts/nai_expr.py <id> <face...> [--strength 0.5] [--noise 0.3] [--seed N] [--subtle] [--out art/picked]
 원본: art/raw/<id>/<picks.json 의 파일> (없으면 art/picked/<id>.webp) — 원래 생성 프롬프트에 표정 태그를 얹어 전신을 다시 그린다.
-유료(Anlas) 29스텝 · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~15초 (scripts/nai_guard.py).
+편집이라 유료(Anlas) 29스텝 · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~15초 (scripts/nai_guard.py).
 결과: <out>/<id>.<face>.webp (art.py build 가 기본 스탠딩과 같은 틀로 잘라 public/art 에 낸다)
 """
 import base64, io, json, os, random, ssl, sys, time, urllib.request, zipfile

@@ -1,10 +1,10 @@
-// NovelAI 배경 일러스트 생성 (가로 1216×832). 유료(Anlas) 29스텝 · 1회 최대 8장 (scripts/nai_guard.mjs).
+// NovelAI 배경 일러스트 생성 (가로 1216×832). 구독 무료 범위 23스텝 · 1회 최대 8장 (scripts/nai_guard.mjs).
 //   node scripts/nai_bg.mjs field_swarm diff_easy      특정 배경
 //   node scripts/nai_bg.mjs --all [--n 2]             전체 (이미 있으면 건너뜀, --force 로 다시)
 // 결과: art/raw/bg/<key>/<seed>.png
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
-import { guard, anlas, pause } from './nai_guard.mjs';
+import { guard, anlas, pause, GEN_STEPS, freeOnly } from './nai_guard.mjs';
 
 const cfg = JSON.parse(readFileSync('art/nai.config.json', 'utf8'));
 const P = JSON.parse(readFileSync('art/bg_prompts.json', 'utf8'));
@@ -13,7 +13,8 @@ const flag = (f) => args.includes(f);
 const opt = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : undefined; };
 const keys = flag('--all') ? Object.keys(P.bgs) : args.filter((a, i) => !a.startsWith('--') && args[i - 1] !== '--n');
 const count = Math.max(1, Math.min(4, Number(opt('--n')) || 1));
-const W = 1216, H = 832, STEPS = 29; // 무료 범위(28 이하)를 벗어나 유료로만
+const W = 1216, H = 832, STEPS = GEN_STEPS; // 새로 그리기: 구독 무료 범위
+freeOnly(W, H, STEPS, '배경');
 const token = process.env.NOVELAI_TOKEN;
 if (!token) { console.error('NOVELAI_TOKEN 없음'); process.exit(1); }
 
