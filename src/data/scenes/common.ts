@@ -1,6 +1,6 @@
 // 사건 연출: 공용 · 전장 사건 묶음 (tinker · deserter 는 pilot.ts)
 // 지휘관({pc}) = 레이첼. 레이첼은 'rachel' 로 짧게 말하고, 결정은 선택지로 넘긴다.
-// 에이든은 지상의 바에 있다: 현장에는 통신(홀로그램 창)으로만 나온다.
+// 에이든은 본부 바(알렉산드리아 궤도 정거장)에 있다: 현장에는 통신(홀로그램 창)으로만 나온다.
 import type { EventScene, SceneReg } from '../scene';
 import { N, S, SUB } from './dsl';
 
@@ -61,7 +61,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
         N('둘이 동시에 국숫집 쪽을 본다. 용병 여섯도 따라 본다.', { exit: ['rachel'] }),
       ],
       aiden: [
-        N('레이첼의 손목 통신기에서 홀로그램 창이 뜬다. 지상 바의 카운터 너머에서 에이든이 잔을 닦고 있다.', { sfx: 'static' }),
+        N('레이첼의 손목 통신기에서 홀로그램 창이 뜬다. 본부 바의 카운터 너머에서 에이든이 잔을 닦고 있다.', { sfx: 'static' }),
         S('aiden', '핫초코 곱빼기 손님, 외상 장부 정리 중인데요. …뒤에 계신 분들은 처음 뵙는군요.', { at: 'C', face: 'base', name: AIDEN_CALL }),
         S('c_merc', '아, 안녕하십니까! 제 이름은—', { face: 'surprise' }),
         S('aiden', '이름은 됐습니다. 첫 주문 하시면 그걸로 부르겠습니다.', { face: 'smile', name: AIDEN_CALL, exit: true }),
@@ -343,7 +343,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
         S('lindiwe', '얘 하루 사료값이 얼마예요? 아, 장부에 넣으려고요. 제 개인 장부요.', { face: 'smile', exit: true }),
       ],
       aiden: [
-        N('화물칸 벽 통신 패널에 지상 바의 홀로그램 창이 켜진다. 잔을 닦던 에이든이 화면 너머 밍키와 눈이 마주친다.', { stage: [{ id: 'aiden', at: 'C', face: 'blank' }], sfx: 'static' }),
+        N('화물칸 벽 통신 패널에 본부 바의 홀로그램 창이 켜진다. 잔을 닦던 에이든이 화면 너머 밍키와 눈이 마주친다.', { stage: [{ id: 'aiden', at: 'C', face: 'blank' }], sfx: 'static' }),
         S('aiden', '처음 뵙는 손님이군요. 주문은—', { name: AIDEN_CALL }),
         S('mingki', '냐.'),
         N('화면 속 에이든이 은빛으로 녹아내리더니, 고양이 한 마리가 되어 앞발을 핥는다.'),
@@ -380,7 +380,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
     scene: [
       N('항로에서 한참 벗어난 소행성. 바위를 파낸 통로 끝에 낡은 격납고 문이 있다.', { bg: 'c_asteroid', bgm: 'eerie' }),
       N('문에는 페인트로 쓴 3글자. ACE. 그 옆에 숫자 자판이 달려 있다.'),
-      N('레이첼이 손목 통신기로 지상 바를 부른다. 홀로그램 창 너머에서 에이든이 잔을 닦고 있다.', { sfx: 'static' }),
+      N('레이첼이 손목 통신기로 본부 바를 부른다. 홀로그램 창 너머에서 에이든이 잔을 닦고 있다.', { sfx: 'static' }),
       S('aiden', '핫초코 곱빼기 손님. 근무 중에 무슨 일로—', { at: 'L', face: 'base', name: AIDEN_CALL }),
       N('에이든의 손이 멈춘다. 화면 너머 문짝 글씨를 본다.'),
       S('aiden', '…이 필체는 압니다. 단장님 겁니다. A 가로획을 꼭 2번 그으시죠.', { face: 'serious', name: AIDEN_CALL }),
@@ -1054,7 +1054,7 @@ export const COMMON_SCENES: Record<string, EventScene> = {
         S('west', '…유피토가 테이프만 안 감았어도 우리 배도 저랬을 거야.', { face: 'angry', exit: true }),
       ],
       aiden: [
-        N('도노반의 통신기에 지상 바의 홀로그램 창이 뜬다. 에이든이 화면 너머 로봇을 한참 본다.', { stage: [{ id: 'aiden', at: 'C', face: 'blank' }], sfx: 'static' }),
+        N('도노반의 통신기에 본부 바의 홀로그램 창이 뜬다. 에이든이 화면 너머 로봇을 한참 본다.', { stage: [{ id: 'aiden', at: 'C', face: 'blank' }], sfx: 'static' }),
         S('aiden', '저 관절 배열, 어딘가 낯이 익군요.', { name: AIDEN_CALL }),
         S('donovan', '어디서 봤는데.'),
         N('화면 속 에이든은 대답 대신 잔을 닦기 시작한다. 같은 잔을, 오래.', { exit: ['aiden'] }),
