@@ -144,3 +144,5 @@
 .bar-fast[aria-pressed="true"] { color: var(--c-select); border-color: var(--c-select); box-shadow: inset 0 0 0 1px var(--c-select); }
 .bar-fast:focus-visible { outline: 2px solid var(--c-select); outline-offset: 2px; }
 .bar.prep-on .bar-clock { visibility: hidden; }
+/* 만찬 주화 단위 '닢' (수 옆에 작게) */
+.bar-coins small, .bar-coin small { font-size: var(--fs-2xs); color: var(--c-text-2); margin-left: 1px; }

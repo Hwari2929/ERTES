@@ -19,7 +19,7 @@ import { BAR_GUEST, BAR_IDLE, BAR_TALK, DEEP_TOPICS, FIELD_SHORT, GENERIC_REACT 
 import { AIDEN_BACK, AIDEN_OFF, AIDEN_ON, LEAVE_GENERIC, LEAVE_LINES } from '../data/bar/leave';
 import { ERANTES_CREW, MONO, MONO_KIND_NAME, MONO_KINDS, type MonoKind } from '../data/bar/mono';
 import { GLASS_BY_ID, HOUSE_MENUS, ING_BY_ID, ORDER_STYLE_NAME, RECIPE_BY_ID, REGULARS, type Drink, type OrderStyle } from '../data/bar/drinks';
-import { BAR_OPS, COIN_NAME, GRADE_NAME, judge, makeOrder, payOf, recipeName, feelText, type Grade, type Order } from '../data/bar/orders';
+import { BAR_OPS, COIN_NAME, COIN_UNIT, coinText, GRADE_NAME, judge, makeOrder, payOf, recipeName, feelText, type Grade, type Order } from '../data/bar/orders';
 import { ORDER_TALK, orderTalk } from '../data/bar/orderlines';
 import { FIRST_MEET } from '../data/bar/firstmeet';
 import { FIELDS, fieldOf } from '../data/battlefields';
@@ -725,12 +725,12 @@ function syncMarks(root: HTMLElement, now: number) {
     if (!s.pay && coin) coin.remove();
     else if (s.pay && (!coin || coin.dataset.n !== String(s.pay))) {
       coin?.remove();
-      fr.insertAdjacentHTML('beforeend', `<button class="bar-coin" data-a="bar-x" data-v="coin:${keyOf(s)}" data-n="${s.pay}" aria-label="${COIN_NAME} ${s.pay} 거두기">${COIN_SVG}<b class="f-num">${s.pay}</b></button>`);
+      fr.insertAdjacentHTML('beforeend', `<button class="bar-coin" data-a="bar-x" data-v="coin:${keyOf(s)}" data-n="${s.pay}" aria-label="${coinText(s.pay)} 거두기">${COIN_SVG}<b class="f-num">${s.pay}</b><small>${COIN_UNIT}</small></button>`);
     }
   }
 }
 /** 코인 칸 (오른쪽 위): 지금 가진 코인. gain 이 있으면 그 위로 +n 이 떠오른다 */
-function coinChip() { return `<div class="bar-coins pill" aria-label="${COIN_NAME}">${COIN_SVG}<b class="f-num">${loadMeta().bar?.coins || 0}</b></div>`; }
+function coinChip() { const n = loadMeta().bar?.coins || 0; return `<div class="bar-coins pill" aria-label="${coinText(n)}" title="${COIN_NAME}">${COIN_SVG}<b class="f-num">${n}</b><small>${COIN_UNIT}</small></div>`; }
 function coinFloat(n: number) {
   const root = document.querySelector<HTMLElement>(BAR_SEL);
   const chip = root?.querySelector<HTMLElement>('.bar-coins');
@@ -739,7 +739,7 @@ function coinFloat(n: number) {
   if (v) v.textContent = String(loadMeta().bar?.coins || 0);
   const f = document.createElement('span');
   f.className = 'bar-coin-up f-num';
-  f.textContent = `+${n}`;
+  f.textContent = `+${n}${COIN_UNIT}`;
   chip.appendChild(f);
   window.setTimeout(() => f.remove(), reduced() ? 900 : 1600);
 }
@@ -1295,6 +1295,7 @@ function awayPool(): Banter[] {
   if (!last) return [];
   const crew = new Set([...last.units, ...BASE]);
   const seen = new Set(loadMeta().bar?.seen || []);
+  for (const id of crew) if (UNIT_BY_ID[id]?.noBar) crew.delete(id); // 바에 나오지 않는 기물(카일 · 데미우르고스 등)은 통신 기록에도 없다
   const mine = BANTER.filter((b) => b.place === 2 && !b.hold && callbackOk(b, seen) && b.cast.every((id) => crew.has(figOf(id)) || id === 'max'));
   return mine.length ? mine : BANTER.filter((b) => b.place === 2 && !b.hold && callbackOk(b, seen) && b.cast.every((id) => k.has(id)));
 }
@@ -1305,7 +1306,7 @@ for (const f of FIELDS) BGS[`field_${f.id}`] ??= f.name;
 function playFrameLog(): boolean {
   const last = loadMeta().bar?.last;
   if (!last) return false;
-  const crew = new Set(last.units);
+  const crew = new Set(last.units.filter((id) => !UNIT_BY_ID[id]?.noBar));
   const fs = shuffle(FRAMES.filter((f) => f.cast.every((id) => S.known.has(id)) && deepOpen(f.deep) && f.slots.some((sl) => Object.keys(sl).some((id) => crew.has(id)))));
   if (!fs.length) return false;
   const sc = buildFrame(fs[0], crew, crew, true);

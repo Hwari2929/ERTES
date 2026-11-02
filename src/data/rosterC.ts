@@ -99,6 +99,7 @@ export const ROSTER_C: BaseUnit[] = [
   },
   {
     id: 'kyle', name: '카일', title: '켈레브림 가주 · 망각의 용사', factions: ['SIR'], traits: ['INFIL'], keywords: ['bio'],
+    noBar: true, // 바에 나오지 않는다 — 설정이 바뀔 인물 (사용자 지시 2026-11-02, 만담 · 첫 만남 보류)
     atk: { type: 'strike', elem: 'phys', interval: 1.1 }, range: 1, base: B(9, 7, 5, 8, 3),
     sprite: 'knight', palette: PAL.SIR, lore: '적진 한가운데가 그의 제단이다.',
     skill: strike({
@@ -119,6 +120,7 @@ export const ROSTER_C: BaseUnit[] = [
   },
   {
     id: 'demiurgos', name: '데미우르고스', title: '당신의 친구, R', factions: ['SIR'], traits: ['RFRIEND', 'MED'], keywords: ['bio', 'phantom'],
+    noBar: true, // 바에 나오지 않는다 — 설정이 바뀔 인물 (사용자 지시 2026-11-02, 만담 · 첫 만남 보류)
     atk: { type: 'shoot', elem: 'psy', interval: 1.0 }, range: 3, base: B(7, 7, 7, 6, 5),
     sprite: 'phantom', palette: tint(PAL.SIR, '#f0f0f8', '#ff7aa8', '#ff7aa8'), noStarter: true, lore: '처음 만났는데 오래 알던 사이 같다고? 응, 맞아.',
     skill: support({
