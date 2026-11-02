@@ -299,7 +299,50 @@
       "prompt": "top-down view, camera looking straight down at a flat table surface, a single male right hand and forearm reaching into the frame from the upper right corner toward the lower left, palm facing down toward the table, the back of the hand faces the camera, a gentle flat pinch at the table surface between the thumb tip and the index fingertip, fingers pointing forward, knuckles visible from above, as if picking up a flat paper receipt lying on the table, pale fair skin, long slender elegant fingers, neat short nails, crisp white dress shirt sleeve with a silver cufflink at the wrist, the sleeve continues out of the frame at the upper right corner, lit by a single warm amber desk lamp from the upper left, the upper left side of the hand brightly lit, the lower right side in soft warm shade, no cast shadow, no paper, no objects, solid plain dark grey background, simple background, isolated",
       "raw": true,
       "neg": "1girl, people, character, face, text, watermark, signature, logo, letters, numbers, ui, frame, border, multiple views, split screen, perspective view, side view, isometric, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, face, head, body, torso, two hands, extra fingers, missing fingers, fused fingers, deformed hand, glove, ring, watch, paper, card, strong shadow, cast shadow, light from the right, backlight, rim light, side view of the hand, palm visible, palm facing camera, fingers pointing up, OK sign, circle gesture"
+    },
+    "bar_ing_a": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "prompt": "a single tall gin bottle, clear glass with a faint sage green tint, half filled with clear liquid, cork stopper with dark wax seal, paper label illustrated with a desert sand dune and a small brass gear, standing upright, front view, centered object, white background, simple background, isolated object, detailed painterly illustration, soft studio lighting, ::1.1::painterly::",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+    },
+    "bar_gar_a": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "prompt": "a single round citrus wheel slice, bright yellow orange, translucent juicy pulp segments, white pith ring, glistening, three-quarter view, centered object, white background, simple background, isolated object, detailed painterly illustration, soft studio lighting, ::1.1::painterly::",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+    },
+    "bar_ing_b": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "prompt": "a single tall gin bottle, clear glass with a faint sage green tint, half filled with clear liquid, cork stopper with dark wax seal, paper label illustrated with a desert sand dune and a small brass gear, standing upright, front view, centered object, white background, simple background, isolated object, flat vector illustration, bold clean dark outlines, flat colors, minimal shading, cel shading, game item icon",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+    },
+    "bar_gar_b": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "prompt": "a single round citrus wheel slice, bright yellow orange, translucent juicy pulp segments, white pith ring, glistening, three-quarter view, centered object, white background, simple background, isolated object, flat vector illustration, bold clean dark outlines, flat colors, minimal shading, cel shading, game item icon",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+    },
+    "bar_ing_c": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "prompt": "a single tall gin bottle, clear glass with a faint sage green tint, half filled with clear liquid, cork stopper with dark wax seal, paper label illustrated with a desert sand dune and a small brass gear, standing upright, front view, centered object, white background, simple background, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+    },
+    "bar_gar_c": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "prompt": "a single round citrus wheel slice, bright yellow orange, translucent juicy pulp segments, white pith ring, glistening, three-quarter view, centered object, white background, simple background, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
     }
   },
-  "_albedo_note": "ct_albedo_*: 조명 없는 알베도 전용. base 의 광원 문구를 쓰지 않는다 (nai_prop.mjs 가 noBase 로 읽음)"
+  "_albedo_note": "ct_albedo_*: 조명 없는 알베도 전용. base 의 광원 문구를 쓰지 않는다 (nai_prop.mjs 가 noBase 로 읽음)",
+  "_note_bar": "바 제조대 재료 · 가니쉬 아이콘 시안 (bar_ing_* · bar_gar_*): plain = 화풍 태그를 붙이지 않고 프롬프트 안에서 정한다 (a 페인터리 · b 플랫 아이콘 · c 빈티지 판화). 흰 바탕 → 오리기"
 }

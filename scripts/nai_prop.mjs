@@ -24,7 +24,7 @@ function unzipFirst(buf) {
   return method === 8 ? inflateRawSync(data) : data;
 }
 async function gen(key, seed) {
-  const p = P.props[key], input = p.raw ? `${p.prompt}, best quality, masterpiece, highres, year2026, ::1.2::painterly::` : p.noBase ? `${p.prompt}, no humans, best quality, masterpiece, highres, year2026, ::1.1::painterly::` : `${p.prompt}, ${P.base}`; // noBase: 알베도 (광원 문구 없이) · raw: 'no humans' 없이 (에이든의 손처럼 신체 일부)
+  const p = P.props[key], input = p.plain ? `${p.prompt}, no humans, best quality, masterpiece, highres, year2026` : p.raw ? `${p.prompt}, best quality, masterpiece, highres, year2026, ::1.2::painterly::` : p.noBase ? `${p.prompt}, no humans, best quality, masterpiece, highres, year2026, ::1.1::painterly::` : `${p.prompt}, ${P.base}`; // plain: 화풍 태그 없이 (프롬프트 안에서 화풍을 정한다 — 바 재료 · 가니쉬 시안) · noBase: 알베도 (광원 문구 없이) · raw: 'no humans' 없이 (에이든의 손처럼 신체 일부)
   const neg = (p.noBase ? NEG_LIGHT : '') + (p.neg || P.negative); // neg: 소품별 부정 프롬프트 (손은 'hands' 를 빼야 한다)
   const body = {
     input, model: cfg.model, action: 'generate',
