@@ -1,0 +1,47 @@
+[
+ {
+  "id": "x_dockhand",
+  "race": "human",
+  "kind": "인간 (정거장 계류장 노동자)",
+  "sex": "m",
+  "look": "짧은 갈색 머리에 덥수룩한 수염, 지친 눈, 반사띠 달린 회색 작업복, 옆구리에 낀 안전모, 보온병",
+  "subject": "1boy",
+  "tags": "middle-aged man, 40s, stocky, short hair, brown hair, stubble, tired eyes, plain face, neutral expression, grey jumpsuit, work jumpsuit, reflective stripes, rolled sleeves, hard hat under arm, work gloves, safety boots, holding thermos, dirty hands, grease stains, utility belt, tool pouch, slouching, full body, standing, looking at viewer"
+ },
+ {
+  "id": "x_deckhand",
+  "race": "human",
+  "kind": "인간 (화물선 선원)",
+  "sex": "f",
+  "look": "질끈 묶은 검은 머리, 감색 털모자, 감색 갑판 재킷 속 회색 후드티, 어깨에 멘 더플백, 카고 바지와 장화",
+  "subject": "1girl",
+  "tags": "adult woman, 30s, average build, black hair, ponytail, brown eyes, plain face, neutral expression, navy beanie, navy jacket, deck jacket, grey hoodie, cargo pants, rubber boots, duffel bag, bag over shoulder, fingerless gloves, weathered skin, tired eyes, knit scarf, carabiner, hand in pocket, full body, standing, looking at viewer"
+ },
+ {
+  "id": "x_backpacker",
+  "race": "beast",
+  "kind": "개 환수 (배낭 여행자)",
+  "sex": "f",
+  "look": "늘어진 개 귀와 꼬리, 짧은 갈색 단발, 야구 모자, 바랜 바람막이, 큰 배낭과 물병, 손에 든 지도",
+  "subject": "1girl",
+  "tags": "young woman, 20s, slim, dog ears, floppy ears, dog tail, brown hair, short hair, bob cut, green eyes, plain face, slight smile, baseball cap, faded windbreaker, t-shirt, shorts, hiking boots, large backpack, water bottle, holding map, freckles, sunburned nose, bandana around neck, sleeping bag, full body, standing, looking at viewer"
+ },
+ {
+  "id": "x_clerk",
+  "race": "human",
+  "kind": "인간 (출장 회사원)",
+  "sex": "m",
+  "look": "단정한 짧은 검은 머리, 무난한 회색 양복, 느슨하게 푼 넥타이, 서류 가방, 손에 든 단말",
+  "subject": "1boy",
+  "tags": "young man, 30s, average build, black hair, short hair, neat hair, brown eyes, plain face, tired smile, grey suit, white shirt, loosened necktie, black shoes, holding briefcase, holding phone, wristwatch, dark circles, slouching, tie clip, black belt, short sideburns, thin, full body, standing, looking at viewer"
+ },
+ {
+  "id": "x_porter",
+  "race": "beast",
+  "kind": "소 환수 (정거장 짐꾼)",
+  "sex": "f",
+  "look": "작은 뿔과 소 귀, 끝에 털이 난 가는 꼬리, 다부진 몸, 질끈 묶은 짙은 갈색 머리, 소매 걷은 갈색 작업 조끼, 등에 진 짐 지게와 상자",
+  "subject": "1girl",
+  "tags": "adult woman, 30s, sturdy, muscular arms, cow ears, small horns, cow tail, dark brown hair, short ponytail, brown eyes, plain face, neutral expression, brown work vest, beige shirt, rolled sleeves, work pants, boots, work gloves, cargo frame on back, carrying boxes, tanned skin, sweat, full body, standing, looking at viewer"
+ }
+]

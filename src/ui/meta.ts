@@ -57,7 +57,10 @@ export interface BarMeta {
   served?: number;
   /** 바 운영 첫 영업 보조 (docs/BAR_OPS.md 0절 · 9절 4단계): 이미 본 귀띔 (첫 주문 · 제조대 메모 · 첫 동전). 각각 한 번만 나온다 */
   tut?: BarTut[];
+  /** 낯선 손님 (src/data/bar/guests.gen.ts): 방문 수 v · 이름을 밝힐 수 있게 되는 방문 수 k (1~5, 처음 올 때 굴림) · 이름을 밝혔나 */
+  guests?: Record<string, BarGuest>;
 }
+export interface BarGuest { v: number; k: number; named?: boolean }
 /** 바 운영 첫 영업 보조의 종류: 첫 주문 (낮 = 에이든 한마디, 밤 = 카운터 위 메모) · 처음 연 제조대 (메모) · 처음 놓인 동전 (한마디) */
 export type BarTut = 'order' | 'prep' | 'coin';
 
@@ -152,6 +155,15 @@ export function metaBarBond(id: string) {
   const b = ((m.bar ||= {}).bond ||= {});
   b[id] = (b[id] || 0) + 1;
   save();
+}
+/** 낯선 손님 기록: visit = 한 번 더 왔다 (처음이면 문턱 1~5 를 굴린다) · named = 이름을 밝혔다 */
+export function metaBarGuest(id: string, what: 'visit' | 'named'): BarGuest {
+  const m = loadMeta();
+  const g = (((m.bar ||= {}).guests ||= {})[id] ||= { v: 0, k: 1 + Math.floor(Math.random() * 5) });
+  if (what === 'visit') g.v++;
+  else g.named = true;
+  save();
+  return g;
 }
 /** 바 코인: 거둔 술값 · 팁 (gain = 런 보상처럼 바에 돌아와서 보여 줄 몫) */
 export function metaBarCoins(n: number, gain = false) {

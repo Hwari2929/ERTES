@@ -5,6 +5,7 @@ import {
   AXES, GARNISH_BY_ID, GLASS_BY_ID, HOUSE_MENUS, RECIPE_BY_ID, RECIPES, REGULARS, tagsOf, tasteOf,
   type Axis, type Drink, type Ice, type OrderStyle, type Recipe,
 } from './drinks';
+import { GUEST_BY_ID } from './guests.gen';
 
 /** 바 운영 수치 [임시]. 확인용 주소(?bartest)의 __barTune({ ops: … }) 로 바꿀 수 있다 */
 export const BAR_OPS = {
@@ -26,6 +27,8 @@ export const BAR_OPS = {
   /** 술값 (잔 크기 = 칸 수별) · 팁 (만족별) · 런을 마치면 받는 코인 */
   price: { 3: 6, 4: 8, 5: 10 } as Record<number, number>,
   tip: { like: 6, ok: 2, bad: 0 } as Record<Grade, number>,
+  /** 낯선 손님 팁 성향 (명부 tip 0 짬 · 1 보통 · 2 후함) → 팁 배율 */
+  tipK: [0.5, 1, 1.5] as [number, number, number],
   run: { clear: 30, fail: 10 },
 };
 /** 바 화폐: 만찬 주화 (단위 '닢'). 알렉산드리아 만찬회 상인 조합이 찍는 중립 주화 — 3국 어디의 정식 화폐도 아니라 진영이 섞인 용병 · 손님 사이에서
@@ -98,10 +101,12 @@ export interface Order {
 const pick = <T>(a: T[], r = Math.random): T => a[Math.floor(r() * a.length)];
 const OTHER: OrderStyle[] = ['vague', 'photo', 'name', 'usual'];
 /** 손님의 잔 (단골 메뉴, 단골이 아니면 무난한 메뉴) */
-export const baseMenu = (id: string, r = Math.random): Recipe => RECIPE_BY_ID[REGULARS[id]?.menu || pick(HOUSE_MENUS, r)];
+export const baseMenu = (id: string, r = Math.random): Recipe => RECIPE_BY_ID[prefOf(id)?.menu || pick(HOUSE_MENUS, r)];
 /** 주문 방식: 단골은 약 50% 좋아하는 방식, 나머지는 다른 방식 중 무작위 */
+/** 단골 메뉴 · 좋아하는 주문 방식: 정규 단원(REGULARS) 또는 낯선 손님 명부(GUEST_BY_ID) */
+const prefOf = (id: string) => REGULARS[id] || GUEST_BY_ID[id];
 export function styleFor(id: string, r = Math.random): OrderStyle {
-  const fav = REGULARS[id]?.style;
+  const fav = prefOf(id)?.style;
   if (fav && r() < BAR_OPS.styleKeep) return fav;
   return pick(OTHER.filter((s) => s !== fav), r);
 }
@@ -172,7 +177,8 @@ export function judge(o: Order, d: Drink): Verdict {
   return { grade: s >= SCORE.like ? 'like' : s >= SCORE.ok ? 'ok' : 'bad', hit: parts.filter(([, x]) => x).map(([k]) => k), miss: parts.filter(([, x]) => !x).map(([k]) => k) };
 }
 /** 술값 + 팁 */
-export const payOf = (d: Drink, g: Grade) => (BAR_OPS.price[GLASS_BY_ID[d.glass]?.slots || 4] || 8) + BAR_OPS.tip[g];
+/** 술값 + 팁. tipK = 손님 팁 성향 배율 (낯선 손님 명부 tip 0 · 1 · 2 → BAR_OPS.tipK) */
+export const payOf = (d: Drink, g: Grade, tipK = 1) => (BAR_OPS.price[GLASS_BY_ID[d.glass]?.slots || 4] || 8) + Math.round(BAR_OPS.tip[g] * tipK);
 
 const sorted = (xs: string[]) => [...xs].sort().join(',');
 /** 메뉴판에 있는 잔이면 그 이름 (잔 · 재료 구성 · 얼음 · 가니쉬가 모두 같을 때, 붓는 순서는 무관) */

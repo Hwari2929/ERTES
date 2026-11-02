@@ -15,3 +15,4 @@ art/expr_stage/
 .cache/
 art/.nai.lock
 .claude/worktrees/
+tools/guests/out/

@@ -1,0 +1,91 @@
+<title>바 손님 명부</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=Noto+Sans+KR:wght@400;600;700&display=swap">
+<style>
+/* 레이아웃: 끈적이는 머리(세력 바로가기 · 고칠 것 수 · 저장 상태) 아래, 세력별 손님 카드 목록. 카드마다 '고칠 것' 도장 + 메모 */
+:root{
+  --bg:#e8edf2;--card:#f6f8fa;--ink:#18263a;--mute:#5a6879;--line:#c8d2dc;--stamp:#b3322b;--stampbg:#f6dfdc;--au:#9a7a2e;
+  --r-human:#5a6879;--r-beast:#9a6a1c;--r-machine:#2f6690;--r-wraith:#6e4f9a;--r-other:#2d7d74;
+  --f-name:"Gowun Batang","Nanum Myeongjo",serif;--f-body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f151d;--card:#17202a;--ink:#e2e8ee;--mute:#93a0ae;--line:#2a3644;--stamp:#ec7a70;--stampbg:#3a2224;--au:#d2b263;
+  --r-human:#a4b0bd;--r-beast:#dcae5c;--r-machine:#7fb3dc;--r-wraith:#b99ae0;--r-other:#6cc6ba;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f151d;--card:#17202a;--ink:#e2e8ee;--mute:#93a0ae;--line:#2a3644;--stamp:#ec7a70;--stampbg:#3a2224;--au:#d2b263;
+  --r-human:#a4b0bd;--r-beast:#dcae5c;--r-machine:#7fb3dc;--r-wraith:#b99ae0;--r-other:#6cc6ba;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:14px/1.6 var(--f-body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 56px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);max-width:1180px;margin:0 auto;padding-block:10px;display:grid;gap:6px}
+.top .row{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
+.top h1{font:700 20px/1.3 var(--f-name);letter-spacing:.06em;margin:0}
+.top .count{font-variant-numeric:tabular-nums;font-weight:700}
+.top .count b{color:var(--stamp)}
+.top .sync{color:var(--mute);font-size:12px}
+nav{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px}
+nav a{color:var(--mute);text-decoration:none;border-bottom:1px dotted var(--line)}
+nav a b{color:var(--ink);font-variant-numeric:tabular-nums}
+nav a:hover,nav a:focus-visible{color:var(--ink);outline:none;border-bottom-color:var(--au)}
+main{max-width:1180px;margin:0 auto}
+h2{font:700 17px/1.4 var(--f-name);letter-spacing:.05em;margin:30px 0 10px;scroll-margin-top:110px;text-wrap:balance}
+h2 small{font:400 12px/1.4 var(--f-body);color:var(--mute);letter-spacing:0;margin-left:6px}
+section{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,520px),1fr));gap:12px}
+section>h2,.intro>p,.tests{grid-column:1/-1}
+.intro p{margin:0;max-width:68ch;color:var(--mute)}
+.tests{display:flex;flex-wrap:wrap;gap:12px}
+.tests figure{margin:0;display:grid;gap:4px;font-size:12px;color:var(--mute)}
+.tests img,.g .pic{background:repeating-conic-gradient(var(--line) 0 25%,var(--card) 0 50%) 0 0/16px 16px;border:1px solid var(--line);height:auto}
+.tests img{width:180px;max-width:100%}
+.g{background:var(--card);border:1px solid var(--line);padding:12px 14px;display:grid;gap:12px;min-width:0;scroll-margin-top:110px}
+.g[data-pic]{grid-template-columns:120px minmax(0,1fr)}
+.g .pic{width:120px}
+.g .body{min-width:0;display:grid;gap:6px;align-content:start}
+.g header{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.g h3{font:700 17px/1.3 var(--f-name);margin:0;letter-spacing:.04em}
+.g code{font-size:11px;color:var(--mute)}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:12px;line-height:1.5;padding:0 7px;border:1px solid var(--line);color:var(--mute);border-radius:3px}
+.chip.race-human{color:var(--r-human);border-color:var(--r-human)}.chip.race-beast{color:var(--r-beast);border-color:var(--r-beast)}
+.chip.race-machine{color:var(--r-machine);border-color:var(--r-machine)}.chip.race-wraith{color:var(--r-wraith);border-color:var(--r-wraith)}.chip.race-other{color:var(--r-other);border-color:var(--r-other)}
+dl{margin:0;display:grid;grid-template-columns:7.5em minmax(0,1fr);gap:3px 10px;font-size:13px}
+dt{color:var(--mute)}
+dd{margin:0;overflow-wrap:anywhere}
+.note{display:flex;gap:8px;align-items:flex-start;margin-top:4px}
+.fix{flex:none;font:700 12px/1 var(--f-body);letter-spacing:.08em;padding:7px 10px;background:none;color:var(--mute);border:1px dashed var(--line);border-radius:3px;cursor:pointer}
+.fix[aria-pressed="true"]{color:var(--stamp);border:2px solid var(--stamp);background:var(--stampbg);rotate:-2deg}
+.fix:focus-visible,textarea:focus-visible{outline:2px solid var(--au);outline-offset:2px}
+textarea{flex:1;min-width:0;resize:none;overflow:hidden;font:13px/1.5 var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:5px 8px}
+.g.marked{border-color:var(--stamp)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+@media (max-width:520px){.g[data-pic]{grid-template-columns:84px minmax(0,1fr)}.g .pic{width:84px}dl{grid-template-columns:1fr}dt{margin-top:4px}}
+@media (prefers-reduced-motion:reduce){.fix[aria-pressed="true"]{rotate:none}}
+</style>
+<div class="top"><div class="row"><h1>바 손님 명부</h1><span class="count" id="count">손님 %%N%%명 · 고칠 것 <b>0</b> · 메모 0</span><span class="sync" id="sync">저장 연결 중…</span></div><nav>%%NAV%%</nav></div>
+<main>%%BODY%%</main>
+<script>
+const notes={};
+const $=(s,r=document)=>r.querySelector(s);
+function paint(){
+  let fix=0,memo=0;
+  document.querySelectorAll('.fix').forEach(b=>{const n=notes[b.dataset.id];const on=!!n?.fix;b.setAttribute('aria-pressed',String(on));b.closest('.g').classList.toggle('marked',on);if(on)fix++;});
+  document.querySelectorAll('textarea').forEach(t=>{const v=notes[t.dataset.id]?.memo||'';if(document.activeElement!==t&&t.value!==v){t.value=v;grow(t)}if(v)memo++;});
+  $('#count').innerHTML=`손님 %%N%%명 · 고칠 것 <b>${fix}</b> · 메모 ${memo}`;
+}
+function grow(t){t.style.height='auto';t.style.height=t.scrollHeight+'px'}
+let db=null;
+async function save(id){
+  if(!db)return;
+  const n=notes[id]||{};
+  try{const ref=db.doc('%%COL%%/'+id);if(n.fix||n.memo)await ref.set({fix:!!n.fix,memo:n.memo||''});else await ref.delete();$('#sync').textContent='저장됨';}
+  catch{$('#sync').textContent='저장 실패 — 다시 시도해 주세요';}
+}
+document.addEventListener('click',e=>{const b=e.target.closest('.fix');if(!b)return;const id=b.dataset.id;notes[id]={...(notes[id]||{}),fix:!notes[id]?.fix};paint();save(id);});
+const timers={};
+document.addEventListener('input',e=>{const t=e.target.closest('textarea');if(!t)return;grow(t);const id=t.dataset.id;notes[id]={...(notes[id]||{}),memo:t.value};clearTimeout(timers[id]);$('#sync').textContent='입력 중…';timers[id]=setTimeout(()=>{paint();save(id)},700);});
+(async()=>{const sync=$('#sync');
+  const t=setTimeout(()=>{sync.textContent='저장에 연결하지 못했습니다 (보기 전용)'},10000);
+  try{db=await window.claude?.use?.('db');}catch{db=null}
+  if(!db){clearTimeout(t);sync.textContent='보기 전용 — 표시 · 메모가 저장되지 않습니다';return}
+  db.collection('%%COL%%').onSnapshot(s=>{clearTimeout(t);for(const k in notes)delete notes[k];s.docs.forEach(d=>{const v=d.data();if(v)notes[d.id]={fix:!!v.fix,memo:v.memo||''}});paint();sync.textContent='표시 · 메모는 바로 저장됩니다';},
+    ()=>{clearTimeout(t);sync.textContent='저장에 연결하지 못했습니다'});
+})();
+paint();
+</script>
