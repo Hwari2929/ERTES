@@ -2578,13 +2578,6 @@
   "source": "guest",
   "notes": "페트라 브랜드홍보부 · 평판 관리팀 여론 담당 (A35) · 인간 · 옆머리를 짧게 밀고 높이 묶은 검은 곱슬머리, 코발트색 크롭 재킷과 와이드 바지, 양손에 1대씩 든 단말, 큰 링 귀걸이"
  },
- "gs_p_marigold": {
-  "name": "마리골드",
-  "subject": "1girl",
-  "tags": "android, doll, female, adult, slender, porcelain skin, doll joints, ball-jointed wrists, blonde hair, bob cut, blunt bangs, straight hair, gold eyes, glass eyes, expressionless, perfect posture, black secretary suit, black dress, high collar, yellow-orange neck ribbon, marigold flower brooch, white gloves, black pantyhose, black heels, holding tablet, hands together, full body, standing, looking at viewer",
-  "source": "guest",
-  "notes": "페트라 비서실 · 은하 의회 참관 임원 수행 비서 (A49, 비품번호 병기) · 알비온제 자동화 관절 인형 (안드로이드) · 귀 아래에서 일자로 자른 금발, 구체관절이 드러난 하얀 손목, 금잔화색 리본을 단 검은 비서복, 한 치도 흐트러지지 않는 자세"
- },
  "gs_p_lorenzo": {
   "name": "로렌초 갈리",
   "subject": "1boy",
@@ -2598,13 +2591,6 @@
   "tags": "mature female, 40s, lean, tall, pale skin, ash grey hair, short hair, scar across eyebrow, grey eyes, tired eyes, serious, black long coat, teal stripes, teal lining, high collar, gas mask hanging from neck, thin black gloves, black turtleneck, black pants, combat boots, hands in pockets, utility belt, belt pouch, earpiece, full body, standing, looking at viewer",
   "source": "guest",
   "notes": "페트라 특수기동격리팀 · 알렉산드리아 계류장 대기조 요원 (A52) · 인간 · 짧게 자른 잿빛 머리, 왼쪽 눈썹을 가르는 흉터, 청록색 줄이 들어간 검은 롱코트, 목에 걸어 둔 방독면, 벗지 않는 얇은 장갑"
- },
- "gs_p_daigo": {
-  "name": "다이고 야나세",
-  "subject": "1boy",
-  "tags": "adult male, 30s, cyborg, very tall, broad shoulders, huge mechanical arms, industrial arms, tool arms, mechanical spine, metal shoulders, visible seams, short black hair, buzz cut, black eyes, big grin, goggles on forehead, high-visibility vest, neon yellow vest, black t-shirt, cargo pants, steel-toe boots, towel around neck, full body, standing, looking at viewer",
-  "source": "guest",
-  "notes": "페트라 무역관세부 하청 · 알렉산드리아 계류장 화물 하역원 · 노동 등급 의체 사이보그 (호이슌제, 할부 중) · 공구가 달린 거대한 기계 양팔, 강화한 어깨와 척추 골격, 형광 노랑 작업 조끼, 이마에 올린 고글, 짧은 스포츠머리"
  },
  "gs_p_loretta": {
   "name": "로레타 핀치",
@@ -2626,20 +2612,6 @@
   "tags": "young man, adult, 20s, slim, short, blonde hair, short hair, neat hair, ahoge, blue eyes, nervous smile, sweatdrop, oversized suit, grey suit, baggy sleeves, sky blue shirt, orange lanyard, loose necktie, black shoes, holding notebook, holding pen, freckles, blush, wristwatch, full body, standing, looking at viewer",
   "source": "guest",
   "notes": "페트라 재정부 결제정산팀 · 견습 사원 (A10, 첫 배치) · 인간 · 아직 몸에 안 맞는 큰 회색 정장, 하늘색 셔츠와 주황 사원증 줄, 단정히 빗었는데 한 가닥 뻗친 금발"
- },
- "gs_p_kamil": {
-  "name": "카밀 노바크",
-  "subject": "1boy",
-  "tags": "adult male, 30s, average build, brown hair, messy hair, medium hair, full beard, brown beard, hazel eyes, eager smile, friendly, rust orange sweater vest, knit vest, white shirt, sleeves rolled up, brown trousers, brown boots, holding clipboard, pen behind ear, tan, rosy cheeks, armband, messenger bag, open collar, full body, standing, looking at viewer",
-  "source": "guest",
-  "notes": "페트라 전략기획부 · 신규 사업 검토 담당 (A61, 노조 결성 3번째) · 인간 · 소매를 걷은 셔츠 위에 녹슨 주황색 니트 조끼, 덥수룩한 갈색 머리와 수염, 늘 들고 다니는 서명용 클립보드"
- },
- "gs_p_miel": {
-  "name": "미엘",
-  "subject": "1other",
-  "tags": "android, androgynous, adult, slender, smooth face, pearl white skin, translucent panels on cheeks, glowing lines, cyan glow, mechanical joints, visible seams, robot ears, short white hair, bob cut, cyan eyes, glowing eyes, curious, wide eyes, white chef coat, white uniform, white pants, white shoes, holding glass, tasting, full body, standing, looking at viewer",
-  "source": "guest",
-  "notes": "페트라 과학기술부 · 식품 부문 협업 미각 시험 안드로이드 (사원 계상, A15) · 미각 시험용 안드로이드 (과학기술부 시제) · 성별을 알 수 없는 매끈한 얼굴, 볼과 목에 비치는 반투명 판, 진주빛 몸에 하늘빛 회로 불빛, 흰 셰프 재킷 같은 시험복"
  },
  "gs_p_ioanna": {
   "name": "이오아나 스타브루",

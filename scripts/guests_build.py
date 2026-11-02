@@ -47,6 +47,10 @@ def check(rows):
 
 def prompts(rows):
     P = json.load(open('art/prompts.json'))
+    live = {f"gs_{r['id']}" for r in rows}
+    gone = [k for k, v in P.items() if k.startswith('gs_') and v.get('source') == 'guest' and k not in live]  # 명부에서 바뀐 · 빠진 손님
+    for k in gone: del P[k]
+    if gone: print(f"art/prompts.json: 명부에 없는 손님 그림 항목 {len(gone)}개 뺌 ({' '.join(gone)})")
     n = 0
     for r in rows:
         k = f"gs_{r['id']}"
