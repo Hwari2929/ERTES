@@ -6,12 +6,12 @@ import { deployed } from '../engine/build';
 import * as R from '../engine/run';
 import { type RunState } from '../types';
 import { deleteSave, loadRun } from '../ui/save';
-import { metaTutEnd, metaTutSeen, tutMeta, tutOver } from '../ui/meta';
+import { loadMeta, metaTutEnd, metaTutSeen, tutMeta, tutOver } from '../ui/meta';
 import { iconURL } from '../ui/portraits';
 import { advKey, closeAdv, playAdv } from '../ui/adv';
 import { closeCoach, coachKey, startCoach, type CoachStep } from '../ui/coach';
 import { TUTORIAL_FLOW, TUTORIAL_SCENES, TUTORIAL_TIPS } from '../data/scenes/tutorial';
-import { GLOSSARY, GLOSSARY_COUNT } from '../data/glossary';
+import { BAR_GLOSS_KEY, GLOSSARY, GLOSSARY_COUNT } from '../data/glossary';
 import * as TUT from '../engine/tutorial';
 import { Screen, TUT_SLOT, app, esc, persist, toast } from './state';
 import { sprite } from './common';
@@ -317,13 +317,14 @@ export function tutAway() {
   tutPaused = false;
 }
 
-/** 도감 · 교범: 튜토리얼에서 배운 용어 (장 · 담당 인물별). 아직 안 배운 항목은 ??? */
+/** 도감 · 교범: 튜토리얼에서 배운 용어 (장 · 담당 인물별). 아직 안 배운 항목은 ??? — 바 운영 장은 바 첫 영업 보조를 하나라도 보면 열린다 */
 export function codexManual() {
   const all = tutOver();
   const seen = new Set(tutMeta().seen || []);
-  const open = (k: string) => all || seen.has(k);
+  const barOpen = !!loadMeta().bar?.tut?.length || !!loadMeta().bar?.served;
+  const open = (k: string) => all || seen.has(k) || (k === BAR_GLOSS_KEY && barOpen);
   const n = GLOSSARY.reduce((s2, c) => s2 + c.entries.filter((e) => open(e.key)).length, 0);
-  return `<p class="muted small">튜토리얼 「당직 근무」에서 배운 용어 <b>${n}</b> / ${GLOSSARY_COUNT}. ${all ? '' : '튜토리얼을 진행하면 항목이 열리고, 끝내거나 건너뛰면 모두 열립니다.'}</p>`
+  return `<p class="muted small">튜토리얼 「당직 근무」 · 바 첫 영업에서 배운 용어 <b>${n}</b> / ${GLOSSARY_COUNT}. ${all ? '' : '튜토리얼을 진행하면 항목이 열리고, 끝내거나 건너뛰면 모두 열립니다.'}</p>`
     + GLOSSARY.map((c) => {
       const d = UNIT_BY_ID[c.who];
       return `<section class="gl-ch" style="--c:${speakerOf(c.who).color}"><h2 class="gl-h">${d ? sprite(d, 'spr gl-pt') : ''}<span>${esc(c.title)}</span><small class="muted">${esc(d?.name || c.who)}</small></h2>

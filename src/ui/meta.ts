@@ -55,7 +55,11 @@ export interface BarMeta {
   coinGain?: number;
   usual?: Record<string, Drink & { name?: string }>;
   served?: number;
+  /** 바 운영 첫 영업 보조 (docs/BAR_OPS.md 0절 · 9절 4단계): 이미 본 귀띔 (첫 주문 · 제조대 메모 · 첫 동전). 각각 한 번만 나온다 */
+  tut?: BarTut[];
 }
+/** 바 운영 첫 영업 보조의 종류: 첫 주문 (낮 = 에이든 한마디, 밤 = 카운터 위 메모) · 처음 연 제조대 (메모) · 처음 놓인 동전 (한마디) */
+export type BarTut = 'order' | 'prep' | 'coin';
 
 const KEY = 'errantes.meta.v1';
 /** 위험 등급 체계 판: 2 = 위험 7 에 절망 증강을 끼워 넣어 예전 위험 7 · 8 이 8 · 9 가 됨 (data/difficulty.ts) */
@@ -167,6 +171,20 @@ export function metaBarServed(id: string, d: Drink & { name?: string }, liked: b
   if (liked) (b.usual ||= {})[id] = { glass: d.glass, fill: [...d.fill], ice: d.ice, garnish: [...d.garnish], name: d.name };
   save();
 }
+/** 이 바 운영 귀띔을 이미 봤나. 이 기록이 생기기 전에 잔을 내준 적이 있으면 (예전 저장) 모두 본 것으로 친다 */
+export function barTutSeen(k: BarTut): boolean {
+  const b = loadMeta().bar;
+  return !!b?.tut?.includes(k) || (!b?.tut && !!b?.served);
+}
+/** 바 운영 귀띔을 봤다 */
+export function metaBarTut(k: BarTut) {
+  if (barTutSeen(k)) return;
+  const m = loadMeta();
+  ((m.bar ||= {}).tut ||= []).push(k);
+  save();
+}
+/** 바 운영을 처음 하는 참이다 (잔을 내준 적도, 첫 주문 귀띔을 본 적도 없다): 첫 주문을 조금 일찍 연다 (BAR_OPS.first) */
+export const barOpsNew = () => !loadMeta().bar?.served && !barTutSeen('order');
 /** 바에서 본 만담 · 들은 이야기 · 반응 대사 기록 (만담 id, 확장 틀은 '틀 id+끼어든 인물') */
 export function metaBar(kind: 'seen' | 'talk' | 'heard', key: string) {
   const m = loadMeta();

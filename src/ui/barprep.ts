@@ -1,13 +1,16 @@
 // 에란테스 바 제조대 (후면): 주문을 누르면 카메라가 180° 돌아 여기를 본다 (docs/BAR_OPS.md 2 · 7절). 만드는 동안 손님 반응은 없다.
 // 위 선반 = 술 10 · 음료 6 · 분말 3 (누르면 지금 잔에 1칸) · 왼쪽 = 잔 6 · 가운데 = 만드는 잔 · 오른쪽 = 얼음 · 가니쉬 · 아래 = 맛 막대 3개.
 // 주문서는 종이 사물(레터프레스, docs/UI.md 19), 맛 막대 · 칸 · 단추는 게임 토큰. 배경은 당분간 빈 배경 (단색 + 카운터 나무결 작업대).
-// 레시피북(에이든 공략집)은 종이 덮개: 메뉴 · 단골 장부.
+// 레시피북(에이든 공략집)은 종이 덮개: 메뉴 · 단골 장부 · 에이든의 메모 (바 운영 첫 영업 보조를 다시 보는 쪽).
+// 처음 연 제조대에는 왼쪽 잔 선반 아래에 에이든의 메모가 붙어 있다 (순서 · 맛 막대 · 주문서 · 레시피북, ✕ 로 뗀다 — 막지 않는다).
 import {
   AXES, AXIS_NAME, GARNISH_BY_ID, GARNISH_MAX, GARNISHES, GLASS_BY_ID, GLASS_KIND_NAME, GLASSES, ICE_NAME, ING_BY_ID, ING_KIND_NAME, INGREDIENTS, RECIPES,
   tagsOf, tasteOf, tasteText, type Drink, type Ice, type IngKind,
 } from '../data/bar/drinks';
 import { ORDER_STYLE_NAME } from '../data/bar/drinks';
-import { axisTargets, recipeName, type Order } from '../data/bar/orders';
+import { axisTargets, COIN_NAME, recipeName, type Order } from '../data/bar/orders';
+import { OPS_MEMO } from '../data/bar/opstut';
+import { fillText as fillVars } from '../data/scene';
 import { drinkSvg } from './drinkart';
 import { loadMeta } from './meta';
 import { artURL } from './portraits';
@@ -15,7 +18,9 @@ import { artURL } from './portraits';
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
 /** 지금 만드는 잔 (잔을 고르기 전엔 glass = '') */
-export interface Prep { k: string; who: string; name: string; order: Order; glass: string; fill: string[]; ice: Ice; garnish: string[]; book: '' | 'menu' | 'ledger'; hintText?: string }
+export interface Prep { k: string; who: string; name: string; order: Order; glass: string; fill: string[]; ice: Ice; garnish: string[]; book: '' | 'menu' | 'ledger' | 'memo'; hintText?: string;
+  /** 처음 연 제조대: 에이든의 메모가 붙어 있다 (✕ 로 떼면 false) */
+  memo?: boolean }
 export const newPrep = (k: string, who: string, name: string, order: Order, hintText?: string): Prep => ({ k, who, name, order, glass: '', fill: [], ice: 'none', garnish: [], book: '', hintText });
 export const prepDrink = (p: Prep): Drink => ({ glass: p.glass, fill: [...p.fill], ice: p.ice, garnish: [...p.garnish] });
 const slotsOf = (p: Prep) => GLASS_BY_ID[p.glass]?.slots || 0;
@@ -70,7 +75,24 @@ function slipHtml(p: Prep) {
   return `<aside class="bp-slip" aria-label="주문서"><span class="bp-slip-who">${esc(p.name)}</span><span class="bp-slip-style">${esc(ORDER_STYLE_NAME[o.style])}</span>${body}</aside>`;
 }
 
-// ───────── 레시피북 (에이든 공략집): 메뉴 · 단골 장부
+// ───────── 에이든의 메모 (종이, 바 운영 첫 영업 보조 — src/data/bar/opstut.ts)
+const memoText = (s: string) => esc(fillVars(s, { coin: COIN_NAME, gar: String(GARNISH_MAX) }));
+const memoPara = (ls: string[]) => ls.map((l) => `<p>${memoText(l)}</p>`).join('');
+/** 제조대 순서 (잔 → 붓기 → …) · 자리별 한 줄 */
+const memoSteps = () => `<p class="ops-steps">${OPS_MEMO.steps.map((x) => `<b>${esc(x)}</b>`).join('<i aria-hidden="true">→</i>')}</p>`;
+const memoPrep = () => `<dl class="ops-dl">${OPS_MEMO.prep.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${memoText(v)}</dd></div>`).join('')}</dl>`;
+const memoSign = () => `<span class="ops-sign">${esc(OPS_MEMO.sign)}</span>`;
+/** 메모 머리: 받는 사람 (펜 글씨) + 닫기 ✕ (머리 오른쪽 끝, docs/UI.md 30) */
+const memoHead = (close: string, label: string) => `<header class="ops-head"><span class="ops-to">${esc(OPS_MEMO.to)}</span><button class="bp-x" data-a="bar-x" data-v="${close}" aria-label="${label}">✕</button></header>`;
+/** 카운터 위 메모 (밤 첫 주문): 주문 받는 법 + 추신 */
+export const counterMemoHtml = (close: string) => `${memoHead(close, '메모 닫기')}${memoPara([...OPS_MEMO.order, OPS_MEMO.night])}${memoSign()}`;
+/** 제조대에 붙은 메모 (처음 연 제조대) */
+const prepMemoHtml = () => `<aside class="bp-memo" aria-label="에이든의 메모">${memoHead('prep:memo', '메모 떼기')}${memoSteps()}${memoPrep()}${memoSign()}</aside>`;
+/** 레시피북 '에이든의 메모' 쪽: 주문 · 제조대 · 주화 (다시 보기) */
+const bookMemoHtml = () => `<div class="bp-recs bp-memo-page"><section><h4>주문</h4>${memoPara(OPS_MEMO.order)}</section>
+  <section><h4>제조대</h4>${memoSteps()}${memoPrep()}</section><section><h4>${esc(COIN_NAME)}</h4>${memoPara(OPS_MEMO.coin)}</section>${memoSign()}</div>`;
+
+// ───────── 레시피북 (에이든 공략집): 메뉴 · 단골 장부 · 에이든의 메모
 const fillText = (d: Drink) => { const m = new Map<string, number>(); for (const x of d.fill) m.set(x, (m.get(x) || 0) + 1); return [...m].map(([x, n]) => `${ING_BY_ID[x]?.name || x}${n > 1 ? ` ×${n}` : ''}`).join(' · '); };
 function recipeRow(d: Drink, name: string, desc = '') {
   const g = GLASS_BY_ID[d.glass];
@@ -81,12 +103,12 @@ function recipeRow(d: Drink, name: string, desc = '') {
 }
 function bookHtml(p: Prep, names: (id: string) => string) {
   const ledger = Object.entries(loadMeta().bar?.usual || {});
-  const tab = (k: 'menu' | 'ledger', label: string) => `<button class="bp-tab${p.book === k ? ' on' : ''}" data-a="bar-x" data-v="prep:book:${k}" aria-pressed="${p.book === k}">${label}</button>`;
+  const tab = (k: 'menu' | 'ledger' | 'memo', label: string) => `<button class="bp-tab${p.book === k ? ' on' : ''}" data-a="bar-x" data-v="prep:book:${k}" aria-pressed="${p.book === k}">${label}</button>`;
   const list = p.book === 'ledger'
     ? (ledger.length ? ledger.map(([id, d]) => recipeRow(d, `${names(id)} — ${d.name || recipeName(d) || '이름 없는 잔'}`)).join('') : '<li class="bp-empty">아직 적힌 손님이 없습니다. 좋아함을 받은 잔이 여기에 적힙니다.</li>')
     : RECIPES.map((r) => recipeRow(r, r.name, r.desc)).join('');
-  return `<div class="bp-book" role="dialog" aria-label="레시피북"><header><h3>에이든 공략집</h3>${tab('menu', `메뉴 ${RECIPES.length}`)}${tab('ledger', `단골 장부 ${ledger.length}`)}
-    <button class="bp-x" data-a="bar-x" data-v="prep:book:" aria-label="닫기">✕</button></header><ul class="bp-recs">${list}</ul></div>`;
+  return `<div class="bp-book" role="dialog" aria-label="레시피북"><header><h3>에이든 공략집</h3>${tab('menu', `메뉴 ${RECIPES.length}`)}${tab('ledger', `단골 장부 ${ledger.length}`)}${tab('memo', '에이든의 메모')}
+    <button class="bp-x" data-a="bar-x" data-v="prep:book:" aria-label="닫기">✕</button></header>${p.book === 'memo' ? bookMemoHtml() : `<ul class="bp-recs">${list}</ul>`}</div>`;
 }
 
 /** 제조대 전체 */
@@ -109,7 +131,7 @@ export function prepHtml(p: Prep, names: (id: string) => string): string {
   return `<header class="bp-head"><h2>${esc(p.name)}의 주문</h2><button class="bp-bookbtn" data-a="bar-x" data-v="prep:book:menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5 Q8 3.5 12 5.5 Q16 3.5 20 5 V19 Q16 17.5 12 19.5 Q8 17.5 4 19 Z M12 5.5 V19.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>레시피북</button>
       <button class="bp-back" data-a="bar-x" data-v="prep:back">카운터로</button></header>
     <div class="bp-shelf">${shelf}</div>
-    <div class="bp-glasses">${glasses}</div>
+    <div class="bp-glasses">${glasses}${p.memo ? prepMemoHtml() : ''}</div>
     <div class="bp-work">${work}
       <div class="bp-acts"><button class="bp-btn" data-a="bar-x" data-v="prep:undo"${p.fill.length ? '' : ' aria-disabled="true"'}>한 칸 빼기</button><button class="bp-btn" data-a="bar-x" data-v="prep:clear"${p.fill.length || p.garnish.length || p.ice !== 'none' ? '' : ' aria-disabled="true"'}>비우기</button>
         <button class="bp-btn bp-serve" data-a="bar-x" data-v="prep:serve"${ready ? '' : ' aria-disabled="true"'}>내주기</button></div></div>
@@ -127,7 +149,8 @@ export function prepAct(p: Prep, v: string): 'serve' | 'back' | 'draw' | null {
   const n = slotsOf(p);
   if (k === 'back') return 'back';
   if (k === 'serve') return prepReady(p) ? 'serve' : null;
-  if (k === 'book') { p.book = x === 'menu' || x === 'ledger' ? x : ''; return 'draw'; }
+  if (k === 'book') { p.book = x === 'menu' || x === 'ledger' || x === 'memo' ? x : ''; return 'draw'; }
+  if (k === 'memo') { p.memo = false; return 'draw'; }
   if (k === 'glass' && GLASS_BY_ID[x]) { p.glass = p.glass === x ? '' : x; const m = GLASS_BY_ID[p.glass]?.slots || 0; if (p.fill.length > m) p.fill = p.fill.slice(0, m); return 'draw'; }
   if (k === 'pour' && ING_BY_ID[x] && p.glass && p.fill.length < n) { p.fill.push(x); return 'draw'; }
   if (k === 'undo' && p.fill.length) { p.fill.pop(); return 'draw'; }

@@ -14,6 +14,9 @@ export const BAR_OPS = {
   /** 조건이 맞을 때 한때마다 주문할 확률 · 동시에 걸려 있을 수 있는 주문 수 */
   chance: 0.3,
   maxOpen: 2,
+  /** 바 운영을 처음 하는 플레이어 (잔을 내준 적도, 첫 주문 귀띔을 본 적도 없음): 첫 주문만 조금 일찍 — 들어온 뒤 대기 (ms) · 한때마다 확률.
+   *  그동안 에이든은 새로 온 손님 · 잔 없는 손님에게 단골 메뉴를 먼저 내주지 않는다 (첫 손님을 레이첼에게 남겨 둔다). 강제 이벤트는 아니다 */
+  first: { wait: 8_000, chance: 0.7 },
   /** 좋아하는 주문 방식으로 시킬 확률 (나머지는 다른 방식 중 무작위) */
   styleKeep: 0.5,
   /** 이름 · 사진 주문에서 단골 메뉴를 고를 확률 (나머지는 메뉴판에서 무작위) */
@@ -131,17 +134,20 @@ export function makeOrder(who: string, now: number, o: { usual?: Drink & { name?
 }
 
 // ───────── 채점
+/** 잔 맞추기 채점 (사진 · 이름 · 늘 마시던 거): 항목별 만점 (합 = 만점) · 만족 문턱. 느낌 주문은 조건을 다 맞추면 좋아함 · 절반 이상 그럭저럭 [임시] */
+export const SCORE = { glass: 2, fill: 4, ice: 1, garnish: 1, like: 7, ok: 4.5 };
+export const SCORE_MAX = SCORE.glass + SCORE.fill + SCORE.ice + SCORE.garnish;
 const count = (xs: string[]) => { const m = new Map<string, number>(); for (const x of xs) m.set(x, (m.get(x) || 0) + 1); return m; };
 /** 목표 잔과 만든 잔의 재료 구성이 겹치는 칸 수 (순서 무관) */
 function overlap(a: string[], b: string[]) { const m = count(a); let n = 0; for (const x of b) { const k = m.get(x) || 0; if (k) { n++; m.set(x, k - 1); } } return n; }
-/** 잔 맞추기 점수 (0~8): 잔 2 (같은 잔 2 · 크기나 종류만 1) · 재료 4 (겹치는 칸 비율) · 얼음 1 · 가니쉬 1 */
+/** 잔 맞추기 점수 (0~SCORE_MAX): 잔 (같은 잔 = 만점 · 크기나 종류만 같으면 절반) · 재료 (겹치는 칸 비율) · 얼음 · 가니쉬 */
 export function matchScore(t: Drink, d: Drink): number {
   const gt = GLASS_BY_ID[t.glass], gd = GLASS_BY_ID[d.glass];
-  const glass = t.glass === d.glass ? 2 : gt && gd && (gt.slots === gd.slots || gt.kind === gd.kind) ? 1 : 0;
-  const fill = 4 * overlap(t.fill, d.fill) / Math.max(t.fill.length, d.fill.length, 1);
-  const ice = t.ice === d.ice ? 1 : 0;
+  const glass = t.glass === d.glass ? SCORE.glass : gt && gd && (gt.slots === gd.slots || gt.kind === gd.kind) ? SCORE.glass / 2 : 0;
+  const fill = SCORE.fill * overlap(t.fill, d.fill) / Math.max(t.fill.length, d.fill.length, 1);
+  const ice = t.ice === d.ice ? SCORE.ice : 0;
   const gn = Math.max(t.garnish.length, d.garnish.length);
-  const garnish = gn ? overlap(t.garnish, d.garnish) / gn : 1;
+  const garnish = SCORE.garnish * (gn ? overlap(t.garnish, d.garnish) / gn : 1);
   return glass + fill + ice + garnish;
 }
 export interface Verdict { grade: Grade; /** 맞춘 것 · 놓친 것 (조건 이름 또는 잔 · 재료 · 얼음 · 가니쉬) */ hit: string[]; miss: string[] }
@@ -161,7 +167,7 @@ export function judge(o: Order, d: Drink): Verdict {
     ['얼음', t.ice === d.ice],
     ['가니쉬', overlap(t.garnish, d.garnish) === t.garnish.length && t.garnish.length === d.garnish.length],
   ];
-  return { grade: s >= 7 ? 'like' : s >= 4.5 ? 'ok' : 'bad', hit: parts.filter(([, x]) => x).map(([k]) => k), miss: parts.filter(([, x]) => !x).map(([k]) => k) };
+  return { grade: s >= SCORE.like ? 'like' : s >= SCORE.ok ? 'ok' : 'bad', hit: parts.filter(([, x]) => x).map(([k]) => k), miss: parts.filter(([, x]) => !x).map(([k]) => k) };
 }
 /** 술값 + 팁 */
 export const payOf = (d: Drink, g: Grade) => (BAR_OPS.price[GLASS_BY_ID[d.glass]?.slots || 4] || 8) + BAR_OPS.tip[g];

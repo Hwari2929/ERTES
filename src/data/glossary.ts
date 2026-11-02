@@ -19,6 +19,14 @@ import { CAUSAL, causalNeed } from './chungra';
 import { MAPS, TERRAIN } from './maps';
 import { MERCHANTS } from './merchants';
 import { CONSUMABLES } from './items';
+import { BAR_OPS, COIN_NAME, COIN_UNIT, GRADE_NAME, SCORE, SCORE_MAX } from './bar/orders';
+import { AXES, AXIS_NAME, GARNISH_MAX, GARNISHES, GLASSES, ICE_NAME, INGREDIENTS, ORDER_STYLE_NAME, RECIPES } from './bar/drinks';
+
+/** 바 운영 교범 항목을 여는 키: 튜토리얼을 끝냈거나 바 첫 영업 보조를 하나라도 봤으면 (app/tutorial.ts codexManual) */
+export const BAR_GLOSS_KEY = 'bar_ops';
+/** 잔 크기별 칸 수 '3 · 4 · 5' · 술값 '3칸 6 · 4칸 8 · 5칸 10' (data/bar) */
+const barSlots = () => [...new Set(GLASSES.map((g) => g.slots))].sort((a, b) => a - b);
+const barPrice = () => barSlots().map((n) => `${n}칸 ${BAR_OPS.price[n]}`).join(' · ');
 
 export interface GlossEntry { id: string; term: string; text: string; key: string }
 export interface GlossChapter { ch: string; title: string; who: string; entries: GlossEntry[] }
@@ -134,6 +142,14 @@ export const GLOSSARY: GlossChapter[] = [
       { id: 'despair', term: '절망 증강', key: 'epilogue', text: `${diffName(CFG.despair.from) || `위험 ${CFG.despair.from}`} 의뢰의 대가. 출격 때 특권 증강 다음에 ${CFG.despair.choices}개 중 1개를 반드시 고르고, ${CFG.despair.every}페이즈마다 (${despairPhases().map((p) => `${p}페이즈`).join(' · ')} 시작 때) 1개씩 더 고른다 (고를 때마다 새로고침 ${CFG.despair.rerolls}회). 고른 디버프는 의뢰 내내 쌓여서 걸리고, 같은 증강은 다시 나오지 않는다. 상단 바의 붉은 표시를 누르거나 지도 [환경] 탭에서 효과를 다시 볼 수 있다. ${DESPAIRS.length}종 (${DESPAIRS.map((d) => d.name).join(' · ')}), 증강별 성공 기록은 도감 기록 탭에 남는다.` },
       { id: 'causal', term: '청라공국 · 인과율', key: 'epilogue', text: `청라공국 기물이 3명 이상 출전하면 전투 시작 때 공왕 무휼이 출전 칸을 쓰지 않고 아군 진영 뒷줄 가운데 빈칸에 바로 나타난다 (편성 화면에는 놓지 않는다). 무휼은 공명도를 받지 않고, 이긴 전투마다 모으는 인과율로 인과 단계(1~${CAUSAL.max})를 올린다. 1회 수집량 = (${CAUSAL.base} + 출전 아군 장비 점수 ÷ ${CAUSAL.gearDiv}) × 청라 단계 배율 (${CAUSAL.mult.slice(1).map((m) => `×${m}`).join(' · ')}). 장비 점수는 재료 ${CAUSAL.gearPts.C} · 고급 · 희귀 ${CAUSAL.gearPts.A} · 전설 ${CAUSAL.gearPts.L}. ${CAUSAL.max}단계까지 모으려면 누적 인과율 ${causalNeed(CAUSAL.max)}. 청라가 3명 아래로 줄어도 모은 인과율은 남는다.` },
       { id: 'oath', term: '절망 서약', key: 'epilogue', text: `${diffName(CFG.oathFrom) || `위험 ${CFG.oathFrom}`} 의뢰에 스스로 거는 고정 조건. 타이틀의 [절망 서약]에서 서약 ${Object.keys(CFG.oath).length}종 중 원하는 것을 켜고 단계를 올리면, 단계마다 절망 수치가 쌓인다. 설정은 이 브라우저에 남고, ${diffName(CFG.oathFrom) || `위험 ${CFG.oathFrom}`}으로 출격할 때만 걸린다 (쉬움 · 모험은 무시). 무작위로 고르는 절망 증강과 따로 걸리며, 성공하면 전장별 최고 절망 수치가 도감 기록 탭에 남는다. 절망 수치 ${CFG.oathDiffStep}마다 표기 위험 등급이 1씩 올라 (위험 ${CFG.oathFrom} → 절망 ${CFG.oathDiffStep}이면 위험 ${CFG.oathFrom + 1}) 결과 · 전장 기록 · 업적이 그 등급을 읽는다. 적이 세지는 것은 서약 효과뿐이다. 런 중에는 상단 바의 서약 표시와 지도 [환경] 탭에서 켠 서약을 볼 수 있다.` },
+    ],
+  },
+  {
+    ch: 'bar', title: '에란테스 바 — 바 운영', who: 'aiden', entries: [
+      { id: 'barorder', term: '주문 · 주문 방식', key: BAR_GLOSS_KEY, text: `정규 단원이 잔을 비우면 레이첼에게 한 잔 시킨다 (머리 위 주문 표시, 동시에 ${BAR_OPS.maxOpen}개까지). 주문에는 시간 제한이 없고, 걸려 있는 동안 그 손님은 나가지 않는다. 표시를 누르면 뒤쪽 제조대로 돌아선다. 주문 방식은 ${Object.keys(ORDER_STYLE_NAME).length}가지: ${ORDER_STYLE_NAME.vague}(맛 조건 — ${AXES.map((a) => AXIS_NAME[a]).join(' · ')} 범위 · 향 · 잔 크기 · 얼음) · ${ORDER_STYLE_NAME.photo}(완성 잔 그림 — 잔 · 얼음 · 가니쉬 · 층 색) · ${ORDER_STYLE_NAME.name}(메뉴 이름 — 레시피북에서 찾는다) · ${ORDER_STYLE_NAME.usual}(그 손님이 지난번 마음에 들어 한 잔, 처음이면 단골 메뉴 — 낮에는 에이든이 주문서에 귀띔하고, 밤에는 손님이 흘린다). 손님마다 좋아하는 방식이 있어 약 ${pc(BAR_OPS.styleKeep)}는 그 방식으로 시킨다.` },
+      { id: 'barprep', term: '제조대', key: BAR_GLOSS_KEY, text: `잔 → 붓기 → 얼음 → 가니쉬 → 내주기. 잔은 ${GLASSES.length}종이고 크기별로 ${barSlots().join(' · ')}칸이다. 재료 병을 누를 때마다 1칸씩 붓고, 칸을 다 채워야 내줄 수 있다 (같은 재료를 여러 칸에 넣어도 된다). 재료 ${INGREDIENTS.length}종 · 얼음 ${Object.keys(ICE_NAME).length}가지(${Object.values(ICE_NAME).join(' · ')}) · 가니쉬 ${GARNISHES.length}종 중 최대 ${GARNISH_MAX}개. 맛은 재료마다 ${AXES.map((a) => AXIS_NAME[a]).join(' · ')} 값을 더해서 세고, 맛 막대에 지금 값과 (느낌 주문이면) 목표 범위가 보인다. 얼음은 맛에 영향이 없다. 레시피북(에이든 공략집)에 메뉴 ${RECIPES.length}가지 · 단골 장부 · 에이든의 메모가 있다.` },
+      { id: 'bargrade', term: '만족 3단계', key: BAR_GLOSS_KEY, text: `손님은 한 모금 마시고 ${GRADE_NAME.like} · ${GRADE_NAME.ok} · ${GRADE_NAME.bad} 중 하나로 반응한다 (잔 위 꼬리표에 놓친 것). ${ORDER_STYLE_NAME.photo} · ${ORDER_STYLE_NAME.name} · ${ORDER_STYLE_NAME.usual} 주문은 ${SCORE_MAX}점 만점 — 잔 ${SCORE.glass} (크기나 종류만 같으면 ${SCORE.glass / 2}) · 재료 ${SCORE.fill} (붓는 순서와 상관없이 겹치는 칸 비율) · 얼음 ${SCORE.ice} · 가니쉬 ${SCORE.garnish} — 으로 ${SCORE.like} 이상 ${GRADE_NAME.like} · ${SCORE.ok} 이상 ${GRADE_NAME.ok}. ${ORDER_STYLE_NAME.vague} 주문은 조건을 다 맞추면 ${GRADE_NAME.like} · 절반 이상이면 ${GRADE_NAME.ok}. 마음에 들지 않아도 잔은 내준 것이다 (다시 만들기 없음). '${GRADE_NAME.like}' 반응을 받은 잔은 단골 장부에 적혀 그 손님의 '${ORDER_STYLE_NAME.usual}'가 된다.` },
+      { id: 'barcoin', term: COIN_NAME, key: BAR_GLOSS_KEY, text: `바의 화폐 (단위 ${COIN_UNIT}). 레이첼이 내준 잔을 손님이 다 마시면 잔 옆에 술값 + 팁이 놓인다: 술값은 잔 크기별 ${barPrice()}${COIN_UNIT}, 팁은 ${GRADE_NAME.like} ${BAR_OPS.tip.like} · ${GRADE_NAME.ok} ${BAR_OPS.tip.ok} · ${GRADE_NAME.bad} ${BAR_OPS.tip.bad}${COIN_UNIT}. 동전을 누르면 거두고, 안 거둬도 손님이 나가거나 바를 떠날 때 저절로 거둔다. 에이든이 내준 잔은 주화가 없다. 의뢰를 마치면 성공 ${BAR_OPS.run.clear} · 실패 ${BAR_OPS.run.fail}${COIN_UNIT}을 받는다 (튜토리얼 제외).` },
     ],
   },
 ];
