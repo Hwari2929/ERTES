@@ -11,6 +11,7 @@ import { ORDER_STYLE_NAME } from '../data/bar/drinks';
 import { axisTargets, COIN_NAME, recipeName, type Order } from '../data/bar/orders';
 import { OPS_MEMO } from '../data/bar/opstut';
 import { fillText as fillVars } from '../data/scene';
+import { BAR_ITEM_ART } from './baritems.gen';
 import { drinkSvg } from './drinkart';
 import { loadMeta } from './meta';
 import { artURL } from './portraits';
@@ -34,6 +35,8 @@ const BOTTLE: Record<IngKind, (c: string) => string> = {
   mixer: (c) => `<path d="M10 8 H22 L23 12 V44 Q23 46 21 46 H11 Q9 46 9 44 V12 Z" fill="${c}" stroke="currentColor" stroke-width="1.2"/><path d="M11 4 H21 V8 H11 Z" fill="currentColor" fill-opacity=".5"/><path d="M9 22 H23 V32 H9 Z" fill="currentColor" fill-opacity=".18"/>`,
   powder: (c) => `<path d="M6 16 H26 V44 Q26 46 24 46 H8 Q6 46 6 44 Z" fill="${c}" stroke="currentColor" stroke-width="1.2"/><path d="M5 11 H27 V16 H5 Z" fill="currentColor" fill-opacity=".55"/><path d="M6 26 H26 V36 H6 Z" fill="currentColor" fill-opacity=".18"/>`,
 };
+/** 재료 · 가니쉬 그림 (빈티지 판화 · 투명 배경, scripts/bar_items_build.py) — 없으면 코드 그림 */
+const itemImg = (key: string, cls: string) => (BAR_ITEM_ART[key] ? `<img class="${cls}" src="${BAR_ITEM_ART[key]}" alt="" draggable="false">` : '');
 export const bottleSvg = (id: string) => { const x = ING_BY_ID[id]; return x ? `<svg viewBox="0 0 32 48" aria-hidden="true">${BOTTLE[x.kind](x.color)}</svg>` : ''; };
 /** 얼음 아이콘 */
 const ICE_ICON: Record<Ice, string> = {
@@ -118,14 +121,14 @@ export function prepHtml(p: Prep, names: (id: string) => string): string {
   const groups: [string, IngKind[]][] = [['술', ['spirit', 'brew', 'liqueur']], [ING_KIND_NAME.mixer, ['mixer']], [ING_KIND_NAME.powder, ['powder']]];
   const full = !!p.glass && p.fill.length >= n;
   const shelf = groups.map(([label, kinds]) => `<div class="bp-grp"><span class="bp-grp-l">${label}</span><div class="bp-bottles">${INGREDIENTS.filter((x) => kinds.includes(x.kind)).map((x) =>
-    `<button class="bp-btl" data-a="bar-x" data-v="prep:pour:${x.id}"${!p.glass || full ? ' aria-disabled="true"' : ''} title="${esc(`${x.name} (${x.type})`)}">${bottleSvg(x.id)}<span>${esc(x.name)}</span></button>`).join('')}</div></div>`).join('');
+    `<button class="bp-btl" data-a="bar-x" data-v="prep:pour:${x.id}"${!p.glass || full ? ' aria-disabled="true"' : ''} title="${esc(`${x.name} (${x.type})`)}">${itemImg(`ing.${x.id}`, 'bp-art') || bottleSvg(x.id)}<span>${esc(x.name)}</span></button>`).join('')}</div></div>`).join('');
   const glasses = (['tumbler', 'stem'] as const).map((k) => `<div class="bp-glass-row"><span class="bp-grp-l">${GLASS_KIND_NAME[k]}</span>${GLASSES.filter((g) => g.kind === k).map((g) =>
     `<button class="bp-glass${p.glass === g.id ? ' on' : ''}" data-a="bar-x" data-v="prep:glass:${g.id}" aria-pressed="${p.glass === g.id}">${drinkSvg({ glass: g.id, fill: [], ice: 'none', garnish: [] }, 0, 'drink')}<span>${esc(g.name)}</span><i class="bp-pips" aria-label="${g.slots}칸">${'<b></b>'.repeat(g.slots)}</i></button>`).join('')}</div>`).join('');
   const work = p.glass
     ? `<div class="bp-cup">${drinkSvg(d, n ? p.fill.length / n : 0, 'drink bp-big')}</div><p class="bp-count f-num"><b>${p.fill.length}</b> / ${n}칸</p>`
     : '<div class="bp-cup bp-cup-empty" aria-hidden="true"></div><p class="bp-count">잔을 고르세요</p>';
   const ices = (Object.keys(ICE_NAME) as Ice[]).map((k) => `<button class="bp-ice${p.ice === k ? ' on' : ''}" data-a="bar-x" data-v="prep:ice:${k}" aria-pressed="${p.ice === k}">${ICE_ICON[k]}<span>${ICE_NAME[k]}</span></button>`).join('');
-  const gars = GARNISHES.map((g) => { const on = p.garnish.includes(g.id); return `<button class="bp-gar${on ? ' on' : ''}" data-a="bar-x" data-v="prep:gar:${g.id}" aria-pressed="${on}"${!on && p.garnish.length >= GARNISH_MAX ? ' aria-disabled="true"' : ''} title="${esc(g.desc)}">${dot(GARNISH_COLOR[g.id] || '#999999')}<span>${esc(g.name)}</span></button>`; }).join('');
+  const gars = GARNISHES.map((g) => { const on = p.garnish.includes(g.id); return `<button class="bp-gar${on ? ' on' : ''}" data-a="bar-x" data-v="prep:gar:${g.id}" aria-pressed="${on}"${!on && p.garnish.length >= GARNISH_MAX ? ' aria-disabled="true"' : ''} title="${esc(g.desc)}">${itemImg(`gar.${g.id}`, 'bp-art') || dot(GARNISH_COLOR[g.id] || '#999999')}<span>${esc(g.name)}</span></button>`; }).join('');
   const ready = prepReady(p);
   const tags = p.fill.length ? tagsOf(d).slice(0, 4) : [];
   return `<header class="bp-head"><h2>${esc(p.name)}의 주문</h2><button class="bp-bookbtn" data-a="bar-x" data-v="prep:book:menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5 Q8 3.5 12 5.5 Q16 3.5 20 5 V19 Q16 17.5 12 19.5 Q8 17.5 4 19 Z M12 5.5 V19.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>레시피북</button>

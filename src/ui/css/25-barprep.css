@@ -65,6 +65,9 @@
 .bp-btl { flex: 1 1 0; min-width: 0; display: grid; justify-items: center; gap: 2px; padding: 4px 2px; background: none; border: 1px solid transparent; border-radius: var(--r-md); color: var(--c-text); font: inherit; cursor: pointer; }
 .bp-btl:not([aria-disabled="true"]):hover, .bp-btl:focus-visible { border-color: var(--line); background: var(--panel-2); }
 .bp-btl svg { width: 30px; height: 45px; color: var(--c-text-2); }
+/* 재료 · 가니쉬 그림 (빈티지 판화 · 투명 배경): 병 · 통은 같은 높이로 서고, 가니쉬는 칸 왼쪽 작은 그림 */
+.bp-btl .bp-art { display: block; height: 52px; width: auto; max-width: 100%; object-fit: contain; object-position: bottom; filter: drop-shadow(0 2px 3px var(--shade-2)); }
+.bp-gar .bp-art { flex: none; width: 26px; height: 26px; object-fit: contain; }
 .bp-btl span { font-size: var(--fs-2xs); line-height: 1.2; text-align: center; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* 왼쪽 잔 선반: 텀블러 3 · 스템 잔 3, 잔 아래 칸 수 점 */
