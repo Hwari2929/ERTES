@@ -1,6 +1,6 @@
 // NovelAI 출격 계약 탑뷰 소품 (바 테이블 · 벨 · 전표 출력기) 생성. 유료(Anlas) 29스텝, 1회 최대 8장 (scripts/nai_guard.mjs).
 //   node scripts/nai_prop.mjs ct_table_a ct_bell_a ...   |  --all
-// 입력: art/prop_prompts.json  결과: art/raw/prop/<key>/<seed>.png (소품은 흰 바탕 → art.py cut_background 로 오린다)
+// 입력: art/prop_prompts.json  결과: art/raw/prop/<key>/<seed>.png (소품은 흰 바탕 → art.py cut_background 로 오린다 · transparent: true 면 V5 투명 배경 RGBA 로 바로)
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
 import { guard, anlas, pause } from './nai_guard.mjs';
@@ -25,13 +25,16 @@ function unzipFirst(buf) {
 }
 async function gen(key, seed) {
   const p = P.props[key], input = p.plain ? `${p.prompt}, no humans, best quality, masterpiece, highres, year2026` : p.raw ? `${p.prompt}, best quality, masterpiece, highres, year2026, ::1.2::painterly::` : p.noBase ? `${p.prompt}, no humans, best quality, masterpiece, highres, year2026, ::1.1::painterly::` : `${p.prompt}, ${P.base}`; // plain: 화풍 태그 없이 (프롬프트 안에서 화풍을 정한다 — 바 재료 · 가니쉬 시안) · noBase: 알베도 (광원 문구 없이) · raw: 'no humans' 없이 (에이든의 손처럼 신체 일부)
-  const neg = (p.noBase ? NEG_LIGHT : '') + (p.neg || P.negative); // neg: 소품별 부정 프롬프트 (손은 'hands' 를 빼야 한다)
+  const neg = (p.noBase ? NEG_LIGHT : '') + (p.neg || P.negative);
+  // transparent: V5 알파 투명 배경 (nai.mjs 와 같은 방식) — 흰 바탕 태그를 빼고 품질 태그 앞에 'transparent background', 오리기 없이 RGBA 로 받는다
+  const text = p.transparent ? (() => { const t = input.replace(/,\s*white background|,\s*simple background/g, ''); return t.includes(', no humans,') ? t.replace(', no humans,', ', transparent background, no humans,') : `${t}, transparent background`; })() : input; // neg: 소품별 부정 프롬프트 (손은 'hands' 를 빼야 한다)
   const body = {
-    input, model: cfg.model, action: 'generate',
+    input: text, model: cfg.model, action: 'generate',
     parameters: {
       params_version: 3, width: p.w, height: p.h, scale: cfg.scale, sampler: cfg.sampler, steps: STEPS, n_samples: 1, ucPreset: 0, qualityToggle: false, seed,
+      ...(p.transparent ? { straight_alpha: true, tag_hint_transparent_background: true } : {}),
       noise_schedule: cfg.noise_schedule, negative_prompt: neg, cfg_rescale: 0, sm: false, sm_dyn: false, dynamic_thresholding: false, legacy: false, add_original_image: true,
-      v4_prompt: { caption: { base_caption: input, char_captions: [] }, use_coords: false, use_order: true },
+      v4_prompt: { caption: { base_caption: text, char_captions: [] }, use_coords: false, use_order: true },
       v4_negative_prompt: { caption: { base_caption: neg, char_captions: [] }, legacy_uc: false },
     },
   };
