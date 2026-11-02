@@ -6,7 +6,7 @@ import { ASK, ASK_Q, askLines } from '../src/data/bar/ask';
 import { UNIT_BY_ID, UNITS } from '../src/data/units';
 import { AIDEN_BACK, BAR_ENTER, BAR_WAIT, LEAVE_GENERIC, LEAVE_LINES } from '../src/data/bar/leave';
 import { ERANTES_CREW, MONO, MONO_KINDS } from '../src/data/bar/mono';
-import { BAR_TUNE, STAGE_MAX, barSimulate } from '../src/ui/bar';
+import { BAR_FAST, BAR_TUNE, STAGE_MAX, barSimulate } from '../src/ui/bar';
 import { GLASS_BY_ID, ING_BY_ID, GARNISH_BY_ID, GARNISH_MAX, RECIPES, REGULARS, RECIPE_BY_ID } from '../src/data/bar/drinks';
 import { feelConds, feelText, judge, makeOrder, recipeName } from '../src/data/bar/orders';
 import { ORDER_TALK, ORDER_GENERIC } from '../src/data/bar/orderlines';
@@ -91,8 +91,9 @@ for (const id of ERANTES_CREW) {
 for (const id of Object.keys(MONO)) if (!ERANTES_CREW.includes(id)) errs.push(`혼잣말: 정규 단원이 아닌 ${id}`);
 
 // 무대 규칙 (src/ui/bar.ts 구경 모드, 화면 없이 모의 실행): 무대 STAGE_MAX 명 이하 · 0명 없음 · 레이첼 미등장 · 말하는 사람은 무대에 ·
-// 새 단원은 한 번에 1명, 빈자리(또는 직전 입장) 뒤 BAR_TUNE.vacant[0] 이상 지나서만 · 퇴장 전에는 그 사람의 작별 인사 ·
-// 단원은 들어온 뒤 BAR_TUNE.stay 이상 머문다 · 같은 방문에 같은 혼잣말이 두 번 나오지 않는다 · 혼잣말은 정규 단원만
+// 걸어 들어오는 사람은 한 번에 1명, 직전 입퇴장 뒤 BAR_TUNE.vacant[0] 이상 지나서만 · 퇴장 전에는 그 사람의 작별 인사 ·
+// 모의 실행 중에 들어온 사람은 BAR_TUNE.stay 최소 이상 머문다 · 같은 방문에 같은 혼잣말이 두 번 나오지 않는다 · 혼잣말은 정규 단원만.
+// 낯선 손님의 무대 키는 'g.<번호>' (단원 지표에서 뺀다)
 const amb = BANTER.filter((b) => b.place !== 2);
 const needN = (c: string[]) => new Set(c.filter((id) => id !== 'rachel').map((id) => (id === 'cesare' ? 'joshua' : id))).size;
 const castN = [0, 1, 2, 3, 4].map((n) => amb.filter((b) => b.cast.filter((id) => id !== 'rachel' && id !== 'aiden').length === n).length);
@@ -119,12 +120,13 @@ for (const [label, ids] of ROSTERS) {
     let lastChange = log[0].t;
     let lastExit = -1;
     let prev = new Set(log[0].stage);
+    const first = new Set(log[0].stage);
     const since: Record<string, number> = {};
     const monos = new Set<string>();
     log.forEach((r, i) => {
       const at = `무대 모의 실행(${label}) ${i}번째 ${r.kind}`;
       const dt = (log[i + 1]?.t ?? r.t) - r.t;
-      const regs = r.stage.filter((k) => k !== 'aiden' && k !== 'guest');
+      const regs = r.stage.filter((k) => k !== 'aiden' && !k.startsWith('g.'));
       mt.totT += dt; if (r.stage.includes('aiden')) mt.aidenT += dt;
       const kk = r.kind === 'idle' || r.kind === 'scene' ? '만담' : r.kind === 'emote' ? '이모티콘' : r.kind === 'mono' ? '혼잣말' : '그 밖의 말'; // 말풍선이 떠 있는 시간만, 나머지는 정적
       if (r.vis) mt.kindT[kk] = (mt.kindT[kk] || 0) + Math.min(r.vis, dt);
@@ -138,12 +140,13 @@ for (const [label, ids] of ROSTERS) {
       if (r.kind === 'scene' || r.kind === 'idle') sim.scenes++;
       if (r.stage.includes('rachel')) errs.push(`${at}: 레이첼이 무대에 섰음`);
       for (const sp of r.speakers) if (!r.stage.includes(sp)) errs.push(`${at}: 말하는 ${sp} 가 무대에 없음 (${r.key})`);
-      const fresh = r.stage.filter((k) => !prev.has(k) && k !== 'aiden' && k !== 'guest');
+      for (const k of r.stage) if (since[k] === undefined) since[k] = r.t;
+      const fresh = r.stage.filter((k) => !prev.has(k) && k !== 'aiden');
       if (i > 0 && fresh.length) {
         sim.entries++;
         if (fresh.length > 1) errs.push(`${at}: 한 번에 ${fresh.length}명이 들어옴`);
-        if (r.t - lastChange < BAR_TUNE.vacant[0]) errs.push(`${at}: 빈자리 ${r.t - lastChange}ms 만에 들어옴`);
-        if (r.speakers.some((k) => prev.has(k) && k !== 'aiden' && k !== 'guest')) sim.joins++; // 남아 있던 사람과 함께 나오는 합류 장면
+        if (fresh.some((k) => !r.speakers.includes(k)) && r.t - lastChange < BAR_TUNE.vacant[0]) errs.push(`${at}: 직전 입퇴장 ${r.t - lastChange}ms 만에 들어옴`); // 장면의 '손님' 역(말하는 사람)은 바로 들어온다
+        if (r.speakers.some((k) => prev.has(k) && k !== 'aiden' && !k.startsWith('g.'))) sim.joins++; // 남아 있던 사람과 함께 나오는 합류 장면
         lastChange = r.t;
       }
       if (r.kind === 'exit' && r.exit) {
@@ -151,8 +154,10 @@ for (const [label, ids] of ROSTERS) {
         if (p?.kind !== 'leave' || p.speakers.join() !== r.exit) errs.push(`${at}: 작별 인사 없이 ${r.exit} 퇴장`);
         if (r.exit !== 'aiden') { // 에이든은 카운터 뒤로 잠깐 (빈자리 규칙과 무관)
           const stay = r.t - (since[r.exit] ?? r.t);
-          if (stay < (CREW.has(r.exit) ? BAR_TUNE.stay.crew : BAR_TUNE.stay.other)) errs.push(`${at}: ${r.exit} 가 ${Math.round(stay / 1000)}초 만에 나감`);
-          mt.stay.push(stay); delete since[r.exit];
+          const min = (r.exit.startsWith('g.') ? BAR_TUNE.stay.guest : BAR_TUNE.stay.crew)[0];
+          if (!first.has(r.exit) && stay < min) errs.push(`${at}: ${r.exit} 가 ${Math.round(stay / 1000)}초 만에 나감 (최소 ${min / 1000}초)`);
+          if (!r.exit.startsWith('g.')) mt.stay.push(stay);
+          delete since[r.exit]; first.delete(r.exit);
           if (lastExit >= 0) mt.gap.push(r.t - lastExit);
           lastExit = r.t;
           sim.leaves++;
@@ -179,6 +184,38 @@ for (const m of metrics.slice(0, 2)) {
   console.log(`  ${m.label}: 단원 평균 체류 ${avgS(m.stay)}초 · 퇴장 간격 ${avgS(m.gap)}초 · 정규 단원 비율 ${Math.round((m.crewT / (m.unitT || 1)) * 100)}% · 에이든 무대 ${Math.round((m.aidenT / (m.totT || 1)) * 100)}%`);
   const talk = Object.values(m.kindT).reduce((a, b) => a + b, 0);
   console.log(`    시간 비율 (화면에 떠 있는 동안): ${Object.entries(m.kindT).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${Math.round((v / (m.totT || 1)) * 100)}%`).join(' · ')} · 정적 ${Math.round((1 - talk / (m.totT || 1)) * 100)}%`);
+}
+// 시간 가속과 손님 수: 머무는 시간 · 빈자리 대기가 바 시간 기준이라 1배 · 8배의 평균 손님 수가 같아야 한다 (10% 안).
+// 바 시간 하루(24시간)마다 들어오는 사람 수 · 들어오는 사람 없이 지나는 가장 긴 구간도 본다
+{
+  const DAY = BAR_TUNE.day + BAR_TUNE.night, ids = ROSTERS[0][1];
+  const flow = (rate: number) => {
+    let area = 0, end = 0, ent = 0, gap = 0, strT = 0, dayA = 0, dayS = 0, nightA = 0, nightS = 0;
+    for (let run = 0; run < 6; run++) {
+      const log = barSimulate(rate === 1 ? 1500 : 400, ids, run % 2 === 1, rate);
+      let last = 0, prev = new Set(log[0].stage);
+      log.forEach((r, i) => {
+        const dt = (log[i + 1]?.t ?? r.t) - r.t;
+        const ps = r.stage.filter((k) => k !== 'aiden');
+        const g = ps.filter((k) => k.startsWith('g.')).length;
+        area += ps.length * dt; strT += g * dt;
+        if (r.night) { nightA += ps.length * dt; nightS += g * dt; } else { dayA += ps.length * dt; dayS += g * dt; }
+        for (const k of ps) if (!prev.has(k)) { ent++; gap = Math.max(gap, r.t - last); last = r.t; }
+        prev = new Set(r.stage);
+      });
+      const t = log[log.length - 1].t;
+      gap = Math.max(gap, t - last); end += t;
+    }
+    return { head: area / end, perDay: (ent * DAY) / end, gapH: gap / BAR_TUNE.hour, str: strT / (area || 1), day: dayS / (dayA || 1), night: nightS / (nightA || 1) };
+  };
+  const a = flow(1), b = flow(BAR_FAST);
+  console.log(`손님 흐름 (전원, 바 시간 기준): 1배 평균 ${a.head.toFixed(2)}명 · 하루 ${a.perDay.toFixed(1)}명 입장 · 입장 없는 최장 ${a.gapH.toFixed(1)}시간 · 낯선 손님 낮 ${Math.round(a.day * 100)}% · 밤 ${Math.round(a.night * 100)}% | ${BAR_FAST}배 평균 ${b.head.toFixed(2)}명 · 하루 ${b.perDay.toFixed(1)}명 · 최장 ${b.gapH.toFixed(1)}시간 · 낯선 손님 낮 ${Math.round(b.day * 100)}% · 밤 ${Math.round(b.night * 100)}%`);
+  if (Math.abs(a.head - b.head) > 0.1 * a.head) errs.push(`손님 흐름: 1배 평균 ${a.head.toFixed(2)}명 · ${BAR_FAST}배 ${b.head.toFixed(2)}명 — 10% 넘게 다름`);
+  for (const [n, x] of [['1배', a], [`${BAR_FAST}배`, b]] as const) {
+    if (x.perDay < 10) errs.push(`손님 흐름 ${n}: 하루 입장 ${x.perDay.toFixed(1)}명 (10명 미만)`);
+    if (x.gapH > 8) errs.push(`손님 흐름 ${n}: 입장 없는 구간 ${x.gapH.toFixed(1)}시간 (8시간 초과)`);
+    if (Math.abs(x.day - 0.66) > 0.1 || Math.abs(x.night - 0.33) > 0.1) errs.push(`손님 흐름 ${n}: 낯선 손님 비율 낮 ${Math.round(x.day * 100)}% · 밤 ${Math.round(x.night * 100)}% (목표 66% · 33%, ±10%)`);
+  }
 }
 // 반복 개그 회수 〔회수:id,id〕: 깔린 편이 있고 보류 · 자기 자신이 아니어야 (없으면 영영 재생되지 않는다)
 const BID = new Map(BANTER.map((b) => [b.id, b]));

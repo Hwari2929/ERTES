@@ -5,7 +5,9 @@
 //   런을 마치고 돌아오면 밤, 그 밖에는 낮에서 시작하고, 머무는 동안 BAR_TUNE.day · night 마다 바뀐다 (에이든 퇴근 · 출근 인사).
 // - 한때(박자): 만담 약 15% · 정적 약 40% · 나머지는 이모티콘(말풍선 속 그림) · 혼잣말 (작은 기울임 글씨). 위쪽 상황 줄은 없다 —
 //   만담은 보이는 것(인물 · 잔 · 조명)과 대사만으로 읽혀야 한다.
-// - 입퇴장: 빈자리가 있으면 새 사람이 말없이 걸어 들어오고 (뒤뚱거리며 · 프레임 낮게), 다 머문 사람은 작별 인사를 하고 나간다.
+// - 입퇴장 (바 시간 기준이라 시간 가속과 상관없이 평균 인원이 같다): 시간대마다 손님 수 목표(BAR_TUNE.crowd)가 있고, 모자라면 빈자리 대기(vacant) 뒤
+//   새 사람이 말없이 걸어 들어온다 (뒤뚱거리며 · 프레임 낮게). 들어올 때 머물 시간(stay)이 정해지고, 그 시간이 되면 작별 인사를 하고 나간다.
+//   단원 · 낯선 손님 비율은 낮 · 밤마다 (BAR_TUNE.stranger). 받지 못한 주문이 있으면 그 주문을 거두는 한마디를 하고 나간다 (벌점 없음).
 // - 말 걸기: 인물을 누르면 미연시 화면(playAdv). 잔을 누르면 무슨 음료인지 이름이 잠깐 뜬다.
 // - 통신 기록: 바 밖(전장 · 함선) 만담은 '지난 의뢰 통신 기록'으로 재생한다.
 // - 바 운영 (docs/BAR_OPS.md): 정규 단원이 레이첼에게 주문한다 (머리 위 주문 표시) → 누르면 제조대(barprep.ts)로 돌아서 만들고 내준다 →
@@ -23,7 +25,7 @@ import { AIDEN_BACK, AIDEN_OFF, AIDEN_ON, LEAVE_GENERIC, LEAVE_LINES } from '../
 import { ERANTES_CREW, MONO, MONO_KIND_NAME, MONO_KINDS, type MonoKind } from '../data/bar/mono';
 import { GLASS_BY_ID, HOUSE_MENUS, ING_BY_ID, ORDER_STYLE_NAME, RECIPE_BY_ID, REGULARS, type Drink, type OrderStyle } from '../data/bar/drinks';
 import { BAR_OPS, COIN_NAME, COIN_UNIT, coinText, GRADE_NAME, judge, makeOrder, payOf, recipeName, feelText, type Grade, type Order } from '../data/bar/orders';
-import { ORDER_TALK, orderTalk } from '../data/bar/orderlines';
+import { ORDER_GENERIC, ORDER_TALK, orderTalk } from '../data/bar/orderlines';
 import { FIRST_MEET } from '../data/bar/firstmeet';
 import { FIELDS, fieldOf } from '../data/battlefields';
 import { EVENT_BY_ID } from '../data/events';
@@ -53,31 +55,33 @@ const TUT_CAST = ['yelena', 'franze', 'lindiwe', 'vivian', 'phyllis', 'temur', '
 const BASE = ['aiden', 'rachel'];
 /** 무대 인원 상한 (낮의 에이든 · 손님 포함). 레이첼은 무대에 서지 않고 화면 아래쪽 말풍선으로만 말한다 */
 export const STAGE_MAX = 4;
-/** 입퇴장 · 박자 (ms · 확률). 확인용 주소(?bartest)의 __barTune 으로만 바꾼다.
- *  leave: 한때가 끝난 뒤 다 머문 사람이 인사하고 나갈 확률 (무대가 꽉 찼을 때, 빈자리가 있으면 절반). 정규 단원 · 다른 단원 · 에이든(카운터 뒤로 잠깐)
- *  stay: 들어온 뒤 적어도 이만큼은 머문다 · vacant: 퇴장(입장) 뒤 다음 단원이 들어오기까지 · rest: 한때 사이 쉬는 시간
- *  enter: 들어올 수 있을 때 실제로 들어올 확률 (한때마다) · quiet: 무대가 꽉 찬 채 만담 없이 이만큼 지나면 한 사람이 일어난다
- *  aidenBack: 카운터 뒤로 간 에이든이 다시 나오기까지 · day · night: 낮 · 밤 길이
+/** 입퇴장 · 박자 (ms 는 바 시간 — 시간 가속이면 실제보다 빨리 간다 · 확률). 확인용 주소(?bartest)의 __barTune 으로만 바꾼다.
+ *  hour: 바 시간 1시간 (낮 07~19시 · 밤 19~07시가 각각 day · night 동안 흐른다 → 12시간)
+ *  crowd: 시간대별 손님 수 목표 [시작 시, 끝 시, 최소, 최대] (레이첼 · 에이든 제외 — 매시 목표를 그 안에서 새로 굴린다)
+ *  stranger: 목표 인원 중 낯선 손님 자리 몫 (낮 · 밤 — 낯선 손님은 머무는 시간이 짧아, 무대 시간으로 재면 낮 약 65% · 밤 약 35%. tests/bar_check.ts 가 잰다) · stay: 들어온 뒤 머무는 시간 (단원 · 낯선 손님) · vacant: 손님 수가 모자랄 때 다음 사람이 들어오기까지
+ *  rest: 한때 사이 쉬는 시간 (실제 ms) · leave.aiden: 한때마다 에이든이 카운터 뒤로 잠깐 갈 확률 · aidenStay: 그러기 전에 무대에 있는 시간 · aidenBack: 다시 나오기까지
  *  share: 한때를 고를 확률 (만담 scene · 따로 쉬는 정적 quiet, 나머지 = 혼잣말 mono 비율 · 이모티콘). 한때 사이 rest 도 정적이라,
- *    화면에 말풍선이 떠 있는 시간으로 만담 약 15% · 이모티콘 + 혼잣말 약 45% · 정적 약 40% (tests/bar_check.ts 가 잰다) · hold: 정적 길이 · monoGap: 혼잣말 사이 최소 간격
- *  serve: 에이든이 새로 온 손님에게 단골 메뉴를 내줄 확률 · refill: 빈 잔을 치우며 한 잔 더 내줄 확률 · sip: 한 잔 마시는 시간 · clear: 빈 잔을 치우기까지
- *  crewBonus: 정규 단원이 새로 들어오는 장면의 가산점 */
+ *    화면에 말풍선이 떠 있는 시간으로 만담 약 15% · 이모티콘 + 혼잣말 약 45% · 정적 약 40% (tests/bar_check.ts 가 잰다) · hold: 정적 길이 (실제 ms) · monoGap: 혼잣말 사이 최소 간격
+ *  serve: 에이든이 새로 온 손님에게 단골 메뉴를 내줄 확률 · refill: 빈 잔을 치우며 한 잔 더 내줄 확률 · sip: 한 잔 마시는 시간 · clear: 빈 잔을 치우기까지 */
+const HOUR = 40_000;
 export const BAR_TUNE = {
-  leave: { crew: 0.05, other: 0.12, aiden: 0.02 },
-  stay: { crew: 150_000, other: 90_000, aiden: 120_000 },
-  vacant: [40_000, 80_000] as [number, number],
+  hour: HOUR,
+  crowd: [[7, 11, 1, 2], [11, 17, 2, 3], [17, 23, 3, 3], [23, 3, 2, 3], [3, 7, 0, 1]] as [number, number, number, number][],
+  stranger: { day: 0.8, night: 0.33 },
+  stay: { crew: [2 * HOUR, 4 * HOUR] as [number, number], guest: [1 * HOUR, 2 * HOUR] as [number, number] },
+  vacant: [HOUR / 3, (HOUR * 2) / 3] as [number, number],
   rest: [1_800, 3_800] as [number, number],
-  enter: 0.6,
-  quiet: 240_000,
+  leave: { aiden: 0.02 },
+  aidenStay: 120_000,
   aidenBack: [20_000, 45_000] as [number, number],
   day: 480_000,
   night: 480_000,
   share: { scene: 0.14, quiet: 0.03, mono: 0.3 },
   hold: [4_000, 9_000] as [number, number],
   monoGap: 40_000,
-  serve: 0.6,
+  serve: 0.35,
   refill: 0.35,
-  sip: [150_000, 330_000] as [number, number],
+  sip: [40_000, 90_000] as [number, number],
   clear: [20_000, 45_000] as [number, number],
   crewBonus: 1,
 };
@@ -93,7 +97,7 @@ const NAME_ID: Record<string, string> = Object.fromEntries([
   ...UNITS.map((u) => [u.name, u.id]),
   ['포티니', 'fotini'], ['레이카', 'reika'], ['오닉스', 'onyx'], ['귀공자', 'exile'], ['체사레', 'cesare'], ['맥스', 'max'], ['손님', 'guest'],
 ]);
-const nameOf = (id: string) => (id === 'cesare' ? '체사레' : id === 'guest' ? '손님' : UNIT_BY_ID[id]?.name || NPCS[id]?.name || id);
+const nameOf = (id: string) => (id === 'cesare' ? '체사레' : id === 'guest' ? '손님' : id.startsWith('g.') ? '낯선 손님' : UNIT_BY_ID[id]?.name || NPCS[id]?.name || id);
 /** 무대에 세우는 그림 (체사레 = 조슈아) */
 const figOf = (id: string) => (id === 'cesare' ? 'joshua' : id);
 const colorOf = (id: string) => {
@@ -174,11 +178,14 @@ const fmt = (s: string) => esc(s);
 /** 카운터 위 잔: by = 내준 사람 (에이든 · 플레이어 — 플레이어가 내준 잔이 남아 있으면 그 손님은 다 마시기 전에 나가지 않는다).
  *  at = 놓인 시각 (그 전에는 안 보인다) · dur = 다 마시는 데 걸리는 시간 · emptyAt = 비운 시각 */
 interface Cup { d: Drink; name: string; by: 'aiden' | 'player'; at: number; dur: number; alc: boolean; emptyAt?: number; /** 플레이어가 내준 잔: 만족 · 술값을 냈나 */ grade?: Grade; paid?: boolean }
-/** 무대에 선 인물. guest = 해금 안 된 인물의 실루엣(손님) · since = 들어온 시각 · n = 들어온 뒤 말한 장면 수 · cup = 카운터 위 잔 */
+/** 무대에 선 인물. guest = 낯선 손님 (id = 세울 그림, gid = 손님 구별 — 무대 키 'g.<gid>') · since = 들어온 시각 · until = 일어날 시각 (바 시간) ·
+ *  n = 들어온 뒤 말한 장면 수 · cup = 카운터 위 잔 */
 interface Seat {
-  id: string; guest?: boolean; since: number; n: number; cup?: Cup;
+  id: string; guest?: boolean; gid?: string; since: number; until?: number; n: number; cup?: Cup;
   /** 걸려 있는 주문 (머리 위 주문 표시, 누르면 제조대) · 주문 귀띔(밤에 손님이 흘린 말) · 마지막으로 잔을 받은 시각 · 카운터 위 동전 (아직 안 거둔 술값 + 팁) */
   order?: Order; orderHint?: string; orderAt?: number; pay?: number;
+  /** 주문을 건 실제 시각 (performance.now — 가속 중에도 BAR_OPS.patience 는 기다린다) */
+  orderReal?: number;
 }
 /** 장면 줄: [화자 id ('' = 서술 — 무대에서는 건너뜀), 대사, 이름표?, 종류? (e = 이모티콘: 대사 자리에 이모티콘 id · m = 혼잣말)] */
 type Line = [string, string, string?, ('e' | 'm')?];
@@ -191,13 +198,15 @@ interface Scene {
   /** order: 이 장면으로 걸리는 주문 (무대 키 · 주문 · 귀띔) */
   order?: [string, Order, string?];
   exit?: string; hold?: number; mono?: string; idle?: number; cups?: [string, Cup | null][]; toNight?: boolean; toDay?: boolean;
+  /** leave: 받지 못한 주문을 거두고 나가는 손님 (장면이 시작되면 주문 표시를 지운다) */
+  dropOrder?: string;
   /** 카운터 위 소품 (만담 머리줄 〔소품: …〕 · 틀 · 바텐더 대화의 props) — 그 장면 동안 말하는 사람 앞에 */
   props?: string[];
   /** 카운터에 올라앉는 동물 (만담 〔동물: …〕 · 틀의 pets) — 주인 앞에, 무대에 그 동물이 단원으로 서 있으면 그리지 않는다 */
   pets?: string[];
 }
 /** 장면을 시작하기 전의 무대 변화 (무대 키): add 들어오는 사람 · drop 카운터 뒤로 비켜 주는 에이든 · 나가는 손님 */
-interface Plan { add: string[]; drop: string[] }
+interface Plan { add: string[]; drop: string[]; /** 장면의 '손님' 줄을 말할 낯선 손님 (무대 키, 새로 들어오면 applyPlan 이 채운다) */ as?: string }
 interface Pick { scene: Scene; plan: Plan }
 const S = {
   /** 무대 (왼쪽 → 오른쪽). 에이든은 카운터 쪽(왼쪽)으로, 새로 온 사람은 문 쪽(오른쪽)으로 선다 */
@@ -208,8 +217,12 @@ const S = {
   known: new Set<string>(),
   session: new Set<string>(), // 이번 방문에 본 장면 키
   idleI: 0,
-  /** 새 인물이 들어올 수 있는 시각: 자리가 빈 뒤 BAR_TUNE.vacant */
+  /** 새 인물이 들어올 수 있는 시각: 자리가 빈 뒤 · 누가 들어온 뒤 BAR_TUNE.vacant */
   enterAt: 0,
+  /** 지금 시각의 손님 수 목표 (BAR_TUNE.crowd, 매시 새로 굴린다) · 그 시 · 낯선 손님 일련번호 (무대 키 'g.<n>') */
+  want: 0,
+  wantH: -1,
+  gseq: 0,
   /** 이번 방문에 인사하고 나간 사람 (다른 사람이 있으면 다시 들어오지 않는다) */
   gone: new Set<string>(),
   /** 카운터 뒤로 간 에이든이 다시 나올 수 있는 시각 */
@@ -239,21 +252,30 @@ const BAR_SEL = 'main.bar';
 const BAR_FOLK = new Set(['aiden', 'guest']);
 /** 정규 에란테스 단원 (lore/_틀/틀-에란테스.md, 레이첼 제외): 바에 들어올 가중치가 크고 오래 머문다 */
 const CREW = new Set(ERANTES_CREW);
-const keyOf = (s: Seat) => (s.guest ? 'guest' : s.id);
+const keyOf = (s: Seat) => (s.guest ? `g.${s.gid}` : s.id);
+/** 무대의 단원 (에이든 · 낯선 손님 빼고) · 손님 (단원 + 낯선 손님, 에이든 빼고) */
 const regulars = () => S.stage.filter((s) => !s.guest && s.id !== 'aiden');
+const patrons = () => S.stage.filter((s) => s.id !== 'aiden');
 const aidenOn = () => S.stage.some((s) => s.id === 'aiden');
 /** 장면에 필요한 무대 인원 (레이첼 제외 · 체사레 = 조슈아 그림 · 손님 = 'guest') */
 const needOf = (ids: string[]) => [...new Set(ids.filter((id) => id && id !== 'rachel').map(figOf))];
-/** 시계 (검사용 모의 실행이 바꿔 끼운다) */
-/** 바의 시계: 시간 가속(좌측 상단 ⏩)이면 실제보다 BAR_FAST 배 빨리 간다 — 입퇴장 간격 · 머무는 시간 · 잔 · 주문 · 낮밤.
- *  대사 · 말풍선이 떠 있는 시간은 실제 시간 그대로 (schedule 은 실제 ms). 검사용 모의 실행은 now 를 바꿔 끼운다 */
+/** 바의 시계 (바 시간 ms): 시간 가속(좌측 상단 ⏩)을 켜면 **말이 없는 동안**(정적 · 장면 사이 · 이모티콘 · 걸어 나감) BAR_FAST 배 빨리 간다 —
+ *  입퇴장 간격 · 머무는 시간 · 잔 · 낮밤. 대사 · 혼잣말이 떠 있는 동안과 제조대 · 말 걸기 중에는 1배 (그래서 대사 장면이 바 시간을 몇 시간씩
+ *  잡아먹지 않아, 가속해도 바 시간 하루의 입퇴장 흐름이 1배와 같다). real = 실제 ms (주문 기다림). 검사용 모의 실행은 now · real 을 바꿔 끼운다 */
 const W = { rate: 1, base: 0, at: 0 };
 const worldNow = () => W.base + (performance.now() - W.at) * W.rate;
-const clock = { now: worldNow };
+const clock = { now: worldNow, real: () => performance.now() };
 export const BAR_FAST = 8;
 function setRate(r: number) { const n = worldNow(); W.base = n; W.at = performance.now(); W.rate = r; }
-/** 가속 중이면 장면 사이 쉬는 시간 · 정적도 절반 */
-const fastK = () => (W.rate > 1 ? 0.5 : 1);
+/** 시간 가속을 켰나 (켜면 장면 사이 쉬는 시간 · 정적도 절반) */
+let fastOn = false;
+const fastK = () => (fastOn ? 0.5 : 1);
+/** 지금 빠르기 맞추기: talking = 대사 · 혼잣말이 떠 있다 */
+function pace(talking: boolean) {
+  const r = fastOn && !talking && !S.prep && !advKey() ? BAR_FAST : 1;
+  if (r !== W.rate) setRate(r);
+}
+const isTalk = (l?: Line) => !!l && l[3] !== 'e';
 const rand = ([a, b]: [number, number]) => a + Math.random() * (b - a);
 const weighted = <T>(xs: T[], w: (x: T) => number): T => { let r = Math.random() * xs.reduce((a, x) => a + w(x), 0); return xs.find((x) => (r -= w(x)) < 0) ?? xs[xs.length - 1]; };
 
@@ -261,7 +283,7 @@ const weighted = <T>(xs: T[], w: (x: T) => number): T => { let r = Math.random()
 const ALC = new Set(['spirit', 'brew', 'liqueur']);
 /** 에이든이 내주는 잔: 단골이면 단골 메뉴, 아니면 무난한 메뉴 중 하나 */
 function aidenCup(id: string, now: number, delay = 2200): Cup {
-  const r = RECIPE_BY_ID[REGULARS[id]?.menu || pick(HOUSE_MENUS)];
+  const r = RECIPE_BY_ID[(!id.startsWith('g.') && REGULARS[id]?.menu) || pick(HOUSE_MENUS)];
   return { d: r, name: r.name, by: 'aiden', at: now + delay, dur: rand(BAR_TUNE.sip), alc: r.fill.some((x) => ALC.has(ING_BY_ID[x]?.kind)) };
 }
 /** 남은 양 (0~1, 아직 안 놓였으면 null) */
@@ -294,24 +316,32 @@ function entrants(): string[] {
   const fresh = all.filter((id) => !S.gone.has(id));
   return fresh.length ? fresh : all;
 }
-/** 무대에 빈자리가 없다 (손님은 곧 나가므로 세지 않는다) */
-const isFull = () => S.stage.filter((s) => !s.guest).length >= STAGE_MAX;
-/** 빈자리가 있고 대기가 끝났나 (새 인물 1명이 들어올 수 있다) */
-const canEnter = (now: number) => !isFull() && now >= S.enterAt && entrants().length > 0;
+/** 무대에 빈자리가 없다 (에이든 · 낯선 손님 포함) */
+const isFull = () => S.stage.length >= STAGE_MAX;
+const inHours = (h: number, a: number, b: number) => (a < b ? h >= a && h < b : h >= a || h < b);
+/** 지금 시각의 손님 수 목표: BAR_TUNE.crowd 에서 그 시간대 범위 안으로 매시 새로 굴린다 */
+function wantNow(now: number) {
+  const h = Math.floor(barClock(now).min / 60);
+  if (h !== S.wantH) {
+    S.wantH = h;
+    const c = BAR_TUNE.crowd.find(([a, b]) => inHours(h, a, b)) || [0, 0, 2, 2];
+    S.want = c[2] + Math.floor(Math.random() * (c[3] - c[2] + 1));
+  }
+  return S.want;
+}
+/** 손님 수가 목표보다 적고 빈자리가 있고 대기가 끝났나 (새 사람 1명이 들어올 수 있다) */
+const canEnter = (now: number) => !isFull() && patrons().length < wantNow(now) && now >= S.enterAt;
 /** 이 장면을 지금 무대로 재생할 수 있나. 에이든(낮에만) · 손님은 바로 나오고, 단원은 fresh 명까지만 새로 들어온다 (ok = 들어올 수 있는 단원).
  *  손님은 자기 장면이 끝나면 나간다. 에이든은 장면 때문에 밀려나지 않는다. 밤에는 에이든이 나오는 장면을 재생하지 않는다.
  *  재생할 수 없으면 null */
 function planFor(need: string[], fresh: number, ok: Set<string>): Plan | null {
   if (S.night && need.includes('aiden')) return null;
   const on = S.stage.map(keyOf);
-  const want = new Set(need);
-  const add = need.filter((k) => !on.includes(k));
+  const g = need.includes('guest') ? S.stage.find((s) => s.guest) : undefined; // '손님' 역: 무대의 낯선 손님이 맡고, 없으면 새로 들어온다
+  const add = need.map((k) => (k === 'guest' && g ? keyOf(g) : k)).filter((k) => !on.includes(k));
   const newbie = add.filter((k) => !BAR_FOLK.has(k));
   if (newbie.length > fresh || !newbie.every((k) => ok.has(k))) return null;
-  const drop = on.filter((k) => k === 'guest' && !want.has(k));
-  let size = on.length - drop.length + add.length;
-  if (size === 0 && drop.length) { drop.pop(); size++; }
-  return size <= STAGE_MAX ? { add, drop } : null;
+  return on.length + add.length <= STAGE_MAX ? { add, drop: [], as: g && keyOf(g) } : null;
 }
 /** 대본 줄 → 장면 줄 ('이름: 대사' · '* 서술', 이름이 없으면 owner) */
 function parseLine(l: string, owner: string, suffix = ''): Line {
@@ -414,36 +444,38 @@ function nextScene(fresh: number, repeat = false): Pick | null {
   }
   return best ? { scene: best.make(best.plan), plan: best.plan } : null;
 }
-/** 다 머물렀나: 들어온 뒤 BAR_TUNE.stay 만큼은 (정규 단원이 가장 오래) */
-const stayed = (s: Seat, now: number) => now - s.since >= (s.id === 'aiden' ? BAR_TUNE.stay.aiden : CREW.has(s.id) ? BAR_TUNE.stay.crew : BAR_TUNE.stay.other);
 /** 플레이어가 내준 잔이 남아 있으면 그 손님은 아직 일어나지 않는다 (내준 잔이 반응 없이 사라지지 않게) */
 const owesCup = (s: Seat, now: number) => s.cup?.by === 'player' && (cupLeft(s.cup, now) ?? 1) > 0;
 /** 무대를 바꾸지 않는 계획: 장면마다 새로 만든다 (decide 가 낮에 에이든을 plan.add 에 넣으므로, 한 객체를 같이 쓰면 그 뒤 밤 장면에도 에이든이 따라 나온다) */
 const noop = (): Plan => ({ add: [], drop: [] });
-/** 작별 인사: 무대의 단원 한 명이 인사하고 나간다 (단원이 2명 이상일 때만, 다른 단원 · 오래 있던 사람일수록 먼저).
- *  force = 오래 조용해서 자리를 돌릴 때 (확률 없이). 에이든은 아주 가끔 카운터 뒤로 돌아간다 (작별이 아니라 잠깐) */
-function leaveScene(now: number, force = false): Pick | null {
-  const regs = regulars();
-  const half = (isFull() ? 1 : 0.5) * (W.rate > 1 ? 3 : 1); // 시간 가속 중에는 자리가 더 빨리 돈다
-  const cand = regs.length >= 2 ? regs.filter((s) => (force || s.n >= 1) && stayed(s, now) && !owesCup(s, now) && !s.order) : []; // 주문이 걸려 있으면 기다린다
-  const goes = force ? cand : cand.filter((s) => Math.random() < (CREW.has(s.id) ? BAR_TUNE.leave.crew : BAR_TUNE.leave.other) * half);
-  if (goes.length) {
-    const s = weighted(goes, (x) => (CREW.has(x.id) ? 1 : 3) * (1 + (now - x.since) / 120_000));
-    const vars = { name: nameOf(s.id) };
-    const own = (LEAVE_LINES[s.id] || []).filter(lineTimeOk);
-    const line = parseLine(fillText(untag(pick(own.length ? own : LEAVE_GENERIC)), vars), s.id);
-    return { scene: { key: '', sit: '', lines: [line], kind: 'leave', exit: s.id }, plan: { add: [], drop: [] } };
+/** 작별 인사: 머물 시간(until)이 끝난 손님이 인사하고 나간다 (가장 오래 넘긴 사람부터, 한 번에 한 명). 플레이어가 내준 잔이 남았거나
+ *  지금 제조대에서 그 손님 잔을 만드는 중이면 기다린다. 받지 못한 주문이 걸려 있으면 주문을 거두는 한마디를 하고 나간다 (벌점 없음).
+ *  에이든은 아주 가끔 카운터 뒤로 돌아간다 (작별이 아니라 잠깐) */
+function leaveScene(now: number): Pick | null {
+  const alone = !S.night && !aidenOn() && patrons().length <= 1; // 낮에 에이든이 카운터 뒤에 있으면 마지막 손님은 기다린다 (무대가 비지 않게)
+  const real = clock.real();
+  const due = alone ? [] : patrons().filter((s) => now >= (s.until ?? Infinity) && !owesCup(s, now) && S.prep?.k !== keyOf(s) && !(s.order && real - (s.orderReal ?? -Infinity) < BAR_OPS.patience)).sort((a, b) => a.until! - b.until!); // 주문한 손님은 실제 시간으로 BAR_OPS.patience 는 기다린다 (가속 중에도)
+  const s = due[0];
+  if (s) {
+    const k = keyOf(s);
+    if (s.order) {
+      const t = s.guest ? ORDER_GENERIC : orderTalk(s.id);
+      return { scene: { key: '', sit: '', lines: [[k, fillText(pick(t.drop?.length ? t.drop : ORDER_GENERIC.drop!), { pc: PC })]], kind: 'leave', exit: k, dropOrder: k }, plan: noop() };
+    }
+    const own = s.guest ? [] : (LEAVE_LINES[s.id] || []).filter(lineTimeOk);
+    const line = parseLine(fillText(untag(pick(own.length ? own : LEAVE_GENERIC)), { name: nameOf(k) }), k);
+    return { scene: { key: '', sit: '', lines: [line], kind: 'leave', exit: k }, plan: noop() };
   }
-  const aiden = S.stage.find((s) => s.id === 'aiden');
-  if (!force && aiden && S.stage.length > 1 && stayed(aiden, now) && Math.random() < BAR_TUNE.leave.aiden) {
+  const aiden = S.stage.find((x) => x.id === 'aiden');
+  if (aiden && patrons().length >= 2 && now - aiden.since >= BAR_TUNE.aidenStay && Math.random() < BAR_TUNE.leave.aiden) {
     const back = AIDEN_BACK.filter(lineTimeOk);
-    return { scene: { key: '', sit: '', lines: [['aiden', fillText(untag(pick(back.length ? back : AIDEN_BACK)), { pc: PC })]], kind: 'leave', exit: 'aiden' }, plan: { add: [], drop: [] } };
+    return { scene: { key: '', sit: '', lines: [['aiden', fillText(untag(pick(back.length ? back : AIDEN_BACK)), { pc: PC })]], kind: 'leave', exit: 'aiden' }, plan: noop() };
   }
   return null;
 }
 /** 정적: 아무도 말하지 않는 한때 (빈자리가 있고 곧 누가 올 거면 그때까지) */
 function waitScene(now: number): Pick {
-  const hold = (!isFull() && S.enterAt > now ? Math.max(5000, Math.min(12_000, (S.enterAt - now) / W.rate)) : rand(BAR_TUNE.hold)) * fastK();
+  const hold = (!isFull() && patrons().length < wantNow(now) && S.enterAt > now ? Math.max(5000, Math.min(12_000, (S.enterAt - now) / (fastOn ? BAR_FAST : 1))) : rand(BAR_TUNE.hold)) * fastK();
   return { scene: { key: '', sit: '', lines: [], kind: 'wait', hold }, plan: planFor([], 0, new Set()) || noop() };
 }
 /** 혼잣말 앞 이모티콘: 잠꼬대는 꾸벅 · 술주정은 취함 */
@@ -465,7 +497,7 @@ function monoScene(now: number): Pick | null {
 }
 /** 이모티콘: 무대의 한 사람이 말 대신 그림 하나 (마시는 중이면 맛있음 · 건배, 밤이면 꾸벅 · 취함이 잦다). 둘 이상이면 가끔 주고받는다 */
 function emoteScene(now: number): Pick | null {
-  const ppl = S.stage.filter((s) => !s.guest && (s.id !== 'aiden' || Math.random() < 0.3)); // 낯선 손님은 곧 나간다
+  const ppl = S.stage.filter((s) => s.id !== 'aiden' || Math.random() < 0.3);
   if (!ppl.length) return null;
   const w = (s: Seat) => soloWeights({ drink: sipping(s, now), alcohol: !!s.cup?.alc, night: S.night });
   let lines: Line[];
@@ -479,22 +511,26 @@ function emoteScene(now: number): Pick | null {
   }
   return { scene: { key: '', sit: '', lines, kind: 'emote' }, plan: planFor([], 0, new Set()) || noop() };
 }
-/** 말없이 들어옴: 빈자리에 한 사람이 걸어 들어온다 (정규 단원이 더 자주). 낮이면 에이든이 곧 단골 메뉴를 내준다 (확률) */
+/** 들어올 사람 고르기 (decide 가 한때에 얹는다 · 처음 들어갈 때 이미 앉은 사람): 빈자리에 한 사람이 걸어 들어온다. 낯선 손님 · 단원은 무대 손님 중 낯선 손님 몫이 BAR_TUNE.stranger (낮 · 밤)에 가깝게
+ *  (목표 인원 중 낯선 손님 자리가 비었으면 85%, 아니면 15%), 단원은 정규 단원이 더 자주. 낮이면 에이든이 곧 단골 메뉴를 내준다 (확률) */
 function enterScene(now: number): Pick | null {
+  if (isFull()) return null;
+  const ps = patrons();
+  const share = S.night ? BAR_TUNE.stranger.night : BAR_TUNE.stranger.day;
+  const goal = Math.round(share * Math.max(ps.length + 1, wantNow(now))); // 목표 인원 중 낯선 손님 자리 수
+  const pGuest = ps.filter((s) => s.guest).length < goal ? 0.85 : 0.15;
   const e = entrants();
-  if (!e.length) return null;
-  const id = weighted(e, (x) => (CREW.has(x) ? 6 : 1));
-  const plan = planFor([id], 1, new Set([id]));
-  return plan ? { scene: { key: '', sit: '', lines: [], kind: 'enter', hold: 2600 }, plan } : null;
+  const k = !e.length || Math.random() < pGuest ? 'guest' : weighted(e, (x) => (CREW.has(x) ? 6 : 1));
+  return { scene: { key: '', sit: '', lines: [], kind: 'enter', hold: 2600 }, plan: { add: [k], drop: [] } };
 }
 /** 에이든 서빙: 빈 잔을 치우고 (가끔 한 잔 더), 잔이 없는 손님에게 가끔 단골 메뉴를 내준다 (낮에만) */
 function serveScene(now: number): Pick | null {
   if (S.night || !aidenOn()) return null;
   const cups: [string, Cup | null][] = [];
-  for (const s of regulars()) {
+  for (const s of patrons()) {
     cupLeft(s.cup, now);
-    if (s.cup?.emptyAt !== undefined && now - s.cup.emptyAt >= rand(BAR_TUNE.clear)) cups.push([keyOf(s), !s.order && Math.random() < BAR_TUNE.refill ? aidenCup(s.id, now, 3000) : null]);
-    else if (!s.cup && !s.order && now - s.since > 30_000 && !(S.ops && barOpsNew()) && Math.random() < 0.12) cups.push([keyOf(s), aidenCup(s.id, now, 1200)]); // 처음 하는 바 운영: 첫 손님은 레이첼에게 남겨 둔다
+    if (s.cup?.emptyAt !== undefined && now - s.cup.emptyAt >= rand(BAR_TUNE.clear)) cups.push([keyOf(s), !s.order && Math.random() < BAR_TUNE.refill ? aidenCup(keyOf(s), now, 3000) : null]);
+    else if (!s.cup && !s.order && now - s.since > 30_000 && !(S.ops && barOpsNew()) && Math.random() < 0.12) cups.push([keyOf(s), aidenCup(keyOf(s), now, 1200)]); // 처음 하는 바 운영: 첫 손님은 레이첼에게 남겨 둔다
   }
   return cups.length ? { scene: { key: '', sit: '', lines: [], kind: 'serve', hold: 1800, cups }, plan: noop() } : null;
 }
@@ -515,18 +551,19 @@ function orderScene(now: number): Pick | null {
   const first = barOpsNew();
   const wait = first ? BAR_OPS.first.wait : BAR_OPS.firstWait;
   if (!S.ops || S.stage.filter((s) => s.order).length >= BAR_OPS.maxOpen || Math.random() >= (first ? BAR_OPS.first.chance : BAR_OPS.chance)) return null;
-  const cand = regulars().filter((s) => ORDER_TALK[s.id] && !s.order && now - s.since >= wait && now - (s.orderAt ?? -Infinity) >= BAR_OPS.minGap && (cupLeft(s.cup, now) ?? 0) <= 0 && !(s.cup && cupLeft(s.cup, now) === null) && (s.cup?.emptyAt === undefined || now - s.cup.emptyAt >= 15_000)); // 다 마시고 조금 쉰 뒤
+  const cand = patrons().filter((s) => (s.guest || ORDER_TALK[s.id]) && !s.order && now - s.since >= wait && now - (s.orderAt ?? -Infinity) >= BAR_OPS.minGap && (cupLeft(s.cup, now) ?? 0) <= 0 && !(s.cup && cupLeft(s.cup, now) === null) && (s.cup?.emptyAt === undefined || now - s.cup.emptyAt >= 15_000)); // 다 마시고 조금 쉰 뒤
   if (!cand.length) return null;
   return orderPick(pick(cand), now);
 }
 /** 이 손님의 주문 장면 (주문 대사 + 밤 '늘 마시던 거'면 손님의 귀띔) */
 function orderPick(s: Seat, now: number, style?: OrderStyle): Pick {
-  const o = makeOrder(s.id, now, { usual: loadMeta().bar?.usual?.[s.id], night: S.night, style });
-  const t = orderTalk(s.id);
+  const k = keyOf(s);
+  const o = makeOrder(s.guest ? k : s.id, now, { usual: s.guest ? undefined : loadMeta().bar?.usual?.[s.id], night: S.night, style });
+  const t = s.guest ? ORDER_GENERIC : orderTalk(s.id);
   const vars = { pc: PC, feel: o.conds ? feelText(o.conds) : '', menu: o.name || '' };
-  const lines: Line[] = [[s.id, fillText(pick(t[o.style]), vars)]];
+  const lines: Line[] = [[k, fillText(pick(t[o.style]), vars)]];
   let hint: string | undefined;
-  if (o.hint === 'guest') { hint = fillText(t.hint, vars); lines.push([s.id, hint]); }
+  if (o.hint === 'guest') { hint = fillText(t.hint, vars); lines.push([k, hint]); }
   return { scene: { key: '', sit: '', lines, kind: 'order', order: [keyOf(s), o, hint] }, plan: noop() };
 }
 /** 첫 주문 귀띔 (한 번만): 에이든이 무대에 있으면 (이 장면에 나오면) 주문 대사 뒤에 한마디, 없으면 카운터에 메모를 놓는다 */
@@ -550,6 +587,11 @@ function tipScene(): Pick | null {
 function decide(prev: Scene | null): Pick {
   const now = clock.now();
   const p = decideInner(prev, now);
+  // 손님 수가 목표보다 적으면 (빈자리 대기 뒤) 이 한때와 함께 한 사람이 말없이 걸어 들어온다 — 따로 박자를 쓰지 않아 시간 가속에도 흐름이 같다
+  if (!p.scene.toNight && !p.plan.add.some((k) => k !== 'aiden') && S.stage.length - p.plan.drop.length + p.plan.add.length < STAGE_MAX && canEnter(now)) {
+    const e = enterScene(now);
+    if (e) p.plan.add.push(...e.plan.add);
+  }
   const size = S.stage.length - p.plan.drop.length + p.plan.add.length;
   if (!S.night && !p.scene.toNight && p.scene.kind !== 'leave' && !aidenOn() && !p.plan.add.includes('aiden') && !p.plan.drop.includes('aiden') && size < STAGE_MAX && now >= S.aidenAt) p.plan.add.push('aiden');
   if (p.scene.kind === 'order') orderTip(p.scene, (aidenOn() && !p.plan.drop.includes('aiden')) || p.plan.add.includes('aiden'));
@@ -560,26 +602,25 @@ function decideInner(prev: Scene | null, now: number): Pick {
   if (tp) return tp;
   const sh = shiftScene(now);
   if (sh) return sh;
-  const beat = prev && prev.kind !== 'wait' && prev.kind !== 'leave' && prev.kind !== 'enter';
-  // 1) 한때가 끝나면 다 머문 사람이 일정 확률로 인사하고 나간다
-  if (beat) { const l = leaveScene(now); if (l) return l; }
+  // 1) 머물 시간이 끝난 사람이 인사하고 나간다 (받지 못한 주문은 거두고)
+  const l = leaveScene(now);
+  if (l) return l;
   // 2) 에이든 서빙 (낮) · 주문
   if (prev?.kind !== 'serve') { const sv = serveScene(now); if (sv) return sv; }
   if (prev?.kind !== 'order') { const od = orderScene(now); if (od) return od; }
-  // 3) 빈자리가 있으면 새 사람이 들어온다
-  if (canEnter(now) && Math.random() < BAR_TUNE.enter) { const e = enterScene(now); if (e) return e; }
-  // 4) 꽉 찬 채 오래 만담이 없으면 한 사람이 일어나 자리를 돌린다
-  if (isFull() && entrants().length && now - S.talkAt >= BAR_TUNE.quiet) { const l = leaveScene(now, true); if (l) return l; }
-  // 5) 한때 고르기: 만담 · 정적 · 혼잣말 · 이모티콘
+  // (들어오는 사람은 decide 가 이 한때에 얹는다)
+  // 3) 한때 고르기: 만담 · 정적 · 혼잣말 · 이모티콘
   const r = Math.random();
   const sh2 = BAR_TUNE.share;
   if (r < sh2.scene) { const nx = nextScene(0) || nextScene(0, true); if (nx) return nx; }
   if (r < sh2.scene + sh2.quiet) return waitScene(now);
   return (Math.random() < sh2.mono && monoScene(now)) || emoteScene(now) || waitScene(now);
 }
-function guestSeat(): { id: string; guest: true } {
-  const pool = UNITS.filter((d) => !S.known.has(d.id) && standURL(d.id) && !d.inert && !d.noBar);
-  return { id: pool.length ? pick(pool).id : 'guest', guest: true };
+/** 새 낯선 손님 자리: 그림은 아직 해금 안 된 인물 중 무대에 없는 사람 (없으면 실루엣) · 머물 시간 BAR_TUNE.stay.guest */
+function newGuest(now: number): Seat {
+  const on = new Set(S.stage.map((s) => s.id));
+  const pool = UNITS.filter((d) => !S.known.has(d.id) && !on.has(d.id) && standURL(d.id) && !d.inert && !d.noBar);
+  return { id: pool.length ? pick(pool).id : 'guest', guest: true, gid: String(++S.gseq), since: now, until: now + rand(BAR_TUNE.stay.guest), n: 0 };
 }
 /** 무대 계획 반영: 물러날 사람을 빼고, 에이든은 카운터 쪽(왼쪽) · 나머지는 문 쪽(오른쪽)에 세운다 */
 function applyPlan(plan: Plan, now: number) {
@@ -588,10 +629,11 @@ function applyPlan(plan: Plan, now: number) {
   for (const k of plan.add) {
     if (S.stage.some((s) => keyOf(s) === k)) continue;
     if (k === 'aiden') S.stage.unshift({ id: k, since: now, n: 0 });
-    else S.stage.push(k === 'guest' ? { ...guestSeat(), since: now, n: 0 } : { id: k, since: now, n: 0 });
+    else if (k === 'guest') { const g = newGuest(now); S.stage.push(g); plan.as = keyOf(g); }
+    else S.stage.push({ id: k, since: now, until: now + rand(BAR_TUNE.stay.crew), n: 0 });
   }
 }
-/** 작별 인사를 마친 사람이 나간다: 빈자리는 BAR_TUNE.vacant 동안 비워 둔다 (에이든은 카운터 뒤로 잠깐) */
+/** 작별 인사를 마친 사람이 나간다: 다음 사람은 BAR_TUNE.vacant 뒤에 (에이든은 카운터 뒤로 잠깐) */
 function leaveStage(id: string, now: number) {
   const gone = S.stage.find((s) => keyOf(s) === id);
   if (gone?.pay && S.ops) { metaBarCoins(gone.pay); coinFloat(gone.pay); } // 안 거둔 동전은 나가면서 레이첼이 챙긴다
@@ -620,15 +662,18 @@ function finishScene(cur: Scene | null, now: number, save: boolean) {
 function startScene(p: Pick, root: HTMLElement | null, prev: Scene | null = null): number {
   const now = clock.now();
   if (p.scene.toDay) setNight(false, now);
-  const before = new Set(regulars().map((s) => s.id));
+  const before = new Set(patrons().map(keyOf));
   applyPlan(p.plan, now);
-  const fresh = regulars().filter((s) => !before.has(s.id));
+  const as = p.plan.as;
+  if (as) p.scene.lines = p.scene.lines.map((l) => (l[0] === 'guest' ? [as, ...l.slice(1)] as Line : l)); // '손님' 줄 → 그 자리의 낯선 손님
+  if (p.scene.dropOrder) { const s = S.stage.find((x) => keyOf(x) === p.scene.dropOrder); if (s) { s.order = undefined; s.orderHint = undefined; } }
+  const fresh = patrons().filter((s) => !before.has(keyOf(s)));
   if (fresh.length) {
-    S.enterAt = now + rand(BAR_TUNE.vacant); // 자리가 또 비어도 다음 사람은 다시 한참 뒤
-    if (!S.night && aidenOn() && !(S.ops && barOpsNew())) for (const s of fresh) if (Math.random() < BAR_TUNE.serve) s.cup = aidenCup(s.id, now, rand([4000, 9000])); // 처음 하는 바 운영: 첫 손님은 레이첼에게
+    S.enterAt = now + rand(BAR_TUNE.vacant); // 다음 사람은 다시 조금 뒤에 (한꺼번에 몰려 들어오지 않게)
+    if (!S.night && aidenOn() && !(S.ops && barOpsNew())) for (const s of fresh) if (Math.random() < BAR_TUNE.serve) s.cup = aidenCup(keyOf(s), now, rand([4000, 9000])); // 처음 하는 바 운영: 첫 손님은 레이첼에게
   }
   for (const [k, c] of p.scene.cups || []) { const s = S.stage.find((x) => keyOf(x) === k); if (s) s.cup = c || undefined; }
-  if (p.scene.order) { const [k, o, hint] = p.scene.order; const s = S.stage.find((x) => keyOf(x) === k); if (s) { s.order = o; s.orderHint = hint; } }
+  if (p.scene.order) { const [k, o, hint] = p.scene.order; const s = S.stage.find((x) => keyOf(x) === k); if (s) { s.order = o; s.orderHint = hint; s.orderReal = clock.real(); } }
   p.scene.lines = p.scene.lines.filter(([w]) => w);
   const speak = new Set(p.scene.lines.filter((l) => l[3] !== 'e').map(([w]) => figOf(w)));
   for (const s of S.stage) if (speak.has(keyOf(s))) s.n++;
@@ -670,12 +715,18 @@ function showProps(root: HTMLElement, sc: Scene) {
 /** 처음 들어올 때: 한두 사람이 이미 앉아 있다 (정규 단원일 때가 많다), 낮이면 에이든도. 잔은 이미 마시던 중일 수 있다 */
 function firstStage() {
   const now = clock.now();
-  S.stage = []; S.enterAt = 0; S.talkAt = now; S.aidenAt = S.night ? Infinity : 0;
+  S.stage = []; S.enterAt = 0; S.talkAt = now; S.aidenAt = S.night ? Infinity : 0; S.wantH = -1;
   if (S.cycleAt === Infinity) setNight(S.night, now);
-  const want = 1 + (Math.random() < 0.6 ? 1 : 0) + (Math.random() < 0.3 ? 1 : 0);
-  for (let i = 0; i < want; i++) { const e = entrants(); if (!e.length) break; S.stage.push({ id: weighted(e, (id) => (CREW.has(id) ? 6 : 1)), since: now, n: 0 }); }
+  // 지금 시간대 목표만큼 이미 앉아 있다 (머문 지 조금 된 사람도 있게 남은 시간을 줄여서)
+  const want = Math.min(wantNow(now), STAGE_MAX - (S.night ? 0 : 1));
+  for (let i = 0; i < want; i++) {
+    const p = enterScene(now)!.plan;
+    applyPlan(p, now);
+    const s = S.stage[S.stage.length - 1];
+    if (s.until) s.until = now + (s.until - now) * (0.25 + 0.75 * Math.random());
+  }
   if (!S.night) S.stage.unshift({ id: 'aiden', since: now, n: 0 });
-  for (const s of regulars()) if (Math.random() < 0.55) { const c = aidenCup(s.id, now, 0); c.at = now - c.dur * Math.random() * 0.7; s.cup = c; }
+  for (const s of patrons()) if (Math.random() < 0.55) { const c = aidenCup(keyOf(s), now, 0); c.at = now - c.dur * Math.random() * 0.7; s.cup = c; }
   if (S.ops && barOpsNew()) { const o = regulars().filter((s) => ORDER_TALK[s.id]); if (o.length && o.every((s) => s.cup)) o[0].cup = undefined; } // 처음 하는 바 운영: 주문할 손님 한 명은 빈손으로 (첫 주문이 너무 늦지 않게)
   S.enterAt = now + rand(BAR_TUNE.vacant);
   S.cur = { key: '', sit: '', lines: [], kind: 'wait', hold: 2500 }; S.li = 0;
@@ -891,28 +942,29 @@ const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${St
 function clockHtml() {
   const c = barClock();
   return `<div class="bar-clock"><span class="bar-time pill" aria-live="off" title="${SLOT_NAME[c.slot]}"><svg viewBox="0 0 24 24" aria-hidden="true" data-slot="${c.slot}">${SLOT_ICON[c.slot]}</svg><b class="f-num">${hhmm(c.min)}</b><small>${SLOT_NAME[c.slot]}</small></span>
-    <button class="bar-fast pill" data-a="bar-x" data-v="fast" aria-pressed="${W.rate > 1}" aria-label="시간 가속 (손님 들고 나는 간격을 ${BAR_FAST}배 빨리)">${FAST_ICON}<b class="f-num">×${W.rate > 1 ? BAR_FAST : 1}</b></button></div>`;
+    <button class="bar-fast pill" data-a="bar-x" data-v="fast" aria-pressed="${fastOn}" aria-label="시간 가속 (말이 없는 동안 ${BAR_FAST}배 빨리 — 손님 들고 나는 간격을 건너뛴다)">${FAST_ICON}<b class="f-num">×${fastOn ? BAR_FAST : 1}</b></button></div>`;
 }
 /** 시계 칸만 다시 쓴다 (분이 바뀌거나 시간대 · 가속이 바뀔 때) */
 function syncClock(root: HTMLElement) {
   const el = root.querySelector<HTMLElement>('.bar-clock');
   if (!el) return;
   const c = barClock();
-  const key = `${c.min}|${W.rate}`;
+  const key = `${c.min}|${fastOn}`;
   if (el.dataset.k === key) return;
   el.dataset.k = key;
   const svg = el.querySelector<SVGElement>('.bar-time svg');
   if (svg && svg.dataset.slot !== c.slot) { svg.dataset.slot = c.slot; svg.innerHTML = SLOT_ICON[c.slot]; el.querySelector('.bar-time small')!.textContent = SLOT_NAME[c.slot]; el.querySelector('.bar-time')!.setAttribute('title', SLOT_NAME[c.slot]); }
   el.querySelector('.bar-time b')!.textContent = hhmm(c.min);
   const f = el.querySelector<HTMLElement>('.bar-fast');
-  if (f) { f.setAttribute('aria-pressed', String(W.rate > 1)); f.querySelector('b')!.textContent = `×${W.rate > 1 ? BAR_FAST : 1}`; }
+  if (f) { f.setAttribute('aria-pressed', String(fastOn)); f.querySelector('b')!.textContent = `×${fastOn ? BAR_FAST : 1}`; }
 }
 /** 시간 가속 켜고 끄기: 켜면 지금 기다리던 쉬는 시간도 줄여 바로 다음 일로 */
 function toggleFast() {
-  setRate(W.rate > 1 ? 1 : BAR_FAST);
+  fastOn = !fastOn;
+  pace(!!S.cur && S.li > 0 && S.li <= S.cur.lines.length && isTalk(S.cur.lines[S.li - 1]));
   const root = document.querySelector<HTMLElement>(BAR_SEL);
   if (root) syncClock(root);
-  if (W.rate > 1 && !S.prep && !advKey() && S.cur && (S.cur.kind === 'wait' || S.li >= S.cur.lines.length)) schedule(300);
+  if (fastOn && !S.prep && !advKey() && S.cur && (S.cur.kind === 'wait' || S.li >= S.cur.lines.length)) schedule(300);
 }
 let clockTimer = 0;
 
@@ -1089,16 +1141,18 @@ const EMOTE_IDS = new Set<string>(['dots', 'excl', 'q', 'note', 'heart', 'anger'
 function tick() {
   const root = document.querySelector<HTMLElement>(BAR_SEL);
   if (!root) { stop(); return; }
-  if (advKey()) { schedule(700); return; } // 말 거는 중에는 멈춘다
-  if (S.prep) { stop(); return; } // 제조대를 보는 동안 무대는 멈춘다 (손님 반응 없음)
+  if (advKey()) { pace(true); schedule(700); return; } // 말 거는 중에는 멈춘다 (가속도 1배로)
+  if (S.prep) { pace(true); stop(); return; } // 제조대를 보는 동안 무대는 멈춘다 (손님 반응 없음)
   syncCups(root);
   if (!S.cur || S.li >= S.cur.lines.length) { endScene(root); return; }
+  pace(isTalk(S.cur.lines[S.li]));
   const ms = showLine();
   S.li++;
   schedule(ms || 600);
 }
 function endScene(root: HTMLElement) {
   const cur = S.cur;
+  pace(false);
   hideBub(root);
   hideEmotes(root);
   finishScene(cur, clock.now(), true);
@@ -1126,8 +1180,9 @@ if (typeof location !== 'undefined' && location.search.includes('bartest')) {
     const here = new Set(ints);
     const sc = buildFrame({ ...f, slots: f.slots.map((sl, i) => (ints[i] && sl[ints[i]] ? { [ints[i]]: sl[ints[i]] } : {})) }, here, here);
     const now = clock.now();
-    S.stage = needOf([...f.cast, ...ints]).slice(0, STAGE_MAX).map((k) => (k === 'guest' ? { ...guestSeat(), since: now, n: 0 } : { id: k, since: now, n: 0 }));
-    S.cur = { ...sc, lines: sc.lines.filter(([w]) => w) }; S.li = 0;
+    S.stage = needOf([...f.cast, ...ints]).slice(0, STAGE_MAX).map((k) => (k === 'guest' ? newGuest(now) : { id: k, since: now, n: 0 }));
+    const g = S.stage.find((x) => x.guest);
+    S.cur = { ...sc, lines: sc.lines.filter(([w]) => w).map((l) => (l[0] === 'guest' && g ? [keyOf(g), ...l.slice(1)] as Line : l)) }; S.li = 0;
     const root = document.querySelector<HTMLElement>(BAR_SEL);
     if (root) { syncFloor(root); showProps(root, S.cur); }
     stop(); tick();
@@ -1175,7 +1230,7 @@ export function barMount() {
   }
   syncCups(root);
   clearInterval(clockTimer);
-  clockTimer = window.setInterval(() => { const r = document.querySelector<HTMLElement>(BAR_SEL); if (!r) { clearInterval(clockTimer); return; } syncClock(r); }, 500);
+  clockTimer = window.setInterval(() => { const r = document.querySelector<HTMLElement>(BAR_SEL); if (!r) { clearInterval(clockTimer); return; } syncClock(r); }, 100); // 가속(8배)이면 0.1초 = 바 시간 약 1분
   if (S.prep) { const sec = root.querySelector<HTMLElement>('.bar-prep'); if (sec) sec.hidden = false; drawPrep(root); root.classList.add('prep-on'); return; } // 제조대를 보던 중 다시 그려졌으면 그대로
   const gain = loadMeta().bar?.coinGain;
   if (gain) { metaBarCoinShown(); window.setTimeout(() => coinFloat(gain), 1200); } // 런을 마치고 받은 코인
@@ -1189,7 +1244,7 @@ function barNext() { if (!advKey()) { stop(); tick(); } }
 export function barEnter() {
   for (const s of S.stage) if (s.pay) metaBarCoins(s.pay); // 남겨 둔 동전은 다음 방문 전에 거둔다
   S.prep = null; S.memo = false; S.memoOpen = false; S.tipCoin = '';
-  stop(); S.stage = []; S.cur = null; S.li = 0; S.session.clear(); S.gone.clear(); S.enterAt = 0; S.aidenAt = 0; S.monoAt = -Infinity; S.monoUsed.clear(); resumeCache.t = 0;
+  stop(); S.stage = []; S.cur = null; S.li = 0; S.session.clear(); S.gone.clear(); S.enterAt = 0; S.aidenAt = 0; S.wantH = -1; S.monoAt = -Infinity; S.monoUsed.clear(); resumeCache.t = 0;
   S.night = nightNext; nightNext = false; S.cycleAt = Infinity;
 }
 /** 런 결과 화면에서 바로 돌아갈 때 (다음 바 방문은 밤) */
@@ -1229,8 +1284,11 @@ export function barSimulate(n: number, known: string[], night = false, rate = 1)
     cups: S.stage.filter((s) => cupLeft(s.cup, t) !== null).length,
     vis: exit || !S.cur ? 0 : S.cur.lines.reduce((a, l, j) => a + lineMs(S.cur!, l, j === S.cur!.lines.length - 1), 0), // 말풍선 · 이모티콘이 떠 있는 시간
   });
-  const ops = S.ops, r0 = W.rate;
-  W.rate = rate; // 시간 가속 모의: 바 시계(t)는 대사 · 쉬는 시간(실제 ms)의 rate 배로 간다
+  const ops = S.ops, r0 = W.rate, f0 = fastOn, real0 = clock.real;
+  let tr = 0;
+  clock.real = () => tr;
+  W.rate = rate; fastOn = rate > 1; // 시간 가속 모의: 바 시계(t)는 말이 없는 동안(이모티콘 · 쉬는 시간 · 정적 · 퇴장)만 실제 ms 의 rate 배, 대사 · 혼잣말은 1배
+  const adv = (ms: number, talking = false) => { t += ms * (talking ? 1 : rate); tr += ms; };
   S.ops = false; // 모의 실행에는 레이첼이 없다 (주문을 받지 않는다)
   try {
     barEnter();
@@ -1239,19 +1297,19 @@ export function barSimulate(n: number, known: string[], night = false, rate = 1)
     if (S.known.has('joshua')) S.known.add('cesare');
     firstStage();
     rec('first');
-    t += 1500;
+    adv(1500);
     for (let i = 0; i < n; i++) {
       const cur = S.cur!;
-      t += cur.lines.reduce((a, l, j) => a + lineMs(cur, l, j === cur.lines.length - 1), 0) * rate;
+      cur.lines.forEach((l, j) => adv(lineMs(cur, l, j === cur.lines.length - 1), isTalk(l)));
       finishScene(cur, t, false);
-      if (cur.exit) { leaveStage(cur.exit, t); if (cur.toNight) setNight(true, t); rec('exit', undefined, cur.exit); t += EXIT_MS * rate; }
+      if (cur.exit) { leaveStage(cur.exit, t); if (cur.toNight) setNight(true, t); rec('exit', undefined, cur.exit); adv(EXIT_MS); }
       const prev = cur.exit ? null : cur;
       const p = decide(prev);
       const wait = startScene(p, null, prev);
       rec(p.scene.kind, p.plan);
-      t += wait * rate; // 첫 줄까지 (말 없는 한때는 그 길이 전체)
+      adv(wait); // 첫 줄까지 (말 없는 한때는 그 길이 전체)
     }
-  } finally { clock.now = real; W.rate = r0; barEnter(); S.ops = ops; }
+  } finally { clock.now = real; clock.real = real0; W.rate = r0; fastOn = f0; barEnter(); S.ops = ops; }
   return log;
 }
 
@@ -1400,7 +1458,8 @@ function openPrep(k: string) {
   const s = S.stage.find((x) => keyOf(x) === k);
   if (!root || !s?.order) return;
   stop(); hideBub(root); hideEmotes(root);
-  S.prep = newPrep(k, s.id, nameOf(s.id), s.order, s.orderHint);
+  setRate(1);
+  S.prep = newPrep(k, s.id, nameOf(k), s.order, s.orderHint);
   if (!barTutSeen('prep')) { S.prep.memo = true; metaBarTut('prep'); } // 처음 연 제조대: 에이든의 메모가 붙어 있다 (한 번만)
   metaBarTut('order'); // 주문을 받아 봤다 (첫 주문 귀띔을 못 봤어도)
   drawPrep(root);
@@ -1439,9 +1498,10 @@ function serveDrink() {
   const name = recipeName(d) || `레이첼의 ${GLASS_BY_ID[d.glass]?.name || '잔'}`;
   s.cup = { d, name, by: 'player', at: now + (reduced() ? 200 : 900), dur: rand(BAR_TUNE.sip), alc: d.fill.some((x) => ALC.has(ING_BY_ID[x]?.kind)), grade: v.grade };
   s.order = undefined; s.orderHint = undefined; s.orderAt = now;
-  metaBarServed(s.id, { ...d, name: recipeName(d) || undefined }, v.grade === 'like');
-  const t = orderTalk(s.id);
-  S.cur = { key: '', sit: '', kind: 'react', lines: [[s.id, pick(GRADE_EMO[v.grade]), undefined, 'e'], [s.id, fillText(pick(t[v.grade]), { pc: PC })]] };
+  metaBarServed(keyOf(s), { ...d, name: recipeName(d) || undefined }, v.grade === 'like' && !s.guest); // 낯선 손님은 아직 단골 장부가 없다
+  const t = s.guest ? ORDER_GENERIC : orderTalk(s.id);
+  const k0 = keyOf(s);
+  S.cur = { key: '', sit: '', kind: 'react', lines: [[k0, pick(GRADE_EMO[v.grade]), undefined, 'e'], [k0, fillText(pick(t[v.grade]), { pc: PC })]] };
   S.li = 0;
   const k = p.k;
   closePrep(reduced() ? 600 : 1500);

@@ -3,7 +3,7 @@
 // 입력: art/prop_prompts.json  결과: art/raw/prop/<key>/<seed>.png (소품은 흰 바탕 → art.py cut_background 로 오린다 · transparent: true 면 V5 투명 배경 RGBA 로 바로)
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
-import { guard, anlas, pause, GEN_STEPS, freeOnly } from './nai_guard.mjs';
+import { guard, anlas, pause, GEN_STEPS, freeOnly, backoff } from './nai_guard.mjs';
 
 const cfg = JSON.parse(readFileSync('art/nai.config.json', 'utf8'));
 const P = JSON.parse(readFileSync('art/prop_prompts.json', 'utf8'));
@@ -40,7 +40,7 @@ async function gen(key, seed) {
   };
   for (let attempt = 0; attempt < 4; attempt++) {
     const res = await fetch('https://image.novelai.net/ai/generate-image', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    if (res.status === 429) { await new Promise((r) => setTimeout(r, 30000 * (attempt + 1))); continue; }
+    if (res.status === 429) { await new Promise((r) => setTimeout(r, backoff(attempt))); continue; }
     if (!res.ok) throw new Error(`${key}: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
     mkdirSync(`art/raw/prop/${key}`, { recursive: true });
     writeFileSync(`art/raw/prop/${key}/${seed}.png`, unzipFirst(Buffer.from(await res.arrayBuffer())));

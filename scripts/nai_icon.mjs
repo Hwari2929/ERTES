@@ -6,7 +6,7 @@
 // 기록: 생성마다 art/gen-log.json 에 { id, alt, kind: 'icon', style, seed, model, time, prompt, file } (원본을 잃어도 같은 시드로 다시 뽑는다)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
-import { guard, anlas, pause, GEN_STEPS } from './nai_guard.mjs';
+import { guard, anlas, pause, GEN_STEPS, backoff } from './nai_guard.mjs';
 
 const cfg = JSON.parse(readFileSync('art/nai.config.json', 'utf8'));
 const P = JSON.parse(readFileSync('art/icon_prompts.json', 'utf8'));
@@ -70,7 +70,7 @@ async function gen(id, seed) {
     v4_negative_prompt: { caption: { base_caption: NEG(p), char_captions: [] }, legacy_uc: false } } };
   for (let a = 0; a < 5; a++) {
     const res = await fetch('https://image.novelai.net/ai/generate-image', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    if (res.status === 429) { await new Promise((r) => setTimeout(r, 30000 * (a + 1))); continue; }
+    if (res.status === 429) { await new Promise((r) => setTimeout(r, backoff(a))); continue; }
     if (!res.ok) throw new Error(`${id}: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
     const dir = cand ? `art/icons/cand/${id}` : out, file = cand ? `${dir}/${alt ? alt + '-' : ''}${seed}.png` : `${out}/${id}.png`;
     mkdirSync(dir, { recursive: true });

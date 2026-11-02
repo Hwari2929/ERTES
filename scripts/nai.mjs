@@ -7,7 +7,7 @@
 // 결과: art/raw/<id>/<seed>.png (깃에 넣지 않음), 기록: art/gen-log.json
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
-import { guard, anlas, pause, GEN_STEPS, freeOnly } from './nai_guard.mjs';
+import { guard, anlas, pause, GEN_STEPS, freeOnly, backoff } from './nai_guard.mjs';
 
 const cfg = JSON.parse(readFileSync('art/nai.config.json', 'utf8'));
 const prompts = JSON.parse(readFileSync('art/prompts.json', 'utf8'));
@@ -77,7 +77,7 @@ async function generate(id, seed) {
     const res = await fetch('https://image.novelai.net/ai/generate-image', {
       method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
-    if (res.status === 429) { await new Promise((r) => setTimeout(r, 30000 * (attempt + 1))); continue; }
+    if (res.status === 429) { await new Promise((r) => setTimeout(r, backoff(attempt))); continue; }
     if (!res.ok) throw new Error(`${id}: HTTP ${res.status} ${(await res.text()).slice(0, 300)}`);
     const png = unzipFirst(Buffer.from(await res.arrayBuffer()));
     mkdirSync(`art/raw/${id}`, { recursive: true });

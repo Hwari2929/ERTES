@@ -1,12 +1,12 @@
 """NovelAI img2img (배경 등 일반 이미지).
   python3 scripts/nai_i2i.py <입력.png> <출력 폴더> --prompt "..." [--strength 0.6] [--noise 0.2] [--n 4]
   배경 공용 태그(art/bg_prompts.json 의 base · negative)를 붙인다.
-  편집이라 유료(Anlas) 29스텝 · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~15초 (scripts/nai_guard.py).
+  편집이라 유료(Anlas) 29스텝 · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~16초 (scripts/nai_guard.py).
 """
 import base64, io, json, os, random, ssl, sys, time, urllib.request, zipfile
 from PIL import Image
 sys.path.insert(0, os.path.dirname(__file__))
-from nai_guard import STEPS, guard, pause
+from nai_guard import STEPS, backoff, guard, pause
 args = sys.argv[1:]
 def opt(k, d=None):
   return args[args.index(k) + 1] if k in args else d
@@ -32,7 +32,7 @@ for k in range(N):
     try:
       with urllib.request.urlopen(urllib.request.Request('https://image.novelai.net/ai/generate-image', data=body, headers=HEAD), context=ctx, timeout=240) as r: data = r.read(); break
     except urllib.error.HTTPError as e:
-      if e.code == 429: time.sleep(8 * (a + 1)); continue
+      if e.code == 429: backoff(a); continue
       print('HTTP', e.code, e.read()[:200]); data = None; break
   if not data: continue
   z = zipfile.ZipFile(io.BytesIO(data)); open(f'{out}/{seed}.png', 'wb').write(z.read(z.namelist()[0])); print('ok', seed)

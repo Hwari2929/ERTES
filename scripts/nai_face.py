@@ -2,13 +2,13 @@
   python3 scripts/nai_face.py yelena smile angry ...     (기물 id, 표정 키들)
   --model nai-diffusion-4-5-full-inpainting  --seed N  --out art/faces_raw
 원본: art/picked/<id>.webp (RGBA) · 얼굴 위치: art/faces.json [중심 x, 눈썹 y, 턱 y]
-편집이라 유료(Anlas) 29스텝 · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~15초 (scripts/nai_guard.py).
+편집이라 유료(Anlas) 29스텝 · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~16초 (scripts/nai_guard.py).
 얼굴 부위만 다시 그린 뒤 원본 알파 위에 부드럽게 합성 → <out>/<id>.<face>.png
 """
 import base64, io, json, os, random, ssl, sys, time, urllib.request, zipfile
 from PIL import Image, ImageDraw, ImageFilter
 sys.path.insert(0, os.path.dirname(__file__))
-from nai_guard import STEPS, guard, pause
+from nai_guard import STEPS, backoff, guard, pause
 
 FACE_TAGS = {
   'smile': 'smile, happy, gentle smile, closed eyes smile',
@@ -98,7 +98,7 @@ for n, face in enumerate(faces):
     try:
       with urllib.request.urlopen(req, context=ctx, timeout=180) as r: data = r.read(); break
     except urllib.error.HTTPError as e:
-      if e.code == 429: time.sleep(8 * (attempt + 1)); continue
+      if e.code == 429: backoff(attempt); continue
       print(face, 'HTTP', e.code, e.read()[:300]); data = None; break
   if not data: continue
   z = zipfile.ZipFile(io.BytesIO(data)); gen = Image.open(io.BytesIO(z.read(z.namelist()[0]))).convert('RGB')

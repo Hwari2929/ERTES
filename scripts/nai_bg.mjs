@@ -4,7 +4,7 @@
 // 결과: art/raw/bg/<key>/<seed>.png
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
-import { guard, anlas, pause, GEN_STEPS, freeOnly } from './nai_guard.mjs';
+import { guard, anlas, pause, GEN_STEPS, freeOnly, backoff } from './nai_guard.mjs';
 
 const cfg = JSON.parse(readFileSync('art/nai.config.json', 'utf8'));
 const P = JSON.parse(readFileSync('art/bg_prompts.json', 'utf8'));
@@ -41,7 +41,7 @@ async function gen(key, seed) {
   };
   for (let attempt = 0; attempt < 4; attempt++) {
     const res = await fetch('https://image.novelai.net/ai/generate-image', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    if (res.status === 429) { await new Promise((r) => setTimeout(r, 30000 * (attempt + 1))); continue; }
+    if (res.status === 429) { await new Promise((r) => setTimeout(r, backoff(attempt))); continue; }
     if (!res.ok) throw new Error(`${key}: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
     mkdirSync(`art/raw/bg/${key}`, { recursive: true });
     writeFileSync(`art/raw/bg/${key}/${seed}.png`, unzipFirst(Buffer.from(await res.arrayBuffer())));

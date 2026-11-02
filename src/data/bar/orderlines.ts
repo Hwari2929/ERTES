@@ -1,12 +1,13 @@
 // 바 주문 · 반응 대사 (docs/BAR_OPS.md 4절). 주문 말풍선 한 줄 + 잔을 받아 한 모금 마신 뒤 반응 한 줄.
 // {feel} = 느낌 조건 문구 (부사형으로 끝난다: '달고 청량하게, 시트러스 향 나게'), {menu} = 메뉴 이름 (조사는 fillText 가 맞춘다).
 // hint = 밤에 '늘 마시던 거'를 시켰는데 레이첼이 아직 그 잔을 모를 때 손님이 흘리는 귀띔.
+// drop = 주문이 받아지지 않은 채 머물 시간이 끝나 주문을 거두고 일어나며 하는 한마디 (벌점 없음 — 원망하지 않는 투로). 없으면 ORDER_GENERIC.drop.
 import type { OrderStyle } from './drinks';
 import type { Grade } from './orders';
 import { ORDER_TALK_A } from './orderlines_a';
 import { ORDER_TALK_B } from './orderlines_b';
 
-export type OrderTalk = Record<OrderStyle, string[]> & Record<Grade, string[]> & { hint: string };
+export type OrderTalk = Record<OrderStyle, string[]> & Record<Grade, string[]> & { hint: string; drop?: string[] };
 
 /** 대사가 따로 없는 단원 (정규 단원 밖) */
 export const ORDER_GENERIC: OrderTalk = {
@@ -18,6 +19,7 @@ export const ORDER_GENERIC: OrderTalk = {
   like: ['와, 이거 맛있네요.', '딱 원하던 맛이에요.'],
   ok: ['음, 나쁘지 않네요.', '괜찮아요. 마실 만해요.'],
   bad: ['…생각한 맛이랑은 좀 다르네요.', '음. 그래도 다 마실게요.'],
+  drop: ['바쁘신가 보네요. 주문은 다음에 할게요.', '시간이 벌써 이렇게 됐네. 오늘은 그냥 갈게요, 다음에 한 잔 부탁해요.'],
 };
 /** 정규 단원 25명 (에이든 제외) */
 export const ORDER_TALK: Record<string, OrderTalk> = { ...ORDER_TALK_A, ...ORDER_TALK_B };

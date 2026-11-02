@@ -3,7 +3,7 @@
 // 프롬프트 · 부정 프롬프트는 art/prop_prompts.json 의 그 소품 것을 그대로 쓴다. 결과: art/raw/prop/<키>_x/<seed>.png
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
-import { guard, anlas, pause } from './nai_guard.mjs';
+import { guard, anlas, pause, backoff } from './nai_guard.mjs';
 
 const MODEL = 'nai-diffusion-4-5-full-inpainting';
 const STEPS = 29; // 편집(캔버스 확장)은 유료로만 (EDIT_STEPS)
@@ -41,7 +41,7 @@ async function gen(seed) {
   };
   for (let attempt = 0; attempt < 4; attempt++) {
     const res = await fetch('https://image.novelai.net/ai/generate-image', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    if (res.status === 429) { await new Promise((r) => setTimeout(r, 30000 * (attempt + 1))); continue; }
+    if (res.status === 429) { await new Promise((r) => setTimeout(r, backoff(attempt))); continue; }
     if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 300)}`);
     mkdirSync(`art/raw/prop/${key}_x`, { recursive: true });
     writeFileSync(`art/raw/prop/${key}_x/${seed}.png`, unzipFirst(Buffer.from(await res.arrayBuffer())));
