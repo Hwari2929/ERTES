@@ -477,20 +477,20 @@
       "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
     },
     "bar_ing_midnight": {
-      "w": 1024,
-      "h": 1024,
+      "w": 832,
+      "h": 1216,
       "plain": true,
       "transparent": true,
-      "prompt": "a small round metal coffee tin with a lid, dark navy color, small crescent moon emblem, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
-      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+      "prompt": "a tall cylindrical metal coffee tin can with a lid, dark navy color, small crescent moon emblem, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor, lid visible from above, top of the lid, round flat tin"
     },
     "bar_ing_cocoa": {
-      "w": 1024,
-      "h": 1024,
+      "w": 832,
+      "h": 1216,
       "plain": true,
       "transparent": true,
-      "prompt": "a small round metal cocoa tin with a lid, warm brown color, small emblem of a steaming cup, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
-      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+      "prompt": "a tall cylindrical metal cocoa tin can with a lid, warm brown color, small emblem of a steaming cup, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor, lid visible from above, top of the lid, round flat tin"
     },
     "bar_ing_yakyung": {
       "w": 1024,
@@ -569,8 +569,8 @@
       "h": 1024,
       "plain": true,
       "transparent": true,
-      "prompt": "a swirled dollop of whipped cream, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
-      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+      "prompt": "a small shallow white ceramic bowl filled with fluffy whipped cream with soft peaks, side view, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, cupcake, ice cream cone, cone, cup, cake, plate, bowl"
     },
     "bar_gar_crystal": {
       "w": 1024,
