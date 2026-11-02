@@ -347,8 +347,240 @@
       "prompt": "a single round citrus wheel slice, bright yellow orange, translucent juicy pulp segments, white pith ring, glistening, three-quarter view, centered object, white background, simple background, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
       "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, label text, lettering, typography",
       "transparent": true
+    },
+    "bar_ing_dustrain": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a tall gin bottle, clear glass with a faint sage green tint, clear liquid, cork stopper with dark wax seal, blank paper label with only a small drawing of a desert sand dune and a brass gear, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_yebeson": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a squat black glass rum bottle, dark amber liquid barely visible, rough twine tied around the cork, lime green wax seal, blank label with a small drawing of a lime, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_aster": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a slim frosted clear glass vodka bottle, clear liquid, silver screw cap, minimalist blank label with a small drawing of an aster flower, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_anchor": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a square shouldered whisky decanter bottle, amber whisky, brass cap, embossed anchor emblem on the glass, blank cream label, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_ringside": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a brown long neck beer bottle, golden lager, metal crown cap, blank label with a small drawing of a ringed planet, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_darkringer": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a dark brown stubby beer bottle, black stout, metal crown cap, blank cream label with a small dark ring emblem, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_nostos": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a wine bottle, deep red fruit wine, dark cork, blank label with a small drawing of a sailing ship returning to harbor, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_ferma": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a green glass cider bottle with a swing top stopper, pale golden cider, blank label with a small drawing of an apple, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_velour": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a round bellied liqueur bottle, creamy beige liquid, velvet ribbon tied around the neck, blank label, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_bitter": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a small apothecary bottle with a glass dropper cap, dark red bitter liquid, blank label with a small drawing of an herb sprig, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_tonic": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a slim clear glass tonic water bottle, clear fizzy water with bubbles, metal cap, blank pale blue label with a small black circle, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_heliosfizz": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a stout amber glass ginger beer bottle with a swing top, golden fizzy liquid, blank label with a small drawing of a sun, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_soda": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a vintage glass soda siphon bottle with a metal lever head, clear sparkling water with bubbles, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_jolly": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a bright orange soda bottle, orange fizzy juice, cheerful blank label with a small drawing of citrus slices, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_starmilk": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a glass milk bottle with a paper cap, white milk, small embossed star on the glass, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_honey": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a squat glass syrup bottle with a pour spout, thick golden honey syrup, blank label with a small drawing of a bee, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_midnight": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a small round metal coffee tin with a lid, dark navy color, small crescent moon emblem, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_cocoa": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a small round metal cocoa tin with a lid, warm brown color, small emblem of a steaming cup, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_ing_yakyung": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a small square tea caddy tin with a lid, pale yellow green color, small emblem of a chamomile flower and stars, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor"
+    },
+    "bar_gar_citrus": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a single round citrus wheel slice, bright yellow orange, translucent pulp segments, white pith ring, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+    },
+    "bar_gar_lime": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a single lime wedge, bright green peel, juicy pale green flesh, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+    },
+    "bar_gar_salt": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a small shallow dish of coarse salt crystals with a faint pale blue shimmer, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+    },
+    "bar_gar_cardia": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a small pile of reddish brown spice seeds, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+    },
+    "bar_gar_mint": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a single sprig of fresh mint leaves, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+    },
+    "bar_gar_petal": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "three soft pink flower petals, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+    },
+    "bar_gar_bean": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "three roasted coffee beans, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+    },
+    "bar_gar_marsh": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "two soft white marshmallows, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+    },
+    "bar_gar_cream": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a swirled dollop of whipped cream, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+    },
+    "bar_gar_crystal": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a small pale blue crystal sugar shard, faceted, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
     }
   },
   "_albedo_note": "ct_albedo_*: 조명 없는 알베도 전용. base 의 광원 문구를 쓰지 않는다 (nai_prop.mjs 가 noBase 로 읽음)",
-  "_note_bar": "바 제조대 재료 · 가니쉬 아이콘 시안 (bar_ing_* · bar_gar_*): plain = 화풍 태그를 붙이지 않고 프롬프트 안에서 정한다 (a 페인터리 · b 플랫 아이콘 · c 빈티지 판화). 흰 바탕 → 오리기. transparent: V5 투명 배경 (오리기 없음). 라벨은 글자 없이 그림만 (첫 시안에 가짜 글자가 들어갔다)"
+  "_note_bar": "바 제조대 재료 · 가니쉬 아이콘. 사용자가 C안(빈티지 판화) 선택 (2026-11-02), 병 · 통은 무조건 정면 뷰. bar_ing_<재료 id> (19) · bar_gar_<가니쉬 id> (10), transparent: V5 투명 배경. 라벨은 글자 없이 그림만. 시안 bar_ing_a~c · bar_gar_a~c 는 기록용"
 }
