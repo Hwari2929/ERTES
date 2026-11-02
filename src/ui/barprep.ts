@@ -76,7 +76,7 @@ function slipHtml(p: Prep) {
 }
 
 // ───────── 에이든의 메모 (종이, 바 운영 첫 영업 보조 — src/data/bar/opstut.ts)
-const memoText = (s: string) => esc(fillVars(s, { coin: COIN_NAME, gar: String(GARNISH_MAX) }));
+const memoText = (s: string) => esc(fillVars(s, { coin: COIN_NAME }));
 const memoPara = (ls: string[]) => ls.map((l) => `<p>${memoText(l)}</p>`).join('');
 /** 제조대 순서 (잔 → 붓기 → …) · 자리별 한 줄 */
 const memoSteps = () => `<p class="ops-steps">${OPS_MEMO.steps.map((x) => `<b>${esc(x)}</b>`).join('<i aria-hidden="true">→</i>')}</p>`;

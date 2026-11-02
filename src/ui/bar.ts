@@ -676,6 +676,7 @@ function firstStage() {
   for (let i = 0; i < want; i++) { const e = entrants(); if (!e.length) break; S.stage.push({ id: weighted(e, (id) => (CREW.has(id) ? 6 : 1)), since: now, n: 0 }); }
   if (!S.night) S.stage.unshift({ id: 'aiden', since: now, n: 0 });
   for (const s of regulars()) if (Math.random() < 0.55) { const c = aidenCup(s.id, now, 0); c.at = now - c.dur * Math.random() * 0.7; s.cup = c; }
+  if (S.ops && barOpsNew()) { const o = regulars().filter((s) => ORDER_TALK[s.id]); if (o.length && o.every((s) => s.cup)) o[0].cup = undefined; } // 처음 하는 바 운영: 주문할 손님 한 명은 빈손으로 (첫 주문이 너무 늦지 않게)
   S.enterAt = now + rand(BAR_TUNE.vacant);
   S.cur = { key: '', sit: '', lines: [], kind: 'wait', hold: 2500 }; S.li = 0;
 }
