@@ -1231,7 +1231,7 @@ function placeBub(root: HTMLElement, bub: HTMLElement, seat: HTMLElement | null)
   // 옆 사람 얼굴: 다른 자리의 가운데 x (얼굴 옆 말풍선은 그 얼굴을 덮지 않을 때만)
   const others = Array.from(fl.querySelectorAll<HTMLElement>('.bar-seat:not(.out)')).filter((e) => e !== seat).map((e) => { const r = e.getBoundingClientRect(); return r.left - F.left + r.width / 2; });
   const clearOf = (l: number) => others.every((ox) => ox < l - sw * 0.2 || ox > l + bw + sw * 0.2);
-  let pos = POS.bub ?? pick([...BUB_POS]);
+  let pos: (typeof BUB_POS)[number] = POS.bub ?? 'top'; // 대사 말풍선은 늘 머리 위 (2026-11-03 사용자 결정 — 이모티콘만 머리 둘레 4곳). 다른 자리는 시험 훅(__barPos)으로만
   let left = 0, top = 0, tail = 'b';
   const fits = (l: number) => l >= 8 && l + bw <= W - 8;
   if (pos === 'side') { // 얼굴 옆: 빈 쪽이 있을 때만 (가장자리 · 인원이 적을 때), 없으면 머리 위 쪽으로
@@ -1649,16 +1649,14 @@ function focusOrder(k: string) {
   seat.querySelector('.bar-order:not(.bar-call)')?.remove();
   const bub = root.querySelector<HTMLElement>('.bar-bub:not(.ghost)');
   const line = s.orderLine || `${ORDER_STYLE_NAME[s.order.style]} 한 잔 부탁해요.`;
-  if (bub && fl) { // 주문 말 + 말풍선 바로 바깥 옆에 ✕ 나중에 · ✓ 받기 (얼굴 반대쪽, 자리가 없으면 다른 쪽)
+  if (bub && fl) { // 주문 말 + 말풍선 바로 오른쪽 바깥에 ✕ 나중에 · ✓ 받기
     bub.innerHTML = `<b class="f-ui" style="--c:${colorOf(k)}">${esc(nameOf(k))}</b><span>${esc(line)}</span>`;
     bub.classList.remove('off-stage', 'mono'); bub.hidden = false;
     placeBub(root, bub, seat);
     void bub.offsetWidth; bub.classList.add('on');
     fl.insertAdjacentHTML('beforeend', `<div class="bar-pick" role="group" aria-label="${esc(nameOf(k))}의 주문"><button class="bar-pick-x" data-a="bar-x" data-v="later" aria-label="나중에">${FOCUS_X}</button><button class="bar-pick-ok" data-a="bar-x" data-v="take:${k}" aria-label="주문 받기 — 제조대로">${FOCUS_OK}</button></div>`);
-    const pk = fl.lastElementChild as HTMLElement, F = fl.getBoundingClientRect(), B = bub.getBoundingClientRect(), R = seat.getBoundingClientRect();
-    const right = B.right - F.left + 10, pw = pk.offsetWidth, left = B.left - F.left - 10 - pw;
-    const away = B.left + B.width / 2 < R.left + R.width / 2 - 4 ? 'l' : 'r'; // 얼굴 반대쪽 (말풍선이 머리 왼쪽이면 왼쪽에) — 얼굴을 가리지 않게
-    pk.style.left = `${away === 'l' ? (left >= 8 ? left : right) : (right + pw <= F.width - 8 ? right : Math.max(8, left))}px`;
+    const pk = fl.lastElementChild as HTMLElement, F = fl.getBoundingClientRect(), B = bub.getBoundingClientRect();
+    pk.style.left = `${Math.min(B.right - F.left + 10, F.width - pk.offsetWidth - 8)}px`; // 늘 말풍선 오른쪽 (사용자 결정)
     pk.style.top = `${B.top - F.top + B.height / 2 - pk.offsetHeight / 2}px`;
   }
 }
