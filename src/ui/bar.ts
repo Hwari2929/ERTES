@@ -29,6 +29,7 @@ import { ORDER_GENERIC, ORDER_TALK, orderTalk } from '../data/bar/orderlines';
 import { FIRST_MEET } from '../data/bar/firstmeet';
 import { GUEST_ANON, GUEST_BY_ID, GUESTS } from '../data/bar/guests.gen';
 import { GUEST_LINES, type GuestLines } from '../data/bar/guestlines';
+import { GUEST_AIDEN } from '../data/bar/guestaiden';
 import { FIELDS, fieldOf } from '../data/battlefields';
 import { EVENT_BY_ID } from '../data/events';
 import { BGS, fillText, NPCS, type Beat } from '../data/scene';
@@ -81,6 +82,8 @@ export const BAR_TUNE = {
   day: 480_000,
   night: 480_000,
   share: { scene: 0.14, quiet: 0.03, mono: 0.3 },
+  /** 만담 차례에 에이든 × 낯선 손님 만담(GUEST_AIDEN)을 먼저 고를 확률 — 낮에 에이든과 그 손님이 함께 무대에 있고 이번 방문에 안 한 편이 남았을 때 */
+  guestAiden: 0.5,
   hold: [4_000, 9_000] as [number, number],
   monoGap: 40_000,
   serve: 0.35,
@@ -224,6 +227,8 @@ interface Scene {
   /** order: 이 장면으로 걸리는 주문 (무대 키 · 주문 · 귀띔) */
   order?: [string, Order, string?];
   exit?: string; hold?: number; mono?: string; idle?: number; cups?: [string, Cup | null][]; toNight?: boolean; toDay?: boolean;
+  /** 들은 이야기 기록 키 (에이든 × 낯선 손님 만담 'ga:<손님 id>.<편>' — 이번 방문에 다시 안 나오고, 도감 손님 탭에 남는다) */
+  talk?: string;
   /** leave: 받지 못한 주문을 거두고 나가는 손님 (장면이 시작되면 주문 표시를 지운다) */
   dropOrder?: string;
   /** 카운터 위 소품 (만담 머리줄 〔소품: …〕 · 틀 · 바텐더 대화의 props) — 그 장면 동안 말하는 사람 앞에 */
@@ -502,6 +507,19 @@ function leaveScene(now: number): Pick | null {
   }
   return null;
 }
+/** 에이든 × 낯선 손님 만담 (src/data/bar/guestaiden.ts): 낮에 에이든과 그 손님이 함께 무대에 있을 때. 이번 방문에 한 편은 다시 안 하고, 안 들은 편 먼저.
+ *  named 편은 그 손님이 이름을 밝힌 뒤에만. 줄 형식: '에이든: …' · '레이첼: …' (무대 밖) · 이름표 없는 줄 = 그 손님 */
+function guestAidenScene(): Pick | null {
+  if (S.night || !aidenOn()) return null;
+  const heard = new Set(loadMeta().bar?.talk || []);
+  const opts = patrons().filter((s) => s.guest && GUEST_AIDEN[s.gid!] && S.prep?.k !== keyOf(s) && !s.calling)
+    .flatMap((s) => GUEST_AIDEN[s.gid!].map((t, i) => ({ s, t, key: `ga:${s.gid}.${i}` })).filter((x) => (!x.t.named || guestNamed(x.s.gid!)) && !S.session.has(x.key)));
+  if (!opts.length) return null;
+  const fresh = opts.filter((x) => !heard.has(x.key));
+  const x = pick(fresh.length ? fresh : opts);
+  const k = keyOf(x.s);
+  return { scene: { key: '', sit: x.t.sit, lines: x.t.lines.map((l) => parseLine(l, k)), kind: 'idle', talk: x.key, props: x.t.props }, plan: noop() };
+}
 /** 정적: 아무도 말하지 않는 한때 (빈자리가 있고 곧 누가 올 거면 그때까지) */
 function waitScene(now: number): Pick {
   const hold = (!isFull() && patrons().length < wantNow(now) && S.enterAt > now ? Math.max(5000, Math.min(12_000, (S.enterAt - now) / (fastOn ? BAR_FAST : 1))) : rand(BAR_TUNE.hold)) * fastK();
@@ -686,7 +704,7 @@ function decideInner(prev: Scene | null, now: number): Pick {
   // 3) 한때 고르기: 만담 · 정적 · 혼잣말 · 이모티콘
   const r = Math.random();
   const sh2 = BAR_TUNE.share;
-  if (r < sh2.scene) { const nx = nextScene(0) || nextScene(0, true); if (nx) return nx; }
+  if (r < sh2.scene) { const ga = Math.random() < BAR_TUNE.guestAiden ? guestAidenScene() : null; if (ga) return ga; const nx = nextScene(0) || nextScene(0, true); if (nx) return nx; }
   if (r < sh2.scene + sh2.quiet) return waitScene(now);
   return (Math.random() < sh2.mono && monoScene(now)) || emoteScene(now) || waitScene(now);
 }
@@ -735,7 +753,8 @@ function setNight(night: boolean, now: number) {
 function finishScene(cur: Scene | null, now: number, save: boolean) {
   if (!cur) return;
   if (cur.key) { if (save) metaBar('seen', cur.key); S.session.add(cur.key); }
-  else if (cur.kind === 'idle') S.session.add(`idle:${cur.idle}`);
+  else if (cur.kind === 'idle' && cur.idle !== undefined) S.session.add(`idle:${cur.idle}`);
+  if (cur.talk) { S.session.add(cur.talk); if (save) metaBar('talk', cur.talk); }
   if (cur.mono && save) metaBar('talk', cur.mono);
   if (cur.kind === 'scene' || cur.kind === 'idle') S.talkAt = now;
   if (cur.toNight && !cur.exit) setNight(true, now);
@@ -1735,8 +1754,9 @@ export function barGuestsHtml(): string {
     const usual = m.bar?.usual?.[g.id];
     const L = guestLines(g.id);
     const heard = (L?.topics || []).map((x, i) => ({ x, i })).filter(({ i }) => talkSet.has(`guest:${g.id}.${i}`));
+    const withAiden = (GUEST_AIDEN[g.id] || []).filter((_, i) => talkSet.has(`ga:${g.id}.${i}`)); // 에이든 × 이 손님 만담 중 본 편
     return `<div class="codex-row"><img class="spr${icon ? ' pt' : ''}" alt="" src="${icon || SIL}"><div><b>${esc(g.name)}</b> <span class="small muted">${esc(g.org)} · ${esc(g.from)} · ${esc(RACE_NAME[g.race] === g.kind ? g.kind : `${RACE_NAME[g.race]} (${g.kind})`)}</span>
-      <div class="small">${esc(g.persona)}</div>${usual ? `<div class="small muted">단골 잔 · ${esc(usual.name || recipeName(usual) || '레이첼의 잔')}</div>` : ''}${heard.length ? `<div class="small muted">들은 이야기 · ${heard.map(({ x }) => esc(x.label)).join(' · ')}</div>` : ''}</div><div>${visits}</div></div>`;
+      <div class="small">${esc(g.persona)}</div>${usual ? `<div class="small muted">단골 잔 · ${esc(usual.name || recipeName(usual) || '레이첼의 잔')}</div>` : ''}${heard.length ? `<div class="small muted">들은 이야기 · ${heard.map(({ x }) => esc(x.label)).join(' · ')}</div>` : ''}${withAiden.length ? `<div class="small muted">에이든과 · ${withAiden.map((t) => esc(t.sit)).join(' · ')}</div>` : ''}</div><div>${visits}</div></div>`;
   };
   const groups = Object.keys(GROUP_NAME).map((k) => ({ k, all: GUESTS.filter((g) => g.group === k), met: met.filter((g) => g.group === k) }));
   return `<p class="muted small">바에서 만난 손님 ${met.length}명 · 이름을 아는 손님 ${named.length} / ${GUESTS.length}명. 낯선 손님은 몇 번 들르다 어느 날 레이첼에게 먼저 말을 걸어 온다.</p>`

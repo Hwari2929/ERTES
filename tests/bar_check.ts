@@ -13,6 +13,7 @@ import { ORDER_TALK, ORDER_GENERIC } from '../src/data/bar/orderlines';
 import { FIRST_MEET } from '../src/data/bar/firstmeet';
 import { GUEST_ANON, GUEST_BY_ID, GUESTS } from '../src/data/bar/guests.gen';
 import { GUEST_LINES, type GuestLines } from '../src/data/bar/guestlines';
+import { GUEST_AIDEN } from '../src/data/bar/guestaiden';
 declare const process: { exitCode?: number; argv?: string[] };
 declare function require(m: 'node:fs'): { readdirSync(p: string): string[]; readFileSync(p: string, e: 'utf8'): string };
 
@@ -237,6 +238,33 @@ for (const m of metrics.slice(0, 2)) {
   }
   const miss = GUESTS.filter((g) => !GUEST_LINES[g.id]);
   console.log(`낯선 손님: 명부 ${GUESTS.length}명 · 대사 ${GUESTS.length - miss.length}명${miss.length ? ` (대사 없음 ${miss.length}: ${miss.slice(0, 8).map((g) => g.id).join(' ')}${miss.length > 8 ? ' …' : ''})` : ''} · 익명 그림 ${GUEST_ANON.length}`);
+}
+// 에이든 × 낯선 손님 만담 (src/data/bar/guestaiden.ts, 지침 art/guests/_aiden_brief.md): 손님마다 3편 · 편마다 4~7줄 · 에이든과 그 손님이 둘 다 말한다 ·
+// 서술 줄 없음 · 이름표는 에이든 · 레이첼만 · 이름을 밝히기 전 편(named 없음)에는 그 손님 이름이 없다
+{
+  let n = 0;
+  for (const [id, ts] of Object.entries(GUEST_AIDEN)) {
+    const g = GUEST_BY_ID[id];
+    if (!g) { errs.push(`에이든 만담 ${id}: 명부에 없는 손님`); continue; }
+    if (ts.length !== 3) errs.push(`에이든 만담 ${id}: ${ts.length}편 (3편)`);
+    const parts = g.name.split(' ').filter((x) => x.length >= 2);
+    ts.forEach((t, i) => {
+      const w = `에이든 만담 ${id}.${i}`;
+      n++;
+      if (!t.sit) errs.push(`${w}: sit 없음`);
+      if (t.lines.length < 4 || t.lines.length > 7) errs.push(`${w}: ${t.lines.length}줄 (4~7)`);
+      const label = (l: string) => l.match(/^([^:\s]{1,8}): /)?.[1];
+      if (!t.lines.some((l) => label(l) === '에이든')) errs.push(`${w}: 에이든 줄 없음`);
+      if (!t.lines.some((l) => !label(l))) errs.push(`${w}: 손님 줄 없음`);
+      for (const l of t.lines) {
+        if (l.startsWith('* ')) errs.push(`${w}: 서술 줄 (무대 말풍선이라 쓰지 않는다)`);
+        const lb = label(l);
+        if (lb && lb !== '에이든' && lb !== '레이첼') errs.push(`${w}: 이름표 '${lb}' (에이든 · 레이첼만)`);
+      }
+      if (!t.named && parts.some((x) => t.lines.some((l) => l.includes(x)))) errs.push(`${w}: 이름 밝히기 전 편에 이름(${g.name})`);
+    });
+  }
+  console.log(`에이든 × 낯선 손님 만담: 손님 ${Object.keys(GUEST_AIDEN).length}명 · ${n}편`);
 }
 // 반복 개그 회수 〔회수:id,id〕: 깔린 편이 있고 보류 · 자기 자신이 아니어야 (없으면 영영 재생되지 않는다)
 const BID = new Map(BANTER.map((b) => [b.id, b]));
