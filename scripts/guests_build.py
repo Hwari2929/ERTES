@@ -55,6 +55,7 @@ def prompts(rows):
     for r in rows:
         k = f"gs_{r['id']}"
         e = {'name': r.get('name') or f"익명 손님 ({r['kind']})", 'subject': r['subject'], 'tags': r['tags'], 'source': 'guest', 'notes': f"{r.get('org', '익명')} · {r['kind']} · {r['look']}"}
+        if P.get(k, {}).get('neg'): e['neg'] = P[k]['neg']  # 다시 뽑을 때 붙인 항목별 부정 프롬프트는 남긴다
         if P.get(k) != e:
             P[k] = e; n += 1
     json.dump(P, open('art/prompts.json', 'w'), ensure_ascii=False, indent=1)

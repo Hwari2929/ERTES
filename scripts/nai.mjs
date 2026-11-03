@@ -42,7 +42,8 @@ function unzipFirst(buf) {
 }
 
 const OBJ_NEG = ', humanoid, bipedal, android, mecha musume, gundam, person, human, arms and legs, standing robot';
-const negFor = (id) => cfg.negative + (prompts[id]?.object ? OBJ_NEG : '');
+/** 부정 프롬프트: 공용 + 사물이면 사람형 빼기 + 항목별 추가(prompts.json 의 neg, 예: 명암 · 광택 줄이기) */
+const negFor = (id) => cfg.negative + (prompts[id]?.object ? OBJ_NEG : '') + (prompts[id]?.neg ? ', ' + prompts[id].neg : '');
 function promptFor(id) {
   const p = prompts[id];
   if (!p) throw new Error(`prompts.json 에 ${id} 없음`);
