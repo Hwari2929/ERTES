@@ -46,6 +46,7 @@ import { artURL, bgURL, guestArtReady, loadGuestPacks, standURL } from './portra
 import { STAND_FACE } from './standface.gen';
 import { ICONS } from './portraits.gen';
 import { listSaves, loadRun } from './save';
+import { sfx } from './sound';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const pick = <T>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
@@ -1608,18 +1609,34 @@ function openPrep(k: string) {
   S.prep = newPrep(k, s.id, nameOf(k), s.order, s.orderHint);
   if (!barTutSeen('prep')) { S.prep.memo = true; metaBarTut('prep'); } // 처음 연 제조대: 에이든의 메모가 붙어 있다 (한 번만)
   metaBarTut('order'); // 주문을 받아 봤다 (첫 주문 귀띔을 못 봤어도)
+  delete root.querySelector<HTMLElement>('.bar-prep')?.dataset.st; // 새 주문은 출력기 자리에서 시작 (앞 주문의 단계에서 옮겨 오지 않는다)
   drawPrep(root);
   const sec = root.querySelector<HTMLElement>('.bar-prep');
   if (sec) { sec.hidden = false; void sec.offsetWidth; }
   root.classList.add('prep-on');
 }
+/** 제조대 다시 그리기. 단계가 바뀌었으면 앞 단계 자리에서 그려 놓고 다음 프레임에 옮긴다 (카메라가 작업대를 따라 움직이고 영수증이 오른쪽 위로 옮겨 꽂힌다, docs/UI.md 27 · 32) */
 function drawPrep(root: HTMLElement) {
   const sec = root.querySelector<HTMLElement>('.bar-prep');
-  if (!sec || !S.prep) return;
-  const book = sec.querySelector('.bp-recs')?.scrollTop || 0;
-  sec.innerHTML = prepHtml(S.prep, nameOf);
-  const recs = sec.querySelector('.bp-recs');
-  if (recs) recs.scrollTop = book;
+  const p = S.prep;
+  if (!sec || !p) return;
+  const keep = ['.bp-recs', '.bp-cab', '.bp-gars'].map((q) => sec.querySelector(q)?.scrollTop || 0);
+  const was = sec.dataset.st === undefined ? p.step : +sec.dataset.st;
+  sec.innerHTML = prepHtml(p, nameOf);
+  sec.dataset.st = String(p.step);
+  ['.bp-recs', '.bp-cab', '.bp-gars'].forEach((q, i) => { const el = sec.querySelector(q); if (el) el.scrollTop = keep[i]; });
+  const view = sec.querySelector<HTMLElement>('.bp-view'), rail = sec.querySelector<HTMLElement>('.bp-rail');
+  const rc = rail?.querySelector<HTMLElement>('.bp-rc');
+  if (view && rc) view.style.setProperty('--rch', `${rc.offsetHeight}px`); // 맛 막대 = 꽂힌 영수증 바로 아래
+  if (view && rail && was !== p.step && !reduced()) {
+    view.style.setProperty('--st', String(was)); rail.classList.toggle('pin', was > 0); view.classList.add('still');
+    void view.offsetWidth;
+    view.classList.remove('still'); view.style.setProperty('--st', String(p.step)); rail.classList.toggle('pin', p.step > 0);
+  }
+  if (!p.printed) { // 처음 그릴 때만: 출력기에서 영수증이 줄마다 밀려 나온다
+    p.printed = true;
+    if (!reduced()) for (let i = 0; i < 9; i++) sfx('print', { delay: 0.35 + i * 0.13, pitch: 1 + (i % 2) * 0.04 });
+  }
 }
 /** 카운터로 돌아선다 (served = 방금 잔을 내줬다 → 반응 장면) */
 function closePrep(after: number) {
@@ -1688,7 +1705,7 @@ export function barAct(v: string): boolean {
   if (k === 'prep' && S.prep) {
     const r = prepAct(S.prep, v.slice(5));
     const root = document.querySelector<HTMLElement>(BAR_SEL);
-    if (r === 'serve') serveDrink();
+    if (r === 'serve') { sfx('bell'); serveDrink(); }
     else if (r === 'back') closePrep(900);
     else if (r === 'draw' && root) drawPrep(root);
     return false;

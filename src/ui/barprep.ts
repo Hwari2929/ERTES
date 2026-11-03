@@ -1,11 +1,12 @@
 // 에란테스 바 제조대 (후면): 주문을 누르면 카메라가 180° 돌아 여기를 본다 (docs/BAR_OPS.md 2 · 7절). 만드는 동안 손님 반응은 없다.
-// 위 선반 = 술 10 · 음료 6 · 분말 3 (누르면 지금 잔에 1칸) · 왼쪽 = 잔 6 · 가운데 = 만드는 잔 · 오른쪽 = 얼음 · 가니쉬 · 아래 = 맛 막대 3개.
-// 주문서는 종이 사물(레터프레스, docs/UI.md 19), 맛 막대 · 칸 · 단추는 게임 토큰. 배경은 당분간 빈 배경 (단색 + 카운터 나무결 작업대).
+// 네 자리가 작업대를 따라 가로로 이어지고, 카메라가 한 자리씩 오른쪽으로 옮겨 간다 (docs/UI.md 27 — 이어 움직인다):
+//   1 영수증 (맨 왼쪽 출력기에서 영수증이 밀려 나온다) → 2 잔 · 얼음 → 3 진열장 (층마다 병, 병에는 전체 이름) → 4 가니쉬 · 탁상 벨 (누르면 내준다).
+// 영수증은 다음 단계부터 오른쪽 위에 꽂혀 따라오고, 그 아래 맛 막대 3개 (진열장부터). 영수증 · 레시피북 · 메모는 종이 사물(레터프레스, docs/UI.md 19), 칸 · 단추는 게임 토큰.
 // 레시피북(에이든 공략집)은 종이 덮개: 메뉴 · 단골 장부 · 에이든의 메모 (바 운영 첫 영업 보조를 다시 보는 쪽).
-// 처음 연 제조대에는 왼쪽 잔 선반 아래에 에이든의 메모가 붙어 있다 (순서 · 맛 막대 · 주문서 · 레시피북, ✕ 로 뗀다 — 막지 않는다).
+// 처음 연 제조대에는 출력기 왼쪽에 에이든의 메모가 놓여 있다 (순서 · 자리별 한 줄, ✕ 로 뗀다 — 막지 않는다).
 import {
   AXES, AXIS_NAME, GARNISH_BY_ID, GARNISH_MAX, GARNISHES, GLASS_BY_ID, GLASS_KIND_NAME, GLASSES, ICE_NAME, ING_BY_ID, ING_KIND_NAME, INGREDIENTS, RECIPES,
-  tagsOf, tasteOf, tasteText, type Drink, type Ice, type IngKind,
+  tasteOf, tasteText, type Drink, type Ice, type IngKind,
 } from '../data/bar/drinks';
 import { ORDER_STYLE_NAME } from '../data/bar/drinks';
 import { axisTargets, COIN_NAME, recipeName, type Order } from '../data/bar/orders';
@@ -20,9 +21,15 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 
 /** 지금 만드는 잔 (잔을 고르기 전엔 glass = '') */
 export interface Prep { k: string; who: string; name: string; order: Order; glass: string; fill: string[]; ice: Ice; garnish: string[]; book: '' | 'menu' | 'ledger' | 'memo'; hintText?: string;
+  /** 지금 보는 단계 (PREP_STEPS) */
+  step: PrepStep;
+  /** 영수증을 다 뽑았다 (처음 그릴 때만 출력기에서 밀려 나온다) */
+  printed?: boolean;
+  /** 진열장에서 고친 층 (다음 병이 이 층을 바꾼다) */
+  sel?: number;
   /** 처음 연 제조대: 에이든의 메모가 붙어 있다 (✕ 로 떼면 false) */
   memo?: boolean }
-export const newPrep = (k: string, who: string, name: string, order: Order, hintText?: string): Prep => ({ k, who, name, order, glass: '', fill: [], ice: 'none', garnish: [], book: '', hintText });
+export const newPrep = (k: string, who: string, name: string, order: Order, hintText?: string): Prep => ({ k, who, name, order, glass: '', fill: [], ice: 'none', garnish: [], book: '', hintText, step: 0 });
 export const prepDrink = (p: Prep): Drink => ({ glass: p.glass, fill: [...p.fill], ice: p.ice, garnish: [...p.garnish] });
 const slotsOf = (p: Prep) => GLASS_BY_ID[p.glass]?.slots || 0;
 export const prepReady = (p: Prep) => !!p.glass && p.fill.length === slotsOf(p);
@@ -63,21 +70,6 @@ function tasteBars(d: Drink, o: Order) {
   }).join('');
 }
 
-// ───────── 주문서 (종이)
-function slipHtml(p: Prep) {
-  const o = p.order;
-  let body = '';
-  if (o.style === 'vague') body = `<ul class="bp-conds">${(o.conds || []).map((c) => `<li>${esc(c.label)}</li>`).join('')}</ul>`;
-  else if (o.style === 'photo') body = `<figure class="bp-photo">${drinkSvg(o.target!, 1, 'drink bp-pic')}</figure>`;
-  else if (o.style === 'name') body = `<p class="bp-menu">${esc(o.name || '')}</p>`;
-  else {
-    const note = o.hint === 'aiden' ? `<p class="bp-note"><b>에이든</b> ${esc(o.name ? `${o.name}입니다.` : '지난번 그 잔입니다.')}</p>${!o.name || o.ledger ? `<figure class="bp-photo">${drinkSvg(o.target!, 1, 'drink bp-pic')}</figure>` : ''}`
-      : o.hint === 'guest' ? `<p class="bp-note">${esc(p.hintText || '')}</p>` : '<p class="bp-note">단골 장부를 보세요.</p>';
-    body = note;
-  }
-  return `<aside class="bp-slip" aria-label="주문서"><span class="bp-slip-who">${esc(p.name)}</span><span class="bp-slip-style">${esc(ORDER_STYLE_NAME[o.style])}</span>${body}</aside>`;
-}
-
 // ───────── 에이든의 메모 (종이, 바 운영 첫 영업 보조 — src/data/bar/opstut.ts)
 const memoText = (s: string) => esc(fillVars(s, { coin: COIN_NAME }));
 const memoPara = (ls: string[]) => ls.map((l) => `<p>${memoText(l)}</p>`).join('');
@@ -114,50 +106,116 @@ function bookHtml(p: Prep, names: (id: string) => string) {
     <button class="bp-x" data-a="bar-x" data-v="prep:book:" aria-label="닫기">✕</button></header>${p.book === 'memo' ? bookMemoHtml() : `<ul class="bp-recs">${list}</ul>`}</div>`;
 }
 
-/** 제조대 전체 */
-export function prepHtml(p: Prep, names: (id: string) => string): string {
-  const d = prepDrink(p);
-  const n = slotsOf(p);
-  const groups: [string, IngKind[]][] = [['술', ['spirit', 'brew', 'liqueur']], [ING_KIND_NAME.mixer, ['mixer']], [ING_KIND_NAME.powder, ['powder']]];
-  const full = !!p.glass && p.fill.length >= n;
-  const shelf = groups.map(([label, kinds]) => `<div class="bp-grp"><span class="bp-grp-l">${label}</span><div class="bp-bottles">${INGREDIENTS.filter((x) => kinds.includes(x.kind)).map((x) =>
-    `<button class="bp-btl" data-a="bar-x" data-v="prep:pour:${x.id}"${!p.glass || full ? ' aria-disabled="true"' : ''} title="${esc(`${x.name} (${x.type})`)}">${itemImg(`ing.${x.id}`, 'bp-art') || bottleSvg(x.id)}<span>${esc(x.name)}</span></button>`).join('')}</div></div>`).join('');
-  const glasses = (['tumbler', 'stem'] as const).map((k) => `<div class="bp-glass-row"><span class="bp-grp-l">${GLASS_KIND_NAME[k]}</span>${GLASSES.filter((g) => g.kind === k).map((g) =>
-    `<button class="bp-glass${p.glass === g.id ? ' on' : ''}" data-a="bar-x" data-v="prep:glass:${g.id}" aria-pressed="${p.glass === g.id}">${drinkSvg({ glass: g.id, fill: [], ice: 'none', garnish: [] }, 0, 'drink')}<span>${esc(g.name)}</span><i class="bp-pips" aria-label="${g.slots}칸">${'<b></b>'.repeat(g.slots)}</i></button>`).join('')}</div>`).join('');
-  const work = p.glass
-    ? `<div class="bp-cup">${drinkSvg(d, n ? p.fill.length / n : 0, 'drink bp-big')}</div><p class="bp-count f-num"><b>${p.fill.length}</b> / ${n}칸</p>`
-    : '<div class="bp-cup bp-cup-empty" aria-hidden="true"></div><p class="bp-count">잔을 고르세요</p>';
-  const ices = (Object.keys(ICE_NAME) as Ice[]).map((k) => `<button class="bp-ice${p.ice === k ? ' on' : ''}" data-a="bar-x" data-v="prep:ice:${k}" aria-pressed="${p.ice === k}">${ICE_ICON[k]}<span>${ICE_NAME[k]}</span></button>`).join('');
-  const gars = GARNISHES.map((g) => { const on = p.garnish.includes(g.id); return `<button class="bp-gar${on ? ' on' : ''}" data-a="bar-x" data-v="prep:gar:${g.id}" aria-pressed="${on}"${!on && p.garnish.length >= GARNISH_MAX ? ' aria-disabled="true"' : ''} title="${esc(g.desc)}">${itemImg(`gar.${g.id}`, 'bp-art') || dot(GARNISH_COLOR[g.id] || '#999999')}<span>${esc(g.name)}</span></button>`; }).join('');
-  const ready = prepReady(p);
-  const tags = p.fill.length ? tagsOf(d).slice(0, 4) : [];
-  return `<header class="bp-head"><h2>${esc(p.name)}의 주문</h2><button class="bp-bookbtn" data-a="bar-x" data-v="prep:book:menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5 Q8 3.5 12 5.5 Q16 3.5 20 5 V19 Q16 17.5 12 19.5 Q8 17.5 4 19 Z M12 5.5 V19.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>레시피북</button>
-      <button class="bp-back" data-a="bar-x" data-v="prep:back">카운터로</button></header>
-    <div class="bp-shelf">${shelf}</div>
-    <div class="bp-glasses">${glasses}${p.memo ? prepMemoHtml() : ''}</div>
-    <div class="bp-work">${work}
-      <div class="bp-acts"><button class="bp-btn" data-a="bar-x" data-v="prep:undo"${p.fill.length ? '' : ' aria-disabled="true"'}>한 칸 빼기</button><button class="bp-btn" data-a="bar-x" data-v="prep:clear"${p.fill.length || p.garnish.length || p.ice !== 'none' ? '' : ' aria-disabled="true"'}>비우기</button>
-        <button class="bp-btn bp-serve" data-a="bar-x" data-v="prep:serve"${ready ? '' : ' aria-disabled="true"'}>내주기</button></div></div>
-    <div class="bp-side"><div class="bp-grp"><span class="bp-grp-l">얼음</span><div class="bp-ices">${ices}</div></div>
-      <div class="bp-grp"><span class="bp-grp-l">가니쉬 <b class="f-num">${p.garnish.length}</b> / ${GARNISH_MAX}</span><div class="bp-gars">${gars}</div></div></div>
-    <div class="bp-taste">${tasteBars(d, p.order)}<p class="bp-tt">${p.fill.length ? esc(tasteText(d)) : ''}${tags.length ? '' : ''}</p></div>
-    ${slipHtml(p)}
-    ${p.book ? bookHtml(p, names) : ''}
-    <div class="bp-bench" style="--tex:url('${artURL('ct_table.webp')}')" aria-hidden="true"></div>`;
+/** 단계: 0 영수증 (출력기, 맨 왼쪽) → 1 잔 · 얼음 → 2 진열장 (층마다 병) → 3 가니쉬 · 벨. 카메라가 작업대를 따라 오른쪽으로 옮겨 간다 */
+export const PREP_STEPS = ['영수증', '잔 · 얼음', '진열장', '가니쉬'] as const;
+export type PrepStep = 0 | 1 | 2 | 3;
+/** 그 단계로 갈 수 있나 (진열장 = 잔을 골랐다 · 가니쉬 = 층을 다 채웠다) */
+export const prepCan = (p: Prep, st: number) => st <= 1 || (st === 2 ? !!p.glass : st === 3 ? prepReady(p) : false);
+const WHY: Record<number, string> = { 2: '잔을 먼저 고르세요', 3: '층을 다 채우세요' };
+
+/** 영수증 (카본지, 출력기에서 나온다 → 다음 단계부터 오른쪽 위에 꽂혀 따라온다) */
+function receiptHtml(p: Prep) {
+  const o = p.order;
+  let body = '';
+  if (o.style === 'vague') body = `<ul class="bp-conds">${(o.conds || []).map((c) => `<li>${esc(c.label)}</li>`).join('')}</ul>`;
+  else if (o.style === 'photo') body = `<figure class="bp-photo">${drinkSvg(o.target!, 1, 'drink bp-pic')}</figure>`;
+  else if (o.style === 'name') body = `<p class="bp-menu">${esc(o.name || '')}</p>`;
+  else body = o.hint === 'aiden' ? `<p class="bp-note"><b>에이든</b> ${esc(o.name ? `${o.name}입니다.` : '지난번 그 잔입니다.')}</p>${!o.name || o.ledger ? `<figure class="bp-photo">${drinkSvg(o.target!, 1, 'drink bp-pic')}</figure>` : ''}`
+    : o.hint === 'guest' ? `<p class="bp-note">${esc(p.hintText || '')}</p>` : '<p class="bp-note">단골 장부를 보세요.</p>';
+  const no = (loadMeta().bar?.served || 0) + 1; // 전표 번호 = 지금까지 내준 잔 + 1 (기록이 쌓인다, docs/UI.md 22)
+  return `<aside class="bp-rc lp-carbon" aria-label="영수증"><header class="bp-rc-h"><span class="f-num">No.${no}</span><span>${esc(ORDER_STYLE_NAME[o.style])}</span></header>
+    <b class="bp-rc-who">${esc(p.name)}</b>${body}</aside>`;
 }
 
-/** 제조대 조작. 'serve' = 내주기 · 'back' = 카운터로 · 'draw' = 다시 그리기 · null = 아무것도 */
+/** 큰 잔 (붓는 대로 아래부터 층) — 잔을 고르기 전엔 빈 자리 */
+const cupHtml = (p: Prep, cls = '') => {
+  const n = slotsOf(p);
+  return p.glass ? `<div class="bp-cup${cls}">${drinkSvg(prepDrink(p), n ? p.fill.length / n : 0, 'drink bp-big')}</div>` : `<div class="bp-cup bp-cup-empty${cls}" aria-hidden="true"></div>`;
+};
+
+/** 1 잔 · 얼음: 잔 선반 (텀블러 3 · 스템 잔 3, 잔 아래 칸 수 점) · 고른 잔 · 얼음 3 */
+function glassStation(p: Prep) {
+  const glasses = (['tumbler', 'stem'] as const).map((k) => `<div class="bp-glass-row"><span class="bp-grp-l">${GLASS_KIND_NAME[k]}</span>${GLASSES.filter((g) => g.kind === k).map((g) =>
+    `<button class="bp-glass${p.glass === g.id ? ' on' : ''}" data-a="bar-x" data-v="prep:glass:${g.id}" aria-pressed="${p.glass === g.id}">${drinkSvg({ glass: g.id, fill: [], ice: 'none', garnish: [] }, 0, 'drink')}<span>${esc(g.name)}</span><i class="bp-pips" aria-label="${g.slots}칸">${'<b></b>'.repeat(g.slots)}</i></button>`).join('')}</div>`).join('');
+  const ices = (Object.keys(ICE_NAME) as Ice[]).map((k) => `<button class="bp-ice${p.ice === k ? ' on' : ''}" data-a="bar-x" data-v="prep:ice:${k}" aria-pressed="${p.ice === k}">${ICE_ICON[k]}<span>${ICE_NAME[k]}</span></button>`).join('');
+  return `<div class="bp-glasses">${glasses}</div>${cupHtml(p)}<div class="bp-grp bp-icebox"><span class="bp-grp-l">얼음</span><div class="bp-ices">${ices}</div></div>`;
+}
+
+/** 2 진열장: 술 · 음료 · 분말 선반 (병마다 전체 이름 + 종류) · 잔 옆 층 목록 (위층이 위, 누른 층 = 다음 병이 들어갈 층) */
+function cabinetStation(p: Prep) {
+  const n = slotsOf(p);
+  const at = p.sel ?? (p.fill.length < n ? p.fill.length : -1); // 다음 병이 들어갈 층 (-1 = 다 찼고 고친 층 없음)
+  const groups: [string, IngKind[]][] = [['술', ['spirit', 'brew', 'liqueur']], [ING_KIND_NAME.mixer, ['mixer']], [ING_KIND_NAME.powder, ['powder']]];
+  const shelves = groups.map(([label, kinds]) => `<div class="bp-shelf"><span class="bp-grp-l">${label}</span><div class="bp-bottles">${INGREDIENTS.filter((x) => kinds.includes(x.kind)).map((x) =>
+    `<button class="bp-btl" data-a="bar-x" data-v="prep:pour:${x.id}"${at < 0 ? ' aria-disabled="true"' : ''} title="${esc(x.desc)}"><span class="bp-btl-art">${itemImg(`ing.${x.id}`, 'bp-art') || bottleSvg(x.id)}</span><b>${esc(x.name)}</b><small>${esc(x.type)}</small></button>`).join('')}</div></div>`).join('');
+  const rows = Array.from({ length: n }, (_, j) => n - 1 - j).map((i) => {
+    const x = ING_BY_ID[p.fill[i]];
+    const can = i <= p.fill.length && i < n; // 빈 층은 맨 아래 빈 층만 고를 수 있다 (아래부터 붓는다)
+    return `<li><button class="bp-ly${i === at ? ' on' : ''}${x ? '' : ' empty'}" data-a="bar-x" data-v="prep:ly:${i}"${can ? '' : ' aria-disabled="true"'} aria-pressed="${i === at}"><b class="f-num">${i + 1}층</b>${x ? `${dot(x.color)}<span>${esc(x.name)}</span>` : '<span class="bp-ly-none">—</span>'}</button></li>`;
+  }).join('');
+  return `<div class="bp-cab">${shelves}</div>
+    <div class="bp-layers">${cupHtml(p, ' sm')}<ol class="bp-lys">${rows}</ol>
+      <div class="bp-acts"><button class="bp-btn" data-a="bar-x" data-v="prep:undo"${p.fill.length ? '' : ' aria-disabled="true"'}>한 층 빼기</button><button class="bp-btn" data-a="bar-x" data-v="prep:clear"${p.fill.length ? '' : ' aria-disabled="true"'}>비우기</button></div></div>`;
+}
+
+/** 3 가니쉬 · 벨: 가니쉬 10 (최대 3) · 완성 잔 · 탁상 벨 (누르면 내준다) */
+function garnishStation(p: Prep) {
+  const gars = GARNISHES.map((g) => { const on = p.garnish.includes(g.id); return `<button class="bp-gar${on ? ' on' : ''}" data-a="bar-x" data-v="prep:gar:${g.id}" aria-pressed="${on}"${!on && p.garnish.length >= GARNISH_MAX ? ' aria-disabled="true"' : ''} title="${esc(g.desc)}">${itemImg(`gar.${g.id}`, 'bp-art') || dot(GARNISH_COLOR[g.id] || '#999999')}<span>${esc(g.name)}</span></button>`; }).join('');
+  const ready = prepReady(p);
+  return `<div class="bp-grp bp-garbox"><span class="bp-grp-l">가니쉬 <b class="f-num">${p.garnish.length}</b> / ${GARNISH_MAX}</span><div class="bp-gars">${gars}</div></div>
+    ${cupHtml(p)}
+    <button class="bp-bell" data-a="bar-x" data-v="prep:serve" aria-label="벨을 눌러 내주기"${ready ? '' : ' aria-disabled="true"'}><img src="${artURL('ct_bell.webp')}" alt="" draggable="false"></button>`;
+}
+
+/** 제조대 전체: 머리 (제목 · 단계 칩 · 레시피북) · 작업대 (네 자리가 가로로 이어져 카메라가 옮겨 간다) · 영수증 · 맛 막대 · 이전 / 다음 */
+export function prepHtml(p: Prep, names: (id: string) => string): string {
+  const d = prepDrink(p);
+  const st = p.step;
+  const chips = PREP_STEPS.map((label, i) => { const can = prepCan(p, i); return `<li><button class="bp-chip${i === st ? ' on' : ''}" data-a="bar-x" data-v="prep:step:${i}"${can ? '' : ' aria-disabled="true"'} aria-current="${i === st ? 'step' : 'false'}"><b class="f-num">${i + 1}</b>${label}</button></li>`; }).join('');
+  const station = (i: number, label: string, html: string) => `<section class="bp-st bp-st${i}" aria-label="${label}"${i === st ? '' : ' inert'}>${html}</section>`;
+  const nextOk = st < 3 && prepCan(p, st + 1);
+  const tags = p.fill.length ? tasteText(d) : '';
+  return `<header class="bp-head"><h2>${esc(p.name)}의 주문</h2><ol class="bp-chips" aria-label="제조 단계">${chips}</ol>
+      <button class="bp-bookbtn" data-a="bar-x" data-v="prep:book:menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5 Q8 3.5 12 5.5 Q16 3.5 20 5 V19 Q16 17.5 12 19.5 Q8 17.5 4 19 Z M12 5.5 V19.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>레시피북</button></header>
+    <button class="bp-back" data-a="bar-x" data-v="prep:back">카운터로</button>
+    <div class="bp-view" style="--st:${st}">
+      <div class="bp-belt" style="--tex:url('${artURL('ct_table.webp')}')">
+        ${station(0, PREP_STEPS[0], `${p.memo ? prepMemoHtml() : ''}<div class="bp-printer" aria-hidden="true"><img src="${artURL('ct_printer.webp')}" alt="" draggable="false"></div>`)}
+        ${station(1, PREP_STEPS[1], glassStation(p))}
+        ${station(2, PREP_STEPS[2], cabinetStation(p))}
+        ${station(3, PREP_STEPS[3], garnishStation(p))}
+      </div>
+      <div class="bp-rail${st ? ' pin' : ''}${p.printed ? '' : ' new'}">${receiptHtml(p)}</div>
+      <div class="bp-taste"${st >= 2 ? '' : ' hidden'}>${tasteBars(d, p.order)}<p class="bp-tt">${esc(tags)}</p></div>
+    </div>
+    <nav class="bp-nav" aria-label="제조 단계 이동">
+      <button class="bp-btn bp-prev" data-a="bar-x" data-v="prep:prev"${st ? '' : ' hidden'}><span aria-hidden="true">←</span>${st ? PREP_STEPS[st - 1] : ''}</button>
+      ${st < 3 ? `${nextOk ? '' : `<span class="bp-why">${WHY[st + 1]}</span>`}<button class="bp-btn bp-next" data-a="bar-x" data-v="prep:next"${nextOk ? '' : ' aria-disabled="true"'}>${PREP_STEPS[st + 1]}<span aria-hidden="true">→</span></button>` : ''}
+    </nav>
+    ${p.book ? bookHtml(p, names) : ''}`;
+}
+
+/** 제조대 조작. 'serve' = 내주기 (벨) · 'back' = 카운터로 · 'draw' = 다시 그리기 · null = 아무것도 */
 export function prepAct(p: Prep, v: string): 'serve' | 'back' | 'draw' | null {
   const [k, x = ''] = v.split(':');
   const n = slotsOf(p);
+  const go = (st: number) => { if (st < 0 || st > 3 || st === p.step || !prepCan(p, st)) return null; p.step = st as PrepStep; p.sel = undefined; return 'draw' as const; };
   if (k === 'back') return 'back';
   if (k === 'serve') return prepReady(p) ? 'serve' : null;
+  if (k === 'step') return go(+x);
+  if (k === 'next') return go(p.step + 1);
+  if (k === 'prev') return go(p.step - 1);
   if (k === 'book') { p.book = x === 'menu' || x === 'ledger' || x === 'memo' ? x : ''; return 'draw'; }
   if (k === 'memo') { p.memo = false; return 'draw'; }
-  if (k === 'glass' && GLASS_BY_ID[x]) { p.glass = p.glass === x ? '' : x; const m = GLASS_BY_ID[p.glass]?.slots || 0; if (p.fill.length > m) p.fill = p.fill.slice(0, m); return 'draw'; }
-  if (k === 'pour' && ING_BY_ID[x] && p.glass && p.fill.length < n) { p.fill.push(x); return 'draw'; }
-  if (k === 'undo' && p.fill.length) { p.fill.pop(); return 'draw'; }
-  if (k === 'clear') { p.fill = []; p.garnish = []; p.ice = 'none'; return 'draw'; }
+  if (k === 'glass' && GLASS_BY_ID[x]) { p.glass = p.glass === x ? '' : x; const m = GLASS_BY_ID[p.glass]?.slots || 0; if (p.fill.length > m) p.fill = p.fill.slice(0, m); p.sel = undefined; return 'draw'; }
+  if (k === 'pour' && ING_BY_ID[x] && p.glass) { // 고른 층이 있으면 그 층을 바꾸고, 아니면 맨 아래 빈 층에 붓는다
+    if (p.sel !== undefined && p.sel < p.fill.length) { p.fill[p.sel] = x; p.sel = undefined; return 'draw'; }
+    if (p.fill.length < n) { p.fill.push(x); p.sel = undefined; return 'draw'; }
+    return null;
+  }
+  if (k === 'ly') { const i = +x; if (!(i >= 0 && i < n && i <= p.fill.length)) return null; p.sel = p.sel === i || i >= p.fill.length ? undefined : i; return 'draw'; }
+  if (k === 'undo' && p.fill.length) { p.fill.pop(); p.sel = undefined; return 'draw'; }
+  if (k === 'clear' && p.fill.length) { p.fill = []; p.sel = undefined; return 'draw'; }
   if (k === 'ice' && x in ICE_NAME) { p.ice = x as Ice; return 'draw'; }
   if (k === 'gar' && GARNISH_BY_ID[x]) {
     if (p.garnish.includes(x)) p.garnish = p.garnish.filter((g) => g !== x);
