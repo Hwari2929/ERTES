@@ -34,7 +34,7 @@
 @keyframes bar-spot-in { from { opacity: 0; } to { opacity: .15; } }
 @keyframes bar-spot-breathe { 0%, 100% { opacity: .15; } 50% { opacity: .1; } }
 .bar-pick { position: absolute; z-index: var(--z-tip); display: flex; gap: 8px; pointer-events: auto; }
-.bar-pick button { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; background: var(--panel); color: var(--c-text); border: 1px solid var(--line); border-radius: var(--r-pill); box-shadow: 0 4px 10px var(--shade-2); cursor: pointer; }
+.bar-pick button { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; background: var(--c-white); color: var(--c-black); border: 1px solid var(--line); border-radius: var(--r-pill); box-shadow: 0 4px 10px var(--shade-2); cursor: pointer; }
 .bar-pick svg { width: 24px; height: 24px; }
 .bar-pick .bar-pick-ok { background: var(--c-select); color: var(--c-black); border-color: var(--c-select); }
 .bar-pick button:focus-visible { outline: 2px solid var(--c-select); outline-offset: 2px; }

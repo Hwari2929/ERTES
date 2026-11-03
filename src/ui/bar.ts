@@ -1649,15 +1649,16 @@ function focusOrder(k: string) {
   seat.querySelector('.bar-order:not(.bar-call)')?.remove();
   const bub = root.querySelector<HTMLElement>('.bar-bub:not(.ghost)');
   const line = s.orderLine || `${ORDER_STYLE_NAME[s.order.style]} 한 잔 부탁해요.`;
-  if (bub && fl) { // 주문 말 + 말풍선 바로 바깥 옆에 ✕ 나중에 · ✓ 받기 (오른쪽, 자리가 없으면 왼쪽)
+  if (bub && fl) { // 주문 말 + 말풍선 바로 바깥 옆에 ✕ 나중에 · ✓ 받기 (얼굴 반대쪽, 자리가 없으면 다른 쪽)
     bub.innerHTML = `<b class="f-ui" style="--c:${colorOf(k)}">${esc(nameOf(k))}</b><span>${esc(line)}</span>`;
     bub.classList.remove('off-stage', 'mono'); bub.hidden = false;
     placeBub(root, bub, seat);
     void bub.offsetWidth; bub.classList.add('on');
     fl.insertAdjacentHTML('beforeend', `<div class="bar-pick" role="group" aria-label="${esc(nameOf(k))}의 주문"><button class="bar-pick-x" data-a="bar-x" data-v="later" aria-label="나중에">${FOCUS_X}</button><button class="bar-pick-ok" data-a="bar-x" data-v="take:${k}" aria-label="주문 받기 — 제조대로">${FOCUS_OK}</button></div>`);
-    const pk = fl.lastElementChild as HTMLElement, F = fl.getBoundingClientRect(), B = bub.getBoundingClientRect();
-    const right = B.right - F.left + 10, pw = pk.offsetWidth;
-    pk.style.left = `${right + pw <= F.width - 8 ? right : Math.max(8, B.left - F.left - 10 - pw)}px`;
+    const pk = fl.lastElementChild as HTMLElement, F = fl.getBoundingClientRect(), B = bub.getBoundingClientRect(), R = seat.getBoundingClientRect();
+    const right = B.right - F.left + 10, pw = pk.offsetWidth, left = B.left - F.left - 10 - pw;
+    const away = B.left + B.width / 2 < R.left + R.width / 2 - 4 ? 'l' : 'r'; // 얼굴 반대쪽 (말풍선이 머리 왼쪽이면 왼쪽에) — 얼굴을 가리지 않게
+    pk.style.left = `${away === 'l' ? (left >= 8 ? left : right) : (right + pw <= F.width - 8 ? right : Math.max(8, left))}px`;
     pk.style.top = `${B.top - F.top + B.height / 2 - pk.offsetHeight / 2}px`;
   }
 }
