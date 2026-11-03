@@ -51,7 +51,7 @@
 /* 180° 돌아서기: 정면(배경 · 무대)이 옆으로 흘러 나가고 제조대가 반대쪽에서 들어온다 (움직임 줄이기: 엇갈려 흐려짐만) */
 .bar-prep { --rail: 220px; --pin-s: .8; --rcw: calc(var(--rail) / var(--pin-s)); --pw: calc(var(--rcw) / .68); --ph: calc(var(--pw) * .743); --pb: 70px; --nav-h: 56px;
   position: absolute; inset: 0 0 0 var(--bar-nav-w); z-index: var(--z-raise); display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; padding-top: max(12px, env(safe-area-inset-top));
-  background: color-mix(in srgb, var(--ct-wood-lo) 55%, var(--c-black)); color: var(--c-text); opacity: 0; translate: 40% 0; overflow: clip; }
+  background: var(--c-black); color: var(--c-text); opacity: 0; translate: 40% 0; overflow: clip; }
 .bar-prep[hidden] { display: none; }
 .bar.prep-on .bar-prep { opacity: 1; translate: 0 0; }
 .bar.prep-on .bar-scene, .bar.prep-on .bar-floor, .bar.prep-on .bar-shade { opacity: 0; pointer-events: none; }
@@ -80,8 +80,10 @@
 .bp-btn[aria-disabled="true"], .bp-btl[aria-disabled="true"], .bp-gar[aria-disabled="true"], .bp-ly[aria-disabled="true"] { opacity: .4; cursor: not-allowed; }
 
 /* 작업대: 네 자리가 가로로 이어진 띠 (폭 400%). 단계가 바뀌면 띠가 옆으로 흘러 카메라가 다음 자리로 옮겨 간 것처럼 보인다 (UI.md 27). 아래 30% = 카운터 나무결 */
-.bp-view { position: relative; min-height: 0; overflow: hidden; }
-.bp-belt { position: absolute; inset: 0 auto 0 0; width: 400%; display: flex; isolation: isolate; translate: calc(var(--st) * -25%) 0; }
+.bp-view { position: relative; min-height: 0; overflow: hidden; container-type: size; }
+/* 뒷벽: 장식 없는 검정 벽지 + 아래 가로 백라이트 (art/picked/bg_prep_wall — 2026-11-03 사용자 선택, 시안 f). 자리마다 한 장 (폭 = 화면 폭), 백라이트 줄(그림 높이 81.5%)이 작업대 윗변(70%) 바로 위에 오게 올린다 */
+.bp-belt { position: absolute; inset: 0 auto 0 0; width: 400%; display: flex; isolation: isolate; translate: calc(var(--st) * -25%) 0;
+  background: var(--wall) 0 calc(68cqh - 100cqw * 832 / 1216 * .815) / 100cqw auto repeat-x, var(--c-black); }
 .bp-belt::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 30%; z-index: -1; background: var(--tex) 0 0 / auto 100% repeat-x; filter: brightness(.6); border-top: 3px solid var(--ct-wood-hi); }
 .bp-st { position: relative; flex: 0 0 25%; min-width: 0; min-height: 0; display: grid; gap: 16px; padding: 4px calc(var(--rail) + 32px) var(--nav-h) 16px; }
 @media (prefers-reduced-motion: no-preference) {

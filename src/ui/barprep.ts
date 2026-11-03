@@ -179,7 +179,7 @@ export function prepHtml(p: Prep, names: (id: string) => string): string {
       <button class="bp-bookbtn" data-a="bar-x" data-v="prep:book:menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5 Q8 3.5 12 5.5 Q16 3.5 20 5 V19 Q16 17.5 12 19.5 Q8 17.5 4 19 Z M12 5.5 V19.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>레시피북</button></header>
     <button class="bp-back" data-a="bar-x" data-v="prep:back">카운터로</button>
     <div class="bp-view" style="--st:${st}">
-      <div class="bp-belt" style="--tex:url('${artURL('ct_table.webp')}')">
+      <div class="bp-belt" style="--tex:url('${artURL('ct_table.webp')}');--wall:url('${artURL('bg_prep_wall.webp')}')">
         ${station(0, PREP_STEPS[0], `${p.memo ? prepMemoHtml() : ''}<div class="bp-printer" aria-hidden="true"><img src="${artURL('ct_printer.webp')}" alt="" draggable="false"></div>`)}
         ${station(1, PREP_STEPS[1], glassStation(p))}
         ${station(2, PREP_STEPS[2], cabinetStation(p))}
