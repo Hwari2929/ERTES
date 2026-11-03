@@ -16,3 +16,4 @@ art/expr_stage/
 art/.nai.lock
 .claude/worktrees/
 tools/guests/out/
+tools/guests/pick/
