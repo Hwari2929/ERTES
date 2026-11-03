@@ -209,6 +209,8 @@ interface Seat {
   orderReal?: number;
   /** 낯선 손님이 이름을 밝히려 말을 걸 시각 (바 시간) · 머리 위 말 걸기 표시가 떠 있다 · 표시가 뜬 실제 시각 */
   callAt?: number; calling?: boolean; callReal?: number;
+  /** 막 들어온 낯선 손님: 다음 한때에 들어올 때 한마디 + (거의 늘) 주문 */
+  arrive?: boolean;
 }
 /** 장면 줄: [화자 id ('' = 서술 — 무대에서는 건너뜀), 대사, 이름표?, 종류? (e = 이모티콘: 대사 자리에 이모티콘 id · m = 혼잣말)] */
 type Line = [string, string, string?, ('e' | 'm')?];
@@ -511,10 +513,10 @@ function monoScene(now: number): Pick | null {
   if (now - S.monoAt < BAR_TUNE.monoGap) return null;
   const heard = new Set(loadMeta().bar?.talk || []);
   const opts = S.stage.filter((s) => !s.guest && MONO[s.id]).flatMap((s) => MONO_KINDS.filter((k) => !S.monoUsed.has(`${s.id}.${k}`) && lineTimeOk(MONO[s.id][k]) && (S.night || s.id === 'aiden' || (k !== 'sleep' && k !== 'drunk'))).map((k) => ({ id: s.id, k, key: `mono:${s.id}.${k}` })));
-  // 낯선 손님 혼잣말: 이름을 밝히기 전엔 앞 3줄 (+ 들어온 지 1시간 안이면 들어올 때 한마디), 밝힌 뒤엔 6줄 모두 (기록은 남기지 않는다)
+  // 낯선 손님 혼잣말: 이름을 밝히기 전엔 앞 3줄, 밝힌 뒤엔 6줄 모두 (기록은 남기지 않는다)
   const gl = patrons().filter((s) => s.guest && guestLines(s.gid!)).flatMap((s) => {
     const L = guestLines(s.gid!)!, k = keyOf(s);
-    const ls = [...L.mono.slice(0, guestNamed(s.gid!) ? 6 : 3), ...(now - s.since < BAR_TUNE.hour ? L.enter : [])];
+    const ls = L.mono.slice(0, guestNamed(s.gid!) ? 6 : 3); // 들어올 때 한마디(enter)는 arriveScene 에서
     return ls.map((l, i) => ({ k, l, key: `${k}.${i}.${l.length}` })).filter((x) => !S.monoUsed.has(x.key));
   });
   if (gl.length && (!opts.length || Math.random() < gl.length / (gl.length + opts.length))) {
@@ -628,6 +630,20 @@ function guestVisit(s: Seat, now: number) {
   const g = metaBarGuest(s.gid!, 'visit');
   if (!g.named && g.v > g.k && guestLines(s.gid!) && Math.random() < BAR_GUEST_CALL.chance) s.callAt = now + rand(BAR_GUEST_CALL.after);
 }
+/** 막 들어온 낯선 손님: 들어올 때 한마디 (손님 대사 enter) + BAR_OPS.arrive 확률로 바로 주문 (동시 주문은 maxOpen + 1 까지) */
+function arriveScene(now: number): Pick | null {
+  const s = patrons().find((x) => x.arrive);
+  if (!s) return null;
+  s.arrive = false;
+  const k = keyOf(s), L = guestLines(s.gid!);
+  const hello: Line[] = L?.enter?.length ? [[k, fillText(pick(L.enter), { pc: PC })]] : [];
+  if (S.ops && !s.order && !s.cup && Math.random() < BAR_OPS.arrive && S.stage.filter((x) => x.order).length < BAR_OPS.maxOpen + 1) {
+    const p = orderPick(s, now);
+    p.scene.lines = [...hello, ...p.scene.lines];
+    return p;
+  }
+  return hello.length ? { scene: { key: '', sit: '', lines: hello, kind: 'mono' }, plan: noop() } : null;
+}
 /** 이름을 밝힐 손님이 레이첼에게 먼저 한마디 건다 (머리 위에 말 걸기 표시가 뜬다 — 누르면 이름 밝히는 대화) */
 function callScene(now: number): Pick | null {
   const s = patrons().find((x) => x.callAt !== undefined && now >= x.callAt && !x.calling && !x.order && S.prep?.k !== keyOf(x));
@@ -655,6 +671,9 @@ function decideInner(prev: Scene | null, now: number): Pick {
   if (tp) return tp;
   const sh = shiftScene(now);
   if (sh) return sh;
+  // 0) 막 들어온 낯선 손님의 한마디 + 주문
+  const ar = arriveScene(now);
+  if (ar) return ar;
   // 1) 머물 시간이 끝난 사람이 인사하고 나간다 (받지 못한 주문은 거두고)
   const l = leaveScene(now);
   if (l) return l;
@@ -732,10 +751,11 @@ function startScene(p: Pick, root: HTMLElement | null, prev: Scene | null = null
   if (p.scene.dropOrder) { const s = S.stage.find((x) => keyOf(x) === p.scene.dropOrder); if (s) { s.order = undefined; s.orderHint = undefined; } }
   const fresh = patrons().filter((s) => !before.has(keyOf(s)));
   if (root) for (const s of fresh) guestVisit(s, now); // 낯선 손님 방문 기록 · 이름을 밝힐 차례면 말 걸 시각 (화면에서만, 모의 실행은 기록하지 않는다)
+  for (const s of fresh) if (s.guest && !p.scene.lines.some(([w]) => w === keyOf(s) || w === 'guest')) s.arrive = true; // 말없이 걸어 들어온 낯선 손님 (장면의 '손님' 역은 제외)
   if (p.scene.kind === 'call') { const s = S.stage.find((x) => keyOf(x) === p.scene.lines[0]?.[0]); if (s) { s.calling = true; s.callReal = clock.real(); s.until = Math.max(s.until ?? now, now + BAR_TUNE.hour); } }
   if (fresh.length) {
     S.enterAt = now + rand(BAR_TUNE.vacant); // 다음 사람은 다시 조금 뒤에 (한꺼번에 몰려 들어오지 않게)
-    if (!S.night && aidenOn() && !(S.ops && barOpsNew())) for (const s of fresh) if (Math.random() < BAR_TUNE.serve) s.cup = aidenCup(keyOf(s), now, rand([4000, 9000])); // 처음 하는 바 운영: 첫 손님은 레이첼에게
+    if (!S.night && aidenOn() && !(S.ops && barOpsNew())) for (const s of fresh) if (!s.guest && Math.random() < BAR_TUNE.serve) s.cup = aidenCup(keyOf(s), now, rand([4000, 9000])); // 낯선 손님은 들어오자마자 레이첼에게 주문한다 // 처음 하는 바 운영: 첫 손님은 레이첼에게
   }
   for (const [k, c] of p.scene.cups || []) { const s = S.stage.find((x) => keyOf(x) === k); if (s) s.cup = c || undefined; }
   if (p.scene.order) { const [k, o, hint] = p.scene.order; const s = S.stage.find((x) => keyOf(x) === k); if (s) { s.order = o; s.orderHint = hint; s.orderReal = clock.real(); } }
@@ -832,8 +852,10 @@ const orderBadge = (s: Seat) => (s.order ? `<button class="bar-order" data-a="ba
 /** 머리 위 말 걸기 표시 (이름을 밝히려는 낯선 손님 — 누르면 이름 밝히는 대화): 주문 표시와 같은 말풍선 속 '…' */
 const CALL_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6.5" cy="12" r="1.9" fill="currentColor"/><circle cx="12" cy="12" r="1.9" fill="currentColor"/><circle cx="17.5" cy="12" r="1.9" fill="currentColor"/></svg>';
 const callBadge = (s: Seat) => (s.calling ? `<button class="bar-order bar-call" data-a="bar-x" data-v="talk:${keyOf(s)}" aria-label="${esc(nameOf(keyOf(s)))}이 말을 건다">${CALL_ICON}</button>` : '');
-/** 카운터 위 동전 더미 (거두지 않은 술값 + 팁) */
-const COIN_SVG = '<svg viewBox="0 0 32 24" aria-hidden="true"><ellipse cx="12" cy="18" rx="9" ry="3.4" fill="currentColor" fill-opacity=".35" stroke="currentColor" stroke-width="1.2"/><ellipse cx="12" cy="14" rx="9" ry="3.4" fill="currentColor" fill-opacity=".35" stroke="currentColor" stroke-width="1.2"/><ellipse cx="21" cy="17" rx="8" ry="3" fill="currentColor" fill-opacity=".35" stroke="currentColor" stroke-width="1.2"/><ellipse cx="12" cy="10" rx="9" ry="3.4" fill="currentColor" fill-opacity=".5" stroke="currentColor" stroke-width="1.2"/></svg>';
+/** 만찬 주화 (카운터 위 거두지 않은 술값 + 팁 · 코인 칸): 테두리 두 겹 안에 엇갈린 칼과 총 (한 색 면 · 선, docs/UI.md 26) */
+const COIN_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.6" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="12" r="8.3" fill="none" stroke="currentColor" stroke-width=".7"/>'
+  + '<g transform="rotate(-45 12 12)" fill="currentColor"><path d="M11.35 4.2 L12 3.2 L12.65 4.2 L12.65 14.2 L11.35 14.2 Z"/><rect x="9.4" y="14.2" width="5.2" height="1.1" rx=".4"/><rect x="11.4" y="15.3" width="1.2" height="2.9"/><circle cx="12" cy="19" r=".95"/></g>'
+  + '<g transform="rotate(45 12 12)" fill="currentColor"><rect x="10.9" y="4.6" width="2.2" height="7.8" rx=".4"/><path d="M10.4 12 H14.8 L15.8 17.6 Q15.9 18.4 15.1 18.4 H13.4 Q12.8 18.4 12.7 17.8 L12.2 14.6 H10.4 Z"/><path d="M12.2 14.6 Q10.9 15.6 11.3 16.9" fill="none" stroke="currentColor" stroke-width=".8"/></g></svg>';
 /** 카운터 앞쪽: 그 사람의 잔(카운터 위) · 이름표(카운터 앞면) */
 function frontHtml(s: Seat, x: number) {
   const nm = nameOf(keyOf(s));
@@ -1610,7 +1632,7 @@ function closePrep(after: number) {
   syncFloor(root);
   schedule(after);
 }
-const GRADE_EMO: Record<Grade, EmoteId[]> = { like: ['heart', 'yum', 'sparkle'], ok: ['note', 'q'], bad: ['sweat', 'dots'] };
+const GRADE_EMO: Record<Grade, EmoteId[]> = { like: ['heart'], ok: ['note', 'q'], bad: ['sweat', 'dots'] }; // 좋아함 = 늘 하트
 /** 내주기: 그 손님 앞 카운터에 잔을 놓고, 한 모금 마신 뒤 반응 (이모티콘 + 대사, 잔 위 꼬리표에 만족 · 놓친 것) */
 function serveDrink() {
   const p = S.prep;

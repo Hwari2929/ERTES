@@ -1,0 +1,54 @@
+{
+ "union": [
+  "u_norman",
+  "u_fiona",
+  "u_molly",
+  "u_camila",
+  "u_egil",
+  "u_sasha",
+  "u_maren"
+ ],
+ "empire": [
+  "e_duchil",
+  "e_kit",
+  "e_shams",
+  "e_taeha",
+  "e_oswald",
+  "e_henrietta",
+  "e_ercole"
+ ],
+ "alliance": [
+  "a_ariadne",
+  "a_diagoras",
+  "a_telesphoros",
+  "a_keyx",
+  "a_eudoxos",
+  "a_arsinoe"
+ ],
+ "petra": [
+  "p_jakub",
+  "p_signet",
+  "p_niko",
+  "p_chisato",
+  "p_bella",
+  "p_fuki",
+  "p_ines"
+ ],
+ "pan": [
+  "c_nana",
+  "c_ignaz",
+  "c_klara",
+  "c_shou",
+  "c_melina",
+  "c_benedict"
+ ],
+ "tour": [
+  "t_kito",
+  "t_thalia",
+  "t_opal",
+  "t_manolis",
+  "t_tomasz",
+  "t_dylan",
+  "t_kaya"
+ ]
+}
