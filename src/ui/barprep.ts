@@ -97,7 +97,7 @@ function recipeRow(d: Drink, name: string, desc = '') {
     ${desc ? `<small>${esc(desc)}</small>` : ''}</div></li>`;
 }
 function bookHtml(p: Prep, names: (id: string) => string) {
-  const ledger = Object.entries(loadMeta().bar?.usual || {});
+  const ledger = Object.entries(loadMeta().bar?.usual || {}).filter(([id]) => names(id)); // 이름을 밝히기 전 낯선 손님 줄은 숨긴다
   const tab = (k: 'menu' | 'ledger' | 'memo', label: string) => `<button class="bp-tab${p.book === k ? ' on' : ''}" data-a="bar-x" data-v="prep:book:${k}" aria-pressed="${p.book === k}">${label}</button>`;
   const list = p.book === 'ledger'
     ? (ledger.length ? ledger.map(([id, d]) => recipeRow(d, `${names(id)} — ${d.name || recipeName(d) || '이름 없는 잔'}`)).join('') : '<li class="bp-empty">아직 적힌 손님이 없습니다. 좋아함을 받은 잔이 여기에 적힙니다.</li>')

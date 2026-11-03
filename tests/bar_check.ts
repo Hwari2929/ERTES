@@ -7,7 +7,7 @@ import { UNIT_BY_ID, UNITS } from '../src/data/units';
 import { AIDEN_BACK, BAR_ENTER, BAR_WAIT, LEAVE_GENERIC, LEAVE_LINES } from '../src/data/bar/leave';
 import { ERANTES_CREW, MONO, MONO_KINDS } from '../src/data/bar/mono';
 import { BAR_FAST, BAR_TUNE, STAGE_MAX, barSimulate } from '../src/ui/bar';
-import { GLASS_BY_ID, ING_BY_ID, GARNISH_BY_ID, GARNISH_MAX, RECIPES, REGULARS, RECIPE_BY_ID } from '../src/data/bar/drinks';
+import { canOrder, GLASS_BY_ID, ING_BY_ID, GARNISH_BY_ID, GARNISH_MAX, ORDER_AVOID, RECIPES, REGULARS, RECIPE_BY_ID } from '../src/data/bar/drinks';
 import { feelConds, feelText, judge, makeOrder, recipeName } from '../src/data/bar/orders';
 import { ORDER_TALK, ORDER_GENERIC } from '../src/data/bar/orderlines';
 import { FIRST_MEET } from '../src/data/bar/firstmeet';
@@ -301,6 +301,26 @@ for (let i = 0; i < 2000; i++) {
 for (const id of Object.keys(REGULARS)) for (const st of ['vague', 'photo', 'name', 'usual'] as const) {
   const o = makeOrder(id, 0, { night: true, style: st }, rnd);
   if (st !== 'vague' && !o.target) errs.push(`주문 ${id}/${st}: 맞출 잔이 없다`);
+}
+// 술을 안 마시는 손님 (ORDER_AVOID): 주문 2000건에 피하는 재료가 든 잔이 없고, 그런 잔을 내주면 별로
+for (const id of Object.keys(ORDER_AVOID)) {
+  if (!REGULARS[id] && !GUEST_BY_ID[id]) { errs.push(`ORDER_AVOID ${id}: 모르는 손님`); continue; }
+  for (let i = 0; i < 2000; i++) {
+    const st = (['vague', 'photo', 'name', 'usual'] as const)[i % 4];
+    const o = makeOrder(id, 0, { night: true, style: st }, rnd);
+    if (o.target && !canOrder(id, o.target)) { errs.push(`주문 ${id}/${st}: 안 마시는 재료가 든 ${o.name || '잔'}`); break; }
+  }
+  const bad = RECIPES.find((r) => !canOrder(id, r));
+  if (bad && judge({ who: id, style: 'name', at: 0, target: bad, name: bad.name }, bad).grade !== 'bad') errs.push(`주문 ${id}: 안 마시는 재료가 든 잔을 내줬는데 별로가 아니다`);
+}
+// 사진 주문은 층 순서를 본다: 층을 뒤집은 잔은 좋아함이 아니다 (프로즌 · 뒤집어도 같은 잔 제외). 이름 주문은 순서 무관
+for (const r of RECIPES) {
+  const rev = { ...r, fill: [...r.fill].reverse() };
+  if (rev.fill.join() === r.fill.join()) continue;
+  const photo = judge({ who: 'x', style: 'photo', at: 0, target: r }, rev).grade;
+  if (r.ice !== 'frozen' && photo === 'like') errs.push(`사진 주문 ${r.id}: 층을 뒤집어도 좋아함`);
+  if (r.ice === 'frozen' && photo !== 'like') errs.push(`사진 주문 ${r.id}: 프로즌인데 층 순서를 본다`);
+  if (judge({ who: 'x', style: 'name', at: 0, target: r, name: r.name }, rev).grade !== 'like') errs.push(`이름 주문 ${r.id}: 층 순서를 본다`);
 }
 // 주문 대사: 정규 단원 25명 모두 · 방식마다 {feel} · {menu} 자리
 const CUSTOMERS = ERANTES_CREW.filter((id) => id !== 'aiden');

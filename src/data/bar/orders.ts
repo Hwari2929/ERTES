@@ -1,10 +1,7 @@
 // 에란테스 바 운영: 주문 만들기 · 채점 · 술값과 팁 (docs/BAR_OPS.md 1 · 4 · 6절). 화면은 src/ui/barprep.ts · bar.ts.
 // 주문 4방식: 느낌으로(맛 조건) · 사진으로(완성 잔 그림) · 이름으로(메뉴 이름) · 늘 마시던 거(지난번 좋아한 잔, 없으면 단골 메뉴).
 // 채점은 만족 3단계 (좋아함 · 그럭저럭 · 별로). 별로여도 잔은 내준 것이다 (다시 만들기 없음) — 손님은 마시고 팁이 적다.
-import {
-  AXES, GARNISH_BY_ID, GLASS_BY_ID, HOUSE_MENUS, RECIPE_BY_ID, RECIPES, REGULARS, tagsOf, tasteOf,
-  type Axis, type Drink, type Ice, type OrderStyle, type Recipe,
-} from './drinks';
+import { AXES, GARNISH_BY_ID, GLASS_BY_ID, HOUSE_MENUS, RECIPE_BY_ID, RECIPES, REGULARS, tagsOf, tasteOf, type Axis, type Drink, type Ice, type OrderStyle, type Recipe, canOrder } from './drinks';
 import { GUEST_BY_ID } from './guests.gen';
 
 /** 바 운영 수치 [임시]. 확인용 주소(?bartest)의 __barTune({ ops: … }) 로 바꿀 수 있다 */
@@ -103,7 +100,7 @@ export interface Order {
 const pick = <T>(a: T[], r = Math.random): T => a[Math.floor(r() * a.length)];
 const OTHER: OrderStyle[] = ['vague', 'photo', 'name', 'usual'];
 /** 손님의 잔 (단골 메뉴, 단골이 아니면 무난한 메뉴) */
-export const baseMenu = (id: string, r = Math.random): Recipe => RECIPE_BY_ID[prefOf(id)?.menu || pick(HOUSE_MENUS, r)];
+export const baseMenu = (id: string, r = Math.random): Recipe => RECIPE_BY_ID[prefOf(id)?.menu || pick(HOUSE_MENUS.filter((x) => canOrder(id, RECIPE_BY_ID[x])), r)];
 /** 주문 방식: 단골은 약 50% 좋아하는 방식, 나머지는 다른 방식 중 무작위 */
 /** 단골 메뉴 · 좋아하는 주문 방식: 정규 단원(REGULARS) 또는 낯선 손님 명부(GUEST_BY_ID) */
 const prefOf = (id: string) => REGULARS[id] || GUEST_BY_ID[id];
@@ -134,10 +131,10 @@ export function feelConds(base: Drink, r = Math.random): FeelCond[] {
 export function makeOrder(who: string, now: number, o: { usual?: Drink & { name?: string }; night: boolean; style?: OrderStyle }, r = Math.random): Order {
   const style = o.style || styleFor(who, r);
   const base = baseMenu(who, r);
-  const menu = r() < BAR_OPS.ownMenu ? base : pick(RECIPES, r);
+  const menu = r() < BAR_OPS.ownMenu ? base : pick(RECIPES.filter((x) => canOrder(who, x)), r); // 술을 안 마시는 손님은 술 든 잔을 시키지 않는다 (ORDER_AVOID)
   if (style === 'vague') return { who, style, at: now, conds: feelConds(r() < 0.6 ? base : menu, r) };
   if (style === 'photo' || style === 'name') return { who, style, at: now, target: menu, name: menu.name };
-  const u = o.usual;
+  const u = o.usual && canOrder(who, o.usual) ? o.usual : undefined;
   if (u) return { who, style, at: now, target: u, name: u.name || recipeName(u) || undefined, ledger: true, hint: o.night ? undefined : 'aiden' };
   return { who, style, at: now, target: base, name: base.name, hint: o.night ? 'guest' : 'aiden' };
 }
@@ -149,11 +146,16 @@ export const SCORE_MAX = SCORE.glass + SCORE.fill + SCORE.ice + SCORE.garnish;
 const count = (xs: string[]) => { const m = new Map<string, number>(); for (const x of xs) m.set(x, (m.get(x) || 0) + 1); return m; };
 /** 목표 잔과 만든 잔의 재료 구성이 겹치는 칸 수 (순서 무관) */
 function overlap(a: string[], b: string[]) { const m = count(a); let n = 0; for (const x of b) { const k = m.get(x) || 0; if (k) { n++; m.set(x, k - 1); } } return n; }
-/** 잔 맞추기 점수 (0~SCORE_MAX): 잔 (같은 잔 = 만점 · 크기나 종류만 같으면 절반) · 재료 (겹치는 칸 비율) · 얼음 · 가니쉬 */
-export function matchScore(t: Drink, d: Drink): number {
+/** 같은 층 자리에 같은 재료가 놓인 칸 수 (아래층부터) */
+const samePos = (a: string[], b: string[]) => a.reduce((n, x, i) => n + (b[i] === x ? 1 : 0), 0);
+/** 층 순서를 보는 주문인가: 사진 주문 (그림에 층 색 순서가 보인다). 프로즌은 섞여 한 색이라 순서가 안 보인다 */
+export const layerOrdered = (o: Pick<Order, 'style' | 'target'>) => o.style === 'photo' && o.target?.ice !== 'frozen';
+/** 잔 맞추기 점수 (0~SCORE_MAX): 잔 (같은 잔 = 만점 · 크기나 종류만 같으면 절반) · 재료 (겹치는 칸 비율 — ordered 면 1/3 은 겹치는 칸, 2/3 는 같은 층 자리 비율) · 얼음 · 가니쉬 */
+export function matchScore(t: Drink, d: Drink, ordered = false): number {
   const gt = GLASS_BY_ID[t.glass], gd = GLASS_BY_ID[d.glass];
   const glass = t.glass === d.glass ? SCORE.glass : gt && gd && (gt.slots === gd.slots || gt.kind === gd.kind) ? SCORE.glass / 2 : 0;
-  const fill = SCORE.fill * overlap(t.fill, d.fill) / Math.max(t.fill.length, d.fill.length, 1);
+  const n = Math.max(t.fill.length, d.fill.length, 1);
+  const fill = ordered ? SCORE.fill * (overlap(t.fill, d.fill) + 2 * samePos(t.fill, d.fill)) / (3 * n) : SCORE.fill * overlap(t.fill, d.fill) / n;
   const ice = t.ice === d.ice ? SCORE.ice : 0;
   const gn = Math.max(t.garnish.length, d.garnish.length);
   const garnish = SCORE.garnish * (gn ? overlap(t.garnish, d.garnish) / gn : 1);
@@ -162,6 +164,7 @@ export function matchScore(t: Drink, d: Drink): number {
 export interface Verdict { grade: Grade; /** 맞춘 것 · 놓친 것 (조건 이름 또는 잔 · 재료 · 얼음 · 가니쉬) */ hit: string[]; miss: string[] }
 /** 내준 잔 채점 */
 export function judge(o: Order, d: Drink): Verdict {
+  if (!canOrder(o.who, d)) return { grade: 'bad', hit: [], miss: ['안 마시는 재료'] }; // 술을 안 마시는 손님에게 술 (ORDER_AVOID)
   if (o.style === 'vague' && o.conds) {
     const hit = o.conds.filter((c) => condMet(c, d)).map((c) => c.label);
     const miss = o.conds.filter((c) => !condMet(c, d)).map((c) => c.label);
@@ -169,10 +172,13 @@ export function judge(o: Order, d: Drink): Verdict {
     return { grade: hit.length === n ? 'like' : hit.length * 2 >= n ? 'ok' : 'bad', hit, miss };
   }
   const t = o.target!;
-  const s = matchScore(t, d);
+  const ordered = layerOrdered(o);
+  const s = matchScore(t, d, ordered);
+  const allIn = overlap(t.fill, d.fill) === t.fill.length && t.fill.length === d.fill.length;
   const parts: [string, boolean][] = [
     ['잔', t.glass === d.glass],
-    ['재료', overlap(t.fill, d.fill) === t.fill.length && t.fill.length === d.fill.length],
+    ['재료', allIn],
+    ...(ordered && allIn ? [['층 순서', samePos(t.fill, d.fill) === t.fill.length] as [string, boolean]] : []),
     ['얼음', t.ice === d.ice],
     ['가니쉬', overlap(t.garnish, d.garnish) === t.garnish.length && t.garnish.length === d.garnish.length],
   ];

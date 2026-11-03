@@ -24,6 +24,7 @@
 | [`ABILITY_TEXT.md`](ABILITY_TEXT.md) | 능력 설명 작문 규칙: 한 줄 설명(brief) · 상세 문장 2가지 모드, 토큰(`[pv]` · `[pw]` · `[el]` · `[rng]` · `[fx]` 등), 동사 · %p 표기 |
 | [`SCENES.md`](SCENES.md) | 사건 연출(미연시) 작성 가이드. 3차 지침 · '한국어 대사 작성 원칙'이 가장 우선, 숫자는 아라비아 숫자 |
 | [`VOICES.md`](VOICES.md) | 인물별 말투 시트 (금지 설정 · '새어 나오는 방식' 포함) |
+| [`BAR_OPS.md`](BAR_OPS.md) | 에란테스 바 운영: 손님 흐름 (체류 시간 · 시간대별 인원 · 낯선 손님 비율) · 주문 4방식 · 4단계 제조대 (영수증 → 잔 · 얼음 → 진열장 → 가니쉬 · 벨) · 채점 · 만찬 주화 · 재료 · 메뉴 · 단골 · 낯선 손님 명부 120명 · 에이든 × 손님 만담. 구현과 함께 고친다 (GDD 2.1 은 요약) |
 | [`BANTER.md`](BANTER.md) | 기물 만담 모음의 원칙 · 목차. 바 허브에서 재생한다 |
 | [`banter/`](banter/) `01_deploy.md` ~ `21_shopquick.md` | 만담 원본 21묶음 (배치 직전 · 승패 · 상점 · 바 당직 · 이동 · 잡담 · 엘베스타드 · 참모진 · 세력 · 이상한 조합 · 취미 · 전투 중 · 함선 생활 · 단체 · 전장 환경 · 날짜 · 의뢰 현장 · 첫 만남 · 심야 · 티격태격 · 상점 한마디). `npm run banter` → `src/data/bar/banter.gen.ts` |
 
@@ -102,7 +103,6 @@
 | [`SPECIAL_AUGS_DRAFT.md`](SPECIAL_AUGS_DRAFT.md) | 특수군 전용 증강 (기물당 8종) 초안 | 폐기 (지금은 메이저 전용 증강 14종) |
 | [`FIELDS_DRAFT.md`](FIELDS_DRAFT.md) | 신규 전장 15곳 제안 (기획 배경) | 초안. 지금 전장 13곳은 `src/data/battlefields.ts` |
 | [`TUTORIAL_DRAFT.md`](TUTORIAL_DRAFT.md) | 튜토리얼 「당직 근무 중 승계」 설계 | 구현됨. 현행은 GDD 12.1 · `src/engine/tutorial.ts` · `src/data/scenes/tutorial.ts` |
-| [`BAR_OPS.md`](BAR_OPS.md) | 에란테스 바 운영 기획: 주문 → 제조대(재료 16 + 분말 3 · 잔 6 · 얼음 · 가니쉬 10) → 내주기 → 술값 · 팁 코인, 맛 축 · 주문 4방식 · 손님 표 | 기획 초안 (2026-11-01). 무대 · 카운터 · 잔 그림 · 낮밤은 구현됨 (GDD 2.1 · `src/data/bar/drinks.ts`), 운영은 확인 뒤 구현 |
 | [`TTYPE_REWORK_DRAFT.md`](TTYPE_REWORK_DRAFT.md) | 전술 유형 개편: 스페셜 폐지 (디바인 5 · 사이오닉 4 · 메이저 6) · 디바인 봉헌 · 축성 · 제례 · 나눔 설계와 결정 사항 25개 | 디바인 부분 구현됨 (2026-10-31, 사용자 결정은 GDD 10절 · 변경 이력). 사이오닉 4명 · 메이저 6명 · 스페셜 제거는 남음 |
 | [`SKILL_SPLIT_CHANGES.md`](../SKILL_SPLIT_CHANGES.md) | 스킬 한쪽 원칙 정리 작업의 변경 내역 (2026-10-15) | 원칙은 현행 (GDD 4.1), 표의 수치 · 문구는 그때 값 |
 | [`drafts/연합 캠페인 방향.md`](../drafts/연합%20캠페인%20방향.md) · [`drafts/연합 캠페인 아크.md`](../drafts/연합%20캠페인%20아크.md) | 연합 캠페인 줄거리 방향 · 이야기 장치 메모 | 미확정 제안 |

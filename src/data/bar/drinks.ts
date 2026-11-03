@@ -49,7 +49,7 @@ export const INGREDIENTS: Ingredient[] = [
   // ───────── 분말 (3): 한 칸 = 그 분말로 탄 한 칸
   { id: 'midnight', name: '미드나이트 오일', kind: 'powder', type: '고카페인 커피', taste: { sweet: -2, strength: 0, body: 1 }, tags: ['커피향', '견과향'], color: '#3b2416', desc: '네오사이트 학술 카페의 밤샘 연료. 당직 근무의 동반자.' },
   { id: 'cocoa', name: '에이든 코코아', kind: 'powder', type: '핫초코 가루', taste: { sweet: 2, strength: 0, body: 2 }, tags: ['초콜릿'], color: '#6b3f26', opaque: true, desc: '에이든이 배합한 핫초코 가루. 배합은 메뉴판에 없다.' },
-  { id: 'yakyung', name: '야경', kind: 'powder', type: '허브 블렌드', taste: { sweet: 0, strength: 0, body: -1 }, tags: ['카모마일', '꽃향'], color: '#d8d08a', desc: '호이슌 수경 허브와 알비온 꽃을 섞은 디카페인 차. 밤을 재우는 잔.' },
+  { id: 'yakyung', name: '아경', kind: 'powder', type: '허브 블렌드', taste: { sweet: 0, strength: 0, body: -1 }, tags: ['카모마일', '꽃향'], color: '#d8d08a', desc: '호이슌 수경 허브와 알비온 꽃을 섞은 디카페인 차. 밤을 재우는 잔.' },
 ];
 export const ING_BY_ID: Record<string, Ingredient> = Object.fromEntries(INGREDIENTS.map((x) => [x.id, x]));
 
@@ -102,13 +102,13 @@ export const RECIPES: Recipe[] = [
   R('anchorhb', '앵커 하이볼', 'highball', ['anchor', 'soda', 'soda', 'soda'], 'rocks', ['citrus'], '올드 앵커를 소다로 길게.'),
   R('blackstorm', '검은 폭풍', 'highball', ['yebeson', 'yebeson', 'heliosfizz', 'heliosfizz'], 'rocks', ['lime'], '다크 럼 위에 진저 비어. 밀조주 시절 맛.'),
   R('frontier', '개척지 뮬', 'highball', ['aster', 'heliosfizz', 'heliosfizz', 'heliosfizz'], 'rocks', ['lime', 'mint'], '젊고 거친 보드카를 생강으로 달랜다.'),
-  R('dutycoffee', '당직 커피', 'rock', ['midnight', 'midnight', 'midnight'], 'none', [], '이것 없이 밤을 새는 건 고문이다.'),
+  R('dutycoffee', '당직 커피', 'rock', ['midnight', 'midnight', 'midnight'], 'none', ['bean'], '이것 없이 밤을 새는 건 고문이다. 위에 커피콩 3알.'),
   R('velouroil', '벨루어 오일', 'coupe', ['midnight', 'midnight', 'velour'], 'none', ['cream'], '미드나이트 오일에 벨루어. 커피인지 디저트인지 정하지 않는다.'),
   R('ringpint', '링사이드 파인트', 'pint', ['ringside', 'ringside', 'ringside', 'ringside', 'ringside'], 'none', [], '누구에게나 무난하고 누구도 싫어하지 않는다.'),
   R('fermaglass', '페르마 한 잔', 'wine', ['ferma', 'ferma', 'ferma', 'ferma'], 'none', [], '입고되면 단원들에게 개인 메시지가 간다.'),
   R('jollyspark', '졸리 스파클', 'highball', ['jolly', 'jolly', 'soda', 'soda'], 'rocks', ['citrus'], '술이 없는 탄산. 시고 달다.'),
   R('icesoda', '얼음 씹는 소다', 'pint', ['soda', 'soda', 'soda', 'soda', 'soda'], 'rocks', [], '음료보다 얼음이 목적인 잔.'),
-  R('nightlatte', '야경 라떼', 'coupe', ['yakyung', 'starmilk', 'honey'], 'none', ['petal'], '밤을 재우는 잔.'),
+  R('nightlatte', '아경 라떼', 'coupe', ['yakyung', 'starmilk', 'honey'], 'none', ['petal'], '밤을 재우는 잔.'),
   R('bitterdrop', '쓴 약 한 방울', 'rock', ['bitter', 'tonic', 'tonic'], 'rocks', ['lime'], '두 방울은 약, 세 방울은 벌.'),
   R('sugarbomb', '설탕 폭탄', 'coupe', ['velour', 'honey', 'starmilk'], 'frozen', ['marsh', 'crystal'], '단맛 센서가 있는 손님 전용.'),
   R('hometoddy', '귀향 토디', 'rock', ['nostos', 'nostos', 'honey'], 'none', ['cardia'], '노스토스에 꿀을 풀어 따뜻하게.'),
@@ -153,6 +153,18 @@ export const REGULARS: Record<string, { menu: string; style: OrderStyle }> = {
   yupito: { menu: 'frontier', style: 'vague' },
   sarma: { menu: 'dtonic', style: 'photo' },
 };
+/** 주문하지 않는 재료: 'alc' = 술(증류주 · 양조주 · 리큐르)이 든 잔 전부, 배열 = 그 재료가 든 잔. 정규 단원 id 또는 낯선 손님 명부 id (lore · 명부 persona) */
+export const ORDER_AVOID: Record<string, 'alc' | string[]> = {
+  romani: 'alc', // 술은 마시지 않는다
+  zahara: 'alc', // 술은 맛없다 · 차 문화
+  zephyro: 'alc', joshua: 'alc', // 단골 메뉴가 술 없는 잔 (졸리 스파클 · 당직 커피)
+  a_ariadne: 'alc', c_melina: 'alc', // 근무 중이라 술은 안 마신다
+  p_tupac: 'alc', // 현장 사고 뒤 술을 끊었다
+  p_ines: ['yebeson'], // 예베손 럼이 든 잔은 이해 충돌이라 시키지 않는다
+};
+const ALC_KIND = new Set<IngKind>(['spirit', 'brew', 'liqueur']);
+/** 이 손님이 주문할 수 있는 잔인가 (ORDER_AVOID) */
+export const canOrder = (who: string, d: Drink) => { const a = ORDER_AVOID[who]; return !a || !d.fill.some((x) => (a === 'alc' ? ALC_KIND.has(ING_BY_ID[x]?.kind) : a.includes(x))); };
 /** 단골이 아닌 손님에게 에이든이 내주는 무난한 메뉴 */
 export const HOUSE_MENUS = ['dtonic', 'anchorhb', 'ringpint', 'jollyspark', 'applehb', 'homecup'];
 

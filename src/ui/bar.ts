@@ -23,7 +23,7 @@ import { ASK, ASK_MID, ASK_Q, askLines, type AskKey } from '../data/bar/ask';
 import { BAR_GUEST, BAR_IDLE, BAR_TALK, DEEP_TOPICS, FIELD_SHORT, GENERIC_REACT } from '../data/bar/talk';
 import { AIDEN_BACK, AIDEN_OFF, AIDEN_ON, LEAVE_GENERIC, LEAVE_LINES } from '../data/bar/leave';
 import { ERANTES_CREW, MONO, MONO_KIND_NAME, MONO_KINDS, type MonoKind } from '../data/bar/mono';
-import { GLASS_BY_ID, HOUSE_MENUS, ING_BY_ID, ORDER_STYLE_NAME, RECIPE_BY_ID, REGULARS, type Drink, type OrderStyle } from '../data/bar/drinks';
+import { canOrder, GLASS_BY_ID, HOUSE_MENUS, ING_BY_ID, ORDER_STYLE_NAME, RECIPE_BY_ID, REGULARS, type Drink, type OrderStyle } from '../data/bar/drinks';
 import { BAR_OPS, COIN_NAME, COIN_UNIT, coinText, GRADE_NAME, judge, makeOrder, payOf, recipeName, feelText, type Grade, type Order } from '../data/bar/orders';
 import { ORDER_GENERIC, ORDER_TALK, orderTalk } from '../data/bar/orderlines';
 import { FIRST_MEET } from '../data/bar/firstmeet';
@@ -314,7 +314,7 @@ const weighted = <T>(xs: T[], w: (x: T) => number): T => { let r = Math.random()
 const ALC = new Set(['spirit', 'brew', 'liqueur']);
 /** 에이든이 내주는 잔: 단골이면 단골 메뉴, 아니면 무난한 메뉴 중 하나 */
 function aidenCup(id: string, now: number, delay = 2200): Cup {
-  const r = RECIPE_BY_ID[(!id.startsWith('g.') && REGULARS[id]?.menu) || pick(HOUSE_MENUS)];
+  const r = RECIPE_BY_ID[(!id.startsWith('g.') && REGULARS[id]?.menu) || pick(HOUSE_MENUS.filter((x) => canOrder(id.startsWith('g.') ? id.slice(2) : id, RECIPE_BY_ID[x])))];
   return { d: r, name: r.name, by: 'aiden', at: now + delay, dur: rand(BAR_TUNE.sip), alc: r.fill.some((x) => ALC.has(ING_BY_ID[x]?.kind)) };
 }
 /** 남은 양 (0~1, 아직 안 놓였으면 null) */
@@ -618,7 +618,7 @@ function orderScene(now: number): Pick | null {
 function orderPick(s: Seat, now: number, style?: OrderStyle): Pick {
   const k = keyOf(s);
   const who = s.guest ? (GUEST_BY_ID[s.gid!] ? s.gid! : k) : s.id; // 명부 손님은 단골 메뉴 · 주문 방식 · 장부를 명부 id 로
-  const o = makeOrder(who, now, { usual: who === k ? undefined : loadMeta().bar?.usual?.[who], night: S.night, style });
+  const o = makeOrder(who, now, { usual: who === k || (s.guest && !guestNamed(who)) ? undefined : loadMeta().bar?.usual?.[who], night: S.night, style }); // 이름을 밝히기 전 낯선 손님은 장부를 쓰지 않는다 (예전 저장에 적혀 있어도)
   const t = s.guest ? guestLines(s.gid!) || ORDER_GENERIC : orderTalk(s.id);
   const vars = { pc: PC, feel: o.conds ? feelText(o.conds) : '', menu: o.name || '' };
   const lines: Line[] = [[k, fillText(pick(t[o.style]), vars)]];
@@ -1634,6 +1634,8 @@ function openPrep(k: string) {
   if (sec) { sec.hidden = false; void sec.offsetWidth; }
   root.classList.add('prep-on');
 }
+/** 단골 장부 줄 이름: 낯선 손님은 이름을 밝혔을 때만 (밝히기 전이면 '' = 그 줄을 숨긴다) */
+const ledgerName = (id: string) => (GUEST_BY_ID[id] ? (guestNamed(id) ? GUEST_BY_ID[id].name : '') : nameOf(id));
 /** 제조대 다시 그리기. 단계가 바뀌었으면 앞 단계 자리에서 그려 놓고 다음 프레임에 옮긴다 (카메라가 작업대를 따라 움직이고 영수증이 오른쪽 위로 옮겨 꽂힌다, docs/UI.md 27 · 32) */
 function drawPrep(root: HTMLElement) {
   const sec = root.querySelector<HTMLElement>('.bar-prep');
@@ -1641,7 +1643,7 @@ function drawPrep(root: HTMLElement) {
   if (!sec || !p) return;
   const keep = ['.bp-recs', '.bp-cab', '.bp-gars'].map((q) => sec.querySelector(q)?.scrollTop || 0);
   const was = sec.dataset.st === undefined ? p.step : +sec.dataset.st;
-  sec.innerHTML = prepHtml(p, nameOf);
+  sec.innerHTML = prepHtml(p, ledgerName);
   sec.dataset.st = String(p.step);
   ['.bp-recs', '.bp-cab', '.bp-gars'].forEach((q, i) => { const el = sec.querySelector(q); if (el) el.scrollTop = keep[i]; });
   const view = sec.querySelector<HTMLElement>('.bp-view'), rail = sec.querySelector<HTMLElement>('.bp-rail');
@@ -1681,7 +1683,7 @@ function serveDrink() {
   s.cup = { d, name, by: 'player', at: now + (reduced() ? 200 : 900), dur: rand(BAR_TUNE.sip), alc: d.fill.some((x) => ALC.has(ING_BY_ID[x]?.kind)), grade: v.grade };
   s.order = undefined; s.orderHint = undefined; s.orderAt = now;
   const roster = !!s.guest && !!GUEST_BY_ID[s.gid!];
-  metaBarServed(roster ? s.gid! : keyOf(s), { ...d, name: recipeName(d) || undefined }, v.grade === 'like' && (!s.guest || roster)); // 임시 · 익명 손님은 단골 장부가 없다
+  metaBarServed(roster ? s.gid! : keyOf(s), { ...d, name: recipeName(d) || undefined }, v.grade === 'like' && (!s.guest || (roster && guestNamed(s.gid!)))); // 낯선 손님은 이름을 밝힌 뒤부터 장부에 적는다 (임시 · 익명 손님은 장부가 없다)
   const t = s.guest ? guestLines(s.gid!) || ORDER_GENERIC : orderTalk(s.id);
   const k0 = keyOf(s);
   S.cur = { key: '', sit: '', kind: 'react', lines: [[k0, pick(GRADE_EMO[v.grade]), undefined, 'e'], [k0, fillText(pick(t[v.grade]), { pc: PC })]] };
