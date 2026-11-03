@@ -126,7 +126,7 @@ export const app = {
   diff: DIFF_PRESETS[0].lvl, // 새 런 난이도 = 위험 등급 (쉬움 3 · 모험 6 · 고난 7, data/difficulty.ts DIFF_PRESETS)
   introField: null as string | null, // 출격 연출: 이번 런 전장
   introFoe: null as string | null, // 전장 브리핑에서 연 적 상세
-  codexTab: 'units' as 'units' | CX2.Cx2Tab | 'enemies' | 'events' | 'manual' | 'records' | 'ach',
+  codexTab: 'units' as 'units' | CX2.Cx2Tab | 'enemies' | 'events' | 'manual' | 'records' | 'guests' | 'ach',
   tutAsk: false, // 첫 실행: 새 계약을 누르면 튜토리얼부터 볼지 묻는다
   codexGroup: 'none' as 'none' | 'faction' | 'trait' | 'ctype' | 'ttype', // 도감 기물: 모아보기 기준
   codexSel: null as string | null, // 도감 기물: 상세를 펼친 기물

@@ -81,7 +81,7 @@ export function codexScreen() {
   const m = loadMeta();
   // 탭: 자료 (기물 · 시너지 · 장비 · 증강 · 사이오닉 · 세계관) | 기록 (적 · 사건 · 교범 · 기록)
   const tb = ([k, l]: readonly [string, string]) => `<button class="cx-tab${app.codexTab === k ? ' on' : ''}" data-a="codex-tab" data-v="${k}" aria-pressed="${app.codexTab === k}">${l}</button>`;
-  const tabs = `<div class="cx-tg">${([['units', '기물'], ...CX2.CX2_TABS] as const).map(tb).join('')}</div><div class="cx-tg cx-tg2">${([['enemies', '적'], ['events', '사건'], ['manual', '교범'], ['records', '기록'], ['ach', '업적']] as const).map(tb).join('')}</div>`;
+  const tabs = `<div class="cx-tg">${([['units', '기물'], ...CX2.CX2_TABS] as const).map(tb).join('')}</div><div class="cx-tg cx-tg2">${([['enemies', '적'], ['events', '사건'], ['manual', '교범'], ['records', '기록'], ['guests', '손님'], ['ach', '업적']] as const).map(tb).join('')}</div>`;
   let body = '';
   if (app.codexTab === 'units') {
     body = codexUnits(m);
@@ -108,6 +108,8 @@ export function codexScreen() {
     body = CX2.codex2Body(app.codexTab, cxH());
   } else if (app.codexTab === 'manual') {
     body = codexManual();
+  } else if (app.codexTab === 'guests') { // 바의 낯선 손님 명부 (src/ui/bar.ts barGuestsHtml, 명부 src/data/bar/guests.gen.ts)
+    body = BAR.barGuestsHtml();
   } else if (app.codexTab === 'ach') { // 업적: 메달 · 달성 날짜 · 바 진열장 고르기 (src/ui/achieve.ts)
     body = ACH.achCodexHtml();
   } else {

@@ -10,6 +10,8 @@
 .bar-order:hover, .bar-order:focus-visible { outline: 2px solid var(--c-select); outline-offset: 1px; }
 @media (prefers-reduced-motion: no-preference) { .bar-order { animation: bar-order-in .45s steps(3, jump-end); } }
 @keyframes bar-order-in { from { opacity: 0; translate: -50% -70%; } }
+/* 낯선 손님의 말 걸기 표시: 주문 표시와 같은 말풍선, 속에 '…' (누르면 이름 밝히는 대화) */
+.bar-call { color: var(--c-select); }
 
 /* 카운터 위 동전 더미: 잔 오른쪽 (누르면 거둔다) */
 .bar-coin { position: absolute; bottom: calc(var(--ctr-h) * .74); left: calc(50% + var(--fig-h) * .14); display: flex; align-items: center; gap: 2px; padding: 0; background: none; border: 0; color: var(--c-select); cursor: pointer; pointer-events: auto; }

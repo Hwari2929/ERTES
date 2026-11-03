@@ -3,6 +3,12 @@
 // {feel} · {menu} 자리 표시는 src/data/bar/orderlines.ts 와 같다.
 import type { OrderStyle } from './drinks';
 import type { Grade } from './orders';
+import { GUEST_LINES_ALLIANCE } from './guestlines/alliance';
+import { GUEST_LINES_EMPIRE } from './guestlines/empire';
+import { GUEST_LINES_PAN } from './guestlines/pan';
+import { GUEST_LINES_PETRA } from './guestlines/petra';
+import { GUEST_LINES_TOUR } from './guestlines/tour';
+import { GUEST_LINES_UNION } from './guestlines/union';
 
 export type GuestLines = Record<OrderStyle, string[]> & Record<Grade, string[]> & {
   /** 들어와 앉으며 혼잣말 */
@@ -20,5 +26,5 @@ export type GuestLines = Record<OrderStyle, string[]> & Record<Grade, string[]> 
   topics: { label: string; lines: string[] }[];
 };
 
-/** 손님 id → 대사 (세력별 파일이 생기면 여기에 모은다) */
-export const GUEST_LINES: Record<string, GuestLines> = {};
+/** 손님 id → 대사 (세력별 파일 src/data/bar/guestlines/<세력>.ts) */
+export const GUEST_LINES: Record<string, GuestLines> = { ...GUEST_LINES_UNION, ...GUEST_LINES_EMPIRE, ...GUEST_LINES_ALLIANCE, ...GUEST_LINES_PETRA, ...GUEST_LINES_PAN, ...GUEST_LINES_TOUR };

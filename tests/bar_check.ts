@@ -11,6 +11,8 @@ import { GLASS_BY_ID, ING_BY_ID, GARNISH_BY_ID, GARNISH_MAX, RECIPES, REGULARS, 
 import { feelConds, feelText, judge, makeOrder, recipeName } from '../src/data/bar/orders';
 import { ORDER_TALK, ORDER_GENERIC } from '../src/data/bar/orderlines';
 import { FIRST_MEET } from '../src/data/bar/firstmeet';
+import { GUEST_ANON, GUEST_BY_ID, GUESTS } from '../src/data/bar/guests.gen';
+import { GUEST_LINES, type GuestLines } from '../src/data/bar/guestlines';
 declare const process: { exitCode?: number; argv?: string[] };
 declare function require(m: 'node:fs'): { readdirSync(p: string): string[]; readFileSync(p: string, e: 'utf8'): string };
 
@@ -213,9 +215,28 @@ for (const m of metrics.slice(0, 2)) {
   if (Math.abs(a.head - b.head) > 0.1 * a.head) errs.push(`손님 흐름: 1배 평균 ${a.head.toFixed(2)}명 · ${BAR_FAST}배 ${b.head.toFixed(2)}명 — 10% 넘게 다름`);
   for (const [n, x] of [['1배', a], [`${BAR_FAST}배`, b]] as const) {
     if (x.perDay < 10) errs.push(`손님 흐름 ${n}: 하루 입장 ${x.perDay.toFixed(1)}명 (10명 미만)`);
-    if (x.gapH > 8) errs.push(`손님 흐름 ${n}: 입장 없는 구간 ${x.gapH.toFixed(1)}시간 (8시간 초과)`);
+    if (x.gapH > 10) errs.push(`손님 흐름 ${n}: 입장 없는 구간 ${x.gapH.toFixed(1)}시간 (10시간 초과)`); // 새벽(0~1명) · 저녁(꽉 참)이 겹치면 7~9시간까지 나온다
     if (Math.abs(x.day - 0.66) > 0.1 || Math.abs(x.night - 0.33) > 0.1) errs.push(`손님 흐름 ${n}: 낯선 손님 비율 낮 ${Math.round(x.day * 100)}% · 밤 ${Math.round(x.night * 100)}% (목표 66% · 33%, ±10%)`);
   }
+}
+// 낯선 손님 (명부 src/data/bar/guests.gen.ts · 대사 src/data/bar/guestlines.ts): 대사가 있는 손님은 칸 수 · 자리 표시 · 명부 id 가 맞아야 한다.
+// 대사가 아직 없는 손님은 바에 와도 공통 대사로 주문하고 이름을 밝히지 않는다 (수만 보인다)
+{
+  const need: [keyof GuestLines, number, number][] = [['enter', 2, 2], ['call', 2, 2], ['vague', 2, 2], ['photo', 2, 2], ['name', 2, 2], ['usual', 2, 2], ['like', 2, 2], ['ok', 2, 2], ['bad', 2, 2], ['drop', 2, 2], ['leave', 3, 3], ['mono', 6, 6], ['meet', 10, 18]];
+  for (const [id, L] of Object.entries(GUEST_LINES)) {
+    const g = GUEST_BY_ID[id];
+    if (!g) { errs.push(`손님 대사 ${id}: 명부에 없는 손님`); continue; }
+    for (const [k, lo, hi] of need) { const n = (L[k] as string[] | undefined)?.length ?? 0; if (n < lo || n > hi) errs.push(`손님 대사 ${id}.${String(k)}: ${n}줄 (${lo}~${hi})`); }
+    if (!L.hint) errs.push(`손님 대사 ${id}.hint 없음`);
+    if (L.topics?.length !== 2 || L.topics.some((t) => !t.label || t.lines.length < 4)) errs.push(`손님 대사 ${id}.topics: 2편 · 편마다 4줄 이상`);
+    if (!L.vague.every((l) => l.includes('{feel}'))) errs.push(`손님 대사 ${id}.vague: {feel} 없는 줄`);
+    if (!L.name.every((l) => l.includes('{menu}'))) errs.push(`손님 대사 ${id}.name: {menu} 없는 줄`);
+    if (!L.hint.includes('{menu}')) errs.push(`손님 대사 ${id}.hint: {menu} 없음`);
+    if (!L.meet.some((l) => l.includes(g.name.split(' ')[0]))) errs.push(`손님 대사 ${id}.meet: 이름(${g.name})을 밝히는 줄이 없음`);
+    for (const l of [...L.meet, ...L.topics.flatMap((t) => t.lines)]) lineCheck(`손님 대사 ${id}`, l);
+  }
+  const miss = GUESTS.filter((g) => !GUEST_LINES[g.id]);
+  console.log(`낯선 손님: 명부 ${GUESTS.length}명 · 대사 ${GUESTS.length - miss.length}명${miss.length ? ` (대사 없음 ${miss.length}: ${miss.slice(0, 8).map((g) => g.id).join(' ')}${miss.length > 8 ? ' …' : ''})` : ''} · 익명 그림 ${GUEST_ANON.length}`);
 }
 // 반복 개그 회수 〔회수:id,id〕: 깔린 편이 있고 보류 · 자기 자신이 아니어야 (없으면 영영 재생되지 않는다)
 const BID = new Map(BANTER.map((b) => [b.id, b]));

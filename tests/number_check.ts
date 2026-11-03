@@ -8,6 +8,7 @@ const fs = require('node:fs');
 
 const FILES: string[] = [
   ...fs.readdirSync('src/data/bar').filter((f) => f.endsWith('.ts')).map((f) => `src/data/bar/${f}`),
+  ...fs.readdirSync('src/data/bar/guestlines').filter((f) => f.endsWith('.ts')).map((f) => `src/data/bar/guestlines/${f}`), // 낯선 손님 대사
   ...fs.readdirSync('docs/banter').filter((f) => f.endsWith('.md')).map((f) => `docs/banter/${f}`),
   ...fs.readdirSync('src/data/scenes').filter((f) => f.endsWith('.ts')).map((f) => `src/data/scenes/${f}`),
   'src/data/voicelines.ts',
