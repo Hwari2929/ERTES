@@ -1,6 +1,23 @@
 // 자동 생성: python3 scripts/art.py standfaces (build 때도 함께) — 직접 고치지 말 것
 /** 스탠딩 그림(public/art/<id>.webp) 안의 얼굴: [얼굴 가운데 x, 눈썹 y, 턱 y] — 그림 폭 · 높이에 대한 비율 */
 export const STAND_FACE: Record<string, [number, number, number]> = {
+  gs_a_ailoura: [0.524, 0.079, 0.164],
+  gs_c_benedict: [0.686, 0.061, 0.116],
+  gs_c_evan: [0.687, 0.062, 0.117],
+  gs_e_anneliese: [0.429, 0.080, 0.155],
+  gs_e_ercole: [0.499, 0.072, 0.130],
+  gs_e_juhong: [0.537, 0.073, 0.143],
+  gs_e_ottilie: [0.646, 0.079, 0.149],
+  gs_e_primrose: [0.616, 0.085, 0.169],
+  gs_e_steadfast: [0.665, 0.085, 0.147],
+  gs_p_bella: [0.642, 0.065, 0.136],
+  gs_p_tourbillon: [0.676, 0.076, 0.136],
+  gs_t_kito: [0.574, 0.070, 0.115],
+  gs_t_thalia: [0.708, 0.069, 0.139],
+  gs_u_bram: [0.646, 0.062, 0.120],
+  gs_u_bruno: [0.541, 0.107, 0.173],
+  gs_u_caleb: [0.696, 0.081, 0.141],
+  gs_x_dockhand: [0.492, 0.071, 0.125],
   gs_u_hakon: [0.519, 0.076, 0.132],
   gs_u_elodie: [0.766, 0.085, 0.156],
   gs_u_amara: [0.645, 0.070, 0.138],
