@@ -1649,11 +1649,16 @@ function focusOrder(k: string) {
   seat.querySelector('.bar-order:not(.bar-call)')?.remove();
   const bub = root.querySelector<HTMLElement>('.bar-bub:not(.ghost)');
   const line = s.orderLine || `${ORDER_STYLE_NAME[s.order.style]} 한 잔 부탁해요.`;
-  if (bub) { // 주문 말 바로 아래에 ✕ 나중에 · ✓ 받기 (말풍선이 머리 위를 덮으므로 말풍선 안에)
-    bub.innerHTML = `<b class="f-ui" style="--c:${colorOf(k)}">${esc(nameOf(k))}</b><span>${esc(line)}</span><span class="bar-pick" role="group" aria-label="${esc(nameOf(k))}의 주문"><button class="bar-pick-x" data-a="bar-x" data-v="later" aria-label="나중에">${FOCUS_X}</button><button class="bar-pick-ok" data-a="bar-x" data-v="take:${k}" aria-label="주문 받기 — 제조대로">${FOCUS_OK}</button></span>`;
+  if (bub && fl) { // 주문 말 + 말풍선 바로 바깥 옆에 ✕ 나중에 · ✓ 받기 (오른쪽, 자리가 없으면 왼쪽)
+    bub.innerHTML = `<b class="f-ui" style="--c:${colorOf(k)}">${esc(nameOf(k))}</b><span>${esc(line)}</span>`;
     bub.classList.remove('off-stage', 'mono'); bub.hidden = false;
     placeBub(root, bub, seat);
     void bub.offsetWidth; bub.classList.add('on');
+    fl.insertAdjacentHTML('beforeend', `<div class="bar-pick" role="group" aria-label="${esc(nameOf(k))}의 주문"><button class="bar-pick-x" data-a="bar-x" data-v="later" aria-label="나중에">${FOCUS_X}</button><button class="bar-pick-ok" data-a="bar-x" data-v="take:${k}" aria-label="주문 받기 — 제조대로">${FOCUS_OK}</button></div>`);
+    const pk = fl.lastElementChild as HTMLElement, F = fl.getBoundingClientRect(), B = bub.getBoundingClientRect();
+    const right = B.right - F.left + 10, pw = pk.offsetWidth;
+    pk.style.left = `${right + pw <= F.width - 8 ? right : Math.max(8, B.left - F.left - 10 - pw)}px`;
+    pk.style.top = `${B.top - F.top + B.height / 2 - pk.offsetHeight / 2}px`;
   }
 }
 /** 스포트라이트를 거둔다 (resume = 무대를 다시 흐르게 한다 — 받기는 제조대가 이어받는다) */

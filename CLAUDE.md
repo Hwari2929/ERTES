@@ -23,7 +23,9 @@
 - **NovelAI 생성은 사용자가 요청한 분량만 돌린다.** 에이전트가 스스로 판단해 생성을 시작하지 않는다. 2026-11-02 부터 구독 토큰: 새로 그리기(스탠딩 · 배경 · 아이콘 · 소품)는 구독 무료 범위(23스텝 · 1024×1024 이하 · 1장씩), 편집(img2img · 인페인팅 · 캔버스 확장 · 표정 차분)과 업스케일만 유료(Anlas, 29스텝). 서버에 부담을 주지 않게 스크립트(scripts/nai_guard.mjs · nai_guard.py, 모든 nai* 스크립트)가 1회 실행 최대 8장 · 동시 실행 금지 · 장 사이 무작위 6~16초 휴식을 강제하고, 휴식 · 재시도 대기 · 회차 사이를 모두 무작위로 둬 일정한 간격의 요청이 절대 가지 않게 한다. 여러 장은 `scripts/nai_batch.mjs` 로 순차 실행한다 (병렬 금지). (이전 계정은 무료 생성 자동화로 무료 생성이 영구 제한됐다 — ToS 9.1.6)
 - 클라우드 환경에서는 `NODE_USE_ENV_PROXY=1` 을 붙여 실행한다 (없으면 `fetch failed`). 잔액 조회 주소(api.novelai.net)는 막혀 있어 "Anlas 잔액 확인 실패"가 나오는 것이 정상이다.
 - **프롬프트를 새로 쓰거나 고치면 1~2장만 먼저 뽑아 확인한 뒤** 나머지를 뽑는다. `art/prompts.json` 의 `object: true` 는 'solo' 를 빼고 'concept art' 를 붙여 여러 개를 늘어놓은 설정화가 나오기 쉽다 — 동물 · 한 개체는 object 를 끄고 'solo, animal focus' 를 쓴다.
-- 배경 · 스탠딩 일러스트는 넣기 전에 반드시 사용자 확인을 받는다 (시안 페이지로 보여 주고 고르게 한다: `python3 scripts/pick_page.py` → 아티팩트(db) 게시 → ArtifactData 로 선택 읽기. 고르는 페이지의 변경 알림은 오지 않을 수 있으니 사용자가 "골랐다"고 하면 읽는다).
+- 배경 · 스탠딩 일러스트는 넣기 전에 반드시 사용자 확인을 받는다.
+  - **한 번에 고를 시안이 10장 이하이면 고르기 페이지(아티팩트)를 만들지 않는다** — 번호를 붙여 한 장으로 합친 그림을 채팅에 올리고 (SendUserFile), 사용자가 번호로 답한다. 여러 묶음(예: 잔 6종 × 8장)이면 묶음마다 한 장씩 올린다.
+  - 10장을 넘을 때만 시안 페이지로 보여 주고 고르게 한다: `python3 scripts/pick_page.py` → 아티팩트(db) 게시 → ArtifactData 로 선택 읽기. 고르는 페이지의 변경 알림은 오지 않을 수 있으니 사용자가 "골랐다"고 하면 읽는다.
 - 그림 반영: `art/picks.json` → `art/picked/` → `python3 scripts/art.py build [id ...]` (id 를 주면 그 그림만, 전체 빌드는 20분 넘게 걸린다) → `public/art/<id>.webp` · `<id>.bust.webp` · `src/ui/portraits.gen.ts`.
 - 아티팩트는 그림을 별도 파일로 보관한다 (artifact.html 에 내장되지 않음). **한 버전 파일 수 한도가 512개**라 적 · 소환물 상반신(`en_*` · `sm_*` .bust.webp)은 빌드가 `dist/art/busts-en.json` 하나로 묶는다 (src/ui/portraits.ts `loadArtPack`). 그림을 새로 넣거나 바꾸면 게시 때 `files` 로 함께 올린다: 아군 · 인물은 `art/<id>.webp` · `art/<id>.bust.webp`, 적 · 소환물은 `art/<id>.webp` · `art/busts-en.json`, 바 낯선 손님(`gs_*`)은 세력별 묶음 `art/guests-<u|e|a|p|c|t|x>.json` 만 (낱개 파일은 올리지 않는다). 안 올리면 게임에서 실루엣 · 옛 그림이 나온다.
 - 자동으로 오리기 어려운 투명화(배경 · 그려진 종이 지우기 · 층 나누기)는 사용자가 붓으로 칠하게 한다: `tools/mask-paint.html` 아티팩트 → `scripts/mask_apply.py` (사용법 `tools/mask-paint.md`). 점 찍기 방식은 쓰지 않는다.

@@ -14,20 +14,26 @@
 .bar-call { color: var(--c-select); }
 
 /* 주문 스포트라이트 (bar.ts focusOrder — 2026-11-03 사용자 결정, docs/UI.md 19 의 '배경을 어둡히지 않는다' 예외): 주문 표시를 누른 동안만
-   배경 · 다른 손님 · 그 잔이 조금 어두워지고, 그 손님에게 위에서 은은한 호박색 빛 (불투명도 0.15). 주문 말 바로 아래 (말풍선 안) ✕ 나중에 · ✓ 받기 */
+   배경 · 다른 손님 · 그 잔이 조금 어두워지고, 그 손님에게 위에서 은은한 호박색 빛 (불투명도 0.15). 말풍선 바로 바깥 옆에 ✕ 나중에 · ✓ 받기 */
 .bar-scene::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: var(--c-black); opacity: 0; }
 .bar.focus-on .bar-scene::before { opacity: .3; }
 .bar.focus-on .bar-seat:not(.focus):not(.out) .bar-fig img { filter: brightness(.5) url(#bar-stk) drop-shadow(0 6px 12px var(--shade-2)); }
 .bar.focus-on .bar-seat.focus .bar-fig img { filter: brightness(1) url(#bar-stk) drop-shadow(0 6px 12px var(--shade-2)); }
 .bar.focus-on .bar-front:not(.focus) { filter: brightness(.55); }
-.bar-spot { position: absolute; top: 0; bottom: 0; left: calc(var(--sx, 50%) - var(--sw, 200px) * .9); width: calc(var(--sw, 200px) * 1.8); z-index: var(--z-raise); pointer-events: none; opacity: 0;
-  background: linear-gradient(to bottom, var(--c-select), color-mix(in srgb, var(--c-select) 70%, transparent) 72%, transparent);
-  clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%); mix-blend-mode: screen; }
+/* 빛: 위는 거의 비지 않고 아래로 갈수록 서서히 밝아지는 원뿔, 가장자리는 흐리게 번진다 (원뿔 = ::before 의 clip-path, 번짐 = 바깥 blur).
+   켜질 때 천천히 밝아진 뒤 숨 쉬듯 느리게 밝기가 바뀐다 (사용자 결정 — UI.md 10 반복 움직임 예외, 움직임 줄이기면 멈춤) */
+.bar-spot { position: absolute; top: 0; bottom: 0; left: calc(var(--sx, 50%) - var(--sw, 200px) * .95); width: calc(var(--sw, 200px) * 1.9); z-index: var(--z-raise); pointer-events: none; opacity: 0; filter: blur(18px); mix-blend-mode: screen; }
+.bar-spot::before { content: ''; position: absolute; inset: 0; clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%);
+  background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--c-select) 12%, transparent) 28%, color-mix(in srgb, var(--c-select) 55%, transparent) 62%, var(--c-select) 100%); }
 .bar-spot.on { opacity: .15; }
 @media (prefers-reduced-motion: no-preference) {
-  .bar-scene::before, .bar-spot { transition: opacity .45s ease; } /* 잔(.bar-front)은 걸음 전환을 덮지 않게 전환 없이 */
+  .bar-scene::before { transition: opacity .6s ease; } /* 잔(.bar-front)은 걸음 전환을 덮지 않게 전환 없이 */
+  .bar-spot { transition: opacity .8s ease; }
+  .bar-spot.on { animation: bar-spot-in 1.8s ease-out both, bar-spot-breathe 5.5s ease-in-out 1.8s infinite; }
 }
-.bar-pick { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; pointer-events: auto; }
+@keyframes bar-spot-in { from { opacity: 0; } to { opacity: .15; } }
+@keyframes bar-spot-breathe { 0%, 100% { opacity: .15; } 50% { opacity: .1; } }
+.bar-pick { position: absolute; z-index: var(--z-tip); display: flex; gap: 8px; pointer-events: auto; }
 .bar-pick button { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; background: var(--panel); color: var(--c-text); border: 1px solid var(--line); border-radius: var(--r-pill); box-shadow: 0 4px 10px var(--shade-2); cursor: pointer; }
 .bar-pick svg { width: 24px; height: 24px; }
 .bar-pick .bar-pick-ok { background: var(--c-select); color: var(--c-black); border-color: var(--c-select); }
