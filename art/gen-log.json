@@ -9178,5 +9178,19 @@
     "model": "nai-diffusion-5-full",
     "time": "2026-11-03T03:06:05.785Z",
     "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, adult female, 30s, short, chubby, tanuki ears, raccoon ears, tanuki tail, striped tail, fluffy tail, brown hair, short hair, messy bob, dark circles under eyes, brown eyes, energetic grin, headset, oversized green jacket, staff jacket, lanyard, black t-shirt, holographic screens, holding tablet, denim shorts, black leggings, sneakers, full body, standing, looking at viewer"
+  },
+  {
+    "id": "gs_e_ren",
+    "seed": 2670082723,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-11-03T03:06:18.772Z",
+    "prompt": "1boy, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, young man, 20s, slim, short, cat ears, cat tail, calico, multicolored hair, white hair, orange streaks, black streaks, short hair, messy hair, half-closed eyes, green eyes, slit pupils, bored, oversized purple hoodie, hood down, headphones around neck, black shorts, black tights, chunky sneakers, hands in pockets, energy drink can, full body, standing, looking at viewer"
+  },
+  {
+    "id": "gs_p_ines",
+    "seed": 3375868014,
+    "model": "nai-diffusion-5-full",
+    "time": "2026-11-03T03:06:31.263Z",
+    "prompt": "1girl, transparent background, standing illustration, splash art, solo, best quality, masterpiece, highres, mesuki_peropero, ruppu, fujimoto_tatsuki, icco_ho, yippee, jajimalgeol, kaidenchii, 0haribo0, xu_youdian, jotmanlol, eriol_s2, year2026, ::-2::artist collaboration::, ::1.2::flat color::, ::-1::thick eyebrows::, ::-2::featureless black, pitch black, deep black::, ::-1::stickers::, adult female, 30s, tall, slender, tan skin, black hair, tight bun, hair pulled back, sharp eyebrows, dark brown eyes, narrow eyes, stern, expressionless, customs officer, navy uniform, peaked cap, navy jacket, gold buttons, epaulettes, white gloves, navy pencil skirt, black pantyhose, black pumps, holding clipboard, magnifying glass on chain, straight posture, full body, standing, looking at viewer"
   }
 ]
