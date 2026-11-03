@@ -110,6 +110,10 @@ const guestNamed = (gid: string) => !!loadMeta().bar?.guests?.[gid]?.named;
 /** 손님 그림 id (그림이 아직 없으면 null — 그 손님은 바에 오지 않는다) */
 let guestArtAny = false; // 확인용 주소(?bartest)의 __barGuest: 그림이 없어도 명부 손님을 세운다 (실루엣)
 const guestArt = (gid: string) => ((standURL(`gs_${gid}`) && guestArtReady(`gs_${gid}.webp`)) || guestArtAny ? `gs_${gid}` : null);
+/** 이 빌드에 손님 그림이 있나 (없으면 아직 영입 안 한 인물 그림을 빌린 임시 손님을 세운다) */
+const rosterArt = () => guestArtAny || GUESTS.some((g) => !!standURL(`gs_${g.id}`));
+/** 지금 세울 수 있는 낯선 손님이 있나 (묶음을 받았거나, 손님 그림이 없는 빌드면 임시 손님) */
+const guestReady = () => !rosterArt() || GUESTS.some((g) => guestArt(g.id)) || GUEST_ANON.some((x) => guestArt(x.id));
 /** 그 손님의 대사 (없으면 공통 대사로) */
 const guestLines = (gid: string): GuestLines | undefined => GUEST_LINES[gid];
 const nameOf = (id: string) => (id === 'cesare' ? '체사레' : id === 'guest' ? '손님' : id.startsWith('g.') ? (guestNamed(gidOf(id)) && GUEST_BY_ID[gidOf(id)]?.name) || '낯선 손님' : UNIT_BY_ID[id]?.name || NPCS[id]?.name || id);
@@ -358,6 +362,7 @@ function planFor(need: string[], fresh: number, ok: Set<string>): Plan | null {
   const on = S.stage.map(keyOf);
   // '손님' 역: 무대에 있는, 아직 이름을 밝히지 않은 낯선 손님이 맡고 (대사가 그 사람 성격과 다를 수 있어 이름 밝힌 손님은 맡지 않는다), 없으면 새로 들어온다
   const g = need.includes('guest') ? S.stage.find((s) => s.guest && !guestNamed(s.gid!)) : undefined;
+  if (need.includes('guest') && !g && !guestReady()) return null;
   const add = need.map((k) => (k === 'guest' && g ? keyOf(g) : k)).filter((k) => !on.includes(k));
   const newbie = add.filter((k) => !BAR_FOLK.has(k));
   if (newbie.length > fresh || !newbie.every((k) => ok.has(k))) return null;
@@ -552,7 +557,8 @@ function enterScene(now: number): Pick | null {
   const goal = Math.round(share * Math.max(ps.length + 1, wantNow(now))); // 목표 인원 중 낯선 손님 자리 수
   const pGuest = ps.filter((s) => s.guest).length < goal ? 0.85 : 0.15;
   const e = entrants();
-  const k = !e.length || Math.random() < pGuest ? 'guest' : weighted(e, (x) => (CREW.has(x) ? 6 : 1));
+  if (!e.length && !guestReady()) return null;
+  const k = guestReady() && (!e.length || Math.random() < pGuest) ? 'guest' : weighted(e, (x) => (CREW.has(x) ? 6 : 1));
   return { scene: { key: '', sit: '', lines: [], kind: 'enter', hold: 2600 }, plan: { add: [k], drop: [] } };
 }
 /** 에이든 서빙: 빈 잔을 치우고 (가끔 한 잔 더), 잔이 없는 손님에게 가끔 단골 메뉴를 내준다 (낮에만) */
@@ -666,7 +672,7 @@ function decideInner(prev: Scene | null, now: number): Pick {
 }
 /** 새 낯선 손님 자리 (머물 시간 BAR_TUNE.stay.guest): 그림이 있는 명부 손님 중 무대에 없고 이번 방문에 나가지 않은 사람 (주로 오는 시간이 맞으면 3배 · 아무 때 2배).
  *  role = 만담 · 틀의 '손님' 역: 이름을 밝히지 않은 손님만, 모두 밝혔으면 익명 그림(GUEST_ANON). 그림이 하나도 없으면 아직 영입 안 한 인물 그림을 빌린 임시 손님 */
-function newGuest(now: number, role = false): Seat {
+function newGuest(now: number, role = false): Seat | null {
   const seat = (id: string, gid: string): Seat => ({ id, guest: true, gid, since: now, until: now + rand(BAR_TUNE.stay.guest), n: 0 });
   const on = new Set(S.stage.map((s) => s.gid));
   const day = !S.night;
@@ -674,6 +680,7 @@ function newGuest(now: number, role = false): Seat {
   if (pool.length) { const g = weighted(pool, (x) => (x.when === 'any' ? 2 : (x.when === 'day') === day ? 3 : 1)); return seat(guestArt(g.id)!, g.id); }
   const anon = GUEST_ANON.filter((x) => !on.has(x.id) && guestArt(x.id));
   if (anon.length) { const a = pick(anon); return seat(guestArt(a.id)!, a.id); }
+  if (rosterArt()) return null; // 손님 그림이 있는 빌드인데 묶음을 아직 받는 중 — 임시 손님 대신 아무도 오지 않는다 (단원이 대신 들어온다)
   const used = new Set(S.stage.map((s) => s.id));
   const units = UNITS.filter((d) => !S.known.has(d.id) && !used.has(d.id) && standURL(d.id) && !d.inert && !d.noBar);
   return seat(units.length ? pick(units).id : 'guest', `p${++S.gseq}`);
@@ -685,7 +692,7 @@ function applyPlan(plan: Plan, now: number) {
   for (const k of plan.add) {
     if (S.stage.some((s) => keyOf(s) === k)) continue;
     if (k === 'aiden') S.stage.unshift({ id: k, since: now, n: 0 });
-    else if (k === 'guest') { const g = newGuest(now, !!plan.role); S.stage.push(g); plan.as = keyOf(g); }
+    else if (k === 'guest') { const g = newGuest(now, !!plan.role); if (g) { S.stage.push(g); plan.as = keyOf(g); } }
     else S.stage.push({ id: k, since: now, until: now + rand(BAR_TUNE.stay.crew), n: 0 });
   }
 }
@@ -778,8 +785,11 @@ function firstStage() {
   // 지금 시간대 목표만큼 이미 앉아 있다 (머문 지 조금 된 사람도 있게 남은 시간을 줄여서)
   const want = Math.min(wantNow(now), STAGE_MAX - (S.night ? 0 : 1));
   for (let i = 0; i < want; i++) {
-    const p = enterScene(now)!.plan;
-    applyPlan(p, now);
+    const e = enterScene(now);
+    if (!e) break;
+    const before = S.stage.length;
+    applyPlan(e.plan, now);
+    if (S.stage.length === before) break;
     const s = S.stage[S.stage.length - 1];
     if (s.until) s.until = now + (s.until - now) * (0.25 + 0.75 * Math.random());
   }
@@ -807,7 +817,7 @@ function seatHtml(s: Seat, x: number) {
   const url = UNIT_BY_ID[f] || s.id.startsWith('gs_') ? standURL(f) : null;
   const nm = nameOf(keyOf(s));
   const art = url ? `<img alt="" src="${url}" style="${figStyle(f)}" decoding="async" onerror="this.remove()">` : '<i class="bar-sil" aria-hidden="true"></i>';
-  return `<div class="bar-seat" data-seat="${keyOf(s)}" style="--x:${x}"><button class="bar-fig${s.guest ? ' is-guest' : ''}" data-a="bar-x" data-v="talk:${keyOf(s)}" aria-label="${esc(nm)}에게 말 걸기">${art}</button><span class="bar-emo" hidden></span>${orderBadge(s)}</div>`;
+  return `<div class="bar-seat" data-seat="${keyOf(s)}" style="--x:${x}"><button class="bar-fig${s.guest && !s.id.startsWith('gs_') ? ' is-guest' : ''}" data-a="bar-x" data-v="talk:${keyOf(s)}" aria-label="${esc(nm)}에게 말 걸기">${art}</button><span class="bar-emo" hidden></span>${orderBadge(s)}</div>`;
 }
 /** 주문 방식 아이콘: 느낌(물결) · 사진(사진기) · 이름(메뉴 카드) · 늘 마시던 거(돌아가는 화살표) */
 const STYLE_ICON: Record<OrderStyle, string> = {
@@ -1244,7 +1254,7 @@ if (typeof location !== 'undefined' && location.search.includes('bartest')) {
     const here = new Set(ints);
     const sc = buildFrame({ ...f, slots: f.slots.map((sl, i) => (ints[i] && sl[ints[i]] ? { [ints[i]]: sl[ints[i]] } : {})) }, here, here);
     const now = clock.now();
-    S.stage = needOf([...f.cast, ...ints]).slice(0, STAGE_MAX).map((k) => (k === 'guest' ? newGuest(now) : { id: k, since: now, n: 0 }));
+    S.stage = needOf([...f.cast, ...ints]).slice(0, STAGE_MAX).map((k) => (k === 'guest' ? newGuest(now) : { id: k, since: now, n: 0 })).filter((x): x is Seat => !!x);
     const g = S.stage.find((x) => x.guest);
     S.cur = { ...sc, lines: sc.lines.filter(([w]) => w).map((l) => (l[0] === 'guest' && g ? [keyOf(g), ...l.slice(1)] as Line : l)) }; S.li = 0;
     const root = document.querySelector<HTMLElement>(BAR_SEL);
@@ -1361,7 +1371,8 @@ export function barSimulate(n: number, known: string[], night = false, rate = 1)
     cups: S.stage.filter((s) => cupLeft(s.cup, t) !== null).length,
     vis: exit || !S.cur ? 0 : S.cur.lines.reduce((a, l, j) => a + lineMs(S.cur!, l, j === S.cur!.lines.length - 1), 0), // 말풍선 · 이모티콘이 떠 있는 시간
   });
-  const ops = S.ops, r0 = W.rate, f0 = fastOn, real0 = clock.real;
+  const ops = S.ops, r0 = W.rate, f0 = fastOn, real0 = clock.real, any0 = guestArtAny;
+  guestArtAny = true; // 모의 실행: 손님 그림은 다 받아져 있다고 본다
   let tr = 0;
   clock.real = () => tr;
   W.rate = rate; fastOn = rate > 1; // 시간 가속 모의: 바 시계(t)는 말이 없는 동안(이모티콘 · 쉬는 시간 · 정적 · 퇴장)만 실제 ms 의 rate 배, 대사 · 혼잣말은 1배
@@ -1386,7 +1397,7 @@ export function barSimulate(n: number, known: string[], night = false, rate = 1)
       rec(p.scene.kind, p.plan);
       adv(wait); // 첫 줄까지 (말 없는 한때는 그 길이 전체)
     }
-  } finally { clock.now = real; clock.real = real0; W.rate = r0; fastOn = f0; barEnter(); S.ops = ops; }
+  } finally { clock.now = real; clock.real = real0; W.rate = r0; fastOn = f0; guestArtAny = any0; barEnter(); S.ops = ops; }
   return log;
 }
 
