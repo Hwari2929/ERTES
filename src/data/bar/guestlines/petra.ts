@@ -1714,7 +1714,7 @@ export const GUEST_LINES_PETRA: Record<string, GuestLines> = {
     ],
     vague: [
       '{feel} 주세요. 만든 사람이 직접 주는 잔이면 좋겠어요.',
-      '{feel} 한 잔 부탁해요. 시료 칸에 조금만 넣어 볼게요.',
+      '{feel} 주실래요? 시료 칸에 조금만 넣어 볼게요.',
     ],
     photo: [
       '이거요. 동료가 찍어 왔어요. 근데 이 잔은 누가 만든 거예요?',
