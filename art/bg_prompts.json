@@ -196,6 +196,46 @@
   "field_hyperion_w5": "side profile of a long elegant golden treasure ship, art deco hull lines, glowing hexagon shield panels flickering on, nebula and planet backdrop, majestic",
   "field_hyperion_w6": "interior megastructure of a vault ship, cathedral-scale central shaft with stacked ring vaults, laser grid defenses, gold and teal light, sense of immense depth",
   "field_hyperion_w7": "vault starship under siege, shield layers peeling off in sparks as small raider ships attack, explosions against gold armor, dynamic composition",
-  "field_hyperion_w8": "colossal vault ship emerging from hyperspace, light streaks, shield bubble forming around it, heavy fortress architecture with defense towers on its back"
+  "field_hyperion_w8": "colossal vault ship emerging from hyperspace, light streaks, shield bubble forming around it, heavy fortress architecture with defense towers on its back",
+  "prep_wall_a": {
+   "prompt": "matte black wallpaper wall, straight-on front view, completely plain empty wall, faint subtle vertical pinstripe texture, hidden warm yellow LED strip at the bottom edge casting a soft amber glow upward, light fading to black toward the top, calm, quiet, minimalist bar interior, no humans, background art, simple composition, empty wall, best quality, masterpiece, highres, year2026, ::1.2::painterly::, ::1.1::flat color::",
+   "base": false,
+   "neg": "shelves, bottles, glasses, furniture, counter items, lamps, chandelier, plants, flowers, picture frame, painting, poster, window, stars, outer space, neon sign, ornaments, decorations, clutter, objects, pattern overload, bright, overexposed"
+  },
+  "prep_wall_b": {
+   "prompt": "dark charcoal black fabric wallpaper with a very faint damask pattern, straight-on view, empty wall with nothing on it, warm golden yellow backlight glowing behind a low ledge at the bottom of the frame, gentle upward gradient of light on the wall, deep shadows above, moody, calm, no humans, background art, simple composition, empty wall, best quality, masterpiece, highres, year2026, ::1.2::painterly::, ::1.1::flat color::",
+   "base": false,
+   "neg": "shelves, bottles, glasses, furniture, counter items, lamps, chandelier, plants, flowers, picture frame, painting, poster, window, stars, outer space, neon sign, ornaments, decorations, clutter, objects, pattern overload, bright, overexposed"
+  },
+  "prep_wall_c": {
+   "prompt": "plain black wall, smooth matte surface, front view, minimal, golden yellow backlight bleeding from beneath the bottom edge, soft glow, gradient from warm yellow at the bottom to pure black at the top, calm atmosphere, low-key lighting, deep black tones, high contrast between black wall and warm light, no humans, background art, simple composition, empty wall, best quality, masterpiece, highres, year2026, ::1.2::painterly::, ::1.1::flat color::",
+   "base": false,
+   "neg": "shelves, bottles, glasses, furniture, counter items, lamps, chandelier, plants, flowers, picture frame, painting, poster, window, stars, outer space, neon sign, ornaments, decorations, clutter, objects, pattern overload, bright, overexposed, gray wall, washed out, low contrast, fog, haze"
+  },
+  "prep_wall_d": {
+   "prompt": "black textured wallpaper with subtle linen texture, front view, empty wall, warm yellow light washing the lower part of the wall from a hidden light source below, soft even glow, quiet late night bar mood, minimal, low-key lighting, deep black tones, high contrast between black wall and warm light, no humans, background art, simple composition, empty wall, best quality, masterpiece, highres, year2026, ::1.2::painterly::, ::1.1::flat color::",
+   "base": false,
+   "neg": "shelves, bottles, glasses, furniture, counter items, lamps, chandelier, plants, flowers, picture frame, painting, poster, window, stars, outer space, neon sign, ornaments, decorations, clutter, objects, pattern overload, bright, overexposed, gray wall, washed out, low contrast, fog, haze"
+  },
+  "prep_wall_e": {
+   "prompt": "deep black velvet wallpaper, front view, completely empty wall, dim warm amber yellow backlight glow along the bottom, soft and subdued, cozy quiet bar after hours, minimal, dark, low-key lighting, deep black tones, high contrast between black wall and warm light, no humans, background art, simple composition, empty wall, best quality, masterpiece, highres, year2026, ::1.2::painterly::, ::1.1::flat color::",
+   "base": false,
+   "neg": "shelves, bottles, glasses, furniture, counter items, lamps, chandelier, plants, flowers, picture frame, painting, poster, window, stars, outer space, neon sign, ornaments, decorations, clutter, objects, pattern overload, bright, overexposed, gray wall, washed out, low contrast, fog, haze"
+  },
+  "prep_wall_f": {
+   "prompt": "matte black wallpaper wall, front view, empty, long horizontal strip of warm yellow backlight hidden behind the top edge of a plain low black counter at the very bottom, light spilling softly upward onto the wall, calm, minimal, very dark, low-key lighting, deep black tones, high contrast between black wall and warm light, no humans, background art, simple composition, empty wall, best quality, masterpiece, highres, year2026, ::1.2::painterly::, ::1.1::flat color::",
+   "base": false,
+   "neg": "shelves, bottles, glasses, furniture, counter items, lamps, chandelier, plants, flowers, picture frame, painting, poster, window, stars, outer space, neon sign, ornaments, decorations, clutter, objects, pattern overload, bright, overexposed, gray wall, washed out, low contrast, fog, haze"
+  },
+  "prep_wall_g": {
+   "prompt": "matte black wallpaper wall, front view, empty, warm yellow LED backlight hidden behind a thin plain floating ledge near the top, light washing downward over the wall, soft gradient fading toward the bottom, calm, minimal, low-key lighting, deep black tones, high contrast between black wall and warm light, no humans, background art, simple composition, empty wall, best quality, masterpiece, highres, year2026, ::1.2::painterly::, ::1.1::flat color::",
+   "base": false,
+   "neg": "shelves, bottles, glasses, furniture, counter items, lamps, chandelier, plants, flowers, picture frame, painting, poster, window, stars, outer space, neon sign, ornaments, decorations, clutter, objects, pattern overload, bright, overexposed, gray wall, washed out, low contrast, fog, haze"
+  },
+  "prep_wall_h": {
+   "prompt": "black wallpaper with a barely visible tone-on-tone vertical stripe, front view, empty wall, warm yellow backlight glowing from below, subtle light gradient rising from the bottom third, restrained, calm, elegant, minimal, low-key lighting, deep black tones, high contrast between black wall and warm light, no humans, background art, simple composition, empty wall, best quality, masterpiece, highres, year2026, ::1.2::painterly::, ::1.1::flat color::",
+   "base": false,
+   "neg": "shelves, bottles, glasses, furniture, counter items, lamps, chandelier, plants, flowers, picture frame, painting, poster, window, stars, outer space, neon sign, ornaments, decorations, clutter, objects, pattern overload, bright, overexposed, gray wall, washed out, low contrast, fog, haze"
+  }
  }
 }

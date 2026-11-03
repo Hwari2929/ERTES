@@ -579,8 +579,57 @@
       "transparent": true,
       "prompt": "a small pale blue crystal sugar shard, faceted, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
       "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+    },
+    "bar_glass_rock": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a single completely empty clear drinking glass, nothing inside, no liquid, transparent clear glass with faint pale blue-gray tint, thin ink outline, short wide old fashioned rocks glass, straight vertical sides, thick heavy flat base, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor, liquid, drink, beverage, water, wine, beer, cocktail, juice, filled glass, full glass, ice, ice cubes, foam, bubbles, fruit, garnish, straw, spoon, lemon slice, bottle"
+    },
+    "bar_glass_highball": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a single completely empty clear drinking glass, nothing inside, no liquid, transparent clear glass with faint pale blue-gray tint, thin ink outline, tall narrow straight-sided highball glass, cylindrical, thick flat base, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor, liquid, drink, beverage, water, wine, beer, cocktail, juice, filled glass, full glass, ice, ice cubes, foam, bubbles, fruit, garnish, straw, spoon, lemon slice, bottle"
+    },
+    "bar_glass_pint": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a single completely empty clear drinking glass, nothing inside, no liquid, transparent clear glass with faint pale blue-gray tint, thin ink outline, tall pint glass, wide rim gently tapering down to a narrower base, conical tumbler, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor, liquid, drink, beverage, water, wine, beer, cocktail, juice, filled glass, full glass, ice, ice cubes, foam, bubbles, fruit, garnish, straw, spoon, lemon slice, bottle"
+    },
+    "bar_glass_coupe": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a single completely empty clear drinking glass, nothing inside, no liquid, transparent clear glass with faint pale blue-gray tint, thin ink outline, coupe glass on a slender stem, very shallow wide rounded bowl, round flat foot, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor, liquid, drink, beverage, water, wine, beer, cocktail, juice, filled glass, full glass, ice, ice cubes, foam, bubbles, fruit, garnish, straw, spoon, lemon slice, bottle"
+    },
+    "bar_glass_wine": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a single completely empty clear drinking glass, nothing inside, no liquid, transparent clear glass with faint pale blue-gray tint, thin ink outline, wine glass on a long slender stem, tulip shaped bowl narrowing toward the rim, round flat foot, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor, liquid, drink, beverage, water, wine, beer, cocktail, juice, filled glass, full glass, ice, ice cubes, foam, bubbles, fruit, garnish, straw, spoon, lemon slice, bottle"
+    },
+    "bar_glass_goblet": {
+      "w": 832,
+      "h": 1216,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a single completely empty clear drinking glass, nothing inside, no liquid, transparent clear glass with faint pale blue-gray tint, thin ink outline, large goblet on a short thick stem, deep wide rounded bowl, round flat foot, strict front view, straight-on, symmetrical, orthographic, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, three-quarter view, angled view, tilted, perspective, from above, from below, side view, top view, rotated, dutch angle, cast shadow, reflection on floor, liquid, drink, beverage, water, wine, beer, cocktail, juice, filled glass, full glass, ice, ice cubes, foam, bubbles, fruit, garnish, straw, spoon, lemon slice, bottle"
     }
   },
   "_albedo_note": "ct_albedo_*: 조명 없는 알베도 전용. base 의 광원 문구를 쓰지 않는다 (nai_prop.mjs 가 noBase 로 읽음)",
-  "_note_bar": "바 제조대 재료 · 가니쉬 아이콘. 사용자가 C안(빈티지 판화) 선택 (2026-11-02), 병 · 통은 무조건 정면 뷰. bar_ing_<재료 id> (19) · bar_gar_<가니쉬 id> (10), transparent: V5 투명 배경. 라벨은 글자 없이 그림만. 시안 bar_ing_a~c · bar_gar_a~c 는 기록용"
+  "_note_bar": "바 제조대 재료 · 가니쉬 아이콘. 사용자가 C안(빈티지 판화) 선택 (2026-11-02), 병 · 통은 무조건 정면 뷰. bar_ing_<재료 id> (19) · bar_gar_<가니쉬 id> (10), transparent: V5 투명 배경. 라벨은 글자 없이 그림만. 시안 bar_ing_a~c · bar_gar_a~c 는 기록용",
+  "_note_glass": "바 잔 6종 (drinks.ts GLASSES) 빈 유리잔 — 재료 · 가니쉬 아이콘과 같은 C안 빈티지 판화 · 정면 · V5 투명 배경. 음료 · 얼음 · 가니쉬를 넣지 않는다 (2026-11-03 사용자 요청: 잔 그림은 빈 잔, 그림체 유지). bar_glass_<잔 id>, 종류마다 8장 시안"
 }

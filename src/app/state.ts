@@ -16,7 +16,7 @@ import * as LAB from '../ui/lab';
 export const PREF_KEY = 'errantes.prefs.v1';
 /** 전투 배속 (단축키 1~6, Space 정지) */
 export const SPEEDS = [0.25, 0.5, 1, 2, 4, 8];
-export function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean; fxMs?: number; skillMs?: number; motion?: MotionPreset; death?: DeathStyle; ultCut?: UltCut; uiTheme?: string; uiFx?: string; fullscreen?: boolean; prepFold?: boolean; benchOff?: boolean; boardFit?: boolean; boardZoom?: number; boardZoomLast?: number; battleZoom?: number } {
+export function loadPrefs(): { speed?: number; detail?: boolean; slowDetail?: boolean; zoomOut?: boolean; fxMs?: number; skillMs?: number; motion?: MotionPreset; death?: DeathStyle; ultCut?: UltCut; uiTheme?: string; uiFx?: string; fullscreen?: boolean; prepFold?: boolean; benchOff?: boolean; boardFit?: boolean; boardZoom?: number; boardZoomLast?: number; battleZoom?: number; barReceiptManual?: boolean } {
   try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}; } catch { return {}; }
 }
 /** 연출 설정을 전투 화면에 반영 */

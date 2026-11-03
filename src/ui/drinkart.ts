@@ -51,7 +51,7 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink'): string {
   const body: string[] = [];
   if (lv > 0 && segs.length) {
     const opaque = d.fill.some((x) => ING_BY_ID[x]?.opaque);
-    body.push(`<rect x="0" y="${yTop.toFixed(2)}" width="48" height="${(s.bot - yTop + 1).toFixed(2)}" fill="${fill}" fill-opacity="${opaque || frozen ? 1 : 0.88}"/>`);
+    body.push(`<rect class="liq" x="0" y="${yTop.toFixed(2)}" width="48" height="${(s.bot - yTop + 1).toFixed(2)}" fill="${fill}" fill-opacity="${opaque || frozen ? 1 : 0.88}"/>`);
     // 맥주 거품: 맨 위층이 맥주면 액면에 얇은 거품
     const topIng = segs[segs.length - 1].ing;
     if (!frozen && (topIng === 'ringside' || topIng === 'darkringer') && lv > 0.12) body.push(`<rect x="0" y="${(yTop - 0.4).toFixed(2)}" width="48" height="${Math.min(3, H * 0.12).toFixed(2)}" fill="#efe6d2"/>`);

@@ -389,6 +389,7 @@ export function act(a: string, v: string) {
     case 'menu-tab': app.menu = v as 'menu' | 'settings'; break;
     case 'fullscreen': toggleFullscreen(); break;
     case 'pref-zoom': app.zoomOut = !app.zoomOut; savePref('zoomOut', app.zoomOut); break;
+    case 'pref-barreceipt': savePref('barReceiptManual', !loadPrefs().barReceiptManual); break;
     case 'pref-motion': savePref('motion', v); applyFxPrefs(); break;
     case 'pref-death': savePref('death', v); applyFxPrefs(); render(); { const h = document.querySelector<HTMLElement>('.dpv'); if (h) previewDeath(h, FX.death); } return;
     case 'death-preview': { const h = document.querySelector<HTMLElement>('.dpv'); if (h) previewDeath(h, FX.death); } return;

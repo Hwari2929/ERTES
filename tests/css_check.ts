@@ -32,6 +32,7 @@ export const LEGACY: Record<string, string> = {
 /** JS(src/app/* · battleview.ts 등)가 style="--x:…" / setProperty('--x') 로 주입하는 변수 */
 export const JS_VARS = ['--cols', // app/map.ts routeGraph: 분기 항로 지도 칸 수
   '--tex', // ui/bar.ts 카운터 나무결 그림 (artURL)
+  '--sx', '--sw', // ui/bar.ts focusOrder 스포트라이트 자리 · 폭
   '--ing', '--lo', '--hi', '--at', '--st', '--rch', // ui/barprep.ts 가니쉬 색 · 맛 막대 목표 범위 · 값 자리 · 지금 단계 (작업대 위치) · 영수증 높이 (bar.ts drawPrep)
   '--rot-bp', '--fc', '--gx', '--gy', '--gs', '--tx', '--ty', '--tw', '--nx', '--ny', '--nw', '--ns', '--ox', '--oy', '--ow', '--oh', '--oz', '--rot-mn', '--rot-pr', '--rot-rd', '--rot-ls', '--el', '--d', '--sw-el', // ui/contract.ts: 도면 · 차림표가 놓인 각도
  

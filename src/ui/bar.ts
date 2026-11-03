@@ -24,7 +24,7 @@ import { BAR_GUEST, BAR_IDLE, BAR_TALK, DEEP_TOPICS, FIELD_SHORT, GENERIC_REACT 
 import { AIDEN_BACK, AIDEN_OFF, AIDEN_ON, LEAVE_GENERIC, LEAVE_LINES } from '../data/bar/leave';
 import { ERANTES_CREW, MONO, MONO_KIND_NAME, MONO_KINDS, type MonoKind } from '../data/bar/mono';
 import { canOrder, GLASS_BY_ID, HOUSE_MENUS, ING_BY_ID, ORDER_STYLE_NAME, RECIPE_BY_ID, REGULARS, type Drink, type OrderStyle } from '../data/bar/drinks';
-import { BAR_OPS, COIN_NAME, COIN_UNIT, coinText, GRADE_NAME, judge, makeOrder, payOf, recipeName, feelText, type Grade, type Order } from '../data/bar/orders';
+import { BAR_OPS, COIN_NAME, COIN_UNIT, coinText, judge, makeOrder, payOf, recipeName, feelText, type Grade, type Order } from '../data/bar/orders';
 import { ORDER_GENERIC, ORDER_TALK, orderTalk } from '../data/bar/orderlines';
 import { FIRST_MEET } from '../data/bar/firstmeet';
 import { GUEST_ANON, GUEST_BY_ID, GUESTS } from '../data/bar/guests.gen';
@@ -202,13 +202,15 @@ const fmt = (s: string) => esc(s);
 // ───────── 구경 모드 상태
 /** 카운터 위 잔: by = 내준 사람 (에이든 · 플레이어 — 플레이어가 내준 잔이 남아 있으면 그 손님은 다 마시기 전에 나가지 않는다).
  *  at = 놓인 시각 (그 전에는 안 보인다) · dur = 다 마시는 데 걸리는 시간 · emptyAt = 비운 시각 */
-interface Cup { d: Drink; name: string; by: 'aiden' | 'player'; at: number; dur: number; alc: boolean; emptyAt?: number; /** 플레이어가 내준 잔: 만족 · 술값을 냈나 */ grade?: Grade; paid?: boolean }
+interface Cup { d: Drink; name: string; by: 'aiden' | 'player'; at: number; dur: number; alc: boolean; emptyAt?: number; /** 플레이어가 내준 잔: 만족 · 술값을 냈나 · 맞춘 것 ✓ / 놓친 것 ✗ (잔을 누르면 이름 옆에) */ grade?: Grade; paid?: boolean; check?: string }
 /** 무대에 선 인물. guest = 낯선 손님 (id = 세울 그림, gid = 손님 구별 — 무대 키 'g.<gid>') · since = 들어온 시각 · until = 일어날 시각 (바 시간) ·
  *  n = 들어온 뒤 말한 장면 수 · cup = 카운터 위 잔 */
 interface Seat {
   id: string; guest?: boolean; gid?: string; since: number; until?: number; n: number; cup?: Cup;
   /** 걸려 있는 주문 (머리 위 주문 표시, 누르면 제조대) · 주문 귀띔(밤에 손님이 흘린 말) · 마지막으로 잔을 받은 시각 · 카운터 위 동전 (아직 안 거둔 술값 + 팁) */
   order?: Order; orderHint?: string; orderAt?: number; pay?: number;
+  /** 주문할 때 한 말 (주문 표시를 누르면 스포트라이트 아래에서 다시 말한다) */
+  orderLine?: string;
   /** 주문을 건 실제 시각 (performance.now — 가속 중에도 BAR_OPS.patience 는 기다린다) */
   orderReal?: number;
   /** 낯선 손님이 이름을 밝히려 말을 걸 시각 (바 시간) · 머리 위 말 걸기 표시가 떠 있다 · 표시가 뜬 실제 시각 */
@@ -224,8 +226,8 @@ type Line = [string, string, string?, ('e' | 'm')?];
 interface Scene {
   key: string; sit: string; lines: Line[]; layer?: 's' | 'i' | 'r';
   kind: 'scene' | 'idle' | 'mono' | 'emote' | 'enter' | 'serve' | 'shift' | 'leave' | 'wait' | 'order' | 'react' | 'tip' | 'call';
-  /** order: 이 장면으로 걸리는 주문 (무대 키 · 주문 · 귀띔) */
-  order?: [string, Order, string?];
+  /** order: 이 장면으로 걸리는 주문 (무대 키 · 주문 · 귀띔) · 그 주문 말 */
+  order?: [string, Order, string?]; orderLine?: string;
   exit?: string; hold?: number; mono?: string; idle?: number; cups?: [string, Cup | null][]; toNight?: boolean; toDay?: boolean;
   /** 들은 이야기 기록 키 (에이든 × 낯선 손님 만담 'ga:<손님 id>.<편>' — 이번 방문에 다시 안 나오고, 도감 손님 탭에 남는다) */
   talk?: string;
@@ -271,6 +273,8 @@ const S = {
   /** 바 운영: 주문을 받는다 (모의 실행은 끈다) · 지금 제조대 (null = 정면) */
   ops: true,
   prep: null as Prep | null,
+  /** 주문 표시를 눌러 스포트라이트를 받은 손님 (무대 키, '' = 없음) */
+  focus: '',
   /** 첫 영업 보조: 카운터 위 에이든의 메모 (밤 첫 주문, 이번 방문에만) · 펼쳐 읽는 중 · 처음 동전이 놓인 자리 (다음 한때에 귀띔) */
   memo: false,
   memoOpen: false,
@@ -624,7 +628,7 @@ function orderPick(s: Seat, now: number, style?: OrderStyle): Pick {
   const lines: Line[] = [[k, fillText(pick(t[o.style]), vars)]];
   let hint: string | undefined;
   if (o.hint === 'guest') { hint = fillText(t.hint, vars); lines.push([k, hint]); }
-  return { scene: { key: '', sit: '', lines, kind: 'order', order: [keyOf(s), o, hint] }, plan: noop() };
+  return { scene: { key: '', sit: '', lines, kind: 'order', order: [keyOf(s), o, hint], orderLine: lines[0][1] }, plan: noop() };
 }
 /** 첫 주문 귀띔 (한 번만): 에이든이 무대에 있으면 (이 장면에 나오면) 주문 대사 뒤에 한마디, 없으면 카운터에 메모를 놓는다 */
 function orderTip(sc: Scene, aiden: boolean) {
@@ -778,7 +782,7 @@ function startScene(p: Pick, root: HTMLElement | null, prev: Scene | null = null
     if (!S.night && aidenOn() && !(S.ops && barOpsNew())) for (const s of fresh) if (!s.guest && Math.random() < BAR_TUNE.serve) s.cup = aidenCup(keyOf(s), now, rand([4000, 9000])); // 낯선 손님은 들어오자마자 레이첼에게 주문한다 // 처음 하는 바 운영: 첫 손님은 레이첼에게
   }
   for (const [k, c] of p.scene.cups || []) { const s = S.stage.find((x) => keyOf(x) === k); if (s) s.cup = c || undefined; }
-  if (p.scene.order) { const [k, o, hint] = p.scene.order; const s = S.stage.find((x) => keyOf(x) === k); if (s) { s.order = o; s.orderHint = hint; s.orderReal = clock.real(); } }
+  if (p.scene.order) { const [k, o, hint] = p.scene.order; const s = S.stage.find((x) => keyOf(x) === k); if (s) { s.order = o; s.orderHint = hint; s.orderReal = clock.real(); s.orderLine = p.scene.orderLine; } }
   p.scene.lines = p.scene.lines.filter(([w]) => w);
   const speak = new Set(p.scene.lines.filter((l) => l[3] !== 'e').map(([w]) => figOf(w)));
   for (const s of S.stage) if (speak.has(keyOf(s))) s.n++;
@@ -919,7 +923,8 @@ function syncMarks(root: HTMLElement, now: number) {
     const seat = root.querySelector<HTMLElement>(`.bar-seat[data-seat="${keyOf(s)}"]:not(.out)`);
     if (seat) {
       const b = seat.querySelector<HTMLElement>('.bar-order:not(.bar-call)');
-      if (!s.order && b) b.remove();
+      if (S.focus === keyOf(s)) b?.remove(); // 스포트라이트 중: 주문 표시 자리에 ✕ · ✓
+      else if (!s.order && b) b.remove();
       else if (s.order && (!b || b.dataset.st !== s.order.style)) { b?.remove(); seat.insertAdjacentHTML('beforeend', orderBadge(s)); }
       const cb = seat.querySelector<HTMLElement>('.bar-call');
       if (!s.calling && cb) cb.remove();
@@ -1128,7 +1133,7 @@ export function barScreen(): string {
     ${clockHtml()}
     <button class="bar-door lp-btn" data-a="to-title">타이틀 ›</button>${coinChip()}
     <section class="bar-prep" aria-label="제조대" hidden></section>
-    <p class="bar-hint muted small">인물을 누르면 말을 겁니다. 머리 위 주문을 누르면 제조대로 돌아섭니다.</p>
+    <p class="bar-hint muted small">인물을 누르면 말을 겁니다. 머리 위 주문을 누르고 ✓ 로 받으면 제조대로 돌아섭니다.</p>
   </main>`;
 }
 
@@ -1372,7 +1377,7 @@ function barNext() { if (!advKey()) { stop(); tick(); } }
 export function barEnter() {
   void loadGuestPacks(); // 낯선 손님 스탠딩 묶음을 뒤에서 받는다 (받기 전에는 그 손님들이 오지 않는다)
   for (const s of S.stage) if (s.pay) metaBarCoins(s.pay); // 남겨 둔 동전은 다음 방문 전에 거둔다
-  S.prep = null; S.memo = false; S.memoOpen = false; S.tipCoin = '';
+  S.prep = null; S.focus = ''; S.memo = false; S.memoOpen = false; S.tipCoin = '';
   stop(); S.stage = []; S.cur = null; S.li = 0; S.session.clear(); S.gone.clear(); S.enterAt = 0; S.aidenAt = 0; S.wantH = -1; S.monoAt = -Infinity; S.monoUsed.clear(); resumeCache.t = 0;
   S.night = nightNext; nightNext = false; S.cycleAt = Infinity;
 }
@@ -1389,7 +1394,7 @@ function showTip(k: string, text?: string, ms = 2200) {
   if (text === undefined) {
     if (!s.cup || cupLeft(s.cup, clock.now()) === null) return;
     const l = cupLeft(s.cup, clock.now())!;
-    text = l > 0 ? s.cup.name : `${s.cup.name} (빈 잔)`;
+    text = `${l > 0 ? s.cup.name : `${s.cup.name} (빈 잔)`}${s.cup.check ? ` — ${s.cup.check}` : ''}`;
   }
   tip.textContent = text;
   tip.style.setProperty('--x', String(spotOf(i, S.stage.length)));
@@ -1617,6 +1622,54 @@ function playLog() {
   playAdv(`bar:log:${b.id}`, [{ text: `통신 기록 재생. ${b.sit}`, bg }, ...banterBeats(b)], { ...advOpts, title: `통신 기록 — ${topic[1]}`, onDone: () => {} });
 }
 
+// ───────── 주문 스포트라이트 (2026-11-03 사용자 결정, docs/UI.md 19 예외): 주문 표시를 누르면 배경 · 다른 손님이 조금 어두워지고
+// 그 손님에게 은은한 호박색 스포트라이트 (불투명도 0.15). 손님이 주문을 다시 말하고, 주문 표시 자리에 ✕ 나중에 · ✓ 받기 (받으면 제조대로)
+const FOCUS_X = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7 L17 17 M17 7 L7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const FOCUS_OK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 L10 17 L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function focusOrder(k: string) {
+  const root = document.querySelector<HTMLElement>(BAR_SEL);
+  const s = S.stage.find((x) => keyOf(x) === k);
+  const seat = root?.querySelector<HTMLElement>(`.bar-seat[data-seat="${k}"]:not(.out)`);
+  if (!root || !s?.order || !seat || S.prep) return;
+  if (S.focus && S.focus !== k) unfocus(false);
+  stop(); hideBub(root); hideEmotes(root);
+  setRate(1);
+  S.focus = k;
+  root.classList.add('focus-on');
+  seat.classList.add('focus');
+  root.querySelector(`.bar-front[data-seat="${k}"]:not(.out)`)?.classList.add('focus');
+  const fl = root.querySelector<HTMLElement>('.bar-floor');
+  if (fl) {
+    const F = fl.getBoundingClientRect(), R = seat.getBoundingClientRect();
+    let sp = fl.querySelector<HTMLElement>('.bar-spot');
+    if (!sp) { sp = document.createElement('div'); sp.className = 'bar-spot'; sp.setAttribute('aria-hidden', 'true'); fl.prepend(sp); }
+    sp.style.setProperty('--sx', `${R.left - F.left + R.width / 2}px`); sp.style.setProperty('--sw', `${R.width}px`);
+    sp.classList.remove('on'); void sp.offsetWidth; sp.classList.add('on');
+  }
+  seat.querySelector('.bar-order:not(.bar-call)')?.remove();
+  const bub = root.querySelector<HTMLElement>('.bar-bub:not(.ghost)');
+  const line = s.orderLine || `${ORDER_STYLE_NAME[s.order.style]} 한 잔 부탁해요.`;
+  if (bub) { // 주문 말 바로 아래에 ✕ 나중에 · ✓ 받기 (말풍선이 머리 위를 덮으므로 말풍선 안에)
+    bub.innerHTML = `<b class="f-ui" style="--c:${colorOf(k)}">${esc(nameOf(k))}</b><span>${esc(line)}</span><span class="bar-pick" role="group" aria-label="${esc(nameOf(k))}의 주문"><button class="bar-pick-x" data-a="bar-x" data-v="later" aria-label="나중에">${FOCUS_X}</button><button class="bar-pick-ok" data-a="bar-x" data-v="take:${k}" aria-label="주문 받기 — 제조대로">${FOCUS_OK}</button></span>`;
+    bub.classList.remove('off-stage', 'mono'); bub.hidden = false;
+    placeBub(root, bub, seat);
+    void bub.offsetWidth; bub.classList.add('on');
+  }
+}
+/** 스포트라이트를 거둔다 (resume = 무대를 다시 흐르게 한다 — 받기는 제조대가 이어받는다) */
+function unfocus(resume: boolean) {
+  const root = document.querySelector<HTMLElement>(BAR_SEL);
+  const k = S.focus;
+  S.focus = '';
+  if (!root) return;
+  root.classList.remove('focus-on');
+  root.querySelectorAll('.bar-seat.focus, .bar-front.focus').forEach((e) => e.classList.remove('focus'));
+  root.querySelectorAll('.bar-pick').forEach((e) => e.remove());
+  root.querySelector('.bar-spot')?.classList.remove('on');
+  if (k) syncMarks(root, clock.now());
+  if (resume) { hideBub(root); schedule(600); }
+}
+
 // ───────── 제조대 (후면): 주문을 누르면 카메라가 180° 돌아 여기를 본다 (src/ui/barprep.ts)
 /** 주문을 받아 제조대로 돌아선다 */
 function openPrep(k: string) {
@@ -1657,12 +1710,21 @@ function drawPrep(root: HTMLElement) {
   if (!p.printed) { // 처음 그릴 때만: 출력기에서 영수증이 줄마다 밀려 나온다
     p.printed = true;
     if (!reduced()) for (let i = 0; i < 9; i++) sfx('print', { delay: 0.35 + i * 0.13, pitch: 1 + (i % 2) * 0.04 });
+    // 인쇄가 끝나면 잔 · 얼음 자리로 저절로 (설정 '바 제조대 영수증 직접 넘기기'를 켰거나, 처음 연 제조대의 에이든 메모가 붙어 있으면 그대로)
+    window.clearTimeout(prepAutoT);
+    if (!receiptManual() && !p.memo) prepAutoT = window.setTimeout(() => { if (S.prep === p && p.step === 0 && prepAct(p, 'next') === 'draw') drawPrep(root); }, reduced() ? 900 : PREP_AUTO_MS);
   }
 }
+/** 영수증 인쇄(0.35초 뒤 1.2초)가 끝나고 잠깐 읽을 틈 뒤에 넘어간다 */
+const PREP_AUTO_MS = 2300;
+let prepAutoT = 0;
+/** 설정 (src/app/state.ts loadPrefs · 같은 저장 키): 영수증을 직접 넘긴다 */
+const receiptManual = () => { try { return !!JSON.parse(localStorage.getItem('errantes.prefs.v1') || '{}').barReceiptManual; } catch { return false; } };
 /** 카운터로 돌아선다 (served = 방금 잔을 내줬다 → 반응 장면) */
 function closePrep(after: number) {
   const root = document.querySelector<HTMLElement>(BAR_SEL);
   S.prep = null;
+  window.clearTimeout(prepAutoT);
   if (!root) return;
   root.classList.remove('prep-on');
   const sec = root.querySelector<HTMLElement>('.bar-prep');
@@ -1680,7 +1742,7 @@ function serveDrink() {
   const d = prepDrink(p);
   const v = judge(s.order, d);
   const name = recipeName(d) || `레이첼의 ${GLASS_BY_ID[d.glass]?.name || '잔'}`;
-  s.cup = { d, name, by: 'player', at: now + (reduced() ? 200 : 900), dur: rand(BAR_TUNE.sip), alc: d.fill.some((x) => ALC.has(ING_BY_ID[x]?.kind)), grade: v.grade };
+  s.cup = { d, name, by: 'player', at: now + (reduced() ? 200 : 900), dur: rand(BAR_TUNE.sip), alc: d.fill.some((x) => ALC.has(ING_BY_ID[x]?.kind)), grade: v.grade, check: [...v.hit.map((x) => `✓ ${x}`), ...v.miss.map((x) => `✗ ${x}`)].join(' · ') };
   s.order = undefined; s.orderHint = undefined; s.orderAt = now;
   const roster = !!s.guest && !!GUEST_BY_ID[s.gid!];
   metaBarServed(roster ? s.gid! : keyOf(s), { ...d, name: recipeName(d) || undefined }, v.grade === 'like' && (!s.guest || (roster && guestNamed(s.gid!)))); // 낯선 손님은 이름을 밝힌 뒤부터 장부에 적는다 (임시 · 익명 손님은 장부가 없다)
@@ -1688,9 +1750,43 @@ function serveDrink() {
   const k0 = keyOf(s);
   S.cur = { key: '', sit: '', kind: 'react', lines: [[k0, pick(GRADE_EMO[v.grade]), undefined, 'e'], [k0, fillText(pick(t[v.grade]), { pc: PC })]] };
   S.li = 0;
-  const k = p.k;
-  closePrep(reduced() ? 600 : 1500);
-  window.setTimeout(() => showTip(k, `${GRADE_NAME[v.grade]}${v.miss.length ? ` · 놓친 것: ${v.miss.join(' · ')}` : ''}`, 3600), reduced() ? 700 : 1600);
+  closePrep(reduced() ? 600 : 1500); // 만족은 손님의 이모티콘 · 대사로만 (성적표 같은 꼬리표 없음). 맞춘 것 · 놓친 것은 잔을 누르면 이름 옆에
+}
+/** 제조대 손맛: 병을 누르면 그 색 물줄기와 함께 새 층이 아래에서 차오르고 붓는 소리, 얼음을 고르면 얼음 소리 (움직임 줄이기면 소리만) */
+function prepFx(root: HTMLElement, v: string) {
+  const [k, x] = v.split(':');
+  if (k === 'ice' && x !== 'none') sfx('ice');
+  if (k !== 'pour' || !S.prep) return;
+  sfx('pour');
+  if (reduced()) return;
+  const cup = root.querySelector<HTMLElement>('.bar-prep .bp-st2 .bp-cup');
+  const liq = cup?.querySelector<SVGRectElement>('rect.liq');
+  const n = S.prep.fill.length;
+  if (liq && n) { const h = Number(liq.getAttribute('height')) || 0; liq.animate([{ transform: `translateY(${((h - 1) / n).toFixed(2)}px)` }, { transform: 'translateY(0)' }], { duration: 480, easing: 'cubic-bezier(.3, .7, .4, 1)' }); }
+  if (cup) {
+    const st = document.createElement('i');
+    st.className = 'bp-stream'; st.setAttribute('aria-hidden', 'true');
+    st.style.setProperty('--ing', ING_BY_ID[x]?.color || '#999999');
+    cup.append(st);
+    st.addEventListener('animationend', () => st.remove());
+  }
+}
+/** 완성 장면: 벨을 누르면 다 만든 잔이 가운데 크게, 그 아래 이름표 — 1.3초 뒤 (누르면 바로) 내준다. 움직임 줄이기면 건너뛴다 */
+let doneT = 0;
+function serveCut() {
+  const sec = document.querySelector<HTMLElement>(`${BAR_SEL} .bar-prep`);
+  const p = S.prep;
+  if (!sec || !p || reduced()) { serveDrink(); return; }
+  const d = prepDrink(p);
+  const name = recipeName(d) || `레이첼의 ${GLASS_BY_ID[d.glass]?.name || '잔'}`;
+  window.clearTimeout(prepAutoT);
+  sec.insertAdjacentHTML('beforeend', `<button class="bp-done" data-a="bar-x" data-v="prep:done" aria-label="${esc(name)} — 내주기">${drinkSvg(d, 1, 'drink bp-done-cup')}<span class="bp-done-name">${esc(name)}</span></button>`);
+  doneT = window.setTimeout(serveNow, 1300);
+}
+function serveNow() {
+  if (!doneT) return;
+  window.clearTimeout(doneT); doneT = 0;
+  serveDrink();
 }
 /** 동전 거두기 (밤에는 빈 잔도 함께 치운다 — 낮에는 에이든이 치운다) */
 function collect(k: string) {
@@ -1715,7 +1811,9 @@ export function barAct(v: string): boolean {
   if (k === 'cup' && id) { showTip(id); return false; }
   if (k === 'prop' && id) { const pr = S.props[+id]; if (pr) showTip(pr.k, pr.name); return false; }
   if (k === 'fast') { toggleFast(); return false; }
-  if (k === 'order' && id) { openPrep(id); return false; }
+  if (k === 'order' && id) { focusOrder(id); return false; }
+  if (k === 'take' && id) { unfocus(false); openPrep(id); return false; }
+  if (k === 'later') { unfocus(true); return false; }
   if (k === 'coin' && id) { collect(id); return false; }
   if (k === 'memo') { // 카운터 위 에이든의 메모: 펼치기 · 접기 (같은 자리) · ✕ = 읽고 챙긴다
     if (id === 'open') S.memoOpen = !S.memoOpen; else { S.memo = false; S.memoOpen = false; }
@@ -1723,12 +1821,14 @@ export function barAct(v: string): boolean {
     if (root) syncMemo(root);
     return false;
   }
+  if (v === 'prep:done') { serveNow(); return false; }
   if (k === 'prep' && S.prep) {
+    if (doneT) return false; // 완성 장면 중에는 조작 없음
     const r = prepAct(S.prep, v.slice(5));
     const root = document.querySelector<HTMLElement>(BAR_SEL);
-    if (r === 'serve') { sfx('bell'); serveDrink(); }
+    if (r === 'serve') { sfx('bell'); serveCut(); }
     else if (r === 'back') closePrep(900);
-    else if (r === 'draw' && root) drawPrep(root);
+    else if (r === 'draw' && root) { drawPrep(root); prepFx(root, v.slice(5)); }
     return false;
   }
   return false;

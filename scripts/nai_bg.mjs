@@ -28,15 +28,19 @@ function unzipFirst(buf) {
   return method === 8 ? inflateRawSync(data) : data;
 }
 
+/** 항목: 문자열 = 프롬프트 (+ 공용 base), 또는 { prompt, base: false (공용 base 를 붙이지 않음), neg: '항목별 부정 태그' } */
+const entry = (key) => { const e = P.bgs[key]; return typeof e === 'string' ? { prompt: e } : e; };
 async function gen(key, seed) {
-  const input = `${P.bgs[key]}, ${P.base}`;
+  const e = entry(key);
+  const input = e.base === false ? e.prompt : `${e.prompt}, ${P.base}`;
+  const negative = e.neg ? `${P.negative}, ${e.neg}` : P.negative;
   const body = {
     input, model: cfg.model, action: 'generate',
     parameters: {
       params_version: 3, width: W, height: H, scale: cfg.scale, sampler: cfg.sampler, steps: STEPS, n_samples: 1, ucPreset: 0, qualityToggle: false, seed,
-      noise_schedule: cfg.noise_schedule, negative_prompt: P.negative, cfg_rescale: 0, sm: false, sm_dyn: false, dynamic_thresholding: false, legacy: false, add_original_image: true,
+      noise_schedule: cfg.noise_schedule, negative_prompt: negative, cfg_rescale: 0, sm: false, sm_dyn: false, dynamic_thresholding: false, legacy: false, add_original_image: true,
       v4_prompt: { caption: { base_caption: input, char_captions: [] }, use_coords: false, use_order: true },
-      v4_negative_prompt: { caption: { base_caption: P.negative, char_captions: [] }, legacy_uc: false },
+      v4_negative_prompt: { caption: { base_caption: negative, char_captions: [] }, legacy_uc: false },
     },
   };
   for (let attempt = 0; attempt < 4; attempt++) {

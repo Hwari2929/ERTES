@@ -91,6 +91,7 @@ export function uxSettings() {
       <div class="pref pref-wrap"><span><b>결과 창 자동으로 닫기</b><br><span class="muted small">전투 결과 창을 정한 시간 뒤 저절로 닫습니다. 창을 누르거나 스크롤하면 멈춥니다. 런이 끝난 결과는 닫지 않고, 보상 · 증강 · 영입 · 상점처럼 고를 것이 있는 창은 언제나 기다립니다.</span></span>
         <span class="seg">${AUTO_RESULT.map((s) => `<button class="btn tiny ${u.autoResult === s ? 'on' : ''}" data-a="pref-autores" data-v="${s}" aria-pressed="${u.autoResult === s}">${s ? `${s}초` : '끄기'}</button>`).join('')}</span></div>
       <label class="pref"><input type="checkbox" data-a="pref-autofight" ${u.autoFight ? 'checked' : ''}><span><b>편성 그대로 바로 전투</b><br><span class="muted small">지도에서 일반 전투 · 역경에 진입하면 편성 화면을 건너뛰고 지금 편성으로 바로 전투를 시작합니다. 보스 · 도전 전투, 빈 자리에 넣을 대기 기물이 있을 때, 고를 것이 남아 있을 때는 편성 화면에서 멈춥니다.</span></span></label>
+      <label class="pref"><input type="checkbox" data-a="pref-barreceipt" ${loadPrefs().barReceiptManual ? 'checked' : ''}><span><b>바 제조대 영수증 직접 넘기기</b><br><span class="muted small">켜면 영수증이 다 나와도 잔 · 얼음 자리로 저절로 넘어가지 않고, 다음 단추를 눌러 넘어갑니다. 끄면(기본) 인쇄가 끝나면 바로 넘어갑니다</span></span></label>
       <label class="pref"><input type="checkbox" data-a="pref-keyhints" ${u.keyHints ? 'checked' : ''}><span><b>단축키 표시</b><br><span class="muted small">버튼 모서리에 키보드 단축키(Space · Enter · 1 등)를 작게 표시합니다. 터치 화면에서는 표시하지 않습니다. 전체 목록은 메뉴 탭에 있습니다.</span></span></label>`;
 }
 /** 편성 그대로 바로 전투: 일반 · 역경만, 고를 것이 없고 빈 자리에 넣을 대기 기물이 없을 때 */
