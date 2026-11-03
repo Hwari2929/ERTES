@@ -4650,20 +4650,21 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .bar-sil { position: absolute; left: 50%; top: 8%; translate: -50% 0; width: 52%; height: 92%; border-radius: var(--r-pill) var(--r-pill) 0 0; background: var(--shade-2); border: 3px solid var(--c-white); border-bottom: 0; }
 /* 이모티콘: 머리 오른쪽 위 작은 말풍선 속 그림 하나 (게임 토큰 말풍선) */
 /* 이모티콘: 머리 둘레 둥근 말풍선 속 그림 하나 (게임 토큰 말풍선, 꼬리만 붙는다). 자리 4곳 (data-pos, bar.ts EMO_POS 무작위): 오른쪽 위 · 왼쪽 위 · 오른쪽 옆 · 왼쪽 옆, 꼬리가 머리를 가리킨다 */
-.bar-emo { position: absolute; left: 64%; top: 3%; z-index: var(--z-tip); display: grid; place-items: center; width: 54px; height: 54px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-pill); color: var(--c-text); box-shadow: 0 4px 10px var(--shade-2); }
+.bar-emo { position: absolute; left: 64%; top: 3%; z-index: var(--z-tip); display: grid; place-items: center; width: 54px; height: 54px; background: var(--c-white); border: 1px solid var(--line); border-radius: var(--r-pill); color: var(--c-black); box-shadow: 0 4px 10px var(--shade-2); }
 .bar-emo[data-pos="tl"] { left: auto; right: 64%; }
 .bar-emo[data-pos="r"] { top: 18%; left: 72%; }
 .bar-emo[data-pos="l"] { top: 18%; left: auto; right: 72%; }
 .bar-emo[hidden] { display: none; }
-.bar-emo::after { content: ''; position: absolute; left: 7px; bottom: 1px; width: 10px; height: 10px; rotate: 45deg; background: var(--panel); border: 1px solid var(--line); border-top: 0; border-left: 0; z-index: -1; }
+.bar-emo::after { content: ''; position: absolute; left: 7px; bottom: 1px; width: 10px; height: 10px; rotate: 45deg; background: var(--c-white); border: 1px solid var(--line); border-top: 0; border-left: 0; z-index: -1; }
 .bar-emo[data-pos="tl"]::after { left: auto; right: 7px; }
 .bar-emo[data-pos="r"]::after { left: -4px; bottom: auto; top: calc(50% - 5px); rotate: 135deg; }
 .bar-emo[data-pos="l"]::after { left: auto; right: -4px; bottom: auto; top: calc(50% - 5px); rotate: -45deg; }
 .bar-emo svg { position: relative; width: 30px; height: 30px; }
-.bar-emo[data-e="heart"], .bar-emo[data-e="anger"] { color: var(--c-bad); }
-.bar-emo[data-e="sweat"], .bar-emo[data-e="zzz"] { color: var(--c-info); }
-.bar-emo[data-e="idea"], .bar-emo[data-e="sparkle"], .bar-emo[data-e="cheers"] { color: var(--c-select); }
-.bar-emo[data-e="note"], .bar-emo[data-e="yum"], .bar-emo[data-e="drunk"] { color: var(--c-good); }
+/* 흰 이모티콘 말풍선 (2026-11-03 사용자 결정, 무대 말풍선과 같은 흰 바탕): 그림 색은 검정 쪽으로 조금 눌러 흰 바탕에서 또렷하게 */
+.bar-emo[data-e="heart"], .bar-emo[data-e="anger"] { color: color-mix(in srgb, var(--c-bad) 85%, var(--c-black)); }
+.bar-emo[data-e="sweat"], .bar-emo[data-e="zzz"] { color: color-mix(in srgb, var(--c-info) 80%, var(--c-black)); }
+.bar-emo[data-e="idea"], .bar-emo[data-e="sparkle"], .bar-emo[data-e="cheers"] { color: color-mix(in srgb, var(--c-select) 78%, var(--c-black)); }
+.bar-emo[data-e="note"], .bar-emo[data-e="yum"], .bar-emo[data-e="drunk"] { color: color-mix(in srgb, var(--c-good) 75%, var(--c-black)); }
 .bar-emo.on { animation: bar-bub-in .65s cubic-bezier(.2, .7, .3, 1) both; }
 .bar-emo.out { animation: bar-bub-out .65s ease forwards; pointer-events: none; }
 /* 이모티콘 움직임 (사용자 지정, docs/UI.md 10 의 예외 — 감정 표현 연출): 말이 없는 대신 그림이 반응한다. 움직임 줄이기면 모두 끈다 */
