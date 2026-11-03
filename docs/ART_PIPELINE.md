@@ -41,7 +41,7 @@ art/prompts.json ──(scripts/nai.mjs, 무료 23스텝)──▶ art/raw/<id>/
              public/art/<id>.webp · <id>.bust.webp · <id>.<표정>.webp  +  src/ui/portraits.gen.ts · standface.gen.ts
                                                              │ npm run -s build
                                                              ▼
-                          dist/art/*  (+ 적 · 소환물 상반신 묶음 dist/art/busts-en.json)  ──▶ 아티팩트 files
+                          dist/art/*  (+ 적 · 소환물 상반신 묶음 dist/art/busts-en.json · 바 손님 스탠딩 묶음 dist/art/guests-<g>.json)  ──▶ 아티팩트 files
 ```
 
 ## 3. NovelAI 생성

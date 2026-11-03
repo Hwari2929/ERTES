@@ -42,7 +42,7 @@ import { PETS, propSvg } from './barprops';
 import { barOpsNew, barTutSeen, loadMeta, metaBar, metaBarBond, metaBarCoins, metaBarCoinShown, metaBarGuest, metaBarServed, metaBarTut } from './meta';
 import { counterMemoHtml, newPrep, prepAct, prepDrink, prepHtml, type Prep } from './barprep';
 import { OPS_LINE, OPS_MEMO } from '../data/bar/opstut';
-import { artURL, bgURL, standURL } from './portraits';
+import { artURL, bgURL, guestArtReady, loadGuestPacks, standURL } from './portraits';
 import { STAND_FACE } from './standface.gen';
 import { ICONS } from './portraits.gen';
 import { listSaves, loadRun } from './save';
@@ -109,7 +109,7 @@ const gidOf = (k: string) => (k.startsWith('g.') ? k.slice(2) : '');
 const guestNamed = (gid: string) => !!loadMeta().bar?.guests?.[gid]?.named;
 /** 손님 그림 id (그림이 아직 없으면 null — 그 손님은 바에 오지 않는다) */
 let guestArtAny = false; // 확인용 주소(?bartest)의 __barGuest: 그림이 없어도 명부 손님을 세운다 (실루엣)
-const guestArt = (gid: string) => (standURL(`gs_${gid}`) || guestArtAny ? `gs_${gid}` : null);
+const guestArt = (gid: string) => ((standURL(`gs_${gid}`) && guestArtReady(`gs_${gid}.webp`)) || guestArtAny ? `gs_${gid}` : null);
 /** 그 손님의 대사 (없으면 공통 대사로) */
 const guestLines = (gid: string): GuestLines | undefined => GUEST_LINES[gid];
 const nameOf = (id: string) => (id === 'cesare' ? '체사레' : id === 'guest' ? '손님' : id.startsWith('g.') ? (guestNamed(gidOf(id)) && GUEST_BY_ID[gidOf(id)]?.name) || '낯선 손님' : UNIT_BY_ID[id]?.name || NPCS[id]?.name || id);
@@ -1318,6 +1318,7 @@ export function barMount() {
 function barNext() { if (!advKey()) { stop(); tick(); } }
 /** 바에 들어올 때: 자리를 새로 채운다 (런을 마치고 돌아오면 밤, 아니면 낮) */
 export function barEnter() {
+  void loadGuestPacks(); // 낯선 손님 스탠딩 묶음을 뒤에서 받는다 (받기 전에는 그 손님들이 오지 않는다)
   for (const s of S.stage) if (s.pay) metaBarCoins(s.pay); // 남겨 둔 동전은 다음 방문 전에 거둔다
   S.prep = null; S.memo = false; S.memoOpen = false; S.tipCoin = '';
   stop(); S.stage = []; S.cur = null; S.li = 0; S.session.clear(); S.gone.clear(); S.enterAt = 0; S.aidenAt = 0; S.wantH = -1; S.monoAt = -Infinity; S.monoUsed.clear(); resumeCache.t = 0;

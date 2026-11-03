@@ -33,6 +33,10 @@ if (process.argv.includes('--syndoc')) {
     const pack = {};
     for (const f of readdirSync('public/art')) if (/^(en|sm)_.*\.bust\.webp$/.test(f)) pack[f] = 'data:image/webp;base64,' + readFileSync(`public/art/${f}`).toString('base64');
     writeFileSync('dist/art/busts-en.json', JSON.stringify(pack));
+    // 바 낯선 손님 스탠딩 (gs_<id>.webp) 묶음: 세력별 하나 (id 앞 글자 u · e · a · p · c · t · x), 바에 들어가면 뒤에서 받는다 (src/ui/portraits.ts loadGuestPacks)
+    const gp = {};
+    for (const f of readdirSync('public/art')) { const m = f.match(/^gs_([a-z])_.*(?<!\.bust)\.webp$/); if (m) (gp[m[1]] ||= {})[f] = 'data:image/webp;base64,' + readFileSync(`public/art/${f}`).toString('base64'); }
+    for (const [g, files] of Object.entries(gp)) writeFileSync(`dist/art/guests-${g}.json`, JSON.stringify(files));
   }
   console.log(`dist/index.html ${(full.length / 1024).toFixed(1)} KB`);
   // 단독 오프라인 파일: 일러스트까지 데이터 URI 로 내장 (아이패드 · 옵시디언 등에서 파일 하나로 실행)

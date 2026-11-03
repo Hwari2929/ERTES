@@ -34,7 +34,21 @@ const EMBED = (globalThis as { __ART__?: Record<string, string> }).__ART__;
 /** 적 · 소환물 상반신 배너(en_* · sm_* .bust.webp)는 아티팩트 파일 수 한도 때문에 art/busts-en.json 하나로 묶는다 (scripts/build.mjs).
  *  시작 때 뒤에서 받아 두고, 받기 전 · 실패하면 낱개 파일(art/<file>)로 */
 let PACK: Record<string, string> | undefined;
-export const artURL = (file: string) => EMBED?.[file] ?? PACK?.[file] ?? `art/${file}`;
+/** 바 낯선 손님 스탠딩 묶음 (세력별 art/guests-<u|e|a|p|c|t|x>.json, scripts/build.mjs) — 받은 것만 */
+const GPACK: Record<string, string> = {};
+export const artURL = (file: string) => EMBED?.[file] ?? PACK?.[file] ?? GPACK[file] ?? `art/${file}`;
+/** 손님 스탠딩이 받아져 있나 (단독 오프라인 빌드는 늘 있다) */
+export const guestArtReady = (file: string) => !!(EMBED?.[file] || GPACK[file]);
+let guestPacks: Promise<void> | null = null;
+/** 손님 스탠딩 묶음을 뒤에서 차례로 받는다 (바에 처음 들어갈 때 한 번, 실패한 묶음은 그 손님들이 오지 않을 뿐) */
+export function loadGuestPacks(): Promise<void> {
+  if (EMBED || typeof fetch === 'undefined') return Promise.resolve();
+  return (guestPacks ||= (async () => {
+    for (const g of ['u', 'e', 'a', 'p', 'c', 't', 'x']) {
+      try { const r = await fetch(`art/guests-${g}.json`); if (r.ok) Object.assign(GPACK, await r.json()); } catch { /* 없거나 실패 */ }
+    }
+  })());
+}
 export function loadArtPack() {
   if (EMBED || typeof fetch === 'undefined') return;
   fetch('art/busts-en.json').then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) PACK = j; }).catch(() => {});

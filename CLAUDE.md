@@ -25,7 +25,7 @@
 - **프롬프트를 새로 쓰거나 고치면 1~2장만 먼저 뽑아 확인한 뒤** 나머지를 뽑는다. `art/prompts.json` 의 `object: true` 는 'solo' 를 빼고 'concept art' 를 붙여 여러 개를 늘어놓은 설정화가 나오기 쉽다 — 동물 · 한 개체는 object 를 끄고 'solo, animal focus' 를 쓴다.
 - 배경 · 스탠딩 일러스트는 넣기 전에 반드시 사용자 확인을 받는다 (시안 페이지로 보여 주고 고르게 한다: `python3 scripts/pick_page.py` → 아티팩트(db) 게시 → ArtifactData 로 선택 읽기. 고르는 페이지의 변경 알림은 오지 않을 수 있으니 사용자가 "골랐다"고 하면 읽는다).
 - 그림 반영: `art/picks.json` → `art/picked/` → `python3 scripts/art.py build [id ...]` (id 를 주면 그 그림만, 전체 빌드는 20분 넘게 걸린다) → `public/art/<id>.webp` · `<id>.bust.webp` · `src/ui/portraits.gen.ts`.
-- 아티팩트는 그림을 별도 파일로 보관한다 (artifact.html 에 내장되지 않음). **한 버전 파일 수 한도가 512개**라 적 · 소환물 상반신(`en_*` · `sm_*` .bust.webp)은 빌드가 `dist/art/busts-en.json` 하나로 묶는다 (src/ui/portraits.ts `loadArtPack`). 그림을 새로 넣거나 바꾸면 게시 때 `files` 로 함께 올린다: 아군 · 인물은 `art/<id>.webp` · `art/<id>.bust.webp`, 적 · 소환물은 `art/<id>.webp` · `art/busts-en.json`. 안 올리면 게임에서 실루엣 · 옛 그림이 나온다.
+- 아티팩트는 그림을 별도 파일로 보관한다 (artifact.html 에 내장되지 않음). **한 버전 파일 수 한도가 512개**라 적 · 소환물 상반신(`en_*` · `sm_*` .bust.webp)은 빌드가 `dist/art/busts-en.json` 하나로 묶는다 (src/ui/portraits.ts `loadArtPack`). 그림을 새로 넣거나 바꾸면 게시 때 `files` 로 함께 올린다: 아군 · 인물은 `art/<id>.webp` · `art/<id>.bust.webp`, 적 · 소환물은 `art/<id>.webp` · `art/busts-en.json`, 바 낯선 손님(`gs_*`)은 세력별 묶음 `art/guests-<u|e|a|p|c|t|x>.json` 만 (낱개 파일은 올리지 않는다). 안 올리면 게임에서 실루엣 · 옛 그림이 나온다.
 - 자동으로 오리기 어려운 투명화(배경 · 그려진 종이 지우기 · 층 나누기)는 사용자가 붓으로 칠하게 한다: `tools/mask-paint.html` 아티팩트 → `scripts/mask_apply.py` (사용법 `tools/mask-paint.md`). 점 찍기 방식은 쓰지 않는다.
 - 능력 아이콘: art/icon_prompts.json → scripts/nai_icon.mjs → art/icons/raw → `python3 scripts/icons_build.py` → src/ui/abilicons.gen.ts. 다시 뽑을 때는 프롬프트를 바꾼 시안 3개를 보여 준다. 물리 계열 스킬 · 무기는 흰 배경(light).
 
