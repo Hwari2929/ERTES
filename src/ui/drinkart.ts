@@ -114,11 +114,20 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       }
     });
   }
-  // 온더록 얼음: 액면 근처에 뜬다 (거의 비면 바닥에)
+  // 온더록 얼음 (2026-11-04 사용자 요청): 큰 얼음이 바닥부터 층으로 쌓인다 — 잔 안쪽 폭의 62% (최대 12), 좌우로 조금씩 엇갈리며 가득 찬 높이까지. 마셔도 그대로 남는다
   if (d.ice === 'rocks') {
-    const cy = lv > 0.15 ? yTop + 1 : s.bot - 7.5;
-    const w = s.rim[1] - s.rim[0];
-    for (let k = 0; k < 2; k++) body.push(`<rect x="${(s.rim[0] + w * (0.2 + 0.36 * k)).toFixed(1)}" y="${(cy + k * 1.6).toFixed(1)}" width="7" height="7" rx="1.2" fill="#ffffff" fill-opacity=".22" stroke="#ffffff" stroke-opacity=".7" stroke-width=".6" transform="rotate(${k ? 12 : -8} ${(s.rim[0] + w * (0.2 + 0.36 * k) + 3.5).toFixed(1)} ${(cy + 3.5).toFixed(1)})"/>`);
+    const wAt = (y: number): [number, number] => (ga ? wallsAt(ga, y) : [s.rim[0] + 1.5, s.rim[1] - 1.5]);
+    let y = s.bot;
+    for (let k = 0; k < 8; k++) {
+      let [x0, x1] = wAt(y - 3);
+      let sz = Math.min(12, (x1 - x0) * 0.62);
+      [x0, x1] = wAt(y - sz / 2); sz = Math.min(12, (x1 - x0) * 0.62);
+      if (sz < 2.5 || y - sz < s.top - sz * 0.25) break;
+      const w = x1 - x0, cx = (x0 + x1) / 2 + (k % 2 ? 1 : -1) * w * 0.12, cy = y - sz / 2;
+      const rot = (k % 2 ? 9 : -7) + (rnd(k + 41) - 0.5) * 8;
+      body.push(`<rect x="${(cx - sz / 2).toFixed(2)}" y="${(cy - sz / 2).toFixed(2)}" width="${sz.toFixed(2)}" height="${sz.toFixed(2)}" rx="${(sz * 0.17).toFixed(2)}" fill="#ffffff" fill-opacity=".22" stroke="#ffffff" stroke-opacity=".7" stroke-width="${(sz * 0.085).toFixed(2)}" transform="rotate(${rot.toFixed(1)} ${cx.toFixed(2)} ${cy.toFixed(2)})"/>`);
+      y -= sz * 0.86;
+    }
   }
   // 액면에 뜨는 가니쉬
   const cx = (s.rim[0] + s.rim[1]) / 2;

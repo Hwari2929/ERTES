@@ -899,11 +899,20 @@
       "transparent": true,
       "prompt": "a single clear white quartz crystal cluster, rock crystal, strict front view, straight-on, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
       "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, tablecloth, counter, cast shadow, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+    },
+    "bar_ice_cube": {
+      "w": 1024,
+      "h": 1024,
+      "plain": true,
+      "transparent": true,
+      "prompt": "a single large ice cube, clear transparent ice with a faint pale blue tint, slightly rounded edges and corners, a few tiny air bubbles inside, seen from the front at a slightly elevated angle, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, tablecloth, counter, cast shadow, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, glass, cup, drinking glass, drink, liquid, water, puddle, many ice cubes, crushed ice, ice pile, snow"
     }
   },
   "_albedo_note": "ct_albedo_*: 조명 없는 알베도 전용. base 의 광원 문구를 쓰지 않는다 (nai_prop.mjs 가 noBase 로 읽음)",
   "_note_bar": "바 제조대 재료 · 가니쉬 아이콘. 사용자가 C안(빈티지 판화) 선택 (2026-11-02), 병 · 통은 무조건 정면 뷰. bar_ing_<재료 id> (19) · bar_gar_<가니쉬 id> (10), transparent: V5 투명 배경. 라벨은 글자 없이 그림만. 시안 bar_ing_a~c · bar_gar_a~c 는 기록용",
   "_note_glass": "바 잔 6종 (drinks.ts GLASSES) 빈 유리잔 — 재료 · 가니쉬 아이콘과 같은 C안 빈티지 판화 · 정면 · V5 투명 배경. 음료 · 얼음 · 가니쉬를 넣지 않는다 (2026-11-03 사용자 요청: 잔 그림은 빈 잔, 그림체 유지). bar_glass_<잔 id>, 종류마다 8장 시안",
   "_note_front": "바 제조대 정면 소품 (2026-11-03~04): 출력기 = 재료 · 잔과 같은 판화 화풍의 납작한 남색 상자 (시안 6 선택). 벨 = 계약 흐름의 원본 벨(ct_bell)과 같은 그림체 — 원본 분석 (2026-11-04): 어두운 저채도 (짙은 고동 그늘 28%), 하이라이트는 위 가운데 크림 금색 + 왼쪽 위 가장자리 은청색 역광, 선 · 해칭 없이 굵고 납작한 붓 자국 (과슈 · flat color), 가는 어두운 외곽선 → 판화 태그 없이 painterly · flat color · 붓질 · 역광 태그로",
-  "_note_prop2": "바 무대 카운터 소품 (2026-11-04 사용자 요청, src/ui/barprops.ts 아이콘 종류마다 4장 시안): bar_prop_<종류> — 만담 · 확장 틀에 쓰이는 22종 (꽃 · 선물은 쓰는 대본이 없어 뺐다). 잔 · 재료와 같은 C안 빈티지 판화 · V5 투명 배경. 납작한 것(종이 · 책 · 접시 · 체스판 · 그릇 · 깃발 · 텐트 · 렌치)은 조금 위에서 본 앞모습, 나머지는 정면. 잔 위 가니쉬 (같은 날): bar_ong_<가니쉬 id> — 잔 테두리 · 액면에 얹는 정면 그림 (가니쉬 목록 아이콘 bar_gar_* 은 접시 · 무더기라 따로)"
+  "_note_prop2": "바 무대 카운터 소품 (2026-11-04 사용자 요청, src/ui/barprops.ts 아이콘 종류마다 4장 시안): bar_prop_<종류> — 만담 · 확장 틀에 쓰이는 22종 (꽃 · 선물은 쓰는 대본이 없어 뺐다). 잔 · 재료와 같은 C안 빈티지 판화 · V5 투명 배경. 납작한 것(종이 · 책 · 접시 · 체스판 · 그릇 · 깃발 · 텐트 · 렌치)은 조금 위에서 본 앞모습, 나머지는 정면. 잔 위 가니쉬 (같은 날): bar_ong_<가니쉬 id> — 잔 테두리 · 액면에 얹는 정면 그림 (가니쉬 목록 아이콘 bar_gar_* 은 접시 · 무더기라 따로)",
+  "_note_ice": "바 잔 속 얼음 (2026-11-04 사용자 요청): bar_ice_cube 시안 6장 — 잔 · 재료와 같은 C안 빈티지 판화 · V5 투명 배경 · 얼음 한 개 (drinkart 가 층으로 쌓는다)"
 }
