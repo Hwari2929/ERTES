@@ -3,6 +3,8 @@
   python3 scripts/pick_page.py OUT_DIR --title "전장 고유 적 시안" --col picks en_sw_cargo en_cr_bats ...
       [--latest N]   각 id 의 art/raw/<id>/ 에서 최근 N장만 (기본: 전부)
       [--wide]       배경 시안: 가로 그림 칸 (1216×832 비율). id 는 art/raw/ 아래 경로 (예: bg/prep_wall)
+      [--square]     정사각 칸 (소품 · 가니쉬 시안: id 는 art/raw/ 아래 경로, 예: prop/bar_ong_citrus)
+      [--names F]    이름 표 JSON ({id: 이름}) — 없으면 art/prompts.json 의 name, 그것도 없으면 id
       [--icons]      능력 아이콘 시안: art/icons/cand/<id>/ (nai_icon.mjs --cand), 이름은 art/icon_prompts.json 의 name, 정사각 칸.
                      문서 id = 아이콘 id 의 '.' 을 '_' 로 (ult.donovan → ult_donovan), seed = 파일 이름 (예: v2-123456)
 
@@ -16,10 +18,11 @@ from PIL import Image
 
 ap = argparse.ArgumentParser()
 ap.add_argument('out'); ap.add_argument('ids', nargs='+')
-ap.add_argument('--title', default='시안 고르기'); ap.add_argument('--col', default='picks'); ap.add_argument('--latest', type=int, default=0); ap.add_argument('--icons', action='store_true'); ap.add_argument('--wide', action='store_true')
+ap.add_argument('--title', default='시안 고르기'); ap.add_argument('--col', default='picks'); ap.add_argument('--latest', type=int, default=0); ap.add_argument('--icons', action='store_true'); ap.add_argument('--wide', action='store_true'); ap.add_argument('--square', action='store_true'); ap.add_argument('--names', default='')
 a = ap.parse_args()
 P = json.load(open('art/icon_prompts.json' if a.icons else 'art/prompts.json'))
-TW, TH = (256, 256) if a.icons else (608, 416) if a.wide else (360, 526)
+TW, TH = (256, 256) if a.icons or a.square else (608, 416) if a.wide else (360, 526)
+NM = json.load(open(a.names)) if a.names else {}
 os.makedirs(f'{a.out}/img', exist_ok=True)
 rows, files = [], []
 for pid in a.ids:
@@ -27,7 +30,7 @@ for pid in a.ids:
     pngs = sorted((p for p in os.listdir(d) if p.endswith('.png')), key=lambda p: os.path.getmtime(f'{d}/{p}'))
     if a.latest:
         pngs = pngs[-a.latest:]
-    key, name = (pid.replace('.', '_') if a.icons else pid.removeprefix('en_').split('/')[-1]), P.get(pid, {}).get('name', pid)
+    key, name = (pid.replace('.', '_') if a.icons else pid.removeprefix('en_').split('/')[-1]), NM.get(pid) or P.get(pid, {}).get('name', pid)
     opts = []
     for i, p in enumerate(pngs):
         seed, out = p[:-4], f'img/{key}_{p[:-4]}.webp'
@@ -36,7 +39,7 @@ for pid in a.ids:
         opts.append(f'<button class="opt" data-id="{key}" data-seed="{seed}" aria-pressed="false"><img src="{out}" alt="{html.escape(name)} 시안 {i + 1}" loading="lazy" width="{TW}" height="{TH}"><span class="num">{i + 1}</span></button>')
     rows.append(f'<article class="foe" id="f-{key}"><header><h3>{html.escape(name)}</h3><span class="state" data-for="{key}"></span></header><div class="opts">{"".join(opts)}<button class="opt redo" data-id="{key}" data-seed="redo" aria-pressed="false"><span>다시 뽑기</span></button></div></article>')
 tpl = open('tools/pick/tpl.html').read()
-if a.icons: tpl = tpl.replace('aspect-ratio:360/526', 'aspect-ratio:1/1')
+if a.icons or a.square: tpl = tpl.replace('aspect-ratio:360/526', 'aspect-ratio:1/1')
 if a.wide: tpl = tpl.replace('aspect-ratio:360/526', 'aspect-ratio:1216/832').replace('minmax(150px,1fr)', 'minmax(300px,1fr)')
 page = tpl.replace('%%TITLE%%', html.escape(a.title)).replace('%%N%%', str(len(a.ids))).replace('%%COL%%', a.col).replace('%%BODY%%', '<section>' + ''.join(rows) + '</section>')
 open(f'{a.out}/index.html', 'w').write(page)
