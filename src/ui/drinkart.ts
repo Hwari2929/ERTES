@@ -34,9 +34,10 @@ export const FOAM_FX = {
   on: true,
   blend: 'plus-lighter',
   fizz: [
-    { tex: 'bar_foam_3', tile: 44, op: 0.75, dur: 17, sway: 1.2, x: 0 },
-    { tex: 'bar_foam_3', tile: 27, op: 0.45, dur: 10, sway: 0.8, x: 9 },
-    { tex: 'bar_foam_8', tile: 40, op: 1, dur: 13, sway: 1.6, x: 5 },
+    // 진하기 (op) 는 처음 값의 절반 (2026-11-04 사용자: 0.75 · 0.45 · 1 → 0.38 · 0.23 · 0.5)
+    { tex: 'bar_foam_3', tile: 44, op: 0.38, dur: 17, sway: 1.2, x: 0 },
+    { tex: 'bar_foam_3', tile: 27, op: 0.23, dur: 10, sway: 0.8, x: 9 },
+    { tex: 'bar_foam_8', tile: 40, op: 0.5, dur: 13, sway: 1.6, x: 5 },
   ],
   head: { tex: 'bar_foam_7', tile: 28, op: 0.9, blend: 'screen' },
 };
