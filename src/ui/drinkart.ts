@@ -23,6 +23,10 @@ export const ICE_OPACITY = 0.75;
 /** 떠오른 얼음 중 맨 위 얼음이 수면 위로 나오는 몫 (그 얼음 높이에 대한 비율, 2026-11-04 사용자: 수면을 살짝 — 록 글라스는 조금, 하이볼은 많이 내림) */
 const ICE_RISE: Record<string, number> = { highball: 0.05 };
 const ICE_RISE_DEF = 0.15;
+/** 얼음 한 변 (잔마다 같은 크기 — 2026-11-04 사용자: 크기는 균일하게). 잔 안쪽 폭(위 → 아래)을 보고 정했다: 록 18.9 → 15.4 · 하이볼 15.2 → 10.2 · 파인트 24.6 → 14.5 · 쿠페 27 → 6.9 · 와인 잔 13.5 ~ 17.5 → 10 · 고블릿 24.7 → 12.3 */
+const ICE_SIZE: Record<string, number> = { rock: 11, highball: 8, pint: 10, coupe: 8, wine: 8.5, goblet: 10 };
+/** 얼음 개수 [조금, 많이] 예외 (기본: 3칸 잔 1 · 2, 4 · 5칸 잔 2 · 3) — 와인 잔은 볼이 좁아 1 · 2 (사용자) */
+const ICE_N: Record<string, [number, number]> = { wine: [1, 2] };
 let uid = 0;
 const hex = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
 /** 흰색을 w 만큼 섞은 색 */
@@ -125,31 +129,34 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
   }
   // 얼음 (2026-11-04 사용자 요청): 조금 = 1 · 2개, 많이 = 2 · 3개 (작은 잔 3칸 / 큰 잔 4 · 5칸). 큰 얼음(잔 안쪽 폭의 62%, 최대 12)을 좌우로 조금씩 엇갈려 층으로 쌓는다.
   //   액면이 쌓인 맨 위보다 높으면 떠오른다 (맨 위 얼음이 4분의 1쯤 액면 위로), 아니면 바닥에 가라앉아 있다. 잔 그림 모드는 얼음 그림 (불투명도 ICE_OPACITY)
-  const nIce = d.ice === 'little' ? ((g?.slots ?? 3) >= 4 ? 2 : 1) : d.ice === 'lots' ? ((g?.slots ?? 3) >= 4 ? 3 : 2) : 0;
+  const iceN = ICE_N[d.glass] ?? ((g?.slots ?? 3) >= 4 ? [2, 3] : [1, 2]);
+  const nIce = d.ice === 'little' ? iceN[0] : d.ice === 'lots' ? iceN[1] : 0;
   if (nIce) {
     const wAt = (y: number): [number, number] => (ga ? wallsAt(ga, y) : [s.rim[0] + 1.5, s.rim[1] - 1.5]);
-    const seed = [...d.glass].reduce((t, ch) => t + ch.charCodeAt(0), d.fill.length);
-    const vOf = (k: number) => (k + seed) % ICE_ART.length; // 얼음 그림 4종을 번갈아
-    const stack = (yb: number) => {
+    // 얼음 그림은 얼음마다 무작위 (같은 잔은 늘 같게 — 다시 그릴 때 바뀌지 않도록 잔 내용으로 고정 난수)
+    const seed = [...`${d.glass}${d.fill.join('')}${d.garnish.join('')}${d.ice}`].reduce((t, ch) => (t * 31 + ch.charCodeAt(0)) % 9973, 7);
+    const vOf = (k: number) => Math.floor(rnd(seed + k * 17) * ICE_ART.length) % ICE_ART.length;
+    // 잔마다 같은 크기 (정사각 상자, 그림 비율 차이는 무시). 아래에서부터, 그 높이에 들어가는 가장 낮은 자리에 놓는다 (좁은 바닥 · 스템 잔 볼)
+    const sz = ga ? ICE_SIZE[d.glass] ?? 9 : Math.min(12, (s.rim[1] - s.rim[0] - 3) * 0.62), h = sz;
+    const fitW = (yb: number) => { const a = wAt(yb - 0.3), b = wAt(yb - h); return Math.min(a[1] - a[0], b[1] - b[0]); };
+    const stack = () => {
       const out: { cx: number; y: number; sz: number; h: number; k: number }[] = [];
-      let y = yb;
+      let y = s.bot;
       for (let k = 0; k < nIce; k++) {
-        const asp = ga ? ICE_ART[vOf(k)] : 1;
-        let [x0, x1] = wAt(y - 3);
-        let sz = Math.min(12, (x1 - x0) * 0.62);
-        [x0, x1] = wAt(y - sz * asp / 2); sz = Math.min(12, (x1 - x0) * 0.62);
-        if (sz < 2.5) break;
-        out.push({ cx: (x0 + x1) / 2 + (k % 2 ? 1 : -1) * (x1 - x0) * 0.12, y, sz, h: sz * asp, k });
-        y -= sz * asp * 0.86;
+        let yb = y;
+        while (yb > s.top && fitW(yb) < sz + 0.8) yb -= 0.25;
+        const [x0, x1] = wAt(yb - h / 2), room = Math.max(0, (x1 - x0 - sz - 0.8) / 2);
+        out.push({ cx: (x0 + x1) / 2 + (k % 2 ? 1 : -1) * Math.min(room, (x1 - x0) * 0.12), y: yb, sz, h, k });
+        y = yb - h * 0.86;
       }
       return out;
     };
-    // 바닥에 쌓은 크기 그대로 떠오른다 (위치만 옮김 — 다시 쌓으면 좁은 곳에서 얼음 수 · 크기가 바뀌어 툭 사라진다)
-    let cubes = stack(s.bot);
+    // 바닥에 쌓은 그대로 떠오른다 (위치만 옮김 — 다시 쌓으면 얼음 수 · 크기가 바뀌어 툭 사라진다)
+    let cubes = stack();
     const last = cubes[cubes.length - 1];
     if (last && lv > 0) { const want = yTop - last.h * (ICE_RISE[d.glass] ?? ICE_RISE_DEF), top = last.y - last.h; if (want < top) cubes = cubes.map((c) => ({ ...c, y: c.y - (top - want) })); }
     for (const c of cubes) {
-      if (ga) { const rot = (c.k % 2 ? 5 : -4) + (rnd(c.k + 41) - 0.5) * 5; body.push(`<image class="ice" href="${artURL(`bar_ice_${vOf(c.k)}.webp`)}" x="${(c.cx - c.sz / 2).toFixed(2)}" y="${(c.y - c.h).toFixed(2)}" width="${c.sz.toFixed(2)}" height="${c.h.toFixed(2)}" opacity="${ICE_OPACITY}" preserveAspectRatio="none" transform="rotate(${rot.toFixed(1)} ${c.cx.toFixed(2)} ${(c.y - c.h / 2).toFixed(2)})"/>`); }
+      if (ga) { const rot = (c.k % 2 ? 4 : -3) + (rnd(seed + c.k + 41) - 0.5) * 4; body.push(`<image class="ice" href="${artURL(`bar_ice_${vOf(c.k)}.webp`)}" x="${(c.cx - c.sz / 2).toFixed(2)}" y="${(c.y - c.h).toFixed(2)}" width="${c.sz.toFixed(2)}" height="${c.h.toFixed(2)}" opacity="${ICE_OPACITY}" preserveAspectRatio="none" transform="rotate(${rot.toFixed(1)} ${c.cx.toFixed(2)} ${(c.y - c.h / 2).toFixed(2)})"/>`); }
       else { const rot = (c.k % 2 ? 9 : -7) + (rnd(c.k + 41) - 0.5) * 8, cy = c.y - c.sz / 2; body.push(`<rect x="${(c.cx - c.sz / 2).toFixed(2)}" y="${(cy - c.sz / 2).toFixed(2)}" width="${c.sz.toFixed(2)}" height="${c.sz.toFixed(2)}" rx="${(c.sz * 0.17).toFixed(2)}" fill="#ffffff" fill-opacity=".22" stroke="#ffffff" stroke-opacity=".7" stroke-width="${(c.sz * 0.085).toFixed(2)}" transform="rotate(${rot.toFixed(1)} ${c.cx.toFixed(2)} ${cy.toFixed(2)})"/>`); }
     }
   }
@@ -161,7 +168,10 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
   const gArt = (gid: string) => (ga && PROP_ART[`ong_${gid}`] ? PROP_ART[`ong_${gid}`] : 0);
   const gImg = (gid: string, x: number, y: number, w: number, rot = 0, ox = x + w / 2, oy = y, clip = '') => `<image href="${artURL(`bar_ong_${gid}.webp`)}" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${w.toFixed(2)}" height="${(w * gArt(gid)).toFixed(2)}" preserveAspectRatio="none"${rot ? ` transform="rotate(${rot} ${ox.toFixed(2)} ${oy.toFixed(2)})"` : ''}${clip ? ` clip-path="url(#${clip})"` : ''}/>`;
   for (const gid of d.garnish) {
-    if (gid === 'petal' && gArt('petal')) { const w = 5.2; body.push(gImg('petal', cx + 0.5, float - w * gArt('petal') * 0.55, w, -14, cx + 3, float)); }
+    if (gid === 'bean' && gArt('bean')) for (let k = 0; k < 3; k++) { const w = 2.3, hh = w * gArt('bean'), x = cx - 4.6 + k * 4.6 - w / 2; body.push(gImg('bean', x, float - hh * 0.5, w, 78 + k * 21, x + w / 2, float)); }
+    else if (gid === 'cardia' && gArt('cardia')) for (let k = 0; k < 3; k++) { const w = 1.8, x = cx - 4 + k * 4 - w / 2; body.push(gImg('cardia', x, float - w * gArt('cardia') * 0.55 + (k % 2) * 0.5, w, k * 40 - 30, x + w / 2, float)); }
+    else if (gid === 'marsh' && gArt('marsh') && lv > 0.04) for (let k = 0; k < 2; k++) { const w = 4, hh = w * gArt('marsh'), x = cx - 4.8 + k * 5.2; over.push(gImg('marsh', x, float - hh * 0.72 + k * 0.5, w, k ? 9 : -7, x + w / 2, float)); }
+    else if (gid === 'petal' && gArt('petal')) { const w = 5.2; body.push(gImg('petal', cx + 0.5, float - w * gArt('petal') * 0.55, w, -14, cx + 3, float)); }
     else if (gid === 'cardia') for (let k = 0; k < 3; k++) body.push(`<circle cx="${(cx - 4 + k * 4).toFixed(1)}" cy="${(float + 0.6 + (k % 2)).toFixed(1)}" r=".9" fill="#7a2d1e"/>`);
     else if (gid === 'bean') for (let k = 0; k < 3; k++) body.push(`<ellipse cx="${(cx - 4 + k * 4).toFixed(1)}" cy="${(float + 0.8).toFixed(1)}" rx="1.4" ry=".9" fill="#3a2214"/>`);
     else if (gid === 'petal') body.push(`<ellipse cx="${(cx + 3).toFixed(1)}" cy="${(float + 0.6).toFixed(1)}" rx="2.2" ry="1" fill="#e89ab0" transform="rotate(-18 ${cx + 3} ${float})"/>`);

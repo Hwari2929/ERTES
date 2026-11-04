@@ -31,5 +31,8 @@
  "bar_prop_vial": "1473699928",
  "bar_ice_clear": "4001259251 (투명 프롬프트 1)",
  "bar_ice_i2i_a": "i2i:392343356 (원본 3번 바탕 강도 0.65 · 검정 바탕 · unmix_dark → 후처리 3: a·smoothstep(중앙값+0.03, 97% 값, a) = 0.76 ~ 0.89)",
- "bar_ice_i2i_b": "i2i:2187876619 (원본 3번 바탕 강도 0.65 · 검정 바탕 · unmix_dark → 후처리 3: a·smoothstep(중앙값+0.03, 97% 값, a) = 0.65 ~ 0.78)"
+ "bar_ice_i2i_b": "i2i:2187876619 (원본 3번 바탕 강도 0.65 · 검정 바탕 · unmix_dark → 후처리 3: a·smoothstep(중앙값+0.03, 97% 값, a) = 0.65 ~ 0.78)",
+ "bar_ong_bean": "2384227853",
+ "bar_ong_marsh": "2245913892",
+ "bar_ong_cardia": "2443113690"
 }

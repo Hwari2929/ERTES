@@ -85,9 +85,19 @@ for gid, (top, floor, inset, rimf, span) in GEOM.items():
 
 # 얼음 그림 4종 (2026-11-04 사용자 선택, 쌓인 얼음마다 번갈아): 0 원본 3번 · 1 투명 프롬프트 1 · 2 · 3 img2img 0.65 1번 · 6번 + 후처리 3 (art/bar_items_pick.json)
 ICE_SRC = ['bar_ice_cube', 'bar_ice_clear', 'bar_ice_i2i_a', 'bar_ice_i2i_b']
+def pp3(im):
+    """후처리 3 (얼음 몸통 걷기): 알파 a → a · smoothstep(중앙값 + 0.03, 97% 값, a) — 테두리 · 반사광만 남는다"""
+    A = np.asarray(im).astype(np.float32) / 255; a = A[..., 3]; m = a[a > 0.03]
+    lo, hi = float(np.median(m)) + 0.03, float(np.quantile(m, 0.97)); t = np.clip((a - lo) / (hi - lo), 0, 1)
+    A[..., 3] = a * t * t * (3 - 2 * t)
+    return Image.fromarray((A * 255).astype(np.uint8), 'RGBA')
+
+
+ICE_PP = {'bar_ice_cube'}  # 원본 3번도 다른 시안과 같은 후처리로 더 투명하게 (2026-11-04 사용자) — 나머지 셋은 picked 가 이미 후처리됨
 ice = []
 for src, dst, width in [('bar_printer_front', 'bar_printer', 900), ('bar_bell_front', 'bar_bell', 560)] + [(k, f'bar_ice_{i}', 320) for i, k in enumerate(ICE_SRC)]:
     im = Image.open(f'art/picked/{src}.webp').convert('RGBA')
+    if src in ICE_PP: im = pp3(im)
     s = width / im.width
     im.resize((width, max(1, round(im.height * s))), Image.LANCZOS).save(f'public/art/{dst}.webp', 'WEBP', quality=86, method=6)
     print(f'{dst}: {width}×{round(im.height * s)}')
