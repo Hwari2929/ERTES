@@ -1767,9 +1767,9 @@ function prepFx(root: HTMLElement, v: string) {
   sfx('pour');
   if (reduced()) return;
   const cup = root.querySelector<HTMLElement>('.bar-prep .bp-st2 .bp-cup');
-  const liq = cup?.querySelector<SVGRectElement>('rect.liq');
+  const liq = cup?.querySelector<SVGElement>('.liq'); // 선 잔 = rect (height), 잔 그림 = 층 묶음 g (data-h)
   const n = S.prep.fill.length;
-  if (liq && n) { const h = Number(liq.getAttribute('height')) || 0; liq.animate([{ transform: `translateY(${((h - 1) / n).toFixed(2)}px)` }, { transform: 'translateY(0)' }], { duration: 480, easing: 'cubic-bezier(.3, .7, .4, 1)' }); }
+  if (liq && n) { const h = Number(liq.getAttribute('height') || liq.getAttribute('data-h')) || 0; liq.animate([{ transform: `translateY(${((h - 1) / n).toFixed(2)}px)` }, { transform: 'translateY(0)' }], { duration: 480, easing: 'cubic-bezier(.3, .7, .4, 1)' }); }
   if (cup) {
     const st = document.createElement('i');
     st.className = 'bp-stream'; st.setAttribute('aria-hidden', 'true');

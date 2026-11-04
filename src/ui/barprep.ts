@@ -91,7 +91,7 @@ const bookMemoHtml = () => `<div class="bp-recs bp-memo-page"><section><h4>주�
 const fillText = (d: Drink) => { const m = new Map<string, number>(); for (const x of d.fill) m.set(x, (m.get(x) || 0) + 1); return [...m].map(([x, n]) => `${ING_BY_ID[x]?.name || x}${n > 1 ? ` ×${n}` : ''}`).join(' · '); };
 function recipeRow(d: Drink, name: string, desc = '') {
   const g = GLASS_BY_ID[d.glass];
-  return `<li class="bp-rec">${drinkSvg(d, 1, 'drink bp-rec-pic', true)}<div><b>${esc(name)}</b>
+  return `<li class="bp-rec">${drinkSvg(d, 1, 'drink bp-rec-pic', 'plain')}<div><b>${esc(name)}</b>
     <span class="bp-rec-l"><em>잔</em> ${esc(g?.name || '')} · ${g?.slots}칸</span><span class="bp-rec-l"><em>재료</em> ${esc(fillText(d))}</span>
     <span class="bp-rec-l"><em>얼음</em> ${esc(ICE_NAME[d.ice])}${d.garnish.length ? ` · <em>가니쉬</em> ${esc(d.garnish.map((x) => GARNISH_BY_ID[x]?.name || x).join(' · '))}` : ''}</span>
     ${desc ? `<small>${esc(desc)}</small>` : ''}</div></li>`;
@@ -118,9 +118,9 @@ function receiptHtml(p: Prep) {
   const o = p.order;
   let body = '';
   if (o.style === 'vague') body = `<ul class="bp-conds">${(o.conds || []).map((c) => `<li>${esc(c.label)}</li>`).join('')}</ul>`;
-  else if (o.style === 'photo') body = `<figure class="bp-photo">${drinkSvg(o.target!, 1, 'drink bp-pic', true)}</figure>`;
+  else if (o.style === 'photo') body = `<figure class="bp-photo">${drinkSvg(o.target!, 1, 'drink bp-pic', 'plain')}</figure>`;
   else if (o.style === 'name') body = `<p class="bp-menu">${esc(o.name || '')}</p>`;
-  else body = o.hint === 'aiden' ? `<p class="bp-note"><b>에이든</b> ${esc(o.name ? `${o.name}입니다.` : '지난번 그 잔입니다.')}</p>${!o.name || o.ledger ? `<figure class="bp-photo">${drinkSvg(o.target!, 1, 'drink bp-pic', true)}</figure>` : ''}`
+  else body = o.hint === 'aiden' ? `<p class="bp-note"><b>에이든</b> ${esc(o.name ? `${o.name}입니다.` : '지난번 그 잔입니다.')}</p>${!o.name || o.ledger ? `<figure class="bp-photo">${drinkSvg(o.target!, 1, 'drink bp-pic', 'plain')}</figure>` : ''}`
     : o.hint === 'guest' ? `<p class="bp-note">${esc(p.hintText || '')}</p>` : '<p class="bp-note">단골 장부를 보세요.</p>';
   const no = (loadMeta().bar?.served || 0) + 1; // 전표 번호 = 지금까지 내준 잔 + 1 (기록이 쌓인다, docs/UI.md 22)
   return `<aside class="bp-rc lp-carbon" aria-label="영수증"><header class="bp-rc-h"><span class="f-num">No.${no}</span><span>${esc(ORDER_STYLE_NAME[o.style])}</span></header>

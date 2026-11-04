@@ -1,7 +1,8 @@
 // 음료 그림 (SVG): 잔 6종 · 칸마다 재료 색 층 (아래부터 붓는 순서, 경계는 살짝 섞임) · 얼음 · 가니쉬 · 남은 양.
 // docs/UI.md 26: 명암 · 유리 반사 없이 한 색 면 · 선으로. 잔 테두리는 글자색(currentColor, CSS 가 토큰으로 준다).
 // 남은 양 left (0~1): 위층부터 줄어든다 (잔 가장자리로 마시므로). 프로즌은 층이 섞여 한 색 + 얼음 결.
-// art = true: 선 잔 대신 잔 일러스트(public/art/bar_glass_<잔 id>.webp, scripts/bar_props_build.py 가 굽는다)를 액체 '위'에 얹는다 — 안쪽 유리를 투명하게 구워 음료가 비친다. 제조대 · 내주기 장면에서 쓴다.
+// art: 선 잔 대신 잔 일러스트(public/art/bar_glass_<잔 id>.webp, scripts/bar_props_build.py 가 굽는다)를 액체 '위'에 얹는다 — 안쪽 유리를 투명하게 구워 음료가 비친다.
+//   잔 그림은 조금 위에서 본 모습이라 층 경계 · 액면을 단면 타원의 호로 그린다 (2026-11-04 사용자 요청). true = 잔 그림을 color-dodge 0.6 으로 배경과 섞는다 (사용자 선택, 어두운 바탕), 'plain' = 섞지 않음 (종이 위)
 import { GLASS_BY_ID, ING_BY_ID, type Drink, type Glass } from '../data/bar/drinks';
 import { GLASS_ART } from './glassart.gen';
 import { artURL } from './portraits';
@@ -23,8 +24,30 @@ const mix = (cs: string[]) => { const a = cs.map(hex); const m = [0, 1, 2].map((
 /** 0~1 고정 난수 (같은 잔은 늘 같은 기포 · 얼음 자리) */
 const rnd = (i: number) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 
-/** 한 잔 SVG. left = 남은 양 (0~1) · art = 잔 일러스트 */
-export function drinkSvg(d: Drink, left = 1, cls = 'drink', art = false): string {
+type Art = (typeof GLASS_ART)[string];
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+/** 잔 그림 안쪽 높이 y 의 왼쪽 · 오른쪽 벽 x */
+const wallsAt = (ga: Art, y: number): [number, number] => {
+  const r = ga.rows;
+  if (y <= r[0][0]) return [r[0][1], r[0][2]];
+  for (let i = 1; i < r.length; i++) if (y <= r[i][0]) { const t = (y - r[i - 1][0]) / (r[i][0] - r[i - 1][0] || 1); return [lerp(r[i - 1][1], r[i][1], t), lerp(r[i - 1][2], r[i][2], t)]; }
+  const l = r[r.length - 1]; return [l[1], l[2]];
+};
+/** 높이 y 의 수평 단면 타원 호 (잔 그림은 조금 위에서 본 모습): front = 앞쪽 호 (가운데가 아래로 처짐), 아니면 뒤쪽 호. 왼쪽 → 오른쪽 점 */
+const arc = (ga: Art, y: number, front: boolean): string => {
+  const [x0, x1] = wallsAt(ga, y);
+  const cx = (x0 + x1) / 2, rx = (x1 - x0) / 2 + 0.8, ry = rx * lerp(ga.k[0], ga.k[1], Math.max(0, Math.min(1, (y - ga.top) / (ga.bot - ga.top))));
+  const pts: string[] = [];
+  for (let i = 0; i <= 16; i++) { const t = -1 + i / 8; pts.push(`${(cx + rx * t).toFixed(2)} ${(y + (front ? 1 : -1) * ry * Math.sqrt(1 - t * t)).toFixed(2)}`); }
+  return pts.join(' L');
+};
+/** 호 아래 전부 (잔 밖은 안쪽 영역으로 잘린다) */
+const below = (ga: Art, y: number, front: boolean) => `M-2 ${y.toFixed(2)} L${arc(ga, y, front)} L50 ${y.toFixed(2)} L50 80 L-2 80 Z`;
+/** 잔 그림의 안쪽 영역: 벽을 따라 내려가 바닥은 바닥 타원의 앞쪽 호 */
+const inner = (ga: Art) => `M${ga.rows.map((r) => `${r[1]} ${r[0]}`).join(' L')} L${arc(ga, ga.bot, true)} L${[...ga.rows].reverse().map((r) => `${r[2]} ${r[0]}`).join(' L')} Z`;
+
+/** 한 잔 SVG. left = 남은 양 (0~1) · art = 잔 일러스트: true = 잔 그림을 따로 한 겹으로 배경과 섞는다 (color-dodge 0.6, 어두운 바탕 — 제조대 · 완성 장면 · 카운터 · 잔 진열), 'plain' = 섞지 않는다 (종이 위 — 영수증 사진 · 레시피북) */
+export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plain' = false): string {
   const g: Glass | undefined = GLASS_BY_ID[d.glass];
   const ga = art ? GLASS_ART[d.glass] || GLASS_ART.rock : undefined;
   const s: Shape = ga || SHAPES[d.glass] || SHAPES.rock;
@@ -56,13 +79,30 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art = false): string
     parts.push(`<linearGradient id="${id}g" gradientUnits="userSpaceOnUse" x1="0" y1="${s.bot}" x2="0" y2="${s.top}">${stops}</linearGradient>`);
     fill = `url(#${id}g)`;
   }
-  parts.push(`<clipPath id="${id}c"><path d="${s.liq}"/></clipPath>`);
+  parts.push(`<clipPath id="${id}c"><path d="${ga ? inner(ga) : s.liq}"/></clipPath>`);
   const body: string[] = [];
   if (lv > 0 && segs.length) {
-    body.push(`<rect class="liq" x="0" y="${yTop.toFixed(2)}" width="48" height="${(s.bot - yTop + 1).toFixed(2)}" fill="${fill}" fill-opacity="${alpha}"/>`);
-    // 맥주 거품: 맨 위층이 맥주면 액면에 얇은 거품
     const topIng = segs[segs.length - 1].ing;
-    if (!frozen && (topIng === 'ringside' || topIng === 'darkringer') && lv > 0.12) body.push(`<rect x="0" y="${(yTop - 0.4).toFixed(2)}" width="48" height="${Math.min(3, H * 0.12).toFixed(2)}" fill="#efe6d2" fill-opacity=".9"/>`);
+    const foam = !frozen && (topIng === 'ringside' || topIng === 'darkringer') && lv > 0.12;
+    if (ga) {
+      // 잔 그림: 층마다 제 영역 (위 경계 호 아래 − 아래 경계 호 아래), 경계는 흐림으로 섞는다. 액면 = 단면 타원 뒤쪽 호 + 윗면. 붓기 연출(bar.ts prepFx)은 .liq 묶음을 올린다
+      const yAt = (f: number) => s.bot - H * f;
+      const layers = frozen || segs.length <= 1
+        ? `<rect x="-2" y="-10" width="52" height="90" fill="${fill}" fill-opacity="${alpha}"/>`
+        : segs.map((sg) => `<path d="${sg.b < 1 ? below(ga, yAt(sg.b), true) : 'M-2 -10 L50 -10 L50 80 L-2 80 Z'}${sg.a > 0 ? ` ${below(ga, yAt(sg.a), true)}` : ''}" fill-rule="evenodd" fill="${colorOf(sg.ing)}" fill-opacity="${alphaOf(sg.ing)}"/>`).join('');
+      const blur = !frozen && segs.length > 1;
+      if (blur) parts.push(`<filter id="${id}b" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="${(0.09 / n * 2 * H * 0.6).toFixed(2)}"/></filter>`);
+      parts.push(`<clipPath id="${id}t"><path d="${below(ga, yTop, false)}"/></clipPath>`);
+      const [x0, x1] = wallsAt(ga, yTop), ecx = (x0 + x1) / 2, erx = (x1 - x0) / 2 + 0.8, ery = erx * lerp(ga.k[0], ga.k[1], Math.max(0, Math.min(1, (yTop - ga.top) / (ga.bot - ga.top))));
+      const face = foam
+        ? `<path d="${below(ga, yTop, false)} ${below(ga, Math.min(s.bot, yTop + Math.min(3, H * 0.12)), true)}" fill-rule="evenodd" fill="#efe6d2" fill-opacity=".9"/>`
+        : `<ellipse cx="${ecx.toFixed(2)}" cy="${yTop.toFixed(2)}" rx="${erx.toFixed(2)}" ry="${ery.toFixed(2)}" fill="#ffffff" fill-opacity=".12"/>`;
+      body.push(`<g class="liq" data-h="${(s.bot - yTop + 1).toFixed(2)}"><g clip-path="url(#${id}t)">${blur ? `<g filter="url(#${id}b)">${layers}</g>` : layers}${face}</g></g>`);
+    } else {
+      body.push(`<rect class="liq" x="0" y="${yTop.toFixed(2)}" width="48" height="${(s.bot - yTop + 1).toFixed(2)}" fill="${fill}" fill-opacity="${alpha}"/>`);
+      // 맥주 거품: 맨 위층이 맥주면 액면에 얇은 거품
+      if (foam) body.push(`<rect x="0" y="${(yTop - 0.4).toFixed(2)}" width="48" height="${Math.min(3, H * 0.12).toFixed(2)}" fill="#efe6d2" fill-opacity=".9"/>`);
+    }
     // 기포: 탄산 층 안에만 (프로즌은 얼음 결)
     if (frozen) for (let k = 0; k < 14; k++) { const y = s.bot - H * lv * rnd(k + 7); body.push(`<circle cx="${(8 + 32 * rnd(k)).toFixed(1)}" cy="${y.toFixed(1)}" r="0.8" fill="#ffffff" fill-opacity=".45"/>`); }
     else segs.forEach((sg, si) => {
@@ -102,7 +142,13 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art = false): string
   }
   if (ga) {
     const [x, y, w, h] = ga.img;
-    return `<svg class="${cls} art" viewBox="0 0 48 72" preserveAspectRatio="xMidYMax meet" aria-hidden="true"><defs>${parts.join('')}</defs><g clip-path="url(#${id}c)">${body.join('')}</g><image href="${artURL(`bar_glass_${d.glass in GLASS_ART ? d.glass : 'rock'}.webp`)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="none"/>${over.join('')}</svg>`;
+    const img = `<image href="${artURL(`bar_glass_${d.glass in GLASS_ART ? d.glass : 'rock'}.webp`)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="none"/>`;
+    const vb = 'viewBox="0 0 48 72" preserveAspectRatio="xMidYMax meet"';
+    if (art === 'plain') return `<svg class="${cls} art" ${vb} aria-hidden="true"><defs>${parts.join('')}</defs><g clip-path="url(#${id}c)">${body.join('')}</g>${img}${over.join('')}</svg>`;
+    // 섞는 잔: 음료 · 잔 그림 · 테두리 가니쉬를 세 겹으로 (잔 그림 겹만 배경과 섞인다 — 묶음 .dk 는 고립 묶음을 만들지 않아야 한다: filter · transform · z-index 금지, 그림자는 음료 겹에)
+    parts.push(`<filter id="${id}s" x="-20%" y="-200%" width="140%" height="500%"><feGaussianBlur stdDeviation=".8"/></filter>`);
+    const shadow = `<ellipse cx="24" cy="69.4" rx="${(w * 0.42).toFixed(2)}" ry="1.3" fill="#000000" fill-opacity=".45" filter="url(#${id}s)"/>`;
+    return `<span class="${cls} art dk" aria-hidden="true"><svg class="dk-liq" ${vb}><defs>${parts.join('')}</defs>${shadow}<g clip-path="url(#${id}c)">${body.join('')}</g></svg><svg class="dk-glass" ${vb}>${img}</svg>${over.length ? `<svg class="dk-over" ${vb}>${over.join('')}</svg>` : ''}</span>`;
   }
   const glass = `<path d="${s.out}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/>${s.stem ? `<path d="${s.stem}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>` : ''}`;
   const back = `<path d="${s.liq}" fill="currentColor" fill-opacity=".07"/>`;
