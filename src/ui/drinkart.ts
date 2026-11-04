@@ -27,6 +27,14 @@ const ICE_RISE_DEF = 0.15;
 const ICE_SIZE: Record<string, number> = { rock: 11, highball: 8, pint: 10, coupe: 8, wine: 8.5, goblet: 10 };
 /** 얼음 개수 [조금, 많이] 예외 (기본: 3칸 잔 1 · 2, 4 · 5칸 잔 2 · 3) — 와인 잔은 볼이 좁아 1 · 2 (사용자) */
 const ICE_N: Record<string, [number, number]> = { wine: [1, 2] };
+/** 거품 · 기포 텍스처 (public/art/bar_foam_<번호>.webp — 2026-11-04 사용자가 3 · 7 · 8 을 골라 배경을 지움, 뒤집어 붙인 이음매 없는 타일).
+ *  bubble = 탄산 층 기포 (3 방울 테두리), spark = 탄산 층 반짝임 (8), head = 맥주 거품 띠의 결 (7). blend = 혼합 모드, tile = 48 × 72 상자 단위 타일 한 변. on = false 면 예전 SVG 기포 */
+export const FOAM_FX = {
+  on: false,
+  bubble: { tex: 'bar_foam_3', tile: 44, op: 0.8, blend: 'screen' },
+  spark: { tex: 'bar_foam_8', tile: 40, op: 1, blend: 'screen' },
+  head: { tex: 'bar_foam_7', tile: 28, op: 0.9, blend: 'multiply' },
+};
 let uid = 0;
 const hex = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
 /** 흰색을 w 만큼 섞은 색 */
@@ -107,10 +115,21 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       const [x0, x1] = wallsAt(ga, yTop), ecx = (x0 + x1) / 2, erx = (x1 - x0) / 2 + 0.8, ery = erx * lerp(ga.k[0], ga.k[1], Math.max(0, Math.min(1, (yTop - ga.top) / (ga.bot - ga.top))));
       // 윗면 (조명을 받아 몸통보다 밝다): 맨 위 층 색에 흰색 35% 를 섞고 불투명도 +0.12 (2026-11-04 사용자)
       const topC = frozen ? fill : colorOf(topIng), topA = frozen ? alpha : alphaOf(topIng);
+      // 텍스처 층 (FOAM_FX): 타일 무늬 하나를 영역에 채우고 혼합 모드로 얹는다
+      const fx = FOAM_FX.on;
+      const pat = (key: 'bubble' | 'spark' | 'head') => { const t = FOAM_FX[key], pid = `${id}${key}`; parts.push(`<pattern id="${pid}" patternUnits="userSpaceOnUse" width="${t.tile}" height="${t.tile}"><image href="${artURL(`${t.tex}.webp`)}" width="${t.tile}" height="${t.tile}" preserveAspectRatio="none"/></pattern>`); return `url(#${pid})`; };
+      const texed = (key: 'bubble' | 'spark' | 'head', d: string) => `<path d="${d}" fill-rule="evenodd" fill="${pat(key)}" opacity="${FOAM_FX[key].op}" style="mix-blend-mode:${FOAM_FX[key].blend}"/>`;
+      const headD = `${below(ga, yTop, false)} ${below(ga, Math.min(s.bot, yTop + Math.min(3, H * 0.12)), true)}`;
+      let fizzFx = '';
+      if (fx && !frozen) segs.forEach((sg) => {
+        if (!ING_BY_ID[sg.ing]?.fizz) return;
+        const d = `${sg.b < 1 ? below(ga, yAt(sg.b), true) : 'M-2 -10 L50 -10 L50 80 L-2 80 Z'}${sg.a > 0 ? ` ${below(ga, yAt(sg.a), true)}` : ''}`;
+        fizzFx += texed('bubble', d) + texed('spark', d);
+      });
       const face = foam
-        ? `<path d="${below(ga, yTop, false)} ${below(ga, Math.min(s.bot, yTop + Math.min(3, H * 0.12)), true)}" fill-rule="evenodd" fill="#efe6d2" fill-opacity=".9"/>`
+        ? `<path d="${headD}" fill-rule="evenodd" fill="#efe6d2" fill-opacity=".9"/>${fx ? texed('head', headD) : ''}`
         : `<ellipse cx="${ecx.toFixed(2)}" cy="${yTop.toFixed(2)}" rx="${erx.toFixed(2)}" ry="${ery.toFixed(2)}" fill="${tint(topC, 0.35)}" fill-opacity="${Math.min(0.95, topA + 0.12).toFixed(2)}"/>`;
-      body.push(`<g class="liq" data-h="${(s.bot - yTop + 1).toFixed(2)}"><g clip-path="url(#${id}t)">${blur ? `<g filter="url(#${id}b)">${layers}</g>` : layers}${face}</g></g>`);
+      body.push(`<g class="liq" data-h="${(s.bot - yTop + 1).toFixed(2)}"><g clip-path="url(#${id}t)">${blur ? `<g filter="url(#${id}b)">${layers}</g>` : layers}${fizzFx}${face}</g></g>`);
     } else {
       body.push(`<rect class="liq" x="0" y="${yTop.toFixed(2)}" width="48" height="${(s.bot - yTop + 1).toFixed(2)}" fill="${fill}" fill-opacity="${alpha}"/>`);
       // 맥주 거품: 맨 위층이 맥주면 액면에 얇은 거품
@@ -118,7 +137,7 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
     }
     // 기포: 탄산 층 안에만 (프로즌은 얼음 결)
     if (frozen) for (let k = 0; k < 14; k++) { const y = s.bot - H * lv * rnd(k + 7); body.push(`<circle cx="${(8 + 32 * rnd(k)).toFixed(1)}" cy="${y.toFixed(1)}" r="0.8" fill="#ffffff" fill-opacity=".45"/>`); }
-    else segs.forEach((sg, si) => {
+    else if (!(ga && FOAM_FX.on)) segs.forEach((sg, si) => {
       if (!ING_BY_ID[sg.ing]?.fizz) return;
       for (let k = 0; k < Math.ceil((sg.b - sg.a) * 10); k++) {
         const y = s.bot - H * (sg.a + (sg.b - sg.a) * rnd(si * 31 + k));
