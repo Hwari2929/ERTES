@@ -48,7 +48,8 @@ export const bottleSvg = (id: string) => { const x = ING_BY_ID[id]; return x ? `
 /** 얼음 아이콘 */
 const ICE_ICON: Record<Ice, string> = {
   none: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M7 17 L17 7" stroke="currentColor" stroke-width="1.4"/></svg>',
-  rocks: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="8" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4" transform="rotate(-10 8 12)"/><rect x="12" y="10" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4" transform="rotate(12 16 14)"/></svg>',
+  little: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="9" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.4" transform="rotate(-8 12 14)"/></svg>',
+  lots: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="12" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4" transform="rotate(-10 9 16)"/><rect x="12" y="13" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4" transform="rotate(8 16 17)"/><rect x="8" y="4" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4" transform="rotate(6 12 8)"/></svg>',
   frozen: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 V21 M4.2 7.5 L19.8 16.5 M4.2 16.5 L19.8 7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
 };
 const GARNISH_COLOR: Record<string, string> = { citrus: '#f6b23c', lime: '#8cc63f', salt: '#e9eef2', cardia: '#7a2d1e', mint: '#5aa65a', petal: '#e89ab0', bean: '#3a2214', marsh: '#fbf6ee', cream: '#f4ead8', crystal: '#bfe3f5' };

@@ -1,6 +1,6 @@
 // 도감 · 기록 (런 사이에 유지되는 데이터). 이 브라우저의 localStorage 에만 저장된다.
 import { BAR_OPS } from '../data/bar/orders';
-import type { Drink } from '../data/bar/drinks';
+import { normIce, type Drink } from '../data/bar/drinks';
 import { CFG } from '../config';
 import { effDiff, MAX_DIFF, runEffDiff } from '../data/difficulty';
 import type { Battle } from '../engine/combat';
@@ -93,6 +93,7 @@ export function loadMeta(): Meta {
     if (p && !((p.dv || 1) >= DIFF_SCALE)) migrateDiff(cache!);
     cache!.dv = DIFF_SCALE;
     oathBestDiff(cache!);
+    for (const d of Object.values(cache!.bar?.usual || {})) d.ice = normIce(d); // 옛 온더록 (rocks) → 얼음 조금 · 많이 (2026-11-04)
   } catch { cache = blank(); }
   return cache!;
 }

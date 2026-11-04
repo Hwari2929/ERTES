@@ -86,8 +86,15 @@ export const GLASSES: Glass[] = [
 export const GLASS_BY_ID: Record<string, Glass> = Object.fromEntries(GLASSES.map((x) => [x.id, x]));
 export const GLASS_KIND_NAME: Record<GlassKind, string> = { tumbler: '텀블러', stem: '스템 잔' };
 
-export type Ice = 'none' | 'rocks' | 'frozen';
-export const ICE_NAME: Record<Ice, string> = { none: '얼음 없음', rocks: '온더록', frozen: '프로즌' };
+/** 얼음 (2026-11-04 사용자 결정: 온더록을 조금 · 많이로 나눔 — 개수는 잔 크기에 따라 조금 1~2 · 많이 2~3, ui/drinkart.ts). 프로즌은 갈린 얼음 */
+export type Ice = 'none' | 'little' | 'lots' | 'frozen';
+export const ICE_NAME: Record<Ice, string> = { none: '얼음 없음', little: '얼음 조금', lots: '얼음 많이', frozen: '프로즌' };
+/** 옛 저장(온더록 rocks) → 지금 얼음: 같은 잔 · 재료 · 가니쉬 레시피가 있으면 그 얼음, 없으면 많이 */
+export function normIce(d: Drink): Ice {
+  if ((d.ice as string) !== 'rocks') return d.ice;
+  const k = (x: string[]) => [...x].sort().join(',');
+  return RECIPES.find((r) => r.glass === d.glass && k(r.fill) === k(d.fill) && k(r.garnish) === k(d.garnish))?.ice ?? 'lots';
+}
 
 /** 완성된 잔 (붓는 순서대로 칸 · 아래부터 층) */
 export interface Drink { glass: string; fill: string[]; ice: Ice; garnish: string[] }
@@ -98,30 +105,30 @@ const R = (id: string, name: string, glass: string, fill: string[], ice: Ice, ga
 export const RECIPES: Recipe[] = [
   R('hotchoco2', '핫초코 곱빼기', 'pint', ['cocoa', 'cocoa', 'starmilk', 'starmilk', 'starmilk'], 'none', ['marsh'], '마시멜로 개수는 그날 표정으로 정한다.'),
   R('ringer', '다크 링거 파인트', 'pint', ['darkringer', 'darkringer', 'darkringer', 'darkringer', 'darkringer'], 'none', [], '링사이드가 낮의 맥주라면 이건 밤의 맥주.'),
-  R('dtonic', '더스트레인 토닉', 'highball', ['dustrain', 'dustrain', 'tonic', 'tonic'], 'rocks', ['salt', 'citrus'], '에란테스 바 시그니처. 솔트 림과 시트러스가 정석.'),
+  R('dtonic', '더스트레인 토닉', 'highball', ['dustrain', 'dustrain', 'tonic', 'tonic'], 'lots', ['salt', 'citrus'], '에란테스 바 시그니처. 솔트 림과 시트러스가 정석.'),
   R('homecup', '귀향의 잔', 'wine', ['nostos', 'nostos', 'nostos', 'nostos'], 'none', ['cardia'], '임무를 마친 밤의 축배. 카르디아 씨앗 한 꼬집.'),
-  R('anchorrock', '앵커 온더록', 'rock', ['anchor', 'anchor', 'anchor'], 'rocks', [], '만든 사람은 평가할 수 없다고 한다.'),
-  R('anchorhb', '앵커 하이볼', 'highball', ['anchor', 'soda', 'soda', 'soda'], 'rocks', ['citrus'], '올드 앵커를 소다로 길게.'),
-  R('blackstorm', '검은 폭풍', 'highball', ['yebeson', 'yebeson', 'heliosfizz', 'heliosfizz'], 'rocks', ['lime'], '다크 럼 위에 진저 비어. 밀조주 시절 맛.'),
-  R('frontier', '개척지 뮬', 'highball', ['aster', 'heliosfizz', 'heliosfizz', 'heliosfizz'], 'rocks', ['lime', 'mint'], '젊고 거친 보드카를 생강으로 달랜다.'),
+  R('anchorrock', '앵커 온더록', 'rock', ['anchor', 'anchor', 'anchor'], 'little', [], '만든 사람은 평가할 수 없다고 한다.'),
+  R('anchorhb', '앵커 하이볼', 'highball', ['anchor', 'soda', 'soda', 'soda'], 'lots', ['citrus'], '올드 앵커를 소다로 길게.'),
+  R('blackstorm', '검은 폭풍', 'highball', ['yebeson', 'yebeson', 'heliosfizz', 'heliosfizz'], 'lots', ['lime'], '다크 럼 위에 진저 비어. 밀조주 시절 맛.'),
+  R('frontier', '개척지 뮬', 'highball', ['aster', 'heliosfizz', 'heliosfizz', 'heliosfizz'], 'lots', ['lime', 'mint'], '젊고 거친 보드카를 생강으로 달랜다.'),
   R('dutycoffee', '당직 커피', 'rock', ['midnight', 'midnight', 'midnight'], 'none', ['bean'], '이것 없이 밤을 새는 건 고문이다. 위에 커피콩 3알.'),
   R('velouroil', '벨루어 오일', 'coupe', ['midnight', 'midnight', 'velour'], 'none', ['cream'], '미드나이트 오일에 벨루어. 커피인지 디저트인지 정하지 않는다.'),
   R('ringpint', '링사이드 파인트', 'pint', ['ringside', 'ringside', 'ringside', 'ringside', 'ringside'], 'none', [], '누구에게나 무난하고 누구도 싫어하지 않는다.'),
   R('fermaglass', '페르마 한 잔', 'wine', ['ferma', 'ferma', 'ferma', 'ferma'], 'none', [], '입고되면 단원들에게 개인 메시지가 간다.'),
-  R('jollyspark', '졸리 스파클', 'highball', ['jolly', 'jolly', 'soda', 'soda'], 'rocks', ['citrus'], '술이 없는 탄산. 시고 달다.'),
-  R('icesoda', '얼음 씹는 소다', 'pint', ['soda', 'soda', 'soda', 'soda', 'soda'], 'rocks', [], '음료보다 얼음이 목적인 잔.'),
+  R('jollyspark', '졸리 스파클', 'highball', ['jolly', 'jolly', 'soda', 'soda'], 'lots', ['citrus'], '술이 없는 탄산. 시고 달다.'),
+  R('icesoda', '얼음 씹는 소다', 'pint', ['soda', 'soda', 'soda', 'soda', 'soda'], 'lots', [], '음료보다 얼음이 목적인 잔.'),
   R('nightlatte', '아경 라떼', 'coupe', ['yakyung', 'starmilk', 'honey'], 'none', ['petal'], '밤을 재우는 잔.'),
-  R('bitterdrop', '쓴 약 한 방울', 'rock', ['bitter', 'tonic', 'tonic'], 'rocks', ['lime'], '두 방울은 약, 세 방울은 벌.'),
+  R('bitterdrop', '쓴 약 한 방울', 'rock', ['bitter', 'tonic', 'tonic'], 'little', ['lime'], '두 방울은 약, 세 방울은 벌.'),
   R('sugarbomb', '설탕 폭탄', 'coupe', ['velour', 'honey', 'starmilk'], 'frozen', ['marsh', 'crystal'], '단맛 센서가 있는 손님 전용.'),
   R('hometoddy', '귀향 토디', 'rock', ['nostos', 'nostos', 'honey'], 'none', ['cardia'], '노스토스에 꿀을 풀어 따뜻하게.'),
   R('wastedry', '황무지 드라이', 'coupe', ['dustrain', 'dustrain', 'bitter'], 'none', ['citrus'], '건조하고 날카롭다. 황무지는 이렇게 건조하다.'),
-  R('applehb', '사과 하이볼', 'highball', ['ferma', 'ferma', 'soda', 'soda'], 'rocks', ['mint'], '페르마를 소다로 늘린 낮의 잔.'),
+  R('applehb', '사과 하이볼', 'highball', ['ferma', 'ferma', 'soda', 'soda'], 'lots', ['mint'], '페르마를 소다로 늘린 낮의 잔.'),
   R('frozencitrus', '프로즌 시트러스', 'goblet', ['aster', 'jolly', 'jolly', 'jolly', 'honey'], 'frozen', ['citrus'], '갈아 낸 시트러스. 머리가 띵할 때까지.'),
   R('milkpint', '스타밀크 파인트', 'pint', ['starmilk', 'starmilk', 'starmilk', 'starmilk', 'starmilk'], 'none', [], '큰 잔에 우유. 그게 다다.'),
   R('cocoacream', '코코아 크림', 'coupe', ['cocoa', 'starmilk', 'velour'], 'none', ['cream'], '디저트를 잔에 담았다.'),
-  R('crystalcock', '수정 칵테일', 'rock', ['aster', 'tonic', 'tonic'], 'rocks', ['crystal'], '바텐더가 스스로에게 따르는 잔. 3잔째부터 바텐더가 조금 기운다.'),
+  R('crystalcock', '수정 칵테일', 'rock', ['aster', 'tonic', 'tonic'], 'little', ['crystal'], '바텐더가 스스로에게 따르는 잔. 3잔째부터 바텐더가 조금 기운다.'),
   R('mintea', '유랑 민트 티', 'rock', ['yakyung', 'yakyung', 'honey'], 'none', ['mint'], '술 대신 차를 내는 유랑민의 잔. 당직 근무 날에는 이것만 나간다.'),
-  R('gingersoda', '진저 소다', 'highball', ['heliosfizz', 'heliosfizz', 'soda', 'soda'], 'rocks', ['lime'], '검은 폭풍에서 럼을 뺀 잔. 끝까지 자리를 지키는 사람의 잔.'),
+  R('gingersoda', '진저 소다', 'highball', ['heliosfizz', 'heliosfizz', 'soda', 'soda'], 'lots', ['lime'], '검은 폭풍에서 럼을 뺀 잔. 끝까지 자리를 지키는 사람의 잔.'),
 ];
 export const RECIPE_BY_ID: Record<string, Recipe> = Object.fromEntries(RECIPES.map((x) => [x.id, x]));
 

@@ -63,7 +63,7 @@ export const TAG_WORD: Record<string, string> = {
   스모키: '스모키하게', 짭짤함: '짭짤하게', 향신료: '향신료 넣어서', 약초향: '약초 향 나게', 우유: '우유 넣어서', 과일향: '과일 향 나게',
 };
 const SIZE_CONDS: Record<3 | 5, SizeCond> = { 3: { k: 'size', n: 3, word: '작은 잔에', label: '작은 잔 (3칸)' }, 5: { k: 'size', n: 5, word: '큰 잔에', label: '큰 잔 (5칸)' } };
-const ICE_CONDS: Partial<Record<Ice, IceCond>> = { rocks: { k: 'ice', ice: 'rocks', word: '얼음 넣어서', label: '온더록' }, frozen: { k: 'ice', ice: 'frozen', word: '얼음 갈아서', label: '프로즌' } };
+const ICE_CONDS: Partial<Record<Ice, IceCond>> = { little: { k: 'ice', ice: 'little', word: '얼음 조금만 넣어서', label: '얼음 조금' }, lots: { k: 'ice', ice: 'lots', word: '얼음 가득 넣어서', label: '얼음 많이' }, frozen: { k: 'ice', ice: 'frozen', word: '얼음 갈아서', label: '프로즌' } };
 
 const inRange = (v: number, c: { min?: number; max?: number }) => (c.min === undefined || v >= c.min) && (c.max === undefined || v <= c.max);
 /** 이 잔이 조건 하나를 맞췄나 */

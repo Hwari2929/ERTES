@@ -18,6 +18,8 @@ const SHAPES: Record<string, Shape> = {
   goblet: { out: 'M8 12 Q6 36 24 44 Q42 36 40 12', liq: 'M9.6 14 Q8 35 24 42.4 Q40 35 38.4 14 Z', top: 16, bot: 42, rim: [8, 40, 12], stem: 'M24 44 L24 68 M14 70 L34 70 Q24 65 14 70' },
 };
 
+/** 잔 속 얼음 그림 불투명도 (2026-11-04 사용자가 0.2 ~ 0.6 시안 중 고른다) */
+export const ICE_OPACITY = 0.4;
 let uid = 0;
 const hex = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
 const mix = (cs: string[]) => { const a = cs.map(hex); const m = [0, 1, 2].map((k) => Math.round(a.reduce((s, x) => s + x[k], 0) / a.length)); return `#${m.map((v) => v.toString(16).padStart(2, '0')).join('')}`; };
@@ -114,20 +116,31 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       }
     });
   }
-  // 온더록 얼음 (2026-11-04 사용자 요청): 큰 얼음이 바닥부터 층으로 쌓인다 (잔 그림 모드는 얼음 그림) — 잔 안쪽 폭의 62% (최대 12), 좌우로 조금씩 엇갈리며 가득 찬 높이까지. 마셔도 그대로 남는다
-  if (d.ice === 'rocks') {
+  // 얼음 (2026-11-04 사용자 요청): 조금 = 1 · 2개, 많이 = 2 · 3개 (작은 잔 3칸 / 큰 잔 4 · 5칸). 큰 얼음(잔 안쪽 폭의 62%, 최대 12)을 좌우로 조금씩 엇갈려 층으로 쌓는다.
+  //   액면이 쌓인 맨 위보다 높으면 떠오른다 (맨 위 얼음이 4분의 1쯤 액면 위로), 아니면 바닥에 가라앉아 있다. 잔 그림 모드는 얼음 그림 (불투명도 ICE_OPACITY)
+  const nIce = d.ice === 'little' ? ((g?.slots ?? 3) >= 4 ? 2 : 1) : d.ice === 'lots' ? ((g?.slots ?? 3) >= 4 ? 3 : 2) : 0;
+  if (nIce) {
     const wAt = (y: number): [number, number] => (ga ? wallsAt(ga, y) : [s.rim[0] + 1.5, s.rim[1] - 1.5]);
-    let y = s.bot;
-    for (let k = 0; k < 8; k++) {
-      let [x0, x1] = wAt(y - 3);
-      let sz = Math.min(12, (x1 - x0) * 0.62);
-      [x0, x1] = wAt(y - sz / 2); sz = Math.min(12, (x1 - x0) * 0.62);
-      if (sz < 2.5 || y - sz < s.top - sz * 0.25) break;
-      const w = x1 - x0, cx = (x0 + x1) / 2 + (k % 2 ? 1 : -1) * w * 0.12, cy = y - sz / 2;
-      // 잔 그림이면 얼음 그림 (public/art/bar_ice.webp, 거의 투명 · 정면에서 살짝 위), 선 잔이면 둥근 사각형
-      if (ga) { const ih = sz * ICE_ASPECT, rot = (k % 2 ? 5 : -4) + (rnd(k + 41) - 0.5) * 5; body.push(`<image href="${artURL('bar_ice.webp')}" x="${(cx - sz / 2).toFixed(2)}" y="${(y - ih).toFixed(2)}" width="${sz.toFixed(2)}" height="${ih.toFixed(2)}" preserveAspectRatio="none" transform="rotate(${rot.toFixed(1)} ${cx.toFixed(2)} ${(y - ih / 2).toFixed(2)})"/>`); }
-      else { const rot = (k % 2 ? 9 : -7) + (rnd(k + 41) - 0.5) * 8; body.push(`<rect x="${(cx - sz / 2).toFixed(2)}" y="${(cy - sz / 2).toFixed(2)}" width="${sz.toFixed(2)}" height="${sz.toFixed(2)}" rx="${(sz * 0.17).toFixed(2)}" fill="#ffffff" fill-opacity=".22" stroke="#ffffff" stroke-opacity=".7" stroke-width="${(sz * 0.085).toFixed(2)}" transform="rotate(${rot.toFixed(1)} ${cx.toFixed(2)} ${cy.toFixed(2)})"/>`); }
-      y -= sz * 0.86;
+    const asp = ga ? ICE_ASPECT : 1;
+    const stack = (yb: number) => {
+      const out: { cx: number; y: number; sz: number; h: number; k: number }[] = [];
+      let y = yb;
+      for (let k = 0; k < nIce; k++) {
+        let [x0, x1] = wAt(y - 3);
+        let sz = Math.min(12, (x1 - x0) * 0.62);
+        [x0, x1] = wAt(y - sz * asp / 2); sz = Math.min(12, (x1 - x0) * 0.62);
+        if (sz < 2.5) break;
+        out.push({ cx: (x0 + x1) / 2 + (k % 2 ? 1 : -1) * (x1 - x0) * 0.12, y, sz, h: sz * asp, k });
+        y -= sz * asp * 0.86;
+      }
+      return out;
+    };
+    let cubes = stack(s.bot);
+    const last = cubes[cubes.length - 1];
+    if (last && lv > 0) { const want = yTop - last.h * 0.25, top = last.y - last.h; if (want < top) cubes = stack(s.bot - (top - want)); }
+    for (const c of cubes) {
+      if (ga) { const rot = (c.k % 2 ? 5 : -4) + (rnd(c.k + 41) - 0.5) * 5; body.push(`<image class="ice" href="${artURL('bar_ice.webp')}" x="${(c.cx - c.sz / 2).toFixed(2)}" y="${(c.y - c.h).toFixed(2)}" width="${c.sz.toFixed(2)}" height="${c.h.toFixed(2)}" opacity="${ICE_OPACITY}" preserveAspectRatio="none" transform="rotate(${rot.toFixed(1)} ${c.cx.toFixed(2)} ${(c.y - c.h / 2).toFixed(2)})"/>`); }
+      else { const rot = (c.k % 2 ? 9 : -7) + (rnd(c.k + 41) - 0.5) * 8, cy = c.y - c.sz / 2; body.push(`<rect x="${(c.cx - c.sz / 2).toFixed(2)}" y="${(cy - c.sz / 2).toFixed(2)}" width="${c.sz.toFixed(2)}" height="${c.sz.toFixed(2)}" rx="${(c.sz * 0.17).toFixed(2)}" fill="#ffffff" fill-opacity=".22" stroke="#ffffff" stroke-opacity=".7" stroke-width="${(c.sz * 0.085).toFixed(2)}" transform="rotate(${rot.toFixed(1)} ${c.cx.toFixed(2)} ${cy.toFixed(2)})"/>`); }
     }
   }
   // 액면에 뜨는 가니쉬
