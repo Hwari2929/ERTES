@@ -3,6 +3,8 @@
 // 그림은 한 색 면 · 선 (docs/UI.md 26), 보기 상자 24 × 24.
 import { RECIPE_BY_ID } from '../data/bar/drinks';
 import { drinkSvg } from './drinkart';
+import { PROP_ART } from './glassart.gen';
+import { artURL } from './portraits';
 
 const S = (body: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
 const L = 'fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"';
@@ -53,9 +55,10 @@ export function propKind(name: string): string {
   for (const [re, k] of RULES) if (re.test(name)) return k;
   return 'box';
 }
-/** 소품 그림 (잔이면 음료 그림, 그 밖은 아이콘) */
+/** 소품 그림 (잔이면 음료 그림, 고른 소품 그림이 있으면 그림 public/art/bar_prop_<종류>.webp — 2026-11-04 사용자 선택, 그 밖은 아이콘) */
 export function propSvg(name: string): string {
   const k = propKind(name);
+  if (PROP_ART[`prop_${k}`]) return `<img class="prop-art" src="${artURL(`bar_prop_${k}.webp`)}" alt="" draggable="false" decoding="async">`;
   if (k.startsWith('drink:')) { const r = RECIPE_BY_ID[k.slice(6)]; if (r) return drinkSvg(r, name.includes('빈') ? 0 : 0.85, 'prop-drink'); }
   return ICON[k] || ICON.box;
 }

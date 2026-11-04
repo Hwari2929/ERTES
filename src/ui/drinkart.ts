@@ -4,7 +4,7 @@
 // art: 선 잔 대신 잔 일러스트(public/art/bar_glass_<잔 id>.webp, scripts/bar_props_build.py 가 굽는다)를 액체 '위'에 얹는다 — 안쪽 유리를 투명하게 구워 음료가 비친다.
 //   잔 그림은 조금 위에서 본 모습이라 층 경계 · 액면을 단면 타원의 호로 그린다 (2026-11-04 사용자 요청). true = 잔 그림을 color-dodge 0.6 으로 배경과 섞는다 (사용자 선택, 어두운 바탕), 'plain' = 섞지 않음 (종이 위)
 import { GLASS_BY_ID, ING_BY_ID, type Drink, type Glass } from '../data/bar/drinks';
-import { GLASS_ART, ICE_ASPECT } from './glassart.gen';
+import { GLASS_ART, ICE_ASPECT, PROP_ART } from './glassart.gen';
 import { artURL } from './portraits';
 
 /** 잔 모양 (보기 상자 48 × 72, 바닥 y = 70). out = 잔 테두리 경로, liq = 액체가 차는 안쪽 경로, top · bot = 가득 찼을 때 액면 · 바닥 높이, rim = 테두리 윗선 [x0, x1, y] */
@@ -147,8 +147,12 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
   const cx = (s.rim[0] + s.rim[1]) / 2;
   const float = lv > 0.04 ? yTop : s.bot - 1.5;
   const over: string[] = [];
+  // 잔 그림 모드 + 고른 가니쉬 그림이 있으면 그림 (public/art/bar_ong_<가니쉬 id>.webp, 2026-11-04 사용자 선택) — w = 너비, (x, y) = 왼쪽 위, rot = (ox, oy) 기준 회전
+  const gArt = (gid: string) => (ga && PROP_ART[`ong_${gid}`] ? PROP_ART[`ong_${gid}`] : 0);
+  const gImg = (gid: string, x: number, y: number, w: number, rot = 0, ox = x + w / 2, oy = y, clip = '') => `<image href="${artURL(`bar_ong_${gid}.webp`)}" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${w.toFixed(2)}" height="${(w * gArt(gid)).toFixed(2)}" preserveAspectRatio="none"${rot ? ` transform="rotate(${rot} ${ox.toFixed(2)} ${oy.toFixed(2)})"` : ''}${clip ? ` clip-path="url(#${clip})"` : ''}/>`;
   for (const gid of d.garnish) {
-    if (gid === 'cardia') for (let k = 0; k < 3; k++) body.push(`<circle cx="${(cx - 4 + k * 4).toFixed(1)}" cy="${(float + 0.6 + (k % 2)).toFixed(1)}" r=".9" fill="#7a2d1e"/>`);
+    if (gid === 'petal' && gArt('petal')) { const w = 5.2; body.push(gImg('petal', cx + 0.5, float - w * gArt('petal') * 0.55, w, -14, cx + 3, float)); }
+    else if (gid === 'cardia') for (let k = 0; k < 3; k++) body.push(`<circle cx="${(cx - 4 + k * 4).toFixed(1)}" cy="${(float + 0.6 + (k % 2)).toFixed(1)}" r=".9" fill="#7a2d1e"/>`);
     else if (gid === 'bean') for (let k = 0; k < 3; k++) body.push(`<ellipse cx="${(cx - 4 + k * 4).toFixed(1)}" cy="${(float + 0.8).toFixed(1)}" rx="1.4" ry=".9" fill="#3a2214"/>`);
     else if (gid === 'petal') body.push(`<ellipse cx="${(cx + 3).toFixed(1)}" cy="${(float + 0.6).toFixed(1)}" rx="2.2" ry="1" fill="#e89ab0" transform="rotate(-18 ${cx + 3} ${float})"/>`);
     else if (gid === 'marsh' && lv > 0.04) for (let k = 0; k < 2; k++) over.push(`<rect x="${(cx - 5 + k * 5).toFixed(1)}" y="${(float - 2.6 + k * 0.6).toFixed(1)}" width="4.4" height="3.4" rx="1.2" fill="#fbf6ee" stroke="#d9cfc0" stroke-width=".4"/>`);
@@ -157,6 +161,14 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
   // 테두리에 거는 가니쉬
   const [rx0, rx1, ry] = s.rim;
   for (const gid of d.garnish) {
+    if (gArt(gid) && (gid === 'salt' || gid === 'citrus' || gid === 'mint' || gid === 'crystal')) {
+      if (gid === 'salt') { const w = rx1 - rx0 + 1; over.push(gImg('salt', rx0 - 0.5, ry + 0.4 - w * gArt('salt') / 2, w)); }
+      // 시트러스: 통째가 아니라 반으로 잘라 (사용자 요청) 자른 면을 위로 테두리 오른쪽에 건다
+      else if (gid === 'citrus') { const D = 11, ccx = rx1 - 1.2, ccy = ry + 0.2, cid = `${id}h`; over.push(`<clipPath id="${cid}"><rect x="${(ccx - D / 2 - 1).toFixed(2)}" y="${ccy.toFixed(2)}" width="${(D + 2).toFixed(2)}" height="${(D / 2 + 1).toFixed(2)}"/></clipPath>${gImg('citrus', ccx - D / 2, ccy - D * gArt('citrus') / 2, D, 0, ccx, ccy, cid)}`); }
+      else if (gid === 'mint') { const h = 11, w = h / gArt('mint'); over.push(gImg('mint', rx0 + 4 - w / 2, ry + 1.6 - h, w, -14, rx0 + 4, ry + 1.6)); }
+      else { const h = 7, w = h / gArt('crystal'); over.push(gImg('crystal', rx0 + 7.5 - w / 2, ry + 1.4 - h, w, 10, rx0 + 7.5, ry + 1.4)); }
+      continue;
+    }
     if (gid === 'salt') over.push(`<line x1="${rx0}" y1="${ry + 0.6}" x2="${rx1}" y2="${ry + 0.6}" stroke="#ffffff" stroke-width="1.6" stroke-dasharray=".6 .7"/>`);
     else if (gid === 'citrus') over.push(`<g transform="translate(${rx1 - 1} ${ry})"><circle r="5" fill="#f6b23c" stroke="#fbe3a4" stroke-width=".8"/><path d="M-4 0 H4 M0 -4 V4 M-2.8 -2.8 L2.8 2.8 M-2.8 2.8 L2.8 -2.8" stroke="#fbe3a4" stroke-width=".5"/></g>`);
     else if (gid === 'lime') over.push(`<path d="M${rx1 - 5} ${ry - 1} L${rx1 + 3} ${ry - 1} Q${rx1 - 1} ${ry + 7} ${rx1 - 5} ${ry - 1} Z" fill="#8cc63f" stroke="#d6eba6" stroke-width=".6"/>`);

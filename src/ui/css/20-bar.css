@@ -147,9 +147,10 @@
 .bar-cup.put .dk > svg { animation: bar-put .5s steps(3, jump-end); }
 @keyframes bar-put { from { opacity: 0; translate: -30% 0; } }
 /* 카운터 위 소품 (장면 동안, bar.ts showProps): 잔 왼쪽부터 차례로. 누르면 이름 꼬리표 */
-.bar-prop { position: absolute; bottom: calc(var(--ctr-h) * .76); left: calc(8% - var(--n, 0) * 30%); width: calc(var(--fig-h) * .16); aspect-ratio: 1; padding: 0; background: none; border: 0; color: var(--c-text-2); cursor: pointer; pointer-events: auto; translate: -50% 0; }
+.bar-prop { position: absolute; bottom: calc(var(--ctr-h) * .76); left: calc(8% - var(--n, 0) * 30%); width: calc(var(--fig-h) * .24); aspect-ratio: 1; padding: 0; background: none; border: 0; color: var(--c-text-2); cursor: pointer; pointer-events: auto; translate: -50% 0; }
 .bar-prop[data-i="1"] { --n: 1; } .bar-prop[data-i="2"] { --n: 2; }
 .bar-prop svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.bar-prop img.prop-art { display: block; width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; filter: drop-shadow(0 2px 3px var(--shade-2)); } /* 소품 그림 (barprops PROP_ART) */
 .bar-prop .prop-drink { height: 125%; translate: 0 -20%; }
 .bar-prop.gone { opacity: 0; pointer-events: none; }
 .bar-pet { left: 78%; width: calc(var(--fig-h) * .26); aspect-ratio: 654 / 960; bottom: calc(var(--ctr-h) * .74); }
