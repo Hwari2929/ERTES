@@ -1,5 +1,5 @@
-// NovelAI 2배 업스케일 (Anlas 소모). node scripts/nai_upscale.mjs <입력.png> <출력.png>
-// 안전장치 (scripts/nai_guard.mjs): 1장 · 동시 실행 금지. 640×640 이하는 무료 업스케일 범위라 막는다 (유료로만).
+// NovelAI 2배 업스케일. node scripts/nai_upscale.mjs <입력.png> <출력.png>
+// 안전장치 (scripts/nai_guard.mjs): 1장 · 동시 실행 금지. 무료 업스케일 범위(640×640 이하)만 돌린다 — 그보다 크면 Anlas 가 들어 막는다 (2026-11-04 사용자 결정: 유료 생성 쓰지 않음).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
 import { guard, anlas } from './nai_guard.mjs';
@@ -8,7 +8,7 @@ const token = process.env.NOVELAI_TOKEN;
 const buf = readFileSync(src);
 const w = buf.readUInt32BE(16), h = buf.readUInt32BE(20); // PNG IHDR
 if (!token) { console.error('NOVELAI_TOKEN 없음'); process.exit(1); }
-if (w * h <= 640 * 640) { console.error(`${w}x${h}: 640×640 이하는 무료 업스케일 범위라 돌리지 않습니다 (유료로만).`); process.exit(1); }
+if (w * h > 640 * 640) { console.error(`${w}x${h}: 640×640 을 넘으면 유료(Anlas)라 돌리지 않습니다 (무료 업스케일 범위만).`); process.exit(1); }
 await guard(1, token);
 function unzipFirst(b) {
   let eocd = b.length - 22;

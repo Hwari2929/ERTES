@@ -19,7 +19,7 @@
 ## 1. 원칙
 
 - **NovelAI 생성은 사용자가 요청한 분량만.** 에이전트가 스스로 판단해 생성을 시작하지 않는다.
-- 2026-11-02 부터 구독 토큰: **새로 그리기**(스탠딩 · 배경 · 아이콘 · 소품)는 구독 무료 범위(23스텝 · 1024×1024 이하 · 1장씩)로, **편집**(img2img · 인페인팅 · 캔버스 확장 · 표정 차분)과 **업스케일**만 유료(Anlas, 29스텝). (이전 계정은 무료 생성 자동화로 무료 생성이 영구 제한됐다 — ToS 9.1.6)
+- 2026-11-02 부터 구독 토큰. **유료(Anlas) 생성은 쓰지 않는다** (2026-11-04 사용자 결정 — 그 전까지는 편집 · 업스케일을 유료 29스텝으로 강제했다): **새로 그리기**(스탠딩 · 배경 · 아이콘 · 소품)와 **편집**(img2img · 인페인팅 · 캔버스 확장 · 표정 차분) 모두 구독 무료 범위(23스텝 · 1024×1024 이하 · 1장씩), **업스케일**은 640×640 이하(무료)만. (이전 계정은 무료 생성 자동화로 무료 생성이 영구 제한됐다 — ToS 9.1.6)
 - 서버에 부담을 주지 않게 여러 장은 순차 실행으로 나눠 돌린다 (1회 최대 8장 · 장 사이 무작위 6~16초 휴식 · 동시 실행 · 병렬 금지). 일정한 간격의 요청이 절대 가지 않게 휴식 · 429 재시도 대기 · 회차 사이 휴식을 모두 ms 단위 무작위로 둔다. 여러 회차는 `scripts/nai_batch.mjs` (8장씩 나눠 순차, 회차 사이 60~150초 무작위).
 - **프롬프트를 새로 쓰거나 고치면 1~2장만 먼저 뽑아 확인한 뒤** 나머지를 뽑는다.
 - 배경 · 스탠딩 일러스트는 넣기 전에 반드시 사용자에게 시안을 보여 주고 고르게 한다 (5절).
@@ -56,7 +56,7 @@ art/prompts.json ──(scripts/nai.mjs, 무료 23스텝)──▶ art/raw/<id>/
 | `scripts/bar_props_build.py` | 바 제조대 소품 굽기 (잔 6종 · 정면 출력기 · 벨) — 생성 아님 | `python3 scripts/bar_props_build.py` | 고른 원본 `art/picked/bar_glass_<잔 id>.webp` · `bar_printer_front` · `bar_bell_front` → `public/art/bar_glass_<잔 id>.webp` (안쪽 유리 알파 낮춤) · `bar_printer.webp` · `bar_bell.webp` · `bar_ice.webp` + `src/ui/glassart.gen.ts` (잔마다 그림 자리 · 액체 영역 · 단면 타원 비 · 얼음 비율) |
 | `scripts/nai_outpaint.mjs` | 캔버스 확장 (마스크 흰 곳만 새로 그림) | `node scripts/nai_outpaint.mjs <소품 키> <canvas.png> <mask.png> <장 수>` | `art/raw/prop/<키>_x/<seed>.png` |
 | `scripts/nai_icon.mjs` | 능력 아이콘 (10절) | `node scripts/nai_icon.mjs <id ...>` · `--all` · `--style A~E` (기본 E) · `--seed` · `--force` · `--dry` · 시안 `--cand --alt v1` | `art/icons/raw/<id>.png` · 시안 `art/icons/cand/<id>/<alt>-<seed>.png` · 기록 `art/gen-log.json` (`kind: 'icon'`) |
-| `scripts/nai_upscale.mjs` | 2배 업스케일 (Anlas 소모) | `node scripts/nai_upscale.mjs <입력.png> <출력.png>` | |
+| `scripts/nai_upscale.mjs` | 2배 업스케일 (640×640 이하 — 무료 범위만) | `node scripts/nai_upscale.mjs <입력.png> <출력.png>` | |
 | `scripts/nai_expr.py` · `scripts/nai_face.py` | 표정 차분 (전신 img2img · 얼굴 인페인팅, 9절) | 파일 머리 docstring | `art/picked/<id>.<표정>.webp` · `art/faces_raw/` |
 | `scripts/nai_i2i.py` | 배경 등 일반 img2img | `python3 scripts/nai_i2i.py <입력> <출력 폴더> --prompt "…" [--strength] [--noise] [--n] [--plain] [--neg "…"]` (`--plain` = 소품 한 개: 배경 공용 태그 대신 품질 태그만 · 투명 입력은 흰 바탕에 얹어 보낸다) | |
 
@@ -74,8 +74,8 @@ art/prompts.json ──(scripts/nai.mjs, 무료 23스텝)──▶ art/raw/<id>/
 | 여러 회차: 8장 이하로 나눠 순차, 회차 사이 60~150초 무작위 | `scripts/nai_batch.mjs <스크립트> <id ...>` |
 | 시작 전 · 끝난 뒤 Anlas 잔액 표시 (클라우드에서는 실패가 정상) | `anlas()` |
 | 새로 그리기는 구독 무료 범위: **23스텝** · 1024×1024 이하 · 1장씩 (벗어나면 거절) | `GEN_STEPS` · `freeOnly()` — `nai.mjs` (설정 스텝을 23으로) · `nai_bg` · `nai_icon` · `nai_prop` (항목마다 크기 확인) |
-| 편집은 유료: **29스텝** | `EDIT_STEPS` — `nai_outpaint` (`STEPS = 29`) · `nai_expr` · `nai_face` · `nai_i2i` (`nai_guard.py` 의 `STEPS`) |
-| 업스케일은 유료: 640×640 이하(무료 업스케일 범위)는 거절, 1장씩 · 잠금 | `nai_upscale.mjs` |
+| 편집도 무료 범위: **23스텝** · 1024×1024 이하 (2026-11-04, 그 전에는 유료 29스텝 강제) | `EDIT_STEPS` (= `GEN_STEPS`) · `freeOnly` — `nai_outpaint` · `nai_expr` · `nai_face` · `nai_i2i` (`nai_guard.py` 의 `STEPS` · `free_only`) |
+| 업스케일은 무료 범위만: 640×640 을 넘으면 거절 (2026-11-04, 그 전에는 반대로 무료 범위를 거절), 1장씩 · 잠금 | `nai_upscale.mjs` |
 
 
 ### 생성 설정 `art/nai.config.json`
@@ -215,4 +215,4 @@ art/prompts.json ──(scripts/nai.mjs, 무료 23스텝)──▶ art/raw/<id>/
 
 ## 11. 알려진 어긋남
 
-없음. (2026-11-02: 구독 토큰으로 바꾸며 새로 그리기 23스텝 무료 · 편집 · 업스케일만 유료로. 2026-10-31 정리: `nai_bg.mjs` 23스텝 → 29스텝, `nai_expr.py` · `nai_face.py` · `nai_i2i.py` 에 `nai_guard.py` 적용 (29스텝 · 8장 · 잠금 · 6~15초), `nai_upscale.mjs` 에 잠금 · 무료 범위 거절, `nai.mjs` 주석 정리.)
+없음. (2026-11-04: 유료 생성 쓰지 않음 — 편집도 23스텝 무료 범위 · 업스케일은 640×640 이하만. 2026-11-02: 구독 토큰으로 바꾸며 새로 그리기 23스텝 무료 · 편집 · 업스케일만 유료로. 2026-10-31 정리: `nai_bg.mjs` 23스텝 → 29스텝, `nai_expr.py` · `nai_face.py` · `nai_i2i.py` 에 `nai_guard.py` 적용 (29스텝 · 8장 · 잠금 · 6~15초), `nai_upscale.mjs` 에 잠금 · 무료 범위 거절, `nai.mjs` 주석 정리.)

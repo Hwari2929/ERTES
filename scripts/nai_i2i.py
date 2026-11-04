@@ -4,12 +4,12 @@
   --plain: 배경 공용 태그 대신 품질 태그만 (소품 한 개 — 화풍은 프롬프트에서 정한다) · --neg: 부정 태그를 이것으로 (없으면 배경 공용 negative)
   투명 배경(RGBA) 입력은 흰 바탕에 얹어 보낸다 (결과는 흰 바탕 — art.py cut_background 로 오린다).
   --bg R,G,B: 그 색 바탕에 얹어 보낸다 — 거의 투명한 밝은 소품(얼음 등)은 0,0,0 (검정)으로 보내고 art.py unmix_dark 로 투명도를 되살린다 (흰 바탕이면 흰 몸통이 배경과 구분되지 않는다).
-  편집이라 유료(Anlas) 29스텝 · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~16초 (scripts/nai_guard.py).
+  구독 무료 범위(23스텝 · 1024×1024 이하 · 1장씩) · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~16초 (scripts/nai_guard.py).
 """
 import base64, io, json, os, random, ssl, sys, time, urllib.request, zipfile
 from PIL import Image
 sys.path.insert(0, os.path.dirname(__file__))
-from nai_guard import STEPS, backoff, guard, pause
+from nai_guard import STEPS, backoff, free_only, guard, pause
 args = sys.argv[1:]
 def opt(k, d=None):
   return args[args.index(k) + 1] if k in args else d
@@ -23,6 +23,7 @@ if im0.mode in ('RGBA', 'LA') or 'transparency' in im0.info:
 else:
   im = im0.convert('RGB')
 W, H = im.size
+free_only(W, H, 'nai_i2i.py')
 bio = io.BytesIO(); im.save(bio, 'PNG'); img = base64.b64encode(bio.getvalue()).decode()
 prompt = f"{opt('--prompt')}, no humans, best quality, masterpiece, highres, year2026" if '--plain' in args else f"{opt('--prompt')}, {B['base']}"
 neg = opt('--neg') or B['negative']

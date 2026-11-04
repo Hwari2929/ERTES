@@ -1,12 +1,12 @@
-// NovelAI 캔버스 확장 (아웃페인팅): 원본을 넓은 캔버스에 놓고 마스크(흰 = 새로 그림) 부분만 그린다. 편집이라 유료(Anlas) 29스텝, 1회 최대 8장 (scripts/nai_guard.mjs).
+// NovelAI 캔버스 확장 (아웃페인팅): 원본을 넓은 캔버스에 놓고 마스크(흰 = 새로 그림) 부분만 그린다. 구독 무료 범위(23스텝 · 1024×1024 이하 · 1장씩), 1회 최대 8장 (scripts/nai_guard.mjs).
 //   NODE_USE_ENV_PROXY=1 node scripts/nai_outpaint.mjs <소품 키> <canvas.png> <mask.png> <장 수>
 // 프롬프트 · 부정 프롬프트는 art/prop_prompts.json 의 그 소품 것을 그대로 쓴다. 결과: art/raw/prop/<키>_x/<seed>.png
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
-import { guard, anlas, pause, backoff } from './nai_guard.mjs';
+import { guard, anlas, pause, backoff, EDIT_STEPS, freeOnly } from './nai_guard.mjs';
 
 const MODEL = 'nai-diffusion-4-5-full-inpainting';
-const STEPS = 29; // 편집(캔버스 확장)은 유료로만 (EDIT_STEPS)
+const STEPS = EDIT_STEPS; // 편집도 무료 범위 (2026-11-04 사용자 결정)
 const cfg = JSON.parse(readFileSync('art/nai.config.json', 'utf8'));
 const P = JSON.parse(readFileSync('art/prop_prompts.json', 'utf8'));
 const [key, canvasPath, maskPath, nArg] = process.argv.slice(2);
@@ -17,6 +17,7 @@ if (!token) { console.error('NOVELAI_TOKEN 없음'); process.exit(1); }
 const png = (f) => readFileSync(f).toString('base64');
 const size = (f) => { const b = readFileSync(f); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
 const [W, H] = size(canvasPath);
+freeOnly(W, H, STEPS, 'outpaint');
 const input = p.raw ? `${p.prompt}, best quality, masterpiece, highres, year2026, ::1.2::painterly::` : `${p.prompt}, ${P.base}`;
 const neg = p.neg || P.negative;
 function unzipFirst(buf) {

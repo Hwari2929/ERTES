@@ -1,13 +1,13 @@
-"""NovelAI 전신 img2img 로 스탠딩 표정 차분 만들기 (Anlas 사용).
+"""NovelAI 전신 img2img 로 스탠딩 표정 차분 만들기 (구독 무료 범위).
   python3 scripts/nai_expr.py <id> <face...> [--strength 0.5] [--noise 0.3] [--seed N] [--subtle] [--out art/picked]
 원본: art/raw/<id>/<picks.json 의 파일> (없으면 art/picked/<id>.webp) — 원래 생성 프롬프트에 표정 태그를 얹어 전신을 다시 그린다.
-편집이라 유료(Anlas) 29스텝 · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~16초 (scripts/nai_guard.py).
+구독 무료 범위(23스텝 · 1024×1024 이하 · 1장씩) · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~16초 (scripts/nai_guard.py).
 결과: <out>/<id>.<face>.webp (art.py build 가 기본 스탠딩과 같은 틀로 잘라 public/art 에 낸다)
 """
 import base64, io, json, os, random, ssl, sys, time, urllib.request, zipfile
 from PIL import Image
 sys.path.insert(0, os.path.dirname(__file__))
-from nai_guard import STEPS, backoff, guard, pause
+from nai_guard import STEPS, backoff, free_only, guard, pause
 
 FACE_TAGS = {
   'smile': 'smile, happy, gentle smile',
@@ -52,6 +52,7 @@ for t in STRIP:
 raw = f'art/raw/{uid}/{pick}'
 src = Image.open(raw if os.path.exists(raw) else f'art/picked/{uid}.webp').convert('RGBA')
 W, H = src.size
+free_only(W, H, 'nai_expr.py')
 flat = Image.new('RGB', (W, H), (255, 255, 255)); flat.paste(src, mask=src.split()[3])
 bio = io.BytesIO(); (flat if '--flat' in args else src).save(bio, 'PNG'); img_b64 = base64.b64encode(bio.getvalue()).decode()
 ctx = ssl.create_default_context(cafile=os.environ.get('SSL_CERT_FILE', '/root/.ccr/ca-bundle.crt'))
