@@ -689,8 +689,8 @@
       "h": 1024,
       "plain": true,
       "transparent": true,
-      "prompt": "a single soft pink flower petal, gently curved, side view, eye level, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
-      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, tablecloth, counter, cast shadow, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, glass, cup, mug, drinking glass, drink, liquid, beverage, plate, dish, bowl, spoon"
+      "prompt": "::1.3::a single loose flower petal::, one small soft pink rose petal on its own, gently curved, no stem, side view, eye level, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, tablecloth, counter, cast shadow, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, glass, cup, mug, drinking glass, drink, liquid, beverage, plate, dish, bowl, spoon, ::1.4::stem, flower head, whole flower, bud, lily, tulip, blossom::, leaf, leaves"
     },
     "bar_ong_bean": {
       "w": 1024,
@@ -713,8 +713,8 @@
       "h": 1024,
       "plain": true,
       "transparent": true,
-      "prompt": "a tall swirl of fluffy white whipped cream with soft peaks, a topping on its own, flat bottom, strict front view, straight-on, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
-      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, tablecloth, counter, cast shadow, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, glass, cup, mug, drinking glass, drink, liquid, beverage, plate, dish, bowl, spoon, cone, ice cream cone, cupcake, cake, container"
+      "prompt": "::1.3::a dollop of whipped cream on its own::, soft white swirl with peaks, the bottom is flat and cut straight, nothing under it, front view, eye level, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, tablecloth, counter, cast shadow, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, glass, cup, mug, drinking glass, drink, liquid, beverage, plate, dish, bowl, spoon, cone, ice cream cone, cupcake, cake, container, ::1.5::ice cream cone, waffle cone, cone, holder, stand, base, pedestal, wrapper::, soft serve, ice cream"
     },
     "bar_ong_crystal": {
       "w": 1024,
