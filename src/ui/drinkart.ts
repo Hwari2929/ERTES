@@ -4,7 +4,7 @@
 // art: 선 잔 대신 잔 일러스트(public/art/bar_glass_<잔 id>.webp, scripts/bar_props_build.py 가 굽는다)를 액체 '위'에 얹는다 — 안쪽 유리를 투명하게 구워 음료가 비친다.
 //   잔 그림은 조금 위에서 본 모습이라 층 경계 · 액면을 단면 타원의 호로 그린다 (2026-11-04 사용자 요청). true = 잔 그림을 color-dodge 0.6 으로 배경과 섞는다 (사용자 선택, 어두운 바탕), 'plain' = 섞지 않음 (종이 위)
 import { GLASS_BY_ID, ING_BY_ID, type Drink, type Glass } from '../data/bar/drinks';
-import { GLASS_ART } from './glassart.gen';
+import { GLASS_ART, ICE_ASPECT } from './glassart.gen';
 import { artURL } from './portraits';
 
 /** 잔 모양 (보기 상자 48 × 72, 바닥 y = 70). out = 잔 테두리 경로, liq = 액체가 차는 안쪽 경로, top · bot = 가득 찼을 때 액면 · 바닥 높이, rim = 테두리 윗선 [x0, x1, y] */
@@ -114,7 +114,7 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       }
     });
   }
-  // 온더록 얼음 (2026-11-04 사용자 요청): 큰 얼음이 바닥부터 층으로 쌓인다 — 잔 안쪽 폭의 62% (최대 12), 좌우로 조금씩 엇갈리며 가득 찬 높이까지. 마셔도 그대로 남는다
+  // 온더록 얼음 (2026-11-04 사용자 요청): 큰 얼음이 바닥부터 층으로 쌓인다 (잔 그림 모드는 얼음 그림) — 잔 안쪽 폭의 62% (최대 12), 좌우로 조금씩 엇갈리며 가득 찬 높이까지. 마셔도 그대로 남는다
   if (d.ice === 'rocks') {
     const wAt = (y: number): [number, number] => (ga ? wallsAt(ga, y) : [s.rim[0] + 1.5, s.rim[1] - 1.5]);
     let y = s.bot;
@@ -124,8 +124,9 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       [x0, x1] = wAt(y - sz / 2); sz = Math.min(12, (x1 - x0) * 0.62);
       if (sz < 2.5 || y - sz < s.top - sz * 0.25) break;
       const w = x1 - x0, cx = (x0 + x1) / 2 + (k % 2 ? 1 : -1) * w * 0.12, cy = y - sz / 2;
-      const rot = (k % 2 ? 9 : -7) + (rnd(k + 41) - 0.5) * 8;
-      body.push(`<rect x="${(cx - sz / 2).toFixed(2)}" y="${(cy - sz / 2).toFixed(2)}" width="${sz.toFixed(2)}" height="${sz.toFixed(2)}" rx="${(sz * 0.17).toFixed(2)}" fill="#ffffff" fill-opacity=".22" stroke="#ffffff" stroke-opacity=".7" stroke-width="${(sz * 0.085).toFixed(2)}" transform="rotate(${rot.toFixed(1)} ${cx.toFixed(2)} ${cy.toFixed(2)})"/>`);
+      // 잔 그림이면 얼음 그림 (public/art/bar_ice.webp, 거의 투명 · 정면에서 살짝 위), 선 잔이면 둥근 사각형
+      if (ga) { const ih = sz * ICE_ASPECT, rot = (k % 2 ? 5 : -4) + (rnd(k + 41) - 0.5) * 5; body.push(`<image href="${artURL('bar_ice.webp')}" x="${(cx - sz / 2).toFixed(2)}" y="${(y - ih).toFixed(2)}" width="${sz.toFixed(2)}" height="${ih.toFixed(2)}" preserveAspectRatio="none" transform="rotate(${rot.toFixed(1)} ${cx.toFixed(2)} ${(y - ih / 2).toFixed(2)})"/>`); }
+      else { const rot = (k % 2 ? 9 : -7) + (rnd(k + 41) - 0.5) * 8; body.push(`<rect x="${(cx - sz / 2).toFixed(2)}" y="${(cy - sz / 2).toFixed(2)}" width="${sz.toFixed(2)}" height="${sz.toFixed(2)}" rx="${(sz * 0.17).toFixed(2)}" fill="#ffffff" fill-opacity=".22" stroke="#ffffff" stroke-opacity=".7" stroke-width="${(sz * 0.085).toFixed(2)}" transform="rotate(${rot.toFixed(1)} ${cx.toFixed(2)} ${cy.toFixed(2)})"/>`); }
       y -= sz * 0.86;
     }
   }

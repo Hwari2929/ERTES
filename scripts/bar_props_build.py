@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """바 제조대 일러스트 소품 굽기 (2026-11-04): 고른 원본 art/picked/bar_glass_<잔 id>.webp · bar_printer_front.webp · bar_bell_front.webp (투명 배경)
-→ public/art/bar_glass_<잔 id>.webp · bar_printer.webp · bar_bell.webp + src/ui/glassart.gen.ts (잔마다 그림 자리 · 액체가 차는 안쪽 영역).
+→ public/art/bar_glass_<잔 id>.webp · bar_printer.webp · bar_bell.webp · bar_ice.webp (art/picked/bar_ice_cube.webp) + src/ui/glassart.gen.ts (잔마다 그림 자리 · 액체가 차는 안쪽 영역).
 
   python3 scripts/bar_props_build.py
 
@@ -83,14 +83,17 @@ for gid, (top, floor, inset, rimf, span) in GEOM.items():
     }
     print(f'{gid}: {W}×{H} → 48×72 상자 {out[gid]["img"]} · 액면 {out[gid]["top"]} ~ 바닥 {out[gid]["bot"]}')
 
-for src, dst, width in [('bar_printer_front', 'bar_printer', 900), ('bar_bell_front', 'bar_bell', 560)]:
+for src, dst, width in [('bar_printer_front', 'bar_printer', 900), ('bar_bell_front', 'bar_bell', 560), ('bar_ice_cube', 'bar_ice', 320)]:
     im = Image.open(f'art/picked/{src}.webp').convert('RGBA')
     s = width / im.width
     im.resize((width, max(1, round(im.height * s))), Image.LANCZOS).save(f'public/art/{dst}.webp', 'WEBP', quality=86, method=6)
     print(f'{dst}: {width}×{round(im.height * s)}')
+    if dst == 'bar_ice': ice = round(im.height / im.width, 4)  # 얼음 그림 세로/가로 (drinkart 가 층으로 쌓는다)
 
 lines = ['// 자동 생성: python3 scripts/bar_props_build.py — 직접 고치지 말 것',
          '/** 바 잔 일러스트 (public/art/bar_glass_<잔 id>.webp) 의 48 × 72 상자 안 자리와 액체 영역: img = [x, y, w, h] · liq = 액체가 차는 안쪽 경로 · top · bot = 가득 찼을 때 액면 · 안쪽 바닥 · rim = 테두리 [x0, x1, y] · rows = 안쪽 줄마다 [y, 왼쪽 x, 오른쪽 x] (위 → 아래) · k = 수평 단면 타원 세로/가로 비 [테두리, 바닥] */',
-         'export const GLASS_ART: Record<string, { img: [number, number, number, number]; liq: string; top: number; bot: number; rim: [number, number, number]; rows: [number, number, number][]; k: [number, number] }> = ' + json.dumps(out, ensure_ascii=False, separators=(',', ':')) + ';']
+         'export const GLASS_ART: Record<string, { img: [number, number, number, number]; liq: string; top: number; bot: number; rim: [number, number, number]; rows: [number, number, number][]; k: [number, number] }> = ' + json.dumps(out, ensure_ascii=False, separators=(',', ':')) + ';',
+         '/** 잔 속 얼음 그림 (public/art/bar_ice.webp, 시안 bar_ice_cube 2차 3번) 의 세로 / 가로 */',
+         f'export const ICE_ASPECT = {ice};']
 open('src/ui/glassart.gen.ts', 'w').write('\n'.join(lines) + '\n')
 print('src/ui/glassart.gen.ts')
