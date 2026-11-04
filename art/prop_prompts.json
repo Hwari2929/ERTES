@@ -753,8 +753,8 @@
       "h": 1024,
       "plain": true,
       "transparent": true,
-      "prompt": "a small round metal holographic projector device projecting a translucent glowing cyan hologram screen panel floating above it, science fiction, strict front view, straight-on, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
-      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, tablecloth, counter, cast shadow, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+      "prompt": "a small flat round metal disc projector lying on the counter, a translucent glowing cyan holographic screen floating in the air above it, thin light beams between them, science fiction, strict front view, straight-on, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, tablecloth, counter, cast shadow, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, lamp, lampshade, jar, vase"
     },
     "bar_prop_tool": {
       "w": 1024,
@@ -801,8 +801,8 @@
       "h": 1024,
       "plain": true,
       "transparent": true,
-      "prompt": "a single small closed wooden box with a lid, strict front view, straight-on, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
-      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, tablecloth, counter, cast shadow, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+      "prompt": "a single small low wooden keepsake box with a hinged lid and brass corners, wider than it is tall, seen from the front at a slightly elevated angle, low three-quarter view, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, tablecloth, counter, cast shadow, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, trash can, bin, crate, barrel, tall box"
     },
     "bar_prop_sign": {
       "w": 1024,
@@ -825,24 +825,24 @@
       "h": 1024,
       "plain": true,
       "transparent": true,
-      "prompt": "a single small compact espresso coffee machine, strict front view, straight-on, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
-      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, tablecloth, counter, cast shadow, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+      "prompt": "a single small compact espresso machine, boxy brushed metal body, a portafilter handle sticking out at the front, a small cup tray, strict front view, straight-on, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, tablecloth, counter, cast shadow, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, grinder, coffee grinder, siphon, glass globe, dome"
     },
     "bar_prop_camera": {
       "w": 1024,
       "h": 1024,
       "plain": true,
       "transparent": true,
-      "prompt": "a single vintage film camera, strict front view, straight-on, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
-      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, tablecloth, counter, cast shadow, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+      "prompt": "a single vintage film camera with a round lens, blank unmarked body, strict front view, straight-on, eye level, standing upright, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, tablecloth, counter, cast shadow, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, ::1.4::text, letters, brand name, logo, nameplate text::"
     },
     "bar_prop_flag": {
       "w": 1024,
       "h": 1024,
       "plain": true,
       "transparent": true,
-      "prompt": "a single neatly folded flag, triangle fold, navy blue fabric, lying flat, seen from the front at a slightly elevated angle, low three-quarter view, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
-      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, tablecloth, counter, cast shadow, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts"
+      "prompt": "::1.3::a single flag folded into a tight triangle::, triangular folded flag, navy blue fabric with a small gold star, seen from the front at a slightly elevated angle, low three-quarter view, centered object, single object, isolated object, vintage engraving style, fine ink line hatching, antique botanical print, muted colors, hand drawn ink lines with light watercolor wash",
+      "neg": "1girl, 1boy, person, people, character, human, face, hands, text, watermark, signature, logo, letters, numbers, writing, label text, lettering, typography, ui, frame, border, multiple views, split screen, collage, two objects, many objects, cluttered, background scenery, table, tablecloth, counter, cast shadow, lowres, worst quality, bad quality, jpeg artifacts, blurry, very displeasing, chromatic aberration, film grain, scan artifacts, blanket, towel, square cloth, napkin"
     },
     "bar_prop_tent": {
       "w": 1024,
