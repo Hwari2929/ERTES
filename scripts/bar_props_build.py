@@ -113,6 +113,18 @@ for key in sorted(k for k in picked if k.startswith('bar_ong_') or k.startswith(
     props_ar[key.removeprefix('bar_')] = round(im.height / im.width, 4)
 print('가니쉬 · 소품', len(props_ar))
 
+# 거품 · 기포 텍스처 (2026-11-04 사용자: 3 · 7 · 8 고름, 혼합 plus-lighter · 거품 screen · 흐림 0.15): 배경을 지운 원본 art/picked/bar_foam_<번호>.webp
+# → 2×2 뒤집어 붙인 이음매 없는 타일 768px + 흐림을 미리 굽는다 (움직이는 층에 SVG 필터를 걸면 매 프레임 다시 계산해 무겁다).
+# 흐림 = 0.15 (48 × 72 상자 단위) × 768 / 타일 한 변 — drinkart FOAM_FX 의 가장 큰 타일 기준
+from PIL import ImageFilter, ImageOps
+FOAM_BLUR, FOAM_TILE = 0.15, {'3': 44, '7': 28, '8': 40}
+for k, tile in FOAM_TILE.items():
+    im = Image.open(f'art/picked/bar_foam_{k}.webp').convert('RGBA'); w, h = im.size
+    t = Image.new('RGBA', (w * 2, h * 2)); t.paste(im, (0, 0)); t.paste(ImageOps.mirror(im), (w, 0)); t.paste(ImageOps.flip(im), (0, h)); t.paste(ImageOps.flip(ImageOps.mirror(im)), (w, h))
+    t = t.resize((768, 768), Image.LANCZOS).filter(ImageFilter.GaussianBlur(FOAM_BLUR * 768 / tile))
+    t.save(f'public/art/bar_foam_{k}.webp', 'WEBP', quality=88, method=6)
+print('거품 텍스처', list(FOAM_TILE))
+
 lines = ['// 자동 생성: python3 scripts/bar_props_build.py — 직접 고치지 말 것',
          '/** 바 잔 일러스트 (public/art/bar_glass_<잔 id>.webp) 의 48 × 72 상자 안 자리와 액체 영역: img = [x, y, w, h] · liq = 액체가 차는 안쪽 경로 · top · bot = 가득 찼을 때 액면 · 안쪽 바닥 · rim = 테두리 [x0, x1, y] · rows = 안쪽 줄마다 [y, 왼쪽 x, 오른쪽 x] (위 → 아래) · k = 수평 단면 타원 세로/가로 비 [테두리, 바닥] */',
          'export const GLASS_ART: Record<string, { img: [number, number, number, number]; liq: string; top: number; bot: number; rim: [number, number, number]; rows: [number, number, number][]; k: [number, number] }> = ' + json.dumps(out, ensure_ascii=False, separators=(',', ':')) + ';',

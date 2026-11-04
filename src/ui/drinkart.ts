@@ -27,16 +27,21 @@ const ICE_RISE_DEF = 0.15;
 const ICE_SIZE: Record<string, number> = { rock: 11, highball: 8, pint: 10, coupe: 8, wine: 8.5, goblet: 10 };
 /** 얼음 개수 [조금, 많이] 예외 (기본: 3칸 잔 1 · 2, 4 · 5칸 잔 2 · 3) — 와인 잔은 볼이 좁아 1 · 2 (사용자) */
 const ICE_N: Record<string, [number, number]> = { wine: [1, 2] };
-/** 거품 · 기포 텍스처 (public/art/bar_foam_<번호>.webp — 2026-11-04 사용자가 3 · 7 · 8 을 골라 배경을 지움, 뒤집어 붙인 이음매 없는 타일).
- *  bubble = 탄산 층 기포 (3 방울 테두리), spark = 탄산 층 반짝임 (8), head = 맥주 거품 띠의 결 (7). blend = 혼합 모드, tile = 48 × 72 상자 단위 타일 한 변. on = false 면 예전 SVG 기포 */
+/** 거품 · 기포 텍스처 (public/art/bar_foam_<번호>.webp — 2026-11-04 사용자가 3 · 7 · 8 을 골라 배경을 지움, 뒤집어 붙인 이음매 없는 타일 · 흐림 0.15 를 미리 구움, scripts/bar_props_build.py).
+ *  사용자 선택: 기포 plus-lighter · 거품 screen · 흐림 0.15. fizz = 탄산 층 기포 겹 (겹마다 크기 · 속도 · 옆 흔들림이 달라 여러 겹이 조금씩 떠오른다 — dur 초에 한 타일),
+ *  head = 맥주 거품 띠의 결. tile = 48 × 72 상자 단위 타일 한 변. on = false 면 예전 SVG 기포 */
 export const FOAM_FX = {
-  on: false,
-  /** 텍스처 흐림 (feGaussianBlur stdDeviation, 48 × 72 상자 단위 — 0 이면 없음) */
-  blur: 0,
-  bubble: { tex: 'bar_foam_3', tile: 44, op: 0.8, blend: 'screen' },
-  spark: { tex: 'bar_foam_8', tile: 40, op: 1, blend: 'screen' },
-  head: { tex: 'bar_foam_7', tile: 28, op: 0.9, blend: 'multiply' },
+  on: true,
+  blend: 'plus-lighter',
+  fizz: [
+    { tex: 'bar_foam_3', tile: 44, op: 0.75, dur: 17, sway: 1.2, x: 0 },
+    { tex: 'bar_foam_3', tile: 27, op: 0.45, dur: 10, sway: 0.8, x: 9 },
+    { tex: 'bar_foam_8', tile: 40, op: 1, dur: 13, sway: 1.6, x: 5 },
+  ],
+  head: { tex: 'bar_foam_7', tile: 28, op: 0.9, blend: 'screen' },
 };
+/** 움직임 줄이기면 기포가 멈춰 있다 */
+const stillFx = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 let uid = 0;
 const hex = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
 /** 흰색을 w 만큼 섞은 색 */
@@ -119,18 +124,26 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       const topC = frozen ? fill : colorOf(topIng), topA = frozen ? alpha : alphaOf(topIng);
       // 텍스처 층 (FOAM_FX): 타일 무늬 하나를 영역에 채우고 혼합 모드로 얹는다
       const fx = FOAM_FX.on;
-      const pat = (key: 'bubble' | 'spark' | 'head') => { const t = FOAM_FX[key], pid = `${id}${key}`; parts.push(`<pattern id="${pid}" patternUnits="userSpaceOnUse" width="${t.tile}" height="${t.tile}"><image href="${artURL(`${t.tex}.webp`)}" width="${t.tile}" height="${t.tile}" preserveAspectRatio="none"/></pattern>`); return `url(#${pid})`; };
-      if (fx && FOAM_FX.blur > 0) parts.push(`<filter id="${id}fb" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="${FOAM_FX.blur}"/></filter>`);
-      const texed = (key: 'bubble' | 'spark' | 'head', d: string) => `<path d="${d}" fill-rule="evenodd" fill="${pat(key)}" opacity="${FOAM_FX[key].op}" style="mix-blend-mode:${FOAM_FX[key].blend}"${FOAM_FX.blur > 0 ? ` filter="url(#${id}fb)"` : ''}/>`;
+      // 타일 무늬: 기포 겹은 아래에서 위로 한 타일씩 돈다 (옆으로 살짝 흔들림). 시작 위상을 시계에서 잡아 다시 그려도 (카운터 잔이 줄어들 때) 이어서 움직인다
+      const still = stillFx(), now = Date.now() / 1000;
+      const pat = (pid: string, t: { tex: string; tile: number; dur?: number; sway?: number; x?: number }) => {
+        const x = t.x ?? 0, anim = t.dur && !still ? `<animateTransform attributeName="patternTransform" type="translate" values="${x} 0; ${x + (t.sway ?? 0)} ${-t.tile / 2}; ${x} ${-t.tile}" keyTimes="0; .5; 1" dur="${t.dur}s" begin="${(-(now % t.dur)).toFixed(2)}s" repeatCount="indefinite"/>` : '';
+        parts.push(`<pattern id="${pid}" patternUnits="userSpaceOnUse" width="${t.tile}" height="${t.tile}" patternTransform="translate(${x} 0)"><image href="${artURL(`${t.tex}.webp`)}" width="${t.tile}" height="${t.tile}" preserveAspectRatio="none"/>${anim}</pattern>`);
+        return `url(#${pid})`;
+      };
+      const texed = (fillUrl: string, d: string, op: number, blend: string) => `<path d="${d}" fill-rule="evenodd" fill="${fillUrl}" opacity="${op}" style="mix-blend-mode:${blend}"/>`;
       const headD = `${below(ga, yTop, false)} ${below(ga, Math.min(s.bot, yTop + Math.min(3, H * 0.12)), true)}`;
       let fizzFx = '';
-      if (fx && !frozen) segs.forEach((sg) => {
-        if (!ING_BY_ID[sg.ing]?.fizz) return;
-        const d = `${sg.b < 1 ? below(ga, yAt(sg.b), true) : 'M-2 -10 L50 -10 L50 80 L-2 80 Z'}${sg.a > 0 ? ` ${below(ga, yAt(sg.a), true)}` : ''}`;
-        fizzFx += texed('bubble', d) + texed('spark', d);
-      });
+      if (fx && !frozen && segs.some((sg) => ING_BY_ID[sg.ing]?.fizz)) {
+        const urls = FOAM_FX.fizz.map((t, i) => pat(`${id}f${i}`, t));
+        segs.forEach((sg) => {
+          if (!ING_BY_ID[sg.ing]?.fizz) return;
+          const d = `${sg.b < 1 ? below(ga, yAt(sg.b), true) : 'M-2 -10 L50 -10 L50 80 L-2 80 Z'}${sg.a > 0 ? ` ${below(ga, yAt(sg.a), true)}` : ''}`;
+          fizzFx += FOAM_FX.fizz.map((t, i) => texed(urls[i], d, t.op, FOAM_FX.blend)).join('');
+        });
+      }
       const face = foam
-        ? `<path d="${headD}" fill-rule="evenodd" fill="#efe6d2" fill-opacity=".9"/>${fx ? texed('head', headD) : ''}`
+        ? `<path d="${headD}" fill-rule="evenodd" fill="#efe6d2" fill-opacity=".9"/>${fx ? texed(pat(`${id}h`, FOAM_FX.head), headD, FOAM_FX.head.op, FOAM_FX.head.blend) : ''}`
         : `<ellipse cx="${ecx.toFixed(2)}" cy="${yTop.toFixed(2)}" rx="${erx.toFixed(2)}" ry="${ery.toFixed(2)}" fill="${tint(topC, 0.35)}" fill-opacity="${Math.min(0.95, topA + 0.12).toFixed(2)}"/>`;
       body.push(`<g class="liq" data-h="${(s.bot - yTop + 1).toFixed(2)}"><g clip-path="url(#${id}t)">${blur ? `<g filter="url(#${id}b)">${layers}</g>` : layers}${fizzFx}${face}</g></g>`);
     } else {
