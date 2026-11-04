@@ -302,6 +302,8 @@ for (const id of Object.keys(REGULARS)) for (const st of ['vague', 'photo', 'nam
   const o = makeOrder(id, 0, { night: true, style: st }, rnd);
   if (st !== 'vague' && !o.target) errs.push(`주문 ${id}/${st}: 맞출 잔이 없다`);
 }
+// 잔 속 불투명도: 재료마다 0.3 ~ 0.95 (완전히 불투명한 음료는 없다)
+for (const g of Object.values(ING_BY_ID)) if (!(g.alpha >= 0.3 && g.alpha <= 0.95)) errs.push(`재료 ${g.id}: 불투명도 ${g.alpha} (0.3 ~ 0.95)`);
 // 술을 안 마시는 손님 (ORDER_AVOID): 주문 2000건에 피하는 재료가 든 잔이 없고, 그런 잔을 내주면 별로
 for (const id of Object.keys(ORDER_AVOID)) {
   if (!REGULARS[id] && !GUEST_BY_ID[id]) { errs.push(`ORDER_AVOID ${id}: 모르는 손님`); continue; }

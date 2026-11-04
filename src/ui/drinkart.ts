@@ -39,14 +39,19 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art = false): string
   d.fill.forEach((ing, i) => { const last = segs[segs.length - 1]; if (last && last.ing === ing) last.b = (i + 1) / n; else segs.push({ ing, a: i / n, b: (i + 1) / n }); });
   const frozen = d.ice === 'frozen';
   const colorOf = (ing: string) => ING_BY_ID[ing]?.color || '#999999';
+  const alphaOf = (ing: string) => ING_BY_ID[ing]?.alpha ?? 0.6;
   let fill: string;
-  if (frozen || segs.length <= 1) fill = segs.length ? (frozen ? mix(d.fill.map(colorOf)) : colorOf(segs[0].ing)) : 'none';
-  else {
+  // 불투명도: 재료마다 0.3 ~ 0.95 (drinks.ts alpha). 층마다 따로, 프로즌은 갈린 얼음이라 평균 + 0.3 (최대 0.95)
+  let alpha = 1;
+  if (frozen || segs.length <= 1) {
+    fill = segs.length ? (frozen ? mix(d.fill.map(colorOf)) : colorOf(segs[0].ing)) : 'none';
+    if (segs.length) alpha = frozen ? Math.min(0.95, d.fill.reduce((t, x) => t + alphaOf(x), 0) / d.fill.length + 0.3) : alphaOf(segs[0].ing);
+  } else {
     const bl = 0.09 / n * 2;
     const stops = segs.flatMap((sg, i) => {
-      const c = colorOf(sg.ing);
+      const c = colorOf(sg.ing), o = alphaOf(sg.ing);
       const a = i === 0 ? 0 : sg.a + bl, b = i === segs.length - 1 ? 1 : sg.b - bl;
-      return [`<stop offset="${a.toFixed(3)}" stop-color="${c}"/>`, `<stop offset="${b.toFixed(3)}" stop-color="${c}"/>`];
+      return [`<stop offset="${a.toFixed(3)}" stop-color="${c}" stop-opacity="${o}"/>`, `<stop offset="${b.toFixed(3)}" stop-color="${c}" stop-opacity="${o}"/>`];
     }).join('');
     parts.push(`<linearGradient id="${id}g" gradientUnits="userSpaceOnUse" x1="0" y1="${s.bot}" x2="0" y2="${s.top}">${stops}</linearGradient>`);
     fill = `url(#${id}g)`;
@@ -54,11 +59,10 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art = false): string
   parts.push(`<clipPath id="${id}c"><path d="${s.liq}"/></clipPath>`);
   const body: string[] = [];
   if (lv > 0 && segs.length) {
-    const opaque = d.fill.some((x) => ING_BY_ID[x]?.opaque);
-    body.push(`<rect class="liq" x="0" y="${yTop.toFixed(2)}" width="48" height="${(s.bot - yTop + 1).toFixed(2)}" fill="${fill}" fill-opacity="${opaque || frozen ? 1 : 0.88}"/>`);
+    body.push(`<rect class="liq" x="0" y="${yTop.toFixed(2)}" width="48" height="${(s.bot - yTop + 1).toFixed(2)}" fill="${fill}" fill-opacity="${alpha}"/>`);
     // 맥주 거품: 맨 위층이 맥주면 액면에 얇은 거품
     const topIng = segs[segs.length - 1].ing;
-    if (!frozen && (topIng === 'ringside' || topIng === 'darkringer') && lv > 0.12) body.push(`<rect x="0" y="${(yTop - 0.4).toFixed(2)}" width="48" height="${Math.min(3, H * 0.12).toFixed(2)}" fill="#efe6d2"/>`);
+    if (!frozen && (topIng === 'ringside' || topIng === 'darkringer') && lv > 0.12) body.push(`<rect x="0" y="${(yTop - 0.4).toFixed(2)}" width="48" height="${Math.min(3, H * 0.12).toFixed(2)}" fill="#efe6d2" fill-opacity=".9"/>`);
     // 기포: 탄산 층 안에만 (프로즌은 얼음 결)
     if (frozen) for (let k = 0; k < 14; k++) { const y = s.bot - H * lv * rnd(k + 7); body.push(`<circle cx="${(8 + 32 * rnd(k)).toFixed(1)}" cy="${y.toFixed(1)}" r="0.8" fill="#ffffff" fill-opacity=".45"/>`); }
     else segs.forEach((sg, si) => {
@@ -98,7 +102,7 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art = false): string
   }
   if (ga) {
     const [x, y, w, h] = ga.img;
-    return `<svg class="${cls} art" viewBox="0 0 48 72" aria-hidden="true"><defs>${parts.join('')}</defs><g clip-path="url(#${id}c)">${body.join('')}</g><image href="${artURL(`bar_glass_${d.glass in GLASS_ART ? d.glass : 'rock'}.webp`)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="none"/>${over.join('')}</svg>`;
+    return `<svg class="${cls} art" viewBox="0 0 48 72" preserveAspectRatio="xMidYMax meet" aria-hidden="true"><defs>${parts.join('')}</defs><g clip-path="url(#${id}c)">${body.join('')}</g><image href="${artURL(`bar_glass_${d.glass in GLASS_ART ? d.glass : 'rock'}.webp`)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="none"/>${over.join('')}</svg>`;
   }
   const glass = `<path d="${s.out}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/>${s.stem ? `<path d="${s.stem}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>` : ''}`;
   const back = `<path d="${s.liq}" fill="currentColor" fill-opacity=".07"/>`;

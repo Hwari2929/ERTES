@@ -20,8 +20,10 @@ export interface Ingredient {
   tags: string[];
   /** 잔 속 색 */
   color: string;
-  /** 탄산 (잔 속 기포) · 불투명 (우유 · 크림) */
-  fizz?: boolean; opaque?: boolean;
+  /** 잔 속 불투명도 0.3 (맑은 술 · 탄산수) ~ 0.95 (우유 · 스타우트 · 코코아) — 완전히 불투명한 음료는 없다 (2026-11-04 사용자 결정, 표는 docs/BAR_OPS.md 3절) */
+  alpha: number;
+  /** 탄산 (잔 속 기포) */
+  fizz?: boolean;
   /** 원산 · 한 줄 설명 (도감 · 레시피북) */
   desc: string;
 }
@@ -29,27 +31,27 @@ export interface Ingredient {
 /** 재료 16종 (술 10 · 음료 6) + 분말 3종. 한 칸 = 한 번 붓기 */
 export const INGREDIENTS: Ingredient[] = [
   // ───────── 술 (10)
-  { id: 'dustrain', name: '더스트레인', kind: 'spirit', type: '진', taste: { sweet: -1, strength: 2, body: -1 }, tags: ['건조함', '금속성'], color: '#dfe4dc', desc: '네오사이트 황무지 성계 증류 진. 에란테스 바의 시그니처.' },
-  { id: 'yebeson', name: '다크 블랙 예베손 라임', kind: 'spirit', type: '다크 럼', taste: { sweet: 1, strength: 2, body: 1 }, tags: ['묵직함', '라임'], color: '#4a2614', desc: '예베손-2 블랙 마켓 유래. 밀조주 시절의 검은 병 그대로.' },
-  { id: 'aster', name: '아스터', kind: 'spirit', type: '보드카', taste: { sweet: 0, strength: 2, body: -1 }, tags: ['깨끗함'], color: '#eaf0f2', desc: '비네트-3 개척 22년차 신생 증류소. 칵테일 베이스로 두루 쓴다.' },
-  { id: 'anchor', name: '올드 앵커', kind: 'spirit', type: '블렌디드 위스키', taste: { sweet: 0, strength: 3, body: 1 }, tags: ['스모키', '바닐라'], color: '#b8692a', desc: '에란테스 바 자체 브랜드. 아문센이 여러 성계 원액을 섞었다.' },
-  { id: 'ringside', name: '링사이드', kind: 'brew', type: '라거', taste: { sweet: 0, strength: 1, body: -2 }, tags: ['곡물향'], color: '#e8b84a', fizz: true, desc: '베르타 4중 링월드 제3링 양조. 연합에서 가장 많이 팔리는 맥주.' },
-  { id: 'darkringer', name: '다크 링거', kind: 'brew', type: '스타우트', taste: { sweet: 1, strength: 1, body: 2 }, tags: ['커피향'], color: '#22150e', desc: '베르타 제1링의 차가운 기후대에서 길게 숙성한 거의 검은 맥주.' },
-  { id: 'nostos', name: '노스토스', kind: 'brew', type: '과실주', taste: { sweet: 2, strength: 1, body: 0 }, tags: ['과일향', '따뜻한 여운'], color: '#9b2a3a', desc: '이타카 귀향 과실주. 에란테스에서는 임무를 마치면 이걸로 축배를 든다.' },
-  { id: 'ferma', name: '페르마', kind: 'brew', type: '사과주', taste: { sweet: 1, strength: 1, body: -1 }, tags: ['사과', '산미'], color: '#e6c879', fizz: true, desc: '리빈-1 소규모 농가의 전통 시드르. 가을 수확기 한정.' },
-  { id: 'velour', name: '벨루어', kind: 'liqueur', type: '크림 리큐르', taste: { sweet: 2, strength: 1, body: 2 }, tags: ['바닐라', '크림'], color: '#d8c3a0', opaque: true, desc: '올드 앵커 원액 + 스타밀크. 에란테스 바의 2번째 하우스 브랜드.' },
-  { id: 'bitter', name: '비터 스펙트럼', kind: 'liqueur', type: '약초 비터', taste: { sweet: -3, strength: 2, body: 0 }, tags: ['약초향', '쓴맛'], color: '#6a1f1a', desc: '델포이 약초 증류. 한 방울은 깊이, 두 방울은 약, 세 방울은 벌.' },
+  { id: 'dustrain', name: '더스트레인', kind: 'spirit', type: '진', taste: { sweet: -1, strength: 2, body: -1 }, tags: ['건조함', '금속성'], color: '#dfe4dc', alpha: 0.3, desc: '네오사이트 황무지 성계 증류 진. 에란테스 바의 시그니처.' },
+  { id: 'yebeson', name: '다크 블랙 예베손 라임', kind: 'spirit', type: '다크 럼', taste: { sweet: 1, strength: 2, body: 1 }, tags: ['묵직함', '라임'], color: '#4a2614', alpha: 0.75, desc: '예베손-2 블랙 마켓 유래. 밀조주 시절의 검은 병 그대로.' },
+  { id: 'aster', name: '아스터', kind: 'spirit', type: '보드카', taste: { sweet: 0, strength: 2, body: -1 }, tags: ['깨끗함'], color: '#eaf0f2', alpha: 0.3, desc: '비네트-3 개척 22년차 신생 증류소. 칵테일 베이스로 두루 쓴다.' },
+  { id: 'anchor', name: '올드 앵커', kind: 'spirit', type: '블렌디드 위스키', taste: { sweet: 0, strength: 3, body: 1 }, tags: ['스모키', '바닐라'], color: '#b8692a', alpha: 0.6, desc: '에란테스 바 자체 브랜드. 아문센이 여러 성계 원액을 섞었다.' },
+  { id: 'ringside', name: '링사이드', kind: 'brew', type: '라거', taste: { sweet: 0, strength: 1, body: -2 }, tags: ['곡물향'], color: '#e8b84a', alpha: 0.55, fizz: true, desc: '베르타 4중 링월드 제3링 양조. 연합에서 가장 많이 팔리는 맥주.' },
+  { id: 'darkringer', name: '다크 링거', kind: 'brew', type: '스타우트', taste: { sweet: 1, strength: 1, body: 2 }, tags: ['커피향'], color: '#22150e', alpha: 0.95, desc: '베르타 제1링의 차가운 기후대에서 길게 숙성한 거의 검은 맥주.' },
+  { id: 'nostos', name: '노스토스', kind: 'brew', type: '과실주', taste: { sweet: 2, strength: 1, body: 0 }, tags: ['과일향', '따뜻한 여운'], color: '#9b2a3a', alpha: 0.75, desc: '이타카 귀향 과실주. 에란테스에서는 임무를 마치면 이걸로 축배를 든다.' },
+  { id: 'ferma', name: '페르마', kind: 'brew', type: '사과주', taste: { sweet: 1, strength: 1, body: -1 }, tags: ['사과', '산미'], color: '#e6c879', alpha: 0.5, fizz: true, desc: '리빈-1 소규모 농가의 전통 시드르. 가을 수확기 한정.' },
+  { id: 'velour', name: '벨루어', kind: 'liqueur', type: '크림 리큐르', taste: { sweet: 2, strength: 1, body: 2 }, tags: ['바닐라', '크림'], color: '#d8c3a0', alpha: 0.92, desc: '올드 앵커 원액 + 스타밀크. 에란테스 바의 2번째 하우스 브랜드.' },
+  { id: 'bitter', name: '비터 스펙트럼', kind: 'liqueur', type: '약초 비터', taste: { sweet: -3, strength: 2, body: 0 }, tags: ['약초향', '쓴맛'], color: '#6a1f1a', alpha: 0.8, desc: '델포이 약초 증류. 한 방울은 깊이, 두 방울은 약, 세 방울은 벌.' },
   // ───────── 음료 (6)
-  { id: 'tonic', name: '보이드 토닉', kind: 'mixer', type: '토닉워터', taste: { sweet: -1, strength: 0, body: -2 }, tags: ['쓴맛'], color: '#e3eef5', fizz: true, desc: '네오사이트 캠퍼스타운 제조. 황무지 자생 식물로 쓴맛을 낸다.' },
-  { id: 'heliosfizz', name: '헬리오스 피즈', kind: 'mixer', type: '진저 비어', taste: { sweet: 1, strength: 0, body: -1 }, tags: ['생강', '얼얼함'], color: '#d9b25e', fizz: true, desc: '트락스 해양 근처 생강 농장의 발효 탄산 음료.' },
-  { id: 'soda', name: '과산소 소다', kind: 'mixer', type: '탄산수', taste: { sweet: 0, strength: 0, body: -2 }, tags: [], color: '#eef4f6', fizz: true, desc: '고농도 산소 탄산수. 맛은 물인데, 임무 복귀 뒤 첫 잔으로는 이게 제일이다.' },
-  { id: 'jolly', name: '졸리 시트러스 블라스트', kind: 'mixer', type: '합성 과즙', taste: { sweet: 2, strength: 0, body: -1 }, tags: ['시트러스'], color: '#f39a2b', fizz: true, desc: '페트라 식품 부문의 합성 과즙. 라임보다는 오렌지에 가깝다.' },
-  { id: 'starmilk', name: '스타밀크', kind: 'mixer', type: '우유', taste: { sweet: 1, strength: 0, body: 2 }, tags: ['우유'], color: '#f2efe6', opaque: true, desc: '벨루어의 재료이기도 한 우유.' },
-  { id: 'honey', name: '카스토리스 꿀 시럽', kind: 'mixer', type: '시럽', taste: { sweet: 3, strength: 0, body: 1 }, tags: ['꿀', '허브향'], color: '#d99a1c', desc: '카스토리스 야생 벌집의 꿀을 졸인 시럽. 벌은 포위를 모른다.' },
+  { id: 'tonic', name: '보이드 토닉', kind: 'mixer', type: '토닉워터', taste: { sweet: -1, strength: 0, body: -2 }, tags: ['쓴맛'], color: '#e3eef5', alpha: 0.3, fizz: true, desc: '네오사이트 캠퍼스타운 제조. 황무지 자생 식물로 쓴맛을 낸다.' },
+  { id: 'heliosfizz', name: '헬리오스 피즈', kind: 'mixer', type: '진저 비어', taste: { sweet: 1, strength: 0, body: -1 }, tags: ['생강', '얼얼함'], color: '#d9b25e', alpha: 0.6, fizz: true, desc: '트락스 해양 근처 생강 농장의 발효 탄산 음료.' },
+  { id: 'soda', name: '과산소 소다', kind: 'mixer', type: '탄산수', taste: { sweet: 0, strength: 0, body: -2 }, tags: [], color: '#eef4f6', alpha: 0.3, fizz: true, desc: '고농도 산소 탄산수. 맛은 물인데, 임무 복귀 뒤 첫 잔으로는 이게 제일이다.' },
+  { id: 'jolly', name: '졸리 시트러스 블라스트', kind: 'mixer', type: '합성 과즙', taste: { sweet: 2, strength: 0, body: -1 }, tags: ['시트러스'], color: '#f39a2b', alpha: 0.85, fizz: true, desc: '페트라 식품 부문의 합성 과즙. 라임보다는 오렌지에 가깝다.' },
+  { id: 'starmilk', name: '스타밀크', kind: 'mixer', type: '우유', taste: { sweet: 1, strength: 0, body: 2 }, tags: ['우유'], color: '#f2efe6', alpha: 0.95, desc: '벨루어의 재료이기도 한 우유.' },
+  { id: 'honey', name: '카스토리스 꿀 시럽', kind: 'mixer', type: '시럽', taste: { sweet: 3, strength: 0, body: 1 }, tags: ['꿀', '허브향'], color: '#d99a1c', alpha: 0.7, desc: '카스토리스 야생 벌집의 꿀을 졸인 시럽. 벌은 포위를 모른다.' },
   // ───────── 분말 (3): 한 칸 = 그 분말로 탄 한 칸
-  { id: 'midnight', name: '미드나이트 오일', kind: 'powder', type: '고카페인 커피', taste: { sweet: -2, strength: 0, body: 1 }, tags: ['커피향', '견과향'], color: '#3b2416', desc: '네오사이트 학술 카페의 밤샘 연료. 당직 근무의 동반자.' },
-  { id: 'cocoa', name: '에이든 코코아', kind: 'powder', type: '핫초코 가루', taste: { sweet: 2, strength: 0, body: 2 }, tags: ['초콜릿'], color: '#6b3f26', opaque: true, desc: '에이든이 배합한 핫초코 가루. 배합은 메뉴판에 없다.' },
-  { id: 'yakyung', name: '아경', kind: 'powder', type: '허브 블렌드', taste: { sweet: 0, strength: 0, body: -1 }, tags: ['카모마일', '꽃향'], color: '#d8d08a', desc: '호이슌 수경 허브와 알비온 꽃을 섞은 디카페인 차. 밤을 재우는 잔.' },
+  { id: 'midnight', name: '미드나이트 오일', kind: 'powder', type: '고카페인 커피', taste: { sweet: -2, strength: 0, body: 1 }, tags: ['커피향', '견과향'], color: '#3b2416', alpha: 0.9, desc: '네오사이트 학술 카페의 밤샘 연료. 당직 근무의 동반자.' },
+  { id: 'cocoa', name: '에이든 코코아', kind: 'powder', type: '핫초코 가루', taste: { sweet: 2, strength: 0, body: 2 }, tags: ['초콜릿'], color: '#6b3f26', alpha: 0.95, desc: '에이든이 배합한 핫초코 가루. 배합은 메뉴판에 없다.' },
+  { id: 'yakyung', name: '아경', kind: 'powder', type: '허브 블렌드', taste: { sweet: 0, strength: 0, body: -1 }, tags: ['카모마일', '꽃향'], color: '#d8d08a', alpha: 0.45, desc: '호이슌 수경 허브와 알비온 꽃을 섞은 디카페인 차. 밤을 재우는 잔.' },
 ];
 export const ING_BY_ID: Record<string, Ingredient> = Object.fromEntries(INGREDIENTS.map((x) => [x.id, x]));
 
