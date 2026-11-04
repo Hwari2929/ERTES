@@ -55,7 +55,7 @@
 @keyframes bar-coin-up { from { opacity: 0; translate: 0 12px; } 20% { opacity: 1; translate: 0 0; } to { opacity: 0; translate: 0 -8px; } }
 
 /* 180° 돌아서기: 정면(배경 · 무대)이 옆으로 흘러 나가고 제조대가 반대쪽에서 들어온다 (움직임 줄이기: 엇갈려 흐려짐만) */
-.bar-prep { --rail: 220px; --pin-s: .8; --rcw: calc(var(--rail) / var(--pin-s)); --pw: calc(var(--rcw) / .68); --ph: calc(var(--pw) * .743); --pb: 70px; --nav-h: 56px;
+.bar-prep { --rail: 220px; --pin-s: .8; --rcw: calc(var(--rail) / var(--pin-s)); --pw: calc(var(--rcw) / .66); --ph: calc(var(--pw) * .342); --pb: 70px; --nav-h: 56px;
   position: absolute; inset: 0 0 0 var(--bar-nav-w); z-index: var(--z-raise); display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; padding-top: max(12px, env(safe-area-inset-top));
   background: var(--c-black); color: var(--c-text); opacity: 0; translate: 40% 0; overflow: clip; }
 .bar-prep[hidden] { display: none; }
@@ -101,18 +101,18 @@
 .bp-grp-l { font: 700 var(--fs-2xs)/1.2 var(--f-body); color: var(--c-text-2); letter-spacing: .06em; }
 .bp-grp-l b { color: var(--c-text); }
 
-/* 1 영수증 (맨 왼쪽): 출력기 (위에서 본 그림 ct_printer: 놋쇠 슬릿 = 위 28%) 가운데, 에이든의 메모는 그 왼쪽 */
+/* 1 영수증 (맨 왼쪽): 출력기 (정면 그림 bar_printer 900 × 308: 영수증은 윗면에서 나온다) 가운데, 에이든의 메모는 그 왼쪽 */
 .bp-st0 { display: block; padding: 0; }
 .bp-printer { position: absolute; left: 50%; bottom: var(--pb); width: var(--pw); height: var(--ph); translate: -50% 0; filter: drop-shadow(8px 12px 10px var(--shade-2)); }
 .bp-printer img { width: 100%; height: 100%; object-fit: contain; }
 
-/* 영수증 (자리 넘어 따라온다): 1단계엔 출력기 슬릿 폭 그대로 끝이 물려 있고, 다음 단계부터 줄어들어 오른쪽 위에 꽂힌다 (같은 종이가 그 자리로 옮겨 간다 — 줄일 때만 scale, UI.md 32).
+/* 영수증 (자리 넘어 따라온다): 1단계엔 출력기 윗면(폭의 66%)에 끝이 물려 있고, 다음 단계부터 줄어들어 오른쪽 위에 꽂힌다 (같은 종이가 그 자리로 옮겨 간다 — 줄일 때만 scale, UI.md 32).
    맛 막대는 꽂힌 영수증 바로 아래 (진열장부터, 영수증 높이 --rch 는 bar.ts drawPrep 이 잰다) */
-.bp-rail { position: absolute; z-index: var(--z-raise); width: var(--rcw); top: calc(100% - var(--pb) - var(--ph) * .72); left: 50%; translate: -50% -100%; transform-origin: 100% 0; }
+.bp-rail { position: absolute; z-index: var(--z-raise); width: var(--rcw); top: calc(100% - var(--pb) - var(--ph) * .96); left: 50%; translate: -50% -100%; transform-origin: 100% 0; }
 .bp-rail.pin { top: 6px; left: calc(100% - 16px); translate: -100% 0; rotate: 1deg; scale: var(--pin-s); }
 .bp-rc { position: relative; display: grid; gap: 4px; padding: 12px 14px 16px; font-family: var(--f-slip); font-size: var(--fs-md); }
-.bp-rail:not(.pin) .bp-rc::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 12px; background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--c-black) 34%, transparent)); } /* 슬릿으로 말려 들어가는 끝단 그늘 */
-@media (prefers-reduced-motion: no-preference) { .bp-rail.new .bp-rc { animation: bp-print 1.2s .35s steps(9, end) both; } } /* 줄마다 덜그럭 밀려 나온다 (슬릿 아래는 안 보인다) */
+.bp-rail:not(.pin) .bp-rc::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 12px; background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--c-black) 34%, transparent)); } /* 출력기 윗면으로 말려 들어가는 끝단 그늘 */
+@media (prefers-reduced-motion: no-preference) { .bp-rail.new .bp-rc { animation: bp-print 1.2s .35s steps(9, end) both; } } /* 줄마다 덜그럭 밀려 나온다 (출력기 윗면 아래는 안 보인다) */
 @keyframes bp-print { from { translate: 0 100%; clip-path: inset(0 0 100% 0); } to { translate: 0 0; clip-path: inset(0 0 0 0); } }
 .bp-rc-h { display: flex; justify-content: space-between; gap: 8px; padding-bottom: 4px; border-bottom: 1px dashed color-mix(in srgb, var(--lp-cink) 60%, transparent); font-size: var(--fs-sm); }
 .bp-rc-who { font: 700 var(--fs-lg)/1.3 var(--f-serif); letter-spacing: .06em; }
@@ -184,7 +184,7 @@
 .bp-gars { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
 .bp-gar .bp-art { flex: none; width: 28px; height: 28px; object-fit: contain; }
 .bp-st3 .bp-cup { align-self: stretch; }
-.bp-bell { width: 150px; aspect-ratio: 1; padding: 0; background: none; border: 0; border-radius: 50%; cursor: pointer; filter: drop-shadow(6px 10px 8px var(--shade-2)); }
+.bp-bell { width: 160px; aspect-ratio: 560 / 439; padding: 0; background: none; border: 0; border-radius: var(--r-lg); cursor: pointer; filter: drop-shadow(6px 10px 8px var(--shade-2)); }
 .bp-bell img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .bp-bell[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
 .bp-bell:not([aria-disabled="true"]):active { scale: .96; }

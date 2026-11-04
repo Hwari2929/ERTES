@@ -52,12 +52,13 @@ art/prompts.json ──(scripts/nai.mjs, 무료 23스텝)──▶ art/raw/<id>/
 |---|---|---|---|
 | `scripts/nai.mjs` | 스탠딩 · 초상화 (기물 · 적 · 소환물 · 인물) | `node scripts/nai.mjs <id ...>` · `--alt <키>` (prompts.json `alts`) · `--n <장 수>` · `--seed N` · `--force` · `--dry` · `--all` | `art/raw/<id>/<seed>.png` (`--alt` 면 `<alt>-<seed>.png`), 기록 `art/gen-log.json` |
 | `scripts/nai_bg.mjs` | 배경 (가로 1216×832) | `node scripts/nai_bg.mjs <키 ...>` · `--all` · `--n` · `--force` | `art/raw/bg/<키>/<seed>.png` (입력 `art/bg_prompts.json`) |
-| `scripts/nai_prop.mjs` | 출격 계약 탑뷰 소품 (테이블 · 벨 · 전표 출력기) | `node scripts/nai_prop.mjs <키 ...>` · `--all` | `art/raw/prop/<키>/<seed>.png` (입력 `art/prop_prompts.json`, 흰 바탕 → 오리기) |
+| `scripts/nai_prop.mjs` | 소품 (출격 계약 탑뷰 테이블 · 벨 · 전표 출력기, 바 제조대 잔 · 정면 출력기 · 벨) | `node scripts/nai_prop.mjs <키 ...>` · `--all` | `art/raw/prop/<키>/<seed>.png` (입력 `art/prop_prompts.json`, 흰 바탕 → 오리기) |
+| `scripts/bar_props_build.py` | 바 제조대 소품 굽기 (잔 6종 · 정면 출력기 · 벨) — 생성 아님 | `python3 scripts/bar_props_build.py` | 고른 원본 `art/picked/bar_glass_<잔 id>.webp` · `bar_printer_front` · `bar_bell_front` → `public/art/bar_glass_<잔 id>.webp` (안쪽 유리 알파 낮춤) · `bar_printer.webp` · `bar_bell.webp` + `src/ui/glassart.gen.ts` (잔마다 그림 자리 · 액체 영역) |
 | `scripts/nai_outpaint.mjs` | 캔버스 확장 (마스크 흰 곳만 새로 그림) | `node scripts/nai_outpaint.mjs <소품 키> <canvas.png> <mask.png> <장 수>` | `art/raw/prop/<키>_x/<seed>.png` |
 | `scripts/nai_icon.mjs` | 능력 아이콘 (10절) | `node scripts/nai_icon.mjs <id ...>` · `--all` · `--style A~E` (기본 E) · `--seed` · `--force` · `--dry` · 시안 `--cand --alt v1` | `art/icons/raw/<id>.png` · 시안 `art/icons/cand/<id>/<alt>-<seed>.png` · 기록 `art/gen-log.json` (`kind: 'icon'`) |
 | `scripts/nai_upscale.mjs` | 2배 업스케일 (Anlas 소모) | `node scripts/nai_upscale.mjs <입력.png> <출력.png>` | |
 | `scripts/nai_expr.py` · `scripts/nai_face.py` | 표정 차분 (전신 img2img · 얼굴 인페인팅, 9절) | 파일 머리 docstring | `art/picked/<id>.<표정>.webp` · `art/faces_raw/` |
-| `scripts/nai_i2i.py` | 배경 등 일반 img2img | `python3 scripts/nai_i2i.py <입력> <출력 폴더> --prompt "…" [--strength] [--noise] [--n]` | |
+| `scripts/nai_i2i.py` | 배경 등 일반 img2img | `python3 scripts/nai_i2i.py <입력> <출력 폴더> --prompt "…" [--strength] [--noise] [--n] [--plain] [--neg "…"]` (`--plain` = 소품 한 개: 배경 공용 태그 대신 품질 태그만 · 투명 입력은 흰 바탕에 얹어 보낸다) | |
 
 - 토큰: 환경 변수 `NOVELAI_TOKEN`. `--dry` 는 요청 없이 프롬프트만 출력한다 (토큰 불필요) — 프롬프트를 고칠 때 먼저 확인한다.
 - `nai.mjs` 는 `art/raw/<id>` 에 이미 그림이 있으면 건너뛴다 (`--force` 또는 `--seed` 로 다시).

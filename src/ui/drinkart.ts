@@ -1,10 +1,13 @@
 // 음료 그림 (SVG): 잔 6종 · 칸마다 재료 색 층 (아래부터 붓는 순서, 경계는 살짝 섞임) · 얼음 · 가니쉬 · 남은 양.
 // docs/UI.md 26: 명암 · 유리 반사 없이 한 색 면 · 선으로. 잔 테두리는 글자색(currentColor, CSS 가 토큰으로 준다).
 // 남은 양 left (0~1): 위층부터 줄어든다 (잔 가장자리로 마시므로). 프로즌은 층이 섞여 한 색 + 얼음 결.
+// art = true: 선 잔 대신 잔 일러스트(public/art/bar_glass_<잔 id>.webp, scripts/bar_props_build.py 가 굽는다)를 액체 '위'에 얹는다 — 안쪽 유리를 투명하게 구워 음료가 비친다. 제조대 · 내주기 장면에서 쓴다.
 import { GLASS_BY_ID, ING_BY_ID, type Drink, type Glass } from '../data/bar/drinks';
+import { GLASS_ART } from './glassart.gen';
+import { artURL } from './portraits';
 
 /** 잔 모양 (보기 상자 48 × 72, 바닥 y = 70). out = 잔 테두리 경로, liq = 액체가 차는 안쪽 경로, top · bot = 가득 찼을 때 액면 · 바닥 높이, rim = 테두리 윗선 [x0, x1, y] */
-interface Shape { out: string; liq: string; top: number; bot: number; rim: [number, number, number]; stem?: string }
+interface Shape { out?: string; liq: string; top: number; bot: number; rim: [number, number, number]; stem?: string }
 const SHAPES: Record<string, Shape> = {
   rock: { out: 'M10 44 L10 70 L38 70 L38 44', liq: 'M11.5 46 L11.5 68.5 L36.5 68.5 L36.5 46 Z', top: 48, bot: 68.5, rim: [10, 38, 44] },
   highball: { out: 'M14 20 L14 70 L34 70 L34 20', liq: 'M15.5 22 L15.5 68.5 L32.5 68.5 L32.5 22 Z', top: 24, bot: 68.5, rim: [14, 34, 20] },
@@ -20,10 +23,11 @@ const mix = (cs: string[]) => { const a = cs.map(hex); const m = [0, 1, 2].map((
 /** 0~1 고정 난수 (같은 잔은 늘 같은 기포 · 얼음 자리) */
 const rnd = (i: number) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 
-/** 한 잔 SVG. left = 남은 양 (0~1) */
-export function drinkSvg(d: Drink, left = 1, cls = 'drink'): string {
+/** 한 잔 SVG. left = 남은 양 (0~1) · art = 잔 일러스트 */
+export function drinkSvg(d: Drink, left = 1, cls = 'drink', art = false): string {
   const g: Glass | undefined = GLASS_BY_ID[d.glass];
-  const s = SHAPES[d.glass] || SHAPES.rock;
+  const ga = art ? GLASS_ART[d.glass] || GLASS_ART.rock : undefined;
+  const s: Shape = ga || SHAPES[d.glass] || SHAPES.rock;
   const id = `dk${++uid}`;
   const n = d.fill.length || g?.slots || 3;
   const H = s.bot - s.top; // 가득 찬 액체 높이
@@ -91,6 +95,10 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink'): string {
     else if (gid === 'lime') over.push(`<path d="M${rx1 - 5} ${ry - 1} L${rx1 + 3} ${ry - 1} Q${rx1 - 1} ${ry + 7} ${rx1 - 5} ${ry - 1} Z" fill="#8cc63f" stroke="#d6eba6" stroke-width=".6"/>`);
     else if (gid === 'mint') over.push(`<path d="M${rx0 + 3} ${ry} q-3 -5 1 -8 q2 4 -1 8 Z M${rx0 + 4} ${ry} q3 -4 6 -3 q-2 4 -6 3 Z" fill="#5aa65a"/>`);
     else if (gid === 'crystal') over.push(`<path d="M${rx0 + 6} ${ry - 5} l2.4 3 l-2.4 3 l-2.4 -3 Z" fill="#bfe3f5" stroke="#ffffff" stroke-width=".4"/>`);
+  }
+  if (ga) {
+    const [x, y, w, h] = ga.img;
+    return `<svg class="${cls} art" viewBox="0 0 48 72" aria-hidden="true"><defs>${parts.join('')}</defs><g clip-path="url(#${id}c)">${body.join('')}</g><image href="${artURL(`bar_glass_${d.glass in GLASS_ART ? d.glass : 'rock'}.webp`)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="none"/>${over.join('')}</svg>`;
   }
   const glass = `<path d="${s.out}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/>${s.stem ? `<path d="${s.stem}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>` : ''}`;
   const back = `<path d="${s.liq}" fill="currentColor" fill-opacity=".07"/>`;

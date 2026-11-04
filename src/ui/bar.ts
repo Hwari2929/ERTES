@@ -43,7 +43,8 @@ import { PETS, propSvg } from './barprops';
 import { barOpsNew, barTutSeen, loadMeta, metaBar, metaBarBond, metaBarCoins, metaBarCoinShown, metaBarGuest, metaBarServed, metaBarTut } from './meta';
 import { counterMemoHtml, newPrep, prepAct, prepDrink, prepHtml, type Prep } from './barprep';
 import { OPS_LINE, OPS_MEMO } from '../data/bar/opstut';
-import { artURL, bgURL, guestArtReady, loadGuestPacks, standURL } from './portraits';
+import { artURL, bgURL, guestArtReady, loadArt, loadGuestPacks, standURL } from './portraits';
+import { GLASS_ART } from './glassart.gen';
 import { STAND_FACE } from './standface.gen';
 import { ICONS } from './portraits.gen';
 import { listSaves, loadRun } from './save';
@@ -1683,6 +1684,7 @@ function openPrep(k: string) {
   stop(); hideBub(root); hideEmotes(root);
   setRate(1);
   S.prep = newPrep(k, s.id, nameOf(k), s.order, s.orderHint);
+  for (const f of ['bar_printer', 'bar_bell', ...Object.keys(GLASS_ART).map((g) => `bar_glass_${g}`)]) void loadArt(artURL(`${f}.webp`)); // 제조대 소품 그림 미리 받기 (잔 단계에서 그림이 늦게 뜨지 않게)
   if (!barTutSeen('prep')) { S.prep.memo = true; metaBarTut('prep'); } // 처음 연 제조대: 에이든의 메모가 붙어 있다 (한 번만)
   metaBarTut('order'); // 주문을 받아 봤다 (첫 주문 귀띔을 못 봤어도)
   delete root.querySelector<HTMLElement>('.bar-prep')?.dataset.st; // 새 주문은 출력기 자리에서 시작 (앞 주문의 단계에서 옮겨 오지 않는다)
@@ -1784,7 +1786,7 @@ function serveCut() {
   const d = prepDrink(p);
   const name = recipeName(d) || `레이첼의 ${GLASS_BY_ID[d.glass]?.name || '잔'}`;
   window.clearTimeout(prepAutoT);
-  sec.insertAdjacentHTML('beforeend', `<button class="bp-done" data-a="bar-x" data-v="prep:done" aria-label="${esc(name)} — 내주기">${drinkSvg(d, 1, 'drink bp-done-cup')}<span class="bp-done-name">${esc(name)}</span></button>`);
+  sec.insertAdjacentHTML('beforeend', `<button class="bp-done" data-a="bar-x" data-v="prep:done" aria-label="${esc(name)} — 내주기">${drinkSvg(d, 1, 'drink bp-done-cup', true)}<span class="bp-done-name">${esc(name)}</span></button>`);
   doneT = window.setTimeout(serveNow, 1300);
 }
 function serveNow() {
