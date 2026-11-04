@@ -49,6 +49,17 @@ def cmd_pick():
         print('pick', i, f)
 
 
+def unmix_dark(im, floor=0.04):
+    """검정 바탕 위에 그린 밝은 반투명 소품(얼음 등)의 투명도를 되살린다: 알파 = 가장 밝은 채널, 색 = 픽셀 / 알파 (검정 위에 얹으면 원래 픽셀).
+    어두운 잉크 선은 투명해진다 (어두운 바탕에서는 원래 보이지 않는다). floor 아래 알파는 0 (바탕 잡티)."""
+    rgb = np.asarray(im.convert('RGB')).astype(np.float32) / 255
+    a = rgb.max(axis=2)
+    a = np.where(a < floor, 0, (a - floor) / (1 - floor))
+    c = np.where(a[..., None] > 0, np.clip(rgb / np.maximum(rgb.max(axis=2, keepdims=True), 1e-6), 0, 1), 0)
+    out = np.dstack([c * 255, a * 255]).astype(np.uint8)
+    return Image.fromarray(out, 'RGBA')
+
+
 def cut_background(im, holes=()):
     """테두리에 닿은 배경색 영역만 투명하게 (선 안쪽 흰 옷은 유지). 경계 1~2px 은 배경색을 빼서 반투명으로.
     holes: 팔과 몸 사이처럼 갇힌 배경 — art/cut.json 에 적은 점에서 추가로 지운다."""

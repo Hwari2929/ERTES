@@ -1,8 +1,9 @@
 """NovelAI img2img (배경 등 일반 이미지).
-  python3 scripts/nai_i2i.py <입력.png> <출력 폴더> --prompt "..." [--strength 0.6] [--noise 0.2] [--n 4] [--plain] [--neg "..."]
+  python3 scripts/nai_i2i.py <입력.png> <출력 폴더> --prompt "..." [--strength 0.6] [--noise 0.2] [--n 4] [--plain] [--neg "..."] [--bg 0,0,0]
   배경 공용 태그(art/bg_prompts.json 의 base · negative)를 붙인다.
   --plain: 배경 공용 태그 대신 품질 태그만 (소품 한 개 — 화풍은 프롬프트에서 정한다) · --neg: 부정 태그를 이것으로 (없으면 배경 공용 negative)
   투명 배경(RGBA) 입력은 흰 바탕에 얹어 보낸다 (결과는 흰 바탕 — art.py cut_background 로 오린다).
+  --bg R,G,B: 그 색 바탕에 얹어 보낸다 — 거의 투명한 밝은 소품(얼음 등)은 0,0,0 (검정)으로 보내고 art.py unmix_dark 로 투명도를 되살린다 (흰 바탕이면 흰 몸통이 배경과 구분되지 않는다).
   편집이라 유료(Anlas) 29스텝 · 1회 최대 8장 · 동시 실행 금지 · 장 사이 6~16초 (scripts/nai_guard.py).
 """
 import base64, io, json, os, random, ssl, sys, time, urllib.request, zipfile
@@ -17,7 +18,8 @@ os.makedirs(out, exist_ok=True)
 cfg = json.load(open('art/nai.config.json')); B = json.load(open('art/bg_prompts.json'))
 im0 = Image.open(src)
 if im0.mode in ('RGBA', 'LA') or 'transparency' in im0.info:
-  bg = Image.new('RGBA', im0.size, (255, 255, 255, 255)); bg.alpha_composite(im0.convert('RGBA')); im = bg.convert('RGB')
+  bgc = tuple(int(v) for v in opt('--bg', '255,255,255').split(',')) + (255,)
+  bg = Image.new('RGBA', im0.size, bgc); bg.alpha_composite(im0.convert('RGBA')); im = bg.convert('RGB')
 else:
   im = im0.convert('RGB')
 W, H = im.size
