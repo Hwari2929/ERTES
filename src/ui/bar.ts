@@ -44,7 +44,7 @@ import { barOpsNew, barTutSeen, loadMeta, metaBar, metaBarBond, metaBarCoins, me
 import { counterMemoHtml, newPrep, prepAct, prepDrink, prepHtml, type Prep } from './barprep';
 import { OPS_LINE, OPS_MEMO } from '../data/bar/opstut';
 import { artURL, bgURL, guestArtReady, loadArt, loadGuestPacks, standURL } from './portraits';
-import { GLASS_ART } from './glassart.gen';
+import { GLASS_ART, ICE_ART } from './glassart.gen';
 import { STAND_FACE } from './standface.gen';
 import { ICONS } from './portraits.gen';
 import { listSaves, loadRun } from './save';
@@ -1377,7 +1377,7 @@ function barNext() { if (!advKey()) { stop(); tick(); } }
 /** 바에 들어올 때: 자리를 새로 채운다 (런을 마치고 돌아오면 밤, 아니면 낮) */
 export function barEnter() {
   void loadGuestPacks(); // 낯선 손님 스탠딩 묶음을 뒤에서 받는다 (받기 전에는 그 손님들이 오지 않는다)
-  if (typeof Image !== 'undefined') for (const f of ['bar_ice', ...Object.keys(GLASS_ART).map((g) => `bar_glass_${g}`)]) void loadArt(artURL(`${f}.webp`)); // 카운터 위 잔 · 얼음 그림 미리 받기 (화면에서만 — barSimulate 검사는 node)
+  if (typeof Image !== 'undefined') for (const f of [...ICE_ART.map((_, i) => `bar_ice_${i}`), ...Object.keys(GLASS_ART).map((g) => `bar_glass_${g}`)]) void loadArt(artURL(`${f}.webp`)); // 카운터 위 잔 · 얼음 그림 미리 받기 (화면에서만 — barSimulate 검사는 node)
   for (const s of S.stage) if (s.pay) metaBarCoins(s.pay); // 남겨 둔 동전은 다음 방문 전에 거둔다
   S.prep = null; S.focus = ''; S.memo = false; S.memoOpen = false; S.tipCoin = '';
   stop(); S.stage = []; S.cur = null; S.li = 0; S.session.clear(); S.gone.clear(); S.enterAt = 0; S.aidenAt = 0; S.wantH = -1; S.monoAt = -Infinity; S.monoUsed.clear(); resumeCache.t = 0;
@@ -1685,7 +1685,7 @@ function openPrep(k: string) {
   stop(); hideBub(root); hideEmotes(root);
   setRate(1);
   S.prep = newPrep(k, s.id, nameOf(k), s.order, s.orderHint);
-  for (const f of ['bar_printer', 'bar_bell', 'bar_ice', ...Object.keys(GLASS_ART).map((g) => `bar_glass_${g}`)]) void loadArt(artURL(`${f}.webp`)); // 제조대 소품 그림 미리 받기 (잔 단계에서 그림이 늦게 뜨지 않게)
+  for (const f of ['bar_printer', 'bar_bell', ...ICE_ART.map((_, i) => `bar_ice_${i}`), ...Object.keys(GLASS_ART).map((g) => `bar_glass_${g}`)]) void loadArt(artURL(`${f}.webp`)); // 제조대 소품 그림 미리 받기 (잔 단계에서 그림이 늦게 뜨지 않게)
   if (!barTutSeen('prep')) { S.prep.memo = true; metaBarTut('prep'); } // 처음 연 제조대: 에이든의 메모가 붙어 있다 (한 번만)
   metaBarTut('order'); // 주문을 받아 봤다 (첫 주문 귀띔을 못 봤어도)
   delete root.querySelector<HTMLElement>('.bar-prep')?.dataset.st; // 새 주문은 출력기 자리에서 시작 (앞 주문의 단계에서 옮겨 오지 않는다)

@@ -4,7 +4,7 @@
 // art: 선 잔 대신 잔 일러스트(public/art/bar_glass_<잔 id>.webp, scripts/bar_props_build.py 가 굽는다)를 액체 '위'에 얹는다 — 안쪽 유리를 투명하게 구워 음료가 비친다.
 //   잔 그림은 조금 위에서 본 모습이라 층 경계 · 액면을 단면 타원의 호로 그린다 (2026-11-04 사용자 요청). true = 잔 그림을 color-dodge 0.6 으로 배경과 섞는다 (사용자 선택, 어두운 바탕), 'plain' = 섞지 않음 (종이 위)
 import { GLASS_BY_ID, ING_BY_ID, type Drink, type Glass } from '../data/bar/drinks';
-import { GLASS_ART, ICE_ASPECT, PROP_ART } from './glassart.gen';
+import { GLASS_ART, ICE_ART, PROP_ART } from './glassart.gen';
 import { artURL } from './portraits';
 
 /** 잔 모양 (보기 상자 48 × 72, 바닥 y = 70). out = 잔 테두리 경로, liq = 액체가 차는 안쪽 경로, top · bot = 가득 찼을 때 액면 · 바닥 높이, rim = 테두리 윗선 [x0, x1, y] */
@@ -18,10 +18,15 @@ const SHAPES: Record<string, Shape> = {
   goblet: { out: 'M8 12 Q6 36 24 44 Q42 36 40 12', liq: 'M9.6 14 Q8 35 24 42.4 Q40 35 38.4 14 Z', top: 16, bot: 42, rim: [8, 40, 12], stem: 'M24 44 L24 68 M14 70 L34 70 Q24 65 14 70' },
 };
 
-/** 잔 속 얼음 그림 불투명도 (2026-11-04 사용자가 0.2 ~ 0.6 시안 중 고른다) */
-export const ICE_OPACITY = 0.4;
+/** 잔 속 얼음 그림 불투명도 (2026-11-04 사용자 결정 0.75 — 얼음 그림 4종을 번갈아) */
+export const ICE_OPACITY = 0.75;
+/** 떠오른 얼음 중 맨 위 얼음이 수면 위로 나오는 몫 (그 얼음 높이에 대한 비율, 2026-11-04 사용자: 수면을 살짝 — 록 글라스는 조금, 하이볼은 많이 내림) */
+const ICE_RISE: Record<string, number> = { highball: 0.05 };
+const ICE_RISE_DEF = 0.15;
 let uid = 0;
 const hex = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+/** 흰색을 w 만큼 섞은 색 */
+const tint = (c: string, w: number) => `#${hex(c).map((v) => Math.round(v + (255 - v) * w).toString(16).padStart(2, '0')).join('')}`;
 const mix = (cs: string[]) => { const a = cs.map(hex); const m = [0, 1, 2].map((k) => Math.round(a.reduce((s, x) => s + x[k], 0) / a.length)); return `#${m.map((v) => v.toString(16).padStart(2, '0')).join('')}`; };
 /** 0~1 고정 난수 (같은 잔은 늘 같은 기포 · 얼음 자리) */
 const rnd = (i: number) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
@@ -45,8 +50,8 @@ const arc = (ga: Art, y: number, front: boolean): string => {
 };
 /** 호 아래 전부 (잔 밖은 안쪽 영역으로 잘린다) */
 const below = (ga: Art, y: number, front: boolean) => `M-2 ${y.toFixed(2)} L${arc(ga, y, front)} L50 ${y.toFixed(2)} L50 80 L-2 80 Z`;
-/** 잔 그림의 안쪽 영역: 벽을 따라 내려가 바닥은 바닥 타원의 앞쪽 호 */
-const inner = (ga: Art) => `M${ga.rows.map((r) => `${r[1]} ${r[0]}`).join(' L')} L${arc(ga, ga.bot, true)} L${[...ga.rows].reverse().map((r) => `${r[2]} ${r[0]}`).join(' L')} Z`;
+/** 잔 그림의 안쪽 영역: 테두리 높이에서 벽을 따라 내려가 바닥은 바닥 타원의 앞쪽 호. 위는 테두리까지 열어 둔다 — 가득 찬 액면(단면 타원 뒤쪽 호)과 수면 위로 나온 얼음이 직선으로 잘리지 않게 (2026-11-04) */
+const inner = (ga: Art) => { const r0 = ga.rows[0], ty = Math.min(ga.rim[2], r0[0] - 1.5); return `M${r0[1]} ${ty} L${ga.rows.map((r) => `${r[1]} ${r[0]}`).join(' L')} L${arc(ga, ga.bot, true)} L${[...ga.rows].reverse().map((r) => `${r[2]} ${r[0]}`).join(' L')} L${r0[2]} ${ty} Z`; };
 
 /** 한 잔 SVG. left = 남은 양 (0~1) · art = 잔 일러스트: true = 잔 그림을 따로 한 겹으로 배경과 섞는다 (color-dodge 0.6, 어두운 바탕 — 제조대 · 완성 장면 · 카운터 · 잔 진열), 'plain' = 섞지 않는다 (종이 위 — 영수증 사진 · 레시피북) */
 export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plain' = false): string {
@@ -96,9 +101,11 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       if (blur) parts.push(`<filter id="${id}b" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="${(0.09 / n * 2 * H * 0.6).toFixed(2)}"/></filter>`);
       parts.push(`<clipPath id="${id}t"><path d="${below(ga, yTop, false)}"/></clipPath>`);
       const [x0, x1] = wallsAt(ga, yTop), ecx = (x0 + x1) / 2, erx = (x1 - x0) / 2 + 0.8, ery = erx * lerp(ga.k[0], ga.k[1], Math.max(0, Math.min(1, (yTop - ga.top) / (ga.bot - ga.top))));
+      // 윗면 (조명을 받아 몸통보다 밝다): 맨 위 층 색에 흰색 35% 를 섞고 불투명도 +0.12 (2026-11-04 사용자)
+      const topC = frozen ? fill : colorOf(topIng), topA = frozen ? alpha : alphaOf(topIng);
       const face = foam
         ? `<path d="${below(ga, yTop, false)} ${below(ga, Math.min(s.bot, yTop + Math.min(3, H * 0.12)), true)}" fill-rule="evenodd" fill="#efe6d2" fill-opacity=".9"/>`
-        : `<ellipse cx="${ecx.toFixed(2)}" cy="${yTop.toFixed(2)}" rx="${erx.toFixed(2)}" ry="${ery.toFixed(2)}" fill="#ffffff" fill-opacity=".12"/>`;
+        : `<ellipse cx="${ecx.toFixed(2)}" cy="${yTop.toFixed(2)}" rx="${erx.toFixed(2)}" ry="${ery.toFixed(2)}" fill="${tint(topC, 0.35)}" fill-opacity="${Math.min(0.95, topA + 0.12).toFixed(2)}"/>`;
       body.push(`<g class="liq" data-h="${(s.bot - yTop + 1).toFixed(2)}"><g clip-path="url(#${id}t)">${blur ? `<g filter="url(#${id}b)">${layers}</g>` : layers}${face}</g></g>`);
     } else {
       body.push(`<rect class="liq" x="0" y="${yTop.toFixed(2)}" width="48" height="${(s.bot - yTop + 1).toFixed(2)}" fill="${fill}" fill-opacity="${alpha}"/>`);
@@ -121,11 +128,13 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
   const nIce = d.ice === 'little' ? ((g?.slots ?? 3) >= 4 ? 2 : 1) : d.ice === 'lots' ? ((g?.slots ?? 3) >= 4 ? 3 : 2) : 0;
   if (nIce) {
     const wAt = (y: number): [number, number] => (ga ? wallsAt(ga, y) : [s.rim[0] + 1.5, s.rim[1] - 1.5]);
-    const asp = ga ? ICE_ASPECT : 1;
+    const seed = [...d.glass].reduce((t, ch) => t + ch.charCodeAt(0), d.fill.length);
+    const vOf = (k: number) => (k + seed) % ICE_ART.length; // 얼음 그림 4종을 번갈아
     const stack = (yb: number) => {
       const out: { cx: number; y: number; sz: number; h: number; k: number }[] = [];
       let y = yb;
       for (let k = 0; k < nIce; k++) {
+        const asp = ga ? ICE_ART[vOf(k)] : 1;
         let [x0, x1] = wAt(y - 3);
         let sz = Math.min(12, (x1 - x0) * 0.62);
         [x0, x1] = wAt(y - sz * asp / 2); sz = Math.min(12, (x1 - x0) * 0.62);
@@ -135,11 +144,12 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       }
       return out;
     };
+    // 바닥에 쌓은 크기 그대로 떠오른다 (위치만 옮김 — 다시 쌓으면 좁은 곳에서 얼음 수 · 크기가 바뀌어 툭 사라진다)
     let cubes = stack(s.bot);
     const last = cubes[cubes.length - 1];
-    if (last && lv > 0) { const want = yTop - last.h * 0.25, top = last.y - last.h; if (want < top) cubes = stack(s.bot - (top - want)); }
+    if (last && lv > 0) { const want = yTop - last.h * (ICE_RISE[d.glass] ?? ICE_RISE_DEF), top = last.y - last.h; if (want < top) cubes = cubes.map((c) => ({ ...c, y: c.y - (top - want) })); }
     for (const c of cubes) {
-      if (ga) { const rot = (c.k % 2 ? 5 : -4) + (rnd(c.k + 41) - 0.5) * 5; body.push(`<image class="ice" href="${artURL('bar_ice.webp')}" x="${(c.cx - c.sz / 2).toFixed(2)}" y="${(c.y - c.h).toFixed(2)}" width="${c.sz.toFixed(2)}" height="${c.h.toFixed(2)}" opacity="${ICE_OPACITY}" preserveAspectRatio="none" transform="rotate(${rot.toFixed(1)} ${c.cx.toFixed(2)} ${(c.y - c.h / 2).toFixed(2)})"/>`); }
+      if (ga) { const rot = (c.k % 2 ? 5 : -4) + (rnd(c.k + 41) - 0.5) * 5; body.push(`<image class="ice" href="${artURL(`bar_ice_${vOf(c.k)}.webp`)}" x="${(c.cx - c.sz / 2).toFixed(2)}" y="${(c.y - c.h).toFixed(2)}" width="${c.sz.toFixed(2)}" height="${c.h.toFixed(2)}" opacity="${ICE_OPACITY}" preserveAspectRatio="none" transform="rotate(${rot.toFixed(1)} ${c.cx.toFixed(2)} ${(c.y - c.h / 2).toFixed(2)})"/>`); }
       else { const rot = (c.k % 2 ? 9 : -7) + (rnd(c.k + 41) - 0.5) * 8, cy = c.y - c.sz / 2; body.push(`<rect x="${(c.cx - c.sz / 2).toFixed(2)}" y="${(cy - c.sz / 2).toFixed(2)}" width="${c.sz.toFixed(2)}" height="${c.sz.toFixed(2)}" rx="${(c.sz * 0.17).toFixed(2)}" fill="#ffffff" fill-opacity=".22" stroke="#ffffff" stroke-opacity=".7" stroke-width="${(c.sz * 0.085).toFixed(2)}" transform="rotate(${rot.toFixed(1)} ${c.cx.toFixed(2)} ${cy.toFixed(2)})"/>`); }
     }
   }

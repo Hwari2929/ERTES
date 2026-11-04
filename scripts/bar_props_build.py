@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """바 제조대 일러스트 소품 굽기 (2026-11-04): 고른 원본 art/picked/bar_glass_<잔 id>.webp · bar_printer_front.webp · bar_bell_front.webp (투명 배경)
-→ public/art/bar_glass_<잔 id>.webp · bar_printer.webp · bar_bell.webp · bar_ice.webp (art/picked/bar_ice_cube.webp) · 고른 잔 위 가니쉬 bar_ong_* · 카운터 소품 bar_prop_* + src/ui/glassart.gen.ts (잔마다 그림 자리 · 액체가 차는 안쪽 영역).
+→ public/art/bar_glass_<잔 id>.webp · bar_printer.webp · bar_bell.webp · bar_ice_0~3.webp (얼음 4종) · 고른 잔 위 가니쉬 bar_ong_* · 카운터 소품 bar_prop_* + src/ui/glassart.gen.ts (잔마다 그림 자리 · 액체가 차는 안쪽 영역).
 
   python3 scripts/bar_props_build.py
 
@@ -83,12 +83,15 @@ for gid, (top, floor, inset, rimf, span) in GEOM.items():
     }
     print(f'{gid}: {W}×{H} → 48×72 상자 {out[gid]["img"]} · 액면 {out[gid]["top"]} ~ 바닥 {out[gid]["bot"]}')
 
-for src, dst, width in [('bar_printer_front', 'bar_printer', 900), ('bar_bell_front', 'bar_bell', 560), ('bar_ice_cube', 'bar_ice', 320)]:
+# 얼음 그림 4종 (2026-11-04 사용자 선택, 쌓인 얼음마다 번갈아): 0 원본 3번 · 1 투명 프롬프트 1 · 2 · 3 img2img 0.65 1번 · 6번 + 후처리 3 (art/bar_items_pick.json)
+ICE_SRC = ['bar_ice_cube', 'bar_ice_clear', 'bar_ice_i2i_a', 'bar_ice_i2i_b']
+ice = []
+for src, dst, width in [('bar_printer_front', 'bar_printer', 900), ('bar_bell_front', 'bar_bell', 560)] + [(k, f'bar_ice_{i}', 320) for i, k in enumerate(ICE_SRC)]:
     im = Image.open(f'art/picked/{src}.webp').convert('RGBA')
     s = width / im.width
     im.resize((width, max(1, round(im.height * s))), Image.LANCZOS).save(f'public/art/{dst}.webp', 'WEBP', quality=86, method=6)
     print(f'{dst}: {width}×{round(im.height * s)}')
-    if dst == 'bar_ice': ice = round(im.height / im.width, 4)  # 얼음 그림 세로/가로 (drinkart 가 층으로 쌓는다)
+    if dst.startswith('bar_ice_'): ice.append(round(im.height / im.width, 4))  # 얼음 그림 세로/가로 (drinkart 가 층으로 쌓는다)
 
 # 잔 위 가니쉬 (bar_ong_<가니쉬 id>) · 카운터 소품 (bar_prop_<종류>): 고른 원본 art/picked/<키>.webp → public/art/<키>.webp (긴 변 320px), 세로/가로 비를 gen 으로
 picked = json.load(open('art/bar_items_pick.json'))
@@ -103,8 +106,8 @@ print('가니쉬 · 소품', len(props_ar))
 lines = ['// 자동 생성: python3 scripts/bar_props_build.py — 직접 고치지 말 것',
          '/** 바 잔 일러스트 (public/art/bar_glass_<잔 id>.webp) 의 48 × 72 상자 안 자리와 액체 영역: img = [x, y, w, h] · liq = 액체가 차는 안쪽 경로 · top · bot = 가득 찼을 때 액면 · 안쪽 바닥 · rim = 테두리 [x0, x1, y] · rows = 안쪽 줄마다 [y, 왼쪽 x, 오른쪽 x] (위 → 아래) · k = 수평 단면 타원 세로/가로 비 [테두리, 바닥] */',
          'export const GLASS_ART: Record<string, { img: [number, number, number, number]; liq: string; top: number; bot: number; rim: [number, number, number]; rows: [number, number, number][]; k: [number, number] }> = ' + json.dumps(out, ensure_ascii=False, separators=(',', ':')) + ';',
-         '/** 잔 속 얼음 그림 (public/art/bar_ice.webp, 시안 bar_ice_cube 2차 3번) 의 세로 / 가로 */',
-         f'export const ICE_ASPECT = {ice};',
+         '/** 잔 속 얼음 그림 (public/art/bar_ice_<번호>.webp — 원본 3번 · 투명 프롬프트 1 · img2img 0.65 1번 · 6번 후처리) 의 세로 / 가로, 쌓인 얼음마다 번갈아 쓴다 */',
+         f'export const ICE_ART: number[] = {json.dumps(ice)};',
          '/** 고른 잔 위 가니쉬 (ong_<가니쉬 id>) · 카운터 소품 (prop_<종류>) 그림 (public/art/bar_<키>.webp) 의 세로 / 가로 — 없는 것은 선 그림 */',
          'export const PROP_ART: Record<string, number> = ' + json.dumps(props_ar, ensure_ascii=False, separators=(',', ':')) + ';']
 open('src/ui/glassart.gen.ts', 'w').write('\n'.join(lines) + '\n')
