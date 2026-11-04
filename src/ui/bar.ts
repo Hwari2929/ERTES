@@ -906,7 +906,7 @@ function syncCups(root: HTMLElement) {
     if (l === null) { if (!el.hidden) { el.hidden = true; el.innerHTML = ''; delete el.dataset.l; } continue; }
     const prevL = el.dataset.l === undefined ? null : +el.dataset.l;
     if (prevL !== null && Math.abs(prevL - l) < 0.04 && !(l === 0 && prevL > 0) && el.dataset.d === s.cup!.d.glass + s.cup!.name) continue;
-    el.innerHTML = drinkSvg(s.cup!.d, l);
+    el.innerHTML = drinkSvg(s.cup!.d, l, 'drink', true);
     el.dataset.l = l.toFixed(3);
     el.dataset.d = s.cup!.d.glass + s.cup!.name;
     if (el.hidden) { el.hidden = false; el.classList.remove('put'); void el.offsetWidth; el.classList.add('put'); }
@@ -1377,6 +1377,7 @@ function barNext() { if (!advKey()) { stop(); tick(); } }
 /** 바에 들어올 때: 자리를 새로 채운다 (런을 마치고 돌아오면 밤, 아니면 낮) */
 export function barEnter() {
   void loadGuestPacks(); // 낯선 손님 스탠딩 묶음을 뒤에서 받는다 (받기 전에는 그 손님들이 오지 않는다)
+  if (typeof Image !== 'undefined') for (const g of Object.keys(GLASS_ART)) void loadArt(artURL(`bar_glass_${g}.webp`)); // 카운터 위 잔 그림 미리 받기 (화면에서만 — barSimulate 검사는 node)
   for (const s of S.stage) if (s.pay) metaBarCoins(s.pay); // 남겨 둔 동전은 다음 방문 전에 거둔다
   S.prep = null; S.focus = ''; S.memo = false; S.memoOpen = false; S.tipCoin = '';
   stop(); S.stage = []; S.cur = null; S.li = 0; S.session.clear(); S.gone.clear(); S.enterAt = 0; S.aidenAt = 0; S.wantH = -1; S.monoAt = -Infinity; S.monoUsed.clear(); resumeCache.t = 0;
