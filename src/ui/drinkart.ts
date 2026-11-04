@@ -31,6 +31,8 @@ const ICE_N: Record<string, [number, number]> = { wine: [1, 2] };
  *  bubble = 탄산 층 기포 (3 방울 테두리), spark = 탄산 층 반짝임 (8), head = 맥주 거품 띠의 결 (7). blend = 혼합 모드, tile = 48 × 72 상자 단위 타일 한 변. on = false 면 예전 SVG 기포 */
 export const FOAM_FX = {
   on: false,
+  /** 텍스처 흐림 (feGaussianBlur stdDeviation, 48 × 72 상자 단위 — 0 이면 없음) */
+  blur: 0,
   bubble: { tex: 'bar_foam_3', tile: 44, op: 0.8, blend: 'screen' },
   spark: { tex: 'bar_foam_8', tile: 40, op: 1, blend: 'screen' },
   head: { tex: 'bar_foam_7', tile: 28, op: 0.9, blend: 'multiply' },
@@ -118,7 +120,8 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       // 텍스처 층 (FOAM_FX): 타일 무늬 하나를 영역에 채우고 혼합 모드로 얹는다
       const fx = FOAM_FX.on;
       const pat = (key: 'bubble' | 'spark' | 'head') => { const t = FOAM_FX[key], pid = `${id}${key}`; parts.push(`<pattern id="${pid}" patternUnits="userSpaceOnUse" width="${t.tile}" height="${t.tile}"><image href="${artURL(`${t.tex}.webp`)}" width="${t.tile}" height="${t.tile}" preserveAspectRatio="none"/></pattern>`); return `url(#${pid})`; };
-      const texed = (key: 'bubble' | 'spark' | 'head', d: string) => `<path d="${d}" fill-rule="evenodd" fill="${pat(key)}" opacity="${FOAM_FX[key].op}" style="mix-blend-mode:${FOAM_FX[key].blend}"/>`;
+      if (fx && FOAM_FX.blur > 0) parts.push(`<filter id="${id}fb" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="${FOAM_FX.blur}"/></filter>`);
+      const texed = (key: 'bubble' | 'spark' | 'head', d: string) => `<path d="${d}" fill-rule="evenodd" fill="${pat(key)}" opacity="${FOAM_FX[key].op}" style="mix-blend-mode:${FOAM_FX[key].blend}"${FOAM_FX.blur > 0 ? ` filter="url(#${id}fb)"` : ''}/>`;
       const headD = `${below(ga, yTop, false)} ${below(ga, Math.min(s.bot, yTop + Math.min(3, H * 0.12)), true)}`;
       let fizzFx = '';
       if (fx && !frozen) segs.forEach((sg) => {
