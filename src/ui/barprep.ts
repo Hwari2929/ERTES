@@ -20,7 +20,7 @@ import { artURL } from './portraits';
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
 /** 지금 만드는 잔 (잔을 고르기 전엔 glass = '') */
-export interface Prep { k: string; who: string; name: string; order: Order; glass: string; fill: string[]; ice: Ice; garnish: string[]; book: '' | 'menu' | 'ledger' | 'memo'; hintText?: string;
+export interface Prep { k: string; who: string; name: string; order: Order; glass: string; fill: string[]; ice: Ice; garnish: string[]; book: '' | 'menu' | 'ledger' | 'memo'; hintText?: string; poured?: number;
   /** 지금 보는 단계 (PREP_STEPS) */
   step: PrepStep;
   /** 영수증을 다 뽑았다 (처음 그릴 때만 출력기에서 밀려 나온다) */
@@ -131,7 +131,7 @@ function receiptHtml(p: Prep) {
 /** 큰 잔 (붓는 대로 아래부터 층) — 잔을 고르기 전엔 빈 자리 */
 const cupHtml = (p: Prep, cls = '') => {
   const n = slotsOf(p);
-  return p.glass ? `<div class="bp-cup${cls}">${drinkSvg(prepDrink(p), n ? p.fill.length / n : 0, 'drink bp-big', true)}</div>` : `<div class="bp-cup bp-cup-empty${cls}" aria-hidden="true"></div>`;
+  return p.glass ? `<div class="bp-cup${cls}">${drinkSvg(prepDrink(p), n ? p.fill.length / n : 0, 'drink bp-big', true, p.poured || 0)}</div>` : `<div class="bp-cup bp-cup-empty${cls}" aria-hidden="true"></div>`;
 };
 
 /** 1 잔 · 얼음: 잔 선반 (텀블러 3 · 스템 잔 3, 잔 아래 칸 수 점) · 고른 잔 · 얼음 3 */
@@ -210,6 +210,7 @@ export function prepAct(p: Prep, v: string): 'serve' | 'back' | 'draw' | null {
   if (k === 'memo') { p.memo = false; return 'draw'; }
   if (k === 'glass' && GLASS_BY_ID[x]) { p.glass = p.glass === x ? '' : x; const m = GLASS_BY_ID[p.glass]?.slots || 0; if (p.fill.length > m) p.fill = p.fill.slice(0, m); p.sel = undefined; return 'draw'; }
   if (k === 'pour' && ING_BY_ID[x] && p.glass) { // 고른 층이 있으면 그 층을 바꾸고, 아니면 맨 아래 빈 층에 붓는다
+    p.poured = Date.now(); // 갓 따름: 탄산이면 큰 방울이 잔뜩 생겼다가 줄어든다 (drinkSvg fresh)
     if (p.sel !== undefined && p.sel < p.fill.length) { p.fill[p.sel] = x; p.sel = undefined; return 'draw'; }
     if (p.fill.length < n) { p.fill.push(x); p.sel = undefined; return 'draw'; }
     return null;

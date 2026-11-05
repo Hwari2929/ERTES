@@ -41,7 +41,8 @@ export const FOAM_FX = {
   ],
   head: { tex: 'bar_foam_7', tile: 28, op: 0.9, blend: 'screen' },
   /** rise = 바닥에서 생겨 커지며 떠오르는 큰 방울 (켬, tex 가 비면 선 그림 방울). 시험 (2026-11-05, 꺼 둠): ring = 탄산 수면 가장자리 기포 고리 + 톡 터지는 방울, bumpy = 맥주 거품 윗면을 몽글몽글하게 + 위는 희고 아래는 누런 거품 띠 */
-  rise: { on: true, n: 5, speed: 7, tex: 'bar_bubble' }, // 큰 방울 그림 = 시안 1번 (2026-11-05 사용자)
+  // 큰 방울 그림 = 시안 1번 (2026-11-05 사용자). size = 그림 한 변 (처음 2.6 의 40%, 사용자). 갓 따랐을 때 (drinkSvg fresh) 는 n × burst 개로 생기다가 fade 초에 걸쳐 n 개로 줄어든다
+  rise: { on: true, n: 5, speed: 7, tex: 'bar_bubble', size: 1.04, burst: 3, fade: 6 },
   ring: { on: false, op: 0.9, pops: 4 },
   bumpy: { on: false, amp: 0.9 },
 };
@@ -77,8 +78,9 @@ const below = (ga: Art, y: number, front: boolean) => `M-2 ${y.toFixed(2)} L${ar
 /** 잔 그림의 안쪽 영역: 테두리 높이에서 벽을 따라 내려가 바닥은 바닥 타원의 앞쪽 호. 위는 테두리까지 열어 둔다 — 가득 찬 액면(단면 타원 뒤쪽 호)과 수면 위로 나온 얼음이 직선으로 잘리지 않게 (2026-11-04) */
 const inner = (ga: Art) => { const r0 = ga.rows[0], ty = Math.min(ga.rim[2], r0[0] - 1.5); return `M${r0[1]} ${ty} L${ga.rows.map((r) => `${r[1]} ${r[0]}`).join(' L')} L${arc(ga, ga.bot, true)} L${[...ga.rows].reverse().map((r) => `${r[2]} ${r[0]}`).join(' L')} L${r0[2]} ${ty} Z`; };
 
-/** 한 잔 SVG. left = 남은 양 (0~1) · art = 잔 일러스트: true = 잔 그림을 따로 한 겹으로 배경과 섞는다 (color-dodge 0.6, 어두운 바탕 — 제조대 · 완성 장면 · 카운터 · 잔 진열), 'plain' = 섞지 않는다 (종이 위 — 영수증 사진 · 레시피북) */
-export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plain' = false): string {
+/** 한 잔 SVG. left = 남은 양 (0~1) · art = 잔 일러스트: true = 잔 그림을 따로 한 겹으로 배경과 섞는다 (color-dodge 0.6, 어두운 바탕 — 제조대 · 완성 장면 · 카운터 · 잔 진열), 'plain' = 섞지 않는다 (종이 위 — 영수증 사진 · 레시피북).
+ *  fresh = 갓 따른 시각 (Date.now() ms, 0 = 아님) — 탄산 잔이면 큰 방울이 잔뜩 생겼다가 줄어든다 */
+export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plain' = false, fresh = 0): string {
   const g: Glass | undefined = GLASS_BY_ID[d.glass];
   const ga = art ? GLASS_ART[d.glass] || GLASS_ART.rock : undefined;
   const s: Shape = ga || SHAPES[d.glass] || SHAPES.rock;
@@ -153,10 +155,21 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       if (fx && FOAM_FX.rise.on && !frozen && !still && lv > 0.05 && segs.some((sg) => ING_BY_ID[sg.ing]?.fizz)) {
         const r = FOAM_FX.rise, yb = s.bot - 0.8, ye = yTop + 0.7, [b0, b1] = wallsAt(ga, yb - 2), span = b1 - b0;
         const spots = [b0 + span * 0.28, b0 + span * 0.62, b0 + span * 0.45];
-        for (let k = 0; k < r.n; k++) {
-          const x = spots[k % spots.length] + (rnd(k + 91) - 0.5) * 1.2, sw = (rnd(k + 13) - 0.5) * 2.2, dur = Math.max(1.2, (yb - ye) / (r.speed * (0.8 + rnd(k + 5) * 0.5)));
-          const bub = r.tex ? `<image href="${artURL(`${r.tex}.webp`)}" x="-1.3" y="-1.3" width="2.6" height="2.6" style="mix-blend-mode:plus-lighter"/><image href="${artURL(`${r.tex}.webp`)}" x="-1.3" y="-1.3" width="2.6" height="2.6" style="mix-blend-mode:plus-lighter"/>` : `<circle r="1" fill="#ffffff" fill-opacity=".07" stroke="#ffffff" stroke-opacity=".7" stroke-width=".16"/><circle cx="-.38" cy="-.4" r=".24" fill="#ffffff" fill-opacity=".85"/>`;
-          extra += `<g opacity="0"><animate attributeName="opacity" values="0; .95; .95; 0" keyTimes="0; .1; .88; 1" dur="${dur.toFixed(2)}s" begin="${ph(dur, k)}" repeatCount="indefinite"/><g><animateTransform attributeName="transform" type="translate" values="${x.toFixed(2)} ${yb.toFixed(2)}; ${(x + sw).toFixed(2)} ${((yb + ye) / 2).toFixed(2)}; ${(x - sw * 0.4).toFixed(2)} ${ye.toFixed(2)}" dur="${dur.toFixed(2)}s" begin="${ph(dur, k)}" repeatCount="indefinite"/><g><animateTransform attributeName="transform" type="scale" values=".4; .85; 1.35" dur="${dur.toFixed(2)}s" begin="${ph(dur, k)}" repeatCount="indefinite"/>${bub}</g></g></g>`;
+        // 갓 따랐으면 n × burst 개: 넘는 방울은 따른 직후 조금씩 엇갈려 바닥에서 생겨 1.6배 빨리 오르고, 따른 뒤 1.5초 ~ fade 초 사이에 하나씩 옅어지며 그친다 → 개수가 서서히 n 으로
+        const since = fresh ? (Date.now() - fresh) / 1000 : Infinity, total = since < r.fade ? r.n * r.burst : r.n, hs = r.size / 2;
+        for (let k = 0; k < total; k++) {
+          const x = spots[k % spots.length] + (rnd(k + 91) - 0.5) * 1.2, sw = (rnd(k + 13) - 0.5) * 2.2;
+          let dur = Math.max(1.2, (yb - ye) / (r.speed * (0.8 + rnd(k + 5) * 0.5))), begin = ph(dur, k), fadeOut = '';
+          if (k >= r.n) {
+            const j = k - r.n, E = total - r.n, stopAt = 1.5 + (r.fade - 1.5) * (j + 1) / E; // 따른 시각 기준 초 (이 SVG 가 생긴 때 = 0 은 따른 뒤 since 초)
+            if (since >= stopAt) continue; // 이미 그친 방울
+            dur /= 1.6; begin = `${(-since + (j % 8) * 0.2).toFixed(2)}s`;
+            fadeOut = `<animate attributeName="opacity" values="1; 1; 0" keyTimes="0; ${((stopAt - 1) / stopAt).toFixed(3)}; 1" dur="${stopAt.toFixed(2)}s" begin="${(-since).toFixed(2)}s" fill="freeze"/>`;
+          }
+          const bub = r.tex ? `<image href="${artURL(`${r.tex}.webp`)}" x="${-hs}" y="${-hs}" width="${r.size}" height="${r.size}" style="mix-blend-mode:plus-lighter"/><image href="${artURL(`${r.tex}.webp`)}" x="${-hs}" y="${-hs}" width="${r.size}" height="${r.size}" style="mix-blend-mode:plus-lighter"/>` : `<circle r="${hs}" fill="#ffffff" fill-opacity=".07" stroke="#ffffff" stroke-opacity=".7" stroke-width=".1"/>`;
+          const t = `dur="${dur.toFixed(2)}s" begin="${begin}" repeatCount="indefinite"`;
+          const one = `<g opacity="0"><animate attributeName="opacity" values="0; .95; .95; 0" keyTimes="0; .1; .88; 1" ${t}/><g transform="translate(-50 0)"><animateTransform attributeName="transform" type="translate" values="${x.toFixed(2)} ${yb.toFixed(2)}; ${(x + sw).toFixed(2)} ${((yb + ye) / 2).toFixed(2)}; ${(x - sw * 0.4).toFixed(2)} ${ye.toFixed(2)}" ${t}/><g><animateTransform attributeName="transform" type="scale" values=".4; .85; 1.35" ${t}/>${bub}</g></g></g>`;
+          extra += fadeOut ? `<g class="burst">${fadeOut}${one}</g>` : one;
         }
       }
       if (fx && FOAM_FX.ring.on && fizzTop && !foam) {

@@ -906,9 +906,11 @@ function syncCups(root: HTMLElement) {
     if (l === null) { if (!el.hidden) { el.hidden = true; el.innerHTML = ''; delete el.dataset.l; } continue; }
     const prevL = el.dataset.l === undefined ? null : +el.dataset.l;
     if (prevL !== null && Math.abs(prevL - l) < 0.04 && !(l === 0 && prevL > 0) && el.dataset.d === s.cup!.d.glass + s.cup!.name) continue;
-    el.innerHTML = drinkSvg(s.cup!.d, l, 'drink', true);
+    const dk = s.cup!.d.glass + s.cup!.name;
+    if (el.hidden || el.dataset.d !== dk) el.dataset.fresh = String(Date.now()); // 새 잔이 놓였다: 갓 따른 잔 (탄산이면 큰 방울이 잔뜩 생겼다가 줄어든다)
+    el.innerHTML = drinkSvg(s.cup!.d, l, 'drink', true, Number(el.dataset.fresh) || 0);
     el.dataset.l = l.toFixed(3);
-    el.dataset.d = s.cup!.d.glass + s.cup!.name;
+    el.dataset.d = dk;
     if (el.hidden) { el.hidden = false; el.classList.remove('put'); void el.offsetWidth; el.classList.add('put'); }
   }
   syncMarks(root, now);
@@ -1787,7 +1789,7 @@ function serveCut() {
   const d = prepDrink(p);
   const name = recipeName(d) || `레이첼의 ${GLASS_BY_ID[d.glass]?.name || '잔'}`;
   window.clearTimeout(prepAutoT);
-  sec.insertAdjacentHTML('beforeend', `<button class="bp-done" data-a="bar-x" data-v="prep:done" aria-label="${esc(name)} — 내주기">${drinkSvg(d, 1, 'drink bp-done-cup', true)}<span class="bp-done-name">${esc(name)}</span></button>`);
+  sec.insertAdjacentHTML('beforeend', `<button class="bp-done" data-a="bar-x" data-v="prep:done" aria-label="${esc(name)} — 내주기">${drinkSvg(d, 1, 'drink bp-done-cup', true, p.poured || 0)}<span class="bp-done-name">${esc(name)}</span></button>`);
   doneT = window.setTimeout(serveNow, 1300);
 }
 function serveNow() {
