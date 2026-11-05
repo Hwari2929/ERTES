@@ -143,9 +143,9 @@
 .dk > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .dk > .dk-glass { mix-blend-mode: color-dodge; opacity: .6; }
 /* 음료에 비치는 배경 흐림 (drinkart SURF2.blur): 음료 영역만 잘린 HTML 겹 — 잔 크기에 따라 흐림 정도 (--dk-blur) */
-.dk > .dk-blur { position: absolute; inset: 0; pointer-events: none; -webkit-backdrop-filter: blur(var(--dk-blur, 1px)); backdrop-filter: blur(var(--dk-blur, 1px)); }
-.bar-cup .dk > .dk-blur { z-index: var(--z-sticky-head); --dk-blur: .6px; }
-.bp-big, .bp-done-cup { --dk-blur: 2px; }
+.dk > .dk-blur { position: absolute; inset: 0; pointer-events: none; -webkit-backdrop-filter: blur(var(--dk-blur, 2px)); backdrop-filter: blur(var(--dk-blur, 2px)); }
+.bar-cup .dk > .dk-blur { z-index: var(--z-sticky-head); --dk-blur: 1.2px; }
+.bp-big, .bp-done-cup { --dk-blur: 4px; }
 .bar-cup > .dk { display: block; width: 100%; height: 100%; }
 .bar-cup .dk > svg { z-index: var(--z-sticky-head); transform-origin: 50% 100%; }
 .bar-cup.put .dk > svg { animation: bar-put .5s steps(3, jump-end); }

@@ -120,7 +120,7 @@ const deep = (c: string, ks = 1.35, kl = 0.58) => {
 /** 수면 · 음료 가장자리 (2026-11-05 사용자 방향): faceTint = 수면에 섞는 흰색 (처음 0.35 → 그 80% 는 0.28), nearGlow = 수면 앞 (아래) 끝에서 안쪽으로 밝게 퍼짐 (시안 0.675),
  *  farDark = 수면 뒤 (위) 끝에서 안쪽으로 짙게 (채도 ↑ 명도 ↓ · 무색 음료는 채도 그대로) 퍼짐 (시안 0.85) — 둘 다 수면 타원에 딱 맞는 원형 고리 + 수면 중심 쪽으로 옅어지는 직선 마스크,
  *  edgeDark = 음료 몸통이 잔 벽에서 안쪽으로 짙어지는 그라데이션 진하기 (역광 아래 층, 시안 0.5), blur = 음료 뒤 배경 흐림 (backdrop-filter, --dk-blur) */
-export const SURF2 = { faceTint: 0.35, nearGlow: 0, farDark: 0, edgeDark: 0, blur: true };
+export const SURF2 = { faceTint: 0.28, nearGlow: 0.675, farDark: 0.85, edgeDark: 0.5, blur: true }; // 2026-11-05 사용자: 시안 5단계 모두 켬
 /** 흰색을 w 만큼 섞은 색 */
 const tint = (c: string, w: number) => `#${hex(c).map((v) => Math.round(v + (255 - v) * w).toString(16).padStart(2, '0')).join('')}`;
 const mix = (cs: string[]) => { const a = cs.map(hex); const m = [0, 1, 2].map((k) => Math.round(a.reduce((s, x) => s + x[k], 0) / a.length)); return `#${m.map((v) => v.toString(16).padStart(2, '0')).join('')}`; };
