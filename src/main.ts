@@ -92,11 +92,7 @@ function applyFxPrefs() {
 /** UI 테마 (설정 → 테마). 색은 style.css 의 [data-ui-theme] 블록에 있고, 여기서는 <html data-ui-theme> 만 바꾼다. 첫 실행 기본값 = 에란테스 갤럭시 */
 const UI_THEMES = [
   { id: 'galaxy', name: '에란테스 갤럭시', desc: '잉크빛 남색 · 미색 · 계약서 호박색 (기본)' },
-  { id: 'vintage', name: '에란테스 퓨처리스틱 네이비 빈티지', desc: '짙은 네이비 · 빛바랜 종이 · 녹청 강조 · 바랜 황동' },
-  { id: 'ithaca', name: '이타카 코랄 베이지 시-사이드', desc: '밝은 모래 바탕 · 코랄 강조 · 바다색 (라이트)' },
-  { id: 'ithaca-port', name: '이타카 무역항', desc: '물안개 하늘빛 바탕 · 네이비 · 에메랄드 강조 · 바다색 (라이트)' },
-  { id: 'hoishun', name: '호이슌 사쿠라 가든', desc: '자줏빛 네온 밤 · 벚꽃 분홍 · 네온 청록' },
-  { id: 'calito', name: '칼리토 스타더스트 홀', desc: '황실 연회장 남보라 · 금색 · 별가루 은빛' },
+  { id: 'metro', name: '메트로 인피니티 패스', desc: '심야 노선 남색 · 보라 · 민트 노선색 · 승강장 안전선 노랑 · 탑승권' },
 ] as const;
 const uiTheme = () => { const t = loadPrefs().uiTheme; return UI_THEMES.some((x) => x.id === t) ? t! : 'galaxy'; };
 /** 테마 연출 (설정): 켜기 · 줄이기 · 끄기. 첫 실행 기본값 = 켜기 */
@@ -463,7 +459,7 @@ function titleScreen() {
   const m = loadMeta();
   const slots = saves.filter((s) => s.slot !== 'auto');
   return `<main class="title-screen">
-    <div class="ts-bg" style="background-image:url('${uiTheme().startsWith('ithaca') ? artURL('lore_ithaca.webp') : bgURL('title')}')"></div><div class="ts-shade"></div>
+    <div class="ts-bg" style="background-image:url('${bgURL('title')}')"></div><div class="ts-shade"></div>
     <div class="ts-stars" aria-hidden="true">${Array.from({ length: 36 }, (_, i) => `<i style="--x:${(i * 37) % 100}%;--y:${(i * 53) % 100}%;--d:${(i % 9) * 0.5}s;--s:${2.5 + (i % 5)}s"></i>`).join('')}</div>
     <div class="ts-mid">
       <span class="ts-kicker">에란테스 용병단 · 은하 순회 의뢰</span>
@@ -847,6 +843,7 @@ function pickCard(d: UnitDef, o: PickOpts) {
   const { clone, on, full } = o;
   return `<div class="pslot" style="--i:${Math.min(o.i ?? 0, 7)}"><div class="pcard ${on ? 'sel' : ''} ${app.cardOpen === d.id && !clone ? 'open' : ''}" data-a="${o.tapAct}" data-v="${d.id}" ${clone ? 'aria-hidden="true"' : 'tabindex="0" role="button"'} aria-label="${esc(d.name)}">
     <i class="cback" aria-hidden="true"></i>
+    <span class="mt-pass" aria-hidden="true"><b>BOARDING PASS</b><i></i><span class="mt-pass-stub"><i class="mt-code"></i><b>ADMIT ONE</b><em>${String((o.i ?? 0) + 1).padStart(2, '0')}</em></span></span>
     <div class="pc-art">${standImg(d.id, 'stand') || sprite(d, 'spr big')}</div>
     <button class="btn pc-full" data-a="card-max" data-v="${d.id}" ${clone ? 'tabindex="-1"' : ''} title="전체 상세 (확대)" aria-label="${esc(d.name)} 전체 상세 열기">${MAX_SVG}</button>
     ${on ? `<span class="pc-check">✓${o.badge ? ` ${o.badge}` : ''}</span>` : ''}
@@ -3565,7 +3562,7 @@ function menuModal(run: RunState | null) {
       ${tabs}
       <h3>테마</h3>
       ${themePicker()}
-      <div class="pref"><span><b>테마 연출</b><br><span class="muted small">갤럭시 별빛 · 빈티지 가죽 결 · 이타카 물결 전환 · 호이슌 벚꽃. 줄이기: 입자를 줄이고 유성 · 폭풍 없이, 물결 대신 짧은 페이드</span></span>
+      <div class="pref"><span><b>테마 연출</b><br><span class="muted small">갤럭시 별빛 · 메트로 창밖 별빛 · 열차 화면 전환 · 전투 진입 질주. 줄이기: 별을 줄이고 유성 · 빛 열차 없이, 열차 대신 노선색 띠 한 번 · 전투 진입은 속도선 몇 줄</span></span>
         <span class="seg">${UI_FX.map(([k, l]) => `<button class="btn tiny ${uiFx() === k ? 'on' : ''}" data-a="pref-uifx" data-v="${k}" aria-pressed="${uiFx() === k}">${l}</button>`).join('')}</span></div>
       ${canFullscreen() ? `<h3>화면</h3>
       <div class="pref"><span><b>전체 화면</b><br><span class="muted small">주소창 · 휴대폰 상태 표시줄 · 내비게이션 바를 숨깁니다. 켜 두면 다음에 열 때 첫 터치에서 다시 전체 화면이 됩니다 (브라우저 규칙상 자동으로는 켜지지 않음). 뒤로 가기 · Esc 로 나옵니다.</span></span>
@@ -3617,6 +3614,7 @@ let lastPhase = 0;
 /** 화면 전환 연출: 전투 개시 · 보스전 · 페이즈 전환 */
 function banner(kind: 'battle' | 'boss' | 'phase' | 'adversity', title: string, sub = '') {
   document.querySelector('.banner')?.remove();
+  if (TFX.banner(kind, title, sub)) return; // 메트로 인피니티 패스: 속도선 · 도형 · 탑승권 연출
   const el = document.createElement('div');
   el.className = `banner bn-${kind}`;
   el.setAttribute('aria-live', 'polite');
@@ -4341,7 +4339,7 @@ function render() {
   const KEEP = ['.um-grid', '.um-a', '.um-c', '.um-r', '.um-main', '.side.right', '.map-detail', '.detail', '.shop-ov', '.so-body', '.shop-ov .sd'];
   const kept = KEEP.map((q) => root.querySelector<HTMLElement>(q)?.scrollTop ?? 0);
   const media = app.screen === 'battle' || app.screen === 'bar' ? null : keepMedia();
-  TFX.beforeScreen(prevScreen, app.screen, root); // 이타카: 바뀌기 전 화면을 덮는 바다 (그리기 전에 지금 화면을 얼려 둔다)
+  TFX.beforeScreen(prevScreen, app.screen, root); // 메트로: 바뀌기 전 화면을 덮는 열차 (그리기 전에 지금 화면을 얼려 둔다)
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run ? askPop() : ''}${run ? LAB.labHtml(run, app.screen) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${app.preview ? unitModal(app.preview.run, true) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   media?.();
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
@@ -4361,7 +4359,7 @@ function render() {
   advSync(run ?? null);
   SHOP.shopMount(root); // 상인 말풍선 연출 · 혼잣말 시계
   SHOP.adMount(root); // 페트라 광고판 초읽기 · 자동 닫힘
-  TFX.onScreen(prevScreen, app.screen); // 테마 연출: 전투 중 강도 낮춤 · (이타카) 큰 화면 전환 물결 (사건 장면이 떴는지 본 뒤)
+  TFX.onScreen(prevScreen, app.screen); // 테마 연출: 전투 중 강도 낮춤 · (메트로) 큰 화면 전환 열차 (사건 장면이 떴는지 본 뒤)
   if (app.screen === 'bar') BAR.barMount();
   if (app.screen === 'contract') CTR.contractMount(root);
   if (app.screen === 'newrun') BRF.briefMount(root);
