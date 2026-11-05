@@ -20,7 +20,6 @@
   ".u.tkb .tk-cat :: #8fc8ff": 1,
   ".rl :: rgb(14 16 22 / .85)": 1,
   ".as-row.rl .as-bar i, .as-row.ammo .as-bar i :: #f2f4f8": 1,
-  ".release.confirm :: #ff6a6a": 1,
   ".btn.danger :: #b03030": 1,
   ".btn.danger :: #ff6a6a": 1,
   ".stand-view :: rgb(8 10 14 / .92)": 1,
@@ -168,7 +167,6 @@
   ".adv-log-in .narr :: #cfd3db": 1,
   ".co-dim :: rgb(4 6 10 / .66)": 1,
   ".ab-tok :: #0c0e14": 1,
-  ".um-release :: #b03030": 1,
   ".so-warn.bad :: rgb(255 90 90 / .12)": 1,
   ".so-warn.warn :: rgb(255 190 80 / .1)": 1,
   ".so-warn.good :: rgb(120 220 120 / .08)": 1

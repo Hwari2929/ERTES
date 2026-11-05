@@ -472,7 +472,6 @@ export function unitModal(run: RunState, pv = false) {
           <header class="um-head">
             <span class="um-tools">${pv ? '<span class="um-pv">영입 전 미리보기</span>' : blessBtn(run, u, d)}${pv ? '' : focusBtn(run, u)}${detailToggle()}${pv ? '' : `<button class="btn small danger-ghost" data-a="release" data-v="${u.uid}" ${run.units.length <= 1 ? 'disabled title="마지막 남은 기물은 방출할 수 없습니다"' : 'title="기물 방출 (확인 후 진행)"'} aria-expanded="${app.releaseConfirm === u.uid}">기물 방출</button>`}<button class="btn" data-a="big-close" aria-label="닫기" title="닫기 (Esc)">✕</button></span>
           </header>
-          ${app.releaseConfirm === u.uid ? `<div class="um-release">${releaseBlock(run, u)}</div>` : ''}
         </div>
         ${unitSummary(run, u, d, b, c)}
         <div class="um-col um-c">

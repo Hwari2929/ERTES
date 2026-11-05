@@ -341,7 +341,7 @@
 .d-bar { position: sticky; top: 0; z-index: 6; display: flex; align-items: center; justify-content: space-between; gap: 8px;
   margin: -12px -12px 8px; padding: 8px 10px; background: var(--panel); border-bottom: 1px solid var(--line); border-radius: var(--r-lg) var(--r-lg) 0 0; }
 .d-bar-r { display: flex; align-items: center; gap: 6px; }
-.d-bar .d-back, .d-bar .d-mag { width: 38px; height: 34px; padding: 0; display: grid; place-items: center; }
+.d-bar .d-back, .d-bar .d-mag { width: 36px; height: 36px; padding: 0; display: grid; place-items: center; }
 .d-bar svg { width: 20px; height: 20px; }
 .d-bar .d-mag.on { border-color: var(--c-select); color: var(--c-select); }
 .d-bar .btn.tiny { height: 34px; }

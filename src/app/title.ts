@@ -213,21 +213,41 @@ export function diffAddChip(run: RunState, phase: number, n = diffAddCount(run.d
 }
 
 // ───────────────────────── 기물 방출
-export function releaseBlock(run: RunState, u: UnitState) {
+/** 방출 정산: 이름 + 값 줄 (크레딧 · 공명도 분배 · 장비 행방 · 사라지는 고유 장비) */
+function releaseRows(run: RunState, u: UnitState): [string, string, string?][] {
+  if (R.isRock(u)) return [['보상', '없음'], ['다시 등장', '절망 증강이 있으면 영입 선택지에']];
   const v = R.releaseValue(run, u);
-  const name = UNIT_BY_ID[u.defId].name;
-  const lines = R.isRock(u) ? ['반려 돌은 보상 없이 사라집니다. 절망 증강이 걸려 있으면 다시 영입 선택지에 섞여 나옵니다.'] : [
-    `${CR}<b>+${v.credits}</b> (${CFG.release.base} + 공명 등급 ${u.rank} × ${CFG.release.perRank})`,
-    `${RES}<b>${v.xp}</b> — 이 기물에 쌓인 공명도 ${v.invested}의 ${Math.round(CFG.release.xpShare * 100)}%를 남은 파티에 분배 (출전 기물 우선)`,
-    v.items.length ? `장비 · 개조부품 ${v.items.length}개는 보관함으로 (${v.items.map((x) => esc(itemInfo(x).name)).join(', ')})` : '장착한 장비 없음',
-    ...(v.lost.length ? [`<span class="down">고유 장비 ${v.lost.map((x) => esc(itemInfo(x).name)).join(', ')}는 함께 사라짐</span>`] : []),
+  return [
+    [`${CR}크레딧`, `+${v.credits}`, 'good'],
+    [`${RES}공명도 분배`, `${v.xp} (${Math.round(CFG.release.xpShare * 100)}%)`],
+    ['장비 · 개조부품', v.items.length ? `보관함으로 ${v.items.length}개` : '없음'],
+    ...(v.lost.length ? [['고유 장비', `사라짐 · ${v.lost.map((x) => esc(itemInfo(x).name)).join(', ')}`, 'bad'] as [string, string, string]] : []),
   ];
-  const confirm = app.releaseConfirm === u.uid;
-  return `<div class="release ${confirm ? 'confirm' : ''}">
-    <h3>방출</h3>
-    <ul class="small">${lines.map((l) => `<li>${l}</li>`).join('')}</ul>
-    ${confirm ? `<p class="small down">${esc(name)}을(를) 정말 방출할까요? 되돌릴 수 없습니다.</p>
-      <div class="row-btns"><button class="btn danger" data-a="release-confirm" data-v="${u.uid}">방출 확정</button><button class="btn" data-a="release-cancel">취소</button></div>`
-    : `<button class="btn small" data-a="release" data-v="${u.uid}" ${run.units.length <= 1 ? 'disabled' : ''}>방출하기</button>`}
+}
+/** 방출 확인 창: 탑승권을 찢는 표 (머리 = 이름 · 되돌릴 수 없음 / 절취선 / 몸통 = 정산 줄 · 그만두기 · 방출하기). 방출하기를 누르면 표가 절취선에서 찢어진 뒤 실행된다 (main.ts release-confirm) */
+export function releasePop(run: RunState, u: UnitState) {
+  const d = UNIT_BY_ID[u.defId];
+  const id = `tear-t-${u.uid}`;
+  return `<div class="tear-scrim" data-a="release-cancel"></div>
+  <div class="tear-tk" role="dialog" aria-modal="true" aria-labelledby="${id}">
+    <div class="tear-a"><span class="tear-face" aria-hidden="true">${sprite(d, 'spr big')}</span>
+      <div class="tear-hd"><span class="tear-k"><b>RELEASE</b><i></i><span>CAN NOT UNDO</span></span><h3 id="${id}">${esc(d.name)}을(를) 방출할까요?</h3><span class="tear-sub">방출한 기물은 되돌릴 수 없습니다.</span></div>
+      <button class="btn tear-x" data-a="release-cancel" aria-label="닫기" title="닫기 (Esc)">✕</button></div>
+    <div class="tear-perf" aria-hidden="true"></div>
+    <div class="tear-b"><dl class="tear-rows">${releaseRows(run, u).map(([k, val, c]) => `<div${c ? ` class="${c}"` : ''}><dt>${k}</dt><dd>${val}</dd></div>`).join('')}</dl>
+      <div class="tear-act"><button class="btn ghost" data-a="release-cancel">그만두기</button><button class="btn danger" data-a="release-confirm" data-v="${u.uid}">방출하기</button></div></div>
   </div>`;
+}
+/** 기물 상세 패널 아래 방출 칸: 정산 요약 줄 + 방출하기 (누르면 방출 확인 창) */
+export function releaseBlock(run: RunState, u: UnitState) {
+  return `<div class="release">
+    <h3>방출</h3>
+    <dl class="tear-rows small">${releaseRows(run, u).map(([k, val, c]) => `<div${c ? ` class="${c}"` : ''}><dt>${k}</dt><dd>${val}</dd></div>`).join('')}</dl>
+    <button class="btn small" data-a="release" data-v="${u.uid}" ${run.units.length <= 1 ? 'disabled title="마지막 남은 기물은 방출할 수 없습니다"' : ''}>방출하기</button>
+  </div>`;
+}
+/** 방출 확인 창은 화면 최상위에 그린다 (상세 창 · 패널 안에 두면 변형된 조상 때문에 고정 위치가 어긋난다) */
+export function releaseModal(run: RunState) {
+  const u = app.releaseConfirm ? run.units.find((x) => x.uid === app.releaseConfirm) : null;
+  return u ? releasePop(run, u) : '';
 }

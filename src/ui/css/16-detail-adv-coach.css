@@ -7,6 +7,8 @@
 .um-sc-name { font-size: var(--fs-base); font-weight: 800; }
 .um-rank { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .um-rank .xpbar, .um-rank .xp { flex: 1; min-width: 90px; }
 .um-tools { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; }
+.um-tools > .btn, .rc-tools > .btn { height: 36px; padding-block: 0; display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex: none; } /* 머리줄 단추는 모두 같은 높이 (아이콘 단추는 정사각) */
+.um-tools > .btn:is(.d-mag-solo, [data-a="big-close"]) { width: 36px; padding-inline: 0; }
 .um-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr) minmax(0, 1fr); gap: 0; overflow: hidden; grid-template-rows: auto auto minmax(0, 1fr); }
 .um-col { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 8px; overflow: auto; overscroll-behavior: contain; padding: 12px 14px; }
 .um-a { border-right: 1px solid var(--line); background: color-mix(in srgb, var(--panel-2) 45%, transparent); position: relative; grid-row: 1 / 4; }

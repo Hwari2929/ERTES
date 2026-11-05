@@ -71,7 +71,7 @@ import * as LAB from './ui/lab';
 import * as SHOP from './ui/shop';
 import { CAMP_SLOT, Screen, TUT_SLOT, app, applyFxPrefs, applyTheme, canFullscreen, enterFullscreen, esc, isFullscreen, loadPrefs, openContract, persist, root, savePref, toast, toggleFullscreen } from './app/state';
 import { banner, interestLines, itemIcon, itemTip, statIc, topbar } from './app/common';
-import { fieldBrief, foeModal, newRunScreen, titleScreen } from './app/title';
+import { fieldBrief, foeModal, newRunScreen, releaseModal, titleScreen } from './app/title';
 import { CAN_HOVER, relicTok } from './app/unitparts';
 import { pilgrimAct } from './app/pilgrim';
 import { CR, ic, mapScreen, nodeHint, phaseBoss } from './app/map';
@@ -205,7 +205,7 @@ export function render() {
   const kept = KEEP.map((q) => root.querySelector<HTMLElement>(q)?.scrollTop ?? 0);
   const media = app.screen === 'battle' || app.screen === 'bar' ? null : keepMedia();
   TFX.beforeScreen(prevScreen, app.screen, root, mtStop(run, prevScreen, app.screen)); // 메트로: 런 출발 · 보스 · 상점에서만 바뀌기 전 화면을 덮는 열차 (그리기 전에 지금 화면을 얼려 둔다)
-  root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run ? askPop() : ''}${run ? LAB.labHtml(run, app.screen) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${app.preview ? unitModal(app.preview.run, true) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
+  root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run ? askPop() : ''}${run ? LAB.labHtml(run, app.screen) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${app.preview ? unitModal(app.preview.run, true) : ''}${run && app.releaseConfirm ? releaseModal(run) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   media?.();
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
   umCompactBind();
@@ -639,6 +639,13 @@ export function act(a: string, v: string) {
     case 'release-cancel': app.releaseConfirm = null; break;
     case 'release-confirm': {
       if (!run) return;
+      // 메트로: 표가 절취선에서 찢어져 흩어진 뒤 방출한다 (움직임 줄이기면 바로)
+      const tk = document.querySelector<HTMLElement>('.tear-tk');
+      if (tk && !tk.classList.contains('tearing') && document.documentElement.dataset.uiTheme === 'metro' && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        tk.classList.add('tearing');
+        setTimeout(() => act('release-confirm', v), 620);
+        return;
+      }
       const err = R.releaseUnit(run, v);
       app.releaseConfirm = null;
       if (err) { toast(err); return; }

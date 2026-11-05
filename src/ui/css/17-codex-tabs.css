@@ -97,8 +97,6 @@ button.cx2-row { cursor: pointer; } button.cx2-row:hover { border-color: var(--c
 .btn.danger-ghost { color: var(--c-danger-ink); border-color: color-mix(in srgb, var(--c-danger-line) 55%, var(--line)); background: transparent; }
 .btn.danger-ghost:hover:not(:disabled) { background: color-mix(in srgb, var(--c-danger-bg) 30%, transparent); }
 .btn.danger-ghost[aria-expanded="true"] { background: color-mix(in srgb, var(--c-danger-bg) 35%, transparent); }
-.um-release { padding: 8px 14px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, #b03030 12%, var(--panel)); }
-.um-release .release { margin: 0; }
 /* 편성: 엔지니어 감시 포탑 (가장자리 열 · 끌어 옮기기) */
 .tag.cat-mech { display: inline-flex; align-items: center; gap: 2px; }
 .tag.cat-mech .li { width: 12px; height: 12px; }

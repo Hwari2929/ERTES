@@ -215,9 +215,9 @@ export function mountBattleView(board: HTMLElement) {
   const run = app.run!;
   const nt = run.node?.type;
   const enc = run.node!.enc!;
-  if (nt === 'boss') banner('boss', 'BOSS', ENEMY_BY_ID[enc.enemies.find((e) => ENEMY_BY_ID[e.defId].tier === 'boss')?.defId || '']?.name || '보스전');
-  else if (nt === 'challenge') banner('adversity', '도전', `페이즈 ${enc.phase} 역경 수준`);
-  else banner(nt === 'adversity' ? 'adversity' : 'battle', nt === 'adversity' ? '역경 전투' : '전투 개시', encName(enc));
+  const hold = nt === 'boss' ? banner('boss', 'BOSS', ENEMY_BY_ID[enc.enemies.find((e) => ENEMY_BY_ID[e.defId].tier === 'boss')?.defId || '']?.name || '보스전')
+    : nt === 'challenge' ? banner('adversity', '도전', `페이즈 ${enc.phase} 역경 수준`)
+    : banner(nt === 'adversity' ? 'adversity' : 'battle', nt === 'adversity' ? '역경 전투' : '전투 개시', encName(enc));
   SND.sfx('start', { boss: nt === 'boss' }); // 전투 개시음 (보스는 낮게)
   const b = buildBattle(run, run.node!.enc!);
   app.lastBattle = b;
@@ -245,9 +245,9 @@ export function mountBattleView(board: HTMLElement) {
   });
   app.view.itemHtml = (id) => itemIcon(id);
   applySpeed();
-  // 개시 연출이 지나간 뒤 전투 시작
+  // 개시 연출이 지나간 뒤 전투 시작 (메트로 연출은 화면을 덮었다가 걷히기 시작하는 때)
   const v = app.view;
-  setTimeout(() => { if (app.view === v) v.start(); }, nt === 'boss' ? 1300 : 800);
+  setTimeout(() => { if (app.view === v) v.start(); }, hold > 0 ? hold : nt === 'boss' ? 1300 : 800);
 }
 
 export function goPrepOrMap() {

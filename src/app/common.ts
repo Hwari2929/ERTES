@@ -243,16 +243,18 @@ export function synergyPanel(run: RunState) {
   if (!list.length) return `<div class="muted small">출전한 기물이 없습니다.</div>`;
   return list.map((s) => synToken(s.id, counts[s.id] || 0, counts[s.id] ? '' : ' benchonly')).join('');
 }
-/** 화면 전환 연출: 전투 개시 · 보스전 · 페이즈 전환 */
-export function banner(kind: 'battle' | 'boss' | 'phase' | 'adversity', title: string, sub = '') {
+/** 화면 전환 연출: 전투 개시 · 보스전 · 페이즈 전환. 돌려주는 값 = 테마 연출이 화면을 다 덮었다가 걷히기 시작하는 때(ms, 그때 전투를 시작한다). 기본 배너면 0 */
+export function banner(kind: 'battle' | 'boss' | 'phase' | 'adversity', title: string, sub = ''): number {
   document.querySelector('.banner')?.remove();
-  if (TFX.banner(kind, title, sub)) return; // 메트로 인피니티 패스: 속도선 · 도형 · 탑승권 연출
+  const hold = TFX.banner(kind, title, sub); // 메트로 인피니티 패스: 노선색 패널 와이프 · 신호등 · 탑승권
+  if (hold >= 0) return hold;
   const el = document.createElement('div');
   el.className = `banner bn-${kind}`;
   el.setAttribute('aria-live', 'polite');
   el.innerHTML = `<div class="bn-band"><span class="bn-line"></span><b>${esc(title)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}<span class="bn-line"></span></div>`;
   document.body.appendChild(el);
   setTimeout(() => el.remove(), kind === 'boss' ? 2300 : 1800);
+  return 0;
 }
 /** 상세 능력치 창 (상세 보기 패널 바깥, 위치는 layoutPanels 가 잡는다) */
 export function statPopHtml(run: RunState) {

@@ -2,7 +2,7 @@
 //   · 갤럭시: 화면 뒤(본문 아래) 별빛 층 — 천천히 흐르는 별 3층 · 반짝임 · 가끔 유성
 //   · 메트로 인피니티 패스: 화면 뒤 '창밖 별빛' — 달리는 열차 창밖처럼 별이 오른쪽에서 왼쪽으로 흐르는 3층 · 가끔 지나가는 빛 열차.
 //     런 출발 · 보스 · 상점에 들어갈 때만 열차가 들어와 화면을 덮고, 다음 역 안내판(새 화면의 그림이 다 받아질 때까지 · 받은 그림 수 = 역 점)을 보인 뒤 떠나며 다음 화면을 드러낸다.
-//     전투 진입은 속도선 · 도형 · 별빛 꼬리가 띠 안을 질주하고 탑승권이 미끄러져 들어와 펀치된다 (banner).
+//     전투 진입은 노선색 사선 패널이 덮고 신호등이 켜졌다 꺼지면(출발) 걷히며 전투가 시작된다 (banner).
 // 움직임은 모두 Web Animations 의 transform · opacity 라 합성기에서 돌고 메인 스레드는 거의 쓰지 않는다
 // (별 타일은 시작할 때 canvas 로 한 번만 그린다). 배경 층은 pointer-events: none 이라 입력을 막지 않는다 (열차가 덮는 동안만 막는다).
 // 움직임 줄이기 설정이면 정지 화면 · 기본 배너. 전투 중에는 배경 층을 내린다 (onScreen).
@@ -134,67 +134,87 @@ function sweep() {
   setTimeout(() => el.remove(), 620);
 }
 
-// ───────────────────────── 메트로: 전투 진입 (main.ts banner 대신)
-// 띠 = 비스듬한 잉크 띠 (켜질 때 위아래로 열리고 끝에 닫힌다). 띠 안: 속도선(노선색 · 길이 · 속도 제각각) · 도형(고리 · 마름모 · 원 · 갈매기표 · 반짝이)이 오른쪽에서 왼쪽으로 질주,
-// 바닥에 선로가 흐른다. 가운데 탑승권이 앞으로 기울어 미끄러져 들어와 멈추고 펀치 → 다시 기울어 왼쪽으로 빠진다. 줄이기: 속도선 몇 줄 · 도형 없음
+// ───────────────────────── 메트로: 전투 진입 · 페이즈 전환 (app/common.ts banner 대신)
+// 큰 면 위주 (선 장식 대신): 노선색 사선 패널 3장(민트 → 보라 → 잉크)이 F1 중계 화면처럼 오른쪽에서 겹쳐 쓸고 들어와 화면을 덮는다.
+// 잉크 패널 위: 큰 원판 · 사분원 · 갈매기표 묶음 · 망점 띠 · 바코드 기둥(디자인 시스템 표식을 크게) + 탑승권(도장처럼 찍힌다) + 신호등 5개.
+// 신호등이 하나씩 켜졌다가 한꺼번에 꺼지는 순간(출발) 패널이 같은 방향으로 빠지며 보드가 드러나고, 그때 전투가 시작한다 (돌려주는 값).
+// 보스 = 신호 주황 패널 · 위아래 경고 빗금 띠 · 느린 신호등, 역경 = 복숭아 경고 띠, 페이즈 = 신호등 대신 큰 노선 번호 (전투 아님 → 기다리지 않는다).
+// 줄이기: 패널 없이 띠 + 탑승권만 (기다리지 않는다). 움직임 줄이기: 기본 배너
 type BannerKind = 'battle' | 'boss' | 'phase' | 'adversity';
 const KICK: Record<BannerKind, string> = { battle: 'DEPARTURE', adversity: 'RAPID', boss: 'EXPRESS · NO STOP', phase: 'LINE CHANGE' };
-const SHAPES = ['ring', 'dia', 'disc', 'chev', 'spk'] as const;
-/** 전투 개시 · 보스 · 역경 · 페이즈 연출. 메트로 테마(연출 켜기 · 줄이기)가 맡았으면 true (아니면 기본 배너) */
-export function banner(kind: BannerKind, title: string, sub = ''): boolean {
-  if (!metroOn() || reduced()) return false;
+const SLAM = 'cubic-bezier(.7, 0, .2, 1)', POP = 'cubic-bezier(.3, 1.5, .5, 1)', OUTE = 'cubic-bezier(.6, 0, .9, .35)';
+/** 시각(ms) 기준 키프레임 → 한 애니메이션 (마지막 상태 유지). pts: [시각, 속성들, 그 구간 easing] */
+function tl(el: Element, T: number, pts: [number, Keyframe, string?][]) {
+  const fr = pts.map(([t, k, ez]) => ({ ...k, offset: Math.max(0, Math.min(1, t / T)), ...(ez ? { easing: ez } : {}) }));
+  if (fr[0].offset !== 0) fr.unshift({ ...pts[0][1], offset: 0 });
+  if (fr[fr.length - 1].offset !== 1) fr.push({ ...pts[pts.length - 1][1], offset: 1 });
+  return el.animate(fr, { duration: T, fill: 'both' });
+}
+/** 전투 개시 · 보스 · 역경 · 페이즈 연출. 메트로(켜기 · 줄이기)가 맡았으면 전투를 시작할 때까지 기다릴 시간(ms, 0 = 기다리지 않음), 아니면 -1 (기본 배너) */
+export function banner(kind: BannerKind, title: string, sub = ''): number {
+  if (!metroOn() || reduced()) return -1;
   document.querySelector('.mt-go')?.remove();
-  const low = cur.level === 'low';
-  const T = kind === 'boss' ? 2200 : 1700;
+  return cur.level === 'low' ? goLow(kind, title, sub) : goFull(kind, title, sub);
+}
+const tkHtml = (kind: BannerKind, title: string, sub: string) => `<div class="mg-tk"><div class="mg-tk-a"><span class="mg-k"><b>ADMIT ONE</b><i></i><span>${KICK[kind]}</span></span><b class="mg-t">${esc(title)}</b>${sub ? `<span class="mg-r"><span>TO</span><b>${esc(sub)}</b><i></i></span>` : ''}</div><span class="mg-code"></span><i class="mg-punch"></i></div>`;
+function goFull(kind: BannerKind, title: string, sub: string) {
+  const boss = kind === 'boss', phase = kind === 'phase', warn = boss || kind === 'adversity';
+  const T = boss ? 1900 : phase ? 1350 : 1500;
+  const OUT = boss ? 1340 : phase ? 900 : 1000; // 패널이 걷히기 시작하는 때 (= 출발)
   const el = document.createElement('div');
-  el.className = `mt-go mt-go-${kind}${low ? ' low' : ''}`;
+  el.className = `mt-go mt-go-${kind}`;
   el.setAttribute('role', 'status');
   el.setAttribute('aria-live', 'polite');
-  el.innerHTML = `<div class="mt-go-band"><div class="mt-go-fx"></div><i class="mt-go-rail"></i></div>
-    <div class="mt-go-tk"><span class="mt-go-k"><b>ADMIT ONE</b><i></i><span>${KICK[kind]}</span></span><b class="mt-go-t">${esc(title)}</b>${sub ? `<span class="mt-go-r"><span>TO</span><b>${esc(sub)}</b><i></i></span>` : ''}<span class="mt-go-code"></span><i class="mt-go-punch"></i></div>`;
+  const num = phase ? (title.match(/\d+/)?.[0] || '1').padStart(2, '0') : '';
+  el.innerHTML = `<i class="mg-pan p1"></i><i class="mg-pan p2"></i><i class="mg-pan p3"></i>
+    <div class="mg-stage">
+      <div class="mg-shapes" aria-hidden="true"><i class="mg-disc"></i><i class="mg-quarter"></i><i class="mg-chev"></i><i class="mg-dots"></i><i class="mg-bars"></i>${warn ? '<i class="mg-hz t"></i><i class="mg-hz b"></i>' : ''}</div>
+      ${phase ? `<b class="mg-num" aria-hidden="true">${num}</b>` : `<div class="mg-lights" aria-hidden="true">${'<i><b></b></i>'.repeat(5)}</div>`}
+      ${tkHtml(kind, title, sub)}
+    </div>`;
   document.body.appendChild(el);
-  const band = el.querySelector<HTMLElement>('.mt-go-band')!, fx = el.querySelector<HTMLElement>('.mt-go-fx')!, tk = el.querySelector<HTMLElement>('.mt-go-tk')!;
-  const o = (ms: number) => ms / T; // 시간(ms) → 키프레임 위치
-  const tilt = kind === 'boss' ? 'rotate(-5deg)' : 'rotate(-3deg)'; // 띠는 비스듬히 (달리는 쪽이 살짝 내려간다)
-  // 구간마다 easing (전체 easing 은 시간축 자체를 휘게 해 들어오고 나가는 때가 어긋난다)
-  const IN = 'cubic-bezier(.2, .8, .3, 1)', OUT = 'cubic-bezier(.6, 0, .9, .4)';
-  band.animate([{ transform: `${tilt} scaleY(0)`, easing: IN }, { transform: `${tilt} scaleY(1)`, offset: o(200) }, { transform: `${tilt} scaleY(1)`, offset: o(T - 260), easing: OUT }, { transform: `${tilt} scaleY(0)` }], { duration: T, fill: 'both' });
-  // 속도선: 길이 · 굵기 · 높이 · 속도가 제각각, 띠가 열려 있는 동안 되풀이
-  const W = innerWidth;
-  for (let k = 0, n = low ? 7 : 26; k < n; k++) {
-    const i = document.createElement('i');
-    i.className = `sl c${1 + Math.floor(Math.random() * 4)}`;
-    const w = rnd(0.08, 0.42) * W, d = rnd(240, 620);
-    i.style.cssText = `top:${rnd(4, 94).toFixed(1)}%;width:${w.toFixed(0)}px;height:${pick([1, 1, 2, 2, 3, 5])}px`;
-    fx.appendChild(i);
-    i.animate([{ transform: `translateX(${W + 20}px)` }, { transform: `translateX(${-w - 20}px)` }], { duration: d, delay: rnd(60, 420), iterations: Math.ceil((T - 500) / d), easing: 'linear' });
+  const $ = (q: string) => el.querySelector<HTMLElement>(q)!;
+  const SK = 'skewX(-14deg)';
+  // 패널: 민트 · 보라 · 잉크 순서로 들어오고, 출발 때 잉크 · 보라 · 민트 순서로 빠진다
+  el.querySelectorAll('.mg-pan').forEach((p, k) => {
+    const inEnd = 260 + k * 70, outAt = OUT + (2 - k) * 55;
+    tl(p, T, [[k * 60, { transform: `translateX(118vw) ${SK}` }, SLAM], [inEnd, { transform: `translateX(-44vw) ${SK}` }], [outAt, { transform: `translateX(-44vw) ${SK}` }, OUTE], [outAt + 360, { transform: `translateX(-250vw) ${SK}` }]]);
+  });
+  // 무대(잉크 패널 위 내용): 덮인 뒤 나타나고 출발 직후 사라진다
+  tl($('.mg-stage'), T, [[300, { opacity: 0 }], [360, { opacity: 1 }], [OUT + 40, { opacity: 1 }], [OUT + 140, { opacity: 0 }]]);
+  tl($('.mg-disc'), T, [[300, { transform: 'scale(.55)' }, POP], [560, { transform: 'scale(1)' }], [OUT, { transform: 'scale(1)' }]]);
+  tl($('.mg-quarter'), T, [[320, { transform: 'translate(-30%, 30%)' }, SLAM], [560, { transform: 'translate(0, 0)' }]]);
+  tl($('.mg-chev'), T, [[330, { transform: 'translateX(40vw)' }], [OUT + 140, { transform: 'translateX(-60vw)' }]]); // 갈매기표 묶음이 계속 지나간다 (속도감)
+  tl($('.mg-dots'), T, [[330, { transform: 'translateX(18vw)' }], [OUT + 140, { transform: 'translateX(-18vw)' }]]);
+  tl($('.mg-bars'), T, [[380, { transform: 'scaleY(0)' }, SLAM], [600, { transform: 'scaleY(1)' }]]);
+  el.querySelectorAll('.mg-hz').forEach((h, k) => tl(h, T, [[330, { transform: `translateX(${k ? '-' : ''}30vw)` }], [OUT + 140, { transform: `translateX(${k ? '' : '-'}30vw)` }]]));
+  // 탑승권: 도장처럼 크게 찍혔다가, 출발 때 앞으로 기울며 빠진다
+  tl($('.mg-tk'), T, [[340, { transform: 'scale(1.22) rotate(-2deg)', opacity: 0 }, POP], [540, { transform: 'scale(1) rotate(-2deg)', opacity: 1 }], [OUT, { transform: 'scale(1) rotate(-2deg)', opacity: 1 }, OUTE],
+    [OUT + 220, { transform: 'translateX(-46vw) skewX(18deg) rotate(-2deg)', opacity: 0 }]]);
+  tl($('.mg-punch'), T, [[OUT - 160, { transform: 'scale(0)' }, POP], [OUT - 60, { transform: 'scale(1)' }]]);
+  if (phase) tl($('.mg-num'), T, [[340, { transform: 'translateX(12vw) scale(1.1)', opacity: 0 }, SLAM], [620, { transform: 'none', opacity: 1 }], [OUT, { transform: 'none', opacity: 1 }]]);
+  else {
+    // 신호등: 하나씩 켜지고 출발 때 한꺼번에 꺼진다 (보스는 느리게)
+    const step = boss ? 140 : 95, first = boss ? 560 : 430;
+    el.querySelectorAll('.mg-lights b').forEach((b, k) => tl(b, T, [[first + k * step, { opacity: 0, transform: 'scale(.4)' }, POP], [first + k * step + 90, { opacity: 1, transform: 'scale(1)' }], [OUT - 20, { opacity: 1, transform: 'scale(1)' }], [OUT, { opacity: 0, transform: 'scale(1)' }]]));
   }
-  // 도형: 띠 위아래로 조금 넘쳐 지나간다 (가까운 것은 크고 빠르다), 반짝이는 늘어진 별빛 꼬리
-  if (!low) for (let k = 0; k < 11; k++) {
-    const s = document.createElement('s'), z = Math.random(), size = 10 + 54 * z, kind2 = pick(SHAPES);
-    s.className = `sh ${kind2} c${1 + Math.floor(Math.random() * 4)}`;
-    s.style.cssText = `top:calc(${rnd(-14, 100).toFixed(0)}%);width:${size.toFixed(0)}px;height:${size.toFixed(0)}px`;
-    band.appendChild(s);
-    const rot = rnd(90, 260) * (Math.random() < 0.5 ? -1 : 1), stretch = kind2 === 'spk' ? 'scaleX(2.6)' : '';
-    s.animate([{ transform: `translateX(${W + 80}px) ${stretch} rotate(0deg)` }, { transform: `translateX(-120px) ${stretch} rotate(${rot}deg)` }],
-      { duration: 900 - 520 * z, delay: rnd(80, T - 900), easing: 'cubic-bezier(.3, 0, .7, 1)', fill: 'both' });
-  }
-  // 선로: 침목이 흐른다
-  const rail = el.querySelector<HTMLElement>('.mt-go-rail')!;
-  rail.animate([{ backgroundPosition: '0 0' }, { backgroundPosition: '-96px 0' }], { duration: low ? 260 : 160, iterations: Infinity });
-  // 탑승권: 앞으로 기울어 들어와 살짝 넘쳤다 서고, 펀치, 다시 기울어 왼쪽으로
-  tk.animate([
-    { transform: 'translateX(60vw) skewX(18deg)', opacity: 0, easing: 'cubic-bezier(.15, .7, .3, 1)' },
-    { transform: 'translateX(-14px) skewX(-5deg)', opacity: 1, offset: o(300), easing: 'ease-out' },
-    { transform: 'translateX(0) skewX(0deg)', opacity: 1, offset: o(420) },
-    { transform: 'translateX(0) skewX(0deg)', opacity: 1, offset: o(T - 320), easing: 'cubic-bezier(.55, 0, .85, .3)' },
-    { transform: 'translateX(-70vw) skewX(22deg)', opacity: 0 },
-  ], { duration: T, fill: 'both' });
-  const punch = el.querySelector<HTMLElement>('.mt-go-punch')!;
-  punch.animate([{ transform: 'scale(0)', opacity: 0 }, { transform: 'scale(0)', opacity: 0, offset: o(560) }, { transform: 'scale(1.35)', opacity: 1, offset: o(640) }, { transform: 'scale(1)', opacity: 1, offset: o(720) }, { transform: 'scale(1)', opacity: 1 }], { duration: T, fill: 'both' });
-  if (kind === 'boss') tk.querySelector<HTMLElement>('.mt-go-t')!.animate([{ transform: 'none' }, { transform: 'none', offset: o(640) }, { transform: 'translateX(-5px)', offset: o(680) }, { transform: 'translateX(5px)', offset: o(720) }, { transform: 'translateX(-3px)', offset: o(760) }, { transform: 'none', offset: o(800) }, { transform: 'none' }], { duration: T });
+  if (boss) tl($('.mg-t'), T, [[700, { transform: 'none' }], [740, { transform: 'translateX(-6px)' }], [780, { transform: 'translateX(6px)' }], [820, { transform: 'translateX(-3px)' }], [860, { transform: 'none' }]]);
+  setTimeout(() => el.remove(), T + 80);
+  return phase ? 0 : OUT + 40;
+}
+/** 줄이기: 화면을 덮지 않는다. 잉크 띠 하나에 탑승권이 들어왔다 나간다 (기다리지 않는다) */
+function goLow(kind: BannerKind, title: string, sub: string) {
+  const T = kind === 'boss' ? 1500 : 1150;
+  const el = document.createElement('div');
+  el.className = `mt-go mt-go-${kind} low`;
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
+  el.innerHTML = `<div class="mg-band"></div>${tkHtml(kind, title, sub)}`;
+  document.body.appendChild(el);
+  tl(el.querySelector('.mg-band')!, T, [[0, { transform: 'scaleY(0)' }, SLAM], [180, { transform: 'scaleY(1)' }], [T - 220, { transform: 'scaleY(1)' }, OUTE], [T, { transform: 'scaleY(0)' }]]);
+  tl(el.querySelector('.mg-tk')!, T, [[60, { transform: 'translateX(40vw)', opacity: 0 }, SLAM], [300, { transform: 'none', opacity: 1 }], [T - 260, { transform: 'none', opacity: 1 }, OUTE], [T - 40, { transform: 'translateX(-40vw)', opacity: 0 }]]);
   setTimeout(() => el.remove(), T + 60);
-  return true;
+  return 0;
 }
 
 // ───────────────────────── 공통
