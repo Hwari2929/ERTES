@@ -55,7 +55,7 @@ const hex = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16))
 /** 검정을 w 만큼 섞은 색 */
 const shade = (c: string, w: number) => `#${hex(c).map((v) => Math.round(v * (1 - w)).toString(16).padStart(2, '0')).join('')}`;
 /** 층 안 세로 그라데이션 (2026-11-05 사용자): 같은 재료가 이어진 층은 아래가 짙고 위가 살짝 연하다 */
-const LAYER_SHADE = { bot: 0.16, top: 0.1 };
+const LAYER_SHADE = { bot: 0.21, top: 0.07 }; // 사용자: 0.16 · 0.1 → 0.21 · 0.07
 /** 흰색을 w 만큼 섞은 색 */
 const tint = (c: string, w: number) => `#${hex(c).map((v) => Math.round(v + (255 - v) * w).toString(16).padStart(2, '0')).join('')}`;
 const mix = (cs: string[]) => { const a = cs.map(hex); const m = [0, 1, 2].map((k) => Math.round(a.reduce((s, x) => s + x[k], 0) / a.length)); return `#${m.map((v) => v.toString(16).padStart(2, '0')).join('')}`; };
