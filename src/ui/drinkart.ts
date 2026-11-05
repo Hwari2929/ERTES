@@ -120,8 +120,8 @@ const deep = (c: string, ks = 1.35, kl = 0.58) => {
 /** 수면 · 음료 가장자리 (2026-11-05 사용자 방향): faceTint = 수면에 섞는 흰색 (처음 0.35 → 그 80% 는 0.28), nearGlow = 수면 앞 (아래) 끝에서 안쪽으로 밝게 퍼짐 (시안 0.675),
  *  farDark = 수면 뒤 (위) 끝에서 안쪽으로 짙게 (채도 ↑ 명도 ↓ · 무색 음료는 채도 그대로) 퍼짐 (시안 0.85) — 둘 다 수면 타원에 딱 맞는 원형 고리 + 수면 중심 쪽으로 옅어지는 직선 마스크,
  *  edgeDark = 음료 몸통이 잔 벽에서 안쪽으로 짙어지는 그라데이션 진하기 (역광 아래 층, 시안 0.5), blur = 음료 뒤 배경 흐림 (backdrop-filter, --dk-blur) */
-/** 잔 그림 겹 (color-dodge) 진하기 — 2026-11-05 사용자: 록 글라스만 벽이 불투명한 굵은 선이라 혼자 밝다 → 나머지 잔은 0.6 → 0.9 (시안 A, 파인트 · 고블릿은 0.8), 록 글라스는 0.6 의 90% */
-export const GLASS_OPACITY: Record<string, number> = { rock: 0.54, highball: 0.9, pint: 0.8, coupe: 0.9, wine: 0.9, goblet: 0.8 };
+/** 잔 그림 겹 (color-dodge) 진하기 — 2026-11-05 사용자: 록 글라스만 벽이 불투명한 굵은 선이라 혼자 밝다 → 나머지 잔은 0.6 → 0.9 (시안 A, 파인트 0.8 · 고블릿 0.7), 록 글라스는 0.6 의 90% */
+export const GLASS_OPACITY: Record<string, number> = { rock: 0.54, highball: 0.9, pint: 0.8, coupe: 0.9, wine: 0.9, goblet: 0.7 };
 export const SURF2 = { faceTint: 0.28, nearGlow: 0.675, farDark: 0.85, edgeDark: 0.5, blur: true }; // 2026-11-05 사용자: 시안 5단계 모두 켬
 /** 흰색을 w 만큼 섞은 색 */
 const tint = (c: string, w: number) => `#${hex(c).map((v) => Math.round(v + (255 - v) * w).toString(16).padStart(2, '0')).join('')}`;
