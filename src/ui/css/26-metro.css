@@ -3,16 +3,12 @@
    · 누를 수 있는 것과 아닌 것을 모양으로 나눈다 —
        창 · 패널 · 노드 표 · 열린 보급 카드 = 평평한 판 (1.5px 윤곽 + 위 노선 띠, 그림자 없음)
        보조 단추 = 평평한 단추 (윤곽 · 둥글기 6 · 같은 높이), 주 동작 = 양 끝 반원 홈이 파인 티켓 (한 화면에 하나)
-       고르는 카드 = 아래 두께 (누르면 내려앉는다), 가리키면 보라 윤곽, 고른 것은 선택색
+       고르는 카드 = 아래 두께 (누르면 내려앉는다), 가리키면 밝은 회색 윤곽(--mt-hover), 고른 것은 선택색
    · 연출(themefx.ts): 창밖 별빛 · 런 출발 · 보스 · 상점 열차 · 전투 진입(노선색 패널 와이프 + 신호등) */
-[data-ui-theme="metro"] body {
-  background:
-    radial-gradient(circle at 0 100%, color-mix(in srgb, var(--mt-a) 15%, transparent), transparent 46%) fixed,
-    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--mt-b) 11%, transparent), transparent 40%) fixed,
-    linear-gradient(var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px fixed,
-    linear-gradient(90deg, var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px fixed,
-    var(--bg);
-}
+[data-ui-theme="metro"] body { background: var(--mt-floor); }
+[data-ui-theme="metro"] .sticky-actions, [data-ui-theme="metro"] .prep .board-head { background: var(--mt-floor); } /* 화면에 붙는 띠: 같은 고정 바닥 → 모눈 위에 네모가 드러나지 않는다 */
+[data-ui-theme="metro"] .title-screen { --c-select: var(--gx-select); --c-select-ink: var(--gx-select-ink); --c-brand: var(--gx-brand); --c-credit: var(--gx-credit); } /* 타이틀 = 메트로 제외 구역: 갤럭시 색 */
+[data-ui-theme="metro"] .pref input { accent-color: var(--mt-b); } /* 체크 = 민트 (기본 규칙의 선택색을 덮는다) */
 .mt-win > i { position: absolute; }
 .mt-lt { height: 3px; opacity: 0; border-radius: var(--r-pill);
   background: repeating-linear-gradient(90deg, var(--mt-a) 0 34px, transparent 34px 40px, var(--mt-b) 40px 74px, transparent 74px 80px); }
@@ -112,7 +108,7 @@
 
 /* ── 단추: 보조 = 평평한 판, 주 동작 = 티켓 (양 끝 반원 홈은 배경 그림 — 단축키 표 · 포커스 링이 잘리지 않는다) */
 [data-ui-theme="metro"] .btn:not(:is(.bar, .ct, .title-screen, .adv) *) { border: 1.5px solid var(--mt-edge); border-radius: var(--r-md); box-shadow: none; transition: border-color .15s, background-color .15s, translate .09s; }
-[data-ui-theme="metro"] .btn:not(:is(.bar, .ct, .title-screen, .adv) *):hover:not(:disabled) { border-color: var(--c-select); background-color: color-mix(in srgb, var(--c-select) 9%, var(--panel-2)); }
+[data-ui-theme="metro"] .btn:not(:is(.bar, .ct, .title-screen, .adv) *):hover:not(:disabled) { border-color: var(--mt-hover); background-color: color-mix(in srgb, var(--mt-paper) 6%, var(--panel-2)); } /* 가리킴 = 밝은 회색 (선택색은 고른 것 · 다음 행동에만) */
 [data-ui-theme="metro"] .btn:not(:is(.bar, .ct, .title-screen, .adv) *, .dpv-btn):active:not(:disabled) { translate: 0 1px; background-color: color-mix(in srgb, var(--mt-deep) 45%, var(--panel-2)); }
 [data-ui-theme="metro"] .btn.ghost:not(:is(.bar, .ct, .title-screen, .adv) *):not(:hover) { background-color: transparent; }
 [data-ui-theme="metro"] .btn.on:not(:is(.bar, .ct, .title-screen, .adv) *) { border-color: var(--c-select); color: var(--c-select); }
@@ -134,8 +130,9 @@
   mask: radial-gradient(circle at 0 50%, transparent 5.5px, var(--c-black) 6px) left / 51% 100% no-repeat, radial-gradient(circle at 100% 50%, transparent 5.5px, var(--c-black) 6px) right / 51% 100% no-repeat; } /* 홈 고리 = 구멍 가장자리(5.75px)에서 1px — 테두리 끝이 고리 밑에 숨는다 */
 [data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *, .tiny):hover:not(:disabled) { --tk1: color-mix(in srgb, var(--c-select) 84%, var(--c-white)); --tk2: color-mix(in srgb, var(--mt-a) 84%, var(--c-white)); border-color: transparent; background: none; filter: none; }
 [data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *, .tiny):active:not(:disabled) { --tk1: color-mix(in srgb, var(--c-select) 82%, var(--mt-deep)); --tk2: color-mix(in srgb, var(--mt-a) 82%, var(--mt-deep)); background: none; }
-[data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *, .tiny):disabled { --tk1: color-mix(in srgb, var(--c-select) 38%, var(--panel-2)); --tk2: color-mix(in srgb, var(--mt-a) 30%, var(--panel-2)); --tk-edge: color-mix(in srgb, var(--c-select) 34%, var(--mt-edge)); --tk-dot: none;
-  border-color: transparent; background: none; }
+[data-ui-theme="metro"] .btn.primary:not(:is(.bar, .ct, .title-screen, .adv) *, .tiny):disabled { --tk1: color-mix(in srgb, var(--c-select) 24%, var(--panel-2)); --tk2: color-mix(in srgb, var(--mt-a) 20%, var(--panel-2)); --tk-edge: color-mix(in srgb, var(--c-select) 34%, var(--mt-edge)); --tk-dot: none;
+  border-color: transparent; background: none; color: color-mix(in srgb, var(--c-text) 86%, transparent); } /* 비활성 = 옅은 채움 + 밝은 글씨 ('증강을 고르세요' 같은 안내가 읽혀야 한다) */
+[data-ui-theme="metro"] .btn.danger-ghost:not(:is(.bar, .ct, .title-screen, .adv) *) { border-color: color-mix(in srgb, var(--c-danger-line) 55%, var(--mt-edge)); } /* 기물 방출: 붉은 윤곽 유지 */
 [data-ui-theme="metro"] .btn.danger:not(:is(.bar, .ct, .title-screen, .adv) *) { background-color: var(--c-bad); border-color: transparent; color: var(--mt-on); }
 [data-ui-theme="metro"] .btn.danger:not(:is(.bar, .ct, .title-screen, .adv) *):hover:not(:disabled) { background-color: color-mix(in srgb, var(--c-bad) 85%, var(--c-white)); border-color: transparent; }
 [data-ui-theme="metro"] :focus-visible { outline: 2px solid var(--mt-a); outline-offset: 3px; }
@@ -143,8 +140,9 @@
 /* ── 창 · 판: 누를 수 없는 것 = 평평한 판 (1.5px 윤곽 · 위 노선 띠 · 그림자 없음). 덮개 = 망점 */
 [data-ui-theme="metro"] .modal:not(.privilege, .despair) { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r); box-shadow: none;
   background-image: linear-gradient(90deg, var(--mt-a) 0 64%, var(--mt-b) 64%); background-size: 100% 5px; background-repeat: no-repeat; }
-[data-ui-theme="metro"] .um { border: 1.5px solid var(--mt-edge); box-shadow: inset 0 5px 0 var(--mt-a); }
-[data-ui-theme="metro"] .modal-bg:not(.pv-bg, .dp-bg) { background: radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 9%, transparent) 1px, transparent 1.6px) 0 0 / 6px 6px, var(--overlay); }
+[data-ui-theme="metro"] .um { border: 1.5px solid var(--mt-edge); box-shadow: none; }
+[data-ui-theme="metro"] .um::after { content: ''; position: absolute; inset: 0; z-index: var(--z-float); border-radius: inherit; pointer-events: none; background: linear-gradient(90deg, var(--mt-a) 0 64%, var(--mt-b) 64%) top / 100% 5px no-repeat; } /* 노선 띠: 오른쪽 칸 바탕에 가리지 않게 맨 위 층 */
+[data-ui-theme="metro"] .modal-bg:not(.pv-bg, .dp-bg, .res-bg:not(.win)) { background: radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 9%, transparent) 1px, transparent 1.6px) 0 0 / 6px 6px, var(--overlay); }
 [data-ui-theme="metro"] .toast { background: var(--panel); color: var(--c-text); border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-sm); box-shadow: inset 0 3px 0 var(--mt-b); }
 /* 상단 바 = HUD: 굵은 아래 선 + 노선 띠, 칩은 각진 표식 */
 [data-ui-theme="metro"] .top { border-bottom: 1.5px solid var(--mt-edge); }
@@ -158,9 +156,9 @@
 [data-ui-theme="metro"] .cx-tab { border: 1.5px solid transparent; border-bottom: 0; border-radius: var(--mt-r-sm) var(--mt-r-sm) 0 0; }
 [data-ui-theme="metro"] .cx-tab.on { background: var(--mt-paper); color: var(--mt-on); border-color: var(--mt-paper); }
 
-/* ── 고르는 카드 (증강 · 장비 · 포탑 장비 · 전역 증강 · 뒤집을 보급): 아래 두께, 가리키면 보라 윤곽, 고른 것은 선택색, 누르면 내려앉는다 */
+/* ── 고르는 카드 (증강 · 장비 · 포탑 장비 · 전역 증강 · 뒤집을 보급): 아래 두께, 가리키면 밝은 회색 윤곽, 고른 것은 선택색(가리켜도 유지), 누르면 내려앉는다 */
 [data-ui-theme="metro"] :is(.card, .gcard, .aug-opt):not(:is(.bar, .ct) *) { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); box-shadow: 0 4px 0 var(--mt-deep); }
-[data-ui-theme="metro"] :is(.card, .gcard, .aug-opt):not(:is(.bar, .ct) *, [disabled], .open):hover { border-color: var(--mt-a); box-shadow: 0 6px 0 var(--mt-deep); }
+[data-ui-theme="metro"] :is(.card, .gcard, .aug-opt):not(:is(.bar, .ct) *, [disabled], .open, .on):hover { border-color: var(--mt-hover); box-shadow: 0 6px 0 var(--mt-deep); } /* 고른 카드(.on)는 가리켜도 선택색 */
 [data-ui-theme="metro"] :is(.card, .gcard, .aug-opt):not(:is(.bar, .ct) *, [disabled], .open):active { translate: 0 3px; box-shadow: 0 1px 0 var(--mt-deep); }
 [data-ui-theme="metro"] :is(.aug-opt, .card).on { border-color: var(--c-select); box-shadow: 0 4px 0 color-mix(in srgb, var(--c-select) 40%, var(--mt-deep)); }
 [data-ui-theme="metro"] .card[disabled] { box-shadow: none; }
@@ -189,10 +187,13 @@
     radial-gradient(circle at 100% calc(100% - var(--stub)), transparent calc(var(--mt-notch) - .5px), var(--c-black) var(--mt-notch)) right / 51% 100% no-repeat;
   mask: radial-gradient(circle at 0 calc(100% - var(--stub)), transparent calc(var(--mt-notch) - .5px), var(--c-black) var(--mt-notch)) left / 51% 100% no-repeat,
     radial-gradient(circle at 100% calc(100% - var(--stub)), transparent calc(var(--mt-notch) - .5px), var(--c-black) var(--mt-notch)) right / 51% 100% no-repeat; }
+[data-ui-theme="metro"] .pcard .btn.pc-pick.primary { padding-inline: 14px; border: 1.5px solid var(--mt-edge); background: var(--panel-2); color: var(--c-text); } /* 카드 안 '선택' = 보조 단추 (쿠폰은 창의 '영입' 하나) */
+[data-ui-theme="metro"] .pcard .btn.pc-pick.primary::after { display: none; }
+[data-ui-theme="metro"] .pcard .btn.pc-pick.primary:hover:not(:disabled) { border-color: var(--mt-hover); background: color-mix(in srgb, var(--mt-paper) 6%, var(--panel-2)); }
 [data-ui-theme="metro"] .pcard.sel { border-color: var(--c-select); box-shadow: inset 0 0 0 1.5px var(--c-select); }
 [data-ui-theme="metro"] .mt-pass { display: block; position: absolute; inset: 0; z-index: var(--z-raise); pointer-events: none; color: var(--mt-paper); }
 [data-ui-theme="metro"] .mt-pass > b { position: absolute; left: 14px; top: 9px; font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
-[data-ui-theme="metro"] .mt-pass > i { position: absolute; right: 14px; top: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--mt-a); }
+[data-ui-theme="metro"] .mt-pass > i { display: none; position: absolute; right: 14px; top: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--mt-a); }
 [data-ui-theme="metro"] .mt-pass-stub { position: absolute; left: 0; right: 0; bottom: 0; height: var(--stub); display: flex; align-items: center; gap: 10px; padding: 0 14px; background: linear-gradient(100deg, var(--ps-a), var(--ps-b)); color: var(--mt-on);
   --ps-a: var(--mt-b); --ps-b: var(--mt-a); transition: --ps-a .25s ease, --ps-b .25s ease; }
 [data-ui-theme="metro"] .pcard.sel .mt-pass-stub { --ps-a: var(--mt-a); --ps-b: var(--c-select); } /* 고르면 스텁 = 보라 → 복숭아 (0.25초, 아래 @property 로 색이 이어진다) */
@@ -212,7 +213,7 @@
 [data-ui-theme="metro"] .pcard[data-ct="MARK"] { --ct-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260' fill='none' stroke='black' stroke-width='1.5'%3E%3Ccircle cx='130' cy='130' r='16'/%3E%3Ccircle cx='130' cy='130' r='40'/%3E%3Ccircle cx='130' cy='130' r='66'/%3E%3Ccircle cx='130' cy='130' r='104'/%3E%3Cpath d='M130 56v12M130 192v12M56 130h12M192 130h12'/%3E%3C/svg%3E") right -60px top -10px / 260px 260px no-repeat,
   linear-gradient(var(--c-black), var(--c-black)) right 69.25px top 0 / 1.5px 100% no-repeat, linear-gradient(var(--c-black), var(--c-black)) left 0 top 119.25px / 100% 1.5px no-repeat; } /* 명사수: 조준경 (동심원 · 눈금 · 십자선) */
 [data-ui-theme="metro"] .pcard[data-ct="VAN"] { --ct-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='700' viewBox='0 0 400 700' fill='none' stroke='black' stroke-width='1.5'%3E%3Cpath d='M-150 700 287 0 M-136 700 301 0 M-122 700 315 0 M-62 700 375 0 M-48 700 389 0 M46 700 483 0'/%3E%3Cpath d='M0 250 400 510'/%3E%3C/svg%3E") center / 400px 700px no-repeat; } /* 돌격가: 속도선 묶음 + 엇갈린 선 */
-[data-ui-theme="metro"] .pcard[data-ct="SPEC"] { --ct-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300' fill='none' stroke='black' stroke-width='1.5'%3E%3Ccircle cx='150' cy='150' r='24'/%3E%3Ccircle cx='150' cy='150' r='72'/%3E%3Ccircle cx='150' cy='150' r='112' stroke-dasharray='2 6'/%3E%3Ccircle cx='209' cy='108.7' r='7'/%3E%3Cpath d='M43.5 224.6 256.5 75.4'/%3E%3C/svg%3E") center top -20px / 300px 300px no-repeat,
+[data-ui-theme="metro"] .pcard[data-ct="SPEC"] { --ct-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300' fill='none' stroke='black' stroke-width='1.5'%3E%3Ccircle cx='150' cy='150' r='24'/%3E%3Ccircle cx='150' cy='150' r='72'/%3E%3Ccircle cx='150' cy='150' r='112'/%3E%3Ccircle cx='209' cy='108.7' r='7'/%3E%3Cpath d='M43.5 224.6 256.5 75.4'/%3E%3C/svg%3E") center top -20px / 300px 300px no-repeat,
   linear-gradient(color-mix(in srgb, var(--c-black) 35%, transparent) 1px, transparent 1px) 0 0 / 20px 20px, linear-gradient(90deg, color-mix(in srgb, var(--c-black) 35%, transparent) 1px, transparent 1px) 0 0 / 20px 20px; } /* 전문가: 설계 모눈 · 궤도 (원 · 점선 원 · 위성 · 축) */
 [data-ui-theme="metro"] .pcard[data-ct="CMD"] { --ct-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600' viewBox='0 0 600 600' fill='none' stroke='black' stroke-width='1.5'%3E%3Ccircle cx='300' cy='300' r='28'/%3E%3Ccircle cx='300' cy='300' r='38'/%3E%3Cpath d='M352.0 300.0 630.0 300.0 M350.2 313.5 618.8 385.4 M345.0 326.0 585.8 465.0 M336.8 336.8 533.3 533.3 M326.0 345.0 465.0 585.8 M313.5 350.2 385.4 618.8 M300.0 352.0 300.0 630.0 M286.5 350.2 214.6 618.8 M274.0 345.0 135.0 585.8 M263.2 336.8 66.7 533.3 M255.0 326.0 14.2 465.0 M249.8 313.5 -18.8 385.4 M248.0 300.0 -30.0 300.0 M249.8 286.5 -18.8 214.6 M255.0 274.0 14.2 135.0 M263.2 263.2 66.7 66.7 M274.0 255.0 135.0 14.2 M286.5 249.8 214.6 -18.8 M300.0 248.0 300.0 -30.0 M313.5 249.8 385.4 -18.8 M326.0 255.0 465.0 14.2 M336.8 263.2 533.3 66.7 M345.0 274.0 585.8 135.0 M350.2 286.5 618.8 214.6'/%3E%3C/svg%3E") center top -180px / 600px 600px no-repeat; } /* 지휘관: 방사선 · 이중 고리 */
 [data-ui-theme="metro"] .pcard .pc-panel { inset: 28px 0 var(--stub); }
@@ -246,6 +247,21 @@
   [data-ui-theme="metro"] .mt-pass > b { left: 10px; top: 7px; }
   [data-ui-theme="metro"] .mt-pass > i { right: 10px; top: 7px; }
 }
+/* 가로 휴대폰 (높이 560px 이하 — 기본 CSS 가 카드를 압축하는 조건): 머리 줄(BOARDING PASS)을 접고 사진 창을 위로, 스텁을 줄인다.
+   폭 기준(640px)만 두면 844×390 같은 가로 화면에 보정이 걸리지 않아 이름 · 유형 · 순번이 겹치고 잘린다 */
+@media (orientation: landscape) and (max-height: 560px) {
+  [data-ui-theme="metro"] :is(.pslot, .pcard) { --stub: 28px; }
+  [data-ui-theme="metro"] :is(.rc-track, .car-track) { gap: 14px; }
+  [data-ui-theme="metro"] .mt-pass > b { display: none; }
+  [data-ui-theme="metro"] .mt-code { width: 30px; height: 10px; }
+  [data-ui-theme="metro"] .mt-pass-stub { gap: 6px; padding: 0 10px; }
+  [data-ui-theme="metro"] .mt-pass-stub b { font-size: var(--fs-xs); }
+  [data-ui-theme="metro"] .mt-pass-stub em { font-size: var(--fs-md); }
+  [data-ui-theme="metro"] .pcard .pc-art { inset: 6px 6px calc(var(--stub) + 2px); }
+  [data-ui-theme="metro"] .pcard .pc-panel { inset: 0 0 var(--stub); }
+  [data-ui-theme="metro"] .pcard .pc-syn { top: 8px; left: 8px; }
+  [data-ui-theme="metro"] .pcard .pc-full { top: 8px; right: 30px; } /* 오른쪽 위 단축키 숫자 칸을 비운다 */
+}
 
 /* ── 특권 증강 (런 출발): 막 = 닫히는 스크린도어. 두 문짝이 큰 원판의 반쪽씩을 싣고 와 가운데서 하나로 맞물린다, 아래는 노선 띠 · 안전선.
    카드 = 디자인 시스템 미니 카드 (머리 그림 칸 PRIVILEGE · 순번 / 절취선 / 이름 · 설명) */
@@ -260,10 +276,12 @@
 [data-ui-theme="metro"] .pv-stars { display: none; }
 [data-ui-theme="metro"] .pv-curtain::after { background: none; }
 [data-ui-theme="metro"] .pv-body h1 { text-shadow: none; }
+[data-ui-theme="metro"] .pv-body > :is(.pv-kicker, h1, p) { justify-self: center; padding: 3px 12px; border-radius: var(--r-sm); background: var(--mt-ink); } /* 머리 글씨는 잉크 판 위 (문의 고리 · 이음매 위로 올라가도 대비 유지) */
+[data-ui-theme="metro"] .pv-body > p { color: var(--c-text-2); }
 [data-ui-theme="metro"] .pv-kicker { color: var(--mt-b); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
 [data-ui-theme="metro"] .pv-row { counter-reset: pv; gap: 22px; }
 [data-ui-theme="metro"] .pv-card { counter-increment: pv; position: relative; gap: 10px; min-height: 250px; padding: 0 0 18px; overflow: visible; border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r); background: var(--panel); box-shadow: 0 5px 0 var(--mt-deep); }
-[data-ui-theme="metro"] .pv-card:hover { border-color: var(--c-select); box-shadow: 0 9px 0 var(--mt-deep); }
+[data-ui-theme="metro"] .pv-card:hover { border-color: var(--mt-hover); box-shadow: 0 9px 0 var(--mt-deep); }
 [data-ui-theme="metro"] .pv-card::before, [data-ui-theme="metro"] .pv-card::after { content: ''; position: absolute; top: 95px; width: 20px; height: 20px; border-radius: 50%; background: var(--mt-ink); } /* 절취 홈 */
 [data-ui-theme="metro"] .pv-card::before { left: -11px; } [data-ui-theme="metro"] .pv-card::after { right: -11px; }
 [data-ui-theme="metro"] .pv-sigil { position: relative; display: grid; place-items: center; height: 104px; margin: 0; border-radius: var(--mt-r) var(--mt-r) 0 0; border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 26%, transparent);
@@ -283,7 +301,7 @@
     radial-gradient(circle at calc(var(--ahw) + .5px) 100%, transparent calc(var(--ah-r) - 1.25px), var(--c-black) calc(var(--ah-r) - .75px)) bottom / 100% 51% no-repeat; } /* 절취 홈 = 실제 구멍 (뒤 바탕이 보인다). 테두리는 정수 1px: 1.5px 는 브라우저마다 1 · 1.5 로 달리 그려져 홈 고리 · 절취선 자리가 어긋난다 */
 [data-ui-theme="metro"] .ah-lead { position: relative; flex: none; width: var(--ahw); justify-items: center; align-content: center; padding: 12px 8px; border-radius: var(--mt-r-md) 0 0 var(--mt-r-md);
   background: color-mix(in srgb, var(--nc) 14%, var(--mt-ink)); } /* 스텁 너비는 내용과 무관하게 고정 */
-[data-ui-theme="metro"] .ah-lead .ah-step { white-space: nowrap; }
+[data-ui-theme="metro"] .ah-lead .ah-step { display: none; } /* 현재 · 다음 노드는 몸통 머리표(NOW BOARDING / NEXT STOP)가 말한다 — 같은 말 두 번 하지 않는다 (17 · 20번) */
 /* 홈 고리: 중심 = 스텁 오른쪽 끝 + .5px (절취선 가운데) · 카드 위 · 아래 변. 1px 고리의 안쪽 변 = 구멍 가장자리 → 카드 테두리 끝이 고리 밑에 숨는다 */
 [data-ui-theme="metro"] .ah-lead::before, [data-ui-theme="metro"] .ah-lead::after { content: ''; position: absolute; left: calc(var(--ahw) - .5px - var(--ah-r)); box-sizing: border-box; width: calc(var(--ah-r) * 2); height: calc(var(--ah-r) * 2);
   border: 1px solid var(--ah-edge); border-radius: 50%; pointer-events: none; }
@@ -291,7 +309,7 @@
 /* 절취선 (--mt-perf): 위 · 아래 홈 사이만 — 고리에서 3px 떨어져 끝난다 */
 [data-ui-theme="metro"] .ah-card::after { content: ''; position: absolute; left: calc(var(--ahw) - 1px); top: calc(var(--ah-r) + 2px); bottom: calc(var(--ah-r) + 2px); border-left: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 22%, transparent); pointer-events: none; }
 [data-ui-theme="metro"] .ah-body { padding: 12px 16px; }
-[data-ui-theme="metro"] .ah-body::before { content: 'NEXT STOP'; display: block; margin-bottom: 4px; color: var(--c-text-2); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
+[data-ui-theme="metro"] .ah-body::before { content: 'NEXT STOP'; display: block; margin-bottom: 4px; color: color-mix(in srgb, var(--nc) var(--data-mix), var(--c-text)); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
 [data-ui-theme="metro"] .ah-card.cur { --ah-edge: var(--c-select); box-shadow: none; }
 [data-ui-theme="metro"] .ah-card.cur .ah-lead { background: color-mix(in srgb, var(--c-select) 16%, var(--mt-ink)); }
 [data-ui-theme="metro"] .ah-card.cur .ah-body::before { content: 'NOW BOARDING'; color: var(--c-select); }
@@ -303,17 +321,16 @@
 [data-ui-theme="metro"] .card.sup-card { counter-increment: sup; }
 [data-ui-theme="metro"] .sup-card .cback { border: 0; box-shadow: none; border-radius: inherit;
   background: radial-gradient(circle at 26% 30%, var(--mt-ink) 0 12%, transparent 12.4%), radial-gradient(circle at 26% 30%, var(--mt-a) 0 28%, transparent 28.4%),
-    linear-gradient(118deg, transparent 0 56%, var(--mt-b) 56% 66%, transparent 66% 69%, color-mix(in srgb, var(--mt-b) 45%, transparent) 69% 73%, transparent 73%),
+    linear-gradient(118deg, transparent 0 56%, var(--mt-b) 56% 66%, transparent 66% 69%, color-mix(in srgb, var(--mt-b) 45%, transparent) 69% 73%, transparent 73%) 0 0 / 100% 70% no-repeat, /* 사선은 위쪽에서 끝난다 (아래 글씨를 지나지 않게) */
     radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 9%, transparent) 0 1.2px, transparent 1.7px) 0 0 / 9px 9px, var(--mt-ink); }
 [data-ui-theme="metro"] .sup-card .cback::before { content: '∞'; position: absolute; left: 26%; top: 30%; translate: -50% -52%; color: var(--mt-paper); font: 400 var(--fs-2xl)/1 var(--f-display); }
-[data-ui-theme="metro"] .sup-card .cback::after { content: 'ERRANTES METRO · SUPPLY ' counter(sup, decimal-leading-zero); position: absolute; left: 12px; right: 12px; bottom: 11px; padding-top: 8px; border-top: 1.5px solid color-mix(in srgb, var(--mt-paper) 22%, transparent);
-  color: color-mix(in srgb, var(--mt-paper) 72%, transparent); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .12em; text-align: left; white-space: nowrap; overflow: hidden; }
+[data-ui-theme="metro"] .sup-card .cback::after { content: 'ERRANTES METRO\A SUPPLY ' counter(sup, decimal-leading-zero); position: absolute; left: 12px; right: 12px; bottom: 11px; padding-top: 8px; border-top: 1.5px solid color-mix(in srgb, var(--mt-paper) 22%, transparent);
+  color: color-mix(in srgb, var(--mt-paper) 72%, transparent); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .12em; line-height: 1.5; text-align: left; white-space: pre; overflow: hidden; } /* 일련번호 두 줄 (좁은 카드 폭에 맞게) */
 [data-ui-theme="metro"] .card.sup-card.open { --kc: var(--mt-a); grid-template-rows: 52% auto 1fr 26px; align-content: stretch; gap: 8px; padding: 0 12px; box-shadow: none; border-color: color-mix(in srgb, var(--kc) 55%, var(--mt-edge));
-  background: linear-gradient(90deg, color-mix(in srgb, var(--mt-paper) 24%, transparent) 0 6px, transparent 6px 10px) 0 52% / 10px 2px repeat-x,
-    linear-gradient(150deg, color-mix(in srgb, var(--kc) 34%, var(--mt-ink)), var(--mt-ink) 75%) 0 0 / 100% 52% no-repeat, var(--panel); }
+  background: linear-gradient(150deg, color-mix(in srgb, var(--kc) 34%, var(--mt-ink)), var(--mt-ink) 75%) 0 0 / 100% 52% no-repeat, var(--panel); }
 [data-ui-theme="metro"] .card.sup-card.open.sup-credits { --kc: var(--c-credit); }
 [data-ui-theme="metro"] .card.sup-card.open.sup-xp { --kc: var(--mt-b); }
-[data-ui-theme="metro"] .card.sup-card.open .sup-ic { align-self: center; }
+[data-ui-theme="metro"] .card.sup-card.open .sup-ic { align-self: stretch; justify-self: stretch; display: grid; place-items: center; margin-inline: -12px; border-bottom: var(--mt-perf) color-mix(in srgb, var(--mt-paper) 24%, transparent); } /* 머리 칸 | 절취선 (--mt-perf) */
 [data-ui-theme="metro"] .card.sup-card.open > b { padding-top: 4px; font-family: var(--f-display); font-weight: 400; }
 [data-ui-theme="metro"] .card.sup-card.open::before { position: absolute; left: 12px; top: 11px; color: var(--mt-paper); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
 [data-ui-theme="metro"] .card.sup-card.open.sup-credits::before { content: 'CREDIT'; }
@@ -355,6 +372,7 @@
   -webkit-mask: var(--mt-dot-tr) right top / var(--dw) var(--dh) no-repeat, var(--mt-dot-bl) left bottom / var(--dw) var(--dh) no-repeat;
   mask: var(--mt-dot-tr) right top / var(--dw) var(--dh) no-repeat, var(--mt-dot-bl) left bottom / var(--dw) var(--dh) no-repeat; } /* 승패 띠 망점 (1.3배): 우측 상단 민트 · 좌측 하단 보라(패배 = 복숭아). 색 층 크기 = 마스크 크기 */
 [data-ui-theme="metro"] .rs-banner small { order: -1; color: color-mix(in srgb, var(--mt-paper) 80%, transparent); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
+[data-ui-theme="metro"] .rs.lose .rs-banner b { text-shadow: none; } /* 글로우 없음 */
 [data-ui-theme="metro"] .rs-banner b { color: var(--mt-paper); font-size: var(--mt-fs-hero); letter-spacing: .04em; text-shadow: none; }
 [data-ui-theme="metro"] .rs-rays { display: none; }
 [data-ui-theme="metro"] .rs:is(.win, .lose) .rs-banner::after { content: ''; position: absolute; inset: 18px 24px 18px auto; width: 30px; opacity: 1; animation: none; background-size: auto; border-left: var(--mt-perf) color-mix(in srgb, var(--mt-on) 40%, transparent); padding-left: 12px; box-sizing: content-box;
@@ -448,7 +466,7 @@
 [data-ui-theme="metro"] .sg-card:not(.sg-empty) { --tc: var(--mt-edge); padding: 11px 10px 0; overflow: visible; border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md);
   background: linear-gradient(var(--tc), var(--tc)) top / 100% 3px no-repeat, var(--panel); box-shadow: 0 4px 0 var(--mt-deep); } /* 고르는 카드 = 아래 두께, 위 띠 = 등급색 */
 [data-ui-theme="metro"] .sg-card.tS { --tc: var(--g-S); } [data-ui-theme="metro"] .sg-card.tC { --tc: var(--g-C); } [data-ui-theme="metro"] .sg-card.tG { --tc: var(--g-G); } [data-ui-theme="metro"] .sg-card.tA { --tc: var(--g-A); } [data-ui-theme="metro"] .sg-card.tL { --tc: var(--g-L); }
-[data-ui-theme="metro"] .sg-card:not(.sg-empty, .sold):hover { border-color: var(--mt-a); box-shadow: 0 6px 0 var(--mt-deep); }
+[data-ui-theme="metro"] .sg-card:not(.sg-empty, .sold, .on):hover { border-color: var(--mt-hover); box-shadow: 0 6px 0 var(--mt-deep); }
 [data-ui-theme="metro"] .sg-card.on { border-color: var(--c-select); background: linear-gradient(var(--tc), var(--tc)) top / 100% 3px no-repeat, color-mix(in srgb, var(--c-select) 8%, var(--panel)); box-shadow: 0 4px 0 color-mix(in srgb, var(--c-select) 40%, var(--mt-deep)); }
 [data-ui-theme="metro"] .sg-card.sold { box-shadow: none; background: var(--bg); }
 [data-ui-theme="metro"] .sg-card.sg-empty { border-radius: var(--mt-r-md); }
@@ -463,7 +481,7 @@
 [data-ui-theme="metro"] :is(.pil-altar, .pil-box, .pil-case) { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); background: linear-gradient(90deg, var(--c-divine) 0 50%, var(--mt-a) 50%) top / 100% 3px no-repeat, var(--panel); }
 [data-ui-theme="metro"] :is(.pil-box, .pil-case) h2 { font-family: var(--f-display); font-weight: 400; letter-spacing: .02em; }
 [data-ui-theme="metro"] .pil-card { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); box-shadow: 0 4px 0 var(--mt-deep); }
-[data-ui-theme="metro"] .pil-card[role="button"]:hover { border-color: var(--mt-a); box-shadow: 0 6px 0 var(--mt-deep); }
+[data-ui-theme="metro"] .pil-card[role="button"]:not(.on):hover { border-color: var(--mt-hover); box-shadow: 0 6px 0 var(--mt-deep); }
 [data-ui-theme="metro"] .pil-card.on, [data-ui-theme="metro"] .pil-card.took { border-color: var(--c-select); box-shadow: 0 4px 0 color-mix(in srgb, var(--c-select) 40%, var(--mt-deep)); }
 [data-ui-theme="metro"] .pil-card.off { box-shadow: none; }
 [data-ui-theme="metro"] .pil-wall { color: color-mix(in srgb, var(--mt-a) 60%, var(--mt-edge)); }

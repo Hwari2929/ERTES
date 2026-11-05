@@ -51,7 +51,7 @@
   --c-chalk-ink: #12151c;
   --c-ink: rgb(9 9 14);
   --c-brand: #9a8cf0;                  /* 보라 노선 */
-  --c-credit: #ff9b6a;
+  --c-credit: #f2d48a;                 /* 크레딧 = 크림 금색 (선택색 복숭아와 값 · 채도를 나눈다, UI.md 13) */
   --cell-mine: #1c1d2c;
   --cell-foe: #261b21;
   --cell-mid: #17171f;
@@ -67,8 +67,8 @@
   /* 메트로 전용 재료 (메트로 선택자 안에서만 쓴다): 노선색 · 열차 몸체 · 안내판 종이 · 탑승권 치수 */
   --mt-a: #9a8cf0;                     /* 보라 노선 */
   --mt-b: #7fd3bd;                     /* 민트 노선 */
-  --mt-c: #ff9b6a;                     /* 복숭아 (선택색과 같은 값: 안전선 · 경고 띠) */
-  --mt-d: #ff6a2b;                     /* 신호 주황 (보스 · 역경) */
+  --mt-c: #ffc6a8;                     /* 장식 복숭아 (옅은 파스텔 — 선택색 #ff9b6a 와 값을 나눈다: 노선 띠 · 카드 뒷면 · 상점 연출) */
+  --mt-d: var(--c-bad);                /* 신호 = 위험 빨강 (보스 · 역경 · 패배). 주황을 쓰지 않는다 — 복숭아 선택색과 겹친다 */
   --mt-ink: #0c0d12;                   /* 열차 몸체 · 탑승권 바탕 */
   --mt-paper: #ecebe7;                 /* 역 안내판 종이 */
   --mt-on: #111216;                    /* 노선색 · 종이 위 글씨 */
@@ -80,7 +80,13 @@
   --mt-r-md: 12px;                     /* 고르는 카드 · 노드 표 · 사진 창 (radius-md) */
   --mt-deep: #05060a;                  /* 누를 수 있는 것의 아래 두께 (카드) */
   --mt-edge: color-mix(in srgb, var(--mt-paper) 30%, var(--mt-ink)); /* 카드 · 창 외곽선 (stroke 1.5px) */
-  --mt-sh-ink: color-mix(in srgb, var(--mt-paper) 82%, transparent); /* 작은 것의 잉크 그림자 (shadow-sm) */
+  --mt-hover: color-mix(in srgb, var(--mt-paper) 62%, var(--mt-edge)); /* 가리킴 윤곽 = 밝은 회색 (보라는 합성 재료 등급색과 겹친다) */
+  --st-dot: #cfe35a;                   /* 지속 피해 = 라임 (기본 #ff9a5a 는 복숭아 선택색과 같은 색) */
+  --gx-select: #f2a93b; --gx-select-ink: #1a1206; --gx-brand: #f2a93b; --gx-credit: #f2a93b; /* 타이틀(메트로 제외 구역)은 갤럭시 색 그대로 */
+  /* 바닥 = 노선색 빛무리 + 모눈 (화면 고정). 화면에 붙는 띠(아래 동작 줄 · 편성 머리)도 같은 바닥을 깔아 네모가 드러나지 않게 */
+  --mt-floor: radial-gradient(circle at 0 100%, color-mix(in srgb, var(--mt-a) 15%, transparent), transparent 46%) fixed,
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--mt-b) 11%, transparent), transparent 40%) fixed,
+    linear-gradient(var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px fixed, linear-gradient(90deg, var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px fixed, var(--bg);
   accent-color: var(--mt-b);           /* 체크 · 슬라이더 = 민트 */
   scrollbar-color: color-mix(in srgb, var(--mt-a) 55%, transparent) transparent;
   --mt-fs-hero: clamp(2rem, 6.4vw, 3.2rem);  /* 역 이름 · 전투 개시 */

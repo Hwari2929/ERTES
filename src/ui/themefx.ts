@@ -39,6 +39,9 @@ const metroOn = () => cur.theme === 'metro' && cur.level !== 'off';
  *  안내판: 머리표(영문 대문자 모노) · 역 이름(그 순간의 대상: 전장 · 보스 이름 · 상점) · 영문 부제 */
 export interface Stop { kick: string; name: string; en: string; tone?: 'boss' | 'market' }
 let lastStop: Stop | null = null;
+/** 전투 진입 직전 화면의 얼린 사본 (패널이 다 덮으면 걷는다) · 이번 세션 전투 진입 횟수 (반복되면 연출을 줄인다, UI.md 22) */
+let goGhost: HTMLElement | null = null;
+let goSeen = 0;
 /** 열차 시간 (ms): 들어옴 · 안내판을 읽을 최소 시간 · 떠남 · 그림을 기다리는 최대 시간 */
 const RIDE = { in: 300, hold: 170, out: 360, cap: 4000 };
 type Ride = { el: HTMLElement; ghost: HTMLElement | null; fresh: boolean; covered: Promise<void>; anims: Animation[]; gone: boolean; hold: number; leave: (r: Ride) => void };
@@ -63,6 +66,13 @@ function freeze(app: HTMLElement) {
 /** render() 가 화면을 바꾸기 직전 (메트로 켜기): 지금 화면을 얼려 두고 그 위로 열차가 들어온다.
  *  render 는 그대로 바로 새 화면을 그리므로 게임 흐름은 기다리지 않는다 (열차가 덮는 동안 입력만 막힌다) */
 export function beforeScreen(prev: string, next: string, app: HTMLElement, stop: Stop | null = null) {
+  // 전투 진입 (켜기): 화면이 먼저 바뀌고 패널이 나중에 덮지 않게, 지금 화면을 얼려 두었다가 패널이 다 덮으면 걷는다 (banner → goFull)
+  if (next === 'battle' && prev && prev !== 'battle' && metroOn() && cur.level === 'on' && !reduced()) {
+    goGhost?.remove();
+    const g = freeze(app);
+    goGhost = g;
+    setTimeout(() => { if (goGhost === g) { g.remove(); goGhost = null; } }, 1500); // 진입 연출이 오지 않으면 (전투 아닌 진입 등) 그대로 걷는다
+  }
   lastStop = metroOn() && prev && prev !== next ? stop : null;
   if (!lastStop || cur.level !== 'on' || reduced()) return;
   endRide();
@@ -205,8 +215,9 @@ export function banner(kind: BannerKind, title: string, sub = ''): number {
 const tkHtml = (kind: BannerKind, title: string, sub: string) => `<div class="mg-tk"><div class="mg-tk-a"><span class="mg-k"><b>ADMIT ONE</b><i></i><span>${KICK[kind]}</span></span><b class="mg-t">${esc(title)}</b>${sub ? `<span class="mg-r"><span>TO</span><b>${esc(sub)}</b><i></i></span>` : ''}</div><span class="mg-code"></span><i class="mg-punch"></i></div>`;
 function goFull(kind: BannerKind, title: string, sub: string) {
   const boss = kind === 'boss', phase = kind === 'phase', warn = boss || kind === 'adversity';
-  const T = boss ? 1900 : phase ? 1350 : 1500;
-  const OUT = boss ? 1340 : phase ? 900 : 1000; // 패널이 걷히기 시작하는 때 (= 출발)
+  const short = !boss && !phase && ++goSeen > 2; // 반복되는 의식은 처음에만 길다: 세 번째 전투부터 짧게 (보스 · 페이즈는 그대로)
+  const T = boss ? 1900 : phase ? 1350 : short ? 1060 : 1500;
+  const OUT = boss ? 1340 : phase ? 900 : short ? 600 : 1000; // 패널이 걷히기 시작하는 때 (= 출발)
   const el = document.createElement('div');
   el.className = `mt-go mt-go-${kind}`;
   el.setAttribute('role', 'status');
@@ -219,6 +230,7 @@ function goFull(kind: BannerKind, title: string, sub: string) {
       ${tkHtml(kind, title, sub)}
     </div>`;
   document.body.appendChild(el);
+  if (goGhost) { const g = goGhost; goGhost = null; setTimeout(() => g.remove(), 420); } // 패널 3장이 다 덮은 뒤 얼린 화면을 걷는다
   const $ = (q: string) => el.querySelector<HTMLElement>(q)!;
   const SK = 'skewX(-14deg)';
   // 패널: 민트 · 보라 · 잉크 순서로 들어오고, 출발 때 잉크 · 보라 · 민트 순서로 빠진다
@@ -241,7 +253,7 @@ function goFull(kind: BannerKind, title: string, sub: string) {
   if (phase) tl($('.mg-num'), T, [[340, { transform: 'translateX(12vw) scale(1.1)', opacity: 0 }, SLAM], [620, { transform: 'none', opacity: 1 }], [OUT, { transform: 'none', opacity: 1 }]]);
   else {
     // 신호등: 하나씩 켜지고 출발 때 한꺼번에 꺼진다 (보스는 느리게)
-    const step = boss ? 140 : 95, first = boss ? 560 : 430;
+    const step = boss ? 140 : short ? 55 : 95, first = boss ? 560 : short ? 260 : 430; // 짧은 판: 마지막 불이 출발(OUT) 전에 다 켜지게
     el.querySelectorAll('.mg-lights b').forEach((b, k) => tl(b, T, [[first + k * step, { opacity: 0, transform: 'scale(.4)' }, POP], [first + k * step + 90, { opacity: 1, transform: 'scale(1)' }], [OUT - 20, { opacity: 1, transform: 'scale(1)' }], [OUT, { opacity: 0, transform: 'scale(1)' }]]));
   }
   if (boss) tl($('.mg-t'), T, [[700, { transform: 'none' }], [740, { transform: 'translateX(-6px)' }], [780, { transform: 'translateX(6px)' }], [820, { transform: 'translateX(-3px)' }], [860, { transform: 'none' }]]);

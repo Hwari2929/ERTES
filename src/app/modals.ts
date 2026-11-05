@@ -418,7 +418,7 @@ export function menuModal(run: RunState | null) {
   }
   const saves = listSaves();
   const meta = (slot: string) => { const s = saves.find((x) => x.slot === slot); return s ? `페이즈 ${s.phase} · ${new Date(s.time).toLocaleString()}` : '비어 있음'; };
-  const tabs = `<div class="menu-tabs">${([['menu', '메뉴'], ['settings', '설정']] as const).map(([k, l]) => `<button class="btn small ${app.menu === k ? 'primary' : ''}" data-a="menu-tab" data-v="${k}">${l}</button>`).join('')}</div>`;
+  const tabs = `<div class="menu-tabs">${([['menu', '메뉴'], ['settings', '설정']] as const).map(([k, l]) => `<button class="btn small ${app.menu === k ? 'on' : ''}" data-a="menu-tab" data-v="${k}" aria-pressed="${app.menu === k}">${l}</button>`).join('')}</div>`;
   if (app.menu === 'settings') {
     return `<div class="modal-bg"><div class="modal">
       ${tabs}
