@@ -67,7 +67,7 @@ export function beforeScreen(prev: string, next: string, app: HTMLElement, stop:
   if (!lastStop || cur.level !== 'on' || reduced()) return;
   endRide();
   const ghost = freeze(app);
-  if (lastStop.tone === 'market') { ride = marketIn(ghost, lastStop); return; }
+  if (lastStop.tone === 'market') { const r = marketIn(ghost, lastStop); ride = r; void r.covered.then(() => { r.ghost?.remove(); r.ghost = null; }); return; } // 덮이면 얼린 사본을 걷는다 (안 걷으면 사본이 입력을 막는다)
   const el = document.createElement('div');
   el.className = `mt-ride${lastStop.tone ? ` ${lastStop.tone}` : ''}`;
   el.setAttribute('aria-hidden', 'true');

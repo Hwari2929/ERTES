@@ -88,7 +88,7 @@ export function shopHead(run: RunState, stock: NonNullable<NonNullable<RunState[
 export function shopScreen(run: RunState) {
   if (SHOP.merchantOf(run)) return `<main class="wrap shop-host">${SHOP.shopOverlay(run)}</main>`; // 상인 상점: 상단 바 아래 전체를 덮는 상점 (ui/shop.ts). 합성 공방은 아래 진열대
   const stock = run.node?.shop || [];
-  return `<main class="wrap">
+  return `<main class="wrap nd-shop">
     ${shopHead(run, stock)}
     <div class="shop">${stock.map((s, i) => {
       const it = itemInfo(s.item);
@@ -101,7 +101,7 @@ export function shopScreen(run: RunState) {
 }
 export function newsScreen(run: RunState) {
   const offers = run.node?.news || [];
-  return `<main class="wrap">
+  return `<main class="wrap nd-news">
     <div class="screen-head"><h1>은하 속보</h1><p class="muted">보스전을 앞두고 언론이 몰려왔습니다. 쌓아 둔 명성 <b class="accent">${run.fame}</b>을 보상으로 바꾸세요.</p></div>
     <div class="shop">${offers.map((o, i) => {
       const d = R.NEWS_OFFERS[o.id];
@@ -114,7 +114,7 @@ export function newsScreen(run: RunState) {
 
 export function investScreen(run: RunState) {
   const offers = run.node?.invest || [];
-  return `<main class="wrap">
+  return `<main class="wrap nd-invest">
     <div class="screen-head"><h1>호이슌 투자 창구</h1><div class="sh-row">
       ${kvChip('보유', `${CR}<b>${run.credits}</b>`, '에너지 크레딧', 'cr')}
       ${kvChip('다음 전투 이자', `<b>+${R.interestInfo(run).interest}</b>`, interestLines(run).tip, 'cr')}
@@ -342,7 +342,7 @@ export function pendingModal(run: RunState): string {
     const rr = p.rerolls ?? 1;
     mcls = 'recruit';
     const pick = app.recruitPick && p.options.includes(app.recruitPick) ? app.recruitPick : null;
-    body = `<div class="rc-head"><div><h1>${p.syns ? '지정 소집' : '기물 영입'}</h1><div class="rc-meta">${p.syns ? kvChip('후보', p.syns.map((s) => esc(SYN_BY_ID[s as SynergyId]?.name || s)).join(' · '), '이 시너지 중 하나라도 가진 기물에서 고른다') : ''}${kvChip('합류', `<b>${rankLabel(rank)}</b>`, `공명 등급 ${rank}로 합류합니다 (한 명을 고른다)`)}${kvChip('보유', `<b>${run.units.length}</b>/${CFG.maxParty}`, '보유 기물 / 최대')}${kvChip('출전', `최대&nbsp;<b>${R.deployCap(run)}</b>`, '한 전투에 내보낼 수 있는 기물 수')}</div><div title="사이오닉 전공은 합류할 때 정해집니다">${matchupChips(run.field)}</div></div><span class="rc-tools"><button class="btn" data-a="rc-away" title="창을 접고 지도 · 파티를 확인합니다 (고른 후보는 그대로)">잠시 나가기</button>${detailToggle()}</span></div>
+    body = `<div class="rc-head"><h1>${p.syns ? '지정 소집' : '기물 영입'}</h1><div class="rc-meta">${p.syns ? kvChip('후보', p.syns.map((s) => esc(SYN_BY_ID[s as SynergyId]?.name || s)).join(' · '), '이 시너지 중 하나라도 가진 기물에서 고른다') : ''}${kvChip('합류', `<b>${rankLabel(rank)}</b>`, `공명 등급 ${rank}로 합류합니다 (한 명을 고른다)`)}${kvChip('보유', `<b>${run.units.length}</b>/${CFG.maxParty}`, '보유 기물 / 최대')}${kvChip('출전', `최대&nbsp;<b>${R.deployCap(run)}</b>`, '한 전투에 내보낼 수 있는 기물 수')}</div><div class="rc-mu" title="사이오닉 전공은 합류할 때 정해집니다">${matchupChips(run.field)}</div><span class="rc-tools"><button class="btn" data-a="rc-away" title="창을 접고 지도 · 파티를 확인합니다 (고른 후보는 그대로)">잠시 나가기</button>${detailToggle()}</span></div>
       <div class="rc-track">${p.options.map((id, i) => pickCard(UNIT_BY_ID[id], { i, on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), nameExtra: `<span class="rc-rank" title="공명 등급 ${rank}">${rankLabel(rank)}</span>` })).join('')}</div>
       <div class="rc-foot">${pick ? (() => {
         // 영입하면 바뀌는 시너지: 보유 기물 + 이 기물 기준 인원, 단계가 오르면 강조

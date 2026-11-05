@@ -145,7 +145,6 @@
   background-image: linear-gradient(90deg, var(--mt-a) 0 64%, var(--mt-b) 64%); background-size: 100% 5px; background-repeat: no-repeat; }
 [data-ui-theme="metro"] .um { border: 1.5px solid var(--mt-edge); box-shadow: inset 0 5px 0 var(--mt-a); }
 [data-ui-theme="metro"] .modal-bg:not(.pv-bg, .dp-bg) { background: radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 9%, transparent) 1px, transparent 1.6px) 0 0 / 6px 6px, var(--overlay); }
-[data-ui-theme="metro"] .rc-head h1::before { content: 'NOW BOARDING'; display: block; margin-bottom: 6px; color: var(--mt-b); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; } /* 영입 창 머리표 */
 [data-ui-theme="metro"] .toast { background: var(--panel); color: var(--c-text); border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-sm); box-shadow: inset 0 3px 0 var(--mt-b); }
 /* 상단 바 = HUD: 굵은 아래 선 + 노선 띠, 칩은 각진 표식 */
 [data-ui-theme="metro"] .top { border-bottom: 1.5px solid var(--mt-edge); }
@@ -409,3 +408,62 @@
   background: radial-gradient(circle at 92% 14%, color-mix(in srgb, var(--mt-a) 34%, transparent) 0 26vmin, transparent calc(26vmin + 1px)), radial-gradient(circle at 0 100%, color-mix(in srgb, var(--mt-b) 26%, transparent) 0 34vmin, transparent calc(34vmin + 1px)); }
 @media (max-width: 980px) { [data-ui-theme="metro"] .rs-grid > .rs-mvp { margin: 10px; } [data-ui-theme="metro"] .rs-grid > section + section { border-left: 0; border-top: 1.5px solid var(--mt-edge); } }
 @media (max-width: 640px) { [data-ui-theme="metro"] .rs-banner { --dw: 336px; --dh: 96px; } [data-ui-theme="metro"] .mt-stamp { right: 70px; width: 58px; height: 58px; margin-top: -29px; } [data-ui-theme="metro"] .mt-stamp i { width: 22px; height: 22px; } }
+
+/* ── 노드 화면 (상점 · 속보 · 투자 · 순례) = 역 매표소. 머리 = 머리표(영문 모노) + 제목 + 상태 칩 / 담는 판 = 평평한 판 + 위 노선 띠 (35번) /
+   사는 것 = 쿠폰: 왼쪽 내용 | 절취선 | 오른쪽 뜯는 칸(= 값 · 사기 단추), 절취선 위아래 홈 (노드 쿠폰과 같은 1px 고리) */
+[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .screen-head h1::before, [data-ui-theme="metro"] .so-hd h1::before, [data-ui-theme="metro"] .pil-head h1::before {
+  display: block; flex-basis: 100%; margin-bottom: 6px; color: var(--kk, var(--mt-b)); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
+[data-ui-theme="metro"] .nd-news { --kc: var(--mt-a); --kk: var(--mt-a); } [data-ui-theme="metro"] .nd-news .screen-head h1::before { content: 'PRESS · BREAKING NEWS'; }
+[data-ui-theme="metro"] .nd-invest { --kc: var(--c-credit); --kk: var(--c-credit); } [data-ui-theme="metro"] .nd-invest .screen-head h1::before { content: 'HOISUN HOLDINGS · INVEST DESK'; }
+[data-ui-theme="metro"] .nd-shop { --kc: var(--c-credit); } [data-ui-theme="metro"] .nd-shop .screen-head h1::before { content: 'WORKSHOP · 공방'; }
+[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop { gap: 14px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item { --stw: 96px; --hr: 9px; position: relative; align-items: stretch; gap: 12px; min-height: 84px; padding: 0 0 0 14px;
+  border: 1px solid var(--mt-edge); border-radius: var(--mt-r-md); background: linear-gradient(90deg, var(--kc) 0 50%, var(--mt-b) 50%) top / 100% 3px no-repeat, var(--panel);
+  -webkit-mask: radial-gradient(circle at calc(100% - var(--stw) - .5px) 0, transparent calc(var(--hr) - 1.25px), var(--c-black) calc(var(--hr) - .75px)) top / 100% 51% no-repeat,
+    radial-gradient(circle at calc(100% - var(--stw) - .5px) 100%, transparent calc(var(--hr) - 1.25px), var(--c-black) calc(var(--hr) - .75px)) bottom / 100% 51% no-repeat;
+  mask: radial-gradient(circle at calc(100% - var(--stw) - .5px) 0, transparent calc(var(--hr) - 1.25px), var(--c-black) calc(var(--hr) - .75px)) top / 100% 51% no-repeat,
+    radial-gradient(circle at calc(100% - var(--stw) - .5px) 100%, transparent calc(var(--hr) - 1.25px), var(--c-black) calc(var(--hr) - .75px)) bottom / 100% 51% no-repeat; }
+[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item::before, [data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item::after { content: ''; position: absolute; right: calc(var(--stw) - .5px - var(--hr));
+  box-sizing: border-box; width: calc(var(--hr) * 2); height: calc(var(--hr) * 2); border: 1px solid var(--mt-edge); border-radius: 50%; pointer-events: none; } /* 홈 고리 */
+[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item::before { top: calc(-1px - var(--hr)); } [data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item::after { bottom: calc(-1px - var(--hr)); }
+[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item > .item { align-self: center; }
+[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item > div { align-self: center; padding-block: 14px 12px; }
+[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item > .btn { flex: none; display: inline-flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 2px 4px; width: var(--stw); height: auto; min-height: 0; margin: 3px 0 0; padding: 6px 8px; white-space: normal;
+  border: 0; border-left: var(--mt-perf) var(--mt-edge); border-radius: 0 var(--mt-r-sm) var(--mt-r-sm) 0; background-color: color-mix(in srgb, var(--kc) 14%, var(--mt-ink));
+  color: color-mix(in srgb, var(--kc) var(--data-mix), var(--c-text)); font: 400 var(--fs-lg)/1.1 var(--f-display); } /* 뜯는 칸 = 값 · 사기 */
+[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item > .btn:hover:not(:disabled) { border-color: var(--mt-edge); background-color: color-mix(in srgb, var(--kc) 28%, var(--mt-ink)); }
+[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item > .btn:disabled { border-color: var(--mt-edge); color: var(--c-text-2); }
+[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item.sold { opacity: 1; }
+[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item.sold > :not(.btn) { opacity: .4; }
+[data-ui-theme="metro"] :is(.nd-news, .nd-invest, .nd-shop) .shop-item.sold > .btn { color: var(--mt-paper); font-family: var(--f-mono); font-size: var(--fs-xs); letter-spacing: .12em; } /* 쓴 쿠폰: 뜯는 칸만 남는다 */
+/* 상인 상점 */
+[data-ui-theme="metro"] .shop-ov { background: linear-gradient(var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px, linear-gradient(90deg, var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px, var(--bg); }
+[data-ui-theme="metro"] .so-npc { border-right: 1.5px solid var(--mt-edge); }
+[data-ui-theme="metro"] .so-plate::before { content: ''; position: absolute; left: 16px; right: 16px; top: 16px; height: 4px; background: linear-gradient(90deg, var(--c) 0 34%, var(--mt-a) 34% 67%, var(--mt-b) 67%); } /* 상인 노선 띠 */
+[data-ui-theme="metro"] .so-plate h2 { font-family: var(--f-display); font-weight: 400; letter-spacing: .02em; }
+[data-ui-theme="metro"] .so-bub { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-sm); box-shadow: inset 0 3px 0 var(--c); }
+[data-ui-theme="metro"] .so-hd h1::before { content: 'MARKET · NEXT STATION'; --kk: var(--c-credit); }
+[data-ui-theme="metro"] .so-hd h1 { font-family: var(--f-display); font-weight: 400; }
+[data-ui-theme="metro"] .sg { gap: 12px; }
+[data-ui-theme="metro"] .sg-card:not(.sg-empty) { --tc: var(--mt-edge); padding: 11px 10px 0; overflow: visible; border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md);
+  background: linear-gradient(var(--tc), var(--tc)) top / 100% 3px no-repeat, var(--panel); box-shadow: 0 4px 0 var(--mt-deep); } /* 고르는 카드 = 아래 두께, 위 띠 = 등급색 */
+[data-ui-theme="metro"] .sg-card.tS { --tc: var(--g-S); } [data-ui-theme="metro"] .sg-card.tC { --tc: var(--g-C); } [data-ui-theme="metro"] .sg-card.tG { --tc: var(--g-G); } [data-ui-theme="metro"] .sg-card.tA { --tc: var(--g-A); } [data-ui-theme="metro"] .sg-card.tL { --tc: var(--g-L); }
+[data-ui-theme="metro"] .sg-card:not(.sg-empty, .sold):hover { border-color: var(--mt-a); box-shadow: 0 6px 0 var(--mt-deep); }
+[data-ui-theme="metro"] .sg-card.on { border-color: var(--c-select); background: linear-gradient(var(--tc), var(--tc)) top / 100% 3px no-repeat, color-mix(in srgb, var(--c-select) 8%, var(--panel)); box-shadow: 0 4px 0 color-mix(in srgb, var(--c-select) 40%, var(--mt-deep)); }
+[data-ui-theme="metro"] .sg-card.sold { box-shadow: none; background: var(--bg); }
+[data-ui-theme="metro"] .sg-card.sg-empty { border-radius: var(--mt-r-md); }
+[data-ui-theme="metro"] .sg-foot { margin: 2px -10px 0; padding: 7px 10px; border-top: var(--mt-perf) var(--mt-edge); border-radius: 0 0 var(--mt-r-sm) var(--mt-r-sm); background: color-mix(in srgb, var(--c-credit) 9%, var(--mt-ink)); } /* 값 = 뜯는 칸 */
+[data-ui-theme="metro"] .sd:not(.empty) { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); background: linear-gradient(90deg, var(--c) 0 50%, var(--mt-b) 50%) top / 100% 3px no-repeat, var(--panel); padding-top: 13px; }
+[data-ui-theme="metro"] .sd.empty { border-radius: var(--mt-r-md); }
+/* 순례 = 성소 승강장: 머리 띠 · 판은 평평 + 신성 노선 띠, 제단 카드 = 고르는 카드 (아래 두께) */
+[data-ui-theme="metro"] .pil-ov { background: linear-gradient(var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px, linear-gradient(90deg, var(--mt-grid) 1px, transparent 1px) 0 0 / 64px 64px, var(--bg); }
+[data-ui-theme="metro"] .pil-head { --kk: var(--c-divine); background: var(--bg); border-bottom: 1.5px solid var(--mt-edge); box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--c-divine) 70%, transparent); }
+[data-ui-theme="metro"] .pil-head h1 { flex-wrap: wrap; font-family: var(--f-display); font-weight: 400; }
+[data-ui-theme="metro"] .pil-head h1::before { content: 'PILGRIM · SANCTUARY'; }
+[data-ui-theme="metro"] :is(.pil-altar, .pil-box, .pil-case) { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); background: linear-gradient(90deg, var(--c-divine) 0 50%, var(--mt-a) 50%) top / 100% 3px no-repeat, var(--panel); }
+[data-ui-theme="metro"] :is(.pil-box, .pil-case) h2 { font-family: var(--f-display); font-weight: 400; letter-spacing: .02em; }
+[data-ui-theme="metro"] .pil-card { border: 1.5px solid var(--mt-edge); border-radius: var(--mt-r-md); box-shadow: 0 4px 0 var(--mt-deep); }
+[data-ui-theme="metro"] .pil-card[role="button"]:hover { border-color: var(--mt-a); box-shadow: 0 6px 0 var(--mt-deep); }
+[data-ui-theme="metro"] .pil-card.on, [data-ui-theme="metro"] .pil-card.took { border-color: var(--c-select); box-shadow: 0 4px 0 color-mix(in srgb, var(--c-select) 40%, var(--mt-deep)); }
+[data-ui-theme="metro"] .pil-card.off { box-shadow: none; }
+[data-ui-theme="metro"] .pil-wall { color: color-mix(in srgb, var(--mt-a) 60%, var(--mt-edge)); }
