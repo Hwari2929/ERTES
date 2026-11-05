@@ -18,12 +18,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
 # 잔 id: (액면 최고점 top, 안쪽 바닥 floor, 벽 두께 inset — 그림 높이 · 폭에 대한 비율, 테두리 줄 rim, 48×72 상자 안 그림 높이 · 바닥 y = 70[, curve, p])
 #   curve · p = 아래로 갈수록 벽 두께를 더하는 양 (폭 비율, 바닥에서 curve, 위에서부터 t^p 로) — 와인 잔은 볼 바닥이 급하게 오목해져 U 자로 (2026-11-05 사용자)
+#   topx · tp = 위로 갈수록 더하는 벽 두께 (맨 위에서 topx, (1 − t)^tp) — 와인 잔 수면이 그림의 안쪽 벽보다 넓었다 (같은 날 사용자: 좁혀 달라)
 GEOM = {
     'rock': (0.12, 0.76, 0.06, 0.07, 30),
     'highball': (0.07, 0.91, 0.06, 0.04, 50),
     'pint': (0.09, 0.87, 0.05, 0.05, 58),
     'coupe': (0.09, 0.48, 0.035, 0.07, 34),
-    'wine': (0.06, 0.50, 0.045, 0.03, 52, 0.06, 3),
+    'wine': (0.06, 0.50, 0.045, 0.03, 52, 0.06, 3, 0.06, 2),
     'goblet': (0.07, 0.52, 0.045, 0.04, 58),
 }
 K = {'rock': (0.13, 0.22), 'highball': (0.11, 0.18), 'pint': (0.15, 0.22), 'coupe': (0.11, 0.16), 'wine': (0.16, 0.2), 'goblet': (0.14, 0.18)}
@@ -40,7 +41,7 @@ def silhouette(a, y):
 out = {}
 os.makedirs('public/art', exist_ok=True)
 for gid, g in GEOM.items():
-    top, floor, inset, rimf, span = g[:5]; curve, cp = (g[5], g[6]) if len(g) > 5 else (0, 1)
+    top, floor, inset, rimf, span = g[:5]; curve, cp = (g[5], g[6]) if len(g) > 5 else (0, 1); topx, tp = (g[7], g[8]) if len(g) > 7 else (0, 1)
     im = Image.open(f'art/picked/bar_glass_{gid}.webp').convert('RGBA')
     W, H = im.size
     a = np.asarray(im)[..., 3]
@@ -51,7 +52,7 @@ for gid, g in GEOM.items():
         s = silhouette(a, y)
         if not s:
             continue
-        e = curve * W * (k / ROWS) ** cp
+        e = curve * W * (k / ROWS) ** cp + topx * W * (1 - k / ROWS) ** tp
         l, r = s[0] + ins + e, s[1] - ins - e
         if r - l < 2:
             c = (s[0] + s[1]) / 2

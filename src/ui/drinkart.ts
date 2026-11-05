@@ -54,14 +54,18 @@ export const FOAM_FX = {
  *  caustic = 역광이 음료를 지나 테이블에 은은하게 퍼진 색, shadow = 빛 반대쪽으로 지는 그림자 */
 export type LightScene = 'prep' | 'day' | 'night';
 export const GLASS_LIGHT = { on: true, glow: true, rim: true, amb: true, caustic: true, shadow: true };
+/** 수면 표현 (2026-11-05 시험): flat = 지금 (흰색 35% 섞은 한 색), deep = 음료 색 그대로 조금 짙게 (위에서 내려다보면 깊이만큼 진하다) + 메니스커스 (잔 벽에 닿는 가장자리의 얇은 밝은 고리, 빛 쪽이 밝음),
+ *  reflect = deep + 장면 빛의 가로 반사띠 (수면 뒤쪽, 빛 방향으로 치우침), full = reflect + 앞쪽 가장자리 굴절 어둠 + 작은 반짝임 */
+export const SURFACE = { mode: 'flat' as 'flat' | 'deep' | 'reflect' | 'full' };
+/** 역광 테두리 진하기 rimOp 는 처음 값의 60% (2026-11-05 사용자: 0.9 · 0.75 · 0.8 → 0.54 · 0.45 · 0.48) */
 export const LIGHTS = {
   // 제조대: 벽 아래쪽 호박색 백라이트 줄이 잔 뒤를 지난다 (band = 48 × 72 상자 y · 반폭)
   // sh = 그림자 [옆 (잔 폭 배), 앞 (상자 단위), 길이 (잔 폭 배), 두께, 진하기] — 빛 반대쪽으로 진다 (제조대: 뒤에서 오는 빛 → 앞 = 화면 아래로)
-  prep: { back: '#ffb24a', band: [45, 6] as [number, number] | null, glow: 0.6, rim: 'up' as 'up' | 'left' | 'right', rimOp: 0.9, amb: '#ffcf8a', ambOp: 0.22, cool: '#6f8fc0', coolOp: 0.22, sh: [0, 1.5, 0.72, 2.0, 0.55] },
+  prep: { back: '#ffb24a', band: [45, 6] as [number, number] | null, glow: 0.6, rim: 'up' as 'up' | 'left' | 'right', rimOp: 0.54, amb: '#ffcf8a', ambOp: 0.22, cool: '#6f8fc0', coolOp: 0.22, sh: [0, 1.5, 0.72, 2.0, 0.55] },
   // 카운터 낮: 뒤 선반의 따뜻한 흰빛 · 왼쪽 위
-  day: { back: '#fff0cf', band: null, glow: 0.35, rim: 'left' as const, rimOp: 0.75, amb: '#ffe2ae', ambOp: 0.18, cool: '#7f9cc6', coolOp: 0.2, sh: [0.5, 0.3, 0.95, 1.4, 0.5] },
+  day: { back: '#fff0cf', band: null, glow: 0.35, rim: 'left' as const, rimOp: 0.45, amb: '#ffe2ae', ambOp: 0.18, cool: '#7f9cc6', coolOp: 0.2, sh: [0.5, 0.3, 0.95, 1.4, 0.5] },
   // 카운터 밤: 창밖 푸른빛 · 오른쪽
-  night: { back: '#a6c4ff', band: null, glow: 0.3, rim: 'right' as const, rimOp: 0.8, amb: '#93b2ea', ambOp: 0.2, cool: '#2f3d5c', coolOp: 0.28, sh: [-0.5, 0.3, 0.95, 1.4, 0.55] },
+  night: { back: '#a6c4ff', band: null, glow: 0.3, rim: 'right' as const, rimOp: 0.48, amb: '#93b2ea', ambOp: 0.2, cool: '#2f3d5c', coolOp: 0.28, sh: [-0.5, 0.3, 0.95, 1.4, 0.55] },
 };
 /** 제조대 투과광 띠를 화면의 백라이트 줄 높이 (screenY, px) 에 맞춘다 — root 안 잔 SVG 마다 (그린 뒤 부른다) */
 export function placeGlowBand(root: ParentNode, screenY: number) {
@@ -74,6 +78,27 @@ export function placeGlowBand(root: ParentNode, screenY: number) {
     const g = svg.querySelector(`#${r.dataset.g}`);
     if (g) { g.setAttribute('y1', (y - hw * 2).toFixed(2)); g.setAttribute('y2', (y + hw * 2).toFixed(2)); }
   });
+}
+/** 수면 (SURFACE.mode ≠ flat): 타원 (cx, cy, rx, ry), 맨 위 층 색 c · 불투명도 a, 장면 빛 (없으면 흰빛 위에서) */
+function surfaceHtml(id: string, parts: string[], cx: number, cy: number, rx: number, ry: number, c: string, a: number, sc?: LightScene): string {
+  const L = sc ? LIGHTS[sc] : undefined, light = L?.back ?? '#ffffff', dx = L?.rim === 'left' ? -1 : L?.rim === 'right' ? 1 : 0;
+  const E = (k: number, kx = 1, ky = 1, ox = 0, oy = 0) => `cx="${(cx + ox).toFixed(2)}" cy="${(cy + oy).toFixed(2)}" rx="${(rx * kx * k).toFixed(2)}" ry="${(ry * ky * k).toFixed(2)}"`;
+  // 깊은 수면: 음료 색 그대로 조금 짙게 · 살짝 진하게
+  let h = `<ellipse ${E(1)} fill="${shade(c, 0.1)}" fill-opacity="${Math.min(0.95, a + 0.08).toFixed(2)}"/>`;
+  // 반사띠: 수면 뒤쪽 (위쪽) 에 장면 빛 — 흐린 가로 띠
+  if (SURFACE.mode === 'reflect' || SURFACE.mode === 'full') {
+    parts.push(`<filter id="${id}sr" x="-30%" y="-100%" width="160%" height="300%"><feGaussianBlur stdDeviation="${(ry * 0.25).toFixed(2)}"/></filter>`);
+    h += `<ellipse ${E(1, 0.72, 0.32, dx * rx * 0.18, -ry * 0.45)} fill="${light}" opacity=".42" filter="url(#${id}sr)" style="mix-blend-mode:screen"/>`;
+  }
+  // 메니스커스: 가장자리 얇은 고리, 뒤쪽 (위) 이 밝고 앞쪽 (아래) 은 옅게
+  parts.push(`<linearGradient id="${id}mn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${tint(c, 0.75)}" stop-opacity=".95"/><stop offset=".55" stop-color="${tint(c, 0.5)}" stop-opacity=".35"/><stop offset="1" stop-color="${tint(c, 0.4)}" stop-opacity=".6"/></linearGradient>`);
+  h += `<ellipse ${E(1)} fill="none" stroke="url(#${id}mn)" stroke-width="${Math.max(0.22, ry * 0.18).toFixed(2)}"/>`;
+  if (SURFACE.mode === 'full') {
+    // 앞쪽 가장자리 굴절 어둠 (수면이 잔 앞 벽에 닿는 선 바로 안쪽) + 빛 쪽 작은 반짝임 2점
+    h += `<path d="M${(cx - rx * 0.92).toFixed(2)} ${(cy + ry * 0.2).toFixed(2)} A${(rx * 0.92).toFixed(2)} ${(ry * 0.8).toFixed(2)} 0 0 0 ${(cx + rx * 0.92).toFixed(2)} ${(cy + ry * 0.2).toFixed(2)}" fill="none" stroke="${shade(c, 0.45)}" stroke-opacity=".35" stroke-width="${(ry * 0.22).toFixed(2)}"/>`;
+    for (const [fx, fy, r] of [[0.42, -0.3, 0.09], [0.6, -0.12, 0.06]]) h += `<circle cx="${(cx + (dx || 1) * rx * fx * (dx ? 1 : 0.6)).toFixed(2)}" cy="${(cy + ry * fy).toFixed(2)}" r="${(rx * r).toFixed(2)}" fill="#ffffff" opacity=".8"/>`;
+  }
+  return h;
 }
 /** 움직임 줄이기면 기포가 멈춰 있다 */
 const stillFx = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -235,7 +260,8 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       const face = foam && bumpyTop ? ''
         : foam
         ? `<path d="${headD}" fill-rule="evenodd" fill="#efe6d2" fill-opacity=".9"/>${fx ? texed(pat(`${id}h`, FOAM_FX.head), headD, FOAM_FX.head.op, FOAM_FX.head.blend) : ''}`
-        : `<ellipse cx="${ecx.toFixed(2)}" cy="${yTop.toFixed(2)}" rx="${erx.toFixed(2)}" ry="${ery.toFixed(2)}" fill="${tint(topC, 0.35)}" fill-opacity="${Math.min(0.95, topA + 0.12).toFixed(2)}"/>`;
+        : SURFACE.mode === 'flat' ? `<ellipse cx="${ecx.toFixed(2)}" cy="${yTop.toFixed(2)}" rx="${erx.toFixed(2)}" ry="${ery.toFixed(2)}" fill="${tint(topC, 0.35)}" fill-opacity="${Math.min(0.95, topA + 0.12).toFixed(2)}"/>`
+        : surfaceHtml(id, parts, ecx, yTop, erx, ery, topC, topA, lsc);
       // 투과광: 역광이 음료를 지나며 빛난다 — 맑을수록 (재료 불투명도가 낮을수록) 세게, screen
       let glowFx = '';
       if (lsc && GLASS_LIGHT.glow) {
