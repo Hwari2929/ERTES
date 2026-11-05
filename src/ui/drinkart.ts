@@ -40,6 +40,10 @@ export const FOAM_FX = {
     { tex: 'bar_foam_8', tile: 40, op: 0.4, dur: 13, sway: 1.6, x: 5 },
   ],
   head: { tex: 'bar_foam_7', tile: 28, op: 0.9, blend: 'screen' },
+  /** rise = 바닥에서 생겨 커지며 떠오르는 큰 방울 (켬, tex 가 비면 선 그림 방울). 시험 (2026-11-05, 꺼 둠): ring = 탄산 수면 가장자리 기포 고리 + 톡 터지는 방울, bumpy = 맥주 거품 윗면을 몽글몽글하게 + 위는 희고 아래는 누런 거품 띠 */
+  rise: { on: true, n: 5, speed: 7, tex: 'bar_bubble' }, // 큰 방울 그림 = 시안 1번 (2026-11-05 사용자)
+  ring: { on: false, op: 0.9, pops: 4 },
+  bumpy: { on: false, amp: 0.9 },
 };
 /** 움직임 줄이기면 기포가 멈춰 있다 */
 const stillFx = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -143,10 +147,42 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
           fizzFx += FOAM_FX.fizz.map((t, i) => texed(urls[i], d, t.op, FOAM_FX.blend)).join('');
         });
       }
-      const face = foam
+      // 시험 효과 (FOAM_FX.rise · ring · bumpy)
+      const fizzTop = !frozen && !!ING_BY_ID[topIng]?.fizz, ph = (dur: number, k: number) => `${(-((now + k * 1.37) % dur)).toFixed(2)}s`;
+      let extra = '', over2 = '';
+      if (fx && FOAM_FX.rise.on && !frozen && !still && lv > 0.05 && segs.some((sg) => ING_BY_ID[sg.ing]?.fizz)) {
+        const r = FOAM_FX.rise, yb = s.bot - 0.8, ye = yTop + 0.7, [b0, b1] = wallsAt(ga, yb - 2), span = b1 - b0;
+        const spots = [b0 + span * 0.28, b0 + span * 0.62, b0 + span * 0.45];
+        for (let k = 0; k < r.n; k++) {
+          const x = spots[k % spots.length] + (rnd(k + 91) - 0.5) * 1.2, sw = (rnd(k + 13) - 0.5) * 2.2, dur = Math.max(1.2, (yb - ye) / (r.speed * (0.8 + rnd(k + 5) * 0.5)));
+          const bub = r.tex ? `<image href="${artURL(`${r.tex}.webp`)}" x="-1.3" y="-1.3" width="2.6" height="2.6" style="mix-blend-mode:plus-lighter"/><image href="${artURL(`${r.tex}.webp`)}" x="-1.3" y="-1.3" width="2.6" height="2.6" style="mix-blend-mode:plus-lighter"/>` : `<circle r="1" fill="#ffffff" fill-opacity=".07" stroke="#ffffff" stroke-opacity=".7" stroke-width=".16"/><circle cx="-.38" cy="-.4" r=".24" fill="#ffffff" fill-opacity=".85"/>`;
+          extra += `<g opacity="0"><animate attributeName="opacity" values="0; .95; .95; 0" keyTimes="0; .1; .88; 1" dur="${dur.toFixed(2)}s" begin="${ph(dur, k)}" repeatCount="indefinite"/><g><animateTransform attributeName="transform" type="translate" values="${x.toFixed(2)} ${yb.toFixed(2)}; ${(x + sw).toFixed(2)} ${((yb + ye) / 2).toFixed(2)}; ${(x - sw * 0.4).toFixed(2)} ${ye.toFixed(2)}" dur="${dur.toFixed(2)}s" begin="${ph(dur, k)}" repeatCount="indefinite"/><g><animateTransform attributeName="transform" type="scale" values=".4; .85; 1.35" dur="${dur.toFixed(2)}s" begin="${ph(dur, k)}" repeatCount="indefinite"/>${bub}</g></g></g>`;
+        }
+      }
+      if (fx && FOAM_FX.ring.on && fizzTop && !foam) {
+        const urls = FOAM_FX.fizz.map((t, i) => pat(`${id}r${i}`, t)), ell = (sx: number, sy: number) => `M${(ecx - erx * sx).toFixed(2)} ${yTop.toFixed(2)} a${(erx * sx).toFixed(2)} ${(ery * sy).toFixed(2)} 0 1 0 ${(erx * sx * 2).toFixed(2)} 0 a${(erx * sx).toFixed(2)} ${(ery * sy).toFixed(2)} 0 1 0 ${(-erx * sx * 2).toFixed(2)} 0 Z`;
+        // 가장자리 기포 고리: 바깥 두 겹 (얇은 고리 + 그 안쪽 옅은 고리) 에 기포 무늬만 — 흰 바탕 없이
+        const ringD = `${ell(1, 1)} ${ell(0.9, 0.82)}`, ring2 = `${ell(0.9, 0.82)} ${ell(0.8, 0.66)}`;
+        over2 += FOAM_FX.fizz.map((t, i) => texed(urls[i], ringD, Math.min(1, t.op * 2.4) * FOAM_FX.ring.op, FOAM_FX.blend) + texed(urls[i], ring2, Math.min(1, t.op * 1.2) * FOAM_FX.ring.op, FOAM_FX.blend)).join('');
+        if (!still) for (let k = 0; k < FOAM_FX.ring.pops; k++) {
+          const a = rnd(k + 61) * Math.PI * 2, px = ecx + Math.cos(a) * erx * 0.88, py = yTop + Math.sin(a) * ery * 0.82, dur = 1.8 + rnd(k + 3) * 1.6;
+          over2 += `<circle cx="${px.toFixed(2)}" cy="${py.toFixed(2)}" r="0" fill="none" stroke="#ffffff" stroke-width=".14" opacity="0"><animate attributeName="r" values="0; .55; .85" keyTimes="0; .7; 1" dur="${dur.toFixed(2)}s" begin="${ph(dur, k + 7)}" repeatCount="indefinite"/><animate attributeName="opacity" values="0; .9; 0" keyTimes="0; .7; 1" dur="${dur.toFixed(2)}s" begin="${ph(dur, k + 7)}" repeatCount="indefinite"/></circle>`;
+        }
+      }
+      let bumpyTop = '';
+      if (fx && FOAM_FX.bumpy.on && foam) {
+        // 거품 윗면: 단면 타원에 둥근 혹 (뒤쪽 위로 크게, 앞쪽은 작게) · 띠는 위가 희고 아래 (액체와 닿는 쪽) 가 누렇다
+        const N = 48, amp = FOAM_FX.bumpy.amp, pts: string[] = [];
+        for (let i = 0; i < N; i++) { const t = (i / N) * Math.PI * 2, back = Math.sin(t) < 0, bump = Math.abs(Math.sin(t * 7 + 0.6)) * (back ? amp : amp * 0.35); pts.push(`${(ecx + Math.cos(t) * erx).toFixed(2)} ${(yTop + Math.sin(t) * ery - bump).toFixed(2)}`); }
+        const th = Math.min(3, H * 0.12);
+        parts.push(`<linearGradient id="${id}hg" gradientUnits="userSpaceOnUse" x1="0" y1="${(yTop - ery).toFixed(2)}" x2="0" y2="${(yTop + ery + th).toFixed(2)}"><stop offset="0" stop-color="#f7f2e6"/><stop offset=".55" stop-color="#ece0c0"/><stop offset="1" stop-color="#cdb478"/></linearGradient>`);
+        bumpyTop = `<path d="${below(ga, yTop, true)} ${below(ga, yTop + th, true)}" fill-rule="evenodd" fill="url(#${id}hg)" fill-opacity=".95"/><path d="M${pts.join(' L')} Z" fill="#f6f0e2"/>${texed(pat(`${id}hb`, FOAM_FX.head), `M${pts.join(' L')} Z`, FOAM_FX.head.op, FOAM_FX.head.blend)}`;
+      }
+      const face = foam && bumpyTop ? ''
+        : foam
         ? `<path d="${headD}" fill-rule="evenodd" fill="#efe6d2" fill-opacity=".9"/>${fx ? texed(pat(`${id}h`, FOAM_FX.head), headD, FOAM_FX.head.op, FOAM_FX.head.blend) : ''}`
         : `<ellipse cx="${ecx.toFixed(2)}" cy="${yTop.toFixed(2)}" rx="${erx.toFixed(2)}" ry="${ery.toFixed(2)}" fill="${tint(topC, 0.35)}" fill-opacity="${Math.min(0.95, topA + 0.12).toFixed(2)}"/>`;
-      body.push(`<g class="liq" data-h="${(s.bot - yTop + 1).toFixed(2)}"><g clip-path="url(#${id}t)">${blur ? `<g filter="url(#${id}b)">${layers}</g>` : layers}${fizzFx}${face}</g></g>`);
+      body.push(`<g class="liq" data-h="${(s.bot - yTop + 1).toFixed(2)}"><g clip-path="url(#${id}t)">${blur ? `<g filter="url(#${id}b)">${layers}</g>` : layers}${fizzFx}${extra}${face}${over2}</g>${bumpyTop}</g>`);
     } else {
       body.push(`<rect class="liq" x="0" y="${yTop.toFixed(2)}" width="48" height="${(s.bot - yTop + 1).toFixed(2)}" fill="${fill}" fill-opacity="${alpha}"/>`);
       // 맥주 거품: 맨 위층이 맥주면 액면에 얇은 거품

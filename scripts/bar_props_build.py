@@ -95,7 +95,7 @@ def pp3(im):
 
 ICE_PP = {'bar_ice_cube'}  # 원본 3번도 다른 시안과 같은 후처리로 더 투명하게 (2026-11-04 사용자) — 나머지 셋은 picked 가 이미 후처리됨
 ice = []
-for src, dst, width in [('bar_printer_front', 'bar_printer', 900), ('bar_bell_front', 'bar_bell', 560)] + [(k, f'bar_ice_{i}', 320) for i, k in enumerate(ICE_SRC)]:
+for src, dst, width in [('bar_printer_front', 'bar_printer', 900), ('bar_bell_front', 'bar_bell', 560), ('bar_bubble', 'bar_bubble', 192)] + [(k, f'bar_ice_{i}', 320) for i, k in enumerate(ICE_SRC)]:
     im = Image.open(f'art/picked/{src}.webp').convert('RGBA')
     if src in ICE_PP: im = pp3(im)
     s = width / im.width
