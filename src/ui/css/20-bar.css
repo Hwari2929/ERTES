@@ -141,7 +141,7 @@
    섞임이 카운터 · 인물까지 닿게 잔 · 손님 앞 칸 · .bar-fronts 는 고립 묶음(z-index · transform · translate · filter · opacity < 1)을 만들지 않고, 카운터 위로 올리는 z-index 는 겹마다 준다 */
 .dk { position: relative; display: inline-block; }
 .dk > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.dk > .dk-glass { mix-blend-mode: color-dodge; opacity: .6; }
+.dk > .dk-glass { mix-blend-mode: color-dodge; opacity: .6; } /* 잔마다 진하기는 drinkart GLASS_OPACITY 가 덮어쓴다 */
 /* 음료에 비치는 배경 흐림 (drinkart SURF2.blur): 음료 영역만 잘린 HTML 겹 — 잔 크기에 따라 흐림 정도 (--dk-blur) */
 .dk > .dk-blur { position: absolute; inset: 0; pointer-events: none; -webkit-backdrop-filter: blur(var(--dk-blur, 2px)); backdrop-filter: blur(var(--dk-blur, 2px)); }
 .bar-cup .dk > .dk-blur { z-index: var(--z-sticky-head); --dk-blur: 1.2px; }
