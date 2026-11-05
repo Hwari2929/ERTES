@@ -4627,7 +4627,7 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
 .bar-seat.talking { z-index: var(--z-raise); }
 .bar-seat.out, .bar-front.out { pointer-events: none; }
 /* 입퇴장: 옆으로 몇 걸음 걸어 들어오고 나간다 (몸이 좌우로 살짝 흔들림), 에이든은 카운터 뒤에서 올라오고 내려간다 (data-from="b").
-   2026-11-05 사용자: 아주 부드럽게 — 처음의 계단식 프레임 (프레임 낮게 뒤뚱) 을 버리고 이동 · 흐려짐 · 흔들림 모두 매끄러운 곡선, 흔들림 ±1.5° */
+   2026-11-05 사용자: 아주 부드럽게 — 처음의 계단식 프레임 (프레임 낮게 뒤뚱) 을 버리고 이동 · 흐려짐 · 흔들림 모두 매끄러운 곡선, 흔들림 ±1.5° → 같은 날 ±3.5° 로 다시 넓힘 */
 .bar-seat.off, .bar-front.off { opacity: 0; }
 .bar-seat.off[data-from="b"] { translate: 0 30%; }
 /* 에이든이 다른 손님에게 잔을 내주거나 치우러 갈 때 (bar.ts aidenFetch): 카운터 뒤로 슬쩍 내려가 사라졌다가 돌아온다 (이름표 · 잔도 함께) */
@@ -4639,7 +4639,7 @@ div.psi-tf h4 { margin: 0 0 8px; color: var(--c-text); }
   .bar-seat.away, .bar-front.away { transition: opacity .4s ease-in, translate .4s ease-in; }
   .bar-seat.walk .bar-fig, .bar-front.walk .bar-cup .dk > svg { animation: bar-waddle 1.1s ease-in-out infinite; }
 }
-@keyframes bar-waddle { 0%, 100% { rotate: -1.5deg; translate: 0 0; } 25%, 75% { rotate: 0deg; translate: 0 -.7%; } 50% { rotate: 1.5deg; translate: 0 0; } } /* 걸음마다 무게가 옮겨 가며 살짝 들썩 (매끄럽게) */
+@keyframes bar-waddle { 0%, 100% { rotate: -3.5deg; translate: 0 0; } 25%, 75% { rotate: 0deg; translate: 0 -.7%; } 50% { rotate: 3.5deg; translate: 0 0; } } /* 걸음마다 무게가 옮겨 가며 살짝 들썩 (매끄럽게) */
 .bar-fig { position: absolute; inset: 0; display: block; padding: 0; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; transform-origin: 50% 100%; }
 /* 스탠딩(전신)을 얼굴 기준으로 세운다: bar.ts figStyle 이 그림마다 --fx 얼굴 가운데 · --fy 위로 올릴 양 · --fr 그림 높이 ÷ 칸 높이를 준다.
    얼굴 가운데가 자리 가운데, 턱 높이 · 얼굴 크기가 모두 같아진다. 허리 아래는 카운터 뒤로 (그림 파일은 그대로, 흰 테두리는 SVG 필터) */
