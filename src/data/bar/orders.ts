@@ -61,6 +61,7 @@ export const TAG_WORD: Record<string, string> = {
   시트러스: '시트러스 향 나게', 라임: '라임 넣어서', 산미: '새콤하게', 커피향: '커피 향 나게', 꽃향: '꽃향기 나게', 허브향: '허브 향 나게',
   초콜릿: '초콜릿 맛 나게', 꿀: '꿀 넣어서', 생강: '생강 맛 나게', 사과: '사과 맛 나게', 크림: '크림 얹어서', 바닐라: '바닐라 향 나게',
   스모키: '스모키하게', 짭짤함: '짭짤하게', 향신료: '향신료 넣어서', 약초향: '약초 향 나게', 우유: '우유 넣어서', 과일향: '과일 향 나게',
+  파인애플: '파인애플 맛 나게', 요거트: '요거트 넣어서',
 };
 const SIZE_CONDS: Record<3 | 5, SizeCond> = { 3: { k: 'size', n: 3, word: '작은 잔에', label: '작은 잔 (3칸)' }, 5: { k: 'size', n: 5, word: '큰 잔에', label: '큰 잔 (5칸)' } };
 const ICE_CONDS: Partial<Record<Ice, IceCond>> = { little: { k: 'ice', ice: 'little', word: '얼음 조금만 넣어서', label: '얼음 조금' }, lots: { k: 'ice', ice: 'lots', word: '얼음 가득 넣어서', label: '얼음 많이' }, frozen: { k: 'ice', ice: 'frozen', word: '얼음 갈아서', label: '프로즌' } };

@@ -28,9 +28,9 @@ export interface Ingredient {
   desc: string;
 }
 
-/** 재료 16종 (술 10 · 음료 6) + 분말 3종. 한 칸 = 한 번 붓기 */
+/** 재료 23종 (술 14 · 음료 8) + 분말 4종. 한 칸 = 한 번 붓기 (2026-11-05: 빈 색 — 초록 · 청록 · 파랑 · 보라 · 분홍 — 을 채우는 7종 추가, 사용자) */
 export const INGREDIENTS: Ingredient[] = [
-  // ───────── 술 (10)
+  // ───────── 술 (14)
   { id: 'dustrain', name: '더스트레인', kind: 'spirit', type: '진', taste: { sweet: -1, strength: 2, body: -1 }, tags: ['건조함', '금속성'], color: '#dfe4dc', alpha: 0.3, desc: '네오사이트 황무지 성계 증류 진. 에란테스 바의 시그니처.' },
   { id: 'yebeson', name: '다크 블랙 예베손 라임', kind: 'spirit', type: '다크 럼', taste: { sweet: 1, strength: 2, body: 1 }, tags: ['묵직함', '라임'], color: '#4a2614', alpha: 0.75, desc: '예베손-2 블랙 마켓 유래. 밀조주 시절의 검은 병 그대로.' },
   { id: 'aster', name: '아스터', kind: 'spirit', type: '보드카', taste: { sweet: 0, strength: 2, body: -1 }, tags: ['깨끗함'], color: '#eaf0f2', alpha: 0.3, desc: '비네트-3 개척 22년차 신생 증류소. 칵테일 베이스로 두루 쓴다.' },
@@ -40,18 +40,25 @@ export const INGREDIENTS: Ingredient[] = [
   { id: 'nostos', name: '노스토스', kind: 'brew', type: '과실주', taste: { sweet: 2, strength: 1, body: 0 }, tags: ['과일향', '따뜻한 여운'], color: '#9b2a3a', alpha: 0.75, desc: '이타카 귀향 과실주. 에란테스에서는 임무를 마치면 이걸로 축배를 든다.' },
   { id: 'ferma', name: '페르마', kind: 'brew', type: '사과주', taste: { sweet: 1, strength: 1, body: -1 }, tags: ['사과', '산미'], color: '#e6c879', alpha: 0.5, fizz: true, desc: '리빈-1 소규모 농가의 전통 시드르. 가을 수확기 한정.' },
   { id: 'velour', name: '벨루어', kind: 'liqueur', type: '크림 리큐르', taste: { sweet: 2, strength: 1, body: 2 }, tags: ['바닐라', '크림'], color: '#d8c3a0', alpha: 0.92, desc: '올드 앵커 원액 + 스타밀크. 에란테스 바의 2번째 하우스 브랜드.' },
+  { id: 'abyss', name: '아비스', kind: 'spirit', type: '압생트', taste: { sweet: -1, strength: 3, body: 0 }, tags: ['약초향', '몽환'], color: '#62b83a', alpha: 0.55, desc: '출처 불명. 이차원 허브로 빚었다는 소문이 있다. 마시면 30분쯤 꿈을 꾸는 것 같다고들 한다.' },
+  { id: 'pythia', name: '피시아', kind: 'spirit', type: '허브 증류주', taste: { sweet: 0, strength: 2, body: 0 }, tags: ['허브향', '신비로움'], color: '#8a5cd6', alpha: 0.5, desc: '델포이 신탁 증류주. 차원 균열 근처의 허브를 쓴다. 감각이 예민해진다는 소문이 있다.' },
+  { id: 'skycaldo', name: '스카이 칼도', kind: 'brew', type: '발포 과실주', taste: { sweet: 1, strength: 1, body: -2 }, tags: ['과일향', '산미'], color: '#f0a0b4', alpha: 0.45, fizz: true, desc: '알비온 자동화 정원의 발포 과실주. 노스토스가 가족의 축배라면, 이건 손님을 맞는 격식 있는 건배주.' },
+  { id: 'neon', name: '네코 마츠리 네온', kind: 'liqueur', type: '합성 칵테일', taste: { sweet: 3, strength: 1, body: -1 }, tags: ['인공 단맛', '형광'], color: '#ff38a8', alpha: 0.7, fizz: true, desc: '호이슌 합성 칵테일 프리믹스. 병 자체가 빛나고, 마시면 혀가 잠깐 형광색이 된다.' },
   { id: 'bitter', name: '비터 스펙트럼', kind: 'liqueur', type: '약초 비터', taste: { sweet: -3, strength: 2, body: 0 }, tags: ['약초향', '쓴맛'], color: '#6a1f1a', alpha: 0.8, desc: '델포이 약초 증류. 한 방울은 깊이, 두 방울은 약, 세 방울은 벌.' },
-  // ───────── 음료 (6)
+  // ───────── 음료 (8)
   { id: 'tonic', name: '보이드 토닉', kind: 'mixer', type: '토닉워터', taste: { sweet: -1, strength: 0, body: -2 }, tags: ['쓴맛'], color: '#e3eef5', alpha: 0.3, fizz: true, desc: '네오사이트 캠퍼스타운 제조. 황무지 자생 식물로 쓴맛을 낸다.' },
   { id: 'heliosfizz', name: '헬리오스 피즈', kind: 'mixer', type: '진저 비어', taste: { sweet: 1, strength: 0, body: -1 }, tags: ['생강', '얼얼함'], color: '#d9b25e', alpha: 0.6, fizz: true, desc: '트락스 해양 근처 생강 농장의 발효 탄산 음료.' },
   { id: 'soda', name: '과산소 소다', kind: 'mixer', type: '탄산수', taste: { sweet: 0, strength: 0, body: -2 }, tags: [], color: '#eef4f6', alpha: 0.3, fizz: true, desc: '고농도 산소 탄산수. 맛은 물인데, 임무 복귀 뒤 첫 잔으로는 이게 제일이다.' },
   { id: 'jolly', name: '졸리 시트러스 블라스트', kind: 'mixer', type: '합성 과즙', taste: { sweet: 2, strength: 0, body: -1 }, tags: ['시트러스'], color: '#f39a2b', alpha: 0.85, fizz: true, desc: '페트라 식품 부문의 합성 과즙. 라임보다는 오렌지에 가깝다.' },
   { id: 'starmilk', name: '스타밀크', kind: 'mixer', type: '우유', taste: { sweet: 1, strength: 0, body: 2 }, tags: ['우유'], color: '#f2efe6', alpha: 0.95, desc: '벨루어의 재료이기도 한 우유.' },
   { id: 'honey', name: '카스토리스 꿀 시럽', kind: 'mixer', type: '시럽', taste: { sweet: 3, strength: 0, body: 1 }, tags: ['꿀', '허브향'], color: '#d99a1c', alpha: 0.7, desc: '카스토리스 야생 벌집의 꿀을 졸인 시럽. 벌은 포위를 모른다.' },
-  // ───────── 분말 (3): 한 칸 = 그 분말로 탄 한 칸
+  { id: 'jmidnight', name: '졸리 미드나이트', kind: 'mixer', type: '합성 과즙', taste: { sweet: 2, strength: 0, body: -1 }, tags: ['파인애플'], color: '#2a4fd2', alpha: 0.8, fizz: true, desc: '페트라 식품 부문의 합성 과즙. 맛은 멸종한 과일 파인애플, 색은 이름 그대로 한밤.' },
+  { id: 'milkyway', name: '졸리 밀키웨이', kind: 'mixer', type: '탄산 요구르트', taste: { sweet: 2, strength: 0, body: 1 }, tags: ['요거트', '과일향'], color: '#cbc4f4', alpha: 0.88, fizz: true, desc: '페트라와 이타카 자유 용병 길드의 제휴 한정판. 오디세우스가 즐긴다더라.' },
+  // ───────── 분말 (4): 한 칸 = 그 분말로 탄 한 칸
   { id: 'midnight', name: '미드나이트 오일', kind: 'powder', type: '고카페인 커피', taste: { sweet: -2, strength: 0, body: 1 }, tags: ['커피향', '견과향'], color: '#3b2416', alpha: 0.9, desc: '네오사이트 학술 카페의 밤샘 연료. 당직 근무의 동반자.' },
   { id: 'cocoa', name: '에이든 코코아', kind: 'powder', type: '핫초코 가루', taste: { sweet: 2, strength: 0, body: 2 }, tags: ['초콜릿'], color: '#6b3f26', alpha: 0.95, desc: '에이든이 배합한 핫초코 가루. 배합은 메뉴판에 없다.' },
-  { id: 'yakyung', name: '아경', kind: 'powder', type: '허브 블렌드', taste: { sweet: 0, strength: 0, body: -1 }, tags: ['카모마일', '꽃향'], color: '#d8d08a', alpha: 0.45, desc: '호이슌 수경 허브와 알비온 꽃을 섞은 디카페인 차. 밤을 재우는 잔.' },
+  { id: 'crystalbloom', name: '크리스탈블룸', kind: 'powder', type: '수정 차', taste: { sweet: 1, strength: 0, body: -2 }, tags: ['깨끗함', '투명한 향'], color: '#a6efdc', alpha: 0.3, desc: '세피르 수정상 길드의 차. 찻잎이 물에 닿으면 수정처럼 투명하게 펼쳐진다. 뒷맛 없이 깔끔하게 달다.' },
+  { id: 'yakyung', name: '야경', kind: 'powder', type: '허브 블렌드', taste: { sweet: 0, strength: 0, body: -1 }, tags: ['카모마일', '꽃향'], color: '#d8d08a', alpha: 0.45, desc: '호이슌 수경 허브와 알비온 꽃을 섞은 디카페인 차. 밤을 재우는 잔.' },
 ];
 export const ING_BY_ID: Record<string, Ingredient> = Object.fromEntries(INGREDIENTS.map((x) => [x.id, x]));
 
@@ -121,7 +128,7 @@ export const RECIPES: Recipe[] = [
   R('fermaglass', '페르마 한 잔', 'wine', ['ferma', 'ferma', 'ferma', 'ferma'], 'none', [], '입고되면 단원들에게 개인 메시지가 간다.'),
   R('jollyspark', '졸리 스파클', 'highball', ['jolly', 'jolly', 'soda', 'soda'], 'lots', ['citrus'], '술이 없는 탄산. 시고 달다.'),
   R('icesoda', '얼음 씹는 소다', 'pint', ['soda', 'soda', 'soda', 'soda', 'soda'], 'lots', [], '음료보다 얼음이 목적인 잔.'),
-  R('nightlatte', '아경 라떼', 'coupe', ['yakyung', 'starmilk', 'honey'], 'none', ['petal'], '밤을 재우는 잔.'),
+  R('nightlatte', '야경 라떼', 'coupe', ['yakyung', 'starmilk', 'honey'], 'none', ['petal'], '밤을 재우는 잔.'),
   R('bitterdrop', '쓴 약 한 방울', 'rock', ['bitter', 'tonic', 'tonic'], 'little', ['lime'], '두 방울은 약, 세 방울은 벌.'),
   R('sugarbomb', '설탕 폭탄', 'coupe', ['velour', 'honey', 'starmilk'], 'frozen', ['marsh', 'crystal'], '단맛 센서가 있는 손님 전용.'),
   R('hometoddy', '귀향 토디', 'rock', ['nostos', 'nostos', 'honey'], 'none', ['cardia'], '노스토스에 꿀을 풀어 따뜻하게.'),
@@ -132,6 +139,10 @@ export const RECIPES: Recipe[] = [
   R('cocoacream', '코코아 크림', 'coupe', ['cocoa', 'starmilk', 'velour'], 'none', ['cream'], '디저트를 잔에 담았다.'),
   R('crystalcock', '수정 칵테일', 'rock', ['aster', 'tonic', 'tonic'], 'little', ['crystal'], '바텐더가 스스로에게 따르는 잔. 3잔째부터 바텐더가 조금 기운다.'),
   R('mintea', '유랑 민트 티', 'rock', ['yakyung', 'yakyung', 'honey'], 'none', ['mint'], '술 대신 차를 내는 유랑민의 잔. 당직 근무 날에는 이것만 나간다.'),
+  R('neonsoda', '네온 소다', 'highball', ['neon', 'soda', 'soda', 'soda'], 'lots', [], '마젠타가 바닥에 깔리고 소다가 위로 오른다. 마시면 혀가 형광색이 된다.'),
+  R('milkyway', '은하수', 'pint', ['jmidnight', 'jmidnight', 'milkyway', 'milkyway', 'milkyway'], 'none', ['crystal'], '한밤 파랑 위에 은하수. 맛은 파인애플 요구르트다.'),
+  R('aurora', '오로라', 'wine', ['abyss', 'pythia', 'skycaldo', 'skycaldo'], 'none', ['petal'], '초록 · 보라 · 장밋빛 3겹. 섞으면 아깝다.'),
+  R('crystaltea', '수정 아이스티', 'highball', ['crystalbloom', 'crystalbloom', 'soda', 'soda'], 'lots', ['mint'], '투명한 찻잎을 소다로 길게. 눈으로 먼저 마신다.'),
   R('gingersoda', '진저 소다', 'highball', ['heliosfizz', 'heliosfizz', 'soda', 'soda'], 'lots', ['lime'], '검은 폭풍에서 럼을 뺀 잔. 끝까지 자리를 지키는 사람의 잔.'),
 ];
 export const RECIPE_BY_ID: Record<string, Recipe> = Object.fromEntries(RECIPES.map((x) => [x.id, x]));

@@ -120,6 +120,15 @@ const deep = (c: string, ks = 1.35, kl = 0.58) => {
 /** 수면 · 음료 가장자리 (2026-11-05 사용자 방향): faceTint = 수면에 섞는 흰색 (처음 0.35 → 그 80% 는 0.28), nearGlow = 수면 앞 (아래) 끝에서 안쪽으로 밝게 퍼짐 (시안 0.675),
  *  farDark = 수면 뒤 (위) 끝에서 안쪽으로 짙게 (채도 ↑ 명도 ↓ · 무색 음료는 채도 그대로) 퍼짐 (시안 0.85) — 둘 다 수면 타원에 딱 맞는 원형 고리 + 수면 중심 쪽으로 옅어지는 직선 마스크,
  *  edgeDark = 음료 몸통이 잔 벽에서 안쪽으로 짙어지는 그라데이션 진하기 (역광 아래 층, 시안 0.5), blur = 음료 뒤 배경 흐림 (backdrop-filter, --dk-blur) */
+/** 재료 고유 연출 (2026-11-05 사용자: 일단 적용해 보고 시안으로 정한다). 섞은 잔은 그 재료가 든 칸 비율만큼 잔 전체에
+ *  glow = 네코 마츠리 네온: 층이 스스로 빛난다 (안쪽 흐린 빛 + 잔 밖으로 번지는 빛, screen) · sparkle = 크리스탈블룸: 수정 조각처럼 반짝이는 점 (반짝임은 천천히 켜졌다 꺼진다)
+ *  dust = 졸리 밀키웨이: 별가루 점 · louche = 아비스: 맑은 탄산수 · 토닉과 닿은 경계가 뿌옇게 흐려진다 (압생트에 물을 타면 흐려지는 성질) */
+export const ING_FX = {
+  glow: { on: true, ids: ['neon'], inner: 0.55, halo: 0.5, haloBlur: 2.4 },
+  sparkle: { on: true, ids: ['crystalbloom'], n: 10, size: 1.15 },
+  dust: { on: true, ids: ['milkyway'], n: 30 },
+  louche: { on: true, ids: ['abyss'], with: ['soda', 'tonic'], op: 0.6 },
+};
 /** 잔 그림 겹 (color-dodge) 진하기 — 2026-11-05 사용자: 록 글라스만 벽이 불투명한 굵은 선이라 혼자 밝다 → 나머지 잔은 0.6 → 0.9 (시안 A, 파인트 0.8 · 고블릿 0.7), 록 글라스는 0.6 의 90% */
 export const GLASS_OPACITY: Record<string, number> = { rock: 0.54, highball: 0.9, pint: 0.8, coupe: 0.9, wine: 0.9, goblet: 0.7 };
 export const SURF2 = { faceTint: 0.28, nearGlow: 0.675, farDark: 0.85, edgeDark: 0.5, blur: true }; // 2026-11-05 사용자: 시안 5단계 모두 켬
@@ -201,6 +210,7 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
   }
   parts.push(`<clipPath id="${id}c"><path d="${ga ? inner(ga) : s.liq}"/></clipPath>`);
   const body: string[] = [];
+  let haloFx = ''; // 잔 밖으로 번지는 빛 (ING_FX.glow — 안쪽 영역으로 오린 뒤 흐린다)
   if (lv > 0 && segs.length) {
     const topIng = segs[segs.length - 1].ing;
     const foam = !frozen && (mixed ? d.fill.some(beer) : beer(topIng)) && lv > 0.12;
@@ -242,6 +252,54 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
             return texed(urls[i], d, lo, FOAM_FX.blend).replace('/>', `><animate attributeName="opacity" values="${hi}; ${lo}" dur="${fade}s" begin="${(-since).toFixed(2)}s" fill="freeze"/></path>`);
           }).join('');
         });
+      }
+      // 재료 고유 연출 (ING_FX): 그 재료 층 영역 (섞은 잔이면 잔 전체 × 칸 비율)
+      let ingFx = '';
+      {
+        const segD = (sg: { a: number; b: number }) => `${sg.b < 1 ? below(ga, yAt(sg.b), true) : 'M-2 -10 L50 -10 L50 80 L-2 80 Z'}${sg.a > 0 ? ` ${below(ga, yAt(sg.a), true)}` : ''}`;
+        const share = (x: string) => d.fill.filter((y) => y === x).length / Math.max(1, d.fill.length);
+        const zones = (ids: string[]) => (mixed ? ids.filter((x) => d.fill.includes(x)).map((x) => ({ a: 0, b: 1, k: share(x), ing: x })) : segs.filter((sg) => ids.includes(sg.ing)).map((sg) => ({ ...sg, k: 1 })));
+        const spots = (z: { a: number; b: number }, n: number, salt: number, pad = 0.8) => Array.from({ length: n }, (_, j) => {
+          const y = yAt(z.a + (z.b - z.a) * rnd(salt + j * 7.3)), yy = Math.max(yTop + 1, Math.min(s.bot - 0.8, y)), [w0, w1] = wallsAt(ga, yy);
+          return [w0 + pad + (w1 - w0 - pad * 2) * rnd(salt + j * 3.1 + 0.5), yy] as const;
+        });
+        const G = ING_FX.glow;
+        if (G.on && !frozen) for (const z of zones(G.ids)) {
+          const c = mixed ? mixC : colorOf(z.ing);
+          parts.push(`<filter id="${id}ng" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.4"/></filter><filter id="${id}nh" x="-60%" y="-40%" width="220%" height="180%"><feGaussianBlur stdDeviation="${G.haloBlur}"/></filter>`);
+          ingFx += `<path d="${segD(z)}" fill-rule="evenodd" fill="${tint(c, 0.25)}" opacity="${(G.inner * z.k).toFixed(2)}" filter="url(#${id}ng)" style="mix-blend-mode:screen"/>`;
+          haloFx += `<g opacity="${(G.halo * z.k).toFixed(2)}" filter="url(#${id}nh)" style="mix-blend-mode:screen"><g clip-path="url(#${id}c)"><g clip-path="url(#${id}t)"><path d="${segD(z)}" fill-rule="evenodd" fill="${c}"/></g></g></g>`;
+        }
+        const L = ING_FX.louche;
+        if (L.on && !frozen) {
+          if (mixed) { if (L.ids.some((x) => d.fill.includes(x)) && L.with.some((x) => d.fill.includes(x))) ingFx += `<rect x="-2" y="-10" width="52" height="90" fill="${tint(mixC, 0.6)}" opacity="${(L.op * 0.7).toFixed(2)}"/>`; }
+          else for (let i = 0; i + 1 < segs.length; i++) {
+            const lo = segs[i].ing, hi = segs[i + 1].ing;
+            if (!((L.ids.includes(lo) && L.with.includes(hi)) || (L.ids.includes(hi) && L.with.includes(lo)))) continue;
+            const yb = yAt(segs[i].b), h = (H / n) * 0.55, ab = L.ids.includes(lo) ? lo : hi;
+            parts.push(`<filter id="${id}lo${i}" x="-10%" y="-60%" width="120%" height="220%"><feGaussianBlur stdDeviation="${(h * 0.45).toFixed(2)}"/></filter>`);
+            ingFx += `<path d="${below(ga, yb - h, true)} ${below(ga, yb + h, true)}" fill-rule="evenodd" fill="${tint(colorOf(ab), 0.62)}" opacity="${L.op}" filter="url(#${id}lo${i})"/>`;
+          }
+        }
+        const SP = ING_FX.sparkle;
+        if (SP.on) for (const [zi, z] of zones(SP.ids).entries()) {
+          const nn = Math.max(2, Math.round(SP.n * (z.b - z.a) * (mixed ? z.k * 1.6 : 1) * (n / 4)));
+          for (const [j, [x, y]] of spots(z, nn, 31 + zi * 17).entries()) {
+            const r = SP.size * (0.55 + rnd(j * 5.7 + 3) * 0.6), q = r * 0.22, dur = 2.4 + rnd(j + 9) * 2.4;
+            const star = `M${x.toFixed(2)} ${(y - r).toFixed(2)} L${(x + q).toFixed(2)} ${(y - q).toFixed(2)} L${(x + r).toFixed(2)} ${y.toFixed(2)} L${(x + q).toFixed(2)} ${(y + q).toFixed(2)} L${x.toFixed(2)} ${(y + r).toFixed(2)} L${(x - q).toFixed(2)} ${(y + q).toFixed(2)} L${(x - r).toFixed(2)} ${y.toFixed(2)} L${(x - q).toFixed(2)} ${(y - q).toFixed(2)} Z`;
+            ingFx += still
+              ? `<path d="${star}" fill="#ffffff" opacity="${(0.35 + rnd(j + 2) * 0.55).toFixed(2)}" style="mix-blend-mode:plus-lighter"/>`
+              : `<path d="${star}" fill="#ffffff" opacity="0" style="mix-blend-mode:plus-lighter"><animate attributeName="opacity" values="0; .95; 0" keyTimes="0; .5; 1" dur="${dur.toFixed(2)}s" begin="${(-((now + (j + 40) * 1.37) % dur)).toFixed(2)}s" repeatCount="indefinite"/></path>`;
+          }
+        }
+        const DU = ING_FX.dust;
+        if (DU.on) for (const [zi, z] of zones(DU.ids).entries()) {
+          const nn = Math.max(4, Math.round(DU.n * (z.b - z.a) * (mixed ? z.k * 1.4 : 1) * (n / 4)));
+          for (const [j, [x, y]] of spots(z, nn, 71 + zi * 13, 0.5).entries()) {
+            const big = rnd(j * 2.9 + 1) > 0.86;
+            ingFx += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${(big ? 0.32 : 0.1 + rnd(j + 4) * 0.14).toFixed(2)}" fill="${rnd(j + 8) > 0.5 ? '#ffffff' : '#e9e2ff'}" opacity="${(0.35 + rnd(j + 6) * 0.55).toFixed(2)}" style="mix-blend-mode:plus-lighter"/>`;
+          }
+        }
       }
       // 시험 효과 (FOAM_FX.rise · ring · bumpy)
       const fizzTop = !frozen && fizzOf(topIng), ph = (dur: number, k: number) => `${(-((now + k * 1.37) % dur)).toFixed(2)}s`;
@@ -321,7 +379,7 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
         parts.push(`<filter id="${id}ie" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur in="SourceAlpha" stdDeviation="3.2" result="b"/><feComposite in="SourceAlpha" in2="b" operator="arithmetic" k2="2" k3="-2" result="e"/><feFlood flood-color="${deep(mix(d.fill.map(colorOf)), 1.5, 0.45)}" flood-opacity="1"/><feComposite in2="e" operator="in"/></filter>`);
         edgeFx = `<path d="${tall}" fill="#000000" filter="url(#${id}ie)" opacity="${SURF2.edgeDark}"/>`;
       }
-      body.push(`<g class="liq" data-h="${(s.bot - yTop + 1).toFixed(2)}"><g clip-path="url(#${id}t)">${blur ? `<g filter="url(#${id}b)">${layers}</g>` : layers}${edgeFx}${glowFx}${fizzFx}${extra}${face}${over2}</g>${bumpyTop}</g>`);
+      body.push(`<g class="liq" data-h="${(s.bot - yTop + 1).toFixed(2)}"><g clip-path="url(#${id}t)">${blur ? `<g filter="url(#${id}b)">${layers}</g>` : layers}${edgeFx}${glowFx}${fizzFx}${ingFx}${extra}${face}${over2}</g>${bumpyTop}</g>`);
     } else {
       body.push(`<rect class="liq" x="0" y="${yTop.toFixed(2)}" width="48" height="${(s.bot - yTop + 1).toFixed(2)}" fill="${fill}" fill-opacity="${alpha}"/>`);
       // 맥주 거품: 맨 위층이 맥주면 액면에 얇은 거품
@@ -447,7 +505,7 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       parts.push(`<clipPath id="${id}bl" clipPathUnits="objectBoundingBox"><path d="${liqD}" transform="scale(${1 / 48} ${1 / 72})"/></clipPath>`);
       blurDiv = `<i class="dk-blur" style="clip-path:url(#${id}bl)"></i>`;
     }
-    return `<span class="${cls} art dk" aria-hidden="true">${blurDiv}<svg class="dk-liq" ${vb}><defs>${parts.join('')}</defs>${shadow}${caustic}<g clip-path="url(#${id}c)">${body.join('')}</g></svg><svg class="dk-glass" ${vb} style="opacity:${GLASS_OPACITY[d.glass in GLASS_ART ? d.glass : 'rock'] ?? 0.6}">${img}</svg>${lightSvg}${over.length ? `<svg class="dk-over" ${vb}>${over.join('')}</svg>` : ''}</span>`;
+    return `<span class="${cls} art dk" aria-hidden="true">${blurDiv}<svg class="dk-liq" ${vb}><defs>${parts.join('')}</defs>${shadow}${caustic}${haloFx}<g clip-path="url(#${id}c)">${body.join('')}</g></svg><svg class="dk-glass" ${vb} style="opacity:${GLASS_OPACITY[d.glass in GLASS_ART ? d.glass : 'rock'] ?? 0.6}">${img}</svg>${lightSvg}${over.length ? `<svg class="dk-over" ${vb}>${over.join('')}</svg>` : ''}</span>`;
   }
   const glass = `<path d="${s.out}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/>${s.stem ? `<path d="${s.stem}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>` : ''}`;
   const back = `<path d="${s.liq}" fill="currentColor" fill-opacity=".07"/>`;
