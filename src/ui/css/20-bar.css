@@ -176,6 +176,7 @@ html:not(.dk-ready) .bar .dk { visibility: hidden; } /* 잔 그림을 다 받기
 /* 말풍선: 그 사람 그림 기준 4곳 (data-pos, bar.ts placeBub 가 자리를 재서 left · top 을 준다, 줄마다 무작위) — 머리 위 · 오른쪽 위 · 왼쪽 위 · 얼굴 옆(빈 쪽). 꼬리(data-tail)는 머리를 가리킨다 */
 .bar-bub { --bw: min(300px, 40cqw); position: absolute; left: 0; top: 0; z-index: var(--z-tip); width: max-content; max-width: var(--bw); min-width: 110px; padding: 8px 12px 10px; display: grid; gap: 2px; text-align: left; font-size: var(--fs-lg); line-height: 1.45; color: var(--c-black); background: var(--c-white); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); }
 .bar-bub[hidden] { display: none; }
+@media (max-height: 520px) and (orientation: landscape) { .bar-bub { --bw: min(440px, 56cqw); } } /* 낮은 가로 화면: 머리 위 여백이 좁아 말풍선을 넓게 (줄 수를 줄여 그림 · 시계를 덜 가린다) */
 .bar-bub b { color: color-mix(in srgb, var(--c, var(--c-text-2)) 62%, var(--c-black)); font-size: var(--fs-sm); } /* 흰 말풍선 (2026-11-03 사용자 결정): 이름 색은 검정 쪽으로 눌러 흰 바탕에서 읽히게 */
 .bar-bub.mono span { font-size: var(--fs-md); font-style: italic; color: color-mix(in srgb, var(--c-black) 70%, var(--c-white)); } /* 혼잣말: 같은 말풍선에 한 단계 작은 기울임 글씨 */
 .bar-bub::after { content: ''; position: absolute; left: var(--tx, 24px); bottom: -6px; width: 10px; height: 10px; rotate: 45deg; background: var(--c-white); border: 1px solid var(--line); border-top: 0; border-left: 0; }

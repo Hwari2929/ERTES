@@ -1279,6 +1279,31 @@ const EMO_POS = ['tr', 'tl', 'r', 'l'];
 const POS: { bub?: (typeof BUB_POS)[number]; emo?: string } = {};
 /** 말풍선 자리: 그 사람 자리(.bar-seat)를 재서 머리 위 · 오른쪽 위 · 왼쪽 위 · 얼굴 옆(빈 쪽) 중 하나에 놓고, 꼬리가 머리를 가리키게 한다.
  *  무대 밖(레이첼)은 CSS 자리 (카운터 앞면 위 가운데) */
+/** 스탠딩 그림의 맨 위 (그려진 부분의 첫 줄, 그림 높이 비율) — 그림마다 한 번 재서 둔다 (머리카락 · 든 물건까지). 못 재면 null */
+const artTopCache = new Map<string, number | null>();
+function artTop(img: HTMLImageElement): number | null {
+  const key = img.currentSrc || img.src;
+  if (artTopCache.has(key)) return artTopCache.get(key)!;
+  if (!img.complete || !img.naturalWidth) return null; // 아직 안 받았다 (다음에 다시)
+  let t: number | null = null;
+  try {
+    const w = 96, h = Math.max(1, Math.round((96 * img.naturalHeight) / img.naturalWidth));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d', { willReadFrequently: true })!;
+    g.drawImage(img, 0, 0, w, h);
+    const d = g.getImageData(0, 0, w, h).data;
+    for (let y = 0; y < h && t === null; y++) { let n = 0; for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 40) n++; if (n >= 2) t = y / h; }
+  } catch { t = null; } // 다른 출처 그림 (읽을 수 없음) — 어림값으로
+  artTopCache.set(key, t);
+  return t;
+}
+/** 그 자리 인물 그림의 맨 위 y (무대 기준 px): 그려진 첫 줄 + 흰 테두리 — 못 재면 자리 높이의 6% */
+function figTop(seat: HTMLElement, floorTop: number): number {
+  const img = seat.querySelector<HTMLImageElement>('.bar-fig img'), R = seat.getBoundingClientRect();
+  const t = img ? artTop(img) : null;
+  if (img && t !== null) { const ir = img.getBoundingClientRect(); return ir.top + t * ir.height - floorTop - 4; }
+  return R.top - floorTop + R.height * 0.06;
+}
 function placeBub(root: HTMLElement, bub: HTMLElement, seat: HTMLElement | null) {
   bub.style.left = ''; bub.style.top = ''; bub.style.removeProperty('--tx'); bub.style.removeProperty('--ty');
   delete bub.dataset.pos; delete bub.dataset.tail;
@@ -1289,7 +1314,10 @@ function placeBub(root: HTMLElement, bub: HTMLElement, seat: HTMLElement | null)
   const W = F.width, bw = bub.offsetWidth, bh = bub.offsetHeight;
   const sw = R.width, h = R.height, top0 = R.top - F.top;
   const hx = R.left - F.left + sw / 2; // 얼굴 가운데 (그림은 얼굴을 자리 가운데에 맞춘다)
-  const headTop = top0 + h * 0.13, faceMid = top0 + h * 0.3;
+  const faceMid = top0 + h * 0.3;
+  // 머리 위 말풍선은 그림을 가리지 않게 (2026-11-05 사용자): 말하는 사람 그림의 맨 위 (머리카락 · 든 물건까지) 위에, 말풍선 폭 안에 들어오는 옆 사람 그림보다도 위에
+  const seats = Array.from(fl.querySelectorAll<HTMLElement>('.bar-seat:not(.out)'));
+  const headOver = (l: number) => Math.min(figTop(seat, F.top), ...seats.filter((e) => e !== seat).filter((e) => { const r = e.getBoundingClientRect(), cx = r.left - F.left + r.width / 2; return cx > l - r.width * 0.32 && cx < l + bw + r.width * 0.32; }).map((e) => figTop(e, F.top)));
   // 옆 사람 얼굴: 다른 자리의 가운데 x (얼굴 옆 말풍선은 그 얼굴을 덮지 않을 때만)
   const others = Array.from(fl.querySelectorAll<HTMLElement>('.bar-seat:not(.out)')).filter((e) => e !== seat).map((e) => { const r = e.getBoundingClientRect(); return r.left - F.left + r.width / 2; });
   const clearOf = (l: number) => others.every((ox) => ox < l - sw * 0.2 || ox > l + bw + sw * 0.2);
@@ -1303,9 +1331,9 @@ function placeBub(root: HTMLElement, bub: HTMLElement, seat: HTMLElement | null)
   }
   if (pos === 'tr' && !fits(hx + sw * 0.08)) pos = 'tl';
   if (pos === 'tl' && !fits(hx - sw * 0.08 - bw)) pos = fits(hx + sw * 0.08) ? 'tr' : 'top';
-  if (pos === 'top') { left = hx - bw / 2; top = headTop - bh - 12; }
-  else if (pos === 'tr') { left = hx + sw * 0.08; top = headTop - bh + 4; }
-  else if (pos === 'tl') { left = hx - sw * 0.08 - bw; top = headTop - bh + 4; }
+  if (pos === 'top') { left = Math.max(8, Math.min(W - bw - 8, hx - bw / 2)); top = headOver(left) - bh - 20; }
+  else if (pos === 'tr') { left = hx + sw * 0.08; top = headOver(left) - bh - 10; }
+  else if (pos === 'tl') { left = hx - sw * 0.08 - bw; top = headOver(left) - bh - 10; }
   else { // 얼굴 옆: 비어 있는 쪽 (둘 다 비면 넓은 쪽)
     const rl = hx + sw * 0.3, ll = hx - sw * 0.3 - bw;
     const rOk = fits(rl) && clearOf(rl), lOk = fits(ll) && clearOf(ll);
