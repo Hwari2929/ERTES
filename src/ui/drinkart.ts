@@ -55,7 +55,7 @@ const hex = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16))
 /** 검정을 w 만큼 섞은 색 */
 const shade = (c: string, w: number) => `#${hex(c).map((v) => Math.round(v * (1 - w)).toString(16).padStart(2, '0')).join('')}`;
 /** 층 안 세로 그라데이션 (2026-11-05 사용자): 같은 재료가 이어진 층은 아래가 짙고 위가 살짝 연하다 */
-const LAYER_SHADE = { bot: 0.21, top: 0.07 }; // 사용자: 0.16 · 0.1 → 0.21 · 0.07
+const LAYER_SHADE = { bot: 0.21, top: 0.07, topA: 0.85 }; // 사용자: 0.16 · 0.1 → 0.21 · 0.07, 위쪽은 밀도가 낮아 불투명도 85% (2026-11-05)
 /** 흰색을 w 만큼 섞은 색 */
 const tint = (c: string, w: number) => `#${hex(c).map((v) => Math.round(v + (255 - v) * w).toString(16).padStart(2, '0')).join('')}`;
 const mix = (cs: string[]) => { const a = cs.map(hex); const m = [0, 1, 2].map((k) => Math.round(a.reduce((s, x) => s + x[k], 0) / a.length)); return `#${m.map((v) => v.toString(16).padStart(2, '0')).join('')}`; };
@@ -127,7 +127,7 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       // 잔 그림: 층마다 제 영역 (위 경계 호 아래 − 아래 경계 호 아래), 경계는 흐림으로 섞는다. 액면 = 단면 타원 뒤쪽 호 + 윗면. 붓기 연출(bar.ts prepFx)은 .liq 묶음을 올린다
       const yAt = (f: number) => s.bot - H * f;
       // 층마다 아래 (짙게) → 위 (살짝 연하게) 그라데이션. 위 끝은 그 층의 보이는 윗부분 (마셔서 줄면 지금 수면)
-      const grad = (gid: string, c: string, y0: number, y1: number) => { parts.push(`<linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="0" y1="${y0.toFixed(2)}" x2="0" y2="${Math.min(y0 - 0.5, y1).toFixed(2)}"><stop offset="0" stop-color="${shade(c, LAYER_SHADE.bot)}"/><stop offset="1" stop-color="${tint(c, LAYER_SHADE.top)}"/></linearGradient>`); return `url(#${gid})`; };
+      const grad = (gid: string, c: string, y0: number, y1: number) => { parts.push(`<linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="0" y1="${y0.toFixed(2)}" x2="0" y2="${Math.min(y0 - 0.5, y1).toFixed(2)}"><stop offset="0" stop-color="${shade(c, LAYER_SHADE.bot)}"/><stop offset="1" stop-color="${tint(c, LAYER_SHADE.top)}" stop-opacity="${LAYER_SHADE.topA}"/></linearGradient>`); return `url(#${gid})`; };
       const layers = frozen || segs.length <= 1
         ? `<rect x="-2" y="-10" width="52" height="90" fill="${grad(`${id}l0`, frozen ? fill : colorOf(segs[0].ing), s.bot, yTop)}" fill-opacity="${alpha}"/>`
         : segs.map((sg, i) => `<path d="${sg.b < 1 ? below(ga, yAt(sg.b), true) : 'M-2 -10 L50 -10 L50 80 L-2 80 Z'}${sg.a > 0 ? ` ${below(ga, yAt(sg.a), true)}` : ''}" fill-rule="evenodd" fill="${grad(`${id}l${i}`, colorOf(sg.ing), yAt(sg.a), Math.max(yAt(sg.b), yTop))}" fill-opacity="${alphaOf(sg.ing)}"/>`).join('');
