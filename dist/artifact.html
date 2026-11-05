@@ -6335,9 +6335,9 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .mt-pass-stub b { font: 400 var(--fs-md)/1 var(--f-display); letter-spacing: .1em; white-space: nowrap; }
 [data-ui-theme="metro"] .mt-pass-stub em { margin-left: auto; font: 400 var(--fs-xl)/1 var(--f-display); font-style: normal; }
 [data-ui-theme="metro"] .pcard .pc-art { inset: 28px 9px calc(var(--stub) + 2px); isolation: isolate; border-radius: var(--r-lg); background: color-mix(in srgb, var(--mt-a) 9%, var(--mt-ink)); }
-[data-ui-theme="metro"] .pcard .pc-art::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: color-mix(in srgb, var(--mt-a) 46%, transparent);
-  -webkit-mask: var(--mt-dot-tl) left top / 190px 190px no-repeat; mask: var(--mt-dot-tl) left top / 190px 190px no-repeat; } /* 좌측 상단으로 짙어지는 망점 (사진 창 바탕 바로 위 · 선 무늬 · 그림 아래) */
-[data-ui-theme="metro"] .pcard.sel .pc-art::after { background: color-mix(in srgb, var(--c-select) 46%, transparent); }
+[data-ui-theme="metro"] .pcard .pc-art::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(150deg, color-mix(in srgb, var(--mt-a) 26%, transparent), transparent 55%); } /* 좌측 상단에서 옅어지는 보라 그라디언트 (사진 창 바탕 위 · 선 무늬 · 그림 아래) */
+[data-ui-theme="metro"] .pcard.sel .pc-art::after { background: linear-gradient(150deg, color-mix(in srgb, var(--c-select) 24%, transparent), transparent 55%); }
 [data-ui-theme="metro"] .pcard .pc-art::before { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .26; background: color-mix(in srgb, var(--mt-a) 55%, var(--mt-paper));
   -webkit-mask: var(--ct-mask, linear-gradient(transparent, transparent)); mask: var(--ct-mask, linear-gradient(transparent, transparent)); } /* 그림 아래 선 무늬: 고정 크기 SVG 선 그림을 늘이지 않고 마스크로 찍는다 (선 굵기 1.5px 그대로) */
 [data-ui-theme="metro"] .pcard[data-ct="MARK"] { --ct-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260' fill='none' stroke='black' stroke-width='1.5'%3E%3Ccircle cx='130' cy='130' r='16'/%3E%3Ccircle cx='130' cy='130' r='40'/%3E%3Ccircle cx='130' cy='130' r='66'/%3E%3Ccircle cx='130' cy='130' r='104'/%3E%3Cpath d='M130 56v12M130 192v12M56 130h12M192 130h12'/%3E%3C/svg%3E") right -60px top -10px / 260px 260px no-repeat,
@@ -6351,12 +6351,9 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .pcard .pc-syn { top: 38px; left: 18px; }
 [data-ui-theme="metro"] .pcard .pc-full { top: 36px; right: 16px; }
 [data-ui-theme="metro"] .pcard .pc-full ~ .pc-check { top: 40px; right: 62px; }
-/* 뒷면 (시안 12 다듬음): 잉크 바탕 / 망점 = 위 보라 (좌상단에서 크게) + 아래 복숭아 (좌하단) / 그 위에 복숭아 사분원 · 점 /
+/* 뒷면 (시안 12 다듬음): 잉크 바탕 / 복숭아 사분원 · 점 /
    가파른 리버리 띠 두 줄 (둘 다 복숭아 → 민트) / 큰 ∞ 종이색 윤곽 */
 [data-ui-theme="metro"] .pcard .cback { border: 0; box-shadow: none; border-radius: inherit; overflow: hidden; background: var(--mt-ink); }
-[data-ui-theme="metro"] .pcard .cback::before { content: ''; position: absolute; inset: 0;
-  background: linear-gradient(color-mix(in srgb, var(--mt-a) 75%, transparent), color-mix(in srgb, var(--mt-a) 75%, transparent)) left top / 330px 330px no-repeat, linear-gradient(var(--mt-c), var(--mt-c)) left bottom / 480px 140px no-repeat;
-  -webkit-mask: var(--mt-dot-tl) left top / 330px 330px no-repeat, var(--mt-dot-bl) left bottom / 480px 140px no-repeat; mask: var(--mt-dot-tl) left top / 330px 330px no-repeat, var(--mt-dot-bl) left bottom / 480px 140px no-repeat; }
 [data-ui-theme="metro"] .pcard .cb-l { position: absolute; inset: 0; background: radial-gradient(circle at 0 100%, var(--mt-c) 0 104px, transparent 104.5px), radial-gradient(circle at 76% 16%, var(--mt-c) 0 18px, transparent 18.5px); } /* 도형은 망점 위 */
 [data-ui-theme="metro"] .pcard .cb-l::before, [data-ui-theme="metro"] .pcard .cb-l::after { content: ''; position: absolute; inset: 0; }
 [data-ui-theme="metro"] .pcard .cb-l::before { background: linear-gradient(208deg, var(--mt-c) 15%, var(--mt-b) 85%); -webkit-mask: linear-gradient(-62deg, transparent 30%, var(--c-black) 30% 40%, transparent 40%); mask: linear-gradient(-62deg, transparent 30%, var(--c-black) 30% 40%, transparent 40%); }
