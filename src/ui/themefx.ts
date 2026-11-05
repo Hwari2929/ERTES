@@ -1,7 +1,7 @@
 // 테마 연출 (설정 → 테마 연출: 켜기 · 줄이기 · 끄기). 외부 이미지 없이 canvas · CSS 로만 그린다.
 //   · 갤럭시: 화면 뒤(본문 아래) 별빛 층 — 천천히 흐르는 별 3층 · 반짝임 · 가끔 유성
 //   · 메트로 인피니티 패스: 화면 뒤 '창밖 별빛' — 달리는 열차 창밖처럼 별이 오른쪽에서 왼쪽으로 흐르는 3층 · 가끔 지나가는 빛 열차.
-//     인게임 큰 화면 전환은 열차가 들어와 화면을 덮고, 다음 역 안내판(새 화면의 그림이 다 받아질 때까지 · 받은 그림 수 = 역 점)을 보인 뒤 떠나며 다음 화면을 드러낸다.
+//     런 출발 · 보스 · 상점에 들어갈 때만 열차가 들어와 화면을 덮고, 다음 역 안내판(새 화면의 그림이 다 받아질 때까지 · 받은 그림 수 = 역 점)을 보인 뒤 떠나며 다음 화면을 드러낸다.
 //     전투 진입은 속도선 · 도형 · 별빛 꼬리가 띠 안을 질주하고 탑승권이 미끄러져 들어와 펀치된다 (banner).
 // 움직임은 모두 Web Animations 의 transform · opacity 라 합성기에서 돌고 메인 스레드는 거의 쓰지 않는다
 // (별 타일은 시작할 때 canvas 로 한 번만 그린다). 배경 층은 pointer-events: none 이라 입력을 막지 않는다 (열차가 덮는 동안만 막는다).
@@ -35,12 +35,10 @@ const metroOn = () => cur.theme === 'metro' && cur.level !== 'off';
 
 // ───────────────────────── 메트로: 큰 화면 전환 (열차 · 다음 역 안내판)
 // 인게임 화면끼리만 (바 · 계약 · 타이틀 · 도감은 제외). 명부 → 지도 = 런 출발. 전투 진입은 banner 가 맡는다
-const GAME = new Set(['map', 'prep', 'shop', 'news', 'invest', 'over']);
-const STATION: Record<string, [string, string]> = {
-  map: ['항로 지도', 'ROUTE MAP'], prep: ['편성', 'FORMATION'], shop: ['상점', 'MARKET'],
-  news: ['은하 속보', 'GALAXY NEWS'], invest: ['호이슌 투자 창구', 'INVEST DESK'], over: ['종착역', 'TERMINAL'],
-};
-const metroMove = (prev: string, next: string) => metroOn() && !!prev && prev !== next && GAME.has(next) && (GAME.has(prev) || prev === 'newrun');
+/** 열차가 서는 정거장: 런 출발(명부 → 지도) · 보스 노드 진입 · 상점 진입만 (main.ts render 의 mtStop 이 정한다, 나머지 전환은 그대로 컷).
+ *  안내판: 머리표(영문 대문자 모노) · 역 이름(그 순간의 대상: 전장 · 보스 이름 · 상점) · 영문 부제 */
+export interface Stop { kick: string; name: string; en: string; tone?: 'boss' }
+let lastStop: Stop | null = null;
 /** 열차 시간 (ms): 들어옴 · 안내판을 읽을 최소 시간 · 떠남 · 그림을 기다리는 최대 시간 */
 const RIDE = { in: 300, hold: 170, out: 360, cap: 4000 };
 let ride: { el: HTMLElement; ghost: HTMLElement | null; fresh: boolean; covered: Promise<void>; anims: Animation[]; gone: boolean } | null = null;
@@ -63,17 +61,17 @@ function freeze(app: HTMLElement) {
 }
 /** render() 가 화면을 바꾸기 직전 (메트로 켜기): 지금 화면을 얼려 두고 그 위로 열차가 들어온다.
  *  render 는 그대로 바로 새 화면을 그리므로 게임 흐름은 기다리지 않는다 (열차가 덮는 동안 입력만 막힌다) */
-export function beforeScreen(prev: string, next: string, app: HTMLElement) {
-  if (!metroMove(prev, next) || cur.level !== 'on' || reduced()) return;
+export function beforeScreen(prev: string, next: string, app: HTMLElement, stop: Stop | null = null) {
+  lastStop = metroOn() && prev && prev !== next ? stop : null;
+  if (!lastStop || cur.level !== 'on' || reduced()) return;
   endRide();
   const ghost = freeze(app);
-  const [name, en] = STATION[next];
   const el = document.createElement('div');
-  el.className = 'mt-ride';
+  el.className = `mt-ride${lastStop.tone ? ` ${lastStop.tone}` : ''}`;
   el.setAttribute('aria-hidden', 'true');
   el.innerHTML = `<div class="mt-car"><i class="mt-car-win"></i><i class="mt-car-lv"></i><span class="mt-car-id">ERRANTES METRO · INFINITY PASS</span>
-    <div class="mt-board"><span class="mt-bd-k"><i class="mt-bd-line">∞</i><span>NEXT STATION</span><i class="mt-bd-dot"></i><span>다음 역</span></span>
-      <b class="mt-bd-name">${esc(name)}</b><span class="mt-bd-en">${en}</span><span class="mt-bd-stops"></span></div></div>`;
+    <div class="mt-board"><span class="mt-bd-k"><i class="mt-bd-line">∞</i><span>${esc(lastStop.kick)}</span></span>
+      <b class="mt-bd-name">${esc(lastStop.name)}</b><span class="mt-bd-en">${esc(lastStop.en)}</span><span class="mt-bd-stops"></span></div></div>`;
   document.body.appendChild(el);
   const car = el.firstElementChild as HTMLElement;
   const a = car.animate([{ transform: 'translateX(100%)' }, { transform: 'translateX(0)' }], { duration: RIDE.in, easing: 'cubic-bezier(.2, .75, .25, 1)', fill: 'both' });
@@ -112,14 +110,17 @@ export function onScreen(prev: string, next: string) {
   if (b !== busy) { busy = b; cur.layer?.setBusy(b); }
   if (ride?.fresh) {
     ride.fresh = false;
-    // 사건 장면 · 특권 · 역경 선택은 제 막 연출이 있다 (메트로에서는 특권 막 = 닫히는 열차 문) → 열차는 그리기 전에 거둔다
-    if (document.querySelector('.adv, .pv-bg:not(.played), .dp-bg:not(.played)')) { endRide(); return; }
+    // 사건 장면 · 역경 선택은 제 막 연출이 있다 → 열차는 그리기 전에 거둔다.
+    // 런 출발의 특권 막(메트로 = 닫히는 열차 문)은 그대로 둔다: 열차가 떠나면 문이 닫힌 승강장에서 카드가 놓인다
+    if (document.querySelector('.adv, .dp-bg:not(.played)')) { endRide(); return; }
     rideTrack(ride);
     return;
   }
-  if (!metroMove(prev, next) || reduced()) return;
-  if (document.querySelector('.adv, .pv-bg:not(.played), .dp-bg:not(.played)')) return;
-  if (cur.level === 'low') sweep();
+  const st = lastStop;
+  lastStop = null;
+  if (!st || !metroOn() || reduced() || cur.level !== 'low') return;
+  if (document.querySelector('.adv, .dp-bg:not(.played)')) return;
+  sweep();
 }
 /** 줄이기: 노선색 띠 세 줄이 새 화면 위를 한 번 쓸고 지나간다 (덮지 않는다) */
 function sweep() {

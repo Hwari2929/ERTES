@@ -154,6 +154,15 @@ if (typeof document !== 'undefined') {
 for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, () => { if (app.screen === 'title' || app.menu) render(); });
 window.addEventListener('scroll', () => { if (root.querySelector('.stat-pop, .ask-pop')) layoutPanels(); }, { passive: true });
 
+/** 메트로 열차가 서는 정거장 (themefx.ts Stop): 런 출발(명부 → 지도) · 지도에서 보스 노드 · 상점으로 들어갈 때만. 나머지 화면 전환은 그대로 컷 */
+function mtStop(run: RunState | null, prev: string, next: string): TFX.Stop | null {
+  if (!run || prev === next) return null;
+  if (prev === 'newrun' && next === 'map') return { kick: 'DEPARTURE · 출발', name: fieldOf(run.field).name, en: `PHASE ${run.phase} · LINE ∞` };
+  if (prev !== 'map') return null;
+  if (next === 'prep' && run.node?.type === 'boss') return { kick: 'EXPRESS · 보스 역', name: phaseBoss(run)?.name || '보스', en: `PHASE ${run.phase} · TERMINAL`, tone: 'boss' };
+  if (next === 'shop') return { kick: 'NEXT STATION · 다음 역', name: '상점', en: 'MARKET' };
+  return null;
+}
 export function render() {
   AB.ABOPT.coef = app.detail; // 상세 보기: 피해 · 회복을 계수로
   if (app.screen !== 'battle' && app.view) { app.view.destroy(); app.view = null; }
@@ -195,7 +204,7 @@ export function render() {
   const KEEP = ['.um-grid', '.um-a', '.um-c', '.um-r', '.um-main', '.side.right', '.map-detail', '.detail', '.shop-ov', '.so-body', '.shop-ov .sd', '.pil-ov'];
   const kept = KEEP.map((q) => root.querySelector<HTMLElement>(q)?.scrollTop ?? 0);
   const media = app.screen === 'battle' || app.screen === 'bar' ? null : keepMedia();
-  TFX.beforeScreen(prevScreen, app.screen, root); // 메트로: 바뀌기 전 화면을 덮는 열차 (그리기 전에 지금 화면을 얼려 둔다)
+  TFX.beforeScreen(prevScreen, app.screen, root, mtStop(run, prevScreen, app.screen)); // 메트로: 런 출발 · 보스 · 상점에서만 바뀌기 전 화면을 덮는 열차 (그리기 전에 지금 화면을 얼려 둔다)
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run ? askPop() : ''}${run ? LAB.labHtml(run, app.screen) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${app.preview ? unitModal(app.preview.run, true) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   media?.();
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });

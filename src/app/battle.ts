@@ -381,7 +381,7 @@ export function summaryModal(run: RunState) {
   const head = s.gameOver ? '용병단 전멸' : s.won ? '승리' : '패배';
   const mvpStat = mvp ? [['준 피해', mvp.a.dmg], ['지원', mvp.a.healed + mvp.a.shield], ['받은 피해', mvp.a.taken], ['결정타', mvp.a.kills]].filter(([, v]) => (v as number) > 0).map(([k, v]) => `<span><small>${k}</small><b>${fmt(v as number)}</b></span>`).join('') : '';
   return `<div class="modal-bg res-bg${s.won ? ' win' : ''}"><div class="modal result rs ${s.won ? 'win' : 'lose'}">
-    <div class="rs-banner"><span class="rs-rays" aria-hidden="true"></span><b>${head}</b><small>${s.won ? 'MISSION COMPLETE' : s.gameOver ? 'MISSION FAILED' : 'RETREAT'}</small></div>
+    <div class="rs-banner"><span class="rs-rays" aria-hidden="true"></span><span class="mt-stamp${s.won ? '' : ' void'}" data-label="${s.won ? 'VALID' : 'VOID'}" aria-hidden="true"><i></i></span><b>${head}</b><small>${s.won ? 'MISSION COMPLETE' : s.gameOver ? 'MISSION FAILED' : 'RETREAT'}</small></div>
     <div class="rs-grid">
       ${d && mvp ? `<section class="rs-mvp" aria-label="MVP">
         <div class="rs-mvp-art">${standImg(d.id, 'stand', true) || sprite(d, 'spr big')}</div>
