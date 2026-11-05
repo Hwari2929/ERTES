@@ -6,7 +6,7 @@
 // 처음 연 제조대에는 출력기 왼쪽에 에이든의 메모가 놓여 있다 (순서 · 자리별 한 줄, ✕ 로 뗀다 — 막지 않는다).
 import {
   AXES, AXIS_NAME, GARNISH_BY_ID, GARNISH_MAX, GARNISHES, GLASS_BY_ID, GLASS_KIND_NAME, GLASSES, ICE_NAME, ING_BY_ID, ING_KIND_NAME, INGREDIENTS, RECIPES,
-  tasteOf, tasteText, type Drink, type Ice, type IngKind,
+  mixable, tasteOf, tasteText, type Drink, type Ice, type IngKind,
 } from '../data/bar/drinks';
 import { ORDER_STYLE_NAME } from '../data/bar/drinks';
 import { axisTargets, COIN_NAME, recipeName, type Order } from '../data/bar/orders';
@@ -28,9 +28,11 @@ export interface Prep { k: string; who: string; name: string; order: Order; glas
   /** 진열장에서 고친 층 (다음 병이 이 층을 바꾼다) */
   sel?: number;
   /** 처음 연 제조대: 에이든의 메모가 붙어 있다 (✕ 로 떼면 false) */
-  memo?: boolean }
+  memo?: boolean;
+  /** 섞기 (가니쉬 단계): 층 색을 고루 섞어 보인다 — 맛은 그대로 */
+  mix?: boolean }
 export const newPrep = (k: string, who: string, name: string, order: Order, hintText?: string): Prep => ({ k, who, name, order, glass: '', fill: [], ice: 'none', garnish: [], book: '', hintText, step: 0 });
-export const prepDrink = (p: Prep): Drink => ({ glass: p.glass, fill: [...p.fill], ice: p.ice, garnish: [...p.garnish] });
+export const prepDrink = (p: Prep): Drink => ({ glass: p.glass, fill: [...p.fill], ice: p.ice, garnish: [...p.garnish], ...(p.mix && mixable(p) ? { mix: true } : {}) });
 const slotsOf = (p: Prep) => GLASS_BY_ID[p.glass]?.slots || 0;
 export const prepReady = (p: Prep) => !!p.glass && p.fill.length === slotsOf(p);
 
@@ -114,7 +116,10 @@ export type PrepStep = 0 | 1 | 2 | 3;
 export const prepCan = (p: Prep, st: number) => st <= 1 || (st === 2 ? !!p.glass : st === 3 ? prepReady(p) : false);
 const WHY: Record<number, string> = { 2: '잔을 먼저 고르세요', 3: '층을 다 채우세요' };
 
-/** 영수증 (카본지, 출력기에서 나온다 → 다음 단계부터 오른쪽 위에 꽂혀 따라온다) */
+/** 주문 사진 (사진으로 주문 · 에이든이 사진을 붙인 단골 주문) — 없으면 undefined */
+const photoOf = (p: Prep): Drink | undefined => { const o = p.order; return o.target && (o.style === 'photo' || (o.style !== 'vague' && o.style !== 'name' && o.hint === 'aiden' && (!o.name || o.ledger))) ? o.target : undefined; };
+
+/** 영수증 (카본지, 출력기에서 나온다 → 다음 단계부터 오른쪽 위에 꽂혀 따라온다. 사진은 그때부터 잔 옆에 크게 세운다 — .bp-shot) */
 function receiptHtml(p: Prep) {
   const o = p.order;
   let body = '';
@@ -131,8 +136,12 @@ function receiptHtml(p: Prep) {
 /** 큰 잔 (붓는 대로 아래부터 층) — 잔을 고르기 전엔 빈 자리 */
 const cupHtml = (p: Prep, cls = '') => {
   const n = slotsOf(p);
-  return p.glass ? `<div class="bp-cup${cls}">${drinkSvg(prepDrink(p), n ? p.fill.length / n : 0, 'drink bp-big', true, p.poured || 0, 'prep')}</div>` : `<div class="bp-cup bp-cup-empty${cls}" aria-hidden="true"></div>`;
+  const slot = photoOf(p) ? '<i class="bp-shot-slot" aria-hidden="true"></i>' : ''; // 주문 사진이 설 자리 (잔 바로 왼쪽 — 사진은 .bp-view 위 한 장이 단계마다 이 자리로 옮겨 간다)
+  if (slot) cls += ' has-shot';
+  return p.glass ? `<div class="bp-cup${cls}">${slot}${drinkSvg(prepDrink(p), n ? p.fill.length / n : 0, 'drink bp-big', true, p.poured || 0, 'prep')}</div>` : `<div class="bp-cup bp-cup-empty${cls}">${slot}<i class="bp-cup-line" aria-hidden="true"></i></div>`;
 };
+/** 주문 사진: 같은 제조대에서 찍은 사진 (인화지) — 잔 바로 옆에 크게 세워 나란히 비교한다 (2026-11-05 사용자). 영수증이 꽂힌 뒤 (잔 · 얼음부터) 보인다 */
+const shotHtml = (p: Prep) => { const t = photoOf(p); return t ? `<figure class="bp-shot${p.step ? ' on' : ''}" aria-label="주문 사진"><div class="bp-shot-in"><i class="bp-shot-bg" aria-hidden="true"></i>${drinkSvg(t, 1, 'drink bp-shot-pic', true, 0, 'prep', true)}</div></figure>` : ''; };
 
 /** 1 잔 · 얼음: 잔 선반 (텀블러 3 · 스템 잔 3, 잔 아래 칸 수 점) · 고른 잔 · 얼음 3 */
 function glassStation(p: Prep) {
@@ -159,11 +168,20 @@ function cabinetStation(p: Prep) {
       <div class="bp-acts"><button class="bp-btn" data-a="bar-x" data-v="prep:undo"${p.fill.length ? '' : ' aria-disabled="true"'}>한 층 빼기</button><button class="bp-btn" data-a="bar-x" data-v="prep:clear"${p.fill.length ? '' : ' aria-disabled="true"'}>비우기</button></div></div>`;
 }
 
-/** 3 가니쉬 · 벨: 가니쉬 10 (최대 3) · 완성 잔 · 탁상 벨 (누르면 내준다) */
+/** 섞기 아이콘: 층 그대로 (가로 띠 셋) · 고루 섞기 (소용돌이) */
+const MIX_ICON = [
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4 H18 L17 20 H7 Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6.4 9.3 H17.6 M6.8 14.6 H17.2" stroke="currentColor" stroke-width="1.4"/></svg>',
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4 H18 L17 20 H7 Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 12 m-1.2 0 a1.2 1.2 0 1 1 2.4 0 a2.6 2.6 0 1 1 -5.2 0 a4 4 0 1 1 8 0" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+] as const;
+/** 3 가니쉬 · 벨: 색 (층 그대로 · 고루 섞기) · 가니쉬 10 (최대 3) · 완성 잔 · 탁상 벨 (누르면 내준다) */
 function garnishStation(p: Prep) {
   const gars = GARNISHES.map((g) => { const on = p.garnish.includes(g.id); return `<button class="bp-gar${on ? ' on' : ''}" data-a="bar-x" data-v="prep:gar:${g.id}" aria-pressed="${on}"${!on && p.garnish.length >= GARNISH_MAX ? ' aria-disabled="true"' : ''} title="${esc(g.desc)}">${itemImg(`gar.${g.id}`, 'bp-art') || dot(GARNISH_COLOR[g.id] || '#999999')}<span>${esc(g.name)}</span></button>`; }).join('');
   const ready = prepReady(p);
-  return `<div class="bp-grp bp-garbox"><span class="bp-grp-l">가니쉬 <b class="f-num">${p.garnish.length}</b> / ${GARNISH_MAX}</span><div class="bp-gars">${gars}</div></div>
+  // 섞기: 층 그대로 ↔ 고루 섞기 (같은 자리 두 칸, 맛은 그대로 — 보기만). 재료가 한 가지 · 프로즌이면 못 고른다 (그 자리에 짧은 이유)
+  const can = mixable(p), on = !!p.mix && can;
+  const mixBtn = (v: 0 | 1, label: string, icon: string) => `<button class="bp-ice${on === !!v ? ' on' : ''}" data-a="bar-x" data-v="prep:mix:${v}" aria-pressed="${on === !!v}"${can ? '' : ' aria-disabled="true"'}>${icon}<span>${label}</span></button>`;
+  const mixBox = `<div class="bp-grp bp-mixbox"><span class="bp-grp-l">색</span><div class="bp-mixes">${mixBtn(0, '층 그대로', MIX_ICON[0])}${mixBtn(1, '고루 섞기', MIX_ICON[1])}</div>${can ? '' : `<small class="bp-why2">${p.ice === 'frozen' ? '프로즌은 이미 섞여 있습니다' : '재료가 1가지입니다'}</small>`}</div>`;
+  return `<div class="bp-garcol">${mixBox}<div class="bp-grp bp-garbox"><span class="bp-grp-l">가니쉬 <b class="f-num">${p.garnish.length}</b> / ${GARNISH_MAX}</span><div class="bp-gars">${gars}</div></div></div>
     ${cupHtml(p)}
     <button class="bp-bell" data-a="bar-x" data-v="prep:serve" aria-label="벨을 눌러 내주기"${ready ? '' : ' aria-disabled="true"'}><img src="${artURL('bar_bell.webp')}" alt="" draggable="false"></button>`;
 }
@@ -173,20 +191,22 @@ export function prepHtml(p: Prep, names: (id: string) => string): string {
   const d = prepDrink(p);
   const st = p.step;
   const chips = PREP_STEPS.map((label, i) => { const can = prepCan(p, i); return `<li><button class="bp-chip${i === st ? ' on' : ''}" data-a="bar-x" data-v="prep:step:${i}"${can ? '' : ' aria-disabled="true"'} aria-current="${i === st ? 'step' : 'false'}"><b class="f-num">${i + 1}</b>${label}</button></li>`; }).join('');
-  const station = (i: number, label: string, html: string) => `<section class="bp-st bp-st${i}" aria-label="${label}"${i === st ? '' : ' inert'}>${html}</section>`;
+  const shot = !!photoOf(p);
+  const station = (i: number, label: string, html: string) => `<section class="bp-st bp-st${i}${shot && i ? ' shot' : ''}" aria-label="${label}"${i === st ? '' : ' inert'}>${html}</section>`;
   const nextOk = st < 3 && prepCan(p, st + 1);
   const tags = p.fill.length ? tasteText(d) : '';
   return `<header class="bp-head"><h2>${esc(p.name)}의 주문</h2><ol class="bp-chips" aria-label="제조 단계">${chips}</ol>
       <button class="bp-bookbtn" data-a="bar-x" data-v="prep:book:menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5 Q8 3.5 12 5.5 Q16 3.5 20 5 V19 Q16 17.5 12 19.5 Q8 17.5 4 19 Z M12 5.5 V19.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>레시피북</button></header>
     <button class="bp-back" data-a="bar-x" data-v="prep:back">카운터로</button>
-    <div class="bp-view" style="--st:${st}">
-      <div class="bp-belt" style="--tex:url('${artURL('ct_table.webp')}');--wall:url('${artURL('bg_prep_wall.webp')}')">
+    <div class="bp-view" style="--st:${st};--tex:url('${artURL('ct_table.webp')}');--wall:url('${artURL('bg_prep_wall.webp')}')">
+      <div class="bp-belt">
         ${station(0, PREP_STEPS[0], `${p.memo ? prepMemoHtml() : ''}<div class="bp-printer" aria-hidden="true"><img src="${artURL('bar_printer.webp')}" alt="" draggable="false"></div>`)}
         ${station(1, PREP_STEPS[1], glassStation(p))}
         ${station(2, PREP_STEPS[2], cabinetStation(p))}
         ${station(3, PREP_STEPS[3], garnishStation(p))}
       </div>
       <div class="bp-rail${st ? ' pin' : ''}${p.printed ? '' : ' new'}">${receiptHtml(p)}</div>
+      ${shotHtml(p)}
       <div class="bp-taste"${st >= 2 ? '' : ' hidden'}>${tasteBars(d, p.order)}<p class="bp-tt">${esc(tags)}</p></div>
     </div>
     <nav class="bp-nav" aria-label="제조 단계 이동">
@@ -219,6 +239,7 @@ export function prepAct(p: Prep, v: string): 'serve' | 'back' | 'draw' | null {
   if (k === 'undo' && p.fill.length) { p.fill.pop(); p.sel = undefined; return 'draw'; }
   if (k === 'clear' && p.fill.length) { p.fill = []; p.sel = undefined; return 'draw'; }
   if (k === 'ice' && x in ICE_NAME) { p.ice = x as Ice; return 'draw'; }
+  if (k === 'mix') { if (!mixable(p) || !!p.mix === (x === '1')) return null; p.mix = x === '1'; return 'draw'; }
   if (k === 'gar' && GARNISH_BY_ID[x]) {
     if (p.garnish.includes(x)) p.garnish = p.garnish.filter((g) => g !== x);
     else if (p.garnish.length < GARNISH_MAX) p.garnish.push(x);

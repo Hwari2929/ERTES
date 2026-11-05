@@ -148,8 +148,8 @@ const count = (xs: string[]) => { const m = new Map<string, number>(); for (cons
 function overlap(a: string[], b: string[]) { const m = count(a); let n = 0; for (const x of b) { const k = m.get(x) || 0; if (k) { n++; m.set(x, k - 1); } } return n; }
 /** 같은 층 자리에 같은 재료가 놓인 칸 수 (아래층부터) */
 const samePos = (a: string[], b: string[]) => a.reduce((n, x, i) => n + (b[i] === x ? 1 : 0), 0);
-/** 층 순서를 보는 주문인가: 사진 주문 (그림에 층 색 순서가 보인다). 프로즌은 섞여 한 색이라 순서가 안 보인다 */
-export const layerOrdered = (o: Pick<Order, 'style' | 'target'>) => o.style === 'photo' && o.target?.ice !== 'frozen';
+/** 층 순서를 보는 주문인가: 사진 주문 (그림에 층 색 순서가 보인다). 프로즌 · 섞은 잔은 한 색이라 순서가 안 보인다 */
+export const layerOrdered = (o: Pick<Order, 'style' | 'target'>) => o.style === 'photo' && o.target?.ice !== 'frozen' && !o.target?.mix;
 /** 잔 맞추기 점수 (0~SCORE_MAX): 잔 (같은 잔 = 만점 · 크기나 종류만 같으면 절반) · 재료 (겹치는 칸 비율 — ordered 면 1/3 은 겹치는 칸, 2/3 는 같은 층 자리 비율) · 얼음 · 가니쉬 */
 export function matchScore(t: Drink, d: Drink, ordered = false): number {
   const gt = GLASS_BY_ID[t.glass], gd = GLASS_BY_ID[d.glass];

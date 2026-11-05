@@ -181,7 +181,7 @@ export function metaBarServed(id: string, d: Drink & { name?: string }, liked: b
   const m = loadMeta();
   const b = (m.bar ||= {});
   b.served = (b.served || 0) + 1;
-  if (liked) (b.usual ||= {})[id] = { glass: d.glass, fill: [...d.fill], ice: d.ice, garnish: [...d.garnish], name: d.name };
+  if (liked) (b.usual ||= {})[id] = { glass: d.glass, fill: [...d.fill], ice: d.ice, garnish: [...d.garnish], ...(d.mix ? { mix: true } : {}), name: d.name };
   save();
 }
 /** 이 바 운영 귀띔을 이미 봤나. 이 기록이 생기기 전에 잔을 내준 적이 있으면 (예전 저장) 모두 본 것으로 친다 */

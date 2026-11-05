@@ -1701,6 +1701,27 @@ function openPrep(k: string) {
 /** 제조대 벽 백라이트 줄의 화면 높이 (px): .bp-belt 배경이 줄을 .bp-view 높이의 68% 에 둔다 (25-barprep.css) */
 const prepStripY = (view: HTMLElement) => { const r = view.getBoundingClientRect(); return r.top + r.height * 0.68; };
 const ledgerName = (id: string) => (GUEST_BY_ID[id] ? (guestNamed(id) ? GUEST_BY_ID[id].name : '') : nameOf(id));
+/** 주문 사진 (.bp-shot, .bp-view 위 한 장) 을 그 단계 잔 옆 빈칸 (.bp-shot-slot) 자리 · 크기에 둔다. 자리마다 화면 폭이라 그 자리 안의 위치가 곧 화면 위치 */
+function placeShot(sec: HTMLElement, st: number, at = st) {
+  const shot = sec.querySelector<HTMLElement>('.bp-shot');
+  if (!shot) return;
+  shot.classList.toggle('on', !!sec.querySelector(`.bp-st${st} .bp-shot-slot`)); // 영수증 자리 (0) 엔 빈칸이 없다 = 숨김
+  const stn = sec.querySelector<HTMLElement>(`.bp-st${at}`), slot = stn?.querySelector<HTMLElement>('.bp-shot-slot'); // at = 놓을 자리 (숨겨 둘 때도 다음 자리에 미리 — 나타날 때 날아오지 않게)
+  if (!stn || !slot) return;
+  const a = slot.getBoundingClientRect(), b = stn.getBoundingClientRect();
+  shot.style.cssText = `--sx:${(a.left - b.left).toFixed(1)}px;--sy:${(a.top - b.top).toFixed(1)}px;--sw:${a.width.toFixed(1)}px;--sh:${a.height.toFixed(1)}px`;
+}
+/** 사진 속 투과광 띠 = 사진 속 벽 백라이트 줄 (사진 안쪽 높이의 68%, 25-barprep.css .bp-shot-bg) */
+const shotBand = (sec: HTMLElement) => sec.querySelectorAll<HTMLElement>('.bp-shot-in').forEach((el) => { const r = el.getBoundingClientRect(); placeGlowBand(el, r.top + r.height * 0.68); });
+/** 화면 크기가 바뀌면 사진 · 투과광 띠를 다시 맞춘다 (옮겨 가는 움직임 없이) */
+let prepResize = false;
+function reflowPrep() {
+  const sec = document.querySelector<HTMLElement>(`${BAR_SEL} .bar-prep`), view = sec?.querySelector<HTMLElement>('.bp-view');
+  if (!sec || !view || !S.prep) return;
+  view.classList.add('still');
+  placeGlowBand(sec, prepStripY(view)); placeShot(sec, S.prep.step); shotBand(sec);
+  void view.offsetWidth; view.classList.remove('still');
+}
 /** 제조대 다시 그리기. 단계가 바뀌었으면 앞 단계 자리에서 그려 놓고 다음 프레임에 옮긴다 (카메라가 작업대를 따라 움직이고 영수증이 오른쪽 위로 옮겨 꽂힌다, docs/UI.md 27 · 32) */
 function drawPrep(root: HTMLElement) {
   const sec = root.querySelector<HTMLElement>('.bar-prep');
@@ -1715,11 +1736,14 @@ function drawPrep(root: HTMLElement) {
   const rc = rail?.querySelector<HTMLElement>('.bp-rc');
   if (view && rc) view.style.setProperty('--rch', `${rc.offsetHeight}px`); // 맛 막대 = 꽂힌 영수증 바로 아래
   if (view) placeGlowBand(sec, prepStripY(view)); // 잔 투과광 띠 = 벽 백라이트 줄 높이
-  if (view && rail && was !== p.step && !reduced()) {
-    view.style.setProperty('--st', String(was)); rail.classList.toggle('pin', was > 0); view.classList.add('still');
-    void view.offsetWidth;
-    view.classList.remove('still'); view.style.setProperty('--st', String(p.step)); rail.classList.toggle('pin', p.step > 0);
-  }
+  if (!prepResize) { prepResize = true; window.addEventListener('resize', reflowPrep); }
+  // 단계가 바뀌었으면 앞 단계 자리에 그려 놓고 (움직임 없이) 다음 순간 옮긴다. 같은 단계에서 다시 그릴 땐 주문 사진도 제자리에 (날아오지 않게)
+  const moving = !!(view && rail && was !== p.step && !reduced());
+  view?.classList.add('still');
+  if (moving) { view!.style.setProperty('--st', String(was)); rail!.classList.toggle('pin', was > 0); placeShot(sec, was, was || p.step); } else placeShot(sec, p.step);
+  shotBand(sec);
+  if (view) { void view.offsetWidth; view.classList.remove('still'); }
+  if (moving) { view!.style.setProperty('--st', String(p.step)); rail!.classList.toggle('pin', p.step > 0); placeShot(sec, p.step); }
   if (!p.printed) { // 처음 그릴 때만: 출력기에서 영수증이 줄마다 밀려 나온다
     p.printed = true;
     if (!reduced()) for (let i = 0; i < 9; i++) sfx('print', { delay: 0.35 + i * 0.13, pitch: 1 + (i % 2) * 0.04 });
@@ -1769,6 +1793,7 @@ function serveDrink() {
 function prepFx(root: HTMLElement, v: string) {
   const [k, x] = v.split(':');
   if (k === 'ice' && x !== 'none') sfx('ice');
+  if (k === 'mix' && x === '1') sfx('ice'); // 바 스푼으로 젓는 소리 (얼음 소리)
   if (k !== 'pour' || !S.prep) return;
   sfx('pour');
   if (reduced()) return;

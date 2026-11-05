@@ -3,7 +3,7 @@
 // 남은 양 left (0~1): 위층부터 줄어든다 (잔 가장자리로 마시므로). 프로즌은 층이 섞여 한 색 + 얼음 결.
 // art: 선 잔 대신 잔 일러스트(public/art/bar_glass_<잔 id>.webp, scripts/bar_props_build.py 가 굽는다)를 액체 '위'에 얹는다 — 안쪽 유리를 투명하게 구워 음료가 비친다.
 //   잔 그림은 조금 위에서 본 모습이라 층 경계 · 액면을 단면 타원의 호로 그린다 (2026-11-04 사용자 요청). true = 잔 그림을 color-dodge 0.6 으로 배경과 섞는다 (사용자 선택, 어두운 바탕), 'plain' = 섞지 않음 (종이 위)
-import { GLASS_BY_ID, ING_BY_ID, type Drink, type Glass } from '../data/bar/drinks';
+import { GLASS_BY_ID, ING_BY_ID, mixable, type Drink, type Glass } from '../data/bar/drinks';
 import { GLASS_ART, ICE_ART, PROP_ART } from './glassart.gen';
 import { artURL } from './portraits';
 
@@ -152,8 +152,9 @@ const below = (ga: Art, y: number, front: boolean) => `M-2 ${y.toFixed(2)} L${ar
 const inner = (ga: Art) => { const r0 = ga.rows[0], ty = Math.min(ga.rim[2], r0[0] - 1.5); return `M${r0[1]} ${ty} L${ga.rows.map((r) => `${r[1]} ${r[0]}`).join(' L')} L${arc(ga, ga.bot, true)} L${[...ga.rows].reverse().map((r) => `${r[2]} ${r[0]}`).join(' L')} L${r0[2]} ${ty} Z`; };
 
 /** 한 잔 SVG. left = 남은 양 (0~1) · art = 잔 일러스트: true = 잔 그림을 따로 한 겹으로 배경과 섞는다 (color-dodge 0.6, 어두운 바탕 — 제조대 · 완성 장면 · 카운터 · 잔 진열), 'plain' = 섞지 않는다 (종이 위 — 영수증 사진 · 레시피북).
- *  fresh = 갓 따른 시각 (Date.now() ms, 0 = 아님) — 탄산 잔이면 큰 방울이 잔뜩 생겼다가 줄어든다. scene = 잔 조명 장면 (없으면 조명 없음, GLASS_LIGHT) */
-export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plain' = false, fresh = 0, scene?: LightScene): string {
+ *  fresh = 갓 따른 시각 (Date.now() ms, 0 = 아님) — 탄산 잔이면 큰 방울이 잔뜩 생겼다가 줄어든다. scene = 잔 조명 장면 (없으면 조명 없음, GLASS_LIGHT).
+ *  photo = 사진 (움직임 없음 — 주문 사진). d.mix = 섞기: 층 색을 고루 섞은 한 층으로 (맛은 그대로, mixable) */
+export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plain' = false, fresh = 0, scene?: LightScene, photo = false): string {
   const lsc = GLASS_LIGHT.on && art === true ? scene : undefined;
   const g: Glass | undefined = GLASS_BY_ID[d.glass];
   const ga = art ? GLASS_ART[d.glass] || GLASS_ART.rock : undefined;
@@ -168,8 +169,20 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
   const segs: { ing: string; a: number; b: number }[] = [];
   d.fill.forEach((ing, i) => { const last = segs[segs.length - 1]; if (last && last.ing === ing) last.b = (i + 1) / n; else segs.push({ ing, a: i / n, b: (i + 1) / n }); });
   const frozen = d.ice === 'frozen';
-  const colorOf = (ing: string) => ING_BY_ID[ing]?.color || '#999999';
-  const alphaOf = (ing: string) => ING_BY_ID[ing]?.alpha ?? 0.6;
+  // 섞기: 모든 층을 한 층 (MIX) 으로 — 색 = 재료 불투명도로 가중한 평균 (진한 재료가 색을 더 낸다), 불투명도 = 평균. 탄산 · 맥주 거품은 섞인 잔 전체에
+  const mixed = !!d.mix && mixable(d), MIX = '~mix';
+  const ingA = (x: string) => ING_BY_ID[x]?.alpha ?? 0.6, ingC = (x: string) => ING_BY_ID[x]?.color || '#999999';
+  let mixC = '', mixA = 0;
+  if (mixed) {
+    const w = d.fill.map(ingA), W = w.reduce((t, x) => t + x, 0) || 1;
+    mixC = `#${[0, 1, 2].map((k) => Math.round(d.fill.reduce((t, x, i) => t + hex(ingC(x))[k] * w[i], 0) / W).toString(16).padStart(2, '0')).join('')}`;
+    mixA = W / d.fill.length;
+    segs.splice(0, segs.length, { ing: MIX, a: 0, b: 1 });
+  }
+  const colorOf = (ing: string) => (ing === MIX ? mixC : ingC(ing));
+  const alphaOf = (ing: string) => (ing === MIX ? mixA : ingA(ing));
+  const fizzOf = (ing: string) => (ing === MIX ? d.fill.some((x) => ING_BY_ID[x]?.fizz) : !!ING_BY_ID[ing]?.fizz);
+  const beer = (x: string) => x === 'ringside' || x === 'darkringer';
   let fill: string;
   // 불투명도: 재료마다 0.3 ~ 0.95 (drinks.ts alpha). 층마다 따로, 프로즌은 갈린 얼음이라 평균 + 0.3 (최대 0.95)
   let alpha = 1;
@@ -190,7 +203,7 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
   const body: string[] = [];
   if (lv > 0 && segs.length) {
     const topIng = segs[segs.length - 1].ing;
-    const foam = !frozen && (topIng === 'ringside' || topIng === 'darkringer') && lv > 0.12;
+    const foam = !frozen && (mixed ? d.fill.some(beer) : beer(topIng)) && lv > 0.12;
     if (ga) {
       // 잔 그림: 층마다 제 영역 (위 경계 호 아래 − 아래 경계 호 아래), 경계는 흐림으로 섞는다. 액면 = 단면 타원 뒤쪽 호 + 윗면. 붓기 연출(bar.ts prepFx)은 .liq 묶음을 올린다
       const yAt = (f: number) => s.bot - H * f;
@@ -208,7 +221,7 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       // 텍스처 층 (FOAM_FX): 타일 무늬 하나를 영역에 채우고 혼합 모드로 얹는다
       const fx = FOAM_FX.on;
       // 타일 무늬: 기포 겹은 아래에서 위로 한 타일씩 돈다 (옆으로 살짝 흔들림). 시작 위상을 시계에서 잡아 다시 그려도 (카운터 잔이 줄어들 때) 이어서 움직인다
-      const still = stillFx(), now = Date.now() / 1000;
+      const still = photo || stillFx(), now = Date.now() / 1000;
       const pat = (pid: string, t: { tex: string; tile: number; dur?: number; sway?: number; x?: number }) => {
         const x = t.x ?? 0, anim = t.dur && !still ? `<animateTransform attributeName="patternTransform" type="translate" values="${x} 0; ${x + (t.sway ?? 0)} ${-t.tile / 2}; ${x} ${-t.tile}" keyTimes="0; .5; 1" dur="${t.dur}s" begin="${(-(now % t.dur)).toFixed(2)}s" repeatCount="indefinite"/>` : '';
         parts.push(`<pattern id="${pid}" patternUnits="userSpaceOnUse" width="${t.tile}" height="${t.tile}" patternTransform="translate(${x} 0)"><image href="${artURL(`${t.tex}.webp`)}" width="${t.tile}" height="${t.tile}" preserveAspectRatio="none"/>${anim}</pattern>`);
@@ -217,10 +230,10 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       const texed = (fillUrl: string, d: string, op: number, blend: string) => `<path d="${d}" fill-rule="evenodd" fill="${fillUrl}" opacity="${op}" style="mix-blend-mode:${blend}"/>`;
       const headD = `${below(ga, yTop, false)} ${below(ga, Math.min(s.bot, yTop + Math.min(3, H * 0.12)), true)}`;
       let fizzFx = '';
-      if (fx && !frozen && segs.some((sg) => ING_BY_ID[sg.ing]?.fizz)) {
+      if (fx && !frozen && segs.some((sg) => fizzOf(sg.ing))) {
         const urls = FOAM_FX.fizz.map((t, i) => pat(`${id}f${i}`, t));
         segs.forEach((sg) => {
-          if (!ING_BY_ID[sg.ing]?.fizz) return;
+          if (!fizzOf(sg.ing)) return;
           const d = `${sg.b < 1 ? below(ga, yAt(sg.b), true) : 'M-2 -10 L50 -10 L50 80 L-2 80 Z'}${sg.a > 0 ? ` ${below(ga, yAt(sg.a), true)}` : ''}`;
           fizzFx += FOAM_FX.fizz.map((t, i) => {
             const k = FOAM_FX.fizzK, lo = +(t.op * k.base).toFixed(3), since = fresh ? (Date.now() - fresh) / 1000 : Infinity, fade = FOAM_FX.rise.fade;
@@ -231,9 +244,9 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
         });
       }
       // 시험 효과 (FOAM_FX.rise · ring · bumpy)
-      const fizzTop = !frozen && !!ING_BY_ID[topIng]?.fizz, ph = (dur: number, k: number) => `${(-((now + k * 1.37) % dur)).toFixed(2)}s`;
+      const fizzTop = !frozen && fizzOf(topIng), ph = (dur: number, k: number) => `${(-((now + k * 1.37) % dur)).toFixed(2)}s`;
       let extra = '', over2 = '';
-      if (fx && FOAM_FX.rise.on && !frozen && !still && lv > 0.05 && segs.some((sg) => ING_BY_ID[sg.ing]?.fizz)) {
+      if (fx && FOAM_FX.rise.on && !frozen && !still && lv > 0.05 && segs.some((sg) => fizzOf(sg.ing))) {
         const r = FOAM_FX.rise, yb = s.bot - 0.8, ye = yTop + 0.7, [b0, b1] = wallsAt(ga, yb - 2), span = b1 - b0;
         const spots = [b0 + span * 0.28, b0 + span * 0.62, b0 + span * 0.45];
         // 갓 따랐으면 n × burst 개: 넘는 방울은 따른 직후 조금씩 엇갈려 바닥에서 생겨 1.6배 빨리 오르고, 따른 뒤 1.5초 ~ fade 초 사이에 하나씩 옅어지며 그친다 → 개수가 서서히 n 으로
@@ -317,7 +330,7 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
     // 기포: 탄산 층 안에만 (프로즌은 얼음 결)
     if (frozen) for (let k = 0; k < 14; k++) { const y = s.bot - H * lv * rnd(k + 7); body.push(`<circle cx="${(8 + 32 * rnd(k)).toFixed(1)}" cy="${y.toFixed(1)}" r="0.8" fill="#ffffff" fill-opacity=".45"/>`); }
     else if (!(ga && FOAM_FX.on)) segs.forEach((sg, si) => {
-      if (!ING_BY_ID[sg.ing]?.fizz) return;
+      if (!fizzOf(sg.ing)) return;
       for (let k = 0; k < Math.ceil((sg.b - sg.a) * 10); k++) {
         const y = s.bot - H * (sg.a + (sg.b - sg.a) * rnd(si * 31 + k));
         if (y < yTop + 1) continue;

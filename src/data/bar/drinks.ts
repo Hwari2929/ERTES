@@ -97,7 +97,11 @@ export function normIce(d: Drink): Ice {
 }
 
 /** 완성된 잔 (붓는 순서대로 칸 · 아래부터 층) */
-export interface Drink { glass: string; fill: string[]; ice: Ice; garnish: string[] }
+export interface Drink { glass: string; fill: string[]; ice: Ice; garnish: string[];
+  /** 섞기 (가니쉬 단계 선택, 2026-11-05 사용자): 층 색을 고루 섞어 보인다 — 맛 · 채점은 그대로 (보기만) */
+  mix?: boolean }
+/** 섞어 보일 수 있나: 재료가 2가지 이상이고 프로즌이 아님 (프로즌은 이미 섞여 있다) */
+export const mixable = (d: Pick<Drink, 'fill' | 'ice'>) => d.ice !== 'frozen' && new Set(d.fill).size > 1;
 export interface Recipe extends Drink { id: string; name: string; desc: string }
 
 const R = (id: string, name: string, glass: string, fill: string[], ice: Ice, garnish: string[], desc: string): Recipe => ({ id, name, glass, fill, ice, garnish, desc });

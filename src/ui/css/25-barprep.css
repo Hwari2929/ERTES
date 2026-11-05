@@ -136,10 +136,33 @@
 @keyframes bp-done-in { from { opacity: 0; } }
 @keyframes bp-done-cup { from { scale: .82; opacity: 0; } }
 .bp-cup .bp-big { height: min(100%, 680px); max-width: 100%; width: auto; aspect-ratio: 48 / 72; color: var(--c-text); } /* 그림자 filter 없음 (잔 그림이 배경과 섞이게) */
-.bp-cup-empty { align-self: end; justify-self: center; width: 300px; height: 2px; border-bottom: 2px dashed var(--line); }
+.bp-cup-line { flex: none; align-self: flex-end; width: 300px; height: 2px; border-bottom: 2px dashed var(--line); } /* 잔을 고르기 전 빈 자리 */
+/* 주문 사진 (사진으로 주문 · 에이든이 붙인 사진): 같은 제조대에서 찍은 인화지 사진을 잔 바로 왼쪽에 크게 세운다 (2026-11-05 사용자 — 나란히 비교).
+   자리는 잔 옆 빈칸(.bp-shot-slot), 사진은 .bp-view 위 한 장이 단계마다 그 자리로 옮겨 간다 (bar.ts placeShot — 이어 움직인다, UI.md 27 · 32). 사진 속 잔은 움직이지 않는다 */
+/* 잔 높이 --H 를 칸 폭에도 맞춰 (잔 + 사진이 칸 안에) 사진 = 잔 높이의 66%, 잔 그림 상자의 빈 왼쪽 여백(상자 폭의 20% 이상)에 15% 만큼 들인다 */
+.bp-cup.has-shot { container-type: size; --H: min(100cqh, 680px, 100cqw / 1.1); }
+.bp-cup.sm.has-shot { --H: min(100cqh, 400px, 100cqw / 1.1); }
+.bp-cup.has-shot .bp-big { flex: none; height: var(--H); max-width: none; }
+.bp-shot-slot { flex: none; align-self: flex-end; height: calc(var(--H) * .66); aspect-ratio: 4 / 5; margin-right: calc(var(--H) * -.1); }
+.bp-cup-empty .bp-shot-slot { margin-right: 24px; }
+.bp-view > .bp-shot { position: absolute; z-index: var(--z-raise); left: var(--sx, 0); top: var(--sy, 0); width: var(--sw, 0); height: var(--sh, 0); margin: 0; box-sizing: border-box;
+  padding: calc(var(--sw, 0px) * .045) calc(var(--sw, 0px) * .045) calc(var(--sw, 0px) * .15); background: var(--lp-cw); rotate: -2deg; box-shadow: 0 8px 18px var(--shade-3);
+  opacity: 0; visibility: hidden; pointer-events: none; }
+.bp-view > .bp-shot.on { opacity: 1; visibility: visible; }
+@media (prefers-reduced-motion: no-preference) {
+  .bp-view > .bp-shot { transition: left .85s cubic-bezier(.55, 0, .25, 1), top .85s cubic-bezier(.55, 0, .25, 1), width .85s cubic-bezier(.55, 0, .25, 1), height .85s cubic-bezier(.55, 0, .25, 1), padding .85s cubic-bezier(.55, 0, .25, 1), opacity .4s .3s, visibility 0s .3s; }
+  .bp-view > .bp-shot.on { transition-delay: 0s, 0s, 0s, 0s, 0s, .3s, 0s; }
+  .bp-view.still > .bp-shot { transition: none; }
+}
+.bp-shot-in { position: relative; height: 100%; overflow: hidden; container-type: size; background: var(--c-black); }
+.bp-shot-bg { position: absolute; inset: 0; background: var(--wall) 50% 0 / auto calc(68cqh / .815) no-repeat, var(--c-black); } /* 제조대 벽: 그림 위끝 = 사진 위끝, 백라이트 줄 (그림 높이 81.5%) = 사진 높이 68% */
+.bp-shot-bg::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 30%; background: var(--tex) 0 0 / auto 100% repeat-x; filter: brightness(.6); border-top: 2px solid var(--ct-wood-hi); } /* 작업대 */
+.bp-shot-pic { position: absolute; left: 50%; bottom: 4%; height: 92%; width: auto; aspect-ratio: 48 / 72; translate: -50% 0; color: var(--c-text); }
+.bp-rail.pin .bp-photo { display: none; } /* 영수증이 꽂히면 사진은 잔 옆에 크게 (같은 사진을 두 군데 두지 않는다) */
 
 /* 2 잔 · 얼음: 왼쪽 잔 선반 (텀블러 3 · 스템 잔 3) · 가운데 고른 잔 · 오른쪽 얼음 */
 .bp-st1 { grid-template-columns: minmax(220px, 32%) minmax(0, 1fr) minmax(120px, 16%); align-items: end; }
+.bp-st1.shot { grid-template-columns: minmax(220px, 25%) minmax(0, 1fr) minmax(120px, 13%); } /* 주문 사진 + 잔이 설 가운데를 넓게 */
 .bp-glasses { display: grid; align-content: end; gap: 8px; align-self: stretch; }
 .bp-glass-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); }
 .bp-glass-row .bp-grp-l { grid-column: 1 / -1; }
@@ -156,6 +179,7 @@
 
 /* 3 진열장: 선반 3단 (술 · 음료 · 분말, 병마다 전체 이름 + 종류) · 오른쪽 잔 + 층 목록 (위층이 위). 누른 층 = 다음 병이 들어갈 층 (선택색) */
 .bp-st2 { grid-template-columns: minmax(0, 1fr) minmax(180px, 22%); }
+.bp-st2.shot { grid-template-columns: minmax(0, 1fr) minmax(330px, 34%); } /* 주문 사진이 작은 잔 옆에 설 자리 */
 .bp-cab { display: grid; align-content: start; gap: 8px; min-height: 0; overflow: hidden auto; scrollbar-width: thin; padding-right: 2px; }
 .bp-shelf { display: grid; gap: 2px; padding: 4px 6px 0; background: color-mix(in srgb, var(--panel) 70%, transparent); border-bottom: 5px solid var(--ct-wood-hi); border-radius: var(--r-md) var(--r-md) 0 0; }
 .bp-bottles { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 2px 4px; }
@@ -180,7 +204,20 @@
 
 /* 4 가니쉬 · 벨: 왼쪽 가니쉬 10 (최대 3) · 가운데 완성 잔 · 오른쪽 탁상 벨 (누르면 내준다) */
 .bp-st3 { grid-template-columns: minmax(240px, 36%) minmax(0, 1fr) auto; align-items: end; }
-.bp-garbox { align-self: start; min-height: 0; max-height: 100%; overflow: hidden auto; scrollbar-width: thin; }
+.bp-st3.shot { grid-template-columns: minmax(240px, 27%) minmax(0, 1fr) auto; }
+@media (max-width: 1320px) and (min-height: 521px) { /* 좁은 화면 (태블릿): 사진 + 잔 자리를 더 넓게 */
+  .bp-st1.shot { grid-template-columns: minmax(180px, 22%) minmax(0, 1fr) minmax(108px, 12%); }
+  .bp-st3.shot { grid-template-columns: minmax(200px, 23%) minmax(0, 1fr) auto; }
+  .bp-st3.shot .bp-bell { width: 112px; }
+  .bp-st3.shot .bp-gars { grid-template-columns: 1fr; }
+}
+.bp-garcol { align-self: stretch; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.bp-garbox { flex: 0 1 auto; min-height: 0; overflow: hidden auto; scrollbar-width: thin; }
+/* 색: 층 그대로 ↔ 고루 섞기 (맛은 그대로 — 보기만, 2026-11-05 사용자). 못 고르면 그 자리에 짧은 이유 */
+.bp-mixbox { flex: none; }
+.bp-mixes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.bp-mixes .bp-ice[aria-disabled="true"] { opacity: .4; cursor: not-allowed; }
+.bp-why2 { font-size: var(--fs-2xs); color: var(--c-text-2); }
 .bp-gars { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
 .bp-gar .bp-art { flex: none; width: 28px; height: 28px; object-fit: contain; }
 .bp-st3 .bp-cup { align-self: stretch; }
@@ -308,7 +345,10 @@
   .bp-glass span { font-size: var(--fs-2xs); }
   .bp-cup .bp-big { height: min(100%, 420px); }
   .bp-cup.sm .bp-big { height: min(100%, 180px); }
-  .bp-cup-empty { width: 200px; }
+  .bp-cup-line { width: 200px; }
+  .bp-cup.has-shot { --H: min(100cqh, 420px, 100cqw / 1.1); }
+  .bp-cup.sm.has-shot { --H: min(100cqh, 180px, 100cqw / 1.1); }
+  .bp-st2.shot { grid-template-columns: minmax(0, 1fr) minmax(200px, 34%); }
   .bp-ice, .bp-gar { padding: 2px 4px; font-size: var(--fs-2xs); line-height: 1.2; word-break: keep-all; }
   .bp-ice svg { width: 18px; height: 18px; }
   .bp-st2 { grid-template-columns: minmax(0, 1fr) minmax(120px, 20%); }
