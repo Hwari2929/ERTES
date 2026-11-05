@@ -6328,8 +6328,13 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .pcard .pc-syn { top: 38px; left: 18px; }
 [data-ui-theme="metro"] .pcard .pc-full { top: 36px; right: 16px; }
 [data-ui-theme="metro"] .pcard .pc-full ~ .pc-check { top: 40px; right: 62px; }
-[data-ui-theme="metro"] .pcard .cback { border: 0; box-shadow: none; border-radius: inherit;
-  background: radial-gradient(circle at 50% 50%, var(--mt-ink) 0 15%, transparent 15.5%), repeating-linear-gradient(-60deg, var(--mt-a) 0 14px, var(--mt-ink) 14px 22px, var(--mt-b) 22px 30px, var(--mt-ink) 30px 44px); } /* 뒷면: 노선색 사선 */
+/* 뒷면 (시안 12): 잉크 바탕 · 좌하단 복숭아 사분원 · 우상단 복숭아 점 / 위에서 내려오는 보라 망점 막 / 가파른 리버리 띠 두 줄 = 복숭아 → 민트 그라디언트 / 큰 ∞ 종이색 윤곽 */
+[data-ui-theme="metro"] .pcard .cback { border: 0; box-shadow: none; border-radius: inherit; overflow: hidden;
+  background: radial-gradient(circle at 0 100%, var(--mt-c) 0 104px, transparent 104.5px), radial-gradient(circle at 76% 16%, var(--mt-c) 0 18px, transparent 18.5px), var(--mt-ink); }
+[data-ui-theme="metro"] .pcard .cback::before { content: ''; position: absolute; inset: 0; background: color-mix(in srgb, var(--mt-a) 60%, transparent);
+  -webkit-mask: var(--mt-dot-tr) right top / 700px 200px no-repeat; mask: var(--mt-dot-tr) right top / 700px 200px no-repeat; }
+[data-ui-theme="metro"] .pcard .cb-l { position: absolute; inset: 0; background: linear-gradient(208deg, var(--mt-c) 15%, var(--mt-b) 85%); -webkit-mask: linear-gradient(-62deg, transparent 30%, var(--c-black) 30% 40%, transparent 40% 42%, var(--c-black) 42% 48%, transparent 48%); mask: linear-gradient(-62deg, transparent 30%, var(--c-black) 30% 40%, transparent 40% 42%, var(--c-black) 42% 48%, transparent 48%); }
+[data-ui-theme="metro"] .pcard .cback::after { content: '∞'; position: absolute; right: 18px; bottom: 52px; color: transparent; -webkit-text-stroke: 2px var(--mt-paper); font: 400 var(--mt-fs-mega)/.8 var(--f-display); }
 @media (max-width: 640px) {
   [data-ui-theme="metro"] .ah-card { --ahw: 84px; }
   [data-ui-theme="metro"] :is(.pslot, .pcard) { --stub: 32px; }
@@ -7666,7 +7671,7 @@ ${d.join(`
     ${Of(e,null,b.run)}
     ${kie(e)}
     <div class="majors-mini">${Us.map(t=>`<span title="${Ha[t]}">${dr(t)}<b>${e.base[t]}</b></span>`).join("")}</div>`}function wie(e){return`<span class="pc-role"><span class="ct-${e.ctype}">${_x(e.ctype)} ${_s[e.ctype]}</span><span class="tt-${e.ttype}">${e3(e.ttype)} ${Bs[e.ttype]}</span></span>`}function By(e){let t=[...new Set(e)];return s=>t.filter(a=>{let n=de[a];return n&&[...n.factions,...n.traits].includes(s)}).length}function r3(e,t){let{clone:s,on:a,full:n}=t;return`<div class="pslot" style="--i:${Math.min(t.i??0,7)}"><div class="pcard ${a?"sel":""} ${b.cardOpen===e.id&&!s?"open":""}" data-ct="${e.ctype}" data-a="${t.tapAct}" data-v="${e.id}" ${s?'aria-hidden="true"':'tabindex="0" role="button"'} aria-label="${S(e.name)}">
-    <i class="cback" aria-hidden="true"></i>
+    <i class="cback" aria-hidden="true"><i class="cb-l"></i></i>
     <span class="mt-pass" aria-hidden="true"><b>BOARDING PASS</b><i></i><span class="mt-pass-stub"><i class="mt-code"></i><b>METRO</b><em>${String((t.i??0)+1).padStart(2,"0")}</em></span></span>
     <div class="pc-art">${Co(e.id,"stand")||hs(e,"spr big")}</div>
     <button class="btn pc-full" data-a="card-max" data-v="${e.id}" ${s?'tabindex="-1"':""} title="\uC804\uCCB4 \uC0C1\uC138 (\uD655\uB300)" aria-label="${S(e.name)} \uC804\uCCB4 \uC0C1\uC138 \uC5F4\uAE30">${zP}</button>
