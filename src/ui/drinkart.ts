@@ -108,18 +108,19 @@ const hex = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16))
 const shade = (c: string, w: number) => `#${hex(c).map((v) => Math.round(v * (1 - w)).toString(16).padStart(2, '0')).join('')}`;
 /** 층 안 세로 그라데이션 (2026-11-05 사용자): 같은 재료가 이어진 층은 아래가 짙고 위가 살짝 연하다 */
 const LAYER_SHADE = { bot: 0.21, top: 0.07, topA: 0.85 }; // 사용자: 0.16 · 0.1 → 0.21 · 0.07, 위쪽은 밀도가 낮아 불투명도 85% (2026-11-05)
-/** 짙게: 채도를 높이고 명도를 내린 색 (HSL) */
+/** 짙게: 채도를 높이고 명도를 내린 색 (HSL). 무색에 가까운 음료 (채도 0.2 미만 — 소다 · 토닉 · 진 · 우유) 는 채도를 올리지 않는다 (2026-11-05 사용자) */
 const deep = (c: string, ks = 1.35, kl = 0.58) => {
   const [r, g, b] = hex(c).map((v) => v / 255), mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, dd = mx - mn;
   let h = 0, s = 0;
   if (dd) { s = dd / (1 - Math.abs(2 * l - 1)); h = mx === r ? ((g - b) / dd) % 6 : mx === g ? (b - r) / dd + 2 : (r - g) / dd + 4; h *= 60; if (h < 0) h += 360; }
-  const S = Math.min(1, s * ks + 0.08), L = l * kl, C = (1 - Math.abs(2 * L - 1)) * S, X = C * (1 - Math.abs(((h / 60) % 2) - 1)), m = L - C / 2;
+  const S = s < 0.2 ? s : Math.min(1, s * ks + 0.08), L = l * kl, C = (1 - Math.abs(2 * L - 1)) * S, X = C * (1 - Math.abs(((h / 60) % 2) - 1)), m = L - C / 2;
   const [R, G, B] = h < 60 ? [C, X, 0] : h < 120 ? [X, C, 0] : h < 180 ? [0, C, X] : h < 240 ? [0, X, C] : h < 300 ? [X, 0, C] : [C, 0, X];
   return `#${[R, G, B].map((v) => Math.round(Math.max(0, Math.min(1, v + m)) * 255).toString(16).padStart(2, '0')).join('')}`;
 };
-/** 수면 · 음료 가장자리 (2026-11-05 사용자 방향): faceTint = 수면에 섞는 흰색 (처음 0.35 → 그 80%), nearGlow = 수면 앞 (아래) 끝에서 안쪽으로 밝게 퍼짐, farDark = 수면 뒤 (위) 끝에서 안쪽으로 짙게 (채도 ↑ 명도 ↓) 퍼짐,
- *  edgeDark = 음료 몸통이 잔 벽에서 안쪽으로 짙어지는 그라데이션 진하기 (역광 아래 층) */
-export const SURF2 = { faceTint: 0.35, nearGlow: 0, farDark: 0, edgeDark: 0 };
+/** 수면 · 음료 가장자리 (2026-11-05 사용자 방향): faceTint = 수면에 섞는 흰색 (처음 0.35 → 그 80% 는 0.28), nearGlow = 수면 앞 (아래) 끝에서 안쪽으로 밝게 퍼짐 (시안 0.675),
+ *  farDark = 수면 뒤 (위) 끝에서 안쪽으로 짙게 (채도 ↑ 명도 ↓ · 무색 음료는 채도 그대로) 퍼짐 (시안 0.85) — 둘 다 수면 타원에 딱 맞는 원형 고리 + 수면 중심 쪽으로 옅어지는 직선 마스크,
+ *  edgeDark = 음료 몸통이 잔 벽에서 안쪽으로 짙어지는 그라데이션 진하기 (역광 아래 층, 시안 0.5), blur = 음료 뒤 배경 흐림 (backdrop-filter, --dk-blur) */
+export const SURF2 = { faceTint: 0.35, nearGlow: 0, farDark: 0, edgeDark: 0, blur: true };
 /** 흰색을 w 만큼 섞은 색 */
 const tint = (c: string, w: number) => `#${hex(c).map((v) => Math.round(v + (255 - v) * w).toString(16).padStart(2, '0')).join('')}`;
 const mix = (cs: string[]) => { const a = cs.map(hex); const m = [0, 1, 2].map((k) => Math.round(a.reduce((s, x) => s + x[k], 0) / a.length)); return `#${m.map((v) => v.toString(16).padStart(2, '0')).join('')}`; };
@@ -276,8 +277,14 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
           const E = `cx="${ecx.toFixed(2)}" cy="${yTop.toFixed(2)}" rx="${erx.toFixed(2)}" ry="${ery.toFixed(2)}"`;
           let f = `<ellipse ${E} fill="${tint(topC, SURF2.faceTint)}" fill-opacity="${Math.min(0.95, topA + 0.12).toFixed(2)}"/>`;
           // 수면 앞 (아래) 끝: 밝게 안쪽으로 · 뒤 (위) 끝: 짙게 안쪽으로
-          if (SURF2.nearGlow) { parts.push(`<linearGradient id="${id}sn" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${tint(topC, 0.78)}" stop-opacity="${SURF2.nearGlow}"/><stop offset=".22" stop-color="${tint(topC, 0.7)}" stop-opacity="${(SURF2.nearGlow * 0.45).toFixed(2)}"/><stop offset=".5" stop-color="${tint(topC, 0.6)}" stop-opacity="0"/></linearGradient>`); f += `<ellipse ${E} fill="url(#${id}sn)"/>`; }
-          if (SURF2.farDark) { parts.push(`<linearGradient id="${id}sd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${deep(topC, 1.5, 0.45)}" stop-opacity="${SURF2.farDark}"/><stop offset=".25" stop-color="${deep(topC, 1.4, 0.55)}" stop-opacity="${(SURF2.farDark * 0.5).toFixed(2)}"/><stop offset=".55" stop-color="${deep(topC)}" stop-opacity="0"/></linearGradient>`); f += `<ellipse ${E} fill="url(#${id}sd)"/>`; }
+          // 테두리에 딱 맞는 원형 (타원) 그라데이션 고리 × 그 끝에서 수면 가운데로 갈수록 옅어지는 선형 마스크 (2026-11-05 사용자)
+          const ring = (gid: string, c0: string, c1: string, op: number, near: boolean) => {
+            parts.push(`<radialGradient id="${gid}r" cx=".5" cy=".5" r=".5"><stop offset=".42" stop-color="${c1}" stop-opacity="0"/><stop offset=".78" stop-color="${c1}" stop-opacity="${(op * 0.45).toFixed(2)}"/><stop offset="1" stop-color="${c0}" stop-opacity="${op}"/></radialGradient>`
+              + `<linearGradient id="${gid}l" x1="0" y1="${near ? 1 : 0}" x2="0" y2="${near ? 0 : 1}"><stop offset="0" stop-color="#ffffff"/><stop offset=".58" stop-color="#000000"/></linearGradient><mask id="${gid}k" maskContentUnits="objectBoundingBox"><rect width="1" height="1" fill="url(#${gid}l)"/></mask>`);
+            return `<ellipse ${E} fill="url(#${gid}r)" mask="url(#${gid}k)"/>`;
+          };
+          if (SURF2.nearGlow) f += ring(`${id}sn`, tint(topC, 0.78), tint(topC, 0.65), SURF2.nearGlow, true);
+          if (SURF2.farDark) f += ring(`${id}sd`, deep(topC, 1.5, 0.45), deep(topC, 1.4, 0.55), SURF2.farDark, false);
           return f;
         })()
         : surfaceHtml(id, parts, ecx, yTop, erx, ery, topC, topA, lsc);
@@ -416,7 +423,16 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
         lightSvg += `<svg class="dk-amb" ${vb} style="mix-blend-mode:soft-light"><defs><mask id="${id}am" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="72">${img}</mask><linearGradient id="${id}cg" ${cdir}><stop offset="0" stop-color="${L.cool}" stop-opacity="${L.coolOp}"/><stop offset=".6" stop-color="${L.cool}" stop-opacity="0"/></linearGradient></defs><g mask="url(#${id}am)"><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${L.amb}" opacity="${L.ambOp}"/><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#${id}cg)"/></g></svg>`;
       }
     }
-    return `<span class="${cls} art dk" aria-hidden="true"><svg class="dk-liq" ${vb}><defs>${parts.join('')}</defs>${shadow}${caustic}<g clip-path="url(#${id}c)">${body.join('')}</g></svg><svg class="dk-glass" ${vb}>${img}</svg>${lightSvg}${over.length ? `<svg class="dk-over" ${vb}>${over.join('')}</svg>` : ''}</span>`;
+    // 음료에 비치는 배경 흐림 (2026-11-05 사용자): 음료가 찬 영역 (벽 · 바닥 · 수면 뒤쪽 호) 만 잘라 HTML 겹에 backdrop-filter — SVG 안에서는 뒤 배경을 흐릴 수 없다
+    let blurDiv = '';
+    if (SURF2.blur && lv > 0.02 && segs.length) {
+      const [t0, t1] = wallsAt(ga, yTop), down = ga.rows.filter((r) => r[0] > yTop);
+      const back = arc(ga, yTop, false).split(' L').reverse().join(' L');
+      const liqD = `M${t0.toFixed(2)} ${yTop.toFixed(2)} L${down.map((r) => `${r[1]} ${r[0]}`).join(' L')}${down.length ? ' L' : ''}${arc(ga, ga.bot, true)} L${[...down].reverse().map((r) => `${r[2]} ${r[0]}`).join(' L')}${down.length ? ' L' : ''}${t1.toFixed(2)} ${yTop.toFixed(2)} L${back} Z`;
+      parts.push(`<clipPath id="${id}bl" clipPathUnits="objectBoundingBox"><path d="${liqD}" transform="scale(${1 / 48} ${1 / 72})"/></clipPath>`);
+      blurDiv = `<i class="dk-blur" style="clip-path:url(#${id}bl)"></i>`;
+    }
+    return `<span class="${cls} art dk" aria-hidden="true">${blurDiv}<svg class="dk-liq" ${vb}><defs>${parts.join('')}</defs>${shadow}${caustic}<g clip-path="url(#${id}c)">${body.join('')}</g></svg><svg class="dk-glass" ${vb}>${img}</svg>${lightSvg}${over.length ? `<svg class="dk-over" ${vb}>${over.join('')}</svg>` : ''}</span>`;
   }
   const glass = `<path d="${s.out}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/>${s.stem ? `<path d="${s.stem}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>` : ''}`;
   const back = `<path d="${s.liq}" fill="currentColor" fill-opacity=".07"/>`;
