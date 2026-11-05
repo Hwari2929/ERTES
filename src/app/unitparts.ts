@@ -340,7 +340,7 @@ export function teamCount(ids: string[]) {
 export function pickCard(d: UnitDef, o: PickOpts) {
   const { clone, on, full } = o;
   return `<div class="pslot" style="--i:${Math.min(o.i ?? 0, 7)}"><div class="pcard ${on ? 'sel' : ''} ${app.cardOpen === d.id && !clone ? 'open' : ''}" data-ct="${d.ctype}" data-a="${o.tapAct}" data-v="${d.id}" ${clone ? 'aria-hidden="true"' : 'tabindex="0" role="button"'} aria-label="${esc(d.name)}">
-    <i class="cback" aria-hidden="true"></i>
+    <i class="cback" aria-hidden="true"><i class="cb-l"></i></i>
     <span class="mt-pass" aria-hidden="true"><b>BOARDING PASS</b><i></i><span class="mt-pass-stub"><i class="mt-code"></i><b>METRO</b><em>${String((o.i ?? 0) + 1).padStart(2, '0')}</em></span></span>
     <div class="pc-art">${standImg(d.id, 'stand') || sprite(d, 'spr big')}</div>
     <button class="btn pc-full" data-a="card-max" data-v="${d.id}" ${clone ? 'tabindex="-1"' : ''} title="전체 상세 (확대)" aria-label="${esc(d.name)} 전체 상세 열기">${MAX_SVG}</button>
