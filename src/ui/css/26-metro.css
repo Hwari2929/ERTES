@@ -221,9 +221,10 @@
 [data-ui-theme="metro"] .pcard .pc-syn { top: 38px; left: 18px; }
 [data-ui-theme="metro"] .pcard .pc-full { top: 36px; right: 16px; }
 [data-ui-theme="metro"] .pcard .pc-full ~ .pc-check { top: 40px; right: 62px; }
-/* 뒷면 (시안 12 다듬음): 잉크 바탕 / 복숭아 사분원 · 점 /
+/* 뒷면 (시안 12 다듬음): 잉크 바탕 + 아주 옅은 점 격자 / 복숭아 사분원 · 점 /
    가파른 리버리 띠 두 줄 (둘 다 복숭아 → 민트) / 큰 ∞ 종이색 윤곽 */
-[data-ui-theme="metro"] .pcard .cback { border: 0; box-shadow: none; border-radius: inherit; overflow: hidden; background: var(--mt-ink); }
+[data-ui-theme="metro"] .pcard .cback { border: 0; box-shadow: none; border-radius: inherit; overflow: hidden;
+  background: radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 9%, transparent) 0 1.2px, transparent 1.7px) 0 0 / 9px 9px, var(--mt-ink); } /* 아주 옅은 점 격자 (시안 7 바탕) */
 [data-ui-theme="metro"] .pcard .cb-l { position: absolute; inset: 0; background: radial-gradient(circle at 0 100%, var(--mt-c) 0 104px, transparent 104.5px), radial-gradient(circle at 76% 16%, var(--mt-c) 0 18px, transparent 18.5px); } /* 도형은 망점 위 */
 [data-ui-theme="metro"] .pcard .cb-l::before, [data-ui-theme="metro"] .pcard .cb-l::after { content: ''; position: absolute; inset: 0; }
 [data-ui-theme="metro"] .pcard .cb-l::before { background: linear-gradient(208deg, var(--mt-c) 15%, var(--mt-b) 85%); -webkit-mask: linear-gradient(-62deg, transparent 30%, var(--c-black) 30% 40%, transparent 40%); mask: linear-gradient(-62deg, transparent 30%, var(--c-black) 30% 40%, transparent 40%); }
