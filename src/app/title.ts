@@ -93,6 +93,16 @@ export function matchupHtml(fid: string, head = true) {
   ].join('');
   return rows ? `<div class="mu-box">${head ? '<span class="mu-k">이 전장의 주요 적</span>' : ''}<ul class="pb-rows">${rows}</ul></div>` : '';
 }
+/** 영입 · 전공 창 머리용 한 줄 (문장 대신 표식): 주요 적 분류 = 아이콘 · 이름 · 비중, 그 옆에 취약(초록) · 저항(빨강) 속성 아이콘 칩 · 면역 칩, 보스 = 공통 면역 칩 */
+export function matchupChips(fid: string) {
+  const mu = fieldMatchup(fid);
+  const el = (names: string[]) => names.map((n) => { const k = (Object.keys(ELEM_NAME) as Elem[]).find((e) => ELEM_NAME[e] === n); return k ? lineIcon(`e.${k}`, 'li') : ''; }).join('');
+  const cats = mu.cats.map((x) => `<span class="mu-c cat-${x.c}" title="${esc(`${CATEGORY_NAME[x.c]}: ${CATEGORY_RULE[x.c]} (적 풀 비중)`)}">${lineIcon(`k.${x.c}`, 'li')}${CATEGORY_NAME[x.c]}<b>${Math.round(x.share * 100)}%</b></span>`
+    + (x.weak.length ? tchip(el(x.weak), '취약', 'good', `${x.weak.join('·')} 취약`) : '') + (x.resist.length ? tchip(el(x.resist), '저항', 'bad', `${x.resist.join('·')} 저항`) : '')
+    + (x.immune.length ? tchip('', `${esc(x.immune.join('·'))} 면역`, 'mute') : '')).join('');
+  const boss = mu.bosses ? `<span class="mu-c boss" title="보스 공통 면역">${NODE_ICON.boss}${NODE_NAME.boss}</span>${tchip('', `${esc(mu.bossImmune.join('·'))} 면역`, 'mute')}` : '';
+  return cats || boss ? `<div class="mu-chips"><small>주요 적</small>${cats}${boss}</div>` : '';
+}
 /** 상성 토큰 줄 (편성 화면 '상성' · 전장 상세 공용): 아이콘 · 이름 · 인원(비중) · 칩들 */
 export function muRow(icon: string, name: string, cnt: string, tags: string, cls = '', st = '', title = '') {
   return `<li class="pb-row"${title ? ` title="${esc(title)}"` : ''}><i class="pb-ri ${cls}"${st ? ` style="${st}"` : ''}>${icon}</i><b>${esc(name)}</b><span class="pb-cnt">${cnt}</span><span class="pb-tags">${tags}</span></li>`;

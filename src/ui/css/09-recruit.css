@@ -39,6 +39,14 @@ body:has(.nr) { overflow: hidden; margin: 0; }
 .modal.recruit { width: min(1280px, 100%); height: min(90dvh, 900px); max-height: none; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
 .rc-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
 .rc-head p { margin: 2px 0 0; }
+.rc-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; } /* 머리 상태 칩: 합류 등급 · 보유 · 출전 (문장 대신 이름 + 값) */
+.mu-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-top: 6px; } /* 주요 적: 분류 · 비중 + 속성 아이콘 칩 */
+.mu-chips > small { margin-right: 2px; color: var(--c-text-2); font-size: var(--fs-xs); }
+.mu-c { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-sm); font-weight: 700; }
+.mu-c:not(:nth-child(2)) { margin-left: 6px; }
+.mu-c .li { width: 15px; height: 15px; flex: none; }
+.mu-c b { color: var(--c-text-2); font: 700 var(--fs-sm) var(--f-mono); }
+.mu-c.boss { color: var(--c-bad); }
 .rc-tools { display: inline-flex; gap: 6px; align-items: center; flex: none; }
 /* 영입 · 지정 소집 창에서 잠시 나간 동안: 화면 아래 가운데 돌아가기 단추 (전체 상세 · 팝업보다 아래 층) */
 .rc-back { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: var(--z-float); box-shadow: var(--shadow-pop); }

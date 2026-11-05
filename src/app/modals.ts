@@ -15,7 +15,6 @@ import { deployed, synergyCounts, totalMajors, unitEffects } from '../engine/bui
 import * as R from '../engine/run';
 import { BGS, NPCS, PC_NAME, type Beat } from '../data/scene';
 import { CTYPE_NAME, MAJOR_NAME, MAJORS, NODE_NAME, type Major, type NodeType, type Pending, type RunState, type SynergyId } from '../types';
-import { matchupShort } from '../ui/matchup';
 import { DEATH_STYLES, FX, FX_DEFAULT } from '../ui/battleview';
 import { exportCode, listSaves, SLOT_NAME } from '../ui/save';
 import { loadMeta } from '../ui/meta';
@@ -28,7 +27,7 @@ import { lineIcon, synIcon } from '../ui/synicons';
 import * as SHOP from '../ui/shop';
 import { FS_SVG, UI_FX, app, canFullscreen, esc, isFullscreen, pct1, pctTxt, root, themePicker, uiFx } from './state';
 import { NODE_ICON, augIcon, interestLines, itemIcon, majorIcon, recommendedMajors, sprite, statIc, synToken } from './common';
-import { despairNames, dpPlayed, matchupHtml, pvPlayed, setDpPlayed, setPvPlayed } from './title';
+import { despairNames, dpPlayed, matchupChips, matchupHtml, pvPlayed, setDpPlayed, setPvPlayed } from './title';
 import { CAN_HOVER, PSI_RANKS, detailToggle, ownedChip, pickCard, schoolOpt, sub, supplyHtml, teamCount } from './unitparts';
 import { CR, ic, musterModal, phaseBoss, rankLabel, rosterRow, supplyHint } from './map';
 import { inventoryPanel, previewAlly } from './prep';
@@ -317,7 +316,7 @@ export function pendingModal(run: RunState): string {
         <div class="ru-head"><h1>${p.kind === 'school' ? '합류 · 사이오닉 전공' : p.kind === 'special' ? (p.join ? '합류 보상 · 전용 증강' : `${p.rank}등급 달성 · 전용 증강`) : p.kind === 'psionic' ? `${p.rank}등급 달성 · 전공 증강` : `${p.rank}등급 달성 · 증강`}</h1>
           <span class="muted small">${p.kind === 'school' ? `${UNIT_GROUP[d.id] ? GROUPS[UNIT_GROUP[d.id]].name + '의 ' : ''}전공을 하나 고르세요. 비술과 지속 능력이 바로 붙고, ${PSI_RANKS.join(' · ')}등급에 전공 증강을 고릅니다.${d.id === 'rachel' ? ' 레이첼은 모든 학파의 전공을 고를 수 있습니다.' : ''}` : p.kind === 'special' ? `메이저 기물은 ${CFG.augEvery}등급마다 전용 증강을 고릅니다 (최대 ${CFG.majorAugMax}개). 이번 ★ 전설 출현 확률 ${Math.round(R.majorLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.majorLegend.pity * 100)}%p)` : p.kind === 'psionic' ? `사이오닉 기물은 4 · 8 · 12 · 16등급에 전공 증강을 고릅니다 (최대 4개). 이번 ★ 전설 출현 확률 ${Math.round(R.psiLegendChance(u) * 100)}% (전설을 얻기 전까지 선택마다 +${Math.round(CFG.psiLegend.pity * 100)}%p)` : ''}</span>
           ${p.rerolls > 0 ? `<button class="btn small ru-reroll" data-a="reroll" title="단축키 R">새로고침 ${p.rerolls}</button>` : '<span class="muted small ru-reroll">새로고침 없음</span>'}</div>
-        ${p.kind === 'school' ? `<p class="mu-short small">이 전장의 주요 적: ${esc(matchupShort(run.field))}</p>` : ''}
+        ${p.kind === 'school' ? matchupChips(run.field) : ''}
         <div class="aug-list${p.kind === 'school' ? ' sch-list' : ''}">${opts.map((a, i) => {
           const ad = AUG_BY_ID[a.id];
           if (p.kind === 'school') return schoolOpt(a.id, i);
@@ -343,7 +342,7 @@ export function pendingModal(run: RunState): string {
     const rr = p.rerolls ?? 1;
     mcls = 'recruit';
     const pick = app.recruitPick && p.options.includes(app.recruitPick) ? app.recruitPick : null;
-    body = `<div class="rc-head"><div><h1>${p.syns ? '지정 소집' : '기물 영입'}</h1><p class="muted small">${p.syns ? `${p.syns.map((s) => esc(SYN_BY_ID[s as SynergyId]?.name || s)).join(' · ')} 중에서 ` : ''}새 동료 한 명을 고르세요. 공명 등급 ${rank}로 합류합니다. 보유 ${run.units.length}/${CFG.maxParty} (출전 최대 ${R.deployCap(run)}명)</p><p class="mu-short small" title="사이오닉 전공은 합류할 때 정해집니다">이 전장의 주요 적: ${esc(matchupShort(run.field))}</p></div><span class="rc-tools"><button class="btn" data-a="rc-away" title="창을 접고 지도 · 파티를 확인합니다 (고른 후보는 그대로)">잠시 나가기</button>${detailToggle()}</span></div>
+    body = `<div class="rc-head"><div><h1>${p.syns ? '지정 소집' : '기물 영입'}</h1><div class="rc-meta">${p.syns ? kvChip('후보', p.syns.map((s) => esc(SYN_BY_ID[s as SynergyId]?.name || s)).join(' · '), '이 시너지 중 하나라도 가진 기물에서 고른다') : ''}${kvChip('합류', `<b>${rankLabel(rank)}</b>`, `공명 등급 ${rank}로 합류합니다 (한 명을 고른다)`)}${kvChip('보유', `<b>${run.units.length}</b>/${CFG.maxParty}`, '보유 기물 / 최대')}${kvChip('출전', `최대&nbsp;<b>${R.deployCap(run)}</b>`, '한 전투에 내보낼 수 있는 기물 수')}</div><div title="사이오닉 전공은 합류할 때 정해집니다">${matchupChips(run.field)}</div></div><span class="rc-tools"><button class="btn" data-a="rc-away" title="창을 접고 지도 · 파티를 확인합니다 (고른 후보는 그대로)">잠시 나가기</button>${detailToggle()}</span></div>
       <div class="rc-track">${p.options.map((id, i) => pickCard(UNIT_BY_ID[id], { i, on: pick === id, tapAct: 'rc-tap', chipFn: ownedChip(id), nameExtra: `<span class="rc-rank" title="공명 등급 ${rank}">${rankLabel(rank)}</span>` })).join('')}</div>
       <div class="rc-foot">${pick ? (() => {
         // 영입하면 바뀌는 시너지: 보유 기물 + 이 기물 기준 인원, 단계가 오르면 강조
