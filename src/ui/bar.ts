@@ -22,7 +22,7 @@ import { FRAME_THEME, FRAMES, type Frame } from '../data/bar/frames';
 import { ASK, ASK_MID, ASK_Q, askLines, type AskKey } from '../data/bar/ask';
 import { BAR_GUEST, BAR_IDLE, BAR_TALK, DEEP_TOPICS, FIELD_SHORT, GENERIC_REACT } from '../data/bar/talk';
 import { AIDEN_BACK, AIDEN_OFF, AIDEN_ON, LEAVE_GENERIC, LEAVE_LINES } from '../data/bar/leave';
-import { ERANTES_CREW, MONO, MONO_KIND_NAME, MONO_KINDS, type MonoKind } from '../data/bar/mono';
+import { ERANTES_CREW, MONO, MONO_EXTRA, MONO_KIND_NAME, MONO_KINDS, type MonoKind } from '../data/bar/mono';
 import { canOrder, GLASS_BY_ID, HOUSE_MENUS, ING_BY_ID, ORDER_STYLE_NAME, RECIPE_BY_ID, REGULARS, type Drink, type OrderStyle } from '../data/bar/drinks';
 import { BAR_OPS, COIN_NAME, COIN_UNIT, coinText, judge, makeOrder, payOf, recipeName, feelText, type Grade, type Order } from '../data/bar/orders';
 import { ORDER_GENERIC, ORDER_TALK, orderTalk } from '../data/bar/orderlines';
@@ -476,9 +476,10 @@ function nextScene(fresh: number, repeat = false): Pick | null {
   const best = layerPool.map((x) => ({ x, sc: x.score + Math.random() * 2 })).sort((a, b) => b.sc - a.sc)[0]?.x;
   // 바텐더 · 손님 대화 (낮, 에이든): 해금한 단원이 적으면 번갈아, 아니면 볼 장면이 없을 때 가끔 (같은 대화는 방문마다 한 번)
   const idleTurn = !(fresh === 1 && pool !== items) && avail < 8 && (S.idleI + S.session.size) % 2 === 1;
-  if (idleTurn || (!best && (avail < 8 || repeat || Math.random() < 0.2))) {
+  // 에이든 × 레이첼 대화가 66편으로 늘어 (2026-11-05) 볼 장면이 있어도 가끔 (IDLE_CHANCE) 끼어든다. 고르기는 이번 방문에 안 나온 편 중 무작위
+  if (idleTurn || (!best && (avail < 8 || repeat || Math.random() < 0.2)) || (aidenOn() && Math.random() < IDLE_CHANCE)) {
     const left = BAR_IDLE.map((_, i) => (S.idleI + i) % BAR_IDLE.length).filter((i) => repeat || !S.session.has(`idle:${i}`));
-    const i = left[0];
+    const i = left.length ? left[Math.floor(Math.random() * left.length)] : undefined;
     const it = i === undefined ? null : BAR_IDLE[i];
     const lines = it ? it.lines.map((l) => parseLine(l, 'aiden')) : [];
     const plan = it && planFor(needOf(lines.map(([w]) => w)), 0, ok);
@@ -486,6 +487,8 @@ function nextScene(fresh: number, repeat = false): Pick | null {
   }
   return best ? { scene: best.make(best.plan), plan: best.plan } : null;
 }
+/** 볼 장면이 있어도 바텐더 대화 (에이든 × 레이첼 · 손님) 가 끼어들 확률 (낮, 에이든이 무대에 있을 때) */
+const IDLE_CHANCE = 0.15;
 /** 플레이어가 내준 잔이 남아 있으면 그 손님은 아직 일어나지 않는다 (내준 잔이 반응 없이 사라지지 않게) */
 const owesCup = (s: Seat, now: number) => s.cup?.by === 'player' && (cupLeft(s.cup, now) ?? 1) > 0;
 /** 무대를 바꾸지 않는 계획: 장면마다 새로 만든다 (decide 가 낮에 에이든을 plan.add 에 넣으므로, 한 객체를 같이 쓰면 그 뒤 밤 장면에도 에이든이 따라 나온다) */
@@ -552,14 +555,17 @@ function monoScene(now: number): Pick | null {
     S.monoUsed.add(x.key); S.monoAt = now;
     return { scene: { key: '', sit: '', lines: [[x.k, fillText(x.l, { pc: PC }), undefined, 'm']], kind: 'mono' }, plan: noop() };
   }
-  if (!opts.length) return null;
-  const fresh = opts.filter((o) => !heard.has(o.key));
-  const o = pick(fresh.length ? fresh : opts);
+  // 종류 칸 밖의 혼잣말 (MONO_EXTRA — 에이든 20): 종류 혼잣말과 같은 자리 (키 x<번호>)
+  const ex = S.stage.filter((s) => !s.guest && MONO_EXTRA[s.id]).flatMap((s) => MONO_EXTRA[s.id].map((l, i) => ({ id: s.id, k: `x${i}`, key: `mono:${s.id}.x${i}`, l })).filter((x) => !S.monoUsed.has(`${x.id}.${x.k}`) && lineTimeOk(x.l)));
+  const all = [...opts.map((o) => ({ ...o, l: MONO[o.id][o.k as MonoKind] })), ...ex];
+  if (!all.length) return null;
+  const fresh = all.filter((o) => !heard.has(o.key));
+  const o = pick(fresh.length ? fresh : all);
   S.monoUsed.add(`${o.id}.${o.k}`);
   S.monoAt = now;
   const vars = { name: nameOf(o.id), pc: PC };
-  const emo = MONO_EMO[o.k];
-  const lines: Line[] = [...(emo ? [[o.id, emo, undefined, 'e'] as Line] : []), [o.id, fillText(untag(MONO[o.id][o.k]), vars), undefined, 'm']];
+  const emo = MONO_EMO[o.k as MonoKind];
+  const lines: Line[] = [...(emo ? [[o.id, emo, undefined, 'e'] as Line] : []), [o.id, fillText(untag(o.l), vars), undefined, 'm']];
   return { scene: { key: '', sit: '', lines, kind: 'mono', mono: o.key }, plan: planFor([], 0, new Set()) || noop() };
 }
 /** 이모티콘: 무대의 한 사람이 말 대신 그림 하나 (마시는 중이면 맛있음 · 건배, 밤이면 꾸벅 · 취함이 잦다). 둘 이상이면 가끔 주고받는다 */
@@ -1988,10 +1994,10 @@ export function barRecordsHtml(): string {
   const askAll = Object.values(ASK).reduce((n, a) => n + ASK_Q.reduce((m, q) => { const v = a[q.key]; return m + (Array.isArray(v) ? (v[2] ? 3 : 2) : 1); }, 0), 0);
   const askGot = askRows.reduce((n, r) => n + r.got.length, 0);
   // 혼잣말: 구경하다 들은 정규 단원의 혼잣말 (인물별, 종류 표시)
-  const monoRows = ERANTES_CREW.filter((id) => MONO[id]).map((id) => ({ id, got: MONO_KINDS.filter((k) => talk.has(`mono:${id}.${k}`)) })).filter((r) => r.got.length);
-  const monoAll = ERANTES_CREW.reduce((n, id) => n + (MONO[id] ? MONO_KINDS.length : 0), 0);
-  const monoGot = monoRows.reduce((n, r) => n + r.got.length, 0);
-  const monoHtml = monoRows.map(({ id, got }) => `<section class="bar-rec-b"><h3>${esc(nameOf(id))} <span class="muted small f-num">${got.length}/${MONO_KINDS.length}</span></h3>${got.map((k) => `<p><b style="--c:${colorOf(id)}">${esc(MONO_KIND_NAME[k])}</b> ${esc(fillText(untag(MONO[id][k]), { pc: PC }))}</p>`).join('')}</section>`).join('');
+  const monoRows = ERANTES_CREW.filter((id) => MONO[id]).map((id) => ({ id, got: MONO_KINDS.filter((k) => talk.has(`mono:${id}.${k}`)), ex: (MONO_EXTRA[id] || []).map((_, i) => i).filter((i) => talk.has(`mono:${id}.x${i}`)) })).filter((r) => r.got.length || r.ex.length);
+  const monoAll = ERANTES_CREW.reduce((n, id) => n + (MONO[id] ? MONO_KINDS.length : 0) + (MONO_EXTRA[id]?.length || 0), 0);
+  const monoGot = monoRows.reduce((n, r) => n + r.got.length + r.ex.length, 0);
+  const monoHtml = monoRows.map(({ id, got, ex }) => `<section class="bar-rec-b"><h3>${esc(nameOf(id))} <span class="muted small f-num">${got.length + ex.length}/${MONO_KINDS.length + (MONO_EXTRA[id]?.length || 0)}</span></h3>${got.map((k) => `<p><b style="--c:${colorOf(id)}">${esc(MONO_KIND_NAME[k])}</b> ${esc(fillText(untag(MONO[id][k]), { pc: PC }))}</p>`).join('')}${ex.map((x) => `<p><b style="--c:${colorOf(id)}">혼잣말</b> ${esc(fillText(untag(MONO_EXTRA[id][x]), { pc: PC }))}</p>`).join('')}</section>`).join('');
   const knowHtml = askRows.map(({ id, got }) => `<section class="bar-rec-b"><h3>${esc(nameOf(id))} <span class="muted small f-num">${got.length}</span></h3>${got.map(({ q, t }) => `<div class="bar-rec-v"><span class="muted small">${esc(q.note)}${Array.isArray(ASK[id][q.key]) ? ` · ${TIER_NAME[t]}` : ''}</span>${scriptLines(id, askLines(askText(id, q.key, t)))}</div>`).join('')}</section>`).join('');
   // 첫 만남: 처음 말을 걸 때 본 장면
   const meetRows = Object.keys(FIRST_MEET).filter((id) => talk.has(`meet:${id}`));

@@ -11,6 +11,7 @@
 // 나머지 단원 대본: talk_b.ts (로어 있는 16명) · talk_c.ts (로어 없는 28명). 아래 BAR_TALK · DEEP_TOPICS 에 합친다.
 import { DEEP_B, TALK_B } from './talk_b';
 import { TALK_C } from './talk_c';
+import { BAR_IDLE_AR } from './aidenrachel';
 
 /** 반응 조건 (src/ui/bar.ts 의 REACT_RULES 가 판정한다) */
 export type ReactKey = 'mvp' | 'clear' | 'wipe' | 'neglect' | 'mvpOther' | 'newEvent' | 'field' | 'resume';
@@ -347,7 +348,7 @@ export const BAR_GUEST: string[][] = [
 
 /** 바가 한산할 때 (해금한 단원이 적은 초반): 에이든과 손님들의 짧은 대화 */
 /** 바텐더(에이든) · 손님 대화 (에이든이 나오므로 낮에만). props = 카운터 위 소품 */
-export const BAR_IDLE: { sit: string; lines: string[]; props?: string[] }[] = [
+const BAR_IDLE_A: { sit: string; lines: string[]; props?: string[] }[] = [
   { sit: '첫 손님', lines: ['에이든: 어서 오십시오. 메뉴판은 거기, 메뉴판 밖은 저한테 물어보시죠.', '손님: …물만요.', '에이든: 물도 메뉴판 밖에 있습니다. 제일 오래된 걸로 드리죠.'] },
   { sit: '거리 쪽 창가', lines: ['손님: 여기 용병단 바 맞아요? 생각보다 조용하네.', '에이든: 다들 일하러 나갔습니다. 돌아오면 시끄러워지죠.', '손님: 언제 돌아오는데요?', '에이든: 의뢰가 끝나면요. 그 전에 한 잔 더 하시죠.'] },
   { sit: '카운터, 레몬 2조각', lines: ['에이든: 레몬 2조각 손님, 오늘은 3조각이군요.', '손님: 티 나요?', '에이든: 레몬은 거짓말을 못 합니다. 한 조각은 서비스로 넣어 두죠.'], props: ['레몬 띄운 잔'] },
@@ -355,6 +356,8 @@ export const BAR_IDLE: { sit: string; lines: string[]; props?: string[] }[] = [
   { sit: '카운터, 핫초코', lines: ['레이첼: 핫초코.', '에이든: 곱빼기로요. 압니다.', '레이첼: 마시멜로.', '에이든: 3개. 이것도 압니다.'], props: ['핫초코'] },
   { sit: '비 오는 오후', lines: ['손님: 우산 빌려 줄 수 있어요?', '에이든: 메뉴판에 없는 메뉴로 우산이 있습니다. 반납하시면 공짜고, 안 하시면 장부에 적습니다.', '손님: 이름 안 물어봐요?', '에이든: 우산 손님으로 적겠습니다.'] },
 ];
+/** 바텐더 대화 전부: 에이든 · 손님 6편 + 에이든 × 레이첼 60편 (src/data/bar/aidenrachel.ts) */
+export const BAR_IDLE: { sit: string; lines: string[]; props?: string[] }[] = [...BAR_IDLE_A, ...BAR_IDLE_AR];
 
 /** 실재 층 화제 (심야): 그 인물과의 관계(바에서 말 건 횟수 + 함께 출전한 런 수)가 쌓여야 열린다 (src/ui/bar.ts DEEP_BOND).
  *  고백하지 않는다. docs/VOICES.md '새어 나오는 방식'의 트리거를 깔고, 인물은 반응만 한다. */
