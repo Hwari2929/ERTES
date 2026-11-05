@@ -160,7 +160,7 @@ function mtStop(run: RunState | null, prev: string, next: string): TFX.Stop | nu
   if (prev === 'newrun' && next === 'map') return { kick: 'DEPARTURE · 출발', name: fieldOf(run.field).name, en: `PHASE ${run.phase} · LINE ∞` };
   if (prev !== 'map') return null;
   if (next === 'prep' && run.node?.type === 'boss') return { kick: 'EXPRESS · 보스 역', name: phaseBoss(run)?.name || '보스', en: `PHASE ${run.phase} · TERMINAL`, tone: 'boss' };
-  if (next === 'shop') return { kick: 'NEXT STATION · 다음 역', name: '상점', en: 'MARKET' };
+  if (next === 'shop') return { kick: 'NEXT STATION · 다음 역', name: '상점', en: 'MARKET', tone: 'market' };
   return null;
 }
 export function render() {

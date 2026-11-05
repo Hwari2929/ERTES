@@ -37,11 +37,12 @@ const metroOn = () => cur.theme === 'metro' && cur.level !== 'off';
 // 인게임 화면끼리만 (바 · 계약 · 타이틀 · 도감은 제외). 명부 → 지도 = 런 출발. 전투 진입은 banner 가 맡는다
 /** 열차가 서는 정거장: 런 출발(명부 → 지도) · 보스 노드 진입 · 상점 진입만 (main.ts render 의 mtStop 이 정한다, 나머지 전환은 그대로 컷).
  *  안내판: 머리표(영문 대문자 모노) · 역 이름(그 순간의 대상: 전장 · 보스 이름 · 상점) · 영문 부제 */
-export interface Stop { kick: string; name: string; en: string; tone?: 'boss' }
+export interface Stop { kick: string; name: string; en: string; tone?: 'boss' | 'market' }
 let lastStop: Stop | null = null;
 /** 열차 시간 (ms): 들어옴 · 안내판을 읽을 최소 시간 · 떠남 · 그림을 기다리는 최대 시간 */
 const RIDE = { in: 300, hold: 170, out: 360, cap: 4000 };
-let ride: { el: HTMLElement; ghost: HTMLElement | null; fresh: boolean; covered: Promise<void>; anims: Animation[]; gone: boolean } | null = null;
+type Ride = { el: HTMLElement; ghost: HTMLElement | null; fresh: boolean; covered: Promise<void>; anims: Animation[]; gone: boolean; hold: number; leave: (r: Ride) => void };
+let ride: Ride | null = null;
 
 /** 지금 화면을 얼려 둔 사본 (열차가 다 덮으면 걷는다) */
 function freeze(app: HTMLElement) {
@@ -66,6 +67,7 @@ export function beforeScreen(prev: string, next: string, app: HTMLElement, stop:
   if (!lastStop || cur.level !== 'on' || reduced()) return;
   endRide();
   const ghost = freeze(app);
+  if (lastStop.tone === 'market') { ride = marketIn(ghost, lastStop); return; }
   const el = document.createElement('div');
   el.className = `mt-ride${lastStop.tone ? ` ${lastStop.tone}` : ''}`;
   el.setAttribute('aria-hidden', 'true');
@@ -75,25 +77,24 @@ export function beforeScreen(prev: string, next: string, app: HTMLElement, stop:
   document.body.appendChild(el);
   const car = el.firstElementChild as HTMLElement;
   const a = car.animate([{ transform: 'translateX(100%)' }, { transform: 'translateX(0)' }], { duration: RIDE.in, easing: 'cubic-bezier(.2, .75, .25, 1)', fill: 'both' });
-  const r = { el, ghost: ghost as HTMLElement | null, fresh: true, covered: a.finished.then(() => {}, () => {}), anims: [a], gone: false };
+  const r: Ride = { el, ghost, fresh: true, covered: a.finished.then(() => {}, () => {}), anims: [a], gone: false, hold: RIDE.hold, leave: rideLeave };
   ride = r;
   void r.covered.then(() => { r.ghost?.remove(); r.ghost = null; });
 }
 /** 새 화면의 그림이 다 받아지면(최대 4초) 열차가 떠난다. 역 점 = 기다리는 그림 하나씩 (받으면 채워진다) */
-function rideTrack(r: NonNullable<typeof ride>) {
+function rideTrack(r: Ride) {
   const imgs = Array.from(document.querySelectorAll<HTMLImageElement>('#app img')).filter((im) => !im.complete).slice(0, 12);
-  const stops = r.el.querySelector<HTMLElement>('.mt-bd-stops')!;
-  stops.innerHTML = imgs.map(() => '<i></i>').join('');
-  stops.hidden = !imgs.length;
+  const stops = r.el.querySelector<HTMLElement>('.mt-bd-stops');
+  if (stops) { stops.innerHTML = imgs.map(() => '<i></i>').join(''); stops.hidden = !imgs.length; }
   let n = 0;
   const loads = imgs.map((im) => new Promise<void>((res) => {
-    const done = () => { stops.children[n++]?.classList.add('on'); res(); };
+    const done = () => { stops?.children[n++]?.classList.add('on'); res(); };
     im.addEventListener('load', done, { once: true }); im.addEventListener('error', done, { once: true });
   }));
-  const minHold = r.covered.then(() => new Promise((res) => setTimeout(res, RIDE.hold)));
-  void Promise.race([Promise.all([Promise.all(loads), minHold]), new Promise((res) => setTimeout(res, RIDE.cap))]).then(() => rideLeave(r));
+  const minHold = r.covered.then(() => new Promise((res) => setTimeout(res, r.hold)));
+  void Promise.race([Promise.all([Promise.all(loads), minHold]), new Promise((res) => setTimeout(res, RIDE.cap))]).then(() => r.leave(r));
 }
-function rideLeave(r: NonNullable<typeof ride>) {
+function rideLeave(r: Ride) {
   if (r.gone) return;
   r.gone = true;
   r.el.classList.add('open'); // 떠나기 시작하면 누름은 아래 화면으로
@@ -103,6 +104,51 @@ function rideLeave(r: NonNullable<typeof ride>) {
   void a.finished.then(() => { r.el.remove(); if (ride === r) ride = null; }, () => {});
 }
 function endRide() { if (!ride) return; ride.anims.forEach((x) => x.cancel()); ride.el.remove(); ride.ghost?.remove(); ride = null; }
+
+/** 상점 = 전투 진입과 같은 밀도의 큰 면 전환 (MARKET): 복숭아 · 민트 · 잉크 사선 패널이 덮고, 잉크 위에 큰 동전 원판(∞) · 가격표 · 흘러가는 MARKET 글자 띠 두 줄 ·
+ *  망점 · 바코드 기둥 · 진열칸 5개(하나씩 불이 들어온다) + 다음 역 탑승권. 새 화면 그림이 받아지면(최소 MK.hold) 패널이 같은 방향으로 빠지며 상점이 드러난다 */
+const MK = { cover: 400, hold: 760, run: 5200 };
+function marketIn(ghost: HTMLElement, st: Stop): Ride {
+  const el = document.createElement('div');
+  el.className = 'mt-go mt-go-market';
+  el.setAttribute('aria-hidden', 'true');
+  el.innerHTML = `<i class="mg-pan p1"></i><i class="mg-pan p2"></i><i class="mg-pan p3"></i>
+    <div class="mg-stage">
+      <div class="mg-shapes"><b class="mk-word w1">${'MARKET · '.repeat(10)}</b><b class="mk-word w2">${'OPEN ∞ 상점 · '.repeat(10)}</b>
+        <i class="mk-dots"></i><i class="mk-coin"><b>∞</b></i><i class="mk-tag"></i><i class="mg-bars"></i></div>
+      <div class="mk-shelf">${'<i><b></b></i>'.repeat(5)}</div>
+      <div class="mg-tk"><div class="mg-tk-a"><span class="mg-k"><b>ADMIT ONE</b><i></i><span>${esc(st.kick)}</span></span><b class="mg-t">${esc(st.name)}</b><span class="mg-r"><span>TO</span><b>${esc(st.en)}</b><i></i></span></div><span class="mg-code"></span><i class="mg-punch"></i></div>
+    </div>`;
+  document.body.appendChild(el);
+  const $ = (q: string) => el.querySelector<HTMLElement>(q)!;
+  const T = MK.run, SK = 'skewX(-14deg)';
+  const anims: Animation[] = [];
+  const pans = Array.from(el.querySelectorAll('.mg-pan'));
+  pans.forEach((p, k) => anims.push(tl(p, T, [[k * 60, { transform: `translateX(118vw) ${SK}` }, SLAM], [260 + k * 70, { transform: `translateX(-44vw) ${SK}` }]])));
+  anims.push(tl($('.mg-stage'), T, [[300, { opacity: 0 }], [360, { opacity: 1 }]]));
+  anims.push(tl($('.mk-coin'), T, [[300, { transform: 'scale(.5) rotate(-40deg)' }, POP], [580, { transform: 'scale(1) rotate(0deg)' }, 'linear'], [T, { transform: 'scale(1) rotate(30deg)' }]]));
+  anims.push(tl($('.mk-tag'), T, [[340, { transform: 'translate(30vw, -20vh) rotate(40deg)' }, SLAM], [600, { transform: 'translate(0, 0) rotate(14deg)' }, 'linear'], [T, { transform: 'translate(-2vw, 1vh) rotate(10deg)' }]]));
+  anims.push(tl($('.mk-word.w1'), T, [[300, { transform: 'translateX(0)' }, 'linear'], [T, { transform: 'translateX(-55%)' }]])); // 글자 띠는 덮인 동안 계속 흐른다 (속도감)
+  anims.push(tl($('.mk-word.w2'), T, [[300, { transform: 'translateX(-55%)' }, 'linear'], [T, { transform: 'translateX(0)' }]]));
+  anims.push(tl($('.mk-dots'), T, [[320, { transform: 'scale(.6)', opacity: 0 }, SLAM], [560, { transform: 'scale(1)', opacity: 1 }]]));
+  anims.push(tl($('.mg-bars'), T, [[380, { transform: 'scaleY(0)' }, SLAM], [600, { transform: 'scaleY(1)' }]]));
+  anims.push(tl($('.mg-tk'), T, [[340, { transform: 'scale(1.22) rotate(-2deg)', opacity: 0 }, POP], [540, { transform: 'scale(1) rotate(-2deg)', opacity: 1 }]]));
+  el.querySelectorAll('.mk-shelf b').forEach((b, k) => anims.push(tl(b, T, [[440 + k * 70, { opacity: 0, transform: 'scale(.3) rotate(-45deg)' }, POP], [540 + k * 70, { opacity: 1, transform: 'scale(1) rotate(0deg)' }]])));
+  return { el, ghost, fresh: true, covered: anims[pans.length - 1].ready.then(() => new Promise<void>((res) => setTimeout(res, MK.cover))), anims, gone: false, hold: MK.hold, leave: marketLeave };
+}
+/** 상점 전환 걷기: 표에 구멍이 뚫리고(펀치) 잉크 · 민트 · 복숭아 순서로 패널이 왼쪽으로 빠진다 */
+function marketLeave(r: Ride) {
+  if (r.gone) return;
+  r.gone = true;
+  const el = r.el;
+  el.classList.add('open');
+  const T = 620, SK = 'skewX(-14deg)';
+  r.anims.push(tl(el.querySelector('.mg-punch')!, T, [[0, { transform: 'scale(0)' }, POP], [100, { transform: 'scale(1)' }]]));
+  r.anims.push(tl(el.querySelector('.mg-tk')!, T, [[110, { transform: 'scale(1) rotate(-2deg)', opacity: 1 }, OUTE], [330, { transform: 'translateX(-46vw) skewX(18deg) rotate(-2deg)', opacity: 0 }]]));
+  r.anims.push(tl(el.querySelector('.mg-stage')!, T, [[150, { opacity: 1 }], [250, { opacity: 0 }]]));
+  el.querySelectorAll('.mg-pan').forEach((p, k) => { const at = 120 + (2 - k) * 55; r.anims.push(tl(p, T, [[at, { transform: `translateX(-44vw) ${SK}` }, OUTE], [at + 360, { transform: `translateX(-250vw) ${SK}` }]])); });
+  setTimeout(() => { el.remove(); if (ride === r) ride = null; }, T + 40);
+}
 
 /** render() 가 화면을 그린 뒤: 전투 여부 · (메트로) 큰 화면 전환 */
 export function onScreen(prev: string, next: string) {

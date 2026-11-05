@@ -53,6 +53,23 @@
 .mt-go-boss { --go-a: var(--mt-d); --go-b: var(--mt-a); --go-lamp: var(--mt-d); }
 .mt-go-adversity { --go-a: var(--mt-c); --go-b: var(--mt-d); --go-lamp: var(--mt-c); }
 .mt-go-phase { --go-b: var(--mt-c); }
+.mt-go-market { --go-a: var(--mt-c); --go-b: var(--mt-b); --go-c: var(--mt-a); --go-lamp: var(--mt-c); } /* 상점: 복숭아 · 민트 패널 (themefx marketIn) */
+.mt-go.open .mg-pan { pointer-events: none; }
+.mk-word { position: absolute; left: 0; white-space: nowrap; font: 400 var(--mt-fs-mega)/.9 var(--f-display); letter-spacing: -.02em; }
+.mk-word.w1 { top: -5vmin; color: color-mix(in srgb, var(--mt-paper) 8%, transparent); }
+.mk-word.w2 { bottom: -7vmin; color: transparent; -webkit-text-stroke: 1.5px color-mix(in srgb, var(--go-b) 50%, transparent); } /* 흘러가는 글자 띠: 위 = 옅은 면, 아래 = 민트 윤곽 (반대로 흐른다) */
+.mg-shapes > .mk-coin { left: -14vmin; top: 50%; display: grid; place-items: center; width: 76vmin; height: 76vmin; margin-top: -38vmin; border-radius: 50%; color: var(--mt-on);
+  background: radial-gradient(circle, transparent 0 60%, var(--mt-ink) 60.4% 63%, transparent 63.4%), var(--go-a); } /* 큰 동전 = 크레딧 ∞ */
+.mk-coin b { font: 400 var(--mt-fs-mega)/1 var(--f-display); }
+.mk-tag { right: 7vw; top: 9%; width: 48vmin; height: 25vmin; background: radial-gradient(circle at 16% 50%, var(--mt-ink) 0 2.6vmin, transparent 2.7vmin), var(--go-b);
+  clip-path: polygon(12% 0, 100% 0, 100% 100%, 12% 100%, 0 50%); } /* 가격표 (구멍 · 뾰족한 머리) */
+.mk-tag::after { content: '∞'; position: absolute; right: 9%; top: 50%; translate: 0 -50%; color: var(--mt-on); font: 400 var(--mt-fs-hero)/1 var(--f-display); }
+.mk-dots { right: 0; bottom: 0; width: 64vmin; height: 64vmin; background: var(--go-c);
+  -webkit-mask: var(--mt-dot-tl) center / 100% 100% no-repeat; mask: var(--mt-dot-tl) center / 100% 100% no-repeat; rotate: 180deg; } /* 우하단으로 짙어지는 큰 망점 */
+.mk-shelf { position: relative; display: flex; gap: 1.6vmin; padding: 1.4vmin; border-radius: var(--mt-r-sm); background: var(--mt-ink); border: 1.5px solid color-mix(in srgb, var(--mt-paper) 28%, transparent); } /* 진열칸 (신호등 자리) */
+.mk-shelf i { position: relative; width: 7vmin; height: 7vmin; border-radius: var(--mt-r-sm); background: color-mix(in srgb, var(--mt-paper) 7%, var(--mt-ink)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--mt-paper) 24%, transparent); }
+.mk-shelf b { position: absolute; inset: 16%; border-radius: var(--r-sm); background: var(--go-a); opacity: 0; }
+.mk-shelf i:nth-child(2n) b { border-radius: 50%; background: var(--go-b); }
 .mg-pan { position: absolute; top: -14%; bottom: -14%; left: 0; width: 180vw; transform: translateX(118vw) skewX(-14deg); pointer-events: auto; } /* 덮는 동안 누름을 막는다 (빠지면 자연히 풀린다) */
 .mg-pan.p1 { background: var(--go-b); }
 .mg-pan.p2 { margin-left: 4vw; background: var(--go-a); }
@@ -179,7 +196,7 @@
 [data-ui-theme="metro"] .mt-pass > i { position: absolute; right: 14px; top: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--mt-a); }
 [data-ui-theme="metro"] .mt-pass-stub { position: absolute; left: 0; right: 0; bottom: 0; height: var(--stub); display: flex; align-items: center; gap: 10px; padding: 0 14px; background: linear-gradient(100deg, var(--ps-a), var(--ps-b)); color: var(--mt-on);
   --ps-a: var(--mt-b); --ps-b: var(--mt-a); transition: --ps-a .25s ease, --ps-b .25s ease; }
-[data-ui-theme="metro"] .pcard.sel .mt-pass-stub { --ps-a: var(--c-select); --ps-b: var(--mt-b); } /* 고르면 스텁 = 복숭아 → 민트 (0.25초, 아래 @property 로 색이 이어진다) */
+[data-ui-theme="metro"] .pcard.sel .mt-pass-stub { --ps-a: var(--mt-a); --ps-b: var(--c-select); } /* 고르면 스텁 = 보라 → 복숭아 (0.25초, 아래 @property 로 색이 이어진다) */
 @property --ps-a { syntax: '<color>'; inherits: false; initial-value: transparent; }
 @property --ps-b { syntax: '<color>'; inherits: false; initial-value: transparent; }
 [data-ui-theme="metro"] .mt-pass-stub::before { content: ''; position: absolute; left: 12px; right: 12px; top: 0; border-top: var(--mt-perf) color-mix(in srgb, var(--mt-on) 35%, transparent); } /* 절취선 */
