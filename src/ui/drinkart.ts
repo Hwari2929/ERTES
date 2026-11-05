@@ -126,7 +126,7 @@ const wallsAt = (ga: Art, y: number): [number, number] => {
 /** 높이 y 의 수평 단면 타원 호 (잔 그림은 조금 위에서 본 모습): front = 앞쪽 호 (가운데가 아래로 처짐), 아니면 뒤쪽 호. 왼쪽 → 오른쪽 점 */
 const arc = (ga: Art, y: number, front: boolean): string => {
   const [x0, x1] = wallsAt(ga, y);
-  const cx = (x0 + x1) / 2, rx = (x1 - x0) / 2 + 0.8, ry = rx * lerp(ga.k[0], ga.k[1], Math.max(0, Math.min(1, (y - ga.top) / (ga.bot - ga.top))));
+  const cx = (x0 + x1) / 2, rx = (x1 - x0) / 2, ry = rx * lerp(ga.k[0], ga.k[1], Math.max(0, Math.min(1, (y - ga.top) / (ga.bot - ga.top)))); // 타원 양 끝 = 그 높이의 벽 (안쪽 영역 마스크) — 2026-11-05 사용자: 수면 타원이 마스크보다 넓었다
   const pts: string[] = [];
   for (let i = 0; i <= 16; i++) { const t = -1 + i / 8; pts.push(`${(cx + rx * t).toFixed(2)} ${(y + (front ? 1 : -1) * ry * Math.sqrt(1 - t * t)).toFixed(2)}`); }
   return pts.join(' L');
@@ -187,7 +187,7 @@ export function drinkSvg(d: Drink, left = 1, cls = 'drink', art: boolean | 'plai
       const blur = !frozen && segs.length > 1;
       if (blur) parts.push(`<filter id="${id}b" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="${(0.09 / n * 2 * H * 0.6).toFixed(2)}"/></filter>`);
       parts.push(`<clipPath id="${id}t"><path d="${below(ga, yTop, false)}"/></clipPath>`);
-      const [x0, x1] = wallsAt(ga, yTop), ecx = (x0 + x1) / 2, erx = (x1 - x0) / 2 + 0.8, ery = erx * lerp(ga.k[0], ga.k[1], Math.max(0, Math.min(1, (yTop - ga.top) / (ga.bot - ga.top))));
+      const [x0, x1] = wallsAt(ga, yTop), ecx = (x0 + x1) / 2, erx = (x1 - x0) / 2, ery = erx * lerp(ga.k[0], ga.k[1], Math.max(0, Math.min(1, (yTop - ga.top) / (ga.bot - ga.top))));
       // 윗면 (조명을 받아 몸통보다 밝다): 맨 위 층 색에 흰색 35% 를 섞고 불투명도 +0.12 (2026-11-04 사용자)
       const topC = frozen ? fill : colorOf(topIng), topA = frozen ? alpha : alphaOf(topIng);
       // 텍스처 층 (FOAM_FX): 타일 무늬 하나를 영역에 채우고 혼합 모드로 얹는다
