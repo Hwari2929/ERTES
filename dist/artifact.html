@@ -6243,7 +6243,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .xp i { background: var(--mt-b); opacity: .5; }
 
 /* ── 단원 모집 카드 (.pcard: 영입 · 지정 소집 · 명부) = 탑승권. 위 BOARDING PASS 줄 · 사진 창 · 아래 노선색 스텁(바코드 · METRO · 순번) · 절취 홈 · 보라 판 그림자.
-   사진 창 배경 = 전투 유형 모듈 (그림 아래): 명사수 = 표적 · 돌격가 = 돌진 사선 · 전문가 = 원판 구성 · 지휘관 = 방사 햇살 */
+   사진 창 배경 = 전투 유형 모듈 (그림 아래, 면 없이 1.5px 선만): 명사수 = 조준경 · 돌격가 = 속도선 · 전문가 = 설계 모눈 · 궤도 · 지휘관 = 방사선 */
 .mt-pass { display: none; }
 [data-ui-theme="metro"] .pslot { position: relative; filter: drop-shadow(-7px 7px 0 var(--mt-a)); }
 [data-ui-theme="metro"] .pslot:has(.pcard.sel) { filter: drop-shadow(-7px 7px 0 var(--c-select)); }
@@ -6266,19 +6266,25 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .mt-pass-stub em { margin-left: auto; font: 400 var(--fs-xl)/1 var(--f-display); font-style: normal; }
 [data-ui-theme="metro"] .pcard .pc-art { inset: 28px 9px calc(var(--stub) + 2px); border-radius: var(--r-lg); background: color-mix(in srgb, var(--mt-a) 9%, var(--mt-ink)); }
 [data-ui-theme="metro"] .pcard .pc-art::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--ct-bg, none); } /* 그림 아래 (::before 가 그림보다 먼저 칠해진다) */
+[data-ui-theme="metro"] .pcard { --ctl-a: color-mix(in srgb, var(--mt-a) 62%, transparent); --ctl-b: color-mix(in srgb, var(--mt-b) 55%, transparent); --ctl-p: color-mix(in srgb, var(--mt-paper) 22%, transparent);
+  --ctl-g: color-mix(in srgb, var(--mt-paper) 7%, transparent); --ctl-r: color-mix(in srgb, var(--mt-a) 38%, transparent); --ctl-hole: color-mix(in srgb, var(--mt-a) 9%, var(--mt-ink)); } /* 무늬 선 색 (선 굵기 1.5px = 디자인 시스템 stroke) */
 [data-ui-theme="metro"] .pcard[data-ct="MARK"] { --ct-bg:
-  linear-gradient(90deg, transparent calc(70% - 3px), color-mix(in srgb, var(--mt-paper) 9%, transparent) calc(70% - 3px) calc(70% + 3px), transparent calc(70% + 3px)),
-  linear-gradient(transparent calc(30% - 3px), color-mix(in srgb, var(--mt-paper) 9%, transparent) calc(30% - 3px) calc(30% + 3px), transparent calc(30% + 3px)),
-  radial-gradient(circle at 70% 30%, color-mix(in srgb, var(--mt-b) 55%, transparent) 0 6%, transparent 6.3% 14%, color-mix(in srgb, var(--mt-a) 42%, transparent) 14.3% 23%, transparent 23.3% 32%, color-mix(in srgb, var(--mt-a) 22%, transparent) 32.3% 42%, transparent 42.3%); } /* 명사수: 표적 */
+  linear-gradient(90deg, transparent calc(68% - .75px), var(--ctl-p) calc(68% - .75px) calc(68% + .75px), transparent calc(68% + .75px)),
+  linear-gradient(transparent calc(30% - .75px), var(--ctl-p) calc(30% - .75px) calc(30% + .75px), transparent calc(30% + .75px)),
+  radial-gradient(circle at 68% 30%, transparent 13px, var(--ctl-b) 13px 14.5px, transparent 14.5px 37px, var(--ctl-a) 37px 38.5px, transparent 38.5px 63px, var(--ctl-a) 63px 64.5px, transparent 64.5px 95px, var(--ctl-p) 95px 96.5px, transparent 96.5px); } /* 명사수: 조준경 (동심원 · 십자선) */
 [data-ui-theme="metro"] .pcard[data-ct="VAN"] { --ct-bg:
-  linear-gradient(122deg, transparent 0 34%, color-mix(in srgb, var(--mt-a) 42%, transparent) 34% 52%, transparent 52% 56%, color-mix(in srgb, var(--mt-b) 42%, transparent) 56% 64%, transparent 64% 68%, color-mix(in srgb, var(--mt-paper) 10%, transparent) 68% 72%, transparent 72%); } /* 돌격가: 돌진 사선 */
+  linear-gradient(122deg, transparent 30%, var(--ctl-a) 30% calc(30% + 1.5px), transparent 0 35%, var(--ctl-a) 35% calc(35% + 1.5px), transparent 0 40%, var(--ctl-a) 40% calc(40% + 1.5px),
+    transparent 0 52%, var(--ctl-b) 52% calc(52% + 1.5px), transparent 0 56%, var(--ctl-b) 56% calc(56% + 1.5px), transparent 0 68%, var(--ctl-p) 68% calc(68% + 1.5px), transparent 0),
+  linear-gradient(58deg, transparent calc(80% - .75px), var(--ctl-p) calc(80% - .75px) calc(80% + .75px), transparent calc(80% + .75px)); } /* 돌격가: 돌진 속도선 */
 [data-ui-theme="metro"] .pcard[data-ct="SPEC"] { --ct-bg:
-  radial-gradient(circle, color-mix(in srgb, var(--mt-paper) 10%, transparent) 0 1.3px, transparent 1.8px) 0 0 / 13px 13px,
-  radial-gradient(circle at 100% 0, color-mix(in srgb, var(--mt-a) 45%, transparent) 0 46%, transparent 46.3%),
-  radial-gradient(circle at 0 100%, color-mix(in srgb, var(--mt-b) 40%, transparent) 0 34%, transparent 34.3%); } /* 전문가: 원판 구성 + 망점 */
+  radial-gradient(ellipse 44% 13% at 50% 32%, transparent calc(100% - 2px), var(--ctl-a) calc(100% - 2px) 100%, transparent 100%),
+  radial-gradient(circle at 50% 32%, transparent 23px, var(--ctl-b) 23px 24.5px, transparent 24.5px),
+  radial-gradient(circle at 100% 0, transparent calc(44% - 1.5px), var(--ctl-p) calc(44% - 1.5px) 44%, transparent 44%),
+  linear-gradient(var(--ctl-g) 1px, transparent 1px) 0 0 / 20px 20px, linear-gradient(90deg, var(--ctl-g) 1px, transparent 1px) 0 0 / 20px 20px; } /* 전문가: 설계 모눈 · 궤도 */
 [data-ui-theme="metro"] .pcard[data-ct="CMD"] { --ct-bg:
-  radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--mt-b) 50%, transparent) 0 11%, transparent 11.3%),
-  repeating-conic-gradient(from -6deg at 50% 30%, color-mix(in srgb, var(--mt-a) 34%, transparent) 0 8deg, transparent 8deg 24deg); } /* 지휘관: 방사 햇살 */
+  radial-gradient(circle at 50% 30%, transparent 25px, var(--ctl-b) 25px 26.5px, transparent 26.5px 33px, var(--ctl-a) 33px 34.5px, transparent 34.5px),
+  radial-gradient(circle at 50% 30%, var(--ctl-hole) 34.5px, transparent 35px),
+  repeating-conic-gradient(from 0deg at 50% 30%, var(--ctl-r) 0 .45deg, transparent .45deg 12deg); } /* 지휘관: 방사선 · 이중 고리 (가운데는 사진 창 바탕으로 비워 선이 고리 밖에서 시작) */
 [data-ui-theme="metro"] .pcard .pc-panel { inset: 28px 0 var(--stub); }
 [data-ui-theme="metro"] .pcard .pc-top { padding-inline: 16px; }
 [data-ui-theme="metro"] .pcard .pc-syn { top: 38px; left: 18px; }
@@ -6287,6 +6293,7 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 [data-ui-theme="metro"] .pcard .cback { border: 0; box-shadow: none; border-radius: inherit;
   background: radial-gradient(circle at 50% 50%, var(--mt-ink) 0 15%, transparent 15.5%), repeating-linear-gradient(-60deg, var(--mt-a) 0 14px, var(--mt-ink) 14px 22px, var(--mt-b) 22px 30px, var(--mt-ink) 30px 44px); } /* 뒷면: 노선색 사선 */
 @media (max-width: 640px) {
+  [data-ui-theme="metro"] .ah-card { --ahw: 84px; }
   [data-ui-theme="metro"] .pcard { --stub: 32px; }
   [data-ui-theme="metro"] :is(.rc-track, .car-track) { gap: 14px; }
   [data-ui-theme="metro"] .mt-code { width: 34px; height: 12px; }
@@ -6329,13 +6336,20 @@ html:has(main.prep) { scrollbar-gutter: stable; }
 
 /* ── 항로도 아래 노드 = 승차 표: 왼쪽 스텁(노드 아이콘 · 순서) | 절취선 | 몸통 (머리표 NOW BOARDING / NEXT STOP). 누르는 것은 진입 단추뿐 → 표는 평평 */
 [data-ui-theme="metro"] .ah-list { gap: 12px; }
-[data-ui-theme="metro"] .ah-card { position: relative; padding: 0; gap: 0; align-items: stretch; overflow: visible; border: 1.5px solid color-mix(in srgb, var(--nc) 38%, var(--mt-edge)); border-radius: var(--mt-r-md); background: var(--panel); box-shadow: none; }
-[data-ui-theme="metro"] .ah-lead { position: relative; align-content: center; padding: 12px 14px; border-radius: var(--mt-r-md) 0 0 var(--mt-r-md); border-right: 2px dashed color-mix(in srgb, var(--mt-paper) 22%, transparent); background: color-mix(in srgb, var(--nc) 14%, var(--mt-ink)); }
-[data-ui-theme="metro"] .ah-lead::before, [data-ui-theme="metro"] .ah-lead::after { content: ''; position: absolute; right: -10px; width: 18px; height: 18px; border-radius: 50%; background: var(--bg); } /* 절취 홈 */
-[data-ui-theme="metro"] .ah-lead::before { top: -10px; } [data-ui-theme="metro"] .ah-lead::after { bottom: -10px; }
+[data-ui-theme="metro"] .ah-card { --ahw: 96px; --ah-edge: color-mix(in srgb, var(--nc) 38%, var(--mt-edge)); position: relative; padding: 0; gap: 0; align-items: stretch; overflow: visible;
+  border: 1.5px solid var(--ah-edge); border-radius: var(--mt-r-md); background: var(--panel); box-shadow: none;
+  -webkit-mask: radial-gradient(circle at calc(var(--ahw) + .5px) 0, transparent 9.25px, var(--c-black) 9.75px) top / 100% 51% no-repeat,
+    radial-gradient(circle at calc(var(--ahw) + .5px) 100%, transparent 9.25px, var(--c-black) 9.75px) bottom / 100% 51% no-repeat;
+  mask: radial-gradient(circle at calc(var(--ahw) + .5px) 0, transparent 9.25px, var(--c-black) 9.75px) top / 100% 51% no-repeat,
+    radial-gradient(circle at calc(var(--ahw) + .5px) 100%, transparent 9.25px, var(--c-black) 9.75px) bottom / 100% 51% no-repeat; } /* 절취 홈 = 실제 구멍 (뒤 바탕이 보인다) */
+[data-ui-theme="metro"] .ah-lead { position: relative; flex: none; width: var(--ahw); justify-items: center; align-content: center; padding: 12px 8px; border-radius: var(--mt-r-md) 0 0 var(--mt-r-md);
+  border-right: 2px dashed color-mix(in srgb, var(--mt-paper) 22%, transparent); background: color-mix(in srgb, var(--nc) 14%, var(--mt-ink)); } /* 스텁 너비는 내용과 무관하게 고정 */
+[data-ui-theme="metro"] .ah-lead .ah-step { white-space: nowrap; }
+[data-ui-theme="metro"] .ah-lead::before, [data-ui-theme="metro"] .ah-lead::after { content: ''; position: absolute; left: calc(var(--ahw) - 12px); width: 22px; height: 22px; border: 1.5px solid var(--ah-edge); border-radius: 50%; } /* 홈 가장자리 = 카드 테두리와 같은 선 (카드 밖 반쪽은 카드 마스크에 잘린다) */
+[data-ui-theme="metro"] .ah-lead::before { top: -12.5px; } [data-ui-theme="metro"] .ah-lead::after { bottom: -12.5px; }
 [data-ui-theme="metro"] .ah-body { padding: 12px 16px; }
 [data-ui-theme="metro"] .ah-body::before { content: 'NEXT STOP'; display: block; margin-bottom: 4px; color: var(--c-text-2); font: 600 var(--fs-2xs)/1 var(--f-mono); letter-spacing: .16em; }
-[data-ui-theme="metro"] .ah-card.cur { border-color: var(--c-select); box-shadow: none; }
+[data-ui-theme="metro"] .ah-card.cur { --ah-edge: var(--c-select); box-shadow: none; }
 [data-ui-theme="metro"] .ah-card.cur .ah-lead { background: color-mix(in srgb, var(--c-select) 16%, var(--mt-ink)); }
 [data-ui-theme="metro"] .ah-card.cur .ah-body::before { content: 'NOW BOARDING'; color: var(--c-select); }
 [data-ui-theme="metro"] .ah-act { top: 14px; right: 14px; }
