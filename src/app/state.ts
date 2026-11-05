@@ -33,11 +33,7 @@ export function applyFxPrefs() {
 /** UI 테마 (설정 → 테마). 색은 src/ui/css/01-themes.css 의 [data-ui-theme] 블록에 있고, 여기서는 <html data-ui-theme> 만 바꾼다. 첫 실행 기본값 = 에란테스 갤럭시 */
 export const UI_THEMES = [
   { id: 'galaxy', name: '에란테스 갤럭시', desc: '잉크빛 남색 · 미색 · 계약서 호박색 (기본)' },
-  { id: 'vintage', name: '에란테스 퓨처리스틱 네이비 빈티지', desc: '짙은 네이비 · 빛바랜 종이 · 녹청 강조 · 바랜 황동' },
-  { id: 'ithaca', name: '이타카 코랄 베이지 시-사이드', desc: '밝은 모래 바탕 · 코랄 강조 · 바다색 (라이트)' },
-  { id: 'ithaca-port', name: '이타카 무역항', desc: '물안개 하늘빛 바탕 · 네이비 · 에메랄드 강조 · 바다색 (라이트)' },
-  { id: 'hoishun', name: '호이슌 사쿠라 가든', desc: '자줏빛 네온 밤 · 벚꽃 분홍 · 네온 청록' },
-  { id: 'calito', name: '칼리토 스타더스트 홀', desc: '황실 연회장 남보라 · 금색 · 별가루 은빛' },
+  { id: 'metro', name: '메트로 인피니티 패스', desc: '심야 노선 남색 · 보라 · 민트 노선색 · 승강장 안전선 노랑 · 탑승권' },
 ] as const;
 export const uiTheme = () => { const t = loadPrefs().uiTheme; return UI_THEMES.some((x) => x.id === t) ? t! : 'galaxy'; };
 /** 테마 연출 (설정): 켜기 · 줄이기 · 끄기. 첫 실행 기본값 = 켜기 */

@@ -425,7 +425,7 @@ export function menuModal(run: RunState | null) {
       ${tabs}
       <h3>테마</h3>
       ${themePicker()}
-      <div class="pref"><span><b>테마 연출</b><br><span class="muted small">갤럭시 별빛 · 빈티지 가죽 결 · 이타카 물결 전환 · 호이슌 벚꽃. 줄이기: 입자를 줄이고 유성 · 폭풍 없이, 물결 대신 짧은 페이드</span></span>
+      <div class="pref"><span><b>테마 연출</b><br><span class="muted small">갤럭시 별빛 · 메트로 창밖 별빛 · 열차 화면 전환 · 전투 진입 질주. 줄이기: 별을 줄이고 유성 · 빛 열차 없이, 열차 대신 노선색 띠 한 번 · 전투 진입은 속도선 몇 줄</span></span>
         <span class="seg">${UI_FX.map(([k, l]) => `<button class="btn tiny ${uiFx() === k ? 'on' : ''}" data-a="pref-uifx" data-v="${k}" aria-pressed="${uiFx() === k}">${l}</button>`).join('')}</span></div>
       ${canFullscreen() ? `<h3>화면</h3>
       <div class="pref"><span><b>전체 화면</b><br><span class="muted small">주소창 · 휴대폰 상태 표시줄 · 내비게이션 바를 숨깁니다. 켜 두면 다음에 열 때 첫 터치에서 다시 전체 화면이 됩니다 (브라우저 규칙상 자동으로는 켜지지 않음). 뒤로 가기 · Esc 로 나옵니다.</span></span>

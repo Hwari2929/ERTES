@@ -195,7 +195,7 @@ export function render() {
   const KEEP = ['.um-grid', '.um-a', '.um-c', '.um-r', '.um-main', '.side.right', '.map-detail', '.detail', '.shop-ov', '.so-body', '.shop-ov .sd', '.pil-ov'];
   const kept = KEEP.map((q) => root.querySelector<HTMLElement>(q)?.scrollTop ?? 0);
   const media = app.screen === 'battle' || app.screen === 'bar' ? null : keepMedia();
-  TFX.beforeScreen(prevScreen, app.screen, root); // 이타카: 바뀌기 전 화면을 덮는 바다 (그리기 전에 지금 화면을 얼려 둔다)
+  TFX.beforeScreen(prevScreen, app.screen, root); // 메트로: 바뀌기 전 화면을 덮는 열차 (그리기 전에 지금 화면을 얼려 둔다)
   root.innerHTML = `${showTop ? topbar() : ''}${body}${run && app.screen !== 'codex' ? pendingModal(run) : ''}${run && (app.screen === 'prep' || app.screen === 'map') ? recoModal(run) : ''}${run ? useModal(run) : ''}${run ? askPop() : ''}${run ? LAB.labHtml(run, app.screen) : ''}${run && app.bigUnit && (app.screen === 'map' || app.screen === 'prep') ? unitModal(run) : ''}${app.preview ? unitModal(app.preview.run, true) : ''}${menuModal(run)}<div id="toast" class="toast" ${app.toast ? '' : 'hidden'}>${esc(app.toast)}</div>`;
   media?.();
   KEEP.forEach((q, k) => { const el = root.querySelector<HTMLElement>(q); if (el && kept[k]) el.scrollTop = kept[k]; });
@@ -215,7 +215,7 @@ export function render() {
   advSync(run ?? null);
   SHOP.shopMount(root); // 상인 말풍선 연출 · 혼잣말 시계
   SHOP.adMount(root); // 페트라 광고판 초읽기 · 자동 닫힘
-  TFX.onScreen(prevScreen, app.screen); // 테마 연출: 전투 중 강도 낮춤 · (이타카) 큰 화면 전환 물결 (사건 장면이 떴는지 본 뒤)
+  TFX.onScreen(prevScreen, app.screen); // 테마 연출: 전투 중 강도 낮춤 · (메트로) 큰 화면 전환 열차 (사건 장면이 떴는지 본 뒤)
   if (app.screen === 'bar') BAR.barMount();
   if (app.screen === 'contract') CTR.contractMount(root);
   if (app.screen === 'newrun') BRF.briefMount(root);

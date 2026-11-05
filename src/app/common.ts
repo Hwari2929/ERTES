@@ -11,6 +11,7 @@ import { withEmblemSummon } from '../data/emblems';
 import { recMajors } from '../data/rework';
 import { SCHOOL_BY_ID, type SchoolId } from '../data/schools';
 import * as CTR from '../ui/contract';
+import * as TFX from '../ui/themefx';
 import { buildEnemy, deployed, kingOn, memberships, synergyCounts, synList } from '../engine/build';
 import { Battle } from '../engine/combat';
 import * as R from '../engine/run';
@@ -245,6 +246,7 @@ export function synergyPanel(run: RunState) {
 /** 화면 전환 연출: 전투 개시 · 보스전 · 페이즈 전환 */
 export function banner(kind: 'battle' | 'boss' | 'phase' | 'adversity', title: string, sub = '') {
   document.querySelector('.banner')?.remove();
+  if (TFX.banner(kind, title, sub)) return; // 메트로 인피니티 패스: 속도선 · 도형 · 탑승권 연출
   const el = document.createElement('div');
   el.className = `banner bn-${kind}`;
   el.setAttribute('aria-live', 'polite');
